@@ -9,9 +9,9 @@ module alt.ThetaTyping where
 --     lookup judgments perform the spelling, weakening entries across
 --     later type-variable insertions (skip-typ).  There is no separate
 --     spelling relation, classifier, or telescope structure.
---   * Interiors are open: term variables cross type-variable entries via
---     lookup weakening (typing-side; term shifting per the option-B
---     eager-shift decision).
+--   * Interiors of ν and the crossings are CLOSED (typed under ⌊_⌋, which
+--     drops term entries); term lookups still cross ,typ entries via
+--     skip-typ weakening, which Λ-bodies need.
 
 open import Data.Fin using (zero; suc)
 open import Data.List using ([]; _∷_)
@@ -42,9 +42,19 @@ infixl 5 _,_
 infixl 5 _,:=_
 
 data Ctx : AnchorCtx → TyCtx → Set where
+  ∅ : Ctx zero zero
   _,typ[_] : Ctx Θ Δ → TyVar (suc Δ) → Ctx Θ (suc Δ)
   _,_ : Ctx Θ Δ → Ty Δ → Ctx Θ Δ        -- term var. bound by a λ
   _,:=_ : Ctx Θ Δ → Ty Δ → Ctx (suc Θ) Δ  -- anchor var. bound by a ν
+
+-- Drop term-variable entries.  The interiors of ν and of the crossings
+-- are typed with no term variables in scope (closed interiors; see the
+-- reachability invariant in alt/Design.md).
+⌊_⌋ : Ctx Θ Δ → Ctx Θ Δ
+⌊ ∅ ⌋ = ∅
+⌊ Γ ,typ[ Y ] ⌋ = ⌊ Γ ⌋ ,typ[ Y ]
+⌊ Γ , A ⌋ = ⌊ Γ ⌋
+⌊ Γ ,:= A ⌋ = ⌊ Γ ⌋ ,:= A
 
 private
   variable
@@ -156,7 +166,7 @@ data _⊢_⦂_ : ∀ {Θ Δ}
     → Γ ⊢ M ⟨ c ⟩ ⦂ B
 
   ⊢ν :
-      Γ ,:= A ⊢ M ⦂ B
+      ⌊ Γ ⌋ ,:= A ⊢ M ⦂ B
       ----------------
     → Γ ⊢ ν[ A ] M ⦂ B
 
@@ -165,7 +175,7 @@ data _⊢_⦂_ : ∀ {Θ Δ}
       {α : TyVar Θ} {c : Reveal}
     → Γ ∋ α := C
     → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
-    → Γ ,typ[ Y ] ⊢ M ⦂ A
+    → ⌊ Γ ⌋ ,typ[ Y ] ⊢ M ⦂ A
       --------------------------------------------
     → Γ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
@@ -174,7 +184,7 @@ data _⊢_⦂_ : ∀ {Θ Δ}
       {α : TyVar Θ} {c : Conceal}
     → Γ ∋ α := C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
-    → Γ ⊢ M ⦂ A
+    → ⌊ Γ ⌋ ⊢ M ⦂ A
       --------------------------------------------
     → Γ ,typ[ Y ] ⊢ M ↓[ Y ≔ α ] c ⦂ B
 

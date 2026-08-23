@@ -20,7 +20,6 @@ open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Empty using (⊥-elim)
 open import Data.Nat using (ℕ; zero; suc)
-import Data.Nat.Properties as Nat
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong)
 open import Relation.Nullary using (yes; no)
@@ -57,6 +56,8 @@ rename ρ (L ⦂∀ C [ A ]) = rename ρ L ⦂∀ C [ A ]
 rename ρ ($ κ) = $ κ
 rename ρ (L ⊕[ op ] M) = rename ρ L ⊕[ op ] rename ρ M
 rename ρ (M ⟨ c ⟩) = rename ρ M ⟨ c ⟩
+-- These interiors are literally typed under `[]`, so they contain no outer
+-- term variables and renaming leaves them unchanged.
 rename ρ (M ↑[ Y ≔ α ] c) = M ↑[ Y ≔ α ] c
 rename ρ (M ↓[ Y ≔ α ] c) = M ↓[ Y ≔ α ] c
 rename ρ (ν[ A ] M) = ν[ A ] M
@@ -143,38 +144,43 @@ weakenᵗᵐ X (M ↓[ Y ≔ α ] c) =
 weakenᵗᵐ X (ν[ A ] M) = ν[ wkᵗ X A ] weakenᵗᵐ X M
 weakenᵗᵐ X blame = blame
 
-removeVar : Var → Var → Var
-removeVar zero zero = zero
-removeVar zero (suc y) = y
-removeVar (suc x) zero = zero
-removeVar (suc x) (suc y) = suc (removeVar x y)
-
 ------------------------------------------------------------------------
--- Structural single substitution
+-- Term-variable substitution
 ------------------------------------------------------------------------
 
--- ν and crossing interiors are literally typed under `[]`; hence no outer
--- term variable can occur there, and substitution stops at each boundary.
+Subst : AnchorCtx → TyCtx → Set
+Subst Θ Δ = Var → Term Θ Δ
 
-substAt : Var → Term Θ Δ → Term Θ Δ → Term Θ Δ
-substAt x V (` y) with Nat._≟_ x y
-substAt x V (` .x) | yes refl = V
-substAt x V (` y) | no x≠y = ` removeVar x y
-substAt x V (ƛ A ˙ M) = ƛ A ˙ substAt (suc x) (rename suc V) M
-substAt x V (L · M) = substAt x V L · substAt x V M
-substAt x V (Λ M) = Λ substAt x (weakenᵗᵐ zero V) M
-substAt x V (L ⦂∀ C [ A ]) = substAt x V L ⦂∀ C [ A ]
-substAt x V ($ κ) = $ κ
-substAt x V (L ⊕[ op ] M) = substAt x V L ⊕[ op ] substAt x V M
-substAt x V (M ⟨ c ⟩) = substAt x V M ⟨ c ⟩
-substAt x V (M ↑[ Y ≔ α ] c) = M ↑[ Y ≔ α ] c
-substAt x V (M ↓[ Y ≔ α ] c) = M ↓[ Y ≔ α ] c
-substAt x V (ν[ A ] M) = ν[ A ] M
-substAt x V blame = blame
+exts : Subst Θ Δ → Subst Θ Δ
+exts σ zero = ` zero
+exts σ (suc x) = rename suc (σ x)
+
+liftˢ : Subst Θ Δ → Subst Θ (suc Δ)
+liftˢ σ x = weakenᵗᵐ zero (σ x)
+
+subst : Subst Θ Δ → Term Θ Δ → Term Θ Δ
+subst σ (` x) = σ x
+subst σ (ƛ A ˙ M) = ƛ A ˙ subst (exts σ) M
+subst σ (L · M) = subst σ L · subst σ M
+subst σ (Λ M) = Λ (subst (liftˢ σ) M)
+subst σ (L ⦂∀ C [ A ]) = subst σ L ⦂∀ C [ A ]
+subst σ ($ κ) = $ κ
+subst σ (L ⊕[ op ] M) = subst σ L ⊕[ op ] subst σ M
+subst σ (M ⟨ c ⟩) = subst σ M ⟨ c ⟩
+-- These interiors are literally typed under `[]`, so they contain no outer
+-- term variables and substitution leaves them unchanged.
+subst σ (M ↑[ Y ≔ α ] c) = M ↑[ Y ≔ α ] c
+subst σ (M ↓[ Y ≔ α ] c) = M ↓[ Y ≔ α ] c
+subst σ (ν[ A ] M) = ν[ A ] M
+subst σ blame = blame
+
+singleSub : Term Θ Δ → Subst Θ Δ
+singleSub N zero = N
+singleSub N (suc x) = ` x
 
 infixl 8 _[_]
 _[_] : Term Θ Δ → Term Θ Δ → Term Θ Δ
-M [ V ] = substAt zero V M
+M [ N ] = subst (singleSub N) M
 
 ------------------------------------------------------------------------
 -- Values
@@ -357,11 +363,9 @@ data Result : ∀ {Θ Δ} → Term Θ Δ → Set where
 -- Resolving a regular-type slot
 ------------------------------------------------------------------------
 
--- The schematic exit type `A [ (resolved C at Y) ]` is written
--- `resolveᵗ Y C A`: live `_[_]ᵗ` removes only slot zero, so an arbitrary Y
--- needs this substitution environment.  It removes Y from A and sends Y to
--- C.  Viewed before exit, C is `wkᵗ Y C` in the region context; the
--- substitution performs that replacement and removal in one operation.
+-- Live `_[_]ᵗ` removes only slot zero, so resolving an arbitrary Y needs this
+-- substitution environment.  It removes Y and sends it to C; viewed before
+-- exit, C is `wkᵗ Y C` in the region context.
 
 private
   removeResolved : ∀ {n} (Y X : Fin (suc n)) → Y ≢ X → Fin n
@@ -375,9 +379,6 @@ private
   resolveSubᵗ Y C X with Y ≟ X
   resolveSubᵗ Y C .Y | yes refl = C
   resolveSubᵗ Y C X | no Y≢X = ＇ removeResolved Y X Y≢X
-
-resolveᵗ : ∀ {Δ} → TyVar (suc Δ) → Ty Δ → Ty (suc Δ) → Ty Δ
-resolveᵗ Y C A = substᵗ (resolveSubᵗ Y C) A
 
 ------------------------------------------------------------------------
 -- One-step reduction
@@ -683,7 +684,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
     → Result (ν[ A ] M)
       ------------------------------------------------------------
     → Ψ ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c —→
-        ν[ resolveᵗ Y C A ] (M ↑[ Y ≔ suc α ] c)
+        ν[ substᵗ (resolveSubᵗ Y C) A ] (M ↑[ Y ≔ suc α ] c)
 
   -- Conceal binds Y on its conclusion side.  Floating ν outward therefore
   -- weakens its representation at Y; unlike reveal, no slot is resolved and

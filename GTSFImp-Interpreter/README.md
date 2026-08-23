@@ -323,11 +323,19 @@ to the target-first phase.  At the fundamental layer,
 `right-universal-value-fundamental` proves the complete ordinary `CTI.Λ⊑²`
 case from the unbounded family of binder tests.
 
-The remaining obligation is the non-value target part of the structural proof
-of `RightUniversalBodyFundamentalProperty`.  The old bind-first relation
-remains named `CompiledRightUniversalTestRelation`; it is sufficient exactly
-in the checked zero-allocation value subcase.  The smart structural guard
-alone cannot prove the general motive:
+Target phases are now closed under one proof-carrying target reduction step.
+`target-step-phase-expand` inverts every return or blame of the source redex,
+runs the phase proof at the reduct's target-only future world, and prefixes the
+step's store change to every returned trace.  Its world-composition lemma
+proves both store actions, the imprecise term action, and that the precise
+store and term remain unchanged.  The evaluator step consumes gas but leaves
+the LR observation index unchanged.
+
+The remaining obligation is to apply this closure recursively in the
+non-value target cases of `RightUniversalBodyFundamentalProperty`.  The old
+bind-first relation remains named `CompiledRightUniversalTestRelation`; it is
+sufficient exactly in the checked zero-allocation value subcase.  The smart
+structural guard alone cannot prove the general motive:
 `SmartCommaLiftᴸ` transports CTI imprecision and marks, but carries neither
 the semantic entries of an LR world nor a semantic relation for an
 alias-merged center.  In particular, an ordinary `FundamentalProperty` proof

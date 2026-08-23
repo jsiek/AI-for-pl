@@ -7,15 +7,17 @@ module proof.LR-narrow.TargetEvaluation where
 --   * Keeps the structural recursion on StoreChanges out of the public API.
 
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Nat using (ℕ; zero; _∸_; _≤_)
-open import Data.Nat.Properties using (m∸n≤m)
+open import Data.Maybe using (just; nothing)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_)
+open import Data.Nat.Properties using (m∸n≤m; n≤1+n; ≤-trans)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; subst; sym; trans)
+  using (_≡_; _≢_; refl; subst; sym; trans; cong)
 
 open import Types
-open import CastTerms using (Term; Value; ⇑ᵗᵐ)
+open import CastTerms using (Term; Value; blame; ⇑ᵗᵐ)
+open import Reduction using (StoreChange; applyTerm; _—→[_]_)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTerms; ↠-refl)
 import Eval as E
@@ -23,6 +25,9 @@ open import Interpreter
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.ImmediateReturn using (value-return)
+open import proof.LR-narrow.BindStepExpansion using
+  (step-return; step-blame; step-return-expand; step-return-invert;
+   step-blame-invert)
 
 target-changes-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴵ′}
   → (W : World Δᴾ Δᴵ Δᶜ)
@@ -57,6 +62,128 @@ target-changes-future W (bind A ∷ changes)
   precise-term-eq′ M = trans
     (liftPreciseTerm-trans W≼W₁ W₁≼W′ M)
     (precise-term-eq M)
+
+target-step-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴵ′}
+  → (W : World Δᴾ Δᴵ Δᶜ)
+  → (change : StoreChange Δᴵ Δᴵ′)
+  → TargetChangesFuture W (change ∷ [])
+target-step-future W change = target-changes-future W (change ∷ [])
+
+target-changes-future-prepend : ∀ {Δᴾ Δᴵ Δᶜ Δᴵ′ Δᴵ′′}
+    {W : World Δᴾ Δᴵ Δᶜ} {change : StoreChange Δᴵ Δᴵ′}
+    {changes : StoreChanges Δᴵ′ Δᴵ′′}
+  → (first : TargetChangesFuture W (change ∷ []))
+  → TargetChangesFuture (targetWorld first) changes
+  → TargetChangesFuture W (change ∷ changes)
+target-changes-future-prepend {change = change} {changes = changes}
+    (target-future Δᶜ₁ W₁ W≼W₁ store₁ precise-store₁
+      term₁ precise-term₁)
+    (target-future Δᶜ₂ W₂ W₁≼W₂ store₂ precise-store₂
+      term₂ precise-term₂) =
+  target-future Δᶜ₂ W₂ W≼W₂ store precise-store
+    term precise-term
+  where
+  W≼W₂ = future-trans W≼W₁ W₁≼W₂
+
+  store = trans store₂ (cong (applyStores changes) store₁)
+
+  precise-store = trans precise-store₂ precise-store₁
+
+  term : ∀ M → _ ≡ liftImpreciseTerm W≼W₂ M
+  term M = trans (term₂ (change ▷ᵀ M))
+    (trans (cong (liftImpreciseTerm W₁≼W₂) (term₁ M))
+      (sym (liftImpreciseTerm-trans W≼W₁ W₁≼W₂ M)))
+
+  precise-term : ∀ M → liftPreciseTerm W≼W₂ M ≡ M
+  precise-term M = trans
+    (liftPreciseTerm-trans W≼W₁ W₁≼W₂ M)
+    (trans (cong (liftPreciseTerm W₁≼W₂) (precise-term₁ M))
+      (precise-term₂ M))
+
+target-step-phase-expand : ∀ {Δᴾ Δᴵ Δᶜ Δᴵ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {R : IndexedValueRelation W}
+    {k : ℕ} {Mᴵ : Term Δᴵ} {Nᴵ : Term Δᴵ′}
+    {Vᴾ : Term Δᴾ} {change : StoreChange Δᴵ Δᴵ′}
+  → Mᴵ ≢ blame
+  → E.value? Mᴵ ≡ nothing
+  → (step : Mᴵ —→[ change ] Nᴵ)
+  → E.step? (impreciseStore (core W)) Mᴵ ≡
+      just (E.step-result change Nᴵ step)
+  → let first = target-step-future W change
+    in TargetComputationPhase (targetWorld first)
+      (λ W′ W₁≼W′ →
+        R W′ (future-trans (targetFuture first) W₁≼W′))
+      k Nᴵ (liftPreciseTerm (targetFuture first) Vᴾ)
+  → TargetComputationPhase W R k Mᴵ Vᴾ
+target-step-phase-expand {W = W} {R = R} {k = k} {Mᴵ = Mᴵ}
+    {Nᴵ = Nᴵ} {Vᴾ = Vᴾ} {change = change}
+    Mᴵ≠blame value-eq step step-eq next = record
+  { targetReturn = return
+  ; targetReturnedRelated = λ {gas} {result} result-eq j j≤k →
+      returned-related {gas = gas} {result = result} result-eq j j≤k
+  ; targetBlameImpossible = λ {gas} gas≤k blame-result →
+      blame-impossible {gas = gas} gas≤k blame-result
+  }
+  where
+  first = target-step-future W change
+  W≼W₁ = targetFuture first
+
+  return : Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
+      interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
+  return with targetReturn next
+  return | gas , result , result-eq =
+    suc gas , _ , step-return-expand {Σ = impreciseStore (core W)}
+      {gas = gas} Mᴵ≠blame value-eq step step-eq
+      (trans (cong (λ Σ → interpretFrom Σ gas Nᴵ)
+        (sym (targetStoreAction first))) result-eq)
+
+  returned-related : ∀ {gas} {result : E.EvalResult Mᴵ}
+    → interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
+    → (j : ℕ)
+    → j ≤ k
+    → Σ[ phase ∈ TargetChangesFuture W (E.changes result) ]
+        R (targetWorld phase) (targetFuture phase) j
+          (E.term result) (liftPreciseTerm (targetFuture phase) Vᴾ)
+  returned-related {gas = zero} result-eq j j≤k
+      with step-return-invert {Σ = impreciseStore (core W)} {n = zero}
+        Mᴵ≠blame value-eq step step-eq result-eq
+  returned-related {gas = zero} result-eq j j≤k | ()
+  returned-related {gas = suc gas} result-eq j j≤k
+      with step-return-invert {Σ = impreciseStore (core W)}
+        {n = suc gas} Mᴵ≠blame value-eq step step-eq result-eq
+  returned-related {gas = suc gas} result-eq j j≤k
+      | step-return next-result next-return refl
+      with targetReturnedRelated next {gas = gas} {result = next-result}
+        (trans (cong (λ Σ → interpretFrom Σ gas Nᴵ)
+          (targetStoreAction first)) next-return) j j≤k
+  returned-related {gas = suc gas} result-eq j j≤k
+      | step-return next-result next-return refl
+      | later , related =
+    target-changes-future-prepend first later ,
+    subst
+      (λ V → R (targetWorld later)
+        (future-trans W≼W₁ (targetFuture later)) j
+        (E.term next-result) V)
+      (sym (liftPreciseTerm-trans W≼W₁ (targetFuture later) Vᴾ))
+      related
+
+  blame-impossible : ∀ {gas}
+    → gas ≤ k
+    → BlamesFrom (impreciseStore (core W)) gas Mᴵ
+    → ⊥
+  blame-impossible {gas = zero} gas≤k blame-result
+      with step-blame-invert {Σ = impreciseStore (core W)} {n = zero}
+        Mᴵ≠blame value-eq step step-eq blame-result
+  blame-impossible {gas = zero} gas≤k blame-result | ()
+  blame-impossible {gas = suc gas} gas≤k blame-result
+      with step-blame-invert {Σ = impreciseStore (core W)}
+        {n = suc gas} Mᴵ≠blame value-eq step step-eq blame-result
+  blame-impossible {gas = suc gas} gas≤k blame-result
+      | step-blame next-blame =
+    targetBlameImpossible next {gas = gas}
+      (≤-trans (n≤1+n gas) gas≤k)
+      (subst (λ Σ → BlamesFrom Σ gas Nᴵ)
+        (sym (targetStoreAction first)) next-blame)
 
 related-target-value-phase : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {R : IndexedValueRelation W}

@@ -340,13 +340,22 @@ every other observed target return with it, lowers the returned
 `FutureValueRelation` to the requested index, and rules out target blame by
 forward simulation against the precise value.
 
-The remaining obligation is to use this bridge with the existing constructor
-compatibility proofs in the non-value target cases of
-`RightUniversalBodyFundamentalProperty`, applying one-step phase closure when
-the target constructor itself reduces.  The old bind-first relation remains
-named `CompiledRightUniversalTestRelation`; it is sufficient exactly in the
-checked zero-allocation value subcase.  The smart structural guard alone cannot
-prove the general motive:
+`right-universal-body-phase-from-relation` lifts this result through future
+worlds and related closing substitutions.  Thus an ordinary
+`CompiledTermRelation` for `Λ Vᴾ` against an arbitrary target term produces
+the required `CompiledRightUniversalBodyRelation` directly.
+`right-universal-body-fundamental-from-relation` packages an unbounded family
+of those ordinary relations as `RightUniversalBodyFundamentalProperty`.  This
+is the common exit from constructor compatibility back into the target-first
+motive.
+
+The remaining obligation is to construct those ordinary relations recursively
+in the non-value target cases, commuting the one-sided universal introduction
+past target constructors where necessary and applying one-step phase closure
+when the target constructor itself reduces.  The old bind-first relation
+remains named `CompiledRightUniversalTestRelation`; it is sufficient exactly
+in the checked zero-allocation value subcase.  The smart structural guard alone
+cannot prove the general motive:
 `SmartCommaLiftᴸ` transports CTI imprecision and marks, but carries neither
 the semantic entries of an LR world nor a semantic relation for an
 alias-merged center.  In particular, an ordinary `FundamentalProperty` proof

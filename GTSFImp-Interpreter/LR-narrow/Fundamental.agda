@@ -3,6 +3,7 @@ module LR-narrow.Fundamental where
 -- File Charter:
 --   * Exposes derivation-indexed one-sided universal fundamental cases.
 --   * Uses the phase-aware body motive from LR-narrow.TermRelation.
+--   * Packages ordinary universal relations as target-first body motives.
 --   * Delegates constructor-facing proof scripts to the proof namespace.
 
 open import Data.Nat using (ℕ; suc)
@@ -18,6 +19,24 @@ open import LR-narrow.World
 open import LR-narrow.TermRelation
 open import LR-narrow.Universal using (right-universal-body-imprecision)
 import proof.LR-narrow.Fundamental as Proof
+
+right-universal-body-fundamental-from-relation : ∀
+    {Δᴾ Δᴵ Δᶜ Δᵇ Aᴾ Bᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Wᵇ : CTI.World (suc Δᴾ) Δᴵ Δᵇ}
+    {Γᵇ : CTI.CtxImp Wᵇ}
+    {p : Aᴾ CTI.⊑ᵂ⟨ Wᵇ ⟩ Bᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+    (body : Wᵇ ∣ Γᵇ ⊢² Vᴾ ⊑ Mᴵ ∶ p)
+  → Value Vᴾ
+  → (∀ k → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ)
+  → RightUniversalBodyFundamentalProperty
+      {W = W} {Γ = Γ} {Wᵇ = Wᵇ} {Γᵇ = Γᵇ}
+      {p = p} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ} q body
+right-universal-body-fundamental-from-relation =
+  Proof.right-universal-body-fundamental-from-relation
 
 right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}

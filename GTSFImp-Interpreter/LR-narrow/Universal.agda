@@ -3,6 +3,7 @@ module LR-narrow.Universal where
 -- File Charter:
 --   * Exposes paired and one-sided universal-introduction infrastructure.
 --   * Exposes binder-specific body relations and their LR constructors.
+--   * Bridges ordinary universal term relations to target-first body phases.
 --   * Keeps evaluator and endpoint proof scripts in the proof namespace.
 
 open import Data.Nat using (ℕ; suc; _≤_)
@@ -98,6 +99,18 @@ right-universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
         (liftPreciseTerm W≼W′ (Λ Nᴾ)))
 right-universals-related-from-body {W = W} {p = p} =
   Proof.right-universals-related-from-body {W = W} {p = p}
+
+right-universal-body-phase-from-relation : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+  → Value Vᴾ
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ
+  → CompiledRightUniversalBodyRelation q k Γ Vᴾ Mᴵ
+right-universal-body-phase-from-relation =
+  Proof.right-universal-body-phase-from-relation
 
 right-universal-phase-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

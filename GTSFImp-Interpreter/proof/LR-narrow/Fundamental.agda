@@ -3,6 +3,7 @@ module proof.LR-narrow.Fundamental where
 -- File Charter:
 --   * Constructs derivation-indexed fundamental-property evidence.
 --   * Handles the ordinary and smart one-sided universal constructors.
+--   * Packages compatible universal terms as target-first body motives.
 --   * Keeps the constructor-facing proof applications out of the public API.
 
 open import Data.Nat using (ℕ; suc)
@@ -17,6 +18,25 @@ open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.TermRelation
 open import LR-narrow.Universal
+
+right-universal-body-fundamental-from-relation : ∀
+    {Δᴾ Δᴵ Δᶜ Δᵇ Aᴾ Bᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Wᵇ : CTI.World (suc Δᴾ) Δᴵ Δᵇ}
+    {Γᵇ : CTI.CtxImp Wᵇ}
+    {p : Aᴾ CTI.⊑ᵂ⟨ Wᵇ ⟩ Bᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+    (body : Wᵇ ∣ Γᵇ ⊢² Vᴾ ⊑ Mᴵ ∶ p)
+  → Value Vᴾ
+  → (∀ k → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ)
+  → RightUniversalBodyFundamentalProperty
+      {W = W} {Γ = Γ} {Wᵇ = Wᵇ} {Γᵇ = Γᵇ}
+      {p = p} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ} q body
+right-universal-body-fundamental-from-relation q body vVᴾ related =
+  right-universal-body-proof λ k →
+    right-universal-body-phase-from-relation vVᴾ q (related k)
 
 right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}

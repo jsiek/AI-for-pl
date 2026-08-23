@@ -3,6 +3,7 @@ module proof.LR-narrow.Universal where
 -- File Charter:
 --   * Constructs related universal values from their elimination obligations.
 --   * Constructs those obligations from a binder-specific body relation.
+--   * Converts ordinary related universal computations to target phases.
 --   * Derives endpoint typing from symmetric universal term imprecision.
 --   * Keeps evaluator and endpoint proof details out of the public module.
 
@@ -520,6 +521,24 @@ right-universals-related-result-transport : ∀
         eq p)
       Bᴾ Bᴵ k Vᴵ Vᴾ
 right-universals-related-result-transport refl p related = related
+
+right-universal-body-phase-from-relation : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+  → Value Vᴾ
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Mᴵ
+  → CompiledRightUniversalBodyRelation q k Γ Vᴾ Mᴵ
+right-universal-body-phase-from-relation vVᴾ q term-related
+    W′ W≼W′ γ =
+  future-value-computations-target-phase precise-closed-value
+    (term-related W′ W≼W′ γ)
+  where
+  precise-closed-value = close-preserves-value
+    (preciseClosingSubstitution γ)
+    (ClosureProof.precise-value-future W≼W′ (Λ vVᴾ))
 
 right-universal-phase-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

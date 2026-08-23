@@ -567,6 +567,30 @@ data _⊢_—→_ : ∀ {Θ Δ}
       ----------------------------
     → Ψ ⊢ ν[ A ] ($ κ) —→ ($ κ)
 
+  β-Λ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
+    → Value V
+      ------------------------------------------------------------
+    → Ψ ⊢ (Λ V) ⦂∀ B [ C ] —→
+        ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ C ↑ B 〗)
+
+  -- The consistency evidence mentions only the regular context.  `shiftᶿ`
+  -- changes only the anchor count, so the inner cast reuses `c` unchanged.
+  β-gen : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {V : Term Θ Δ} {μ : Env∼ Δ} {A C : Ty Δ} {B : Ty (suc Δ)}
+      {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
+      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
+    → Value V
+    → (A≢★ : A ≢ ★)
+    → GenSafe c
+      ------------------------------------------------------------
+    → Ψ ⊢ (V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→
+        ν[ C ] (((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
+          ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ C ↑ B 〗)
+
+  -- DEFERRED: β-inst, β-reveal-∀, and β-conceal-∀ remain absent pending
+  -- user sign-off on their Exchange-validated statements.
+
   ξ-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {L L′ M : Term Θ Δ}
     → Ψ ⊢ L —→ L′
       --------------------

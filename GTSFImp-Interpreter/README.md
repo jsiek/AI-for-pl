@@ -47,8 +47,9 @@ The port currently contains:
   paired store allocation, retaining an explicit factorization of successful
   result worlds through the allocated world;
 - `LR-narrow/Universal.agda`: body-driven compatibility for
-  `CTI.Λ⊑Λ²`, using the single paired extension selected by the universal
-  observation and closing below a type binder;
+  `CTI.Λ⊑Λ²`, plus the value-target subcase of `CTI.Λ⊑²`, using the
+  extension selected by each universal observation and closing below a type
+  binder;
 - `LR-narrow/UniversalInstantiation.agda`: structural elimination of a
   positive-index `∀⊑∀` value at the pre-allocation type application.
 - `LR-narrow/TypeApplication.agda`: compatibility of structural CTI type
@@ -104,8 +105,14 @@ A precise-only future extension instead supplies a representation type
 embedding and `skip` for the imprecise embedding, and installs an `X⊑★`
 semantic entry. This extension supports `RightUniversalsRelated`: the precise
 universal is instantiated at the fresh variable while the imprecise term is
-returned unchanged. There is no imprecise-only counterpart because `VarImp`
-has no `★⊑X` mode with which to type its fresh center slot.
+returned unchanged.
+
+An imprecise-only future extension binds only the imprecise store and installs
+an inert target-only center.  It carries no value relation: the fresh center
+has no precise occupant and `VarImp` deliberately has no `★⊑X` mode.
+This extension records allocations made while evaluating only the imprecise
+endpoint without pretending that the newly allocated target name is related
+to a precise runtime name.
 
 `RightDynamicPayloadRelated` handles a different asymmetry: the imprecise
 value is an injected ground payload while the precise value remains untagged.
@@ -271,6 +278,19 @@ Symmetric universal introduction is complete at every residual index through
 the binder-specific body relation. Its proof uses exactly the arbitrary fresh
 atom supplied by the universal observation; there is no administrative alias
 allocation.
+
+For one-sided universal introduction, the `liftWorldLeft X⊑★` body
+derivation is now transported to the LR's `instᵐ` body relation, and
+`right-universals-related-from-body` constructs the index-zero head test as
+well as every positive-index observation.  The complete compatibility theorem
+is checked when the imprecise endpoint is already a value.  The remaining
+general `CTI.Λ⊑²` case must evaluate that endpoint before choosing the
+precise-only test extension.  Choosing the test first gives the wrong world
+order (a proof-only precise allocation followed by program target
+allocations), so it cannot be reused as the returned world of the outer term.
+The imprecise-only future constructor is the required first half of that phase
+factorization; a target-evaluation package that places the precise test after
+the returned target world is still required.
 
 Structural universal elimination now handles `CTI.•⊑•²`. Evaluation is
 split into the operator and pre-allocation application phases, the universal

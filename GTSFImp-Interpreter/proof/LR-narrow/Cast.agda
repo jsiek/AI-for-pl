@@ -1493,6 +1493,20 @@ future-precise-monotone (future-paired W≼W′ related fresh) =
   ≤-trans (future-precise-monotone W≼W′) (n≤1+n _)
 future-precise-monotone (future-precise W≼W′ fresh) =
   ≤-trans (future-precise-monotone W≼W′) (n≤1+n _)
+future-precise-monotone (future-imprecise W≼W′) =
+  future-precise-monotone W≼W′
+
+future-imprecise-monotone : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+  → Future W W′
+  → Δᴵ ≤ Δᴵ′
+future-imprecise-monotone future-refl = ≤-refl
+future-imprecise-monotone (future-paired W≼W′ related fresh) =
+  ≤-trans (future-imprecise-monotone W≼W′) (n≤1+n _)
+future-imprecise-monotone (future-precise W≼W′ fresh) =
+  future-imprecise-monotone W≼W′
+future-imprecise-monotone (future-imprecise W≼W′) =
+  ≤-trans (future-imprecise-monotone W≼W′) (n≤1+n _)
 
 data ReflexiveFuture {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) :
@@ -1509,6 +1523,8 @@ future-refl-view (future-paired W≼W′ related fresh) =
   ⊥-elim (1+n≰n (future-precise-monotone W≼W′))
 future-refl-view (future-precise W≼W′ fresh) =
   ⊥-elim (1+n≰n (future-precise-monotone W≼W′))
+future-refl-view (future-imprecise W≼W′) =
+  ⊥-elim (1+n≰n (future-imprecise-monotone W≼W′))
 
 related-computation-values : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -2180,6 +2196,8 @@ precise-consistency-future
   C.renameᵐᶜ C.wk↪ᵗ (precise-consistency-future W≼W′ c)
 precise-consistency-future (future-precise W≼W′ fresh) c =
   C.renameᵐᶜ C.wk↪ᵗ (precise-consistency-future W≼W′ c)
+precise-consistency-future (future-imprecise W≼W′) c =
+  precise-consistency-future W≼W′ c
 
 imprecise-consistency-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2196,6 +2214,8 @@ imprecise-consistency-future
   C.renameᵐᶜ C.wk↪ᵗ (imprecise-consistency-future W≼W′ c)
 imprecise-consistency-future (future-precise W≼W′ fresh) c =
   imprecise-consistency-future W≼W′ c
+imprecise-consistency-future (future-imprecise W≼W′) c =
+  C.renameᵐᶜ C.wk↪ᵗ (imprecise-consistency-future W≼W′ c)
 
 wk-renamed-env-preserves-suc : ∀ {Δ} (μ : C.Env∼ Δ) X
   → C.renameEnv∼ C.wk↪ᵗ μ (Fin.suc X) ≡ μ X
@@ -2277,6 +2297,9 @@ precise-universal-body-consistency-future {μ = μ}
         (C.renameEnv∼-preserves C.wk↪ᵗ
           (ClosureProof.precise-consistency-env-future W≼W′ μ) X)))
     (precise-universal-body-consistency-future W≼W′ c)
+precise-universal-body-consistency-future
+    (future-imprecise W≼W′) c =
+  precise-universal-body-consistency-future W≼W′ c
 
 imprecise-universal-body-consistency-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2307,6 +2330,23 @@ imprecise-universal-body-consistency-future {μ = μ}
 imprecise-universal-body-consistency-future
     (future-precise W≼W′ fresh) c =
   imprecise-universal-body-consistency-future W≼W′ c
+imprecise-universal-body-consistency-future {μ = μ}
+    (future-imprecise W≼W′) c =
+  C.rename∼
+    {μ = C.extᵐ
+      (ClosureProof.imprecise-consistency-env-future W≼W′ μ)}
+    {μ′ = C.extᵐ
+      (C.renameEnv∼ C.wk↪ᵗ
+        (ClosureProof.imprecise-consistency-env-future W≼W′ μ))}
+    (extᵗ Fin.suc)
+    (C.extᵐ-rename Fin.suc
+      (λ X → trans
+        (cong (C.renameEnv∼ C.wk↪ᵗ
+          (ClosureProof.imprecise-consistency-env-future W≼W′ μ))
+          (sym (toRename-wk-eq X)))
+        (C.renameEnv∼-preserves C.wk↪ᵗ
+          (ClosureProof.imprecise-consistency-env-future W≼W′ μ) X)))
+    (imprecise-universal-body-consistency-future W≼W′ c)
 
 lift-precise-universal-cast : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2326,6 +2366,8 @@ lift-precise-universal-cast (future-precise W≼W′ fresh) M c
     rewrite lift-precise-universal-cast W≼W′ M c =
   rename-universal-cast-wk (liftPreciseTerm W≼W′ M)
     (precise-universal-body-consistency-future W≼W′ c)
+lift-precise-universal-cast (future-imprecise W≼W′) M c =
+  lift-precise-universal-cast W≼W′ M c
 
 lift-imprecise-universal-cast : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2344,6 +2386,10 @@ lift-imprecise-universal-cast
     (imprecise-universal-body-consistency-future W≼W′ c)
 lift-imprecise-universal-cast (future-precise W≼W′ fresh) M c =
   lift-imprecise-universal-cast W≼W′ M c
+lift-imprecise-universal-cast (future-imprecise W≼W′) M c
+    rewrite lift-imprecise-universal-cast W≼W′ M c =
+  rename-universal-cast-wk (liftImpreciseTerm W≼W′ M)
+    (imprecise-universal-body-consistency-future W≼W′ c)
 
 precise-ground-type-arrow : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2357,6 +2403,8 @@ precise-ground-type-arrow (future-paired W≼W′ related fresh) A B
     rewrite precise-ground-type-arrow W≼W′ A B = refl
 precise-ground-type-arrow (future-precise W≼W′ fresh) A B
     rewrite precise-ground-type-arrow W≼W′ A B = refl
+precise-ground-type-arrow (future-imprecise W≼W′) A B =
+  precise-ground-type-arrow W≼W′ A B
 
 imprecise-ground-type-arrow : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2370,6 +2418,8 @@ imprecise-ground-type-arrow (future-paired W≼W′ related fresh) A B
     rewrite imprecise-ground-type-arrow W≼W′ A B = refl
 imprecise-ground-type-arrow (future-precise W≼W′ fresh) A B =
   imprecise-ground-type-arrow W≼W′ A B
+imprecise-ground-type-arrow (future-imprecise W≼W′) A B
+    rewrite imprecise-ground-type-arrow W≼W′ A B = refl
 
 precise-function-domain-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2407,6 +2457,8 @@ precise-function-domain-future
       (C.renameEnv∼-preserves C.wk↪ᵗ
         (ClosureProof.precise-consistency-env-future W≼W′ μ) X))
     (precise-function-domain-future W≼W′ c)
+precise-function-domain-future (future-imprecise W≼W′) c =
+  precise-function-domain-future W≼W′ c
 
 imprecise-function-domain-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2433,6 +2485,19 @@ imprecise-function-domain-future
     (imprecise-function-domain-future W≼W′ c)
 imprecise-function-domain-future (future-precise W≼W′ fresh) c =
   imprecise-function-domain-future W≼W′ c
+imprecise-function-domain-future
+    (future-imprecise W≼W′) {μ = μ} c =
+  C.rename∼
+    {μ = C.flipᵐ
+      (ClosureProof.imprecise-consistency-env-future W≼W′ μ)}
+    {μ′ = C.flipᵐ
+      (C.renameEnv∼ C.wk↪ᵗ
+        (ClosureProof.imprecise-consistency-env-future W≼W′ μ))}
+    (C.toRenameᵗ C.wk↪ᵗ)
+    (λ X → cong C.flipVar∼
+      (C.renameEnv∼-preserves C.wk↪ᵗ
+        (ClosureProof.imprecise-consistency-env-future W≼W′ μ) X))
+    (imprecise-function-domain-future W≼W′ c)
 
 precise-function-consistency-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2478,6 +2543,8 @@ lift-precise-cast (future-paired W≼W′ related fresh) M c
     rewrite lift-precise-cast W≼W′ M c = refl
 lift-precise-cast (future-precise W≼W′ fresh) M c
     rewrite lift-precise-cast W≼W′ M c = refl
+lift-precise-cast (future-imprecise W≼W′) M c =
+  lift-precise-cast W≼W′ M c
 
 lift-imprecise-cast : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2492,6 +2559,8 @@ lift-imprecise-cast (future-paired W≼W′ related fresh) M c
     rewrite lift-imprecise-cast W≼W′ M c = refl
 lift-imprecise-cast (future-precise W≼W′ fresh) M c =
   lift-imprecise-cast W≼W′ M c
+lift-imprecise-cast (future-imprecise W≼W′) M c
+    rewrite lift-imprecise-cast W≼W′ M c = refl
 
 lift-precise-function-cast : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2507,6 +2576,8 @@ lift-precise-function-cast (future-paired W≼W′ related fresh) M c d
     rewrite lift-precise-function-cast W≼W′ M c d = refl
 lift-precise-function-cast (future-precise W≼W′ fresh) M c d
     rewrite lift-precise-function-cast W≼W′ M c d = refl
+lift-precise-function-cast (future-imprecise W≼W′) M c d =
+  lift-precise-function-cast W≼W′ M c d
 
 lift-imprecise-function-cast : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -2522,6 +2593,8 @@ lift-imprecise-function-cast (future-paired W≼W′ related fresh) M c d
     rewrite lift-imprecise-function-cast W≼W′ M c d = refl
 lift-imprecise-function-cast (future-precise W≼W′ fresh) M c d =
   lift-imprecise-function-cast W≼W′ M c d
+lift-imprecise-function-cast (future-imprecise W≼W′) M c d
+    rewrite lift-imprecise-function-cast W≼W′ M c d = refl
 
 closed-cast-compatible-bounded : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}

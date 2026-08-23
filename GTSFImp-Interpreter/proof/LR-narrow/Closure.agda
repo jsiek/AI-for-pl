@@ -192,6 +192,8 @@ precise-value-future (future-paired W≼W′ related fresh) vV =
   renameᵗᵐ-preserves-Value C.wk↪ᵗ (precise-value-future W≼W′ vV)
 precise-value-future (future-precise W≼W′ fresh) vV =
   renameᵗᵐ-preserves-Value C.wk↪ᵗ (precise-value-future W≼W′ vV)
+precise-value-future (future-imprecise W≼W′) vV =
+  precise-value-future W≼W′ vV
 
 imprecise-value-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′} {V}
@@ -203,6 +205,8 @@ imprecise-value-future (future-paired W≼W′ related fresh) vV =
   renameᵗᵐ-preserves-Value C.wk↪ᵗ (imprecise-value-future W≼W′ vV)
 imprecise-value-future (future-precise W≼W′ fresh) vV =
   imprecise-value-future W≼W′ vV
+imprecise-value-future (future-imprecise W≼W′) vV =
+  renameᵗᵐ-preserves-Value C.wk↪ᵗ (imprecise-value-future W≼W′ vV)
 
 precise-typing-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ A}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′} {V}
@@ -215,6 +219,8 @@ precise-typing-future (future-paired W≼W′ related fresh) V⊢ =
   typing-shiftᵗ-bind (precise-typing-future W≼W′ V⊢)
 precise-typing-future (future-precise W≼W′ fresh) V⊢ =
   typing-shiftᵗ-bind (precise-typing-future W≼W′ V⊢)
+precise-typing-future (future-imprecise W≼W′) V⊢ =
+  precise-typing-future W≼W′ V⊢
 
 imprecise-typing-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ A}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′} {V}
@@ -227,6 +233,8 @@ imprecise-typing-future (future-paired W≼W′ related fresh) V⊢ =
   typing-shiftᵗ-bind (imprecise-typing-future W≼W′ V⊢)
 imprecise-typing-future (future-precise W≼W′ fresh) V⊢ =
   imprecise-typing-future W≼W′ V⊢
+imprecise-typing-future (future-imprecise W≼W′) V⊢ =
+  typing-shiftᵗ-bind (imprecise-typing-future W≼W′ V⊢)
 
 typed-endpoints-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
@@ -492,6 +500,8 @@ precise-ground-type (future-paired W≼W′ related fresh) G =
   renameᵗ (C.toRenameᵗ C.wk↪ᵗ) (precise-ground-type W≼W′ G)
 precise-ground-type (future-precise W≼W′ fresh) G =
   renameᵗ (C.toRenameᵗ C.wk↪ᵗ) (precise-ground-type W≼W′ G)
+precise-ground-type (future-imprecise W≼W′) G =
+  precise-ground-type W≼W′ G
 
 imprecise-ground-type : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -503,6 +513,8 @@ imprecise-ground-type (future-paired W≼W′ related fresh) G =
   renameᵗ (C.toRenameᵗ C.wk↪ᵗ) (imprecise-ground-type W≼W′ G)
 imprecise-ground-type (future-precise W≼W′ fresh) G =
   imprecise-ground-type W≼W′ G
+imprecise-ground-type (future-imprecise W≼W′) G =
+  renameᵗ (C.toRenameᵗ C.wk↪ᵗ) (imprecise-ground-type W≼W′ G)
 
 precise-ground-type-eq : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -515,6 +527,8 @@ precise-ground-type-eq (future-paired W≼W′ related fresh) G =
 precise-ground-type-eq (future-precise W≼W′ fresh) G =
   trans (renameᵗ-cong (precise-ground-type W≼W′ G) toRename-wk-eq)
     (cong ⇑ᵗ (precise-ground-type-eq W≼W′ G))
+precise-ground-type-eq (future-imprecise W≼W′) G =
+  precise-ground-type-eq W≼W′ G
 
 imprecise-ground-type-eq : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -526,6 +540,9 @@ imprecise-ground-type-eq (future-paired W≼W′ related fresh) G =
     (cong ⇑ᵗ (imprecise-ground-type-eq W≼W′ G))
 imprecise-ground-type-eq (future-precise W≼W′ fresh) G =
   imprecise-ground-type-eq W≼W′ G
+imprecise-ground-type-eq (future-imprecise W≼W′) G =
+  trans (renameᵗ-cong (imprecise-ground-type W≼W′ G) toRename-wk-eq)
+    (cong ⇑ᵗ (imprecise-ground-type-eq W≼W′ G))
 
 precise-ground-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ G}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -537,6 +554,8 @@ precise-ground-future (future-paired W≼W′ related fresh) g =
   PC.renameGroundᵐ C.wk↪ᵗ (precise-ground-future W≼W′ g)
 precise-ground-future (future-precise W≼W′ fresh) g =
   PC.renameGroundᵐ C.wk↪ᵗ (precise-ground-future W≼W′ g)
+precise-ground-future (future-imprecise W≼W′) g =
+  precise-ground-future W≼W′ g
 
 imprecise-ground-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ G}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -548,6 +567,8 @@ imprecise-ground-future (future-paired W≼W′ related fresh) g =
   PC.renameGroundᵐ C.wk↪ᵗ (imprecise-ground-future W≼W′ g)
 imprecise-ground-future (future-precise W≼W′ fresh) g =
   imprecise-ground-future W≼W′ g
+imprecise-ground-future (future-imprecise W≼W′) g =
+  PC.renameGroundᵐ C.wk↪ᵗ (imprecise-ground-future W≼W′ g)
 
 precise-consistency-env-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -560,6 +581,8 @@ precise-consistency-env-future (future-paired W≼W′ related fresh) μ =
   C.renameEnv∼ C.wk↪ᵗ (precise-consistency-env-future W≼W′ μ)
 precise-consistency-env-future (future-precise W≼W′ fresh) μ =
   C.renameEnv∼ C.wk↪ᵗ (precise-consistency-env-future W≼W′ μ)
+precise-consistency-env-future (future-imprecise W≼W′) μ =
+  precise-consistency-env-future W≼W′ μ
 
 imprecise-consistency-env-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
@@ -572,6 +595,8 @@ imprecise-consistency-env-future (future-paired W≼W′ related fresh) μ =
   C.renameEnv∼ C.wk↪ᵗ (imprecise-consistency-env-future W≼W′ μ)
 imprecise-consistency-env-future (future-precise W≼W′ fresh) μ =
   imprecise-consistency-env-future W≼W′ μ
+imprecise-consistency-env-future (future-imprecise W≼W′) μ =
+  C.renameEnv∼ C.wk↪ᵗ (imprecise-consistency-env-future W≼W′ μ)
 
 precise-ground-to-star-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ G μ}
@@ -585,6 +610,8 @@ precise-ground-to-star-future (future-paired W≼W′ related fresh) G∼★ =
   PC.rename∼★ᵐ C.wk↪ᵗ (precise-ground-to-star-future W≼W′ G∼★)
 precise-ground-to-star-future (future-precise W≼W′ fresh) G∼★ =
   PC.rename∼★ᵐ C.wk↪ᵗ (precise-ground-to-star-future W≼W′ G∼★)
+precise-ground-to-star-future (future-imprecise W≼W′) G∼★ =
+  precise-ground-to-star-future W≼W′ G∼★
 
 imprecise-ground-to-star-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ G μ}
@@ -600,6 +627,9 @@ imprecise-ground-to-star-future
     (imprecise-ground-to-star-future W≼W′ G∼★)
 imprecise-ground-to-star-future (future-precise W≼W′ fresh) G∼★ =
   imprecise-ground-to-star-future W≼W′ G∼★
+imprecise-ground-to-star-future (future-imprecise W≼W′) G∼★ =
+  PC.rename∼★ᵐ C.wk↪ᵗ
+    (imprecise-ground-to-star-future W≼W′ G∼★)
 
 rename-ground-injection : ∀ {Δ G μ} (g : Ground {Δ} G)
     (G∼★ : μ ⊢ G ∼★)
@@ -632,6 +662,8 @@ precise-injection-future (future-precise W≼W′ fresh) U g G∼★ =
     (cong (λ c → ⇑ᵗᵐ (liftPreciseTerm W≼W′ U) ⟨ c ⟩)
       (rename-ground-injection (precise-ground-future W≼W′ g)
         (precise-ground-to-star-future W≼W′ G∼★)))
+precise-injection-future (future-imprecise W≼W′) U g G∼★ =
+  precise-injection-future W≼W′ U g G∼★
 
 imprecise-injection-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ G μ}
@@ -651,6 +683,11 @@ imprecise-injection-future
         (imprecise-ground-to-star-future W≼W′ G∼★)))
 imprecise-injection-future (future-precise W≼W′ fresh) U g G∼★ =
   imprecise-injection-future W≼W′ U g G∼★
+imprecise-injection-future (future-imprecise W≼W′) U g G∼★ =
+  trans (cong ⇑ᵗᵐ (imprecise-injection-future W≼W′ U g G∼★))
+    (cong (λ c → ⇑ᵗᵐ (liftImpreciseTerm W≼W′ U) ⟨ c ⟩)
+      (rename-ground-injection (imprecise-ground-future W≼W′ g)
+        (imprecise-ground-to-star-future W≼W′ G∼★)))
 
 local-imprecision-reindex : ∀
     {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Aᴾ′ Aᴵ′} {W : World Δᴾ Δᴵ Δᶜ}
@@ -855,6 +892,8 @@ lift-precise-constant (future-paired W≼W′ related fresh) κ
   rewrite lift-precise-constant W≼W′ κ = refl
 lift-precise-constant (future-precise W≼W′ fresh) κ
   rewrite lift-precise-constant W≼W′ κ = refl
+lift-precise-constant (future-imprecise W≼W′) κ =
+  lift-precise-constant W≼W′ κ
 
 lift-imprecise-constant : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -865,6 +904,8 @@ lift-imprecise-constant (future-paired W≼W′ related fresh) κ
   rewrite lift-imprecise-constant W≼W′ κ = refl
 lift-imprecise-constant (future-precise W≼W′ fresh) κ =
   lift-imprecise-constant W≼W′ κ
+lift-imprecise-constant (future-imprecise W≼W′) κ
+  rewrite lift-imprecise-constant W≼W′ κ = refl
 
 same-base-value-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ ι Vᴵ Vᴾ}
@@ -895,6 +936,11 @@ precise-future : ∀ {Δᴾ Δᴵ Δᶜ}
       (preciseBindCore (core W) Rᴾ) Fin.zero)
   → Future W (preciseBindWorld W Rᴾ fresh)
 precise-future W fresh = future-precise future-refl fresh
+
+imprecise-future : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : World Δᴾ Δᴵ Δᶜ) (Rᴵ : Ty Δᴵ)
+  → Future W (impreciseBindWorld W Rᴵ)
+imprecise-future W Rᴵ = future-imprecise future-refl
 
 value-imprecision-paired : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Rᴾ Rᴵ}
     (W : World Δᴾ Δᴵ Δᶜ)
@@ -1321,6 +1367,214 @@ value-imprecision-precise W fresh {p = I.bot-elim} {k = suc k}
 value-imprecision-precise W fresh {p = I.bot⊑★} {k = suc k}
     endpoints = typed-endpoints-future (precise-future W fresh) endpoints
 
+value-imprecision-imprecise : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Rᴵ}
+    (W : World Δᴾ Δᴵ Δᶜ)
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ} {k Vᴵ Vᴾ}
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ValueImprecision (impreciseBindWorld W Rᴵ)
+      (liftCenterImprecision (imprecise-future W Rᴵ) p) k
+      (liftImpreciseTerm (imprecise-future W Rᴵ) Vᴵ)
+      (liftPreciseTerm (imprecise-future W Rᴵ) Vᴾ)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W
+    {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = zero}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related-zero) =
+  let step = imprecise-future W Rᴵ
+      lifted = liftCenterImprecision step (I.∀⊑ nonvar occurs p)
+      p-lifted = liftCenterDynamicBodyImprecision step p
+      p-structural = subst≡
+        (λ T → I.instᵐ (impEnv (core (impreciseBindWorld W Rᴵ)))
+          I.⊢ liftCenterBody step _ ⊑ T)
+        (renameᵗ-shift Fin.suc Aᴵ) p-lifted
+      related-structural : RightUniversalsRelated
+        (impreciseBindWorld W Rᴵ) p-structural
+        (liftPreciseBody step Bᴾ) (liftImpreciseTy step Bᴵ) zero
+        (liftImpreciseTerm step Vᴵ) (liftPreciseTerm step Vᴾ)
+      related-structural = right-universals-related-reindex
+        p-structural p-lifted refl (sym (renameᵗ-shift Fin.suc Aᴵ))
+        (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W≼K Rᴾ fresh s →
+          right-universals-related-future
+            {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+            {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} step
+            (λ {Δᴾ′′} {Δᴵ′′} {Δᶜ′′}
+                J W≼J Sᴾ fresh′ t →
+              related-zero {Δᴾ′′} {Δᴵ′′} {Δᶜ′′}
+                J W≼J Sᴾ fresh′ t)
+            K W≼K Rᴾ fresh s)
+      structural = I.∀⊑
+        (renameNonVar (extᵗ Fin.suc) nonvar)
+        (IC.rename-occurs (extᵗ Fin.suc)
+          (IC.ext-injective IC.fin-suc-injective) occurs)
+        p-structural
+      structural-endpoints = typed-endpoints-derivation-reindex
+        lifted structural (typed-endpoints-future step endpoints)
+      structural-related = structural-endpoints ,
+        liftPreciseBody step Bᴾ , liftImpreciseTy step Bᴵ ,
+        trans (embedPrecise-lift step (`∀ Bᴾ))
+          (cong (liftCenterTy step) eqᴾ) ,
+        trans (embedImprecise-lift step Bᴵ)
+          (cong (liftCenterTy step) eqᴵ) ,
+        (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W≼K Rᴾ fresh s →
+          related-structural {Δᴾ′} {Δᴵ′} {Δᶜ′}
+            K W≼K Rᴾ fresh s)
+  in value-imprecision-reindex lifted structural {zero} refl refl
+       structural-related
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.★⊑★} {k = zero}
+    endpoints = typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.ι⊑ι} {k = zero}
+    endpoints = typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.X⊑X} {k = zero}
+    endpoints = typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.⇒⊑⇒ p q}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.∀⊑∀ p}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.⇒⊑★ p q}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.ι⊑★} {k = zero}
+    endpoints = typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.X⊑★ eq}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.∀★⊑★}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.∀⊑★ nonstar p}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.bot-elim}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.bot⊑★}
+    {k = zero} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.★⊑★} {k = suc k}
+    (endpoints , inj₁ (shape , payload)) =
+  let step = imprecise-future W Rᴵ
+      shape′ = dynamic-payload-shape-future step shape
+      payload′ = value-imprecision-imprecise W payload
+      precise-eq = trans
+        (cong (embedPrecise (core (impreciseBindWorld W Rᴵ)))
+          (precise-ground-type-eq step (precise-ground shape)))
+        (embedPrecise-lift step (precise-ground shape))
+      imprecise-eq = trans
+        (cong (embedImprecise (core (impreciseBindWorld W Rᴵ)))
+          (imprecise-ground-type-eq step (imprecise-ground shape)))
+        (embedImprecise-lift step (imprecise-ground shape))
+      related′ = value-imprecision-reindex
+        (payload-imprecision shape′)
+        (liftCenterImprecision step (payload-imprecision shape))
+        precise-eq imprecise-eq payload′
+  in typed-endpoints-future step endpoints , inj₁ (shape′ , related′)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.★⊑★} {k = suc k}
+    (endpoints , inj₂ related) =
+  let step = imprecise-future W Rᴵ
+  in typed-endpoints-future step endpoints ,
+     inj₂ (dynamic-atom-tag-future step related)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.ι⊑ι} {k = suc k}
+    (endpoints , same) =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints ,
+  same-base-value-future (imprecise-future W Rᴵ) same
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.X⊑X} {k = suc k}
+    (endpoints , related) =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints ,
+  paired-atom-holds-future (imprecise-future W Rᴵ) related
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.⇒⊑⇒ p q}
+    {k = suc k} (endpoints , related) =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints ,
+  functions-related-future (imprecise-future W Rᴵ) related
+value-imprecision-imprecise {Rᴵ = Rᴵ} W
+    {p = I.∀⊑∀ {A = Aᴾ} {B = Aᴵ} p} {k = suc k}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related) =
+  let step = imprecise-future W Rᴵ
+      lifted = liftCenterImprecision step (I.∀⊑∀ p)
+      structural = I.∀⊑∀ (liftCenterBodyImprecision step p)
+      structural-endpoints = typed-endpoints-derivation-reindex
+        lifted structural (typed-endpoints-future step endpoints)
+      structural-related = structural-endpoints ,
+        liftPreciseBody step Bᴾ , liftImpreciseBody step Bᴵ ,
+        trans (embedPrecise-lift step (`∀ Bᴾ))
+          (cong (liftCenterTy step) eqᴾ) ,
+        trans (embedImprecise-lift step (`∀ Bᴵ))
+          (cong (liftCenterTy step) eqᴵ) ,
+        universals-related-future {p = p} step related
+  in value-imprecision-reindex lifted structural {suc k} refl refl
+       structural-related
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.⇒⊑★ p q}
+    {k = suc k} (endpoints , shape , payload) =
+  let step = imprecise-future W Rᴵ
+  in typed-endpoints-future step endpoints ,
+     right-dynamic-payload-future step shape
+       (value-imprecision-imprecise W payload)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.ι⊑★}
+    {k = suc k} (endpoints , shape , payload) =
+  let step = imprecise-future W Rᴵ
+  in typed-endpoints-future step endpoints ,
+     right-dynamic-payload-future step shape
+       (value-imprecision-imprecise W payload)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.X⊑★ eq}
+    {k = suc k} (endpoints , inj₁ related) =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints ,
+  inj₁ (dynamic-atom-holds-future
+    (imprecise-future W Rᴵ) eq related)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.X⊑★ eq}
+    {k = suc k} (endpoints , inj₂ related) =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints ,
+  inj₂ (aligned-dynamic-atom-future
+    (imprecise-future W Rᴵ) related)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W
+    {p = I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p} {k = suc k}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related) =
+  let step = imprecise-future W Rᴵ
+      lifted = liftCenterImprecision step (I.∀⊑ nonvar occurs p)
+      p-lifted = liftCenterDynamicBodyImprecision step p
+      p-structural = subst≡
+        (λ T → I.instᵐ (impEnv (core (impreciseBindWorld W Rᴵ)))
+          I.⊢ liftCenterBody step _ ⊑ T)
+        (renameᵗ-shift Fin.suc Aᴵ) p-lifted
+      related-structural = right-universals-related-reindex
+        p-structural p-lifted refl (sym (renameᵗ-shift Fin.suc Aᴵ))
+        (right-universals-related-future {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+          {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} step related)
+      structural = I.∀⊑
+        (renameNonVar (extᵗ Fin.suc) nonvar)
+        (IC.rename-occurs (extᵗ Fin.suc)
+          (IC.ext-injective IC.fin-suc-injective) occurs)
+        p-structural
+      structural-endpoints = typed-endpoints-derivation-reindex
+        lifted structural (typed-endpoints-future step endpoints)
+      structural-related = structural-endpoints ,
+        liftPreciseBody step Bᴾ , liftImpreciseTy step Bᴵ ,
+        trans (embedPrecise-lift step (`∀ Bᴾ))
+          (cong (liftCenterTy step) eqᴾ) ,
+        trans (embedImprecise-lift step Bᴵ)
+          (cong (liftCenterTy step) eqᴵ) ,
+        related-structural
+  in value-imprecision-reindex lifted structural {suc k} refl refl
+       structural-related
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.∀★⊑★}
+    {k = suc k} (endpoints , shape , payload) =
+  let step = imprecise-future W Rᴵ
+  in typed-endpoints-future step endpoints ,
+     right-dynamic-payload-future step shape
+       (value-imprecision-imprecise W payload)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.∀⊑★ nonstar p}
+    {k = suc k} (endpoints , shape , payload) =
+  let step = imprecise-future W Rᴵ
+  in typed-endpoints-future step endpoints ,
+     right-dynamic-payload-future step shape
+       (value-imprecision-imprecise W payload)
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.bot-elim}
+    {k = suc k} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.bot⊑★}
+    {k = suc k} endpoints =
+  typed-endpoints-future (imprecise-future W Rᴵ) endpoints
+
 value-imprecision-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -1337,6 +1591,10 @@ value-imprecision-future
 value-imprecision-future
     (future-precise {W′ = W′} W≼W′ fresh) value-related =
   value-imprecision-precise W′ fresh
+    (value-imprecision-future W≼W′ value-related)
+value-imprecision-future
+    (future-imprecise {W′ = W′} {Aᴵ = Aᴵ} W≼W′) value-related =
+  value-imprecision-imprecise W′
     (value-imprecision-future W≼W′ value-related)
 
 right-dynamic-payload-related-future : ∀

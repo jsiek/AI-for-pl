@@ -5,7 +5,7 @@ module LR-narrow.TermRelation where
 --   * Quantifies over future worlds and closes both endpoint terms with
 --     related typed substitutions before applying the computation relation.
 --   * Bridges the LR world and context to the cast-term imprecision relation.
---   * Defines the semantic body premise below a universal type binder.
+--   * Defines paired and precise-only semantic universal body premises.
 --   * Contains no compatibility proof.
 
 open import Data.List using ([]; _∷_)
@@ -25,7 +25,7 @@ open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import LR-narrow.ClosingSubstitution
 open import LR-narrow.ClosingSubstitutionProperties
-open import LR-narrow.TypeBetaExpansion using (paired-step)
+open import LR-narrow.TypeBetaExpansion using (paired-step; precise-step)
 
 ------------------------------------------------------------------------
 -- The syntactic shadow of an LR world
@@ -168,3 +168,34 @@ CompiledUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Nᴵ =
         (closeTypeBody (preciseClosingSubstitution γ)
           (liftPreciseBodyTerm W≼W′ Nᴾ)
           ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ liftPreciseBody W≼W′ Bᴾ 〗)
+
+CompiledRightUniversalBodyRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+  → (p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
+  → (Bᴾ : Ty (suc Δᴾ))
+  → (Bᴵ : Ty Δᴵ)
+  → ℕ
+  → (Γ : CTI.CtxImp (forgetWorld W))
+  → Term (suc Δᴾ)
+  → Term Δᴵ
+  → Set₁
+CompiledRightUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Mᴵ =
+  ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+    (W≼W′ : Future W W′)
+    (γ : RelatedClosingSubstitutions W′ k
+      (liftContextImprecision W≼W′ (compiledContext W Γ)))
+    (Rᴾ : Ty Δᴾ′)
+    (fresh : DynamicSemanticAtom
+      (preciseBindCore (core W′) Rᴾ) Fin.zero)
+    (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
+      ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
+  → let tested = preciseBindWorld W′ Rᴾ fresh
+        test-step = precise-step W′ fresh
+    in ComputationsRelated tested
+        (FutureValueRelation (liftCenterImprecision test-step s)) k
+        (close (impreciseClosingSubstitution γ)
+          (liftImpreciseTerm W≼W′ Mᴵ))
+        (closeTypeBody (preciseClosingSubstitution γ)
+          (liftPreciseBodyTerm W≼W′ Nᴾ)
+          ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑
+            liftPreciseBody W≼W′ Bᴾ 〗)

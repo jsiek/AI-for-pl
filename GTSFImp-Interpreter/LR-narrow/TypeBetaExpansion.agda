@@ -1,8 +1,8 @@
 module LR-narrow.TypeBetaExpansion where
 
 -- File Charter:
---   * Exposes matching type-beta expansion for related computations.
---   * Exposes the paired world step chosen by type application.
+--   * Exposes matching and precise-only type-beta expansion.
+--   * Exposes paired and precise-only world steps chosen by type application.
 --   * Delegates evaluator and trace proofs to the proof namespace.
 
 open import Data.Nat using (ℕ; suc)
@@ -23,6 +23,13 @@ paired-step : ∀ {Δᴾ Δᴵ Δᶜ}
     (fresh : SemanticAtom (pairedBindCore (core W) Aᴾ Aᴵ) Fin.zero)
   → Future W (pairedBindWorld W Aᴾ Aᴵ fresh)
 paired-step = Proof.paired-step
+
+precise-step : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : World Δᴾ Δᴵ Δᶜ) {Aᴾ : Ty Δᴾ}
+    (fresh : DynamicSemanticAtom
+      (preciseBindCore (core W) Aᴾ) Fin.zero)
+  → Future W (preciseBindWorld W Aᴾ fresh)
+precise-step = Proof.precise-step
 
 related-type-beta-expand : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -50,3 +57,26 @@ related-type-beta-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
   Proof.related-type-beta-expand {W = W}
     {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {r = r} {fresh = fresh} {p = p}
     {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ} {k = k}
+
+related-precise-type-beta-expand : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {Rᴾ : Ty Δᴾ}
+    {fresh : DynamicSemanticAtom
+      (preciseBindCore (core W) Rᴾ) Fin.zero}
+    {Aᴾ Aᴵ : Ty Δᶜ}
+    {p : impEnv (core W) Imprecision.⊢ Aᴾ ⊑ Aᴵ}
+    {Bᴾ : Ty (suc Δᴾ)} {Vᴾ : Term (suc Δᴾ)}
+    {Mᴵ : Term Δᴵ} {k : ℕ}
+  → Value Vᴾ
+  → ComputationsRelated (preciseBindWorld W Rᴾ fresh)
+      (FutureValueRelation
+        (liftCenterImprecision (precise-step W fresh) p)) k
+      Mᴵ (Vᴾ ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ Bᴾ 〗)
+  → ComputationsRelated W
+      (PostBindValueRelation (precise-step W fresh) p) k
+      Mᴵ ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ])
+related-precise-type-beta-expand {W = W} {Rᴾ = Rᴾ}
+    {fresh = fresh} {p = p} {Bᴾ = Bᴾ} {Vᴾ = Vᴾ}
+    {Mᴵ = Mᴵ} {k = k} =
+  Proof.related-precise-type-beta-expand {W = W} {Rᴾ = Rᴾ}
+    {fresh = fresh} {p = p} {Bᴾ = Bᴾ} {Vᴾ = Vᴾ}
+    {Mᴵ = Mᴵ} {k = k}

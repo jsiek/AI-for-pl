@@ -191,6 +191,11 @@ precise-open-typing-future {Γ = Γ}
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftPreciseContext-precise W≼W′ Γ))
     (typing-shiftᵗ-bind (precise-open-typing-future W≼W′ M⊢))
+precise-open-typing-future {Γ = Γ}
+    (future-imprecise W≼W′) M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftPreciseContext-imprecise W≼W′ Γ))
+    (precise-open-typing-future W≼W′ M⊢)
 
 imprecise-open-typing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -214,6 +219,11 @@ imprecise-open-typing-future {Γ = Γ}
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftImpreciseContext-precise W≼W′ Γ))
     (imprecise-open-typing-future W≼W′ M⊢)
+imprecise-open-typing-future {Γ = Γ}
+    (future-imprecise W≼W′) M⊢ =
+  subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
+    (sym (liftImpreciseContext-imprecise W≼W′ Γ))
+    (typing-shiftᵗ-bind (imprecise-open-typing-future W≼W′ M⊢))
 
 ------------------------------------------------------------------------
 -- Endpoint projections and related lookup
@@ -381,6 +391,10 @@ precise-closing-future
   subst≡ (ClosingSubstitution _)
     (sym (liftPreciseContext-precise W≼W′ Γ))
     (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ))
+precise-closing-future {Γ = Γ} (future-imprecise W≼W′) γ =
+  subst≡ (ClosingSubstitution _)
+    (sym (liftPreciseContext-imprecise W≼W′ Γ))
+    (precise-closing-future W≼W′ γ)
 
 imprecise-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -402,6 +416,11 @@ imprecise-closing-future {Γ = Γ}
   subst≡ (ClosingSubstitution _)
     (sym (liftImpreciseContext-precise W≼W′ Γ))
     (imprecise-closing-future W≼W′ γ)
+imprecise-closing-future {Γ = Γ}
+    (future-imprecise {Aᴵ = Bᴵ} W≼W′) γ =
+  subst≡ (ClosingSubstitution _)
+    (sym (liftImpreciseContext-imprecise W≼W′ Γ))
+    (shiftClosingBind {B = Bᴵ} (imprecise-closing-future W≼W′ γ))
 
 precise-closing-future-lookup : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -432,6 +451,13 @@ precise-closing-future-lookup
       (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ)) x)
     (trans (lookup-shiftClosingBind (precise-closing-future W≼W′ γ) x)
       (cong ⇑ᵗᵐ (precise-closing-future-lookup W≼W′ γ x)))
+precise-closing-future-lookup
+    {Γ = Γ} (future-imprecise W≼W′) γ x =
+  trans
+    (lookupClosing-subst
+      (sym (liftPreciseContext-imprecise W≼W′ Γ))
+      (precise-closing-future W≼W′ γ) x)
+    (precise-closing-future-lookup W≼W′ γ x)
 
 imprecise-closing-future-lookup : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -463,6 +489,16 @@ imprecise-closing-future-lookup
       (sym (liftImpreciseContext-precise W≼W′ Γ))
       (imprecise-closing-future W≼W′ γ) x)
     (imprecise-closing-future-lookup W≼W′ γ x)
+imprecise-closing-future-lookup
+    {Γ = Γ} (future-imprecise {Aᴵ = Bᴵ} W≼W′) γ x =
+  trans
+    (lookupClosing-subst
+      (sym (liftImpreciseContext-imprecise W≼W′ Γ))
+      (shiftClosingBind {B = Bᴵ}
+        (imprecise-closing-future W≼W′ γ)) x)
+    (trans
+      (lookup-shiftClosingBind (imprecise-closing-future W≼W′ γ) x)
+      (cong ⇑ᵗᵐ (imprecise-closing-future-lookup W≼W′ γ x)))
 
 precise-close-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -513,6 +549,18 @@ precise-close-future
     trans (precise-closing-future-lookup
       (future-precise W≼W′ fresh) γ x)
       (cong ⇑ᵗᵐ (sym (precise-closing-future-lookup W≼W′ γ x)))
+precise-close-future (future-imprecise W≼W′) γ M =
+  trans (precise-close-future W≼W′ γ M)
+    (subst-cong env-eq (liftPreciseTerm W≼W′ M))
+  where
+  env-eq : ∀ x
+    → closingSubstitution (precise-closing-future W≼W′ γ) x
+      ≡ closingSubstitution
+          (precise-closing-future (future-imprecise W≼W′) γ) x
+  env-eq x =
+    trans (precise-closing-future-lookup W≼W′ γ x)
+      (sym (precise-closing-future-lookup
+        (future-imprecise W≼W′) γ x))
 
 imprecise-close-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -560,6 +608,25 @@ imprecise-close-future
     trans (imprecise-closing-future-lookup W≼W′ γ x)
       (sym (imprecise-closing-future-lookup
         (future-precise W≼W′ fresh) γ x))
+imprecise-close-future (future-imprecise W≼W′) γ M =
+  trans (cong ⇑ᵗᵐ (imprecise-close-future W≼W′ γ M))
+    (sym (subst-renameᵗᵐ C.wk↪ᵗ
+      (closingSubstitution
+        (imprecise-closing-future (future-imprecise W≼W′) γ))
+      (closingSubstitution (imprecise-closing-future W≼W′ γ))
+      (liftImpreciseTerm W≼W′ M) env-eq))
+  where
+  env-eq : ∀ x
+    → closingSubstitution
+        (imprecise-closing-future (future-imprecise W≼W′) γ) x
+      ≡ ⇑ᵗᵐ (closingSubstitution
+          (imprecise-closing-future W≼W′ γ) x)
+  env-eq x =
+    trans
+      (imprecise-closing-future-lookup
+        (future-imprecise W≼W′) γ x)
+      (cong ⇑ᵗᵐ
+        (sym (imprecise-closing-future-lookup W≼W′ γ x)))
 
 related-closing-future : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -597,6 +664,8 @@ lift-precise-blame (future-paired W≼W′ related fresh)
     rewrite lift-precise-blame W≼W′ = refl
 lift-precise-blame (future-precise W≼W′ fresh)
     rewrite lift-precise-blame W≼W′ = refl
+lift-precise-blame (future-imprecise W≼W′) =
+  lift-precise-blame W≼W′
 
 lift-imprecise-blame : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
@@ -608,6 +677,8 @@ lift-imprecise-blame (future-paired W≼W′ related fresh)
     rewrite lift-imprecise-blame W≼W′ = refl
 lift-imprecise-blame (future-precise W≼W′ fresh) =
   lift-imprecise-blame W≼W′
+lift-imprecise-blame (future-imprecise W≼W′)
+    rewrite lift-imprecise-blame W≼W′ = refl
 
 precise-related-downward-lookup : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {j k : ℕ}

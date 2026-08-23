@@ -137,6 +137,9 @@ future-trans-assoc W₀≼W₁ W₁≼W₂
     (future-precise W₂≼W₃ fresh) =
   cong (λ W₀≼W₃ → future-precise W₀≼W₃ fresh)
     (future-trans-assoc W₀≼W₁ W₁≼W₂ W₂≼W₃)
+future-trans-assoc W₀≼W₁ W₁≼W₂ (future-imprecise W₂≼W₃) =
+  cong future-imprecise
+    (future-trans-assoc W₀≼W₁ W₁≼W₂ W₂≼W₃)
 
 computations-related-post-bind-compose : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾᵇ Δᴵᵇ Δᶜᵇ

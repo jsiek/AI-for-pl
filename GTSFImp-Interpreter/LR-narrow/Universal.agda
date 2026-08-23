@@ -1,11 +1,12 @@
 module LR-narrow.Universal where
 
 -- File Charter:
---   * Exposes symmetric universal-introduction compatibility.
---   * Exposes the binder-specific body relation and its LR constructor.
+--   * Exposes paired and one-sided universal-introduction infrastructure.
+--   * Exposes binder-specific body relations and their LR constructors.
 --   * Keeps evaluator and endpoint proof scripts in the proof namespace.
 
 open import Data.Nat using (ℕ; suc; _≤_)
+import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
@@ -34,6 +35,17 @@ universal-body-imprecision : ∀ {Δᴾ Δᴵ Δᶜ}
 universal-body-imprecision {W = W} p =
   Proof.universal-body-imprecision {W = W} p
 
+right-universal-body-imprecision : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ : Ty (suc Δᴾ)} {Aᴵ : Ty Δᴵ}
+  → Aᴾ CTI.⊑ᵂ⟨ CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Aᴵ
+  → I.instᵐ (impEnv (core W)) I.⊢
+      renameᵗ (extᵗ (Consistency.toRenameᵗ
+        (preciseEmbedding (core W)))) Aᴾ
+      ⊑ ⇑ᵗ (embedImprecise (core W) Aᴵ)
+right-universal-body-imprecision {W = W} p =
+  Proof.right-universal-body-imprecision {W = W} p
+
 universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
     {Γ : CTI.CtxImp (forgetWorld W)}
@@ -59,6 +71,59 @@ universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
         (liftPreciseTerm W≼W′ (Λ Nᴾ)))
 universals-related-from-body {p = p} =
   Proof.universals-related-from-body {p = p}
+
+right-universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Nᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+  → Value Nᴾ
+  → (∀ i → i ≤ k →
+      CompiledRightUniversalBodyRelation {W = W}
+        p Bᴾ Bᴵ i Γ Nᴾ Mᴵ)
+  → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
+      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      (W≼W′ : Future W W′)
+      (γ : RelatedClosingSubstitutions W′ k
+        (liftContextImprecision W≼W′ (compiledContext W Γ)))
+      (j : ℕ)
+  → j ≤ k
+  → RightUniversalsRelated W′
+      (liftCenterDynamicBodyImprecision W≼W′ p)
+      (liftPreciseBody W≼W′ Bᴾ) (liftImpreciseTy W≼W′ Bᴵ) j
+      (close (impreciseClosingSubstitution γ)
+        (liftImpreciseTerm W≼W′ Mᴵ))
+      (close (preciseClosingSubstitution γ)
+        (liftPreciseTerm W≼W′ (Λ Nᴾ)))
+right-universals-related-from-body {W = W} {p = p} =
+  Proof.right-universals-related-from-body {W = W} {p = p}
+
+right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (nonvar : NonVar Aᴾ)
+  → (occurs : Fin.zero ∈ᵗ Aᴾ)
+  → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → (vVᴵ : Value Vᴵ)
+  → ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+        CTI.tgtCtxʷ Γ ⟩ ⊢ Vᴵ ⦂ Bᴵ
+  → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → (∀ i → i ≤ k → CompiledRightUniversalBodyRelation
+      (right-universal-body-imprecision {W = W} p)
+      Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Vᴵ
+right-universal-value-compatible-from-body =
+  Proof.right-universal-value-compatible-from-body
 
 universal-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

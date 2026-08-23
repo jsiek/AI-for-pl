@@ -88,6 +88,14 @@ lift-imprecise-type-application
     (renameᵗ-wk-eq (liftImpreciseTy W₀≼W₁ A))
 lift-imprecise-type-application (future-precise W₀≼W₁ fresh) L B A =
   lift-imprecise-type-application W₀≼W₁ L B A
+lift-imprecise-type-application
+    (future-imprecise W₀≼W₁) L B A
+    rewrite lift-imprecise-type-application W₀≼W₁ L B A =
+  cong₂ (λ C R → ⇑ᵗᵐ (liftImpreciseTerm W₀≼W₁ L)
+    ⦂∀ C [ R ])
+    (renameᵗ-cong (liftImpreciseBody W₀≼W₁ B)
+      toRename-keep-wk-eq)
+    (renameᵗ-wk-eq (liftImpreciseTy W₀≼W₁ A))
 
 lift-precise-type-application : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
@@ -116,6 +124,8 @@ lift-precise-type-application
     (renameᵗ-cong (liftPreciseBody W₀≼W₁ B)
       toRename-keep-wk-eq)
     (renameᵗ-wk-eq (liftPreciseTy W₀≼W₁ A))
+lift-precise-type-application (future-imprecise W₀≼W₁) L B A =
+  lift-precise-type-application W₀≼W₁ L B A
 
 lift-imprecise-open : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
@@ -135,6 +145,12 @@ lift-imprecise-open (future-paired W₀≼W₁ related fresh) B A =
       (liftImpreciseTy W₀≼W₁ A))
 lift-imprecise-open (future-precise W₀≼W₁ fresh) B A =
   lift-imprecise-open W₀≼W₁ B A
+lift-imprecise-open (future-imprecise W₀≼W₁) B A =
+  trans (cong (renameᵗ Fin.suc)
+    (lift-imprecise-open W₀≼W₁ B A))
+    (rename-openᵗ Fin.suc
+      (liftImpreciseBody W₀≼W₁ B)
+      (liftImpreciseTy W₀≼W₁ A))
 
 lift-precise-open : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
@@ -157,58 +173,8 @@ lift-precise-open (future-precise W₀≼W₁ fresh) B A =
     (rename-openᵗ Fin.suc
       (liftPreciseBody W₀≼W₁ B)
       (liftPreciseTy W₀≼W₁ A))
-
-lift-center-shift : ∀
-    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
-    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
-    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
-    (W₀≼W₁ : Future W₀ W₁) (A : Ty Δᶜ₀)
-  → liftCenterBody W₀≼W₁ (⇑ᵗ A)
-      ≡ ⇑ᵗ (liftCenterTy W₀≼W₁ A)
-lift-center-shift future-refl A = refl
-lift-center-shift (future-paired W₀≼W₁ related fresh) A =
-  trans (cong (renameᵗ (extᵗ Fin.suc))
-    (lift-center-shift W₀≼W₁ A))
-    (renameᵗ-shift Fin.suc (liftCenterTy W₀≼W₁ A))
-lift-center-shift (future-precise W₀≼W₁ fresh) A =
-  trans (cong (renameᵗ (extᵗ Fin.suc))
-    (lift-center-shift W₀≼W₁ A))
-    (renameᵗ-shift Fin.suc (liftCenterTy W₀≼W₁ A))
-
-lift-center-body-nonvar : ∀
-    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
-    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
-    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
-    {A : Ty (suc Δᶜ₀)}
-  → (W₀≼W₁ : Future W₀ W₁)
-  → NonVar A
-  → NonVar (liftCenterBody W₀≼W₁ A)
-lift-center-body-nonvar future-refl nonvar = nonvar
-lift-center-body-nonvar (future-paired W₀≼W₁ related fresh) nonvar =
-  renameNonVar (extᵗ Fin.suc)
-    (lift-center-body-nonvar W₀≼W₁ nonvar)
-lift-center-body-nonvar (future-precise W₀≼W₁ fresh) nonvar =
-  renameNonVar (extᵗ Fin.suc)
-    (lift-center-body-nonvar W₀≼W₁ nonvar)
-
-lift-center-body-occurs : ∀
-    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
-    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
-    {W₁ : World Δᴾ₁ Δᴵ₁ Δᶜ₁}
-    {A : Ty (suc Δᶜ₀)}
-  → (W₀≼W₁ : Future W₀ W₁)
-  → Fin.zero ∈ᵗ A
-  → Fin.zero ∈ᵗ liftCenterBody W₀≼W₁ A
-lift-center-body-occurs future-refl occurs = occurs
-lift-center-body-occurs
-    (future-paired W₀≼W₁ related fresh) occurs =
-  IC.rename-occurs (extᵗ Fin.suc)
-    (IC.ext-injective IC.fin-suc-injective)
-    (lift-center-body-occurs W₀≼W₁ occurs)
-lift-center-body-occurs (future-precise W₀≼W₁ fresh) occurs =
-  IC.rename-occurs (extᵗ Fin.suc)
-    (IC.ext-injective IC.fin-suc-injective)
-    (lift-center-body-occurs W₀≼W₁ occurs)
+lift-precise-open (future-imprecise W₀≼W₁) B A =
+  lift-precise-open W₀≼W₁ B A
 
 ------------------------------------------------------------------------
 -- Evaluator phase packages
@@ -1629,11 +1595,12 @@ right-type-call-after-function {W₀ = W₀} {W₁ = W₁} {W₂ = W₂}
       liftCenterBody composite
         (renameᵗ (extᵗ (Consistency.toRenameᵗ
           (preciseEmbedding (core W₀)))) Cᴾ) ⊑ T)
-    (lift-center-shift composite (embedImprecise (core W₀) Bᴵ)) p-lifted
+    (liftCenterBody-shift composite (embedImprecise (core W₀) Bᴵ))
+    p-lifted
 
   structural = I.∀⊑
-    (lift-center-body-nonvar composite nonvar)
-    (lift-center-body-occurs composite occurs)
+    (liftCenterBody-nonvar composite nonvar)
+    (liftCenterBody-occurs composite occurs)
     p-structural
 
   structuralFunction = ClosureProof.value-imprecision-reindex

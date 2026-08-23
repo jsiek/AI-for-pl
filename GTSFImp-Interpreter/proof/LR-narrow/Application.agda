@@ -69,6 +69,8 @@ lift-imprecise-application (future-paired W₀≼W₁ related fresh) L M
     rewrite lift-imprecise-application W₀≼W₁ L M = refl
 lift-imprecise-application (future-precise W₀≼W₁ fresh) L M =
   lift-imprecise-application W₀≼W₁ L M
+lift-imprecise-application (future-imprecise W₀≼W₁) L M
+    rewrite lift-imprecise-application W₀≼W₁ L M = refl
 
 lift-precise-application : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
@@ -82,6 +84,8 @@ lift-precise-application (future-paired W₀≼W₁ related fresh) L M
     rewrite lift-precise-application W₀≼W₁ L M = refl
 lift-precise-application (future-precise W₀≼W₁ fresh) L M
     rewrite lift-precise-application W₀≼W₁ L M = refl
+lift-precise-application (future-imprecise W₀≼W₁) L M =
+  lift-precise-application W₀≼W₁ L M
 
 gen-safe-unique : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     {c : μ ⊢ A ∼ B}

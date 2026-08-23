@@ -9,7 +9,8 @@ open import Data.List using (_∷_)
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
 open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_)
-open import Data.Nat.Properties using (≤-pred)
+open import Data.Nat.Properties using
+  (n≤1+n; ≤-pred; ≤-trans; ∸-monoʳ-≤)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 import Data.Fin as Fin
@@ -37,6 +38,13 @@ paired-step : ∀ {Δᴾ Δᴵ Δᶜ}
     (fresh : SemanticAtom (pairedBindCore (core W) Aᴾ Aᴵ) Fin.zero)
   → Future W (pairedBindWorld W Aᴾ Aᴵ fresh)
 paired-step W p fresh = future-paired (future-refl {W = W}) p fresh
+
+precise-step : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : World Δᴾ Δᴵ Δᶜ) {Aᴾ : Ty Δᴾ}
+    (fresh : DynamicSemanticAtom
+      (preciseBindCore (core W) Aᴾ) Fin.zero)
+  → Future W (preciseBindWorld W Aᴾ fresh)
+precise-step W fresh = future-precise future-refl fresh
 
 type-beta-step-question : ∀ {Δ} {Σ : TyStore Δ}
     {A : Ty Δ} {B : Ty (suc Δ)} {V : Term (suc Δ)}
@@ -433,3 +441,162 @@ related-type-beta-expand {W = W} {Rᴾ} {Rᴵ} {r} {fresh} {p = p}
     suc m , type-beta-blame-expand
       {Σ = preciseStore (core W)} {m} {Rᴾ} {Bᴾ} {Vᴾ}
       vVᴾ contract-blameᴾ
+
+------------------------------------------------------------------------
+-- Precise-only type-beta allocation
+------------------------------------------------------------------------
+
+paired-returns-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
+    {j k : ℕ} {Mᴵ : Term Δᴵ} {Mᴾ : Term Δᴾ}
+    {resultᴵ : E.EvalResult Mᴵ} {resultᴾ : E.EvalResult Mᴾ}
+  → j ≤ k
+  → PairedReturns W (FutureValueRelation p) k resultᴵ resultᴾ
+  → PairedReturns W (FutureValueRelation p) j resultᴵ resultᴾ
+paired-returns-downward j≤k
+    (paired-returns W′ W≼W′ storeᴵ storeᴾ termsᴵ termsᴾ related) =
+  paired-returns W′ W≼W′ storeᴵ storeᴾ termsᴵ termsᴾ
+    (ClosureProof.value-imprecision-downward-to j≤k related)
+
+paired-returns-precise-type-beta : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {Rᴾ : Ty Δᴾ}
+    {fresh : DynamicSemanticAtom
+      (preciseBindCore (core W) Rᴾ) Fin.zero}
+    {Aᴾ Aᴵ : Ty Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Mᴵ : Term Δᴵ} {Bᴾ : Ty (suc Δᴾ)}
+    {Vᴾ : Term (suc Δᴾ)}
+    {resultᴵ : E.EvalResult Mᴵ}
+    {resultᴾ : E.EvalResult
+      (Vᴾ ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ Bᴾ 〗)} {k : ℕ}
+  → (vVᴾ : Value Vᴾ)
+  → PairedReturns (preciseBindWorld W Rᴾ fresh)
+      (FutureValueRelation
+        (liftCenterImprecision (precise-step W fresh) p))
+      k resultᴵ resultᴾ
+  → PairedReturns W
+      (PostBindValueRelation (precise-step W fresh) p) k
+      resultᴵ (prepend-type-beta-result vVᴾ resultᴾ)
+paired-returns-precise-type-beta {W = W} {Rᴾ = Rᴾ}
+    {fresh = fresh} {resultᴵ = resultᴵ} {resultᴾ = resultᴾ}
+    vVᴾ
+    (paired-returns W′ bound≼W′ storeᴵ storeᴾ
+      termsᴵ termsᴾ related) =
+  paired-returns W′ W≼W′ storeᴵ storeᴾ termsᴵ′ termsᴾ′
+    (bound≼W′ , refl , final-related)
+  where
+  step = precise-step W fresh
+  W≼W′ = future-trans step bound≼W′
+
+  termsᴵ′ : ∀ M → E.changes resultᴵ ▶ᵀ M
+      ≡ liftImpreciseTerm W≼W′ M
+  termsᴵ′ M = trans (termsᴵ M)
+    (sym (liftImpreciseTerm-trans step bound≼W′ M))
+
+  termsᴾ′ : ∀ M →
+      E.changes (prepend-type-beta-result vVᴾ resultᴾ) ▶ᵀ M
+      ≡ liftPreciseTerm W≼W′ M
+  termsᴾ′ M = trans (termsᴾ (⇑ᵗᵐ M))
+    (sym (liftPreciseTerm-trans step bound≼W′ M))
+
+  composite = liftCenterImprecision W≼W′ _
+  sequential = liftCenterImprecision bound≼W′
+    (liftCenterImprecision step _)
+  final-related = ClosureProof.value-imprecision-reindex
+    composite sequential
+    (liftCenterTy-trans step bound≼W′ _)
+    (liftCenterTy-trans step bound≼W′ _) related
+
+related-precise-type-beta-expand : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {Rᴾ : Ty Δᴾ}
+    {fresh : DynamicSemanticAtom
+      (preciseBindCore (core W) Rᴾ) Fin.zero}
+    {Aᴾ Aᴵ : Ty Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Bᴾ : Ty (suc Δᴾ)} {Vᴾ : Term (suc Δᴾ)}
+    {Mᴵ : Term Δᴵ} {k : ℕ}
+  → Value Vᴾ
+  → ComputationsRelated (preciseBindWorld W Rᴾ fresh)
+      (FutureValueRelation
+        (liftCenterImprecision (precise-step W fresh) p)) k
+      Mᴵ (Vᴾ ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ Bᴾ 〗)
+  → ComputationsRelated W
+      (PostBindValueRelation (precise-step W fresh) p) k
+      Mᴵ ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ])
+related-precise-type-beta-expand {W = W} {Rᴾ = Rᴾ}
+    {fresh = fresh} {p = p} {Bᴾ = Bᴾ} {Vᴾ = Vᴾ}
+    {Mᴵ = Mᴵ} {k = k} vVᴾ contract-related = record
+  { forward-return = forward
+  ; backward-return = backward
+  ; forward-blame = forwardBlame
+  }
+  where
+  forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
+    → n ≤ k
+    → interpretFrom (impreciseStore (core W)) n Mᴵ
+        ≡ returned resultᴵ
+    → ( Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult
+          ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ]) ]
+        interpretFrom (preciseStore (core W)) m
+          ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ]) ≡ returned resultᴾ
+        × PairedReturns W
+          (PostBindValueRelation (precise-step W fresh) p)
+          (k ∸ n) resultᴵ resultᴾ)
+      ⊎ (Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m
+        ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ]))
+  forward {n} n≤k result-eq
+      with forward-return contract-related n≤k result-eq
+  forward {n} n≤k result-eq
+      | inj₁ (m , resultᴾ , returnᴾ , paired)
+      with type-beta-return-expand
+        {Σ = preciseStore (core W)} {m} {Rᴾ} {Bᴾ} {Vᴾ}
+        vVᴾ returnᴾ
+  forward {n} n≤k result-eq
+      | inj₁ (m , resultᴾ , returnᴾ , paired)
+      | vVᴾ′ , redex-eqᴾ =
+    inj₁ (suc m , prepend-type-beta-result vVᴾ′ resultᴾ ,
+      redex-eqᴾ , paired-returns-precise-type-beta
+        {fresh = fresh} vVᴾ′ paired)
+  forward {n} n≤k result-eq | inj₂ (m , blameᴾ) =
+    inj₂ (suc m , type-beta-blame-expand
+      {Σ = preciseStore (core W)} {m} {Rᴾ} {Bᴾ} {Vᴾ}
+      vVᴾ blameᴾ)
+
+  backward : ∀ {n} {resultᴾ : E.EvalResult
+      ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ])}
+    → n ≤ k
+    → interpretFrom (preciseStore (core W)) n
+        ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ]) ≡ returned resultᴾ
+    → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
+        interpretFrom (impreciseStore (core W)) m Mᴵ
+          ≡ returned resultᴵ
+        × PairedReturns W
+          (PostBindValueRelation (precise-step W fresh) p)
+          (k ∸ n) resultᴵ resultᴾ
+  backward {n} n≤k result-eq
+      with type-beta-return-invert
+        {Σ = preciseStore (core W)} {n} {Rᴾ} {Bᴾ} {Vᴾ}
+        vVᴾ result-eq
+  backward {.(suc n)} sn≤k result-eq
+      | n , refl , vVᴾ′ , resultᴾ , returnᴾ , refl
+      with backward-return contract-related
+        (≤-trans (n≤1+n n) sn≤k) returnᴾ
+  backward {.(suc n)} sn≤k result-eq
+      | n , refl , vVᴾ′ , resultᴾ , returnᴾ , refl
+      | m , resultᴵ , returnᴵ , paired =
+    m , resultᴵ , returnᴵ ,
+    paired-returns-precise-type-beta {fresh = fresh} vVᴾ′
+      (paired-returns-downward (∸-monoʳ-≤ k (n≤1+n n)) paired)
+
+  forwardBlame : ∀ {n}
+    → n ≤ k
+    → BlamesFrom (impreciseStore (core W)) n Mᴵ
+    → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m
+        ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ])
+  forwardBlame {n} n≤k blameᴵ
+      with forward-blame contract-related n≤k blameᴵ
+  forwardBlame {n} n≤k blameᴵ | m , blameᴾ =
+    suc m , type-beta-blame-expand
+      {Σ = preciseStore (core W)} {m} {Rᴾ} {Bᴾ} {Vᴾ}
+      vVᴾ blameᴾ

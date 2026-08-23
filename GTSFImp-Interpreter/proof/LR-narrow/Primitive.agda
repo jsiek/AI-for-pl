@@ -68,6 +68,8 @@ lift-imprecise-prim (future-paired W₀≼W₁ related fresh) op L M
     rewrite lift-imprecise-prim W₀≼W₁ op L M = refl
 lift-imprecise-prim (future-precise W₀≼W₁ fresh) op L M =
   lift-imprecise-prim W₀≼W₁ op L M
+lift-imprecise-prim (future-imprecise W₀≼W₁) op L M
+    rewrite lift-imprecise-prim W₀≼W₁ op L M = refl
 
 lift-precise-prim : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁}
@@ -81,6 +83,8 @@ lift-precise-prim (future-paired W₀≼W₁ related fresh) op L M
     rewrite lift-precise-prim W₀≼W₁ op L M = refl
 lift-precise-prim (future-precise W₀≼W₁ fresh) op L M
     rewrite lift-precise-prim W₀≼W₁ op L M = refl
+lift-precise-prim (future-imprecise W₀≼W₁) op L M =
+  lift-precise-prim W₀≼W₁ op L M
 
 positive-prim-values : ∀
     {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}

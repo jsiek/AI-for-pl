@@ -329,6 +329,78 @@ assemble-precise-cast-pair {W₀ = W₀} {operandResultᴾ = operandResultᴾ}
         (callTermsᴾ (liftPreciseTerm W₀≼W₁ M))
         (sym (liftPreciseTerm-trans W₀≼W₁ W₁≼W₂ M))))
 
+assemble-imprecise-cast-pair : ∀
+    {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᶜ₁}
+    {W₀ : World Δᴾ₀ Δᴵ₀ Δᶜ₀}
+    {S : IndexedValueRelation W₀}
+    {Cᴵ Dᴵ : Ty Δᴵ₀} {μᴵ : C.Env∼ Δᴵ₀}
+    {cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ}
+    {Mᴾ : Term Δᴾ₀} {Mᴵ : Term Δᴵ₀}
+    {operandResultᴾ : E.EvalResult Mᴾ}
+    {operandResultᴵ : E.EvalResult Mᴵ}
+    {callResultᴵ : E.EvalResult
+      (E.term operandResultᴵ
+        ⟨ E.changes operandResultᴵ ▶ᶜ cᴵ ⟩)}
+    {W₁ : World (E.Δ′ operandResultᴾ)
+      (E.Δ′ operandResultᴵ) Δᶜ₁}
+    {j k : ℕ}
+  → (W₀≼W₁ : Future W₀ W₁)
+  → impreciseStore (core W₁) ≡
+      E.changes operandResultᴵ ▶ˢ impreciseStore (core W₀)
+  → preciseStore (core W₁) ≡
+      E.changes operandResultᴾ ▶ˢ preciseStore (core W₀)
+  → (∀ M → E.changes operandResultᴵ ▶ᵀ M ≡
+      liftImpreciseTerm W₀≼W₁ M)
+  → (∀ M → E.changes operandResultᴾ ▶ᵀ M ≡
+      liftPreciseTerm W₀≼W₁ M)
+  → PairedReturns W₁
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W₀≼W₁ W₁≼W₂)) j
+      callResultᴵ
+      (E.result _ [] (E.term operandResultᴾ) ↠-refl
+        (E.value operandResultᴾ))
+  → j ≡ k
+  → PairedReturns W₀ S k
+      (sequence-cast-result operandResultᴵ callResultᴵ)
+      operandResultᴾ
+assemble-imprecise-cast-pair {W₀ = W₀}
+    {operandResultᴾ = operandResultᴾ}
+    {operandResultᴵ = operandResultᴵ} {callResultᴵ = callResultᴵ}
+    W₀≼W₁ operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
+    (paired-returns W₂ W₁≼W₂ callStoreᴵ callStoreᴾ
+      callTermsᴵ callTermsᴾ callRelated) refl =
+  paired-returns W₂ W₀≼W₂ imprecise-store-eq precise-store-eq
+    imprecise-terms-eq precise-terms-eq callRelated
+  where
+  W₀≼W₂ = future-trans W₀≼W₁ W₁≼W₂
+
+  imprecise-store-eq = trans callStoreᴵ
+    (trans
+      (cong (λ Σ → E.changes callResultᴵ ▶ˢ Σ) operandStoreᴵ)
+      (apply-stores-++ (E.changes operandResultᴵ)
+        (E.changes callResultᴵ) (impreciseStore (core W₀))))
+
+  precise-store-eq = trans callStoreᴾ operandStoreᴾ
+
+  imprecise-result = sequence-cast-result operandResultᴵ callResultᴵ
+
+  imprecise-terms-eq : ∀ M → E.changes imprecise-result ▶ᵀ M ≡
+      liftImpreciseTerm W₀≼W₂ M
+  imprecise-terms-eq M = trans
+    (sym (apply-terms-++ (E.changes operandResultᴵ)
+      (E.changes callResultᴵ) M))
+    (trans
+      (cong (λ N → E.changes callResultᴵ ▶ᵀ N) (operandTermsᴵ M))
+      (trans
+        (callTermsᴵ (liftImpreciseTerm W₀≼W₁ M))
+        (sym (liftImpreciseTerm-trans W₀≼W₁ W₁≼W₂ M))))
+
+  precise-terms-eq : ∀ M → E.changes operandResultᴾ ▶ᵀ M ≡
+      liftPreciseTerm W₀≼W₂ M
+  precise-terms-eq M = trans (operandTermsᴾ M)
+    (trans
+      (callTermsᴾ (liftPreciseTerm W₀≼W₁ M))
+      (sym (liftPreciseTerm-trans W₀≼W₁ W₁≼W₂ M)))
+
 cast-computations-related : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}
     {R S : IndexedValueRelation W}
@@ -640,7 +712,7 @@ cast-computations-related {W = W} {S = S}
       {Vᴵ = E.term operandResultᴵ}
       {Vᴾ = E.term operandResultᴾ}
       operandValueRelated
-  backward {n = n} n≤k result-eq
+  backward {n = n} {resultᴾ = resultᴾ} n≤k result-eq
       | cast-return-phases-record operandGas operandResultᴾ operandReturn
           callGas callResultᴾ callReturn result-split gas-split
       | impreciseOperandGas , operandResultᴵ , impreciseOperandReturn ,
@@ -1106,3 +1178,364 @@ precise-cast-computations-related {W = W} {S = S}
   forward-blame-cast {n = n} n≤k blaming
       | preciseOperandGas , preciseOperandBlame
       | wholeGas , wholeBlame = wholeGas , wholeBlame
+
+imprecise-cast-computations-related : ∀
+    {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}
+    {R S : IndexedValueRelation W}
+    {Aᴾ Aᴵ Bᴾ Bᴵ : Ty Δᶜ}
+    {Cᴾ : Ty Δᴾ} {Cᴵ Dᴵ : Ty Δᴵ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+    (sourceᴾ : embedPrecise (core W) Cᴾ ≡ Aᴾ)
+    (sourceᴵ : embedImprecise (core W) Cᴵ ≡ Aᴵ)
+    {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
+    (q : impEnv (core W) I.⊢ Bᴾ ⊑ Bᴵ)
+    (targetᴾ : embedPrecise (core W) Cᴾ ≡ Bᴾ)
+    (targetᴵ : embedImprecise (core W) Dᴵ ≡ Bᴵ)
+    (k : ℕ) (Mᴵ : Term Δᴵ) (Mᴾ : Term Δᴾ)
+  → (∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      {Eᴾ : Ty Δᴾ′} {Eᴵ Fᴵ : Ty Δᴵ′}
+      (W≼W′ : Future W W′)
+      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡
+        liftCenterTy W≼W′ Aᴾ)
+      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡
+        liftCenterTy W≼W′ Aᴵ)
+      {νᴵ : C.Env∼ Δᴵ′} (dᴵ : νᴵ C.⊢ Eᴵ ∼ Fᴵ)
+      (s-targetᴾ : embedPrecise (core W′) Eᴾ ≡
+        liftCenterTy W≼W′ Bᴾ)
+      (s-targetᴵ : embedImprecise (core W′) Fᴵ ≡
+        liftCenterTy W≼W′ Bᴵ)
+      {j : ℕ} {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
+    → R W′ W≼W′ j Vᴵ Vᴾ
+    → ComputationsRelated W′
+        (λ W″ W′≼W″ → S W″ (future-trans W≼W′ W′≼W″)) j
+        (Vᴵ ⟨ dᴵ ⟩) Vᴾ)
+  → ComputationsRelated W R k Mᴵ Mᴾ
+  → ComputationsRelated W S k (Mᴵ ⟨ cᴵ ⟩) Mᴾ
+imprecise-cast-computations-related {W = W} {S = S}
+    {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+    {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} {Dᴵ = Dᴵ}
+    p sourceᴾ sourceᴵ cᴵ q targetᴾ targetᴵ
+    k Mᴵ Mᴾ cast-values operand-related = record
+  { forward-return = forward
+  ; backward-return = backward
+  ; forward-blame = forward-blame-cast
+  }
+  where
+  forward : ∀ {n} {resultᴵ : E.EvalResult (Mᴵ ⟨ cᴵ ⟩)}
+    → n ≤ k
+    → interpretFrom (impreciseStore (core W)) n (Mᴵ ⟨ cᴵ ⟩)
+        ≡ returned resultᴵ
+    → ( Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
+          interpretFrom (preciseStore (core W)) m Mᴾ
+            ≡ returned resultᴾ
+          × PairedReturns W S (k ∸ n) resultᴵ resultᴾ)
+       ⊎ (Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ)
+  forward {n = n} {resultᴵ = resultᴵ} n≤k result-eq
+      with cast-return-phases {Σ = impreciseStore (core W)} {gas = n}
+        {M = Mᴵ} {c = cᴵ} {result = resultᴵ} result-eq
+  forward {n = n} n≤k result-eq
+      | cast-return-phases-record operandGas operandResultᴵ operandReturn
+          callGas callResultᴵ callReturn result-split gas-split
+      with forward-return operand-related {n = operandGas}
+        {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
+    where
+    phases≤ : operandGas + callGas ≤ k
+    phases≤ = sum-bound-from-split
+      {a = operandGas} {b = callGas} {n = n} {k = k}
+      gas-split n≤k
+    operandGas≤ = first-of-two≤
+      {a = operandGas} {b = callGas} {k = k} phases≤
+  forward {n = n} n≤k result-eq
+      | cast-return-phases-record operandGas operandResultᴵ operandReturn
+          callGas callResultᴵ callReturn result-split gas-split
+      | inj₂ (preciseOperandGas , preciseOperandBlame) =
+    inj₂ (preciseOperandGas , preciseOperandBlame)
+  forward {n = n} n≤k result-eq
+      | cast-return-phases-record operandGas operandResultᴵ operandReturn
+          callGas callResultᴵ callReturn result-split gas-split
+      | inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated)
+      with forward-return call-related {n = callGas}
+        {resultᴵ = callResultᴵ} callGas≤ callReturn-at-W₁
+    where
+    phases≤ : operandGas + callGas ≤ k
+    phases≤ = sum-bound-from-split
+      {a = operandGas} {b = callGas} {n = n} {k = k}
+      gas-split n≤k
+    callGas≤ = drop-left-≤
+      {a = operandGas} {b = callGas} {k = k} phases≤
+
+    callReturn-at-W₁ = return-store-reindex {gas = callGas}
+      {result = callResultᴵ} operandStoreᴵ callReturn
+
+    precise-source-type = precise-phase-argument-eq
+      {χs = E.changes operandResultᴾ} W≼W₁
+      operandTermsᴾ (⇑ᵗ Cᴾ) Cᴾ
+    imprecise-source-type = imprecise-phase-argument-eq
+      {χs = E.changes operandResultᴵ} W≼W₁
+      operandTermsᴵ (⇑ᵗ Cᴵ) Cᴵ
+    imprecise-target-type = imprecise-phase-argument-eq
+      {χs = E.changes operandResultᴵ} W≼W₁
+      operandTermsᴵ (⇑ᵗ Dᴵ) Dᴵ
+
+    sourceᴾ-at-W₁ = trans (cong (embedPrecise (core W₁))
+      precise-source-type) (trans (embedPrecise-lift W≼W₁ Cᴾ)
+        (cong (liftCenterTy W≼W₁) sourceᴾ))
+    sourceᴵ-at-W₁ = trans (cong (embedImprecise (core W₁))
+      imprecise-source-type) (trans (embedImprecise-lift W≼W₁ Cᴵ)
+        (cong (liftCenterTy W≼W₁) sourceᴵ))
+    targetᴾ-at-W₁ = trans (cong (embedPrecise (core W₁))
+      precise-source-type) (trans (embedPrecise-lift W≼W₁ Cᴾ)
+        (cong (liftCenterTy W≼W₁) targetᴾ))
+    targetᴵ-at-W₁ = trans (cong (embedImprecise (core W₁))
+      imprecise-target-type) (trans (embedImprecise-lift W≼W₁ Dᴵ)
+        (cong (liftCenterTy W≼W₁) targetᴵ))
+
+    call-related : ComputationsRelated W₁
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
+      (k ∸ operandGas)
+      (E.term operandResultᴵ
+        ⟨ E.changes operandResultᴵ ▶ᶜ cᴵ ⟩)
+      (E.term operandResultᴾ)
+    call-related = cast-values
+      {Eᴾ = E.changes operandResultᴾ ▶ᵗ Cᴾ}
+      {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
+      {Fᴵ = E.changes operandResultᴵ ▶ᵗ Dᴵ}
+      W≼W₁ sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      (E.changes operandResultᴵ ▶ᶜ cᴵ)
+      targetᴾ-at-W₁ targetᴵ-at-W₁
+      {j = k ∸ operandGas}
+      {Vᴵ = E.term operandResultᴵ}
+      {Vᴾ = E.term operandResultᴾ} operandValueRelated
+  forward {n = n} n≤k result-eq
+      | cast-return-phases-record operandGas operandResultᴵ operandReturn
+          callGas callResultᴵ callReturn result-split gas-split
+      | inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated)
+      | inj₂ (preciseCallGas , Δ′ , changes , trace , preciseCallBlame)
+      with trans
+        (sym (value-return-exact {Σ = preciseStore (core W₁)}
+          preciseCallGas (E.value operandResultᴾ))) preciseCallBlame
+  forward {n = n} n≤k result-eq
+      | cast-return-phases-record operandGas operandResultᴵ operandReturn
+          callGas callResultᴵ callReturn result-split gas-split
+      | inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated)
+      | inj₂ (preciseCallGas , Δ′ , changes , trace , preciseCallBlame)
+      | ()
+  forward {n = n} n≤k result-eq
+      | cast-return-phases-record operandGas operandResultᴵ operandReturn
+          callGas callResultᴵ callReturn result-split gas-split
+      | inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated)
+      | inj₁ (preciseCallGas , callResultᴾ , preciseCallReturn , callPair) =
+    inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+      paired-returns-reindex result-split refl assembled)
+    where
+    exactCallResult = E.result _ [] (E.term operandResultᴾ) ↠-refl
+      (E.value operandResultᴾ)
+
+    callResultEq : callResultᴾ ≡ exactCallResult
+    callResultEq = returned-injective
+      (trans (sym preciseCallReturn)
+        (value-return-exact {Σ = preciseStore (core W₁)}
+          preciseCallGas (E.value operandResultᴾ)))
+
+    exactCallPair = paired-returns-reindex refl (sym callResultEq) callPair
+    indexEq = trans (subtract-phases k operandGas callGas)
+      (cong (k ∸_) gas-split)
+
+    assembled : PairedReturns W S (k ∸ n)
+      (sequence-cast-result operandResultᴵ callResultᴵ) operandResultᴾ
+    assembled = assemble-imprecise-cast-pair
+      {S = S} {cᴵ = cᴵ} {operandResultᴾ = operandResultᴾ}
+      {operandResultᴵ = operandResultᴵ} {callResultᴵ = callResultᴵ}
+      W≼W₁ operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
+      exactCallPair indexEq
+
+  backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
+    → n ≤ k
+    → interpretFrom (preciseStore (core W)) n Mᴾ
+        ≡ returned resultᴾ
+    → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult (Mᴵ ⟨ cᴵ ⟩) ]
+        interpretFrom (impreciseStore (core W)) m (Mᴵ ⟨ cᴵ ⟩)
+          ≡ returned resultᴵ
+        × PairedReturns W S (k ∸ n) resultᴵ resultᴾ
+  backward {n = n} {resultᴾ = resultᴾ} n≤k result-eq
+      with backward-return operand-related n≤k result-eq
+  backward {n = n} {resultᴾ = resultᴾ} n≤k result-eq
+      | impreciseOperandGas , operandResultᴵ , impreciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated
+      with backward-return call-related {n = zero} z≤n callReturnᴾ
+    where
+    precise-source-type = precise-phase-argument-eq
+      {χs = E.changes resultᴾ} W≼W₁
+      operandTermsᴾ (⇑ᵗ Cᴾ) Cᴾ
+    imprecise-source-type = imprecise-phase-argument-eq
+      {χs = E.changes operandResultᴵ} W≼W₁
+      operandTermsᴵ (⇑ᵗ Cᴵ) Cᴵ
+    imprecise-target-type = imprecise-phase-argument-eq
+      {χs = E.changes operandResultᴵ} W≼W₁
+      operandTermsᴵ (⇑ᵗ Dᴵ) Dᴵ
+
+    sourceᴾ-at-W₁ = trans (cong (embedPrecise (core W₁))
+      precise-source-type) (trans (embedPrecise-lift W≼W₁ Cᴾ)
+        (cong (liftCenterTy W≼W₁) sourceᴾ))
+    sourceᴵ-at-W₁ = trans (cong (embedImprecise (core W₁))
+      imprecise-source-type) (trans (embedImprecise-lift W≼W₁ Cᴵ)
+        (cong (liftCenterTy W≼W₁) sourceᴵ))
+    targetᴾ-at-W₁ = trans (cong (embedPrecise (core W₁))
+      precise-source-type) (trans (embedPrecise-lift W≼W₁ Cᴾ)
+        (cong (liftCenterTy W≼W₁) targetᴾ))
+    targetᴵ-at-W₁ = trans (cong (embedImprecise (core W₁))
+      imprecise-target-type) (trans (embedImprecise-lift W≼W₁ Dᴵ)
+        (cong (liftCenterTy W≼W₁) targetᴵ))
+
+    call-related : ComputationsRelated W₁
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
+      (k ∸ n)
+      (E.term operandResultᴵ
+        ⟨ E.changes operandResultᴵ ▶ᶜ cᴵ ⟩)
+      (E.term resultᴾ)
+    call-related = cast-values
+      {Eᴾ = E.changes resultᴾ ▶ᵗ Cᴾ}
+      {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
+      {Fᴵ = E.changes operandResultᴵ ▶ᵗ Dᴵ}
+      W≼W₁ sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      (E.changes operandResultᴵ ▶ᶜ cᴵ)
+      targetᴾ-at-W₁ targetᴵ-at-W₁
+      {j = k ∸ n} {Vᴵ = E.term operandResultᴵ}
+      {Vᴾ = E.term resultᴾ} operandValueRelated
+
+    callReturnᴾ = value-return-exact
+      {Σ = preciseStore (core W₁)} zero (E.value resultᴾ)
+  backward {n = n} {resultᴾ = resultᴾ} n≤k result-eq
+      | impreciseOperandGas , operandResultᴵ , impreciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated
+      | impreciseCallGas , callResultᴵ , impreciseCallReturn , callPair
+      with cast-return-expand {Σ = impreciseStore (core W)}
+        {operandGas = impreciseOperandGas} {callGas = impreciseCallGas}
+        {M = Mᴵ} {c = cᴵ} {operandResult = operandResultᴵ}
+        {callResult = callResultᴵ} impreciseOperandReturn
+        (return-store-reindex {gas = impreciseCallGas}
+          {result = callResultᴵ} (sym operandStoreᴵ) impreciseCallReturn)
+  backward {n = n} {resultᴾ = resultᴾ} n≤k result-eq
+      | impreciseOperandGas , operandResultᴵ , impreciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated
+      | impreciseCallGas , callResultᴵ , impreciseCallReturn , callPair
+      | wholeGas , wholeReturn =
+    wholeGas , sequence-cast-result operandResultᴵ callResultᴵ ,
+      wholeReturn , assembled
+    where
+    assembled : PairedReturns W S (k ∸ n)
+      (sequence-cast-result operandResultᴵ callResultᴵ) resultᴾ
+    assembled = assemble-imprecise-cast-pair
+      {S = S} {cᴵ = cᴵ} {operandResultᴾ = resultᴾ}
+      {operandResultᴵ = operandResultᴵ} {callResultᴵ = callResultᴵ}
+      W≼W₁ operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
+      callPair refl
+
+  forward-blame-cast : ∀ {n}
+    → n ≤ k
+    → BlamesFrom (impreciseStore (core W)) n (Mᴵ ⟨ cᴵ ⟩)
+    → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
+  forward-blame-cast {n = n} n≤k blaming
+      with cast-blame-phases {Σ = impreciseStore (core W)} {gas = n}
+        {M = Mᴵ} {c = cᴵ} blaming
+  forward-blame-cast {n = n} n≤k blaming
+      | cast-operand-phase-blames operandGas operandBlame operandGas≤n =
+    forward-blame operand-related (≤-trans operandGas≤n n≤k) operandBlame
+  forward-blame-cast {n = n} n≤k blaming
+      | cast-call-phase-blames operandGas operandResultᴵ operandReturn
+          callGas callBlame phases≤n
+      with forward-return operand-related {n = operandGas}
+        {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
+    where
+    operandGas≤ = first-of-two≤
+      {a = operandGas} {b = callGas} {k = k}
+      (≤-trans phases≤n n≤k)
+  forward-blame-cast {n = n} n≤k blaming
+      | cast-call-phase-blames operandGas operandResultᴵ operandReturn
+          callGas callBlame phases≤n
+      | inj₂ (preciseOperandGas , preciseOperandBlame) =
+    preciseOperandGas , preciseOperandBlame
+  forward-blame-cast {n = n} n≤k blaming
+      | cast-call-phase-blames operandGas operandResultᴵ operandReturn
+          callGas callBlame phases≤n
+      | inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated)
+      with forward-blame call-related {n = callGas}
+        callGas≤ callBlame-at-W₁
+    where
+    phases≤k = ≤-trans phases≤n n≤k
+    callGas≤ = drop-left-≤
+      {a = operandGas} {b = callGas} {k = k} phases≤k
+    callBlame-at-W₁ = blame-store-reindex {gas = callGas}
+      operandStoreᴵ callBlame
+
+    precise-source-type = precise-phase-argument-eq
+      {χs = E.changes operandResultᴾ} W≼W₁
+      operandTermsᴾ (⇑ᵗ Cᴾ) Cᴾ
+    imprecise-source-type = imprecise-phase-argument-eq
+      {χs = E.changes operandResultᴵ} W≼W₁
+      operandTermsᴵ (⇑ᵗ Cᴵ) Cᴵ
+    imprecise-target-type = imprecise-phase-argument-eq
+      {χs = E.changes operandResultᴵ} W≼W₁
+      operandTermsᴵ (⇑ᵗ Dᴵ) Dᴵ
+
+    sourceᴾ-at-W₁ = trans (cong (embedPrecise (core W₁))
+      precise-source-type) (trans (embedPrecise-lift W≼W₁ Cᴾ)
+        (cong (liftCenterTy W≼W₁) sourceᴾ))
+    sourceᴵ-at-W₁ = trans (cong (embedImprecise (core W₁))
+      imprecise-source-type) (trans (embedImprecise-lift W≼W₁ Cᴵ)
+        (cong (liftCenterTy W≼W₁) sourceᴵ))
+    targetᴾ-at-W₁ = trans (cong (embedPrecise (core W₁))
+      precise-source-type) (trans (embedPrecise-lift W≼W₁ Cᴾ)
+        (cong (liftCenterTy W≼W₁) targetᴾ))
+    targetᴵ-at-W₁ = trans (cong (embedImprecise (core W₁))
+      imprecise-target-type) (trans (embedImprecise-lift W≼W₁ Dᴵ)
+        (cong (liftCenterTy W≼W₁) targetᴵ))
+
+    call-related : ComputationsRelated W₁
+      (λ W₂ W₁≼W₂ → S W₂ (future-trans W≼W₁ W₁≼W₂))
+      (k ∸ operandGas)
+      (E.term operandResultᴵ
+        ⟨ E.changes operandResultᴵ ▶ᶜ cᴵ ⟩)
+      (E.term operandResultᴾ)
+    call-related = cast-values
+      {Eᴾ = E.changes operandResultᴾ ▶ᵗ Cᴾ}
+      {Eᴵ = E.changes operandResultᴵ ▶ᵗ Cᴵ}
+      {Fᴵ = E.changes operandResultᴵ ▶ᵗ Dᴵ}
+      W≼W₁ sourceᴾ-at-W₁ sourceᴵ-at-W₁
+      (E.changes operandResultᴵ ▶ᶜ cᴵ)
+      targetᴾ-at-W₁ targetᴵ-at-W₁
+      {j = k ∸ operandGas}
+      {Vᴵ = E.term operandResultᴵ}
+      {Vᴾ = E.term operandResultᴾ} operandValueRelated
+  forward-blame-cast {n = n} n≤k blaming
+      | cast-call-phase-blames operandGas operandResultᴵ operandReturn
+          callGas callBlame phases≤n
+      | inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated)
+      | preciseCallGas , Δ′ , changes , trace , preciseCallBlame
+      with trans
+        (sym (value-return-exact {Σ = preciseStore (core W₁)}
+          preciseCallGas (E.value operandResultᴾ))) preciseCallBlame
+  forward-blame-cast {n = n} n≤k blaming
+      | cast-call-phase-blames operandGas operandResultᴵ operandReturn
+          callGas callBlame phases≤n
+      | inj₁ (preciseOperandGas , operandResultᴾ , preciseOperandReturn ,
+          paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
+            operandTermsᴵ operandTermsᴾ operandValueRelated)
+      | preciseCallGas , Δ′ , changes , trace , preciseCallBlame
+      | ()

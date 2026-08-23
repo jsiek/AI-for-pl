@@ -268,10 +268,11 @@ joined only after proving that they factor through that extension. The
 boundary above.
 
 The cast layer now splits a cast run into operand and returned-value phases.
-The paired and precise-only phase-composition theorems preserve the residual
+The paired and both one-sided phase-composition theorems preserve the residual
 index, compose returned store changes, and factor the returned worlds.  The
-returned-value analysis covers identities and most dynamic tag/projection
-squares.
+returned-value analysis covers identities and the dynamic tag/projection
+squares, and it now feeds open-term compatibility for `CTI.cast⊑cast²`,
+`CTI.⊑cast²`, and `CTI.cast⊑²`.
 
 The former abstract-dynamic projection counterexample was caused by the
 source-seal see-through clause, not by `CTI.cast⊑cast²` itself.  CTI now gates
@@ -303,13 +304,12 @@ projection reduces to its inner tag check and the residual related cast.
 The matching-tag/one-sided residual now has an explicit ground-cast outcome
 split.  Ground identities are excluded by the expanded-projection premise,
 base and variable generalizations are impossible, and `bot-intro` is proved
-related because the precise side immediately blames.  The inert outcome is
-reduced to the value-level obligation
-`ValueImprecision q j Uᴵ (Uᴾ ⟨ cᴾ ⟩)` at every residual index; this is the
-remaining one-sided function/universal/generalization compatibility problem,
-with no evaluator-phase reasoning left in the hole.
+related because the precise side immediately blames.  The inert outcome's
+value-level obligation is discharged by the recursive one-sided returned-value
+cast theorem.
 
-The cast proof remains a checked draft with explicit interaction holes in
-other constructor combinations; it introduces no postulate.
+The cast modules have no interaction holes and introduce no cast-specific
+postulate.  The broader fundamental theorem remains a checked draft whose
+remaining work lies outside these three ordinary CTI cast families.
 
 Run `make -C GTSFImp-Interpreter check` from the repository root.

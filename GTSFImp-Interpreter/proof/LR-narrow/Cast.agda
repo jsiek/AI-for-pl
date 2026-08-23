@@ -27,6 +27,9 @@ open import CastTerms
 import Consistency as C
 open C using (_[_]ᶜ)
 import Imprecision as I
+import proof.DGG.CtxImp as CTI
+import proof.DGG.CastTermImprecision as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 open import Reduction
 import Eval as E
 open import Interpreter
@@ -69,6 +72,7 @@ open import proof.LR-narrow.Application using
    paired-returns-reindex; application-semantic-bounded)
 open import proof.LR-narrow.CastComposition using
   (cast-computations-related; precise-cast-computations-related;
+   imprecise-cast-computations-related;
    computations-related-future-compose;
    computations-related-post-bind-compose)
 open import proof.LR-narrow.BindStepExpansion using
@@ -3356,6 +3360,65 @@ related-value-precise-cast {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         (liftCenterImprecision W≼W′ q)
         s-targetᴾ s-targetᴵ related′)
 
+{-# TERMINATING #-}
+related-value-imprecise-cast : ∀
+    {Δᴾ Δᴵ Δᶜ : TyCtx}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ Aᴵ Bᴾ Bᴵ : Ty Δᶜ}
+    {Cᴾ : Ty Δᴾ} {Cᴵ Dᴵ : Ty Δᴵ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+    (sourceᴾ : embedPrecise (core W) Cᴾ ≡ Aᴾ)
+    (sourceᴵ : embedImprecise (core W) Cᴵ ≡ Aᴵ)
+    {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
+    (q : impEnv (core W) I.⊢ Bᴾ ⊑ Bᴵ)
+    (targetᴾ : embedPrecise (core W) Cᴾ ≡ Bᴾ)
+    (targetᴵ : embedImprecise (core W) Dᴵ ≡ Bᴵ)
+    {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ComputationsRelated W (FutureValueRelation q) k
+      (Vᴵ ⟨ cᴵ ⟩) Vᴾ
+related-value-imprecise-cast {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} p sourceᴾ sourceᴵ cᴵ q
+    targetᴾ targetᴵ {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  imprecise-cast-computations-related p sourceᴾ sourceᴵ cᴵ q
+    targetᴾ targetᴵ k Vᴵ Vᴾ cast-values immediate
+  where
+  endpoints = value-imprecision-endpoints related
+
+  immediate : ComputationsRelated W (FutureValueRelation p) k Vᴵ Vᴾ
+  immediate = related-values-return
+    (imprecise-value endpoints) (precise-value endpoints)
+    (λ j j≤k → value-imprecision-downward-to j≤k related)
+
+  cast-values : ∀
+      {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
+      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      {Eᴾ : Ty Δᴾ′} {Eᴵ Fᴵ : Ty Δᴵ′}
+      (W≼W′ : Future W W′)
+      (r-sourceᴾ : embedPrecise (core W′) Eᴾ ≡
+        liftCenterTy W≼W′ Aᴾ)
+      (r-sourceᴵ : embedImprecise (core W′) Eᴵ ≡
+        liftCenterTy W≼W′ Aᴵ)
+      {νᴵ : C.Env∼ Δᴵ′} (dᴵ : νᴵ C.⊢ Eᴵ ∼ Fᴵ)
+      (s-targetᴾ : embedPrecise (core W′) Eᴾ ≡
+        liftCenterTy W≼W′ Bᴾ)
+      (s-targetᴵ : embedImprecise (core W′) Fᴵ ≡
+        liftCenterTy W≼W′ Bᴵ)
+      {j : ℕ} {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
+    → FutureValueRelation p W′ W≼W′ j Uᴵ Uᴾ
+    → ComputationsRelated W′
+        (λ W″ W′≼W″ → FutureValueRelation q W″
+          (future-trans W≼W′ W′≼W″)) j
+        (Uᴵ ⟨ dᴵ ⟩) Uᴾ
+  cast-values W≼W′ r-sourceᴾ r-sourceᴵ dᴵ
+      s-targetᴾ s-targetᴵ related′ =
+    computations-related-future-compose W≼W′ q
+      (related-value-imprecise-cast
+        (liftCenterImprecision W≼W′ p)
+        r-sourceᴾ r-sourceᴵ dᴵ
+        (liftCenterImprecision W≼W′ q)
+        s-targetᴾ s-targetᴵ related′)
+
 related-value-casts-composed : ∀
     {Δᴾ Δᴵ Δᶜ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -5668,3 +5731,190 @@ related-value-casts I.bot-elim sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related = ⊥-elim (no-precise-bottom-value related)
 related-value-casts I.bot⊑★ sourceᴾ sourceᴵ cᴾ cᴵ q targetᴾ
     targetᴵ related = ⊥-elim (no-precise-bottom-value related)
+
+------------------------------------------------------------------------
+-- Open structural cast compatibility
+------------------------------------------------------------------------
+
+cast-cast-compatible : ∀
+    {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Cᴾ Dᴾ : Ty Δᴾ} {Cᴵ Dᴵ : Ty Δᴵ}
+    {p : Cᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ}
+    {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
+    {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
+    {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
+  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
+  → (q : Dᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
+  → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
+  → ∀ k → CompiledTermRelation {W = W} q k Γ
+      (Mᴾ ⟨ cᴾ ⟩) (Mᴵ ⟨ cᴵ ⟩)
+cast-cast-compatible {W = W} {Cᴾ = Cᴾ} {Dᴾ = Dᴾ}
+    {Cᴵ = Cᴵ} {Dᴵ = Dᴵ} {p = p} cᴾ cᴵ
+    {Mᴾ = Mᴾ} {Mᴵ = Mᴵ} M⊑ q M-related k W′ W≼W′ γ =
+  ClosureProof.computations-related-reindex q′ q′ refl refl
+    (sym imprecise-cast-eq) (sym precise-cast-eq) casted
+  where
+  p′ = liftCenterImprecision W≼W′ p
+  q′ = liftCenterImprecision W≼W′ q
+
+  sourceᴾ′ = trans
+    (cong (embedPrecise (core W′))
+      (ClosureProof.precise-ground-type-eq W≼W′ Cᴾ))
+    (embedPrecise-lift W≼W′ Cᴾ)
+
+  sourceᴵ′ = trans
+    (cong (embedImprecise (core W′))
+      (ClosureProof.imprecise-ground-type-eq W≼W′ Cᴵ))
+    (embedImprecise-lift W≼W′ Cᴵ)
+
+  targetᴾ′ = trans
+    (cong (embedPrecise (core W′))
+      (ClosureProof.precise-ground-type-eq W≼W′ Dᴾ))
+    (embedPrecise-lift W≼W′ Dᴾ)
+
+  targetᴵ′ = trans
+    (cong (embedImprecise (core W′))
+      (ClosureProof.imprecise-ground-type-eq W≼W′ Dᴵ))
+    (embedImprecise-lift W≼W′ Dᴵ)
+
+  cᴾ′ = precise-consistency-future W≼W′ cᴾ
+  cᴵ′ = imprecise-consistency-future W≼W′ cᴵ
+
+  operand-related = M-related k W′ W≼W′ γ
+
+  casted = cast-computations-related p′ sourceᴾ′ sourceᴵ′
+    cᴾ′ cᴵ′ q′ targetᴾ′ targetᴵ′ k
+    (close (impreciseClosingSubstitution γ)
+      (liftImpreciseTerm W≼W′ Mᴵ))
+    (close (preciseClosingSubstitution γ)
+      (liftPreciseTerm W≼W′ Mᴾ))
+    (λ W′≼W″ sourceᴾ″ sourceᴵ″ dᴾ dᴵ
+        targetᴾ″ targetᴵ″ related →
+      computations-related-future-compose W′≼W″ q′
+        (related-value-casts
+          (liftCenterImprecision W′≼W″ p′)
+          sourceᴾ″ sourceᴵ″ dᴾ dᴵ
+          (liftCenterImprecision W′≼W″ q′)
+          targetᴾ″ targetᴵ″ related))
+    operand-related
+
+  precise-cast-eq = cong (close (preciseClosingSubstitution γ))
+    (lift-precise-cast W≼W′ Mᴾ cᴾ)
+
+  imprecise-cast-eq = cong (close (impreciseClosingSubstitution γ))
+    (lift-imprecise-cast W≼W′ Mᴵ cᴵ)
+
+right-cast-compatible : ∀
+    {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Cᴾ : Ty Δᴾ} {Cᴵ Dᴵ : Ty Δᴵ}
+    {p : Cᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ}
+    {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
+    {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
+  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
+  → (q : Cᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
+  → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
+  → ∀ k → CompiledTermRelation {W = W} q k Γ
+      Mᴾ (Mᴵ ⟨ cᴵ ⟩)
+right-cast-compatible {W = W} {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} {Dᴵ = Dᴵ}
+    {p = p} cᴵ {Mᴾ = Mᴾ} {Mᴵ = Mᴵ}
+    M⊑ q M-related k W′ W≼W′ γ =
+  ClosureProof.computations-related-reindex q′ q′ refl refl
+    (sym imprecise-cast-eq) refl casted
+  where
+  p′ = liftCenterImprecision W≼W′ p
+  q′ = liftCenterImprecision W≼W′ q
+
+  sourceᴾ′ = trans
+    (cong (embedPrecise (core W′))
+      (ClosureProof.precise-ground-type-eq W≼W′ Cᴾ))
+    (embedPrecise-lift W≼W′ Cᴾ)
+
+  sourceᴵ′ = trans
+    (cong (embedImprecise (core W′))
+      (ClosureProof.imprecise-ground-type-eq W≼W′ Cᴵ))
+    (embedImprecise-lift W≼W′ Cᴵ)
+
+  targetᴵ′ = trans
+    (cong (embedImprecise (core W′))
+      (ClosureProof.imprecise-ground-type-eq W≼W′ Dᴵ))
+    (embedImprecise-lift W≼W′ Dᴵ)
+
+  cᴵ′ = imprecise-consistency-future W≼W′ cᴵ
+
+  casted = imprecise-cast-computations-related p′ sourceᴾ′ sourceᴵ′
+    cᴵ′ q′ sourceᴾ′ targetᴵ′ k
+    (close (impreciseClosingSubstitution γ)
+      (liftImpreciseTerm W≼W′ Mᴵ))
+    (close (preciseClosingSubstitution γ)
+      (liftPreciseTerm W≼W′ Mᴾ))
+    (λ W′≼W″ sourceᴾ″ sourceᴵ″ dᴵ targetᴾ″ targetᴵ″
+        related →
+      computations-related-future-compose W′≼W″ q′
+        (related-value-imprecise-cast
+          (liftCenterImprecision W′≼W″ p′)
+          sourceᴾ″ sourceᴵ″ dᴵ
+          (liftCenterImprecision W′≼W″ q′)
+          targetᴾ″ targetᴵ″ related))
+    (M-related k W′ W≼W′ γ)
+
+  imprecise-cast-eq = cong (close (impreciseClosingSubstitution γ))
+    (lift-imprecise-cast W≼W′ Mᴵ cᴵ)
+
+left-cast-compatible : ∀
+    {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Cᴾ Dᴾ : Ty Δᴾ} {Cᴵ : Ty Δᴵ}
+    {p : Cᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ}
+    {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
+    {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
+  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
+  → (q : Dᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ)
+  → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
+  → ∀ k → CompiledTermRelation {W = W} q k Γ
+      (Mᴾ ⟨ cᴾ ⟩) Mᴵ
+left-cast-compatible {W = W} {Cᴾ = Cᴾ} {Dᴾ = Dᴾ}
+    {Cᴵ = Cᴵ} {p = p} cᴾ {Mᴾ = Mᴾ} {Mᴵ = Mᴵ}
+    M⊑ q M-related k W′ W≼W′ γ =
+  ClosureProof.computations-related-reindex q′ q′ refl refl refl
+    (sym precise-cast-eq) casted
+  where
+  p′ = liftCenterImprecision W≼W′ p
+  q′ = liftCenterImprecision W≼W′ q
+
+  sourceᴾ′ = trans
+    (cong (embedPrecise (core W′))
+      (ClosureProof.precise-ground-type-eq W≼W′ Cᴾ))
+    (embedPrecise-lift W≼W′ Cᴾ)
+
+  sourceᴵ′ = trans
+    (cong (embedImprecise (core W′))
+      (ClosureProof.imprecise-ground-type-eq W≼W′ Cᴵ))
+    (embedImprecise-lift W≼W′ Cᴵ)
+
+  targetᴾ′ = trans
+    (cong (embedPrecise (core W′))
+      (ClosureProof.precise-ground-type-eq W≼W′ Dᴾ))
+    (embedPrecise-lift W≼W′ Dᴾ)
+
+  cᴾ′ = precise-consistency-future W≼W′ cᴾ
+
+  casted = precise-cast-computations-related p′ sourceᴾ′ sourceᴵ′
+    cᴾ′ q′ targetᴾ′ sourceᴵ′ k
+    (close (impreciseClosingSubstitution γ)
+      (liftImpreciseTerm W≼W′ Mᴵ))
+    (close (preciseClosingSubstitution γ)
+      (liftPreciseTerm W≼W′ Mᴾ))
+    (λ W′≼W″ sourceᴾ″ sourceᴵ″ dᴾ targetᴾ″ targetᴵ″
+        related →
+      computations-related-future-compose W′≼W″ q′
+        (related-value-precise-cast
+          (liftCenterImprecision W′≼W″ p′)
+          sourceᴾ″ sourceᴵ″ dᴾ
+          (liftCenterImprecision W′≼W″ q′)
+          targetᴾ″ targetᴵ″ related))
+    (M-related k W′ W≼W′ γ)
+
+  precise-cast-eq = cong (close (preciseClosingSubstitution γ))
+    (lift-precise-cast W≼W′ Mᴾ cᴾ)

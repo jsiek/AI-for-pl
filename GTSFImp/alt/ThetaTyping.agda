@@ -152,46 +152,6 @@ weakenClassifier [] = []
 weakenClassifier (b ∷ κ) = weakenBinding b ∷ weakenClassifier κ
 
 ------------------------------------------------------------------------
--- Anchor insertion relations for the wk consumer
-------------------------------------------------------------------------
-
--- Telescope insertion adds an arbitrary entry at zero.  Below an existing
--- entry it recursively inserts the anchor and weakens that later entry around
--- the insertion position.
-data InsertTele : ∀ {Θ}
-    → TyVar (suc Θ) → Tele Θ → Tele (suc Θ) → Set where
-  insert-tele-zero : ∀ {Θ} {Ξ : Tele Θ}
-    → (R : Ty Θ)
-    → InsertTele zero Ξ (tele-bind Ξ R)
-
-  insert-tele-suc : ∀ {Θ} {α : TyVar (suc Θ)}
-      {Ξ : Tele Θ} {Ξ′ : Tele (suc Θ)} {R : Ty Θ}
-    → InsertTele α Ξ Ξ′
-    → InsertTele (suc α) (tele-bind Ξ R)
-        (tele-bind Ξ′ (wkᵗ α R))
-
--- Classifier insertion preserves lexical markers and renames every existing
--- anchor reference around the inserted position.  No regular slot names the
--- newly inserted anchor.
-data InsertClassifier : ∀ {Θ Δ}
-    → TyVar (suc Θ)
-    → Classifier Θ Δ → Classifier (suc Θ) Δ → Set where
-  insert-classifier-empty : ∀ {Θ} {α : TyVar (suc Θ)}
-    → InsertClassifier {Θ = Θ} α [] []
-
-  insert-classifier-∀ : ∀ {Θ Δ} {α : TyVar (suc Θ)}
-      {κ : Classifier Θ Δ} {κ′ : Classifier (suc Θ) Δ}
-    → InsertClassifier α κ κ′
-    → InsertClassifier α (∀-bound ∷ κ) (∀-bound ∷ κ′)
-
-  insert-classifier-slot : ∀ {Θ Δ} {α : TyVar (suc Θ)}
-      {β : TyVar Θ}
-      {κ : Classifier Θ Δ} {κ′ : Classifier (suc Θ) Δ}
-    → InsertClassifier α κ κ′
-    → InsertClassifier α (slot≔ β ∷ κ)
-        (slot≔ (punchIn α β) ∷ κ′)
-
-------------------------------------------------------------------------
 -- Typing
 ------------------------------------------------------------------------
 
@@ -249,15 +209,6 @@ data _⊢_⦂_ : (Γ : Ctx)
         ⊢ M ⦂ B
       --------------------------------------
     → ⟨ Θ , Ξ , Δ , κ , Γ ⟩ ⊢ ν[ R ] M ⦂ B
-
-  ⊢wk : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
-      {M A} {α : TyVar (suc Θ)} {Ξ′ : Tele (suc Θ)}
-      {κ′ : Classifier (suc Θ) Δ} {Γ′ : TermCtx Δ}
-    → InsertTele α Ξ Ξ′
-    → InsertClassifier α κ κ′
-    → ⟨ Θ , Ξ , Δ , κ , [] ⟩ ⊢ M ⦂ A
-      ----------------------------------------------
-    → ⟨ suc Θ , Ξ′ , Δ , κ′ , Γ′ ⟩ ⊢ wk[ α ] M ⦂ A
 
   ⊢reveal : ∀ {Θ} {Ξ : Tele Θ} {Δ} {κ : Classifier Θ Δ}
       {Γ : TermCtx Δ} {M A B Y α R R′ c}

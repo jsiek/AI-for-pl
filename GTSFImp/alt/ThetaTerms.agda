@@ -29,7 +29,7 @@ AnchorCtx = ℕ
 
 private
   variable
-    Θ : AnchorCtx
+    Θ Θ′ : AnchorCtx
     Δ : TyCtx
 
 data Tele : AnchorCtx → Set where
@@ -60,7 +60,7 @@ infixl 7 _⦂∀_[_]
 infixl 7 _⟨_⟩
 infixl 7 _↑[_≔_]_ _↓[_≔_]_
 infixl 6 _⊕[_]_
-infix  5 ν[_]_ wk[_]_
+infix  5 ν[_]_
 infix  9 `_
 
 Var : Set
@@ -85,6 +85,30 @@ data Term : AnchorCtx → TyCtx → Set where
 
   ν[_]_ : Ty Θ → Term (suc Θ) Δ → Term Θ Δ
 
-  wk[_]_ : TyVar (suc Θ) → Term Θ Δ → Term (suc Θ) Δ
-
   blame : Term Θ Δ
+
+------------------------------------------------------------------------
+-- Anchor-variable renaming
+------------------------------------------------------------------------
+
+-- Anchors occur only in node data (ν entries and reveal/conceal anchor
+-- references), so renaming them leaves types, evidence, and conversion
+-- shapes untouched.  Floats shift frame siblings with `shiftᶿ` (design
+-- decision 2026-08-23: eager anchor shifts at extrusion, no wk node).
+
+renameᶿ : (TyVar Θ → TyVar Θ′) → Term Θ Δ → Term Θ′ Δ
+renameᶿ ρ (` x) = ` x
+renameᶿ ρ (ƛ A ˙ M) = ƛ A ˙ renameᶿ ρ M
+renameᶿ ρ (L · M) = renameᶿ ρ L · renameᶿ ρ M
+renameᶿ ρ (Λ M) = Λ renameᶿ ρ M
+renameᶿ ρ (L ⦂∀ C [ A ]) = renameᶿ ρ L ⦂∀ C [ A ]
+renameᶿ ρ ($ κ) = $ κ
+renameᶿ ρ (L ⊕[ op ] M) = renameᶿ ρ L ⊕[ op ] renameᶿ ρ M
+renameᶿ ρ (M ⟨ c ⟩) = renameᶿ ρ M ⟨ c ⟩
+renameᶿ ρ (M ↑[ Y ≔ α ] c) = renameᶿ ρ M ↑[ Y ≔ ρ α ] c
+renameᶿ ρ (M ↓[ Y ≔ α ] c) = renameᶿ ρ M ↓[ Y ≔ ρ α ] c
+renameᶿ ρ (ν[ A ] M) = ν[ renameᵗ ρ A ] renameᶿ (extᵗ ρ) M
+renameᶿ ρ blame = blame
+
+shiftᶿ : Term Θ Δ → Term (suc Θ) Δ
+shiftᶿ = renameᶿ suc

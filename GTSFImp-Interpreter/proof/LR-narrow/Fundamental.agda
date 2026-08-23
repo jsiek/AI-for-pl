@@ -4,6 +4,7 @@ module proof.LR-narrow.Fundamental where
 --   * Constructs derivation-indexed fundamental-property evidence.
 --   * Handles the ordinary and smart one-sided universal constructors.
 --   * Packages compatible universal terms as target-first body motives.
+--   * Commutes target casts outward through right-universal body motives.
 --   * Keeps the constructor-facing proof applications out of the public API.
 
 open import Data.Nat using (ℕ; suc)
@@ -11,6 +12,7 @@ import Data.Fin as Fin
 
 open import Types
 open import CastTerms
+import Consistency
 import Imprecision as I
 import proof.DGG.CtxImp as CTI
 import proof.DGG.CastTermImprecision as CTIR
@@ -18,6 +20,7 @@ open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.TermRelation
 open import LR-narrow.Universal
+open import LR-narrow.Cast using (right-cast-compatible)
 
 right-universal-body-fundamental-from-relation : ∀
     {Δᴾ Δᴵ Δᶜ Δᵇ Aᴾ Bᴵ}
@@ -37,6 +40,50 @@ right-universal-body-fundamental-from-relation : ∀
 right-universal-body-fundamental-from-relation q body vVᴾ related =
   right-universal-body-proof λ k →
     right-universal-body-phase-from-relation vVᴾ q (related k)
+
+right-universal-target-cast-body-fundamental : ∀
+    {Δᴾ Δᴵ Δᶜ Aᴾ Bᴵ Dᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {r : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Dᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+    {μᴵ : Consistency.Env∼ Δᴵ}
+    (nonvar : NonVar Aᴾ)
+    (occurs : Fin.zero ∈ᵗ Aᴾ)
+    (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+    (vVᴾ : Value Vᴾ)
+    (target⊢ : ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+      CTI.tgtCtxʷ Γ ⟩ ⊢ Mᴵ ⦂ Bᴵ)
+    (cᴵ : μᴵ Consistency.⊢ Bᴵ ∼ Dᴵ)
+    (body : CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Mᴵ ∶ p)
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+    (s : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
+  → RightUniversalBodyFundamentalProperty
+      {W = W} {Γ = Γ}
+      {Wᵇ = CTI.liftWorldLeft I.X⊑★ (forgetWorld W)} {Γᵇ = Γ′}
+      {p = p} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ} q body
+  → RightUniversalBodyFundamentalProperty
+      {W = W} {Γ = Γ}
+      {Wᵇ = CTI.liftWorldLeft I.X⊑★ (forgetWorld W)} {Γᵇ = Γ′}
+      {p = r} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ ⟨ cᴵ ⟩} s
+      (CTIR.⊑cast² cᴵ body r)
+right-universal-target-cast-body-fundamental {r = r} nonvar occurs
+    liftΓ vVᴾ target⊢ cᴵ body q s body-fundamental =
+  right-universal-body-fundamental-from-relation s
+    (CTIR.⊑cast² cᴵ body r) vVᴾ
+    (right-cast-compatible cᴵ universal-derivation s
+      (λ k → right-universal-compatible-from-body nonvar occurs liftΓ
+        vVᴾ target⊢ body q
+        (right-universal-body-relation body-fundamental k)))
+  where
+  universal-derivation =
+    CTIR.Λ⊑² nonvar occurs liftΓ vVᴾ target⊢ body q
 
 right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}

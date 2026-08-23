@@ -3,6 +3,7 @@ module LR-narrow.Universal where
 -- File Charter:
 --   * Exposes paired and one-sided universal-introduction infrastructure.
 --   * Exposes binder-specific body relations and their LR constructors.
+--   * Reconstructs one-sided universal types from left-lifted body types.
 --   * Bridges ordinary universal term relations to target-first body phases.
 --   * Keeps evaluator and endpoint proof scripts in the proof namespace.
 
@@ -46,6 +47,18 @@ right-universal-body-imprecision : ∀ {Δᴾ Δᴵ Δᶜ}
       ⊑ ⇑ᵗ (embedImprecise (core W) Aᴵ)
 right-universal-body-imprecision {W = W} p =
   Proof.right-universal-body-imprecision {W = W} p
+
+right-universal-type-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ : Ty (suc Δᴾ)} {Aᴵ : Ty Δᴵ}
+  → NonVar Aᴾ
+  → Fin.zero ∈ᵗ Aᴾ
+  → Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Aᴵ
+  → `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ
+right-universal-type-from-body {W = W} nonvar occurs body-related =
+  Proof.right-universal-type-from-body {W = W}
+    nonvar occurs body-related
 
 universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

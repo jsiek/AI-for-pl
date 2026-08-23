@@ -4,6 +4,7 @@ module LR-narrow.Fundamental where
 --   * Exposes derivation-indexed one-sided universal fundamental cases.
 --   * Uses the phase-aware body motive from LR-narrow.TermRelation.
 --   * Packages ordinary universal relations as target-first body motives.
+--   * Commutes target casts outward through right-universal body motives.
 --   * Delegates constructor-facing proof scripts to the proof namespace.
 
 open import Data.Nat using (ℕ; suc)
@@ -11,6 +12,7 @@ import Data.Fin as Fin
 
 open import Types
 open import CastTerms
+import Consistency
 import Imprecision as I
 import proof.DGG.CtxImp as CTI
 import proof.DGG.CastTermImprecision as CTIR
@@ -37,6 +39,41 @@ right-universal-body-fundamental-from-relation : ∀
       {p = p} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ} q body
 right-universal-body-fundamental-from-relation =
   Proof.right-universal-body-fundamental-from-relation
+
+right-universal-target-cast-body-fundamental : ∀
+    {Δᴾ Δᴵ Δᶜ Aᴾ Bᴵ Dᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {r : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Dᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+    {μᴵ : Consistency.Env∼ Δᴵ}
+    (nonvar : NonVar Aᴾ)
+    (occurs : Fin.zero ∈ᵗ Aᴾ)
+    (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+    (vVᴾ : Value Vᴾ)
+    (target⊢ : ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+      CTI.tgtCtxʷ Γ ⟩ ⊢ Mᴵ ⦂ Bᴵ)
+    (cᴵ : μᴵ Consistency.⊢ Bᴵ ∼ Dᴵ)
+    (body : CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Mᴵ ∶ p)
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+    (s : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
+  → RightUniversalBodyFundamentalProperty
+      {W = W} {Γ = Γ}
+      {Wᵇ = CTI.liftWorldLeft I.X⊑★ (forgetWorld W)} {Γᵇ = Γ′}
+      {p = p} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ} q body
+  → RightUniversalBodyFundamentalProperty
+      {W = W} {Γ = Γ}
+      {Wᵇ = CTI.liftWorldLeft I.X⊑★ (forgetWorld W)} {Γᵇ = Γ′}
+      {p = r} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ ⟨ cᴵ ⟩} s
+      (CTIR.⊑cast² cᴵ body r)
+right-universal-target-cast-body-fundamental =
+  Proof.right-universal-target-cast-body-fundamental
 
 right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}

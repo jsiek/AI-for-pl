@@ -3,6 +3,7 @@ module proof.LR-narrow.Universal where
 -- File Charter:
 --   * Constructs related universal values from their elimination obligations.
 --   * Constructs those obligations from a binder-specific body relation.
+--   * Reconstructs one-sided universal types from left-lifted body types.
 --   * Converts ordinary related universal computations to target phases.
 --   * Derives endpoint typing from symmetric universal term imprecision.
 --   * Keeps evaluator and endpoint proof details out of the public module.
@@ -105,6 +106,36 @@ right-universal-body-imprecision {W = W} {Aᴾ = Aᴾ}
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W)) Aᴵ ≡ right
   imprecise-eq = renameᵗ-skip-eq
     (impreciseEmbedding (core W)) Aᴵ
+
+right-universal-type-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ : Ty (suc Δᴾ)} {Aᴵ : Ty Δᴵ}
+  → NonVar Aᴾ
+  → Fin.zero ∈ᵗ Aᴾ
+  → Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Aᴵ
+  → `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ
+right-universal-type-from-body {W = W} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
+    nonvar occurs body-related =
+  subst≡
+    (λ L → impEnv (core W) I.⊢ `∀ L ⊑ embedImprecise (core W) Aᴵ)
+    (renameᵗ-cong Aᴾ
+      (toRename-keep-eq (preciseEmbedding (core W))))
+    (I.∀⊑
+      (renameNonVar
+        (Consistency.toRenameᵗ
+          (Consistency.keep (preciseEmbedding (core W)))) nonvar)
+      (rename-occurs
+        (Consistency.toRenameᵗ
+          (Consistency.keep (preciseEmbedding (core W)))) occurs)
+      (subst≡
+        (λ R → I.instᵐ (impEnv (core W)) I.⊢
+          renameᵗ
+            (Consistency.toRenameᵗ
+              (Consistency.keep (preciseEmbedding (core W)))) Aᴾ
+            ⊑ R)
+        (renameᵗ-skip-eq (impreciseEmbedding (core W)) Aᴵ)
+        body-related))
 
 universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

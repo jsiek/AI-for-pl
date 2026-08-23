@@ -349,13 +349,22 @@ of those ordinary relations as `RightUniversalBodyFundamentalProperty`.  This
 is the common exit from constructor compatibility back into the target-first
 motive.
 
-The remaining obligation is to construct those ordinary relations recursively
-in the non-value target cases, commuting the one-sided universal introduction
-past target constructors where necessary and applying one-step phase closure
-when the target constructor itself reduces.  The old bind-first relation
-remains named `CompiledRightUniversalTestRelation`; it is sufficient exactly
-in the checked zero-allocation value subcase.  The smart structural guard alone
-cannot prove the general motive:
+The first recursive non-value case is now complete for a target-only CTI cast.
+`right-universal-type-from-body` reconstructs the pre-cast relation
+`` `∀ Aᴾ ⊑ Bᴵ `` from the left-lifted body relation.  Given the recursive body
+motive, `right-universal-target-cast-body-fundamental` rebuilds the ordinary
+relation for `Λ Vᴾ ⊑ Mᴵ`, applies `right-cast-compatible`, and packages the
+resulting `Λ Vᴾ ⊑ Mᴵ ⟨ cᴵ ⟩` relation back into the target-first motive.  Thus
+`CTI.⊑cast²` can be commuted outward without analyzing the cast evaluator a
+second time.
+
+The remaining obligation is to construct the body motives recursively for the
+other non-value target constructors, commuting the one-sided universal
+introduction past each constructor where necessary and applying one-step phase
+closure when the target constructor itself reduces.  The old bind-first
+relation remains named `CompiledRightUniversalTestRelation`; it is sufficient
+exactly in the checked zero-allocation value subcase.  The smart structural
+guard alone cannot prove the general motive:
 `SmartCommaLiftᴸ` transports CTI imprecision and marks, but carries neither
 the semantic entries of an LR world nor a semantic relation for an
 alias-merged center.  In particular, an ordinary `FundamentalProperty` proof

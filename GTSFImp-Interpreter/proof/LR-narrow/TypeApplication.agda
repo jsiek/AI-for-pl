@@ -1864,7 +1864,6 @@ type-application-compatible : ∀
     {q : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {r : Cᴾ [ Aᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Cᴵ [ Aᴵ ]ᵗ}
     {Lᴾ : Term Δᴾ} {Lᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.∀⊑∀ p
   → (∀ k → CompiledTermRelation {W = W} (I.∀⊑∀ p) k
       Γ Lᴾ Lᴵ)
   → ∀ k → CompiledTermRelation {W = W} r k Γ
@@ -1872,7 +1871,7 @@ type-application-compatible : ∀
 type-application-compatible {W = W} {Γ = Γ}
     {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     {p = p} {q = q} {r = r} {Lᴾ = Lᴾ} {Lᴵ = Lᴵ}
-    L⊑ L-related k W′ W≼W′ γ =
+    L-related k W′ W≼W′ γ =
   ClosureProof.computations-related-reindex
     (liftCenterImprecision W≼W′ r) (liftCenterImprecision W≼W′ r)
     refl refl (sym imprecise-type-app-eq) (sym precise-type-app-eq)
@@ -2362,7 +2361,6 @@ right-type-application-compatible : ∀
     {q : Aᴾ ⊑ᵂ⟨ core W ⟩ ★}
     {r : Cᴾ [ Aᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ}
     {Lᴾ : Term Δᴾ} {Lᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.∀⊑ nonvar occurs p
   → (∀ k → CompiledTermRelation {W = W}
       (I.∀⊑ nonvar occurs p) k Γ Lᴾ Lᴵ)
   → ∀ k → CompiledTermRelation {W = W} r k Γ
@@ -2371,7 +2369,7 @@ right-type-application-compatible {W = W} {Γ = Γ}
     {Cᴾ = Cᴾ} {Aᴾ = Aᴾ} {Bᴵ = Bᴵ}
     {p = p} {nonvar = nonvar} {occurs = occurs}
     {q = q} {r = r} {Lᴾ = Lᴾ} {Lᴵ = Lᴵ}
-    L⊑ L-related k W′ W≼W′ γ =
+    L-related k W′ W≼W′ γ =
   ClosureProof.computations-related-reindex
     (liftCenterImprecision W≼W′ r) (liftCenterImprecision W≼W′ r)
     refl refl refl (sym precise-type-app-eq)

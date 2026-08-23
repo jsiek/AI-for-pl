@@ -30,8 +30,6 @@ open import Interpreter
 import Imprecision as I
 import GradualTermImprecision as GTI
 import proof.DGG.CtxImp as CTI
-import proof.DGG.CastTermImprecision as CTIR
-open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
@@ -3254,13 +3252,11 @@ module ForPrimitive (op : Prim) where
         {q : primResultTy {Δᴾ} op ⊑ᵂ⟨ core W ⟩
           primResultTy {Δᴵ} op}
         {Lᴾ Mᴾ : Term Δᴾ} {Lᴵ Mᴵ : Term Δᴵ}
-      → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ p
-      → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
       → (∀ k → CompiledTermRelation {W = W} p k Γ Lᴾ Lᴵ)
       → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
       → ∀ k → CompiledTermRelation {W = W} q k Γ
           (Lᴾ ⊕[ op ] Mᴾ) (Lᴵ ⊕[ op ] Mᴵ)
-    prim-compatible L⊑ M⊑ L-related M-related k =
+    prim-compatible L-related M-related k =
       prim-semantic-bounded k
         (λ j j≤k → L-related j)
         (λ j j≤k → M-related j)

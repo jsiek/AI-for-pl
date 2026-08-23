@@ -86,7 +86,6 @@ cast-cast-compatible : ∀
     {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
     {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
   → (q : Dᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
   → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} q k Γ
@@ -100,7 +99,6 @@ right-cast-compatible : ∀
     {p : Cᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ}
     {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
   → (q : Cᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
   → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} q k Γ
@@ -114,7 +112,6 @@ left-cast-compatible : ∀
     {p : Cᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ}
     {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
   → (q : Dᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ)
   → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} q k Γ

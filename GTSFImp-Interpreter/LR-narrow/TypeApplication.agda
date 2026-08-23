@@ -32,7 +32,6 @@ type-application-compatible : ∀
     {q : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {r : Cᴾ [ Aᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Cᴵ [ Aᴵ ]ᵗ}
     {Lᴾ : Term Δᴾ} {Lᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.∀⊑∀ p
   → (∀ k → CompiledTermRelation {W = W} (I.∀⊑∀ p) k
       Γ Lᴾ Lᴵ)
   → ∀ k → CompiledTermRelation {W = W} r k Γ
@@ -56,7 +55,6 @@ right-type-application-compatible : ∀
     {q : Aᴾ ⊑ᵂ⟨ core W ⟩ ★}
     {r : Cᴾ [ Aᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ}
     {Lᴾ : Term Δᴾ} {Lᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.∀⊑ nonvar occurs p
   → (∀ k → CompiledTermRelation {W = W}
       (I.∀⊑ nonvar occurs p) k Γ Lᴾ Lᴵ)
   → ∀ k → CompiledTermRelation {W = W} r k Γ

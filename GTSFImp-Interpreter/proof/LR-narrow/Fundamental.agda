@@ -121,7 +121,7 @@ right-universal-target-cast-body-fundamental {r = r} nonvar occurs
     liftΓ vVᴾ target⊢ cᴵ body q s body-fundamental =
   right-universal-body-fundamental-from-relation s
     (CTIR.⊑cast² cᴵ body r) vVᴾ
-    (right-cast-compatible cᴵ universal-derivation s
+    (right-cast-compatible cᴵ s
       (λ k → right-universal-compatible-from-body nonvar occurs liftΓ
         vVᴾ target⊢ body q
         (right-universal-body-relation body-fundamental k)))

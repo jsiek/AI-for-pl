@@ -12,8 +12,6 @@ open import Primitives
 open import CastTerms
 import Imprecision as I
 import proof.DGG.CtxImp as CTI
-import proof.DGG.CastTermImprecision as CTIR
-open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.TermRelation
 import proof.LR-narrow.Primitive as Proof
@@ -26,17 +24,15 @@ primitive-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {r : primResultTy {Δᴾ} op ⊑ᵂ⟨ core W ⟩
       primResultTy {Δᴵ} op}
     {Lᴾ Mᴾ : Term Δᴾ} {Lᴵ Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ p
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ q
   → (∀ k → CompiledTermRelation {W = W} p k Γ Lᴾ Lᴵ)
   → (∀ k → CompiledTermRelation {W = W} q k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} r k Γ
       (Lᴾ ⊕[ op ] Mᴾ) (Lᴵ ⊕[ op ] Mᴵ)
 primitive-compatible addℕ {p = I.ι⊑ι} {q = I.ι⊑ι}
-    {r = I.ι⊑ι} L⊑ M⊑ L-related M-related k =
+    {r = I.ι⊑ι} L-related M-related k =
   Proof.ForPrimitive.prim-compatible addℕ
-    L⊑ M⊑ L-related M-related k
+    L-related M-related k
 primitive-compatible and𝔹 {p = I.ι⊑ι} {q = I.ι⊑ι}
-    {r = I.ι⊑ι} L⊑ M⊑ L-related M-related k =
+    {r = I.ι⊑ι} L-related M-related k =
   Proof.ForPrimitive.prim-compatible and𝔹
-    L⊑ M⊑ L-related M-related k
+    L-related M-related k

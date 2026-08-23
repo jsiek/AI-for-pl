@@ -22,9 +22,6 @@ open import CastTerms
 open import proof.LR-narrow.TermSubstitution using (subst-cong)
 import Imprecision as I
 import proof.DGG.CtxImp as CTI
-import proof.DGG.CastTermImprecision as CTIR
-open CTIR using (_∣_⊢²_⊑_∶_)
-import proof.DGG.CastTermImprecision2Typing as CTIT
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
@@ -303,8 +300,10 @@ lambda-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {Γ : CTI.CtxImp (forgetWorld W)}
     {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ} {Nᴾ : Term Δᴾ} {Nᴵ : Term Δᴵ}
-  → forgetWorld W ∣ (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ)
-      ⊢² Nᴾ ⊑ Nᴵ ∶ q
+  → ⟨ Δᴾ , preciseStore (core W) , CTI.srcCtxʷ Γ ⟩
+      ⊢ ƛ Nᴾ ⦂ Aᴾ ⇒ Bᴾ
+  → ⟨ Δᴵ , impreciseStore (core W) , CTI.tgtCtxʷ Γ ⟩
+      ⊢ ƛ Nᴵ ⦂ Aᴵ ⇒ Bᴵ
   → (∀ {Δᴾ′ Δᴵ′ Δᶜ′}
       (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
       (W≼W′ : Future W W′)
@@ -322,25 +321,21 @@ lambda-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
       (ƛ Nᴾ) (ƛ Nᴵ)
 lambda-compatible {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
     {W = W} {k = k} {Γ = Γ} {p = p} {q = q}
-    {Nᴾ = Nᴾ} {Nᴵ = Nᴵ} body functions W′ W≼W′ γ =
+    {Nᴾ = Nᴾ} {Nᴵ = Nᴵ} Nᴾ⊢ Nᴵ⊢ functions W′ W≼W′ γ =
   related-values-return (imprecise-value endpoints)
     (precise-value endpoints) related
   where
   precise-γ = preciseClosingSubstitution γ
   imprecise-γ = impreciseClosingSubstitution γ
 
-  lambda-imprecision = CTIR.ƛ⊑ƛ² body
-
-  precise-lambda-typing = precise-open-typing-future W≼W′
-    (CTIT.source-typing² lambda-imprecision)
+  precise-lambda-typing = precise-open-typing-future W≼W′ Nᴾ⊢
 
   precise-lambda-typing′ =
     subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
       (sym (compiled-precise-context-future W≼W′ Γ))
       precise-lambda-typing
 
-  imprecise-lambda-typing = imprecise-open-typing-future W≼W′
-    (CTIT.target-typing² lambda-imprecision)
+  imprecise-lambda-typing = imprecise-open-typing-future W≼W′ Nᴵ⊢
 
   imprecise-lambda-typing′ =
     subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
@@ -407,13 +402,15 @@ lambda-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {Γ : CTI.CtxImp (forgetWorld W)}
     {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ} {Nᴾ : Term Δᴾ} {Nᴵ : Term Δᴵ}
-  → forgetWorld W ∣ (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ)
-      ⊢² Nᴾ ⊑ Nᴵ ∶ q
+  → ⟨ Δᴾ , preciseStore (core W) , CTI.srcCtxʷ Γ ⟩
+      ⊢ ƛ Nᴾ ⦂ Aᴾ ⇒ Bᴾ
+  → ⟨ Δᴵ , impreciseStore (core W) , CTI.tgtCtxʷ Γ ⟩
+      ⊢ ƛ Nᴵ ⦂ Aᴵ ⇒ Bᴵ
   → (∀ i → i ≤ k → CompiledTermRelation {W = W} q i
       (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ) Nᴾ Nᴵ)
   → CompiledTermRelation {W = W} (I.⇒⊑⇒ p q) k Γ
       (ƛ Nᴾ) (ƛ Nᴵ)
-lambda-compatible-from-body body body-related =
-  lambda-compatible body
+lambda-compatible-from-body Nᴾ⊢ Nᴵ⊢ body-related =
+  lambda-compatible Nᴾ⊢ Nᴵ⊢
     (λ W′ W≼W′ γ j j≤k →
       functions-related-from-body body-related W≼W′ γ j j≤k)

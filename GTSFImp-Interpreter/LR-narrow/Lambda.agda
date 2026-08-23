@@ -14,8 +14,6 @@ open import Types
 open import CastTerms
 import Imprecision as I
 import proof.DGG.CtxImp as CTI
-import proof.DGG.CastTermImprecision as CTIR
-open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.LogicalRelation
 open import LR-narrow.ClosingSubstitution
@@ -72,8 +70,10 @@ lambda-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {Γ : CTI.CtxImp (forgetWorld W)}
     {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ} {Nᴾ : Term Δᴾ} {Nᴵ : Term Δᴵ}
-  → forgetWorld W ∣ (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ)
-      ⊢² Nᴾ ⊑ Nᴵ ∶ q
+  → ⟨ Δᴾ , preciseStore (core W) , CTI.srcCtxʷ Γ ⟩
+      ⊢ ƛ Nᴾ ⦂ Aᴾ ⇒ Bᴾ
+  → ⟨ Δᴵ , impreciseStore (core W) , CTI.tgtCtxʷ Γ ⟩
+      ⊢ ƛ Nᴵ ⦂ Aᴵ ⇒ Bᴵ
   → (∀ {Δᴾ′ Δᴵ′ Δᶜ′}
       (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
       (W≼W′ : Future W W′)
@@ -96,8 +96,10 @@ lambda-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {Γ : CTI.CtxImp (forgetWorld W)}
     {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ} {Nᴾ : Term Δᴾ} {Nᴵ : Term Δᴵ}
-  → forgetWorld W ∣ (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ)
-      ⊢² Nᴾ ⊑ Nᴵ ∶ q
+  → ⟨ Δᴾ , preciseStore (core W) , CTI.srcCtxʷ Γ ⟩
+      ⊢ ƛ Nᴾ ⦂ Aᴾ ⇒ Bᴾ
+  → ⟨ Δᴵ , impreciseStore (core W) , CTI.tgtCtxʷ Γ ⟩
+      ⊢ ƛ Nᴵ ⦂ Aᴵ ⇒ Bᴵ
   → (∀ i → i ≤ k → CompiledTermRelation {W = W} q i
       (CTI.ctx-imp Aᴾ Aᴵ p ∷ Γ) Nᴾ Nᴵ)
   → CompiledTermRelation {W = W} (I.⇒⊑⇒ p q) k Γ

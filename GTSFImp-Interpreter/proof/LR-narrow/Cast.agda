@@ -5817,14 +5817,13 @@ cast-cast-compatible : ∀
     {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
     {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
   → (q : Dᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
   → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} q k Γ
       (Mᴾ ⟨ cᴾ ⟩) (Mᴵ ⟨ cᴵ ⟩)
 cast-cast-compatible {W = W} {Cᴾ = Cᴾ} {Dᴾ = Dᴾ}
     {Cᴵ = Cᴵ} {Dᴵ = Dᴵ} {p = p} cᴾ cᴵ
-    {Mᴾ = Mᴾ} {Mᴵ = Mᴵ} M⊑ q M-related k W′ W≼W′ γ =
+    {Mᴾ = Mᴾ} {Mᴵ = Mᴵ} q M-related k W′ W≼W′ γ =
   ClosureProof.computations-related-reindex q′ q′ refl refl
     (sym imprecise-cast-eq) (sym precise-cast-eq) casted
   where
@@ -5885,14 +5884,13 @@ right-cast-compatible : ∀
     {p : Cᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ}
     {μᴵ : C.Env∼ Δᴵ} (cᴵ : μᴵ C.⊢ Cᴵ ∼ Dᴵ)
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
   → (q : Cᴾ ⊑ᵂ⟨ core W ⟩ Dᴵ)
   → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} q k Γ
       Mᴾ (Mᴵ ⟨ cᴵ ⟩)
 right-cast-compatible {W = W} {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} {Dᴵ = Dᴵ}
     {p = p} cᴵ {Mᴾ = Mᴾ} {Mᴵ = Mᴵ}
-    M⊑ q M-related k W′ W≼W′ γ =
+    q M-related k W′ W≼W′ γ =
   ClosureProof.computations-related-reindex q′ q′ refl refl
     (sym imprecise-cast-eq) refl casted
   where
@@ -5942,14 +5940,13 @@ left-cast-compatible : ∀
     {p : Cᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ}
     {μᴾ : C.Env∼ Δᴾ} (cᴾ : μᴾ C.⊢ Cᴾ ∼ Dᴾ)
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
   → (q : Dᴾ ⊑ᵂ⟨ core W ⟩ Cᴵ)
   → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} q k Γ
       (Mᴾ ⟨ cᴾ ⟩) Mᴵ
 left-cast-compatible {W = W} {Cᴾ = Cᴾ} {Dᴾ = Dᴾ}
     {Cᴵ = Cᴵ} {p = p} cᴾ {Mᴾ = Mᴾ} {Mᴵ = Mᴵ}
-    M⊑ q M-related k W′ W≼W′ γ =
+    q M-related k W′ W≼W′ γ =
   ClosureProof.computations-related-reindex q′ q′ refl refl refl
     (sym precise-cast-eq) casted
   where

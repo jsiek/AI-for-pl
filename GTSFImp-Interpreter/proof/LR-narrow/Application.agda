@@ -3911,14 +3911,12 @@ application-compatible : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴾ Bᴵ}
     {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
     {q : Bᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ}
     {Lᴾ Mᴾ : Term Δᴾ} {Lᴵ Mᴵ : Term Δᴵ}
-  → forgetWorld W ∣ Γ ⊢² Lᴾ ⊑ Lᴵ ∶ I.⇒⊑⇒ p q
-  → forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p
   → (∀ k → CompiledTermRelation {W = W}
       (I.⇒⊑⇒ p q) k Γ Lᴾ Lᴵ)
   → (∀ k → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ)
   → ∀ k → CompiledTermRelation {W = W} q k Γ
       (Lᴾ · Mᴾ) (Lᴵ · Mᴵ)
-application-compatible L⊑ M⊑ L-related M-related k =
+application-compatible L-related M-related k =
   application-semantic-bounded k
     (λ j j≤k → L-related j)
     (λ j j≤k → M-related j)

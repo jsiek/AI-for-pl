@@ -33,8 +33,11 @@ The port currently contains:
   obtained by closing both compiled endpoints with a related substitution;
 - `LR-narrow/ImmediateReturn.agda`: the evaluator lemma lifting related values
   to related computations;
-- `LR-narrow/Variable.agda` and `LR-narrow/Constant.agda`: the first checked
-  compatibility cases for the compiled term-imprecision relation;
+- `LR-narrow/Variable.agda`, `LR-narrow/Constant.agda`, and
+  `LR-narrow/Blame.agda`: variables, constants, and precise blame in the
+  compiled term-imprecision relation;
+- `LR-narrow/Primitive.agda`: strict binary primitive compatibility, with
+  left-operand, right-operand, and delta evaluator phases;
 - `LR-narrow/FunctionApplication.agda`: elimination of a related function
   value at a related value argument;
 - `LR-narrow/Lambda.agda`: construction of related closed lambdas from their
@@ -190,6 +193,15 @@ when a proof already has the function-elimination obligations directly.
 `CTI.·⊑·²`. It decomposes both evaluator runs into function, argument, and
 call phases; threads the paired future worlds and stores between phases; and
 reassembles return and blame observations for the whole applications.
+
+`blame-compatible` discharges `CTI.blame⊑²`: a precise-side blame satisfies
+the directed computation observation independently of the well-typed target.
+`primitive-compatible` handles `CTI.⊕⊑⊕²`. It decomposes strict
+evaluation
+into left operand, right operand, and delta phases, threads the two component
+relations through the returned worlds, and reassembles the whole trace. At the
+positive delta index, both base observations force equal constants on the two
+sides, so matching `δ-⊕` steps reduce the result to constant compatibility.
 
 Universal introduction needs a binder-specific body judgment. The syntactic
 premise of `CTI.Λ⊑Λ²` lives under `store-lift`, whereas an LR test of the

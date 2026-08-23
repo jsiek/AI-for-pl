@@ -16,6 +16,8 @@ open import LR-narrow.TermRelation public
 open import LR-narrow.ImmediateReturn public
 open import LR-narrow.Variable public
 open import LR-narrow.Constant public
+open import LR-narrow.Blame public
+open import LR-narrow.Primitive public
 open import LR-narrow.FunctionApplication public
 open import LR-narrow.BetaExpansion public
 open import LR-narrow.Lambda public

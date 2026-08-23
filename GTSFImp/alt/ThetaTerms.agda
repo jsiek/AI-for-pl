@@ -1,13 +1,19 @@
 module alt.ThetaTerms where
 
 -- File Charter:
---   * Defines syntax with anchor contexts Θ separate from regular type
---     contexts Δ; no anchor form is added to Ty.
---   * Reuses Ty Θ only in anchor-telescope entries, where its variables name
---     earlier anchors.  Telescope lookup follows the TyStore idiom: an
---     equality witness records each weakening into the full context.
---   * Reveal/conceal bind and anti-bind only Δ, while ν/wk bind and anti-bind
---     only Θ; their node data connects the two orthogonal index spaces.
+--   * Defines syntax with anchor position counts Θ separate from regular
+--     type contexts Δ; no anchor form is added to Ty, and no Ty is ever
+--     indexed by an anchor space.
+--   * The telescope holds the anchor-to-representation bindings.  Each
+--     representation is an ordinary type over the TYPE CONTEXT generated
+--     by the telescope prefix before it: a reference to an earlier anchor
+--     is an ordinary type variable of that context, and a representation's
+--     ∀-local binders extend that context as usual.  Telescope lookup
+--     follows the TyStore idiom: an equality witness records each
+--     weakening into the full context.
+--   * Reveal/conceal bind and anti-bind only Δ, while ν binds Θ; node data
+--     (anchor references) are telescope positions, identified with the
+--     telescope's context length at the typing context.
 --   * Provides syntax and the minimal telescope/classifier structure only;
 --     typing and structural operations belong to later chunks.
 
@@ -32,19 +38,21 @@ private
     Θ Θ′ : AnchorCtx
     Δ : TyCtx
 
-data Tele : AnchorCtx → Set where
+-- Indexed by the type context its entries generate: the entry added by
+-- tele-bind is a type over the context of the rest of the telescope.
+data Tele : TyCtx → Set where
   tele-empty : Tele zero
-  tele-bind : ∀ {Θ} → Tele Θ → Ty Θ → Tele (suc Θ)
+  tele-bind : ∀ {Δᵀ} → Tele Δᵀ → Ty Δᵀ → Tele (suc Δᵀ)
 
 infix 4 _∋ν_⦂_
 
-data _∋ν_⦂_ : ∀ {Θ} → Tele Θ → TyVar Θ → Ty Θ → Set where
-  Zν : ∀ {Θ} {Ξ : Tele Θ} {R : Ty Θ} {S : Ty (suc Θ)}
+data _∋ν_⦂_ : ∀ {Δᵀ} → Tele Δᵀ → TyVar Δᵀ → Ty Δᵀ → Set where
+  Zν : ∀ {Δᵀ} {Ξ : Tele Δᵀ} {R : Ty Δᵀ} {S : Ty (suc Δᵀ)}
     → S ≡ ⇑ᵗ R
     → tele-bind Ξ R ∋ν zero ⦂ S
 
-  Sν : ∀ {Θ} {Ξ : Tele Θ} {α : TyVar Θ} {R A : Ty Θ}
-      {S : Ty (suc Θ)}
+  Sν : ∀ {Δᵀ} {Ξ : Tele Δᵀ} {α : TyVar Δᵀ} {R A : Ty Δᵀ}
+      {S : Ty (suc Δᵀ)}
     → Ξ ∋ν α ⦂ R
     → S ≡ ⇑ᵗ R
     → tele-bind Ξ A ∋ν suc α ⦂ S

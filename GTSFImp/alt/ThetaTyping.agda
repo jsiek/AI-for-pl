@@ -54,15 +54,16 @@ insertSlot zero α κ = slot≔ α ∷ κ
 insertSlot (suc Y) α (b ∷ κ) = b ∷ insertSlot Y α κ
 
 ------------------------------------------------------------------------
--- Spelling regular types as anchor-reading types
+-- Spelling: one representation, written in two type contexts
 ------------------------------------------------------------------------
 
--- `Spell κ A R` says that the regular type A spells the anchor-reading type
--- R according to κ.  Its generalized core makes a type-local `∀` binder on
+-- `Spell κ A R` says that A (over the ambient regular context) and R (over
+-- the telescope's type context) are the same representation, written in the
+-- two contexts, according to κ.  Its generalized core makes a type-local `∀` binder on
 -- each side correspond exactly as `LiftRel` did for v2 transport.
 
-VarSpell : TyCtx → AnchorCtx → Set₁
-VarSpell Δ Θ = TyVar Δ → Ty Θ → Set
+VarSpell : TyCtx → TyCtx → Set₁
+VarSpell Δ Δᵀ = TyVar Δ → Ty Δᵀ → Set
 
 data ClassifierSpell {Θ Δ} (κ : Classifier Θ Δ) : VarSpell Δ Θ where
   spell-slot : ∀ {Y α}
@@ -71,7 +72,7 @@ data ClassifierSpell {Θ Δ} (κ : Classifier Θ Δ) : VarSpell Δ Θ where
 
 -- There is intentionally no `∀-bound` case above.  Lexical variables are
 -- unspellable: this is the preservation guard that keeps them from being
--- used as representations of anchor readings.
+-- spelled into the telescope's type context.
 
 data LiftSpell {Θ Δ} (ρ : VarSpell Δ Θ) :
     VarSpell (suc Δ) (suc Θ) where

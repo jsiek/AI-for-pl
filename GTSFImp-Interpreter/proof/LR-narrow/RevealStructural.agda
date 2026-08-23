@@ -1001,3 +1001,265 @@ reveal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀} 
       (value-imprecision-downward-to
         {W = W} {p = I.⇒⊑⇒ p₁ p₂} {j = suc j} {k = k}
         {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+
+------------------------------------------------------------------------
+-- The conceal function case
+------------------------------------------------------------------------
+
+conceal-function-head : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W)
+    {Aᴾ₀ Bᴾ₀ : Ty Δᴾ} {Aᴵ₀ Bᴵ₀ : Ty Δᴵ}
+    {Pᴾ Pᴵ Qᴾ Qᴵ : Ty Δᶜ}
+    (p₁ : impEnv (core W) I.⊢ Pᴾ ⊑ Pᴵ)
+    (p₂ : impEnv (core W) I.⊢ Qᴾ ⊑ Qᴵ)
+  → RevealSafe p₁ → RevealSafe p₂
+  → (sourceᴾ₁ : embedPrecise (core W) Aᴾ₀ ≡ Pᴾ)
+  → (sourceᴵ₁ : embedImprecise (core W) Aᴵ₀ ≡ Pᴵ)
+  → (sourceᴾ₂ : embedPrecise (core W) Bᴾ₀ ≡ Qᴾ)
+  → (sourceᴵ₂ : embedImprecise (core W) Bᴵ₀ ≡ Qᴵ)
+  → ∀ {Cᴾ Cᴵ Dᴾ Dᴵ : Ty Δᶜ}
+      (q₁ : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
+      (q₂ : impEnv (core W) I.⊢ Dᴾ ⊑ Dᴵ)
+  → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Aᴾ₀) ≡ Cᴾ
+  → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Aᴵ₀) ≡ Cᴵ
+  → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ₀) ≡ Dᴾ
+  → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ₀) ≡ Dᴵ
+  → ∀ {k : ℕ}
+      (revealAt : RevealAt k)
+      (concealBelow : ∀ j → j ≤ k → ConcealAt j)
+      {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.⇒⊑⇒ q₁ q₂) (suc k) Vᴵ Vᴾ
+  → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+      (W≼W′ : Future W W′) {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
+  → ValueImprecision W′ (liftCenterImprecision W≼W′ p₁) (suc k) Uᴵ Uᴾ
+  → ComputationsRelated W′
+      (FutureValueRelation (liftCenterImprecision W≼W′ p₂)) (suc k)
+      (liftImpreciseTerm W≼W′
+        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀)) · Uᴵ)
+      (liftPreciseTerm W≼W′
+        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (Aᴾ₀ ⇒ Bᴾ₀)) · Uᴾ)
+conceal-function-head W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀}
+    {Aᴵ₀ = Aᴵ₀} {Bᴵ₀ = Bᴵ₀} {Pᴾ = Pᴾ} {Pᴵ = Pᴵ} {Qᴾ = Qᴾ} {Qᴵ = Qᴵ}
+    p₁ p₂ safe₁ safe₂ sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂
+    {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} {Dᴾ = Dᴾ} {Dᴵ = Dᴵ} q₁ q₂
+    targetᴾ₁ targetᴵ₁ targetᴾ₂ targetᴵ₂
+    {k = k} revealAt concealBelow {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} function-related
+    W′ W≼W′ {Uᴵ = Uᴵ} {Uᴾ = Uᴾ} argument-related =
+  ClosureProof.computations-related-reindex
+    (liftCenterImprecision W≼W′ p₂) (liftCenterImprecision W≼W′ p₂)
+    refl refl (sym imprecise-redex-eq) (sym precise-redex-eq)
+    expanded
+  where
+  s′ = slot-future s W≼W′
+  Xᴾ′ = slotXᴾ s′
+  Xᴵ′ = slotXᴵ s′
+  Rᴾ′ = slotRᴾ s′
+  Rᴵ′ = slotRᴵ s′
+
+  Aᴾ′ = liftPreciseTy W≼W′ Aᴾ₀
+  Bᴾ′ = liftPreciseTy W≼W′ Bᴾ₀
+  Aᴵ′ = liftImpreciseTy W≼W′ Aᴵ₀
+  Bᴵ′ = liftImpreciseTy W≼W′ Bᴵ₀
+
+  cᴾ = 〖 Xᴾ′ , Rᴾ′ ↑ Aᴾ′ 〗
+  dᴾ = makeConceal Xᴾ′ Rᴾ′ Bᴾ′
+  cᴵ = 〖 Xᴵ′ , Rᴵ′ ↑ Aᴵ′ 〗
+  dᴵ = makeConceal Xᴵ′ Rᴵ′ Bᴵ′
+
+  Vᴾ′ = liftPreciseTerm W≼W′ Vᴾ
+  Vᴵ′ = liftImpreciseTerm W≼W′ Vᴵ
+
+  precise-redex-eq :
+      liftPreciseTerm W≼W′
+        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (Aᴾ₀ ⇒ Bᴾ₀)) · Uᴾ
+      ≡ (Vᴾ′ ↓ (cᴾ ↦↓ dᴾ)) · Uᴾ
+  precise-redex-eq
+      rewrite lifted-conceal-precise s W≼W′ Vᴾ (Aᴾ₀ ⇒ Bᴾ₀)
+            | liftPreciseTy-arrow W≼W′ Aᴾ₀ Bᴾ₀ = refl
+
+  imprecise-redex-eq :
+      liftImpreciseTerm W≼W′
+        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀)) · Uᴵ
+      ≡ (Vᴵ′ ↓ (cᴵ ↦↓ dᴵ)) · Uᴵ
+  imprecise-redex-eq
+      rewrite lifted-conceal-imprecise s W≼W′ Vᴵ (Aᴵ₀ ⇒ Bᴵ₀)
+            | liftImpreciseTy-arrow W≼W′ Aᴵ₀ Bᴵ₀ = refl
+
+  argument-endpoints =
+    ClosureProof.value-imprecision-endpoints argument-related
+
+  lifted-function : ValueImprecision W′
+      (I.⇒⊑⇒ (liftCenterImprecision W≼W′ q₁)
+        (liftCenterImprecision W≼W′ q₂)) k Vᴵ′ Vᴾ′
+  lifted-function = ClosureProof.value-imprecision-reindex
+    (I.⇒⊑⇒ (liftCenterImprecision W≼W′ q₁)
+      (liftCenterImprecision W≼W′ q₂))
+    (liftCenterImprecision W≼W′ (I.⇒⊑⇒ q₁ q₂))
+    (sym (liftCenterTy-arrow W≼W′ Cᴾ Dᴾ))
+    (sym (liftCenterTy-arrow W≼W′ Cᴵ Dᴵ))
+    (ClosureProof.value-imprecision-future W≼W′
+      (value-imprecision-downward-to
+        {W = W} {p = I.⇒⊑⇒ q₁ q₂} {j = k} {k = suc k}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n k) function-related))
+
+  revealed : ComputationsRelated W′
+      (FutureValueRelation (liftCenterImprecision W≼W′ q₁)) k
+      (Uᴵ ↑ cᴵ) (Uᴾ ↑ cᴾ)
+  revealed = revealAt W′ s′
+    (liftCenterImprecision W≼W′ p₁) (safe-lift W≼W′ safe₁)
+    (trans (embedPrecise-lift W≼W′ Aᴾ₀)
+      (cong (liftCenterTy W≼W′) sourceᴾ₁))
+    (trans (embedImprecise-lift W≼W′ Aᴵ₀)
+      (cong (liftCenterTy W≼W′) sourceᴵ₁))
+    (liftCenterImprecision W≼W′ q₁)
+    (trans (cong (embedPrecise (core W′))
+      (replace-precise-lift s W≼W′ Aᴾ₀))
+      (trans (embedPrecise-lift W≼W′ _)
+        (cong (liftCenterTy W≼W′) targetᴾ₁)))
+    (trans (cong (embedImprecise (core W′))
+      (replace-imprecise-lift s W≼W′ Aᴵ₀))
+      (trans (embedImprecise-lift W≼W′ _)
+        (cong (liftCenterTy W≼W′) targetᴵ₁)))
+    (value-imprecision-downward-to
+      {W = W′} {p = liftCenterImprecision W≼W′ p₁}
+      {j = k} {k = suc k} {Vᴵ = Uᴵ} {Vᴾ = Uᴾ}
+      (n≤1+n k) argument-related)
+
+  applied : ComputationsRelated W′
+      (FutureValueRelation (liftCenterImprecision W≼W′ q₂)) k
+      (Vᴵ′ · (Uᴵ ↑ cᴵ)) (Vᴾ′ · (Uᴾ ↑ cᴾ))
+  applied = related-application-computation lifted-function revealed
+
+  contracted : ComputationsRelated W′
+      (FutureValueRelation (liftCenterImprecision W≼W′ p₂)) k
+      ((Vᴵ′ · (Uᴵ ↑ cᴵ)) ↓ dᴵ) ((Vᴾ′ · (Uᴾ ↑ cᴾ)) ↓ dᴾ)
+  contracted = concealed-computations W′ s′
+    (liftCenterImprecision W≼W′ p₂) (safe-lift W≼W′ safe₂)
+    (trans (embedPrecise-lift W≼W′ Bᴾ₀)
+      (cong (liftCenterTy W≼W′) sourceᴾ₂))
+    (trans (embedImprecise-lift W≼W′ Bᴵ₀)
+      (cong (liftCenterTy W≼W′) sourceᴵ₂))
+    (liftCenterImprecision W≼W′ q₂)
+    (trans (cong (embedPrecise (core W′))
+      (replace-precise-lift s W≼W′ Bᴾ₀))
+      (trans (embedPrecise-lift W≼W′ _)
+        (cong (liftCenterTy W≼W′) targetᴾ₂)))
+    (trans (cong (embedImprecise (core W′))
+      (replace-imprecise-lift s W≼W′ Bᴵ₀))
+      (trans (embedImprecise-lift W≼W′ _)
+        (cong (liftCenterTy W≼W′) targetᴵ₂)))
+    concealBelow applied
+
+  expanded : ComputationsRelated W′
+      (FutureValueRelation (liftCenterImprecision W≼W′ p₂)) (suc k)
+      ((Vᴵ′ ↓ (cᴵ ↦↓ dᴵ)) · Uᴵ) ((Vᴾ′ ↓ (cᴾ ↦↓ dᴾ)) · Uᴾ)
+  expanded
+      with conceal-fun-app-step-question
+             {Σ = impreciseStore (core W′)} cᴵ dᴵ
+             (imprecise-value function-endpoints)
+             (imprecise-value argument-endpoints)
+         | conceal-fun-app-step-question
+             {Σ = preciseStore (core W′)} cᴾ dᴾ
+             (precise-value function-endpoints)
+             (precise-value argument-endpoints)
+    where
+    function-endpoints =
+      ClosureProof.value-imprecision-endpoints lifted-function
+  expanded | vVᴵ , vUᴵ , step-eqᴵ | vVᴾ , vUᴾ , step-eqᴾ =
+    related-pure-step-expand (λ ()) (λ ())
+      (conceal-fun-app-value-none cᴵ dᴵ)
+      (conceal-fun-app-value-none cᴾ dᴾ)
+      (β-conceal-⇒ vVᴵ vUᴵ) (β-conceal-⇒ vVᴾ vUᴾ)
+      step-eqᴵ step-eqᴾ contracted
+
+conceal-function : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W)
+    {Aᴾ₀ Bᴾ₀ : Ty Δᴾ} {Aᴵ₀ Bᴵ₀ : Ty Δᴵ}
+    {Pᴾ Pᴵ Qᴾ Qᴵ : Ty Δᶜ}
+    (p₁ : impEnv (core W) I.⊢ Pᴾ ⊑ Pᴵ)
+    (p₂ : impEnv (core W) I.⊢ Qᴾ ⊑ Qᴵ)
+  → RevealSafe p₁ → RevealSafe p₂
+  → (sourceᴾ₁ : embedPrecise (core W) Aᴾ₀ ≡ Pᴾ)
+  → (sourceᴵ₁ : embedImprecise (core W) Aᴵ₀ ≡ Pᴵ)
+  → (sourceᴾ₂ : embedPrecise (core W) Bᴾ₀ ≡ Qᴾ)
+  → (sourceᴵ₂ : embedImprecise (core W) Bᴵ₀ ≡ Qᴵ)
+  → ∀ {Cᴾ Cᴵ Dᴾ Dᴵ : Ty Δᶜ}
+      (q₁ : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
+      (q₂ : impEnv (core W) I.⊢ Dᴾ ⊑ Dᴵ)
+  → (targetᴾ₁ :
+      embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Aᴾ₀) ≡ Cᴾ)
+  → (targetᴵ₁ :
+      embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Aᴵ₀) ≡ Cᴵ)
+  → (targetᴾ₂ :
+      embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ₀) ≡ Dᴾ)
+  → (targetᴵ₂ :
+      embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ₀) ≡ Dᴵ)
+  → ∀ {k : ℕ} (below : Below k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.⇒⊑⇒ q₁ q₂) k Vᴵ Vᴾ
+  → ComputationsRelated W (FutureValueRelation (I.⇒⊑⇒ p₁ p₂)) k
+      (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀))
+      (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (Aᴾ₀ ⇒ Bᴾ₀))
+conceal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀} {Bᴵ₀ = Bᴵ₀}
+    p₁ p₂ safe₁ safe₂ sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂
+    q₁ q₂ targetᴾ₁ targetᴵ₁ targetᴾ₂ targetᴵ₂
+    {k = k} below {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  related-values-return
+    (imprecise-value endpoints ↓ fun) (precise-value endpoints ↓ fun)
+    at-every-index
+  where
+  endpoints = ClosureProof.value-imprecision-endpoints related
+
+  conceal-endpoints : ∀ (j : ℕ)
+    → TypedEndpoints W (I.⇒⊑⇒ p₁ p₂)
+        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀))
+        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (Aᴾ₀ ⇒ Bᴾ₀))
+  conceal-endpoints j = concealed-endpoints W s (I.⇒⊑⇒ p₁ p₂)
+    (cong₂ _⇒_ sourceᴾ₁ sourceᴾ₂) (cong₂ _⇒_ sourceᴵ₁ sourceᴵ₂)
+    (I.⇒⊑⇒ q₁ q₂) (cong₂ _⇒_ targetᴾ₁ targetᴾ₂)
+    (cong₂ _⇒_ targetᴵ₁ targetᴵ₂) related
+    (imprecise-value endpoints ↓ fun) (precise-value endpoints ↓ fun)
+
+  head-at : ∀ (j : ℕ) → suc j ≤ k
+    → ValueImprecision W (I.⇒⊑⇒ q₁ q₂) (suc j) Vᴵ Vᴾ
+    → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+        (W≼W′ : Future W W′) {Uᴵ : Term Δᴵ′} {Uᴾ : Term Δᴾ′}
+    → ValueImprecision W′ (liftCenterImprecision W≼W′ p₁) (suc j) Uᴵ Uᴾ
+    → ComputationsRelated W′
+        (FutureValueRelation (liftCenterImprecision W≼W′ p₂)) (suc j)
+        (liftImpreciseTerm W≼W′
+          (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀)) · Uᴵ)
+        (liftPreciseTerm W≼W′
+          (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (Aᴾ₀ ⇒ Bᴾ₀)) · Uᴾ)
+  head-at j sj≤k source-at =
+    conceal-function-head W s p₁ p₂ safe₁ safe₂
+      sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂ q₁ q₂
+      targetᴾ₁ targetᴵ₁ targetᴾ₂ targetᴵ₂
+      (proj₁ (below j sj≤k))
+      (λ i i≤j → proj₂ (below i (≤-trans (s≤s i≤j) sj≤k)))
+      source-at
+
+  functions-related : ∀ (j : ℕ) → suc j ≤ k
+    → ValueImprecision W (I.⇒⊑⇒ q₁ q₂) (suc j) Vᴵ Vᴾ
+    → FunctionsRelated W p₁ p₂ (suc j)
+        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀))
+        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (Aᴾ₀ ⇒ Bᴾ₀))
+  functions-related zero sj≤k source-at =
+    head-at zero sj≤k source-at , tt
+  functions-related (suc j) sj≤k source-at =
+    head-at (suc j) sj≤k source-at ,
+    functions-related j (≤-trans (n≤1+n (suc j)) sj≤k)
+      (value-imprecision-downward-to
+        {W = W} {p = I.⇒⊑⇒ q₁ q₂} {j = suc j} {k = suc (suc j)}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n (suc j)) source-at)
+
+  at-every-index : ∀ (j : ℕ) → j ≤ k
+    → FutureValueRelation (I.⇒⊑⇒ p₁ p₂) W future-refl j
+        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀))
+        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (Aᴾ₀ ⇒ Bᴾ₀))
+  at-every-index zero j≤k = conceal-endpoints zero
+  at-every-index (suc j) sj≤k =
+    conceal-endpoints (suc j) ,
+    functions-related j sj≤k
+      (value-imprecision-downward-to
+        {W = W} {p = I.⇒⊑⇒ q₁ q₂} {j = suc j} {k = k}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)

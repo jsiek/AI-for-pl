@@ -4,18 +4,15 @@ module alt.ThetaTerms where
 --   * Defines syntax with anchor position counts Θ separate from regular
 --     type contexts Δ; no anchor form is added to Ty, and no Ty is ever
 --     indexed by an anchor space.
---   * The telescope holds the anchor-to-representation bindings.  Each
---     representation is an ordinary type over the TYPE CONTEXT generated
---     by the telescope prefix before it: a reference to an earlier anchor
---     is an ordinary type variable of that context, and a representation's
---     ∀-local binders extend that context as usual.  Telescope lookup
---     follows the TyStore idiom: an equality witness records each
---     weakening into the full context.
---   * Reveal/conceal bind and anti-bind only Δ, while ν binds Θ; node data
---     (anchor references) are telescope positions, identified with the
---     telescope's context length at the typing context.
---   * Provides syntax and the minimal telescope/classifier structure only;
---     typing and structural operations belong to later chunks.
+--   * A ν node carries its representation as an ordinary type over the
+--     REGULAR context at the node (the scope where the representation
+--     originates); anchor-to-representation bindings live in the unified
+--     typing context of alt.ThetaTyping, whose lookups weaken entries to
+--     the local scope.
+--   * Reveal/conceal bind and anti-bind only Δ, while ν binds Θ; node
+--     data (anchor references) are positions into the enclosing ν's.
+--   * Provides syntax and the anchor renaming only; typing and further
+--     structural operations belong to later chunks.
 
 open import Data.Fin using (zero; suc)
 open import Data.Nat using (ℕ; zero; suc)
@@ -72,7 +69,7 @@ data Term : AnchorCtx → TyCtx → Set where
   _↓[_≔_]_ : Term Θ Δ
     → TyVar (suc Δ) → TyVar Θ → Conceal → Term Θ (suc Δ)
 
-  ν[_]_ : Ty Θ → Term (suc Θ) Δ → Term Θ Δ
+  ν[_]_ : Ty Δ → Term (suc Θ) Δ → Term Θ Δ
 
   blame : Term Θ Δ
 
@@ -96,7 +93,7 @@ renameᶿ ρ (L ⊕[ op ] M) = renameᶿ ρ L ⊕[ op ] renameᶿ ρ M
 renameᶿ ρ (M ⟨ c ⟩) = renameᶿ ρ M ⟨ c ⟩
 renameᶿ ρ (M ↑[ Y ≔ α ] c) = renameᶿ ρ M ↑[ Y ≔ ρ α ] c
 renameᶿ ρ (M ↓[ Y ≔ α ] c) = renameᶿ ρ M ↓[ Y ≔ ρ α ] c
-renameᶿ ρ (ν[ A ] M) = ν[ renameᵗ ρ A ] renameᶿ (extᵗ ρ) M
+renameᶿ ρ (ν[ A ] M) = ν[ A ] renameᶿ (extᵗ ρ) M
 renameᶿ ρ blame = blame
 
 shiftᶿ : Term Θ Δ → Term (suc Θ) Δ

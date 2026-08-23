@@ -1,13 +1,17 @@
 module alt.ThetaTyping where
 
 -- File Charter:
---   * Defines typing for the Θ-indexed alternative syntax.  Anchors index
---     telescopes and terms, but never occur in regular types `Ty Δ`.
---   * Defines the first-order classifier for exactly two semantic consumers:
---     the spelling premise used by crossings here, and allocation later.
---   * Makes `∀-bound` entries deliberately unspellable, preventing lexical
---     variables from being mistaken for anchor-backed representation slots.
---   * Enforces closed interiors for ν, wk, reveal, and conceal.
+--   * Defines typing for the Θ-indexed alternative syntax over ONE unified
+--     context: a telescope of term-variable, type-variable (with recorded
+--     insertion position), and anchor:=representation entries.  Anchors
+--     never occur in regular types `Ty Δ`.
+--   * Representations are written in the regular scope at their entry; the
+--     lookup judgments perform the spelling, weakening entries across
+--     later type-variable insertions (skip-typ).  There is no separate
+--     spelling relation, classifier, or telescope structure.
+--   * Interiors are open: term variables cross type-variable entries via
+--     lookup weakening (typing-side; term shifting per the option-B
+--     eager-shift decision).
 
 open import Data.Fin using (zero; suc)
 open import Data.List using ([]; _∷_)

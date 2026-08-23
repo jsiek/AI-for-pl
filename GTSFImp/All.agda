@@ -182,4 +182,5 @@ import proof.DGG.CenterRename
 import proof.DGG.Occupancy
 import proof.DGG.WorldSupport
 import proof.DGG.TargetExtend
+import proof.DGG.WorldInsert
 import proof.DGG.TargetBindLift

@@ -249,26 +249,53 @@ computations). The function case decomposes `(V ↑ (c ↦↑ d)) · U` by
 revealed result, composed through the argument and reveal frames; the
 conceal case is dual through `β-conceal-⇒`.
 
-Finding C (open, blocks the universal case of 6b): `∀⊑∀` is deliberately
-excluded from `RevealSafe`. The reveal of a universal value reduces by
-`β-reveal-∀`:
+Finding C (open; revised 2026-08-23 after a closer analysis). Two
+separate things keep `RevealSafe` small; the earlier "two allocations /
+re-instantiation" formulation of this finding was imprecise and is
+superseded by what follows.
 
-    (V ↑ `∀↑ c) ⦂∀ B [ A ] —→[ bind A ]
-      (⇑V ⦂∀ (bind A ▷ᵇ C) [ ＇ 0 ]) ↑ c ↑ 〖 0 , ⇑A ↑ B 〗
+C1. The ★-target forms are asymmetric, not blocked. For `A ⊑ ★` the
+imprecise structural conversion degenerates: `〖 X , R ↑ ★ 〗 = id↑ ★`
+and `makeConceal X R ★ = id↓ ★`, so the imprecise side takes an identity
+reveal step while the precise side reveals structurally (a function
+conversion for `⇒⊑★`, a universal one for `∀⊑★`, `∀★⊑★`). The two
+endpoints therefore no longer have matching shapes, and the result must
+be re-established through the tag clauses: at `⇒⊑★` the value relation is
+`RightDynamicPayloadRelated`, so the goal reduces to the (proved)
+function case applied to the payload one index lower, then re-tagged.
+The same holds for `∀⊑★`/`∀★⊑★` (needing the universal case first) and
+for `∀⊑` (needing `RightUniversalsRelated`). These are genuine work, but
+no new principle: expected order is `⇒⊑★`, then `∀⊑∀`, then `∀⊑★`,
+`∀★⊑★`, `∀⊑`.
 
-so the source value is instantiated at the *freshly allocated name*
-`＇ 0` inside a world that has already allocated `A`, i.e. two
-allocations. The LR's universal clause instead supplies the behaviour of
-`liftV ⦂∀ liftC [ R ]` — one allocation, at the representation type `R`
-chosen by the observer. Bridging the two needs a re-instantiation
-property ("instantiating at a name bound to `R` behaves like
-instantiating at `R`") that the LR does not have. Recommended repair:
-restate `UniversalsRelated` (and `RightUniversalsRelated`) to quantify
-over a *fresh paired slot in a future world* rather than over a
-representation pair `(Rᴾ, Rᴵ, r)`. That is the same data the canonical
-slots already record, it matches the reduction exactly, and it removes
-the mismatch at the cost of re-proving the universal introduction and
-elimination compatibilities against the new clause.
+C2. The paired universal `∀⊑∀` propagates a safety requirement onto the
+observer's representation. Revealing a universal value gives
+`V ↑ `∀↑ 〖 suc X , ⇑R ↑ B₀ 〗`, and instantiating it at the observer's
+representation `S` reduces by `β-reveal-∀` to
+
+    (⇑V ⦂∀ ⇑B₀ [ ＇ 0 ]) ↑ 〖 suc X , ⇑R ↑ B₀ 〗 ↑ 〖 0 , ⇑S ↑ B 〗
+      where B = replaceTy (suc X) (⇑R) B₀
+
+i.e. two structural reveals in sequence: first the *old* slot in the body
+type `B₀`, then the *freshly allocated* slot in the already-replaced type
+`B`. The inner type application is supplied by the source value's
+`UniversalsRelated` head instantiated at the fresh slot's own endpoint
+variables `(＇ Xᴾ, ＇ Xᴵ)`; that yields exactly the right terms, at the
+cost of one extra alias slot in the result world, which the
+`PostBindValueRelation` factorization tolerates. The obstruction is
+elsewhere: the second reveal runs at *source* imprecision equal to the
+first reveal's *target*, which contains the current slot's representation
+imprecision `r`. So the second reveal needs `RevealSafe r` — and when the
+lemma is then used at the fresh slot, `r` is the imprecision the observer
+chose, which is arbitrary. Two ways out:
+  (a) Recommended: remove the fragment by proving C1 as well; safety then
+      holds for every derivation and the requirement disappears.
+  (b) Restrict `UniversalsRelated` to quantify only over representation
+      pairs whose imprecision lies in the fragment, and carry
+      `RevealSafe (rep-related (atom s))` as a slot invariant. This
+      weakens the universal clause (observers could no longer instantiate
+      at `★`-ish types) and forces the universal introduction and
+      elimination compatibilities to be re-proved against it.
 
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal

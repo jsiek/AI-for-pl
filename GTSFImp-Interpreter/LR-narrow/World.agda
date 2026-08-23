@@ -1289,3 +1289,36 @@ entry-future (future-precise W≼W′ r) Z =
   entry-lift-precise W≼W′ r (entry-future W≼W′ Z)
 entry-future (future-imprecise W≼W′) Z =
   entry-lift-imprecise W≼W′ (entry-future W≼W′ Z)
+
+------------------------------------------------------------------------
+-- Embeddings after a future
+------------------------------------------------------------------------
+
+-- The precise, imprecise, and center embeddings of an order-preserving
+-- embedding followed by the allocations of a future, built by skipping
+-- each allocation.  Lifting a renamed endpoint through the future is
+-- renaming by the shifted embedding.
+
+afterPrecise : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Δ₀}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+  → Future W W′ → Δ₀ ↪ᵗ Δᴾ → Δ₀ ↪ᵗ Δᴾ′
+afterPrecise future-refl ρ = ρ
+afterPrecise (future-paired W≼W′ r) ρ = skip (afterPrecise W≼W′ ρ)
+afterPrecise (future-precise W≼W′ r) ρ = skip (afterPrecise W≼W′ ρ)
+afterPrecise (future-imprecise W≼W′) ρ = afterPrecise W≼W′ ρ
+
+afterImprecise : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Δ₀}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+  → Future W W′ → Δ₀ ↪ᵗ Δᴵ → Δ₀ ↪ᵗ Δᴵ′
+afterImprecise future-refl ρ = ρ
+afterImprecise (future-paired W≼W′ r) ρ = skip (afterImprecise W≼W′ ρ)
+afterImprecise (future-precise W≼W′ r) ρ = afterImprecise W≼W′ ρ
+afterImprecise (future-imprecise W≼W′) ρ = skip (afterImprecise W≼W′ ρ)
+
+afterCenter : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Δ₀}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+  → Future W W′ → Δ₀ ↪ᵗ Δᶜ → Δ₀ ↪ᵗ Δᶜ′
+afterCenter future-refl π = π
+afterCenter (future-paired W≼W′ r) π = skip (afterCenter W≼W′ π)
+afterCenter (future-precise W≼W′ r) π = skip (afterCenter W≼W′ π)
+afterCenter (future-imprecise W≼W′) π = skip (afterCenter W≼W′ π)

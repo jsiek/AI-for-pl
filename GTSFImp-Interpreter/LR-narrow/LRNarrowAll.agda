@@ -30,6 +30,7 @@ open import LR-narrow.TypeApplication public
 open import LR-narrow.Cast public
 open import LR-narrow.Fundamental public
 open import LR-narrow.Insertion public
+open import LR-narrow.FutureInsertion public
 
 -- Assembly skeleton of the total theorem, parameterized by its remaining
 -- obligations; imported so the aggregate check covers it.

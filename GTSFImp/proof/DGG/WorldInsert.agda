@@ -334,3 +334,61 @@ liftLeft-insert {ρᴸ = ρᴸ} {ρᴿ = ρᴿ} {π = π} {W = W} {W′ = W′}
     → store-lift (CTX.sourceStoreʷ W′) TyStore.∋ X ⦂ C
     → store-bind (CTX.sourceStoreʷ W′) A TyStore.∋ X ⦂ C
   bind-lift-source (TyStore.S-lift∋ X∈ eq) = TyStore.S-bind∋ X∈ eq
+
+------------------------------------------------------------------------
+-- Shifting an insertion behind a fresh allocation in the target world
+------------------------------------------------------------------------
+
+-- Allocating a fresh center in the target world of an insertion, on both
+-- endpoints or on one endpoint, shifts the insertion behind it.
+
+shift-bound : ∀ {Δ Δ′} {ρ : Δ ↪ᵗ Δ′} {Σ : TyStore Δ} {Σ′ : TyStore Δ′}
+    (A : Ty Δ′)
+  → StoreRename (toRenameᵗ ρ) Σ Σ′
+  → StoreRename (toRenameᵗ (skip ρ)) Σ (store-bind Σ′ A)
+shift-bound {ρ = ρ} {Σ′ = Σ′} A h {X} {B} X∈ =
+  subst≡ (λ T → store-bind Σ′ A TyStore.∋ Fin.suc (toRenameᵗ ρ X) ⦂ T)
+    (renameᵗ-comp (toRenameᵗ ρ) Fin.suc B)
+    (TyStore.S-bind∋ (h X∈) refl)
+
+shiftBoth-insert : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
+    {ρᴸ : Δᴸ ↪ᵗ Δᴸ′} {ρᴿ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
+    (v : VarImp) (A : Ty Δᴸ′) (B : Ty Δᴿ′)
+  → WorldInsert ρᴸ ρᴿ π W W′
+  → WorldInsert (skip ρᴸ) (skip ρᴿ) (skip π) W (CTX.bothBindWorld v W′ A B)
+shiftBoth-insert v A B ins = record
+  { source-insert = λ Xᴸ → cong Fin.suc (source-insert ins Xᴸ)
+  ; target-insert = λ Xᴿ → cong Fin.suc (target-insert ins Xᴿ)
+  ; impEnv-insert = λ Z → impEnv-insert ins Z
+  ; sourceStore-rename = shift-bound A (sourceStore-rename ins)
+  ; targetStore-rename = shift-bound B (targetStore-rename ins)
+  }
+
+shiftLeft-insert : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
+    {ρᴸ : Δᴸ ↪ᵗ Δᴸ′} {ρᴿ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
+    (v : VarImp) (A : Ty Δᴸ′)
+  → WorldInsert ρᴸ ρᴿ π W W′
+  → WorldInsert (skip ρᴸ) ρᴿ (skip π) W (CTX.leftOnlyWorld v W′ A)
+shiftLeft-insert v A ins = record
+  { source-insert = λ Xᴸ → cong Fin.suc (source-insert ins Xᴸ)
+  ; target-insert = λ Xᴿ → cong Fin.suc (target-insert ins Xᴿ)
+  ; impEnv-insert = λ Z → impEnv-insert ins Z
+  ; sourceStore-rename = shift-bound A (sourceStore-rename ins)
+  ; targetStore-rename = targetStore-rename ins
+  }
+
+shiftRight-insert : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
+    {ρᴸ : Δᴸ ↪ᵗ Δᴸ′} {ρᴿ : Δᴿ ↪ᵗ Δᴿ′} {π : Δ ↪ᵗ Δ′}
+    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
+    (B : Ty Δᴿ′)
+  → WorldInsert ρᴸ ρᴿ π W W′
+  → WorldInsert ρᴸ (skip ρᴿ) (skip π) W (CTX.rightOnlyWorld W′ B)
+shiftRight-insert B ins = record
+  { source-insert = λ Xᴸ → cong Fin.suc (source-insert ins Xᴸ)
+  ; target-insert = λ Xᴿ → cong Fin.suc (target-insert ins Xᴿ)
+  ; impEnv-insert = λ Z → impEnv-insert ins Z
+  ; sourceStore-rename = sourceStore-rename ins
+  ; targetStore-rename = shift-bound B (targetStore-rename ins)
+  }

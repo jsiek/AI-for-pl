@@ -41,20 +41,21 @@ motives. The missing work is to construct those body motives recursively from
 the body imprecision derivations.
 
 The total theorem is assembled in
-`proof/LR-narrow/FundamentalAssembly.agda` (checked 2026-08-23). Its
-`Assembly.fundamental` recurses over every CTI constructor; the constructors
-without a checked compatibility lemma are the fields of
-`RemainingObligations`, each stated with the structural induction hypothesis
-the recursion can actually supply (`Hypothesis`: the fundamental property at
-every semantic world realizing the premise's syntactic world). Closing the
-theorem means inhabiting that record by induction, not by assumption.
+`proof/LR-narrow/FundamentalAssembly.agda` (checked 2026-08-23) on the
+insertion-generalized motive `InsertedFundamentalProperty` of
+`LR-narrow/Insertion.agda`. Its `Assembly.fundamental` recurses over every
+CTI constructor below an arbitrary world insertion; the constructors without
+a checked compatibility lemma are the fields of `RemainingObligations`, each
+stated with the insertion-generalized induction hypothesis for its premises.
+Closing the theorem means inhabiting that record by induction, not by
+assumption.
 
 Constructor coverage (25 CTI constructors):
 
 | status | constructors |
 |---|---|
 | closed by checked lemma | `x⊑x²`, `κ⊑κ²`, `blame⊑²`, `ƛ⊑ƛ²`, `·⊑·²`, `⊕⊑⊕²`, `cast⊑cast²`, `⊑cast²`, `cast⊑²`, `•⊑•²` at `∀⊑∀`, `•⊑²` at `∀⊑` |
-| outer lemma checked, body motive open (M1) | `Λ⊑Λ²`, `Λ⊑²`, `Λ⊑²-smart-comma` |
+| open (M1, steps 6–8) | `Λ⊑Λ²`, `Λ⊑²`, `Λ⊑²-smart-comma` |
 | open (M2) | `⊑reveal²`, `⊑conceal²`, `reveal⊑²`, `conceal⊑²-seal-star-open`, `conceal⊑²-source-ok`, `reveal⊑reveal²`, `conceal⊑conceal²`, `packaged-seal-star²` |
 | open (M3) | `•⊑•²` at `∀⊑`, `bot-elim`; `•⊑²` at `∀⊑∀`, `∀★⊑★`, `∀⊑★`, `bot-elim`, `bot⊑★` |
 
@@ -90,13 +91,37 @@ lifting of insertions, not derivation-level transport.
    `B` in the bound extension give `V ↑ 〖 zero , ⇑R ↑ B 〗` related at
    `B [ R ]ᵗ ⊑ B′ [ R′ ]ᵗ`. No LR lemma treats `_↑_`/`_↓_` conversions yet;
    this is needed by every route to the universal body motive and is the
-   core of Milestone 2's `reveal⊑reveal²`.
-7. Close `Λ⊑Λ²` from the lifted insertion, the hypothesis, and 6.
-8. Close `Λ⊑²` and `Λ⊑²-smart-comma` likewise (precise-only lift and
-   `X⊑★` reveal on the source side only; target unchanged); cover nested
-   universals by composition of insertions. Do not treat `SmartCommaLiftᴸ`
-   as semantic world transport: any alias-merged center must receive the LR
-   semantic entry required by the body relation.
+   core of Milestone 2's `reveal⊑reveal²`. Finding (2026-08-23): the fresh
+   atom of a paired bind has an *arbitrary* relation (parametricity), and
+   the reveal at `B = ＇0 ⇒ ＇0` seals the arguments, so this lemma holds
+   only in the world whose atom at center `0` is the *canonical* atom
+   (sealed payloads related at `R ⊑ R′`). Consequently:
+   a. define the canonical paired atom from `r : R ⊑ᵂ R′`;
+   b. prove reveal and conceal compatibility at center `0` in the
+      canonical-atom world, by induction on `B`;
+   c. prove atom irrelevance: relations at a derivation whose types do
+      not mention center `0` are invariant under replacing the semantic
+      entry at `0` (world-transformer induction over the value relation,
+      comparable to the future-monotonicity proof in `Closure.agda`).
+   The alternative is to change the LR's universal clauses to test only
+   the canonical atom; that touches the LR definition, its recursion
+   structure, `Closure.agda`, and every universal lemma, and forfeits
+   parametricity. Decision pending.
+7. Close `Λ⊑Λ²`: lift the insertion under the binder
+   (`WorldInsert.liftBoth-insert`, checked), instantiate the hypothesis at
+   the canonical-atom test world, apply 6b, transfer by 6c to the
+   observer's atom, and reconcile closing substitutions with type-body
+   closing and future lifting.
+8. Close `Λ⊑²` and `Λ⊑²-smart-comma` likewise (`liftLeft-insert`,
+   checked; `X⊑★` reveal on the source side only; target unchanged); cover
+   nested universals by composition of insertions. Do not treat
+   `SmartCommaLiftᴸ` as semantic world transport: any alias-merged center
+   must receive the LR semantic entry required by the body relation.
+
+Status (2026-08-23): steps 1, 3, 4, 5 are checked
+(`GTSFImp/proof/DGG/WorldInsert.agda`, `LR-narrow/Insertion.agda`,
+`proof/LR-narrow/FundamentalAssembly.agda`); step 2 has the two lifting
+lemmas but not yet composition with LR futures or the smart-comma world.
 
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal

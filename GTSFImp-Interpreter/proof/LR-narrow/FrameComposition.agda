@@ -11,7 +11,7 @@ module proof.LR-narrow.FrameComposition where
 
 open import Data.Nat using (ℕ; _+_; _∸_; _≤_; zero; z≤n; _<_; s≤s)
 open import Data.Nat.Properties using
-  (≤-trans; m<n⇒0<n∸m)
+  (≤-trans; m<n⇒0<n∸m; m∸n≤m)
 open import Data.List using ([])
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -140,9 +140,9 @@ module Composition (Fᴾ Fᴵ : Frame) where
   -- Plugging related returned values into the transported frames gives
   -- related computations, at every future reached by an operand phase.
   PlugValues : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx} (W : World Δᴾ Δᴵ Δᶜ)
-    → IndexedValueRelation W → IndexedValueRelation W
+    → IndexedValueRelation W → IndexedValueRelation W → ℕ
     → P.Frm Δᴾ → I.Frm Δᴵ → Set₁
-  PlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S fᴾ fᴵ =
+  PlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S k fᴾ fᴵ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)
       {χsᴾ : StoreChanges Δᴾ Δᴾ′} {χsᴵ : StoreChanges Δᴵ Δᴵ′}
@@ -150,7 +150,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
     → preciseStore (core W′) ≡ χsᴾ ▶ˢ preciseStore (core W)
     → (∀ M → χsᴵ ▶ᵀ M ≡ liftImpreciseTerm W≼W′ M)
     → (∀ M → χsᴾ ▶ᵀ M ≡ liftPreciseTerm W≼W′ M)
-    → {j : ℕ} {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
+    → {j : ℕ} → j ≤ k → {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
     → R W′ W≼W′ j Vᴵ Vᴾ
     → ComputationsRelated W′
         (λ W″ W′≼W″ → S W″ (future-trans W≼W′ W′≼W″)) j
@@ -166,7 +166,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
       {R S : IndexedValueRelation W}
       (fᴾ : P.Frm Δᴾ) (fᴵ : I.Frm Δᴵ)
       (k : ℕ) (Mᴵ : Term Δᴵ) (Mᴾ : Term Δᴾ)
-    → PlugValues W R S fᴾ fᴵ
+    → PlugValues W R S k fᴾ fᴵ
     → ComputationsRelated W R k Mᴵ Mᴾ
     → ComputationsRelated W S k (I.plug fᴵ Mᴵ) (P.plug fᴾ Mᴾ)
   frame-computations-related {W = W} {S = S} fᴾ fᴵ k Mᴵ Mᴾ
@@ -240,7 +240,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
         {χsᴾ = E.changes operandResultᴾ}
         {χsᴵ = E.changes operandResultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ operandGas}
+        {j = k ∸ operandGas} (m∸n≤m k operandGas)
         {Vᴵ = E.term operandResultᴵ} {Vᴾ = E.term operandResultᴾ}
         operandValueRelated
     forward {n = n} n≤k result-eq
@@ -359,7 +359,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
         {χsᴾ = E.changes operandResultᴾ}
         {χsᴵ = E.changes operandResultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ operandGas}
+        {j = k ∸ operandGas} (m∸n≤m k operandGas)
         {Vᴵ = E.term operandResultᴵ} {Vᴾ = E.term operandResultᴾ}
         operandValueRelated
     backward {n = n} n≤k result-eq
@@ -465,7 +465,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
         {χsᴾ = E.changes operandResultᴾ}
         {χsᴵ = E.changes operandResultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ operandGas}
+        {j = k ∸ operandGas} (m∸n≤m k operandGas)
         {Vᴵ = E.term operandResultᴵ} {Vᴾ = E.term operandResultᴾ}
         operandValueRelated
     forward-blame-frame {n = n} n≤k blaming
@@ -569,9 +569,9 @@ module PreciseComposition (Fᴾ : Frame) where
           (sym (liftPreciseTerm-trans W₀≼W₁ W₁≼W₂ M))))
 
   PrecisePlugValues : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx} (W : World Δᴾ Δᴵ Δᶜ)
-    → IndexedValueRelation W → IndexedValueRelation W
+    → IndexedValueRelation W → IndexedValueRelation W → ℕ
     → P.Frm Δᴾ → Set₁
-  PrecisePlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S fᴾ =
+  PrecisePlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S k fᴾ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)
       {χsᴾ : StoreChanges Δᴾ Δᴾ′} {χsᴵ : StoreChanges Δᴵ Δᴵ′}
@@ -579,7 +579,7 @@ module PreciseComposition (Fᴾ : Frame) where
     → preciseStore (core W′) ≡ χsᴾ ▶ˢ preciseStore (core W)
     → (∀ M → χsᴵ ▶ᵀ M ≡ liftImpreciseTerm W≼W′ M)
     → (∀ M → χsᴾ ▶ᵀ M ≡ liftPreciseTerm W≼W′ M)
-    → {j : ℕ} {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
+    → {j : ℕ} → j ≤ k → {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
     → R W′ W≼W′ j Vᴵ Vᴾ
     → ComputationsRelated W′
         (λ W″ W′≼W″ → S W″ (future-trans W≼W′ W′≼W″)) j
@@ -590,7 +590,7 @@ module PreciseComposition (Fᴾ : Frame) where
       {R S : IndexedValueRelation W}
       (fᴾ : P.Frm Δᴾ)
       (k : ℕ) (Mᴵ : Term Δᴵ) (Mᴾ : Term Δᴾ)
-    → PrecisePlugValues W R S fᴾ
+    → PrecisePlugValues W R S k fᴾ
     → ComputationsRelated W R k Mᴵ Mᴾ
     → ComputationsRelated W S k Mᴵ (P.plug fᴾ Mᴾ)
   precise-frame-computations-related {W = W} {S = S} fᴾ k Mᴵ Mᴾ
@@ -630,7 +630,7 @@ module PreciseComposition (Fᴾ : Frame) where
       call-related = plug-values W≼W₁
         {χsᴾ = E.changes operandResultᴾ} {χsᴵ = E.changes resultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ n} {Vᴵ = E.term resultᴵ}
+        {j = k ∸ n} (m∸n≤m k n) {Vᴵ = E.term resultᴵ}
         {Vᴾ = E.term operandResultᴾ} operandValueRelated
 
       callReturnᴵ = value-return-exact
@@ -737,7 +737,7 @@ module PreciseComposition (Fᴾ : Frame) where
         {χsᴾ = E.changes operandResultᴾ}
         {χsᴵ = E.changes operandResultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ operandGas} {Vᴵ = E.term operandResultᴵ}
+        {j = k ∸ operandGas} (m∸n≤m k operandGas) {Vᴵ = E.term operandResultᴵ}
         {Vᴾ = E.term operandResultᴾ} operandValueRelated
     backward {n = n} n≤k result-eq
         | P.return-phases operandGas operandResultᴾ operandReturn
@@ -869,9 +869,9 @@ module ImpreciseComposition (Fᴵ : Frame) where
         (sym (liftPreciseTerm-trans W₀≼W₁ W₁≼W₂ M)))
 
   ImprecisePlugValues : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx} (W : World Δᴾ Δᴵ Δᶜ)
-    → IndexedValueRelation W → IndexedValueRelation W
+    → IndexedValueRelation W → IndexedValueRelation W → ℕ
     → I.Frm Δᴵ → Set₁
-  ImprecisePlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S fᴵ =
+  ImprecisePlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S k fᴵ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)
       {χsᴾ : StoreChanges Δᴾ Δᴾ′} {χsᴵ : StoreChanges Δᴵ Δᴵ′}
@@ -879,7 +879,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
     → preciseStore (core W′) ≡ χsᴾ ▶ˢ preciseStore (core W)
     → (∀ M → χsᴵ ▶ᵀ M ≡ liftImpreciseTerm W≼W′ M)
     → (∀ M → χsᴾ ▶ᵀ M ≡ liftPreciseTerm W≼W′ M)
-    → {j : ℕ} {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
+    → {j : ℕ} → j ≤ k → {Vᴵ : Term Δᴵ′} {Vᴾ : Term Δᴾ′}
     → R W′ W≼W′ j Vᴵ Vᴾ
     → ComputationsRelated W′
         (λ W″ W′≼W″ → S W″ (future-trans W≼W′ W′≼W″)) j
@@ -890,7 +890,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
       {R S : IndexedValueRelation W}
       (fᴵ : I.Frm Δᴵ)
       (k : ℕ) (Mᴵ : Term Δᴵ) (Mᴾ : Term Δᴾ)
-    → ImprecisePlugValues W R S fᴵ
+    → ImprecisePlugValues W R S k fᴵ
     → ComputationsRelated W R k Mᴵ Mᴾ
     → ComputationsRelated W S k (I.plug fᴵ Mᴵ) Mᴾ
   imprecise-frame-computations-related {W = W} {S = S} fᴵ k Mᴵ Mᴾ
@@ -953,7 +953,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
         {χsᴾ = E.changes operandResultᴾ}
         {χsᴵ = E.changes operandResultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ operandGas} {Vᴵ = E.term operandResultᴵ}
+        {j = k ∸ operandGas} (m∸n≤m k operandGas) {Vᴵ = E.term operandResultᴵ}
         {Vᴾ = E.term operandResultᴾ} operandValueRelated
     forward {n = n} n≤k result-eq
         | I.return-phases operandGas operandResultᴵ operandReturn
@@ -1030,7 +1030,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
       call-related = plug-values W≼W₁
         {χsᴾ = E.changes resultᴾ} {χsᴵ = E.changes operandResultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ n} {Vᴵ = E.term operandResultᴵ}
+        {j = k ∸ n} (m∸n≤m k n) {Vᴵ = E.term operandResultᴵ}
         {Vᴾ = E.term resultᴾ} operandValueRelated
 
       callReturnᴾ = value-return-exact
@@ -1110,7 +1110,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
         {χsᴾ = E.changes operandResultᴾ}
         {χsᴵ = E.changes operandResultᴵ}
         operandStoreᴵ operandStoreᴾ operandTermsᴵ operandTermsᴾ
-        {j = k ∸ operandGas} {Vᴵ = E.term operandResultᴵ}
+        {j = k ∸ operandGas} (m∸n≤m k operandGas) {Vᴵ = E.term operandResultᴵ}
         {Vᴾ = E.term operandResultᴾ} operandValueRelated
     forward-blame-frame {n = n} n≤k blaming
         | I.call-phase-blames operandGas operandResultᴵ operandReturn

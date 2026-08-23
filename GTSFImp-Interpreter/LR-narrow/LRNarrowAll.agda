@@ -46,3 +46,4 @@ import proof.LR-narrow.FrameComposition
 import proof.LR-narrow.RevealFrames
 import proof.LR-narrow.RevealLifting
 import proof.LR-narrow.ConcealAtomic
+import proof.LR-narrow.ArgumentFrame

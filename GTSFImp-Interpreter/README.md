@@ -24,7 +24,11 @@ The port currently contains:
   related target value;
 - `LR-narrow/LogicalRelation.agda`: a step-indexed LR indexed canonically by
   `Imprecision`, plus `ValueNarrowing` obtained by reindexing through the
-  derivation isomorphism;
+  derivation isomorphism. The index counts the imprecise evaluation steps
+  strictly available: `ComputationsRelated` observes imprecise runs of `n < k`
+  steps and relates returned values at index `k ∸ n ≥ 1`, so the value
+  relation at index zero is endpoint typing only and computations are
+  vacuously related at index zero;
 - `LR-narrow/DynamicPayload.agda`: two-sided and precise-to-dynamic ground
   introduction cases for the payload relations;
 - `LR-narrow/Closure.agda`: public statements of downward closure and

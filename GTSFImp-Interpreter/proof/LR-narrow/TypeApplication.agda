@@ -10,8 +10,9 @@ open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s)
-open import Data.Nat.Properties using (≤-refl; ≤-trans; m∸n≤m)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s; _<_)
+open import Data.Nat.Properties using
+  (≤-refl; ≤-trans; m∸n≤m; <⇒≤; m<n⇒0<n∸m)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
@@ -53,8 +54,8 @@ open import proof.LR-narrow.Application using
    value-return-exact; eval-from-nonblame; eval-prepend-return;
    eval-prepend-blamed; return-store-reindex;
    blame-store-reindex; value-terms-reindex; value-index-reindex;
-   paired-returns-reindex; compiled-component-future; drop-left-≤;
-   first-of-two≤; subtract-phases)
+   paired-returns-reindex; compiled-component-future; drop-left-<;
+   first-of-two<; subtract-phases)
 import proof.LR-narrow.Closure as ClosureProof
 
 ------------------------------------------------------------------------
@@ -1275,13 +1276,15 @@ right-universal-application : ∀
   → let step = future-precise (future-refl {W = W}) r★
     in ComputationsRelated W (PostBindValueRelation step s) k
       Vᴵ (Vᴾ ⦂∀ Cᴾ [ Rᴾ ])
+right-universal-application {k = zero} Cᴾ-eq Bᴵ-eq related =
+  ClosureProof.computations-related-zero
 right-universal-application {W = W} {Cᴾ = Cᴾ} {Bᴵ = Bᴵ}
-    {Rᴾ = Rᴾ} {s = s}
+    {Rᴾ = Rᴾ} {s = s} {k = suc k}
     Cᴾ-eq Bᴵ-eq related
     with right-related-universal-instantiation
       {W = W} related
 right-universal-application {W = W} {Cᴾ = Cᴾ} {Bᴵ = Bᴵ}
-    {Rᴾ = Rᴾ} {s = s}
+    {Rᴾ = Rᴾ} {s = s} {k = suc k}
     Cᴾ-eq Bᴵ-eq related
     | Dᴾ , Dᴵ , eqᴾ , eqᴵ , call
     rewrite precise-universal-bodies-eq {W = W} eqᴾ Cᴾ-eq
@@ -1877,7 +1880,7 @@ type-application-compatible {W = W} {Γ = Γ}
 
   forward : ∀ {n}
       {resultᴵ : E.EvalResult (Lᴵ′ ⦂∀ Cᴵ′ [ Aᴵ′ ])}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W′)) n
         (Lᴵ′ ⦂∀ Cᴵ′ [ Aᴵ′ ]) ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ]
@@ -1900,10 +1903,10 @@ type-application-compatible {W = W} {Γ = Γ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    functionGas≤ = first-of-two≤ phases≤
+    functionGas≤ = first-of-two< phases≤
   forward {n} n≤k result-eq
       | type-return-phases functionGas functionResult functionReturn
           callGas callResult callReturn result-split gas-split
@@ -1929,15 +1932,15 @@ type-application-compatible {W = W} {Γ = Γ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    callGas≤ = drop-left-≤ phases≤
+    callGas≤ = drop-left-< phases≤
 
     residual-positive = ≤-trans
       (type-application-return-positive≤
         {Σ = E.changes functionResult ▶ˢ
-          impreciseStore (core W′)} callReturn) callGas≤
+          impreciseStore (core W′)} callReturn) (<⇒≤ callGas≤)
 
     bodyEqᴵ = imprecise-phase-body-eq
       {χs = E.changes functionResult} W′≼W₁
@@ -2052,7 +2055,7 @@ type-application-compatible {W = W} {Γ = Γ}
 
   backward : ∀ {n}
       {resultᴾ : E.EvalResult (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ])}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W′)) n
         (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ]) ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ]
@@ -2075,10 +2078,10 @@ type-application-compatible {W = W} {Γ = Γ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    functionGas≤ = first-of-two≤ phases≤
+    functionGas≤ = first-of-two< phases≤
   backward {n} n≤k result-eq
       | type-return-phases preciseFunctionGas preciseFunctionResult
           preciseFunctionReturn preciseCallGas preciseCallResult
@@ -2091,15 +2094,15 @@ type-application-compatible {W = W} {Γ = Γ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    callGas≤ = drop-left-≤ phases≤
+    callGas≤ = drop-left-< phases≤
 
     residual-positive = ≤-trans
       (type-application-return-positive≤
         {Σ = E.changes preciseFunctionResult ▶ˢ
-          preciseStore (core W′)} preciseCallReturn) callGas≤
+          preciseStore (core W′)} preciseCallReturn) (<⇒≤ callGas≤)
 
     bodyEqᴵ = imprecise-phase-body-eq
       {χs = E.changes functionResult} W′≼W₁
@@ -2185,7 +2188,7 @@ type-application-compatible {W = W} {Γ = Γ}
         callTermsᴵ callTermsᴾ callValueRelated) indexEq
 
   forwardBlame : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W′)) n
         (Lᴵ′ ⦂∀ Cᴵ′ [ Aᴵ′ ])
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W′)) m
@@ -2197,7 +2200,7 @@ type-application-compatible {W = W} {Γ = Γ}
       | type-function-phase-blames functionGas functionBlame
           functionGas≤
       with forward-blame function-related {n = functionGas}
-        (≤-trans functionGas≤ n≤k) functionBlame
+        (≤-trans (s≤s functionGas≤) n≤k) functionBlame
   forwardBlame {n} n≤k blaming
       | type-function-phase-blames functionGas functionBlame
           functionGas≤
@@ -2217,7 +2220,7 @@ type-application-compatible {W = W} {Γ = Γ}
       with forward-return function-related {n = functionGas}
         functionGas≤ functionReturn
     where
-    functionGas≤ = first-of-two≤ (≤-trans phases≤n n≤k)
+    functionGas≤ = first-of-two< (≤-trans (s≤s phases≤n) n≤k)
   forwardBlame {n} n≤k blaming
       | type-call-phase-blames functionGas functionResult
           functionReturn callGas callBlame phases≤n
@@ -2241,13 +2244,13 @@ type-application-compatible {W = W} {Γ = Γ}
       with forward-blame call-related {n = callGas}
         callGas≤ callPhaseBlame
     where
-    phases≤k = ≤-trans phases≤n n≤k
-    callGas≤ = drop-left-≤ phases≤k
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
+    callGas≤ = drop-left-< phases≤k
 
     residual-positive = ≤-trans
       (type-application-blame-positive≤
         {Σ = E.changes functionResult ▶ˢ
-          impreciseStore (core W′)} callBlame) callGas≤
+          impreciseStore (core W′)} callBlame) (<⇒≤ callGas≤)
 
     bodyEqᴵ = imprecise-phase-body-eq
       {χs = E.changes functionResult} W′≼W₁
@@ -2364,7 +2367,7 @@ right-type-application-compatible {W = W} {Γ = Γ}
   function-related = L-related k W′ W≼W′ γ
 
   forward : ∀ {n} {resultᴵ : E.EvalResult Lᴵ′}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W′)) n Lᴵ′
         ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ]
@@ -2392,7 +2395,7 @@ right-type-application-compatible {W = W} {Γ = Γ}
           preciseFunctionReturn ,
           paired-returns W₁ W′≼W₁ functionStoreᴵ functionStoreᴾ
             functionTermsᴵ functionTermsᴾ functionValueRelated)
-      with forward-return call-related z≤n callReturnᴵ
+      with forward-return call-related (m<n⇒0<n∸m n≤k) callReturnᴵ
     where
     bodyEqᴾ = precise-phase-body-eq
       {χs = E.changes preciseFunctionResult} W′≼W₁
@@ -2478,7 +2481,7 @@ right-type-application-compatible {W = W} {Γ = Γ}
 
   backward : ∀ {n}
       {resultᴾ : E.EvalResult (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ])}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W′)) n
         (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ]) ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ]
@@ -2500,10 +2503,10 @@ right-type-application-compatible {W = W} {Γ = Γ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    functionGas≤ = first-of-two≤ phases≤
+    functionGas≤ = first-of-two< phases≤
   backward {n} n≤k result-eq
       | type-return-phases preciseFunctionGas preciseFunctionResult
           preciseFunctionReturn preciseCallGas preciseCallResult
@@ -2516,10 +2519,10 @@ right-type-application-compatible {W = W} {Γ = Γ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    callGas≤ = drop-left-≤ phases≤
+    callGas≤ = drop-left-< phases≤
 
     bodyEqᴾ = precise-phase-body-eq
       {χs = E.changes preciseFunctionResult} W′≼W₁
@@ -2579,7 +2582,7 @@ right-type-application-compatible {W = W} {Γ = Γ}
       functionTermsᴵ functionTermsᴾ _ exactCallPair indexEq
 
   forwardBlame : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W′)) n Lᴵ′
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W′)) m
         (Lᴾ′ ⦂∀ Cᴾ′ [ Aᴾ′ ])

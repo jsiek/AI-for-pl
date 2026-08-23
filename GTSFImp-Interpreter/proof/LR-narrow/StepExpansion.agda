@@ -8,7 +8,7 @@ module proof.LR-narrow.StepExpansion where
 open import Data.List using (_∷_)
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
-open import Data.Nat using (ℕ; suc; _∸_; _≤_)
+open import Data.Nat using (ℕ; suc; _∸_; _≤_; _<_)
 open import Data.Nat.Properties using (≤-pred)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -326,7 +326,7 @@ related-pure-step-expand {W = W} {R = R} {k = k}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
           interpretFrom (preciseStore (core W)) m Mᴾ
@@ -364,7 +364,7 @@ related-pure-step-expand {W = W} {R = R} {k = k}
       Mᴾ≢blame value-eqᴾ stepᴾ step-eqᴾ blamingᴾ)
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (preciseStore (core W)) n Mᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ
@@ -394,7 +394,7 @@ related-pure-step-expand {W = W} {R = R} {k = k}
         (paired-returns-pure-step paired)
 
   blame-forward : ∀ {n}
-    → n ≤ suc k
+    → n < suc k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
   blame-forward {n = Data.Nat.zero} n≤sk blamingᴵ

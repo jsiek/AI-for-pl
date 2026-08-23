@@ -8,7 +8,7 @@ module proof.LR-narrow.BetaExpansion where
 open import Data.List using (_∷_)
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
-open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_; _<_)
 open import Data.Nat.Properties using (≤-pred)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (_×_; _,_; Σ-syntax)
@@ -319,7 +319,7 @@ related-beta-expand {Δᴾ} {Δᴵ} {Δᶜ} {W = W} {R} {k}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult ((ƛ Nᴵ) · Vᴵ)}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (impreciseStore (core W)) n ((ƛ Nᴵ) · Vᴵ)
         ≡ returned resultᴵ
     →
@@ -356,7 +356,7 @@ related-beta-expand {Δᴾ} {Δᴵ} {Δᶜ} {W = W} {R} {k}
       {Nᴾ} {Vᴾ} vVᴾ contract-blameᴾ)
 
   backward : ∀ {n} {resultᴾ : E.EvalResult ((ƛ Nᴾ) · Vᴾ)}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (preciseStore (core W)) n ((ƛ Nᴾ) · Vᴾ)
         ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ]
@@ -384,7 +384,7 @@ related-beta-expand {Δᴾ} {Δᴵ} {Δᶜ} {W = W} {R} {k}
       vVᴵ′ vVᴾ′ paired
 
   forwardBlame : ∀ {n}
-    → n ≤ suc k
+    → n < suc k
     → BlamesFrom (impreciseStore (core W)) n ((ƛ Nᴵ) · Vᴵ)
     → Σ[ m ∈ ℕ ]
         BlamesFrom (preciseStore (core W)) m ((ƛ Nᴾ) · Vᴾ)

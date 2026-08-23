@@ -8,7 +8,7 @@ module proof.LR-narrow.TypeBetaExpansion where
 open import Data.List using (_∷_)
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
-open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_; _<_)
 open import Data.Nat.Properties using
   (n≤1+n; ≤-pred; ≤-trans; ∸-monoʳ-≤)
 open import Data.Product using (_×_; _,_; Σ-syntax)
@@ -349,7 +349,7 @@ related-type-beta-expand {W = W} {Rᴾ} {Rᴵ} {r} {p = p}
 
   forward : ∀ {n} {resultᴵ : E.EvalResult
       ((Λ Vᴵ) ⦂∀ Bᴵ [ Rᴵ ])}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (impreciseStore (core W)) n
         ((Λ Vᴵ) ⦂∀ Bᴵ [ Rᴵ ]) ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult
@@ -389,7 +389,7 @@ related-type-beta-expand {W = W} {Rᴾ} {Rᴵ} {r} {p = p}
 
   backward : ∀ {n} {resultᴾ : E.EvalResult
       ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ])}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (preciseStore (core W)) n
         ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ]) ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult
@@ -420,7 +420,7 @@ related-type-beta-expand {W = W} {Rᴾ} {Rᴵ} {r} {p = p}
       {r = r} vVᴵ′ vVᴾ′ paired
 
   forwardBlame : ∀ {n}
-    → n ≤ suc k
+    → n < suc k
     → BlamesFrom (impreciseStore (core W)) n
         ((Λ Vᴵ) ⦂∀ Bᴵ [ Rᴵ ])
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m
@@ -527,7 +527,7 @@ related-precise-type-beta-expand {W = W} {Rᴾ = Rᴾ} {r★ = r★}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Mᴵ
         ≡ returned resultᴵ
     → ( Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult
@@ -559,7 +559,7 @@ related-precise-type-beta-expand {W = W} {Rᴾ = Rᴾ} {r★ = r★}
 
   backward : ∀ {n} {resultᴾ : E.EvalResult
       ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ])}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n
         ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ]) ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
@@ -575,7 +575,7 @@ related-precise-type-beta-expand {W = W} {Rᴾ = Rᴾ} {r★ = r★}
   backward {.(suc n)} sn≤k result-eq
       | n , refl , vVᴾ′ , resultᴾ , returnᴾ , refl
       with backward-return contract-related
-        (≤-trans (n≤1+n n) sn≤k) returnᴾ
+        (≤-trans (n≤1+n (suc n)) sn≤k) returnᴾ
   backward {.(suc n)} sn≤k result-eq
       | n , refl , vVᴾ′ , resultᴾ , returnᴾ , refl
       | m , resultᴵ , returnᴵ , paired =
@@ -584,7 +584,7 @@ related-precise-type-beta-expand {W = W} {Rᴾ = Rᴾ} {r★ = r★}
       (paired-returns-downward (∸-monoʳ-≤ k (n≤1+n n)) paired)
 
   forwardBlame : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m
         ((Λ Vᴾ) ⦂∀ Bᴾ [ Rᴾ ])

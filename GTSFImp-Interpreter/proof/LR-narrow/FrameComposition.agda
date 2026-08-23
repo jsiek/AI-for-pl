@@ -9,8 +9,9 @@ module proof.LR-narrow.FrameComposition where
 --   * Generic over the frames of proof.LR-narrow.FramePhases; the
 --     consistency-cast, reveal, and conceal congruences are instances.
 
-open import Data.Nat using (ℕ; _+_; _∸_; _≤_; zero; z≤n)
-open import Data.Nat.Properties using (≤-trans)
+open import Data.Nat using (ℕ; _+_; _∸_; _≤_; zero; z≤n; _<_; s≤s)
+open import Data.Nat.Properties using
+  (≤-trans; m<n⇒0<n∸m)
 open import Data.List using ([])
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -27,8 +28,8 @@ open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import proof.LR-narrow.Application using
-  (apply-stores-++; apply-terms-++; first-of-two≤;
-   drop-left-≤; subtract-phases; return-store-reindex;
+  (apply-stores-++; apply-terms-++; first-of-two<;
+   drop-left-<; subtract-phases; return-store-reindex;
    blame-store-reindex; paired-returns-reindex; value-return-exact)
 open import proof.LR-narrow.TypeApplication using (returned-injective)
 open import proof.LR-narrow.CastComposition using (sum-bound-from-split)
@@ -176,7 +177,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
     }
     where
     forward : ∀ {n} {resultᴵ : E.EvalResult (I.plug fᴵ Mᴵ)}
-      → n ≤ k
+      → n < k
       → interpretFrom (impreciseStore (core W)) n (I.plug fᴵ Mᴵ)
           ≡ returned resultᴵ
       → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult (P.plug fᴾ Mᴾ) ]
@@ -194,12 +195,12 @@ module Composition (Fᴾ Fᴵ : Frame) where
         with forward-return operand-related {n = operandGas}
           {resultᴵ = operandResult} operandGas≤ operandReturn
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
 
-      operandGas≤ = first-of-two≤
+      operandGas≤ = first-of-two<
         {a = operandGas} {b = callGas} {k = k} phases≤
     forward {n = n} n≤k result-eq
         | I.return-phases operandGas operandResult operandReturn
@@ -223,12 +224,12 @@ module Composition (Fᴾ Fᴵ : Frame) where
         with forward-return call-related {n = callGas}
           {resultᴵ = callResultᴵ} callGas≤ callReturn-at-W₁
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
 
-      callGas≤ = drop-left-≤
+      callGas≤ = drop-left-<
         {a = operandGas} {b = callGas} {k = k} phases≤
 
       callReturn-at-W₁ = return-store-reindex
@@ -311,7 +312,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
         callTermsᴵ callTermsᴾ index-eq callValueRelated
 
     backward : ∀ {n} {resultᴾ : E.EvalResult (P.plug fᴾ Mᴾ)}
-      → n ≤ k
+      → n < k
       → interpretFrom (preciseStore (core W)) n (P.plug fᴾ Mᴾ)
           ≡ returned resultᴾ
       → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult (I.plug fᴵ Mᴵ) ]
@@ -327,12 +328,12 @@ module Composition (Fᴾ Fᴵ : Frame) where
         with backward-return operand-related {n = operandGas}
           {resultᴾ = operandResultᴾ} operandGas≤ operandReturn
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
 
-      operandGas≤ = first-of-two≤
+      operandGas≤ = first-of-two<
         {a = operandGas} {b = callGas} {k = k} phases≤
     backward {n = n} n≤k result-eq
         | P.return-phases operandGas operandResultᴾ operandReturn
@@ -343,12 +344,12 @@ module Composition (Fᴾ Fᴵ : Frame) where
         with backward-return call-related {n = callGas}
           {resultᴾ = callResultᴾ} callGas≤ callReturn-at-W₁
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
 
-      callGas≤ = drop-left-≤
+      callGas≤ = drop-left-<
         {a = operandGas} {b = callGas} {k = k} phases≤
       callReturn-at-W₁ = return-store-reindex
         {gas = callGas} {result = callResultᴾ}
@@ -405,7 +406,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
         callTermsᴵ callTermsᴾ index-eq callValueRelated
 
     forward-blame-frame : ∀ {n}
-      → n ≤ k
+      → n < k
       → BlamesFrom (impreciseStore (core W)) n (I.plug fᴵ Mᴵ)
       → Σ[ m ∈ ℕ ]
           BlamesFrom (preciseStore (core W)) m (P.plug fᴾ Mᴾ)
@@ -415,7 +416,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
     forward-blame-frame {n = n} n≤k blaming
         | I.operand-phase-blames operandGas operandBlame operandGas≤n
         with forward-blame operand-related {n = operandGas}
-          (≤-trans operandGas≤n n≤k) operandBlame
+          (≤-trans (s≤s operandGas≤n) n≤k) operandBlame
     forward-blame-frame {n = n} n≤k blaming
         | I.operand-phase-blames operandGas operandBlame operandGas≤n
         | preciseOperandGas , preciseOperandBlame
@@ -432,7 +433,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
         with forward-return operand-related {n = operandGas}
           {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
       where
-      operandGas≤ = first-of-two≤ (≤-trans phases≤n n≤k)
+      operandGas≤ = first-of-two< (≤-trans (s≤s phases≤n) n≤k)
     forward-blame-frame {n = n} n≤k blaming
         | I.call-phase-blames operandGas operandResultᴵ operandReturn
             callGas callBlame phases≤n
@@ -455,8 +456,8 @@ module Composition (Fᴾ Fᴵ : Frame) where
         with forward-blame call-related {n = callGas}
           callGas≤ callBlame-at-W₁
       where
-      phases≤k = ≤-trans phases≤n n≤k
-      callGas≤ = drop-left-≤ phases≤k
+      phases≤k = ≤-trans (s≤s phases≤n) n≤k
+      callGas≤ = drop-left-< phases≤k
       callBlame-at-W₁ = blame-store-reindex {gas = callGas}
         operandStoreᴵ callBlame
 
@@ -600,7 +601,7 @@ module PreciseComposition (Fᴾ : Frame) where
     }
     where
     forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-      → n ≤ k
+      → n < k
       → interpretFrom (impreciseStore (core W)) n Mᴵ
           ≡ returned resultᴵ
       → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult (P.plug fᴾ Mᴾ) ]
@@ -624,7 +625,7 @@ module PreciseComposition (Fᴾ : Frame) where
             preciseOperandReturn ,
             paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
               operandTermsᴵ operandTermsᴾ operandValueRelated)
-        with forward-return call-related z≤n callReturnᴵ
+        with forward-return call-related (m<n⇒0<n∸m n≤k) callReturnᴵ
       where
       call-related = plug-values W≼W₁
         {χsᴾ = E.changes operandResultᴾ} {χsᴵ = E.changes resultᴵ}
@@ -689,7 +690,7 @@ module PreciseComposition (Fᴾ : Frame) where
         callPair refl
 
     backward : ∀ {n} {resultᴾ : E.EvalResult (P.plug fᴾ Mᴾ)}
-      → n ≤ k
+      → n < k
       → interpretFrom (preciseStore (core W)) n (P.plug fᴾ Mᴾ)
           ≡ returned resultᴾ
       → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
@@ -705,12 +706,12 @@ module PreciseComposition (Fᴾ : Frame) where
         with backward-return operand-related {n = operandGas}
           {resultᴾ = operandResultᴾ} operandGas≤ operandReturn
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
 
-      operandGas≤ = first-of-two≤
+      operandGas≤ = first-of-two<
         {a = operandGas} {b = callGas} {k = k} phases≤
     backward {n = n} n≤k result-eq
         | P.return-phases operandGas operandResultᴾ operandReturn
@@ -721,12 +722,12 @@ module PreciseComposition (Fᴾ : Frame) where
         with backward-return call-related {n = callGas}
           {resultᴾ = callResultᴾ} callGas≤ callReturn-at-W₁
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
 
-      callGas≤ = drop-left-≤
+      callGas≤ = drop-left-<
         {a = operandGas} {b = callGas} {k = k} phases≤
       callReturn-at-W₁ = return-store-reindex
         {gas = callGas} {result = callResultᴾ}
@@ -775,7 +776,7 @@ module PreciseComposition (Fᴾ : Frame) where
         exactCallPair indexEq
 
     forward-blame-frame : ∀ {n}
-      → n ≤ k
+      → n < k
       → BlamesFrom (impreciseStore (core W)) n Mᴵ
       → Σ[ m ∈ ℕ ]
           BlamesFrom (preciseStore (core W)) m (P.plug fᴾ Mᴾ)
@@ -900,7 +901,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
     }
     where
     forward : ∀ {n} {resultᴵ : E.EvalResult (I.plug fᴵ Mᴵ)}
-      → n ≤ k
+      → n < k
       → interpretFrom (impreciseStore (core W)) n (I.plug fᴵ Mᴵ)
           ≡ returned resultᴵ
       → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
@@ -917,11 +918,11 @@ module ImpreciseComposition (Fᴵ : Frame) where
         with forward-return operand-related {n = operandGas}
           {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
-      operandGas≤ = first-of-two≤
+      operandGas≤ = first-of-two<
         {a = operandGas} {b = callGas} {k = k} phases≤
     forward {n = n} n≤k result-eq
         | I.return-phases operandGas operandResultᴵ operandReturn
@@ -938,11 +939,11 @@ module ImpreciseComposition (Fᴵ : Frame) where
         with forward-return call-related {n = callGas}
           {resultᴵ = callResultᴵ} callGas≤ callReturn-at-W₁
       where
-      phases≤ : operandGas + callGas ≤ k
+      phases≤ : operandGas + callGas < k
       phases≤ = sum-bound-from-split
         {a = operandGas} {b = callGas} {n = n} {k = k}
         gas-split n≤k
-      callGas≤ = drop-left-≤
+      callGas≤ = drop-left-<
         {a = operandGas} {b = callGas} {k = k} phases≤
 
       callReturn-at-W₁ = return-store-reindex {gas = callGas}
@@ -1010,7 +1011,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
         exactCallPair indexEq
 
     backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-      → n ≤ k
+      → n < k
       → interpretFrom (preciseStore (core W)) n Mᴾ
           ≡ returned resultᴾ
       → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult (I.plug fᴵ Mᴵ) ]
@@ -1023,7 +1024,8 @@ module ImpreciseComposition (Fᴵ : Frame) where
         | impreciseOperandGas , operandResultᴵ , impreciseOperandReturn ,
             paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
               operandTermsᴵ operandTermsᴾ operandValueRelated
-        with backward-return call-related {n = zero} z≤n callReturnᴾ
+        with backward-return call-related {n = zero} (m<n⇒0<n∸m n≤k)
+        callReturnᴾ
       where
       call-related = plug-values W≼W₁
         {χsᴾ = E.changes resultᴾ} {χsᴵ = E.changes operandResultᴵ}
@@ -1064,7 +1066,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
         callPair refl
 
     forward-blame-frame : ∀ {n}
-      → n ≤ k
+      → n < k
       → BlamesFrom (impreciseStore (core W)) n (I.plug fᴵ Mᴵ)
       → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
     forward-blame-frame {n = n} n≤k blaming
@@ -1072,7 +1074,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
           fᴵ {M = Mᴵ} blaming
     forward-blame-frame {n = n} n≤k blaming
         | I.operand-phase-blames operandGas operandBlame operandGas≤n =
-      forward-blame operand-related (≤-trans operandGas≤n n≤k)
+      forward-blame operand-related (≤-trans (s≤s operandGas≤n) n≤k)
         operandBlame
     forward-blame-frame {n = n} n≤k blaming
         | I.call-phase-blames operandGas operandResultᴵ operandReturn
@@ -1080,9 +1082,9 @@ module ImpreciseComposition (Fᴵ : Frame) where
         with forward-return operand-related {n = operandGas}
           {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
       where
-      operandGas≤ = first-of-two≤
+      operandGas≤ = first-of-two<
         {a = operandGas} {b = callGas} {k = k}
-        (≤-trans phases≤n n≤k)
+        (≤-trans (s≤s phases≤n) n≤k)
     forward-blame-frame {n = n} n≤k blaming
         | I.call-phase-blames operandGas operandResultᴵ operandReturn
             callGas callBlame phases≤n
@@ -1098,8 +1100,8 @@ module ImpreciseComposition (Fᴵ : Frame) where
         with forward-blame call-related {n = callGas}
           callGas≤ callBlame-at-W₁
       where
-      phases≤k = ≤-trans phases≤n n≤k
-      callGas≤ = drop-left-≤
+      phases≤k = ≤-trans (s≤s phases≤n) n≤k
+      callGas≤ = drop-left-<
         {a = operandGas} {b = callGas} {k = k} phases≤k
       callBlame-at-W₁ = blame-store-reindex {gas = callGas}
         operandStoreᴵ callBlame

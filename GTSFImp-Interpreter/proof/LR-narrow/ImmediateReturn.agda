@@ -7,7 +7,7 @@ module proof.LR-narrow.ImmediateReturn where
 --     compatibility.
 
 open import Data.Maybe using (just)
-open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_; _<_)
 open import Data.Nat.Properties using (m∸n≤m)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁)
@@ -141,7 +141,7 @@ related-values-return {W = W} {R = R} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Vᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Vᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Vᴾ ]
           (interpretFrom (preciseStore (core W)) m Vᴾ
@@ -162,7 +162,7 @@ related-values-return {W = W} {R = R} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
         (related (k ∸ n) (m∸n≤m k n)))
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Vᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Vᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Vᴵ ]
         (interpretFrom (impreciseStore (core W)) m Vᴵ
@@ -181,7 +181,7 @@ related-values-return {W = W} {R = R} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
       (related (k ∸ n) (m∸n≤m k n))
 
   blame-impossible : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Vᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Vᴾ
   blame-impossible {n = n} n≤k

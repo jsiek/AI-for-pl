@@ -5,8 +5,9 @@ module proof.LR-narrow.CastComposition where
 --   * Reassembles evaluator return and blame phases through cast frames.
 --   * Is parameterized by the returned-value cast theorem to avoid cycles.
 
-open import Data.Nat using (ℕ; _+_; _∸_; _≤_; _≤?_; zero; suc; z≤n)
-open import Data.Nat.Properties using (≤-refl; ≤-trans)
+open import Data.Nat using (ℕ; _+_; _∸_; _≤_; _≤?_; zero; suc; z≤n; _<_; s≤s)
+open import Data.Nat.Properties using
+  (≤-refl; ≤-trans; m<n⇒0<n∸m)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
@@ -25,8 +26,8 @@ open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 import proof.LR-narrow.Closure as ClosureProof
 open import proof.LR-narrow.Application using
-  (_++ˢ_; apply-stores-++; apply-terms-++; first-of-two≤;
-   drop-left-≤; subtract-phases; return-store-reindex;
+  (_++ˢ_; apply-stores-++; apply-terms-++; first-of-two<;
+   drop-left-<; subtract-phases; return-store-reindex;
    blame-store-reindex; value-index-reindex; paired-returns-reindex;
    value-return-exact)
 open import proof.LR-narrow.TypeApplication using
@@ -36,8 +37,8 @@ open import proof.LR-narrow.CastPhases
 
 sum-bound-from-split : ∀ {a b n k : ℕ}
   → a + b ≡ n
-  → n ≤ k
-  → a + b ≤ k
+  → n < k
+  → a + b < k
 sum-bound-from-split refl n≤k = n≤k
 
 map-paired-returns : ∀ {Δᴾ Δᴵ Δᶜ}
@@ -72,7 +73,7 @@ map-computations-related {W = W} {S = S} {k = k}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
           interpretFrom (preciseStore (core W)) m Mᴾ ≡ returned resultᴾ
@@ -85,7 +86,7 @@ map-computations-related {W = W} {S = S} {k = k}
   forward n≤k result-eq | inj₂ blaming = inj₂ blaming
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Mᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ ≡ returned resultᴵ
@@ -452,7 +453,7 @@ cast-computations-related {W = W} {S = S}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult (Mᴵ ⟨ cᴵ ⟩)}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n (Mᴵ ⟨ cᴵ ⟩)
         ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult (Mᴾ ⟨ cᴾ ⟩) ]
@@ -472,12 +473,12 @@ cast-computations-related {W = W} {S = S}
       with forward-return operand-related {n = operandGas}
         {resultᴵ = operandResult} operandGas≤ operandReturn
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
 
-    operandGas≤ = first-of-two≤
+    operandGas≤ = first-of-two<
       {a = operandGas} {b = callGas} {k = k} phases≤
   forward {n = n} n≤k result-eq
       | cast-return-phases-record operandGas operandResult operandReturn
@@ -500,12 +501,12 @@ cast-computations-related {W = W} {S = S}
       with forward-return call-related {n = callGas}
         {resultᴵ = callResultᴵ} callGas≤ callReturn-at-W₁
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
 
-    callGas≤ = drop-left-≤
+    callGas≤ = drop-left-<
       {a = operandGas} {b = callGas} {k = k} phases≤
 
     callReturn-at-W₁ = return-store-reindex
@@ -624,7 +625,7 @@ cast-computations-related {W = W} {S = S}
       callTermsᴵ callTermsᴾ index-eq callValueRelated
 
   backward : ∀ {n} {resultᴾ : E.EvalResult (Mᴾ ⟨ cᴾ ⟩)}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n (Mᴾ ⟨ cᴾ ⟩)
         ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult (Mᴵ ⟨ cᴵ ⟩) ]
@@ -641,12 +642,12 @@ cast-computations-related {W = W} {S = S}
       with backward-return operand-related {n = operandGas}
         {resultᴾ = operandResultᴾ} operandGas≤ operandReturn
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
 
-    operandGas≤ = first-of-two≤
+    operandGas≤ = first-of-two<
       {a = operandGas} {b = callGas} {k = k} phases≤
   backward {n = n} n≤k result-eq
       | cast-return-phases-record operandGas operandResultᴾ operandReturn
@@ -657,12 +658,12 @@ cast-computations-related {W = W} {S = S}
       with backward-return call-related {n = callGas}
         {resultᴾ = callResultᴾ} callGas≤ callReturn-at-W₁
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
 
-    callGas≤ = drop-left-≤
+    callGas≤ = drop-left-<
       {a = operandGas} {b = callGas} {k = k} phases≤
     callReturn-at-W₁ = return-store-reindex
       {gas = callGas} {result = callResultᴾ}
@@ -758,7 +759,7 @@ cast-computations-related {W = W} {S = S}
       callTermsᴵ callTermsᴾ index-eq callValueRelated
 
   forward-blame-cast : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n (Mᴵ ⟨ cᴵ ⟩)
     → Σ[ m ∈ ℕ ]
         BlamesFrom (preciseStore (core W)) m (Mᴾ ⟨ cᴾ ⟩)
@@ -768,7 +769,7 @@ cast-computations-related {W = W} {S = S}
   forward-blame-cast {n = n} n≤k blaming
       | cast-operand-phase-blames operandGas operandBlame operandGas≤n
       with forward-blame operand-related {n = operandGas}
-        (≤-trans operandGas≤n n≤k) operandBlame
+        (≤-trans (s≤s operandGas≤n) n≤k) operandBlame
   forward-blame-cast {n = n} n≤k blaming
       | cast-operand-phase-blames operandGas operandBlame operandGas≤n
       | preciseOperandGas , preciseOperandBlame
@@ -785,7 +786,7 @@ cast-computations-related {W = W} {S = S}
       with forward-return operand-related {n = operandGas}
         {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
     where
-    operandGas≤ = first-of-two≤ (≤-trans phases≤n n≤k)
+    operandGas≤ = first-of-two< (≤-trans (s≤s phases≤n) n≤k)
   forward-blame-cast {n = n} n≤k blaming
       | cast-call-phase-blames operandGas operandResultᴵ operandReturn
           callGas callBlame phases≤n
@@ -807,8 +808,8 @@ cast-computations-related {W = W} {S = S}
       with forward-blame call-related {n = callGas}
         callGas≤ callBlame-at-W₁
     where
-    phases≤k = ≤-trans phases≤n n≤k
-    callGas≤ = drop-left-≤ phases≤k
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
+    callGas≤ = drop-left-< phases≤k
     callBlame-at-W₁ = blame-store-reindex {gas = callGas}
       operandStoreᴵ callBlame
 
@@ -927,7 +928,7 @@ precise-cast-computations-related {W = W} {S = S}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Mᴵ
         ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult (Mᴾ ⟨ cᴾ ⟩) ]
@@ -952,7 +953,7 @@ precise-cast-computations-related {W = W} {S = S}
           preciseOperandReturn ,
           paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
             operandTermsᴵ operandTermsᴾ operandValueRelated)
-      with forward-return call-related z≤n callReturnᴵ
+      with forward-return call-related (m<n⇒0<n∸m n≤k) callReturnᴵ
     where
     precise-source-type = precise-phase-argument-eq
       {χs = E.changes operandResultᴾ} W≼W₁
@@ -1050,7 +1051,7 @@ precise-cast-computations-related {W = W} {S = S}
       callPair refl
 
   backward : ∀ {n} {resultᴾ : E.EvalResult (Mᴾ ⟨ cᴾ ⟩)}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n (Mᴾ ⟨ cᴾ ⟩)
         ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
@@ -1067,12 +1068,12 @@ precise-cast-computations-related {W = W} {S = S}
       with backward-return operand-related {n = operandGas}
         {resultᴾ = operandResultᴾ} operandGas≤ operandReturn
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
 
-    operandGas≤ = first-of-two≤
+    operandGas≤ = first-of-two<
       {a = operandGas} {b = callGas} {k = k} phases≤
   backward {n = n} n≤k result-eq
       | cast-return-phases-record operandGas operandResultᴾ operandReturn
@@ -1083,12 +1084,12 @@ precise-cast-computations-related {W = W} {S = S}
       with backward-return call-related {n = callGas}
         {resultᴾ = callResultᴾ} callGas≤ callReturn-at-W₁
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
 
-    callGas≤ = drop-left-≤
+    callGas≤ = drop-left-<
       {a = operandGas} {b = callGas} {k = k} phases≤
     callReturn-at-W₁ = return-store-reindex
       {gas = callGas} {result = callResultᴾ}
@@ -1167,7 +1168,7 @@ precise-cast-computations-related {W = W} {S = S}
       exactCallPair indexEq
 
   forward-blame-cast : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ]
         BlamesFrom (preciseStore (core W)) m (Mᴾ ⟨ cᴾ ⟩)
@@ -1226,7 +1227,7 @@ imprecise-cast-computations-related {W = W} {S = S}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult (Mᴵ ⟨ cᴵ ⟩)}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n (Mᴵ ⟨ cᴵ ⟩)
         ≡ returned resultᴵ
     → ( Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
@@ -1243,11 +1244,11 @@ imprecise-cast-computations-related {W = W} {S = S}
       with forward-return operand-related {n = operandGas}
         {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
-    operandGas≤ = first-of-two≤
+    operandGas≤ = first-of-two<
       {a = operandGas} {b = callGas} {k = k} phases≤
   forward {n = n} n≤k result-eq
       | cast-return-phases-record operandGas operandResultᴵ operandReturn
@@ -1263,11 +1264,11 @@ imprecise-cast-computations-related {W = W} {S = S}
       with forward-return call-related {n = callGas}
         {resultᴵ = callResultᴵ} callGas≤ callReturn-at-W₁
     where
-    phases≤ : operandGas + callGas ≤ k
+    phases≤ : operandGas + callGas < k
     phases≤ = sum-bound-from-split
       {a = operandGas} {b = callGas} {n = n} {k = k}
       gas-split n≤k
-    callGas≤ = drop-left-≤
+    callGas≤ = drop-left-<
       {a = operandGas} {b = callGas} {k = k} phases≤
 
     callReturn-at-W₁ = return-store-reindex {gas = callGas}
@@ -1362,7 +1363,7 @@ imprecise-cast-computations-related {W = W} {S = S}
       exactCallPair indexEq
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Mᴾ
         ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult (Mᴵ ⟨ cᴵ ⟩) ]
@@ -1375,7 +1376,8 @@ imprecise-cast-computations-related {W = W} {S = S}
       | impreciseOperandGas , operandResultᴵ , impreciseOperandReturn ,
           paired-returns W₁ W≼W₁ operandStoreᴵ operandStoreᴾ
             operandTermsᴵ operandTermsᴾ operandValueRelated
-      with backward-return call-related {n = zero} z≤n callReturnᴾ
+      with backward-return call-related {n = zero} (m<n⇒0<n∸m n≤k)
+        callReturnᴾ
     where
     precise-source-type = precise-phase-argument-eq
       {χs = E.changes resultᴾ} W≼W₁
@@ -1447,7 +1449,7 @@ imprecise-cast-computations-related {W = W} {S = S}
       callPair refl
 
   forward-blame-cast : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n (Mᴵ ⟨ cᴵ ⟩)
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
   forward-blame-cast {n = n} n≤k blaming
@@ -1455,16 +1457,16 @@ imprecise-cast-computations-related {W = W} {S = S}
         {M = Mᴵ} {c = cᴵ} blaming
   forward-blame-cast {n = n} n≤k blaming
       | cast-operand-phase-blames operandGas operandBlame operandGas≤n =
-    forward-blame operand-related (≤-trans operandGas≤n n≤k) operandBlame
+    forward-blame operand-related (≤-trans (s≤s operandGas≤n) n≤k) operandBlame
   forward-blame-cast {n = n} n≤k blaming
       | cast-call-phase-blames operandGas operandResultᴵ operandReturn
           callGas callBlame phases≤n
       with forward-return operand-related {n = operandGas}
         {resultᴵ = operandResultᴵ} operandGas≤ operandReturn
     where
-    operandGas≤ = first-of-two≤
+    operandGas≤ = first-of-two<
       {a = operandGas} {b = callGas} {k = k}
-      (≤-trans phases≤n n≤k)
+      (≤-trans (s≤s phases≤n) n≤k)
   forward-blame-cast {n = n} n≤k blaming
       | cast-call-phase-blames operandGas operandResultᴵ operandReturn
           callGas callBlame phases≤n
@@ -1479,8 +1481,8 @@ imprecise-cast-computations-related {W = W} {S = S}
       with forward-blame call-related {n = callGas}
         callGas≤ callBlame-at-W₁
     where
-    phases≤k = ≤-trans phases≤n n≤k
-    callGas≤ = drop-left-≤
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
+    callGas≤ = drop-left-<
       {a = operandGas} {b = callGas} {k = k} phases≤k
     callBlame-at-W₁ = blame-store-reindex {gas = callGas}
       operandStoreᴵ callBlame

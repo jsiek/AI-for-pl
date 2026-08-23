@@ -49,7 +49,7 @@ right-related-universal-instantiation : ∀
     {nonvar : NonVar Aᴾ} {occurs : Fin.zero ∈ᵗ Aᴾ}
     {r★ : impEnv (core W) I.⊢ embedPrecise (core W) Rᴾ ⊑ ★}
     {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ nonvar occurs p) k Vᴵ Vᴾ
+  → ValueImprecision W (I.∀⊑ nonvar occurs p) (suc k) Vᴵ Vᴾ
   → Σ[ Bᴾ ∈ Ty (suc Δᴾ) ]
     Σ[ Bᴵ ∈ Ty Δᴵ ]
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
@@ -58,14 +58,8 @@ right-related-universal-instantiation : ∀
         → let bound = preciseBindWorld W Rᴾ r★
               step = future-precise (future-refl {W = W}) r★
           in ComputationsRelated W (PostBindValueRelation step s)
-               k Vᴵ (Vᴾ ⦂∀ Bᴾ [ Rᴾ ]))
+               (suc k) Vᴵ (Vᴾ ⦂∀ Bᴾ [ Rᴾ ]))
 right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W} {r★ = r★}
-    {k = zero}
-    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head) =
-  Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
-  (λ s → head W (future-refl {W = W}) Rᴾ r★ s)
-right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W} {r★ = r★}
-    {k = suc k}
     (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
   Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
   (λ s → head W (future-refl {W = W}) Rᴾ r★ s)

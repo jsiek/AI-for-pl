@@ -8,7 +8,7 @@ module proof.LR-narrow.TargetEvaluation where
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (just; nothing)
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s; _<_)
 open import Data.Nat.Properties using (+-comm; m∸n≤m; n≤1+n; ≤-trans)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -190,10 +190,10 @@ computations-related-target-phase : ∀ {Δᴾ Δᴵ Δᶜ}
 computations-related-target-phase {W = W} {R = R} {k = k}
     {Mᴵ = Mᴵ} {Vᴾ = Vᴾ} vVᴾ downward related = record
   { targetReturn = target-return
-  ; targetReturnedRelated = λ {gas} {result} result-eq j j≤k →
-      returned-related {gas = gas} {result = result} result-eq j j≤k
-  ; targetBlameImpossible = λ {gas} gas≤k blame-result →
-      blame-impossible {gas = gas} gas≤k blame-result
+  ; targetReturnedRelated = λ {gas} {result} 0<k result-eq j j≤k →
+      returned-related {gas = gas} {result = result} 0<k result-eq j j≤k
+  ; targetBlameImpossible = λ {gas} gas<k blame-result →
+      blame-impossible {gas = gas} gas<k blame-result
   }
   where
   precise-result = E.result _ [] Vᴾ ↠-refl vVᴾ
@@ -201,12 +201,19 @@ computations-related-target-phase {W = W} {R = R} {k = k}
   precise-return = value-return-exact
     {Σ = preciseStore (core W)} zero vVᴾ
 
-  canonical = backward-return related z≤n precise-return
+  canonical : 0 < k
+    → Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
+        (interpretFrom (impreciseStore (core W)) gas Mᴵ
+          ≡ returned result)
+        × PairedReturns W R (k ∸ zero) result precise-result
+  canonical 0<k = backward-return related 0<k precise-return
 
-  target-return : Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
-      interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
-  target-return with canonical
-  target-return | gas , result , result-eq , paired =
+  target-return : 0 < k
+    → Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
+        interpretFrom (impreciseStore (core W)) gas Mᴵ
+          ≡ returned result
+  target-return 0<k with canonical 0<k
+  target-return 0<k | gas , result , result-eq , paired =
     gas , result , result-eq
 
   paired-returned-related : ∀ {result : E.EvalResult Mᴵ}
@@ -225,26 +232,27 @@ computations-related-target-phase {W = W} {R = R} {k = k}
       (downward j≤k at-k)
 
   returned-related : ∀ {gas} {result : E.EvalResult Mᴵ}
+    → 0 < k
     → interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
     → (j : ℕ)
     → j ≤ k
     → Σ[ phase ∈ TargetChangesFuture W (E.changes result) ]
         R (targetWorld phase) (targetFuture phase) j
           (E.term result) (liftPreciseTerm (targetFuture phase) Vᴾ)
-  returned-related result-eq j j≤k with canonical
-  returned-related {gas = gas} {result = result} result-eq j j≤k
+  returned-related 0<k result-eq j j≤k with canonical 0<k
+  returned-related {gas = gas} {result = result} 0<k result-eq j j≤k
       | canonical-gas , canonical-result , canonical-return , paired
       with return-result-unique
         {Σ = impreciseStore (core W)} {leftGas = gas}
         {rightGas = canonical-gas} {M = Mᴵ}
         {left = result} {right = canonical-result}
         result-eq canonical-return
-  returned-related {gas = gas} {result = result} result-eq j j≤k
+  returned-related {gas = gas} {result = result} 0<k result-eq j j≤k
       | canonical-gas , canonical-result , canonical-return , paired
       | refl = paired-returned-related paired j j≤k
 
   blame-impossible : ∀ {gas}
-    → gas ≤ k
+    → gas < k
     → BlamesFrom (impreciseStore (core W)) gas Mᴵ
     → ⊥
   blame-impossible gas≤k blame-result
@@ -359,44 +367,46 @@ target-step-phase-expand {W = W} {R = R} {k = k} {Mᴵ = Mᴵ}
     {Nᴵ = Nᴵ} {Vᴾ = Vᴾ} {change = change}
     Mᴵ≠blame value-eq step step-eq next = record
   { targetReturn = return
-  ; targetReturnedRelated = λ {gas} {result} result-eq j j≤k →
-      returned-related {gas = gas} {result = result} result-eq j j≤k
-  ; targetBlameImpossible = λ {gas} gas≤k blame-result →
-      blame-impossible {gas = gas} gas≤k blame-result
+  ; targetReturnedRelated = λ {gas} {result} 0<k result-eq j j≤k →
+      returned-related {gas = gas} {result = result} 0<k result-eq j j≤k
+  ; targetBlameImpossible = λ {gas} gas<k blame-result →
+      blame-impossible {gas = gas} gas<k blame-result
   }
   where
   first = target-step-future W change
   W≼W₁ = targetFuture first
 
-  return : Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
-      interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
-  return with targetReturn next
-  return | gas , result , result-eq =
+  return : 0 < k
+    → Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
+        interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
+  return 0<k with targetReturn next 0<k
+  return 0<k | gas , result , result-eq =
     suc gas , _ , step-return-expand {Σ = impreciseStore (core W)}
       {gas = gas} Mᴵ≠blame value-eq step step-eq
       (trans (cong (λ Σ → interpretFrom Σ gas Nᴵ)
         (sym (targetStoreAction first))) result-eq)
 
   returned-related : ∀ {gas} {result : E.EvalResult Mᴵ}
+    → 0 < k
     → interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
     → (j : ℕ)
     → j ≤ k
     → Σ[ phase ∈ TargetChangesFuture W (E.changes result) ]
         R (targetWorld phase) (targetFuture phase) j
           (E.term result) (liftPreciseTerm (targetFuture phase) Vᴾ)
-  returned-related {gas = zero} result-eq j j≤k
+  returned-related {gas = zero} 0<k result-eq j j≤k
       with step-return-invert {Σ = impreciseStore (core W)} {n = zero}
         Mᴵ≠blame value-eq step step-eq result-eq
-  returned-related {gas = zero} result-eq j j≤k | ()
-  returned-related {gas = suc gas} result-eq j j≤k
+  returned-related {gas = zero} 0<k result-eq j j≤k | ()
+  returned-related {gas = suc gas} 0<k result-eq j j≤k
       with step-return-invert {Σ = impreciseStore (core W)}
         {n = suc gas} Mᴵ≠blame value-eq step step-eq result-eq
-  returned-related {gas = suc gas} result-eq j j≤k
+  returned-related {gas = suc gas} 0<k result-eq j j≤k
       | step-return next-result next-return refl
       with targetReturnedRelated next {gas = gas} {result = next-result}
-        (trans (cong (λ Σ → interpretFrom Σ gas Nᴵ)
+        0<k (trans (cong (λ Σ → interpretFrom Σ gas Nᴵ)
           (targetStoreAction first)) next-return) j j≤k
-  returned-related {gas = suc gas} result-eq j j≤k
+  returned-related {gas = suc gas} 0<k result-eq j j≤k
       | step-return next-result next-return refl
       | later , related =
     target-changes-future-prepend first later ,
@@ -408,20 +418,20 @@ target-step-phase-expand {W = W} {R = R} {k = k} {Mᴵ = Mᴵ}
       related
 
   blame-impossible : ∀ {gas}
-    → gas ≤ k
+    → gas < k
     → BlamesFrom (impreciseStore (core W)) gas Mᴵ
     → ⊥
-  blame-impossible {gas = zero} gas≤k blame-result
+  blame-impossible {gas = zero} gas<k blame-result
       with step-blame-invert {Σ = impreciseStore (core W)} {n = zero}
         Mᴵ≠blame value-eq step step-eq blame-result
-  blame-impossible {gas = zero} gas≤k blame-result | ()
-  blame-impossible {gas = suc gas} gas≤k blame-result
+  blame-impossible {gas = zero} gas<k blame-result | ()
+  blame-impossible {gas = suc gas} gas<k blame-result
       with step-blame-invert {Σ = impreciseStore (core W)}
         {n = suc gas} Mᴵ≠blame value-eq step step-eq blame-result
-  blame-impossible {gas = suc gas} gas≤k blame-result
+  blame-impossible {gas = suc gas} gas<k blame-result
       | step-blame next-blame =
     targetBlameImpossible next {gas = gas}
-      (≤-trans (n≤1+n gas) gas≤k)
+      (≤-trans (n≤1+n (suc gas)) gas<k)
       (subst (λ Σ → BlamesFrom Σ gas Nᴵ)
         (sym (targetStoreAction first)) next-blame)
 
@@ -433,11 +443,11 @@ related-target-value-phase : ∀ {Δᴾ Δᴵ Δᶜ}
   → TargetComputationPhase W R k Vᴵ Vᴾ
 related-target-value-phase {W = W} {R = R} {k = k}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} vVᴵ related = record
-  { targetReturn = immediate-return
-  ; targetReturnedRelated = λ {gas} {result} return-result j j≤k →
+  { targetReturn = λ _ → immediate-return
+  ; targetReturnedRelated = λ {gas} {result} _ return-result j j≤k →
       returned-related {gas = gas} {result = result} return-result j j≤k
-  ; targetBlameImpossible = λ {gas} gas≤k blame-result →
-      blame-impossible {gas = gas} gas≤k blame-result
+  ; targetBlameImpossible = λ {gas} gas<k blame-result →
+      blame-impossible {gas = gas} gas<k blame-result
   }
   where
   immediate-return : Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Vᴵ ]
@@ -467,17 +477,17 @@ related-target-value-phase {W = W} {R = R} {k = k}
       (λ M → refl) (λ M → refl) , related j j≤k
 
   blame-impossible : ∀ {gas : ℕ}
-    → gas ≤ k
+    → gas < k
     → BlamesFrom (impreciseStore (core W)) gas Vᴵ
     → ⊥
-  blame-impossible {gas = gas} gas≤k
+  blame-impossible {gas = gas} gas<k
       (Δ′ , changes , trace , blame-result)
       with value-return {Σ = impreciseStore (core W)} gas vVᴵ
-  blame-impossible {gas = gas} gas≤k
+  blame-impossible {gas = gas} gas<k
       (Δ′ , changes , trace , blame-result)
       | vVᴵ′ , return-value
       with trans (sym return-value) blame-result
-  blame-impossible {gas = gas} gas≤k
+  blame-impossible {gas = gas} gas<k
       (Δ′ , changes , trace , blame-result)
       | vVᴵ′ , return-value | ()
 
@@ -495,17 +505,17 @@ target-phase-computations-related {W = W} {R = R} {k = k}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Vᴾ ]
           interpretFrom (preciseStore (core W)) m Vᴾ ≡ returned resultᴾ
           × PairedReturns W R (k ∸ n) resultᴵ resultᴾ)
       ⊎ (Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Vᴾ)
-  forward {n = n} {resultᴵ = resultᴵ} n≤k returnᴵ
+  forward {n = n} {resultᴵ = resultᴵ} n<k returnᴵ
       with value-return {Σ = preciseStore (core W)} zero vVᴾ
          | targetReturnedRelated phase {gas = n} {result = resultᴵ}
-             returnᴵ (k ∸ n) (m∸n≤m k n)
-  forward {n = n} {resultᴵ = resultᴵ} n≤k returnᴵ
+             (≤-trans (s≤s z≤n) n<k) returnᴵ (k ∸ n) (m∸n≤m k n)
+  forward {n = n} {resultᴵ = resultᴵ} n<k returnᴵ
       | vVᴾ′ , returnᴾ | target-future Δᶜ′ W′ W≼W′ storeᴵ
           storeᴾ termsᴵ termsᴾ , related =
     inj₁ (zero , E.result _ [] Vᴾ ↠-refl vVᴾ′ , returnᴾ ,
@@ -515,20 +525,20 @@ target-phase-computations-related {W = W} {R = R} {k = k}
           (termsᴾ Vᴾ) related))
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Vᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Vᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ ≡ returned resultᴵ
         × PairedReturns W R (k ∸ n) resultᴵ resultᴾ
-  backward {n = n} {resultᴾ = resultᴾ} n≤k returnᴾ
+  backward {n = n} {resultᴾ = resultᴾ} n<k returnᴾ
       with value-return {Σ = preciseStore (core W)} n vVᴾ
-         | targetReturn phase
-  backward {n = n} {resultᴾ = resultᴾ} n≤k returnᴾ
+         | targetReturn phase (≤-trans (s≤s z≤n) n<k)
+  backward {n = n} {resultᴾ = resultᴾ} n<k returnᴾ
       | vVᴾ′ , value-returnᴾ | m , resultᴵ , returnᴵ
       with trans (sym value-returnᴾ) returnᴾ
          | targetReturnedRelated phase {gas = m} {result = resultᴵ}
-             returnᴵ (k ∸ n) (m∸n≤m k n)
-  backward {n = n} {resultᴾ = resultᴾ} n≤k returnᴾ
+             (≤-trans (s≤s z≤n) n<k) returnᴵ (k ∸ n) (m∸n≤m k n)
+  backward {n = n} {resultᴾ = resultᴾ} n<k returnᴾ
       | vVᴾ′ , value-returnᴾ | m , resultᴵ , returnᴵ
       | refl | target-future Δᶜ′ W′ W≼W′ storeᴵ storeᴾ
           termsᴵ termsᴾ , related =
@@ -539,7 +549,7 @@ target-phase-computations-related {W = W} {R = R} {k = k}
         (termsᴾ Vᴾ) related)
 
   target-forward-blame : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Vᴾ
   target-forward-blame n≤k blaming =

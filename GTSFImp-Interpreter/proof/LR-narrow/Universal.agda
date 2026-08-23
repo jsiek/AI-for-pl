@@ -517,13 +517,8 @@ right-universals-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
         (liftImpreciseTerm W≼W′ Mᴵ))
       (close (preciseClosingSubstitution γ)
         (liftPreciseTerm W≼W′ (Λ Nᴾ)))
-right-universals-related-from-body {W = W} {k = k} {p = p}
-    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Nᴾ = Nᴾ} {Mᴵ = Mᴵ}
-    vNᴾ body-related W≼W′ γ zero z≤k =
-  right-universal-test-from-body
-    {W = W} {k = k} {j = zero} {p = p}
-    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Nᴾ = Nᴾ} {Mᴵ = Mᴵ}
-    vNᴾ (body-related zero z≤k) W≼W′ γ z≤k
+right-universals-related-from-body vNᴾ body-related W≼W′ γ zero z≤k =
+  tt
 right-universals-related-from-body {W = W} {k = k} {p = p}
     {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Nᴾ = Nᴾ} {Mᴵ = Mᴵ}
     vNᴾ body-related W≼W′ γ (suc j) sj≤k = head , tail
@@ -769,21 +764,9 @@ right-universal-value-related-from-body {W = W} {k = k} {Γ = Γ}
         (close imprecise-γ (liftImpreciseTerm W≼W′ Vᴵ))
         (close precise-γ (liftPreciseTerm W≼W′ (Λ Vᴾ)))
   related zero j≤k = ClosureProof.value-imprecision-reindex
-    (liftCenterImprecision W≼W′ q) structural
+    {W = W′} (liftCenterImprecision W≼W′ q) structural {k = zero}
     (liftCenterTy-universal W≼W′ precise-body-base) refl
-    (explicit-endpoints ,
-      liftPreciseBody W≼W′ Aᴾ , liftImpreciseTy W≼W′ Bᴵ ,
-      precise-body-eq , imprecise-body-eq ,
-      (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W′≼K Rᴾ r★ s →
-        right-universals-related-result-transport
-          (liftCenterBody-shift W≼W′ imprecise-base) p-lifted
-          (λ {Δᴾ″} {Δᴵ″} {Δᶜ″} J W′≼J Sᴾ r★′ t →
-            right-universals-related-from-body
-              {W = W} {k = k} {p = p-body}
-              {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} {Nᴾ = Vᴾ} {Mᴵ = Vᴵ}
-              vVᴾ body-related {W′ = W′} W≼W′ γ zero j≤k
-              {Δᴾ″} {Δᴵ″} {Δᶜ″} J W′≼J Sᴾ r★′ t)
-          {Δᴾ′} {Δᴵ′} {Δᶜ′} K W′≼K Rᴾ r★ s))
+    explicit-endpoints
   related (suc j) sj≤k = ClosureProof.value-imprecision-reindex
     (liftCenterImprecision W≼W′ q) structural
     (liftCenterTy-universal W≼W′ precise-body-base) refl

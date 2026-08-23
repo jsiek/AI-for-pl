@@ -8,14 +8,15 @@ module proof.LR-narrow.Application where
 
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s; _<_)
 open import Data.Nat.Properties using
-  (≤-refl; ≤-trans; +-assoc; m∸n≤m)
+  (≤-refl; ≤-trans; +-assoc; m∸n≤m; <⇒≤)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong; cong₂)
+  renaming (subst to subst≡)
 
 open import Types
 open import TyStore
@@ -2539,6 +2540,43 @@ third-phase≤ : ∀ {a b c k}
 third-phase≤ {a} {b} {c} phases≤ =
   drop-left-≤ (remaining-phases≤ {a} {b} {c} phases≤)
 
+-- Strict variants: a run of `n < k` steps splits into phases each of
+-- which stays strictly below the remaining index.
+
+suc-inside-right : ∀ a b → suc (a + b) ≡ a + suc b
+suc-inside-right zero b = refl
+suc-inside-right (suc a) b = cong suc (suc-inside-right a b)
+
+drop-left-< : ∀ {a b k} → a + b < k → b < k ∸ a
+drop-left-< {a} {b} {k} a+b<k =
+  drop-left-≤ {a} {suc b} {k}
+    (subst≡ (_≤ k) (suc-inside-right a b) a+b<k)
+
+first-of-two< : ∀ {a b k} → a + b < k → a < k
+first-of-two< {a} {b} phases< =
+  ≤-trans (s≤s (left-summand≤ a b)) phases<
+
+first-phase< : ∀ {a b c k} → a + b + c < k → a < k
+first-phase< {a} {b} {c} {k} phases< =
+  first-of-two< {a} {b + c}
+    (subst≡ (λ m → suc m ≤ k) (+-assoc a b c) phases<)
+
+second-phase< : ∀ {a b c k}
+  → a + b + c < k
+  → b < k ∸ a
+second-phase< {a} {b} {c} {k} phases< =
+  first-of-two< {b} {c}
+    (drop-left-< {a} {b + c}
+      (subst≡ (λ m → suc m ≤ k) (+-assoc a b c) phases<))
+
+third-phase< : ∀ {a b c k}
+  → a + b + c < k
+  → c < (k ∸ a) ∸ b
+third-phase< {a} {b} {c} {k} phases< =
+  drop-left-< {b} {c}
+    (drop-left-< {a} {b + c}
+      (subst≡ (λ m → suc m ≤ k) (+-assoc a b c) phases<))
+
 subtract-phases : ∀ k a b
   → (k ∸ a) ∸ b ≡ k ∸ (a + b)
 subtract-phases k zero b = refl
@@ -3004,7 +3042,7 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
   function-related = L-related k ≤-refl W′ W≼W′ γ
 
   forward : ∀ {n} {resultᴵ : E.EvalResult (Lᴵ′ · Mᴵ′)}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W′)) n (Lᴵ′ · Mᴵ′)
         ≡ returned resultᴵ
     →
@@ -3026,10 +3064,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
           argumentGas argumentResult argumentReturn
           callGas callResult callReturn result-split gas-split
       with forward-return function-related
-        (first-phase≤ {a = functionGas} {argumentGas} {callGas}
+        (first-phase< {a = functionGas} {argumentGas} {callGas}
           (subst≤ gas-split n≤k)) functionReturn
     where
-    subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+    subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
     subst≤ refl a≤k = a≤k
   forward {n} n≤k result-eq
       | return-phases functionGas functionResult functionReturn
@@ -3057,10 +3095,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    argumentGas≤ = second-phase≤
+    argumentGas≤ = second-phase<
       {a = functionGas} {argumentGas} {callGas} phases≤
 
     raw-argument-related = compiled-component-future-at
@@ -3122,10 +3160,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    callGas≤ = third-phase≤
+    callGas≤ = third-phase<
       {a = functionGas} {argumentGas} {callGas} phases≤
 
     pAtW₁ = liftCenterImprecision W′≼W₁
@@ -3195,7 +3233,7 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         {Σ = E.changes argumentResult ▶ˢ
           (E.changes functionResult ▶ˢ impreciseStore (core W′))}
         callReturn)
-      callGas≤
+      (<⇒≤ callGas≤)
 
     call-related = positive-function-application residual-positive
       functionValueAtCall argumentValueRelated
@@ -3334,7 +3372,7 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       callValueRelated
 
   backward : ∀ {n} {resultᴾ : E.EvalResult (Lᴾ′ · Mᴾ′)}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W′)) n (Lᴾ′ · Mᴾ′)
         ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ]
@@ -3357,10 +3395,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    functionGas≤ = first-phase≤
+    functionGas≤ = first-phase<
       {a = preciseFunctionGas} {preciseArgumentGas} {preciseCallGas}
       phases≤
   backward {n} n≤k result-eq
@@ -3376,10 +3414,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    argumentGas≤ = second-phase≤
+    argumentGas≤ = second-phase<
       {a = preciseFunctionGas} {preciseArgumentGas} {preciseCallGas}
       phases≤
 
@@ -3415,10 +3453,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     where
     phases≤ = subst≤ gas-split n≤k
       where
-      subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+      subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
       subst≤ refl a≤k = a≤k
 
-    callGas≤ = third-phase≤
+    callGas≤ = third-phase<
       {a = preciseFunctionGas} {preciseArgumentGas} {preciseCallGas}
       phases≤
 
@@ -3489,7 +3527,7 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         {Σ = E.changes preciseArgumentResult ▶ˢ
           (E.changes preciseFunctionResult ▶ˢ preciseStore (core W′))}
         preciseCallReturn)
-      callGas≤
+      (<⇒≤ callGas≤)
 
     call-related = positive-function-application residual-positive
       functionValueAtCall argumentValueRelated
@@ -3578,7 +3616,7 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       callValueRelated
 
   forwardBlame : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W′)) n (Lᴵ′ · Mᴵ′)
     → Σ[ m ∈ ℕ ]
       BlamesFrom (preciseStore (core W′)) m (Lᴾ′ · Mᴾ′)
@@ -3588,7 +3626,7 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
   forwardBlame {n} n≤k blaming
       | function-phase-blames functionGas functionBlame functionGas≤
       with forward-blame function-related
-        (≤-trans functionGas≤ n≤k) functionBlame
+        (≤-trans (s≤s functionGas≤) n≤k) functionBlame
   forwardBlame {n} n≤k blaming
       | function-phase-blames functionGas functionBlame functionGas≤
       | preciseFunctionGas , preciseFunctionBlame
@@ -3604,10 +3642,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
           functionReturn argumentGas argumentBlame phases≤n
       with forward-return function-related functionGas≤ functionReturn
     where
-    phases≤k = ≤-trans phases≤n n≤k
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-    functionGas≤ : functionGas ≤ k
-    functionGas≤ = first-of-two≤ phases≤k
+    functionGas≤ : functionGas < k
+    functionGas≤ = first-of-two< phases≤k
   forwardBlame {n} n≤k blaming
       | application-argument-phase-blames functionGas functionResult
           functionReturn argumentGas argumentBlame phases≤n
@@ -3630,10 +3668,10 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       with forward-blame argument-related argumentGas≤
         argumentPhaseBlame
     where
-    phases≤k = ≤-trans phases≤n n≤k
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-    argumentGas≤ : argumentGas ≤ k ∸ functionGas
-    argumentGas≤ = drop-left-≤ phases≤k
+    argumentGas≤ : argumentGas < k ∸ functionGas
+    argumentGas≤ = drop-left-< phases≤k
 
     raw-argument-related = compiled-component-future-at
       (M-related (k ∸ functionGas) (m∸n≤m k functionGas))
@@ -3681,9 +3719,9 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
           callGas callBlame phases≤n
       with forward-return function-related functionGas≤ functionReturn
     where
-    phases≤k = ≤-trans phases≤n n≤k
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-    functionGas≤ = first-phase≤
+    functionGas≤ = first-phase<
       {a = functionGas} {argumentGas} {callGas} phases≤k
   forwardBlame {n} n≤k blaming
       | application-call-phase-blames functionGas functionResult
@@ -3710,9 +3748,9 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       with forward-return argument-related argumentGas≤
         argumentPhaseReturn
     where
-    phases≤k = ≤-trans phases≤n n≤k
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-    argumentGas≤ = second-phase≤
+    argumentGas≤ = second-phase<
       {a = functionGas} {argumentGas} {callGas} phases≤k
 
     raw-argument-related = compiled-component-future-at
@@ -3771,9 +3809,9 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
             argumentTermsᴵ argumentTermsᴾ argumentValueRelated)
       with forward-blame call-related callGas≤ callPhaseBlame
     where
-    phases≤k = ≤-trans phases≤n n≤k
+    phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-    callGas≤ = third-phase≤
+    callGas≤ = third-phase<
       {a = functionGas} {argumentGas} {callGas} phases≤k
 
     pAtW₁ = liftCenterImprecision W′≼W₁
@@ -3843,7 +3881,7 @@ application-semantic-bounded {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
         {Σ = E.changes argumentResult ▶ˢ
           (E.changes functionResult ▶ˢ impreciseStore (core W′))}
         callBlame)
-      callGas≤
+      (<⇒≤ callGas≤)
 
     call-related = positive-function-application residual-positive
       functionValueAtCall argumentValueRelated

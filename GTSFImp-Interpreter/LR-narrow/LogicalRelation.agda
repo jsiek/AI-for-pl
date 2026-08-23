@@ -187,15 +187,9 @@ mutual
     → Term Δᴾ
     → Set₁
 
-  ValueImprecisionᵏ zero W
-      (I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p) Vᴵ Vᴾ =
-    TypedEndpoints W (I.∀⊑ nonvar occurs p) Vᴵ Vᴾ ×
-    Σ[ Bᴾ ∈ Ty _ ]
-    Σ[ Bᴵ ∈ Ty _ ]
-      (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
-      × (embedImprecise (core W) Bᴵ ≡ Aᴵ)
-      × RightUniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ
-
+  -- At index zero only the endpoint typings remain: the computation
+  -- relation at index zero is vacuous (no imprecise step is available),
+  -- so returned values are never consulted at index zero.
   ValueImprecisionᵏ zero W p Vᴵ Vᴾ = TypedEndpoints W p Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.★⊑★ Vᴵ Vᴾ =
@@ -343,19 +337,7 @@ mutual
     → Term Δᴾ
     → Set₁
 
-  RightUniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ =
-    ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
-      (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′)
-      (r : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
-      (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
-        ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
-    → let bound = preciseBindWorld W′ Rᴾ r
-          W′≼B = future-precise (future-refl {W = W′}) r
-      in ComputationsRelated W′
-          (PostBindValueRelation W′≼B s) zero
-          (liftImpreciseTerm W≼W′ Vᴵ)
-          (liftPreciseTerm W≼W′ Vᴾ
-            ⦂∀ liftPreciseBody W≼W′ Bᴾ [ Rᴾ ])
+  RightUniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ = ⊤
 
   RightUniversalsRelated W p Bᴾ Bᴵ (suc k) Vᴵ Vᴾ =
     (∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)

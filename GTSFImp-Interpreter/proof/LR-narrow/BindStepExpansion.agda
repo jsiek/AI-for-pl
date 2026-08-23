@@ -8,7 +8,7 @@ module proof.LR-narrow.BindStepExpansion where
 open import Data.List using (_∷_)
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
-open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_; _<_)
 open import Data.Nat.Properties using (≤-pred)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -360,7 +360,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
   bound = pairedBindWorld W Rᴾ Rᴵ r
 
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
         interpretFrom (preciseStore (core W)) m Mᴾ ≡ returned resultᴾ
@@ -392,7 +392,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
       Mᴾ≢blame value-eqᴾ stepᴾ step-eqᴾ blameᴾ)
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ suc k
+    → n < suc k
     → interpretFrom (preciseStore (core W)) n Mᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ ≡ returned resultᴵ
@@ -417,7 +417,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
       (paired-returns-bind-step {r = r} paired)
 
   blame-forward : ∀ {n}
-    → n ≤ suc k
+    → n < suc k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
   blame-forward {n = n} n≤sk blameᴵ

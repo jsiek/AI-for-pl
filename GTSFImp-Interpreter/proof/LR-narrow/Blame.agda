@@ -6,7 +6,7 @@ module proof.LR-narrow.Blame where
 --   * Keeps evaluator impossibility arguments out of the public module.
 
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _<_)
 open import Data.Nat using (_∸_; _≤_)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_)
@@ -49,7 +49,7 @@ precise-blame-related {W = W} {R = R} {k = k} {Mᴵ = Mᴵ} = record
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Mᴵ
         ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult blame ]
@@ -62,7 +62,7 @@ precise-blame-related {W = W} {R = R} {k = k} {Mᴵ = Mᴵ} = record
     (zero , blame-now {Σ = preciseStore (core W)})
 
   backward : ∀ {n} {resultᴾ : E.EvalResult blame}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n blame
         ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
@@ -73,7 +73,7 @@ precise-blame-related {W = W} {R = R} {k = k} {Mᴵ = Mᴵ} = record
     (blame-not-returned {Σ = preciseStore (core W)} {gas = n} returnᴾ)
 
   forwardBlame : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m blame
   forwardBlame n≤k blameᴵ =

@@ -5,7 +5,7 @@ module proof.LR-narrow.Cast where
 --   * Factors term evaluation from the shared related-value cast theorem.
 --   * Keeps evaluator phase decomposition private.
 
-open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_; z≤n; s≤s)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_; z≤n; s≤s; _<_)
 open import Data.Nat.Properties using
   (1+n≰n; m∸n≤m; n≤1+n; ∸-monoʳ-≤; ≤-refl; ≤-trans)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -239,7 +239,7 @@ right-dynamic-base-tag-value-at : ∀ {Δᴾ Δᴵ Δᶜ}
   → ValueImprecision W (I.ι⊑★ {ι = ι}) j
       (Uᴵ ⟨ groundInjection gᴵ Gᴵ∼★ ⟩) Vᴾ
 right-dynamic-base-tag-value-at zero gᴵ Gᴵ∼★ payload-q related =
-  right-dynamic-base-tag-endpoints gᴵ Gᴵ∼★ payload-q related
+  right-dynamic-base-tag-endpoints gᴵ Gᴵ∼★ payload-q {k = zero} related
 right-dynamic-base-tag-value-at (suc j) gᴵ Gᴵ∼★ payload-q related =
   right-dynamic-base-tag-endpoints gᴵ Gᴵ∼★ payload-q related ,
   right-tags-and-payload gᴵ Gᴵ∼★ payload-q
@@ -311,7 +311,8 @@ dynamic-base-tags-value-at : ∀ {Δᴾ Δᴵ Δᶜ}
       (Uᴾ ⟨ groundInjection gᴾ Gᴾ∼★ ⟩)
 dynamic-base-tags-value-at zero gᴾ gᴵ Gᴾ∼★ Gᴵ∼★
     payload-q related =
-  dynamic-base-tags-endpoints gᴾ gᴵ Gᴾ∼★ Gᴵ∼★ payload-q related
+  dynamic-base-tags-endpoints gᴾ gᴵ Gᴾ∼★ Gᴵ∼★ payload-q {k = zero}
+    related
 dynamic-base-tags-value-at (suc j) gᴾ gᴵ Gᴾ∼★ Gᴵ∼★
     payload-q related =
   dynamic-base-tags-endpoints gᴾ gᴵ Gᴾ∼★ Gᴵ∼★ payload-q related ,
@@ -1057,51 +1058,7 @@ nonvalue-computations-zero : ∀ {Δᴾ Δᴵ Δᶜ}
   → E.value? Mᴵ ≡ nothing
   → E.value? Mᴾ ≡ nothing
   → ComputationsRelated W R zero Mᴵ Mᴾ
-nonvalue-computations-zero {W = W} {Mᴵ = Mᴵ} {Mᴾ = Mᴾ}
-    Mᴵ≢blame Mᴾ≢blame value-eqᴵ value-eqᴾ = record
-  { forward-return = forward
-  ; backward-return = backward
-  ; forward-blame = blame-forward
-  }
-  where
-  forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ zero
-    → interpretFrom (impreciseStore (core W)) n Mᴵ
-        ≡ returned resultᴵ
-    → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
-          interpretFrom (preciseStore (core W)) m Mᴾ
-            ≡ returned resultᴾ
-          × PairedReturns W _ (zero ∸ n) resultᴵ resultᴾ)
-       Data.Sum.⊎
-       (Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ)
-  forward {n = zero} n≤zero result-eq
-      with trans (sym (nonvalue-zero-timed
-        {Σ = impreciseStore (core W)} Mᴵ≢blame value-eqᴵ)) result-eq
-  forward {n = zero} n≤zero result-eq | ()
-
-  backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ zero
-    → interpretFrom (preciseStore (core W)) n Mᴾ
-        ≡ returned resultᴾ
-    → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
-        interpretFrom (impreciseStore (core W)) m Mᴵ
-          ≡ returned resultᴵ
-        × PairedReturns W _ (zero ∸ n) resultᴵ resultᴾ
-  backward {n = zero} n≤zero result-eq
-      with trans (sym (nonvalue-zero-timed
-        {Σ = preciseStore (core W)} Mᴾ≢blame value-eqᴾ)) result-eq
-  backward {n = zero} n≤zero result-eq | ()
-
-  blame-forward : ∀ {n}
-    → n ≤ zero
-    → BlamesFrom (impreciseStore (core W)) n Mᴵ
-    → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
-  blame-forward {n = zero} n≤zero
-      (Δ′ , changes , trace , result-eq)
-      with trans (sym (nonvalue-zero-timed
-        {Σ = impreciseStore (core W)} Mᴵ≢blame value-eqᴵ)) result-eq
-  blame-forward {n = zero} n≤zero
-      (Δ′ , changes , trace , result-eq) | ()
+nonvalue-computations-zero _ _ _ _ = ClosureProof.computations-related-zero
 
 blame-now : ∀ {Δ} {Σ : TyStore Δ}
   → BlamesFrom Σ zero (blame {Δ = Δ})
@@ -1138,7 +1095,7 @@ precise-pure-step-to-blame {W = W} {k = k} {Mᴵ = Mᴵ}
     (blame-now {Σ = preciseStore (core W)})
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Mᴾ
         ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
@@ -1401,34 +1358,36 @@ right-dynamic-ground-tag-value-at zero (＇ X) gᴵ Gᴵ∼★ payload-q
 right-dynamic-ground-tag-value-at zero (＇ X) gᴵ Gᴵ∼★ payload-q
     output-q left-eq related | I.X⊑★ mode =
   ClosureProof.value-imprecision-reindex output-q (I.X⊑★ mode)
-    (sym left-eq) refl
+    {k = zero} (sym left-eq) refl
     (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q
-      (I.X⊑★ mode) related)
+      (I.X⊑★ mode) {k = zero} related)
 right-dynamic-ground-tag-value-at zero (‵ ι) gᴵ Gᴵ∼★ payload-q
     output-q left-eq related
     with reindex-center-imprecision output-q (sym left-eq) refl
 right-dynamic-ground-tag-value-at zero (‵ ι) gᴵ Gᴵ∼★ payload-q
     output-q left-eq related | I.ι⊑★ =
   ClosureProof.value-imprecision-reindex output-q I.ι⊑★
-    (sym left-eq) refl
-    (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q I.ι⊑★ related)
+    {k = zero} (sym left-eq) refl
+    (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q I.ι⊑★ {k = zero}
+      related)
 right-dynamic-ground-tag-value-at zero ★⇒★ gᴵ Gᴵ∼★ payload-q
     output-q left-eq related
     with reindex-center-imprecision output-q (sym left-eq) refl
 right-dynamic-ground-tag-value-at zero ★⇒★ gᴵ Gᴵ∼★ payload-q
     output-q left-eq related | I.⇒⊑★ p q =
   ClosureProof.value-imprecision-reindex output-q (I.⇒⊑★ p q)
-    (sym left-eq) refl
+    {k = zero} (sym left-eq) refl
     (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q
-      (I.⇒⊑★ p q) related)
+      (I.⇒⊑★ p q) {k = zero} related)
 right-dynamic-ground-tag-value-at zero ∀★ gᴵ Gᴵ∼★ payload-q
     output-q left-eq related
     with reindex-center-imprecision output-q (sym left-eq) refl
 right-dynamic-ground-tag-value-at zero ∀★ gᴵ Gᴵ∼★ payload-q
     output-q left-eq related | I.∀★⊑★ =
   ClosureProof.value-imprecision-reindex output-q I.∀★⊑★
-    (sym left-eq) refl
-    (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q I.∀★⊑★ related)
+    {k = zero} (sym left-eq) refl
+    (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q I.∀★⊑★ {k = zero}
+      related)
 right-dynamic-ground-tag-value-at {W = W} (suc j) (＇ X)
     {Gᴵ = Gᴵ} gᴵ Gᴵ∼★ payload-q
     output-q left-eq related
@@ -1530,15 +1489,15 @@ related-computation-values : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {q : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
     {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ComputationsRelated W (FutureValueRelation q) k Vᴵ Vᴾ
+  → ComputationsRelated W (FutureValueRelation q) (suc k) Vᴵ Vᴾ
   → Value Vᴵ
   → Value Vᴾ
-  → ValueImprecision W q k Vᴵ Vᴾ
+  → ValueImprecision W q (suc k) Vᴵ Vᴾ
 related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
     with value-return-exact { Σ = impreciseStore (core W) } zero vVᴵ
 related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
     | imprecise-return
-    with forward-return related z≤n imprecise-return
+    with forward-return related (s≤s z≤n) imprecise-return
 related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
     | imprecise-return
     | inj₁ (m , resultᴾ , precise-return , paired)
@@ -1645,7 +1604,7 @@ related-precise-keep-step-expand {W = W} {p = p} {k = k}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
           interpretFrom (preciseStore (core W)) m Mᴾ
@@ -1669,7 +1628,7 @@ related-precise-keep-step-expand {W = W} {p = p} {k = k}
       stepᴾ step-eqᴾ blamingᴾ)
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Mᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ
@@ -1688,7 +1647,7 @@ related-precise-keep-step-expand {W = W} {p = p} {k = k}
   backward {n = suc n} n≤k returnᴾ
       | step-return resultᴾ′ returnᴾ′ resultᴾ-eq
       with backward-return related
-        (≤-trans (n≤1+n n) n≤k) returnᴾ′
+        (≤-trans (n≤1+n (suc n)) n≤k) returnᴾ′
   backward {n = suc n} n≤k returnᴾ
       | step-return resultᴾ′ returnᴾ′ resultᴾ-eq
       | m , resultᴵ , returnᴵ , paired =
@@ -1699,7 +1658,7 @@ related-precise-keep-step-expand {W = W} {p = p} {k = k}
           (∸-monoʳ-≤ k (n≤1+n n)) paired))
 
   blame-forward : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
   blame-forward {n = n} n≤k blamingᴵ
@@ -1729,7 +1688,7 @@ related-imprecise-keep-step-expand {W = W} {p = p} {k = k}
   }
   where
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
           interpretFrom (preciseStore (core W)) m Mᴾ
@@ -1750,7 +1709,7 @@ related-imprecise-keep-step-expand {W = W} {p = p} {k = k}
         Mᴵ≢blame value-eqᴵ stepᴵ step-eqᴵ returnᴵ
   forward {n = suc n} n≤k returnᴵ
       | step-return resultᴵ′ returnᴵ′ resultᴵ-eq
-      with forward-return related (≤-trans (n≤1+n n) n≤k) returnᴵ′
+      with forward-return related (≤-trans (n≤1+n (suc n)) n≤k) returnᴵ′
   forward {n = suc n} n≤k returnᴵ
       | step-return resultᴵ′ returnᴵ′ resultᴵ-eq
       | inj₁ (m , resultᴾ , returnᴾ , paired) =
@@ -1764,7 +1723,7 @@ related-imprecise-keep-step-expand {W = W} {p = p} {k = k}
       | inj₂ (m , blamingᴾ) = inj₂ (m , blamingᴾ)
 
   backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Mᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ
@@ -1781,7 +1740,7 @@ related-imprecise-keep-step-expand {W = W} {p = p} {k = k}
     paired-future-imprecise-step paired
 
   blame-forward : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Mᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
   blame-forward {n = zero} n≤k blamingᴵ
@@ -1795,7 +1754,7 @@ related-imprecise-keep-step-expand {W = W} {p = p} {k = k}
         Mᴵ≢blame value-eqᴵ stepᴵ step-eqᴵ blamingᴵ
   blame-forward {n = suc n} n≤k blamingᴵ
       | step-blame blamingᴵ′ =
-    forward-blame related (≤-trans (n≤1+n n) n≤k) blamingᴵ′
+    forward-blame related (≤-trans (n≤1+n (suc n)) n≤k) blamingᴵ′
 
 related-imprecise-identity : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -1822,7 +1781,7 @@ related-imprecise-identity {W = W} {p = p} {k = k}
     value-imprecision-downward-to (m∸n≤m k n) related
 
   forward : ∀ {n} {resultᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n
         (Vᴵ ⟨ C.id {μ = μᴵ} aᴵ ⟩) ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Vᴾ ]
@@ -1852,7 +1811,7 @@ related-imprecise-identity {W = W} {p = p} {k = k}
         (λ M → refl) (λ M → refl) (relation-after (suc n)))
 
   backward : ∀ {n} {resultᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n Vᴾ ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult
           (Vᴵ ⟨ C.id {μ = μᴵ} aᴵ ⟩) ]
@@ -1875,7 +1834,7 @@ related-imprecise-identity {W = W} {p = p} {k = k}
       (λ M → refl) (λ M → refl) (relation-after n)
 
   blame-impossible : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n
         (Vᴵ ⟨ C.id {μ = μᴵ} aᴵ ⟩)
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Vᴾ
@@ -1925,7 +1884,7 @@ related-precise-identity {W = W} {p = p} {k = k}
     value-imprecision-downward-to (m∸n≤m k n) related
 
   forward : ∀ {n} {resultᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n Vᴵ ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult
           (Vᴾ ⟨ C.id {μ = μᴾ} aᴾ ⟩) ]
@@ -1950,7 +1909,7 @@ related-precise-identity {W = W} {p = p} {k = k}
         (λ M → refl) (λ M → refl) (relation-after n))
 
   backward : ∀ {n} {resultᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n
         (Vᴾ ⟨ C.id {μ = μᴾ} aᴾ ⟩) ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Vᴵ ]
@@ -1978,7 +1937,7 @@ related-precise-identity {W = W} {p = p} {k = k}
       (λ M → refl) (λ M → refl) (relation-after (suc n))
 
   blame-impossible : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n Vᴵ
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m
         (Vᴾ ⟨ C.id {μ = μᴾ} aᴾ ⟩)
@@ -2019,7 +1978,7 @@ related-identities {W = W} {p = p} {k = k}
     value-imprecision-downward-to (m∸n≤m k n) related
 
   forward : ∀ {n} {resultᴵ}
-    → n ≤ k
+    → n < k
     → interpretFrom (impreciseStore (core W)) n
         (Vᴵ ⟨ C.id {μ = μᴵ} aᴵ ⟩) ≡ returned resultᴵ
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult
@@ -2052,7 +2011,7 @@ related-identities {W = W} {p = p} {k = k}
         (λ M → refl) (λ M → refl) (relation-after (suc n)))
 
   backward : ∀ {n} {resultᴾ}
-    → n ≤ k
+    → n < k
     → interpretFrom (preciseStore (core W)) n
         (Vᴾ ⟨ C.id {μ = μᴾ} aᴾ ⟩) ≡ returned resultᴾ
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult
@@ -2082,7 +2041,7 @@ related-identities {W = W} {p = p} {k = k}
       (λ M → refl) (λ M → refl) (relation-after (suc n))
 
   blame-impossible : ∀ {n}
-    → n ≤ k
+    → n < k
     → BlamesFrom (impreciseStore (core W)) n
         (Vᴵ ⟨ C.id {μ = μᴵ} aᴵ ⟩)
     → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m
@@ -4275,7 +4234,11 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     where
     casted-at : ∀ j → j ≤ k
       → FutureValueRelation q W future-refl j Uᴵ (Uᴾ ⟨ cᴾ ⟩)
-    casted-at j j≤k = related-computation-values
+    casted-at zero j≤k = precise-casted-value-endpoints
+      precise-source-eq refl cᴾ targetᴾ imprecise-target-eq
+      payload-related (imprecise-value payload-endpoints)
+      precise-cast-value
+    casted-at (suc j) j≤k = related-computation-values
       (related-value-precise-cast payload-q precise-source-eq refl cᴾ q
         targetᴾ imprecise-target-eq
         (value-imprecision-downward-to j≤k payload-related))
@@ -4822,12 +4785,12 @@ related-value-casts {W = W} I.X⊑X sourceᴾ sourceᴵ (C.id aᴾ)
 
   payload-related : ValueImprecision W payload-q zero Vᴵ Vᴾ
   payload-related = ClosureProof.value-imprecision-reindex
-    payload-q I.X⊑X refl sourceᴵ related
+    payload-q I.X⊑X {k = zero} refl sourceᴵ related
 
   tagged-related : ValueImprecision W (I.X⊑★ mode) zero
       (Vᴵ ⟨ groundInjection gᴵ Gᴵ∼★ ⟩) Vᴾ
-  tagged-related = right-dynamic-tag-endpoints {W = W} gᴵ Gᴵ∼★
-    payload-q (I.X⊑★ mode) payload-related
+  tagged-related = right-dynamic-tag-endpoints {W = W} gᴵ
+    Gᴵ∼★ payload-q (I.X⊑★ mode) {k = zero} payload-related
 
   injection-eq = ground-identity-injection-eq
     gᴵ Gᴵ∼★ nsᴵ aᴵ
@@ -5328,7 +5291,12 @@ related-value-casts {W = W}
     → ValueImprecision W payload-q j
         (Vᴵ ⟨ c₁ᴵ C.↦ c₂ᴵ ⟩)
         (Vᴾ ⟨ c₁ᴾ C.↦ c₂ᴾ ⟩)
-  payload-at j j≤k = related-computation-values
+  payload-at zero j≤k = casted-value-endpoints
+    refl refl (c₁ᴾ C.↦ c₂ᴾ) (c₁ᴵ C.↦ c₂ᴵ) refl refl
+    source-related
+    (imprecise-value source-endpoints 《 fun 》)
+    (precise-value source-endpoints 《 fun 》)
+  payload-at (suc j) j≤k = related-computation-values
     (related-value-casts source-local refl refl
       (c₁ᴾ C.↦ c₂ᴾ) (c₁ᴵ C.↦ c₂ᴵ)
       payload-q refl refl

@@ -90,42 +90,7 @@ nonvalue-computations-zero : ∀ {Δᴾ Δᴵ Δᶜ}
   → E.value? Mᴵ ≡ nothing
   → E.value? Mᴾ ≡ nothing
   → ComputationsRelated W R zero Mᴵ Mᴾ
-nonvalue-computations-zero {W = W} {Mᴵ = Mᴵ} {Mᴾ = Mᴾ}
-    Mᴵ≢blame Mᴾ≢blame value-eqᴵ value-eqᴾ = record
-  { forward-return = forward
-  ; backward-return = backward
-  ; forward-blame = blame-impossible
-  }
-  where
-  forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
-    → n ≤ zero
-    → interpretFrom (impreciseStore (core W)) n Mᴵ ≡ returned resultᴵ
-    → _
-  forward {n = zero} z≤n eq
-    with trans (sym (nonvalue-zero-timed {Σ = impreciseStore (core W)}
-      Mᴵ≢blame value-eqᴵ)) eq
-  forward {n = zero} z≤n eq | ()
-
-  backward : ∀ {n} {resultᴾ : E.EvalResult Mᴾ}
-    → n ≤ zero
-    → interpretFrom (preciseStore (core W)) n Mᴾ ≡ returned resultᴾ
-    → _
-  backward {n = zero} z≤n eq
-    with trans (sym (nonvalue-zero-timed {Σ = preciseStore (core W)}
-      Mᴾ≢blame value-eqᴾ)) eq
-  backward {n = zero} z≤n eq | ()
-
-  blame-impossible : ∀ {n} → n ≤ zero
-    → BlamesFrom (impreciseStore (core W)) n Mᴵ
-    → Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ
-  blame-impossible {n = zero} z≤n (Δ′ , changes , trace , eq)
-    with trans (sym (nonvalue-zero-timed {Σ = impreciseStore (core W)}
-      Mᴵ≢blame value-eqᴵ)) eq
-  blame-impossible {n = zero} z≤n (Δ′ , changes , trace , eq) | ()
-
-------------------------------------------------------------------------
--- Identity conversions on related values
-------------------------------------------------------------------------
+nonvalue-computations-zero _ _ _ _ = ClosureProof.computations-related-zero
 
 reveal-id-not-blame : ∀ {Δ} {V : Term Δ} (A : Ty Δ)
   → V ↑ id↑ A ≢ blame
@@ -142,12 +107,7 @@ related-reveal-identities : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → ComputationsRelated W (FutureValueRelation p) k
       (Vᴵ ↑ id↑ Bᴵ) (Vᴾ ↑ id↑ Bᴾ)
 related-reveal-identities {W = W} p Bᴾ Bᴵ {k = zero} related =
-  nonvalue-computations-zero (reveal-id-not-blame Bᴵ)
-    (reveal-id-not-blame Bᴾ)
-    (reveal-id-value-none Bᴵ (imprecise-value endpoints))
-    (reveal-id-value-none Bᴾ (precise-value endpoints))
-  where
-  endpoints = ClosureProof.value-imprecision-endpoints related
+  ClosureProof.computations-related-zero
 related-reveal-identities {W = W} p Bᴾ Bᴵ {k = suc k} related
     with reveal-id-step-question {Σ = impreciseStore (core W)} Bᴵ
            (imprecise-value (ClosureProof.value-imprecision-endpoints

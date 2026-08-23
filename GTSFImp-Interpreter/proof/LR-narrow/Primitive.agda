@@ -9,9 +9,9 @@ module proof.LR-narrow.Primitive where
 open import Data.Maybe using (just; nothing)
 import Data.Maybe as Maybe
 open import Data.Bool using (false; _∧_)
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s; _<_)
 open import Data.Nat.Properties using
-  (≤-refl; ≤-trans; +-assoc; m∸n≤m)
+  (≤-refl; ≤-trans; +-assoc; m∸n≤m; <⇒≤)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -2433,7 +2433,7 @@ module ForPrimitive (op : Prim) where
       left-related = L-related k ≤-refl W′ W≼W′ γ
 
       forward : ∀ {n} {resultᴵ : E.EvalResult (Lᴵ′ ⊕[ op ] Mᴵ′)}
-        → n ≤ k
+        → n < k
         → interpretFrom (impreciseStore (core W′)) n
             (Lᴵ′ ⊕[ op ] Mᴵ′)
             ≡ returned resultᴵ
@@ -2457,10 +2457,10 @@ module ForPrimitive (op : Prim) where
               rightGas rightResult rightReturn
               deltaGas deltaResult deltaReturn result-split gas-split
           with forward-return left-related
-            (first-phase≤ {a = leftGas} {rightGas} {deltaGas}
+            (first-phase< {a = leftGas} {rightGas} {deltaGas}
               (subst≤ gas-split n≤k)) leftReturn
         where
-        subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+        subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
         subst≤ refl a≤k = a≤k
       forward {n} n≤k result-eq
           | return-phases leftGas leftResult leftReturn
@@ -2488,10 +2488,10 @@ module ForPrimitive (op : Prim) where
         where
         phases≤ = subst≤ gas-split n≤k
           where
-          subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+          subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
           subst≤ refl a≤k = a≤k
 
-        rightGas≤ = second-phase≤
+        rightGas≤ = second-phase<
           {a = leftGas} {rightGas} {deltaGas} phases≤
 
         raw-right-related = compiled-component-future-at
@@ -2553,10 +2553,10 @@ module ForPrimitive (op : Prim) where
         where
         phases≤ = subst≤ gas-split n≤k
           where
-          subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+          subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
           subst≤ refl a≤k = a≤k
 
-        deltaGas≤ = third-phase≤
+        deltaGas≤ = third-phase<
           {a = leftGas} {rightGas} {deltaGas} phases≤
 
         pAtW₁ = liftCenterImprecision W′≼W₁
@@ -2584,7 +2584,7 @@ module ForPrimitive (op : Prim) where
             {Σ = E.changes rightResult ▶ˢ
               (E.changes leftResult ▶ˢ impreciseStore (core W′))}
             deltaReturn)
-          deltaGas≤
+          (<⇒≤ deltaGas≤)
 
         canonicalLeft = sequential-prim-value-reindex op
           W≼W′ W′≼W₁ W₁≼W₂ leftValueAtDelta
@@ -2734,7 +2734,7 @@ module ForPrimitive (op : Prim) where
           deltaValueRelated
 
       backward : ∀ {n} {resultᴾ : E.EvalResult (Lᴾ′ ⊕[ op ] Mᴾ′)}
-        → n ≤ k
+        → n < k
         → interpretFrom (preciseStore (core W′)) n
             (Lᴾ′ ⊕[ op ] Mᴾ′)
             ≡ returned resultᴾ
@@ -2759,10 +2759,10 @@ module ForPrimitive (op : Prim) where
         where
         phases≤ = subst≤ gas-split n≤k
           where
-          subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+          subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
           subst≤ refl a≤k = a≤k
 
-        leftGas≤ = first-phase≤
+        leftGas≤ = first-phase<
           {a = preciseLeftGas} {preciseRightGas} {preciseDeltaGas}
           phases≤
       backward {n} n≤k result-eq
@@ -2778,10 +2778,10 @@ module ForPrimitive (op : Prim) where
         where
         phases≤ = subst≤ gas-split n≤k
           where
-          subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+          subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
           subst≤ refl a≤k = a≤k
 
-        rightGas≤ = second-phase≤
+        rightGas≤ = second-phase<
           {a = preciseLeftGas} {preciseRightGas} {preciseDeltaGas}
           phases≤
 
@@ -2817,10 +2817,10 @@ module ForPrimitive (op : Prim) where
         where
         phases≤ = subst≤ gas-split n≤k
           where
-          subst≤ : ∀ {a b} → a ≡ b → b ≤ k → a ≤ k
+          subst≤ : ∀ {a b} → a ≡ b → b < k → a < k
           subst≤ refl a≤k = a≤k
 
-        deltaGas≤ = third-phase≤
+        deltaGas≤ = third-phase<
           {a = preciseLeftGas} {preciseRightGas} {preciseDeltaGas}
           phases≤
 
@@ -2849,7 +2849,7 @@ module ForPrimitive (op : Prim) where
             {Σ = E.changes preciseRightResult ▶ˢ
               (E.changes preciseLeftResult ▶ˢ preciseStore (core W′))}
             preciseDeltaReturn)
-          deltaGas≤
+          (<⇒≤ deltaGas≤)
 
         canonicalLeft = sequential-prim-value-reindex op
           W≼W′ W′≼W₁ W₁≼W₂ leftValueAtDelta
@@ -2949,7 +2949,7 @@ module ForPrimitive (op : Prim) where
           deltaValueRelated
 
       forwardBlame : ∀ {n}
-        → n ≤ k
+        → n < k
         → BlamesFrom (impreciseStore (core W′)) n
             (Lᴵ′ ⊕[ op ] Mᴵ′)
         → Σ[ m ∈ ℕ ]
@@ -2960,7 +2960,7 @@ module ForPrimitive (op : Prim) where
       forwardBlame {n} n≤k blaming
           | left-phase-blames leftGas leftBlame leftGas≤
           with forward-blame left-related
-            (≤-trans leftGas≤ n≤k) leftBlame
+            (≤-trans (s≤s leftGas≤) n≤k) leftBlame
       forwardBlame {n} n≤k blaming
           | left-phase-blames leftGas leftBlame leftGas≤
           | preciseLeftGas , preciseLeftBlame
@@ -2976,10 +2976,10 @@ module ForPrimitive (op : Prim) where
               leftReturn rightGas rightBlame phases≤n
           with forward-return left-related leftGas≤ leftReturn
         where
-        phases≤k = ≤-trans phases≤n n≤k
+        phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-        leftGas≤ : leftGas ≤ k
-        leftGas≤ = first-of-two≤ phases≤k
+        leftGas≤ : leftGas < k
+        leftGas≤ = first-of-two< phases≤k
       forwardBlame {n} n≤k blaming
           | prim-right-phase-blames leftGas leftResult
               leftReturn rightGas rightBlame phases≤n
@@ -3002,10 +3002,10 @@ module ForPrimitive (op : Prim) where
           with forward-blame right-related rightGas≤
             rightPhaseBlame
         where
-        phases≤k = ≤-trans phases≤n n≤k
+        phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-        rightGas≤ : rightGas ≤ k ∸ leftGas
-        rightGas≤ = drop-left-≤ phases≤k
+        rightGas≤ : rightGas < k ∸ leftGas
+        rightGas≤ = drop-left-< phases≤k
 
         raw-right-related = compiled-component-future-at
           (M-related (k ∸ leftGas) (m∸n≤m k leftGas))
@@ -3053,9 +3053,9 @@ module ForPrimitive (op : Prim) where
               deltaGas deltaBlame phases≤n
           with forward-return left-related leftGas≤ leftReturn
         where
-        phases≤k = ≤-trans phases≤n n≤k
+        phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-        leftGas≤ = first-phase≤
+        leftGas≤ = first-phase<
           {a = leftGas} {rightGas} {deltaGas} phases≤k
       forwardBlame {n} n≤k blaming
           | prim-delta-phase-blames leftGas leftResult
@@ -3082,9 +3082,9 @@ module ForPrimitive (op : Prim) where
           with forward-return right-related rightGas≤
             rightPhaseReturn
         where
-        phases≤k = ≤-trans phases≤n n≤k
+        phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-        rightGas≤ = second-phase≤
+        rightGas≤ = second-phase<
           {a = leftGas} {rightGas} {deltaGas} phases≤k
 
         raw-right-related = compiled-component-future-at
@@ -3143,9 +3143,9 @@ module ForPrimitive (op : Prim) where
                 rightTermsᴵ rightTermsᴾ rightValueRelated)
           with forward-blame delta-related deltaGas≤ deltaPhaseBlame
         where
-        phases≤k = ≤-trans phases≤n n≤k
+        phases≤k = ≤-trans (s≤s phases≤n) n≤k
 
-        deltaGas≤ = third-phase≤
+        deltaGas≤ = third-phase<
           {a = leftGas} {rightGas} {deltaGas} phases≤k
 
         pAtW₁ = liftCenterImprecision W′≼W₁
@@ -3173,7 +3173,7 @@ module ForPrimitive (op : Prim) where
             {Σ = E.changes rightResult ▶ˢ
               (E.changes leftResult ▶ˢ impreciseStore (core W′))}
             deltaBlame)
-          deltaGas≤
+          (<⇒≤ deltaGas≤)
 
         canonicalLeft = sequential-prim-value-reindex op
           W≼W′ W′≼W₁ W₁≼W₂ leftValueAtDelta

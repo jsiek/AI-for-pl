@@ -50,3 +50,4 @@ import proof.LR-narrow.ArgumentFrame
 import proof.LR-narrow.RevealStructural
 import proof.LR-narrow.StarNoOccurrence
 import proof.LR-narrow.KeepStepExpansion
+import proof.LR-narrow.ValueExtraction

@@ -83,6 +83,10 @@ open import proof.LR-narrow.CastComposition using
    imprecise-cast-computations-related;
    computations-related-future-compose;
    computations-related-post-bind-compose)
+open import proof.LR-narrow.ValueExtraction using
+  (future-precise-monotone; future-imprecise-monotone;
+   ReflexiveFuture; future-is-refl; future-refl-view;
+   related-computation-values)
 open import proof.LR-narrow.KeepStepExpansion using
   (paired-future-values-downward; paired-future-precise-step;
    paired-future-imprecise-step; related-precise-keep-step-expand;
@@ -1454,101 +1458,6 @@ right-dynamic-ground-tag-value-at (suc j) ∀★ gᴵ Gᴵ∼★ payload-q
     (right-dynamic-tag-endpoints gᴵ Gᴵ∼★ payload-q I.∀★⊑★ related ,
       right-tags-and-payload gᴵ Gᴵ∼★ payload-q
         (value-imprecision-downward-to (n≤1+n j) related))
-
-future-precise-monotone : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
-    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-  → Future W W′
-  → Δᴾ ≤ Δᴾ′
-future-precise-monotone future-refl = ≤-refl
-future-precise-monotone (future-paired W≼W′ related) =
-  ≤-trans (future-precise-monotone W≼W′) (n≤1+n _)
-future-precise-monotone (future-precise W≼W′ r★) =
-  ≤-trans (future-precise-monotone W≼W′) (n≤1+n _)
-future-precise-monotone (future-imprecise W≼W′) =
-  future-precise-monotone W≼W′
-
-future-imprecise-monotone : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
-    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-  → Future W W′
-  → Δᴵ ≤ Δᴵ′
-future-imprecise-monotone future-refl = ≤-refl
-future-imprecise-monotone (future-paired W≼W′ related) =
-  ≤-trans (future-imprecise-monotone W≼W′) (n≤1+n _)
-future-imprecise-monotone (future-precise W≼W′ r★) =
-  future-imprecise-monotone W≼W′
-future-imprecise-monotone (future-imprecise W≼W′) =
-  ≤-trans (future-imprecise-monotone W≼W′) (n≤1+n _)
-
-data ReflexiveFuture {Δᴾ Δᴵ Δᶜ}
-    (W : World Δᴾ Δᴵ Δᶜ) :
-    ∀ {Δᶜ′} {W′ : World Δᴾ Δᴵ Δᶜ′} → Future W W′ → Set₁ where
-  future-is-refl : ReflexiveFuture W future-refl
-
-future-refl-view : ∀ {Δᴾ Δᴵ Δᶜ Δᶜ′}
-    {W : World Δᴾ Δᴵ Δᶜ}
-    {W′ : World Δᴾ Δᴵ Δᶜ′}
-    (W≼W′ : Future W W′)
-  → ReflexiveFuture W W≼W′
-future-refl-view future-refl = future-is-refl
-future-refl-view (future-paired W≼W′ related) =
-  ⊥-elim (1+n≰n (future-precise-monotone W≼W′))
-future-refl-view (future-precise W≼W′ r★) =
-  ⊥-elim (1+n≰n (future-precise-monotone W≼W′))
-future-refl-view (future-imprecise W≼W′) =
-  ⊥-elim (1+n≰n (future-imprecise-monotone W≼W′))
-
-related-computation-values : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
-    {W : World Δᴾ Δᴵ Δᶜ}
-    {q : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
-    {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ComputationsRelated W (FutureValueRelation q) (suc k) Vᴵ Vᴾ
-  → Value Vᴵ
-  → Value Vᴾ
-  → ValueImprecision W q (suc k) Vᴵ Vᴾ
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    with value-return-exact { Σ = impreciseStore (core W) } zero vVᴵ
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    | imprecise-return
-    with forward-return related (s≤s z≤n) imprecise-return
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₁ (m , resultᴾ , precise-return , paired)
-    with value-return-exact { Σ = preciseStore (core W) } m vVᴾ
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₁ (m , resultᴾ , precise-return , paired)
-    | precise-exact with trans (sym precise-exact) precise-return
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₁ (m , resultᴾ , precise-return , paired)
-    | precise-exact | refl
-    with paired
-related-computation-values related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₁ (m , resultᴾ , precise-return , paired)
-    | precise-exact | refl
-    | paired-returns W′ W≼W′ imprecise-store precise-store
-        imprecise-terms precise-terms relation
-    with future-refl-view W≼W′
-related-computation-values related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₁ (m , resultᴾ , precise-return , paired)
-    | precise-exact | refl
-    | paired-returns W′ W≼W′ imprecise-store precise-store
-        imprecise-terms precise-terms relation
-    | future-is-refl = relation
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₂ (m , Δ′ , changes , trace , precise-blame)
-    with value-return-exact { Σ = preciseStore (core W) } m vVᴾ
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₂ (m , Δ′ , changes , trace , precise-blame)
-    | precise-return with trans (sym precise-return) precise-blame
-related-computation-values {W = W} {k = k} related vVᴵ vVᴾ
-    | imprecise-return
-    | inj₂ (m , Δ′ , changes , trace , precise-blame)
-    | precise-return | ()
 
 related-imprecise-identity : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Bᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}

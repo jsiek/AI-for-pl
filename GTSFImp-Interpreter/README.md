@@ -20,7 +20,8 @@ The port currently contains:
   target-evaluation phase interface;
 - `LR-narrow/TargetEvaluation.agda`: realization of target store changes as
   imprecise-only future worlds and conversion of a completed target phase to
-  related computations;
+  related computations, including the zero-allocation phase of an already
+  related target value;
 - `LR-narrow/LogicalRelation.agda`: a step-indexed LR indexed canonically by
   `Imprecision`, plus `ValueNarrowing` obtained by reindexing through the
   derivation isomorphism;
@@ -57,7 +58,8 @@ The port currently contains:
   the extension selected by each universal observation and closing below a
   type binder;
 - `LR-narrow/Fundamental.agda`: phase-aware fundamental-property cases for
-  `CTI.Λ⊑²` and `CTI.Λ⊑²-smart-comma`;
+  `CTI.Λ⊑²` and `CTI.Λ⊑²-smart-comma`, including construction of the ordinary
+  one-sided motive when the target body is already a value;
 - `LR-narrow/UniversalInstantiation.agda`: structural elimination of a
   positive-index `∀⊑∀` value at the pre-allocation type application.
 - `LR-narrow/TypeApplication.agda`: compatibility of structural CTI type
@@ -310,11 +312,22 @@ universal constructor.  `right-universal-fundamental` and
 `right-universal-smart-fundamental` consume that motive and construct the
 ordinary fundamental property of their conclusions.
 
-The remaining obligation for these cases is a structural proof of
-`RightUniversalBodyFundamentalProperty` for the recursive CTI premise.  The
-old bind-first relation remains named `CompiledRightUniversalTestRelation` so
-the already checked value-target proof and its test construction stay
-explicit.  The smart structural guard alone cannot prove the new motive:
+For a value target, the phase motive is now constructed rather than assumed.
+`related-target-value-phase` evaluates the closed target value immediately,
+uses the reflexive future with empty store changes, relates every possible
+returned result, and rules out target blame.  The universal proof factors its
+pointwise value relation as `right-universal-value-related-from-body`, then
+`right-universal-value-phase-from-body` converts the existing bind-first tests
+to the target-first phase.  At the fundamental layer,
+`right-universal-value-body-fundamental` builds the body motive and
+`right-universal-value-fundamental` proves the complete ordinary `CTI.Λ⊑²`
+case from the unbounded family of binder tests.
+
+The remaining obligation is the non-value target part of the structural proof
+of `RightUniversalBodyFundamentalProperty`.  The old bind-first relation
+remains named `CompiledRightUniversalTestRelation`; it is sufficient exactly
+in the checked zero-allocation value subcase.  The smart structural guard
+alone cannot prove the general motive:
 `SmartCommaLiftᴸ` transports CTI imprecision and marks, but carries neither
 the semantic entries of an LR world nor a semantic relation for an
 alias-merged center.  In particular, an ordinary `FundamentalProperty` proof

@@ -6,10 +6,10 @@ module proof.LR-narrow.TargetEvaluation where
 --   * Converts completed target phases against values to LR computations.
 --   * Keeps the structural recursion on StoreChanges out of the public API.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Nat using (ℕ; zero; _∸_; _≤_)
 open import Data.Nat.Properties using (m∸n≤m)
-open import Data.Product using (_×_; _,_; Σ-syntax)
+open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; subst; sym; trans)
@@ -57,6 +57,62 @@ target-changes-future W (bind A ∷ changes)
   precise-term-eq′ M = trans
     (liftPreciseTerm-trans W≼W₁ W₁≼W′ M)
     (precise-term-eq M)
+
+related-target-value-phase : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {R : IndexedValueRelation W}
+    {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → Value Vᴵ
+  → (∀ j → j ≤ k → R W future-refl j Vᴵ Vᴾ)
+  → TargetComputationPhase W R k Vᴵ Vᴾ
+related-target-value-phase {W = W} {R = R} {k = k}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} vVᴵ related = record
+  { targetReturn = immediate-return
+  ; targetReturnedRelated = λ {gas} {result} return-result j j≤k →
+      returned-related {gas = gas} {result = result} return-result j j≤k
+  ; targetBlameImpossible = λ {gas} gas≤k blame-result →
+      blame-impossible {gas = gas} gas≤k blame-result
+  }
+  where
+  immediate-return : Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Vᴵ ]
+      interpretFrom (impreciseStore (core W)) gas Vᴵ ≡ returned result
+  immediate-return = zero , E.result _ [] Vᴵ ↠-refl vVᴵ′ , returnᴵ
+    where
+    value-returned = value-return
+      {Σ = impreciseStore (core W)} zero vVᴵ
+    vVᴵ′ = proj₁ value-returned
+    returnᴵ = proj₂ value-returned
+
+  returned-related : ∀ {gas : ℕ} {result : E.EvalResult Vᴵ}
+    → interpretFrom (impreciseStore (core W)) gas Vᴵ ≡ returned result
+    → (j : ℕ)
+    → j ≤ k
+    → Σ[ phase ∈ TargetChangesFuture W (E.changes result) ]
+        R (targetWorld phase) (targetFuture phase) j
+          (E.term result)
+          (liftPreciseTerm (targetFuture phase) Vᴾ)
+  returned-related {gas = gas} return-result j j≤k
+      with value-return {Σ = impreciseStore (core W)} gas vVᴵ
+  returned-related {gas = gas} return-result j j≤k
+      | vVᴵ′ , return-value with trans (sym return-value) return-result
+  returned-related {gas = gas} return-result j j≤k
+      | vVᴵ′ , return-value | refl =
+    target-future _ W future-refl refl refl
+      (λ M → refl) (λ M → refl) , related j j≤k
+
+  blame-impossible : ∀ {gas : ℕ}
+    → gas ≤ k
+    → BlamesFrom (impreciseStore (core W)) gas Vᴵ
+    → ⊥
+  blame-impossible {gas = gas} gas≤k
+      (Δ′ , changes , trace , blame-result)
+      with value-return {Σ = impreciseStore (core W)} gas vVᴵ
+  blame-impossible {gas = gas} gas≤k
+      (Δ′ , changes , trace , blame-result)
+      | vVᴵ′ , return-value
+      with trans (sym return-value) blame-result
+  blame-impossible {gas = gas} gas≤k
+      (Δ′ , changes , trace , blame-result)
+      | vVᴵ′ , return-value | ()
 
 target-phase-computations-related : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {R : IndexedValueRelation W}

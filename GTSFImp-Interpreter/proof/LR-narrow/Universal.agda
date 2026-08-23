@@ -585,7 +585,7 @@ right-universal-smart-compatible-from-body nonvar occurs smart liftΓ
     vVᴾ target⊢ body q body-phase =
   right-universal-phase-compatible vVᴾ q body-phase
 
-right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+right-universal-value-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
     {Γ : CTI.CtxImp (forgetWorld W)}
     {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
@@ -604,16 +604,27 @@ right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
   → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
       ⊢² Vᴾ ⊑ Vᴵ ∶ p
   → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
-  → (∀ i → i ≤ k → CompiledRightUniversalTestRelation
+  → (∀ i → i ≤ k → CompiledRightUniversalTestRelation {W = W}
       (right-universal-body-imprecision {W = W} p)
       Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
-  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Vᴵ
-right-universal-value-compatible-from-body {W = W} {k = k} {Γ = Γ}
+  → ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
+      (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+      (W≼W′ : Future W W′)
+      (γ : RelatedClosingSubstitutions W′ k
+        (liftContextImprecision W≼W′ (compiledContext W Γ)))
+      (j : ℕ)
+  → j ≤ k
+  → FutureValueRelation (liftCenterImprecision W≼W′ q)
+      W′ future-refl j
+      (close (impreciseClosingSubstitution γ)
+        (liftImpreciseTerm W≼W′ Vᴵ))
+      (close (preciseClosingSubstitution γ)
+        (liftPreciseTerm W≼W′ (Λ Vᴾ)))
+right-universal-value-related-from-body {W = W} {k = k} {Γ = Γ}
     {Aᴾ = Aᴾ} {Bᴵ = Bᴵ} {p = p} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ}
     nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q body-related
-    W′ W≼W′ γ =
-  related-values-return (imprecise-value endpoints)
-    (precise-value endpoints) related
+    W′ W≼W′ γ j j≤k =
+  related j j≤k
   where
   precise-γ = preciseClosingSubstitution γ
   imprecise-γ = impreciseClosingSubstitution γ
@@ -738,6 +749,71 @@ right-universal-value-compatible-from-body {W = W} {k = k} {Γ = Γ}
           {W = W} {k = k} {p = p-body}
           {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} {Nᴾ = Vᴾ} {Mᴵ = Vᴵ}
           vVᴾ body-related {W′ = W′} W≼W′ γ (suc j) sj≤k))
+
+right-universal-value-phase-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (nonvar : NonVar Aᴾ)
+  → (occurs : Fin.zero ∈ᵗ Aᴾ)
+  → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → (vVᴵ : Value Vᴵ)
+  → ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+        CTI.tgtCtxʷ Γ ⟩ ⊢ Vᴵ ⦂ Bᴵ
+  → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → (∀ i → i ≤ k → CompiledRightUniversalTestRelation {W = W}
+      (right-universal-body-imprecision {W = W} p)
+      Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
+  → CompiledRightUniversalBodyRelation
+      {W = W} {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} q k Γ Vᴾ Vᴵ
+right-universal-value-phase-from-body {W = W} {k = k} {Γ = Γ}
+    {Vᴵ = Vᴵ} nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q
+    body-related W′ W≼W′ γ =
+  related-target-value-phase imprecise-closed-value
+    (λ j j≤k → right-universal-value-related-from-body
+      {W = W} nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q body-related
+      W′ W≼W′ γ j j≤k)
+  where
+  imprecise-closed-value = close-preserves-value
+    (impreciseClosingSubstitution γ)
+    (ClosureProof.imprecise-value-future W≼W′ vVᴵ)
+
+right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (nonvar : NonVar Aᴾ)
+  → (occurs : Fin.zero ∈ᵗ Aᴾ)
+  → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → (vVᴵ : Value Vᴵ)
+  → ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+        CTI.tgtCtxʷ Γ ⟩ ⊢ Vᴵ ⦂ Bᴵ
+  → CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → (∀ i → i ≤ k → CompiledRightUniversalTestRelation {W = W}
+      (right-universal-body-imprecision {W = W} p)
+      Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Vᴵ
+right-universal-value-compatible-from-body {W = W} nonvar occurs liftΓ
+    vVᴾ vVᴵ target⊢ body q body-related =
+  right-universal-phase-compatible {W = W} vVᴾ q
+    (right-universal-value-phase-from-body {W = W} nonvar occurs liftΓ
+      vVᴾ vVᴵ target⊢ body q body-related)
 
 universal-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

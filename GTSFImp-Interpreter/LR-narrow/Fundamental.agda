@@ -5,7 +5,7 @@ module LR-narrow.Fundamental where
 --   * Uses the phase-aware body motive from LR-narrow.TermRelation.
 --   * Delegates constructor-facing proof scripts to the proof namespace.
 
-open import Data.Nat using (suc)
+open import Data.Nat using (ℕ; suc)
 import Data.Fin as Fin
 
 open import Types
@@ -16,7 +16,37 @@ import proof.DGG.CastTermImprecision as CTIR
 open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.TermRelation
+open import LR-narrow.Universal using (right-universal-body-imprecision)
 import proof.LR-narrow.Fundamental as Proof
+
+right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+    (nonvar : NonVar Aᴾ)
+    (occurs : Fin.zero ∈ᵗ Aᴾ)
+    (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+    (vVᴾ : Value Vᴾ)
+    (vVᴵ : Value Vᴵ)
+    (target⊢ : ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+      CTI.tgtCtxʷ Γ ⟩ ⊢ Vᴵ ⦂ Bᴵ)
+    (body : CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p)
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → (∀ i → CompiledRightUniversalTestRelation {W = W}
+      (right-universal-body-imprecision {W = W} p)
+      Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
+  → RightUniversalBodyFundamentalProperty
+      {W = W} {Γ = Γ}
+      {Wᵇ = CTI.liftWorldLeft I.X⊑★ (forgetWorld W)} {Γᵇ = Γ′}
+      {p = p} {Vᴾ = Vᴾ} {Mᴵ = Vᴵ} q body
+right-universal-value-body-fundamental =
+  Proof.right-universal-value-body-fundamental
 
 right-universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -43,6 +73,33 @@ right-universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
   → FundamentalProperty
       (CTIR.Λ⊑² nonvar occurs liftΓ vVᴾ target⊢ body q)
 right-universal-fundamental = Proof.right-universal-fundamental
+
+right-universal-value-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+    (nonvar : NonVar Aᴾ)
+    (occurs : Fin.zero ∈ᵗ Aᴾ)
+    (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+    (vVᴾ : Value Vᴾ)
+    (vVᴵ : Value Vᴵ)
+    (target⊢ : ⟨ Δᴵ , CTI.targetStoreʷ (forgetWorld W) ,
+      CTI.tgtCtxʷ Γ ⟩ ⊢ Vᴵ ⦂ Bᴵ)
+    (body : CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ∣ Γ′
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p)
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → (∀ i → CompiledRightUniversalTestRelation {W = W}
+      (right-universal-body-imprecision {W = W} p)
+      Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
+  → FundamentalProperty
+      (CTIR.Λ⊑² nonvar occurs liftΓ vVᴾ target⊢ body q)
+right-universal-value-fundamental =
+  Proof.right-universal-value-fundamental
 
 right-universal-smart-fundamental : ∀ {Δᴾ Δᴵ Δᶜ Δᵐ}
     {W : World Δᴾ Δᴵ Δᶜ}

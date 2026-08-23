@@ -3,31 +3,271 @@ module proof.LR-narrow.TargetEvaluation where
 -- File Charter:
 --   * Realizes target-only store changes as imprecise future-world paths.
 --   * Proves the store and term actions required by paired LR returns.
---   * Converts completed target phases against values to LR computations.
+--   * Converts target phases to LR computations and back at precise values.
 --   * Keeps the structural recursion on StoreChanges out of the public API.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (just; nothing)
-open import Data.Nat using (ℕ; zero; suc; _∸_; _≤_)
-open import Data.Nat.Properties using (m∸n≤m; n≤1+n; ≤-trans)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n)
+open import Data.Nat.Properties using (+-comm; m∸n≤m; n≤1+n; ≤-trans)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax)
-open import Data.Sum using (_⊎_; inj₁)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; subst; sym; trans; cong)
 
 open import Types
-open import CastTerms using (Term; Value; blame; ⇑ᵗᵐ)
-open import Reduction using (StoreChange; applyTerm; _—→[_]_)
+open import TyStore using (TyStore)
+import Imprecision as I
+open import CastTerms using
+  (Term; Value; `_ ; ƛ_; _·_; Λ_; _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩;
+   _↑_; _↓_; blame; ⇑ᵗᵐ)
+open import Reduction using
+  (StoreChange; applyStore; applyTerm; _—→[_]_)
 open import Reduction using
   (StoreChanges; []; _∷_; keep; bind; applyStores; applyTerms; ↠-refl)
 import Eval as E
 open import Interpreter
 open import LR-narrow.World
 open import LR-narrow.Computation
+open import LR-narrow.LogicalRelation
 open import LR-narrow.ImmediateReturn using (value-return)
+open import proof.LR-narrow.Application using
+  (eval-nonblame; eval-from-nonblame; eval-from-return;
+   value-return-exact)
 open import proof.LR-narrow.BindStepExpansion using
   (step-return; step-blame; step-return-expand; step-return-invert;
    step-blame-invert)
+import proof.LR-narrow.Closure as ClosureProof
+
+mutual
+  eval-terminal-suc : ∀ {Δ} {Σ : TyStore Δ} {gas : ℕ}
+      {M : Term Δ} {outcome : E.EvalOutcome M}
+    → E.evalFrom Σ gas M ≡ just outcome
+    → E.evalFrom Σ (suc gas) M ≡ just outcome
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = ` x} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = ƛ N} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = L · M} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = Λ N} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = L ⦂∀ B [ A ]} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = $ κ} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = L ⊕[ op ] M} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = M ⟨ c ⟩} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = M ↑ c} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {Σ = Σ} {gas = gas} {M = M ↓ c} =
+    eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} (λ ())
+  eval-terminal-suc {gas = zero} {M = blame} result-eq
+      with result-eq
+  eval-terminal-suc {gas = zero} {M = blame} result-eq | refl = refl
+  eval-terminal-suc {gas = suc gas} {M = blame} result-eq
+      with result-eq
+  eval-terminal-suc {gas = suc gas} {M = blame} result-eq | refl = refl
+
+  eval-terminal-suc-nonblame : ∀ {Δ}
+      {Σ : TyStore Δ} {gas : ℕ}
+      {M : Term Δ} {outcome : E.EvalOutcome M}
+    → M ≢ blame
+    → E.evalFrom Σ gas M ≡ just outcome
+    → E.evalFrom Σ (suc gas) M ≡ just outcome
+  eval-terminal-suc-nonblame {Σ = Σ} {gas = gas} {M = M}
+      M≠blame result-eq =
+    trans (eval-from-nonblame {Σ = Σ} {gas = suc gas} M≠blame)
+      (eval-nonblame-terminal-suc {Σ = Σ} {gas = gas} {M = M}
+        M≠blame (trans
+          (sym (eval-from-nonblame {Σ = Σ} {gas = gas} M≠blame))
+          result-eq))
+
+  eval-nonblame-terminal-suc : ∀ {Δ}
+      {Σ : TyStore Δ} {gas : ℕ}
+      {M : Term Δ} {outcome : E.EvalOutcome M}
+    → M ≢ blame
+    → eval-nonblame Σ gas M ≡ just outcome
+    → eval-nonblame Σ (suc gas) M ≡ just outcome
+  eval-nonblame-terminal-suc {gas = zero} {M = M}
+      M≠blame result-eq with E.value? M
+  eval-nonblame-terminal-suc {gas = zero} M≠blame result-eq
+      | just vM = result-eq
+  eval-nonblame-terminal-suc {gas = zero} M≠blame result-eq
+      | nothing with result-eq
+  eval-nonblame-terminal-suc {gas = zero} M≠blame result-eq
+      | nothing | ()
+  eval-nonblame-terminal-suc {Σ = Σ} {gas = suc gas} {M = M}
+      M≠blame result-eq with E.value? M
+  eval-nonblame-terminal-suc {gas = suc gas} M≠blame result-eq
+      | just vM = result-eq
+  eval-nonblame-terminal-suc {Σ = Σ} {gas = suc gas} {M = M}
+      M≠blame result-eq | nothing with E.step? Σ M
+  eval-nonblame-terminal-suc {gas = suc gas} M≠blame result-eq
+      | nothing | nothing with result-eq
+  eval-nonblame-terminal-suc {gas = suc gas} M≠blame result-eq
+      | nothing | nothing | ()
+  eval-nonblame-terminal-suc {Σ = Σ} {gas = suc gas} {M = M}
+      M≠blame result-eq
+      | nothing | just (E.step-result change N step)
+      with E.evalFrom (applyStore change Σ) gas N in next-eq
+  eval-nonblame-terminal-suc {gas = suc gas} M≠blame result-eq
+      | nothing | just (E.step-result change N step)
+      | nothing with result-eq
+  eval-nonblame-terminal-suc {gas = suc gas} M≠blame result-eq
+      | nothing | just (E.step-result change N step)
+      | nothing | ()
+  eval-nonblame-terminal-suc {Σ = Σ} {gas = suc gas} {M = M}
+      M≠blame result-eq
+      | nothing | just (E.step-result change N step)
+      | just next-outcome
+      rewrite eval-terminal-suc {Σ = applyStore change Σ} {gas = gas}
+        {M = N} {outcome = next-outcome} next-eq = result-eq
+
+eval-terminal-plus : ∀ {Δ} {Σ : TyStore Δ} {gas extra : ℕ}
+    {M : Term Δ} {outcome : E.EvalOutcome M}
+  → E.evalFrom Σ gas M ≡ just outcome
+  → E.evalFrom Σ (extra + gas) M ≡ just outcome
+eval-terminal-plus {extra = zero} result-eq = result-eq
+eval-terminal-plus {Σ = Σ} {gas = gas} {extra = suc extra}
+    {M = M} {outcome = outcome} result-eq =
+  eval-terminal-suc {Σ = Σ} {gas = extra + gas}
+    {M = M} {outcome = outcome}
+    (eval-terminal-plus {Σ = Σ} {gas = gas} {extra = extra}
+      {M = M} {outcome = outcome} result-eq)
+
+eval-terminal-unique : ∀ {Δ} {Σ : TyStore Δ}
+    {leftGas rightGas : ℕ} {M : Term Δ}
+    {left right : E.EvalOutcome M}
+  → E.evalFrom Σ leftGas M ≡ just left
+  → E.evalFrom Σ rightGas M ≡ just right
+  → left ≡ right
+eval-terminal-unique {Σ = Σ} {leftGas = leftGas} {rightGas = rightGas}
+    {M = M} {left = left} {right = right}
+    left-eq right-eq with trans (sym left-common) right-common
+  where
+  left-common : E.evalFrom Σ (leftGas + rightGas) M ≡ just left
+  left-common = subst
+    (λ gas → E.evalFrom Σ gas M ≡ just left)
+    (+-comm rightGas leftGas)
+    (eval-terminal-plus {Σ = Σ} {gas = leftGas} {extra = rightGas}
+      {M = M} {outcome = left} left-eq)
+
+  right-common : E.evalFrom Σ (leftGas + rightGas) M ≡ just right
+  right-common = eval-terminal-plus {Σ = Σ} {gas = rightGas}
+    {extra = leftGas} {M = M} {outcome = right} right-eq
+eval-terminal-unique left-eq right-eq | refl = refl
+
+return-result-unique : ∀ {Δ} {Σ : TyStore Δ}
+    {leftGas rightGas : ℕ} {M : Term Δ}
+    {left right : E.EvalResult M}
+  → interpretFrom Σ leftGas M ≡ returned left
+  → interpretFrom Σ rightGas M ≡ returned right
+  → left ≡ right
+return-result-unique {Σ = Σ} {leftGas = leftGas}
+    {rightGas = rightGas} {M = M} left-eq right-eq
+    with eval-terminal-unique {Σ = Σ} {leftGas = leftGas}
+      {rightGas = rightGas}
+      (eval-from-return {Σ = Σ} {gas = leftGas} {M = M} left-eq)
+      (eval-from-return {Σ = Σ} {gas = rightGas} {M = M} right-eq)
+return-result-unique left-eq right-eq | refl = refl
+
+computations-related-target-phase : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {R : IndexedValueRelation W}
+    {k : ℕ} {Mᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → Value Vᴾ
+  → (∀ {Δᴾ′ Δᴵ′ Δᶜ′}
+      {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      {W≼W′ : Future W W′} {j : ℕ} {Uᴵ : Term Δᴵ′}
+      {Uᴾ : Term Δᴾ′}
+    → j ≤ k
+    → R W′ W≼W′ k Uᴵ Uᴾ
+    → R W′ W≼W′ j Uᴵ Uᴾ)
+  → ComputationsRelated W R k Mᴵ Vᴾ
+  → TargetComputationPhase W R k Mᴵ Vᴾ
+computations-related-target-phase {W = W} {R = R} {k = k}
+    {Mᴵ = Mᴵ} {Vᴾ = Vᴾ} vVᴾ downward related = record
+  { targetReturn = target-return
+  ; targetReturnedRelated = λ {gas} {result} result-eq j j≤k →
+      returned-related {gas = gas} {result = result} result-eq j j≤k
+  ; targetBlameImpossible = λ {gas} gas≤k blame-result →
+      blame-impossible {gas = gas} gas≤k blame-result
+  }
+  where
+  precise-result = E.result _ [] Vᴾ ↠-refl vVᴾ
+
+  precise-return = value-return-exact
+    {Σ = preciseStore (core W)} zero vVᴾ
+
+  canonical = backward-return related z≤n precise-return
+
+  target-return : Σ[ gas ∈ ℕ ] Σ[ result ∈ E.EvalResult Mᴵ ]
+      interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
+  target-return with canonical
+  target-return | gas , result , result-eq , paired =
+    gas , result , result-eq
+
+  paired-returned-related : ∀ {result : E.EvalResult Mᴵ}
+    → PairedReturns W R k result precise-result
+    → (j : ℕ)
+    → j ≤ k
+    → Σ[ phase ∈ TargetChangesFuture W (E.changes result) ]
+        R (targetWorld phase) (targetFuture phase) j
+          (E.term result) (liftPreciseTerm (targetFuture phase) Vᴾ)
+  paired-returned-related
+      (paired-returns W′ W≼W′ storeᴵ storeᴾ termsᴵ termsᴾ at-k)
+      j j≤k =
+    target-future _ W′ W≼W′ storeᴵ storeᴾ termsᴵ
+      (λ M → sym (termsᴾ M)) ,
+    subst (λ U → R W′ W≼W′ j _ U) (termsᴾ Vᴾ)
+      (downward j≤k at-k)
+
+  returned-related : ∀ {gas} {result : E.EvalResult Mᴵ}
+    → interpretFrom (impreciseStore (core W)) gas Mᴵ ≡ returned result
+    → (j : ℕ)
+    → j ≤ k
+    → Σ[ phase ∈ TargetChangesFuture W (E.changes result) ]
+        R (targetWorld phase) (targetFuture phase) j
+          (E.term result) (liftPreciseTerm (targetFuture phase) Vᴾ)
+  returned-related result-eq j j≤k with canonical
+  returned-related {gas = gas} {result = result} result-eq j j≤k
+      | canonical-gas , canonical-result , canonical-return , paired
+      with return-result-unique
+        {Σ = impreciseStore (core W)} {leftGas = gas}
+        {rightGas = canonical-gas} {M = Mᴵ}
+        {left = result} {right = canonical-result}
+        result-eq canonical-return
+  returned-related {gas = gas} {result = result} result-eq j j≤k
+      | canonical-gas , canonical-result , canonical-return , paired
+      | refl = paired-returned-related paired j j≤k
+
+  blame-impossible : ∀ {gas}
+    → gas ≤ k
+    → BlamesFrom (impreciseStore (core W)) gas Mᴵ
+    → ⊥
+  blame-impossible gas≤k blame-result
+      with forward-blame related gas≤k blame-result
+  blame-impossible gas≤k blame-result
+      | precise-gas , Δ′ , changes , trace , precise-blame
+      with trans
+        (sym (value-return-exact {Σ = preciseStore (core W)}
+          precise-gas vVᴾ))
+        precise-blame
+  blame-impossible gas≤k blame-result
+      | precise-gas , Δ′ , changes , trace , precise-blame | ()
+
+future-value-computations-target-phase : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
+    {k : ℕ} {Mᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → Value Vᴾ
+  → ComputationsRelated W (FutureValueRelation p) k Mᴵ Vᴾ
+  → TargetComputationPhase W (FutureValueRelation p) k Mᴵ Vᴾ
+future-value-computations-target-phase vVᴾ =
+  computations-related-target-phase vVᴾ
+    ClosureProof.value-imprecision-downward-to
 
 target-changes-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴵ′}
   → (W : World Δᴾ Δᴵ Δᶜ)

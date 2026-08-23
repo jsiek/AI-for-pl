@@ -331,11 +331,22 @@ proves both store actions, the imprecise term action, and that the precise
 store and term remain unchanged.  The evaluator step consumes gas but leaves
 the LR observation index unchanged.
 
-The remaining obligation is to apply this closure recursively in the
-non-value target cases of `RightUniversalBodyFundamentalProperty`.  The old
-bind-first relation remains named `CompiledRightUniversalTestRelation`; it is
-sufficient exactly in the checked zero-allocation value subcase.  The smart
-structural guard alone cannot prove the general motive:
+Terminal evaluator outcomes are stable when gas is increased and hence unique
+across any two gas bounds.  Consequently,
+`future-value-computations-target-phase` converts an ordinary related
+computation whose precise endpoint is a value back to the target-first phase.
+It obtains one canonical target return by backward simulation, identifies
+every other observed target return with it, lowers the returned
+`FutureValueRelation` to the requested index, and rules out target blame by
+forward simulation against the precise value.
+
+The remaining obligation is to use this bridge with the existing constructor
+compatibility proofs in the non-value target cases of
+`RightUniversalBodyFundamentalProperty`, applying one-step phase closure when
+the target constructor itself reduces.  The old bind-first relation remains
+named `CompiledRightUniversalTestRelation`; it is sufficient exactly in the
+checked zero-allocation value subcase.  The smart structural guard alone cannot
+prove the general motive:
 `SmartCommaLiftᴸ` transports CTI imprecision and marks, but carries neither
 the semantic entries of an LR world nor a semantic relation for an
 alias-merged center.  In particular, an ordinary `FundamentalProperty` proof

@@ -35,3 +35,8 @@ open import LR-narrow.FutureInsertion public
 -- Assembly skeleton of the total theorem, parameterized by its remaining
 -- obligations; imported so the aggregate check covers it.
 import proof.LR-narrow.FundamentalAssembly
+
+-- Reveal compatibility at a paired slot: evaluator facts and the atomic
+-- imprecision forms.
+import proof.LR-narrow.RevealSteps
+import proof.LR-narrow.RevealAtomic

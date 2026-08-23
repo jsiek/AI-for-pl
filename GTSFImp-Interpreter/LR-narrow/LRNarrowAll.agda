@@ -44,3 +44,5 @@ import proof.LR-narrow.RevealAtomic
 import proof.LR-narrow.FramePhases
 import proof.LR-narrow.FrameComposition
 import proof.LR-narrow.RevealFrames
+import proof.LR-narrow.RevealLifting
+import proof.LR-narrow.ConcealAtomic

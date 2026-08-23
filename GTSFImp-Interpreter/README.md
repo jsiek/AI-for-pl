@@ -34,7 +34,9 @@ The port currently contains:
   type binding, and future-world transport exposed by the companion
   properties module;
 - `LR-narrow/TermRelation.agda`: the compilation-facing open-term relation,
-  obtained by closing both compiled endpoints with a related substitution;
+  obtained by closing both compiled endpoints with a related substitution,
+  plus the ordinary and right-universal derivation-indexed fundamental
+  motives;
 - `LR-narrow/ImmediateReturn.agda`: the evaluator lemma lifting related values
   to related computations;
 - `LR-narrow/Variable.agda`, `LR-narrow/Constant.agda`, and
@@ -54,6 +56,8 @@ The port currently contains:
   `CTI.Λ⊑Λ²` and phase-aware compatibility for general `CTI.Λ⊑²`, using
   the extension selected by each universal observation and closing below a
   type binder;
+- `LR-narrow/Fundamental.agda`: phase-aware fundamental-property cases for
+  `CTI.Λ⊑²` and `CTI.Λ⊑²-smart-comma`;
 - `LR-narrow/UniversalInstantiation.agda`: structural elimination of a
   positive-index `∀⊑∀` value at the pre-allocation type application.
 - `LR-narrow/TypeApplication.agda`: compatibility of structural CTI type
@@ -299,17 +303,22 @@ complete open-term relation.  The constructor-facing
 `right-universal-smart-compatible-from-body` specialize it to `CTI.Λ⊑²` and
 `CTI.Λ⊑²-smart-comma`, respectively.
 
-The remaining fundamental-property obligation is to construct that
-phase-aware body premise from the recursive CTI premise.  The old
-bind-first relation remains named `CompiledRightUniversalTestRelation` so the
-already checked value-target proof and its test construction stay explicit.
-The smart-comma compatibility case is therefore complete at the same
-phase-aware induction-hypothesis interface.  Its structural guard alone does
-not construct that premise: `SmartCommaLiftᴸ` transports CTI imprecision and
-marks, but carries neither the semantic entries of an LR world nor a semantic
-relation for an alias-merged center.  A fundamental-property traversal must
-carry the phase-aware premise as its induction hypothesis; it cannot derive it
-by reinterpreting the arbitrary guarded CTI premise world after the fact.
+`FundamentalProperty` now indexes the ordinary open LR theorem by its exact
+CTI derivation.  `RightUniversalBodyFundamentalProperty` is the distinct
+target-first motive for a derivation immediately below either one-sided
+universal constructor.  `right-universal-fundamental` and
+`right-universal-smart-fundamental` consume that motive and construct the
+ordinary fundamental property of their conclusions.
+
+The remaining obligation for these cases is a structural proof of
+`RightUniversalBodyFundamentalProperty` for the recursive CTI premise.  The
+old bind-first relation remains named `CompiledRightUniversalTestRelation` so
+the already checked value-target proof and its test construction stay
+explicit.  The smart structural guard alone cannot prove the new motive:
+`SmartCommaLiftᴸ` transports CTI imprecision and marks, but carries neither
+the semantic entries of an LR world nor a semantic relation for an
+alias-merged center.  In particular, an ordinary `FundamentalProperty` proof
+cannot be converted after the precise-only test has already been allocated.
 
 Structural universal elimination now handles `CTI.•⊑•²`. Evaluation is
 split into the operator and pre-allocation application phases, the universal

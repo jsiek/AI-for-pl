@@ -20,6 +20,7 @@ import TermCtx as T
 import Imprecision as I
 import proof.DGG.CtxImp as CTI
 import proof.DGG.CastTermImprecision as CTIR
+open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
@@ -220,3 +221,38 @@ CompiledRightUniversalTestRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Mᴵ =
           (liftPreciseBodyTerm W≼W′ Nᴾ)
           ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑
             liftPreciseBody W≼W′ Bᴾ 〗)
+
+------------------------------------------------------------------------
+-- Derivation-indexed fundamental-property motives
+------------------------------------------------------------------------
+
+record FundamentalProperty {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
+    {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
+    (derivation : forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p) : Set₁ where
+  constructor fundamental-proof
+  field
+    fundamental-relation : ∀ k
+      → CompiledTermRelation {W = W} p k Γ Mᴾ Mᴵ
+
+open FundamentalProperty public
+
+record RightUniversalBodyFundamentalProperty
+    {Δᴾ Δᴵ Δᶜ Δᵇ Aᴾ Bᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Wᵇ : CTI.World (suc Δᴾ) Δᴵ Δᵇ}
+    {Γᵇ : CTI.CtxImp Wᵇ}
+    {p : Aᴾ CTI.⊑ᵂ⟨ Wᵇ ⟩ Bᴵ}
+    {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+    (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+    (body : Wᵇ ∣ Γᵇ ⊢² Vᴾ ⊑ Mᴵ ∶ p) : Set₁ where
+  constructor right-universal-body-proof
+  field
+    right-universal-body-relation : ∀ k
+      → CompiledRightUniversalBodyRelation
+          {W = W} {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} q k Γ Vᴾ Mᴵ
+
+open RightUniversalBodyFundamentalProperty public

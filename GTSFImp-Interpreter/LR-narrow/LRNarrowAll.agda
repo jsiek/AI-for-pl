@@ -28,3 +28,4 @@ open import LR-narrow.Universal public
 open import LR-narrow.UniversalInstantiation public
 open import LR-narrow.TypeApplication public
 open import LR-narrow.Cast public
+open import LR-narrow.Fundamental public

@@ -240,9 +240,9 @@ mutual
 
   data ConcealValue {Θ : AnchorCtx} {Δ : TyCtx}
       (V : Term Θ Δ) : Conceal → Set where
-    seal :
+    sealᵥ :
       -------------------------------
-      ConcealValue V alt.Conversion.seal
+      ConcealValue V seal
 
     fun : ∀ {c d}
       -------------------------
@@ -310,7 +310,7 @@ mutual
       → (X : TyVar (suc Δ))
       → (α : TyVar Θ)
         --------------------------------------------------------
-      → CanonicalInterior (V ↓[ X ≔ α ] alt.Conversion.seal)
+      → CanonicalInterior (V ↓[ X ≔ α ] seal)
 
     delimited : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
       → CanonicalInterior V
@@ -323,7 +323,7 @@ canonical-value : ∀ {Θ Δ} {V : Term Θ Δ}
   → CanonicalInterior V
   → Value V
 canonical-value (tagged Vᵥ) = Vᵥ 《 inj 》
-canonical-value (sealed Vᵥ X α) = Vᵥ ↓[ X ≔ α ] seal
+canonical-value (sealed Vᵥ X α) = Vᵥ ↓[ X ≔ α ] sealᵥ
 canonical-value (delimited Vᶜ X α) =
   canonical-value Vᶜ ↑[ X ≔ α ] delimiter Vᶜ
 
@@ -451,7 +451,7 @@ data _—→_ : ∀ {Θ Δ} → Term Θ Δ → Term Θ Δ → Set where
       {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
     → Value V
       ------------------------------------------------------------
-    → (V ↓[ X ≔ α ] alt.Conversion.seal) ↑[ Y ≔ β ] unseal —→ V
+    → (V ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal —→ V
 
   blame-·₁ : ∀ {Θ Δ} {M : Term Θ Δ}
       ------------------------

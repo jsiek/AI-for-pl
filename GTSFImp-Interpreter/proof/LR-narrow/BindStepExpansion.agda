@@ -38,10 +38,8 @@ import proof.LR-narrow.Closure as ClosureProof
 paired-bind-step : ∀ {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) {Rᴾ : Ty Δᴾ} {Rᴵ : Ty Δᴵ}
     (r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ)
-    (fresh : SemanticAtom
-      (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero)
-  → Future W (pairedBindWorld W Rᴾ Rᴵ fresh)
-paired-bind-step W r fresh = future-paired future-refl r fresh
+  → Future W (pairedBindWorld W Rᴾ Rᴵ r)
+paired-bind-step W r = future-paired future-refl r
 
 prepend-step-interpreter-outcome : ∀ {Δ Δ′}
     {M : Term Δ} {N : Term Δ′} {χ : StoreChange Δ Δ′}
@@ -279,8 +277,6 @@ paired-returns-bind-step : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {Rᴾ : Ty Δᴾ} {Rᴵ : Ty Δᴵ}
     {r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ}
-    {fresh : SemanticAtom
-      (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero}
     {Aᴾ Aᴵ : Ty Δᶜ}
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
     {Mᴵ : Term Δᴵ} {Nᴵ : Term (suc Δᴵ)}
@@ -289,21 +285,21 @@ paired-returns-bind-step : ∀ {Δᴾ Δᴵ Δᶜ}
     {stepᴾ : Mᴾ —→[ bind Rᴾ ] Nᴾ}
     {resultᴵ : E.EvalResult Nᴵ} {resultᴾ : E.EvalResult Nᴾ}
     {k : ℕ}
-  → PairedReturns (pairedBindWorld W Rᴾ Rᴵ fresh)
+  → PairedReturns (pairedBindWorld W Rᴾ Rᴵ r)
       (FutureValueRelation
-        (liftCenterImprecision (paired-bind-step W r fresh) p))
+        (liftCenterImprecision (paired-bind-step W r) p))
       k resultᴵ resultᴾ
   → PairedReturns W
-      (PostBindValueRelation (paired-bind-step W r fresh) p) k
+      (PostBindValueRelation (paired-bind-step W r) p) k
       (prepend-result stepᴵ resultᴵ) (prepend-result stepᴾ resultᴾ)
 paired-returns-bind-step {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
-    {r = r} {fresh = fresh} {stepᴵ = stepᴵ} {stepᴾ = stepᴾ}
+    {r = r} {stepᴵ = stepᴵ} {stepᴾ = stepᴾ}
     {resultᴵ = resultᴵ} {resultᴾ = resultᴾ}
     (paired-returns W′ bound≼W′ storeᴵ storeᴾ termsᴵ termsᴾ related) =
   paired-returns W′ W≼W′ storeᴵ storeᴾ termsᴵ′ termsᴾ′
     (bound≼W′ , refl , final-related)
   where
-  step = paired-bind-step W r fresh
+  step = paired-bind-step W r
   W≼W′ = future-trans step bound≼W′
 
   termsᴵ′ : ∀ M
@@ -330,8 +326,6 @@ related-paired-bind-step-expand : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {Rᴾ : Ty Δᴾ} {Rᴵ : Ty Δᴵ}
     {r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ}
-    {fresh : SemanticAtom
-      (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero}
     {Aᴾ Aᴵ : Ty Δᶜ}
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ} {k : ℕ}
     {Mᴵ : Term Δᴵ} {Nᴵ : Term (suc Δᴵ)}
@@ -346,15 +340,15 @@ related-paired-bind-step-expand : ∀ {Δᴾ Δᴵ Δᶜ}
       just (E.step-result (bind Rᴵ) Nᴵ stepᴵ)
   → E.step? (preciseStore (core W)) Mᴾ ≡
       just (E.step-result (bind Rᴾ) Nᴾ stepᴾ)
-  → ComputationsRelated (pairedBindWorld W Rᴾ Rᴵ fresh)
+  → ComputationsRelated (pairedBindWorld W Rᴾ Rᴵ r)
       (FutureValueRelation
-        (liftCenterImprecision (paired-bind-step W r fresh) p)) k
+        (liftCenterImprecision (paired-bind-step W r) p)) k
       Nᴵ Nᴾ
   → ComputationsRelated W
-      (PostBindValueRelation (paired-bind-step W r fresh) p)
+      (PostBindValueRelation (paired-bind-step W r) p)
       (suc k) Mᴵ Mᴾ
 related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
-    {r = r} {fresh = fresh} {p = p} {k = k}
+    {r = r} {p = p} {k = k}
     {Mᴵ = Mᴵ} {Nᴵ = Nᴵ} {Mᴾ = Mᴾ} {Nᴾ = Nᴾ}
     Mᴵ≢blame Mᴾ≢blame value-eqᴵ value-eqᴾ stepᴵ stepᴾ
     step-eqᴵ step-eqᴾ related = record
@@ -363,7 +357,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
   ; forward-blame = blame-forward
   }
   where
-  bound = pairedBindWorld W Rᴾ Rᴵ fresh
+  bound = pairedBindWorld W Rᴾ Rᴵ r
 
   forward : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
     → n ≤ suc k
@@ -371,7 +365,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
     → (Σ[ m ∈ ℕ ] Σ[ resultᴾ ∈ E.EvalResult Mᴾ ]
         interpretFrom (preciseStore (core W)) m Mᴾ ≡ returned resultᴾ
         × PairedReturns W
-          (PostBindValueRelation (paired-bind-step W r fresh) p)
+          (PostBindValueRelation (paired-bind-step W r) p)
           (suc k ∸ n) resultᴵ resultᴾ)
       ⊎ (Σ[ m ∈ ℕ ] BlamesFrom (preciseStore (core W)) m Mᴾ)
   forward {n = n} n≤sk result-eq
@@ -389,7 +383,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
         {M = Mᴾ} {N = Nᴾ} {χ = bind Rᴾ}
         Mᴾ≢blame value-eqᴾ stepᴾ step-eqᴾ returnᴾ ,
       paired-returns-reindex resultᴵ-eq refl
-        (paired-returns-bind-step {r = r} {fresh = fresh} paired))
+        (paired-returns-bind-step {r = r} paired))
   forward {n = suc n} n≤sk result-eq
       | step-return resultᴵ′ returnᴵ resultᴵ-eq
       | inj₂ (m , blameᴾ) =
@@ -403,7 +397,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
     → Σ[ m ∈ ℕ ] Σ[ resultᴵ ∈ E.EvalResult Mᴵ ]
         interpretFrom (impreciseStore (core W)) m Mᴵ ≡ returned resultᴵ
         × PairedReturns W
-          (PostBindValueRelation (paired-bind-step W r fresh) p)
+          (PostBindValueRelation (paired-bind-step W r) p)
           (suc k ∸ n) resultᴵ resultᴾ
   backward {n = n} n≤sk result-eq
       with step-return-invert
@@ -420,7 +414,7 @@ related-paired-bind-step-expand {W = W} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
       {M = Mᴵ} {N = Nᴵ} {χ = bind Rᴵ}
       Mᴵ≢blame value-eqᴵ stepᴵ step-eqᴵ returnᴵ ,
     paired-returns-reindex refl resultᴾ-eq
-      (paired-returns-bind-step {r = r} {fresh = fresh} paired)
+      (paired-returns-bind-step {r = r} paired)
 
   blame-forward : ∀ {n}
     → n ≤ suc k

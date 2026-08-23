@@ -123,7 +123,7 @@ record RightDynamicPayloadShape {Δᴾ Δᴵ Δᶜ}
 open RightDynamicPayloadShape public
 
 record DynamicAtomTagRelated {Δᴾ Δᴵ Δᶜ}
-    (W : World Δᴾ Δᴵ Δᶜ) (k : ℕ)
+    (W : World Δᴾ Δᴵ Δᶜ) (ℛ : PayloadRelation (core W))
     (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
   constructor dynamic-atom-tag-related
   field
@@ -143,14 +143,14 @@ record DynamicAtomTagRelated {Δᴾ Δᴵ Δᶜ}
         ⟨ groundInjection atom-precise-ground-proof
           atom-precise-ground-to-star ⟩
     atom-relation-holds :
-      DynamicAtomHolds
+      DynamicAtomHolds ℛ
         (semanticEntry W dynamic-center-variable) dynamic-mode
-        k Vᴵ atom-precise-payload
+        Vᴵ atom-precise-payload
 
 open DynamicAtomTagRelated public
 
 record AlignedDynamicAtomRelated {Δᴾ Δᴵ Δᶜ}
-    (W : World Δᴾ Δᴵ Δᶜ) (Z : TyVar Δᶜ) (k : ℕ)
+    (W : World Δᴾ Δᴵ Δᶜ) (ℛ : PayloadRelation (core W)) (Z : TyVar Δᶜ)
     (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
   constructor aligned-dynamic-atom-related
   field
@@ -168,7 +168,7 @@ record AlignedDynamicAtomRelated {Δᴾ Δᴵ Δᶜ}
         ⟨ groundInjection aligned-imprecise-ground-proof
           aligned-imprecise-ground-to-star ⟩
     aligned-atom-relation-holds :
-      PairedAtomHolds (semanticEntry W Z) k
+      PairedAtomHolds ℛ (semanticEntry W Z)
         aligned-imprecise-payload Vᴾ
 
 open AlignedDynamicAtomRelated public
@@ -201,7 +201,7 @@ mutual
   ValueImprecisionᵏ (suc k) W I.★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.★⊑★ Vᴵ Vᴾ ×
     (DynamicPayloadRelated W k Vᴵ Vᴾ ⊎
-      DynamicAtomTagRelated W (suc k) Vᴵ Vᴾ)
+      DynamicAtomTagRelated W (ValueImprecisionᵏ k W) Vᴵ Vᴾ)
 
   ValueImprecisionᵏ (suc k) W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ =
     TypedEndpoints W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ ×
@@ -209,7 +209,7 @@ mutual
 
   ValueImprecisionᵏ (suc k) W (I.X⊑X {X = X}) Vᴵ Vᴾ =
     TypedEndpoints W (I.X⊑X {X = X}) Vᴵ Vᴾ ×
-    PairedAtomHolds (semanticEntry W X) (suc k) Vᴵ Vᴾ
+    PairedAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W X) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W (I.⇒⊑⇒ p q) Vᴵ Vᴾ =
     TypedEndpoints W (I.⇒⊑⇒ p q) Vᴵ Vᴾ ×
@@ -235,8 +235,9 @@ mutual
 
   ValueImprecisionᵏ (suc k) W (I.X⊑★ {X = X} eq) Vᴵ Vᴾ =
     TypedEndpoints W (I.X⊑★ eq) Vᴵ Vᴾ ×
-    (DynamicAtomHolds (semanticEntry W X) eq (suc k) Vᴵ Vᴾ ⊎
-      AlignedDynamicAtomRelated W X (suc k) Vᴵ Vᴾ)
+    (DynamicAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W X) eq
+        Vᴵ Vᴾ ⊎
+      AlignedDynamicAtomRelated W (ValueImprecisionᵏ k W) X Vᴵ Vᴾ)
 
   ValueImprecisionᵏ (suc k) W
       (I.∀⊑ {A = Aᴾ} {B = Aᴵ} nonvar occurs p) Vᴵ Vᴾ =
@@ -320,11 +321,10 @@ mutual
     (∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
         (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′) (Rᴵ : Ty Δᴵ′)
         (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
-        (fresh : SemanticAtom (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
         (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
           ⊑ᵂ⟨ core W′ ⟩ liftImpreciseBody W≼W′ Bᴵ [ Rᴵ ]ᵗ)
-      → let bound = pairedBindWorld W′ Rᴾ Rᴵ fresh
-            W′≼B = future-paired (future-refl {W = W′}) r fresh
+      → let bound = pairedBindWorld W′ Rᴾ Rᴵ r
+            W′≼B = future-paired (future-refl {W = W′}) r
         in ComputationsRelated W′
             (PostBindValueRelation W′≼B s) (suc k)
             (liftImpreciseTerm W≼W′ Vᴵ
@@ -346,12 +346,11 @@ mutual
   RightUniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
       (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′)
-      (fresh : DynamicSemanticAtom
-        (preciseBindCore (core W′) Rᴾ) Fin.zero)
+      (r : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
       (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
         ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
-    → let bound = preciseBindWorld W′ Rᴾ fresh
-          W′≼B = future-precise (future-refl {W = W′}) fresh
+    → let bound = preciseBindWorld W′ Rᴾ r
+          W′≼B = future-precise (future-refl {W = W′}) r
       in ComputationsRelated W′
           (PostBindValueRelation W′≼B s) zero
           (liftImpreciseTerm W≼W′ Vᴵ)
@@ -361,12 +360,11 @@ mutual
   RightUniversalsRelated W p Bᴾ Bᴵ (suc k) Vᴵ Vᴾ =
     (∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
         (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′)
-        (fresh : DynamicSemanticAtom
-          (preciseBindCore (core W′) Rᴾ) Fin.zero)
+        (r : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
         (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
           ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
-      → let bound = preciseBindWorld W′ Rᴾ fresh
-            W′≼B = future-precise (future-refl {W = W′}) fresh
+      → let bound = preciseBindWorld W′ Rᴾ r
+            W′≼B = future-precise (future-refl {W = W′}) r
         in ComputationsRelated W′
             (PostBindValueRelation W′≼B s) (suc k)
             (liftImpreciseTerm W≼W′ Vᴵ)
@@ -433,15 +431,39 @@ tags-and-payload gᴾ gᴵ Gᴾ∼★ Gᴵ∼★ q payload-related =
   dynamic-payload-shape _ _ gᴾ gᴵ _ _ Gᴾ∼★ Gᴵ∼★
     _ _ refl refl q , payload-related
 
+dynamic-atom-tag-map : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {ℛ ℛ′ : PayloadRelation (core W)}
+    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → PayloadMap (core W) ℛ ℛ′
+  → DynamicAtomTagRelated W ℛ Vᴵ Vᴾ
+  → DynamicAtomTagRelated W ℛ′ Vᴵ Vᴾ
+dynamic-atom-tag-map {W = W} f
+    (dynamic-atom-tag-related Z mode G g ground-center μ G∼★ U
+      tag-shape related) =
+  dynamic-atom-tag-related Z mode G g ground-center μ G∼★ U
+    tag-shape (dynamic-holds-map f (semanticEntry W Z) mode related)
+
+aligned-dynamic-atom-map : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {ℛ ℛ′ : PayloadRelation (core W)}
+    {Z : TyVar Δᶜ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → PayloadMap (core W) ℛ ℛ′
+  → AlignedDynamicAtomRelated W ℛ Z Vᴵ Vᴾ
+  → AlignedDynamicAtomRelated W ℛ′ Z Vᴵ Vᴾ
+aligned-dynamic-atom-map {W = W} {Z = Z} f
+    (aligned-dynamic-atom-related G g ground-center μ G∼★ U
+      tag-shape related) =
+  aligned-dynamic-atom-related G g ground-center μ G∼★ U
+    tag-shape (paired-holds-map f (semanticEntry W Z) related)
+
 dynamic-atom-tag : ∀ {Δᴾ Δᴵ Δᶜ}
-    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ} {Z : TyVar Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {ℛ : PayloadRelation (core W)} {Z : TyVar Δᶜ}
     (mode : impEnv (core W) Z ≡ I.X⊑★)
     {Gᴾ : Ty Δᴾ} (gᴾ : Ground Gᴾ)
     (ground-center : embedPrecise (core W) Gᴾ ≡ ＇ Z)
     {μᴾ : Env∼ Δᴾ} (Gᴾ∼★ : μᴾ ⊢ Gᴾ ∼★)
     {Vᴵ : Term Δᴵ} {Uᴾ : Term Δᴾ}
-  → DynamicAtomHolds (semanticEntry W Z) mode k Vᴵ Uᴾ
-  → DynamicAtomTagRelated W k Vᴵ
+  → DynamicAtomHolds ℛ (semanticEntry W Z) mode Vᴵ Uᴾ
+  → DynamicAtomTagRelated W ℛ Vᴵ
       (Uᴾ ⟨ groundInjection gᴾ Gᴾ∼★ ⟩)
 dynamic-atom-tag mode gᴾ ground-center Gᴾ∼★ related =
   dynamic-atom-tag-related _ mode _ gᴾ ground-center _ Gᴾ∼★

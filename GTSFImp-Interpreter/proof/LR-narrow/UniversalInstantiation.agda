@@ -24,8 +24,6 @@ related-universal-instantiation : ∀
     {W : World Δᴾ Δᴵ Δᶜ}
     {p : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
     {r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ}
-    {fresh : SemanticAtom
-      (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero}
     {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ p) (suc k) Vᴵ Vᴾ
   → Σ[ Bᴾ ∈ Ty (suc Δᴾ) ]
@@ -33,24 +31,23 @@ related-universal-instantiation : ∀
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
       × (embedImprecise (core W) (`∀ Bᴵ) ≡ `∀ Aᴵ)
       × ((s : Bᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ [ Rᴵ ]ᵗ)
-        → let bound = pairedBindWorld W Rᴾ Rᴵ fresh
-              step = future-paired (future-refl {W = W}) r fresh
+        → let bound = pairedBindWorld W Rᴾ Rᴵ r
+              step = future-paired (future-refl {W = W}) r
           in ComputationsRelated W (PostBindValueRelation step s)
                (suc k) (Vᴵ ⦂∀ Bᴵ [ Rᴵ ])
                  (Vᴾ ⦂∀ Bᴾ [ Rᴾ ]))
 related-universal-instantiation {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {W = W}
-    {r = r} {fresh = fresh}
+    {r = r}
     (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
   Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
-  (λ s → head W (future-refl {W = W}) Rᴾ Rᴵ r fresh s)
+  (λ s → head W (future-refl {W = W}) Rᴾ Rᴵ r s)
 
 right-related-universal-instantiation : ∀
     {Δᴾ Δᴵ Δᶜ} {Aᴾ : Ty (suc Δᶜ)} {Aᴵ : Ty Δᶜ}
     {Rᴾ : Ty Δᴾ} {W : World Δᴾ Δᴵ Δᶜ}
     {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ ⇑ᵗ Aᴵ}
     {nonvar : NonVar Aᴾ} {occurs : Fin.zero ∈ᵗ Aᴾ}
-    {fresh : DynamicSemanticAtom
-      (preciseBindCore (core W) Rᴾ) Fin.zero}
+    {r★ : impEnv (core W) I.⊢ embedPrecise (core W) Rᴾ ⊑ ★}
     {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑ nonvar occurs p) k Vᴵ Vᴾ
   → Σ[ Bᴾ ∈ Ty (suc Δᴾ) ]
@@ -58,17 +55,17 @@ right-related-universal-instantiation : ∀
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
       × (embedImprecise (core W) Bᴵ ≡ Aᴵ)
       × ((s : Bᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ)
-        → let bound = preciseBindWorld W Rᴾ fresh
-              step = future-precise (future-refl {W = W}) fresh
+        → let bound = preciseBindWorld W Rᴾ r★
+              step = future-precise (future-refl {W = W}) r★
           in ComputationsRelated W (PostBindValueRelation step s)
                k Vᴵ (Vᴾ ⦂∀ Bᴾ [ Rᴾ ]))
-right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W}
-    {fresh = fresh} {k = zero}
+right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W} {r★ = r★}
+    {k = zero}
     (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head) =
   Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
-  (λ s → head W (future-refl {W = W}) Rᴾ fresh s)
-right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W}
-    {fresh = fresh} {k = suc k}
+  (λ s → head W (future-refl {W = W}) Rᴾ r★ s)
+right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W} {r★ = r★}
+    {k = suc k}
     (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
   Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
-  (λ s → head W (future-refl {W = W}) Rᴾ fresh s)
+  (λ s → head W (future-refl {W = W}) Rᴾ r★ s)

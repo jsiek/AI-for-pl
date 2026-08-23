@@ -125,7 +125,17 @@ lifting of insertions, not derivation-level transport.
    core insertion), with monotonicity in place of `LiftedRelation`;
    `weaken-semantic-atom` then precomposes the extension. This touches
    `Atoms.agda`, `World.agda`, `Closure.agda`, and the paired/dynamic atom
-   constructions in `TypeApplication.agda`. Decision pending.
+   constructions in `TypeApplication.agda`.
+   Resolution (2026-08-23): a world-indexed atom is not definable
+   (positivity), and an OPE-indexed one cannot express the canonical
+   relation. Adopted instead: canonical slots. A paired slot records
+   `(Rᴾ, Rᴵ, r)`; the `X⊑X` clause relates `Uᴵ ↓ seal` and `Uᴾ ↓ seal`
+   exactly when the payloads are related at `r` one index lower, defined in
+   the consulting world (Kripke by construction). Dynamic slots record
+   `(Rᴾ, r★ : Rᴾ ⊑ ★)` likewise. The universal clauses quantify over
+   representation pairs instead of atoms; parametricity is relative to
+   LR-definable relations. Implemented and checked across the whole LR
+   (`make check` passes); 6a is thereby done and 6c is unnecessary.
 7. Close `Λ⊑Λ²`: lift the insertion under the binder
    (`WorldInsert.liftBoth-insert`, checked), instantiate the hypothesis at
    the canonical-atom test world, apply 6b, transfer by 6c to the

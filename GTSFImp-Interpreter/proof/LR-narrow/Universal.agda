@@ -177,15 +177,13 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       (W′≼W″ : Future W′ W″)
       (Rᴾ : Ty Δᴾ″) (Rᴵ : Ty Δᴵ″)
       (r : Rᴾ ⊑ᵂ⟨ core W″ ⟩ Rᴵ)
-      (fresh : SemanticAtom
-        (pairedBindCore (core W″) Rᴾ Rᴵ) Fin.zero)
       (s : liftPreciseBody W′≼W″
             (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ]ᵗ
         ⊑ᵂ⟨ core W″ ⟩
           liftImpreciseBody W′≼W″
             (liftImpreciseBody W≼W′ Bᴵ) [ Rᴵ ]ᵗ)
-    → let tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
-          test-step = future-paired (future-refl {W = W″}) r fresh
+    → let tested = pairedBindWorld W″ Rᴾ Rᴵ r
+          test-step = future-paired (future-refl {W = W″}) r
       in ComputationsRelated W″
           (PostBindValueRelation test-step s) (suc j)
           (liftImpreciseTerm W′≼W″
@@ -198,15 +196,15 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
               (liftPreciseTerm W≼W′ (Λ Nᴾ)))
             ⦂∀ liftPreciseBody W′≼W″
               (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ])
-  head W″ W′≼W″ Rᴾ Rᴵ r fresh s =
+  head W″ W′≼W″ Rᴾ Rᴵ r s =
     ClosureProof.computations-related-post-bind-reindex
       s-composite s
       (cong (embedPrecise (core W″)) precise-result-trans)
       (cong (embedImprecise (core W″)) imprecise-result-trans)
       imprecise-redex-eq precise-redex-eq canonical
     where
-    test-step = paired-step W″ r fresh
-    tested = pairedBindWorld W″ Rᴾ Rᴵ fresh
+    test-step = paired-step W″ r
+    tested = pairedBindWorld W″ Rᴾ Rᴵ r
     W≼W″ = future-trans W≼W′ W′≼W″
 
     precise-result-trans = cong (λ C → C [ Rᴾ ]ᵗ)
@@ -241,11 +239,11 @@ universals-related-from-body {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
       (liftPreciseBodyTerm-value W≼W″ vNᴾ)
 
     contract-related = body-related j j≤k W″ W≼W″ γ-tail
-      Rᴾ Rᴵ r fresh s-composite
+      Rᴾ Rᴵ r s-composite
 
     canonical = related-type-beta-expand
       {W = W″} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
-      {r = r} {fresh = fresh} {p = s-composite}
+      {r = r} {p = s-composite}
       {Bᴾ = liftPreciseBody W≼W″ Bᴾ}
       {Bᴵ = liftImpreciseBody W≼W″ Bᴵ}
       {Vᴾ = bodyᴾ} {Vᴵ = bodyᴵ}
@@ -357,15 +355,14 @@ right-universal-test-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
       (W″ : World Δᴾ″ Δᴵ″ Δᶜ″)
       (W′≼W″ : Future W′ W″)
       (Rᴾ : Ty Δᴾ″)
-      (fresh : DynamicSemanticAtom
-        (preciseBindCore (core W″) Rᴾ) Fin.zero)
+      (r★ : impEnv (core W″) I.⊢ embedPrecise (core W″) Rᴾ ⊑ ★)
       (s : liftPreciseBody W′≼W″
             (liftPreciseBody W≼W′ Bᴾ) [ Rᴾ ]ᵗ
         ⊑ᵂ⟨ core W″ ⟩
           liftImpreciseTy W′≼W″
             (liftImpreciseTy W≼W′ Bᴵ))
   → ComputationsRelated W″
-      (PostBindValueRelation (precise-step W″ fresh) s) j
+      (PostBindValueRelation (precise-step W″ r★) s) j
       (liftImpreciseTerm W′≼W″
         (close (impreciseClosingSubstitution γ)
           (liftImpreciseTerm W≼W′ Mᴵ)))
@@ -377,7 +374,7 @@ right-universal-test-from-body : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
 right-universal-test-from-body {W = W} {k = k} {j = j}
     {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Nᴾ = Nᴾ} {Mᴵ = Mᴵ}
     vNᴾ body-related {W′ = W′} W≼W′ γ j≤k
-    W″ W′≼W″ Rᴾ fresh s =
+    W″ W′≼W″ Rᴾ r★ s =
   ClosureProof.computations-related-post-bind-reindex
     s-composite s
     (cong (embedPrecise (core W″)) precise-result-trans)
@@ -412,10 +409,10 @@ right-universal-test-from-body {W = W} {k = k} {j = j}
     (liftPreciseBodyTerm-value W≼W″ vNᴾ)
 
   contract-related = body-related W″ W≼W″ γ-tail
-    Rᴾ fresh s-composite
+    Rᴾ r★ s-composite
 
   canonical = related-precise-type-beta-expand
-    {W = W″} {Rᴾ = Rᴾ} {fresh = fresh} {p = s-composite}
+    {W = W″} {Rᴾ = Rᴾ} {p = s-composite}
     {Bᴾ = liftPreciseBody W≼W″ Bᴾ} {Vᴾ = bodyᴾ}
     vBodyᴾ contract-related
 
@@ -777,16 +774,16 @@ right-universal-value-related-from-body {W = W} {k = k} {Γ = Γ}
     (explicit-endpoints ,
       liftPreciseBody W≼W′ Aᴾ , liftImpreciseTy W≼W′ Bᴵ ,
       precise-body-eq , imprecise-body-eq ,
-      (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W′≼K Rᴾ fresh s →
+      (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} K W′≼K Rᴾ r★ s →
         right-universals-related-result-transport
           (liftCenterBody-shift W≼W′ imprecise-base) p-lifted
-          (λ {Δᴾ″} {Δᴵ″} {Δᶜ″} J W′≼J Sᴾ fresh′ t →
+          (λ {Δᴾ″} {Δᴵ″} {Δᶜ″} J W′≼J Sᴾ r★′ t →
             right-universals-related-from-body
               {W = W} {k = k} {p = p-body}
               {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} {Nᴾ = Vᴾ} {Mᴵ = Vᴵ}
               vVᴾ body-related {W′ = W′} W≼W′ γ zero j≤k
-              {Δᴾ″} {Δᴵ″} {Δᶜ″} J W′≼J Sᴾ fresh′ t)
-          {Δᴾ′} {Δᴵ′} {Δᶜ′} K W′≼K Rᴾ fresh s))
+              {Δᴾ″} {Δᴵ″} {Δᶜ″} J W′≼J Sᴾ r★′ t)
+          {Δᴾ′} {Δᴵ′} {Δᶜ′} K W′≼K Rᴾ r★ s))
   related (suc j) sj≤k = ClosureProof.value-imprecision-reindex
     (liftCenterImprecision W≼W′ q) structural
     (liftCenterTy-universal W≼W′ precise-body-base) refl

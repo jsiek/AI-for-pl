@@ -18,6 +18,7 @@ open import TyStore
 open import TermCtx using (TermCtx)
 import TermCtx as T
 open import CastTerms
+import Imprecision as I
 open import LR-narrow.World
 open import LR-narrow.LogicalRelation
 
@@ -159,9 +160,8 @@ liftPreciseContext-paired : ∀
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
     {Bᴾ : Ty Δᴾ′} {Bᴵ : Ty Δᴵ′}
     {r : Bᴾ ⊑ᵂ⟨ core W′ ⟩ Bᴵ}
-    {fresh : SemanticAtom (pairedBindCore (core W′) Bᴾ Bᴵ) Fin.zero}
     (W≼W′ : Future W W′) (Γ : TermCtx Δᴾ)
-  → liftPreciseContext (future-paired W≼W′ r fresh) Γ ≡
+  → liftPreciseContext (future-paired W≼W′ r) Γ ≡
       T.⇑ᶜ (liftPreciseContext W≼W′ Γ)
 liftPreciseContext-paired W≼W′ [] = refl
 liftPreciseContext-paired W≼W′ (A ∷ Γ) =
@@ -171,9 +171,9 @@ liftPreciseContext-precise : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
     {Bᴾ : Ty Δᴾ′}
-    {fresh : DynamicSemanticAtom (preciseBindCore (core W′) Bᴾ) Fin.zero}
+    {r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Bᴾ ⊑ ★}
     (W≼W′ : Future W W′) (Γ : TermCtx Δᴾ)
-  → liftPreciseContext (future-precise W≼W′ fresh) Γ ≡
+  → liftPreciseContext (future-precise W≼W′ r★) Γ ≡
       T.⇑ᶜ (liftPreciseContext W≼W′ Γ)
 liftPreciseContext-precise W≼W′ [] = refl
 liftPreciseContext-precise W≼W′ (A ∷ Γ) =
@@ -195,9 +195,8 @@ liftImpreciseContext-paired : ∀
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
     {Bᴾ : Ty Δᴾ′} {Bᴵ : Ty Δᴵ′}
     {r : Bᴾ ⊑ᵂ⟨ core W′ ⟩ Bᴵ}
-    {fresh : SemanticAtom (pairedBindCore (core W′) Bᴾ Bᴵ) Fin.zero}
     (W≼W′ : Future W W′) (Γ : TermCtx Δᴵ)
-  → liftImpreciseContext (future-paired W≼W′ r fresh) Γ ≡
+  → liftImpreciseContext (future-paired W≼W′ r) Γ ≡
       T.⇑ᶜ (liftImpreciseContext W≼W′ Γ)
 liftImpreciseContext-paired W≼W′ [] = refl
 liftImpreciseContext-paired W≼W′ (A ∷ Γ) =
@@ -207,9 +206,9 @@ liftImpreciseContext-precise : ∀
     {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
     {Bᴾ : Ty Δᴾ′}
-    {fresh : DynamicSemanticAtom (preciseBindCore (core W′) Bᴾ) Fin.zero}
+    {r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Bᴾ ⊑ ★}
     (W≼W′ : Future W W′) (Γ : TermCtx Δᴵ)
-  → liftImpreciseContext (future-precise W≼W′ fresh) Γ ≡
+  → liftImpreciseContext (future-precise W≼W′ r★) Γ ≡
       liftImpreciseContext W≼W′ Γ
 liftImpreciseContext-precise W≼W′ [] = refl
 liftImpreciseContext-precise W≼W′ (A ∷ Γ) =

@@ -62,9 +62,9 @@ lift-imprecise-prim : ∀
   → liftImpreciseTerm W₀≼W₁ (L ⊕[ op ] M) ≡
       liftImpreciseTerm W₀≼W₁ L ⊕[ op ] liftImpreciseTerm W₀≼W₁ M
 lift-imprecise-prim future-refl op L M = refl
-lift-imprecise-prim (future-paired W₀≼W₁ related fresh) op L M
+lift-imprecise-prim (future-paired W₀≼W₁ related) op L M
     rewrite lift-imprecise-prim W₀≼W₁ op L M = refl
-lift-imprecise-prim (future-precise W₀≼W₁ fresh) op L M =
+lift-imprecise-prim (future-precise W₀≼W₁ r★) op L M =
   lift-imprecise-prim W₀≼W₁ op L M
 lift-imprecise-prim (future-imprecise W₀≼W₁) op L M
     rewrite lift-imprecise-prim W₀≼W₁ op L M = refl
@@ -77,9 +77,9 @@ lift-precise-prim : ∀
   → liftPreciseTerm W₀≼W₁ (L ⊕[ op ] M) ≡
       liftPreciseTerm W₀≼W₁ L ⊕[ op ] liftPreciseTerm W₀≼W₁ M
 lift-precise-prim future-refl op L M = refl
-lift-precise-prim (future-paired W₀≼W₁ related fresh) op L M
+lift-precise-prim (future-paired W₀≼W₁ related) op L M
     rewrite lift-precise-prim W₀≼W₁ op L M = refl
-lift-precise-prim (future-precise W₀≼W₁ fresh) op L M
+lift-precise-prim (future-precise W₀≼W₁ r★) op L M
     rewrite lift-precise-prim W₀≼W₁ op L M = refl
 lift-precise-prim (future-imprecise W₀≼W₁) op L M =
   lift-precise-prim W₀≼W₁ op L M

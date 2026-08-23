@@ -155,11 +155,10 @@ CompiledUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Nᴵ =
       (liftContextImprecision W≼W′ (compiledContext W Γ)))
     (Rᴾ : Ty Δᴾ′) (Rᴵ : Ty Δᴵ′)
     (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
-    (fresh : SemanticAtom (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
     (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
       ⊑ᵂ⟨ core W′ ⟩ liftImpreciseBody W≼W′ Bᴵ [ Rᴵ ]ᵗ)
-  → let tested = pairedBindWorld W′ Rᴾ Rᴵ fresh
-        test-step = paired-step W′ r fresh
+  → let tested = pairedBindWorld W′ Rᴾ Rᴵ r
+        test-step = paired-step W′ r
     in ComputationsRelated tested
         (FutureValueRelation (liftCenterImprecision test-step s)) k
         (closeTypeBody (impreciseClosingSubstitution γ)
@@ -207,12 +206,11 @@ CompiledRightUniversalTestRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Mᴵ =
     (γ : RelatedClosingSubstitutions W′ k
       (liftContextImprecision W≼W′ (compiledContext W Γ)))
     (Rᴾ : Ty Δᴾ′)
-    (fresh : DynamicSemanticAtom
-      (preciseBindCore (core W′) Rᴾ) Fin.zero)
+    (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
     (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
       ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
-  → let tested = preciseBindWorld W′ Rᴾ fresh
-        test-step = precise-step W′ fresh
+  → let tested = preciseBindWorld W′ Rᴾ r★
+        test-step = precise-step W′ r★
     in ComputationsRelated tested
         (FutureValueRelation (liftCenterImprecision test-step s)) k
         (close (impreciseClosingSubstitution γ)

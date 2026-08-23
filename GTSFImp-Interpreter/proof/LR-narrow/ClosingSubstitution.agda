@@ -45,30 +45,7 @@ value-imprecision-endpoints : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {k : ℕ} {Vᴵ Vᴾ}
   → ValueImprecision W p k Vᴵ Vᴾ
   → TypedEndpoints W p Vᴵ Vᴾ
-value-imprecision-endpoints {p = I.∀⊑ nonvar occurs p} {k = zero}
-    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , related) = endpoints
-value-imprecision-endpoints {p = I.★⊑★} {k = zero} related = related
-value-imprecision-endpoints {p = I.ι⊑ι} {k = zero} related = related
-value-imprecision-endpoints {p = I.X⊑X} {k = zero} related = related
-value-imprecision-endpoints {p = I.⇒⊑⇒ p q} {k = zero} related =
-  related
-value-imprecision-endpoints {p = I.∀⊑∀ p} {k = zero} related =
-  related
-value-imprecision-endpoints {p = I.⇒⊑★ p q} {k = zero} related =
-  related
-value-imprecision-endpoints {p = I.ι⊑★} {k = zero} related = related
-value-imprecision-endpoints {p = I.X⊑★ eq} {k = zero} related =
-  related
-value-imprecision-endpoints {p = I.∀★⊑★} {k = zero} related =
-  related
-value-imprecision-endpoints {p = I.∀⊑★ nonstar p} {k = zero}
-    related = related
-value-imprecision-endpoints {p = I.bot-elim} {k = zero} related =
-  related
-value-imprecision-endpoints {p = I.bot⊑★} {k = zero} related =
-  related
-value-imprecision-endpoints {k = suc k} related =
-  value-imprecision-endpoints (value-imprecision-downward related)
+value-imprecision-endpoints = ClosureProof.value-imprecision-endpoints
 
 precise-endpoint-typing : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Vᴾ Vᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -182,12 +159,12 @@ precise-open-typing-future {Γ = Γ} future-refl M⊢ =
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftPreciseContext-refl Γ)) M⊢
 precise-open-typing-future {Γ = Γ}
-    (future-paired W≼W′ related fresh) M⊢ =
+    (future-paired W≼W′ related) M⊢ =
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftPreciseContext-paired W≼W′ Γ))
     (typing-shiftᵗ-bind (precise-open-typing-future W≼W′ M⊢))
 precise-open-typing-future {Γ = Γ}
-    (future-precise W≼W′ fresh) M⊢ =
+    (future-precise W≼W′ r★) M⊢ =
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftPreciseContext-precise W≼W′ Γ))
     (typing-shiftᵗ-bind (precise-open-typing-future W≼W′ M⊢))
@@ -210,12 +187,12 @@ imprecise-open-typing-future {Γ = Γ} future-refl M⊢ =
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftImpreciseContext-refl Γ)) M⊢
 imprecise-open-typing-future {Γ = Γ}
-    (future-paired W≼W′ related fresh) M⊢ =
+    (future-paired W≼W′ related) M⊢ =
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftImpreciseContext-paired W≼W′ Γ))
     (typing-shiftᵗ-bind (imprecise-open-typing-future W≼W′ M⊢))
 imprecise-open-typing-future {Γ = Γ}
-    (future-precise W≼W′ fresh) M⊢ =
+    (future-precise W≼W′ r★) M⊢ =
   subst≡ (λ Γ′ → ⟨ _ , _ , Γ′ ⟩ ⊢ _ ⦂ _)
     (sym (liftImpreciseContext-precise W≼W′ Γ))
     (imprecise-open-typing-future W≼W′ M⊢)
@@ -382,12 +359,12 @@ precise-closing-future future-refl closing-empty = closing-empty
 precise-closing-future future-refl (closing-cons vV V⊢ γ) =
   closing-cons vV V⊢ (precise-closing-future future-refl γ)
 precise-closing-future
-    {Γ = Γ} (future-paired {Aᴾ = Bᴾ} W≼W′ related fresh) γ =
+    {Γ = Γ} (future-paired {Aᴾ = Bᴾ} W≼W′ related) γ =
   subst≡ (ClosingSubstitution _)
     (sym (liftPreciseContext-paired W≼W′ Γ))
     (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ))
 precise-closing-future
-    {Γ = Γ} (future-precise {Aᴾ = Bᴾ} W≼W′ fresh) γ =
+    {Γ = Γ} (future-precise {Aᴾ = Bᴾ} W≼W′ r★) γ =
   subst≡ (ClosingSubstitution _)
     (sym (liftPreciseContext-precise W≼W′ Γ))
     (shiftClosingBind {B = Bᴾ} (precise-closing-future W≼W′ γ))
@@ -407,12 +384,12 @@ imprecise-closing-future future-refl closing-empty = closing-empty
 imprecise-closing-future future-refl (closing-cons vV V⊢ γ) =
   closing-cons vV V⊢ (imprecise-closing-future future-refl γ)
 imprecise-closing-future
-    {Γ = Γ} (future-paired {Aᴵ = Bᴵ} W≼W′ related fresh) γ =
+    {Γ = Γ} (future-paired {Aᴵ = Bᴵ} W≼W′ related) γ =
   subst≡ (ClosingSubstitution _)
     (sym (liftImpreciseContext-paired W≼W′ Γ))
     (shiftClosingBind {B = Bᴵ} (imprecise-closing-future W≼W′ γ))
 imprecise-closing-future {Γ = Γ}
-    (future-precise W≼W′ fresh) γ =
+    (future-precise W≼W′ r★) γ =
   subst≡ (ClosingSubstitution _)
     (sym (liftImpreciseContext-precise W≼W′ Γ))
     (imprecise-closing-future W≼W′ γ)
@@ -436,7 +413,7 @@ precise-closing-future-lookup future-refl
     (closing-cons vV V⊢ γ) (suc x) =
   precise-closing-future-lookup future-refl γ x
 precise-closing-future-lookup
-    {Γ = Γ} (future-paired {Aᴾ = Bᴾ} W≼W′ related fresh) γ x =
+    {Γ = Γ} (future-paired {Aᴾ = Bᴾ} W≼W′ related) γ x =
   trans
     (lookupClosing-subst
       (sym (liftPreciseContext-paired W≼W′ Γ))
@@ -444,7 +421,7 @@ precise-closing-future-lookup
     (trans (lookup-shiftClosingBind (precise-closing-future W≼W′ γ) x)
       (cong ⇑ᵗᵐ (precise-closing-future-lookup W≼W′ γ x)))
 precise-closing-future-lookup
-    {Γ = Γ} (future-precise {Aᴾ = Bᴾ} W≼W′ fresh) γ x =
+    {Γ = Γ} (future-precise {Aᴾ = Bᴾ} W≼W′ r★) γ x =
   trans
     (lookupClosing-subst
       (sym (liftPreciseContext-precise W≼W′ Γ))
@@ -473,7 +450,7 @@ imprecise-closing-future-lookup future-refl
     (closing-cons vV V⊢ γ) (suc x) =
   imprecise-closing-future-lookup future-refl γ x
 imprecise-closing-future-lookup
-    {Γ = Γ} (future-paired {Aᴵ = Bᴵ} W≼W′ related fresh) γ x =
+    {Γ = Γ} (future-paired {Aᴵ = Bᴵ} W≼W′ related) γ x =
   trans
     (lookupClosing-subst
       (sym (liftImpreciseContext-paired W≼W′ Γ))
@@ -483,7 +460,7 @@ imprecise-closing-future-lookup
       (lookup-shiftClosingBind (imprecise-closing-future W≼W′ γ) x)
       (cong ⇑ᵗᵐ (imprecise-closing-future-lookup W≼W′ γ x)))
 imprecise-closing-future-lookup
-    {Γ = Γ} (future-precise W≼W′ fresh) γ x =
+    {Γ = Γ} (future-precise W≼W′ r★) γ x =
   trans
     (lookupClosing-subst
       (sym (liftImpreciseContext-precise W≼W′ Γ))
@@ -511,43 +488,43 @@ precise-close-future : ∀
 precise-close-future future-refl γ M =
   subst-cong (λ x → sym (precise-closing-future-lookup future-refl γ x)) M
 precise-close-future
-    (future-paired W≼W′ related fresh) γ M =
+    (future-paired W≼W′ related) γ M =
   trans (cong ⇑ᵗᵐ (precise-close-future W≼W′ γ M))
     (sym (subst-renameᵗᵐ C.wk↪ᵗ
       (closingSubstitution
         (precise-closing-future
-          (future-paired W≼W′ related fresh) γ))
+          (future-paired W≼W′ related) γ))
       (closingSubstitution (precise-closing-future W≼W′ γ))
       (liftPreciseTerm W≼W′ M) env-eq))
   where
   env-eq : ∀ x
     → closingSubstitution
         (precise-closing-future
-          (future-paired W≼W′ related fresh) γ) x
+          (future-paired W≼W′ related) γ) x
       ≡ ⇑ᵗᵐ (closingSubstitution
           (precise-closing-future W≼W′ γ) x)
   env-eq x =
     trans
       (precise-closing-future-lookup
-        (future-paired W≼W′ related fresh) γ x)
+        (future-paired W≼W′ related) γ x)
       (cong ⇑ᵗᵐ (sym (precise-closing-future-lookup W≼W′ γ x)))
 precise-close-future
-    (future-precise W≼W′ fresh) γ M =
+    (future-precise W≼W′ r★) γ M =
   trans (cong ⇑ᵗᵐ (precise-close-future W≼W′ γ M))
     (sym (subst-renameᵗᵐ C.wk↪ᵗ
       (closingSubstitution
-        (precise-closing-future (future-precise W≼W′ fresh) γ))
+        (precise-closing-future (future-precise W≼W′ r★) γ))
       (closingSubstitution (precise-closing-future W≼W′ γ))
       (liftPreciseTerm W≼W′ M) env-eq))
   where
   env-eq : ∀ x
     → closingSubstitution
-        (precise-closing-future (future-precise W≼W′ fresh) γ) x
+        (precise-closing-future (future-precise W≼W′ r★) γ) x
       ≡ ⇑ᵗᵐ (closingSubstitution
           (precise-closing-future W≼W′ γ) x)
   env-eq x =
     trans (precise-closing-future-lookup
-      (future-precise W≼W′ fresh) γ x)
+      (future-precise W≼W′ r★) γ x)
       (cong ⇑ᵗᵐ (sym (precise-closing-future-lookup W≼W′ γ x)))
 precise-close-future (future-imprecise W≼W′) γ M =
   trans (precise-close-future W≼W′ γ M)
@@ -574,40 +551,40 @@ imprecise-close-future future-refl γ M =
   subst-cong
     (λ x → sym (imprecise-closing-future-lookup future-refl γ x)) M
 imprecise-close-future
-    (future-paired W≼W′ related fresh) γ M =
+    (future-paired W≼W′ related) γ M =
   trans (cong ⇑ᵗᵐ (imprecise-close-future W≼W′ γ M))
     (sym (subst-renameᵗᵐ C.wk↪ᵗ
       (closingSubstitution
         (imprecise-closing-future
-          (future-paired W≼W′ related fresh) γ))
+          (future-paired W≼W′ related) γ))
       (closingSubstitution (imprecise-closing-future W≼W′ γ))
       (liftImpreciseTerm W≼W′ M) env-eq))
   where
   env-eq : ∀ x
     → closingSubstitution
         (imprecise-closing-future
-          (future-paired W≼W′ related fresh) γ) x
+          (future-paired W≼W′ related) γ) x
       ≡ ⇑ᵗᵐ (closingSubstitution
           (imprecise-closing-future W≼W′ γ) x)
   env-eq x =
     trans
       (imprecise-closing-future-lookup
-        (future-paired W≼W′ related fresh) γ x)
+        (future-paired W≼W′ related) γ x)
       (cong ⇑ᵗᵐ
         (sym (imprecise-closing-future-lookup W≼W′ γ x)))
 imprecise-close-future
-    (future-precise W≼W′ fresh) γ M =
+    (future-precise W≼W′ r★) γ M =
   trans (imprecise-close-future W≼W′ γ M)
     (subst-cong env-eq (liftImpreciseTerm W≼W′ M))
   where
   env-eq : ∀ x
     → closingSubstitution (imprecise-closing-future W≼W′ γ) x
       ≡ closingSubstitution
-          (imprecise-closing-future (future-precise W≼W′ fresh) γ) x
+          (imprecise-closing-future (future-precise W≼W′ r★) γ) x
   env-eq x =
     trans (imprecise-closing-future-lookup W≼W′ γ x)
       (sym (imprecise-closing-future-lookup
-        (future-precise W≼W′ fresh) γ x))
+        (future-precise W≼W′ r★) γ x))
 imprecise-close-future (future-imprecise W≼W′) γ M =
   trans (cong ⇑ᵗᵐ (imprecise-close-future W≼W′ γ M))
     (sym (subst-renameᵗᵐ C.wk↪ᵗ
@@ -660,9 +637,9 @@ lift-precise-blame : ∀
     (W≼W′ : Future W W′)
   → liftPreciseTerm W≼W′ blame ≡ blame
 lift-precise-blame future-refl = refl
-lift-precise-blame (future-paired W≼W′ related fresh)
+lift-precise-blame (future-paired W≼W′ related)
     rewrite lift-precise-blame W≼W′ = refl
-lift-precise-blame (future-precise W≼W′ fresh)
+lift-precise-blame (future-precise W≼W′ r★)
     rewrite lift-precise-blame W≼W′ = refl
 lift-precise-blame (future-imprecise W≼W′) =
   lift-precise-blame W≼W′
@@ -673,9 +650,9 @@ lift-imprecise-blame : ∀
     (W≼W′ : Future W W′)
   → liftImpreciseTerm W≼W′ blame ≡ blame
 lift-imprecise-blame future-refl = refl
-lift-imprecise-blame (future-paired W≼W′ related fresh)
+lift-imprecise-blame (future-paired W≼W′ related)
     rewrite lift-imprecise-blame W≼W′ = refl
-lift-imprecise-blame (future-precise W≼W′ fresh) =
+lift-imprecise-blame (future-precise W≼W′ r★) =
   lift-imprecise-blame W≼W′
 lift-imprecise-blame (future-imprecise W≼W′)
     rewrite lift-imprecise-blame W≼W′ = refl

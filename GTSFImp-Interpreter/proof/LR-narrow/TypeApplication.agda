@@ -79,14 +79,14 @@ lift-imprecise-type-application : ∀
         [ liftImpreciseTy W₀≼W₁ A ]
 lift-imprecise-type-application future-refl L B A = refl
 lift-imprecise-type-application
-    (future-paired W₀≼W₁ related fresh) L B A
+    (future-paired W₀≼W₁ related) L B A
     rewrite lift-imprecise-type-application W₀≼W₁ L B A =
   cong₂ (λ C R → ⇑ᵗᵐ (liftImpreciseTerm W₀≼W₁ L)
     ⦂∀ C [ R ])
     (renameᵗ-cong (liftImpreciseBody W₀≼W₁ B)
       toRename-keep-wk-eq)
     (renameᵗ-wk-eq (liftImpreciseTy W₀≼W₁ A))
-lift-imprecise-type-application (future-precise W₀≼W₁ fresh) L B A =
+lift-imprecise-type-application (future-precise W₀≼W₁ r★) L B A =
   lift-imprecise-type-application W₀≼W₁ L B A
 lift-imprecise-type-application
     (future-imprecise W₀≼W₁) L B A
@@ -109,7 +109,7 @@ lift-precise-type-application : ∀
         [ liftPreciseTy W₀≼W₁ A ]
 lift-precise-type-application future-refl L B A = refl
 lift-precise-type-application
-    (future-paired W₀≼W₁ related fresh) L B A
+    (future-paired W₀≼W₁ related) L B A
     rewrite lift-precise-type-application W₀≼W₁ L B A =
   cong₂ (λ C R → ⇑ᵗᵐ (liftPreciseTerm W₀≼W₁ L)
     ⦂∀ C [ R ])
@@ -117,7 +117,7 @@ lift-precise-type-application
       toRename-keep-wk-eq)
     (renameᵗ-wk-eq (liftPreciseTy W₀≼W₁ A))
 lift-precise-type-application
-    (future-precise W₀≼W₁ fresh) L B A
+    (future-precise W₀≼W₁ r★) L B A
     rewrite lift-precise-type-application W₀≼W₁ L B A =
   cong₂ (λ C R → ⇑ᵗᵐ (liftPreciseTerm W₀≼W₁ L)
     ⦂∀ C [ R ])
@@ -137,13 +137,13 @@ lift-imprecise-open : ∀
       liftImpreciseBody W₀≼W₁ B
         [ liftImpreciseTy W₀≼W₁ A ]ᵗ
 lift-imprecise-open future-refl B A = refl
-lift-imprecise-open (future-paired W₀≼W₁ related fresh) B A =
+lift-imprecise-open (future-paired W₀≼W₁ related) B A =
   trans (cong (renameᵗ Fin.suc)
     (lift-imprecise-open W₀≼W₁ B A))
     (rename-openᵗ Fin.suc
       (liftImpreciseBody W₀≼W₁ B)
       (liftImpreciseTy W₀≼W₁ A))
-lift-imprecise-open (future-precise W₀≼W₁ fresh) B A =
+lift-imprecise-open (future-precise W₀≼W₁ r★) B A =
   lift-imprecise-open W₀≼W₁ B A
 lift-imprecise-open (future-imprecise W₀≼W₁) B A =
   trans (cong (renameᵗ Fin.suc)
@@ -161,13 +161,13 @@ lift-precise-open : ∀
   → liftPreciseTy W₀≼W₁ (B [ A ]ᵗ) ≡
       liftPreciseBody W₀≼W₁ B [ liftPreciseTy W₀≼W₁ A ]ᵗ
 lift-precise-open future-refl B A = refl
-lift-precise-open (future-paired W₀≼W₁ related fresh) B A =
+lift-precise-open (future-paired W₀≼W₁ related) B A =
   trans (cong (renameᵗ Fin.suc)
     (lift-precise-open W₀≼W₁ B A))
     (rename-openᵗ Fin.suc
       (liftPreciseBody W₀≼W₁ B)
       (liftPreciseTy W₀≼W₁ A))
-lift-precise-open (future-precise W₀≼W₁ fresh) B A =
+lift-precise-open (future-precise W₀≼W₁ r★) B A =
   trans (cong (renameᵗ Fin.suc)
     (lift-precise-open W₀≼W₁ B A))
     (rename-openᵗ Fin.suc
@@ -1097,25 +1097,6 @@ type-application-blame-positive≤ {gas = zero}
     (Δ′ , changes , trace , ())
 type-application-blame-positive≤ {gas = suc gas} blaming = s≤s z≤n
 
-------------------------------------------------------------------------
--- The fresh argument atom selected by elimination
-------------------------------------------------------------------------
-
-empty-paired-atom : ∀ {Δᴾ Δᴵ Δᶜ}
-    (W : CoreWorld Δᴾ Δᴵ Δᶜ)
-    (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ)
-  → SemanticAtom (pairedBindCore W Aᴾ Aᴵ) Fin.zero
-empty-paired-atom W Aᴾ Aᴵ =
-  fresh-semantic-atom {W = W} Aᴾ Aᴵ
-    (λ k Vᴵ Vᴾ → ⊥) (λ ()) (λ ())
-
-empty-dynamic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
-    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ)
-  → DynamicSemanticAtom (preciseBindCore W Aᴾ) Fin.zero
-empty-dynamic-atom W Aᴾ =
-  fresh-dynamic-semantic-atom {W = W} Aᴾ
-    (λ k Vᴵ Vᴾ → ⊥) (λ ()) (λ ())
-
 precise-universal-body-eq : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {B C : Ty (suc Δᴾ)}
@@ -1257,25 +1238,23 @@ positive-universal-application : ∀
     {p : I.extᵐ (impEnv (core W)) I.⊢ Pᴾ ⊑ Pᴵ}
     {r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ}
     {s : Cᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Cᴵ [ Rᴵ ]ᵗ}
-    {fresh : SemanticAtom
-      (pairedBindCore (core W) Rᴾ Rᴵ) Fin.zero}
     {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → embedPrecise (core W) (`∀ Cᴾ) ≡ `∀ Pᴾ
   → embedImprecise (core W) (`∀ Cᴵ) ≡ `∀ Pᴵ
   → suc zero ≤ k
   → ValueImprecision W (I.∀⊑∀ p) k Vᴵ Vᴾ
-  → let step = future-paired (future-refl {W = W}) r fresh
+  → let step = future-paired (future-refl {W = W}) r
     in ComputationsRelated W (PostBindValueRelation step s) k
       (Vᴵ ⦂∀ Cᴵ [ Rᴵ ]) (Vᴾ ⦂∀ Cᴾ [ Rᴾ ])
 positive-universal-application {k = zero} Cᴾ-eq Cᴵ-eq () related
 positive-universal-application {W = W} {Cᴾ = Cᴾ} {Cᴵ = Cᴵ}
     {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {p = p} {r = r} {s = s}
-    {fresh = fresh} {k = suc k} Cᴾ-eq Cᴵ-eq positive related
+    {k = suc k} Cᴾ-eq Cᴵ-eq positive related
     with related-universal-instantiation {W = W} {p = p} {r = r}
-      {fresh = fresh} related
+      related
 positive-universal-application {W = W} {Cᴾ = Cᴾ} {Cᴵ = Cᴵ}
     {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {p = p} {r = r} {s = s}
-    {fresh = fresh} {k = suc k} Cᴾ-eq Cᴵ-eq positive related
+    {k = suc k} Cᴾ-eq Cᴵ-eq positive related
     | Bᴾ , Bᴵ , eqᴾ , eqᴵ , call
     rewrite precise-universal-bodies-eq {W = W} eqᴾ Cᴾ-eq
           | imprecise-universal-bodies-eq {W = W} eqᴵ Cᴵ-eq =
@@ -1288,22 +1267,21 @@ right-universal-application : ∀
     {p : I.instᵐ (impEnv (core W)) I.⊢ Pᴾ ⊑ ⇑ᵗ Pᴵ}
     {nonvar : NonVar Pᴾ} {occurs : Fin.zero ∈ᵗ Pᴾ}
     {s : Cᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W ⟩ Bᴵ}
-    {fresh : DynamicSemanticAtom
-      (preciseBindCore (core W) Rᴾ) Fin.zero}
+    {r★ : impEnv (core W) I.⊢ embedPrecise (core W) Rᴾ ⊑ ★}
     {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → embedPrecise (core W) (`∀ Cᴾ) ≡ `∀ Pᴾ
   → embedImprecise (core W) Bᴵ ≡ Pᴵ
   → ValueImprecision W (I.∀⊑ nonvar occurs p) k Vᴵ Vᴾ
-  → let step = future-precise (future-refl {W = W}) fresh
+  → let step = future-precise (future-refl {W = W}) r★
     in ComputationsRelated W (PostBindValueRelation step s) k
       Vᴵ (Vᴾ ⦂∀ Cᴾ [ Rᴾ ])
 right-universal-application {W = W} {Cᴾ = Cᴾ} {Bᴵ = Bᴵ}
-    {Rᴾ = Rᴾ} {s = s} {fresh = fresh}
+    {Rᴾ = Rᴾ} {s = s}
     Cᴾ-eq Bᴵ-eq related
     with right-related-universal-instantiation
-      {W = W} {fresh = fresh} related
+      {W = W} related
 right-universal-application {W = W} {Cᴾ = Cᴾ} {Bᴵ = Bᴵ}
-    {Rᴾ = Rᴾ} {s = s} {fresh = fresh}
+    {Rᴾ = Rᴾ} {s = s}
     Cᴾ-eq Bᴵ-eq related
     | Dᴾ , Dᴵ , eqᴾ , eqᴵ , call
     rewrite precise-universal-bodies-eq {W = W} eqᴾ Cᴾ-eq
@@ -1325,10 +1303,6 @@ positive-lifted-universal-application : ∀
     {s : Cᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W₀ ⟩ Cᴵ [ Rᴵ ]ᵗ}
     {k : ℕ} {Vᴵ : Term Δᴵ₁} {Vᴾ : Term Δᴾ₁}
   → (W₀≼W₁ : Future W₀ W₁)
-  → (fresh : SemanticAtom
-      (pairedBindCore (core W₁)
-        (liftPreciseTy W₀≼W₁ Rᴾ)
-        (liftImpreciseTy W₀≼W₁ Rᴵ)) Fin.zero)
   → suc zero ≤ k
   → ValueImprecision W₁
       (liftCenterImprecision W₀≼W₁ (I.∀⊑∀ p)) k Vᴵ Vᴾ
@@ -1337,7 +1311,7 @@ positive-lifted-universal-application : ∀
           (liftLocalImprecision W₀≼W₁ s)
           (sym (lift-precise-open W₀≼W₁ Cᴾ Rᴾ))
           (sym (lift-imprecise-open W₀≼W₁ Cᴵ Rᴵ))
-        step = future-paired (future-refl {W = W₁}) r′ fresh
+        step = future-paired (future-refl {W = W₁}) r′
     in ComputationsRelated W₁ (PostBindValueRelation step s′) k
       (Vᴵ ⦂∀ liftImpreciseBody W₀≼W₁ Cᴵ
         [ liftImpreciseTy W₀≼W₁ Rᴵ ])
@@ -1345,14 +1319,13 @@ positive-lifted-universal-application : ∀
         [ liftPreciseTy W₀≼W₁ Rᴾ ])
 positive-lifted-universal-application {W₀ = W₀} {W₁ = W₁}
     {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} {Rᴾ = Rᴾ} {Rᴵ = Rᴵ}
-    {p = p} {r = r} {s = s} {k = k} W₀≼W₁ fresh positive related =
+    {p = p} {r = r} {s = s} {k = k} W₀≼W₁ positive related =
   positive-universal-application {W = W₁} {p = local-body}
     {r = liftLocalImprecision W₀≼W₁ r}
     {s = ClosureProof.local-imprecision-reindex {W = W₁}
       (liftLocalImprecision W₀≼W₁ s)
       (sym (lift-precise-open W₀≼W₁ Cᴾ Rᴾ))
       (sym (lift-imprecise-open W₀≼W₁ Cᴵ Rᴵ))}
-    {fresh = fresh}
     refl refl positive explicit-related
   where
   local-universal = liftLocalImprecision W₀≼W₁ (I.∀⊑∀ p)
@@ -1491,9 +1464,7 @@ related-type-call-after-function : ∀
         (liftCenterImprecision W₀≼W₁ (I.∀⊑∀ p))) k Vᴵ Vᴾ
   → let composite = future-trans W₀≼W₁ W₁≼W₂
         r′ = liftLocalImprecision composite r
-        fresh = empty-paired-atom (core W₂)
-          (liftPreciseTy composite Rᴾ) (liftImpreciseTy composite Rᴵ)
-        step = future-paired (future-refl {W = W₂}) r′ fresh
+        step = future-paired (future-refl {W = W₂}) r′
     in ComputationsRelated W₂
       (PostBindValueRelation step
         (liftCenterImprecision W₁≼W₂
@@ -1520,16 +1491,13 @@ related-type-call-after-function {W₀ = W₀} {W₁ = W₁} {W₂ = W₂}
     (liftCenterTy-trans W₀≼W₁ W₁≼W₂
       (embedImprecise (core W₀) (`∀ Cᴵ))) functionRelated
 
-  fresh = empty-paired-atom (core W₂)
-    (liftPreciseTy composite Rᴾ) (liftImpreciseTy composite Rᴵ)
-
   step = future-paired (future-refl {W = W₂})
-    (liftLocalImprecision composite r) fresh
+    (liftLocalImprecision composite r)
 
   localCall = positive-lifted-universal-application
     {W₀ = W₀} {W₁ = W₂} {Cᴾ = Cᴾ} {Cᴵ = Cᴵ}
     {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {p = p} {r = r} {s = s}
-    composite fresh positive compositeFunction
+    composite positive compositeFunction
 
 right-type-call-after-function : ∀
     {Δᴾ₀ Δᴵ₀ Δᶜ₀ Δᴾ₁ Δᴵ₁ Δᶜ₁
@@ -1548,6 +1516,7 @@ right-type-call-after-function : ∀
       (extᵗ (Consistency.toRenameᵗ
         (preciseEmbedding (core W₀)))) Cᴾ}
     {s : Cᴾ [ Rᴾ ]ᵗ ⊑ᵂ⟨ core W₀ ⟩ Bᴵ}
+    {r★ : impEnv (core W₀) I.⊢ embedPrecise (core W₀) Rᴾ ⊑ ★}
     {Dᴾ : Ty (suc Δᴾ₂)} {Sᴾ : Ty Δᴾ₂}
     {Vᴾ : Term Δᴾ₂} {Vᴵ : Term Δᴵ₂} {k : ℕ}
   → (W₀≼W₁ : Future W₀ W₁)
@@ -1560,9 +1529,8 @@ right-type-call-after-function : ∀
         (liftCenterImprecision W₀≼W₁
           (I.∀⊑ nonvar occurs p))) k Vᴵ Vᴾ
   → let composite = future-trans W₀≼W₁ W₁≼W₂
-        fresh = empty-dynamic-atom (core W₂)
-          (liftPreciseTy composite Rᴾ)
-        step = future-precise (future-refl {W = W₂}) fresh
+        step = future-precise (future-refl {W = W₂})
+          (liftStarImprecision composite r★)
     in ComputationsRelated W₂
       (PostBindValueRelation step
         (liftCenterImprecision W₁≼W₂
@@ -1570,7 +1538,7 @@ right-type-call-after-function : ∀
       Vᴵ (Vᴾ ⦂∀ Dᴾ [ Sᴾ ])
 right-type-call-after-function {W₀ = W₀} {W₁ = W₁} {W₂ = W₂}
     {Cᴾ = Cᴾ} {Bᴵ = Bᴵ} {Rᴾ = Rᴾ}
-    {p = p} {nonvar = nonvar} {occurs = occurs} {s = s}
+    {p = p} {nonvar = nonvar} {occurs = occurs} {s = s} {r★ = r★}
     {Dᴾ = Dᴾ} {Sᴾ = Sᴾ} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ} {k = k}
     W₀≼W₁ W₁≼W₂ bodyEqᴾ argumentEqᴾ functionRelated =
   ClosureProof.computations-related-post-bind-reindex
@@ -1615,14 +1583,13 @@ right-type-call-after-function {W₀ = W₀} {W₁ = W₁} {W₂ = W₂}
     (liftLocalImprecision composite s)
     (sym (lift-precise-open composite Cᴾ Rᴾ)) refl
 
-  fresh = empty-dynamic-atom (core W₂)
-    (liftPreciseTy composite Rᴾ)
-
-  step = future-precise (future-refl {W = W₂}) fresh
+  step = future-precise (future-refl {W = W₂})
+    (liftStarImprecision composite r★)
 
   localCall = right-universal-application
     {W = W₂} {p = p-structural} {s = local-result}
-    {fresh = fresh} {k = k}
+    {r★ = liftStarImprecision composite r★}
+    {k = k}
     (cong `∀ (precise-body-lift-eq composite Cᴾ))
     (embedImprecise-lift composite Bᴵ) structuralFunction
 
@@ -2436,7 +2403,7 @@ right-type-application-compatible {W = W} {Γ = Γ}
 
     call-related = right-type-call-after-function
       {W₀ = W} {W₁ = W′} {W₂ = W₁}
-      {p = p} {nonvar = nonvar} {occurs = occurs} {s = r}
+      {p = p} {nonvar = nonvar} {occurs = occurs} {s = r} {r★ = q}
       {Dᴾ = applyBodies (E.changes preciseFunctionResult) Cᴾ′}
       {Sᴾ = E.changes preciseFunctionResult ▶ᵗ Aᴾ′}
       {Vᴾ = E.term preciseFunctionResult}
@@ -2563,7 +2530,7 @@ right-type-application-compatible {W = W} {Γ = Γ}
 
     call-related = right-type-call-after-function
       {W₀ = W} {W₁ = W′} {W₂ = W₁}
-      {p = p} {nonvar = nonvar} {occurs = occurs} {s = r}
+      {p = p} {nonvar = nonvar} {occurs = occurs} {s = r} {r★ = q}
       {Dᴾ = applyBodies (E.changes preciseFunctionResult) Cᴾ′}
       {Sᴾ = E.changes preciseFunctionResult ▶ᵗ Aᴾ′}
       {Vᴾ = E.term preciseFunctionResult}

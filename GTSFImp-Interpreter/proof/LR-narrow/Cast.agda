@@ -1298,34 +1298,34 @@ dynamic-atom-source-endpoints : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
     {mode : impEnv (core W) Z ≡ I.X⊑★}
     {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → DynamicAtomHolds (semanticEntry W Z) mode k Vᴵ Vᴾ
+  → DynamicAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W Z) mode
+      Vᴵ Vᴾ
   → TypedEndpoints W (I.X⊑★ mode) Vᴵ Vᴾ
-dynamic-atom-source-endpoints {W = W} {Z = Z} {mode = mode} holds
-    with dynamic-atom-evidence (semanticEntry W Z) mode holds
-dynamic-atom-source-endpoints holds
-    | Xᴾ , aligned , (vVᴵ , Vᴵ⊢★) , (vVᴾ , Vᴾ⊢X) =
-  typed-endpoints ★ (＇ Xᴾ) refl (cong (λ X → ＇ X) aligned)
-    vVᴵ vVᴾ Vᴵ⊢★ Vᴾ⊢X
+dynamic-atom-source-endpoints {W = W} {Z = Z} {mode = mode} holds =
+  ClosureProof.dynamic-holds-endpoints (semanticEntry W Z) mode
+    (I.X⊑★ mode) holds
+
+-- Sealed payloads related at a dynamic slot at index k are related
+-- values at the slot's center variable at index suc k.
 
 dynamic-atom-source-value-at : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} (k : ℕ) {Z : TyVar Δᶜ}
     {mode : impEnv (core W) Z ≡ I.X⊑★}
     {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → DynamicAtomHolds (semanticEntry W Z) mode k Vᴵ Vᴾ
-  → ValueImprecision W (I.X⊑★ mode) k Vᴵ Vᴾ
-dynamic-atom-source-value-at zero holds =
-  dynamic-atom-source-endpoints holds
-dynamic-atom-source-value-at (suc k) holds =
+  → DynamicAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W Z) mode
+      Vᴵ Vᴾ
+  → ValueImprecision W (I.X⊑★ mode) (suc k) Vᴵ Vᴾ
+dynamic-atom-source-value-at k holds =
   dynamic-atom-source-endpoints holds , inj₁ holds
 
 transport-paired-atom-holds : ∀ {Δᴾ Δᴵ Δᶜ mode mode′}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ}
-    {entry : SemanticEntry W X mode} {k : ℕ}
+    {entry : SemanticEntry W X mode} {ℛ : PayloadRelation W}
     {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → (eq : mode ≡ mode′)
-  → PairedAtomHolds entry k Vᴵ Vᴾ
-  → PairedAtomHolds
-      (subst≡ (SemanticEntry W X) eq entry) k Vᴵ Vᴾ
+  → PairedAtomHolds ℛ entry Vᴵ Vᴾ
+  → PairedAtomHolds ℛ
+      (subst≡ (SemanticEntry W X) eq entry) Vᴵ Vᴾ
 transport-paired-atom-holds refl related = related
 
 right-dynamic-tag-endpoints : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ}
@@ -1489,9 +1489,9 @@ future-precise-monotone : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
   → Future W W′
   → Δᴾ ≤ Δᴾ′
 future-precise-monotone future-refl = ≤-refl
-future-precise-monotone (future-paired W≼W′ related fresh) =
+future-precise-monotone (future-paired W≼W′ related) =
   ≤-trans (future-precise-monotone W≼W′) (n≤1+n _)
-future-precise-monotone (future-precise W≼W′ fresh) =
+future-precise-monotone (future-precise W≼W′ r★) =
   ≤-trans (future-precise-monotone W≼W′) (n≤1+n _)
 future-precise-monotone (future-imprecise W≼W′) =
   future-precise-monotone W≼W′
@@ -1501,9 +1501,9 @@ future-imprecise-monotone : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
   → Future W W′
   → Δᴵ ≤ Δᴵ′
 future-imprecise-monotone future-refl = ≤-refl
-future-imprecise-monotone (future-paired W≼W′ related fresh) =
+future-imprecise-monotone (future-paired W≼W′ related) =
   ≤-trans (future-imprecise-monotone W≼W′) (n≤1+n _)
-future-imprecise-monotone (future-precise W≼W′ fresh) =
+future-imprecise-monotone (future-precise W≼W′ r★) =
   future-imprecise-monotone W≼W′
 future-imprecise-monotone (future-imprecise W≼W′) =
   ≤-trans (future-imprecise-monotone W≼W′) (n≤1+n _)
@@ -1519,9 +1519,9 @@ future-refl-view : ∀ {Δᴾ Δᴵ Δᶜ Δᶜ′}
     (W≼W′ : Future W W′)
   → ReflexiveFuture W W≼W′
 future-refl-view future-refl = future-is-refl
-future-refl-view (future-paired W≼W′ related fresh) =
+future-refl-view (future-paired W≼W′ related) =
   ⊥-elim (1+n≰n (future-precise-monotone W≼W′))
-future-refl-view (future-precise W≼W′ fresh) =
+future-refl-view (future-precise W≼W′ r★) =
   ⊥-elim (1+n≰n (future-precise-monotone W≼W′))
 future-refl-view (future-imprecise W≼W′) =
   ⊥-elim (1+n≰n (future-imprecise-monotone W≼W′))
@@ -2192,9 +2192,9 @@ precise-consistency-future : ∀
       ClosureProof.precise-ground-type W≼W′ B
 precise-consistency-future future-refl c = c
 precise-consistency-future
-    (future-paired W≼W′ related fresh) c =
+    (future-paired W≼W′ related) c =
   C.renameᵐᶜ C.wk↪ᵗ (precise-consistency-future W≼W′ c)
-precise-consistency-future (future-precise W≼W′ fresh) c =
+precise-consistency-future (future-precise W≼W′ r★) c =
   C.renameᵐᶜ C.wk↪ᵗ (precise-consistency-future W≼W′ c)
 precise-consistency-future (future-imprecise W≼W′) c =
   precise-consistency-future W≼W′ c
@@ -2210,9 +2210,9 @@ imprecise-consistency-future : ∀
       ClosureProof.imprecise-ground-type W≼W′ B
 imprecise-consistency-future future-refl c = c
 imprecise-consistency-future
-    (future-paired W≼W′ related fresh) c =
+    (future-paired W≼W′ related) c =
   C.renameᵐᶜ C.wk↪ᵗ (imprecise-consistency-future W≼W′ c)
-imprecise-consistency-future (future-precise W≼W′ fresh) c =
+imprecise-consistency-future (future-precise W≼W′ r★) c =
   imprecise-consistency-future W≼W′ c
 imprecise-consistency-future (future-imprecise W≼W′) c =
   C.renameᵐᶜ C.wk↪ᵗ (imprecise-consistency-future W≼W′ c)
@@ -2264,7 +2264,7 @@ precise-universal-body-consistency-future : ∀
       liftPreciseBody W≼W′ A ∼ liftPreciseBody W≼W′ B
 precise-universal-body-consistency-future future-refl c = c
 precise-universal-body-consistency-future {μ = μ}
-    (future-paired W≼W′ related fresh) c =
+    (future-paired W≼W′ related) c =
   C.rename∼
     {μ = C.extᵐ
       (ClosureProof.precise-consistency-env-future W≼W′ μ)}
@@ -2281,7 +2281,7 @@ precise-universal-body-consistency-future {μ = μ}
           (ClosureProof.precise-consistency-env-future W≼W′ μ) X)))
     (precise-universal-body-consistency-future W≼W′ c)
 precise-universal-body-consistency-future {μ = μ}
-    (future-precise W≼W′ fresh) c =
+    (future-precise W≼W′ r★) c =
   C.rename∼
     {μ = C.extᵐ
       (ClosureProof.precise-consistency-env-future W≼W′ μ)}
@@ -2311,7 +2311,7 @@ imprecise-universal-body-consistency-future : ∀
       liftImpreciseBody W≼W′ A ∼ liftImpreciseBody W≼W′ B
 imprecise-universal-body-consistency-future future-refl c = c
 imprecise-universal-body-consistency-future {μ = μ}
-    (future-paired W≼W′ related fresh) c =
+    (future-paired W≼W′ related) c =
   C.rename∼
     {μ = C.extᵐ
       (ClosureProof.imprecise-consistency-env-future W≼W′ μ)}
@@ -2328,7 +2328,7 @@ imprecise-universal-body-consistency-future {μ = μ}
           (ClosureProof.imprecise-consistency-env-future W≼W′ μ) X)))
     (imprecise-universal-body-consistency-future W≼W′ c)
 imprecise-universal-body-consistency-future
-    (future-precise W≼W′ fresh) c =
+    (future-precise W≼W′ r★) c =
   imprecise-universal-body-consistency-future W≼W′ c
 imprecise-universal-body-consistency-future {μ = μ}
     (future-imprecise W≼W′) c =
@@ -2358,11 +2358,11 @@ lift-precise-universal-cast : ∀
       liftPreciseTerm W≼W′ M
         ⟨ C.∀ᶜ (precise-universal-body-consistency-future W≼W′ c) ⟩
 lift-precise-universal-cast future-refl M c = refl
-lift-precise-universal-cast (future-paired W≼W′ related fresh) M c
+lift-precise-universal-cast (future-paired W≼W′ related) M c
     rewrite lift-precise-universal-cast W≼W′ M c =
   rename-universal-cast-wk (liftPreciseTerm W≼W′ M)
     (precise-universal-body-consistency-future W≼W′ c)
-lift-precise-universal-cast (future-precise W≼W′ fresh) M c
+lift-precise-universal-cast (future-precise W≼W′ r★) M c
     rewrite lift-precise-universal-cast W≼W′ M c =
   rename-universal-cast-wk (liftPreciseTerm W≼W′ M)
     (precise-universal-body-consistency-future W≼W′ c)
@@ -2380,11 +2380,11 @@ lift-imprecise-universal-cast : ∀
         ⟨ C.∀ᶜ (imprecise-universal-body-consistency-future W≼W′ c) ⟩
 lift-imprecise-universal-cast future-refl M c = refl
 lift-imprecise-universal-cast
-    (future-paired W≼W′ related fresh) M c
+    (future-paired W≼W′ related) M c
     rewrite lift-imprecise-universal-cast W≼W′ M c =
   rename-universal-cast-wk (liftImpreciseTerm W≼W′ M)
     (imprecise-universal-body-consistency-future W≼W′ c)
-lift-imprecise-universal-cast (future-precise W≼W′ fresh) M c =
+lift-imprecise-universal-cast (future-precise W≼W′ r★) M c =
   lift-imprecise-universal-cast W≼W′ M c
 lift-imprecise-universal-cast (future-imprecise W≼W′) M c
     rewrite lift-imprecise-universal-cast W≼W′ M c =
@@ -2399,9 +2399,9 @@ precise-ground-type-arrow : ∀
       (ClosureProof.precise-ground-type W≼W′ A ⇒
         ClosureProof.precise-ground-type W≼W′ B)
 precise-ground-type-arrow future-refl A B = refl
-precise-ground-type-arrow (future-paired W≼W′ related fresh) A B
+precise-ground-type-arrow (future-paired W≼W′ related) A B
     rewrite precise-ground-type-arrow W≼W′ A B = refl
-precise-ground-type-arrow (future-precise W≼W′ fresh) A B
+precise-ground-type-arrow (future-precise W≼W′ r★) A B
     rewrite precise-ground-type-arrow W≼W′ A B = refl
 precise-ground-type-arrow (future-imprecise W≼W′) A B =
   precise-ground-type-arrow W≼W′ A B
@@ -2414,9 +2414,9 @@ imprecise-ground-type-arrow : ∀
       (ClosureProof.imprecise-ground-type W≼W′ A ⇒
         ClosureProof.imprecise-ground-type W≼W′ B)
 imprecise-ground-type-arrow future-refl A B = refl
-imprecise-ground-type-arrow (future-paired W≼W′ related fresh) A B
+imprecise-ground-type-arrow (future-paired W≼W′ related) A B
     rewrite imprecise-ground-type-arrow W≼W′ A B = refl
-imprecise-ground-type-arrow (future-precise W≼W′ fresh) A B =
+imprecise-ground-type-arrow (future-precise W≼W′ r★) A B =
   imprecise-ground-type-arrow W≼W′ A B
 imprecise-ground-type-arrow (future-imprecise W≼W′) A B
     rewrite imprecise-ground-type-arrow W≼W′ A B = refl
@@ -2432,7 +2432,7 @@ precise-function-domain-future : ∀
       ClosureProof.precise-ground-type W≼W′ A
 precise-function-domain-future future-refl c = c
 precise-function-domain-future
-    (future-paired W≼W′ related fresh) {μ = μ} c =
+    (future-paired W≼W′ related) {μ = μ} c =
   C.rename∼
     {μ = C.flipᵐ
       (ClosureProof.precise-consistency-env-future W≼W′ μ)}
@@ -2445,7 +2445,7 @@ precise-function-domain-future
         (ClosureProof.precise-consistency-env-future W≼W′ μ) X))
     (precise-function-domain-future W≼W′ c)
 precise-function-domain-future
-    (future-precise W≼W′ fresh) {μ = μ} c =
+    (future-precise W≼W′ r★) {μ = μ} c =
   C.rename∼
     {μ = C.flipᵐ
       (ClosureProof.precise-consistency-env-future W≼W′ μ)}
@@ -2471,7 +2471,7 @@ imprecise-function-domain-future : ∀
       ClosureProof.imprecise-ground-type W≼W′ A
 imprecise-function-domain-future future-refl c = c
 imprecise-function-domain-future
-    (future-paired W≼W′ related fresh) {μ = μ} c =
+    (future-paired W≼W′ related) {μ = μ} c =
   C.rename∼
     {μ = C.flipᵐ
       (ClosureProof.imprecise-consistency-env-future W≼W′ μ)}
@@ -2483,7 +2483,7 @@ imprecise-function-domain-future
       (C.renameEnv∼-preserves C.wk↪ᵗ
         (ClosureProof.imprecise-consistency-env-future W≼W′ μ) X))
     (imprecise-function-domain-future W≼W′ c)
-imprecise-function-domain-future (future-precise W≼W′ fresh) c =
+imprecise-function-domain-future (future-precise W≼W′ r★) c =
   imprecise-function-domain-future W≼W′ c
 imprecise-function-domain-future
     (future-imprecise W≼W′) {μ = μ} c =
@@ -2539,9 +2539,9 @@ lift-precise-cast : ∀
   → liftPreciseTerm W≼W′ (M ⟨ c ⟩) ≡
       liftPreciseTerm W≼W′ M ⟨ precise-consistency-future W≼W′ c ⟩
 lift-precise-cast future-refl M c = refl
-lift-precise-cast (future-paired W≼W′ related fresh) M c
+lift-precise-cast (future-paired W≼W′ related) M c
     rewrite lift-precise-cast W≼W′ M c = refl
-lift-precise-cast (future-precise W≼W′ fresh) M c
+lift-precise-cast (future-precise W≼W′ r★) M c
     rewrite lift-precise-cast W≼W′ M c = refl
 lift-precise-cast (future-imprecise W≼W′) M c =
   lift-precise-cast W≼W′ M c
@@ -2555,9 +2555,9 @@ lift-imprecise-cast : ∀
       liftImpreciseTerm W≼W′ M
         ⟨ imprecise-consistency-future W≼W′ c ⟩
 lift-imprecise-cast future-refl M c = refl
-lift-imprecise-cast (future-paired W≼W′ related fresh) M c
+lift-imprecise-cast (future-paired W≼W′ related) M c
     rewrite lift-imprecise-cast W≼W′ M c = refl
-lift-imprecise-cast (future-precise W≼W′ fresh) M c =
+lift-imprecise-cast (future-precise W≼W′ r★) M c =
   lift-imprecise-cast W≼W′ M c
 lift-imprecise-cast (future-imprecise W≼W′) M c
     rewrite lift-imprecise-cast W≼W′ M c = refl
@@ -2572,9 +2572,9 @@ lift-precise-function-cast : ∀
       liftPreciseTerm W≼W′ M
         ⟨ precise-function-consistency-future W≼W′ c d ⟩
 lift-precise-function-cast future-refl M c d = refl
-lift-precise-function-cast (future-paired W≼W′ related fresh) M c d
+lift-precise-function-cast (future-paired W≼W′ related) M c d
     rewrite lift-precise-function-cast W≼W′ M c d = refl
-lift-precise-function-cast (future-precise W≼W′ fresh) M c d
+lift-precise-function-cast (future-precise W≼W′ r★) M c d
     rewrite lift-precise-function-cast W≼W′ M c d = refl
 lift-precise-function-cast (future-imprecise W≼W′) M c d =
   lift-precise-function-cast W≼W′ M c d
@@ -2589,9 +2589,9 @@ lift-imprecise-function-cast : ∀
       liftImpreciseTerm W≼W′ M
         ⟨ imprecise-function-consistency-future W≼W′ c d ⟩
 lift-imprecise-function-cast future-refl M c d = refl
-lift-imprecise-function-cast (future-paired W≼W′ related fresh) M c d
+lift-imprecise-function-cast (future-paired W≼W′ related) M c d
     rewrite lift-imprecise-function-cast W≼W′ M c d = refl
-lift-imprecise-function-cast (future-precise W≼W′ fresh) M c d =
+lift-imprecise-function-cast (future-precise W≼W′ r★) M c d =
   lift-imprecise-function-cast W≼W′ M c d
 lift-imprecise-function-cast (future-imprecise W≼W′) M c d
     rewrite lift-imprecise-function-cast W≼W′ M c d = refl
@@ -3869,7 +3869,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = suc k}
+        {W = W} {Z = Z} {mode = mode} {k = k}
         {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -3903,10 +3903,10 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
   where
   source-q = I.X⊑★ mode
   source-related = dynamic-atom-source-value-at
-    {W = W} (suc k) {Z = Z} {mode = mode}
+    {W = W} k {Z = Z} {mode = mode}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
   source-endpoints = dynamic-atom-source-endpoints
-    {W = W} {Z = Z} {mode = mode} {k = suc k}
+    {W = W} {Z = Z} {mode = mode} {k = k}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
 
   source-immediate : ComputationsRelated W
@@ -3948,7 +3948,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = suc k}
+        {W = W} {Z = Z} {mode = mode} {k = k}
         {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -4474,7 +4474,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = suc k}
+        {W = W} {Z = Z} {mode = mode} {k = k}
         {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -4519,7 +4519,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = suc k}
+        {W = W} {Z = Z} {mode = mode} {k = k}
         {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -4539,7 +4539,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
   where
   source-q = I.X⊑★ mode
   source-related = dynamic-atom-source-value-at
-    {W = W} (suc k) {Z = Z} {mode = mode}
+    {W = W} k {Z = Z} {mode = mode}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
 
   inner-value-eq = projection-cast-value-none gᴾ ★∼Gᴾ
@@ -5412,11 +5412,9 @@ related-value-casts {W = W}
     → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
         (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′) (Rᴵ : Ty Δᴵ′)
         (r : Rᴾ ⊑ᵂ⟨ core W′ ⟩ Rᴵ)
-        (fresh : SemanticAtom
-          (pairedBindCore (core W′) Rᴾ Rᴵ) Fin.zero)
         (s : liftPreciseBody W≼W′ Aᴾ₁ [ Rᴾ ]ᵗ
           ⊑ᵂ⟨ core W′ ⟩ liftImpreciseBody W≼W′ Aᴵ₁ [ Rᴵ ]ᵗ)
-      → let step = future-paired (future-refl {W = W′}) r fresh
+      → let step = future-paired (future-refl {W = W′}) r
         in ComputationsRelated W′ (PostBindValueRelation step s) (suc j)
             (liftImpreciseTerm W≼W′ (Vᴵ ⟨ C.∀ᶜ cᴵ ⟩)
               ⦂∀ liftImpreciseBody W≼W′ Aᴵ₁ [ Rᴵ ])
@@ -5455,11 +5453,11 @@ related-value-casts {W = W}
         {j = suc j} {k = suc (suc j)} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
         (n≤1+n (suc j)) related-at-suc)
 
-  universal-head j related-at-suc W′ W≼W′ Rᴾ Rᴵ r fresh s
+  universal-head j related-at-suc W′ W≼W′ Rᴾ Rᴵ r s
       = ClosureProof.computations-related-post-bind-reindex s s refl refl
           imprecise-redex-eq precise-redex-eq expanded
     where
-    step = future-paired (future-refl {W = W′}) r fresh
+    step = future-paired (future-refl {W = W′}) r
 
     cᴾ′ = precise-universal-body-consistency-future W≼W′ cᴾ
     cᴵ′ = imprecise-universal-body-consistency-future W≼W′ cᴵ
@@ -5525,7 +5523,7 @@ related-value-casts {W = W}
       {W = W′} {Cᴾ = liftPreciseBody W≼W′ Aᴾ₀}
       {Cᴵ = liftImpreciseBody W≼W′ Aᴵ₀}
       {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} {p = source-body-local′}
-      {r = r} {s = source-s} {fresh = fresh}
+      {r = r} {s = source-s}
       refl refl (s≤s z≤n)
       (value-imprecision-downward-to
         {W = W′} {p = I.∀⊑∀ source-body-local′}

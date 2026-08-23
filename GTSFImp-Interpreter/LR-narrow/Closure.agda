@@ -129,13 +129,14 @@ right-dynamic-payload-downward = Proof.right-dynamic-payload-downward
 
 semantic-atom-value : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ} {k Vᴵ Vᴾ}
-  → PairedAtomHolds (semanticEntry W X) (suc k) Vᴵ Vᴾ
+  → PairedAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W X) Vᴵ Vᴾ
   → ValueImprecision W (I.X⊑X {X = X}) (suc k) Vᴵ Vᴾ
 semantic-atom-value = Proof.semantic-atom-value
 
 dynamic-semantic-atom-value : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ} {k Vᴵ Vᴾ}
     (eq : impEnv (core W) X ≡ I.X⊑★)
-  → DynamicAtomHolds (semanticEntry W X) eq (suc k) Vᴵ Vᴾ
+  → DynamicAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W X) eq
+      Vᴵ Vᴾ
   → ValueImprecision W (I.X⊑★ eq) (suc k) Vᴵ Vᴾ
 dynamic-semantic-atom-value = Proof.dynamic-semantic-atom-value

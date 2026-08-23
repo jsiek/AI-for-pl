@@ -2,39 +2,43 @@ module LR-narrow.Atoms where
 
 -- File Charter:
 --   * Defines semantic slots indexed by their center-variable mode.
---   * Separates occupied paired slots from unoccupied dynamic slots;
---     a paired slot may remain usable after its center mark decays to X⊑★.
+--   * A paired slot records the representation types bound at its endpoint
+--     variables and their imprecision; a dynamic slot records the precise
+--     representation and its imprecision below ★.  Sealed values at a slot
+--     are related exactly when their payloads are related at the recorded
+--     imprecision: the slot relation is canonical, hence Kripke.
 --   * Records endpoint non-occupancy on one-sided slots.  A target-only slot
 --     is semantically inert because imprecision has no ★⊑X clause.
---   * Reindexes atoms through paired and either-sided fresh store bindings.
+--   * Reindexes slots through paired and either-sided fresh store bindings.
+--   * The payload relation is a parameter of the slot predicates; the
+--     logical relation supplies itself at the next lower index.
 
 open import Data.List using ([])
 open import Data.Nat using (ℕ; suc)
 open import Data.Empty using (⊥)
+open import Level using (Lift; lift; 0ℓ) renaming (suc to lsuc)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; cong; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; cong; refl; sym; trans)
+  renaming (subst to subst≡)
 
 open import Types
 open import TyStore
 open import CastTerms
-open import Consistency using (toRenameᵗ; wk↪ᵗ)
+open import Conversion using (seal)
+open import Consistency using (toRenameᵗ; keep)
 import Imprecision as I
-open import proof.TypeInTermSubst
-  using (renameᵗᵐ-preserves-Value; typing-shiftᵗ-bind)
-open import proof.ImprecisionConsistency using (fin-suc-injective)
+open import proof.ImprecisionConsistency using
+  (fin-suc-injective; rename-⊑)
 open import LR-narrow.WorldCore
 
-StepIndexedRelation : TyCtx → TyCtx → Set₁
-StepIndexedRelation Δᴾ Δᴵ = ℕ → Term Δᴵ → Term Δᴾ → Set
-
-DownwardClosed : ∀ {Δᴾ Δᴵ} → StepIndexedRelation Δᴾ Δᴵ → Set
-DownwardClosed R = ∀ {k Vᴵ Vᴾ}
-  → R (suc k) Vᴵ Vᴾ
-  → R k Vᴵ Vᴾ
+------------------------------------------------------------------------
+-- Slots
+------------------------------------------------------------------------
 
 record SemanticAtom {Δᴾ Δᴵ Δᶜ}
-    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Z : TyVar Δᶜ) : Set₁ where
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Z : TyVar Δᶜ) : Set where
   constructor semantic-atom
   field
     preciseVariable : TyVar Δᴾ
@@ -43,20 +47,16 @@ record SemanticAtom {Δᴾ Δᴵ Δᶜ}
       toRenameᵗ (preciseEmbedding W) preciseVariable ≡ Z
     impreciseAligned :
       toRenameᵗ (impreciseEmbedding W) impreciseVariable ≡ Z
-    relation : StepIndexedRelation Δᴾ Δᴵ
-    relation-downward : DownwardClosed relation
-    relation-valid : ∀ {k Vᴵ Vᴾ}
-      → relation k Vᴵ Vᴾ
-      → (Value Vᴵ ×
-          ⟨ Δᴵ , impreciseStore W , [] ⟩
-            ⊢ Vᴵ ⦂ ＇ impreciseVariable)
-        × (Value Vᴾ ×
-          ⟨ Δᴾ , preciseStore W , [] ⟩ ⊢ Vᴾ ⦂ ＇ preciseVariable)
+    preciseRep : Ty Δᴾ
+    impreciseRep : Ty Δᴵ
+    rep-related : preciseRep ⊑ᵂ⟨ W ⟩ impreciseRep
+    preciseBound : preciseStore W ∋ preciseVariable ⦂ preciseRep
+    impreciseBound : impreciseStore W ∋ impreciseVariable ⦂ impreciseRep
 
 open SemanticAtom public
 
 record DynamicSemanticAtom {Δᴾ Δᴵ Δᶜ}
-    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Z : TyVar Δᶜ) : Set₁ where
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Z : TyVar Δᶜ) : Set where
   constructor dynamic-semantic-atom
   field
     dynamicPreciseVariable : TyVar Δᴾ
@@ -65,15 +65,11 @@ record DynamicSemanticAtom {Δᴾ Δᴵ Δᶜ}
     dynamicNoTargetOccupant :
       (Σ[ Y ∈ TyVar Δᴵ ]
         toRenameᵗ (impreciseEmbedding W) Y ≡ Z) → ⊥
-    dynamicRelation : StepIndexedRelation Δᴾ Δᴵ
-    dynamicRelation-downward : DownwardClosed dynamicRelation
-    dynamicRelation-valid : ∀ {k Vᴵ Vᴾ}
-      → dynamicRelation k Vᴵ Vᴾ
-      → (Value Vᴵ ×
-          ⟨ Δᴵ , impreciseStore W , [] ⟩ ⊢ Vᴵ ⦂ ★)
-        × (Value Vᴾ ×
-          ⟨ Δᴾ , preciseStore W , [] ⟩
-            ⊢ Vᴾ ⦂ ＇ dynamicPreciseVariable)
+    dynamicRep : Ty Δᴾ
+    dynamicRep-related :
+      impEnv W I.⊢ embedPrecise W dynamicRep ⊑ ★
+    dynamicBound :
+      preciseStore W ∋ dynamicPreciseVariable ⦂ dynamicRep
 
 open DynamicSemanticAtom public
 
@@ -91,143 +87,193 @@ record TargetSemanticAtom {Δᴾ Δᴵ Δᶜ}
 open TargetSemanticAtom public
 
 data SemanticEntry {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
-    (Z : TyVar Δᶜ) : I.VarImp → Set₁ where
+    (Z : TyVar Δᶜ) : I.VarImp → Set where
   paired-entry : ∀ {mode}
     → SemanticAtom W Z
     → SemanticEntry W Z mode
   dynamic-entry : DynamicSemanticAtom W Z → SemanticEntry W Z I.X⊑★
   target-entry : TargetSemanticAtom W Z → SemanticEntry W Z I.X⊑★
 
+------------------------------------------------------------------------
+-- Canonical slot relations below a payload relation
+------------------------------------------------------------------------
+
+-- The payload relation is supplied by the logical relation at the next
+-- lower step index; it is indexed by the center imprecision of the payload
+-- types.
+
+PayloadRelation : ∀ {Δᴾ Δᴵ Δᶜ} → CoreWorld Δᴾ Δᴵ Δᶜ → Set₂
+PayloadRelation {Δᴾ} {Δᴵ} {Δᶜ} W =
+  ∀ {Aᴾ Aᴵ : Ty Δᶜ} → impEnv W I.⊢ Aᴾ ⊑ Aᴵ
+  → Term Δᴵ → Term Δᴾ → Set₁
+
+-- Sealed values at a paired slot: both payloads are related at the
+-- recorded representation imprecision.
+
 record AtomHolds {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
-    {Z} (a : SemanticAtom W Z) (k : ℕ)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
+    {Z} (ℛ : PayloadRelation W) (a : SemanticAtom W Z)
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
   constructor atom-holds
   field
-    relation-holds : relation a k Vᴵ Vᴾ
+    impreciseSealed : Term Δᴵ
+    preciseSealed : Term Δᴾ
+    imprecise-sealed-shape :
+      Vᴵ ≡ impreciseSealed ↓ seal (impreciseVariable a) (impreciseRep a)
+    precise-sealed-shape :
+      Vᴾ ≡ preciseSealed ↓ seal (preciseVariable a) (preciseRep a)
+    payloads-related : ℛ (rep-related a) impreciseSealed preciseSealed
 
 open AtomHolds public
 
+-- A sealed precise value at a dynamic slot against an imprecise dynamic
+-- value: the precise payload is related to the imprecise value below ★.
+
+record DynamicHolds {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
+    {Z} (ℛ : PayloadRelation W) (a : DynamicSemanticAtom W Z)
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+  constructor dynamic-holds
+  field
+    dynamicSealed : Term Δᴾ
+    dynamic-sealed-shape :
+      Vᴾ ≡ dynamicSealed ↓ seal (dynamicPreciseVariable a) (dynamicRep a)
+    dynamic-payload-related : ℛ (dynamicRep-related a) Vᴵ dynamicSealed
+
+open DynamicHolds public
+
 PairedAtomHolds : ∀ {Δᴾ Δᴵ Δᶜ mode}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
+  → PayloadRelation W
   → SemanticEntry W Z mode
-  → ℕ → Term Δᴵ → Term Δᴾ → Set
-PairedAtomHolds (paired-entry a) k Vᴵ Vᴾ = AtomHolds a k Vᴵ Vᴾ
-PairedAtomHolds (dynamic-entry a) k Vᴵ Vᴾ = ⊥
-PairedAtomHolds (target-entry a) k Vᴵ Vᴾ = ⊥
+  → Term Δᴵ → Term Δᴾ → Set₁
+PairedAtomHolds ℛ (paired-entry a) Vᴵ Vᴾ = AtomHolds ℛ a Vᴵ Vᴾ
+PairedAtomHolds ℛ (dynamic-entry a) Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
+PairedAtomHolds ℛ (target-entry a) Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
 
 DynamicAtomHolds : ∀ {Δᴾ Δᴵ Δᶜ mode}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
+  → PayloadRelation W
   → (entry : SemanticEntry W Z mode)
   → mode ≡ I.X⊑★
-  → ℕ → Term Δᴵ → Term Δᴾ → Set
-DynamicAtomHolds (paired-entry a) eq k Vᴵ Vᴾ = ⊥
-DynamicAtomHolds (dynamic-entry a) refl k Vᴵ Vᴾ =
-  dynamicRelation a k Vᴵ Vᴾ
-DynamicAtomHolds (target-entry a) refl k Vᴵ Vᴾ = ⊥
+  → Term Δᴵ → Term Δᴾ → Set₁
+DynamicAtomHolds ℛ (paired-entry a) eq Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
+DynamicAtomHolds ℛ (dynamic-entry a) refl Vᴵ Vᴾ = DynamicHolds ℛ a Vᴵ Vᴾ
+DynamicAtomHolds ℛ (target-entry a) refl Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
 
-paired-atom-downward : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (entry : SemanticEntry W Z mode)
-  → PairedAtomHolds entry (suc k) Vᴵ Vᴾ
-  → PairedAtomHolds entry k Vᴵ Vᴾ
-paired-atom-downward (paired-entry a) (atom-holds holds) =
-  atom-holds (relation-downward a holds)
-paired-atom-downward (dynamic-entry a) ()
-paired-atom-downward (target-entry a) ()
 
-dynamic-atom-downward : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (entry : SemanticEntry W Z mode) (eq : mode ≡ I.X⊑★)
-  → DynamicAtomHolds entry eq (suc k) Vᴵ Vᴾ
-  → DynamicAtomHolds entry eq k Vᴵ Vᴾ
-dynamic-atom-downward (paired-entry a) eq ()
-dynamic-atom-downward (dynamic-entry a) refl related =
-  dynamicRelation-downward a related
-dynamic-atom-downward (target-entry a) refl ()
+-- The slot predicates are functorial in the payload relation.
 
-paired-atom-evidence : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (entry : SemanticEntry W Z mode)
-  → PairedAtomHolds entry k Vᴵ Vᴾ
-  → Σ[ Xᴾ ∈ TyVar Δᴾ ] Σ[ Xᴵ ∈ TyVar Δᴵ ]
-      (toRenameᵗ (preciseEmbedding W) Xᴾ ≡ Z)
-      × (toRenameᵗ (impreciseEmbedding W) Xᴵ ≡ Z)
-      × (Value Vᴵ ×
-          ⟨ Δᴵ , impreciseStore W , [] ⟩ ⊢ Vᴵ ⦂ ＇ Xᴵ)
-      × (Value Vᴾ ×
-          ⟨ Δᴾ , preciseStore W , [] ⟩ ⊢ Vᴾ ⦂ ＇ Xᴾ)
-paired-atom-evidence (paired-entry a) (atom-holds holds) =
-  preciseVariable a , impreciseVariable a , preciseAligned a ,
-  impreciseAligned a , relation-valid a holds
-paired-atom-evidence (dynamic-entry a) ()
-paired-atom-evidence (target-entry a) ()
+PayloadMap : ∀ {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
+  → PayloadRelation W → PayloadRelation W → Set₁
+PayloadMap {Δᶜ = Δᶜ} W ℛ ℛ′ =
+  ∀ {Aᴾ Aᴵ : Ty Δᶜ} {p : impEnv W I.⊢ Aᴾ ⊑ Aᴵ} {Vᴵ Vᴾ}
+  → ℛ p Vᴵ Vᴾ → ℛ′ p Vᴵ Vᴾ
 
-dynamic-atom-evidence : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (entry : SemanticEntry W Z mode) (eq : mode ≡ I.X⊑★)
-  → DynamicAtomHolds entry eq k Vᴵ Vᴾ
-  → Σ[ Xᴾ ∈ TyVar Δᴾ ]
-      (toRenameᵗ (preciseEmbedding W) Xᴾ ≡ Z)
-      × (Value Vᴵ ×
-          ⟨ Δᴵ , impreciseStore W , [] ⟩ ⊢ Vᴵ ⦂ ★)
-      × (Value Vᴾ ×
-          ⟨ Δᴾ , preciseStore W , [] ⟩ ⊢ Vᴾ ⦂ ＇ Xᴾ)
-dynamic-atom-evidence (paired-entry a) eq ()
-dynamic-atom-evidence (dynamic-entry a) refl related =
-  dynamicPreciseVariable a , dynamicPreciseAligned a ,
-  dynamicRelation-valid a related
-dynamic-atom-evidence (target-entry a) refl ()
+paired-holds-map : ∀ {Δᴾ Δᴵ Δᶜ mode}
+    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
+    {ℛ ℛ′ : PayloadRelation W}
+  → PayloadMap W ℛ ℛ′
+  → (entry : SemanticEntry W Z mode)
+  → ∀ {Vᴵ Vᴾ}
+  → PairedAtomHolds ℛ entry Vᴵ Vᴾ
+  → PairedAtomHolds ℛ′ entry Vᴵ Vᴾ
+paired-holds-map f (paired-entry a)
+    (atom-holds Uᴵ Uᴾ eqᴵ eqᴾ related) =
+  atom-holds Uᴵ Uᴾ eqᴵ eqᴾ (f related)
+paired-holds-map f (dynamic-entry a) (lift ())
+paired-holds-map f (target-entry a) (lift ())
+
+dynamic-holds-map : ∀ {Δᴾ Δᴵ Δᶜ mode}
+    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
+    {ℛ ℛ′ : PayloadRelation W}
+  → PayloadMap W ℛ ℛ′
+  → (entry : SemanticEntry W Z mode) (eq : mode ≡ I.X⊑★)
+  → ∀ {Vᴵ Vᴾ}
+  → DynamicAtomHolds ℛ entry eq Vᴵ Vᴾ
+  → DynamicAtomHolds ℛ′ entry eq Vᴵ Vᴾ
+dynamic-holds-map f (paired-entry a) eq (lift ())
+dynamic-holds-map f (dynamic-entry a) refl
+    (dynamic-holds Uᴾ eqᴾ related) =
+  dynamic-holds Uᴾ eqᴾ (f related)
+dynamic-holds-map f (target-entry a) refl (lift ())
 
 dynamic-atom-no-target : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
+    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ} {ℛ : PayloadRelation W}
+    {Vᴵ Vᴾ}
     (entry : SemanticEntry W Z mode) (eq : mode ≡ I.X⊑★)
-  → DynamicAtomHolds entry eq k Vᴵ Vᴾ
+  → DynamicAtomHolds ℛ entry eq Vᴵ Vᴾ
   → (Σ[ Y ∈ TyVar Δᴵ ]
       toRenameᵗ (impreciseEmbedding W) Y ≡ Z) → ⊥
-dynamic-atom-no-target (paired-entry a) eq ()
+dynamic-atom-no-target (paired-entry a) eq (lift ())
 dynamic-atom-no-target (dynamic-entry a) refl related =
   dynamicNoTargetOccupant a
-dynamic-atom-no-target (target-entry a) refl ()
+dynamic-atom-no-target (target-entry a) refl (lift ())
 
-data LiftedRelation {Δᴾ Δᴵ} (R : StepIndexedRelation Δᴾ Δᴵ) :
-    StepIndexedRelation (suc Δᴾ) (suc Δᴵ) where
-  lift-related : ∀ {k Vᴵ Vᴾ}
-    → R k Vᴵ Vᴾ
-    → LiftedRelation R k (⇑ᵗᵐ Vᴵ) (⇑ᵗᵐ Vᴾ)
+------------------------------------------------------------------------
+-- Reindexing slots through fresh bindings
+------------------------------------------------------------------------
 
-data PreciseLiftedRelation {Δᴾ Δᴵ}
-    (R : StepIndexedRelation Δᴾ Δᴵ) :
-    StepIndexedRelation (suc Δᴾ) Δᴵ where
-  precise-lift-related : ∀ {k Vᴵ Vᴾ}
-    → R k Vᴵ Vᴾ
-    → PreciseLiftedRelation R k Vᴵ (⇑ᵗᵐ Vᴾ)
+-- Embedding a shifted endpoint type into the bound center context is the
+-- shifted embedding.
 
-data ImpreciseLiftedRelation {Δᴾ Δᴵ}
-    (R : StepIndexedRelation Δᴾ Δᴵ) :
-    StepIndexedRelation Δᴾ (suc Δᴵ) where
-  imprecise-lift-related : ∀ {k Vᴵ Vᴾ}
-    → R k Vᴵ Vᴾ
-    → ImpreciseLiftedRelation R k (⇑ᵗᵐ Vᴵ) Vᴾ
+embedPrecise-paired-shift : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ) (R : Ty Δᴾ)
+  → embedPrecise (pairedBindCore W Aᴾ Aᴵ) (⇑ᵗ R)
+      ≡ ⇑ᵗ (embedPrecise W R)
+embedPrecise-paired-shift W Aᴾ Aᴵ R =
+  trans (renameᵗ-comp Fin.suc (toRenameᵗ (keep (preciseEmbedding W))) R)
+    (sym (renameᵗ-comp (toRenameᵗ (preciseEmbedding W)) Fin.suc R))
 
-lifted-downward : ∀ {Δᴾ Δᴵ} {R : StepIndexedRelation Δᴾ Δᴵ}
-  → DownwardClosed R
-  → DownwardClosed (LiftedRelation R)
-lifted-downward down (lift-related related) =
-  lift-related (down related)
+embedImprecise-paired-shift : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ) (R : Ty Δᴵ)
+  → embedImprecise (pairedBindCore W Aᴾ Aᴵ) (⇑ᵗ R)
+      ≡ ⇑ᵗ (embedImprecise W R)
+embedImprecise-paired-shift W Aᴾ Aᴵ R =
+  trans (renameᵗ-comp Fin.suc (toRenameᵗ (keep (impreciseEmbedding W))) R)
+    (sym (renameᵗ-comp (toRenameᵗ (impreciseEmbedding W)) Fin.suc R))
 
-precise-lifted-downward : ∀ {Δᴾ Δᴵ}
-    {R : StepIndexedRelation Δᴾ Δᴵ}
-  → DownwardClosed R
-  → DownwardClosed (PreciseLiftedRelation R)
-precise-lifted-downward down (precise-lift-related related) =
-  precise-lift-related (down related)
+embedPrecise-precise-shift : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ) (R : Ty Δᴾ)
+  → embedPrecise (preciseBindCore W Aᴾ) (⇑ᵗ R)
+      ≡ ⇑ᵗ (embedPrecise W R)
+embedPrecise-precise-shift W Aᴾ R =
+  trans (renameᵗ-comp Fin.suc (toRenameᵗ (keep (preciseEmbedding W))) R)
+    (sym (renameᵗ-comp (toRenameᵗ (preciseEmbedding W)) Fin.suc R))
 
-imprecise-lifted-downward : ∀ {Δᴾ Δᴵ}
-    {R : StepIndexedRelation Δᴾ Δᴵ}
-  → DownwardClosed R
-  → DownwardClosed (ImpreciseLiftedRelation R)
-imprecise-lifted-downward down (imprecise-lift-related related) =
-  imprecise-lift-related (down related)
+embedImprecise-precise-shift : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ) (R : Ty Δᴵ)
+  → embedImprecise (preciseBindCore W Aᴾ) R
+      ≡ ⇑ᵗ (embedImprecise W R)
+embedImprecise-precise-shift W Aᴾ R =
+  sym (renameᵗ-comp (toRenameᵗ (impreciseEmbedding W)) Fin.suc R)
+
+embedPrecise-imprecise-shift : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴵ : Ty Δᴵ) (R : Ty Δᴾ)
+  → embedPrecise (impreciseBindCore W Aᴵ) R
+      ≡ ⇑ᵗ (embedPrecise W R)
+embedPrecise-imprecise-shift W Aᴵ R =
+  sym (renameᵗ-comp (toRenameᵗ (preciseEmbedding W)) Fin.suc R)
+
+embedImprecise-imprecise-shift : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴵ : Ty Δᴵ) (R : Ty Δᴵ)
+  → embedImprecise (impreciseBindCore W Aᴵ) (⇑ᵗ R)
+      ≡ ⇑ᵗ (embedImprecise W R)
+embedImprecise-imprecise-shift W Aᴵ R =
+  trans (renameᵗ-comp Fin.suc (toRenameᵗ (keep (impreciseEmbedding W))) R)
+    (sym (renameᵗ-comp (toRenameᵗ (impreciseEmbedding W)) Fin.suc R))
+
+-- Transport of center imprecision along equalities of both endpoints.
+
+transport-⊑ : ∀ {Δ} {μ : I.ImpEnv Δ} {A A′ B B′ : Ty Δ}
+  → A′ ≡ A → B′ ≡ B → μ I.⊢ A ⊑ B → μ I.⊢ A′ ⊑ B′
+transport-⊑ refl refl p = p
+
+-- Center imprecision shifts behind any fresh binding: the new center does
+-- not occur and the old modes are preserved.
+
+shift-⊑ : ∀ {Δᶜ} {μ : I.ImpEnv Δᶜ} (v : I.VarImp) {A B : Ty Δᶜ}
+  → μ I.⊢ A ⊑ B
+  → I.extendᵐ v μ I.⊢ ⇑ᵗ A ⊑ ⇑ᵗ B
+shift-⊑ v p = rename-⊑ Fin.suc fin-suc-injective (λ Z eq → eq) p
 
 weaken-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z}
@@ -235,26 +281,17 @@ weaken-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
   → (Aᴵ : Ty Δᴵ)
   → SemanticAtom W Z
   → SemanticAtom (pairedBindCore W Aᴾ Aᴵ) (Fin.suc Z)
-weaken-semantic-atom Aᴾ Aᴵ a =
+weaken-semantic-atom {W = W} Aᴾ Aᴵ a =
   semantic-atom (Fin.suc (preciseVariable a))
     (Fin.suc (impreciseVariable a))
     (cong Fin.suc (preciseAligned a))
     (cong Fin.suc (impreciseAligned a))
-    (LiftedRelation (relation a))
-    (lifted-downward (relation-downward a)) valid
-  where
-  valid : ∀ {k Vᴵ Vᴾ}
-    → LiftedRelation (relation a) k Vᴵ Vᴾ
-    → (Value Vᴵ ×
-        ⟨ _ , store-bind _ Aᴵ , [] ⟩ ⊢ Vᴵ ⦂ ＇ _)
-      × (Value Vᴾ ×
-        ⟨ _ , store-bind _ Aᴾ , [] ⟩ ⊢ Vᴾ ⦂ ＇ _)
-  valid (lift-related related) =
-    let (vVᴵ , Vᴵ⊢) , (vVᴾ , Vᴾ⊢) = relation-valid a related
-    in (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴵ ,
-        typing-shiftᵗ-bind Vᴵ⊢) ,
-       (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴾ ,
-        typing-shiftᵗ-bind Vᴾ⊢)
+    (⇑ᵗ (preciseRep a)) (⇑ᵗ (impreciseRep a))
+    (transport-⊑ (embedPrecise-paired-shift W Aᴾ Aᴵ (preciseRep a))
+      (embedImprecise-paired-shift W Aᴾ Aᴵ (impreciseRep a))
+      (shift-⊑ I.X⊑X (rep-related a)))
+    (S-bind∋ (preciseBound a) refl)
+    (S-bind∋ (impreciseBound a) refl)
 
 weaken-semantic-atom-precise : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z}
@@ -265,20 +302,12 @@ weaken-semantic-atom-precise {W = W} Aᴾ a =
   semantic-atom (Fin.suc (preciseVariable a)) (impreciseVariable a)
     (cong Fin.suc (preciseAligned a))
     (cong Fin.suc (impreciseAligned a))
-    (PreciseLiftedRelation (relation a))
-    (precise-lifted-downward (relation-downward a)) valid
-  where
-  valid : ∀ {k Vᴵ Vᴾ}
-    → PreciseLiftedRelation (relation a) k Vᴵ Vᴾ
-    → (Value Vᴵ ×
-        ⟨ _ , impreciseStore W , [] ⟩ ⊢ Vᴵ ⦂ ＇ _)
-      × (Value Vᴾ ×
-        ⟨ _ , store-bind _ Aᴾ , [] ⟩ ⊢ Vᴾ ⦂ ＇ _)
-  valid (precise-lift-related related) =
-    let (vVᴵ , Vᴵ⊢) , (vVᴾ , Vᴾ⊢) = relation-valid a related
-    in (vVᴵ , Vᴵ⊢) ,
-       (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴾ ,
-        typing-shiftᵗ-bind Vᴾ⊢)
+    (⇑ᵗ (preciseRep a)) (impreciseRep a)
+    (transport-⊑ (embedPrecise-precise-shift W Aᴾ (preciseRep a))
+      (embedImprecise-precise-shift W Aᴾ (impreciseRep a))
+      (shift-⊑ I.X⊑★ (rep-related a)))
+    (S-bind∋ (preciseBound a) refl)
+    (impreciseBound a)
 
 weaken-semantic-atom-imprecise : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z}
@@ -289,20 +318,12 @@ weaken-semantic-atom-imprecise {W = W} Aᴵ a =
   semantic-atom (preciseVariable a) (Fin.suc (impreciseVariable a))
     (cong Fin.suc (preciseAligned a))
     (cong Fin.suc (impreciseAligned a))
-    (ImpreciseLiftedRelation (relation a))
-    (imprecise-lifted-downward (relation-downward a)) valid
-  where
-  valid : ∀ {k Vᴵ Vᴾ}
-    → ImpreciseLiftedRelation (relation a) k Vᴵ Vᴾ
-    → (Value Vᴵ ×
-        ⟨ _ , store-bind _ Aᴵ , [] ⟩ ⊢ Vᴵ ⦂ ＇ _)
-      × (Value Vᴾ ×
-        ⟨ _ , preciseStore W , [] ⟩ ⊢ Vᴾ ⦂ ＇ _)
-  valid (imprecise-lift-related related) =
-    let (vVᴵ , Vᴵ⊢) , (vVᴾ , Vᴾ⊢) = relation-valid a related
-    in (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴵ ,
-        typing-shiftᵗ-bind Vᴵ⊢) ,
-       (vVᴾ , Vᴾ⊢)
+    (preciseRep a) (⇑ᵗ (impreciseRep a))
+    (transport-⊑ (embedPrecise-imprecise-shift W Aᴵ (preciseRep a))
+      (embedImprecise-imprecise-shift W Aᴵ (impreciseRep a))
+      (shift-⊑ I.X⊑★ (rep-related a)))
+    (preciseBound a)
+    (S-bind∋ (impreciseBound a) refl)
 
 weaken-dynamic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z}
@@ -314,8 +335,10 @@ weaken-dynamic-atom {W = W} {Z = Z} Aᴾ Aᴵ a =
   dynamic-semantic-atom (Fin.suc (dynamicPreciseVariable a))
     (cong Fin.suc (dynamicPreciseAligned a))
     no-target
-    (LiftedRelation (dynamicRelation a))
-    (lifted-downward (dynamicRelation-downward a)) valid
+    (⇑ᵗ (dynamicRep a))
+    (transport-⊑ (embedPrecise-paired-shift W Aᴾ Aᴵ (dynamicRep a)) refl
+      (shift-⊑ I.X⊑X (dynamicRep-related a)))
+    (S-bind∋ (dynamicBound a) refl)
   where
   no-target :
       (Σ[ Y ∈ TyVar _ ]
@@ -324,19 +347,6 @@ weaken-dynamic-atom {W = W} {Z = Z} Aᴾ Aᴵ a =
   no-target (Fin.zero , ())
   no-target (Fin.suc Y , eq) =
     dynamicNoTargetOccupant a (Y , fin-suc-injective eq)
-
-  valid : ∀ {k Vᴵ Vᴾ}
-    → LiftedRelation (dynamicRelation a) k Vᴵ Vᴾ
-    → (Value Vᴵ ×
-        ⟨ _ , store-bind _ Aᴵ , [] ⟩ ⊢ Vᴵ ⦂ ★)
-      × (Value Vᴾ ×
-        ⟨ _ , store-bind _ Aᴾ , [] ⟩ ⊢ Vᴾ ⦂ ＇ _)
-  valid (lift-related related) =
-    let (vVᴵ , Vᴵ⊢) , (vVᴾ , Vᴾ⊢) = dynamicRelation-valid a related
-    in (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴵ ,
-        typing-shiftᵗ-bind Vᴵ⊢) ,
-       (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴾ ,
-        typing-shiftᵗ-bind Vᴾ⊢)
 
 weaken-dynamic-atom-precise : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z}
@@ -347,8 +357,10 @@ weaken-dynamic-atom-precise {W = W} {Z = Z} Aᴾ a =
   dynamic-semantic-atom (Fin.suc (dynamicPreciseVariable a))
     (cong Fin.suc (dynamicPreciseAligned a))
     no-target
-    (PreciseLiftedRelation (dynamicRelation a))
-    (precise-lifted-downward (dynamicRelation-downward a)) valid
+    (⇑ᵗ (dynamicRep a))
+    (transport-⊑ (embedPrecise-precise-shift W Aᴾ (dynamicRep a)) refl
+      (shift-⊑ I.X⊑★ (dynamicRep-related a)))
+    (S-bind∋ (dynamicBound a) refl)
   where
   no-target :
       (Σ[ Y ∈ TyVar _ ]
@@ -357,18 +369,6 @@ weaken-dynamic-atom-precise {W = W} {Z = Z} Aᴾ a =
   no-target (Y , eq) =
     dynamicNoTargetOccupant a (Y , fin-suc-injective eq)
 
-  valid : ∀ {k Vᴵ Vᴾ}
-    → PreciseLiftedRelation (dynamicRelation a) k Vᴵ Vᴾ
-    → (Value Vᴵ ×
-        ⟨ _ , impreciseStore W , [] ⟩ ⊢ Vᴵ ⦂ ★)
-      × (Value Vᴾ ×
-        ⟨ _ , store-bind _ Aᴾ , [] ⟩ ⊢ Vᴾ ⦂ ＇ _)
-  valid (precise-lift-related related) =
-    let (vVᴵ , Vᴵ⊢) , (vVᴾ , Vᴾ⊢) = dynamicRelation-valid a related
-    in (vVᴵ , Vᴵ⊢) ,
-       (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴾ ,
-        typing-shiftᵗ-bind Vᴾ⊢)
-
 weaken-dynamic-atom-imprecise : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z}
   → (Aᴵ : Ty Δᴵ)
@@ -376,9 +376,12 @@ weaken-dynamic-atom-imprecise : ∀ {Δᴾ Δᴵ Δᶜ}
   → DynamicSemanticAtom (impreciseBindCore W Aᴵ) (Fin.suc Z)
 weaken-dynamic-atom-imprecise {W = W} {Z = Z} Aᴵ a =
   dynamic-semantic-atom (dynamicPreciseVariable a)
-    (cong Fin.suc (dynamicPreciseAligned a)) no-target
-    (ImpreciseLiftedRelation (dynamicRelation a))
-    (imprecise-lifted-downward (dynamicRelation-downward a)) valid
+    (cong Fin.suc (dynamicPreciseAligned a))
+    no-target
+    (dynamicRep a)
+    (transport-⊑ (embedPrecise-imprecise-shift W Aᴵ (dynamicRep a)) refl
+      (shift-⊑ I.X⊑★ (dynamicRep-related a)))
+    (dynamicBound a)
   where
   no-target :
       (Σ[ Y ∈ TyVar _ ]
@@ -388,18 +391,6 @@ weaken-dynamic-atom-imprecise {W = W} {Z = Z} Aᴵ a =
   no-target (Fin.suc Y , eq) =
     dynamicNoTargetOccupant a (Y , fin-suc-injective eq)
 
-  valid : ∀ {k Vᴵ Vᴾ}
-    → ImpreciseLiftedRelation (dynamicRelation a) k Vᴵ Vᴾ
-    → (Value Vᴵ ×
-        ⟨ _ , store-bind _ Aᴵ , [] ⟩ ⊢ Vᴵ ⦂ ★)
-      × (Value Vᴾ ×
-        ⟨ _ , preciseStore W , [] ⟩ ⊢ Vᴾ ⦂ ＇ _)
-  valid (imprecise-lift-related related) =
-    let (vVᴵ , Vᴵ⊢) , (vVᴾ , Vᴾ⊢) = dynamicRelation-valid a related
-    in (renameᵗᵐ-preserves-Value wk↪ᵗ vVᴵ ,
-        typing-shiftᵗ-bind Vᴵ⊢) ,
-       (vVᴾ , Vᴾ⊢)
-
 weaken-target-atom : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z}
   → (Aᴾ : Ty Δᴾ)
@@ -408,7 +399,8 @@ weaken-target-atom : ∀ {Δᴾ Δᴵ Δᶜ}
   → TargetSemanticAtom (pairedBindCore W Aᴾ Aᴵ) (Fin.suc Z)
 weaken-target-atom {W = W} {Z = Z} Aᴾ Aᴵ a =
   target-semantic-atom (Fin.suc (targetImpreciseVariable a))
-    (cong Fin.suc (targetImpreciseAligned a)) no-precise
+    (cong Fin.suc (targetImpreciseAligned a))
+    no-precise
   where
   no-precise :
       (Σ[ X ∈ TyVar _ ]
@@ -425,7 +417,8 @@ weaken-target-atom-precise : ∀ {Δᴾ Δᴵ Δᶜ}
   → TargetSemanticAtom (preciseBindCore W Aᴾ) (Fin.suc Z)
 weaken-target-atom-precise {W = W} {Z = Z} Aᴾ a =
   target-semantic-atom (targetImpreciseVariable a)
-    (cong Fin.suc (targetImpreciseAligned a)) no-precise
+    (cong Fin.suc (targetImpreciseAligned a))
+    no-precise
   where
   no-precise :
       (Σ[ X ∈ TyVar _ ]
@@ -442,7 +435,8 @@ weaken-target-atom-imprecise : ∀ {Δᴾ Δᴵ Δᶜ}
   → TargetSemanticAtom (impreciseBindCore W Aᴵ) (Fin.suc Z)
 weaken-target-atom-imprecise {W = W} {Z = Z} Aᴵ a =
   target-semantic-atom (Fin.suc (targetImpreciseVariable a))
-    (cong Fin.suc (targetImpreciseAligned a)) no-precise
+    (cong Fin.suc (targetImpreciseAligned a))
+    no-precise
   where
   no-precise :
       (Σ[ X ∈ TyVar _ ]
@@ -488,107 +482,38 @@ weaken-entry-imprecise Aᴵ (dynamic-entry a) =
 weaken-entry-imprecise Aᴵ (target-entry a) =
   target-entry (weaken-target-atom-imprecise Aᴵ a)
 
-paired-holds-weaken : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ)
-    (entry : SemanticEntry W Z mode)
-  → PairedAtomHolds entry k Vᴵ Vᴾ
-  → PairedAtomHolds (weaken-entry Aᴾ Aᴵ entry) k
-      (⇑ᵗᵐ Vᴵ) (⇑ᵗᵐ Vᴾ)
-paired-holds-weaken Aᴾ Aᴵ (paired-entry a) (atom-holds holds) =
-  atom-holds (lift-related holds)
-paired-holds-weaken Aᴾ Aᴵ (dynamic-entry a) ()
-paired-holds-weaken Aᴾ Aᴵ (target-entry a) ()
+------------------------------------------------------------------------
+-- Fresh slots
+------------------------------------------------------------------------
 
-paired-holds-weaken-precise : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (Aᴾ : Ty Δᴾ) (entry : SemanticEntry W Z mode)
-  → PairedAtomHolds entry k Vᴵ Vᴾ
-  → PairedAtomHolds (weaken-entry-precise Aᴾ entry) k
-      Vᴵ (⇑ᵗᵐ Vᴾ)
-paired-holds-weaken-precise Aᴾ (paired-entry a) (atom-holds holds) =
-  atom-holds (precise-lift-related holds)
-paired-holds-weaken-precise Aᴾ (dynamic-entry a) ()
-paired-holds-weaken-precise Aᴾ (target-entry a) ()
-
-paired-holds-weaken-imprecise : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (Aᴵ : Ty Δᴵ) (entry : SemanticEntry W Z mode)
-  → PairedAtomHolds entry k Vᴵ Vᴾ
-  → PairedAtomHolds (weaken-entry-imprecise Aᴵ entry) k
-      (⇑ᵗᵐ Vᴵ) Vᴾ
-paired-holds-weaken-imprecise Aᴵ (paired-entry a) (atom-holds holds) =
-  atom-holds (imprecise-lift-related holds)
-paired-holds-weaken-imprecise Aᴵ (dynamic-entry a) ()
-paired-holds-weaken-imprecise Aᴵ (target-entry a) ()
-
-dynamic-holds-weaken : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ)
-    (entry : SemanticEntry W Z mode) (eq : mode ≡ I.X⊑★)
-  → DynamicAtomHolds entry eq k Vᴵ Vᴾ
-  → DynamicAtomHolds (weaken-entry Aᴾ Aᴵ entry) eq k
-      (⇑ᵗᵐ Vᴵ) (⇑ᵗᵐ Vᴾ)
-dynamic-holds-weaken Aᴾ Aᴵ (paired-entry a) eq ()
-dynamic-holds-weaken Aᴾ Aᴵ (dynamic-entry a) refl related =
-  lift-related related
-dynamic-holds-weaken Aᴾ Aᴵ (target-entry a) refl ()
-
-dynamic-holds-weaken-precise : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (Aᴾ : Ty Δᴾ) (entry : SemanticEntry W Z mode)
-    (eq : mode ≡ I.X⊑★)
-  → DynamicAtomHolds entry eq k Vᴵ Vᴾ
-  → DynamicAtomHolds (weaken-entry-precise Aᴾ entry) eq k
-      Vᴵ (⇑ᵗᵐ Vᴾ)
-dynamic-holds-weaken-precise Aᴾ (paired-entry a) eq ()
-dynamic-holds-weaken-precise Aᴾ (dynamic-entry a) refl related =
-  precise-lift-related related
-dynamic-holds-weaken-precise Aᴾ (target-entry a) refl ()
-
-dynamic-holds-weaken-imprecise : ∀ {Δᴾ Δᴵ Δᶜ mode}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z k Vᴵ Vᴾ}
-    (Aᴵ : Ty Δᴵ) (entry : SemanticEntry W Z mode)
-    (eq : mode ≡ I.X⊑★)
-  → DynamicAtomHolds entry eq k Vᴵ Vᴾ
-  → DynamicAtomHolds (weaken-entry-imprecise Aᴵ entry) eq k
-      (⇑ᵗᵐ Vᴵ) Vᴾ
-dynamic-holds-weaken-imprecise Aᴵ (paired-entry a) eq ()
-dynamic-holds-weaken-imprecise Aᴵ (dynamic-entry a) refl related =
-  imprecise-lift-related related
-dynamic-holds-weaken-imprecise Aᴵ (target-entry a) refl ()
+-- A fresh paired slot at the just-bound variables records the bound
+-- representation types and their imprecision.
 
 fresh-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ)
-    (R : StepIndexedRelation (suc Δᴾ) (suc Δᴵ))
-  → DownwardClosed R
-  → (∀ {k Vᴵ Vᴾ}
-      → R k Vᴵ Vᴾ
-      → (Value Vᴵ ×
-          ⟨ suc Δᴵ , store-bind (impreciseStore W) Aᴵ , [] ⟩
-            ⊢ Vᴵ ⦂ ＇ Fin.zero)
-        × (Value Vᴾ ×
-          ⟨ suc Δᴾ , store-bind (preciseStore W) Aᴾ , [] ⟩
-            ⊢ Vᴾ ⦂ ＇ Fin.zero))
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ)
+  → Aᴾ ⊑ᵂ⟨ W ⟩ Aᴵ
   → SemanticAtom (pairedBindCore W Aᴾ Aᴵ) Fin.zero
-fresh-semantic-atom Aᴾ Aᴵ R down valid =
-  semantic-atom Fin.zero Fin.zero refl refl R down valid
+fresh-semantic-atom W Aᴾ Aᴵ r =
+  semantic-atom Fin.zero Fin.zero refl refl (⇑ᵗ Aᴾ) (⇑ᵗ Aᴵ)
+    (transport-⊑ (embedPrecise-paired-shift W Aᴾ Aᴵ Aᴾ)
+      (embedImprecise-paired-shift W Aᴾ Aᴵ Aᴵ)
+      (shift-⊑ I.X⊑X r))
+    (Z∋ refl) (Z∋ refl)
+
+-- A fresh dynamic slot at a precise-only binding records the bound precise
+-- representation and its imprecision below ★.
 
 fresh-dynamic-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
-    {W : CoreWorld Δᴾ Δᴵ Δᶜ} (Aᴾ : Ty Δᴾ)
-    (R : StepIndexedRelation (suc Δᴾ) Δᴵ)
-  → DownwardClosed R
-  → (∀ {k Vᴵ Vᴾ}
-      → R k Vᴵ Vᴾ
-      → (Value Vᴵ ×
-          ⟨ Δᴵ , impreciseStore W , [] ⟩ ⊢ Vᴵ ⦂ ★)
-        × (Value Vᴾ ×
-          ⟨ suc Δᴾ , store-bind (preciseStore W) Aᴾ , [] ⟩
-            ⊢ Vᴾ ⦂ ＇ Fin.zero))
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ)
+  → impEnv W I.⊢ embedPrecise W Aᴾ ⊑ ★
   → DynamicSemanticAtom (preciseBindCore W Aᴾ) Fin.zero
-fresh-dynamic-semantic-atom Aᴾ R down valid =
+fresh-dynamic-semantic-atom W Aᴾ r =
   dynamic-semantic-atom Fin.zero refl
-    (λ { (Y , ()) }) R down valid
+    (λ { (Y , ()) })
+    (⇑ᵗ Aᴾ)
+    (transport-⊑ (embedPrecise-precise-shift W Aᴾ Aᴾ) refl
+      (shift-⊑ I.X⊑★ r))
+    (Z∋ refl)
 
 fresh-target-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} (Aᴵ : Ty Δᴵ)

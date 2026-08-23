@@ -86,11 +86,19 @@ identifying the endpoint contexts merely because a narrowing derivation uses
 one context.
 
 Every center variable has a `SemanticEntry` indexed by its `impEnv` mode.
-An `X⊑X` entry contains endpoint variables on both sides. An `X⊑★` entry
-only a precise endpoint variable and relates its abstract values to imprecise
-values of type `★`. Both relations are step-indexed and downward closed. The
-corresponding positive-index LR clauses require these relations, not just
-endpoint typing.
+An `X⊑X` entry records endpoint variables on both sides together with the
+representation types bound at them and their imprecision `r`. An `X⊑★`
+entry records only a precise endpoint variable, its bound representation,
+and that representation's imprecision below `★`. The slot relations are
+canonical: sealed values are related at a slot exactly when their payloads
+are related at the recorded imprecision one step index lower. Because this
+relation is defined in whatever world the slot is consulted in, it is Kripke
+without any lifting of relations; weakening a slot only renames its
+representation types. The corresponding positive-index LR clauses require
+these canonical relations, not just endpoint typing. The universal clauses
+therefore quantify over representation type pairs `(Rᴾ, Rᴵ, r)` rather than
+over arbitrary relations: parametricity is relative to LR-definable
+relations.
 
 At `★⊑★`, a dynamic value may also carry a precise ground tag whose
 payload is related through an `X⊑★` semantic entry to the untagged imprecise
@@ -103,17 +111,17 @@ both paired and precise-only future extensions.
 A paired future extension supplies:
 
 - representation types `Rᴾ : Ty Δᴾ` and `Rᴵ : Ty Δᴵ` whose
-  embeddings are related in `Δᶜ`;
-- a fresh semantic atom at the newly allocated endpoint variables;
+  embeddings are related in `Δᶜ` by `r`;
+- the canonical slot at the newly allocated endpoint variables, recording
+  `Rᴾ`, `Rᴵ`, and `r`;
 - bound endpoint stores and `X⊑X` at the new center variable.
 
-The universal clause quantifies over exactly this extension. Consequently its
-body may use the fresh atom when the quantified variable is encountered.
+The universal clause quantifies over exactly this extension.
 
 A precise-only future extension instead supplies a representation type
-`Rᴾ : Ty Δᴾ`, binds only the precise store, uses `keep` for the precise
-embedding and `skip` for the imprecise embedding, and installs an `X⊑★`
-semantic entry. This extension supports `RightUniversalsRelated`: the precise
+`Rᴾ : Ty Δᴾ` together with its imprecision below `★`, binds only the
+precise store, uses `keep` for the precise embedding and `skip` for the
+imprecise embedding, and installs the canonical `X⊑★` semantic entry. This extension supports `RightUniversalsRelated`: the precise
 universal is instantiated at the fresh variable while the imprecise term is
 returned unchanged.
 

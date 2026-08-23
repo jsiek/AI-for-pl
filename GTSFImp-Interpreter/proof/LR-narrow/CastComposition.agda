@@ -130,12 +130,12 @@ future-trans-assoc : ∀
       future-trans (future-trans W₀≼W₁ W₁≼W₂) W₂≼W₃
 future-trans-assoc W₀≼W₁ W₁≼W₂ future-refl = refl
 future-trans-assoc W₀≼W₁ W₁≼W₂
-    (future-paired W₂≼W₃ related fresh) =
-  cong (λ W₀≼W₃ → future-paired W₀≼W₃ related fresh)
+    (future-paired W₂≼W₃ related) =
+  cong (λ W₀≼W₃ → future-paired W₀≼W₃ related)
     (future-trans-assoc W₀≼W₁ W₁≼W₂ W₂≼W₃)
 future-trans-assoc W₀≼W₁ W₁≼W₂
-    (future-precise W₂≼W₃ fresh) =
-  cong (λ W₀≼W₃ → future-precise W₀≼W₃ fresh)
+    (future-precise W₂≼W₃ r★) =
+  cong (λ W₀≼W₃ → future-precise W₀≼W₃ r★)
     (future-trans-assoc W₀≼W₁ W₁≼W₂ W₂≼W₃)
 future-trans-assoc W₀≼W₁ W₁≼W₂ (future-imprecise W₂≼W₃) =
   cong future-imprecise

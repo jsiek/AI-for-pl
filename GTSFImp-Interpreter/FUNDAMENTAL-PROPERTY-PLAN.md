@@ -147,10 +147,18 @@ lifting of insertions, not derivation-level transport.
    `SmartCommaLiftᴸ` as semantic world transport: any alias-merged center
    must receive the LR semantic entry required by the body relation.
 
-Status (2026-08-23): steps 1, 3, 4, 5 are checked
+Status (2026-08-23): steps 1–5 are checked
 (`GTSFImp/proof/DGG/WorldInsert.agda`, `LR-narrow/Insertion.agda`,
-`proof/LR-narrow/FundamentalAssembly.agda`); step 2 has the two lifting
-lemmas but not yet composition with LR futures or the smart-comma world.
+`LR-narrow/FutureInsertion.agda`,
+`proof/LR-narrow/FundamentalAssembly.agda`), and 6a is subsumed by the
+canonical slots. Step 2's smart-comma lift is deferred to Milestone 2:
+`smart-merge-alias` embeds the fresh source variable at an existing target
+center, which no OPE-embedded semantic world can represent after any
+allocation, so it is a rebase; `smart-fresh-behind` only needs the center
+map of `WorldInsert` generalized from an OPE to an injective renaming.
+Note for step 7: composition of embeddings has no general law on cast
+terms (`renameEnv∼` fills off-image variables differently for `empty` and
+`skip`); only the weakening-step law `renameᵗᵐ-shift` holds and is used.
 
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal

@@ -160,6 +160,68 @@ Note for step 7: composition of embeddings has no general law on cast
 terms (`renameEnv∼` fills off-image variables differently for `empty` and
 `skip`); only the weakening-step law `renameᵗᵐ-shift` holds and is used.
 
+Step 6b status (2026-08-23): the atomic reveal cases are checked
+(`proof/LR-narrow/RevealAtomic.agda`), and the generic evaluation-frame
+machinery for the structural cases is checked and committed:
+`proof/LR-narrow/FramePhases.agda` (abstract `Frame`, phase
+decomposition and reassembly of returning/blaming runs),
+`proof/LR-narrow/FrameComposition.agda` (paired, precise-only and
+imprecise-only composition of an operand computation with a continuation
+under a frame), and `proof/LR-narrow/RevealFrames.agda` (reveal and
+conceal frame instances). The structural reveal/conceal lemma itself is
+blocked by the following finding.
+
+Finding A (blocking, needs a decision): the index-0 content of the LR
+blocks the structural reveal lemma. `ComputationsRelated` quantifies over
+`n ≤ k`, so at index 0 it still demands that the precise side terminate
+whenever the imprecise side is a value, and `ValueImprecisionᵏ zero` for
+`∀⊑` therefore carries `RightUniversalsRelated _ zero` (precise
+instantiation terminates with results related at index 0). Frame
+composition consults the continuation at index `k ∸ n`, which is 0 when
+the operand consumes all the gas, so the reveal lemma needs its own
+index-0 instance for values with `∀⊑` content. Unfolding that content for
+`V ↑ `∀↑ c` requires the lemma again at the freshly bound slot for the
+type `B₀[R/X]`, which is not smaller than `∀ B₀`; and at an unseal the
+payload's content is unavailable at index 0 (the atom clauses only hold
+one index lower). No well-founded measure was found (the ∀⊑-count of the
+derivation fails because `∀⊑` also derives `∀ A ⊑ ★`, so substituting a
+representation for a dynamic slot can re-create `∀⊑` nodes). Two ways
+out:
+  (a) Recommended: change `ComputationsRelated` to quantify over `n < k`
+      (index = number of imprecise steps strictly available). Then
+      returned pairs always sit at index ≥ 1, `ValueImprecisionᵏ zero`
+      becomes `TypedEndpoints` uniformly, `RightUniversalsRelated _ zero`
+      becomes trivial, and the reveal lemma goes through by strong
+      induction on the index with the frame machinery. The gradual
+      guarantee is unchanged (use index n+1 for an n-step run). Cost: a
+      mechanical refactor of ~650 index-bound sites across
+      `proof/LR-narrow` (Cast 109, CastComposition 101, Application 73,
+      TypeApplication 65, Primitive 63, ...); most `k = zero` branches
+      simplify to a trivial lemma.
+  (b) Keep `n ≤ k` and prove syntactic termination of instantiation,
+      cast, reveal and conceal chains on typed precise values (a
+      coercion-normalization argument; needs a measure over values and
+      consistency derivations including `inst`/`gen`, and canonical
+      forms), then derive index-0 adequacy from typing. Estimated larger
+      and more delicate than (a), and (b) still leaves the non-well-founded
+      `∀⊑` clause at index 0 in the LR definition.
+
+Finding B (pre-existing, independent of 6b): `proof/LR-narrow/Cast.agda`
+contains three `{-# TERMINATING #-}` proofs that are circular, not merely
+unrecognized recursions. `related-value-precise-cast` and
+`related-value-imprecise-cast` supply themselves (at the same lifted
+arguments) as the continuation of the one-sided cast composition; since
+the operand is a value, the continuation is consulted on the same term with
+the same gas, so evaluating `forward-return` would loop. `related-value-
+casts` does the same through `related-value-casts-composed` for the cases
+`∀⊑∀`, `⇒⊑★`, `ι⊑★`, `X⊑★`, `∀⊑`, `∀⊑★`, and for `⇒⊑⇒` with `!`/`gen`
+casts (introduced in commit 73f1da81 in place of holes). These cases are
+therefore not proven; the cast compatibility lemma is closed only for the
+remaining cases. Genuine proofs need the cast to be decomposed by the
+cast reduction rules (ground/expand/tag-untag/β-⇒/β-∀/inst/gen) with a
+recursion on the consistency derivation, much as the `★⊑★` cases already
+do. Under (a) above these proofs also become simpler (no index-0 content).
+
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal
 introduction constructors by recursion.

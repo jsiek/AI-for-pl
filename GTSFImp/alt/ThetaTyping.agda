@@ -7,10 +7,13 @@ module alt.ThetaTyping where
 --     variables live in a separate `TermCtx` list, so a context with no
 --     term variables is the literal `[]` — closed interiors for ν and
 --     the crossings are structural, with no erasure.
---   * Representations are written in the regular scope at their entry;
---     the anchor lookup performs the spelling, weakening entries across
---     later type-variable insertions (skip-typ).  Anchors never occur in
---     regular types `Ty Δ`.
+--   * Crossing-slot entries record both their insertion position and anchor.
+--     Lexical Λ entries are separate: a lexical variable is always newest in
+--     its prefix, and later prefix insertions are strictly older, so its
+--     formerly constant position argument carried no information.
+--   * Representations are written in the regular scope at their entry; anchor
+--     lookup weakens them across both crossing and lexical slot entries.
+--     Anchors never occur in regular types `Ty Δ`.
 --   * Term variables cross only Λ's type-variable entry, by weakening the
 --     term list wholesale (renameCtx), as in the live calculus.
 
@@ -40,13 +43,15 @@ private
 -- Binder telescopes: type variables and anchors, no term variables
 ------------------------------------------------------------------------
 
-infixl 5 _,typ[_]
+infixl 5 _,typ[_≔_] _,typ
 infixl 5 _,:=_
 infixl 5 _,opaque
 
 data TyEnv : AnchorCtx → TyCtx → Set where
   ∅ : TyEnv zero zero
-  _,typ[_] : TyEnv Θ Δ → TyVar (suc Δ) → TyEnv Θ (suc Δ)
+  _,typ[_≔_] : TyEnv Θ Δ → TyVar (suc Δ) → TyVar Θ
+    → TyEnv Θ (suc Δ)
+  _,typ : TyEnv Θ Δ → TyEnv Θ (suc Δ)
   _,:=_ : TyEnv Θ Δ → Ty Δ → TyEnv (suc Θ) Δ  -- anchor bound by a ν
   _,opaque : TyEnv Θ Δ → TyEnv (suc Θ) Δ
     -- The anchor exists, but its representation is not expressible here.
@@ -77,10 +82,49 @@ data _∋_:=_ : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
     → (Ψ ,opaque) ∋ suc a := A
 
   skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a} {A : Ty Δ}
-      {Y : TyVar (suc Δ)}
+      {Y : TyVar (suc Δ)} {β : TyVar Θ}
     → Ψ ∋ a := A
+      ---------------------------------
+    → (Ψ ,typ[ Y ≔ β ]) ∋ a := wkᵗ Y A
+
+  skip-lexical : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a} {A : Ty Δ}
+    → Ψ ∋ a := A
+      ------------------------
+    → (Ψ ,typ) ∋ a := ⇑ᵗ A
+
+infix 4 _∋typ_≔_
+
+data _∋typ_≔_ : ∀ {Θ Δ}
+    → TyEnv Θ Δ → TyVar Δ → TyVar Θ → Set where
+  here-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {Y : TyVar (suc Δ)} {α : TyVar Θ}
+      ---------------------------------
+    → (Ψ ,typ[ Y ≔ α ]) ∋typ Y ≔ α
+
+  skip-cross-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {Y : TyVar Δ} {α : TyVar Θ}
+      {Z : TyVar (suc Δ)} {β : TyVar Θ}
+    → Ψ ∋typ Y ≔ α
+      -----------------------------------------------------
+    → (Ψ ,typ[ Z ≔ β ]) ∋typ punchIn Z Y ≔ α
+
+  skip-lexical-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {Y : TyVar Δ} {α : TyVar Θ}
+    → Ψ ∋typ Y ≔ α
       -----------------------------
-    → (Ψ ,typ[ Y ]) ∋ a := wkᵗ Y A
+    → (Ψ ,typ) ∋typ suc Y ≔ α
+
+  skip-visible-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {Y : TyVar Δ} {α : TyVar Θ} {A : Ty Δ}
+    → Ψ ∋typ Y ≔ α
+      --------------------------------
+    → (Ψ ,:= A) ∋typ Y ≔ suc α
+
+  skip-opaque-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {Y : TyVar Δ} {α : TyVar Θ}
+    → Ψ ∋typ Y ≔ α
+      ---------------------------------
+    → (Ψ ,opaque) ∋typ Y ≔ suc α
 
 ------------------------------------------------------------------------
 -- Total regular-slot deletion
@@ -120,12 +164,14 @@ _∖_ : ∀ {Θ Δ} → TyEnv Θ (suc Δ) → TyVar (suc Δ) → TyEnv Θ Δ
 (Ψ ,:= A) ∖ Y | just C = (Ψ ∖ Y) ,:= C
 (Ψ ,:= A) ∖ Y | nothing = (Ψ ∖ Y) ,opaque
 (Ψ ,opaque) ∖ Y = (Ψ ∖ Y) ,opaque
-_∖_ {Δ = zero} (Ψ ,typ[ zero ]) zero = Ψ
-_∖_ {Δ = suc Δ} (Ψ ,typ[ z ]) y with z ≟ y
-_∖_ {Δ = suc Δ} (Ψ ,typ[ .y ]) y | yes refl = Ψ
-_∖_ {Δ = suc Δ} (Ψ ,typ[ z ]) y | no z≢y =
+_∖_ {Δ = zero} (Ψ ,typ[ zero ≔ α ]) zero = Ψ
+_∖_ {Δ = suc Δ} (Ψ ,typ[ z ≔ α ]) y with z ≟ y
+_∖_ {Δ = suc Δ} (Ψ ,typ[ .y ≔ α ]) y | yes refl = Ψ
+_∖_ {Δ = suc Δ} (Ψ ,typ[ z ≔ α ]) y | no z≢y =
   (Ψ ∖ punchOut z y z≢y)
-    ,typ[ punchOut y z (λ y≡z → z≢y (sym y≡z)) ]
+    ,typ[ punchOut y z (λ y≡z → z≢y (sym y≡z)) ≔ α ]
+_∖_ (Ψ ,typ) zero = Ψ
+_∖_ {Δ = suc Δ} (Ψ ,typ) (suc Y) = (Ψ ∖ Y) ,typ
 
 ------------------------------------------------------------------------
 -- Typing
@@ -157,8 +203,8 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
 
   -- DEFERRED: value restriction
   ⊢Λ :
-      Ψ ,typ[ zero ] ∣ renameCtx suc Γ ⊢ M ⦂ A
-      -----------------------------------------
+      Ψ ,typ ∣ renameCtx suc Γ ⊢ M ⦂ A
+      ----------------------------------
     → Ψ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
 
   ⊢⦂∀ :
@@ -194,7 +240,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {α : TyVar Θ} {c : Reveal}
     → Ψ ∋ α := C
     → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
-    → Ψ ,typ[ Y ] ∣ [] ⊢ M ⦂ A
+    → Ψ ,typ[ Y ≔ α ] ∣ [] ⊢ M ⦂ A
       --------------------------------
     → Ψ ∣ Γ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
@@ -207,6 +253,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {M : Term Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
+    → Ψ′ ∋typ Y ≔ α
     → (Ψ′ ∖ Y) ∋ α := C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
     → (Ψ′ ∖ Y) ∣ [] ⊢ M ⦂ A

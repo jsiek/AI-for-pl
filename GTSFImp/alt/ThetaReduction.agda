@@ -676,7 +676,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
   ξ-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {M M′ : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → Ψ ,typ[ X ] ⊢ M —→ M′
+    → Ψ ,typ[ X ≔ α ] ⊢ M —→ M′
       ------------------------------------------
     → Ψ ⊢ M ↑[ X ≔ α ] c —→ M′ ↑[ X ≔ α ] c
 

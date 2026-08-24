@@ -19,6 +19,7 @@ import proof.DGG.CtxImp as CTI
 import proof.DGG.CastTermImprecision as CTIR
 open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
+open import LR-narrow.UniversalFamily using (RightUniversalFamilyKit)
 open import LR-narrow.TermRelation
 open import LR-narrow.Universal using
   (universal-body-imprecision; right-universal-body-imprecision)
@@ -128,6 +129,7 @@ right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+    (kit : RightUniversalFamilyKit)
     (nonvar : NonVar Aᴾ)
     (occurs : Fin.zero ∈ᵗ Aᴾ)
     (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -157,6 +159,7 @@ right-universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+    (kit : RightUniversalFamilyKit)
     (nonvar : NonVar Aᴾ)
     (occurs : Fin.zero ∈ᵗ Aᴾ)
     (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -183,6 +186,7 @@ right-universal-value-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+    (kit : RightUniversalFamilyKit)
     (nonvar : NonVar Aᴾ)
     (occurs : Fin.zero ∈ᵗ Aᴾ)
     (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)

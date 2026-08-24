@@ -15,7 +15,8 @@ module LR-narrow.SlotSequence where
 open import Data.Nat using (suc)
 import Data.Fin as Fin
 open import Data.Product using (Σ-syntax; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl) renaming (subst to subst≡)
 
 open import Types
 open import CastTerms
@@ -127,3 +128,13 @@ _++ˢ_ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ} {B C D : Ty (suc 
   → UniWraps W B C → UniWraps W C D → UniWraps W B D
 [] ++ˢ τ = τ
 (w ∷ σ) ++ˢ τ = w ∷ (σ ++ˢ τ)
+
+-- Transporting a sequence along an equality of its source type does
+-- not change its action on terms.
+
+wrapTerm-subst : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {B B′ C : Ty (suc Δᴾ)}
+    (eq : B′ ≡ B) (σ : UniWraps W B′ C) (V : Term Δᴾ)
+  → wrapTerm (subst≡ (λ X → UniWraps W X C) eq σ) V
+      ≡ wrapTerm σ V
+wrapTerm-subst refl σ V = refl

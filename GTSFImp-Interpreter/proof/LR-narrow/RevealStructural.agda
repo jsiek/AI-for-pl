@@ -107,6 +107,7 @@ open import proof.LR-narrow.TypeBetaExpansion using (precise-step)
 import proof.LR-narrow.RevealAtomic as RA
 import proof.LR-narrow.ConcealAtomic as CA
 
+open RevealObligations ob using (right-universal-family-kit)
 open RA using
   (AtomicReveal; atomic-★; atomic-ι; atomic-X; atomic-ι★; atomic-X★;
    rename-base-injective; rename-star-injective; rename-variable-inversion)
@@ -2042,7 +2043,7 @@ reveal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         ⦂∀ liftPreciseBody W≼Wb B₀ᴾ [ ＇ Fin.zero ])
   core-related = right-universals-head {W = W} {p = p₀} {Bᴾ = B₀ᴾ}
     {Bᴵ = Bᴵ} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl chain
+    k ≤-refl (chain (future-refl {W = W}) [])
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -2386,10 +2387,16 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ ,
     replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ ,
     targetᴾ , targetᴵ ,
-    heads (suc j) sj≤k
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = suc j} {k = k}
-        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+    (λ W≼W′ σ →
+      to-family right-universal-family-kit
+        {W = W} {p = q₀}
+        {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
+        {Bᴵ = replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ} {k = suc j}
+        (heads (suc j) sj≤k
+          (value-imprecision-downward-to
+            {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = suc j} {k = k}
+            {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
+        W≼W′ σ)
 
 -- The dynamic-target variant: when the imprecise center is ★ the
 -- imprecise wrapper is the identity reveal, the old slot cannot occur
@@ -2588,7 +2595,7 @@ conceal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
     {Bᴵ = replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl chain
+    k ≤-refl (chain (future-refl {W = W}) [])
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -2893,10 +2900,14 @@ conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
   at-every-index (suc j) sj≤k =
     conceal-endpoints ,
     B₀ᴾ , Bᴵ , sourceᴾ , sourceᴵ ,
-    heads (suc j) sj≤k
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
-        {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+    (λ W≼W′ σ →
+      to-family right-universal-family-kit
+        {W = W} {p = p₀} {Bᴾ = B₀ᴾ} {Bᴵ = Bᴵ} {k = suc j}
+        (heads (suc j) sj≤k
+          (value-imprecision-downward-to
+            {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
+            {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
+        W≼W′ σ)
 
 -- The concealed right-universal value when the paired center cannot
 -- occur in the imprecise center type: both replacements are the
@@ -3067,7 +3078,7 @@ conceal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
     {Bᴵ = Bᴵ}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl chain
+    k ≤-refl (chain (future-refl {W = W}) [])
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -3392,10 +3403,14 @@ conceal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
   at-every-index (suc j) sj≤k =
     absent-endpoints ,
     B₀ᴾ , Bᴵ , sourceᴾ , sourceᴵ ,
-    heads (suc j) sj≤k
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
-        {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+    (λ W≼W′ σ →
+      to-family right-universal-family-kit
+        {W = W} {p = p₀} {Bᴾ = B₀ᴾ} {Bᴵ = Bᴵ} {k = suc j}
+        (heads (suc j) sj≤k
+          (value-imprecision-downward-to
+            {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
+            {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
+        W≼W′ σ)
 
 -- The right-universal reveal when the paired center cannot occur in
 -- the imprecise center type: both replacements are the identity, the
@@ -3538,7 +3553,7 @@ reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         ⦂∀ liftPreciseBody W≼Wb B₀ᴾ [ ＇ Fin.zero ])
   core-related = right-universals-head {W = W} {p = p₀} {Bᴾ = B₀ᴾ}
     {Bᴵ = Bᴵ} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl chain
+    k ≤-refl (chain (future-refl {W = W}) [])
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -3840,10 +3855,16 @@ reveal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ ,
     Bᴵ ,
     targetᴾ , sourceᴵ ,
-    heads (suc j) sj≤k
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {j = suc j}
-        {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+    (λ W≼W′ σ →
+      to-family right-universal-family-kit
+        {W = W} {p = q₀}
+        {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
+        {Bᴵ = Bᴵ} {k = suc j}
+        (heads (suc j) sj≤k
+          (value-imprecision-downward-to
+            {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀}
+            {j = suc j} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
+        W≼W′ σ)
 
 -- The conceal dispatch for a value-form imprecise wrapper: force the
 -- given value's derivation with the replaced one and assemble.

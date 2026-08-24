@@ -32,6 +32,8 @@ import proof.DGG.CastTermImprecision2Typing as CTIT
 open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
+open import LR-narrow.UniversalFamily using
+  (RightUniversalFamilyKit; to-family)
 open import LR-narrow.Closure
 open import LR-narrow.ClosingSubstitution
 open import LR-narrow.ClosingSubstitutionProperties
@@ -636,6 +638,7 @@ right-universal-value-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (kit : RightUniversalFamilyKit)
   → (nonvar : NonVar Aᴾ)
   → (occurs : Fin.zero ∈ᵗ Aᴾ)
   → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -664,7 +667,7 @@ right-universal-value-related-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
         (liftPreciseTerm W≼W′ (Λ Vᴾ)))
 right-universal-value-related-from-body {W = W} {k = k} {Γ = Γ}
     {Aᴾ = Aᴾ} {Bᴵ = Bᴵ} {p = p} {Vᴾ = Vᴾ} {Vᴵ = Vᴵ}
-    nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q body-related
+    kit nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q body-related
     W′ W≼W′ γ j j≤k =
   related j j≤k
   where
@@ -768,17 +771,23 @@ right-universal-value-related-from-body {W = W} {k = k} {Γ = Γ}
     (liftCenterTy-universal W≼W′ precise-body-base) refl
     explicit-endpoints
   related (suc j) sj≤k = ClosureProof.value-imprecision-reindex
-    (liftCenterImprecision W≼W′ q) structural
+    {W = W′} (liftCenterImprecision W≼W′ q) structural {k = suc j}
     (liftCenterTy-universal W≼W′ precise-body-base) refl
     (explicit-endpoints ,
       liftPreciseBody W≼W′ Aᴾ , liftImpreciseTy W≼W′ Bᴵ ,
       precise-body-eq , imprecise-body-eq ,
-      right-universals-related-result-transport
-        (liftCenterBody-shift W≼W′ imprecise-base) p-lifted
-        (right-universals-related-from-body
-          {W = W} {k = k} {p = p-body}
-          {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} {Nᴾ = Vᴾ} {Mᴵ = Vᴵ}
-          vVᴾ body-related {W′ = W′} W≼W′ γ (suc j) sj≤k))
+      λ W′≼W″ σ →
+        to-family kit
+          {W = W′} {p = p-structural}
+          {Bᴾ = liftPreciseBody W≼W′ Aᴾ}
+          {Bᴵ = liftImpreciseTy W≼W′ Bᴵ} {k = suc j}
+          (right-universals-related-result-transport
+          (liftCenterBody-shift W≼W′ imprecise-base) p-lifted
+          (right-universals-related-from-body
+            {W = W} {k = k} {p = p-body}
+            {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} {Nᴾ = Vᴾ} {Mᴵ = Vᴵ}
+            vVᴾ body-related {W′ = W′} W≼W′ γ (suc j) sj≤k))
+          W′≼W″ σ)
 
 right-universal-value-phase-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
@@ -789,6 +798,7 @@ right-universal-value-phase-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (kit : RightUniversalFamilyKit)
   → (nonvar : NonVar Aᴾ)
   → (occurs : Fin.zero ∈ᵗ Aᴾ)
   → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -805,12 +815,12 @@ right-universal-value-phase-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
   → CompiledRightUniversalBodyRelation
       {W = W} {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} q k Γ Vᴾ Vᴵ
 right-universal-value-phase-from-body {W = W} {k = k} {Γ = Γ}
-    {Vᴵ = Vᴵ} nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q
+    {Vᴵ = Vᴵ} kit nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q
     body-related W′ W≼W′ γ =
   related-target-value-phase imprecise-closed-value
     (λ j j≤k → right-universal-value-related-from-body
-      {W = W} nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q body-related
-      W′ W≼W′ γ j j≤k)
+      {W = W} kit nonvar occurs liftΓ vVᴾ vVᴵ target⊢ body q
+      body-related W′ W≼W′ γ j j≤k)
   where
   imprecise-closed-value = close-preserves-value
     (impreciseClosingSubstitution γ)
@@ -825,6 +835,7 @@ right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (kit : RightUniversalFamilyKit)
   → (nonvar : NonVar Aᴾ)
   → (occurs : Fin.zero ∈ᵗ Aᴾ)
   → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -839,11 +850,11 @@ right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
       (right-universal-body-imprecision {W = W} p)
       Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
   → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Vᴵ
-right-universal-value-compatible-from-body {W = W} nonvar occurs liftΓ
-    vVᴾ vVᴵ target⊢ body q body-related =
+right-universal-value-compatible-from-body {W = W} kit nonvar occurs
+    liftΓ vVᴾ vVᴵ target⊢ body q body-related =
   right-universal-phase-compatible {W = W} vVᴾ q
-    (right-universal-value-phase-from-body {W = W} nonvar occurs liftΓ
-      vVᴾ vVᴵ target⊢ body q body-related)
+    (right-universal-value-phase-from-body {W = W} kit nonvar occurs
+      liftΓ vVᴾ vVᴵ target⊢ body q body-related)
 
 universal-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}

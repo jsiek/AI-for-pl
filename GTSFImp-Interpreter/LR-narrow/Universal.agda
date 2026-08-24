@@ -20,6 +20,7 @@ import proof.DGG.CastTermImprecision as CTIR
 open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
 open import LR-narrow.LogicalRelation
+open import LR-narrow.UniversalFamily using (RightUniversalFamilyKit)
 open import LR-narrow.ClosingSubstitution
 open import LR-narrow.ClosingSubstitutionProperties
 open import LR-narrow.TermRelation
@@ -191,6 +192,7 @@ right-universal-value-phase-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (kit : RightUniversalFamilyKit)
   → (nonvar : NonVar Aᴾ)
   → (occurs : Fin.zero ∈ᵗ Aᴾ)
   → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -218,6 +220,7 @@ right-universal-value-compatible-from-body : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (kit : RightUniversalFamilyKit)
   → (nonvar : NonVar Aᴾ)
   → (occurs : Fin.zero ∈ᵗ Aᴾ)
   → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)

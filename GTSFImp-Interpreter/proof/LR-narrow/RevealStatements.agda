@@ -32,6 +32,8 @@ open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import LR-narrow.SlotSequence public
+open import LR-narrow.UniversalFamily using
+  (RightUniversalFamilyKit; to-family) public
 open import proof.LR-narrow.RevealLifting using (PairedSlot)
 open import proof.LR-narrow.SlotLifting using
   (slotXᴾ; slotXᴵ; slotRᴾ; slotRᴵ)
@@ -243,6 +245,13 @@ full-concealAt statements {n = n} = concealAt (statements n)
 
 record RevealObligations : Set₁ where
   field
+    -- The replacement-closure kit: every right-universal chain
+    -- extends to the replacement-closed family stored by the `∀⊑`
+    -- clause.  Together with this kit the four blocked universal
+    -- statements below become projections, and conversely the kit is
+    -- provable once they hold; see REPLACEMENT-CLOSURE-DESIGN.md.
+    right-universal-family-kit : RightUniversalFamilyKit
+
     blocked-precise-reveal : ∀ {k n} → Below k n
       → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
           {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}

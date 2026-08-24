@@ -29,6 +29,7 @@ import Imprecision as I
 import NarrowWiden as NW
 open import NarrowWidenIsomorphism using (narrowing→imprecision)
 open import LR-narrow.World
+open import LR-narrow.SlotSequence
 open import LR-narrow.Computation
 
 ------------------------------------------------------------------------
@@ -258,7 +259,7 @@ mutual
     Σ[ Bᴵ ∈ Ty _ ]
       (embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Aᴾ)
       × (embedImprecise (core W) Bᴵ ≡ Aᴵ)
-      × RightUniversalsRelated W p Bᴾ Bᴵ (suc k) Vᴵ Vᴾ
+      × RightUniversalFamily W p Bᴾ Bᴵ (suc k) Vᴵ Vᴾ
 
   ValueImprecisionᵏ (suc k) W I.∀★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.∀★⊑★ Vᴵ Vᴾ ×
@@ -371,6 +372,31 @@ mutual
             (liftPreciseTerm W≼W′ Vᴾ
               ⦂∀ liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]))
     × RightUniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
+
+  -- The replacement-closed family of a right-universal value: for
+  -- every future and every slot-conversion sequence applied to the
+  -- lifted precise value, the corresponding instantiation chain (see
+  -- REPLACEMENT-CLOSURE-DESIGN.md).  Projecting at the reflexive
+  -- future and the empty sequence recovers the plain chain.
+
+  RightUniversalFamily : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
+    → (W : World Δᴾ Δᴵ Δᶜ)
+    → I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ
+    → Ty (suc Δᴾ)
+    → Ty Δᴵ
+    → ℕ
+    → Term Δᴵ
+    → Term Δᴾ
+    → Set₁
+  RightUniversalFamily W p Bᴾ Bᴵ k Vᴵ Vᴾ =
+    ∀ {Δᴾ′ Δᴵ′ Δᶜ′} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+      (W≼W′ : Future W W′) {Bᴾ′ : Ty (suc Δᴾ′)}
+      (σ : UniWraps W′ (liftPreciseBody W≼W′ Bᴾ) Bᴾ′)
+    → RightUniversalsRelated W′
+        (liftCenterDynamicBodyImprecision W≼W′ p)
+        Bᴾ′ (liftImpreciseTy W≼W′ Bᴵ) k
+        (liftImpreciseTerm W≼W′ Vᴵ)
+        (wrapTerm σ (liftPreciseTerm W≼W′ Vᴾ))
 
   RightDynamicPayloadRelated : ∀ {Δᴾ Δᴵ Δᶜ}
     → (W : World Δᴾ Δᴵ Δᶜ)

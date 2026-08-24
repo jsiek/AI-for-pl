@@ -7,7 +7,7 @@ module proof.LR-narrow.UniversalInstantiation where
 --   * Returns the endpoint body witnesses stored in ValueImprecision.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Product using (_×_; _,_; Σ-syntax)
+open import Data.Product using (_×_; _,_; Σ-syntax; proj₁)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
@@ -15,6 +15,7 @@ open import Types
 open import CastTerms
 import Imprecision as I
 open import LR-narrow.World
+open import LR-narrow.SlotSequence
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 
@@ -60,6 +61,7 @@ right-related-universal-instantiation : ∀
           in ComputationsRelated W (PostBindValueRelation step s)
                (suc k) Vᴵ (Vᴾ ⦂∀ Bᴾ [ Rᴾ ]))
 right-related-universal-instantiation {Rᴾ = Rᴾ} {W = W} {r★ = r★}
-    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , head , tail) =
+    (endpoints , Bᴾ , Bᴵ , eqᴾ , eqᴵ , fam) =
   Bᴾ , Bᴵ , eqᴾ , eqᴵ ,
-  (λ s → head W (future-refl {W = W}) Rᴾ r★ s)
+  (λ s → proj₁ (fam (future-refl {W = W}) []) W
+           (future-refl {W = W}) Rᴾ r★ s)

@@ -19,6 +19,7 @@ import proof.DGG.CtxImp as CTI
 import proof.DGG.CastTermImprecision as CTIR
 open CTIR using (_∣_⊢²_⊑_∶_)
 open import LR-narrow.World
+open import LR-narrow.UniversalFamily using (RightUniversalFamilyKit)
 open import LR-narrow.TermRelation
 open import LR-narrow.Universal
 open import LR-narrow.CastObligations using (CastValueObligations)
@@ -140,6 +141,7 @@ right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+    (kit : RightUniversalFamilyKit)
     (nonvar : NonVar Aᴾ)
     (occurs : Fin.zero ∈ᵗ Aᴾ)
     (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -157,11 +159,11 @@ right-universal-value-body-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
       {W = W} {Γ = Γ}
       {Wᵇ = CTI.liftWorldLeft I.X⊑★ (forgetWorld W)} {Γᵇ = Γ′}
       {p = p} {Vᴾ = Vᴾ} {Mᴵ = Vᴵ} q body
-right-universal-value-body-fundamental nonvar occurs liftΓ vVᴾ vVᴵ
-    target⊢ body q body-tests =
+right-universal-value-body-fundamental kit nonvar occurs liftΓ vVᴾ
+    vVᴵ target⊢ body q body-tests =
   right-universal-body-proof λ k →
-    right-universal-value-phase-from-body nonvar occurs liftΓ vVᴾ vVᴵ
-      target⊢ body q (λ i i≤k → body-tests i)
+    right-universal-value-phase-from-body kit nonvar occurs liftΓ vVᴾ
+      vVᴵ target⊢ body q (λ i i≤k → body-tests i)
 
 right-universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ}
@@ -172,6 +174,7 @@ right-universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
+    (kit : RightUniversalFamilyKit)
     (nonvar : NonVar Aᴾ)
     (occurs : Fin.zero ∈ᵗ Aᴾ)
     (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -187,7 +190,7 @@ right-universal-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
       {p = p} {Vᴾ = Vᴾ} {Mᴵ = Mᴵ} q body
   → FundamentalProperty
       (CTIR.Λ⊑² nonvar occurs liftΓ vVᴾ target⊢ body q)
-right-universal-fundamental nonvar occurs liftΓ vVᴾ target⊢ body q
+right-universal-fundamental kit nonvar occurs liftΓ vVᴾ target⊢ body q
     body-fundamental =
   fundamental-proof λ k →
     right-universal-compatible-from-body nonvar occurs liftΓ vVᴾ target⊢
@@ -202,6 +205,7 @@ right-universal-value-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
     {Γ′ : CTI.CtxImp
       (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+    (kit : RightUniversalFamilyKit)
     (nonvar : NonVar Aᴾ)
     (occurs : Fin.zero ∈ᵗ Aᴾ)
     (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
@@ -217,11 +221,11 @@ right-universal-value-fundamental : ∀ {Δᴾ Δᴵ Δᶜ}
       Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
   → FundamentalProperty
       (CTIR.Λ⊑² nonvar occurs liftΓ vVᴾ target⊢ body q)
-right-universal-value-fundamental nonvar occurs liftΓ vVᴾ vVᴵ
+right-universal-value-fundamental kit nonvar occurs liftΓ vVᴾ vVᴵ
     target⊢ body q body-tests =
-  right-universal-fundamental nonvar occurs liftΓ vVᴾ target⊢ body q
-    (right-universal-value-body-fundamental nonvar occurs liftΓ vVᴾ vVᴵ
-      target⊢ body q body-tests)
+  right-universal-fundamental kit nonvar occurs liftΓ vVᴾ target⊢ body
+    q (right-universal-value-body-fundamental kit nonvar occurs liftΓ
+      vVᴾ vVᴵ target⊢ body q body-tests)
 
 right-universal-smart-fundamental : ∀ {Δᴾ Δᴵ Δᶜ Δᵐ}
     {W : World Δᴾ Δᴵ Δᶜ}

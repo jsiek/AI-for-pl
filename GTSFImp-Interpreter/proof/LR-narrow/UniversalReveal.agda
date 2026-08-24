@@ -29,7 +29,9 @@ import Imprecision as I
 open import Reduction
 import Eval as E
 open import proof.ImprecisionConsistency using
-  (ext-injective; fin-suc-injective)
+  (ext-injective; fin-suc-injective; ty-all-injective)
+open import Consistency using (toRenameᵗ; keep)
+open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.LR-narrow.ImmediateReturn using
   (value-question-complete)
 open import proof.LR-narrow.BetaExpansion using (value-step-none)
@@ -219,3 +221,51 @@ post-bind-weaken : ∀ {Δᴾ Δᴵ Δᶜ Δᴾᵇ Δᴵᵇ Δᶜᵇ Aᴾ Aᴵ}
   → ComputationsRelated W (FutureValueRelation q) k Mᴵ Mᴾ
 post-bind-weaken W≼B q =
   map-computations-related (λ W′ W≼W′ related → proj₂ (proj₂ related))
+
+------------------------------------------------------------------------
+-- Embedding a body into the paired-bind center context
+------------------------------------------------------------------------
+
+embed-precise-bind-body : ∀ {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
+    (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ) (B : Ty (suc Δᴾ))
+  → embedPrecise (pairedBindCore W Aᴾ Aᴵ) B
+      ≡ renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding W))) B
+embed-precise-bind-body W Aᴾ Aᴵ B =
+  renameᵗ-cong B (toRename-keep-eq (preciseEmbedding W))
+
+embed-imprecise-bind-body : ∀ {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
+    (Aᴾ : Ty Δᴾ) (Aᴵ : Ty Δᴵ) (B : Ty (suc Δᴵ))
+  → embedImprecise (pairedBindCore W Aᴾ Aᴵ) B
+      ≡ renameᵗ (extᵗ (toRenameᵗ (impreciseEmbedding W))) B
+embed-imprecise-bind-body W Aᴾ Aᴵ B =
+  renameᵗ-cong B (toRename-keep-eq (impreciseEmbedding W))
+
+------------------------------------------------------------------------
+-- Embedding commutes with future lifting at the body level
+------------------------------------------------------------------------
+
+embed-body-lift-precise : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (B : Ty (suc Δᴾ))
+  → renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding (core W′))))
+      (liftPreciseBody W≼W′ B)
+    ≡ liftCenterBody W≼W′
+        (renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding (core W)))) B)
+embed-body-lift-precise {W = W} {W′ = W′} W≼W′ B = ty-all-injective
+  (trans (cong (embedPrecise (core W′))
+      (sym (liftPreciseTy-universal W≼W′ B)))
+    (trans (embedPrecise-lift W≼W′ (`∀ B))
+      (liftCenterTy-universal W≼W′ _)))
+
+embed-body-lift-imprecise : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) (B : Ty (suc Δᴵ))
+  → renameᵗ (extᵗ (toRenameᵗ (impreciseEmbedding (core W′))))
+      (liftImpreciseBody W≼W′ B)
+    ≡ liftCenterBody W≼W′
+        (renameᵗ (extᵗ (toRenameᵗ (impreciseEmbedding (core W)))) B)
+embed-body-lift-imprecise {W = W} {W′ = W′} W≼W′ B = ty-all-injective
+  (trans (cong (embedImprecise (core W′))
+      (sym (liftImpreciseTy-universal W≼W′ B)))
+    (trans (embedImprecise-lift W≼W′ (`∀ B))
+      (liftCenterTy-universal W≼W′ _)))

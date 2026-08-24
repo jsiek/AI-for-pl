@@ -175,3 +175,62 @@ replace-⊑ {μ = μ} Z {Rᴾ = Rᴾ} {Rᴵ = Rᴵ} mode r
     (I.∀⊑★ nonstar p)
 replace-⊑ Z mode r I.bot-elim = I.bot-elim
 replace-⊑ Z mode r I.bot⊑★ = I.bot⊑★
+
+------------------------------------------------------------------------
+-- Replacement as a simultaneous substitution
+------------------------------------------------------------------------
+
+replaceSubᵗ : ∀ {Δ} → TyVar Δ → Ty Δ → Δ ⇒ˢ Δ
+replaceSubᵗ X R Y with X ≟ Y
+replaceSubᵗ X R Y | yes _ = R
+replaceSubᵗ X R Y | no _ = ＇ Y
+
+replaceSubᵗ-ext : ∀ {Δ} (X : TyVar Δ) (R : Ty Δ) (Y : TyVar (suc Δ))
+  → extsᵗ (replaceSubᵗ X R) Y ≡ replaceSubᵗ (Fin.suc X) (⇑ᵗ R) Y
+replaceSubᵗ-ext X R Fin.zero = refl
+replaceSubᵗ-ext X R (Fin.suc Y) with X ≟ Y
+replaceSubᵗ-ext X R (Fin.suc Y) | yes _ = refl
+replaceSubᵗ-ext X R (Fin.suc Y) | no _ = refl
+
+replaceTy-as-subst : ∀ {Δ} (X : TyVar Δ) (R : Ty Δ) (B : Ty Δ)
+  → replaceTy X R B ≡ substᵗ (replaceSubᵗ X R) B
+replaceTy-as-subst X R (＇ Y) with X ≟ Y
+replaceTy-as-subst X R (＇ Y) | yes refl = refl
+replaceTy-as-subst X R (＇ Y) | no _ = refl
+replaceTy-as-subst X R (‵ ι) = refl
+replaceTy-as-subst X R ★ = refl
+replaceTy-as-subst X R (A ⇒ B) =
+  cong₂ _⇒_ (replaceTy-as-subst X R A) (replaceTy-as-subst X R B)
+replaceTy-as-subst X R (`∀ A) = cong `∀
+  (trans (replaceTy-as-subst (Fin.suc X) (⇑ᵗ R) A)
+    (substᵗ-cong A (λ Y → sym (replaceSubᵗ-ext X R Y))))
+
+------------------------------------------------------------------------
+-- Replacing the zero variable by a shifted type opens the body
+------------------------------------------------------------------------
+
+replace-zero-open : ∀ {Δ} (S : Ty Δ) (B : Ty (suc Δ))
+  → replaceTy Fin.zero (⇑ᵗ S) B ≡ ⇑ᵗ (B [ S ]ᵗ)
+replace-zero-open S B =
+  trans (replaceTy-as-subst Fin.zero (⇑ᵗ S) B)
+    (trans (substᵗ-cong B pointwise)
+      (sym (renameᵗ-subst Fin.suc (singleSubᵗ S) B)))
+  where
+  pointwise : ∀ Y → replaceSubᵗ Fin.zero (⇑ᵗ S) Y
+      ≡ renameᵗ Fin.suc (singleSubᵗ S Y)
+  pointwise Fin.zero = refl
+  pointwise (Fin.suc Y) = refl
+
+------------------------------------------------------------------------
+-- Instantiating a shifted body at the zero variable is the identity
+------------------------------------------------------------------------
+
+open-shifted-body : ∀ {Δ} (B : Ty (suc Δ))
+  → renameᵗ (extᵗ Fin.suc) B [ ＇ Fin.zero ]ᵗ ≡ B
+open-shifted-body B =
+  trans (substᵗ-rename (singleSubᵗ (＇ Fin.zero)) (extᵗ Fin.suc) B)
+    (trans (substᵗ-cong B pointwise) (substᵗ-id B))
+  where
+  pointwise : ∀ X → singleSubᵗ (＇ Fin.zero) (extᵗ Fin.suc X) ≡ ＇ X
+  pointwise Fin.zero = refl
+  pointwise (Fin.suc X) = refl

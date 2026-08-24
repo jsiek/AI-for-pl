@@ -18,6 +18,10 @@ module alt.ThetaPreservation where
 --   * The former `β-reveal-∀` counterexample is retained as a resolved
 --     regression: source determinacy now computes its body type from the
 --     redex, so the old Boolean contractum is no longer a possible step.
+--   * Closed preservation is still refuted by `β-conceal-∀` when its
+--     instantiation mentions the concealed slot.  Slot deletion makes the
+--     freshly allocated anchor opaque inside the contractum; the checked
+--     instance and the strengthenable subcase are both retained below.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin

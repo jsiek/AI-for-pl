@@ -374,23 +374,26 @@ private
   removeResolved {n = suc n} (suc Y) (suc X) Y≢X =
     suc (removeResolved Y X (λ Y≡X → Y≢X (cong suc Y≡X)))
 
-  resolveSubᵗ : ∀ {Δ} → TyVar (suc Δ) → Ty Δ → suc Δ ⇒ˢ Δ
-  resolveSubᵗ Y C X with Y ≟ X
-  resolveSubᵗ Y C .Y | yes refl = C
-  resolveSubᵗ Y C X | no Y≢X = ＇ removeResolved Y X Y≢X
+resolveSubᵗ : ∀ {Δ} → TyVar (suc Δ) → Ty Δ → suc Δ ⇒ˢ Δ
+resolveSubᵗ Y C X with Y ≟ X
+resolveSubᵗ Y C .Y | yes refl = C
+resolveSubᵗ Y C X | no Y≢X = ＇ removeResolved Y X Y≢X
 
 -- A fresh crossing is inserted immediately below the source `∀` binder.
 -- Its slot and the binder's slot must therefore exchange before the inner
 -- type application opens the binder, exactly as in the v2 validation.
 
-private
-  swapTopᵗ : ∀ {Δ}
-    → Ty (suc (suc Δ))
-    → Ty (suc (suc Δ))
-  swapTopᵗ = renameᵗ λ where
-    zero → suc zero
-    (suc zero) → zero
-    (suc (suc X)) → suc (suc X)
+swapTop : ∀ {Δ}
+  → TyVar (suc (suc Δ))
+  → TyVar (suc (suc Δ))
+swapTop zero = suc zero
+swapTop (suc zero) = zero
+swapTop (suc (suc X)) = suc (suc X)
+
+swapTopᵗ : ∀ {Δ}
+  → Ty (suc (suc Δ))
+  → Ty (suc (suc Δ))
+swapTopᵗ = renameᵗ swapTop
 
 ------------------------------------------------------------------------
 -- One-step reduction

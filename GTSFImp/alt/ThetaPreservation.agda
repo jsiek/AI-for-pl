@@ -92,6 +92,88 @@ generator-typed B C =
     (generator-endpoint B C)
     (generator-typed↑ zero (⇑ᵗ C) B)
 
+------------------------------------------------------------------------
+-- Exchange at the two newest regular slots
+------------------------------------------------------------------------
+
+renameTy-id : ∀ {Δ} (A : Ty Δ)
+  → renameᵗ (λ X → X) A ≡ A
+renameTy-id (＇ X) = refl
+renameTy-id (‵ ι) = refl
+renameTy-id ★ = refl
+renameTy-id (A ⇒ B) rewrite renameTy-id A | renameTy-id B = refl
+renameTy-id (`∀ A) = cong `∀
+  (trans (renameᵗ-cong A ext-id) (renameTy-id A))
+  where
+  ext-id : ∀ X → extᵗ (λ Y → Y) X ≡ X
+  ext-id zero = refl
+  ext-id (suc X) = refl
+
+substSecond : ∀ {Δ}
+  → Ty (suc Δ) → TyVar (suc (suc Δ)) → Ty (suc Δ)
+substSecond B zero = ＇ zero
+substSecond B (suc zero) = B
+substSecond B (suc (suc X)) = ＇ suc X
+
+swap-open : ∀ {Δ} (A : Ty (suc (suc Δ))) (B : Ty (suc Δ))
+  → (swapTopᵗ A) [ B ]ᵗ ≡ substᵗ (substSecond B) A
+swap-open A B =
+  trans (substᵗ-rename (singleSubᵗ B) swapTop A)
+    (substᵗ-cong A after-swap)
+  where
+  after-swap : ∀ X
+    → singleSubᵗ B (swapTop X) ≡ substSecond B X
+  after-swap zero = refl
+  after-swap (suc zero) = refl
+  after-swap (suc (suc X)) = refl
+
+swap-shift-open-zero : ∀ {Δ} (A : Ty (suc Δ))
+  → (swapTopᵗ (⇑ᵗ A)) [ ＇ zero ]ᵗ ≡ A
+swap-shift-open-zero A =
+  trans (swap-open (⇑ᵗ A) (＇ zero))
+    (trans (substᵗ-rename (substSecond (＇ zero)) suc A)
+      (trans (substᵗ-cong A second-after-shift) (substᵗ-id A)))
+  where
+  second-after-shift : ∀ X
+    → substSecond (＇ zero) (suc X) ≡ ＇ X
+  second-after-shift zero = refl
+  second-after-shift (suc X) = refl
+
+wk-under-∀ : ∀ {Δ} (X : TyVar (suc Δ)) (A : Ty (suc Δ))
+  → renameᵗ (extᵗ (punchIn X)) A ≡ wkᵗ (suc X) A
+wk-under-∀ X A = renameᵗ-cong A under-∀
+  where
+  under-∀ : ∀ Y → extᵗ (punchIn X) Y ≡ punchIn (suc X) Y
+  under-∀ zero = refl
+  under-∀ (suc Y) = refl
+
+wk-zero-∀-swap : ∀ {Δ} (A : Ty (suc Δ))
+  → wkᵗ zero (`∀ A) ≡ `∀ (swapTopᵗ (⇑ᵗ A))
+wk-zero-∀-swap A = cong `∀ (sym (swap-shift A))
+  where
+  swap-shift : ∀ {Δ} (B : Ty (suc Δ))
+    → swapTopᵗ (⇑ᵗ B) ≡ renameᵗ (extᵗ suc) B
+  swap-shift B =
+    trans (renameᵗ-comp suc swapTop B)
+      (renameᵗ-cong B swap-after-shift)
+    where
+    swap-after-shift : ∀ X
+      → swapTop (suc X) ≡ extᵗ suc X
+    swap-after-shift zero = refl
+    swap-after-shift (suc X) = refl
+
+wk-exchange : ∀ {Δ} (X : TyVar (suc Δ)) (A : Ty Δ)
+  → wkᵗ zero (wkᵗ X A) ≡ wkᵗ (suc X) (wkᵗ zero A)
+wk-exchange X A =
+  trans (renameᵗ-comp (punchIn X) (punchIn zero) A)
+    (trans (renameᵗ-cong A punch-exchange)
+      (sym (renameᵗ-comp (punchIn zero) (punchIn (suc X)) A)))
+  where
+  punch-exchange : ∀ Y
+    → punchIn zero (punchIn X Y) ≡ punchIn (suc X) (punchIn zero Y)
+  punch-exchange zero = refl
+  punch-exchange (suc Y) = refl
+
 punchIn-injective : ∀ {Δ} (X : TyVar (suc Δ)) {Y Z : TyVar Δ}
   → punchIn X Y ≡ punchIn X Z
   → Y ≡ Z
@@ -426,6 +508,74 @@ fresh-delimiter-conceal {Ψ = Ψ} {A = A} {C = C} M⊢ =
     subst≡ (λ Φ → Φ ∋ zero := C) (sym env-eq) Z
   target-M⊢ =
     subst≡ (λ Φ → Φ ∣ [] ⊢ _ ⦂ A) (sym env-eq) M⊢
+
+∖-fresh-before-crossing : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ)
+    (A : Ty Δ) (X : TyVar (suc Δ)) (α : TyVar Θ)
+  → ((((Ψ ,:= A) ,typ[ zero ≔ zero ])
+        ,typ[ suc X ≔ suc α ]) ∖ zero)
+    ≡ (Ψ ,:= A) ,typ[ X ≔ suc α ]
+∖-fresh-before-crossing Ψ A X α =
+  trans
+    (∖-typ-other ((Ψ ,:= A) ,typ[ zero ≔ zero ])
+      (suc X) zero (suc α) (λ ()) (λ ()))
+    (cong (λ Φ → Φ ,typ[ X ≔ suc α ])
+      (∖-typ-here (Ψ ,:= A) zero zero))
+
+⊢shift-crossing : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M : Term Θ (suc Δ)} {T : Ty (suc Δ)} {A : Ty Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ}
+  → Ψ ,typ[ X ≔ α ] ∣ [] ⊢ M ⦂ T
+  → (Ψ ,:= A) ,typ[ X ≔ suc α ] ∣ [] ⊢ shiftᶿ M ⦂ T
+⊢shift-crossing {X = X} {α = α} M⊢ =
+  ⊢renameᶿ-target
+    (anchor-target-typ X α visible-shift-target) M⊢
+
+fresh-∀-entry-crossed : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ (suc Δ)} {C : Ty (suc (suc Δ))} {A : Ty Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ}
+  → Ψ ,typ[ X ≔ α ] ∣ [] ⊢ V ⦂ `∀ C
+  → ((Ψ ,:= A) ,typ[ zero ≔ zero ])
+      ,typ[ suc X ≔ suc α ] ∣ [] ⊢
+      (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
+        ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ] ⦂ C
+fresh-∀-entry-crossed {Ψ = Ψ} {V = V} {C = C} {A = A}
+    {X = X} {α = α} V⊢ =
+  subst≡ (λ T → ambient ∣ [] ⊢ applied ⦂ T)
+    (swap-shift-open-zero C) (⊢⦂∀ exchanged⊢)
+  where
+  ambient = ((Ψ ,:= A) ,typ[ zero ≔ zero ])
+    ,typ[ suc X ≔ suc α ]
+  deleted = (Ψ ,:= A) ,typ[ X ≔ suc α ]
+  entered = shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C))
+  applied = entered ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ]
+  env-eq = ∖-fresh-before-crossing Ψ A X α
+  deleted-V⊢ = ⊢shift-crossing V⊢
+  target-V⊢ =
+    subst≡ (λ Φ → Φ ∣ [] ⊢ shiftᶿ V ⦂ `∀ C)
+      (sym env-eq) deleted-V⊢
+  deleted-lookup : deleted ∋ zero := wkᵗ X A
+  deleted-lookup = skip-typ Z
+  target-lookup =
+    subst≡ (λ Φ → Φ ∋ zero := wkᵗ X A)
+      (sym env-eq) deleted-lookup
+  entered⊢ = ⊢conceal (skip-cross-typ here-typ) target-lookup
+    (delimiter-typed↓ zero (wkᵗ zero (wkᵗ X A))
+      (wkᵗ zero (`∀ C))) target-V⊢
+  exchanged⊢ = subst≡ (λ T → ambient ∣ [] ⊢ entered ⦂ T)
+    (wk-zero-∀-swap C) entered⊢
+
+exchange-reveal-∀ : ∀ {Δ} {X : TyVar (suc Δ)}
+    {R : Ty Δ} {B : Ty (suc Δ)} {C : Ty (suc (suc Δ))}
+    {c : Reveal}
+  → ⊢↑[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] c
+      ⦂ C ↝ renameᵗ (extᵗ (punchIn X)) B
+  → ⊢↑[ suc X ⦂ wkᵗ (suc X) (⇑ᵗ R) ] c
+      ⦂ C ↝ wkᵗ (suc X) B
+exchange-reveal-∀ {X = X} {R = R} {B = B} c⊢ =
+  subst≡ (λ Q → ⊢↑[ suc X ⦂ Q ] _ ⦂ _ ↝ wkᵗ (suc X) B)
+    (wk-exchange X R)
+    (subst≡ (λ T → ⊢↑[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] _ ⦂ _ ↝ T)
+      (wk-under-∀ X B) c⊢)
 
 preserve-β-Λ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}

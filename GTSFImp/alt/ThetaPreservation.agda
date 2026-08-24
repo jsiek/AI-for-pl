@@ -1,20 +1,22 @@
 module alt.ThetaPreservation where
 
 -- File Charter:
---   * Records the remaining obstruction to one-step type preservation for the
+--   * Records the checked obstructions to one-step type preservation for the
 --     Θ-indexed alternative calculus after `id-cancel` was made strict.
 --   * The strict rule repairs the counterexample from commit c5ee0351: its
 --     mismatched identity delimiters now form an adapter value rather than a
 --     redex.  That historical instance remains below as a regression.
---   * The requested preservation statement is nevertheless false for a
---     different reason.  `β-reveal-⇒` moves its argument beneath a conceal
---     delimiter, whose typing rule requires a closed interior.  The reduction
---     rule asks only that the argument be a `Value`; a lambda value may capture
---     the ambient term context.  The checked instance below uses exactly such
---     a lambda, so its reduct cannot be typed.
+--   * Even at the empty term context, the loose `conceal-reveal` rule can pair
+--     two anchors with different representations.  Its checked instance below
+--     has type `𝔹` and reduces to a natural constant, refuting closed
+--     preservation.  Typing forces the two slots equal but not the anchors.
+--   * At a nonempty term context, `β-reveal-⇒` independently moves a captured
+--     lambda beneath a conceal delimiter whose typing rule requires a closed
+--     interior.  That checked instance explains why arbitrary-context
+--     preservation would remain false even after repairing `conceal-reveal`.
 --   * As pre-agreed, no partial preservation theorem, postulate, or hole is
---     introduced.  Repair requires a closedness premise on the function-
---     crossing β rules or a corresponding change to crossing interiors.
+--     introduced.  The checked refutations are the deliverable for the false
+--     statements.
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
@@ -109,7 +111,48 @@ bad-redex-no-step : ∀ {M′}
 bad-redex-no-step (ξ-reveal step) = bad-inner-no-step step
 
 ------------------------------------------------------------------------
--- Remaining `β-reveal-⇒` obstruction
+-- Loose conceal/reveal at distinct anchors
+------------------------------------------------------------------------
+
+loose-Ψ : TyEnv 2 0
+loose-Ψ = ∅ ,:= ‵ `ℕ ,:= ‵ `𝔹
+
+loose-V : Term 2 0
+loose-V = $ (κℕ 7)
+
+loose-V-⊢ : loose-Ψ ∣ [] ⊢ loose-V ⦂ ‵ `ℕ
+loose-V-⊢ = ⊢$ (κℕ 7)
+
+loose-inner : Term 2 1
+loose-inner = loose-V ↓[ zero ≔ suc zero ] seal
+
+loose-inner-⊢ :
+  loose-Ψ ,typ[ zero ] ∣ [] ⊢ loose-inner ⦂ ＇ zero
+loose-inner-⊢ = ⊢conceal (S Z) ⊢seal loose-V-⊢
+
+loose-redex : Term 2 0
+loose-redex = loose-inner ↑[ zero ≔ zero ] unseal
+
+loose-redex-⊢ : loose-Ψ ∣ [] ⊢ loose-redex ⦂ ‵ `𝔹
+loose-redex-⊢ = ⊢reveal Z ⊢unseal loose-inner-⊢
+
+loose-step : loose-Ψ ⊢ loose-redex —→ loose-V
+loose-step = conceal-reveal ($ (κℕ 7))
+
+loose-reduct-untypable : loose-Ψ ∣ [] ⊢ loose-V ⦂ ‵ `𝔹 → ⊥
+loose-reduct-untypable ()
+
+closed-preserve-impossible :
+  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ A}
+    → Ψ ∣ [] ⊢ M ⦂ A
+    → Ψ ⊢ M —→ M′
+    → Ψ ∣ [] ⊢ M′ ⦂ A)
+  → ⊥
+closed-preserve-impossible preserve =
+  loose-reduct-untypable (preserve loose-redex-⊢ loose-step)
+
+------------------------------------------------------------------------
+-- Arbitrary-context `β-reveal-⇒` obstruction
 ------------------------------------------------------------------------
 
 open-R : Ty zero

@@ -590,3 +590,27 @@ result (including the workspace handle) is in `structuredContent`, not
 the compact text. Batch `make check` (or a direct `agda --safe -v0`)
 remains the FINAL gate before committing — the MCP server is for
 iteration, not for the gate.
+
+## Use the Agda MCP server for the inner loop (from 2026-08-22)
+
+An `agda` MCP server is configured for codex in this container
+(agda-mcp, `--dynamic-workspaces`). Use it for the edit-recheck inner
+loop instead of batch `agda` invocations; big loads return async jobs —
+await them with `agda_job_await` (full result in `structuredContent`).
+Batch `agda --safe -v0` remains the FINAL gate before committing.
+
+## Blocked cases in large proofs (from 2026-08-24)
+
+When one case of a large proof is blocked but others succeed, do NOT
+discard the successful work and do NOT force the blocked case:
+
+- Structure the proof as one lemma per case from the start, assembled
+  by a small top-level function, so completed cases commit green
+  immediately regardless of the rest.
+- Leave the blocked case as an Agda hole in the UNCOMMITTED working
+  file (never commit holes; the worktree persists between runs), and
+  report the exact goal and the missing fact.
+- Expect the supervisor to resume your session (`codex exec resume`)
+  once the blocker is resolved; fill the hole then. If the blocker
+  turns out to be a falsity, a checked refutation is the deliverable —
+  but the per-case lemmas that succeeded still get committed.

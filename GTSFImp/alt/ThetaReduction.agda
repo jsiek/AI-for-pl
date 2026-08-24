@@ -21,9 +21,10 @@ open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Empty using (⊥-elim)
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong)
-open import Relation.Nullary using (yes; no)
+open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
 open import Consistency
@@ -225,20 +226,30 @@ data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → Inert ((gen c) A≢★)
 
 mutual
-  data RevealValue {Θ : AnchorCtx} {Δ : TyCtx}
-      (V : Term Θ Δ) : Reveal → Set where
-    fun : ∀ {c d}
-      ------------------------
-      → RevealValue V (c ↦↑ d)
+  data RevealValue : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
+      → Term Θ Δ → TyVar Δ → TyVar Θ → Reveal → Set where
+    fun : ∀ {Θ Δ} {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
+        {c d}
+      --------------------------------
+      → RevealValue V X α (c ↦↑ d)
 
-    all : ∀ {c}
-      -----------------------
-      → RevealValue V (`∀↑ c)
+    all : ∀ {Θ Δ} {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
+        {c}
+      -------------------------------
+      → RevealValue V X α (`∀↑ c)
 
-    delimiter :
-      CanonicalInterior V
-      ------------------------
-      → RevealValue V id↑
+    delimiter : ∀ {Θ Δ} {V : Term Θ Δ}
+        {X : TyVar Δ} {α : TyVar Θ}
+      → CanonicalInterior V
+        ------------------------
+      → RevealValue V X α id↑
+
+    adapter : ∀ {Θ Δ} {V : Term Θ Δ}
+        {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
+      → CanonicalInterior V
+      → ¬ (X ≡ Y × α ≡ β)
+        -------------------------------------------------------
+      → RevealValue (V ↓[ Y ≔ β ] id↓) X α id↑
 
   data ConcealValue {Θ : AnchorCtx} {Δ : TyCtx}
       (V : Term Θ Δ) : Conceal → Set where
@@ -285,7 +296,7 @@ mutual
       → (X : TyVar (suc Δ))
       → (α : TyVar Θ)
       → {c : Reveal}
-      → RevealValue V c
+      → RevealValue V X α c
         --------------------------
       → Value (V ↑[ X ≔ α ] c)
 
@@ -491,10 +502,10 @@ data _⊢_—→_ : ∀ {Θ Δ}
         (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d
 
   id-cancel : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
-      {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
     → CanonicalInterior V
-      -----------------------------------------------------
-    → Ψ ⊢ (V ↓[ X ≔ α ] id↓) ↑[ Y ≔ β ] id↑ —→ V
+      ----------------------------------------------------
+    → Ψ ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ —→ V
 
   id-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {X : TyVar (suc Δ)}

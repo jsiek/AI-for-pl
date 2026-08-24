@@ -21,6 +21,10 @@ module alt.ThetaPreservation where
 --   * The former slot-dependent `β-conceal-∀` obstruction is retained as
 --     a resolved regression.  The contractum resolves its instantiation and
 --     computed source in the deleted view, then seals the result on exit.
+--   * Closed preservation nevertheless remains false at `β-conceal-⇒`:
+--     deleting a nonterminal crossing can make a later slot-dependent anchor
+--     opaque, so the value moved into the deleted view is no longer typable.
+--     A checked closed counterexample records that independent obstruction.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -1202,6 +1206,87 @@ conceal-var-contractum-⊢ :
   conceal-var-Ψ ∣ [] ⊢ conceal-var-contractum ⦂ ‵ `ℕ
 conceal-var-contractum-⊢ =
   preserve-β-conceal-∀ Z conceal-var-redex-⊢
+
+------------------------------------------------------------------------
+-- Nonterminal-crossing obstruction for `β-conceal-⇒`
+------------------------------------------------------------------------
+
+conceal-arrow-base : TyEnv (suc zero) zero
+conceal-arrow-base = ∅ ,:= ‵ `ℕ
+
+conceal-arrow-Ψ : TyEnv (suc (suc zero)) (suc zero)
+conceal-arrow-Ψ =
+  (conceal-arrow-base ,typ[ zero ≔ zero ]) ,:= ＇ zero
+
+conceal-arrow-P : Ty zero
+conceal-arrow-P = `∀ (‵ `ℕ)
+
+conceal-arrow-V : Term (suc (suc zero)) zero
+conceal-arrow-V = ƛ conceal-arrow-P ˙ ($ (κℕ 0))
+
+conceal-arrow-V-value : Value conceal-arrow-V
+conceal-arrow-V-value = ƛ conceal-arrow-P ˙ ($ (κℕ 0))
+
+conceal-arrow-V-⊢ : conceal-arrow-base ,opaque ∣ [] ⊢
+  conceal-arrow-V ⦂ conceal-arrow-P ⇒ ‵ `ℕ
+conceal-arrow-V-⊢ = ⊢ƛ (⊢$ (κℕ 0))
+
+conceal-arrow-W : Term (suc (suc zero)) (suc zero)
+conceal-arrow-W =
+  ( Λ ($ (κℕ 1)))
+    ↑[ zero ≔ zero ] `∀↑ id↑
+
+conceal-arrow-W-value : Value conceal-arrow-W
+conceal-arrow-W-value =
+  (Λ ($ (κℕ 1))) ↑[ zero ≔ zero ] all
+
+conceal-arrow-W-⊢ : conceal-arrow-Ψ ∣ [] ⊢
+  conceal-arrow-W ⦂ `∀ (‵ `ℕ)
+conceal-arrow-W-⊢ =
+  ⊢reveal Z (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 1)))
+
+conceal-arrow-redex : Term (suc (suc zero)) (suc zero)
+conceal-arrow-redex =
+  (conceal-arrow-V ↓[ zero ≔ suc zero ] (`∀↑ id↑ ↦↓ id↓))
+    · conceal-arrow-W
+
+conceal-arrow-redex-⊢ : conceal-arrow-Ψ ∣ [] ⊢
+  conceal-arrow-redex ⦂ ‵ `ℕ
+conceal-arrow-redex-⊢ =
+  ⊢·
+    (⊢conceal (skip-visible-typ here-typ) (skip-opaque Z)
+      (⊢↓-⇒ (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢id↓ (‵ `ℕ)))
+      conceal-arrow-V-⊢)
+    conceal-arrow-W-⊢
+
+conceal-arrow-contractum : Term (suc (suc zero)) (suc zero)
+conceal-arrow-contractum =
+  (conceal-arrow-V ·
+    (conceal-arrow-W ↑[ zero ≔ suc zero ] `∀↑ id↑))
+    ↓[ zero ≔ suc zero ] id↓
+
+conceal-arrow-step : conceal-arrow-Ψ ⊢ conceal-arrow-redex —→
+  conceal-arrow-contractum
+conceal-arrow-step =
+  β-conceal-⇒ conceal-arrow-V-value conceal-arrow-W-value
+
+conceal-arrow-contractum-untypable :
+  conceal-arrow-Ψ ∣ [] ⊢ conceal-arrow-contractum ⦂ ‵ `ℕ
+  → ⊥
+conceal-arrow-contractum-untypable
+    (⊢conceal slot∈ α∈ d⊢
+      (⊢· V⊢ (⊢reveal outer∈ c⊢
+        (⊢reveal (skip-typ ()) inner-c⊢ inner⊢))))
+
+closed-preserve-conceal-arrow-impossible :
+  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
+    → Ψ ∣ [] ⊢ M ⦂ A
+    → Ψ ⊢ M —→ M′
+    → Ψ ∣ [] ⊢ M′ ⦂ A)
+  → ⊥
+closed-preserve-conceal-arrow-impossible preserve =
+  conceal-arrow-contractum-untypable
+    (preserve conceal-arrow-redex-⊢ conceal-arrow-step)
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression

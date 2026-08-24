@@ -17,8 +17,12 @@ open import Relation.Nullary using (yes; no)
 open import Data.Fin.Properties using (_≟_)
 
 open import Types
+open import LR-narrow.World using
+  (World; Future; future-refl; future-paired; future-precise;
+   future-imprecise; liftCenterTy; liftCenterVariable)
 open import Conversion using (replaceTy)
-open import proof.ImprecisionConsistency using (ext-injective)
+open import proof.ImprecisionConsistency using
+  (ext-injective; fin-suc-injective)
 import Imprecision as I
 
 ------------------------------------------------------------------------
@@ -97,3 +101,62 @@ renameᵗ-reflects-∉ᵗ ρ (`∀ A) (∉-all absentA) =
   ∉-all (renameᵗ-reflects-∉ᵗ (extᵗ ρ) A absentA)
 
 
+
+------------------------------------------------------------------------
+-- No occurrence opposite an absent variable
+------------------------------------------------------------------------
+
+-- A variable at the paired mode `X⊑X` can occur on the left of an
+-- imprecision derivation only opposite an occurrence of itself on the
+-- right: the only atomic form at mode `X⊑X` is `X⊑X` itself, whose
+-- right-hand side is the same variable; the `⊑ ★` forms are covered by
+-- `star-no-occurrence`.  This generalizes `star-no-occurrence` from
+-- the right-hand side `★` to any right-hand side avoiding the
+-- variable.
+
+paired-no-occurrence : ∀ {Δ} {μ : I.ImpEnv Δ} (Z : TyVar Δ)
+    {A B : Ty Δ}
+  → μ Z ≡ I.X⊑X
+  → μ I.⊢ A ⊑ B
+  → Z ∉ᵗ B
+  → Z ∉ᵗ A
+paired-no-occurrence Z mode I.★⊑★ avoid = ∉-star
+paired-no-occurrence Z mode I.ι⊑ι avoid = ∉-base
+paired-no-occurrence Z mode I.X⊑X avoid = avoid
+paired-no-occurrence Z mode (I.⇒⊑⇒ p q) (∉-fun absentA absentB) =
+  ∉-fun (paired-no-occurrence Z mode p absentA)
+    (paired-no-occurrence Z mode q absentB)
+paired-no-occurrence Z mode (I.∀⊑∀ p) (∉-all absentB) =
+  ∉-all (paired-no-occurrence (Fin.suc Z) mode p absentB)
+paired-no-occurrence Z mode (I.⇒⊑★ p q) avoid =
+  star-no-occurrence Z mode (I.⇒⊑★ p q)
+paired-no-occurrence Z mode I.ι⊑★ avoid = ∉-base
+paired-no-occurrence Z mode (I.X⊑★ eq) avoid =
+  star-no-occurrence Z mode (I.X⊑★ eq)
+paired-no-occurrence Z mode (I.∀⊑ nonvar occurs p) avoid =
+  ∉-all (paired-no-occurrence (Fin.suc Z) mode p
+    (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoid))
+paired-no-occurrence Z mode I.∀★⊑★ avoid = ∉-all ∉-star
+paired-no-occurrence Z mode (I.∀⊑★ nonstar p) avoid =
+  ∉-all (star-no-occurrence (Fin.suc Z) mode p)
+paired-no-occurrence Z mode I.bot-elim avoid =
+  ∉-all (∉-var (≢→≢ᶠ (λ ())))
+paired-no-occurrence Z mode I.bot⊑★ avoid =
+  ∉-all (∉-var (≢→≢ᶠ (λ ())))
+
+------------------------------------------------------------------------
+-- Non-occurrence is preserved by center lifting
+------------------------------------------------------------------------
+
+liftCenter-∉ᵗ : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) {Z : TyVar Δᶜ} {A : Ty Δᶜ}
+  → Z ∉ᵗ A
+  → liftCenterVariable W≼W′ Z ∉ᵗ liftCenterTy W≼W′ A
+liftCenter-∉ᵗ future-refl avoid = avoid
+liftCenter-∉ᵗ (future-paired W≼W′ related) avoid =
+  renameᵗ-∉ᵗ Fin.suc fin-suc-injective (liftCenter-∉ᵗ W≼W′ avoid)
+liftCenter-∉ᵗ (future-precise W≼W′ related) avoid =
+  renameᵗ-∉ᵗ Fin.suc fin-suc-injective (liftCenter-∉ᵗ W≼W′ avoid)
+liftCenter-∉ᵗ (future-imprecise W≼W′) avoid =
+  renameᵗ-∉ᵗ Fin.suc fin-suc-injective (liftCenter-∉ᵗ W≼W′ avoid)

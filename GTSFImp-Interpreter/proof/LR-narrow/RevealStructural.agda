@@ -72,7 +72,8 @@ open import proof.LR-narrow.RevealLifting
 open import proof.LR-narrow.ArgumentFrame using
   (related-application-computation)
 open import proof.LR-narrow.StarNoOccurrence using
-  (star-no-occurrence; replaceTy-absent; renameᵗ-reflects-∉ᵗ)
+  (star-no-occurrence; replaceTy-absent; renameᵗ-reflects-∉ᵗ;
+   renameᵗ-∉ᵗ; paired-no-occurrence; liftCenter-∉ᵗ)
 import proof.LR-narrow.PreciseReveal
 open module PreciseRevealModule = proof.LR-narrow.PreciseReveal ob
   using (precise-reveal; precise-conceal; sizeᵗ;
@@ -2394,23 +2395,32 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
 -- imprecise wrapper is the identity reveal, the old slot cannot occur
 -- in the precise body, and the imprecise endpoint is untouched.
 
-reveal-right-universal-star-inner : ∀ {Δᴾ Δᴵ Δᶜ}
+-- The right-universal reveal when the paired center cannot occur in
+-- the imprecise center type: both replacements are the identity, the
+-- imprecise wrapper is an identity conversion, and the body reveal is
+-- the one-sided precise reveal.
+
+reveal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
-    {B₀ᴾ : Ty (suc Δᴾ)} {Ac : Ty (suc Δᶜ)}
+    {B₀ᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
     (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
-    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ★)
+    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
+  → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
+  → (avoid : center s ∉ᵗ Bc)
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ {B = ★} nonvar occurs p₀) (suc k) Vᴵ Vᴾ
+  → ValueImprecision W (I.∀⊑ {A = Ac} {B = Bc} nonvar occurs p₀)
+      (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
       (t : liftPreciseBody W≼W′
             (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
             [ Rᴾ ]ᵗ
-        ⊑ᵂ⟨ core W′ ⟩ ★)
+        ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
   → ComputationsRelated (preciseBindWorld W′ Rᴾ r★)
       (FutureValueRelation
         (liftCenterImprecision (precise-step W′ r★) t)) (suc k)
@@ -2425,26 +2435,28 @@ reveal-right-universal-star-inner : ∀ {Δᴾ Δᴵ Δᶜ}
           ↑ replaceTy (Fin.suc (slotXᴾ (slot-future s W≼W′)))
               (⇑ᵗ (slotRᴾ (slot-future s W≼W′)))
               (liftPreciseBody W≼W′ B₀ᴾ) 〗)
-reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
-    nonvar occurs p₀ sourceᴾ
+reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ avoid
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
     W′ W≼W′ Rᴾ r★ t
     with proj₂ related
-reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
-    nonvar occurs p₀ sourceᴾ
+reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ avoid
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
     W′ W≼W′ Rᴾ r★ t
-    | Bᴾ* , Bᴵ* , embP , embI , chain
+    | Bᴾ* , Bᴵ* , embP , embI* , chain
     with ty-all-injective
            (renameᵗ-injective
              (toRenameᵗ-injective (preciseEmbedding (core W)))
              (trans embP (sym sourceᴾ)))
-       | rename-star-injective _ embI
-reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
-    nonvar occurs p₀ sourceᴾ
+       | renameᵗ-injective
+           (toRenameᵗ-injective (impreciseEmbedding (core W)))
+           (trans embI* (sym sourceᴵ))
+reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ avoid
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
     W′ W≼W′ Rᴾ r★ t
-    | .B₀ᴾ , .★ , embP , embI , chain
+    | .B₀ᴾ , .Bᴵ , embP , embI* , chain
     | refl | refl = final
   where
   Wb = preciseBindWorld W′ Rᴾ r★
@@ -2463,7 +2475,7 @@ reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
   Bᴰ = replaceTy (Fin.suc Xᴾ′) (⇑ᵗ Rᴾ′) B₀ᴾ′
 
   p₀′ : I.instᵐ (impEnv (core W′)) I.⊢
-      liftCenterBody W≼W′ Ac ⊑ liftCenterBody W≼W′ ★
+      liftCenterBody W≼W′ Ac ⊑ liftCenterBody W≼W′ (⇑ᵗ Bc)
   p₀′ = liftCenterDynamicBodyImprecision W≼W′ p₀
 
   Ac-eq : Ac
@@ -2476,33 +2488,41 @@ reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
     (trans (embed-body-lift-precise W≼W′ B₀ᴾ)
       (cong (liftCenterBody W≼W′) (sym Ac-eq)))
 
-  body-star : liftCenterBody W≼W′ ★ ≡ ★
-  body-star = trans (liftCenterBody-shift W≼W′ ★)
-    (cong ⇑ᵗ (liftCenterTy-star W≼W′))
+  shift-eq : embedImprecise (core Wb) (liftImpreciseTy W≼Wb Bᴵ)
+      ≡ ⇑ᵗ (liftCenterTy W≼W′ Bc)
+  shift-eq = trans
+    (embedImprecise-precise-shift (core W′) Rᴾ
+      (liftImpreciseTy W≼W′ Bᴵ))
+    (trans (cong ⇑ᵗ (embedImprecise-lift W≼W′ Bᴵ))
+      (cong (λ T → ⇑ᵗ (liftCenterTy W≼W′ T)) sourceᴵ))
 
-  t₀ : impEnv (core Wb) I.⊢ embedPrecise (core Wb) B₀ᴾ′ ⊑ ★
+  right-eq : liftCenterBody W≼W′ (⇑ᵗ Bc)
+      ≡ embedImprecise (core Wb) (liftImpreciseTy W≼Wb Bᴵ)
+  right-eq = trans (liftCenterBody-shift W≼W′ Bc) (sym shift-eq)
+
+  t₀ : impEnv (core Wb) I.⊢ embedPrecise (core Wb) B₀ᴾ′
+      ⊑ embedImprecise (core Wb) (liftImpreciseTy W≼Wb Bᴵ)
   t₀ = subst≡
-    (λ L → impEnv (core Wb) I.⊢ L ⊑ ★)
+    (λ L → impEnv (core Wb) I.⊢ L
+      ⊑ embedImprecise (core Wb) (liftImpreciseTy W≼Wb Bᴵ))
     (sym embed-eq-P)
     (subst≡
       (λ R → impEnv (core Wb) I.⊢ liftCenterBody W≼W′ Ac ⊑ R)
-      body-star p₀′)
+      right-eq p₀′)
 
   t₀-size : sizeᵖ t₀ ≡ sizeᵖ p₀
   t₀-size = trans (size-subst-left (sym embed-eq-P) _)
-    (trans (size-subst-right body-star p₀′)
+    (trans (size-subst-right right-eq p₀′)
       (lift-center-dynamic-body-size W≼W′ p₀))
 
   open-P : renameᵗ (extᵗ Fin.suc) B₀ᴾ′ [ ＇ Fin.zero ]ᵗ ≡ B₀ᴾ′
   open-P = open-shifted-body B₀ᴾ′
 
   s₀ : renameᵗ (extᵗ Fin.suc) B₀ᴾ′ [ ＇ Fin.zero ]ᵗ
-      ⊑ᵂ⟨ core Wb ⟩ liftImpreciseTy W≼Wb ★
+      ⊑ᵂ⟨ core Wb ⟩ liftImpreciseTy W≼Wb Bᴵ
   s₀ = subst≡
-    (λ T → renameᵗ (extᵗ Fin.suc) B₀ᴾ′ [ ＇ Fin.zero ]ᵗ
-      ⊑ᵂ⟨ core Wb ⟩ T)
-    (sym (liftImpreciseTy-star W≼Wb))
-    (subst≡ (λ L → L ⊑ᵂ⟨ core Wb ⟩ ★) (sym open-P) t₀)
+    (λ L → L ⊑ᵂ⟨ core Wb ⟩ liftImpreciseTy W≼Wb Bᴵ)
+    (sym open-P) t₀
 
   r₀ : impEnv (core Wb) I.⊢
       embedPrecise (core Wb) (＇ Fin.zero) ⊑ ★
@@ -2515,7 +2535,7 @@ reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
       (liftPreciseTerm W≼Wb Vᴾ
         ⦂∀ liftPreciseBody W≼Wb B₀ᴾ [ ＇ Fin.zero ])
   core-related = right-universals-head {W = W} {p = p₀} {Bᴾ = B₀ᴾ}
-    {Bᴵ = ★} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
+    {Bᴵ = Bᴵ} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
     k ≤-refl chain
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
@@ -2532,15 +2552,20 @@ reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
         ⦂∀ liftPreciseBody W≼Wb B₀ᴾ [ ＇ Fin.zero ])
   reindexed = ClosureProof.computations-related-reindex s₀ t₀
     (cong (embedPrecise (core Wb)) open-P)
-    (cong (embedImprecise (core Wb)) (liftImpreciseTy-star W≼Wb))
-    refl refl weakened
+    refl refl refl weakened
+
+  avoid-t₀ : center s₁
+      ∉ᵗ embedImprecise (core Wb) (liftImpreciseTy W≼Wb Bᴵ)
+  avoid-t₀ = subst≡ (center s₁ ∉ᵗ_) (sym shift-eq)
+    (renameᵗ-∉ᵗ Fin.suc fin-suc-injective
+      (liftCenter-∉ᵗ W≼W′ avoid))
 
   slot-absent : slotXᴾ s₁ ∉ᵗ B₀ᴾ′
   slot-absent = renameᵗ-reflects-∉ᵗ
     (toRenameᵗ (preciseEmbedding (core Wb))) B₀ᴾ′
     (subst≡ (_∉ᵗ embedPrecise (core Wb) B₀ᴾ′)
       (sym (preciseAligned (atom s₁)))
-      (star-no-occurrence (center s₁) (mode-eq s₁) t₀))
+      (paired-no-occurrence (center s₁) (mode-eq s₁) t₀ avoid-t₀))
 
   Nᴵ = liftImpreciseTerm W≼W′ Vᴵ
   Nᴾ = ⇑ᵗᵐ (liftPreciseTerm W≼W′ Vᴾ)
@@ -2562,6 +2587,23 @@ reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
       Nᴵ (Nᴾ ↑ 〖 Fin.suc Xᴾ′ , ⇑ᵗ Rᴾ′ ↑ B₀ᴾ′ 〗)
   revealed₁′ = ClosureProof.computations-related-reindex t₀ t₀
     refl refl refl wrap-eq-P revealed₁
+
+  t₀′ : impEnv (core Wb) I.⊢ embedPrecise (core Wb) B₀ᴾ′
+      ⊑ ⇑ᵗ (embedImprecise (core W′) (liftImpreciseTy W≼W′ Bᴵ))
+  t₀′ = subst≡
+    (λ R → impEnv (core Wb) I.⊢ embedPrecise (core Wb) B₀ᴾ′ ⊑ R)
+    (embedImprecise-precise-shift (core W′) Rᴾ
+      (liftImpreciseTy W≼W′ Bᴵ))
+    t₀
+
+  revealed₁″ : ComputationsRelated Wb (FutureValueRelation t₀′)
+      (suc k)
+      Nᴵ (Nᴾ ↑ 〖 Fin.suc Xᴾ′ , ⇑ᵗ Rᴾ′ ↑ B₀ᴾ′ 〗)
+  revealed₁″ = ClosureProof.computations-related-reindex t₀ t₀′
+    refl
+    (embedImprecise-precise-shift (core W′) Rᴾ
+      (liftImpreciseTy W≼W′ Bᴵ))
+    refl refl revealed₁′
 
   absent-suc : Fin.suc Xᴾ′ ∉ᵗ B₀ᴾ′
   absent-suc = subst≡ (_∉ᵗ B₀ᴾ′)
@@ -2602,28 +2644,32 @@ reveal-right-universal-star-inner W s {B₀ᴾ = B₀ᴾ} {Ac = Ac}
       ((Nᴾ ↑ 〖 Fin.suc Xᴾ′ , ⇑ᵗ Rᴾ′ ↑ B₀ᴾ′ 〗)
         ↑ 〖 Fin.zero , ⇑ᵗ Rᴾ ↑ Bᴰ 〗)
   final = dyn-revealed-computations (sizeᵗ Bᴰ) (suc k) n below
-    Wb d₂ t₀ ≤-refl source₂-P
+    Wb d₂ t₀′ ≤-refl source₂-P
     (liftCenterImprecision (precise-step W′ r★) t)
     target₂-P
-    revealed₁′
+    revealed₁″
 
-reveal-right-universal-star-head : ∀ {Δᴾ Δᴵ Δᶜ}
+reveal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
-    {B₀ᴾ : Ty (suc Δᴾ)} {Ac : Ty (suc Δᶜ)}
+    {B₀ᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
     (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
-    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ★)
+    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
+  → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
+  → (avoid : center s ∉ᵗ Bc)
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ {B = ★} nonvar occurs p₀) (suc k) Vᴵ Vᴾ
+  → ValueImprecision W (I.∀⊑ {A = Ac} {B = Bc} nonvar occurs p₀)
+      (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
       (t : liftPreciseBody W≼W′
             (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
             [ Rᴾ ]ᵗ
-        ⊑ᵂ⟨ core W′ ⟩ ★)
+        ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
   → ComputationsRelated W′
       (PostBindValueRelation
         (future-precise (future-refl {W = W′}) r★) t) (suc k)
@@ -2633,8 +2679,8 @@ reveal-right-universal-star-head : ∀ {Δᴾ Δᴵ Δᶜ}
         ⦂∀ liftPreciseBody W≼W′
           (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
           [ Rᴾ ])
-reveal-right-universal-star-head W s {B₀ᴾ = B₀ᴾ}
-    nonvar occurs p₀ sourceᴾ
+reveal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bc = Bc}
+    nonvar occurs p₀ sourceᴾ sourceᴵ avoid
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
     W′ W≼W′ Rᴾ r★ t =
   ClosureProof.computations-related-post-bind-reindex t t
@@ -2681,51 +2727,56 @@ reveal-right-universal-star-head W s {B₀ᴾ = B₀ᴾ}
              {Σ = preciseStore (core W′)} {A = Rᴾ} cᴾ vVᴾ′
     where
     endpoints = ClosureProof.value-imprecision-endpoints
-      {W = W} {p = I.∀⊑ {B = ★} nonvar occurs p₀} {k = suc k}
+      {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {k = suc k}
       {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
     vVᴾ′ = ClosureProof.precise-value-future W≼W′
       (precise-value endpoints)
   stepped | vVᴾ″ , step-eqᴾ =
     related-precise-bind-step-expand (λ ()) refl
       (β-reveal-∀ vVᴾ″) step-eqᴾ
-      (reveal-right-universal-star-inner W s nonvar occurs p₀
-        sourceᴾ below size< related W′ W≼W′ Rᴾ r★ t)
+      (reveal-right-universal-absent-inner W s nonvar occurs p₀
+        sourceᴾ sourceᴵ avoid below size< related W′ W≼W′ Rᴾ r★ t)
 
--- The value relation of a revealed right-universal value at the
--- dynamic imprecise center.
+-- The value relation of a revealed right-universal value when the
+-- paired center avoids the imprecise center type.
 
-reveal-right-universal-star : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+reveal-right-universal-absent : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (s : PairedSlot W)
-    {B₀ᴾ : Ty (suc Δᴾ)} {Ac Acʳ : Ty (suc Δᶜ)}
+    {B₀ᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Ac Acʳ : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
     (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
-    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ★)
+    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
     (nonvarʳ : NonVar Acʳ) (occursʳ : Fin.zero ∈ᵗ Acʳ)
-    (q₀ : I.instᵐ (impEnv (core W)) I.⊢ Acʳ ⊑ ★)
+    (q₀ : I.instᵐ (impEnv (core W)) I.⊢ Acʳ ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
+  → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
   → (targetᴾ : embedPrecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
       ≡ `∀ Acʳ)
+  → (avoid : center s ∉ᵗ Bc)
   → ∀ {k n : ℕ} (below : Below k n) (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ {B = ★} nonvar occurs p₀) k Vᴵ Vᴾ
+  → ValueImprecision W (I.∀⊑ {A = Ac} {B = Bc} nonvar occurs p₀)
+      k Vᴵ Vᴾ
   → ComputationsRelated W
-      (FutureValueRelation (I.∀⊑ {B = ★} nonvarʳ occursʳ q₀)) k
-      (Vᴵ ↑ id↑ ★)
+      (FutureValueRelation
+        (I.∀⊑ {A = Acʳ} {B = Bc} nonvarʳ occursʳ q₀)) k
+      (Vᴵ ↑ id↑ Bᴵ)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
-reveal-right-universal-star W s {B₀ᴾ = B₀ᴾ}
-    nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ targetᴾ
+reveal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    {Bc = Bc} nonvar occurs p₀ nonvarʳ occursʳ q₀
+    sourceᴾ sourceᴵ targetᴾ avoid
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    with reveal-id-step-question {Σ = impreciseStore (core W)} ★
+    with reveal-id-step-question {Σ = impreciseStore (core W)} Bᴵ
            (imprecise-value
              (ClosureProof.value-imprecision-endpoints related))
-reveal-right-universal-star W s {B₀ᴾ = B₀ᴾ}
-    nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ targetᴾ
+reveal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    {Bc = Bc} nonvar occurs p₀ nonvarʳ occursʳ q₀
+    sourceᴾ sourceᴵ targetᴾ avoid
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
     | vVᴵ , step-eqᴵ =
   related-imprecise-keep-step-expand (λ ())
-    (reveal-id-value-none ★ vVᴵ) (pure-step (id-reveal vVᴵ))
+    (reveal-id-value-none Bᴵ vVᴵ) (pure-step (id-reveal vVᴵ))
     step-eqᴵ
     (related-values-return vVᴵ
       (precise-value endpoints ↑ all)
@@ -2733,10 +2784,10 @@ reveal-right-universal-star W s {B₀ᴾ = B₀ᴾ}
   where
   endpoints = ClosureProof.value-imprecision-endpoints related
 
-  star-endpoints : TypedEndpoints W
-      (I.∀⊑ {B = ★} nonvarʳ occursʳ q₀) Vᴵ
+  absent-endpoints : TypedEndpoints W
+      (I.∀⊑ {B = Bc} nonvarʳ occursʳ q₀) Vᴵ
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
-  star-endpoints = typed-endpoints
+  absent-endpoints = typed-endpoints
     (impreciseType endpoints)
     (replaceTy (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
     (impreciseEmbedded endpoints) targetᴾ
@@ -2745,11 +2796,11 @@ reveal-right-universal-star W s {B₀ᴾ = B₀ᴾ}
     (imprecise-typed endpoints)
     (⊢reveal
       (structural-reveal-typing (`∀ B₀ᴾ) (preciseBound (atom s)))
-      (precise-endpoint-type-star))
+      (precise-endpoint-type-absent))
     where
-    precise-endpoint-type-star :
+    precise-endpoint-type-absent :
         ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ Vᴾ ⦂ `∀ B₀ᴾ
-    precise-endpoint-type-star = subst≡
+    precise-endpoint-type-absent = subst≡
       (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ Vᴾ ⦂ A)
       (renameᵗ-injective
         (toRenameᵗ-injective (preciseEmbedding (core W)))
@@ -2757,54 +2808,136 @@ reveal-right-universal-star W s {B₀ᴾ = B₀ᴾ}
       (precise-typed endpoints)
 
   heads : ∀ (m : ℕ) → m ≤ k
-    → ValueImprecision W (I.∀⊑ {B = ★} nonvar occurs p₀) m Vᴵ Vᴾ
+    → ValueImprecision W (I.∀⊑ {B = Bc} nonvar occurs p₀)
+        m Vᴵ Vᴾ
     → RightUniversalsRelated W q₀
         (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-        ★ m
+        Bᴵ m
         Vᴵ
         (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
   heads zero m≤k source-at = tt
   heads (suc j) sj≤k source-at =
     (λ W′ W≼W′ Rᴾob r★ t →
-      ClosureProof.computations-related-post-bind-reindex
-        (subst-t W≼W′ t) t refl
-        (sym (cong (embedImprecise (core W′))
-          (liftImpreciseTy-star W≼W′)))
-        refl refl
-        (reveal-right-universal-star-head W s nonvar occurs p₀
-          sourceᴾ (below-restrict sj≤k ≤-refl below) size<
-          source-at W′ W≼W′ Rᴾob r★ (subst-t W≼W′ t))) ,
+      reveal-right-universal-absent-head W s nonvar occurs p₀
+        sourceᴾ sourceᴵ avoid (below-restrict sj≤k ≤-refl below)
+        size< source-at W′ W≼W′ Rᴾob r★ t) ,
     heads j (≤-trans (n≤1+n j) sj≤k)
       (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ {B = ★} nonvar occurs p₀} {j = j}
+        {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {j = j}
         {k = suc j} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n j) source-at)
-    where
-    subst-t : ∀ {Δᴾ′ Δᴵ′ Δᶜ′} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-        (W≼W′ : Future W W′)
-      → ∀ {L : Ty Δᶜ′}
-      → impEnv (core W′) I.⊢ L
-          ⊑ embedImprecise (core W′) (liftImpreciseTy W≼W′ ★)
-      → impEnv (core W′) I.⊢ L ⊑ ★
-    subst-t {W′ = W′} W≼W′ {L = L} t = subst≡
-      (λ T → impEnv (core W′) I.⊢ L
-        ⊑ embedImprecise (core W′) T)
-      (liftImpreciseTy-star W≼W′) t
 
   at-every-index : ∀ (j : ℕ) → j ≤ k
-    → FutureValueRelation (I.∀⊑ {B = ★} nonvarʳ occursʳ q₀) W
+    → FutureValueRelation
+        (I.∀⊑ {B = Bc} nonvarʳ occursʳ q₀) W
         future-refl j
         Vᴵ
         (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
-  at-every-index zero j≤k = star-endpoints
+  at-every-index zero j≤k = absent-endpoints
   at-every-index (suc j) sj≤k =
-    star-endpoints ,
+    absent-endpoints ,
     replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ ,
-    ★ ,
-    targetᴾ , refl ,
+    Bᴵ ,
+    targetᴾ , sourceᴵ ,
     heads (suc j) sj≤k
       (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ {B = ★} nonvar occurs p₀} {j = suc j}
+        {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {j = suc j}
         {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+
+-- A decision view on type variables whose scrutinee stays neutral, so
+-- matching it does not rewrite goals mentioning the underlying `≟`.
+
+data VarDecision {Δ : TyCtx} (X Y : TyVar Δ) : Set where
+  var-same : X ≡ Y → VarDecision X Y
+  var-diff : X ≢ Y → VarDecision X Y
+
+var-decision : ∀ {Δ} (X Y : TyVar Δ) → VarDecision X Y
+var-decision X Y with X ≟ Y
+var-decision X Y | yes hit = var-same hit
+var-decision X Y | no miss = var-diff miss
+
+-- On a missed variable the reveal wrapper is the identity conversion,
+-- stated as a term-level equality.
+
+reveal-var-miss-term : ∀ {Δ} (V : Term Δ) (X Y : TyVar Δ) (R : Ty Δ)
+  → X ≢ Y
+  → _≡_ {A = Term Δ} (V ↑ 〖 X , R ↑ ＇ Y 〗) (V ↑ id↑ (＇ Y))
+reveal-var-miss-term V X Y R miss with X ≟ Y
+reveal-var-miss-term V X Y R miss | yes hit = ⊥-elim (miss hit)
+reveal-var-miss-term V X Y R miss | no _ = refl
+
+-- The dispatch when the paired center avoids the imprecise center
+-- type: both replacements are the identity, so the target derivation
+-- is the source derivation transported along the identity replacement.
+
+right-universal-absent-general : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W)
+    {B₀ᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+    (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
+    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
+  → (eqᴾ : renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding (core W)))) B₀ᴾ
+      ≡ Ac)
+  → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
+  → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
+  → (avoid : center s ∉ᵗ Bc)
+  → (q : impEnv (core W) I.⊢
+      embedPrecise (core W)
+        (replaceTy (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
+      ⊑ Bc)
+  → ∀ {k n : ℕ} (below : Below k n)
+      (size≤ : sizeᵖ (I.∀⊑ nonvar occurs p₀) ≤ n)
+      {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑ nonvar occurs p₀) k Vᴵ Vᴾ
+  → ComputationsRelated W (FutureValueRelation q) k
+      (Vᴵ ↑ id↑ Bᴵ)
+      (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
+right-universal-absent-general W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ eqᴾ sourceᴾ sourceᴵ
+    avoid q {k = k} {n = n} below size≤
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  subst≡
+    (λ q′ → ComputationsRelated W (FutureValueRelation q′) k
+      (Vᴵ ↑ id↑ Bᴵ)
+      (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
+    (sym (PI.⊑-unique q (I.∀⊑ nvʳ ocʳ q₀ʳ)))
+    (reveal-right-universal-absent W s nonvar occurs p₀
+      nvʳ ocʳ q₀ʳ sourceᴾ sourceᴵ refl avoid below size≤ related)
+  where
+  ρᴾ = toRenameᵗ (preciseEmbedding (core W))
+
+  no-occ : Fin.suc (center s) ∉ᵗ Ac
+  no-occ = paired-no-occurrence (Fin.suc (center s)) (mode-eq s) p₀
+    (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoid)
+
+  absent-B : Fin.suc (slotXᴾ s) ∉ᵗ B₀ᴾ
+  absent-B = renameᵗ-reflects-∉ᵗ (extᵗ ρᴾ) B₀ᴾ
+    (subst≡ (_∉ᵗ renameᵗ (extᵗ ρᴾ) B₀ᴾ)
+      (cong Fin.suc (sym (preciseAligned (atom s))))
+      (subst≡ (Fin.suc (center s) ∉ᵗ_) (sym eqᴾ) no-occ))
+
+  Acʳ-eq : renameᵗ (extᵗ ρᴾ)
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      ≡ Ac
+  Acʳ-eq = trans
+    (cong (renameᵗ (extᵗ ρᴾ))
+      (replaceTy-absent (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s))
+        absent-B))
+    eqᴾ
+
+  nvʳ : NonVar (renameᵗ (extᵗ ρᴾ)
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
+  nvʳ = subst≡ NonVar (sym Acʳ-eq) nonvar
+
+  ocʳ : Fin.zero ∈ᵗ renameᵗ (extᵗ ρᴾ)
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+  ocʳ = subst≡ (Fin.zero ∈ᵗ_) (sym Acʳ-eq) occurs
+
+  q₀ʳ : I.instᵐ (impEnv (core W)) I.⊢
+      renameᵗ (extᵗ ρᴾ)
+        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      ⊑ ⇑ᵗ Bc
+  q₀ʳ = subst≡
+    (λ L → I.instᵐ (impEnv (core W)) I.⊢ L ⊑ ⇑ᵗ Bc)
+    (sym Acʳ-eq) p₀
 
 -- The dispatch for a value-form imprecise wrapper: force the target
 -- derivation with the replaced one and assemble.
@@ -3126,13 +3259,52 @@ reveal-conceal-step k n below = reveal-at , conceal-at
         (sym commute-I) raw)
 
   reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      with rename-universal-inversion _ sourceᴾ
+  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      | B₀ᴾ , refl , eqᴾ
+      with var-decision (slotXᴵ s) Y₀
+  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      | B₀ᴾ , refl , eqᴾ | var-same hit =
     blocked-reveal below W s (I.∀⊑ nonvar occurs p₀) size≤
       blocked-∀⊑ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      | B₀ᴾ , refl , eqᴾ | var-diff miss
+      with sourceᴵ
+         | targetᴾ
+         | trans (sym targetᴵ)
+             (cong (embedImprecise (core W))
+               (replaceTy-absent (slotXᴵ s) (slotRᴵ s)
+                 (∉-var (≢→≢ᶠ miss))))
+  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ
+      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+      | B₀ᴾ , refl , eqᴾ | var-diff miss | refl | refl | refl =
+    subst≡
+      (λ Mᴵ → ComputationsRelated W (FutureValueRelation q) k
+        Mᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
+      (sym (reveal-var-miss-term Vᴵ (slotXᴵ s) Y₀ (slotRᴵ s) miss))
+      (right-universal-absent-general W s nonvar occurs p₀ eqᴾ
+        sourceᴾ refl
+        (∉-var (≢→≢ᶠ (λ ceq → miss
+          (toRenameᵗ-injective (impreciseEmbedding (core W))
+            (trans (impreciseAligned (atom s)) ceq)))))
+        q below size≤ related)
   reveal-at W s {Bᴵ = ‵ ι₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
-    blocked-reveal below W s (I.∀⊑ nonvar occurs p₀) size≤
-      blocked-∀⊑ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      with rename-universal-inversion _ sourceᴾ
+  reveal-at W s {Bᴵ = ‵ ι₀} (I.∀⊑ nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      | B₀ᴾ , refl , eqᴾ
+      with sourceᴵ | targetᴾ | targetᴵ
+  reveal-at W s {Bᴵ = ‵ ι₀} (I.∀⊑ nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      | B₀ᴾ , refl , eqᴾ | refl | refl | refl =
+    right-universal-absent-general W s nonvar occurs p₀ eqᴾ
+      sourceᴾ refl ∉-base q below size≤ related
   reveal-at W s {Bᴵ = ★} (I.∀⊑ nonvar occurs p₀) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-universal-inversion _ sourceᴾ
@@ -3148,56 +3320,8 @@ reveal-conceal-step k n below = reveal-at , conceal-at
       sourceᴾ sourceᴵ q targetᴾ targetᴵ
       {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | B₀ᴾ , refl , eqᴾ | refl | refl | refl =
-    subst≡
-      (λ q′ → ComputationsRelated W (FutureValueRelation q′) k
-        (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ ★ 〗)
-        (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
-      (sym (PI.⊑-unique q (I.∀⊑ nvʳ ocʳ q₀ʳ)))
-      (reveal-right-universal-star W s nonvar occurs p₀
-        nvʳ ocʳ q₀ʳ sourceᴾ refl below size≤ related)
-    where
-    ρᴾ = toRenameᵗ (preciseEmbedding (core W))
-    c₀ = center s
-
-    commute-P : renameᵗ (extᵗ ρᴾ)
-        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-        ≡ replaceTy (Fin.suc c₀)
-            (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
-            (renameᵗ (extᵗ ρᴾ) B₀ᴾ)
-    commute-P = trans
-      (renameᵗ-replaceTy (extᵗ ρᴾ)
-        (ext-injective
-          (toRenameᵗ-injective (preciseEmbedding (core W))))
-        (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-      (cong₂ (λ Z R → replaceTy Z R (renameᵗ (extᵗ ρᴾ) B₀ᴾ))
-        (cong Fin.suc (preciseAligned (atom s)))
-        (renameᵗ-shift ρᴾ (slotRᴾ s)))
-
-    nvʳ : NonVar (renameᵗ (extᵗ ρᴾ)
-        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
-    nvʳ = subst≡ NonVar (sym commute-P)
-      (replaceTy-nonvar (Fin.suc c₀)
-        (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
-        (subst≡ NonVar (sym eqᴾ) nonvar))
-
-    ocʳ : Fin.zero ∈ᵗ renameᵗ (extᵗ ρᴾ)
-        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-    ocʳ = subst≡ (Fin.zero ∈ᵗ_) (sym commute-P)
-      (replaceTy-occurs (Fin.suc c₀)
-        (⇑ᵗ (embedPrecise (core W) (slotRᴾ s))) (λ ())
-        (shift-no-zero (embedPrecise (core W) (slotRᴾ s)))
-        (subst≡ (Fin.zero ∈ᵗ_) (sym eqᴾ) occurs))
-
-    q₀ʳ : I.instᵐ (impEnv (core W)) I.⊢ renameᵗ (extᵗ ρᴾ)
-        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ) ⊑ ★
-    q₀ʳ = subst≡
-      (λ L → I.instᵐ (impEnv (core W)) I.⊢ L ⊑ ★)
-      (sym commute-P)
-      (replace-⊑ (Fin.suc c₀) (mode-eq s)
-        (shift-⊑ I.X⊑★ (rep-related (atom s)))
-        (subst≡
-          (λ L → I.instᵐ (impEnv (core W)) I.⊢ L ⊑ ★)
-          (sym eqᴾ) p₀))
+    right-universal-absent-general W s nonvar occurs p₀ eqᴾ
+      sourceᴾ refl ∉-star q below size≤ related
   reveal-at W s {Bᴵ = A₁ ⇒ A₂} (I.∀⊑ nonvar occurs p₀) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-universal-inversion _ sourceᴾ

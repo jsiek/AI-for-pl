@@ -510,17 +510,56 @@ the representation imprecision.  With this change the unseal
 accounting closes: a dynamic seal eliminated by a precise-only step
 yields its payload at the full index.
 
-What already landed for `∀⊑` besides the resolution: the generic
-precise-only allocation expansion
-(`related-precise-bind-step-expand`, index-preserving, modeled on the
-paired version and on the Λ-specific
-`related-precise-type-beta-expand`).  Still to build for `∀⊑`: the
-lexicographic (index, source-derivation-size) refinement of the
-paired reveal induction (the `∀⊑` head's body reveal runs at the same
-index at the sub-derivation `p₀`), the one-sided dynamic-slot reveal
-and conceal (the analogue of `proof/LR-narrow/PreciseReveal.agda`
-driven by the `X⊑★` clauses, now index-preserving), and the head,
-value assembly, and dispatch mirroring the `∀⊑∀` case.
+`∀⊑` status (2026-08-24, checked). On top of the resolution, the
+following landed, and the *reveal* at `∀⊑` is closed for every
+imprecise center except the atomic ones:
+
+* the generic precise-only allocation expansion
+  (`related-precise-bind-step-expand`, index-preserving, in
+  `proof/LR-narrow/BindStepExpansion.agda`);
+* the lexicographic (step index, source-derivation size) refinement
+  of the reveal induction (`sizeᵖ` and its renaming/lifting
+  preservation in `proof/LR-narrow/ImprecisionSize.agda`; sized
+  paired statements, `LexBelow`, `Below`, `below-restrict`,
+  `below-at` in `proof/LR-narrow/RevealStatements.agda`; the nested
+  well-founded induction in `RevealStructural.agda`) — the `∀⊑`
+  head's body reveal runs at the same index at the strictly smaller
+  lifted `p₀`;
+* the one-sided dynamic-slot reveal and conceal
+  (`proof/LR-narrow/DynamicReveal.agda`, ~1.1k lines): `DynamicSlot`
+  with the subst-free `IsDynamicEntry` view, slot transport along
+  futures, the seal case consuming/producing `DynamicHolds` at the
+  same index, identity and function cases by (type size, index)
+  recursion, `⊑★`-payload recursion through the ground view; the
+  universal precise type is the `blocked-dyn-*-universal` obligation
+  pair; wired as the `DynRevealAt`/`DynConcealAt` components of the
+  statement bundle;
+* the `∀⊑` reveal itself (`RevealStructural.agda`):
+  `reveal-right-universal-inner`/`-head` (instantiate the source's
+  `RightUniversalsRelated` head at the fresh dynamic name `＇ 0`,
+  paired reveal of the old slot inside the body at the smaller
+  derivation, dynamic reveal of the fresh slot), the value assemblies
+  `reveal-right-universal` (value-form imprecise wrappers, i.e. `⇒`-
+  and `∀`-shaped `Bᴵ`) and `reveal-right-universal-star` (`Bᴵ = ★`:
+  the imprecise wrapper is `id↑ ★` and steps; the old slot cannot
+  occur by `star-no-occurrence`, so the body reveal is the one-sided
+  precise reveal), and the dispatch split
+  (`right-universal-general` forces the target derivation by
+  `⊑-unique` against the `replace-⊑`-built `I.∀⊑`).
+
+Still blocked at `∀⊑` (through the unchanged `blocked-reveal`/
+`blocked-conceal` obligations):
+
+* the reveal when `Bᴵ` is a variable or base type: the imprecise
+  wrapper is then `unseal`- or `id↑`-shaped; the unseal-hit case
+  needs the imprecise value's seal structure, which the `∀⊑` clause
+  does not record — the same canonical-forms gate as `∀⊑★`/`∀★⊑★`;
+  the `id↑`-shaped sub-cases additionally need a head variant whose
+  imprecise endpoint is the bare value;
+* the whole conceal direction at `∀⊑` (the dual decomposition —
+  paired conceal of the body, dynamic reveal of the fresh slot,
+  `makeConceal` value forms including the seal hit — is mapped but
+  not yet written).
 
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal

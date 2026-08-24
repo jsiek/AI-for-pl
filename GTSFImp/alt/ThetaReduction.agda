@@ -23,6 +23,7 @@ module alt.ThetaReduction where
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Empty using (⊥-elim)
+open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality
@@ -40,6 +41,15 @@ private
   variable
     Θ Θ′ : AnchorCtx
     Δ Δ′ : TyCtx
+
+-- A conceal-∀ source is computed one binder underneath the concealed slot.
+-- Typed conversions put that source in the image of weakening; the ★ branch
+-- merely makes the operation total on junk shapes and endpoints.
+
+unwkᵗ : ∀ {Δ} → TyVar (suc Δ) → Ty (suc Δ) → Ty Δ
+unwkᵗ Y A with strengthenᵗ? Y A
+unwkᵗ Y A | just B = B
+unwkᵗ Y A | nothing = ★
 
 ------------------------------------------------------------------------
 -- Term-variable renaming
@@ -625,14 +635,19 @@ data _⊢_—→_ : ∀ {Θ Δ}
   -- `suc X`.  The carried raw shape `c` itself is unchanged.
   β-reveal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {V : Term Θ (suc Δ)} {A : Ty Δ}
-      {B : Ty (suc Δ)} {C : Ty (suc (suc Δ))}
+      {B : Ty (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
     → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ] —→
         ν[ A ]
-          ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
-                ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ])
+          ((((shiftᶿ V ↓[ zero ≔ zero ]
+                δ↓ (wkᵗ zero (`∀
+                  (src↑ (suc X) c
+                    (renameᵗ (extᵗ (punchIn X)) B)))))
+                ⦂∀ swapTopᵗ
+                  (⇑ᵗ (src↑ (suc X) c
+                    (renameᵗ (extᵗ (punchIn X)) B))) [ ＇ zero ])
               ↑[ suc X ≔ suc α ] c)
             ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
@@ -640,15 +655,22 @@ data _⊢_—→_ : ∀ {Θ Δ}
   -- its old crossing is `suc X` at `suc α`, while both fresh-anchor
   -- crossings remain at slot zero and use their literal generator shapes.
   β-conceal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-      {V : Term Θ Δ} {A C : Ty (suc Δ)}
+      {V : Term Θ Δ} {A : Ty (suc Δ)}
       {B : Ty (suc (suc Δ))}
+      {C-rep : Ty (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+    → Ψ ∋ α := C-rep
     → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ] —→
         ν[ A ]
-          ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
-                ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ])
+          ((((shiftᶿ V ↓[ zero ≔ zero ]
+                δ↓ (wkᵗ zero (`∀
+                  (unwkᵗ (suc X)
+                    (src↓ (suc X) (⇑ᵗ C-rep) c B)))))
+                ⦂∀ swapTopᵗ
+                  (⇑ᵗ (unwkᵗ (suc X)
+                    (src↓ (suc X) (⇑ᵗ C-rep) c B))) [ ＇ zero ])
               ↓[ suc X ≔ suc α ] c)
             ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 

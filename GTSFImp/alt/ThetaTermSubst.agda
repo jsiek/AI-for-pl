@@ -42,6 +42,60 @@ private
     L M N : Term Θ Δ
 
 ------------------------------------------------------------------------
+-- Conversion endpoint determinacy
+------------------------------------------------------------------------
+
+-- Raw shapes omit their endpoints, but a typed shape determines each
+-- missing endpoint from the other one.  The dual target statements are
+-- simultaneous induction hypotheses for contravariant arrow positions.
+
+mutual
+  source-determinacy↑ : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ}
+      {c : Reveal} {A T : Ty Δ}
+    → ⊢↑[ X ⦂ R ] c ⦂ A ↝ T
+    → A ≡ src↑ X c T
+  source-determinacy↑ ⊢unseal = refl
+  source-determinacy↑ (⊢↑-⇒ c⊢ d⊢) =
+    cong₂ _⇒_ (target-determinacy↓ c⊢) (source-determinacy↑ d⊢)
+  source-determinacy↑ (⊢↑-∀ c⊢) =
+    cong `∀ (source-determinacy↑ c⊢)
+  source-determinacy↑ (⊢id↑ A) = refl
+
+  target-determinacy↓ : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ}
+      {c : Conceal} {A T : Ty Δ}
+    → ⊢↓[ X ⦂ R ] c ⦂ A ↝ T
+    → T ≡ tgt↓ X c A
+  target-determinacy↓ ⊢seal = refl
+  target-determinacy↓ (⊢↓-⇒ c⊢ d⊢) =
+    cong₂ _⇒_ (source-determinacy↑ c⊢) (target-determinacy↓ d⊢)
+  target-determinacy↓ (⊢↓-∀ c⊢) =
+    cong `∀ (target-determinacy↓ c⊢)
+  target-determinacy↓ (⊢id↓ A) = refl
+
+mutual
+  source-determinacy↓ : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ}
+      {c : Conceal} {A T : Ty Δ}
+    → ⊢↓[ X ⦂ R ] c ⦂ A ↝ T
+    → A ≡ src↓ X R c T
+  source-determinacy↓ ⊢seal = refl
+  source-determinacy↓ (⊢↓-⇒ c⊢ d⊢) =
+    cong₂ _⇒_ (target-determinacy↑ c⊢) (source-determinacy↓ d⊢)
+  source-determinacy↓ (⊢↓-∀ c⊢) =
+    cong `∀ (source-determinacy↓ c⊢)
+  source-determinacy↓ (⊢id↓ A) = refl
+
+  target-determinacy↑ : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ}
+      {c : Reveal} {A T : Ty Δ}
+    → ⊢↑[ X ⦂ R ] c ⦂ A ↝ T
+    → T ≡ tgt↑ X R c A
+  target-determinacy↑ ⊢unseal = refl
+  target-determinacy↑ (⊢↑-⇒ c⊢ d⊢) =
+    cong₂ _⇒_ (source-determinacy↓ c⊢) (target-determinacy↑ d⊢)
+  target-determinacy↑ (⊢↑-∀ c⊢) =
+    cong `∀ (target-determinacy↑ c⊢)
+  target-determinacy↑ (⊢id↑ A) = refl
+
+------------------------------------------------------------------------
 -- Injection identities used by telescope and conversion transport
 ------------------------------------------------------------------------
 

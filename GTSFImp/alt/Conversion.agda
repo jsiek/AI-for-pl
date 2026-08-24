@@ -111,6 +111,82 @@ mutual
       → ⊢↓[ X ⦂ R ] id↓ ⦂ A ↝ A
 
 ------------------------------------------------------------------------
+-- Total conversion endpoints
+------------------------------------------------------------------------
+
+-- On the typed fragment, a reveal's source and a conceal's target need no
+-- representation: `unseal` fixes its source to the pivot and `seal` fixes
+-- its target to the pivot.  Ill-shaped shape/type pairs are junk inputs;
+-- returning the supplied endpoint keeps these functions total without
+-- assigning them any dynamic meaning.
+
+mutual
+  src↑ : TyVar Δ → Reveal → Ty Δ → Ty Δ
+  src↑ X unseal T = ＇ X
+  src↑ X (c ↦↑ d) (A ⇒ B) = tgt↓ X c A ⇒ src↑ X d B
+  src↑ X (c ↦↑ d) (＇ Y) = ＇ Y
+  src↑ X (c ↦↑ d) (‵ ι) = ‵ ι
+  src↑ X (c ↦↑ d) ★ = ★
+  src↑ X (c ↦↑ d) (`∀ B) = `∀ B
+  src↑ X (`∀↑ c) (`∀ B) = `∀ (src↑ (suc X) c B)
+  src↑ X (`∀↑ c) (＇ Y) = ＇ Y
+  src↑ X (`∀↑ c) (‵ ι) = ‵ ι
+  src↑ X (`∀↑ c) ★ = ★
+  src↑ X (`∀↑ c) (A ⇒ B) = A ⇒ B
+  src↑ X id↑ T = T
+
+  tgt↓ : TyVar Δ → Conceal → Ty Δ → Ty Δ
+  tgt↓ X seal A = ＇ X
+  tgt↓ X (c ↦↓ d) (A ⇒ B) = src↑ X c A ⇒ tgt↓ X d B
+  tgt↓ X (c ↦↓ d) (＇ Y) = ＇ Y
+  tgt↓ X (c ↦↓ d) (‵ ι) = ‵ ι
+  tgt↓ X (c ↦↓ d) ★ = ★
+  tgt↓ X (c ↦↓ d) (`∀ A) = `∀ A
+  tgt↓ X (`∀↓ c) (`∀ A) = `∀ (tgt↓ (suc X) c A)
+  tgt↓ X (`∀↓ c) (＇ Y) = ＇ Y
+  tgt↓ X (`∀↓ c) (‵ ι) = ‵ ι
+  tgt↓ X (`∀↓ c) ★ = ★
+  tgt↓ X (`∀↓ c) (A ⇒ B) = A ⇒ B
+  tgt↓ X id↓ A = A
+
+-- The other two directions must know the pivot's representation: it is the
+-- source of `seal` and the target of `unseal`.  They use the same junk-total
+-- convention on shape/type mismatches.
+
+mutual
+  src↓ : TyVar Δ → Ty Δ → Conceal → Ty Δ → Ty Δ
+  src↓ X R seal T = R
+  src↓ X R (c ↦↓ d) (A ⇒ B) =
+    tgt↑ X R c A ⇒ src↓ X R d B
+  src↓ X R (c ↦↓ d) (＇ Y) = ＇ Y
+  src↓ X R (c ↦↓ d) (‵ ι) = ‵ ι
+  src↓ X R (c ↦↓ d) ★ = ★
+  src↓ X R (c ↦↓ d) (`∀ B) = `∀ B
+  src↓ X R (`∀↓ c) (`∀ B) =
+    `∀ (src↓ (suc X) (⇑ᵗ R) c B)
+  src↓ X R (`∀↓ c) (＇ Y) = ＇ Y
+  src↓ X R (`∀↓ c) (‵ ι) = ‵ ι
+  src↓ X R (`∀↓ c) ★ = ★
+  src↓ X R (`∀↓ c) (A ⇒ B) = A ⇒ B
+  src↓ X R id↓ T = T
+
+  tgt↑ : TyVar Δ → Ty Δ → Reveal → Ty Δ → Ty Δ
+  tgt↑ X R unseal A = R
+  tgt↑ X R (c ↦↑ d) (A ⇒ B) =
+    src↓ X R c A ⇒ tgt↑ X R d B
+  tgt↑ X R (c ↦↑ d) (＇ Y) = ＇ Y
+  tgt↑ X R (c ↦↑ d) (‵ ι) = ‵ ι
+  tgt↑ X R (c ↦↑ d) ★ = ★
+  tgt↑ X R (c ↦↑ d) (`∀ A) = `∀ A
+  tgt↑ X R (`∀↑ c) (`∀ A) =
+    `∀ (tgt↑ (suc X) (⇑ᵗ R) c A)
+  tgt↑ X R (`∀↑ c) (＇ Y) = ＇ Y
+  tgt↑ X R (`∀↑ c) (‵ ι) = ‵ ι
+  tgt↑ X R (`∀↑ c) ★ = ★
+  tgt↑ X R (`∀↑ c) (A ⇒ B) = A ⇒ B
+  tgt↑ X R id↑ A = A
+
+------------------------------------------------------------------------
 -- Structural conversion generation
 ------------------------------------------------------------------------
 

@@ -608,12 +608,12 @@ data _⊢_—→_ : ∀ {Θ Δ}
       ------------------------------------------
     → Ψ ⊢ M ↑[ X ≔ α ] c —→ M′ ↑[ X ≔ α ] c
 
-  ξ-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  ξ-conceal : ∀ {Θ Δ} {Ψ′ : TyEnv Θ (suc Δ)}
       {M M′ : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → Ψ ⊢ M —→ M′
+    → Ψ′ ∖ X ⊢ M —→ M′
       ------------------------------------------
-    → Ψ ,typ[ X ] ⊢ M ↓[ X ≔ α ] c —→ M′ ↓[ X ≔ α ] c
+    → Ψ′ ⊢ M ↓[ X ≔ α ] c —→ M′ ↓[ X ≔ α ] c
 
   ξ-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {L L′ M : Term Θ Δ} {op : Prim}
@@ -674,12 +674,12 @@ data _⊢_—→_ : ∀ {Θ Δ}
   -- Conceal binds Y on its conclusion side.  Floating ν outward therefore
   -- weakens its representation at Y; unlike reveal, no slot is resolved and
   -- no telescope lookup is needed.  The node's anchor shifts beneath ν.
-  float-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  float-conceal : ∀ {Θ Δ} {Ψ′ : TyEnv Θ (suc Δ)}
       {A : Ty Δ} {M : Term (suc Θ) Δ}
       {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → Result (ν[ A ] M)
       ------------------------------------------------------------
-    → Ψ ,typ[ Y ] ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c —→
+    → Ψ′ ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c —→
         ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c)
 
   float-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}

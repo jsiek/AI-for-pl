@@ -14,9 +14,15 @@ module alt.ThetaTyping where
 --   * Term variables cross only Λ's type-variable entry, by weakening the
 --     term list wholesale (renameCtx), as in the live calculus.
 
-open import Data.Fin using (zero; suc)
+open import Data.Empty using (⊥-elim)
+open import Data.Fin using (Fin; zero; suc)
+open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
+open import Relation.Binary.PropositionalEquality
+  using (_≢_; refl; cong; sym)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TermCtx
@@ -36,11 +42,14 @@ private
 
 infixl 5 _,typ[_]
 infixl 5 _,:=_
+infixl 5 _,opaque
 
 data TyEnv : AnchorCtx → TyCtx → Set where
   ∅ : TyEnv zero zero
   _,typ[_] : TyEnv Θ Δ → TyVar (suc Δ) → TyEnv Θ (suc Δ)
   _,:=_ : TyEnv Θ Δ → Ty Δ → TyEnv (suc Θ) Δ  -- anchor bound by a ν
+  _,opaque : TyEnv Θ Δ → TyEnv (suc Θ) Δ
+    -- The anchor exists, but its representation is not expressible here.
 
 private
   variable
@@ -62,11 +71,61 @@ data _∋_:=_ : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
       ----------------------
     → (Ψ ,:= B) ∋ suc a := A
 
+  skip-opaque :
+      Ψ ∋ a := A
+      ----------------------
+    → (Ψ ,opaque) ∋ suc a := A
+
   skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a} {A : Ty Δ}
       {Y : TyVar (suc Δ)}
     → Ψ ∋ a := A
       -----------------------------
     → (Ψ ,typ[ Y ]) ∋ a := wkᵗ Y A
+
+------------------------------------------------------------------------
+-- Total regular-slot deletion
+------------------------------------------------------------------------
+
+-- `punchOut Y X` removes Y from a different slot X.  Its proof argument is
+-- what makes the result total even in the empty predecessor context.
+
+punchOut : ∀ {n} (Y X : Fin (suc n)) → Y ≢ X → Fin n
+punchOut zero zero Y≢X = ⊥-elim (Y≢X refl)
+punchOut zero (suc X) Y≢X = X
+punchOut {n = suc n} (suc Y) zero Y≢X = zero
+punchOut {n = suc n} (suc Y) (suc X) Y≢X =
+  suc (punchOut Y X (λ Y≡X → Y≢X (cong suc Y≡X)))
+
+-- Strengthening is deliberately executable.  A representation mentioning Y
+-- cannot be expressed after Y is deleted and therefore yields `nothing`.
+
+strengthenᵗ? : ∀ {Δ} → TyVar (suc Δ) → Ty (suc Δ) → Maybe (Ty Δ)
+strengthenᵗ? Y (＇ X) with Y ≟ X
+strengthenᵗ? Y (＇ .Y) | yes refl = nothing
+strengthenᵗ? Y (＇ X) | no Y≢X = just (＇ punchOut Y X Y≢X)
+strengthenᵗ? Y (‵ ι) = just (‵ ι)
+strengthenᵗ? Y ★ = just ★
+strengthenᵗ? Y (A ⇒ B) with strengthenᵗ? Y A
+strengthenᵗ? Y (A ⇒ B) | nothing = nothing
+strengthenᵗ? Y (A ⇒ B) | just A′ with strengthenᵗ? Y B
+strengthenᵗ? Y (A ⇒ B) | just A′ | nothing = nothing
+strengthenᵗ? Y (A ⇒ B) | just A′ | just B′ = just (A′ ⇒ B′)
+strengthenᵗ? Y (`∀ A) with strengthenᵗ? (suc Y) A
+strengthenᵗ? Y (`∀ A) | nothing = nothing
+strengthenᵗ? Y (`∀ A) | just A′ = just (`∀ A′)
+
+infixl 6 _∖_
+_∖_ : ∀ {Θ Δ} → TyEnv Θ (suc Δ) → TyVar (suc Δ) → TyEnv Θ Δ
+(Ψ ,:= A) ∖ Y with strengthenᵗ? Y A
+(Ψ ,:= A) ∖ Y | just C = (Ψ ∖ Y) ,:= C
+(Ψ ,:= A) ∖ Y | nothing = (Ψ ∖ Y) ,opaque
+(Ψ ,opaque) ∖ Y = (Ψ ∖ Y) ,opaque
+_∖_ {Δ = zero} (Ψ ,typ[ zero ]) zero = Ψ
+_∖_ {Δ = suc Δ} (Ψ ,typ[ z ]) y with z ≟ y
+_∖_ {Δ = suc Δ} (Ψ ,typ[ .y ]) y | yes refl = Ψ
+_∖_ {Δ = suc Δ} (Ψ ,typ[ z ]) y | no z≢y =
+  (Ψ ∖ punchOut z y z≢y)
+    ,typ[ punchOut y z (λ y≡z → z≢y (sym y≡z)) ]
 
 ------------------------------------------------------------------------
 -- Typing
@@ -139,15 +198,20 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       --------------------------------
     → Ψ ∣ Γ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
-  ⊢conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ′ : TermCtx (suc Δ)}
+  -- Reveal and ν introduce their telescope extensions in premises, so their
+  -- ambient telescope remains determined there.  Conceal binds its regular
+  -- slot in the conclusion; only conceal therefore deletes from an otherwise
+  -- arbitrary ambient telescope before checking its closed interior.
+  ⊢conceal : ∀ {Θ Δ} {Ψ′ : TyEnv Θ (suc Δ)}
+      {Γ′ : TermCtx (suc Δ)}
       {M : Term Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
-    → Ψ ∋ α := C
+    → (Ψ′ ∖ Y) ∋ α := C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
-    → Ψ ∣ [] ⊢ M ⦂ A
+    → (Ψ′ ∖ Y) ∣ [] ⊢ M ⦂ A
       ------------------------------------------
-    → Ψ ,typ[ Y ] ∣ Γ′ ⊢ M ↓[ Y ≔ α ] c ⦂ B
+    → Ψ′ ∣ Γ′ ⊢ M ↓[ Y ≔ α ] c ⦂ B
 
   ⊢blame :
       ---------------------

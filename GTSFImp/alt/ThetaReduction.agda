@@ -587,9 +587,12 @@ data _⊢_—→_ : ∀ {Θ Δ}
         ν[ C ] (((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
           ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
-  -- The inner application retains v2's top-two regular-slot exchange.
-  -- Under Θ, ν changes only anchor positions, so the single `shiftᶿ` is the
-  -- only term reindexing and the closed evidence stays outside the reveal.
+  -- The reveal brings the region's new type variable into scope over the
+  -- whole contractum interior; we do not want to weaken V, so the identity
+  -- conceal takes that variable back out of scope for V's subtree.  The
+  -- inner application retains v2's top-two regular-slot exchange.  Under
+  -- Θ, ν changes only anchor positions, so the single `shiftᶿ` is the only
+  -- term reindexing and the closed evidence stays outside the reveal.
   β-inst : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {A : Ty (suc Δ)} {B : Ty Δ}

@@ -603,6 +603,33 @@ preserve-β-gen {B = bodyTy}
   ⊢ν (⊢reveal Z (generator-typed bodyTy _)
     (⊢⟨⟩ (fresh-delimiter-conceal (⊢shiftᶿ V⊢)) c))
 
+preserve-β-reveal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ (suc Δ)} {A : Ty Δ} {B : Ty (suc Δ)}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
+  → Ψ ∣ [] ⊢ (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ]
+      ⦂ B [ A ]ᵗ
+  → Ψ ∣ [] ⊢
+      ν[ A ]
+        ((((shiftᶿ V ↓[ zero ≔ zero ]
+              δ↓ (wkᵗ zero (`∀
+                (src↑ (suc X) c
+                  (renameᵗ (extᵗ (punchIn X)) B)))))
+              ⦂∀ swapTopᵗ
+                (⇑ᵗ (src↑ (suc X) c
+                  (renameᵗ (extᵗ (punchIn X)) B))) [ ＇ zero ])
+            ↑[ suc X ≔ suc α ] c)
+          ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+      ⦂ B [ A ]ᵗ
+preserve-β-reveal-∀ {Ψ = Ψ} {A = A} {B = B}
+    {X = X} {α = α}
+    (⊢⦂∀ (⊢reveal α∈ (⊢↑-∀ c⊢) V⊢))
+    with source-determinacy↑ c⊢
+preserve-β-reveal-∀ {A = A} {B = B} {X = X}
+    (⊢⦂∀ (⊢reveal α∈ (⊢↑-∀ c⊢) V⊢)) | refl =
+  ⊢ν (⊢reveal Z (generator-typed B A)
+    (⊢reveal (skip-typ (S α∈)) (exchange-reveal-∀ c⊢)
+      (fresh-∀-entry-crossed V⊢)))
+
 ------------------------------------------------------------------------
 -- Preservation cases: blame propagation
 ------------------------------------------------------------------------

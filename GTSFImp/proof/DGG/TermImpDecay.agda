@@ -694,8 +694,8 @@ decay-source-represented-star {W = W} {Wᵈ = Wᵈ} {X = X}
     (decay⊑ᵂ dec q)
 ⊢²-decay
     dec
-    (CTI2.reveal⊑-neutral² c⊢ position≡absent M⊑M′ q) =
-  CTI2.reveal⊑-neutral² (decay-source-⊢↑ dec c⊢)
+    (CTI2.reveal⊑-identity c⊢ position≡absent M⊑M′ q) =
+  CTI2.reveal⊑-identity (decay-source-⊢↑ dec c⊢)
     (decay-source-reveal-position dec c⊢ generator-absent
       position≡absent)
     (⊢²-decay dec M⊑M′)
@@ -749,8 +749,8 @@ decay-source-represented-star {W = W} {Wᵈ = Wᵈ} {X = X}
     (decay⊑ᵂ dec q)
 ⊢²-decay
     dec
-    (CTI2.conceal⊑-neutral² c⊢ position≡absent M⊑M′ q) =
-  CTI2.conceal⊑-neutral² (decay-source-⊢↓ dec c⊢)
+    (CTI2.conceal⊑-identity c⊢ position≡absent M⊑M′ q) =
+  CTI2.conceal⊑-identity (decay-source-⊢↓ dec c⊢)
     (decay-source-conceal-position dec c⊢ generator-absent
       position≡absent)
     (⊢²-decay dec M⊑M′)

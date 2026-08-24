@@ -263,17 +263,17 @@ evolutionWorld : ∀
   → evolutionSourceCtx request ⊑ᶜ evolutionTargetCtx request
 evolutionWorld {W = W} evolution-request-keep = W
 evolutionWorld {W = W} (evolution-request-left {A = A} eqᴸ) =
-  bind-left-rawᶜ W A eqᴸ
+  W ▻ᶜ bind-left-changeᶜ A eqᴸ
 evolutionWorld {W = W}
     (evolution-request-right {B = B} fresh eqᴿ) =
-  bind-right-rawᶜ W B fresh eqᴿ
+  W ▻ᶜ bind-right-changeᶜ B fresh eqᴿ
 evolutionWorld {W = W}
     (evolution-request-both-precise represented eqᴸ eqᴿ) =
-  bind-both-rawᶜ W represented eqᴸ eqᴿ
+  W ▻ᶜ bind-both-changeᶜ represented eqᴸ eqᴿ
 evolutionWorld {W = W}
     (evolution-request-both-dynamic
       represented A≠★ eqᴸ eqᴿ) =
-  bind-both-star-rawᶜ W represented A≠★ eqᴸ eqᴿ
+  W ▻ᶜ bind-both-star-changeᶜ represented A≠★ eqᴸ eqᴿ
 
 
 evolutionSourceStore : ∀

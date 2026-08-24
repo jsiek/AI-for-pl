@@ -188,14 +188,14 @@ derivSize (CTI2.⊑conceal² c⊢ position rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.cast⊑² c rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.reveal⊑-neutral² c⊢ position rel q) =
+derivSize (CTI2.reveal⊑-identity c⊢ position rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.reveal⊑-only² c⊢ active aligned unoccupied R⊑★ rel q) =
   suc (suc (derivSize rel))
 derivSize
     (CTI2.reveal⊑² c⊢ active member R⊑R mono rb sc rel q) =
   suc (suc (derivSize rel))
-derivSize (CTI2.conceal⊑-neutral² c⊢ position rel q) =
+derivSize (CTI2.conceal⊑-identity c⊢ position rel q) =
   suc (suc (derivSize rel))
 derivSize (CTI2.conceal⊑² c⊢ active aligned unoccupied R⊑★ rel q) =
   suc (suc (derivSize rel))

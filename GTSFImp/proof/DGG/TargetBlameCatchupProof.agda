@@ -106,7 +106,7 @@ target-value-blame-exclusion (vV CastTerms.《 inert 》)
     (CTI2.cast⊑² c prem q) =
   target-value-blame-exclusion vV prem
 target-value-blame-exclusion (vV CastTerms.↑ rv)
-    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q) =
+    (CTI2.reveal⊑-identity c⊢ pos≡absent prem q) =
   target-value-blame-exclusion vV prem
 target-value-blame-exclusion (vV CastTerms.↑ rv)
     (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
@@ -117,7 +117,7 @@ target-value-blame-exclusion (vV CastTerms.↑ rv)
       prem q) =
   target-value-blame-exclusion vV prem
 target-value-blame-exclusion (vV CastTerms.↓ cv)
-    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q) =
+    (CTI2.conceal⊑-identity c⊢ pos≡absent prem q) =
   target-value-blame-exclusion vV prem
 target-value-blame-exclusion (vV CastTerms.↓ cv)
     (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented prem q) =
@@ -275,12 +275,12 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
   source-cast-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q)
+    (CTI2.reveal⊑-identity c⊢ pos≡absent prem q)
     with target-blame-catchup-under-boundary
       target-value-blame-exclusion parked boundary prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.reveal⊑-neutral² c⊢ pos≡absent prem q)
+    (CTI2.reveal⊑-identity c⊢ pos≡absent prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-reveal-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
@@ -312,12 +312,12 @@ target-blame-catchup-under-boundary target-value-blame-exclusion
   source-reveal-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q)
+    (CTI2.conceal⊑-identity c⊢ pos≡absent prem q)
     with target-blame-catchup-under-boundary
       target-value-blame-exclusion parked boundary prem
 target-blame-catchup-under-boundary target-value-blame-exclusion
     parked boundary
-    (CTI2.conceal⊑-neutral² c⊢ pos≡absent prem q)
+    (CTI2.conceal⊑-identity c⊢ pos≡absent prem q)
     | Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol =
   source-conceal-blame-catchup M↠blame evol
 target-blame-catchup-under-boundary target-value-blame-exclusion

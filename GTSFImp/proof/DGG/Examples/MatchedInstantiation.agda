@@ -40,8 +40,6 @@ import Example as Ex
 import proof.DGG.OneStep as Step
 import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.World
-open import proof.DGG.SourceRebasePlan using
-  (SourceRebasePlan; source-rebase-id; rebaseSource)
 open import proof.DGG.ImpLadder using (impLadderDefault)
 
 open GTI using () renaming
@@ -351,12 +349,6 @@ matched-world :
   (base-context ,ˢ ℕᵗ) ⊑ᶜ (base-context ,ˢ ★)
 matched-world = bindBothStarᶜ emptyᶜ ℕ⊑★ (λ ())
 
-matched-plan : SourceRebasePlan matched-world Fin.zero Fin.zero
-matched-plan = source-rebase-id refl
-
-matched-plan-is-identity : rebaseSource matched-plan ≡ matched-world
-matched-plan-is-identity = refl
-
 source-member : store-bind store-empty ℕᵗ ∋ Fin.zero ⦂ ℕᵗ
 source-member = Z∋ refl
 
@@ -430,11 +422,10 @@ checkpoint₁-imprecision :
 checkpoint₁-imprecision =
   CTI.·⊑·²
     (CTI.reveal⊑reveal²
-      matched-plan
       source-arrow-reveal⊢
       target-arrow-reveal⊢
       refl
-      (λ ())
+      refl
       ℕ⊑★
       (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
         (CTI.x⊑x² {p = I.X⊑X} Z Z))
@@ -453,11 +444,10 @@ checkpoint₂-imprecision :
 checkpoint₂-imprecision =
   CTI.·⊑·²
     (CTI.reveal⊑reveal²
-      matched-plan
       source-arrow-reveal⊢
       target-arrow-reveal⊢
       refl
-      (λ ())
+      refl
       ℕ⊑★
       (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
         (CTI.x⊑x² {p = I.X⊑X} Z Z))
@@ -474,22 +464,19 @@ checkpoint₃-imprecision :
   matched-world CTI.⊢² more-checkpoint₃ ⊑ less-checkpoint₃ ∶ ℕ⊑★
 checkpoint₃-imprecision =
   CTI.reveal⊑reveal²
-    matched-plan
     source-reveal⊢
     target-reveal⊢
     refl
-    (λ ())
+    refl
     ℕ⊑★
     (CTI.·⊑·²
       (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
         (CTI.x⊑x² {p = I.X⊑X} Z Z))
       (CTI.conceal⊑conceal²
-        matched-plan
-        refl
         source-conceal⊢
         target-conceal⊢
         refl
-        (λ ())
+        refl
         ℕ⊑★
         (CTI.⊑cast²
           (id (‵ `ℕ) !)
@@ -505,19 +492,16 @@ checkpoint₄-imprecision :
   matched-world CTI.⊢² more-checkpoint₄ ⊑ less-checkpoint₄ ∶ ℕ⊑★
 checkpoint₄-imprecision =
   CTI.reveal⊑reveal²
-    matched-plan
     source-reveal⊢
     target-reveal⊢
     refl
-    (λ ())
+    refl
     ℕ⊑★
     (CTI.conceal⊑conceal²
-      matched-plan
-      refl
       source-conceal⊢
       target-conceal⊢
       refl
-      (λ ())
+      refl
       ℕ⊑★
       (CTI.⊑cast²
         (id (‵ `ℕ) !)

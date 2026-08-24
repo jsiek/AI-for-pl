@@ -754,42 +754,42 @@ module _
   ------------------------------------------------------------------------
 
   sim parked
-      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-var _ _)
+      rel@(reveal⊑-identity c⊢@(Conversion.⊢↑-id-var _ _)
         refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       with catchup parked
         (boundary-source-reveal impEnvMono-refl tag-rebase-idᴸ)
         M⊑M′ vM
   sim parked
-      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-var _ _)
+      rel@(reveal⊑-identity c⊢@(Conversion.⊢↑-id-var _ _)
         refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       | caught =
     sim-source-reveal-values parked impEnvMono-refl c⊢ rebase-idᴸ
       M⊑M′ q rel vM step caught
   sim parked
-      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-base _)
+      rel@(reveal⊑-identity c⊢@(Conversion.⊢↑-id-base _)
         refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       with catchup parked
         (boundary-source-reveal impEnvMono-refl tag-rebase-idᴸ)
         M⊑M′ vM
   sim parked
-      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-base _)
+      rel@(reveal⊑-identity c⊢@(Conversion.⊢↑-id-base _)
         refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       | caught =
     sim-source-reveal-values parked impEnvMono-refl c⊢ rebase-idᴸ
       M⊑M′ q rel vM step caught
   sim parked
-      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-star _)
+      rel@(reveal⊑-identity c⊢@(Conversion.⊢↑-id-star _)
         refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       with catchup parked
         (boundary-source-reveal impEnvMono-refl tag-rebase-idᴸ)
         M⊑M′ vM
   sim parked
-      rel@(reveal⊑-neutral² c⊢@(Conversion.⊢↑-id-star _)
+      rel@(reveal⊑-identity c⊢@(Conversion.⊢↑-id-star _)
         refl M⊑M′ q)
       step@(pure-step (id-reveal vM))
       | caught =
@@ -862,7 +862,7 @@ module _
       M⊑M′ q rel (vM ↓ seal) step caught
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(reveal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      rel@(reveal⊑-identity c⊢ position≡absent M⊑M′ q)
       (pure-step blame-reveal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
@@ -887,7 +887,7 @@ module _
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(reveal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      rel@(reveal⊑-identity c⊢ position≡absent M⊑M′ q)
       step@(ξ-reveal M→N refl) =
     source-reveal-frame parked rel step
   sim parked
@@ -902,42 +902,42 @@ module _
     source-reveal-frame parked rel step
 
   sim parked
-      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-var _ _)
+      rel@(conceal⊑-identity c⊢@(Conversion.⊢↓-id-var _ _)
         refl M⊑M′ q)
       step@(pure-step (id-conceal vM))
       with catchup parked
         (boundary-source-conceal impEnvMono-refl tag-rebase-idᴸ)
         M⊑M′ vM
   sim parked
-      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-var _ _)
+      rel@(conceal⊑-identity c⊢@(Conversion.⊢↓-id-var _ _)
         refl M⊑M′ q)
       step@(pure-step (id-conceal vM))
       | caught =
     sim-source-conceal-values parked impEnvMono-refl c⊢
       tag-rebase-idᴸ M⊑M′ q vM step caught
   sim parked
-      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-base _)
+      rel@(conceal⊑-identity c⊢@(Conversion.⊢↓-id-base _)
         refl M⊑M′ q)
       step@(pure-step (id-conceal vM))
       with catchup parked
         (boundary-source-conceal impEnvMono-refl tag-rebase-idᴸ)
         M⊑M′ vM
   sim parked
-      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-base _)
+      rel@(conceal⊑-identity c⊢@(Conversion.⊢↓-id-base _)
         refl M⊑M′ q)
       step@(pure-step (id-conceal vM))
       | caught =
     sim-source-conceal-values parked impEnvMono-refl c⊢
       tag-rebase-idᴸ M⊑M′ q vM step caught
   sim parked
-      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-star _)
+      rel@(conceal⊑-identity c⊢@(Conversion.⊢↓-id-star _)
         refl M⊑M′ q)
       step@(pure-step (id-conceal vM))
       with catchup parked
         (boundary-source-conceal impEnvMono-refl tag-rebase-idᴸ)
         M⊑M′ vM
   sim parked
-      rel@(conceal⊑-neutral² c⊢@(Conversion.⊢↓-id-star _)
+      rel@(conceal⊑-identity c⊢@(Conversion.⊢↓-id-star _)
         refl M⊑M′ q)
       step@(pure-step (id-conceal vM))
       | caught =
@@ -960,7 +960,7 @@ module _
     ⊥-elim (position≢absent refl)
   sim
       {Δᴿ = Δᴿ} {W = W} parked
-      rel@(conceal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      rel@(conceal⊑-identity c⊢ position≡absent M⊑M′ q)
       (pure-step blame-conceal) =
     Δᴿ , [] , _ , _ , W , q ,
     (_ ∎[]) ,
@@ -976,7 +976,7 @@ module _
     evolve-keepᴸ evolve-refl ,
     blame⊑² (CTI2T.target-typing² rel) q
   sim parked
-      rel@(conceal⊑-neutral² c⊢ position≡absent M⊑M′ q)
+      rel@(conceal⊑-identity c⊢ position≡absent M⊑M′ q)
       step@(ξ-conceal M→N refl) =
     source-conceal-frame parked rel step
   sim parked

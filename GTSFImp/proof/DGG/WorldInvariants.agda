@@ -3,12 +3,13 @@
 module proof.DGG.WorldInvariants where
 
 -- File Charter:
---   * Derives the four direct nominal invariants for every constructor of the
---     two-Ctx world, with endpoint stores obtained from the relation indices.
+--   * Derives the four direct allocation invariants for histories containing
+--     no source-rebase change, with endpoint stores obtained from the world
+--     indices.
+--   * Requires `sourceRebaseCountᶜ W ≡ 0` explicitly because current
+--     alignment after a rebase is not allocation pairing.
 --   * Gives the direct-store rebase graph and its same-world case without
 --     following representation aliases.
---   * Does not claim a general source-rebase function; that requires a
---     structural plan for commuting endpoint allocations in the raw history.
 
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ-syntax; _×_; _,_)
@@ -180,16 +181,18 @@ skipCenter-invariantsᶜ {Cᴸ = Cᴸ} {Cᴿ = Cᴿ} W inv =
 
 
 directInvariantsᶜ : ∀ {Cᴸ Cᴿ} (W : Cᴸ ⊑ᶜ Cᴿ)
+  → sourceRebaseCountᶜ W ≡ 0
   → DirectWorldInvariantsᶜ W
-directInvariantsᶜ emptyᶜ =
+directInvariantsᶜ emptyᶜ refl =
   direct-world-invariantsᶜ (λ ()) (λ { {()} }) (λ ()) (λ ())
-directInvariantsᶜ (skip-centerᶜ W) =
-  skipCenter-invariantsᶜ W (directInvariantsᶜ W)
+directInvariantsᶜ (W ▻ᶜ center-changeᶜ) no-rebase =
+  skipCenter-invariantsᶜ W (directInvariantsᶜ W no-rebase)
 directInvariantsᶜ
-    (lift-both-rawᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} W v eqᴸ eqᴿ) =
+    (W ▻ᶜ lift-both-changeᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ}
+      v eqᴸ eqᴿ) no-rebase =
   direct-world-invariantsᶜ precise reps unmatched unoccupied
   where
-  inv = directInvariantsᶜ W
+  inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
     → extendᵐ v (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ)
@@ -258,10 +261,11 @@ directInvariantsᶜ
       (unshift-star entry) Xᴿ (fin-suc-injective aligned)
 
 directInvariantsᶜ
-    (lift-left-rawᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} W eqᴸ) =
+    (W ▻ᶜ lift-left-changeᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ}
+      eqᴸ) no-rebase =
   direct-world-invariantsᶜ precise reps unmatched unoccupied
   where
-  inv = directInvariantsᶜ W
+  inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
     → instᵐ (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
@@ -319,21 +323,21 @@ directInvariantsᶜ
     dynamicStarSourcesUnoccupiedᶜ inv Xᴸ mark
       (unshift-star entry) Xᴿ (fin-suc-injective aligned)
 
-directInvariantsᶜ (bind-termᶜ W represented) =
+directInvariantsᶜ (W ▻ᶜ bind-term-changeᶜ represented) no-rebase =
   direct-world-invariantsᶜ
     (preciseMarksAlignedᶜ inv)
     (representationsImpreciseᶜ inv)
     (unmatchedTargetsDynamicᶜ inv)
     (dynamicStarSourcesUnoccupiedᶜ inv)
   where
-  inv = directInvariantsᶜ W
+  inv = directInvariantsᶜ W no-rebase
 
 directInvariantsᶜ
-    (bind-both-star-rawᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ}
-      {A = A} {B = B} W represented A≢★ eqᴸ eqᴿ) =
+    (W ▻ᶜ bind-both-star-changeᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ}
+      {A = A} {B = B} represented A≢★ eqᴸ eqᴿ) no-rebase =
   direct-world-invariantsᶜ precise reps unmatched unoccupied
   where
-  inv = directInvariantsᶜ W
+  inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
     → extendᵐ X⊑★ (marksᶜ W)
@@ -406,11 +410,11 @@ directInvariantsᶜ
       (unshift-star entry) Xᴿ (fin-suc-injective aligned)
 
 directInvariantsᶜ
-    (bind-both-rawᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {A = A} {B = B}
-      W represented eqᴸ eqᴿ) =
+    (W ▻ᶜ bind-both-changeᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ}
+      {A = A} {B = B} represented eqᴸ eqᴿ) no-rebase =
   direct-world-invariantsᶜ precise reps unmatched unoccupied
   where
-  inv = directInvariantsᶜ W
+  inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
     → extendᵐ X⊑X (marksᶜ W)
@@ -483,10 +487,11 @@ directInvariantsᶜ
       (unshift-star entry) Xᴿ (fin-suc-injective aligned)
 
 directInvariantsᶜ
-    (bind-right-rawᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} W B fresh eqᴿ) =
+    (W ▻ᶜ bind-right-changeᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ}
+      B fresh eqᴿ) no-rebase =
   direct-world-invariantsᶜ precise reps unmatched unoccupied
   where
-  inv = directInvariantsᶜ W
+  inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
     → instᵐ (marksᶜ W) (toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
@@ -547,10 +552,11 @@ directInvariantsᶜ
       (fin-suc-injective aligned)
 
 directInvariantsᶜ
-    (bind-left-rawᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} W A eqᴸ) =
+    (W ▻ᶜ bind-left-changeᶜ {Σᴸ = Σᴸ} {Σᴿ = Σᴿ}
+      A eqᴸ) no-rebase =
   direct-world-invariantsᶜ precise reps unmatched unoccupied
   where
-  inv = directInvariantsᶜ W
+  inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
     → instᵐ (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
@@ -607,6 +613,9 @@ directInvariantsᶜ
   unoccupied (Fin.suc Xᴸ) mark entry Xᴿ aligned =
     dynamicStarSourcesUnoccupiedᶜ inv Xᴸ mark
       (unshift-star entry) Xᴿ (fin-suc-injective aligned)
+
+directInvariantsᶜ
+    (W ▻ᶜ rebase-source-changeᶜ X Y ok represented) ()
 
 
 -- Endpoint indices make both stores and both term contexts definitionally

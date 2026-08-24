@@ -87,9 +87,9 @@ source-stack-target-id-reveal-strip stack (vM CT.《 inert 》) vN
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↑ rv) vN
-    (CTI2.reveal⊑-neutral² c⊢ position rel q) =
+    (CTI2.reveal⊑-identity c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.reveal⊑-neutral² c⊢ position
+    (CTI2.reveal⊑-identity c⊢ position
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↑ rv) vN
@@ -106,9 +106,9 @@ source-stack-target-id-reveal-strip stack (vM CT.↑ rv) vN
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑-neutral² c⊢ position rel q) =
+    (CTI2.conceal⊑-identity c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑-neutral² c⊢ position
+    (CTI2.conceal⊑-identity c⊢ position
       (source-stack-target-id-reveal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-reveal-strip stack (vM CT.↓ cv) vN
@@ -168,9 +168,9 @@ source-stack-target-id-conceal-strip stack (vM CT.《 inert 》) vN
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↑ rv) vN
-    (CTI2.reveal⊑-neutral² c⊢ position rel q) =
+    (CTI2.reveal⊑-identity c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.reveal⊑-neutral² c⊢ position
+    (CTI2.reveal⊑-identity c⊢ position
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↑ rv) vN
@@ -187,9 +187,9 @@ source-stack-target-id-conceal-strip stack (vM CT.↑ rv) vN
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↓ cv) vN
-    (CTI2.conceal⊑-neutral² c⊢ position rel q) =
+    (CTI2.conceal⊑-identity c⊢ position rel q) =
   source-Λ-stack-replay-here stack
-    (CTI2.conceal⊑-neutral² c⊢ position
+    (CTI2.conceal⊑-identity c⊢ position
       (source-stack-target-id-conceal-strip source-Λ-stack-id vM vN rel)
       q)
 source-stack-target-id-conceal-strip stack (vM CT.↓ cv) vN

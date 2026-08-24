@@ -7,21 +7,21 @@ module proof.DGG.CastTermImprecision where
 --     between two complete CastTerms contexts.
 --   * Uses the endpoint type stores and term contexts from the world indices;
 --     there is no separate context-imprecision list or compatibility world.
---   * Uses structural plans for source-only universal binders and source
---     rebasing.  These plans rebuild only constructor-form worlds.
---   * Mechanically carries the current conversion-generator and occupancy
---     premises into the canonical world.  The reveal and conceal rules remain
---     subject to a separate semantic review against reduction and examples.
+--   * Treats the world as an index so reveal and conceal may move between
+--     worlds by one explicit source-rebase change.
+--   * Keeps paired conversions in one world and reserves one-sided rules for
+--     genuinely one-sided syntax.
 --   * Keeps rules syntax directed and avoids packaged action wrappers.
 
 import Data.Fin as Fin
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import Imprecision
+open import TyStore using (lookupStore)
 open import Primitives using
   (Const; Prim; constTy; primArgTy; primResultTy)
 open import CastTerms using
@@ -29,10 +29,6 @@ open import CastTerms using
    _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩; _↑_; _↓_; blame)
 
 open import proof.DGG.World
-open import proof.DGG.SourceRebasePlan using
-  (SourceRebasePlan; rebaseSource)
-open import proof.DGG.SourceFreshBehindPlan using
-  (SourceFreshBehindPlan; insertSourceFreshBehind)
 open import proof.DGG.ConversionPivotAlignment using
   (generator-absent; revealGeneratorPosition; concealGeneratorPosition)
 
@@ -43,8 +39,13 @@ open import proof.DGG.ConversionPivotAlignment using
 
 infix 4 _⊢²_⊑_∶_
 
-data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
-    Term (Δᵉ Γᴸ) → Term (Δᵉ Γᴿ)
+variable
+  Γᴸ Γᴿ : Ctx
+  γ : Γᴸ ⊑ᶜ Γᴿ
+
+data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
+    (γ : Γᴸ ⊑ᶜ Γᴿ)
+    → Term (Δᵉ Γᴸ) → Term (Δᵉ Γᴿ)
     → {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
     → A ⊑ᵀ⟨ γ ⟩ B → Set where
 
@@ -79,11 +80,10 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
   Λ⊑² : ∀ {V M A B}
     → NonVar A
     → Fin.zero ∈ᵗ A
-    → (plan : SourceFreshBehindPlan γ)
-    → {p : A ⊑ᵀ⟨ insertSourceFreshBehind plan ⟩ B}
+    → {p : A ⊑ᵀ⟨ γ ▻ᶜ lift-left-changeᶜ refl ⟩ B}
     → Value V
     → Γᴿ ⊢ M ⦂ B
-    → insertSourceFreshBehind plan ⊢² V ⊑ M ∶ p
+    → (γ ▻ᶜ lift-left-changeᶜ refl) ⊢² V ⊑ M ∶ p
     → (q : (`∀ A) ⊑ᵀ⟨ γ ⟩ B)
       -----------------------
     → γ ⊢² Λ V ⊑ M ∶ q
@@ -127,7 +127,7 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
       ---------------------
     → γ ⊢² M ⊑ M′ ⟨ c′ ⟩ ∶ q
 
-  ⊑reveal² : ∀ {M M′ A B B′ Xᴿ Rᴿ}
+  ⊑reveal-identity : ∀ {M M′ A B B′ Xᴿ Rᴿ}
       {p : A ⊑ᵀ⟨ γ ⟩ B}
       {c′ : Conv↑ (Δᵉ Γᴿ) B B′}
     → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
@@ -137,7 +137,7 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
       ---------------------
     → γ ⊢² M ⊑ M′ ↑ c′ ∶ q
 
-  ⊑conceal² : ∀ {M M′ A B B′ Xᴿ Rᴿ}
+  ⊑conceal-identity : ∀ {M M′ A B B′ Xᴿ Rᴿ}
       {p : A ⊑ᵀ⟨ γ ⟩ B}
       {c′ : Conv↓ (Δᵉ Γᴿ) B B′}
     → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
@@ -155,7 +155,7 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
       ---------------------
     → γ ⊢² M ⟨ c ⟩ ⊑ M′ ∶ q
 
-  reveal⊑-neutral² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
+  reveal⊑-identity : ∀ {M M′ A A′ B Xᴸ Rᴸ}
       {p : A ⊑ᵀ⟨ γ ⟩ B}
       {c : Conv↑ (Δᵉ Γᴸ) A A′}
     → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
@@ -179,20 +179,7 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
       ---------------------
     → γ ⊢² M ↑ c ⊑ M′ ∶ q
 
-  reveal⊑² : ∀ {M M′ A A′ B Xᴸ Xᴿ Rᴸ Rᴿ}
-      {c : Conv↑ (Δᵉ Γᴸ) A A′}
-    → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
-    → revealGeneratorPosition c⊢ ≢ generator-absent
-    → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≢ toRenameᵗ (ηᴿᶜ γ) Xᴿ
-    → (plan : SourceRebasePlan γ Xᴸ Xᴿ)
-    → Rᴸ ⊑ᵀ⟨ rebaseSource plan ⟩ Rᴿ
-    → {p : A ⊑ᵀ⟨ rebaseSource plan ⟩ B}
-    → rebaseSource plan ⊢² M ⊑ M′ ∶ p
-    → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
-      ---------------------
-    → γ ⊢² M ↑ c ⊑ M′ ∶ q
-
-  conceal⊑-neutral² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
+  conceal⊑-identity : ∀ {M M′ A A′ B Xᴸ Rᴸ}
       {p : A ⊑ᵀ⟨ γ ⟩ B}
       {c : Conv↓ (Δᵉ Γᴸ) A A′}
     → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
@@ -202,7 +189,7 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
       ---------------------
     → γ ⊢² M ↓ c ⊑ M′ ∶ q
 
-  conceal⊑² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
+  conceal⊑-only² : ∀ {M M′ A A′ B Xᴸ Rᴸ}
       {p : A ⊑ᵀ⟨ γ ⟩ B}
       {c : Conv↓ (Δᵉ Γᴸ) A A′}
     → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
@@ -219,35 +206,65 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ) :
   reveal⊑reveal² : ∀ {M M′ A A′ B B′ Xᴸ Xᴿ Rᴸ Rᴿ}
       {c : Conv↑ (Δᵉ Γᴸ) A B}
       {c′ : Conv↑ (Δᵉ Γᴿ) A′ B′}
-    → (plan : SourceRebasePlan γ Xᴸ Xᴿ)
     → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
     → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
     → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
-    → revealGeneratorPosition c⊢ ≢ generator-absent
-    → Rᴸ ⊑ᵀ⟨ rebaseSource plan ⟩ Rᴿ
-    → {p : A ⊑ᵀ⟨ rebaseSource plan ⟩ A′}
-    → rebaseSource plan ⊢² M ⊑ M′ ∶ p
+    → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+    → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
+    → {p : A ⊑ᵀ⟨ γ ⟩ A′}
+    → γ ⊢² M ⊑ M′ ∶ p
     → (q : B ⊑ᵀ⟨ γ ⟩ B′)
       ------------------------------
     → γ ⊢² M ↑ c ⊑ M′ ↑ c′ ∶ q
 
   conceal⊑conceal² : ∀
-      {γᵖ : Γᴸ ⊑ᶜ Γᴿ}
       {M M′ A A′ B B′ Xᴸ Xᴿ Rᴸ Rᴿ}
-      {p : A ⊑ᵀ⟨ γᵖ ⟩ A′}
+      {p : A ⊑ᵀ⟨ γ ⟩ A′}
       {c : Conv↓ (Δᵉ Γᴸ) A B}
       {c′ : Conv↓ (Δᵉ Γᴿ) A′ B′}
-    → (plan : SourceRebasePlan γᵖ Xᴸ Xᴿ)
-    → rebaseSource plan ≡ γ
     → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
     → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
     → concealGeneratorPosition c⊢ ≡ concealGeneratorPosition c′⊢
-    → concealGeneratorPosition c⊢ ≢ generator-absent
-    → Rᴸ ⊑ᵀ⟨ rebaseSource plan ⟩ Rᴿ
-    → γᵖ ⊢² M ⊑ M′ ∶ p
+    → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+    → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
+    → γ ⊢² M ⊑ M′ ∶ p
     → (q : B ⊑ᵀ⟨ γ ⟩ B′)
       ------------------------------
     → γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
+
+  ⊑reveal-rebase² : ∀ {M M′ A B B′ Xᴸ Xᴿ Rᴿ}
+      {c′ : Conv↑ (Δᵉ Γᴿ) B B′}
+    → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+    → revealGeneratorPosition c′⊢ ≢ generator-absent
+    → (ok : CanRebaseSourceᵗ
+        (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
+    → (represented :
+        (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Xᴿ)
+    → {p : A ⊑ᵀ⟨
+        γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
+    → (γ ▻ᶜ rebase-source-changeᶜ
+        Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ∶ p
+    → (q : A ⊑ᵀ⟨ γ ⟩ B′)
+      ---------------------
+    → γ ⊢² M ⊑ M′ ↑ c′ ∶ q
+
+  ⊑conceal-rebase² : ∀
+      {γᵖ : Γᴸ ⊑ᶜ Γᴿ}
+      {M M′ A B B′ Xᴸ Xᴿ Rᴿ}
+      {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+      {c′ : Conv↓ (Δᵉ Γᴿ) B B′}
+    → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
+    → concealGeneratorPosition c′⊢ ≢ generator-absent
+    → (ok : CanRebaseSourceᵗ
+        (ηᴸᶜ γᵖ) Xᴸ (toRenameᵗ (ηᴿᶜ γᵖ) Xᴿ))
+    → (represented :
+        (＇ Xᴸ) ⊑ᵀ⟨ γᵖ ⟩ lookupStore (Σᵉ Γᴿ) Xᴿ)
+    → γᵖ ⊢² M ⊑ M′ ∶ p
+    → (q : A ⊑ᵀ⟨
+        γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B′)
+      ---------------------
+    → (γᵖ ▻ᶜ rebase-source-changeᶜ
+        Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ↓ c′ ∶ q
 
   blame⊑² : ∀ {M′ A B}
     → Γᴿ ⊢ M′ ⦂ B

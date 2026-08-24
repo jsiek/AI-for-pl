@@ -23,7 +23,6 @@ module proof.DGG.ImpLadder where
 open import Data.Bool using (false; true)
 open import Data.List using (List; []; _∷_; map)
 import Data.List as List
-open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc; _∸_; _⊔_)
 open import Data.Nat.Show using (show)
 open import Data.String using (String; _++_; length)
@@ -33,7 +32,6 @@ open import Relation.Binary.PropositionalEquality using
 
 open import Types
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
-import Consistency as C
 open import Conversion using
   (Conv↑; Conv↓; unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_;
    `∀↓_; id↓)
@@ -46,10 +44,6 @@ open import CastTerms using
 import proof.DGG.CastTermImprecision as CTI2
 open CTI2 using (_⊢²_⊑_∶_)
 open import proof.DGG.World
-open import proof.DGG.SourceFreshBehindPlan using
-  (sourceFreshBehind-oldCenters)
-open import proof.DGG.SourceRebasePlan using
-  (rebaseSource-center)
 import proof.DGG.WorldSnapshot as Snapshot
 
 ------------------------------------------------------------------------
@@ -68,36 +62,6 @@ private
     → String
   extendTyName name binder Fin.zero = binder
   extendTyName name binder (Fin.suc X) = name X
-
-  preimage? : ∀ {Δ Δ′}
-    → Δ C.↪ᵗ Δ′
-    → TyVar Δ′
-    → Maybe (TyVar Δ)
-  preimage? C.empty Z = nothing
-  preimage? (C.keep π) Fin.zero = just Fin.zero
-  preimage? (C.keep π) (Fin.suc Z) with preimage? π Z
-  preimage? (C.keep π) (Fin.suc Z) | just X = just (Fin.suc X)
-  preimage? (C.keep π) (Fin.suc Z) | nothing = nothing
-  preimage? (C.skip π) Fin.zero = nothing
-  preimage? (C.skip π) (Fin.suc Z) = preimage? π Z
-
-  nameThroughEmbedding : ∀ {Δ Δ′}
-    → (TyVar Δ → String)
-    → String
-    → Δ C.↪ᵗ Δ′
-    → TyVar Δ′
-    → String
-  nameThroughEmbedding name fresh oldCenters X
-      with preimage? oldCenters X
-  nameThroughEmbedding name fresh oldCenters X | just old = name old
-  nameThroughEmbedding name fresh oldCenters X | nothing = fresh
-
-  nameThroughCenterEq : ∀ {Δ Δ′}
-    → Δ′ ≡ Δ
-    → (TyVar Δ → String)
-    → TyVar Δ′
-    → String
-  nameThroughCenterEq refl name = name
 
   showTyAt : ∀ {Δ} → ℕ → (TyVar Δ → String) → Ty Δ → String
   showTyAt depth name (＇ X) = name X
@@ -422,13 +386,12 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       termDepth (suc tyDepth) xName childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.Λ⊑² Anv occurs plan v targetTyping premise q) =
+    (CTI2.Λ⊑² Anv occurs v targetTyping premise q) =
   let binder = "♭" ++ show tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "Λ□" "─" p "" ∷
     ladderRows (extendTyName nameᴸ binder) nameᴿ
-      (nameThroughEmbedding nameᶜ binder
-        (sourceFreshBehind-oldCenters plan))
+      (extendTyName nameᶜ binder)
       termDepth (suc tyDepth) xName childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
@@ -472,7 +435,8 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.⊑reveal² {c′ = c′} typed pos≡absent premise q) =
+    (CTI2.⊑reveal-identity {c′ = c′}
+      typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─" ("□ " ++ revealLayer nameᴿ c′)
       p "generator absent" ∷
@@ -480,7 +444,8 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.⊑conceal² {c′ = c′} typed pos≡absent premise q) =
+    (CTI2.⊑conceal-identity {c′ = c′}
+      typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─" ("□ " ++ concealLayer nameᴿ c′)
       p "generator absent" ∷
@@ -497,7 +462,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.reveal⊑-neutral² {c = c} typed pos≡absent premise q) =
+    (CTI2.reveal⊑-identity {c = c} typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ revealLayer nameᴸ c) "─"
       p "generator absent" ∷
@@ -514,17 +479,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.reveal⊑² {c = c} typed pos≢absent disaligned plan
-      represented premise q) =
-  makeRow {W = W} {A = outA} {B = outB}
-    nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ revealLayer nameᴸ c) "─"
-      p "source-rebase" ∷
-    ladderRows nameᴸ nameᴿ
-      (nameThroughCenterEq (rebaseSource-center plan) nameᶜ)
-      termDepth tyDepth xName childPrefix childPrefix premise
-ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
-    prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.conceal⊑-neutral² {c = c} typed pos≡absent premise q) =
+    (CTI2.conceal⊑-identity {c = c} typed pos≡absent premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c) "─"
       p "generator absent" ∷
@@ -532,7 +487,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.conceal⊑² {c = c} typed pos≢absent mark disaligned
+    (CTI2.conceal⊑-only² {c = c} typed pos≢absent mark disaligned
       represented premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c) "─"
@@ -542,25 +497,39 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.reveal⊑reveal² {c = c} {c′ = c′}
-      plan typed typed′ aligned pos≢absent represented premise q) =
+      typed typed′ positions aligned represented premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ revealLayer nameᴸ c)
       ("□ " ++ revealLayer nameᴿ c′) p "matched reveal partner" ∷
-    ladderRows nameᴸ nameᴿ
-      (nameThroughCenterEq (rebaseSource-center plan) nameᶜ)
-      termDepth tyDepth xName childPrefix childPrefix premise
+    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+      childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
-    (CTI2.conceal⊑conceal² {γᵖ = Wᵖ} {c = c} {c′ = c′}
-      plan rebased typed typed′ aligned pos≢absent represented premise q) =
+    (CTI2.conceal⊑conceal² {c = c} {c′ = c′}
+      typed typed′ positions aligned represented premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("□ " ++ concealLayer nameᴸ c)
       ("□ " ++ concealLayer nameᴿ c′) p "matched conceal partner" ∷
-    ladderRows nameᴸ nameᴿ
-      (nameThroughCenterEq
-        (trans (sym (rebaseSource-center plan)) (cong centerᶜ rebased))
-        nameᶜ)
-      termDepth tyDepth xName childPrefix childPrefix premise
+    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+      childPrefix childPrefix premise
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.⊑reveal-rebase² {c′ = c′}
+      typed pos≢absent ok represented premise q) =
+  makeRow {W = W} {A = outA} {B = outB}
+    nameᴸ nameᴿ nameᶜ tyDepth prefix "─"
+      ("□ " ++ revealLayer nameᴿ c′) p "source rebase" ∷
+    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+      childPrefix childPrefix premise
+ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    prefix childPrefix {A = outA} {B = outB} {p = p}
+    (CTI2.⊑conceal-rebase² {c′ = c′}
+      typed pos≢absent ok represented premise q) =
+  makeRow {W = W} {A = outA} {B = outB}
+    nameᴸ nameᴿ nameᶜ tyDepth prefix "─"
+      ("□ " ++ concealLayer nameᴿ c′) p "source rebase" ∷
+    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+      childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix
     {M′ = M′} {A = outA} {B = outB} {p = p}

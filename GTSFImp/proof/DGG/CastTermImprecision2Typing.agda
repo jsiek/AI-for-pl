@@ -255,7 +255,7 @@ mutual
   source-typing² (CTI2.⊑conceal² c′⊢ pos≡absent M⊑M′ q) =
     source-typing² M⊑M′
   source-typing² (CTI2.cast⊑² c M⊑M′ q) = ⊢⟨⟩ (source-typing² M⊑M′) c
-  source-typing² (CTI2.reveal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+  source-typing² (CTI2.reveal⊑-identity c⊢ pos≡absent M⊑M′ q) =
     ⊢reveal c⊢ (source-typing² M⊑M′)
   source-typing²
       (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
@@ -267,7 +267,7 @@ mutual
     ⊢reveal c⊢
       (transport-source (rebase-source-store rb) sc (source-typing² M⊑M′))
   source-typing²
-      (CTI2.conceal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+      (CTI2.conceal⊑-identity c⊢ pos≡absent M⊑M′ q) =
     ⊢conceal c⊢ (source-typing² M⊑M′)
   source-typing²
       (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented M⊑M′ q) =
@@ -310,7 +310,7 @@ mutual
   target-typing² (CTI2.⊑conceal² c′⊢ pos≡absent M⊑M′ q) =
     ⊢conceal c′⊢ (target-typing² M⊑M′)
   target-typing² (CTI2.cast⊑² c M⊑M′ q) = target-typing² M⊑M′
-  target-typing² (CTI2.reveal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+  target-typing² (CTI2.reveal⊑-identity c⊢ pos≡absent M⊑M′ q) =
     target-typing² M⊑M′
   target-typing²
       (CTI2.reveal⊑-only² c⊢ pos≢absent mark disaligned represented
@@ -321,7 +321,7 @@ mutual
         M⊑M′ q) =
     transport-target (rebase-target-store rb) sc (target-typing² M⊑M′)
   target-typing²
-      (CTI2.conceal⊑-neutral² c⊢ pos≡absent M⊑M′ q) =
+      (CTI2.conceal⊑-identity c⊢ pos≡absent M⊑M′ q) =
     target-typing² M⊑M′
   target-typing²
       (CTI2.conceal⊑² c⊢ pos≢absent mark disaligned represented M⊑M′ q) =

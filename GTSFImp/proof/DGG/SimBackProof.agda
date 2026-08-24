@@ -646,7 +646,7 @@ module _
          N⊑N′ (transport⊑ᴾ evolution type-rel))
 
   sim-back parked
-      (reveal⊑-neutral² conversion position rel type-rel) step
+      (reveal⊑-identity conversion position rel type-rel) step
       with sim-back parked rel step
   ... | induction = {! !}
   sim-back parked
@@ -663,7 +663,7 @@ module _
       represented mono rebase rel type-rel step
 
   sim-back parked
-      (conceal⊑-neutral² conversion position rel type-rel) step
+      (conceal⊑-identity conversion position rel type-rel) step
       with sim-back parked rel step
   ... | induction = {! !}
   sim-back parked

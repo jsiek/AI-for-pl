@@ -78,7 +78,7 @@ TargetCastBound fuel (CTI2.⊑reveal² c′⊢ position-empty rel q) =
 TargetCastBound fuel (CTI2.⊑conceal² c′⊢ position-empty rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel (CTI2.cast⊑² c rel q) = TargetCastBound fuel rel
-TargetCastBound fuel (CTI2.reveal⊑-neutral² c⊢ position-empty rel q) =
+TargetCastBound fuel (CTI2.reveal⊑-identity c⊢ position-empty rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
     (CTI2.reveal⊑-only² c⊢ position-present mark-eq
@@ -89,7 +89,7 @@ TargetCastBound fuel
       sameγ rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
-    (CTI2.conceal⊑-neutral² c⊢ position-empty rel q) =
+    (CTI2.conceal⊑-identity c⊢ position-empty rel q) =
   TargetCastBound fuel rel
 TargetCastBound fuel
     (CTI2.conceal⊑² c⊢ position-present mark-eq target-unoccupied

@@ -2614,7 +2614,7 @@ TargetInsertProvenance W⁺ ins
 TargetInsertProvenance W⁺ ins (CTI2.cast⊑² c M⊑M′ q) =
   TargetInsertProvenance W⁺ ins M⊑M′
 TargetInsertProvenance W⁺ ins
-    (CTI2.reveal⊑-neutral² c⊢ at-absent M⊑M′ q) =
+    (CTI2.reveal⊑-identity c⊢ at-absent M⊑M′ q) =
   TargetInsertProvenance W⁺ ins M⊑M′
 TargetInsertProvenance W⁺ ins
     (CTI2.reveal⊑-only² c⊢ not-absent dynamic disaligned
@@ -2630,7 +2630,7 @@ TargetInsertProvenance
       (CTX.RebaseAt W⁺ Wᵖ⁺ Xᴸ (toRenameᵗ ρ Xᴿ)
       × TargetInsertProvenance Wᵖ⁺ insᵖ M⊑M′)
 TargetInsertProvenance W⁺ ins
-    (CTI2.conceal⊑-neutral² c⊢ at-absent M⊑M′ q) =
+    (CTI2.conceal⊑-identity c⊢ at-absent M⊑M′ q) =
   TargetInsertProvenance W⁺ ins M⊑M′
 TargetInsertProvenance W⁺ ins
     (CTI2.conceal⊑² c⊢ not-absent dynamic disaligned
@@ -3579,7 +3579,7 @@ directStarOffTargetInsertProvenance ins dynamic
     (CTI2.cast⊑² c rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.reveal⊑-neutral² c⊢ at-absent rel q) =
+    (CTI2.reveal⊑-identity c⊢ at-absent rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
     (CTI2.reveal⊑-only² c⊢ not-absent to-star disaligned represented
@@ -3595,7 +3595,7 @@ directStarOffTargetInsertProvenance ins dynamic
   directStarOffTargetInsertProvenance insᵖ
     (targetInsertDirectStarOffForward ins insᵖ dynamic rb⁺) rel
 directStarOffTargetInsertProvenance ins dynamic
-    (CTI2.conceal⊑-neutral² c⊢ at-absent rel q) =
+    (CTI2.conceal⊑-identity c⊢ at-absent rel q) =
   directStarOffTargetInsertProvenance ins dynamic rel
 directStarOffTargetInsertProvenance ins dynamic
     (CTI2.conceal⊑² c⊢ not-absent to-star disaligned represented
@@ -3761,9 +3761,9 @@ directStarOffTargetInsertProvenance ins dynamic
     (⊢²-target-insert W′ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert W⁺ ins
-    (CTI2.reveal⊑-neutral² {p = p} c⊢ at-absent M⊑M′ q)
+    (CTI2.reveal⊑-identity {p = p} c⊢ at-absent M⊑M′ q)
     provenance =
-  CTI2.reveal⊑-neutral² (source-reveal-insert ins c⊢)
+  CTI2.reveal⊑-identity (source-reveal-insert ins c⊢)
     (source-reveal-insert-position ins c⊢ generator-absent at-absent)
     (⊢²-target-insert W⁺ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)
@@ -3797,9 +3797,9 @@ directStarOffTargetInsertProvenance ins dynamic
     (⊢²-target-insert Wᵖ⁺ insᵖ M⊑M′ provenance)
     (transport⊑ᵂ ins q)
 ⊢²-target-insert W⁺ ins
-    (CTI2.conceal⊑-neutral² {p = p} c⊢ at-absent M⊑M′ q)
+    (CTI2.conceal⊑-identity {p = p} c⊢ at-absent M⊑M′ q)
     provenance =
-  CTI2.conceal⊑-neutral² (source-conceal-insert ins c⊢)
+  CTI2.conceal⊑-identity (source-conceal-insert ins c⊢)
     (source-conceal-insert-position ins c⊢ generator-absent at-absent)
     (⊢²-target-insert W⁺ ins M⊑M′ provenance)
     (transport⊑ᵂ ins q)

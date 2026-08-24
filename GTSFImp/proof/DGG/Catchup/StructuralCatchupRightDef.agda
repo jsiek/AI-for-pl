@@ -722,7 +722,7 @@ structural-catchup-source-reveal-neutral {q = q}
   ; final-value = StructuralCatchupRightResult.final-value child
   ; post-reduction = StructuralCatchupRightResult.post-reduction child
   ; final-relation =
-      CTI2.reveal⊑-neutral²
+      CTI2.reveal⊑-identity
         (structural-source-reveal plan c⊢)
         (trans (structural-source-reveal-position plan c⊢) empty)
         (StructuralCatchupRightResult.final-relation child)
@@ -854,7 +854,7 @@ structural-catchup-source-conceal-neutral {q = q}
   ; final-value = StructuralCatchupRightResult.final-value child
   ; post-reduction = StructuralCatchupRightResult.post-reduction child
   ; final-relation =
-      CTI2.conceal⊑-neutral²
+      CTI2.conceal⊑-identity
         (structural-source-conceal plan c⊢)
         (trans (structural-source-conceal-position plan c⊢) empty)
         (StructuralCatchupRightResult.final-relation child)

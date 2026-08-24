@@ -315,10 +315,10 @@ module _ where
   -- premise-level tag obligation, and by ⊑-unique it does not matter
   -- that this inhabitant differs from any other.
   right-inj-inversion² {gH = ★⇒★} (sv-reveal-fun sv)
-      vN (CTI2.reveal⊑-neutral² {p = ⇒⊑★ pA pB}
+      vN (CTI2.reveal⊑-identity {p = ⇒⊑★ pA pB}
         c⊢ position≡absent prem q₀)
       (⇒⊑⇒ qA qB) =
-    CTI2.reveal⊑-neutral² c⊢ position≡absent
+    CTI2.reveal⊑-identity c⊢ position≡absent
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
       (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ★⇒★} (sv-reveal-fun sv)
@@ -337,11 +337,11 @@ module _ where
       mono rb sc
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB)) (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑-neutral² _ _ _ _) ()
+    vN (CTI2.reveal⊑-identity _ _ _ _) ()
   right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑-neutral² _ _ _ _) ()
+    vN (CTI2.reveal⊑-identity _ _ _ _) ()
   right-inj-inversion² {gH = ∀★} (sv-reveal-fun sv)
-    vN (CTI2.reveal⊑-neutral² _ _ _ _) ()
+    vN (CTI2.reveal⊑-identity _ _ _ _) ()
   right-inj-inversion² {gH = ＇ Y} (sv-reveal-fun sv)
     vN (CTI2.reveal⊑-only² _ _ _ _ _ _ _) ()
   right-inj-inversion² {gH = ‵ ι} (sv-reveal-fun sv)
@@ -357,10 +357,10 @@ module _ where
 
   -- Function-shaped conceal: same construction.
   right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
-      vN (CTI2.conceal⊑-neutral² {p = ⇒⊑★ pA pB}
+      vN (CTI2.conceal⊑-identity {p = ⇒⊑★ pA pB}
         c⊢ position≡absent prem q₀)
       (⇒⊑⇒ qA qB) =
-    CTI2.conceal⊑-neutral² c⊢ position≡absent
+    CTI2.conceal⊑-identity c⊢ position≡absent
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
       (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ★⇒★} (sv-conceal-fun sv)
@@ -372,11 +372,11 @@ module _ where
       (right-inj-inversion² sv vN prem (⇒⊑⇒ pA pB))
       (⇒⊑⇒ qA qB)
   right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑-neutral² _ _ _ _) ()
+    vN (CTI2.conceal⊑-identity _ _ _ _) ()
   right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑-neutral² _ _ _ _) ()
+    vN (CTI2.conceal⊑-identity _ _ _ _) ()
   right-inj-inversion² {gH = ∀★} (sv-conceal-fun sv)
-    vN (CTI2.conceal⊑-neutral² _ _ _ _) ()
+    vN (CTI2.conceal⊑-identity _ _ _ _) ()
   right-inj-inversion² {gH = ＇ Y} (sv-conceal-fun sv)
     vN (CTI2.conceal⊑² _ _ _ _ _ _ _) ()
   right-inj-inversion² {gH = ‵ ι} (sv-conceal-fun sv)
@@ -388,9 +388,9 @@ module _ where
   -- body conversion.  Variable rebases recurse in the honestified world.
   right-inj-inversion² {W = W} {gH = ★⇒★}
       (sv-reveal-all sv) vN
-      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+      (CTI2.reveal⊑-identity {p = p₀} (Conv.⊢↑-∀ refl c⊢)
         position≡absent prem q₀) q =
-    CTI2.reveal⊑-neutral² (Conv.⊢↑-∀ refl c⊢)
+    CTI2.reveal⊑-identity (Conv.⊢↑-∀ refl c⊢)
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-fun c⊢
@@ -399,9 +399,9 @@ module _ where
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ∀★} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+      (CTI2.reveal⊑-identity {p = p₀} (Conv.⊢↑-∀ refl c⊢)
         position≡absent prem q₀) q =
-    CTI2.reveal⊑-neutral² (Conv.⊢↑-∀ refl c⊢)
+    CTI2.reveal⊑-identity (Conv.⊢↑-∀ refl c⊢)
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-all c⊢
@@ -410,14 +410,14 @@ module _ where
           p₀ q))
       q
   right-inj-inversion² {W = W} {gH = ‵ ι} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+      (CTI2.reveal⊑-identity {p = p₀} (Conv.⊢↑-∀ refl c⊢)
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-ι-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
   right-inj-inversion² {W = W} {gH = ＇ Y} (sv-reveal-all sv) vN
-      (CTI2.reveal⊑-neutral² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
+      (CTI2.reveal⊑-identity {p = p₀} (Conv.⊢↑-∀ refl c⊢)
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-var-⊥ c⊢
@@ -508,9 +508,9 @@ module _ where
   -- the variable-rebase decay uses conceal's opposite rebase orientation.
   right-inj-inversion² {W = W} {gH = ★⇒★}
       (sv-conceal-all sv) vN
-      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+      (CTI2.conceal⊑-identity {p = p₀} (Conv.⊢↓-∀ refl c⊢)
         position≡absent prem q₀) q =
-    CTI2.conceal⊑-neutral² (Conv.⊢↓-∀ refl c⊢)
+    CTI2.conceal⊑-identity (Conv.⊢↓-∀ refl c⊢)
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-fun c⊢
@@ -520,9 +520,9 @@ module _ where
       q
   right-inj-inversion² {W = W} {gH = ∀★}
       (sv-conceal-all sv) vN
-      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+      (CTI2.conceal⊑-identity {p = p₀} (Conv.⊢↓-∀ refl c⊢)
         position≡absent prem q₀) q =
-    CTI2.conceal⊑-neutral² (Conv.⊢↓-∀ refl c⊢)
+    CTI2.conceal⊑-identity (Conv.⊢↓-∀ refl c⊢)
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-all c⊢
@@ -532,14 +532,14 @@ module _ where
       q
   right-inj-inversion² {W = W} {gH = ‵ ι}
       (sv-conceal-all sv) vN
-      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+      (CTI2.conceal⊑-identity {p = p₀} (Conv.⊢↓-∀ refl c⊢)
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-ι-⊥ c⊢
         (toRenameᵗ-injective (ηᴸʷ W)) (toRenameᵗ-injective (ηᴸʷ W))
         p₀ q)
   right-inj-inversion² {W = W} {gH = ＇ Y} (sv-conceal-all sv) vN
-      (CTI2.conceal⊑-neutral² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
+      (CTI2.conceal⊑-identity {p = p₀} (Conv.⊢↓-∀ refl c⊢)
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-var-⊥ c⊢
@@ -617,7 +617,7 @@ module _ where
       (disaligned Y
         (sym (variable-obligation-aligns {W = W} {X = Xᴸ} {Y = Y} q)))
   right-inj-inversion² (sv-seal sv) vN
-      (CTI2.conceal⊑-neutral² (Conv.⊢↓-seal X∈) () prem q₀) q
+      (CTI2.conceal⊑-identity (Conv.⊢↓-seal X∈) () prem q₀) q
 
   -- Type applications are not spine values.
   right-inj-inversion² () vN (CTI2.•⊑² _ _ _ _) q

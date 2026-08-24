@@ -1670,8 +1670,8 @@ renameSmartFreshBehindGuard {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     (⊢²-rename-center {W = W} π M⊑N
       (rename-⊑ᵂ {W = W} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.reveal⊑-neutral² {p = p} c⊢ at-absent M⊑N q) p′ =
-  CTI2.reveal⊑-neutral² (rename-source-⊢↑ π c⊢)
+    (CTI2.reveal⊑-identity {p = p} c⊢ at-absent M⊑N q) p′ =
+  CTI2.reveal⊑-identity (rename-source-⊢↑ π c⊢)
     (rename-source-reveal-position π c⊢ generator-absent at-absent)
     (⊢²-rename-center {W = W} π M⊑N
       (rename-⊑ᵂ {W = W} π p)) p′
@@ -1704,8 +1704,8 @@ renameSmartFreshBehindGuard {Δᴸ = Δᴸ} {Δᴿ = Δᴿ}
     (⊢²-rename-center {W = W′} π M⊑N
       (rename-⊑ᵂ {W = W′} π p)) p′
 ⊢²-rename-center {W = W} π
-    (CTI2.conceal⊑-neutral² {p = p} c⊢ at-absent M⊑N q) p′ =
-  CTI2.conceal⊑-neutral² (rename-source-⊢↓ π c⊢)
+    (CTI2.conceal⊑-identity {p = p} c⊢ at-absent M⊑N q) p′ =
+  CTI2.conceal⊑-identity (rename-source-⊢↓ π c⊢)
     (rename-source-conceal-position π c⊢ generator-absent at-absent)
     (⊢²-rename-center {W = W} π M⊑N
       (rename-⊑ᵂ {W = W} π p)) p′

@@ -350,12 +350,12 @@ tagged-target-nonvar-nonstar-spine-⊥
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-fun sv₀)
     Anv Ans
-    (CTI2.reveal⊑-neutral² c⊢ position≡absent prem q) =
+    (CTI2.reveal⊑-identity c⊢ position≡absent prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
     nonstar-⇒ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-all sv₀)
     Anv Ans
-    (CTI2.reveal⊑-neutral² c⊢ position≡absent prem q) =
+    (CTI2.reveal⊑-identity c⊢ position≡absent prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-fun sv₀)
@@ -384,12 +384,12 @@ tagged-target-nonvar-nonstar-spine-⊥ (sv-reveal-all sv₀)
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)
     Anv Ans
-    (CTI2.conceal⊑-neutral² c⊢ position≡absent prem q) =
+    (CTI2.conceal⊑-identity c⊢ position≡absent prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-fun
     nonstar-⇒ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-all sv₀)
     Anv Ans
-    (CTI2.conceal⊑-neutral² c⊢ position≡absent prem q) =
+    (CTI2.conceal⊑-identity c⊢ position≡absent prem q) =
   tagged-target-nonvar-nonstar-spine-⊥ sv₀ nonvar-all
     nonstar-∀ prem
 tagged-target-nonvar-nonstar-spine-⊥ (sv-conceal-fun sv₀)

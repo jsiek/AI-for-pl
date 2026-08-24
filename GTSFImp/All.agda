@@ -38,12 +38,7 @@ import proof.DGG.Parked.ParkedWorldLemma
 import proof.DGG.Parked.ParkedD4CheckpointLemma
 import proof.DGG.WorldInvariants
 import proof.DGG.WorldEvolutionSequence
-import proof.DGG.SourceRebaseRequest
-import proof.DGG.SourceFreshBehindPlan
 import proof.DGG.ConversionPivotAlignment
-import proof.DGG.TargetAliasEdge
-import proof.DGG.TargetBoundary
-import proof.DGG.BoundaryState
 import proof.DGG.CenterRenamePlan
 import proof.DGG.TargetExtendPlan
 
@@ -187,15 +182,9 @@ import proof.DGG.LambdaImpProbe
 import proof.DGG.MovedLinkProbe
 import proof.DGG.ChainRideProbe
 import proof.DGG.TagBoundaryProbe
-import proof.DGG.notes.probes.SourceRebaseRequestExamplesProbe
 import proof.DGG.notes.probes.TargetExtendPlanExamplesProbe
 import proof.DGG.notes.probes.ConversionPivotAlignmentProbe
-import proof.DGG.notes.probes.TwoCtxBoundaryStateProbe
-import proof.DGG.notes.probes.TwoCtxValueSensitiveConversionAcceptanceProbe
 import proof.DGG.notes.probes.TwoCtxBasicExamplesReductionProbe
-import proof.DGG.notes.probes.TwoCtxDirectCTIAcceptanceProbe
-import proof.DGG.notes.probes.TwoCtxDirectCTITypingProbe
-import proof.DGG.notes.probes.TwoCtxGlobalIndexedCTITypingProbe
 import proof.DGG.notes.probes.TwoCtxReductionEvolutionBridgeProbe
 import proof.DGG.notes.probes.TwoCtxSimulationResultProbe
 

@@ -9,10 +9,9 @@ module proof.DGG.WorldEvolution where
 --   * Separates constructor-form endpoint change from its executable store
 --     and term-context projections.
 --   * Covers keep, left-only, right-only, paired-precise, and paired-dynamic
---     allocation and derives direct invariants for every result.
+--     allocation as live World changes.
 --   * Exports CtxChange, WorldEvolution, and their endpoint projections;
---     depends on World, its direct invariants, and the preservation
---     context action.
+--     depends on World and the preservation context action.
 
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
@@ -25,7 +24,6 @@ open import CastTerms using (Ctx; ⟨_,_,_⟩; Σᵉ; Γᵉ)
 import Reduction as R
 open import proof.TypeSafety.Preservation using (applyTermCtx)
 open import proof.DGG.World
-open import proof.DGG.WorldInvariants
 
 
 data CtxChange : Ctx → Ctx → Set where
@@ -74,7 +72,7 @@ data WorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
       {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       (eqᴸ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
     → WorldEvolution
-        {W = W} {W′ = bind-left-rawᶜ W A eqᴸ}
+        {W = W} {W′ = W ▻ᶜ bind-left-changeᶜ A eqᴸ}
         (bind-ctx eqᴸ) keep-ctx
 
   evolution-bind-right : ∀
@@ -85,7 +83,7 @@ data WorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
       (fresh : RightBindFreshᶜ W B)
       (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
     → WorldEvolution
-        {W = W} {W′ = bind-right-rawᶜ W B fresh eqᴿ}
+        {W = W} {W′ = W ▻ᶜ bind-right-changeᶜ B fresh eqᴿ}
         keep-ctx (bind-ctx eqᴿ)
 
   evolution-bind-both : ∀
@@ -98,7 +96,8 @@ data WorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
       (eqᴸ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
     → WorldEvolution
-        {W = W} {W′ = bind-both-rawᶜ W represented eqᴸ eqᴿ}
+        {W = W} {W′ = W ▻ᶜ
+          bind-both-changeᶜ represented eqᴸ eqᴿ}
         (bind-ctx eqᴸ) (bind-ctx eqᴿ)
 
   evolution-bind-both-star : ∀
@@ -113,26 +112,9 @@ data WorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
       (eqᴿ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
     → WorldEvolution
         {W = W}
-        {W′ = bind-both-star-rawᶜ W represented A≠★ eqᴸ eqᴿ}
+        {W′ = W ▻ᶜ
+          bind-both-star-changeᶜ represented A≠★ eqᴸ eqᴿ}
         (bind-ctx eqᴸ) (bind-ctx eqᴿ)
-
-
-evolution-invariants : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
-    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
-    {stepᴸ : CtxChange Cᴸ Cᴸ′}
-    {stepᴿ : CtxChange Cᴿ Cᴿ′}
-  → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
-  → DirectWorldInvariantsᶜ W′
-evolution-invariants evolution-keep = directInvariantsᶜ _
-evolution-invariants (evolution-bind-left eqᴸ) =
-  directInvariantsᶜ _
-evolution-invariants (evolution-bind-right fresh eqᴿ) =
-  directInvariantsᶜ _
-evolution-invariants (evolution-bind-both represented eqᴸ eqᴿ) =
-  directInvariantsᶜ _
-evolution-invariants
-    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) =
-  directInvariantsᶜ _
 
 
 empty-evolution : WorldEvolution

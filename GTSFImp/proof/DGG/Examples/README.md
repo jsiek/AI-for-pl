@@ -96,10 +96,11 @@ The allocation world is
 
 `⟨X: X↦ℕ ⊑[X⊑★] X′↦★⟩`.
 
-All active conversion boundaries are paired.  Their rebase plan is the
-identity, so this example validates the baseline where the world comparing
-the representations `ℕ ⊑ ★` is also the world aligning `X` with `X'`.
-It intentionally does not decide how those worlds differ in an alias case.
+All active conversion boundaries are paired, so no current-embedding change
+is needed.  This validates the baseline where the world comparing the
+representations `ℕ ⊑ ★` is also the world aligning `X` with `X'`.
+The live relation expresses this directly in its paired reveal and conceal
+rules; there is no identity-rebase proof object.
 
 ### 5. `SourceOnlyInstantiation.agda`
 
@@ -170,11 +171,10 @@ literal checkpoint.
 `Example12.agda` checks the complete whole-program schedule C0--C15: C0 is the
 compiler output, and C1--C15 follow the fifteen more-precise reductions one at
 a time.  Every interval records the less-precise catch-up or stutter trace, and
-both executions finish at `7`.  C0 has a closed live CTI derivation and a pinned
-generated ladder.  C1 has a pinned generated obstruction ladder.  Its three
-`?` cells isolate the missing boundary-state design: the source-only `Λ`
-transition from a pending exact alias to an active focus, the active target
-reveal for `α : ★`, and the nested active target reveal for `β : α`.
+both executions finish at `7`.  Every checkpoint has a closed derivation in
+the live CTI and a pinned generated Imp Ladder.  The ladders exercise the two
+target-reveal rebases, paired X reveal/conceal, and the inverse target-conceal
+and target-reveal rebase chain before both sides converge to `7`.
 
 ## Proposed additions
 

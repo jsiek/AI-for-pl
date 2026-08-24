@@ -9,21 +9,37 @@ module proof.DGG.notes.probes.TargetExtendPlanExamplesProbe where
 --   * Depends on the canonical TargetExtendPlan and the existing alias-focus
 --     fixture; it defines no alternative target-extension surface.
 
-open import Data.Nat using (suc)
+open import Data.List using ([])
+open import Data.Nat using (suc; zero)
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 
-open import Types using (★)
-open import TyStore using (store-bind)
+open import Types using (TyVar; ★; ＇_)
+open import TyStore using (store-empty; store-bind)
 import TermCtx as TC
 open import Consistency using (keep; skip; id↪ᵗ; toRenameᵗ)
-open import CastTerms using (⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ)
+open import CastTerms using
+  (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ; _,ˢ_; ⇑ᵉᵗ)
 open import proof.DGG.World
 open import proof.DGG.TargetExtendPlan
-open import
-  proof.DGG.notes.probes.TwoCtxAdministrativeAliasFocusProbe
+
+
+empty-context : Ctx
+empty-context = ⟨ zero , store-empty , [] ⟩
+
+target-alpha-context : Ctx
+target-alpha-context = empty-context ,ˢ ★
+
+stable-world : ⇑ᵉᵗ empty-context ⊑ᶜ target-alpha-context
+stable-world = liftLeftᶜ (bindRightᶜ emptyᶜ ★ (inj₁ refl))
+
+target-alpha : TyVar (Δᵉ target-alpha-context)
+target-alpha = Fin.zero
+
+target-alpha-beta-context : Ctx
+target-alpha-beta-context = target-alpha-context ,ˢ ＇ target-alpha
 
 
 star-root-plan : TargetExtendPlan stable-world

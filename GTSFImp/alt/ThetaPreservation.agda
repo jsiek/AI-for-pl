@@ -8,7 +8,8 @@ module alt.ThetaPreservation where
 --     redex.  That historical instance remains below as a regression.
 --   * The old loose-anchor counterexample is now untypable: crossing entries
 --     record their anchors, so typing forces both nodes' slot and anchor data.
---   * At a nonempty term context, `β-reveal-⇒` independently moves a captured
+--   * At a nonempty term context, `β-reveal-⇒` independently moves a
+--     captured
 --     lambda beneath a conceal delimiter whose typing rule requires a closed
 --     interior.  That checked instance explains why arbitrary-context
 --     preservation would remain false even after repairing `conceal-reveal`.
@@ -23,7 +24,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; sym; trans)
+  using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
   renaming (subst to subst≡)
 open import Relation.Nullary using (¬_; yes; no)
 
@@ -275,7 +276,8 @@ preserve-β-∀ refl (⊢⦂∀ (⊢⟨⟩ V⊢ (∀ᶜ c))) =
   ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ _ ]ᶜ)
 
 preserve-ground : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
-    {μ : Env∼ Δ} {A G : Ty Δ} ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+    {μ : Env∼ Δ} {A G : Ty Δ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
     {c : μ ⊢ A ∼ G} ⦃ Ans : NonStar A ⦄ ⦃ Gns : NonStar G ⦄
   → Ψ ∣ [] ⊢ V ⟨ c ! ⟩ ⦂ ★
   → Ψ ∣ [] ⊢ V ⟨ c ⟩ ⟨ (idᵍ Gᵍ) ! ⟩ ⦂ ★
@@ -283,7 +285,8 @@ preserve-ground ⦃ Gᵍ = Gᵍ ⦄ (⊢⟨⟩ V⊢ (c !)) =
   ⊢⟨⟩ (⊢⟨⟩ V⊢ c) ((idᵍ Gᵍ) !)
 
 preserve-expand : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
-    {μ : Env∼ Δ} {G B : Ty Δ} ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
+    {μ : Env∼ Δ} {G B : Ty Δ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
     {c : μ ⊢ G ∼ B} ⦃ Bns : NonStar B ⦄ ⦃ Gns : NonStar G ⦄
   → Ψ ∣ [] ⊢ V ⟨ ？ c ⟩ ⦂ B
   → Ψ ∣ [] ⊢ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩ ⦂ B
@@ -292,7 +295,8 @@ preserve-expand ⦃ Gᵍ = Gᵍ ⦄ (⊢⟨⟩ V⊢ (？ c)) =
 
 preserve-tag-untag : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
     {μ ν : Env∼ Δ} {G : Ty Δ} ⦃ Gᵍ : Ground G ⦄
-    ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄ ⦃ Gns : NonStar G ⦄
+    ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
+    ⦃ Gns : NonStar G ⦄
   → Ψ ∣ [] ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Gᵍ) ⟩ ⦂ G
   → Ψ ∣ [] ⊢ V ⦂ G
 preserve-tag-untag (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) = V⊢
@@ -397,6 +401,212 @@ preserve-const-ν : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {C A : Ty Δ} {κ}
   → Ψ ∣ [] ⊢ ν[ C ] ($ κ) ⦂ A
   → Ψ ∣ [] ⊢ $ κ ⦂ A
 preserve-const-ν (⊢ν (⊢$ κ)) = ⊢$ κ
+
+preserve-β-inst : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+    {μ : Env∼ Δ} {A : Ty (suc Δ)} {B : Ty Δ}
+    {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+    ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
+    {B≠★ : B ≢ ★}
+  → Ψ ∣ [] ⊢ V ⟨ (inst c) B≠★ ⟩ ⦂ B
+  → Ψ ∣ [] ⊢ (V ⦂∀ A [ ★ ]) ⟨ c [ ★/0 ]ᶜ ⟩ ⦂ B
+preserve-β-inst (⊢⟨⟩ V⊢ ((inst c) B≠★)) =
+  ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ ★/0 ]ᶜ)
+
+------------------------------------------------------------------------
+-- Preservation cases: blame propagation
+------------------------------------------------------------------------
+
+preserve-blame-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ blame · M ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-blame-·₁ M⊢ = ⊢blame
+
+preserve-blame-·₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ V · blame ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-blame-·₂ M⊢ = ⊢blame
+
+preserve-blame-• : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A : Ty Δ} {B : Ty (suc Δ)}
+  → Ψ ∣ [] ⊢ blame ⦂∀ B [ A ] ⦂ B [ A ]ᵗ
+  → Ψ ∣ [] ⊢ blame ⦂ B [ A ]ᵗ
+preserve-blame-• M⊢ = ⊢blame
+
+preserve-blame-⟨⟩ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → Ψ ∣ [] ⊢ blame ⟨ c ⟩ ⦂ B
+  → Ψ ∣ [] ⊢ blame ⦂ B
+preserve-blame-⟨⟩ M⊢ = ⊢blame
+
+preserve-blame-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ blame ↑[ X ≔ α ] c ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-blame-reveal M⊢ = ⊢blame
+
+preserve-blame-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+    {A : Ty (suc Δ)}
+  → Ψ ∣ [] ⊢ blame ↓[ X ≔ α ] c ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-blame-conceal M⊢ = ⊢blame
+
+preserve-blame-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M : Term Θ Δ} {op : Prim} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ blame ⊕[ op ] M ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-blame-⊕₁ M⊢ = ⊢blame
+
+preserve-blame-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {op : Prim} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ V ⊕[ op ] blame ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-blame-⊕₂ M⊢ = ⊢blame
+
+preserve-blame-ν : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A B : Ty Δ}
+  → Ψ ∣ [] ⊢ ν[ A ] blame ⦂ B
+  → Ψ ∣ [] ⊢ blame ⦂ B
+preserve-blame-ν M⊢ = ⊢blame
+
+------------------------------------------------------------------------
+-- Preservation cases: congruence rules
+------------------------------------------------------------------------
+
+preserve-ξ-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {L L′ M : Term Θ Δ} {A B : Ty Δ}
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Ψ ∣ [] ⊢ L′ ⦂ A ⇒ B
+  → Ψ ∣ [] ⊢ L′ · M ⦂ B
+preserve-ξ-·₁ M⊢ L′⊢ = ⊢· L′⊢ M⊢
+
+preserve-ξ-·₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V M M′ : Term Θ Δ} {A B : Ty Δ}
+  → Ψ ∣ [] ⊢ V ⦂ A ⇒ B
+  → Ψ ∣ [] ⊢ M′ ⦂ A
+  → Ψ ∣ [] ⊢ V · M′ ⦂ B
+preserve-ξ-·₂ V⊢ M′⊢ = ⊢· V⊢ M′⊢
+
+preserve-ξ-• : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M M′ : Term Θ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
+  → Ψ ∣ [] ⊢ M ⦂∀ B [ A ] ⦂ B [ A ]ᵗ
+  → Ψ ∣ [] ⊢ M′ ⦂ `∀ B
+  → Ψ ∣ [] ⊢ M′ ⦂∀ B [ A ] ⦂ B [ A ]ᵗ
+preserve-ξ-• (⊢⦂∀ M⊢) M′⊢ = ⊢⦂∀ M′⊢
+
+preserve-ξ-⟨⟩ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M M′ : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → Ψ ∣ [] ⊢ M ⟨ c ⟩ ⦂ B
+  → Ψ ∣ [] ⊢ M′ ⦂ A
+  → Ψ ∣ [] ⊢ M′ ⟨ c ⟩ ⦂ B
+preserve-ξ-⟨⟩ (⊢⟨⟩ M⊢ c) M′⊢ = ⊢⟨⟩ M′⊢ c
+
+preserve-ξ-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M M′ : Term Θ (suc Δ)} {X : TyVar (suc Δ)}
+    {α : TyVar Θ} {c : Reveal} {A : Ty (suc Δ)} {B C : Ty Δ}
+  → Ψ ∋ α := C
+  → ⊢↑[ X ⦂ wkᵗ X C ] c ⦂ A ↝ wkᵗ X B
+  → Ψ ,typ[ X ≔ α ] ∣ [] ⊢ M′ ⦂ A
+  → Ψ ∣ [] ⊢ M′ ↑[ X ≔ α ] c ⦂ B
+preserve-ξ-reveal α∈ c⊢ M′⊢ = ⊢reveal α∈ c⊢ M′⊢
+
+preserve-ξ-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+    {M M′ : Term Θ Δ} {X : TyVar (suc Δ)}
+    {α : TyVar Θ} {c : Conceal} {A C : Ty Δ}
+    {B : Ty (suc Δ)}
+  → Ψ ∋typ X ≔ α
+  → (Ψ ∖ X) ∋ α := C
+  → ⊢↓[ X ⦂ wkᵗ X C ] c ⦂ wkᵗ X A ↝ B
+  → Ψ ∖ X ∣ [] ⊢ M′ ⦂ A
+  → Ψ ∣ [] ⊢ M′ ↓[ X ≔ α ] c ⦂ B
+preserve-ξ-conceal slot∈ α∈ c⊢ M′⊢ =
+  ⊢conceal slot∈ α∈ c⊢ M′⊢
+
+preserve-ξ-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {L L′ M : Term Θ Δ} {op : Prim}
+  → Ψ ∣ [] ⊢ L ⊕[ op ] M ⦂ primResultTy op
+  → Ψ ∣ [] ⊢ L′ ⦂ primArgTy op
+  → Ψ ∣ [] ⊢ L′ ⊕[ op ] M ⦂ primResultTy op
+preserve-ξ-⊕₁ (⊢⊕ op L⊢ M⊢) L′⊢ = ⊢⊕ op L′⊢ M⊢
+
+preserve-ξ-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V M M′ : Term Θ Δ} {op : Prim}
+  → Ψ ∣ [] ⊢ V ⊕[ op ] M ⦂ primResultTy op
+  → Ψ ∣ [] ⊢ M′ ⦂ primArgTy op
+  → Ψ ∣ [] ⊢ V ⊕[ op ] M′ ⦂ primResultTy op
+preserve-ξ-⊕₂ (⊢⊕ op V⊢ M⊢) M′⊢ = ⊢⊕ op V⊢ M′⊢
+
+preserve-ξ-ν : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A B : Ty Δ} {M M′ : Term (suc Θ) Δ}
+  → Ψ ∣ [] ⊢ ν[ A ] M ⦂ B
+  → Ψ ,:= A ∣ [] ⊢ M′ ⦂ B
+  → Ψ ∣ [] ⊢ ν[ A ] M′ ⦂ B
+preserve-ξ-ν (⊢ν M⊢) M′⊢ = ⊢ν M′⊢
+
+------------------------------------------------------------------------
+-- Preservation cases: straightforward region floats
+------------------------------------------------------------------------
+
+preserve-float-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A B C : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ}
+  → Ψ ∣ [] ⊢ (ν[ A ] M) · N ⦂ C
+  → Ψ ∣ [] ⊢ ν[ A ] (M · shiftᶿ N) ⦂ C
+preserve-float-·₁ (⊢· (⊢ν M⊢) N⊢) =
+  ⊢ν (⊢· M⊢ (⊢shiftᶿ N⊢))
+
+preserve-float-·₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A B C : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ}
+  → Ψ ∣ [] ⊢ V · (ν[ A ] M) ⦂ C
+  → Ψ ∣ [] ⊢ ν[ A ] (shiftᶿ V · M) ⦂ C
+preserve-float-·₂ (⊢· V⊢ (⊢ν M⊢)) =
+  ⊢ν (⊢· (⊢shiftᶿ V⊢) M⊢)
+
+preserve-float-• : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A C : Ty Δ} {B : Ty (suc Δ)} {M : Term (suc Θ) Δ}
+  → Ψ ∣ [] ⊢ (ν[ A ] M) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
+  → Ψ ∣ [] ⊢ ν[ A ] (M ⦂∀ B [ C ]) ⦂ B [ C ]ᵗ
+preserve-float-• (⊢⦂∀ (⊢ν M⊢)) = ⊢ν (⊢⦂∀ M⊢)
+
+preserve-float-⟨⟩ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A B C : Ty Δ} {M : Term (suc Θ) Δ} {μ : Env∼ Δ}
+    {c : μ ⊢ B ∼ C}
+  → Ψ ∣ [] ⊢ (ν[ A ] M) ⟨ c ⟩ ⦂ C
+  → Ψ ∣ [] ⊢ ν[ A ] (M ⟨ c ⟩) ⦂ C
+preserve-float-⟨⟩ (⊢⟨⟩ (⊢ν M⊢) c) = ⊢ν (⊢⟨⟩ M⊢ c)
+
+preserve-float-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+    {A : Ty Δ} {M : Term (suc Θ) Δ}
+    {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+    {B : Ty (suc Δ)}
+  → Ψ ∣ [] ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c ⦂ B
+  → Ψ ∣ [] ⊢ ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c) ⦂ B
+preserve-float-conceal {Ψ = Ψ} {A = A} {Y = Y}
+    (⊢conceal slot∈ α∈ c⊢ (⊢ν M⊢)) =
+  ⊢ν (⊢conceal (skip-visible-typ slot∈) target-α∈ c⊢ target-M⊢)
+  where
+  env-eq = ∖-:=wk Ψ Y A
+  target-α∈ =
+    subst≡ (λ Φ → Φ ∋ suc _ := _) (sym env-eq) (S α∈)
+  target-M⊢ =
+    subst≡ (λ Φ → Φ ∣ [] ⊢ _ ⦂ _) (sym env-eq) M⊢
+
+preserve-float-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ} {op}
+  → Ψ ∣ [] ⊢ (ν[ A ] M) ⊕[ op ] N ⦂ primResultTy op
+  → Ψ ∣ [] ⊢ ν[ A ] (M ⊕[ op ] shiftᶿ N) ⦂ primResultTy op
+preserve-float-⊕₁ (⊢⊕ op (⊢ν M⊢) N⊢) =
+  ⊢ν (⊢⊕ op M⊢ (⊢shiftᶿ N⊢))
+
+preserve-float-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {A : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ} {op}
+  → Ψ ∣ [] ⊢ V ⊕[ op ] (ν[ A ] M) ⦂ primResultTy op
+  → Ψ ∣ [] ⊢ ν[ A ] (shiftᶿ V ⊕[ op ] M) ⦂ primResultTy op
+preserve-float-⊕₂ (⊢⊕ op V⊢ (⊢ν M⊢)) =
+  ⊢ν (⊢⊕ op (⊢shiftᶿ V⊢) M⊢)
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression

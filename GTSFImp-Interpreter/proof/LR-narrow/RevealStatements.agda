@@ -242,6 +242,15 @@ below-restrict j≤k m≤n below i o (lex-size refl o<m)
 below-restrict j≤k m≤n below i o (lex-size refl o<m)
     | tri> _ _ k<j = ⊥-elim (≤⇒≯ j≤k k<j)
 
+below-at : ∀ {k n} → Below k n → ∀ j m → j ≤ k → m < n
+  → Statements j m
+below-at {k = k} below j m j≤k m<n with <-cmp j k
+below-at below j m j≤k m<n | tri< j<k _ _ =
+  below j m (lex-index j<k)
+below-at below j m j≤k m<n | tri≈ _ refl _ =
+  below j m (lex-size refl m<n)
+below-at below j m j≤k m<n | tri> _ _ k<j = ⊥-elim (≤⇒≯ j≤k k<j)
+
 -- Every statement at every size, and the strict-index restriction.
 
 FullStatements : ℕ → Set₁

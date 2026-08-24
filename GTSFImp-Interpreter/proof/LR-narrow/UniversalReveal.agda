@@ -269,3 +269,39 @@ embed-body-lift-imprecise {W = W} {W′ = W′} W≼W′ B = ty-all-injective
       (sym (liftImpreciseTy-universal W≼W′ B)))
     (trans (embedImprecise-lift W≼W′ (`∀ B))
       (liftCenterTy-universal W≼W′ _)))
+
+embed-precise-precise-bind-body : ∀ {Δᴾ Δᴵ Δᶜ}
+    (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ) (B : Ty (suc Δᴾ))
+  → embedPrecise (preciseBindCore W Aᴾ) B
+      ≡ renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding W))) B
+embed-precise-precise-bind-body W Aᴾ B =
+  renameᵗ-cong B (toRename-keep-eq (preciseEmbedding W))
+
+right-universals-head : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ} {W : World Δᴾ Δᴵ Δᶜ}
+    {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ∀ {n : ℕ} (m : ℕ) → suc m ≤ n
+  → RightUniversalsRelated W p Bᴾ Bᴵ n Vᴵ Vᴾ
+  → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
+      (W≼W′ : Future W W′) (Rᴾ : Ty Δᴾ′)
+      (r : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
+      (s : liftPreciseBody W≼W′ Bᴾ [ Rᴾ ]ᵗ
+        ⊑ᵂ⟨ core W′ ⟩ liftImpreciseTy W≼W′ Bᴵ)
+  → ComputationsRelated W′
+      (PostBindValueRelation
+        (future-precise (future-refl {W = W′}) r) s)
+      (suc m)
+      (liftImpreciseTerm W≼W′ Vᴵ)
+      (liftPreciseTerm W≼W′ Vᴾ ⦂∀ liftPreciseBody W≼W′ Bᴾ [ Rᴾ ])
+right-universals-head {W = W} {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc n} m (s≤s m≤n) universals
+    with m ≟ℕ n
+right-universals-head {n = suc n} .n (s≤s m≤n) universals
+    | yes refl = proj₁ universals
+right-universals-head {W = W} {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc n} m (s≤s m≤n) universals
+    | no m≢n =
+  right-universals-head {W = W} {p = p} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = n} m (≤∧≢⇒< m≤n m≢n)
+    (proj₂ universals)

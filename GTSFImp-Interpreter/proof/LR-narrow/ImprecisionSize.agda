@@ -8,6 +8,7 @@ module proof.LR-narrow.ImprecisionSize where
 --     step index into the strictly smaller body derivation.
 
 open import Data.Nat using (ℕ; suc; _+_)
+import Data.Nat
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; cong₂)
   renaming (subst to subst≡)
@@ -83,3 +84,28 @@ lift-center-size (future-precise W≼W′ r) p =
 lift-center-size (future-imprecise W≼W′) p =
   trans (rename-⊑-size Fin.suc _ _ (liftCenterImprecision W≼W′ p))
     (lift-center-size W≼W′ p)
+
+size-subst-left : ∀ {Δ} {μ : I.ImpEnv Δ} {A A′ B : Ty Δ}
+    (eq : A ≡ A′) (p : μ I.⊢ A ⊑ B)
+  → sizeᵖ (subst≡ (λ T → μ I.⊢ T ⊑ B) eq p) ≡ sizeᵖ p
+size-subst-left refl p = refl
+
+lift-center-dynamic-body-size : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Aᴾ Aᴵ : Ty (Data.Nat.suc Δᶜ)}
+    (W≼W′ : Future W W′)
+    (p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
+  → sizeᵖ (liftCenterDynamicBodyImprecision W≼W′ p) ≡ sizeᵖ p
+lift-center-dynamic-body-size future-refl p = refl
+lift-center-dynamic-body-size (future-paired W≼W′ r) p =
+  trans (rename-⊑-size _ _ _
+    (liftCenterDynamicBodyImprecision W≼W′ p))
+    (lift-center-dynamic-body-size W≼W′ p)
+lift-center-dynamic-body-size (future-precise W≼W′ r) p =
+  trans (rename-⊑-size _ _ _
+    (liftCenterDynamicBodyImprecision W≼W′ p))
+    (lift-center-dynamic-body-size W≼W′ p)
+lift-center-dynamic-body-size (future-imprecise W≼W′) p =
+  trans (rename-⊑-size _ _ _
+    (liftCenterDynamicBodyImprecision W≼W′ p))
+    (lift-center-dynamic-body-size W≼W′ p)

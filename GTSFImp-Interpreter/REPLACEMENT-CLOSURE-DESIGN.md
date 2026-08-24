@@ -191,6 +191,87 @@ is exactly the refuted situation.
   mirroring `conceal-universal-inner`.  Three producer sites, each a
   generalization of an existing inner from `[]` to `σ`.
 
+## Implementation log — step 2 landed (2026-08-24)
+
+The clause change and every consumer rewrite are done and green
+(commit "Store the replacement-closed family in the right-universal
+clause"):
+
+* `RightUniversalFamily` added to `LR-narrow/LogicalRelation.agda`
+  (Kripke-indexed, per Revision 1) and installed as the chain
+  component of the `∀⊑` clause;
+* `LR-narrow/UniversalFamily.agda` defines the kit as a **record**
+  (`RightUniversalFamilyKit` with field `to-family`);
+* `proof/LR-narrow/Closure.agda` gained
+  `right-universals-related-transport`,
+  `right-universal-family-reindex` and
+  `right-universal-family-future` (future composition), and the three
+  `∀⊑` future-closure sites use them;
+* `proof/LR-narrow/UniversalInstantiation.agda` projects the family
+  at `(future-refl, [])`, which reduces definitionally to the old
+  chain — as designed;
+* the kit is threaded as an argument through the producer chain
+  (`proof/LR-narrow/Universal.agda`, `proof/LR-narrow/Fundamental.agda`
+  and their public wrappers); those exports are leaves, so the
+  propagation stops there;
+* `RevealObligations` gained a single new field
+  `right-universal-family-kit`, used by the four `∀⊑` assemblies in
+  `RevealStructural.agda` to turn their `heads` chains into families.
+
+### Elaboration idioms discovered (needed for every family site)
+
+1. **Eager implicit insertion.**  A family is a Π-type whose leading
+   arguments are implicit, so an application `f a b` in a position
+   expecting a family has its implicits inserted as metas and fails
+   with `UnequalHiding`.  Every family-valued expression must be
+   η-expanded: `λ W≼W′ σ → f a b W≼W′ σ`.
+2. **Checking mode is required.**  The η-expanded lambda only gets
+   its implicit lambdas inserted if the expected type is known, so
+   family components must sit in checked positions — not in
+   signature-less `let`/`where` bindings — and any step index the
+   expected type depends on must be pinned (`{k = suc j}`).
+3. **Non-injective type families.**  `RightUniversalsRelated`
+   pattern-matches on the index, so unifying two of its applications
+   never solves metas.  Every helper whose conclusion is one of them
+   must receive `{W}`, `{p}`, `{Bᴾ}`, `{Bᴵ}`, `{k}` explicitly.
+
+### Step 3 recipe (next session)
+
+Discharging `blocked-dyn-reveal-universal` (and its three siblings)
+is *not* a one-liner projection, because the obligation receives the
+target derivation `q` rather than constructing it, and
+`replace-⊑` — the lemma the paired dispatch uses to build the target
+— requires paired mode `X⊑X`, which a dynamic slot does not have.
+The workable route is to **match on both `p` and `q`** instead of
+invoking `⊑-unique`:
+
+* refute every shape whose precise endpoint is not a `∀`-type by
+  `()` on `sourceᴾ` / `targetᴾ` (`embedPrecise (`∀ B₁)` is
+  definitionally `∀`-headed, so the equations are absurd);
+* `p = I.∀⊑ …`: the source carries a family; the wrapped value's
+  family is `λ W≼W′ σ → fam W≼W′ (reveal-dyn d† _ ∷ σ)` with `d†`
+  the lifted dynamic slot (`dyn-slot-future`), the term equality
+  from `dyn-slot-precise-*-lift`, and the body-type equality from
+  `liftPreciseBody-replace`.  Note `q` must still be analysed: with
+  the same imprecise endpoint `Aᴵ` but a different precise endpoint,
+  `q` may be `∀⊑`, `∀⊑∀`, `∀⊑★`, `∀★⊑★` or `bot⊑★`, so this case
+  splits further; only the `∀⊑`/`∀⊑` combination is a projection,
+  and the others need their own (mostly refutation) arguments;
+* `p = I.∀⊑∀ …`: blocked by Finding F (no family is stateable);
+* `p = I.∀⊑★ …` / `I.∀★⊑★`: the value is a dynamic payload pair, so
+  the reveal must go through `RightDynamicPayloadRelated` — a
+  separate argument, not a family projection;
+* `p = I.bot-elim` / `I.bot⊑★`: refute via the bottom-value lemmas
+  (they must be imported into `DynamicReveal`).
+
+The same analysis applies to `blocked-dyn-conceal-universal` and,
+with paired slots and a non-occurrence witness in place of the
+dynamic slot, to `blocked-precise-reveal`/`-conceal`.
+
+Once those land, the kit itself is provable (chain → family by
+induction on σ, each step using the now-total computations wrappers),
+and `RevealObligations` collapses to the Finding-F residue.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

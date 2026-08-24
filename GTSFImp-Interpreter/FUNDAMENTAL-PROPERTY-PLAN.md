@@ -720,9 +720,15 @@ Remaining honest resolutions (both substantial):
   `LR-narrow/UniversalFamily.agda` (the kit record) are new.  The
   five previously separate gaps are now expressed as **one**
   obligation, `right-universal-family-kit` (chain → family), which is
-  inter-derivable with the four blocked universal statements.  What
-  remains is discharging the four by projection and then proving the
-  kit; both are mapped in the design note.  The design also dissolves
+  inter-derivable with the four blocked universal statements.
+  **Step 3 has also landed** (2026-08-24): all four blocked universal
+  statements now dispatch on the source derivation and are
+  discharged — refutations for non-universal and bottom sources,
+  dynamic-payload recursion for the star-universal sources (with the
+  ground un-replacement by occurs-refutation), and family projection
+  for the right-universal source — leaving value-level `∀⊑∀`-only
+  obligations.  What remains is internalizing the kit; the recipe
+  and the discovered simplifications are in the design note.  The design also dissolves
   the canonical-forms gate: the imprecise application step the
   consumer cannot perform is performed by the producers, each of
   which knows its value's step syntactically;

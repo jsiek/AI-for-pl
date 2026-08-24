@@ -272,6 +272,66 @@ Once those land, the kit itself is provable (chain → family by
 induction on σ, each step using the now-total computations wrappers),
 and `RevealObligations` collapses to the Finding-F residue.
 
+## Implementation log — step 3 landed (2026-08-24)
+
+Step 3 is complete and green (commit "Discharge the universal wrapper
+cases down to paired sources").  The step-3 recipe above was
+simplified in three ways before implementation:
+
+1. **No target analysis.**  The chain is phantom in its derivation
+   index (`right-universals-phantom` transports with *no* endpoint
+   equations), and the target derivation is forced by constructing a
+   replaced alternative and transporting with
+   `value-imprecision-reindex`.  The alternative is built by a new
+   left-only replacement lemma
+   (`replace-left-⊑` in `proof/LR-narrow/ReplaceImprecision.agda`):
+   replacement of a variable on the left needs no mode premise, only
+   that the variable avoids the right-hand side — which holds for
+   dynamic slots because their center is skipped by the imprecise
+   embedding (`dyn-embed-∉`).  Applied at the top derivation it
+   reduces to constructor form, so the replaced clause computes.
+2. **Value-level central helpers.**  Each of the four statements'
+   `∀`-case delegates to one value-level helper
+   (`precise-universal-value`/`-conceal-value` in `PreciseReveal`,
+   `dyn-universal-value`/`-conceal-value` in `DynamicReveal`)
+   dispatching on the source derivation: non-`∀` sources are refuted
+   by the embedding equation, the bottom sources by
+   `no-precise-bottom-value`, the star-universal sources recurse into
+   the dynamic payload at the smaller index (the payload derivation
+   is one of the same shapes, so the recursion is structural on the
+   step index), the right-universal source projects the stored
+   family, and only the paired universal source invokes the
+   obligation.
+3. **Ground un-replacement by refutation.**  The dynamic conceal at
+   `∀⊑★` must transfer the payload shape's ground derivation from the
+   replaced type back to the source type.  The key: the source's star
+   premise pins the bound variable to the paired mode, so any
+   `∀⊑`-shaped ground derivation — whose bound variable occurs, and
+   occurrence reflects through replacement
+   (`replaceTy-∈-reflect`) — contradicts `star-no-occurrence`.  What
+   survives is `∀⊑∀` against the universal ground, rebuilt directly
+   from the source premise (`conceal-shape-∀★`), and the bottom
+   derivation, which survives replacement unchanged; the other
+   grounds are refuted (`conceal-shape-⇒`/`-ι`,
+   `⊑-var-right-nonvar`).
+
+The obligations are now **value-level and `∀⊑∀`-only**: the four
+blocked fields take `ValueImprecision W (I.∀⊑∀ p₀) k` (or produce
+it, for the conceal direction), and the reveal development has no
+other gaps besides the kit.
+
+### Remaining (step 4 tail)
+
+* Internalize the kit: `family-extend` (four wrapper kinds, each
+  mirroring an existing assembly inner) built inside the statements
+  construction from the now-total dynamic and one-sided computations
+  statements, then `RevealObligations` shrinks to the four
+  `∀⊑∀`-fields.  The construction is well-founded: the wrappers'
+  computations recursions are type-fueled and their `∀`-cases are now
+  projections, and the family is built by induction on the sequence.
+* The `∀⊑∀` residue itself is Finding F (world-model extension) plus
+  imprecise canonical forms — recorded in the plan.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

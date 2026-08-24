@@ -23,7 +23,6 @@ module alt.ThetaReduction where
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Empty using (⊥-elim)
-open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality
@@ -41,15 +40,6 @@ private
   variable
     Θ Θ′ : AnchorCtx
     Δ Δ′ : TyCtx
-
--- A conceal-∀ source is computed one binder underneath the concealed slot.
--- Typed conversions put that source in the image of weakening; the ★ branch
--- merely makes the operation total on junk shapes and endpoints.
-
-unwkᵗ : ∀ {Δ} → TyVar (suc Δ) → Ty (suc Δ) → Ty Δ
-unwkᵗ Y A with strengthenᵗ? Y A
-unwkᵗ Y A | just B = B
-unwkᵗ Y A | nothing = ★
 
 ------------------------------------------------------------------------
 -- Term-variable renaming
@@ -384,10 +374,71 @@ private
   removeResolved {n = suc n} (suc Y) (suc X) Y≢X =
     suc (removeResolved Y X (λ Y≡X → Y≢X (cong suc Y≡X)))
 
+  resolved-punchIn≢ : ∀ {n} (Y : Fin (suc n)) (X : Fin n)
+    → Y ≢ punchIn Y X
+  resolved-punchIn≢ zero X ()
+  resolved-punchIn≢ (suc Y) zero ()
+  resolved-punchIn≢ (suc Y) (suc X) eq =
+    resolved-punchIn≢ Y X (suc-injective eq)
+    where
+    suc-injective : ∀ {m} {Z W : Fin m} → suc Z ≡ suc W → Z ≡ W
+    suc-injective refl = refl
+
+  removeResolved-punchIn : ∀ {n} (Y : Fin (suc n)) (X : Fin n)
+      (Y≢X : Y ≢ punchIn Y X)
+    → removeResolved Y (punchIn Y X) Y≢X ≡ X
+  removeResolved-punchIn zero X Y≢X = refl
+  removeResolved-punchIn (suc Y) zero Y≢X = refl
+  removeResolved-punchIn (suc Y) (suc X) Y≢X =
+    cong suc (removeResolved-punchIn Y X _)
+
+  punchIn-removeResolved : ∀ {n} (Y X : Fin (suc n))
+      (Y≢X : Y ≢ X)
+    → punchIn Y (removeResolved Y X Y≢X) ≡ X
+  punchIn-removeResolved zero zero Y≢X = ⊥-elim (Y≢X refl)
+  punchIn-removeResolved zero (suc X) Y≢X = refl
+  punchIn-removeResolved {n = suc n} (suc Y) zero Y≢X = refl
+  punchIn-removeResolved {n = suc n} (suc Y) (suc X) Y≢X =
+    cong suc (punchIn-removeResolved Y X _)
+
 resolveSubᵗ : ∀ {Δ} → TyVar (suc Δ) → Ty Δ → suc Δ ⇒ˢ Δ
 resolveSubᵗ Y C X with Y ≟ X
 resolveSubᵗ Y C .Y | yes refl = C
 resolveSubᵗ Y C X | no Y≢X = ＇ removeResolved Y X Y≢X
+
+resolveSub-punchIn : ∀ {Δ} (Y : TyVar (suc Δ)) (C : Ty Δ)
+    (X : TyVar Δ)
+  → resolveSubᵗ Y C (punchIn Y X) ≡ ＇ X
+resolveSub-punchIn Y C X with Y ≟ punchIn Y X
+resolveSub-punchIn Y C X | yes eq =
+  ⊥-elim (resolved-punchIn≢ Y X eq)
+resolveSub-punchIn Y C X | no Y≢X
+    rewrite removeResolved-punchIn Y X Y≢X =
+  refl
+
+resolveSub-here : ∀ {Δ} (Y : TyVar (suc Δ)) (C : Ty Δ)
+  → resolveSubᵗ Y C Y ≡ C
+resolveSub-here Y C with Y ≟ Y
+resolveSub-here Y C | yes refl = refl
+resolveSub-here Y C | no Y≢Y = ⊥-elim (Y≢Y refl)
+
+resolveSub-reembed : ∀ {Δ} (Y : TyVar (suc Δ)) (C : Ty Δ)
+    (X : TyVar (suc Δ))
+  → renameᵗ (punchIn Y) (resolveSubᵗ Y C X)
+    ≡ replaceTy Y (wkᵗ Y C) (＇ X)
+resolveSub-reembed Y C X with Y ≟ X
+resolveSub-reembed Y C .Y | yes refl = refl
+resolveSub-reembed Y C X | no Y≢X
+    rewrite punchIn-removeResolved Y X Y≢X =
+  refl
+
+resolveSub-ext : ∀ {Δ} (Y : TyVar (suc Δ)) (C : Ty Δ)
+    (X : TyVar (suc (suc Δ)))
+  → resolveSubᵗ (suc Y) (⇑ᵗ C) X ≡ extsᵗ (resolveSubᵗ Y C) X
+resolveSub-ext Y C zero = refl
+resolveSub-ext Y C (suc X) with Y ≟ X
+resolveSub-ext Y C (suc .Y) | yes refl = refl
+resolveSub-ext Y C (suc X) | no Y≢X = refl
 
 -- A fresh crossing is inserted immediately below the source `∀` binder.
 -- Its slot and the binder's slot must therefore exchange before the inner
@@ -651,28 +702,34 @@ data _⊢_—→_ : ∀ {Θ Δ}
               ↑[ suc X ≔ suc α ] c)
             ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
-  -- The same positional divergence from v2 applies to the carried conceal:
-  -- its old crossing is `suc X` at `suc α`, while both fresh-anchor
-  -- crossings remain at slot zero and use their literal generator shapes.
+  -- inside the conceal, the region knows the representation type of the abstract X — so resolving X in the instantiation type through the anchor's representation is legitimate knowledge, not a leak; the conversion's seals continue to mediate the values.
+  -- The fresh region therefore lives wholly in the deleted view.  It first
+  -- resolves the instantiation and the conversion-determined source body,
+  -- instantiates V there, and closes its fresh slot before the generated
+  -- exit conceal restores the ambient abstract-X view.
   β-conceal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
       {V : Term Θ Δ} {A : Ty (suc Δ)}
       {B : Ty (suc (suc Δ))}
-      {C-rep : Ty (suc Δ)}
+      {C₀ : Ty Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → Ψ ∋ α := C-rep
+    → (Ψ ∖ X) ∋ α := C₀
     → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ] —→
-        ν[ A ]
+        (ν[ substᵗ (resolveSubᵗ X C₀) A ]
           ((((shiftᶿ V ↓[ zero ≔ zero ]
                 δ↓ (wkᵗ zero (`∀
-                  (unwkᵗ (suc X)
-                    (src↓ (suc X) (⇑ᵗ C-rep) c B)))))
+                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))))
                 ⦂∀ swapTopᵗ
-                  (⇑ᵗ (unwkᵗ (suc X)
-                    (src↓ (suc X) (⇑ᵗ C-rep) c B))) [ ＇ zero ])
-              ↓[ suc X ≔ suc α ] c)
-            ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+                  (⇑ᵗ (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))
+                  [ ＇ zero ])
+              ↑[ zero ≔ zero ]
+                〖 zero ↑
+                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)) 〗)))
+          ↓[ X ≔ α ] 〖 X ↓ (B [ A ]ᵗ) 〗
 
   ξ-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {L L′ M : Term Θ Δ}
     → Ψ ⊢ L —→ L′

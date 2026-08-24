@@ -96,6 +96,113 @@ mutual
   target-determinacy↑ (⊢id↑ A) = refl
 
 ------------------------------------------------------------------------
+-- Resolution algebra for conversions crossing a deleted slot
+------------------------------------------------------------------------
+
+substᵗ-subst : ∀ {Δ₁ Δ₂ Δ₃} (σ : Δ₁ ⇒ˢ Δ₂)
+    (τ : Δ₂ ⇒ˢ Δ₃) (A : Ty Δ₁)
+  → substᵗ τ (substᵗ σ A) ≡ substᵗ (λ X → substᵗ τ (σ X)) A
+substᵗ-subst σ τ (＇ X) = refl
+substᵗ-subst σ τ (‵ ι) = refl
+substᵗ-subst σ τ ★ = refl
+substᵗ-subst σ τ (A ⇒ B)
+    rewrite substᵗ-subst σ τ A | substᵗ-subst σ τ B =
+  refl
+substᵗ-subst σ τ (`∀ A) =
+  cong `∀
+    (trans (substᵗ-subst (extsᵗ σ) (extsᵗ τ) A)
+      (substᵗ-cong A exts-compose))
+  where
+  exts-compose : ∀ X
+    → substᵗ (extsᵗ τ) (extsᵗ σ X)
+      ≡ extsᵗ (λ Y → substᵗ τ (σ Y)) X
+  exts-compose zero = refl
+  exts-compose (suc X) = substᵗ-shift τ (σ X)
+
+resolve-wkᵗ : ∀ {Δ} (X : TyVar (suc Δ)) (C A : Ty Δ)
+  → substᵗ (resolveSubᵗ X C) (wkᵗ X A) ≡ A
+resolve-wkᵗ X C A =
+  trans (substᵗ-rename (resolveSubᵗ X C) (punchIn X) A)
+    (trans (substᵗ-cong A (resolveSub-punchIn X C))
+      (substᵗ-id A))
+
+resolve-openᵗ : ∀ {Δ} (X : TyVar (suc Δ)) (C : Ty Δ)
+    (B : Ty (suc (suc Δ))) (A : Ty (suc Δ))
+  → substᵗ (resolveSubᵗ X C) (B [ A ]ᵗ)
+    ≡ (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C)) B)
+        [ substᵗ (resolveSubᵗ X C) A ]ᵗ
+resolve-openᵗ X C B A =
+  trans (substᵗ-subst (singleSubᵗ A) (resolveSubᵗ X C) B)
+    (trans (substᵗ-cong B env-eq)
+      (sym (substᵗ-subst
+        (resolveSubᵗ (suc X) (⇑ᵗ C))
+        (singleSubᵗ (substᵗ (resolveSubᵗ X C) A)) B)))
+  where
+  env-eq : ∀ Y
+    → substᵗ (resolveSubᵗ X C) (singleSubᵗ A Y)
+      ≡ substᵗ (singleSubᵗ (substᵗ (resolveSubᵗ X C) A))
+          (resolveSubᵗ (suc X) (⇑ᵗ C) Y)
+  env-eq zero = refl
+  env-eq (suc Y) =
+    sym (trans (cong
+      (substᵗ (singleSubᵗ (substᵗ (resolveSubᵗ X C) A)))
+      (resolveSub-ext X C (suc Y)))
+      (shift-openᵗ (resolveSubᵗ X C Y)
+        (substᵗ (resolveSubᵗ X C) A)))
+
+resolve-wk-exchange : ∀ {Δ} (X : TyVar (suc Δ)) (C : Ty Δ)
+  → ⇑ᵗ (wkᵗ X C) ≡ wkᵗ (suc X) (⇑ᵗ C)
+resolve-wk-exchange X C =
+  trans (renameᵗ-comp (punchIn X) suc C)
+    (trans (renameᵗ-cong C punch-exchange)
+      (sym (renameᵗ-comp suc (punchIn (suc X)) C)))
+  where
+  punch-exchange : ∀ Y
+    → suc (punchIn X Y) ≡ punchIn (suc X) (suc Y)
+  punch-exchange Y = refl
+
+mutual
+  resolve-conversion↑ : ∀ {Δ} {X : TyVar (suc Δ)} {C : Ty Δ}
+      {c : Reveal} {A B : Ty (suc Δ)}
+    → ⊢↑[ X ⦂ wkᵗ X C ] c ⦂ A ↝ B
+    → substᵗ (resolveSubᵗ X C) A
+      ≡ substᵗ (resolveSubᵗ X C) B
+  resolve-conversion↑ {X = X} {C = C} ⊢unseal =
+    trans (resolveSub-here X C) (sym (resolve-wkᵗ X C C))
+  resolve-conversion↑ (⊢↑-⇒ c⊢ d⊢) =
+    cong₂ _⇒_ (sym (resolve-conversion↓ c⊢))
+      (resolve-conversion↑ d⊢)
+  resolve-conversion↑ {X = X} {C = C} (⊢↑-∀ {A = A} {B = B} c⊢) =
+    cong `∀
+      (trans (substᵗ-cong A (λ Y → sym (resolveSub-ext X C Y)))
+        (trans (resolve-conversion↑ inner⊢)
+          (substᵗ-cong B (resolveSub-ext X C))))
+    where
+    inner⊢ = subst≡ (λ R → ⊢↑[ suc X ⦂ R ] _ ⦂ A ↝ B)
+      (resolve-wk-exchange X C) c⊢
+  resolve-conversion↑ (⊢id↑ A) = refl
+
+  resolve-conversion↓ : ∀ {Δ} {X : TyVar (suc Δ)} {C : Ty Δ}
+      {c : Conceal} {A B : Ty (suc Δ)}
+    → ⊢↓[ X ⦂ wkᵗ X C ] c ⦂ A ↝ B
+    → substᵗ (resolveSubᵗ X C) A
+      ≡ substᵗ (resolveSubᵗ X C) B
+  resolve-conversion↓ {X = X} {C = C} ⊢seal =
+    trans (resolve-wkᵗ X C C) (sym (resolveSub-here X C))
+  resolve-conversion↓ (⊢↓-⇒ c⊢ d⊢) =
+    cong₂ _⇒_ (sym (resolve-conversion↑ c⊢))
+      (resolve-conversion↓ d⊢)
+  resolve-conversion↓ {X = X} {C = C} (⊢↓-∀ {A = A} {B = B} c⊢) =
+    cong `∀
+      (trans (substᵗ-cong A (λ Y → sym (resolveSub-ext X C Y)))
+        (trans (resolve-conversion↓ inner⊢)
+          (substᵗ-cong B (resolveSub-ext X C))))
+    where
+    inner⊢ = subst≡ (λ R → ⊢↓[ suc X ⦂ R ] _ ⦂ A ↝ B)
+      (resolve-wk-exchange X C) c⊢
+  resolve-conversion↓ (⊢id↓ A) = refl
+
+------------------------------------------------------------------------
 -- Injection identities used by telescope and conversion transport
 ------------------------------------------------------------------------
 

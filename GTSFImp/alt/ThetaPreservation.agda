@@ -18,10 +18,9 @@ module alt.ThetaPreservation where
 --   * The former `β-reveal-∀` counterexample is retained as a resolved
 --     regression: source determinacy now computes its body type from the
 --     redex, so the old Boolean contractum is no longer a possible step.
---   * Closed preservation is still refuted by `β-conceal-∀` when its
---     instantiation mentions the concealed slot.  Slot deletion makes the
---     freshly allocated anchor opaque inside the contractum; the checked
---     instance and the strengthenable subcase are both retained below.
+--   * The former slot-dependent `β-conceal-∀` obstruction is retained as
+--     a resolved regression.  The contractum resolves its instantiation and
+--     computed source in the deleted view, then seals the result on exit.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -51,9 +50,7 @@ open import alt.ThetaTermSubst
 ------------------------------------------------------------------------
 
 replaceEnv : ∀ {Δ} → TyVar Δ → Ty Δ → Δ ⇒ˢ Δ
-replaceEnv X R Y with X ≟ Y
-replaceEnv X R .X | yes refl = R
-replaceEnv X R Y | no X≢Y = ＇ Y
+replaceEnv X R Y = replaceTy X R (＇ Y)
 
 replaceEnv-ext : ∀ {Δ} (X : TyVar Δ) (R : Ty Δ)
     (Y : TyVar (suc Δ))
@@ -99,6 +96,20 @@ generator-typed B C =
     (λ T → ⊢↑[ zero ⦂ ⇑ᵗ C ] 〖 zero ↑ B 〗 ⦂ B ↝ T)
     (generator-endpoint B C)
     (generator-typed↑ zero (⇑ᵗ C) B)
+
+replace-resolve : ∀ {Δ} (X : TyVar (suc Δ)) (C : Ty Δ)
+    (A : Ty (suc Δ))
+  → replaceTy X (wkᵗ X C) A
+    ≡ wkᵗ X (substᵗ (resolveSubᵗ X C) A)
+replace-resolve X C A =
+  trans (replaceTy-subst X (wkᵗ X C) A)
+    (trans (substᵗ-cong A env-eq)
+      (sym (renameᵗ-subst (punchIn X) (resolveSubᵗ X C) A)))
+  where
+  env-eq : ∀ Y
+    → replaceEnv X (wkᵗ X C) Y
+      ≡ renameᵗ (punchIn X) (resolveSubᵗ X C Y)
+  env-eq Y = sym (resolveSub-reembed X C Y)
 
 ------------------------------------------------------------------------
 -- Exchange at the two newest regular slots
@@ -696,10 +707,6 @@ exchange-conceal-∀ {X = X} {R = R} {B = B} c⊢ =
     (subst≡ (λ S → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] _ ⦂ S ↝ _)
       (wk-under-∀ X B) c⊢)
 
-unwk-wk : ∀ {Δ} (Y : TyVar (suc Δ)) (A : Ty Δ)
-  → unwkᵗ Y (wkᵗ Y A) ≡ A
-unwk-wk Y A rewrite strengthen-wk Y A = refl
-
 fresh-∀-entry : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {V : Term Θ Δ} {A : Ty Δ} {C : Ty (suc Δ)}
   → Ψ ∣ [] ⊢ V ⦂ `∀ C
@@ -716,40 +723,6 @@ fresh-∀-entry {Ψ = Ψ} {V = V} {A = A} {C = C} V⊢ =
   entered⊢ = subst≡ (λ T → target ∣ [] ⊢ entered ⦂ T)
     (wk-zero-∀-swap C)
     (fresh-delimiter-conceal (⊢shiftᶿ V⊢))
-
-∖-fresh-before-old : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
-    (A : Ty (suc Δ)) (X : TyVar (suc Δ)) (A₀ : Ty Δ)
-  → strengthenᵗ? X A ≡ just A₀
-  → ((((Ψ ,:= A) ,typ[ zero ≔ zero ]) ∖ suc X)
-    ≡ ((Ψ ∖ X) ,:= A₀) ,typ[ zero ≔ zero ])
-∖-fresh-before-old Ψ A X A₀ eq with zero ≟ suc X
-∖-fresh-before-old Ψ A X A₀ eq | yes ()
-∖-fresh-before-old Ψ A X A₀ eq | no zero≢sucX
-    rewrite punchOut-proof zero (suc X) zero≢sucX (λ ())
-      | punchOut-proof (suc X) zero
-          (λ sucX≡zero → zero≢sucX (sym sucX≡zero)) (λ ())
-      | eq =
-  refl
-
-conceal-source-body : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-    {X : TyVar (suc Δ)} {α : TyVar Θ}
-    {C-rep : Ty (suc Δ)} {R : Ty Δ}
-    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
-  → Ψ ∋typ X ≔ α
-  → Ψ ∋ α := C-rep
-  → (Ψ ∖ X) ∋ α := R
-  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] c
-      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
-  → C ≡ unwkᵗ (suc X) (src↓ (suc X) (⇑ᵗ C-rep) c B)
-conceal-source-body {X = X} {C-rep = C-rep} {R = R}
-    {C = C} {B = B} {c = c} slot∈ ambient∈ deleted∈ c⊢ =
-  trans (sym (unwk-wk (suc X) C))
-    (trans (cong (unwkᵗ (suc X)) (sym (wk-under-∀ X C)))
-      (cong (unwkᵗ (suc X)) source-eq))
-  where
-  rep-eq = crossing-lookup-agrees slot∈ ambient∈ deleted∈
-  source-eq = trans (source-determinacy↓ c⊢)
-    (cong (λ Q → src↓ (suc X) Q c B) (sym (cong ⇑ᵗ rep-eq)))
 
 preserve-β-Λ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
@@ -801,54 +774,100 @@ preserve-β-reveal-∀ {A = A} {B = B} {X = X}
     (⊢reveal (skip-typ (S α∈)) (exchange-reveal-∀ c⊢)
       (fresh-∀-entry-crossed V⊢)))
 
-preserve-β-conceal-∀-strengthenable : ∀ {Θ Δ}
-    {Ψ : TyEnv Θ (suc Δ)} {V : Term Θ Δ}
-    {A C-rep : Ty (suc Δ)} {A₀ : Ty Δ}
-    {B : Ty (suc (suc Δ))}
+fresh-∀-region : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {A : Ty Δ} {C D : Ty (suc Δ)}
+  → C ≡ D
+  → Ψ ∣ [] ⊢ V ⦂ `∀ C
+  → Ψ ∣ [] ⊢
+      ν[ A ]
+        (((shiftᶿ V ↓[ zero ≔ zero ]
+            δ↓ (wkᵗ zero (`∀ D)))
+            ⦂∀ swapTopᵗ (⇑ᵗ D) [ ＇ zero ])
+          ↑[ zero ≔ zero ] 〖 zero ↑ D 〗)
+      ⦂ D [ A ]ᵗ
+fresh-∀-region refl V⊢ =
+  ⊢ν (⊢reveal Z (generator-typed _ _)
+    (fresh-∀-entry V⊢))
+
+conceal-resolved-body : ∀ {Δ} {X : TyVar (suc Δ)} {C₀ : Ty Δ}
+    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
+  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X C₀) ] c
+      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
+  → substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+      (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B) ≡ C
+conceal-resolved-body {X = X} {C₀ = C₀} {C = C} c⊢ =
+  trans (cong (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀)))
+      (sym (source-determinacy↓ c⊢)))
+    (trans (cong (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀)))
+        (wk-under-∀ X C))
+      (resolve-wkᵗ (suc X) (⇑ᵗ C₀) C))
+
+conceal-resolved-target : ∀ {Δ} {X : TyVar (suc Δ)} {C₀ : Ty Δ}
+    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
+  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X C₀) ] c
+      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
+  → C ≡ substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀)) B
+conceal-resolved-target {X = X} {C₀ = C₀} {C = C} c⊢ =
+  trans (sym (resolve-wkᵗ (suc X) (⇑ᵗ C₀) C))
+    (resolve-conversion↓ (exchange-conceal-∀ c⊢))
+
+conceal-exit-endpoint : ∀ {Δ} {X : TyVar (suc Δ)} {C₀ : Ty Δ}
+    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
+    (A : Ty (suc Δ))
+  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X C₀) ] c
+      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
+  → replaceTy X (wkᵗ X C₀) (B [ A ]ᵗ)
+    ≡ wkᵗ X
+        ((substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+          (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B))
+          [ substᵗ (resolveSubᵗ X C₀) A ]ᵗ)
+conceal-exit-endpoint {X = X} {C₀ = C₀} {C = C} {B = B}
+    A c⊢ =
+  trans (replace-resolve X C₀ (B [ A ]ᵗ))
+    (cong (wkᵗ X)
+      (trans (resolve-openᵗ X C₀ B A)
+        (cong (λ D → D [ substᵗ (resolveSubᵗ X C₀) A ]ᵗ)
+          (trans (sym (conceal-resolved-target c⊢))
+            (sym (conceal-resolved-body c⊢))))))
+
+preserve-β-conceal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+    {V : Term Θ Δ} {A : Ty (suc Δ)}
+    {B : Ty (suc (suc Δ))} {C₀ : Ty Δ}
     {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-  → Ψ ∋ α := C-rep
-  → strengthenᵗ? X A ≡ just A₀
+  → (Ψ ∖ X) ∋ α := C₀
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ]
       ⦂ B [ A ]ᵗ
   → Ψ ∣ [] ⊢
-      ν[ A ]
-        ((((shiftᶿ V ↓[ zero ≔ zero ]
-              δ↓ (wkᵗ zero (`∀
-                (unwkᵗ (suc X)
-                  (src↓ (suc X) (⇑ᵗ C-rep) c B)))))
-              ⦂∀ swapTopᵗ
-                (⇑ᵗ (unwkᵗ (suc X)
-                  (src↓ (suc X) (⇑ᵗ C-rep) c B))) [ ＇ zero ])
-            ↓[ suc X ≔ suc α ] c)
-          ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+      ( ν[ substᵗ (resolveSubᵗ X C₀) A ]
+          ((((shiftᶿ V ↓[ zero ≔ zero ]
+                δ↓ (wkᵗ zero (`∀
+                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))))
+                ⦂∀ swapTopᵗ
+                  (⇑ᵗ (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))
+                  [ ＇ zero ])
+              ↑[ zero ≔ zero ]
+                〖 zero ↑
+                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
+                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)) 〗)))
+          ↓[ X ≔ α ] 〖 X ↓ (B [ A ]ᵗ) 〗
       ⦂ B [ A ]ᵗ
-preserve-β-conceal-∀-strengthenable {Ψ = Ψ} {V = V} {A = A}
-    {C-rep = C-rep} {A₀ = A₀} {B = B} {X = X} {α = α}
-    ambient∈ strength-eq
-    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} slot∈ deleted∈
+preserve-β-conceal-∀ {A = A} {B = B} {X = X} step∈
+    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} slot∈ typed∈
       (⊢↓-∀ c⊢) V⊢))
-    with conceal-source-body slot∈ ambient∈ deleted∈ c⊢
-preserve-β-conceal-∀-strengthenable {Ψ = Ψ} {V = V} {A = A}
-    {C-rep = C-rep} {A₀ = A₀} {B = B} {X = X} {α = α}
-    {c = c} ambient∈ strength-eq
-    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} slot∈ deleted∈
+    with anchor-lookup-unique typed∈ step∈
+preserve-β-conceal-∀ {A = A} {B = B} {X = X} step∈
+    (⊢⦂∀ (⊢conceal {A = `∀ C} slot∈ typed∈
       (⊢↓-∀ c⊢) V⊢)) | refl =
-  ⊢ν (⊢reveal Z (generator-typed B A)
-    (⊢conceal (skip-cross-typ (skip-visible-typ slot∈))
-      target-old∈ (exchange-conceal-∀ c⊢) target-entry⊢))
+  ⊢conceal slot∈ step∈ exit⊢
+    (fresh-∀-region (sym (conceal-resolved-body c⊢)) V⊢)
   where
-  deleted-target = ((Ψ ,:= A) ,typ[ zero ≔ zero ]) ∖ suc X
-  source = unwkᵗ (suc X) (src↓ (suc X) (⇑ᵗ C-rep) c B)
-  entry =
-    (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ source)))
-      ⦂∀ swapTopᵗ (⇑ᵗ source) [ ＇ zero ]
-  env-eq = ∖-fresh-before-old Ψ A X A₀ strength-eq
-  target-old∈ : deleted-target ∋ suc α := ⇑ᵗ R
-  target-old∈ = subst≡ (λ Φ → Φ ∋ suc α := ⇑ᵗ R)
-    (sym env-eq) (skip-typ (S deleted∈))
-  target-entry⊢ : deleted-target ∣ [] ⊢ entry ⦂ source
-  target-entry⊢ = subst≡ (λ Φ → Φ ∣ [] ⊢ entry ⦂ source)
-    (sym env-eq) (fresh-∀-entry V⊢)
+  exit⊢ = subst≡
+    (λ S → ⊢↓[ X ⦂ wkᵗ X _ ] 〖 X ↓ (B [ A ]ᵗ) 〗
+      ⦂ S ↝ B [ A ]ᵗ)
+    (conceal-exit-endpoint A c⊢)
+    (generator-typed↓ X (wkᵗ X _) (B [ A ]ᵗ))
 
 ------------------------------------------------------------------------
 -- Preservation cases: blame propagation
@@ -1132,13 +1151,13 @@ forall-bad-step-impossible :
 forall-bad-step-impossible ()
 
 ------------------------------------------------------------------------
--- Remaining `β-conceal-∀` instantiation-scope obstruction
+-- Resolved `β-conceal-∀` slot-dependent instantiation regression
 ------------------------------------------------------------------------
 
--- Source determinacy repairs the old free-body choice, but the instantiation
--- type may still mention the slot eliminated inside the contractum.  Here it
--- is the concealed variable itself.  Deleting that slot turns the freshly
--- allocated anchor opaque, so the inner fresh conceal has no visible lookup.
+-- This was the fifth preservation obstruction: the instantiation is the
+-- concealed variable itself.  The rule now resolves that variable to the
+-- deleted view's recorded representation, allocates the fresh region there,
+-- and uses the generated exit conceal to re-establish the ambient type.
 
 conceal-var-Ψ : TyEnv (suc zero) (suc zero)
 conceal-var-Ψ = (∅ ,:= ‵ `ℕ) ,typ[ zero ≔ zero ]
@@ -1168,34 +1187,21 @@ conceal-var-redex-⊢ =
 
 conceal-var-contractum : Term (suc zero) (suc zero)
 conceal-var-contractum =
-  ν[ ＇ zero ]
-    ((((shiftᶿ conceal-var-V ↓[ zero ≔ zero ]
+  (ν[ ‵ `ℕ ]
+    (((shiftᶿ conceal-var-V ↓[ zero ≔ zero ]
           δ↓ (wkᵗ (Fin.zero {n = 0}) (`∀ (‵ `ℕ))))
         ⦂∀ swapTopᵗ (⇑ᵗ (‵ `ℕ)) [ ＇ zero ])
-      ↓[ suc zero ≔ suc zero ] id↓)
-      ↑[ zero ≔ zero ] 〖 zero ↑ conceal-var-B 〗)
+      ↑[ zero ≔ zero ] 〖 Fin.zero {n = 0} ↑ (‵ `ℕ) 〗))
+    ↓[ zero ≔ zero ] id↓
 
 conceal-var-step : conceal-var-Ψ ⊢ conceal-var-redex —→
   conceal-var-contractum
-conceal-var-step = β-conceal-∀ (skip-typ Z) conceal-var-V-value
+conceal-var-step = β-conceal-∀ Z conceal-var-V-value
 
-conceal-var-contractum-untypable :
+conceal-var-contractum-⊢ :
   conceal-var-Ψ ∣ [] ⊢ conceal-var-contractum ⦂ ‵ `ℕ
-  → ⊥
-conceal-var-contractum-untypable
-    (⊢ν (⊢reveal fresh∈ fresh-c⊢
-      (⊢conceal old-slot∈ old∈ old-c⊢
-        (⊢⦂∀ (⊢conceal inner-slot∈ () inner-c⊢ V⊢)))))
-
-closed-preserve-conceal-impossible :
-  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
-    → Ψ ∣ [] ⊢ M ⦂ A
-    → Ψ ⊢ M —→ M′
-    → Ψ ∣ [] ⊢ M′ ⦂ A)
-  → ⊥
-closed-preserve-conceal-impossible preserve =
-  conceal-var-contractum-untypable
-    (preserve conceal-var-redex-⊢ conceal-var-step)
+conceal-var-contractum-⊢ =
+  preserve-β-conceal-∀ Z conceal-var-redex-⊢
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression

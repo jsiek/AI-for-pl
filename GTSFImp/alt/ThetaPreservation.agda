@@ -679,6 +679,74 @@ exchange-reveal-∀ {X = X} {R = R} {B = B} c⊢ =
     (subst≡ (λ T → ⊢↑[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] _ ⦂ _ ↝ T)
       (wk-under-∀ X B) c⊢)
 
+exchange-conceal-∀ : ∀ {Δ} {X : TyVar (suc Δ)}
+    {R : Ty Δ} {B : Ty (suc Δ)} {C : Ty (suc (suc Δ))}
+    {c : Conceal}
+  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] c
+      ⦂ renameᵗ (extᵗ (punchIn X)) B ↝ C
+  → ⊢↓[ suc X ⦂ wkᵗ (suc X) (⇑ᵗ R) ] c
+      ⦂ wkᵗ (suc X) B ↝ C
+exchange-conceal-∀ {X = X} {R = R} {B = B} c⊢ =
+  subst≡ (λ Q → ⊢↓[ suc X ⦂ Q ] _ ⦂ wkᵗ (suc X) B ↝ _)
+    (wk-exchange X R)
+    (subst≡ (λ S → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] _ ⦂ S ↝ _)
+      (wk-under-∀ X B) c⊢)
+
+unwk-wk : ∀ {Δ} (Y : TyVar (suc Δ)) (A : Ty Δ)
+  → unwkᵗ Y (wkᵗ Y A) ≡ A
+unwk-wk Y A rewrite strengthen-wk Y A = refl
+
+fresh-∀-entry : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {A : Ty Δ} {C : Ty (suc Δ)}
+  → Ψ ∣ [] ⊢ V ⦂ `∀ C
+  → (Ψ ,:= A) ,typ[ zero ≔ zero ] ∣ [] ⊢
+      (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
+        ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ] ⦂ C
+fresh-∀-entry {Ψ = Ψ} {V = V} {A = A} {C = C} V⊢ =
+  subst≡ (λ T → target ∣ [] ⊢ applied ⦂ T)
+    (swap-shift-open-zero C) (⊢⦂∀ entered⊢)
+  where
+  target = (Ψ ,:= A) ,typ[ zero ≔ zero ]
+  entered = shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C))
+  applied = entered ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ]
+  entered⊢ = subst≡ (λ T → target ∣ [] ⊢ entered ⦂ T)
+    (wk-zero-∀-swap C)
+    (fresh-delimiter-conceal (⊢shiftᶿ V⊢))
+
+∖-fresh-before-old : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
+    (A : Ty (suc Δ)) (X : TyVar (suc Δ)) (A₀ : Ty Δ)
+  → strengthenᵗ? X A ≡ just A₀
+  → ((((Ψ ,:= A) ,typ[ zero ≔ zero ]) ∖ suc X)
+    ≡ ((Ψ ∖ X) ,:= A₀) ,typ[ zero ≔ zero ])
+∖-fresh-before-old Ψ A X A₀ eq with zero ≟ suc X
+∖-fresh-before-old Ψ A X A₀ eq | yes ()
+∖-fresh-before-old Ψ A X A₀ eq | no zero≢sucX
+    rewrite punchOut-proof zero (suc X) zero≢sucX (λ ())
+      | punchOut-proof (suc X) zero
+          (λ sucX≡zero → zero≢sucX (sym sucX≡zero)) (λ ())
+      | eq =
+  refl
+
+conceal-source-body : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+    {X : TyVar (suc Δ)} {α : TyVar Θ}
+    {C-rep : Ty (suc Δ)} {R : Ty Δ}
+    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
+  → Ψ ∋typ X ≔ α
+  → Ψ ∋ α := C-rep
+  → (Ψ ∖ X) ∋ α := R
+  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] c
+      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
+  → C ≡ unwkᵗ (suc X) (src↓ (suc X) (⇑ᵗ C-rep) c B)
+conceal-source-body {X = X} {C-rep = C-rep} {R = R}
+    {C = C} {B = B} {c = c} slot∈ ambient∈ deleted∈ c⊢ =
+  trans (sym (unwk-wk (suc X) C))
+    (trans (cong (unwkᵗ (suc X)) (sym (wk-under-∀ X C)))
+      (cong (unwkᵗ (suc X)) source-eq))
+  where
+  rep-eq = crossing-lookup-agrees slot∈ ambient∈ deleted∈
+  source-eq = trans (source-determinacy↓ c⊢)
+    (cong (λ Q → src↓ (suc X) Q c B) (sym (cong ⇑ᵗ rep-eq)))
+
 preserve-β-Λ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
   → Ψ ∣ [] ⊢ (Λ V) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
@@ -728,6 +796,55 @@ preserve-β-reveal-∀ {A = A} {B = B} {X = X}
   ⊢ν (⊢reveal Z (generator-typed B A)
     (⊢reveal (skip-typ (S α∈)) (exchange-reveal-∀ c⊢)
       (fresh-∀-entry-crossed V⊢)))
+
+preserve-β-conceal-∀-strengthenable : ∀ {Θ Δ}
+    {Ψ : TyEnv Θ (suc Δ)} {V : Term Θ Δ}
+    {A C-rep : Ty (suc Δ)} {A₀ : Ty Δ}
+    {B : Ty (suc (suc Δ))}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+  → Ψ ∋ α := C-rep
+  → strengthenᵗ? X A ≡ just A₀
+  → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ]
+      ⦂ B [ A ]ᵗ
+  → Ψ ∣ [] ⊢
+      ν[ A ]
+        ((((shiftᶿ V ↓[ zero ≔ zero ]
+              δ↓ (wkᵗ zero (`∀
+                (unwkᵗ (suc X)
+                  (src↓ (suc X) (⇑ᵗ C-rep) c B)))))
+              ⦂∀ swapTopᵗ
+                (⇑ᵗ (unwkᵗ (suc X)
+                  (src↓ (suc X) (⇑ᵗ C-rep) c B))) [ ＇ zero ])
+            ↓[ suc X ≔ suc α ] c)
+          ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+      ⦂ B [ A ]ᵗ
+preserve-β-conceal-∀-strengthenable {Ψ = Ψ} {V = V} {A = A}
+    {C-rep = C-rep} {A₀ = A₀} {B = B} {X = X} {α = α}
+    ambient∈ strength-eq
+    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} slot∈ deleted∈
+      (⊢↓-∀ c⊢) V⊢))
+    with conceal-source-body slot∈ ambient∈ deleted∈ c⊢
+preserve-β-conceal-∀-strengthenable {Ψ = Ψ} {V = V} {A = A}
+    {C-rep = C-rep} {A₀ = A₀} {B = B} {X = X} {α = α}
+    {c = c} ambient∈ strength-eq
+    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} slot∈ deleted∈
+      (⊢↓-∀ c⊢) V⊢)) | refl =
+  ⊢ν (⊢reveal Z (generator-typed B A)
+    (⊢conceal (skip-cross-typ (skip-visible-typ slot∈))
+      target-old∈ (exchange-conceal-∀ c⊢) target-entry⊢))
+  where
+  deleted-target = ((Ψ ,:= A) ,typ[ zero ≔ zero ]) ∖ suc X
+  source = unwkᵗ (suc X) (src↓ (suc X) (⇑ᵗ C-rep) c B)
+  entry =
+    (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ source)))
+      ⦂∀ swapTopᵗ (⇑ᵗ source) [ ＇ zero ]
+  env-eq = ∖-fresh-before-old Ψ A X A₀ strength-eq
+  target-old∈ : deleted-target ∋ suc α := ⇑ᵗ R
+  target-old∈ = subst≡ (λ Φ → Φ ∋ suc α := ⇑ᵗ R)
+    (sym env-eq) (skip-typ (S deleted∈))
+  target-entry⊢ : deleted-target ∣ [] ⊢ entry ⦂ source
+  target-entry⊢ = subst≡ (λ Φ → Φ ∣ [] ⊢ entry ⦂ source)
+    (sym env-eq) (fresh-∀-entry V⊢)
 
 ------------------------------------------------------------------------
 -- Preservation cases: blame propagation

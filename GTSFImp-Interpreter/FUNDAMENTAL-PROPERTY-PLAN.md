@@ -413,7 +413,8 @@ chose, which is arbitrary. Two ways out:
       at `★`-ish types) and forces the universal introduction and
       elimination compatibilities to be re-proved against it.
 
-Finding D (open; found 2026-08-24 while attacking the `∀⊑`
+Finding D (resolved 2026-08-24 by the semantic-worlds route, chosen
+by the user; found the same day while attacking the `∀⊑`
 obligation). The paired reveal at `∀⊑` — and every reveal that
 eliminates a *dynamic* seal — is blocked by an index-accounting
 mismatch in the logical relation, not by missing machinery.
@@ -485,11 +486,41 @@ Resolution options:
       (where the imprecise wrapper pays), refining the obligation to
       the value-shaped `Bᴵ` cases only.
 
-What already landed for `∀⊑` regardless of the resolution: the
-generic precise-only allocation expansion
+Resolution (landed 2026-08-24, option (a) in the lightweight form).
+Storing opaque per-atom relations in worlds would make worlds
+circular (relations quantify over future worlds); instead the same
+effect is obtained syntactically: a dynamic atom's payload relation
+*is* the logical relation at its recorded representation imprecision,
+and that recursion is well-founded at the *same* step index by
+allocation order.  Concretely: `DynamicSemanticAtom` gains a
+`dynamicFresh` field (every center variable of the embedded
+representation is strictly greater — allocated earlier — than the
+slot's own variable; populated at the fresh-atom constructor and the
+three weakenings via `rename-∈ᵗ-inversion`), and the `X⊑★` clause's
+`DynamicAtomHolds` disjunct and the `★⊑★` clause's
+`DynamicAtomTagRelated` disjunct now instantiate the payload relation
+at `suc k` instead of `k`.  The ground-tag payloads
+(`DynamicPayloadRelated`, `RightDynamicPayloadRelated`) and the
+paired-atom clauses stay contractive — their eliminations take real
+imprecise steps.  The recursion is covered by the existing
+`TERMINATING` pragma on the definition (argument documented at the
+pragma) and by three documented pragmas on the future-lifting
+closure proofs, whose `X⊑★` cases now recurse at the same index into
+the representation imprecision.  With this change the unseal
+accounting closes: a dynamic seal eliminated by a precise-only step
+yields its payload at the full index.
+
+What already landed for `∀⊑` besides the resolution: the generic
+precise-only allocation expansion
 (`related-precise-bind-step-expand`, index-preserving, modeled on the
 paired version and on the Λ-specific
-`related-precise-type-beta-expand`).
+`related-precise-type-beta-expand`).  Still to build for `∀⊑`: the
+lexicographic (index, source-derivation-size) refinement of the
+paired reveal induction (the `∀⊑` head's body reveal runs at the same
+index at the sub-derivation `p₀`), the one-sided dynamic-slot reveal
+and conceal (the analogue of `proof/LR-narrow/PreciseReveal.agda`
+driven by the `X⊑★` clauses, now index-preserving), and the head,
+value assembly, and dispatch mirroring the `∀⊑∀` case.
 
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal

@@ -707,14 +707,15 @@ risk.  It is therefore not recommended.
 
 Remaining honest resolutions (both substantial):
 
-* make the universal clauses *replacement-closed*: store chains for
-  every dynamic-replacement descendant of the stored body type, so
-  the dynamic reveal becomes a projection instead of a
-  reconstruction.  The burden moves to the producers (the `Λ` intro
-  must establish the chain for every descendant annotation), which
-  needs the compiled body relation to be annotation-generic — the
-  actual β-redex `N [ S ]` does not depend on the annotation, so
-  this looks semantically right but needs a careful design pass;
+* make the universal clauses *replacement-closed*: store chain
+  families for every slot-conversion sequence applied to the value,
+  so all four remaining obligations become projections.  Designed in
+  full in REPLACEMENT-CLOSURE-DESIGN.md (2026-08-24), with the
+  cornerstone module `LR-narrow/SlotSequence.agda` implemented and
+  `DynamicSlot` moved public.  The design also dissolves the
+  canonical-forms gate: the imprecise application step the consumer
+  cannot perform is performed by the producers, each of which knows
+  its value's step syntactically;
 * restructure the chains as genuinely coinductive records (sized or
   musical) so productivity is checked rather than asserted — a large
   `LogicalRelation.agda` refactor with unknown interaction with

@@ -709,13 +709,23 @@ Remaining honest resolutions (both substantial):
 
 * make the universal clauses *replacement-closed*: store chain
   families for every slot-conversion sequence applied to the value,
-  so all four remaining obligations become projections.  Designed in
-  full in REPLACEMENT-CLOSURE-DESIGN.md (2026-08-24), with the
-  cornerstone module `LR-narrow/SlotSequence.agda` implemented and
-  `DynamicSlot` moved public.  The design also dissolves the
-  canonical-forms gate: the imprecise application step the consumer
-  cannot perform is performed by the producers, each of which knows
-  its value's step syntactically;
+  so the remaining obligations become projections.  Designed in full
+  in REPLACEMENT-CLOSURE-DESIGN.md, where the implementation log and
+  the step-3 recipe also live.  **The clause change has landed**
+  (2026-08-24): `RightUniversalFamily` is stored by the `∀⊑` clause,
+  closed under futures and reindexing, projected at
+  `(future-refl, [])` by the instantiation lemma, and produced by the
+  four `∀⊑` assemblies; `LR-narrow/SlotSequence.agda` (slot
+  sequences, `DynamicSlot` moved public) and
+  `LR-narrow/UniversalFamily.agda` (the kit record) are new.  The
+  five previously separate gaps are now expressed as **one**
+  obligation, `right-universal-family-kit` (chain → family), which is
+  inter-derivable with the four blocked universal statements.  What
+  remains is discharging the four by projection and then proving the
+  kit; both are mapped in the design note.  The design also dissolves
+  the canonical-forms gate: the imprecise application step the
+  consumer cannot perform is performed by the producers, each of
+  which knows its value's step syntactically;
 * restructure the chains as genuinely coinductive records (sized or
   musical) so productivity is checked rather than asserted — a large
   `LogicalRelation.agda` refactor with unknown interaction with

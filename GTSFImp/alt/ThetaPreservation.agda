@@ -1170,7 +1170,7 @@ conceal-var-contractum : Term (suc zero) (suc zero)
 conceal-var-contractum =
   ν[ ＇ zero ]
     ((((shiftᶿ conceal-var-V ↓[ zero ≔ zero ]
-          δ↓ (wkᵗ zero (`∀ (‵ `ℕ))))
+          δ↓ (wkᵗ (Fin.zero {n = 0}) (`∀ (‵ `ℕ))))
         ⦂∀ swapTopᵗ (⇑ᵗ (‵ `ℕ)) [ ＇ zero ])
       ↓[ suc zero ≔ suc zero ] id↓)
       ↑[ zero ≔ zero ] 〖 zero ↑ conceal-var-B 〗)

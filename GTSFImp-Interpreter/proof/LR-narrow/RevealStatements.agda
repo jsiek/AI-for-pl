@@ -121,19 +121,35 @@ PreciseConcealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
 ------------------------------------------------------------------------
 
 -- A dynamic slot: a center variable at mode `X⊑★` whose semantic
--- entry is an unoccupied dynamic atom.
+-- entry is an unoccupied dynamic atom.  The entry fact is stored as a
+-- mode-indexed view so that no transport along the mode equality is
+-- ever needed.
+
+data IsDynamicEntry {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
+    {Z : TyVar Δᶜ} (a : DynamicSemanticAtom W Z) :
+    ∀ {mode} → SemanticEntry W Z mode → Set where
+  is-dynamic : IsDynamicEntry a (dynamic-entry a)
 
 record DynamicSlot {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) : Set where
   constructor dynamic-slot
   field
     dcenter : TyVar Δᶜ
     datom : DynamicSemanticAtom (core W) dcenter
-    dmode-eq : impEnv (core W) dcenter ≡ I.X⊑★
-    dentry-eq : subst≡ (SemanticEntry (core W) dcenter) dmode-eq
-        (semanticEntry W dcenter)
-      ≡ dynamic-entry datom
+    dentry-is : IsDynamicEntry datom (semanticEntry W dcenter)
 
 open DynamicSlot public
+
+is-dynamic-mode : ∀ {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
+    {Z : TyVar Δᶜ} {a : DynamicSemanticAtom W Z} {mode}
+    {e : SemanticEntry W Z mode}
+  → IsDynamicEntry a e
+  → mode ≡ I.X⊑★
+is-dynamic-mode is-dynamic = refl
+
+dmode-eq : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+  → (d : DynamicSlot W)
+  → impEnv (core W) (dcenter d) ≡ I.X⊑★
+dmode-eq d = is-dynamic-mode (dentry-is d)
 
 dslotXᴾ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
   → DynamicSlot W → TyVar Δᴾ

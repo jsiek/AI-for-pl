@@ -25,6 +25,10 @@ module alt.ThetaPreservation where
 --     deleting a nonterminal crossing can make a later slot-dependent anchor
 --     opaque, so the value moved into the deleted view is no longer typable.
 --     A checked closed counterexample records that independent obstruction.
+--   * `float-reveal` has the dual fresh-anchor obstruction: a slot-dependent
+--     representation below the floated region is not resolved when the
+--     region crosses the reveal.  Its checked closed counterexample is also
+--     retained below.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -1287,6 +1291,79 @@ closed-preserve-conceal-arrow-impossible :
 closed-preserve-conceal-arrow-impossible preserve =
   conceal-arrow-contractum-untypable
     (preserve conceal-arrow-redex-⊢ conceal-arrow-step)
+
+------------------------------------------------------------------------
+-- Slot-dependent fresh-anchor obstruction for `float-reveal`
+------------------------------------------------------------------------
+
+float-reveal-bad-Ψ : TyEnv (suc zero) zero
+float-reveal-bad-Ψ = ∅ ,:= ‵ `ℕ
+
+float-reveal-bad-M : Term (suc (suc zero)) (suc zero)
+float-reveal-bad-M =
+  (ƛ ＇ zero ˙ $ (κℕ 0))
+    ↑[ zero ≔ zero ] (seal ↦↑ id↑)
+
+float-reveal-bad-M-value : Value float-reveal-bad-M
+float-reveal-bad-M-value =
+  (ƛ ＇ zero ˙ $ (κℕ 0)) ↑[ zero ≔ zero ] fun
+
+float-reveal-bad-M-⊢ :
+  (float-reveal-bad-Ψ ,typ[ zero ≔ zero ]) ,:= ＇ zero
+    ∣ [] ⊢ float-reveal-bad-M ⦂ ＇ zero ⇒ ‵ `ℕ
+float-reveal-bad-M-⊢ =
+  ⊢reveal Z (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ)))
+    (⊢ƛ (⊢$ (κℕ 0)))
+
+float-reveal-bad-redex : Term (suc zero) zero
+float-reveal-bad-redex =
+  (ν[ ＇ zero ] float-reveal-bad-M)
+    ↑[ zero ≔ zero ] (seal ↦↑ id↑)
+
+float-reveal-bad-redex-⊢ : float-reveal-bad-Ψ ∣ [] ⊢
+  float-reveal-bad-redex ⦂ (‵ `ℕ ⇒ ‵ `ℕ)
+float-reveal-bad-redex-⊢ =
+  ⊢reveal Z (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ)))
+    (⊢ν float-reveal-bad-M-⊢)
+
+float-reveal-bad-result : Result (ν[ ＇ zero ] float-reveal-bad-M)
+float-reveal-bad-result = result-ν (result-val float-reveal-bad-M-value)
+
+float-reveal-bad-contractum : Term (suc zero) zero
+float-reveal-bad-contractum =
+  ν[ ‵ `ℕ ]
+    (float-reveal-bad-M
+      ↑[ zero ≔ suc zero ] (seal ↦↑ id↑))
+
+float-reveal-bad-step : float-reveal-bad-Ψ ⊢
+  float-reveal-bad-redex —→ float-reveal-bad-contractum
+float-reveal-bad-step = float-reveal Z float-reveal-bad-result
+
+float-reveal-var-base-impossible :
+  _≡_ {A = Ty 2} (＇ suc zero) (‵ `ℕ) → ⊥
+float-reveal-var-base-impossible ()
+
+float-reveal-bad-contractum-untypable :
+  float-reveal-bad-Ψ ∣ [] ⊢ float-reveal-bad-contractum
+    ⦂ (‵ `ℕ ⇒ ‵ `ℕ)
+  → ⊥
+float-reveal-bad-contractum-untypable
+    (⊢ν (⊢reveal outer∈ (⊢↑-⇒ outer-c⊢ outer-d⊢)
+      (⊢reveal (skip-typ Z) (⊢↑-⇒ inner-c⊢ inner-d⊢)
+        (⊢ƛ (⊢$ κ))))) =
+  float-reveal-var-base-impossible
+    (trans (sym (cong (wkᵗ zero) (seal-target outer-c⊢)))
+      (seal-source inner-c⊢))
+
+closed-preserve-float-reveal-impossible :
+  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
+    → Ψ ∣ [] ⊢ M ⦂ A
+    → Ψ ⊢ M —→ M′
+    → Ψ ∣ [] ⊢ M′ ⦂ A)
+  → ⊥
+closed-preserve-float-reveal-impossible preserve =
+  float-reveal-bad-contractum-untypable
+    (preserve float-reveal-bad-redex-⊢ float-reveal-bad-step)
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression

@@ -249,10 +249,44 @@ computations). The function case decomposes `(V ↑ (c ↦↑ d)) · U` by
 revealed result, composed through the argument and reveal frames; the
 conceal case is dual through `β-conceal-⇒`.
 
-Finding C (open; revised 2026-08-23 after a closer analysis). Two
-separate things keep `RevealSafe` small; the earlier "two allocations /
-re-instantiation" formulation of this finding was imprecise and is
-superseded by what follows.
+Step 6b status (2026-08-24, checked): the fragment is gone and the
+paired universal case `∀⊑∀` is closed. The reveal development is now
+parameterized by an explicit obligations record
+(`proof/LR-narrow/RevealStatements.agda`): the four statement families
+(`RevealAt`, `ConcealAt`, `PreciseRevealAt`, `PreciseConcealAt`) are
+bundled as `Statements` and proved together by one well-founded
+induction on the step index; `RevealSafe` and `NoUniversal` are
+deleted, and the still-open universal imprecisions — `∀⊑`, `∀★⊑★`,
+`∀⊑★` (paired, via the `BlockedImprecision` view) and a universal
+precise type in the one-sided reveal/conceal — are the four fields of
+`RevealObligations`, each receiving `Below k` so a later proof can
+recur through the same induction. The `∀⊑∀` case itself
+(`proof/LR-narrow/RevealStructural.agda`): after `β-reveal-∀`/
+`β-conceal-∀`, the source universal's `UniversalsRelated` head is
+instantiated at the freshly allocated paired name `＇ 0` (its
+representation imprecision is `X⊑X`, and
+`open-shifted-body : renameᵗ (extᵗ suc) B [ ＇ 0 ]ᵗ ≡ B` identifies the
+instantiated body), the post-bind relation is weakened, and the result
+is wrapped by two paired reveal (resp. conceal-then-reveal)
+compositions — the lifted old slot inside the body, then the fresh
+slot, whose target equalities go through
+`replace-zero-open : replaceTy 0 (⇑ S) B ≡ ⇑ (B [ S ]ᵗ)`. The
+replaced-body imprecision is produced by `replace-⊑`
+(`proof/LR-narrow/ReplaceImprecision.agda`: replacement at a
+paired-mode variable preserves `⊑`), and the arbitrary target
+derivation `q` of the dispatch is forced to the constructed
+`I.∀⊑∀` form by `PI.⊑-unique`, so no case analysis on `q` is needed.
+Value-level assembly (`reveal-universal`, `conceal-universal`) mirrors
+the function case with a chain of `reveal-universal-head` /
+`conceal-universal-head` applications. The scaffold note
+`notes/universal-head-scaffold.agda.txt` is deleted (the hole is
+filled in the build).
+
+Finding C (superseded in part; revised 2026-08-23 after a closer
+analysis, resolution architecture landed 2026-08-24 as described
+above). Two separate things kept `RevealSafe` small; the earlier "two
+allocations / re-instantiation" formulation of this finding was
+imprecise and is superseded by what follows.
 
 Universal cases status (2026-08-23). The four open forms are not four
 independent tasks; they interlock, and two of them need machinery that
@@ -311,12 +345,17 @@ Analysis of each form:
   universal peels one `∀ᶜ` per step, so the index does not decrease and a
   nested induction on the imprecise value is required).
 
-Consequence: the safety fragment (`RevealSafe`) and the `NoUniversal`
-restriction cannot be dropped one form at a time. The universal reveal
-needs the induction hypothesis at *arbitrary* imprecision forms (the
-body of a universal is arbitrary, and the fresh slot's representation
-imprecision is the observer's choice), so all four forms must land
-together, and the `∀⊑★`/`∀★⊑★` obstruction above is the gate.
+Consequence (resolved 2026-08-24 by the obligations record): the
+safety fragment (`RevealSafe`) and the `NoUniversal` restriction could
+not be dropped one form at a time, because the universal reveal needs
+the induction hypothesis at *arbitrary* imprecision forms (the body of
+a universal is arbitrary, and the fresh slot's representation
+imprecision is the observer's choice). Rather than landing all four
+forms together, the whole development is parameterized by
+`RevealObligations`, so `∀⊑∀` is closed unconditionally while `∀⊑`,
+`∀★⊑★`, `∀⊑★` and the one-sided universal case remain as record
+fields; the `∀⊑★`/`∀★⊑★` obstruction above is the gate for
+discharging them.
 
 C1 status (2026-08-23): `⇒⊑★` is closed. The one-sided ("identity
 wrapper") reveal and conceal are proved for universal-free precise types

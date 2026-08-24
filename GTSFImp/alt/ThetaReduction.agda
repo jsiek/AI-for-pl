@@ -365,6 +365,19 @@ private
   resolveSubᵗ Y C .Y | yes refl = C
   resolveSubᵗ Y C X | no Y≢X = ＇ removeResolved Y X Y≢X
 
+-- A fresh crossing is inserted immediately below the source `∀` binder.
+-- Its slot and the binder's slot must therefore exchange before the inner
+-- type application opens the binder, exactly as in the v2 validation.
+
+private
+  swapTopᵗ : ∀ {Δ}
+    → Ty (suc (suc Δ))
+    → Ty (suc (suc Δ))
+  swapTopᵗ = renameᵗ λ where
+    zero → suc zero
+    (suc zero) → zero
+    (suc (suc X)) → suc (suc X)
+
 ------------------------------------------------------------------------
 -- One-step reduction
 ------------------------------------------------------------------------
@@ -574,8 +587,55 @@ data _⊢_—→_ : ∀ {Θ Δ}
         ν[ C ] (((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
           ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ C ↑ B 〗)
 
-  -- DEFERRED: β-inst, β-reveal-∀, and β-conceal-∀ remain absent pending
-  -- user sign-off on their Exchange-validated statements.
+  -- The inner application retains v2's top-two regular-slot exchange.
+  -- Under Θ, ν changes only anchor positions, so the single `shiftᶿ` is the
+  -- only term reindexing and the closed evidence stays outside the reveal.
+  β-inst : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {V : Term Θ Δ} {μ : Env∼ Δ}
+      {A : Ty (suc Δ)} {B : Ty Δ}
+      {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+      ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
+    → Value V
+    → (B≢★ : B ≢ ★)
+      ------------------------------------------------------------
+    → Ψ ⊢ V ⟨ (inst c) B≢★ ⟩ —→
+        ν[ ★ ]
+          ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ A)))
+              ⦂∀ swapTopᵗ (⇑ᵗ A) [ ＇ zero ])
+            ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ ★ ↑ A 〗)
+            ⟨ c [ ★/0 ]ᶜ ⟩)
+
+  -- Unlike the name-based v2 statement, entering ν shifts the old anchor
+  -- from α to `suc α`; inserting the fresh slot shifts its crossing to
+  -- `suc X`.  The carried raw shape `c` itself is unchanged.
+  β-reveal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {V : Term Θ (suc Δ)} {A : Ty Δ}
+      {B : Ty (suc Δ)} {C : Ty (suc (suc Δ))}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
+    → Value V
+      ------------------------------------------------------------
+    → Ψ ⊢ (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ] —→
+        ν[ A ]
+          ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
+                ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ])
+              ↑[ suc X ≔ suc α ] c)
+            ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ A ↑ B 〗)
+
+  -- The same positional divergence from v2 applies to the carried conceal:
+  -- its old crossing is `suc X` at `suc α`, while both fresh-anchor
+  -- crossings remain at slot zero and use their literal generator shapes.
+  β-conceal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+      {V : Term Θ Δ} {A C : Ty (suc Δ)}
+      {B : Ty (suc (suc Δ))}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+    → Value V
+      ------------------------------------------------------------
+    → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ] —→
+        ν[ A ]
+          ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
+                ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ])
+              ↓[ suc X ≔ suc α ] c)
+            ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ A ↑ B 〗)
 
   ξ-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {L L′ M : Term Θ Δ}
     → Ψ ⊢ L —→ L′

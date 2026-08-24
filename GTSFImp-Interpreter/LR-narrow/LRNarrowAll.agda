@@ -56,3 +56,4 @@ import proof.LR-narrow.ValueExtraction
 import proof.LR-narrow.PreciseReveal
 import proof.LR-narrow.UniversalReveal
 import proof.LR-narrow.ReplaceImprecision
+import proof.LR-narrow.ImprecisionSize

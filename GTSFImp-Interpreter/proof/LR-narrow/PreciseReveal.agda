@@ -232,7 +232,7 @@ arrow-source-view (I.⇒⊑★ q₁ q₂) = arrow-star q₁ q₂
 -- and the index decreases when a dynamic tag is unfolded.
 
 mutual
-  reveal-go : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+  reveal-go : ∀ (fuel : ℕ) (j : ℕ) {sz : ℕ} (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -259,7 +259,7 @@ mutual
       (∉-fun absentA absentB) sourceᴾ related =
     related-values-return
       (imprecise-value endpoints) (precise-value endpoints ↑ fun)
-      (λ i i≤j → reveal-arrow fuel i (below-below i≤j below) W s p
+      (λ i i≤j → reveal-arrow fuel i (below-restrict i≤j ≤-refl below) W s p
         (size-bound-left size) (size-bound-right size)
         absentA absentB sourceᴾ
         (value-imprecision-downward-to i≤j related))
@@ -269,7 +269,7 @@ mutual
       related =
     blocked-precise-reveal below W s p no-occur sourceᴾ related
 
-  conceal-go : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+  conceal-go : ∀ (fuel : ℕ) (j : ℕ) {sz : ℕ} (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -296,7 +296,7 @@ mutual
       (∉-fun absentA absentB) sourceᴾ related =
     related-values-return
       (imprecise-value endpoints) (precise-value endpoints ↓ fun)
-      (λ i i≤j → conceal-arrow fuel i (below-below i≤j below) W s p
+      (λ i i≤j → conceal-arrow fuel i (below-restrict i≤j ≤-refl below) W s p
         (size-bound-left size) (size-bound-right size)
         absentA absentB sourceᴾ
         (value-imprecision-downward-to i≤j related))
@@ -351,7 +351,7 @@ mutual
   -- Wrapping a related computation on the precise endpoint.
 
   precise-revealed-computations : ∀ (fuel : ℕ) (j : ℕ)
-      (below : Below j)
+      {sz : ℕ} (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -383,7 +383,7 @@ mutual
             (trans (termsᴾ (Mᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗))
               (trans (lifted-reveal-precise s W≼W′ Mᴾ Bᴾ)
                 (cong (λ M → M ↑ _) (sym (termsᴾ Mᴾ))))) Uᴾ))
-          (reveal-go fuel i (below-below i≤j below) W′
+          (reveal-go fuel i (below-restrict i≤j ≤-refl below) W′
             (slot-future s W≼W′)
             (liftCenterImprecision W≼W′ p)
             (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ Bᴾ)) size)
@@ -395,7 +395,7 @@ mutual
             value-related))
 
   precise-concealed-computations : ∀ (fuel : ℕ) (j : ℕ)
-      (below : Below j)
+      {sz : ℕ} (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -428,7 +428,7 @@ mutual
               (termsᴾ (Mᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ))
               (trans (lifted-conceal-precise s W≼W′ Mᴾ Bᴾ)
                 (cong (λ M → M ↓ _) (sym (termsᴾ Mᴾ))))) Uᴾ))
-          (conceal-go fuel i (below-below i≤j below) W′
+          (conceal-go fuel i (below-restrict i≤j ≤-refl below) W′
             (slot-future s W≼W′)
             (liftCenterImprecision W≼W′ p)
             (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ Bᴾ)) size)
@@ -442,7 +442,7 @@ mutual
   -- One head of the wrapped function value: the precise endpoint
   -- redistributes the wrapper over the application.
 
-  reveal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) (below : Below (suc m))
+  reveal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) {sz : ℕ} (below : Below (suc m) sz)
       {Δᴾ Δᴵ Δᶜ}
       (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {A₀ B₀ : Ty Δᴾ} {Pᴵ Qᴵ : Ty Δᶜ}
@@ -555,7 +555,7 @@ mutual
         (reveal-fun-app-value-none cᴾ dᴾ)
         (pure-step (β-reveal-⇒ vVᴾ vUᴾ)) step-eqᴾ contracted
 
-  conceal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) (below : Below (suc m))
+  conceal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) {sz : ℕ} (below : Below (suc m) sz)
       {Δᴾ Δᴵ Δᶜ}
       (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {A₀ B₀ : Ty Δᴾ} {Pᴵ Qᴵ : Ty Δᶜ}
@@ -671,7 +671,7 @@ mutual
 
   -- The value relation of a wrapped function value.
 
-  reveal-arrow : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+  reveal-arrow : ∀ (fuel : ℕ) (j : ℕ) {sz : ℕ} (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {A₀ B₀ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -712,7 +712,7 @@ mutual
     functions zero m≤ rel = tt
     functions (suc m) sm≤ rel =
       (λ W′ W≼W′ argument-related →
-        reveal-arrow-head fuel m (below-below sm≤ below) W s q₁ q₂
+        reveal-arrow-head fuel m (below-restrict sm≤ ≤-refl below) W s q₁ q₂
           sizeA sizeB
           absentA absentB rel W′ W≼W′ argument-related) ,
       functions m (≤-trans (n≤1+n m) sm≤)
@@ -727,7 +727,7 @@ mutual
       (∉-fun absentA absentB) sourceᴾ {k = suc i} related
       (precise-value endpoints ↑ fun) ,
     shape ,
-    reveal-arrow fuel i (below-below (n≤1+n i) below) W s
+    reveal-arrow fuel i (below-restrict (n≤1+n i) ≤-refl below) W s
       (right-payload-imprecision shape)
       sizeA sizeB absentA absentB refl payload-related
     where
@@ -743,7 +743,7 @@ mutual
         (right-dynamic-imprecise-payload shape) Vᴾ
     payload-related = proj₂ (proj₂ related)
 
-  conceal-arrow : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+  conceal-arrow : ∀ (fuel : ℕ) (j : ℕ) {sz : ℕ} (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {A₀ B₀ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -784,7 +784,7 @@ mutual
     functions zero m≤ rel = tt
     functions (suc m) sm≤ rel =
       (λ W′ W≼W′ argument-related →
-        conceal-arrow-head fuel m (below-below sm≤ below) W s q₁ q₂
+        conceal-arrow-head fuel m (below-restrict sm≤ ≤-refl below) W s q₁ q₂
           sizeA sizeB
           absentA absentB rel W′ W≼W′ argument-related) ,
       functions m (≤-trans (n≤1+n m) sm≤)
@@ -799,7 +799,7 @@ mutual
       (∉-fun absentA absentB) sourceᴾ {k = suc i} related
       (precise-value endpoints ↓ fun) ,
     shape ,
-    conceal-arrow fuel i (below-below (n≤1+n i) below) W s
+    conceal-arrow fuel i (below-restrict (n≤1+n i) ≤-refl below) W s
       (right-payload-imprecision shape)
       sizeA sizeB absentA absentB refl payload-related
     where
@@ -819,12 +819,12 @@ mutual
 -- The one-sided reveal and conceal, with the fuel instantiated
 ------------------------------------------------------------------------
 
-precise-reveal : ∀ {k : ℕ} → Below k → PreciseRevealAt k
+precise-reveal : ∀ {k sz : ℕ} → Below k sz → PreciseRevealAt k
 precise-reveal {k = k} below W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
     related =
   reveal-go (sizeᵗ Bᴾ) k below W s p ≤-refl no-occur sourceᴾ related
 
-precise-conceal : ∀ {k : ℕ} → Below k → PreciseConcealAt k
+precise-conceal : ∀ {k sz : ℕ} → Below k sz → PreciseConcealAt k
 precise-conceal {k = k} below W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
     related =
   conceal-go (sizeᵗ Bᴾ) k below W s p ≤-refl no-occur sourceᴾ related

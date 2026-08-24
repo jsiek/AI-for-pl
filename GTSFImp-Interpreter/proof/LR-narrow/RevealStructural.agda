@@ -88,10 +88,14 @@ open import proof.LR-narrow.UniversalReveal using
    embed-body-lift-precise; embed-body-lift-imprecise)
 open import proof.LR-narrow.ReplaceImprecision using
   (replace-⊑; replace-zero-open; open-shifted-body)
+open import proof.LR-narrow.ImprecisionSize using
+  (sizeᵖ; lift-center-size)
 import proof.LR-narrow.RevealAtomic as RA
 import proof.LR-narrow.ConcealAtomic as CA
 
-open RevealObligations ob using (blocked-reveal; blocked-conceal)
+open RevealObligations ob using
+  (blocked-reveal; blocked-conceal;
+   blocked-dyn-reveal; blocked-dyn-conceal)
 open RA using
   (AtomicReveal; atomic-★; atomic-ι; atomic-X; atomic-ι★; atomic-X★;
    rename-base-injective; rename-star-injective; rename-variable-inversion)
@@ -227,7 +231,8 @@ revealed-computations : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → ∀ {Cᴾ Cᴵ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
   → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ) ≡ Cᴾ
   → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Cᴵ
-  → ∀ {k : ℕ} (below : ∀ j → j ≤ k → RevealAt j)
+  → ∀ {k n : ℕ} (size≤ : sizeᵖ p ≤ n)
+      (below : ∀ j → j ≤ k → RevealAtSized j n)
       {Mᴵ : Term Δᴵ} {Mᴾ : Term Δᴾ}
   → ComputationsRelated W (FutureValueRelation p) k Mᴵ Mᴾ
   → ComputationsRelated W (FutureValueRelation q) k
@@ -235,7 +240,7 @@ revealed-computations : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Mᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
 revealed-computations W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     p sourceᴾ sourceᴵ {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} q targetᴾ targetᴵ
-    {k = k} below {Mᴵ = Mᴵ} {Mᴾ = Mᴾ} related =
+    {k = k} size≤ below {Mᴵ = Mᴵ} {Mᴾ = Mᴾ} related =
   reveal-computations-related
     {R = FutureValueRelation p} {S = FutureValueRelation q}
     (reveal-frm 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
@@ -263,6 +268,7 @@ revealed-computations W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ
               (cong (λ M → M ↑ _) (sym (termsᴾ Mᴾ))))) Uᴾ))
         (below j j≤k W′ (slot-future s W≼W′)
           (liftCenterImprecision W≼W′ p)
+          (subst≡ (_≤ _) (sym (lift-center-size W≼W′ p)) size≤)
           (trans (embedPrecise-lift W≼W′ Bᴾ)
             (cong (liftCenterTy W≼W′) sourceᴾ))
           (trans (embedImprecise-lift W≼W′ Bᴵ)
@@ -287,7 +293,8 @@ concealed-computations : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → ∀ {Cᴾ Cᴵ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
   → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ) ≡ Cᴾ
   → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Cᴵ
-  → ∀ {k : ℕ} (below : ∀ j → j ≤ k → ConcealAt j)
+  → ∀ {k n : ℕ} (size≤ : sizeᵖ p ≤ n)
+      (below : ∀ j → j ≤ k → ConcealAtSized j n)
       {Mᴵ : Term Δᴵ} {Mᴾ : Term Δᴾ}
   → ComputationsRelated W (FutureValueRelation q) k Mᴵ Mᴾ
   → ComputationsRelated W (FutureValueRelation p) k
@@ -295,7 +302,7 @@ concealed-computations : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Mᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
 concealed-computations W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Aᴾ = Aᴾ} {Aᴵ = Aᴵ}
     p sourceᴾ sourceᴵ {Cᴾ = Cᴾ} {Cᴵ = Cᴵ} q targetᴾ targetᴵ
-    {k = k} below {Mᴵ = Mᴵ} {Mᴾ = Mᴾ} related =
+    {k = k} size≤ below {Mᴵ = Mᴵ} {Mᴾ = Mᴾ} related =
   conceal-computations-related
     {R = FutureValueRelation q} {S = FutureValueRelation p}
     (conceal-frm (makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ))
@@ -323,6 +330,7 @@ concealed-computations W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {Aᴾ = Aᴾ} {Aᴵ = A�
               (cong (λ M → M ↓ _) (sym (termsᴾ Mᴾ))))) Uᴾ))
         (below j j≤k W′ (slot-future s W≼W′)
           (liftCenterImprecision W≼W′ p)
+          (subst≡ (_≤ _) (sym (lift-center-size W≼W′ p)) size≤)
           (trans (embedPrecise-lift W≼W′ Bᴾ)
             (cong (liftCenterTy W≼W′) sourceᴾ))
           (trans (embedImprecise-lift W≼W′ Bᴵ)
@@ -453,7 +461,7 @@ reveal-function-head W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀}
       (FutureValueRelation (liftCenterImprecision W≼W′ p₁)) k
       (Uᴵ ↓ cᴵ) (Uᴾ ↓ cᴾ)
   concealed = concealAt W′ s′
-    (liftCenterImprecision W≼W′ p₁)
+    (liftCenterImprecision W≼W′ p₁) ≤-refl
     (trans (embedPrecise-lift W≼W′ Aᴾ₀)
       (cong (liftCenterTy W≼W′) sourceᴾ₁))
     (trans (embedImprecise-lift W≼W′ Aᴵ₀)
@@ -492,7 +500,7 @@ reveal-function-head W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀}
       (replace-imprecise-lift s W≼W′ Bᴵ₀))
       (trans (embedImprecise-lift W≼W′ _)
         (cong (liftCenterTy W≼W′) targetᴵ₂)))
-    revealBelow applied
+    ≤-refl (λ j j≤k′ → revealBelow j j≤k′) applied
 
   expanded : ComputationsRelated W′
       (FutureValueRelation (liftCenterImprecision W≼W′ q₂)) (suc k)
@@ -537,7 +545,8 @@ reveal-function : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ₀) ≡ Dᴾ)
   → (targetᴵ₂ :
       embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ₀) ≡ Dᴵ)
-  → ∀ {k : ℕ} (below : Below k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ∀ {k : ℕ} (outer : OuterBelow k)
+      {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.⇒⊑⇒ p₁ p₂) k Vᴵ Vᴾ
   → ComputationsRelated W (FutureValueRelation (I.⇒⊑⇒ q₁ q₂)) k
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Aᴵ₀ ⇒ Bᴵ₀ 〗)
@@ -545,7 +554,7 @@ reveal-function : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
 reveal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀} {Bᴵ₀ = Bᴵ₀}
     p₁ p₂ sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂
     q₁ q₂ targetᴾ₁ targetᴵ₁ targetᴾ₂ targetᴵ₂
-    {k = k} below {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+    {k = k} outer {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
   related-values-return
     (imprecise-value endpoints ↑ fun) (precise-value endpoints ↑ fun)
     at-every-index
@@ -576,8 +585,8 @@ reveal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀} 
   head-at j sj≤k source-at = reveal-function-head W s p₁ p₂
     sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂ q₁ q₂
     targetᴾ₁ targetᴵ₁ targetᴾ₂ targetᴵ₂
-    (λ i i≤j → revealAt (below i (≤-trans (s≤s i≤j) sj≤k)))
-    (concealAt (below j sj≤k)) source-at
+    (λ i i≤j → full-revealAt (outer i (≤-trans (s≤s i≤j) sj≤k)))
+    (full-concealAt (outer j sj≤k)) source-at
 
   functions-related : ∀ (j : ℕ) → suc j ≤ k
     → ValueImprecision W (I.⇒⊑⇒ p₁ p₂) (suc j) Vᴵ Vᴾ
@@ -708,7 +717,7 @@ conceal-function-head W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀}
       (FutureValueRelation (liftCenterImprecision W≼W′ q₁)) k
       (Uᴵ ↑ cᴵ) (Uᴾ ↑ cᴾ)
   revealed = revealAt W′ s′
-    (liftCenterImprecision W≼W′ p₁)
+    (liftCenterImprecision W≼W′ p₁) ≤-refl
     (trans (embedPrecise-lift W≼W′ Aᴾ₀)
       (cong (liftCenterTy W≼W′) sourceᴾ₁))
     (trans (embedImprecise-lift W≼W′ Aᴵ₀)
@@ -750,7 +759,7 @@ conceal-function-head W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀}
       (replace-imprecise-lift s W≼W′ Bᴵ₀))
       (trans (embedImprecise-lift W≼W′ _)
         (cong (liftCenterTy W≼W′) targetᴵ₂)))
-    concealBelow applied
+    ≤-refl (λ j j≤k′ → concealBelow j j≤k′) applied
 
   expanded : ComputationsRelated W′
       (FutureValueRelation (liftCenterImprecision W≼W′ p₂)) (suc k)
@@ -795,7 +804,8 @@ conceal-function : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ₀) ≡ Dᴾ)
   → (targetᴵ₂ :
       embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ₀) ≡ Dᴵ)
-  → ∀ {k : ℕ} (below : Below k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ∀ {k : ℕ} (outer : OuterBelow k)
+      {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.⇒⊑⇒ q₁ q₂) k Vᴵ Vᴾ
   → ComputationsRelated W (FutureValueRelation (I.⇒⊑⇒ p₁ p₂)) k
       (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (Aᴵ₀ ⇒ Bᴵ₀))
@@ -803,7 +813,7 @@ conceal-function : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
 conceal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀} {Bᴵ₀ = Bᴵ₀}
     p₁ p₂ sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂
     q₁ q₂ targetᴾ₁ targetᴵ₁ targetᴾ₂ targetᴵ₂
-    {k = k} below {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+    {k = k} outer {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
   related-values-return
     (imprecise-value endpoints ↓ fun) (precise-value endpoints ↓ fun)
     at-every-index
@@ -835,8 +845,8 @@ conceal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀}
     conceal-function-head W s p₁ p₂
       sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂ q₁ q₂
       targetᴾ₁ targetᴵ₁ targetᴾ₂ targetᴵ₂
-      (revealAt (below j sj≤k))
-      (λ i i≤j → concealAt (below i (≤-trans (s≤s i≤j) sj≤k)))
+      (full-revealAt (outer j sj≤k))
+      (λ i i≤j → full-concealAt (outer i (≤-trans (s≤s i≤j) sj≤k)))
       source-at
 
   functions-related : ∀ (j : ℕ) → suc j ≤ k
@@ -880,7 +890,7 @@ reveal-universal-inner : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (p : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Aᴾ)
   → (sourceᴵ : embedImprecise (core W) (`∀ B₀ᴵ) ≡ `∀ Aᴵ)
-  → ∀ {k : ℕ} (below : Below (suc k))
+  → ∀ {k : ℕ} (below : OuterBelow (suc k))
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ p) (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
@@ -1067,7 +1077,7 @@ reveal-universal-inner W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ}
       (impreciseAligned (atom s₁)))
 
   below≤ : ∀ j → j ≤ suc m → RevealAt j
-  below≤ j j≤ = revealAt (below j (s≤s j≤))
+  below≤ j j≤ = full-revealAt (below j (s≤s j≤))
 
   Nᴵ = ⇑ᵗᵐ (liftImpreciseTerm W≼W′ Vᴵ)
     ⦂∀ renameᵗ (extᵗ Fin.suc) B₀ᴵ′ [ ＇ Fin.zero ]
@@ -1078,7 +1088,7 @@ reveal-universal-inner W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ}
       (Nᴵ ↑ 〖 slotXᴵ s₁ , slotRᴵ s₁ ↑ B₀ᴵ′ 〗)
       (Nᴾ ↑ 〖 slotXᴾ s₁ , slotRᴾ s₁ ↑ B₀ᴾ′ 〗)
   revealed₁ = revealed-computations Wb s₁ t₀ refl refl t₁
-    target₁-P target₁-I below≤ reindexed
+    target₁-P target₁-I ≤-refl (λ j j≤ → below≤ j j≤) reindexed
 
   wrap-eq-I : (Nᴵ ↑ 〖 slotXᴵ s₁ , slotRᴵ s₁ ↑ B₀ᴵ′ 〗)
       ≡ (Nᴵ ↑ 〖 Fin.suc Xᴵ′ , ⇑ᵗ Rᴵ′ ↑ B₀ᴵ′ 〗)
@@ -1181,7 +1191,7 @@ reveal-universal-inner W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ}
           ↑ replaceTy (Fin.suc Xᴾ′) (⇑ᵗ Rᴾ′) B₀ᴾ′ 〗)
   revealed₂ = revealed-computations Wb s₂ t₁ source₂-P source₂-I
     (liftCenterImprecision (paired-bind-step W′ r) t)
-    target₂-P target₂-I below≤ revealed₁′
+    target₂-P target₂-I ≤-refl (λ j j≤ → below≤ j j≤) revealed₁′
 
 -- One head of `UniversalsRelated` for a revealed universal value: the
 -- type application allocates, the source universal is instantiated at
@@ -1194,7 +1204,7 @@ reveal-universal-head : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (p : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Aᴾ)
   → (sourceᴵ : embedImprecise (core W) (`∀ B₀ᴵ) ≡ `∀ Aᴵ)
-  → ∀ {k : ℕ} (below : Below (suc k))
+  → ∀ {k : ℕ} (below : OuterBelow (suc k))
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ p) (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
@@ -1317,7 +1327,7 @@ conceal-universal-inner : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → (targetᴵ : embedImprecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
       ≡ `∀ Aᴵʳ)
-  → ∀ {k : ℕ} (below : Below (suc k))
+  → ∀ {k : ℕ} (below : OuterBelow (suc k))
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ q₀) (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
@@ -1550,16 +1560,16 @@ conceal-universal-inner W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ}
     (cong (embedImprecise (core Wb)) (sym body-eq-I))
 
   belowC : ∀ j → j ≤ suc m → ConcealAt j
-  belowC j j≤ = concealAt (below j (s≤s j≤))
+  belowC j j≤ = full-concealAt (below j (s≤s j≤))
 
   below≤ : ∀ j → j ≤ suc m → RevealAt j
-  below≤ j j≤ = revealAt (below j (s≤s j≤))
+  below≤ j j≤ = full-revealAt (below j (s≤s j≤))
 
   concealed₁ : ComputationsRelated Wb (FutureValueRelation t₀) (suc m)
       (Nᴵ ↓ makeConceal (slotXᴵ s₁) (slotRᴵ s₁) B₀ᴵ′)
       (Nᴾ ↓ makeConceal (slotXᴾ s₁) (slotRᴾ s₁) B₀ᴾ′)
   concealed₁ = concealed-computations Wb s₁ t₀ refl refl t₀q
-    target₁-P target₁-I belowC reindexed
+    target₁-P target₁-I ≤-refl (λ j j≤ → belowC j j≤) reindexed
 
   wrap-eq-I : (Nᴵ ↓ makeConceal (slotXᴵ s₁) (slotRᴵ s₁) B₀ᴵ′)
       ≡ (Nᴵ ↓ makeConceal (Fin.suc Xᴵ′) (⇑ᵗ Rᴵ′) B₀ᴵ′)
@@ -1648,7 +1658,7 @@ conceal-universal-inner W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ}
         ↑ 〖 Fin.zero , ⇑ᵗ Sᴾ ↑ B₀ᴾ′ 〗)
   final = revealed-computations Wb s₂ t₀ refl refl
     (liftCenterImprecision (paired-bind-step W′ r) t)
-    target₂-P target₂-I below≤ concealed₁′
+    target₂-P target₂-I ≤-refl (λ j j≤ → below≤ j j≤) concealed₁′
 
 -- One head of `UniversalsRelated` for a concealed universal value.
 
@@ -1666,7 +1676,7 @@ conceal-universal-head : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → (targetᴵ : embedImprecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
       ≡ `∀ Aᴵʳ)
-  → ∀ {k : ℕ} (below : Below (suc k))
+  → ∀ {k : ℕ} (below : OuterBelow (suc k))
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ q₀) (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
@@ -1758,7 +1768,7 @@ reveal-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → (targetᴵ : embedImprecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
       ≡ `∀ Aᴵʳ)
-  → ∀ {k : ℕ} (below : Below k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ∀ {k : ℕ} (below : OuterBelow k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ p₀) k Vᴵ Vᴾ
   → ComputationsRelated W (FutureValueRelation (I.∀⊑∀ q₀)) k
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ `∀ B₀ᴵ 〗)
@@ -1790,7 +1800,7 @@ reveal-universal W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p₀ q₀
   heads (suc j) sj≤k source-at =
     (λ W′ W≼W′ Sᴾ Sᴵ r t →
       reveal-universal-head W s p₀ sourceᴾ sourceᴵ
-        (below-below sj≤k below) source-at W′ W≼W′ Sᴾ Sᴵ r t) ,
+        (outer-restrict sj≤k below) source-at W′ W≼W′ Sᴾ Sᴵ r t) ,
     heads j (≤-trans (n≤1+n j) sj≤k)
       (value-imprecision-downward-to
         {W = W} {p = I.∀⊑∀ p₀} {j = j} {k = suc j}
@@ -1827,7 +1837,7 @@ conceal-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → (targetᴵ : embedImprecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
       ≡ `∀ Aᴵʳ)
-  → ∀ {k : ℕ} (below : Below k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ∀ {k : ℕ} (below : OuterBelow k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑∀ q₀) k Vᴵ Vᴾ
   → ComputationsRelated W (FutureValueRelation (I.∀⊑∀ p₀)) k
       (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (`∀ B₀ᴵ))
@@ -1857,7 +1867,7 @@ conceal-universal W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p₀ q₀
   heads (suc j) sj≤k source-at =
     (λ W′ W≼W′ Sᴾ Sᴵ r t →
       conceal-universal-head W s p₀ q₀ sourceᴾ sourceᴵ
-        targetᴾ targetᴵ (below-below sj≤k below) source-at
+        targetᴾ targetᴵ (outer-restrict sj≤k below) source-at
         W′ W≼W′ Sᴾ Sᴵ r t) ,
     heads j (≤-trans (n≤1+n j) sj≤k)
       (value-imprecision-downward-to
@@ -1922,43 +1932,44 @@ bottom-conceal-impossible W s sourceᴾ q targetᴾ related
 -- The induction
 ------------------------------------------------------------------------
 
-reveal-conceal-step : ∀ (k : ℕ) → Below k → RevealAt k × ConcealAt k
-reveal-conceal-step k below = reveal-at , conceal-at
+reveal-conceal-step : ∀ (k n : ℕ) → Below k n
+  → RevealAtSized k n × ConcealAtSized k n
+reveal-conceal-step k n below = reveal-at , conceal-at
   where
-  reveal-at : RevealAt k
-  reveal-at W s I.★⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  reveal-at : RevealAtSized k n
+  reveal-at W s I.★⊑★ size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     RA.AtSlot.reveal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.★⊑★ atomic-★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s I.ι⊑ι sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  reveal-at W s I.ι⊑ι size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     RA.AtSlot.reveal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.ι⊑ι atomic-ι sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s I.X⊑X sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  reveal-at W s I.X⊑X size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     RA.AtSlot.reveal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.X⊑X atomic-X sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s I.ι⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  reveal-at W s I.ι⊑★ size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     RA.AtSlot.reveal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.ι⊑★ atomic-ι★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s (I.X⊑★ eq) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+  reveal-at W s (I.X⊑★ eq) size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related =
     RA.AtSlot.reveal-atomic W (atom s) (entry-eq s) (mode-eq s)
       (I.X⊑★ eq) (atomic-X★ eq) sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related
-  reveal-at W s (I.⇒⊑⇒ p₁ p₂)
+  reveal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-arrow-inversion _ sourceᴾ
          | rename-arrow-inversion _ sourceᴵ
-  reveal-at W s (I.⇒⊑⇒ p₁ p₂)
+  reveal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       | Aᴾ₀ , Bᴾ₀ , refl , sourceᴾ₁ , sourceᴾ₂
       | Aᴵ₀ , Bᴵ₀ , refl , sourceᴵ₁ , sourceᴵ₂
       with targetᴾ | targetᴵ
-  reveal-at W s (I.⇒⊑⇒ p₁ p₂)
+  reveal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       | Aᴾ₀ , Bᴾ₀ , refl , sourceᴾ₁ , sourceᴾ₂
       | Aᴵ₀ , Bᴵ₀ , refl , sourceᴵ₁ , sourceᴵ₂
       | refl | refl
       with arrow-imprecision-view q
-  reveal-at W s (I.⇒⊑⇒ p₁ p₂)
+  reveal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ .(I.⇒⊑⇒ q₁ q₂) targetᴾ targetᴵ related
       | Aᴾ₀ , Bᴾ₀ , refl , sourceᴾ₁ , sourceᴾ₂
       | Aᴵ₀ , Bᴵ₀ , refl , sourceᴵ₁ , sourceᴵ₂
@@ -1966,16 +1977,16 @@ reveal-conceal-step k below = reveal-at , conceal-at
       | arrow-imprecision q₁ q₂ =
     reveal-function W s p₁ p₂
       sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂ q₁ q₂
-      refl refl refl refl below related
-  reveal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} (I.⇒⊑★ p₁ p₂)
+      refl refl refl refl (below-outer below) related
+  reveal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} (I.⇒⊑★ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-star-injective _ sourceᴵ
-  reveal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂)
+  reveal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
       with reveal-id-step-question {Σ = impreciseStore (core W)} ★
              (imprecise-value
                (ClosureProof.value-imprecision-endpoints related))
-  reveal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂)
+  reveal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
       | vVᴵ , step-eqᴵ =
     related-imprecise-keep-step-expand (λ ())
@@ -2000,15 +2011,15 @@ reveal-conceal-step k below = reveal-at , conceal-at
       (cong (embedPrecise (core W))
         (sym (replaceTy-absent (slotXᴾ s) (slotRᴾ s) slot-absent)))
       targetᴾ
-  reveal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+  reveal-at W s (I.∀⊑∀ p₀) size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related
       with rename-universal-inversion _ sourceᴾ
          | rename-universal-inversion _ sourceᴵ
-  reveal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+  reveal-at W s (I.∀⊑∀ p₀) size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related
       | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
       with targetᴾ | targetᴵ
-  reveal-at W s (I.∀⊑∀ {A = Aᴾc} {B = Aᴵc} p₀) sourceᴾ sourceᴵ
+  reveal-at W s (I.∀⊑∀ {A = Aᴾc} {B = Aᴵc} p₀) size≤ sourceᴾ sourceᴵ
       q targetᴾ targetᴵ
       {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
@@ -2019,7 +2030,7 @@ reveal-conceal-step k below = reveal-at , conceal-at
         (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
       (sym (PI.⊑-unique q (I.∀⊑∀ alt-body)))
       (reveal-universal W s p₀ alt-body sourceᴾ sourceᴵ refl refl
-        below related)
+        (below-outer below) related)
     where
     ρᴾ = toRenameᵗ (preciseEmbedding (core W))
     ρᴵ = toRenameᵗ (impreciseEmbedding (core W))
@@ -2093,58 +2104,58 @@ reveal-conceal-step k below = reveal-at , conceal-at
             (renameᵗ (extᵗ ρᴾ) B₀ᴾ) ⊑ R)
         (sym commute-I) raw)
 
-  reveal-at W s (I.∀⊑ nonvar occurs p₀) sourceᴾ sourceᴵ q
+  reveal-at W s (I.∀⊑ nonvar occurs p₀) size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
-    blocked-reveal below W s (I.∀⊑ nonvar occurs p₀) blocked-∀⊑
+    blocked-reveal below W s (I.∀⊑ nonvar occurs p₀) size≤
+      blocked-∀⊑ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+  reveal-at W s I.∀★⊑★ size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+    blocked-reveal below W s I.∀★⊑★ size≤ blocked-∀★⊑★
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s I.∀★⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
-    blocked-reveal below W s I.∀★⊑★ blocked-∀★⊑★
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s (I.∀⊑★ nonstar p₀) sourceᴾ sourceᴵ q
+  reveal-at W s (I.∀⊑★ nonstar p₀) size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
-    blocked-reveal below W s (I.∀⊑★ nonstar p₀) blocked-∀⊑★
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s I.bot-elim sourceᴾ sourceᴵ q
+    blocked-reveal below W s (I.∀⊑★ nonstar p₀) size≤
+      blocked-∀⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+  reveal-at W s I.bot-elim size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     ⊥-elim (no-precise-bottom-value related)
-  reveal-at W s I.bot⊑★ sourceᴾ sourceᴵ q
+  reveal-at W s I.bot⊑★ size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     ⊥-elim (no-precise-bottom-value related)
 
-  conceal-at : ConcealAt k
-  conceal-at W s I.★⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  conceal-at : ConcealAtSized k n
+  conceal-at W s I.★⊑★ size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     CA.AtSlot.conceal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.★⊑★ atomic-★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  conceal-at W s I.ι⊑ι sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  conceal-at W s I.ι⊑ι size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     CA.AtSlot.conceal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.ι⊑ι atomic-ι sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  conceal-at W s I.X⊑X sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  conceal-at W s I.X⊑X size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     CA.AtSlot.conceal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.X⊑X atomic-X sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  conceal-at W s I.ι⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+  conceal-at W s I.ι⊑★ size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
     CA.AtSlot.conceal-atomic W (atom s) (entry-eq s) (mode-eq s)
       I.ι⊑★ atomic-ι★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  conceal-at W s (I.X⊑★ eq) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+  conceal-at W s (I.X⊑★ eq) size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related =
     CA.AtSlot.conceal-atomic W (atom s) (entry-eq s) (mode-eq s)
       (I.X⊑★ eq) (atomic-X★ eq) sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related
-  conceal-at W s (I.⇒⊑⇒ p₁ p₂)
+  conceal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-arrow-inversion _ sourceᴾ
          | rename-arrow-inversion _ sourceᴵ
-  conceal-at W s (I.⇒⊑⇒ p₁ p₂)
+  conceal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       | Aᴾ₀ , Bᴾ₀ , refl , sourceᴾ₁ , sourceᴾ₂
       | Aᴵ₀ , Bᴵ₀ , refl , sourceᴵ₁ , sourceᴵ₂
       with targetᴾ | targetᴵ
-  conceal-at W s (I.⇒⊑⇒ p₁ p₂)
+  conceal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       | Aᴾ₀ , Bᴾ₀ , refl , sourceᴾ₁ , sourceᴾ₂
       | Aᴵ₀ , Bᴵ₀ , refl , sourceᴵ₁ , sourceᴵ₂
       | refl | refl
       with arrow-imprecision-view q
-  conceal-at W s (I.⇒⊑⇒ p₁ p₂)
+  conceal-at W s (I.⇒⊑⇒ p₁ p₂) size≤
       sourceᴾ sourceᴵ .(I.⇒⊑⇒ q₁ q₂) targetᴾ targetᴵ related
       | Aᴾ₀ , Bᴾ₀ , refl , sourceᴾ₁ , sourceᴾ₂
       | Aᴵ₀ , Bᴵ₀ , refl , sourceᴵ₁ , sourceᴵ₂
@@ -2152,16 +2163,16 @@ reveal-conceal-step k below = reveal-at , conceal-at
       | arrow-imprecision q₁ q₂ =
     conceal-function W s p₁ p₂
       sourceᴾ₁ sourceᴵ₁ sourceᴾ₂ sourceᴵ₂ q₁ q₂
-      refl refl refl refl below related
-  conceal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} (I.⇒⊑★ p₁ p₂)
+      refl refl refl refl (below-outer below) related
+  conceal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} (I.⇒⊑★ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-star-injective _ sourceᴵ
-  conceal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂)
+  conceal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
       with conceal-id-step-question {Σ = impreciseStore (core W)} ★
              (imprecise-value
                (ClosureProof.value-imprecision-endpoints related))
-  conceal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂)
+  conceal-at W s {Bᴾ = Bᴾ} (I.⇒⊑★ p₁ p₂) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related | refl
       | vVᴵ , step-eqᴵ =
     related-imprecise-keep-step-expand (λ ())
@@ -2187,21 +2198,21 @@ reveal-conceal-step k below = reveal-at , conceal-at
       (cong (embedPrecise (core W))
         (sym (replaceTy-absent (slotXᴾ s) (slotRᴾ s) slot-absent)))
       targetᴾ
-  conceal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+  conceal-at W s (I.∀⊑∀ p₀) size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related
       with rename-universal-inversion _ sourceᴾ
          | rename-universal-inversion _ sourceᴵ
-  conceal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+  conceal-at W s (I.∀⊑∀ p₀) size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ
       related
       | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
       with targetᴾ | targetᴵ
-  conceal-at W s (I.∀⊑∀ {A = Aᴾc} {B = Aᴵc} p₀) sourceᴾ sourceᴵ
+  conceal-at W s (I.∀⊑∀ {A = Aᴾc} {B = Aᴵc} p₀) size≤ sourceᴾ sourceᴵ
       q targetᴾ targetᴵ
       {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
       | refl | refl =
     conceal-universal W s p₀ alt-body sourceᴾ sourceᴵ refl refl
-      below
+      (below-outer below)
       (subst≡ (λ q′ → ValueImprecision W q′ k Vᴵ Vᴾ)
         (PI.⊑-unique q (I.∀⊑∀ alt-body)) related)
     where
@@ -2277,54 +2288,74 @@ reveal-conceal-step k below = reveal-at , conceal-at
             (renameᵗ (extᵗ ρᴾ) B₀ᴾ) ⊑ R)
         (sym commute-I) raw)
 
-  conceal-at W s (I.∀⊑ nonvar occurs p₀) sourceᴾ sourceᴵ q
+  conceal-at W s (I.∀⊑ nonvar occurs p₀) size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
-    blocked-conceal below W s (I.∀⊑ nonvar occurs p₀) blocked-∀⊑
+    blocked-conceal below W s (I.∀⊑ nonvar occurs p₀) size≤
+      blocked-∀⊑ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+  conceal-at W s I.∀★⊑★ size≤ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+    blocked-conceal below W s I.∀★⊑★ size≤ blocked-∀★⊑★
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  conceal-at W s I.∀★⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
-    blocked-conceal below W s I.∀★⊑★ blocked-∀★⊑★
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  conceal-at W s (I.∀⊑★ nonstar p₀) sourceᴾ sourceᴵ q
+  conceal-at W s (I.∀⊑★ nonstar p₀) size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
-    blocked-conceal below W s (I.∀⊑★ nonstar p₀) blocked-∀⊑★
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  conceal-at W s I.bot-elim sourceᴾ sourceᴵ q
+    blocked-conceal below W s (I.∀⊑★ nonstar p₀) size≤
+      blocked-∀⊑★ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+  conceal-at W s I.bot-elim size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     ⊥-elim (bottom-conceal-impossible W s sourceᴾ q targetᴾ related)
-  conceal-at W s I.bot⊑★ sourceᴾ sourceᴵ q
+  conceal-at W s I.bot⊑★ size≤ sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     ⊥-elim (bottom-conceal-impossible W s sourceᴾ q targetᴾ related)
 
--- Strong induction on the step index, producing the paired and the
--- one-sided statements together.
+-- Strong induction on the lexicographic (step index, derivation
+-- size), producing the paired, one-sided, and dynamic statements
+-- together.
 
-statements-step : ∀ (k : ℕ) → Below k → Statements k
-statements-step k below =
+statements-step : ∀ (k n : ℕ) → Below k n → Statements k n
+statements-step k n below =
   proj₁ paired , proj₂ paired ,
-  precise-reveal below , precise-conceal below
+  precise-reveal below , precise-conceal below ,
+  blocked-dyn-reveal below , blocked-dyn-conceal below
   where
-  paired = reveal-conceal-step k below
+  paired = reveal-conceal-step k n below
 
-statements-acc : ∀ (k : ℕ) → Acc _<_ k → Statements k
-statements-acc k (acc smaller) =
-  statements-step k (λ j j<k → statements-acc j (smaller j<k))
+statements-inner : ∀ (k : ℕ) → OuterBelow k
+  → ∀ (n : ℕ) → Acc _<_ n → Statements k n
+statements-inner k outer n (acc smaller-size) =
+  statements-step k n below
+  where
+  below : Below k n
+  below j m (lex-index j<k) = outer j j<k m
+  below j m (lex-size refl m<n) =
+    statements-inner j outer m (smaller-size m<n)
 
-statements-all : ∀ (k : ℕ) → Statements k
-statements-all k = statements-acc k (wf k)
+statements-acc : ∀ (k : ℕ) → Acc _<_ k → FullStatements k
+statements-acc k (acc smaller) n =
+  statements-inner k
+    (λ j j<k m → statements-acc j (smaller j<k) m) n (wf n)
+
+statements-all : ∀ (k n : ℕ) → Statements k n
+statements-all k n = statements-acc k (wf k) n
 
 ------------------------------------------------------------------------
 -- The structural reveal and conceal
 ------------------------------------------------------------------------
 
 reveal-structural : ∀ {k} → RevealAt k
-reveal-structural {k = k} = revealAt (statements-all k)
+reveal-structural {k = k} {n = n} = revealAt (statements-all k n)
 
 conceal-structural : ∀ {k} → ConcealAt k
-conceal-structural {k = k} = concealAt (statements-all k)
+conceal-structural {k = k} {n = n} = concealAt (statements-all k n)
 
 precise-reveal-structural : ∀ {k} → PreciseRevealAt k
-precise-reveal-structural {k = k} = preciseRevealAt (statements-all k)
+precise-reveal-structural {k = k} =
+  preciseRevealAt (statements-all k 0)
 
 precise-conceal-structural : ∀ {k} → PreciseConcealAt k
 precise-conceal-structural {k = k} =
-  preciseConcealAt (statements-all k)
+  preciseConcealAt (statements-all k 0)
+
+dyn-reveal-structural : ∀ {k} → DynRevealAt k
+dyn-reveal-structural {k = k} = dynRevealAt (statements-all k 0)
+
+dyn-conceal-structural : ∀ {k} → DynConcealAt k
+dyn-conceal-structural {k = k} = dynConcealAt (statements-all k 0)

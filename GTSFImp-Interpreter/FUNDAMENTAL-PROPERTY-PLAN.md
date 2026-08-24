@@ -728,7 +728,8 @@ Remaining honest resolutions (both substantial):
   ground un-replacement by occurs-refutation), and family projection
   for the right-universal source — leaving value-level `∀⊑∀`-only
   obligations.  What remains is internalizing the kit; the recipe
-  and the discovered simplifications are in the design note.  The design also dissolves
+  and the discovered simplifications are in the design note.  The
+  design also dissolves
   the canonical-forms gate: the imprecise application step the
   consumer cannot perform is performed by the producers, each of
   which knows its value's step syntactically;

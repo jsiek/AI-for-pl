@@ -642,26 +642,43 @@ one-sided `blocked-precise-*` case only indirectly (its fresh call is
 at the unreplaced body, which is smaller, but may itself be
 `∀`-shaped and then needs the dynamic case).
 
-Proposed resolution (recommended): make `RightUniversalsRelated`
-contractive — the chain stored at `suc k` yields heads whose
-`PostBind` conclusions live at `k`, so eliminating a right-universal
-costs one index unit even though the type application is a
-precise-only step.  Then the recursive fresh-slot reveal inside a
-head runs at a strictly smaller index and recurses through the
-bundle's index component; the dynamic statement stays type-fueled
-elsewhere.  Producers get strictly easier (the intro compatibility
-already has the body at every smaller index); consumers weaken to
-index-decrementing type application at `∀⊑`, which is harmless for
-the fundamental property (premises hold at all indices); the reveal
-and conceal assemblies stay index-preserving because source and
-target chains are contractive consistently.  The `∀⊑∀` chain
-(`UniversalsRelated`) is unchanged — its elimination already pays via
-the paired bind step.  Alternative: a documented `TERMINATING` pragma
-on the dynamic universal recursion, arguing that the recursion is
-guarded by the head λs and unfolds only along the finite operational
-instantiation chain — rejected for now because the argument is
-subtler than the allocation-order one and the file has no pragma
-precedent.
+Attempted resolution 1 (contractive chain — REFUTED 2026-08-24):
+making `RightUniversalsRelated` contractive (heads at `suc k`
+conclude at `k`) was implemented and its fallout chased, but it
+breaks the right-universal type-application compatibility
+(`right-type-application-compatible` in
+`proof/LR-narrow/TypeApplication.agda`): the compatibility's
+conclusion at `k` demands `PairedReturns` at exactly `k ∸ n`, the
+imprecise side takes no step during the precise instantiation, and
+although the compiled premise is index-universal, using it at
+`suc k` requires the closing substitution `γ` at `suc k`, which the
+compatibility only holds at `k` (and closing substitutions are only
+downward-closed).  So the decrement cannot be paid anywhere, and the
+change was reverted.
+
+Attempted resolution 2 (dynamic-expansion size — refuted on paper):
+measuring the dynamic statement by the derivation size after fully
+expanding every dynamic-slot replacement (well-defined by allocation
+order) fails because instantiating the body at the fresh dynamic name
+inflates the measure: each star-mode leaf of the body derivation is
+replaced by the fresh slot's representative derivation, so already
+the body call exceeds the incoming measure.
+
+Remaining candidate resolutions:
+
+* a documented `TERMINATING` pragma on the dynamic universal
+  recursion.  The recursion is productive in the coinductive sense:
+  every recursive occurrence sits under the head λ of a chain
+  component, the chain at index `k` is a finite tuple of `k` heads,
+  and evaluation always reaches weak head normal form (the recursive
+  calls are only unfolded when a head is applied, and proof terms
+  never occur in type indices, so type-checking never demands deep
+  normalization).  This is the function-space-guarded analogue of the
+  allocation-order pragma already used for the logical relation;
+* restructuring the chain as a genuinely coinductive record (sized or
+  musical), so the guardedness is checked rather than asserted — a
+  larger refactor of `LogicalRelation.agda` with unknown interaction
+  with `--safe` and the step-indexed closure lemmas.
 
 ### 2. Prove compatibility for the rebase-sensitive cast forms
 

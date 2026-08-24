@@ -412,6 +412,44 @@ preserve-β-inst : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
 preserve-β-inst (⊢⟨⟩ V⊢ ((inst c) B≠★)) =
   ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ ★/0 ]ᶜ)
 
+fresh-delimiter-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M : Term (suc Θ) Δ} {A C : Ty Δ}
+  → Ψ ,:= C ∣ [] ⊢ M ⦂ A
+  → (Ψ ,:= C) ,typ[ zero ≔ zero ] ∣ []
+      ⊢ M ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A) ⦂ ⇑ᵗ A
+fresh-delimiter-conceal {Ψ = Ψ} {A = A} {C = C} M⊢ =
+  ⊢conceal here-typ target-lookup
+    (delimiter-typed↓ zero (⇑ᵗ C) (⇑ᵗ A)) target-M⊢
+  where
+  env-eq = ∖-typ-here (Ψ ,:= C) zero zero
+  target-lookup =
+    subst≡ (λ Φ → Φ ∋ zero := C) (sym env-eq) Z
+  target-M⊢ =
+    subst≡ (λ Φ → Φ ∣ [] ⊢ _ ⦂ A) (sym env-eq) M⊢
+
+preserve-β-Λ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
+  → Ψ ∣ [] ⊢ (Λ V) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
+  → Ψ ∣ [] ⊢
+      ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+      ⦂ B [ C ]ᵗ
+preserve-β-Λ {B = B} {C = C} (⊢⦂∀ (⊢Λ V⊢)) =
+  ⊢ν (⊢reveal Z (generator-typed B C) (⊢allocate-lexical V⊢))
+
+preserve-β-gen : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {μ : Env∼ Δ} {A C : Ty Δ}
+    {B : Ty (suc Δ)} {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
+    ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄ {A≠★ : A ≢ ★}
+  → Ψ ∣ [] ⊢ (V ⟨ (gen c) A≠★ ⟩) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
+  → Ψ ∣ [] ⊢ ν[ C ]
+      (((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
+        ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+      ⦂ B [ C ]ᵗ
+preserve-β-gen {B = bodyTy}
+    (⊢⦂∀ (⊢⟨⟩ V⊢ ((gen c) A≠★))) =
+  ⊢ν (⊢reveal Z (generator-typed bodyTy _)
+    (⊢⟨⟩ (fresh-delimiter-conceal (⊢shiftᶿ V⊢)) c))
+
 ------------------------------------------------------------------------
 -- Preservation cases: blame propagation
 ------------------------------------------------------------------------

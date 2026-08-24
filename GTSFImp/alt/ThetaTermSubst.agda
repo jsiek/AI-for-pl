@@ -1506,6 +1506,15 @@ data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
       -----------------------------------------------
     → AnchorTarget (extᵗ ρ) (Ψ ,:= A) (Φ ,:= A)
 
+  -- A lexical slot has no own crossing.  When anchor weakening allocates
+  -- its representation, that newest slot can therefore become the fresh
+  -- recorded crossing without transporting a position argument.
+  anchor-target-allocate : ∀ {Θ Δ}
+      {Ψ : TyEnv Θ Δ} {Φ : TyEnv (suc Θ) Δ}
+    → AnchorTarget suc Ψ Φ
+      ------------------------------------------------------
+    → AnchorTarget suc (Ψ ,typ) (Φ ,typ[ zero ≔ zero ])
+
   anchor-target-opaque : ∀ {Θ Θ′ Δ}
       {ρ : TyVar Θ → TyVar Θ′}
       {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
@@ -1551,6 +1560,14 @@ anchorTarget-delete {Δ = suc Δ} {Ψ = Ψ ,typ} {Φ = Φ ,typ}
     (anchor-target-lexical target) (suc Y)
     rewrite ∖-typ-zero-suc Ψ Y | ∖-typ-zero-suc Φ Y =
   anchor-target-lexical (anchorTarget-delete target Y)
+anchorTarget-delete {Φ = Φ ,typ[ zero ≔ zero ]}
+    (anchor-target-allocate target) zero
+    rewrite ∖-typ-here Φ zero zero =
+  target
+anchorTarget-delete { Δ = suc Δ } { Ψ = Ψ ,typ }
+    { Φ = Φ ,typ[ zero ≔ zero ] }
+    (anchor-target-allocate target) (suc Y) =
+  anchor-target-allocate (anchorTarget-delete target Y)
 anchorTarget-delete (anchor-target-:= {A = A} target) Y
     with strengthenᵗ? Y A
 anchorTarget-delete (anchor-target-:= target) Y | just A′ =
@@ -1572,6 +1589,9 @@ anchorTarget-∋:= (anchor-target-typ Y anchor target) (skip-typ α∈) =
   skip-typ (anchorTarget-∋:= target α∈)
 anchorTarget-∋:= (anchor-target-lexical target) (skip-lexical α∈) =
   skip-lexical (anchorTarget-∋:= target α∈)
+anchorTarget-∋:= (anchor-target-allocate target)
+    (skip-lexical α∈) =
+  skip-typ (anchorTarget-∋:= target α∈)
 anchorTarget-∋:= (anchor-target-:= target) Z = Z
 anchorTarget-∋:= (anchor-target-:= target) (S α∈) =
   S (anchorTarget-∋:= target α∈)
@@ -1593,6 +1613,9 @@ anchorTarget-∋typ (anchor-target-typ slot anchor target)
 anchorTarget-∋typ (anchor-target-lexical target)
     (skip-lexical-typ Y∈) =
   skip-lexical-typ (anchorTarget-∋typ target Y∈)
+anchorTarget-∋typ (anchor-target-allocate target)
+    (skip-lexical-typ Y∈) =
+  skip-cross-typ (anchorTarget-∋typ target Y∈)
 anchorTarget-∋typ (anchor-target-:= target) (skip-visible-typ Y∈) =
   skip-visible-typ (anchorTarget-∋typ target Y∈)
 anchorTarget-∋typ (anchor-target-opaque target) (skip-opaque-typ Y∈) =
@@ -1640,6 +1663,14 @@ anchorTarget-∋typ (anchor-target-opaque target) (skip-opaque-typ Y∈) =
     ---------------------------
   → Ψ ,:= B ∣ Γ ⊢ shiftᶿ M ⦂ A
 ⊢shiftᶿ M⊢ = ⊢renameᶿ-target visible-shift-target M⊢
+
+⊢allocate-lexical : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx (suc Δ)}
+    {M : Term Θ (suc Δ)} {A : Ty (suc Δ)} {C : Ty Δ}
+  → Ψ ,typ ∣ Γ ⊢ M ⦂ A
+    ---------------------------------------------------
+  → (Ψ ,:= C) ,typ[ zero ≔ zero ] ∣ Γ ⊢ shiftᶿ M ⦂ A
+⊢allocate-lexical M⊢ = ⊢renameᶿ-target
+  (anchor-target-allocate visible-shift-target) M⊢
 
 ⊢weaken-opaque : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A : Ty Δ}

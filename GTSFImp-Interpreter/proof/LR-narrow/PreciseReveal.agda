@@ -43,7 +43,8 @@ import Eval as E
 open import Interpreter
 open import proof.ImprecisionConsistency using
   (toRenameᵗ-injective; renameᵗ-injective; ext-injective;
-   fin-suc-injective)
+   fin-suc-injective; ty-all-injective)
+open import proof.TypeSafety.Progress using (no-bot-value)
 open import proof.TypeSafety.Preservation using
   (structural-reveal-typing; structural-conceal-typing)
 open import LR-narrow.World
@@ -228,6 +229,232 @@ arrow-source-view (I.⇒⊑★ q₁ q₂) = arrow-star q₁ q₂
 -- The one-sided reveal and conceal
 ------------------------------------------------------------------------
 
+-- A non-occurring universal wrapper on the precise endpoint, at the
+-- value level: the replacement is the identity, so the wrapped value
+-- is related at the same derivation.  The right-universal case
+-- projects the inert entry of the stored replacement-closed family;
+-- the star-universal cases recurse into the dynamic payload at the
+-- smaller index; the bottom cases are refuted; only the paired
+-- universal source remains an obligation.
+
+no-precise-bottom-value : ∀ {Δᴾ Δᴵ Δᶜ Aᴵ}
+    {W : World Δᴾ Δᴵ Δᶜ}
+    {p : impEnv (core W) I.⊢ (`∀ (＇ Fin.zero)) ⊑ Aᴵ}
+    {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W p k Vᴵ Vᴾ
+  → ⊥
+no-precise-bottom-value {W = W} related =
+  no-bot-value (precise-value endpoints) Vᴾ⊢bot
+  where
+  endpoints = ClosureProof.value-imprecision-endpoints related
+
+  precise-type-eq : preciseType endpoints ≡ `∀ (＇ Fin.zero)
+  precise-type-eq = renameᵗ-injective
+    (toRenameᵗ-injective (preciseEmbedding (core W)))
+    (preciseEmbedded endpoints)
+
+  Vᴾ⊢bot = subst≡
+    (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ _ ⦂ A)
+    precise-type-eq (precise-typed endpoints)
+
+precise-universal-value : ∀ (j : ℕ) {sz : ℕ} (below : Below j sz)
+    {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W) {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+  → slotXᴾ s ∉ᵗ `∀ B₁
+  → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W p j Vᴵ Vᴾ
+  → ValueImprecision W p j
+      Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₁ 〗)
+precise-universal-value zero below W s p no-occur sourceᴾ related =
+  precise-reveal-endpoints W s p no-occur sourceᴾ {k = zero} related
+    (precise-value related ↑ all)
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    I.★⊑★ no-occur () related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    I.ι⊑ι no-occur () related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    I.X⊑X no-occur () related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    (I.⇒⊑⇒ p q) no-occur () related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    (I.⇒⊑★ p q) no-occur () related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    I.ι⊑★ no-occur () related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    (I.X⊑★ eq) no-occur () related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑∀ p₀) no-occur sourceᴾ related =
+  blocked-precise-reveal below W s p₀ no-occur sourceᴾ related
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    I.∀★⊑★ no-occur sourceᴾ
+    related@(endpoints , shape , payload) =
+  precise-reveal-endpoints W s I.∀★⊑★ no-occur sourceᴾ
+    {k = suc k} related (precise-value endpoints ↑ all) ,
+  shape ,
+  precise-universal-value k
+    (below-restrict (n≤1+n k) ≤-refl below) W s
+    (right-payload-imprecision shape) no-occur sourceᴾ payload
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
+    related@(endpoints , shape , payload) =
+  precise-reveal-endpoints W s (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
+    {k = suc k} related (precise-value endpoints ↑ all) ,
+  shape ,
+  precise-universal-value k
+    (below-restrict (n≤1+n k) ≤-refl below) W s
+    (right-payload-imprecision shape) no-occur sourceᴾ payload
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    I.bot-elim no-occur sourceᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot-elim} {k = suc k}
+    related)
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    I.bot⊑★ no-occur sourceᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot⊑★} {k = suc k}
+    related)
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑ {A = Ac} {B = Aᴵc} nonvar occurs p₀) no-occur sourceᴾ
+    related@(endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
+    with ty-all-injective
+           (renameᵗ-injective
+             (toRenameᵗ-injective (preciseEmbedding (core W)))
+             (trans embP* (sym sourceᴾ)))
+precise-universal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑ {A = Ac} {B = Aᴵc} nonvar occurs p₀) no-occur sourceᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related@(endpoints , .B₁ , Bᴵ* , embP* , embI* , fam)
+    | refl =
+  precise-reveal-endpoints W s (I.∀⊑ nonvar occurs p₀) no-occur
+    sourceᴾ {k = suc k} related (precise-value endpoints ↑ all) ,
+  B₁ , Bᴵ* , embP* , embI* ,
+  (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} σ →
+    let s′ = slot-future s W≼W′
+        avoid′ : slotXᴾ s′ ∉ᵗ `∀ (liftPreciseBody W≼W′ B₁)
+        avoid′ = subst≡ (slotXᴾ s′ ∉ᵗ_)
+          (liftPreciseTy-universal W≼W′ B₁)
+          (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₁))
+            (sym (slot-precise-variable-lift s W≼W′))
+            (lift-∉ᵗ W≼W′ no-occur))
+        w = reveal-inert (slotXᴾ s′) (slotRᴾ s′)
+          (liftPreciseBody W≼W′ B₁) avoid′
+        term-eq : wrapTerm (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
+            ≡ wrapTerm σ (liftPreciseTerm W≼W′
+                (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₁ 〗))
+        term-eq = cong (wrapTerm σ)
+          (trans
+            (cong
+              (λ T → liftPreciseTerm W≼W′ Vᴾ
+                ↑ 〖 slotXᴾ s′ , slotRᴾ s′ ↑ T 〗)
+              (sym (liftPreciseTy-universal W≼W′ B₁)))
+            (sym (lifted-reveal-precise s W≼W′ Vᴾ (`∀ B₁))))
+    in ClosureProof.right-universals-related-transport
+      {W = W′}
+      {p = liftCenterDynamicBodyImprecision W≼W′ p₀}
+      {Bᴾ = Bᴾ′} {k = suc k}
+      refl refl term-eq
+      (fam W≼W′ (w ∷ σ)))
+
+precise-universal-conceal-value : ∀ (j : ℕ) {sz : ℕ}
+    (below : Below j sz)
+    {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W) {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+  → slotXᴾ s ∉ᵗ `∀ B₁
+  → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W p j Vᴵ Vᴾ
+  → ValueImprecision W p j
+      Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₁))
+precise-universal-conceal-value zero below W s p no-occur sourceᴾ
+    related =
+  precise-conceal-endpoints W s p no-occur sourceᴾ {k = zero} related
+    (precise-value related ↓ all)
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    I.★⊑★ no-occur () related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    I.ι⊑ι no-occur () related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    I.X⊑X no-occur () related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    (I.⇒⊑⇒ p q) no-occur () related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    (I.⇒⊑★ p q) no-occur () related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    I.ι⊑★ no-occur () related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    (I.X⊑★ eq) no-occur () related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑∀ p₀) no-occur sourceᴾ related =
+  blocked-precise-conceal below W s p₀ no-occur sourceᴾ related
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    I.∀★⊑★ no-occur sourceᴾ
+    related@(endpoints , shape , payload) =
+  precise-conceal-endpoints W s I.∀★⊑★ no-occur sourceᴾ
+    {k = suc k} related (precise-value endpoints ↓ all) ,
+  shape ,
+  precise-universal-conceal-value k
+    (below-restrict (n≤1+n k) ≤-refl below) W s
+    (right-payload-imprecision shape) no-occur sourceᴾ payload
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
+    related@(endpoints , shape , payload) =
+  precise-conceal-endpoints W s (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
+    {k = suc k} related (precise-value endpoints ↓ all) ,
+  shape ,
+  precise-universal-conceal-value k
+    (below-restrict (n≤1+n k) ≤-refl below) W s
+    (right-payload-imprecision shape) no-occur sourceᴾ payload
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    I.bot-elim no-occur sourceᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot-elim} {k = suc k}
+    related)
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    I.bot⊑★ no-occur sourceᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot⊑★} {k = suc k}
+    related)
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑ {A = Ac} {B = Aᴵc} nonvar occurs p₀) no-occur sourceᴾ
+    related@(endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
+    with ty-all-injective
+           (renameᵗ-injective
+             (toRenameᵗ-injective (preciseEmbedding (core W)))
+             (trans embP* (sym sourceᴾ)))
+precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
+    (I.∀⊑ {A = Ac} {B = Aᴵc} nonvar occurs p₀) no-occur sourceᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related@(endpoints , .B₁ , Bᴵ* , embP* , embI* , fam)
+    | refl =
+  precise-conceal-endpoints W s (I.∀⊑ nonvar occurs p₀) no-occur
+    sourceᴾ {k = suc k} related (precise-value endpoints ↓ all) ,
+  B₁ , Bᴵ* , embP* , embI* ,
+  (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} σ →
+    let s′ = slot-future s W≼W′
+        avoid′ : slotXᴾ s′ ∉ᵗ `∀ (liftPreciseBody W≼W′ B₁)
+        avoid′ = subst≡ (slotXᴾ s′ ∉ᵗ_)
+          (liftPreciseTy-universal W≼W′ B₁)
+          (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₁))
+            (sym (slot-precise-variable-lift s W≼W′))
+            (lift-∉ᵗ W≼W′ no-occur))
+        w = conceal-inert (slotXᴾ s′) (slotRᴾ s′)
+          (liftPreciseBody W≼W′ B₁) avoid′
+        term-eq : wrapTerm (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
+            ≡ wrapTerm σ (liftPreciseTerm W≼W′
+                (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₁)))
+        term-eq = cong (wrapTerm σ)
+          (trans
+            (cong
+              (λ T → liftPreciseTerm W≼W′ Vᴾ
+                ↓ makeConceal (slotXᴾ s′) (slotRᴾ s′) T)
+              (sym (liftPreciseTy-universal W≼W′ B₁)))
+            (sym (lifted-conceal-precise s W≼W′ Vᴾ (`∀ B₁))))
+    in ClosureProof.right-universals-related-transport
+      {W = W′}
+      {p = liftCenterDynamicBodyImprecision W≼W′ p₀}
+      {Bᴾ = Bᴾ′} {k = suc k}
+      refl refl term-eq
+      (fam W≼W′ (w ∷ σ)))
+
 -- Lexicographic recursion: the type size decreases at a function type,
 -- and the index decreases when a dynamic tag is unfolded.
 
@@ -267,7 +494,13 @@ mutual
     endpoints = ClosureProof.value-imprecision-endpoints related
   reveal-go fuel j below W s {Bᴾ = `∀ B₁} p size no-occur sourceᴾ
       related =
-    blocked-precise-reveal below W s p no-occur sourceᴾ related
+    related-values-return
+      (imprecise-value endpoints) (precise-value endpoints ↑ all)
+      (λ i i≤j → precise-universal-value i
+        (below-restrict i≤j ≤-refl below) W s p no-occur sourceᴾ
+        (value-imprecision-downward-to i≤j related))
+    where
+    endpoints = ClosureProof.value-imprecision-endpoints related
 
   conceal-go : ∀ (fuel : ℕ) (j : ℕ) {sz : ℕ} (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
@@ -304,7 +537,13 @@ mutual
     endpoints = ClosureProof.value-imprecision-endpoints related
   conceal-go fuel j below W s {Bᴾ = `∀ B₁} p size no-occur sourceᴾ
       related =
-    blocked-precise-conceal below W s p no-occur sourceᴾ related
+    related-values-return
+      (imprecise-value endpoints) (precise-value endpoints ↓ all)
+      (λ i i≤j → precise-universal-conceal-value i
+        (below-restrict i≤j ≤-refl below) W s p no-occur sourceᴾ
+        (value-imprecision-downward-to i≤j related))
+    where
+    endpoints = ClosureProof.value-imprecision-endpoints related
 
   -- Identity wrappers step away on the precise endpoint.
 

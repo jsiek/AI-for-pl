@@ -254,48 +254,50 @@ record RevealObligations : Set₁ where
 
     blocked-precise-reveal : ∀ {k n} → Below k n
       → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
-          {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
-          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+          {B₁ : Ty (suc Δᴾ)} {Aᴾc Aᴵc : Ty (suc Δᶜ)}
+          (p₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾc ⊑ Aᴵc)
       → slotXᴾ s ∉ᵗ `∀ B₁
-      → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+      → embedPrecise (core W) (`∀ B₁) ≡ `∀ Aᴾc
       → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-      → ValueImprecision W p k Vᴵ Vᴾ
-      → ComputationsRelated W (FutureValueRelation p) k
+      → ValueImprecision W (I.∀⊑∀ p₀) k Vᴵ Vᴾ
+      → ValueImprecision W (I.∀⊑∀ p₀) k
           Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₁ 〗)
 
     blocked-precise-conceal : ∀ {k n} → Below k n
       → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
-          {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
-          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+          {B₁ : Ty (suc Δᴾ)} {Aᴾc Aᴵc : Ty (suc Δᶜ)}
+          (p₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾc ⊑ Aᴵc)
       → slotXᴾ s ∉ᵗ `∀ B₁
-      → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+      → embedPrecise (core W) (`∀ B₁) ≡ `∀ Aᴾc
       → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-      → ValueImprecision W p k Vᴵ Vᴾ
-      → ComputationsRelated W (FutureValueRelation p) k
+      → ValueImprecision W (I.∀⊑∀ p₀) k Vᴵ Vᴾ
+      → ValueImprecision W (I.∀⊑∀ p₀) k
           Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₁))
 
     blocked-dyn-reveal-universal : ∀ {k n} → Below k n
       → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
-          {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
-          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-      → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
-      → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
+          {B₁ : Ty (suc Δᴾ)} {Aᴾc Aᴵc : Ty (suc Δᶜ)}
+          (p₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾc ⊑ Aᴵc)
+      → embedPrecise (core W) (`∀ B₁) ≡ `∀ Aᴾc
+      → ∀ {Cᴾ : Ty Δᶜ}
+          (q : impEnv (core W) I.⊢ Cᴾ ⊑ `∀ Aᴵc)
       → embedPrecise (core W)
           (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁)) ≡ Cᴾ
       → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-      → ValueImprecision W p k Vᴵ Vᴾ
-      → ComputationsRelated W (FutureValueRelation q) k
+      → ValueImprecision W (I.∀⊑∀ p₀) k Vᴵ Vᴾ
+      → ValueImprecision W q k
           Vᴵ (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗)
 
     blocked-dyn-conceal-universal : ∀ {k n} → Below k n
       → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
-          {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
-          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-      → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
-      → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
+          {B₁ : Ty (suc Δᴾ)} {Aᴾc Aᴵc : Ty (suc Δᶜ)}
+          (p₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾc ⊑ Aᴵc)
+      → embedPrecise (core W) (`∀ B₁) ≡ `∀ Aᴾc
+      → ∀ {Cᴾ : Ty Δᶜ}
+          (q : impEnv (core W) I.⊢ Cᴾ ⊑ `∀ Aᴵc)
       → embedPrecise (core W)
           (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁)) ≡ Cᴾ
       → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
       → ValueImprecision W q k Vᴵ Vᴾ
-      → ComputationsRelated W (FutureValueRelation p) k
+      → ValueImprecision W (I.∀⊑∀ p₀) k
           Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))

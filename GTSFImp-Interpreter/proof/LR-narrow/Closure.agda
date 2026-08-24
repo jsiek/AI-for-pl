@@ -454,6 +454,21 @@ right-universals-related-reindex p q refl refl related
 -- composing the stored future with the demanded one, and under
 -- derivation reindexing pointwise.
 
+-- The chain is phantom in its derivation index: transport between
+-- any two derivations, with no endpoint equations.
+
+right-universals-phantom : ∀
+    {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Aᴾ′ Aᴵ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {k : ℕ} {Vᴵ Vᴾ}
+    (p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
+    (q : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ′ ⊑ Aᴵ′)
+  → RightUniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
+  → RightUniversalsRelated W q Bᴾ Bᴵ k Vᴵ Vᴾ
+right-universals-phantom {k = zero} p q related = related
+right-universals-phantom {k = suc k} p q (head , tail) =
+  head , right-universals-phantom p q tail
+
 right-universal-family-reindex : ∀
     {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Aᴾ′ Aᴵ′}
     {W : World Δᴾ Δᴵ Δᶜ} {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}

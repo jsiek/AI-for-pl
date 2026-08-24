@@ -44,7 +44,7 @@ import Eval as E
 open import Interpreter
 open import proof.ImprecisionConsistency using
   (toRenameᵗ-injective; renameᵗ-injective; ext-injective;
-   fin-suc-injective)
+   fin-suc-injective; ty-all-injective)
 open import proof.TypeSafety.Preservation using
   (structural-reveal-typing; structural-conceal-typing)
 open import LR-narrow.World
@@ -71,8 +71,17 @@ open import proof.LR-narrow.ArgumentFrame using
   (related-application-computation)
 open import proof.LR-narrow.SlotLifting using
   (transported-reveal-eq; transported-conceal-eq;
-   liftPreciseTy-arrow;
+   liftPreciseTy-arrow; rename-universal-inversion;
    ArrowImprecision; arrow-imprecision; arrow-imprecision-view)
+open import proof.LR-narrow.ReplaceImprecision using
+  (replace-left-⊑; star-or-not; rename-not-in-image;
+   conceal-shape-∀★; conceal-shape-⇒; conceal-shape-ι)
+open import proof.LR-narrow.StarNoOccurrence using
+  (renameᵗ-∉ᵗ; ⊑-var-right-nonvar)
+open import proof.LR-narrow.UniversalReveal using
+  (liftPreciseBody-replace)
+open import proof.TypeSafety.Progress using (no-bot-value)
+open import LR-narrow.Atoms using (shift-⊑)
 open import proof.LR-narrow.TypeRenamingComposition using
   (pack↑; pack↓; apply↑; apply↓)
 import proof.LR-narrow.PreciseReveal
@@ -80,7 +89,8 @@ open module PreciseRevealModule = proof.LR-narrow.PreciseReveal ob
   using (precise-endpoint-type; identity-reveal; identity-conceal;
          ArrowSource; arrow-arrow; arrow-star; arrow-source-view;
          sizeᵗ; renameᵗ-sizeᵗ; lift-sizeᵗ;
-         size-bound-left; size-bound-right)
+         size-bound-left; size-bound-right;
+         no-precise-bottom-value)
 
 open RevealObligations ob using
   (blocked-dyn-reveal-universal; blocked-dyn-conceal-universal)
@@ -386,6 +396,699 @@ dyn-lifted-conceal-precise d W≼W′ V B =
 -- Lexicographic recursion: the type size decreases at a function type,
 -- and the index decreases when a dynamic tag is unfolded.
 
+------------------------------------------------------------------------
+-- The universal wrapper at the value level
+------------------------------------------------------------------------
+
+-- Shared pieces for the universal cases: the embedded replacement
+-- commutes with the slot's center, and the slot's center avoids
+-- every imprecisely embedded type.
+
+dyn-embed-replace : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    (d : DynamicSlot W) (T : Ty Δᴾ)
+  → embedPrecise (core W) (replaceTy (dslotXᴾ d) (dslotRᴾ d) T)
+      ≡ replaceTy (dcenter d)
+          (embedPrecise (core W) (dslotRᴾ d))
+          (embedPrecise (core W) T)
+dyn-embed-replace {W = W} d T = trans
+  (renameᵗ-replaceTy (toRenameᵗ (preciseEmbedding (core W)))
+    (toRenameᵗ-injective (preciseEmbedding (core W)))
+    (dslotXᴾ d) (dslotRᴾ d) T)
+  (cong
+    (λ Z → replaceTy Z (embedPrecise (core W) (dslotRᴾ d))
+      (embedPrecise (core W) T))
+    (dynamicPreciseAligned (datom d)))
+
+dyn-embed-∉ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    (d : DynamicSlot W) (B : Ty Δᴵ)
+  → dcenter d ∉ᵗ embedImprecise (core W) B
+dyn-embed-∉ {W = W} d B = rename-not-in-image
+  (toRenameᵗ (impreciseEmbedding (core W))) (dcenter d)
+  (λ Y eq → dynamicNoTargetOccupant (datom d) (Y , eq)) B
+
+-- Wrapping a universally typed value at a dynamic slot, at the value
+-- level.  The right-universal source projects the dynamic entry of
+-- the stored replacement-closed family; the star-universal sources
+-- recurse into the dynamic payload at the smaller index, with the
+-- shape's derivation replaced by `replace-left-⊑`; the bottom
+-- sources are refuted; only the paired universal source remains an
+-- obligation.
+
+dyn-universal-value : ∀ (j sz : ℕ) (below : Below j sz)
+    {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
+    {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+  → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+  → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
+  → embedPrecise (core W)
+      (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁)) ≡ Cᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W p j Vᴵ Vᴾ
+  → ValueImprecision W q j
+      Vᴵ (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗)
+dyn-universal-value zero sz below W d p sourceᴾ q targetᴾ related =
+  dyn-reveal-endpoints W d p sourceᴾ q targetᴾ {k = zero} related
+    (precise-value related ↑ all)
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    I.★⊑★ () q targetᴾ related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    I.ι⊑ι () q targetᴾ related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    I.X⊑X () q targetᴾ related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.⇒⊑⇒ p₁ p₂) () q targetᴾ related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.⇒⊑★ p₁ p₂) () q targetᴾ related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    I.ι⊑★ () q targetᴾ related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.X⊑★ eq) () q targetᴾ related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑∀ p₀) sourceᴾ q targetᴾ related =
+  blocked-dyn-reveal-universal below W d p₀ sourceᴾ q targetᴾ
+    related
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    I.bot-elim sourceᴾ q targetᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot-elim} {k = suc k}
+    related)
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    I.bot⊑★ sourceᴾ q targetᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot⊑★} {k = suc k}
+    related)
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    I.∀★⊑★ sourceᴾ q targetᴾ
+    related@(endpoints , shape , payload) =
+  ClosureProof.value-imprecision-reindex q I.∀★⊑★ {k = suc k}
+    (trans (sym targetᴾ)
+      (trans (dyn-embed-replace d (`∀ B₁))
+        (cong
+          (replaceTy (dcenter d)
+            (embedPrecise (core W) (dslotRᴾ d)))
+          sourceᴾ)))
+    refl
+    (dyn-reveal-endpoints W d I.∀★⊑★ sourceᴾ I.∀★⊑★
+      (trans (dyn-embed-replace d (`∀ B₁))
+        (cong
+          (replaceTy (dcenter d)
+            (embedPrecise (core W) (dslotRᴾ d)))
+          sourceᴾ))
+      {k = suc k}
+      (ClosureProof.value-imprecision-reindex I.∀★⊑★ I.∀★⊑★
+        {k = suc k} refl refl related)
+      (precise-value endpoints ↑ all) ,
+    shape ,
+    dyn-universal-value k sz
+      (below-restrict (n≤1+n k) ≤-refl below) W d
+      (right-payload-imprecision shape) sourceᴾ
+      (right-payload-imprecision shape)
+      (trans (dyn-embed-replace d (`∀ B₁))
+        (cong
+          (replaceTy (dcenter d)
+            (embedPrecise (core W) (dslotRᴾ d)))
+          sourceᴾ))
+      payload)
+
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related@(endpoints , shape , payload)
+    with star-or-not
+      (replaceTy (Fin.suc (dcenter d))
+        (⇑ᵗ (embedPrecise (core W) (dslotRᴾ d))) Ac)
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related@(endpoints , shape , payload)
+    | inj₂ nonstar′ =
+  ClosureProof.value-imprecision-reindex q
+    (I.∀⊑★ nonstar′
+      (replace-left-⊑ (Fin.suc (dcenter d))
+        (shift-⊑ I.X⊑X (dynamicRep-related (datom d)))
+        ∉-star p₀))
+    {k = suc k}
+    (trans (sym targetᴾ) chain) refl
+    (dyn-reveal-endpoints W d (I.∀⊑★ nonstar p₀) sourceᴾ
+      (I.∀⊑★ nonstar′
+        (replace-left-⊑ (Fin.suc (dcenter d))
+          (shift-⊑ I.X⊑X (dynamicRep-related (datom d)))
+          ∉-star p₀))
+      chain {k = suc k} related
+      (precise-value endpoints ↑ all) ,
+    shape′ ,
+    payload′)
+  where
+  chain : embedPrecise (core W)
+      (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
+      ≡ replaceTy (dcenter d)
+          (embedPrecise (core W) (dslotRᴾ d)) (`∀ Ac)
+  chain = trans (dyn-embed-replace d (`∀ B₁))
+    (cong
+      (replaceTy (dcenter d)
+        (embedPrecise (core W) (dslotRᴾ d)))
+      sourceᴾ)
+
+  shape′ : RightDynamicPayloadShape W
+      (replaceTy (dcenter d)
+        (embedPrecise (core W) (dslotRᴾ d)) (`∀ Ac)) Vᴵ
+  shape′ = right-dynamic-payload-shape
+    (right-imprecise-ground shape)
+    (right-imprecise-ground-proof shape)
+    (right-imprecise-consistency-env shape)
+    (right-imprecise-ground-to-star shape)
+    (right-dynamic-imprecise-payload shape)
+    (right-dynamic-imprecise-shape shape)
+    (replace-left-⊑ (dcenter d) (dynamicRep-related (datom d))
+      (dyn-embed-∉ d (right-imprecise-ground shape))
+      (right-payload-imprecision shape))
+
+  payload′ = dyn-universal-value k sz
+    (below-restrict (n≤1+n k) ≤-refl below) W d
+    (right-payload-imprecision shape) sourceᴾ
+    (right-payload-imprecision shape′) chain payload
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related@(endpoints , shape , payload)
+    | inj₁ star-eq =
+  ClosureProof.value-imprecision-reindex q I.∀★⊑★ {k = suc k}
+    (trans (sym targetᴾ) (trans chain (cong (λ T → `∀ T) star-eq))) refl
+    (dyn-reveal-endpoints W d (I.∀⊑★ nonstar p₀) sourceᴾ
+      I.∀★⊑★ (trans chain (cong (λ T → `∀ T) star-eq))
+      {k = suc k} related
+      (precise-value endpoints ↑ all) ,
+    subst≡
+      (λ T → RightDynamicPayloadRelated W (`∀ T) k Vᴵ
+        (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗))
+      star-eq
+      (shape′ , payload′))
+  where
+  chain : embedPrecise (core W)
+      (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
+      ≡ replaceTy (dcenter d)
+          (embedPrecise (core W) (dslotRᴾ d)) (`∀ Ac)
+  chain = trans (dyn-embed-replace d (`∀ B₁))
+    (cong
+      (replaceTy (dcenter d)
+        (embedPrecise (core W) (dslotRᴾ d)))
+      sourceᴾ)
+
+  shape′ : RightDynamicPayloadShape W
+      (replaceTy (dcenter d)
+        (embedPrecise (core W) (dslotRᴾ d)) (`∀ Ac)) Vᴵ
+  shape′ = right-dynamic-payload-shape
+    (right-imprecise-ground shape)
+    (right-imprecise-ground-proof shape)
+    (right-imprecise-consistency-env shape)
+    (right-imprecise-ground-to-star shape)
+    (right-dynamic-imprecise-payload shape)
+    (right-dynamic-imprecise-shape shape)
+    (replace-left-⊑ (dcenter d) (dynamicRep-related (datom d))
+      (dyn-embed-∉ d (right-imprecise-ground shape))
+      (right-payload-imprecision shape))
+
+  payload′ = dyn-universal-value k sz
+    (below-restrict (n≤1+n k) ≤-refl below) W d
+    (right-payload-imprecision shape) sourceᴾ
+    (right-payload-imprecision shape′) chain payload
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑ {A = Ac} {B = Aᴵc} nonvar occurs p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related@(endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
+    with ty-all-injective
+           (renameᵗ-injective
+             (toRenameᵗ-injective (preciseEmbedding (core W)))
+             (trans embP* (sym sourceᴾ)))
+dyn-universal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑ {A = Ac} {B = Aᴵc} nonvar occurs p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    related@(endpoints , .B₁ , Bᴵ* , embP* , embI* , fam)
+    | refl =
+  ClosureProof.value-imprecision-reindex q alt₀ {k = suc k}
+    (trans (sym targetᴾ) chain) refl
+    (dyn-reveal-endpoints W d (I.∀⊑ nonvar occurs p₀) sourceᴾ
+      alt₀ chain {k = suc k} related
+      (precise-value endpoints ↑ all) ,
+    replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁ ,
+    Bᴵ* , chain , embI* ,
+    (λ W≼W′ σ → fam₀ W≼W′ σ))
+  where
+  chain : embedPrecise (core W)
+      (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
+      ≡ replaceTy (dcenter d)
+          (embedPrecise (core W) (dslotRᴾ d)) (`∀ Ac)
+  chain = trans (dyn-embed-replace d (`∀ B₁))
+    (cong
+      (replaceTy (dcenter d)
+        (embedPrecise (core W) (dslotRᴾ d)))
+      sourceᴾ)
+
+  avoidᴵ : dcenter d ∉ᵗ Aᴵc
+  avoidᴵ = subst≡ (dcenter d ∉ᵗ_) (impreciseEmbedded endpoints)
+    (dyn-embed-∉ d (impreciseType endpoints))
+
+  alt₀ = replace-left-⊑ (dcenter d)
+    (dynamicRep-related (datom d)) avoidᴵ
+    (I.∀⊑ nonvar occurs p₀)
+
+  fam₀ : RightUniversalFamily W
+      (replace-left-⊑ (Fin.suc (dcenter d))
+        (shift-⊑ I.X⊑★ (dynamicRep-related (datom d)))
+        (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoidᴵ) p₀)
+      (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁)
+      Bᴵ* (suc k) Vᴵ
+      (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗)
+  fam₀ {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} σ =
+    ClosureProof.right-universals-phantom
+      (liftCenterDynamicBodyImprecision W≼W′ p₀)
+      (liftCenterDynamicBodyImprecision W≼W′
+        (replace-left-⊑ (Fin.suc (dcenter d))
+          (shift-⊑ I.X⊑★ (dynamicRep-related (datom d)))
+          (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoidᴵ) p₀))
+      (ClosureProof.right-universals-related-transport
+        {W = W′}
+        {p = liftCenterDynamicBodyImprecision W≼W′ p₀}
+        {Bᴾ = Bᴾ′} {k = suc k}
+        refl refl term-eq
+        (fam W≼W′ (w† ∷ σ†)))
+    where
+    d′ = dyn-slot-future d W≼W′
+
+    σ-eq : liftPreciseBody W≼W′
+        (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁)
+        ≡ replaceTy (Fin.suc (dslotXᴾ d′)) (⇑ᵗ (dslotRᴾ d′))
+            (liftPreciseBody W≼W′ B₁)
+    σ-eq = trans
+      (liftPreciseBody-replace W≼W′ (dslotXᴾ d) (dslotRᴾ d) B₁)
+      (cong₂
+        (λ X R → replaceTy (Fin.suc X) (⇑ᵗ R)
+          (liftPreciseBody W≼W′ B₁))
+        (sym (dyn-slot-precise-variable-lift d W≼W′))
+        (sym (dyn-slot-precise-rep-lift d W≼W′)))
+
+    w† = reveal-dyn d′ (liftPreciseBody W≼W′ B₁)
+
+    σ† : UniWraps W′
+        (replaceTy (Fin.suc (dslotXᴾ d′)) (⇑ᵗ (dslotRᴾ d′))
+          (liftPreciseBody W≼W′ B₁)) Bᴾ′
+    σ† = subst≡ (λ B → UniWraps W′ B Bᴾ′) σ-eq σ
+
+    term-eq : wrapTerm (w† ∷ σ†) (liftPreciseTerm W≼W′ Vᴾ)
+        ≡ wrapTerm σ (liftPreciseTerm W≼W′
+            (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗))
+    term-eq = trans
+      (wrapTerm-subst σ-eq σ
+        (liftPreciseTerm W≼W′ Vᴾ
+          ↑ 〖 dslotXᴾ d′ , dslotRᴾ d′
+              ↑ `∀ (liftPreciseBody W≼W′ B₁) 〗))
+      (cong (wrapTerm σ)
+        (trans
+          (cong
+            (λ T → liftPreciseTerm W≼W′ Vᴾ
+              ↑ 〖 dslotXᴾ d′ , dslotRᴾ d′ ↑ T 〗)
+            (sym (liftPreciseTy-universal W≼W′ B₁)))
+          (sym (dyn-lifted-reveal-precise d W≼W′ Vᴾ (`∀ B₁)))))
+
+-- The conceal dual: the given value sits at the replaced type; the
+-- concealed value is related at the source.  The star-universal
+-- payload shapes transfer backwards through the ground analysis: the
+-- paired-mode star premise of the source refutes every ground
+-- derivation whose bound variable occurs, and what survives is
+-- rebuilt from the source premise.
+
+dyn-universal-conceal-value : ∀ (j sz : ℕ) (below : Below j sz)
+    {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
+    {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+  → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+  → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
+  → embedPrecise (core W)
+      (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁)) ≡ Cᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W q j Vᴵ Vᴾ
+  → ValueImprecision W p j
+      Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
+dyn-universal-conceal-value zero sz below W d p sourceᴾ q targetᴾ
+    related =
+  dyn-conceal-endpoints W d p sourceᴾ q targetᴾ {k = zero} related
+    (precise-value related ↓ all)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.★⊑★ () q targetᴾ related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.ι⊑ι () q targetᴾ related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.X⊑X () q targetᴾ related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.⇒⊑⇒ p₁ p₂) () q targetᴾ related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.⇒⊑★ p₁ p₂) () q targetᴾ related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.ι⊑★ () q targetᴾ related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.X⊑★ eq) () q targetᴾ related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑∀ p₀) sourceᴾ q targetᴾ related =
+  blocked-dyn-conceal-universal below W d p₀ sourceᴾ q targetᴾ
+    related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.bot-elim sourceᴾ q targetᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot-elim} {k = suc k}
+    (ClosureProof.value-imprecision-reindex I.bot-elim q
+      {k = suc k}
+      (trans
+        (sym (trans (dyn-embed-replace d (`∀ B₁))
+          (cong
+            (replaceTy (dcenter d)
+              (embedPrecise (core W) (dslotRᴾ d)))
+            sourceᴾ)))
+        targetᴾ)
+      refl related))
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.bot⊑★ sourceᴾ q targetᴾ related =
+  ⊥-elim (no-precise-bottom-value {p = I.bot⊑★} {k = suc k}
+    (ClosureProof.value-imprecision-reindex I.bot⊑★ q
+      {k = suc k}
+      (trans
+        (sym (trans (dyn-embed-replace d (`∀ B₁))
+          (cong
+            (replaceTy (dcenter d)
+              (embedPrecise (core W) (dslotRᴾ d)))
+            sourceᴾ)))
+        targetᴾ)
+      refl related))
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.∀★⊑★ sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    with ClosureProof.value-imprecision-reindex I.∀★⊑★ q
+      {k = suc k}
+      (trans
+        (sym (trans (dyn-embed-replace d (`∀ B₁))
+          (cong
+            (replaceTy (dcenter d)
+              (embedPrecise (core W) (dslotRᴾ d)))
+            sourceᴾ)))
+        targetᴾ)
+      refl related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    I.∀★⊑★ sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | endpointsq , shapeq , payloadq =
+  dyn-conceal-endpoints W d I.∀★⊑★ sourceᴾ q targetᴾ
+    {k = suc k} related
+    (precise-value (ClosureProof.value-imprecision-endpoints related)
+      ↓ all) ,
+  shapeq ,
+  dyn-universal-conceal-value k sz
+    (below-restrict (n≤1+n k) ≤-refl below) W d
+    (right-payload-imprecision shapeq) sourceᴾ
+    (right-payload-imprecision shapeq)
+    (trans (dyn-embed-replace d (`∀ B₁))
+      (cong
+        (replaceTy (dcenter d)
+          (embedPrecise (core W) (dslotRᴾ d)))
+        sourceᴾ))
+    payloadq
+
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    with star-or-not
+      (replaceTy (Fin.suc (dcenter d))
+        (⇑ᵗ (embedPrecise (core W) (dslotRᴾ d))) Ac)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₂ nonstar′
+    with ClosureProof.value-imprecision-reindex
+      (I.∀⊑★ nonstar′
+        (replace-left-⊑ (Fin.suc (dcenter d))
+          (shift-⊑ I.X⊑X (dynamicRep-related (datom d)))
+          ∉-star p₀))
+      q {k = suc k}
+      (trans
+        (sym (trans (dyn-embed-replace d (`∀ B₁))
+          (cong
+            (replaceTy (dcenter d)
+              (embedPrecise (core W) (dslotRᴾ d)))
+            sourceᴾ)))
+        targetᴾ)
+      refl related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₂ nonstar′
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    with gp
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₂ nonstar′
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ＇ X =
+  ⊥-elim (⊑-var-right-nonvar payload-der nonvar-all)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₂ nonstar′
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ‵ ι =
+  ⊥-elim (conceal-shape-ι payload-der)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₂ nonstar′
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ★⇒★ =
+  ⊥-elim (conceal-shape-⇒ (dcenter d) refl p₀ payload-der)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₂ nonstar′
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ∀★ =
+  dyn-conceal-endpoints W d (I.∀⊑★ nonstar p₀) sourceᴾ q targetᴾ
+    {k = suc k} related
+    (precise-value
+      (ClosureProof.value-imprecision-endpoints related) ↓ all) ,
+  right-dynamic-payload-shape (`∀ ★) ∀★ genv gts
+    payload-term payload-tag out-der ,
+  dyn-universal-conceal-value k sz
+    (below-restrict (n≤1+n k) ≤-refl below) W d
+    out-der sourceᴾ payload-der
+    (trans (dyn-embed-replace d (`∀ B₁))
+      (cong
+        (replaceTy (dcenter d)
+          (embedPrecise (core W) (dslotRᴾ d)))
+        sourceᴾ))
+    payloadq
+  where
+  out-der : impEnv (core W) I.⊢ `∀ Ac
+      ⊑ embedImprecise (core W) (`∀ ★)
+  out-der = conceal-shape-∀★ (dcenter d) refl p₀ payload-der
+
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₁ star-eq
+    with ClosureProof.value-imprecision-reindex I.∀★⊑★
+      q {k = suc k}
+      (trans
+        (sym (trans
+          (trans (dyn-embed-replace d (`∀ B₁))
+            (cong
+              (replaceTy (dcenter d)
+                (embedPrecise (core W) (dslotRᴾ d)))
+              sourceᴾ))
+          (cong (λ T → `∀ T) star-eq)))
+        targetᴾ)
+      refl related
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₁ star-eq
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    with gp
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₁ star-eq
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ＇ X =
+  ⊥-elim (⊑-var-right-nonvar payload-der nonvar-all)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₁ star-eq
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ‵ ι =
+  ⊥-elim (conceal-shape-ι payload-der)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₁ star-eq
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ★⇒★ =
+  ⊥-elim (conceal-shape-⇒ (dcenter d) (sym star-eq) p₀
+    payload-der)
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑★ {A = Ac} nonstar p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    | inj₁ star-eq
+    | endpointsq ,
+      right-dynamic-payload-shape g gp genv gts
+        payload-term payload-tag payload-der ,
+      payloadq
+    | ∀★ =
+  dyn-conceal-endpoints W d (I.∀⊑★ nonstar p₀) sourceᴾ q targetᴾ
+    {k = suc k} related
+    (precise-value
+      (ClosureProof.value-imprecision-endpoints related) ↓ all) ,
+  right-dynamic-payload-shape (`∀ ★) ∀★ genv gts
+    payload-term payload-tag out-der ,
+  dyn-universal-conceal-value k sz
+    (below-restrict (n≤1+n k) ≤-refl below) W d
+    out-der sourceᴾ payload-der
+    (trans
+      (trans (dyn-embed-replace d (`∀ B₁))
+        (cong
+          (replaceTy (dcenter d)
+            (embedPrecise (core W) (dslotRᴾ d)))
+          sourceᴾ))
+      (cong (λ T → `∀ T) star-eq))
+    payloadq
+  where
+  out-der : impEnv (core W) I.⊢ `∀ Ac
+      ⊑ embedImprecise (core W) (`∀ ★)
+  out-der = conceal-shape-∀★ (dcenter d) (sym star-eq) p₀
+    payload-der
+dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
+    (I.∀⊑ {A = Ac} {B = Aᴵc} nonvar occurs p₀) sourceᴾ q targetᴾ
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related = conceal-right-universal-case
+  where
+  endpoints = ClosureProof.value-imprecision-endpoints related
+
+  chain : embedPrecise (core W)
+      (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
+      ≡ replaceTy (dcenter d)
+          (embedPrecise (core W) (dslotRᴾ d)) (`∀ Ac)
+  chain = trans (dyn-embed-replace d (`∀ B₁))
+    (cong
+      (replaceTy (dcenter d)
+        (embedPrecise (core W) (dslotRᴾ d)))
+      sourceᴾ)
+
+  avoidᴵ : dcenter d ∉ᵗ Aᴵc
+  avoidᴵ = subst≡ (dcenter d ∉ᵗ_) (impreciseEmbedded endpoints)
+    (dyn-embed-∉ d (impreciseType endpoints))
+
+  alt = replace-left-⊑ (dcenter d)
+    (dynamicRep-related (datom d)) avoidᴵ
+    (I.∀⊑ nonvar occurs p₀)
+
+  q₀ᵃ = replace-left-⊑ (Fin.suc (dcenter d))
+    (shift-⊑ I.X⊑★ (dynamicRep-related (datom d)))
+    (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoidᴵ) p₀
+
+  conceal-right-universal-case : ValueImprecision W
+      (I.∀⊑ nonvar occurs p₀) (suc k)
+      Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
+  conceal-right-universal-case
+      with ClosureProof.value-imprecision-reindex alt q
+        {k = suc k} (trans (sym chain) targetᴾ) refl related
+  conceal-right-universal-case
+      | endpointsq , Bᴾ* , Bᴵ* , embP* , embI* , famq
+      with ty-all-injective
+        (renameᵗ-injective
+          (toRenameᵗ-injective (preciseEmbedding (core W)))
+          (trans embP* (sym chain)))
+  conceal-right-universal-case
+      | endpointsq
+      , .(replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁)
+      , Bᴵ* , embP* , embI* , famq
+      | refl =
+    dyn-conceal-endpoints W d (I.∀⊑ nonvar occurs p₀) sourceᴾ q
+      targetᴾ {k = suc k} related
+      (precise-value endpoints ↓ all) ,
+    B₁ , Bᴵ* , sourceᴾ , embI* ,
+    (λ W≼W′ σ → fam-out W≼W′ σ)
+    where
+    fam-out : RightUniversalFamily W p₀ B₁ Bᴵ* (suc k)
+        Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
+    fam-out {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} σ =
+      ClosureProof.right-universals-phantom
+        (liftCenterDynamicBodyImprecision W≼W′ q₀ᵃ)
+        (liftCenterDynamicBodyImprecision W≼W′ p₀)
+        (ClosureProof.right-universals-related-transport
+          {W = W′}
+          {p = liftCenterDynamicBodyImprecision W≼W′ q₀ᵃ}
+          {Bᴾ = Bᴾ′} {k = suc k}
+          refl refl term-eq
+          (famq W≼W′ σ‡))
+      where
+      d′ = dyn-slot-future d W≼W′
+
+      σ-eq : liftPreciseBody W≼W′
+          (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁)
+          ≡ replaceTy (Fin.suc (dslotXᴾ d′)) (⇑ᵗ (dslotRᴾ d′))
+              (liftPreciseBody W≼W′ B₁)
+      σ-eq = trans
+        (liftPreciseBody-replace W≼W′ (dslotXᴾ d) (dslotRᴾ d) B₁)
+        (cong₂
+          (λ X R → replaceTy (Fin.suc X) (⇑ᵗ R)
+            (liftPreciseBody W≼W′ B₁))
+          (sym (dyn-slot-precise-variable-lift d W≼W′))
+          (sym (dyn-slot-precise-rep-lift d W≼W′)))
+
+      w† = conceal-dyn d′ (liftPreciseBody W≼W′ B₁)
+
+      σ‡ : UniWraps W′
+          (liftPreciseBody W≼W′
+            (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁))
+          Bᴾ′
+      σ‡ = subst≡ (λ B → UniWraps W′ B Bᴾ′) (sym σ-eq) (w† ∷ σ)
+
+      term-eq : wrapTerm σ‡ (liftPreciseTerm W≼W′ Vᴾ)
+          ≡ wrapTerm σ (liftPreciseTerm W≼W′
+              (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d)
+                (`∀ B₁)))
+      term-eq = trans
+        (wrapTerm-subst (sym σ-eq) (w† ∷ σ)
+          (liftPreciseTerm W≼W′ Vᴾ))
+        (cong (wrapTerm σ)
+          (trans
+            (cong
+              (λ T → liftPreciseTerm W≼W′ Vᴾ
+                ↓ makeConceal (dslotXᴾ d′) (dslotRᴾ d′) T)
+              (sym (liftPreciseTy-universal W≼W′ B₁)))
+            (sym (dyn-lifted-conceal-precise d W≼W′ Vᴾ
+              (`∀ B₁)))))
+
 mutual
   dyn-reveal-go : ∀ (fuel j sz : ℕ) (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
@@ -489,8 +1192,13 @@ mutual
     endpoints = ClosureProof.value-imprecision-endpoints related
   dyn-reveal-go fuel j sz below W d {Bᴾ = `∀ B₁} p size sourceᴾ q
       targetᴾ related =
-    blocked-dyn-reveal-universal below W d p sourceᴾ q targetᴾ
-      related
+    related-values-return
+      (imprecise-value endpoints) (precise-value endpoints ↑ all)
+      (λ i i≤j → dyn-universal-value i sz
+        (below-restrict i≤j ≤-refl below) W d p sourceᴾ q targetᴾ
+        (value-imprecision-downward-to i≤j related))
+    where
+    endpoints = ClosureProof.value-imprecision-endpoints related
 
   dyn-conceal-go : ∀ (fuel j sz : ℕ) (below : Below j sz)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
@@ -584,8 +1292,13 @@ mutual
     endpoints = ClosureProof.value-imprecision-endpoints related
   dyn-conceal-go fuel j sz below W d {Bᴾ = `∀ B₁} p size sourceᴾ q
       targetᴾ related =
-    blocked-dyn-conceal-universal below W d p sourceᴾ q targetᴾ
-      related
+    related-values-return
+      (imprecise-value endpoints) (precise-value endpoints ↓ all)
+      (λ i i≤j → dyn-universal-conceal-value i sz
+        (below-restrict i≤j ≤-refl below) W d p sourceᴾ q targetᴾ
+        (value-imprecision-downward-to i≤j related))
+    where
+    endpoints = ClosureProof.value-imprecision-endpoints related
 
   -- Wrapping a related computation on the precise endpoint.
 

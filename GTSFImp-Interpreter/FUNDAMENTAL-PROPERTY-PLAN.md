@@ -547,15 +547,38 @@ imprecise center except the atomic ones:
   (`right-universal-general` forces the target derivation by
   `⊑-unique` against the `replace-⊑`-built `I.∀⊑`).
 
+Update (2026-08-24, checked): the atomic-target reveal is now also
+closed except for the variable hit.  `paired-no-occurrence` in
+`proof/LR-narrow/StarNoOccurrence.agda` generalizes
+`star-no-occurrence`: a variable at the paired mode `X⊑X` occurs on
+the left of a derivation only opposite an occurrence of itself on the
+right, so when the paired center avoids the imprecise center type,
+both replacements are the identity.  The `absent` trio in
+`RevealStructural.agda` (`reveal-right-universal-absent-inner`/
+`-head`/`-absent`, with `right-universal-absent-general` forcing the
+target derivation, which is the source transported along the identity
+replacement) closes `Bᴵ = ‵ ι`, the missed variable `Bᴵ = ＇ Y` with
+`Y ≢ slotXᴵ s` (decided by the neutral `var-decision` view so the
+blocked branch keeps its hypotheses at their original types), and
+re-derives the former `★`-route as the instance `avoid = ∉-star` (the
+special-cased star trio is deleted).  A small `liftCenter-∉ᵗ` lemma
+transports non-occurrence along futures.
+
 Still blocked at `∀⊑` (through the unchanged `blocked-reveal`/
 `blocked-conceal` obligations):
 
-* the reveal when `Bᴵ` is a variable or base type: the imprecise
-  wrapper is then `unseal`- or `id↑`-shaped; the unseal-hit case
-  needs the imprecise value's seal structure, which the `∀⊑` clause
-  does not record — the same canonical-forms gate as `∀⊑★`/`∀★⊑★`;
-  the `id↑`-shaped sub-cases additionally need a head variant whose
-  imprecise endpoint is the bare value;
+* the reveal at the variable hit `Bᴵ = ＇ (slotXᴵ s)`: the imprecise
+  wrapper unseals, and the payload pair after the unseal has no
+  semantic content — the `∀⊑` clause records nothing about the
+  imprecise value's seal structure.  Suggested resolution: enrich the
+  `∀⊑` clause with the seal structure when the imprecise center is a
+  paired-mode variable (`Vᴵ ≡ Uᴵ ↓ seal …` with the payload pair
+  related one index lower — the unseal is an imprecise step, so a
+  contractive field is exactly right, unlike Finding D).  The natural
+  producer of such pairs is the conceal direction at the same hit, so
+  the enrichment should land together with `∀⊑`-conceal, and ideally
+  in one design pass with the `∀⊑★`/`∀★⊑★` gate (tags there, seals
+  here: both expose imprecise runtime structure);
 * the whole conceal direction at `∀⊑` (the dual decomposition —
   paired conceal of the body, dynamic reveal of the fresh slot,
   `makeConceal` value forms including the seal hit — is mapped but

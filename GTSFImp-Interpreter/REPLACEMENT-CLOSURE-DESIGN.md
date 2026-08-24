@@ -76,6 +76,58 @@ The two dynamic kinds serve `blocked-dyn-reveal-universal` and
 variable with a non-occurrence witness — subsuming the paired-slot
 case) serve `blocked-precise-reveal`/`-conceal`.
 
+## Revisions found while planning the implementation (2026-08-24)
+
+Revision 1 (Kripke families).  The family must quantify over futures
+at storage time: a value lifted to a future world must be wrappable
+at the future world's *new* dynamic slots, which a per-world family
+cannot cover, and repairing it inside the future-closure lemma would
+make `Closure` depend on the reveal machinery (a module cycle).  The
+stored component is therefore
+
+    ∀ {W′} (W≼W′ : Future W W′) {Bᴾ′}
+      (σ : UniWraps W′ (liftPreciseBody W≼W′ Bᴾ) Bᴾ′)
+    → RightUniversalsRelated W′
+        (liftCenterDynamicBodyImprecision W≼W′ p)
+        Bᴾ′ (liftImpreciseTy W≼W′ Bᴵ) k
+        (liftImpreciseTerm W≼W′ Vᴵ)
+        (wrapTerm σ (liftPreciseTerm W≼W′ Vᴾ))
+
+Future closure then composes futures, and the `(future-refl, [])`
+projection is definitionally the old chain.
+
+Revision 2 (Finding F — the `∀⊑∀` entries are unstateable).  A family
+entry for a `∀⊑∀`-related pair with a precise-only (dynamic or inert)
+wrapper has heads relating an *unwrapped imprecise application* to a
+*wrapped precise application*.  Their joint evaluation starts with a
+precise-only β of the wrapper at the real instantiation type `Sᴾ`,
+allocating a precise name bound to `Sᴾ` with no imprecise partner
+allocation (the imprecise application steps by whatever the abstract
+imprecise value dictates, and pairing its step with the wrapper β
+produces instead an inner precise application at the paired fresh
+name, whose own bind is an alias of a paired name).  Neither
+intermediate world is classifiable: dynamic atoms require `⊑ ★`
+representative imprecision, paired atoms require the imprecise
+allocation, and there is no atom kind for a precise-only allocation
+at non-`★` imprecision.  Resolving this needs a world-model
+extension (one-sided precise atoms at arbitrary representative
+imprecision `embP Rᴾ ⊑ T`, generalizing dynamic atoms from `T = ★`),
+plus, for the one-sided obligations at `∀⊑∀`, the imprecise
+canonical forms already noted.  Step 4's `∀⊑∀` part is therefore
+deferred; the family lands in the `∀⊑` clause only, and the four
+obligations narrow to `∀⊑∀` sources.
+
+Revision 3 (kit-based producer integration).  The family construction
+needs the dynamic and one-sided computations statements, which are
+obligation-parameterized, while the producers
+(`proof/LR-narrow/Universal.agda`) and the compatibility layer are
+not.  Rather than re-parameterizing that layer, the producers take a
+*family kit* — a record of family builders whose type is
+obligation-free — as an argument, mirroring the record pattern
+already used by `proof/LR-narrow/FundamentalAssembly.agda`; the kit
+value is constructed in the obligation-parameterized layer from the
+generic `family-extend` lemmas and supplied at assembly time.
+
 ## The clause change
 
 In `LR-narrow/LogicalRelation.agda`, the chain component of the

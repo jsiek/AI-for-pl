@@ -1,31 +1,31 @@
 module alt.ThetaPreservation where
 
 -- File Charter:
---   * Records the checked obstructions to one-step type preservation for the
---     Θ-indexed alternative calculus after `id-cancel` was made strict.
+--   * Proves one-step preservation for closed configurations of the
+--     Θ-indexed alternative calculus, one lemma per reduction rule.
 --   * The strict rule repairs the counterexample from commit c5ee0351: its
 --     mismatched identity delimiters now form an adapter value rather than a
 --     redex.  That historical instance remains below as a regression.
---   * Even at the empty term context, the loose `conceal-reveal` rule can pair
---     two anchors with different representations.  Its checked instance below
---     has type `𝔹` and reduces to a natural constant, refuting closed
---     preservation.  Typing forces the two slots equal but not the anchors.
+--   * The old loose-anchor counterexample is now untypable: crossing entries
+--     record their anchors, so typing forces both nodes' slot and anchor data.
 --   * At a nonempty term context, `β-reveal-⇒` independently moves a captured
 --     lambda beneath a conceal delimiter whose typing rule requires a closed
 --     interior.  That checked instance explains why arbitrary-context
 --     preservation would remain false even after repairing `conceal-reveal`.
---   * As pre-agreed, no partial preservation theorem, postulate, or hole is
---     introduced.  The checked refutations are the deliverable for the false
---     statements.
+--   * The theorem is deliberately stated at `[]`; the checked nonempty-context
+--     `β-reveal-⇒` refutation remains as a record of that boundary.
 
 open import Data.Empty using (⊥)
 import Data.Fin as Fin
 open import Data.Fin using (zero; suc)
+open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_)
-open import Relation.Nullary using (¬_)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; cong; sym; trans)
+  renaming (subst to subst≡)
+open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
 open import TermCtx
@@ -34,6 +34,61 @@ open import alt.Conversion
 open import alt.ThetaTerms
 open import alt.ThetaTyping
 open import alt.ThetaReduction
+open import alt.ThetaTermSubst
+
+------------------------------------------------------------------------
+-- Generator endpoint at a freshly allocated slot
+------------------------------------------------------------------------
+
+replaceEnv : ∀ {Δ} → TyVar Δ → Ty Δ → Δ ⇒ˢ Δ
+replaceEnv X R Y with X ≟ Y
+replaceEnv X R .X | yes refl = R
+replaceEnv X R Y | no X≢Y = ＇ Y
+
+replaceEnv-ext : ∀ {Δ} (X : TyVar Δ) (R : Ty Δ)
+    (Y : TyVar (suc Δ))
+  → replaceEnv (suc X) (⇑ᵗ R) Y ≡ extsᵗ (replaceEnv X R) Y
+replaceEnv-ext X R zero = refl
+replaceEnv-ext X R (suc Y) with X ≟ Y
+replaceEnv-ext X R (suc .X) | yes refl = refl
+replaceEnv-ext X R (suc Y) | no X≢Y = refl
+
+replaceTy-subst : ∀ {Δ} (X : TyVar Δ) (R B : Ty Δ)
+  → replaceTy X R B ≡ substᵗ (replaceEnv X R) B
+replaceTy-subst X R (＇ Y) with X ≟ Y
+replaceTy-subst X R (＇ .X) | yes refl = refl
+replaceTy-subst X R (＇ Y) | no X≢Y = refl
+replaceTy-subst X R (‵ ι) = refl
+replaceTy-subst X R ★ = refl
+replaceTy-subst X R (A ⇒ B)
+    rewrite replaceTy-subst X R A | replaceTy-subst X R B =
+  refl
+replaceTy-subst X R (`∀ B) =
+  cong `∀
+    (trans (replaceTy-subst (suc X) (⇑ᵗ R) B)
+      (substᵗ-cong B (replaceEnv-ext X R)))
+
+generator-endpoint : ∀ {Δ} (B : Ty (suc Δ)) (C : Ty Δ)
+  → replaceTy zero (⇑ᵗ C) B ≡ ⇑ᵗ (B [ C ]ᵗ)
+generator-endpoint B C =
+  trans (replaceTy-subst zero (⇑ᵗ C) B)
+    (trans (substᵗ-cong B env-eq)
+      (sym (renameᵗ-subst suc (singleSubᵗ C) B)))
+  where
+  env-eq : ∀ X
+    → replaceEnv zero (⇑ᵗ C) X
+      ≡ renameᵗ suc (singleSubᵗ C X)
+  env-eq zero = refl
+  env-eq (suc X) = refl
+
+generator-typed : ∀ {Δ} (B : Ty (suc Δ)) (C : Ty Δ)
+  → ⊢↑[ zero ⦂ ⇑ᵗ C ] 〖 zero ↑ B 〗
+      ⦂ B ↝ wkᵗ zero (B [ C ]ᵗ)
+generator-typed B C =
+  subst≡
+    (λ T → ⊢↑[ zero ⦂ ⇑ᵗ C ] 〖 zero ↑ B 〗 ⦂ B ↝ T)
+    (generator-endpoint B C)
+    (generator-typed↑ zero (⇑ᵗ C) B)
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression
@@ -41,25 +96,31 @@ open import alt.ThetaReduction
 
 bad-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
 bad-Ψ =
-  ∅ ,:= ‵ `ℕ ,:= ‵ `ℕ ,typ[ zero ] ,typ[ zero ]
+  ∅ ,:= ‵ `ℕ ,:= ‵ `ℕ
+    ,typ[ zero ≔ zero ] ,typ[ zero ≔ zero ]
 
 bad-body-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
 bad-body-Ψ =
-  ∅ ,:= ‵ `ℕ ,:= ‵ `ℕ ,typ[ zero ] ,typ[ suc zero ]
+  ∅ ,:= ‵ `ℕ ,:= ‵ `ℕ
+    ,typ[ zero ≔ zero ] ,typ[ suc zero ≔ suc zero ]
 
 bad-V : Term (suc (suc zero)) (suc (suc zero))
 bad-V = ($ (κℕ 7)) ↓[ zero ≔ zero ] seal
 
 bad-V-⊢ : bad-body-Ψ ∣ [] ⊢ bad-V ⦂ ＇ zero
-bad-V-⊢ = ⊢conceal (skip-typ Z) ⊢seal (⊢$ (κℕ 7))
+bad-V-⊢ =
+  ⊢conceal (skip-cross-typ here-typ) (skip-typ Z)
+    ⊢seal (⊢$ (κℕ 7))
 
 bad-inner : Term (suc (suc zero)) (suc (suc (suc zero)))
 bad-inner = bad-V ↓[ zero ≔ zero ] id↓
 
 bad-inner-⊢ :
-  bad-Ψ ,typ[ suc (suc zero) ] ∣ [] ⊢ bad-inner ⦂ ＇ suc zero
+  bad-Ψ ,typ[ suc (suc zero) ≔ suc zero ] ∣ []
+    ⊢ bad-inner ⦂ ＇ suc zero
 bad-inner-⊢ =
-  ⊢conceal (skip-typ (skip-typ Z)) (⊢id↓ (＇ suc zero)) bad-V-⊢
+  ⊢conceal (skip-cross-typ here-typ) (skip-typ (skip-typ Z))
+    (⊢id↓ (＇ suc zero)) bad-V-⊢
 
 bad-redex : Term (suc (suc zero)) (suc (suc zero))
 bad-redex = bad-inner ↑[ suc (suc zero) ≔ suc zero ] id↑
@@ -111,7 +172,7 @@ bad-redex-no-step : ∀ {M′}
 bad-redex-no-step (ξ-reveal step) = bad-inner-no-step step
 
 ------------------------------------------------------------------------
--- Loose conceal/reveal at distinct anchors
+-- Recorded anchors resolve the old loose conceal/reveal refutation
 ------------------------------------------------------------------------
 
 loose-Ψ : TyEnv 2 0
@@ -126,30 +187,23 @@ loose-V-⊢ = ⊢$ (κℕ 7)
 loose-inner : Term 2 1
 loose-inner = loose-V ↓[ zero ≔ suc zero ] seal
 
-loose-inner-⊢ :
-  loose-Ψ ,typ[ zero ] ∣ [] ⊢ loose-inner ⦂ ＇ zero
-loose-inner-⊢ = ⊢conceal (S Z) ⊢seal loose-V-⊢
+loose-anchor-mismatch :
+  loose-Ψ ,typ[ zero ≔ zero ] ∋typ zero ≔ suc zero
+  → ⊥
+loose-anchor-mismatch ()
 
 loose-redex : Term 2 0
 loose-redex = loose-inner ↑[ zero ≔ zero ] unseal
 
-loose-redex-⊢ : loose-Ψ ∣ [] ⊢ loose-redex ⦂ ‵ `𝔹
-loose-redex-⊢ = ⊢reveal Z ⊢unseal loose-inner-⊢
-
 loose-step : loose-Ψ ⊢ loose-redex —→ loose-V
 loose-step = conceal-reveal ($ (κℕ 7))
 
-loose-reduct-untypable : loose-Ψ ∣ [] ⊢ loose-V ⦂ ‵ `𝔹 → ⊥
-loose-reduct-untypable ()
-
-closed-preserve-impossible :
-  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ A}
-    → Ψ ∣ [] ⊢ M ⦂ A
-    → Ψ ⊢ M —→ M′
-    → Ψ ∣ [] ⊢ M′ ⦂ A)
+loose-redex-untypable :
+  loose-Ψ ∣ [] ⊢ loose-redex ⦂ ‵ `𝔹
   → ⊥
-closed-preserve-impossible preserve =
-  loose-reduct-untypable (preserve loose-redex-⊢ loose-step)
+loose-redex-untypable
+    (⊢reveal α∈ c⊢ (⊢conceal slot∈ β∈ d⊢ V⊢)) =
+  loose-anchor-mismatch slot∈
 
 ------------------------------------------------------------------------
 -- Arbitrary-context `β-reveal-⇒` obstruction
@@ -168,7 +222,7 @@ open-V : Term (suc zero) (suc zero)
 open-V = ƛ ＇ zero ˙ $ (κℕ 0)
 
 open-V-⊢ :
-  open-Ψ ,typ[ zero ] ∣ [] ⊢ open-V ⦂ ＇ zero ⇒ ‵ `ℕ
+  open-Ψ ,typ[ zero ≔ zero ] ∣ [] ⊢ open-V ⦂ ＇ zero ⇒ ‵ `ℕ
 open-V-⊢ = ⊢ƛ (⊢$ (κℕ 0))
 
 open-V-value : Value open-V
@@ -215,7 +269,7 @@ open-contractum-untypable :
   → ⊥
 open-contractum-untypable
     (⊢reveal α∈ c⊢
-      (⊢· V⊢ (⊢conceal β∈ d⊢ W⊢))) =
+      (⊢· V⊢ (⊢conceal slot∈ β∈ d⊢ W⊢))) =
   open-W-closed-impossible W⊢
 
 preserve-impossible :

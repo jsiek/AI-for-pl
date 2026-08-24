@@ -664,21 +664,69 @@ inflates the measure: each star-mode leaf of the body derivation is
 replaced by the fresh slot's representative derivation, so already
 the body call exceeds the incoming measure.
 
-Remaining candidate resolutions:
+Termination analysis (2026-08-24, answering whether a `TERMINATING`
+pragma would be honest — i.e. whether the recursive calls descend in
+some well-founded order that an `Acc` argument could thread):
 
-* a documented `TERMINATING` pragma on the dynamic universal
-  recursion.  The recursion is productive in the coinductive sense:
-  every recursive occurrence sits under the head λ of a chain
-  component, the chain at index `k` is a finite tuple of `k` heads,
-  and evaluation always reaches weak head normal form (the recursive
-  calls are only unfolded when a head is applied, and proof terms
-  never occur in type indices, so type-checking never demands deep
-  normalization).  This is the function-space-guarded analogue of the
-  allocation-order pragma already used for the logical relation;
-* restructuring the chain as a genuinely coinductive record (sized or
-  musical), so the guardedness is checked rather than asserted — a
-  larger refactor of `LogicalRelation.agda` with unknown interaction
-  with `--safe` and the step-indexed closure lemmas.
+No.  Every candidate measure fails, and the failures share one root
+cause: the fresh-slot recursion embeds type-level β-instantiation.
+Concretely, in the universal case the fresh call runs at
+`replaceTy (suc dX) (⇑ dR) B₁` and, one level deeper, at types
+inflated by the instantiation types `Sᴾ` bound by the head λs:
+
+* type size — the replaced body is not smaller (representatives are
+  inserted at every occurrence);
+* source-derivation size — the fresh call's source is the target's
+  instantiated body, bounded by `sizeᵖ q`, not `sizeᵖ p`;
+* target-derivation size — the fresh call's target is the head's
+  λ-bound body relation, of unbounded size;
+* full dynamic-expansion size (expand every dynamic slot's
+  representative; well-defined by allocation order) — instantiating
+  the body at the fresh name replaces each star-mode leaf by the
+  fresh slot's representative derivation, so the expansion measure
+  inflates on the *body* call already; at type level the expansion
+  of the fresh call's type contains `expand Sᴾ` at every bound
+  variable occurrence, exceeding the incoming `∀`-type whenever `Sᴾ`
+  is large;
+* the step index — the instantiation is a precise-only step, and the
+  contractive-chain attempt above shows the decrement cannot be
+  bought elsewhere.
+
+This is the same phenomenon that makes strong normalization of
+System F unprovable by size induction: the recursion is genuinely
+not structural in any argument, so no `Acc`-wrapping is available.
+A `TERMINATING` pragma would therefore not assert well-founded
+recursion; it would assert *productivity* (every recursive call is
+guarded by a head λ, the chain at index `k` is a finite `k`-tuple,
+and evaluation always reaches weak head normal form).  That is a
+different and weaker guarantee than the allocation-order pragmas
+already in the development, and since the chain tuples are
+`Set₁`-valued proof objects that conversion checking may in
+principle unfold, the pragma carries a real (if small) soundness
+risk.  It is therefore not recommended.
+
+Remaining honest resolutions (both substantial):
+
+* make the universal clauses *replacement-closed*: store chains for
+  every dynamic-replacement descendant of the stored body type, so
+  the dynamic reveal becomes a projection instead of a
+  reconstruction.  The burden moves to the producers (the `Λ` intro
+  must establish the chain for every descendant annotation), which
+  needs the compiled body relation to be annotation-generic — the
+  actual β-redex `N [ S ]` does not depend on the annotation, so
+  this looks semantically right but needs a careful design pass;
+* restructure the chains as genuinely coinductive records (sized or
+  musical) so productivity is checked rather than asserted — a large
+  `LogicalRelation.agda` refactor with unknown interaction with
+  `--safe` and the step-indexed closure lemmas.
+
+Additionally, the one-sided `blocked-precise-*` universal case at
+`∀⊑∀` sources needs canonical forms for the imprecise universal
+value: the head's imprecise application must β at the fresh name,
+which the stored chain black-boxes, and a mixed instantiation
+(fresh precise name against the real imprecise argument) is not
+derivable in the imprecision judgment.  This matches the original
+gate note.
 
 ### 2. Prove compatibility for the rebase-sensitive cast forms
 

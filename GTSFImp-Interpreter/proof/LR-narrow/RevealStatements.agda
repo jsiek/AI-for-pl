@@ -127,8 +127,6 @@ below-below j≤k below i i<j = below i (≤-trans i<j j≤k)
 
 data BlockedImprecision {Δ} {μ : I.ImpEnv Δ} :
     ∀ {A B : Ty Δ} → μ I.⊢ A ⊑ B → Set where
-  blocked-∀⊑∀ : ∀ {A B} {p : I.extᵐ μ I.⊢ A ⊑ B}
-    → BlockedImprecision (I.∀⊑∀ p)
   blocked-∀⊑ : ∀ {A B} {nonvar : NonVar A}
       {occurs : Fin.zero ∈ᵗ A} {p : I.instᵐ μ I.⊢ A ⊑ ⇑ᵗ B}
     → BlockedImprecision (I.∀⊑ nonvar occurs p)

@@ -41,6 +41,7 @@ import Eval as E
 open import Interpreter
 open import proof.ImprecisionConsistency using
   (toRenameᵗ-injective; renameᵗ-injective; ty-all-injective)
+import proof.Imprecision as PI
 open import proof.TypeSafety.Preservation using
   (structural-reveal-typing; structural-conceal-typing)
 open import proof.TypeInTermSubst using (toRename-wk-eq; renameᵗ-id)
@@ -1741,6 +1742,141 @@ conceal-universal-head W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p q₀
       (conceal-universal-inner W s p q₀ sourceᴾ sourceᴵ
         targetᴾ targetᴵ below related W′ W≼W′ Sᴾ Sᴵ r t)
 
+-- The value relation of a revealed universal value.
+
+reveal-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W)
+    {B₀ᴾ : Ty (suc Δᴾ)} {B₀ᴵ : Ty (suc Δᴵ)}
+    {Aᴾ Aᴵ Aᴾʳ Aᴵʳ : Ty (suc Δᶜ)}
+    (p₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
+    (q₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾʳ ⊑ Aᴵʳ)
+  → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Aᴾ)
+  → (sourceᴵ : embedImprecise (core W) (`∀ B₀ᴵ) ≡ `∀ Aᴵ)
+  → (targetᴾ : embedPrecise (core W)
+      (`∀ (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
+      ≡ `∀ Aᴾʳ)
+  → (targetᴵ : embedImprecise (core W)
+      (`∀ (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
+      ≡ `∀ Aᴵʳ)
+  → ∀ {k : ℕ} (below : Below k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑∀ p₀) k Vᴵ Vᴾ
+  → ComputationsRelated W (FutureValueRelation (I.∀⊑∀ q₀)) k
+      (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ `∀ B₀ᴵ 〗)
+      (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
+reveal-universal W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p₀ q₀
+    sourceᴾ sourceᴵ targetᴾ targetᴵ
+    {k = k} below {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  related-values-return
+    (imprecise-value endpoints ↑ all) (precise-value endpoints ↑ all)
+    at-every-index
+  where
+  endpoints = ClosureProof.value-imprecision-endpoints related
+
+  reveal-endpoints : TypedEndpoints W (I.∀⊑∀ q₀)
+      (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ `∀ B₀ᴵ 〗)
+      (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
+  reveal-endpoints = revealed-endpoints W s (I.∀⊑∀ p₀)
+    sourceᴾ sourceᴵ (I.∀⊑∀ q₀) targetᴾ targetᴵ related
+    (imprecise-value endpoints ↑ all) (precise-value endpoints ↑ all)
+
+  heads : ∀ (n : ℕ) → n ≤ k
+    → ValueImprecision W (I.∀⊑∀ p₀) n Vᴵ Vᴾ
+    → UniversalsRelated W q₀
+        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+        (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ) n
+        (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ `∀ B₀ᴵ 〗)
+        (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
+  heads zero n≤k source-at = tt
+  heads (suc j) sj≤k source-at =
+    (λ W′ W≼W′ Sᴾ Sᴵ r t →
+      reveal-universal-head W s p₀ sourceᴾ sourceᴵ
+        (below-below sj≤k below) source-at W′ W≼W′ Sᴾ Sᴵ r t) ,
+    heads j (≤-trans (n≤1+n j) sj≤k)
+      (value-imprecision-downward-to
+        {W = W} {p = I.∀⊑∀ p₀} {j = j} {k = suc j}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n j) source-at)
+
+  at-every-index : ∀ (j : ℕ) → j ≤ k
+    → FutureValueRelation (I.∀⊑∀ q₀) W future-refl j
+        (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ `∀ B₀ᴵ 〗)
+        (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
+  at-every-index zero j≤k = reveal-endpoints
+  at-every-index (suc j) sj≤k =
+    reveal-endpoints ,
+    replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ ,
+    replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ ,
+    targetᴾ , targetᴵ ,
+    heads (suc j) sj≤k
+      (value-imprecision-downward-to
+        {W = W} {p = I.∀⊑∀ p₀} {j = suc j} {k = k}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+
+-- The value relation of a concealed universal value.
+
+conceal-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W)
+    {B₀ᴾ : Ty (suc Δᴾ)} {B₀ᴵ : Ty (suc Δᴵ)}
+    {Aᴾ Aᴵ Aᴾʳ Aᴵʳ : Ty (suc Δᶜ)}
+    (p₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ)
+    (q₀ : I.extᵐ (impEnv (core W)) I.⊢ Aᴾʳ ⊑ Aᴵʳ)
+  → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Aᴾ)
+  → (sourceᴵ : embedImprecise (core W) (`∀ B₀ᴵ) ≡ `∀ Aᴵ)
+  → (targetᴾ : embedPrecise (core W)
+      (`∀ (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
+      ≡ `∀ Aᴾʳ)
+  → (targetᴵ : embedImprecise (core W)
+      (`∀ (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
+      ≡ `∀ Aᴵʳ)
+  → ∀ {k : ℕ} (below : Below k) {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑∀ q₀) k Vᴵ Vᴾ
+  → ComputationsRelated W (FutureValueRelation (I.∀⊑∀ p₀)) k
+      (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (`∀ B₀ᴵ))
+      (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
+conceal-universal W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p₀ q₀
+    sourceᴾ sourceᴵ targetᴾ targetᴵ
+    {k = k} below {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
+  related-values-return
+    (imprecise-value endpoints ↓ all) (precise-value endpoints ↓ all)
+    at-every-index
+  where
+  endpoints = ClosureProof.value-imprecision-endpoints related
+
+  conceal-endpoints : TypedEndpoints W (I.∀⊑∀ p₀)
+      (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (`∀ B₀ᴵ))
+      (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
+  conceal-endpoints = concealed-endpoints W s (I.∀⊑∀ p₀)
+    sourceᴾ sourceᴵ (I.∀⊑∀ q₀) targetᴾ targetᴵ related
+    (imprecise-value endpoints ↓ all) (precise-value endpoints ↓ all)
+
+  heads : ∀ (n : ℕ) → n ≤ k
+    → ValueImprecision W (I.∀⊑∀ q₀) n Vᴵ Vᴾ
+    → UniversalsRelated W p₀ B₀ᴾ B₀ᴵ n
+        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (`∀ B₀ᴵ))
+        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
+  heads zero n≤k source-at = tt
+  heads (suc j) sj≤k source-at =
+    (λ W′ W≼W′ Sᴾ Sᴵ r t →
+      conceal-universal-head W s p₀ q₀ sourceᴾ sourceᴵ
+        targetᴾ targetᴵ (below-below sj≤k below) source-at
+        W′ W≼W′ Sᴾ Sᴵ r t) ,
+    heads j (≤-trans (n≤1+n j) sj≤k)
+      (value-imprecision-downward-to
+        {W = W} {p = I.∀⊑∀ q₀} {j = j} {k = suc j}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n j) source-at)
+
+  at-every-index : ∀ (j : ℕ) → j ≤ k
+    → FutureValueRelation (I.∀⊑∀ p₀) W future-refl j
+        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (`∀ B₀ᴵ))
+        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
+  at-every-index zero j≤k = conceal-endpoints
+  at-every-index (suc j) sj≤k =
+    conceal-endpoints ,
+    B₀ᴾ , B₀ᴵ , sourceᴾ , sourceᴵ ,
+    heads (suc j) sj≤k
+      (value-imprecision-downward-to
+        {W = W} {p = I.∀⊑∀ q₀} {j = suc j} {k = k}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
+
 ------------------------------------------------------------------------
 -- Concealing to a bottom type is impossible
 ------------------------------------------------------------------------
@@ -1865,9 +2001,98 @@ reveal-conceal-step k below = reveal-at , conceal-at
         (sym (replaceTy-absent (slotXᴾ s) (slotRᴾ s) slot-absent)))
       targetᴾ
   reveal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
-      related =
-    blocked-reveal below W s (I.∀⊑∀ p₀) blocked-∀⊑∀
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      related
+      with rename-universal-inversion _ sourceᴾ
+         | rename-universal-inversion _ sourceᴵ
+  reveal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+      related
+      | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
+      with targetᴾ | targetᴵ
+  reveal-at W s (I.∀⊑∀ {A = Aᴾc} {B = Aᴵc} p₀) sourceᴾ sourceᴵ
+      q targetᴾ targetᴵ
+      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+      | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
+      | refl | refl =
+    subst≡
+      (λ q′ → ComputationsRelated W (FutureValueRelation q′) k
+        (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ `∀ B₀ᴵ 〗)
+        (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
+      (sym (PI.⊑-unique q (I.∀⊑∀ alt-body)))
+      (reveal-universal W s p₀ alt-body sourceᴾ sourceᴵ refl refl
+        below related)
+    where
+    ρᴾ = toRenameᵗ (preciseEmbedding (core W))
+    ρᴵ = toRenameᵗ (impreciseEmbedding (core W))
+
+    base : I.extᵐ (impEnv (core W)) I.⊢
+        renameᵗ (extᵗ ρᴾ) B₀ᴾ ⊑ renameᵗ (extᵗ ρᴵ) B₀ᴵ
+    base = subst≡
+      (λ L → I.extᵐ (impEnv (core W)) I.⊢
+        L ⊑ renameᵗ (extᵗ ρᴵ) B₀ᴵ)
+      (sym eqᴾ)
+      (subst≡
+        (λ R → I.extᵐ (impEnv (core W)) I.⊢ Aᴾc ⊑ R)
+        (sym eqᴵ) p₀)
+
+    rep′ : I.extᵐ (impEnv (core W)) I.⊢
+        ⇑ᵗ (embedPrecise (core W) (slotRᴾ s))
+        ⊑ ⇑ᵗ (embedImprecise (core W) (slotRᴵ s))
+    rep′ = shift-⊑ I.X⊑X (rep-related (atom s))
+
+    commute-P : renameᵗ (extᵗ ρᴾ)
+        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+        ≡ replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
+            (renameᵗ (extᵗ ρᴾ) B₀ᴾ)
+    commute-P = trans
+      (renameᵗ-replaceTy (extᵗ ρᴾ)
+        (ext-injective
+          (toRenameᵗ-injective (preciseEmbedding (core W))))
+        (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      (cong₂ (λ Z R → replaceTy Z R (renameᵗ (extᵗ ρᴾ) B₀ᴾ))
+        (cong Fin.suc (preciseAligned (atom s)))
+        (renameᵗ-shift ρᴾ (slotRᴾ s)))
+
+    commute-I : renameᵗ (extᵗ ρᴵ)
+        (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ)
+        ≡ replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedImprecise (core W) (slotRᴵ s)))
+            (renameᵗ (extᵗ ρᴵ) B₀ᴵ)
+    commute-I = trans
+      (renameᵗ-replaceTy (extᵗ ρᴵ)
+        (ext-injective
+          (toRenameᵗ-injective (impreciseEmbedding (core W))))
+        (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ)
+      (cong₂ (λ Z R → replaceTy Z R (renameᵗ (extᵗ ρᴵ) B₀ᴵ))
+        (cong Fin.suc (impreciseAligned (atom s)))
+        (renameᵗ-shift ρᴵ (slotRᴵ s)))
+
+    raw : I.extᵐ (impEnv (core W)) I.⊢
+        replaceTy (Fin.suc (center s))
+          (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
+          (renameᵗ (extᵗ ρᴾ) B₀ᴾ)
+        ⊑ replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedImprecise (core W) (slotRᴵ s)))
+            (renameᵗ (extᵗ ρᴵ) B₀ᴵ)
+    raw = replace-⊑ (Fin.suc (center s)) (mode-eq s) rep′ base
+
+    alt-body : I.extᵐ (impEnv (core W)) I.⊢
+        renameᵗ (extᵗ ρᴾ)
+          (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+        ⊑ renameᵗ (extᵗ ρᴵ)
+            (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ)
+    alt-body = subst≡
+      (λ L → I.extᵐ (impEnv (core W)) I.⊢
+        L ⊑ renameᵗ (extᵗ ρᴵ)
+          (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
+      (sym commute-P)
+      (subst≡
+        (λ R → I.extᵐ (impEnv (core W)) I.⊢
+          replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
+            (renameᵗ (extᵗ ρᴾ) B₀ᴾ) ⊑ R)
+        (sym commute-I) raw)
+
   reveal-at W s (I.∀⊑ nonvar occurs p₀) sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     blocked-reveal below W s (I.∀⊑ nonvar occurs p₀) blocked-∀⊑
@@ -1963,9 +2188,95 @@ reveal-conceal-step k below = reveal-at , conceal-at
         (sym (replaceTy-absent (slotXᴾ s) (slotRᴾ s) slot-absent)))
       targetᴾ
   conceal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
-      related =
-    blocked-conceal below W s (I.∀⊑∀ p₀) blocked-∀⊑∀
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
+      related
+      with rename-universal-inversion _ sourceᴾ
+         | rename-universal-inversion _ sourceᴵ
+  conceal-at W s (I.∀⊑∀ p₀) sourceᴾ sourceᴵ q targetᴾ targetᴵ
+      related
+      | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
+      with targetᴾ | targetᴵ
+  conceal-at W s (I.∀⊑∀ {A = Aᴾc} {B = Aᴵc} p₀) sourceᴾ sourceᴵ
+      q targetᴾ targetᴵ
+      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+      | B₀ᴾ , refl , eqᴾ | B₀ᴵ , refl , eqᴵ
+      | refl | refl =
+    conceal-universal W s p₀ alt-body sourceᴾ sourceᴵ refl refl
+      below
+      (subst≡ (λ q′ → ValueImprecision W q′ k Vᴵ Vᴾ)
+        (PI.⊑-unique q (I.∀⊑∀ alt-body)) related)
+    where
+    ρᴾ = toRenameᵗ (preciseEmbedding (core W))
+    ρᴵ = toRenameᵗ (impreciseEmbedding (core W))
+
+    base : I.extᵐ (impEnv (core W)) I.⊢
+        renameᵗ (extᵗ ρᴾ) B₀ᴾ ⊑ renameᵗ (extᵗ ρᴵ) B₀ᴵ
+    base = subst≡
+      (λ L → I.extᵐ (impEnv (core W)) I.⊢
+        L ⊑ renameᵗ (extᵗ ρᴵ) B₀ᴵ)
+      (sym eqᴾ)
+      (subst≡
+        (λ R → I.extᵐ (impEnv (core W)) I.⊢ Aᴾc ⊑ R)
+        (sym eqᴵ) p₀)
+
+    rep′ : I.extᵐ (impEnv (core W)) I.⊢
+        ⇑ᵗ (embedPrecise (core W) (slotRᴾ s))
+        ⊑ ⇑ᵗ (embedImprecise (core W) (slotRᴵ s))
+    rep′ = shift-⊑ I.X⊑X (rep-related (atom s))
+
+    commute-P : renameᵗ (extᵗ ρᴾ)
+        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+        ≡ replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
+            (renameᵗ (extᵗ ρᴾ) B₀ᴾ)
+    commute-P = trans
+      (renameᵗ-replaceTy (extᵗ ρᴾ)
+        (ext-injective
+          (toRenameᵗ-injective (preciseEmbedding (core W))))
+        (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      (cong₂ (λ Z R → replaceTy Z R (renameᵗ (extᵗ ρᴾ) B₀ᴾ))
+        (cong Fin.suc (preciseAligned (atom s)))
+        (renameᵗ-shift ρᴾ (slotRᴾ s)))
+
+    commute-I : renameᵗ (extᵗ ρᴵ)
+        (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ)
+        ≡ replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedImprecise (core W) (slotRᴵ s)))
+            (renameᵗ (extᵗ ρᴵ) B₀ᴵ)
+    commute-I = trans
+      (renameᵗ-replaceTy (extᵗ ρᴵ)
+        (ext-injective
+          (toRenameᵗ-injective (impreciseEmbedding (core W))))
+        (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ)
+      (cong₂ (λ Z R → replaceTy Z R (renameᵗ (extᵗ ρᴵ) B₀ᴵ))
+        (cong Fin.suc (impreciseAligned (atom s)))
+        (renameᵗ-shift ρᴵ (slotRᴵ s)))
+
+    raw : I.extᵐ (impEnv (core W)) I.⊢
+        replaceTy (Fin.suc (center s))
+          (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
+          (renameᵗ (extᵗ ρᴾ) B₀ᴾ)
+        ⊑ replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedImprecise (core W) (slotRᴵ s)))
+            (renameᵗ (extᵗ ρᴵ) B₀ᴵ)
+    raw = replace-⊑ (Fin.suc (center s)) (mode-eq s) rep′ base
+
+    alt-body : I.extᵐ (impEnv (core W)) I.⊢
+        renameᵗ (extᵗ ρᴾ)
+          (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+        ⊑ renameᵗ (extᵗ ρᴵ)
+            (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ)
+    alt-body = subst≡
+      (λ L → I.extᵐ (impEnv (core W)) I.⊢
+        L ⊑ renameᵗ (extᵗ ρᴵ)
+          (replaceTy (Fin.suc (slotXᴵ s)) (⇑ᵗ (slotRᴵ s)) B₀ᴵ))
+      (sym commute-P)
+      (subst≡
+        (λ R → I.extᵐ (impEnv (core W)) I.⊢
+          replaceTy (Fin.suc (center s))
+            (⇑ᵗ (embedPrecise (core W) (slotRᴾ s)))
+            (renameᵗ (extᵗ ρᴾ) B₀ᴾ) ⊑ R)
+        (sym commute-I) raw)
+
   conceal-at W s (I.∀⊑ nonvar occurs p₀) sourceᴾ sourceᴵ q
       targetᴾ targetᴵ related =
     blocked-conceal below W s (I.∀⊑ nonvar occurs p₀) blocked-∀⊑

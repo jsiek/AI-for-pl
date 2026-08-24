@@ -82,4 +82,18 @@ renameᵗ-∉ᵗ ρ injective (∉-fun absentA absentB) =
 renameᵗ-∉ᵗ ρ injective (∉-all absentA) =
   ∉-all (renameᵗ-∉ᵗ (extᵗ ρ) (ext-injective injective) absentA)
 
+-- Non-occurrence is reflected by renaming.
+
+renameᵗ-reflects-∉ᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) {X : TyVar Δ} (A : Ty Δ)
+  → ρ X ∉ᵗ renameᵗ ρ A → X ∉ᵗ A
+renameᵗ-reflects-∉ᵗ ρ (＇ Y) (∉-var ρX≢ρY) =
+  ∉-var (≢→≢ᶠ (λ eq → ≢ᶠ→≢ ρX≢ρY (cong ρ eq)))
+renameᵗ-reflects-∉ᵗ ρ (‵ ι) no-occur = ∉-base
+renameᵗ-reflects-∉ᵗ ρ ★ no-occur = ∉-star
+renameᵗ-reflects-∉ᵗ ρ (A ⇒ B) (∉-fun absentA absentB) =
+  ∉-fun (renameᵗ-reflects-∉ᵗ ρ A absentA)
+    (renameᵗ-reflects-∉ᵗ ρ B absentB)
+renameᵗ-reflects-∉ᵗ ρ (`∀ A) (∉-all absentA) =
+  ∉-all (renameᵗ-reflects-∉ᵗ (extᵗ ρ) A absentA)
+
 

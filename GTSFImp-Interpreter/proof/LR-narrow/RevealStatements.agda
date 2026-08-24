@@ -277,9 +277,6 @@ full-concealAt statements {n = n} = concealAt (statements n)
 
 data BlockedImprecision {Δ} {μ : I.ImpEnv Δ} :
     ∀ {A B : Ty Δ} → μ I.⊢ A ⊑ B → Set where
-  blocked-∀⊑ : ∀ {A B} {nonvar : NonVar A}
-      {occurs : Fin.zero ∈ᵗ A} {p : I.instᵐ μ I.⊢ A ⊑ ⇑ᵗ B}
-    → BlockedImprecision (I.∀⊑ nonvar occurs p)
   blocked-∀★⊑★ : BlockedImprecision I.∀★⊑★
   blocked-∀⊑★ : ∀ {A} {nonstar : NonStar A}
       {p : I.extᵐ μ I.⊢ A ⊑ ★}

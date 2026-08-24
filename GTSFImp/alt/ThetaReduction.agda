@@ -571,7 +571,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
     → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (Λ V) ⦂∀ B [ C ] —→
-        ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ C ↑ B 〗)
+        ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
   -- The consistency evidence mentions only the regular context.  `shiftᶿ`
   -- changes only the anchor count, so the inner cast reuses `c` unchanged.
@@ -585,7 +585,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       ------------------------------------------------------------
     → Ψ ⊢ (V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→
         ν[ C ] (((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
-          ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ C ↑ B 〗)
+          ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
   -- The inner application retains v2's top-two regular-slot exchange.
   -- Under Θ, ν changes only anchor positions, so the single `shiftᶿ` is the
@@ -602,7 +602,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
         ν[ ★ ]
           ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ A)))
               ⦂∀ swapTopᵗ (⇑ᵗ A) [ ＇ zero ])
-            ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ ★ ↑ A 〗)
+            ↑[ zero ≔ zero ] 〖 zero ↑ A 〗)
             ⟨ c [ ★/0 ]ᶜ ⟩)
 
   -- Unlike the name-based v2 statement, entering ν shifts the old anchor
@@ -619,7 +619,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
           ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
                 ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ])
               ↑[ suc X ≔ suc α ] c)
-            ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ A ↑ B 〗)
+            ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
   -- The same positional divergence from v2 applies to the carried conceal:
   -- its old crossing is `suc X` at `suc α`, while both fresh-anchor
@@ -635,7 +635,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
           ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
                 ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ])
               ↓[ suc X ≔ suc α ] c)
-            ↑[ zero ≔ zero ] 〖 zero , ⇑ᵗ A ↑ B 〗)
+            ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
   ξ-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {L L′ M : Term Θ Δ}
     → Ψ ⊢ L —→ L′

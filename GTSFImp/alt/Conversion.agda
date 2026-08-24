@@ -114,31 +114,31 @@ mutual
 -- Structural conversion generation
 ------------------------------------------------------------------------
 
+-- Raw shapes carry no endpoints, so the generators depend only on the
+-- pivot and the target type's structure; the representation argument of
+-- the earlier intrinsic generators is gone.
 mutual
-  〖_,_↑_〗 : TyVar Δ → Ty Δ → Ty Δ → Reveal
-  〖 X , R ↑ (＇ Y) 〗 with X ≟ Y
-  〖 X , R ↑ (＇ .X) 〗 | yes refl = unseal
-  〖 X , R ↑ (＇ Y) 〗 | no X≠Y = id↑
-  〖 X , R ↑ (‵ ι) 〗 = id↑
-  〖 X , R ↑ ★ 〗 = id↑
-  〖 X , R ↑ (A ⇒ B) 〗 =
-    makeConceal X R A ↦↑ 〖 X , R ↑ B 〗
-  〖 X , R ↑ (`∀ A) 〗 = `∀↑ 〖 suc X , ⇑ᵗ R ↑ A 〗
+  〖_↑_〗 : TyVar Δ → Ty Δ → Reveal
+  〖 X ↑ (＇ Y) 〗 with X ≟ Y
+  〖 X ↑ (＇ .X) 〗 | yes refl = unseal
+  〖 X ↑ (＇ Y) 〗 | no X≠Y = id↑
+  〖 X ↑ (‵ ι) 〗 = id↑
+  〖 X ↑ ★ 〗 = id↑
+  〖 X ↑ (A ⇒ B) 〗 = 〖 X ↓ A 〗 ↦↑ 〖 X ↑ B 〗
+  〖 X ↑ (`∀ A) 〗 = `∀↑ 〖 suc X ↑ A 〗
 
-  makeConceal : TyVar Δ → Ty Δ → Ty Δ → Conceal
-  makeConceal X R (＇ Y) with X ≟ Y
-  makeConceal X R (＇ .X) | yes refl = seal
-  makeConceal X R (＇ Y) | no X≠Y = id↓
-  makeConceal X R (‵ ι) = id↓
-  makeConceal X R ★ = id↓
-  makeConceal X R (A ⇒ B) =
-    〖 X , R ↑ A 〗 ↦↓ makeConceal X R B
-  makeConceal X R (`∀ A) =
-    `∀↓ makeConceal (suc X) (⇑ᵗ R) A
+  〖_↓_〗 : TyVar Δ → Ty Δ → Conceal
+  〖 X ↓ (＇ Y) 〗 with X ≟ Y
+  〖 X ↓ (＇ .X) 〗 | yes refl = seal
+  〖 X ↓ (＇ Y) 〗 | no X≠Y = id↓
+  〖 X ↓ (‵ ι) 〗 = id↓
+  〖 X ↓ ★ 〗 = id↓
+  〖 X ↓ (A ⇒ B) 〗 = 〖 X ↑ A 〗 ↦↓ 〖 X ↓ B 〗
+  〖 X ↓ (`∀ A) 〗 = `∀↓ 〖 suc X ↓ A 〗
 
 mutual
   generator-typed↑ : (X : TyVar Δ) (R B : Ty Δ)
-    → ⊢↑[ X ⦂ R ] 〖 X , R ↑ B 〗 ⦂ B ↝ replaceTy X R B
+    → ⊢↑[ X ⦂ R ] 〖 X ↑ B 〗 ⦂ B ↝ replaceTy X R B
   generator-typed↑ X R (＇ Y) with X ≟ Y
   generator-typed↑ X R (＇ .X) | yes refl = ⊢unseal
   generator-typed↑ X R (＇ Y) | no X≠Y = ⊢id↑ (＇ Y)
@@ -150,7 +150,7 @@ mutual
     ⊢↑-∀ (generator-typed↑ (suc X) (⇑ᵗ R) B)
 
   generator-typed↓ : (X : TyVar Δ) (R B : Ty Δ)
-    → ⊢↓[ X ⦂ R ] makeConceal X R B ⦂ replaceTy X R B ↝ B
+    → ⊢↓[ X ⦂ R ] 〖 X ↓ B 〗 ⦂ replaceTy X R B ↝ B
   generator-typed↓ X R (＇ Y) with X ≟ Y
   generator-typed↓ X R (＇ .X) | yes refl = ⊢seal
   generator-typed↓ X R (＇ Y) | no X≠Y = ⊢id↓ (＇ Y)

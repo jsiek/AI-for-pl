@@ -1,4 +1,6 @@
-module proof.LR-narrow.PreciseReveal where
+open import proof.LR-narrow.RevealStatements
+
+module proof.LR-narrow.PreciseReveal (ob : RevealObligations) where
 
 -- File Charter:
 --   * The one-sided structural reveal and conceal: when a paired slot's
@@ -8,8 +10,8 @@ module proof.LR-narrow.PreciseReveal where
 --     relation at the same imprecision.
 --   * Needed for the `⇒⊑★` case of the paired structural reveal, where
 --     the imprecise conversion degenerates to `id↑ ★`.
---   * Restricted to universal-free precise types; see
---     FUNDAMENTAL-PROPERTY-PLAN.md, Finding C.
+--   * A universal precise type is delegated to the obligations record;
+--     see FUNDAMENTAL-PROPERTY-PLAN.md, Finding C.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; _<_; z≤n; s≤s)
 open import Data.Nat.Properties using
@@ -75,61 +77,15 @@ open import proof.LR-narrow.SlotLifting using
    lifted-reveal-precise; lifted-conceal-precise;
    liftPreciseTy-arrow; slot-precise-variable-lift)
 
+open RevealObligations ob using
+  (blocked-precise-reveal; blocked-precise-conceal)
+
 open PreciseComposition revealFrame using () renaming
   (precise-frame-computations-related to reveal-precise-composition;
    PrecisePlugValues to RevealPrecisePlugValues)
 open PreciseComposition concealFrame using () renaming
   (precise-frame-computations-related to conceal-precise-composition;
    PrecisePlugValues to ConcealPrecisePlugValues)
-
-------------------------------------------------------------------------
--- Universal-free types
-------------------------------------------------------------------------
-
-data NoUniversal {Δ : TyCtx} : Ty Δ → Set where
-  nu-var : ∀ {X} → NoUniversal (＇ X)
-  nu-base : ∀ {ι} → NoUniversal (‵ ι)
-  nu-star : NoUniversal ★
-  nu-fun : ∀ {A B} → NoUniversal A → NoUniversal B
-    → NoUniversal (A ⇒ B)
-
-renameᵗ-reflects-NoUniversal : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) (A : Ty Δ)
-  → NoUniversal (renameᵗ ρ A) → NoUniversal A
-renameᵗ-reflects-NoUniversal ρ (＇ X) nu = nu-var
-renameᵗ-reflects-NoUniversal ρ (‵ ι) nu = nu-base
-renameᵗ-reflects-NoUniversal ρ ★ nu = nu-star
-renameᵗ-reflects-NoUniversal ρ (A ⇒ B) (nu-fun nuA nuB) =
-  nu-fun (renameᵗ-reflects-NoUniversal ρ A nuA)
-    (renameᵗ-reflects-NoUniversal ρ B nuB)
-renameᵗ-reflects-NoUniversal ρ (`∀ A) ()
-
-------------------------------------------------------------------------
--- Statements
-------------------------------------------------------------------------
-
-PreciseRevealAt : ℕ → Set₁
-PreciseRevealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
-    (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
-    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-  → NoUniversal Bᴾ
-  → slotXᴾ s ∉ᵗ Bᴾ
-  → embedPrecise (core W) Bᴾ ≡ Aᴾ
-  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W p k Vᴵ Vᴾ
-  → ComputationsRelated W (FutureValueRelation p) k
-      Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
-
-PreciseConcealAt : ℕ → Set₁
-PreciseConcealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
-    (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
-    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-  → NoUniversal Bᴾ
-  → slotXᴾ s ∉ᵗ Bᴾ
-  → embedPrecise (core W) Bᴾ ≡ Aᴾ
-  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W p k Vᴵ Vᴾ
-  → ComputationsRelated W (FutureValueRelation p) k
-      Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
 
 ------------------------------------------------------------------------
 -- Endpoint typings of a one-sided wrapper
@@ -196,27 +152,8 @@ precise-conceal-endpoints W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
   endpoints = ClosureProof.value-imprecision-endpoints related
 
 ------------------------------------------------------------------------
--- Both hypotheses survive renaming and future lifting
+-- The occurrence hypothesis survives future lifting
 ------------------------------------------------------------------------
-
-renameᵗ-NoUniversal : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) {A : Ty Δ}
-  → NoUniversal A → NoUniversal (renameᵗ ρ A)
-renameᵗ-NoUniversal ρ nu-var = nu-var
-renameᵗ-NoUniversal ρ nu-base = nu-base
-renameᵗ-NoUniversal ρ nu-star = nu-star
-renameᵗ-NoUniversal ρ (nu-fun nuA nuB) =
-  nu-fun (renameᵗ-NoUniversal ρ nuA) (renameᵗ-NoUniversal ρ nuB)
-
-lift-NoUniversal : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
-    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-    (W≼W′ : Future W W′) {A : Ty Δᴾ}
-  → NoUniversal A → NoUniversal (liftPreciseTy W≼W′ A)
-lift-NoUniversal future-refl nu = nu
-lift-NoUniversal (future-paired W≼W′ r) nu =
-  renameᵗ-NoUniversal Fin.suc (lift-NoUniversal W≼W′ nu)
-lift-NoUniversal (future-precise W≼W′ r) nu =
-  renameᵗ-NoUniversal Fin.suc (lift-NoUniversal W≼W′ nu)
-lift-NoUniversal (future-imprecise W≼W′) nu = lift-NoUniversal W≼W′ nu
 
 lift-∉ᵗ : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -295,10 +232,10 @@ arrow-source-view (I.⇒⊑★ q₁ q₂) = arrow-star q₁ q₂
 -- and the index decreases when a dynamic tag is unfolded.
 
 mutual
-  reveal-go : ∀ (fuel : ℕ) (j : ℕ) {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+  reveal-go : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+      {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    → NoUniversal Bᴾ
     → sizeᵗ Bᴾ ≤ fuel
     → slotXᴾ s ∉ᵗ Bᴾ
     → embedPrecise (core W) Bᴾ ≡ Aᴾ
@@ -306,32 +243,36 @@ mutual
     → ValueImprecision W p j Vᴵ Vᴾ
     → ComputationsRelated W (FutureValueRelation p) j
         Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
-  reveal-go fuel j W s p (nu-var {X = Y}) size no-occur sourceᴾ related
-      with slotXᴾ s ≟ Y
-  reveal-go fuel j W s p (nu-var {X = Y}) size (∉-var X≢Y) sourceᴾ
+  reveal-go fuel j below W s {Bᴾ = ＇ Y} p size no-occur sourceᴾ
+      related with slotXᴾ s ≟ Y
+  reveal-go fuel j below W s {Bᴾ = ＇ Y} p size (∉-var X≢Y) sourceᴾ
       related | yes refl = ⊥-elim (≢ᶠ→≢ X≢Y refl)
-  reveal-go fuel j W s p (nu-var {X = Y}) size no-occur sourceᴾ related
-      | no _ = identity-reveal W p (＇ Y) related
-  reveal-go fuel j W s p (nu-base {ι = ι}) size no-occur sourceᴾ
+  reveal-go fuel j below W s {Bᴾ = ＇ Y} p size no-occur sourceᴾ
+      related | no _ = identity-reveal W p (＇ Y) related
+  reveal-go fuel j below W s {Bᴾ = ‵ ι} p size no-occur sourceᴾ
       related = identity-reveal W p (‵ ι) related
-  reveal-go fuel j W s p nu-star size no-occur sourceᴾ related =
+  reveal-go fuel j below W s {Bᴾ = ★} p size no-occur sourceᴾ related =
     identity-reveal W p ★ related
-  reveal-go zero j W s p (nu-fun nuA nuB) () no-occur sourceᴾ related
-  reveal-go (suc fuel) j W s p (nu-fun nuA nuB) size
+  reveal-go zero j below W s {Bᴾ = A₀ ⇒ B₀} p () no-occur sourceᴾ
+      related
+  reveal-go (suc fuel) j below W s {Bᴾ = A₀ ⇒ B₀} p size
       (∉-fun absentA absentB) sourceᴾ related =
     related-values-return
       (imprecise-value endpoints) (precise-value endpoints ↑ fun)
-      (λ i i≤j → reveal-arrow fuel i W s p nuA nuB
+      (λ i i≤j → reveal-arrow fuel i (below-below i≤j below) W s p
         (size-bound-left size) (size-bound-right size)
         absentA absentB sourceᴾ
         (value-imprecision-downward-to i≤j related))
     where
     endpoints = ClosureProof.value-imprecision-endpoints related
+  reveal-go fuel j below W s {Bᴾ = `∀ B₁} p size no-occur sourceᴾ
+      related =
+    blocked-precise-reveal below W s p no-occur sourceᴾ related
 
-  conceal-go : ∀ (fuel : ℕ) (j : ℕ) {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+  conceal-go : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+      {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    → NoUniversal Bᴾ
     → sizeᵗ Bᴾ ≤ fuel
     → slotXᴾ s ∉ᵗ Bᴾ
     → embedPrecise (core W) Bᴾ ≡ Aᴾ
@@ -339,27 +280,31 @@ mutual
     → ValueImprecision W p j Vᴵ Vᴾ
     → ComputationsRelated W (FutureValueRelation p) j
         Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
-  conceal-go fuel j W s p (nu-var {X = Y}) size no-occur sourceᴾ
+  conceal-go fuel j below W s {Bᴾ = ＇ Y} p size no-occur sourceᴾ
       related with slotXᴾ s ≟ Y
-  conceal-go fuel j W s p (nu-var {X = Y}) size (∉-var X≢Y) sourceᴾ
+  conceal-go fuel j below W s {Bᴾ = ＇ Y} p size (∉-var X≢Y) sourceᴾ
       related | yes refl = ⊥-elim (≢ᶠ→≢ X≢Y refl)
-  conceal-go fuel j W s p (nu-var {X = Y}) size no-occur sourceᴾ
+  conceal-go fuel j below W s {Bᴾ = ＇ Y} p size no-occur sourceᴾ
       related | no _ = identity-conceal W p (＇ Y) related
-  conceal-go fuel j W s p (nu-base {ι = ι}) size no-occur sourceᴾ
+  conceal-go fuel j below W s {Bᴾ = ‵ ι} p size no-occur sourceᴾ
       related = identity-conceal W p (‵ ι) related
-  conceal-go fuel j W s p nu-star size no-occur sourceᴾ related =
-    identity-conceal W p ★ related
-  conceal-go zero j W s p (nu-fun nuA nuB) () no-occur sourceᴾ related
-  conceal-go (suc fuel) j W s p (nu-fun nuA nuB) size
+  conceal-go fuel j below W s {Bᴾ = ★} p size no-occur sourceᴾ
+      related = identity-conceal W p ★ related
+  conceal-go zero j below W s {Bᴾ = A₀ ⇒ B₀} p () no-occur sourceᴾ
+      related
+  conceal-go (suc fuel) j below W s {Bᴾ = A₀ ⇒ B₀} p size
       (∉-fun absentA absentB) sourceᴾ related =
     related-values-return
       (imprecise-value endpoints) (precise-value endpoints ↓ fun)
-      (λ i i≤j → conceal-arrow fuel i W s p nuA nuB
+      (λ i i≤j → conceal-arrow fuel i (below-below i≤j below) W s p
         (size-bound-left size) (size-bound-right size)
         absentA absentB sourceᴾ
         (value-imprecision-downward-to i≤j related))
     where
     endpoints = ClosureProof.value-imprecision-endpoints related
+  conceal-go fuel j below W s {Bᴾ = `∀ B₁} p size no-occur sourceᴾ
+      related =
+    blocked-precise-conceal below W s p no-occur sourceᴾ related
 
   -- Identity wrappers step away on the precise endpoint.
 
@@ -406,10 +351,10 @@ mutual
   -- Wrapping a related computation on the precise endpoint.
 
   precise-revealed-computations : ∀ (fuel : ℕ) (j : ℕ)
+      (below : Below j)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    → NoUniversal Bᴾ
     → sizeᵗ Bᴾ ≤ fuel
     → slotXᴾ s ∉ᵗ Bᴾ
     → embedPrecise (core W) Bᴾ ≡ Aᴾ
@@ -417,7 +362,7 @@ mutual
     → ComputationsRelated W (FutureValueRelation p) j Mᴵ Mᴾ
     → ComputationsRelated W (FutureValueRelation p) j
         Mᴵ (Mᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
-  precise-revealed-computations fuel j W s {Bᴾ = Bᴾ} p nu size
+  precise-revealed-computations fuel j below W s {Bᴾ = Bᴾ} p size
       no-occur sourceᴾ {Mᴵ = Mᴵ} {Mᴾ = Mᴾ} related =
     reveal-precise-composition
       {R = FutureValueRelation p} {S = FutureValueRelation p}
@@ -438,9 +383,9 @@ mutual
             (trans (termsᴾ (Mᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗))
               (trans (lifted-reveal-precise s W≼W′ Mᴾ Bᴾ)
                 (cong (λ M → M ↑ _) (sym (termsᴾ Mᴾ))))) Uᴾ))
-          (reveal-go fuel i W′ (slot-future s W≼W′)
+          (reveal-go fuel i (below-below i≤j below) W′
+            (slot-future s W≼W′)
             (liftCenterImprecision W≼W′ p)
-            (lift-NoUniversal W≼W′ nu)
             (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ Bᴾ)) size)
             (subst≡ (_∉ᵗ liftPreciseTy W≼W′ Bᴾ)
               (sym (slot-precise-variable-lift s W≼W′))
@@ -450,10 +395,10 @@ mutual
             value-related))
 
   precise-concealed-computations : ∀ (fuel : ℕ) (j : ℕ)
+      (below : Below j)
       {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    → NoUniversal Bᴾ
     → sizeᵗ Bᴾ ≤ fuel
     → slotXᴾ s ∉ᵗ Bᴾ
     → embedPrecise (core W) Bᴾ ≡ Aᴾ
@@ -461,7 +406,7 @@ mutual
     → ComputationsRelated W (FutureValueRelation p) j Mᴵ Mᴾ
     → ComputationsRelated W (FutureValueRelation p) j
         Mᴵ (Mᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
-  precise-concealed-computations fuel j W s {Bᴾ = Bᴾ} p nu size
+  precise-concealed-computations fuel j below W s {Bᴾ = Bᴾ} p size
       no-occur sourceᴾ {Mᴵ = Mᴵ} {Mᴾ = Mᴾ} related =
     conceal-precise-composition
       {R = FutureValueRelation p} {S = FutureValueRelation p}
@@ -483,9 +428,9 @@ mutual
               (termsᴾ (Mᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ))
               (trans (lifted-conceal-precise s W≼W′ Mᴾ Bᴾ)
                 (cong (λ M → M ↓ _) (sym (termsᴾ Mᴾ))))) Uᴾ))
-          (conceal-go fuel i W′ (slot-future s W≼W′)
+          (conceal-go fuel i (below-below i≤j below) W′
+            (slot-future s W≼W′)
             (liftCenterImprecision W≼W′ p)
-            (lift-NoUniversal W≼W′ nu)
             (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ Bᴾ)) size)
             (subst≡ (_∉ᵗ liftPreciseTy W≼W′ Bᴾ)
               (sym (slot-precise-variable-lift s W≼W′))
@@ -497,12 +442,12 @@ mutual
   -- One head of the wrapped function value: the precise endpoint
   -- redistributes the wrapper over the application.
 
-  reveal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) {Δᴾ Δᴵ Δᶜ}
+  reveal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) (below : Below (suc m))
+      {Δᴾ Δᴵ Δᶜ}
       (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {A₀ B₀ : Ty Δᴾ} {Pᴵ Qᴵ : Ty Δᶜ}
       (q₁ : impEnv (core W) I.⊢ embedPrecise (core W) A₀ ⊑ Pᴵ)
       (q₂ : impEnv (core W) I.⊢ embedPrecise (core W) B₀ ⊑ Qᴵ)
-    → NoUniversal A₀ → NoUniversal B₀
     → sizeᵗ A₀ ≤ fuel → sizeᵗ B₀ ≤ fuel
     → slotXᴾ s ∉ᵗ A₀ → slotXᴾ s ∉ᵗ B₀
     → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -515,7 +460,7 @@ mutual
         (liftImpreciseTerm W≼W′ Vᴵ · Uᴵ)
         (liftPreciseTerm W≼W′
           (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ A₀ ⇒ B₀ 〗) · Uᴾ)
-  reveal-arrow-head fuel m W s {A₀ = A₀} {B₀ = B₀} q₁ q₂ nuA nuB
+  reveal-arrow-head fuel m below W s {A₀ = A₀} {B₀ = B₀} q₁ q₂
       sizeA sizeB absentA absentB {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} function-related
       W′ W≼W′ {Uᴵ = Uᴵ} {Uᴾ = Uᴾ} argument-related =
     ClosureProof.computations-related-reindex
@@ -573,8 +518,8 @@ mutual
     concealed : ComputationsRelated W′
         (FutureValueRelation (liftCenterImprecision W≼W′ q₁)) (suc m)
         Uᴵ (Uᴾ ↓ cᴾ)
-    concealed = conceal-go fuel (suc m) W′ s′
-      (liftCenterImprecision W≼W′ q₁) (lift-NoUniversal W≼W′ nuA)
+    concealed = conceal-go fuel (suc m) below W′ s′
+      (liftCenterImprecision W≼W′ q₁)
       (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ A₀)) sizeA)
       absentA′ sourceA′ argument-related
 
@@ -586,8 +531,8 @@ mutual
     contracted : ComputationsRelated W′
         (FutureValueRelation (liftCenterImprecision W≼W′ q₂)) (suc m)
         (Vᴵ′ · Uᴵ) ((Vᴾ′ · (Uᴾ ↓ cᴾ)) ↑ dᴾ)
-    contracted = precise-revealed-computations fuel (suc m) W′ s′
-      (liftCenterImprecision W≼W′ q₂) (lift-NoUniversal W≼W′ nuB)
+    contracted = precise-revealed-computations fuel (suc m) below W′ s′
+      (liftCenterImprecision W≼W′ q₂)
       (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ B₀)) sizeB)
       absentB′ sourceB′ applied
 
@@ -610,12 +555,12 @@ mutual
         (reveal-fun-app-value-none cᴾ dᴾ)
         (pure-step (β-reveal-⇒ vVᴾ vUᴾ)) step-eqᴾ contracted
 
-  conceal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) {Δᴾ Δᴵ Δᶜ}
+  conceal-arrow-head : ∀ (fuel : ℕ) (m : ℕ) (below : Below (suc m))
+      {Δᴾ Δᴵ Δᶜ}
       (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
       {A₀ B₀ : Ty Δᴾ} {Pᴵ Qᴵ : Ty Δᶜ}
       (q₁ : impEnv (core W) I.⊢ embedPrecise (core W) A₀ ⊑ Pᴵ)
       (q₂ : impEnv (core W) I.⊢ embedPrecise (core W) B₀ ⊑ Qᴵ)
-    → NoUniversal A₀ → NoUniversal B₀
     → sizeᵗ A₀ ≤ fuel → sizeᵗ B₀ ≤ fuel
     → slotXᴾ s ∉ᵗ A₀ → slotXᴾ s ∉ᵗ B₀
     → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -628,7 +573,7 @@ mutual
         (liftImpreciseTerm W≼W′ Vᴵ · Uᴵ)
         (liftPreciseTerm W≼W′
           (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (A₀ ⇒ B₀)) · Uᴾ)
-  conceal-arrow-head fuel m W s {A₀ = A₀} {B₀ = B₀} q₁ q₂ nuA nuB
+  conceal-arrow-head fuel m below W s {A₀ = A₀} {B₀ = B₀} q₁ q₂
       sizeA sizeB absentA absentB {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} function-related
       W′ W≼W′ {Uᴵ = Uᴵ} {Uᴾ = Uᴾ} argument-related =
     ClosureProof.computations-related-reindex
@@ -686,8 +631,8 @@ mutual
     revealed : ComputationsRelated W′
         (FutureValueRelation (liftCenterImprecision W≼W′ q₁)) (suc m)
         Uᴵ (Uᴾ ↑ cᴾ)
-    revealed = reveal-go fuel (suc m) W′ s′
-      (liftCenterImprecision W≼W′ q₁) (lift-NoUniversal W≼W′ nuA)
+    revealed = reveal-go fuel (suc m) below W′ s′
+      (liftCenterImprecision W≼W′ q₁)
       (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ A₀)) sizeA)
       absentA′ sourceA′ argument-related
 
@@ -699,8 +644,9 @@ mutual
     contracted : ComputationsRelated W′
         (FutureValueRelation (liftCenterImprecision W≼W′ q₂)) (suc m)
         (Vᴵ′ · Uᴵ) ((Vᴾ′ · (Uᴾ ↑ cᴾ)) ↓ dᴾ)
-    contracted = precise-concealed-computations fuel (suc m) W′ s′
-      (liftCenterImprecision W≼W′ q₂) (lift-NoUniversal W≼W′ nuB)
+    contracted = precise-concealed-computations fuel (suc m) below
+      W′ s′
+      (liftCenterImprecision W≼W′ q₂)
       (subst≡ (_≤ fuel) (sym (lift-sizeᵗ W≼W′ B₀)) sizeB)
       absentB′ sourceB′ applied
 
@@ -725,10 +671,10 @@ mutual
 
   -- The value relation of a wrapped function value.
 
-  reveal-arrow : ∀ (fuel : ℕ) (j : ℕ) {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+  reveal-arrow : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+      {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {A₀ B₀ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    → NoUniversal A₀ → NoUniversal B₀
     → sizeᵗ A₀ ≤ fuel → sizeᵗ B₀ ≤ fuel
     → slotXᴾ s ∉ᵗ A₀ → slotXᴾ s ∉ᵗ B₀
     → embedPrecise (core W) (A₀ ⇒ B₀) ≡ Aᴾ
@@ -736,19 +682,19 @@ mutual
     → ValueImprecision W p j Vᴵ Vᴾ
     → ValueImprecision W p j
         Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ A₀ ⇒ B₀ 〗)
-  reveal-arrow fuel zero W s p nuA nuB sizeA sizeB absentA absentB
+  reveal-arrow fuel zero below W s p sizeA sizeB absentA absentB
       sourceᴾ related =
     precise-reveal-endpoints W s p (∉-fun absentA absentB) sourceᴾ
       {k = zero} related (precise-value endpoints ↑ fun)
     where
     endpoints = ClosureProof.value-imprecision-endpoints
       {k = zero} related
-  reveal-arrow fuel (suc i) W s p nuA nuB sizeA sizeB absentA absentB
+  reveal-arrow fuel (suc i) below W s p sizeA sizeB absentA absentB
       sourceᴾ related with sourceᴾ
-  reveal-arrow fuel (suc i) W s p nuA nuB sizeA sizeB absentA absentB
+  reveal-arrow fuel (suc i) below W s p sizeA sizeB absentA absentB
       sourceᴾ related | refl with arrow-source-view p
-  reveal-arrow fuel (suc i) W s {A₀ = A₀} {B₀ = B₀} .(I.⇒⊑⇒ q₁ q₂)
-      nuA nuB sizeA sizeB
+  reveal-arrow fuel (suc i) below W s {A₀ = A₀} {B₀ = B₀}
+      .(I.⇒⊑⇒ q₁ q₂) sizeA sizeB
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-arrow q₁ q₂ =
     precise-reveal-endpoints W s (I.⇒⊑⇒ q₁ q₂)
@@ -766,22 +712,24 @@ mutual
     functions zero m≤ rel = tt
     functions (suc m) sm≤ rel =
       (λ W′ W≼W′ argument-related →
-        reveal-arrow-head fuel m W s q₁ q₂ nuA nuB sizeA sizeB
+        reveal-arrow-head fuel m (below-below sm≤ below) W s q₁ q₂
+          sizeA sizeB
           absentA absentB rel W′ W≼W′ argument-related) ,
       functions m (≤-trans (n≤1+n m) sm≤)
         (value-imprecision-downward-to
           {W = W} {p = I.⇒⊑⇒ q₁ q₂} {j = m} {k = suc m}
           {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n m) rel)
-  reveal-arrow fuel (suc i) W s {A₀ = A₀} {B₀ = B₀} .(I.⇒⊑★ q₁ q₂)
-      nuA nuB sizeA sizeB
+  reveal-arrow fuel (suc i) below W s {A₀ = A₀} {B₀ = B₀}
+      .(I.⇒⊑★ q₁ q₂) sizeA sizeB
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-star q₁ q₂ =
     precise-reveal-endpoints W s (I.⇒⊑★ q₁ q₂)
       (∉-fun absentA absentB) sourceᴾ {k = suc i} related
       (precise-value endpoints ↑ fun) ,
     shape ,
-    reveal-arrow fuel i W s (right-payload-imprecision shape)
-      nuA nuB sizeA sizeB absentA absentB refl payload-related
+    reveal-arrow fuel i (below-below (n≤1+n i) below) W s
+      (right-payload-imprecision shape)
+      sizeA sizeB absentA absentB refl payload-related
     where
     endpoints = ClosureProof.value-imprecision-endpoints
       {W = W} {p = I.⇒⊑★ q₁ q₂} {k = suc i} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
@@ -795,10 +743,10 @@ mutual
         (right-dynamic-imprecise-payload shape) Vᴾ
     payload-related = proj₂ (proj₂ related)
 
-  conceal-arrow : ∀ (fuel : ℕ) (j : ℕ) {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+  conceal-arrow : ∀ (fuel : ℕ) (j : ℕ) (below : Below j)
+      {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (s : PairedSlot W) {A₀ B₀ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
       (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    → NoUniversal A₀ → NoUniversal B₀
     → sizeᵗ A₀ ≤ fuel → sizeᵗ B₀ ≤ fuel
     → slotXᴾ s ∉ᵗ A₀ → slotXᴾ s ∉ᵗ B₀
     → embedPrecise (core W) (A₀ ⇒ B₀) ≡ Aᴾ
@@ -806,19 +754,19 @@ mutual
     → ValueImprecision W p j Vᴵ Vᴾ
     → ValueImprecision W p j
         Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (A₀ ⇒ B₀))
-  conceal-arrow fuel zero W s p nuA nuB sizeA sizeB absentA absentB
+  conceal-arrow fuel zero below W s p sizeA sizeB absentA absentB
       sourceᴾ related =
     precise-conceal-endpoints W s p (∉-fun absentA absentB) sourceᴾ
       {k = zero} related (precise-value endpoints ↓ fun)
     where
     endpoints = ClosureProof.value-imprecision-endpoints
       {k = zero} related
-  conceal-arrow fuel (suc i) W s p nuA nuB sizeA sizeB absentA absentB
+  conceal-arrow fuel (suc i) below W s p sizeA sizeB absentA absentB
       sourceᴾ related with sourceᴾ
-  conceal-arrow fuel (suc i) W s p nuA nuB sizeA sizeB absentA absentB
+  conceal-arrow fuel (suc i) below W s p sizeA sizeB absentA absentB
       sourceᴾ related | refl with arrow-source-view p
-  conceal-arrow fuel (suc i) W s {A₀ = A₀} {B₀ = B₀} .(I.⇒⊑⇒ q₁ q₂)
-      nuA nuB sizeA sizeB
+  conceal-arrow fuel (suc i) below W s {A₀ = A₀} {B₀ = B₀}
+      .(I.⇒⊑⇒ q₁ q₂) sizeA sizeB
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-arrow q₁ q₂ =
     precise-conceal-endpoints W s (I.⇒⊑⇒ q₁ q₂)
@@ -836,22 +784,24 @@ mutual
     functions zero m≤ rel = tt
     functions (suc m) sm≤ rel =
       (λ W′ W≼W′ argument-related →
-        conceal-arrow-head fuel m W s q₁ q₂ nuA nuB sizeA sizeB
+        conceal-arrow-head fuel m (below-below sm≤ below) W s q₁ q₂
+          sizeA sizeB
           absentA absentB rel W′ W≼W′ argument-related) ,
       functions m (≤-trans (n≤1+n m) sm≤)
         (value-imprecision-downward-to
           {W = W} {p = I.⇒⊑⇒ q₁ q₂} {j = m} {k = suc m}
           {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n m) rel)
-  conceal-arrow fuel (suc i) W s {A₀ = A₀} {B₀ = B₀} .(I.⇒⊑★ q₁ q₂)
-      nuA nuB sizeA sizeB
+  conceal-arrow fuel (suc i) below W s {A₀ = A₀} {B₀ = B₀}
+      .(I.⇒⊑★ q₁ q₂) sizeA sizeB
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-star q₁ q₂ =
     precise-conceal-endpoints W s (I.⇒⊑★ q₁ q₂)
       (∉-fun absentA absentB) sourceᴾ {k = suc i} related
       (precise-value endpoints ↓ fun) ,
     shape ,
-    conceal-arrow fuel i W s (right-payload-imprecision shape)
-      nuA nuB sizeA sizeB absentA absentB refl payload-related
+    conceal-arrow fuel i (below-below (n≤1+n i) below) W s
+      (right-payload-imprecision shape)
+      sizeA sizeB absentA absentB refl payload-related
     where
     endpoints = ClosureProof.value-imprecision-endpoints
       {W = W} {p = I.⇒⊑★ q₁ q₂} {k = suc i} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
@@ -869,10 +819,12 @@ mutual
 -- The one-sided reveal and conceal, with the fuel instantiated
 ------------------------------------------------------------------------
 
-precise-reveal : ∀ {k : ℕ} → PreciseRevealAt k
-precise-reveal {k = k} W s {Bᴾ = Bᴾ} p nu no-occur sourceᴾ related =
-  reveal-go (sizeᵗ Bᴾ) k W s p nu ≤-refl no-occur sourceᴾ related
+precise-reveal : ∀ {k : ℕ} → Below k → PreciseRevealAt k
+precise-reveal {k = k} below W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
+    related =
+  reveal-go (sizeᵗ Bᴾ) k below W s p ≤-refl no-occur sourceᴾ related
 
-precise-conceal : ∀ {k : ℕ} → PreciseConcealAt k
-precise-conceal {k = k} W s {Bᴾ = Bᴾ} p nu no-occur sourceᴾ related =
-  conceal-go (sizeᵗ Bᴾ) k W s p nu ≤-refl no-occur sourceᴾ related
+precise-conceal : ∀ {k : ℕ} → Below k → PreciseConcealAt k
+precise-conceal {k = k} below W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
+    related =
+  conceal-go (sizeᵗ Bᴾ) k below W s p ≤-refl no-occur sourceᴾ related

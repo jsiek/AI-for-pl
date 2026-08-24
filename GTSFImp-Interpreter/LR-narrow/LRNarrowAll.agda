@@ -48,6 +48,7 @@ import proof.LR-narrow.RevealLifting
 import proof.LR-narrow.ConcealAtomic
 import proof.LR-narrow.ArgumentFrame
 import proof.LR-narrow.SlotLifting
+import proof.LR-narrow.RevealStatements
 import proof.LR-narrow.RevealStructural
 import proof.LR-narrow.StarNoOccurrence
 import proof.LR-narrow.KeepStepExpansion

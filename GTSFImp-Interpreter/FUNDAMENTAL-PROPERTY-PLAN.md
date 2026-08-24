@@ -596,6 +596,73 @@ estimate: `TargetExtend.agda` is 3.7k lines plus 1.2k in
 `CenterRename.agda`; each analogue is comparable, and transported
 sub-derivations would require height recursion.
 
+Update (2026-08-24, checked): the `∀⊑` case is now fully closed in
+both directions, and the paired structural reveal/conceal dispatch is
+total.
+
+* `⊑-var-right-nonvar` and `⊑-base-right-no-var`
+  (`proof/LR-narrow/StarNoOccurrence.agda`) refute `I.∀⊑` at variable
+  and base center targets outright: a derivation `A ⊑ ＇Y` is either
+  `X⊑X` (variable left, contradicting the constructor's `NonVar`) or
+  a nested `∀⊑` repeating the situation, and a derivation `A ⊑ ‵ι`
+  admits no variable occurrences in `A` at all, contradicting
+  `occurs`.  The remaining "variable hit" reveal case was therefore
+  vacuous, and the whole atomic dispatch is by `⊥-elim`.
+* The `∀⊑`-conceal mirrors the reveal:
+  `conceal-right-universal-inner`/`-head`/`-general` (value-form
+  imprecise wrappers) and the `-absent` variants (`Bᴵ = ★`, one-sided
+  body conceal justified by `paired-no-occurrence`) in
+  `RevealStructural.agda`; the fresh dynamic slot is revealed by the
+  same `dyn-revealed-computations` as in the reveal direction.
+* The paired `∀★⊑★`/`∀⊑★` reveal and conceal clauses are closed by
+  the same route as `⇒⊑★`: `star-no-occurrence` makes the precise
+  replacement the identity, so the paired case reduces to the
+  one-sided precise reveal/conceal at the full type plus one
+  imprecise identity step.
+* `BlockedImprecision` and the `blocked-reveal`/`blocked-conceal`
+  obligation fields are deleted.  The remaining obligations are the
+  one-sided `∀` cases: `blocked-precise-reveal`/`-conceal`
+  (paired slot, `∉`) and `blocked-dyn-reveal-universal`/
+  `-conceal-universal` (dynamic slot).
+
+Finding E (open, 2026-08-24): the dynamic-slot universal case has a
+termination obstruction.  Closing `blocked-dyn-*-universal` by the
+established head decomposition makes, inside each chain head, a
+recursive dynamic reveal at the fresh slot whose type is the replaced
+body `replaceTy (suc dX)(⇑dR) B₁` — not smaller than `∀ B₁`, since
+the slot's representative is inserted at each occurrence.  No size
+measure closes: the type grows; the source derivation of the fresh
+call is the target's body (bounded by `sizeᵖ q`, not `sizeᵖ p`); the
+target derivation of the fresh call is the head's λ-bound
+body-relation, of unbounded size; the step index does not decrement
+(the instantiation is a precise-only step); occurrence-weighted sizes
+fail because the fresh variable's occurrences are the bound
+variable's, unrelated to the old slot's.  The same regress hits the
+one-sided `blocked-precise-*` case only indirectly (its fresh call is
+at the unreplaced body, which is smaller, but may itself be
+`∀`-shaped and then needs the dynamic case).
+
+Proposed resolution (recommended): make `RightUniversalsRelated`
+contractive — the chain stored at `suc k` yields heads whose
+`PostBind` conclusions live at `k`, so eliminating a right-universal
+costs one index unit even though the type application is a
+precise-only step.  Then the recursive fresh-slot reveal inside a
+head runs at a strictly smaller index and recurses through the
+bundle's index component; the dynamic statement stays type-fueled
+elsewhere.  Producers get strictly easier (the intro compatibility
+already has the body at every smaller index); consumers weaken to
+index-decrementing type application at `∀⊑`, which is harmless for
+the fundamental property (premises hold at all indices); the reveal
+and conceal assemblies stay index-preserving because source and
+target chains are contractive consistently.  The `∀⊑∀` chain
+(`UniversalsRelated`) is unchanged — its elimination already pays via
+the paired bind step.  Alternative: a documented `TERMINATING` pragma
+on the dynamic universal recursion, arguing that the recursion is
+guarded by the head λs and unfolds only along the finite operational
+instantiation chain — rejected for now because the argument is
+subtler than the allocation-order one and the file has no pragma
+precedent.
+
 ### 2. Prove compatibility for the rebase-sensitive cast forms
 
 Add open-term compatibility for the remaining reveal, conceal, and packaged

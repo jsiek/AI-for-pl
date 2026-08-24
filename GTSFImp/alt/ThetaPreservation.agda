@@ -15,7 +15,7 @@ module alt.ThetaPreservation where
 --   * The theorem is deliberately stated at `[]`; the checked nonempty-context
 --     `β-reveal-⇒` refutation remains as a record of that boundary.
 
-open import Data.Empty using (⊥)
+open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
@@ -23,12 +23,13 @@ open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; sym; trans)
+  using (_≡_; refl; cong; cong₂; sym; trans)
   renaming (subst to subst≡)
 open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
 open import TermCtx
+open import Consistency
 open import Primitives
 open import alt.Conversion
 open import alt.ThetaTerms
@@ -89,6 +90,313 @@ generator-typed B C =
     (λ T → ⊢↑[ zero ⦂ ⇑ᵗ C ] 〖 zero ↑ B 〗 ⦂ B ↝ T)
     (generator-endpoint B C)
     (generator-typed↑ zero (⇑ᵗ C) B)
+
+punchIn-injective : ∀ {Δ} (X : TyVar (suc Δ)) {Y Z : TyVar Δ}
+  → punchIn X Y ≡ punchIn X Z
+  → Y ≡ Z
+punchIn-injective zero eq = fin-suc-injective eq
+punchIn-injective (suc X) {zero} {zero} eq = refl
+punchIn-injective (suc X) {zero} {suc z} ()
+punchIn-injective (suc X) {suc y} {zero} ()
+punchIn-injective (suc X) {suc y} {suc z} eq =
+  cong suc (punchIn-injective X (fin-suc-injective eq))
+
+ty-var-injective : ∀ {Δ} {X Y : TyVar Δ}
+  → _≡_ {A = Ty Δ} (＇ X) (＇ Y)
+  → X ≡ Y
+ty-var-injective {X = X} {.X} refl = refl
+
+ty-fun-left-injective : ∀ {Δ} {A B C D : Ty Δ}
+  → A ⇒ B ≡ C ⇒ D
+  → A ≡ C
+ty-fun-left-injective refl = refl
+
+ty-fun-right-injective : ∀ {Δ} {A B C D : Ty Δ}
+  → A ⇒ B ≡ C ⇒ D
+  → B ≡ D
+ty-fun-right-injective refl = refl
+
+ty-all-injective : ∀ {Δ} {A B : Ty (suc Δ)}
+  → `∀ A ≡ `∀ B
+  → A ≡ B
+ty-all-injective refl = refl
+
+renameTy-injective : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
+  → (∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
+  → ∀ {A B : Ty Δ}
+  → renameᵗ ρ A ≡ renameᵗ ρ B
+  → A ≡ B
+renameTy-injective {ρ = ρ} injective {A = ＇ X} {B = ＇ Y} eq =
+  cong ＇_ (injective (ty-var-injective eq))
+renameTy-injective injective {A = ＇ X} {B = ‵ ι} ()
+renameTy-injective injective {A = ＇ X} {B = ★} ()
+renameTy-injective injective {A = ＇ X} {B = B ⇒ C} ()
+renameTy-injective injective {A = ＇ X} {B = `∀ B} ()
+renameTy-injective injective {A = ‵ ι} {B = ＇ X} ()
+renameTy-injective injective {A = ‵ ι} {B = ‵ ι′} refl = refl
+renameTy-injective injective {A = ‵ ι} {B = ★} ()
+renameTy-injective injective {A = ‵ ι} {B = B ⇒ C} ()
+renameTy-injective injective {A = ‵ ι} {B = `∀ B} ()
+renameTy-injective injective {A = ★} {B = ＇ X} ()
+renameTy-injective injective {A = ★} {B = ‵ ι} ()
+renameTy-injective injective {A = ★} {B = ★} eq = refl
+renameTy-injective injective {A = ★} {B = B ⇒ C} ()
+renameTy-injective injective {A = ★} {B = `∀ B} ()
+renameTy-injective injective {A = A ⇒ B} {B = ＇ X} ()
+renameTy-injective injective {A = A ⇒ B} {B = ‵ ι} ()
+renameTy-injective injective {A = A ⇒ B} {B = ★} ()
+renameTy-injective injective {A = A ⇒ B} {B = C ⇒ D} eq =
+  cong₂ _⇒_
+    (renameTy-injective injective (ty-fun-left-injective eq))
+    (renameTy-injective injective (ty-fun-right-injective eq))
+renameTy-injective injective {A = A ⇒ B} {B = `∀ C} ()
+renameTy-injective injective {A = `∀ A} {B = ＇ X} ()
+renameTy-injective injective {A = `∀ A} {B = ‵ ι} ()
+renameTy-injective injective {A = `∀ A} {B = ★} ()
+renameTy-injective injective {A = `∀ A} {B = B ⇒ C} ()
+renameTy-injective {ρ = ρ} injective {A = `∀ A} {B = `∀ B} eq =
+  cong `∀
+    (renameTy-injective ext-injective (ty-all-injective eq))
+  where
+  ext-injective : ∀ {X Y}
+    → extᵗ ρ X ≡ extᵗ ρ Y
+    → X ≡ Y
+  ext-injective {zero} {zero} eq = refl
+  ext-injective {zero} {suc Y} ()
+  ext-injective {suc X} {zero} ()
+  ext-injective {suc X} {suc Y} eq =
+    cong suc (injective (fin-suc-injective eq))
+
+wkTy-injective : ∀ {Δ} (X : TyVar (suc Δ)) {A B : Ty Δ}
+  → wkᵗ X A ≡ wkᵗ X B
+  → A ≡ B
+wkTy-injective X = renameTy-injective (punchIn-injective X)
+
+id↑-endpoint : ∀ {Δ} {X : TyVar Δ} {R A B : Ty Δ}
+  → ⊢↑[ X ⦂ R ] id↑ ⦂ A ↝ B
+  → A ≡ B
+id↑-endpoint (⊢id↑ A) = refl
+
+id↓-endpoint : ∀ {Δ} {X : TyVar Δ} {R A B : Ty Δ}
+  → ⊢↓[ X ⦂ R ] id↓ ⦂ A ↝ B
+  → A ≡ B
+id↓-endpoint (⊢id↓ A) = refl
+
+constant-type : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ} {κ} {A : Ty Δ}
+  → Ψ ∣ Γ ⊢ $ κ ⦂ A
+  → constTy κ ≡ A
+constant-type (⊢$ κ) = refl
+
+const-wk : ∀ {Δ} (X : TyVar (suc Δ)) κ
+  → constTy {suc Δ} κ ≡ wkᵗ X (constTy {Δ} κ)
+const-wk X (κℕ n) = refl
+const-wk X (κ𝔹 b) = refl
+
+unseal-source : ∀ {Δ} {X : TyVar Δ} {R A B : Ty Δ}
+  → ⊢↑[ X ⦂ R ] unseal ⦂ A ↝ B
+  → A ≡ ＇ X
+unseal-source ⊢unseal = refl
+
+unseal-target : ∀ {Δ} {X : TyVar Δ} {R A B : Ty Δ}
+  → ⊢↑[ X ⦂ R ] unseal ⦂ A ↝ B
+  → B ≡ R
+unseal-target ⊢unseal = refl
+
+seal-source : ∀ {Δ} {X : TyVar Δ} {R A B : Ty Δ}
+  → ⊢↓[ X ⦂ R ] seal ⦂ A ↝ B
+  → A ≡ R
+seal-source ⊢seal = refl
+
+seal-target : ∀ {Δ} {X : TyVar Δ} {R A B : Ty Δ}
+  → ⊢↓[ X ⦂ R ] seal ⦂ A ↝ B
+  → B ≡ ＇ X
+seal-target ⊢seal = refl
+
+terminal-anchor : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
+  → (Ψ ,typ[ X ≔ α ]) ∋typ Y ≔ β
+  → Y ≡ X
+  → β ≡ α
+terminal-anchor here-typ refl = refl
+terminal-anchor (skip-cross-typ {Y = Y} Y∈) eq =
+  ⊥-elim (punchIn≢ _ Y (sym eq))
+
+anchor-lookup-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {α : TyVar Θ} {A B : Ty Δ}
+  → Ψ ∋ α := A
+  → Ψ ∋ α := B
+  → A ≡ B
+anchor-lookup-unique Z Z = refl
+anchor-lookup-unique (S A∈) (S B∈) = anchor-lookup-unique A∈ B∈
+anchor-lookup-unique (skip-opaque A∈) (skip-opaque B∈) =
+  anchor-lookup-unique A∈ B∈
+anchor-lookup-unique (skip-typ {Y = Y} A∈) (skip-typ B∈) =
+  cong (wkᵗ Y) (anchor-lookup-unique A∈ B∈)
+anchor-lookup-unique (skip-lexical A∈) (skip-lexical B∈) =
+  cong (renameᵗ suc) (anchor-lookup-unique A∈ B∈)
+
+------------------------------------------------------------------------
+-- Preservation cases: computational rules
+------------------------------------------------------------------------
+
+preserve-δ-⊕ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {op κ₁ κ₂ κ₃} {A}
+  → δ op κ₁ κ₂ κ₃
+  → Ψ ∣ [] ⊢ ($ κ₁ ⊕[ op ] $ κ₂) ⦂ A
+  → Ψ ∣ [] ⊢ $ κ₃ ⦂ A
+preserve-δ-⊕ δ-add (⊢⊕ addℕ (⊢$ _) (⊢$ _)) = ⊢$ _
+preserve-δ-⊕ δ-and (⊢⊕ and𝔹 (⊢$ _) (⊢$ _)) = ⊢$ _
+
+preserve-β : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V N : Term Θ Δ} {A B}
+  → Ψ ∣ [] ⊢ (ƛ A ˙ N) · V ⦂ B
+  → Ψ ∣ [] ⊢ N [ V ] ⦂ B
+preserve-β (⊢· (⊢ƛ N⊢) V⊢) = ⊢[] N⊢ V⊢
+
+preserve-β-id : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+    {μ : Env∼ Δ} {A} {a : Atom A}
+  → Ψ ∣ [] ⊢ V ⟨ id {μ = μ} a ⟩ ⦂ A
+  → Ψ ∣ [] ⊢ V ⦂ A
+preserve-β-id (⊢⟨⟩ V⊢ (id a)) = V⊢
+
+preserve-β-⇒ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V W : Term Θ Δ}
+    {μ : Env∼ Δ} {A A′ B B′}
+    {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
+  → Ψ ∣ [] ⊢ (V ⟨ c ↦ d ⟩) · W ⦂ B′
+  → Ψ ∣ [] ⊢ (V · (W ⟨ c ⟩)) ⟨ d ⟩ ⦂ B′
+preserve-β-⇒ (⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) =
+  ⊢⟨⟩ (⊢· V⊢ (⊢⟨⟩ W⊢ c)) d
+
+preserve-β-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+    {μ : Env∼ Δ} {A B : Ty (suc Δ)} {C : Ty Δ}
+    {c : extᵐ μ ⊢ A ∼ B} {d : μ ⊢ A [ C ]ᵗ ∼ B [ C ]ᵗ}
+  → d ≡ c [ C ]ᶜ
+  → Ψ ∣ [] ⊢ (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
+  → Ψ ∣ [] ⊢ (V ⦂∀ A [ C ]) ⟨ d ⟩ ⦂ B [ C ]ᵗ
+preserve-β-∀ refl (⊢⦂∀ (⊢⟨⟩ V⊢ (∀ᶜ c))) =
+  ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ _ ]ᶜ)
+
+preserve-ground : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+    {μ : Env∼ Δ} {A G : Ty Δ} ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+    {c : μ ⊢ A ∼ G} ⦃ Ans : NonStar A ⦄ ⦃ Gns : NonStar G ⦄
+  → Ψ ∣ [] ⊢ V ⟨ c ! ⟩ ⦂ ★
+  → Ψ ∣ [] ⊢ V ⟨ c ⟩ ⟨ (idᵍ Gᵍ) ! ⟩ ⦂ ★
+preserve-ground ⦃ Gᵍ = Gᵍ ⦄ (⊢⟨⟩ V⊢ (c !)) =
+  ⊢⟨⟩ (⊢⟨⟩ V⊢ c) ((idᵍ Gᵍ) !)
+
+preserve-expand : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+    {μ : Env∼ Δ} {G B : Ty Δ} ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
+    {c : μ ⊢ G ∼ B} ⦃ Bns : NonStar B ⦄ ⦃ Gns : NonStar G ⦄
+  → Ψ ∣ [] ⊢ V ⟨ ？ c ⟩ ⦂ B
+  → Ψ ∣ [] ⊢ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩ ⦂ B
+preserve-expand ⦃ Gᵍ = Gᵍ ⦄ (⊢⟨⟩ V⊢ (？ c)) =
+  ⊢⟨⟩ (⊢⟨⟩ V⊢ (？ (idᵍ Gᵍ))) c
+
+preserve-tag-untag : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+    {μ ν : Env∼ Δ} {G : Ty Δ} ⦃ Gᵍ : Ground G ⦄
+    ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄ ⦃ Gns : NonStar G ⦄
+  → Ψ ∣ [] ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Gᵍ) ⟩ ⦂ G
+  → Ψ ∣ [] ⊢ V ⦂ G
+preserve-tag-untag (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) = V⊢
+
+preserve-tag-untag-bad : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-tag-untag-bad M⊢ = ⊢blame
+
+preserve-blame-bot-intro : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Ψ ∣ [] ⊢ blame ⦂ A
+preserve-blame-bot-intro M⊢ = ⊢blame
+
+preserve-β-reveal-⇒ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ (suc Δ)} {W : Term Θ Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal} {d : Reveal}
+    {B : Ty Δ}
+  → Ψ ∣ [] ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W ⦂ B
+  → Ψ ∣ [] ⊢ (V · (W ↓[ X ≔ α ] c)) ↑[ X ≔ α ] d ⦂ B
+preserve-β-reveal-⇒ {Ψ = Ψ} {W = W} {X = X} {α = α}
+    (⊢· (⊢reveal α∈ (⊢↑-⇒ c⊢ d⊢) V⊢) W⊢) =
+  ⊢reveal α∈ d⊢
+    (⊢· V⊢ (⊢conceal here-typ deleted-lookup c⊢ deleted-W⊢))
+  where
+  env-eq = ∖-typ-here Ψ X α
+  deleted-lookup =
+    subst≡ (λ Φ → Φ ∋ α := _) (sym env-eq) α∈
+  deleted-W⊢ =
+    subst≡ (λ Φ → Φ ∣ [] ⊢ W ⦂ _) (sym env-eq) W⊢
+
+preserve-id-cancel : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {A}
+  → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ ⦂ A
+  → Ψ ∣ [] ⊢ V ⦂ A
+preserve-id-cancel {Ψ = Ψ} {V = V} {X = X} {α = α}
+    (⊢reveal α∈ c↑ (⊢conceal slot∈ β∈ c↓ V⊢)) =
+  subst≡ (λ B → Ψ ∣ [] ⊢ V ⦂ B) type-eq ambient-V⊢
+  where
+  env-eq = ∖-typ-here Ψ X α
+  ambient-V⊢ =
+    subst≡ (λ Φ → Φ ∣ [] ⊢ V ⦂ _) env-eq V⊢
+  type-eq = wkTy-injective X
+    (trans (id↓-endpoint c↓) (id↑-endpoint c↑))
+
+preserve-id-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {X} {α}
+    {κ} {A : Ty Δ}
+  → Ψ ∣ [] ⊢ ($ κ) ↑[ X ≔ α ] id↑ ⦂ A
+  → Ψ ∣ [] ⊢ $ κ ⦂ A
+preserve-id-reveal {Ψ = Ψ} {X = X} {κ = κ}
+    (⊢reveal α∈ c⊢ M⊢) =
+  subst≡ (λ B → Ψ ∣ [] ⊢ $ κ ⦂ B) type-eq (⊢$ κ)
+  where
+  weakened-eq = trans (sym (const-wk X κ))
+    (trans (constant-type M⊢) (id↑-endpoint c⊢))
+  type-eq = wkTy-injective X weakened-eq
+
+preserve-id-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)} {X} {α}
+    {κ} {A : Ty (suc Δ)}
+  → Ψ ∣ [] ⊢ ($ κ) ↓[ X ≔ α ] id↓ ⦂ A
+  → Ψ ∣ [] ⊢ $ κ ⦂ A
+preserve-id-conceal {Ψ = Ψ} {X = X} {κ = κ}
+    (⊢conceal slot∈ α∈ c⊢ M⊢) =
+  subst≡ (λ B → Ψ ∣ [] ⊢ $ κ ⦂ B) type-eq (⊢$ κ)
+  where
+  type-eq = trans (const-wk X κ)
+    (trans (cong (wkᵗ X) (constant-type M⊢)) (id↓-endpoint c⊢))
+
+preserve-conceal-reveal-matched : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {X Y : TyVar (suc Δ)} {α β : TyVar Θ} {A}
+  → X ≡ Y
+  → α ≡ β
+  → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal ⦂ A
+  → Ψ ∣ [] ⊢ V ⦂ A
+preserve-conceal-reveal-matched {Ψ = Ψ} {X = X} {α = α} refl refl
+    (⊢reveal β∈ c↑ (⊢conceal slot∈ α∈ c↓ V⊢)) =
+  subst≡ (λ B → Ψ ∣ [] ⊢ _ ⦂ B) type-eq ambient-V⊢
+  where
+  env-eq = ∖-typ-here Ψ X α
+  ambient-V⊢ = subst≡ (λ Φ → Φ ∣ [] ⊢ _ ⦂ _) env-eq V⊢
+  ambient-α∈ = subst≡ (λ Φ → Φ ∋ α := _) env-eq α∈
+  source-eq = wkTy-injective X (seal-source c↓)
+  target-eq = wkTy-injective X (unseal-target c↑)
+  type-eq = trans source-eq
+    (trans (anchor-lookup-unique ambient-α∈ β∈) (sym target-eq))
+
+preserve-conceal-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {V : Term Θ Δ} {X Y : TyVar (suc Δ)} {α β : TyVar Θ} {A}
+  → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal ⦂ A
+  → Ψ ∣ [] ⊢ V ⦂ A
+preserve-conceal-reveal typing@(⊢reveal β∈ c↑
+    (⊢conceal slot∈ α∈ c↓ V⊢)) =
+  preserve-conceal-reveal-matched slot-eq anchor-eq typing
+  where
+  slot-eq = ty-var-injective
+    (trans (sym (seal-target c↓)) (unseal-source c↑))
+  anchor-eq = terminal-anchor slot∈ slot-eq
+
+preserve-const-ν : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {C A : Ty Δ} {κ}
+  → Ψ ∣ [] ⊢ ν[ C ] ($ κ) ⦂ A
+  → Ψ ∣ [] ⊢ $ κ ⦂ A
+preserve-const-ν (⊢ν (⊢$ κ)) = ⊢$ κ
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression

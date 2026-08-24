@@ -24,8 +24,9 @@ import Data.Fin as Fin
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
+open import Data.Maybe using (just; nothing)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_×_; _,_)
+open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
   renaming (subst to subst≡)
@@ -320,6 +321,104 @@ anchor-lookup-unique (skip-typ {Y = Y} A∈) (skip-typ B∈) =
   cong (wkᵗ Y) (anchor-lookup-unique A∈ B∈)
 anchor-lookup-unique (skip-lexical A∈) (skip-lexical B∈) =
   cong (renameᵗ suc) (anchor-lookup-unique A∈ B∈)
+
+visible-lookup-inv : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {α : TyVar Θ} {A B : Ty Δ}
+  → (Ψ ,:= B) ∋ suc α := A
+  → Ψ ∋ α := A
+visible-lookup-inv (S α∈) = α∈
+
+opaque-lookup-inv : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {α : TyVar Θ} {A : Ty Δ}
+  → (Ψ ,opaque) ∋ suc α := A
+  → Ψ ∋ α := A
+opaque-lookup-inv (skip-opaque α∈) = α∈
+
+typ-lookup-inv : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {Z : TyVar (suc Δ)} {β α : TyVar Θ} {C : Ty (suc Δ)}
+  → (Ψ ,typ[ Z ≔ β ]) ∋ α := C
+  → ∃[ A ] (Ψ ∋ α := A × C ≡ wkᵗ Z A)
+typ-lookup-inv (skip-typ α∈) = _ , α∈ , refl
+
+crossedSlot : ∀ {Δ}
+  → (Z : TyVar (suc (suc Δ)))
+  → TyVar (suc Δ)
+  → TyVar (suc Δ)
+crossedSlot z y =
+  punchOut (punchIn z y) z (λ eq → punchIn≢ z y (sym eq))
+
+punch-crossing-exchange : ∀ {Δ}
+    (Z : TyVar (suc (suc Δ))) (Y : TyVar (suc Δ))
+    (W : TyVar Δ)
+  → punchIn Z (punchIn Y W)
+    ≡ punchIn (punchIn Z Y) (punchIn (crossedSlot Z Y) W)
+punch-crossing-exchange zero y w = refl
+punch-crossing-exchange (suc z) zero w = refl
+punch-crossing-exchange {Δ = suc Δ} (suc z) (suc y) zero = refl
+punch-crossing-exchange {Δ = suc Δ} (suc z) (suc y) (suc w) =
+  cong suc (punch-crossing-exchange z y w)
+
+wk-crossing-exchange : ∀ {Δ}
+    (Z : TyVar (suc (suc Δ))) (Y : TyVar (suc Δ)) (A : Ty Δ)
+  → wkᵗ Z (wkᵗ Y A)
+    ≡ wkᵗ (punchIn Z Y) (wkᵗ (crossedSlot Z Y) A)
+wk-crossing-exchange z y A =
+  trans (renameᵗ-comp (punchIn y) (punchIn z) A)
+    (trans (renameᵗ-cong A (punch-crossing-exchange z y))
+      (sym (renameᵗ-comp (punchIn (crossedSlot z y))
+        (punchIn (punchIn z y)) A)))
+
+crossing-lookup-agrees : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+    {X : TyVar (suc Δ)} {α : TyVar Θ}
+    {R : Ty (suc Δ)} {C : Ty Δ}
+  → Ψ ∋typ X ≔ α
+  → Ψ ∋ α := R
+  → (Ψ ∖ X) ∋ α := C
+  → R ≡ wkᵗ X C
+crossing-lookup-agrees
+    (here-typ {Ψ = Ψ} {Y = X} {α = α})
+    (skip-typ ambient∈) deleted∈
+    rewrite ∖-typ-here Ψ X α =
+  cong (wkᵗ X) (anchor-lookup-unique ambient∈ deleted∈)
+crossing-lookup-agrees
+    {Δ = suc Δ}
+    (skip-cross-typ {Ψ = Ψ} {Y = y} {Z = z} {β = γ} slot∈)
+    (skip-typ ambient∈) deleted∈
+    with typ-lookup-inv
+      (subst≡ (λ Φ → Φ ∋ _ := _) env-eq deleted∈)
+  where
+  z≢old = punchIn≢ z y
+  old≢z = λ eq → z≢old (sym eq)
+  env-eq = trans
+    (∖-typ-other Ψ z (punchIn z y) γ z≢old old≢z)
+    (cong (λ W → (Ψ ∖ W) ,typ[ crossedSlot z y ≔ γ ])
+      (punchOut-punchIn z y z≢old))
+crossing-lookup-agrees
+    {Δ = suc Δ}
+    (skip-cross-typ {Y = y} {Z = z} slot∈)
+    (skip-typ ambient∈) deleted∈ | D , deleted-base∈ , refl =
+  trans (cong (wkᵗ z)
+      (crossing-lookup-agrees slot∈ ambient∈ deleted-base∈))
+    (wk-crossing-exchange z y D)
+crossing-lookup-agrees (skip-lexical-typ {Y = Y} slot∈)
+    (skip-lexical ambient∈) (skip-lexical deleted∈) =
+  trans (cong ⇑ᵗ
+      (crossing-lookup-agrees slot∈ ambient∈ deleted∈))
+    (wk-exchange Y _)
+crossing-lookup-agrees
+    (skip-visible-typ {Y = X} {A = A} slot∈)
+    ambient∈ deleted∈ with strengthenᵗ? X A
+crossing-lookup-agrees (skip-visible-typ {Y = X} slot∈)
+    ambient∈ deleted∈ | just D =
+  crossing-lookup-agrees slot∈
+    (visible-lookup-inv ambient∈) (visible-lookup-inv deleted∈)
+crossing-lookup-agrees (skip-visible-typ {Y = X} slot∈)
+    ambient∈ deleted∈ | nothing =
+  crossing-lookup-agrees slot∈
+    (visible-lookup-inv ambient∈) (opaque-lookup-inv deleted∈)
+crossing-lookup-agrees (skip-opaque-typ slot∈)
+    (skip-opaque ambient∈) (skip-opaque deleted∈) =
+  crossing-lookup-agrees slot∈ ambient∈ deleted∈
 
 ------------------------------------------------------------------------
 -- Preservation cases: computational rules

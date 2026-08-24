@@ -342,10 +342,28 @@ record RevealObligations : Set₁ where
       → ComputationsRelated W (FutureValueRelation p) k
           Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₁))
 
-    -- Provisional: the whole dynamic-slot reveal and conceal are
-    -- delegated until their development lands (Finding D resolution,
-    -- stage C).
+    blocked-dyn-reveal-universal : ∀ {k n} → Below k n
+      → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
+          {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
+          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+      → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+      → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
+      → embedPrecise (core W)
+          (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁)) ≡ Cᴾ
+      → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+      → ValueImprecision W p k Vᴵ Vᴾ
+      → ComputationsRelated W (FutureValueRelation q) k
+          Vᴵ (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗)
 
-    blocked-dyn-reveal : ∀ {k n} → Below k n → DynRevealAt k
-
-    blocked-dyn-conceal : ∀ {k n} → Below k n → DynConcealAt k
+    blocked-dyn-conceal-universal : ∀ {k n} → Below k n
+      → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (d : DynamicSlot W)
+          {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}
+          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+      → embedPrecise (core W) (`∀ B₁) ≡ Aᴾ
+      → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
+      → embedPrecise (core W)
+          (replaceTy (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁)) ≡ Cᴾ
+      → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+      → ValueImprecision W q k Vᴵ Vᴾ
+      → ComputationsRelated W (FutureValueRelation p) k
+          Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))

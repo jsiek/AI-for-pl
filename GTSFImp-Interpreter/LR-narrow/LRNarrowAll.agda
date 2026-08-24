@@ -57,3 +57,4 @@ import proof.LR-narrow.PreciseReveal
 import proof.LR-narrow.UniversalReveal
 import proof.LR-narrow.ReplaceImprecision
 import proof.LR-narrow.ImprecisionSize
+import proof.LR-narrow.DynamicReveal

@@ -76,6 +76,9 @@ open import proof.LR-narrow.StarNoOccurrence using
 import proof.LR-narrow.PreciseReveal
 open module PreciseRevealModule = proof.LR-narrow.PreciseReveal ob
   using (precise-reveal; precise-conceal)
+import proof.LR-narrow.DynamicReveal
+open module DynamicRevealModule = proof.LR-narrow.DynamicReveal ob
+  using (dyn-reveal; dyn-conceal)
 open import proof.LR-narrow.KeepStepExpansion using
   (related-imprecise-keep-step-expand)
 open import proof.LR-narrow.BindStepExpansion using
@@ -94,8 +97,7 @@ import proof.LR-narrow.RevealAtomic as RA
 import proof.LR-narrow.ConcealAtomic as CA
 
 open RevealObligations ob using
-  (blocked-reveal; blocked-conceal;
-   blocked-dyn-reveal; blocked-dyn-conceal)
+  (blocked-reveal; blocked-conceal)
 open RA using
   (AtomicReveal; atomic-★; atomic-ι; atomic-X; atomic-ι★; atomic-X★;
    rename-base-injective; rename-star-injective; rename-variable-inversion)
@@ -2314,7 +2316,7 @@ statements-step : ∀ (k n : ℕ) → Below k n → Statements k n
 statements-step k n below =
   proj₁ paired , proj₂ paired ,
   precise-reveal below , precise-conceal below ,
-  blocked-dyn-reveal below , blocked-dyn-conceal below
+  dyn-reveal below , dyn-conceal below
   where
   paired = reveal-conceal-step k n below
 

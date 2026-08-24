@@ -1,7 +1,7 @@
 module alt.ThetaPreservation where
 
 -- File Charter:
---   * Proves one-step preservation for closed configurations of the
+--   * Develops one-step preservation for closed configurations of the
 --     Θ-indexed alternative calculus, one lemma per reduction rule.
 --   * The strict rule repairs the counterexample from commit c5ee0351: its
 --     mismatched identity delimiters now form an adapter value rather than a
@@ -15,6 +15,9 @@ module alt.ThetaPreservation where
 --     preservation would remain false even after repairing `conceal-reveal`.
 --   * The theorem is deliberately stated at `[]`; the checked nonempty-context
 --     `β-reveal-⇒` refutation remains as a record of that boundary.
+--   * Closed preservation is nevertheless refuted by `β-reveal-∀`: its
+--     implicit body type occurs only in the contractum and can be chosen
+--     independently of the body type forced by typing the redex.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -795,6 +798,78 @@ preserve-float-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
   → Ψ ∣ [] ⊢ ν[ A ] (shiftᶿ V ⊕[ op ] M) ⦂ primResultTy op
 preserve-float-⊕₂ (⊢⊕ op V⊢ (⊢ν M⊢)) =
   ⊢ν (⊢⊕ op (⊢shiftᶿ V⊢) M⊢)
+
+------------------------------------------------------------------------
+-- `β-reveal-∀` body-type parameter obstruction
+------------------------------------------------------------------------
+
+-- The implicit `C` of `β-reveal-∀` occurs only in its contractum.
+-- Consequently the step derivation can choose a body type unrelated to the
+-- body type forced by typing the redex.  This closed instance chooses `ℕ`
+-- on the redex side and `𝔹` in the step's contractum.
+
+forall-bad-Ψ : TyEnv (suc zero) zero
+forall-bad-Ψ = ∅ ,:= ‵ `ℕ
+
+forall-bad-V : Term (suc zero) (suc zero)
+forall-bad-V = Λ ($ (κℕ 0))
+
+forall-bad-V-⊢ : forall-bad-Ψ ,typ[ zero ≔ zero ] ∣ []
+  ⊢ forall-bad-V ⦂ `∀ (‵ `ℕ)
+forall-bad-V-⊢ = ⊢Λ (⊢$ (κℕ 0))
+
+forall-bad-V-value : Value forall-bad-V
+forall-bad-V-value = Λ ($ (κℕ 0))
+
+forall-bad-B : Ty 1
+forall-bad-B = ‵ `ℕ
+
+forall-bad-C : Ty 2
+forall-bad-C = ‵ `𝔹
+
+forall-bad-delimiter-type : Ty 2
+forall-bad-delimiter-type =
+  wkᵗ (Fin.zero {n = 1}) (`∀ forall-bad-C)
+
+forall-bad-redex : Term (suc zero) zero
+forall-bad-redex =
+  (forall-bad-V ↑[ zero ≔ zero ] `∀↑ id↑)
+    ⦂∀ forall-bad-B [ ‵ `ℕ ]
+
+forall-bad-redex-⊢ : forall-bad-Ψ ∣ [] ⊢ forall-bad-redex ⦂ ‵ `ℕ
+forall-bad-redex-⊢ =
+  ⊢⦂∀ (⊢reveal Z (⊢↑-∀ (⊢id↑ (‵ `ℕ))) forall-bad-V-⊢)
+
+forall-bad-contractum : Term (suc zero) zero
+forall-bad-contractum =
+  ν[ ‵ `ℕ ]
+    ((((shiftᶿ forall-bad-V
+          ↓[ zero ≔ zero ] δ↓ forall-bad-delimiter-type)
+        ⦂∀ swapTopᵗ (⇑ᵗ forall-bad-C) [ ＇ zero ])
+      ↑[ suc zero ≔ suc zero ] id↑)
+      ↑[ zero ≔ zero ] 〖 Fin.zero {n = 0} ↑ forall-bad-B 〗)
+
+forall-bad-step : forall-bad-Ψ ⊢ forall-bad-redex —→
+  forall-bad-contractum
+forall-bad-step = β-reveal-∀ {C = forall-bad-C} forall-bad-V-value
+
+forall-bad-contractum-untypable :
+  forall-bad-Ψ ∣ [] ⊢ forall-bad-contractum ⦂ ‵ `ℕ
+  → ⊥
+forall-bad-contractum-untypable
+    (⊢ν (⊢reveal fresh∈ (⊢id↑ fresh-atom)
+      (⊢reveal old∈ (⊢id↑ old-atom)
+        ())))
+
+closed-preserve-impossible :
+  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
+    → Ψ ∣ [] ⊢ M ⦂ A
+    → Ψ ⊢ M —→ M′
+    → Ψ ∣ [] ⊢ M′ ⦂ A)
+  → ⊥
+closed-preserve-impossible preserve =
+  forall-bad-contractum-untypable
+    (preserve forall-bad-redex-⊢ forall-bad-step)
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression

@@ -413,6 +413,84 @@ chose, which is arbitrary. Two ways out:
       at `★`-ish types) and forces the universal introduction and
       elimination compatibilities to be re-proved against it.
 
+Finding D (open; found 2026-08-24 while attacking the `∀⊑`
+obligation). The paired reveal at `∀⊑` — and every reveal that
+eliminates a *dynamic* seal — is blocked by an index-accounting
+mismatch in the logical relation, not by missing machinery.
+
+The obstruction. The dynamic-seal clause is contractive: at
+`I.X⊑★` the relation at index `suc k` records the sealed payload
+against the imprecise value only at index `k`
+(`DynamicAtomHolds (ValueImprecisionᵏ k W) …` in
+`LR-narrow/LogicalRelation.agda`). At a *paired* slot the same
+contractiveness is harmless because unsealing is a paired step — the
+imprecise endpoint's unseal is a real interpreter step, which pays the
+decrement. At a *dynamic* slot the imprecise endpoint has no wrapper,
+so the structural reveal's unseal is a precise-only step and nothing
+pays: from a sealed pair at `suc k` one can only conclude the unsealed
+pair at `k`. The shortfall is real for higher-order representation
+types (the `suc k`-level content of `FunctionsRelated` strictly
+exceeds the `k`-level content); only for base-type representations is
+the relation index-independent.
+
+Where it bites in the `∀⊑` reveal. The revealed value
+`Vᴾ ↑ 〖 X , R ↑ `∀ B₀ᴾ 〗` must satisfy `RightUniversalsRelated` at
+the replaced types; its head at chain index `suc j` concludes at
+`suc j` and decomposes (after `β-reveal-∀`, a precise-only `bind`
+step — the generic expansion now exists:
+`related-precise-bind-step-expand` in
+`proof/LR-narrow/BindStepExpansion.agda`) into the source's head
+instantiated at the fresh name `＇ 0`, the paired reveal of the old
+slot inside the body (fine: the source imprecision is the
+sub-derivation `p₀`, so a lexicographic (index, derivation-size)
+refinement of the induction handles the same-index recursion), and
+finally the dynamic reveal of the fresh slot — where the shortfall
+strikes. The accounting works out at every chain index `suc j < k`
+(instantiate the source's head one index higher: the spare unit pays
+for exactly one unseal layer; nested unseals under arrows are paid by
+the β-steps of the applications above them), and also at the top
+index when the imprecise world type `Bᴵ` is atomic (`ι`, `★`, or a
+variable: the imprecise reveal `〖 Xᴵ , Rᴵ ↑ Bᴵ 〗` is then `id↑`- or
+`unseal`-shaped, not a value form, so the imprecise endpoint takes one
+real step). It fails only for the head *at* the statement's own index
+when `Bᴵ` is `⇒`- or `∀`-shaped (the imprecise wrapper is a value
+form and contributes no step). The same obstruction affects the
+`∀⊑`/dynamic sub-cases of the one-sided reveals and the Λ-body
+motives of `RemainingObligations` (which face the same
+`〖 0 , ⇑ R ↑ B 〗` wrapper after `β-Λ`).
+
+Resolution options:
+  (a) Semantic worlds: store, per dynamic atom, its payload relation
+      as an intrinsically indexed relation in the world (Ahmed-style),
+      with a coherence condition tying it to the syntactic relation at
+      smaller indices. Principled; removes the contractiveness at its
+      source; a large refactor of `WorldCore`/`Atoms` and every world
+      lemma.
+  (b) Decremented statements: state the `∀⊑` reveal (and a dynamic
+      one-sided reveal family) as index-decrementing
+      (`ValueImprecision p (suc k) → … at k`) and thread the spare
+      unit through the frame compositions. The interior accounting
+      closes, but composite forms containing `∀⊑` (a function type
+      with a `∀⊑` codomain, a `∀⊑∀` body containing `∀⊑`) inherit the
+      decrement at their own top index, so the statement family splits
+      by an "involves a dynamic seal" predicate — invasive and still
+      leaves top-index gaps in the already-proved cases.
+  (c) Defer: keep `∀⊑` as a `RevealObligations` field and design step
+      7 (`Λ⊑Λ²` and the other reveal consumers) first; if every
+      consumer invokes the reveal immediately after a real imprecise
+      step (a β or an unseal on the imprecise side), the decremented
+      form (b) suffices with no split, because the consumer supplies
+      the spare unit at the point of use.
+  (d) Partial fragment now: prove the `∀⊑` reveal for atomic `Bᴵ`
+      (where the imprecise wrapper pays), refining the obligation to
+      the value-shaped `Bᴵ` cases only.
+
+What already landed for `∀⊑` regardless of the resolution: the
+generic precise-only allocation expansion
+(`related-precise-bind-step-expand`, index-preserving, modeled on the
+paired version and on the Λ-specific
+`related-precise-type-beta-expand`).
+
 This milestone is complete when `RemainingObligations` no longer has body
 motive fields and `Assembly.fundamental` closes the three universal
 introduction constructors by recursion.

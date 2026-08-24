@@ -272,60 +272,11 @@ full-concealAt : ∀ {k} → FullStatements k → ConcealAt k
 full-concealAt statements {n = n} = concealAt (statements n)
 
 ------------------------------------------------------------------------
--- The still-open universal imprecisions
-------------------------------------------------------------------------
-
-data BlockedImprecision {Δ} {μ : I.ImpEnv Δ} :
-    ∀ {A B : Ty Δ} → μ I.⊢ A ⊑ B → Set where
-  blocked-∀★⊑★ : BlockedImprecision I.∀★⊑★
-  blocked-∀⊑★ : ∀ {A} {nonstar : NonStar A}
-      {p : I.extᵐ μ I.⊢ A ⊑ ★}
-    → BlockedImprecision (I.∀⊑★ nonstar p)
-
-------------------------------------------------------------------------
 -- The obligations
 ------------------------------------------------------------------------
 
 record RevealObligations : Set₁ where
   field
-    blocked-reveal : ∀ {k n} → Below k n
-      → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
-          {Bᴾ : Ty Δᴾ} {Bᴵ : Ty Δᴵ} {Aᴾ Aᴵ : Ty Δᶜ}
-          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-      → sizeᵖ p ≤ n
-      → BlockedImprecision p
-      → embedPrecise (core W) Bᴾ ≡ Aᴾ
-      → embedImprecise (core W) Bᴵ ≡ Aᴵ
-      → ∀ {Cᴾ Cᴵ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
-      → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ)
-          ≡ Cᴾ
-      → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ)
-          ≡ Cᴵ
-      → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-      → ValueImprecision W p k Vᴵ Vᴾ
-      → ComputationsRelated W (FutureValueRelation q) k
-          (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
-          (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
-
-    blocked-conceal : ∀ {k n} → Below k n
-      → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
-          {Bᴾ : Ty Δᴾ} {Bᴵ : Ty Δᴵ} {Aᴾ Aᴵ : Ty Δᶜ}
-          (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-      → sizeᵖ p ≤ n
-      → BlockedImprecision p
-      → embedPrecise (core W) Bᴾ ≡ Aᴾ
-      → embedImprecise (core W) Bᴵ ≡ Aᴵ
-      → ∀ {Cᴾ Cᴵ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
-      → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ)
-          ≡ Cᴾ
-      → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ)
-          ≡ Cᴵ
-      → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-      → ValueImprecision W q k Vᴵ Vᴾ
-      → ComputationsRelated W (FutureValueRelation p) k
-          (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
-          (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
-
     blocked-precise-reveal : ∀ {k n} → Below k n
       → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)
           {B₁ : Ty (suc Δᴾ)} {Aᴾ Aᴵ : Ty Δᶜ}

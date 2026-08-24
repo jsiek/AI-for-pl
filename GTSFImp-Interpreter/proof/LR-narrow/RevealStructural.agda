@@ -73,7 +73,8 @@ open import proof.LR-narrow.ArgumentFrame using
   (related-application-computation)
 open import proof.LR-narrow.StarNoOccurrence using
   (star-no-occurrence; replaceTy-absent; renameᵗ-reflects-∉ᵗ;
-   renameᵗ-∉ᵗ; paired-no-occurrence; liftCenter-∉ᵗ)
+   renameᵗ-∉ᵗ; paired-no-occurrence; liftCenter-∉ᵗ;
+   ⊑-var-right-nonvar; ⊑-base-right-no-var)
 import proof.LR-narrow.PreciseReveal
 open module PreciseRevealModule = proof.LR-narrow.PreciseReveal ob
   using (precise-reveal; precise-conceal; sizeᵗ;
@@ -2843,28 +2844,6 @@ reveal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {j = suc j}
         {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
 
--- A decision view on type variables whose scrutinee stays neutral, so
--- matching it does not rewrite goals mentioning the underlying `≟`.
-
-data VarDecision {Δ : TyCtx} (X Y : TyVar Δ) : Set where
-  var-same : X ≡ Y → VarDecision X Y
-  var-diff : X ≢ Y → VarDecision X Y
-
-var-decision : ∀ {Δ} (X Y : TyVar Δ) → VarDecision X Y
-var-decision X Y with X ≟ Y
-var-decision X Y | yes hit = var-same hit
-var-decision X Y | no miss = var-diff miss
-
--- On a missed variable the reveal wrapper is the identity conversion,
--- stated as a term-level equality.
-
-reveal-var-miss-term : ∀ {Δ} (V : Term Δ) (X Y : TyVar Δ) (R : Ty Δ)
-  → X ≢ Y
-  → _≡_ {A = Term Δ} (V ↑ 〖 X , R ↑ ＇ Y 〗) (V ↑ id↑ (＇ Y))
-reveal-var-miss-term V X Y R miss with X ≟ Y
-reveal-var-miss-term V X Y R miss | yes hit = ⊥-elim (miss hit)
-reveal-var-miss-term V X Y R miss | no _ = refl
-
 -- The dispatch when the paired center avoids the imprecise center
 -- type: both replacements are the identity, so the target derivation
 -- is the source derivation transported along the identity replacement.
@@ -3258,53 +3237,22 @@ reveal-conceal-step k n below = reveal-at , conceal-at
             (renameᵗ (extᵗ ρᴾ) B₀ᴾ) ⊑ R)
         (sym commute-I) raw)
 
-  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-      with rename-universal-inversion _ sourceᴾ
-  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-      | B₀ᴾ , refl , eqᴾ
-      with var-decision (slotXᴵ s) Y₀
-  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-      | B₀ᴾ , refl , eqᴾ | var-same hit =
-    blocked-reveal below W s (I.∀⊑ nonvar occurs p₀) size≤
-      blocked-∀⊑ sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-      | B₀ᴾ , refl , eqᴾ | var-diff miss
-      with sourceᴵ
-         | targetᴾ
-         | trans (sym targetᴵ)
-             (cong (embedImprecise (core W))
-               (replaceTy-absent (slotXᴵ s) (slotRᴵ s)
-                 (∉-var (≢→≢ᶠ miss))))
-  reveal-at W s {Bᴵ = ＇ Y₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ
-      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-      | B₀ᴾ , refl , eqᴾ | var-diff miss | refl | refl | refl =
-    subst≡
-      (λ Mᴵ → ComputationsRelated W (FutureValueRelation q) k
-        Mᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
-      (sym (reveal-var-miss-term Vᴵ (slotXᴵ s) Y₀ (slotRᴵ s) miss))
-      (right-universal-absent-general W s nonvar occurs p₀ eqᴾ
-        sourceᴾ refl
-        (∉-var (≢→≢ᶠ (λ ceq → miss
-          (toRenameᵗ-injective (impreciseEmbedding (core W))
-            (trans (impreciseAligned (atom s)) ceq)))))
-        q below size≤ related)
-  reveal-at W s {Bᴵ = ‵ ι₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-      with rename-universal-inversion _ sourceᴾ
-  reveal-at W s {Bᴵ = ‵ ι₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-      | B₀ᴾ , refl , eqᴾ
-      with sourceᴵ | targetᴾ | targetᴵ
-  reveal-at W s {Bᴵ = ‵ ι₀} (I.∀⊑ nonvar occurs p₀) size≤
-      sourceᴾ sourceᴵ q targetᴾ targetᴵ related
-      | B₀ᴾ , refl , eqᴾ | refl | refl | refl =
-    right-universal-absent-general W s nonvar occurs p₀ eqᴾ
-      sourceᴾ refl ∉-base q below size≤ related
+  reveal-at W s {Bᴵ = ＇ Y₀}
+      (I.∀⊑ {A = Ac} nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+    ⊥-elim (⊑-var-right-nonvar
+      (subst≡
+        (λ B → I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ B)
+        (sym sourceᴵ) p₀)
+      nonvar)
+  reveal-at W s {Bᴵ = ‵ ι₀}
+      (I.∀⊑ {A = Ac} nonvar occurs p₀) size≤
+      sourceᴾ sourceᴵ q targetᴾ targetᴵ related =
+    ⊥-elim (⊑-base-right-no-var
+      (subst≡
+        (λ B → I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ B)
+        (sym sourceᴵ) p₀)
+      occurs)
   reveal-at W s {Bᴵ = ★} (I.∀⊑ nonvar occurs p₀) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-universal-inversion _ sourceᴾ

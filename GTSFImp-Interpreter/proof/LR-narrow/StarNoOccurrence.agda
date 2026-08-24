@@ -10,7 +10,7 @@ module proof.LR-narrow.StarNoOccurrence where
 
 open import Data.Nat using (suc)
 import Data.Fin as Fin
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; cong₂)
 open import Relation.Nullary using (yes; no)
@@ -160,3 +160,30 @@ liftCenter-∉ᵗ (future-precise W≼W′ related) avoid =
   renameᵗ-∉ᵗ Fin.suc fin-suc-injective (liftCenter-∉ᵗ W≼W′ avoid)
 liftCenter-∉ᵗ (future-imprecise W≼W′) avoid =
   renameᵗ-∉ᵗ Fin.suc fin-suc-injective (liftCenter-∉ᵗ W≼W′ avoid)
+
+------------------------------------------------------------------------
+-- Impossible right-hand sides for right-universal imprecision
+------------------------------------------------------------------------
+
+-- A non-variable type is never imprecise below a variable: the only
+-- atomic derivation at a variable right-hand side is `X⊑X`, whose left
+-- is the same variable, and the only compound one is `∀⊑`, whose
+-- premise repeats the situation with a non-variable left.
+
+⊑-var-right-nonvar : ∀ {Δ} {μ : I.ImpEnv Δ} {A : Ty Δ} {Y : TyVar Δ}
+  → μ I.⊢ A ⊑ ＇ Y
+  → NonVar A
+  → ⊥
+⊑-var-right-nonvar I.X⊑X ()
+⊑-var-right-nonvar (I.∀⊑ nonvar occurs p) nv =
+  ⊑-var-right-nonvar p nonvar
+
+-- A type imprecise below a base type contains no variables at all.
+
+⊑-base-right-no-var : ∀ {Δ} {μ : I.ImpEnv Δ} {A : Ty Δ} {ι}
+    {Z : TyVar Δ}
+  → μ I.⊢ A ⊑ ‵ ι
+  → Z ∈ᵗ A
+  → ⊥
+⊑-base-right-no-var (I.∀⊑ nonvar occurs p) (∈-all occ) =
+  ⊑-base-right-no-var p occ

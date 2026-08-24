@@ -1278,8 +1278,8 @@ dynamic-atom-source-endpoints {W = W} {Z = Z} {mode = mode} holds =
   ClosureProof.dynamic-holds-endpoints (semanticEntry W Z) mode
     (I.X⊑★ mode) holds
 
--- Sealed payloads related at a dynamic slot at index k are related
--- values at the slot's center variable at index suc k.
+-- Sealed payloads related at a dynamic slot are related values at the
+-- slot's center variable at the same index.
 
 dynamic-atom-source-value-at : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} (k : ℕ) {Z : TyVar Δᶜ}
@@ -1287,8 +1287,10 @@ dynamic-atom-source-value-at : ∀ {Δᴾ Δᴵ Δᶜ}
     {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → DynamicAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W Z) mode
       Vᴵ Vᴾ
-  → ValueImprecision W (I.X⊑★ mode) (suc k) Vᴵ Vᴾ
-dynamic-atom-source-value-at k holds =
+  → ValueImprecision W (I.X⊑★ mode) k Vᴵ Vᴾ
+dynamic-atom-source-value-at zero holds =
+  dynamic-atom-source-endpoints {k = zero} holds
+dynamic-atom-source-value-at (suc k) holds =
   dynamic-atom-source-endpoints holds , inj₁ holds
 
 transport-paired-atom-holds : ∀ {Δᴾ Δᴵ Δᶜ mode mode′}
@@ -3382,7 +3384,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = k}
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
         {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -3416,10 +3418,10 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
   where
   source-q = I.X⊑★ mode
   source-related = dynamic-atom-source-value-at
-    {W = W} k {Z = Z} {mode = mode}
+    {W = W} (suc k) {Z = Z} {mode = mode}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
   source-endpoints = dynamic-atom-source-endpoints
-    {W = W} {Z = Z} {mode = mode} {k = k}
+    {W = W} {Z = Z} {mode = mode} {k = suc k}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
 
   source-immediate : ComputationsRelated W
@@ -3461,7 +3463,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = k}
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
         {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -3991,7 +3993,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = k}
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
         {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -4036,7 +4038,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     with tag-projection-step-view {Σ = preciseStore (core W)}
       hᴾ gᴾ Hᴾ∼★ ★∼Gᴾ
       (precise-value (dynamic-atom-source-endpoints
-        {W = W} {Z = Z} {mode = mode} {k = k}
+        {W = W} {Z = Z} {mode = mode} {k = suc k}
         {Vᴾ = Uᴾ} holds))
 related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
     (C.？_ {G = Gᴾ} ⦃ Gᵍ = gᴾ ⦄ ⦃ ★∼G = ★∼Gᴾ ⦄
@@ -4056,7 +4058,7 @@ related-value-casts {W = W} I.★⊑★ sourceᴾ sourceᴵ
   where
   source-q = I.X⊑★ mode
   source-related = dynamic-atom-source-value-at
-    {W = W} k {Z = Z} {mode = mode}
+    {W = W} (suc k) {Z = Z} {mode = mode}
     {Vᴵ = Vᴵ} {Vᴾ = Uᴾ} holds
 
   inner-value-eq = projection-cast-value-none gᴾ ★∼Gᴾ

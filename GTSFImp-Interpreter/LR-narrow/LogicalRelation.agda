@@ -177,6 +177,24 @@ open AlignedDynamicAtomRelated public
 -- Step-indexed value relation
 ------------------------------------------------------------------------
 
+-- Termination. The mutual definition below is not structurally
+-- decreasing for two reasons, both well-founded:
+--   * the chain clauses recurse at a smaller step index with the same
+--     derivation, while the structural clauses recurse into
+--     sub-derivations at the same index — a lexicographic
+--     (index, derivation) descent; and
+--   * the `X⊑★` clause consults an unoccupied dynamic slot's payload
+--     at the *same* step index at the slot's recorded representation
+--     imprecision.  This is well-founded by allocation order: the
+--     slot's `dynamicFresh` field (LR-narrow/Atoms.agda) states that
+--     every center variable of the representation is strictly greater
+--     (older) than the slot's own variable, so the number of center
+--     variables available to consult strictly decreases along any
+--     chain of same-index dynamic unfoldings.
+-- The same-index dynamic payload is deliberate: a dynamic seal is
+-- created and eliminated by precise-only steps, so no imprecise step
+-- is available to pay for a contractive decrement (see
+-- FUNDAMENTAL-PROPERTY-PLAN.md, Finding D).
 {-# TERMINATING #-}
 mutual
   ValueImprecisionᵏ : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
@@ -195,7 +213,7 @@ mutual
   ValueImprecisionᵏ (suc k) W I.★⊑★ Vᴵ Vᴾ =
     TypedEndpoints W I.★⊑★ Vᴵ Vᴾ ×
     (DynamicPayloadRelated W k Vᴵ Vᴾ ⊎
-      DynamicAtomTagRelated W (ValueImprecisionᵏ k W) Vᴵ Vᴾ)
+      DynamicAtomTagRelated W (ValueImprecisionᵏ (suc k) W) Vᴵ Vᴾ)
 
   ValueImprecisionᵏ (suc k) W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ =
     TypedEndpoints W (I.ι⊑ι {ι = ι}) Vᴵ Vᴾ ×
@@ -229,8 +247,8 @@ mutual
 
   ValueImprecisionᵏ (suc k) W (I.X⊑★ {X = X} eq) Vᴵ Vᴾ =
     TypedEndpoints W (I.X⊑★ eq) Vᴵ Vᴾ ×
-    (DynamicAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W X) eq
-        Vᴵ Vᴾ ⊎
+    (DynamicAtomHolds (ValueImprecisionᵏ (suc k) W)
+        (semanticEntry W X) eq Vᴵ Vᴾ ⊎
       AlignedDynamicAtomRelated W (ValueImprecisionᵏ k W) X Vᴵ Vᴾ)
 
   ValueImprecisionᵏ (suc k) W

@@ -47,6 +47,11 @@ computations-related-zero = record
   ; forward-blame = λ ()
   }
 
+-- Termination note: the `X⊑★` dynamic case recurses at the same step
+-- index into the slot's representation imprecision; this is
+-- well-founded by allocation order (`dynamicFresh`, see the pragma
+-- note in LR-narrow/LogicalRelation.agda).
+{-# TERMINATING #-}
 value-imprecision-downward : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {W : World Δᴾ Δᴵ Δᶜ}
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
@@ -89,7 +94,8 @@ value-imprecision-downward {p = I.★⊑★} {k = suc k}
 value-imprecision-downward {p = I.★⊑★} {k = suc k}
     (endpoints , inj₂ related) =
   endpoints , inj₂
-    (dynamic-atom-tag-map (value-imprecision-downward {k = k}) related)
+    (dynamic-atom-tag-map (value-imprecision-downward {k = suc k})
+      related)
 value-imprecision-downward {p = I.ι⊑ι} {k = suc k} related =
   related
 value-imprecision-downward {W = W} {p = I.X⊑X {X = X}} {k = suc k}
@@ -112,7 +118,7 @@ value-imprecision-downward {p = I.ι⊑★} {k = suc k}
 value-imprecision-downward {W = W} {p = I.X⊑★ {X = X} eq}
     {k = suc k} (endpoints , inj₁ related) =
   endpoints , inj₁
-    (dynamic-holds-map (value-imprecision-downward {k = k})
+    (dynamic-holds-map (value-imprecision-downward {k = suc k})
       (semanticEntry W X) eq related)
 value-imprecision-downward {p = I.X⊑★ eq} {k = suc k}
     (endpoints , inj₂ related) =
@@ -268,8 +274,8 @@ semantic-atom-value {W = W} {X = X} related =
 dynamic-semantic-atom-value : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : World Δᴾ Δᴵ Δᶜ} {X : TyVar Δᶜ} {k Vᴵ Vᴾ}
     (eq : impEnv (core W) X ≡ I.X⊑★)
-  → DynamicAtomHolds (ValueImprecisionᵏ k W) (semanticEntry W X) eq
-      Vᴵ Vᴾ
+  → DynamicAtomHolds (ValueImprecisionᵏ (suc k) W) (semanticEntry W X)
+      eq Vᴵ Vᴾ
   → ValueImprecision W (I.X⊑★ eq) (suc k) Vᴵ Vᴾ
 dynamic-semantic-atom-value {W = W} {X = X} eq related =
   dynamic-holds-endpoints (semanticEntry W X) eq (I.X⊑★ eq) related ,
@@ -1145,6 +1151,10 @@ imprecise-future : ∀ {Δᴾ Δᴵ Δᶜ}
   → Future W (impreciseBindWorld W Rᴵ)
 imprecise-future W Rᴵ = future-imprecise future-refl
 
+-- Termination note: the `X⊑★` dynamic case recurses at the same step
+-- index into the slot's representation imprecision; well-founded by
+-- allocation order (`dynamicFresh`; see LR-narrow/LogicalRelation.agda).
+{-# TERMINATING #-}
 value-imprecision-paired : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Rᴾ Rᴵ}
     (W : World Δᴾ Δᴵ Δᶜ)
     (r : Rᴾ ⊑ᵂ⟨ core W ⟩ Rᴵ)
@@ -1213,7 +1223,8 @@ value-imprecision-paired W r {p = I.★⊑★} {k = suc k}
   let step = paired-future W r
   in typed-endpoints-future step endpoints ,
      inj₂ (dynamic-atom-tag-future step
-       (λ {p = p} rel → value-imprecision-paired W r {p = p} {k = k} rel)
+       (λ {p = p} rel →
+         value-imprecision-paired W r {p = p} {k = suc k} rel)
        value-payload-reindex related)
 value-imprecision-paired W r {p = I.ι⊑ι} {k = suc k}
     (endpoints , same) =
@@ -1263,7 +1274,8 @@ value-imprecision-paired W r {p = I.X⊑★ eq} {k = suc k}
     (endpoints , inj₁ related) =
   typed-endpoints-future (paired-future W r) endpoints ,
   inj₁ (dynamic-holds-future (paired-future W r)
-    (λ {p = p} rel → value-imprecision-paired W r {p = p} {k = k} rel)
+    (λ {p = p} rel →
+      value-imprecision-paired W r {p = p} {k = suc k} rel)
     value-payload-reindex eq related)
 value-imprecision-paired W r {p = I.X⊑★ eq} {k = suc k}
     (endpoints , inj₂ related) =
@@ -1322,6 +1334,10 @@ value-imprecision-paired W r {p = I.bot-elim} {k = suc k}
 value-imprecision-paired W r {p = I.bot⊑★} {k = suc k}
     endpoints = typed-endpoints-future (paired-future W r) endpoints
 
+-- Termination note: the `X⊑★` dynamic case recurses at the same step
+-- index into the slot's representation imprecision; well-founded by
+-- allocation order (`dynamicFresh`; see LR-narrow/LogicalRelation.agda).
+{-# TERMINATING #-}
 value-imprecision-precise : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Rᴾ}
     (W : World Δᴾ Δᴵ Δᶜ)
     (r : impEnv (core W) I.⊢ embedPrecise (core W) Rᴾ ⊑ ★)
@@ -1390,7 +1406,8 @@ value-imprecision-precise W r {p = I.★⊑★} {k = suc k}
   let step = precise-future W r
   in typed-endpoints-future step endpoints ,
      inj₂ (dynamic-atom-tag-future step
-       (λ {p = p} rel → value-imprecision-precise W r {p = p} {k = k} rel)
+       (λ {p = p} rel →
+         value-imprecision-precise W r {p = p} {k = suc k} rel)
        value-payload-reindex related)
 value-imprecision-precise W r {p = I.ι⊑ι} {k = suc k}
     (endpoints , same) =
@@ -1439,7 +1456,8 @@ value-imprecision-precise W r {p = I.X⊑★ eq} {k = suc k}
     (endpoints , inj₁ related) =
   typed-endpoints-future (precise-future W r) endpoints ,
   inj₁ (dynamic-holds-future (precise-future W r)
-    (λ {p = p} rel → value-imprecision-precise W r {p = p} {k = k} rel)
+    (λ {p = p} rel →
+      value-imprecision-precise W r {p = p} {k = suc k} rel)
     value-payload-reindex eq related)
 value-imprecision-precise W r {p = I.X⊑★ eq} {k = suc k}
     (endpoints , inj₂ related) =
@@ -1497,6 +1515,10 @@ value-imprecision-precise W r {p = I.bot-elim} {k = suc k}
 value-imprecision-precise W r {p = I.bot⊑★} {k = suc k}
     endpoints = typed-endpoints-future (precise-future W r) endpoints
 
+-- Termination note: the `X⊑★` dynamic case recurses at the same step
+-- index into the slot's representation imprecision; well-founded by
+-- allocation order (`dynamicFresh`; see LR-narrow/LogicalRelation.agda).
+{-# TERMINATING #-}
 value-imprecision-imprecise : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ Rᴵ}
     (W : World Δᴾ Δᴵ Δᶜ)
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ} {k Vᴵ Vᴾ}
@@ -1564,7 +1586,7 @@ value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.★⊑★} {k = suc k}
   in typed-endpoints-future step endpoints ,
      inj₂ (dynamic-atom-tag-future step
        (λ {p = p} rel →
-         value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = p} {k = k} rel)
+         value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = p} {k = suc k} rel)
        value-payload-reindex related)
 value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.ι⊑ι} {k = suc k}
     (endpoints , same) =
@@ -1615,7 +1637,7 @@ value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.X⊑★ eq}
   typed-endpoints-future (imprecise-future W Rᴵ) endpoints ,
   inj₁ (dynamic-holds-future (imprecise-future W Rᴵ)
     (λ {p = p} rel →
-      value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = p} {k = k} rel)
+      value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = p} {k = suc k} rel)
     value-payload-reindex eq related)
 value-imprecision-imprecise {Rᴵ = Rᴵ} W {p = I.X⊑★ eq}
     {k = suc k} (endpoints , inj₂ related) =

@@ -14,7 +14,7 @@ module LR-narrow.Atoms where
 --     logical relation supplies itself at the next lower index.
 
 open import Data.List using ([])
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; suc; s≤s; z≤n)
 open import Data.Empty using (⊥)
 open import Level using (Lift; lift; 0ℓ) renaming (suc to lsuc)
 open import Data.Product using (_×_; _,_; Σ-syntax)
@@ -36,6 +36,42 @@ open import LR-narrow.WorldCore
 ------------------------------------------------------------------------
 -- Slots
 ------------------------------------------------------------------------
+
+-- An occurrence in a renamed type is the image of an occurrence.
+
+rename-∈ᵗ-inversion : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) {Y : TyVar Δ′} (A : Ty Δ)
+  → Y ∈ᵗ renameᵗ ρ A
+  → Σ[ Y′ ∈ TyVar Δ ] (Y ≡ ρ Y′) × (Y′ ∈ᵗ A)
+rename-∈ᵗ-inversion ρ (＇ X) var-∈ = X , refl , var-∈
+rename-∈ᵗ-inversion ρ (A ⇒ B) (∈-fun-left occurs)
+    with rename-∈ᵗ-inversion ρ A occurs
+rename-∈ᵗ-inversion ρ (A ⇒ B) (∈-fun-left occurs)
+    | Y′ , refl , occurs′ = Y′ , refl , ∈-fun-left occurs′
+rename-∈ᵗ-inversion ρ (A ⇒ B) (∈-fun-right no-occur occurs)
+    with rename-∈ᵗ-inversion ρ B occurs
+rename-∈ᵗ-inversion ρ (A ⇒ B) (∈-fun-right no-occur occurs)
+    | Y′ , refl , occurs′ =
+      Y′ , refl , occurs-right (occurs? Y′ A) occurs′
+  where
+  occurs-right : ∀ {Y′} → Occurs? Y′ A → Y′ ∈ᵗ B → Y′ ∈ᵗ A ⇒ B
+  occurs-right (present occurs-A) occursB = ∈-fun-left occurs-A
+  occurs-right (absent no-occur-A) occursB =
+    ∈-fun-right no-occur-A occursB
+rename-∈ᵗ-inversion ρ (`∀ A) (∈-all occurs)
+    with rename-∈ᵗ-inversion (extᵗ ρ) A occurs
+rename-∈ᵗ-inversion ρ (`∀ A) (∈-all occurs)
+    | Fin.zero , () , occurs′
+rename-∈ᵗ-inversion ρ (`∀ A) (∈-all occurs)
+    | Fin.suc Y′ , eq , occurs′ =
+  Y′ , fin-suc-injective eq , ∈-all occurs′
+
+-- Every occurrence in a shifted type is positive, and shifting
+-- strictly raises every occurrence.
+
+shift-∈ᵗ-inversion : ∀ {Δ} {Y : TyVar (suc Δ)} (A : Ty Δ)
+  → Y ∈ᵗ ⇑ᵗ A
+  → Σ[ Y′ ∈ TyVar Δ ] (Y ≡ Fin.suc Y′) × (Y′ ∈ᵗ A)
+shift-∈ᵗ-inversion A occurs = rename-∈ᵗ-inversion Fin.suc A occurs
 
 record SemanticAtom {Δᴾ Δᴵ Δᶜ}
     (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Z : TyVar Δᶜ) : Set where
@@ -68,6 +104,9 @@ record DynamicSemanticAtom {Δᴾ Δᴵ Δᶜ}
     dynamicRep : Ty Δᴾ
     dynamicRep-related :
       impEnv W I.⊢ embedPrecise W dynamicRep ⊑ ★
+    dynamicFresh : ∀ {Y : TyVar Δᶜ}
+      → Y ∈ᵗ embedPrecise W dynamicRep
+      → Z Fin.< Y
     dynamicBound :
       preciseStore W ∋ dynamicPreciseVariable ⦂ dynamicRep
 
@@ -338,8 +377,18 @@ weaken-dynamic-atom {W = W} {Z = Z} Aᴾ Aᴵ a =
     (⇑ᵗ (dynamicRep a))
     (transport-⊑ (embedPrecise-paired-shift W Aᴾ Aᴵ (dynamicRep a)) refl
       (shift-⊑ I.X⊑X (dynamicRep-related a)))
+    fresh
     (S-bind∋ (dynamicBound a) refl)
   where
+  fresh : ∀ {Y}
+    → Y ∈ᵗ embedPrecise (pairedBindCore W Aᴾ Aᴵ) (⇑ᵗ (dynamicRep a))
+    → Fin.suc Z Fin.< Y
+  fresh {Y = Y} occurs
+      with shift-∈ᵗ-inversion (embedPrecise W (dynamicRep a))
+        (subst≡ (Y ∈ᵗ_)
+          (embedPrecise-paired-shift W Aᴾ Aᴵ (dynamicRep a)) occurs)
+  fresh occurs | Y′ , refl , occurs′ = s≤s (dynamicFresh a occurs′)
+
   no-target :
       (Σ[ Y ∈ TyVar _ ]
         toRenameᵗ (impreciseEmbedding
@@ -360,8 +409,18 @@ weaken-dynamic-atom-precise {W = W} {Z = Z} Aᴾ a =
     (⇑ᵗ (dynamicRep a))
     (transport-⊑ (embedPrecise-precise-shift W Aᴾ (dynamicRep a)) refl
       (shift-⊑ I.X⊑★ (dynamicRep-related a)))
+    fresh
     (S-bind∋ (dynamicBound a) refl)
   where
+  fresh : ∀ {Y}
+    → Y ∈ᵗ embedPrecise (preciseBindCore W Aᴾ) (⇑ᵗ (dynamicRep a))
+    → Fin.suc Z Fin.< Y
+  fresh {Y = Y} occurs
+      with shift-∈ᵗ-inversion (embedPrecise W (dynamicRep a))
+        (subst≡ (Y ∈ᵗ_)
+          (embedPrecise-precise-shift W Aᴾ (dynamicRep a)) occurs)
+  fresh occurs | Y′ , refl , occurs′ = s≤s (dynamicFresh a occurs′)
+
   no-target :
       (Σ[ Y ∈ TyVar _ ]
         toRenameᵗ (impreciseEmbedding
@@ -381,8 +440,18 @@ weaken-dynamic-atom-imprecise {W = W} {Z = Z} Aᴵ a =
     (dynamicRep a)
     (transport-⊑ (embedPrecise-imprecise-shift W Aᴵ (dynamicRep a)) refl
       (shift-⊑ I.X⊑★ (dynamicRep-related a)))
+    fresh
     (dynamicBound a)
   where
+  fresh : ∀ {Y}
+    → Y ∈ᵗ embedPrecise (impreciseBindCore W Aᴵ) (dynamicRep a)
+    → Fin.suc Z Fin.< Y
+  fresh {Y = Y} occurs
+      with shift-∈ᵗ-inversion (embedPrecise W (dynamicRep a))
+        (subst≡ (Y ∈ᵗ_)
+          (embedPrecise-imprecise-shift W Aᴵ (dynamicRep a)) occurs)
+  fresh occurs | Y′ , refl , occurs′ = s≤s (dynamicFresh a occurs′)
+
   no-target :
       (Σ[ Y ∈ TyVar _ ]
         toRenameᵗ (impreciseEmbedding
@@ -507,13 +576,23 @@ fresh-dynamic-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
     (W : CoreWorld Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᴾ)
   → impEnv W I.⊢ embedPrecise W Aᴾ ⊑ ★
   → DynamicSemanticAtom (preciseBindCore W Aᴾ) Fin.zero
-fresh-dynamic-semantic-atom W Aᴾ r =
+fresh-dynamic-semantic-atom {Δᶜ = Δᶜ} W Aᴾ r =
   dynamic-semantic-atom Fin.zero refl
     (λ { (Y , ()) })
     (⇑ᵗ Aᴾ)
     (transport-⊑ (embedPrecise-precise-shift W Aᴾ Aᴾ) refl
       (shift-⊑ I.X⊑★ r))
+    fresh
     (Z∋ refl)
+  where
+  fresh : ∀ {Y}
+    → Y ∈ᵗ embedPrecise (preciseBindCore W Aᴾ) (⇑ᵗ Aᴾ)
+    → Fin.zero {Δᶜ} Fin.< Y
+  fresh {Y = Y} occurs
+      with shift-∈ᵗ-inversion (embedPrecise W Aᴾ)
+        (subst≡ (Y ∈ᵗ_)
+          (embedPrecise-precise-shift W Aᴾ Aᴾ) occurs)
+  fresh occurs | Y′ , refl , occurs′ = s≤s z≤n
 
 fresh-target-semantic-atom : ∀ {Δᴾ Δᴵ Δᶜ}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} (Aᴵ : Ty Δᴵ)

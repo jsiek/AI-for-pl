@@ -1128,6 +1128,72 @@ forall-bad-step-impossible :
 forall-bad-step-impossible ()
 
 ------------------------------------------------------------------------
+-- Remaining `β-conceal-∀` instantiation-scope obstruction
+------------------------------------------------------------------------
+
+-- Source determinacy repairs the old free-body choice, but the instantiation
+-- type may still mention the slot eliminated inside the contractum.  Here it
+-- is the concealed variable itself.  Deleting that slot turns the freshly
+-- allocated anchor opaque, so the inner fresh conceal has no visible lookup.
+
+conceal-var-Ψ : TyEnv (suc zero) (suc zero)
+conceal-var-Ψ = (∅ ,:= ‵ `ℕ) ,typ[ zero ≔ zero ]
+
+conceal-var-V : Term (suc zero) zero
+conceal-var-V = Λ ($ (κℕ 0))
+
+conceal-var-V-value : Value conceal-var-V
+conceal-var-V-value = Λ ($ (κℕ 0))
+
+conceal-var-V-⊢ : ∅ ,:= ‵ `ℕ ∣ [] ⊢ conceal-var-V ⦂ `∀ (‵ `ℕ)
+conceal-var-V-⊢ = ⊢Λ (⊢$ (κℕ 0))
+
+conceal-var-B : Ty 2
+conceal-var-B = ‵ `ℕ
+
+conceal-var-redex : Term (suc zero) (suc zero)
+conceal-var-redex =
+  (conceal-var-V ↓[ zero ≔ zero ] `∀↓ id↓)
+    ⦂∀ conceal-var-B [ ＇ zero ]
+
+conceal-var-redex-⊢ :
+  conceal-var-Ψ ∣ [] ⊢ conceal-var-redex ⦂ ‵ `ℕ
+conceal-var-redex-⊢ =
+  ⊢⦂∀ (⊢conceal here-typ Z (⊢↓-∀ (⊢id↓ (‵ `ℕ)))
+    conceal-var-V-⊢)
+
+conceal-var-contractum : Term (suc zero) (suc zero)
+conceal-var-contractum =
+  ν[ ＇ zero ]
+    ((((shiftᶿ conceal-var-V ↓[ zero ≔ zero ]
+          δ↓ (wkᵗ zero (`∀ (‵ `ℕ))))
+        ⦂∀ swapTopᵗ (⇑ᵗ (‵ `ℕ)) [ ＇ zero ])
+      ↓[ suc zero ≔ suc zero ] id↓)
+      ↑[ zero ≔ zero ] 〖 zero ↑ conceal-var-B 〗)
+
+conceal-var-step : conceal-var-Ψ ⊢ conceal-var-redex —→
+  conceal-var-contractum
+conceal-var-step = β-conceal-∀ (skip-typ Z) conceal-var-V-value
+
+conceal-var-contractum-untypable :
+  conceal-var-Ψ ∣ [] ⊢ conceal-var-contractum ⦂ ‵ `ℕ
+  → ⊥
+conceal-var-contractum-untypable
+    (⊢ν (⊢reveal fresh∈ fresh-c⊢
+      (⊢conceal old-slot∈ old∈ old-c⊢
+        (⊢⦂∀ (⊢conceal inner-slot∈ () inner-c⊢ V⊢)))))
+
+closed-preserve-conceal-impossible :
+  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
+    → Ψ ∣ [] ⊢ M ⦂ A
+    → Ψ ⊢ M —→ M′
+    → Ψ ∣ [] ⊢ M′ ⦂ A)
+  → ⊥
+closed-preserve-conceal-impossible preserve =
+  conceal-var-contractum-untypable
+    (preserve conceal-var-redex-⊢ conceal-var-step)
+
+------------------------------------------------------------------------
 -- Historical strict-id regression
 ------------------------------------------------------------------------
 

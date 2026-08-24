@@ -69,10 +69,10 @@ open import proof.LR-narrow.RevealLifting
 open import proof.LR-narrow.ArgumentFrame using
   (related-application-computation)
 open import proof.LR-narrow.StarNoOccurrence using
-  (star-no-occurrence; replaceTy-absent)
+  (star-no-occurrence; replaceTy-absent; renameᵗ-reflects-∉ᵗ)
 open import proof.LR-narrow.PreciseReveal using
   (NoUniversal; nu-fun; renameᵗ-NoUniversal;
-   renameᵗ-reflects-NoUniversal; renameᵗ-reflects-∉ᵗ;
+   renameᵗ-reflects-NoUniversal;
    precise-reveal; precise-conceal)
 open import proof.LR-narrow.KeepStepExpansion using
   (related-imprecise-keep-step-expand)

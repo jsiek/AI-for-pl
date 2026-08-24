@@ -18,6 +18,7 @@ open import Data.Fin.Properties using (_≟_)
 
 open import Types
 open import Conversion using (replaceTy)
+open import proof.ImprecisionConsistency using (ext-injective)
 import Imprecision as I
 
 ------------------------------------------------------------------------
@@ -62,3 +63,23 @@ replaceTy-absent X R (∉-fun absentA absentB) =
   cong₂ _⇒_ (replaceTy-absent X R absentA) (replaceTy-absent X R absentB)
 replaceTy-absent X R (∉-all absentB) =
   cong `∀ (replaceTy-absent (Fin.suc X) (⇑ᵗ R) absentB)
+
+------------------------------------------------------------------------
+-- Renaming and non-occurrence
+------------------------------------------------------------------------
+
+renameᵗ-∉ᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′)
+    (injective : ∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
+    {X : TyVar Δ} {A : Ty Δ}
+  → X ∉ᵗ A → ρ X ∉ᵗ renameᵗ ρ A
+renameᵗ-∉ᵗ ρ injective (∉-var X≢Y) =
+  ∉-var (≢→≢ᶠ (λ eq → ≢ᶠ→≢ X≢Y (injective eq)))
+renameᵗ-∉ᵗ ρ injective ∉-base = ∉-base
+renameᵗ-∉ᵗ ρ injective ∉-star = ∉-star
+renameᵗ-∉ᵗ ρ injective (∉-fun absentA absentB) =
+  ∉-fun (renameᵗ-∉ᵗ ρ injective absentA)
+    (renameᵗ-∉ᵗ ρ injective absentB)
+renameᵗ-∉ᵗ ρ injective (∉-all absentA) =
+  ∉-all (renameᵗ-∉ᵗ (extᵗ ρ) (ext-injective injective) absentA)
+
+

@@ -56,7 +56,8 @@ open import proof.LR-narrow.KeepStepExpansion using
 open import proof.LR-narrow.RevealSteps
 open import proof.LR-narrow.RevealLifting using
   (PairedSlot; paired-slot; center; atom; entry-eq; mode-eq)
-open import proof.LR-narrow.StarNoOccurrence using (replaceTy-absent)
+open import proof.LR-narrow.StarNoOccurrence using
+  (replaceTy-absent; renameᵗ-∉ᵗ; renameᵗ-reflects-∉ᵗ)
 open import proof.LR-narrow.CastComposition using
   (computations-related-future-compose)
 open import proof.LR-narrow.FramePhases using (Frame)
@@ -80,6 +81,10 @@ open PreciseComposition revealFrame using () renaming
 open PreciseComposition concealFrame using () renaming
   (precise-frame-computations-related to conceal-precise-composition;
    PrecisePlugValues to ConcealPrecisePlugValues)
+
+------------------------------------------------------------------------
+-- Universal-free types
+------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 -- Universal-free types
@@ -220,20 +225,6 @@ renameᵗ-NoUniversal ρ nu-base = nu-base
 renameᵗ-NoUniversal ρ nu-star = nu-star
 renameᵗ-NoUniversal ρ (nu-fun nuA nuB) =
   nu-fun (renameᵗ-NoUniversal ρ nuA) (renameᵗ-NoUniversal ρ nuB)
-
-renameᵗ-∉ᵗ : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′)
-    (injective : ∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
-    {X : TyVar Δ} {A : Ty Δ}
-  → X ∉ᵗ A → ρ X ∉ᵗ renameᵗ ρ A
-renameᵗ-∉ᵗ ρ injective (∉-var X≢Y) =
-  ∉-var (≢→≢ᶠ (λ eq → ≢ᶠ→≢ X≢Y (injective eq)))
-renameᵗ-∉ᵗ ρ injective ∉-base = ∉-base
-renameᵗ-∉ᵗ ρ injective ∉-star = ∉-star
-renameᵗ-∉ᵗ ρ injective (∉-fun absentA absentB) =
-  ∉-fun (renameᵗ-∉ᵗ ρ injective absentA)
-    (renameᵗ-∉ᵗ ρ injective absentB)
-renameᵗ-∉ᵗ ρ injective (∉-all absentA) =
-  ∉-all (renameᵗ-∉ᵗ (extᵗ ρ) (ext-injective injective) absentA)
 
 lift-NoUniversal : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}

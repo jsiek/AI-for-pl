@@ -9,6 +9,9 @@ module alt.ThetaReduction where
 --     stops at closed crossing and ν interiors.
 --   * Evaluation descends beneath ν.  A ν-headed result floats through every
 --     demanded frame; siblings shift eagerly in the anchor context.
+--   * Identity cancellation is strict in both node fields.  A mismatched
+--     identity conceal/reveal pair is an inert adapter value, with pair
+--     disequality evidence kept in `RevealValue`.
 --   * The binder telescope is otherwise an inert step index: `float-reveal`
 --     is the only rule that consults it, resolving an exiting representation
 --     from an anchor lookup.

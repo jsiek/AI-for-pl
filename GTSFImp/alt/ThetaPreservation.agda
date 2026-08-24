@@ -1,35 +1,41 @@
 module alt.ThetaPreservation where
 
 -- File Charter:
---   * Records the obstruction to one-step type preservation for the current
---     Θ-indexed alternative calculus.
---   * The loose `id-cancel` rule permits the following typed instance.  Its
---     inner node uses slot zero and anchor zero, while its outer node uses
---     slot two and anchor one:
---
---       (($ 7 ↓[ 0 ≔ 0 ] seal) ↓[ 0 ≔ 0 ] id↓)
---         ↑[ 2 ≔ 1 ] id↑  —→  ($ 7 ↓[ 0 ≔ 0 ] seal)
---
---     The redex has type `＇ 1`: both identity conversions see the same
---     foreign atom after their different slot insertions.  The reduct's
---     sealing node fixes its only possible type at `＇ 0`, however, so it
---     cannot have type `＇ 1`.
---   * Thus the requested total `preserve` statement is false.  The missing
---     fact in the `id-cancel` case is matching node data (in particular,
---     equality of its two slots; the instance also mismatches the anchors).
---     As pre-agreed, no partial theorem or postulate is introduced here.
+--   * Records the remaining obstruction to one-step type preservation for the
+--     Θ-indexed alternative calculus after `id-cancel` was made strict.
+--   * The strict rule repairs the counterexample from commit c5ee0351: its
+--     mismatched identity delimiters now form an adapter value rather than a
+--     redex.  That historical instance remains below as a regression.
+--   * The requested preservation statement is nevertheless false for a
+--     different reason.  `β-reveal-⇒` moves its argument beneath a conceal
+--     delimiter, whose typing rule requires a closed interior.  The reduction
+--     rule asks only that the argument be a `Value`; a lambda value may capture
+--     the ambient term context.  The checked instance below uses exactly such
+--     a lambda, so its reduct cannot be typed.
+--   * As pre-agreed, no partial preservation theorem, postulate, or hole is
+--     introduced.  Repair requires a closedness premise on the function-
+--     crossing β rules or a corresponding change to crossing interiors.
 
 open import Data.Empty using (⊥)
+import Data.Fin as Fin
 open import Data.Fin using (zero; suc)
-open import Data.List using ([])
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
+open import Data.Product using (_×_; _,_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Relation.Nullary using (¬_)
 
 open import Types
+open import TermCtx
 open import Primitives
 open import alt.Conversion
 open import alt.ThetaTerms
 open import alt.ThetaTyping
 open import alt.ThetaReduction
+
+------------------------------------------------------------------------
+-- Historical strict-id regression
+------------------------------------------------------------------------
 
 bad-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
 bad-Ψ =
@@ -64,11 +70,110 @@ bad-redex-⊢ =
 bad-V-canonical : CanonicalInterior bad-V
 bad-V-canonical = sealed ($ (κℕ 7)) zero zero
 
-bad-step : bad-Ψ ⊢ bad-redex —→ bad-V
-bad-step = id-cancel bad-V-canonical
+bad-inner-value : Value bad-inner
+bad-inner-value =
+  canonical-value bad-V-canonical
+    ↓[ zero ≔ zero ] delimiter bad-V-canonical
 
-bad-reduct-untypable : bad-Ψ ∣ [] ⊢ bad-V ⦂ ＇ suc zero → ⊥
-bad-reduct-untypable (⊢conceal α∈ () M⊢)
+bad-node-pair-mismatch :
+  ¬ ((Fin.suc {n = 2} (Fin.suc {n = 1} (Fin.zero {n = 0}))
+      ≡ Fin.zero {n = 2})
+    × (Fin.suc {n = 1} (Fin.zero {n = 0}) ≡ Fin.zero {n = 1}))
+bad-node-pair-mismatch (() , anchor-eq)
+
+-- This was the preservation-refuting redex in commit c5ee0351.  With strict
+-- `id-cancel`, the unequal (slot, anchor) pairs make it an adapter value.
+bad-redex-value : Value bad-redex
+bad-redex-value =
+  bad-inner-value ↑[ suc (suc zero) ≔ suc zero ]
+    adapter bad-V-canonical bad-node-pair-mismatch
+
+constant-no-step : ∀ {Θ Δ} {Φ : TyEnv Θ Δ} {κ M′}
+  → Φ ⊢ $ κ —→ M′
+  → ⊥
+constant-no-step ()
+
+bad-V-no-step : ∀ {Φ : TyEnv 2 2} {M′}
+  → Φ ⊢ bad-V —→ M′
+  → ⊥
+bad-V-no-step (ξ-conceal step) = constant-no-step step
+
+bad-inner-no-step : ∀ {Φ : TyEnv 2 3} {M′}
+  → Φ ⊢ bad-inner —→ M′
+  → ⊥
+bad-inner-no-step (ξ-conceal step) = bad-V-no-step step
+
+bad-redex-no-step : ∀ {M′}
+  → bad-Ψ ⊢ bad-redex —→ M′
+  → ⊥
+bad-redex-no-step (ξ-reveal step) = bad-inner-no-step step
+
+------------------------------------------------------------------------
+-- Remaining `β-reveal-⇒` obstruction
+------------------------------------------------------------------------
+
+open-R : Ty zero
+open-R = ‵ `ℕ ⇒ ‵ `ℕ
+
+open-Ψ : TyEnv (suc zero) zero
+open-Ψ = ∅ ,:= open-R
+
+open-Γ : TermCtx zero
+open-Γ = ‵ `ℕ ∷ []
+
+open-V : Term (suc zero) (suc zero)
+open-V = ƛ ＇ zero ˙ $ (κℕ 0)
+
+open-V-⊢ :
+  open-Ψ ,typ[ zero ] ∣ [] ⊢ open-V ⦂ ＇ zero ⇒ ‵ `ℕ
+open-V-⊢ = ⊢ƛ (⊢$ (κℕ 0))
+
+open-V-value : Value open-V
+open-V-value = ƛ ＇ zero ˙ $ (κℕ 0)
+
+open-W : Term (suc zero) zero
+open-W = ƛ ‵ `ℕ ˙ ` suc zero
+
+open-W-⊢ : open-Ψ ∣ open-Γ ⊢ open-W ⦂ open-R
+open-W-⊢ = ⊢ƛ (⊢` (S Z))
+
+open-W-value : Value open-W
+open-W-value = ƛ ‵ `ℕ ˙ ` suc zero
+
+open-function : Term (suc zero) zero
+open-function = open-V ↑[ zero ≔ zero ] (seal ↦↑ id↑)
+
+open-function-⊢ :
+  open-Ψ ∣ open-Γ ⊢ open-function ⦂ open-R ⇒ ‵ `ℕ
+open-function-⊢ =
+  ⊢reveal Z (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ))) open-V-⊢
+
+open-redex : Term (suc zero) zero
+open-redex = open-function · open-W
+
+open-redex-⊢ : open-Ψ ∣ open-Γ ⊢ open-redex ⦂ ‵ `ℕ
+open-redex-⊢ = ⊢· open-function-⊢ open-W-⊢
+
+open-contractum : Term (suc zero) zero
+open-contractum =
+  (open-V · (open-W ↓[ zero ≔ zero ] seal))
+    ↑[ zero ≔ zero ] id↑
+
+open-step : open-Ψ ⊢ open-redex —→ open-contractum
+open-step = β-reveal-⇒ open-V-value open-W-value
+
+open-W-closed-impossible : ∀ {Φ : TyEnv (suc zero) zero} {A}
+  → Φ ∣ [] ⊢ open-W ⦂ A
+  → ⊥
+open-W-closed-impossible (⊢ƛ (⊢` (S ())))
+
+open-contractum-untypable :
+  open-Ψ ∣ open-Γ ⊢ open-contractum ⦂ ‵ `ℕ
+  → ⊥
+open-contractum-untypable
+    (⊢reveal α∈ c⊢
+      (⊢· V⊢ (⊢conceal β∈ d⊢ W⊢))) =
+  open-W-closed-impossible W⊢
 
 preserve-impossible :
   (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ} {M M′ A}
@@ -77,4 +182,4 @@ preserve-impossible :
     → Ψ ∣ Γ ⊢ M′ ⦂ A)
   → ⊥
 preserve-impossible preserve =
-  bad-reduct-untypable (preserve bad-redex-⊢ bad-step)
+  open-contractum-untypable (preserve open-redex-⊢ open-step)

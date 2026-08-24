@@ -587,12 +587,12 @@ data _⊢_—→_ : ∀ {Θ Δ}
         ν[ C ] (((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A)) ⟨ c ⟩)
           ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
-  -- The reveal brings the region's new type variable into scope over the
-  -- whole contractum interior; we do not want to weaken V, so the identity
-  -- conceal takes that variable back out of scope for V's subtree.  The
-  -- inner application retains v2's top-two regular-slot exchange.  Under
-  -- Θ, ν changes only anchor positions, so the single `shiftᶿ` is the only
-  -- term reindexing and the closed evidence stays outside the reveal.
+  -- β-inst instantiates the polymorphic value V at ★ and applies the
+  -- closed consistency evidence.  Allocation and the seal/unseal
+  -- mediation are deliberately not this rule's job: the contractum is an
+  -- ordinary type application, and the downstream ⦂∀ rules (β-Λ, β-∀,
+  -- β-gen, β-reveal-∀, β-conceal-∀) perform them for whichever canonical
+  -- ∀-value V is.
   β-inst : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {A : Ty (suc Δ)} {B : Ty Δ}
@@ -601,12 +601,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
     → Value V
     → (B≢★ : B ≢ ★)
       ------------------------------------------------------------
-    → Ψ ⊢ V ⟨ (inst c) B≢★ ⟩ —→
-        ν[ ★ ]
-          ((((shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ A)))
-              ⦂∀ swapTopᵗ (⇑ᵗ A) [ ＇ zero ])
-            ↑[ zero ≔ zero ] 〖 zero ↑ A 〗)
-            ⟨ c [ ★/0 ]ᶜ ⟩)
+    → Ψ ⊢ V ⟨ (inst c) B≢★ ⟩ —→ (V ⦂∀ A [ ★ ]) ⟨ c [ ★/0 ]ᶜ ⟩
 
   -- Unlike the name-based v2 statement, entering ν shifts the old anchor
   -- from α to `suc α`; inserting the fresh slot shifts its crossing to

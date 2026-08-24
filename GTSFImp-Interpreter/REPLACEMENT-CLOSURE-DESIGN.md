@@ -332,6 +332,65 @@ other gaps besides the kit.
 * The `∀⊑∀` residue itself is Finding F (world-model extension) plus
   imprecise canonical forms — recorded in the plan.
 
+## The `∀⊑∀` residue — path analysis (2026-08-24)
+
+The four remaining obligations reduce to one construction: the chain
+head for a pair whose precise side alone is wrapped, relating
+`(Vᴵ ⦂∀ Bᴵ[Sᴵ], (Vᴾ ↑ ∀↑c) ⦂∀ B′[Sᴾ])`.  Tracing the joint
+evaluation with the discharged machinery in view:
+
+1. Pairing the imprecise application's β with the precise wrapper β
+   lands in the ordinary paired bind world — the original Finding-F
+   trace was overly pessimistic about this step.
+2. Gap (i): the imprecise step witness for an abstract value — the
+   canonical-forms gate.  Resolution: extend the families to the
+   `∀⊑∀` clause, built per producer (each of the Λ-intro, the
+   universal cast, and the reveal/conceal assemblies knows its
+   imprecise value's step); alternatively a one-shot interpreter
+   canonical-forms lemma (every imprecise universal value's
+   application first-steps with a bind at the instantiation type).
+3. Gap (ii), the true core: after the paired β the precise side holds
+   the inner application at the fresh name.  Consuming it through the
+   source chain head at the paired fresh names fails (application
+   versus body on the imprecise side; contraction produces
+   α-mismatched stores), and stepping it forces a precise-only bind
+   whose representative is a paired name — Finding F exactly.  The
+   model asymmetry is confirmed in the code: `TargetSemanticAtom`
+   (imprecise-only allocations) carries no constraint at all, and
+   *paired* aliases are already classifiable; only the one-sided
+   precise alias is unrepresentable.
+
+Ruled-out shortcuts, with reasons: phantom imprecise store entries
+break positional naming; a name-versus-content simulation on the
+precise side is false in a sealing calculus; making the precise
+embedding a substitution (collapsing aliases) destroys the
+injectivity inversions used throughout.
+
+Two honest resolutions, both calculus-level:
+
+* (a) Alias-transparent imprecision (recommended): `VarImp` becomes
+  `VarImp Δ` with a third mode `X⊑ᵗ T` and one new leaf rule
+  (`μ X ≡ X⊑ᵗ T → μ ⊢ T ⊑ B → μ ⊢ ＇X ⊑ B`).  The precise-only
+  alias bind gets an atom at mode `X⊑ᵗ (embP R)`, the precise bind
+  expansion gains an alias variant needing no `⊑ ★` derivation, and
+  the `∀⊑∀` head closes through the producer's body relation.
+  Uniqueness survives by mode disjointness; the narrowing
+  isomorphism is unaffected (compile-time environments are
+  alias-free).  Fallout is broad but mechanical: every mode analysis
+  gains a case, plus the per-producer `∀⊑∀` families.
+* (b) Substituting reveal β: change `β-reveal-∀`/`β-conceal-∀` to
+  substitute the conversion instead of allocating the indirection.
+  Eliminates the alias at the source, and with the `∀`-cases now
+  projections no size regress returns — but when the slot variable
+  occurs in the instantiation type the substituted conversion is not
+  slot-generated, so the whole slot-wrapper machinery would need
+  generalizing, on top of operational-semantics and type-safety
+  surgery.  More elegant, worse fallout, and it changes the calculus.
+
+Sequencing: internalize the kit first (orthogonal); then (a),
+starting from the `VarImp Δ` core change, then the producer
+families, then delete `RevealObligations`.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

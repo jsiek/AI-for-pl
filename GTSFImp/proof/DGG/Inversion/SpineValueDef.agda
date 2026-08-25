@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.Inversion.SpineValueDef where
 
 -- File Charter:
@@ -7,16 +9,12 @@ module proof.DGG.Inversion.SpineValueDef where
 --   * Provides canonical target-variable/tag-boundary views used by the
 --     right-injection inversion and seal transfer.
 --   * Depends only on core cast-term imprecision typing projections and
---     world-decay context transport.
+--     the canonical complete-context world.
 
-open import Data.Empty using (⊥-elim)
 open import Data.Nat using (suc)
 import Data.Fin as Fin
-open import Data.Maybe using (just)
-open import Data.Product using (Σ-syntax; _×_; _,_)
-open import Data.Sum.Base using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; trans)
+  using (_≡_; _≢_; refl)
 
 open import Types
 open import TyStore using (TyStore; _∋_⦂_)
@@ -28,20 +26,10 @@ open import Conversion using (Conv↑; Conv↓; _↦↑_; _↦↓_;
 open import Imprecision
 open import Primitives using (Const; κℕ; κ𝔹)
 open import CastTerms
-import proof.DGG.CtxImp as CTI2
 import proof.DGG.CastTermImprecision as CTIR
-import proof.DGG.CastTermImprecision2Typing as CTI2T
-import proof.DGG.WorldDecay as WD
-open CTI2 using
-  (World;
-   ηᴸʷ;
-   ηᴿʷ;
-   sourceStoreʷ;
-   targetStoreʷ;
-   CtxImp;
-   _⊑ᵂ⟨_⟩_)
-open CTIR using (_∣_⊢²_⊑_∶_)
-open import proof.ImprecisionConsistency using (toRenameᵗ-injective)
+import proof.DGG.CastTermImprecisionTyping as CTIT
+open import proof.DGG.World
+open CTIR using (_⊢²_⊑_∶_)
 
 ------------------------------------------------------------------------
 -- Target polymorphic value views
@@ -140,99 +128,38 @@ var-value-view (vV ↓ seal) (⊢conceal (⊢↓-seal X∈) V⊢) =
 var-value-view (vV ↓ fun) ()
 var-value-view (vV ↓ all) ()
 
-tag-inner-typing : ∀ {Δ} {Σ : TyStore Δ} {Γ} {N : Term Δ}
-    {H : Ty Δ} {ν : Env∼ Δ}
-    {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
-    {cH : ν ⊢ H ∼ H}
-  → ⟨ Δ , Σ , Γ ⟩ ⊢
-      N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ⦂ ★
-  → ⟨ Δ , Σ , Γ ⟩ ⊢ N ⦂ H
-tag-inner-typing (⊢⟨⟩ N⊢ cH!) = N⊢
+private
+  tag-inner-typing : ∀ {Δ} {Σ : TyStore Δ} {Γ} {N : Term Δ}
+      {H : Ty Δ} {ν : Env∼ Δ}
+      {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
+      {cH : ν ⊢ H ∼ H}
+    → ⟨ Δ , Σ , Γ ⟩ ⊢
+        N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ⦂ ★
+    → ⟨ Δ , Σ , Γ ⟩ ⊢ N ⦂ H
+  tag-inner-typing (⊢⟨⟩ N⊢ cH!) = N⊢
 
-var-tag-value-sealed : ∀ {Δ} {Σ : TyStore Δ} {Γ}
-    {N : Term Δ} {A : Ty Δ} {Y : TyVar Δ} {ν : Env∼ Δ}
-    {Y∼★ : ν ⊢ (＇ Y) ∼★}
-    {cY : ν ⊢ A ∼ ＇ Y} {Ans : NonStar A}
-  → Value (N ⟨ _! ⦃ ＇ Y ⦄ ⦃ Y∼★ ⦄ cY ⦃ Ans ⦄ ⟩)
-  → ⟨ Δ , Σ , Γ ⟩ ⊢
-      N ⟨ _! ⦃ ＇ Y ⦄ ⦃ Y∼★ ⦄ cY ⦃ Ans ⦄ ⟩ ⦂ ★
-  → VarValueView Σ N Y
-var-tag-value-sealed (vN 《 inj 》) N!⊢ =
-  var-value-view vN (tag-inner-typing N!⊢)
-
-right-tag-variable-view : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {γ : CtxImp W} {M : Term Δᴸ} {N : Term Δᴿ}
-    {A : Ty Δᴸ} {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
+right-tag-variable-view : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
+    {M : Term (Δᵉ Γᴸ)} {N : Term (Δᵉ Γᴿ)}
+    {A : Ty (Δᵉ Γᴸ)} {Y : TyVar (Δᵉ Γᴿ)}
+    {ν : Env∼ (Δᵉ Γᴿ)}
     {H∼★ : ν ⊢ (＇ Y) ∼★} {Hns : NonStar (＇ Y)}
-    {cH : ν ⊢ (＇ Y) ∼ (＇ Y)} {p : A ⊑ᵂ⟨ W ⟩ ★}
+    {cH : ν ⊢ (＇ Y) ∼ (＇ Y)} {p : A ⊑ᵀ⟨ γ ⟩ ★}
   → Value N
-  → W ∣ γ ⊢² M
+  → γ ⊢² M
       ⊑ N ⟨ _! ⦃ ＇ Y ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-  → VarValueView (targetStoreʷ W) N Y
+  → VarValueView (Σᵉ Γᴿ) N Y
 right-tag-variable-view vN M⊑N! =
-  var-value-view vN (tag-inner-typing (CTI2T.target-typing² M⊑N!))
+  var-value-view vN (tag-inner-typing (CTIT.target-typing M⊑N!))
 
-variable-imprecision-aligns : ∀ {Δ} {μ : ImpEnv Δ} {X Y : TyVar Δ}
-  → μ ⊢ ＇ X ⊑ ＇ Y
-  → X ≡ Y
-variable-imprecision-aligns X⊑X = refl
+private
+  variable-imprecision-aligns : ∀ {Δ} {μ : ImpEnv Δ}
+      {X Y : TyVar Δ}
+    → μ ⊢ ＇ X ⊑ ＇ Y
+    → X ≡ Y
+  variable-imprecision-aligns X⊑X = refl
 
-variable-obligation-aligns : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-  → ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y
-  → toRenameᵗ (ηᴸʷ W) X ≡ toRenameᵗ (ηᴿʷ W) Y
+variable-obligation-aligns : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
+    {X : TyVar (Δᵉ Γᴸ)} {Y : TyVar (Δᵉ Γᴿ)}
+  → ＇ X ⊑ᵀ⟨ γ ⟩ ＇ Y
+  → toRenameᵗ (ηᴸᶜ γ) X ≡ toRenameᵗ (ηᴿᶜ γ) Y
 variable-obligation-aligns q = variable-imprecision-aligns q
-
-seal-rebase-target : ∀ {Δᴸ Δᴿ Δ} {Wᵖ W : World Δᴸ Δᴿ Δ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ}
-  → CTI2.RebaseAtᴸ Wᵖ W (just X)
-  → ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y
-  → CTI2.RebaseAt Wᵖ W X Y
-seal-rebase-target {W = W} {X = X} {Y = Y}
-    (CTI2.rebase-varᴸ {Xᴿ = Xᴿ} rb) q
-    with toRenameᵗ-injective (ηᴿʷ W)
-      (trans (sym (CTI2.RebaseAt.pivotAligned rb))
-        (variable-obligation-aligns {W = W} {X = X} {Y = Y} q))
-seal-rebase-target (CTI2.rebase-varᴸ rb) q | refl = rb
-seal-rebase-target
-    {W = W} {X = X} {Y = Y}
-    (CTI2.rebase-onlyᴸ member to-star disaligned represented) q =
-  ⊥-elim
-    (disaligned Y
-      (sym (variable-obligation-aligns {W = W} {X = X} {Y = Y} q)))
-
-seal-tag-boundary-view² : ∀ {Δᴸ Δᴿ Δ}
-    {Wᵖ W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {N : Term Δᴿ} {R : Ty Δᴸ}
-    {X : TyVar Δᴸ} {Y : TyVar Δᴿ} {ν : Env∼ Δᴿ}
-    {H∼★ : ν ⊢ (＇ Y) ∼★} {Hns : NonStar (＇ Y)}
-    {cH : ν ⊢ (＇ Y) ∼ (＇ Y)} {p : ＇ X ⊑ᵂ⟨ W ⟩ ★}
-  → CTI2.RebaseAtᴸ Wᵖ W (just X)
-  → Value N
-  → W ∣ γ ⊢² M ↓ Conversion.seal X R
-      ⊑ N ⟨ _! ⦃ ＇ Y ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-  → (q : ＇ X ⊑ᵂ⟨ W ⟩ ＇ Y)
-  → Σ[ U ∈ Term Δᴿ ] Σ[ S ∈ Ty Δᴿ ]
-      (Value U
-        × (targetStoreʷ W ∋ Y ⦂ S)
-        × (N ≡ U ↓ Conversion.seal Y S)
-        × CTI2.RebaseAt Wᵖ W X Y)
-seal-tag-boundary-view² rb vN M↓X⊑N! q
-    with right-tag-variable-view vN M↓X⊑N!
-seal-tag-boundary-view² rb vN M↓X⊑N! q
-    | varv-seal {W = U} {R = S} vU Y∈ refl =
-  U , S , vU , Y∈ , refl , seal-rebase-target rb q
-
-------------------------------------------------------------------------
--- Shared context transport
-------------------------------------------------------------------------
-
-decaySameCtxʳ : ∀ {Δᴸ Δᴿ Δ Δ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ W″ : World Δᴸ Δᴿ Δ′}
-    {γ : CtxImp W} {γ′ : CTI2.CtxImp W′}
-  → (dec : WD.EnvDecay W′ W″)
-  → CTI2.SameCtx γ γ′
-  → CTI2.SameCtx γ (WD.decayCtx dec γ′)
-decaySameCtxʳ dec CTI2.same-[] = CTI2.same-[]
-decaySameCtxʳ dec (CTI2.same-∷ sc) =
-  CTI2.same-∷ (decaySameCtxʳ dec sc)

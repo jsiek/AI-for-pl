@@ -1,9 +1,11 @@
-module proof.DGG.Inversion.SpineValueProof where
+{-# OPTIONS --safe #-}
+
+module proof.DGG.Inversion.SpineValueLemma where
 
 -- File Charter:
 --   * Proves that target polymorphic value views survive type renaming.
 --   * Rebuilds generated-cast safety at the renamed endpoints.
---   * Supplies the weakening bridge used by structural M5 instantiation.
+--   * Supplies the closed weakening lemma used by structural instantiation.
 
 open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 
@@ -16,7 +18,6 @@ open import proof.Consistency using (gen-safe)
 open import proof.TypeInTermSubst using
   (rename-occurs; rename-star-injective; renameᵗᵐ-preserves-Value)
 open import proof.DGG.Inversion.SpineValueDef
-
 
 rename-all-value-view : ∀ {Δ Δ′} {V : CT.Term Δ}
   → (rho : Δ ↪ᵗ Δ′)

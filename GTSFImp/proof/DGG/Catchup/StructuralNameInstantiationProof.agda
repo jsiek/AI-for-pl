@@ -50,7 +50,7 @@ import proof.DGG.CtxImp as CTX
 import proof.DGG.CastTermImprecision2Typing as CTI2T
 import proof.DGG.ExtraCastRight2 as ECR
 import proof.DGG.TargetExtend as TE
-import proof.DGG.Inversion.SpineValueProof as SpineValueProof
+import proof.DGG.Inversion.SpineValueLemma as SpineValueLemma
 open import proof.DGG.Catchup.InstInversionDef using
   (StructuralValueInstantiationᵀ)
 open import proof.DGG.Catchup.ValueCatchupRightDef using
@@ -1735,7 +1735,7 @@ structural-value-instantiation {fuel = fuel} {W = W} {γ = γ}
   erase-structural-name-root surfaces name-worker fuel-step
     residual-cast-builder inst-decrease plan chain-plan rel vM
     (renameᵗᵐ-preserves-Value wk↪ᵗ vV)
-    (SpineValueProof.rename-all-value-view wk↪ᵗ view)
+    (SpineValueLemma.rename-all-value-view wk↪ᵗ view)
     []ⁱ
     (root-value-instantiation-frame-chain
       {W = W} {γ = γ} {A = A} {B = B} {R = R} {q = q})

@@ -11,7 +11,7 @@ module alt.ThetaTermSubst where
 --     representation lookups across regular and anchor renamings; it performs
 --     no telescope entry surgery.
 
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
@@ -1210,6 +1210,48 @@ unbegin-∋rep (skip-begin {A = A} α∈) = A , α∈ , refl
 ∋rep-unique (skip-end {Y = X} {C = C} slot₁ rep₁ A∈ eq₁)
     (skip-end {C = .C} slot₂ rep₂ B∈ eq₂) | refl | refl | refl =
   trans (sym eq₁) eq₂
+
+------------------------------------------------------------------------
+-- Re-entry lookup obstruction
+------------------------------------------------------------------------
+
+-- This is the smallest counterexample to an unconditional `∋rep-reenter`.
+-- The inner ν is born after X's begin, so its representation may mention X.
+-- Ending X resolves that representation to ℕ; beginning X again cannot turn
+-- the resolved payload back into `＇0`.
+
+reenter-counterexample-Ψ : TyEnv (suc (suc zero)) (suc zero)
+reenter-counterexample-Ψ =
+  (∅ ,:= ‵ `ℕ ,begin[ zero ≔ zero ]) ,:= ＇ zero
+
+reenter-counterexample-slot :
+    reenter-counterexample-Ψ ∋typ zero ≔ suc zero
+reenter-counterexample-slot = skip-nu-binding found-begin
+
+reenter-counterexample-inner :
+    reenter-counterexample-Ψ ∋rep zero ≔ ＇ zero
+reenter-counterexample-inner = Z
+
+reenter-counterexample-slot-rep :
+    reenter-counterexample-Ψ ∋rep suc zero ≔ wkᵗ zero (‵ `ℕ)
+reenter-counterexample-slot-rep = S (skip-begin Z)
+
+reenter-counterexample-resolved :
+    (reenter-counterexample-Ψ ,end[ zero ]
+      ,begin[ zero ≔ suc zero ]) ∋rep zero ≔ ‵ `ℕ
+reenter-counterexample-resolved =
+  skip-begin
+    (skip-end reenter-counterexample-slot
+      reenter-counterexample-slot-rep reenter-counterexample-inner
+      (resolveSub-here zero (‵ `ℕ)))
+
+reenter-counterexample-no-original :
+    (reenter-counterexample-Ψ ,end[ zero ]
+      ,begin[ zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero
+  → ⊥
+reenter-counterexample-no-original bad
+    with ∋rep-unique bad reenter-counterexample-resolved
+reenter-counterexample-no-original bad | ()
 
 data SameTarget : ∀ {Θ Δ}
     → TyEnv Θ Δ → TyEnv Θ Δ → Set where

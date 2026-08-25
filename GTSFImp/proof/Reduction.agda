@@ -28,7 +28,7 @@ open import Conversion using
 open import Primitives using
   (Prim; addℕ; and𝔹; primArgTy; primResultTy)
 open import CastTerms using
-  ( Term; Value; _·_; _⦂∀_[_]; _⊕[_]_; _⟨_⟩
+  ( Term; Value; blame; _·_; _⦂∀_[_]; _⊕[_]_; _⟨_⟩
   ; Inert; inj; fun; all; genᵥ
   )
 open import CastTerms using (_↑_; _↓_)
@@ -436,6 +436,42 @@ _—↠+[_]⟨_⟩_ : ∀ {Δ₀ Δ₁ Δ₂}
   → N —↠[ ψs ] P
   → M —↠[ χs ++χ ψs ] P
 M —↠+[ χs ]⟨ M↠N ⟩ N↠P = composeReduction M↠N N↠P
+
+reveal-blame-↠ : ∀ {Δ Δ′} {M : Term Δ}
+    {χs : StoreChanges Δ Δ′} {A B : Ty Δ}
+  → (c : Conv↑ Δ A B)
+  → M —↠[ χs ] blame
+  → M ↑ c —↠[ χs ++χ (keep ∷ []) ] blame
+reveal-blame-↠ {M = M} {χs = χs} c M↠blame =
+  M ↑ c
+    —↠+[ χs ]⟨ reveal-↠ c M↠blame ⟩
+  blame ↑ applyReveals χs c
+    —→[ keep ]⟨ pure-step blame-reveal ⟩
+  blame ∎[]
+
+conceal-blame-↠ : ∀ {Δ Δ′} {M : Term Δ}
+    {χs : StoreChanges Δ Δ′} {A B : Ty Δ}
+  → (c : Conv↓ Δ A B)
+  → M —↠[ χs ] blame
+  → M ↓ c —↠[ χs ++χ (keep ∷ []) ] blame
+conceal-blame-↠ {M = M} {χs = χs} c M↠blame =
+  M ↓ c
+    —↠+[ χs ]⟨ conceal-↠ c M↠blame ⟩
+  blame ↓ applyConceals χs c
+    —→[ keep ]⟨ pure-step blame-conceal ⟩
+  blame ∎[]
+
+typeApp-blame-↠ : ∀ {Δ Δ′} {M : Term Δ}
+    {χs : StoreChanges Δ Δ′}
+    {C : Ty (Nat.suc Δ)} {A : Ty Δ}
+  → M —↠[ χs ] blame
+  → M ⦂∀ C [ A ] —↠[ χs ++χ (keep ∷ []) ] blame
+typeApp-blame-↠ {M = M} {χs = χs} {C = C} {A = A} M↠blame =
+  M ⦂∀ C [ A ]
+    —↠+[ χs ]⟨ typeApp-↠ M↠blame ⟩
+  blame ⦂∀ applyBodies χs C [ applyTys χs A ]
+    —→[ keep ]⟨ pure-step blame-• ⟩
+  blame ∎[]
 
 ------------------------------------------------------------------------
 -- Cast-size preservation under store changes

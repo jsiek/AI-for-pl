@@ -17,6 +17,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; cong; trans)
 
 import TermCtx as TC
+open import Types using (Ty)
 open import TyStore using (TyStore)
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ)
 import Reduction as R
@@ -159,6 +160,40 @@ composeMultiWorldEvolution
     (evolutions-step-both eqᴸ eqᴿ one tail) second =
   evolutions-step-both eqᴸ eqᴿ one
     (composeMultiWorldEvolution tail second)
+
+
+append-left-keep : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+  → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
+  → MultiWorldEvolution {W = W} {W′ = W′}
+      (χsᴸ ++χ (R.keep ∷ [])) χsᴿ
+append-left-keep evolutions-refl =
+  evolutions-step-left refl evolution-keep evolutions-refl
+append-left-keep (evolutions-step-left eqᴸ one tail) =
+  evolutions-step-left eqᴸ one (append-left-keep tail)
+append-left-keep (evolutions-step-right eqᴿ one tail) =
+  evolutions-step-right eqᴿ one (append-left-keep tail)
+append-left-keep (evolutions-step-both eqᴸ eqᴿ one tail) =
+  evolutions-step-both eqᴸ eqᴿ one (append-left-keep tail)
+
+
+multi-⊑ᵀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ Cᴿ)}
+  → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
+  → A ⊑ᵀ⟨ W ⟩ B
+  → R.applyTys χsᴸ A ⊑ᵀ⟨ W′ ⟩ R.applyTys χsᴿ B
+multi-⊑ᵀ evolutions-refl p = p
+multi-⊑ᵀ (evolutions-step-left refl one tail) p =
+  multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
+multi-⊑ᵀ (evolutions-step-right refl one tail) p =
+  multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
+multi-⊑ᵀ (evolutions-step-both refl refl one tail) p =
+  multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
 
 
 request-source-change : ∀

@@ -13,16 +13,26 @@ module proof.DGG.WorldEvolution where
 --   * Exports CtxChange, WorldEvolution, and their endpoint projections;
 --     depends on World and the preservation context action.
 
+import Data.Fin as Fin
 open import Data.Nat using (suc)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; trans)
+  renaming (subst to subst≡)
 
-open import Types using (Ty; ★; ⇑ᵗ)
+open import Types using
+  (Ty; TyVar; ★; ⇑ᵗ; renameᵗ; renameᵗ-comp; renameᵗ-cong;
+   renameᵗ-shift)
 open import TyStore using (TyStore; store-bind)
+open import Consistency using (_↪ᵗ_; toRenameᵗ; keep; skip)
+open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
 import TermCtx as TC
 open TC using (TermCtx)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Σᵉ; Γᵉ)
 import Reduction as R
 open import proof.TypeSafety.Preservation using (applyTermCtx)
+open import proof.ImprecisionConsistency using
+  (fin-suc-injective; rename-⊑)
+open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.DGG.World
 
 
@@ -120,3 +130,77 @@ data WorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
 empty-evolution : WorldEvolution
     {W = emptyᶜ} {W′ = emptyᶜ} keep-ctx keep-ctx
 empty-evolution = evolution-keep
+
+
+renameᵗ-skip-eq : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (A : Ty Δ₀)
+  → renameᵗ (toRenameᵗ (skip η)) A
+    ≡ ⇑ᵗ (renameᵗ (toRenameᵗ η) A)
+renameᵗ-skip-eq η A =
+  trans (renameᵗ-cong A (λ X → refl))
+    (sym (renameᵗ-comp (toRenameᵗ η) Fin.suc A))
+
+
+renameᵗ-keep-shift : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (A : Ty Δ₀)
+  → renameᵗ (toRenameᵗ (keep η)) (⇑ᵗ A)
+    ≡ ⇑ᵗ (renameᵗ (toRenameᵗ η) A)
+renameᵗ-keep-shift η A =
+  trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq η))
+    (renameᵗ-shift (toRenameᵗ η) A)
+
+
+evolution-⊑ᵀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
+    {A : Ty (CastTerms.Δᵉ Cᴸ)} {B : Ty (CastTerms.Δᵉ Cᴿ)}
+  → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
+  → A ⊑ᵀ⟨ W ⟩ B
+  → R.applyTy (storeChange stepᴸ) A ⊑ᵀ⟨ W′ ⟩
+      R.applyTy (storeChange stepᴿ) B
+evolution-⊑ᵀ evolution-keep p = p
+evolution-⊑ᵀ {A = C} {B = D}
+    (evolution-bind-left {A = A} {W = W} eq) p =
+  subst≡
+    (λ L → marksᶜ (W ▻ᶜ bind-left-changeᶜ A eq) ⊢ L ⊑
+      renameᵗ (toRenameᵗ (skip (ηᴿᶜ W))) D)
+    (sym (renameᵗ-keep-shift (ηᴸᶜ W) C))
+    (subst≡
+      (λ T → marksᶜ (W ▻ᶜ bind-left-changeᶜ A eq) ⊢
+        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) C) ⊑ T)
+      (sym (renameᵗ-skip-eq (ηᴿᶜ W) D))
+      (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
+evolution-⊑ᵀ {A = C} {B = D}
+    (evolution-bind-right {B = B} {W = W} fresh eq) p =
+  subst≡
+    (λ L → marksᶜ (W ▻ᶜ bind-right-changeᶜ B fresh eq) ⊢
+      L ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W))) (⇑ᵗ D))
+    (sym (renameᵗ-skip-eq (ηᴸᶜ W) C))
+    (subst≡
+      (λ T → marksᶜ (W ▻ᶜ bind-right-changeᶜ B fresh eq) ⊢
+        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) C) ⊑ T)
+      (sym (renameᵗ-keep-shift (ηᴿᶜ W) D))
+      (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
+evolution-⊑ᵀ {A = A} {B = B}
+    (evolution-bind-both {W = W} represented eqᴸ eqᴿ) p =
+  subst≡
+    (λ L → marksᶜ (W ▻ᶜ bind-both-changeᶜ represented eqᴸ eqᴿ)
+      ⊢ L ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W))) (⇑ᵗ B))
+    (sym (renameᵗ-keep-shift (ηᴸᶜ W) A))
+    (subst≡
+      (λ T →
+        marksᶜ (W ▻ᶜ bind-both-changeᶜ represented eqᴸ eqᴿ) ⊢
+        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) ⊑ T)
+      (sym (renameᵗ-keep-shift (ηᴿᶜ W) B))
+      (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
+evolution-⊑ᵀ {A = A} {B = B}
+    (evolution-bind-both-star {W = W} represented A≠★ eqᴸ eqᴿ) p =
+  subst≡
+    (λ L → marksᶜ
+      (W ▻ᶜ bind-both-star-changeᶜ represented A≠★ eqᴸ eqᴿ) ⊢
+      L ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W))) (⇑ᵗ B))
+    (sym (renameᵗ-keep-shift (ηᴸᶜ W) A))
+    (subst≡
+      (λ T → marksᶜ
+        (W ▻ᶜ bind-both-star-changeᶜ represented A≠★ eqᴸ eqᴿ) ⊢
+        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) ⊑ T)
+      (sym (renameᵗ-keep-shift (ηᴿᶜ W) B))
+      (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))

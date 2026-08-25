@@ -129,9 +129,7 @@ import proof.DGG.Catchup.FuelDischargeProof
 import proof.DGG.Catchup.LeftBoundaryCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupLemma
-import proof.DGG.Catchup.LeftSourceOperationsDef
-import proof.DGG.Catchup.LeftBlameLiftProof
-import proof.DGG.Catchup.LeftValueCatchupProof
+import proof.DGG.Catchup.LeftSourceCastCatchupDef
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)

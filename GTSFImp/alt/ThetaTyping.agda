@@ -13,9 +13,10 @@ module alt.ThetaTyping where
 --     formerly constant position argument carried no information.
 --   * Representations are written in the regular scope at their entry; anchor
 --     lookup transports an internal `Ty⁺` payload across begin/end markers.
---     An end is the sole introduction site for `ref`; a matching later begin
---     re-aliases that reference to its abstract slot, while a query discharges
---     references whose scopes remain dead.  Telescope entries are never
+--     An end is the sole introduction site for `ref`; every later crossing
+--     merely reindexes slots and leaves refs unchanged.  At query time a live
+--     anchor reads abstractly through its lowest-position alias; only a dead
+--     resolves through its representation.  Telescope entries are never
 --     rewritten when a scope ends.  Anchors never occur in regular `Ty Δ`.
 --   * Term variables cross only Λ's type-variable entry, by weakening the
 --     term list wholesale (renameCtx), as in the live calculus.
@@ -24,6 +25,8 @@ open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.List using (List; []; _∷_; map)
 open import Data.List.Membership.Propositional using (_∈_; _∉_)
+open import Data.Maybe using (Maybe; just; nothing)
+  renaming (map to mapMaybe)
 open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl)
@@ -92,16 +95,13 @@ end⁺ Y β (A⁺ ⇒⁺ B⁺) = end⁺ Y β A⁺ ⇒⁺ end⁺ Y β B⁺
 end⁺ Y β (`∀⁺ A⁺) = `∀⁺ (end⁺ (suc Y) β A⁺)
 end⁺ Y β (ref α) = ref α
 
-begin⁺ : ∀ {Θ Δ} → TyVar (suc Δ) → TyVar Θ
-  → Ty⁺ Θ Δ → Ty⁺ Θ (suc Δ)
-begin⁺ Y β (＇⁺ X) = ＇⁺ (punchIn Y X)
-begin⁺ Y β (‵⁺ ι) = ‵⁺ ι
-begin⁺ Y β ★⁺ = ★⁺
-begin⁺ Y β (A⁺ ⇒⁺ B⁺) = begin⁺ Y β A⁺ ⇒⁺ begin⁺ Y β B⁺
-begin⁺ Y β (`∀⁺ A⁺) = `∀⁺ (begin⁺ (suc Y) β A⁺)
-begin⁺ Y β (ref α) with β ≟ α
-begin⁺ Y β (ref .β) | yes refl = ＇⁺ Y
-begin⁺ Y β (ref α) | no β≢α = ref α
+begin⁺ : ∀ {Θ Δ} → TyVar (suc Δ) → Ty⁺ Θ Δ → Ty⁺ Θ (suc Δ)
+begin⁺ Y (＇⁺ X) = ＇⁺ (punchIn Y X)
+begin⁺ Y (‵⁺ ι) = ‵⁺ ι
+begin⁺ Y ★⁺ = ★⁺
+begin⁺ Y (A⁺ ⇒⁺ B⁺) = begin⁺ Y A⁺ ⇒⁺ begin⁺ Y B⁺
+begin⁺ Y (`∀⁺ A⁺) = `∀⁺ (begin⁺ (suc Y) A⁺)
+begin⁺ Y (ref α) = ref α
 
 typ⁺ : ∀ {Θ Δ} → Ty⁺ Θ Δ → Ty⁺ Θ (suc Δ)
 typ⁺ = renameᵗ⁺ suc
@@ -123,6 +123,71 @@ data TyEnv : AnchorCtx → TyCtx → Set where
   _,typ : TyEnv Θ Δ → TyEnv Θ (suc Δ)
   _,:=_ : TyEnv Θ Δ → Ty Δ → TyEnv (suc Θ) Δ  -- anchor bound by a ν
   _,end[_] : TyEnv Θ (suc Δ) → TyVar (suc Δ) → TyEnv Θ Δ
+
+dropDead : ∀ {Δ} → TyVar (suc Δ) → List (TyVar (suc Δ))
+  → List (TyVar Δ)
+dropDead W [] = []
+dropDead W (Y ∷ Ys) with W ≟ Y
+dropDead W (.W ∷ Ys) | yes refl = dropDead W Ys
+dropDead W (Y ∷ Ys) | no W≢Y =
+  punchOut W Y W≢Y ∷ dropDead W Ys
+
+-- Every query-scope slot currently aliasing an anchor, innermost first.
+-- An end removes its own crossing and reindexes every surviving alias.
+liveSlots : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → List (TyVar Δ)
+liveSlots ∅ ()
+liveSlots (Ψ ,begin[ Y ≔ β′ ]) β with β ≟ β′
+liveSlots (Ψ ,begin[ Y ≔ β′ ]) .β′ | yes refl =
+  Y ∷ map (punchIn Y) (liveSlots Ψ β′)
+liveSlots (Ψ ,begin[ Y ≔ β′ ]) β | no β≢β′ =
+  map (punchIn Y) (liveSlots Ψ β)
+liveSlots (Ψ ,typ) β = map suc (liveSlots Ψ β)
+liveSlots (Ψ ,:= A) zero = []
+liveSlots (Ψ ,:= A) (suc β) = liveSlots Ψ β
+liveSlots (Ψ ,end[ W ]) β = dropDead W (liveSlots Ψ β)
+
+minTyVar : ∀ {Δ} → TyVar Δ → TyVar Δ → TyVar Δ
+minTyVar zero Y = zero
+minTyVar (suc X) zero = zero
+minTyVar (suc X) (suc Y) = suc (minTyVar X Y)
+
+minSlot : ∀ {Δ} → List (TyVar Δ) → Maybe (TyVar Δ)
+minSlot [] = nothing
+minSlot (X ∷ Xs) with minSlot Xs
+minSlot (X ∷ Xs) | nothing = just X
+minSlot (X ∷ Xs) | just Y = just (minTyVar X Y)
+
+-- The anchor of a crossing slot at the query point.  Lexical variables have
+-- no anchor; end markers remove their own slot before this view is queried.
+slotAnchor : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Δ → Maybe (TyVar Θ)
+slotAnchor ∅ ()
+slotAnchor (Ψ ,begin[ Y ≔ β ]) X with Y ≟ X
+slotAnchor (Ψ ,begin[ Y ≔ β ]) .Y | yes refl = just β
+slotAnchor (Ψ ,begin[ Y ≔ β ]) X | no Y≢X =
+  slotAnchor Ψ (punchOut Y X Y≢X)
+slotAnchor (Ψ ,typ) zero = nothing
+slotAnchor (Ψ ,typ) (suc X) = slotAnchor Ψ X
+slotAnchor (Ψ ,:= A) X = mapMaybe suc (slotAnchor Ψ X)
+slotAnchor (Ψ ,end[ Y ]) X = slotAnchor Ψ (punchIn Y X)
+
+orSlot : ∀ {Δ} → TyVar Δ → Maybe (TyVar Δ) → TyVar Δ
+orSlot Y nothing = Y
+orSlot Y (just Y′) = Y′
+
+normalAlias : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Δ
+  → Maybe (TyVar Θ) → TyVar Δ
+normalAlias Ψ Y nothing = Y
+normalAlias Ψ Y (just β) = orSlot Y (minSlot (liveSlots Ψ β))
+
+normalVar : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Δ → TyVar Δ
+normalVar Ψ Y = normalAlias Ψ Y (slotAnchor Ψ Y)
+
+normalTy : ∀ {Θ Δ} → TyEnv Θ Δ → Ty Δ → Ty Δ
+normalTy Ψ (＇ Y) = ＇ normalVar Ψ Y
+normalTy Ψ (‵ ι) = ‵ ι
+normalTy Ψ ★ = ★
+normalTy Ψ (A ⇒ B) = normalTy Ψ A ⇒ normalTy Ψ B
+normalTy Ψ (`∀ A) = `∀ (normalTy (Ψ ,typ) A)
 
 private
   variable
@@ -172,8 +237,8 @@ data _∋typ_≔_ : ∀ {Θ Δ}
 infix 4 _∋rep⁺_≔_ _⊢_⇓_ _∋rep_≔_
 
 -- Raw lookup transports `Ty⁺` structurally.  `end⁺` is the single
--- introduction site for an anchor reference; `begin⁺` re-aliases every
--- matching reference, adjacent or not, to the new abstract slot.
+-- introduction site for an anchor reference; begin and lexical crossings
+-- only reindex slots, leaving refs untouched until public query discharge.
 data _∋rep⁺_≔_ : ∀ {Θ Δ}
     → TyEnv Θ Δ → TyVar Θ → Ty⁺ Θ Δ → Set where
   Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
@@ -191,7 +256,7 @@ data _∋rep⁺_≔_ : ∀ {Θ Δ}
       {Y : TyVar (suc Δ)}
     → Ψ ∋rep⁺ a ≔ A⁺
       -------------------------------------------------
-    → Ψ ,begin[ Y ≔ β ] ∋rep⁺ a ≔ begin⁺ Y β A⁺
+    → Ψ ,begin[ Y ≔ β ] ∋rep⁺ a ≔ begin⁺ Y A⁺
 
   skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
@@ -207,16 +272,26 @@ data _∋rep⁺_≔_ : ∀ {Θ Δ}
       -----------------------------------------------
     → Ψ ,end[ Y ] ∋rep⁺ a ≔ end⁺ Y β A⁺
 
--- Query discharge is deliberately mutual with the public lookup.  A ref
--- follows its anchor only when the query is finally discharged; under `∀⁺`
--- the query enters the lexical telescope, so the representation is weakened
--- at the binder in the same way as every ordinary type payload.
+-- Query discharge is deliberately mutual with the public lookup.  Results
+-- are alias-normal: an ordinary crossing variable and a live ref both use
+-- their anchor's lowest-position alias; lexical variables remain verbatim;
+-- a dead ref follows its representation.  The constructors are exclusive by
+-- the computed `slotAnchor`, `minSlot`, and empty shapes.  Under `∀⁺` the
+-- query enters the lexical telescope, so slots and ordinary payloads weaken.
 mutual
   data _⊢_⇓_ : ∀ {Θ Δ}
       → TyEnv Θ Δ → Ty⁺ Θ Δ → Ty Δ → Set where
-    ⇓-var : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {X : TyVar Δ}
-        ------------------
-      → Ψ ⊢ ＇⁺ X ⇓ ＇ X
+    ⇓-var-lex : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Y : TyVar Δ}
+      → slotAnchor Ψ Y ≡ nothing
+        -----------------------
+      → Ψ ⊢ ＇⁺ Y ⇓ ＇ Y
+
+    ⇓-var-alias : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+        {Y Y′ : TyVar Δ} {β : TyVar Θ}
+      → slotAnchor Ψ Y ≡ just β
+      → minSlot (liveSlots Ψ β) ≡ just Y′
+        -------------------------
+      → Ψ ⊢ ＇⁺ Y ⇓ ＇ Y′
 
     ⇓-base : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {ι : Base}
         ------------------
@@ -239,10 +314,17 @@ mutual
         -------------------
       → Ψ ⊢ `∀⁺ A⁺ ⇓ `∀ A
 
-    ⇓-ref : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    ⇓-ref-live : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+        {β : TyVar Θ} {Y : TyVar Δ}
+      → minSlot (liveSlots Ψ β) ≡ just Y
+        ----------------------
+      → Ψ ⊢ ref β ⇓ ＇ Y
+
+    ⇓-ref-dead : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
         {β : TyVar Θ} {C : Ty Δ}
+      → liveSlots Ψ β ≡ []
       → Ψ ∋rep β ≔ C
-        -------------
+        ----------------
       → Ψ ⊢ ref β ⇓ C
 
   data _∋rep_≔_ : ∀ {Θ Δ}
@@ -254,9 +336,9 @@ mutual
         ---------------
       → Ψ ∋rep a ≔ A
 
--- No crossing is refused.  Ends defer abstract occurrences as refs; begins
--- re-alias matching refs, and only a public lookup query resolves references
--- whose anchors remain dead.
+-- No crossing is refused.  Ends defer abstract occurrences as refs; every
+-- crossing thereafter merely reindexes slots.  Only a public query decides:
+-- a live ref uses its lowest-position slot, while a dead ref resolves.
 
 ------------------------------------------------------------------------
 -- Typing

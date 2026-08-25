@@ -20,6 +20,7 @@ import proof.TypeSafety.Preservation
 import GradualTypeCheck
 import proof.ImprecisionConsistency
 import proof.Imprecision
+import ImprecisionComposition
 import proof.Consistency
 import proof.Consistency2
 import proof.Reduction

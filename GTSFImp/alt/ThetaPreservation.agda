@@ -25,10 +25,9 @@ module alt.ThetaPreservation where
 --     contractum typable.  The assembler case remains deliberately parked:
 --     whether region-interior material may acquire that representation
 --     knowledge is a pending direction decision, not a proof-engineering one.
---   * `float-reveal` has the dual fresh-anchor obstruction: a slot-dependent
---     representation below the floated region is not resolved when the
---     region crosses the reveal.  Its checked closed counterexample is also
---     retained below.
+--   * The refuted resolving `float-reveal` rule was deleted together with
+--     `float-conceal`: regions now stay at their birth delimiter depth.  The
+--     former checked counterexample remains below as a historical comment.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -930,22 +929,6 @@ preserve-float-⟨⟩ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
   → Ψ ∣ [] ⊢ ν[ A ] (M ⟨ c ⟩) ⦂ C
 preserve-float-⟨⟩ (⊢⟨⟩ (⊢ν M⊢) c) = ⊢ν (⊢⟨⟩ M⊢ c)
 
-preserve-float-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-    {A : Ty Δ} {M : Term (suc Θ) Δ}
-    {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    {B : Ty (suc Δ)}
-  → Ψ ∣ [] ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c ⦂ B
-  → Ψ ∣ [] ⊢ ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c) ⦂ B
-preserve-float-conceal {Ψ = Ψ} {A = A} {M = M} {Y = Y} {α = α}
-    (⊢conceal {A = D} {C = C} slot∈ α∈ c⊢ (⊢ν M⊢)) =
-  ⊢ν (⊢conceal (skip-visible-typ slot∈) target-α∈ c⊢ target-M⊢)
-  where
-  env-eq = ∖-:=wk Ψ Y A
-  target-α∈ =
-    subst≡ (λ Φ → Φ ∋ suc α := C) (sym env-eq) (S α∈)
-  target-M⊢ =
-    subst≡ (λ Φ → Φ ∣ [] ⊢ M ⦂ D) (sym env-eq) M⊢
-
 preserve-float-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ} {op}
   → Ψ ∣ [] ⊢ (ν[ A ] M) ⊕[ op ] N ⦂ primResultTy op
@@ -1038,7 +1021,7 @@ forall-computed-contractum =
 
 forall-computed-step : forall-bad-Ψ ⊢ forall-bad-redex —→
   forall-computed-contractum
-forall-computed-step = β-reveal-∀ forall-bad-V-value
+forall-computed-step = β-reveal-∀ (result-val forall-bad-V-value)
 
 forall-bad-step-impossible :
   forall-bad-Ψ ⊢ forall-bad-redex —→ forall-bad-contractum
@@ -1091,7 +1074,7 @@ conceal-var-contractum =
 
 conceal-var-step : conceal-var-Ψ ⊢ conceal-var-redex —→
   conceal-var-contractum
-conceal-var-step = β-conceal-∀ Z conceal-var-V-value
+conceal-var-step = β-conceal-∀ Z (result-val conceal-var-V-value)
 
 conceal-var-contractum-⊢ :
   conceal-var-Ψ ∣ [] ⊢ conceal-var-contractum ⦂ ‵ `ℕ
@@ -1129,7 +1112,7 @@ conceal-arrow-W =
 
 conceal-arrow-W-value : Value conceal-arrow-W
 conceal-arrow-W-value =
-  (Λ ($ (κℕ 1))) ↑[ zero ≔ zero ] all
+  result-val (Λ ($ (κℕ 1))) ↑[ zero ≔ zero ] all
 
 conceal-arrow-W-⊢ : conceal-arrow-Ψ ∣ [] ⊢
   conceal-arrow-W ⦂ `∀ (‵ `ℕ)
@@ -1159,7 +1142,8 @@ conceal-arrow-contractum =
 conceal-arrow-step : conceal-arrow-Ψ ⊢ conceal-arrow-redex —→
   conceal-arrow-contractum
 conceal-arrow-step =
-  β-conceal-⇒ conceal-arrow-V-value conceal-arrow-W-value
+  β-conceal-⇒ (result-val conceal-arrow-V-value)
+    conceal-arrow-W-value
 
 conceal-arrow-contractum-⊢ :
   conceal-arrow-Ψ ∣ [] ⊢ conceal-arrow-contractum ⦂ ‵ `ℕ
@@ -1199,78 +1183,11 @@ conceal-arrow-contractum-⊢ =
 -- share one source.  The outer conversion forces it to `ℕ`, while the
 -- retained inner conversion forces it to `＇(suc zero)` in `Ty 2`.  Thus the
 -- precise failing obligation is `＇(suc zero) ≡ ℕ`, discharged below by
--- the empty pattern.  The pending audit is directional: should floating the
--- region across reveal resolve that slot-dependent fresh-anchor
--- representation, or should the rule remain forbidden for this shape?
-
-float-reveal-bad-Ψ : TyEnv (suc zero) zero
-float-reveal-bad-Ψ = ∅ ,:= ‵ `ℕ
-
-float-reveal-bad-M : Term (suc (suc zero)) (suc zero)
-float-reveal-bad-M =
-  (ƛ ＇ zero ˙ $ (κℕ 0))
-    ↑[ zero ≔ zero ] (seal ↦↑ id↑)
-
-float-reveal-bad-M-value : Value float-reveal-bad-M
-float-reveal-bad-M-value =
-  (ƛ ＇ zero ˙ $ (κℕ 0)) ↑[ zero ≔ zero ] fun
-
-float-reveal-bad-M-⊢ :
-  (float-reveal-bad-Ψ ,typ[ zero ≔ zero ]) ,:= ＇ zero
-    ∣ [] ⊢ float-reveal-bad-M ⦂ ＇ zero ⇒ ‵ `ℕ
-float-reveal-bad-M-⊢ =
-  ⊢reveal Z (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ)))
-    (⊢ƛ (⊢$ (κℕ 0)))
-
-float-reveal-bad-redex : Term (suc zero) zero
-float-reveal-bad-redex =
-  (ν[ ＇ zero ] float-reveal-bad-M)
-    ↑[ zero ≔ zero ] (seal ↦↑ id↑)
-
-float-reveal-bad-redex-⊢ : float-reveal-bad-Ψ ∣ [] ⊢
-  float-reveal-bad-redex ⦂ (‵ `ℕ ⇒ ‵ `ℕ)
-float-reveal-bad-redex-⊢ =
-  ⊢reveal Z (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ)))
-    (⊢ν float-reveal-bad-M-⊢)
-
-float-reveal-bad-result : Result (ν[ ＇ zero ] float-reveal-bad-M)
-float-reveal-bad-result = result-ν (result-val float-reveal-bad-M-value)
-
-float-reveal-bad-contractum : Term (suc zero) zero
-float-reveal-bad-contractum =
-  ν[ ‵ `ℕ ]
-    (float-reveal-bad-M
-      ↑[ zero ≔ suc zero ] (seal ↦↑ id↑))
-
-float-reveal-bad-step : float-reveal-bad-Ψ ⊢
-  float-reveal-bad-redex —→ float-reveal-bad-contractum
-float-reveal-bad-step = float-reveal Z float-reveal-bad-result
-
-float-reveal-var-base-impossible :
-  _≡_ {A = Ty 2} (＇ suc zero) (‵ `ℕ) → ⊥
-float-reveal-var-base-impossible ()
-
-float-reveal-bad-contractum-untypable :
-  float-reveal-bad-Ψ ∣ [] ⊢ float-reveal-bad-contractum
-    ⦂ (‵ `ℕ ⇒ ‵ `ℕ)
-  → ⊥
-float-reveal-bad-contractum-untypable
-    (⊢ν (⊢reveal outer∈ (⊢↑-⇒ outer-c⊢ outer-d⊢)
-      (⊢reveal (skip-typ Z) (⊢↑-⇒ inner-c⊢ inner-d⊢)
-        (⊢ƛ (⊢$ κ))))) =
-  float-reveal-var-base-impossible
-    (trans (sym (cong (wkᵗ zero) (seal-target outer-c⊢)))
-      (seal-source inner-c⊢))
-
-closed-preserve-float-reveal-impossible :
-  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
-    → Ψ ∣ [] ⊢ M ⦂ A
-    → Ψ ⊢ M —→ M′
-    → Ψ ∣ [] ⊢ M′ ⦂ A)
-  → ⊥
-closed-preserve-float-reveal-impossible preserve =
-  float-reveal-bad-contractum-untypable
-    (preserve float-reveal-bad-redex-⊢ float-reveal-bad-step)
+-- the empty pattern.  Commits 3ee5de8c and a18f75f4 recorded the checked
+-- refutation of the resolving float.  Chunk U11 resolves it semantically by
+-- deleting both delimiter-crossing ν floats: the displayed redex now has no
+-- `float-reveal` step, so its region remains at the delimiter depth where it
+-- was born.
 
 ------------------------------------------------------------------------
 -- Historical strict-id regression
@@ -1313,11 +1230,11 @@ bad-redex-⊢ =
     (⊢id↑ (＇ suc zero)) bad-inner-⊢
 
 bad-V-canonical : CanonicalInterior bad-V
-bad-V-canonical = sealed ($ (κℕ 7)) zero zero
+bad-V-canonical = sealed (result-val ($ (κℕ 7))) zero zero
 
 bad-inner-value : Value bad-inner
 bad-inner-value =
-  canonical-value bad-V-canonical
+  result-val (canonical-value bad-V-canonical)
     ↓[ zero ≔ zero ] delimiter bad-V-canonical
 
 bad-node-pair-mismatch :
@@ -1330,8 +1247,9 @@ bad-node-pair-mismatch (() , anchor-eq)
 -- `id-cancel`, the unequal (slot, anchor) pairs make it an adapter value.
 bad-redex-value : Value bad-redex
 bad-redex-value =
-  bad-inner-value ↑[ suc (suc zero) ≔ suc zero ]
-    adapter bad-V-canonical bad-node-pair-mismatch
+  result-val bad-inner-value ↑[ suc (suc zero) ≔ suc zero ]
+    adapter (result-val (canonical-value bad-V-canonical))
+      bad-node-pair-mismatch
 
 constant-no-step : ∀ {Θ Δ} {Φ : TyEnv Θ Δ} {κ M′}
   → Φ ⊢ $ κ —→ M′
@@ -1352,6 +1270,67 @@ bad-redex-no-step : ∀ {M′}
   → bad-Ψ ⊢ bad-redex —→ M′
   → ⊥
 bad-redex-no-step (ξ-reveal step) = bad-inner-no-step step
+
+------------------------------------------------------------------------
+-- A region stranded between seal and unseal is an adapter value
+------------------------------------------------------------------------
+
+-- Delimiter-crossing floats can no longer produce this configuration, but
+-- the unreachable typed fragment still classifies it as a value.  The region
+-- and its sealed result stay intact at their birth depth.
+stranded-Ψ : TyEnv 1 0
+stranded-Ψ = ∅ ,:= ‵ `ℕ
+
+stranded-seal : Term 2 1
+stranded-seal = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal
+
+stranded-seal-value : Value stranded-seal
+stranded-seal-value =
+  result-val ($ (κℕ 7)) ↓[ zero ≔ suc zero ] sealᵥ
+
+stranded-seal-⊢ :
+  ((stranded-Ψ ,typ[ zero ≔ zero ]) ,:= ‵ `ℕ) ∣ [] ⊢
+    stranded-seal ⦂ ＇ zero
+stranded-seal-⊢ =
+  ⊢conceal (skip-visible-typ here-typ) (S Z) ⊢seal (⊢$ (κℕ 7))
+
+stranded-region : Term 1 1
+stranded-region = ν[ ‵ `ℕ ] stranded-seal
+
+stranded-region-result : Result stranded-region
+stranded-region-result = result-ν (result-val stranded-seal-value)
+
+stranded-region-⊢ :
+  stranded-Ψ ,typ[ zero ≔ zero ] ∣ [] ⊢ stranded-region ⦂ ＇ zero
+stranded-region-⊢ = ⊢ν stranded-seal-⊢
+
+stranded-adapter : Term 1 0
+stranded-adapter = stranded-region ↑[ zero ≔ zero ] unseal
+
+stranded-adapter-value : Value stranded-adapter
+stranded-adapter-value =
+  stranded-region-result ↑[ zero ≔ zero ]
+    adapter-region (result-val stranded-seal-value)
+
+stranded-adapter-⊢ :
+  stranded-Ψ ∣ [] ⊢ stranded-adapter ⦂ ‵ `ℕ
+stranded-adapter-⊢ = ⊢reveal Z ⊢unseal stranded-region-⊢
+
+stranded-seal-no-step : ∀ {M′}
+  → ((stranded-Ψ ,typ[ zero ≔ zero ]) ,:= ‵ `ℕ) ⊢
+      stranded-seal —→ M′
+  → ⊥
+stranded-seal-no-step (ξ-conceal step) = constant-no-step step
+
+stranded-region-no-step : ∀ {M′}
+  → stranded-Ψ ,typ[ zero ≔ zero ] ⊢ stranded-region —→ M′
+  → ⊥
+stranded-region-no-step (ξ-ν step) = stranded-seal-no-step step
+
+stranded-adapter-no-step : ∀ {M′}
+  → stranded-Ψ ⊢ stranded-adapter —→ M′
+  → ⊥
+stranded-adapter-no-step (ξ-reveal step) = stranded-region-no-step step
 
 ------------------------------------------------------------------------
 -- Recorded anchors resolve the old loose conceal/reveal refutation
@@ -1378,7 +1357,7 @@ loose-redex : Term 2 0
 loose-redex = loose-inner ↑[ zero ≔ zero ] unseal
 
 loose-step : loose-Ψ ⊢ loose-redex —→ loose-V
-loose-step = conceal-reveal ($ (κℕ 7))
+loose-step = conceal-reveal (result-val ($ (κℕ 7)))
 
 loose-redex-untypable :
   loose-Ψ ∣ [] ⊢ loose-redex ⦂ ‵ `𝔹
@@ -1439,7 +1418,7 @@ open-contractum =
     ↑[ zero ≔ zero ] id↑
 
 open-step : open-Ψ ⊢ open-redex —→ open-contractum
-open-step = β-reveal-⇒ open-V-value open-W-value
+open-step = β-reveal-⇒ (result-val open-V-value) open-W-value
 
 open-W-closed-impossible : ∀ {Φ : TyEnv (suc zero) zero} {A}
   → Φ ∣ [] ⊢ open-W ⦂ A

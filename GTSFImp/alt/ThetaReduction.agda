@@ -7,14 +7,16 @@ module alt.ThetaReduction where
 --     crossing it inserts or deletes the distinguished slot canonically;
 --     weakening is the derived skip-at-position instance.  Term substitution
 --     stops at closed crossing and ν interiors.
---   * Evaluation descends beneath ν.  A ν-headed result floats through every
---     demanded frame; siblings shift eagerly in the anchor context.
+--   * Evaluation descends beneath ν.  A ν-headed result floats through term
+--     frames, while reveal and conceal delimiters remain at their birth depth.
 --   * Identity cancellation is strict in both node fields.  A mismatched
 --     identity conceal/reveal pair is an inert adapter value, with pair
 --     disequality evidence kept in `RevealValue`.
---   * The binder telescope is otherwise an inert step index: `float-reveal`
---     is the only rule that consults it, resolving an exiting representation
---     from an anchor lookup.
+--   * Boundary rules accept ν-prefixed results as interiors and carry the
+--     entire prefix verbatim.  Stacked regions move only by iterating the
+--     ordinary two-constructor term-frame rules.
+--   * `β-conceal-∀` still consults the telescope through its deleted-view
+--     representation lookup; all other computational rules merely thread it.
 --   * Review suggestion (not undertaken here): `CanonicalInterior` already
 --     projects to `Value`; a later cleanup should assess whether its overlap
 --     with the delimiter cases of `RevealValue` and `ConcealValue` can shrink
@@ -249,10 +251,16 @@ mutual
 
     adapter : ∀ {Θ Δ} {V : Term Θ Δ}
         {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
-      → CanonicalInterior V
+      → Result V
       → ¬ (X ≡ Y × α ≡ β)
         -------------------------------------------------------
       → RevealValue (V ↓[ Y ≔ β ] id↓) X α id↑
+
+    adapter-region : ∀ {Θ Δ} {M : Term (suc Θ) Δ} {A : Ty Δ}
+        {X : TyVar Δ} {α : TyVar Θ} {c : Reveal}
+      → Result M
+        ---------------------------------------
+      → RevealValue (ν[ A ] M) X α c
 
   data ConcealValue {Θ : AnchorCtx} {Δ : TyCtx}
       (V : Term Θ Δ) : Conceal → Set where
@@ -295,7 +303,7 @@ mutual
       → Value (V ⟨ c ⟩)
 
     _↑[_≔_]_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      → Value V
+      → Result V
       → (X : TyVar (suc Δ))
       → (α : TyVar Θ)
       → {c : Reveal}
@@ -304,7 +312,7 @@ mutual
       → Value (V ↑[ X ≔ α ] c)
 
     _↓[_≔_]_ : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Value V
+      → Result V
       → (X : TyVar (suc Δ))
       → (α : TyVar Θ)
       → {c : Conceal}
@@ -322,7 +330,7 @@ mutual
       → CanonicalInterior (V ⟨ (idᵍ Gᵍ) ! ⟩)
 
     sealed : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Value V
+      → Result V
       → (X : TyVar (suc Δ))
       → (α : TyVar Θ)
         --------------------------------------------------------
@@ -335,28 +343,24 @@ mutual
         ---------------------------------------------
       → CanonicalInterior (V ↑[ X ≔ α ] id↑)
 
+  data Result : ∀ {Θ Δ} → Term Θ Δ → Set where
+    result-val : ∀ {Θ Δ} {V : Term Θ Δ}
+      → Value V
+        -------------
+      → Result V
+
+    result-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
+      → Result M
+        -----------------
+      → Result (ν[ A ] M)
+
 canonical-value : ∀ {Θ Δ} {V : Term Θ Δ}
   → CanonicalInterior V
   → Value V
 canonical-value (tagged Vᵥ) = Vᵥ 《 inj 》
-canonical-value (sealed Vᵥ X α) = Vᵥ ↓[ X ≔ α ] sealᵥ
+canonical-value (sealed Vʳ X α) = Vʳ ↓[ X ≔ α ] sealᵥ
 canonical-value (delimited Vᶜ X α) =
-  canonical-value Vᶜ ↑[ X ≔ α ] delimiter Vᶜ
-
-------------------------------------------------------------------------
--- Results
-------------------------------------------------------------------------
-
-data Result : ∀ {Θ Δ} → Term Θ Δ → Set where
-  result-val : ∀ {Θ Δ} {V : Term Θ Δ}
-    → Value V
-      -------------
-    → Result V
-
-  result-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
-    → Result M
-      -----------------
-    → Result (ν[ A ] M)
+  result-val (canonical-value Vᶜ) ↑[ X ≔ α ] delimiter Vᶜ
 
 -- A fresh crossing is inserted immediately below the source `∀` binder.
 -- Its slot and the binder's slot must therefore exchange before the inner
@@ -470,7 +474,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       {V : Term Θ (suc Δ)} {W : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
       {c : Conceal} {d : Reveal}
-    → Value V
+    → Result V
     → Value W
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→
@@ -480,17 +484,17 @@ data _⊢_—→_ : ∀ {Θ Δ}
       {V : Term Θ Δ} {W : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
       {c : Reveal} {d : Conceal}
-    → Value V
+    → Result V
     → Value W
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→
         (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d
 
-  id-cancel : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+  id-cancel : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {R : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → CanonicalInterior V
+    → Result R
       ----------------------------------------------------
-    → Ψ ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ —→ V
+    → Ψ ⊢ (R ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ —→ R
 
   id-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {X : TyVar (suc Δ)}
@@ -504,11 +508,11 @@ data _⊢_—→_ : ∀ {Θ Δ}
       ---------------------------------------------
     → Ψ ⊢ ($ κ) ↓[ X ≔ α ] id↓ —→ $ κ
 
-  conceal-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+  conceal-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {R : Term Θ Δ}
       {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
-    → Value V
+    → Result R
       ------------------------------------------------------------
-    → Ψ ⊢ (V ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal —→ V
+    → Ψ ⊢ (R ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal —→ R
 
   blame-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M : Term Θ Δ}
       ------------------------
@@ -606,7 +610,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       {V : Term Θ (suc Δ)} {A : Ty Δ}
       {B : Ty (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → Value V
+    → Result V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ] —→
         ν[ A ]
@@ -631,7 +635,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       {C₀ : Ty Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → (Ψ ∖ X) ∋ α := C₀
-    → Value V
+    → Result V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ] —→
         (ν[ substᵗ (resolveSubᵗ X C₀) A ]
@@ -733,26 +737,6 @@ data _⊢_—→_ : ∀ {Θ Δ}
     → Result (ν[ A ] M)
       --------------------------------------------------
     → Ψ ⊢ (ν[ A ] M) ⟨ c ⟩ —→ ν[ A ] (M ⟨ c ⟩)
-
-  float-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {A : Ty (suc Δ)} {M : Term (suc Θ) (suc Δ)}
-      {Y : TyVar (suc Δ)} {α : TyVar Θ} {C : Ty Δ} {c : Reveal}
-    → Ψ ∋ α := C
-    → Result (ν[ A ] M)
-      ------------------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c —→
-        ν[ substᵗ (resolveSubᵗ Y C) A ] (M ↑[ Y ≔ suc α ] c)
-
-  -- Conceal binds Y on its conclusion side.  Floating ν outward therefore
-  -- weakens its representation at Y; unlike reveal, no slot is resolved and
-  -- no telescope lookup is needed.  The node's anchor shifts beneath ν.
-  float-conceal : ∀ {Θ Δ} {Ψ′ : TyEnv Θ (suc Δ)}
-      {A : Ty Δ} {M : Term (suc Θ) Δ}
-      {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → Result (ν[ A ] M)
-      ------------------------------------------------------------
-    → Ψ′ ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c —→
-        ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c)
 
   float-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ} {op : Prim}

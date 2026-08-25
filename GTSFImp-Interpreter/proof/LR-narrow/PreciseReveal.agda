@@ -92,6 +92,20 @@ open PreciseComposition concealFrame using () renaming
 -- Endpoint typings of a one-sided wrapper
 ------------------------------------------------------------------------
 
+precise-endpoint-type-of : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
+    {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ}
+    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → embedPrecise (core W) Bᴾ ≡ Aᴾ
+  → TypedEndpoints W p Vᴵ Vᴾ
+  → ⟨ Δᴾ , preciseStore (core W) , [] ⟩ ⊢ Vᴾ ⦂ Bᴾ
+precise-endpoint-type-of W {Bᴾ = Bᴾ} sourceᴾ endpoints =
+  subst≡ (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ _ ⦂ A)
+    (renameᵗ-injective
+      (toRenameᵗ-injective (preciseEmbedding (core W)))
+      (trans (preciseEmbedded endpoints) (sym sourceᴾ)))
+    (precise-typed endpoints)
+
 precise-endpoint-type : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
     {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ} {k : ℕ}
@@ -112,12 +126,12 @@ precise-reveal-endpoints : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
   → slotXᴾ s ∉ᵗ Bᴾ
   → embedPrecise (core W) Bᴾ ≡ Aᴾ
-  → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W p k Vᴵ Vᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → TypedEndpoints W p Vᴵ Vᴾ
   → Value (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
   → TypedEndpoints W p Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
 precise-reveal-endpoints W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
-    {Vᴾ = Vᴾ} related vᴾ =
+    {Vᴾ = Vᴾ} endpoints vᴾ =
   typed-endpoints (impreciseType endpoints) Bᴾ
     (impreciseEmbedded endpoints) sourceᴾ
     (imprecise-value endpoints) vᴾ (imprecise-typed endpoints)
@@ -126,21 +140,19 @@ precise-reveal-endpoints W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
         ⊢ Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗 ⦂ A)
       (replaceTy-absent (slotXᴾ s) (slotRᴾ s) no-occur)
       (⊢reveal (structural-reveal-typing Bᴾ (preciseBound (atom s)))
-        (precise-endpoint-type W sourceᴾ related)))
-  where
-  endpoints = ClosureProof.value-imprecision-endpoints related
+        (precise-endpoint-type-of W sourceᴾ endpoints)))
 
 precise-conceal-endpoints : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
   → slotXᴾ s ∉ᵗ Bᴾ
   → embedPrecise (core W) Bᴾ ≡ Aᴾ
-  → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W p k Vᴵ Vᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → TypedEndpoints W p Vᴵ Vᴾ
   → Value (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
   → TypedEndpoints W p Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
 precise-conceal-endpoints W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
-    {Vᴾ = Vᴾ} related vᴾ =
+    {Vᴾ = Vᴾ} endpoints vᴾ =
   typed-endpoints (impreciseType endpoints) Bᴾ
     (impreciseEmbedded endpoints) sourceᴾ
     (imprecise-value endpoints) vᴾ (imprecise-typed endpoints)
@@ -148,9 +160,7 @@ precise-conceal-endpoints W s {Bᴾ = Bᴾ} p no-occur sourceᴾ
       (subst≡
         (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ Vᴾ ⦂ A)
         (sym (replaceTy-absent (slotXᴾ s) (slotRᴾ s) no-occur))
-        (precise-endpoint-type W sourceᴾ related)))
-  where
-  endpoints = ClosureProof.value-imprecision-endpoints related
+        (precise-endpoint-type-of W sourceᴾ endpoints)))
 
 ------------------------------------------------------------------------
 -- The occurrence hypothesis survives future lifting
@@ -268,7 +278,7 @@ precise-universal-value : ∀ (j : ℕ) {sz : ℕ} (below : Below j sz)
   → ValueImprecision W p j
       Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₁ 〗)
 precise-universal-value zero below W s p no-occur sourceᴾ related =
-  precise-reveal-endpoints W s p no-occur sourceᴾ {k = zero} related
+  precise-reveal-endpoints W s p no-occur sourceᴾ related
     (precise-value related ↑ all)
 precise-universal-value (suc k) below W s {B₁ = B₁}
     I.★⊑★ no-occur () related
@@ -291,7 +301,7 @@ precise-universal-value (suc k) below W s {B₁ = B₁}
     I.∀★⊑★ no-occur sourceᴾ
     related@(endpoints , shape , payload) =
   precise-reveal-endpoints W s I.∀★⊑★ no-occur sourceᴾ
-    {k = suc k} related (precise-value endpoints ↑ all) ,
+    endpoints (precise-value endpoints ↑ all) ,
   shape ,
   precise-universal-value k
     (below-restrict (n≤1+n k) ≤-refl below) W s
@@ -300,7 +310,7 @@ precise-universal-value (suc k) below W s {B₁ = B₁}
     (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
     related@(endpoints , shape , payload) =
   precise-reveal-endpoints W s (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
-    {k = suc k} related (precise-value endpoints ↑ all) ,
+    endpoints (precise-value endpoints ↑ all) ,
   shape ,
   precise-universal-value k
     (below-restrict (n≤1+n k) ≤-refl below) W s
@@ -326,7 +336,7 @@ precise-universal-value (suc k) below W s {B₁ = B₁}
     related@(endpoints , .B₁ , Bᴵ* , embP* , embI* , fam)
     | refl =
   precise-reveal-endpoints W s (I.∀⊑ nonvar occurs p₀) no-occur
-    sourceᴾ {k = suc k} related (precise-value endpoints ↑ all) ,
+    sourceᴾ endpoints (precise-value endpoints ↑ all) ,
   B₁ , Bᴵ* , embP* , embI* ,
   (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} {Bᴵ′} σ →
     let s′ = slot-future s W≼W′
@@ -368,7 +378,7 @@ precise-universal-conceal-value : ∀ (j : ℕ) {sz : ℕ}
       Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₁))
 precise-universal-conceal-value zero below W s p no-occur sourceᴾ
     related =
-  precise-conceal-endpoints W s p no-occur sourceᴾ {k = zero} related
+  precise-conceal-endpoints W s p no-occur sourceᴾ related
     (precise-value related ↓ all)
 precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
     I.★⊑★ no-occur () related
@@ -391,7 +401,7 @@ precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
     I.∀★⊑★ no-occur sourceᴾ
     related@(endpoints , shape , payload) =
   precise-conceal-endpoints W s I.∀★⊑★ no-occur sourceᴾ
-    {k = suc k} related (precise-value endpoints ↓ all) ,
+    endpoints (precise-value endpoints ↓ all) ,
   shape ,
   precise-universal-conceal-value k
     (below-restrict (n≤1+n k) ≤-refl below) W s
@@ -400,7 +410,7 @@ precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
     (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
     related@(endpoints , shape , payload) =
   precise-conceal-endpoints W s (I.∀⊑★ nonstar p₀) no-occur sourceᴾ
-    {k = suc k} related (precise-value endpoints ↓ all) ,
+    endpoints (precise-value endpoints ↓ all) ,
   shape ,
   precise-universal-conceal-value k
     (below-restrict (n≤1+n k) ≤-refl below) W s
@@ -426,7 +436,7 @@ precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
     related@(endpoints , .B₁ , Bᴵ* , embP* , embI* , fam)
     | refl =
   precise-conceal-endpoints W s (I.∀⊑ nonvar occurs p₀) no-occur
-    sourceᴾ {k = suc k} related (precise-value endpoints ↓ all) ,
+    sourceᴾ endpoints (precise-value endpoints ↓ all) ,
   B₁ , Bᴵ* , embP* , embI* ,
   (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} {Bᴵ′} σ →
     let s′ = slot-future s W≼W′
@@ -924,7 +934,7 @@ mutual
   reveal-arrow fuel zero below W s p sizeA sizeB absentA absentB
       sourceᴾ related =
     precise-reveal-endpoints W s p (∉-fun absentA absentB) sourceᴾ
-      {k = zero} related (precise-value endpoints ↑ fun)
+      endpoints (precise-value endpoints ↑ fun)
     where
     endpoints = ClosureProof.value-imprecision-endpoints
       {k = zero} related
@@ -937,7 +947,7 @@ mutual
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-arrow q₁ q₂ =
     precise-reveal-endpoints W s (I.⇒⊑⇒ q₁ q₂)
-      (∉-fun absentA absentB) sourceᴾ {k = suc i} related
+      (∉-fun absentA absentB) sourceᴾ endpoints
       (precise-value endpoints ↑ fun) ,
     functions (suc i) ≤-refl related
     where
@@ -963,7 +973,7 @@ mutual
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-star q₁ q₂ =
     precise-reveal-endpoints W s (I.⇒⊑★ q₁ q₂)
-      (∉-fun absentA absentB) sourceᴾ {k = suc i} related
+      (∉-fun absentA absentB) sourceᴾ endpoints
       (precise-value endpoints ↑ fun) ,
     shape ,
     reveal-arrow fuel i (below-restrict (n≤1+n i) ≤-refl below) W s
@@ -996,7 +1006,7 @@ mutual
   conceal-arrow fuel zero below W s p sizeA sizeB absentA absentB
       sourceᴾ related =
     precise-conceal-endpoints W s p (∉-fun absentA absentB) sourceᴾ
-      {k = zero} related (precise-value endpoints ↓ fun)
+      endpoints (precise-value endpoints ↓ fun)
     where
     endpoints = ClosureProof.value-imprecision-endpoints
       {k = zero} related
@@ -1009,7 +1019,7 @@ mutual
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-arrow q₁ q₂ =
     precise-conceal-endpoints W s (I.⇒⊑⇒ q₁ q₂)
-      (∉-fun absentA absentB) sourceᴾ {k = suc i} related
+      (∉-fun absentA absentB) sourceᴾ endpoints
       (precise-value endpoints ↓ fun) ,
     functions (suc i) ≤-refl related
     where
@@ -1035,7 +1045,7 @@ mutual
       absentA absentB sourceᴾ {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | refl | arrow-star q₁ q₂ =
     precise-conceal-endpoints W s (I.⇒⊑★ q₁ q₂)
-      (∉-fun absentA absentB) sourceᴾ {k = suc i} related
+      (∉-fun absentA absentB) sourceᴾ endpoints
       (precise-value endpoints ↓ fun) ,
     shape ,
     conceal-arrow fuel i (below-restrict (n≤1+n i) ≤-refl below) W s

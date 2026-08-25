@@ -86,7 +86,8 @@ open import proof.LR-narrow.TypeRenamingComposition using
   (pack↑; pack↓; apply↑; apply↓)
 import proof.LR-narrow.PreciseReveal
 open module PreciseRevealModule = proof.LR-narrow.PreciseReveal ob
-  using (precise-endpoint-type; identity-reveal; identity-conceal;
+  using (precise-endpoint-type; precise-endpoint-type-of;
+         identity-reveal; identity-conceal;
          ArrowSource; arrow-arrow; arrow-star; arrow-source-view;
          sizeᵗ; renameᵗ-sizeᵗ; lift-sizeᵗ;
          size-bound-left; size-bound-right;
@@ -260,20 +261,18 @@ dyn-reveal-endpoints : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → embedPrecise (core W) Bᴾ ≡ Aᴾ
   → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
   → embedPrecise (core W) (replaceTy (dslotXᴾ d) (dslotRᴾ d) Bᴾ) ≡ Cᴾ
-  → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W p k Vᴵ Vᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → TypedEndpoints W p Vᴵ Vᴾ
   → Value (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ Bᴾ 〗)
   → TypedEndpoints W q Vᴵ (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ Bᴾ 〗)
 dyn-reveal-endpoints W d {Bᴾ = Bᴾ} p sourceᴾ q targetᴾ
-    {Vᴾ = Vᴾ} related vᴾ =
+    {Vᴾ = Vᴾ} endpoints vᴾ =
   typed-endpoints (impreciseType endpoints)
     (replaceTy (dslotXᴾ d) (dslotRᴾ d) Bᴾ)
     (impreciseEmbedded endpoints) targetᴾ
     (imprecise-value endpoints) vᴾ (imprecise-typed endpoints)
     (⊢reveal (structural-reveal-typing Bᴾ (dynamicBound (datom d)))
-      (precise-endpoint-type W sourceᴾ related))
-  where
-  endpoints = ClosureProof.value-imprecision-endpoints related
+      (precise-endpoint-type-of W sourceᴾ endpoints))
 
 dyn-conceal-endpoints : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (d : DynamicSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
@@ -281,20 +280,18 @@ dyn-conceal-endpoints : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → embedPrecise (core W) Bᴾ ≡ Aᴾ
   → ∀ {Cᴾ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Aᴵ)
   → embedPrecise (core W) (replaceTy (dslotXᴾ d) (dslotRᴾ d) Bᴾ) ≡ Cᴾ
-  → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W q k Vᴵ Vᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → TypedEndpoints W q Vᴵ Vᴾ
   → Value (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) Bᴾ)
   → TypedEndpoints W p Vᴵ
       (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) Bᴾ)
 dyn-conceal-endpoints W d {Bᴾ = Bᴾ} p sourceᴾ q targetᴾ
-    {Vᴾ = Vᴾ} related vᴾ =
+    {Vᴾ = Vᴾ} endpoints vᴾ =
   typed-endpoints (impreciseType endpoints) Bᴾ
     (impreciseEmbedded endpoints) sourceᴾ
     (imprecise-value endpoints) vᴾ (imprecise-typed endpoints)
     (⊢conceal (structural-conceal-typing Bᴾ (dynamicBound (datom d)))
-      (precise-endpoint-type W targetᴾ related))
-  where
-  endpoints = ClosureProof.value-imprecision-endpoints related
+      (precise-endpoint-type-of W targetᴾ endpoints))
 
 ------------------------------------------------------------------------
 -- Small helpers
@@ -447,7 +444,7 @@ dyn-universal-value : ∀ (j sz : ℕ) (below : Below j sz)
   → ValueImprecision W q j
       Vᴵ (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗)
 dyn-universal-value zero sz below W d p sourceᴾ q targetᴾ related =
-  dyn-reveal-endpoints W d p sourceᴾ q targetᴾ {k = zero} related
+  dyn-reveal-endpoints W d p sourceᴾ q targetᴾ related
     (precise-value related ↑ all)
 dyn-universal-value (suc k) sz below W d {B₁ = B₁}
     I.★⊑★ () q targetᴾ related
@@ -492,9 +489,7 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
           (replaceTy (dcenter d)
             (embedPrecise (core W) (dslotRᴾ d)))
           sourceᴾ))
-      {k = suc k}
-      (ClosureProof.value-imprecision-reindex I.∀★⊑★ I.∀★⊑★
-        {k = suc k} refl refl related)
+      endpoints
       (precise-value endpoints ↑ all) ,
     shape ,
     dyn-universal-value k sz
@@ -532,7 +527,7 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
         (replace-left-⊑ (Fin.suc (dcenter d))
           (shift-⊑ I.X⊑X (dynamicRep-related (datom d)))
           ∉-star p₀))
-      chain {k = suc k} related
+      chain endpoints
       (precise-value endpoints ↑ all) ,
     shape′ ,
     payload′)
@@ -574,7 +569,7 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
     (trans (sym targetᴾ) (trans chain (cong (λ T → `∀ T) star-eq))) refl
     (dyn-reveal-endpoints W d (I.∀⊑★ nonstar p₀) sourceᴾ
       I.∀★⊑★ (trans chain (cong (λ T → `∀ T) star-eq))
-      {k = suc k} related
+      endpoints
       (precise-value endpoints ↑ all) ,
     subst≡
       (λ T → RightDynamicPayloadRelated W (`∀ T) k Vᴵ
@@ -626,7 +621,7 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
   ClosureProof.value-imprecision-reindex q alt₀ {k = suc k}
     (trans (sym targetᴾ) chain) refl
     (dyn-reveal-endpoints W d (I.∀⊑ nonvar occurs p₀) sourceᴾ
-      alt₀ chain {k = suc k} related
+      alt₀ chain endpoints
       (precise-value endpoints ↑ all) ,
     replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁ ,
     Bᴵ* , chain , embI* ,
@@ -734,7 +729,7 @@ dyn-universal-conceal-value : ∀ (j sz : ℕ) (below : Below j sz)
       Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
 dyn-universal-conceal-value zero sz below W d p sourceᴾ q targetᴾ
     related =
-  dyn-conceal-endpoints W d p sourceᴾ q targetᴾ {k = zero} related
+  dyn-conceal-endpoints W d p sourceᴾ q targetᴾ related
     (precise-value related ↓ all)
 dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
     I.★⊑★ () q targetᴾ related
@@ -798,7 +793,7 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
     | endpointsq , shapeq , payloadq =
   dyn-conceal-endpoints W d I.∀★⊑★ sourceᴾ q targetᴾ
-    {k = suc k} related
+    (ClosureProof.value-imprecision-endpoints related)
     (precise-value (ClosureProof.value-imprecision-endpoints related)
       ↓ all) ,
   shapeq ,
@@ -886,7 +881,7 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
       payloadq
     | ∀★ =
   dyn-conceal-endpoints W d (I.∀⊑★ nonstar p₀) sourceᴾ q targetᴾ
-    {k = suc k} related
+    (ClosureProof.value-imprecision-endpoints related)
     (precise-value
       (ClosureProof.value-imprecision-endpoints related) ↓ all) ,
   right-dynamic-payload-shape (`∀ ★) ∀★ genv gts
@@ -971,7 +966,7 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
       payloadq
     | ∀★ =
   dyn-conceal-endpoints W d (I.∀⊑★ nonstar p₀) sourceᴾ q targetᴾ
-    {k = suc k} related
+    (ClosureProof.value-imprecision-endpoints related)
     (precise-value
       (ClosureProof.value-imprecision-endpoints related) ↓ all) ,
   right-dynamic-payload-shape (`∀ ★) ∀★ genv gts
@@ -1038,8 +1033,9 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
       , Bᴵ* , embP* , embI* , famq
       | refl =
     dyn-conceal-endpoints W d (I.∀⊑ nonvar occurs p₀) sourceᴾ q
-      targetᴾ {k = suc k} related
-      (precise-value endpoints ↓ all) ,
+      targetᴾ (ClosureProof.value-imprecision-endpoints related)
+      (precise-value
+        (ClosureProof.value-imprecision-endpoints related) ↓ all) ,
     B₁ , Bᴵ* , sourceᴾ , embI* ,
     (λ W≼W′ σ → fam-out W≼W′ σ)
     where
@@ -1652,7 +1648,7 @@ mutual
         Vᴵ (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ A₀ ⇒ B₀ 〗)
   dyn-reveal-arrow fuel zero sz below W d p sizeA sizeB sourceᴾ q
       targetᴾ related =
-    dyn-reveal-endpoints W d p sourceᴾ q targetᴾ {k = zero} related
+    dyn-reveal-endpoints W d p sourceᴾ q targetᴾ endpoints
       (precise-value endpoints ↑ fun)
     where
     endpoints = ClosureProof.value-imprecision-endpoints
@@ -1674,7 +1670,7 @@ mutual
       | refl | arrow-arrow p₁ p₂ | refl
       | arrow-imprecision q₁ q₂ =
     dyn-reveal-endpoints W d (I.⇒⊑⇒ p₁ p₂) sourceᴾ (I.⇒⊑⇒ q₁ q₂)
-      targetᴾ {k = suc i} related
+      targetᴾ endpoints
       (precise-value endpoints ↑ fun) ,
     functions (suc i) ≤-refl related
     where
@@ -1736,8 +1732,7 @@ mutual
       | arrow-star q₁ q₂
       | _ | ★⇒★ | w =
     dyn-reveal-endpoints W d (I.⇒⊑★ p₁ p₂) sourceᴾ (I.⇒⊑★ q₁ q₂)
-      targetᴾ {k = suc i}
-      (endpoints , shape , payload-back)
+      targetᴾ endpoints
       (precise-value endpoints ↑ fun) ,
     shape′ ,
     payload′
@@ -1808,7 +1803,7 @@ mutual
         Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (A₀ ⇒ B₀))
   dyn-conceal-arrow fuel zero sz below W d p sizeA sizeB sourceᴾ q
       targetᴾ related =
-    dyn-conceal-endpoints W d p sourceᴾ q targetᴾ {k = zero} related
+    dyn-conceal-endpoints W d p sourceᴾ q targetᴾ endpoints
       (precise-value endpoints ↓ fun)
     where
     endpoints = ClosureProof.value-imprecision-endpoints
@@ -1830,7 +1825,7 @@ mutual
       | refl | arrow-arrow p₁ p₂ | refl
       | arrow-imprecision q₁ q₂ =
     dyn-conceal-endpoints W d (I.⇒⊑⇒ p₁ p₂) sourceᴾ (I.⇒⊑⇒ q₁ q₂)
-      targetᴾ {k = suc i} related
+      targetᴾ endpoints
       (precise-value endpoints ↓ fun) ,
     functions (suc i) ≤-refl related
     where
@@ -1892,8 +1887,7 @@ mutual
       | arrow-star q₁ q₂
       | _ | ★⇒★ | w =
     dyn-conceal-endpoints W d (I.⇒⊑★ p₁ p₂) sourceᴾ (I.⇒⊑★ q₁ q₂)
-      targetᴾ {k = suc i}
-      (endpoints , shape , payload-back)
+      targetᴾ endpoints
       (precise-value endpoints ↓ fun) ,
     shape′ ,
     payload′

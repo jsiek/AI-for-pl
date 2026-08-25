@@ -62,10 +62,6 @@ private
     x y z : Var
     a b : TyVar Θ
 
-data Mode : (scope : TyCtx) → Set where
-  know : ∀ {Δ} → List (TyVar Δ) → Mode Δ
-  opaq : ∀ {Δ} → Mode Δ
-
 dropSlot : ∀ {Δ}
   → TyVar (suc Δ) → List (TyVar (suc Δ)) → List (TyVar Δ)
 dropSlot W [] = []
@@ -113,79 +109,52 @@ data _∋typ_≔_ : ∀ {Θ Δ}
 
 infix 4 _∋rep[_]_≔_
 
--- `Ψ ∋rep[ mode ] α ≔ A` looks up the representation type associated
+-- `Ψ ∋rep[ pending ] α ≔ A` looks up the representation type associated
 -- with the ν binding of anchor α, expressed in Ψ's scope as A.  The
--- Mode says how to cross begin/end markers along the way: `know pending`
--- resolves an ended slot's occurrences in the result (pending = ends
--- crossed whose begin is not yet reached), while `opaq` — entered by
--- crossing a live begin — transports the representation verbatim and
--- refuses to cross any end.
+-- pending list holds the ended slots whose begin the walk has not yet
+-- reached: crossing an end pushes its slot and resolves that slot's
+-- occurrences in the result — never in the telescope.
 data _∋rep[_]_≔_ : ∀ {Θ Δ}
-    → TyEnv Θ Δ → Mode Δ → TyVar Θ → Ty Δ → Set where
-  Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ} {mode}
+    → TyEnv Θ Δ → List (TyVar Δ) → TyVar Θ → Ty Δ → Set where
+  Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ} {pending}
       ---------------------
-    → Ψ ,:= A ∋rep[ mode ] zero ≔ A
+    → Ψ ,:= A ∋rep[ pending ] zero ≔ A
 
   S : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a : TyVar Θ}
-      {A B : Ty Δ} {mode}
-    → Ψ ∋rep[ mode ] a ≔ A
+      {A B : Ty Δ} {pending}
+    → Ψ ∋rep[ pending ] a ≔ A
       ----------------------
-    → Ψ ,:= B ∋rep[ mode ] suc a ≔ A
+    → Ψ ,:= B ∋rep[ pending ] suc a ≔ A
 
-  skip-begin-pending : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-begin : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)} {pending}
-    → Y ∈ pending
-    → Ψ ∋rep[ know (dropSlot Y pending) ] a ≔ A
+    → Ψ ∋rep[ dropSlot Y pending ] a ≔ A
       ---------------------------------
-    → Ψ ,begin[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
+    → Ψ ,begin[ Y ≔ β ] ∋rep[ pending ] a ≔ wkᵗ Y A
 
-  skip-begin-live : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {a β : TyVar Θ} {A : Ty Δ}
-      {Y : TyVar (suc Δ)} {pending}
-    → Y ∉ pending
-    → Ψ ∋rep[ opaq ] a ≔ A
-      ---------------------------------
-    → Ψ ,begin[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
-
-  skip-begin-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {a β : TyVar Θ} {A : Ty Δ}
-      {Y : TyVar (suc Δ)}
-    → Ψ ∋rep[ opaq ] a ≔ A
-      ---------------------------------
-    → Ψ ,begin[ Y ≔ β ] ∋rep[ opaq ] a ≔ wkᵗ Y A
-
-  skip-lexical-know : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a : TyVar Θ} {A : Ty Δ} {pending pending′}
     → map suc pending ≡ pending′
-    → Ψ ∋rep[ know pending ] a ≔ A
+    → Ψ ∋rep[ pending ] a ≔ A
       ------------------------
-    → Ψ ,typ ∋rep[ know pending′ ] a ≔ ⇑ᵗ A
-
-  skip-lexical-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {a : TyVar Θ} {A : Ty Δ}
-    → Ψ ∋rep[ opaq ] a ≔ A
-      ------------------------
-    → Ψ ,typ ∋rep[ opaq ] a ≔ ⇑ᵗ A
+    → Ψ ,typ ∋rep[ pending′ ] a ≔ ⇑ᵗ A
 
   skip-end : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
       {Y : TyVar (suc Δ)} {α a : TyVar Θ}
       {A : Ty (suc Δ)} {B C : Ty Δ} {pending}
     → Ψ ∋typ Y ≔ α
-    → Ψ ∋rep[ know (Y ∷ map (punchIn Y) pending) ] α ≔ wkᵗ Y C
-    → Ψ ∋rep[ know (Y ∷ map (punchIn Y) pending) ] a ≔ A
+    → Ψ ∋rep[ Y ∷ map (punchIn Y) pending ] α ≔ wkᵗ Y C
+    → Ψ ∋rep[ Y ∷ map (punchIn Y) pending ] a ≔ A
     → substᵗ (resolveSubᵗ Y C) A ≡ B
       --------------------------------------------
-    → Ψ ,end[ Y ] ∋rep[ know pending ] a ≔ B
+    → Ψ ,end[ Y ] ∋rep[ pending ] a ≔ B
 
--- "reveal is opaque on the inside and knowledge on the outside, conceal is
--- the dual."  A representation lookup begins at `know []`.  An end pushes
--- its slot onto the pending list and resolves that slot in the result only.
--- Its matching begin removes the pending slot; a live begin instead changes
--- the route to `opaq`.  Opaque lookup has no end-marker constructor, so an
--- end is refused rather than silently crossed.
--- In particular, ending a scope appends syntax to the telescope: no stored
--- entry is substituted, punched out, or otherwise rewritten.
+-- The lookup never blocks: ∋rep is consumed only by the reveal/conceal
+-- typing rules, at their own boundary telescopes — it is never used to
+-- expose a representation type inside an opaque region, so no crossing
+-- needs to be refused.  Ending a scope appends syntax to the telescope:
+-- no stored entry is substituted, punched out, or otherwise rewritten.
 
 ------------------------------------------------------------------------
 -- Typing
@@ -252,7 +221,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {M : Term Θ (suc Δ)}
       {A : Ty (suc Δ)} {B C : Ty Δ} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Reveal}
-    → Ψ ∋rep[ know [] ] α ≔ C
+    → Ψ ∋rep[ [] ] α ≔ C
     → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
     → Ψ ,begin[ Y ≔ α ] ∣ [] ⊢ M ⦂ A
       --------------------------------
@@ -267,7 +236,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
     → Ψ ∋typ Y ≔ α
-    → (Ψ ,end[ Y ]) ∋rep[ know [] ] α ≔ C
+    → (Ψ ,end[ Y ]) ∋rep[ [] ] α ≔ C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
     → Ψ ,end[ Y ] ∣ [] ⊢ M ⦂ A
       ------------------------------------------

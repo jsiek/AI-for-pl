@@ -15,8 +15,8 @@ module alt.ThetaReduction where
 --   * Boundary rules accept ν-prefixed results as interiors and carry the
 --     entire prefix verbatim.  Stacked regions move only by iterating the
 --     ordinary two-constructor term-frame rules.
---   * `β-conceal-∀` still consults the telescope through its deleted-view
---     representation lookup; all other computational rules merely thread it.
+--   * `β-conceal-∀` consults the telescope outside the matching end
+--     marker; all other computational rules merely thread the telescope.
 --   * Review suggestion (not undertaken here): `CanonicalInterior` already
 --     projects to `Value`; a later cleanup should assess whether its overlap
 --     with the delimiter cases of `RevealValue` and `ConcealValue` can shrink
@@ -25,6 +25,7 @@ module alt.ThetaReduction where
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Empty using (⊥-elim)
+open import Data.List using ([])
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality
@@ -625,7 +626,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
             ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
   -- inside the conceal, the region knows the representation type of the abstract X — so resolving X in the instantiation type through the anchor's representation is legitimate knowledge, not a leak; the conversion's seals continue to mediate the values.
-  -- The fresh region therefore lives wholly in the deleted view.  It first
+  -- The fresh region therefore lives wholly outside the matching end.  It first
   -- resolves the instantiation and the conversion-determined source body,
   -- instantiates V there, and closes its fresh slot before the generated
   -- exit conceal restores the ambient abstract-X view.
@@ -634,7 +635,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       {B : Ty (suc (suc Δ))}
       {C₀ : Ty Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → (Ψ ∖ X) ∋ α := C₀
+    → (Ψ ,end[ X ]) ∋rep[ [] ] α ≔ C₀
     → Result V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ] —→
@@ -680,14 +681,14 @@ data _⊢_—→_ : ∀ {Θ Δ}
   ξ-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {M M′ : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → Ψ ,typ[ X ≔ α ] ⊢ M —→ M′
+    → Ψ ,begin[ X ≔ α ] ⊢ M —→ M′
       ------------------------------------------
     → Ψ ⊢ M ↑[ X ≔ α ] c —→ M′ ↑[ X ≔ α ] c
 
   ξ-conceal : ∀ {Θ Δ} {Ψ′ : TyEnv Θ (suc Δ)}
       {M M′ : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → Ψ′ ∖ X ⊢ M —→ M′
+    → Ψ′ ,end[ X ] ⊢ M —→ M′
       ------------------------------------------
     → Ψ′ ⊢ M ↓[ X ≔ α ] c —→ M′ ↓[ X ≔ α ] c
 

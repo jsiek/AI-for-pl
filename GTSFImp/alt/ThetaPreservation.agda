@@ -43,7 +43,7 @@ module alt.ThetaPreservation where
 -- needs the old-anchor lookup
 --
 --   (Ω ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]
---     ∋rep[ [] ] suc zero ≔ ‵ `ℕ.
+--     ∋rep suc zero ≔ ‵ `ℕ.
 --
 -- Crossing that live begin first changes the recursive obligation to
 -- `Ω ∋rep[ opaq ] zero ≔ ‵ `ℕ`; Ω's end marker has deliberately no opaque

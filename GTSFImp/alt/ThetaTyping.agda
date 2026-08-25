@@ -62,14 +62,6 @@ private
     x y z : Var
     a b : TyVar Θ
 
-dropSlot : ∀ {Δ}
-  → TyVar (suc Δ) → List (TyVar (suc Δ)) → List (TyVar Δ)
-dropSlot W [] = []
-dropSlot W (X ∷ pending) with W ≟ X
-dropSlot W (.W ∷ pending) | yes refl = dropSlot W pending
-dropSlot W (X ∷ pending) | no W≠X =
-  punchOut W X W≠X ∷ dropSlot W pending
-
 infix 4 _∋typ_≔_
 
 -- Slot lookup: `Ψ ∋typ Y ≔ α` finds the begin entry that binds the
@@ -107,48 +99,46 @@ data _∋typ_≔_ : ∀ {Θ Δ}
       -------------------------------------------------
     → (Ψ ,end[ Y ]) ∋typ X ≔ α
 
-infix 4 _∋rep[_]_≔_
+infix 4 _∋rep_≔_
 
--- `Ψ ∋rep[ pending ] α ≔ A` looks up the representation type associated
--- with the ν binding of anchor α, expressed in Ψ's scope as A.  The
--- pending list holds the ended slots whose begin the walk has not yet
--- reached: crossing an end pushes its slot and resolves that slot's
--- occurrences in the result — never in the telescope.
-data _∋rep[_]_≔_ : ∀ {Θ Δ}
-    → TyEnv Θ Δ → List (TyVar Δ) → TyVar Θ → Ty Δ → Set where
-  Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ} {pending}
+-- `Ψ ∋rep α ≔ A` looks up the representation type associated with the
+-- ν binding of anchor α, expressed in Ψ's scope as A.  Crossing an end
+-- marker resolves the ended slot's occurrences in the result — never
+-- in the telescope.
+data _∋rep_≔_ : ∀ {Θ Δ}
+    → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
+  Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
       ---------------------
-    → Ψ ,:= A ∋rep[ pending ] zero ≔ A
+    → Ψ ,:= A ∋rep zero ≔ A
 
   S : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a : TyVar Θ}
-      {A B : Ty Δ} {pending}
-    → Ψ ∋rep[ pending ] a ≔ A
+      {A B : Ty Δ}
+    → Ψ ∋rep a ≔ A
       ----------------------
-    → Ψ ,:= B ∋rep[ pending ] suc a ≔ A
+    → Ψ ,:= B ∋rep suc a ≔ A
 
   skip-begin : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
-      {Y : TyVar (suc Δ)} {pending}
-    → Ψ ∋rep[ dropSlot Y pending ] a ≔ A
+      {Y : TyVar (suc Δ)}
+    → Ψ ∋rep a ≔ A
       ---------------------------------
-    → Ψ ,begin[ Y ≔ β ] ∋rep[ pending ] a ≔ wkᵗ Y A
+    → Ψ ,begin[ Y ≔ β ] ∋rep a ≔ wkᵗ Y A
 
   skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {a : TyVar Θ} {A : Ty Δ} {pending pending′}
-    → map suc pending ≡ pending′
-    → Ψ ∋rep[ pending ] a ≔ A
+      {a : TyVar Θ} {A : Ty Δ}
+    → Ψ ∋rep a ≔ A
       ------------------------
-    → Ψ ,typ ∋rep[ pending′ ] a ≔ ⇑ᵗ A
+    → Ψ ,typ ∋rep a ≔ ⇑ᵗ A
 
   skip-end : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
       {Y : TyVar (suc Δ)} {α a : TyVar Θ}
-      {A : Ty (suc Δ)} {B C : Ty Δ} {pending}
+      {A : Ty (suc Δ)} {B C : Ty Δ}
     → Ψ ∋typ Y ≔ α
-    → Ψ ∋rep[ Y ∷ map (punchIn Y) pending ] α ≔ wkᵗ Y C
-    → Ψ ∋rep[ Y ∷ map (punchIn Y) pending ] a ≔ A
+    → Ψ ∋rep α ≔ wkᵗ Y C
+    → Ψ ∋rep a ≔ A
     → substᵗ (resolveSubᵗ Y C) A ≡ B
       --------------------------------------------
-    → Ψ ,end[ Y ] ∋rep[ pending ] a ≔ B
+    → Ψ ,end[ Y ] ∋rep a ≔ B
 
 -- The lookup never blocks: ∋rep is consumed only by the reveal/conceal
 -- typing rules, at their own boundary telescopes — it is never used to
@@ -221,7 +211,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {M : Term Θ (suc Δ)}
       {A : Ty (suc Δ)} {B C : Ty Δ} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Reveal}
-    → Ψ ∋rep[ [] ] α ≔ C
+    → Ψ ∋rep α ≔ C
     → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
     → Ψ ,begin[ Y ≔ α ] ∣ [] ⊢ M ⦂ A
       --------------------------------
@@ -236,7 +226,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
     → Ψ ∋typ Y ≔ α
-    → (Ψ ,end[ Y ]) ∋rep[ [] ] α ≔ C
+    → (Ψ ,end[ Y ]) ∋rep α ≔ C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
     → Ψ ,end[ Y ] ∣ [] ⊢ M ⦂ A
       ------------------------------------------

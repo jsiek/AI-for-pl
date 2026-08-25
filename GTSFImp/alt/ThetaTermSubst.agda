@@ -758,8 +758,8 @@ rename-∋typ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     {Ψ : TyEnv Θ Δ} {Y : TyVar Δ} {α : TyVar Θ}
   → Ψ ∋typ Y ≔ α
   → renameTyEnv ρ Ψ ∋typ toRenameᵗ ρ Y ≔ α
-rename-∋typ (keep ρ) here-typ = here-typ
-rename-∋typ (skip ρ) here-typ = here-typ
+rename-∋typ (keep ρ) found-begin = found-begin
+rename-∋typ (skip ρ) found-begin = found-begin
 rename-∋typ ρ@(keep η)
     (skip-begin {Ψ = Ψ} {Y = Y} {α = α} {X = slot}
       {β = anchor}
@@ -1014,12 +1014,12 @@ renameTyEnv-∖ : ∀ {Θ Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
   → Ψ ∋typ Y ≔ α
   → renameTyEnv ρ Ψ ∖ toRenameᵗ ρ Y
     ≡ renameTyEnv (delete↪ᵗ ρ Y) (Ψ ∖ Y)
-renameTyEnv-∖ (keep ρ) (Ψ ,begin[ Y ≔ α ]) Y here-typ
+renameTyEnv-∖ (keep ρ) (Ψ ,begin[ Y ≔ α ]) Y found-begin
     rewrite ∖-typ-here (renameTyEnv (delete↪ᵗ (keep ρ) Y) Ψ)
               (toRenameᵗ (keep ρ) Y) α
       | ∖-typ-here Ψ Y α =
   refl
-renameTyEnv-∖ (skip ρ) (Ψ ,begin[ Y ≔ α ]) Y here-typ
+renameTyEnv-∖ (skip ρ) (Ψ ,begin[ Y ≔ α ]) Y found-begin
     rewrite ∖-typ-here (renameTyEnv (delete↪ᵗ (skip ρ) Y) Ψ)
               (toRenameᵗ (skip ρ) Y) α
       | ∖-typ-here Ψ Y α =
@@ -1147,7 +1147,7 @@ renameTarget-∋typ {Ψ = Ψ} {Y = Y} {α = α}
     literal-wk-target Y∈ =
   subst≡ (λ Z → (Ψ ,typ) ∋typ Z ≔ α)
     (cong suc (sym (toRename-id-eq Y))) (skip-typ Y∈)
-renameTarget-∋typ (target-typ X anchor target) here-typ = here-typ
+renameTarget-∋typ (target-typ X anchor target) found-begin = found-begin
 renameTarget-∋typ {ρ = ρ}
     (target-typ X anchor target)
     (skip-begin {Y = Y} Y∈) =
@@ -1374,7 +1374,7 @@ renameTarget-delete {Ψ = Ψ} literal-wk-target Y Y∈ =
       (sym (delete-wk↪ᵗ Y)) literal-wk-target)
 renameTarget-delete {ρ = ρ} {Ψ = Ψ ,begin[ X ≔ α ]}
     {Φ = Φ ,begin[ .(toRenameᵗ ρ X) ≔ .α ]}
-    (target-typ .X .α target) .X here-typ
+    (target-typ .X .α target) .X found-begin
     rewrite ∖-typ-here Ψ X α
       | ∖-typ-here Φ (toRenameᵗ ρ X) α =
   target
@@ -1937,7 +1937,7 @@ anchorTarget-∋typ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
 anchorTarget-∋typ ρ-inj visible-shift-target Y∈ =
   skip-nu-binding Y∈
 anchorTarget-∋typ ρ-inj
-    (anchor-target-typ Y anchor target) here-typ = here-typ
+    (anchor-target-typ Y anchor target) found-begin = found-begin
 anchorTarget-∋typ ρ-inj (anchor-target-typ slot anchor target)
     (skip-begin Y∈) =
   skip-begin (anchorTarget-∋typ ρ-inj target Y∈)
@@ -2007,7 +2007,7 @@ anchorTarget-delete visible-shift-target Y Y∈
     | delete-view Φ C = visible-shift-target
 anchorTarget-delete {ρ = ρ} {Ψ = Ψ ,begin[ X ≔ α ]}
     {Φ = Φ ,begin[ .X ≔ .(ρ α) ]}
-    (anchor-target-typ .X .α target) .X here-typ
+    (anchor-target-typ .X .α target) .X found-begin
     rewrite ∖-typ-here Ψ X α | ∖-typ-here Φ X (ρ α) =
   target
 anchorTarget-delete {Δ = suc Δ} {ρ = ρ} {Ψ = Ψ ,begin[ X ≔ α ]}

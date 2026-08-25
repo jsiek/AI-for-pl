@@ -349,7 +349,7 @@ terminal-anchor : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
   → (Ψ ,begin[ X ≔ α ]) ∋typ Y ≔ β
   → Y ≡ X
   → β ≡ α
-terminal-anchor here-typ refl = refl
+terminal-anchor found-begin refl = refl
 terminal-anchor (skip-begin {Y = Y} Y∈) eq =
   ⊥-elim (punchIn≢ _ Y (sym eq))
 terminal-anchor (skip-cross-other-typ {Y = Y} neq Y∈) eq =
@@ -441,7 +441,7 @@ preserve-β-reveal-⇒ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
 preserve-β-reveal-⇒ {Ψ = Ψ} {W = W} {X = X} {α = α}
     (⊢· (⊢reveal α∈ (⊢↑-⇒ c⊢ d⊢) V⊢) W⊢) =
   ⊢reveal α∈ d⊢
-    (⊢· V⊢ (⊢conceal here-typ deleted-lookup c⊢ deleted-W⊢))
+    (⊢· V⊢ (⊢conceal found-begin deleted-lookup c⊢ deleted-W⊢))
   where
   env-eq = ∖-typ-here Ψ X α
   deleted-lookup =
@@ -537,7 +537,7 @@ fresh-delimiter-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
   → (Ψ ,:= C) ,begin[ zero ≔ zero ] ∣ []
       ⊢ M ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A) ⦂ ⇑ᵗ A
 fresh-delimiter-conceal {Ψ = Ψ} {A = A} {C = C} M⊢ =
-  ⊢conceal here-typ target-lookup
+  ⊢conceal found-begin target-lookup
     (delimiter-typed↓ zero (⇑ᵗ C) (⇑ᵗ A)) target-M⊢
   where
   env-eq = ∖-typ-here (Ψ ,:= C) zero zero
@@ -595,7 +595,7 @@ fresh-∀-entry-crossed {Ψ = Ψ} {V = V} {C = C} {A = A}
   target-lookup =
     subst≡ (λ Φ → Φ ∋ zero := wkᵗ X A)
       (sym env-eq) deleted-lookup
-  entered⊢ = ⊢conceal (skip-begin here-typ) target-lookup
+  entered⊢ = ⊢conceal (skip-begin found-begin) target-lookup
     (delimiter-typed↓ zero (wkᵗ zero (wkᵗ X A))
       (wkᵗ zero (`∀ C))) target-V⊢
   exchanged⊢ = subst≡ (λ T → ambient ∣ [] ⊢ entered ⦂ T)
@@ -1164,7 +1164,7 @@ conceal-var-redex =
 conceal-var-redex-⊢ :
   conceal-var-Ψ ∣ [] ⊢ conceal-var-redex ⦂ ‵ `ℕ
 conceal-var-redex-⊢ =
-  ⊢⦂∀ (⊢conceal here-typ Z (⊢↓-∀ (⊢id↓ (‵ `ℕ)))
+  ⊢⦂∀ (⊢conceal found-begin Z (⊢↓-∀ (⊢id↓ (‵ `ℕ)))
     conceal-var-V-⊢)
 
 conceal-var-contractum : Term (suc zero) (suc zero)
@@ -1232,7 +1232,7 @@ conceal-arrow-redex-⊢ : conceal-arrow-Ψ ∣ [] ⊢
   conceal-arrow-redex ⦂ ‵ `ℕ
 conceal-arrow-redex-⊢ =
   ⊢·
-    (⊢conceal (skip-nu-binding here-typ) (S Z)
+    (⊢conceal (skip-nu-binding found-begin) (S Z)
       (⊢↓-⇒ (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢id↓ (‵ `ℕ)))
       conceal-arrow-V-⊢)
     conceal-arrow-W-⊢
@@ -1252,7 +1252,7 @@ conceal-arrow-step =
 conceal-arrow-contractum-⊢ :
   conceal-arrow-Ψ ∣ [] ⊢ conceal-arrow-contractum ⦂ ‵ `ℕ
 conceal-arrow-contractum-⊢ =
-  ⊢conceal (skip-nu-binding here-typ) (S Z) (⊢id↓ (‵ `ℕ))
+  ⊢conceal (skip-nu-binding found-begin) (S Z) (⊢id↓ (‵ `ℕ))
     (⊢· conceal-arrow-V-⊢
       (⊢reveal (S Z) (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
         (⊢reveal (skip-typ Z) (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
@@ -1312,7 +1312,7 @@ bad-V = ($ (κℕ 7)) ↓[ zero ≔ zero ] seal
 
 bad-V-⊢ : bad-body-Ψ ∣ [] ⊢ bad-V ⦂ ＇ zero
 bad-V-⊢ =
-  ⊢conceal (skip-begin here-typ) (skip-typ Z)
+  ⊢conceal (skip-begin found-begin) (skip-typ Z)
     ⊢seal (⊢$ (κℕ 7))
 
 bad-inner : Term (suc (suc zero)) (suc (suc (suc zero)))
@@ -1322,7 +1322,7 @@ bad-inner-⊢ :
   bad-Ψ ,begin[ suc (suc zero) ≔ suc zero ] ∣ []
     ⊢ bad-inner ⦂ ＇ suc zero
 bad-inner-⊢ =
-  ⊢conceal (skip-begin here-typ) (skip-typ (skip-typ Z))
+  ⊢conceal (skip-begin found-begin) (skip-typ (skip-typ Z))
     (⊢id↓ (＇ suc zero)) bad-V-⊢
 
 bad-redex : Term (suc (suc zero)) (suc (suc zero))
@@ -1396,7 +1396,7 @@ stranded-seal-⊢ :
   ((stranded-Ψ ,begin[ zero ≔ zero ]) ,:= ‵ `ℕ) ∣ [] ⊢
     stranded-seal ⦂ ＇ zero
 stranded-seal-⊢ =
-  ⊢conceal (skip-nu-binding here-typ) (S Z) ⊢seal (⊢$ (κℕ 7))
+  ⊢conceal (skip-nu-binding found-begin) (S Z) ⊢seal (⊢$ (κℕ 7))
 
 stranded-region : Term 1 1
 stranded-region = ν[ ‵ `ℕ ] stranded-seal

@@ -31,7 +31,7 @@ sealed-seven = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal
 
 sealed-seven-⊢ : Ψ₂ ∣ [] ⊢ sealed-seven ⦂ ＇ zero
 sealed-seven-⊢ =
-  ⊢conceal (skip-nu-binding here-typ) (S Z)
+  ⊢conceal (skip-nu-binding found-begin) (S Z)
     ⊢seal (⊢$ (κℕ 7))
 
 g : Term 2 1

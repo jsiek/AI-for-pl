@@ -391,6 +391,97 @@ Sequencing: internalize the kit first (orthogonal); then (a),
 starting from the `VarImp Δ` core change, then the producer
 families, then delete `RevealObligations`.
 
+## Alias-transparent imprecision as fused transitivity (2026-08-24)
+
+Refinement of resolution (a), prompted by the observation that some
+versions of imprecision carry transitivity.
+
+The connection is exact.  The alias variable is definitionally equal
+to its representative's embedding `T` (store unfolding), so the alias
+leaf
+
+    μ X ≡ X⊑ᵗ T  →  μ ⊢ T ⊑ B  →  μ ⊢ ＇X ⊑ B
+
+is the composite of an unfolding axiom `＇X ⊑ T` with an arbitrary
+`T ⊑ B`: one transitivity step with a fixed left leg.  With a
+transitivity rule and that single axiom the alias rule is derivable;
+fusing the composite into one syntax-directed leaf is the standard
+move in the other direction, and the right one here, because a
+transitivity rule destroys derivation uniqueness (`⊑-unique`), on
+which the whole reveal development leans, whereas the fused leaf
+keeps derivations unique by mode disjointness.  Since the left leg is
+definitional unfolding rather than a proper imprecision step, what
+the alias needs is only "transport along store equality" — much
+weaker than full `⊑`-transitivity, which is itself delicate in this
+judgment (mode-environment composition, the `∀⊑` side conditions;
+GTSFImp has `⊑-unique` and no `⊑-trans`, while the developments that
+do have composition — GTSF's quotiented term imprecision, the
+EndpointMLB factorization — pay for it with quotients or
+factorization machinery).
+
+The world model already fuses such composites at leaves; the alias
+atom completes the pattern uniformly:
+
+* paired atom: name ≐ `Rᴾ` left, name ≐ `Rᴵ` right,
+  `embP Rᴾ ⊑ embI Rᴵ` stored aside; leaf `＇Z ⊑ ＇Z`;
+* dynamic atom: name ≐ `R` left, nothing right; the leaf `＇Z ⊑ ★`
+  is the fused composite "unfold to `embP R`, then `R ⊑ ★`", with the
+  star premise stored once in the atom (`dynamicRep-related`);
+* alias atom: the same with `T ⊑ B` for arbitrary `B` — the existing
+  `X⊑★` mode is the `B = ★` special case (unification is possible
+  but adding a third mode is less invasive than reshaping every
+  `X⊑★` match).
+
+Consequences: the leaf's metatheory should be developed as
+"closure under unfolding" (occurrence up to unfolding;
+`replace-left-⊑` at an alias substitutes exactly the premise), and
+the first theorem to formalize is conservativity: substituting
+unfoldings away maps extended derivations to current ones, and
+compile-time environments are alias-free, so the paper-level
+judgment is untouched.
+
+### Effect on the narrowing/widening isomorphism
+
+`NarrowWiden` gives polarized presentations with derivation
+isomorphisms `Widening μ A B ≅ μ ⊢ A ⊑ B ≅ Narrowing μ B A`.
+
+* The isomorphism survives by construction.  The alias leaf always
+  unfolds the *precise* endpoint, and the polarized presentations
+  keep that endpoint in a fixed role — the widening's source and the
+  narrowing's target — including through the contravariant domain
+  flips (`w-⇒` embeds a narrowing whose target is again the precise
+  side).  So each presentation gains exactly one mirrored
+  constructor —
+
+      w-alias : μ X ≡ X⊑ᵗ T → Widening μ T B → Widening μ (＇ X) B
+      n-alias : μ X ≡ X⊑ᵗ T → Narrowing μ B T → Narrowing μ B (＇ X)
+
+  — and the derivation isomorphism extends one case per direction,
+  commuting with the unfolding erasure, so the isomorphism theorem
+  itself remains conservative over the alias-free fragment.  The
+  narrowing reading is the semantically self-evident one: a type
+  narrows to a runtime name exactly by narrowing to what the name is
+  bound to — the operational name-versus-content intuition that
+  generated the alias problem in the first place.
+* The real pressure is on uniqueness and determinism, not the
+  isomorphism.  The identity-variable leaves (`X⊑X`, `w-idˣ`,
+  `n-idˣ`) are currently unguarded, so a cyclic alias environment
+  (μ X ≡ X⊑ᵗ (＇ X)) would give two derivations of `＇X ⊑ ＇X`
+  (the identity leaf, and the alias leaf around it), breaking
+  `⊑-unique` and the determinism of the polarized systems (a known
+  pressure point — GTPLC records a narrowing/widening determinism
+  counterexample).  Two repairs: (i) guard the identity-variable
+  leaves with `μ X ≡ X⊑X`, making all variable leaves mode-disjoint
+  and uniqueness syntactic again — mechanical fallout at every
+  `X⊑X` use; or (ii) restrict to well-founded alias environments
+  (allocation-ordered, which the world model already guarantees via
+  `dynamicFresh`) and prove uniqueness under that invariant.  The
+  logical relation only ever produces (ii)'s environments, but (i)
+  is the cleaner metatheory.
+* The one LR-side consumer of the isomorphism
+  (`narrowing→imprecision` in `LogicalRelation`) is applied to
+  compile-time derivations, which are alias-free — unaffected.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

@@ -87,6 +87,14 @@ insertSourceEmbeddingᵗ (insert-keepᵗ insert) =
   keep (insertSourceEmbeddingᵗ insert)
 
 
+-- Evidence that the source thinning eta can be changed so that the selected
+-- source variable X occupies center position Z.  The old image of X must be
+-- different from Z; after deleting X from eta, InsertSourceᵗ shows that X can
+-- be reinserted at Z without disturbing the order of the thinning.  Thus the
+-- interpreted rebase maps X to Z and leaves every other source variable at
+-- its old center position.  This predicate records only that embedding
+-- geometry; the representation-type imprecision required by a world rebase
+-- is carried separately by rebase-source-changeᶜ.
 data CanRebaseSourceᵗ : ∀ {Delta₀ Delta}
     (eta : Delta₀ ↪ᵗ Delta)
     (X : TyVar Delta₀)

@@ -28,7 +28,8 @@ import proof.Reduction
 -- Major lemmas (finished)
 ------------------------------------------------------------------------
 
-import proof.DGG.CompilePreservesImprecision2
+import proof.DGG.CastTermImprecisionTyping
+import proof.DGG.CompilePreservesImprecision
 import proof.DGG.GroundingMint
 import proof.DGG.GroundingPreserve
 import proof.DGG.CastConsistencyViews

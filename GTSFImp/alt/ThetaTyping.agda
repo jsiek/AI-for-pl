@@ -77,7 +77,7 @@ dropSlot W (X ∷ pending) | no W≠X =
 infix 4 _∋typ_≔_
 
 -- Slot lookup: `Ψ ∋typ Y ≔ α` finds the begin entry that binds the
--- crossing-slot type variable Y in Ψ and returns its recorded anchor α.
+-- type variable Y in Ψ and returns its recorded anchor α.
 data _∋typ_≔_ : ∀ {Θ Δ}
     → TyEnv Θ Δ → TyVar Δ → TyVar Θ
     → Set where

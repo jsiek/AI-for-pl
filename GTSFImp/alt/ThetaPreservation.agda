@@ -28,6 +28,30 @@ module alt.ThetaPreservation where
 --   * The refuted resolving `float-reveal` rule was deleted together with
 --     `float-conceal`: regions now stay at their birth delimiter depth.  The
 --     former checked counterexample remains below as a historical comment.
+--
+-- U12 indexed-OPAQUE obstruction (parked, not forced): let
+--
+--   Ω = ∅ ,:= ‵ `ℕ ,typ[ zero ≔ zero ] ,end[ zero ]
+--   V = ($ (κℕ 7)) ↑[ zero ≔ zero ] id↑.
+--
+-- The ended telescope resolves its old anchor in knowledge mode, so
+-- `Ω ,typ ∣ [] ⊢ V ⦂ ‵ `ℕ`: the lexical entry preserves `know []`, and the
+-- lookup then crosses `,end[ zero ]` and resolves the pending slot.  Hence
+-- `(Λ V) ⦂∀ (‵ `ℕ) [ ‵ `ℕ ]` is a closed, typed `β-Λ` redex at Ω.
+-- Its contractum allocates a fresh anchor and replaces the lexical entry by
+-- the live begin `(Ω ,:= ‵ `ℕ) ,typ[ zero ≔ zero ]`.  Typing `shiftᶿ V` now
+-- needs the old-anchor lookup
+--
+--   (Ω ,:= ‵ `ℕ) ,typ[ zero ≔ zero ]
+--     ∋rep[ know [] ] suc zero ≔ ‵ `ℕ.
+--
+-- Crossing that live begin first changes the recursive obligation to
+-- `Ω ∋rep[ opaq ] zero ≔ ‵ `ℕ`; Ω's end marker has deliberately no opaque
+-- constructor, so the lookup is impossible.  This is the same refusal the
+-- required T3 regression demands.  Thus the old arbitrary-telescope
+-- `⊢allocate-lexical` lemma, and consequently this `β-Λ` preservation case,
+-- cannot coexist with the approved transition table without an additional
+-- restriction or a direction change.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -322,11 +346,13 @@ seal-target ⊢seal = refl
 
 terminal-anchor : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
-  → (Ψ ,typ[ X ≔ α ]) ∋typ Y ≔ β
+  → (Ψ ,typ[ X ≔ α ]) ∋typ[ KNOWLEDGE ] Y ≔ β
   → Y ≡ X
   → β ≡ α
 terminal-anchor here-typ refl = refl
 terminal-anchor (skip-cross-typ {Y = Y} Y∈) eq =
+  ⊥-elim (punchIn≢ _ Y (sym eq))
+terminal-anchor (skip-cross-other-typ {Y = Y} neq Y∈) eq =
   ⊥-elim (punchIn≢ _ Y (sym eq))
 
 ------------------------------------------------------------------------
@@ -942,6 +968,84 @@ preserve-float-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
   → Ψ ∣ [] ⊢ ν[ A ] (shiftᶿ V ⊕[ op ] M) ⦂ primResultTy op
 preserve-float-⊕₂ (⊢⊕ op V⊢ (⊢ν M⊢)) =
   ⊢ν (⊢⊕ op (⊢shiftᶿ V⊢) M⊢)
+
+------------------------------------------------------------------------
+-- Closed one-step preservation assembler
+------------------------------------------------------------------------
+
+preserve : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Ψ ⊢ M —→ M′
+  → Ψ ∣ [] ⊢ M′ ⦂ A
+preserve typing (δ-⊕ δ) = preserve-δ-⊕ δ typing
+preserve typing (β Vᵥ) = preserve-β typing
+preserve (⊢⟨⟩ V⊢ (id a)) (β-id Vᵥ) = V⊢
+preserve typing@(⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) (β-⇒ Vᵥ Wᵥ) =
+  preserve-β-⇒ typing
+preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ (∀ᶜ c))) (β-∀ Vᵥ eq) =
+  preserve-β-∀ eq typing
+preserve typing@(⊢⟨⟩ V⊢ (c !)) (ground Vᵥ neq) =
+  preserve-ground typing
+preserve typing@(⊢⟨⟩ V⊢ (？ c)) (expand Vᵥ neq) =
+  preserve-expand typing
+preserve typing@(⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) =
+  preserve-tag-untag typing
+preserve typing (tag-untag-bad Vᵥ neq) = ⊢blame
+preserve typing (blame-bot-intro Vᵥ) = ⊢blame
+preserve typing (β-reveal-⇒ Vᵥ Wᵥ) = preserve-β-reveal-⇒ typing
+preserve typing (β-conceal-⇒ Vᵥ Wᵥ) = {!!}
+preserve typing (id-cancel canonical) = preserve-id-cancel typing
+preserve typing id-reveal = preserve-id-reveal typing
+preserve typing id-conceal = preserve-id-conceal typing
+preserve typing (conceal-reveal Vᵥ) = preserve-conceal-reveal typing
+preserve typing blame-·₁ = ⊢blame
+preserve typing (blame-·₂ Vᵥ) = ⊢blame
+preserve typing blame-• = ⊢blame
+preserve typing blame-⟨⟩ = ⊢blame
+preserve typing blame-reveal = ⊢blame
+preserve typing blame-conceal = ⊢blame
+preserve typing blame-⊕₁ = ⊢blame
+preserve typing (blame-⊕₂ Vᵥ) = ⊢blame
+preserve typing blame-ν = ⊢blame
+preserve typing const-ν = preserve-const-ν typing
+preserve typing@(⊢⦂∀ (⊢Λ V⊢)) (β-Λ Vᵥ) = preserve-β-Λ typing
+preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ c)) (β-gen Vᵥ A≠★ safe) =
+  preserve-β-gen typing
+preserve typing@(⊢⟨⟩ V⊢ c) (β-inst Vᵥ B≠★) =
+  preserve-β-inst typing
+preserve typing@(⊢⦂∀ (⊢reveal α∈ c⊢ V⊢)) (β-reveal-∀ Vᵥ) =
+  preserve-β-reveal-∀ typing
+preserve typing@(⊢⦂∀ (⊢conceal slot∈ β∈ c⊢ V⊢))
+    (β-conceal-∀ α∈ Vᵥ) =
+  preserve-β-conceal-∀ α∈ typing
+preserve (⊢· L⊢ M⊢) (ξ-·₁ step) =
+  preserve-ξ-·₁ M⊢ (preserve L⊢ step)
+preserve (⊢· V⊢ M⊢) (ξ-·₂ Vᵥ step) =
+  preserve-ξ-·₂ V⊢ (preserve M⊢ step)
+preserve typing@(⊢⦂∀ M⊢) (ξ-• step) =
+  preserve-ξ-• typing (preserve M⊢ step)
+preserve typing@(⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) =
+  preserve-ξ-⟨⟩ typing (preserve M⊢ step)
+preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
+  preserve-ξ-reveal α∈ c⊢ (preserve M⊢ step)
+preserve (⊢conceal slot∈ α∈ c⊢ M⊢) (ξ-conceal step) =
+  preserve-ξ-conceal slot∈ α∈ c⊢ (preserve M⊢ step)
+preserve typing@(⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
+  preserve-ξ-⊕₁ typing (preserve L⊢ step)
+preserve typing@(⊢⊕ op V⊢ M⊢) (ξ-⊕₂ Vᵥ step) =
+  preserve-ξ-⊕₂ typing (preserve M⊢ step)
+preserve typing@(⊢ν M⊢) (ξ-ν step) =
+  preserve-ξ-ν typing (preserve M⊢ step)
+preserve typing (float-·₁ result) = preserve-float-·₁ typing
+preserve typing (float-·₂ Vᵥ result) = preserve-float-·₂ typing
+preserve typing@(⊢⦂∀ (⊢ν M⊢)) (float-• result) =
+  preserve-float-• typing
+preserve typing@(⊢⟨⟩ (⊢ν M⊢) c) (float-⟨⟩ result) =
+  preserve-float-⟨⟩ typing
+preserve typing@(⊢⊕ op (⊢ν M⊢) N⊢) (float-⊕₁ result) =
+  preserve-float-⊕₁ typing
+preserve typing@(⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
+  preserve-float-⊕₂ typing
 
 ------------------------------------------------------------------------
 -- Resolved `β-reveal-∀` body-type regression

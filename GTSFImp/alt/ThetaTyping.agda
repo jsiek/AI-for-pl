@@ -12,18 +12,19 @@ module alt.ThetaTyping where
 --     its prefix, and later prefix insertions are strictly older, so its
 --     formerly constant position argument carried no information.
 --   * Representations are written in the regular scope at their entry; anchor
---     lookup weakens them across both crossing and lexical slot entries.
---     Anchors never occur in regular types `Ty Δ`.
+--     lookup transports them lazily across begin/end markers.  Telescope
+--     entries are never rewritten when a scope ends.  Anchors never occur in
+--     regular types `Ty Δ`.
 --   * Term variables cross only Λ's type-variable entry, by weakening the
 --     term list wholesale (renameCtx), as in the live calculus.
 
-open import Data.Empty using (⊥-elim)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
-open import Data.List using ([]; _∷_)
+open import Data.List using (List; []; _∷_; map)
+open import Data.List.Membership.Propositional using (_∈_; _∉_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; sym)
+  using (_≡_; _≢_; refl)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -42,7 +43,7 @@ private
 -- Binder telescopes: type variables and anchors, no term variables
 ------------------------------------------------------------------------
 
-infixl 5 _,typ[_≔_] _,typ
+infixl 5 _,typ[_≔_] _,typ _,end[_]
 infixl 5 _,:=_
 
 data TyEnv : AnchorCtx → TyCtx → Set where
@@ -51,13 +52,7 @@ data TyEnv : AnchorCtx → TyCtx → Set where
     → TyEnv Θ (suc Δ)
   _,typ : TyEnv Θ Δ → TyEnv Θ (suc Δ)
   _,:=_ : TyEnv Θ Δ → Ty Δ → TyEnv (suc Θ) Δ  -- anchor bound by a ν
-
-anchorRep : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → Ty Δ
-anchorRep ∅ ()
-anchorRep (Ψ ,typ[ Y ≔ β ]) α = wkᵗ Y (anchorRep Ψ α)
-anchorRep (Ψ ,typ) α = ⇑ᵗ (anchorRep Ψ α)
-anchorRep (Ψ ,:= A) zero = A
-anchorRep (Ψ ,:= A) (suc α) = anchorRep Ψ α
+  _,end[_] : TyEnv Θ (suc Δ) → TyVar (suc Δ) → TyEnv Θ Δ
 
 private
   variable
@@ -67,120 +62,126 @@ private
     x y z : Var
     a b : TyVar Θ
 
-infix 4 _∋_:=_
+data SlotMode : Set where
+  slot-know slot-opaq : SlotMode
 
-data _∋_:=_ : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
-  Z :
-      ---------------------
-      (Ψ ,:= A) ∋ zero := A
+data Mode : (scope : TyCtx) → Set where
+  know : ∀ {Δ} → List (TyVar Δ) → Mode Δ
+  opaq : ∀ {Δ} → Mode Δ
 
-  S :
-      Ψ ∋ a := A
-      ----------------------
-    → (Ψ ,:= B) ∋ suc a := A
+dropSlot : ∀ {Δ}
+  → TyVar (suc Δ) → List (TyVar (suc Δ)) → List (TyVar Δ)
+dropSlot W [] = []
+dropSlot W (X ∷ pending) with W ≟ X
+dropSlot W (.W ∷ pending) | yes refl = dropSlot W pending
+dropSlot W (X ∷ pending) | no W≠X =
+  punchOut W X W≠X ∷ dropSlot W pending
 
-  skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a} {A : Ty Δ}
-      {Y : TyVar (suc Δ)} {β : TyVar Θ}
-    → Ψ ∋ a := A
-      ---------------------------------
-    → (Ψ ,typ[ Y ≔ β ]) ∋ a := wkᵗ Y A
+infix 4 _∋typ[_]_≔_
 
-  skip-lexical : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a} {A : Ty Δ}
-    → Ψ ∋ a := A
-      ------------------------
-    → (Ψ ,typ) ∋ a := ⇑ᵗ A
-
-anchorRep∈ : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ) (α : TyVar Θ)
-  → Ψ ∋ α := anchorRep Ψ α
-anchorRep∈ ∅ ()
-anchorRep∈ (Ψ ,typ[ Y ≔ β ]) α = skip-typ (anchorRep∈ Ψ α)
-anchorRep∈ (Ψ ,typ) α = skip-lexical (anchorRep∈ Ψ α)
-anchorRep∈ (Ψ ,:= A) zero = Z
-anchorRep∈ (Ψ ,:= A) (suc α) = S (anchorRep∈ Ψ α)
-
-anchor-lookup-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {α : TyVar Θ} {A B : Ty Δ}
-  → Ψ ∋ α := A
-  → Ψ ∋ α := B
-  → A ≡ B
-anchor-lookup-unique Z Z = refl
-anchor-lookup-unique (S A∈) (S B∈) = anchor-lookup-unique A∈ B∈
-anchor-lookup-unique (skip-typ A∈) (skip-typ B∈) =
-  cong (wkᵗ _) (anchor-lookup-unique A∈ B∈)
-anchor-lookup-unique (skip-lexical A∈) (skip-lexical B∈) =
-  cong ⇑ᵗ (anchor-lookup-unique A∈ B∈)
-
-infix 4 _∋typ_≔_
-
-data _∋typ_≔_ : ∀ {Θ Δ}
-    → TyEnv Θ Δ → TyVar Δ → TyVar Θ → Set where
-  here-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+data _∋typ[_]_≔_ : ∀ {Θ Δ}
+    → TyEnv Θ Δ → SlotMode → TyVar Δ → TyVar Θ
+    → Set where
+  here-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {mode}
       {Y : TyVar (suc Δ)} {α : TyVar Θ}
       ---------------------------------
-    → (Ψ ,typ[ Y ≔ α ]) ∋typ Y ≔ α
+    → (Ψ ,typ[ Y ≔ α ]) ∋typ[ mode ] Y ≔ α
 
   skip-cross-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ}
-      {Z : TyVar (suc Δ)} {β : TyVar Θ}
-    → Ψ ∋typ Y ≔ α
+      {Z : TyVar (suc Δ)} {β : TyVar Θ} {mode}
+    → Ψ ∋typ[ mode ] Y ≔ α
       -----------------------------------------------------
-    → (Ψ ,typ[ Z ≔ β ]) ∋typ punchIn Z Y ≔ α
+    → (Ψ ,typ[ Z ≔ β ]) ∋typ[ mode ] punchIn Z Y ≔ α
 
   skip-lexical-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {Y : TyVar Δ} {α : TyVar Θ}
-    → Ψ ∋typ Y ≔ α
+      {Y : TyVar Δ} {α : TyVar Θ} {mode}
+    → Ψ ∋typ[ mode ] Y ≔ α
       -----------------------------
-    → (Ψ ,typ) ∋typ suc Y ≔ α
+    → (Ψ ,typ) ∋typ[ mode ] (suc Y) ≔ α
 
   skip-visible-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {Y : TyVar Δ} {α : TyVar Θ} {A : Ty Δ}
-    → Ψ ∋typ Y ≔ α
+      {Y : TyVar Δ} {α : TyVar Θ} {A : Ty Δ} {mode}
+    → Ψ ∋typ[ mode ] Y ≔ α
       --------------------------------
-    → (Ψ ,:= A) ∋typ Y ≔ suc α
+    → (Ψ ,:= A) ∋typ[ mode ] Y ≔ suc α
 
-------------------------------------------------------------------------
--- Total regular-slot deletion
-------------------------------------------------------------------------
+  skip-end-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+      {Y : TyVar (suc Δ)} {X : TyVar Δ} {α : TyVar Θ} {mode}
+    → Ψ ∋typ[ mode ] punchIn Y X ≔ α
+      -------------------------------------------------
+    → (Ψ ,end[ Y ]) ∋typ[ mode ] X ≔ α
 
-record DeleteView (Θ Δ : ℕ) : Set where
-  constructor delete-view
-  field
-    deletedEnv : TyEnv Θ Δ
-    deletedRep : Ty Δ
+infix 4 _∋rep[_]_≔_
 
-open DeleteView
+data _∋rep[_]_≔_ : ∀ {Θ Δ}
+    → TyEnv Θ Δ → Mode Δ → TyVar Θ → Ty Δ → Set where
+  Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ} {mode}
+      ---------------------
+    → _∋rep[_]_≔_ (Ψ ,:= A) mode zero A
 
--- reveal is opaque on the inside and knowledge on the outside; conceal is the dual — the conceal's subterm is instantiator-world material, which rightfully knows the representation.
--- The worker carries that representation outward.  Retained slot entries lift
--- it; later anchors resolve the deleted slot through it.  The lexical-zero
--- branch is junk-total at `★`: `_∋typ_≔_` has deliberately no constructor
--- selecting a lexical binder, so no typed conceal can observe that branch.
+  S : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a : TyVar Θ}
+      {A B : Ty Δ} {mode}
+    → _∋rep[_]_≔_ Ψ mode a A
+      ----------------------
+    → _∋rep[_]_≔_ (Ψ ,:= B) mode (suc a) A
 
-deleteSlot : ∀ {Θ Δ} → TyEnv Θ (suc Δ) → TyVar (suc Δ)
-  → DeleteView Θ Δ
-deleteSlot (Ψ ,:= A) Y with deleteSlot Ψ Y
-deleteSlot (Ψ ,:= A) Y | delete-view Φ C =
-  delete-view (Φ ,:= substᵗ (resolveSubᵗ Y C) A) C
-deleteSlot { Δ = zero } (Ψ ,typ[ zero ≔ α ]) zero =
-  delete-view Ψ (anchorRep Ψ α)
-deleteSlot { Δ = suc Δ } (Ψ ,typ[ z ≔ α ]) y with z ≟ y
-deleteSlot { Δ = suc Δ } (Ψ ,typ[ .y ≔ α ]) y | yes refl =
-  delete-view Ψ (anchorRep Ψ α)
-deleteSlot { Δ = suc Δ } (Ψ ,typ[ z ≔ α ]) y | no z≢y
-    with deleteSlot Ψ (punchOut z y z≢y)
-deleteSlot { Δ = suc Δ } (Ψ ,typ[ z ≔ α ]) y | no z≢y
-    | delete-view Φ C =
-  delete-view
-    (Φ ,typ[ punchOut y z (λ y≡z → z≢y (sym y≡z)) ≔ α ])
-    (wkᵗ (punchOut y z (λ y≡z → z≢y (sym y≡z))) C)
-deleteSlot (Ψ ,typ) zero = delete-view Ψ ★
-deleteSlot { Δ = suc Δ } (Ψ ,typ) (suc Y) with deleteSlot Ψ Y
-deleteSlot { Δ = suc Δ } (Ψ ,typ) (suc Y) | delete-view Φ C =
-  delete-view (Φ ,typ) (⇑ᵗ C)
+  skip-typ-pending : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {a β : TyVar Θ} {A : Ty Δ}
+      {Y : TyVar (suc Δ)} {pending}
+    → Y ∈ pending
+    → _∋rep[_]_≔_ Ψ (know (dropSlot Y pending)) a A
+      ---------------------------------
+    → _∋rep[_]_≔_ (Ψ ,typ[ Y ≔ β ]) (know pending) a (wkᵗ Y A)
 
-infixl 6 _∖_
-_∖_ : ∀ {Θ Δ} → TyEnv Θ (suc Δ) → TyVar (suc Δ) → TyEnv Θ Δ
-Ψ ∖ Y = deletedEnv (deleteSlot Ψ Y)
+  skip-typ-live : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {a β : TyVar Θ} {A : Ty Δ}
+      {Y : TyVar (suc Δ)} {pending}
+    → Y ∉ pending
+    → _∋rep[_]_≔_ Ψ opaq a A
+      ---------------------------------
+    → _∋rep[_]_≔_ (Ψ ,typ[ Y ≔ β ]) (know pending) a (wkᵗ Y A)
+
+  skip-typ-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {a β : TyVar Θ} {A : Ty Δ}
+      {Y : TyVar (suc Δ)}
+    → _∋rep[_]_≔_ Ψ opaq a A
+      ---------------------------------
+    → _∋rep[_]_≔_ (Ψ ,typ[ Y ≔ β ]) opaq a (wkᵗ Y A)
+
+  skip-lexical-know : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {a : TyVar Θ} {A : Ty Δ} {pending pending′}
+    → map suc pending ≡ pending′
+    → _∋rep[_]_≔_ Ψ (know pending) a A
+      ------------------------
+    → _∋rep[_]_≔_ (Ψ ,typ) (know pending′) a (⇑ᵗ A)
+
+  skip-lexical-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {a : TyVar Θ} {A : Ty Δ}
+    → _∋rep[_]_≔_ Ψ opaq a A
+      ------------------------
+    → _∋rep[_]_≔_ (Ψ ,typ) opaq a (⇑ᵗ A)
+
+  skip-end : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+      {Y : TyVar (suc Δ)} {α a : TyVar Θ}
+      {A : Ty (suc Δ)} {B C : Ty Δ} {pending}
+    → Ψ ∋typ[ slot-know ] Y ≔ α
+    → _∋rep[_]_≔_ Ψ
+        (know (Y ∷ map (punchIn Y) pending)) α (wkᵗ Y C)
+    → _∋rep[_]_≔_ Ψ
+        (know (Y ∷ map (punchIn Y) pending)) a A
+    → substᵗ (resolveSubᵗ Y C) A ≡ B
+      --------------------------------------------
+    → _∋rep[_]_≔_ (Ψ ,end[ Y ]) (know pending) a B
+
+-- "reveal is opaque on the inside and knowledge on the outside, conceal is
+-- the dual."  A representation lookup begins at `know []`.  An end pushes
+-- its slot onto the pending list and resolves that slot in the result only.
+-- Its matching begin removes the pending slot; a live begin instead changes
+-- the route to `opaq`.  Opaque lookup has no end-marker constructor, so an
+-- end is refused rather than silently crossed.
+-- In particular, ending a scope appends syntax to the telescope: no stored
+-- entry is substituted, punched out, or otherwise rewritten.
 
 ------------------------------------------------------------------------
 -- Typing
@@ -247,27 +248,26 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {M : Term Θ (suc Δ)}
       {A : Ty (suc Δ)} {B C : Ty Δ} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Reveal}
-    → Ψ ∋ α := C
+    → Ψ ∋rep[ know [] ] α ≔ C
     → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
     → Ψ ,typ[ Y ≔ α ] ∣ [] ⊢ M ⦂ A
       --------------------------------
     → Ψ ∣ Γ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
-  -- Reveal and ν introduce their telescope extensions in premises, so their
-  -- ambient telescope remains determined there.  Conceal binds its regular
-  -- slot in the conclusion; only conceal therefore deletes from an otherwise
-  -- arbitrary ambient telescope before checking its closed interior.
-  ⊢conceal : ∀ {Θ Δ} {Ψ′ : TyEnv Θ (suc Δ)}
+  -- Reveal begins the lifetime of its abstract slot.  Conceal checks its
+  -- closed interior after appending the matching popping marker; the
+  -- conclusion keeps the unmodified telescope in which that slot is live.
+  ⊢conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
       {Γ′ : TermCtx (suc Δ)}
       {M : Term Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
-    → Ψ′ ∋typ Y ≔ α
-    → (Ψ′ ∖ Y) ∋ α := C
+    → Ψ ∋typ[ slot-know ] Y ≔ α
+    → (Ψ ,end[ Y ]) ∋rep[ know [] ] α ≔ C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
-    → (Ψ′ ∖ Y) ∣ [] ⊢ M ⦂ A
+    → Ψ ,end[ Y ] ∣ [] ⊢ M ⦂ A
       ------------------------------------------
-    → Ψ′ ∣ Γ′ ⊢ M ↓[ Y ≔ α ] c ⦂ B
+    → Ψ ∣ Γ′ ⊢ M ↓[ Y ≔ α ] c ⦂ B
 
   ⊢blame :
       ---------------------

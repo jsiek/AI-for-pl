@@ -440,6 +440,55 @@ unfoldings away maps extended derivations to current ones, and
 compile-time environments are alias-free, so the paper-level
 judgment is untouched.
 
+### Correction: transitivity is admissible, so do not fuse
+
+The fusing above was justified by the claim that a transitivity rule
+would destroy derivation uniqueness.  That premise is wrong for this
+judgment: GTSFImp imprecision is transitive *as a theorem* —
+`⊑-trans` in `GTSFImp/ImprecisionComposition.agda` (upstream PR #186,
+merged 2026-08-25), a plain structural function with no side
+conditions, no postulates and no pragmas, over a fixed `μ`.  Being
+admissible it adds no derivations, so it coexists with `⊑-unique`
+(indeed uniqueness makes `⊑-trans` canonical: any two ways of
+composing agree, which is what the reveal development needs when it
+composes derivations across world stages).
+
+Consequently the fused rule is unnecessary.  The extension reduces to
+the **minimal unfolding axiom**, with no derivation premise at all:
+
+    μ X ≡ X⊑ᵗ T  →  μ ⊢ ＇X ⊑ T
+
+and the general alias statement `μ ⊢ ＇X ⊑ B` is then a *theorem*,
+`⊑-trans` of that leaf with `T ⊑ B`.  This is strictly better:
+
+* every structural case analysis (`star-no-occurrence`,
+  `replace-⊑`, `replace-left-⊑`, `⊑-unique`, the vacuity lemmas,
+  renaming and substitution) gains a **leaf** case rather than a
+  recursive one;
+* the leaf's conclusion is fixed by the mode, so it can overlap only
+  with the *unguarded* `X⊑X` leaf, and only for a cyclic alias
+  (`μ X ≡ X⊑ᵗ (＇ X)`); `X⊑★` is mode-disjoint.  The uniqueness
+  repair therefore narrows to that one case — guard `X⊑X` with
+  `μ X ≡ X⊑X`, or keep alias environments acyclic, which the world
+  model's allocation order already gives;
+* the semantic atom stores no derivation at all (contrast
+  `dynamicRep-related`): the mode carries `T`, and anything else is
+  computed with `⊑-trans` on demand.
+
+Transitivity does **not**, however, remove the need for the leaf.
+The missing fact is `＇X ⊑ ＇c` (alias against the paired centre it
+aliases), and composition cannot reach it: the only rules with a
+variable on the left are `X⊑X` and `X⊑★`, so a middle `M` with
+`＇X ⊑ M` must be `＇X` or `★`; and `★ ⊑ ＇c` is underivable because
+`★` is maximal (only `★⊑★` has `★` on the left).  So the leaf is
+genuinely new information — transitivity refines *how much* is added,
+not *whether*.
+
+Note also that `X⊑★` cannot simply be re-expressed as
+`X⊑ᵗ T` plus `T ⊑ ★`: `instᵐ` uses `X⊑★` for the `∀`-elimination's
+bound variable, which has no representative.  The three modes —
+paired, unconstrained, alias — stay genuinely distinct.
+
 ### Effect on the narrowing/widening isomorphism
 
 `NarrowWiden` gives polarized presentations with derivation
@@ -453,8 +502,12 @@ isomorphisms `Widening μ A B ≅ μ ⊢ A ⊑ B ≅ Narrowing μ B A`.
   side).  So each presentation gains exactly one mirrored
   constructor —
 
-      w-alias : μ X ≡ X⊑ᵗ T → Widening μ T B → Widening μ (＇ X) B
-      n-alias : μ X ≡ X⊑ᵗ T → Narrowing μ B T → Narrowing μ B (＇ X)
+      w-alias : μ X ≡ X⊑ᵗ T → Widening μ (＇ X) T
+      n-alias : μ X ≡ X⊑ᵗ T → Narrowing μ T (＇ X)
+
+  (premise-free, per the transitivity correction below; the general
+  polarized forms follow from transitivity, which transfers to the
+  polarized systems through the existing isomorphism)
 
   — and the derivation isomorphism extends one case per direction,
   commuting with the unfolding erasure, so the isomorphism theorem

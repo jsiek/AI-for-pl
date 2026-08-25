@@ -162,6 +162,12 @@ import proof.DGG.WorldSnapshot
 import proof.DGG.ImpLadder
 import proof.DGG.Examples.Example12
 import proof.DGG.Examples.MatchedInstantiation
+import proof.DGG.Examples.SourceOnlyInstantiation
+import proof.DGG.Examples.PrimitiveBlame
+import proof.DGG.Examples.SourceIdentityReveal
+import proof.DGG.Examples.TargetIdentityReveal
+import proof.DGG.Examples.SourceIdentityConceal
+import proof.DGG.Examples.TargetIdentityConceal
 import proof.DGG.Example12Worlds
 import Example
 import GradualTypeCheckExamples

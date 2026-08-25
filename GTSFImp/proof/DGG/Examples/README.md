@@ -117,6 +117,22 @@ Only the left execution allocates a representation for `X`.  Reduction exposes
 an active left-only reveal and conceal, and the right execution has no pivot at
 that center.
 
+Status: green.  `SourceOnlyInstantiation.agda` checks the source typings,
+source imprecision, ordinary compiler outputs, and six checkpoints `C0`
+through `C5`.  There is one checkpoint after every left reduction.  The right
+run stutters through `C3`, takes its only beta step while the left takes the
+corresponding beta step, and then stutters to the result.  Every checkpoint has
+a live CTI derivation and a generated, pinned Imp Ladder.
+
+The allocation world is
+
+`⟨X: X↦ℕ ⊑[X⊑★] ─⟩`.
+
+The active source reveal and conceal derivations explicitly prove that X has
+mark `X⊑★`, its representation satisfies `ℕ ⊑ ★`, and no target variable
+occupies X's center.  This is the concrete gate for the two active source-only
+conversion rules.
+
 ### 6. `PolymorphicFunctionCast.agda`
 
 Write `P = ∀ X. X ⇒ X` and `p = Λ X. λ x : X. x`.  The source pair is
@@ -176,16 +192,115 @@ the live CTI and a pinned generated Imp Ladder.  The ladders exercise the two
 target-reveal rebases, paired X reveal/conceal, and the inverse target-conceal
 and target-reveal rebase chain before both sides converge to `7`.
 
-## Proposed additions
+### 8. `PrimitiveBlame.agda`
 
-The latest rule audit identified two more examples that should follow the
-initial seven, subject to agreement on their exact source terms:
+Source pair:
 
-- `NeutralReveal.agda`, using a polymorphic body of type `X ⇒ ★`, to
-  expose an active domain conversion and a neutral result reveal;
-- `NeutralConceal.agda`, using a higher-order body of type
-  `(X ⇒ ★) ⇒ (X ⇒ ★)`, to make `β-conceal-⇒` expose a neutral
-  result conceal.
+`((λ x : ★. x) true) + 1 ⊑ ((λ x : ★. x) true) + 1`
+
+The compiler tags `true` as dynamic and then projects the dynamic result to
+`ℕ` for addition.  The Boolean-to-natural tag check produces blame, which the
+primitive propagates to the whole program.
+
+Status: green.  `PrimitiveBlame.agda` checks the source typings, source
+imprecision, ordinary compiler outputs, and four checkpoints `C0` through
+`C3`.  There is one checkpoint after each of the three source-side reductions,
+and the right run takes the same step at every interval.  Every checkpoint has
+a live CTI derivation and a generated, pinned Imp Ladder.  The first three
+checkpoints exercise `⊕⊑⊕²`; the final checkpoint exercises `blame⊑²`.
+
+### 9. `SourceIdentityReveal.agda`
+
+Source pair:
+
+`(λ z : ℕ. z) (((Λ X. λ x : X. (λ y : ★. y) x) [ℕ]) 42)`
+`⊑ (λ z : ℕ. z) ((λ x : ★. (λ y : ★. y) x) 42)`
+
+The left-only polymorphic instantiation has body type `X ⇒ ★`.  Its generated
+arrow reveal has an active domain and a structural-identity result.  The
+active domain eventually rejects a dynamic tag at `ℕ`, so the left execution
+finishes at blame while the right execution finishes at `42`.
+
+Status: green.  `SourceIdentityReveal.agda` checks source typing and
+imprecision, ordinary compiler outputs, and nine checkpoints `C0` through
+`C8`.  There is one checkpoint after every left reduction; the right run
+stutters or catches up between them.  Every checkpoint has a live CTI
+derivation and a generated, pinned Imp Ladder.  Checkpoints `C3` through `C5`
+exercise `reveal⊑-identity`; later checkpoints also retain the active
+source-only conceal until the expected blame result.
+
+### 10. `TargetIdentityReveal.agda`
+
+Source pair:
+
+`(λ z : ℕ. z) ((((λ f : ∀ X. X ⇒ ★. f) (Λ X. λ x : X. (λ y : ★. y) x)) [ℕ]) 42)`
+`⊑ (λ z : ℕ. z) (((λ f : ★ ⇒ ★. f) (Λ X. λ x : X. (λ y : ★. y) x)) 42)`
+
+The less-precise run allocates a dynamic target name and an alias before the
+more-precise run allocates its `ℕ` source name.  The later arrow reductions
+leave two structural-identity reveals on the target.  At checkpoints `C8` and
+`C9`, the current worlds prevent either reveal from being paired with the
+source reveal, so `⊑reveal-identity` is forced.
+
+Status: green.  `TargetIdentityReveal.agda` checks source typing and
+imprecision, ordinary compiler outputs, fourteen checkpoints `C0` through
+`C13`, and the final common blame result.  There is one checkpoint after every
+more-precise reduction; the less-precise run stutters or catches up between
+them.  Every checkpoint has a live CTI derivation and a generated, pinned Imp
+Ladder.
+
+### 11. `SourceIdentityConceal.agda`
+
+Source pair:
+
+`(λ z : ℕ. z) ((((Λ X. λ f : X ⇒ ★. f) [ℕ])`
+`  (λ x : ℕ. (λ y : ★. y) x)) 42)`
+`⊑ (λ z : ℕ. z) (((λ f : ★ ⇒ ★. f)`
+`  (λ x : ★. (λ y : ★. y) x)) 42)`
+
+The left-only polymorphic instantiation has body type
+`(X ⇒ ★) ⇒ (X ⇒ ★)`.  Its generated reveal contains a function conceal whose
+domain is active and whose result is structural identity.  Applying that
+concealed function exposes `□ ↓ id↓ ★` on the source only.
+
+Status: green.  `SourceIdentityConceal.agda` checks source typing and
+imprecision, ordinary compiler outputs, seventeen checkpoints `C0` through
+`C16`, and the final common result `42`.  There is one checkpoint after every
+more-precise reduction; the less-precise run stutters or catches up between
+them.  Every checkpoint has a live CTI derivation and a generated, pinned Imp
+Ladder.  Checkpoints `C12` through `C15` force `conceal⊑-identity`.
+
+### 12. `TargetIdentityConceal.agda`
+
+Source pair:
+
+`(λ z : ℕ. z) ((((((λ f : ∀ X. (X ⇒ ★) ⇒ (X ⇒ ★). f)`
+`  (Λ X. λ f : X ⇒ ★. f)) [ℕ])`
+`  (λ x : ℕ. (λ y : ★. y) x)) 42)`
+`⊑ (λ z : ℕ. z) ((((λ f : (★ ⇒ ★) ⇒ (★ ⇒ ★). f)`
+`  (Λ X. λ f : X ⇒ ★. f))`
+`  (λ x : ★. (λ y : ★. y) x)) 42)`
+
+The less-precise run casts the polymorphic higher-order identity to
+`(★ ⇒ ★) ⇒ (★ ⇒ ★)`.  It allocates a dynamic target name and an alias before
+the more-precise run allocates its `ℕ` source name.  Applying the resulting
+function conceal exposes two target-only structural-identity conceals.
+
+Status: green.  `TargetIdentityConceal.agda` checks source typing and
+imprecision, ordinary compiler outputs, twenty-six checkpoints `C0` through
+`C25`, and the final common result `42`.  There is one checkpoint after every
+more-precise reduction; the less-precise run stutters or catches up between
+them.  Every checkpoint has a live CTI derivation and a generated, pinned Imp
+Ladder.  Checkpoints `C11` through `C21` exercise
+`⊑conceal-identity`; the current worlds force the target-only rule instead of
+a paired conversion rule.
+
+Together, examples 8--12 provide concrete source-program gates for the six
+previously uncovered CTI constructors: `⊕⊑⊕²`, `blame⊑²`,
+`reveal⊑-identity`, `⊑reveal-identity`, `conceal⊑-identity`, and
+`⊑conceal-identity`.
+
+## Further planned examples
 
 The polymorphic K combinator gives two further families.  Write
 

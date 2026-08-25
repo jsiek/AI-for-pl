@@ -657,7 +657,7 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
       (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁)
       Bᴵ* (suc k) Vᴵ
       (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗)
-  fam₀ {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} σ =
+  fam₀ {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} {Bᴵ′ = Bᴵ′} σ =
     ClosureProof.right-universals-phantom
       (liftCenterDynamicBodyImprecision W≼W′ p₀)
       (liftCenterDynamicBodyImprecision W≼W′
@@ -668,7 +668,9 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
         {W = W′}
         {p = liftCenterDynamicBodyImprecision W≼W′ p₀}
         {Bᴾ = Bᴾ′} {k = suc k}
-        refl refl term-eq
+        refl
+        (wrapTermᴵ-subst σ-eq σ (liftImpreciseTerm W≼W′ Vᴵ))
+        term-eq
         (fam W≼W′ (w† ∷ σ†)))
     where
     d′ = dyn-slot-future d W≼W′
@@ -686,21 +688,24 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
         (sym (dyn-slot-precise-rep-lift d W≼W′)))
 
     w† = reveal-dyn d′ (liftPreciseBody W≼W′ B₁)
+      (liftImpreciseTy W≼W′ Bᴵ*)
 
     σ† : UniWraps W′
         (replaceTy (Fin.suc (dslotXᴾ d′)) (⇑ᵗ (dslotRᴾ d′))
-          (liftPreciseBody W≼W′ B₁)) Bᴾ′
-    σ† = subst≡ (λ B → UniWraps W′ B Bᴾ′) σ-eq σ
+          (liftPreciseBody W≼W′ B₁))
+        (liftImpreciseTy W≼W′ Bᴵ*) Bᴾ′ Bᴵ′
+    σ† = subst≡ (λ B → UniWraps W′ B (liftImpreciseTy W≼W′ Bᴵ*)
+      Bᴾ′ Bᴵ′) σ-eq σ
 
-    term-eq : wrapTerm (w† ∷ σ†) (liftPreciseTerm W≼W′ Vᴾ)
-        ≡ wrapTerm σ (liftPreciseTerm W≼W′
+    term-eq : wrapTermᴾ (w† ∷ σ†) (liftPreciseTerm W≼W′ Vᴾ)
+        ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
             (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B₁ 〗))
     term-eq = trans
-      (wrapTerm-subst σ-eq σ
+      (wrapTermᴾ-subst σ-eq σ
         (liftPreciseTerm W≼W′ Vᴾ
           ↑ 〖 dslotXᴾ d′ , dslotRᴾ d′
               ↑ `∀ (liftPreciseBody W≼W′ B₁) 〗))
-      (cong (wrapTerm σ)
+      (cong (wrapTermᴾ σ)
         (trans
           (cong
             (λ T → liftPreciseTerm W≼W′ Vᴾ
@@ -1040,7 +1045,7 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
     where
     fam-out : RightUniversalFamily W p₀ B₁ Bᴵ* (suc k)
         Vᴵ (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B₁))
-    fam-out {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} σ =
+    fam-out {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} {Bᴵ′ = Bᴵ′} σ =
       ClosureProof.right-universals-phantom
         (liftCenterDynamicBodyImprecision W≼W′ q₀ᵃ)
         (liftCenterDynamicBodyImprecision W≼W′ p₀)
@@ -1048,7 +1053,10 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
           {W = W′}
           {p = liftCenterDynamicBodyImprecision W≼W′ q₀ᵃ}
           {Bᴾ = Bᴾ′} {k = suc k}
-          refl refl term-eq
+          refl
+          (wrapTermᴵ-subst (sym σ-eq) (w† ∷ σ)
+            (liftImpreciseTerm W≼W′ Vᴵ))
+          term-eq
           (famq W≼W′ σ‡))
       where
       d′ = dyn-slot-future d W≼W′
@@ -1066,21 +1074,23 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
           (sym (dyn-slot-precise-rep-lift d W≼W′)))
 
       w† = conceal-dyn d′ (liftPreciseBody W≼W′ B₁)
+        (liftImpreciseTy W≼W′ Bᴵ*)
 
       σ‡ : UniWraps W′
           (liftPreciseBody W≼W′
             (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁))
-          Bᴾ′
-      σ‡ = subst≡ (λ B → UniWraps W′ B Bᴾ′) (sym σ-eq) (w† ∷ σ)
+          (liftImpreciseTy W≼W′ Bᴵ*) Bᴾ′ Bᴵ′
+      σ‡ = subst≡ (λ B → UniWraps W′ B (liftImpreciseTy W≼W′ Bᴵ*)
+        Bᴾ′ Bᴵ′) (sym σ-eq) (w† ∷ σ)
 
-      term-eq : wrapTerm σ‡ (liftPreciseTerm W≼W′ Vᴾ)
-          ≡ wrapTerm σ (liftPreciseTerm W≼W′
+      term-eq : wrapTermᴾ σ‡ (liftPreciseTerm W≼W′ Vᴾ)
+          ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
               (Vᴾ ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d)
                 (`∀ B₁)))
       term-eq = trans
-        (wrapTerm-subst (sym σ-eq) (w† ∷ σ)
+        (wrapTermᴾ-subst (sym σ-eq) (w† ∷ σ)
           (liftPreciseTerm W≼W′ Vᴾ))
-        (cong (wrapTerm σ)
+        (cong (wrapTermᴾ σ)
           (trans
             (cong
               (λ T → liftPreciseTerm W≼W′ Vᴾ

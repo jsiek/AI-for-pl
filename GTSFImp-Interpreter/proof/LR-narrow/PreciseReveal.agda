@@ -328,7 +328,7 @@ precise-universal-value (suc k) below W s {B₁ = B₁}
   precise-reveal-endpoints W s (I.∀⊑ nonvar occurs p₀) no-occur
     sourceᴾ {k = suc k} related (precise-value endpoints ↑ all) ,
   B₁ , Bᴵ* , embP* , embI* ,
-  (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} σ →
+  (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} {Bᴵ′} σ →
     let s′ = slot-future s W≼W′
         avoid′ : slotXᴾ s′ ∉ᵗ `∀ (liftPreciseBody W≼W′ B₁)
         avoid′ = subst≡ (slotXᴾ s′ ∉ᵗ_)
@@ -336,12 +336,12 @@ precise-universal-value (suc k) below W s {B₁ = B₁}
           (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₁))
             (sym (slot-precise-variable-lift s W≼W′))
             (lift-∉ᵗ W≼W′ no-occur))
-        w = reveal-inert (slotXᴾ s′) (slotRᴾ s′)
-          (liftPreciseBody W≼W′ B₁) avoid′
-        term-eq : wrapTerm (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
-            ≡ wrapTerm σ (liftPreciseTerm W≼W′
+        w = reveal-inert s′ (liftPreciseBody W≼W′ B₁)
+          (liftImpreciseTy W≼W′ Bᴵ*) avoid′
+        term-eq : wrapTermᴾ (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
+            ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
                 (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₁ 〗))
-        term-eq = cong (wrapTerm σ)
+        term-eq = cong (wrapTermᴾ σ)
           (trans
             (cong
               (λ T → liftPreciseTerm W≼W′ Vᴾ
@@ -428,7 +428,7 @@ precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
   precise-conceal-endpoints W s (I.∀⊑ nonvar occurs p₀) no-occur
     sourceᴾ {k = suc k} related (precise-value endpoints ↓ all) ,
   B₁ , Bᴵ* , embP* , embI* ,
-  (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} σ →
+  (λ {Δᴾ′} {Δᴵ′} {Δᶜ′} {W′} W≼W′ {Bᴾ′} {Bᴵ′} σ →
     let s′ = slot-future s W≼W′
         avoid′ : slotXᴾ s′ ∉ᵗ `∀ (liftPreciseBody W≼W′ B₁)
         avoid′ = subst≡ (slotXᴾ s′ ∉ᵗ_)
@@ -436,12 +436,12 @@ precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
           (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₁))
             (sym (slot-precise-variable-lift s W≼W′))
             (lift-∉ᵗ W≼W′ no-occur))
-        w = conceal-inert (slotXᴾ s′) (slotRᴾ s′)
-          (liftPreciseBody W≼W′ B₁) avoid′
-        term-eq : wrapTerm (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
-            ≡ wrapTerm σ (liftPreciseTerm W≼W′
+        w = conceal-inert s′ (liftPreciseBody W≼W′ B₁)
+          (liftImpreciseTy W≼W′ Bᴵ*) avoid′
+        term-eq : wrapTermᴾ (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
+            ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
                 (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₁)))
-        term-eq = cong (wrapTerm σ)
+        term-eq = cong (wrapTermᴾ σ)
           (trans
             (cong
               (λ T → liftPreciseTerm W≼W′ Vᴾ

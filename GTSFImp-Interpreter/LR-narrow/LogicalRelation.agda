@@ -390,13 +390,15 @@ mutual
     → Set₁
   RightUniversalFamily W p Bᴾ Bᴵ k Vᴵ Vᴾ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
-      (W≼W′ : Future W W′) {Bᴾ′ : Ty (suc Δᴾ′)}
-      (σ : UniWraps W′ (liftPreciseBody W≼W′ Bᴾ) Bᴾ′)
+      (W≼W′ : Future W W′)
+      {Bᴾ′ : Ty (suc Δᴾ′)} {Bᴵ′ : Ty Δᴵ′}
+      (σ : UniWraps W′ (liftPreciseBody W≼W′ Bᴾ)
+             (liftImpreciseTy W≼W′ Bᴵ) Bᴾ′ Bᴵ′)
     → RightUniversalsRelated W′
         (liftCenterDynamicBodyImprecision W≼W′ p)
-        Bᴾ′ (liftImpreciseTy W≼W′ Bᴵ) k
-        (liftImpreciseTerm W≼W′ Vᴵ)
-        (wrapTerm σ (liftPreciseTerm W≼W′ Vᴾ))
+        Bᴾ′ Bᴵ′ k
+        (wrapTermᴵ σ (liftImpreciseTerm W≼W′ Vᴵ))
+        (wrapTermᴾ σ (liftPreciseTerm W≼W′ Vᴾ))
 
   RightDynamicPayloadRelated : ∀ {Δᴾ Δᴵ Δᶜ}
     → (W : World Δᴾ Δᴵ Δᶜ)

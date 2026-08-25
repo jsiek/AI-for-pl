@@ -62,6 +62,7 @@ open import proof.LR-narrow.FramePhases
 open import proof.LR-narrow.FrameComposition
 open import proof.LR-narrow.RevealFrames
 open import proof.LR-narrow.RevealSteps
+open import LR-narrow.SlotSequence public
 open import proof.LR-narrow.RevealLifting
 open import proof.LR-narrow.ArgumentFrame using
   (related-application-computation)
@@ -249,17 +250,8 @@ transported-conceal-eq χs M X R B lifted U =
 -- Statements
 ------------------------------------------------------------------------
 
-slotXᴾ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ} → PairedSlot W → TyVar Δᴾ
-slotXᴾ s = preciseVariable (atom s)
-
-slotXᴵ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ} → PairedSlot W → TyVar Δᴵ
-slotXᴵ s = impreciseVariable (atom s)
-
-slotRᴾ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ} → PairedSlot W → Ty Δᴾ
-slotRᴾ s = preciseRep (atom s)
-
-slotRᴵ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ} → PairedSlot W → Ty Δᴵ
-slotRᴵ s = impreciseRep (atom s)
+-- The slot accessors are defined publicly in
+-- `LR-narrow.SlotSequence` and re-exported through RevealLifting.
 
 ------------------------------------------------------------------------
 -- Revealing and concealing a related computation

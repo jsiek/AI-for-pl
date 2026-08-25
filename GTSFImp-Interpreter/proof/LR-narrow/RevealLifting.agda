@@ -34,6 +34,7 @@ open import proof.LR-narrow.TypeRenamingComposition using
    apply↑; apply↓)
 open import LR-narrow.World
 open import LR-narrow.Atoms
+open import LR-narrow.SlotSequence public
 
 ------------------------------------------------------------------------
 -- Renaming laws
@@ -280,15 +281,8 @@ liftImpreciseTy-replace (future-imprecise W≼W′) X R B
 -- Paired slots and their transport along futures
 ------------------------------------------------------------------------
 
-record PairedSlot {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) : Set where
-  constructor paired-slot
-  field
-    center : TyVar Δᶜ
-    atom : SemanticAtom (core W) center
-    entry-eq : semanticEntry W center ≡ paired-entry atom
-    mode-eq : impEnv (core W) center ≡ I.X⊑X
-
-open PairedSlot public
+-- Paired slots are defined publicly in `LR-narrow.SlotSequence`
+-- (beside the slot-conversion sequences) and re-exported here.
 
 -- The lift of a paired entry is a paired entry with lifted fields.
 

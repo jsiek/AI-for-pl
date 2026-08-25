@@ -513,7 +513,7 @@ right-universal-family-future : ∀
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
 right-universal-family-future {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {p = p}
     {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
-    W≼W′ fam {W′ = W″} W′≼W″ {Bᴾ′ = Bᴾ′} σ = final
+    W≼W′ fam {W′ = W″} W′≼W″ {Bᴾ′ = Bᴾ′} {Bᴵ′ = Bᴵ′} σ = final
   where
   composite = future-trans W≼W′ W′≼W″
 
@@ -521,49 +521,78 @@ right-universal-family-future {Aᴾ = Aᴾ} {Aᴵ = Aᴵ} {p = p}
       ≡ liftPreciseBody composite Bᴾ
   body-eq = sym (liftPreciseBody-trans W≼W′ W′≼W″ Bᴾ)
 
-  σ† : UniWraps W″ (liftPreciseBody composite Bᴾ) Bᴾ′
-  σ† = subst≡ (λ B → UniWraps W″ B Bᴾ′) body-eq σ
+  imp-eq : liftImpreciseTy W′≼W″ (liftImpreciseTy W≼W′ Bᴵ)
+      ≡ liftImpreciseTy composite Bᴵ
+  imp-eq = sym (liftImpreciseTy-trans W≼W′ W′≼W″ Bᴵ)
 
-  wrap-eq : wrapTerm σ† (liftPreciseTerm composite Vᴾ)
-      ≡ wrapTerm σ
+  σ† : UniWraps W″ (liftPreciseBody composite Bᴾ)
+      (liftImpreciseTy composite Bᴵ) Bᴾ′ Bᴵ′
+  σ† = subst≡
+    (λ C → UniWraps W″ (liftPreciseBody composite Bᴾ) C Bᴾ′ Bᴵ′)
+    imp-eq
+    (subst≡
+      (λ B → UniWraps W″ B
+        (liftImpreciseTy W′≼W″ (liftImpreciseTy W≼W′ Bᴵ))
+        Bᴾ′ Bᴵ′)
+      body-eq σ)
+
+  σ-mid : UniWraps W″ (liftPreciseBody composite Bᴾ)
+      (liftImpreciseTy W′≼W″ (liftImpreciseTy W≼W′ Bᴵ)) Bᴾ′ Bᴵ′
+  σ-mid = subst≡
+    (λ B → UniWraps W″ B
+      (liftImpreciseTy W′≼W″ (liftImpreciseTy W≼W′ Bᴵ))
+      Bᴾ′ Bᴵ′)
+    body-eq σ
+
+  wrapᴾ-eq : wrapTermᴾ σ† (liftPreciseTerm composite Vᴾ)
+      ≡ wrapTermᴾ σ
           (liftPreciseTerm W′≼W″ (liftPreciseTerm W≼W′ Vᴾ))
-  wrap-eq = trans
-    (wrapTerm-subst body-eq σ (liftPreciseTerm composite Vᴾ))
-    (cong (wrapTerm σ) (liftPreciseTerm-trans W≼W′ W′≼W″ Vᴾ))
+  wrapᴾ-eq = trans
+    (wrapTermᴾ-subst-imp imp-eq σ-mid
+      (liftPreciseTerm composite Vᴾ))
+    (trans
+      (wrapTermᴾ-subst body-eq σ (liftPreciseTerm composite Vᴾ))
+      (cong (wrapTermᴾ σ) (liftPreciseTerm-trans W≼W′ W′≼W″ Vᴾ)))
+
+  wrapᴵ-eq : wrapTermᴵ σ† (liftImpreciseTerm composite Vᴵ)
+      ≡ wrapTermᴵ σ
+          (liftImpreciseTerm W′≼W″ (liftImpreciseTerm W≼W′ Vᴵ))
+  wrapᴵ-eq = trans
+    (wrapTermᴵ-subst-imp imp-eq σ-mid
+      (liftImpreciseTerm composite Vᴵ))
+    (trans
+      (wrapTermᴵ-subst body-eq σ (liftImpreciseTerm composite Vᴵ))
+      (cong (wrapTermᴵ σ)
+        (liftImpreciseTerm-trans W≼W′ W′≼W″ Vᴵ)))
 
   base : RightUniversalsRelated W″
-      (liftCenterDynamicBodyImprecision composite p) Bᴾ′
-      (liftImpreciseTy composite Bᴵ) k
-      (liftImpreciseTerm composite Vᴵ)
-      (wrapTerm σ† (liftPreciseTerm composite Vᴾ))
+      (liftCenterDynamicBodyImprecision composite p) Bᴾ′ Bᴵ′ k
+      (wrapTermᴵ σ† (liftImpreciseTerm composite Vᴵ))
+      (wrapTermᴾ σ† (liftPreciseTerm composite Vᴾ))
   base = fam composite σ†
 
   moved : RightUniversalsRelated W″
-      (liftCenterDynamicBodyImprecision composite p) Bᴾ′
-      (liftImpreciseTy W′≼W″ (liftImpreciseTy W≼W′ Bᴵ)) k
-      (liftImpreciseTerm W′≼W″ (liftImpreciseTerm W≼W′ Vᴵ))
-      (wrapTerm σ
+      (liftCenterDynamicBodyImprecision composite p) Bᴾ′ Bᴵ′ k
+      (wrapTermᴵ σ
+        (liftImpreciseTerm W′≼W″ (liftImpreciseTerm W≼W′ Vᴵ)))
+      (wrapTermᴾ σ
         (liftPreciseTerm W′≼W″ (liftPreciseTerm W≼W′ Vᴾ)))
   moved = right-universals-related-transport
     {W = W″} {p = liftCenterDynamicBodyImprecision composite p}
     {Bᴾ = Bᴾ′} {k = k}
-    (liftImpreciseTy-trans W≼W′ W′≼W″ Bᴵ)
-    (liftImpreciseTerm-trans W≼W′ W′≼W″ Vᴵ)
-    wrap-eq base
+    refl wrapᴵ-eq wrapᴾ-eq base
 
   final : RightUniversalsRelated W″
       (liftCenterDynamicBodyImprecision W′≼W″
-        (liftCenterDynamicBodyImprecision W≼W′ p)) Bᴾ′
-      (liftImpreciseTy W′≼W″ (liftImpreciseTy W≼W′ Bᴵ)) k
-      (liftImpreciseTerm W′≼W″ (liftImpreciseTerm W≼W′ Vᴵ))
-      (wrapTerm σ
+        (liftCenterDynamicBodyImprecision W≼W′ p)) Bᴾ′ Bᴵ′ k
+      (wrapTermᴵ σ
+        (liftImpreciseTerm W′≼W″ (liftImpreciseTerm W≼W′ Vᴵ)))
+      (wrapTermᴾ σ
         (liftPreciseTerm W′≼W″ (liftPreciseTerm W≼W′ Vᴾ)))
-  final = right-universals-related-reindex
+  final = right-universals-phantom
+    (liftCenterDynamicBodyImprecision composite p)
     (liftCenterDynamicBodyImprecision W′≼W″
       (liftCenterDynamicBodyImprecision W≼W′ p))
-    (liftCenterDynamicBodyImprecision composite p)
-    (sym (liftCenterBody-trans W≼W′ W′≼W″ Aᴾ))
-    (sym (liftCenterBody-trans W≼W′ W′≼W″ Aᴵ))
     moved
 
 functions-related-future : ∀

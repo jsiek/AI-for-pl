@@ -9,8 +9,8 @@ module proof.Reduction where
 --   * Also supplies store-change append algebra, multi-step trace
 --     composition, readable concatenated multi-step chain notation (including
 --     the common multi-step-then-single-step case), cast congruence over
---     multi-step reduction, conversion typing transport, and cast-size
---     preservation under store changes.
+--     multi-step reduction, conversion typing and value transport, and
+--     cast-size preservation under store changes.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
@@ -28,9 +28,10 @@ open import Conversion using
   (Conv↑; Conv↓; rename↑; rename↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import Primitives using
   (Prim; addℕ; and𝔹; primArgTy; primResultTy)
+import CastTerms as CT
 open import CastTerms using
-  ( Term; Value; blame; _·_; _⦂∀_[_]; _⊕[_]_; _⟨_⟩
-  ; Inert; inj; fun; all; genᵥ
+  ( Term; Value; RevealValue; ConcealValue; blame; _·_; _⦂∀_[_]
+  ; _⊕[_]_; _⟨_⟩; Inert; inj; fun; all; seal; genᵥ
   )
 open import CastTerms using (_↑_; _↓_)
 open import Reduction
@@ -193,6 +194,7 @@ normalizeConceal-⊢↓ {A = A} {B = B} c⊢ =
         (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
   conceal-subst refl refl d⊢ = d⊢
 
+
 applyReveals : ∀ {Δ Δ′} (χs : StoreChanges Δ Δ′) {A B : Ty Δ}
   → Conv↑ Δ A B
   → Conv↑ Δ′ (applyTys χs A) (applyTys χs B)
@@ -270,6 +272,71 @@ renamedConceal-term {A = A} {B = B} M c =
     → M ↓ d ≡ M ↓ subst≡ (Conv↓ _ A₁) eqB
         (subst≡ (λ A′ → Conv↓ _ A′ B₀) eqA d)
   conceal-subst refl refl M d = refl
+
+
+reveal-value-rename : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′)
+    {A B : Ty Δ} {c : Conv↑ Δ A B}
+  → RevealValue c
+  → RevealValue (rename↑ ρ c)
+reveal-value-rename ρ fun = fun
+reveal-value-rename ρ all = all
+
+
+conceal-value-rename : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′)
+    {A B : Ty Δ} {c : Conv↓ Δ A B}
+  → ConcealValue c
+  → ConcealValue (rename↓ ρ c)
+conceal-value-rename ρ seal = seal
+conceal-value-rename ρ fun = fun
+conceal-value-rename ρ all = all
+
+
+normalizeReveal-preserves-RevealValue : ∀ {Δ} {A B : Ty Δ}
+    {c : Conv↑ Δ A B}
+  → RevealValue c
+  → RevealValue (normalizeReveal c)
+normalizeReveal-preserves-RevealValue {c = c} reveal
+    with subst≡ Value (renamedReveal-term (CT.ƛ CT.blame) c)
+      ((CT.ƛ CT.blame) CT.↑ reveal-value-rename (λ X → X) reveal)
+normalizeReveal-preserves-RevealValue {c = c} reveal
+    | value CT.↑ normalized = normalized
+
+
+normalizeConceal-preserves-ConcealValue : ∀ {Δ} {A B : Ty Δ}
+    {c : Conv↓ Δ A B}
+  → ConcealValue c
+  → ConcealValue (normalizeConceal c)
+normalizeConceal-preserves-ConcealValue {c = c} conceal
+    with subst≡ Value (renamedConceal-term (CT.ƛ CT.blame) c)
+      ((CT.ƛ CT.blame) CT.↓ conceal-value-rename (λ X → X) conceal)
+normalizeConceal-preserves-ConcealValue {c = c} conceal
+    | value CT.↓ normalized = normalized
+
+
+applyReveals-preserves-RevealValue : ∀ {Δ Δ′}
+    (χs : StoreChanges Δ Δ′) {A B : Ty Δ} {c : Conv↑ Δ A B}
+  → RevealValue c
+  → RevealValue (applyReveals χs c)
+applyReveals-preserves-RevealValue [] reveal = reveal
+applyReveals-preserves-RevealValue (keep ∷ χs) reveal =
+  applyReveals-preserves-RevealValue χs
+    (normalizeReveal-preserves-RevealValue reveal)
+applyReveals-preserves-RevealValue (bind A ∷ χs) reveal =
+  applyReveals-preserves-RevealValue χs
+    (reveal-value-rename Fin.suc reveal)
+
+
+applyConceals-preserves-ConcealValue : ∀ {Δ Δ′}
+    (χs : StoreChanges Δ Δ′) {A B : Ty Δ} {c : Conv↓ Δ A B}
+  → ConcealValue c
+  → ConcealValue (applyConceals χs c)
+applyConceals-preserves-ConcealValue [] conceal = conceal
+applyConceals-preserves-ConcealValue (keep ∷ χs) conceal =
+  applyConceals-preserves-ConcealValue χs
+    (normalizeConceal-preserves-ConcealValue conceal)
+applyConceals-preserves-ConcealValue (bind A ∷ χs) conceal =
+  applyConceals-preserves-ConcealValue χs
+    (conceal-value-rename Fin.suc conceal)
 
 reveal-↠ : ∀ {Δ Δ′} {M : Term Δ} {N : Term Δ′}
     {χs : StoreChanges Δ Δ′} {A B : Ty Δ}

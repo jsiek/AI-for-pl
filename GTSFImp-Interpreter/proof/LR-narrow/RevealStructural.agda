@@ -80,7 +80,8 @@ open module PreciseRevealModule = proof.LR-narrow.PreciseReveal ob
   using (precise-reveal; precise-conceal; sizeᵗ;
          precise-revealed-computations;
          precise-concealed-computations;
-         precise-universal-value; precise-universal-conceal-value)
+         precise-universal-value; precise-universal-conceal-value;
+         lift-∉ᵗ)
 import proof.LR-narrow.DynamicReveal
 open module DynamicRevealModule = proof.LR-narrow.DynamicReveal ob
   using (dyn-reveal; dyn-conceal;
@@ -147,6 +148,10 @@ no-precise-bottom-value {W = W} related =
   Vᴾ⊢bot = subst≡
     (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ _ ⦂ A)
     precise-type-eq (precise-typed endpoints)
+
+∉-all-inv : ∀ {Δ} {X : TyVar Δ} {A : Ty (suc Δ)}
+  → X ∉ᵗ `∀ A → Fin.suc X ∉ᵗ A
+∉-all-inv (∉-all h) = h
 
 ------------------------------------------------------------------------
 -- Typed endpoints of revealed and concealed values
@@ -3096,7 +3101,7 @@ conceal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
   → (targetᴾ : embedPrecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
       ≡ `∀ Acʳ)
-  → (avoid : center s ∉ᵗ Bc)
+  → (no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ)
   → (agree : Acʳ ≡ Ac)
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
@@ -3125,7 +3130,7 @@ conceal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
 conceal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Ac = Ac} {Acʳ = Acʳ} {Bc = Bc}
     nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ avoid agree
+    sourceᴾ sourceᴵ targetᴾ no-occur agree
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t = final
   where
@@ -3258,25 +3263,14 @@ conceal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       (λ R → impEnv (core Wb) I.⊢ liftCenterBody W≼W′ Ac ⊑ R)
       (sym embed-eq-I) p₀′)
 
-  avoid-t : center s₁
-      ∉ᵗ embedImprecise (core Wb) Bᴵ′
-  avoid-t = subst≡ (center s₁ ∉ᵗ_) (sym shift-avoid-eq)
-    (renameᵗ-∉ᵗ Fin.suc fin-suc-injective
-      (liftCenter-∉ᵗ W≼W′ avoid))
-    where
-    shift-avoid-eq : embedImprecise (core Wb) Bᴵ′
-        ≡ ⇑ᵗ (liftCenterTy W≼W′ Bc)
-    shift-avoid-eq = trans
-      (embedImprecise-precise-shift (core W′) Rᴾ Bᴵ′)
-      (trans (cong ⇑ᵗ (embedImprecise-lift W≼W′ Bᴵ))
-        (cong (λ T → ⇑ᵗ (liftCenterTy W≼W′ T)) sourceᴵ))
-
   slot-absent : slotXᴾ s₁ ∉ᵗ B₀ᴾ′
-  slot-absent = renameᵗ-reflects-∉ᵗ
-    (toRenameᵗ (preciseEmbedding (core Wb))) B₀ᴾ′
-    (subst≡ (_∉ᵗ embedPrecise (core Wb) B₀ᴾ′)
-      (sym (preciseAligned (atom s₁)))
-      (paired-no-occurrence (center s₁) (mode-eq s₁) t₀ avoid-t))
+  slot-absent = subst≡ (_∉ᵗ B₀ᴾ′)
+    (sym (slot-precise-variable-lift s′ (precise-step W′ r★)))
+    (∉-all-inv
+      (subst≡ (slotXᴾ s′ ∉ᵗ_) (liftPreciseTy-universal W≼W′ B₀ᴾ)
+        (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₀ᴾ))
+          (sym (slot-precise-variable-lift s W≼W′))
+          (lift-∉ᵗ W≼W′ no-occur))))
 
   body-eq-P : Lᴾ ≡ replaceTy (Fin.suc Xᴾ′) (⇑ᵗ Rᴾ′) B₀ᴾ′
   body-eq-P = trans
@@ -3391,7 +3385,7 @@ conceal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
   → (targetᴾ : embedPrecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
       ≡ `∀ Acʳ)
-  → (avoid : center s ∉ᵗ Bc)
+  → (no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ)
   → (agree : Acʳ ≡ Ac)
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
@@ -3412,7 +3406,7 @@ conceal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
         ⦂∀ liftPreciseBody W≼W′ B₀ᴾ [ Rᴾ ])
 conceal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Bc = Bc} nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ avoid agree
+    sourceᴾ sourceᴵ targetᴾ no-occur agree
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t =
   ClosureProof.computations-related-post-bind-reindex t t
@@ -3451,7 +3445,7 @@ conceal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     related-precise-bind-step-expand (λ ()) refl
       (β-conceal-∀ vVᴾ″) step-eqᴾ
       (conceal-right-universal-absent-inner W s nonvar occurs p₀
-        nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ avoid agree
+        nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ no-occur agree
         below size< dat W′ W≼W′ Rᴾ r★ t)
 
 -- The value relation of a concealed right-universal value when the
@@ -3566,7 +3560,7 @@ reveal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
     (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
   → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
-  → (avoid : center s ∉ᵗ Bc)
+  → (no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ)
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -3593,7 +3587,7 @@ reveal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
               (⇑ᵗ (slotRᴾ (slot-future s W≼W′)))
               (liftPreciseBody W≼W′ B₀ᴾ) 〗)
 reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ avoid
+    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ no-occur
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t = final
   where
@@ -3694,18 +3688,14 @@ reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     (cong (embedPrecise (core Wb)) open-P)
     refl refl refl weakened
 
-  avoid-t₀ : center s₁
-      ∉ᵗ embedImprecise (core Wb) (liftImpreciseTy W≼Wb Bᴵ)
-  avoid-t₀ = subst≡ (center s₁ ∉ᵗ_) (sym shift-eq)
-    (renameᵗ-∉ᵗ Fin.suc fin-suc-injective
-      (liftCenter-∉ᵗ W≼W′ avoid))
-
   slot-absent : slotXᴾ s₁ ∉ᵗ B₀ᴾ′
-  slot-absent = renameᵗ-reflects-∉ᵗ
-    (toRenameᵗ (preciseEmbedding (core Wb))) B₀ᴾ′
-    (subst≡ (_∉ᵗ embedPrecise (core Wb) B₀ᴾ′)
-      (sym (preciseAligned (atom s₁)))
-      (paired-no-occurrence (center s₁) (mode-eq s₁) t₀ avoid-t₀))
+  slot-absent = subst≡ (_∉ᵗ B₀ᴾ′)
+    (sym (slot-precise-variable-lift s′ (precise-step W′ r★)))
+    (∉-all-inv
+      (subst≡ (slotXᴾ s′ ∉ᵗ_) (liftPreciseTy-universal W≼W′ B₀ᴾ)
+        (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₀ᴾ))
+          (sym (slot-precise-variable-lift s W≼W′))
+          (lift-∉ᵗ W≼W′ no-occur))))
 
   Nᴵ = liftImpreciseTerm W≼W′ Vᴵ
   Nᴾ = ⇑ᵗᵐ (liftPreciseTerm W≼W′ Vᴾ)
@@ -4475,7 +4465,7 @@ reveal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
     (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
   → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
-  → (avoid : center s ∉ᵗ Bc)
+  → (no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ)
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -4497,7 +4487,7 @@ reveal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
           (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
           [ Rᴾ ])
 reveal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bc = Bc}
-    nonvar occurs p₀ sourceᴾ sourceᴵ avoid
+    nonvar occurs p₀ sourceᴾ sourceᴵ no-occur
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t =
   ClosureProof.computations-related-post-bind-reindex t t
@@ -4550,7 +4540,7 @@ reveal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bc = Bc}
     related-precise-bind-step-expand (λ ()) refl
       (β-reveal-∀ vVᴾ″) step-eqᴾ
       (reveal-right-universal-absent-inner W s nonvar occurs p₀
-        sourceᴾ sourceᴵ avoid below size< dat W′ W≼W′ Rᴾ r★ t)
+        sourceᴾ sourceᴵ no-occur below size< dat W′ W≼W′ Rᴾ r★ t)
 
 -- The value relation of a revealed right-universal value when the
 -- paired center avoids the imprecise center type.

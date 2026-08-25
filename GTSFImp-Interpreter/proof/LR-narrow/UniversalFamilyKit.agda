@@ -147,7 +147,7 @@ reveal-inert-chain : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
   → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
-  → (avoid : center s ∉ᵗ Bc)
+  → (no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ)
   → ∀ {Acʳ : Ty (suc Δᶜ)} {Bcʳ : Ty Δᶜ}
       (q₀ : I.instᵐ (impEnv (core W)) I.⊢ Acʳ ⊑ ⇑ᵗ Bcʳ)
   → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -155,16 +155,16 @@ reveal-inert-chain : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → RightUniversalsRelated W q₀
       (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ) Bᴵ k
       Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
-reveal-inert-chain W s nonvar occurs p₀ sourceᴾ sourceᴵ avoid q₀
+reveal-inert-chain W s nonvar occurs p₀ sourceᴾ sourceᴵ no-occur q₀
     {k = zero} dat = tt
-reveal-inert-chain W s nonvar occurs p₀ sourceᴾ sourceᴵ avoid q₀
+reveal-inert-chain W s nonvar occurs p₀ sourceᴾ sourceᴵ no-occur q₀
     {k = suc m} dat =
   (λ W′ W≼W′ Rᴾ r★ t →
     reveal-right-universal-absent-head W s nonvar occurs p₀
-      sourceᴾ sourceᴵ avoid
+      sourceᴾ sourceᴵ no-occur
       (below-all (suc m) (suc (sizeᵖ p₀))) ≤-refl dat
       W′ W≼W′ Rᴾ r★ t) ,
-  reveal-inert-chain W s nonvar occurs p₀ sourceᴾ sourceᴵ avoid q₀
+  reveal-inert-chain W s nonvar occurs p₀ sourceᴾ sourceᴵ no-occur q₀
     (data-downward dat)
 
 conceal-inert-chain : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
@@ -180,7 +180,7 @@ conceal-inert-chain : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → (targetᴾ : embedPrecise (core W)
       (`∀ (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
       ≡ `∀ Acʳ)
-  → (avoid : center s ∉ᵗ Bc)
+  → (no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ)
   → (agree : Acʳ ≡ Ac)
   → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → RightUniversalData W nonvarʳ occursʳ q₀
@@ -189,16 +189,16 @@ conceal-inert-chain : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → RightUniversalsRelated W p₀ B₀ᴾ Bᴵ k
       Vᴵ (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
 conceal-inert-chain W s nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ avoid agree {k = zero} dat = tt
+    sourceᴾ sourceᴵ targetᴾ no-occur agree {k = zero} dat = tt
 conceal-inert-chain W s nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ avoid agree {k = suc m} dat =
+    sourceᴾ sourceᴵ targetᴾ no-occur agree {k = suc m} dat =
   (λ W′ W≼W′ Rᴾ r★ t →
     conceal-right-universal-absent-head W s nonvar occurs p₀
-      nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ avoid agree
+      nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ no-occur agree
       (below-all (suc m) (suc (sizeᵖ p₀))) ≤-refl dat
       W′ W≼W′ Rᴾ r★ t) ,
   conceal-inert-chain W s nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ avoid agree (data-downward dat)
+    sourceᴾ sourceᴵ targetᴾ no-occur agree (data-downward dat)
 
 ------------------------------------------------------------------------
 -- Extending a chain by one dynamic reveal or conceal

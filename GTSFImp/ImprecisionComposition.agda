@@ -7,12 +7,12 @@ module ImprecisionComposition where
 --   * Depends only on Types, Imprecision, and the private proof module.
 
 open import Types
-import Imprecision as I
+open import Imprecision
 import proof.ImprecisionComposition as P
 
 
-⊑-trans : ∀ {Δ} {μ : I.ImpEnv Δ} {A B C : Ty Δ}
-  → I._⊢_⊑_ μ A B
-  → I._⊢_⊑_ μ B C
-  → I._⊢_⊑_ μ A C
+⊑-trans : ∀ {Δ} {μ : ImpEnv Δ} {A B C : Ty Δ}
+  → μ ⊢ A ⊑ B
+  → μ ⊢ B ⊑ C
+  → μ ⊢ A ⊑ C
 ⊑-trans = P.⊑-trans

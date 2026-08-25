@@ -9,7 +9,7 @@ module proof.ImprecisionComposition where
 open import Data.Fin using (suc)
 
 open import Types
-import Imprecision as I
+open import Imprecision
 open import proof.Imprecision using (imprecision-to-fresh)
 open import proof.ImprecisionConsistency using
   ( ext-to-inst-star-map
@@ -22,62 +22,61 @@ open import proof.ImprecisionConsistency using
   )
 
 
-source-nonstar-from-target : ∀ {Δ} {μ : I.ImpEnv Δ} {A B : Ty Δ}
-  → I._⊢_⊑_ μ A B
+source-nonstar-from-target : ∀ {Δ} {μ : ImpEnv Δ} {A B : Ty Δ}
+  → μ ⊢ A ⊑ B
   → NonStar B
   → NonStar A
-source-nonstar-from-target I.★⊑★ ()
-source-nonstar-from-target I.ι⊑ι nonstar-ι = nonstar-ι
-source-nonstar-from-target I.X⊑X nonstar-X = nonstar-X
-source-nonstar-from-target (I.⇒⊑⇒ p q) nonstar-⇒ = nonstar-⇒
-source-nonstar-from-target (I.∀⊑∀ p) nonstar-∀ = nonstar-∀
-source-nonstar-from-target (I.⇒⊑★ p q) ()
-source-nonstar-from-target I.ι⊑★ ()
-source-nonstar-from-target (I.X⊑★ eq) ()
-source-nonstar-from-target (I.∀⊑ Anv zero∈A p) Bns = nonstar-∀
-source-nonstar-from-target I.∀★⊑★ ()
-source-nonstar-from-target (I.∀⊑★ Ans p) ()
-source-nonstar-from-target I.bot-elim nonstar-∀ = nonstar-∀
-source-nonstar-from-target I.bot⊑★ ()
+source-nonstar-from-target ★⊑★ ()
+source-nonstar-from-target ι⊑ι nonstar-ι = nonstar-ι
+source-nonstar-from-target X⊑X nonstar-X = nonstar-X
+source-nonstar-from-target (⇒⊑⇒ p q) nonstar-⇒ = nonstar-⇒
+source-nonstar-from-target (∀⊑∀ p) nonstar-∀ = nonstar-∀
+source-nonstar-from-target (⇒⊑★ p q) ()
+source-nonstar-from-target ι⊑★ ()
+source-nonstar-from-target (X⊑★ eq) ()
+source-nonstar-from-target (∀⊑ Anv zero∈A p) Bns = nonstar-∀
+source-nonstar-from-target ∀★⊑★ ()
+source-nonstar-from-target (∀⊑★ Ans p) ()
+source-nonstar-from-target bot-elim nonstar-∀ = nonstar-∀
+source-nonstar-from-target bot⊑★ ()
 
 
-⊑-trans : ∀ {Δ} {μ : I.ImpEnv Δ} {A B C : Ty Δ}
-  → I._⊢_⊑_ μ A B
-  → I._⊢_⊑_ μ B C
-  → I._⊢_⊑_ μ A C
-⊑-trans I.★⊑★ I.★⊑★ = I.★⊑★
-⊑-trans I.ι⊑ι I.ι⊑ι = I.ι⊑ι
-⊑-trans I.ι⊑ι I.ι⊑★ = I.ι⊑★
-⊑-trans I.X⊑X I.X⊑X = I.X⊑X
-⊑-trans I.X⊑X (I.X⊑★ eq) = I.X⊑★ eq
-⊑-trans (I.⇒⊑⇒ p₁ p₂) (I.⇒⊑⇒ q₁ q₂) =
-  I.⇒⊑⇒ (⊑-trans p₁ q₁) (⊑-trans p₂ q₂)
-⊑-trans (I.⇒⊑⇒ p₁ p₂) (I.⇒⊑★ q₁ q₂) =
-  I.⇒⊑★ (⊑-trans p₁ q₁) (⊑-trans p₂ q₂)
-⊑-trans (I.∀⊑∀ p) (I.∀⊑∀ q) = I.∀⊑∀ (⊑-trans p q)
-⊑-trans (I.∀⊑∀ p) (I.∀⊑ Bnv zero∈B q) =
-  I.∀⊑ (source-nonvar-from-target p Bnv zero∈B)
+⊑-trans : ∀ {Δ} {μ : ImpEnv Δ} {A B C : Ty Δ}
+  → μ ⊢ A ⊑ B
+  → μ ⊢ B ⊑ C
+  → μ ⊢ A ⊑ C
+⊑-trans ★⊑★ ★⊑★ = ★⊑★
+⊑-trans ι⊑ι ι⊑ι = ι⊑ι
+⊑-trans ι⊑ι ι⊑★ = ι⊑★
+⊑-trans X⊑X X⊑X = X⊑X
+⊑-trans X⊑X (X⊑★ eq) = X⊑★ eq
+⊑-trans (⇒⊑⇒ p₁ p₂) (⇒⊑⇒ q₁ q₂) =
+  ⇒⊑⇒ (⊑-trans p₁ q₁) (⊑-trans p₂ q₂)
+⊑-trans (⇒⊑⇒ p₁ p₂) (⇒⊑★ q₁ q₂) =
+  ⇒⊑★ (⊑-trans p₁ q₁) (⊑-trans p₂ q₂)
+⊑-trans (∀⊑∀ p) (∀⊑∀ q) = ∀⊑∀ (⊑-trans p q)
+⊑-trans (∀⊑∀ p) (∀⊑ Bnv zero∈B q) =
+  ∀⊑ (source-nonvar-from-target p Bnv zero∈B)
     (target-occurs-source p zero∈B)
     (⊑-trans (imp-env-weaken ext-to-inst-star-map p) q)
-⊑-trans (I.∀⊑∀ p) I.∀★⊑★ =
-  universal-right-to-star (I.∀⊑∀ p)
-⊑-trans (I.∀⊑∀ p) (I.∀⊑★ Bns q) =
-  I.∀⊑★ (source-nonstar-from-target p Bns) (⊑-trans p q)
-⊑-trans (I.∀⊑∀ p) I.bot-elim
+⊑-trans (∀⊑∀ p) ∀★⊑★ = universal-right-to-star (∀⊑∀ p)
+⊑-trans (∀⊑∀ p) (∀⊑★ Bns q) =
+  ∀⊑★ (source-nonstar-from-target p Bns) (⊑-trans p q)
+⊑-trans (∀⊑∀ p) bot-elim
     rewrite imprecision-to-fresh p =
-  I.bot-elim
-⊑-trans (I.∀⊑∀ p) I.bot⊑★
+  bot-elim
+⊑-trans (∀⊑∀ p) bot⊑★
     rewrite imprecision-to-fresh p =
-  I.bot⊑★
-⊑-trans (I.⇒⊑★ p q) I.★⊑★ = I.⇒⊑★ p q
-⊑-trans I.ι⊑★ I.★⊑★ = I.ι⊑★
-⊑-trans (I.X⊑★ eq) I.★⊑★ = I.X⊑★ eq
-⊑-trans (I.∀⊑ Anv zero∈A p) q =
-  I.∀⊑ Anv zero∈A
+  bot⊑★
+⊑-trans (⇒⊑★ p q) ★⊑★ = ⇒⊑★ p q
+⊑-trans ι⊑★ ★⊑★ = ι⊑★
+⊑-trans (X⊑★ eq) ★⊑★ = X⊑★ eq
+⊑-trans (∀⊑ Anv zero∈A p) q =
+  ∀⊑ Anv zero∈A
     (⊑-trans p
       (rename-⊑ suc fin-suc-injective (λ X eq → eq) q))
-⊑-trans I.∀★⊑★ I.★⊑★ = I.∀★⊑★
-⊑-trans (I.∀⊑★ Ans p) I.★⊑★ = I.∀⊑★ Ans p
-⊑-trans I.bot-elim (I.∀⊑∀ I.★⊑★) = I.bot-elim
-⊑-trans I.bot-elim I.∀★⊑★ = I.bot⊑★
-⊑-trans I.bot⊑★ I.★⊑★ = I.bot⊑★
+⊑-trans ∀★⊑★ ★⊑★ = ∀★⊑★
+⊑-trans (∀⊑★ Ans p) ★⊑★ = ∀⊑★ Ans p
+⊑-trans bot-elim (∀⊑∀ ★⊑★) = bot-elim
+⊑-trans bot-elim ∀★⊑★ = bot⊑★
+⊑-trans bot⊑★ ★⊑★ = bot⊑★

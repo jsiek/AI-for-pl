@@ -598,6 +598,69 @@ the assemblies — they were kept deliberately for this purpose.  The
 one restatement needed is to take endpoints-plus-chain rather than a
 full value relation, since a bare chain carries no endpoints.
 
+## Implementation log — the six extensions (2026-08-26)
+
+All six one-step chain extensions are **proved and green**
+(`proof/LR-narrow/UniversalFamilyKit.agda`):
+`reveal-paired-chain`, `conceal-paired-chain`, `reveal-inert-chain`,
+`conceal-inert-chain`, `reveal-dyn-chain`, `conceal-dyn-chain`.
+
+Supporting work that landed with them:
+
+* the universal wrapper *heads* were restated on a bare instantiation
+  chain — a small record `RightUniversalData` (the `∀⊑` clause tuple
+  with the family replaced by a chain, plus the endpoint typings), so
+  they no longer presuppose the family they are used to build.  The
+  `with`-preambles that re-derived the chain's body types from the
+  clause disappeared, since the record already fixes them;
+* two entirely new head/inner pairs for the dynamic slot,
+  `reveal-dyn-universal-head`/`-inner` and
+  `conceal-dyn-universal-head`/`-inner`, adapted from the absent
+  (one-sided) variants but with the body wrapper at the lifted
+  dynamic slot (`dyn-revealed-computations` /
+  `dyn-concealed-computations`) and the body derivation replaced by
+  `replace-left-⊑`;
+* the inert wrappers were weakened to carry the *precise*
+  non-occurrence `slotXᴾ s ∉ᵗ `∀ B` rather than the centre fact
+  `center s ∉ᵗ Bc`.  This was forced: the producer of inert entries
+  (`precise-universal-value`) only has the precise fact, and the
+  centre fact does not follow from it.  The absent heads needed the
+  precise fact anyway, so they got simpler;
+* the endpoint helpers (`revealed-endpoints`, `concealed-endpoints`,
+  `dyn-reveal-endpoints`, `dyn-conceal-endpoints`,
+  `precise-reveal-endpoints`, `precise-conceal-endpoints`) now take
+  `TypedEndpoints` instead of a full `ValueImprecision`, since that
+  is all they ever used.
+
+## Finding G — conceal wrappers must carry their target derivation
+
+Assembling the extensions into `to-family` (iterate along the
+sequence, then project) hits a genuine obstruction, not bookkeeping.
+
+Each extension step must hand the next step a derivation at the
+wrapped types, because the heads build the *body* imprecision
+derivation from it (`liftCenterDynamicBodyImprecision p₀`, then
+`t₀`).  For a **reveal** wrapper that derivation is constructible —
+`replace-⊑` at a paired slot, `replace-left-⊑` at a dynamic slot,
+and the identity for an inert one.  For a **conceal** wrapper it
+would have to be *un*-replaced, and un-replacement is false:
+
+    take B = ＇(suc X) with X the slot variable and R = ‵ι, so
+    replaceTy (suc X) (⇑ᵗ R) B = ‵ι.  Then
+    `∀ ‵ι ⊑ ★` is derivable (∀⊑★), but `∀ ＇(suc X) ⊑ ★` is not:
+    ∀⊑★ would need `extᵐ μ ⊢ ＇(suc X) ⊑ ★`, i.e. mode `X⊑★` at a
+    variable whose mode is the paired `X⊑X`.
+
+So the conceal constructors of `UniWrap` must carry the imprecision
+derivation of their *target* body, alongside its `NonVar` and
+occurrence witnesses — data that every consumer of a conceal entry
+already has (it is the derivation of the clause it is producing), but
+that cannot be recovered from the wrapper's types alone.  That is the
+next step: widen the three conceal constructors, thread the extra
+fields through the three conceal consumers (`conceal-right-universal`,
+`precise-universal-conceal-value`, `dyn-universal-conceal-value`),
+and then the iteration and `to-family` are pure bookkeeping.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

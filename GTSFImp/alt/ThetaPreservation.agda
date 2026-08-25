@@ -28,30 +28,6 @@ module alt.ThetaPreservation where
 --   * The refuted resolving `float-reveal` rule was deleted together with
 --     `float-conceal`: regions now stay at their birth delimiter depth.  The
 --     former checked counterexample remains below as a historical comment.
---
--- U12 indexed-OPAQUE obstruction (parked, not forced): let
---
---   Ω = ∅ ,:= ‵ `ℕ ,begin[ zero ≔ zero ] ,end[ zero ]
---   V = ($ (κℕ 7)) ↑[ zero ≔ zero ] id↑.
---
--- The ended telescope resolves its old anchor in knowledge mode, so
--- `Ω ,typ ∣ [] ⊢ V ⦂ ‵ `ℕ`: the lexical entry preserves `know []`, and the
--- lookup then crosses `,end[ zero ]` and resolves the pending slot.  Hence
--- `(Λ V) ⦂∀ (‵ `ℕ) [ ‵ `ℕ ]` is a closed, typed `β-Λ` redex at Ω.
--- Its contractum allocates a fresh anchor and replaces the lexical entry by
--- the live begin `(Ω ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]`.  Typing `shiftᶿ V` now
--- needs the old-anchor lookup
---
---   (Ω ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]
---     ∋rep[ know [] ] suc zero ≔ ‵ `ℕ.
---
--- Crossing that live begin first changes the recursive obligation to
--- `Ω ∋rep[ opaq ] zero ≔ ‵ `ℕ`; Ω's end marker has deliberately no opaque
--- constructor, so the lookup is impossible.  This is the same refusal the
--- required T3 regression demands.  Thus the old arbitrary-telescope
--- `⊢allocate-lexical` lemma, and consequently this `β-Λ` preservation case,
--- cannot coexist with the approved transition table without an additional
--- restriction or a direction change.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -346,13 +322,11 @@ seal-target ⊢seal = refl
 
 terminal-anchor : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
-  → (Ψ ,begin[ X ≔ α ]) ∋typ Y ≔ β
+  → (Ψ ,typ[ X ≔ α ]) ∋typ Y ≔ β
   → Y ≡ X
   → β ≡ α
 terminal-anchor here-typ refl = refl
 terminal-anchor (skip-cross-typ {Y = Y} Y∈) eq =
-  ⊥-elim (punchIn≢ _ Y (sym eq))
-terminal-anchor (skip-cross-other-typ {Y = Y} neq Y∈) eq =
   ⊥-elim (punchIn≢ _ Y (sym eq))
 
 ------------------------------------------------------------------------
@@ -534,7 +508,7 @@ preserve-β-inst (⊢⟨⟩ V⊢ ((inst c) B≠★)) =
 fresh-delimiter-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {M : Term (suc Θ) Δ} {A C : Ty Δ}
   → Ψ ,:= C ∣ [] ⊢ M ⦂ A
-  → (Ψ ,:= C) ,begin[ zero ≔ zero ] ∣ []
+  → (Ψ ,:= C) ,typ[ zero ≔ zero ] ∣ []
       ⊢ M ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A) ⦂ ⇑ᵗ A
 fresh-delimiter-conceal {Ψ = Ψ} {A = A} {C = C} M⊢ =
   ⊢conceal here-typ target-lookup
@@ -548,21 +522,21 @@ fresh-delimiter-conceal {Ψ = Ψ} {A = A} {C = C} M⊢ =
 
 ∖-fresh-before-crossing : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ)
     (A : Ty Δ) (X : TyVar (suc Δ)) (α : TyVar Θ)
-  → ((((Ψ ,:= A) ,begin[ zero ≔ zero ])
-        ,begin[ suc X ≔ suc α ]) ∖ zero)
-    ≡ (Ψ ,:= A) ,begin[ X ≔ suc α ]
+  → ((((Ψ ,:= A) ,typ[ zero ≔ zero ])
+        ,typ[ suc X ≔ suc α ]) ∖ zero)
+    ≡ (Ψ ,:= A) ,typ[ X ≔ suc α ]
 ∖-fresh-before-crossing Ψ A X α =
   trans
-    (∖-typ-other ((Ψ ,:= A) ,begin[ zero ≔ zero ])
+    (∖-typ-other ((Ψ ,:= A) ,typ[ zero ≔ zero ])
       (suc X) zero (suc α) (λ ()) (λ ()))
-    (cong (λ Φ → Φ ,begin[ X ≔ suc α ])
+    (cong (λ Φ → Φ ,typ[ X ≔ suc α ])
       (∖-typ-here (Ψ ,:= A) zero zero))
 
 ⊢shift-crossing : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {M : Term Θ (suc Δ)} {T : Ty (suc Δ)} {A : Ty Δ}
     {X : TyVar (suc Δ)} {α : TyVar Θ}
-  → Ψ ,begin[ X ≔ α ] ∣ [] ⊢ M ⦂ T
-  → (Ψ ,:= A) ,begin[ X ≔ suc α ] ∣ [] ⊢ shiftᶿ M ⦂ T
+  → Ψ ,typ[ X ≔ α ] ∣ [] ⊢ M ⦂ T
+  → (Ψ ,:= A) ,typ[ X ≔ suc α ] ∣ [] ⊢ shiftᶿ M ⦂ T
 ⊢shift-crossing {X = X} {α = α} M⊢ =
   ⊢renameᶿ-target
     (anchor-target-typ X α visible-shift-target) M⊢
@@ -570,9 +544,9 @@ fresh-delimiter-conceal {Ψ = Ψ} {A = A} {C = C} M⊢ =
 fresh-∀-entry-crossed : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {V : Term Θ (suc Δ)} {C : Ty (suc (suc Δ))} {A : Ty Δ}
     {X : TyVar (suc Δ)} {α : TyVar Θ}
-  → Ψ ,begin[ X ≔ α ] ∣ [] ⊢ V ⦂ `∀ C
-  → ((Ψ ,:= A) ,begin[ zero ≔ zero ])
-      ,begin[ suc X ≔ suc α ] ∣ [] ⊢
+  → Ψ ,typ[ X ≔ α ] ∣ [] ⊢ V ⦂ `∀ C
+  → ((Ψ ,:= A) ,typ[ zero ≔ zero ])
+      ,typ[ suc X ≔ suc α ] ∣ [] ⊢
       (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
         ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ] ⦂ C
 fresh-∀-entry-crossed {Ψ = Ψ} {V = V} {C = C} {A = A}
@@ -580,9 +554,9 @@ fresh-∀-entry-crossed {Ψ = Ψ} {V = V} {C = C} {A = A}
   subst≡ (λ T → ambient ∣ [] ⊢ applied ⦂ T)
     (swap-shift-open-zero C) (⊢⦂∀ exchanged⊢)
   where
-  ambient = ((Ψ ,:= A) ,begin[ zero ≔ zero ])
-    ,begin[ suc X ≔ suc α ]
-  deleted = (Ψ ,:= A) ,begin[ X ≔ suc α ]
+  ambient = ((Ψ ,:= A) ,typ[ zero ≔ zero ])
+    ,typ[ suc X ≔ suc α ]
+  deleted = (Ψ ,:= A) ,typ[ X ≔ suc α ]
   entered = shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C))
   applied = entered ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ]
   env-eq = ∖-fresh-before-crossing Ψ A X α
@@ -630,14 +604,14 @@ exchange-conceal-∀ {X = X} {R = R} {B = B} c⊢ =
 fresh-∀-entry : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {V : Term Θ Δ} {A : Ty Δ} {C : Ty (suc Δ)}
   → Ψ ∣ [] ⊢ V ⦂ `∀ C
-  → (Ψ ,:= A) ,begin[ zero ≔ zero ] ∣ [] ⊢
+  → (Ψ ,:= A) ,typ[ zero ≔ zero ] ∣ [] ⊢
       (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
         ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ] ⦂ C
 fresh-∀-entry {Ψ = Ψ} {V = V} {A = A} {C = C} V⊢ =
   subst≡ (λ T → target ∣ [] ⊢ applied ⦂ T)
     (swap-shift-open-zero C) (⊢⦂∀ entered⊢)
   where
-  target = (Ψ ,:= A) ,begin[ zero ≔ zero ]
+  target = (Ψ ,:= A) ,typ[ zero ≔ zero ]
   entered = shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C))
   applied = entered ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ]
   entered⊢ = subst≡ (λ T → target ∣ [] ⊢ entered ⦂ T)
@@ -887,7 +861,7 @@ preserve-ξ-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {α : TyVar Θ} {c : Reveal} {A : Ty (suc Δ)} {B C : Ty Δ}
   → Ψ ∋ α := C
   → ⊢↑[ X ⦂ wkᵗ X C ] c ⦂ A ↝ wkᵗ X B
-  → Ψ ,begin[ X ≔ α ] ∣ [] ⊢ M′ ⦂ A
+  → Ψ ,typ[ X ≔ α ] ∣ [] ⊢ M′ ⦂ A
   → Ψ ∣ [] ⊢ M′ ↑[ X ≔ α ] c ⦂ B
 preserve-ξ-reveal α∈ c⊢ M′⊢ = ⊢reveal α∈ c⊢ M′⊢
 
@@ -970,84 +944,6 @@ preserve-float-⊕₂ (⊢⊕ op V⊢ (⊢ν M⊢)) =
   ⊢ν (⊢⊕ op (⊢shiftᶿ V⊢) M⊢)
 
 ------------------------------------------------------------------------
--- Closed one-step preservation assembler
-------------------------------------------------------------------------
-
-preserve : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
-  → Ψ ∣ [] ⊢ M ⦂ A
-  → Ψ ⊢ M —→ M′
-  → Ψ ∣ [] ⊢ M′ ⦂ A
-preserve typing (δ-⊕ δ) = preserve-δ-⊕ δ typing
-preserve typing (β Vᵥ) = preserve-β typing
-preserve (⊢⟨⟩ V⊢ (id a)) (β-id Vᵥ) = V⊢
-preserve typing@(⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) (β-⇒ Vᵥ Wᵥ) =
-  preserve-β-⇒ typing
-preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ (∀ᶜ c))) (β-∀ Vᵥ eq) =
-  preserve-β-∀ eq typing
-preserve typing@(⊢⟨⟩ V⊢ (c !)) (ground Vᵥ neq) =
-  preserve-ground typing
-preserve typing@(⊢⟨⟩ V⊢ (？ c)) (expand Vᵥ neq) =
-  preserve-expand typing
-preserve typing@(⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) =
-  preserve-tag-untag typing
-preserve typing (tag-untag-bad Vᵥ neq) = ⊢blame
-preserve typing (blame-bot-intro Vᵥ) = ⊢blame
-preserve typing (β-reveal-⇒ Vᵥ Wᵥ) = preserve-β-reveal-⇒ typing
-preserve typing (β-conceal-⇒ Vᵥ Wᵥ) = {!!}
-preserve typing (id-cancel canonical) = preserve-id-cancel typing
-preserve typing id-reveal = preserve-id-reveal typing
-preserve typing id-conceal = preserve-id-conceal typing
-preserve typing (conceal-reveal Vᵥ) = preserve-conceal-reveal typing
-preserve typing blame-·₁ = ⊢blame
-preserve typing (blame-·₂ Vᵥ) = ⊢blame
-preserve typing blame-• = ⊢blame
-preserve typing blame-⟨⟩ = ⊢blame
-preserve typing blame-reveal = ⊢blame
-preserve typing blame-conceal = ⊢blame
-preserve typing blame-⊕₁ = ⊢blame
-preserve typing (blame-⊕₂ Vᵥ) = ⊢blame
-preserve typing blame-ν = ⊢blame
-preserve typing const-ν = preserve-const-ν typing
-preserve typing@(⊢⦂∀ (⊢Λ V⊢)) (β-Λ Vᵥ) = preserve-β-Λ typing
-preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ c)) (β-gen Vᵥ A≠★ safe) =
-  preserve-β-gen typing
-preserve typing@(⊢⟨⟩ V⊢ c) (β-inst Vᵥ B≠★) =
-  preserve-β-inst typing
-preserve typing@(⊢⦂∀ (⊢reveal α∈ c⊢ V⊢)) (β-reveal-∀ Vᵥ) =
-  preserve-β-reveal-∀ typing
-preserve typing@(⊢⦂∀ (⊢conceal slot∈ β∈ c⊢ V⊢))
-    (β-conceal-∀ α∈ Vᵥ) =
-  preserve-β-conceal-∀ α∈ typing
-preserve (⊢· L⊢ M⊢) (ξ-·₁ step) =
-  preserve-ξ-·₁ M⊢ (preserve L⊢ step)
-preserve (⊢· V⊢ M⊢) (ξ-·₂ Vᵥ step) =
-  preserve-ξ-·₂ V⊢ (preserve M⊢ step)
-preserve typing@(⊢⦂∀ M⊢) (ξ-• step) =
-  preserve-ξ-• typing (preserve M⊢ step)
-preserve typing@(⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) =
-  preserve-ξ-⟨⟩ typing (preserve M⊢ step)
-preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
-  preserve-ξ-reveal α∈ c⊢ (preserve M⊢ step)
-preserve (⊢conceal slot∈ α∈ c⊢ M⊢) (ξ-conceal step) =
-  preserve-ξ-conceal slot∈ α∈ c⊢ (preserve M⊢ step)
-preserve typing@(⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
-  preserve-ξ-⊕₁ typing (preserve L⊢ step)
-preserve typing@(⊢⊕ op V⊢ M⊢) (ξ-⊕₂ Vᵥ step) =
-  preserve-ξ-⊕₂ typing (preserve M⊢ step)
-preserve typing@(⊢ν M⊢) (ξ-ν step) =
-  preserve-ξ-ν typing (preserve M⊢ step)
-preserve typing (float-·₁ result) = preserve-float-·₁ typing
-preserve typing (float-·₂ Vᵥ result) = preserve-float-·₂ typing
-preserve typing@(⊢⦂∀ (⊢ν M⊢)) (float-• result) =
-  preserve-float-• typing
-preserve typing@(⊢⟨⟩ (⊢ν M⊢) c) (float-⟨⟩ result) =
-  preserve-float-⟨⟩ typing
-preserve typing@(⊢⊕ op (⊢ν M⊢) N⊢) (float-⊕₁ result) =
-  preserve-float-⊕₁ typing
-preserve typing@(⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
-  preserve-float-⊕₂ typing
-
-------------------------------------------------------------------------
 -- Resolved `β-reveal-∀` body-type regression
 ------------------------------------------------------------------------
 
@@ -1061,7 +957,7 @@ forall-bad-Ψ = ∅ ,:= ‵ `ℕ
 forall-bad-V : Term (suc zero) (suc zero)
 forall-bad-V = Λ ($ (κℕ 0))
 
-forall-bad-V-⊢ : forall-bad-Ψ ,begin[ zero ≔ zero ] ∣ []
+forall-bad-V-⊢ : forall-bad-Ψ ,typ[ zero ≔ zero ] ∣ []
   ⊢ forall-bad-V ⦂ `∀ (‵ `ℕ)
 forall-bad-V-⊢ = ⊢Λ (⊢$ (κℕ 0))
 
@@ -1142,7 +1038,7 @@ forall-bad-step-impossible ()
 -- and uses the generated exit conceal to re-establish the ambient type.
 
 conceal-var-Ψ : TyEnv (suc zero) (suc zero)
-conceal-var-Ψ = (∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]
+conceal-var-Ψ = (∅ ,:= ‵ `ℕ) ,typ[ zero ≔ zero ]
 
 conceal-var-V : Term (suc zero) zero
 conceal-var-V = Λ ($ (κℕ 0))
@@ -1194,7 +1090,7 @@ conceal-arrow-base = ∅ ,:= ‵ `ℕ
 
 conceal-arrow-Ψ : TyEnv (suc (suc zero)) (suc zero)
 conceal-arrow-Ψ =
-  (conceal-arrow-base ,begin[ zero ≔ zero ]) ,:= ＇ zero
+  (conceal-arrow-base ,typ[ zero ≔ zero ]) ,:= ＇ zero
 
 conceal-arrow-P : Ty zero
 conceal-arrow-P = `∀ (‵ `ℕ)
@@ -1270,7 +1166,7 @@ conceal-arrow-contractum-⊢ =
 --
 -- At the concrete de Bruijn indices used below, the inner configuration is
 --
---   ((Ψ₀ ,begin[ zero ≔ zero ]) ,:= ＇zero) ∣ [] ⊢
+--   ((Ψ₀ ,typ[ zero ≔ zero ]) ,:= ＇zero) ∣ [] ⊢
 --     M ⦂ ＇zero ⇒ ℕ.
 --
 -- Consequently the closed redex and its operational step are exactly
@@ -1300,12 +1196,12 @@ conceal-arrow-contractum-⊢ =
 bad-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
 bad-Ψ =
   ∅ ,:= ‵ `ℕ ,:= ‵ `ℕ
-    ,begin[ zero ≔ zero ] ,begin[ zero ≔ zero ]
+    ,typ[ zero ≔ zero ] ,typ[ zero ≔ zero ]
 
 bad-body-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
 bad-body-Ψ =
   ∅ ,:= ‵ `ℕ ,:= ‵ `ℕ
-    ,begin[ zero ≔ zero ] ,begin[ suc zero ≔ suc zero ]
+    ,typ[ zero ≔ zero ] ,typ[ suc zero ≔ suc zero ]
 
 bad-V : Term (suc (suc zero)) (suc (suc zero))
 bad-V = ($ (κℕ 7)) ↓[ zero ≔ zero ] seal
@@ -1319,7 +1215,7 @@ bad-inner : Term (suc (suc zero)) (suc (suc (suc zero)))
 bad-inner = bad-V ↓[ zero ≔ zero ] id↓
 
 bad-inner-⊢ :
-  bad-Ψ ,begin[ suc (suc zero) ≔ suc zero ] ∣ []
+  bad-Ψ ,typ[ suc (suc zero) ≔ suc zero ] ∣ []
     ⊢ bad-inner ⦂ ＇ suc zero
 bad-inner-⊢ =
   ⊢conceal (skip-cross-typ here-typ) (skip-typ (skip-typ Z))
@@ -1393,7 +1289,7 @@ stranded-seal-value =
   result-val ($ (κℕ 7)) ↓[ zero ≔ suc zero ] sealᵥ
 
 stranded-seal-⊢ :
-  ((stranded-Ψ ,begin[ zero ≔ zero ]) ,:= ‵ `ℕ) ∣ [] ⊢
+  ((stranded-Ψ ,typ[ zero ≔ zero ]) ,:= ‵ `ℕ) ∣ [] ⊢
     stranded-seal ⦂ ＇ zero
 stranded-seal-⊢ =
   ⊢conceal (skip-visible-typ here-typ) (S Z) ⊢seal (⊢$ (κℕ 7))
@@ -1405,7 +1301,7 @@ stranded-region-result : Result stranded-region
 stranded-region-result = result-ν (result-val stranded-seal-value)
 
 stranded-region-⊢ :
-  stranded-Ψ ,begin[ zero ≔ zero ] ∣ [] ⊢ stranded-region ⦂ ＇ zero
+  stranded-Ψ ,typ[ zero ≔ zero ] ∣ [] ⊢ stranded-region ⦂ ＇ zero
 stranded-region-⊢ = ⊢ν stranded-seal-⊢
 
 stranded-adapter : Term 1 0
@@ -1421,13 +1317,13 @@ stranded-adapter-⊢ :
 stranded-adapter-⊢ = ⊢reveal Z ⊢unseal stranded-region-⊢
 
 stranded-seal-no-step : ∀ {M′}
-  → ((stranded-Ψ ,begin[ zero ≔ zero ]) ,:= ‵ `ℕ) ⊢
+  → ((stranded-Ψ ,typ[ zero ≔ zero ]) ,:= ‵ `ℕ) ⊢
       stranded-seal —→ M′
   → ⊥
 stranded-seal-no-step (ξ-conceal step) = constant-no-step step
 
 stranded-region-no-step : ∀ {M′}
-  → stranded-Ψ ,begin[ zero ≔ zero ] ⊢ stranded-region —→ M′
+  → stranded-Ψ ,typ[ zero ≔ zero ] ⊢ stranded-region —→ M′
   → ⊥
 stranded-region-no-step (ξ-ν step) = stranded-seal-no-step step
 
@@ -1453,7 +1349,7 @@ loose-inner : Term 2 1
 loose-inner = loose-V ↓[ zero ≔ suc zero ] seal
 
 loose-anchor-mismatch :
-  loose-Ψ ,begin[ zero ≔ zero ] ∋typ zero ≔ suc zero
+  loose-Ψ ,typ[ zero ≔ zero ] ∋typ zero ≔ suc zero
   → ⊥
 loose-anchor-mismatch ()
 
@@ -1487,7 +1383,7 @@ open-V : Term (suc zero) (suc zero)
 open-V = ƛ ＇ zero ˙ $ (κℕ 0)
 
 open-V-⊢ :
-  open-Ψ ,begin[ zero ≔ zero ] ∣ [] ⊢ open-V ⦂ ＇ zero ⇒ ‵ `ℕ
+  open-Ψ ,typ[ zero ≔ zero ] ∣ [] ⊢ open-V ⦂ ＇ zero ⇒ ‵ `ℕ
 open-V-⊢ = ⊢ƛ (⊢$ (κℕ 0))
 
 open-V-value : Value open-V

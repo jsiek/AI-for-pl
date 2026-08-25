@@ -761,7 +761,7 @@ rename-∋typ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
 rename-∋typ (keep ρ) here-typ = here-typ
 rename-∋typ (skip ρ) here-typ = here-typ
 rename-∋typ ρ@(keep η)
-    (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {Z = slot}
+    (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {W = slot}
       {β = anchor}
       Y∈) =
   subst≡
@@ -770,7 +770,7 @@ rename-∋typ ρ@(keep η)
     (sym (delete-punchIn ρ slot Y))
     (skip-cross-typ (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
 rename-∋typ ρ@(skip η)
-    (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {Z = slot}
+    (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {W = slot}
       {β = anchor}
       Y∈) =
   subst≡

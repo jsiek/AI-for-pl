@@ -86,10 +86,10 @@ data _∋typ_≔_ : ∀ {Θ Δ}
 
   skip-cross-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ}
-      {Z : TyVar (suc Δ)} {β : TyVar Θ}
+      {W : TyVar (suc Δ)} {β : TyVar Θ}
     → Ψ ∋typ Y ≔ α
       -----------------------------------------------------
-    → (Ψ ,begin[ Z ≔ β ]) ∋typ punchIn Z Y ≔ α
+    → (Ψ ,begin[ W ≔ β ]) ∋typ punchIn W Y ≔ α
 
   skip-lexical-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ}

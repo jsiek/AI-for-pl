@@ -113,12 +113,13 @@ data _∋typ_≔_ : ∀ {Θ Δ}
 
 infix 4 _∋rep[_]_≔_
 
--- Anchor lookup: `Ψ ∋rep[ mode ] α ≔ A` finds the ν entry for anchor α
--- in Ψ and transports its representation out to Ψ's scope as A.  The
--- Mode is the walk's state at begin/end markers: `know pending` resolves
--- an ended slot's occurrences in the result (pending = ends crossed whose
--- begin is not yet reached), while `opaq` — entered by crossing a live
--- begin — transports entries verbatim and refuses to cross any end.
+-- `Ψ ∋rep[ mode ] α ≔ A` looks up the representation type associated
+-- with the ν binding of anchor α, expressed in Ψ's scope as A.  The
+-- Mode says how to cross begin/end markers along the way: `know pending`
+-- resolves an ended slot's occurrences in the result (pending = ends
+-- crossed whose begin is not yet reached), while `opaq` — entered by
+-- crossing a live begin — transports the representation verbatim and
+-- refuses to cross any end.
 data _∋rep[_]_≔_ : ∀ {Θ Δ}
     → TyEnv Θ Δ → Mode Δ → TyVar Θ → Ty Δ → Set where
   Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ} {mode}

@@ -158,23 +158,21 @@ revealed-endpoints : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → ∀ {Cᴾ Cᴵ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
   → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ) ≡ Cᴾ
   → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Cᴵ
-  → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W p k Vᴵ Vᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → TypedEndpoints W p Vᴵ Vᴾ
   → Value (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
   → Value (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
   → TypedEndpoints W q
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
 revealed-endpoints W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} p sourceᴾ sourceᴵ q
-    targetᴾ targetᴵ related vᴵ vᴾ =
+    targetᴾ targetᴵ endpoints vᴵ vᴾ =
   typed-endpoints _ _ targetᴵ targetᴾ vᴵ vᴾ
     (⊢reveal (structural-reveal-typing Bᴵ (impreciseBound (atom s)))
       Vᴵ⊢Bᴵ)
     (⊢reveal (structural-reveal-typing Bᴾ (preciseBound (atom s)))
       Vᴾ⊢Bᴾ)
   where
-  endpoints = ClosureProof.value-imprecision-endpoints related
-
   Vᴾ⊢Bᴾ = subst≡
     (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ _ ⦂ A)
     (renameᵗ-injective (toRenameᵗ-injective (preciseEmbedding (core W)))
@@ -197,23 +195,21 @@ concealed-endpoints : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → ∀ {Cᴾ Cᴵ : Ty Δᶜ} (q : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
   → embedPrecise (core W) (replaceTy (slotXᴾ s) (slotRᴾ s) Bᴾ) ≡ Cᴾ
   → embedImprecise (core W) (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Cᴵ
-  → ∀ {k : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W q k Vᴵ Vᴾ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → TypedEndpoints W q Vᴵ Vᴾ
   → Value (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
   → Value (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
   → TypedEndpoints W p
       (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) Bᴾ)
 concealed-endpoints W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} p sourceᴾ sourceᴵ q
-    targetᴾ targetᴵ related vᴵ vᴾ =
+    targetᴾ targetᴵ endpoints vᴵ vᴾ =
   typed-endpoints _ _ sourceᴵ sourceᴾ vᴵ vᴾ
     (⊢conceal (structural-conceal-typing Bᴵ (impreciseBound (atom s)))
       Vᴵ⊢Cᴵ)
     (⊢conceal (structural-conceal-typing Bᴾ (preciseBound (atom s)))
       Vᴾ⊢Cᴾ)
   where
-  endpoints = ClosureProof.value-imprecision-endpoints related
-
   Vᴾ⊢Cᴾ = subst≡
     (λ A → ⟨ _ , preciseStore (core W) , [] ⟩ ⊢ _ ⦂ A)
     (renameᵗ-injective (toRenameᵗ-injective (preciseEmbedding (core W)))
@@ -580,7 +576,7 @@ reveal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀} 
   reveal-endpoints j = revealed-endpoints W s (I.⇒⊑⇒ p₁ p₂)
     (cong₂ _⇒_ sourceᴾ₁ sourceᴾ₂) (cong₂ _⇒_ sourceᴵ₁ sourceᴵ₂)
     (I.⇒⊑⇒ q₁ q₂) (cong₂ _⇒_ targetᴾ₁ targetᴾ₂)
-    (cong₂ _⇒_ targetᴵ₁ targetᴵ₂) related
+    (cong₂ _⇒_ targetᴵ₁ targetᴵ₂) endpoints
     (imprecise-value endpoints ↑ fun) (precise-value endpoints ↑ fun)
 
   head-at : ∀ (j : ℕ) → suc j ≤ k
@@ -839,7 +835,7 @@ conceal-function W s {Aᴾ₀ = Aᴾ₀} {Bᴾ₀ = Bᴾ₀} {Aᴵ₀ = Aᴵ₀}
   conceal-endpoints j = concealed-endpoints W s (I.⇒⊑⇒ p₁ p₂)
     (cong₂ _⇒_ sourceᴾ₁ sourceᴾ₂) (cong₂ _⇒_ sourceᴵ₁ sourceᴵ₂)
     (I.⇒⊑⇒ q₁ q₂) (cong₂ _⇒_ targetᴾ₁ targetᴾ₂)
-    (cong₂ _⇒_ targetᴵ₁ targetᴵ₂) related
+    (cong₂ _⇒_ targetᴵ₁ targetᴵ₂) endpoints
     (imprecise-value endpoints ↓ fun) (precise-value endpoints ↓ fun)
 
   head-at : ∀ (j : ℕ) → suc j ≤ k
@@ -1798,7 +1794,7 @@ reveal-universal W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p₀ q₀
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ `∀ B₀ᴵ 〗)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
   reveal-endpoints = revealed-endpoints W s (I.∀⊑∀ p₀)
-    sourceᴾ sourceᴵ (I.∀⊑∀ q₀) targetᴾ targetᴵ related
+    sourceᴾ sourceᴵ (I.∀⊑∀ q₀) targetᴾ targetᴵ endpoints
     (imprecise-value endpoints ↑ all) (precise-value endpoints ↑ all)
 
   heads : ∀ (n : ℕ) → n ≤ k
@@ -1867,7 +1863,7 @@ conceal-universal W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p₀ q₀
       (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) (`∀ B₀ᴵ))
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
   conceal-endpoints = concealed-endpoints W s (I.∀⊑∀ p₀)
-    sourceᴾ sourceᴵ (I.∀⊑∀ q₀) targetᴾ targetᴵ related
+    sourceᴾ sourceᴵ (I.∀⊑∀ q₀) targetᴾ targetᴵ endpoints
     (imprecise-value endpoints ↓ all) (precise-value endpoints ↓ all)
 
   heads : ∀ (n : ℕ) → n ≤ k
@@ -2586,7 +2582,7 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
   reveal-endpoints = revealed-endpoints W s
     (I.∀⊑ nonvar occurs p₀) sourceᴾ sourceᴵ
-    (I.∀⊑ nonvarʳ occursʳ q₀) targetᴾ targetᴵ related
+    (I.∀⊑ nonvarʳ occursʳ q₀) targetᴾ targetᴵ endpoints
     (imprecise-value endpoints ↑ wrapᴵ)
     (precise-value endpoints ↑ all)
 
@@ -3058,7 +3054,7 @@ conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
   conceal-endpoints = concealed-endpoints W s
     (I.∀⊑ nonvar occurs p₀)
     sourceᴾ sourceᴵ (I.∀⊑ nonvarʳ occursʳ q₀) targetᴾ targetᴵ
-    related
+    endpoints
     (imprecise-value endpoints ↓ wrapᴵ)
     (precise-value endpoints ↓ all)
 

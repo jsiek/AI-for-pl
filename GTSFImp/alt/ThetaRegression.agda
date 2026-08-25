@@ -24,7 +24,7 @@ open import alt.ThetaReduction
 open import alt.ThetaTermSubst
 
 Ψ₂ : TyEnv 2 1
-Ψ₂ = ∅ ,:= ‵ `ℕ ,typ[ zero ≔ zero ] ,:= ＇ zero
+Ψ₂ = ∅ ,:= ‵ `ℕ ,begin[ zero ≔ zero ] ,:= ＇ zero
 
 sealed-seven : Term 2 1
 sealed-seven = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal

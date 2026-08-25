@@ -6,7 +6,7 @@ module alt.ThetaTermSubst where
 --   * Defines the action of regular-context injections on binder telescopes
 --     and proves typing preservation for the general term action
 --     `renameᵗᵐ` from alt.ThetaReduction.
---   * Reveal scopes are retained verbatim between `,typ[_≔_]` and their
+--   * Reveal scopes are retained verbatim between `,begin[_≔_]` and their
 --     popping `,end[_]` markers.  This file transports the lazy, mode-indexed
 --     lookups across regular and anchor renamings; it performs no telescope
 --     entry surgery.
@@ -606,12 +606,12 @@ renameTyEnv : ∀ {Θ Δ Δ′}
 renameTyEnv {Δ′ = Δ′} ρ ∅ = emptyTyEnv Δ′ ∅
 renameTyEnv ρ (Ψ ,:= A) =
   renameTyEnv ρ Ψ ,:= renameᵗ (toRenameᵗ ρ) A
-renameTyEnv (keep ρ) (Ψ ,typ[ Y ≔ α ]) =
+renameTyEnv (keep ρ) (Ψ ,begin[ Y ≔ α ]) =
   renameTyEnv (delete↪ᵗ (keep ρ) Y) Ψ
-    ,typ[ toRenameᵗ (keep ρ) Y ≔ α ]
-renameTyEnv (skip ρ) (Ψ ,typ[ Y ≔ α ]) =
+    ,begin[ toRenameᵗ (keep ρ) Y ≔ α ]
+renameTyEnv (skip ρ) (Ψ ,begin[ Y ≔ α ]) =
   renameTyEnv (delete↪ᵗ (skip ρ) Y) Ψ
-    ,typ[ toRenameᵗ (skip ρ) Y ≔ α ]
+    ,begin[ toRenameᵗ (skip ρ) Y ≔ α ]
 renameTyEnv (keep ρ) (Ψ ,typ) = renameTyEnv ρ Ψ ,typ
 renameTyEnv (skip ρ) (Ψ ,typ) = renameTyEnv ρ (Ψ ,typ) ,typ
 renameTyEnv ρ (Ψ ,end[ Y ]) =
@@ -620,9 +620,9 @@ renameTyEnv ρ (Ψ ,end[ Y ]) =
 
 renameTyEnv-insert : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     (Ψ : TyEnv Θ Δ) (Y : TyVar (suc Δ)) (α : TyVar Θ)
-  → renameTyEnv (insert↪ᵗ ρ Y) (Ψ ,typ[ Y ≔ α ])
+  → renameTyEnv (insert↪ᵗ ρ Y) (Ψ ,begin[ Y ≔ α ])
     ≡ renameTyEnv ρ Ψ
-        ,typ[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]
+        ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]
 renameTyEnv-insert ρ Ψ zero α = refl
 renameTyEnv-insert (keep ρ) Ψ (suc Y) α
     rewrite delete-insert↪ᵗ ρ Y =
@@ -766,7 +766,7 @@ rename-∋typ ρ@(keep η) {mode = mode}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,typ[ toRenameᵗ ρ slot ≔ anchor ] ∋typ[ mode ] W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ[ mode ] W ≔ α)
     (sym (delete-punchIn ρ slot Y))
     (skip-cross-typ (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
 rename-∋typ ρ@(skip η) {mode = mode}
@@ -775,7 +775,7 @@ rename-∋typ ρ@(skip η) {mode = mode}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,typ[ toRenameᵗ ρ slot ≔ anchor ] ∋typ[ mode ] W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ[ mode ] W ≔ α)
     (sym (delete-punchIn ρ slot Y))
     (skip-cross-typ (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
 rename-∋typ (keep ρ) (skip-lexical-typ Y∈) =
@@ -916,8 +916,8 @@ rename-∋rep ρ
 {- Obsolete eager-deletion transport (removed with `_∖_`).
 renameTyEnv-typ : ∀ {Θ Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
     (Ψ : TyEnv Θ Δ) (X : TyVar (suc Δ)) (α : TyVar Θ)
-  → renameTyEnv ρ (Ψ ,typ[ X ≔ α ])
-    ≡ renameTyEnv (delete↪ᵗ ρ X) Ψ ,typ[ toRenameᵗ ρ X ≔ α ]
+  → renameTyEnv ρ (Ψ ,begin[ X ≔ α ])
+    ≡ renameTyEnv (delete↪ᵗ ρ X) Ψ ,begin[ toRenameᵗ ρ X ≔ α ]
 renameTyEnv-typ (keep ρ) Ψ X α = refl
 renameTyEnv-typ (skip ρ) Ψ X α = refl
 
@@ -933,10 +933,10 @@ renameTyEnv-∖-typ-other : ∀ {Θ Δ Δ′}
         (Ψ ∖ punchOut X Y X≢Y)
   → (renameTyEnv (delete↪ᵗ ρ X) Ψ
        ∖ toRenameᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
-      ,typ[ toRenameᵗ (delete↪ᵗ ρ Y) (punchOut Y X Y≢X) ≔ α ]
+      ,begin[ toRenameᵗ (delete↪ᵗ ρ Y) (punchOut Y X Y≢X) ≔ α ]
     ≡ renameTyEnv (delete↪ᵗ ρ Y)
         ((Ψ ∖ punchOut X Y X≢Y)
-          ,typ[ punchOut Y X Y≢X ≔ α ])
+          ,begin[ punchOut Y X Y≢X ≔ α ])
 renameTyEnv-∖-typ-other ρ Ψ X Y α X≢Y Y≢X ih
     rewrite ih
       | delete-delete↪ᵗ ρ X Y X≢Y Y≢X
@@ -954,10 +954,10 @@ no-typ-case : ∀ {Θ Δ Δ′}
     ≡ renameTyEnv
         (delete↪ᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
         (Ψ ∖ punchOut X Y X≢Y)
-  → renameTyEnv ρ (Ψ ,typ[ X ≔ α ]) ∖ toRenameᵗ ρ Y
+  → renameTyEnv ρ (Ψ ,begin[ X ≔ α ]) ∖ toRenameᵗ ρ Y
     ≡ renameTyEnv (delete↪ᵗ ρ Y)
         ((Ψ ∖ punchOut X Y X≢Y)
-          ,typ[ punchOut Y X (λ eq → X≢Y (sym eq)) ≔ α ])
+          ,begin[ punchOut Y X (λ eq → X≢Y (sym eq)) ≔ α ])
 no-typ-case ρ Ψ X Y α X≢Y ih =
   trans
     (cong (λ Ψ′ → Ψ′ ∖ toRenameᵗ ρ Y)
@@ -966,7 +966,7 @@ no-typ-case ρ Ψ X Y α X≢Y ih =
       (∖-typ-other (renameTyEnv (delete↪ᵗ ρ X) Ψ)
         (toRenameᵗ ρ X) (toRenameᵗ ρ Y) α ρX≢ρY ρY≢ρX)
       (trans
-        (cong₂ (λ Ψ′ Z → Ψ′ ,typ[ Z ≔ α ])
+        (cong₂ (λ Ψ′ Z → Ψ′ ,begin[ Z ≔ α ])
           (cong (λ Z → renameTyEnv (delete↪ᵗ ρ X) Ψ ∖ Z)
             (sym (rename-punchOut ρ X Y X≢Y ρX≢ρY)))
           (sym (rename-punchOut ρ Y X Y≢X ρY≢ρX)))
@@ -974,7 +974,7 @@ no-typ-case ρ Ψ X Y α X≢Y ih =
           (renameTyEnv-∖-typ-other ρ Ψ X Y α X≢Y Y≢X ih)
           (cong (renameTyEnv (delete↪ᵗ ρ Y))
             (cong (λ Z →
-              (Ψ ∖ punchOut X Y X≢Y) ,typ[ Z ≔ α ])
+              (Ψ ∖ punchOut X Y X≢Y) ,begin[ Z ≔ α ])
               (punchOut-proof Y X Y≢X
                 (λ eq → X≢Y (sym eq))))))))
   where
@@ -989,10 +989,10 @@ cross-typ-case : ∀ {Θ Δ Δ′}
   → renameTyEnv (delete↪ᵗ ρ X) Ψ
       ∖ toRenameᵗ (delete↪ᵗ ρ X) Y
     ≡ renameTyEnv (delete↪ᵗ (delete↪ᵗ ρ X) Y) (Ψ ∖ Y)
-  → renameTyEnv ρ (Ψ ,typ[ X ≔ α ])
+  → renameTyEnv ρ (Ψ ,begin[ X ≔ α ])
       ∖ toRenameᵗ ρ (punchIn X Y)
     ≡ renameTyEnv (delete↪ᵗ ρ (punchIn X Y))
-        ((Ψ ,typ[ X ≔ α ]) ∖ punchIn X Y)
+        ((Ψ ,begin[ X ≔ α ]) ∖ punchIn X Y)
 cross-typ-case ρ Ψ X Y α ih with X ≟ punchIn X Y
 cross-typ-case ρ Ψ X Y α ih | yes X≡Y =
   ⊥-elim (punchIn≢ X Y X≡Y)
@@ -1014,30 +1014,30 @@ renameTyEnv-∖ : ∀ {Θ Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
   → Ψ ∋typ Y ≔ α
   → renameTyEnv ρ Ψ ∖ toRenameᵗ ρ Y
     ≡ renameTyEnv (delete↪ᵗ ρ Y) (Ψ ∖ Y)
-renameTyEnv-∖ (keep ρ) (Ψ ,typ[ Y ≔ α ]) Y here-typ
+renameTyEnv-∖ (keep ρ) (Ψ ,begin[ Y ≔ α ]) Y here-typ
     rewrite ∖-typ-here (renameTyEnv (delete↪ᵗ (keep ρ) Y) Ψ)
               (toRenameᵗ (keep ρ) Y) α
       | ∖-typ-here Ψ Y α =
   refl
-renameTyEnv-∖ (skip ρ) (Ψ ,typ[ Y ≔ α ]) Y here-typ
+renameTyEnv-∖ (skip ρ) (Ψ ,begin[ Y ≔ α ]) Y here-typ
     rewrite ∖-typ-here (renameTyEnv (delete↪ᵗ (skip ρ) Y) Ψ)
               (toRenameᵗ (skip ρ) Y) α
       | ∖-typ-here Ψ Y α =
   refl
 renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(keep (keep η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
+    (Ψ ,begin[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
   cross-typ-case ρ Ψ X Y α
     (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
 renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(keep (skip η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
+    (Ψ ,begin[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
   cross-typ-case ρ Ψ X Y α
     (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
 renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(skip (keep η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
+    (Ψ ,begin[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
   cross-typ-case ρ Ψ X Y α
     (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
 renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(skip (skip η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
+    (Ψ ,begin[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
   cross-typ-case ρ Ψ X Y α
     (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
 renameTyEnv-∖ (keep ρ) (Ψ ,typ) zero ()
@@ -1111,8 +1111,8 @@ data RenameTarget : ∀ {Θ Δ Δ′}
       {Φ : TyEnv Θ Δ′} (X : TyVar (suc Δ)) (α : TyVar Θ)
     → RenameTarget (delete↪ᵗ ρ X) Ψ Φ
       --------------------------------------------------------------
-    → RenameTarget ρ (Ψ ,typ[ X ≔ α ])
-        (Φ ,typ[ toRenameᵗ ρ X ≔ α ])
+    → RenameTarget ρ (Ψ ,begin[ X ≔ α ])
+        (Φ ,begin[ toRenameᵗ ρ X ≔ α ])
 
   target-lexical : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
       {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
@@ -1274,10 +1274,10 @@ renameTarget-delete-typ : ∀ {Θ Δ Δ′}
       (Ψ ∖ punchOut X Y X≢Y)
       (Φ ∖ toRenameᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
   → RenameTarget (delete↪ᵗ ρ Y)
-      ((Ψ ∖ punchOut X Y X≢Y) ,typ[ punchOut Y X Y≢X ≔ α ])
+      ((Ψ ∖ punchOut X Y X≢Y) ,begin[ punchOut Y X Y≢X ≔ α ])
       ((Φ ∖ punchOut (toRenameᵗ ρ X) (toRenameᵗ ρ Y)
           ρX≢ρY)
-        ,typ[ punchOut (toRenameᵗ ρ Y) (toRenameᵗ ρ X)
+        ,begin[ punchOut (toRenameᵗ ρ Y) (toRenameᵗ ρ X)
           ρY≢ρX ≔ α ])
 renameTarget-delete-typ {ρ = ρ} {Ψ = Ψ} {Φ = Φ}
     X Y α X≢Y Y≢X ρX≢ρY ρY≢ρX target deleted-target =
@@ -1312,8 +1312,8 @@ renameTarget-delete-typ {ρ = ρ} {Ψ = Ψ} {Φ = Φ}
   retained-target =
     subst≡
       (λ Z → RenameTarget (delete↪ᵗ ρ Y)
-        ((Ψ ∖ source-Y) ,typ[ source-X ≔ α ])
-        ((Φ ∖ target-Y) ,typ[ Z ≔ α ]))
+        ((Ψ ∖ source-Y) ,begin[ source-X ≔ α ])
+        ((Φ ∖ target-Y) ,begin[ Z ≔ α ]))
       retained-slot-eq retained-target₀
 
 renameTarget-delete-cross : ∀ {Θ Δ Δ′}
@@ -1325,8 +1325,8 @@ renameTarget-delete-cross : ∀ {Θ Δ Δ′}
   → RenameTarget (delete↪ᵗ (delete↪ᵗ ρ X) Y) (Ψ ∖ Y)
       (Φ ∖ toRenameᵗ (delete↪ᵗ ρ X) Y)
   → RenameTarget (delete↪ᵗ ρ (punchIn X Y))
-      ((Ψ ,typ[ X ≔ α ]) ∖ punchIn X Y)
-      ((Φ ,typ[ toRenameᵗ ρ X ≔ α ])
+      ((Ψ ,begin[ X ≔ α ]) ∖ punchIn X Y)
+      ((Φ ,begin[ toRenameᵗ ρ X ≔ α ])
         ∖ toRenameᵗ ρ (punchIn X Y))
 renameTarget-delete-cross {ρ = ρ} {Ψ = Ψ} {Φ = Φ}
     X Y α target deleted-target
@@ -1372,8 +1372,8 @@ renameTarget-delete {Ψ = Ψ} literal-wk-target Y Y∈ =
     (subst≡
       (λ η → RenameTarget η (Ψ ∖ Y) ((Ψ ∖ Y) ,typ))
       (sym (delete-wk↪ᵗ Y)) literal-wk-target)
-renameTarget-delete {ρ = ρ} {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .(toRenameᵗ ρ X) ≔ .α ]}
+renameTarget-delete {ρ = ρ} {Ψ = Ψ ,begin[ X ≔ α ]}
+    {Φ = Φ ,begin[ .(toRenameᵗ ρ X) ≔ .α ]}
     (target-typ .X .α target) .X here-typ
     rewrite ∖-typ-here Ψ X α
       | ∖-typ-here Φ (toRenameᵗ ρ X) α =
@@ -1385,8 +1385,8 @@ renameTarget-delete {Δ = suc Δ} {Δ′ = zero} {ρ = skip ()}
     (target-typ X α target) .(punchIn X Y)
     (skip-cross-typ {Y = Y} Y∈)
 renameTarget-delete {Δ = suc Δ} {Δ′ = suc Δ′} {ρ = ρ}
-    {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .(toRenameᵗ ρ X) ≔ .α ]}
+    {Ψ = Ψ ,begin[ X ≔ α ]}
+    {Φ = Φ ,begin[ .(toRenameᵗ ρ X) ≔ .α ]}
     (target-typ .X .α target) .(punchIn X Y)
     (skip-cross-typ {Y = Y} Y∈) =
   renameTarget-delete-cross {ρ = ρ} X Y α target
@@ -1447,8 +1447,8 @@ renameTarget-insert : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
   → RenameTarget ρ Ψ Φ
   → (Y : TyVar (suc Δ)) (α : TyVar Θ)
-  → RenameTarget (insert↪ᵗ ρ Y) (Ψ ,typ[ Y ≔ α ])
-      (Φ ,typ[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ])
+  → RenameTarget (insert↪ᵗ ρ Y) (Ψ ,begin[ Y ≔ α ])
+      (Φ ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ])
 renameTarget-insert {ρ = ρ} {Ψ = Ψ} {Φ = Φ} target Y α =
   target-typ Y α
     (subst≡ (λ η → RenameTarget η Ψ Φ)
@@ -1895,7 +1895,7 @@ data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
       (Y : TyVar (suc Δ)) (α : TyVar Θ)
     → AnchorTarget ρ Ψ Φ
       --------------------------------------------------
-    → AnchorTarget ρ (Ψ ,typ[ Y ≔ α ]) (Φ ,typ[ Y ≔ ρ α ])
+    → AnchorTarget ρ (Ψ ,begin[ Y ≔ α ]) (Φ ,begin[ Y ≔ ρ α ])
 
   anchor-target-lexical : ∀ {Θ Θ′ Δ}
       {ρ : TyVar Θ → TyVar Θ′}
@@ -1925,7 +1925,7 @@ data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
       {Ψ : TyEnv Θ Δ} {Φ : TyEnv (suc Θ) Δ}
     → AnchorTarget suc Ψ Φ
       ------------------------------------------------------
-    → AnchorTarget suc (Ψ ,typ) (Φ ,typ[ zero ≔ zero ])
+    → AnchorTarget suc (Ψ ,typ) (Φ ,begin[ zero ≔ zero ])
 
 anchorTarget-∋typ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
@@ -2005,13 +2005,13 @@ anchorTarget-delete {Ψ = Ψ} visible-shift-target Y Y∈
     with deleteSlot Ψ Y
 anchorTarget-delete visible-shift-target Y Y∈
     | delete-view Φ C = visible-shift-target
-anchorTarget-delete {ρ = ρ} {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .X ≔ .(ρ α) ]}
+anchorTarget-delete {ρ = ρ} {Ψ = Ψ ,begin[ X ≔ α ]}
+    {Φ = Φ ,begin[ .X ≔ .(ρ α) ]}
     (anchor-target-typ .X .α target) .X here-typ
     rewrite ∖-typ-here Ψ X α | ∖-typ-here Φ X (ρ α) =
   target
-anchorTarget-delete {Δ = suc Δ} {ρ = ρ} {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .X ≔ .(ρ α) ]}
+anchorTarget-delete {Δ = suc Δ} {ρ = ρ} {Ψ = Ψ ,begin[ X ≔ α ]}
+    {Φ = Φ ,begin[ .X ≔ .(ρ α) ]}
     (anchor-target-typ .X .α target) .(punchIn X Y)
     (skip-cross-typ {Y = Y} Y∈)
     rewrite ∖-typ-other Ψ X (punchIn X Y) α (punchIn≢ X Y)
@@ -2028,10 +2028,10 @@ anchorTarget-delete {Δ = suc Δ} {Ψ = Ψ ,typ} {Φ = Φ ,typ}
     (anchor-target-lexical target) (suc Y) (skip-lexical-typ Y∈)
     rewrite ∖-typ-zero-suc Ψ Y | ∖-typ-zero-suc Φ Y =
   anchor-target-lexical (anchorTarget-delete target Y Y∈)
-anchorTarget-delete {Φ = Φ ,typ[ zero ≔ zero ]}
+anchorTarget-delete {Φ = Φ ,begin[ zero ≔ zero ]}
     (anchor-target-allocate target) zero ()
 anchorTarget-delete { Δ = suc Δ } { Ψ = Ψ ,typ }
-    { Φ = Φ ,typ[ zero ≔ zero ] }
+    { Φ = Φ ,begin[ zero ≔ zero ] }
     (anchor-target-allocate target) (suc Y) (skip-lexical-typ Y∈) =
   anchor-target-allocate (anchorTarget-delete target Y Y∈)
 anchorTarget-delete {Ψ = Ψ ,:= A} {Φ = Φ ,:= .A}
@@ -2131,7 +2131,7 @@ extᵗ-injective ρ-inj {α = X} {β = Y} =
     {M : Term Θ (suc Δ)} {A : Ty (suc Δ)} {C : Ty Δ}
   → Ψ ,typ ∣ Γ ⊢ M ⦂ A
     ---------------------------------------------------
-  → (Ψ ,:= C) ,typ[ zero ≔ zero ] ∣ Γ ⊢ shiftᶿ M ⦂ A
+  → (Ψ ,:= C) ,begin[ zero ≔ zero ] ∣ Γ ⊢ shiftᶿ M ⦂ A
 ⊢allocate-lexical M⊢ = ⊢renameᶿ-target fin-suc-injective
   (anchor-target-allocate visible-shift-target) M⊢
 

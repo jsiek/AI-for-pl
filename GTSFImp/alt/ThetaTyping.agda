@@ -43,12 +43,12 @@ private
 -- Binder telescopes: type variables and anchors, no term variables
 ------------------------------------------------------------------------
 
-infixl 5 _,typ[_≔_] _,typ _,end[_]
+infixl 5 _,begin[_≔_] _,typ _,end[_]
 infixl 5 _,:=_
 
 data TyEnv : AnchorCtx → TyCtx → Set where
   ∅ : TyEnv zero zero
-  _,typ[_≔_] : TyEnv Θ Δ → TyVar (suc Δ) → TyVar Θ
+  _,begin[_≔_] : TyEnv Θ Δ → TyVar (suc Δ) → TyVar Θ
     → TyEnv Θ (suc Δ)
   _,typ : TyEnv Θ Δ → TyEnv Θ (suc Δ)
   _,:=_ : TyEnv Θ Δ → Ty Δ → TyEnv (suc Θ) Δ  -- anchor bound by a ν
@@ -85,14 +85,14 @@ data _∋typ[_]_≔_ : ∀ {Θ Δ}
   here-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {mode}
       {Y : TyVar (suc Δ)} {α : TyVar Θ}
       ---------------------------------
-    → (Ψ ,typ[ Y ≔ α ]) ∋typ[ mode ] Y ≔ α
+    → (Ψ ,begin[ Y ≔ α ]) ∋typ[ mode ] Y ≔ α
 
   skip-cross-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ}
       {Z : TyVar (suc Δ)} {β : TyVar Θ} {mode}
     → Ψ ∋typ[ mode ] Y ≔ α
       -----------------------------------------------------
-    → (Ψ ,typ[ Z ≔ β ]) ∋typ[ mode ] punchIn Z Y ≔ α
+    → (Ψ ,begin[ Z ≔ β ]) ∋typ[ mode ] punchIn Z Y ≔ α
 
   skip-lexical-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ} {mode}
@@ -132,7 +132,7 @@ data _∋rep[_]_≔_ : ∀ {Θ Δ}
     → Y ∈ pending
     → Ψ ∋rep[ know (dropSlot Y pending) ] a ≔ A
       ---------------------------------
-    → Ψ ,typ[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
+    → Ψ ,begin[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
 
   skip-typ-live : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
@@ -140,14 +140,14 @@ data _∋rep[_]_≔_ : ∀ {Θ Δ}
     → Y ∉ pending
     → Ψ ∋rep[ opaq ] a ≔ A
       ---------------------------------
-    → Ψ ,typ[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
+    → Ψ ,begin[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
 
   skip-typ-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)}
     → Ψ ∋rep[ opaq ] a ≔ A
       ---------------------------------
-    → Ψ ,typ[ Y ≔ β ] ∋rep[ opaq ] a ≔ wkᵗ Y A
+    → Ψ ,begin[ Y ≔ β ] ∋rep[ opaq ] a ≔ wkᵗ Y A
 
   skip-lexical-know : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a : TyVar Θ} {A : Ty Δ} {pending pending′}
@@ -248,7 +248,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {α : TyVar Θ} {c : Reveal}
     → Ψ ∋rep[ know [] ] α ≔ C
     → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
-    → Ψ ,typ[ Y ≔ α ] ∣ [] ⊢ M ⦂ A
+    → Ψ ,begin[ Y ≔ α ] ∣ [] ⊢ M ⦂ A
       --------------------------------
     → Ψ ∣ Γ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 

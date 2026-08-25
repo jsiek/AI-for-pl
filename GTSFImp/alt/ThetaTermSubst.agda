@@ -121,6 +121,16 @@ substᵗ-subst σ τ (`∀ A) =
   exts-compose zero = refl
   exts-compose (suc X) = substᵗ-shift τ (σ X)
 
+-- Re-entering a just-ended reveal scope first weakens an ambient type at
+-- the slot and then resolves that slot.  Fusion reduces cancellation to the
+-- pointwise fact that `resolveSubᵗ` is inverse to `punchIn` off the slot.
+resolve-wk-cancel : ∀ {Δ} (X : TyVar (suc Δ)) (C : Ty Δ) (A₀ : Ty Δ)
+  → substᵗ (resolveSubᵗ X C) (wkᵗ X A₀) ≡ A₀
+resolve-wk-cancel X C A₀ =
+  trans (substᵗ-rename (resolveSubᵗ X C) (punchIn X) A₀)
+    (trans (substᵗ-cong A₀ (resolveSub-punchIn X C))
+      (substᵗ-id A₀))
+
 resolve-openᵗ : ∀ {Δ} (X : TyVar (suc Δ)) (C : Ty Δ)
     (B : Ty (suc (suc Δ))) (A : Ty (suc Δ))
   → substᵗ (resolveSubᵗ X C) (B [ A ]ᵗ)

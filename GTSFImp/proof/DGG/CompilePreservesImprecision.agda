@@ -81,6 +81,22 @@ mutual
   initialContext-⊑ (e ∷ γ) A⊑B = initialContext-⊑ γ A⊑B
 
 
+initialWorld-no-source-rebase : ∀ {Δ} (μ : ImpEnv Δ)
+  → sourceRebaseCountᶜ (initialWorldᶜ μ) ≡ 0
+initialWorld-no-source-rebase {Nat.zero} μ = refl
+initialWorld-no-source-rebase {Nat.suc Δ} μ =
+  initialWorld-no-source-rebase (λ X → μ (Fin.suc X))
+
+
+initialContext-no-source-rebase : ∀ {Δ} {μ : ImpEnv Δ}
+    (γ : GTI.CtxImp μ)
+  → sourceRebaseCountᶜ (initialContextWorld γ) ≡ 0
+initialContext-no-source-rebase {μ = μ} [] =
+  initialWorld-no-source-rebase μ
+initialContext-no-source-rebase (e ∷ γ) =
+  initialContext-no-source-rebase γ
+
+
 initial-source-lookup : ∀ {Δ} {μ : ImpEnv Δ}
     {γ : GTI.CtxImp μ} {x A B p}
   → γ GTI.∋ⁱ x ⦂ GTI.ctx-imp A B p

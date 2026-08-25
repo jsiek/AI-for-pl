@@ -12,7 +12,7 @@ The canonical live two-context foundation now consists of:
 
 - `World` and `WorldInvariants`;
 - `SourceRebasePlan` and `SourceRebaseRequest`;
-- `CenterRenamePlan` and `TargetExtendPlan`;
+- `CenterRenamePlan` and `TargetExtend`;
 - `WorldEvolution`, its request producer, and its multi-step sequence;
 - trusted preservation over arbitrary term contexts.
 

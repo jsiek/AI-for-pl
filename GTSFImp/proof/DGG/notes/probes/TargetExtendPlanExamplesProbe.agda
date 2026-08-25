@@ -23,7 +23,7 @@ open import Consistency using (keep; skip; id↪ᵗ; toRenameᵗ)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ; _,ˢ_; ⇑ᵉᵗ)
 open import proof.DGG.World
-open import proof.DGG.TargetExtendPlan
+open import proof.DGG.TargetExtend
 
 
 empty-context : Ctx

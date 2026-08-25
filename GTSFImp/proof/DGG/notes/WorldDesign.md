@@ -48,7 +48,7 @@ term bindings, with exact endpoint lookup and variable leaves at any depth.
 `TwoCtxHonestifyEliminationProbe` proves directly that every target-unaligned
 center is already marked `X⊑★`; honestification is therefore the identity on
 the raw relation, not a world transformation.
-The live `TargetExtendPlan` checks fresh `★` and direct-alias target
+The live `TargetExtend` checks fresh `★` and direct-alias target
 insertion and reconstructs skipped, lifted, source-bound, and target-bound
 history while preserving direct lookup, embeddings, marks, and invariants.
 `TwoCtxTargetStripReconstructionProbe` checks that target stripping lowers the

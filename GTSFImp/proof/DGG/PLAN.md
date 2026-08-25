@@ -1195,7 +1195,7 @@ Honestification is therefore observationally and definitionally the identity:
 delete `honestifyʷ` and reuse the original world plus `directInvariantsᶜ`,
 rather than introducing another transformation plan.
 
-The live `TargetExtendPlan` checks structural target insertion from either a
+The live `TargetExtend` checks structural target insertion from either a
 fresh direct `★` entry or an exact fresh alias.  It reconstructs skip-center,
 lift-both, lift-left, bind-left, and bind-right history and proves source and
 target embedding, mark, direct target-lookup, and invariant laws.  Paired and

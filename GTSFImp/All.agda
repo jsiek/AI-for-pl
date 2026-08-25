@@ -41,7 +41,7 @@ import proof.DGG.WorldInvariants
 import proof.DGG.WorldEvolutionSequence
 import proof.DGG.ConversionPivotAlignment
 import proof.DGG.CenterRenamePlan
-import proof.DGG.TargetExtendPlan
+import proof.DGG.TargetExtend
 
 ------------------------------------------------------------------------
 -- Current frontier (M4/M5: catch-up lemmas, higher-order)
@@ -199,5 +199,4 @@ import proof.DGG.notes.probes.TwoCtxSimulationResultProbe
 import proof.DGG.CenterRename
 import proof.DGG.Occupancy
 import proof.DGG.WorldSupport
-import proof.DGG.TargetExtend
 import proof.DGG.TargetBindLift

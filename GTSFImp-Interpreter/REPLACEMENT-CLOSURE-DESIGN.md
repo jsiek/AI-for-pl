@@ -535,6 +535,69 @@ isomorphisms `Widening μ A B ≅ μ ⊢ A ⊑ B ≅ Narrowing μ B A`.
   (`narrowing→imprecision` in `LogicalRelation`) is applied to
   compile-time derivations, which are alias-free — unaffected.
 
+## Implementation log — kit removed from the reveal development
+(2026-08-25)
+
+Internalizing the kit turned on a structural question: the kit was
+being used *inside* the statements it would have to depend on, so
+proving it in place was circular.  The circularity is removed by
+building the assemblies' families by **precomposition** instead:
+
+* `UniWrap`/`UniWraps` now act on **both** endpoints (four indices:
+  source and target precise body, source and target imprecise type),
+  with `wrapTermᴾ` and `wrapTermᴵ`.  This was forced: the assemblies'
+  target values are wrapped on the imprecise side too, so a
+  precise-only sequence cannot express them.  The six constructors
+  are reveal/conceal at a paired slot (both endpoints), at a dynamic
+  slot (precise only) and at an inert paired slot (precise only, with
+  the non-occurrence witness).  `PairedSlot` and its accessors moved
+  to `LR-narrow/SlotSequence.agda` beside `DynamicSlot`, re-exported
+  from `RevealLifting`/`SlotLifting` so downstream imports are
+  unchanged.
+* `reveal-paired-family` and `conceal-paired-family`
+  (`RevealStructural.agda`) build the wrapped value's family by
+  precomposing the source value's stored family with the paired
+  wrapper, transporting along the lift/replace commutations
+  (`liftPreciseBody-replace`, `replace-imprecise-lift`) and the term
+  commutations (`lifted-reveal-precise`/`-imprecise`,
+  `lifted-conceal-precise`/`-imprecise`).  Phantomness of the chain
+  in its derivation index (`right-universals-phantom`) does the rest.
+* The two *absent* assemblies need no new machinery at all: their
+  targets are wrapped on the precise side only, which is exactly what
+  `precise-universal-value`/`precise-universal-conceal-value`
+  already produce, so their whole `at-every-index` collapses to one
+  call plus a `⊑-unique`-style reindex.
+
+Consequently **`RevealObligations` no longer mentions the kit**: the
+record is now exactly the four value-level `∀⊑∀` fields, all of them
+Finding-F.  The reveal development is free of the kit.
+
+### What is left of the kit
+
+`RightUniversalFamilyKit` survives only as an explicit argument of
+the *producers* (`proof/LR-narrow/Universal.agda` and
+`proof/LR-narrow/Fundamental.agda`), where the `Λ` introduction must
+supply a family for a value it built itself.  Discharging it needs
+the six one-step extensions in chain form:
+
+    endpoints + chain for (Vᴵ, Vᴾ) at (B, C)
+      → chain for (wrapTermᴵ₁ w Vᴵ, wrapTermᴾ₁ w Vᴾ) at (B′, C′)
+
+plus induction on the sequence, in a new module after
+`RevealStructural` that draws `Below` from the completed
+`statements-all` (no circularity remains, since the statements no
+longer mention the kit).
+
+The raw material already exists and typechecks: the paired
+extensions are precisely the `heads` of `reveal-right-universal` /
+`conceal-right-universal` (with `reveal-right-universal-head`/
+`-inner` and their conceal duals), and the dynamic and inert
+extensions are the `[]`-projections of `dyn-universal-value` and
+`precise-universal-value`.  Those functions are currently unused by
+the assemblies — they were kept deliberately for this purpose.  The
+one restatement needed is to take endpoints-plus-chain rather than a
+full value relation, since a bare chain carries no endpoints.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

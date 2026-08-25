@@ -18,7 +18,6 @@ open import Reduction using
   ( StoreChange
   ; StoreChanges
   ; applyStore
-  ; applyStores
   ; applyTy
   ; applyTys
   ; _—→[_]_
@@ -40,11 +39,12 @@ Simᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
   → γ ⊢² M ⊑ M′ ∶ p
   → M —→[ χᴸ ] N
   → Σ[ Δᴿ′ ∈ TyCtx ]
+    Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
     Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ N′ ∈ Term Δᴿ′ ]
     Σ[ γ′ ∈
       ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
-      ⟨ Δᴿ′ , applyStores χsᴿ Σᴿ , [] ⟩ ]
+      ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
     Σ[ q ∈ applyTy χᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTys χsᴿ B ]
       (M′ —↠[ χsᴿ ] N′)
       × MultiWorldEvolution

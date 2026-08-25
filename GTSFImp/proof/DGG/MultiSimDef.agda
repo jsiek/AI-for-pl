@@ -32,11 +32,12 @@ Sim*ᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
   → γ ⊢² M ⊑ M′ ∶ p
   → M —↠[ χsᴸ ] N
   → Σ[ Δᴿ′ ∈ TyCtx ]
+    Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
     Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
     Σ[ N′ ∈ Term Δᴿ′ ]
     Σ[ γ′ ∈
       ⟨ Δᴸ′ , applyStores χsᴸ Σᴸ , [] ⟩ ⊑ᶜ
-      ⟨ Δᴿ′ , applyStores χsᴿ Σᴿ , [] ⟩ ]
+      ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
     Σ[ q ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTys χsᴿ B ]
       (M′ —↠[ χsᴿ ] N′)
       × MultiWorldEvolution {W = γ} {W′ = γ′} χsᴸ χsᴿ

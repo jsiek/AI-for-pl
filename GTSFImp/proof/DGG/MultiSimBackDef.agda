@@ -16,8 +16,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Types using (Ty; TyCtx)
 open import TyStore using (TyStore)
 open import CastTerms using (Term; blame; ⟨_,_,_⟩)
-open import Reduction using
-  (StoreChanges; applyStores; applyTys; _—↠[_]_)
+open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
 open import proof.Reduction using (_++χ_)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.World
@@ -35,14 +34,16 @@ SimBack*ᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
   → γ ⊢² M ⊑ M′ ∶ p
   → M′ —↠[ χsᴿ ] N′
   → (Σ[ Δᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Δᴸ′ ]
       Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
       Σ[ N ∈ Term Δᴸ′ ]
       Σ[ Δᴿ″ ∈ TyCtx ]
+      Σ[ Σᴿ″ ∈ TyStore Δᴿ″ ]
       Σ[ ψsᴿ ∈ StoreChanges Δᴿ′ Δᴿ″ ]
       Σ[ N₂′ ∈ Term Δᴿ″ ]
       Σ[ γ′ ∈
-        ⟨ Δᴸ′ , applyStores χsᴸ Σᴸ , [] ⟩ ⊑ᶜ
-        ⟨ Δᴿ″ , applyStores ψsᴿ (applyStores χsᴿ Σᴿ) , [] ⟩ ]
+        ⟨ Δᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴿ″ , Σᴿ″ , [] ⟩ ]
       Σ[ q ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩
           applyTys ψsᴿ (applyTys χsᴿ B) ]
         (M —↠[ χsᴸ ] N)

@@ -23,6 +23,7 @@ import Reduction as R
 open R using (StoreChange; StoreChanges; []; _∷_)
 open import proof.TypeSafety.Preservation using
   (applyTermCtx; applyTermCtxs; applyTermCtxs-id; applyTermCtxs-step)
+open import proof.Reduction using (_++χ_)
 open import proof.DGG.World
 open import proof.DGG.WorldEvolution
 open import proof.DGG.WorldEvolutionProducer
@@ -131,6 +132,33 @@ multi-no-source-rebase : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
   → sourceRebaseCountᶜ W′ ≡ 0
 multi-no-source-rebase evol no-rebase =
   trans (multi-sourceRebaseCount evol) no-rebase
+
+
+composeMultiWorldEvolution : ∀
+    {Cᴸ Cᴿ Cᴸ¹ Cᴿ¹ Cᴸ² Cᴿ² : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W¹ : Cᴸ¹ ⊑ᶜ Cᴿ¹}
+    {W² : Cᴸ² ⊑ᶜ Cᴿ²}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ¹)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ¹)}
+    {ψsᴸ : StoreChanges (Δᵉ Cᴸ¹) (Δᵉ Cᴸ²)}
+    {ψsᴿ : StoreChanges (Δᵉ Cᴿ¹) (Δᵉ Cᴿ²)}
+  → MultiWorldEvolution {W = W} {W′ = W¹} χsᴸ χsᴿ
+  → MultiWorldEvolution {W = W¹} {W′ = W²} ψsᴸ ψsᴿ
+  → MultiWorldEvolution {W = W} {W′ = W²}
+      (χsᴸ ++χ ψsᴸ) (χsᴿ ++χ ψsᴿ)
+composeMultiWorldEvolution evolutions-refl second = second
+composeMultiWorldEvolution
+    (evolutions-step-left eqᴸ one tail) second =
+  evolutions-step-left eqᴸ one
+    (composeMultiWorldEvolution tail second)
+composeMultiWorldEvolution
+    (evolutions-step-right eqᴿ one tail) second =
+  evolutions-step-right eqᴿ one
+    (composeMultiWorldEvolution tail second)
+composeMultiWorldEvolution
+    (evolutions-step-both eqᴸ eqᴿ one tail) second =
+  evolutions-step-both eqᴸ eqᴿ one
+    (composeMultiWorldEvolution tail second)
 
 
 request-source-change : ∀

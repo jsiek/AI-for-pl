@@ -20,7 +20,6 @@ open import Reduction using
   ( StoreChange
   ; StoreChanges
   ; applyStore
-  ; applyStores
   ; applyTy
   ; applyTys
   ; _—→[_]_
@@ -42,10 +41,11 @@ SimBackᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
   → γ ⊢² M ⊑ M′ ∶ p
   → M′ —→[ χᴿ ] N′
   → (Σ[ Δᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Δᴸ′ ]
       Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
       Σ[ N ∈ Term Δᴸ′ ]
       Σ[ γ′ ∈
-        ⟨ Δᴸ′ , applyStores χsᴸ Σᴸ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
         ⟨ Δᴿ′ , applyStore χᴿ Σᴿ , [] ⟩ ]
       Σ[ q ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTy χᴿ B ]
         (M —↠[ χsᴸ ] N)

@@ -16,7 +16,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Types using (Ty; TyCtx)
 open import TyStore using (TyStore)
 open import CastTerms using (Term; Value; blame; ⟨_,_,_⟩)
-open import Reduction using (StoreChanges; applyStores; applyTys; _—↠[_]_)
+open import Reduction using (StoreChanges; applyTys; _—↠[_]_)
   renaming ([] to []ˢ)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.World
@@ -33,10 +33,11 @@ CatchupToLessPrecise = ∀ {Δᴸ Δᴿ : TyCtx}
   → γ ⊢² M ⊑ V′ ∶ p
   → Value V′
   → (Σ[ Δᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Δᴸ′ ]
       Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
       Σ[ V ∈ Term Δᴸ′ ]
       Σ[ γ′ ∈
-        ⟨ Δᴸ′ , applyStores χsᴸ Σᴸ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
         ⟨ Δᴿ , Σᴿ , [] ⟩ ]
       Σ[ q ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩ B ]
         (M —↠[ χsᴸ ] V)
@@ -44,9 +45,10 @@ CatchupToLessPrecise = ∀ {Δᴸ Δᴿ : TyCtx}
         × MultiWorldEvolution {W = γ} {W′ = γ′} χsᴸ []ˢ
         × (γ′ ⊢² V ⊑ V′ ∶ q))
     ⊎ (Σ[ Δᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Δᴸ′ ]
       Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
       Σ[ γ′ ∈
-        ⟨ Δᴸ′ , applyStores χsᴸ Σᴸ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
         ⟨ Δᴿ , Σᴿ , [] ⟩ ]
         (M —↠[ χsᴸ ] blame)
         × MultiWorldEvolution {W = γ} {W′ = γ′} χsᴸ []ˢ)

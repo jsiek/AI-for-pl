@@ -6,10 +6,12 @@ module alt.Conversion where
 --   * Provides type-directed shape generators and their typing proofs.
 --   * Depends only on Types: stores, anchors, and classifiers are node data.
 
+open import Data.Empty using (⊥-elim)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 import Data.Nat as Nat
-open import Relation.Binary.PropositionalEquality using (refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; cong; trans)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -27,6 +29,13 @@ punchIn zero Y = suc Y
 punchIn (suc X) zero = zero
 punchIn (suc X) (suc Y) = suc (punchIn X Y)
 
+punchOut : ∀ {n} (Y X : Fin (Nat.suc n)) → Y ≢ X → Fin n
+punchOut zero zero Y≢X = ⊥-elim (Y≢X refl)
+punchOut zero (suc X) Y≢X = X
+punchOut {n = Nat.suc n} (suc Y) zero Y≢X = zero
+punchOut {n = Nat.suc n} (suc Y) (suc X) Y≢X =
+  suc (punchOut Y X (λ Y≡X → Y≢X (cong suc Y≡X)))
+
 wkᵗ : ∀ {Δ} → Fin (Nat.suc Δ) → Ty Δ → Ty (Nat.suc Δ)
 wkᵗ X = renameᵗ (punchIn X)
 
@@ -42,6 +51,89 @@ replaceTy X R (‵ ι) = ‵ ι
 replaceTy X R ★ = ★
 replaceTy X R (A ⇒ B) = replaceTy X R A ⇒ replaceTy X R B
 replaceTy X R (`∀ A) = `∀ (replaceTy (suc X) (⇑ᵗ R) A)
+
+------------------------------------------------------------------------
+-- Resolving one scoped-variable slot
+------------------------------------------------------------------------
+
+-- Resolution removes Y and replaces it by the representation C.  This lives
+-- with insertion because telescope deletion and the dynamic rules share the
+-- same scoped substitution.
+
+private
+  resolved-punchIn≢ : ∀ {n} (Y : Fin (Nat.suc n)) (X : Fin n)
+    → Y ≢ punchIn Y X
+  resolved-punchIn≢ zero X ()
+  resolved-punchIn≢ (suc Y) zero ()
+  resolved-punchIn≢ (suc Y) (suc X) eq =
+    resolved-punchIn≢ Y X (suc-injective eq)
+    where
+    suc-injective : ∀ {m} {Z W : Fin m} → suc Z ≡ suc W → Z ≡ W
+    suc-injective refl = refl
+
+  resolved-punchOut-punchIn : ∀ {n} (Y : Fin (Nat.suc n))
+      (X : Fin n)
+      (Y≢X : Y ≢ punchIn Y X)
+    → punchOut Y (punchIn Y X) Y≢X ≡ X
+  resolved-punchOut-punchIn zero X Y≢X = refl
+  resolved-punchOut-punchIn (suc Y) zero Y≢X = refl
+  resolved-punchOut-punchIn (suc Y) (suc X) Y≢X =
+    cong suc (resolved-punchOut-punchIn Y X _)
+
+  punchIn-resolved-punchOut : ∀ {n} (Y X : Fin (Nat.suc n))
+      (Y≢X : Y ≢ X)
+    → punchIn Y (punchOut Y X Y≢X) ≡ X
+  punchIn-resolved-punchOut zero zero Y≢X = ⊥-elim (Y≢X refl)
+  punchIn-resolved-punchOut zero (suc X) Y≢X = refl
+  punchIn-resolved-punchOut {n = Nat.suc n} (suc Y) zero Y≢X = refl
+  punchIn-resolved-punchOut {n = Nat.suc n} (suc Y) (suc X) Y≢X =
+    cong suc (punchIn-resolved-punchOut Y X _)
+
+resolveSubᵗ : ∀ {Δ} → TyVar (Nat.suc Δ) → Ty Δ → Nat.suc Δ ⇒ˢ Δ
+resolveSubᵗ Y C X with Y ≟ X
+resolveSubᵗ Y C .Y | yes refl = C
+resolveSubᵗ Y C X | no Y≢X = ＇ punchOut Y X Y≢X
+
+resolveSub-punchIn : ∀ {Δ} (Y : TyVar (Nat.suc Δ)) (C : Ty Δ)
+    (X : TyVar Δ)
+  → resolveSubᵗ Y C (punchIn Y X) ≡ ＇ X
+resolveSub-punchIn Y C X with Y ≟ punchIn Y X
+resolveSub-punchIn Y C X | yes eq =
+  ⊥-elim (resolved-punchIn≢ Y X eq)
+resolveSub-punchIn Y C X | no Y≢X
+    rewrite resolved-punchOut-punchIn Y X Y≢X =
+  refl
+
+resolveSub-here : ∀ {Δ} (Y : TyVar (Nat.suc Δ)) (C : Ty Δ)
+  → resolveSubᵗ Y C Y ≡ C
+resolveSub-here Y C with Y ≟ Y
+resolveSub-here Y C | yes refl = refl
+resolveSub-here Y C | no Y≢Y = ⊥-elim (Y≢Y refl)
+
+resolveSub-reembed : ∀ {Δ} (Y : TyVar (Nat.suc Δ)) (C : Ty Δ)
+    (X : TyVar (Nat.suc Δ))
+  → renameᵗ (punchIn Y) (resolveSubᵗ Y C X)
+    ≡ replaceTy Y (wkᵗ Y C) (＇ X)
+resolveSub-reembed Y C X with Y ≟ X
+resolveSub-reembed Y C .Y | yes refl = refl
+resolveSub-reembed Y C X | no Y≢X
+    rewrite punchIn-resolved-punchOut Y X Y≢X =
+  refl
+
+resolveSub-ext : ∀ {Δ} (Y : TyVar (Nat.suc Δ)) (C : Ty Δ)
+    (X : TyVar (Nat.suc (Nat.suc Δ)))
+  → resolveSubᵗ (suc Y) (⇑ᵗ C) X ≡ extsᵗ (resolveSubᵗ Y C) X
+resolveSub-ext Y C zero = refl
+resolveSub-ext Y C (suc X) with Y ≟ X
+resolveSub-ext Y C (suc .Y) | yes refl = refl
+resolveSub-ext Y C (suc X) | no Y≢X = refl
+
+resolve-wkᵗ : ∀ {Δ} (Y : TyVar (Nat.suc Δ)) (C A : Ty Δ)
+  → substᵗ (resolveSubᵗ Y C) (wkᵗ Y A) ≡ A
+resolve-wkᵗ Y C A =
+  trans (substᵗ-rename (resolveSubᵗ Y C) (punchIn Y) A)
+    (trans (substᵗ-cong A (resolveSub-punchIn Y C))
+      (substᵗ-id A))
 
 ------------------------------------------------------------------------
 -- Raw conversion shapes

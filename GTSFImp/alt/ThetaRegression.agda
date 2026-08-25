@@ -4,8 +4,8 @@ module alt.ThetaRegression where
 --   * Checks the counterexample that previously blocked literal type weakening,
 --     term substitution, and preservation of the right-application float.
 --   * The ambient telescope ends in an anchor whose representation mentions
---     the slot concealed by `sealed-seven`; total deletion makes that anchor
---     opaque while retaining the older natural-number representation.
+--     the slot concealed by `sealed-seven`; resolving deletion substitutes
+--     the older natural-number representation into that later anchor.
 --   * Exhibits the conceal typing derivation, a chained ν-headed result, its
 --     `float-·₂` step, and concrete typings for both sides of that step.
 
@@ -31,7 +31,7 @@ sealed-seven = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal
 
 sealed-seven-⊢ : Ψ₂ ∣ [] ⊢ sealed-seven ⦂ ＇ zero
 sealed-seven-⊢ =
-  ⊢conceal (skip-visible-typ here-typ) (skip-opaque Z)
+  ⊢conceal (skip-visible-typ here-typ) (S Z)
     ⊢seal (⊢$ (κℕ 7))
 
 g : Term 2 1

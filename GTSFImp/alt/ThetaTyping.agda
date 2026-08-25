@@ -21,10 +21,9 @@ open import Data.Empty using (⊥-elim)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
-open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality
-  using (_≢_; refl; cong; sym)
+  using (_≡_; _≢_; refl; cong; sym)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -45,7 +44,6 @@ private
 
 infixl 5 _,typ[_≔_] _,typ
 infixl 5 _,:=_
-infixl 5 _,opaque
 
 data TyEnv : AnchorCtx → TyCtx → Set where
   ∅ : TyEnv zero zero
@@ -53,8 +51,13 @@ data TyEnv : AnchorCtx → TyCtx → Set where
     → TyEnv Θ (suc Δ)
   _,typ : TyEnv Θ Δ → TyEnv Θ (suc Δ)
   _,:=_ : TyEnv Θ Δ → Ty Δ → TyEnv (suc Θ) Δ  -- anchor bound by a ν
-  _,opaque : TyEnv Θ Δ → TyEnv (suc Θ) Δ
-    -- The anchor exists, but its representation is not expressible here.
+
+anchorRep : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → Ty Δ
+anchorRep ∅ ()
+anchorRep (Ψ ,typ[ Y ≔ β ]) α = wkᵗ Y (anchorRep Ψ α)
+anchorRep (Ψ ,typ) α = ⇑ᵗ (anchorRep Ψ α)
+anchorRep (Ψ ,:= A) zero = A
+anchorRep (Ψ ,:= A) (suc α) = anchorRep Ψ α
 
 private
   variable
@@ -76,11 +79,6 @@ data _∋_:=_ : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
       ----------------------
     → (Ψ ,:= B) ∋ suc a := A
 
-  skip-opaque :
-      Ψ ∋ a := A
-      ----------------------
-    → (Ψ ,opaque) ∋ suc a := A
-
   skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a} {A : Ty Δ}
       {Y : TyVar (suc Δ)} {β : TyVar Θ}
     → Ψ ∋ a := A
@@ -91,6 +89,26 @@ data _∋_:=_ : ∀ {Θ Δ} → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
     → Ψ ∋ a := A
       ------------------------
     → (Ψ ,typ) ∋ a := ⇑ᵗ A
+
+anchorRep∈ : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ) (α : TyVar Θ)
+  → Ψ ∋ α := anchorRep Ψ α
+anchorRep∈ ∅ ()
+anchorRep∈ (Ψ ,typ[ Y ≔ β ]) α = skip-typ (anchorRep∈ Ψ α)
+anchorRep∈ (Ψ ,typ) α = skip-lexical (anchorRep∈ Ψ α)
+anchorRep∈ (Ψ ,:= A) zero = Z
+anchorRep∈ (Ψ ,:= A) (suc α) = S (anchorRep∈ Ψ α)
+
+anchor-lookup-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {α : TyVar Θ} {A B : Ty Δ}
+  → Ψ ∋ α := A
+  → Ψ ∋ α := B
+  → A ≡ B
+anchor-lookup-unique Z Z = refl
+anchor-lookup-unique (S A∈) (S B∈) = anchor-lookup-unique A∈ B∈
+anchor-lookup-unique (skip-typ A∈) (skip-typ B∈) =
+  cong (wkᵗ _) (anchor-lookup-unique A∈ B∈)
+anchor-lookup-unique (skip-lexical A∈) (skip-lexical B∈) =
+  cong ⇑ᵗ (anchor-lookup-unique A∈ B∈)
 
 infix 4 _∋typ_≔_
 
@@ -120,58 +138,49 @@ data _∋typ_≔_ : ∀ {Θ Δ}
       --------------------------------
     → (Ψ ,:= A) ∋typ Y ≔ suc α
 
-  skip-opaque-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {Y : TyVar Δ} {α : TyVar Θ}
-    → Ψ ∋typ Y ≔ α
-      ---------------------------------
-    → (Ψ ,opaque) ∋typ Y ≔ suc α
-
 ------------------------------------------------------------------------
 -- Total regular-slot deletion
 ------------------------------------------------------------------------
 
--- `punchOut Y X` removes Y from a different slot X.  Its proof argument is
--- what makes the result total even in the empty predecessor context.
+record DeleteView (Θ Δ : ℕ) : Set where
+  constructor delete-view
+  field
+    deletedEnv : TyEnv Θ Δ
+    deletedRep : Ty Δ
 
-punchOut : ∀ {n} (Y X : Fin (suc n)) → Y ≢ X → Fin n
-punchOut zero zero Y≢X = ⊥-elim (Y≢X refl)
-punchOut zero (suc X) Y≢X = X
-punchOut {n = suc n} (suc Y) zero Y≢X = zero
-punchOut {n = suc n} (suc Y) (suc X) Y≢X =
-  suc (punchOut Y X (λ Y≡X → Y≢X (cong suc Y≡X)))
+open DeleteView
 
--- Strengthening is deliberately executable.  A representation mentioning Y
--- cannot be expressed after Y is deleted and therefore yields `nothing`.
+-- reveal is opaque on the inside and knowledge on the outside; conceal is the dual — the conceal's subterm is instantiator-world material, which rightfully knows the representation.
+-- The worker carries that representation outward.  Retained slot entries lift
+-- it; later anchors resolve the deleted slot through it.  The lexical-zero
+-- branch is junk-total at `★`: `_∋typ_≔_` has deliberately no constructor
+-- selecting a lexical binder, so no typed conceal can observe that branch.
 
-strengthenᵗ? : ∀ {Δ} → TyVar (suc Δ) → Ty (suc Δ) → Maybe (Ty Δ)
-strengthenᵗ? Y (＇ X) with Y ≟ X
-strengthenᵗ? Y (＇ .Y) | yes refl = nothing
-strengthenᵗ? Y (＇ X) | no Y≢X = just (＇ punchOut Y X Y≢X)
-strengthenᵗ? Y (‵ ι) = just (‵ ι)
-strengthenᵗ? Y ★ = just ★
-strengthenᵗ? Y (A ⇒ B) with strengthenᵗ? Y A
-strengthenᵗ? Y (A ⇒ B) | nothing = nothing
-strengthenᵗ? Y (A ⇒ B) | just A′ with strengthenᵗ? Y B
-strengthenᵗ? Y (A ⇒ B) | just A′ | nothing = nothing
-strengthenᵗ? Y (A ⇒ B) | just A′ | just B′ = just (A′ ⇒ B′)
-strengthenᵗ? Y (`∀ A) with strengthenᵗ? (suc Y) A
-strengthenᵗ? Y (`∀ A) | nothing = nothing
-strengthenᵗ? Y (`∀ A) | just A′ = just (`∀ A′)
+deleteSlot : ∀ {Θ Δ} → TyEnv Θ (suc Δ) → TyVar (suc Δ)
+  → DeleteView Θ Δ
+deleteSlot (Ψ ,:= A) Y with deleteSlot Ψ Y
+deleteSlot (Ψ ,:= A) Y | delete-view Φ C =
+  delete-view (Φ ,:= substᵗ (resolveSubᵗ Y C) A) C
+deleteSlot { Δ = zero } (Ψ ,typ[ zero ≔ α ]) zero =
+  delete-view Ψ (anchorRep Ψ α)
+deleteSlot { Δ = suc Δ } (Ψ ,typ[ z ≔ α ]) y with z ≟ y
+deleteSlot { Δ = suc Δ } (Ψ ,typ[ .y ≔ α ]) y | yes refl =
+  delete-view Ψ (anchorRep Ψ α)
+deleteSlot { Δ = suc Δ } (Ψ ,typ[ z ≔ α ]) y | no z≢y
+    with deleteSlot Ψ (punchOut z y z≢y)
+deleteSlot { Δ = suc Δ } (Ψ ,typ[ z ≔ α ]) y | no z≢y
+    | delete-view Φ C =
+  delete-view
+    (Φ ,typ[ punchOut y z (λ y≡z → z≢y (sym y≡z)) ≔ α ])
+    (wkᵗ (punchOut y z (λ y≡z → z≢y (sym y≡z))) C)
+deleteSlot (Ψ ,typ) zero = delete-view Ψ ★
+deleteSlot { Δ = suc Δ } (Ψ ,typ) (suc Y) with deleteSlot Ψ Y
+deleteSlot { Δ = suc Δ } (Ψ ,typ) (suc Y) | delete-view Φ C =
+  delete-view (Φ ,typ) (⇑ᵗ C)
 
 infixl 6 _∖_
 _∖_ : ∀ {Θ Δ} → TyEnv Θ (suc Δ) → TyVar (suc Δ) → TyEnv Θ Δ
-(Ψ ,:= A) ∖ Y with strengthenᵗ? Y A
-(Ψ ,:= A) ∖ Y | just C = (Ψ ∖ Y) ,:= C
-(Ψ ,:= A) ∖ Y | nothing = (Ψ ∖ Y) ,opaque
-(Ψ ,opaque) ∖ Y = (Ψ ∖ Y) ,opaque
-_∖_ {Δ = zero} (Ψ ,typ[ zero ≔ α ]) zero = Ψ
-_∖_ {Δ = suc Δ} (Ψ ,typ[ z ≔ α ]) y with z ≟ y
-_∖_ {Δ = suc Δ} (Ψ ,typ[ .y ≔ α ]) y | yes refl = Ψ
-_∖_ {Δ = suc Δ} (Ψ ,typ[ z ≔ α ]) y | no z≢y =
-  (Ψ ∖ punchOut z y z≢y)
-    ,typ[ punchOut y z (λ y≡z → z≢y (sym y≡z)) ≔ α ]
-_∖_ (Ψ ,typ) zero = Ψ
-_∖_ {Δ = suc Δ} (Ψ ,typ) (suc Y) = (Ψ ∖ Y) ,typ
+Ψ ∖ Y = deletedEnv (deleteSlot Ψ Y)
 
 ------------------------------------------------------------------------
 -- Typing

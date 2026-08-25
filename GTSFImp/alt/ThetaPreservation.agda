@@ -21,10 +21,10 @@ module alt.ThetaPreservation where
 --   * The former slot-dependent `β-conceal-∀` obstruction is retained as
 --     a resolved regression.  The contractum resolves its instantiation and
 --     computed source in the deleted view, then seals the result on exit.
---   * Closed preservation nevertheless remains false at `β-conceal-⇒`:
---     deleting a nonterminal crossing can make a later slot-dependent anchor
---     opaque, so the value moved into the deleted view is no longer typable.
---     A checked closed counterexample records that independent obstruction.
+--   * Resolving deletion makes the former `β-conceal-⇒` counterexample's
+--     contractum typable.  The assembler case remains deliberately parked:
+--     whether region-interior material may acquire that representation
+--     knowledge is a pending direction decision, not a proof-engineering one.
 --   * `float-reveal` has the dual fresh-anchor obstruction: a slot-dependent
 --     representation below the floated region is not resolved when the
 --     region crosses the reveal.  Its checked closed counterexample is also
@@ -35,9 +35,8 @@ import Data.Fin as Fin
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
-open import Data.Maybe using (just; nothing)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
   renaming (subst to subst≡)
@@ -330,118 +329,6 @@ terminal-anchor : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
 terminal-anchor here-typ refl = refl
 terminal-anchor (skip-cross-typ {Y = Y} Y∈) eq =
   ⊥-elim (punchIn≢ _ Y (sym eq))
-
-anchor-lookup-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {α : TyVar Θ} {A B : Ty Δ}
-  → Ψ ∋ α := A
-  → Ψ ∋ α := B
-  → A ≡ B
-anchor-lookup-unique Z Z = refl
-anchor-lookup-unique (S A∈) (S B∈) = anchor-lookup-unique A∈ B∈
-anchor-lookup-unique (skip-opaque A∈) (skip-opaque B∈) =
-  anchor-lookup-unique A∈ B∈
-anchor-lookup-unique (skip-typ {Y = Y} A∈) (skip-typ B∈) =
-  cong (wkᵗ Y) (anchor-lookup-unique A∈ B∈)
-anchor-lookup-unique (skip-lexical A∈) (skip-lexical B∈) =
-  cong (renameᵗ suc) (anchor-lookup-unique A∈ B∈)
-
-visible-lookup-inv : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {α : TyVar Θ} {A B : Ty Δ}
-  → (Ψ ,:= B) ∋ suc α := A
-  → Ψ ∋ α := A
-visible-lookup-inv (S α∈) = α∈
-
-opaque-lookup-inv : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {α : TyVar Θ} {A : Ty Δ}
-  → (Ψ ,opaque) ∋ suc α := A
-  → Ψ ∋ α := A
-opaque-lookup-inv (skip-opaque α∈) = α∈
-
-typ-lookup-inv : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {Z : TyVar (suc Δ)} {β α : TyVar Θ} {C : Ty (suc Δ)}
-  → (Ψ ,typ[ Z ≔ β ]) ∋ α := C
-  → ∃[ A ] (Ψ ∋ α := A × C ≡ wkᵗ Z A)
-typ-lookup-inv (skip-typ α∈) = _ , α∈ , refl
-
-crossedSlot : ∀ {Δ}
-  → (Z : TyVar (suc (suc Δ)))
-  → TyVar (suc Δ)
-  → TyVar (suc Δ)
-crossedSlot z y =
-  punchOut (punchIn z y) z (λ eq → punchIn≢ z y (sym eq))
-
-punch-crossing-exchange : ∀ {Δ}
-    (Z : TyVar (suc (suc Δ))) (Y : TyVar (suc Δ))
-    (W : TyVar Δ)
-  → punchIn Z (punchIn Y W)
-    ≡ punchIn (punchIn Z Y) (punchIn (crossedSlot Z Y) W)
-punch-crossing-exchange zero y w = refl
-punch-crossing-exchange (suc z) zero w = refl
-punch-crossing-exchange {Δ = suc Δ} (suc z) (suc y) zero = refl
-punch-crossing-exchange {Δ = suc Δ} (suc z) (suc y) (suc w) =
-  cong suc (punch-crossing-exchange z y w)
-
-wk-crossing-exchange : ∀ {Δ}
-    (Z : TyVar (suc (suc Δ))) (Y : TyVar (suc Δ)) (A : Ty Δ)
-  → wkᵗ Z (wkᵗ Y A)
-    ≡ wkᵗ (punchIn Z Y) (wkᵗ (crossedSlot Z Y) A)
-wk-crossing-exchange z y A =
-  trans (renameᵗ-comp (punchIn y) (punchIn z) A)
-    (trans (renameᵗ-cong A (punch-crossing-exchange z y))
-      (sym (renameᵗ-comp (punchIn (crossedSlot z y))
-        (punchIn (punchIn z y)) A)))
-
-crossing-lookup-agrees : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-    {X : TyVar (suc Δ)} {α : TyVar Θ}
-    {R : Ty (suc Δ)} {C : Ty Δ}
-  → Ψ ∋typ X ≔ α
-  → Ψ ∋ α := R
-  → (Ψ ∖ X) ∋ α := C
-  → R ≡ wkᵗ X C
-crossing-lookup-agrees
-    (here-typ {Ψ = Ψ} {Y = X} {α = α})
-    (skip-typ ambient∈) deleted∈
-    rewrite ∖-typ-here Ψ X α =
-  cong (wkᵗ X) (anchor-lookup-unique ambient∈ deleted∈)
-crossing-lookup-agrees
-    {Δ = suc Δ}
-    (skip-cross-typ {Ψ = Ψ} {Y = y} {Z = z} {β = γ} slot∈)
-    (skip-typ ambient∈) deleted∈
-    with typ-lookup-inv
-      (subst≡ (λ Φ → Φ ∋ _ := _) env-eq deleted∈)
-  where
-  z≢old = punchIn≢ z y
-  old≢z = λ eq → z≢old (sym eq)
-  env-eq = trans
-    (∖-typ-other Ψ z (punchIn z y) γ z≢old old≢z)
-    (cong (λ W → (Ψ ∖ W) ,typ[ crossedSlot z y ≔ γ ])
-      (punchOut-punchIn z y z≢old))
-crossing-lookup-agrees
-    {Δ = suc Δ}
-    (skip-cross-typ {Y = y} {Z = z} slot∈)
-    (skip-typ ambient∈) deleted∈ | D , deleted-base∈ , refl =
-  trans (cong (wkᵗ z)
-      (crossing-lookup-agrees slot∈ ambient∈ deleted-base∈))
-    (wk-crossing-exchange z y D)
-crossing-lookup-agrees (skip-lexical-typ {Y = Y} slot∈)
-    (skip-lexical ambient∈) (skip-lexical deleted∈) =
-  trans (cong ⇑ᵗ
-      (crossing-lookup-agrees slot∈ ambient∈ deleted∈))
-    (wk-exchange Y _)
-crossing-lookup-agrees
-    (skip-visible-typ {Y = X} {A = A} slot∈)
-    ambient∈ deleted∈ with strengthenᵗ? X A
-crossing-lookup-agrees (skip-visible-typ {Y = X} slot∈)
-    ambient∈ deleted∈ | just D =
-  crossing-lookup-agrees slot∈
-    (visible-lookup-inv ambient∈) (visible-lookup-inv deleted∈)
-crossing-lookup-agrees (skip-visible-typ {Y = X} slot∈)
-    ambient∈ deleted∈ | nothing =
-  crossing-lookup-agrees slot∈
-    (visible-lookup-inv ambient∈) (opaque-lookup-inv deleted∈)
-crossing-lookup-agrees (skip-opaque-typ slot∈)
-    (skip-opaque ambient∈) (skip-opaque deleted∈) =
-  crossing-lookup-agrees slot∈ ambient∈ deleted∈
 
 ------------------------------------------------------------------------
 -- Preservation cases: computational rules
@@ -1049,15 +936,15 @@ preserve-float-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
     {B : Ty (suc Δ)}
   → Ψ ∣ [] ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c ⦂ B
   → Ψ ∣ [] ⊢ ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c) ⦂ B
-preserve-float-conceal {Ψ = Ψ} {A = A} {Y = Y}
-    (⊢conceal slot∈ α∈ c⊢ (⊢ν M⊢)) =
+preserve-float-conceal {Ψ = Ψ} {A = A} {M = M} {Y = Y} {α = α}
+    (⊢conceal {A = D} {C = C} slot∈ α∈ c⊢ (⊢ν M⊢)) =
   ⊢ν (⊢conceal (skip-visible-typ slot∈) target-α∈ c⊢ target-M⊢)
   where
   env-eq = ∖-:=wk Ψ Y A
   target-α∈ =
-    subst≡ (λ Φ → Φ ∋ suc _ := _) (sym env-eq) (S α∈)
+    subst≡ (λ Φ → Φ ∋ suc α := C) (sym env-eq) (S α∈)
   target-M⊢ =
-    subst≡ (λ Φ → Φ ∣ [] ⊢ _ ⦂ _) (sym env-eq) M⊢
+    subst≡ (λ Φ → Φ ∣ [] ⊢ M ⦂ D) (sym env-eq) M⊢
 
 preserve-float-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ} {op}
@@ -1212,7 +1099,7 @@ conceal-var-contractum-⊢ =
   preserve-β-conceal-∀ Z conceal-var-redex-⊢
 
 ------------------------------------------------------------------------
--- Nonterminal-crossing obstruction for `β-conceal-⇒`
+-- Resolved-view regression for `β-conceal-⇒`
 ------------------------------------------------------------------------
 
 conceal-arrow-base : TyEnv (suc zero) zero
@@ -1231,7 +1118,7 @@ conceal-arrow-V = ƛ conceal-arrow-P ˙ ($ (κℕ 0))
 conceal-arrow-V-value : Value conceal-arrow-V
 conceal-arrow-V-value = ƛ conceal-arrow-P ˙ ($ (κℕ 0))
 
-conceal-arrow-V-⊢ : conceal-arrow-base ,opaque ∣ [] ⊢
+conceal-arrow-V-⊢ : conceal-arrow-base ,:= ‵ `ℕ ∣ [] ⊢
   conceal-arrow-V ⦂ conceal-arrow-P ⇒ ‵ `ℕ
 conceal-arrow-V-⊢ = ⊢ƛ (⊢$ (κℕ 0))
 
@@ -1258,7 +1145,7 @@ conceal-arrow-redex-⊢ : conceal-arrow-Ψ ∣ [] ⊢
   conceal-arrow-redex ⦂ ‵ `ℕ
 conceal-arrow-redex-⊢ =
   ⊢·
-    (⊢conceal (skip-visible-typ here-typ) (skip-opaque Z)
+    (⊢conceal (skip-visible-typ here-typ) (S Z)
       (⊢↓-⇒ (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢id↓ (‵ `ℕ)))
       conceal-arrow-V-⊢)
     conceal-arrow-W-⊢
@@ -1274,27 +1161,47 @@ conceal-arrow-step : conceal-arrow-Ψ ⊢ conceal-arrow-redex —→
 conceal-arrow-step =
   β-conceal-⇒ conceal-arrow-V-value conceal-arrow-W-value
 
-conceal-arrow-contractum-untypable :
+conceal-arrow-contractum-⊢ :
   conceal-arrow-Ψ ∣ [] ⊢ conceal-arrow-contractum ⦂ ‵ `ℕ
-  → ⊥
-conceal-arrow-contractum-untypable
-    (⊢conceal slot∈ α∈ d⊢
-      (⊢· V⊢ (⊢reveal outer∈ c⊢
-        (⊢reveal (skip-typ ()) inner-c⊢ inner⊢))))
-
-closed-preserve-conceal-arrow-impossible :
-  (∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ} {A}
-    → Ψ ∣ [] ⊢ M ⦂ A
-    → Ψ ⊢ M —→ M′
-    → Ψ ∣ [] ⊢ M′ ⦂ A)
-  → ⊥
-closed-preserve-conceal-arrow-impossible preserve =
-  conceal-arrow-contractum-untypable
-    (preserve conceal-arrow-redex-⊢ conceal-arrow-step)
+conceal-arrow-contractum-⊢ =
+  ⊢conceal (skip-visible-typ here-typ) (S Z) (⊢id↓ (‵ `ℕ))
+    (⊢· conceal-arrow-V-⊢
+      (⊢reveal (S Z) (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
+        (⊢reveal (skip-typ Z) (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
+          (⊢Λ (⊢$ (κℕ 1))))))
 
 ------------------------------------------------------------------------
 -- Slot-dependent fresh-anchor obstruction for `float-reveal`
 ------------------------------------------------------------------------
+
+-- Direction-audit record, stated without relying on the definitions below.
+-- Let
+--
+--   Ψ₀ = ∅ ,:= ℕ
+--   M  = (λ x : ＇X. 0) ↑[ X ≔ α ] (seal ↦↑ id↑).
+--
+-- At the concrete de Bruijn indices used below, the inner configuration is
+--
+--   ((Ψ₀ ,typ[ zero ≔ zero ]) ,:= ＇zero) ∣ [] ⊢
+--     M ⦂ ＇zero ⇒ ℕ.
+--
+-- Consequently the closed redex and its operational step are exactly
+--
+--   Ψ₀ ∣ [] ⊢
+--     (ν[ ＇zero ] M) ↑[ zero ≔ zero ] (seal ↦↑ id↑)
+--       ⦂ ℕ ⇒ ℕ
+--
+--   Ψ₀ ⊢
+--     (ν[ ＇zero ] M) ↑[ zero ≔ zero ] (seal ↦↑ id↑)
+--       —→ ν[ ℕ ] (M ↑[ zero ≔ suc zero ] (seal ↦↑ id↑)).
+--
+-- Typing that contractum would make the outer and inner `seal` conversions
+-- share one source.  The outer conversion forces it to `ℕ`, while the
+-- retained inner conversion forces it to `＇(suc zero)` in `Ty 2`.  Thus the
+-- precise failing obligation is `＇(suc zero) ≡ ℕ`, discharged below by
+-- the empty pattern.  The pending audit is directional: should floating the
+-- region across reveal resolve that slot-dependent fresh-anchor
+-- representation, or should the rule remain forbidden for this shape?
 
 float-reveal-bad-Ψ : TyEnv (suc zero) zero
 float-reveal-bad-Ψ = ∅ ,:= ‵ `ℕ

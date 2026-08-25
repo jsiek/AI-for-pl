@@ -10,7 +10,9 @@ module LR-narrow.UniversalFamily where
 --     obligation-parameterized reveal development, where its value is
 --     constructed.  See REPLACEMENT-CLOSURE-DESIGN.md.
 
-open import Data.Nat using (ℕ; suc)
+open import Data.Nat using (ℕ; suc; _≤_)
+import Data.Fin as Fin
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types
 open import CastTerms
@@ -19,14 +21,35 @@ open import LR-narrow.World
 open import LR-narrow.SlotSequence
 open import LR-narrow.LogicalRelation
 
+-- The clause data of a right-universal value with the stored family
+-- replaced by a bare instantiation chain: exactly what a producer of
+-- such a value can establish directly, and what the wrapper
+-- extensions consume and produce.
+
+record RightUniversalData {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+    (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
+    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
+    (Bᴾ : Ty (suc Δᴾ)) (Bᴵ : Ty Δᴵ) (k : ℕ)
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+  constructor universal-data
+  field
+    data-endpoints : TypedEndpoints W (I.∀⊑ nonvar occurs p₀) Vᴵ Vᴾ
+    data-embedᴾ : embedPrecise (core W) (`∀ Bᴾ) ≡ `∀ Ac
+    data-embedᴵ : embedImprecise (core W) Bᴵ ≡ Bc
+    data-chain : RightUniversalsRelated W p₀ Bᴾ Bᴵ k Vᴵ Vᴾ
+
+open RightUniversalData public
+
 record RightUniversalFamilyKit : Set₁ where
   field
     to-family : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
-        {Aᴾ Aᴵ : Ty (suc Δᶜ)}
-        {p : I.instᵐ (impEnv (core W)) I.⊢ Aᴾ ⊑ Aᴵ}
         {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {k : ℕ}
         {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-      → RightUniversalsRelated W p Bᴾ Bᴵ k Vᴵ Vᴾ
-      → RightUniversalFamily W p Bᴾ Bᴵ k Vᴵ Vᴾ
+        {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+        {nonvar : NonVar Ac} {occurs : Fin.zero ∈ᵗ Ac}
+        {p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc}
+      → RightUniversalData W nonvar occurs p₀ Bᴾ Bᴵ k Vᴵ Vᴾ
+      → RightUniversalFamily W p₀ Bᴾ Bᴵ k Vᴵ Vᴾ
 
 open RightUniversalFamilyKit public

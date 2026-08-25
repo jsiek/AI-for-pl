@@ -2169,7 +2169,7 @@ reveal-right-universal-inner : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δ
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ nonvar occurs p₀) (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvar occurs p₀ B₀ᴾ Bᴵ (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -2198,28 +2198,11 @@ reveal-right-universal-inner : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δ
               (liftPreciseBody W≼W′ B₀ᴾ) 〗)
 reveal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    with proj₂ related
-reveal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | Bᴾ* , Bᴵ* , embP , embI , chain
-    with ty-all-injective
-           (renameᵗ-injective
-             (toRenameᵗ-injective (preciseEmbedding (core W)))
-             (trans embP (sym sourceᴾ)))
-       | renameᵗ-injective
-           (toRenameᵗ-injective (impreciseEmbedding (core W)))
-           (trans embI (sym sourceᴵ))
-reveal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | .B₀ᴾ , .Bᴵ , embP , embI , chain
-    | refl | refl = final
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
+    W′ W≼W′ Rᴾ r★ t = final
   where
+  chain = data-chain dat
+
   Wb = preciseBindWorld W′ Rᴾ r★
 
   W≼Wb : Future W Wb
@@ -2293,7 +2276,7 @@ reveal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         ⦂∀ liftPreciseBody W≼Wb B₀ᴾ [ ＇ Fin.zero ])
   core-related = right-universals-head {W = W} {p = p₀} {Bᴾ = B₀ᴾ}
     {Bᴵ = Bᴵ} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl (chain (future-refl {W = W}) [])
+    k ≤-refl chain
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -2476,7 +2459,7 @@ reveal-right-universal-head : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δ�
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ nonvar occurs p₀) (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvar occurs p₀ B₀ᴾ Bᴵ (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -2498,7 +2481,7 @@ reveal-right-universal-head : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δ�
           [ Rᴾ ])
 reveal-right-universal-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     nonvar occurs p₀ sourceᴾ sourceᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t =
   ClosureProof.computations-related-post-bind-reindex t t
     refl refl (sym imprecise-redex-eq) (sym precise-redex-eq)
@@ -2553,16 +2536,14 @@ reveal-right-universal-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       with reveal-type-app-step-question
              {Σ = preciseStore (core W′)} {A = Rᴾ} cᴾ vVᴾ′
     where
-    endpoints = ClosureProof.value-imprecision-endpoints
-      {W = W} {p = I.∀⊑ nonvar occurs p₀} {k = suc k}
-      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    endpoints = data-endpoints dat
     vVᴾ′ = ClosureProof.precise-value-future W≼W′
       (precise-value endpoints)
   stepped | vVᴾ″ , step-eqᴾ =
     related-precise-bind-step-expand (λ ()) refl
       (β-reveal-∀ vVᴾ″) step-eqᴾ
       (reveal-right-universal-inner W s nonvar occurs p₀
-        sourceᴾ sourceᴵ below size< related W′ W≼W′ Rᴾ r★ t)
+        sourceᴾ sourceᴵ below size< dat W′ W≼W′ Rᴾ r★ t)
 
 -- The value relation of a revealed right-universal value.
 
@@ -2609,24 +2590,6 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     (imprecise-value endpoints ↑ wrapᴵ)
     (precise-value endpoints ↑ all)
 
-  heads : ∀ (m : ℕ) → m ≤ k
-    → ValueImprecision W (I.∀⊑ nonvar occurs p₀) m Vᴵ Vᴾ
-    → RightUniversalsRelated W q₀
-        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-        (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) m
-        (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
-        (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
-  heads zero m≤k source-at = tt
-  heads (suc j) sj≤k source-at =
-    (λ W′ W≼W′ Rᴾob r★ t →
-      reveal-right-universal-head W s nonvar occurs p₀
-        sourceᴾ sourceᴵ (below-restrict sj≤k ≤-refl below) size<
-        source-at W′ W≼W′ Rᴾob r★ t) ,
-    heads j (≤-trans (n≤1+n j) sj≤k)
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = j} {k = suc j}
-        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n j) source-at)
-
   at-every-index : ∀ (j : ℕ) → j ≤ k
     → FutureValueRelation (I.∀⊑ nonvarʳ occursʳ q₀) W future-refl j
         (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
@@ -2671,7 +2634,9 @@ conceal-right-universal-inner : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ �
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvarʳ occursʳ q₀
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -2698,34 +2663,11 @@ conceal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Ac = Ac} {Acʳ = Acʳ} {Bc = Bc} {Bcʳ = Bcʳ}
     nonvar occurs p₀ nonvarʳ occursʳ q₀
     sourceᴾ sourceᴵ targetᴾ targetᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    with proj₂ related
-conceal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Acʳ = Acʳ} {Bc = Bc} {Bcʳ = Bcʳ}
-    nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ targetᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | Bᴾ* , Bᴵ* , embP , embI , chain
-    with ty-all-injective
-           (renameᵗ-injective
-             (toRenameᵗ-injective (preciseEmbedding (core W)))
-             (trans embP (sym targetᴾ)))
-       | renameᵗ-injective
-           (toRenameᵗ-injective (impreciseEmbedding (core W)))
-           (trans embI (sym targetᴵ))
-conceal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Acʳ = Acʳ} {Bc = Bc} {Bcʳ = Bcʳ}
-    nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ targetᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | .(replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-    , .(replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ)
-    , embP , embI , chain
-    | refl | refl = final
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
+    W′ W≼W′ Rᴾ r★ t = final
   where
+  chain = data-chain dat
+
   Wb = preciseBindWorld W′ Rᴾ r★
 
   W≼Wb : Future W Wb
@@ -2841,7 +2783,7 @@ conceal-right-universal-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
     {Bᴵ = replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl (chain (future-refl {W = W}) [])
+    k ≤-refl chain
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -3006,7 +2948,9 @@ conceal-right-universal-head : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δ
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvarʳ occursʳ q₀
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -3023,7 +2967,7 @@ conceal-right-universal-head : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δ
 conceal-right-universal-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     nonvar occurs p₀ nonvarʳ occursʳ q₀
     sourceᴾ sourceᴵ targetᴾ targetᴵ
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t =
   ClosureProof.computations-related-post-bind-reindex t t
     refl refl
@@ -3060,9 +3004,7 @@ conceal-right-universal-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       with conceal-type-app-step-question
              {Σ = preciseStore (core W′)} {A = Rᴾ} dᴾ vVᴾ′
     where
-    endpoints = ClosureProof.value-imprecision-endpoints
-      {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {k = suc k}
-      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    endpoints = data-endpoints dat
     vVᴾ′ = ClosureProof.precise-value-future W≼W′
       (precise-value endpoints)
   stepped | vVᴾ″ , step-eqᴾ =
@@ -3070,7 +3012,7 @@ conceal-right-universal-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       (β-conceal-∀ vVᴾ″) step-eqᴾ
       (conceal-right-universal-inner W s nonvar occurs p₀
         nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ targetᴵ
-        below size< related W′ W≼W′ Rᴾ r★ t)
+        below size< dat W′ W≼W′ Rᴾ r★ t)
 
 -- The value relation of a concealed right-universal value.
 
@@ -3120,23 +3062,6 @@ conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     (imprecise-value endpoints ↓ wrapᴵ)
     (precise-value endpoints ↓ all)
 
-  heads : ∀ (m : ℕ) → m ≤ k
-    → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) m Vᴵ Vᴾ
-    → RightUniversalsRelated W p₀ B₀ᴾ Bᴵ m
-        (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
-        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
-  heads zero m≤k source-at = tt
-  heads (suc j) sj≤k source-at =
-    (λ W′ W≼W′ Rᴾob r★ t →
-      conceal-right-universal-head W s nonvar occurs p₀
-        nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ targetᴵ
-        (below-restrict sj≤k ≤-refl below) size<
-        source-at W′ W≼W′ Rᴾob r★ t) ,
-    heads j (≤-trans (n≤1+n j) sj≤k)
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = j}
-        {k = suc j} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n j) source-at)
-
   at-every-index : ∀ (j : ℕ) → j ≤ k
     → FutureValueRelation (I.∀⊑ nonvar occurs p₀) W
         future-refl j
@@ -3177,7 +3102,8 @@ conceal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvarʳ occursʳ q₀
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ) Bᴵ (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -3201,33 +3127,11 @@ conceal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Ac = Ac} {Acʳ = Acʳ} {Bc = Bc}
     nonvar occurs p₀ nonvarʳ occursʳ q₀
     sourceᴾ sourceᴵ targetᴾ avoid agree
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    with proj₂ related
-conceal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Acʳ = Acʳ} {Bc = Bc}
-    nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ avoid agree
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | Bᴾ* , Bᴵ* , embP , embI , chain
-    with ty-all-injective
-           (renameᵗ-injective
-             (toRenameᵗ-injective (preciseEmbedding (core W)))
-             (trans embP (sym targetᴾ)))
-       | renameᵗ-injective
-           (toRenameᵗ-injective (impreciseEmbedding (core W)))
-           (trans embI (sym sourceᴵ))
-conceal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Acʳ = Acʳ} {Bc = Bc}
-    nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ avoid agree
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | .(replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-    , .Bᴵ , embP , embI , chain
-    | refl | refl = final
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
+    W′ W≼W′ Rᴾ r★ t = final
   where
+  chain = data-chain dat
+
   Wb = preciseBindWorld W′ Rᴾ r★
 
   W≼Wb : Future W Wb
@@ -3323,7 +3227,7 @@ conceal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
     {Bᴵ = Bᴵ}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl (chain (future-refl {W = W}) [])
+    k ≤-refl chain
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -3493,7 +3397,8 @@ conceal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvarʳ occursʳ q₀
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ) Bᴵ (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -3509,7 +3414,7 @@ conceal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
 conceal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Bc = Bc} nonvar occurs p₀ nonvarʳ occursʳ q₀
     sourceᴾ sourceᴵ targetᴾ avoid agree
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t =
   ClosureProof.computations-related-post-bind-reindex t t
     refl refl refl (sym precise-redex-eq)
@@ -3540,9 +3445,7 @@ conceal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       with conceal-type-app-step-question
              {Σ = preciseStore (core W′)} {A = Rᴾ} dᴾ vVᴾ′
     where
-    endpoints = ClosureProof.value-imprecision-endpoints
-      {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {k = suc k}
-      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    endpoints = data-endpoints dat
     vVᴾ′ = ClosureProof.precise-value-future W≼W′
       (precise-value endpoints)
   stepped | vVᴾ″ , step-eqᴾ =
@@ -3550,7 +3453,7 @@ conceal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       (β-conceal-∀ vVᴾ″) step-eqᴾ
       (conceal-right-universal-absent-inner W s nonvar occurs p₀
         nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ avoid agree
-        below size< related W′ W≼W′ Rᴾ r★ t)
+        below size< dat W′ W≼W′ Rᴾ r★ t)
 
 -- The value relation of a concealed right-universal value when the
 -- paired center avoids the imprecise center type.
@@ -3634,23 +3537,6 @@ conceal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         (trans (preciseEmbedded endpoints) (sym targetᴾ)))
       (precise-typed endpoints)
 
-  heads : ∀ (m : ℕ) → m ≤ k
-    → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) m Vᴵ Vᴾ
-    → RightUniversalsRelated W p₀ B₀ᴾ Bᴵ m
-        Vᴵ
-        (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
-  heads zero m≤k source-at = tt
-  heads (suc j) sj≤k source-at =
-    (λ W′ W≼W′ Rᴾob r★ t →
-      conceal-right-universal-absent-head W s nonvar occurs p₀
-        nonvarʳ occursʳ q₀ sourceᴾ sourceᴵ targetᴾ avoid agree
-        (below-restrict sj≤k ≤-refl below) size<
-        source-at W′ W≼W′ Rᴾob r★ t) ,
-    heads j (≤-trans (n≤1+n j) sj≤k)
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = j}
-        {k = suc j} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n j) source-at)
-
   at-every-index : ∀ (j : ℕ) → j ≤ k
     → FutureValueRelation (I.∀⊑ {B = Bc} nonvar occurs p₀) W
         future-refl j
@@ -3685,8 +3571,7 @@ reveal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ {A = Ac} {B = Bc} nonvar occurs p₀)
-      (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvar occurs p₀ B₀ᴾ Bᴵ (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -3710,28 +3595,11 @@ reveal-right-universal-absent-inner : ∀ {Δᴾ Δᴵ Δᶜ}
               (liftPreciseBody W≼W′ B₀ᴾ) 〗)
 reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ avoid
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    with proj₂ related
-reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ avoid
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | Bᴾ* , Bᴵ* , embP , embI* , chain
-    with ty-all-injective
-           (renameᵗ-injective
-             (toRenameᵗ-injective (preciseEmbedding (core W)))
-             (trans embP (sym sourceᴾ)))
-       | renameᵗ-injective
-           (toRenameᵗ-injective (impreciseEmbedding (core W)))
-           (trans embI* (sym sourceᴵ))
-reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    {Ac = Ac} {Bc = Bc} nonvar occurs p₀ sourceᴾ sourceᴵ avoid
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
-    W′ W≼W′ Rᴾ r★ t
-    | .B₀ᴾ , .Bᴵ , embP , embI* , chain
-    | refl | refl = final
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
+    W′ W≼W′ Rᴾ r★ t = final
   where
+  chain = data-chain dat
+
   Wb = preciseBindWorld W′ Rᴾ r★
 
   W≼Wb : Future W Wb
@@ -3809,7 +3677,7 @@ reveal-right-universal-absent-inner W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         ⦂∀ liftPreciseBody W≼Wb B₀ᴾ [ ＇ Fin.zero ])
   core-related = right-universals-head {W = W} {p = p₀} {Bᴾ = B₀ᴾ}
     {Bᴵ = Bᴵ} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} {n = suc k}
-    k ≤-refl (chain (future-refl {W = W}) [])
+    k ≤-refl chain
     Wb W≼Wb (＇ Fin.zero) r₀ s₀
 
   weakened : ComputationsRelated Wb (FutureValueRelation s₀) (suc k)
@@ -3934,8 +3802,7 @@ reveal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
   → ∀ {k n : ℕ} (below : Below (suc k) n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
-  → ValueImprecision W (I.∀⊑ {A = Ac} {B = Bc} nonvar occurs p₀)
-      (suc k) Vᴵ Vᴾ
+  → RightUniversalData W nonvar occurs p₀ B₀ᴾ Bᴵ (suc k) Vᴵ Vᴾ
   → ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′) (W≼W′ : Future W W′)
       (Rᴾ : Ty Δᴾ′)
       (r★ : impEnv (core W′) I.⊢ embedPrecise (core W′) Rᴾ ⊑ ★)
@@ -3954,7 +3821,7 @@ reveal-right-universal-absent-head : ∀ {Δᴾ Δᴵ Δᶜ}
           [ Rᴾ ])
 reveal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bc = Bc}
     nonvar occurs p₀ sourceᴾ sourceᴵ avoid
-    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} dat
     W′ W≼W′ Rᴾ r★ t =
   ClosureProof.computations-related-post-bind-reindex t t
     refl refl refl (sym precise-redex-eq)
@@ -3999,16 +3866,14 @@ reveal-right-universal-absent-head W s {B₀ᴾ = B₀ᴾ} {Bc = Bc}
       with reveal-type-app-step-question
              {Σ = preciseStore (core W′)} {A = Rᴾ} cᴾ vVᴾ′
     where
-    endpoints = ClosureProof.value-imprecision-endpoints
-      {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {k = suc k}
-      {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
+    endpoints = data-endpoints dat
     vVᴾ′ = ClosureProof.precise-value-future W≼W′
       (precise-value endpoints)
   stepped | vVᴾ″ , step-eqᴾ =
     related-precise-bind-step-expand (λ ()) refl
       (β-reveal-∀ vVᴾ″) step-eqᴾ
       (reveal-right-universal-absent-inner W s nonvar occurs p₀
-        sourceᴾ sourceᴵ avoid below size< related W′ W≼W′ Rᴾ r★ t)
+        sourceᴾ sourceᴵ avoid below size< dat W′ W≼W′ Rᴾ r★ t)
 
 -- The value relation of a revealed right-universal value when the
 -- paired center avoids the imprecise center type.
@@ -4102,25 +3967,6 @@ reveal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         (toRenameᵗ-injective (preciseEmbedding (core W)))
         (trans (preciseEmbedded endpoints) (sym sourceᴾ)))
       (precise-typed endpoints)
-
-  heads : ∀ (m : ℕ) → m ≤ k
-    → ValueImprecision W (I.∀⊑ {B = Bc} nonvar occurs p₀)
-        m Vᴵ Vᴾ
-    → RightUniversalsRelated W q₀
-        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
-        Bᴵ m
-        Vᴵ
-        (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
-  heads zero m≤k source-at = tt
-  heads (suc j) sj≤k source-at =
-    (λ W′ W≼W′ Rᴾob r★ t →
-      reveal-right-universal-absent-head W s nonvar occurs p₀
-        sourceᴾ sourceᴵ avoid (below-restrict sj≤k ≤-refl below)
-        size< source-at W′ W≼W′ Rᴾob r★ t) ,
-    heads j (≤-trans (n≤1+n j) sj≤k)
-      (value-imprecision-downward-to
-        {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {j = j}
-        {k = suc j} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} (n≤1+n j) source-at)
 
   at-every-index : ∀ (j : ℕ) → j ≤ k
     → FutureValueRelation

@@ -33,7 +33,9 @@ open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import LR-narrow.SlotSequence public
 open import LR-narrow.UniversalFamily using
-  (RightUniversalFamilyKit; to-family) public
+  (RightUniversalFamilyKit; to-family;
+   RightUniversalData; universal-data;
+   data-endpoints; data-embedᴾ; data-embedᴵ; data-chain) public
 open import proof.LR-narrow.RevealLifting using (PairedSlot)
 open import proof.LR-narrow.SlotLifting using
   (slotXᴾ; slotXᴵ; slotRᴾ; slotRᴵ)

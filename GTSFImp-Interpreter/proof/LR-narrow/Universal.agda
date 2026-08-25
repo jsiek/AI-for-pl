@@ -33,7 +33,7 @@ open import LR-narrow.World
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 open import LR-narrow.UniversalFamily using
-  (RightUniversalFamilyKit; to-family)
+  (RightUniversalFamilyKit; to-family; universal-data)
 open import LR-narrow.Closure
 open import LR-narrow.ClosingSubstitution
 open import LR-narrow.ClosingSubstitutionProperties
@@ -778,15 +778,20 @@ right-universal-value-related-from-body {W = W} {k = k} {Γ = Γ}
       precise-body-eq , imprecise-body-eq ,
       λ W′≼W″ σ →
         to-family kit
-          {W = W′} {p = p-structural}
+          {W = W′}
           {Bᴾ = liftPreciseBody W≼W′ Aᴾ}
           {Bᴵ = liftImpreciseTy W≼W′ Bᴵ} {k = suc j}
-          (right-universals-related-result-transport
-          (liftCenterBody-shift W≼W′ imprecise-base) p-lifted
-          (right-universals-related-from-body
-            {W = W} {k = k} {p = p-body}
-            {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} {Nᴾ = Vᴾ} {Mᴵ = Vᴵ}
-            vVᴾ body-related {W′ = W′} W≼W′ γ (suc j) sj≤k))
+          {nonvar = liftCenterBody-nonvar W≼W′ embedded-nonvar}
+          {occurs = liftCenterBody-occurs W≼W′ embedded-occurs}
+          {p₀ = p-structural}
+          (universal-data explicit-endpoints
+            precise-body-eq imprecise-body-eq
+            (right-universals-related-result-transport
+              (liftCenterBody-shift W≼W′ imprecise-base) p-lifted
+              (right-universals-related-from-body
+                {W = W} {k = k} {p = p-body}
+                {Bᴾ = Aᴾ} {Bᴵ = Bᴵ} {Nᴾ = Vᴾ} {Mᴵ = Vᴵ}
+                vVᴾ body-related {W′ = W′} W≼W′ γ (suc j) sj≤k)))
           W′≼W″ σ)
 
 right-universal-value-phase-from-body : ∀ {Δᴾ Δᴵ Δᶜ}

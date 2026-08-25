@@ -130,6 +130,7 @@ import proof.DGG.Catchup.LeftBoundaryCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupLemma
 import proof.DGG.Catchup.LeftSourceCastCatchupDef
+import proof.DGG.Catchup.LeftSourceTypeAppCatchupDef
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)

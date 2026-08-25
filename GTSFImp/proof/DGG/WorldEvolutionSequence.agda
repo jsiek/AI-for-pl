@@ -9,22 +9,35 @@ module proof.DGG.WorldEvolutionSequence where
 --     store, context, and term transport occurs only in projection theorems.
 --   * Covers unilateral scheduling as well as paired steps and checks the
 --     final projections against trusted StoreChanges transport.
+--   * Transports source conversion typing and generator positions to the
+--     final world without packaging a replay action.
 --   * Exports MultiWorldEvolution, request prepend operations, and final
 --     store/context/term projections; depends on one-step evolution, its
 --     request producer, and the preservation context action.
 
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; trans)
+  using (_≡_; refl; sym; subst; cong; trans)
 
 import TermCtx as TC
 open import Types using (Ty)
 open import TyStore using (TyStore)
+import Conversion as Conv
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ)
 import Reduction as R
 open R using (StoreChange; StoreChanges; []; _∷_)
 open import proof.TypeSafety.Preservation using
   (applyTermCtx; applyTermCtxs; applyTermCtxs-id; applyTermCtxs-step)
-open import proof.Reduction using (_++χ_)
+open import proof.Reduction using
+  (_++χ_; applyVars; applyReveals; applyConceals;
+   applyReveals-⊢↑; applyConceals-⊢↓)
+open import proof.DGG.ConversionPivotAlignment using
+  ( revealGeneratorPosition
+  ; concealGeneratorPosition
+  ; revealGeneratorPosition-store-transport
+  ; concealGeneratorPosition-store-transport
+  ; revealGeneratorPosition-apply
+  ; concealGeneratorPosition-apply
+  )
 open import proof.DGG.World
 open import proof.DGG.WorldEvolution
 open import proof.DGG.WorldEvolutionProducer
@@ -355,6 +368,78 @@ multi-target-store
       {stepᴿ = stepᴿ} eqᴸ eqᴿ one tail) =
   trans (multi-target-store tail)
     (cong (R.applyStores χsᴿ) (ctx-change-store-as eqᴿ))
+
+
+multi-source-reveal : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴸ)} {c : Conv.Conv↑ (Δᵉ Cᴸ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → Σᵉ Cᴸ Conv.⊢↑[ X ⦂ Rep ] c
+  → Σᵉ Cᴸ′ Conv.⊢↑[
+      applyVars χsᴸ X ⦂ R.applyTys χsᴸ Rep ] applyReveals χsᴸ c
+multi-source-reveal {χsᴸ = χsᴸ} {X = X} {Rep = Rep} {c = c}
+    evol c⊢ =
+  subst
+    (λ Σ → Σ Conv.⊢↑[
+      applyVars χsᴸ X ⦂ R.applyTys χsᴸ Rep ] applyReveals χsᴸ c)
+    (sym (multi-source-store evol))
+    (applyReveals-⊢↑ {χs = χsᴸ} c⊢)
+
+
+multi-source-conceal : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴸ)} {c : Conv.Conv↓ (Δᵉ Cᴸ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → Σᵉ Cᴸ Conv.⊢↓[ X ⦂ Rep ] c
+  → Σᵉ Cᴸ′ Conv.⊢↓[
+      applyVars χsᴸ X ⦂ R.applyTys χsᴸ Rep ] applyConceals χsᴸ c
+multi-source-conceal {χsᴸ = χsᴸ} {X = X} {Rep = Rep} {c = c}
+    evol c⊢ =
+  subst
+    (λ Σ → Σ Conv.⊢↓[
+      applyVars χsᴸ X ⦂ R.applyTys χsᴸ Rep ] applyConceals χsᴸ c)
+    (sym (multi-source-store evol))
+    (applyConceals-⊢↓ {χs = χsᴸ} c⊢)
+
+
+multi-source-reveal-position : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴸ)} {c : Conv.Conv↑ (Δᵉ Cᴸ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → (c⊢ : Σᵉ Cᴸ Conv.⊢↑[ X ⦂ Rep ] c)
+  → revealGeneratorPosition
+      (multi-source-reveal {χsᴸ = χsᴸ} evol c⊢)
+      ≡ revealGeneratorPosition c⊢
+multi-source-reveal-position {χsᴸ = χsᴸ} evol c⊢ =
+  trans
+    (revealGeneratorPosition-store-transport
+      (sym (multi-source-store evol))
+      (applyReveals-⊢↑ {χs = χsᴸ} c⊢))
+    (revealGeneratorPosition-apply {χs = χsᴸ} c⊢)
+
+
+multi-source-conceal-position : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴸ)} {c : Conv.Conv↓ (Δᵉ Cᴸ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → (c⊢ : Σᵉ Cᴸ Conv.⊢↓[ X ⦂ Rep ] c)
+  → concealGeneratorPosition
+      (multi-source-conceal {χsᴸ = χsᴸ} evol c⊢)
+      ≡ concealGeneratorPosition c⊢
+multi-source-conceal-position {χsᴸ = χsᴸ} evol c⊢ =
+  trans
+    (concealGeneratorPosition-store-transport
+      (sym (multi-source-store evol))
+      (applyConceals-⊢↓ {χs = χsᴸ} c⊢))
+    (concealGeneratorPosition-apply {χs = χsᴸ} c⊢)
 
 
 multi-source-term-ctx : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}

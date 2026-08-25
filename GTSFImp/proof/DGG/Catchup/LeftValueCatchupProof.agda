@@ -14,6 +14,8 @@ open import Reduction using ([]; _∷_; keep; ↠-refl)
 import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.Catchup.LeftSourceCastCatchupDef using
   (LeftSourceCastCatchupAt)
+open import proof.DGG.Catchup.LeftSourceTypeAppCatchupDef using
+  (LeftSourceTypeAppCatchupAt)
 open import proof.DGG.Catchup.LeftValueCatchupDef using
   (LeftValueCatchupAt)
 open import proof.DGG.WorldEvolutionSequence using
@@ -25,12 +27,13 @@ open import proof.Reduction using
   ( _++χ_
   ; conceal-blame-↠
   ; reveal-blame-↠
-  ; typeApp-blame-↠
   )
 
 
 module _
     (source-cast-catchup : ∀ {fuel} → LeftSourceCastCatchupAt fuel)
+    (source-type-app-catchup : ∀ {fuel}
+      → LeftSourceTypeAppCatchupAt fuel)
   where
 
   left-value-catchup : ∀ {fuel} → LeftValueCatchupAt fuel
@@ -55,16 +58,8 @@ module _
 
   left-value-catchup no-rebase (CTI.•⊑•² p∀ prem q r) () bound
 
-  left-value-catchup no-rebase (CTI.•⊑² p∀ prem q r) vV′ bound
-      with left-value-catchup no-rebase prem vV′ bound
-  left-value-catchup no-rebase (CTI.•⊑² p∀ prem q r) vV′ bound
-    | inj₂ (Δᴸ′ , Σᴸ′ , χsᴸ , γ′ , M↠blame , evol) =
-      inj₂
-        (Δᴸ′ , Σᴸ′ , χsᴸ ++χ (keep ∷ []) , γ′ ,
-         typeApp-blame-↠ M↠blame ,
-         append-left-keep evol)
-  left-value-catchup no-rebase (CTI.•⊑² p∀ prem q r) vV′ bound
-    | inj₁ success = {! !}
+  left-value-catchup no-rebase (CTI.•⊑² p∀ prem q r) vV′ bound =
+    source-type-app-catchup no-rebase prem vV′ bound
 
   left-value-catchup {γ = γ} {M = M} {p = p} no-rebase
       rel@(CTI.κ⊑κ² κ q) vV′ bound =

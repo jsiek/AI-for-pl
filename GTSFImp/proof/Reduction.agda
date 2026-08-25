@@ -9,7 +9,8 @@ module proof.Reduction where
 --   * Also supplies store-change append algebra, multi-step trace
 --     composition, readable concatenated multi-step chain notation (including
 --     the common multi-step-then-single-step case), cast congruence over
---     multi-step reduction, and cast-size preservation under store changes.
+--     multi-step reduction, conversion typing transport, and cast-size
+--     preservation under store changes.
 --   * Depends on Reduction for the base relations and proof.Consistency for
 --     generated-cast safety.
 
@@ -35,16 +36,28 @@ open import CastTerms using (_↑_; _↓_)
 open import Reduction
 open import proof.Consistency using
   (castSize; castSize-renameEnvᶜ; gen-safe)
+open import proof.ImprecisionConsistency using (fin-suc-injective)
 import proof.Imprecision as PI
 open import proof.TypeInTermSubst using
-  ( rename-star-injective
+  ( StoreRename-suc-bind
+  ; conceal-renameᵗ
+  ; rename-star-injective
   ; rename-occurs
   ; renameᵗ-pointwise-id
   ; renameᵗᵐ-preserves-Value
   ; rename-openᵗ
+  ; reveal-renameᵗ
   ; reveal-rename-id
   ; conceal-rename-id
   )
+
+applyVars : ∀ {Δ Δ′}
+  → StoreChanges Δ Δ′
+  → TyVar Δ
+  → TyVar Δ′
+applyVars [] X = X
+applyVars (keep ∷ χs) X = applyVars χs X
+applyVars (bind A ∷ χs) X = applyVars χs (Fin.suc X)
 
 applyBodies : ∀ {Δ Δ′}
   → StoreChanges Δ Δ′
@@ -197,6 +210,32 @@ applyConceals (keep ∷ χs) c =
   applyConceals χs (normalizeConceal c)
 applyConceals (bind A ∷ χs) c =
   applyConceals χs (rename↓ Fin.suc c)
+
+applyReveals-⊢↑ : ∀ {Δ Δ′} {Σ : TyStore Δ}
+    {χs : StoreChanges Δ Δ′} {X : TyVar Δ} {R A B : Ty Δ}
+    {c : Conv↑ Δ A B}
+  → Σ ⊢↑[ X ⦂ R ] c
+  → applyStores χs Σ ⊢↑[ applyVars χs X ⦂ applyTys χs R ]
+      applyReveals χs c
+applyReveals-⊢↑ {χs = []} c⊢ = c⊢
+applyReveals-⊢↑ {χs = keep ∷ χs} c⊢ =
+  applyReveals-⊢↑ {χs = χs} (normalizeReveal-⊢↑ c⊢)
+applyReveals-⊢↑ {χs = bind A ∷ χs} c⊢ =
+  applyReveals-⊢↑ {χs = χs}
+    (reveal-renameᵗ fin-suc-injective StoreRename-suc-bind c⊢)
+
+applyConceals-⊢↓ : ∀ {Δ Δ′} {Σ : TyStore Δ}
+    {χs : StoreChanges Δ Δ′} {X : TyVar Δ} {R A B : Ty Δ}
+    {c : Conv↓ Δ A B}
+  → Σ ⊢↓[ X ⦂ R ] c
+  → applyStores χs Σ ⊢↓[ applyVars χs X ⦂ applyTys χs R ]
+      applyConceals χs c
+applyConceals-⊢↓ {χs = []} c⊢ = c⊢
+applyConceals-⊢↓ {χs = keep ∷ χs} c⊢ =
+  applyConceals-⊢↓ {χs = χs} (normalizeConceal-⊢↓ c⊢)
+applyConceals-⊢↓ {χs = bind A ∷ χs} c⊢ =
+  applyConceals-⊢↓ {χs = χs}
+    (conceal-renameᵗ fin-suc-injective StoreRename-suc-bind c⊢)
 
 renamedReveal-term : ∀ {Δ} {A B : Ty Δ}
     (M : Term Δ) (c : Conv↑ Δ A B)

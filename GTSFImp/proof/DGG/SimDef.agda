@@ -3,46 +3,50 @@ module proof.DGG.SimDef where
 -- File Charter:
 --   * States closed one-step simulation when the more precise left term
 --     reduces.
---   * Allows the less precise right term to take a store-changing trace and
---     records the resulting parked-world evolution.
+--   * Uses complete endpoint contexts and canonical multi-world evolution.
+--   * Requires directly that the outer world has no source rebase.
 --   * Contains no simulation proof.
 
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty; TyCtx)
-open import CastTerms using (Term)
+open import TyStore using (TyStore)
+open import CastTerms using (Term; ⟨_,_,_⟩)
 open import Reduction using
   ( StoreChange
   ; StoreChanges
+  ; applyStore
+  ; applyStores
   ; applyTy
   ; applyTys
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld; ParkedEvolve)
-open CTX using
-  (World;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
 Simᵀ : Set
-Simᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴸ′} {W : World Δᴸ Δᴿ Δ}
+Simᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
-  → ParkedWorld W
-  → W ∣ [] ⊢² M ⊑ M′ ∶ p
+  → sourceRebaseCountᶜ γ ≡ 0
+  → γ ⊢² M ⊑ M′ ∶ p
   → M —→[ χᴸ ] N
-  → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
-    Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTy χᴸ A ⊑ᵂ⟨ W′ ⟩ applyTys χsᴿ B ]
-      (M′ —↠[ χsᴿ ] N′) ×
-      ParkedEvolve (χᴸ ∷ˢ []ˢ) χsᴿ W W′ ×
-      (W′ ∣ [] ⊢² N ⊑ N′ ∶ q)
+  → Σ[ Δᴿ′ ∈ TyCtx ]
+    Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ N′ ∈ Term Δᴿ′ ]
+    Σ[ γ′ ∈
+      ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Δᴿ′ , applyStores χsᴿ Σᴿ , [] ⟩ ]
+    Σ[ q ∈ applyTy χᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTys χsᴿ B ]
+      (M′ —↠[ χsᴿ ] N′)
+      × MultiWorldEvolution
+          {W = γ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) χsᴿ
+      × (γ′ ⊢² N ⊑ N′ ∶ q)

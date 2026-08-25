@@ -83,6 +83,56 @@ data MultiWorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
         (χᴸ ∷ χsᴸ) (χᴿ ∷ χsᴿ)
 
 
+multi-sourceRebaseCount : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+  → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
+  → sourceRebaseCountᶜ W′ ≡ sourceRebaseCountᶜ W
+multi-sourceRebaseCount evolutions-refl = refl
+multi-sourceRebaseCount
+    (evolutions-step-left eqᴸ evolution-keep tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-left eqᴸ (evolution-bind-left eq) tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-right eqᴿ evolution-keep tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-right eqᴿ (evolution-bind-right fresh eq) tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-both eqᴸ eqᴿ evolution-keep tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-both eqᴸ eqᴿ (evolution-bind-left eq) tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-both eqᴸ eqᴿ
+      (evolution-bind-right fresh eq) tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-both eqᴸ eqᴿ
+      (evolution-bind-both represented eqᴸ′ eqᴿ′) tail) =
+  multi-sourceRebaseCount tail
+multi-sourceRebaseCount
+    (evolutions-step-both eqᴸ eqᴿ
+      (evolution-bind-both-star represented A≠★ eqᴸ′ eqᴿ′) tail) =
+  multi-sourceRebaseCount tail
+
+
+multi-no-source-rebase : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → sourceRebaseCountᶜ W ≡ 0
+  → sourceRebaseCountᶜ W′ ≡ 0
+multi-no-source-rebase evol no-rebase =
+  trans (multi-sourceRebaseCount evol) no-rebase
+
+
 request-source-change : ∀
     {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}

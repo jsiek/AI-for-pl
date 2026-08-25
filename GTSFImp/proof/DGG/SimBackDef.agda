@@ -3,49 +3,54 @@ module proof.DGG.SimBackDef where
 -- File Charter:
 --   * States closed one-step backward simulation when the less precise right
 --     term reduces.
---   * Allows the more precise left term to take a store-changing trace and
---     either records the resulting parked-world evolution or reaches blame.
+--   * Uses complete endpoint contexts and canonical multi-world evolution.
+--   * Requires directly that the outer world has no source rebase.
+--   * Allows the more precise term to reach blame.
 --   * Contains no simulation proof.
 
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax; ∃-syntax)
 open import Data.Sum using (_⊎_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty; TyCtx)
-open import CastTerms using (Term; blame)
+open import TyStore using (TyStore)
+open import CastTerms using (Term; blame; ⟨_,_,_⟩)
 open import Reduction using
   ( StoreChange
   ; StoreChanges
+  ; applyStore
+  ; applyStores
   ; applyTy
   ; applyTys
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld; ParkedEvolve)
-open CTX using
-  (World;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
 SimBackᵀ : Set
-SimBackᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W : World Δᴸ Δᴿ Δ}
+SimBackᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵂ⟨ W ⟩ B}
+    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
     {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → W ∣ [] ⊢² M ⊑ M′ ∶ p
+  → sourceRebaseCountᶜ γ ≡ 0
+  → γ ⊢² M ⊑ M′ ∶ p
   → M′ —→[ χᴿ ] N′
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ q ∈ applyTys χsᴸ A ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ˢ []ˢ) W W′ ×
-      (W′ ∣ [] ⊢² N ⊑ N′ ∶ q))
+  → (Σ[ Δᴸ′ ∈ TyCtx ]
+      Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
+      Σ[ N ∈ Term Δᴸ′ ]
+      Σ[ γ′ ∈
+        ⟨ Δᴸ′ , applyStores χsᴸ Σᴸ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴿ′ , applyStore χᴿ Σᴿ , [] ⟩ ]
+      Σ[ q ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTy χᴿ B ]
+        (M —↠[ χsᴸ ] N)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} χsᴸ (χᴿ ∷ˢ []ˢ)
+        × (γ′ ⊢² N ⊑ N′ ∶ q))
     ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
         (M —↠[ χsᴸ ] blame))

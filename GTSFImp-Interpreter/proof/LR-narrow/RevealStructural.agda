@@ -79,7 +79,8 @@ import proof.LR-narrow.PreciseReveal
 open module PreciseRevealModule = proof.LR-narrow.PreciseReveal ob
   using (precise-reveal; precise-conceal; sizeᵗ;
          precise-revealed-computations;
-         precise-concealed-computations)
+         precise-concealed-computations;
+         precise-universal-value; precise-universal-conceal-value)
 import proof.LR-narrow.DynamicReveal
 open module DynamicRevealModule = proof.LR-narrow.DynamicReveal ob
   using (dyn-reveal; dyn-conceal;
@@ -107,7 +108,6 @@ open import proof.LR-narrow.TypeBetaExpansion using (precise-step)
 import proof.LR-narrow.RevealAtomic as RA
 import proof.LR-narrow.ConcealAtomic as CA
 
-open RevealObligations ob using (right-universal-family-kit)
 open RA using
   (AtomicReveal; atomic-★; atomic-ι; atomic-X; atomic-ι★; atomic-X★;
    rename-base-injective; rename-star-injective; rename-variable-inversion)
@@ -1909,6 +1909,256 @@ conceal-universal W s {B₀ᴾ = B₀ᴾ} {B₀ᴵ = B₀ᴵ} p₀ q₀
 -- body (a paired reveal, at the strictly smaller body derivation),
 -- and then at the fresh dynamic slot.
 
+-- The replacement-closed family of a paired-revealed right-universal
+-- value, by precomposing the source value's family with the paired
+-- reveal wrapper.  This is what lets the assemblies produce families
+-- without appealing to the extension kit.
+
+reveal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W)
+    {B₀ᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+    (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
+    (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
+  → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
+  → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
+  → ∀ {Acʳ : Ty (suc Δᶜ)} {Bcʳ : Ty Δᶜ}
+      (q₀ : I.instᵐ (impEnv (core W)) I.⊢ Acʳ ⊑ ⇑ᵗ Bcʳ)
+  → ∀ {m : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑ nonvar occurs p₀) (suc m) Vᴵ Vᴾ
+  → RightUniversalFamily W q₀
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) (suc m)
+      (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
+      (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
+reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    nonvar occurs p₀ sourceᴾ sourceᴵ q₀ {m = m}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
+    with ty-all-injective
+           (renameᵗ-injective
+             (toRenameᵗ-injective (preciseEmbedding (core W)))
+             (trans embP* (sym sourceᴾ)))
+       | renameᵗ-injective
+           (toRenameᵗ-injective (impreciseEmbedding (core W)))
+           (trans embI* (sym sourceᴵ))
+reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    nonvar occurs p₀ sourceᴾ sourceᴵ q₀ {m = m}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , .B₀ᴾ , .Bᴵ , embP* , embI* , fam)
+    | refl | refl = family
+  where
+  family : RightUniversalFamily W q₀
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) (suc m)
+      (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
+      (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
+  family {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} {Bᴵ′ = Bᴵ′} σ =
+    ClosureProof.right-universals-phantom
+      (liftCenterDynamicBodyImprecision W≼W′ p₀)
+      (liftCenterDynamicBodyImprecision W≼W′ q₀)
+      (ClosureProof.right-universals-related-transport
+        {W = W′} {p = liftCenterDynamicBodyImprecision W≼W′ p₀}
+        {Bᴾ = Bᴾ′} {k = suc m}
+        refl termᴵ-eq termᴾ-eq
+        (fam W≼W′ (w ∷ σ‡)))
+    where
+    s′ = slot-future s W≼W′
+    B₀ᴾ′ = liftPreciseBody W≼W′ B₀ᴾ
+    Bᴵ′′ = liftImpreciseTy W≼W′ Bᴵ
+
+    precise-eq : liftPreciseBody W≼W′
+        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+        ≡ replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′
+    precise-eq = trans
+      (liftPreciseBody-replace W≼W′ (slotXᴾ s) (slotRᴾ s) B₀ᴾ)
+      (cong₂ (λ X R → replaceTy (Fin.suc X) (⇑ᵗ R) B₀ᴾ′)
+        (sym (slot-precise-variable-lift s W≼W′))
+        (sym (slot-precise-rep-lift s W≼W′)))
+
+    imprecise-eq : liftImpreciseTy W≼W′
+        (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ)
+        ≡ replaceTy (slotXᴵ s′) (slotRᴵ s′) Bᴵ′′
+    imprecise-eq = sym (replace-imprecise-lift s W≼W′ Bᴵ)
+
+    w = reveal-paired s′ B₀ᴾ′ Bᴵ′′
+
+    σ-mid : UniWraps W′
+        (replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′)
+        (liftImpreciseTy W≼W′ (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
+        Bᴾ′ Bᴵ′
+    σ-mid = subst≡
+      (λ B → UniWraps W′ B
+        (liftImpreciseTy W≼W′ (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
+        Bᴾ′ Bᴵ′)
+      precise-eq σ
+
+    σ‡ : UniWraps W′
+        (replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′)
+        (replaceTy (slotXᴵ s′) (slotRᴵ s′) Bᴵ′′) Bᴾ′ Bᴵ′
+    σ‡ = subst≡
+      (λ C → UniWraps W′
+        (replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′)
+        C Bᴾ′ Bᴵ′)
+      imprecise-eq σ-mid
+
+    termᴾ-eq : wrapTermᴾ (w ∷ σ‡) (liftPreciseTerm W≼W′ Vᴾ)
+        ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
+            (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
+    termᴾ-eq = trans
+      (wrapTermᴾ-subst-imp imprecise-eq σ-mid
+        (liftPreciseTerm W≼W′ Vᴾ
+          ↑ 〖 slotXᴾ s′ , slotRᴾ s′ ↑ `∀ B₀ᴾ′ 〗))
+      (trans
+        (wrapTermᴾ-subst precise-eq σ
+          (liftPreciseTerm W≼W′ Vᴾ
+            ↑ 〖 slotXᴾ s′ , slotRᴾ s′ ↑ `∀ B₀ᴾ′ 〗))
+        (cong (wrapTermᴾ σ)
+          (trans
+            (cong
+              (λ T → liftPreciseTerm W≼W′ Vᴾ
+                ↑ 〖 slotXᴾ s′ , slotRᴾ s′ ↑ T 〗)
+              (sym (liftPreciseTy-universal W≼W′ B₀ᴾ)))
+            (sym (lifted-reveal-precise s W≼W′ Vᴾ (`∀ B₀ᴾ))))))
+
+    termᴵ-eq : wrapTermᴵ (w ∷ σ‡) (liftImpreciseTerm W≼W′ Vᴵ)
+        ≡ wrapTermᴵ σ (liftImpreciseTerm W≼W′
+            (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗))
+    termᴵ-eq = trans
+      (wrapTermᴵ-subst-imp imprecise-eq σ-mid
+        (liftImpreciseTerm W≼W′ Vᴵ
+          ↑ 〖 slotXᴵ s′ , slotRᴵ s′ ↑ Bᴵ′′ 〗))
+      (trans
+        (wrapTermᴵ-subst precise-eq σ
+          (liftImpreciseTerm W≼W′ Vᴵ
+            ↑ 〖 slotXᴵ s′ , slotRᴵ s′ ↑ Bᴵ′′ 〗))
+        (cong (wrapTermᴵ σ)
+          (sym (lifted-reveal-imprecise s W≼W′ Vᴵ Bᴵ))))
+
+-- The dual: the family of a paired-concealed right-universal value,
+-- precomposing the given value's family with the paired conceal.
+
+conceal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (s : PairedSlot W)
+    {B₀ᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {Acʳ : Ty (suc Δᶜ)} {Bcʳ : Ty Δᶜ}
+    (nonvarʳ : NonVar Acʳ) (occursʳ : Fin.zero ∈ᵗ Acʳ)
+    (q₀ : I.instᵐ (impEnv (core W)) I.⊢ Acʳ ⊑ ⇑ᵗ Bcʳ)
+  → (targetᴾ : embedPrecise (core W)
+      (`∀ (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
+      ≡ `∀ Acʳ)
+  → (targetᴵ : embedImprecise (core W)
+      (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Bcʳ)
+  → ∀ {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+      (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
+  → ∀ {m : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) (suc m) Vᴵ Vᴾ
+  → RightUniversalFamily W p₀ B₀ᴾ Bᴵ (suc m)
+      (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
+      (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
+conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    nonvarʳ occursʳ q₀ targetᴾ targetᴵ p₀ {m = m}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
+    with ty-all-injective
+           (renameᵗ-injective
+             (toRenameᵗ-injective (preciseEmbedding (core W)))
+             (trans embP* (sym targetᴾ)))
+       | renameᵗ-injective
+           (toRenameᵗ-injective (impreciseEmbedding (core W)))
+           (trans embI* (sym targetᴵ))
+conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
+    nonvarʳ occursʳ q₀ targetᴾ targetᴵ p₀ {m = m}
+    {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
+    (endpoints
+     , .(replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+     , .(replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ)
+     , embP* , embI* , fam)
+    | refl | refl = family
+  where
+  family : RightUniversalFamily W p₀ B₀ᴾ Bᴵ (suc m)
+      (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
+      (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
+  family {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} {Bᴵ′ = Bᴵ′} σ =
+    ClosureProof.right-universals-phantom
+      (liftCenterDynamicBodyImprecision W≼W′ q₀)
+      (liftCenterDynamicBodyImprecision W≼W′ p₀)
+      (ClosureProof.right-universals-related-transport
+        {W = W′} {p = liftCenterDynamicBodyImprecision W≼W′ q₀}
+        {Bᴾ = Bᴾ′} {k = suc m}
+        refl termᴵ-eq termᴾ-eq
+        (fam W≼W′ σ‡))
+    where
+    s′ = slot-future s W≼W′
+    B₀ᴾ′ = liftPreciseBody W≼W′ B₀ᴾ
+    Bᴵ′′ = liftImpreciseTy W≼W′ Bᴵ
+
+    precise-eq : liftPreciseBody W≼W′
+        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+        ≡ replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′
+    precise-eq = trans
+      (liftPreciseBody-replace W≼W′ (slotXᴾ s) (slotRᴾ s) B₀ᴾ)
+      (cong₂ (λ X R → replaceTy (Fin.suc X) (⇑ᵗ R) B₀ᴾ′)
+        (sym (slot-precise-variable-lift s W≼W′))
+        (sym (slot-precise-rep-lift s W≼W′)))
+
+    imprecise-eq : liftImpreciseTy W≼W′
+        (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ)
+        ≡ replaceTy (slotXᴵ s′) (slotRᴵ s′) Bᴵ′′
+    imprecise-eq = sym (replace-imprecise-lift s W≼W′ Bᴵ)
+
+    w = conceal-paired s′ B₀ᴾ′ Bᴵ′′
+
+    σ-mid : UniWraps W′
+        (replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′)
+        (liftImpreciseTy W≼W′ (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
+        Bᴾ′ Bᴵ′
+    σ-mid = subst≡
+      (λ C → UniWraps W′
+        (replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′)
+        C Bᴾ′ Bᴵ′)
+      (sym imprecise-eq) (w ∷ σ)
+
+    σ‡ : UniWraps W′
+        (liftPreciseBody W≼W′
+          (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ))
+        (liftImpreciseTy W≼W′ (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
+        Bᴾ′ Bᴵ′
+    σ‡ = subst≡
+      (λ B → UniWraps W′ B
+        (liftImpreciseTy W≼W′ (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
+        Bᴾ′ Bᴵ′)
+      (sym precise-eq) σ-mid
+
+    termᴾ-eq : wrapTermᴾ σ‡ (liftPreciseTerm W≼W′ Vᴾ)
+        ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
+            (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ)))
+    termᴾ-eq = trans
+      (wrapTermᴾ-subst (sym precise-eq) σ-mid
+        (liftPreciseTerm W≼W′ Vᴾ))
+      (trans
+        (wrapTermᴾ-subst-imp (sym imprecise-eq) (w ∷ σ)
+          (liftPreciseTerm W≼W′ Vᴾ))
+        (cong (wrapTermᴾ σ)
+          (trans
+            (cong
+              (λ T → liftPreciseTerm W≼W′ Vᴾ
+                ↓ makeConceal (slotXᴾ s′) (slotRᴾ s′) T)
+              (sym (liftPreciseTy-universal W≼W′ B₀ᴾ)))
+            (sym (lifted-conceal-precise s W≼W′ Vᴾ (`∀ B₀ᴾ))))))
+
+    termᴵ-eq : wrapTermᴵ σ‡ (liftImpreciseTerm W≼W′ Vᴵ)
+        ≡ wrapTermᴵ σ (liftImpreciseTerm W≼W′
+            (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ))
+    termᴵ-eq = trans
+      (wrapTermᴵ-subst (sym precise-eq) σ-mid
+        (liftImpreciseTerm W≼W′ Vᴵ))
+      (trans
+        (wrapTermᴵ-subst-imp (sym imprecise-eq) (w ∷ σ)
+          (liftImpreciseTerm W≼W′ Vᴵ))
+        (cong (wrapTermᴵ σ)
+          (sym (lifted-conceal-imprecise s W≼W′ Vᴵ Bᴵ))))
+
 reveal-right-universal-inner : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (s : PairedSlot W)
     {B₀ᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
@@ -2388,14 +2638,10 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ ,
     targetᴾ , targetᴵ ,
     (λ W≼W′ σ →
-      to-family right-universal-family-kit
-        {W = W} {p = q₀}
-        {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
-        {Bᴵ = replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ} {k = suc j}
-        (heads (suc j) sj≤k
-          (value-imprecision-downward-to
-            {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = suc j} {k = k}
-            {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
+      reveal-paired-family W s nonvar occurs p₀ sourceᴾ sourceᴵ q₀
+        (value-imprecision-downward-to
+          {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = suc j} {k = k}
+          {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
         W≼W′ σ)
 
 -- The dynamic-target variant: when the imprecise center is ★ the
@@ -2901,12 +3147,11 @@ conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     conceal-endpoints ,
     B₀ᴾ , Bᴵ , sourceᴾ , sourceᴵ ,
     (λ W≼W′ σ →
-      to-family right-universal-family-kit
-        {W = W} {p = p₀} {Bᴾ = B₀ᴾ} {Bᴵ = Bᴵ} {k = suc j}
-        (heads (suc j) sj≤k
-          (value-imprecision-downward-to
-            {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
-            {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
+      conceal-paired-family W s nonvarʳ occursʳ q₀
+        targetᴾ targetᴵ p₀
+        (value-imprecision-downward-to
+          {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
+          {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
         W≼W′ σ)
 
 -- The concealed right-universal value when the paired center cannot
@@ -3353,6 +3598,18 @@ conceal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
   where
   endpoints = ClosureProof.value-imprecision-endpoints related
 
+  no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ
+  no-occur = ∉-all (renameᵗ-reflects-∉ᵗ
+    (extᵗ (toRenameᵗ (preciseEmbedding (core W)))) B₀ᴾ
+    (subst≡
+      (_∉ᵗ renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding (core W))))
+        B₀ᴾ)
+      (cong Fin.suc (sym (preciseAligned (atom s))))
+      (subst≡ (Fin.suc (center s) ∉ᵗ_)
+        (sym (ty-all-injective sourceᴾ))
+        (paired-no-occurrence (Fin.suc (center s)) (mode-eq s) p₀
+          (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoid)))))
+
   absent-endpoints : TypedEndpoints W
       (I.∀⊑ {B = Bc} nonvar occurs p₀) Vᴵ
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
@@ -3399,18 +3656,17 @@ conceal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         future-refl j
         Vᴵ
         (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
-  at-every-index zero j≤k = absent-endpoints
-  at-every-index (suc j) sj≤k =
-    absent-endpoints ,
-    B₀ᴾ , Bᴵ , sourceᴾ , sourceᴵ ,
-    (λ W≼W′ σ →
-      to-family right-universal-family-kit
-        {W = W} {p = p₀} {Bᴾ = B₀ᴾ} {Bᴵ = Bᴵ} {k = suc j}
-        (heads (suc j) sj≤k
-          (value-imprecision-downward-to
-            {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
-            {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
-        W≼W′ σ)
+  at-every-index j j≤k =
+    precise-universal-conceal-value j
+      (below-restrict j≤k ≤-refl below) W s
+      (I.∀⊑ nonvar occurs p₀) no-occur sourceᴾ
+      (value-imprecision-downward-to
+        {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = j} {k = k}
+        {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} j≤k
+        (ClosureProof.value-imprecision-reindex
+          (I.∀⊑ nonvar occurs p₀) (I.∀⊑ nonvarʳ occursʳ q₀)
+          {k = k} (cong (λ T → `∀ T) (sym agree)) refl related))
+
 
 -- The right-universal reveal when the paired center cannot occur in
 -- the imprecise center type: both replacements are the identity, the
@@ -3801,6 +4057,29 @@ reveal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
   where
   endpoints = ClosureProof.value-imprecision-endpoints related
 
+  absent-suc : Fin.suc (slotXᴾ s) ∉ᵗ B₀ᴾ
+  absent-suc = renameᵗ-reflects-∉ᵗ
+    (extᵗ (toRenameᵗ (preciseEmbedding (core W)))) B₀ᴾ
+    (subst≡
+      (_∉ᵗ renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding (core W))))
+        B₀ᴾ)
+      (cong Fin.suc (sym (preciseAligned (atom s))))
+      (subst≡ (Fin.suc (center s) ∉ᵗ_)
+        (sym (ty-all-injective sourceᴾ))
+        (paired-no-occurrence (Fin.suc (center s)) (mode-eq s) p₀
+          (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoid))))
+
+  no-occur : slotXᴾ s ∉ᵗ `∀ B₀ᴾ
+  no-occur = ∉-all absent-suc
+
+  target-agree = trans
+    (sym (trans
+      (cong (λ T → embedPrecise (core W) (`∀ T))
+        (sym (replaceTy-absent (Fin.suc (slotXᴾ s))
+          (⇑ᵗ (slotRᴾ s)) absent-suc)))
+      targetᴾ))
+    sourceᴾ
+
   absent-endpoints : TypedEndpoints W
       (I.∀⊑ {B = Bc} nonvarʳ occursʳ q₀) Vᴵ
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
@@ -3849,22 +4128,17 @@ reveal-right-universal-absent W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
         future-refl j
         Vᴵ
         (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
-  at-every-index zero j≤k = absent-endpoints
-  at-every-index (suc j) sj≤k =
-    absent-endpoints ,
-    replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ ,
-    Bᴵ ,
-    targetᴾ , sourceᴵ ,
-    (λ W≼W′ σ →
-      to-family right-universal-family-kit
-        {W = W} {p = q₀}
-        {Bᴾ = replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ}
-        {Bᴵ = Bᴵ} {k = suc j}
-        (heads (suc j) sj≤k
-          (value-imprecision-downward-to
-            {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀}
-            {j = suc j} {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related))
-        W≼W′ σ)
+  at-every-index j j≤k =
+    ClosureProof.value-imprecision-reindex
+      (I.∀⊑ {B = Bc} nonvarʳ occursʳ q₀)
+      (I.∀⊑ {B = Bc} nonvar occurs p₀) {k = j}
+      target-agree refl
+      (precise-universal-value j
+        (below-restrict j≤k ≤-refl below) W s
+        (I.∀⊑ {B = Bc} nonvar occurs p₀) no-occur sourceᴾ
+        (value-imprecision-downward-to
+          {W = W} {p = I.∀⊑ {B = Bc} nonvar occurs p₀} {j = j}
+          {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} j≤k related))
 
 -- The conceal dispatch for a value-form imprecise wrapper: force the
 -- given value's derivation with the replaced one and assemble.

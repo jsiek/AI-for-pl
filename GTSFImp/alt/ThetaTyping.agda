@@ -118,61 +118,59 @@ data _∋rep[_]_≔_ : ∀ {Θ Δ}
     → TyEnv Θ Δ → Mode Δ → TyVar Θ → Ty Δ → Set where
   Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ} {mode}
       ---------------------
-    → _∋rep[_]_≔_ (Ψ ,:= A) mode zero A
+    → Ψ ,:= A ∋rep[ mode ] zero ≔ A
 
   S : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a : TyVar Θ}
       {A B : Ty Δ} {mode}
-    → _∋rep[_]_≔_ Ψ mode a A
+    → Ψ ∋rep[ mode ] a ≔ A
       ----------------------
-    → _∋rep[_]_≔_ (Ψ ,:= B) mode (suc a) A
+    → Ψ ,:= B ∋rep[ mode ] suc a ≔ A
 
   skip-typ-pending : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)} {pending}
     → Y ∈ pending
-    → _∋rep[_]_≔_ Ψ (know (dropSlot Y pending)) a A
+    → Ψ ∋rep[ know (dropSlot Y pending) ] a ≔ A
       ---------------------------------
-    → _∋rep[_]_≔_ (Ψ ,typ[ Y ≔ β ]) (know pending) a (wkᵗ Y A)
+    → Ψ ,typ[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
 
   skip-typ-live : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)} {pending}
     → Y ∉ pending
-    → _∋rep[_]_≔_ Ψ opaq a A
+    → Ψ ∋rep[ opaq ] a ≔ A
       ---------------------------------
-    → _∋rep[_]_≔_ (Ψ ,typ[ Y ≔ β ]) (know pending) a (wkᵗ Y A)
+    → Ψ ,typ[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
 
   skip-typ-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)}
-    → _∋rep[_]_≔_ Ψ opaq a A
+    → Ψ ∋rep[ opaq ] a ≔ A
       ---------------------------------
-    → _∋rep[_]_≔_ (Ψ ,typ[ Y ≔ β ]) opaq a (wkᵗ Y A)
+    → Ψ ,typ[ Y ≔ β ] ∋rep[ opaq ] a ≔ wkᵗ Y A
 
   skip-lexical-know : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a : TyVar Θ} {A : Ty Δ} {pending pending′}
     → map suc pending ≡ pending′
-    → _∋rep[_]_≔_ Ψ (know pending) a A
+    → Ψ ∋rep[ know pending ] a ≔ A
       ------------------------
-    → _∋rep[_]_≔_ (Ψ ,typ) (know pending′) a (⇑ᵗ A)
+    → Ψ ,typ ∋rep[ know pending′ ] a ≔ ⇑ᵗ A
 
   skip-lexical-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a : TyVar Θ} {A : Ty Δ}
-    → _∋rep[_]_≔_ Ψ opaq a A
+    → Ψ ∋rep[ opaq ] a ≔ A
       ------------------------
-    → _∋rep[_]_≔_ (Ψ ,typ) opaq a (⇑ᵗ A)
+    → Ψ ,typ ∋rep[ opaq ] a ≔ ⇑ᵗ A
 
   skip-end : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
       {Y : TyVar (suc Δ)} {α a : TyVar Θ}
       {A : Ty (suc Δ)} {B C : Ty Δ} {pending}
     → Ψ ∋typ[ slot-know ] Y ≔ α
-    → _∋rep[_]_≔_ Ψ
-        (know (Y ∷ map (punchIn Y) pending)) α (wkᵗ Y C)
-    → _∋rep[_]_≔_ Ψ
-        (know (Y ∷ map (punchIn Y) pending)) a A
+    → Ψ ∋rep[ know (Y ∷ map (punchIn Y) pending) ] α ≔ wkᵗ Y C
+    → Ψ ∋rep[ know (Y ∷ map (punchIn Y) pending) ] a ≔ A
     → substᵗ (resolveSubᵗ Y C) A ≡ B
       --------------------------------------------
-    → _∋rep[_]_≔_ (Ψ ,end[ Y ]) (know pending) a B
+    → Ψ ,end[ Y ] ∋rep[ know pending ] a ≔ B
 
 -- "reveal is opaque on the inside and knowledge on the outside, conceal is
 -- the dual."  A representation lookup begins at `know []`.  An end pushes

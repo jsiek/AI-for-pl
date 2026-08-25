@@ -795,9 +795,9 @@ rename-∋typ ρ
 
 rename-∋rep : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     {Ψ : TyEnv Θ Δ} {α : TyVar Θ} {A : Ty Δ} {mode}
-  → _∋rep[_]_≔_ Ψ mode α A
-  → _∋rep[_]_≔_ (renameTyEnv ρ Ψ) (renameMode ρ mode) α
-      (renameᵗ (toRenameᵗ ρ) A)
+  → Ψ ∋rep[ mode ] α ≔ A
+  → renameTyEnv ρ Ψ ∋rep[ renameMode ρ mode ] α ≔
+      renameᵗ (toRenameᵗ ρ) A
 rename-∋rep ρ Z = Z
 rename-∋rep ρ (S α∈) = S (rename-∋rep ρ α∈)
 rename-∋rep ρ@(keep η)
@@ -1167,9 +1167,9 @@ renameTarget-∋rep : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
     {α : TyVar Θ} {A : Ty Δ} {mode}
   → RenameTarget ρ Ψ Φ
-  → _∋rep[_]_≔_ Ψ mode α A
-  → _∋rep[_]_≔_ Φ (renameMode ρ mode) α
-      (renameᵗ (toRenameᵗ ρ) A)
+  → Ψ ∋rep[ mode ] α ≔ A
+  → Φ ∋rep[ renameMode ρ mode ] α ≔
+      renameᵗ (toRenameᵗ ρ) A
 renameTarget-∋rep {ρ = ρ} canonical-target α∈ = rename-∋rep ρ α∈
 renameTarget-∋rep {A = A} {mode = know pending}
     literal-wk-target α∈ =

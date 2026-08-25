@@ -521,8 +521,9 @@ fresh-delimiter-conceal {Ψ = Ψ} {A = A} {C = C} M⊢ =
   ⊢conceal found-begin target-lookup
     (delimiter-typed↓ zero (⇑ᵗ C) (⇑ᵗ A)) target-M⊢
   where
-  target-lookup = sameTarget-∋rep (same-bracket Z) Z
-  target-M⊢ = ⊢bracket Z M⊢
+  target-lookup =
+    sameTarget-∋rep (same-bracket ∋rep-here) ∋rep-here
+  target-M⊢ = ⊢bracket ∋rep-here M⊢
 
 ⊢shift-crossing : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {M : Term Θ (suc Δ)} {T : Ty (suc Δ)} {A : Ty Δ}
@@ -552,9 +553,9 @@ fresh-∀-entry-crossed {Ψ = Ψ} {V = V} {C = C} {A = A}
   entered = shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C))
   applied = entered ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ]
   deleted-V⊢ = ⊢shift-crossing V⊢
-  target = same-fresh-before-begin Z
+  target = same-fresh-before-begin ∋rep-here
   target-V⊢ = ⊢sameTarget target deleted-V⊢
-  deleted-lookup = skip-begin Z
+  deleted-lookup = ∋rep-here-begin
   target-lookup = sameTarget-∋rep target deleted-lookup
   entered⊢ = ⊢conceal (skip-begin found-begin) target-lookup
     (delimiter-typed↓ zero (wkᵗ zero (wkᵗ X A))
@@ -612,7 +613,8 @@ preserve-β-Λ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
       ⦂ B [ C ]ᵗ
 preserve-β-Λ {B = B} {C = C} (⊢⦂∀ (⊢Λ V⊢)) =
-  ⊢ν (⊢reveal Z (generator-typed B C) (⊢allocate-lexical V⊢))
+  ⊢ν (⊢reveal ∋rep-here (generator-typed B C)
+    (⊢allocate-lexical V⊢))
 
 preserve-β-gen : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {V : Term Θ Δ} {μ : Env∼ Δ} {A C : Ty Δ}
@@ -625,7 +627,7 @@ preserve-β-gen : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       ⦂ B [ C ]ᵗ
 preserve-β-gen {B = bodyTy}
     (⊢⦂∀ (⊢⟨⟩ V⊢ ((gen c) A≠★))) =
-  ⊢ν (⊢reveal Z (generator-typed bodyTy _)
+  ⊢ν (⊢reveal ∋rep-here (generator-typed bodyTy _)
     (⊢⟨⟩ (fresh-delimiter-conceal (⊢shiftᶿ V⊢)) c))
 
 preserve-β-reveal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
@@ -651,8 +653,8 @@ preserve-β-reveal-∀ {Ψ = Ψ} {A = A} {B = B}
     with source-determinacy↑ c⊢
 preserve-β-reveal-∀ {A = A} {B = B} {X = X}
     (⊢⦂∀ (⊢reveal α∈ (⊢↑-∀ c⊢) V⊢)) | refl =
-  ⊢ν (⊢reveal Z (generator-typed B A)
-    (⊢reveal (skip-begin (S α∈)) (exchange-reveal-∀ c⊢)
+  ⊢ν (⊢reveal ∋rep-here (generator-typed B A)
+    (⊢reveal (∋rep-allocate-lexical α∈) (exchange-reveal-∀ c⊢)
       (fresh-∀-entry-crossed V⊢)))
 
 fresh-∀-region : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
@@ -667,7 +669,7 @@ fresh-∀-region : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
           ↑[ zero ≔ zero ] 〖 zero ↑ D 〗)
       ⦂ D [ A ]ᵗ
 fresh-∀-region refl V⊢ =
-  ⊢ν (⊢reveal Z (generator-typed _ _)
+  ⊢ν (⊢reveal ∋rep-here (generator-typed _ _)
     (fresh-∀-entry V⊢))
 
 conceal-resolved-body : ∀ {Δ} {X : TyVar (suc Δ)} {C₀ : Ty Δ}
@@ -1058,7 +1060,8 @@ forall-bad-redex =
 
 forall-bad-redex-⊢ : forall-bad-Ψ ∣ [] ⊢ forall-bad-redex ⦂ ‵ `ℕ
 forall-bad-redex-⊢ =
-  ⊢⦂∀ (⊢reveal Z (⊢↑-∀ (⊢id↑ (‵ `ℕ))) forall-bad-V-⊢)
+  ⊢⦂∀ (⊢reveal ∋rep-here (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
+    forall-bad-V-⊢)
 
 forall-bad-contractum : Term (suc zero) zero
 forall-bad-contractum =
@@ -1122,7 +1125,8 @@ conceal-var-B = ‵ `ℕ
 
 conceal-var-ended-lookup :
   conceal-var-Ψ ,end[ zero ] ∋rep zero ≔ ‵ `ℕ
-conceal-var-ended-lookup = sameTarget-∋rep (same-bracket Z) Z
+conceal-var-ended-lookup =
+  sameTarget-∋rep (same-bracket ∋rep-here) ∋rep-here
 
 conceal-var-redex : Term (suc zero) (suc zero)
 conceal-var-redex =
@@ -1134,7 +1138,7 @@ conceal-var-redex-⊢ :
 conceal-var-redex-⊢ =
   ⊢⦂∀ (⊢conceal found-begin conceal-var-ended-lookup
     (⊢↓-∀ (⊢id↓ (‵ `ℕ)))
-    (⊢bracket Z conceal-var-V-⊢))
+    (⊢bracket ∋rep-here conceal-var-V-⊢))
 
 conceal-var-contractum : Term (suc zero) (suc zero)
 conceal-var-contractum =
@@ -1191,20 +1195,32 @@ conceal-arrow-W-value =
 conceal-arrow-W-⊢ : conceal-arrow-Ψ ∣ [] ⊢
   conceal-arrow-W ⦂ `∀ (‵ `ℕ)
 conceal-arrow-W-⊢ =
-  ⊢reveal Z (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 1)))
+  ⊢reveal ∋rep-here (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
+    (⊢Λ (⊢$ (κℕ 1)))
 
 conceal-arrow-ended-lookup :
   conceal-arrow-Ψ ,end[ zero ] ∋rep suc zero ≔ ‵ `ℕ
 conceal-arrow-ended-lookup =
-  skip-end (skip-nu-binding found-begin)
-    (S (skip-begin Z)) (S (skip-begin Z))
-    (resolve-wkᵗ zero (‵ `ℕ) (‵ `ℕ))
+  ∋rep-of
+    (skip-end (skip-nu-binding found-begin)
+      (S (skip-begin Z)))
+    ⇓-base
 
 conceal-arrow-ended-new-lookup :
   conceal-arrow-Ψ ,end[ zero ] ∋rep zero ≔ ‵ `ℕ
 conceal-arrow-ended-new-lookup =
-  skip-end (skip-nu-binding found-begin)
-    (S (skip-begin Z)) Z (resolveSub-here zero (‵ `ℕ))
+  ∋rep-of
+    (skip-end (skip-nu-binding found-begin) Z)
+    (⇓-ref conceal-arrow-ended-lookup)
+
+conceal-arrow-reentered-new-lookup :
+    conceal-arrow-Ψ ,end[ zero ] ,begin[ zero ≔ suc zero ]
+      ∋rep zero ≔ ＇ zero
+conceal-arrow-reentered-new-lookup =
+  ∋rep-of
+    (skip-begin
+      (skip-end (skip-nu-binding found-begin) Z))
+    ⇓-var
 
 conceal-arrow-redex : Term (suc (suc zero)) (suc zero)
 conceal-arrow-redex =
@@ -1240,7 +1256,7 @@ conceal-arrow-contractum-⊢ =
     (⊢· (⊢ƛ (⊢$ (κℕ 0)))
       (⊢reveal conceal-arrow-ended-lookup
         (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
-        (⊢reveal (skip-begin conceal-arrow-ended-new-lookup)
+        (⊢reveal conceal-arrow-reentered-new-lookup
           (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
           (⊢Λ (⊢$ (κℕ 1))))))
 
@@ -1298,9 +1314,10 @@ bad-V = ($ (κℕ 7)) ↓[ zero ≔ zero ] seal
 
 bad-V-ended-lookup : bad-body-Ψ ,end[ zero ] ∋rep zero ≔ ‵ `ℕ
 bad-V-ended-lookup =
-  skip-end (skip-begin found-begin)
-    (skip-begin (skip-begin Z)) (skip-begin (skip-begin Z))
-    (resolve-wkᵗ zero (‵ `ℕ) (‵ `ℕ))
+  ∋rep-of
+    (skip-end (skip-begin found-begin)
+      (skip-begin (skip-begin Z)))
+    ⇓-base
 
 bad-V-⊢ : bad-body-Ψ ∣ [] ⊢ bad-V ⦂ ＇ zero
 bad-V-⊢ =
@@ -1310,14 +1327,18 @@ bad-V-⊢ =
 bad-inner : Term (suc (suc zero)) (suc (suc (suc zero)))
 bad-inner = bad-V ↓[ zero ≔ zero ] id↓
 
+bad-inner-ended-raw :
+    bad-Ψ ,begin[ suc (suc zero) ≔ suc zero ] ,end[ zero ]
+      ∋rep⁺ zero ≔ ‵⁺ `ℕ
+bad-inner-ended-raw =
+  skip-end (skip-begin found-begin)
+    (skip-begin (skip-begin (skip-begin Z)))
+
 bad-inner-ended-lookup :
   bad-Ψ ,begin[ suc (suc zero) ≔ suc zero ] ,end[ zero ]
     ∋rep zero ≔ ‵ `ℕ
 bad-inner-ended-lookup =
-  skip-end (skip-begin found-begin)
-    (skip-begin (skip-begin (skip-begin Z)))
-    (skip-begin (skip-begin (skip-begin Z)))
-    (resolve-wkᵗ zero (‵ `ℕ) (‵ `ℕ))
+  ∋rep-of bad-inner-ended-raw ⇓-base
 
 bad-inner-body-slot :
   bad-Ψ ,begin[ suc (suc zero) ≔ suc zero ] ,end[ zero ]
@@ -1329,8 +1350,7 @@ bad-inner-body-ended-lookup :
   bad-Ψ ,begin[ suc (suc zero) ≔ suc zero ] ,end[ zero ]
       ,end[ zero ] ∋rep zero ≔ ‵ `ℕ
 bad-inner-body-ended-lookup =
-  skip-end bad-inner-body-slot bad-inner-ended-lookup
-    bad-inner-ended-lookup (resolve-wkᵗ zero (‵ `ℕ) (‵ `ℕ))
+  ∋rep-of (skip-end bad-inner-body-slot bad-inner-ended-raw) ⇓-base
 
 bad-inner-⊢ :
   bad-Ψ ,begin[ suc (suc zero) ≔ suc zero ] ∣ []
@@ -1346,7 +1366,8 @@ bad-redex = bad-inner ↑[ suc (suc zero) ≔ suc zero ] id↑
 
 bad-redex-⊢ : bad-Ψ ∣ [] ⊢ bad-redex ⦂ ＇ suc zero
 bad-redex-⊢ =
-  ⊢reveal (skip-begin (skip-begin (S Z)))
+  ⊢reveal
+    (∋rep-of (skip-begin (skip-begin (S Z))) ⇓-base)
     (⊢id↑ (＇ suc zero)) bad-inner-⊢
 
 bad-V-canonical : CanonicalInterior bad-V
@@ -1412,9 +1433,10 @@ stranded-ended-lookup :
   (stranded-Ψ ,begin[ zero ≔ zero ]) ,:= ‵ `ℕ ,end[ zero ]
     ∋rep suc zero ≔ ‵ `ℕ
 stranded-ended-lookup =
-  skip-end (skip-nu-binding found-begin)
-    (S (skip-begin Z)) (S (skip-begin Z))
-    (resolve-wkᵗ zero (‵ `ℕ) (‵ `ℕ))
+  ∋rep-of
+    (skip-end (skip-nu-binding found-begin)
+      (S (skip-begin Z)))
+    ⇓-base
 
 stranded-seal-⊢ :
   ((stranded-Ψ ,begin[ zero ≔ zero ]) ,:= ‵ `ℕ) ∣ [] ⊢
@@ -1443,7 +1465,7 @@ stranded-adapter-value =
 
 stranded-adapter-⊢ :
   stranded-Ψ ∣ [] ⊢ stranded-adapter ⦂ ‵ `ℕ
-stranded-adapter-⊢ = ⊢reveal Z ⊢unseal stranded-region-⊢
+stranded-adapter-⊢ = ⊢reveal ∋rep-here ⊢unseal stranded-region-⊢
 
 stranded-seal-no-step : ∀ {M′}
   → ((stranded-Ψ ,begin[ zero ≔ zero ]) ,:= ‵ `ℕ) ⊢
@@ -1533,7 +1555,7 @@ open-function = open-V ↑[ zero ≔ zero ] (seal ↦↑ id↑)
 open-function-⊢ :
   open-Ψ ∣ open-Γ ⊢ open-function ⦂ open-R ⇒ ‵ `ℕ
 open-function-⊢ =
-  ⊢reveal Z (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ))) open-V-⊢
+  ⊢reveal ∋rep-here (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ))) open-V-⊢
 
 open-redex : Term (suc zero) zero
 open-redex = open-function · open-W

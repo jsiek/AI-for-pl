@@ -28,9 +28,10 @@ open import alt.ThetaTermSubst
 
 Ψ₂-ended-old-lookup : Ψ₂ ,end[ zero ] ∋rep suc zero ≔ ‵ `ℕ
 Ψ₂-ended-old-lookup =
-  skip-end (skip-nu-binding found-begin)
-    (S (skip-begin Z)) (S (skip-begin Z))
-    (resolve-wkᵗ zero (‵ `ℕ) (‵ `ℕ))
+  ∋rep-of
+    (skip-end (skip-nu-binding found-begin)
+      (S (skip-begin Z)))
+    ⇓-base
 
 sealed-seven : Term 2 1
 sealed-seven = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal
@@ -101,24 +102,49 @@ float-preservation-instance = before-float-⊢ , after-float-⊢
 -- representation in the lookup result; the telescope itself is unchanged.
 resolve-through-end : Ψ₂ ,end[ zero ] ∋rep zero ≔ ‵ `ℕ
 resolve-through-end =
-  skip-end (skip-nu-binding found-begin)
-    (S (skip-begin Z)) Z (resolveSub-here zero (‵ `ℕ))
+  ∋rep-of
+    (skip-end (skip-nu-binding found-begin) Z)
+    (⇓-ref Ψ₂-ended-old-lookup)
 
 -- A live begin weakens an outer representation verbatim.
 verbatim-through-live-begin :
   (∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ] ∋rep zero
     ≔ wkᵗ zero (‵ `ℕ)
-verbatim-through-live-begin = skip-begin Z
+verbatim-through-live-begin = ∋rep-here-begin
 
 end-after-live-begin :
   (((∅ ,:= ‵ `ℕ ,:= ‵ `𝔹) ,begin[ zero ≔ zero ])
       ,begin[ suc zero ≔ suc zero ]) ,end[ zero ]
     ∋rep suc zero ≔ ‵ `ℕ
 end-after-live-begin =
-  skip-end (skip-begin found-begin)
-    (skip-begin (skip-begin Z))
-    (skip-begin (skip-begin (S Z)))
-    (resolve-wkᵗ zero (‵ `𝔹) (‵ `ℕ))
+  ∋rep-of
+    (skip-end (skip-begin found-begin)
+      (skip-begin (skip-begin (S Z))))
+    ⇓-base
+
+-- The telescope from commit 0190acb9 now re-enters the just-ended anchor
+-- abstractly.  The end creates `ref (suc zero)` and the adjacent begin turns
+-- it back into the new slot.
+adjacent-reentry :
+    (reenter-counterexample-Ψ ,end[ zero ]
+      ,begin[ zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero
+adjacent-reentry = reenter-counterexample-reentered
+
+nonadjacent-reentry-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
+nonadjacent-reentry-Ψ =
+  (((((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]) ,:= ＇ zero)
+    ,end[ zero ]) ,typ) ,begin[ zero ≔ suc zero ]
+
+-- A lexical entry between the end and its later begin leaves refs fixed;
+-- the later begin still re-aliases the ended anchor to its new abstract slot.
+nonadjacent-reentry :
+    nonadjacent-reentry-Ψ ∋rep zero ≔ ＇ zero
+nonadjacent-reentry =
+  ∋rep-of
+    (skip-begin
+      (skip-typ
+        (skip-end (skip-nu-binding found-begin) Z)))
+    ⇓-var
 
 ------------------------------------------------------------------------
 -- The former β-Λ allocation obstruction is now a positive instance
@@ -129,8 +155,7 @@ end-after-live-begin =
 
 βΛ-ended-lookup : βΛ-Ψ ∋rep zero ≔ ‵ `ℕ
 βΛ-ended-lookup =
-  skip-end found-begin (skip-begin Z) (skip-begin Z)
-    (resolve-wkᵗ zero (‵ `ℕ) (‵ `ℕ))
+  ∋rep-of (skip-end found-begin (skip-begin Z)) ⇓-base
 
 βΛ-body : Term 1 1
 βΛ-body = (Λ ($ (κℕ 7))) ↑[ zero ≔ zero ] `∀↑ id↑
@@ -141,7 +166,7 @@ end-after-live-begin =
 
 βΛ-body-⊢ : βΛ-Ψ ,typ ∣ [] ⊢ βΛ-body ⦂ `∀ (‵ `ℕ)
 βΛ-body-⊢ =
-  ⊢reveal (skip-typ βΛ-ended-lookup)
+  ⊢reveal (∋rep-typ βΛ-ended-lookup)
     (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 7)))
 
 βΛ-redex : Term 1 0
@@ -161,7 +186,7 @@ end-after-live-begin =
 βΛ-contractum-⊢ :
   βΛ-Ψ ∣ [] ⊢ βΛ-contractum ⦂ `∀ (‵ `ℕ)
 βΛ-contractum-⊢ =
-  ⊢ν (⊢reveal Z (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
+  ⊢ν (⊢reveal ∋rep-here (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
     (⊢allocate-lexical βΛ-body-⊢))
 
 βΛ-positive-preservation :

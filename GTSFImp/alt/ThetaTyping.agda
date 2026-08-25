@@ -12,9 +12,11 @@ module alt.ThetaTyping where
 --     its prefix, and later prefix insertions are strictly older, so its
 --     formerly constant position argument carried no information.
 --   * Representations are written in the regular scope at their entry; anchor
---     lookup transports them lazily across begin/end markers.  Telescope
---     entries are never rewritten when a scope ends.  Anchors never occur in
---     regular types `Ty Δ`.
+--     lookup transports an internal `Ty⁺` payload across begin/end markers.
+--     An end is the sole introduction site for `ref`; a matching later begin
+--     re-aliases that reference to its abstract slot, while a query discharges
+--     references whose scopes remain dead.  Telescope entries are never
+--     rewritten when a scope ends.  Anchors never occur in regular `Ty Δ`.
 --   * Term variables cross only Λ's type-variable entry, by weakening the
 --     term list wholesale (renameCtx), as in the live calculus.
 
@@ -38,6 +40,74 @@ private
   variable
     Θ Θ′ : AnchorCtx
     Δ : TyCtx
+
+------------------------------------------------------------------------
+-- Lookup-internal representation types
+------------------------------------------------------------------------
+
+infixr 7 _⇒⁺_
+infix 6 `∀⁺
+
+data Ty⁺ (Θ : AnchorCtx) : TyCtx → Set where
+  ＇⁺_ : ∀ {Δ} → TyVar Δ → Ty⁺ Θ Δ
+  ‵⁺_ : ∀ {Δ} → Base → Ty⁺ Θ Δ
+  ★⁺ : ∀ {Δ} → Ty⁺ Θ Δ
+  _⇒⁺_ : ∀ {Δ} → Ty⁺ Θ Δ → Ty⁺ Θ Δ → Ty⁺ Θ Δ
+  `∀⁺ : ∀ {Δ} → Ty⁺ Θ (suc Δ) → Ty⁺ Θ Δ
+  ref : ∀ {Δ} → TyVar Θ → Ty⁺ Θ Δ
+
+⌜_⌝ : ∀ {Θ Δ} → Ty Δ → Ty⁺ Θ Δ
+⌜ ＇ X ⌝ = ＇⁺ X
+⌜ ‵ ι ⌝ = ‵⁺ ι
+⌜ ★ ⌝ = ★⁺
+⌜ A ⇒ B ⌝ = ⌜ A ⌝ ⇒⁺ ⌜ B ⌝
+⌜ `∀ A ⌝ = `∀⁺ ⌜ A ⌝
+
+renameᵗ⁺ : ∀ {Θ Δ Δ′} → (TyVar Δ → TyVar Δ′)
+  → Ty⁺ Θ Δ → Ty⁺ Θ Δ′
+renameᵗ⁺ ρ (＇⁺ X) = ＇⁺ (ρ X)
+renameᵗ⁺ ρ (‵⁺ ι) = ‵⁺ ι
+renameᵗ⁺ ρ ★⁺ = ★⁺
+renameᵗ⁺ ρ (A⁺ ⇒⁺ B⁺) = renameᵗ⁺ ρ A⁺ ⇒⁺ renameᵗ⁺ ρ B⁺
+renameᵗ⁺ ρ (`∀⁺ A⁺) = `∀⁺ (renameᵗ⁺ (extᵗ ρ) A⁺)
+renameᵗ⁺ ρ (ref α) = ref α
+
+renameᶠ⁺ : ∀ {Θ Θ′ Δ} → (TyVar Θ → TyVar Θ′)
+  → Ty⁺ Θ Δ → Ty⁺ Θ′ Δ
+renameᶠ⁺ ρ (＇⁺ X) = ＇⁺ X
+renameᶠ⁺ ρ (‵⁺ ι) = ‵⁺ ι
+renameᶠ⁺ ρ ★⁺ = ★⁺
+renameᶠ⁺ ρ (A⁺ ⇒⁺ B⁺) = renameᶠ⁺ ρ A⁺ ⇒⁺ renameᶠ⁺ ρ B⁺
+renameᶠ⁺ ρ (`∀⁺ A⁺) = `∀⁺ (renameᶠ⁺ ρ A⁺)
+renameᶠ⁺ ρ (ref α) = ref (ρ α)
+
+end⁺ : ∀ {Θ Δ} → TyVar (suc Δ) → TyVar Θ
+  → Ty⁺ Θ (suc Δ) → Ty⁺ Θ Δ
+end⁺ Y β (＇⁺ X) with Y ≟ X
+end⁺ Y β (＇⁺ .Y) | yes refl = ref β
+end⁺ Y β (＇⁺ X) | no Y≢X = ＇⁺ (punchOut Y X Y≢X)
+end⁺ Y β (‵⁺ ι) = ‵⁺ ι
+end⁺ Y β ★⁺ = ★⁺
+end⁺ Y β (A⁺ ⇒⁺ B⁺) = end⁺ Y β A⁺ ⇒⁺ end⁺ Y β B⁺
+end⁺ Y β (`∀⁺ A⁺) = `∀⁺ (end⁺ (suc Y) β A⁺)
+end⁺ Y β (ref α) = ref α
+
+begin⁺ : ∀ {Θ Δ} → TyVar (suc Δ) → TyVar Θ
+  → Ty⁺ Θ Δ → Ty⁺ Θ (suc Δ)
+begin⁺ Y β (＇⁺ X) = ＇⁺ (punchIn Y X)
+begin⁺ Y β (‵⁺ ι) = ‵⁺ ι
+begin⁺ Y β ★⁺ = ★⁺
+begin⁺ Y β (A⁺ ⇒⁺ B⁺) = begin⁺ Y β A⁺ ⇒⁺ begin⁺ Y β B⁺
+begin⁺ Y β (`∀⁺ A⁺) = `∀⁺ (begin⁺ (suc Y) β A⁺)
+begin⁺ Y β (ref α) with β ≟ α
+begin⁺ Y β (ref .β) | yes refl = ＇⁺ Y
+begin⁺ Y β (ref α) | no β≢α = ref α
+
+typ⁺ : ∀ {Θ Δ} → Ty⁺ Θ Δ → Ty⁺ Θ (suc Δ)
+typ⁺ = renameᵗ⁺ suc
+
+wkᶠ⁺ : ∀ {Θ Δ} → Ty⁺ Θ Δ → Ty⁺ (suc Θ) Δ
+wkᶠ⁺ = renameᶠ⁺ suc
 
 ------------------------------------------------------------------------
 -- Binder telescopes: type variables and anchors, no term variables
@@ -99,52 +169,94 @@ data _∋typ_≔_ : ∀ {Θ Δ}
       -------------------------------------------------
     → (Ψ ,end[ Y ]) ∋typ X ≔ α
 
-infix 4 _∋rep_≔_
+infix 4 _∋rep⁺_≔_ _⊢_⇓_ _∋rep_≔_
 
--- `Ψ ∋rep α ≔ A` looks up the representation type associated with the
--- ν binding of anchor α, expressed in Ψ's scope as A.  Crossing an end
--- marker resolves the ended slot's occurrences in the result — never
--- in the telescope.
-data _∋rep_≔_ : ∀ {Θ Δ}
-    → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
+-- Raw lookup transports `Ty⁺` structurally.  `end⁺` is the single
+-- introduction site for an anchor reference; `begin⁺` re-aliases every
+-- matching reference, adjacent or not, to the new abstract slot.
+data _∋rep⁺_≔_ : ∀ {Θ Δ}
+    → TyEnv Θ Δ → TyVar Θ → Ty⁺ Θ Δ → Set where
   Z : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
-      ---------------------
-    → Ψ ,:= A ∋rep zero ≔ A
+      --------------------------------
+    → Ψ ,:= A ∋rep⁺ zero ≔ wkᶠ⁺ ⌜ A ⌝
 
   S : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {a : TyVar Θ}
-      {A B : Ty Δ}
-    → Ψ ∋rep a ≔ A
-      ----------------------
-    → Ψ ,:= B ∋rep suc a ≔ A
+      {A⁺ : Ty⁺ Θ Δ} {B : Ty Δ}
+    → Ψ ∋rep⁺ a ≔ A⁺
+      ----------------------------------
+    → Ψ ,:= B ∋rep⁺ suc a ≔ wkᶠ⁺ A⁺
 
   skip-begin : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {a β : TyVar Θ} {A : Ty Δ}
+      {a β : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
       {Y : TyVar (suc Δ)}
-    → Ψ ∋rep a ≔ A
-      ---------------------------------
-    → Ψ ,begin[ Y ≔ β ] ∋rep a ≔ wkᵗ Y A
+    → Ψ ∋rep⁺ a ≔ A⁺
+      -------------------------------------------------
+    → Ψ ,begin[ Y ≔ β ] ∋rep⁺ a ≔ begin⁺ Y β A⁺
 
   skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {a : TyVar Θ} {A : Ty Δ}
-    → Ψ ∋rep a ≔ A
-      ------------------------
-    → Ψ ,typ ∋rep a ≔ ⇑ᵗ A
+      {a : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
+    → Ψ ∋rep⁺ a ≔ A⁺
+      -----------------------------
+    → Ψ ,typ ∋rep⁺ a ≔ typ⁺ A⁺
 
   skip-end : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-      {Y : TyVar (suc Δ)} {α a : TyVar Θ}
-      {A : Ty (suc Δ)} {B C : Ty Δ}
-    → Ψ ∋typ Y ≔ α
-    → Ψ ∋rep α ≔ wkᵗ Y C
-    → Ψ ∋rep a ≔ A
-    → substᵗ (resolveSubᵗ Y C) A ≡ B
-      --------------------------------------------
-    → Ψ ,end[ Y ] ∋rep a ≔ B
+      {Y : TyVar (suc Δ)} {β a : TyVar Θ}
+      {A⁺ : Ty⁺ Θ (suc Δ)}
+    → Ψ ∋typ Y ≔ β
+    → Ψ ∋rep⁺ a ≔ A⁺
+      -----------------------------------------------
+    → Ψ ,end[ Y ] ∋rep⁺ a ≔ end⁺ Y β A⁺
 
--- The lookup never blocks: ∋rep is consumed only by the reveal/conceal
--- typing rules, at their own boundary telescopes — it is never used to
--- expose a representation type inside an opaque region, so no crossing
--- needs to be refused.  Ending a scope appends syntax to the telescope:
--- no stored entry is substituted, punched out, or otherwise rewritten.
+-- Query discharge is deliberately mutual with the public lookup.  A ref
+-- follows its anchor only when the query is finally discharged; under `∀⁺`
+-- the query enters the lexical telescope, so the representation is weakened
+-- at the binder in the same way as every ordinary type payload.
+mutual
+  data _⊢_⇓_ : ∀ {Θ Δ}
+      → TyEnv Θ Δ → Ty⁺ Θ Δ → Ty Δ → Set where
+    ⇓-var : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {X : TyVar Δ}
+        ------------------
+      → Ψ ⊢ ＇⁺ X ⇓ ＇ X
+
+    ⇓-base : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {ι : Base}
+        ------------------
+      → Ψ ⊢ ‵⁺ ι ⇓ ‵ ι
+
+    ⇓-star : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+        ---------------
+      → Ψ ⊢ ★⁺ ⇓ ★
+
+    ⇓-fun : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+        {A⁺ B⁺ : Ty⁺ Θ Δ} {A B : Ty Δ}
+      → Ψ ⊢ A⁺ ⇓ A
+      → Ψ ⊢ B⁺ ⇓ B
+        -----------------------
+      → Ψ ⊢ A⁺ ⇒⁺ B⁺ ⇓ A ⇒ B
+
+    ⇓-all : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+        {A⁺ : Ty⁺ Θ (suc Δ)} {A : Ty (suc Δ)}
+      → Ψ ,typ ⊢ A⁺ ⇓ A
+        -------------------
+      → Ψ ⊢ `∀⁺ A⁺ ⇓ `∀ A
+
+    ⇓-ref : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+        {β : TyVar Θ} {C : Ty Δ}
+      → Ψ ∋rep β ≔ C
+        -------------
+      → Ψ ⊢ ref β ⇓ C
+
+  data _∋rep_≔_ : ∀ {Θ Δ}
+      → TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
+    ∋rep-of : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+        {a : TyVar Θ} {A⁺ : Ty⁺ Θ Δ} {A : Ty Δ}
+      → Ψ ∋rep⁺ a ≔ A⁺
+      → Ψ ⊢ A⁺ ⇓ A
+        ---------------
+      → Ψ ∋rep a ≔ A
+
+-- No crossing is refused.  Ends defer abstract occurrences as refs; begins
+-- re-alias matching refs, and only a public lookup query resolves references
+-- whose anchors remain dead.
 
 ------------------------------------------------------------------------
 -- Typing

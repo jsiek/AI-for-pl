@@ -52,6 +52,13 @@ toRename-keep-eq : ∀ {Δ Δ′} (rho : Δ ↪ᵗ Δ′) X
 toRename-keep-eq rho Fin.zero = refl
 toRename-keep-eq rho (Fin.suc X) = refl
 
+renameᵗ-skip-eq : ∀ {Δ Δ′} (rho : Δ ↪ᵗ Δ′) (A : Ty Δ)
+  → renameᵗ (toRenameᵗ (skip rho)) A
+    ≡ ⇑ᵗ (renameᵗ (toRenameᵗ rho) A)
+renameᵗ-skip-eq rho A =
+  trans (renameᵗ-cong A (λ X → refl))
+    (sym (renameᵗ-comp (toRenameᵗ rho) Fin.suc A))
+
 StoreRename-keep : ∀ {Δ Δ′} {rho : Δ ↪ᵗ Δ′} {Σ Σ′}
   → StoreRename (toRenameᵗ rho) Σ Σ′
   → StoreRename (toRenameᵗ (keep rho))

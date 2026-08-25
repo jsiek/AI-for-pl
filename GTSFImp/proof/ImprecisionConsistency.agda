@@ -680,6 +680,26 @@ source-occurs-target {X = X} focus (I.∀⊑★ Ans p) (∈-all X∈A)
 source-occurs-target focus I.bot-elim (∈-all ())
 source-occurs-target focus I.bot⊑★ (∈-all ())
 
+all-ground-body : ∀ {Δ} {μ : I.ImpEnv Δ}
+    {A : Ty (Nat.suc Δ)} {H : Ty Δ}
+  → NonVar A
+  → zero ∈ᵗ A
+  → Ground H
+  → I._⊢_⊑_ μ (`∀ A) H
+  → I._⊢_⊑_ (I.instᵐ μ) A (⇑ᵗ H)
+all-ground-body Anv zero∈A (＇ X)
+    (I.∀⊑ Anv′ zero∈A′ body) = body
+all-ground-body Anv zero∈A (‵ ι)
+    (I.∀⊑ Anv′ zero∈A′ body) = body
+all-ground-body Anv zero∈A ★⇒★
+    (I.∀⊑ Anv′ zero∈A′ body) = body
+all-ground-body Anv zero∈A ∀★
+    (I.∀⊑ Anv′ zero∈A′ body) = body
+all-ground-body Anv zero∈A ∀★ (I.∀⊑∀ body)
+    with source-occurs-target refl body zero∈A
+all-ground-body Anv zero∈A ∀★ (I.∀⊑∀ body) | ()
+all-ground-body () zero∈A ∀★ I.bot-elim
+
 ------------------------------------------------------------------------
 -- Ground targets and consistency
 ------------------------------------------------------------------------

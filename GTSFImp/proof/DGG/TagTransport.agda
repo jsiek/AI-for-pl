@@ -23,7 +23,7 @@ open import Imprecision
 open import proof.DGG.ConvImp using
   (occurs-absent-⊥; conv↑-zero-pre; conv↑-zero-post;
    conv↓-zero-pre; conv↓-zero-post)
-open import proof.DGG.WorldDecay using (⊑-env-mono)
+open import proof.Imprecision using (⊑-env-mono)
 open import proof.ImprecisionConsistency using
   (rename-occurs; unrename-occurs; rename-not-occurs;
    source-occurs-target; ext-injective; zero-absent-shift)

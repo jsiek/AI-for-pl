@@ -6,10 +6,10 @@ module alt.ThetaTermSubst where
 --   * Defines the action of regular-context injections on binder telescopes
 --     and proves typing preservation for the general term action
 --     `renameᵗᵐ` from alt.ThetaReduction.
---   * Historically, conceal pinned its conclusion telescope to a final
---     `,typ` entry.  Resolving slot deletion removes that obstruction while
---     retaining representation knowledge; this file supplies literal Λ
---     weakening, PLFA substitution, anchor shifting, and deletion algebra.
+--   * Reveal scopes are retained verbatim between `,begin[_≔_]` and their
+--     popping `,end[_]` markers.  This file transports the lazy slot and
+--     representation lookups across regular and anchor renamings; it performs
+--     no telescope entry surgery.
 
 open import Data.Empty using (⊥-elim)
 open import Data.Fin using (zero; suc)
@@ -17,6 +17,7 @@ open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_; _×_; ∃-syntax)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
   renaming (subst to subst≡)
@@ -37,7 +38,7 @@ private
     Δ Δ′ : TyCtx
     Ψ Ψ′ : TyEnv Θ Δ
     Γ Γ′ : TermCtx Δ
-    A B C : Ty Δ
+    A B C D : Ty Δ
     L M N : Term Θ Δ
     slot inner outer : TyVar Δ
     entry anchor : TyVar Θ
@@ -312,94 +313,6 @@ punchOut-punchIn (suc Y) zero Y≢X = refl
 punchOut-punchIn (suc Y) (suc X) Y≢X =
   cong suc (punchOut-punchIn Y X _)
 
-∖-:=wk : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
-    (Y : TyVar (suc Δ)) (A : Ty Δ)
-  → (Ψ ,:= wkᵗ Y A) ∖ Y ≡ (Ψ ∖ Y) ,:= A
-∖-:=wk Ψ Y A with deleteSlot Ψ Y
-∖-:=wk Ψ Y A | delete-view Φ C rewrite resolve-wkᵗ Y C A = refl
-
-∖-typ-zero-suc : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
-    (Y : TyVar (suc Δ))
-  → (Ψ ,typ) ∖ suc Y ≡ (Ψ ∖ Y) ,typ
-∖-typ-zero-suc Ψ Y = refl
-
-∖-typ-here : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ) (Y : TyVar (suc Δ))
-    (α : TyVar Θ)
-  → (Ψ ,typ[ Y ≔ α ]) ∖ Y ≡ Ψ
-∖-typ-here {Δ = zero} Ψ zero α = refl
-∖-typ-here {Δ = suc Δ} Ψ Y α with Y ≟ Y
-∖-typ-here {Δ = suc Δ} Ψ Y α | yes refl = refl
-∖-typ-here {Δ = suc Δ} Ψ Y α | no Y≢Y = ⊥-elim (Y≢Y refl)
-
-punchOut-proof : ∀ {n} (Y X : TyVar (suc n))
-    (p q : Y ≢ X)
-  → punchOut Y X p ≡ punchOut Y X q
-punchOut-proof zero zero p q = ⊥-elim (p refl)
-punchOut-proof zero (suc X) p q = refl
-punchOut-proof (suc Y) zero p q = refl
-punchOut-proof {n = suc n} (suc Y) (suc X) p q =
-  cong suc (punchOut-proof Y X _ _)
-
-∖-typ-other : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
-    (X Y : TyVar (suc (suc Δ)))
-    (α : TyVar Θ)
-    (X≢Y : X ≢ Y) (Y≢X : Y ≢ X)
-  → (Ψ ,typ[ X ≔ α ]) ∖ Y
-    ≡ (Ψ ∖ punchOut X Y X≢Y)
-        ,typ[ punchOut Y X Y≢X ≔ α ]
-∖-typ-other Ψ X Y α X≢Y Y≢X with X ≟ Y
-∖-typ-other Ψ X .X α X≢Y Y≢X | yes refl = ⊥-elim (X≢Y refl)
-∖-typ-other Ψ X Y α X≢Y Y≢X | no X≢Y′
-    rewrite punchOut-proof X Y X≢Y′ X≢Y
-      | punchOut-proof Y X (λ Y≡X → X≢Y′ (sym Y≡X)) Y≢X =
-  refl
-
-deletedRep-cross : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
-    (X : TyVar (suc (suc Δ))) (Y : TyVar (suc Δ))
-    (α : TyVar Θ)
-  → DeleteView.deletedRep
-      (deleteSlot (Ψ ,typ[ X ≔ α ]) (punchIn X Y))
-    ≡ wkᵗ
-        (punchOut (punchIn X Y) X
-          (λ eq → punchIn≢ X Y (sym eq)))
-        (DeleteView.deletedRep (deleteSlot Ψ Y))
-deletedRep-cross Ψ X Y α with X ≟ punchIn X Y
-deletedRep-cross Ψ X Y α | yes X≡Y =
-  ⊥-elim (punchIn≢ X Y X≡Y)
-deletedRep-cross Ψ X Y α | no X≢Y
-    rewrite punchOut-punchIn X Y X≢Y =
-  refl
-
-deletedRep-anchor : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
-    (Y : TyVar (suc Δ)) {α : TyVar Θ}
-  → Ψ ∋typ Y ≔ α
-  → DeleteView.deletedRep (deleteSlot Ψ Y) ≡ anchorRep (Ψ ∖ Y) α
-deletedRep-anchor {Δ = zero} (Ψ ,typ[ zero ≔ α ]) zero here-typ =
-  refl
-deletedRep-anchor {Δ = suc Δ} (Ψ ,typ[ Y ≔ α ]) .Y here-typ
-    with Y ≟ Y
-deletedRep-anchor {Δ = suc Δ} (Ψ ,typ[ Y ≔ α ]) .Y here-typ
-    | yes refl = refl
-deletedRep-anchor {Δ = suc Δ} (Ψ ,typ[ Y ≔ α ]) .Y here-typ
-    | no Y≢Y = ⊥-elim (Y≢Y refl)
-deletedRep-anchor {Δ = suc Δ} (Ψ ,typ[ outer ≔ anchor ])
-    .(punchIn outer inner) (skip-cross-typ {Y = inner} inner∈)
-    rewrite ∖-typ-other Ψ outer (punchIn outer inner) anchor
-        (punchIn≢ outer inner)
-        (λ eq → punchIn≢ outer inner (sym eq))
-      | punchOut-punchIn outer inner (punchIn≢ outer inner) =
-  trans (deletedRep-cross Ψ outer inner anchor)
-    (cong (wkᵗ _) (deletedRep-anchor Ψ inner inner∈))
-deletedRep-anchor {Δ = suc Δ} (Ψ ,typ) .(suc Y)
-    (skip-lexical-typ {Y = Y} Y∈)
-    with deleteSlot Ψ Y | deletedRep-anchor Ψ Y Y∈
-deletedRep-anchor {Δ = suc Δ} (Ψ ,typ) .(suc Y)
-    (skip-lexical-typ {Y = Y} Y∈)
-    | delete-view Φ C | rep-eq = cong ⇑ᵗ rep-eq
-deletedRep-anchor (Ψ ,:= A) Y (skip-visible-typ Y∈)
-    with deleteSlot Ψ Y | deletedRep-anchor Ψ Y Y∈
-deletedRep-anchor (Ψ ,:= A) Y (skip-visible-typ Y∈)
-    | delete-view Φ C | rep-eq = rep-eq
 toRenameᵗ-injective : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
   → ∀ {X Y} → toRenameᵗ ρ X ≡ toRenameᵗ ρ Y → X ≡ Y
 toRenameᵗ-injective empty {()}
@@ -692,20 +605,23 @@ renameTyEnv : ∀ {Θ Δ Δ′}
 renameTyEnv {Δ′ = Δ′} ρ ∅ = emptyTyEnv Δ′ ∅
 renameTyEnv ρ (Ψ ,:= A) =
   renameTyEnv ρ Ψ ,:= renameᵗ (toRenameᵗ ρ) A
-renameTyEnv (keep ρ) (Ψ ,typ[ Y ≔ α ]) =
+renameTyEnv (keep ρ) (Ψ ,begin[ Y ≔ α ]) =
   renameTyEnv (delete↪ᵗ (keep ρ) Y) Ψ
-    ,typ[ toRenameᵗ (keep ρ) Y ≔ α ]
-renameTyEnv (skip ρ) (Ψ ,typ[ Y ≔ α ]) =
+    ,begin[ toRenameᵗ (keep ρ) Y ≔ α ]
+renameTyEnv (skip ρ) (Ψ ,begin[ Y ≔ α ]) =
   renameTyEnv (delete↪ᵗ (skip ρ) Y) Ψ
-    ,typ[ toRenameᵗ (skip ρ) Y ≔ α ]
+    ,begin[ toRenameᵗ (skip ρ) Y ≔ α ]
 renameTyEnv (keep ρ) (Ψ ,typ) = renameTyEnv ρ Ψ ,typ
 renameTyEnv (skip ρ) (Ψ ,typ) = renameTyEnv ρ (Ψ ,typ) ,typ
+renameTyEnv ρ (Ψ ,end[ Y ]) =
+  renameTyEnv (insert↪ᵗ ρ Y) Ψ
+    ,end[ toRenameᵗ (insert↪ᵗ ρ Y) Y ]
 
 renameTyEnv-insert : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     (Ψ : TyEnv Θ Δ) (Y : TyVar (suc Δ)) (α : TyVar Θ)
-  → renameTyEnv (insert↪ᵗ ρ Y) (Ψ ,typ[ Y ≔ α ])
+  → renameTyEnv (insert↪ᵗ ρ Y) (Ψ ,begin[ Y ≔ α ])
     ≡ renameTyEnv ρ Ψ
-        ,typ[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]
+        ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]
 renameTyEnv-insert ρ Ψ zero α = refl
 renameTyEnv-insert (keep ρ) Ψ (suc Y) α
     rewrite delete-insert↪ᵗ ρ Y =
@@ -714,241 +630,101 @@ renameTyEnv-insert (skip ρ) Ψ (suc Y) α
     rewrite delete-insert↪ᵗ ρ (suc Y) =
   refl
 
-rename-∋:= : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    {Ψ : TyEnv Θ Δ} {α : TyVar Θ} {A : Ty Δ}
-  → Ψ ∋ α := A
-  → renameTyEnv ρ Ψ ∋ α := renameᵗ (toRenameᵗ ρ) A
-rename-∋:= ρ Z = Z
-rename-∋:= ρ (S α∈) = S (rename-∋:= ρ α∈)
-rename-∋:= (keep ρ)
-    (skip-typ {Ψ = Ψ} {A = A} {Y = Y} {β = anchor} α∈) =
-  subst≡
-    (λ C → renameTyEnv (keep ρ) (Ψ ,typ[ Y ≔ anchor ]) ∋ _ := C)
-    (sym (rename-delete-wk (keep ρ) Y A))
-    (skip-typ (rename-∋:= (delete↪ᵗ (keep ρ) Y) α∈))
-rename-∋:= (skip ρ)
-    (skip-typ {Ψ = Ψ} {A = A} {Y = Y} {β = anchor} α∈) =
-  subst≡
-    (λ C → renameTyEnv (skip ρ) (Ψ ,typ[ Y ≔ anchor ]) ∋ _ := C)
-    (sym (rename-delete-wk (skip ρ) Y A))
-    (skip-typ (rename-∋:= (delete↪ᵗ (skip ρ) Y) α∈))
-rename-∋:= (keep ρ) (skip-lexical {A = A} α∈) =
-  subst≡ (λ C → _ ∋ _ := C)
-    (sym (trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq ρ))
-      (renameᵗ-shift (toRenameᵗ ρ) A)))
-    (skip-lexical (rename-∋:= ρ α∈))
-rename-∋:= (skip ρ) (skip-lexical {A = A} α∈) =
-  subst≡ (λ C → _ ∋ _ := C)
-    (renameᵗ-comp (toRenameᵗ ρ) suc (⇑ᵗ A))
-    (skip-lexical (rename-∋:= ρ (skip-lexical α∈)))
-
-rename-anchorRep : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    (Ψ : TyEnv Θ Δ) (α : TyVar Θ)
-  → anchorRep (renameTyEnv ρ Ψ) α
-    ≡ renameᵗ (toRenameᵗ ρ) (anchorRep Ψ α)
-rename-anchorRep ρ Ψ α =
-  anchor-lookup-unique (anchorRep∈ (renameTyEnv ρ Ψ) α)
-    (rename-∋:= ρ (anchorRep∈ Ψ α))
-
 rename-∋typ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     {Ψ : TyEnv Θ Δ} {Y : TyVar Δ} {α : TyVar Θ}
   → Ψ ∋typ Y ≔ α
   → renameTyEnv ρ Ψ ∋typ toRenameᵗ ρ Y ≔ α
-rename-∋typ (keep ρ) here-typ = here-typ
-rename-∋typ (skip ρ) here-typ = here-typ
+rename-∋typ (keep ρ) found-begin = found-begin
+rename-∋typ (skip ρ) found-begin = found-begin
 rename-∋typ ρ@(keep η)
-    (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {Z = slot} {β = anchor}
+    (skip-begin {Ψ = Ψ} {Y = Y} {α = α} {X = slot}
+      {β = anchor}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,typ[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
     (sym (delete-punchIn ρ slot Y))
-    (skip-cross-typ (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
+    (skip-begin (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
 rename-∋typ ρ@(skip η)
-    (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {Z = slot} {β = anchor}
+    (skip-begin {Ψ = Ψ} {Y = Y} {α = α} {X = slot}
+      {β = anchor}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,typ[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
     (sym (delete-punchIn ρ slot Y))
-    (skip-cross-typ (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
-rename-∋typ (keep ρ) (skip-lexical-typ Y∈) =
-  skip-lexical-typ (rename-∋typ ρ Y∈)
-rename-∋typ (skip ρ) (skip-lexical-typ Y∈) =
-  skip-lexical-typ (rename-∋typ ρ (skip-lexical-typ Y∈))
-rename-∋typ ρ (skip-visible-typ Y∈) =
-  skip-visible-typ (rename-∋typ ρ Y∈)
+    (skip-begin (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
+rename-∋typ (keep ρ) (skip-typ Y∈) =
+  skip-typ (rename-∋typ ρ Y∈)
+rename-∋typ (skip ρ) (skip-typ Y∈) =
+  skip-typ (rename-∋typ ρ (skip-typ Y∈))
+rename-∋typ ρ (skip-nu-binding Y∈) =
+  skip-nu-binding (rename-∋typ ρ Y∈)
+rename-∋typ ρ
+    (skip-end {Ψ = Ψ} {Y = Y} {X = X} Y∈) =
+  skip-end
+    (subst≡
+      (λ Z → renameTyEnv (insert↪ᵗ ρ Y) Ψ
+        ∋typ Z ≔ _)
+      (insert-punchIn ρ Y X)
+      (rename-∋typ (insert↪ᵗ ρ Y) Y∈))
 
-renameTyEnv-typ : ∀ {Θ Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
-    (Ψ : TyEnv Θ Δ) (X : TyVar (suc Δ)) (α : TyVar Θ)
-  → renameTyEnv ρ (Ψ ,typ[ X ≔ α ])
-    ≡ renameTyEnv (delete↪ᵗ ρ X) Ψ ,typ[ toRenameᵗ ρ X ≔ α ]
-renameTyEnv-typ (keep ρ) Ψ X α = refl
-renameTyEnv-typ (skip ρ) Ψ X α = refl
-
-renameTyEnv-∖-typ-other : ∀ {Θ Δ Δ′}
-    (ρ : suc (suc Δ) ↪ᵗ suc (suc Δ′))
-    (Ψ : TyEnv Θ (suc Δ)) (X Y : TyVar (suc (suc Δ)))
-    (α : TyVar Θ)
-    (X≢Y : X ≢ Y) (Y≢X : Y ≢ X)
-  → renameTyEnv (delete↪ᵗ ρ X) Ψ
-      ∖ toRenameᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y)
-    ≡ renameTyEnv
-        (delete↪ᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
-        (Ψ ∖ punchOut X Y X≢Y)
-  → (renameTyEnv (delete↪ᵗ ρ X) Ψ
-       ∖ toRenameᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
-      ,typ[ toRenameᵗ (delete↪ᵗ ρ Y) (punchOut Y X Y≢X) ≔ α ]
-    ≡ renameTyEnv (delete↪ᵗ ρ Y)
-        ((Ψ ∖ punchOut X Y X≢Y)
-          ,typ[ punchOut Y X Y≢X ≔ α ])
-renameTyEnv-∖-typ-other ρ Ψ X Y α X≢Y Y≢X ih
-    rewrite ih
-      | delete-delete↪ᵗ ρ X Y X≢Y Y≢X
-      | renameTyEnv-typ (delete↪ᵗ ρ Y)
-          (Ψ ∖ punchOut X Y X≢Y) (punchOut Y X Y≢X) α =
-  refl
-
-no-typ-case : ∀ {Θ Δ Δ′}
-    (ρ : suc (suc Δ) ↪ᵗ suc (suc Δ′))
-    (Ψ : TyEnv Θ (suc Δ)) (X Y : TyVar (suc (suc Δ)))
-    (α : TyVar Θ)
-    (X≢Y : X ≢ Y)
-  → renameTyEnv (delete↪ᵗ ρ X) Ψ
-      ∖ toRenameᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y)
-    ≡ renameTyEnv
-        (delete↪ᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
-        (Ψ ∖ punchOut X Y X≢Y)
-  → renameTyEnv ρ (Ψ ,typ[ X ≔ α ]) ∖ toRenameᵗ ρ Y
-    ≡ renameTyEnv (delete↪ᵗ ρ Y)
-        ((Ψ ∖ punchOut X Y X≢Y)
-          ,typ[ punchOut Y X (λ eq → X≢Y (sym eq)) ≔ α ])
-no-typ-case ρ Ψ X Y α X≢Y ih =
-  trans
-    (cong (λ Ψ′ → Ψ′ ∖ toRenameᵗ ρ Y)
-      (renameTyEnv-typ ρ Ψ X α))
-    (trans
-      (∖-typ-other (renameTyEnv (delete↪ᵗ ρ X) Ψ)
-        (toRenameᵗ ρ X) (toRenameᵗ ρ Y) α ρX≢ρY ρY≢ρX)
-      (trans
-        (cong₂ (λ Ψ′ Z → Ψ′ ,typ[ Z ≔ α ])
-          (cong (λ Z → renameTyEnv (delete↪ᵗ ρ X) Ψ ∖ Z)
-            (sym (rename-punchOut ρ X Y X≢Y ρX≢ρY)))
-          (sym (rename-punchOut ρ Y X Y≢X ρY≢ρX)))
-        (trans
-          (renameTyEnv-∖-typ-other ρ Ψ X Y α X≢Y Y≢X ih)
-          (cong (renameTyEnv (delete↪ᵗ ρ Y))
-            (cong (λ Z →
-              (Ψ ∖ punchOut X Y X≢Y) ,typ[ Z ≔ α ])
-              (punchOut-proof Y X Y≢X
-                (λ eq → X≢Y (sym eq))))))))
+rename-∋rep : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    {Ψ : TyEnv Θ Δ} {α : TyVar Θ} {A : Ty Δ}
+  → Ψ ∋rep α ≔ A
+  → renameTyEnv ρ Ψ ∋rep α ≔
+      renameᵗ (toRenameᵗ ρ) A
+rename-∋rep ρ Z = Z
+rename-∋rep ρ (S α∈) = S (rename-∋rep ρ α∈)
+rename-∋rep ρ@(keep η)
+    (skip-begin {A = A} {Y = Y} α∈) =
+  subst≡
+    (λ D → _ ∋rep _ ≔ D)
+    (sym (rename-delete-wk ρ Y A))
+    (skip-begin (rename-∋rep (delete↪ᵗ ρ Y) α∈))
+rename-∋rep ρ@(skip η)
+    (skip-begin {A = A} {Y = Y} α∈) =
+  subst≡
+    (λ D → _ ∋rep _ ≔ D)
+    (sym (rename-delete-wk ρ Y A))
+    (skip-begin (rename-∋rep (delete↪ᵗ ρ Y) α∈))
+rename-∋rep (keep ρ) (skip-typ {A = A} α∈) =
+  subst≡ (λ C → _ ∋rep _ ≔ C)
+    (sym (trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq ρ))
+      (renameᵗ-shift (toRenameᵗ ρ) A)))
+    (skip-typ (rename-∋rep ρ α∈))
+rename-∋rep (skip ρ) (skip-typ {A = A} α∈) =
+  subst≡ (λ C → _ ∋rep _ ≔ C)
+    (renameᵗ-comp (toRenameᵗ ρ) suc (⇑ᵗ A))
+    (skip-typ (rename-∋rep ρ (skip-typ α∈)))
+rename-∋rep ρ
+    (skip-end {Ψ = Ψ} {Y = Y} {α = α} {a = a}
+      {A = A} {B = B} {C = C} slot∈ rep∈ A∈ eq) =
+  skip-end (rename-∋typ ρ⁺ slot∈) rep′ A′ eq′
   where
-  Y≢X = λ eq → X≢Y (sym eq)
-  ρX≢ρY = λ eq → X≢Y (toRenameᵗ-injective ρ eq)
-  ρY≢ρX = λ eq → Y≢X (toRenameᵗ-injective ρ eq)
-
-cross-typ-case : ∀ {Θ Δ Δ′}
-    (ρ : suc (suc Δ) ↪ᵗ suc (suc Δ′))
-    (Ψ : TyEnv Θ (suc Δ)) (X : TyVar (suc (suc Δ)))
-    (Y : TyVar (suc Δ)) (α : TyVar Θ)
-  → renameTyEnv (delete↪ᵗ ρ X) Ψ
-      ∖ toRenameᵗ (delete↪ᵗ ρ X) Y
-    ≡ renameTyEnv (delete↪ᵗ (delete↪ᵗ ρ X) Y) (Ψ ∖ Y)
-  → renameTyEnv ρ (Ψ ,typ[ X ≔ α ])
-      ∖ toRenameᵗ ρ (punchIn X Y)
-    ≡ renameTyEnv (delete↪ᵗ ρ (punchIn X Y))
-        ((Ψ ,typ[ X ≔ α ]) ∖ punchIn X Y)
-cross-typ-case ρ Ψ X Y α ih with X ≟ punchIn X Y
-cross-typ-case ρ Ψ X Y α ih | yes X≡Y =
-  ⊥-elim (punchIn≢ X Y X≡Y)
-cross-typ-case ρ Ψ X Y α ih | no X≢Y =
-  no-typ-case ρ Ψ X (punchIn X Y) α X≢Y transported-ih
-  where
-  removed = punchOut X (punchIn X Y) X≢Y
-  retained = punchOut (punchIn X Y) X (λ eq → X≢Y (sym eq))
-  transported-ih =
+  ρ⁺ = insert↪ᵗ ρ Y
+  Y′ = toRenameᵗ ρ⁺ Y
+  deleted-eq = delete-insert↪ᵗ ρ Y
+  rep′ = subst≡
+    (λ D → renameTyEnv ρ⁺ Ψ ∋rep α ≔ D)
+    (rename-insert-wk ρ Y C)
+    (rename-∋rep ρ⁺ rep∈)
+  A′ = rename-∋rep ρ⁺ A∈
+  resolved-rename =
     subst≡
-      (λ Z → renameTyEnv (delete↪ᵗ ρ X) Ψ
-          ∖ toRenameᵗ (delete↪ᵗ ρ X) Z
-        ≡ renameTyEnv (delete↪ᵗ (delete↪ᵗ ρ X) Z) (Ψ ∖ Z))
-      (sym (punchOut-punchIn X Y X≢Y)) ih
+      (λ η →
+        renameᵗ (toRenameᵗ η) (substᵗ (resolveSubᵗ Y C) A)
+        ≡ substᵗ (resolveSubᵗ Y′ (renameᵗ (toRenameᵗ η) C))
+            (renameᵗ (toRenameᵗ ρ⁺) A))
+      deleted-eq (rename-resolve ρ⁺ Y C A)
+  eq′ : substᵗ (resolveSubᵗ Y′
+      (renameᵗ (toRenameᵗ ρ) C))
+      (renameᵗ (toRenameᵗ ρ⁺) A)
+    ≡ renameᵗ (toRenameᵗ ρ) B
+  eq′ =
+    trans (sym resolved-rename)
+      (cong (renameᵗ (toRenameᵗ ρ)) eq)
 
-renameTyEnv-∖ : ∀ {Θ Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
-    (Ψ : TyEnv Θ (suc Δ)) (Y : TyVar (suc Δ))
-    {α : TyVar Θ}
-  → Ψ ∋typ Y ≔ α
-  → renameTyEnv ρ Ψ ∖ toRenameᵗ ρ Y
-    ≡ renameTyEnv (delete↪ᵗ ρ Y) (Ψ ∖ Y)
-renameTyEnv-∖ (keep ρ) (Ψ ,typ[ Y ≔ α ]) Y here-typ
-    rewrite ∖-typ-here (renameTyEnv (delete↪ᵗ (keep ρ) Y) Ψ)
-              (toRenameᵗ (keep ρ) Y) α
-      | ∖-typ-here Ψ Y α =
-  refl
-renameTyEnv-∖ (skip ρ) (Ψ ,typ[ Y ≔ α ]) Y here-typ
-    rewrite ∖-typ-here (renameTyEnv (delete↪ᵗ (skip ρ) Y) Ψ)
-              (toRenameᵗ (skip ρ) Y) α
-      | ∖-typ-here Ψ Y α =
-  refl
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(keep (keep η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
-  cross-typ-case ρ Ψ X Y α
-    (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(keep (skip η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
-  cross-typ-case ρ Ψ X Y α
-    (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(skip (keep η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
-  cross-typ-case ρ Ψ X Y α
-    (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′} ρ@(skip (skip η))
-    (Ψ ,typ[ X ≔ α ]) .(punchIn X Y) (skip-cross-typ {Y = Y} Y∈) =
-  cross-typ-case ρ Ψ X Y α
-    (renameTyEnv-∖ (delete↪ᵗ ρ X) Ψ Y Y∈)
-renameTyEnv-∖ (keep ρ) (Ψ ,typ) zero ()
-renameTyEnv-∖ (skip ρ) (Ψ ,typ) zero ()
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = zero} (keep ())
-    (Ψ ,typ) (suc Y) (skip-lexical-typ Y∈)
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = zero} (skip ())
-    (Ψ ,typ) (suc Y) (skip-lexical-typ Y∈)
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′}
-    (keep ρ) (Ψ ,typ) (suc Y)
-    (skip-lexical-typ Y∈)
-    rewrite delete-keep-suc ρ Y | ∖-typ-zero-suc Ψ Y =
-  cong _,typ (renameTyEnv-∖ ρ Ψ Y Y∈)
-renameTyEnv-∖ {Δ = suc Δ} {Δ′ = suc Δ′}
-    (skip ρ) (Ψ ,typ) (suc Y)
-    (skip-lexical-typ Y∈)
-    rewrite delete-skip ρ (suc Y) | ∖-typ-zero-suc Ψ Y =
-  cong _,typ (renameTyEnv-∖ ρ (Ψ ,typ) (suc Y)
-    (skip-lexical-typ Y∈))
-renameTyEnv-∖ ρ (Ψ ,:= A) Y
-    (skip-visible-typ {α = α} Y∈)
-    with deleteSlot Ψ Y
-       | deleteSlot (renameTyEnv ρ Ψ) (toRenameᵗ ρ Y)
-       | renameTyEnv-∖ ρ Ψ Y Y∈
-       | deletedRep-anchor Ψ Y Y∈
-       | deletedRep-anchor (renameTyEnv ρ Ψ)
-           (toRenameᵗ ρ Y) (rename-∋typ ρ Y∈)
-renameTyEnv-∖ ρ (Ψ ,:= A) Y
-    (skip-visible-typ {α = α} Y∈)
-    | delete-view Φ C | delete-view Φ′ C′ | env-eq
-    | source-rep-eq | target-rep-eq =
-  cong₂ _,:=_ env-eq type-eq
-  where
-  deletedρ = delete↪ᵗ ρ Y
-  rep-eq : C′ ≡ renameᵗ (toRenameᵗ deletedρ) C
-  rep-eq =
-    trans target-rep-eq
-      (trans (cong (λ Ω → anchorRep Ω α) env-eq)
-        (trans (rename-anchorRep deletedρ Φ α)
-          (cong (renameᵗ (toRenameᵗ deletedρ))
-            (sym source-rep-eq))))
-  type-eq =
-    trans (cong
-      (λ D → substᵗ (resolveSubᵗ (toRenameᵗ ρ Y) D)
-        (renameᵗ (toRenameᵗ ρ) A)) rep-eq)
-      (sym (rename-resolve ρ Y C A))
 
 ------------------------------------------------------------------------
 -- Alternative targets for regular-context renaming
@@ -957,7 +733,7 @@ renameTyEnv-∖ ρ (Ψ ,:= A) Y
 -- The canonical target `renameTyEnv ρ Ψ` is convenient for arbitrary
 -- injections.  Λ descent needs the literal target `Ψ ,typ` for
 -- weakening at zero.  This relation records both choices and is stable under
--- the telescope extensions and deletions used by the typing rules.
+-- every telescope extension, including a verbatim popping marker.
 
 data RenameTarget : ∀ {Θ Δ Δ′}
     (ρ : Δ ↪ᵗ Δ′) → TyEnv Θ Δ → TyEnv Θ Δ′ → Set where
@@ -975,8 +751,8 @@ data RenameTarget : ∀ {Θ Δ Δ′}
       {Φ : TyEnv Θ Δ′} (X : TyVar (suc Δ)) (α : TyVar Θ)
     → RenameTarget (delete↪ᵗ ρ X) Ψ Φ
       --------------------------------------------------------------
-    → RenameTarget ρ (Ψ ,typ[ X ≔ α ])
-        (Φ ,typ[ toRenameᵗ ρ X ≔ α ])
+    → RenameTarget ρ (Ψ ,begin[ X ≔ α ])
+        (Φ ,begin[ toRenameᵗ ρ X ≔ α ])
 
   target-lexical : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
       {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
@@ -991,29 +767,14 @@ data RenameTarget : ∀ {Θ Δ Δ′}
     → RenameTarget ρ (Ψ ,:= A)
         (Φ ,:= renameᵗ (toRenameᵗ ρ) A)
 
-renameTarget-∋:= : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
-    {α : TyVar Θ} {A : Ty Δ}
-  → RenameTarget ρ Ψ Φ
-  → Ψ ∋ α := A
-  → Φ ∋ α := renameᵗ (toRenameᵗ ρ) A
-renameTarget-∋:= {ρ = ρ} canonical-target α∈ = rename-∋:= ρ α∈
-renameTarget-∋:= {A = A} literal-wk-target α∈ =
-  subst≡ (λ C → _ ∋ _ := C) (sym (renameᵗ-wk-eq A))
-    (skip-lexical α∈)
-renameTarget-∋:= {ρ = ρ} (target-typ X anchor target)
-    (skip-typ {A = A} α∈) =
-  subst≡ (λ C → _ ∋ _ := C)
-    (sym (rename-delete-wk ρ X A))
-    (skip-typ (renameTarget-∋:= target α∈))
-renameTarget-∋:= (target-lexical target) (skip-lexical {A = A} α∈) =
-  subst≡ (λ C → _ ∋ _ := C)
-    (sym (trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq _))
-      (renameᵗ-shift _ A)))
-    (skip-lexical (renameTarget-∋:= target α∈))
-renameTarget-∋:= (target-:= target) Z = Z
-renameTarget-∋:= (target-:= target) (S α∈) =
-  S (renameTarget-∋:= target α∈)
+  target-end : ∀ {Θ Δ Δ′}
+      {ρ : suc Δ ↪ᵗ suc Δ′}
+      {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ (suc Δ′)}
+      (Y : TyVar (suc Δ))
+    → RenameTarget ρ Ψ Φ
+      ------------------------------------------------------------
+    → RenameTarget (delete↪ᵗ ρ Y) (Ψ ,end[ Y ])
+        (Φ ,end[ toRenameᵗ ρ Y ])
 
 renameTarget-∋typ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
@@ -1025,222 +786,69 @@ renameTarget-∋typ {ρ = ρ} canonical-target Y∈ = rename-∋typ ρ Y∈
 renameTarget-∋typ {Ψ = Ψ} {Y = Y} {α = α}
     literal-wk-target Y∈ =
   subst≡ (λ Z → (Ψ ,typ) ∋typ Z ≔ α)
-    (cong suc (sym (toRename-id-eq Y))) (skip-lexical-typ Y∈)
-renameTarget-∋typ (target-typ X anchor target) here-typ = here-typ
-renameTarget-∋typ {ρ = ρ} (target-typ X anchor target)
-    (skip-cross-typ {Y = Y} Y∈) =
+    (cong suc (sym (toRename-id-eq Y))) (skip-typ Y∈)
+renameTarget-∋typ (target-typ X anchor target) found-begin = found-begin
+renameTarget-∋typ {ρ = ρ}
+    (target-typ X anchor target)
+    (skip-begin {Y = Y} Y∈) =
   subst≡ (λ W → _ ∋typ W ≔ _)
     (sym (delete-punchIn ρ X Y))
-    (skip-cross-typ (renameTarget-∋typ target Y∈))
-renameTarget-∋typ (target-lexical target) (skip-lexical-typ Y∈) =
-  skip-lexical-typ (renameTarget-∋typ target Y∈)
-renameTarget-∋typ (target-:= target) (skip-visible-typ Y∈) =
-  skip-visible-typ (renameTarget-∋typ target Y∈)
+    (skip-begin (renameTarget-∋typ target Y∈))
+renameTarget-∋typ (target-lexical target) (skip-typ Y∈) =
+  skip-typ (renameTarget-∋typ target Y∈)
+renameTarget-∋typ (target-:= target) (skip-nu-binding Y∈) =
+  skip-nu-binding (renameTarget-∋typ target Y∈)
+renameTarget-∋typ (target-end Y target) (skip-end Y∈) =
+  skip-end
+    (subst≡ (λ Z → _ ∋typ Z ≔ _)
+      (delete-punchIn _ Y _) (renameTarget-∋typ target Y∈))
 
-delete-id↪ᵗ : ∀ {Δ} (Y : TyVar (suc Δ))
-  → delete↪ᵗ id↪ᵗ Y ≡ id↪ᵗ
-delete-id↪ᵗ {Δ = zero} zero = refl
-delete-id↪ᵗ {Δ = suc Δ} zero = refl
-delete-id↪ᵗ {Δ = suc Δ} (suc Y) = cong keep (delete-id↪ᵗ Y)
-
-delete-wk↪ᵗ : ∀ {Δ} (Y : TyVar (suc Δ))
-  → delete↪ᵗ wk↪ᵗ Y ≡ wk↪ᵗ
-delete-wk↪ᵗ Y = cong skip (delete-id↪ᵗ Y)
-
-∖-literal-wk : ∀ {Θ Δ} (Ψ : TyEnv Θ (suc Δ))
-    (Y : TyVar (suc Δ))
-  → (Ψ ,typ) ∖ toRenameᵗ wk↪ᵗ Y
-    ≡ (Ψ ∖ Y) ,typ
-∖-literal-wk Ψ Y rewrite toRename-id-eq Y = refl
-
-renameTarget-delete-typ : ∀ {Θ Δ Δ′}
-    {ρ : suc (suc Δ) ↪ᵗ suc (suc Δ′)}
-    {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ (suc Δ′)}
-    (X Y : TyVar (suc (suc Δ)))
-    (α : TyVar Θ)
-    (X≢Y : X ≢ Y) (Y≢X : Y ≢ X)
-    (ρX≢ρY : toRenameᵗ ρ X ≢ toRenameᵗ ρ Y)
-    (ρY≢ρX : toRenameᵗ ρ Y ≢ toRenameᵗ ρ X)
-  → RenameTarget (delete↪ᵗ ρ X) Ψ Φ
-  → RenameTarget
-      (delete↪ᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
-      (Ψ ∖ punchOut X Y X≢Y)
-      (Φ ∖ toRenameᵗ (delete↪ᵗ ρ X) (punchOut X Y X≢Y))
-  → RenameTarget (delete↪ᵗ ρ Y)
-      ((Ψ ∖ punchOut X Y X≢Y) ,typ[ punchOut Y X Y≢X ≔ α ])
-      ((Φ ∖ punchOut (toRenameᵗ ρ X) (toRenameᵗ ρ Y)
-          ρX≢ρY)
-        ,typ[ punchOut (toRenameᵗ ρ Y) (toRenameᵗ ρ X)
-          ρY≢ρX ≔ α ])
-renameTarget-delete-typ {ρ = ρ} {Ψ = Ψ} {Φ = Φ}
-    X Y α X≢Y Y≢X ρX≢ρY ρY≢ρX target deleted-target =
-  retained-target
-  where
-  source-Y = punchOut X Y X≢Y
-  source-X = punchOut Y X Y≢X
-  target-Y = punchOut (toRenameᵗ ρ X) (toRenameᵗ ρ Y) ρX≢ρY
-  target-X = punchOut (toRenameᵗ ρ Y) (toRenameᵗ ρ X) ρY≢ρX
-
-  deleted-injection-eq = delete-delete↪ᵗ ρ X Y X≢Y Y≢X
-  deleted-target-env-eq = cong (Φ ∖_)
-    (rename-punchOut ρ X Y X≢Y ρX≢ρY)
-
-  normalized-deleted-target =
-    subst≡
-      (λ η → RenameTarget η (Ψ ∖ source-Y)
-        (Φ ∖ toRenameᵗ (delete↪ᵗ ρ X) source-Y))
-      deleted-injection-eq deleted-target
-
-  underlying-target =
-    subst≡
-      (λ Φ′ → RenameTarget
-        (delete↪ᵗ (delete↪ᵗ ρ Y) source-X)
-        (Ψ ∖ source-Y) Φ′)
-      deleted-target-env-eq normalized-deleted-target
-
-  retained-target₀ = target-typ source-X α underlying-target
-
-  retained-slot-eq = rename-punchOut ρ Y X Y≢X ρY≢ρX
-
-  retained-target =
-    subst≡
-      (λ Z → RenameTarget (delete↪ᵗ ρ Y)
-        ((Ψ ∖ source-Y) ,typ[ source-X ≔ α ])
-        ((Φ ∖ target-Y) ,typ[ Z ≔ α ]))
-      retained-slot-eq retained-target₀
-
-renameTarget-delete-cross : ∀ {Θ Δ Δ′}
-    {ρ : suc (suc Δ) ↪ᵗ suc (suc Δ′)}
-    {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ (suc Δ′)}
-    (X : TyVar (suc (suc Δ))) (Y : TyVar (suc Δ))
-    (α : TyVar Θ)
-  → RenameTarget (delete↪ᵗ ρ X) Ψ Φ
-  → RenameTarget (delete↪ᵗ (delete↪ᵗ ρ X) Y) (Ψ ∖ Y)
-      (Φ ∖ toRenameᵗ (delete↪ᵗ ρ X) Y)
-  → RenameTarget (delete↪ᵗ ρ (punchIn X Y))
-      ((Ψ ,typ[ X ≔ α ]) ∖ punchIn X Y)
-      ((Φ ,typ[ toRenameᵗ ρ X ≔ α ])
-        ∖ toRenameᵗ ρ (punchIn X Y))
-renameTarget-delete-cross {ρ = ρ} {Ψ = Ψ} {Φ = Φ}
-    X Y α target deleted-target
-    with X ≟ punchIn X Y
-       | toRenameᵗ ρ X ≟ toRenameᵗ ρ (punchIn X Y)
-renameTarget-delete-cross X Y α target deleted-target
-    | yes X≡Y | target-X≟Y =
-  ⊥-elim (punchIn≢ X Y X≡Y)
-renameTarget-delete-cross {ρ = ρ} X Y α target deleted-target
-    | no X≢Y | yes ρX≡ρY =
-  ⊥-elim (X≢Y (toRenameᵗ-injective ρ ρX≡ρY))
-renameTarget-delete-cross {ρ = ρ} {Ψ = Ψ} {Φ = Φ}
-    X Y α target deleted-target | no X≢Y | no ρX≢ρY =
-  explicit-target
-  where
-  removed = punchOut X (punchIn X Y) X≢Y
-  reverse = λ eq → X≢Y (sym eq)
-  target-reverse = λ eq → ρX≢ρY (sym eq)
-  transported-target =
-    subst≡
-      (λ Z → RenameTarget (delete↪ᵗ (delete↪ᵗ ρ X) Z)
-        (Ψ ∖ Z) (Φ ∖ toRenameᵗ (delete↪ᵗ ρ X) Z))
-      (sym (punchOut-punchIn X Y X≢Y)) deleted-target
-  explicit-target = renameTarget-delete-typ X (punchIn X Y) α
-    X≢Y reverse ρX≢ρY target-reverse target transported-target
-
-renameTarget-delete : ∀ {Θ Δ Δ′} {ρ : suc Δ ↪ᵗ suc Δ′}
-    {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ (suc Δ′)}
+renameTarget-∋rep : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
+    {α : TyVar Θ} {A : Ty Δ}
   → RenameTarget ρ Ψ Φ
-  → (Y : TyVar (suc Δ))
-  → {α : TyVar Θ}
-  → Ψ ∋typ Y ≔ α
-  → RenameTarget (delete↪ᵗ ρ Y) (Ψ ∖ Y)
-      (Φ ∖ toRenameᵗ ρ Y)
-renameTarget-delete {ρ = ρ} {Ψ = Ψ} canonical-target Y Y∈ =
-  subst≡
-    (λ Φ′ → RenameTarget (delete↪ᵗ ρ Y) (Ψ ∖ Y) Φ′)
-    (sym (renameTyEnv-∖ ρ Ψ Y Y∈)) canonical-target
-renameTarget-delete {Ψ = Ψ} literal-wk-target Y Y∈ =
-  subst≡
-    (λ Φ′ → RenameTarget (delete↪ᵗ wk↪ᵗ Y) (Ψ ∖ Y) Φ′)
-    (sym (∖-literal-wk Ψ Y))
-    (subst≡
-      (λ η → RenameTarget η (Ψ ∖ Y) ((Ψ ∖ Y) ,typ))
-      (sym (delete-wk↪ᵗ Y)) literal-wk-target)
-renameTarget-delete {ρ = ρ} {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .(toRenameᵗ ρ X) ≔ .α ]}
-    (target-typ .X .α target) .X here-typ
-    rewrite ∖-typ-here Ψ X α
-      | ∖-typ-here Φ (toRenameᵗ ρ X) α =
-  target
-renameTarget-delete {Δ = suc Δ} {Δ′ = zero} {ρ = keep ()}
-    (target-typ X α target) .(punchIn X Y)
-    (skip-cross-typ {Y = Y} Y∈)
-renameTarget-delete {Δ = suc Δ} {Δ′ = zero} {ρ = skip ()}
-    (target-typ X α target) .(punchIn X Y)
-    (skip-cross-typ {Y = Y} Y∈)
-renameTarget-delete {Δ = suc Δ} {Δ′ = suc Δ′} {ρ = ρ}
-    {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .(toRenameᵗ ρ X) ≔ .α ]}
-    (target-typ .X .α target) .(punchIn X Y)
-    (skip-cross-typ {Y = Y} Y∈) =
-  renameTarget-delete-cross {ρ = ρ} X Y α target
-    (renameTarget-delete target Y Y∈)
-renameTarget-delete (target-lexical target) zero ()
-renameTarget-delete {Δ = suc Δ} {Δ′ = zero}
-    (target-lexical {ρ = ()} target) (suc Y) (skip-lexical-typ Y∈)
-renameTarget-delete {Δ = suc Δ} {Δ′ = suc Δ′} {ρ = keep ρ}
-    {Ψ = Ψ ,typ} {Φ = Φ ,typ} (target-lexical target) (suc Y)
-    (skip-lexical-typ Y∈)
-    rewrite delete-keep-suc ρ Y
-      | ∖-typ-zero-suc Ψ Y
-      | ∖-typ-zero-suc Φ (toRenameᵗ ρ Y) =
-  target-lexical (renameTarget-delete target Y Y∈)
-renameTarget-delete {ρ = ρ} {Ψ = Ψ ,:= A}
-    {Φ = Φ ,:= .(renameᵗ (toRenameᵗ ρ) A)}
-    (target-:= target) Y (skip-visible-typ {α = α} Y∈)
-    with deleteSlot Ψ Y
-       | deleteSlot Φ (toRenameᵗ ρ Y)
-       | renameTarget-delete target Y Y∈
-       | deletedRep-anchor Ψ Y Y∈
-       | deletedRep-anchor Φ (toRenameᵗ ρ Y)
-           (renameTarget-∋typ target Y∈)
-renameTarget-delete {ρ = ρ} (target-:= {A = A} target) Y
-    (skip-visible-typ {α = α} Y∈)
-    | delete-view Ψ′ C | delete-view Φ′ C′ | deleted-target
-    | source-rep-eq | target-rep-eq =
-  subst≡
-    (λ B → RenameTarget deletedρ
-      (Ψ′ ,:= substᵗ (resolveSubᵗ Y C) A) (Φ′ ,:= B))
-    (sym target-type-eq) (target-:= deleted-target)
+  → Ψ ∋rep α ≔ A
+  → Φ ∋rep α ≔
+      renameᵗ (toRenameᵗ ρ) A
+renameTarget-∋rep {ρ = ρ} canonical-target α∈ = rename-∋rep ρ α∈
+renameTarget-∋rep {A = A} literal-wk-target α∈ =
+  subst≡ (λ C → _ ∋rep _ ≔ C) (sym (renameᵗ-wk-eq A))
+    (skip-typ α∈)
+renameTarget-∋rep {ρ = ρ} (target-typ X anchor target)
+    (skip-begin {A = A} α∈) =
+  subst≡ (λ C → _ ∋rep _ ≔ C)
+    (sym (rename-delete-wk ρ X A))
+    (skip-begin (renameTarget-∋rep target α∈))
+renameTarget-∋rep {ρ = keep ρ} (target-lexical target)
+    (skip-typ {A = A} α∈) =
+  subst≡ (λ C → _ ∋rep _ ≔ C)
+    (sym (trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq _))
+      (renameᵗ-shift _ A)))
+    (skip-typ (renameTarget-∋rep target α∈))
+renameTarget-∋rep (target-:= target) Z = Z
+renameTarget-∋rep (target-:= target) (S α∈) =
+  S (renameTarget-∋rep target α∈)
+renameTarget-∋rep {A = B}
+    (target-end { ρ = ρ } Y target)
+    (skip-end {A = A} {C = C} slot∈ rep∈ A∈ eq) =
+  skip-end (renameTarget-∋typ target slot∈) rep′ A′ eq′
   where
-  deletedρ = delete↪ᵗ ρ Y
+  Y′ = toRenameᵗ ρ Y
+  rep′ = subst≡
+    (λ D → _ ∋rep _ ≔ D)
+    (rename-delete-wk ρ Y C)
+    (renameTarget-∋rep target rep∈)
+  A′ = renameTarget-∋rep target A∈
+  eq′ = trans (sym (rename-resolve ρ Y C A))
+    (cong (renameᵗ (toRenameᵗ (delete↪ᵗ ρ Y))) eq)
 
-  rep-eq : C′ ≡ renameᵗ (toRenameᵗ deletedρ) C
-  rep-eq =
-    trans target-rep-eq
-      (trans
-        (anchor-lookup-unique (anchorRep∈ Φ′ α)
-          (renameTarget-∋:= deleted-target (anchorRep∈ Ψ′ α)))
-        (cong (renameᵗ (toRenameᵗ deletedρ))
-          (sym source-rep-eq)))
-
-  target-type-eq :
-      substᵗ (resolveSubᵗ (toRenameᵗ ρ Y) C′)
-        (renameᵗ (toRenameᵗ ρ) A)
-    ≡ renameᵗ (toRenameᵗ deletedρ)
-        (substᵗ (resolveSubᵗ Y C) A)
-  target-type-eq =
-    trans
-      (cong
-        (λ D → substᵗ (resolveSubᵗ (toRenameᵗ ρ Y) D)
-          (renameᵗ (toRenameᵗ ρ) A)) rep-eq)
-      (sym (rename-resolve ρ Y C A))
 
 renameTarget-insert : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
   → RenameTarget ρ Ψ Φ
   → (Y : TyVar (suc Δ)) (α : TyVar Θ)
-  → RenameTarget (insert↪ᵗ ρ Y) (Ψ ,typ[ Y ≔ α ])
-      (Φ ,typ[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ])
+  → RenameTarget (insert↪ᵗ ρ Y) (Ψ ,begin[ Y ≔ α ])
+      (Φ ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ])
 renameTarget-insert {ρ = ρ} {Ψ = Ψ} {Φ = Φ} target Y α =
   target-typ Y α
     (subst≡ (λ η → RenameTarget η Ψ Φ)
@@ -1280,159 +888,6 @@ rename-open↪ᵗ ρ C A =
   env-eq zero = refl
   env-eq (suc X) = refl
 
-⊢renameᵗᵐ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
-    {M : Term Θ Δ} {A : Ty Δ}
-  → Ψ ∣ Γ ⊢ M ⦂ A
-  → renameTyEnv ρ Ψ ∣ renameCtx (toRenameᵗ ρ) Γ
-      ⊢ renameᵗᵐ ρ M ⦂ renameᵗ (toRenameᵗ ρ) A
-⊢renameᵗᵐ (⊢` x∈) = ⊢` (renameᵗ-∋ _ x∈)
-⊢renameᵗᵐ (⊢ƛ M⊢) = ⊢ƛ (⊢renameᵗᵐ M⊢)
-⊢renameᵗᵐ (⊢· L⊢ M⊢) =
-  ⊢· (⊢renameᵗᵐ L⊢) (⊢renameᵗᵐ M⊢)
-⊢renameᵗᵐ {ρ = ρ} {Ψ = Ψ} {Γ = Γ} (⊢Λ {A = A} M⊢) =
-  ⊢Λ body⊢
-  where
-  renamed-body⊢ = ⊢renameᵗᵐ M⊢
-
-  body-context⊢ =
-    subst≡
-      (λ Γ′ → renameTyEnv ρ Ψ ,typ ∣ Γ′
-        ⊢ renameᵗᵐ (keep ρ) _ ⦂ _)
-      (renameCtx-keep-shift ρ Γ) renamed-body⊢
-
-  body⊢ =
-    subst≡
-      (λ B → renameTyEnv ρ Ψ ,typ ∣
-        renameCtx suc (renameCtx (toRenameᵗ ρ) Γ)
-          ⊢ renameᵗᵐ (keep ρ) _ ⦂ B)
-      (renameᵗ-cong A (toRename-keep-eq ρ)) body-context⊢
-⊢renameᵗᵐ {Δ′ = Δ′} {ρ = ρ} {Ψ = Ψ} {Γ = Γ}
-    {M = L ⦂∀ C [ A ]} (⊢⦂∀ L⊢) =
-  subst≡
-    (λ B → renameTyEnv ρ Ψ ∣ renameCtx (toRenameᵗ ρ) Γ
-      ⊢ renameᵗᵐ ρ L ⦂∀ renameᵗ (toRenameᵗ (keep ρ)) C
-        [ renameᵗ (toRenameᵗ ρ) A ] ⦂ B)
-    result-eq (⊢⦂∀ body⊢)
-  where
-  body-eq = renameᵗ-cong C (toRename-keep-eq ρ)
-
-  body⊢ =
-    subst≡
-      (λ B → renameTyEnv ρ Ψ ∣ renameCtx (toRenameᵗ ρ) Γ
-        ⊢ renameᵗᵐ ρ L ⦂ `∀ B)
-      (sym body-eq) (⊢renameᵗᵐ L⊢)
-
-  result-eq = sym (rename-open↪ᵗ ρ C A)
-⊢renameᵗᵐ {ρ = ρ} (⊢$ κ) =
-  subst≡ (λ A → _ ∣ _ ⊢ $ κ ⦂ A)
-    (constTy-renameᵗ (toRenameᵗ ρ) κ) (⊢$ κ)
-⊢renameᵗᵐ (⊢⊕ addℕ L⊢ M⊢) =
-  ⊢⊕ addℕ (⊢renameᵗᵐ L⊢) (⊢renameᵗᵐ M⊢)
-⊢renameᵗᵐ (⊢⊕ and𝔹 L⊢ M⊢) =
-  ⊢⊕ and𝔹 (⊢renameᵗᵐ L⊢) (⊢renameᵗᵐ M⊢)
-⊢renameᵗᵐ {ρ = ρ} (⊢⟨⟩ M⊢ c) =
-  ⊢⟨⟩ (⊢renameᵗᵐ M⊢) (renameᵐᶜ ρ c)
-⊢renameᵗᵐ (⊢ν M⊢) = ⊢ν (⊢renameᵗᵐ M⊢)
-⊢renameᵗᵐ {ρ = ρ}
-    (⊢reveal {A = A} {B = B} {C = C} {Y = Y} {α = α}
-      α∈ c⊢ M⊢) =
-  ⊢reveal (rename-∋:= ρ α∈) conversion⊢ body⊢
-  where
-  ρ⁺ = insert↪ᵗ ρ Y
-  Y′ = toRenameᵗ ρ⁺ Y
-
-  body⊢ =
-    subst≡
-      (λ Ψ′ → Ψ′ ∣ [] ⊢ renameᵗᵐ ρ⁺ _
-        ⦂ renameᵗ (toRenameᵗ ρ⁺) A)
-      (renameTyEnv-insert ρ _ Y α) (⊢renameᵗᵐ M⊢)
-
-  conversion-representation⊢ =
-    subst≡
-      (λ R → ⊢↑[ Y′ ⦂ R ] _
-        ⦂ renameᵗ (toRenameᵗ ρ⁺) A
-        ↝ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y B))
-      (rename-insert-wk ρ Y C)
-      (rename-⊢↑ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ =
-    subst≡
-      (λ B′ →
-        ⊢↑[ Y′ ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ ρ) C) ] _
-          ⦂ renameᵗ (toRenameᵗ ρ⁺) A ↝ B′)
-      (rename-insert-wk ρ Y B) conversion-representation⊢
-⊢renameᵗᵐ {ρ = ρ⁺@(keep ρ)} {Ψ = Ψ}
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y}
-      slot∈ α∈ c⊢ M⊢) =
-  ⊢conceal slot⊢ lookup⊢ conversion⊢ body⊢
-  where
-  deleted = delete↪ᵗ ρ⁺ Y
-  Y′ = toRenameᵗ ρ⁺ Y
-  env-eq = renameTyEnv-∖ ρ⁺ Ψ Y slot∈
-  slot⊢ = rename-∋typ ρ⁺ slot∈
-
-  lookup⊢ =
-    subst≡
-      (λ Ψ′ → Ψ′ ∋ _ := renameᵗ (toRenameᵗ deleted) C)
-      (sym env-eq) (rename-∋:= deleted α∈)
-
-  body⊢ =
-    subst≡
-      (λ Ψ′ → Ψ′ ∣ [] ⊢ renameᵗᵐ deleted _
-        ⦂ renameᵗ (toRenameᵗ deleted) A)
-      (sym env-eq) (⊢renameᵗᵐ M⊢)
-
-  conversion-representation⊢ =
-    subst≡
-      (λ R → ⊢↓[ Y′ ⦂ R ] _
-        ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
-        ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-      (rename-delete-wk ρ⁺ Y C)
-      (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ =
-    subst≡
-      (λ A′ → ⊢↓[ Y′
-          ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
-        ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-      (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
-⊢renameᵗᵐ {ρ = ρ⁺@(skip ρ)} {Ψ = Ψ}
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y}
-      slot∈ α∈ c⊢ M⊢) =
-  ⊢conceal slot⊢ lookup⊢ conversion⊢ body⊢
-  where
-  deleted = delete↪ᵗ ρ⁺ Y
-  Y′ = toRenameᵗ ρ⁺ Y
-  env-eq = renameTyEnv-∖ ρ⁺ Ψ Y slot∈
-  slot⊢ = rename-∋typ ρ⁺ slot∈
-
-  lookup⊢ =
-    subst≡
-      (λ Ψ′ → Ψ′ ∋ _ := renameᵗ (toRenameᵗ deleted) C)
-      (sym env-eq) (rename-∋:= deleted α∈)
-
-  body⊢ =
-    subst≡
-      (λ Ψ′ → Ψ′ ∣ [] ⊢ renameᵗᵐ deleted _
-        ⦂ renameᵗ (toRenameᵗ deleted) A)
-      (sym env-eq) (⊢renameᵗᵐ M⊢)
-
-  conversion-representation⊢ =
-    subst≡
-      (λ R → ⊢↓[ Y′ ⦂ R ] _
-        ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
-        ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-      (rename-delete-wk ρ⁺ Y C)
-      (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ =
-    subst≡
-      (λ A′ → ⊢↓[ Y′
-          ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
-        ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-      (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
-⊢renameᵗᵐ ⊢blame = ⊢blame
 
 ⊢renameᵗᵐ-target : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′} {Γ : TermCtx Δ}
@@ -1499,7 +954,7 @@ rename-open↪ᵗ ρ C A =
     target
     (⊢reveal {A = A} {B = B} {C = C} {Y = Y} {α = α}
       α∈ c⊢ M⊢) =
-  ⊢reveal (renameTarget-∋:= target α∈) conversion⊢ body⊢
+  ⊢reveal (renameTarget-∋rep target α∈) conversion⊢ body⊢
   where
   ρ⁺ = insert↪ᵗ ρ Y
   Y′ = toRenameᵗ ρ⁺ Y
@@ -1521,19 +976,18 @@ rename-open↪ᵗ ρ C A =
         ⊢↑[ Y′ ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ ρ) C) ] _
           ⦂ renameᵗ (toRenameᵗ ρ⁺) A ↝ B′)
       (rename-insert-wk ρ Y B) conversion-representation⊢
-⊢renameᵗᵐ-target {ρ = ρ⁺@(keep ρ)} {Ψ = Ψ}
-    target
+⊢renameᵗᵐ-target {ρ = ρ⁺@(keep ρ)} target
     (⊢conceal {A = A} {C = C} {B = B} {Y = Y}
       slot∈ α∈ c⊢ M⊢) =
   ⊢conceal slot⊢ lookup⊢ conversion⊢ body⊢
   where
   deleted = delete↪ᵗ ρ⁺ Y
   Y′ = toRenameᵗ ρ⁺ Y
-  deleted-target = renameTarget-delete target Y slot∈
+  ended-target = target-end Y target
 
   slot⊢ = renameTarget-∋typ target slot∈
-  lookup⊢ = renameTarget-∋:= deleted-target α∈
-  body⊢ = ⊢renameᵗᵐ-target deleted-target M⊢
+  lookup⊢ = renameTarget-∋rep ended-target α∈
+  body⊢ = ⊢renameᵗᵐ-target ended-target M⊢
 
   conversion-representation⊢ =
     subst≡
@@ -1549,19 +1003,18 @@ rename-open↪ᵗ ρ C A =
           ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
         ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
       (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
-⊢renameᵗᵐ-target {ρ = ρ⁺@(skip ρ)} {Ψ = Ψ}
-    target
+⊢renameᵗᵐ-target {ρ = ρ⁺@(skip ρ)} target
     (⊢conceal {A = A} {C = C} {B = B} {Y = Y}
       slot∈ α∈ c⊢ M⊢) =
   ⊢conceal slot⊢ lookup⊢ conversion⊢ body⊢
   where
   deleted = delete↪ᵗ ρ⁺ Y
   Y′ = toRenameᵗ ρ⁺ Y
-  deleted-target = renameTarget-delete target Y slot∈
+  ended-target = target-end Y target
 
   slot⊢ = renameTarget-∋typ target slot∈
-  lookup⊢ = renameTarget-∋:= deleted-target α∈
-  body⊢ = ⊢renameᵗᵐ-target deleted-target M⊢
+  lookup⊢ = renameTarget-∋rep ended-target α∈
+  body⊢ = ⊢renameᵗᵐ-target ended-target M⊢
 
   conversion-representation⊢ =
     subst≡
@@ -1578,6 +1031,317 @@ rename-open↪ᵗ ρ C A =
         ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
       (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
 ⊢renameᵗᵐ-target target ⊢blame = ⊢blame
+
+⊢renameᵗᵐ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → renameTyEnv ρ Ψ ∣ renameCtx (toRenameᵗ ρ) Γ
+      ⊢ renameᵗᵐ ρ M ⦂ renameᵗ (toRenameᵗ ρ) A
+⊢renameᵗᵐ = ⊢renameᵗᵐ-target canonical-target
+
+------------------------------------------------------------------------
+-- Observational transport across an adjacent begin/end bracket
+------------------------------------------------------------------------
+
+punchIn-injectiveᵗ : ∀ {Δ} (X : TyVar (suc Δ)) {Y q : TyVar Δ}
+  → punchIn X Y ≡ punchIn X q
+  → Y ≡ q
+punchIn-injectiveᵗ zero eq = fin-suc-injective eq
+punchIn-injectiveᵗ (suc X) {zero} {zero} eq = refl
+punchIn-injectiveᵗ (suc X) {zero} {suc q} ()
+punchIn-injectiveᵗ (suc X) {suc Y} {zero} ()
+punchIn-injectiveᵗ (suc X) {suc Y} {suc q} eq =
+  cong suc (punchIn-injectiveᵗ X (fin-suc-injective eq))
+
+ty-var-injectiveᵗ : ∀ {Δ} {X Y : TyVar Δ}
+  → _≡_ {A = Ty Δ} (＇ X) (＇ Y)
+  → X ≡ Y
+ty-var-injectiveᵗ {X = X} {.X} refl = refl
+
+ty-fun-left-injectiveᵗ : ∀ {Δ} {A B C D : Ty Δ}
+  → A ⇒ B ≡ C ⇒ D
+  → A ≡ C
+ty-fun-left-injectiveᵗ refl = refl
+
+ty-fun-right-injectiveᵗ : ∀ {Δ} {A B C D : Ty Δ}
+  → A ⇒ B ≡ C ⇒ D
+  → B ≡ D
+ty-fun-right-injectiveᵗ refl = refl
+
+ty-all-injectiveᵗ : ∀ {Δ} {A B : Ty (suc Δ)}
+  → `∀ A ≡ `∀ B
+  → A ≡ B
+ty-all-injectiveᵗ refl = refl
+
+renameTy-injectiveᵗ : ∀ {Δ Δ′} {ρ : TyVar Δ → TyVar Δ′}
+    (injective : ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
+    {A B : Ty Δ}
+  → renameᵗ ρ A ≡ renameᵗ ρ B
+  → A ≡ B
+renameTy-injectiveᵗ injective {A = ＇ X} {B = ＇ Y} eq =
+  cong ＇_ (injective (ty-var-injectiveᵗ eq))
+renameTy-injectiveᵗ injective {A = ＇ X} {B = ‵ ι} ()
+renameTy-injectiveᵗ injective {A = ＇ X} {B = ★} ()
+renameTy-injectiveᵗ injective {A = ＇ X} {B = B ⇒ C} ()
+renameTy-injectiveᵗ injective {A = ＇ X} {B = `∀ B} ()
+renameTy-injectiveᵗ injective {A = ‵ ι} {B = ＇ X} ()
+renameTy-injectiveᵗ injective {A = ‵ ι} {B = ‵ ι′} refl = refl
+renameTy-injectiveᵗ injective {A = ‵ ι} {B = ★} ()
+renameTy-injectiveᵗ injective {A = ‵ ι} {B = B ⇒ C} ()
+renameTy-injectiveᵗ injective {A = ‵ ι} {B = `∀ B} ()
+renameTy-injectiveᵗ injective {A = ★} {B = ＇ X} ()
+renameTy-injectiveᵗ injective {A = ★} {B = ‵ ι} ()
+renameTy-injectiveᵗ injective {A = ★} {B = ★} eq = refl
+renameTy-injectiveᵗ injective {A = ★} {B = B ⇒ C} ()
+renameTy-injectiveᵗ injective {A = ★} {B = `∀ B} ()
+renameTy-injectiveᵗ injective {A = A ⇒ B} {B = ＇ X} ()
+renameTy-injectiveᵗ injective {A = A ⇒ B} {B = ‵ ι} ()
+renameTy-injectiveᵗ injective {A = A ⇒ B} {B = ★} ()
+renameTy-injectiveᵗ injective {A = A ⇒ B} {B = C ⇒ D} eq =
+  cong₂ _⇒_
+    (renameTy-injectiveᵗ injective (ty-fun-left-injectiveᵗ eq))
+    (renameTy-injectiveᵗ injective (ty-fun-right-injectiveᵗ eq))
+renameTy-injectiveᵗ injective {A = A ⇒ B} {B = `∀ C} ()
+renameTy-injectiveᵗ injective {A = `∀ A} {B = ＇ X} ()
+renameTy-injectiveᵗ injective {A = `∀ A} {B = ‵ ι} ()
+renameTy-injectiveᵗ injective {A = `∀ A} {B = ★} ()
+renameTy-injectiveᵗ injective {A = `∀ A} {B = B ⇒ C} ()
+renameTy-injectiveᵗ {ρ = ρ} injective {A = `∀ A} {B = `∀ B} eq =
+  cong `∀
+    (renameTy-injectiveᵗ ext-injective (ty-all-injectiveᵗ eq))
+  where
+  ext-injective : ∀ {X Y}
+    → extᵗ ρ X ≡ extᵗ ρ Y
+    → X ≡ Y
+  ext-injective {zero} {zero} eq = refl
+  ext-injective {zero} {suc Y} ()
+  ext-injective {suc X} {zero} ()
+  ext-injective {suc X} {suc Y} eq =
+    cong suc (injective (fin-suc-injective eq))
+
+wkᵗ-injective : ∀ {Δ} (X : TyVar (suc Δ)) {A B : Ty Δ}
+  → wkᵗ X A ≡ wkᵗ X B
+  → A ≡ B
+wkᵗ-injective X = renameTy-injectiveᵗ (punchIn-injectiveᵗ X)
+
+begin-∋typ-view : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {X Z : TyVar (suc Δ)} {α β : TyVar Θ}
+  → Ψ ,begin[ X ≔ β ] ∋typ Z ≔ α
+  → (Z ≡ X × α ≡ β)
+    ⊎ ∃[ Y ] (Z ≡ punchIn X Y × Ψ ∋typ Y ≔ α)
+begin-∋typ-view found-begin = inj₁ (refl , refl)
+begin-∋typ-view (skip-begin {Y = Y} Y∈) =
+  inj₂ (Y , refl , Y∈)
+
+unbegin-∋typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {X : TyVar (suc Δ)} {Y : TyVar Δ} {α β : TyVar Θ}
+  → Ψ ,begin[ X ≔ β ] ∋typ punchIn X Y ≔ α
+  → Ψ ∋typ Y ≔ α
+unbegin-∋typ {X = X} {Y = Y} X∈ with begin-∋typ-view X∈
+unbegin-∋typ {X = X} {Y = Y} X∈ | inj₁ (eq , anchor-eq) =
+  ⊥-elim (punchIn≢ X Y (sym eq))
+unbegin-∋typ {X = X} {Y = Y} X∈
+    | inj₂ (q , eq , q∈) =
+  subst≡ (λ W → _ ∋typ W ≔ _)
+    (sym (punchIn-injectiveᵗ X eq)) q∈
+
+unbegin-∋rep : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {X : TyVar (suc Δ)} {β a : TyVar Θ} {A : Ty (suc Δ)}
+  → Ψ ,begin[ X ≔ β ] ∋rep a ≔ A
+  → ∃[ B ] (Ψ ∋rep a ≔ B × A ≡ wkᵗ X B)
+unbegin-∋rep (skip-begin {A = A} α∈) = A , α∈ , refl
+
+∋typ-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {X : TyVar Δ} {α β : TyVar Θ}
+  → Ψ ∋typ X ≔ α
+  → Ψ ∋typ X ≔ β
+  → α ≡ β
+∋typ-unique {X = X} found-begin Y∈ with begin-∋typ-view Y∈
+∋typ-unique {X = X} found-begin Y∈ | inj₁ (refl , anchor-eq) =
+  sym anchor-eq
+∋typ-unique {X = X} found-begin Y∈ | inj₂ (Y , eq , Y∈′) =
+  ⊥-elim (punchIn≢ X Y eq)
+∋typ-unique (skip-begin {Y = Y} X∈) Z∈
+    with begin-∋typ-view Z∈
+∋typ-unique (skip-begin {Y = Y} X∈) Z∈
+    | inj₁ (eq , anchor-eq) =
+  ⊥-elim (punchIn≢ _ Y (sym eq))
+∋typ-unique (skip-begin {Y = Y} X∈) Z∈
+    | inj₂ (z , eq , Z∈′) =
+  ∋typ-unique X∈
+    (subst≡ (λ W → _ ∋typ W ≔ _)
+      (sym (punchIn-injectiveᵗ _ eq)) Z∈′)
+∋typ-unique (skip-typ X∈) (skip-typ Y∈) =
+  ∋typ-unique X∈ Y∈
+∋typ-unique (skip-nu-binding X∈) (skip-nu-binding Y∈) =
+  cong suc (∋typ-unique X∈ Y∈)
+∋typ-unique (skip-end X∈) (skip-end Y∈) =
+  ∋typ-unique X∈ Y∈
+
+∋rep-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+    {α : TyVar Θ} {A B : Ty Δ}
+  → Ψ ∋rep α ≔ A
+  → Ψ ∋rep α ≔ B
+  → A ≡ B
+∋rep-unique Z Z = refl
+∋rep-unique (S A∈) (S B∈) = ∋rep-unique A∈ B∈
+∋rep-unique (skip-begin A∈) (skip-begin B∈) =
+  cong (wkᵗ _) (∋rep-unique A∈ B∈)
+∋rep-unique (skip-typ A∈) (skip-typ B∈) =
+  cong ⇑ᵗ (∋rep-unique A∈ B∈)
+∋rep-unique (skip-end {Y = X} {C = C} slot₁ rep₁ A∈ eq₁)
+    (skip-end {C = D} slot₂ rep₂ B∈ eq₂)
+    with ∋typ-unique slot₁ slot₂
+∋rep-unique (skip-end {Y = X} {C = C} slot₁ rep₁ A∈ eq₁)
+    (skip-end {C = D} slot₂ rep₂ B∈ eq₂) | refl
+    with wkᵗ-injective X (∋rep-unique rep₁ rep₂)
+       | ∋rep-unique A∈ B∈
+∋rep-unique (skip-end {Y = X} {C = C} slot₁ rep₁ A∈ eq₁)
+    (skip-end {C = .C} slot₂ rep₂ B∈ eq₂) | refl | refl | refl =
+  trans (sym eq₁) eq₂
+
+data SameTarget : ∀ {Θ Δ}
+    → TyEnv Θ Δ → TyEnv Θ Δ → Set where
+  same-bracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {C : Ty Δ}
+    → Ψ ∋rep α ≔ C
+    → SameTarget Ψ ((Ψ ,begin[ X ≔ α ]) ,end[ X ])
+
+  same-unbracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
+    → SameTarget ((Ψ ,begin[ X ≔ α ]) ,end[ X ]) Ψ
+
+  same-fresh-before-begin : ∀ {Θ Δ} {Ψ : TyEnv (suc Θ) Δ}
+      {X : TyVar (suc Δ)} {β : TyVar (suc Θ)} {C : Ty Δ}
+    → Ψ ∋rep zero ≔ C
+    → SameTarget (Ψ ,begin[ X ≔ β ])
+        (((Ψ ,begin[ zero ≔ zero ])
+          ,begin[ suc X ≔ β ]) ,end[ zero ])
+
+  same-begin : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
+    → SameTarget Ψ Φ
+    → SameTarget (Ψ ,begin[ X ≔ α ]) (Φ ,begin[ X ≔ α ])
+
+  same-typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
+    → SameTarget Ψ Φ
+    → SameTarget (Ψ ,typ) (Φ ,typ)
+
+  same-nu : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ} {A : Ty Δ}
+    → SameTarget Ψ Φ
+    → SameTarget (Ψ ,:= A) (Φ ,:= A)
+
+  same-end : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ (suc Δ)}
+      {X : TyVar (suc Δ)}
+    → SameTarget Ψ Φ
+    → SameTarget (Ψ ,end[ X ]) (Φ ,end[ X ])
+
+sameTarget-∋typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
+    {X : TyVar Δ} {α : TyVar Θ}
+  → SameTarget Ψ Φ
+  → Ψ ∋typ X ≔ α
+  → Φ ∋typ X ≔ α
+sameTarget-∋typ (same-bracket α∈) X∈ =
+  skip-end (skip-begin X∈)
+sameTarget-∋typ same-unbracket (skip-end X∈) =
+  unbegin-∋typ X∈
+sameTarget-∋typ (same-fresh-before-begin fresh∈) found-begin =
+  skip-end found-begin
+sameTarget-∋typ (same-fresh-before-begin fresh∈)
+    (skip-begin X∈) =
+  skip-end (skip-begin (skip-begin X∈))
+sameTarget-∋typ (same-begin target) found-begin = found-begin
+sameTarget-∋typ (same-begin target) (skip-begin X∈) =
+  skip-begin (sameTarget-∋typ target X∈)
+sameTarget-∋typ (same-typ target) (skip-typ X∈) =
+  skip-typ (sameTarget-∋typ target X∈)
+sameTarget-∋typ (same-nu target) (skip-nu-binding X∈) =
+  skip-nu-binding (sameTarget-∋typ target X∈)
+sameTarget-∋typ (same-end target) (skip-end X∈) =
+  skip-end (sameTarget-∋typ target X∈)
+
+sameTarget-∋rep : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
+    {α : TyVar Θ} {A : Ty Δ}
+  → SameTarget Ψ Φ
+  → Ψ ∋rep α ≔ A
+  → Φ ∋rep α ≔ A
+sameTarget-∋rep (same-bracket {X = X} {C = C} α∈) a∈ =
+  skip-end found-begin (skip-begin α∈) (skip-begin a∈)
+    (resolve-wkᵗ X C _)
+sameTarget-∋rep same-unbracket
+    (skip-end {Y = X} {C = C} slot∈ rep∈ a∈ eq)
+    with unbegin-∋rep a∈
+sameTarget-∋rep same-unbracket
+    (skip-end {Y = X} {C = C} slot∈ rep∈ a∈ eq)
+    | A , a∈′ , refl =
+  subst≡ (λ B → _ ∋rep _ ≔ B)
+    (trans (sym (resolve-wkᵗ X C A)) eq) a∈′
+sameTarget-∋rep (same-fresh-before-begin {X = X} {C = C} fresh∈)
+    (skip-begin {A = A} a∈) =
+  skip-end (skip-begin found-begin) fresh-rep target-rep target-eq
+  where
+  fresh-rep = subst≡ (λ B → _ ∋rep zero ≔ B)
+    (sym (resolve-wk-exchange X C))
+    (skip-begin (skip-begin fresh∈))
+  target-rep = skip-begin (skip-begin a∈)
+  target-eq = trans
+    (cong (substᵗ (resolveSubᵗ zero (wkᵗ X C)))
+      (sym (resolve-wk-exchange X A)))
+    (resolve-wkᵗ zero (wkᵗ X C) (wkᵗ X A))
+sameTarget-∋rep (same-begin target) (skip-begin α∈) =
+  skip-begin (sameTarget-∋rep target α∈)
+sameTarget-∋rep (same-typ target) (skip-typ α∈) =
+  skip-typ (sameTarget-∋rep target α∈)
+sameTarget-∋rep (same-nu target) Z = Z
+sameTarget-∋rep (same-nu target) (S α∈) =
+  S (sameTarget-∋rep target α∈)
+sameTarget-∋rep (same-end target)
+    (skip-end slot∈ rep∈ a∈ eq) =
+  skip-end (sameTarget-∋typ target slot∈)
+    (sameTarget-∋rep target rep∈)
+    (sameTarget-∋rep target a∈) eq
+
+⊢sameTarget : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → SameTarget Ψ Φ
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Φ ∣ Γ ⊢ M ⦂ A
+⊢sameTarget target (⊢` x∈) = ⊢` x∈
+⊢sameTarget target (⊢ƛ M⊢) = ⊢ƛ (⊢sameTarget target M⊢)
+⊢sameTarget target (⊢· L⊢ M⊢) =
+  ⊢· (⊢sameTarget target L⊢) (⊢sameTarget target M⊢)
+⊢sameTarget target (⊢Λ M⊢) =
+  ⊢Λ (⊢sameTarget (same-typ target) M⊢)
+⊢sameTarget target (⊢⦂∀ M⊢) = ⊢⦂∀ (⊢sameTarget target M⊢)
+⊢sameTarget target (⊢$ κ) = ⊢$ κ
+⊢sameTarget target (⊢⊕ op L⊢ M⊢) =
+  ⊢⊕ op (⊢sameTarget target L⊢) (⊢sameTarget target M⊢)
+⊢sameTarget target (⊢⟨⟩ M⊢ c) = ⊢⟨⟩ (⊢sameTarget target M⊢) c
+⊢sameTarget target (⊢ν M⊢) = ⊢ν (⊢sameTarget (same-nu target) M⊢)
+⊢sameTarget target (⊢reveal α∈ c⊢ M⊢) =
+  ⊢reveal (sameTarget-∋rep target α∈) c⊢
+    (⊢sameTarget (same-begin target) M⊢)
+⊢sameTarget target (⊢conceal slot∈ α∈ c⊢ M⊢) =
+  ⊢conceal (sameTarget-∋typ target slot∈)
+    (sameTarget-∋rep (same-end target) α∈) c⊢
+    (⊢sameTarget (same-end target) M⊢)
+⊢sameTarget target ⊢blame = ⊢blame
+
+⊢bracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A C : Ty Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ}
+  → Ψ ∋rep α ≔ C
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → (Ψ ,begin[ X ≔ α ]) ,end[ X ] ∣ Γ ⊢ M ⦂ A
+⊢bracket α∈ = ⊢sameTarget (same-bracket α∈)
+
+⊢unbracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ}
+  → (Ψ ,begin[ X ≔ α ]) ,end[ X ] ∣ Γ ⊢ M ⦂ A
+  → Ψ ∣ Γ ⊢ M ⦂ A
+⊢unbracket = ⊢sameTarget same-unbracket
 
 ------------------------------------------------------------------------
 -- Literal regular-context weakening at zero
@@ -1679,7 +1443,7 @@ data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
       (Y : TyVar (suc Δ)) (α : TyVar Θ)
     → AnchorTarget ρ Ψ Φ
       --------------------------------------------------
-    → AnchorTarget ρ (Ψ ,typ[ Y ≔ α ]) (Φ ,typ[ Y ≔ ρ α ])
+    → AnchorTarget ρ (Ψ ,begin[ Y ≔ α ]) (Φ ,begin[ Y ≔ ρ α ])
 
   anchor-target-lexical : ∀ {Θ Θ′ Δ}
       {ρ : TyVar Θ → TyVar Θ′}
@@ -1694,6 +1458,14 @@ data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
       -----------------------------------------------
     → AnchorTarget (extᵗ ρ) (Ψ ,:= A) (Φ ,:= A)
 
+  anchor-target-end : ∀ {Θ Θ′ Δ}
+      {ρ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ′ (suc Δ)}
+      (Y : TyVar (suc Δ))
+    → AnchorTarget ρ Ψ Φ
+      --------------------------------------------------
+    → AnchorTarget ρ (Ψ ,end[ Y ]) (Φ ,end[ Y ])
+
   -- A lexical slot has no own crossing.  When anchor weakening allocates
   -- its representation, that newest slot can therefore become the fresh
   -- recorded crossing without transporting a position argument.
@@ -1701,168 +1473,141 @@ data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
       {Ψ : TyEnv Θ Δ} {Φ : TyEnv (suc Θ) Δ}
     → AnchorTarget suc Ψ Φ
       ------------------------------------------------------
-    → AnchorTarget suc (Ψ ,typ) (Φ ,typ[ zero ≔ zero ])
-
-anchorTarget-∋:= : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
-    {α : TyVar Θ} {A : Ty Δ}
-  → AnchorTarget ρ Ψ Φ
-  → Ψ ∋ α := A
-  → Φ ∋ ρ α := A
-anchorTarget-∋:= visible-shift-target α∈ = S α∈
-anchorTarget-∋:= (anchor-target-typ Y anchor target) (skip-typ α∈) =
-  skip-typ (anchorTarget-∋:= target α∈)
-anchorTarget-∋:= (anchor-target-lexical target) (skip-lexical α∈) =
-  skip-lexical (anchorTarget-∋:= target α∈)
-anchorTarget-∋:= (anchor-target-allocate target)
-    (skip-lexical α∈) =
-  skip-typ (anchorTarget-∋:= target α∈)
-anchorTarget-∋:= (anchor-target-:= target) Z = Z
-anchorTarget-∋:= (anchor-target-:= target) (S α∈) =
-  S (anchorTarget-∋:= target α∈)
+    → AnchorTarget suc (Ψ ,typ) (Φ ,begin[ zero ≔ zero ])
 
 anchorTarget-∋typ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
     {Y : TyVar Δ} {α : TyVar Θ}
+  → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
   → AnchorTarget ρ Ψ Φ
   → Ψ ∋typ Y ≔ α
   → Φ ∋typ Y ≔ ρ α
-anchorTarget-∋typ visible-shift-target Y∈ = skip-visible-typ Y∈
-anchorTarget-∋typ (anchor-target-typ Y anchor target) here-typ = here-typ
-anchorTarget-∋typ (anchor-target-typ slot anchor target)
-    (skip-cross-typ Y∈) =
-  skip-cross-typ (anchorTarget-∋typ target Y∈)
-anchorTarget-∋typ (anchor-target-lexical target)
-    (skip-lexical-typ Y∈) =
-  skip-lexical-typ (anchorTarget-∋typ target Y∈)
-anchorTarget-∋typ (anchor-target-allocate target)
-    (skip-lexical-typ Y∈) =
-  skip-cross-typ (anchorTarget-∋typ target Y∈)
-anchorTarget-∋typ (anchor-target-:= target) (skip-visible-typ Y∈) =
-  skip-visible-typ (anchorTarget-∋typ target Y∈)
+anchorTarget-∋typ ρ-inj visible-shift-target Y∈ =
+  skip-nu-binding Y∈
+anchorTarget-∋typ ρ-inj
+    (anchor-target-typ Y anchor target) found-begin = found-begin
+anchorTarget-∋typ ρ-inj (anchor-target-typ slot anchor target)
+    (skip-begin Y∈) =
+  skip-begin (anchorTarget-∋typ ρ-inj target Y∈)
+anchorTarget-∋typ ρ-inj (anchor-target-lexical target)
+    (skip-typ Y∈) =
+  skip-typ (anchorTarget-∋typ ρ-inj target Y∈)
+anchorTarget-∋typ ρ-inj (anchor-target-allocate target)
+    (skip-typ Y∈) =
+  skip-begin (anchorTarget-∋typ ρ-inj target Y∈)
+anchorTarget-∋typ ρ-inj (anchor-target-:= target)
+    (skip-nu-binding Y∈) =
+  skip-nu-binding
+    (anchorTarget-∋typ
+      (λ eq → fin-suc-injective (ρ-inj (cong suc eq)))
+      target Y∈)
+anchorTarget-∋typ ρ-inj (anchor-target-end Y target)
+    (skip-end Y∈) =
+  skip-end (anchorTarget-∋typ ρ-inj target Y∈)
 
-anchorTarget-delete : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ′ (suc Δ)}
+anchorTarget-∋rep : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
+    {α : TyVar Θ} {A : Ty Δ}
+  → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
   → AnchorTarget ρ Ψ Φ
-  → (Y : TyVar (suc Δ))
-  → {α : TyVar Θ}
-  → Ψ ∋typ Y ≔ α
-  → AnchorTarget ρ (Ψ ∖ Y) (Φ ∖ Y)
-anchorTarget-delete {Ψ = Ψ} visible-shift-target Y Y∈
-    with deleteSlot Ψ Y
-anchorTarget-delete visible-shift-target Y Y∈
-    | delete-view Φ C = visible-shift-target
-anchorTarget-delete {ρ = ρ} {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .X ≔ .(ρ α) ]}
-    (anchor-target-typ .X .α target) .X here-typ
-    rewrite ∖-typ-here Ψ X α | ∖-typ-here Φ X (ρ α) =
-  target
-anchorTarget-delete {Δ = suc Δ} {ρ = ρ} {Ψ = Ψ ,typ[ X ≔ α ]}
-    {Φ = Φ ,typ[ .X ≔ .(ρ α) ]}
-    (anchor-target-typ .X .α target) .(punchIn X Y)
-    (skip-cross-typ {Y = Y} Y∈)
-    rewrite ∖-typ-other Ψ X (punchIn X Y) α (punchIn≢ X Y)
-          (λ eq → punchIn≢ X Y (sym eq))
-      | ∖-typ-other Φ X (punchIn X Y) (ρ α) (punchIn≢ X Y)
-          (λ eq → punchIn≢ X Y (sym eq))
-      | punchOut-punchIn X Y (punchIn≢ X Y) =
-  anchor-target-typ
-    (punchOut (punchIn X Y) X
-      (λ eq → punchIn≢ X Y (sym eq))) α
-    (anchorTarget-delete target Y Y∈)
-anchorTarget-delete (anchor-target-lexical target) zero ()
-anchorTarget-delete {Δ = suc Δ} {Ψ = Ψ ,typ} {Φ = Φ ,typ}
-    (anchor-target-lexical target) (suc Y) (skip-lexical-typ Y∈)
-    rewrite ∖-typ-zero-suc Ψ Y | ∖-typ-zero-suc Φ Y =
-  anchor-target-lexical (anchorTarget-delete target Y Y∈)
-anchorTarget-delete {Φ = Φ ,typ[ zero ≔ zero ]}
-    (anchor-target-allocate target) zero ()
-anchorTarget-delete { Δ = suc Δ } { Ψ = Ψ ,typ }
-    { Φ = Φ ,typ[ zero ≔ zero ] }
-    (anchor-target-allocate target) (suc Y) (skip-lexical-typ Y∈) =
-  anchor-target-allocate (anchorTarget-delete target Y Y∈)
-anchorTarget-delete {Ψ = Ψ ,:= A} {Φ = Φ ,:= .A}
-    (anchor-target-:= target) Y
-    (skip-visible-typ {α = α} Y∈)
-    with deleteSlot Ψ Y | deleteSlot Φ Y
-       | anchorTarget-delete target Y Y∈
-       | deletedRep-anchor Ψ Y Y∈
-       | deletedRep-anchor Φ Y (anchorTarget-∋typ target Y∈)
-anchorTarget-delete (anchor-target-:= {A = A} target) Y
-    (skip-visible-typ {α = α} Y∈)
-    | delete-view Ψ′ C | delete-view Φ′ C′ | deleted-target
-    | source-rep-eq | target-rep-eq =
-  subst≡
-    (λ B → AnchorTarget _
-      (Ψ′ ,:= substᵗ (resolveSubᵗ Y C) A) (Φ′ ,:= B))
-    (sym type-eq) (anchor-target-:= deleted-target)
-  where
-  rep-eq : C′ ≡ C
-  rep-eq =
-    trans target-rep-eq
-      (trans
-        (anchor-lookup-unique (anchorRep∈ Φ′ _)
-          (anchorTarget-∋:= deleted-target (anchorRep∈ Ψ′ α)))
-        (sym source-rep-eq))
+  → Ψ ∋rep α ≔ A
+  → Φ ∋rep (ρ α) ≔ A
+anchorTarget-∋rep ρ-inj visible-shift-target α∈ = S α∈
+anchorTarget-∋rep ρ-inj (anchor-target-typ Y anchor target)
+    (skip-begin α∈) =
+  skip-begin (anchorTarget-∋rep ρ-inj target α∈)
+anchorTarget-∋rep ρ-inj (anchor-target-lexical target)
+    (skip-typ α∈) =
+  skip-typ (anchorTarget-∋rep ρ-inj target α∈)
+anchorTarget-∋rep ρ-inj (anchor-target-allocate target)
+    (skip-typ α∈) =
+  skip-begin (anchorTarget-∋rep ρ-inj target α∈)
+anchorTarget-∋rep ρ-inj (anchor-target-:= target) Z = Z
+anchorTarget-∋rep ρ-inj (anchor-target-:= target) (S α∈) =
+  S (anchorTarget-∋rep
+    (λ eq → fin-suc-injective (ρ-inj (cong suc eq))) target α∈)
+anchorTarget-∋rep ρ-inj (anchor-target-end Y target)
+    (skip-end slot∈ rep∈ A∈ eq) =
+  skip-end (anchorTarget-∋typ ρ-inj target slot∈)
+    (anchorTarget-∋rep ρ-inj target rep∈)
+    (anchorTarget-∋rep ρ-inj target A∈) eq
 
-  type-eq : substᵗ (resolveSubᵗ Y C′) A
-    ≡ substᵗ (resolveSubᵗ Y C) A
-  type-eq = cong (λ D → substᵗ (resolveSubᵗ Y D) A) rep-eq
+
+extᵗ-injective-at : ∀ {Θ Θ′} {ρ : TyVar Θ → TyVar Θ′}
+  → (∀ {α β} → ρ α ≡ ρ β → α ≡ β)
+  → (α β : TyVar (suc Θ))
+  → extᵗ ρ α ≡ extᵗ ρ β → α ≡ β
+extᵗ-injective-at ρ-inj zero zero eq = refl
+extᵗ-injective-at ρ-inj zero (suc X) ()
+extᵗ-injective-at ρ-inj (suc X) zero ()
+extᵗ-injective-at ρ-inj (suc X) (suc Y) eq =
+  cong suc (ρ-inj (fin-suc-injective eq))
+
+extᵗ-injective : ∀ {Θ Θ′} {ρ : TyVar Θ → TyVar Θ′}
+  → (∀ {α β} → ρ α ≡ ρ β → α ≡ β)
+  → ∀ {α β : TyVar (suc Θ)}
+  → extᵗ ρ α ≡ extᵗ ρ β → α ≡ β
+extᵗ-injective ρ-inj {α = X} {β = Y} =
+  extᵗ-injective-at ρ-inj X Y
 
 ⊢renameᶿ-target : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A : Ty Δ}
+  → (∀ {α β} → ρ α ≡ ρ β → α ≡ β)
   → AnchorTarget ρ Ψ Φ
   → Ψ ∣ Γ ⊢ M ⦂ A
     ----------------------------
   → Φ ∣ Γ ⊢ renameᶿ ρ M ⦂ A
-⊢renameᶿ-target target (⊢` x∈) = ⊢` x∈
-⊢renameᶿ-target target (⊢ƛ M⊢) =
-  ⊢ƛ (⊢renameᶿ-target target M⊢)
-⊢renameᶿ-target target (⊢· L⊢ M⊢) =
-  ⊢· (⊢renameᶿ-target target L⊢) (⊢renameᶿ-target target M⊢)
-⊢renameᶿ-target target (⊢Λ M⊢) =
-  ⊢Λ (⊢renameᶿ-target (anchor-target-lexical target) M⊢)
-⊢renameᶿ-target target (⊢⦂∀ L⊢) =
-  ⊢⦂∀ (⊢renameᶿ-target target L⊢)
-⊢renameᶿ-target target (⊢$ κ) = ⊢$ κ
-⊢renameᶿ-target target (⊢⊕ op L⊢ M⊢) =
-  ⊢⊕ op (⊢renameᶿ-target target L⊢)
-    (⊢renameᶿ-target target M⊢)
-⊢renameᶿ-target target (⊢⟨⟩ M⊢ c) =
-  ⊢⟨⟩ (⊢renameᶿ-target target M⊢) c
-⊢renameᶿ-target target (⊢ν M⊢) =
-  ⊢ν (⊢renameᶿ-target (anchor-target-:= target) M⊢)
-⊢renameᶿ-target target (⊢reveal {α = α} α∈ c⊢ M⊢) =
-  ⊢reveal (anchorTarget-∋:= target α∈) c⊢
-    (⊢renameᶿ-target (anchor-target-typ _ α target) M⊢)
-⊢renameᶿ-target target
+⊢renameᶿ-target ρ-inj target (⊢` x∈) = ⊢` x∈
+⊢renameᶿ-target ρ-inj target (⊢ƛ M⊢) =
+  ⊢ƛ (⊢renameᶿ-target ρ-inj target M⊢)
+⊢renameᶿ-target ρ-inj target (⊢· L⊢ M⊢) =
+  ⊢· (⊢renameᶿ-target ρ-inj target L⊢)
+    (⊢renameᶿ-target ρ-inj target M⊢)
+⊢renameᶿ-target ρ-inj target (⊢Λ M⊢) =
+  ⊢Λ (⊢renameᶿ-target ρ-inj (anchor-target-lexical target) M⊢)
+⊢renameᶿ-target ρ-inj target (⊢⦂∀ L⊢) =
+  ⊢⦂∀ (⊢renameᶿ-target ρ-inj target L⊢)
+⊢renameᶿ-target ρ-inj target (⊢$ κ) = ⊢$ κ
+⊢renameᶿ-target ρ-inj target (⊢⊕ op L⊢ M⊢) =
+  ⊢⊕ op (⊢renameᶿ-target ρ-inj target L⊢)
+    (⊢renameᶿ-target ρ-inj target M⊢)
+⊢renameᶿ-target ρ-inj target (⊢⟨⟩ M⊢ c) =
+  ⊢⟨⟩ (⊢renameᶿ-target ρ-inj target M⊢) c
+⊢renameᶿ-target ρ-inj target (⊢ν M⊢) =
+  ⊢ν (⊢renameᶿ-target (extᵗ-injective ρ-inj)
+    (anchor-target-:= target) M⊢)
+⊢renameᶿ-target ρ-inj target (⊢reveal {α = α} α∈ c⊢ M⊢) =
+  ⊢reveal (anchorTarget-∋rep ρ-inj target α∈) c⊢
+    (⊢renameᶿ-target ρ-inj (anchor-target-typ _ α target) M⊢)
+⊢renameᶿ-target ρ-inj target
     (⊢conceal {Y = Y} slot∈ α∈ c⊢ M⊢) =
-  ⊢conceal (anchorTarget-∋typ target slot∈)
-    (anchorTarget-∋:= deleted-target α∈) c⊢
-    (⊢renameᶿ-target deleted-target M⊢)
+  ⊢conceal (anchorTarget-∋typ ρ-inj target slot∈)
+    (anchorTarget-∋rep ρ-inj ended-target α∈) c⊢
+    (⊢renameᶿ-target ρ-inj ended-target M⊢)
   where
-  deleted-target = anchorTarget-delete target Y slot∈
-⊢renameᶿ-target target ⊢blame = ⊢blame
+  ended-target = anchor-target-end Y target
+⊢renameᶿ-target ρ-inj target ⊢blame = ⊢blame
 
 ⊢shiftᶿ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A B : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
     ---------------------------
   → Ψ ,:= B ∣ Γ ⊢ shiftᶿ M ⦂ A
-⊢shiftᶿ M⊢ = ⊢renameᶿ-target visible-shift-target M⊢
+⊢shiftᶿ M⊢ = ⊢renameᶿ-target fin-suc-injective
+  visible-shift-target M⊢
 
 ⊢allocate-lexical : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx (suc Δ)}
     {M : Term Θ (suc Δ)} {A : Ty (suc Δ)} {C : Ty Δ}
   → Ψ ,typ ∣ Γ ⊢ M ⦂ A
     ---------------------------------------------------
-  → (Ψ ,:= C) ,typ[ zero ≔ zero ] ∣ Γ ⊢ shiftᶿ M ⦂ A
-⊢allocate-lexical M⊢ = ⊢renameᶿ-target
+  → (Ψ ,:= C) ,begin[ zero ≔ zero ] ∣ Γ ⊢ shiftᶿ M ⦂ A
+⊢allocate-lexical M⊢ = ⊢renameᶿ-target fin-suc-injective
   (anchor-target-allocate visible-shift-target) M⊢
 
 ------------------------------------------------------------------------
 ∋:=-shift : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {α : TyVar Θ} {A B : Ty Δ}
-  → Ψ ∋ α := A
-  → (Ψ ,:= B) ∋ suc α := A
+  → Ψ ∋rep α ≔ A
+  → (Ψ ,:= B) ∋rep (suc α) ≔ A
 ∋:=-shift = S

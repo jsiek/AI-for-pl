@@ -62,9 +62,6 @@ private
     x y z : Var
     a b : TyVar Θ
 
-data SlotMode : Set where
-  slot-know slot-opaq : SlotMode
-
 data Mode : (scope : TyCtx) → Set where
   know : ∀ {Δ} → List (TyVar Δ) → Mode Δ
   opaq : ∀ {Δ} → Mode Δ
@@ -77,40 +74,40 @@ dropSlot W (.W ∷ pending) | yes refl = dropSlot W pending
 dropSlot W (X ∷ pending) | no W≠X =
   punchOut W X W≠X ∷ dropSlot W pending
 
-infix 4 _∋typ[_]_≔_
+infix 4 _∋typ_≔_
 
-data _∋typ[_]_≔_ : ∀ {Θ Δ}
-    → TyEnv Θ Δ → SlotMode → TyVar Δ → TyVar Θ
+data _∋typ_≔_ : ∀ {Θ Δ}
+    → TyEnv Θ Δ → TyVar Δ → TyVar Θ
     → Set where
-  here-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {mode}
+  here-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar (suc Δ)} {α : TyVar Θ}
       ---------------------------------
-    → (Ψ ,begin[ Y ≔ α ]) ∋typ[ mode ] Y ≔ α
+    → (Ψ ,begin[ Y ≔ α ]) ∋typ Y ≔ α
 
   skip-cross-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ}
-      {Z : TyVar (suc Δ)} {β : TyVar Θ} {mode}
-    → Ψ ∋typ[ mode ] Y ≔ α
+      {Z : TyVar (suc Δ)} {β : TyVar Θ}
+    → Ψ ∋typ Y ≔ α
       -----------------------------------------------------
-    → (Ψ ,begin[ Z ≔ β ]) ∋typ[ mode ] punchIn Z Y ≔ α
+    → (Ψ ,begin[ Z ≔ β ]) ∋typ punchIn Z Y ≔ α
 
   skip-lexical-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {Y : TyVar Δ} {α : TyVar Θ} {mode}
-    → Ψ ∋typ[ mode ] Y ≔ α
+      {Y : TyVar Δ} {α : TyVar Θ}
+    → Ψ ∋typ Y ≔ α
       -----------------------------
-    → (Ψ ,typ) ∋typ[ mode ] (suc Y) ≔ α
+    → (Ψ ,typ) ∋typ (suc Y) ≔ α
 
   skip-visible-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {Y : TyVar Δ} {α : TyVar Θ} {A : Ty Δ} {mode}
-    → Ψ ∋typ[ mode ] Y ≔ α
+      {Y : TyVar Δ} {α : TyVar Θ} {A : Ty Δ}
+    → Ψ ∋typ Y ≔ α
       --------------------------------
-    → (Ψ ,:= A) ∋typ[ mode ] Y ≔ suc α
+    → (Ψ ,:= A) ∋typ Y ≔ suc α
 
   skip-end-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-      {Y : TyVar (suc Δ)} {X : TyVar Δ} {α : TyVar Θ} {mode}
-    → Ψ ∋typ[ mode ] punchIn Y X ≔ α
+      {Y : TyVar (suc Δ)} {X : TyVar Δ} {α : TyVar Θ}
+    → Ψ ∋typ punchIn Y X ≔ α
       -------------------------------------------------
-    → (Ψ ,end[ Y ]) ∋typ[ mode ] X ≔ α
+    → (Ψ ,end[ Y ]) ∋typ X ≔ α
 
 infix 4 _∋rep[_]_≔_
 
@@ -126,7 +123,7 @@ data _∋rep[_]_≔_ : ∀ {Θ Δ}
       ----------------------
     → Ψ ,:= B ∋rep[ mode ] suc a ≔ A
 
-  skip-typ-pending : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-begin-pending : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)} {pending}
     → Y ∈ pending
@@ -134,7 +131,7 @@ data _∋rep[_]_≔_ : ∀ {Θ Δ}
       ---------------------------------
     → Ψ ,begin[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
 
-  skip-typ-live : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-begin-live : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)} {pending}
     → Y ∉ pending
@@ -142,7 +139,7 @@ data _∋rep[_]_≔_ : ∀ {Θ Δ}
       ---------------------------------
     → Ψ ,begin[ Y ≔ β ] ∋rep[ know pending ] a ≔ wkᵗ Y A
 
-  skip-typ-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-begin-opaq : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {a β : TyVar Θ} {A : Ty Δ}
       {Y : TyVar (suc Δ)}
     → Ψ ∋rep[ opaq ] a ≔ A
@@ -165,7 +162,7 @@ data _∋rep[_]_≔_ : ∀ {Θ Δ}
   skip-end : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
       {Y : TyVar (suc Δ)} {α a : TyVar Θ}
       {A : Ty (suc Δ)} {B C : Ty Δ} {pending}
-    → Ψ ∋typ[ slot-know ] Y ≔ α
+    → Ψ ∋typ Y ≔ α
     → Ψ ∋rep[ know (Y ∷ map (punchIn Y) pending) ] α ≔ wkᵗ Y C
     → Ψ ∋rep[ know (Y ∷ map (punchIn Y) pending) ] a ≔ A
     → substᵗ (resolveSubᵗ Y C) A ≡ B
@@ -260,7 +257,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ}
       {M : Term Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
-    → Ψ ∋typ[ slot-know ] Y ≔ α
+    → Ψ ∋typ Y ≔ α
     → (Ψ ,end[ Y ]) ∋rep[ know [] ] α ≔ C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
     → Ψ ,end[ Y ] ∣ [] ⊢ M ⦂ A

@@ -346,7 +346,7 @@ seal-target ⊢seal = refl
 
 terminal-anchor : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
     {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
-  → (Ψ ,begin[ X ≔ α ]) ∋typ[ KNOWLEDGE ] Y ≔ β
+  → (Ψ ,begin[ X ≔ α ]) ∋typ Y ≔ β
   → Y ≡ X
   → β ≡ α
 terminal-anchor here-typ refl = refl

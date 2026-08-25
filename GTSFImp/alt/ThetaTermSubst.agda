@@ -755,27 +755,27 @@ renamePending-wk (X ∷ pending) =
   cong₂ _∷_ (toRename-wk-eq X) (renamePending-wk pending)
 
 rename-∋typ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    {Ψ : TyEnv Θ Δ} {Y : TyVar Δ} {α : TyVar Θ} {mode}
-  → Ψ ∋typ[ mode ] Y ≔ α
-  → renameTyEnv ρ Ψ ∋typ[ mode ] toRenameᵗ ρ Y ≔ α
+    {Ψ : TyEnv Θ Δ} {Y : TyVar Δ} {α : TyVar Θ}
+  → Ψ ∋typ Y ≔ α
+  → renameTyEnv ρ Ψ ∋typ toRenameᵗ ρ Y ≔ α
 rename-∋typ (keep ρ) here-typ = here-typ
 rename-∋typ (skip ρ) here-typ = here-typ
-rename-∋typ ρ@(keep η) {mode = mode}
+rename-∋typ ρ@(keep η)
     (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {Z = slot}
       {β = anchor}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ[ mode ] W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
     (sym (delete-punchIn ρ slot Y))
     (skip-cross-typ (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
-rename-∋typ ρ@(skip η) {mode = mode}
+rename-∋typ ρ@(skip η)
     (skip-cross-typ {Ψ = Ψ} {Y = Y} {α = α} {Z = slot}
       {β = anchor}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ[ mode ] W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
     (sym (delete-punchIn ρ slot Y))
     (skip-cross-typ (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
 rename-∋typ (keep ρ) (skip-lexical-typ Y∈) =
@@ -785,11 +785,11 @@ rename-∋typ (skip ρ) (skip-lexical-typ Y∈) =
 rename-∋typ ρ (skip-visible-typ Y∈) =
   skip-visible-typ (rename-∋typ ρ Y∈)
 rename-∋typ ρ
-    (skip-end-typ {Ψ = Ψ} {Y = Y} {X = X} {mode = mode} Y∈) =
+    (skip-end-typ {Ψ = Ψ} {Y = Y} {X = X} Y∈) =
   skip-end-typ
     (subst≡
       (λ Z → renameTyEnv (insert↪ᵗ ρ Y) Ψ
-        ∋typ[ mode ] Z ≔ _)
+        ∋typ Z ≔ _)
       (insert-punchIn ρ Y X)
       (rename-∋typ (insert↪ᵗ ρ Y) Y∈))
 
@@ -801,51 +801,51 @@ rename-∋rep : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
 rename-∋rep ρ Z = Z
 rename-∋rep ρ (S α∈) = S (rename-∋rep ρ α∈)
 rename-∋rep ρ@(keep η)
-    (skip-typ-pending {A = A} {Y = Y} {pending = pending}
+    (skip-begin-pending {A = A} {Y = Y} {pending = pending}
       Y∈ α∈) =
   subst≡
     (λ D → _∋rep[_]_≔_ _ _ _ D)
     (sym (rename-delete-wk ρ Y A))
-    (skip-typ-pending (renamePending-∈ ρ Y∈)
+    (skip-begin-pending (renamePending-∈ ρ Y∈)
       (subst≡
         (λ pending′ → _∋rep[_]_≔_ _ (know pending′) _ _)
         (sym (rename-dropSlot ρ Y pending))
         (rename-∋rep (delete↪ᵗ ρ Y) α∈)))
 rename-∋rep ρ@(skip η)
-    (skip-typ-pending {A = A} {Y = Y} {pending = pending}
+    (skip-begin-pending {A = A} {Y = Y} {pending = pending}
       Y∈ α∈) =
   subst≡
     (λ D → _∋rep[_]_≔_ _ _ _ D)
     (sym (rename-delete-wk ρ Y A))
-    (skip-typ-pending (renamePending-∈ ρ Y∈)
+    (skip-begin-pending (renamePending-∈ ρ Y∈)
       (subst≡
         (λ pending′ → _∋rep[_]_≔_ _ (know pending′) _ _)
         (sym (rename-dropSlot ρ Y pending))
         (rename-∋rep (delete↪ᵗ ρ Y) α∈)))
 rename-∋rep ρ@(keep η)
-    (skip-typ-live {A = A} {Y = Y} {pending = pending}
+    (skip-begin-live {A = A} {Y = Y} {pending = pending}
       Y∉ α∈) =
   subst≡ (λ D → _∋rep[_]_≔_ _ _ _ D)
     (sym (rename-delete-wk ρ Y A))
-    (skip-typ-live (renamePending-∉ ρ Y∉)
+    (skip-begin-live (renamePending-∉ ρ Y∉)
       (rename-∋rep (delete↪ᵗ ρ Y) α∈))
 rename-∋rep ρ@(skip η)
-    (skip-typ-live {A = A} {Y = Y} {pending = pending}
+    (skip-begin-live {A = A} {Y = Y} {pending = pending}
       Y∉ α∈) =
   subst≡ (λ D → _∋rep[_]_≔_ _ _ _ D)
     (sym (rename-delete-wk ρ Y A))
-    (skip-typ-live (renamePending-∉ ρ Y∉)
+    (skip-begin-live (renamePending-∉ ρ Y∉)
       (rename-∋rep (delete↪ᵗ ρ Y) α∈))
 rename-∋rep ρ@(keep η)
-    (skip-typ-opaq {A = A} {Y = Y} α∈) =
+    (skip-begin-opaq {A = A} {Y = Y} α∈) =
   subst≡ (λ D → _∋rep[_]_≔_ _ _ _ D)
     (sym (rename-delete-wk ρ Y A))
-    (skip-typ-opaq (rename-∋rep (delete↪ᵗ ρ Y) α∈))
+    (skip-begin-opaq (rename-∋rep (delete↪ᵗ ρ Y) α∈))
 rename-∋rep ρ@(skip η)
-    (skip-typ-opaq {A = A} {Y = Y} α∈) =
+    (skip-begin-opaq {A = A} {Y = Y} α∈) =
   subst≡ (λ D → _∋rep[_]_≔_ _ _ _ D)
     (sym (rename-delete-wk ρ Y A))
-    (skip-typ-opaq (rename-∋rep (delete↪ᵗ ρ Y) α∈))
+    (skip-begin-opaq (rename-∋rep (delete↪ᵗ ρ Y) α∈))
 rename-∋rep (keep ρ)
     (skip-lexical-know {A = A} {pending = pending}
       {pending′ = pending′} eq α∈) =
@@ -1138,20 +1138,20 @@ data RenameTarget : ∀ {Θ Δ Δ′}
 
 renameTarget-∋typ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
-    {Y : TyVar Δ} {α : TyVar Θ} {mode}
+    {Y : TyVar Δ} {α : TyVar Θ}
   → RenameTarget ρ Ψ Φ
-  → Ψ ∋typ[ mode ] Y ≔ α
-  → Φ ∋typ[ mode ] toRenameᵗ ρ Y ≔ α
+  → Ψ ∋typ Y ≔ α
+  → Φ ∋typ toRenameᵗ ρ Y ≔ α
 renameTarget-∋typ {ρ = ρ} canonical-target Y∈ = rename-∋typ ρ Y∈
-renameTarget-∋typ {Ψ = Ψ} {Y = Y} {α = α} {mode = mode}
+renameTarget-∋typ {Ψ = Ψ} {Y = Y} {α = α}
     literal-wk-target Y∈ =
-  subst≡ (λ Z → (Ψ ,typ) ∋typ[ mode ] Z ≔ α)
+  subst≡ (λ Z → (Ψ ,typ) ∋typ Z ≔ α)
     (cong suc (sym (toRename-id-eq Y))) (skip-lexical-typ Y∈)
 renameTarget-∋typ (target-typ X anchor target) here-typ = here-typ
-renameTarget-∋typ {ρ = ρ} {mode = mode}
+renameTarget-∋typ {ρ = ρ}
     (target-typ X anchor target)
     (skip-cross-typ {Y = Y} Y∈) =
-  subst≡ (λ W → _ ∋typ[ mode ] W ≔ _)
+  subst≡ (λ W → _ ∋typ W ≔ _)
     (sym (delete-punchIn ρ X Y))
     (skip-cross-typ (renameTarget-∋typ target Y∈))
 renameTarget-∋typ (target-lexical target) (skip-lexical-typ Y∈) =
@@ -1160,7 +1160,7 @@ renameTarget-∋typ (target-:= target) (skip-visible-typ Y∈) =
   skip-visible-typ (renameTarget-∋typ target Y∈)
 renameTarget-∋typ (target-end Y target) (skip-end-typ Y∈) =
   skip-end-typ
-    (subst≡ (λ Z → _ ∋typ[ _ ] Z ≔ _)
+    (subst≡ (λ Z → _ ∋typ Z ≔ _)
       (delete-punchIn _ Y _) (renameTarget-∋typ target Y∈))
 
 renameTarget-∋rep : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
@@ -1182,24 +1182,24 @@ renameTarget-∋rep {A = A} {mode = opaq}
   subst≡ (λ C → _∋rep[_]_≔_ _ _ _ C) (sym (renameᵗ-wk-eq A))
     (skip-lexical-opaq α∈)
 renameTarget-∋rep {ρ = ρ} (target-typ X anchor target)
-    (skip-typ-pending {A = A} {pending = pending} X∈ α∈) =
+    (skip-begin-pending {A = A} {pending = pending} X∈ α∈) =
   subst≡ (λ C → _∋rep[_]_≔_ _ _ _ C)
     (sym (rename-delete-wk ρ X A))
-    (skip-typ-pending (renamePending-∈ ρ X∈)
+    (skip-begin-pending (renamePending-∈ ρ X∈)
       (subst≡ (λ pending′ → _∋rep[_]_≔_ _ (know pending′) _ _)
         (sym (rename-dropSlot ρ X pending))
         (renameTarget-∋rep target α∈)))
 renameTarget-∋rep {ρ = ρ} (target-typ X anchor target)
-    (skip-typ-live {A = A} {pending = pending} X∉ α∈) =
+    (skip-begin-live {A = A} {pending = pending} X∉ α∈) =
   subst≡ (λ C → _∋rep[_]_≔_ _ _ _ C)
     (sym (rename-delete-wk ρ X A))
-    (skip-typ-live (renamePending-∉ ρ X∉)
+    (skip-begin-live (renamePending-∉ ρ X∉)
       (renameTarget-∋rep target α∈))
 renameTarget-∋rep {ρ = ρ} (target-typ X anchor target)
-    (skip-typ-opaq {A = A} α∈) =
+    (skip-begin-opaq {A = A} α∈) =
   subst≡ (λ C → _∋rep[_]_≔_ _ _ _ C)
     (sym (rename-delete-wk ρ X A))
-    (skip-typ-opaq (renameTarget-∋rep target α∈))
+    (skip-begin-opaq (renameTarget-∋rep target α∈))
 renameTarget-∋rep {ρ = keep ρ} (target-lexical target)
     (skip-lexical-know {A = A} {pending = pending}
       {pending′ = pending′} eq α∈) =
@@ -1929,11 +1929,11 @@ data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
 
 anchorTarget-∋typ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
     {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
-    {Y : TyVar Δ} {α : TyVar Θ} {mode}
+    {Y : TyVar Δ} {α : TyVar Θ}
   → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
   → AnchorTarget ρ Ψ Φ
-  → Ψ ∋typ[ mode ] Y ≔ α
-  → Φ ∋typ[ mode ] Y ≔ ρ α
+  → Ψ ∋typ Y ≔ α
+  → Φ ∋typ Y ≔ ρ α
 anchorTarget-∋typ ρ-inj visible-shift-target Y∈ =
   skip-visible-typ Y∈
 anchorTarget-∋typ ρ-inj
@@ -1966,14 +1966,14 @@ anchorTarget-∋rep : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
   → _∋rep[_]_≔_ Φ mode (ρ α) A
 anchorTarget-∋rep ρ-inj visible-shift-target α∈ = S α∈
 anchorTarget-∋rep ρ-inj (anchor-target-typ Y anchor target)
-    (skip-typ-pending Y∈ α∈) =
-  skip-typ-pending Y∈ (anchorTarget-∋rep ρ-inj target α∈)
+    (skip-begin-pending Y∈ α∈) =
+  skip-begin-pending Y∈ (anchorTarget-∋rep ρ-inj target α∈)
 anchorTarget-∋rep ρ-inj (anchor-target-typ Y anchor target)
-    (skip-typ-live Y∉ α∈) =
-  skip-typ-live Y∉ (anchorTarget-∋rep ρ-inj target α∈)
+    (skip-begin-live Y∉ α∈) =
+  skip-begin-live Y∉ (anchorTarget-∋rep ρ-inj target α∈)
 anchorTarget-∋rep ρ-inj (anchor-target-typ Y anchor target)
-    (skip-typ-opaq α∈) =
-  skip-typ-opaq (anchorTarget-∋rep ρ-inj target α∈)
+    (skip-begin-opaq α∈) =
+  skip-begin-opaq (anchorTarget-∋rep ρ-inj target α∈)
 anchorTarget-∋rep ρ-inj (anchor-target-lexical target)
     (skip-lexical-know eq α∈) =
   skip-lexical-know eq (anchorTarget-∋rep ρ-inj target α∈)
@@ -1982,7 +1982,7 @@ anchorTarget-∋rep ρ-inj (anchor-target-lexical target)
   skip-lexical-opaq (anchorTarget-∋rep ρ-inj target α∈)
 anchorTarget-∋rep ρ-inj (anchor-target-allocate target)
     (skip-lexical-opaq α∈) =
-  skip-typ-opaq (anchorTarget-∋rep ρ-inj target α∈)
+  skip-begin-opaq (anchorTarget-∋rep ρ-inj target α∈)
 anchorTarget-∋rep ρ-inj (anchor-target-:= target) Z = Z
 anchorTarget-∋rep ρ-inj (anchor-target-:= target) (S α∈) =
   S (anchorTarget-∋rep

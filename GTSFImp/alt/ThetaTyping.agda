@@ -84,26 +84,26 @@ data _∋typ_≔_ : ∀ {Θ Δ}
       ---------------------------------
     → (Ψ ,begin[ Y ≔ α ]) ∋typ Y ≔ α
 
-  skip-cross-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-begin : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ}
       {X : TyVar (suc Δ)} {β : TyVar Θ}
     → Ψ ∋typ Y ≔ α
       -----------------------------------------------------
     → (Ψ ,begin[ X ≔ β ]) ∋typ punchIn X Y ≔ α
 
-  skip-lexical-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ}
     → Ψ ∋typ Y ≔ α
       -----------------------------
     → (Ψ ,typ) ∋typ (suc Y) ≔ α
 
-  skip-visible-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  skip-nu-binding : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
       {Y : TyVar Δ} {α : TyVar Θ} {A : Ty Δ}
     → Ψ ∋typ Y ≔ α
       --------------------------------
     → (Ψ ,:= A) ∋typ Y ≔ suc α
 
-  skip-end-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+  skip-end : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
       {Y : TyVar (suc Δ)} {X : TyVar Δ} {α : TyVar Θ}
     → Ψ ∋typ punchIn Y X ≔ α
       -------------------------------------------------

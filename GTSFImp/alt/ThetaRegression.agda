@@ -24,14 +24,14 @@ open import alt.ThetaReduction
 open import alt.ThetaTermSubst
 
 Ψ₂ : TyEnv 2 1
-Ψ₂ = ∅ ,:= ‵ `ℕ ,typ[ zero ≔ zero ] ,:= ＇ zero
+Ψ₂ = ∅ ,:= ‵ `ℕ ,begin[ zero ≔ zero ] ,:= ＇ zero
 
 sealed-seven : Term 2 1
 sealed-seven = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal
 
 sealed-seven-⊢ : Ψ₂ ∣ [] ⊢ sealed-seven ⦂ ＇ zero
 sealed-seven-⊢ =
-  ⊢conceal (skip-visible-typ here-typ) (S Z)
+  ⊢conceal (skip-nu-binding here-typ) (S Z)
     ⊢seal (⊢$ (κℕ 7))
 
 g : Term 2 1

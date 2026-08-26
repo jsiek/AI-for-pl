@@ -12,11 +12,13 @@ module alt.ThetaTyping where
 --     its prefix, and later prefix insertions are strictly older, so its
 --     formerly constant position argument carried no information.
 --   * A representation binding and every crossing of its anchor occur at the
---     same regular-context depth.  `_≼[_]_` recognizes the Δ-balanced segment
---     between birth and query; reduction-created re-entry pairs are its
---     `≼-end-begin` case at the same slot and shifted anchor.  Anchor lookup
---     therefore returns the birth-scope representation verbatim: no weakening,
---     resolution, or deferred payload syntax is involved.
+--     same regular-context depth up to lexical weakening.  `_≼[_,_]_`
+--     recognizes marker-balanced segments while its injection index records
+--     intervening `,typ` entries.  Substitution can insert only such lexical
+--     entries because region interiors are term-closed; crossing markers still
+--     move only in balanced pairs.  Anchor lookup therefore applies only the
+--     pure type weakening recorded by that injection: no resolution or
+--     deferred payload syntax is involved.
 --   * Term variables cross only Λ's type-variable entry, by weakening the
 --     term list wholesale (renameCtx), as in the live calculus.
 
@@ -100,10 +102,44 @@ data _∋typ_≔_ : TyEnv Θ Δ → TyVar Δ → TyVar Θ
     → (Ψ ,end[ Y ]) ∋typ X ≔ α
 
 ------------------------------------------------------------------------
--- Balanced extension and verbatim representation lookup
+-- Lexical drift, balanced extension, and representation lookup
 ------------------------------------------------------------------------
 
-infix 4 _≼[_]_ _∋rep_≔_
+-- These thinning operations live beside the telescope because balanced
+-- extension uses the same insertion/deletion bookkeeping as term renaming.
+
+insert↪ᵗ : ∀ {Δ Δ′}
+  → Δ ↪ᵗ Δ′
+  → TyVar (suc Δ)
+  → suc Δ ↪ᵗ suc Δ′
+insert↪ᵗ ρ zero = keep ρ
+insert↪ᵗ (keep ρ) (suc Y) = keep (insert↪ᵗ ρ Y)
+insert↪ᵗ (skip ρ) (suc Y) = skip (insert↪ᵗ ρ (suc Y))
+
+delete↪ᵗ : ∀ {Δ Δ′}
+  → suc Δ ↪ᵗ suc Δ′
+  → TyVar (suc Δ)
+  → Δ ↪ᵗ Δ′
+delete↪ᵗ (keep ρ) zero = ρ
+delete↪ᵗ {Δ = suc Δ} {Δ′ = zero} (keep ()) (suc Y)
+delete↪ᵗ {Δ = suc Δ} {Δ′ = suc Δ′} (keep ρ) (suc Y) =
+  keep (delete↪ᵗ ρ Y)
+delete↪ᵗ {Δ′ = zero} (skip ()) Y
+delete↪ᵗ {Δ′ = suc Δ′} (skip ρ) Y = skip (delete↪ᵗ ρ Y)
+
+infixl 7 _⨟↪ᵗ_
+
+_⨟↪ᵗ_ : ∀ {Δ₁ Δ₂ Δ₃}
+  → Δ₁ ↪ᵗ Δ₂
+  → Δ₂ ↪ᵗ Δ₃
+  → Δ₁ ↪ᵗ Δ₃
+empty ⨟↪ᵗ empty = empty
+ρ ⨟↪ᵗ skip η = skip (ρ ⨟↪ᵗ η)
+empty ⨟↪ᵗ keep η = empty
+keep ρ ⨟↪ᵗ keep η = keep (ρ ⨟↪ᵗ η)
+skip ρ ⨟↪ᵗ keep η = skip (ρ ⨟↪ᵗ η)
+
+infix 4 _≼[_,_]_ _∋rep_≔_
 
 -- `Shifted k α β` is the first-order bookkeeping for adding k newest
 -- anchors.  Keeping Θ′ existential avoids associativity casts in telescope
@@ -114,53 +150,70 @@ data Shifted : ∀ {Θ Θ′} → ℕ → TyVar Θ → TyVar Θ′ → Set where
     → Shifted k α β
     → Shifted (suc k) α (suc β)
 
-data _≼[_]_ : ∀ {Θ Θ′ Δ}
-    → TyEnv Θ Δ → ℕ → TyEnv Θ′ Δ → Set where
+-- The second index is the actual regular-context injection rather than a
+-- numeric lexical count.  This PLFA-style payload transport keeps every data
+-- index in constructor form and also records how delimiter slots move.
+data _≼[_,_]_ : ∀ {Θ Θ′ Δ Δ′}
+    → TyEnv Θ Δ → ℕ → Δ ↪ᵗ Δ′ → TyEnv Θ′ Δ′ → Set where
   ≼-refl : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      ----------------
-    → Ψ ≼[ zero ] Ψ
+      ------------------------
+    → Ψ ≼[ zero , id↪ᵗ ] Ψ
 
-  ≼-ν : ∀ {Θ Θ′ Δ k} {Ψ : TyEnv Θ Δ}
-      {Ψ′ : TyEnv Θ′ Δ} {B : Ty Δ}
-    → Ψ ≼[ k ] Ψ′
-      ----------------------
-    → Ψ ≼[ suc k ] (Ψ′ ,:= B)
+  ≼-ν : ∀ {Θ Θ′ Δ Δ′ k} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ} {Ψ′ : TyEnv Θ′ Δ′} {B : Ty Δ′}
+    → Ψ ≼[ k , ρ ] Ψ′
+      --------------------------
+    → Ψ ≼[ suc k , ρ ] (Ψ′ ,:= B)
 
-  ≼-begin-end : ∀ {Θ Θ′ Θ″ Δ k k′}
-      {Ψ : TyEnv Θ Δ} {Ψ′ : TyEnv Θ′ Δ}
-      {Ψ″ : TyEnv Θ″ (suc Δ)}
-      {Z : TyVar (suc Δ)} {β : TyVar Θ′}
-    → Ψ ≼[ k ] Ψ′
-    → (Ψ′ ,begin[ Z ≔ β ]) ≼[ k′ ] Ψ″
-      ---------------------------------------
-    → Ψ ≼[ k + k′ ] (Ψ″ ,end[ Z ])
+  ≼-typ : ∀ {Θ Θ′ Δ Δ′ k} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ} {Ψ′ : TyEnv Θ′ Δ′}
+    → Ψ ≼[ k , ρ ] Ψ′
+      ----------------------------
+    → Ψ ≼[ k , skip ρ ] (Ψ′ ,typ)
 
-  ≼-end-begin : ∀ {Θ Θ′ Θ″ Δ k k′}
-      {Ψ : TyEnv Θ (suc Δ)} {Ψ′ : TyEnv Θ′ (suc Δ)}
-      {Ψ″ : TyEnv Θ″ Δ} {X : TyVar (suc Δ)}
+  ≼-begin-end : ∀ {Θ Θ′ Θ″ Δ Δ′ Δ″ k k′}
+      {ρ : Δ ↪ᵗ Δ′} {η : suc Δ′ ↪ᵗ suc Δ″}
+      {Ψ : TyEnv Θ Δ} {Ψ′ : TyEnv Θ′ Δ′}
+      {Ψ″ : TyEnv Θ″ (suc Δ″)}
+      {Z : TyVar (suc Δ′)} {β : TyVar Θ′}
+    → Ψ ≼[ k , ρ ] Ψ′
+    → (Ψ′ ,begin[ Z ≔ β ]) ≼[ k′ , η ] Ψ″
+      ------------------------------------------------------------
+    → Ψ ≼[ k + k′ , ρ ⨟↪ᵗ delete↪ᵗ η Z ]
+        (Ψ″ ,end[ toRenameᵗ η Z ])
+
+  ≼-end-begin : ∀ {Θ Θ′ Θ″ Δ Δ′ Δ″ k k′}
+      {ρ : suc Δ ↪ᵗ suc Δ′} {η : Δ′ ↪ᵗ Δ″}
+      {Ψ : TyEnv Θ (suc Δ)} {Ψ′ : TyEnv Θ′ (suc Δ′)}
+      {Ψ″ : TyEnv Θ″ Δ″} {X : TyVar (suc Δ)}
       {α : TyVar Θ} {β : TyVar Θ″}
     → Ψ ∋typ X ≔ α
-    → Ψ ≼[ k ] Ψ′
-    → (Ψ′ ,end[ X ]) ≼[ k′ ] Ψ″
+    → Ψ ≼[ k , ρ ] Ψ′
+    → (Ψ′ ,end[ toRenameᵗ ρ X ]) ≼[ k′ , η ] Ψ″
     → Shifted (k + k′) α β
-      ------------------------------------------
-    → Ψ ≼[ k + k′ ] (Ψ″ ,begin[ X ≔ β ])
+      ------------------------------------------------------------
+    → Ψ ≼[ k + k′ , insert↪ᵗ (delete↪ᵗ ρ X ⨟↪ᵗ η) X ]
+        (Ψ″ ,begin[
+          toRenameᵗ (insert↪ᵗ (delete↪ᵗ ρ X ⨟↪ᵗ η) X) X ≔ β ])
 
-shiftAlong : ∀ {Θ Θ′ Δ k} {Ψ : TyEnv Θ Δ} {Ψ′ : TyEnv Θ′ Δ}
-  → Ψ ≼[ k ] Ψ′ → TyVar Θ → TyVar Θ′
+shiftAlong : ∀ {Θ Θ′ Δ Δ′ k} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ} {Ψ′ : TyEnv Θ′ Δ′}
+  → Ψ ≼[ k , ρ ] Ψ′ → TyVar Θ → TyVar Θ′
 shiftAlong ≼-refl α = α
 shiftAlong (≼-ν extension) α = suc (shiftAlong extension α)
+shiftAlong (≼-typ extension) α = shiftAlong extension α
 shiftAlong (≼-begin-end extension region) α =
   shiftAlong region (shiftAlong extension α)
 shiftAlong (≼-end-begin slot∈ extension region shifted) α =
   shiftAlong region (shiftAlong extension α)
 
 data _∋rep_≔_ : TyEnv Θ Δ → TyVar Θ → Ty Δ → Set where
-  found : ∀ {Θ Θ′ Δ k} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
-      {Ψ′ : TyEnv Θ′ Δ}
-    → (extension : (Ψ ,:= A) ≼[ k ] Ψ′)
-      ---------------------------------------
-    → Ψ′ ∋rep shiftAlong extension zero ≔ A
+  found : ∀ {Θ Θ′ Δ Δ′ k} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ} {A : Ty Δ} {Ψ′ : TyEnv Θ′ Δ′}
+    → (extension : (Ψ ,:= A) ≼[ k , ρ ] Ψ′)
+      -------------------------------------------------------
+    → Ψ′ ∋rep shiftAlong extension zero
+        ≔ renameᵗ (toRenameᵗ ρ) A
 
 ------------------------------------------------------------------------
 -- Typing

@@ -1,18 +1,15 @@
 module alt.TenthBalancedExtensionProbe where
 
 -- File Charter:
---   * Records the tenth preservation obstruction found while screening U23's
---     verbatim representation lookup.
+--   * Retains the tenth preservation obstruction found while screening U23's
+--     strictly same-depth representation lookup, and checks its U24 repair.
 --   * A closed value may cross an ambient anchor at depth zero.  Ordinary
 --     beta substitution moves that value below a lexical type binder, where
---     its crossing is at depth one but its ambient representation birth is
---     still at depth zero.  The balanced lookup consequently refuses the
---     contractum, so closed-context preservation is false for this design.
+--     U24's `≼-typ` now transports the representation by pure weakening, so
+--     the very same contractum is typable.
 
-open import Data.Empty using (⊥)
 open import Data.Fin using (zero)
 open import Data.List using ([]; _∷_)
-open import Data.Nat using (ℕ; suc)
 
 open import Types
 open import TermCtx
@@ -66,21 +63,11 @@ tenth-contractum = tenth-body [ tenth-V ]
 tenth-step : tenth-Ψ ⊢ tenth-redex —→ tenth-contractum
 tenth-step = β tenth-V-value
 
--- No balanced extension can end in an unmatched lexical marker.
-no-birth-to-typ : ∀ {Θ Θ′ Δ k}
-    {Ξ : TyEnv Θ (suc Δ)} {A : Ty (suc Δ)} {Φ : TyEnv Θ′ Δ}
-  → (Ξ ,:= A) ≼[ k ] (Φ ,typ)
-  → ⊥
-no-birth-to-typ ()
-
-no-rep-after-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {a : TyVar Θ} {C : Ty (suc Δ)}
-  → Ψ ,typ ∋rep a ≔ C
-  → ⊥
-no-rep-after-typ (found extension) = no-birth-to-typ extension
-
-tenth-contractum-untypable :
+-- U23 stopped here: the old relation had no constructor capable of ending at
+-- the unmatched lexical entry below.  With lexical drift, the birth-to-query
+-- path is exactly `≼-typ ≼-refl`, and its payload is weakened once.
+tenth-contractum-⊢ :
   tenth-Ψ ∣ [] ⊢ tenth-contractum ⦂ `∀ (⇑ᵗ tenth-A)
-  → ⊥
-tenth-contractum-untypable (⊢Λ (⊢reveal α∈ c⊢ M⊢)) =
-  no-rep-after-typ α∈
+tenth-contractum-⊢ =
+  ⊢Λ (⊢reveal (found (≼-typ ≼-refl))
+    (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 7))))

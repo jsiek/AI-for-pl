@@ -75,31 +75,8 @@ rename ρ blame = blame
 -- Type-variable renaming
 ------------------------------------------------------------------------
 
--- Insert one matched source/target slot into an injection.  The new slot is
--- placed at Y in the source and at the corresponding canonical position in
--- the target.  Skipped target slots remain in their original order.
-
-insert↪ᵗ : ∀ {Δ Δ′}
-  → Δ ↪ᵗ Δ′
-  → TyVar (suc Δ)
-  → suc Δ ↪ᵗ suc Δ′
-insert↪ᵗ ρ zero = keep ρ
-insert↪ᵗ (keep ρ) (suc Y) = keep (insert↪ᵗ ρ Y)
-insert↪ᵗ (skip ρ) (suc Y) = skip (insert↪ᵗ ρ (suc Y))
-
--- Delete one source slot and its image.  This is the factor of an injection
--- used for the interior of a conceal node, whose conclusion binds that slot.
-
-delete↪ᵗ : ∀ {Δ Δ′}
-  → suc Δ ↪ᵗ suc Δ′
-  → TyVar (suc Δ)
-  → Δ ↪ᵗ Δ′
-delete↪ᵗ (keep ρ) zero = ρ
-delete↪ᵗ {Δ = suc Δ} {Δ′ = zero} (keep ()) (suc Y)
-delete↪ᵗ {Δ = suc Δ} {Δ′ = suc Δ′} (keep ρ) (suc Y) =
-  keep (delete↪ᵗ ρ Y)
-delete↪ᵗ {Δ′ = zero} (skip ()) Y
-delete↪ᵗ {Δ′ = suc Δ′} (skip ρ) Y = skip (delete↪ᵗ ρ Y)
+-- `insert↪ᵗ` and `delete↪ᵗ` are exported by ThetaTyping because balanced
+-- telescope extension and term renaming share exactly this slot bookkeeping.
 
 renameᵗᵐ : Δ ↪ᵗ Δ′ → Term Θ Δ → Term Θ Δ′
 renameᵗᵐ ρ (` x) = ` x

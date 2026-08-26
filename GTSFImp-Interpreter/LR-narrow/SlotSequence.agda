@@ -16,7 +16,7 @@ open import Data.Nat using (suc)
 import Data.Fin as Fin
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl) renaming (subst to subst≡)
+  using (_≡_; refl; sym; trans; cong) renaming (subst to subst≡)
 
 open import Types
 open import CastTerms
@@ -100,29 +100,102 @@ slotRᴵ s = impreciseRep (atom s)
 -- could land on a variable type (body the slot variable, universal
 -- representative) and leave the family's domain.
 
+-- The clause data of a body pair: the centre imprecision a `∀⊑`
+-- clause records for the universal type `` `∀ B `` against `C`.  A
+-- wrapper carries the data of the bodies it produces, because a
+-- conceal wrapper's target derivation cannot be recovered from its
+-- types (un-replacing an imprecision derivation is false; see
+-- Finding G in REPLACEMENT-CLOSURE-DESIGN.md), and carrying it
+-- uniformly also spares the reveal wrappers from rebuilding theirs.
+
+record BodyImprecision {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (B : Ty (suc Δᴾ)) (C : Ty Δᴵ) : Set where
+  constructor body-imprecision
+  field
+    {bodyAc} : Ty (suc Δᶜ)
+    {bodyBc} : Ty Δᶜ
+    bodyNonvar : NonVar bodyAc
+    bodyOccurs : Fin.zero ∈ᵗ bodyAc
+    bodyP : I.instᵐ (impEnv (core W)) I.⊢ bodyAc ⊑ ⇑ᵗ bodyBc
+    bodyEmbedᴾ : embedPrecise (core W) (`∀ B) ≡ `∀ bodyAc
+    bodyEmbedᴵ : embedImprecise (core W) C ≡ bodyBc
+
+open BodyImprecision public
+
+-- The clause data of a body pair travels to future worlds, and is
+-- transported along equalities of the bodies.
+
+body-imprecision-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {B : Ty (suc Δᴾ)} {C : Ty Δᴵ}
+    (W≼W′ : Future W W′)
+  → BodyImprecision W B C
+  → BodyImprecision W′
+      (liftPreciseBody W≼W′ B) (liftImpreciseTy W≼W′ C)
+body-imprecision-future {W′ = W′} {B = B} {C = C} W≼W′ i =
+  body-imprecision
+  (liftCenterBody-nonvar W≼W′ (bodyNonvar i))
+  (liftCenterBody-occurs W≼W′ (bodyOccurs i))
+  (subst≡
+    (λ T → I.instᵐ (impEnv (core W′)) I.⊢
+      liftCenterBody W≼W′ (bodyAc i) ⊑ T)
+    (liftCenterBody-shift W≼W′ (bodyBc i))
+    (liftCenterDynamicBodyImprecision W≼W′ (bodyP i)))
+  (trans
+    (cong (embedPrecise (core W′))
+      (sym (liftPreciseTy-universal W≼W′ B)))
+    (trans (embedPrecise-lift W≼W′ (`∀ B))
+      (trans (cong (liftCenterTy W≼W′) (bodyEmbedᴾ i))
+        (liftCenterTy-universal W≼W′ (bodyAc i)))))
+  (trans (embedImprecise-lift W≼W′ C)
+    (cong (liftCenterTy W≼W′) (bodyEmbedᴵ i)))
+
+body-imprecision-subst : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {B B′ : Ty (suc Δᴾ)} {C : Ty Δᴵ}
+  → B ≡ B′
+  → BodyImprecision W B C
+  → BodyImprecision W B′ C
+body-imprecision-subst refl i = i
+
+body-imprecision-subst-imp : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {B : Ty (suc Δᴾ)} {C C′ : Ty Δᴵ}
+  → C ≡ C′
+  → BodyImprecision W B C
+  → BodyImprecision W B C′
+body-imprecision-subst-imp refl i = i
+
 data UniWrap {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) :
     Ty (suc Δᴾ) → Ty Δᴵ → Ty (suc Δᴾ) → Ty Δᴵ → Set where
   reveal-paired : (s : PairedSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
+    → BodyImprecision W
+        (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B)
+        (replaceTy (slotXᴵ s) (slotRᴵ s) C)
     → UniWrap W B C
         (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B)
         (replaceTy (slotXᴵ s) (slotRᴵ s) C)
   conceal-paired : (s : PairedSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
+    → BodyImprecision W B C
     → UniWrap W
         (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B)
         (replaceTy (slotXᴵ s) (slotRᴵ s) C)
         B C
   reveal-dyn : (d : DynamicSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
+    → BodyImprecision W
+        (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B) C
     → UniWrap W B C
         (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B) C
   conceal-dyn : (d : DynamicSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
+    → BodyImprecision W B C
     → UniWrap W
         (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B) C
         B C
   reveal-inert : (s : PairedSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
     → slotXᴾ s ∉ᵗ `∀ B
+    → BodyImprecision W B C
     → UniWrap W B C B C
   conceal-inert : (s : PairedSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
     → slotXᴾ s ∉ᵗ `∀ B
+    → BodyImprecision W B C
     → UniWrap W B C B C
 
 -- Sequences, innermost wrapper first.
@@ -144,17 +217,17 @@ data UniWraps {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) :
 wrapTermᴾ₁ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
     {B C B′ C′}
   → UniWrap W B C B′ C′ → Term Δᴾ → Term Δᴾ
-wrapTermᴾ₁ (reveal-paired s B C) V =
+wrapTermᴾ₁ (reveal-paired s B C i) V =
   V ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B 〗
-wrapTermᴾ₁ (conceal-paired s B C) V =
+wrapTermᴾ₁ (conceal-paired s B C i) V =
   V ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B)
-wrapTermᴾ₁ (reveal-dyn d B C) V =
+wrapTermᴾ₁ (reveal-dyn d B C i) V =
   V ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B 〗
-wrapTermᴾ₁ (conceal-dyn d B C) V =
+wrapTermᴾ₁ (conceal-dyn d B C i) V =
   V ↓ makeConceal (dslotXᴾ d) (dslotRᴾ d) (`∀ B)
-wrapTermᴾ₁ (reveal-inert s B C avoid) V =
+wrapTermᴾ₁ (reveal-inert s B C avoid i) V =
   V ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B 〗
-wrapTermᴾ₁ (conceal-inert s B C avoid) V =
+wrapTermᴾ₁ (conceal-inert s B C avoid i) V =
   V ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B)
 
 -- The action on the imprecise endpoint: only the paired wrappers
@@ -164,14 +237,14 @@ wrapTermᴾ₁ (conceal-inert s B C avoid) V =
 wrapTermᴵ₁ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
     {B C B′ C′}
   → UniWrap W B C B′ C′ → Term Δᴵ → Term Δᴵ
-wrapTermᴵ₁ (reveal-paired s B C) V =
+wrapTermᴵ₁ (reveal-paired s B C i) V =
   V ↑ 〖 slotXᴵ s , slotRᴵ s ↑ C 〗
-wrapTermᴵ₁ (conceal-paired s B C) V =
+wrapTermᴵ₁ (conceal-paired s B C i) V =
   V ↓ makeConceal (slotXᴵ s) (slotRᴵ s) C
-wrapTermᴵ₁ (reveal-dyn d B C) V = V
-wrapTermᴵ₁ (conceal-dyn d B C) V = V
-wrapTermᴵ₁ (reveal-inert s B C avoid) V = V
-wrapTermᴵ₁ (conceal-inert s B C avoid) V = V
+wrapTermᴵ₁ (reveal-dyn d B C i) V = V
+wrapTermᴵ₁ (conceal-dyn d B C i) V = V
+wrapTermᴵ₁ (reveal-inert s B C avoid i) V = V
+wrapTermᴵ₁ (conceal-inert s B C avoid i) V = V
 
 wrapTermᴾ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ} {B C B′ C′}
   → UniWraps W B C B′ C′ → Term Δᴾ → Term Δᴾ

@@ -1926,17 +1926,18 @@ reveal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
   → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
-  → ∀ {Acʳ : Ty (suc Δᶜ)} {Bcʳ : Ty Δᶜ}
-      (q₀ : I.instᵐ (impEnv (core W)) I.⊢ Acʳ ⊑ ⇑ᵗ Bcʳ)
+  → (targetImp : BodyImprecision W
+      (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
+      (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
   → ∀ {m : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑ nonvar occurs p₀) (suc m) Vᴵ Vᴾ
-  → RightUniversalFamily W q₀
+  → RightUniversalFamily W (bodyP targetImp)
       (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
       (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) (suc m)
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
 reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvar occurs p₀ sourceᴾ sourceᴵ q₀ {m = m}
+    nonvar occurs p₀ sourceᴾ sourceᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
     with ty-all-injective
@@ -1947,12 +1948,12 @@ reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
            (toRenameᵗ-injective (impreciseEmbedding (core W)))
            (trans embI* (sym sourceᴵ))
 reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvar occurs p₀ sourceᴾ sourceᴵ q₀ {m = m}
+    nonvar occurs p₀ sourceᴾ sourceᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints , .B₀ᴾ , .Bᴵ , embP* , embI* , fam)
     | refl | refl = family
   where
-  family : RightUniversalFamily W q₀
+  family : RightUniversalFamily W (bodyP targetImp)
       (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
       (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) (suc m)
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
@@ -1960,7 +1961,7 @@ reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
   family {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} {Bᴵ′ = Bᴵ′} σ =
     ClosureProof.right-universals-phantom
       (liftCenterDynamicBodyImprecision W≼W′ p₀)
-      (liftCenterDynamicBodyImprecision W≼W′ q₀)
+      (liftCenterDynamicBodyImprecision W≼W′ (bodyP targetImp))
       (ClosureProof.right-universals-related-transport
         {W = W′} {p = liftCenterDynamicBodyImprecision W≼W′ p₀}
         {Bᴾ = Bᴾ′} {k = suc m}
@@ -1986,6 +1987,9 @@ reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     imprecise-eq = sym (replace-imprecise-lift s W≼W′ Bᴵ)
 
     w = reveal-paired s′ B₀ᴾ′ Bᴵ′′
+      (body-imprecision-subst precise-eq
+        (body-imprecision-subst-imp imprecise-eq
+          (body-imprecision-future W≼W′ targetImp)))
 
     σ-mid : UniWraps W′
         (replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′)
@@ -2053,15 +2057,14 @@ conceal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       ≡ `∀ Acʳ)
   → (targetᴵ : embedImprecise (core W)
       (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Bcʳ)
-  → ∀ {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
-      (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
+  → (targetImp : BodyImprecision W B₀ᴾ Bᴵ)
   → ∀ {m : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) (suc m) Vᴵ Vᴾ
-  → RightUniversalFamily W p₀ B₀ᴾ Bᴵ (suc m)
+  → RightUniversalFamily W (bodyP targetImp) B₀ᴾ Bᴵ (suc m)
       (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
 conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvarʳ occursʳ q₀ targetᴾ targetᴵ p₀ {m = m}
+    nonvarʳ occursʳ q₀ targetᴾ targetᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
     with ty-all-injective
@@ -2072,7 +2075,7 @@ conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
            (toRenameᵗ-injective (impreciseEmbedding (core W)))
            (trans embI* (sym targetᴵ))
 conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvarʳ occursʳ q₀ targetᴾ targetᴵ p₀ {m = m}
+    nonvarʳ occursʳ q₀ targetᴾ targetᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints
      , .(replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
@@ -2080,13 +2083,13 @@ conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
      , embP* , embI* , fam)
     | refl | refl = family
   where
-  family : RightUniversalFamily W p₀ B₀ᴾ Bᴵ (suc m)
+  family : RightUniversalFamily W (bodyP targetImp) B₀ᴾ Bᴵ (suc m)
       (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
   family {W′ = W′} W≼W′ {Bᴾ′ = Bᴾ′} {Bᴵ′ = Bᴵ′} σ =
     ClosureProof.right-universals-phantom
       (liftCenterDynamicBodyImprecision W≼W′ q₀)
-      (liftCenterDynamicBodyImprecision W≼W′ p₀)
+      (liftCenterDynamicBodyImprecision W≼W′ (bodyP targetImp))
       (ClosureProof.right-universals-related-transport
         {W = W′} {p = liftCenterDynamicBodyImprecision W≼W′ q₀}
         {Bᴾ = Bᴾ′} {k = suc m}
@@ -2112,6 +2115,7 @@ conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     imprecise-eq = sym (replace-imprecise-lift s W≼W′ Bᴵ)
 
     w = conceal-paired s′ B₀ᴾ′ Bᴵ′′
+      (body-imprecision-future W≼W′ targetImp)
 
     σ-mid : UniWraps W′
         (replaceTy (Fin.suc (slotXᴾ s′)) (⇑ᵗ (slotRᴾ s′)) B₀ᴾ′)
@@ -2605,7 +2609,8 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ ,
     targetᴾ , targetᴵ ,
     (λ W≼W′ σ →
-      reveal-paired-family W s nonvar occurs p₀ sourceᴾ sourceᴵ q₀
+      reveal-paired-family W s nonvar occurs p₀ sourceᴾ sourceᴵ
+        (body-imprecision nonvarʳ occursʳ q₀ targetᴾ targetᴵ)
         (value-imprecision-downward-to
           {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = suc j} {k = k}
           {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
@@ -3077,7 +3082,8 @@ conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     B₀ᴾ , Bᴵ , sourceᴾ , sourceᴵ ,
     (λ W≼W′ σ →
       conceal-paired-family W s nonvarʳ occursʳ q₀
-        targetᴾ targetᴵ p₀
+        targetᴾ targetᴵ
+        (body-imprecision nonvar occurs p₀ sourceᴾ sourceᴵ)
         (value-imprecision-downward-to
           {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
           {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)

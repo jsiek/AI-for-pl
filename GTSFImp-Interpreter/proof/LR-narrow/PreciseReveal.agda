@@ -346,8 +346,10 @@ precise-universal-value (suc k) below W s {B₁ = B₁}
           (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₁))
             (sym (slot-precise-variable-lift s W≼W′))
             (lift-∉ᵗ W≼W′ no-occur))
+        base-imp = body-imprecision nonvar occurs p₀ embP* embI*
         w = reveal-inert s′ (liftPreciseBody W≼W′ B₁)
           (liftImpreciseTy W≼W′ Bᴵ*) avoid′
+          (body-imprecision-future W≼W′ base-imp)
         term-eq : wrapTermᴾ (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
             ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
                 (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₁ 〗))
@@ -446,8 +448,10 @@ precise-universal-conceal-value (suc k) below W s {B₁ = B₁}
           (subst≡ (_∉ᵗ liftPreciseTy W≼W′ (`∀ B₁))
             (sym (slot-precise-variable-lift s W≼W′))
             (lift-∉ᵗ W≼W′ no-occur))
+        base-imp = body-imprecision nonvar occurs p₀ embP* embI*
         w = conceal-inert s′ (liftPreciseBody W≼W′ B₁)
           (liftImpreciseTy W≼W′ Bᴵ*) avoid′
+          (body-imprecision-future W≼W′ base-imp)
         term-eq : wrapTermᴾ (w ∷ σ) (liftPreciseTerm W≼W′ Vᴾ)
             ≡ wrapTermᴾ σ (liftPreciseTerm W≼W′
                 (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₁)))

@@ -75,7 +75,8 @@ open import proof.LR-narrow.SlotLifting using
    ArrowImprecision; arrow-imprecision; arrow-imprecision-view)
 open import proof.LR-narrow.ReplaceImprecision using
   (replace-left-⊑; star-or-not; rename-not-in-image;
-   conceal-shape-∀★; conceal-shape-⇒; conceal-shape-ι)
+   conceal-shape-∀★; conceal-shape-⇒; conceal-shape-ι;
+   replaceTy-nonvar; replaceTy-occurs; shift-no-zero)
 open import proof.LR-narrow.StarNoOccurrence using
   (renameᵗ-∉ᵗ; ⊑-var-right-nonvar)
 open import proof.LR-narrow.UniversalReveal using
@@ -682,8 +683,23 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
         (sym (dyn-slot-precise-variable-lift d W≼W′))
         (sym (dyn-slot-precise-rep-lift d W≼W′)))
 
+    base-imp : BodyImprecision W
+        (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁) Bᴵ*
+    base-imp = body-imprecision
+      (replaceTy-nonvar (Fin.suc (dcenter d))
+        (⇑ᵗ (embedPrecise (core W) (dslotRᴾ d))) nonvar)
+      (replaceTy-occurs (Fin.suc (dcenter d))
+        (⇑ᵗ (embedPrecise (core W) (dslotRᴾ d))) (λ ())
+        (shift-no-zero (embedPrecise (core W) (dslotRᴾ d))) occurs)
+      (replace-left-⊑ (Fin.suc (dcenter d))
+        (shift-⊑ I.X⊑★ (dynamicRep-related (datom d)))
+        (renameᵗ-∉ᵗ Fin.suc fin-suc-injective avoidᴵ) p₀)
+      chain embI*
+
     w† = reveal-dyn d′ (liftPreciseBody W≼W′ B₁)
       (liftImpreciseTy W≼W′ Bᴵ*)
+      (body-imprecision-subst σ-eq
+        (body-imprecision-future W≼W′ base-imp))
 
     σ† : UniWraps W′
         (replaceTy (Fin.suc (dslotXᴾ d′)) (⇑ᵗ (dslotRᴾ d′))
@@ -1071,6 +1087,8 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
 
       w† = conceal-dyn d′ (liftPreciseBody W≼W′ B₁)
         (liftImpreciseTy W≼W′ Bᴵ*)
+        (body-imprecision-future W≼W′
+          (body-imprecision nonvar occurs p₀ sourceᴾ embI*))
 
       σ‡ : UniWraps W′
           (liftPreciseBody W≼W′

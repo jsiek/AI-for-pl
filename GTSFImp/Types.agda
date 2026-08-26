@@ -3,6 +3,7 @@ module Types where
 -- File Charter: Core syntax and operations for polymorphic types.
 
 open import Agda.Builtin.FromNat public
+open import Data.Empty using (⊥-elim)
 open import Data.Nat using (ℕ; zero; suc)
 import Data.Nat.Literals as NatLiterals
 open import Data.Fin using (Fin; zero; suc)
@@ -123,10 +124,34 @@ instance
 -- _∈ᵗ_, _∉ᵗ_, Tag, Non∀, Atom
 ------------------------------------------------------------------------
 
-infix 5 _∈ᵗ_ _∉ᵗ_
+infix 5 _∈ᵗ_ _∉ᵗ_ _≢ᶠ_
+
+data _≢ᶠ_ : ∀ {n} → Fin n → Fin n → Set where
+  fin-zero≢suc : ∀ {n} {Y : Fin n} → _≢ᶠ_ {suc n} zero (suc Y)
+  fin-suc≢zero : ∀ {n} {X : Fin n} → _≢ᶠ_ {suc n} (suc X) zero
+  fin-suc≢suc : ∀ {n} {X Y : Fin n} → X ≢ᶠ Y → suc X ≢ᶠ suc Y
+
+≢ᶠ→≢ : ∀ {n} {X Y : Fin n} → X ≢ᶠ Y → X ≢ Y
+≢ᶠ→≢ fin-zero≢suc ()
+≢ᶠ→≢ fin-suc≢zero ()
+≢ᶠ→≢ (fin-suc≢suc X≢Y) refl = ≢ᶠ→≢ X≢Y refl
+
+≢→≢ᶠ : ∀ {n} {X Y : Fin n} → X ≢ Y → X ≢ᶠ Y
+≢→≢ᶠ {X = zero} {Y = zero} X≢X = ⊥-elim (X≢X refl)
+≢→≢ᶠ {X = zero} {Y = suc Y} X≢Y = fin-zero≢suc
+≢→≢ᶠ {X = suc X} {Y = zero} X≢Y = fin-suc≢zero
+≢→≢ᶠ {X = suc X} {Y = suc Y} X≢Y =
+  fin-suc≢suc (≢→≢ᶠ (λ X≡Y → X≢Y (cong suc X≡Y)))
+
+≢ᶠ-unique : ∀ {n} {X Y : Fin n} (p q : X ≢ᶠ Y) → p ≡ q
+≢ᶠ-unique fin-zero≢suc fin-zero≢suc = refl
+≢ᶠ-unique fin-suc≢zero fin-suc≢zero = refl
+≢ᶠ-unique (fin-suc≢suc p) (fin-suc≢suc q)
+    rewrite ≢ᶠ-unique p q =
+  refl
 
 data _∉ᵗ_ {Δ : TyCtx} (X : TyVar Δ) : Ty Δ → Set where
-  ∉-var : ∀ {Y} → X ≢ Y → X ∉ᵗ ＇ Y
+  ∉-var : ∀ {Y} → X ≢ᶠ Y → X ∉ᵗ ＇ Y
   ∉-base : ∀ {ι} → X ∉ᵗ ‵ ι
   ∉-star : X ∉ᵗ ★
   ∉-fun : ∀ {A B} → X ∉ᵗ A → X ∉ᵗ B → X ∉ᵗ A ⇒ B
@@ -145,7 +170,7 @@ data Occurs? {Δ : TyCtx} (X : TyVar Δ) (A : Ty Δ) : Set where
 occurs? : ∀ {Δ} (X : TyVar Δ) (A : Ty Δ) → Occurs? X A
 occurs? X (＇ Y) with X ≟ Y
 occurs? X (＇ .X) | yes refl = present var-∈
-occurs? X (＇ Y) | no X≢Y = absent (∉-var X≢Y)
+occurs? X (＇ Y) | no X≢Y = absent (∉-var (≢→≢ᶠ X≢Y))
 occurs? X (‵ ι) = absent ∉-base
 occurs? X ★ = absent ∉-star
 occurs? X (A ⇒ B) with occurs? X A

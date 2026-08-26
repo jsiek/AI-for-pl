@@ -7,16 +7,19 @@ module Typing.InterpreterSemanticTyping where
 --   * Delegates proofs to small reduction-free proof modules.
 
 open import Agda.Builtin.Equality using (_≡_)
+open import Data.Empty using (⊥)
 open import Data.List.Membership.Propositional using (_∈_)
 open import Data.Maybe using (just)
 open import Data.Nat using (_<_)
+open import Data.Nat.Properties using (n≮n)
 open import Data.Product using (_×_; _,_; ∃; ∃-syntax)
 
 open import Interpreter
 open import Runtime.InterpreterClosedValue using (ClosedValue)
 open import Typing.InterpreterSemanticTypingCore public
 open import SmallStepInterface.InterpreterTermShape using (InterpreterTerm)
-open import Narrowing.InterpreterWorldNarrowing using (Allocated)
+open import Narrowing.InterpreterWorldNarrowing using
+  (Allocated; TypeEnvironmentScoped; allocated)
 open import Narrowing.InterpreterValueNarrowing using (ValueScoped)
 import NuTerms as N
 open import Types
@@ -64,6 +67,32 @@ allocation-preserves-world-typing :
   WorldTyping (allocate W A θ)
 allocation-preserves-world-typing =
   allocate-world-typed
+
+fresh-seal-is-unallocated : ∀ {W}
+  → WorldTyping W
+  → Allocated W (freshSealName W)
+  → ⊥
+fresh-seal-is-unallocated {W} W⊢ (allocated present) =
+  n≮n (next-name W) (Proof.allocation-bound W⊢ present)
+
+fresh-seal-is-allocated : ∀ {W A θ}
+  → Allocated (allocate W A θ) (freshSealName W)
+fresh-seal-is-allocated =
+  Proof.allocated-here
+
+allocation-representation-world-weaken : ∀ {W U α A}
+  → WorldExtension W U
+  → AllocationRepresentation W α A
+  → AllocationRepresentation U α A
+allocation-representation-world-weaken =
+  Proof.representation-weaken
+
+type-environment-scope-world-weaken : ∀ {W U θ}
+  → WorldExtension W U
+  → TypeEnvironmentScoped W θ
+  → TypeEnvironmentScoped U θ
+type-environment-scope-world-weaken =
+  Proof.scope-weaken
 
 semantic-value-world-weaken :
   ∀ {W U V A} →

@@ -14,10 +14,12 @@ module alt.ThetaTermSubst where
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
+open import Data.Bool using (Bool; false; true)
 open import Data.List using ([]; _∷_; map)
 import Data.List.Membership.Propositional as ListMembership
 open import Data.List.Relation.Unary.Any using (here; there)
-open import Data.Maybe using (just; nothing) renaming (map to mapMaybe)
+open import Data.Maybe using (Maybe; just; nothing)
+  renaming (map to mapMaybe)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_,_; _×_; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -25,6 +27,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
   renaming (subst to subst≡)
 open import Relation.Nullary using (¬_; yes; no)
+import Data.Vec.Base as Vec
 
 open import Types
 open import TermCtx
@@ -39,12 +42,14 @@ private
   variable
     Θ Θ′ : AnchorCtx
     Δ Δ′ : TyCtx
-    Ψ Ψ′ : TyEnv Θ Δ
+    ℒ : Vec.Vec Bool Θ
+    ℒ′ : Vec.Vec Bool Θ′
+    Ψ Ψ′ : TyEnv Θ Δ ℒ
     Γ Γ′ : TermCtx Δ
     A B C D : Ty Δ
     L M N : Term Θ Δ
     slot inner outer : TyVar Δ
-    entry anchor α a : TyVar Θ
+    entry anchor bound α a : TyVar Θ
 
 ------------------------------------------------------------------------
 -- Conversion endpoint determinacy
@@ -496,687 +501,6 @@ rename-punchOut (skip (skip ρ)) Y X Y≢X ρY≢ρX
   cong suc (rename-punchOut (skip ρ) Y X Y≢X
     (λ eq → ρY≢ρX (cong suc eq)))
 
-map-pointwise : ∀ {a b} {A : Set a} {B : Set b}
-    {f g : A → B} (xs : Data.List.List A)
-  → (∀ x → f x ≡ g x)
-  → map f xs ≡ map g xs
-map-pointwise [] eq = refl
-map-pointwise (x ∷ xs) eq =
-  cong₂ _∷_ (eq x) (map-pointwise xs eq)
-
-map-compose : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
-    (f : A → B) (g : B → C) (xs : Data.List.List A)
-  → map g (map f xs) ≡ map (λ x → g (f x)) xs
-map-compose f g [] = refl
-map-compose f g (x ∷ xs) = cong (g (f x) ∷_) (map-compose f g xs)
-
-rename-minTyVar : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    (X Y : TyVar Δ)
-  → toRenameᵗ ρ (minTyVar X Y)
-    ≡ minTyVar (toRenameᵗ ρ X) (toRenameᵗ ρ Y)
-rename-minTyVar empty ()
-rename-minTyVar (keep ρ) zero Y = refl
-rename-minTyVar (keep ρ) (suc X) zero = refl
-rename-minTyVar (keep ρ) (suc X) (suc Y) =
-  cong suc (rename-minTyVar ρ X Y)
-rename-minTyVar (skip ρ) X Y = cong suc (rename-minTyVar ρ X Y)
-
-rename-minSlot : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    (Xs : Data.List.List (TyVar Δ))
-  → minSlot (map (toRenameᵗ ρ) Xs)
-    ≡ mapMaybe (toRenameᵗ ρ) (minSlot Xs)
-rename-minSlot ρ [] = refl
-rename-minSlot ρ (X ∷ Xs) rewrite rename-minSlot ρ Xs
-    with minSlot Xs
-rename-minSlot ρ (X ∷ Xs) | nothing = refl
-rename-minSlot ρ (X ∷ Xs) | just Y =
-  cong just (sym (rename-minTyVar ρ X Y))
-
-rename-dropDead : ∀ {Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
-    (W : TyVar (suc Δ)) (Xs : Data.List.List (TyVar (suc Δ)))
-  → dropDead (toRenameᵗ ρ W) (map (toRenameᵗ ρ) Xs)
-    ≡ map (toRenameᵗ (delete↪ᵗ ρ W)) (dropDead W Xs)
-rename-dropDead ρ W [] = refl
-rename-dropDead ρ W (X ∷ Xs)
-    with W ≟ X | toRenameᵗ ρ W ≟ toRenameᵗ ρ X
-rename-dropDead ρ W (.W ∷ Xs) | yes refl | yes refl =
-  rename-dropDead ρ W Xs
-rename-dropDead ρ W (.W ∷ Xs) | yes refl | no W≢W =
-  ⊥-elim (W≢W refl)
-rename-dropDead ρ W (X ∷ Xs) | no W≢X | yes eq =
-  ⊥-elim (W≢X (toRenameᵗ-injective ρ eq))
-rename-dropDead ρ W (X ∷ Xs) | no W≢X | no ρW≢ρX =
-  cong₂ _∷_ (sym (rename-punchOut ρ W X W≢X ρW≢ρX))
-    (rename-dropDead ρ W Xs)
-
-map-punchIn-delete : ∀ {Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
-    (Y : TyVar (suc Δ)) (Xs : Data.List.List (TyVar Δ))
-  → map (punchIn (toRenameᵗ ρ Y))
-      (map (toRenameᵗ (delete↪ᵗ ρ Y)) Xs)
-    ≡ map (toRenameᵗ ρ) (map (punchIn Y) Xs)
-map-punchIn-delete ρ Y [] = refl
-map-punchIn-delete ρ Y (X ∷ Xs) =
-  cong₂ _∷_ (sym (delete-punchIn ρ Y X))
-    (map-punchIn-delete ρ Y Xs)
-
-dropDead-punchIn : ∀ {Δ} (Y : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar Δ))
-  → dropDead Y (map (punchIn Y) Xs) ≡ Xs
-dropDead-punchIn Y [] = refl
-dropDead-punchIn Y (X ∷ Xs) with Y ≟ punchIn Y X
-dropDead-punchIn Y (X ∷ Xs) | yes eq =
-  ⊥-elim (punchIn≢ Y X eq)
-dropDead-punchIn Y (X ∷ Xs) | no neq =
-  cong₂ _∷_ (punchOut-punchIn Y X neq)
-    (dropDead-punchIn Y Xs)
-
-punchIn-minTyVar : ∀ {Δ} (X : TyVar (suc Δ))
-    (Y Z : TyVar Δ)
-  → punchIn X (minTyVar Y Z)
-    ≡ minTyVar (punchIn X Y) (punchIn X Z)
-punchIn-minTyVar zero y z = refl
-punchIn-minTyVar (suc x) zero z = refl
-punchIn-minTyVar (suc x) (suc y) zero = refl
-punchIn-minTyVar (suc x) (suc y) (suc z) =
-  cong suc (punchIn-minTyVar x y z)
-
-minSlot-punchIn : ∀ {Δ} (X : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar Δ))
-  → minSlot (map (punchIn X) Xs)
-    ≡ mapMaybe (punchIn X) (minSlot Xs)
-minSlot-punchIn x [] = refl
-minSlot-punchIn x (y ∷ ys) rewrite minSlot-punchIn x ys
-    with minSlot ys
-minSlot-punchIn x (y ∷ ys) | nothing = refl
-minSlot-punchIn x (y ∷ ys) | just z =
-  cong just (sym (punchIn-minTyVar x y z))
-
-just-injective : ∀ {a} {A : Set a} {x y : A}
-  → just x ≡ just y
-  → x ≡ y
-just-injective refl = refl
-
-minSlot-nothing : ∀ {Δ} (Xs : Data.List.List (TyVar Δ))
-  → minSlot Xs ≡ nothing
-  → Xs ≡ []
-minSlot-nothing [] eq = refl
-minSlot-nothing (x ∷ xs) eq with minSlot xs
-minSlot-nothing (x ∷ xs) () | nothing
-minSlot-nothing (x ∷ xs) () | just y
-
-minSlot-zero-head : ∀ {Δ}
-    (Xs : Data.List.List (TyVar (suc Δ)))
-  → minSlot (zero ∷ Xs) ≡ just zero
-minSlot-zero-head xs with minSlot xs
-minSlot-zero-head xs | nothing = refl
-minSlot-zero-head xs | just y = refl
-
-minSlot-dropZero : ∀ {Δ} (Y : TyVar Δ)
-    (Xs : Data.List.List (TyVar (suc Δ)))
-  → minSlot Xs ≡ just (suc Y)
-  → minSlot (dropDead zero Xs) ≡ just Y
-minSlot-dropZero y [] ()
-minSlot-dropZero y (zero ∷ xs) eq with minSlot xs
-minSlot-dropZero y (zero ∷ xs) eq | nothing
-    with just-injective eq
-minSlot-dropZero y (zero ∷ xs) eq | nothing | ()
-minSlot-dropZero y (zero ∷ xs) eq | just z
-    with just-injective eq
-minSlot-dropZero y (zero ∷ xs) eq | just z | ()
-minSlot-dropZero y (suc x ∷ xs) eq with minSlot xs in tail-eq
-minSlot-dropZero y (suc x ∷ xs) eq | nothing
-    rewrite minSlot-nothing xs tail-eq =
-  cong just (fin-suc-injective (just-injective eq))
-minSlot-dropZero y (suc x ∷ xs) eq | just zero
-    with just-injective eq
-minSlot-dropZero y (suc x ∷ xs) eq | just zero | ()
-minSlot-dropZero y (suc x ∷ xs) eq | just (suc z)
-    rewrite minSlot-dropZero z xs tail-eq =
-  cong just (fin-suc-injective (just-injective eq))
-
-restore-dropZero : ∀ {Δ} (Y : TyVar Δ)
-    (Xs : Data.List.List (TyVar (suc Δ)))
-  → minSlot Xs ≡ just (suc Y)
-  → map suc (dropDead zero Xs) ≡ Xs
-restore-dropZero y [] ()
-restore-dropZero y (zero ∷ xs) eq with minSlot xs
-restore-dropZero y (zero ∷ xs) eq | nothing
-    with just-injective eq
-restore-dropZero y (zero ∷ xs) eq | nothing | ()
-restore-dropZero y (zero ∷ xs) eq | just z
-    with just-injective eq
-restore-dropZero y (zero ∷ xs) eq | just z | ()
-restore-dropZero y (suc x ∷ xs) eq with minSlot xs in tail-eq
-restore-dropZero y (suc x ∷ xs) eq | nothing
-    rewrite minSlot-nothing xs tail-eq = refl
-restore-dropZero y (suc x ∷ xs) eq | just zero
-    with just-injective eq
-restore-dropZero y (suc x ∷ xs) eq | just zero | ()
-restore-dropZero y (suc x ∷ xs) eq | just (suc z) =
-  cong (suc x ∷_) (restore-dropZero z xs tail-eq)
-
-dropDead-suc-map : ∀ {Δ} (X : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar (suc Δ)))
-  → dropDead (suc X) (map suc Xs)
-    ≡ map suc (dropDead X Xs)
-dropDead-suc-map x [] = refl
-dropDead-suc-map x (y ∷ ys)
-    with x ≟ y | suc x ≟ suc y
-dropDead-suc-map x (.x ∷ ys) | yes refl | yes refl =
-  dropDead-suc-map x ys
-dropDead-suc-map x (.x ∷ ys) | yes refl | no x≢x =
-  ⊥-elim (x≢x refl)
-dropDead-suc-map x (y ∷ ys) | no x≢y | yes eq =
-  ⊥-elim (x≢y (fin-suc-injective eq))
-dropDead-suc-map x (y ∷ ys) | no x≢y | no sucx≢sucy =
-  cong (suc (punchOut x y x≢y) ∷_) (dropDead-suc-map x ys)
-
-minSlot-zero-dropSuc : ∀ {Δ} (X : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar (suc (suc Δ))))
-  → minSlot Xs ≡ just zero
-  → minSlot (dropDead (suc X) Xs) ≡ just zero
-minSlot-zero-dropSuc x [] ()
-minSlot-zero-dropSuc x (zero ∷ xs) eq with suc x ≟ zero
-minSlot-zero-dropSuc x (zero ∷ xs) eq | yes ()
-minSlot-zero-dropSuc x (zero ∷ xs) eq | no sucx≢zero =
-  minSlot-zero-head (dropDead (suc x) xs)
-minSlot-zero-dropSuc x (suc y ∷ ys) eq
-    with minSlot ys in tail-eq
-minSlot-zero-dropSuc x (suc y ∷ ys) eq | nothing
-    with just-injective eq
-minSlot-zero-dropSuc x (suc y ∷ ys) eq | nothing | ()
-minSlot-zero-dropSuc x (suc y ∷ ys) eq | just zero
-    with x ≟ y
-minSlot-zero-dropSuc .y (suc y ∷ ys) eq | just zero | yes refl =
-  minSlot-zero-dropSuc y ys tail-eq
-minSlot-zero-dropSuc x (suc y ∷ ys) eq | just zero | no x≢y
-    rewrite minSlot-zero-dropSuc x ys tail-eq = refl
-minSlot-zero-dropSuc x (suc y ∷ ys) eq | just (suc z)
-    with just-injective eq
-minSlot-zero-dropSuc x (suc y ∷ ys) eq | just (suc z) | ()
-
-minSlot-dropDead-punchIn : ∀ {Δ} (X : TyVar (suc Δ))
-    (Y : TyVar Δ) (Xs : Data.List.List (TyVar (suc Δ)))
-  → minSlot Xs ≡ just (punchIn X Y)
-  → minSlot (dropDead X Xs) ≡ just Y
-minSlot-dropDead-punchIn zero y xs min-eq =
-  minSlot-dropZero y xs min-eq
-minSlot-dropDead-punchIn (suc x) zero xs min-eq =
-  minSlot-zero-dropSuc x xs min-eq
-minSlot-dropDead-punchIn (suc x) (suc y) xs min-eq =
-  subst≡ (λ zs → minSlot (dropDead (suc x) zs) ≡ just (suc y))
-    (restore-dropZero (punchIn x y) xs min-eq)
-    (trans (cong minSlot (dropDead-suc-map x (dropDead zero xs)))
-      (trans (minSlot-punchIn zero (dropDead x (dropDead zero xs)))
-        (cong (mapMaybe suc)
-          (minSlot-dropDead-punchIn x y (dropDead zero xs)
-            (minSlot-dropZero (punchIn x y) xs min-eq)))))
-
-minTyVar-idem : ∀ {Δ} (X : TyVar Δ) → minTyVar X X ≡ X
-minTyVar-idem zero = refl
-minTyVar-idem (suc x) = cong suc (minTyVar-idem x)
-
-minTyVar-comm : ∀ {Δ} (X Y : TyVar Δ)
-  → minTyVar X Y ≡ minTyVar Y X
-minTyVar-comm zero zero = refl
-minTyVar-comm zero (suc y) = refl
-minTyVar-comm (suc x) zero = refl
-minTyVar-comm (suc x) (suc y) = cong suc (minTyVar-comm x y)
-
-minTyVar-assoc : ∀ {Δ} (X Y Z : TyVar Δ)
-  → minTyVar X (minTyVar Y Z) ≡ minTyVar (minTyVar X Y) Z
-minTyVar-assoc zero y z = refl
-minTyVar-assoc (suc x) zero z = refl
-minTyVar-assoc (suc x) (suc y) zero = refl
-minTyVar-assoc (suc x) (suc y) (suc z) =
-  cong suc (minTyVar-assoc x y z)
-
-minSlot-cons-cong : ∀ {Δ} (X : TyVar Δ)
-    {Xs Ys : Data.List.List (TyVar Δ)}
-  → minSlot Xs ≡ minSlot Ys
-  → minSlot (X ∷ Xs) ≡ minSlot (X ∷ Ys)
-minSlot-cons-cong x eq rewrite eq = refl
-
-minSlot-swap : ∀ {Δ} (X Y : TyVar Δ)
-    (Xs : Data.List.List (TyVar Δ))
-  → minSlot (X ∷ Y ∷ Xs) ≡ minSlot (Y ∷ X ∷ Xs)
-minSlot-swap x y xs with minSlot xs
-minSlot-swap x y xs | nothing = cong just (minTyVar-comm x y)
-minSlot-swap x y xs | just z =
-  cong just
-    (trans (minTyVar-assoc x y z)
-      (trans (cong (λ w → minTyVar w z) (minTyVar-comm x y))
-        (sym (minTyVar-assoc y x z))))
-
-minSlot-duplicate : ∀ {Δ} (X : TyVar Δ)
-    (Xs : Data.List.List (TyVar Δ))
-  → minSlot (X ∷ X ∷ Xs) ≡ minSlot (X ∷ Xs)
-minSlot-duplicate x xs with minSlot xs
-minSlot-duplicate x xs | nothing = cong just (minTyVar-idem x)
-minSlot-duplicate x xs | just y =
-  cong just
-    (trans (minTyVar-assoc x x y)
-      (cong (λ z → minTyVar z y) (minTyVar-idem x)))
-
-minSlot-reinsert-core : ∀ {Δ} (X : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar (suc Δ)))
-  → minSlot (X ∷ map (punchIn X) (dropDead X Xs))
-    ≡ minSlot (X ∷ Xs)
-minSlot-reinsert-core x [] = refl
-minSlot-reinsert-core x (y ∷ ys) with x ≟ y
-minSlot-reinsert-core x (.x ∷ ys) | yes refl =
-  trans (minSlot-reinsert-core x ys) (sym (minSlot-duplicate x ys))
-minSlot-reinsert-core x (y ∷ ys) | no x≢y
-    rewrite punchIn-punchOut x y x≢y =
-  trans (minSlot-swap x y (map (punchIn x) (dropDead x ys)))
-    (trans (minSlot-cons-cong y
-        {Xs = x ∷ map (punchIn x) (dropDead x ys)}
-        {Ys = x ∷ ys} (minSlot-reinsert-core x ys))
-      (sym (minSlot-swap x y ys)))
-
-minSlot-insert-member : ∀ {Δ} {X : TyVar Δ}
-    {Xs : Data.List.List (TyVar Δ)}
-  → ListMembership._∈_ X Xs
-  → minSlot (X ∷ Xs) ≡ minSlot Xs
-minSlot-insert-member {X = x} {Xs = .x ∷ xs} (here refl) =
-  minSlot-duplicate x xs
-minSlot-insert-member {X = x} {Xs = y ∷ ys} (there x∈) =
-  trans (minSlot-swap x y ys)
-    (minSlot-cons-cong y {Xs = x ∷ ys} {Ys = ys}
-      (minSlot-insert-member x∈))
-
-minSlot-reenter-member : ∀ {Δ} {X : TyVar (suc Δ)}
-    {Xs : Data.List.List (TyVar (suc Δ))}
-  → ListMembership._∈_ X Xs
-  → minSlot (X ∷ map (punchIn X) (dropDead X Xs))
-    ≡ minSlot Xs
-minSlot-reenter-member {X = x} {Xs = xs} x∈ =
-  trans (minSlot-reinsert-core x xs) (minSlot-insert-member x∈)
-
-restore-dropDead-not-member : ∀ {Δ} (X : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar (suc Δ)))
-  → ¬ ListMembership._∈_ X Xs
-  → map (punchIn X) (dropDead X Xs) ≡ Xs
-restore-dropDead-not-member x [] x∉ = refl
-restore-dropDead-not-member x (y ∷ ys) x∉ with x ≟ y
-restore-dropDead-not-member .y (y ∷ ys) x∉ | yes refl =
-  ⊥-elim (x∉ (here refl))
-restore-dropDead-not-member x (y ∷ ys) x∉ | no x≢y
-    rewrite punchIn-punchOut x y x≢y =
-  cong (y ∷_)
-    (restore-dropDead-not-member x ys (λ x∈ → x∉ (there x∈)))
-
-data _≤slot_ : ∀ {Δ} → TyVar Δ → TyVar Δ → Set where
-  zero≤ : ∀ {Δ} {Y : TyVar (suc Δ)} → zero ≤slot Y
-  suc≤ : ∀ {Δ} {X Y : TyVar Δ}
-    → X ≤slot Y
-    → suc X ≤slot suc Y
-
-≤slot-refl : ∀ {Δ} (X : TyVar Δ) → X ≤slot X
-≤slot-refl zero = zero≤
-≤slot-refl (suc X) = suc≤ (≤slot-refl X)
-
-≤slot-trans : ∀ {Δ} {X Y Z : TyVar Δ}
-  → X ≤slot Y → Y ≤slot Z → X ≤slot Z
-≤slot-trans zero≤ Y≤Z = zero≤
-≤slot-trans (suc≤ X≤Y) (suc≤ Y≤Z) =
-  suc≤ (≤slot-trans X≤Y Y≤Z)
-
-≤slot-antisym : ∀ {Δ} {X Y : TyVar Δ}
-  → X ≤slot Y → Y ≤slot X → X ≡ Y
-≤slot-antisym zero≤ zero≤ = refl
-≤slot-antisym (suc≤ X≤Y) (suc≤ Y≤X) =
-  cong suc (≤slot-antisym X≤Y Y≤X)
-
-minTyVar-left : ∀ {Δ} (X Y : TyVar Δ)
-  → minTyVar X Y ≤slot X
-minTyVar-left zero Y = zero≤
-minTyVar-left (suc X) zero = zero≤
-minTyVar-left (suc X) (suc Y) = suc≤ (minTyVar-left X Y)
-
-minTyVar-right : ∀ {Δ} (X Y : TyVar Δ)
-  → minTyVar X Y ≤slot Y
-minTyVar-right zero Y = zero≤
-minTyVar-right (suc X) zero = zero≤
-minTyVar-right (suc X) (suc Y) = suc≤ (minTyVar-right X Y)
-
-minTyVar-choice : ∀ {Δ} (X Y : TyVar Δ)
-  → minTyVar X Y ≡ X ⊎ minTyVar X Y ≡ Y
-minTyVar-choice zero zero = inj₁ refl
-minTyVar-choice zero (suc Y) = inj₁ refl
-minTyVar-choice (suc X) zero = inj₂ refl
-minTyVar-choice (suc X) (suc Y) with minTyVar-choice X Y
-minTyVar-choice (suc X) (suc Y) | inj₁ eq = inj₁ (cong suc eq)
-minTyVar-choice (suc X) (suc Y) | inj₂ eq = inj₂ (cong suc eq)
-
-minSlot-output : ∀ {Δ} {X : TyVar Δ}
-    {Xs : Data.List.List (TyVar Δ)}
-  → minSlot Xs ≡ just X
-  → ListMembership._∈_ X Xs
-minSlot-output {Xs = []} ()
-minSlot-output {X = X} {Xs = Y ∷ Ys} eq with minSlot Ys in tail-eq
-minSlot-output {X = X} {Xs = Y ∷ Ys} eq | nothing =
-  here (sym (just-injective eq))
-minSlot-output {X = X} {Xs = Y ∷ Ys} eq | just slot
-    with minTyVar-choice Y slot
-minSlot-output {X = X} {Xs = Y ∷ Ys} eq
-    | just slot | inj₁ min-eq =
-  here (trans (sym (just-injective eq)) min-eq)
-minSlot-output {X = X} {Xs = Y ∷ Ys} eq
-    | just slot | inj₂ min-eq =
-  subst≡ (λ W → ListMembership._∈_ W (Y ∷ Ys))
-    (trans (sym min-eq) (just-injective eq))
-    (there (minSlot-output tail-eq))
-
-no-empty-membership : ∀ {a} {A : Set a} {x : A}
-  → ¬ ListMembership._∈_ x []
-no-empty-membership ()
-
-minSlot-lower : ∀ {Δ} {X Y : TyVar Δ}
-    {Xs : Data.List.List (TyVar Δ)}
-  → minSlot Xs ≡ just X
-  → ListMembership._∈_ Y Xs
-  → X ≤slot Y
-minSlot-lower {Xs = []} () Y∈
-minSlot-lower {X = X} {Y = .slot} {Xs = slot ∷ Zs} eq (here refl)
-    with minSlot Zs in tail-eq
-minSlot-lower {X = X} {Y = .slot} {Xs = slot ∷ Zs} eq (here refl)
-    | nothing =
-  subst≡ (_≤slot slot) (just-injective eq) (≤slot-refl slot)
-minSlot-lower {X = X} {Y = .slot} {Xs = slot ∷ Zs} eq (here refl)
-    | just inner =
-  subst≡ (_≤slot slot) (just-injective eq)
-    (minTyVar-left slot inner)
-minSlot-lower {X = X} {Y = Y} {Xs = slot ∷ Zs} eq (there Y∈)
-    with minSlot Zs in tail-eq
-minSlot-lower {X = X} {Y = Y} {Xs = slot ∷ Zs} eq (there Y∈)
-    | nothing rewrite minSlot-nothing Zs tail-eq =
-  ⊥-elim (no-empty-membership Y∈)
-minSlot-lower {X = X} {Y = Y} {Xs = slot ∷ Zs} eq (there Y∈)
-    | just inner =
-  subst≡ (_≤slot Y) (just-injective eq)
-    (≤slot-trans (minTyVar-right slot inner)
-      (minSlot-lower tail-eq Y∈))
-
-minSlot-ext : ∀ {Δ} (Xs Ys : Data.List.List (TyVar Δ))
-  → (∀ {X} → ListMembership._∈_ X Xs
-      → ListMembership._∈_ X Ys)
-  → (∀ {Y} → ListMembership._∈_ Y Ys
-      → ListMembership._∈_ Y Xs)
-  → minSlot Xs ≡ minSlot Ys
-minSlot-ext Xs Ys forward backward
-    with minSlot Xs in X-eq | minSlot Ys in Y-eq
-minSlot-ext Xs Ys forward backward | nothing | nothing = refl
-minSlot-ext Xs Ys forward backward | nothing | just Y
-    rewrite minSlot-nothing Xs X-eq =
-  ⊥-elim (no-empty-membership
-    (backward (minSlot-output Y-eq)))
-minSlot-ext Xs Ys forward backward | just X | nothing
-    rewrite minSlot-nothing Ys Y-eq =
-  ⊥-elim (no-empty-membership
-    (forward (minSlot-output X-eq)))
-minSlot-ext Xs Ys forward backward | just X | just Y =
-  cong just (≤slot-antisym
-    (minSlot-lower X-eq (backward (minSlot-output Y-eq)))
-    (minSlot-lower Y-eq (forward (minSlot-output X-eq))))
-
-map-member : ∀ {a b} {A : Set a} {B : Set b}
-    (f : A → B) {x : A} {xs : Data.List.List A}
-  → ListMembership._∈_ x xs
-  → ListMembership._∈_ (f x) (map f xs)
-map-member f (here refl) = here refl
-map-member f (there x∈) = there (map-member f x∈)
-
-map-member-inv : ∀ {a b} {A : Set a} {B : Set b}
-    (f : A → B) {z : B} {xs : Data.List.List A}
-  → ListMembership._∈_ z (map f xs)
-  → ∃[ x ] (ListMembership._∈_ x xs × f x ≡ z)
-map-member-inv f {xs = []} ()
-map-member-inv f {xs = x ∷ xs} (here eq) =
-  x , here refl , sym eq
-map-member-inv f {xs = x ∷ xs} (there z∈)
-    with map-member-inv f z∈
-map-member-inv f {xs = x ∷ xs} (there z∈)
-    | y , y∈ , eq =
-  y , there y∈ , eq
-
-dropDead-member : ∀ {Δ} {W X : TyVar (suc Δ)}
-    {Xs : Data.List.List (TyVar (suc Δ))}
-  → (W≢X : W ≢ X)
-  → ListMembership._∈_ X Xs
-  → ListMembership._∈_ (punchOut W X W≢X) (dropDead W Xs)
-dropDead-member {W = W} {X = X} {Xs = .X ∷ Xs} W≢X (here refl)
-    with W ≟ X
-dropDead-member {W = W} {X = X} {Xs = .X ∷ Xs} W≢X (here refl)
-    | yes eq = ⊥-elim (W≢X eq)
-dropDead-member {W = W} {X = X} {Xs = .X ∷ Xs} W≢X (here refl)
-    | no neq = here refl
-dropDead-member {W = W} {X = X} {Xs = Y ∷ Ys} W≢X (there X∈)
-    with W ≟ Y
-dropDead-member {W = .Y} {X = X} {Xs = Y ∷ Ys} W≢X (there X∈)
-    | yes refl =
-  dropDead-member W≢X X∈
-dropDead-member {W = W} {X = X} {Xs = Y ∷ Ys} W≢X (there X∈)
-    | no neq =
-  there (dropDead-member W≢X X∈)
-
-dropDead-member-inv : ∀ {Δ} {W : TyVar (suc Δ)}
-    {X : TyVar Δ} {Xs : Data.List.List (TyVar (suc Δ))}
-  → ListMembership._∈_ X (dropDead W Xs)
-  → ListMembership._∈_ (punchIn W X) Xs
-dropDead-member-inv {Xs = []} ()
-dropDead-member-inv {W = W} {X = X} {Xs = Y ∷ Ys} X∈
-    with W ≟ Y
-dropDead-member-inv {W = .Y} {X = X} {Xs = Y ∷ Ys} X∈
-    | yes refl =
-  there (dropDead-member-inv X∈)
-dropDead-member-inv {W = W} {X = X} {Xs = Y ∷ Ys} (here eq)
-    | no W≢Y =
-  here (trans (cong (punchIn W) eq)
-    (punchIn-punchOut W Y W≢Y))
-dropDead-member-inv {W = W} {X = X} {Xs = Y ∷ Ys} (there X∈)
-    | no W≢Y =
-  there (dropDead-member-inv X∈)
-
-∋typ-member : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → Ψ ∋typ X ≔ α
-  → ListMembership._∈_ X (liveSlots Ψ α)
-∋typ-member (found-begin {Y = Y} {α = α}) with α ≟ α
-∋typ-member (found-begin {Y = Y} {α = α}) | yes refl = here refl
-∋typ-member (found-begin {Y = Y} {α = α}) | no α≢α =
-  ⊥-elim (α≢α refl)
-∋typ-member (skip-begin {α = α} {X = X} {β = anchor} X∈)
-    with α ≟ anchor
-∋typ-member (skip-begin {α = .anchor} {X = X} {β = anchor} X∈)
-    | yes refl = there (map-member (punchIn X) (∋typ-member X∈))
-∋typ-member (skip-begin {α = α} {X = X} {β = anchor} X∈)
-    | no α≢anchor = map-member (punchIn X) (∋typ-member X∈)
-∋typ-member (skip-typ X∈) = map-member suc (∋typ-member X∈)
-∋typ-member (skip-nu-binding X∈) = ∋typ-member X∈
-∋typ-member (skip-end {Y = Y} {X = X} X∈) =
-  subst≡ (λ Z → ListMembership._∈_ Z _)
-    (punchOut-punchIn Y X (punchIn≢ Y X))
-    (dropDead-member (punchIn≢ Y X) (∋typ-member X∈))
-
-liveSlots-member-∋typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → ListMembership._∈_ X (liveSlots Ψ α)
-  → Ψ ∋typ X ≔ α
-liveSlots-member-∋typ {Ψ = ∅} {α = ()}
-liveSlots-member-∋typ
-    {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = X} {α = α} X∈
-    with α ≟ anchor
-liveSlots-member-∋typ
-    {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = .Y} {α = .anchor} (here refl)
-    | yes refl =
-  found-begin
-liveSlots-member-∋typ
-    {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = X} {α = .anchor} (there X∈)
-    | yes refl with map-member-inv (punchIn Y) X∈
-liveSlots-member-∋typ
-    {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = X} {α = .anchor} (there X∈)
-    | yes refl | slot , slot∈ , eq =
-  subst≡ (λ W → Ψ ,begin[ Y ≔ anchor ] ∋typ W ≔ anchor) eq
-    (skip-begin (liveSlots-member-∋typ slot∈))
-liveSlots-member-∋typ
-    {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = X} {α = α} X∈
-    | no α≢anchor with map-member-inv (punchIn Y) X∈
-liveSlots-member-∋typ
-    {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = X} {α = α} X∈
-    | no α≢anchor | slot , slot∈ , eq =
-  subst≡ (λ W → Ψ ,begin[ Y ≔ anchor ] ∋typ W ≔ α) eq
-    (skip-begin (liveSlots-member-∋typ slot∈))
-liveSlots-member-∋typ {Ψ = Ψ ,typ} {X = X} X∈
-    with map-member-inv suc X∈
-liveSlots-member-∋typ {Ψ = Ψ ,typ} {X = X} X∈
-    | slot , slot∈ , eq =
-  subst≡ (λ W → Ψ ,typ ∋typ W ≔ _) eq
-    (skip-typ (liveSlots-member-∋typ slot∈))
-liveSlots-member-∋typ {Ψ = Ψ ,:= A} {α = zero} ()
-liveSlots-member-∋typ {Ψ = Ψ ,:= A} {α = suc α} X∈ =
-  skip-nu-binding (liveSlots-member-∋typ X∈)
-liveSlots-member-∋typ {Ψ = Ψ ,end[ W ]} {X = X} X∈ =
-  skip-end (liveSlots-member-∋typ (dropDead-member-inv X∈))
-
-minSlot-member : ∀ {Δ} {X : TyVar Δ}
-    {Xs : Data.List.List (TyVar Δ)}
-  → ListMembership._∈_ X Xs
-  → ∃[ Y ] minSlot Xs ≡ just Y
-minSlot-member {Xs = []} ()
-minSlot-member {Xs = Y ∷ Ys} X∈ with minSlot Ys
-minSlot-member {Xs = Y ∷ Ys} X∈ | nothing = Y , refl
-minSlot-member {Xs = Y ∷ Ys} X∈ | just slot =
-  minTyVar Y slot , refl
-
-slotAnchor-∋typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → slotAnchor Ψ X ≡ just α
-  → Ψ ∋typ X ≔ α
-slotAnchor-∋typ {Ψ = ∅} {X = ()}
-slotAnchor-∋typ {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = X} eq
-    with Y ≟ X
-slotAnchor-∋typ {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = .Y} refl
-    | yes refl = found-begin
-slotAnchor-∋typ {Ψ = Ψ ,begin[ Y ≔ anchor ]} {X = X} eq
-    | no Y≢X =
-  subst≡ (λ Z → (Ψ ,begin[ Y ≔ anchor ]) ∋typ Z ≔ _)
-    (punchIn-punchOut Y X Y≢X)
-    (skip-begin (slotAnchor-∋typ eq))
-slotAnchor-∋typ {Ψ = Ψ ,typ} {X = zero} ()
-slotAnchor-∋typ {Ψ = Ψ ,typ} {X = suc X} eq =
-  skip-typ (slotAnchor-∋typ eq)
-slotAnchor-∋typ {Ψ = Ψ ,:= A} {X = X} {α = α} eq
-    with slotAnchor Ψ X in anchor-eq
-slotAnchor-∋typ {Ψ = Ψ ,:= A} {X = X} {α = α} ()
-    | nothing
-slotAnchor-∋typ {Ψ = Ψ ,:= A} {X = X} {α = .(suc anchor)} refl
-    | just anchor =
-  skip-nu-binding (slotAnchor-∋typ anchor-eq)
-slotAnchor-∋typ {Ψ = Ψ ,end[ Y ]} {X = X} eq =
-  skip-end (slotAnchor-∋typ eq)
-
-slotAnchor-begin-punchIn : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ)
-    (inserted : TyVar (suc Δ)) (anchor : TyVar Θ)
-    (oldslot : TyVar Δ)
-  → slotAnchor (Ψ ,begin[ inserted ≔ anchor ])
-      (punchIn inserted oldslot)
-    ≡ slotAnchor Ψ oldslot
-slotAnchor-begin-punchIn Ψ inserted anchor oldslot
-    with inserted ≟ punchIn inserted oldslot
-slotAnchor-begin-punchIn Ψ inserted anchor oldslot | yes eq =
-  ⊥-elim (punchIn≢ inserted oldslot eq)
-slotAnchor-begin-punchIn Ψ inserted anchor oldslot
-    | no inserted≢oldslot =
-  cong (slotAnchor Ψ)
-    (punchOut-punchIn inserted oldslot inserted≢oldslot)
-
-∋typ-slotAnchor : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X : TyVar Δ} {anchor : TyVar Θ}
-  → Ψ ∋typ X ≔ anchor
-  → slotAnchor Ψ X ≡ just anchor
-∋typ-slotAnchor (found-begin {Y = slot}) with slot ≟ slot
-∋typ-slotAnchor (found-begin {Y = slot}) | yes refl = refl
-∋typ-slotAnchor (found-begin {Y = slot}) | no slot≢slot =
-  ⊥-elim (slot≢slot refl)
-∋typ-slotAnchor
-    {Ψ = prefix ,begin[ inserted ≔ bound ]}
-    {X = .(punchIn inserted oldslot)}
-    (skip-begin {Y = oldslot} oldslot∈) =
-  trans (slotAnchor-begin-punchIn prefix inserted bound oldslot)
-    (∋typ-slotAnchor oldslot∈)
-∋typ-slotAnchor (skip-typ Y∈) = ∋typ-slotAnchor Y∈
-∋typ-slotAnchor (skip-nu-binding Y∈) =
-  cong (mapMaybe suc) (∋typ-slotAnchor Y∈)
-∋typ-slotAnchor (skip-end Y∈) = ∋typ-slotAnchor Y∈
-
-slotAnchor-minSlot : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → slotAnchor Ψ X ≡ just α
-  → ∃[ Y ] minSlot (liveSlots Ψ α) ≡ just Y
-slotAnchor-minSlot {Ψ = Ψ} {X = X} {α = α} eq =
-  minSlot-member
-    (∋typ-member
-      (slotAnchor-∋typ {Ψ = Ψ} {X = X} {α = α} eq))
-
-dropDead-self : ∀ {Δ} (Y : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar (suc Δ)))
-  → dropDead Y (Y ∷ Xs) ≡ dropDead Y Xs
-dropDead-self Y Xs with Y ≟ Y
-dropDead-self Y Xs | yes refl = refl
-dropDead-self Y Xs | no Y≢Y = ⊥-elim (Y≢Y refl)
-
-bracket-liveSlots : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ)
-    (X : TyVar (suc Δ)) (α query : TyVar Θ)
-  → liveSlots ((Ψ ,begin[ X ≔ α ]) ,end[ X ]) query
-    ≡ liveSlots Ψ query
-bracket-liveSlots Ψ X α query with query ≟ α
-bracket-liveSlots Ψ X α .α | yes refl =
-  trans (dropDead-self X (map (punchIn X) (liveSlots Ψ α)))
-    (dropDead-punchIn X (liveSlots Ψ α))
-bracket-liveSlots Ψ X α query | no query≢α =
-  dropDead-punchIn X (liveSlots Ψ query)
-
-fresh-cross-liveSlots : ∀ {Δ} (X : TyVar (suc Δ))
-    (Xs : Data.List.List (TyVar Δ))
-  → dropDead zero (map (punchIn (suc X)) (map suc Xs))
-    ≡ map (punchIn X) Xs
-fresh-cross-liveSlots X Xs =
-  trans
-    (cong (dropDead zero)
-      (trans (map-compose suc (punchIn (suc X)) Xs)
-        (trans
-          (map-pointwise Xs (λ Y → refl))
-          (sym (map-compose (punchIn X) suc Xs)))))
-    (dropDead-punchIn zero (map (punchIn X) Xs))
-
-fresh-before-begin-liveSlots : ∀ {Θ Δ}
-    (Ψ : TyEnv (suc Θ) Δ) (X : TyVar (suc Δ))
-    (anchor query : TyVar Θ)
-  → liveSlots
-      ((((Ψ ,begin[ zero ≔ zero ])
-        ,begin[ suc X ≔ suc anchor ]) ,end[ zero ])) (suc query)
-    ≡ liveSlots (Ψ ,begin[ X ≔ suc anchor ]) (suc query)
-fresh-before-begin-liveSlots Ψ X anchor query with query ≟ anchor
-fresh-before-begin-liveSlots Ψ X anchor .anchor | yes refl =
-  cong (X ∷_) (fresh-cross-liveSlots X (liveSlots Ψ (suc anchor)))
-fresh-before-begin-liveSlots Ψ X anchor query | no query≢anchor =
-  fresh-cross-liveSlots X (liveSlots Ψ (suc query))
-
-fresh-before-begin-liveSlots-zero : ∀ {Θ Δ}
-    (Ψ : TyEnv (suc Θ) Δ) (X : TyVar (suc Δ))
-    (anchor : TyVar Θ)
-  → liveSlots
-      ((((Ψ ,begin[ zero ≔ zero ])
-        ,begin[ suc X ≔ suc anchor ]) ,end[ zero ])) zero
-    ≡ liveSlots (Ψ ,begin[ X ≔ suc anchor ]) zero
-fresh-before-begin-liveSlots-zero Ψ X anchor =
-  trans
-    (trans (dropDead-self zero
-      (map (punchIn (suc X)) (map suc (liveSlots Ψ zero))))
-      (fresh-cross-liveSlots X (liveSlots Ψ zero)))
-    refl
-
 rename-begin⁺ : ∀ {Θ Δ Δ′} (ρ : suc Δ ↪ᵗ suc Δ′)
     (Y : TyVar (suc Δ)) (A⁺ : Ty⁺ Θ Δ)
   → renameᵗ⁺ (toRenameᵗ ρ) (begin⁺ Y A⁺)
@@ -1401,7 +725,7 @@ renameCtx-∋ hρ x∈ with lookup-renameCtx-inv x∈
 renameCtx-∋ {ρᵗ = ρᵗ} hρ x∈ | B , B∈ , refl =
   renameᵗ-∋ ρᵗ (hρ B∈)
 
-⊢rename : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ Γ′ : TermCtx Δ}
+⊢rename : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ Γ′ : TermCtx Δ}
     {ρ : Rename} {M : Term Θ Δ} {B : Ty Δ}
   → (∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A)
   → Ψ ∣ Γ ⊢ M ⦂ B
@@ -1422,7 +746,7 @@ renameCtx-∋ {ρᵗ = ρᵗ} hρ x∈ | B , B∈ , refl =
   ⊢conceal slot∈ α∈ c⊢ M⊢
 ⊢rename hρ ⊢blame = ⊢blame
 
-⊢rename-suc : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+⊢rename-suc : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A B : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
   → Ψ ∣ B ∷ Γ ⊢ rename suc M ⦂ A
@@ -1432,175 +756,230 @@ renameCtx-∋ {ρᵗ = ρᵗ} hρ x∈ | B , B∈ , refl =
 -- Regular-context injections act on binder telescopes
 ------------------------------------------------------------------------
 
-emptyTyEnv : ∀ {Θ} (Δ : TyCtx) → TyEnv Θ zero → TyEnv Θ Δ
+emptyTyEnv : ∀ {Θ} {ℒ : Vec.Vec Bool Θ} (Δ : TyCtx)
+  → TyEnv Θ zero ℒ
+  → TyEnv Θ Δ ℒ
 emptyTyEnv zero Ψ = Ψ
 emptyTyEnv (suc Δ) Ψ = emptyTyEnv Δ Ψ ,typ
 
-renameTyEnv : ∀ {Θ Δ Δ′}
+renameTyEnv : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ}
   → Δ ↪ᵗ Δ′
-  → TyEnv Θ Δ
-  → TyEnv Θ Δ′
+  → TyEnv Θ Δ ℒ
+  → TyEnv Θ Δ′ ℒ
 renameTyEnv {Δ′ = Δ′} ρ ∅ = emptyTyEnv Δ′ ∅
 renameTyEnv ρ (Ψ ,:= A) =
   renameTyEnv ρ Ψ ,:= renameᵗ (toRenameᵗ ρ) A
-renameTyEnv (keep ρ) (Ψ ,begin[ Y ≔ α ]) =
+renameTyEnv (keep ρ) (Ψ ,begin[ Y ≔ α ]⟨ inactive ⟩) =
   renameTyEnv (delete↪ᵗ (keep ρ) Y) Ψ
-    ,begin[ toRenameᵗ (keep ρ) Y ≔ α ]
-renameTyEnv (skip ρ) (Ψ ,begin[ Y ≔ α ]) =
+    ,begin[ toRenameᵗ (keep ρ) Y ≔ α ]⟨ inactive ⟩
+renameTyEnv (skip ρ) (Ψ ,begin[ Y ≔ α ]⟨ inactive ⟩) =
   renameTyEnv (delete↪ᵗ (skip ρ) Y) Ψ
-    ,begin[ toRenameᵗ (skip ρ) Y ≔ α ]
+    ,begin[ toRenameᵗ (skip ρ) Y ≔ α ]⟨ inactive ⟩
 renameTyEnv (keep ρ) (Ψ ,typ) = renameTyEnv ρ Ψ ,typ
 renameTyEnv (skip ρ) (Ψ ,typ) = renameTyEnv ρ (Ψ ,typ) ,typ
-renameTyEnv ρ (Ψ ,end[ Y ]) =
+renameTyEnv ρ (Ψ ,end[ Y ≔ α ]) =
   renameTyEnv (insert↪ᵗ ρ Y) Ψ
-    ,end[ toRenameᵗ (insert↪ᵗ ρ Y) Y ]
+    ,end[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]
 
-rename-liveSlots : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    (Ψ : TyEnv Θ Δ) (query : TyVar Θ)
-  → liveSlots (renameTyEnv ρ Ψ) query
-    ≡ map (toRenameᵗ ρ) (liveSlots Ψ query)
-rename-liveSlots ρ ∅ ()
-rename-liveSlots ρ (Ψ ,:= A) zero = refl
-rename-liveSlots ρ (Ψ ,:= A) (suc query) =
-  rename-liveSlots ρ Ψ query
-rename-liveSlots ρ@(keep η) (Ψ ,begin[ Y ≔ β′ ]) query
-    with query ≟ β′
-rename-liveSlots ρ@(keep η) (Ψ ,begin[ Y ≔ β′ ]) .β′
-    | yes refl =
-  cong (toRenameᵗ ρ Y ∷_)
-    (trans
-      (cong (map (punchIn (toRenameᵗ ρ Y)))
-        (rename-liveSlots (delete↪ᵗ ρ Y) Ψ β′))
-      (map-punchIn-delete ρ Y (liveSlots Ψ β′)))
-rename-liveSlots ρ@(keep η) (Ψ ,begin[ Y ≔ β′ ]) query
-    | no query≢β′ =
-  trans
-    (cong (map (punchIn (toRenameᵗ ρ Y)))
-      (rename-liveSlots (delete↪ᵗ ρ Y) Ψ query))
-    (map-punchIn-delete ρ Y (liveSlots Ψ query))
-rename-liveSlots ρ@(skip η) (Ψ ,begin[ Y ≔ β′ ]) query
-    with query ≟ β′
-rename-liveSlots ρ@(skip η) (Ψ ,begin[ Y ≔ β′ ]) .β′
-    | yes refl =
-  cong (toRenameᵗ ρ Y ∷_)
-    (trans
-      (cong (map (punchIn (toRenameᵗ ρ Y)))
-        (rename-liveSlots (delete↪ᵗ ρ Y) Ψ β′))
-      (map-punchIn-delete ρ Y (liveSlots Ψ β′)))
-rename-liveSlots ρ@(skip η) (Ψ ,begin[ Y ≔ β′ ]) query
-    | no query≢β′ =
-  trans
-    (cong (map (punchIn (toRenameᵗ ρ Y)))
-      (rename-liveSlots (delete↪ᵗ ρ Y) Ψ query))
-    (map-punchIn-delete ρ Y (liveSlots Ψ query))
-rename-liveSlots (keep ρ) (Ψ ,typ) query =
-  trans (cong (map suc) (rename-liveSlots ρ Ψ query))
-    (trans (map-compose (toRenameᵗ ρ) suc (liveSlots Ψ query))
-      (trans
-        (map-pointwise (liveSlots Ψ query)
+liveSlot?-end-none : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ (suc Δ) L} {W : TyVar (suc Δ)}
+    {bound query : TyVar Θ}
+  → query ≢ bound
+  → liveSlot? Ψ query ≡ nothing
+  → liveSlot? (Ψ ,end[ W ≔ bound ]) query ≡ nothing
+liveSlot?-end-none {bound = bound} {query = query} query≢bound eq with query ≟ bound
+liveSlot?-end-none query≢bound eq | yes query≡bound =
+  ⊥-elim (query≢bound query≡bound)
+liveSlot?-end-none query≢bound eq | no query≢bound′ rewrite eq = refl
+
+liveSlot?-end-hit : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ (suc Δ) L} {W : TyVar (suc Δ)}
+    {bound query : TyVar Θ}
+  → query ≢ bound
+  → liveSlot? Ψ query ≡ just W
+  → liveSlot? (Ψ ,end[ W ≔ bound ]) query ≡ nothing
+liveSlot?-end-hit {bound = bound} {query = query} query≢bound eq with query ≟ bound
+liveSlot?-end-hit query≢bound eq | yes query≡bound =
+  ⊥-elim (query≢bound query≡bound)
+liveSlot?-end-hit {W = W} query≢bound eq | no query≢bound′
+    rewrite eq with W ≟ W
+liveSlot?-end-hit query≢bound eq | no query≢bound′ | yes refl = refl
+liveSlot?-end-hit query≢bound eq | no query≢bound′ | no W≢W =
+  ⊥-elim (W≢W refl)
+
+liveSlot?-end-keep : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ (suc Δ) L} {W Y : TyVar (suc Δ)}
+    {bound query : TyVar Θ}
+  → query ≢ bound
+  → liveSlot? Ψ query ≡ just Y
+  → (W≢Y : W ≢ Y)
+  → liveSlot? (Ψ ,end[ W ≔ bound ]) query
+    ≡ just (punchOut W Y W≢Y)
+liveSlot?-end-keep {bound = bound} {query = query} query≢bound eq W≢Y
+    with query ≟ bound
+liveSlot?-end-keep query≢bound eq W≢Y | yes query≡bound =
+  ⊥-elim (query≢bound query≡bound)
+liveSlot?-end-keep {W = W} {Y = Y} query≢bound eq W≢Y
+    | no query≢bound′ rewrite eq with W ≟ Y
+liveSlot?-end-keep query≢bound eq W≢Y | no query≢bound′
+    | yes W≡Y = ⊥-elim (W≢Y W≡Y)
+liveSlot?-end-keep query≢bound eq W≢Y | no query≢bound′
+    | no W≢Y′ = refl
+
+mapMaybe-pointwise : ∀ {a b} {A : Set a} {B : Set b}
+    {f g : A → B} (value : Maybe A)
+  → (∀ x → f x ≡ g x)
+  → mapMaybe f value ≡ mapMaybe g value
+mapMaybe-pointwise nothing eq = refl
+mapMaybe-pointwise (just x) eq = cong just (eq x)
+
+mapMaybe-compose : ∀ {a b c} {A : Set a} {B : Set b} {C : Set c}
+    (f : A → B) (g : B → C) (value : Maybe A)
+  → mapMaybe g (mapMaybe f value) ≡ mapMaybe (λ x → g (f x)) value
+mapMaybe-compose f g nothing = refl
+mapMaybe-compose f g (just x) = refl
+
+map-liveSlot?-end : ∀ {Θ Δ Δ′} {L : Vec.Vec Bool Θ}
+    (ρ : suc Δ ↪ᵗ suc Δ′)
+    (Ψ : TyEnv Θ (suc Δ) L) (Φ : TyEnv Θ (suc Δ′) L)
+    (Y : TyVar (suc Δ)) (bound query : TyVar Θ)
+  → liveSlot? Φ query ≡ mapMaybe (toRenameᵗ ρ) (liveSlot? Ψ query)
+  → liveSlot?
+      (Φ ,end[ toRenameᵗ ρ Y ≔ bound ]) query
+    ≡ mapMaybe (toRenameᵗ (delete↪ᵗ ρ Y))
+        (liveSlot? (Ψ ,end[ Y ≔ bound ]) query)
+map-liveSlot?-end ρ Ψ Φ Y bound query ih with query ≟ bound
+map-liveSlot?-end ρ Ψ Φ Y .query query ih | yes refl = refl
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    with liveSlot? Ψ query | liveSlot? Φ query | ih
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | nothing | nothing | refl = refl
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | nothing | just target | ()
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | just source | nothing | ()
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | just source | just .(toRenameᵗ ρ source) | refl
+    with Y ≟ source
+       | toRenameᵗ ρ Y ≟ toRenameᵗ ρ source
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | just .Y | just .(toRenameᵗ ρ Y) | refl
+    | yes refl | yes refl = refl
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | just .Y | just .(toRenameᵗ ρ Y) | refl
+    | yes refl | no image≢image = ⊥-elim (image≢image refl)
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | just source | just .(toRenameᵗ ρ source) | refl
+    | no Y≢source | yes image-eq =
+  ⊥-elim (Y≢source (toRenameᵗ-injective ρ image-eq))
+map-liveSlot?-end ρ Ψ Φ Y bound query ih | no query≢bound
+    | just source | just .(toRenameᵗ ρ source) | refl
+    | no Y≢source | no image≢image =
+  cong just (sym (rename-punchOut ρ Y source Y≢source image≢image))
+
+rename-liveSlot? : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ}
+    (ρ : Δ ↪ᵗ Δ′) (Ψ : TyEnv Θ Δ ℒ) (query : TyVar Θ)
+  → liveSlot? (renameTyEnv ρ Ψ) query
+    ≡ mapMaybe (toRenameᵗ ρ) (liveSlot? Ψ query)
+rename-liveSlot? ρ ∅ ()
+rename-liveSlot? ρ (Ψ ,:= A) zero = refl
+rename-liveSlot? ρ (Ψ ,:= A) (suc query) =
+  rename-liveSlot? ρ Ψ query
+rename-liveSlot? ρ@(keep η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query with query ≟ bound
+rename-liveSlot? ρ@(keep η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) .bound
+    | yes refl = refl
+rename-liveSlot? ρ@(keep η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query
+    | no query≢bound with liveSlot? Ψ query in slot-eq
+rename-liveSlot? ρ@(keep η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query
+    | no query≢bound | nothing
+    rewrite rename-liveSlot? (delete↪ᵗ ρ Y) Ψ query | slot-eq = refl
+rename-liveSlot? ρ@(keep η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query
+    | no query≢bound | just X
+    rewrite rename-liveSlot? (delete↪ᵗ ρ Y) Ψ query | slot-eq =
+  cong just (sym (delete-punchIn ρ Y X))
+rename-liveSlot? ρ@(skip η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query with query ≟ bound
+rename-liveSlot? ρ@(skip η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) .bound
+    | yes refl = refl
+rename-liveSlot? ρ@(skip η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query
+    | no query≢bound with liveSlot? Ψ query in slot-eq
+rename-liveSlot? ρ@(skip η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query
+    | no query≢bound | nothing
+    rewrite rename-liveSlot? (delete↪ᵗ ρ Y) Ψ query | slot-eq = refl
+rename-liveSlot? ρ@(skip η)
+    (Ψ ,begin[ Y ≔ bound ]⟨ inactive ⟩) query
+    | no query≢bound | just X
+    rewrite rename-liveSlot? (delete↪ᵗ ρ Y) Ψ query | slot-eq =
+  cong just (sym (delete-punchIn ρ Y X))
+rename-liveSlot? (keep ρ) (Ψ ,typ) query =
+  trans (cong (mapMaybe suc) (rename-liveSlot? ρ Ψ query))
+    (trans (mapMaybe-compose (toRenameᵗ ρ) suc (liveSlot? Ψ query))
+      (trans (mapMaybe-pointwise (liveSlot? Ψ query)
           (λ X → sym (toRename-keep-eq ρ (suc X))))
-        (sym (map-compose suc (toRenameᵗ (keep ρ))
-          (liveSlots Ψ query)))))
-rename-liveSlots (skip ρ) (Ψ ,typ) query =
-  trans (cong (map suc) (rename-liveSlots ρ (Ψ ,typ) query))
-    (trans (map-compose (toRenameᵗ ρ) suc (liveSlots (Ψ ,typ) query))
-      (map-pointwise (liveSlots (Ψ ,typ) query) (λ X → refl)))
-rename-liveSlots ρ (Ψ ,end[ Y ]) query =
-  trans
-    (cong (dropDead (toRenameᵗ (insert↪ᵗ ρ Y) Y))
-      (rename-liveSlots (insert↪ᵗ ρ Y) Ψ query))
-    (subst≡
-      (λ η → dropDead (toRenameᵗ (insert↪ᵗ ρ Y) Y)
-          (map (toRenameᵗ (insert↪ᵗ ρ Y)) (liveSlots Ψ query))
-        ≡ map (toRenameᵗ η) (dropDead Y (liveSlots Ψ query)))
-      (delete-insert↪ᵗ ρ Y)
-      (rename-dropDead (insert↪ᵗ ρ Y) Y (liveSlots Ψ query)))
+        (sym (mapMaybe-compose suc (toRenameᵗ (keep ρ))
+          (liveSlot? Ψ query)))))
+rename-liveSlot? (skip ρ) (Ψ ,typ) query =
+  trans (cong (mapMaybe suc) (rename-liveSlot? ρ (Ψ ,typ) query))
+    (trans (mapMaybe-compose (toRenameᵗ ρ) suc
+        (liveSlot? (Ψ ,typ) query))
+      (mapMaybe-pointwise (liveSlot? (Ψ ,typ) query) (λ X → refl)))
+rename-liveSlot? ρ (Ψ ,end[ Y ≔ bound ]) query =
+  subst≡
+    (λ η → liveSlot?
+        (renameTyEnv (insert↪ᵗ ρ Y) Ψ
+          ,end[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ bound ]) query
+      ≡ mapMaybe (toRenameᵗ η) (liveSlot? (Ψ ,end[ Y ≔ bound ]) query))
+    (delete-insert↪ᵗ ρ Y)
+    (map-liveSlot?-end (insert↪ᵗ ρ Y) Ψ
+      (renameTyEnv (insert↪ᵗ ρ Y) Ψ) Y bound query
+      (rename-liveSlot? (insert↪ᵗ ρ Y) Ψ query))
 
-rename-slotAnchor : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    (Ψ : TyEnv Θ Δ) (X : TyVar Δ)
-  → slotAnchor (renameTyEnv ρ Ψ) (toRenameᵗ ρ X) ≡ slotAnchor Ψ X
-rename-slotAnchor ρ ∅ ()
-rename-slotAnchor ρ (Ψ ,:= A) X =
-  cong (mapMaybe suc) (rename-slotAnchor ρ Ψ X)
-rename-slotAnchor ρ@(keep η) (Ψ ,begin[ Y ≔ anchor ]) X
-    with Y ≟ X | toRenameᵗ ρ Y ≟ toRenameᵗ ρ X
-rename-slotAnchor ρ@(keep η) (Ψ ,begin[ Y ≔ anchor ]) .Y
-    | yes refl | yes refl = refl
-rename-slotAnchor ρ@(keep η) (Ψ ,begin[ Y ≔ anchor ]) .Y
-    | yes refl | no Y≢Y = ⊥-elim (Y≢Y refl)
-rename-slotAnchor ρ@(keep η) (Ψ ,begin[ Y ≔ anchor ]) X
-    | no Y≢X | yes eq = ⊥-elim (Y≢X (toRenameᵗ-injective ρ eq))
-rename-slotAnchor ρ@(keep η) (Ψ ,begin[ Y ≔ anchor ]) X
-    | no Y≢X | no ρY≢ρX =
-  subst≡
-    (λ W → slotAnchor (renameTyEnv (delete↪ᵗ ρ Y) Ψ) W
-      ≡ slotAnchor Ψ (punchOut Y X Y≢X))
-    (rename-punchOut ρ Y X Y≢X ρY≢ρX)
-    (rename-slotAnchor (delete↪ᵗ ρ Y) Ψ
-      (punchOut Y X Y≢X))
-rename-slotAnchor ρ@(skip η) (Ψ ,begin[ Y ≔ anchor ]) X
-    with Y ≟ X | toRenameᵗ ρ Y ≟ toRenameᵗ ρ X
-rename-slotAnchor ρ@(skip η) (Ψ ,begin[ Y ≔ anchor ]) .Y
-    | yes refl | yes refl = refl
-rename-slotAnchor ρ@(skip η) (Ψ ,begin[ Y ≔ anchor ]) .Y
-    | yes refl | no Y≢Y = ⊥-elim (Y≢Y refl)
-rename-slotAnchor ρ@(skip η) (Ψ ,begin[ Y ≔ anchor ]) X
-    | no Y≢X | yes eq = ⊥-elim (Y≢X (toRenameᵗ-injective ρ eq))
-rename-slotAnchor ρ@(skip η) (Ψ ,begin[ Y ≔ anchor ]) X
-    | no Y≢X | no ρY≢ρX =
-  subst≡
-    (λ W → slotAnchor (renameTyEnv (delete↪ᵗ ρ Y) Ψ) W
-      ≡ slotAnchor Ψ (punchOut Y X Y≢X))
-    (rename-punchOut ρ Y X Y≢X ρY≢ρX)
-    (rename-slotAnchor (delete↪ᵗ ρ Y) Ψ
-      (punchOut Y X Y≢X))
-rename-slotAnchor (keep ρ) (Ψ ,typ) zero = refl
-rename-slotAnchor (keep ρ) (Ψ ,typ) (suc X) =
-  rename-slotAnchor ρ Ψ X
-rename-slotAnchor (skip ρ) (Ψ ,typ) X =
-  rename-slotAnchor ρ (Ψ ,typ) X
-rename-slotAnchor ρ (Ψ ,end[ Y ]) X =
-  subst≡
-    (λ W → slotAnchor (renameTyEnv (insert↪ᵗ ρ Y) Ψ) W
-      ≡ slotAnchor Ψ (punchIn Y X))
-    (insert-punchIn ρ Y X)
-    (rename-slotAnchor (insert↪ᵗ ρ Y) Ψ (punchIn Y X))
-
-renameTyEnv-insert : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    (Ψ : TyEnv Θ Δ) (Y : TyVar (suc Δ)) (α : TyVar Θ)
-  → renameTyEnv (insert↪ᵗ ρ Y) (Ψ ,begin[ Y ≔ α ])
+renameTyEnv-insert : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} (ρ : Δ ↪ᵗ Δ′)
+    (Ψ : TyEnv Θ Δ ℒ)
+    (Y : TyVar (suc Δ)) (α : TyVar Θ)
+    (inactive : Vec.lookup ℒ α ≡ false)
+  → renameTyEnv (insert↪ᵗ ρ Y)
+      (Ψ ,begin[ Y ≔ α ]⟨ inactive ⟩)
     ≡ renameTyEnv ρ Ψ
-        ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]
-renameTyEnv-insert ρ Ψ zero α = refl
-renameTyEnv-insert (keep ρ) Ψ (suc Y) α
+        ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]⟨ inactive ⟩
+renameTyEnv-insert ρ Ψ zero α inactive = refl
+renameTyEnv-insert (keep ρ) Ψ (suc Y) α inactive
     rewrite delete-insert↪ᵗ ρ Y =
   refl
-renameTyEnv-insert (skip ρ) Ψ (suc Y) α
+renameTyEnv-insert (skip ρ) Ψ (suc Y) α inactive
     rewrite delete-insert↪ᵗ ρ (suc Y) =
   refl
 
-rename-∋typ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    {Ψ : TyEnv Θ Δ} {Y : TyVar Δ} {α : TyVar Θ}
+rename-∋typ : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} (ρ : Δ ↪ᵗ Δ′)
+    {Ψ : TyEnv Θ Δ ℒ} {Y : TyVar Δ} {α : TyVar Θ}
   → Ψ ∋typ Y ≔ α
   → renameTyEnv ρ Ψ ∋typ toRenameᵗ ρ Y ≔ α
 rename-∋typ (keep ρ) found-begin = found-begin
 rename-∋typ (skip ρ) found-begin = found-begin
 rename-∋typ ρ@(keep η)
     (skip-begin {Ψ = Ψ} {Y = Y} {α = α} {X = slot}
-      {β = anchor}
+      {β = anchor} {inactive = inactive}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ]⟨ inactive ⟩ ∋typ W ≔ α)
     (sym (delete-punchIn ρ slot Y))
     (skip-begin (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
 rename-∋typ ρ@(skip η)
     (skip-begin {Ψ = Ψ} {Y = Y} {α = α} {X = slot}
-      {β = anchor}
+      {β = anchor} {inactive = inactive}
       Y∈) =
   subst≡
     (λ W → renameTyEnv (delete↪ᵗ ρ slot) Ψ
-        ,begin[ toRenameᵗ ρ slot ≔ anchor ] ∋typ W ≔ α)
+        ,begin[ toRenameᵗ ρ slot ≔ anchor ]⟨ inactive ⟩ ∋typ W ≔ α)
     (sym (delete-punchIn ρ slot Y))
     (skip-begin (rename-∋typ (delete↪ᵗ ρ slot) Y∈))
 rename-∋typ (keep ρ) (skip-typ Y∈) =
@@ -1610,7 +989,7 @@ rename-∋typ (skip ρ) (skip-typ Y∈) =
 rename-∋typ ρ (skip-nu-binding Y∈) =
   skip-nu-binding (rename-∋typ ρ Y∈)
 rename-∋typ ρ
-    (skip-end {Ψ = Ψ} {Y = Y} {X = X} Y∈) =
+    (skip-end {Ψ = Ψ} {Y = Y} {X = X} {β = bound} Y∈) =
   skip-end
     (subst≡
       (λ Z → renameTyEnv (insert↪ᵗ ρ Y) Ψ
@@ -1641,8 +1020,8 @@ rename-typ-skip⁺ ρ A⁺ =
     → toRenameᵗ (skip ρ) (suc X) ≡ suc (toRenameᵗ ρ (suc X))
   env-eq X = refl
 
-rename-∋rep⁺ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    {Ψ : TyEnv Θ Δ} {α : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
+rename-∋rep⁺ : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} (ρ : Δ ↪ᵗ Δ′)
+    {Ψ : TyEnv Θ Δ ℒ} {α : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
   → Ψ ∋rep⁺ α ≔ A⁺
   → renameTyEnv ρ Ψ ∋rep⁺ α ≔
       renameᵗ⁺ (toRenameᵗ ρ) A⁺
@@ -1681,9 +1060,9 @@ rename-∋rep⁺ (skip ρ) (skip-typ {a = a} {A⁺ = A⁺} α∈) =
     (skip-typ (rename-∋rep⁺ ρ (skip-typ α∈)))
 rename-∋rep⁺ ρ
     (skip-end {Ψ = Ψ} {Y = Y} {β = anchor} {a = a}
-      {A⁺ = A⁺} slot∈ α∈) =
+      {A⁺ = A⁺} α∈) =
   subst≡ (λ D⁺ → _ ∋rep⁺ _ ≔ D⁺) payload-eq
-    (skip-end (rename-∋typ ρ⁺ slot∈) (rename-∋rep⁺ ρ⁺ α∈))
+    (skip-end (rename-∋rep⁺ ρ⁺ α∈))
   where
   ρ⁺ = insert↪ᵗ ρ Y
   deleted-eq = delete-insert↪ᵗ ρ Y
@@ -1695,19 +1074,12 @@ rename-∋rep⁺ ρ
   payload-eq = sym commute
 
 mutual
-  rename-⇓ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-      {Ψ : TyEnv Θ Δ} {A⁺ : Ty⁺ Θ Δ} {A : Ty Δ}
+  rename-⇓ : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} (ρ : Δ ↪ᵗ Δ′)
+      {Ψ : TyEnv Θ Δ ℒ} {A⁺ : Ty⁺ Θ Δ} {A : Ty Δ}
     → Ψ ⊢ A⁺ ⇓ A
     → renameTyEnv ρ Ψ ⊢ renameᵗ⁺ (toRenameᵗ ρ) A⁺
         ⇓ renameᵗ (toRenameᵗ ρ) A
-  rename-⇓ ρ {Ψ = Ψ} (⇓-var-lex {Y = Y} lexical) =
-    ⇓-var-lex (trans (rename-slotAnchor ρ Ψ Y) lexical)
-  rename-⇓ ρ {Ψ = Ψ}
-      (⇓-var-alias {Y = Y} {Y′ = Y′} {β = query} alias live) =
-    ⇓-var-alias (trans (rename-slotAnchor ρ Ψ Y) alias)
-      (trans (cong minSlot (rename-liveSlots ρ Ψ query))
-        (trans (rename-minSlot ρ (liveSlots Ψ query))
-          (cong (mapMaybe (toRenameᵗ ρ)) live)))
+  rename-⇓ ρ ⇓-var = ⇓-var
   rename-⇓ ρ ⇓-base = ⇓-base
   rename-⇓ ρ ⇓-star = ⇓-star
   rename-⇓ ρ (⇓-fun A⇓ B⇓) = ⇓-fun (rename-⇓ ρ A⇓) (rename-⇓ ρ B⇓)
@@ -1721,18 +1093,13 @@ mutual
   rename-⇓ ρ {Ψ = Ψ}
       (⇓-ref-live {β = query} {Y = Y} live) =
     ⇓-ref-live
-      (trans (cong minSlot (rename-liveSlots ρ Ψ query))
-        (trans (rename-minSlot ρ (liveSlots Ψ query))
-          (cong (mapMaybe (toRenameᵗ ρ)) live)))
-  rename-⇓ ρ {Ψ = Ψ}
-      (⇓-ref-dead {β = query} dead α∈) =
-    ⇓-ref-dead
-      (trans (rename-liveSlots ρ Ψ query)
-        (cong (map (toRenameᵗ ρ)) dead))
-      (rename-∋rep ρ α∈)
+      (trans (rename-liveSlot? ρ Ψ query)
+        (cong (mapMaybe (toRenameᵗ ρ)) live))
+  rename-⇓ ρ (⇓-ref-dead dead α∈) =
+    ⇓-ref-dead dead (rename-∋rep ρ α∈)
 
-  rename-∋rep : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-      {Ψ : TyEnv Θ Δ} {α : TyVar Θ} {A : Ty Δ}
+  rename-∋rep : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} (ρ : Δ ↪ᵗ Δ′)
+      {Ψ : TyEnv Θ Δ ℒ} {α : TyVar Θ} {A : Ty Δ}
     → Ψ ∋rep α ≔ A
     → renameTyEnv ρ Ψ ∋rep α ≔ renameᵗ (toRenameᵗ ρ) A
   rename-∋rep ρ (∋rep-of α∈ A⇓) =
@@ -1748,131 +1115,55 @@ mutual
 -- weakening at zero.  This relation records both choices and is stable under
 -- every telescope extension, including a verbatim popping marker.
 
-data RenameTarget : ∀ {Θ Δ Δ′}
-    (ρ : Δ ↪ᵗ Δ′) → TyEnv Θ Δ → TyEnv Θ Δ′ → Set where
+data RenameTarget : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ}
+    (ρ : Δ ↪ᵗ Δ′) → TyEnv Θ Δ ℒ → TyEnv Θ Δ′ ℒ → Set where
   canonical-target : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-      {Ψ : TyEnv Θ Δ}
+      {ℒ : Vec.Vec Bool Θ}
+      {Ψ : TyEnv Θ Δ ℒ}
       --------------------------------------------------
     → RenameTarget ρ Ψ (renameTyEnv ρ Ψ)
 
-  literal-wk-target : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  literal-wk-target : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ}
       -------------------------------------------
     → RenameTarget wk↪ᵗ Ψ (Ψ ,typ)
 
   target-typ : ∀ {Θ Δ Δ′}
-      {ρ : suc Δ ↪ᵗ suc Δ′} {Ψ : TyEnv Θ Δ}
-      {Φ : TyEnv Θ Δ′} (X : TyVar (suc Δ)) (α : TyVar Θ)
+      {ℒ : Vec.Vec Bool Θ}
+      {ρ : suc Δ ↪ᵗ suc Δ′} {Ψ : TyEnv Θ Δ ℒ}
+      {Φ : TyEnv Θ Δ′ ℒ} (X : TyVar (suc Δ)) (α : TyVar Θ)
+      {inactive : Vec.lookup ℒ α ≡ false}
     → RenameTarget (delete↪ᵗ ρ X) Ψ Φ
       --------------------------------------------------------------
-    → RenameTarget ρ (Ψ ,begin[ X ≔ α ])
-        (Φ ,begin[ toRenameᵗ ρ X ≔ α ])
+    → RenameTarget ρ (Ψ ,begin[ X ≔ α ]⟨ inactive ⟩)
+        (Φ ,begin[ toRenameᵗ ρ X ≔ α ]⟨ inactive ⟩)
 
   target-lexical : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
+      {ℒ : Vec.Vec Bool Θ}
+      {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ}
     → RenameTarget ρ Ψ Φ
       -----------------------------------------------
     → RenameTarget (keep ρ) (Ψ ,typ) (Φ ,typ)
 
   target-:= : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′} {A : Ty Δ}
+      {ℒ : Vec.Vec Bool Θ}
+      {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ} {A : Ty Δ}
     → RenameTarget ρ Ψ Φ
       --------------------------------------------------
     → RenameTarget ρ (Ψ ,:= A)
         (Φ ,:= renameᵗ (toRenameᵗ ρ) A)
 
   target-end : ∀ {Θ Δ Δ′}
+      {ℒ : Vec.Vec Bool Θ}
       {ρ : suc Δ ↪ᵗ suc Δ′}
-      {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ (suc Δ′)}
-      (Y : TyVar (suc Δ))
+      {Ψ : TyEnv Θ (suc Δ) ℒ} {Φ : TyEnv Θ (suc Δ′) ℒ}
+      (Y : TyVar (suc Δ)) (β : TyVar Θ)
     → RenameTarget ρ Ψ Φ
       ------------------------------------------------------------
-    → RenameTarget (delete↪ᵗ ρ Y) (Ψ ,end[ Y ])
-        (Φ ,end[ toRenameᵗ ρ Y ])
+    → RenameTarget (delete↪ᵗ ρ Y) (Ψ ,end[ Y ≔ β ])
+        (Φ ,end[ toRenameᵗ ρ Y ≔ β ])
 
-renameTarget-liveSlots : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
-  → RenameTarget ρ Ψ Φ
-  → (query : TyVar Θ)
-  → liveSlots Φ query ≡ map (toRenameᵗ ρ) (liveSlots Ψ query)
-renameTarget-liveSlots {ρ = ρ} {Ψ = Ψ} canonical-target query =
-  rename-liveSlots ρ Ψ query
-renameTarget-liveSlots {Ψ = Ψ} literal-wk-target query =
-  map-pointwise (liveSlots Ψ query) (λ X → sym (toRename-wk-eq X))
-renameTarget-liveSlots {ρ = ρ}
-    (target-typ {Ψ = Ψ} X anchor target) query with query ≟ anchor
-renameTarget-liveSlots {ρ = ρ}
-    (target-typ {Ψ = Ψ} X anchor target) .anchor | yes refl =
-  cong (toRenameᵗ ρ X ∷_)
-    (trans
-      (cong (map (punchIn (toRenameᵗ ρ X)))
-        (renameTarget-liveSlots target anchor))
-      (map-punchIn-delete ρ X (liveSlots Ψ anchor)))
-renameTarget-liveSlots {ρ = ρ}
-    (target-typ {Ψ = Ψ} X anchor target) query | no query≢anchor =
-  trans
-    (cong (map (punchIn (toRenameᵗ ρ X)))
-      (renameTarget-liveSlots target query))
-    (map-punchIn-delete ρ X (liveSlots Ψ query))
-renameTarget-liveSlots {ρ = keep ρ}
-    (target-lexical {Ψ = Ψ} target) query =
-  trans (cong (map suc) (renameTarget-liveSlots target query))
-    (trans (map-compose (toRenameᵗ ρ) suc (liveSlots Ψ query))
-      (trans
-        (map-pointwise (liveSlots Ψ query)
-          (λ X → sym (toRename-keep-eq ρ (suc X))))
-        (sym (map-compose suc (toRenameᵗ (keep ρ))
-          (liveSlots Ψ query)))))
-renameTarget-liveSlots (target-:= target) zero = refl
-renameTarget-liveSlots (target-:= target) (suc query) =
-  renameTarget-liveSlots target query
-renameTarget-liveSlots
-    (target-end {ρ = ρ} {Ψ = Ψ} Y target) query =
-  trans (cong (dropDead (toRenameᵗ ρ Y))
-      (renameTarget-liveSlots target query))
-    (rename-dropDead ρ Y (liveSlots Ψ query))
-
-renameTarget-slotAnchor : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
-  → RenameTarget ρ Ψ Φ
-  → (X : TyVar Δ)
-  → slotAnchor Φ (toRenameᵗ ρ X) ≡ slotAnchor Ψ X
-renameTarget-slotAnchor {ρ = ρ} {Ψ = Ψ} canonical-target X =
-  rename-slotAnchor ρ Ψ X
-renameTarget-slotAnchor {Ψ = Ψ} literal-wk-target X =
-  subst≡ (λ Y → slotAnchor (Ψ ,typ) Y ≡ slotAnchor Ψ X)
-    (sym (toRename-wk-eq X)) refl
-renameTarget-slotAnchor {ρ = ρ}
-    (target-typ {Ψ = Ψ} {Φ = Φ} Y anchor target) X
-    with Y ≟ X | toRenameᵗ ρ Y ≟ toRenameᵗ ρ X
-renameTarget-slotAnchor {ρ = ρ}
-    (target-typ {Ψ = Ψ} {Φ = Φ} Y anchor target) .Y
-    | yes refl | yes refl = refl
-renameTarget-slotAnchor {ρ = ρ}
-    (target-typ {Ψ = Ψ} {Φ = Φ} Y anchor target) .Y
-    | yes refl | no Y≢Y = ⊥-elim (Y≢Y refl)
-renameTarget-slotAnchor {ρ = ρ}
-    (target-typ {Ψ = Ψ} {Φ = Φ} Y anchor target) X
-    | no Y≢X | yes eq = ⊥-elim (Y≢X (toRenameᵗ-injective ρ eq))
-renameTarget-slotAnchor {ρ = ρ}
-    (target-typ {Ψ = Ψ} {Φ = Φ} Y anchor target) X
-    | no Y≢X | no ρY≢ρX =
-  subst≡
-    (λ W → slotAnchor Φ W ≡ slotAnchor Ψ (punchOut Y X Y≢X))
-    (rename-punchOut ρ Y X Y≢X ρY≢ρX)
-    (renameTarget-slotAnchor target (punchOut Y X Y≢X))
-renameTarget-slotAnchor (target-lexical target) zero = refl
-renameTarget-slotAnchor (target-lexical target) (suc X) =
-  renameTarget-slotAnchor target X
-renameTarget-slotAnchor (target-:= target) X =
-  cong (mapMaybe suc) (renameTarget-slotAnchor target X)
-renameTarget-slotAnchor
-    (target-end {ρ = ρ} {Ψ = Ψ} {Φ = Φ} Y target) X =
-  subst≡ (λ W → slotAnchor Φ W ≡ slotAnchor Ψ (punchIn Y X))
-    (delete-punchIn ρ Y X)
-    (renameTarget-slotAnchor target (punchIn Y X))
-
-renameTarget-∋typ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
+renameTarget-∋typ : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ}
     {Y : TyVar Δ} {α : TyVar Θ}
   → RenameTarget ρ Ψ Φ
   → Ψ ∋typ Y ≔ α
@@ -1893,13 +1184,58 @@ renameTarget-∋typ (target-lexical target) (skip-typ Y∈) =
   skip-typ (renameTarget-∋typ target Y∈)
 renameTarget-∋typ (target-:= target) (skip-nu-binding Y∈) =
   skip-nu-binding (renameTarget-∋typ target Y∈)
-renameTarget-∋typ (target-end Y target) (skip-end Y∈) =
+renameTarget-∋typ (target-end Y bound target) (skip-end Y∈) =
   skip-end
     (subst≡ (λ Z → _ ∋typ Z ≔ _)
       (delete-punchIn _ Y _) (renameTarget-∋typ target Y∈))
 
-renameTarget-∋rep⁺ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
+renameTarget-liveSlot? : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
+    {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ}
+    {Φ : TyEnv Θ Δ′ ℒ}
+  → RenameTarget ρ Ψ Φ
+  → (query : TyVar Θ)
+  → liveSlot? Φ query
+    ≡ mapMaybe (toRenameᵗ ρ) (liveSlot? Ψ query)
+renameTarget-liveSlot? {ρ = ρ} {Ψ = Ψ} canonical-target query =
+  rename-liveSlot? ρ Ψ query
+renameTarget-liveSlot? {Ψ = Ψ} literal-wk-target query
+    with liveSlot? Ψ query
+renameTarget-liveSlot? {Ψ = Ψ} literal-wk-target query | nothing = refl
+renameTarget-liveSlot? {Ψ = Ψ} literal-wk-target query | just X =
+  cong just (cong suc (sym (toRename-id-eq X)))
+renameTarget-liveSlot? {ρ = ρ}
+    (target-typ X anchor target) query with query ≟ anchor
+renameTarget-liveSlot? {ρ = ρ}
+    (target-typ X anchor target) .anchor | yes refl = refl
+renameTarget-liveSlot? {ρ = ρ} {Ψ = Ψ ,begin[ X ≔ anchor ]⟨ inactive ⟩}
+    (target-typ X anchor target) query | no query≢anchor
+    with liveSlot? Ψ query in slot-eq
+renameTarget-liveSlot? {ρ = ρ}
+    (target-typ X anchor target) query | no query≢anchor | nothing
+    rewrite renameTarget-liveSlot? target query | slot-eq = refl
+renameTarget-liveSlot? {ρ = ρ}
+    (target-typ X anchor target) query | no query≢anchor | just Y
+    rewrite renameTarget-liveSlot? target query | slot-eq =
+  cong just (sym (delete-punchIn ρ X Y))
+renameTarget-liveSlot? {ρ = keep ρ} {Ψ = Ψ ,typ}
+    (target-lexical target) query with liveSlot? Ψ query in slot-eq
+renameTarget-liveSlot? {ρ = keep ρ}
+    (target-lexical target) query | nothing
+    rewrite renameTarget-liveSlot? target query | slot-eq = refl
+renameTarget-liveSlot? {ρ = keep ρ}
+    (target-lexical target) query | just X
+    rewrite renameTarget-liveSlot? target query | slot-eq =
+  cong just (sym (toRename-keep-eq ρ (suc X)))
+renameTarget-liveSlot? (target-:= target) zero = refl
+renameTarget-liveSlot? (target-:= target) (suc query) =
+  renameTarget-liveSlot? target query
+renameTarget-liveSlot?
+    (target-end {ρ = injection} Y anchor target) query =
+  map-liveSlot?-end injection _ _ Y anchor query
+    (renameTarget-liveSlot? target query)
+
+renameTarget-∋rep⁺ : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ}
     {α : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
   → RenameTarget ρ Ψ Φ
   → Ψ ∋rep⁺ α ≔ A⁺
@@ -1935,30 +1271,21 @@ renameTarget-∋rep⁺ {ρ = ρ} (target-:= target)
   subst≡ (λ B⁺ → _ ∋rep⁺ _ ≔ B⁺)
     (sym (renameᵗ⁺-renameᶠ⁺ (toRenameᵗ ρ) suc A⁺))
     (S (renameTarget-∋rep⁺ target α∈))
-renameTarget-∋rep⁺ (target-end {ρ = ρ} Y target)
+renameTarget-∋rep⁺ (target-end {ρ = ρ} Y anchor target)
     (skip-end {Y = .Y} {β = anchor} {a = a} {A⁺ = A⁺}
-      slot∈ α∈) =
+      α∈) =
   subst≡ (λ B⁺ → _ ∋rep⁺ _ ≔ B⁺)
     (sym (rename-end⁺ ρ Y anchor A⁺))
-    (skip-end (renameTarget-∋typ target slot∈)
-      (renameTarget-∋rep⁺ target α∈))
+    (skip-end (renameTarget-∋rep⁺ target α∈))
 
 mutual
-  renameTarget-⇓ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
+  renameTarget-⇓ : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ}
       {A⁺ : Ty⁺ Θ Δ} {A : Ty Δ}
     → RenameTarget ρ Ψ Φ
     → Ψ ⊢ A⁺ ⇓ A
     → Φ ⊢ renameᵗ⁺ (toRenameᵗ ρ) A⁺ ⇓ renameᵗ (toRenameᵗ ρ) A
-  renameTarget-⇓ {Ψ = Ψ} target
-      (⇓-var-lex {Y = Y} lexical) =
-    ⇓-var-lex (trans (renameTarget-slotAnchor target Y) lexical)
-  renameTarget-⇓ {ρ = ρ} {Ψ = Ψ} target
-      (⇓-var-alias {Y = Y} {Y′ = Y′} {β = query} alias live) =
-    ⇓-var-alias (trans (renameTarget-slotAnchor target Y) alias)
-      (trans (cong minSlot (renameTarget-liveSlots target query))
-        (trans (rename-minSlot ρ (liveSlots Ψ query))
-          (cong (mapMaybe (toRenameᵗ ρ)) live)))
+  renameTarget-⇓ target ⇓-var = ⇓-var
   renameTarget-⇓ target ⇓-base = ⇓-base
   renameTarget-⇓ target ⇓-star = ⇓-star
   renameTarget-⇓ target (⇓-fun A⇓ B⇓) =
@@ -1973,18 +1300,13 @@ mutual
   renameTarget-⇓ {ρ = ρ} {Ψ = Ψ} target
       (⇓-ref-live {β = query} {Y = Y} live) =
     ⇓-ref-live
-      (trans (cong minSlot (renameTarget-liveSlots target query))
-        (trans (rename-minSlot ρ (liveSlots Ψ query))
-          (cong (mapMaybe (toRenameᵗ ρ)) live)))
-  renameTarget-⇓ {Ψ = Ψ} target
-      (⇓-ref-dead {β = query} dead α∈) =
-    ⇓-ref-dead
-      (trans (renameTarget-liveSlots target query)
-        (cong (map _) dead))
-      (renameTarget-∋rep target α∈)
+      (trans (renameTarget-liveSlot? target query)
+        (cong (mapMaybe (toRenameᵗ ρ)) live))
+  renameTarget-⇓ target (⇓-ref-dead dead α∈) =
+    ⇓-ref-dead dead (renameTarget-∋rep target α∈)
 
-  renameTarget-∋rep : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
+  renameTarget-∋rep : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ}
       {α : TyVar Θ} {A : Ty Δ}
     → RenameTarget ρ Ψ Φ
     → Ψ ∋rep α ≔ A
@@ -1993,13 +1315,15 @@ mutual
     ∋rep-of (renameTarget-∋rep⁺ target α∈) (renameTarget-⇓ target A⇓)
 
 
-renameTarget-insert : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′}
+renameTarget-insert : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ}
   → RenameTarget ρ Ψ Φ
   → (Y : TyVar (suc Δ)) (α : TyVar Θ)
-  → RenameTarget (insert↪ᵗ ρ Y) (Ψ ,begin[ Y ≔ α ])
-      (Φ ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ])
-renameTarget-insert {ρ = ρ} {Ψ = Ψ} {Φ = Φ} target Y α =
+  → (inactive : Vec.lookup ℒ α ≡ false)
+  → RenameTarget (insert↪ᵗ ρ Y)
+      (Ψ ,begin[ Y ≔ α ]⟨ inactive ⟩)
+      (Φ ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ α ]⟨ inactive ⟩)
+renameTarget-insert {ρ = ρ} {Ψ = Ψ} {Φ = Φ} target Y α inactive =
   target-typ Y α
     (subst≡ (λ η → RenameTarget η Ψ Φ)
       (sym (delete-insert↪ᵗ ρ Y)) target)
@@ -2039,8 +1363,8 @@ rename-open↪ᵗ ρ C A =
   env-eq (suc X) = refl
 
 
-⊢renameᵗᵐ-target : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ Δ′} {Γ : TermCtx Δ}
+⊢renameᵗᵐ-target : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ Δ′ ℒ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A : Ty Δ}
   → RenameTarget ρ Ψ Φ
   → Ψ ∣ Γ ⊢ M ⦂ A
@@ -2103,14 +1427,14 @@ rename-open↪ᵗ ρ C A =
 ⊢renameᵗᵐ-target {ρ = ρ} {Φ = Φ}
     target
     (⊢reveal {A = A} {B = B} {C = C} {Y = Y} {α = α}
-      α∈ c⊢ M⊢) =
+      {inactive = inactive} α∈ c⊢ M⊢) =
   ⊢reveal (renameTarget-∋rep target α∈) conversion⊢ body⊢
   where
   ρ⁺ = insert↪ᵗ ρ Y
   Y′ = toRenameᵗ ρ⁺ Y
 
   body⊢ =
-    ⊢renameᵗᵐ-target (renameTarget-insert target Y α) M⊢
+    ⊢renameᵗᵐ-target (renameTarget-insert target Y α inactive) M⊢
 
   conversion-representation⊢ =
     subst≡
@@ -2127,13 +1451,13 @@ rename-open↪ᵗ ρ C A =
           ⦂ renameᵗ (toRenameᵗ ρ⁺) A ↝ B′)
       (rename-insert-wk ρ Y B) conversion-representation⊢
 ⊢renameᵗᵐ-target {ρ = ρ⁺@(keep ρ)} target
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y}
+    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
       slot∈ α∈ c⊢ M⊢) =
   ⊢conceal slot⊢ lookup⊢ conversion⊢ body⊢
   where
   deleted = delete↪ᵗ ρ⁺ Y
   Y′ = toRenameᵗ ρ⁺ Y
-  ended-target = target-end Y target
+  ended-target = target-end Y α target
 
   slot⊢ = renameTarget-∋typ target slot∈
   lookup⊢ = renameTarget-∋rep ended-target α∈
@@ -2154,13 +1478,13 @@ rename-open↪ᵗ ρ C A =
         ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
       (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
 ⊢renameᵗᵐ-target {ρ = ρ⁺@(skip ρ)} target
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y}
+    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
       slot∈ α∈ c⊢ M⊢) =
   ⊢conceal slot⊢ lookup⊢ conversion⊢ body⊢
   where
   deleted = delete↪ᵗ ρ⁺ Y
   Y′ = toRenameᵗ ρ⁺ Y
-  ended-target = target-end Y target
+  ended-target = target-end Y α target
 
   slot⊢ = renameTarget-∋typ target slot∈
   lookup⊢ = renameTarget-∋rep ended-target α∈
@@ -2182,1187 +1506,13 @@ rename-open↪ᵗ ρ C A =
       (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
 ⊢renameᵗᵐ-target target ⊢blame = ⊢blame
 
-⊢renameᵗᵐ : ∀ {Θ Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+⊢renameᵗᵐ : ∀ {Θ Δ Δ′} {ℒ : Vec.Vec Bool Θ} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
   → renameTyEnv ρ Ψ ∣ renameCtx (toRenameᵗ ρ) Γ
       ⊢ renameᵗᵐ ρ M ⦂ renameᵗ (toRenameᵗ ρ) A
 ⊢renameᵗᵐ = ⊢renameᵗᵐ-target canonical-target
-
-------------------------------------------------------------------------
--- Observational transport across an adjacent begin/end bracket
-------------------------------------------------------------------------
-
-punchIn-injectiveᵗ : ∀ {Δ} (X : TyVar (suc Δ)) {Y q : TyVar Δ}
-  → punchIn X Y ≡ punchIn X q
-  → Y ≡ q
-punchIn-injectiveᵗ zero eq = fin-suc-injective eq
-punchIn-injectiveᵗ (suc X) {zero} {zero} eq = refl
-punchIn-injectiveᵗ (suc X) {zero} {suc q} ()
-punchIn-injectiveᵗ (suc X) {suc Y} {zero} ()
-punchIn-injectiveᵗ (suc X) {suc Y} {suc q} eq =
-  cong suc (punchIn-injectiveᵗ X (fin-suc-injective eq))
-
-ty-var-injectiveᵗ : ∀ {Δ} {X Y : TyVar Δ}
-  → _≡_ {A = Ty Δ} (＇ X) (＇ Y)
-  → X ≡ Y
-ty-var-injectiveᵗ {X = X} {.X} refl = refl
-
-ty-fun-left-injectiveᵗ : ∀ {Δ} {A B C D : Ty Δ}
-  → A ⇒ B ≡ C ⇒ D
-  → A ≡ C
-ty-fun-left-injectiveᵗ refl = refl
-
-ty-fun-right-injectiveᵗ : ∀ {Δ} {A B C D : Ty Δ}
-  → A ⇒ B ≡ C ⇒ D
-  → B ≡ D
-ty-fun-right-injectiveᵗ refl = refl
-
-ty-all-injectiveᵗ : ∀ {Δ} {A B : Ty (suc Δ)}
-  → `∀ A ≡ `∀ B
-  → A ≡ B
-ty-all-injectiveᵗ refl = refl
-
-renameTy-injectiveᵗ : ∀ {Δ Δ′} {ρ : TyVar Δ → TyVar Δ′}
-    (injective : ∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
-    {A B : Ty Δ}
-  → renameᵗ ρ A ≡ renameᵗ ρ B
-  → A ≡ B
-renameTy-injectiveᵗ injective {A = ＇ X} {B = ＇ Y} eq =
-  cong ＇_ (injective (ty-var-injectiveᵗ eq))
-renameTy-injectiveᵗ injective {A = ＇ X} {B = ‵ ι} ()
-renameTy-injectiveᵗ injective {A = ＇ X} {B = ★} ()
-renameTy-injectiveᵗ injective {A = ＇ X} {B = B ⇒ C} ()
-renameTy-injectiveᵗ injective {A = ＇ X} {B = `∀ B} ()
-renameTy-injectiveᵗ injective {A = ‵ ι} {B = ＇ X} ()
-renameTy-injectiveᵗ injective {A = ‵ ι} {B = ‵ ι′} refl = refl
-renameTy-injectiveᵗ injective {A = ‵ ι} {B = ★} ()
-renameTy-injectiveᵗ injective {A = ‵ ι} {B = B ⇒ C} ()
-renameTy-injectiveᵗ injective {A = ‵ ι} {B = `∀ B} ()
-renameTy-injectiveᵗ injective {A = ★} {B = ＇ X} ()
-renameTy-injectiveᵗ injective {A = ★} {B = ‵ ι} ()
-renameTy-injectiveᵗ injective {A = ★} {B = ★} eq = refl
-renameTy-injectiveᵗ injective {A = ★} {B = B ⇒ C} ()
-renameTy-injectiveᵗ injective {A = ★} {B = `∀ B} ()
-renameTy-injectiveᵗ injective {A = A ⇒ B} {B = ＇ X} ()
-renameTy-injectiveᵗ injective {A = A ⇒ B} {B = ‵ ι} ()
-renameTy-injectiveᵗ injective {A = A ⇒ B} {B = ★} ()
-renameTy-injectiveᵗ injective {A = A ⇒ B} {B = C ⇒ D} eq =
-  cong₂ _⇒_
-    (renameTy-injectiveᵗ injective (ty-fun-left-injectiveᵗ eq))
-    (renameTy-injectiveᵗ injective (ty-fun-right-injectiveᵗ eq))
-renameTy-injectiveᵗ injective {A = A ⇒ B} {B = `∀ C} ()
-renameTy-injectiveᵗ injective {A = `∀ A} {B = ＇ X} ()
-renameTy-injectiveᵗ injective {A = `∀ A} {B = ‵ ι} ()
-renameTy-injectiveᵗ injective {A = `∀ A} {B = ★} ()
-renameTy-injectiveᵗ injective {A = `∀ A} {B = B ⇒ C} ()
-renameTy-injectiveᵗ {ρ = ρ} injective {A = `∀ A} {B = `∀ B} eq =
-  cong `∀
-    (renameTy-injectiveᵗ ext-injective (ty-all-injectiveᵗ eq))
-  where
-  ext-injective : ∀ {X Y}
-    → extᵗ ρ X ≡ extᵗ ρ Y
-    → X ≡ Y
-  ext-injective {zero} {zero} eq = refl
-  ext-injective {zero} {suc Y} ()
-  ext-injective {suc X} {zero} ()
-  ext-injective {suc X} {suc Y} eq =
-    cong suc (injective (fin-suc-injective eq))
-
-wkᵗ-injective : ∀ {Δ} (X : TyVar (suc Δ)) {A B : Ty Δ}
-  → wkᵗ X A ≡ wkᵗ X B
-  → A ≡ B
-wkᵗ-injective X = renameTy-injectiveᵗ (punchIn-injectiveᵗ X)
-
-begin-∋typ-view : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X Z : TyVar (suc Δ)} {α β : TyVar Θ}
-  → Ψ ,begin[ X ≔ β ] ∋typ Z ≔ α
-  → (Z ≡ X × α ≡ β)
-    ⊎ ∃[ Y ] (Z ≡ punchIn X Y × Ψ ∋typ Y ≔ α)
-begin-∋typ-view found-begin = inj₁ (refl , refl)
-begin-∋typ-view (skip-begin {Y = Y} Y∈) =
-  inj₂ (Y , refl , Y∈)
-
-unbegin-∋typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X : TyVar (suc Δ)} {Y : TyVar Δ} {α β : TyVar Θ}
-  → Ψ ,begin[ X ≔ β ] ∋typ punchIn X Y ≔ α
-  → Ψ ∋typ Y ≔ α
-unbegin-∋typ {X = X} {Y = Y} X∈ with begin-∋typ-view X∈
-unbegin-∋typ {X = X} {Y = Y} X∈ | inj₁ (eq , anchor-eq) =
-  ⊥-elim (punchIn≢ X Y (sym eq))
-unbegin-∋typ {X = X} {Y = Y} X∈
-    | inj₂ (q , eq , q∈) =
-  subst≡ (λ W → _ ∋typ W ≔ _)
-    (sym (punchIn-injectiveᵗ X eq)) q∈
-
-∋typ-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α β : TyVar Θ}
-  → Ψ ∋typ X ≔ α
-  → Ψ ∋typ X ≔ β
-  → α ≡ β
-∋typ-unique {X = X} found-begin Y∈ with begin-∋typ-view Y∈
-∋typ-unique {X = X} found-begin Y∈ | inj₁ (refl , anchor-eq) =
-  sym anchor-eq
-∋typ-unique {X = X} found-begin Y∈ | inj₂ (Y , eq , Y∈′) =
-  ⊥-elim (punchIn≢ X Y eq)
-∋typ-unique (skip-begin {Y = Y} X∈) Z∈
-    with begin-∋typ-view Z∈
-∋typ-unique (skip-begin {Y = Y} X∈) Z∈
-    | inj₁ (eq , anchor-eq) =
-  ⊥-elim (punchIn≢ _ Y (sym eq))
-∋typ-unique (skip-begin {Y = Y} X∈) Z∈
-    | inj₂ (z , eq , Z∈′) =
-  ∋typ-unique X∈
-    (subst≡ (λ W → _ ∋typ W ≔ _)
-      (sym (punchIn-injectiveᵗ _ eq)) Z∈′)
-∋typ-unique (skip-typ X∈) (skip-typ Y∈) =
-  ∋typ-unique X∈ Y∈
-∋typ-unique (skip-nu-binding X∈) (skip-nu-binding Y∈) =
-  cong suc (∋typ-unique X∈ Y∈)
-∋typ-unique (skip-end X∈) (skip-end Y∈) =
-  ∋typ-unique X∈ Y∈
-
-∋rep⁺-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {α : TyVar Θ} {A⁺ B⁺ : Ty⁺ Θ Δ}
-  → Ψ ∋rep⁺ α ≔ A⁺
-  → Ψ ∋rep⁺ α ≔ B⁺
-  → A⁺ ≡ B⁺
-∋rep⁺-unique Z Z = refl
-∋rep⁺-unique (S A∈) (S B∈) = cong wkᶠ⁺ (∋rep⁺-unique A∈ B∈)
-∋rep⁺-unique (skip-begin {a = a} {Y = Y} A∈)
-    (skip-begin B∈) =
-  cong (begin⁺ Y) (∋rep⁺-unique A∈ B∈)
-∋rep⁺-unique (skip-typ A∈) (skip-typ B∈) =
-  cong typ⁺ (∋rep⁺-unique A∈ B∈)
-∋rep⁺-unique (skip-end {a = a} slot₁ A∈)
-    (skip-end slot₂ B∈) with ∋typ-unique slot₁ slot₂
-∋rep⁺-unique (skip-end {a = a} slot₁ A∈)
-    (skip-end slot₂ B∈) | refl =
-  cong (end⁺ _ _) (∋rep⁺-unique A∈ B∈)
-
-mutual
-  ⇓-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {A⁺ : Ty⁺ Θ Δ} {A B : Ty Δ}
-    → Ψ ⊢ A⁺ ⇓ A
-    → Ψ ⊢ A⁺ ⇓ B
-    → A ≡ B
-  ⇓-unique (⇓-var-lex lexical₁) (⇓-var-lex lexical₂) = refl
-  ⇓-unique (⇓-var-lex lexical) (⇓-var-alias alias live)
-      with trans (sym lexical) alias
-  ⇓-unique (⇓-var-lex lexical) (⇓-var-alias alias live) | ()
-  ⇓-unique (⇓-var-alias alias live) (⇓-var-lex lexical)
-      with trans (sym alias) lexical
-  ⇓-unique (⇓-var-alias alias live) (⇓-var-lex lexical) | ()
-  ⇓-unique (⇓-var-alias alias₁ live₁)
-      (⇓-var-alias alias₂ live₂) with trans (sym alias₁) alias₂
-  ⇓-unique (⇓-var-alias alias₁ live₁)
-      (⇓-var-alias alias₂ live₂) | refl
-      with trans (sym live₁) live₂
-  ⇓-unique (⇓-var-alias alias₁ live₁)
-      (⇓-var-alias alias₂ live₂) | refl | refl = refl
-  ⇓-unique ⇓-base ⇓-base = refl
-  ⇓-unique ⇓-star ⇓-star = refl
-  ⇓-unique (⇓-fun A⇓ B⇓) (⇓-fun A⇓′ B⇓′) =
-    cong₂ _⇒_ (⇓-unique A⇓ A⇓′) (⇓-unique B⇓ B⇓′)
-  ⇓-unique (⇓-all A⇓) (⇓-all B⇓) = cong `∀ (⇓-unique A⇓ B⇓)
-  ⇓-unique (⇓-ref-live live₁) (⇓-ref-live live₂)
-      with trans (sym live₁) live₂
-  ⇓-unique (⇓-ref-live live₁) (⇓-ref-live live₂) | refl = refl
-  ⇓-unique (⇓-ref-live live) (⇓-ref-dead dead B∈)
-      with trans (sym live) (cong minSlot dead)
-  ⇓-unique (⇓-ref-live live) (⇓-ref-dead dead B∈) | ()
-  ⇓-unique (⇓-ref-dead dead A∈) (⇓-ref-live live)
-      with trans (sym (cong minSlot dead)) live
-  ⇓-unique (⇓-ref-dead dead A∈) (⇓-ref-live live) | ()
-  ⇓-unique (⇓-ref-dead dead₁ A∈) (⇓-ref-dead dead₂ B∈) =
-    ∋rep-unique A∈ B∈
-
-  ∋rep-unique : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {α : TyVar Θ} {A B : Ty Δ}
-    → Ψ ∋rep α ≔ A
-    → Ψ ∋rep α ≔ B
-    → A ≡ B
-  ∋rep-unique (∋rep-of A∈ A⇓) (∋rep-of B∈ B⇓)
-      with ∋rep⁺-unique A∈ B∈
-  ∋rep-unique (∋rep-of A∈ A⇓) (∋rep-of B∈ B⇓) | refl =
-    ⇓-unique A⇓ B⇓
-
-normalVar-alias : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-    {X Y : TyVar Δ} {anchor : TyVar Θ}
-  → slotAnchor Ψ X ≡ just anchor
-  → minSlot (liveSlots Ψ anchor) ≡ just Y
-  → normalVar Ψ X ≡ Y
-normalVar-alias eq-anchor eq-min rewrite eq-anchor | eq-min = refl
-
-orSlot-minSlot : ∀ {Δ} (X Y : TyVar Δ)
-    {Xs : Data.List.List (TyVar Δ)}
-  → minSlot Xs ≡ just Y
-  → orSlot X (minSlot Xs) ≡ Y
-orSlot-minSlot x y eq rewrite eq = refl
-
-⇓-⌜⌝ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
-  → Ψ ⊢ ⌜ A ⌝ ⇓ normalTy Ψ A
-⇓-⌜⌝ {Ψ = Ψ} {A = ＇ X} with slotAnchor Ψ X in anchor-eq
-⇓-⌜⌝ {Ψ = Ψ} {A = ＇ X} | nothing = ⇓-var-lex anchor-eq
-⇓-⌜⌝ {Ψ = Ψ} {A = ＇ X} | just anchor
-    with slotAnchor-minSlot {Ψ = Ψ} anchor-eq
-⇓-⌜⌝ {Ψ = Ψ} {A = ＇ X} | just anchor | Y , min-eq =
-  subst≡ (λ Z → Ψ ⊢ ＇⁺ X ⇓ ＇ Z)
-    (sym (orSlot-minSlot X Y {Xs = liveSlots Ψ anchor} min-eq))
-    (⇓-var-alias anchor-eq min-eq)
-⇓-⌜⌝ {A = ‵ ι} = ⇓-base
-⇓-⌜⌝ {A = ★} = ⇓-star
-⇓-⌜⌝ {A = A ⇒ B} = ⇓-fun ⇓-⌜⌝ ⇓-⌜⌝
-⇓-⌜⌝ {A = `∀ A} = ⇓-all ⇓-⌜⌝
-
-∋rep-here : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
-  → Ψ ,:= A ∋rep zero ≔ normalTy (Ψ ,:= A) A
-∋rep-here {Θ = Θ} {Ψ = Ψ} {A = A} =
-  ∋rep-of Z (subst≡
-    (λ A⁺ → Ψ ,:= A ⊢ A⁺ ⇓ normalTy (Ψ ,:= A) A)
-    (sym (renameᶠ⁺-⌜⌝ (suc {n = Θ}) A)) ⇓-⌜⌝)
-
-∋rep-here-begin : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
-    {Y : TyVar (suc Δ)} {α : TyVar (suc Θ)}
-  → (Ψ ,:= A) ,begin[ Y ≔ α ] ∋rep zero
-      ≔ normalTy ((Ψ ,:= A) ,begin[ Y ≔ α ]) (wkᵗ Y A)
-∋rep-here-begin {Θ = Θ} {Ψ = Ψ} {A = A} {Y = Y} {α = α} =
-  ∋rep-of (skip-begin Z)
-    (subst≡ (λ A⁺ → (Ψ ,:= A) ,begin[ Y ≔ α ]
-        ⊢ A⁺ ⇓ normalTy ((Ψ ,:= A) ,begin[ Y ≔ α ]) (wkᵗ Y A))
-      (sym payload-eq) ⇓-⌜⌝)
-  where
-  payload-eq :
-      begin⁺ Y (wkᶠ⁺ {Θ = Θ} ⌜ A ⌝)
-    ≡ ⌜ wkᵗ Y A ⌝
-  payload-eq =
-    trans (cong (begin⁺ Y)
-      (renameᶠ⁺-⌜⌝ (suc {n = Θ}) A))
-      (begin⁺-⌜⌝ Y A)
-
-------------------------------------------------------------------------
--- Resolved re-entry lookup obstruction
-------------------------------------------------------------------------
-
--- Commit 0190acb9 recorded this telescope as the counterexample to eager
--- end resolution: ending X changed the inner anchor's `＇0` payload to ℕ.
--- A raw `ref` now survives every crossing; query discharge observes the live
--- slot, so the former negative instance is positive.
-
-reenter-counterexample-Ψ : TyEnv (suc (suc zero)) (suc zero)
-reenter-counterexample-Ψ =
-  (∅ ,:= ‵ `ℕ ,begin[ zero ≔ zero ]) ,:= ＇ zero
-
-reenter-counterexample-slot :
-    reenter-counterexample-Ψ ∋typ zero ≔ suc zero
-reenter-counterexample-slot = skip-nu-binding found-begin
-
-reenter-counterexample-inner :
-    reenter-counterexample-Ψ ∋rep zero ≔ ＇ zero
-reenter-counterexample-inner =
-  ∋rep-of Z (⇓-var-alias refl refl)
-
-reenter-counterexample-slot-rep :
-    reenter-counterexample-Ψ ∋rep suc zero ≔ wkᵗ zero (‵ `ℕ)
-reenter-counterexample-slot-rep = ∋rep-of (S (skip-begin Z)) ⇓-base
-
-reenter-counterexample-reentered :
-    (reenter-counterexample-Ψ ,end[ zero ]
-      ,begin[ zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero
-reenter-counterexample-reentered =
-  ∋rep-of
-    (skip-begin (skip-end reenter-counterexample-slot Z))
-    (⇓-ref-live refl)
-
--- The U15 shadow counterexample put a second same-anchor slot after the
--- first slot's begin, then ended it.  Eager discharge resolved the resulting
--- `ref (suc zero)` to ℕ.  Inert begins and minimum-position discharge instead
--- see the same surviving live position in both telescopes, so the former
--- negative instance now has the same abstract payload on both sides.
-
-reenter-shadow-Ψ : TyEnv (suc (suc zero)) (suc zero)
-reenter-shadow-Ψ =
-  ((((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ])
-    ,begin[ zero ≔ zero ]) ,:= ＇ zero) ,end[ zero ]
-
-reenter-shadow-ended-slot :
-    (((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ])
-      ,begin[ zero ≔ zero ]) ,:= ＇ zero
-      ∋typ zero ≔ suc zero
-reenter-shadow-ended-slot = skip-nu-binding found-begin
-
-reenter-shadow-live-slot :
-    reenter-shadow-Ψ ∋typ zero ≔ suc zero
-reenter-shadow-live-slot =
-  skip-end (skip-nu-binding (skip-begin found-begin))
-
-reenter-shadow-new-raw :
-    reenter-shadow-Ψ ∋rep⁺ zero ≔ ref (suc zero)
-reenter-shadow-new-raw = skip-end reenter-shadow-ended-slot Z
-
-reenter-shadow-old-raw :
-    reenter-shadow-Ψ ∋rep⁺ suc zero ≔ ‵⁺ `ℕ
-reenter-shadow-old-raw =
-  skip-end reenter-shadow-ended-slot
-    (S (skip-begin (skip-begin Z)))
-
-reenter-shadow-old-rep :
-    reenter-shadow-Ψ ∋rep suc zero ≔ ‵ `ℕ
-reenter-shadow-old-rep = ∋rep-of reenter-shadow-old-raw ⇓-base
-
-reenter-shadow-source :
-    reenter-shadow-Ψ ∋rep zero ≔ ＇ zero
-reenter-shadow-source =
-  ∋rep-of reenter-shadow-new-raw (⇓-ref-live refl)
-
-reenter-shadow-target :
-    (reenter-shadow-Ψ ,end[ zero ]
-      ,begin[ zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero
-reenter-shadow-target =
-  ∋rep-of
-    (skip-begin
-      (skip-end reenter-shadow-live-slot reenter-shadow-new-raw))
-    (⇓-ref-live refl)
-
-reenter-shadow-equal-payload :
-    (reenter-shadow-Ψ ∋rep zero ≔ ＇ zero)
-  × ((reenter-shadow-Ψ ,end[ zero ]
-      ,begin[ zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero)
-reenter-shadow-equal-payload =
-  reenter-shadow-source , reenter-shadow-target
-
--- U17's minSlot-bypass counterexample is resolved by U18's inert begin.
---
--- Statement: the ended alias has both an older and a newer live alias of the
--- same anchor; the source and re-entered queries now have equal payloads.
---
--- Counterexample: X is the older surviving alias, Y is ended, and Z is the
--- newer surviving alias.  The new anchor's raw payload is `＇Y`; ending Y
--- changes it to `ref α`.  At the source query `liveSlots` is `[ Z , X ]`,
--- whose minimum is Z, so the payload discharges to `＇Z`.
---
--- Resolution: `begin⁺` leaves `ref α` inert, so both queries reach the single
--- decision point.  The live-position sets are equal and both have minimum Z,
--- hence both payloads are `＇0`.
-
-reenter-deep-shadow-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
-reenter-deep-shadow-Ψ =
-  (((((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ])
-    ,begin[ zero ≔ zero ]) ,begin[ zero ≔ zero ])
-    ,:= ＇ suc zero) ,end[ suc zero ]
-
-reenter-deep-shadow-ended-slot :
-    ((((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ])
-      ,begin[ zero ≔ zero ]) ,begin[ zero ≔ zero ])
-      ,:= ＇ suc zero ∋typ suc zero ≔ suc zero
-reenter-deep-shadow-ended-slot =
-  skip-nu-binding (skip-begin found-begin)
-
-reenter-deep-shadow-live-slot :
-    reenter-deep-shadow-Ψ ∋typ suc zero ≔ suc zero
-reenter-deep-shadow-live-slot =
-  skip-end
-    (skip-nu-binding (skip-begin (skip-begin found-begin)))
-
-reenter-deep-shadow-raw :
-    reenter-deep-shadow-Ψ ∋rep⁺ zero ≔ ref (suc zero)
-reenter-deep-shadow-raw =
-  skip-end reenter-deep-shadow-ended-slot Z
-
-reenter-deep-shadow-source :
-    reenter-deep-shadow-Ψ ∋rep zero ≔ ＇ zero
-reenter-deep-shadow-source =
-  ∋rep-of reenter-deep-shadow-raw (⇓-ref-live refl)
-
-reenter-deep-shadow-target :
-    (reenter-deep-shadow-Ψ ,end[ suc zero ]
-      ,begin[ suc zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero
-reenter-deep-shadow-target =
-  ∋rep-of
-    (skip-begin
-      (skip-end reenter-deep-shadow-live-slot reenter-deep-shadow-raw))
-    (⇓-ref-live refl)
-
-reenter-deep-shadow-equal-payload :
-    (reenter-deep-shadow-Ψ ∋rep zero ≔ ＇ zero)
-  × ((reenter-deep-shadow-Ψ ,end[ suc zero ]
-      ,begin[ suc zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero)
-reenter-deep-shadow-equal-payload =
-  reenter-deep-shadow-source , reenter-deep-shadow-target
-
--- U18's fifth obstruction is resolved by U19's uniform canonicalization.
---
--- Statement: an ordinary raw payload names a live alias that is not the
--- anchor's minimum-position alias; both source and re-entered queries now
--- return the same alias-normal payload.
---
--- Counterexample: X is the older alias at slot 1 and Z is the newer alias at
--- slot 0.  The fresh anchor's raw payload is the ordinary variable `＇X`.
--- Uniform variable discharge canonicalizes it to Z already at the source;
--- after re-entry the ref discharge chooses the same minimum Z.  The expected
--- plain-side spelling therefore changes from the historical `＇1` to `＇0`.
-
-reenter-minimum-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
-reenter-minimum-Ψ =
-  (((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ])
-    ,begin[ zero ≔ zero ]) ,:= ＇ suc zero
-
-reenter-minimum-slot :
-    reenter-minimum-Ψ ∋typ suc zero ≔ suc zero
-reenter-minimum-slot =
-  skip-nu-binding (skip-begin found-begin)
-
-reenter-minimum-source :
-    reenter-minimum-Ψ ∋rep zero ≔ ＇ zero
-reenter-minimum-source =
-  ∋rep-of Z (⇓-var-alias refl refl)
-
-reenter-minimum-target :
-    (reenter-minimum-Ψ ,end[ suc zero ]
-      ,begin[ suc zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero
-reenter-minimum-target =
-  ∋rep-of (skip-begin (skip-end reenter-minimum-slot Z))
-    (⇓-ref-live refl)
-
-reenter-minimum-equal-payload :
-    (reenter-minimum-Ψ ∋rep zero ≔ ＇ zero)
-  × ((reenter-minimum-Ψ ,end[ suc zero ]
-      ,begin[ suc zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero)
-reenter-minimum-equal-payload =
-  reenter-minimum-source , reenter-minimum-target
-
--- The raw payload walk and the telescope walk are kept relational here so
--- that the `∀⁺` case can move the re-entry pair beneath a lexical entry
--- without asking Agda to normalize a composite rename.  The relation says
--- exactly what an end followed by an inert begin does: the ended variable
--- becomes a ref, while every other constructor is preserved structurally.
-data ReenterTy⁺ : ∀ {Θ Δ}
-    → TyVar Δ → TyVar Θ → Ty⁺ Θ Δ → Ty⁺ Θ Δ → Set where
-  reenter-alias : ∀ {Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
-    → ReenterTy⁺ X α (＇⁺ X) (ref α)
-
-  reenter-other : ∀ {Θ Δ} {X Y : TyVar Δ} {α : TyVar Θ}
-    → ReenterTy⁺ X α (＇⁺ Y) (＇⁺ Y)
-
-  reenter-base : ∀ {Θ Δ} {X : TyVar Δ}
-      {α : TyVar Θ} {ι : Base}
-    → ReenterTy⁺ X α (‵⁺ ι) (‵⁺ ι)
-
-  reenter-star : ∀ {Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
-    → ReenterTy⁺ X α ★⁺ ★⁺
-
-  reenter-fun : ∀ {Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
-      {A⁺ A⁺′ B⁺ B⁺′ : Ty⁺ Θ Δ}
-    → ReenterTy⁺ X α A⁺ A⁺′
-    → ReenterTy⁺ X α B⁺ B⁺′
-    → ReenterTy⁺ X α (A⁺ ⇒⁺ B⁺) (A⁺′ ⇒⁺ B⁺′)
-
-  reenter-all : ∀ {Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
-      {A⁺ A⁺′ : Ty⁺ Θ (suc Δ)}
-    → ReenterTy⁺ (suc X) α A⁺ A⁺′
-    → ReenterTy⁺ X α (`∀⁺ A⁺) (`∀⁺ A⁺′)
-
-  reenter-ref : ∀ {Θ Δ} {X : TyVar Δ} {α β : TyVar Θ}
-    → ReenterTy⁺ X α (ref β) (ref β)
-
-reenterTy⁺ : ∀ {Θ Δ} (X : TyVar (suc Δ)) (α : TyVar Θ)
-    (A⁺ : Ty⁺ Θ (suc Δ))
-  → ReenterTy⁺ X α A⁺ (begin⁺ X (end⁺ X α A⁺))
-reenterTy⁺ X α (＇⁺ Y) with X ≟ Y
-reenterTy⁺ X α (＇⁺ .X) | yes refl = reenter-alias
-reenterTy⁺ X α (＇⁺ Y) | no X≢Y
-    rewrite punchIn-punchOut X Y X≢Y =
-  reenter-other
-reenterTy⁺ X α (‵⁺ ι) = reenter-base
-reenterTy⁺ X α ★⁺ = reenter-star
-reenterTy⁺ X α (A⁺ ⇒⁺ B⁺) =
-  reenter-fun (reenterTy⁺ X α A⁺) (reenterTy⁺ X α B⁺)
-reenterTy⁺ X α (`∀⁺ A⁺) =
-  reenter-all (reenterTy⁺ (suc X) α A⁺)
-reenterTy⁺ X α (ref anchor) = reenter-ref
-
-extᵗ-injective-reenter : ∀ {Δ Δ′} {ρ : TyVar Δ → TyVar Δ′}
-  → (∀ {X Y} → ρ X ≡ ρ Y → X ≡ Y)
-  → ∀ {X Y} → extᵗ ρ X ≡ extᵗ ρ Y → X ≡ Y
-extᵗ-injective-reenter ρ-inj {zero} {zero} eq = refl
-extᵗ-injective-reenter ρ-inj {zero} {suc Y} ()
-extᵗ-injective-reenter ρ-inj {suc X} {zero} ()
-extᵗ-injective-reenter ρ-inj {suc X} {suc Y} eq =
-  cong suc (ρ-inj (fin-suc-injective eq))
-
-reenterTy⁺-rename : ∀ {Θ Δ Δ′} {X : TyVar Δ}
-    {α : TyVar Θ} {A⁺ B⁺ : Ty⁺ Θ Δ}
-    (ρ : TyVar Δ → TyVar Δ′)
-  → (∀ {Y Z} → ρ Y ≡ ρ Z → Y ≡ Z)
-  → ReenterTy⁺ X α A⁺ B⁺
-  → ReenterTy⁺ (ρ X) α (renameᵗ⁺ ρ A⁺) (renameᵗ⁺ ρ B⁺)
-reenterTy⁺-rename ρ ρ-inj reenter-alias = reenter-alias
-reenterTy⁺-rename ρ ρ-inj reenter-other = reenter-other
-reenterTy⁺-rename ρ ρ-inj reenter-base = reenter-base
-reenterTy⁺-rename ρ ρ-inj reenter-star = reenter-star
-reenterTy⁺-rename ρ ρ-inj (reenter-fun A-rel B-rel) =
-  reenter-fun (reenterTy⁺-rename ρ ρ-inj A-rel)
-    (reenterTy⁺-rename ρ ρ-inj B-rel)
-reenterTy⁺-rename ρ ρ-inj (reenter-all A-rel) =
-  reenter-all
-    (reenterTy⁺-rename (extᵗ ρ)
-      (extᵗ-injective-reenter ρ-inj) A-rel)
-reenterTy⁺-rename ρ ρ-inj reenter-ref = reenter-ref
-
-punchIn-suc-ext : ∀ {Δ} (Y : TyVar (suc Δ))
-    (X : TyVar (suc Δ))
-  → punchIn (suc Y) X ≡ extᵗ (punchIn Y) X
-punchIn-suc-ext Y zero = refl
-punchIn-suc-ext Y (suc X) = refl
-
-begin⁺-renameᵗ⁺ : ∀ {Θ Δ} (Y : TyVar (suc Δ))
-    (A⁺ : Ty⁺ Θ Δ)
-  → begin⁺ Y A⁺ ≡ renameᵗ⁺ (punchIn Y) A⁺
-begin⁺-renameᵗ⁺ Y (＇⁺ X) = refl
-begin⁺-renameᵗ⁺ Y (‵⁺ ι) = refl
-begin⁺-renameᵗ⁺ Y ★⁺ = refl
-begin⁺-renameᵗ⁺ Y (A⁺ ⇒⁺ B⁺) =
-  cong₂ _⇒⁺_ (begin⁺-renameᵗ⁺ Y A⁺) (begin⁺-renameᵗ⁺ Y B⁺)
-begin⁺-renameᵗ⁺ Y (`∀⁺ A⁺) =
-  cong `∀⁺
-    (trans (begin⁺-renameᵗ⁺ (suc Y) A⁺)
-      (renameᵗ⁺-cong {A⁺ = A⁺} (punchIn-suc-ext Y)))
-begin⁺-renameᵗ⁺ Y (ref α) = refl
-
-reenterTy⁺-renameAnchor : ∀ {Θ Θ′ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-    {A⁺ B⁺ : Ty⁺ Θ Δ} (ρ : TyVar Θ → TyVar Θ′)
-  → ReenterTy⁺ X α A⁺ B⁺
-  → ReenterTy⁺ X (ρ α) (renameᶠ⁺ ρ A⁺) (renameᶠ⁺ ρ B⁺)
-reenterTy⁺-renameAnchor ρ reenter-alias = reenter-alias
-reenterTy⁺-renameAnchor ρ reenter-other = reenter-other
-reenterTy⁺-renameAnchor ρ reenter-base = reenter-base
-reenterTy⁺-renameAnchor ρ reenter-star = reenter-star
-reenterTy⁺-renameAnchor ρ (reenter-fun A-rel B-rel) =
-  reenter-fun (reenterTy⁺-renameAnchor ρ A-rel)
-    (reenterTy⁺-renameAnchor ρ B-rel)
-reenterTy⁺-renameAnchor ρ (reenter-all A-rel) =
-  reenter-all (reenterTy⁺-renameAnchor ρ A-rel)
-reenterTy⁺-renameAnchor ρ reenter-ref = reenter-ref
-
-reenterTy⁺-identity : ∀ {Θ Δ} (X : TyVar Δ)
-    (α : TyVar Θ) (A⁺ : Ty⁺ Θ Δ)
-  → ReenterTy⁺ X α A⁺ A⁺
-reenterTy⁺-identity X α (＇⁺ Y) = reenter-other
-reenterTy⁺-identity X α (‵⁺ ι) = reenter-base
-reenterTy⁺-identity X α ★⁺ = reenter-star
-reenterTy⁺-identity X α (A⁺ ⇒⁺ B⁺) =
-  reenter-fun (reenterTy⁺-identity X α A⁺)
-    (reenterTy⁺-identity X α B⁺)
-reenterTy⁺-identity X α (`∀⁺ A⁺) =
-  reenter-all (reenterTy⁺-identity (suc X) α A⁺)
-reenterTy⁺-identity X α (ref anchor) = reenter-ref
-
-reenterTy⁺-end : ∀ {Θ Δ} {X : TyVar (suc Δ)}
-    {α : TyVar Θ} {A⁺ B⁺ : Ty⁺ Θ (suc Δ)}
-    (Y : TyVar (suc Δ)) (entry : TyVar Θ)
-    (Y≢X : Y ≢ X)
-  → ReenterTy⁺ X α A⁺ B⁺
-  → ReenterTy⁺ (punchOut Y X Y≢X) α
-      (end⁺ Y entry A⁺) (end⁺ Y entry B⁺)
-reenterTy⁺-end {X = X} Y entry Y≢X reenter-alias with Y ≟ X
-reenterTy⁺-end {X = .Y} Y entry Y≢X reenter-alias | yes refl =
-  ⊥-elim (Y≢X refl)
-reenterTy⁺-end {X = X} Y entry Y≢X reenter-alias | no Y≢X′ =
-  reenter-alias
-reenterTy⁺-end {X = X} {A⁺ = ＇⁺ inner} Y entry Y≢X reenter-other
-    with Y ≟ inner
-reenterTy⁺-end {X = X} {A⁺ = ＇⁺ .Y} Y entry Y≢X reenter-other
-    | yes refl = reenter-ref
-reenterTy⁺-end {X = X} {A⁺ = ＇⁺ inner} Y entry Y≢X reenter-other
-    | no Y≢inner = reenter-other
-reenterTy⁺-end Y entry Y≢X reenter-base = reenter-base
-reenterTy⁺-end Y entry Y≢X reenter-star = reenter-star
-reenterTy⁺-end Y entry Y≢X (reenter-fun A-rel B-rel) =
-  reenter-fun (reenterTy⁺-end Y entry Y≢X A-rel)
-    (reenterTy⁺-end Y entry Y≢X B-rel)
-reenterTy⁺-end Y entry Y≢X (reenter-all A-rel) =
-  reenter-all (reenterTy⁺-end (suc Y) entry
-    (λ eq → Y≢X (fin-suc-injective eq)) A-rel)
-reenterTy⁺-end Y entry Y≢X reenter-ref = reenter-ref
-
-reenterTy⁺-kill : ∀ {Θ Δ} {X : TyVar (suc Δ)}
-    {α : TyVar Θ} {A⁺ B⁺ : Ty⁺ Θ (suc Δ)}
-  → ReenterTy⁺ X α A⁺ B⁺
-  → end⁺ X α A⁺ ≡ end⁺ X α B⁺
-reenterTy⁺-kill {X = X} reenter-alias with X ≟ X
-reenterTy⁺-kill {X = X} reenter-alias | yes refl = refl
-reenterTy⁺-kill {X = X} reenter-alias | no X≢X =
-  ⊥-elim (X≢X refl)
-reenterTy⁺-kill {X = X} {A⁺ = ＇⁺ Y} reenter-other = refl
-reenterTy⁺-kill reenter-base = refl
-reenterTy⁺-kill reenter-star = refl
-reenterTy⁺-kill (reenter-fun A-rel B-rel) =
-  cong₂ _⇒⁺_ (reenterTy⁺-kill A-rel) (reenterTy⁺-kill B-rel)
-reenterTy⁺-kill (reenter-all A-rel) =
-  cong `∀⁺ (reenterTy⁺-kill A-rel)
-reenterTy⁺-kill reenter-ref = refl
-
-data ReenterView : ∀ {Θ Δ}
-    → TyEnv Θ Δ → TyEnv Θ Δ → TyVar Δ → TyVar Θ → Set where
-  reenter-here : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-      {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → Ψ ∋typ X ≔ α
-    → ReenterView Ψ (Ψ ,end[ X ] ,begin[ X ≔ α ]) X α
-
-  reenter-typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {X : TyVar Δ} {α : TyVar Θ}
-    → ReenterView Ψ Φ X α
-    → ReenterView (Ψ ,typ) (Φ ,typ) (suc X) α
-
-  reenter-begin : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {X : TyVar Δ} {α β : TyVar Θ}
-      (Y : TyVar (suc Δ))
-    → ReenterView Ψ Φ X α
-    → ReenterView (Ψ ,begin[ Y ≔ β ]) (Φ ,begin[ Y ≔ β ])
-        (punchIn Y X) α
-
-  reenter-nu : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {X : TyVar Δ} {α : TyVar Θ} (A : Ty Δ)
-    → ReenterView Ψ Φ X α
-    → ReenterView (Ψ ,:= A) (Φ ,:= A) X (suc α)
-
-  reenter-end : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ (suc Δ)}
-      {X : TyVar (suc Δ)} {α : TyVar Θ}
-      (Y : TyVar (suc Δ)) (Y≢X : Y ≢ X)
-    → ReenterView Ψ Φ X α
-    → ReenterView (Ψ ,end[ Y ]) (Φ ,end[ Y ])
-        (punchOut Y X Y≢X) α
-
-reenterView-slot : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → ReenterView Ψ Φ X α
-  → Ψ ∋typ X ≔ α
-reenterView-slot (reenter-here X∈) = X∈
-reenterView-slot (reenter-typ target) =
-  skip-typ (reenterView-slot target)
-reenterView-slot (reenter-begin Y target) =
-  skip-begin (reenterView-slot target)
-reenterView-slot (reenter-nu A target) =
-  skip-nu-binding (reenterView-slot target)
-reenterView-slot (reenter-end Y Y≢X target) =
-  skip-end
-    (subst≡ (λ Z → _ ∋typ Z ≔ _)
-      (sym (punchIn-punchOut Y _ Y≢X))
-      (reenterView-slot target))
-
-reenter-here-slotAnchor : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-    {X : TyVar (suc Δ)} {α : TyVar Θ}
-  → Ψ ∋typ X ≔ α
-  → (Y : TyVar (suc Δ))
-  → slotAnchor (Ψ ,end[ X ] ,begin[ X ≔ α ]) Y
-    ≡ slotAnchor Ψ Y
-reenter-here-slotAnchor {Ψ = Ψ} {X = X} X∈ Y with X ≟ Y
-reenter-here-slotAnchor {Ψ = Ψ} {X = X} X∈ .X | yes refl =
-  sym (∋typ-slotAnchor X∈)
-reenter-here-slotAnchor {Ψ = Ψ} {X = X} X∈ Y | no X≢Y =
-  cong (slotAnchor Ψ) (punchIn-punchOut X Y X≢Y)
-
-reenterView-slotAnchor : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → ReenterView Ψ Φ X α
-  → (Y : TyVar Δ)
-  → slotAnchor Φ Y ≡ slotAnchor Ψ Y
-reenterView-slotAnchor (reenter-here X∈) Y =
-  reenter-here-slotAnchor X∈ Y
-reenterView-slotAnchor (reenter-typ target) zero = refl
-reenterView-slotAnchor (reenter-typ target) (suc Y) =
-  reenterView-slotAnchor target Y
-reenterView-slotAnchor (reenter-begin Y target) outer with Y ≟ outer
-reenterView-slotAnchor (reenter-begin Y target) .Y | yes refl = refl
-reenterView-slotAnchor (reenter-begin Y target) outer | no Y≢outer =
-  reenterView-slotAnchor target (punchOut Y outer Y≢outer)
-reenterView-slotAnchor (reenter-nu A target) Y =
-  cong (mapMaybe suc) (reenterView-slotAnchor target Y)
-reenterView-slotAnchor (reenter-end Y Y≢X target) outer =
-  reenterView-slotAnchor target (punchIn Y outer)
-
-reenterView-un∋typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X Y : TyVar Δ} {α β : TyVar Θ}
-  → ReenterView Ψ Φ X α
-  → Φ ∋typ Y ≔ β
-  → Ψ ∋typ Y ≔ β
-reenterView-un∋typ target Y∈ =
-  slotAnchor-∋typ
-    (trans (sym (reenterView-slotAnchor target _))
-      (∋typ-slotAnchor Y∈))
-
-reenterView-minSlot : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → ReenterView Ψ Φ X α
-  → (query : TyVar Θ)
-  → minSlot (liveSlots Φ query) ≡ minSlot (liveSlots Ψ query)
-reenterView-minSlot {Ψ = Ψ} {Φ = Φ} target query =
-  minSlot-ext (liveSlots Φ query) (liveSlots Ψ query)
-    (λ {Y} Y∈ → ∋typ-member {Ψ = Ψ} {X = Y} {α = query}
-      (reenterView-un∋typ {Ψ = Ψ} {Φ = Φ} {Y = Y}
-        {β = query} target
-        (liveSlots-member-∋typ {Ψ = Φ} {X = Y}
-          {α = query} Y∈)))
-    (λ {Y} Y∈ → ∋typ-member {Ψ = Φ} {X = Y} {α = query}
-      (slotAnchor-∋typ
-        (trans (reenterView-slotAnchor target Y)
-          (∋typ-slotAnchor
-            (liveSlots-member-∋typ {Ψ = Ψ} {X = Y}
-              {α = query} Y∈)))))
-
-reenterView-∋typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X Y : TyVar Δ} {α β : TyVar Θ}
-  → ReenterView Ψ Φ X α
-  → Ψ ∋typ Y ≔ β
-  → Φ ∋typ Y ≔ β
-reenterView-∋typ target Y∈ =
-  slotAnchor-∋typ
-    (trans (reenterView-slotAnchor target _)
-      (∋typ-slotAnchor Y∈))
-
-reenterView-∋rep⁺ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α a : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
-  → ReenterView Ψ Φ X α
-  → Ψ ∋rep⁺ a ≔ A⁺
-  → ∃[ B⁺ ] (Φ ∋rep⁺ a ≔ B⁺ × ReenterTy⁺ X α A⁺ B⁺)
-reenterView-∋rep⁺ {X = X} {α = α} {A⁺ = A⁺}
-    (reenter-here X∈) a∈ =
-  begin⁺ X (end⁺ X α A⁺) ,
-    skip-begin (skip-end X∈ a∈) , reenterTy⁺ X α A⁺
-reenterView-∋rep⁺ (reenter-typ target) (skip-typ a∈)
-    with reenterView-∋rep⁺ target a∈
-reenterView-∋rep⁺ (reenter-typ target) (skip-typ a∈)
-    | B⁺ , B∈ , A-rel =
-  typ⁺ B⁺ , skip-typ B∈ ,
-    reenterTy⁺-rename suc fin-suc-injective A-rel
-reenterView-∋rep⁺ {A⁺ = A⁺}
-    (reenter-begin Y target) (skip-begin a∈)
-    with reenterView-∋rep⁺ target a∈
-reenterView-∋rep⁺ {A⁺ = .(begin⁺ Y A⁺)}
-    (reenter-begin Y target) (skip-begin {A⁺ = A⁺} a∈)
-    | B⁺ , B∈ , A-rel =
-  begin⁺ Y B⁺ , skip-begin B∈ ,
-    subst≡ (λ C⁺ → ReenterTy⁺ _ _ C⁺ (begin⁺ Y B⁺))
-      (sym (begin⁺-renameᵗ⁺ Y A⁺))
-      (subst≡ (ReenterTy⁺ _ _ _)
-        (sym (begin⁺-renameᵗ⁺ Y B⁺))
-        (reenterTy⁺-rename (punchIn Y)
-          (punchIn-injectiveᵗ Y) A-rel))
-reenterView-∋rep⁺ {X = X}
-    (reenter-nu {α = α} A target) Z =
-  _ , Z , reenterTy⁺-identity X (suc α) _
-reenterView-∋rep⁺ (reenter-nu A target) (S a∈)
-    with reenterView-∋rep⁺ target a∈
-reenterView-∋rep⁺ (reenter-nu A target) (S a∈)
-    | B⁺ , B∈ , A-rel =
-  wkᶠ⁺ B⁺ , S B∈ , reenterTy⁺-renameAnchor suc A-rel
-reenterView-∋rep⁺ (reenter-end Y Y≢X target)
-    (skip-end {β = entry} slot∈ a∈)
-    with reenterView-∋rep⁺ target a∈
-reenterView-∋rep⁺ (reenter-end Y Y≢X target)
-    (skip-end {β = entry} slot∈ a∈)
-    | B⁺ , B∈ , A-rel =
-  end⁺ Y entry B⁺ ,
-    skip-end (reenterView-∋typ target slot∈) B∈ ,
-    reenterTy⁺-end Y entry Y≢X A-rel
-
-mutual
-  reenterView-⇓ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {X : TyVar Δ} {α : TyVar Θ}
-      {A⁺ B⁺ : Ty⁺ Θ Δ} {A : Ty Δ}
-    → ReenterView Ψ Φ X α
-    → ReenterTy⁺ X α A⁺ B⁺
-    → Ψ ⊢ A⁺ ⇓ A
-    → Φ ⊢ B⁺ ⇓ A
-  reenterView-⇓ target reenter-alias (⇓-var-lex lexical)
-      with trans (sym lexical) (∋typ-slotAnchor (reenterView-slot target))
-  reenterView-⇓ target reenter-alias (⇓-var-lex lexical) | ()
-  reenterView-⇓ target reenter-alias
-      (⇓-var-alias {β = entry} anchor-eq live)
-      with ∋typ-unique (slotAnchor-∋typ anchor-eq)
-        (reenterView-slot target)
-  reenterView-⇓ target reenter-alias
-      (⇓-var-alias anchor-eq live) | refl =
-    ⇓-ref-live (trans (reenterView-minSlot target _) live)
-  reenterView-⇓ target reenter-other
-      (⇓-var-lex {Y = Y} lexical) =
-    ⇓-var-lex (trans (reenterView-slotAnchor target Y) lexical)
-  reenterView-⇓ target reenter-other
-      (⇓-var-alias {Y = Y} {β = entry} anchor-eq live) =
-    ⇓-var-alias
-      (trans (reenterView-slotAnchor target Y) anchor-eq)
-      (trans (reenterView-minSlot target entry) live)
-  reenterView-⇓ target reenter-base ⇓-base = ⇓-base
-  reenterView-⇓ target reenter-star ⇓-star = ⇓-star
-  reenterView-⇓ target (reenter-fun A-rel B-rel) (⇓-fun A⇓ B⇓) =
-    ⇓-fun (reenterView-⇓ target A-rel A⇓)
-      (reenterView-⇓ target B-rel B⇓)
-  reenterView-⇓ target (reenter-all A-rel) (⇓-all A⇓) =
-    ⇓-all (reenterView-⇓ (reenter-typ target) A-rel A⇓)
-  reenterView-⇓ target reenter-ref
-      (⇓-ref-live {β = entry} live) =
-    ⇓-ref-live (trans (reenterView-minSlot target entry) live)
-  reenterView-⇓ {Φ = Φ} target reenter-ref
-      (⇓-ref-dead {β = entry} dead entry∈) =
-    ⇓-ref-dead
-      (minSlot-nothing (liveSlots Φ entry)
-        (trans (reenterView-minSlot target entry) (cong minSlot dead)))
-      (reenterView-∋rep target entry∈)
-
-  reenterView-∋rep : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {X : TyVar Δ} {α a : TyVar Θ} {A : Ty Δ}
-    → ReenterView Ψ Φ X α
-    → Ψ ∋rep a ≔ A
-    → Φ ∋rep a ≔ A
-  reenterView-∋rep target (∋rep-of a∈ A⇓)
-      with reenterView-∋rep⁺ target a∈
-  reenterView-∋rep target (∋rep-of a∈ A⇓)
-      | B⁺ , B∈ , A-rel =
-    ∋rep-of B∈ (reenterView-⇓ target A-rel A⇓)
-
-∋rep-reenter : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-    {X : TyVar (suc Δ)} {α a : TyVar Θ} {A : Ty (suc Δ)}
-  → Ψ ∋typ X ≔ α
-  → Ψ ∋rep a ≔ A
-  → Ψ ,end[ X ] ,begin[ X ≔ α ] ∋rep a ≔ A
-∋rep-reenter slot∈ = reenterView-∋rep (reenter-here slot∈)
-
-data SameTarget : ∀ {Θ Δ}
-    → TyEnv Θ Δ → TyEnv Θ Δ → Set where
-  same-bracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {X : TyVar (suc Δ)} {α : TyVar Θ} {C : Ty Δ}
-    → Ψ ∋rep α ≔ C
-    → SameTarget Ψ ((Ψ ,begin[ X ≔ α ]) ,end[ X ])
-
-  same-unbracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
-      {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → SameTarget ((Ψ ,begin[ X ≔ α ]) ,end[ X ]) Ψ
-
-  same-fresh-before-begin : ∀ {Θ Δ} {Ψ : TyEnv (suc Θ) Δ}
-      {X : TyVar (suc Δ)} {anchor : TyVar Θ} {C : Ty Δ}
-    → Ψ ∋rep zero ≔ C
-    → SameTarget (Ψ ,begin[ X ≔ suc anchor ])
-        (((Ψ ,begin[ zero ≔ zero ])
-          ,begin[ suc X ≔ suc anchor ]) ,end[ zero ])
-
-  same-begin : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → SameTarget Ψ Φ
-    → SameTarget (Ψ ,begin[ X ≔ α ]) (Φ ,begin[ X ≔ α ])
-
-  same-typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    → SameTarget Ψ Φ
-    → SameTarget (Ψ ,typ) (Φ ,typ)
-
-  same-nu : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ} {A : Ty Δ}
-    → SameTarget Ψ Φ
-    → SameTarget (Ψ ,:= A) (Φ ,:= A)
-
-  same-end : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ (suc Δ)}
-      {X : TyVar (suc Δ)}
-    → SameTarget Ψ Φ
-    → SameTarget (Ψ ,end[ X ]) (Φ ,end[ X ])
-
-  same-killed : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ (suc Δ)}
-      {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → ReenterView Ψ Φ X α
-    → SameTarget (Ψ ,end[ X ]) (Φ ,end[ X ])
-
-bracket-slotAnchor : ∀ {Θ Δ} (Ψ : TyEnv Θ Δ)
-    (X : TyVar (suc Δ)) (anchor : TyVar Θ) (Y : TyVar Δ)
-  → slotAnchor ((Ψ ,begin[ X ≔ anchor ]) ,end[ X ]) Y
-    ≡ slotAnchor Ψ Y
-bracket-slotAnchor Ψ X anchor Y with X ≟ punchIn X Y
-bracket-slotAnchor Ψ X anchor Y | yes eq =
-  ⊥-elim (punchIn≢ X Y eq)
-bracket-slotAnchor Ψ X anchor Y | no X≢Y =
-  cong (slotAnchor Ψ) (punchOut-punchIn X Y X≢Y)
-
-fresh-before-begin-slotAnchor : ∀ {Θ Δ}
-    (Ψ : TyEnv (suc Θ) Δ) (X : TyVar (suc Δ))
-    (anchor : TyVar Θ) (Y : TyVar (suc Δ))
-  → slotAnchor
-      ((((Ψ ,begin[ zero ≔ zero ])
-        ,begin[ suc X ≔ suc anchor ]) ,end[ zero ])) Y
-    ≡ slotAnchor (Ψ ,begin[ X ≔ suc anchor ]) Y
-fresh-before-begin-slotAnchor Ψ X anchor Y
-    with X ≟ Y | suc X ≟ suc Y
-fresh-before-begin-slotAnchor Ψ X anchor .X
-    | yes refl | yes refl = refl
-fresh-before-begin-slotAnchor Ψ X anchor .X
-    | yes refl | no X≢X = ⊥-elim (X≢X refl)
-fresh-before-begin-slotAnchor Ψ X anchor Y
-    | no X≢Y | yes eq = ⊥-elim (X≢Y (fin-suc-injective eq))
-fresh-before-begin-slotAnchor Ψ X anchor Y
-    | no X≢Y | no sucX≢sucY = refl
-
-sameTarget-slotAnchor : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-  → SameTarget Ψ Φ
-  → (Y : TyVar Δ)
-  → slotAnchor Φ Y ≡ slotAnchor Ψ Y
-sameTarget-slotAnchor
-    (same-bracket {Ψ = Ψ} {X = X} {α = anchor} anchor∈) Y =
-  bracket-slotAnchor Ψ X anchor Y
-sameTarget-slotAnchor
-    (same-unbracket {Ψ = Ψ} {X = X} {α = anchor}) Y =
-  sym (bracket-slotAnchor Ψ X anchor Y)
-sameTarget-slotAnchor
-    (same-fresh-before-begin {Ψ = Ψ} {X = X} {anchor = anchor}
-      fresh∈) Y =
-  fresh-before-begin-slotAnchor Ψ X anchor Y
-sameTarget-slotAnchor (same-begin {X = X} target) Y with X ≟ Y
-sameTarget-slotAnchor (same-begin {X = X} target) .X | yes refl = refl
-sameTarget-slotAnchor (same-begin {X = X} target) Y | no X≢Y =
-  sameTarget-slotAnchor target (punchOut X Y X≢Y)
-sameTarget-slotAnchor (same-typ target) zero = refl
-sameTarget-slotAnchor (same-typ target) (suc Y) =
-  sameTarget-slotAnchor target Y
-sameTarget-slotAnchor (same-nu target) Y =
-  cong (mapMaybe suc) (sameTarget-slotAnchor target Y)
-sameTarget-slotAnchor (same-end {X = X} target) Y =
-  sameTarget-slotAnchor target (punchIn X Y)
-sameTarget-slotAnchor (same-killed {X = X} target) Y =
-  reenterView-slotAnchor target (punchIn X Y)
-
-sameTarget-un∋typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → SameTarget Ψ Φ
-  → Φ ∋typ X ≔ α
-  → Ψ ∋typ X ≔ α
-sameTarget-un∋typ target X∈ =
-  slotAnchor-∋typ
-    (trans (sym (sameTarget-slotAnchor target _))
-      (∋typ-slotAnchor X∈))
-
-sameTarget-minSlot : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-  → SameTarget Ψ Φ
-  → (query : TyVar Θ)
-  → minSlot (liveSlots Φ query) ≡ minSlot (liveSlots Ψ query)
-sameTarget-minSlot {Ψ = Ψ} {Φ = Φ} target query =
-  minSlot-ext (liveSlots Φ query) (liveSlots Ψ query)
-    (λ {X} X∈ → ∋typ-member {Ψ = Ψ} {X = X} {α = query}
-      (sameTarget-un∋typ target
-        (liveSlots-member-∋typ {Ψ = Φ} {X = X}
-          {α = query} X∈)))
-    (λ {X} X∈ → ∋typ-member {Ψ = Φ} {X = X} {α = query}
-      (slotAnchor-∋typ
-        (trans (sameTarget-slotAnchor target X)
-          (∋typ-slotAnchor
-            (liveSlots-member-∋typ {Ψ = Ψ} {X = X}
-              {α = query} X∈)))))
-
-sameTarget-∋typ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {X : TyVar Δ} {α : TyVar Θ}
-  → SameTarget Ψ Φ
-  → Ψ ∋typ X ≔ α
-  → Φ ∋typ X ≔ α
-sameTarget-∋typ (same-bracket α∈) X∈ =
-  skip-end (skip-begin X∈)
-sameTarget-∋typ same-unbracket (skip-end X∈) =
-  unbegin-∋typ X∈
-sameTarget-∋typ (same-fresh-before-begin fresh∈) found-begin =
-  skip-end found-begin
-sameTarget-∋typ (same-fresh-before-begin fresh∈)
-    (skip-begin X∈) =
-  skip-end (skip-begin (skip-begin X∈))
-sameTarget-∋typ (same-begin target) found-begin = found-begin
-sameTarget-∋typ (same-begin target) (skip-begin X∈) =
-  skip-begin (sameTarget-∋typ target X∈)
-sameTarget-∋typ (same-typ target) (skip-typ X∈) =
-  skip-typ (sameTarget-∋typ target X∈)
-sameTarget-∋typ (same-nu target) (skip-nu-binding X∈) =
-  skip-nu-binding (sameTarget-∋typ target X∈)
-sameTarget-∋typ (same-end target) (skip-end X∈) =
-  skip-end (sameTarget-∋typ target X∈)
-sameTarget-∋typ (same-killed target) X∈ =
-  slotAnchor-∋typ
-    (trans (sameTarget-slotAnchor (same-killed target) _)
-      (∋typ-slotAnchor X∈))
-
-sameTarget-∋rep⁺ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {α : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
-  → SameTarget Ψ Φ
-  → Ψ ∋rep⁺ α ≔ A⁺
-  → Φ ∋rep⁺ α ≔ A⁺
-sameTarget-∋rep⁺ {A⁺ = A⁺}
-    (same-bracket {X = X} {α = anchor} α∈) a∈ =
-  subst≡ (λ B⁺ → _ ∋rep⁺ _ ≔ B⁺) (end-begin⁺ X anchor A⁺)
-    (skip-end found-begin (skip-begin a∈))
-sameTarget-∋rep⁺ same-unbracket
-    (skip-end {Y = X} {β = anchor} slot∈
-      (skip-begin {a = a} {A⁺ = A⁺} a∈))
-    with ∋typ-unique slot∈ found-begin
-sameTarget-∋rep⁺ same-unbracket
-    (skip-end {Y = X} {β = anchor} slot∈
-      (skip-begin {a = a} {A⁺ = A⁺} a∈))
-    | refl =
-  subst≡ (λ B⁺ → _ ∋rep⁺ _ ≔ B⁺)
-    (sym (end-begin⁺ X anchor A⁺)) a∈
-sameTarget-∋rep⁺
-    (same-fresh-before-begin {X = X} {anchor = anchor} fresh∈)
-    (skip-begin {a = a} {A⁺ = A⁺} a∈) =
-  subst≡ (λ B⁺ → _ ∋rep⁺ _ ≔ B⁺)
-    (fresh-begin-end⁺ X A⁺)
-    (skip-end (skip-begin found-begin)
-      (skip-begin (skip-begin a∈)))
-sameTarget-∋rep⁺ (same-begin target) (skip-begin {a = a} α∈) =
-  skip-begin (sameTarget-∋rep⁺ target α∈)
-sameTarget-∋rep⁺ (same-typ target) (skip-typ {a = a} α∈) =
-  skip-typ (sameTarget-∋rep⁺ target α∈)
-sameTarget-∋rep⁺ (same-nu target) Z = Z
-sameTarget-∋rep⁺ (same-nu target) (S α∈) =
-  S (sameTarget-∋rep⁺ target α∈)
-sameTarget-∋rep⁺ (same-end target) (skip-end slot∈ α∈) =
-  skip-end (sameTarget-∋typ target slot∈)
-    (sameTarget-∋rep⁺ target α∈)
-sameTarget-∋rep⁺ (same-killed target)
-    (skip-end {Y = X} {β = entry} {A⁺ = A⁺} slot∈ a∈)
-    with ∋typ-unique slot∈ (reenterView-slot target)
-sameTarget-∋rep⁺ (same-killed target)
-    (skip-end {Y = X} {β = entry} {A⁺ = A⁺} slot∈ a∈)
-    | refl with reenterView-∋rep⁺ target a∈
-sameTarget-∋rep⁺ (same-killed target)
-    (skip-end {Y = X} {β = entry} {A⁺ = A⁺} slot∈ a∈)
-    | refl | B⁺ , B∈ , A-rel =
-  subst≡ (λ C⁺ → _ ∋rep⁺ _ ≔ C⁺)
-    (sym (reenterTy⁺-kill A-rel))
-    (skip-end (reenterView-∋typ target slot∈) B∈)
-
-mutual
-  sameTarget-⇓ : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {A⁺ : Ty⁺ Θ Δ} {A : Ty Δ}
-    → SameTarget Ψ Φ
-    → Ψ ⊢ A⁺ ⇓ A
-    → Φ ⊢ A⁺ ⇓ A
-  sameTarget-⇓ target
-      (⇓-var-lex {Y = Y} lexical) =
-    ⇓-var-lex (trans (sameTarget-slotAnchor target Y) lexical)
-  sameTarget-⇓ target
-      (⇓-var-alias {Y = Y} {β = query} anchor live) =
-    ⇓-var-alias
-      (trans (sameTarget-slotAnchor target Y) anchor)
-      (trans (sameTarget-minSlot target query) live)
-  sameTarget-⇓ target ⇓-base = ⇓-base
-  sameTarget-⇓ target ⇓-star = ⇓-star
-  sameTarget-⇓ target (⇓-fun A⇓ B⇓) =
-    ⇓-fun (sameTarget-⇓ target A⇓) (sameTarget-⇓ target B⇓)
-  sameTarget-⇓ target (⇓-all A⇓) =
-    ⇓-all (sameTarget-⇓ (same-typ target) A⇓)
-  sameTarget-⇓ target
-      (⇓-ref-live {β = query} {Y = Y} live) =
-    ⇓-ref-live
-      (trans (sameTarget-minSlot target query) live)
-  sameTarget-⇓ {Φ = Φ} target
-      (⇓-ref-dead {β = query} dead α∈) =
-    ⇓-ref-dead
-      (minSlot-nothing (liveSlots Φ query)
-        (trans (sameTarget-minSlot target query) (cong minSlot dead)))
-      (sameTarget-∋rep target α∈)
-
-  sameTarget-∋rep : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-      {α : TyVar Θ} {A : Ty Δ}
-    → SameTarget Ψ Φ
-    → Ψ ∋rep α ≔ A
-    → Φ ∋rep α ≔ A
-  sameTarget-∋rep target (∋rep-of α∈ A⇓) =
-    ∋rep-of (sameTarget-∋rep⁺ target α∈) (sameTarget-⇓ target A⇓)
-
-⊢sameTarget : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ} {Γ : TermCtx Δ}
-    {M : Term Θ Δ} {A : Ty Δ}
-  → SameTarget Ψ Φ
-  → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ Γ ⊢ M ⦂ A
-⊢sameTarget target (⊢` x∈) = ⊢` x∈
-⊢sameTarget target (⊢ƛ M⊢) = ⊢ƛ (⊢sameTarget target M⊢)
-⊢sameTarget target (⊢· L⊢ M⊢) =
-  ⊢· (⊢sameTarget target L⊢) (⊢sameTarget target M⊢)
-⊢sameTarget target (⊢Λ M⊢) =
-  ⊢Λ (⊢sameTarget (same-typ target) M⊢)
-⊢sameTarget target (⊢⦂∀ M⊢) = ⊢⦂∀ (⊢sameTarget target M⊢)
-⊢sameTarget target (⊢$ κ) = ⊢$ κ
-⊢sameTarget target (⊢⊕ op L⊢ M⊢) =
-  ⊢⊕ op (⊢sameTarget target L⊢) (⊢sameTarget target M⊢)
-⊢sameTarget target (⊢⟨⟩ M⊢ c) = ⊢⟨⟩ (⊢sameTarget target M⊢) c
-⊢sameTarget target (⊢ν M⊢) = ⊢ν (⊢sameTarget (same-nu target) M⊢)
-⊢sameTarget target (⊢reveal α∈ c⊢ M⊢) =
-  ⊢reveal (sameTarget-∋rep target α∈) c⊢
-    (⊢sameTarget (same-begin target) M⊢)
-⊢sameTarget target (⊢conceal slot∈ α∈ c⊢ M⊢) =
-  ⊢conceal (sameTarget-∋typ target slot∈)
-    (sameTarget-∋rep (same-end target) α∈) c⊢
-    (⊢sameTarget (same-end target) M⊢)
-⊢sameTarget target ⊢blame = ⊢blame
-
-⊢bracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
-    {M : Term Θ Δ} {A C : Ty Δ}
-    {X : TyVar (suc Δ)} {α : TyVar Θ}
-  → Ψ ∋rep α ≔ C
-  → Ψ ∣ Γ ⊢ M ⦂ A
-  → (Ψ ,begin[ X ≔ α ]) ,end[ X ] ∣ Γ ⊢ M ⦂ A
-⊢bracket α∈ = ⊢sameTarget (same-bracket α∈)
-
-⊢unbracket : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
-    {M : Term Θ Δ} {A : Ty Δ}
-    {X : TyVar (suc Δ)} {α : TyVar Θ}
-  → (Ψ ,begin[ X ≔ α ]) ,end[ X ] ∣ Γ ⊢ M ⦂ A
-  → Ψ ∣ Γ ⊢ M ⦂ A
-⊢unbracket = ⊢sameTarget same-unbracket
-
-⊢reenterView : ∀ {Θ Δ} {Ψ Φ : TyEnv Θ Δ}
-    {Γ : TermCtx Δ} {M : Term Θ Δ}
-    {A : Ty Δ} {X : TyVar Δ} {α : TyVar Θ}
-  → ReenterView Ψ Φ X α
-  → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ Γ ⊢ M ⦂ A
-⊢reenterView target (⊢` x∈) = ⊢` x∈
-⊢reenterView target (⊢ƛ M⊢) = ⊢ƛ (⊢reenterView target M⊢)
-⊢reenterView target (⊢· L⊢ M⊢) =
-  ⊢· (⊢reenterView target L⊢) (⊢reenterView target M⊢)
-⊢reenterView target (⊢Λ M⊢) =
-  ⊢Λ (⊢reenterView (reenter-typ target) M⊢)
-⊢reenterView target (⊢⦂∀ M⊢) = ⊢⦂∀ (⊢reenterView target M⊢)
-⊢reenterView target (⊢$ κ) = ⊢$ κ
-⊢reenterView target (⊢⊕ op L⊢ M⊢) =
-  ⊢⊕ op (⊢reenterView target L⊢) (⊢reenterView target M⊢)
-⊢reenterView target (⊢⟨⟩ M⊢ c) = ⊢⟨⟩ (⊢reenterView target M⊢) c
-⊢reenterView target (⊢ν {A = A} M⊢) =
-  ⊢ν (⊢reenterView (reenter-nu A target) M⊢)
-⊢reenterView target
-    (⊢reveal {Y = Y} {α = entry} entry∈ c⊢ M⊢) =
-  ⊢reveal (reenterView-∋rep target entry∈) c⊢
-    (⊢reenterView (reenter-begin Y target) M⊢)
-⊢reenterView {X = X} target
-    (⊢conceal {Y = Y} {α = entry} slot∈ entry∈ c⊢ M⊢)
-    with X ≟ Y
-⊢reenterView {X = .Y} {α = α} target
-    (⊢conceal {Y = Y} {α = entry} slot∈ entry∈ c⊢ M⊢)
-    | yes refl with ∋typ-unique slot∈ (reenterView-slot target)
-⊢reenterView {X = .Y} {α = .entry} target
-    (⊢conceal {Y = Y} {α = entry} slot∈ entry∈ c⊢ M⊢)
-    | yes refl | refl =
-  ⊢conceal (reenterView-∋typ target slot∈)
-    (sameTarget-∋rep (same-killed target) entry∈) c⊢
-    (⊢sameTarget (same-killed target) M⊢)
-⊢reenterView {X = X} target
-    (⊢conceal {Y = Y} slot∈ entry∈ c⊢ M⊢)
-    | no X≢Y =
-  ⊢conceal (reenterView-∋typ target slot∈)
-    (reenterView-∋rep (reenter-end Y Y≢X target) entry∈) c⊢
-    (⊢reenterView (reenter-end Y Y≢X target) M⊢)
-  where
-  Y≢X : Y ≢ X
-  Y≢X eq = X≢Y (sym eq)
-⊢reenterView target ⊢blame = ⊢blame
-
-⊢reenter : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
-    {W : Term Θ (suc Δ)} {A : Ty (suc Δ)}
-    {X : TyVar (suc Δ)} {α : TyVar Θ}
-  → Ψ ∋typ X ≔ α
-  → Ψ ∣ [] ⊢ W ⦂ A
-  → Ψ ,end[ X ] ,begin[ X ≔ α ] ∣ [] ⊢ W ⦂ A
-⊢reenter X∈ = ⊢reenterView (reenter-here X∈)
 
 ------------------------------------------------------------------------
 -- Literal regular-context weakening at zero
@@ -3374,7 +1524,7 @@ renameCtx-wk-eq [] = refl
 renameCtx-wk-eq (A ∷ Γ) =
   cong₂ _∷_ (renameᵗ-wk-eq A) (renameCtx-wk-eq Γ)
 
-⊢weakenᵗᵐ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+⊢weakenᵗᵐ : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
   → Ψ ,typ ∣ renameCtx suc Γ
@@ -3394,7 +1544,7 @@ renameCtx-wk-eq (A ∷ Γ) =
 -- Parallel and single term substitution
 ------------------------------------------------------------------------
 
-exts-∋ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ Γ′ : TermCtx Δ}
+exts-∋ : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ Γ′ : TermCtx Δ}
     {σ : Subst Θ Δ} {A : Ty Δ}
   → (∀ {x B} → Γ ∋ x ⦂ B → Ψ ∣ Γ′ ⊢ σ x ⦂ B)
   → ∀ {x B}
@@ -3403,7 +1553,7 @@ exts-∋ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ Γ′ : TermCtx Δ}
 exts-∋ σ⊢ Z = ⊢` Z
 exts-∋ σ⊢ (S x∈) = ⊢rename-suc (σ⊢ x∈)
 
-liftˢ-∋ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ Γ′ : TermCtx Δ}
+liftˢ-∋ : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ Γ′ : TermCtx Δ}
     {σ : Subst Θ Δ}
   → (∀ {x A} → Γ ∋ x ⦂ A → Ψ ∣ Γ′ ⊢ σ x ⦂ A)
   → ∀ {x A}
@@ -3412,7 +1562,7 @@ liftˢ-∋ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ Γ′ : TermCtx Δ}
 liftˢ-∋ σ⊢ x∈ with lookup-renameCtx-inv x∈
 liftˢ-∋ σ⊢ x∈ | B , B∈ , refl = ⊢weakenᵗᵐ (σ⊢ B∈)
 
-⊢subst : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ Γ′ : TermCtx Δ}
+⊢subst : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ Γ′ : TermCtx Δ}
     {σ : Subst Θ Δ} {M : Term Θ Δ} {A : Ty Δ}
   → (∀ {x B} → Γ ∋ x ⦂ B → Ψ ∣ Γ′ ⊢ σ x ⦂ B)
   → Ψ ∣ Γ ⊢ M ⦂ A
@@ -3434,7 +1584,7 @@ liftˢ-∋ σ⊢ x∈ | B , B∈ , refl = ⊢weakenᵗᵐ (σ⊢ B∈)
   ⊢conceal slot∈ α∈ c⊢ M⊢
 ⊢subst σ⊢ ⊢blame = ⊢blame
 
-⊢[] : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+⊢[] : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ : TermCtx Δ}
     {M N : Term Θ Δ} {A B : Ty Δ}
   → Ψ ∣ A ∷ Γ ⊢ M ⦂ B
   → Ψ ∣ Γ ⊢ N ⦂ A
@@ -3508,6 +1658,47 @@ begin-fresh-shift⁺ Y (`∀⁺ A⁺) =
   punch-eq (suc X) = refl
 begin-fresh-shift⁺ Y (ref α) = refl
 
+lookup-setLive-same : ∀ {Θ} (L : Vec.Vec Bool Θ)
+    (α : TyVar Θ) (live : Bool)
+  → Vec.lookup (setLive L α live) α ≡ live
+lookup-setLive-same Vec.[] () live
+lookup-setLive-same (old Vec.∷ L) zero live = refl
+lookup-setLive-same (old Vec.∷ L) (suc α) live =
+  lookup-setLive-same L α live
+
+lookup-setLive-other : ∀ {Θ} {L : Vec.Vec Bool Θ}
+    {α query : TyVar Θ} {live : Bool}
+  → α ≢ query
+  → Vec.lookup (setLive L α live) query ≡ Vec.lookup L query
+lookup-setLive-other {L = old Vec.∷ L} {α = zero} {query = zero}
+    α≢query =
+  ⊥-elim (α≢query refl)
+lookup-setLive-other {L = old Vec.∷ L} {α = zero}
+    {query = suc query} α≢query = refl
+lookup-setLive-other {L = old Vec.∷ L} {α = suc α}
+    {query = zero} α≢query = refl
+lookup-setLive-other {L = old Vec.∷ L} {α = suc α}
+    {query = suc query} {live = live} α≢query =
+  lookup-setLive-other {L = L} {α = α} {query = query}
+    {live = live} (λ eq → α≢query (cong suc eq))
+
+setLive-current : ∀ {Θ} {L : Vec.Vec Bool Θ}
+    {α : TyVar Θ} {live : Bool}
+  → Vec.lookup L α ≡ live
+  → setLive L α live ≡ L
+setLive-current {L = Vec.[]} {α = ()} eq
+setLive-current {L = old Vec.∷ L} {α = zero} refl = refl
+setLive-current {L = old Vec.∷ L} {α = suc α} eq =
+  cong (old Vec.∷_) (setLive-current eq)
+
+setLive-overwrite : ∀ {Θ} (L : Vec.Vec Bool Θ)
+    (α : TyVar Θ) (old new : Bool)
+  → setLive (setLive L α old) α new ≡ setLive L α new
+setLive-overwrite Vec.[] () old new
+setLive-overwrite (current Vec.∷ L) zero old new = refl
+setLive-overwrite (current Vec.∷ L) (suc α) old new =
+  cong (current Vec.∷_) (setLive-overwrite L α old new)
+
 renameᶠ⁺-wkᶠ⁺-⌜⌝ : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
     (A : Ty Δ)
   → renameᶠ⁺ (extᵗ ρ) (wkᶠ⁺ {Θ = Θ} ⌜ A ⌝)
@@ -3518,274 +1709,179 @@ renameᶠ⁺-wkᶠ⁺-⌜⌝ {Θ = Θ} {Θ′ = Θ′} ρ A =
     (trans (renameᶠ⁺-⌜⌝ (extᵗ ρ) A)
       (sym (renameᶠ⁺-⌜⌝ (suc {n = Θ′}) A)))
 
-data AnchorTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
-    → TyEnv Θ Δ → TyEnv Θ′ Δ → Set where
-  visible-shift-target : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {B : Ty Δ}
+data AnchorTarget : ∀ {Θ Θ′ Δ}
+    {L : Vec.Vec Bool Θ} {L′ : Vec.Vec Bool Θ′}
+    (ρ : TyVar Θ → TyVar Θ′)
+  → TyEnv Θ Δ L → TyEnv Θ′ Δ L′ → Set where
+  visible-shift-target : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+      {Ψ : TyEnv Θ Δ L} {B : Ty Δ}
       -----------------------------------------
     → AnchorTarget suc Ψ (Ψ ,:= B)
 
-  anchor-target-typ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
+  anchor-target-typ : ∀ {Θ Θ′ Δ}
+      {L : Vec.Vec Bool Θ} {L′ : Vec.Vec Bool Θ′}
+      {ρ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ L} {Φ : TyEnv Θ′ Δ L′}
       (Y : TyVar (suc Δ)) (α : TyVar Θ)
+      {inactive : Vec.lookup L α ≡ false}
+      {inactive′ : Vec.lookup L′ (ρ α) ≡ false}
     → AnchorTarget ρ Ψ Φ
       --------------------------------------------------
-    → AnchorTarget ρ (Ψ ,begin[ Y ≔ α ]) (Φ ,begin[ Y ≔ ρ α ])
+    → AnchorTarget ρ (Ψ ,begin[ Y ≔ α ]⟨ inactive ⟩)
+        (Φ ,begin[ Y ≔ ρ α ]⟨ inactive′ ⟩)
 
   anchor-target-lexical : ∀ {Θ Θ′ Δ}
+      {L : Vec.Vec Bool Θ} {L′ : Vec.Vec Bool Θ′}
       {ρ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
+      {Ψ : TyEnv Θ Δ L} {Φ : TyEnv Θ′ Δ L′}
     → AnchorTarget ρ Ψ Φ
       --------------------------------------------
     → AnchorTarget ρ (Ψ ,typ) (Φ ,typ)
 
-  anchor-target-:= : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ} {A : Ty Δ}
+  anchor-target-:= : ∀ {Θ Θ′ Δ}
+      {L : Vec.Vec Bool Θ} {L′ : Vec.Vec Bool Θ′}
+      {ρ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ L} {Φ : TyEnv Θ′ Δ L′} {A : Ty Δ}
     → AnchorTarget ρ Ψ Φ
       -----------------------------------------------
     → AnchorTarget (extᵗ ρ) (Ψ ,:= A) (Φ ,:= A)
 
   anchor-target-end : ∀ {Θ Θ′ Δ}
+      {L : Vec.Vec Bool Θ} {L′ : Vec.Vec Bool Θ′}
       {ρ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ (suc Δ)} {Φ : TyEnv Θ′ (suc Δ)}
-      (Y : TyVar (suc Δ))
+      {Ψ : TyEnv Θ (suc Δ) L} {Φ : TyEnv Θ′ (suc Δ) L′}
+      (Y : TyVar (suc Δ)) (α : TyVar Θ)
     → AnchorTarget ρ Ψ Φ
       --------------------------------------------------
-    → AnchorTarget ρ (Ψ ,end[ Y ]) (Φ ,end[ Y ])
+    → AnchorTarget ρ (Ψ ,end[ Y ≔ α ]) (Φ ,end[ Y ≔ ρ α ])
 
   -- Reachable allocation mints the fresh ν and its sole begin together.
-  -- The new anchor is therefore zero and has exactly one live alias; unlike
-  -- the former relational rule, this shape cannot allocate a second lexical
-  -- slot to an already-live anchor.
-  anchor-target-allocate : ∀ {Θ Δ}
-      {Ψ : TyEnv Θ Δ} {B : Ty Δ}
+  anchor-target-allocate : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+      {Ψ : TyEnv Θ Δ L} {B : Ty Δ}
       -------------------------------------------------------------
     → AnchorTarget suc (Ψ ,typ)
-        ((Ψ ,:= B) ,begin[ zero ≔ zero ])
+        ((Ψ ,:= B) ,begin[ zero ≔ zero ]⟨ refl ⟩)
 
--- U19 exposed a sixth obstruction in the old, over-general relation: two
--- successive allocations could send distinct lexical slots to one anchor.
--- The combined constructor above rules that unreachable telescope out.  The
--- first allocation already makes zero live, so the old second allocation's
--- freshness obligation is computationally impossible.
-anchorTarget-sixth-source-env : TyEnv zero (suc (suc zero))
-anchorTarget-sixth-source-env = (∅ ,typ) ,typ
+-- U19's sixth obstruction and U20's tightened allocation are subsumed by
+-- the live-set index: a second begin for the freshly allocated anchor is
+-- unrepresentable because its flag is already true.
 
-anchorTarget-sixth-target-env : TyEnv (suc zero) (suc (suc zero))
-anchorTarget-sixth-target-env =
-  ((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]) ,begin[ zero ≔ zero ]
-
-anchorTarget-sixth-source : anchorTarget-sixth-source-env
-    ⊢ ＇⁺ suc zero ⇓ ＇ suc zero
-anchorTarget-sixth-source = ⇓-var-lex refl
-
-anchorTarget-sixth-canonical-target : anchorTarget-sixth-target-env
-    ⊢ renameᶠ⁺ suc (＇⁺ suc zero) ⇓ ＇ zero
-anchorTarget-sixth-canonical-target = ⇓-var-alias refl refl
-
-anchorTarget-sixth-second-anchor-live :
-    liveSlots ((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]) zero
-    ≡ zero ∷ []
-anchorTarget-sixth-second-anchor-live = refl
-
-anchorTarget-sixth-no-second-freshness : ¬
-    (liveSlots ((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]) zero ≡ [])
-anchorTarget-sixth-no-second-freshness ()
-
--- A source-lexical slot either remains lexical at the anchor target or is
--- the sole alias of an allocated anchor outside the renaming's image.  This
--- is the reachability invariant that the old allocation constructor lacked.
-data LexTarget : ∀ {Θ Θ′ Δ} (ρ : TyVar Θ → TyVar Θ′)
-    → TyEnv Θ′ Δ → TyVar Δ → Set where
-  lexical-target : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-      {Φ : TyEnv Θ′ Δ} {Y : TyVar Δ}
-    → slotAnchor Φ Y ≡ nothing
-    → LexTarget ρ Φ Y
-
-  allocated-target : ∀ {Θ Θ′ Δ}
-      {ρ : TyVar Θ → TyVar Θ′}
-      {Φ : TyEnv Θ′ Δ} {Y : TyVar Δ}
-      {fresh : TyVar Θ′}
-    → ((anchor : TyVar Θ) → fresh ≢ ρ anchor)
-    → slotAnchor Φ Y ≡ just fresh
-    → minSlot (liveSlots Φ fresh) ≡ just Y
-    → LexTarget ρ Φ Y
-
-lexTarget-⇓ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-    {Φ : TyEnv Θ′ Δ} {Y : TyVar Δ}
-  → LexTarget ρ Φ Y
-  → Φ ⊢ ＇⁺ Y ⇓ ＇ Y
-lexTarget-⇓ (lexical-target lexical) = ⇓-var-lex lexical
-lexTarget-⇓ (allocated-target fresh anchor live) =
-  ⇓-var-alias anchor live
-
-liveSlots-begin-other : ∀ {Θ Δ} (Φ : TyEnv Θ Δ)
-    (X : TyVar (suc Δ)) (anchor query : TyVar Θ)
-  → query ≢ anchor
-  → liveSlots (Φ ,begin[ X ≔ anchor ]) query
-    ≡ map (punchIn X) (liveSlots Φ query)
-liveSlots-begin-other Φ x anchor query query≢anchor
-    with query ≟ anchor
-liveSlots-begin-other Φ x anchor .anchor query≢anchor
-    | yes refl = ⊥-elim (query≢anchor refl)
-liveSlots-begin-other Φ x anchor query query≢anchor
-    | no query≢anchor′ = refl
-
-lexTarget-begin : ∀ {Θ Θ′ Δ}
-    {ρ : TyVar Θ → TyVar Θ′} {Φ : TyEnv Θ′ Δ}
-    (X : TyVar (suc Δ)) (anchor : TyVar Θ) (Y : TyVar Δ)
-  → LexTarget ρ Φ Y
-  → LexTarget ρ (Φ ,begin[ X ≔ ρ anchor ]) (punchIn X Y)
-lexTarget-begin x anchor y (lexical-target lexical) =
-  lexical-target
-    (trans (slotAnchor-begin-punchIn _ x _ y) lexical)
-lexTarget-begin {ρ = ρ} {Φ = Φ} x anchor y
-    (allocated-target {fresh = fresh} fresh≢image fresh-slot live)
-    with fresh ≟ ρ anchor
-lexTarget-begin {ρ = ρ} {Φ = Φ} x anchor y
-    (allocated-target {fresh = .(ρ anchor)} fresh≢image fresh-slot live)
-    | yes refl = ⊥-elim (fresh≢image anchor refl)
-lexTarget-begin {ρ = ρ} {Φ = Φ} x anchor y
-    (allocated-target {fresh = fresh} fresh≢image fresh-slot live)
-    | no fresh≢anchor =
-  allocated-target fresh≢image
-    (trans (slotAnchor-begin-punchIn Φ x (ρ anchor) y) fresh-slot)
-    (trans (cong minSlot
-      (liveSlots-begin-other Φ x (ρ anchor) fresh fresh≢anchor))
-      (trans (minSlot-punchIn x (liveSlots Φ fresh))
-        (cong (mapMaybe (punchIn x)) live)))
-
-lexTarget-typ : ∀ {Θ Θ′ Δ}
-    {ρ : TyVar Θ → TyVar Θ′} {Φ : TyEnv Θ′ Δ}
-    {Y : TyVar Δ}
-  → LexTarget ρ Φ Y
-  → LexTarget ρ (Φ ,typ) (suc Y)
-lexTarget-typ (lexical-target lexical) = lexical-target lexical
-lexTarget-typ {Φ = Φ} {Y = Y}
-    (allocated-target {fresh = fresh} fresh≢image fresh-slot live) =
-  allocated-target fresh≢image fresh-slot
-    (trans (minSlot-punchIn zero (liveSlots Φ fresh))
-      (cong (mapMaybe suc) live))
-
-fresh-not-ext-image : ∀ {Θ Θ′} {ρ : TyVar Θ → TyVar Θ′}
-    {fresh : TyVar Θ′}
-  → ((anchor : TyVar Θ) → fresh ≢ ρ anchor)
-  → (anchor : TyVar (suc Θ)) → suc fresh ≢ extᵗ ρ anchor
-fresh-not-ext-image fresh≢image zero ()
-fresh-not-ext-image fresh≢image (suc anchor) eq =
-  fresh≢image anchor (fin-suc-injective eq)
-
-lexTarget-nu : ∀ {Θ Θ′ Δ}
-    {ρ : TyVar Θ → TyVar Θ′} {Φ : TyEnv Θ′ Δ}
-    {Y : TyVar Δ} (A : Ty Δ)
-  → LexTarget ρ Φ Y
-  → LexTarget (extᵗ ρ) (Φ ,:= A) Y
-lexTarget-nu a (lexical-target lexical) =
-  lexical-target (cong (mapMaybe suc) lexical)
-lexTarget-nu a
-    (allocated-target {fresh = fresh} fresh≢image fresh-slot live) =
-  allocated-target (fresh-not-ext-image fresh≢image)
-    (cong (mapMaybe suc) fresh-slot) live
-
-lexTarget-end : ∀ {Θ Θ′ Δ}
-    {ρ : TyVar Θ → TyVar Θ′}
-    {Φ : TyEnv Θ′ (suc Δ)}
-    (X : TyVar (suc Δ)) (Y : TyVar Δ)
-  → LexTarget ρ Φ (punchIn X Y)
-  → LexTarget ρ (Φ ,end[ X ]) Y
-lexTarget-end x y (lexical-target lexical) = lexical-target lexical
-lexTarget-end {Φ = Φ} x y
-    (allocated-target {fresh = fresh} fresh≢image fresh-slot live) =
-  allocated-target fresh≢image fresh-slot
-    (minSlot-dropDead-punchIn x y (liveSlots Φ fresh) live)
-
-anchorTarget-lexTarget : ∀ {Θ Θ′ Δ}
-    {ρ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ} {Y : TyVar Δ}
-  → (∀ {anchor other} → ρ anchor ≡ ρ other → anchor ≡ other)
-  → AnchorTarget ρ Ψ Φ
-  → slotAnchor Ψ Y ≡ nothing
-  → LexTarget ρ Φ Y
-anchorTarget-lexTarget ρ-inj visible-shift-target lexical =
-  lexical-target (cong (mapMaybe suc) lexical)
-anchorTarget-lexTarget {Y = y} ρ-inj
-    (anchor-target-typ x anchor target) lexical
-    with x ≟ y
-anchorTarget-lexTarget {Y = .x} ρ-inj
-    (anchor-target-typ x anchor target) () | yes refl
-anchorTarget-lexTarget {Y = y} ρ-inj
-    (anchor-target-typ x anchor target) lexical | no x≢y =
-  subst≡ (LexTarget _ _)
-    (punchIn-punchOut x y x≢y)
-    (lexTarget-begin x anchor (punchOut x y x≢y)
-      (anchorTarget-lexTarget ρ-inj target lexical))
-anchorTarget-lexTarget {Y = zero} ρ-inj
-    (anchor-target-lexical target) lexical = lexical-target refl
-anchorTarget-lexTarget {Y = suc y} ρ-inj
-    (anchor-target-lexical target) lexical =
-  lexTarget-typ (anchorTarget-lexTarget ρ-inj target lexical)
-anchorTarget-lexTarget {Y = y} ρ-inj
-    (anchor-target-:= {ρ = ρ} {Ψ = Ψ} {Φ = Φ} {A = A} target)
-    lexical with slotAnchor Ψ y in slot-eq
-anchorTarget-lexTarget {Y = y} ρ-inj
-    (anchor-target-:= {ρ = ρ} {Ψ = Ψ} {Φ = Φ} {A = A} target)
-    lexical | nothing =
-  lexTarget-nu A (anchorTarget-lexTarget
-    (λ eq → fin-suc-injective (ρ-inj (cong suc eq))) target slot-eq)
-anchorTarget-lexTarget {Y = y} ρ-inj
-    (anchor-target-:= {ρ = ρ} {Ψ = Ψ} {Φ = Φ} {A = A} target)
-    () | just anchor
-anchorTarget-lexTarget {Y = y} ρ-inj
-    (anchor-target-end x target) lexical =
-  lexTarget-end x y (anchorTarget-lexTarget ρ-inj target lexical)
-anchorTarget-lexTarget {Y = zero} ρ-inj
-    (anchor-target-allocate {Ψ = Ψ} {B = B}) lexical =
-  allocated-target (λ anchor ()) refl refl
-anchorTarget-lexTarget {Y = suc y} ρ-inj
-    (anchor-target-allocate {Ψ = Ψ} {B = B}) lexical =
-  lexical-target
-    (trans (slotAnchor-begin-punchIn (Ψ ,:= B) zero zero y)
-      (cong (mapMaybe suc) lexical))
-
-anchorTarget-liveSlots : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
-  → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
+anchorTarget-liveBit : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
+    {L : Vec.Vec Bool Θ} {L′ : Vec.Vec Bool Θ′}
+    {Ψ : TyEnv Θ Δ L} {Φ : TyEnv Θ′ Δ L′}
+  → (∀ {α β} → ρ α ≡ ρ β → α ≡ β)
   → AnchorTarget ρ Ψ Φ
   → (query : TyVar Θ)
-  → liveSlots Φ (ρ query) ≡ liveSlots Ψ query
-anchorTarget-liveSlots ρ-inj visible-shift-target query = refl
-anchorTarget-liveSlots {ρ = ρ} ρ-inj
+  → Vec.lookup L query ≡ Vec.lookup L′ (ρ query)
+anchorTarget-liveBit ρ-inj visible-shift-target query = refl
+anchorTarget-liveBit {ρ = ρ} ρ-inj
+    (anchor-target-typ {L = L} {L′ = L′} Y anchor target) query
+    with query ≟ anchor | ρ query ≟ ρ anchor
+anchorTarget-liveBit ρ-inj
+    (anchor-target-typ {L = L} {L′ = L′} Y anchor target) .anchor
+    | yes refl | yes refl =
+  trans (lookup-setLive-same L anchor true)
+    (sym (lookup-setLive-same L′ _ true))
+anchorTarget-liveBit ρ-inj
+    (anchor-target-typ {L = L} {L′ = L′} Y anchor target) .anchor
+    | yes refl | no image≢image = ⊥-elim (image≢image refl)
+anchorTarget-liveBit ρ-inj
+    (anchor-target-typ {L = L} {L′ = L′} Y anchor target) query
+    | no query≢anchor | yes image-eq =
+  ⊥-elim (query≢anchor (ρ-inj image-eq))
+anchorTarget-liveBit ρ-inj
+    (anchor-target-typ {L = L} {L′ = L′} Y anchor target) query
+    | no query≢anchor | no image≢image =
+  trans (lookup-setLive-other {L = L} {α = anchor} {query = query}
+      (λ eq → query≢anchor (sym eq)))
+    (trans (anchorTarget-liveBit ρ-inj target query)
+      (sym (lookup-setLive-other {L = L′} {α = _} {query = _}
+        (λ eq → image≢image (sym eq)))))
+anchorTarget-liveBit ρ-inj (anchor-target-lexical target) query =
+  anchorTarget-liveBit ρ-inj target query
+anchorTarget-liveBit ρ-inj (anchor-target-:= target) zero = refl
+anchorTarget-liveBit ρ-inj (anchor-target-:= target) (suc query) =
+  anchorTarget-liveBit
+    (λ eq → fin-suc-injective (ρ-inj (cong suc eq))) target query
+anchorTarget-liveBit {ρ = ρ} ρ-inj
+    (anchor-target-end {L = L} {L′ = L′} Y anchor target) query
+    with query ≟ anchor | ρ query ≟ ρ anchor
+anchorTarget-liveBit ρ-inj
+    (anchor-target-end {L = L} {L′ = L′} Y anchor target) .anchor
+    | yes refl | yes refl =
+  trans (lookup-setLive-same L anchor false)
+    (sym (lookup-setLive-same L′ _ false))
+anchorTarget-liveBit ρ-inj
+    (anchor-target-end {L = L} {L′ = L′} Y anchor target) .anchor
+    | yes refl | no image≢image = ⊥-elim (image≢image refl)
+anchorTarget-liveBit ρ-inj
+    (anchor-target-end {L = L} {L′ = L′} Y anchor target) query
+    | no query≢anchor | yes image-eq =
+  ⊥-elim (query≢anchor (ρ-inj image-eq))
+anchorTarget-liveBit ρ-inj
+    (anchor-target-end {L = L} {L′ = L′} Y anchor target) query
+    | no query≢anchor | no image≢image =
+  trans (lookup-setLive-other {L = L} {α = anchor} {query = query}
+      (λ eq → query≢anchor (sym eq)))
+    (trans (anchorTarget-liveBit ρ-inj target query)
+      (sym (lookup-setLive-other {L = L′} {α = _} {query = _}
+        (λ eq → image≢image (sym eq)))))
+anchorTarget-liveBit ρ-inj anchor-target-allocate query = refl
+
+anchorTarget-liveSlot? : ∀ {Θ Θ′ Δ}
+    {ρ : TyVar Θ → TyVar Θ′}
+    {L : Vec.Vec Bool Θ} {L′ : Vec.Vec Bool Θ′}
+    {Ψ : TyEnv Θ Δ L} {Φ : TyEnv Θ′ Δ L′}
+  → (∀ {α β} → ρ α ≡ ρ β → α ≡ β)
+  → AnchorTarget ρ Ψ Φ
+  → (query : TyVar Θ)
+  → liveSlot? Φ (ρ query) ≡ liveSlot? Ψ query
+anchorTarget-liveSlot? ρ-inj visible-shift-target query = refl
+anchorTarget-liveSlot? {ρ = ρ} ρ-inj
     (anchor-target-typ Y anchor target) query
     with query ≟ anchor | ρ query ≟ ρ anchor
-anchorTarget-liveSlots {ρ = ρ} ρ-inj
+anchorTarget-liveSlot? ρ-inj
     (anchor-target-typ Y anchor target) .anchor
-    | yes refl | yes refl =
-  cong (Y ∷_) (cong (map (punchIn Y))
-    (anchorTarget-liveSlots ρ-inj target anchor))
-anchorTarget-liveSlots {ρ = ρ} ρ-inj
+    | yes refl | yes refl = refl
+anchorTarget-liveSlot? ρ-inj
     (anchor-target-typ Y anchor target) .anchor
-    | yes refl | no eq = ⊥-elim (eq refl)
-anchorTarget-liveSlots {ρ = ρ} ρ-inj
+    | yes refl | no image≢image = ⊥-elim (image≢image refl)
+anchorTarget-liveSlot? ρ-inj
     (anchor-target-typ Y anchor target) query
-    | no query≢anchor | yes eq =
-  ⊥-elim (query≢anchor (ρ-inj eq))
-anchorTarget-liveSlots {ρ = ρ} ρ-inj
+    | no query≢anchor | yes image-eq =
+  ⊥-elim (query≢anchor (ρ-inj image-eq))
+anchorTarget-liveSlot? ρ-inj
     (anchor-target-typ Y anchor target) query
-    | no query≢anchor | no eq =
-  cong (map (punchIn Y))
-    (anchorTarget-liveSlots ρ-inj target query)
-anchorTarget-liveSlots ρ-inj (anchor-target-lexical target) query =
-  cong (map suc) (anchorTarget-liveSlots ρ-inj target query)
-anchorTarget-liveSlots ρ-inj (anchor-target-:= target) zero = refl
-anchorTarget-liveSlots ρ-inj (anchor-target-:= {ρ = ρ} target)
-    (suc query) =
-  anchorTarget-liveSlots
+    | no query≢anchor | no image≢image =
+  cong (mapMaybe (punchIn Y))
+    (anchorTarget-liveSlot? ρ-inj target query)
+anchorTarget-liveSlot? ρ-inj (anchor-target-lexical target) query =
+  cong (mapMaybe suc) (anchorTarget-liveSlot? ρ-inj target query)
+anchorTarget-liveSlot? ρ-inj (anchor-target-:= target) zero = refl
+anchorTarget-liveSlot? ρ-inj (anchor-target-:= target) (suc query) =
+  anchorTarget-liveSlot?
     (λ eq → fin-suc-injective (ρ-inj (cong suc eq))) target query
-anchorTarget-liveSlots ρ-inj (anchor-target-end Y target) query =
-  cong (dropDead Y) (anchorTarget-liveSlots ρ-inj target query)
-anchorTarget-liveSlots ρ-inj anchor-target-allocate query = refl
+anchorTarget-liveSlot? {ρ = ρ} ρ-inj
+    (anchor-target-end Y anchor target) query
+    with query ≟ anchor | ρ query ≟ ρ anchor
+anchorTarget-liveSlot? ρ-inj
+    (anchor-target-end Y anchor target) .anchor
+    | yes refl | yes refl = refl
+anchorTarget-liveSlot? ρ-inj
+    (anchor-target-end Y anchor target) .anchor
+    | yes refl | no image≢image = ⊥-elim (image≢image refl)
+anchorTarget-liveSlot? ρ-inj
+    (anchor-target-end Y anchor target) query
+    | no query≢anchor | yes image-eq =
+  ⊥-elim (query≢anchor (ρ-inj image-eq))
+anchorTarget-liveSlot? ρ-inj
+    (anchor-target-end Y anchor target) query
+    | no query≢anchor | no image≢image
+    rewrite anchorTarget-liveSlot? ρ-inj target query = refl
+anchorTarget-liveSlot? ρ-inj anchor-target-allocate query = refl
 
-anchorTarget-∋typ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
+anchorTarget-∋typ : ∀ {Θ Θ′ Δ} {ℒ : Vec.Vec Bool Θ} {ℒ′ : Vec.Vec Bool Θ′} {ρ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ′ Δ ℒ′}
     {Y : TyVar Δ} {α : TyVar Θ}
   → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
   → AnchorTarget ρ Ψ Φ
@@ -3810,12 +1906,12 @@ anchorTarget-∋typ ρ-inj (anchor-target-:= target)
     (anchorTarget-∋typ
       (λ eq → fin-suc-injective (ρ-inj (cong suc eq)))
       target Y∈)
-anchorTarget-∋typ ρ-inj (anchor-target-end Y target)
+anchorTarget-∋typ ρ-inj (anchor-target-end Y anchor target)
     (skip-end Y∈) =
   skip-end (anchorTarget-∋typ ρ-inj target Y∈)
 
-anchorTarget-∋rep⁺ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
+anchorTarget-∋rep⁺ : ∀ {Θ Θ′ Δ} {ℒ : Vec.Vec Bool Θ} {ℒ′ : Vec.Vec Bool Θ′} {ρ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ′ Δ ℒ′}
     {α : TyVar Θ} {A⁺ : Ty⁺ Θ Δ}
   → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
   → AnchorTarget ρ Ψ Φ
@@ -3850,31 +1946,22 @@ anchorTarget-∋rep⁺ ρ-inj (anchor-target-:= {ρ = ρ} target)
     (S (anchorTarget-∋rep⁺
       (λ eq → fin-suc-injective (ρ-inj (cong suc eq)))
       target α∈))
-anchorTarget-∋rep⁺ {ρ = ρ} ρ-inj (anchor-target-end Y target)
-    (skip-end {β = anchor} {a = a} {A⁺ = A⁺} slot∈ α∈) =
+anchorTarget-∋rep⁺ {ρ = ρ} ρ-inj
+    (anchor-target-end Y anchor target)
+    (skip-end {β = .anchor} {a = a} {A⁺ = A⁺} α∈) =
   subst≡ (λ B⁺ → _ ∋rep⁺ _ ≔ B⁺)
     (sym (renameᶠ⁺-end ρ Y anchor A⁺))
-    (skip-end (anchorTarget-∋typ ρ-inj target slot∈)
-      (anchorTarget-∋rep⁺ ρ-inj target α∈))
+    (skip-end (anchorTarget-∋rep⁺ ρ-inj target α∈))
 
 mutual
-  anchorTarget-⇓ : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
+  anchorTarget-⇓ : ∀ {Θ Θ′ Δ} {ℒ : Vec.Vec Bool Θ} {ℒ′ : Vec.Vec Bool Θ′} {ρ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ′ Δ ℒ′}
       {A⁺ : Ty⁺ Θ Δ} {A : Ty Δ}
     → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
     → AnchorTarget ρ Ψ Φ
     → Ψ ⊢ A⁺ ⇓ A
     → Φ ⊢ renameᶠ⁺ ρ A⁺ ⇓ A
-  anchorTarget-⇓ ρ-inj target (⇓-var-lex lexical) =
-    lexTarget-⇓ (anchorTarget-lexTarget ρ-inj target lexical)
-  anchorTarget-⇓ ρ-inj target
-      (⇓-var-alias {Y = Y} {β = query} anchor live) =
-    ⇓-var-alias
-      (∋typ-slotAnchor
-        (anchorTarget-∋typ ρ-inj target
-          (slotAnchor-∋typ anchor)))
-      (trans (cong minSlot
-        (anchorTarget-liveSlots ρ-inj target query)) live)
+  anchorTarget-⇓ ρ-inj target ⇓-var = ⇓-var
   anchorTarget-⇓ ρ-inj target ⇓-base = ⇓-base
   anchorTarget-⇓ ρ-inj target ⇓-star = ⇓-star
   anchorTarget-⇓ ρ-inj target (⇓-fun A⇓ B⇓) =
@@ -3885,16 +1972,15 @@ mutual
   anchorTarget-⇓ ρ-inj target
       (⇓-ref-live {β = query} {Y = Y} live) =
     ⇓-ref-live
-      (trans (cong minSlot
-        (anchorTarget-liveSlots ρ-inj target query)) live)
+      (trans (anchorTarget-liveSlot? ρ-inj target query) live)
   anchorTarget-⇓ ρ-inj target
       (⇓-ref-dead {β = query} dead α∈) =
     ⇓-ref-dead
-      (trans (anchorTarget-liveSlots ρ-inj target query) dead)
+      (trans (sym (anchorTarget-liveBit ρ-inj target query)) dead)
       (anchorTarget-∋rep ρ-inj target α∈)
 
-  anchorTarget-∋rep : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ}
+  anchorTarget-∋rep : ∀ {Θ Θ′ Δ} {ℒ : Vec.Vec Bool Θ} {ℒ′ : Vec.Vec Bool Θ′} {ρ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ′ Δ ℒ′}
       {α : TyVar Θ} {A : Ty Δ}
     → (∀ {β γ} → ρ β ≡ ρ γ → β ≡ γ)
     → AnchorTarget ρ Ψ Φ
@@ -3922,8 +2008,8 @@ extᵗ-injective : ∀ {Θ Θ′} {ρ : TyVar Θ → TyVar Θ′}
 extᵗ-injective ρ-inj {α = X} {β = Y} =
   extᵗ-injective-at ρ-inj X Y
 
-⊢renameᶿ-target : ∀ {Θ Θ′ Δ} {ρ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ} {Φ : TyEnv Θ′ Δ} {Γ : TermCtx Δ}
+⊢renameᶿ-target : ∀ {Θ Θ′ Δ} {ℒ : Vec.Vec Bool Θ} {ℒ′ : Vec.Vec Bool Θ′} {ρ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ ℒ} {Φ : TyEnv Θ′ Δ ℒ′} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A : Ty Δ}
   → (∀ {α β} → ρ α ≡ ρ β → α ≡ β)
   → AnchorTarget ρ Ψ Φ
@@ -3949,19 +2035,25 @@ extᵗ-injective ρ-inj {α = X} {β = Y} =
 ⊢renameᶿ-target ρ-inj target (⊢ν M⊢) =
   ⊢ν (⊢renameᶿ-target (extᵗ-injective ρ-inj)
     (anchor-target-:= target) M⊢)
-⊢renameᶿ-target ρ-inj target (⊢reveal {α = α} α∈ c⊢ M⊢) =
-  ⊢reveal (anchorTarget-∋rep ρ-inj target α∈) c⊢
-    (⊢renameᶿ-target ρ-inj (anchor-target-typ _ α target) M⊢)
 ⊢renameᶿ-target ρ-inj target
-    (⊢conceal {Y = Y} slot∈ α∈ c⊢ M⊢) =
+    (⊢reveal {α = α} {inactive = inactive} α∈ c⊢ M⊢) =
+  ⊢reveal (anchorTarget-∋rep ρ-inj target α∈) c⊢
+    (⊢renameᶿ-target ρ-inj
+      (anchor-target-typ _ α {inactive = inactive}
+        {inactive′ = target-inactive} target) M⊢)
+  where
+  target-inactive =
+    trans (sym (anchorTarget-liveBit ρ-inj target α)) inactive
+⊢renameᶿ-target ρ-inj target
+    (⊢conceal {Y = Y} {α = α} slot∈ α∈ c⊢ M⊢) =
   ⊢conceal (anchorTarget-∋typ ρ-inj target slot∈)
     (anchorTarget-∋rep ρ-inj ended-target α∈) c⊢
     (⊢renameᶿ-target ρ-inj ended-target M⊢)
   where
-  ended-target = anchor-target-end Y target
+  ended-target = anchor-target-end Y α target
 ⊢renameᶿ-target ρ-inj target ⊢blame = ⊢blame
 
-⊢shiftᶿ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx Δ}
+⊢shiftᶿ : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ : TermCtx Δ}
     {M : Term Θ Δ} {A B : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
     ---------------------------
@@ -3969,26 +2061,27 @@ extᵗ-injective ρ-inj {α = X} {β = Y} =
 ⊢shiftᶿ M⊢ = ⊢renameᶿ-target fin-suc-injective
   visible-shift-target M⊢
 
-⊢allocate-lexical : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {Γ : TermCtx (suc Δ)}
+⊢allocate-lexical : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ} {Γ : TermCtx (suc Δ)}
     {M : Term Θ (suc Δ)} {A : Ty (suc Δ)} {C : Ty Δ}
   → Ψ ,typ ∣ Γ ⊢ M ⦂ A
     ---------------------------------------------------
-  → (Ψ ,:= C) ,begin[ zero ≔ zero ] ∣ Γ ⊢ shiftᶿ M ⦂ A
+  → (Ψ ,:= C) ,begin[ zero ≔ zero ]⟨ refl ⟩
+      ∣ Γ ⊢ shiftᶿ M ⦂ A
 ⊢allocate-lexical M⊢ = ⊢renameᶿ-target fin-suc-injective
   anchor-target-allocate M⊢
 
 ------------------------------------------------------------------------
-∋:=-shift : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+∋:=-shift : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ}
     {α : TyVar Θ} {A B : Ty Δ}
   → Ψ ∋rep α ≔ A
   → (Ψ ,:= B) ∋rep (suc α) ≔ A
 ∋:=-shift =
   anchorTarget-∋rep fin-suc-injective visible-shift-target
 
-∋rep-allocate-lexical : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+∋rep-allocate-lexical : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ}
     {α : TyVar Θ} {A B : Ty Δ}
   → Ψ ∋rep α ≔ A
-  → (Ψ ,:= B) ,begin[ zero ≔ zero ]
+  → (Ψ ,:= B) ,begin[ zero ≔ zero ]⟨ refl ⟩
       ∋rep suc α ≔ ⇑ᵗ A
 ∋rep-allocate-lexical {Ψ = Ψ} {α = α} {A = A} α∈ =
   anchorTarget-∋rep fin-suc-injective
@@ -4004,7 +2097,7 @@ extᵗ-injective ρ-inj {α = X} {β = Y} =
       (renameᵗ-cong A weaken-eq)
       (renameTarget-∋rep literal-wk-target α∈)
 
-∋rep-typ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+∋rep-typ : ∀ {Θ Δ} {ℒ : Vec.Vec Bool Θ} {Ψ : TyEnv Θ Δ ℒ}
     {α : TyVar Θ} {A : Ty Δ}
   → Ψ ∋rep α ≔ A
   → Ψ ,typ ∋rep α ≔ ⇑ᵗ A
@@ -4012,3 +2105,204 @@ extᵗ-injective ρ-inj {α = X} {β = Y} =
   subst≡ (λ C → Ψ ,typ ∋rep α ≔ C)
     (renameᵗ-cong A toRename-wk-eq)
     (renameTarget-∋rep literal-wk-target α∈)
+
+------------------------------------------------------------------------
+-- Lookup determinism under the intrinsic live-set index
+------------------------------------------------------------------------
+
+punchIn-injectiveᵗ : ∀ {Δ} (X : TyVar (suc Δ)) {Y Z : TyVar Δ}
+  → punchIn X Y ≡ punchIn X Z
+  → Y ≡ Z
+punchIn-injectiveᵗ zero eq = fin-suc-injective eq
+punchIn-injectiveᵗ (suc X) {zero} {zero} eq = refl
+punchIn-injectiveᵗ (suc X) {zero} {suc z} ()
+punchIn-injectiveᵗ (suc X) {suc Y} {zero} ()
+punchIn-injectiveᵗ (suc X) {suc Y} {suc z} eq =
+  cong suc (punchIn-injectiveᵗ X (fin-suc-injective eq))
+
+begin-∋typ-view : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ Δ L} {X Z : TyVar (suc Δ)} {α β : TyVar Θ}
+    {inactive : Vec.lookup L β ≡ false}
+  → Ψ ,begin[ X ≔ β ]⟨ inactive ⟩ ∋typ Z ≔ α
+  → (Z ≡ X × α ≡ β)
+    ⊎ ∃[ Y ] (Z ≡ punchIn X Y × Ψ ∋typ Y ≔ α)
+begin-∋typ-view found-begin = inj₁ (refl , refl)
+begin-∋typ-view (skip-begin {Y = Y} Y∈) =
+  inj₂ (Y , refl , Y∈)
+
+∋typ-unique : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ Δ L} {X : TyVar Δ} {α β : TyVar Θ}
+  → Ψ ∋typ X ≔ α
+  → Ψ ∋typ X ≔ β
+  → α ≡ β
+∋typ-unique {X = X} found-begin Y∈ with begin-∋typ-view Y∈
+∋typ-unique {X = X} found-begin Y∈ | inj₁ (refl , anchor-eq) =
+  sym anchor-eq
+∋typ-unique {X = X} found-begin Y∈ | inj₂ (Y , eq , Y∈′) =
+  ⊥-elim (punchIn≢ X Y eq)
+∋typ-unique (skip-begin {Y = Y} X∈) Z∈
+    with begin-∋typ-view Z∈
+∋typ-unique (skip-begin {Y = Y} X∈) Z∈
+    | inj₁ (eq , anchor-eq) =
+  ⊥-elim (punchIn≢ _ Y (sym eq))
+∋typ-unique (skip-begin {Y = Y} X∈) Z∈
+    | inj₂ (z , eq , Z∈′) =
+  ∋typ-unique X∈
+    (subst≡ (λ W → _ ∋typ W ≔ _)
+      (sym (punchIn-injectiveᵗ _ eq)) Z∈′)
+∋typ-unique (skip-typ X∈) (skip-typ Y∈) =
+  ∋typ-unique X∈ Y∈
+∋typ-unique (skip-nu-binding X∈) (skip-nu-binding Y∈) =
+  cong suc (∋typ-unique X∈ Y∈)
+∋typ-unique (skip-end X∈) (skip-end Y∈) =
+  ∋typ-unique X∈ Y∈
+
+setLive-same-true : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    (environment : TyEnv Θ Δ L) (bound : TyVar Θ)
+  → Vec.lookup (setLive L bound true) bound ≡ true
+setLive-same-true {L = L} environment bound =
+  lookup-setLive-same L bound true
+
+setLive-other-true : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    (environment : TyEnv Θ Δ L) {bound query : TyVar Θ}
+    {live : Bool}
+  → bound ≢ query
+  → Vec.lookup L query ≡ true
+  → Vec.lookup (setLive L bound live) query ≡ true
+setLive-other-true {L = L} environment {bound = bound}
+    {query = query} {live = live} bound≢query query-live =
+  trans (lookup-setLive-other {L = L} {α = bound} {query = query}
+    {live = live} bound≢query) query-live
+
+liveSlot?-sound : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {β : TyVar Θ} {Y : TyVar Δ}
+  → (environment : TyEnv Θ Δ L)
+  → liveSlot? environment β ≡ just Y
+  → Vec.lookup L β ≡ true
+liveSlot?-sound {β = ()} ∅ eq
+liveSlot?-sound {β = zero} (Ψ ,:= A) ()
+liveSlot?-sound {β = suc query} (Ψ ,:= A) eq =
+  liveSlot?-sound Ψ eq
+liveSlot?-sound {β = query}
+    (Ψ ,begin[ slot ≔ bound ]⟨ inactive ⟩) eq
+    with query ≟ bound
+liveSlot?-sound {β = .bound}
+    (Ψ ,begin[ slot ≔ bound ]⟨ inactive ⟩) refl | yes refl =
+  setLive-same-true Ψ bound
+liveSlot?-sound {β = query}
+    (Ψ ,begin[ slot ≔ bound ]⟨ inactive ⟩) eq | no query≢bound
+    with liveSlot? Ψ query in slot-eq
+liveSlot?-sound {β = query}
+    (Ψ ,begin[ slot ≔ bound ]⟨ inactive ⟩) ()
+    | no query≢bound | nothing
+liveSlot?-sound {β = query}
+    (Ψ ,begin[ slot ≔ bound ]⟨ inactive ⟩) refl
+    | no query≢bound | just Y =
+  setLive-other-true Ψ
+    (λ bound≡query → query≢bound (sym bound≡query))
+    (liveSlot?-sound Ψ slot-eq)
+liveSlot?-sound {β = query} (Ψ ,typ) eq
+    with liveSlot? Ψ query in slot-eq
+liveSlot?-sound {β = query} (Ψ ,typ) () | nothing
+liveSlot?-sound {β = query} (Ψ ,typ) refl | just Y =
+  liveSlot?-sound Ψ slot-eq
+liveSlot?-sound {β = query} (Ψ ,end[ slot ≔ bound ]) eq
+    with query ≟ bound
+liveSlot?-sound {β = .bound} (Ψ ,end[ slot ≔ bound ]) ()
+    | yes refl
+liveSlot?-sound {β = query} (Ψ ,end[ slot ≔ bound ]) eq
+    | no query≢bound with liveSlot? Ψ query in slot-eq
+liveSlot?-sound {β = query} (Ψ ,end[ slot ≔ bound ]) ()
+    | no query≢bound | nothing
+liveSlot?-sound {β = query} (Ψ ,end[ slot ≔ bound ]) eq
+    | no query≢bound | just Y with slot ≟ Y
+liveSlot?-sound {β = query} (Ψ ,end[ slot ≔ bound ]) ()
+    | no query≢bound | just .slot | yes refl
+liveSlot?-sound {β = query} (Ψ ,end[ slot ≔ bound ]) refl
+    | no query≢bound | just Y | no slot≢Y =
+  setLive-other-true Ψ
+    (λ bound≡query → query≢bound (sym bound≡query))
+    (liveSlot?-sound Ψ slot-eq)
+
+∋rep⁺-unique : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ Δ L} {α : TyVar Θ} {A⁺ B⁺ : Ty⁺ Θ Δ}
+  → Ψ ∋rep⁺ α ≔ A⁺
+  → Ψ ∋rep⁺ α ≔ B⁺
+  → A⁺ ≡ B⁺
+∋rep⁺-unique Z Z = refl
+∋rep⁺-unique (S A∈) (S B∈) =
+  cong wkᶠ⁺ (∋rep⁺-unique A∈ B∈)
+∋rep⁺-unique (skip-begin {Y = Y} A∈) (skip-begin B∈) =
+  cong (begin⁺ Y) (∋rep⁺-unique A∈ B∈)
+∋rep⁺-unique (skip-typ A∈) (skip-typ B∈) =
+  cong typ⁺ (∋rep⁺-unique A∈ B∈)
+∋rep⁺-unique (skip-end {Y = Y} {β = bound} A∈) (skip-end B∈) =
+  cong (end⁺ Y bound) (∋rep⁺-unique A∈ B∈)
+
+mutual
+  ⇓-unique : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+      {Ψ : TyEnv Θ Δ L} {A⁺ : Ty⁺ Θ Δ} {A B : Ty Δ}
+    → Ψ ⊢ A⁺ ⇓ A
+    → Ψ ⊢ A⁺ ⇓ B
+    → A ≡ B
+  ⇓-unique ⇓-var ⇓-var = refl
+  ⇓-unique ⇓-base ⇓-base = refl
+  ⇓-unique ⇓-star ⇓-star = refl
+  ⇓-unique (⇓-fun A⇓ B⇓) (⇓-fun A⇓′ B⇓′) =
+    cong₂ _⇒_ (⇓-unique A⇓ A⇓′) (⇓-unique B⇓ B⇓′)
+  ⇓-unique (⇓-all A⇓) (⇓-all B⇓) =
+    cong `∀ (⇓-unique A⇓ B⇓)
+  ⇓-unique (⇓-ref-live live₁) (⇓-ref-live live₂)
+      with trans (sym live₁) live₂
+  ⇓-unique (⇓-ref-live live₁) (⇓-ref-live live₂) | refl = refl
+  ⇓-unique {Ψ = Ψ} (⇓-ref-live live) (⇓-ref-dead dead B∈)
+      with trans (sym (liveSlot?-sound Ψ live)) dead
+  ⇓-unique {Ψ = Ψ} (⇓-ref-live live) (⇓-ref-dead dead B∈) | ()
+  ⇓-unique {Ψ = Ψ} (⇓-ref-dead dead A∈) (⇓-ref-live live)
+      with trans (sym dead) (liveSlot?-sound Ψ live)
+  ⇓-unique {Ψ = Ψ} (⇓-ref-dead dead A∈) (⇓-ref-live live) | ()
+  ⇓-unique (⇓-ref-dead dead₁ A∈) (⇓-ref-dead dead₂ B∈) =
+    ∋rep-unique A∈ B∈
+
+  ∋rep-unique : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+      {Ψ : TyEnv Θ Δ L} {α : TyVar Θ} {A B : Ty Δ}
+    → Ψ ∋rep α ≔ A
+    → Ψ ∋rep α ≔ B
+    → A ≡ B
+  ∋rep-unique (∋rep-of A∈ A⇓) (∋rep-of B∈ B⇓)
+      with ∋rep⁺-unique A∈ B∈
+  ∋rep-unique (∋rep-of A∈ A⇓) (∋rep-of B∈ B⇓) | refl =
+    ⇓-unique A⇓ B⇓
+
+⇓-⌜⌝ : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ Δ L} {A : Ty Δ}
+  → Ψ ⊢ ⌜ A ⌝ ⇓ A
+⇓-⌜⌝ {A = ＇ X} = ⇓-var
+⇓-⌜⌝ {A = ‵ ι} = ⇓-base
+⇓-⌜⌝ {A = ★} = ⇓-star
+⇓-⌜⌝ {A = A ⇒ B} = ⇓-fun ⇓-⌜⌝ ⇓-⌜⌝
+⇓-⌜⌝ {A = `∀ A} = ⇓-all ⇓-⌜⌝
+
+∋rep-here : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ Δ L} {A : Ty Δ}
+  → Ψ ,:= A ∋rep zero ≔ A
+∋rep-here {Θ = Θ} {Ψ = Ψ} {A = A} =
+  ∋rep-of Z
+    (subst≡ (λ A⁺ → Ψ ,:= A ⊢ A⁺ ⇓ A)
+      (sym (renameᶠ⁺-⌜⌝ (suc {n = Θ}) A)) ⇓-⌜⌝)
+
+∋rep-here-begin : ∀ {Θ Δ} {L : Vec.Vec Bool Θ}
+    {Ψ : TyEnv Θ Δ L} {A : Ty Δ} {Y : TyVar (suc Δ)}
+    {α : TyVar (suc Θ)}
+    {inactive : Vec.lookup (false Vec.∷ L) α ≡ false}
+  → (Ψ ,:= A) ,begin[ Y ≔ α ]⟨ inactive ⟩
+      ∋rep zero ≔ wkᵗ Y A
+∋rep-here-begin {Θ = Θ} {Ψ = Ψ} {A = A} {Y = Y}
+    {α = anchor} {inactive = inactive} =
+  ∋rep-of (skip-begin Z)
+    (subst≡ (λ A⁺ →
+      (Ψ ,:= A) ,begin[ Y ≔ anchor ]⟨ inactive ⟩
+        ⊢ A⁺ ⇓ wkᵗ Y A)
+      (sym (trans (cong (begin⁺ Y)
+        (renameᶠ⁺-⌜⌝ (suc {n = Θ}) A))
+        (begin⁺-⌜⌝ Y A))) ⇓-⌜⌝)

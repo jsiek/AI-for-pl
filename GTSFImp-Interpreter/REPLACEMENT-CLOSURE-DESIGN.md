@@ -661,6 +661,60 @@ fields through the three conceal consumers (`conceal-right-universal`,
 `precise-universal-conceal-value`, `dyn-universal-conceal-value`),
 and then the iteration and `to-family` are pure bookkeeping.
 
+## Implementation log — the kit is discharged (2026-08-26)
+
+`universal-family-kit : RightUniversalFamilyKit` is **proved**
+(`proof/LR-narrow/UniversalFamilyKit.agda`), and
+`right-universal-value-compatible` there is the `Λ` introduction with
+the kit supplied, so the producers no longer carry it as a
+hypothesis.  No postulates, no new pragmas.
+
+Finding G was resolved by widening the wrappers, which are our own
+definition (`LR-narrow/SlotSequence.agda`), not part of the GTSFImp
+calculus.  Rather than only patching the conceal cases, every wrapper
+now carries a `BodyImprecision` for the bodies it *produces* — the
+clause data (`NonVar`, the zero occurrence, and the centre
+imprecision) that a `∀⊑` clause records.  Every consumer already has
+it, since it is the data of the clause it is building, and carrying
+it uniformly also spared the reveal wrappers from rebuilding their
+target derivations with `replace-⊑` / `replace-left-⊑`.
+
+Three refinements made the assembly go through:
+
+* **Canonical embeddings.**  `BodyImprecision` fixes its centre types
+  as `embedPreciseBody W B` and `embedImprecise W C` instead of
+  carrying them existentially with equations.  With the existentials,
+  two data for the *same* bodies had propositionally-but-not-
+  definitionally equal centre types, which broke the one-sided
+  endpoint helpers (they require the two derivations to share an
+  imprecise endpoint).  Canonical form makes those equations `refl`.
+  `body-imprecision-of` rebuilds the record from a clause's own
+  equations, and `body-imprecision-future` transports it to a future
+  world.
+* **Shapes, not value witnesses.**  The paired wrappers need the
+  imprecise conversion to be a value.  Carrying the `RevealValue` /
+  `ConcealValue` witness fails, because it is not stable under
+  renaming: a `ConcealValue` at a variable type is a `seal`, which
+  becomes an identity once the slot changes.  The wrappers carry a
+  `UniShape` (function or universal) instead, from which both
+  witnesses follow and which lifts along futures trivially.
+* **Inert steps keep the incoming data.**  For the inert wrappers the
+  bodies are unchanged, so the step reuses the incoming
+  `BodyImprecision` and transports the chain along
+  `replaceTy-absent`; using the carried one would have demanded that
+  two derivations of the same statement be definitionally equal.
+
+The iteration is then `extend-wraps`, a fold of `extend-wrap` along
+the sequence, and `to-family` lifts the data to the demanded future
+(`data-future`), folds, and projects the chain — transported to the
+family's own derivation by `right-universals-phantom`, which is
+sound precisely because the chain is phantom in its derivation.
+
+**State of the development.**  `RevealObligations` is now exactly the
+four `∀⊑∀` fields, all of them Finding F; every other universal
+statement is proved, and the replacement-closure programme is
+complete.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

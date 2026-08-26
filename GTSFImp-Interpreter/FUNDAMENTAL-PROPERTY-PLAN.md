@@ -727,8 +727,12 @@ Remaining honest resolutions (both substantial):
   dynamic-payload recursion for the star-universal sources (with the
   ground un-replacement by occurs-refutation), and family projection
   for the right-universal source — leaving value-level `∀⊑∀`-only
-  obligations.  What remains is internalizing the kit; the recipe
-  and the discovered simplifications are in the design note.  The
+  obligations.  **The kit is now discharged**
+  (2026-08-26): all six wrapper chain extensions are proved, the
+  wrappers carry the clause data of the bodies they produce, and
+  `universal-family-kit` assembles them, so the `Λ` introduction no
+  longer takes it as a hypothesis.  `RevealObligations` is exactly
+  the four `∀⊑∀` fields, all of them Finding F.  The
   design also dissolves
   the canonical-forms gate: the imprecise application step the
   consumer cannot perform is performed by the producers, each of

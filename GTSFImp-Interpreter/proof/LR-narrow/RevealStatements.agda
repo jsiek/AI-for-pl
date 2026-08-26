@@ -49,7 +49,7 @@ open import proof.LR-narrow.ImprecisionSize using (sizeᵖ)
 -- (or conceal) conversion at a paired slot preserves the relation,
 -- exchanging the source imprecision for the replaced imprecision.
 
-RevealAtSized : ℕ → ℕ → Set₁
+RevealAtSized : ℕ → ℕ → Set
 RevealAtSized k n = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (s : PairedSlot W)
     {Bᴾ : Ty Δᴾ} {Bᴵ : Ty Δᴵ} {Aᴾ Aᴵ : Ty Δᶜ}
@@ -66,7 +66,7 @@ RevealAtSized k n = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
 
-ConcealAtSized : ℕ → ℕ → Set₁
+ConcealAtSized : ℕ → ℕ → Set
 ConcealAtSized k n = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (s : PairedSlot W)
     {Bᴾ : Ty Δᴾ} {Bᴵ : Ty Δᴵ} {Aᴾ Aᴵ : Ty Δᶜ}
@@ -85,10 +85,10 @@ ConcealAtSized k n = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
 
 -- The unsized forms quantify over every size.
 
-RevealAt : ℕ → Set₁
+RevealAt : ℕ → Set
 RevealAt k = ∀ {n} → RevealAtSized k n
 
-ConcealAt : ℕ → Set₁
+ConcealAt : ℕ → Set
 ConcealAt k = ∀ {n} → ConcealAtSized k n
 
 ------------------------------------------------------------------------
@@ -99,7 +99,7 @@ ConcealAt k = ∀ {n} → ConcealAtSized k n
 -- precise type, the reveal (or conceal) conversion wraps only the
 -- precise endpoint and preserves the relation at the same imprecision.
 
-PreciseRevealAt : ℕ → Set₁
+PreciseRevealAt : ℕ → Set
 PreciseRevealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -110,7 +110,7 @@ PreciseRevealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → ComputationsRelated W (FutureValueRelation p) k
       Vᴵ (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ Bᴾ 〗)
 
-PreciseConcealAt : ℕ → Set₁
+PreciseConcealAt : ℕ → Set
 PreciseConcealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (s : PairedSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -135,7 +135,7 @@ PreciseConcealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
 -- imprecision below ★; the imprecise endpoint and the imprecise
 -- center type are untouched.
 
-DynRevealAt : ℕ → Set₁
+DynRevealAt : ℕ → Set
 DynRevealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (d : DynamicSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -147,7 +147,7 @@ DynRevealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
   → ComputationsRelated W (FutureValueRelation q) k
       Vᴵ (Vᴾ ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ Bᴾ 〗)
 
-DynConcealAt : ℕ → Set₁
+DynConcealAt : ℕ → Set
 DynConcealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (d : DynamicSlot W) {Bᴾ : Ty Δᴾ} {Aᴾ Aᴵ : Ty Δᶜ}
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
@@ -163,7 +163,7 @@ DynConcealAt k = ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
 -- The bundle, and everything lexicographically below a pair
 ------------------------------------------------------------------------
 
-Statements : ℕ → ℕ → Set₁
+Statements : ℕ → ℕ → Set
 Statements k n =
   RevealAtSized k n × ConcealAtSized k n
   × PreciseRevealAt k × PreciseConcealAt k
@@ -196,7 +196,7 @@ data LexBelow (j m k n : ℕ) : Set where
   lex-index : j < k → LexBelow j m k n
   lex-size : j ≡ k → m < n → LexBelow j m k n
 
-Below : ℕ → ℕ → Set₁
+Below : ℕ → ℕ → Set
 Below k n = ∀ j m → LexBelow j m k n → Statements j m
 
 below-restrict : ∀ {j m k n} → j ≤ k → m ≤ n
@@ -223,10 +223,10 @@ below-at below j m j≤k m<n | tri> _ _ k<j = ⊥-elim (≤⇒≯ j≤k k<j)
 
 -- Every statement at every size, and the strict-index restriction.
 
-FullStatements : ℕ → Set₁
+FullStatements : ℕ → Set
 FullStatements k = ∀ n → Statements k n
 
-OuterBelow : ℕ → Set₁
+OuterBelow : ℕ → Set
 OuterBelow k = ∀ j → j < k → FullStatements j
 
 below-outer : ∀ {k n} → Below k n → OuterBelow k
@@ -245,7 +245,7 @@ full-concealAt statements {n = n} = concealAt (statements n)
 -- The obligations
 ------------------------------------------------------------------------
 
-record RevealObligations : Set₁ where
+record RevealObligations : Set where
   field
     blocked-precise-reveal : ∀ {k n} → Below k n
       → ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) (s : PairedSlot W)

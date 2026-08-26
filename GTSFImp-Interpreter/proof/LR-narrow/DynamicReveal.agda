@@ -18,7 +18,6 @@ open import Data.Nat.Properties using
   (n≤1+n; ≤-trans; ≤-refl; m≤m+n; m≤n+m; <-irrefl)
 open import Data.Unit.Polymorphic.Base using (tt)
 open import Data.Empty using (⊥; ⊥-elim)
-import Level
 open import Data.List using ([])
 open import Data.Maybe using (just; nothing)
 open import Data.Product using (_×_; _,_; Σ-syntax; proj₁; proj₂)
@@ -135,7 +134,7 @@ dyn-no-paired : ∀ {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
   → IsDynamicEntry a e
   → PairedAtomHolds ℛ e Vᴵ Vᴾ
   → ⊥
-dyn-no-paired is-dynamic (Level.lift ())
+dyn-no-paired is-dynamic ()
 
 -- Transports along a center-variable identification.
 

@@ -107,7 +107,7 @@ data _∋ᴿ_⦂_ {Δᴾ Δᴵ Δᶜ : TyCtx} {W : World Δᴾ Δᴵ Δᶜ} :
 
 data RelatedClosingSubstitutions {Δᴾ Δᴵ Δᶜ : TyCtx}
     (W : World Δᴾ Δᴵ Δᶜ) (k : ℕ) :
-    ContextImprecision W → Set₁ where
+    ContextImprecision W → Set where
   related-empty : RelatedClosingSubstitutions W k []
 
   related-cons : ∀ {Γ Aᴾ Aᴵ Vᴾ Vᴵ}

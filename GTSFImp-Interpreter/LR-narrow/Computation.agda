@@ -23,19 +23,19 @@ open import LR-narrow.World
 
 IndexedValueRelation : ∀ {Δᴾ Δᴵ Δᶜ}
   → World Δᴾ Δᴵ Δᶜ
-  → Set₂
+  → Set₁
 IndexedValueRelation W = ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
   → (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
   → Future W W′
   → ℕ
   → Term Δᴵ′
   → Term Δᴾ′
-  → Set₁
+  → Set
 
 data PairedReturns {Δᴾ Δᴵ Δᶜ}
     {Mᴵ : Term Δᴵ} {Mᴾ : Term Δᴾ}
     (W : World Δᴾ Δᴵ Δᶜ) (R : IndexedValueRelation W) (k : ℕ) :
-    E.EvalResult Mᴵ → E.EvalResult Mᴾ → Set₁ where
+    E.EvalResult Mᴵ → E.EvalResult Mᴾ → Set where
   paired-returns : ∀ {resultᴵ : E.EvalResult Mᴵ}
       {resultᴾ : E.EvalResult Mᴾ} {Δᶜ′}
     → (W′ : World (E.Δ′ resultᴾ) (E.Δ′ resultᴵ) Δᶜ′)
@@ -64,7 +64,7 @@ BlamesFrom {Δ} Σ gas M =
 
 record ComputationsRelated {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) (R : IndexedValueRelation W) (k : ℕ)
-    (Mᴵ : Term Δᴵ) (Mᴾ : Term Δᴾ) : Set₁ where
+    (Mᴵ : Term Δᴵ) (Mᴾ : Term Δᴾ) : Set where
   field
     forward-return : ∀ {n} {resultᴵ : E.EvalResult Mᴵ}
       → n < k
@@ -99,7 +99,7 @@ open ComputationsRelated public
 
 record TargetChangesFuture {Δᴾ Δᴵ Δᶜ Δᴵ′}
     (W : World Δᴾ Δᴵ Δᶜ)
-    (changes : StoreChanges Δᴵ Δᴵ′) : Set₁ where
+    (changes : StoreChanges Δᴵ Δᴵ′) : Set where
   constructor target-future
   field
     centerCtx : TyCtx
@@ -118,7 +118,7 @@ open TargetChangesFuture public
 
 record TargetComputationPhase {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) (R : IndexedValueRelation W) (k : ℕ)
-    (Mᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Mᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   field
     -- The imprecise side terminates, whenever the index allows an
     -- observation at all.

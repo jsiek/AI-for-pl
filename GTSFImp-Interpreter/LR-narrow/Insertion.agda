@@ -36,7 +36,7 @@ InsertedTermRelation : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ Aᴾ A�
   → CTI.CtxImp Wᶜ
   → Term Δᴾ
   → Term Δᴵ
-  → Set₁
+  → Set
 InsertedTermRelation {ρᴾ = ρᴾ} {ρᴵ = ρᴵ} W ins p k Γ Mᴾ Mᴵ =
   CompiledTermRelation {W = W} (insert⊑ ins p) k (insertCtx ins Γ)
     (renameᵗᵐ ρᴾ Mᴾ) (renameᵗᵐ ρᴵ Mᴵ)
@@ -50,7 +50,7 @@ record InsertedFundamentalProperty {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {Γ : CTI.CtxImp Wᶜ}
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
     {p : Aᴾ CTI.⊑ᵂ⟨ Wᶜ ⟩ Aᴵ}
-    (derivation : Wᶜ ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p) : Set₁ where
+    (derivation : Wᶜ ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p) : Set where
   constructor inserted-proof
   field
     inserted-relation : ∀ {Δᴾ′ Δᴵ′ Δᶜ′}

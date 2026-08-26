@@ -28,7 +28,7 @@ open import proof.TypeInTermSubst using
 open import LR-narrow.WorldCore public
 open import LR-narrow.Atoms public
 
-record World (Δᴾ Δᴵ Δᶜ : TyCtx) : Set₁ where
+record World (Δᴾ Δᴵ Δᶜ : TyCtx) : Set where
   constructor world
   field
     core : CoreWorld Δᴾ Δᴵ Δᶜ
@@ -87,7 +87,7 @@ impreciseBindWorld W Aᴵ =
 data Future {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) :
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′}
     → World Δᴾ′ Δᴵ′ Δᶜ′
-    → Set₁ where
+    → Set where
   future-refl : Future W W
 
   future-paired : ∀ {Δᴾ′ Δᴵ′ Δᶜ′}

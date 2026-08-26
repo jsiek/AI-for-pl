@@ -118,7 +118,7 @@ data OpenPairedCastCase {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ} :
 -- The obligations
 ------------------------------------------------------------------------
 
-record CastValueObligations : Set₂ where
+record CastValueObligations : Set₁ where
   field
 
     -- A precise cast on related values, the imprecise value unchanged.

@@ -134,7 +134,7 @@ rightView I.bot⊑★ = right-nonstructural I.bot⊑★ tt
 -- derivation's syntactic world into a semantic world and must produce the
 -- open relation for the renamed conclusion terms.
 
-record RemainingObligations : Set₂ where
+record RemainingObligations : Set₁ where
   field
 
     -- Value-level cast compatibilities reopened after the circular

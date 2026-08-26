@@ -32,7 +32,6 @@ open import LR-narrow.SlotSequence
 open import LR-narrow.Computation
 open import LR-narrow.LogicalRelation
 import Conversion
-import Level
 open import TyStore using (TyStore; _∋_⦂_)
 
 -- At index zero no imprecise step is available, so any two computations
@@ -233,8 +232,8 @@ paired-holds-endpoints {W = W} (paired-entry a) p
          (imprecise-typed endpoints) typeᴵ-eq)
        (sealed-precise-typing (preciseBound a)
          (precise-typed endpoints) typeᴾ-eq)
-paired-holds-endpoints (dynamic-entry a) p (Level.lift ())
-paired-holds-endpoints (target-entry a) p (Level.lift ())
+paired-holds-endpoints (dynamic-entry a) p ()
+paired-holds-endpoints (target-entry a) p ()
 
 dynamic-holds-endpoints : ∀ {Δᴾ Δᴵ Δᶜ mode}
     {W : World Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ} {k Vᴵ Vᴾ}
@@ -243,7 +242,7 @@ dynamic-holds-endpoints : ∀ {Δᴾ Δᴵ Δᶜ mode}
     (p : impEnv (core W) I.⊢ ＇ Z ⊑ ★)
   → DynamicAtomHolds (ValueImprecisionᵏ k W) entry eq Vᴵ Vᴾ
   → TypedEndpoints W p Vᴵ Vᴾ
-dynamic-holds-endpoints (paired-entry a) eq p (Level.lift ())
+dynamic-holds-endpoints (paired-entry a) eq p ()
 dynamic-holds-endpoints {W = W} (dynamic-entry a) refl p
     (dynamic-holds Uᴾ refl payload) =
   let endpoints = value-imprecision-endpoints payload
@@ -261,7 +260,7 @@ dynamic-holds-endpoints {W = W} (dynamic-entry a) refl p
          typeᴵ-eq (imprecise-typed endpoints))
        (sealed-precise-typing (dynamicBound a)
          (precise-typed endpoints) typeᴾ-eq)
-dynamic-holds-endpoints (target-entry a) refl p (Level.lift ())
+dynamic-holds-endpoints (target-entry a) refl p ()
 
 -- Sealed payloads related at a paired slot are related values at the
 -- slot's center variable.
@@ -973,7 +972,7 @@ PayloadFutureMap : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
   → Future W W′
   → PayloadRelation (core W)
   → PayloadRelation (core W′)
-  → Set₁
+  → Set
 PayloadFutureMap {Δᶜ = Δᶜ} {W = W} W≼W′ ℛ ℛ′ =
   ∀ {Aᴾ Aᴵ : Ty Δᶜ} {p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ} {U U′}
   → ℛ p U U′
@@ -984,7 +983,7 @@ PayloadFutureMap {Δᶜ = Δᶜ} {W = W} W≼W′ ℛ ℛ′ =
 -- the endpoint types.
 
 PayloadReindex : ∀ {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
-  → PayloadRelation W → Set₁
+  → PayloadRelation W → Set
 PayloadReindex {Δᶜ = Δᶜ} W ℛ =
   ∀ {Aᴾ Aᴵ Aᴾ′ Aᴵ′ : Ty Δᶜ}
     (p : impEnv W I.⊢ Aᴾ ⊑ Aᴵ) (q : impEnv W I.⊢ Aᴾ′ ⊑ Aᴵ′)
@@ -1026,8 +1025,8 @@ paired-holds-lift {W′ = W′} W≼W′ f reindex
       (trans (sym (embedImprecise-lift W≼W′ (impreciseRep a)))
         (cong (embedImprecise (core W′)) (sym repᴵ)))
       (f related))
-paired-holds-lift W≼W′ f reindex (lift-dynamic eqᴾ repᴾ) (Level.lift ())
-paired-holds-lift W≼W′ f reindex lift-target (Level.lift ())
+paired-holds-lift W≼W′ f reindex (lift-dynamic eqᴾ repᴾ) ()
+paired-holds-lift W≼W′ f reindex lift-target ()
 
 paired-holds-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
@@ -1057,7 +1056,7 @@ dynamic-holds-lift : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′ mode mode
   → DynamicAtomHolds ℛ′ e′ eq′
       (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
 dynamic-holds-lift W≼W′ f reindex (lift-paired _ _ _ _) eq eq′
-    (Level.lift ())
+    ()
 dynamic-holds-lift {W′ = W′} W≼W′ f reindex
     (lift-dynamic {a = a} {a′ = a′} eqᴾ repᴾ) refl refl
     (dynamic-holds Uᴾ refl related) =
@@ -1071,7 +1070,7 @@ dynamic-holds-lift {W′ = W′} W≼W′ f reindex
         (cong (embedPrecise (core W′)) (sym repᴾ)))
       (liftCenterTy-star W≼W′)
       (f related))
-dynamic-holds-lift W≼W′ f reindex lift-target refl refl (Level.lift ())
+dynamic-holds-lift W≼W′ f reindex lift-target refl refl ()
 
 dynamic-holds-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
     {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}

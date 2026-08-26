@@ -110,7 +110,7 @@ TermRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → (Γ : ContextImprecision W)
   → Term Δᴾ
   → Term Δᴵ
-  → Set₁
+  → Set
 TermRelation {W = W} p k Γ Mᴾ Mᴵ =
   ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
     (W≼W′ : Future W W′)
@@ -130,7 +130,7 @@ CompiledTermRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → (Γ : CTI.CtxImp (forgetWorld W))
   → Term Δᴾ
   → Term Δᴵ
-  → Set₁
+  → Set
 CompiledTermRelation {W = W} p k Γ =
   TermRelation p k (compiledContext W Γ)
 
@@ -147,7 +147,7 @@ CompiledUniversalBodyRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → (Γ : CTI.CtxImp (forgetWorld W))
   → Term (suc Δᴾ)
   → Term (suc Δᴵ)
-  → Set₁
+  → Set
 CompiledUniversalBodyRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Nᴵ =
   ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
     (W≼W′ : Future W W′)
@@ -177,7 +177,7 @@ CompiledRightUniversalBodyRelation : ∀ {Δᴾ Δᴵ Δᶜ}
   → (Γ : CTI.CtxImp (forgetWorld W))
   → Term (suc Δᴾ)
   → Term Δᴵ
-  → Set₁
+  → Set
 CompiledRightUniversalBodyRelation {W = W} q k Γ Nᴾ Mᴵ =
   ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
     (W≼W′ : Future W W′)
@@ -199,7 +199,7 @@ CompiledRightUniversalTestRelation : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → (Γ : CTI.CtxImp (forgetWorld W))
   → Term (suc Δᴾ)
   → Term Δᴵ
-  → Set₁
+  → Set
 CompiledRightUniversalTestRelation {W = W} p Bᴾ Bᴵ k Γ Nᴾ Mᴵ =
   ∀ {Δᴾ′ Δᴵ′ Δᶜ′} (W′ : World Δᴾ′ Δᴵ′ Δᶜ′)
     (W≼W′ : Future W W′)
@@ -229,7 +229,7 @@ record FundamentalProperty {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
     {Γ : CTI.CtxImp (forgetWorld W)}
     {Mᴾ : Term Δᴾ} {Mᴵ : Term Δᴵ}
     {p : Aᴾ ⊑ᵂ⟨ core W ⟩ Aᴵ}
-    (derivation : forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p) : Set₁ where
+    (derivation : forgetWorld W ∣ Γ ⊢² Mᴾ ⊑ Mᴵ ∶ p) : Set where
   constructor fundamental-proof
   field
     fundamental-relation : ∀ k
@@ -249,7 +249,7 @@ record UniversalBodyFundamentalProperty
     {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term (suc Δᴵ)}
     (pᵇ : I.extᵐ (impEnv (core W)) I.⊢ Cᴾ ⊑ Cᴵ)
     (body : CTI.liftWorldBoth I.X⊑X (forgetWorld W) ∣ Γᵇ
-      ⊢² Vᴾ ⊑ Vᴵ ∶ p) : Set₁ where
+      ⊢² Vᴾ ⊑ Vᴵ ∶ p) : Set where
   constructor universal-body-proof
   field
     universal-body-relation : ∀ k
@@ -267,7 +267,7 @@ record RightUniversalBodyFundamentalProperty
     {p : Aᴾ CTI.⊑ᵂ⟨ Wᵇ ⟩ Bᴵ}
     {Vᴾ : Term (suc Δᴾ)} {Mᴵ : Term Δᴵ}
     (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
-    (body : Wᵇ ∣ Γᵇ ⊢² Vᴾ ⊑ Mᴵ ∶ p) : Set₁ where
+    (body : Wᵇ ∣ Γᵇ ⊢² Vᴾ ⊑ Mᴵ ∶ p) : Set where
   constructor right-universal-body-proof
   field
     right-universal-body-relation : ∀ k

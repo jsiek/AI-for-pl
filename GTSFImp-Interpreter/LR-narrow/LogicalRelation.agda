@@ -39,7 +39,7 @@ open import LR-narrow.Computation
 record TypedEndpoints {Δᴾ Δᴵ Δᶜ} {Aᴾ Aᴵ : Ty Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ)
     (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor typed-endpoints
   field
     impreciseType : Ty Δᴵ
@@ -76,7 +76,7 @@ groundInjection g G∼★ =
 
 record DynamicPayloadShape {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor dynamic-payload-shape
   field
     precise-ground : Ty Δᴾ
@@ -104,7 +104,7 @@ open DynamicPayloadShape public
 
 record RightDynamicPayloadShape {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) (Aᴾ : Ty Δᶜ)
-    (Vᴵ : Term Δᴵ) : Set₁ where
+    (Vᴵ : Term Δᴵ) : Set where
   constructor right-dynamic-payload-shape
   field
     right-imprecise-ground : Ty Δᴵ
@@ -125,7 +125,7 @@ open RightDynamicPayloadShape public
 
 record DynamicAtomTagRelated {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) (ℛ : PayloadRelation (core W))
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor dynamic-atom-tag-related
   field
     dynamic-center-variable : TyVar Δᶜ
@@ -152,7 +152,7 @@ open DynamicAtomTagRelated public
 
 record AlignedDynamicAtomRelated {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) (ℛ : PayloadRelation (core W)) (Z : TyVar Δᶜ)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor aligned-dynamic-atom-related
   field
     aligned-imprecise-ground : Ty Δᴵ
@@ -204,7 +204,7 @@ mutual
     → impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ
     → Term Δᴵ
     → Term Δᴾ
-    → Set₁
+    → Set
 
   -- At index zero only the endpoint typings remain: the computation
   -- relation at index zero is vacuous (no imprecise step is available),
@@ -303,7 +303,7 @@ mutual
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
-    → Set₁
+    → Set
 
   FunctionsRelated W p q zero Vᴵ Vᴾ = ⊤
 
@@ -326,7 +326,7 @@ mutual
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
-    → Set₁
+    → Set
 
   UniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ = ⊤
 
@@ -354,7 +354,7 @@ mutual
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
-    → Set₁
+    → Set
 
   RightUniversalsRelated W p Bᴾ Bᴵ zero Vᴵ Vᴾ = ⊤
 
@@ -387,7 +387,7 @@ mutual
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
-    → Set₁
+    → Set
   RightUniversalFamily W p Bᴾ Bᴵ k Vᴵ Vᴾ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)
@@ -406,7 +406,7 @@ mutual
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
-    → Set₁
+    → Set
   RightDynamicPayloadRelated W Aᴾ k Vᴵ Vᴾ =
     Σ[ shape ∈ RightDynamicPayloadShape W Aᴾ Vᴵ ]
       ValueImprecisionᵏ k W (right-payload-imprecision shape)
@@ -417,7 +417,7 @@ mutual
     → ℕ
     → Term Δᴵ
     → Term Δᴾ
-    → Set₁
+    → Set
   DynamicPayloadRelated W k Vᴵ Vᴾ =
     Σ[ shape ∈ DynamicPayloadShape W Vᴵ Vᴾ ]
       ValueImprecisionᵏ k W (payload-imprecision shape)
@@ -430,7 +430,7 @@ ValueImprecision : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → ℕ
   → Term Δᴵ
   → Term Δᴾ
-  → Set₁
+  → Set
 ValueImprecision W p k = ValueImprecisionᵏ k W p
 
 ValueNarrowing : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
@@ -439,7 +439,7 @@ ValueNarrowing : ∀ {Δᴾ Δᴵ Δᶜ Aᴾ Aᴵ}
   → ℕ
   → Term Δᴵ
   → Term Δᴾ
-  → Set₁
+  → Set
 ValueNarrowing W narrowing =
   ValueImprecision W (narrowing→imprecision narrowing)
 

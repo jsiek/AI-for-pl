@@ -31,7 +31,7 @@ record RightUniversalData {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
     (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
     (Bᴾ : Ty (suc Δᴾ)) (Bᴵ : Ty Δᴵ) (k : ℕ)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor universal-data
   field
     data-endpoints : TypedEndpoints W (I.∀⊑ nonvar occurs p₀) Vᴵ Vᴾ
@@ -41,7 +41,7 @@ record RightUniversalData {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
 
 open RightUniversalData public
 
-record RightUniversalFamilyKit : Set₁ where
+record RightUniversalFamilyKit : Set where
   field
     to-family : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
         {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {k : ℕ}

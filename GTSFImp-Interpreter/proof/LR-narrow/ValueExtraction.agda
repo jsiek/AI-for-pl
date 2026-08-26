@@ -55,7 +55,7 @@ future-imprecise-monotone (future-imprecise W≼W′) =
 
 data ReflexiveFuture {Δᴾ Δᴵ Δᶜ}
     (W : World Δᴾ Δᴵ Δᶜ) :
-    ∀ {Δᶜ′} {W′ : World Δᴾ Δᴵ Δᶜ′} → Future W W′ → Set₁ where
+    ∀ {Δᶜ′} {W′ : World Δᴾ Δᴵ Δᶜ′} → Future W W′ → Set where
   future-is-refl : ReflexiveFuture W future-refl
 
 future-refl-view : ∀ {Δᴾ Δᴵ Δᶜ Δᶜ′}

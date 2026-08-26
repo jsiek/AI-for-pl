@@ -288,7 +288,7 @@ conceal-dyn-chain W d nonvar occurs p₀ nonvarʳ occursʳ q₀
 
 record SomeData {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (Bᴾ : Ty (suc Δᴾ)) (Bᴵ : Ty Δᴵ) (k : ℕ)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor some-data
   field
     someImp : BodyImprecision W Bᴾ Bᴵ

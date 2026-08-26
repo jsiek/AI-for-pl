@@ -16,7 +16,6 @@ module LR-narrow.Atoms where
 open import Data.List using ([])
 open import Data.Nat using (ℕ; suc; s≤s; z≤n)
 open import Data.Empty using (⊥)
-open import Level using (Lift; lift; 0ℓ) renaming (suc to lsuc)
 open import Data.Product using (_×_; _,_; Σ-syntax)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality
@@ -141,17 +140,17 @@ data SemanticEntry {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
 -- lower step index; it is indexed by the center imprecision of the payload
 -- types.
 
-PayloadRelation : ∀ {Δᴾ Δᴵ Δᶜ} → CoreWorld Δᴾ Δᴵ Δᶜ → Set₂
+PayloadRelation : ∀ {Δᴾ Δᴵ Δᶜ} → CoreWorld Δᴾ Δᴵ Δᶜ → Set₁
 PayloadRelation {Δᴾ} {Δᴵ} {Δᶜ} W =
   ∀ {Aᴾ Aᴵ : Ty Δᶜ} → impEnv W I.⊢ Aᴾ ⊑ Aᴵ
-  → Term Δᴵ → Term Δᴾ → Set₁
+  → Term Δᴵ → Term Δᴾ → Set
 
 -- Sealed values at a paired slot: both payloads are related at the
 -- recorded representation imprecision.
 
 record AtomHolds {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
     {Z} (ℛ : PayloadRelation W) (a : SemanticAtom W Z)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor atom-holds
   field
     impreciseSealed : Term Δᴵ
@@ -169,7 +168,7 @@ open AtomHolds public
 
 record DynamicHolds {Δᴾ Δᴵ Δᶜ} {W : CoreWorld Δᴾ Δᴵ Δᶜ}
     {Z} (ℛ : PayloadRelation W) (a : DynamicSemanticAtom W Z)
-    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set where
   constructor dynamic-holds
   field
     dynamicSealed : Term Δᴾ
@@ -183,26 +182,26 @@ PairedAtomHolds : ∀ {Δᴾ Δᴵ Δᶜ mode}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
   → PayloadRelation W
   → SemanticEntry W Z mode
-  → Term Δᴵ → Term Δᴾ → Set₁
+  → Term Δᴵ → Term Δᴾ → Set
 PairedAtomHolds ℛ (paired-entry a) Vᴵ Vᴾ = AtomHolds ℛ a Vᴵ Vᴾ
-PairedAtomHolds ℛ (dynamic-entry a) Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
-PairedAtomHolds ℛ (target-entry a) Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
+PairedAtomHolds ℛ (dynamic-entry a) Vᴵ Vᴾ = ⊥
+PairedAtomHolds ℛ (target-entry a) Vᴵ Vᴾ = ⊥
 
 DynamicAtomHolds : ∀ {Δᴾ Δᴵ Δᶜ mode}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
   → PayloadRelation W
   → (entry : SemanticEntry W Z mode)
   → mode ≡ I.X⊑★
-  → Term Δᴵ → Term Δᴾ → Set₁
-DynamicAtomHolds ℛ (paired-entry a) eq Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
+  → Term Δᴵ → Term Δᴾ → Set
+DynamicAtomHolds ℛ (paired-entry a) eq Vᴵ Vᴾ = ⊥
 DynamicAtomHolds ℛ (dynamic-entry a) refl Vᴵ Vᴾ = DynamicHolds ℛ a Vᴵ Vᴾ
-DynamicAtomHolds ℛ (target-entry a) refl Vᴵ Vᴾ = Lift (lsuc 0ℓ) ⊥
+DynamicAtomHolds ℛ (target-entry a) refl Vᴵ Vᴾ = ⊥
 
 
 -- The slot predicates are functorial in the payload relation.
 
 PayloadMap : ∀ {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
-  → PayloadRelation W → PayloadRelation W → Set₁
+  → PayloadRelation W → PayloadRelation W → Set
 PayloadMap {Δᶜ = Δᶜ} W ℛ ℛ′ =
   ∀ {Aᴾ Aᴵ : Ty Δᶜ} {p : impEnv W I.⊢ Aᴾ ⊑ Aᴵ} {Vᴵ Vᴾ}
   → ℛ p Vᴵ Vᴾ → ℛ′ p Vᴵ Vᴾ
@@ -218,8 +217,8 @@ paired-holds-map : ∀ {Δᴾ Δᴵ Δᶜ mode}
 paired-holds-map f (paired-entry a)
     (atom-holds Uᴵ Uᴾ eqᴵ eqᴾ related) =
   atom-holds Uᴵ Uᴾ eqᴵ eqᴾ (f related)
-paired-holds-map f (dynamic-entry a) (lift ())
-paired-holds-map f (target-entry a) (lift ())
+paired-holds-map f (dynamic-entry a) ()
+paired-holds-map f (target-entry a) ()
 
 dynamic-holds-map : ∀ {Δᴾ Δᴵ Δᶜ mode}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ}
@@ -229,11 +228,11 @@ dynamic-holds-map : ∀ {Δᴾ Δᴵ Δᶜ mode}
   → ∀ {Vᴵ Vᴾ}
   → DynamicAtomHolds ℛ entry eq Vᴵ Vᴾ
   → DynamicAtomHolds ℛ′ entry eq Vᴵ Vᴾ
-dynamic-holds-map f (paired-entry a) eq (lift ())
+dynamic-holds-map f (paired-entry a) eq ()
 dynamic-holds-map f (dynamic-entry a) refl
     (dynamic-holds Uᴾ eqᴾ related) =
   dynamic-holds Uᴾ eqᴾ (f related)
-dynamic-holds-map f (target-entry a) refl (lift ())
+dynamic-holds-map f (target-entry a) refl ()
 
 dynamic-atom-no-target : ∀ {Δᴾ Δᴵ Δᶜ mode}
     {W : CoreWorld Δᴾ Δᴵ Δᶜ} {Z : TyVar Δᶜ} {ℛ : PayloadRelation W}
@@ -242,10 +241,10 @@ dynamic-atom-no-target : ∀ {Δᴾ Δᴵ Δᶜ mode}
   → DynamicAtomHolds ℛ entry eq Vᴵ Vᴾ
   → (Σ[ Y ∈ TyVar Δᴵ ]
       toRenameᵗ (impreciseEmbedding W) Y ≡ Z) → ⊥
-dynamic-atom-no-target (paired-entry a) eq (lift ())
+dynamic-atom-no-target (paired-entry a) eq ()
 dynamic-atom-no-target (dynamic-entry a) refl related =
   dynamicNoTargetOccupant a
-dynamic-atom-no-target (target-entry a) refl (lift ())
+dynamic-atom-no-target (target-entry a) refl ()
 
 ------------------------------------------------------------------------
 -- Reindexing slots through fresh bindings

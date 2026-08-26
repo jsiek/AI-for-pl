@@ -141,7 +141,7 @@ module Composition (Fᴾ Fᴵ : Frame) where
   -- related computations, at every future reached by an operand phase.
   PlugValues : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx} (W : World Δᴾ Δᴵ Δᶜ)
     → IndexedValueRelation W → IndexedValueRelation W → ℕ
-    → P.Frm Δᴾ → I.Frm Δᴵ → Set₁
+    → P.Frm Δᴾ → I.Frm Δᴵ → Set
   PlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S k fᴾ fᴵ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)
@@ -570,7 +570,7 @@ module PreciseComposition (Fᴾ : Frame) where
 
   PrecisePlugValues : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx} (W : World Δᴾ Δᴵ Δᶜ)
     → IndexedValueRelation W → IndexedValueRelation W → ℕ
-    → P.Frm Δᴾ → Set₁
+    → P.Frm Δᴾ → Set
   PrecisePlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S k fᴾ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)
@@ -870,7 +870,7 @@ module ImpreciseComposition (Fᴵ : Frame) where
 
   ImprecisePlugValues : ∀ {Δᴾ Δᴵ Δᶜ : TyCtx} (W : World Δᴾ Δᴵ Δᶜ)
     → IndexedValueRelation W → IndexedValueRelation W → ℕ
-    → I.Frm Δᴵ → Set₁
+    → I.Frm Δᴵ → Set
   ImprecisePlugValues {Δᴾ = Δᴾ} {Δᴵ = Δᴵ} W R S k fᴵ =
     ∀ {Δᴾ′ Δᴵ′ Δᶜ′ : TyCtx} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
       (W≼W′ : Future W W′)

@@ -14,8 +14,26 @@ open import CastTerms using (Ctx; Δᵉ; Term)
 open import Reduction using (StoreChanges; applyTerms)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.World
+open import proof.DGG.WorldEvolution using
+  (CtxChange; WorldEvolution; evolution-⊑ᵀ)
 open import proof.DGG.WorldEvolutionSequence using
-  (MultiWorldEvolution; multi-⊑ᵀ)
+  (MultiWorldEvolution; multi-⊑ᵀ; ctx-change-term-value)
+
+
+TransportTermImprecisionStepᵀ : Set
+TransportTermImprecisionStepᵀ = ∀
+    {Γᴸ Γᴿ Γᴸ′ Γᴿ′ : Ctx}
+    {γ : Γᴸ ⊑ᶜ Γᴿ} {γ′ : Γᴸ′ ⊑ᶜ Γᴿ′}
+    {stepᴸ : CtxChange Γᴸ Γᴸ′}
+    {stepᴿ : CtxChange Γᴿ Γᴿ′}
+    {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+    {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+    {p : A ⊑ᵀ⟨ γ ⟩ B}
+  → (evol : WorldEvolution
+      {W = γ} {W′ = γ′} stepᴸ stepᴿ)
+  → γ ⊢² M ⊑ M′ ∶ p
+  → γ′ ⊢² ctx-change-term-value stepᴸ M
+      ⊑ ctx-change-term-value stepᴿ M′ ∶ evolution-⊑ᵀ evol p
 
 
 TransportTermImprecisionᵀ : Set

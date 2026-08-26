@@ -27,6 +27,23 @@ Rebuild `TransportTermImprecisionProof.agda` in place as a proof of
 every CTI constructor without importing `CtxImp`, `ParkedWorld`, or a
 compatibility wrapper.
 
+This milestone has two proof-engineering layers:
+
+1. The sequence driver lifts a one-step CTI transport through
+   `MultiWorldEvolution`.
+2. The one-step theorem transports every CTI constructor through one
+   `WorldEvolution`.
+
+The second layer has genuine pre-induction obligations under term binders,
+type binders, and source rebases.  A runtime bind outside a type binder has
+store shape `store-bind (store-lift Σ) ...` when naively pushed inward, while
+the CTI premise requires `store-lift (store-bind Σ ...)`.  Therefore the
+one-step proof must use structural source, target, and paired extension through
+world history; it must not pretend that an ordinary root `WorldEvolution`
+commutes definitionally with scope.  Keep those structural inductions as
+explicit module parameters while they are incomplete, then expose the closed
+transport from a `...Lemma` module.
+
 ### 2. Canonical CTI substitution
 
 Implement `TermImprecisionSubstitutionᵀ` over `bind-termᶜ`.  Keep the

@@ -1,244 +1,158 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.TransportTermImprecisionProof where
 
 -- File Charter:
---   * Implements the parked-evolution driver for CTI2 term-imprecision
---     transport from the source-only and paired single-bind transports.
---   * Discharges the right-only bind case with the existing parked-to-target
---     world extension bridge and target-extension theorem.
---   * Keeps the source-only and paired bind inductions as explicit inputs.
+--   * Lifts a canonical one-step CTI transport through a sequence of world
+--     evolutions.
+--   * Keeps the constructor induction as a module parameter because it is a
+--     separate, reusable proof over one WorldEvolution step.
+--   * Imports no parked world, compatibility world, or legacy context layer.
 
-open import Data.List using ([]; _∷_)
-import Data.Nat as Nat
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; cong₂)
-  renaming (subst to subst≡)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; cong; subst)
 
-open import CastTerms using (Term)
-import Consistency
-open import Imprecision using (X⊑X; X⊑★)
-import Reduction
-import proof.DGG.CtxImp as CTI2
-import proof.DGG.CastTermImprecision as CTIR
-open CTI2 using
-  (World;
-   CtxImp;
-   ctx-imp;
-   _⊑ᵂ⟨_⟩_)
-open CTIR using (_∣_⊢²_⊑_∶_)
-import proof.DGG.ExtraCastRight2 as ECR
-open import proof.DGG.Parked.ParkedWorldDef
-  using
-    ( ParkedEvolve
-    ; evolve-refl
-    ; evolve-keepᴸ
-    ; evolve-keepᴿ
-    ; evolve-left-bind
-    ; evolve-right-bind
-    ; evolve-both-bind
-    ; evolve-structural-right-bind
-    )
-open import proof.DGG.Parked.ParkedWorldLemma
-  using (mapCtxᴾ; right-only-parked→world-extendᴿ; transport⊑ᴾ)
-open import proof.DGG.TargetExtend using (⊢²-target-extend-bind)
-import proof.DGG.TargetExtend as TE
-open import proof.TypeInTermSubst using (renameᵗ-wk-eq)
+open import Types using (Ty)
+open import CastTerms using (Ctx; Δᵉ; Term)
+open import Reduction using
+  (StoreChange; StoreChanges; _∷_; applyTerm; applyTerms)
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.TransportTermImprecisionDef
-  using
-    ( BothBindTransport²ᵀ
-    ; SourceBindTransport²ᵀ
-    ; TargetInsertProvenanceᵀ
-    ; TransportTermImprecisionCtxᴾᵀ
-    ; TransportTermImprecisionᴾᵀ
-    )
+open import proof.DGG.World
+open import proof.DGG.WorldEvolution using
+  (CtxChange; WorldEvolution; keep-ctx; storeChange; evolution-⊑ᵀ)
+open import proof.DGG.WorldEvolutionSequence using
+  ( MultiWorldEvolution
+  ; evolutions-refl
+  ; evolutions-step-left
+  ; evolutions-step-right
+  ; evolutions-step-both
+  ; multi-⊑ᵀ
+  ; ctx-change-term-value
+  ; ctx-change-term-value-as
+  )
 
+module _ (transport-step : TransportTermImprecisionStepᵀ) where
 
-mapCtxᴾ-refl : ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ}
-    (γ : CtxImp W)
-  → mapCtxᴾ evolve-refl γ ≡ γ
-mapCtxᴾ-refl [] = refl
-mapCtxᴾ-refl (ctx-imp A B p ∷ γ) =
-  cong (λ γ′ → ctx-imp A B p ∷ γ′) (mapCtxᴾ-refl γ)
+  finish-left : ∀
+      {Γᴸ Γᴿ Γᴸ¹ Γᴸ′ Γᴿ′ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {γ¹ : Γᴸ¹ ⊑ᶜ Γᴿ}
+      {γ′ : Γᴸ′ ⊑ᶜ Γᴿ′}
+      {χᴸ : StoreChange (Δᵉ Γᴸ) (Δᵉ Γᴸ¹)}
+      {χsᴸ : StoreChanges (Δᵉ Γᴸ¹) (Δᵉ Γᴸ′)}
+      {χsᴿ : StoreChanges (Δᵉ Γᴿ) (Δᵉ Γᴿ′)}
+      {stepᴸ : CtxChange Γᴸ Γᴸ¹}
+      {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+      {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+    → (eqᴸ : storeChange stepᴸ ≡ χᴸ)
+    → (one : WorldEvolution {W = γ} {W′ = γ¹} stepᴸ keep-ctx)
+    → (tail : MultiWorldEvolution
+        {W = γ¹} {W′ = γ′} χsᴸ χsᴿ)
+    → γ′ ⊢² applyTerms χsᴸ (ctx-change-term-value stepᴸ M)
+        ⊑ applyTerms χsᴿ M′
+        ∶ multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
+    → γ′ ⊢² applyTerms (χᴸ ∷ χsᴸ) M
+        ⊑ applyTerms χsᴿ M′
+        ∶ multi-⊑ᵀ (evolutions-step-left eqᴸ one tail) p
+  finish-left {γ′ = γ′} {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
+      {stepᴸ = stepᴸ}
+      {M = M} {M′ = M′} {p = p} refl one tail related =
+    subst
+      (λ N → γ′ ⊢² N ⊑ applyTerms χsᴿ M′
+        ∶ multi-⊑ᵀ tail (evolution-⊑ᵀ one p))
+      (cong (applyTerms χsᴸ)
+        (ctx-change-term-value-as {step = stepᴸ} refl M))
+      related
 
+  finish-right : ∀
+      {Γᴸ Γᴿ Γᴿ¹ Γᴸ′ Γᴿ′ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {γ¹ : Γᴸ ⊑ᶜ Γᴿ¹}
+      {γ′ : Γᴸ′ ⊑ᶜ Γᴿ′}
+      {χᴿ : StoreChange (Δᵉ Γᴿ) (Δᵉ Γᴿ¹)}
+      {χsᴸ : StoreChanges (Δᵉ Γᴸ) (Δᵉ Γᴸ′)}
+      {χsᴿ : StoreChanges (Δᵉ Γᴿ¹) (Δᵉ Γᴿ′)}
+      {stepᴿ : CtxChange Γᴿ Γᴿ¹}
+      {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+      {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+    → (eqᴿ : storeChange stepᴿ ≡ χᴿ)
+    → (one : WorldEvolution {W = γ} {W′ = γ¹} keep-ctx stepᴿ)
+    → (tail : MultiWorldEvolution
+        {W = γ¹} {W′ = γ′} χsᴸ χsᴿ)
+    → γ′ ⊢² applyTerms χsᴸ M
+        ⊑ applyTerms χsᴿ (ctx-change-term-value stepᴿ M′)
+        ∶ multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
+    → γ′ ⊢² applyTerms χsᴸ M
+        ⊑ applyTerms (χᴿ ∷ χsᴿ) M′
+        ∶ multi-⊑ᵀ (evolutions-step-right eqᴿ one tail) p
+  finish-right {γ′ = γ′} {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
+      {stepᴿ = stepᴿ}
+      {M = M} {M′ = M′} {p = p} refl one tail related =
+    subst
+      (λ N′ → γ′ ⊢² applyTerms χsᴸ M ⊑ N′
+        ∶ multi-⊑ᵀ tail (evolution-⊑ᵀ one p))
+      (cong (applyTerms χsᴿ)
+        (ctx-change-term-value-as {step = stepᴿ} refl M′))
+      related
 
-mapCtxᴾ-keepᴸ : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
-    {χsᴸ : Reduction.StoreChanges Δᴸ Δᴸ′}
-    {χsᴿ : Reduction.StoreChanges Δᴿ Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
-  → (evol : ParkedEvolve χsᴸ χsᴿ W W′)
-  → (γ : CtxImp W)
-  → mapCtxᴾ evol γ ≡ mapCtxᴾ (evolve-keepᴸ evol) γ
-mapCtxᴾ-keepᴸ evol [] = refl
-mapCtxᴾ-keepᴸ evol (ctx-imp A B p ∷ γ) =
-  cong (λ γ′ → ctx-imp _ _ _ ∷ γ′) (mapCtxᴾ-keepᴸ evol γ)
+  finish-both : ∀
+      {Γᴸ Γᴿ Γᴸ¹ Γᴿ¹ Γᴸ′ Γᴿ′ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {γ¹ : Γᴸ¹ ⊑ᶜ Γᴿ¹}
+      {γ′ : Γᴸ′ ⊑ᶜ Γᴿ′}
+      {χᴸ : StoreChange (Δᵉ Γᴸ) (Δᵉ Γᴸ¹)}
+      {χᴿ : StoreChange (Δᵉ Γᴿ) (Δᵉ Γᴿ¹)}
+      {χsᴸ : StoreChanges (Δᵉ Γᴸ¹) (Δᵉ Γᴸ′)}
+      {χsᴿ : StoreChanges (Δᵉ Γᴿ¹) (Δᵉ Γᴿ′)}
+      {stepᴸ : CtxChange Γᴸ Γᴸ¹}
+      {stepᴿ : CtxChange Γᴿ Γᴿ¹}
+      {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
+      {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
+      {p : A ⊑ᵀ⟨ γ ⟩ B}
+    → (eqᴸ : storeChange stepᴸ ≡ χᴸ)
+    → (eqᴿ : storeChange stepᴿ ≡ χᴿ)
+    → (one : WorldEvolution {W = γ} {W′ = γ¹} stepᴸ stepᴿ)
+    → (tail : MultiWorldEvolution
+        {W = γ¹} {W′ = γ′} χsᴸ χsᴿ)
+    → γ′ ⊢² applyTerms χsᴸ (ctx-change-term-value stepᴸ M)
+        ⊑ applyTerms χsᴿ (ctx-change-term-value stepᴿ M′)
+        ∶ multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
+    → γ′ ⊢² applyTerms (χᴸ ∷ χsᴸ) M
+        ⊑ applyTerms (χᴿ ∷ χsᴿ) M′
+        ∶ multi-⊑ᵀ
+          (evolutions-step-both eqᴸ eqᴿ one tail) p
+  finish-both {γ′ = γ′} {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
+      {stepᴸ = stepᴸ} {stepᴿ = stepᴿ}
+      {M = M} {M′ = M′} {p = p}
+      refl refl one tail related =
+    subst
+      (λ N′ → γ′ ⊢² applyTerms χsᴸ
+          (applyTerm (storeChange stepᴸ) M) ⊑ N′
+        ∶ multi-⊑ᵀ tail (evolution-⊑ᵀ one p))
+      (cong (applyTerms χsᴿ)
+        (ctx-change-term-value-as {step = stepᴿ} refl M′))
+      (subst
+        (λ N → γ′ ⊢² N ⊑ applyTerms χsᴿ
+            (ctx-change-term-value stepᴿ M′)
+          ∶ multi-⊑ᵀ tail (evolution-⊑ᵀ one p))
+        (cong (applyTerms χsᴸ)
+          (ctx-change-term-value-as {step = stepᴸ} refl M))
+        related)
 
+  transport-term-imprecision : TransportTermImprecisionᵀ
+  transport-term-imprecision evolutions-refl related = related
 
-mapCtxᴾ-keepᴿ : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
-    {χsᴸ : Reduction.StoreChanges Δᴸ Δᴸ′}
-    {χsᴿ : Reduction.StoreChanges Δᴿ Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
-  → (evol : ParkedEvolve χsᴸ χsᴿ W W′)
-  → (γ : CtxImp W)
-  → mapCtxᴾ evol γ ≡ mapCtxᴾ (evolve-keepᴿ evol) γ
-mapCtxᴾ-keepᴿ evol [] = refl
-mapCtxᴾ-keepᴿ evol (ctx-imp A B p ∷ γ) =
-  cong (λ γ′ → ctx-imp _ _ _ ∷ γ′) (mapCtxᴾ-keepᴿ evol γ)
+  transport-term-imprecision
+      (evolutions-step-left eqᴸ one tail) related =
+    finish-left eqᴸ one tail
+      (transport-term-imprecision tail (transport-step one related))
 
+  transport-term-imprecision
+      (evolutions-step-right eqᴿ one tail) related =
+    finish-right eqᴿ one tail
+      (transport-term-imprecision tail (transport-step one related))
 
-mapCtxᴾ-left-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
-    {χsᴸ : Reduction.StoreChanges (Nat.suc Δᴸ) Δᴸ′}
-    {χsᴿ : Reduction.StoreChanges Δᴿ Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
-    {A₀}
-  → (evol : ParkedEvolve χsᴸ χsᴿ (CTI2.leftOnlyWorld W A₀) W′)
-  → (γ : CtxImp W)
-  → mapCtxᴾ evol
-      (mapCtxᴾ (evolve-left-bind {W = W} {A = A₀} evolve-refl) γ)
-      ≡ mapCtxᴾ (evolve-left-bind {W = W} {A = A₀} evol) γ
-mapCtxᴾ-left-bind evol [] = refl
-mapCtxᴾ-left-bind evol (ctx-imp A B p ∷ γ) =
-  cong (λ γ′ → ctx-imp _ _ _ ∷ γ′) (mapCtxᴾ-left-bind evol γ)
-
-
-mapCtxᴾ-both-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
-    {χsᴸ : Reduction.StoreChanges (Nat.suc Δᴸ) Δᴸ′}
-    {χsᴿ : Reduction.StoreChanges (Nat.suc Δᴿ) Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
-    {A₀ B₀} {bind-p : A₀ ⊑ᵂ⟨ W ⟩ B₀}
-  → (evol : ParkedEvolve χsᴸ χsᴿ
-      (CTI2.bothBindWorld W A₀ B₀ bind-p) W′)
-  → (γ : CtxImp W)
-  → mapCtxᴾ evol
-      (mapCtxᴾ
-        (evolve-both-bind {W = W} {A = A₀} {B = B₀}
-          {p = bind-p} evolve-refl) γ)
-      ≡ mapCtxᴾ
-        (evolve-both-bind {W = W} {A = A₀} {B = B₀}
-          {p = bind-p} evol) γ
-mapCtxᴾ-both-bind evol [] = refl
-mapCtxᴾ-both-bind evol (ctx-imp A B p ∷ γ) =
-  cong (λ γ′ → ctx-imp _ _ _ ∷ γ′) (mapCtxᴾ-both-bind evol γ)
-
-
-mapCtxᴾ-right-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ′}
-    {χsᴸ : Reduction.StoreChanges Δᴸ Δᴸ′}
-    {χsᴿ : Reduction.StoreChanges (Nat.suc Δᴿ) Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ} {W′ : World Δᴸ′ Δᴿ′ Δ′}
-    {B₀} {fresh : CTI2.RightBindFresh W B₀}
-  → (evol : ParkedEvolve χsᴸ χsᴿ
-      (CTI2.rightOnlyWorld W B₀ fresh) W′)
-  → (γ : CtxImp W)
-  → let ext = right-only-parked→world-extendᴿ
-          (evolve-right-bind {W = W} {B = B₀} {fresh = fresh}
-            evolve-refl)
-     in mapCtxᴾ evol (ECR.mapCtxᴿ ext γ)
-        ≡ mapCtxᴾ (evolve-right-bind {W = W} {B = B₀}
-          {fresh = fresh} evol) γ
-mapCtxᴾ-right-bind evol [] = refl
-mapCtxᴾ-right-bind evol (ctx-imp A B p ∷ γ) =
-  cong (λ γ′ → ctx-imp _ _ _ ∷ γ′) (mapCtxᴾ-right-bind evol γ)
-
-
-mapCtxᴾ-structural-right-bind : ∀ {Δᴸ Δᴸ′ Δᴿ Δᴿ′ Δ Δ₁ Δ′}
-    {χsᴸ : Reduction.StoreChanges Δᴸ Δᴸ′}
-    {χsᴿ : Reduction.StoreChanges (Nat.suc Δᴿ) Δᴿ′}
-    {W : World Δᴸ Δᴿ Δ}
-    {W₁ : World Δᴸ (Nat.suc Δᴿ) Δ₁}
-    {W′ : World Δᴸ′ Δᴿ′ Δ′}
-    {B₀} {π}
-  → (ins : TE.TargetInsert Consistency.wk↪ᵗ π W W₁)
-  → (follows : CTI2.targetStoreʷ W₁ ≡
-      Reduction.applyStore (Reduction.bind B₀) (CTI2.targetStoreʷ W))
-  → (evol : ParkedEvolve χsᴸ χsᴿ W₁ W′)
-  → (γ : CtxImp W)
-  → mapCtxᴾ evol (TE.mapCtxᵀ ins γ)
-      ≡ mapCtxᴾ (evolve-structural-right-bind ins follows evol) γ
-mapCtxᴾ-structural-right-bind ins follows evol [] = refl
-mapCtxᴾ-structural-right-bind {χsᴿ = χsᴿ}
-    ins follows evol (ctx-imp A B p ∷ γ) =
-  cong₂ _∷_ entry-eq
-    (mapCtxᴾ-structural-right-bind ins follows evol γ)
-  where
-  entry-eq =
-    TE.ctx-imp-target-eq
-      (cong (Reduction.applyTys χsᴿ) (renameᵗ-wk-eq B))
-
-
-transport-term-imprecision-ctx :
-  SourceBindTransport²ᵀ
-  → BothBindTransport²ᵀ
-  → TargetInsertProvenanceᵀ
-  → TransportTermImprecisionCtxᴾᵀ
-transport-term-imprecision-ctx src both target-provenance
-    {W = W} {γ = γ} {M = M} {M′ = M′} {p = p}
-    evolve-refl M⊑M′ =
-  subst≡ (λ γ′ → W ∣ γ′ ⊢² M ⊑ M′ ∶ p)
-    (sym (mapCtxᴾ-refl γ)) M⊑M′
-transport-term-imprecision-ctx src both target-provenance
-    {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
-    {W′ = W′} {γ = γ} {M = M} {M′ = M′} {p = p}
-    (evolve-keepᴸ evol) M⊑M′ =
-  subst≡
-    (λ γ′ → W′ ∣ γ′ ⊢²
-      Reduction.applyTerms χsᴸ M ⊑ Reduction.applyTerms χsᴿ M′
-        ∶ transport⊑ᴾ evol p)
-    (mapCtxᴾ-keepᴸ evol γ)
-    (transport-term-imprecision-ctx src both target-provenance evol M⊑M′)
-transport-term-imprecision-ctx src both target-provenance
-    {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
-    {W′ = W′} {γ = γ} {M = M} {M′ = M′} {p = p}
-    (evolve-keepᴿ evol) M⊑M′ =
-  subst≡
-    (λ γ′ → W′ ∣ γ′ ⊢²
-      Reduction.applyTerms χsᴸ M ⊑ Reduction.applyTerms χsᴿ M′
-        ∶ transport⊑ᴾ evol p)
-    (mapCtxᴾ-keepᴿ evol γ)
-    (transport-term-imprecision-ctx src both target-provenance evol M⊑M′)
-transport-term-imprecision-ctx src both target-provenance
-    (evolve-left-bind {W′ = W′} {A = A₀} evol) M⊑M′ =
-  subst≡
-    (λ γ′ → W′ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
-    (mapCtxᴾ-left-bind evol _)
-    (transport-term-imprecision-ctx src both target-provenance evol
-      (src {A₀ = A₀} M⊑M′))
-transport-term-imprecision-ctx src both target-provenance
-    (evolve-right-bind {W = W} {W′ = W′} {B = B₀}
-      {fresh = fresh} evol) M⊑M′ =
-  subst≡
-    (λ γ′ → W′ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
-    (mapCtxᴾ-right-bind evol _)
-    (transport-term-imprecision-ctx src both target-provenance evol
-      (⊢²-target-extend-bind
-        (right-only-parked→world-extendᴿ
-          (evolve-right-bind {W = W} {B = B₀} {fresh = fresh}
-            evolve-refl))
-        M⊑M′
-        (target-provenance
-          (CTI2.rightOnlyWorld W B₀ fresh)
-          (TE.rightBindTargetInsert fresh) M⊑M′)))
-transport-term-imprecision-ctx src both target-provenance
-    {W′ = W′}
-    (evolve-structural-right-bind ins follows evol) M⊑M′ =
-  subst≡
-    (λ γ′ → W′ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
-    (mapCtxᴾ-structural-right-bind ins follows evol _)
-    (transport-term-imprecision-ctx src both target-provenance evol
-      (TE.⊢²-retargetᴿ (renameᵗ-wk-eq _)
-        (TE.⊢²-target-insert _ ins M⊑M′
-          (target-provenance _ ins M⊑M′))))
-transport-term-imprecision-ctx src both target-provenance
-    (evolve-both-bind {W′ = W′} {A = A₀} {B = B₀}
-      {p = bind-p} evol) M⊑M′ =
-  subst≡
-    (λ γ′ → W′ ∣ γ′ ⊢² _ ⊑ _ ∶ _)
-    (mapCtxᴾ-both-bind evol _)
-    (transport-term-imprecision-ctx src both target-provenance evol
-      (both {A₀ = A₀} {B₀ = B₀} bind-p M⊑M′))
-
-
-transport-term-imprecision :
-  SourceBindTransport²ᵀ
-  → BothBindTransport²ᵀ
-  → TargetInsertProvenanceᵀ
-  → TransportTermImprecisionᴾᵀ
-transport-term-imprecision src both target-provenance evol M⊑M′ =
-  transport-term-imprecision-ctx src both target-provenance evol M⊑M′
+  transport-term-imprecision
+      (evolutions-step-both eqᴸ eqᴿ one tail) related =
+    finish-both eqᴸ eqᴿ one tail
+      (transport-term-imprecision tail (transport-step one related))

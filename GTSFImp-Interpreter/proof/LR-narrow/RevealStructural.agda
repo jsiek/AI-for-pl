@@ -1926,6 +1926,7 @@ reveal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
   → (sourceᴾ : embedPrecise (core W) (`∀ B₀ᴾ) ≡ `∀ Ac)
   → (sourceᴵ : embedImprecise (core W) Bᴵ ≡ Bc)
+  → (shapeᴵ : UniShape Bᴵ)
   → (targetImp : BodyImprecision W
       (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
       (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
@@ -1937,7 +1938,7 @@ reveal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Vᴵ ↑ 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
 reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvar occurs p₀ sourceᴾ sourceᴵ targetImp {m = m}
+    nonvar occurs p₀ sourceᴾ sourceᴵ shapeᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
     with ty-all-injective
@@ -1948,7 +1949,7 @@ reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
            (toRenameᵗ-injective (impreciseEmbedding (core W)))
            (trans embI* (sym sourceᴵ))
 reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvar occurs p₀ sourceᴾ sourceᴵ targetImp {m = m}
+    nonvar occurs p₀ sourceᴾ sourceᴵ shapeᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints , .B₀ᴾ , .Bᴵ , embP* , embI* , fam)
     | refl | refl = family
@@ -1987,6 +1988,7 @@ reveal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     imprecise-eq = sym (replace-imprecise-lift s W≼W′ Bᴵ)
 
     w = reveal-paired s′ B₀ᴾ′ Bᴵ′′
+      (shape-lift W≼W′ shapeᴵ)
       (body-imprecision-subst precise-eq
         (body-imprecision-subst-imp imprecise-eq
           (body-imprecision-future W≼W′ targetImp)))
@@ -2057,6 +2059,7 @@ conceal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       ≡ `∀ Acʳ)
   → (targetᴵ : embedImprecise (core W)
       (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Bcʳ)
+  → (shapeᴵ : UniShape Bᴵ)
   → (targetImp : BodyImprecision W B₀ᴾ Bᴵ)
   → ∀ {m : ℕ} {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑ nonvarʳ occursʳ q₀) (suc m) Vᴵ Vᴾ
@@ -2064,7 +2067,7 @@ conceal-paired-family : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Vᴵ ↓ makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ)
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
 conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvarʳ occursʳ q₀ targetᴾ targetᴵ targetImp {m = m}
+    nonvarʳ occursʳ q₀ targetᴾ targetᴵ shapeᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints , Bᴾ* , Bᴵ* , embP* , embI* , fam)
     with ty-all-injective
@@ -2075,7 +2078,7 @@ conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
            (toRenameᵗ-injective (impreciseEmbedding (core W)))
            (trans embI* (sym targetᴵ))
 conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
-    nonvarʳ occursʳ q₀ targetᴾ targetᴵ targetImp {m = m}
+    nonvarʳ occursʳ q₀ targetᴾ targetᴵ shapeᴵ targetImp {m = m}
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ}
     (endpoints
      , .(replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B₀ᴾ)
@@ -2115,6 +2118,7 @@ conceal-paired-family W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     imprecise-eq = sym (replace-imprecise-lift s W≼W′ Bᴵ)
 
     w = conceal-paired s′ B₀ᴾ′ Bᴵ′′
+      (shape-lift W≼W′ shapeᴵ)
       (body-imprecision-future W≼W′ targetImp)
 
     σ-mid : UniWraps W′
@@ -2570,7 +2574,7 @@ reveal-right-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       ≡ `∀ Acʳ)
   → (targetᴵ : embedImprecise (core W)
       (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Bcʳ)
-  → (wrapᴵ : RevealValue 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
+  → (shapeᴵ : UniShape Bᴵ)
   → ∀ {k n : ℕ} (below : Below k n) (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
   → ValueImprecision W (I.∀⊑ nonvar occurs p₀) k Vᴵ Vᴾ
@@ -2580,10 +2584,10 @@ reveal-right-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
 reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ targetᴵ wrapᴵ
+    sourceᴾ sourceᴵ targetᴾ targetᴵ shapeᴵ
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
   related-values-return
-    (imprecise-value endpoints ↑ wrapᴵ)
+    (imprecise-value endpoints ↑ reveal-value-of shapeᴵ)
     (precise-value endpoints ↑ all)
     at-every-index
   where
@@ -2595,7 +2599,7 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
   reveal-endpoints = revealed-endpoints W s
     (I.∀⊑ nonvar occurs p₀) sourceᴾ sourceᴵ
     (I.∀⊑ nonvarʳ occursʳ q₀) targetᴾ targetᴵ endpoints
-    (imprecise-value endpoints ↑ wrapᴵ)
+    (imprecise-value endpoints ↑ reveal-value-of shapeᴵ)
     (precise-value endpoints ↑ all)
 
   at-every-index : ∀ (j : ℕ) → j ≤ k
@@ -2610,7 +2614,8 @@ reveal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     targetᴾ , targetᴵ ,
     (λ W≼W′ σ →
       reveal-paired-family W s nonvar occurs p₀ sourceᴾ sourceᴵ
-        (body-imprecision nonvarʳ occursʳ q₀ targetᴾ targetᴵ)
+        shapeᴵ
+        (body-imprecision-of nonvarʳ occursʳ q₀ targetᴾ targetᴵ)
         (value-imprecision-downward-to
           {W = W} {p = I.∀⊑ nonvar occurs p₀} {j = suc j} {k = k}
           {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
@@ -3040,8 +3045,7 @@ conceal-right-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       ≡ `∀ Acʳ)
   → (targetᴵ : embedImprecise (core W)
       (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ) ≡ Bcʳ)
-  → (wrapᴵ : ConcealValue
-      (makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ))
+  → (shapeᴵ : UniShape Bᴵ)
   → ∀ {k n : ℕ} (below : Below k n)
       (size< : suc (sizeᵖ p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -3052,10 +3056,10 @@ conceal-right-universal : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
 conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     nonvar occurs p₀ nonvarʳ occursʳ q₀
-    sourceᴾ sourceᴵ targetᴾ targetᴵ wrapᴵ
+    sourceᴾ sourceᴵ targetᴾ targetᴵ shapeᴵ
     {k = k} {n = n} below size< {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
   related-values-return
-    (imprecise-value endpoints ↓ wrapᴵ)
+    (imprecise-value endpoints ↓ conceal-value-of shapeᴵ)
     (precise-value endpoints ↓ all)
     at-every-index
   where
@@ -3068,7 +3072,7 @@ conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     (I.∀⊑ nonvar occurs p₀)
     sourceᴾ sourceᴵ (I.∀⊑ nonvarʳ occursʳ q₀) targetᴾ targetᴵ
     endpoints
-    (imprecise-value endpoints ↓ wrapᴵ)
+    (imprecise-value endpoints ↓ conceal-value-of shapeᴵ)
     (precise-value endpoints ↓ all)
 
   at-every-index : ∀ (j : ℕ) → j ≤ k
@@ -3082,8 +3086,8 @@ conceal-right-universal W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     B₀ᴾ , Bᴵ , sourceᴾ , sourceᴵ ,
     (λ W≼W′ σ →
       conceal-paired-family W s nonvarʳ occursʳ q₀
-        targetᴾ targetᴵ
-        (body-imprecision nonvar occurs p₀ sourceᴾ sourceᴵ)
+        targetᴾ targetᴵ shapeᴵ
+        (body-imprecision-of nonvar occurs p₀ sourceᴾ sourceᴵ)
         (value-imprecision-downward-to
           {W = W} {p = I.∀⊑ nonvarʳ occursʳ q₀} {j = suc j}
           {k = k} {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} sj≤k related)
@@ -4676,8 +4680,7 @@ conceal-right-universal-general : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ
         (replaceTy (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
       ⊑ embedImprecise (core W)
           (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
-  → (wrapᴵ : ConcealValue
-      (makeConceal (slotXᴵ s) (slotRᴵ s) Bᴵ))
+  → (shapeᴵ : UniShape Bᴵ)
   → ∀ {k n : ℕ} (below : Below k n)
       (size≤ : sizeᵖ (I.∀⊑ nonvar occurs p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -4688,10 +4691,10 @@ conceal-right-universal-general : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ
       (Vᴾ ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
 conceal-right-universal-general W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Ac = Ac} {Bc = Bc} nonvar occurs p₀ eqᴾ sourceᴾ sourceᴵ q
-    wrapᴵ {k = k} {n = n} below size≤
+    shapeᴵ {k = k} {n = n} below size≤
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
   conceal-right-universal W s nonvar occurs p₀ nvʳ ocʳ q₀ʳ
-    sourceᴾ sourceᴵ refl refl wrapᴵ below size≤
+    sourceᴾ sourceᴵ refl refl shapeᴵ below size≤
     (subst≡ (λ q′ → ValueImprecision W q′ k Vᴵ Vᴾ)
       (PI.⊑-unique q (I.∀⊑ nvʳ ocʳ q₀ʳ)) related)
   where
@@ -4922,7 +4925,7 @@ right-universal-general : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
         (replaceTy (slotXᴾ s) (slotRᴾ s) (`∀ B₀ᴾ))
       ⊑ embedImprecise (core W)
           (replaceTy (slotXᴵ s) (slotRᴵ s) Bᴵ))
-  → (wrapᴵ : RevealValue 〖 slotXᴵ s , slotRᴵ s ↑ Bᴵ 〗)
+  → (shapeᴵ : UniShape Bᴵ)
   → ∀ {k n : ℕ} (below : Below k n)
       (size≤ : sizeᵖ (I.∀⊑ nonvar occurs p₀) ≤ n)
       {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
@@ -4932,7 +4935,7 @@ right-universal-general : ∀ {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗)
 right-universal-general W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
     {Ac = Ac} {Bc = Bc} nonvar occurs p₀ eqᴾ sourceᴾ sourceᴵ q
-    wrapᴵ {k = k} {n = n} below size≤
+    shapeᴵ {k = k} {n = n} below size≤
     {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related =
   subst≡
     (λ q′ → ComputationsRelated W (FutureValueRelation q′) k
@@ -4940,7 +4943,7 @@ right-universal-general W s {B₀ᴾ = B₀ᴾ} {Bᴵ = Bᴵ}
       (Vᴾ ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B₀ᴾ 〗))
     (sym (PI.⊑-unique q (I.∀⊑ nvʳ ocʳ q₀ʳ)))
     (reveal-right-universal W s nonvar occurs p₀ nvʳ ocʳ q₀ʳ
-      sourceᴾ sourceᴵ refl refl wrapᴵ below size≤ related)
+      sourceᴾ sourceᴵ refl refl shapeᴵ below size≤ related)
   where
   ρᴾ = toRenameᵗ (preciseEmbedding (core W))
   ρᴵ = toRenameᵗ (impreciseEmbedding (core W))
@@ -5270,7 +5273,7 @@ reveal-conceal-step k n below = reveal-at , conceal-at
       {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | B₀ᴾ , refl , eqᴾ | refl | refl =
     right-universal-general W s nonvar occurs p₀ eqᴾ
-      sourceᴾ sourceᴵ q fun below size≤ related
+      sourceᴾ sourceᴵ q shape-fun below size≤ related
   reveal-at W s {Bᴵ = `∀ B₁} (I.∀⊑ nonvar occurs p₀) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-universal-inversion _ sourceᴾ
@@ -5284,7 +5287,7 @@ reveal-conceal-step k n below = reveal-at , conceal-at
       {Vᴵ = Vᴵ} {Vᴾ = Vᴾ} related
       | B₀ᴾ , refl , eqᴾ | refl | refl =
     right-universal-general W s nonvar occurs p₀ eqᴾ
-      sourceᴾ sourceᴵ q all below size≤ related
+      sourceᴾ sourceᴵ q shape-all below size≤ related
   reveal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} I.∀★⊑★ size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-star-injective _ sourceᴵ
@@ -5563,7 +5566,7 @@ reveal-conceal-step k n below = reveal-at , conceal-at
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       | B₀ᴾ , refl , eqᴾ | refl | refl =
     conceal-right-universal-general W s nonvar occurs p₀ eqᴾ
-      sourceᴾ sourceᴵ q fun below size≤ related
+      sourceᴾ sourceᴵ q shape-fun below size≤ related
   conceal-at W s {Bᴵ = `∀ B₁} (I.∀⊑ nonvar occurs p₀) size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-universal-inversion _ sourceᴾ
@@ -5575,7 +5578,7 @@ reveal-conceal-step k n below = reveal-at , conceal-at
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       | B₀ᴾ , refl , eqᴾ | refl | refl =
     conceal-right-universal-general W s nonvar occurs p₀ eqᴾ
-      sourceᴾ sourceᴵ q all below size≤ related
+      sourceᴾ sourceᴵ q shape-all below size≤ related
   conceal-at W s {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} I.∀★⊑★ size≤
       sourceᴾ sourceᴵ q targetᴾ targetᴵ related
       with rename-star-injective _ sourceᴵ

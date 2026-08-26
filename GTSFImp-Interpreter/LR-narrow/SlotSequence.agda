@@ -22,6 +22,8 @@ open import Types
 open import CastTerms
 open import Conversion using (replaceTy; 〖_,_↑_〗; makeConceal)
 import Imprecision as I
+open import Consistency using (toRenameᵗ)
+open import proof.ImprecisionConsistency using (ty-all-injective)
 open import LR-narrow.World
 
 ------------------------------------------------------------------------
@@ -108,19 +110,57 @@ slotRᴵ s = impreciseRep (atom s)
 -- Finding G in REPLACEMENT-CLOSURE-DESIGN.md), and carrying it
 -- uniformly also spares the reveal wrappers from rebuilding theirs.
 
+embedPreciseBody : ∀ {Δᴾ Δᴵ Δᶜ} (W : CoreWorld Δᴾ Δᴵ Δᶜ)
+  → Ty (suc Δᴾ) → Ty (suc Δᶜ)
+embedPreciseBody W B =
+  renameᵗ (extᵗ (toRenameᵗ (preciseEmbedding W))) B
+
 record BodyImprecision {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
     (B : Ty (suc Δᴾ)) (C : Ty Δᴵ) : Set where
   constructor body-imprecision
   field
-    {bodyAc} : Ty (suc Δᶜ)
-    {bodyBc} : Ty Δᶜ
-    bodyNonvar : NonVar bodyAc
-    bodyOccurs : Fin.zero ∈ᵗ bodyAc
-    bodyP : I.instᵐ (impEnv (core W)) I.⊢ bodyAc ⊑ ⇑ᵗ bodyBc
-    bodyEmbedᴾ : embedPrecise (core W) (`∀ B) ≡ `∀ bodyAc
-    bodyEmbedᴵ : embedImprecise (core W) C ≡ bodyBc
+    bodyNonvar : NonVar (embedPreciseBody (core W) B)
+    bodyOccurs : Fin.zero ∈ᵗ embedPreciseBody (core W) B
+    bodyP : I.instᵐ (impEnv (core W)) I.⊢
+      embedPreciseBody (core W) B
+        ⊑ ⇑ᵗ (embedImprecise (core W) C)
 
 open BodyImprecision public
+
+-- A slot wrapper is a value exactly when its type argument is a
+-- function or a universal.  Carrying that shape rather than the
+-- value witness keeps the wrappers stable under renaming: a sealing
+-- conceal at a variable type would not survive a change of slot.
+
+data UniShape {Δ : TyCtx} : Ty Δ → Set where
+  shape-fun : ∀ {A B} → UniShape (A ⇒ B)
+  shape-all : ∀ {A} → UniShape (`∀ A)
+
+shape-rename : ∀ {Δ Δ′} (ρ : Δ ⇒ʳ Δ′) {B : Ty Δ}
+  → UniShape B → UniShape (renameᵗ ρ B)
+shape-rename ρ shape-fun = shape-fun
+shape-rename ρ shape-all = shape-all
+
+shape-lift : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    (W≼W′ : Future W W′) {B : Ty Δᴵ}
+  → UniShape B → UniShape (liftImpreciseTy W≼W′ B)
+shape-lift future-refl sh = sh
+shape-lift (future-paired W≼W′ related) sh =
+  shape-rename Fin.suc (shape-lift W≼W′ sh)
+shape-lift (future-precise W≼W′ related) sh = shape-lift W≼W′ sh
+shape-lift (future-imprecise W≼W′) sh =
+  shape-rename Fin.suc (shape-lift W≼W′ sh)
+
+reveal-value-of : ∀ {Δ} {X : TyVar Δ} {R B : Ty Δ}
+  → UniShape B → RevealValue 〖 X , R ↑ B 〗
+reveal-value-of shape-fun = fun
+reveal-value-of shape-all = all
+
+conceal-value-of : ∀ {Δ} {X : TyVar Δ} {R B : Ty Δ}
+  → UniShape B → ConcealValue (makeConceal X R B)
+conceal-value-of shape-fun = fun
+conceal-value-of shape-all = all
 
 -- The clause data of a body pair travels to future worlds, and is
 -- transported along equalities of the bodies.
@@ -132,23 +172,59 @@ body-imprecision-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
   → BodyImprecision W B C
   → BodyImprecision W′
       (liftPreciseBody W≼W′ B) (liftImpreciseTy W≼W′ C)
-body-imprecision-future {W′ = W′} {B = B} {C = C} W≼W′ i =
+body-imprecision-future {W = W} {W′ = W′} {B = B} {C = C} W≼W′ i =
   body-imprecision
-  (liftCenterBody-nonvar W≼W′ (bodyNonvar i))
-  (liftCenterBody-occurs W≼W′ (bodyOccurs i))
-  (subst≡
-    (λ T → I.instᵐ (impEnv (core W′)) I.⊢
-      liftCenterBody W≼W′ (bodyAc i) ⊑ T)
-    (liftCenterBody-shift W≼W′ (bodyBc i))
-    (liftCenterDynamicBodyImprecision W≼W′ (bodyP i)))
-  (trans
-    (cong (embedPrecise (core W′))
-      (sym (liftPreciseTy-universal W≼W′ B)))
-    (trans (embedPrecise-lift W≼W′ (`∀ B))
-      (trans (cong (liftCenterTy W≼W′) (bodyEmbedᴾ i))
-        (liftCenterTy-universal W≼W′ (bodyAc i)))))
-  (trans (embedImprecise-lift W≼W′ C)
-    (cong (liftCenterTy W≼W′) (bodyEmbedᴵ i)))
+    (subst≡ NonVar (sym bodyᴾ-eq)
+      (liftCenterBody-nonvar W≼W′ (bodyNonvar i)))
+    (subst≡ (Fin.zero ∈ᵗ_) (sym bodyᴾ-eq)
+      (liftCenterBody-occurs W≼W′ (bodyOccurs i)))
+    (subst≡
+      (λ L → I.instᵐ (impEnv (core W′)) I.⊢ L
+        ⊑ ⇑ᵗ (embedImprecise (core W′) (liftImpreciseTy W≼W′ C)))
+      (sym bodyᴾ-eq)
+      (subst≡
+        (λ R → I.instᵐ (impEnv (core W′)) I.⊢
+          liftCenterBody W≼W′ (embedPreciseBody (core W) B) ⊑ R)
+        (trans (liftCenterBody-shift W≼W′
+          (embedImprecise (core W) C))
+          (cong ⇑ᵗ (sym (embedImprecise-lift W≼W′ C))))
+        (liftCenterDynamicBodyImprecision W≼W′ (bodyP i))))
+  where
+  bodyᴾ-eq : embedPreciseBody (core W′) (liftPreciseBody W≼W′ B)
+      ≡ liftCenterBody W≼W′ (embedPreciseBody (core W) B)
+  bodyᴾ-eq = ty-all-injective
+    (trans
+      (cong (embedPrecise (core W′))
+        (sym (liftPreciseTy-universal W≼W′ B)))
+      (trans (embedPrecise-lift W≼W′ (`∀ B))
+        (liftCenterTy-universal W≼W′ (embedPreciseBody (core W) B))))
+
+-- Building the clause data from a derivation presented with
+-- embedding equations, as the `∀⊑` clause supplies it.
+
+body-imprecision-of : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {B : Ty (suc Δᴾ)} {C : Ty Δᴵ}
+    {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+    (nonvar : NonVar Ac) (occurs : Fin.zero ∈ᵗ Ac)
+    (p : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc)
+  → embedPrecise (core W) (`∀ B) ≡ `∀ Ac
+  → embedImprecise (core W) C ≡ Bc
+  → BodyImprecision W B C
+body-imprecision-of {W = W} {B = B} {C = C} {Ac = Ac}
+    nonvar occurs p eqᴾ eqᴵ =
+  body-imprecision
+    (subst≡ NonVar (sym bodyᴾ) nonvar)
+    (subst≡ (Fin.zero ∈ᵗ_) (sym bodyᴾ) occurs)
+    (subst≡
+      (λ L → I.instᵐ (impEnv (core W)) I.⊢ L
+        ⊑ ⇑ᵗ (embedImprecise (core W) C))
+      (sym bodyᴾ)
+      (subst≡
+        (λ R → I.instᵐ (impEnv (core W)) I.⊢ _ ⊑ ⇑ᵗ R)
+        (sym eqᴵ) p))
+  where
+  bodyᴾ : embedPreciseBody (core W) B ≡ Ac
+  bodyᴾ = ty-all-injective eqᴾ
 
 body-imprecision-subst : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
     {B B′ : Ty (suc Δᴾ)} {C : Ty Δᴵ}
@@ -167,6 +243,7 @@ body-imprecision-subst-imp refl i = i
 data UniWrap {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) :
     Ty (suc Δᴾ) → Ty Δᴵ → Ty (suc Δᴾ) → Ty Δᴵ → Set where
   reveal-paired : (s : PairedSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
+    → UniShape C
     → BodyImprecision W
         (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B)
         (replaceTy (slotXᴵ s) (slotRᴵ s) C)
@@ -174,6 +251,7 @@ data UniWrap {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) :
         (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B)
         (replaceTy (slotXᴵ s) (slotRᴵ s) C)
   conceal-paired : (s : PairedSlot W) (B : Ty (suc Δᴾ)) (C : Ty Δᴵ)
+    → UniShape C
     → BodyImprecision W B C
     → UniWrap W
         (replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B)
@@ -217,9 +295,9 @@ data UniWraps {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ) :
 wrapTermᴾ₁ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
     {B C B′ C′}
   → UniWrap W B C B′ C′ → Term Δᴾ → Term Δᴾ
-wrapTermᴾ₁ (reveal-paired s B C i) V =
+wrapTermᴾ₁ (reveal-paired s B C v i) V =
   V ↑ 〖 slotXᴾ s , slotRᴾ s ↑ `∀ B 〗
-wrapTermᴾ₁ (conceal-paired s B C i) V =
+wrapTermᴾ₁ (conceal-paired s B C v i) V =
   V ↓ makeConceal (slotXᴾ s) (slotRᴾ s) (`∀ B)
 wrapTermᴾ₁ (reveal-dyn d B C i) V =
   V ↑ 〖 dslotXᴾ d , dslotRᴾ d ↑ `∀ B 〗
@@ -237,9 +315,9 @@ wrapTermᴾ₁ (conceal-inert s B C avoid i) V =
 wrapTermᴵ₁ : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
     {B C B′ C′}
   → UniWrap W B C B′ C′ → Term Δᴵ → Term Δᴵ
-wrapTermᴵ₁ (reveal-paired s B C i) V =
+wrapTermᴵ₁ (reveal-paired s B C v i) V =
   V ↑ 〖 slotXᴵ s , slotRᴵ s ↑ C 〗
-wrapTermᴵ₁ (conceal-paired s B C i) V =
+wrapTermᴵ₁ (conceal-paired s B C v i) V =
   V ↓ makeConceal (slotXᴵ s) (slotRᴵ s) C
 wrapTermᴵ₁ (reveal-dyn d B C i) V = V
 wrapTermᴵ₁ (conceal-dyn d B C i) V = V

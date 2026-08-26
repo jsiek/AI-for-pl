@@ -685,7 +685,7 @@ dyn-universal-value (suc k) sz below W d {B₁ = B₁}
 
     base-imp : BodyImprecision W
         (replaceTy (Fin.suc (dslotXᴾ d)) (⇑ᵗ (dslotRᴾ d)) B₁) Bᴵ*
-    base-imp = body-imprecision
+    base-imp = body-imprecision-of
       (replaceTy-nonvar (Fin.suc (dcenter d))
         (⇑ᵗ (embedPrecise (core W) (dslotRᴾ d))) nonvar)
       (replaceTy-occurs (Fin.suc (dcenter d))
@@ -1088,7 +1088,7 @@ dyn-universal-conceal-value (suc k) sz below W d {B₁ = B₁}
       w† = conceal-dyn d′ (liftPreciseBody W≼W′ B₁)
         (liftImpreciseTy W≼W′ Bᴵ*)
         (body-imprecision-future W≼W′
-          (body-imprecision nonvar occurs p₀ sourceᴾ embI*))
+          (body-imprecision-of nonvar occurs p₀ sourceᴾ embI*))
 
       σ‡ : UniWraps W′
           (liftPreciseBody W≼W′

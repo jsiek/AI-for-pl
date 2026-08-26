@@ -32,10 +32,22 @@ open import LR-narrow.LogicalRelation
 open import LR-narrow.UniversalFamily
 import proof.LR-narrow.Closure as ClosureProof
 open import proof.LR-narrow.SlotLifting using (slot-future)
+import proof.LR-narrow.DynamicReveal
+open module DynKit = proof.LR-narrow.DynamicReveal ob using
+  (dyn-reveal-endpoints; dyn-conceal-endpoints)
+import proof.LR-narrow.PreciseReveal
+open module PreciseKit = proof.LR-narrow.PreciseReveal ob using
+  (precise-reveal-endpoints; precise-conceal-endpoints)
 open import proof.LR-narrow.ImprecisionSize using (sizeᵖ)
+open import proof.LR-narrow.StarNoOccurrence using (replaceTy-absent)
+
+∉-all-inv : ∀ {Δ} {X : TyVar Δ} {A : Ty (suc Δ)}
+  → X ∉ᵗ `∀ A → Fin.suc X ∉ᵗ A
+∉-all-inv (∉-all h) = h
 
 open import proof.LR-narrow.RevealStructural ob using
-  (statements-all; reveal-right-universal-head;
+  (statements-all; revealed-endpoints; concealed-endpoints;
+   reveal-right-universal-head;
    conceal-right-universal-head; reveal-right-universal-absent-head;
    conceal-right-universal-absent-head;
    reveal-dyn-universal-head; conceal-dyn-universal-head)
@@ -261,3 +273,209 @@ conceal-dyn-chain W d nonvar occurs p₀ nonvarʳ occursʳ q₀
       W′ W≼W′ Rᴾ r★ t) ,
   conceal-dyn-chain W d nonvar occurs p₀ nonvarʳ occursʳ q₀
     sourceᴾ sourceᴵ targetᴾ (data-downward dat)
+
+------------------------------------------------------------------------
+-- Chain data at an unspecified derivation
+------------------------------------------------------------------------
+
+-- Every wrapper step changes the value's imprecision derivation, and
+-- the family's statement never mentions it (the chain is phantom in
+-- its derivation), so the iteration carries it existentially.
+
+record SomeData {Δᴾ Δᴵ Δᶜ} (W : World Δᴾ Δᴵ Δᶜ)
+    (Bᴾ : Ty (suc Δᴾ)) (Bᴵ : Ty Δᴵ) (k : ℕ)
+    (Vᴵ : Term Δᴵ) (Vᴾ : Term Δᴾ) : Set₁ where
+  constructor some-data
+  field
+    someImp : BodyImprecision W Bᴾ Bᴵ
+    someBody : RightUniversalData W
+      (bodyNonvar someImp) (bodyOccurs someImp) (bodyP someImp)
+      Bᴾ Bᴵ k Vᴵ Vᴾ
+
+open SomeData public
+
+------------------------------------------------------------------------
+-- One wrapper step
+------------------------------------------------------------------------
+
+extend-wrap : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {Bᴾ Bᴾ′ : Ty (suc Δᴾ)} {Bᴵ Bᴵ′ : Ty Δᴵ} {k : ℕ}
+    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+    (w : UniWrap W Bᴾ Bᴵ Bᴾ′ Bᴵ′)
+  → SomeData W Bᴾ Bᴵ k Vᴵ Vᴾ
+  → SomeData W Bᴾ′ Bᴵ′ k (wrapTermᴵ₁ w Vᴵ) (wrapTermᴾ₁ w Vᴾ)
+extend-wrap {W = W} (reveal-paired s B C sh i) (some-data j dat) =
+  some-data i (universal-data
+    (revealed-endpoints W s (I.∀⊑ (bodyNonvar j) (bodyOccurs j)
+      (bodyP j)) refl refl
+      (I.∀⊑ (bodyNonvar i) (bodyOccurs i) (bodyP i))
+      refl refl (data-endpoints dat)
+      (imprecise-value (data-endpoints dat) ↑ reveal-value-of sh)
+      (precise-value (data-endpoints dat) ↑ all))
+    refl refl
+    (reveal-paired-chain W s (bodyNonvar j) (bodyOccurs j) (bodyP j)
+      refl refl
+      (bodyP i) dat))
+extend-wrap {W = W} (conceal-paired s B C sh i) (some-data j dat) =
+  some-data i (universal-data
+    (concealed-endpoints W s (I.∀⊑ (bodyNonvar i) (bodyOccurs i)
+      (bodyP i)) refl refl
+      (I.∀⊑ (bodyNonvar j) (bodyOccurs j) (bodyP j))
+      refl refl (data-endpoints dat)
+      (imprecise-value (data-endpoints dat) ↓ conceal-value-of sh)
+      (precise-value (data-endpoints dat) ↓ all))
+    refl refl
+    (conceal-paired-chain W s (bodyNonvar i) (bodyOccurs i) (bodyP i)
+      (bodyNonvar j) (bodyOccurs j) (bodyP j)
+      refl refl refl refl
+      dat))
+extend-wrap {W = W} (reveal-dyn d B C i) (some-data j dat) =
+  some-data i (universal-data
+    (dyn-reveal-endpoints W d (I.∀⊑ (bodyNonvar j) (bodyOccurs j)
+      (bodyP j)) refl
+      (I.∀⊑ (bodyNonvar i) (bodyOccurs i) (bodyP i))
+      refl (data-endpoints dat)
+      (precise-value (data-endpoints dat) ↑ all))
+    refl refl
+    (reveal-dyn-chain W d (bodyNonvar j) (bodyOccurs j) (bodyP j)
+      refl refl
+      (bodyP i) dat))
+extend-wrap {W = W} (conceal-dyn d B C i) (some-data j dat) =
+  some-data i (universal-data
+    (dyn-conceal-endpoints W d (I.∀⊑ (bodyNonvar i) (bodyOccurs i)
+      (bodyP i)) refl
+      (I.∀⊑ (bodyNonvar j) (bodyOccurs j) (bodyP j))
+      refl (data-endpoints dat)
+      (precise-value (data-endpoints dat) ↓ all))
+    refl refl
+    (conceal-dyn-chain W d (bodyNonvar i) (bodyOccurs i) (bodyP i)
+      (bodyNonvar j) (bodyOccurs j) (bodyP j)
+      refl refl refl dat))
+extend-wrap {W = W} (reveal-inert s B C avoid i)
+    (some-data j dat) =
+  some-data j (universal-data
+    (precise-reveal-endpoints W s
+      (I.∀⊑ (bodyNonvar j) (bodyOccurs j) (bodyP j))
+      avoid refl (data-endpoints dat)
+      (precise-value (data-endpoints dat) ↑ all))
+    refl refl
+    (subst≡
+      (λ T → RightUniversalsRelated W (bodyP j) T C _
+        (wrapTermᴵ₁ (reveal-inert s B C avoid i) _)
+        (wrapTermᴾ₁ (reveal-inert s B C avoid i) _))
+      absent-eq
+      (reveal-inert-chain W s (bodyNonvar j) (bodyOccurs j)
+        (bodyP j) refl refl avoid (bodyP j) dat)))
+  where
+  absent-eq : replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B ≡ B
+  absent-eq = replaceTy-absent (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s))
+    (∉-all-inv avoid)
+extend-wrap {W = W} (conceal-inert s B C avoid i)
+    (some-data j dat) =
+  some-data j (universal-data
+    (precise-conceal-endpoints W s
+      (I.∀⊑ (bodyNonvar j) (bodyOccurs j) (bodyP j))
+      avoid refl (data-endpoints dat)
+      (precise-value (data-endpoints dat) ↓ all))
+    refl refl
+    (conceal-inert-chain W s (bodyNonvar j) (bodyOccurs j) (bodyP j)
+      (bodyNonvar j) (bodyOccurs j) (bodyP j)
+      refl refl
+      (cong (λ T → embedPrecise (core W) (`∀ T)) absent-eq)
+      avoid refl
+      (subst≡
+        (λ T → RightUniversalData W (bodyNonvar j) (bodyOccurs j)
+          (bodyP j) T C _ _ _)
+        (sym absent-eq) dat)))
+  where
+  absent-eq : replaceTy (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s)) B ≡ B
+  absent-eq = replaceTy-absent (Fin.suc (slotXᴾ s)) (⇑ᵗ (slotRᴾ s))
+    (∉-all-inv avoid)
+
+endpoints-retype : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {Aᴾ Aᴵ Cᴾ Cᴵ : Ty Δᶜ}
+    (p : impEnv (core W) I.⊢ Aᴾ ⊑ Aᴵ)
+    (q : impEnv (core W) I.⊢ Cᴾ ⊑ Cᴵ)
+  → Aᴾ ≡ Cᴾ → Aᴵ ≡ Cᴵ
+  → ∀ {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+  → TypedEndpoints W p Vᴵ Vᴾ
+  → TypedEndpoints W q Vᴵ Vᴾ
+endpoints-retype p q refl refl e =
+  ClosureProof.typed-endpoints-derivation-reindex p q e
+
+------------------------------------------------------------------------
+-- Iterating along a wrapper sequence
+------------------------------------------------------------------------
+
+extend-wraps : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+    {Bᴾ Bᴾ′ : Ty (suc Δᴾ)} {Bᴵ Bᴵ′ : Ty Δᴵ} {k : ℕ}
+    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+    (σ : UniWraps W Bᴾ Bᴵ Bᴾ′ Bᴵ′)
+  → SomeData W Bᴾ Bᴵ k Vᴵ Vᴾ
+  → SomeData W Bᴾ′ Bᴵ′ k (wrapTermᴵ σ Vᴵ) (wrapTermᴾ σ Vᴾ)
+extend-wraps [] d = d
+extend-wraps (w ∷ σ) d = extend-wraps σ (extend-wrap w d)
+
+------------------------------------------------------------------------
+-- The replacement-closure kit
+------------------------------------------------------------------------
+
+-- Lifting the chain data to a future world.
+
+data-future : ∀ {Δᴾ Δᴵ Δᶜ Δᴾ′ Δᴵ′ Δᶜ′}
+    {W : World Δᴾ Δᴵ Δᶜ} {W′ : World Δᴾ′ Δᴵ′ Δᶜ′}
+    {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+    {nonvar : NonVar Ac} {occurs : Fin.zero ∈ᵗ Ac}
+    {p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc}
+    {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {k : ℕ}
+    {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+    (W≼W′ : Future W W′)
+  → RightUniversalData W nonvar occurs p₀ Bᴾ Bᴵ k Vᴵ Vᴾ
+  → SomeData W′ (liftPreciseBody W≼W′ Bᴾ)
+      (liftImpreciseTy W≼W′ Bᴵ) k
+      (liftImpreciseTerm W≼W′ Vᴵ) (liftPreciseTerm W≼W′ Vᴾ)
+data-future {W′ = W′} {nonvar = nonvar} {occurs = occurs} {p₀ = p₀}
+    {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} W≼W′ dat = some-data imp′ (universal-data
+  (endpoints-retype
+    (liftCenterImprecision W≼W′ (I.∀⊑ nonvar occurs p₀))
+    (I.∀⊑ (bodyNonvar imp′) (bodyOccurs imp′) (bodyP imp′))
+    eqᴾ eqᴵ
+    (ClosureProof.typed-endpoints-future W≼W′ (data-endpoints dat)))
+  refl refl
+  (ClosureProof.right-universals-phantom
+    (liftCenterDynamicBodyImprecision W≼W′ p₀) (bodyP imp′)
+    (ClosureProof.right-universals-related-future
+      {p = p₀} {Bᴾ = Bᴾ} {Bᴵ = Bᴵ} W≼W′ (data-chain dat))))
+  where
+  eqᴾ = sym (trans
+    (cong (embedPrecise (core W′))
+      (sym (liftPreciseTy-universal W≼W′ Bᴾ)))
+    (trans (embedPrecise-lift W≼W′ (`∀ Bᴾ))
+      (cong (liftCenterTy W≼W′) (data-embedᴾ dat))))
+
+  eqᴵ = sym (trans (embedImprecise-lift W≼W′ Bᴵ)
+    (cong (liftCenterTy W≼W′) (data-embedᴵ dat)))
+
+  imp′ = body-imprecision-future W≼W′
+    (body-imprecision-of nonvar occurs p₀
+      (data-embedᴾ dat) (data-embedᴵ dat))
+
+-- The kit itself: iterate the wrapper extensions along the sequence
+-- and project the chain, transported to the family's own derivation.
+
+universal-family-kit : RightUniversalFamilyKit
+universal-family-kit = record { to-family = family }
+  where
+  family : ∀ {Δᴾ Δᴵ Δᶜ} {W : World Δᴾ Δᴵ Δᶜ}
+      {Bᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ} {k : ℕ}
+      {Vᴵ : Term Δᴵ} {Vᴾ : Term Δᴾ}
+      {Ac : Ty (suc Δᶜ)} {Bc : Ty Δᶜ}
+      {nonvar : NonVar Ac} {occurs : Fin.zero ∈ᵗ Ac}
+      {p₀ : I.instᵐ (impEnv (core W)) I.⊢ Ac ⊑ ⇑ᵗ Bc}
+    → RightUniversalData W nonvar occurs p₀ Bᴾ Bᴵ k Vᴵ Vᴾ
+    → RightUniversalFamily W p₀ Bᴾ Bᴵ k Vᴵ Vᴾ
+  family {p₀ = p₀} dat W≼W′ σ =
+    ClosureProof.right-universals-phantom
+      (bodyP (someImp (extend-wraps σ (data-future W≼W′ dat))))
+      (liftCenterDynamicBodyImprecision W≼W′ p₀)
+      (data-chain (someBody (extend-wraps σ (data-future W≼W′ dat))))

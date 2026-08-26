@@ -5,8 +5,8 @@ module proof.DGG.TransportTermImprecisionProof where
 -- File Charter:
 --   * Lifts a canonical one-step CTI transport through a sequence of world
 --     evolutions.
---   * Keeps the constructor induction as a module parameter because it is a
---     separate, reusable proof over one WorldEvolution step.
+--   * Instantiates the one-step theorem from the four structural allocation
+--     inductions, which remain explicit module parameters.
 --   * Imports no parked world, compatibility world, or legacy context layer.
 
 open import Relation.Binary.PropositionalEquality using
@@ -18,6 +18,8 @@ open import Reduction using
   (StoreChange; StoreChanges; _∷_; applyTerm; applyTerms)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.TransportTermImprecisionDef
+open import proof.DGG.TransportTermImprecisionStepDef
+import proof.DGG.TransportTermImprecisionStepProof as Step
 open import proof.DGG.World
 open import proof.DGG.WorldEvolution using
   (CtxChange; WorldEvolution; keep-ctx; storeChange; evolution-⊑ᵀ)
@@ -139,20 +141,38 @@ module _ (transport-step : TransportTermImprecisionStepᵀ) where
           (ctx-change-term-value-as {step = stepᴸ} refl M))
         related)
 
-  transport-term-imprecision : TransportTermImprecisionᵀ
-  transport-term-imprecision evolutions-refl related = related
+  transport-term-imprecision-from-step : TransportTermImprecisionᵀ
+  transport-term-imprecision-from-step evolutions-refl related = related
 
-  transport-term-imprecision
+  transport-term-imprecision-from-step
       (evolutions-step-left eqᴸ one tail) related =
     finish-left eqᴸ one tail
-      (transport-term-imprecision tail (transport-step one related))
+      (transport-term-imprecision-from-step tail
+        (transport-step one related))
 
-  transport-term-imprecision
+  transport-term-imprecision-from-step
       (evolutions-step-right eqᴿ one tail) related =
     finish-right eqᴿ one tail
-      (transport-term-imprecision tail (transport-step one related))
+      (transport-term-imprecision-from-step tail
+        (transport-step one related))
 
-  transport-term-imprecision
+  transport-term-imprecision-from-step
       (evolutions-step-both eqᴸ eqᴿ one tail) related =
     finish-both eqᴸ eqᴿ one tail
-      (transport-term-imprecision tail (transport-step one related))
+      (transport-term-imprecision-from-step tail
+        (transport-step one related))
+
+
+module _
+    (transport-source-bind : TransportSourceBindᵀ)
+    (transport-target-bind : TransportTargetBindᵀ)
+    (transport-paired-bind : TransportPairedBindᵀ)
+    (transport-paired-star-bind : TransportPairedStarBindᵀ)
+    where
+
+  transport-term-imprecision : TransportTermImprecisionᵀ
+  transport-term-imprecision =
+    transport-term-imprecision-from-step
+      (Step.transport-term-imprecision-step
+        transport-source-bind transport-target-bind
+        transport-paired-bind transport-paired-star-bind)

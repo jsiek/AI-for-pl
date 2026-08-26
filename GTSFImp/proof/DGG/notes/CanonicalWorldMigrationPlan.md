@@ -30,9 +30,14 @@ compatibility wrapper.
 This milestone has two proof-engineering layers:
 
 1. The sequence driver lifts a one-step CTI transport through
-   `MultiWorldEvolution`.
+   `MultiWorldEvolution`. This layer is complete and checked in
+   `TransportTermImprecisionProof`.
 2. The one-step theorem transports every CTI constructor through one
-   `WorldEvolution`.
+   `WorldEvolution`. Its checked outer case split is complete in
+   `TransportTermImprecisionStepProof`: `evolution-keep` is immediate, and
+   each allocation is delegated to one of four explicit structural
+   inductions: source bind, target bind, paired precise bind, and paired
+   dynamic bind.
 
 The second layer has genuine pre-induction obligations under term binders,
 type binders, and source rebases.  A runtime bind outside a type binder has
@@ -43,6 +48,12 @@ world history; it must not pretend that an ordinary root `WorldEvolution`
 commutes definitionally with scope.  Keep those structural inductions as
 explicit module parameters while they are incomplete, then expose the closed
 transport from a `...Lemma` module.
+
+The remaining work in this milestone is to implement those four inductions,
+in that order. Each proof must traverse all current CTI constructors. Its
+term-binder, type-binder, and source-rebase clauses should remain named
+pre-induction obligations when they require a separate world-history
+induction; ordinary same-scope clauses should be discharged directly.
 
 ### 2. Canonical CTI substitution
 

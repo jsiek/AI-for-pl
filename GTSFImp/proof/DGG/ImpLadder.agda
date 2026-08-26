@@ -515,7 +515,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.⊑reveal-rebase² {c′ = c′}
-      typed pos≢absent ok represented premise q) =
+      typed ok represented premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─"
       ("□ " ++ revealLayer nameᴿ c′) p "source rebase" ∷
@@ -524,7 +524,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.⊑conceal-rebase² {c′ = c′}
-      typed pos≢absent ok represented premise q) =
+      typed ok represented premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─"
       ("□ " ++ concealLayer nameᴿ c′) p "source rebase" ∷

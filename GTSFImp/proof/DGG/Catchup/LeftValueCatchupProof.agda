@@ -163,12 +163,12 @@ module _
     paired-conceal-catchup no-rebase rel target-value bound
 
   left-value-catchup no-rebase
-      rel@(CTI.⊑reveal-rebase² c′⊢ present ok represented prem q)
+      rel@(CTI.⊑reveal-rebase² c′⊢ ok represented prem q)
       target-value bound =
     target-reveal-rebase-catchup no-rebase rel target-value bound
 
   left-value-catchup ()
-      (CTI.⊑conceal-rebase² c′⊢ present ok represented prem q)
+      (CTI.⊑conceal-rebase² c′⊢ ok represented prem q)
       vV′ bound
 
   left-value-catchup {γ = γ} {M = M} no-rebase

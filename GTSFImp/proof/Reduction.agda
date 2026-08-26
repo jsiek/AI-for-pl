@@ -515,6 +515,32 @@ cast-applyConsistencies-++ [] ψs c M = refl
 cast-applyConsistencies-++ (χ ∷ χs) ψs c M =
   cast-applyConsistencies-++ χs ψs (applyConsistency χ c) M
 
+reveal-applyReveals-++ : ∀ {Δ₀ Δ₁ Δ₂} {A B : Ty Δ₀}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → (c : Conv↑ Δ₀ A B)
+  → (M : Term Δ₂)
+  → M ↑ applyReveals ψs (applyReveals χs c)
+      ≡ M ↑ applyReveals (χs ++χ ψs) c
+reveal-applyReveals-++ [] ψs c M = refl
+reveal-applyReveals-++ (keep ∷ χs) ψs c M =
+  reveal-applyReveals-++ χs ψs (normalizeReveal c) M
+reveal-applyReveals-++ (bind A ∷ χs) ψs c M =
+  reveal-applyReveals-++ χs ψs (rename↑ Fin.suc c) M
+
+conceal-applyConceals-++ : ∀ {Δ₀ Δ₁ Δ₂} {A B : Ty Δ₀}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → (c : Conv↓ Δ₀ A B)
+  → (M : Term Δ₂)
+  → M ↓ applyConceals ψs (applyConceals χs c)
+      ≡ M ↓ applyConceals (χs ++χ ψs) c
+conceal-applyConceals-++ [] ψs c M = refl
+conceal-applyConceals-++ (keep ∷ χs) ψs c M =
+  conceal-applyConceals-++ χs ψs (normalizeConceal c) M
+conceal-applyConceals-++ (bind A ∷ χs) ψs c M =
+  conceal-applyConceals-++ χs ψs (rename↓ Fin.suc c) M
+
 ------------------------------------------------------------------------
 -- Store-changing trace composition
 ------------------------------------------------------------------------
@@ -542,6 +568,19 @@ _—↠+[_]⟨_⟩_ : ∀ {Δ₀ Δ₁ Δ₂}
   → N —↠[ ψs ] P
   → M —↠[ χs ++χ ψs ] P
 M —↠+[ χs ]⟨ M↠N ⟩ N↠P = composeReduction M↠N N↠P
+
+appR-blame-↠ : ∀ {Δ Δ′} {V M : Term Δ}
+    {χs : StoreChanges Δ Δ′}
+  → Value V
+  → M —↠[ χs ] blame
+  → V · M —↠[ χs ++χ (keep ∷ []) ] blame
+appR-blame-↠ {V = V} {M = M} {χs = χs} vV M↠blame =
+  V · M
+    —↠+[ χs ]⟨ appR-↠ vV M↠blame ⟩
+  applyTerms χs V · blame
+    —→[ keep ]⟨ pure-step
+      (blame-·₂ (applyTerms-preserves-Value χs vV)) ⟩
+  blame ∎[]
 
 reveal-blame-↠ : ∀ {Δ Δ′} {M : Term Δ}
     {χs : StoreChanges Δ Δ′} {A B : Ty Δ}
@@ -615,6 +654,18 @@ cast-↠ {M = M} {N = P} {χs = χ ∷ χs} c
   _
     —↠[ χs ]⟨ cast-↠ (χ ▷ᶜ c) N↠P ⟩
   (P ⟨ χs ▶ᶜ (χ ▷ᶜ c) ⟩) ∎[]
+
+cast-blame-↠ : ∀ {Δ Δ′} {M : Term Δ}
+    {χs : StoreChanges Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
+  → (c : μ ⊢ A ∼ B)
+  → M —↠[ χs ] blame
+  → M ⟨ c ⟩ —↠[ χs ++χ (keep ∷ []) ] blame
+cast-blame-↠ {M = M} {χs = χs} c M↠blame =
+  M ⟨ c ⟩
+    —↠+[ χs ]⟨ cast-↠ c M↠blame ⟩
+  blame ⟨ applyConsistencies χs c ⟩
+    —→[ keep ]⟨ pure-step blame-⟨⟩ ⟩
+  blame ∎[]
 
 applyStoreChange-Inert : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
     {c : μ ⊢ A ∼ B}

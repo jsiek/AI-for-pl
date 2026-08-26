@@ -235,7 +235,6 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
   ⊑reveal-rebase² : ∀ {M M′ A B B′ Xᴸ Xᴿ Rᴿ}
       {c′ : Conv↑ (Δᵉ Γᴿ) B B′}
     → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-    → revealGeneratorPosition c′⊢ ≢ generator-absent
     → (ok : CanRebaseSourceᵗ
         (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
     → (represented :
@@ -254,7 +253,6 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
       {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
       {c′ : Conv↓ (Δᵉ Γᴿ) B B′}
     → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
-    → concealGeneratorPosition c′⊢ ≢ generator-absent
     → (ok : CanRebaseSourceᵗ
         (ηᴸᶜ γᵖ) Xᴸ (toRenameᵗ (ηᴿᶜ γᵖ) Xᴿ))
     → (represented :

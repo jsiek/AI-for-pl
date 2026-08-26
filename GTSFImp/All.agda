@@ -143,7 +143,10 @@ import proof.DGG.Catchup.LeftValueCatchupProof
 import proof.DGG.SimProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
-import proof.DGG.TargetBlameCatchupProof
+import proof.DGG.SimBackPairedFunValuesProof
+import proof.DGG.SimBackTargetRevealRebaseFunValuesProof
+import proof.DGG.SimBackProof
+import proof.DGG.TargetBlameCatchupLemma
 import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 

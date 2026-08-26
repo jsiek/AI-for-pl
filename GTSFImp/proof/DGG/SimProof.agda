@@ -1136,13 +1136,13 @@ module _
         (multi-⊑ᵀ evol q)
 
   sim no-rebase
-      (CTI.⊑reveal-rebase² c′⊢ present ok represented prem q)
+      (CTI.⊑reveal-rebase² c′⊢ ok represented prem q)
       source-step =
-    sim-target-reveal-rebase-closing no-rebase c′⊢ present ok
+    sim-target-reveal-rebase-closing no-rebase c′⊢ ok
       represented prem q source-step
 
   sim ()
-      (CTI.⊑conceal-rebase² c′⊢ present ok represented prem q)
+      (CTI.⊑conceal-rebase² c′⊢ ok represented prem q)
       source-step
 
   sim no-rebase (CTI.blame⊑² target⊢ p) (pure-step ())

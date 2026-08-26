@@ -527,12 +527,10 @@ checkpoint₁-imprecision =
               (C.⊢ƛ (C.⊢` Z))))
           (CTI.⊑reveal-rebase²
             checkpoint₁-alpha-reveal⊢
-            checkpoint₁-alpha-active
             checkpoint₁-alpha-ok
             checkpoint₁-alpha-representation
             (CTI.⊑reveal-rebase²
               checkpoint₁-beta-reveal⊢
-              checkpoint₁-beta-active
               checkpoint₁-beta-ok
               checkpoint₁-beta-representation
               (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
@@ -812,12 +810,10 @@ checkpoint₂-imprecision =
                 (C.⊢ƛ (C.⊢` Z))))
             (CTI.⊑reveal-rebase²
               checkpoint₁-alpha-reveal⊢
-              checkpoint₁-alpha-active
               checkpoint₁-alpha-ok
               checkpoint₁-alpha-representation
               (CTI.⊑reveal-rebase²
                 checkpoint₁-beta-reveal⊢
-                checkpoint₁-beta-active
                 checkpoint₁-beta-ok
                 checkpoint₁-beta-representation
                 (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
@@ -892,12 +888,10 @@ checkpoint₃-imprecision =
                   (C.⊢ƛ (C.⊢` Z))))
               (CTI.⊑reveal-rebase²
                 checkpoint₁-alpha-reveal⊢
-                checkpoint₁-alpha-active
                 checkpoint₁-alpha-ok
                 checkpoint₁-alpha-representation
                 (CTI.⊑reveal-rebase²
                   checkpoint₁-beta-reveal⊢
-                  checkpoint₁-beta-active
                   checkpoint₁-beta-ok
                   checkpoint₁-beta-representation
                   (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
@@ -976,12 +970,10 @@ checkpoint₄-imprecision =
                     (C.⊢ƛ (C.⊢` Z))))
                 (CTI.⊑reveal-rebase²
                   checkpoint₁-alpha-reveal⊢
-                  checkpoint₁-alpha-active
                   checkpoint₁-alpha-ok
                   checkpoint₁-alpha-representation
                   (CTI.⊑reveal-rebase²
                     checkpoint₁-beta-reveal⊢
-                    checkpoint₁-beta-active
                     checkpoint₁-beta-ok
                     checkpoint₁-beta-representation
                     (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
@@ -1227,12 +1219,10 @@ checkpoint₅-function-payload =
       checkpoint₅-target-id-function
       (CTI.⊑reveal-rebase²
         checkpoint₅-target-alpha-arrow-reveal⊢
-        checkpoint₅-alpha-active
         checkpoint₅-alpha-ok
         checkpoint₅-alpha-representation
         (CTI.⊑reveal-rebase²
           checkpoint₅-target-beta-arrow-reveal⊢
-          checkpoint₅-beta-active
           checkpoint₅-beta-ok
           checkpoint₅-beta-representation
           (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
@@ -1668,7 +1658,6 @@ checkpoint₁₂-alpha-concealed :
 checkpoint₁₂-alpha-concealed =
   CTI.⊑conceal-rebase²
     checkpoint₅-target-alpha-conceal⊢
-    checkpoint₅-alpha-conceal-active
     checkpoint₅-alpha-ok
     checkpoint₅-alpha-representation
     checkpoint₁₂-X-tagged
@@ -1685,7 +1674,6 @@ checkpoint₁₂-beta-concealed :
 checkpoint₁₂-beta-concealed =
   CTI.⊑conceal-rebase²
     checkpoint₅-target-beta-conceal⊢
-    checkpoint₅-beta-conceal-active
     checkpoint₅-beta-ok
     checkpoint₅-beta-representation
     checkpoint₁₂-alpha-concealed
@@ -1704,7 +1692,6 @@ checkpoint₁₂-beta-revealed :
 checkpoint₁₂-beta-revealed =
   CTI.⊑reveal-rebase²
     checkpoint₅-target-beta-reveal⊢
-    checkpoint₅-beta-reveal-active
     checkpoint₅-beta-ok
     checkpoint₅-beta-representation
     checkpoint₁₂-beta-concealed
@@ -1724,7 +1711,6 @@ checkpoint₁₂-alpha-revealed :
 checkpoint₁₂-alpha-revealed =
   CTI.⊑reveal-rebase²
     checkpoint₅-target-alpha-reveal⊢
-    checkpoint₅-alpha-reveal-active
     checkpoint₅-alpha-ok
     checkpoint₅-alpha-representation
     checkpoint₁₂-beta-revealed

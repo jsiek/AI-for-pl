@@ -11,7 +11,7 @@ module proof.DGG.SimTargetRevealRebaseClosingDef where
 
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty; TyCtx; TyVar; ＇_)
 open import TyStore using (TyStore; lookupStore)
@@ -28,8 +28,6 @@ open import Reduction using
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
-open import proof.DGG.ConversionPivotAlignment using
-  (generator-absent; revealGeneratorPosition)
 open import proof.DGG.World
 open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
@@ -45,7 +43,6 @@ SimTargetRevealRebaseClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {c′ : Conv↑ Δᴿ B B′}
   → sourceRebaseCountᶜ γ ≡ 0
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-  → revealGeneratorPosition c′⊢ ≢ generator-absent
   → (ok : CanRebaseSourceᵗ
       (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
   → (represented : (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)

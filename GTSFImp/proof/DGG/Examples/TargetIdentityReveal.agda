@@ -1009,13 +1009,11 @@ checkpoint₁-reveals-imprecision =
   CTI.⊑reveal-rebase²
     {M′ = checkpoint₁-target-beta-reveal}
     checkpoint₁-alpha-reveal⊢
-    checkpoint₁-alpha-active
     checkpoint₁-alpha-ok
     checkpoint₁-alpha-representation
     (CTI.⊑reveal-rebase²
       {M′ = checkpoint₁-target-function}
       checkpoint₁-beta-reveal⊢
-      checkpoint₁-beta-active
       checkpoint₁-beta-ok
       checkpoint₁-beta-representation
       checkpoint₁-function-imprecision
@@ -1241,7 +1239,6 @@ checkpoint₃-beta-imprecision =
   CTI.⊑reveal-rebase²
     {M′ = checkpoint₁-target-function}
     checkpoint₁-beta-reveal⊢
-    checkpoint₁-beta-active
     checkpoint₃-beta-ok
     checkpoint₃-beta-representation
     checkpoint₃-function-imprecision
@@ -1559,7 +1556,6 @@ checkpoint₈-beta-conceal-imprecision :
 checkpoint₈-beta-conceal-imprecision =
   CTI.⊑conceal-rebase²
     checkpoint₈-beta-conceal⊢
-    checkpoint₈-beta-conceal-active
     checkpoint₃-beta-ok
     checkpoint₃-beta-representation
     checkpoint₇-alpha-conceal-imprecision

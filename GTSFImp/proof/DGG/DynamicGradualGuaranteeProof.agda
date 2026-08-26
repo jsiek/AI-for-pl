@@ -52,7 +52,7 @@ open import proof.DGG.CatchupToMorePreciseDef
   using (CatchupToMorePrecise; boundary-refl)
 open import proof.DGG.TargetBlameCatchupDef
   using (TargetBlameCatchupᵀ)
-open import proof.DGG.TargetBlameCatchupProof
+open import proof.DGG.TargetBlameCatchupLemma
   using (target-blame-catchup)
 open import proof.Reduction.ValueIrreducibleDef
   using (ValueTraceRefl; value-trace-refl)

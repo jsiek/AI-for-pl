@@ -16,9 +16,10 @@ module proof.DGG.ConversionPivotAlignment where
 
 open import Types using (Ty; TyCtx; TyVar; _⇒ʳ_; renameᵗ)
 open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import TyStore using (TyStore)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; subst; trans; cong)
+  using (_≡_; refl; subst; sym; trans; cong)
 import Conversion as Conv
 import Reduction as R
 open import proof.ImprecisionConsistency using
@@ -54,6 +55,118 @@ joinGeneratorPositions generator-absent generator-absent = generator-absent
 joinGeneratorPositions left generator-absent = generator-⇒-left left
 joinGeneratorPositions generator-absent right = generator-⇒-right right
 joinGeneratorPositions left right = generator-⇒-both left right
+
+
+private
+  splitJoinedGeneratorPosition : GeneratorPosition
+    → GeneratorPosition × GeneratorPosition
+  splitJoinedGeneratorPosition generator-absent =
+    generator-absent , generator-absent
+  splitJoinedGeneratorPosition generator-here =
+    generator-here , generator-absent
+  splitJoinedGeneratorPosition (generator-⇒-left left) =
+    left , generator-absent
+  splitJoinedGeneratorPosition (generator-⇒-right right) =
+    generator-absent , right
+  splitJoinedGeneratorPosition (generator-⇒-both left right) = left , right
+  splitJoinedGeneratorPosition (generator-∀ position) =
+    generator-∀ position , generator-absent
+
+  split-joinGeneratorPositions : ∀ left right
+    → splitJoinedGeneratorPosition (joinGeneratorPositions left right)
+      ≡ (left , right)
+  split-joinGeneratorPositions generator-absent generator-absent = refl
+  split-joinGeneratorPositions generator-absent generator-here = refl
+  split-joinGeneratorPositions generator-absent (generator-⇒-left right) = refl
+  split-joinGeneratorPositions generator-absent (generator-⇒-right right) = refl
+  split-joinGeneratorPositions generator-absent
+      (generator-⇒-both right₁ right₂) = refl
+  split-joinGeneratorPositions generator-absent (generator-∀ right) = refl
+  split-joinGeneratorPositions generator-here generator-absent = refl
+  split-joinGeneratorPositions generator-here generator-here = refl
+  split-joinGeneratorPositions generator-here (generator-⇒-left right) = refl
+  split-joinGeneratorPositions generator-here (generator-⇒-right right) = refl
+  split-joinGeneratorPositions generator-here
+      (generator-⇒-both right₁ right₂) = refl
+  split-joinGeneratorPositions generator-here (generator-∀ right) = refl
+  split-joinGeneratorPositions (generator-⇒-left left) generator-absent = refl
+  split-joinGeneratorPositions (generator-⇒-left left) generator-here = refl
+  split-joinGeneratorPositions (generator-⇒-left left)
+      (generator-⇒-left right) = refl
+  split-joinGeneratorPositions (generator-⇒-left left)
+      (generator-⇒-right right) = refl
+  split-joinGeneratorPositions (generator-⇒-left left)
+      (generator-⇒-both right₁ right₂) = refl
+  split-joinGeneratorPositions (generator-⇒-left left)
+      (generator-∀ right) = refl
+  split-joinGeneratorPositions (generator-⇒-right left) generator-absent = refl
+  split-joinGeneratorPositions (generator-⇒-right left) generator-here = refl
+  split-joinGeneratorPositions (generator-⇒-right left)
+      (generator-⇒-left right) = refl
+  split-joinGeneratorPositions (generator-⇒-right left)
+      (generator-⇒-right right) = refl
+  split-joinGeneratorPositions (generator-⇒-right left)
+      (generator-⇒-both right₁ right₂) = refl
+  split-joinGeneratorPositions (generator-⇒-right left)
+      (generator-∀ right) = refl
+  split-joinGeneratorPositions (generator-⇒-both left₁ left₂)
+      generator-absent = refl
+  split-joinGeneratorPositions (generator-⇒-both left₁ left₂)
+      generator-here = refl
+  split-joinGeneratorPositions (generator-⇒-both left₁ left₂)
+      (generator-⇒-left right) = refl
+  split-joinGeneratorPositions (generator-⇒-both left₁ left₂)
+      (generator-⇒-right right) = refl
+  split-joinGeneratorPositions (generator-⇒-both left₁ left₂)
+      (generator-⇒-both right₁ right₂) = refl
+  split-joinGeneratorPositions (generator-⇒-both left₁ left₂)
+      (generator-∀ right) = refl
+  split-joinGeneratorPositions (generator-∀ left) generator-absent = refl
+  split-joinGeneratorPositions (generator-∀ left) generator-here = refl
+  split-joinGeneratorPositions (generator-∀ left)
+      (generator-⇒-left right) = refl
+  split-joinGeneratorPositions (generator-∀ left)
+      (generator-⇒-right right) = refl
+  split-joinGeneratorPositions (generator-∀ left)
+      (generator-⇒-both right₁ right₂) = refl
+  split-joinGeneratorPositions (generator-∀ left) (generator-∀ right) = refl
+
+
+joinGeneratorPositions-absent-left : ∀ {left right}
+  → joinGeneratorPositions left right ≡ generator-absent
+  → left ≡ generator-absent
+joinGeneratorPositions-absent-left {left} {right} eq =
+  cong proj₁
+    (trans (sym (split-joinGeneratorPositions left right))
+      (cong splitJoinedGeneratorPosition eq))
+
+joinGeneratorPositions-absent-right : ∀ {left right}
+  → joinGeneratorPositions left right ≡ generator-absent
+  → right ≡ generator-absent
+joinGeneratorPositions-absent-right {left} {right} eq =
+  cong proj₂
+    (trans (sym (split-joinGeneratorPositions left right))
+      (cong splitJoinedGeneratorPosition eq))
+
+joinGeneratorPositions-equal-left : ∀ {left right left′ right′}
+  → joinGeneratorPositions left right
+    ≡ joinGeneratorPositions left′ right′
+  → left ≡ left′
+joinGeneratorPositions-equal-left {left} {right} {left′} {right′} eq =
+  cong proj₁
+    (trans (sym (split-joinGeneratorPositions left right))
+      (trans (cong splitJoinedGeneratorPosition eq)
+        (split-joinGeneratorPositions left′ right′)))
+
+joinGeneratorPositions-equal-right : ∀ {left right left′ right′}
+  → joinGeneratorPositions left right
+    ≡ joinGeneratorPositions left′ right′
+  → right ≡ right′
+joinGeneratorPositions-equal-right {left} {right} {left′} {right′} eq =
+  cong proj₂
+    (trans (sym (split-joinGeneratorPositions left right))
+      (trans (cong splitJoinedGeneratorPosition eq)
+        (split-joinGeneratorPositions left′ right′)))
 
 liftGeneratorPosition : GeneratorPosition → GeneratorPosition
 liftGeneratorPosition generator-absent = generator-absent

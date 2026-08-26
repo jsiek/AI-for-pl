@@ -1,139 +1,198 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.SimBackRebasedConversionDef where
 
 -- File Charter:
---   * States backward simulation for source-rebased reveal and for paired
---     reveal/conceal body frames whose premise relation uses a rebased world.
---   * Exposes the live conversion, generator, representation, and rebase
---     evidence with the full simulation conclusion at the outer world.
---   * Contains no rebased-conversion simulation proof and introduces no case
---     classifier or result wrapper.
+--   * States backward simulation for paired reveal roots and the target
+--     reveal-rebase root, function-value, and frame cases.
+--   * Exposes the exact canonical CTI evidence and repeats the complete
+--     SimBack conclusion without an action, classifier, or result wrapper.
+--   * Is separated because its recursive relation lives one source-rebase
+--     change beneath the enclosing no-rebase world.
+--   * Contains no target reveal-rebase simulation proof.
 
-open import Data.Fin using (Fin)
+import Data.Fin as Fin
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax; ∃-syntax)
 open import Data.Sum using (_⊎_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
-open import Types using (Ty; TyCtx)
-open import TyStore using (_∋_⦂_)
-open import Conversion using (Conv↑; Conv↓)
+open import Types using (Ty; TyCtx; ＇_; _⇒_)
+open import TyStore using (TyStore; lookupStore)
+open import Consistency using (toRenameᵗ)
+open import Conversion using (Conv↑; Conv↓; _↦↑_; _⊢↑[_⦂_]_)
 import Conversion as Conv
-open import CastTerms using (Term; blame; _↑_; _↓_)
+open import CastTerms using
+  (Term; Value; blame; ⟨_,_,_⟩; _·_; _↑_; _↓_)
+open import Imprecision using (⇒⊑⇒)
 open import Reduction using
   ( StoreChange
   ; StoreChanges
+  ; applyStore
   ; applyTy
   ; applyTys
   ; applyVar
+  ; keep
+  ; _—→_
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.ConversionPivotAlignment using
-  ( generator-absent
-  ; revealGeneratorPosition
-  ; concealGeneratorPosition
-  )
-open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld; ParkedEvolve)
-open CTX using
-  ( World
-  ; ImpEnvMono
-  ; RebaseAt
-  ; sourceStoreʷ
-  ; targetStoreʷ
-  ; _⊑ᵂ⟨_⟩_
-  )
-open CTI2 using (_∣_⊢²_⊑_∶_)
+  (revealGeneratorPosition)
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
-SimBackSourceRevealRebaseᵀ : Set
-SimBackSourceRevealRebaseᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W Wᵖ : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A A′ Rᴸ : Ty Δᴸ} {B Rᴿ : Ty Δᴿ}
-    {Xᴸ : Fin Δᴸ} {Xᴿ : Fin Δᴿ}
-    {c : Conv↑ Δᴸ A A′} {p : A ⊑ᵂ⟨ Wᵖ ⟩ B}
-    {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (c⊢ : sourceStoreʷ W Conv.⊢↑[ Xᴸ ⦂ Rᴸ ] c)
-  → revealGeneratorPosition c⊢ ≢ generator-absent
-  → targetStoreʷ W ∋ Xᴿ ⦂ Rᴿ
-  → Rᴸ ⊑ᵂ⟨ Wᵖ ⟩ Rᴿ
-  → ImpEnvMono W Wᵖ
-  → RebaseAt W Wᵖ Xᴸ Xᴿ
-  → Wᵖ ∣ [] ⊢² M ⊑ M′ ∶ p
-  → (q : A′ ⊑ᵂ⟨ W ⟩ B)
-  → M′ —→[ χᴿ ] N′
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ r ∈ applyTys χsᴸ A′ ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B ]
-      (M ↑ c —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ˢ []ˢ) W W′ ×
-      (W′ ∣ [] ⊢² N ⊑ N′ ∶ r))
-    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-        (M ↑ c —↠[ χsᴸ ] blame))
-
-
-SimBackPairedRevealFrameᵀ : Set
-SimBackPairedRevealFrameᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W Wᵖ : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A B Rᴸ : Ty Δᴸ} {A′ B′ Rᴿ : Ty Δᴿ}
-    {Xᴸ : Fin Δᴸ} {Xᴿ : Fin Δᴿ}
-    {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
-    {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′} {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (c⊢ : sourceStoreʷ W Conv.⊢↑[ Xᴸ ⦂ Rᴸ ] c)
-  → (c′⊢ : targetStoreʷ W Conv.⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+SimBackPairedRevealClosingᵀ : Set
+SimBackPairedRevealClosingᵀ =
+  ∀ {Deltaᴸ Deltaᴿ : TyCtx}
+    {Σᴸ : TyStore Deltaᴸ} {Σᴿ : TyStore Deltaᴿ}
+    {γ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Deltaᴿ , Σᴿ , [] ⟩}
+    {M : Term Deltaᴸ} {M′ N′ : Term Deltaᴿ}
+    {A B : Ty Deltaᴸ} {A′ B′ : Ty Deltaᴿ}
+    {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
+    {Rᴸ : Ty Deltaᴸ} {Rᴿ : Ty Deltaᴿ}
+    {c : Conv↑ Deltaᴸ A B} {c′ : Conv↑ Deltaᴿ A′ B′}
+  → sourceRebaseCountᶜ γ ≡ 0
+  → (c⊢ : Σᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+  → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
-  → revealGeneratorPosition c⊢ ≢ generator-absent
-  → Rᴸ ⊑ᵂ⟨ Wᵖ ⟩ Rᴿ
-  → ImpEnvMono W Wᵖ
-  → RebaseAt W Wᵖ Xᴸ Xᴿ
-  → Wᵖ ∣ [] ⊢² M ⊑ M′ ∶ p
-  → (q : B ⊑ᵂ⟨ W ⟩ B′)
-  → M′ —→[ χᴿ ] N′
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ r ∈ applyTys χsᴸ B ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B′ ]
-      (M ↑ c —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ˢ []ˢ) W W′ ×
-      (W′ ∣ [] ⊢² N ⊑
-        N′ ↑ Conv.rename↑ (applyVar χᴿ) c′ ∶ r))
-    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
+  → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+  → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
+  → {p : A ⊑ᵀ⟨ γ ⟩ A′}
+  → γ ⊢² M ⊑ M′ ∶ p
+  → (q : B ⊑ᵀ⟨ γ ⟩ B′)
+  → M′ ↑ c′ —→ N′
+  → ( Σ[ Deltaᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Deltaᴸ′ ]
+      Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
+      Σ[ N ∈ Term Deltaᴸ′ ]
+      Σ[ γ′ ∈
+        ⟨ Deltaᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
+        ⟨ Deltaᴿ , applyStore keep Σᴿ , [] ⟩ ]
+      Σ[ r ∈ applyTys χsᴸ B ⊑ᵀ⟨ γ′ ⟩ applyTy keep B′ ]
+        (M ↑ c —↠[ χsᴸ ] N)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} χsᴸ (keep ∷ˢ []ˢ)
+        × (γ′ ⊢² N ⊑ N′ ∶ r))
+    ⊎ (∃[ Deltaᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
         (M ↑ c —↠[ χsᴸ ] blame))
 
 
-SimBackPairedConcealFrameᵀ : Set
-SimBackPairedConcealFrameᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴿ′} {W Wᵖ : World Δᴸ Δᴿ Δ}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
-    {A B Rᴸ : Ty Δᴸ} {A′ B′ Rᴿ : Ty Δᴿ}
-    {Xᴸ : Fin Δᴸ} {Xᴿ : Fin Δᴿ}
-    {c : Conv↓ Δᴸ A B} {c′ : Conv↓ Δᴿ A′ B′}
-    {p : A ⊑ᵂ⟨ Wᵖ ⟩ A′} {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → ParkedWorld W
-  → (c⊢ : sourceStoreʷ W Conv.⊢↓[ Xᴸ ⦂ Rᴸ ] c)
-  → (c′⊢ : targetStoreʷ W Conv.⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
-  → concealGeneratorPosition c⊢ ≡ concealGeneratorPosition c′⊢
-  → concealGeneratorPosition c⊢ ≢ generator-absent
-  → Rᴸ ⊑ᵂ⟨ Wᵖ ⟩ Rᴿ
-  → ImpEnvMono W Wᵖ
-  → RebaseAt Wᵖ W Xᴸ Xᴿ
-  → Wᵖ ∣ [] ⊢² M ⊑ M′ ∶ p
-  → (q : B ⊑ᵂ⟨ W ⟩ B′)
+SimBackTargetRevealRebaseClosingᵀ : Set
+SimBackTargetRevealRebaseClosingᵀ =
+  ∀ {Deltaᴸ Deltaᴿ : TyCtx}
+    {Σᴸ : TyStore Deltaᴸ} {Σᴿ : TyStore Deltaᴿ}
+    {γ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Deltaᴿ , Σᴿ , [] ⟩}
+    {M : Term Deltaᴸ} {M′ N′ : Term Deltaᴿ}
+    {A : Ty Deltaᴸ} {B B′ Rᴿ : Ty Deltaᴿ}
+    {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
+    {c′ : Conv↑ Deltaᴿ B B′}
+  → sourceRebaseCountᶜ γ ≡ 0
+  → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+  → (ok : CanRebaseSourceᵗ
+      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
+  → (represented :
+      (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
+  → {p : A ⊑ᵀ⟨
+      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
+  → (γ ▻ᶜ rebase-source-changeᶜ
+      Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ∶ p
+  → (q : A ⊑ᵀ⟨ γ ⟩ B′)
+  → M′ ↑ c′ —→ N′
+  → ( Σ[ Deltaᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Deltaᴸ′ ]
+      Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
+      Σ[ N ∈ Term Deltaᴸ′ ]
+      Σ[ γ′ ∈
+        ⟨ Deltaᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
+        ⟨ Deltaᴿ , applyStore keep Σᴿ , [] ⟩ ]
+      Σ[ r ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTy keep B′ ]
+        (M —↠[ χsᴸ ] N)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} χsᴸ (keep ∷ˢ []ˢ)
+        × (γ′ ⊢² N ⊑ N′ ∶ r))
+    ⊎ (∃[ Deltaᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
+        (M —↠[ χsᴸ ] blame))
+
+
+SimBackTargetRevealRebaseFunValuesᵀ : Set
+SimBackTargetRevealRebaseFunValuesᵀ =
+  ∀ {Deltaᴸ Deltaᴿ : TyCtx}
+    {Σᴸ : TyStore Deltaᴸ} {Σᴿ : TyStore Deltaᴿ}
+    {γ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Deltaᴿ , Σᴿ , [] ⟩}
+    {V W : Term Deltaᴸ} {V′ W′ : Term Deltaᴿ}
+    {A B : Ty Deltaᴸ} {A₀ B₀ A′ B′ Rᴿ : Ty Deltaᴿ}
+    {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
+    {c : Conv↓ Deltaᴿ A′ A₀} {d : Conv↑ Deltaᴿ B₀ B′}
+    {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
+  → sourceRebaseCountᶜ γ ≡ 0
+  → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] (c ↦↑ d))
+  → (ok : CanRebaseSourceᵗ
+      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
+  → (represented :
+      (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
+  → (pAᵖ : A ⊑ᵀ⟨
+      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ A₀)
+  → (pBᵖ : B ⊑ᵀ⟨
+      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B₀)
+  → (γ ▻ᶜ rebase-source-changeᶜ
+      Xᴸ Xᴿ ok represented) ⊢² V ⊑ V′ ∶ ⇒⊑⇒ pAᵖ pBᵖ
+  → γ ⊢² W ⊑ W′ ∶ pA
+  → Value V
+  → Value W
+  → Value V′
+  → Value W′
+  → ( Σ[ Deltaᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Deltaᴸ′ ]
+      Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
+      Σ[ N ∈ Term Deltaᴸ′ ]
+      Σ[ γ′ ∈
+        ⟨ Deltaᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
+        ⟨ Deltaᴿ , applyStore keep Σᴿ , [] ⟩ ]
+      Σ[ q ∈ applyTys χsᴸ B ⊑ᵀ⟨ γ′ ⟩ applyTy keep B′ ]
+        (V · W —↠[ χsᴸ ] N)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} χsᴸ (keep ∷ˢ []ˢ)
+        × (γ′ ⊢² N ⊑ (V′ · (W′ ↓ c)) ↑ d ∶ q))
+    ⊎ (∃[ Deltaᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
+        (V · W —↠[ χsᴸ ] blame))
+
+
+SimBackTargetRevealRebaseFrameᵀ : Set
+SimBackTargetRevealRebaseFrameᵀ =
+  ∀ {Deltaᴸ Deltaᴿ Deltaᴿ′ : TyCtx}
+    {Σᴸ : TyStore Deltaᴸ} {Σᴿ : TyStore Deltaᴿ}
+    {γ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Deltaᴿ , Σᴿ , [] ⟩}
+    {M : Term Deltaᴸ} {M′ : Term Deltaᴿ} {N′ : Term Deltaᴿ′}
+    {A : Ty Deltaᴸ} {B B′ Rᴿ : Ty Deltaᴿ}
+    {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
+    {c′ : Conv↑ Deltaᴿ B B′} {χᴿ : StoreChange Deltaᴿ Deltaᴿ′}
+  → sourceRebaseCountᶜ γ ≡ 0
+  → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+  → (ok : CanRebaseSourceᵗ
+      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
+  → (represented :
+      (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
+  → {p : A ⊑ᵀ⟨
+      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
+  → (γ ▻ᶜ rebase-source-changeᶜ
+      Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ∶ p
+  → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → M′ —→[ χᴿ ] N′
-  → (Σ[ Δᴸ′ ∈ TyCtx ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-    Σ[ N ∈ Term Δᴸ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ W′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ r ∈ applyTys χsᴸ B ⊑ᵂ⟨ W′ ⟩ applyTy χᴿ B′ ]
-      (M ↓ c —↠[ χsᴸ ] N) ×
-      ParkedEvolve χsᴸ (χᴿ ∷ˢ []ˢ) W W′ ×
-      (W′ ∣ [] ⊢² N ⊑
-        N′ ↓ Conv.rename↓ (applyVar χᴿ) c′ ∶ r))
-    ⊎ (∃[ Δᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Δᴸ Δᴸ′ ]
-        (M ↓ c —↠[ χsᴸ ] blame))
+  → ( Σ[ Deltaᴸ′ ∈ TyCtx ]
+      Σ[ Σᴸ′ ∈ TyStore Deltaᴸ′ ]
+      Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
+      Σ[ N ∈ Term Deltaᴸ′ ]
+      Σ[ γ′ ∈
+        ⟨ Deltaᴸ′ , Σᴸ′ , [] ⟩ ⊑ᶜ
+        ⟨ Deltaᴿ′ , applyStore χᴿ Σᴿ , [] ⟩ ]
+      Σ[ r ∈ applyTys χsᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTy χᴿ B′ ]
+        (M —↠[ χsᴸ ] N)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} χsᴸ (χᴿ ∷ˢ []ˢ)
+        × (γ′ ⊢² N ⊑
+          N′ ↑ Conv.rename↑ (applyVar χᴿ) c′ ∶ r))
+    ⊎ (∃[ Deltaᴸ′ ] Σ[ χsᴸ ∈ StoreChanges Deltaᴸ Deltaᴸ′ ]
+        (M —↠[ χsᴸ ] blame))

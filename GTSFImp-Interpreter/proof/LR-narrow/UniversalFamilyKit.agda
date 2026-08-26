@@ -45,6 +45,10 @@ open import proof.LR-narrow.StarNoOccurrence using (replaceTy-absent)
   → X ∉ᵗ `∀ A → Fin.suc X ∉ᵗ A
 ∉-all-inv (∉-all h) = h
 
+import proof.DGG.CtxImp as CTI
+import proof.DGG.CastTermImprecision as CTIR
+import proof.LR-narrow.Universal as UniversalProof
+open import LR-narrow.TermRelation
 open import proof.LR-narrow.RevealStructural ob using
   (statements-all; revealed-endpoints; concealed-endpoints;
    reveal-right-universal-head;
@@ -479,3 +483,35 @@ universal-family-kit = record { to-family = family }
       (bodyP (someImp (extend-wraps σ (data-future W≼W′ dat))))
       (liftCenterDynamicBodyImprecision W≼W′ p₀)
       (data-chain (someBody (extend-wraps σ (data-future W≼W′ dat))))
+
+------------------------------------------------------------------------
+-- The `Λ` introduction no longer needs the kit as an argument
+------------------------------------------------------------------------
+
+right-universal-value-compatible : ∀ {Δᴾ Δᴵ Δᶜ}
+    {W : World Δᴾ Δᴵ Δᶜ} {k : ℕ}
+    {Γ : CTI.CtxImp (forgetWorld W)}
+    {Aᴾ : Ty (suc Δᴾ)} {Bᴵ : Ty Δᴵ}
+    {p : Aᴾ CTI.⊑ᵂ⟨
+      CTI.liftWorldLeft I.X⊑★ (forgetWorld W) ⟩ Bᴵ}
+    {Γ′ : CTI.CtxImp
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W))}
+    {Vᴾ : Term (suc Δᴾ)} {Vᴵ : Term Δᴵ}
+  → (nonvar : NonVar Aᴾ)
+  → (occurs : Fin.zero ∈ᵗ Aᴾ)
+  → (liftΓ : CTI.LiftCtxᴸ I.X⊑★ Γ Γ′)
+  → (vVᴾ : Value Vᴾ)
+  → (vVᴵ : Value Vᴵ)
+  → ⟨ _ , CTI.targetStoreʷ (forgetWorld W) ,
+        CTI.tgtCtxʷ Γ ⟩ ⊢ Vᴵ ⦂ Bᴵ
+  → CTIR._∣_⊢²_⊑_∶_
+      (CTI.liftWorldLeft I.X⊑★ (forgetWorld W)) Γ′ Vᴾ Vᴵ p
+  → (q : `∀ Aᴾ ⊑ᵂ⟨ core W ⟩ Bᴵ)
+  → (∀ i → i ≤ k →
+      CompiledRightUniversalTestRelation {W = W}
+        (UniversalProof.right-universal-body-imprecision {W = W} p)
+        Aᴾ Bᴵ i Γ Vᴾ Vᴵ)
+  → CompiledTermRelation {W = W} q k Γ (Λ Vᴾ) Vᴵ
+right-universal-value-compatible =
+  UniversalProof.right-universal-value-compatible-from-body
+    universal-family-kit

@@ -715,6 +715,75 @@ four `∀⊑∀` fields, all of them Finding F; every other universal
 statement is proved, and the replacement-closure programme is
 complete.
 
+## Alias-transparent imprecision — validated core, staged plan
+(2026-08-26)
+
+The extension was implemented in the core and typechecked there, then
+reverted so the shared calculus stays green: completing it is a
+multi-session refactor of GTSFImp, and the tree cannot sit red in the
+meantime.  What the attempt established:
+
+### The rule must be the fused one after all
+
+The earlier "do not fuse" correction was itself wrong on one point.
+The minimal unfolding axiom `μ X ≡ X⊑ᵗ T → μ ⊢ ＇X ⊑ T` is **not
+closed under transitivity**: `⊑-trans (unfold eq) q` would have to
+produce `＇X ⊑ C`, which the axiom only yields when the mode records
+`C` rather than `T`.  So keeping the upstream `⊑-trans` true *forces*
+the fused rule
+
+    alias : μ X ≡ X⊑ᵗ T  →  μ ⊢ T ⊑ B  →  μ ⊢ ＇X ⊑ B
+
+which is closed by `⊑-trans (alias eq p) q = alias eq (⊑-trans p q)`.
+Transitivity's role is thus the opposite of what the correction said:
+it does not let us shrink the rule, it pins the rule's shape.  With
+modes being constructors of `VarImp`, the three variable leaves are
+mode-disjoint, so `⊑-unique` survives with **no** acyclicity side
+condition and the unguarded `X⊑X` leaf can stay as it is.
+
+### The core change (typechecked)
+
+`VarImp` becomes context-indexed, with a weakening, and `extendᵐ`
+weakens the modes it shifts:
+
+    data VarImp (Δ : TyCtx) : Set where
+      X⊑X : VarImp Δ ; X⊑★ : VarImp Δ ; X⊑ᵗ : Ty Δ → VarImp Δ
+    ⇑ᵛ : VarImp Δ → VarImp (suc Δ)
+    extendᵐ v μ (suc X) = ⇑ᵛ (μ X)      -- was: μ X
+
+Because `extᵐ μ (suc Z)` no longer reduces to `μ Z`, every mode
+equation crossing a binder needs transport.  Four one-line lemmas
+suffice and were proved: `ext-mode-paired`, `ext-mode-star` (by
+`cong ⇑ᵛ`) and their inverses `ext-mode-paired-inv`,
+`ext-mode-star-inv` (by casing on the mode; the alias mode never
+lifts to a paired or dynamic one).
+
+### Remaining work, and the obstacle class that makes it non-mechanical
+
+* ~87 exhaustive matches on `_⊢_⊑_` (48 in GTSFImp, 39 in the
+  interpreter) each need an `alias` case, most of them recursive.
+* ~111 `VarImp` signatures need the context index — in world-lifting
+  operations the mode belongs to the *extended* context
+  (`VarImp (suc Δ)`).
+* The genuinely non-mechanical part: existing metatheory whose
+  hypotheses mention only the dynamic mode.  `⊑-env-mono`
+  (`proof/DGG/WorldDecay.agda`) maps a derivation along
+  `∀ Z → μ Z ≡ X⊑★ → μᵈ Z ≡ X⊑★`, which says nothing about aliases
+  and so becomes *false* at the new leaf; it needs the extra premise
+  `∀ Z T → μ Z ≡ X⊑ᵗ T → μᵈ Z ≡ X⊑ᵗ T`, and each of its four users
+  must supply it.  Expect a handful of similar strengthenings —
+  every lemma that abstracts over an environment change is a
+  candidate.
+
+Suggested staging: (1) core plus the four transport lemmas; (2) the
+`VarImp` index across world constructions; (3) the `alias` cases in
+GTSFImp, strengthening environment-change hypotheses as they surface,
+to a green `GTSFImp/All.agda`; (4) the same in the interpreter, ending
+with the LR clause and the alias atom; (5) the alias bind expansion
+and the `∀⊑∀` head, discharging the four obligations.  Steps 1–2 are
+done and reproducible from this note; the branch was reverted only to
+keep the tree green.
+
 ## Consumer rewrites (the payoff)
 
 * `DynamicReveal`'s universal case (both directions): project the

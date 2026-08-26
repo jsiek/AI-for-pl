@@ -16,7 +16,7 @@ module proof.DGG.WorldEvolution where
 import Data.Fin as Fin
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; trans)
+  using (_≡_; _≢_; refl; sym; trans; cong)
   renaming (subst to subst≡)
 
 open import Types using
@@ -204,3 +204,73 @@ evolution-⊑ᵀ {A = A} {B = B}
         ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) ⊑ T)
       (sym (renameᵗ-keep-shift (ηᴿᶜ W) B))
       (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
+
+
+evolution-aligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
+    {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)}
+    {Xᴿ : TyVar (CastTerms.Δᵉ Cᴿ)}
+  → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
+  → toRenameᵗ (ηᴸᶜ W) Xᴸ ≡ toRenameᵗ (ηᴿᶜ W) Xᴿ
+  → toRenameᵗ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
+    ≡ toRenameᵗ (ηᴿᶜ W′) (R.applyVar (storeChange stepᴿ) Xᴿ)
+evolution-aligned evolution-keep aligned = aligned
+evolution-aligned (evolution-bind-left eqᴸ) aligned =
+  cong Fin.suc aligned
+evolution-aligned (evolution-bind-right fresh eqᴿ) aligned =
+  cong Fin.suc aligned
+evolution-aligned (evolution-bind-both represented eqᴸ eqᴿ) aligned =
+  cong Fin.suc aligned
+evolution-aligned
+    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) aligned =
+  cong Fin.suc aligned
+
+
+evolution-source-mark : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
+    {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)} {v}
+  → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
+  → marksᶜ W (toRenameᵗ (ηᴸᶜ W) Xᴸ) ≡ v
+  → marksᶜ W′
+      (toRenameᵗ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)) ≡ v
+evolution-source-mark evolution-keep mark = mark
+evolution-source-mark (evolution-bind-left eqᴸ) mark = mark
+evolution-source-mark (evolution-bind-right fresh eqᴿ) mark = mark
+evolution-source-mark (evolution-bind-both represented eqᴸ eqᴿ) mark =
+  mark
+evolution-source-mark
+    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) mark =
+  mark
+
+
+evolution-source-disaligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
+    {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)}
+  → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
+  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ W) Xᴿ ≢ toRenameᵗ (ηᴸᶜ W) Xᴸ)
+  → ∀ Xᴿ′ → toRenameᵗ (ηᴿᶜ W′) Xᴿ′
+      ≢ toRenameᵗ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
+evolution-source-disaligned evolution-keep free = free
+evolution-source-disaligned (evolution-bind-left eqᴸ) free Xᴿ aligned =
+  free Xᴿ (fin-suc-injective aligned)
+evolution-source-disaligned
+    (evolution-bind-right fresh eqᴿ) free Fin.zero ()
+evolution-source-disaligned
+    (evolution-bind-right fresh eqᴿ) free (Fin.suc Xᴿ) aligned =
+  free Xᴿ (fin-suc-injective aligned)
+evolution-source-disaligned
+    (evolution-bind-both represented eqᴸ eqᴿ) free Fin.zero ()
+evolution-source-disaligned
+    (evolution-bind-both represented eqᴸ eqᴿ)
+    free (Fin.suc Xᴿ) aligned =
+  free Xᴿ (fin-suc-injective aligned)
+evolution-source-disaligned
+    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ)
+    free Fin.zero ()
+evolution-source-disaligned
+    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ)
+    free (Fin.suc Xᴿ) aligned =
+  free Xᴿ (fin-suc-injective aligned)

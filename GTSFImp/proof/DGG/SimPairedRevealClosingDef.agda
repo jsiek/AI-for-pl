@@ -1,21 +1,23 @@
 {-# OPTIONS --safe #-}
 
-module proof.DGG.SimPairedCastValuesDef where
+module proof.DGG.SimPairedRevealClosingDef where
 
 -- File Charter:
---   * States simulation of a paired ordinary cast after both cast bodies
---     have reached related values.
---   * Packages all value/value cast-root combinations behind one interface.
---   * Does not perform the initial target catch-up or split by cast rule.
+--   * States the whole forward-simulation case for cancellation of paired
+--     reveals.
+--   * Exposes generator representations and structural-position agreement
+--     directly, without a residual or catch-up wrapper.
+--   * Contains no paired-reveal simulation proof.
 
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
-open import Types using (Ty; TyCtx)
+open import Types using (Ty; TyCtx; TyVar)
 open import TyStore using (TyStore)
-open import Consistency using (Env∼; _⊢_∼_)
-open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⟨_⟩)
+open import Consistency using (toRenameᵗ)
+open import Conversion using (Conv↑; _⊢↑[_⦂_]_)
+open import CastTerms using (Term; Value; ⟨_,_,_⟩; _↑_)
 open import Reduction using
   ( StoreChange
   ; StoreChanges
@@ -26,26 +28,33 @@ open import Reduction using
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.ConversionPivotAlignment using
+  (revealGeneratorPosition)
 open import proof.DGG.World
 open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
-SimPairedCastValuesᵀ : Set
-SimPairedCastValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+SimPairedRevealClosingᵀ : Set
+SimPairedRevealClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
-    {V : Term Δᴸ} {V′ : Term Δᴿ} {N : Term Δᴸ′}
+    {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
-    {μ : Env∼ Δᴸ} {μ′ : Env∼ Δᴿ}
-    {c : μ ⊢ A ∼ B} {c′ : μ′ ⊢ A′ ∼ B′}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {Rᴸ : Ty Δᴸ} {Rᴿ : Ty Δᴿ}
+    {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
     {p : A ⊑ᵀ⟨ γ ⟩ A′}
   → sourceRebaseCountᶜ γ ≡ 0
-  → γ ⊢² V ⊑ V′ ∶ p
+  → (c⊢ : Σᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+  → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+  → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
+  → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+  → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
+  → γ ⊢² V ⊑ M′ ∶ p
   → (q : B ⊑ᵀ⟨ γ ⟩ B′)
   → Value V
-  → Value V′
-  → V ⟨ c ⟩ —→[ χᴸ ] N
+  → V ↑ c —→[ χᴸ ] N
   → Σ[ Δᴿ′ ∈ TyCtx ]
     Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
     Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
@@ -54,7 +63,7 @@ SimPairedCastValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
       ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
       ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
     Σ[ r ∈ applyTy χᴸ B ⊑ᵀ⟨ γ′ ⟩ applyTys χsᴿ B′ ]
-      (V′ ⟨ c′ ⟩ —↠[ χsᴿ ] N′)
+      (M′ ↑ c′ —↠[ χsᴿ ] N′)
       × MultiWorldEvolution
           {W = γ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) χsᴿ
       × (γ′ ⊢² N ⊑ N′ ∶ r)

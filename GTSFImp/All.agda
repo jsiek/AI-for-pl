@@ -140,21 +140,10 @@ import proof.DGG.Catchup.LeftValueCatchupProof
 -- Current frontier (M8: higher-order DGG assembly)
 ------------------------------------------------------------------------
 
-import proof.DGG.SimPrimitiveValuesProof
-import proof.DGG.SimCastLayerInversion
-import proof.DGG.SimSourceCastValuesProof
-import proof.DGG.SimPairedCastValuesProof
-import proof.DGG.SimConcealRevealPeel
-import proof.DGG.SimSourceRevealValuesProof
-import proof.DGG.SimPairedRevealValuesProof
-import proof.DGG.SimSourceConcealValuesProof
-import proof.DGG.SimPairedConcealValuesProof
-import proof.DGG.TransportTermImprecisionProof
 import proof.DGG.SimProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.TargetBlameCatchupProof
-import proof.DGG.SimConcealRevealPeel
 import proof.DGG.CatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 

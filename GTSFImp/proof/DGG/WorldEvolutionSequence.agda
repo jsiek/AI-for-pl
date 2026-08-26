@@ -16,11 +16,12 @@ module proof.DGG.WorldEvolutionSequence where
 --     request producer, and the preservation context action.
 
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; subst; cong; trans)
+  using (_≡_; _≢_; refl; sym; subst; cong; trans)
 
 import TermCtx as TC
-open import Types using (Ty)
+open import Types using (Ty; TyVar; TyCtx)
 open import TyStore using (TyStore)
+open import Consistency using (toRenameᵗ)
 import Conversion as Conv
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ)
 import Reduction as R
@@ -207,6 +208,93 @@ multi-⊑ᵀ (evolutions-step-right refl one tail) p =
   multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
 multi-⊑ᵀ (evolutions-step-both refl refl one tail) p =
   multi-⊑ᵀ tail (evolution-⊑ᵀ one p)
+
+
+applyVars-prepend : ∀ {C C¹ : Ctx} {Δ′ : TyCtx}
+    (step : CtxChange C C¹)
+    (χs : StoreChanges (Δᵉ C¹) Δ′)
+    (X : TyVar (Δᵉ C))
+  → applyVars (storeChange step ∷ χs) X
+      ≡ applyVars χs (R.applyVar (storeChange step) X)
+applyVars-prepend keep-ctx χs X = refl
+applyVars-prepend (bind-ctx eq) χs X = refl
+
+
+multi-aligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {Xᴸ : TyVar (Δᵉ Cᴸ)} {Xᴿ : TyVar (Δᵉ Cᴿ)}
+  → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
+  → toRenameᵗ (ηᴸᶜ W) Xᴸ ≡ toRenameᵗ (ηᴿᶜ W) Xᴿ
+  → toRenameᵗ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)
+      ≡ toRenameᵗ (ηᴿᶜ W′) (applyVars χsᴿ Xᴿ)
+multi-aligned evolutions-refl aligned = aligned
+multi-aligned {Xᴸ = Xᴸ}
+    (evolutions-step-left {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}
+      refl one tail) aligned
+    rewrite applyVars-prepend stepᴸ χsᴸ Xᴸ =
+  multi-aligned tail (evolution-aligned one aligned)
+multi-aligned {Xᴿ = Xᴿ}
+    (evolutions-step-right {χsᴿ = χsᴿ} {stepᴿ = stepᴿ}
+      refl one tail) aligned
+    rewrite applyVars-prepend stepᴿ χsᴿ Xᴿ =
+  multi-aligned tail (evolution-aligned one aligned)
+multi-aligned {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+    (evolutions-step-both {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
+      {stepᴸ = stepᴸ} {stepᴿ = stepᴿ} refl refl one tail)
+    aligned
+    rewrite applyVars-prepend stepᴸ χsᴸ Xᴸ
+          | applyVars-prepend stepᴿ χsᴿ Xᴿ =
+  multi-aligned tail (evolution-aligned one aligned)
+
+
+multi-source-mark : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {Xᴸ : TyVar (Δᵉ Cᴸ)} {v}
+  → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
+  → marksᶜ W (toRenameᵗ (ηᴸᶜ W) Xᴸ) ≡ v
+  → marksᶜ W′
+      (toRenameᵗ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)) ≡ v
+multi-source-mark evolutions-refl mark = mark
+multi-source-mark {Xᴸ = Xᴸ}
+    (evolutions-step-left {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}
+      refl one tail) mark
+    rewrite applyVars-prepend stepᴸ χsᴸ Xᴸ =
+  multi-source-mark tail (evolution-source-mark one mark)
+multi-source-mark (evolutions-step-right refl one tail) mark =
+  multi-source-mark tail (evolution-source-mark one mark)
+multi-source-mark {Xᴸ = Xᴸ}
+    (evolutions-step-both {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}
+      refl refl one tail) mark
+    rewrite applyVars-prepend stepᴸ χsᴸ Xᴸ =
+  multi-source-mark tail (evolution-source-mark one mark)
+
+
+multi-source-disaligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {Xᴸ : TyVar (Δᵉ Cᴸ)}
+  → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
+  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ W) Xᴿ ≢ toRenameᵗ (ηᴸᶜ W) Xᴸ)
+  → ∀ Xᴿ′ → toRenameᵗ (ηᴿᶜ W′) Xᴿ′
+      ≢ toRenameᵗ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)
+multi-source-disaligned evolutions-refl free = free
+multi-source-disaligned {Xᴸ = Xᴸ}
+    (evolutions-step-left {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}
+      refl one tail) free
+    rewrite applyVars-prepend stepᴸ χsᴸ Xᴸ =
+  multi-source-disaligned tail (evolution-source-disaligned one free)
+multi-source-disaligned (evolutions-step-right refl one tail) free =
+  multi-source-disaligned tail (evolution-source-disaligned one free)
+multi-source-disaligned {Xᴸ = Xᴸ}
+    (evolutions-step-both {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}
+      refl refl one tail) free
+    rewrite applyVars-prepend stepᴸ χsᴸ Xᴸ =
+  multi-source-disaligned tail (evolution-source-disaligned one free)
 
 
 request-source-change : ∀
@@ -440,6 +528,76 @@ multi-source-conceal-position {χsᴸ = χsᴸ} evol c⊢ =
       (sym (multi-source-store evol))
       (applyConceals-⊢↓ {χs = χsᴸ} c⊢))
     (concealGeneratorPosition-apply {χs = χsᴸ} c⊢)
+
+
+multi-target-reveal : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴿ)} {c : Conv.Conv↑ (Δᵉ Cᴿ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → Σᵉ Cᴿ Conv.⊢↑[ X ⦂ Rep ] c
+  → Σᵉ Cᴿ′ Conv.⊢↑[
+      applyVars χsᴿ X ⦂ R.applyTys χsᴿ Rep ] applyReveals χsᴿ c
+multi-target-reveal {χsᴿ = χsᴿ} {X = X} {Rep = Rep} {c = c}
+    evol c⊢ =
+  subst
+    (λ Σ → Σ Conv.⊢↑[
+      applyVars χsᴿ X ⦂ R.applyTys χsᴿ Rep ] applyReveals χsᴿ c)
+    (sym (multi-target-store evol))
+    (applyReveals-⊢↑ {χs = χsᴿ} c⊢)
+
+
+multi-target-conceal : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴿ)} {c : Conv.Conv↓ (Δᵉ Cᴿ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → Σᵉ Cᴿ Conv.⊢↓[ X ⦂ Rep ] c
+  → Σᵉ Cᴿ′ Conv.⊢↓[
+      applyVars χsᴿ X ⦂ R.applyTys χsᴿ Rep ] applyConceals χsᴿ c
+multi-target-conceal {χsᴿ = χsᴿ} {X = X} {Rep = Rep} {c = c}
+    evol c⊢ =
+  subst
+    (λ Σ → Σ Conv.⊢↓[
+      applyVars χsᴿ X ⦂ R.applyTys χsᴿ Rep ] applyConceals χsᴿ c)
+    (sym (multi-target-store evol))
+    (applyConceals-⊢↓ {χs = χsᴿ} c⊢)
+
+
+multi-target-reveal-position : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴿ)} {c : Conv.Conv↑ (Δᵉ Cᴿ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → (c⊢ : Σᵉ Cᴿ Conv.⊢↑[ X ⦂ Rep ] c)
+  → revealGeneratorPosition (multi-target-reveal evol c⊢)
+      ≡ revealGeneratorPosition c⊢
+multi-target-reveal-position {χsᴿ = χsᴿ} evol c⊢ =
+  trans
+    (revealGeneratorPosition-store-transport
+      (sym (multi-target-store evol))
+      (applyReveals-⊢↑ {χs = χsᴿ} c⊢))
+    (revealGeneratorPosition-apply {χs = χsᴿ} c⊢)
+
+
+multi-target-conceal-position : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
+    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
+    {X} {Rep A B : Ty (Δᵉ Cᴿ)} {c : Conv.Conv↓ (Δᵉ Cᴿ) A B}
+  → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
+  → (c⊢ : Σᵉ Cᴿ Conv.⊢↓[ X ⦂ Rep ] c)
+  → concealGeneratorPosition (multi-target-conceal evol c⊢)
+      ≡ concealGeneratorPosition c⊢
+multi-target-conceal-position {χsᴿ = χsᴿ} evol c⊢ =
+  trans
+    (concealGeneratorPosition-store-transport
+      (sym (multi-target-store evol))
+      (applyConceals-⊢↓ {χs = χsᴿ} c⊢))
+    (concealGeneratorPosition-apply {χs = χsᴿ} c⊢)
 
 
 multi-source-term-ctx : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}

@@ -89,7 +89,13 @@ judgment, and the relational lookup walk `RepWalk`.
    (`fd619e35`): 1090 → 820 lines; eleven substantial lemmas kept (the
    two boundary splits, three identity cancellations, two
    `conceal-reveal` variants, four allocation rules).
-3. **Progress** (statements and protocol approved; in progress):
+3. **Progress** — statements and protocol approved; the theorem is
+   **open**, blocked on a design decision (see "Open question: the
+   stranded ν" below). Landed so far (`c7ce1d1c`):
+   `alt/ThetaProgress.agda` with the datatype and canonical families,
+   and `alt/probes/ProgressGaps.agda` with the first checked gap.
+
+   The approved statements:
 
    ```agda
    data Progress {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) : Term Θ Δ → Set where
@@ -129,6 +135,56 @@ judgment, and the relational lookup walk `RepWalk`.
    — `alt/Conversion.agda` is live and stays), rewrite `alt/Design.md`
    against the design above, and decide the fate of the unpushed
    mega-pass commit `257b0381`.
+
+## Open question: the stranded ν
+
+`progress` found a **function-level** gap before it ever reached the
+★-merge cases (checked witness, `alt/probes/ProgressGaps.agda`):
+
+```agda
+Ψ = ∅ ,:= (ℕ ⇒ ℕ)
+F = (ν[ ℕ ] ((ƛ ℕ ˙ ` 0) ↓[ 0 ≔ 1 ] seal)) ↑[ 0 ≔ 0 ] unseal
+M = F · $ 0
+```
+
+`F` is typed at `ℕ ⇒ ℕ` and is a `Value` — solely through
+`RevealValue.adapter-region` — but it is not a `CanonicalFun`: its
+conversion is `unseal`, not `c₁ ↦↑ c₂`, so no application rule matches;
+and `F` cannot step on its own, because `conceal-reveal` needs the seal
+node *directly* under the unseal and a ν sits between them (the anchors
+`1` and `0` are the same anchor either side of that ν's binder). So `M`
+is typed, is not a `Result`, is not `blame`, and does not step.
+
+The ν is there legitimately: evaluation inside a region allocates, and
+`adapter-region` exists to classify exactly that. What is missing is a
+way for the stranded ν to get out of the way. History and constraints:
+
+- The **resolving** `float-reveal` (`A₀ = substᵗ (resolveSubᵗ Y C) A`)
+  was refuted in the preservation campaign (ladder entry 7) and both
+  ν-crossing floats were then deleted; only the resolving form was ever
+  refuted, the strengthenable form was dropped as redundant — which
+  this gap shows it was not.
+- A **strengthenable-only** float (`strengthenᵗ? Y A ≡ just A₀`, i.e.
+  the entry does not mention `Y`) closes *this* witness but not the
+  chain case: `β-gen` mints its entry from the type argument verbatim,
+  so `… ⦂∀ B [ ＇Y ]` inside a region yields `ν[ ＇Y ] …`, whose entry
+  cannot strengthen.
+- Jeremy's proposed constraint: the floating ν's own anchor must not be
+  revealed inside its body. Under it, nothing inside the body reads the
+  entry (a conceal at that anchor would need a begin, which needs such
+  a reveal), so **resolving the entry is sound** and the chain case
+  floats too.
+- The catch, and the reason this is still open: `β-gen`'s own
+  contractum is a ν whose body reveals its own anchor
+  (`ν[ C ] (… ↑[ 0 ≔ 0 ] 〖 0 ↑ B 〗)`), so freshly allocated ν's are
+  excluded by that constraint until their own region is consumed.
+  Whether an outer region can then hold such a ν *under an
+  elimination* — reproducing this gap with an unfloatable ν — has not
+  been determined. It is mechanizable: implement the guarded float and
+  re-run `progress` under the gap-witness protocol.
+
+Rules must touch at most two term constructors (so a through-prefix
+cancellation mentioning ν, `↓`, and `↑` is out).
 
 ## Institutional memory: the refutation ladder
 

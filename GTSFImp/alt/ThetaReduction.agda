@@ -26,6 +26,7 @@ open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
+open import Data.Maybe using (just)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality
@@ -362,27 +363,27 @@ swapTopᵗ = renameᵗ swapTop
 
 infix 2 _⊢_—→_
 
-data _⊢_—→_ : ∀ {Θ Δ}
-  → TyEnv Θ Δ → Term Θ Δ → Term Θ Δ → Set where
-  δ-⊕ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {op κ₁ κ₂ κ₃}
+data _⊢_—→_ : ∀ {Θ Δ σ}
+  → TyEnv Θ Δ σ → Term Θ Δ → Term Θ Δ → Set where
+  δ-⊕ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {op κ₁ κ₂ κ₃}
     → δ op κ₁ κ₂ κ₃
       -----------------------------------------
     → Ψ ⊢ ($ κ₁ ⊕[ op ] $ κ₂) —→ ($ κ₃)
 
-  β : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V N : Term Θ Δ} {A : Ty Δ}
     → Value V
       -----------------------------
     → Ψ ⊢ (ƛ A ˙ N) · V —→ N [ V ]
 
-  β-id : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-id : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {A : Ty Δ} {a : Atom A}
     → Value V
       ---------------------------------
     → Ψ ⊢ V ⟨ id {μ = μ} a ⟩ —→ V
 
-  β-⇒ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-⇒ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V W : Term Θ Δ} {μ : Env∼ Δ}
       {A A′ B B′ : Ty Δ}
       {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
@@ -391,7 +392,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       ------------------------------------------------
     → Ψ ⊢ (V ⟨ c ↦ d ⟩) · W —→ (V · (W ⟨ c ⟩)) ⟨ d ⟩
 
-  β-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {A B : Ty (suc Δ)} {C : Ty Δ}
       {c : extᵐ μ ⊢ A ∼ B} {d : μ ⊢ A [ C ]ᵗ ∼ B [ C ]ᵗ}
@@ -401,7 +402,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
     → Ψ ⊢ (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] —→
         (V ⦂∀ A [ C ]) ⟨ d ⟩
 
-  ground : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  ground : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {A G : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
@@ -411,7 +412,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       -------------------------------------------------
     → Ψ ⊢ V ⟨ c ! ⟩ —→ V ⟨ c ⟩ ⟨ (idᵍ Gᵍ) ! ⟩
 
-  expand : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  expand : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {G B : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
@@ -421,7 +422,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       -------------------------------------------------
     → Ψ ⊢ V ⟨ ？ c ⟩ —→ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩
 
-  tag-untag : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  tag-untag : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ ν : Env∼ Δ}
       {G : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄
@@ -431,7 +432,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
       -------------------------------------------------------
     → Ψ ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Gᵍ) ⟩ —→ V
 
-  tag-untag-bad : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  tag-untag-bad : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ ν : Env∼ Δ}
       {G H : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄ ⦃ Hᵍ : Ground H ⦄
@@ -442,13 +443,13 @@ data _⊢_—→_ : ∀ {Θ Δ}
       ------------------------------------------------------------
     → Ψ ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Hᵍ) ⟩ —→ blame
 
-  blame-bot-intro : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  blame-bot-intro : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
     → Value V
       ------------------------------------------
     → Ψ ⊢ V ⟨ bot-intro {μ = μ} ⟩ —→ blame
 
-  β-reveal-⇒ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-reveal-⇒ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {W : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
       {c : Conceal} {d : Reveal}
@@ -458,7 +459,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
     → Ψ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→
         (V · (W ↓[ X ≔ α ] c)) ↑[ X ≔ α ] d
 
-  β-conceal-⇒ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+  β-conceal-⇒ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {V : Term Θ Δ} {W : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
       {c : Reveal} {d : Conceal}
@@ -468,84 +469,84 @@ data _⊢_—→_ : ∀ {Θ Δ}
     → Ψ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→
         (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d
 
-  id-cancel : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {R : Term Θ Δ}
+  id-cancel : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {R : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
     → Result R
       ----------------------------------------------------
     → Ψ ⊢ (R ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ —→ R
 
-  id-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  id-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {X : TyVar (suc Δ)}
       {α : TyVar Θ} {κ}
       ---------------------------------------------
     → Ψ ⊢ ($ κ) ↑[ X ≔ α ] id↑ —→ $ κ
 
-  id-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+  id-conceal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {X : TyVar (suc Δ)}
       {α : TyVar Θ} {κ}
       ---------------------------------------------
     → Ψ ⊢ ($ κ) ↓[ X ≔ α ] id↓ —→ $ κ
 
-  conceal-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {R : Term Θ Δ}
+  conceal-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {R : Term Θ Δ}
       {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
     → Result R
       ------------------------------------------------------------
     → Ψ ⊢ (R ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal —→ R
 
-  blame-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M : Term Θ Δ}
+  blame-·₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {M : Term Θ Δ}
       ------------------------
     → Ψ ⊢ blame · M —→ blame
 
-  blame-·₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V : Term Θ Δ}
+  blame-·₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {V : Term Θ Δ}
     → Value V
       ------------------------
     → Ψ ⊢ V · blame —→ blame
 
   blame-• : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
-      {Ψ : TyEnv Θ Δ}
+      {σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {B : Ty (suc Δ)}
       ----------------------------------
     → Ψ ⊢ blame ⦂∀ B [ A ] —→ blame
 
-  blame-⟨⟩ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  blame-⟨⟩ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {μ : Env∼ Δ} {A B : Ty Δ}
       {c : μ ⊢ A ∼ B}
       ------------------------
     → Ψ ⊢ blame ⟨ c ⟩ —→ blame
 
-  blame-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  blame-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {X : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Reveal}
       --------------------------------------
     → Ψ ⊢ blame ↑[ X ≔ α ] c —→ blame
 
-  blame-conceal : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+  blame-conceal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {X : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
       --------------------------------------
     → Ψ ⊢ blame ↓[ X ≔ α ] c —→ blame
 
-  blame-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  blame-⊕₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {M : Term Θ Δ} {op : Prim}
       --------------------------------
     → Ψ ⊢ blame ⊕[ op ] M —→ blame
 
-  blame-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  blame-⊕₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {op : Prim}
     → Value V
       --------------------------------
     → Ψ ⊢ V ⊕[ op ] blame —→ blame
 
-  blame-ν : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {A : Ty Δ}
+  blame-ν : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {A : Ty Δ}
       -------------------------
     → Ψ ⊢ ν[ A ] blame —→ blame
 
-  const-ν : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  const-ν : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {κ : Const}
       ----------------------------
     → Ψ ⊢ ν[ A ] ($ κ) —→ ($ κ)
 
-  β-Λ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-Λ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
     → Value V
       ------------------------------------------------------------
@@ -554,7 +555,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
 
   -- The consistency evidence mentions only the regular context.  `shiftᶿ`
   -- changes only the anchor count, so the inner cast reuses `c` unchanged.
-  β-gen : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-gen : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ} {A C : Ty Δ} {B : Ty (suc Δ)}
       {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
       ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
@@ -572,7 +573,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
   -- ordinary type application, and the downstream ⦂∀ rules (β-Λ, β-∀,
   -- β-gen, β-reveal-∀, β-conceal-∀) perform them for whichever canonical
   -- ∀-value V is.
-  β-inst : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-inst : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {A : Ty (suc Δ)} {B : Ty Δ}
       {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
@@ -585,7 +586,7 @@ data _⊢_—→_ : ∀ {Θ Δ}
   -- Unlike the name-based v2 statement, entering ν shifts the old anchor
   -- from α to `suc α`; inserting the fresh slot shifts its crossing to
   -- `suc X`.  The carried raw shape `c` itself is unchanged.
-  β-reveal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  β-reveal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {A : Ty Δ}
       {B : Ty (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
@@ -608,12 +609,12 @@ data _⊢_—→_ : ∀ {Θ Δ}
   -- resolves the instantiation and the conversion-determined source body,
   -- instantiates V there, and closes its fresh slot before the generated
   -- exit conceal restores the ambient abstract-X view.
-  β-conceal-∀ : ∀ {Θ Δ} {Ψ : TyEnv Θ (suc Δ)}
+  β-conceal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {V : Term Θ Δ} {A : Ty (suc Δ)}
       {B : Ty (suc (suc Δ))}
       {C₀ : Ty Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → (Ψ ,end[ X ]) ∋rep α ≔ C₀
+    → rep? (Ψ ,end[ X ]) α ≡ just C₀
     → Result V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ] —→
@@ -632,58 +633,59 @@ data _⊢_—→_ : ∀ {Θ Δ}
                     (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)) 〗)))
           ↓[ X ≔ α ] 〖 X ↓ (B [ A ]ᵗ) 〗
 
-  ξ-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {L L′ M : Term Θ Δ}
+  ξ-·₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {L L′ M : Term Θ Δ}
     → Ψ ⊢ L —→ L′
       --------------------
     → Ψ ⊢ L · M —→ L′ · M
 
-  ξ-·₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {V M M′ : Term Θ Δ}
+  ξ-·₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {V M M′ : Term Θ Δ}
     → Value V
     → Ψ ⊢ M —→ M′
       --------------------
     → Ψ ⊢ V · M —→ V · M′
 
-  ξ-• : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ} {M M′ : Term Θ Δ}
+  ξ-• : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {M M′ : Term Θ Δ}
       {A : Ty Δ} {B : Ty (suc Δ)}
     → Ψ ⊢ M —→ M′
       ------------------------------------
     → Ψ ⊢ M ⦂∀ B [ A ] —→ M′ ⦂∀ B [ A ]
 
-  ξ-⟨⟩ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  ξ-⟨⟩ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {M M′ : Term Θ Δ} {μ : Env∼ Δ}
       {A B : Ty Δ} {c : μ ⊢ A ∼ B}
     → Ψ ⊢ M —→ M′
       ---------------------------
     → Ψ ⊢ M ⟨ c ⟩ —→ M′ ⟨ c ⟩
 
-  ξ-reveal : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  ξ-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {M M′ : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → Ψ ,begin[ X ≔ α ] ⊢ M —→ M′
+      {fresh : α ∉ᵛ σ}
+    → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ⊢ M —→ M′
       ------------------------------------------
     → Ψ ⊢ M ↑[ X ≔ α ] c —→ M′ ↑[ X ≔ α ] c
 
-  ξ-conceal : ∀ {Θ Δ} {Ψ′ : TyEnv Θ (suc Δ)}
+  ξ-conceal : ∀ {Θ Δ σ} {Ψ′ : TyEnv Θ (suc Δ) σ}
       {M M′ : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → Ψ′ ,end[ X ] ⊢ M —→ M′
       ------------------------------------------
     → Ψ′ ⊢ M ↓[ X ≔ α ] c —→ M′ ↓[ X ≔ α ] c
 
-  ξ-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  ξ-⊕₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {L L′ M : Term Θ Δ} {op : Prim}
     → Ψ ⊢ L —→ L′
       --------------------------------
     → Ψ ⊢ L ⊕[ op ] M —→ L′ ⊕[ op ] M
 
-  ξ-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  ξ-⊕₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V M M′ : Term Θ Δ} {op : Prim}
     → Value V
     → Ψ ⊢ M —→ M′
       --------------------------------
     → Ψ ⊢ V ⊕[ op ] M —→ V ⊕[ op ] M′
 
-  ξ-ν : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  ξ-ν : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {M M′ : Term (suc Θ) Δ}
     → Ψ ,:= A ⊢ M —→ M′
       -------------------------------
@@ -691,39 +693,39 @@ data _⊢_—→_ : ∀ {Θ Δ}
 
   -- ν is the region binder, not an eliminator frame.  Nested ν-headed
   -- results are represented directly by `result-ν`, so there is no float-ν.
-  float-·₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  float-·₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ}
     → Result (ν[ A ] M)
       --------------------------------------------------
     → Ψ ⊢ (ν[ A ] M) · N —→ ν[ A ] (M · shiftᶿ N)
 
-  float-·₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  float-·₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ}
     → Value V
     → Result (ν[ A ] M)
       --------------------------------------------------
     → Ψ ⊢ V · (ν[ A ] M) —→ ν[ A ] (shiftᶿ V · M)
 
-  float-• : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  float-• : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {M : Term (suc Θ) Δ}
     → Result (ν[ A ] M)
       ------------------------------------------------------------------
     → Ψ ⊢ (ν[ A ] M) ⦂∀ B [ C ] —→ ν[ A ] (M ⦂∀ B [ C ])
 
-  float-⟨⟩ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  float-⟨⟩ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A B C : Ty Δ} {M : Term (suc Θ) Δ} {μ : Env∼ Δ}
       {c : μ ⊢ B ∼ C}
     → Result (ν[ A ] M)
       --------------------------------------------------
     → Ψ ⊢ (ν[ A ] M) ⟨ c ⟩ —→ ν[ A ] (M ⟨ c ⟩)
 
-  float-⊕₁ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  float-⊕₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ} {op : Prim}
     → Result (ν[ A ] M)
       ------------------------------------------------------------------
     → Ψ ⊢ (ν[ A ] M) ⊕[ op ] N —→ ν[ A ] (M ⊕[ op ] shiftᶿ N)
 
-  float-⊕₂ : ∀ {Θ Δ} {Ψ : TyEnv Θ Δ}
+  float-⊕₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ} {op : Prim}
     → Value V
     → Result (ν[ A ] M)

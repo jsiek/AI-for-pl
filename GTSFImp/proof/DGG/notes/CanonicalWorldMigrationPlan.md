@@ -69,12 +69,20 @@ Only target reveal and target conceal across a source rebase remain as module
 parameters. Their exact statements live in `TransportTargetBindDef`, and the
 goal-free parameterized proof lives in `TransportTargetBindProof`.
 
-The remaining work in this milestone is to prove the four source-rebase
-commutations isolated by the source-bind and target-bind inductions, then
-implement the paired-precise-bind and paired-dynamic-bind inductions. Each
-proof must traverse all current CTI constructors. Keep a clause as a named
-parameter only when it requires a genuine separate world-history induction;
-discharge ordinary same-scope clauses directly.
+The precise and dynamic paired-bind inductions share one `PairedBindScope`
+graph and one proof. Their root changes differ, but their actions through term
+and type scope are identical. The proof renames both endpoints together and
+traverses every current CTI constructor, including the paired conversion
+position and alignment evidence. Its two source-rebase commutations are
+stated in `TransportPairedBindDef`; the goal-free parameterized proof lives in
+`TransportPairedBindProof`.
+
+All four allocation kinds now have complete ordinary structural inductions.
+The remaining work in this milestone is to prove the six source-rebase
+commutations isolated by those inductions and instantiate the one-step
+transport proof. Keep a clause as a named parameter only when it requires a
+genuine separate world-history induction; discharge ordinary same-scope
+clauses directly.
 
 ### 2. Canonical CTI substitution
 

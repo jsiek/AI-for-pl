@@ -199,3 +199,4 @@ import proof.DGG.WorldSupport
 import proof.DGG.TargetBindLift
 import proof.DGG.TransportSourceBindProof
 import proof.DGG.TransportTargetBindProof
+import proof.DGG.TransportPairedBindProof

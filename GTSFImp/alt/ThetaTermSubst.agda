@@ -4166,3 +4166,289 @@ typingTarget-begin target = typing-target-begin target
   → Φ ∣ [] ⊢ renameᵗᵐ ρ (renameᶿ (shiftAlong extension) M)
       ⦂ renameᵗ (toRenameᵗ ρ) A
 ⊢≼ extension M⊢ = ⊢transport-target (balanced-target extension) M⊢
+
+------------------------------------------------------------------------
+-- Exact transport when the regular injection is pointwise identity
+------------------------------------------------------------------------
+
+renameᵗ-pointwise-id : ∀ {Δ} {ρ : Δ ⇒ʳ Δ} (A : Ty Δ)
+  → (∀ X → ρ X ≡ X)
+  → renameᵗ ρ A ≡ A
+renameᵗ-pointwise-id A eq =
+  trans (renameᵗ-cong A eq) (renameᵗ-id A)
+
+renameᶿ-pointwise-id : ∀ {Θ Δ} {φ : TyVar Θ → TyVar Θ}
+  → (∀ a → φ a ≡ a)
+  → (M : Term Θ Δ)
+  → renameᶿ φ M ≡ M
+renameᶿ-pointwise-id eq (` x) = refl
+renameᶿ-pointwise-id eq (ƛ A ˙ M) =
+  cong (ƛ A ˙_) (renameᶿ-pointwise-id eq M)
+renameᶿ-pointwise-id eq (L · M) =
+  cong₂ _·_ (renameᶿ-pointwise-id eq L)
+    (renameᶿ-pointwise-id eq M)
+renameᶿ-pointwise-id eq (Λ M) =
+  cong Λ_ (renameᶿ-pointwise-id eq M)
+renameᶿ-pointwise-id eq (L ⦂∀ C [ A ]) =
+  cong (λ N → N ⦂∀ C [ A ]) (renameᶿ-pointwise-id eq L)
+renameᶿ-pointwise-id eq ($ κ) = refl
+renameᶿ-pointwise-id eq (L ⊕[ op ] M) =
+  cong₂ (λ N P → N ⊕[ op ] P) (renameᶿ-pointwise-id eq L)
+    (renameᶿ-pointwise-id eq M)
+renameᶿ-pointwise-id eq (M ⟨ c ⟩) =
+  cong (_⟨ c ⟩) (renameᶿ-pointwise-id eq M)
+renameᶿ-pointwise-id eq (M ↑[ Y ≔ a ] c) =
+  cong₂ (λ N b → N ↑[ Y ≔ b ] c)
+    (renameᶿ-pointwise-id eq M) (eq a)
+renameᶿ-pointwise-id eq (M ↓[ Y ≔ a ] c) =
+  cong₂ (λ N b → N ↓[ Y ≔ b ] c)
+    (renameᶿ-pointwise-id eq M) (eq a)
+renameᶿ-pointwise-id eq (ν[ A ] M) =
+  cong (ν[ A ]_) (renameᶿ-pointwise-id ext-eq M)
+  where
+  ext-eq : ∀ a → extᵗ _ a ≡ a
+  ext-eq zero = refl
+  ext-eq (suc a) = cong suc (eq a)
+renameᶿ-pointwise-id eq blame = refl
+
+keep-pointwise-id : ∀ {Δ} {ρ : Δ ↪ᵗ Δ}
+  → (∀ X → toRenameᵗ ρ X ≡ X)
+  → ∀ X → toRenameᵗ (keep ρ) X ≡ X
+keep-pointwise-id eq zero = refl
+keep-pointwise-id eq (suc X) = cong suc (eq X)
+
+insert-here-pointwise-id : ∀ {Δ} {ρ : Δ ↪ᵗ Δ}
+    (Y : TyVar (suc Δ))
+  → (∀ X → toRenameᵗ ρ X ≡ X)
+  → toRenameᵗ (insert↪ᵗ ρ Y) Y ≡ Y
+insert-here-pointwise-id {ρ = ρ} zero eq = refl
+insert-here-pointwise-id {ρ = keep ρ} (suc Y) eq =
+  cong suc (insert-here-pointwise-id Y (λ X → fin-suc-injective (eq (suc X))))
+insert-here-pointwise-id {ρ = skip ρ} (suc Y) eq =
+  ⊥-elim (zero≢suc (sym (eq zero)))
+  where
+  zero≢suc : ∀ {n} {X : TyVar n} → zero ≢ suc X
+  zero≢suc ()
+
+insert-pointwise-id : ∀ {Δ} {ρ : Δ ↪ᵗ Δ}
+    (Y : TyVar (suc Δ))
+  → (∀ X → toRenameᵗ ρ X ≡ X)
+  → ∀ X → toRenameᵗ (insert↪ᵗ ρ Y) X ≡ X
+insert-pointwise-id {ρ = ρ} Y eq X with Y ≟ X
+insert-pointwise-id {ρ = ρ} Y eq .Y | yes refl =
+  insert-here-pointwise-id Y eq
+insert-pointwise-id {ρ = ρ} Y eq X | no Y≢X =
+  trans (cong (toRenameᵗ (insert↪ᵗ ρ Y))
+      (sym (punchIn-punchOut Y X Y≢X)))
+    (trans (insert-punchIn ρ Y (punchOut Y X Y≢X))
+      (trans (cong₂ punchIn
+          (insert-here-pointwise-id Y eq)
+          (eq (punchOut Y X Y≢X)))
+        (punchIn-punchOut Y X Y≢X)))
+
+delete-pointwise-id : ∀ {Δ} {ρ : suc Δ ↪ᵗ suc Δ}
+    (Y : TyVar (suc Δ))
+  → (∀ X → toRenameᵗ ρ X ≡ X)
+  → ∀ X → toRenameᵗ (delete↪ᵗ ρ Y) X ≡ X
+delete-pointwise-id {ρ = ρ} Y eq X =
+  punchIn-injectiveᵗ Y
+    (trans (sym (inserted-image))
+      (trans (sym (delete-punchIn ρ Y X))
+        (eq (punchIn Y X))))
+  where
+  inserted-image : punchIn (toRenameᵗ ρ Y)
+      (toRenameᵗ (delete↪ᵗ ρ Y) X)
+    ≡ punchIn Y (toRenameᵗ (delete↪ᵗ ρ Y) X)
+  inserted-image = cong
+    (λ Z → punchIn Z (toRenameᵗ (delete↪ᵗ ρ Y) X)) (eq Y)
+
+⊢transport-id : ∀ {Θ Θ′ Δ σ σ′} {ρ : Δ ↪ᵗ Δ}
+    {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ σ′} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → (target : TypingTarget ρ φ Ψ Φ)
+  → (idρ : ∀ X → toRenameᵗ ρ X ≡ X)
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Φ ∣ Γ ⊢ renameᶿ φ M ⦂ A
+⊢transport-id target idρ (⊢` x∈) = ⊢` x∈
+⊢transport-id target idρ (⊢ƛ M⊢) =
+  ⊢ƛ (⊢transport-id target idρ M⊢)
+⊢transport-id target idρ (⊢· L⊢ M⊢) =
+  ⊢· (⊢transport-id target idρ L⊢)
+    (⊢transport-id target idρ M⊢)
+⊢transport-id target idρ (⊢Λ M⊢) =
+  ⊢Λ (⊢transport-id (typing-target-typ target)
+    (keep-pointwise-id idρ) M⊢)
+⊢transport-id target idρ (⊢⦂∀ L⊢) =
+  ⊢⦂∀ (⊢transport-id target idρ L⊢)
+⊢transport-id target idρ (⊢$ κ) = ⊢$ κ
+⊢transport-id target idρ (⊢⊕ op L⊢ M⊢) =
+  ⊢⊕ op (⊢transport-id target idρ L⊢)
+    (⊢transport-id target idρ M⊢)
+⊢transport-id target idρ (⊢⟨⟩ M⊢ c) =
+  ⊢⟨⟩ (⊢transport-id target idρ M⊢) c
+⊢transport-id {ρ = ρ} {φ = φ} {Ψ = Ψ} {Φ = Φ}
+    target idρ (⊢ν {A = A} M⊢) =
+  ⊢ν (⊢transport-id ν-target idρ M⊢)
+  where
+  ν-target = subst≡
+    (λ B → TypingTarget ρ (extᵗ φ) (Ψ ,:= A) (Φ ,:= B))
+    (renameᵗ-pointwise-id A idρ)
+    (typing-target-ν {ρ = ρ} {A = A} target)
+⊢transport-id {ρ = ρ} {φ = φ} {Φ = Φ} target idρ
+    (⊢reveal {C = C} {Y = Y} {α = α} {fresh = fresh}
+      α-eq c⊢ M⊢) =
+  ⊢reveal target-rep c⊢ body-exact
+  where
+  position = insert-here-pointwise-id Y idρ
+  target-fresh = fresh-TypingTarget target fresh
+  target-rep = trans (rep?-TypingTarget target α α-eq)
+    (cong just (renameᵗ-pointwise-id C idρ))
+  body⊢ = ⊢transport-id (typingTarget-begin target)
+    (insert-pointwise-id Y idρ) M⊢
+  body-exact = subst≡
+    (λ Z → Φ ,begin[ Z ≔ φ α ]⟨ target-fresh ⟩ ∣ []
+      ⊢ renameᶿ φ _ ⦂ _)
+    position body⊢
+⊢transport-id {ρ = ρ} {φ = φ} {Φ = Φ} target idρ
+    (⊢conceal {C = C} {Y = Y} {α = α}
+      slot-eq α-eq c⊢ M⊢) =
+  ⊢conceal target-slot target-rep c⊢ body-exact
+  where
+  position = idρ Y
+  ended-target = typing-target-end target
+  target-slot-mapped = slot-forward-TypingTarget target slot-eq
+  target-slot = trans
+    (cong (Vec.lookup (slotsOf Φ)) (sym position))
+    target-slot-mapped
+  target-rep-mapped = trans (rep?-TypingTarget ended-target α α-eq)
+    (cong just (renameᵗ-pointwise-id C (delete-pointwise-id Y idρ)))
+  target-rep = subst≡
+    (λ Z → rep? (Φ ,end[ Z ]) (φ α) ≡ just C)
+    position target-rep-mapped
+  body⊢ = ⊢transport-id ended-target (delete-pointwise-id Y idρ) M⊢
+  body-exact = subst≡
+    (λ Z → Φ ,end[ Z ] ∣ [] ⊢ renameᶿ φ _ ⦂ _)
+    position body⊢
+⊢transport-id target idρ ⊢blame = ⊢blame
+
+⊢≼-id : ∀ {Θ Θ′ Δ σ σ′ k} {ρ : Δ ↪ᵗ Δ}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ σ′}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → (extension : Ψ ≼[ k , ρ ] Φ)
+  → (∀ X → toRenameᵗ ρ X ≡ X)
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Φ ∣ [] ⊢ renameᶿ (shiftAlong extension) M ⦂ A
+⊢≼-id extension idρ M⊢ =
+  ⊢transport-id (balanced-target extension) idρ M⊢
+
+fresh-after-end : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+    {Y : TyVar (suc Δ)} {a : TyVar Θ}
+  → Vec.lookup σ Y ≡ just a
+  → a ∉ᵛ removeᵛ Y σ
+fresh-after-end {Ψ = Ψ} {Y = Y} slot-eq X ended-eq =
+  punchIn≢ Y X (aliases-unique Ψ slot-eq source-eq)
+  where
+  source-eq = trans
+    (sym (lookup-remove-punch Y (slotsOf Ψ) X)) ended-eq
+
+bracket-injection-id : ∀ {Δ} (Y : TyVar (suc Δ)) X
+  → toRenameᵗ (id↪ᵗ ⨟↪ᵗ delete↪ᵗ id↪ᵗ Y) X ≡ X
+bracket-injection-id Y X =
+  trans (toRename-compose id↪ᵗ (delete↪ᵗ id↪ᵗ Y) X)
+    (trans (cong (toRenameᵗ (delete↪ᵗ id↪ᵗ Y))
+        (toRename-id-eq X))
+      (delete-pointwise-id Y toRename-id-eq X))
+
+reenter-middle-id : ∀ {Δ} (Y : TyVar (suc Δ)) X
+  → toRenameᵗ (delete↪ᵗ id↪ᵗ Y ⨟↪ᵗ id↪ᵗ) X ≡ X
+reenter-middle-id Y X =
+  trans (toRename-compose (delete↪ᵗ id↪ᵗ Y) id↪ᵗ X)
+    (trans (toRename-id-eq _)
+      (delete-pointwise-id Y toRename-id-eq X))
+
+reenter-injection-id : ∀ {Δ} (Y : TyVar (suc Δ)) X
+  → toRenameᵗ
+      (insert↪ᵗ (delete↪ᵗ id↪ᵗ Y ⨟↪ᵗ id↪ᵗ) Y) X ≡ X
+reenter-injection-id Y =
+  insert-pointwise-id Y (reenter-middle-id Y)
+
+⊢shiftᶿ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A B : Ty Δ}
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Ψ ,:= B ∣ Γ ⊢ shiftᶿ M ⦂ A
+⊢shiftᶿ M⊢ = ⊢transport-id
+  (balanced-target (≼-ν ≼-refl)) toRename-id-eq M⊢
+
+⊢bracket : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {M : Term Θ Δ} {A : Ty Δ} {Y : TyVar (suc Δ)}
+    {a : TyVar Θ} (fresh : a ∉ᵛ σ)
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ] ∣ [] ⊢ M ⦂ A
+⊢bracket {Ψ = Ψ} {M = M} {A = A} {Y = Y} {a = a} fresh M⊢ =
+  subst≡ (λ N → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ]
+      ∣ [] ⊢ N ⦂ A)
+    (renameᶿ-pointwise-id (λ q → refl) M) position-typed
+  where
+  extension = ≼-begin-end ≼-refl ≼-refl
+  mapped = toRenameᵗ id↪ᵗ Y
+  typed = ⊢≼-id extension (bracket-injection-id Y) M⊢
+  position-typed = subst≡
+    (λ Z → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Z ]
+      ∣ [] ⊢ renameᶿ (shiftAlong extension) M ⦂ A)
+    (toRename-id-eq Y) typed
+
+reenter-extension : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+    {Y : TyVar (suc Δ)} {a : TyVar Θ}
+    (slot-eq : Vec.lookup σ Y ≡ just a)
+  → Ψ ≼[ zero ,
+      insert↪ᵗ (delete↪ᵗ id↪ᵗ Y ⨟↪ᵗ id↪ᵗ) Y ]
+      (Ψ ,end[ Y ] ,begin[
+        toRenameᵗ
+          (insert↪ᵗ (delete↪ᵗ id↪ᵗ Y ⨟↪ᵗ id↪ᵗ) Y) Y ≔ a
+      ]⟨ fresh-after-end {Ψ = Ψ} {Y = Y} slot-eq ⟩)
+reenter-extension {Ψ = Ψ} {Y = Y} slot-eq =
+  ≼-end-begin slot-eq ≼-refl region shifted-zero
+  where
+  mapped = toRenameᵗ id↪ᵗ Y
+  region : (Ψ ,end[ mapped ]) ≼[ zero , id↪ᵗ ] (Ψ ,end[ Y ])
+  region = subst≡
+    (λ Z → (Ψ ,end[ mapped ]) ≼[ zero , id↪ᵗ ] (Ψ ,end[ Z ]))
+    (toRename-id-eq Y) ≼-refl
+
+shifted-zero-eq : ∀ {Θ} {a b : TyVar Θ}
+  → Shifted zero a b
+  → a ≡ b
+shifted-zero-eq shifted-zero = refl
+
+reenter-anchor-id : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+    {Y : TyVar (suc Δ)} {a : TyVar Θ}
+    (slot-eq : Vec.lookup σ Y ≡ just a) (q : TyVar Θ)
+  → shiftAlong (reenter-extension {Ψ = Ψ} {Y = Y} slot-eq) q ≡ q
+reenter-anchor-id {Ψ = Ψ} {Y = Y} slot-eq q =
+  sym (shifted-zero-eq
+    (shiftAlong-shifted (reenter-extension {Ψ = Ψ} {Y = Y} slot-eq) q))
+
+⊢reenter : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+    {M : Term Θ (suc Δ)} {A : Ty (suc Δ)}
+    {Y : TyVar (suc Δ)} {a : TyVar Θ}
+    (slot-eq : Vec.lookup σ Y ≡ just a)
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Ψ ,end[ Y ] ,begin[ Y ≔ a
+      ]⟨ fresh-after-end {Ψ = Ψ} {Y = Y} slot-eq ⟩
+      ∣ [] ⊢ M ⦂ A
+⊢reenter {Ψ = Ψ} {M = M} {A = A} {Y = Y} {a = a} slot-eq M⊢ =
+  subst≡ (λ N → Ψ ,end[ Y ] ,begin[ Y ≔ a
+      ]⟨ fresh-after-end {Ψ = Ψ} {Y = Y} slot-eq ⟩
+      ∣ [] ⊢ N ⦂ A)
+    (renameᶿ-pointwise-id
+      (reenter-anchor-id {Ψ = Ψ} {Y = Y} slot-eq) M)
+    (subst≡
+      (λ Z → Ψ ,end[ Y ] ,begin[ Z ≔ a
+          ]⟨ fresh-after-end {Ψ = Ψ} {Y = Y} slot-eq ⟩
+        ∣ [] ⊢ renameᶿ
+          (shiftAlong (reenter-extension {Ψ = Ψ} {Y = Y} slot-eq)) M ⦂ A)
+      (reenter-injection-id Y Y)
+      (⊢≼-id
+        (reenter-extension {Ψ = Ψ} {Y = Y} slot-eq)
+        (reenter-injection-id Y) M⊢))

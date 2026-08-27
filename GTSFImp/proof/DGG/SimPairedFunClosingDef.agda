@@ -23,7 +23,7 @@ open import Reduction using
   ; applyTy
   ; applyTys
   ; keep
-  ; _—→[_]_
+  ; _—→_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 open import Imprecision using (⇒⊑⇒)
@@ -44,7 +44,7 @@ SimPairedFunClosingᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
   → γ ⊢² M ⊑ M′ ∶ pA
   → Value L
   → Value M
-  → L · M —→[ keep ] N
+  → L · M —→ N
   → Σ[ Δᴿ′ ∈ TyCtx ]
     Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
     Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]

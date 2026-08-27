@@ -15,16 +15,19 @@ module proof.DGG.SourceRebase where
 import Data.Fin as Fin
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; _≢_; refl; cong; sym; trans)
+  (_≡_; _≢_; refl; cong; sym; trans; subst)
 
-open import Types using (Ty; TyVar; ★; ＇_; ⇑ᵗ)
+open import Types using (Ty; TyVar; ★; ＇_; ⇑ᵗ; renameᵗ)
 open import TyStore using (TyStore; lookupStore)
+open import Imprecision using (ImpEnv; VarImp; X⊑X; extendᵐ; _⊢_⊑_)
 import TermCtx as TC
 open import TermCtx using (TermCtx)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ)
 
 open import proof.DGG.World
 open import proof.DGG.WorldEvolution
+open import proof.ImprecisionConsistency using
+  (fin-suc-injective; rename-⊑)
 
 
 data SourceRebaseᶜ : ∀ {Γᴸ Γᴿ}
@@ -120,6 +123,33 @@ data SourceRebaseᶜ : ∀ {Γᴸ Γᴿ}
           representedᵖ A≠★ eqᴸᵖ eqᴿᵖ)
         (Fin.suc Xᴸ) (Fin.suc Xᴿ)
 
+  source-rebase-bind-term : ∀
+      {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+      {A : Ty Δᴸ} {B : Ty Δᴿ}
+      {γ γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {Xᴸ Xᴿ}
+    → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+    → (represented : A ⊑ᵀ⟨ γ ⟩ B)
+    → (representedᵖ : A ⊑ᵀ⟨ γᵖ ⟩ B)
+    → SourceRebaseᶜ
+        (bind-termᶜ γ represented)
+        (bind-termᶜ γᵖ representedᵖ) Xᴸ Xᴿ
+
+  source-rebase-lift-both : ∀ {Γᴸ Γᴿ}
+      {γ γᵖ : Γᴸ ⊑ᶜ Γᴿ} {v : VarImp} {Xᴸ Xᴿ}
+    → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+    → SourceRebaseᶜ
+        (liftBothᶜ v γ) (liftBothᶜ v γᵖ)
+        (Fin.suc Xᴸ) (Fin.suc Xᴿ)
+
+  source-rebase-lift-left : ∀ {Γᴸ Γᴿ}
+      {γ γᵖ : Γᴸ ⊑ᶜ Γᴿ} {Xᴸ Xᴿ}
+    → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+    → SourceRebaseᶜ
+        (liftLeftᶜ γ) (liftLeftᶜ γᵖ)
+        (Fin.suc Xᴸ) Xᴿ
+
 
 source-rebase-can : ∀ {Γᴸ Γᴿ}
     {γ γᵖ : Γᴸ ⊑ᶜ Γᴿ} {Xᴸ Xᴿ}
@@ -141,6 +171,29 @@ source-rebase-can
     (source-rebase-bind-both-star rebase represented representedᵖ
       A≠★ eqᴸ eqᴸᵖ eqᴿ eqᴿᵖ) =
   pivotUpdate-keepᵗ (source-rebase-can rebase)
+source-rebase-can
+    (source-rebase-bind-term rebase represented representedᵖ) =
+  source-rebase-can rebase
+source-rebase-can (source-rebase-lift-both rebase) =
+  pivotUpdate-keepᵗ (source-rebase-can rebase)
+source-rebase-can (source-rebase-lift-left rebase) =
+  pivotUpdate-keepᵗ (source-rebase-can rebase)
+
+
+lift-source-representation : ∀ {Δ} {μ : ImpEnv Δ} {v}
+    {A B : Ty Δ}
+  → μ ⊢ A ⊑ B
+  → extendᵐ v μ ⊢ ⇑ᵗ A ⊑ ⇑ᵗ B
+lift-source-representation represented =
+  rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) represented
+
+
+imprecision-cong : ∀ {Δ} {μ : ImpEnv Δ} {A A′ B B′ : Ty Δ}
+  → A ≡ A′
+  → B ≡ B′
+  → μ ⊢ A ⊑ B
+  → μ ⊢ A′ ⊑ B′
+imprecision-cong refl refl represented = represented
 
 
 source-rebase-represented : ∀ {Γᴸ Γᴿ}
@@ -176,6 +229,25 @@ source-rebase-represented
     {W = γ}
     (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ)
     (source-rebase-represented rebase)
+source-rebase-represented
+    (source-rebase-bind-term rebase represented representedᵖ) =
+  source-rebase-represented rebase
+source-rebase-represented
+    (source-rebase-lift-both
+      {Γᴿ = ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {γ = γ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+      rebase) =
+  imprecision-cong
+    (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ γ) (＇ Xᴸ)))
+    (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ γ) (lookupStore Σᴿ Xᴿ)))
+    (lift-source-representation (source-rebase-represented rebase))
+source-rebase-represented
+    (source-rebase-lift-left
+      {Γᴿ = ⟨ Δᴿ , Σᴿ , Γᴿ ⟩} {γ = γ} {Xᴸ = Xᴸ} {Xᴿ = Xᴿ}
+      rebase) =
+  imprecision-cong
+    (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ γ) (＇ Xᴸ)))
+    (sym (renameᵗ-skipⁱ (ηᴿᶜ γ) (lookupStore Σᴿ Xᴿ)))
+    (lift-source-representation (source-rebase-represented rebase))
 
 
 source-rebase-center : ∀ {Γᴸ Γᴿ}
@@ -197,6 +269,13 @@ source-rebase-center
     (source-rebase-bind-both-star rebase represented representedᵖ
       A≠★ eqᴸ eqᴸᵖ eqᴿ eqᴿᵖ) =
   cong suc (source-rebase-center rebase)
+source-rebase-center
+    (source-rebase-bind-term rebase represented representedᵖ) =
+  source-rebase-center rebase
+source-rebase-center (source-rebase-lift-both rebase) =
+  cong suc (source-rebase-center rebase)
+source-rebase-center (source-rebase-lift-left rebase) =
+  cong suc (source-rebase-center rebase)
 
 
 source-rebase-count : ∀ {Γᴸ Γᴿ}
@@ -217,6 +296,13 @@ source-rebase-count
 source-rebase-count
     (source-rebase-bind-both-star rebase represented representedᵖ
       A≠★ eqᴸ eqᴸᵖ eqᴿ eqᴿᵖ) =
+  source-rebase-count rebase
+source-rebase-count
+    (source-rebase-bind-term rebase represented representedᵖ) =
+  source-rebase-count rebase
+source-rebase-count (source-rebase-lift-both rebase) =
+  source-rebase-count rebase
+source-rebase-count (source-rebase-lift-left rebase) =
   source-rebase-count rebase
 
 

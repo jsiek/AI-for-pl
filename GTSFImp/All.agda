@@ -137,12 +137,31 @@ import proof.DGG.Catchup.LeftPairedConversionCatchupDef
 import proof.DGG.Catchup.LeftTargetRevealRebaseCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupProof
 import proof.DGG.CatchupToMorePreciseProof
+import proof.DGG.Catchup.MorePreciseSourceLambdaClosingProof
+import proof.DGG.Catchup.MorePreciseGenSafeTargetGroundCastSquareDef
+import proof.DGG.Catchup.MorePreciseGenSafeTargetGroundCastSquareLemma
+import proof.DGG.Catchup.MorePrecisePairedTargetGroundCastSquareDef
+import proof.DGG.Catchup.MorePrecisePairedTargetGroundCastSquareProof
+import proof.DGG.Catchup.MorePrecisePairedTargetGroundCastSquareLemma
+import proof.DGG.Catchup.MorePreciseTargetCastValueCatchupProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)
 ------------------------------------------------------------------------
 
 import proof.DGG.SimProof
+import proof.DGG.TermImprecisionSubstitutionProof
+import proof.DGG.SimPairedFunValuesProof
+import proof.DGG.SimPairedFunClosingProof
+import proof.DGG.SimPairedAllClosingProof
+import proof.DGG.SimSourceAllClosingProof
+import proof.DGG.SimPairedCastValuesProof
+import proof.DGG.SimSourceCastValuesProof
+import proof.DGG.SimSourceRevealClosingProof
+import proof.DGG.SimPairedRevealClosingProof
+import proof.DGG.SimPrimitiveValuesLemma
+import proof.DGG.SimPrimitiveClosingProof
+import proof.DGG.SimTargetRevealRebaseClosingProof
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.SimBackPairedFunValuesProof
@@ -192,6 +211,8 @@ import proof.DGG.notes.probes.ConversionPivotAlignmentProbe
 import proof.DGG.notes.probes.TwoCtxBasicExamplesReductionProbe
 import proof.DGG.notes.probes.TwoCtxReductionEvolutionBridgeProbe
 import proof.DGG.notes.probes.TwoCtxSimulationResultProbe
+import proof.DGG.notes.probes.SourceRebaseBackwardTypeTransportProbe
+import proof.DGG.notes.CTIBalanceExample12Ladders
 
 -- Checked libraries currently without consumers (candidates for M7+)
 import proof.DGG.CenterRename
@@ -199,5 +220,6 @@ import proof.DGG.Occupancy
 import proof.DGG.WorldSupport
 import proof.DGG.TargetBindLift
 import proof.DGG.TransportSourceBindProof
+import proof.DGG.TransportSourceRebaseStackProof
 import proof.DGG.TransportTargetBindProof
 import proof.DGG.TransportPairedBindProof

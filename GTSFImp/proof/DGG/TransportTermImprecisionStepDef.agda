@@ -31,6 +31,7 @@ TransportSourceBindᵀ = ∀
     {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
+  → sourceRebaseCountᶜ γ ≡ Nat.zero
   → (eqᴸ : Γᴸ⁺ ≡ ⇑ᶜ Γᴸ)
   → γ ⊢² M ⊑ M′ ∶ p
   → (γ ▻ᶜ bind-left-changeᶜ C eqᴸ) ⊢² ⇑ᵗᵐ M ⊑ M′

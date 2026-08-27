@@ -1439,3 +1439,21 @@ separate the surface pivot β, the representation alignment `X↔α`, and the
 one-step allocation edge `β:=α`.  The fixture remains present and blocked;
 weakening it to the positive outer fresh-behind subcase would remove its
 regression purpose.
+
+## D21 TARGET GROUND-CAST SQUARE (2026-08-27, complete)
+
+The target all/gen ground-cast obstruction is discharged without extending
+CTI.  `MorePreciseGenSafeTargetGroundCastSquareLemma` proves the general
+semantic square by a simultaneous injection/projection induction.  The
+recursion is well-founded on `castSize`: only `safe-inst` crosses from the
+injection geometry to the symmetric projection geometry, and the transported
+inner consistency is strictly smaller.  Every other all/gen recursive case
+uses the structurally smaller consistency premise.
+
+`MorePrecisePairedTargetGroundCastSquareLemma` instantiates that induction to
+the four exact target all/gen injection/projection interfaces.  The broad
+arbitrary-inert version remains intentionally absent: source injection
+`ℕ ∼ ★` paired with a target identity at `ℕ` would require the false conclusion
+`★ ⊑ ℕ`.  `MorePreciseTargetCastValueCatchupProof` now checks with the four
+ground-square parameters discharged; its remaining assembly boundaries are
+the separate target-instantiation and source-Λ-closing interfaces.

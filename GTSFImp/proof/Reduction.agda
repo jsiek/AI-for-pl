@@ -60,6 +60,12 @@ applyVars [] X = X
 applyVars (keep ∷ χs) X = applyVars χs X
 applyVars (bind A ∷ χs) X = applyVars χs (Fin.suc X)
 
+applyVars-single : ∀ {Δ Δ′}
+    (χ : StoreChange Δ Δ′) (X : TyVar Δ)
+  → applyVars (χ ∷ []) X ≡ applyVar χ X
+applyVars-single keep X = refl
+applyVars-single (bind A) X = refl
+
 applyBodies : ∀ {Δ Δ′}
   → StoreChanges Δ Δ′
   → Ty (Nat.suc Δ)
@@ -502,6 +508,16 @@ applyTys-++ : ∀ {Δ₀ Δ₁ Δ₂}
   → applyTys ψs (applyTys χs A) ≡ applyTys (χs ++χ ψs) A
 applyTys-++ [] ψs A = refl
 applyTys-++ (χ ∷ χs) ψs A = applyTys-++ χs ψs (applyTy χ A)
+
+applyVars-++ : ∀ {Δ₀ Δ₁ Δ₂}
+  → (χs : StoreChanges Δ₀ Δ₁)
+  → (ψs : StoreChanges Δ₁ Δ₂)
+  → ∀ X
+  → applyVars ψs (applyVars χs X) ≡ applyVars (χs ++χ ψs) X
+applyVars-++ [] ψs X = refl
+applyVars-++ (keep ∷ χs) ψs X = applyVars-++ χs ψs X
+applyVars-++ (bind A ∷ χs) ψs X =
+  applyVars-++ χs ψs (Fin.suc X)
 
 cast-applyConsistencies-++ : ∀ {Δ₀ Δ₁ Δ₂} {μ : Env∼ Δ₀}
     {A B : Ty Δ₀}

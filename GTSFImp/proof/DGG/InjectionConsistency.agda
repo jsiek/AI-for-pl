@@ -6,8 +6,8 @@ module proof.DGG.InjectionConsistency where
 --   * Extends a consistency environment along an arbitrary finite injection.
 --   * Preserves the original environment at every injected variable.
 --   * Transports environment-indexed consistency along endpoint injections.
---   * Exports only renameEnv∼ⁱ and rename∼ⁱ; structural OPE transport remains
---     in Consistency.
+--   * Exports renameEnv∼ⁱ, rename∼ⁱ, and renameGenSafeⁱ; structural OPE
+--     transport remains in Consistency.
 
 open import Data.Empty using (⊥-elim)
 open import Data.Nat using (zero; suc)
@@ -19,6 +19,8 @@ open import Relation.Nullary using (yes; no)
 open import Types using (Ty; renameᵗ)
 open import Consistency using (Env∼; idᶜ; _⊢_∼_)
 import Consistency as C
+open import CastTerms using (GenSafe)
+import proof.Consistency as PC
 open import proof.DGG.World using
   (Injectionᵗ; injectionᵗ; toRenameⁱ; toRenameⁱ-injective;
    fin-suc-injectiveⁱ)
@@ -75,3 +77,12 @@ rename∼ⁱ : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
       renameᵗ (toRenameⁱ η) B
 rename∼ⁱ {μ = μ} η c =
   C.rename∼ (toRenameⁱ η) (renameEnv∼ⁱ-preserves η μ) c
+
+
+renameGenSafeⁱ : ∀ {Δ Δ′} {μ : Env∼ Δ} {A B : Ty Δ}
+    {c : μ ⊢ A ∼ B}
+  → (η : Injectionᵗ Δ Δ′)
+  → GenSafe c
+  → GenSafe (rename∼ⁱ η c)
+renameGenSafeⁱ {μ = μ} η safe =
+  PC.renameGenSafe (toRenameⁱ η) (renameEnv∼ⁱ-preserves η μ) safe

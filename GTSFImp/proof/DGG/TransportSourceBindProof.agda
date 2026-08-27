@@ -437,7 +437,7 @@ module _
       (source-scope-⊑ᵀ plan r)
 
   transport-source-bind : TransportSourceBindᵀ
-  transport-source-bind {A = A} {p = p} eqᴸ related =
+  transport-source-bind {A = A} {p = p} no-rebase eqᴸ related =
     retarget-CTI
       (transport-source-type (renameᵗ-wk-eq A)
         (transport-source-bind-scope (source-scope-root eqᴸ) related))

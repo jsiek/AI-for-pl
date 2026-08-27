@@ -8,7 +8,8 @@ AGDA ?= agda
 # boundary; they must not stand in for unfinished cases.  Manifested files are
 # excluded from All.agda and checked through Agda's interaction mode.
 # Remove a file from this list and add it to All.agda as soon as its metas close.
-IN_PROGRESS_PROOFS :=
+IN_PROGRESS_PROOFS := proof/DGG/SimPairedAllValuesProof.agda \
+	proof/DGG/SimSourceRebaseStackProof.agda
 
 check: agda in-progress-proof-check postulate-check
 

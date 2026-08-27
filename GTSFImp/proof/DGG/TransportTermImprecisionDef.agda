@@ -10,6 +10,8 @@ module proof.DGG.TransportTermImprecisionDef where
 --   * Contains no transport proof.
 
 open import Types using (Ty)
+open import Data.Nat using (zero)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 open import CastTerms using (Ctx; Δᵉ; Term)
 open import Reduction using (StoreChanges; applyTerms)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
@@ -29,6 +31,7 @@ TransportTermImprecisionStepᵀ = ∀
     {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
     {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
     {p : A ⊑ᵀ⟨ γ ⟩ B}
+  → sourceRebaseCountᶜ γ ≡ zero
   → (evol : WorldEvolution
       {W = γ} {W′ = γ′} stepᴸ stepᴿ)
   → γ ⊢² M ⊑ M′ ∶ p
@@ -45,6 +48,7 @@ TransportTermImprecisionᵀ = ∀
     {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}
     {A : Ty (Δᵉ Γᴸ)} {B : Ty (Δᵉ Γᴿ)}
     {p : A ⊑ᵀ⟨ γ ⟩ B}
+  → sourceRebaseCountᶜ γ ≡ zero
   → (evol : MultiWorldEvolution
       {W = γ} {W′ = γ′} χsᴸ χsᴿ)
   → γ ⊢² M ⊑ M′ ∶ p

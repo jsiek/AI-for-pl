@@ -13,7 +13,8 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import Types using (Ty)
 open import CastTerms using (Ctx; Δᵉ; Term)
-open import Reduction using (_—↠[_]_; ↠-refl; ↠-step)
+open import Reduction using
+  (_—↠[_]_; _—↠[_]⟨_⟩_; _∎[]; ↠-refl; ↠-step)
   renaming ([] to []ˢ)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.MultiSimBackDef using (SimBack*ᵀ)
@@ -24,7 +25,8 @@ open import proof.DGG.WorldEvolutionSequence using
   ; evolutions-refl
   ; multi-no-source-rebase
   )
-open import proof.Reduction using (_++χ_; applyTys-++; composeReduction)
+open import proof.Reduction using
+  (_++χ_; applyTys-++; _—↠+[_]⟨_⟩_)
 
 
 transport-related-source : ∀ {Γᴸ Γᴿ : Ctx}
@@ -46,23 +48,27 @@ module _ (sim-back : SimBackᵀ) where
       (_ , _ , []ˢ , M , _ , _ , []ˢ , M′ , _ , p ,
        ↠-refl , ↠-refl , evolutions-refl , related)
 
-  sim-back* no-rebase related (↠-step M′→N′ N′↠P′)
+  sim-back* {M = M} no-rebase related (↠-step M′→N′ N′↠P′)
       with sim-back no-rebase related M′→N′
-  sim-back* no-rebase related (↠-step M′→N′ N′↠P′)
+  sim-back* {M = M} no-rebase related (↠-step M′→N′ N′↠P′)
     | inj₂ source-blame = inj₂ source-blame
-  sim-back* no-rebase related (↠-step M′→N′ N′↠P′)
+  sim-back* {M = M} no-rebase related (↠-step M′→N′ N′↠P′)
     | inj₁
         (_ , _ , χsᴸ₁ , N , γ₁ , _ , M↠N , evol₁ , N⊑N′)
       with sim-back*
         (multi-no-source-rebase evol₁ no-rebase) N⊑N′ N′↠P′
-  sim-back* no-rebase related (↠-step M′→N′ N′↠P′)
+  sim-back* {M = M} no-rebase related (↠-step M′→N′ N′↠P′)
     | inj₁
         (_ , _ , χsᴸ₁ , N , γ₁ , _ , M↠N , evol₁ , N⊑N′)
     | inj₂ (_ , χsᴸ₂ , N↠blame) =
       inj₂
         (_ , χsᴸ₁ ++χ χsᴸ₂ ,
-         composeReduction M↠N N↠blame)
-  sim-back* no-rebase related (↠-step M′→N′ N′↠P′)
+         (M
+         —↠+[ χsᴸ₁ ]⟨ M↠N ⟩
+           N
+         —↠[ χsᴸ₂ ]⟨ N↠blame ⟩
+           CastTerms.blame ∎[]))
+  sim-back* {M = M} no-rebase related (↠-step M′→N′ N′↠P′)
     | inj₁
         (_ , _ , χsᴸ₁ , N , γ₁ , _ , M↠N , evol₁ , N⊑N′)
     | inj₁
@@ -70,7 +76,7 @@ module _ (sim-back : SimBackᵀ) where
          γ₂ , q₂ , N↠P , P′↠P₂′ , evol₂ , P⊑P₂′)
       with transport-related-source
         (applyTys-++ χsᴸ₁ χsᴸ₂ _) (q₂ , P⊑P₂′)
-  sim-back* no-rebase related (↠-step M′→N′ N′↠P′)
+  sim-back* {M = M} no-rebase related (↠-step M′→N′ N′↠P′)
     | inj₁
         (_ , _ , χsᴸ₁ , N , γ₁ , _ , M↠N , evol₁ , N⊑N′)
     | inj₁
@@ -79,5 +85,10 @@ module _ (sim-back : SimBackᵀ) where
     | q , P⊑P₂′′ =
       inj₁
         (_ , Σᴸ₂ , χsᴸ₁ ++χ χsᴸ₂ , P , _ , Σᴿ₂ , ψsᴿ ,
-         P₂′ , γ₂ , q , composeReduction M↠N N↠P , P′↠P₂′ ,
+         P₂′ , γ₂ , q ,
+         (M
+         —↠+[ χsᴸ₁ ]⟨ M↠N ⟩
+           N
+         —↠[ χsᴸ₂ ]⟨ N↠P ⟩
+           P ∎[]) , P′↠P₂′ ,
          composeMultiWorldEvolution evol₁ evol₂ , P⊑P₂′′)

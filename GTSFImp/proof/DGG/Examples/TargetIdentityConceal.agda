@@ -1555,11 +1555,17 @@ checkpoint₁-function-imprecision :
         (I.⇒⊑⇒ (I.X⊑X {X = Fin.suc Fin.zero}) I.★⊑★)
 checkpoint₁-function-imprecision =
   CTI.ƛ⊑ƛ²
+    {A = X⇒★}
+    {A′ = X⇒★}
+    {B = X⇒★}
+    {B′ = X⇒★}
     {pA = I.⇒⊑⇒
       (I.X⊑X {X = Fin.suc Fin.zero}) I.★⊑★}
     {pB = I.⇒⊑⇒
       (I.X⊑X {X = Fin.suc Fin.zero}) I.★⊑★}
     (CTI.x⊑x²
+      {A = X⇒★}
+      {B = X⇒★}
       {p = I.⇒⊑⇒
         (I.X⊑X {X = Fin.suc Fin.zero}) I.★⊑★} Z Z)
 
@@ -1570,11 +1576,23 @@ checkpoint₁-reveals-imprecision :
 checkpoint₁-reveals-imprecision =
   CTI.⊑reveal-rebase²
     {M′ = checkpoint₁-target-beta-reveal}
+    {A = higher-X}
+    {B = ( ＇ (Fin.suc Fin.zero) ⇒ ★) ⇒
+      (＇ (Fin.suc Fin.zero) ⇒ ★)}
+    {B′ = higher-dynamic}
+    {Xᴸ = Fin.zero}
+    {Xᴿ = Fin.suc Fin.zero}
     checkpoint₁-alpha-higher-reveal⊢
     (source-rebase-now TIR.checkpoint₁-alpha-ok
       TIR.checkpoint₁-alpha-representation)
     (CTI.⊑reveal-rebase²
       {M′ = checkpoint₁-target-function}
+      {A = higher-X}
+      {B = higher-X}
+      {B′ = (＇ (Fin.suc Fin.zero) ⇒ ★) ⇒
+        (＇ (Fin.suc Fin.zero) ⇒ ★)}
+      {Xᴸ = Fin.zero}
+      {Xᴿ = Fin.zero}
       checkpoint₁-beta-higher-reveal⊢
       (source-rebase-now TIR.checkpoint₁-beta-ok
         TIR.checkpoint₁-beta-representation)
@@ -1765,7 +1783,13 @@ checkpoint₃-function-imprecision :
         (I.⇒⊑⇒ checkpoint₃-variable-imprecision I.★⊑★)
 checkpoint₃-function-imprecision =
   CTI.ƛ⊑ƛ²
+    {A = X⇒★}
+    {A′ = X⇒★}
+    {B = X⇒★}
+    {B′ = X⇒★}
     (CTI.x⊑x²
+      {A = X⇒★}
+      {B = X⇒★}
       {p = I.⇒⊑⇒ checkpoint₃-variable-imprecision I.★⊑★} Z Z)
 
 checkpoint₃-beta-imprecision :
@@ -1776,6 +1800,12 @@ checkpoint₃-beta-imprecision :
         (I.⇒⊑⇒ checkpoint₃-alpha-variable-imprecision I.★⊑★)
 checkpoint₃-beta-imprecision =
   CTI.⊑reveal-rebase²
+    {A = higher-X}
+    {B = higher-X}
+    {B′ = (＇ (Fin.suc Fin.zero) ⇒ ★) ⇒
+      (＇ (Fin.suc Fin.zero) ⇒ ★)}
+    {Xᴸ = Fin.zero}
+    {Xᴿ = Fin.zero}
     checkpoint₁-beta-higher-reveal⊢
     (source-rebase-now TIR.checkpoint₃-beta-ok
       TIR.checkpoint₃-beta-representation)
@@ -1793,6 +1823,13 @@ checkpoint₃-reveals-imprecision :
     ∶ higher-ℕ⊑higher-dynamic
 checkpoint₃-reveals-imprecision =
   CTI.reveal⊑reveal²
+    {A = higher-X}
+    {A′ = (＇ (Fin.suc Fin.zero) ⇒ ★) ⇒
+      (＇ (Fin.suc Fin.zero) ⇒ ★)}
+    {B = (ℕᵗ ⇒ ★) ⇒ (ℕᵗ ⇒ ★)}
+    {B′ = higher-dynamic}
+    {Xᴸ = Fin.zero}
+    {Xᴿ = Fin.suc Fin.zero}
     checkpoint₃-source-higher-reveal⊢
     checkpoint₁-alpha-higher-reveal⊢
     refl refl I.ι⊑★
@@ -1998,6 +2035,12 @@ checkpoint₅-concealed-argument-imprecision :
     ∶ I.⇒⊑⇒ checkpoint₃-alpha-variable-imprecision I.★⊑★
 checkpoint₅-concealed-argument-imprecision =
   CTI.conceal⊑conceal²
+    {A = ℕᵗ ⇒ ★}
+    {A′ = dynamic-function}
+    {B = X⇒★}
+    {B′ = ＇ (Fin.suc Fin.zero) ⇒ ★}
+    {Xᴸ = Fin.zero}
+    {Xᴿ = Fin.suc Fin.zero}
     checkpoint₅-source-domain-conceal⊢
     checkpoint₅-alpha-domain-conceal⊢
     refl refl I.ι⊑★
@@ -2025,6 +2068,10 @@ checkpoint₅-application-imprecision :
     ∶ I.⇒⊑⇒ checkpoint₃-alpha-variable-imprecision I.★⊑★
 checkpoint₅-application-imprecision =
   CTI.·⊑·²
+    {A = X⇒★}
+    {A′ = ＇ (Fin.suc Fin.zero) ⇒ ★}
+    {B = X⇒★}
+    {B′ = ＇ (Fin.suc Fin.zero) ⇒ ★}
     checkpoint₃-beta-imprecision
     checkpoint₅-concealed-argument-imprecision
 
@@ -2051,6 +2098,12 @@ checkpoint₅-result-imprecision :
     ∶ ℕ⇒★⊑★⇒★
 checkpoint₅-result-imprecision =
   CTI.reveal⊑reveal²
+    {A = X⇒★}
+    {A′ = ＇ (Fin.suc Fin.zero) ⇒ ★}
+    {B = ℕᵗ ⇒ ★}
+    {B′ = dynamic-function}
+    {Xᴸ = Fin.zero}
+    {Xᴿ = Fin.suc Fin.zero}
     checkpoint₅-source-result-reveal⊢
     checkpoint₅-alpha-result-reveal⊢
     refl refl I.ι⊑★

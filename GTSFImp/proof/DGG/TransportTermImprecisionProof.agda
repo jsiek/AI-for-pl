@@ -11,6 +11,7 @@ module proof.DGG.TransportTermImprecisionProof where
 
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; subst)
+open import Data.Nat using (zero)
 
 open import Types using (Ty)
 open import CastTerms using (Ctx; Δᵉ; Term)
@@ -22,7 +23,17 @@ open import proof.DGG.TransportTermImprecisionStepDef
 import proof.DGG.TransportTermImprecisionStepProof as Step
 open import proof.DGG.World
 open import proof.DGG.WorldEvolution using
-  (CtxChange; WorldEvolution; keep-ctx; storeChange; evolution-⊑ᵀ)
+  ( CtxChange
+  ; WorldEvolution
+  ; keep-ctx
+  ; storeChange
+  ; evolution-keep
+  ; evolution-bind-left
+  ; evolution-bind-right
+  ; evolution-bind-both
+  ; evolution-bind-both-star
+  ; evolution-⊑ᵀ
+  )
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution
   ; evolutions-refl
@@ -33,6 +44,26 @@ open import proof.DGG.WorldEvolutionSequence using
   ; ctx-change-term-value
   ; ctx-change-term-value-as
   )
+
+
+evolution-no-source-rebase : ∀
+    {Γᴸ Γᴿ Γᴸ′ Γᴿ′ : Ctx}
+    {γ : Γᴸ ⊑ᶜ Γᴿ} {γ′ : Γᴸ′ ⊑ᶜ Γᴿ′}
+    {stepᴸ : CtxChange Γᴸ Γᴸ′}
+    {stepᴿ : CtxChange Γᴿ Γᴿ′}
+  → WorldEvolution {W = γ} {W′ = γ′} stepᴸ stepᴿ
+  → sourceRebaseCountᶜ γ ≡ zero
+  → sourceRebaseCountᶜ γ′ ≡ zero
+evolution-no-source-rebase evolution-keep no-rebase = no-rebase
+evolution-no-source-rebase
+    (evolution-bind-left eqᴸ) no-rebase = no-rebase
+evolution-no-source-rebase
+    (evolution-bind-right fresh eqᴿ) no-rebase = no-rebase
+evolution-no-source-rebase
+    (evolution-bind-both represented eqᴸ eqᴿ) no-rebase = no-rebase
+evolution-no-source-rebase
+    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) no-rebase =
+  no-rebase
 
 module _ (transport-step : TransportTermImprecisionStepᵀ) where
 
@@ -142,25 +173,29 @@ module _ (transport-step : TransportTermImprecisionStepᵀ) where
         related)
 
   transport-term-imprecision-from-step : TransportTermImprecisionᵀ
-  transport-term-imprecision-from-step evolutions-refl related = related
+  transport-term-imprecision-from-step no-rebase evolutions-refl related =
+    related
 
   transport-term-imprecision-from-step
-      (evolutions-step-left eqᴸ one tail) related =
+      no-rebase (evolutions-step-left eqᴸ one tail) related =
     finish-left eqᴸ one tail
-      (transport-term-imprecision-from-step tail
-        (transport-step one related))
+      (transport-term-imprecision-from-step
+        (evolution-no-source-rebase one no-rebase)
+        tail (transport-step no-rebase one related))
 
   transport-term-imprecision-from-step
-      (evolutions-step-right eqᴿ one tail) related =
+      no-rebase (evolutions-step-right eqᴿ one tail) related =
     finish-right eqᴿ one tail
-      (transport-term-imprecision-from-step tail
-        (transport-step one related))
+      (transport-term-imprecision-from-step
+        (evolution-no-source-rebase one no-rebase)
+        tail (transport-step no-rebase one related))
 
   transport-term-imprecision-from-step
-      (evolutions-step-both eqᴸ eqᴿ one tail) related =
+      no-rebase (evolutions-step-both eqᴸ eqᴿ one tail) related =
     finish-both eqᴸ eqᴿ one tail
-      (transport-term-imprecision-from-step tail
-        (transport-step one related))
+      (transport-term-imprecision-from-step
+        (evolution-no-source-rebase one no-rebase)
+        tail (transport-step no-rebase one related))
 
 
 module _

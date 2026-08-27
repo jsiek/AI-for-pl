@@ -12,7 +12,7 @@ module proof.DGG.TransportSourceBindProof where
 import Data.Fin as Fin
 import Data.Nat as Nat
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; refl; sym; trans; subst; cong)
+  (_≡_; _≢_; refl; sym; trans; subst; cong)
 
 import TermCtx as TC
 import TyStore
@@ -41,11 +41,15 @@ open import proof.DGG.WorldEvolution using
   ; evolution-source-disaligned
   )
 open import proof.DGG.World using
-  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; _▻ᶜ_; bind-left-changeᶜ)
+  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ)
 open import proof.DGG.TransportTermImprecisionStepDef using
   (TransportSourceBindᵀ)
 open import proof.DGG.TransportSourceBindDef using
-  ( TransportSourceBindLambdaᵀ
+  ( SourceBindThroughTerms
+  ; source-bind-root
+  ; source-bind-term
+  ; source-bind-⊑ᵀ
+  ; TransportSourceBindThroughTermsᵀ
   ; TransportSourceBindTypeLambdaᵀ
   ; TransportSourceBindSourceLambdaᵀ
   ; TransportSourceBindTargetRevealRebaseᵀ
@@ -63,6 +67,95 @@ source-member-bind : ∀
 source-member-bind eq member =
   subst (λ Ψ → Ψ TC.∋ _ ⦂ ⇑ᵗ _) (sym eq)
     (TC.renameᵗ-∋ Fin.suc member)
+
+
+source-member-through-terms : ∀
+    {Δᴸ Δᴿ} {Σᴸ : TyStore.TyStore Δᴸ}
+    {Σᴿ : TyStore.TyStore Δᴿ}
+    {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
+    {Γᴸ⁺ : TC.TermCtx (Nat.suc Δᴸ)} {C : Types.Ty Δᴸ}
+    {γ : CastTerms.⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : CastTerms.⟨ Nat.suc Δᴸ , TyStore.store-bind Σᴸ C , Γᴸ⁺ ⟩
+      ⊑ᶜ CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {x} {A : Types.Ty Δᴸ}
+  → SourceBindThroughTerms γ γ⁺
+  → Γᴸ TC.∋ x ⦂ A
+  → Γᴸ⁺ TC.∋ x ⦂ ⇑ᵗ A
+source-member-through-terms (source-bind-root eqᴸ) member =
+  source-member-bind eqᴸ member
+source-member-through-terms
+    (source-bind-term plan p p⁺) TC.Z = TC.Z
+source-member-through-terms
+    (source-bind-term plan p p⁺) (TC.S member) =
+  TC.S (source-member-through-terms plan member)
+
+
+source-bind-aligned : ∀
+    {Δᴸ Δᴿ} {Σᴸ : TyStore.TyStore Δᴸ}
+    {Σᴿ : TyStore.TyStore Δᴿ}
+    {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
+    {Γᴸ⁺ : TC.TermCtx (Nat.suc Δᴸ)} {C : Types.Ty Δᴸ}
+    {γ : CastTerms.⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : CastTerms.⟨ Nat.suc Δᴸ , TyStore.store-bind Σᴸ C , Γᴸ⁺ ⟩
+      ⊑ᶜ CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {Xᴸ : Types.TyVar Δᴸ} {Xᴿ : Types.TyVar Δᴿ}
+  → SourceBindThroughTerms γ γ⁺
+  → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+  → toRenameᵗ (ηᴸᶜ γ⁺) (Fin.suc Xᴸ)
+    ≡ toRenameᵗ (ηᴿᶜ γ⁺) Xᴿ
+source-bind-aligned {C = C} {γ = γ}
+    (source-bind-root eqᴸ) aligned =
+  evolution-aligned
+    (evolution-bind-left {A = C} {W = γ} eqᴸ) aligned
+source-bind-aligned (source-bind-term plan p p⁺) aligned =
+  source-bind-aligned plan aligned
+
+
+source-bind-source-mark : ∀
+    {Δᴸ Δᴿ} {Σᴸ : TyStore.TyStore Δᴸ}
+    {Σᴿ : TyStore.TyStore Δᴿ}
+    {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
+    {Γᴸ⁺ : TC.TermCtx (Nat.suc Δᴸ)} {C : Types.Ty Δᴸ}
+    {γ : CastTerms.⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : CastTerms.⟨ Nat.suc Δᴸ , TyStore.store-bind Σᴸ C , Γᴸ⁺ ⟩
+      ⊑ᶜ CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {Xᴸ : Types.TyVar Δᴸ} {v}
+  → SourceBindThroughTerms γ γ⁺
+  → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ v
+  → marksᶜ γ⁺ (toRenameᵗ (ηᴸᶜ γ⁺) (Fin.suc Xᴸ)) ≡ v
+source-bind-source-mark {C = C} {γ = γ}
+    (source-bind-root eqᴸ) mark =
+  evolution-source-mark
+    (evolution-bind-left {A = C} {W = γ} eqᴸ) mark
+source-bind-source-mark (source-bind-term plan p p⁺) mark =
+  source-bind-source-mark plan mark
+
+
+source-bind-source-disaligned : ∀
+    {Δᴸ Δᴿ} {Σᴸ : TyStore.TyStore Δᴸ}
+    {Σᴿ : TyStore.TyStore Δᴿ}
+    {Γᴸ : TC.TermCtx Δᴸ} {Γᴿ : TC.TermCtx Δᴿ}
+    {Γᴸ⁺ : TC.TermCtx (Nat.suc Δᴸ)} {C : Types.Ty Δᴸ}
+    {γ : CastTerms.⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : CastTerms.⟨ Nat.suc Δᴸ , TyStore.store-bind Σᴸ C , Γᴸ⁺ ⟩
+      ⊑ᶜ CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {Xᴸ : Types.TyVar Δᴸ}
+  → SourceBindThroughTerms γ γ⁺
+  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
+      ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
+  → ∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ⁺) Xᴿ
+      ≢ toRenameᵗ (ηᴸᶜ γ⁺) (Fin.suc Xᴸ)
+source-bind-source-disaligned {C = C} {γ = γ}
+    (source-bind-root eqᴸ) free =
+  evolution-source-disaligned
+    (evolution-bind-left {A = C} {W = γ} eqᴸ) free
+source-bind-source-disaligned
+    (source-bind-term plan p p⁺) free =
+  source-bind-source-disaligned plan free
 
 
 retarget-CTI : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
@@ -227,7 +320,6 @@ shift-open-eq B A =
 
 
 module _
-    (transport-lambda : TransportSourceBindLambdaᵀ)
     (transport-type-lambda : TransportSourceBindTypeLambdaᵀ)
     (transport-source-lambda : TransportSourceBindSourceLambdaᵀ)
     (transport-target-reveal-rebase :
@@ -236,133 +328,132 @@ module _
       TransportSourceBindTargetConcealRebaseᵀ)
   where
 
-  transport-source-bind : TransportSourceBindᵀ
-  transport-source-bind {γ = γ} eqᴸ (CTI.x⊑x² source-member target-member) =
-    CTI.x⊑x² (source-member-bind eqᴸ source-member) target-member
+  transport-source-bind-through-terms : TransportSourceBindThroughTermsᵀ
+  transport-source-bind-through-terms plan
+      (CTI.x⊑x² source-member target-member) =
+    CTI.x⊑x²
+      (source-member-through-terms plan source-member) target-member
 
-  transport-source-bind {γ = γ} eqᴸ (CTI.ƛ⊑ƛ² related) =
-    transport-lambda eqᴸ related
+  transport-source-bind-through-terms plan
+      (CTI.ƛ⊑ƛ² {pA = pA} related) =
+    retarget-CTI
+      (CTI.ƛ⊑ƛ²
+        (transport-source-bind-through-terms
+          (source-bind-term plan pA (source-bind-⊑ᵀ plan pA)) related))
 
-  transport-source-bind {γ = γ} eqᴸ
+  transport-source-bind-through-terms plan
       (CTI.·⊑·² {pA = pA} {pB = pB} function-rel argument-rel) =
     CTI.·⊑·²
-      (retarget-CTI (transport-source-bind eqᴸ function-rel))
-      (transport-source-bind eqᴸ argument-rel)
+      (retarget-CTI
+        (transport-source-bind-through-terms plan function-rel))
+      (transport-source-bind-through-terms plan argument-rel)
 
-  transport-source-bind {γ = γ} eqᴸ
+  transport-source-bind-through-terms plan
       (CTI.Λ⊑Λ² source-value target-value related q) =
-    transport-type-lambda eqᴸ source-value target-value related q
+    transport-type-lambda plan source-value target-value related q
 
-  transport-source-bind {γ = γ} eqᴸ
+  transport-source-bind-through-terms plan
       (CTI.Λ⊑² nonvar occurs source-value target-typing related q) =
-    transport-source-lambda eqᴸ nonvar occurs source-value target-typing
+    transport-source-lambda plan nonvar occurs source-value target-typing
       related q
 
-  transport-source-bind {C = D} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = D} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.•⊑•² {C = C} {C′ = C′} {A = A} {A′ = A′}
         p∀ related q r) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (shift-open-eq C A)
         (CTI.•⊑•² shifted-p∀ shifted-related shifted-q shifted-r))
     where
-    evolution = evolution-bind-left {A = D} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ D eqᴸ
     shifted-p∀ =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ `∀ C′) (sym (shift-all-eq C))
-        (evolution-⊑ᵀ evolution p∀)
+        (source-bind-⊑ᵀ plan p∀)
     shifted-related =
       retarget-CTI
         (transport-source-type {γ = γ⁺} (sym (shift-all-eq C))
-          (transport-source-bind eqᴸ related))
+          (transport-source-bind-through-terms plan related))
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ A′) (sym (renameᵗ-wk-eq A))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
     shifted-r =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ (C′ [ A′ ]ᵗ))
-        (sym (shift-open-eq C A)) (evolution-⊑ᵀ evolution r)
+        (sym (shift-open-eq C A)) (source-bind-⊑ᵀ plan r)
 
-  transport-source-bind {C = D} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = D} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.•⊑² {C = C} {A = A} {B = B} p∀ related q r) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (shift-open-eq C A)
         (CTI.•⊑² shifted-p∀ shifted-related shifted-q shifted-r))
     where
-    evolution = evolution-bind-left {A = D} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ D eqᴸ
     shifted-p∀ =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ B) (sym (shift-all-eq C))
-        (evolution-⊑ᵀ evolution p∀)
+        (source-bind-⊑ᵀ plan p∀)
     shifted-related =
       retarget-CTI
         (transport-source-type {γ = γ⁺} (sym (shift-all-eq C))
-          (transport-source-bind eqᴸ related))
+          (transport-source-bind-through-terms plan related))
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ Types.★) (sym (renameᵗ-wk-eq A))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
     shifted-r =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ B) (sym (shift-open-eq C A))
-        (evolution-⊑ᵀ evolution r)
+        (source-bind-⊑ᵀ plan r)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.κ⊑κ² (κℕ n) p) =
     CTI.κ⊑κ² (κℕ n)
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) p)
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+      (source-bind-⊑ᵀ plan p)
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.κ⊑κ² (κ𝔹 b) p) =
     CTI.κ⊑κ² (κ𝔹 b)
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) p)
+      (source-bind-⊑ᵀ plan p)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.cast⊑cast² {C = A} {C′ = A′} {A = B} {A′ = B′}
         c c′ related q) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (renameᵗ-wk-eq B)
         (CTI.cast⊑cast² shifted c′ shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = Cons.renameᵐᶜ Cons.wk↪ᵗ c
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ B′) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.⊑cast² c′ related q) =
-    CTI.⊑cast² c′ (transport-source-bind eqᴸ related)
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) q)
+    CTI.⊑cast² c′ (transport-source-bind-through-terms plan related)
+      (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.⊑reveal-identity c′⊢ position related q) =
     CTI.⊑reveal-identity c′⊢ position
-      (transport-source-bind eqᴸ related)
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) q)
+      (transport-source-bind-through-terms plan related)
+      (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.⊑conceal-identity c′⊢ position related q) =
     CTI.⊑conceal-identity c′⊢ position
-      (transport-source-bind eqᴸ related)
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) q)
+      (transport-source-bind-through-terms plan related)
+      (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.cast⊑² {A = A} {A′ = B} {B = D} c related q) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (renameᵗ-wk-eq B)
         (CTI.cast⊑² shifted shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = Cons.renameᵐᶜ Cons.wk↪ᵗ c
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ D) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.reveal⊑-identity {A = A} {A′ = B} {B = D}
         c⊢ position related q) =
     retarget-CTI
@@ -371,40 +462,36 @@ module _
           (trans (shift-reveal-position c⊢) position)
           shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = shift-reveal-typing {C = C} c⊢
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ D) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.reveal⊑-only² {A = A} {A′ = B} {B = D}
         c⊢ position mark disaligned represented related q) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (renameᵗ-wk-eq B)
         (CTI.reveal⊑-only² shifted shifted-position
-          (evolution-source-mark evolution mark)
-          (evolution-source-disaligned evolution disaligned)
-          (evolution-⊑ᵀ evolution represented)
+          (source-bind-source-mark plan mark)
+          (source-bind-source-disaligned plan disaligned)
+          (source-bind-⊑ᵀ plan represented)
           shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = shift-reveal-typing {C = C} c⊢
     shifted-position = λ absent → position
       (trans (sym (shift-reveal-position c⊢)) absent)
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ D) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.conceal⊑-identity {A = A} {A′ = B} {B = D}
         c⊢ position related q) =
     retarget-CTI
@@ -413,103 +500,100 @@ module _
           (trans (shift-conceal-position c⊢) position)
           shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = shift-conceal-typing {C = C} c⊢
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ D) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.conceal⊑-only² {A = A} {A′ = B} {B = D}
         c⊢ position mark disaligned represented related q) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (renameᵗ-wk-eq B)
         (CTI.conceal⊑-only² shifted shifted-position
-          (evolution-source-mark evolution mark)
-          (evolution-source-disaligned evolution disaligned)
-          (evolution-⊑ᵀ evolution represented)
+          (source-bind-source-mark plan mark)
+          (source-bind-source-disaligned plan disaligned)
+          (source-bind-⊑ᵀ plan represented)
           shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = shift-conceal-typing {C = C} c⊢
     shifted-position = λ absent → position
       (trans (sym (shift-conceal-position c⊢)) absent)
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ D) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.reveal⊑reveal² {A = A} {A′ = A′} {B = B} {B′ = B′}
         c⊢ c′⊢ same-position aligned represented related q) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (renameᵗ-wk-eq B)
         (CTI.reveal⊑reveal² shifted c′⊢
           (trans (shift-reveal-position c⊢) same-position)
-          (evolution-aligned evolution aligned)
-          (evolution-⊑ᵀ evolution represented)
+          (source-bind-aligned plan aligned)
+          (source-bind-⊑ᵀ plan represented)
           shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = shift-reveal-typing {C = C} c⊢
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ B′) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.conceal⊑conceal² {A = A} {A′ = A′} {B = B} {B′ = B′}
         c⊢ c′⊢ same-position aligned represented related q) =
     retarget-CTI
       (transport-source-type {γ = γ⁺} (renameᵗ-wk-eq B)
         (CTI.conceal⊑conceal² shifted c′⊢
           (trans (shift-conceal-position c⊢) same-position)
-          (evolution-aligned evolution aligned)
-          (evolution-⊑ᵀ evolution represented)
+          (source-bind-aligned plan aligned)
+          (source-bind-⊑ᵀ plan represented)
           shifted-related shifted-q))
     where
-    evolution = evolution-bind-left {A = C} {W = γ} eqᴸ
-    γ⁺ = γ ▻ᶜ bind-left-changeᶜ C eqᴸ
     shifted = shift-conceal-typing {C = C} c⊢
     shifted-related =
       transport-source-type {γ = γ⁺} (sym (renameᵗ-wk-eq A))
-        (transport-source-bind eqᴸ related)
+        (transport-source-bind-through-terms plan related)
     shifted-q =
       subst (λ T → T ⊑ᵀ⟨ γ⁺ ⟩ B′) (sym (renameᵗ-wk-eq B))
-        (evolution-⊑ᵀ evolution q)
+        (source-bind-⊑ᵀ plan q)
 
-  transport-source-bind {γ = γ} eqᴸ
+  transport-source-bind-through-terms {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.⊑reveal-rebase² c′⊢ ok represented related q) =
-    transport-target-reveal-rebase eqᴸ c′⊢ ok represented related q
+    transport-target-reveal-rebase plan c′⊢ ok represented related q
 
-  transport-source-bind {γ = γ} eqᴸ
+  transport-source-bind-through-terms {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.⊑conceal-rebase² c′⊢ ok represented related q) =
-    transport-target-conceal-rebase eqᴸ c′⊢ ok represented related q
+    transport-target-conceal-rebase
+      c′⊢ ok represented related q plan
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.blame⊑² target-typing p) =
     CTI.blame⊑² target-typing
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) p)
+      (source-bind-⊑ᵀ plan p)
 
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.⊕⊑⊕² addℕ left-rel right-rel r) =
     CTI.⊕⊑⊕² addℕ
-      (transport-source-bind eqᴸ left-rel)
-      (transport-source-bind eqᴸ right-rel)
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) r)
-  transport-source-bind {C = C} {γ = γ} eqᴸ
+      (transport-source-bind-through-terms plan left-rel)
+      (transport-source-bind-through-terms plan right-rel)
+      (source-bind-⊑ᵀ plan r)
+  transport-source-bind-through-terms {C = C} {γ = γ} {γ⁺ = γ⁺} plan
       (CTI.⊕⊑⊕² and𝔹 left-rel right-rel r) =
     CTI.⊕⊑⊕² and𝔹
-      (transport-source-bind eqᴸ left-rel)
-      (transport-source-bind eqᴸ right-rel)
-      (evolution-⊑ᵀ (evolution-bind-left {A = C} {W = γ} eqᴸ) r)
+      (transport-source-bind-through-terms plan left-rel)
+      (transport-source-bind-through-terms plan right-rel)
+      (source-bind-⊑ᵀ plan r)
+
+  transport-source-bind : TransportSourceBindᵀ
+  transport-source-bind eqᴸ related =
+    transport-source-bind-through-terms (source-bind-root eqᴸ) related

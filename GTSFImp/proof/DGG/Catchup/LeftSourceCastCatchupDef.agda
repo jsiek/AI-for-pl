@@ -34,7 +34,7 @@ LeftSourceCastCatchupAt fuel = ∀ {Δᴸ Δᴿ : TyCtx}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
     {ν : Env∼ Δᴸ} {c : ν ⊢ A ∼ A′}
     {p : A′ ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (rel : γ ⊢² M ⟨ c ⟩ ⊑ V′ ∶ p)
   → Value V′
   → SourceCastBound fuel rel

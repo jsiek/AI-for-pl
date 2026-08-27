@@ -26,7 +26,7 @@ open import proof.DGG.Catchup.LeftTargetRevealRebaseCatchupDef using
 open import proof.DGG.Catchup.LeftValueCatchupDef using
   (LeftValueCatchupAt)
 open import proof.DGG.SourceRebase using
-  (source-rebase-count≢zero)
+  (open-source-rebase-nonempty)
 open import proof.DGG.WorldEvolutionSequence using
   ( evolutions-refl
   ; multi-⊑ᵀ
@@ -173,7 +173,7 @@ module _
   left-value-catchup no-rebase
       (CTI.⊑conceal-rebase² c′⊢ rebase prem q)
       vV′ bound =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   left-value-catchup {γ = γ} {M = M} no-rebase
       (CTI.blame⊑² target⊢ p) vV′ bound =

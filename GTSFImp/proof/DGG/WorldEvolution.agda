@@ -8,18 +8,20 @@ module proof.DGG.WorldEvolution where
 --     data-constructor index.
 --   * Separates constructor-form endpoint change from its executable store
 --     and term-context projections.
---   * Covers keep, left-only, right-only, paired-precise, and paired-dynamic
---     allocation as live World changes.
+--   * Covers keep, left-only, left-allocation-plus-alignment, right-only,
+--     paired-precise, and paired-dynamic allocation as live World changes.
 --   * Exports CtxChange, WorldEvolution, and their endpoint projections;
 --     depends on World and the preservation context action.
 
 import Data.Fin as Fin
+open import Data.List using ([])
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong)
   renaming (subst to subst≡)
 
-open import Types using (Ty; TyVar; ★; ＇_; ⇑ᵗ; renameᵗ)
+open import Types using
+  (Ty; TyVar; ★; ＇_; ⇑ᵗ; renameᵗ; renameᵗ-comp; renameᵗ-cong)
 open import TyStore using (TyStore; store-bind; lookupStore)
 open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
 import TermCtx as TC
@@ -81,6 +83,30 @@ data WorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
         {W = W} {W′ = W ▻ᶜ bind-left-changeᶜ A eqᴸ}
         (bind-ctx eqᴸ) keep-ctx
 
+  evolution-bind-left-aligned : ∀
+      {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+      {Γᴸ⁺ : TermCtx (suc Δᴸ)} {A : Ty Δᴸ}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {Xᴿ : TyVar Δᴿ}
+    → (eqᴸ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
+    → (update : PivotUpdateᵗ
+        (ηᴸᶜ (W ▻ᶜ bind-left-changeᶜ A eqᴸ)) Fin.zero
+        (toRenameⁱ
+          (ηᴿᶜ (W ▻ᶜ bind-left-changeᶜ A eqᴸ)) Xᴿ))
+    → (boundary : AlignmentBoundaryᶜ
+        (W ▻ᶜ bind-left-changeᶜ A eqᴸ) Fin.zero Xᴿ update)
+    → (represented :
+        (＇ Fin.zero) ⊑ᵀ⟨ W ▻ᶜ bind-left-changeᶜ A eqᴸ ⟩
+          lookupStore Σᴿ Xᴿ)
+    → WorldEvolution
+        {W = W}
+        {W′ =
+          (W ▻ᶜ bind-left-changeᶜ A eqᴸ) ▻ᶜ
+            rebase-source-changeᶜ Fin.zero Xᴿ update
+              (alignment-onlyᶜ boundary) represented}
+        (bind-ctx eqᴸ) keep-ctx
+
   evolution-bind-right : ∀
       {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
@@ -128,6 +154,46 @@ empty-evolution : WorldEvolution
 empty-evolution = evolution-keep
 
 
+evolution-no-open-frames : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
+  → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
+  → openFramesᶜ W ≡ []
+  → openFramesᶜ W′ ≡ []
+evolution-no-open-frames evolution-keep no-open = no-open
+evolution-no-open-frames (evolution-bind-left eqᴸ) no-open
+    rewrite no-open = refl
+evolution-no-open-frames
+    (evolution-bind-left-aligned
+      eqᴸ update boundary represented) no-open
+    rewrite no-open = refl
+evolution-no-open-frames
+    (evolution-bind-right fresh eqᴿ) no-open
+    rewrite no-open = refl
+evolution-no-open-frames
+    (evolution-bind-both represented eqᴸ eqᴿ) no-open
+    rewrite no-open = refl
+evolution-no-open-frames
+    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) no-open
+    rewrite no-open = refl
+
+
+rename-shifted-off-zero : ∀ {Δᴸ Δᶜ}
+    {η : Injectionᵗ (suc Δᴸ) Δᶜ}
+    {Z : TyVar Δᶜ}
+  → (update : PivotUpdateᵗ η Fin.zero Z)
+  → (A : Ty Δᴸ)
+  → renameᵗ (toRenameⁱ (pivot-afterᵗ update)) (⇑ᵗ A)
+    ≡ renameᵗ (toRenameⁱ η) (⇑ᵗ A)
+rename-shifted-off-zero {η = η} update A =
+  trans (renameᵗ-comp Fin.suc
+      (toRenameⁱ (pivot-afterᵗ update)) A)
+    (trans
+      (renameᵗ-cong A
+        (λ X → off-pivot-fixedᵗ update (Fin.suc X) (λ ())))
+      (sym (renameᵗ-comp Fin.suc (toRenameⁱ η) A)))
+
+
 evolution-⊑ᵀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
     {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
@@ -148,6 +214,16 @@ evolution-⊑ᵀ {A = C} {B = D}
         ⇑ᵗ (renameᵗ (toRenameⁱ (ηᴸᶜ W)) C) ⊑ T)
       (sym (renameᵗ-skipⁱ (ηᴿᶜ W) D))
       (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
+evolution-⊑ᵀ {A = C} {B = D}
+    (evolution-bind-left-aligned
+      {A = A} {W = W} eq update boundary represented) p =
+  subst≡
+    (λ L → marksᶜ (W ▻ᶜ bind-left-changeᶜ A eq) ⊢ L ⊑
+      renameᵗ
+        (toRenameⁱ (ηᴿᶜ (W ▻ᶜ bind-left-changeᶜ A eq))) D)
+    (sym (rename-shifted-off-zero update C))
+    (evolution-⊑ᵀ
+      (evolution-bind-left {A = A} {W = W} eq) p)
 evolution-⊑ᵀ {A = C} {B = D}
     (evolution-bind-right {B = B} {W = W} fresh eq) p =
   subst≡
@@ -188,31 +264,6 @@ evolution-⊑ᵀ {A = A} {B = B}
       (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
 
 
-evolution-can-rebase-source : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
-    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
-    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
-    {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)}
-    {Xᴿ : TyVar (CastTerms.Δᵉ Cᴿ)}
-  → (evolution : WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ)
-  → PivotUpdateᵗ
-      (ηᴸᶜ W) Xᴸ (toRenameⁱ (ηᴿᶜ W) Xᴿ)
-  → PivotUpdateᵗ
-      (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
-      (toRenameⁱ (ηᴿᶜ W′)
-        (R.applyVar (storeChange stepᴿ) Xᴿ))
-evolution-can-rebase-source evolution-keep ok = ok
-evolution-can-rebase-source (evolution-bind-left eqᴸ) ok =
-  pivotUpdate-keepᵗ ok
-evolution-can-rebase-source (evolution-bind-right fresh eqᴿ) ok =
-  pivotUpdate-skipᵗ ok
-evolution-can-rebase-source
-    (evolution-bind-both represented eqᴸ eqᴿ) ok =
-  pivotUpdate-keepᵗ ok
-evolution-can-rebase-source
-    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) ok =
-  pivotUpdate-keepᵗ ok
-
-
 evolution-source-represented : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
     {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
@@ -226,6 +277,10 @@ evolution-source-represented : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
 evolution-source-represented evolution-keep represented = represented
 evolution-source-represented
     evolution@(evolution-bind-left eqᴸ) represented =
+  evolution-⊑ᵀ evolution represented
+evolution-source-represented
+    evolution@(evolution-bind-left-aligned
+      eqᴸ update boundary aligned-represented) represented =
   evolution-⊑ᵀ evolution represented
 evolution-source-represented
     evolution@(evolution-bind-right fresh eqᴿ) represented =
@@ -251,6 +306,11 @@ evolution-aligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
 evolution-aligned evolution-keep aligned = aligned
 evolution-aligned (evolution-bind-left eqᴸ) aligned =
   cong Fin.suc aligned
+evolution-aligned {Xᴸ = Xᴸ}
+    (evolution-bind-left-aligned
+      eqᴸ update boundary represented) aligned =
+  trans (off-pivot-fixedᵗ update (Fin.suc Xᴸ) (λ ()))
+    (cong Fin.suc aligned)
 evolution-aligned (evolution-bind-right fresh eqᴿ) aligned =
   cong Fin.suc aligned
 evolution-aligned (evolution-bind-both represented eqᴸ eqᴿ) aligned =
@@ -270,6 +330,13 @@ evolution-source-mark : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
       (toRenameⁱ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)) ≡ v
 evolution-source-mark evolution-keep mark = mark
 evolution-source-mark (evolution-bind-left eqᴸ) mark = mark
+evolution-source-mark {Xᴸ = Xᴸ}
+    (evolution-bind-left-aligned
+      {A = A} {W = W} eqᴸ update boundary represented) mark =
+  trans
+    (cong (marksᶜ (W ▻ᶜ bind-left-changeᶜ A eqᴸ))
+      (off-pivot-fixedᵗ update (Fin.suc Xᴸ) (λ ())))
+    mark
 evolution-source-mark (evolution-bind-right fresh eqᴿ) mark = mark
 evolution-source-mark (evolution-bind-both represented eqᴸ eqᴿ) mark =
   mark
@@ -289,6 +356,13 @@ evolution-source-disaligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
 evolution-source-disaligned evolution-keep free = free
 evolution-source-disaligned (evolution-bind-left eqᴸ) free Xᴿ aligned =
   free Xᴿ (fin-suc-injective aligned)
+evolution-source-disaligned {Xᴸ = Xᴸ}
+    (evolution-bind-left-aligned
+      eqᴸ update boundary represented) free Xᴿ aligned =
+  free Xᴿ
+    (fin-suc-injective
+      (trans aligned
+        (off-pivot-fixedᵗ update (Fin.suc Xᴸ) (λ ()))))
 evolution-source-disaligned
     (evolution-bind-right fresh eqᴿ) free Fin.zero ()
 evolution-source-disaligned

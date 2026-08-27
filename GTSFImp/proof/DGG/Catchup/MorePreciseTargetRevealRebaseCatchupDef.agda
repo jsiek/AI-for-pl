@@ -36,7 +36,7 @@ MorePreciseTargetRevealRebaseCatchupᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
     {c′ : Conv↑ Δᴿ B B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
   → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}

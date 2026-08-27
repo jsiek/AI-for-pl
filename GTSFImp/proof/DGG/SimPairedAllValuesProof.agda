@@ -59,7 +59,7 @@ open import proof.DGG.PairedValueFreshGeneratorPositionDef using
 open import proof.DGG.SimTargetRevealRebaseClosingDef using
   (SimTargetRevealRebaseClosingᵀ)
 open import proof.DGG.SourceRebase using
-  (source-rebase-count≢zero)
+  (open-source-rebase-nonempty)
 open import proof.DGG.TransportTermImprecisionDef using
   (TransportTermImprecisionᵀ)
 open import proof.DGG.World
@@ -190,7 +190,7 @@ module _
       {C : Ty (Nat.suc Δᴸ)} {A : Ty Δᴸ}
       {C′ : Ty (Nat.suc Δᴿ)} {A′ : Ty Δᴿ}
       {p∀ : `∀ C ⊑ᵀ⟨ γ ⟩ `∀ C′}
-    → sourceRebaseCountᶜ γ ≡ 0
+    → openFramesᶜ γ ≡ []
     → (fuel : Nat.ℕ)
     → targetUniversalLayers V′ < fuel
     → γ ⊢² V ⊑ V′ ∶ p∀
@@ -358,7 +358,7 @@ module _
       (⊑conceal-rebase² c′⊢ rebase related q₁) q r
       source-value target-value
       (pure-step (β-∀ value instantiated)) =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ} {V = Λ V} {V′ = Λ V′}
       {C = C} {A = A} {C′ = C′} {A′ = A′}
@@ -684,7 +684,7 @@ module _
   worker no-rebase (Nat.suc fuel) size-bound
       (⊑conceal-rebase² c′⊢ rebase related q₁) q r
       source-value target-value (β-Λ value) =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   worker no-rebase (Nat.suc fuel) size-bound
       (cast⊑cast² c c′ related q₁) q r source-value
@@ -764,7 +764,7 @@ module _
   worker no-rebase (Nat.suc fuel) size-bound
       (⊑conceal-rebase² c′⊢ rebase related q₁) q r
       source-value target-value (β-gen value not-star safe) =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   worker {γ = γ} no-rebase (Nat.suc fuel) (s≤s smaller)
       (⊑cast² {p = inner-universal} c′ related q₁) q r source-value
@@ -844,7 +844,7 @@ module _
   worker no-rebase (Nat.suc fuel) size-bound
       (⊑conceal-rebase² c′⊢ rebase related q₁) q r
       source-value target-value (β-reveal-∀ value) =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   worker {γ = γ} no-rebase (Nat.suc fuel) (s≤s smaller)
       (⊑cast² {p = inner-universal} c′ related q₁) q r source-value
@@ -924,7 +924,7 @@ module _
   worker no-rebase (Nat.suc fuel) size-bound
       (⊑conceal-rebase² c′⊢ rebase related q₁) q r
       source-value target-value (β-conceal-∀ value) =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   worker no-rebase (Nat.suc fuel) size-bound related q r
       () target-value (pure-step blame-•)

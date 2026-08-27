@@ -40,7 +40,7 @@ SimPairedAllClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {C : Ty (Nat.suc Δᴸ)} {A : Ty Δᴸ}
     {C′ : Ty (Nat.suc Δᴿ)} {A′ : Ty Δᴿ}
     {p∀ : `∀ C ⊑ᵀ⟨ γ ⟩ `∀ C′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ M′ ∶ p∀
   → (q : A ⊑ᵀ⟨ γ ⟩ A′)
   → (r : C [ A ]ᵗ ⊑ᵀ⟨ γ ⟩ C′ [ A′ ]ᵗ)

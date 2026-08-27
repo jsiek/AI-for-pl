@@ -55,7 +55,7 @@ SimBackPairedRevealClosingᵀ =
     {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
     {Rᴸ : Ty Deltaᴸ} {Rᴿ : Ty Deltaᴿ}
     {c : Conv↑ Deltaᴸ A B} {c′ : Conv↑ Deltaᴿ A′ B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c⊢ : Σᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
@@ -92,7 +92,7 @@ SimBackTargetRevealRebaseClosingᵀ =
     {A : Ty Deltaᴸ} {B B′ Rᴿ : Ty Deltaᴿ}
     {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
     {c′ : Conv↑ Deltaᴿ B B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
   → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
@@ -127,7 +127,7 @@ SimBackTargetRevealRebaseFunValuesᵀ =
     {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
     {c : Conv↓ Deltaᴿ A′ A₀} {d : Conv↑ Deltaᴿ B₀ B′}
     {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] (c ↦↑ d))
   → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
   → (pAᵖ : A ⊑ᵀ⟨ γᵖ ⟩ A₀)
@@ -165,7 +165,7 @@ SimBackTargetRevealRebaseFrameᵀ =
     {A : Ty Deltaᴸ} {B B′ Rᴿ : Ty Deltaᴿ}
     {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
     {c′ : Conv↑ Deltaᴿ B B′} {χᴿ : StoreChange Deltaᴿ Deltaᴿ′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
   → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}

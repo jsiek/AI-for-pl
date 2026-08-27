@@ -35,7 +35,7 @@ SimPrimitiveClosingᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {op κ κ′ κ″} {L′ M′ : Term Δᴿ}
     {p q : primArgTy op ⊑ᵀ⟨ γ ⟩ primArgTy op}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² $ κ ⊑ L′ ∶ p
   → γ ⊢² $ κ′ ⊑ M′ ∶ q
   → (r : primResultTy op ⊑ᵀ⟨ γ ⟩ primResultTy op)

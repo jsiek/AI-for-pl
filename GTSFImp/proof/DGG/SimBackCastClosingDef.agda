@@ -36,7 +36,7 @@ SimBackPairedCastClosingᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
     {C A : Ty Δᴸ} {C′ A′ : Ty Δᴿ}
     {μᴸ : Env∼ Δᴸ} {μᴿ : Env∼ Δᴿ}
     {p : C ⊑ᵀ⟨ γ ⟩ C′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c : μᴸ ⊢ C ∼ A)
   → (c′ : μᴿ ⊢ C′ ∼ A′)
   → γ ⊢² M ⊑ M′ ∶ p
@@ -67,7 +67,7 @@ SimBackTargetCastClosingᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {μᴿ : Env∼ Δᴿ}
     {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c′ : μᴿ ⊢ B ∼ B′)
   → γ ⊢² M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)

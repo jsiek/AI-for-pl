@@ -35,7 +35,7 @@ LeftTargetRevealRebaseCatchupAt fuel = ∀ {Δᴸ Δᴿ : TyCtx}
     {M : Term Δᴸ} {V′ : Term Δᴿ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {c′ : Conv↑ Δᴿ B B′}
     {p : A ⊑ᵀ⟨ γ ⟩ B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (rel : γ ⊢² M ⊑ V′ ↑ c′ ∶ p)
   → Value (V′ ↑ c′)
   → SourceCastBound fuel rel

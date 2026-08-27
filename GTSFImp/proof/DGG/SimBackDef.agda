@@ -37,7 +37,7 @@ SimBackᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N′ : Term Δᴿ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
     {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² M ⊑ M′ ∶ p
   → M′ —→[ χᴿ ] N′
   → (Σ[ Δᴸ′ ∈ TyCtx ]

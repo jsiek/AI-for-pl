@@ -55,7 +55,7 @@ module _
       | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , target-value , γ₁ , type-rel₁ ,
         target-steps , target-is-value , evolution₁ , related₁
         with sim-source-all-values
-          (multi-no-source-rebase evolution₁ no-rebase)
+          (multi-no-open-frames evolution₁ no-rebase)
           related₁
           (subst (λ T → A ⊑ᵀ⟨ γ₁ ⟩ T)
             (applyTys-★ χsᴿ₁) (multi-⊑ᵀ evolution₁ q))

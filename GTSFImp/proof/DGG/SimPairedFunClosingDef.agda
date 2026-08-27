@@ -39,7 +39,7 @@ SimPairedFunClosingᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     {L M N : Term Δᴸ} {L′ M′ : Term Δᴿ}
     {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
     {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² L ⊑ L′ ∶ ⇒⊑⇒ pA pB
   → γ ⊢² M ⊑ M′ ∶ pA
   → Value L

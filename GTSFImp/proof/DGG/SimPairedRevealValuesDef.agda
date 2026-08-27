@@ -45,7 +45,7 @@ SimPairedRevealValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {Rᴸ : Ty Δᴸ} {Rᴿ : Ty Δᴿ}
     {c : Conv↑ Δᴸ A B} {c′ : Conv↑ Δᴿ A′ B′}
     {p : A ⊑ᵀ⟨ γ ⟩ A′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c⊢ : Σᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢

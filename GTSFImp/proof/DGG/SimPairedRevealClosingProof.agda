@@ -27,7 +27,7 @@ open import proof.DGG.SimPairedRevealValuesDef using
 open import proof.DGG.World
 open import proof.DGG.WorldEvolutionSequence using
   ( composeMultiWorldEvolution
-  ; multi-no-source-rebase
+  ; multi-no-open-frames
   ; multi-⊑ᵀ
   ; multi-aligned
   ; multi-target-reveal
@@ -59,7 +59,7 @@ module _
       | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , target-value , γ₁ , type-rel₁ ,
         target-steps , target-is-value , evolution₁ , related₁
         with sim-paired-reveal-values
-          (multi-no-source-rebase evolution₁ no-rebase)
+          (multi-no-open-frames evolution₁ no-rebase)
           c⊢ (multi-target-reveal evolution₁ c′⊢)
           (trans positions
             (sym (multi-target-reveal-position evolution₁ c′⊢)))

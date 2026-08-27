@@ -38,7 +38,7 @@ MorePreciseSourceLambdaClosingᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
     {V : Term (suc Δᴸ)} {V′ : Term Δᴿ′}
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
     {p : A ⊑ᵀ⟨ γᵇ ⟩ applyTys χsᴿ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → NonVar A
   → Fin.zero ∈ᵗ A
   → Value V

@@ -40,7 +40,7 @@ SimSourceInstantiationCastValuesᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     ⦃ Anv : NonVar A ⦄ ⦃ zero∈A : Fin.zero ∈ᵗ A ⦄
     {B≠★ : B ≢ ★}
     {p : `∀ A ⊑ᵀ⟨ γ ⟩ C}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ V′ ∶ p
   → (q : B ⊑ᵀ⟨ γ ⟩ C)
   → Value V

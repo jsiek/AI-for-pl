@@ -52,7 +52,7 @@ open import proof.DGG.TransportTermImprecisionDef using
   (TransportTermImprecisionᵀ)
 open import proof.DGG.World
 open import proof.DGG.SourceRebase using
-  (source-rebase-count≢zero)
+  (open-source-rebase-nonempty)
 open import proof.DGG.WorldEvolution using (evolution-keep)
 open import proof.DGG.WorldEvolutionSequence
 open import proof.Reduction
@@ -206,7 +206,7 @@ module _
     | inj₁
         (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , source-value , γ₁ , type-rel₁ ,
           source-steps , value , evolution₁ , fun-rel₁)
-      with sim-back (multi-no-source-rebase evolution₁ no-rebase)
+      with sim-back (multi-no-open-frames evolution₁ no-rebase)
         (transport-CTI no-rebase evolution₁ arg-rel) target-step
   sim-back {χᴿ = χᴿ} no-rebase
       (·⊑·² {L = L} {L′ = L′} {M = M}
@@ -238,7 +238,7 @@ module _
           (applyTy-⇒ χᴿ A′ B′)
           (multi-⊑ᵀ evolution₂ type-rel₁ ,
             transport-CTI
-              (multi-no-source-rebase evolution₁ no-rebase)
+              (multi-no-open-frames evolution₁ no-rebase)
               evolution₂ fun-rel₁))
   sim-back {χᴿ = χᴿ} no-rebase
       (·⊑·² {L = L} {L′ = L′} {M = M}
@@ -1150,7 +1150,7 @@ module _
   sim-back no-rebase
       (⊑conceal-rebase² conversion rebase related type-rel)
       target-step =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   sim-back no-rebase (blame⊑² target⊢ type-rel) target-step =
     inj₂ (_ , [] , (blame ∎[]))
@@ -1313,7 +1313,7 @@ module _
     | inj₁
         (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , source-value , γ₁ , type-rel₁ ,
           source-steps , value , evolution₁ , left-rel₁)
-      with sim-back (multi-no-source-rebase evolution₁ no-rebase)
+      with sim-back (multi-no-open-frames evolution₁ no-rebase)
         (transport-CTI no-rebase evolution₁ right-rel) target-step
   sim-back {χᴿ = χᴿ} no-rebase
       (⊕⊑⊕² op {L = L} {L′ = L′} {M = M}
@@ -1343,7 +1343,7 @@ module _
           (applyTys-primArgTy (χᴿ ∷ []) op)
           (multi-⊑ᵀ evolution₂ type-rel₁ ,
             transport-CTI
-              (multi-no-source-rebase evolution₁ no-rebase)
+              (multi-no-open-frames evolution₁ no-rebase)
               evolution₂ left-rel₁))
       | subst≡
         (λ S →

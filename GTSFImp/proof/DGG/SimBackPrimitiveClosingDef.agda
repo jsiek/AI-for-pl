@@ -30,7 +30,7 @@ SimBackPrimitiveClosingᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {op κ κ′ κ″} {L M : Term Δᴸ}
     {p q : primArgTy op ⊑ᵀ⟨ γ ⟩ primArgTy op}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² L ⊑ $ κ ∶ p
   → γ ⊢² M ⊑ $ κ′ ∶ q
   → (r : primResultTy op ⊑ᵀ⟨ γ ⟩ primResultTy op)

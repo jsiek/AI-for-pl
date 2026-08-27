@@ -15,7 +15,7 @@ module proof.DGG.SourceRebase where
 --     World and WorldEvolution.
 
 import Data.Fin as Fin
-open import Data.List using (_∷_)
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; cong; sym; trans; subst)
@@ -180,6 +180,15 @@ open-source-rebase-frames (source-rebase-lift-both rebase)
   rewrite open-source-rebase-frames rebase = refl
 open-source-rebase-frames (source-rebase-lift-left rebase)
   rewrite open-source-rebase-frames rebase = refl
+
+
+open-source-rebase-nonempty : ∀ {Γᴸ Γᴿ}
+    {γ γᵖ : Γᴸ ⊑ᶜ Γᴿ} {Xᴸ Xᴿ}
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → openFramesᶜ γᵖ ≢ []
+open-source-rebase-nonempty rebase empty
+    with trans (sym empty) (open-source-rebase-frames rebase)
+open-source-rebase-nonempty rebase empty | ()
 
 
 source-rebase-can : ∀ {Γᴸ Γᴿ}

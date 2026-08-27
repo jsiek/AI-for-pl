@@ -57,7 +57,7 @@ open import proof.DGG.SimTargetRevealRebaseClosingDef using
 open import proof.DGG.TransportTermImprecisionDef using
   (TransportTermImprecisionᵀ)
 open import proof.DGG.WorldEvolutionSequence using
-  ( multi-no-source-rebase
+  ( multi-no-open-frames
   ; multi-⊑ᵀ
   ; append-left-keep
   ; composeMultiWorldEvolution
@@ -76,9 +76,9 @@ open import proof.DGG.WorldEvolutionSequence using
   ; multi-target-reveal-position
   )
 open import proof.DGG.World using
-  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; sourceRebaseCountᶜ)
+  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; openFramesᶜ)
 open import proof.DGG.SourceRebase using
-  (source-rebase-count≢zero)
+  (open-source-rebase-nonempty)
 open import proof.Reduction using
   ( applyConceals
   ; applyBodies
@@ -137,7 +137,7 @@ module _
       {ν : Env∼ Δᴸ} {ν′ : Env∼ Δᴿ}
       {c : ν ⊢ A ∼ B} {c′ : ν′ ⊢ A′ ∼ B′}
       {p : A ⊑ᵀ⟨ γ ⟩ A′}
-    → sourceRebaseCountᶜ γ ≡ 0
+    → openFramesᶜ γ ≡ []
     → γ CTI.⊢² V ⊑ M′ ∶ p
     → (q : B ⊑ᵀ⟨ γ ⟩ B′)
     → Value V
@@ -161,7 +161,7 @@ module _
     | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , V′ , γ₁ , p₁ , target-steps₁ ,
       target-value , evol₁ , rel₁
       with sim-paired-cast-values
-        (multi-no-source-rebase evol₁ no-rebase) rel₁
+        (multi-no-open-frames evol₁ no-rebase) rel₁
         (multi-⊑ᵀ evol₁ q) source-value target-value source-step
   sim-paired-cast-root {B = B} {B′ = B′} {c′ = c′}
       no-rebase prem q source-value source-step
@@ -193,7 +193,7 @@ module _
       {A B : Ty Δᴸ} {C : Ty Δᴿ}
       {ν : Env∼ Δᴸ} {c : ν ⊢ A ∼ B}
       {p : A ⊑ᵀ⟨ γ ⟩ C}
-    → sourceRebaseCountᶜ γ ≡ 0
+    → openFramesᶜ γ ≡ []
     → γ CTI.⊢² V ⊑ M′ ∶ p
     → (q : B ⊑ᵀ⟨ γ ⟩ C)
     → Value V
@@ -218,7 +218,7 @@ module _
     | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , V′ , γ₁ , p₁ , target-steps ,
       target-value , evol₁ , rel₁
       with sim-source-cast-values
-        (multi-no-source-rebase evol₁ no-rebase) rel₁
+        (multi-no-open-frames evol₁ no-rebase) rel₁
         (multi-⊑ᵀ evol₁ q) source-value target-value source-step
   sim-source-cast-root {C = C}
       no-rebase prem q source-value source-step
@@ -325,7 +325,7 @@ module _
       (ξ-·₂ {χ = χ} fun-value arg-step refl)
     | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , fun′ , γ₁ , q₁ , fun-steps ,
       target-value , evol₁ , fun-rel′
-      with sim (multi-no-source-rebase evol₁ no-rebase)
+      with sim (multi-no-open-frames evol₁ no-rebase)
         (transport-CTI no-rebase evol₁ arg-rel) arg-step
   sim no-rebase
       (CTI.·⊑·² {L = L} {L′ = L′} {M′ = M′}
@@ -351,7 +351,7 @@ module _
                 applyTerms χsᴿ₂ fun′ ∶ r))
           (applyTy-⇒ χ A B)
           (multi-⊑ᵀ evol₂ q₁ ,
-            transport-CTI (multi-no-source-rebase evol₁ no-rebase)
+            transport-CTI (multi-no-open-frames evol₁ no-rebase)
               evol₂ fun-rel′))
   sim no-rebase
       (CTI.·⊑·² {L = L} {L′ = L′} {M′ = M′}
@@ -1147,7 +1147,7 @@ module _
   sim no-rebase
       (CTI.⊑conceal-rebase² c′⊢ rebase prem q)
       source-step =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   sim no-rebase (CTI.blame⊑² target⊢ p) (pure-step ())
 
@@ -1266,7 +1266,7 @@ module _
       (ξ-⊕₂ {χ = χ} left-value right-step refl)
     | Δᴿ′ , Σᴿ′ , χsᴿ , left′ , γ′ , q , target-steps ,
       target-value , evol₁ , left-rel′
-      with sim (multi-no-source-rebase evol₁ no-rebase)
+      with sim (multi-no-open-frames evol₁ no-rebase)
         (transport-CTI no-rebase evol₁ right-rel) right-step
   sim no-rebase
       (CTI.⊕⊑⊕² op {L = L} {L′ = L′} {M′ = M′}
@@ -1290,7 +1290,7 @@ module _
           (trans (applyTys-++ χsᴿ χsᴿ₂ (primArgTy op))
             (applyTys-primArgTy (χsᴿ ++χ χsᴿ₂) op))
           (multi-⊑ᵀ evol₂ q ,
-            transport-CTI (multi-no-source-rebase evol₁ no-rebase)
+            transport-CTI (multi-no-open-frames evol₁ no-rebase)
               evol₂ left-rel′))
         | subst
         (λ S →

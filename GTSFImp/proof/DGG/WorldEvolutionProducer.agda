@@ -6,17 +6,19 @@ module proof.DGG.WorldEvolutionProducer where
 --   * Defines the operational producer contract for one-step two-Ctx world
 --     evolution from a pair of trusted StoreChange results.
 --   * Keeps StoreChange constructors, rather than apply functions, in data
---     indices and records exactly the evidence required by each allocation.
+--     indices and records exactly the evidence required by each allocation,
+--     including a checked alignment-only source rebase.
 --   * Computes endpoint contexts and the evolved world, then proves that its
 --     store and term-context projections agree with trusted transport.
 --   * Exports WorldEvolutionRequest and produceWorldEvolution; depends on the
 --     constructor-form two-Ctx world and one-step evolution modules.
 
+import Data.Fin as Fin
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
-open import Types using (Ty; ★; ⇑ᵗ)
-open import TyStore using (TyStore; store-bind)
+open import Types using (Ty; TyVar; ★; ＇_; ⇑ᵗ)
+open import TyStore using (TyStore; store-bind; lookupStore)
 import TermCtx as TC
 open TC using (TermCtx)
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Σᵉ; Γᵉ)
@@ -47,6 +49,25 @@ data WorldEvolutionRequest :
       {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
              ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     → Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ
+    → WorldEvolutionRequest W (R.bind A) R.keep
+
+  evolution-request-left-aligned : ∀
+      {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+      {Γᴸ⁺ : TermCtx (suc Δᴸ)} {A : Ty Δᴸ}
+      {W : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+             ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {Xᴿ : TyVar Δᴿ}
+    → (eqᴸ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
+    → (update : PivotUpdateᵗ
+        (ηᴸᶜ (W ▻ᶜ bind-left-changeᶜ A eqᴸ)) Fin.zero
+        (toRenameⁱ
+          (ηᴿᶜ (W ▻ᶜ bind-left-changeᶜ A eqᴸ)) Xᴿ))
+    → (boundary : AlignmentBoundaryᶜ
+        (W ▻ᶜ bind-left-changeᶜ A eqᴸ) Fin.zero Xᴿ update)
+    → (represented :
+        (＇ Fin.zero) ⊑ᵀ⟨ W ▻ᶜ bind-left-changeᶜ A eqᴸ ⟩
+          lookupStore Σᴿ Xᴿ)
     → WorldEvolutionRequest W (R.bind A) R.keep
 
   evolution-request-right : ∀
@@ -99,6 +120,9 @@ evolutionSourceStoreValue {Σᴸ = Σᴸ}
 evolutionSourceStoreValue {Σᴸ = Σᴸ}
     (evolution-request-left {A = A} eqᴸ) = store-bind Σᴸ A
 evolutionSourceStoreValue {Σᴸ = Σᴸ}
+    (evolution-request-left-aligned
+      {A = A} eqᴸ update boundary represented) = store-bind Σᴸ A
+evolutionSourceStoreValue {Σᴸ = Σᴸ}
     (evolution-request-right fresh eqᴿ) = Σᴸ
 evolutionSourceStoreValue {Σᴸ = Σᴸ}
     (evolution-request-both-precise
@@ -121,6 +145,9 @@ evolutionSourceTermCtxValue {Γᴸ = Γᴸ}
     evolution-request-keep = Γᴸ
 evolutionSourceTermCtxValue
     (evolution-request-left {Γᴸ⁺ = Γᴸ⁺} eqᴸ) = Γᴸ⁺
+evolutionSourceTermCtxValue
+    (evolution-request-left-aligned
+      {Γᴸ⁺ = Γᴸ⁺} eqᴸ update boundary represented) = Γᴸ⁺
 evolutionSourceTermCtxValue {Γᴸ = Γᴸ}
     (evolution-request-right fresh eqᴿ) = Γᴸ
 evolutionSourceTermCtxValue
@@ -145,6 +172,9 @@ evolutionTargetStoreValue {Σᴿ = Σᴿ}
 evolutionTargetStoreValue {Σᴿ = Σᴿ}
     (evolution-request-left eqᴸ) = Σᴿ
 evolutionTargetStoreValue {Σᴿ = Σᴿ}
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = Σᴿ
+evolutionTargetStoreValue {Σᴿ = Σᴿ}
     (evolution-request-right
       {B = B} fresh eqᴿ) = store-bind Σᴿ B
 evolutionTargetStoreValue {Σᴿ = Σᴿ}
@@ -168,6 +198,9 @@ evolutionTargetTermCtxValue {Γᴿ = Γᴿ}
     evolution-request-keep = Γᴿ
 evolutionTargetTermCtxValue {Γᴿ = Γᴿ}
     (evolution-request-left eqᴸ) = Γᴿ
+evolutionTargetTermCtxValue {Γᴿ = Γᴿ}
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = Γᴿ
 evolutionTargetTermCtxValue
     (evolution-request-right {Γᴿ⁺ = Γᴿ⁺} fresh eqᴿ) = Γᴿ⁺
 evolutionTargetTermCtxValue
@@ -219,6 +252,10 @@ evolutionSourceTerm : ∀
 evolutionSourceTerm evolution-request-keep M = M
 evolutionSourceTerm (evolution-request-left eqᴸ) M =
   ⇑ᵗᵐ M
+evolutionSourceTerm
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) M =
+  ⇑ᵗᵐ M
 evolutionSourceTerm (evolution-request-right fresh eqᴿ) M = M
 evolutionSourceTerm
     (evolution-request-both-precise represented eqᴸ eqᴿ) M =
@@ -241,6 +278,9 @@ evolutionTargetTerm : ∀
   → Term Δᴿ′
 evolutionTargetTerm evolution-request-keep M = M
 evolutionTargetTerm (evolution-request-left eqᴸ) M = M
+evolutionTargetTerm
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) M = M
 evolutionTargetTerm (evolution-request-right fresh eqᴿ) M =
   ⇑ᵗᵐ M
 evolutionTargetTerm
@@ -265,6 +305,12 @@ evolutionWorld {W = W} evolution-request-keep = W
 evolutionWorld {W = W} (evolution-request-left {A = A} eqᴸ) =
   W ▻ᶜ bind-left-changeᶜ A eqᴸ
 evolutionWorld {W = W}
+    (evolution-request-left-aligned
+      {A = A} {Xᴿ = Xᴿ} eqᴸ update boundary represented) =
+  (W ▻ᶜ bind-left-changeᶜ A eqᴸ) ▻ᶜ
+    rebase-source-changeᶜ Fin.zero Xᴿ update
+      (alignment-onlyᶜ boundary) represented
+evolutionWorld {W = W}
     (evolution-request-right {B = B} fresh eqᴿ) =
   W ▻ᶜ bind-right-changeᶜ B fresh eqᴿ
 evolutionWorld {W = W}
@@ -288,6 +334,9 @@ evolutionSourceStore : ∀
 evolutionSourceStore evolution-request-keep = refl
 evolutionSourceStore (evolution-request-left eqᴸ) = refl
 evolutionSourceStore
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = refl
+evolutionSourceStore
     (evolution-request-right fresh eqᴿ) = refl
 evolutionSourceStore
     (evolution-request-both-precise represented eqᴸ eqᴿ) = refl
@@ -307,6 +356,9 @@ evolutionTargetStore : ∀
   → Σᵉ (evolutionTargetCtx request) ≡ R.applyStore χᴿ Σᴿ
 evolutionTargetStore evolution-request-keep = refl
 evolutionTargetStore (evolution-request-left eqᴸ) = refl
+evolutionTargetStore
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = refl
 evolutionTargetStore
     (evolution-request-right fresh eqᴿ) = refl
 evolutionTargetStore
@@ -330,6 +382,9 @@ evolutionSourceTerm-agrees evolution-request-keep M = refl
 evolutionSourceTerm-agrees
     (evolution-request-left eqᴸ) M = refl
 evolutionSourceTerm-agrees
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) M = refl
+evolutionSourceTerm-agrees
     (evolution-request-right fresh eqᴿ) M = refl
 evolutionSourceTerm-agrees
     (evolution-request-both-precise represented eqᴸ eqᴿ) M = refl
@@ -352,6 +407,9 @@ evolutionTargetTerm-agrees evolution-request-keep M = refl
 evolutionTargetTerm-agrees
     (evolution-request-left eqᴸ) M = refl
 evolutionTargetTerm-agrees
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) M = refl
+evolutionTargetTerm-agrees
     (evolution-request-right fresh eqᴿ) M = refl
 evolutionTargetTerm-agrees
     (evolution-request-both-precise represented eqᴸ eqᴿ) M = refl
@@ -372,6 +430,9 @@ evolutionSourceTermCtx : ∀
     ≡ applyTermCtx χᴸ Γᴸ
 evolutionSourceTermCtx evolution-request-keep = refl
 evolutionSourceTermCtx (evolution-request-left eqᴸ) = eqᴸ
+evolutionSourceTermCtx
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = eqᴸ
 evolutionSourceTermCtx
     (evolution-request-right fresh eqᴿ) = refl
 evolutionSourceTermCtx
@@ -394,6 +455,9 @@ evolutionTargetTermCtx : ∀
 evolutionTargetTermCtx evolution-request-keep = refl
 evolutionTargetTermCtx (evolution-request-left eqᴸ) = refl
 evolutionTargetTermCtx
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = refl
+evolutionTargetTermCtx
     (evolution-request-right fresh eqᴿ) = eqᴿ
 evolutionTargetTermCtx
     (evolution-request-both-precise represented eqᴸ eqᴿ) = eqᴿ
@@ -414,6 +478,10 @@ evolutionSourceChange : ∀
       (evolutionSourceCtx request)
 evolutionSourceChange evolution-request-keep = keep-ctx
 evolutionSourceChange (evolution-request-left eqᴸ) =
+  bind-ctx eqᴸ
+evolutionSourceChange
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) =
   bind-ctx eqᴸ
 evolutionSourceChange
     (evolution-request-right fresh eqᴿ) = keep-ctx
@@ -438,6 +506,9 @@ evolutionTargetChange : ∀
       (evolutionTargetCtx request)
 evolutionTargetChange evolution-request-keep = keep-ctx
 evolutionTargetChange (evolution-request-left eqᴸ) = keep-ctx
+evolutionTargetChange
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = keep-ctx
 evolutionTargetChange
     (evolution-request-right fresh eqᴿ) = bind-ctx eqᴿ
 evolutionTargetChange
@@ -464,6 +535,10 @@ produceWorldEvolution : ∀
 produceWorldEvolution evolution-request-keep = evolution-keep
 produceWorldEvolution (evolution-request-left eqᴸ) =
   evolution-bind-left eqᴸ
+produceWorldEvolution
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) =
+  evolution-bind-left-aligned eqᴸ update boundary represented
 produceWorldEvolution
     (evolution-request-right fresh eqᴿ) =
   evolution-bind-right fresh eqᴿ

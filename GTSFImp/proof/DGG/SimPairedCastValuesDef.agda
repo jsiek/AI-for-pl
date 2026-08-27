@@ -40,7 +40,7 @@ SimPairedCastValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {μ : Env∼ Δᴸ} {μ′ : Env∼ Δᴿ}
     {c : μ ⊢ A ∼ B} {c′ : μ′ ⊢ A′ ∼ B′}
     {p : A ⊑ᵀ⟨ γ ⟩ A′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ V′ ∶ p
   → (q : B ⊑ᵀ⟨ γ ⟩ B′)
   → Value V

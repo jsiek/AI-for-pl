@@ -39,7 +39,7 @@ SimSourceLambdaApplicationᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
     {C : Ty (Nat.suc Δᴸ)} {C′ : Ty (Nat.suc Δᴿ)}
     {p : C ⊑ᵀ⟨ liftLeftᶜ γ ⟩ `∀ C′}
     {χᴿ : StoreChange Δᴿ Δᴿ′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → NonVar C
   → Fin.zero ∈ᵗ C
   → Value V

@@ -63,7 +63,7 @@ module _
         {c : Conv↓ Deltaᴿ A′ A₀} {d : Conv↑ Deltaᴿ B₀ B′}
         {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
         {pAᵖ : A ⊑ᵀ⟨ γᵖ ⟩ A₀} {pBᵖ : B ⊑ᵀ⟨ γᵖ ⟩ B₀}
-      → sourceRebaseCountᶜ γ ≡ 0
+      → openFramesᶜ γ ≡ []
       → (conversion : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] (c ↦↑ d))
       → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
       → γᵖ ⊢² V ⊑ V′ ∶ ⇒⊑⇒ pAᵖ pBᵖ

@@ -3,7 +3,8 @@
 module proof.DGG.TransportSourceBindDef where
 
 -- File Charter:
---   * Defines source allocation through term and type scope.
+--   * Defines ordinary and alignment-closing source allocation through term
+--     and type scope.
 --   * States the two remaining commutation lemmas needed by source-bind
 --     transport through source rebasing.
 --   * Each interface exposes the exact CTI constructor fields and conclusion;
@@ -66,6 +67,27 @@ data SourceBindScope : ∀
     → SourceBindScope wk↪ᵗ γ
         (γ ▻ᶜ bind-left-changeᶜ C eqᴸ)
 
+  source-scope-root-aligned : ∀
+      {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+      {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
+      {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {Xᴿ : TyVar Δᴿ}
+    → (eqᴸ : Γᴸ⁺ ≡ ⇑ᶜ Γᴸ)
+    → (update : PivotUpdateᵗ
+        (ηᴸᶜ (γ ▻ᶜ bind-left-changeᶜ C eqᴸ)) Fin.zero
+        (toRenameⁱ
+          (ηᴿᶜ (γ ▻ᶜ bind-left-changeᶜ C eqᴸ)) Xᴿ))
+    → (boundary : AlignmentBoundaryᶜ
+        (γ ▻ᶜ bind-left-changeᶜ C eqᴸ) Fin.zero Xᴿ update)
+    → (represented :
+        (＇ Fin.zero) ⊑ᵀ⟨ γ ▻ᶜ bind-left-changeᶜ C eqᴸ ⟩
+          lookupStore Σᴿ Xᴿ)
+    → SourceBindScope wk↪ᵗ γ
+        ((γ ▻ᶜ bind-left-changeᶜ C eqᴸ) ▻ᶜ
+          rebase-source-changeᶜ Fin.zero Xᴿ update
+            (alignment-onlyᶜ boundary) represented)
+
   source-scope-term : ∀
       {Δᴸ Δᴸ⁺ Δᴿ}
       {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
@@ -127,6 +149,9 @@ source-scope-center : ∀
   → SourceBindScope ρ γ γ⁺
   → centerᶜ γ ↪ᵗ centerᶜ γ⁺
 source-scope-center (source-scope-root eqᴸ) = wk↪ᵗ
+source-scope-center
+    (source-scope-root-aligned
+      eqᴸ update boundary represented) = wk↪ᵗ
 source-scope-center (source-scope-term plan p p⁺) =
   source-scope-center plan
 source-scope-center (source-scope-both plan) =
@@ -155,6 +180,14 @@ source-scope-left-commutes {γ = γ}
   trans (toRename-wk-eq (toRenameⁱ (ηᴸᶜ γ) X))
     (sym (cong (toRenameⁱ (keepⁱ (ηᴸᶜ γ)))
       (toRename-wk-eq X)))
+source-scope-left-commutes {γ = γ}
+    (source-scope-root-aligned
+      eqᴸ update boundary represented) X =
+  trans (toRename-wk-eq (toRenameⁱ (ηᴸᶜ γ) X))
+    (trans
+      (sym (cong (toRenameⁱ (keepⁱ (ηᴸᶜ γ)))
+        (toRename-wk-eq X)))
+      (sym (off-pivot-fixedᵗ update (toRenameᵗ wk↪ᵗ X) (λ ()))))
 source-scope-left-commutes
     (source-scope-term plan p p⁺) X =
   source-scope-left-commutes plan X
@@ -186,6 +219,10 @@ source-scope-right-commutes : ∀
 source-scope-right-commutes {γ = γ}
     (source-scope-root eqᴸ) Y =
   toRename-wk-eq (toRenameⁱ (ηᴿᶜ γ) Y)
+source-scope-right-commutes {γ = γ}
+    (source-scope-root-aligned
+      eqᴸ update boundary represented) Y =
+  toRename-wk-eq (toRenameⁱ (ηᴿᶜ γ) Y)
 source-scope-right-commutes
     (source-scope-term plan p p⁺) Y =
   source-scope-right-commutes plan Y
@@ -214,6 +251,10 @@ source-scope-mark : ∀
     ≡ marksᶜ γ Z
 source-scope-mark {γ = γ} (source-scope-root eqᴸ) Z =
   cong (marksᶜ γ) (toRename-id-eq Z)
+source-scope-mark {γ = γ}
+    (source-scope-root-aligned
+      eqᴸ update boundary represented) Z =
+  cong (marksᶜ γ) (toRename-id-eq Z)
 source-scope-mark (source-scope-term plan p p⁺) Z =
   source-scope-mark plan Z
 source-scope-mark (source-scope-both plan) Fin.zero = refl
@@ -238,6 +279,10 @@ source-scope-context : ∀
   → Γᴸ⁺ ≡ TC.renameCtx (toRenameᵗ ρ) Γᴸ
 source-scope-context (source-scope-root eqᴸ) =
   trans eqᴸ (sym (renameCtx-wk-eq _))
+source-scope-context
+    (source-scope-root-aligned
+      eqᴸ update boundary represented) =
+  trans eqᴸ (sym (renameCtx-wk-eq _))
 source-scope-context (source-scope-term plan p p⁺) =
   cong₂ _∷_ refl (source-scope-context plan)
 source-scope-context (source-scope-both {Γᴸ = Γᴸ} plan) =
@@ -261,6 +306,9 @@ source-scope-store : ∀
   → SourceBindScope ρ γ γ⁺
   → StoreRename (toRenameᵗ ρ) Σᴸ Σᴸ⁺
 source-scope-store (source-scope-root eqᴸ) = StoreRename-wk-bind
+source-scope-store
+    (source-scope-root-aligned
+      eqᴸ update boundary represented) = StoreRename-wk-bind
 source-scope-store (source-scope-term plan p p⁺) =
   source-scope-store plan
 source-scope-store (source-scope-both plan) =

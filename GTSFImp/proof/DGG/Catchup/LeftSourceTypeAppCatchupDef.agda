@@ -32,7 +32,7 @@ LeftSourceTypeAppCatchupAt fuel = ∀ {Δᴸ Δᴿ : TyCtx}
     {M : Term Δᴸ} {V′ : Term Δᴿ}
     {C : Ty (suc Δᴸ)} {A : Ty Δᴸ} {B : Ty Δᴿ}
     {p∀ : (`∀ C) ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (rel : γ ⊢² M ⊑ V′ ∶ p∀)
   → Value V′
   → SourceCastBound fuel rel

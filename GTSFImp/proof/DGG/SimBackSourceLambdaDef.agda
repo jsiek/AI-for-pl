@@ -43,7 +43,7 @@ SimBackSourceLambdaᵀ = ∀ {Deltaᴸ Deltaᴿ Deltaᴿ′ : TyCtx}
     {A : Ty (suc Deltaᴸ)} {B : Ty Deltaᴿ}
     {p : A ⊑ᵀ⟨ γ ▻ᶜ lift-left-changeᶜ refl ⟩ B}
     {χᴿ : StoreChange Deltaᴿ Deltaᴿ′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → NonVar A
   → Fin.zero ∈ᵗ A
   → Value V

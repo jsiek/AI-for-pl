@@ -41,13 +41,13 @@ open import proof.DGG.Catchup.MorePreciseTargetRevealRebaseCatchupDef
   using (MorePreciseTargetRevealRebaseCatchupᵀ)
 open import proof.DGG.CatchupToMorePreciseDef
   using (CatchupToMorePrecise)
-open import proof.DGG.SourceRebase using
-  (source-rebase-count≢zero)
-open import proof.DGG.World using (_⊑ᶜ_; _⊑ᵀ⟨_⟩_)
+open import proof.DGG.SourceRebase using (open-source-rebase-frames)
+open import proof.DGG.World using
+  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; renameOpenFrames-empty)
 open import proof.DGG.WorldEvolutionSequence using
   ( evolutions-refl
   ; composeMultiWorldEvolution
-  ; multi-no-source-rebase
+  ; multi-no-open-frames
   ; multi-aligned
   ; multi-⊑ᵀ
   ; multi-source-reveal
@@ -97,7 +97,8 @@ module _
 
   catchup-to-more-precise no-rebase
       (CTI.Λ⊑² Anv zero∈A vV target⊢ prem q) (CT.Λ source-value)
-      with catchup-to-more-precise no-rebase prem vV
+      with catchup-to-more-precise
+        (renameOpenFrames-empty no-rebase) prem vV
   catchup-to-more-precise no-rebase
       (CTI.Λ⊑² Anv zero∈A vV target⊢ prem q) (CT.Λ source-value)
     | Δᴿ′ , Σᴿ′ , χsᴿ , V′ , γᵇ , r , M′↠V′ , vV′ , evolᵇ ,
@@ -132,7 +133,7 @@ module _
     | Δᴿ¹ , Σᴿ¹ , χsᴿ , V′ , γ¹ , r , M′↠V′ , vV′ , evol¹ ,
       related
       with target-cast-value-catchup
-        (multi-no-source-rebase evol¹ no-rebase)
+        (multi-no-open-frames evol¹ no-rebase)
         (CTI.cast⊑cast² c (applyConsistencies χsᴿ c′) related
           (multi-⊑ᵀ evol¹ q))
         source-value vV′
@@ -170,7 +171,7 @@ module _
     | Δᴿ¹ , Σᴿ¹ , χsᴿ , V′ , γ¹ , r , M′↠V′ , vV′ , evol¹ ,
       related
       with target-cast-value-catchup
-        (multi-no-source-rebase evol¹ no-rebase)
+        (multi-no-open-frames evol¹ no-rebase)
         (CTI.⊑cast² (applyConsistencies χsᴿ c′) related
           (multi-⊑ᵀ evol¹ q))
         vV vV′
@@ -460,8 +461,10 @@ module _
     target-reveal-rebase-catchup no-rebase c′⊢ rebase prem q vV
 
   catchup-to-more-precise no-rebase
-      (CTI.⊑conceal-rebase² c′⊢ rebase prem q) vV =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+      (CTI.⊑conceal-rebase² c′⊢ rebase prem q) vV
+      with trans (sym no-rebase) (open-source-rebase-frames rebase)
+  catchup-to-more-precise no-rebase
+      (CTI.⊑conceal-rebase² c′⊢ rebase prem q) vV | ()
 
   catchup-to-more-precise no-rebase (CTI.blame⊑² target⊢ p) ()
 

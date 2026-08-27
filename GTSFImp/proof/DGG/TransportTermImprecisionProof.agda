@@ -5,13 +5,12 @@ module proof.DGG.TransportTermImprecisionProof where
 -- File Charter:
 --   * Lifts a canonical one-step CTI transport through a sequence of world
 --     evolutions.
---   * Instantiates the one-step theorem from the four structural allocation
+--   * Instantiates the one-step theorem from the five structural allocation
 --     inductions, which remain explicit module parameters.
 --   * Imports no parked world, compatibility world, or legacy context layer.
 
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; subst)
-open import Data.Nat using (zero)
 
 open import Types using (Ty)
 open import CastTerms using (Ctx; Δᵉ; Term)
@@ -28,11 +27,8 @@ open import proof.DGG.WorldEvolution using
   ; keep-ctx
   ; storeChange
   ; evolution-keep
-  ; evolution-bind-left
-  ; evolution-bind-right
-  ; evolution-bind-both
-  ; evolution-bind-both-star
   ; evolution-⊑ᵀ
+  ; evolution-no-open-frames
   )
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution
@@ -45,25 +41,6 @@ open import proof.DGG.WorldEvolutionSequence using
   ; ctx-change-term-value-as
   )
 
-
-evolution-no-source-rebase : ∀
-    {Γᴸ Γᴿ Γᴸ′ Γᴿ′ : Ctx}
-    {γ : Γᴸ ⊑ᶜ Γᴿ} {γ′ : Γᴸ′ ⊑ᶜ Γᴿ′}
-    {stepᴸ : CtxChange Γᴸ Γᴸ′}
-    {stepᴿ : CtxChange Γᴿ Γᴿ′}
-  → WorldEvolution {W = γ} {W′ = γ′} stepᴸ stepᴿ
-  → sourceRebaseCountᶜ γ ≡ zero
-  → sourceRebaseCountᶜ γ′ ≡ zero
-evolution-no-source-rebase evolution-keep no-rebase = no-rebase
-evolution-no-source-rebase
-    (evolution-bind-left eqᴸ) no-rebase = no-rebase
-evolution-no-source-rebase
-    (evolution-bind-right fresh eqᴿ) no-rebase = no-rebase
-evolution-no-source-rebase
-    (evolution-bind-both represented eqᴸ eqᴿ) no-rebase = no-rebase
-evolution-no-source-rebase
-    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) no-rebase =
-  no-rebase
 
 module _ (transport-step : TransportTermImprecisionStepᵀ) where
 
@@ -173,33 +150,34 @@ module _ (transport-step : TransportTermImprecisionStepᵀ) where
         related)
 
   transport-term-imprecision-from-step : TransportTermImprecisionᵀ
-  transport-term-imprecision-from-step no-rebase evolutions-refl related =
+  transport-term-imprecision-from-step no-open evolutions-refl related =
     related
 
   transport-term-imprecision-from-step
-      no-rebase (evolutions-step-left eqᴸ one tail) related =
+      no-open (evolutions-step-left eqᴸ one tail) related =
     finish-left eqᴸ one tail
       (transport-term-imprecision-from-step
-        (evolution-no-source-rebase one no-rebase)
-        tail (transport-step no-rebase one related))
+        (evolution-no-open-frames one no-open)
+        tail (transport-step no-open one related))
 
   transport-term-imprecision-from-step
-      no-rebase (evolutions-step-right eqᴿ one tail) related =
+      no-open (evolutions-step-right eqᴿ one tail) related =
     finish-right eqᴿ one tail
       (transport-term-imprecision-from-step
-        (evolution-no-source-rebase one no-rebase)
-        tail (transport-step no-rebase one related))
+        (evolution-no-open-frames one no-open)
+        tail (transport-step no-open one related))
 
   transport-term-imprecision-from-step
-      no-rebase (evolutions-step-both eqᴸ eqᴿ one tail) related =
+      no-open (evolutions-step-both eqᴸ eqᴿ one tail) related =
     finish-both eqᴸ eqᴿ one tail
       (transport-term-imprecision-from-step
-        (evolution-no-source-rebase one no-rebase)
-        tail (transport-step no-rebase one related))
+        (evolution-no-open-frames one no-open)
+        tail (transport-step no-open one related))
 
 
 module _
     (transport-source-bind : TransportSourceBindᵀ)
+    (transport-aligned-source-bind : TransportAlignedSourceBindᵀ)
     (transport-target-bind : TransportTargetBindᵀ)
     (transport-paired-bind : TransportPairedBindᵀ)
     (transport-paired-star-bind : TransportPairedStarBindᵀ)
@@ -209,5 +187,6 @@ module _
   transport-term-imprecision =
     transport-term-imprecision-from-step
       (Step.transport-term-imprecision-step
-        transport-source-bind transport-target-bind
+        transport-source-bind transport-aligned-source-bind
+        transport-target-bind
         transport-paired-bind transport-paired-star-bind)

@@ -31,7 +31,7 @@ CatchupToMorePrecise = ∀ {Δᴸ Δᴿ : TyCtx}
     {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {V : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ M′ ∶ p
   → Value V
   → Σ[ Δᴿ′ ∈ TyCtx ]

@@ -3,8 +3,8 @@
 module proof.DGG.TransportSourceBindProof where
 
 -- File Charter:
---   * Proves transport of every cast-term-imprecision constructor through a
---     source-only runtime allocation.
+--   * Proves transport of every cast-term-imprecision constructor through an
+--     ordinary or alignment-closing source-only runtime allocation.
 --   * Keeps only the genuine source-rebase commutation lemmas as module
 --     parameters once their exact statements have been identified.
 --   * Contains no compatibility world, classifier, or result wrapper.
@@ -33,10 +33,11 @@ open import proof.DGG.ConversionPivotAlignment using
 open import proof.DGG.World using
   (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ; toRenameⁱ)
 open import proof.DGG.TransportTermImprecisionStepDef using
-  (TransportSourceBindᵀ)
+  (TransportSourceBindᵀ; TransportAlignedSourceBindᵀ)
 open import proof.DGG.TransportSourceBindDef using
   ( SourceBindScope
   ; source-scope-root
+  ; source-scope-root-aligned
   ; source-scope-term
   ; source-scope-both
   ; source-scope-left
@@ -441,3 +442,12 @@ module _
     retarget-CTI
       (transport-source-type (renameᵗ-wk-eq A)
         (transport-source-bind-scope (source-scope-root eqᴸ) related))
+
+  transport-aligned-source-bind : TransportAlignedSourceBindᵀ
+  transport-aligned-source-bind {A = A} {p = p} no-open eqᴸ
+      update boundary represented related =
+    retarget-CTI
+      (transport-source-type (renameᵗ-wk-eq A)
+        (transport-source-bind-scope
+          (source-scope-root-aligned
+            eqᴸ update boundary represented) related))

@@ -38,7 +38,7 @@ SimSourceAllClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {V : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {C : Ty (Nat.suc Δᴸ)} {A : Ty Δᴸ} {B : Ty Δᴿ}
     {p∀ : `∀ C ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ M′ ∶ p∀
   → (q : A ⊑ᵀ⟨ γ ⟩ ★)
   → (r : C [ A ]ᵗ ⊑ᵀ⟨ γ ⟩ B)

@@ -583,6 +583,23 @@ renameOpenFramesᶜ renameᴸ renameᴿ ((Xᴸ ↔ᶜ Xᴿ) ∷ frames) =
   (renameᴸ Xᴸ ↔ᶜ renameᴿ Xᴿ) ∷
     renameOpenFramesᶜ renameᴸ renameᴿ frames
 
+renameOpenFrames-empty : ∀ {Δᴸ Δᴿ Δᴸ′ Δᴿ′}
+    {renameᴸ : TyVar Δᴸ → TyVar Δᴸ′}
+    {renameᴿ : TyVar Δᴿ → TyVar Δᴿ′}
+    {frames : OpenFramesᶜ Δᴸ Δᴿ}
+  → frames ≡ []
+  → renameOpenFramesᶜ renameᴸ renameᴿ frames ≡ []
+renameOpenFrames-empty refl = refl
+
+renameOpenFrames-empty-invert : ∀ {Δᴸ Δᴿ Δᴸ′ Δᴿ′}
+    {renameᴸ : TyVar Δᴸ → TyVar Δᴸ′}
+    {renameᴿ : TyVar Δᴿ → TyVar Δᴿ′}
+    {frames : OpenFramesᶜ Δᴸ Δᴿ}
+  → renameOpenFramesᶜ renameᴸ renameᴿ frames ≡ []
+  → frames ≡ []
+renameOpenFrames-empty-invert {frames = []} empty = refl
+renameOpenFrames-empty-invert {frames = frame ∷ frames} ()
+
 openFramesᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
   → OpenFramesᶜ (Δᵉ Γᴸ) (Δᵉ Γᴿ)
 openFramesᶜ emptyᶜ = []

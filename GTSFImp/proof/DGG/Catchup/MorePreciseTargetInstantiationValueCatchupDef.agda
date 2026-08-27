@@ -42,7 +42,7 @@ MorePreciseTargetInstantiationValueCatchupᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     {B′≠★ : B′ ≢ ★}
     {p : A ⊑ᵀ⟨ γ ⟩ `∀ B}
     {q : A ⊑ᵀ⟨ γ ⟩ B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ V′ ∶ p
   → Value V
   → Value V′

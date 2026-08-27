@@ -36,7 +36,7 @@ SimSourceCastValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {A B : Ty Δᴸ} {C : Ty Δᴿ}
     {μ : Env∼ Δᴸ} {c : μ ⊢ A ∼ B}
     {p : A ⊑ᵀ⟨ γ ⟩ C}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ V′ ∶ p
   → (q : B ⊑ᵀ⟨ γ ⟩ C)
   → Value V

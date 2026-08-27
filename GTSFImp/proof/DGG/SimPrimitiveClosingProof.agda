@@ -29,7 +29,7 @@ open import proof.DGG.TransportTermImprecisionDef using
 open import proof.DGG.World using (_⊑ᵀ⟨_⟩_)
 open import proof.DGG.WorldEvolutionSequence using
   ( composeMultiWorldEvolution
-  ; multi-no-source-rebase
+  ; multi-no-open-frames
   ; multi-⊑ᵀ
   )
 open import proof.Reduction using
@@ -59,7 +59,7 @@ module _
       | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , target-left , γ₁ , left-type₁ ,
         left-steps , target-left-value , evolution₁ , left-related₁
         with catchup-to-more-precise
-          (multi-no-source-rebase evolution₁ no-rebase)
+          (multi-no-open-frames evolution₁ no-rebase)
           (transport-CTI no-rebase evolution₁ right-related) ($ κ′)
     close-root {op = op} {κ = κ} {κ′ = κ′}
         no-rebase left-related right-related r primitive-step
@@ -75,7 +75,7 @@ module _
             (applyTys-primArgTy (χsᴿ₁ ++χ χsᴿ₂) op))
           (multi-⊑ᵀ evolution₂ left-type₁ ,
             transport-CTI
-              (multi-no-source-rebase evolution₁ no-rebase)
+              (multi-no-open-frames evolution₁ no-rebase)
               evolution₂ left-related₁)
     close-root {op = op} {κ = κ} {κ′ = κ′}
         no-rebase left-related right-related r primitive-step

@@ -35,7 +35,7 @@ LeftSourceRevealCatchupAt fuel = ∀ {Δᴸ Δᴿ : TyCtx}
     {M : Term Δᴸ} {V′ : Term Δᴿ}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ} {c : Conv↑ Δᴸ A A′}
     {p : A′ ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (rel : γ ⊢² M ↑ c ⊑ V′ ∶ p)
   → Value V′
   → SourceCastBound fuel rel
@@ -68,7 +68,7 @@ LeftSourceConcealCatchupAt fuel = ∀ {Δᴸ Δᴿ : TyCtx}
     {M : Term Δᴸ} {V′ : Term Δᴿ}
     {A A′ : Ty Δᴸ} {B : Ty Δᴿ} {c : Conv↓ Δᴸ A A′}
     {p : A′ ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (rel : γ ⊢² M ↓ c ⊑ V′ ∶ p)
   → Value V′
   → SourceCastBound fuel rel

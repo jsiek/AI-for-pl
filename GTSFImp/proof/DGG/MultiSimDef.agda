@@ -28,7 +28,7 @@ Sim*ᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
     {χsᴸ : StoreChanges Δᴸ Δᴸ′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² M ⊑ M′ ∶ p
   → M —↠[ χsᴸ ] N
   → Σ[ Δᴿ′ ∈ TyCtx ]

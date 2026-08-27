@@ -97,6 +97,23 @@ initialContext-no-source-rebase (e ∷ γ) =
   initialContext-no-source-rebase γ
 
 
+initialWorld-no-open-frames : ∀ {Δ} (μ : ImpEnv Δ)
+  → openFramesᶜ (initialWorldᶜ μ) ≡ []
+initialWorld-no-open-frames {Nat.zero} μ = refl
+initialWorld-no-open-frames {Nat.suc Δ} μ =
+  renameOpenFrames-empty
+    (initialWorld-no-open-frames (λ X → μ (Fin.suc X)))
+
+
+initialContext-no-open-frames : ∀ {Δ} {μ : ImpEnv Δ}
+    (γ : GTI.CtxImp μ)
+  → openFramesᶜ (initialContextWorld γ) ≡ []
+initialContext-no-open-frames {μ = μ} [] =
+  initialWorld-no-open-frames μ
+initialContext-no-open-frames (e ∷ γ) =
+  initialContext-no-open-frames γ
+
+
 initial-source-lookup : ∀ {Δ} {μ : ImpEnv Δ}
     {γ : GTI.CtxImp μ} {x A B p}
   → γ GTI.∋ⁱ x ⦂ GTI.ctx-imp A B p

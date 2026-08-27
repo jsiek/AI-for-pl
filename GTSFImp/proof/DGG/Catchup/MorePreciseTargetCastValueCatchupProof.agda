@@ -828,7 +828,7 @@ module _
       no-rebase (CTI.Λ⊑² Anv zero∈A body-value V′⊢ prem q)
       (Λ outer-value) vV′
       with more-precise-target-cast-value-catchup
-        no-rebase prem body-value vV′
+        (renameOpenFrames-empty no-rebase) prem body-value vV′
   more-precise-target-cast-value-catchup {p = q}
       no-rebase (CTI.Λ⊑² Anv zero∈A body-value V′⊢ prem q)
       (Λ outer-value) vV′

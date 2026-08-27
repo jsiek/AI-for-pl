@@ -12,9 +12,10 @@ module proof.DGG.SourceRebaseStackDef where
 
 import Data.Fin as Fin
 open import Data.Empty using (⊥-elim)
+open import Data.List using ([]; _∷_)
 open import Data.Nat using (suc)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; _≢_; refl; subst; sym)
+  (_≡_; _≢_; refl; subst; sym; trans)
 
 import TermCtx as TC
 open import TermCtx using (TermCtx)
@@ -49,7 +50,7 @@ data SourceRebaseStack : ∀ {Γᴸ Γᴿ}
     → Set where
 
   rebase-stack-root : ∀ {Γᴸ Γᴿ} {γ : Γᴸ ⊑ᶜ Γᴿ}
-    → sourceRebaseCountᶜ γ ≡ 0
+    → openFramesᶜ γ ≡ []
     → SourceRebaseStack γ γ
 
   rebase-stack-push : ∀ {Γᴸ Γᴿ}
@@ -157,67 +158,87 @@ data SourceRebaseStack : ∀ {Γᴸ Γᴿ}
 
 source-rebase-stack : ∀ {Γᴸ Γᴿ : Ctx}
     {γ⁰ γ : Γᴸ ⊑ᶜ Γᴿ} {X Y}
-  → sourceRebaseCountᶜ γ⁰ ≡ 0
+  → openFramesᶜ γ⁰ ≡ []
   → SourceRebaseᶜ γ⁰ γ X Y
   → SourceRebaseStack γ⁰ γ
 source-rebase-stack no-rebase (source-rebase-now ok represented) =
   rebase-stack-push (rebase-stack-root no-rebase) ok represented
 source-rebase-stack no-rebase
     (source-rebase-bind-left A rebase eq⁰ eq) =
-  rebase-stack-bind-left A (source-rebase-stack no-rebase rebase)
+  rebase-stack-bind-left A
+    (source-rebase-stack
+      (renameOpenFrames-empty-invert no-rebase) rebase)
     eq⁰ eq
 source-rebase-stack no-rebase
     (source-rebase-bind-right rebase fresh⁰ fresh eq⁰ eq) =
-  rebase-stack-bind-right (source-rebase-stack no-rebase rebase)
+  rebase-stack-bind-right
+    (source-rebase-stack
+      (renameOpenFrames-empty-invert no-rebase) rebase)
     fresh⁰ fresh eq⁰ eq
 source-rebase-stack no-rebase
     (source-rebase-bind-both rebase represented⁰ represented
       eqᴸ⁰ eqᴸ eqᴿ⁰ eqᴿ) =
-  rebase-stack-bind-both (source-rebase-stack no-rebase rebase)
+  rebase-stack-bind-both
+    (source-rebase-stack
+      (renameOpenFrames-empty-invert no-rebase) rebase)
     represented⁰ represented eqᴸ⁰ eqᴸ eqᴿ⁰ eqᴿ
 source-rebase-stack no-rebase
     (source-rebase-bind-both-star rebase represented⁰ represented
       A≠★ eqᴸ⁰ eqᴸ eqᴿ⁰ eqᴿ) =
-  rebase-stack-bind-both-star (source-rebase-stack no-rebase rebase)
+  rebase-stack-bind-both-star
+    (source-rebase-stack
+      (renameOpenFrames-empty-invert no-rebase) rebase)
     represented⁰ represented A≠★ eqᴸ⁰ eqᴸ eqᴿ⁰ eqᴿ
 source-rebase-stack no-rebase
     (source-rebase-bind-term rebase represented⁰ represented) =
   rebase-stack-term (source-rebase-stack no-rebase rebase)
     represented⁰ represented
 source-rebase-stack no-rebase (source-rebase-lift-both rebase) =
-  rebase-stack-both (source-rebase-stack no-rebase rebase)
+  rebase-stack-both
+    (source-rebase-stack
+      (renameOpenFrames-empty-invert no-rebase) rebase)
 source-rebase-stack no-rebase (source-rebase-lift-left rebase) =
-  rebase-stack-left (source-rebase-stack no-rebase rebase)
+  rebase-stack-left
+    (source-rebase-stack
+      (renameOpenFrames-empty-invert no-rebase) rebase)
 
 
-source-rebase-stack-root-zero : ∀ {Γᴸ Γᴿ : Ctx}
+source-rebase-stack-root-no-open-frames : ∀ {Γᴸ Γᴿ : Ctx}
     {γ⁰ γ : Γᴸ ⊑ᶜ Γᴿ}
   → SourceRebaseStack γ⁰ γ
-  → sourceRebaseCountᶜ γ⁰ ≡ 0
-source-rebase-stack-root-zero (rebase-stack-root no-rebase) = no-rebase
-source-rebase-stack-root-zero (rebase-stack-push stack ok represented) =
-  source-rebase-stack-root-zero stack
-source-rebase-stack-root-zero
+  → openFramesᶜ γ⁰ ≡ []
+source-rebase-stack-root-no-open-frames
+    (rebase-stack-root no-open) = no-open
+source-rebase-stack-root-no-open-frames
+    (rebase-stack-push stack ok represented) =
+  source-rebase-stack-root-no-open-frames stack
+source-rebase-stack-root-no-open-frames
     (rebase-stack-term stack represented⁰ represented) =
-  source-rebase-stack-root-zero stack
-source-rebase-stack-root-zero (rebase-stack-both stack) =
-  source-rebase-stack-root-zero stack
-source-rebase-stack-root-zero (rebase-stack-left stack) =
-  source-rebase-stack-root-zero stack
-source-rebase-stack-root-zero
+  source-rebase-stack-root-no-open-frames stack
+source-rebase-stack-root-no-open-frames (rebase-stack-both stack) =
+  renameOpenFrames-empty
+    (source-rebase-stack-root-no-open-frames stack)
+source-rebase-stack-root-no-open-frames (rebase-stack-left stack) =
+  renameOpenFrames-empty
+    (source-rebase-stack-root-no-open-frames stack)
+source-rebase-stack-root-no-open-frames
     (rebase-stack-bind-left A stack eq⁰ eq) =
-  source-rebase-stack-root-zero stack
-source-rebase-stack-root-zero
+  renameOpenFrames-empty
+    (source-rebase-stack-root-no-open-frames stack)
+source-rebase-stack-root-no-open-frames
     (rebase-stack-bind-right stack fresh⁰ fresh eq⁰ eq) =
-  source-rebase-stack-root-zero stack
-source-rebase-stack-root-zero
+  renameOpenFrames-empty
+    (source-rebase-stack-root-no-open-frames stack)
+source-rebase-stack-root-no-open-frames
     (rebase-stack-bind-both stack represented⁰ represented
       eqᴸ⁰ eqᴸ eqᴿ⁰ eqᴿ) =
-  source-rebase-stack-root-zero stack
-source-rebase-stack-root-zero
+  renameOpenFrames-empty
+    (source-rebase-stack-root-no-open-frames stack)
+source-rebase-stack-root-no-open-frames
     (rebase-stack-bind-both-star stack represented⁰ represented
       A≠★ eqᴸ⁰ eqᴸ eqᴿ⁰ eqᴿ) =
-  source-rebase-stack-root-zero stack
+  renameOpenFrames-empty
+    (source-rebase-stack-root-no-open-frames stack)
 
 
 pop-source-rebase-stack : ∀ {Γᴸ Γᴿ : Ctx}
@@ -225,8 +246,9 @@ pop-source-rebase-stack : ∀ {Γᴸ Γᴿ : Ctx}
   → SourceRebaseStack γ⁰ γ
   → SourceRebaseᶜ γᵖ γ X Y
   → SourceRebaseStack γ⁰ γᵖ
-pop-source-rebase-stack (rebase-stack-root no-rebase) rebase =
-  ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+pop-source-rebase-stack (rebase-stack-root no-open) rebase
+    with trans (sym no-open) (open-source-rebase-frames rebase)
+pop-source-rebase-stack (rebase-stack-root no-open) rebase | ()
 pop-source-rebase-stack
     (rebase-stack-push stack ok represented)
     (source-rebase-now .ok .represented) = stack

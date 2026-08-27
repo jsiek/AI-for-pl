@@ -82,7 +82,7 @@ LeftValueCatchupAt fuel = ∀ {Δᴸ Δᴿ : TyCtx}
     {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {M : Term Δᴸ} {V′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (rel : γ ⊢² M ⊑ V′ ∶ p)
   → Value V′
   → SourceCastBound fuel rel

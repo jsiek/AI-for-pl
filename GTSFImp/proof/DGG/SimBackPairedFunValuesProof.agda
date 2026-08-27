@@ -38,7 +38,7 @@ open import proof.DGG.CatchupToLessPreciseDef using
   (CatchupToLessPrecise)
 open import proof.DGG.World
 open import proof.DGG.SourceRebase using
-  (source-rebase-count≢zero)
+  (open-source-rebase-nonempty)
 open import proof.DGG.SimBackPairedFunValuesDef using
   (SimBackPairedFunValuesᵀ)
 open import proof.DGG.SimBackRebasedConversionDef using
@@ -70,7 +70,7 @@ open import proof.DGG.WorldEvolutionSequence using
   ; evolutions-step-left
   ; evolutions-step-right
   ; evolutions-step-both
-  ; multi-no-source-rebase
+  ; multi-no-open-frames
   ; multi-⊑ᵀ
   ; multi-source-mark
   ; multi-source-disaligned
@@ -260,7 +260,7 @@ module _
       {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
       {p : C ⊑ᵀ⟨ γ ⟩ C′}
       {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
-    → sourceRebaseCountᶜ γ ≡ 0
+    → openFramesᶜ γ ≡ []
     → (fuel : Nat.ℕ)
     → sourceFunctionLayers V < fuel
     → γ ⊢² V ⊑ V′ ∶ p
@@ -293,7 +293,7 @@ module _
       (⊑conceal-rebase² c′⊢ rebase related q)
       source-arrow target-arrow arg-rel source-fun-value source-arg-value
       target-fun-value target-arg-value target-step =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   worker {Σᴸ = Σᴸ} {γ = γ} {W = W} {pA = pA} {pB = pB}
       no-rebase (Nat.suc fuel) size-bound
@@ -451,7 +451,7 @@ module _
       with worker
         {pA = argument-type-rel}
         {pB = multi-⊑ᵀ argument-evolution inner-result-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
@@ -619,7 +619,7 @@ module _
       with worker
         {pA = argument-type-rel}
         {pB = multi-⊑ᵀ argument-evolution inner-result-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
@@ -802,7 +802,7 @@ module _
       with worker
         {pA = argument-type-rel}
         {pB = multi-⊑ᵀ argument-evolution inner-result-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
@@ -991,7 +991,7 @@ module _
       with worker
         {pA = argument-type-rel}
         {pB = multi-⊑ᵀ argument-evolution inner-result-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
@@ -1174,7 +1174,7 @@ module _
       with worker
         {pA = argument-type-rel}
         {pB = multi-⊑ᵀ argument-evolution inner-result-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))

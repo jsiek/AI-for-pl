@@ -76,7 +76,7 @@ open import proof.TypeSafety.Preservation using (multi-preservation)
 open import proof.DGG.World
 open import proof.DGG.WorldEvolutionSequence using
   ( composeMultiWorldEvolution
-  ; multi-no-source-rebase
+  ; multi-no-open-frames
   ; multi-source-store
   ; multi-target-store
   )
@@ -145,12 +145,12 @@ module _
     initial-related =
       CompileMonotone.compile-preserves-imprecision M⊑M′
 
-    initial-no-source-rebase :
-      sourceRebaseCountᶜ
+    initial-no-open-frames :
+      openFramesᶜ
         (CompileMonotone.initialContextWorld
-          {μ = idᵐ {Δ = 0}} []) ≡ 0
-    initial-no-source-rebase =
-      CompileMonotone.initialContext-no-source-rebase
+          {μ = idᵐ {Δ = 0}} []) ≡ []
+    initial-no-open-frames =
+      CompileMonotone.initialContext-no-open-frames
         {μ = idᵐ {Δ = 0}} []
 
     source-value : ∀ {Δᴸ} (V : Term Δᴸ)
@@ -167,12 +167,12 @@ module _
              Value V′ ×
              (γ ⊢² V ⊑ V′ ∶ q))))))
     source-value {Δᴸ} V χsᴸ M↠V vV
-        with sim* initial-no-source-rebase initial-related M↠V
+        with sim* initial-no-open-frames initial-related M↠V
     source-value {Δᴸ} V χsᴸ M↠V vV
         | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , N′ , γ₁ , q₁ , M′↠N′ ,
           evol₁ , V⊑N′
         with catchup-to-more-precise
-          (multi-no-source-rebase evol₁ initial-no-source-rebase)
+          (multi-no-open-frames evol₁ initial-no-open-frames)
           V⊑N′ vV
     source-value {Δᴸ} V χsᴸ M↠V vV
         | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , N′ , γ₁ , q₁ , M′↠N′ ,
@@ -222,7 +222,7 @@ module _
         ⊎ (∃[ Δᴸ ] (Σ[ χsᴸ ∈ StoreChanges 0 Δᴸ ]
             (compiled-left M⊑M′ —↠[ χsᴸ ] blame))))
     target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
-        with sim-back* initial-no-source-rebase initial-related M′↠V′
+        with sim-back* initial-no-open-frames initial-related M′↠V′
     target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
         | inj₂ source-blame = inj₂ source-blame
     target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
@@ -235,7 +235,7 @@ module _
           N⊑N₂′)
         | value-trace-refl
         with catchup
-          (multi-no-source-rebase evol₁ initial-no-source-rebase)
+          (multi-no-open-frames evol₁ initial-no-open-frames)
           N⊑N₂′ vV′
     target-value {Δᴿ} V′ χsᴿ M′↠V′ vV′
         | inj₁ (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , N , .Δᴿ , Σᴿ₂ ,
@@ -296,7 +296,7 @@ module _
       → ∃[ Δᴸ ] (Σ[ χsᴸ ∈ StoreChanges 0 Δᴸ ]
           (compiled-left M⊑M′ —↠[ χsᴸ ] blame))
     target-blame {Δᴿ} χsᴿ M′↠blame
-        with sim-back* initial-no-source-rebase initial-related M′↠blame
+        with sim-back* initial-no-open-frames initial-related M′↠blame
     target-blame {Δᴿ} χsᴿ M′↠blame
         | inj₂ source-blame = source-blame
     target-blame {Δᴿ} χsᴿ M′↠blame

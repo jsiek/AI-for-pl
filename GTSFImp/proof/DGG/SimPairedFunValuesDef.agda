@@ -38,7 +38,7 @@ SimPairedFunValuesᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     {V W N : Term Δᴸ} {V′ W′ : Term Δᴿ}
     {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
     {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ V′ ∶ ⇒⊑⇒ pA pB
   → γ ⊢² W ⊑ W′ ∶ pA
   → Value V

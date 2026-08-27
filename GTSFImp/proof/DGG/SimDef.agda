@@ -35,7 +35,7 @@ Simᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² M ⊑ M′ ∶ p
   → M —→[ χᴸ ] N
   → Σ[ Δᴿ′ ∈ TyCtx ]

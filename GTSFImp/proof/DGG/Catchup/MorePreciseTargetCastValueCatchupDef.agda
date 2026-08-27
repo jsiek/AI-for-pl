@@ -34,7 +34,7 @@ MorePreciseTargetCastValueCatchupᵀ = ∀ {Δᴸ Δᴿ : TyCtx}
     {V : Term Δᴸ} {V′ : Term Δᴿ}
     {A : Ty Δᴸ} {B B′ : Ty Δᴿ} {ν′ : Env∼ Δᴿ}
     {c′ : ν′ ⊢ B ∼ B′} {p : A ⊑ᵀ⟨ γ ⟩ B′}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → γ ⊢² V ⊑ V′ ⟨ c′ ⟩ ∶ p
   → Value V
   → Value V′

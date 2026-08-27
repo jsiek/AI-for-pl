@@ -53,7 +53,7 @@ open import proof.DGG.SimPairedFunValuesDef using
 open import proof.DGG.SimTargetRevealRebaseClosingDef using
   (SimTargetRevealRebaseClosingᵀ)
 open import proof.DGG.SourceRebase using
-  (source-rebase-count≢zero)
+  (open-source-rebase-nonempty)
 open import proof.DGG.TermImprecisionSubstitutionDef using
   (TermImprecisionSubstitutionᵀ)
 open import proof.DGG.TransportTermImprecisionDef using
@@ -67,7 +67,7 @@ open import proof.DGG.WorldEvolutionSequence using
   ; evolutions-step-right
   ; evolutions-step-both
   ; composeMultiWorldEvolution
-  ; multi-no-source-rebase
+  ; multi-no-open-frames
   ; multi-⊑ᵀ
   ; multi-target-reveal
   ; multi-target-conceal
@@ -262,7 +262,7 @@ module _
       {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
       {p : C ⊑ᵀ⟨ γ ⟩ C′}
       {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
-    → sourceRebaseCountᶜ γ ≡ 0
+    → openFramesᶜ γ ≡ []
     → (fuel : Nat.ℕ)
     → targetFunctionLayers V′ < fuel
     → Value V
@@ -300,7 +300,7 @@ module _
       source-fun-value source-arg-value source-step refl refl
       (⊑conceal-rebase² c′⊢ rebase related q)
       arg-rel target-fun-value target-arg-value =
-    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
+    ⊥-elim (open-source-rebase-nonempty rebase no-rebase)
 
   worker {V = M ⦂∀ C [ A ]}
       no-rebase (Nat.suc fuel) size-bound
@@ -382,7 +382,7 @@ module _
     | (⇒⊑⇒ argument-type-rel′ result-type-rel) , body-rel′
       with worker
         {pA = argument-type-rel′} {pB = result-type-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (targetFunctionLayers-applyTerms argument-changes M′))
@@ -515,7 +515,7 @@ module _
     | (⇒⊑⇒ argument-type-rel′ result-type-rel) , body-rel′
       with worker
         {pA = argument-type-rel′} {pB = result-type-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (targetFunctionLayers-applyTerms argument-changes M′))
@@ -652,7 +652,7 @@ module _
     | (⇒⊑⇒ argument-type-rel′ result-type-rel) , body-rel′
       with worker
         {pA = argument-type-rel′} {pB = result-type-rel}
-        (multi-no-source-rebase argument-evolution no-rebase)
+        (multi-no-open-frames argument-evolution no-rebase)
         fuel
         (subst (λ n → n < fuel)
           (sym (targetFunctionLayers-applyTerms argument-changes M′))

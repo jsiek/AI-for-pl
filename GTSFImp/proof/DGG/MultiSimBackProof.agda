@@ -23,7 +23,7 @@ open import proof.DGG.World
 open import proof.DGG.WorldEvolutionSequence using
   ( composeMultiWorldEvolution
   ; evolutions-refl
-  ; multi-no-source-rebase
+  ; multi-no-open-frames
   )
 open import proof.Reduction using
   (_++χ_; applyTys-++; _—↠+[_]⟨_⟩_)
@@ -56,7 +56,7 @@ module _ (sim-back : SimBackᵀ) where
     | inj₁
         (_ , _ , χsᴸ₁ , N , γ₁ , _ , M↠N , evol₁ , N⊑N′)
       with sim-back*
-        (multi-no-source-rebase evol₁ no-rebase) N⊑N′ N′↠P′
+        (multi-no-open-frames evol₁ no-rebase) N⊑N′ N′↠P′
   sim-back* {M = M} no-rebase related (↠-step M′→N′ N′↠P′)
     | inj₁
         (_ , _ , χsᴸ₁ , N , γ₁ , _ , M↠N , evol₁ , N⊑N′)

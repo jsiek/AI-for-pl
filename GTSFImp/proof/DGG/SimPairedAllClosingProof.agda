@@ -73,7 +73,7 @@ module _
         target-steps , target-is-value , evolution₁ , related₁
       | type-rel₁′ , related₁′
         with sim-paired-all-values
-          (multi-no-source-rebase evolution₁ no-rebase)
+          (multi-no-open-frames evolution₁ no-rebase)
           related₁′
           (multi-⊑ᵀ evolution₁ q)
           (subst (λ T → C [ A ]ᵗ ⊑ᵀ⟨ γ₁ ⟩ T)

@@ -37,7 +37,7 @@ UnliftLeftTargetEvolutionᵀ = ∀ {Δᴸ Δᴿ Δᴿ′ : TyCtx}
     {M : Term (suc Δᴸ)} {M′ : Term Δᴿ′}
     {A : Ty (suc Δᴸ)} {B : Ty Δᴿ}
     {p : A ⊑ᵀ⟨ γᵇ ⟩ applyTys χsᴿ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → MultiWorldEvolution {W = liftLeftᶜ γ} {W′ = γᵇ} []ˢ χsᴿ
   → γᵇ ⊢² M ⊑ M′ ∶ p
   → Σ[ γ′ ∈

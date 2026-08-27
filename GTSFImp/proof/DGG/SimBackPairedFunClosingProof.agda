@@ -50,7 +50,7 @@ module _
         {L M : Term Δᴸ} {L′ M′ N′ : Term Δᴿ}
         {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
         {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
-      → sourceRebaseCountᶜ γ ≡ 0
+      → openFramesᶜ γ ≡ []
       → γ ⊢² L ⊑ L′ ∶ ⇒⊑⇒ pA pB
       → γ ⊢² M ⊑ M′ ∶ pA
       → Value L′
@@ -93,7 +93,7 @@ module _
           (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , source-fun , γ₁ , type-rel₁ ,
             fun-steps , source-fun-value , evolution₁ , fun-rel₁)
         with catchup-to-less-precise
-          (multi-no-source-rebase evolution₁ no-rebase)
+          (multi-no-open-frames evolution₁ no-rebase)
           (transport-CTI no-rebase evolution₁ arg-rel) target-arg-value
     close-root {L = L} {M = M} {L′ = L′} {M′ = M′} {N′ = N′}
         {A = A} {B = B} {A′ = A′} {B′ = B′}
@@ -133,7 +133,7 @@ module _
               (applyTys χsᴸ₁ B)))
           (multi-⊑ᵀ evolution₂ type-rel₁ ,
             transport-CTI
-              (multi-no-source-rebase evolution₁ no-rebase)
+              (multi-no-open-frames evolution₁ no-rebase)
               evolution₂ fun-rel₁)
     close-root {L = L} {M = M} {L′ = L′} {M′ = M′} {N′ = N′}
         {A = A} {B = B}
@@ -147,8 +147,8 @@ module _
             arg-steps , source-arg-value , evolution₂ , arg-rel₂)
       | (⇒⊑⇒ argument-rel result-rel) , fun-rel₂
         with sim-back-paired-fun-values
-          (multi-no-source-rebase evolution₂
-            (multi-no-source-rebase evolution₁ no-rebase))
+          (multi-no-open-frames evolution₂
+            (multi-no-open-frames evolution₁ no-rebase))
           fun-rel₂
           (subst (λ q → γ₂ ⊢² source-arg ⊑ M′ ∶ q)
             (PI.⊑-unique type-rel₂ argument-rel) arg-rel₂)

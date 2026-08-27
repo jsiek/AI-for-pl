@@ -15,6 +15,7 @@ module proof.DGG.WorldEvolutionSequence where
 --     store/context/term projections; depends on one-step evolution, its
 --     request producer, and the preservation context action.
 
+open import Data.List using ([])
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; subst; cong; trans)
 
@@ -98,54 +99,23 @@ data MultiWorldEvolution : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
         (χᴸ ∷ χsᴸ) (χᴿ ∷ χsᴿ)
 
 
-multi-sourceRebaseCount : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
-    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
-    {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
-    {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
-  → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
-  → sourceRebaseCountᶜ W′ ≡ sourceRebaseCountᶜ W
-multi-sourceRebaseCount evolutions-refl = refl
-multi-sourceRebaseCount
-    (evolutions-step-left eqᴸ evolution-keep tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-left eqᴸ (evolution-bind-left eq) tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-right eqᴿ evolution-keep tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-right eqᴿ (evolution-bind-right fresh eq) tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-both eqᴸ eqᴿ evolution-keep tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-both eqᴸ eqᴿ (evolution-bind-left eq) tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-both eqᴸ eqᴿ
-      (evolution-bind-right fresh eq) tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-both eqᴸ eqᴿ
-      (evolution-bind-both represented eqᴸ′ eqᴿ′) tail) =
-  multi-sourceRebaseCount tail
-multi-sourceRebaseCount
-    (evolutions-step-both eqᴸ eqᴿ
-      (evolution-bind-both-star represented A≠★ eqᴸ′ eqᴿ′) tail) =
-  multi-sourceRebaseCount tail
-
-
-multi-no-source-rebase : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
+multi-no-open-frames : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
     {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {χsᴸ : StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ′)}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
   → (evol : MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ)
-  → sourceRebaseCountᶜ W ≡ 0
-  → sourceRebaseCountᶜ W′ ≡ 0
-multi-no-source-rebase evol no-rebase =
-  trans (multi-sourceRebaseCount evol) no-rebase
+  → openFramesᶜ W ≡ []
+  → openFramesᶜ W′ ≡ []
+multi-no-open-frames evolutions-refl no-open = no-open
+multi-no-open-frames
+    (evolutions-step-left eqᴸ one tail) no-open =
+  multi-no-open-frames tail (evolution-no-open-frames one no-open)
+multi-no-open-frames
+    (evolutions-step-right eqᴿ one tail) no-open =
+  multi-no-open-frames tail (evolution-no-open-frames one no-open)
+multi-no-open-frames
+    (evolutions-step-both eqᴸ eqᴿ one tail) no-open =
+  multi-no-open-frames tail (evolution-no-open-frames one no-open)
 
 
 composeMultiWorldEvolution : ∀
@@ -306,6 +276,9 @@ request-source-change : ∀
   → storeChange (evolutionSourceChange request) ≡ χᴸ
 request-source-change evolution-request-keep = refl
 request-source-change (evolution-request-left eqᴸ) = refl
+request-source-change
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = refl
 request-source-change (evolution-request-right fresh eqᴿ) = refl
 request-source-change
     (evolution-request-both-precise represented eqᴸ eqᴿ) = refl
@@ -324,6 +297,9 @@ request-target-change : ∀
   → storeChange (evolutionTargetChange request) ≡ χᴿ
 request-target-change evolution-request-keep = refl
 request-target-change (evolution-request-left eqᴸ) = refl
+request-target-change
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) = refl
 request-target-change (evolution-request-right fresh eqᴿ) = refl
 request-target-change
     (evolution-request-both-precise represented eqᴸ eqᴿ) = refl
@@ -370,6 +346,12 @@ prepend-left-request evolution-request-keep tail =
   evolutions-step-left refl evolution-keep tail
 prepend-left-request (evolution-request-left eqᴸ) tail =
   evolutions-step-left refl (evolution-bind-left eqᴸ) tail
+prepend-left-request
+    (evolution-request-left-aligned
+      eqᴸ update boundary represented) tail =
+  evolutions-step-left refl
+    (evolution-bind-left-aligned
+      eqᴸ update boundary represented) tail
 
 
 prepend-right-request : ∀

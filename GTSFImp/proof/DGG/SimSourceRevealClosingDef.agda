@@ -44,7 +44,7 @@ SimSourceRevealClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {c : Conv↑ Δᴸ A A′}
     {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → sourceRebaseCountᶜ γ ≡ 0
+  → openFramesᶜ γ ≡ []
   → (c⊢ : Σᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
   → revealGeneratorPosition c⊢ ≢ generator-absent
   → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★

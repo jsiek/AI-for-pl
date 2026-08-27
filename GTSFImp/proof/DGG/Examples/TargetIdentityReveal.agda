@@ -1201,12 +1201,31 @@ checkpoint₃-alpha-representation :
   (＇ Fin.zero) ⊑ᵀ⟨ checkpoint₃-allocation-world ⟩ ★
 checkpoint₃-alpha-representation = I.X⊑★ refl
 
+checkpoint₃-source-member :
+  store-bind store-empty ℕᵗ ∋ Fin.zero ⦂ ℕᵗ
+checkpoint₃-source-member = Z∋ refl
+
+checkpoint₃-source-reveal⊢ :
+  store-bind store-empty ℕᵗ Conv.⊢↑[ Fin.zero ⦂ ℕᵗ ]
+    (seal Fin.zero ℕᵗ ↦↑ Conv.id↑ ★)
+checkpoint₃-source-reveal⊢ =
+  Conv.⊢↑-⇒
+    (Conv.⊢↓-seal checkpoint₃-source-member)
+    (Conv.⊢↑-id-star checkpoint₃-source-member)
+
+checkpoint₃-alpha-boundary :
+  AlignmentBoundaryᶜ checkpoint₃-allocation-world Fin.zero
+    (Fin.suc Fin.zero) checkpoint₃-alpha-ok
+checkpoint₃-alpha-boundary =
+  paired-reveal-alignmentᶜ
+    checkpoint₃-source-reveal⊢ checkpoint₁-alpha-reveal⊢ refl I.ι⊑★
+
 checkpoint₃-world :
   (base-context ,ˢ ℕᵗ) ⊑ᶜ ((base-context ,ˢ ★) ,ˢ ＇ Fin.zero)
 checkpoint₃-world =
   rebaseSourceᶜ checkpoint₃-allocation-world Fin.zero
     (Fin.suc Fin.zero) checkpoint₃-alpha-ok
-    open-frameᶜ
+    (alignment-onlyᶜ checkpoint₃-alpha-boundary)
     checkpoint₃-alpha-representation
 
 checkpoint₃-beta-ok :
@@ -1229,18 +1248,6 @@ checkpoint₃-beta-current :
 checkpoint₃-beta-current =
   rebaseSourceᶜ checkpoint₃-world Fin.zero Fin.zero
     checkpoint₃-beta-ok open-frameᶜ checkpoint₃-beta-representation
-
-checkpoint₃-source-member :
-  store-bind store-empty ℕᵗ ∋ Fin.zero ⦂ ℕᵗ
-checkpoint₃-source-member = Z∋ refl
-
-checkpoint₃-source-reveal⊢ :
-  store-bind store-empty ℕᵗ Conv.⊢↑[ Fin.zero ⦂ ℕᵗ ]
-    (seal Fin.zero ℕᵗ ↦↑ Conv.id↑ ★)
-checkpoint₃-source-reveal⊢ =
-  Conv.⊢↑-⇒
-    (Conv.⊢↓-seal checkpoint₃-source-member)
-    (Conv.⊢↑-id-star checkpoint₃-source-member)
 
 checkpoint₃-source-active :
   revealGeneratorPosition checkpoint₃-source-reveal⊢

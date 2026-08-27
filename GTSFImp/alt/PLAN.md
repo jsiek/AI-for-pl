@@ -23,7 +23,7 @@ postulates, holes, or pragmas.
 | `ThetaTyping.agda` | 445 | σ-indexed `TyEnv`, `rep?`, `≼`, typing |
 | `ThetaReduction.agda` | 733 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
 | `ThetaTermSubst.agda` | 5722 | transport suite, `⊢≼`, `⊢[]` |
-| `ThetaPreservation.agda` | 1090 | per-case lemmas + `preserve` |
+| `ThetaPreservation.agda` | 820 | per-case lemmas + `preserve` |
 | `ThetaRegression.agda` | 213 | curated positive regressions |
 
 ## The design, in one page
@@ -80,26 +80,49 @@ judgment, and the relational lookup walk `RepWalk`.
 
 ## Next steps
 
-1. **U28 — naming and imports** (in progress). Two increments:
-   - use the repository's `TyVar` vocabulary consistently (`liveTyVar?`,
-     `emptyTyVars`, `fresh-renameTyVars`, and probe-local names), plus the
-     prose sweep in comments;
-   - in `ThetaTyping`, `open import Data.Vec.Base` unqualified so the
-     Vec operations read concisely; drop `Data.List` if unused; prefer
-     stdlib functions over local duplicates where downstream proofs
-     gate unchanged.
-2. **Progress** (statements previously approved): `progress` at `[]`,
-   used deliberately as the *merge-family gap-finder* — the cases that
-   get stuck should expose exactly which ★-delimiter merge rules the
-   calculus still lacks.
-3. **Merge rules** (deferred design): projection into packages, both
+1. ~~**U28 — naming and imports**~~ DONE (`41b5560b`, `3410a1c9`):
+   `TyVar` vocabulary throughout (`liveTyVar?`, `emptyTyVars`,
+   `fresh-renameTyVars`), Vec operations unqualified in `ThetaTyping`.
+   `Data.List` stays (term-context literals); local `mapᵛ` stays (its
+   definitional proof surface is in use).
+2. ~~**U29 — inline the one-liner preservation helpers**~~ DONE
+   (`fd619e35`): 1090 → 820 lines; eleven substantial lemmas kept (the
+   two boundary splits, three identity cancellations, two
+   `conceal-reveal` variants, four allocation rules).
+3. **Progress** (statements and protocol approved; in progress):
+
+   ```agda
+   data Progress {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) : Term Θ Δ → Set where
+     step   : ∀ {M′} → Ψ ⊢ M —→ M′ → Progress Ψ M
+     done   : Result M             → Progress Ψ M
+     failed :                        Progress Ψ blame
+
+   progress : Ψ ∣ [] ⊢ M ⦂ A → Progress Ψ M
+   ```
+
+   with canonical-forms families `CanonicalFun`/`CanonicalAll`/
+   `CanonicalStar`/`CanonicalBase`. Used deliberately as the
+   *merge-family gap-finder*: every case that cannot close is recorded
+   as a checked **gap witness** in `alt/probes/ProgressGaps.agda` (a
+   typed closed term with `¬ Result`, `≢ blame`, and no applicable
+   rule) rather than forced — the witnesses become the mechanized
+   specification of the missing ★-delimiter merge rules. Expected home
+   of the gaps: `canonical-★`.
+
+   The same run carries a **simplification watch** on the
+   Value/Result/RevealValue/ConcealValue/CanonicalInterior family
+   (`progress` is its main consumer, and the family is suspected of
+   being overly complex): behaviour-preserving local simplifications
+   are enacted; anything that changes *which terms are values* is
+   reported for decision, not enacted.
+4. **Merge rules** (deferred design): projection into packages, both
    orientations, comparisons as syntactic anchor-variable equality.
-4. **`Λ` value restriction** — `⊢Λ` still carries a DEFERRED marker.
-5. **Probe hygiene** — the counterexample probes now live in two
+5. **`Λ` value restriction** — `⊢Λ` still carries a DEFERRED marker.
+6. **Probe hygiene** — the counterexample probes now live in two
    places (`alt/*Probe*.agda` and `alt/probes/`); consolidate under
    `alt/probes/` and give each a one-line charter naming the
    obstruction it records.
-6. **Cutover to the PR branch** — port `GTSFImp/alt/` onto
+7. **Cutover to the PR branch** — port `GTSFImp/alt/` onto
    `claude/gtsfimp-alt-semantics`, delete the stale v2 files that no
    longer compile (`alt/Terms.agda`, `alt/Reduction.agda`,
    `alt/Store.agda`, `alt/Exchange.agda`, `alt/GeneratorEndpoint.agda`

@@ -122,3 +122,28 @@ the outer `X ↔ Z′` target-only boundary by the paired outer boundary, while
 the nested CTI result explicitly rebuilds the surviving `X ↔ Y′` boundary.
 No context index contains either frame list: both lists continue to be derived
 only from the worlds stored at their owning CTI nodes.
+
+## Focused value catch-up boundary
+
+The first nonlocal root obstruction is not another world invariant. When the
+focus lies in the right child of an application or primitive, the zipper
+records the source left sibling as a value because that is exactly the premise
+of the source reduction rule. It cannot record the target left sibling as a
+value: obtaining that target value is catch-up work that has not happened yet.
+
+`MorePreciseTargetRevealRebaseContextCatchupᵀ` is the direct semantic boundary
+for that work. It catches up a source value at a focused CTI node while keeping
+the selected enclosing reveal in the target term. Its result returns:
+
+- the ordinary evolution of the enclosing no-frame world;
+- the reconstructed evolved source rebase;
+- evolved root and focus CTI derivations connected by an evolved zipper; and
+- the target reduction to the evolved root term under the enclosing reveal.
+
+The result also carries `TargetReady` for the evolved zipper. `TargetReady` is
+derived evidence, not a stronger zipper constructor: it requires a target
+value only at application-right and primitive-right edges and recursively
+preserves that evidence through all other edges. A later target-step replay can
+therefore use `ξ-·₂` or `ξ-⊕₂` honestly. A keep-only source replay needs no such
+evidence because it performs zero target steps and leaves every target sibling
+unchanged.

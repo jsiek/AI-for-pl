@@ -13,6 +13,7 @@ module proof.DGG.SimTargetRevealRebaseContextDef where
 open import Data.List using ([])
 import Data.Nat as Nat
 open import Data.Product using (_×_; Σ-syntax)
+open import Data.Unit using (⊤)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import TermCtx using (TermCtx)
@@ -374,6 +375,83 @@ extend-focus : ∀ {Δᴸ Δᴿ}
 extend-focus focus-here edge = focus-there edge focus-here
 extend-focus (focus-there outer-edge tail) edge =
   focus-there outer-edge (extend-focus tail edge)
+
+
+------------------------------------------------------------------------
+-- Target evaluation readiness after focused value catch-up
+------------------------------------------------------------------------
+
+TargetReady : ∀ {Δᴸ Δᴿ}
+    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
+  → outer ↘ᶜ* focus → Set
+TargetReady focus-here = ⊤
+TargetReady (focus-there (focus-·₁ function-rel argument-rel) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-·₂ {L′ = L′} function-rel argument-rel source-value) tail) =
+  Value L′ × TargetReady tail
+TargetReady (focus-there (focus-⊕₁ left-rel right-rel r) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-⊕₂ {L′ = L′} left-rel right-rel r source-value) tail) =
+  Value L′ × TargetReady tail
+TargetReady (focus-there (focus-•-paired p∀ related q r) tail) =
+  TargetReady tail
+TargetReady (focus-there (focus-•-source p∀ related q r) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there (focus-cast-paired c c′ related q) tail) =
+  TargetReady tail
+TargetReady (focus-there (focus-cast-target c′ related q) tail) =
+  TargetReady tail
+TargetReady (focus-there (focus-cast-source c related q) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-target-reveal-identity c′⊢ absent related q) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-target-conceal-identity c′⊢ absent related q) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-source-reveal-identity c⊢ absent related q) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-source-conceal-identity c⊢ absent related q) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-source-reveal-only c⊢ present mark free represented related q)
+      tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-source-conceal-only c⊢ present mark free represented related q)
+      tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-reveal-paired c⊢ c′⊢ positions aligned represented related q)
+      tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-conceal-paired c⊢ c′⊢ positions aligned represented related q)
+      tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-target-reveal-rebase c′⊢ rebase related q) tail) =
+  TargetReady tail
+TargetReady
+    (focus-there
+      (focus-target-conceal-rebase c′⊢ rebase related q) tail) =
+  TargetReady tail
 
 
 ------------------------------------------------------------------------

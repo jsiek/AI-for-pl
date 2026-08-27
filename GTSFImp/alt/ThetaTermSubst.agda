@@ -16,7 +16,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
   renaming (map to mapMaybe)
 open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
-open import Data.Nat.Properties using (+-identityʳ; +-suc)
+open import Data.Nat.Properties using (+-assoc; +-comm; +-identityʳ; +-suc)
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
@@ -433,6 +433,13 @@ mapMaybe-keep-tail : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     ≡ mapMaybe (toRenameᵗ (keep ρ)) (mapMaybe suc m)
 mapMaybe-keep-tail ρ nothing = refl
 mapMaybe-keep-tail ρ (just X) = refl
+
+mapMaybe-suc-ext : ∀ {Θ Θ′} (φ : TyVar Θ → TyVar Θ′)
+    (m : Maybe (TyVar Θ))
+  → mapMaybe suc (mapMaybe φ m)
+    ≡ mapMaybe (extᵗ φ) (mapMaybe suc m)
+mapMaybe-suc-ext φ nothing = refl
+mapMaybe-suc-ext φ (just a) = refl
 
 emptySlots : ∀ {Θ} (D : TyCtx) → Vec.Vec (Maybe (TyVar Θ)) D
 emptySlots zero = Vec.[]
@@ -3035,3 +3042,1127 @@ liftˢ-∋ environment⊢ x∈ | B , B∈ , refl =
     → Ψ ∣ Γ ⊢ singleSub N x ⦂ C
   single⊢ Z = N⊢
   single⊢ (S x∈) = ⊢` x∈
+
+------------------------------------------------------------------------
+-- Typing transport along balanced extension
+------------------------------------------------------------------------
+
+-- A typing derivation descends below syntax already present on both sides of
+-- a balanced extension.  `TypingTarget` closes a `_≼[_,_]_` witness under
+-- those matching telescope constructors.  Its two maps are exactly the maps
+-- applied to terms: a regular injection on type slots and an anchor map.
+
+data TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    (ρ : Δ ↪ᵗ Δ′) (φ : TyVar Θ → TyVar Θ′)
+    → TyEnv Θ Δ σ → TyEnv Θ′ Δ′ σ′ → Set where
+  balanced-target : ∀ {Θ Θ′ Δ Δ′ σ σ′ k} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+      (extension : Ψ ≼[ k , ρ ] Φ)
+      -----------------------------------------------------
+    → TypingTarget ρ (shiftAlong extension) Ψ Φ
+
+  typing-target-begin : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+      {Y : TyVar (suc Δ)} {a : TyVar Θ}
+      {fresh : a ∉ᵛ σ} {fresh′ : φ a ∉ᵛ σ′}
+    → TypingTarget ρ φ Ψ Φ
+      ------------------------------------------------------------
+    → TypingTarget (insert↪ᵗ ρ Y) φ
+        (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩)
+        (Φ ,begin[
+          toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ φ a
+        ]⟨ fresh′ ⟩)
+
+  typing-target-typ : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    → TypingTarget ρ φ Ψ Φ
+      ---------------------------------------------------
+    → TypingTarget (keep ρ) φ (Ψ ,typ) (Φ ,typ)
+
+  typing-target-ν : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′} {A : Ty Δ}
+    → TypingTarget ρ φ Ψ Φ
+      --------------------------------------------------
+    → TypingTarget ρ (extᵗ φ) (Ψ ,:= A)
+        (Φ ,:= renameᵗ (toRenameᵗ ρ) A)
+
+  typing-target-end : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+      {ρ : suc Δ ↪ᵗ suc Δ′} {φ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ (suc Δ) σ} {Φ : TyEnv Θ′ (suc Δ′) σ′}
+      {Y : TyVar (suc Δ)}
+    → TypingTarget ρ φ Ψ Φ
+      ------------------------------------------------------------
+    → TypingTarget (delete↪ᵗ ρ Y) φ (Ψ ,end[ Y ])
+        (Φ ,end[ toRenameᵗ ρ Y ])
+
+extᵗ-injective′ : ∀ {Θ Θ′} {φ : TyVar Θ → TyVar Θ′}
+  → (∀ {a b} → φ a ≡ φ b → a ≡ b)
+  → ∀ {a b} → extᵗ φ a ≡ extᵗ φ b → a ≡ b
+extᵗ-injective′ injective {zero} {zero} eq = refl
+extᵗ-injective′ injective {zero} {suc b} ()
+extᵗ-injective′ injective {suc a} {zero} ()
+extᵗ-injective′ injective {suc a} {suc b} eq =
+  cong suc (injective (suc-injective eq))
+
+TypingTarget-anchor-injective : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+  → TypingTarget ρ φ Ψ Φ
+  → ∀ {a b} → φ a ≡ φ b → a ≡ b
+TypingTarget-anchor-injective (balanced-target extension) =
+  shiftAlong-injective extension
+TypingTarget-anchor-injective (typing-target-begin target) =
+  TypingTarget-anchor-injective target
+TypingTarget-anchor-injective (typing-target-typ target) =
+  TypingTarget-anchor-injective target
+TypingTarget-anchor-injective (typing-target-ν target) =
+  extᵗ-injective′ (TypingTarget-anchor-injective target)
+TypingTarget-anchor-injective (typing-target-end target) =
+  TypingTarget-anchor-injective target
+
+mutual
+  slot-forward-TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+      (target : TypingTarget ρ φ Ψ Φ) {X a}
+    → Vec.lookup σ X ≡ just a
+    → Vec.lookup σ′ (toRenameᵗ ρ X) ≡ just (φ a)
+  slot-forward-TypingTarget (balanced-target extension) lookup-eq =
+    slot-forward-≼ extension lookup-eq
+  slot-forward-TypingTarget
+      (typing-target-begin {ρ = ρ} {Y = pivot} target)
+      {X = X} lookup-eq with pivot ≟ X
+  slot-forward-TypingTarget
+      (typing-target-begin {ρ = ρ} {Y = pivot} target)
+      {X = .pivot} lookup-eq | yes refl =
+    trans (lookup-insert-here target-pivot _ _)
+      (cong just (cong _ (sym anchor-eq)))
+    where
+    target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+    anchor-eq = just-injective
+      (trans (sym lookup-eq) (lookup-insert-here pivot _ _))
+  slot-forward-TypingTarget
+      {φ = φ}
+      (typing-target-begin {ρ = ρ} {Φ = result} {Y = pivot}
+        {a = bound} target)
+      {X = X} lookup-eq | no pivot≢X =
+    trans (cong (Vec.lookup
+        (insertᵛ target-pivot (just (φ bound)) (slotsOf result)))
+        (sym position-eq))
+      (trans (lookup-insert-punch target-pivot (just (φ bound))
+          (slotsOf result) source-image)
+        (slot-forward-TypingTarget target source-lookup))
+    where
+    reduced = punchOut pivot X pivot≢X
+    source-image = toRenameᵗ ρ reduced
+    target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+    source-rebuild = punchIn-punchOut pivot X pivot≢X
+    position-eq : punchIn target-pivot source-image
+      ≡ toRenameᵗ (insert↪ᵗ ρ pivot) X
+    position-eq = trans (sym (insert-punchIn ρ pivot reduced))
+      (cong (toRenameᵗ (insert↪ᵗ ρ pivot)) source-rebuild)
+    source-lookup = trans
+      (sym (lookup-insert-other pivot X _ _ pivot≢X)) lookup-eq
+  slot-forward-TypingTarget (typing-target-typ target)
+      {X = zero} ()
+  slot-forward-TypingTarget (typing-target-typ target)
+      {X = suc X} lookup-eq =
+    slot-forward-TypingTarget target lookup-eq
+  slot-forward-TypingTarget
+      (typing-target-ν {Ψ = source} {Φ = result} target)
+      {X = X} {a = zero} lookup-eq =
+    ⊥-elim (mapMaybe-suc≢zero (Vec.lookup (slotsOf source) X)
+      (trans (sym (lookup-mapᵛ (mapMaybe suc) (slotsOf source) X))
+        lookup-eq))
+  slot-forward-TypingTarget
+      (typing-target-ν {Ψ = source} {Φ = result} target)
+      {X = X} {a = suc a} lookup-eq =
+    trans (lookup-mapᵛ (mapMaybe suc) (slotsOf result) _)
+      (cong (mapMaybe suc)
+        (slot-forward-TypingTarget target source-lookup))
+    where
+    source-lookup = mapMaybe-suc-just-injective
+      (trans (sym (lookup-mapᵛ (mapMaybe suc) (slotsOf source) X))
+        lookup-eq)
+  slot-forward-TypingTarget
+      (typing-target-end {ρ = ρ} {Ψ = source} {Φ = result}
+        {Y = pivot} target)
+      {X = X} lookup-eq =
+    trans (lookup-remove-punch target-pivot (slotsOf result) target-X)
+      (trans (cong (Vec.lookup (slotsOf result)) position-eq)
+        (slot-forward-TypingTarget target source-lookup))
+    where
+    source-X = punchIn pivot X
+    target-X = toRenameᵗ (delete↪ᵗ ρ pivot) X
+    target-pivot = toRenameᵗ ρ pivot
+    position-eq = sym (delete-punchIn ρ pivot X)
+    source-lookup = trans
+      (sym (lookup-remove-punch pivot (slotsOf source) X)) lookup-eq
+
+  slot-backward-TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+      (target : TypingTarget ρ φ Ψ Φ) {Y a}
+    → Vec.lookup σ′ Y ≡ just (φ a)
+    → ∃[ X ] (Y ≡ toRenameᵗ ρ X × Vec.lookup σ X ≡ just a)
+  slot-backward-TypingTarget (balanced-target extension) lookup-eq =
+    slot-backward-≼ extension lookup-eq
+  slot-backward-TypingTarget
+      (typing-target-begin {ρ = ρ} {Y = pivot} target)
+      {Y = Y} lookup-eq with target-pivot ≟ Y
+    where
+    target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+  slot-backward-TypingTarget
+      (typing-target-begin {ρ = ρ} {Y = pivot} target)
+      {Y = .(toRenameᵗ (insert↪ᵗ ρ pivot) pivot)} lookup-eq
+      | yes refl =
+    pivot , refl , trans (lookup-insert-here pivot _ _)
+      (cong just (TypingTarget-anchor-injective target anchor-eq))
+    where
+    target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+    anchor-eq = just-injective
+      (trans (sym (lookup-insert-here target-pivot _ _)) lookup-eq)
+  slot-backward-TypingTarget
+      (typing-target-begin {ρ = ρ} {Y = pivot} target)
+      {Y = Y} lookup-eq | no target-pivot≢Y
+      with slot-backward-TypingTarget target target-prefix-lookup
+    where
+    target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+    reduced = punchOut target-pivot Y target-pivot≢Y
+    target-prefix-lookup = trans
+      (sym (lookup-insert-other target-pivot Y _ _ target-pivot≢Y))
+      lookup-eq
+  slot-backward-TypingTarget
+      (typing-target-begin {ρ = ρ} {Y = pivot} target)
+      {Y = Y} lookup-eq | no target-pivot≢Y
+      | X , position-eq , source-lookup =
+    punchIn pivot X , final-position ,
+      trans (lookup-insert-punch pivot _ _ X) source-lookup
+    where
+    target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+    final-position = trans (sym (punchIn-punchOut target-pivot Y
+      target-pivot≢Y))
+      (trans (cong (punchIn target-pivot) position-eq)
+        (sym (insert-punchIn ρ pivot X)))
+  slot-backward-TypingTarget (typing-target-typ target)
+      {Y = zero} ()
+  slot-backward-TypingTarget (typing-target-typ target)
+      {Y = suc Y} lookup-eq
+      with slot-backward-TypingTarget target lookup-eq
+  slot-backward-TypingTarget (typing-target-typ target)
+      {Y = suc Y} lookup-eq | X , position-eq , source-lookup =
+    suc X , cong suc position-eq , source-lookup
+  slot-backward-TypingTarget
+      (typing-target-ν {Ψ = source} {Φ = result} target)
+      {Y = Y} {a = zero} lookup-eq =
+    ⊥-elim (mapMaybe-suc≢zero (Vec.lookup (slotsOf result) Y)
+      (trans (sym (lookup-mapᵛ (mapMaybe suc) (slotsOf result) Y))
+        lookup-eq))
+  slot-backward-TypingTarget
+      (typing-target-ν {Ψ = source} {Φ = result} target)
+      {Y = Y} {a = suc a} lookup-eq
+      with slot-backward-TypingTarget target target-prefix-lookup
+    where
+    target-prefix-lookup = mapMaybe-suc-just-injective
+      (trans (sym (lookup-mapᵛ (mapMaybe suc) (slotsOf result) Y))
+        lookup-eq)
+  slot-backward-TypingTarget
+      (typing-target-ν {Ψ = source} {Φ = result} target)
+      {Y = Y} {a = suc a} lookup-eq
+      | X , position-eq , source-lookup =
+    X , position-eq , trans
+      (lookup-mapᵛ (mapMaybe suc) (slotsOf source) X)
+      (cong (mapMaybe suc) source-lookup)
+  slot-backward-TypingTarget
+      (typing-target-end {ρ = ρ} {Ψ = source} {Φ = result}
+        {Y = pivot} target)
+      {Y = Y} lookup-eq
+      with slot-backward-TypingTarget target target-prefix-lookup
+    where
+    target-pivot = toRenameᵗ ρ pivot
+    target-prefix-lookup = trans
+      (sym (lookup-remove-punch target-pivot (slotsOf result) Y)) lookup-eq
+  slot-backward-TypingTarget
+      (typing-target-end {ρ = ρ} {Ψ = source} {Φ = result}
+        {Y = pivot} target)
+      {Y = Y} lookup-eq
+      | source-prefix , position-eq , source-lookup with pivot ≟ source-prefix
+  slot-backward-TypingTarget
+      (typing-target-end {ρ = ρ} {Ψ = source} {Φ = result}
+        {Y = pivot} target)
+      {Y = Y} lookup-eq
+      | .pivot , position-eq , source-lookup | yes refl =
+    ⊥-elim (punchIn≢ (toRenameᵗ ρ pivot) Y (sym position-eq))
+  slot-backward-TypingTarget
+      (typing-target-end {ρ = ρ} {Ψ = source} {Φ = result}
+        {Y = pivot} target)
+      {Y = Y} lookup-eq
+      | source-prefix , position-eq , source-lookup | no pivot≢source =
+    reduced , final-position , source-ended-lookup
+    where
+    reduced = punchOut pivot source-prefix pivot≢source
+    rebuild = punchIn-punchOut pivot source-prefix pivot≢source
+    source-ended-lookup = trans
+      (lookup-remove-punchOut pivot source-prefix (slotsOf source)
+        pivot≢source) source-lookup
+    final-position = punchIn-injectiveᵗ (toRenameᵗ ρ pivot)
+      (trans position-eq
+        (trans (cong (toRenameᵗ ρ) (sym rebuild))
+          (delete-punchIn ρ pivot reduced)))
+
+liveSlot?-TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (target : TypingTarget ρ φ Ψ Φ) a
+  → liveSlot? σ′ (φ a)
+    ≡ mapMaybe (toRenameᵗ ρ) (liveSlot? σ a)
+liveSlot?-TypingTarget {σ = source} {σ′ = result} {ρ = ρ}
+    {φ = φ} {Ψ = Ψ} {Φ = Φ} target a
+    with liveSlot? source a in source-live
+       | liveSlot? result (φ a) in target-live
+liveSlot?-TypingTarget {σ = source} {σ′ = result} {ρ = ρ}
+    {Ψ = Ψ} {Φ = Φ} target a | nothing | nothing = refl
+liveSlot?-TypingTarget {σ = source} {σ′ = result} {ρ = ρ}
+    {Ψ = Ψ} {Φ = Φ} target a | nothing | just Y =
+  ⊥-elim (nothing≢just (trans (sym source-live) source-complete))
+  where
+  target-lookup = liveSlot?-sound result _ Y target-live
+  source-image = slot-backward-TypingTarget target target-lookup
+  X = proj₁ source-image
+  source-lookup = proj₂ (proj₂ source-image)
+  source-complete = liveSlot?-complete source (aliases-unique Ψ)
+    source-lookup
+  nothing≢just : ∀ {A : Set} {x : A} → nothing ≢ just x
+  nothing≢just ()
+liveSlot?-TypingTarget {σ = source} {σ′ = result} {ρ = ρ}
+    {Ψ = Ψ} {Φ = Φ} target a | just X | nothing =
+  ⊥-elim (nothing≢just (trans (sym target-live) target-complete))
+  where
+  source-lookup = liveSlot?-sound source a X source-live
+  target-lookup = slot-forward-TypingTarget target source-lookup
+  target-complete = liveSlot?-complete result (aliases-unique Φ)
+    target-lookup
+  nothing≢just : ∀ {A : Set} {x : A} → nothing ≢ just x
+  nothing≢just ()
+liveSlot?-TypingTarget {σ = source} {σ′ = result} {ρ = ρ}
+    {Ψ = Ψ} {Φ = Φ} target a | just X | just Y =
+  cong just (liveSlot?-unique {σ = result} target-live target-complete)
+  where
+  source-lookup = liveSlot?-sound source a X source-live
+  target-lookup = slot-forward-TypingTarget target source-lookup
+  target-complete = liveSlot?-complete result (aliases-unique Φ)
+    target-lookup
+
+slot-image-≼ : ∀ {Θ Θ′ Δ Δ′ σ σ′ k}
+    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (extension : Ψ ≼[ k , ρ ] Φ) X
+  → Vec.lookup σ′ (toRenameᵗ ρ X)
+    ≡ mapMaybe (shiftAlong extension) (Vec.lookup σ X)
+slot-image-≼ {σ = slots} ≼-refl X
+    rewrite toRename-id-eq X
+    with Vec.lookup slots X
+slot-image-≼ ≼-refl X | nothing = refl
+slot-image-≼ ≼-refl X | just a = refl
+slot-image-≼
+    (≼-ν {ρ = ρ} {Ψ = source} {Ψ′ = result} {B = B} extension) X =
+  trans (lookup-mapᵛ (mapMaybe suc) (slotsOf result) _)
+    (trans (cong (mapMaybe suc) (slot-image-≼ extension X))
+      map-compose)
+  where
+  map-compose : mapMaybe suc
+      (mapMaybe (shiftAlong extension) (Vec.lookup (slotsOf source) X))
+    ≡ mapMaybe (shiftAlong (≼-ν {B = B} extension))
+        (Vec.lookup (slotsOf source) X)
+  map-compose with Vec.lookup (slotsOf source) X
+  map-compose | nothing = refl
+  map-compose | just a = refl
+slot-image-≼ (≼-typ extension) X = slot-image-≼ extension X
+slot-image-≼
+    (≼-begin-end {ρ = ρ} {η = η} {Ψ = source}
+      {Ψ′ = middle} {Ψ″ = result}
+      {Z = pivot} extension region) X =
+  trans (lookup-remove-punch target-pivot (slotsOf result) final-X)
+    (trans (cong (Vec.lookup (slotsOf result))
+        (begin-end-old-position ρ η pivot X))
+      (trans (slot-image-≼ region (punchIn pivot (toRenameᵗ ρ X)))
+        (trans (cong (mapMaybe (shiftAlong region))
+            (lookup-insert-punch pivot _ (slotsOf middle)
+              (toRenameᵗ ρ X)))
+          (trans (cong (mapMaybe (shiftAlong region))
+              (slot-image-≼ extension X)) map-compose))))
+  where
+  target-pivot = toRenameᵗ η pivot
+  final-X = toRenameᵗ (ρ ⨟↪ᵗ delete↪ᵗ η pivot) X
+  map-compose : mapMaybe (shiftAlong region)
+      (mapMaybe (shiftAlong extension) (Vec.lookup (slotsOf source) X))
+    ≡ mapMaybe (shiftAlong (≼-begin-end extension region))
+        (Vec.lookup (slotsOf source) X)
+  map-compose with Vec.lookup (slotsOf source) X
+  map-compose | nothing = refl
+  map-compose | just a = refl
+slot-image-≼
+    (≼-end-begin {ρ = ρ} {η = η} {Ψ = source}
+      {Ψ′ = middle} {Ψ″ = result}
+      {X = pivot} {fresh = fresh} slot-eq extension region shifted)
+    X with pivot ≟ X
+slot-image-≼
+    (≼-end-begin {ρ = ρ} {η = η} {Ψ = source}
+      {Ψ′ = middle} {Ψ″ = result}
+      {X = pivot} {fresh = fresh} slot-eq extension region shifted)
+    .pivot | yes refl =
+  trans (lookup-insert-here new _ (slotsOf result))
+    (trans (cong just (shifted-along full shifted))
+      (cong (mapMaybe (shiftAlong full)) (sym slot-eq)))
+  where
+  full = ≼-end-begin {fresh = fresh} slot-eq extension region shifted
+  inserted = insert↪ᵗ (delete↪ᵗ ρ pivot ⨟↪ᵗ η) pivot
+  new = toRenameᵗ inserted pivot
+slot-image-≼
+    (≼-end-begin {ρ = ρ} {η = η} {Ψ = source}
+      {Ψ′ = middle} {Ψ″ = result}
+      {X = pivot} {fresh = fresh} slot-eq extension region shifted)
+    X | no pivot≢X =
+  trans (cong (Vec.lookup final-slots) (sym final-position))
+    (trans (lookup-insert-punch new _ (slotsOf result) routed)
+      (trans (slot-image-≼ region ended)
+        (trans (cong (mapMaybe (shiftAlong region))
+            (lookup-remove-punchOut old image (slotsOf middle) image-neq))
+          (trans (cong (mapMaybe (shiftAlong region))
+              (slot-image-≼ extension X)) map-compose))))
+  where
+  full = ≼-end-begin {fresh = fresh} slot-eq extension region shifted
+  old = toRenameᵗ ρ pivot
+  image = toRenameᵗ ρ X
+  image-neq : old ≢ image
+  image-neq eq = pivot≢X (toRename-injective ρ eq)
+  ended = punchOut old image image-neq
+  routed = toRenameᵗ η ended
+  inserted = insert↪ᵗ (delete↪ᵗ ρ pivot ⨟↪ᵗ η) pivot
+  new = toRenameᵗ inserted pivot
+  final-slots = insertᵛ new _ (slotsOf result)
+  final-position = end-begin-old-position ρ η pivot X pivot≢X image-neq
+  map-compose : mapMaybe (shiftAlong region)
+      (mapMaybe (shiftAlong extension) (Vec.lookup (slotsOf source) X))
+    ≡ mapMaybe (shiftAlong full) (Vec.lookup (slotsOf source) X)
+  map-compose with Vec.lookup (slotsOf source) X
+  map-compose | nothing = refl
+  map-compose | just a = refl
+
+slot-image-TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (target : TypingTarget ρ φ Ψ Φ) X
+  → Vec.lookup σ′ (toRenameᵗ ρ X)
+    ≡ mapMaybe φ (Vec.lookup σ X)
+slot-image-TypingTarget (balanced-target extension) X =
+  slot-image-≼ extension X
+slot-image-TypingTarget
+    (typing-target-begin {ρ = ρ} {φ = φ} {Ψ = source} {Φ = result}
+      {Y = pivot} {a = a} target) X
+    with pivot ≟ X
+slot-image-TypingTarget
+    (typing-target-begin {ρ = ρ} {φ = φ} {Ψ = source} {Φ = result}
+      {Y = pivot} {a = a} target) .pivot
+    | yes refl =
+  trans (lookup-insert-here target-pivot (just (φ a)) (slotsOf result))
+    (cong (mapMaybe φ)
+      (sym (lookup-insert-here pivot (just a) (slotsOf source))))
+  where
+  target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+slot-image-TypingTarget
+    (typing-target-begin {ρ = ρ} {φ = φ} {Ψ = source} {Φ = result}
+      {Y = pivot} {a = a} target) X
+    | no pivot≢X =
+  trans (cong (Vec.lookup target-slots) (sym position-eq))
+    (trans (lookup-insert-punch target-pivot (just (φ a))
+        (slotsOf result) source-image)
+      (trans (slot-image-TypingTarget target reduced)
+        (cong (mapMaybe φ) (sym source-lookup))))
+  where
+  reduced = punchOut pivot X pivot≢X
+  source-image = toRenameᵗ ρ reduced
+  target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+  target-slots = insertᵛ target-pivot (just (φ a)) (slotsOf result)
+  source-lookup = lookup-insert-other pivot X (just a)
+    (slotsOf source) pivot≢X
+  position-eq = trans (sym (insert-punchIn ρ pivot reduced))
+    (cong (toRenameᵗ (insert↪ᵗ ρ pivot))
+      (punchIn-punchOut pivot X pivot≢X))
+slot-image-TypingTarget (typing-target-typ target) zero = refl
+slot-image-TypingTarget (typing-target-typ target) (suc X) =
+  slot-image-TypingTarget target X
+slot-image-TypingTarget
+    (typing-target-ν {φ = φ} {Ψ = source} {Φ = result} target) X =
+  trans (lookup-mapᵛ (mapMaybe suc) (slotsOf result) _)
+    (trans (cong (mapMaybe suc) (slot-image-TypingTarget target X))
+      map-compose)
+  where
+  map-compose : mapMaybe suc
+      (mapMaybe φ (Vec.lookup (slotsOf source) X))
+    ≡ mapMaybe (extᵗ φ)
+        (Vec.lookup (mapᵛ (mapMaybe suc) (slotsOf source)) X)
+  map-compose = trans
+    (mapMaybe-suc-ext φ (Vec.lookup (slotsOf source) X))
+    (cong (mapMaybe (extᵗ φ))
+      (sym (lookup-mapᵛ (mapMaybe suc) (slotsOf source) X)))
+slot-image-TypingTarget
+    (typing-target-end {ρ = ρ} {Ψ = source} {Φ = result}
+      {Y = pivot} target) X =
+  trans (lookup-remove-punch target-pivot (slotsOf result) target-X)
+    (trans (cong (Vec.lookup (slotsOf result))
+        (sym (delete-punchIn ρ pivot X)))
+      (trans (slot-image-TypingTarget target (punchIn pivot X))
+        (cong (mapMaybe _)
+          (sym (lookup-remove-punch pivot (slotsOf source) X)))))
+  where
+  target-pivot = toRenameᵗ ρ pivot
+  target-X = toRenameᵗ (delete↪ᵗ ρ pivot) X
+
+repoint?-TypingTarget : ∀ {Ω Θ Θ′ D Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (n : TyCtx) (target-rel : TypingTarget ρ φ Ψ Φ)
+    (source-resolve : TyVar Θ → Maybe (Ty Δ))
+    (target-resolve : TyVar Θ′ → Maybe (Ty Δ′))
+    (birth : Vec.Vec (Maybe (TyVar Ω)) D)
+    (anchor-map : TyVar (suc Ω) → TyVar Θ)
+    (route : TyVar D → Maybe (TyVar (n + Δ))) (A : Ty D)
+  → (∀ q → target-resolve (φ q)
+      ≡ mapMaybe (renameᵗ (toRenameᵗ ρ)) (source-resolve q))
+  → repoint? target-resolve σ′ birth (λ q → φ (anchor-map q))
+      (route-mapⁿ n ρ route) (raise n) A
+    ≡ mapMaybe (renameᵗ (toRenameᵗ (lift↪ᵗ n ρ)))
+        (repoint? source-resolve σ birth anchor-map route (raise n) A)
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route (＇ X) resolve-eq with Vec.lookup birth X
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route (＇ X) resolve-eq | nothing with route X
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route (＇ X) resolve-eq | nothing | nothing = refl
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route (＇ X) resolve-eq | nothing | just Y = refl
+repoint?-TypingTarget {ρ = ρ} {Ψ = source} n target-rel
+    source-resolve target-resolve
+    birth anchor-map route (＇ X) resolve-eq | just q
+    rewrite liveSlot?-TypingTarget target-rel (anchor-map (suc q))
+    with liveSlot? (slotsOf source) (anchor-map (suc q))
+repoint?-TypingTarget {ρ = ρ} {Ψ = source} n target-rel
+    source-resolve target-resolve
+    birth anchor-map route (＇ X) resolve-eq | just q | just Y =
+  cong (λ Z → just (＇ Z)) (sym (raise-rename n ρ Y))
+repoint?-TypingTarget {ρ = ρ} {φ = φ} {Ψ = source} n target-rel source-resolve
+    target-resolve birth anchor-map route (＇ X) resolve-eq
+    | just q | nothing
+    with source-resolve (anchor-map (suc q))
+       | target-resolve (φ (anchor-map (suc q)))
+       | resolve-eq (anchor-map (suc q))
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route (＇ X) resolve-eq | just q | nothing
+    | nothing | .nothing | refl = refl
+repoint?-TypingTarget {ρ = ρ} n target-rel source-resolve target-resolve
+    birth anchor-map route (＇ X) resolve-eq | just q | nothing
+    | just B | .(just (renameᵗ (toRenameᵗ ρ) B)) | refl =
+  cong just (sym (rename-raise n ρ B))
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route (‵ ι) resolve-eq = refl
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route ★ resolve-eq = refl
+repoint?-TypingTarget n target-rel source-resolve target-resolve birth
+    anchor-map route (A ⇒ B) resolve-eq =
+  trans (repoint?-arrow _ _ _ _ _ _ A B)
+    (trans (cong₂ _⇒?_
+        (repoint?-TypingTarget n target-rel source-resolve target-resolve
+          birth anchor-map route A resolve-eq)
+        (repoint?-TypingTarget n target-rel source-resolve target-resolve
+          birth anchor-map route B resolve-eq))
+      (trans (rename-⇒? _
+          (repoint? source-resolve _ birth anchor-map route (raise n) A)
+          (repoint? source-resolve _ birth anchor-map route (raise n) B))
+        (cong (mapMaybe (renameᵗ (toRenameᵗ (lift↪ᵗ n _))))
+          (sym (repoint?-arrow _ _ _ _ _ _ A B)))))
+repoint?-TypingTarget {ρ = ρ} n target-rel source-resolve target-resolve
+    birth anchor-map route (`∀ A) resolve-eq =
+  trans (repoint?-all _ _ _ _ _ _ A)
+    (trans (cong all?
+        (trans (repoint?-route-cong _ _ _ _ _ _ _ A
+            (route-map-ext n ρ route))
+          (repoint?-TypingTarget (suc n) target-rel source-resolve
+            target-resolve (nothing Vec.∷ birth) anchor-map
+            (ext-route route) A resolve-eq)))
+      (trans (rename-all?-keep (lift↪ᵗ n ρ)
+          (repoint? source-resolve _ (nothing Vec.∷ birth) anchor-map
+            (ext-route route) (raise (suc n)) A))
+        (cong (mapMaybe (renameᵗ (toRenameᵗ (lift↪ᵗ n ρ))))
+          (sym (repoint?-all _ _ _ _ _ _ A)))))
+
+repoint?-current-TypingTarget : ∀ {Θ Θ′ Ω Δ Δ′ D σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {source : TyEnv Θ Δ σ} {current : TyEnv Θ′ Δ′ σ′}
+    (n : TyCtx) (current-rel : TypingTarget ρ φ source current)
+    (resolve : TyVar Ω → Maybe (Ty D))
+    (target : Vec.Vec (Maybe (TyVar Ω)) D)
+    (source-anchor : TyVar (suc Θ) → TyVar Ω)
+    (target-anchor : TyVar (suc Θ′) → TyVar Ω)
+    (source-route : TyVar Δ → Maybe (TyVar (n + D)))
+    (target-route : TyVar Δ′ → Maybe (TyVar (n + D)))
+    (A : Ty Δ)
+  → (∀ q → target-anchor (suc (φ q)) ≡ source-anchor (suc q))
+  → (∀ X → target-route (toRenameᵗ ρ X) ≡ source-route X)
+  → repoint? resolve target σ′ target-anchor target-route (raise n)
+      (renameᵗ (toRenameᵗ ρ) A)
+    ≡ repoint? resolve target σ source-anchor source-route (raise n) A
+repoint?-current-TypingTarget {σ = source-slots} n current-rel resolve target source-anchor
+    target-anchor source-route target-route (＇ X) anchor-eq route-eq
+    rewrite slot-image-TypingTarget current-rel X
+    with Vec.lookup source-slots X
+repoint?-current-TypingTarget n current-rel resolve target source-anchor
+    target-anchor source-route target-route (＇ X) anchor-eq route-eq
+    | nothing rewrite route-eq X = refl
+repoint?-current-TypingTarget n current-rel resolve target source-anchor
+    target-anchor source-route target-route (＇ X) anchor-eq route-eq
+    | just q rewrite anchor-eq q = refl
+repoint?-current-TypingTarget n current-rel resolve target source-anchor
+    target-anchor source-route target-route (‵ ι) anchor-eq route-eq = refl
+repoint?-current-TypingTarget n current-rel resolve target source-anchor
+    target-anchor source-route target-route ★ anchor-eq route-eq = refl
+repoint?-current-TypingTarget {ρ = ρ} {source = source}
+    {current = current} n current-rel resolve target source-anchor
+    target-anchor source-route target-route (A ⇒ B) anchor-eq route-eq =
+  trans (repoint?-arrow resolve target (slotsOf current) target-anchor
+      target-route (raise n) (renameᵗ (toRenameᵗ ρ) A)
+      (renameᵗ (toRenameᵗ ρ) B))
+    (trans (cong₂ _⇒?_
+        (repoint?-current-TypingTarget n current-rel resolve target
+          source-anchor target-anchor source-route target-route A
+          anchor-eq route-eq)
+        (repoint?-current-TypingTarget n current-rel resolve target
+          source-anchor target-anchor source-route target-route B
+          anchor-eq route-eq))
+      (sym (repoint?-arrow resolve target (slotsOf source) source-anchor
+        source-route (raise n) A B)))
+repoint?-current-TypingTarget {ρ = ρ} {source = source}
+    {current = current} n current-rel resolve target
+    source-anchor target-anchor source-route target-route (`∀ A)
+    anchor-eq route-eq =
+  trans (repoint?-all resolve target (slotsOf current) target-anchor
+      target-route (raise n)
+      (renameᵗ (extᵗ (toRenameᵗ ρ)) A))
+    (trans (cong all?
+        (trans body-transport
+          (repoint?-current-TypingTarget (suc n)
+            (typing-target-typ current-rel)
+            resolve target source-anchor target-anchor
+            (ext-route source-route) (ext-route target-route) A
+            anchor-eq extended-route)))
+      (sym (repoint?-all resolve target (slotsOf source) source-anchor
+        source-route (raise n) A)))
+  where
+  body-eq = renameᵗ-cong A (toRename-keep-eq ρ)
+
+  body-transport = cong
+    (repoint? resolve target (nothing Vec.∷ slotsOf current)
+      target-anchor (ext-route target-route)
+      (λ X → suc (raise n X)))
+    (sym body-eq)
+
+  extended-route : ∀ X
+    → ext-route target-route (toRenameᵗ (keep ρ) X)
+      ≡ ext-route source-route X
+  extended-route zero = refl
+  extended-route (suc X) = cong (mapMaybe suc) (route-eq X)
+
+scanRep?-current-TypingTarget : ∀ {Θ Θ′ Ω Δ Δ′ D σ σ′ τ}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {source : TyEnv Θ Δ σ} {current : TyEnv Θ′ Δ′ σ′}
+    (current-rel : TypingTarget ρ φ source current)
+    (resolve : TyVar Ω → Maybe (Ty D)) (target : TyEnv Ω D τ)
+    (source-anchor : TyVar Θ → TyVar Ω)
+    (target-anchor : TyVar Θ′ → TyVar Ω)
+    (source-route : TyVar Δ → Maybe (TyVar D))
+    (target-route : TyVar Δ′ → Maybe (TyVar D))
+    (a : TyVar Θ)
+  → (∀ q → target-anchor (φ q) ≡ source-anchor q)
+  → (∀ X → target-route (toRenameᵗ ρ X) ≡ source-route X)
+  → scanRep? resolve target current target-anchor target-route (φ a)
+    ≡ scanRep? resolve target source source-anchor source-route a
+scanRep?-current-TypingTarget
+    (balanced-target extension) resolve target source-anchor target-anchor
+    source-route target-route a anchor-eq route-eq =
+  scanRep?-current-≼ extension resolve target source-anchor target-anchor
+    source-route target-route a anchor-eq (λ X lex → route-eq X)
+scanRep?-current-TypingTarget
+    (typing-target-begin {ρ = ρ} {Y = pivot} current-rel)
+    resolve target source-anchor target-anchor source-route target-route a
+    anchor-eq route-eq =
+  scanRep?-current-TypingTarget current-rel resolve target source-anchor
+    target-anchor (λ X → source-route (punchIn pivot X))
+    (λ X → target-route (punchIn target-pivot X)) a anchor-eq begin-route
+  where
+  target-pivot = toRenameᵗ (insert↪ᵗ ρ pivot) pivot
+  begin-route : ∀ X
+    → target-route (punchIn target-pivot (toRenameᵗ ρ X))
+      ≡ source-route (punchIn pivot X)
+  begin-route X = trans
+    (cong target-route (sym (insert-punchIn ρ pivot X)))
+    (route-eq (punchIn pivot X))
+scanRep?-current-TypingTarget (typing-target-typ current-rel)
+    resolve target source-anchor target-anchor source-route target-route a
+    anchor-eq route-eq =
+  scanRep?-current-TypingTarget current-rel resolve target source-anchor
+    target-anchor (λ X → source-route (suc X))
+    (λ X → target-route (suc X)) a anchor-eq (λ X → route-eq (suc X))
+scanRep?-current-TypingTarget
+    (typing-target-ν {ρ = ρ} {A = A} current-rel)
+    resolve target source-anchor target-anchor source-route target-route zero
+    anchor-eq route-eq =
+  repoint?-current-TypingTarget zero current-rel resolve (slotsOf target)
+    source-anchor target-anchor source-route target-route A
+    (λ q → anchor-eq (suc q)) route-eq
+scanRep?-current-TypingTarget (typing-target-ν current-rel)
+    resolve target source-anchor target-anchor source-route target-route
+    (suc a) anchor-eq route-eq =
+  scanRep?-current-TypingTarget current-rel resolve target
+    (λ q → source-anchor (suc q)) (λ q → target-anchor (suc q))
+    source-route target-route a (λ q → anchor-eq (suc q)) route-eq
+scanRep?-current-TypingTarget
+    (typing-target-end {ρ = ρ} {Y = pivot} current-rel)
+    resolve target source-anchor target-anchor source-route target-route a
+    anchor-eq route-eq =
+  scanRep?-current-TypingTarget current-rel resolve target source-anchor
+    target-anchor (route-end pivot source-route)
+    (route-end (toRenameᵗ ρ pivot) target-route) a anchor-eq
+    (route-end-image ρ pivot source-route target-route route-eq)
+
+scanRep?-outer-TypingTarget : ∀ {Θ Θ′ Θ₀ Δ Δ′ Δ₀ σ σ′ σ₀}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (target-rel : TypingTarget ρ φ Ψ Φ)
+    (source-resolve : TyVar Θ → Maybe (Ty Δ))
+    (target-resolve : TyVar Θ′ → Maybe (Ty Δ′))
+    (current : TyEnv Θ₀ Δ₀ σ₀)
+    (anchor-map : TyVar Θ₀ → TyVar Θ)
+    (source-route : TyVar Δ₀ → Maybe (TyVar Δ))
+    (target-route : TyVar Δ₀ → Maybe (TyVar Δ′))
+    (a : TyVar Θ₀)
+  → (∀ q → target-resolve (φ q)
+      ≡ mapMaybe (renameᵗ (toRenameᵗ ρ)) (source-resolve q))
+  → (∀ X → target-route X
+      ≡ mapMaybe (toRenameᵗ ρ) (source-route X))
+  → scanRep? target-resolve Φ current (λ q → φ (anchor-map q))
+      target-route a
+    ≡ mapMaybe (renameᵗ (toRenameᵗ ρ))
+        (scanRep? source-resolve Ψ current anchor-map source-route a)
+scanRep?-outer-TypingTarget target-rel source-resolve target-resolve ∅
+    anchor-map source-route target-route () resolve-eq route-eq
+scanRep?-outer-TypingTarget target-rel source-resolve target-resolve
+    (current ,begin[ Y ≔ q ]⟨ fresh ⟩) anchor-map source-route
+    target-route a resolve-eq route-eq =
+  scanRep?-outer-TypingTarget target-rel source-resolve target-resolve
+    current anchor-map (λ X → source-route (punchIn Y X))
+    (λ X → target-route (punchIn Y X)) a resolve-eq
+    (λ X → route-eq (punchIn Y X))
+scanRep?-outer-TypingTarget target-rel source-resolve target-resolve
+    (current ,typ) anchor-map source-route target-route a
+    resolve-eq route-eq =
+  scanRep?-outer-TypingTarget target-rel source-resolve target-resolve
+    current anchor-map (λ X → source-route (suc X))
+    (λ X → target-route (suc X)) a resolve-eq
+    (λ X → route-eq (suc X))
+scanRep?-outer-TypingTarget {ρ = ρ} {φ = φ} {Φ = Φ} target-rel source-resolve
+    target-resolve (current ,:= A) anchor-map source-route target-route zero
+    resolve-eq route-eq =
+  trans (repoint?-route-cong target-resolve (slotsOf Φ)
+      (slotsOf current) (λ q → φ (anchor-map q)) target-route
+      (route-map ρ source-route) (λ X → X) A route-eq)
+    (repoint?-TypingTarget zero target-rel source-resolve target-resolve
+      (slotsOf current) anchor-map source-route A resolve-eq)
+scanRep?-outer-TypingTarget target-rel source-resolve target-resolve
+    (current ,:= A) anchor-map source-route target-route (suc a)
+    resolve-eq route-eq =
+  scanRep?-outer-TypingTarget target-rel source-resolve target-resolve
+    current (λ q → anchor-map (suc q)) source-route target-route a
+    resolve-eq route-eq
+scanRep?-outer-TypingTarget {ρ = ρ} target-rel source-resolve
+    target-resolve (current ,end[ Y ]) anchor-map source-route
+    target-route a resolve-eq route-eq =
+  scanRep?-outer-TypingTarget target-rel source-resolve target-resolve
+    current anchor-map (route-end Y source-route)
+    (route-end Y target-route) a resolve-eq end-route-eq
+  where
+  end-route-eq : ∀ X
+    → route-end Y target-route X
+      ≡ mapMaybe (toRenameᵗ ρ) (route-end Y source-route X)
+  end-route-eq X with Y ≟ X
+  end-route-eq .Y | yes refl = refl
+  end-route-eq X | no Y≢X = route-eq (punchOut Y X Y≢X)
+
+-- Increasing the evaluator fuel cannot change a successful lookup.  This is
+-- the small saturation fact needed when a matched ν sits outside a balanced
+-- extension: the corresponding fresh anchors have different absolute birth
+-- depths, although both computations have already reached the same ν entry.
+
+repoint?-success : ∀ {Θ₀ Θ Δ₀ Δ Δout}
+    {left right : TyVar Θ → Maybe (Ty Δ)}
+    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (birth : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+    (route : TyVar Δ₀ → Maybe (TyVar Δout))
+    (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀) {B}
+  → (∀ q {C} → left q ≡ just C → right q ≡ just C)
+  → repoint? left target birth anchor-map route live-ren A ≡ just B
+  → repoint? right target birth anchor-map route live-ren A ≡ just B
+repoint?-success target birth anchor-map route live-ren (＇ X)
+    resolve-success eq with Vec.lookup birth X
+repoint?-success target birth anchor-map route live-ren (＇ X)
+    resolve-success eq | nothing with route X
+repoint?-success target birth anchor-map route live-ren (＇ X)
+    resolve-success () | nothing | nothing
+repoint?-success target birth anchor-map route live-ren (＇ X)
+    resolve-success eq | nothing | just Y = eq
+repoint?-success target birth anchor-map route live-ren (＇ X)
+    resolve-success eq | just q with liveSlot? target (anchor-map (suc q))
+repoint?-success target birth anchor-map route live-ren (＇ X)
+    resolve-success eq | just q | just Y = eq
+repoint?-success {left = left} {right = right} target birth anchor-map
+    route live-ren (＇ X) resolve-success eq | just q | nothing
+    with left (anchor-map (suc q)) in left-eq
+repoint?-success target birth anchor-map route live-ren (＇ X)
+    resolve-success () | just q | nothing | nothing
+repoint?-success {left = left} target birth anchor-map route live-ren (＇ X)
+    resolve-success eq | just q | nothing | just C
+    rewrite resolve-success (anchor-map (suc q)) left-eq = eq
+repoint?-success target birth anchor-map route live-ren (‵ ι)
+    resolve-success eq = eq
+repoint?-success target birth anchor-map route live-ren ★
+    resolve-success eq = eq
+repoint?-success {left = left} target birth anchor-map route live-ren
+    (A ⇒ B) resolve-success eq with repoint? left target birth anchor-map
+      route live-ren A in left-A
+repoint?-success target birth anchor-map route live-ren (A ⇒ B)
+    resolve-success () | nothing
+repoint?-success {left = left} target birth anchor-map route live-ren
+    (A ⇒ B) resolve-success eq | just A′
+    with repoint? left target birth anchor-map route live-ren B in left-B
+repoint?-success target birth anchor-map route live-ren (A ⇒ B)
+    resolve-success () | just A′ | nothing
+repoint?-success target birth anchor-map route live-ren (A ⇒ B)
+    resolve-success refl | just A′ | just B′
+    rewrite repoint?-success target birth anchor-map route live-ren A
+              resolve-success left-A
+          | repoint?-success target birth anchor-map route live-ren B
+              resolve-success left-B = refl
+repoint?-success {left = left} target birth anchor-map route live-ren
+    (`∀ A) resolve-success eq
+    with repoint? left target (nothing Vec.∷ birth) anchor-map
+      (ext-route route) (λ X → suc (live-ren X)) A in left-A
+repoint?-success target birth anchor-map route live-ren (`∀ A)
+    resolve-success () | nothing
+repoint?-success target birth anchor-map route live-ren (`∀ A)
+    resolve-success refl | just A′
+    rewrite repoint?-success target (nothing Vec.∷ birth) anchor-map
+      (ext-route route) (λ X → suc (live-ren X)) A resolve-success left-A = refl
+
+scanRep?-success : ∀ {Θ Δ σ Θ₀ Δ₀ σ₀}
+    {left right : TyVar Θ → Maybe (Ty Δ)}
+    (target : TyEnv Θ Δ σ) (current : TyEnv Θ₀ Δ₀ σ₀)
+    (anchor-map : TyVar Θ₀ → TyVar Θ)
+    (route : TyVar Δ₀ → Maybe (TyVar Δ)) (a : TyVar Θ₀) {A}
+  → (∀ q {C} → left q ≡ just C → right q ≡ just C)
+  → scanRep? left target current anchor-map route a ≡ just A
+  → scanRep? right target current anchor-map route a ≡ just A
+scanRep?-success target ∅ anchor-map route () resolve-success eq
+scanRep?-success target (current ,begin[ Y ≔ q ]⟨ fresh ⟩)
+    anchor-map route a resolve-success eq =
+  scanRep?-success target current anchor-map
+    (λ X → route (punchIn Y X)) a resolve-success eq
+scanRep?-success target (current ,typ) anchor-map route a
+    resolve-success eq =
+  scanRep?-success target current anchor-map (λ X → route (suc X))
+    a resolve-success eq
+scanRep?-success target (current ,:= B) anchor-map route zero
+    resolve-success eq =
+  repoint?-success (slotsOf target) (slotsOf current) anchor-map route
+    (λ X → X) B resolve-success eq
+scanRep?-success target (current ,:= B) anchor-map route (suc a)
+    resolve-success eq =
+  scanRep?-success target current (λ q → anchor-map (suc q)) route a
+    resolve-success eq
+scanRep?-success target (current ,end[ Y ]) anchor-map route a
+    resolve-success eq =
+  scanRep?-success target current anchor-map (route-end Y route) a
+    resolve-success eq
+
+repFuel?-success-step : ∀ fuel {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {a A}
+  → repFuel? fuel Ψ a ≡ just A
+  → repFuel? (suc fuel) Ψ a ≡ just A
+repFuel?-success-step zero ()
+repFuel?-success-step (suc fuel) {Ψ = Ψ} eq =
+  scanRep?-success Ψ Ψ (λ q → q) (λ X → just X) _
+    (λ q success → repFuel?-success-step fuel success) eq
+
+repFuel?-success-add : ∀ extra fuel {Θ Δ σ}
+    {Ψ : TyEnv Θ Δ σ} {a A}
+  → repFuel? fuel Ψ a ≡ just A
+  → repFuel? (extra + fuel) Ψ a ≡ just A
+repFuel?-success-add zero fuel eq = eq
+repFuel?-success-add (suc extra) fuel eq =
+  repFuel?-success-step (extra + fuel)
+    (repFuel?-success-add extra fuel eq)
+
+≼-anchor-count : ∀ {Θ Θ′ Δ Δ′ σ σ′ k} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+  → Ψ ≼[ k , ρ ] Φ
+  → Θ′ ≡ k + Θ
+≼-anchor-count ≼-refl = refl
+≼-anchor-count (≼-ν extension) = cong suc (≼-anchor-count extension)
+≼-anchor-count (≼-typ extension) = ≼-anchor-count extension
+≼-anchor-count {Θ = Θ}
+    (≼-begin-end {k = k} {k′ = k′} extension region) =
+  trans (≼-anchor-count region)
+    (trans (cong (k′ +_) (≼-anchor-count extension))
+      (trans (sym (+-assoc k′ k Θ))
+        (cong (_+ Θ) (+-comm k′ k))))
+≼-anchor-count {Θ = Θ}
+    (≼-end-begin {k = k} {k′ = k′}
+      slot-eq extension region shifted) =
+  trans (≼-anchor-count region)
+    (trans (cong (k′ +_) (≼-anchor-count extension))
+      (trans (sym (+-assoc k′ k Θ))
+        (cong (_+ Θ) (+-comm k′ k))))
+
+TypingTarget-anchor-count : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+  → TypingTarget ρ φ Ψ Φ
+  → ∃[ extra ] Θ′ ≡ extra + Θ
+TypingTarget-anchor-count (balanced-target extension) =
+  _ , ≼-anchor-count extension
+TypingTarget-anchor-count (typing-target-begin target) =
+  TypingTarget-anchor-count target
+TypingTarget-anchor-count (typing-target-typ target) =
+  TypingTarget-anchor-count target
+TypingTarget-anchor-count (typing-target-ν target)
+    with TypingTarget-anchor-count target
+TypingTarget-anchor-count (typing-target-ν target) | extra , count =
+  extra , trans (cong suc count) (sym (+-suc extra _))
+TypingTarget-anchor-count (typing-target-end target) =
+  TypingTarget-anchor-count target
+
+TypingTarget-fuel-offset : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (target : TypingTarget ρ φ Ψ Φ) (a : TyVar Θ)
+  → ∃[ extra ] (Θ′ ∸ toℕ (φ a)) ≡ extra + (Θ ∸ toℕ a)
+TypingTarget-fuel-offset (balanced-target extension) a =
+  zero , shifted-fuel (shiftAlong-shifted extension a)
+TypingTarget-fuel-offset (typing-target-begin target) a =
+  TypingTarget-fuel-offset target a
+TypingTarget-fuel-offset (typing-target-typ target) a =
+  TypingTarget-fuel-offset target a
+TypingTarget-fuel-offset {Θ = suc Θ} {Θ′ = suc Θ′}
+    (typing-target-ν target) zero with TypingTarget-anchor-count target
+TypingTarget-fuel-offset (typing-target-ν target) zero
+    | extra , count = extra , trans (cong suc count) (sym (+-suc extra _))
+TypingTarget-fuel-offset (typing-target-ν target) (suc a) =
+  TypingTarget-fuel-offset target a
+TypingTarget-fuel-offset (typing-target-end target) a =
+  TypingTarget-fuel-offset target a
+
+repFuel?-TypingTarget : ∀ fuel {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (target : TypingTarget ρ φ Ψ Φ) a
+  → repFuel? fuel Φ (φ a)
+    ≡ mapMaybe (renameᵗ (toRenameᵗ ρ)) (repFuel? fuel Ψ a)
+repFuel?-TypingTarget zero target a = refl
+repFuel?-TypingTarget (suc fuel) {ρ = ρ} {φ = φ}
+    {Ψ = Ψ} {Φ = Φ} target a =
+  trans (scanRep?-current-TypingTarget target (repFuel? fuel Φ) Φ
+      φ (λ q → q) (route-map ρ (λ X → just X))
+      (λ X → just X) a (λ q → refl) (λ X → refl))
+    (scanRep?-outer-TypingTarget target (repFuel? fuel Ψ)
+      (repFuel? fuel Φ) Ψ (λ q → q) (λ X → just X)
+      (route-map ρ (λ X → just X)) a
+      (λ q → repFuel?-TypingTarget fuel target q) (λ X → refl))
+
+rep?-TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (target : TypingTarget ρ φ Ψ Φ) (a : TyVar Θ) {A}
+  → rep? Ψ a ≡ just A
+  → rep? Φ (φ a) ≡ just (renameᵗ (toRenameᵗ ρ) A)
+rep?-TypingTarget {Θ = Θ} {ρ = ρ} target a eq
+    with TypingTarget-fuel-offset target a
+rep?-TypingTarget {Θ = Θ} {ρ = ρ} target a eq
+    | extra , fuel-eq rewrite fuel-eq =
+  trans (repFuel?-TypingTarget (extra + (Θ ∸ toℕ a)) target a)
+    (cong (mapMaybe (renameᵗ (toRenameᵗ ρ)))
+      (repFuel?-success-add extra (Θ ∸ toℕ a) eq))
+
+fresh-TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′} {a}
+  → TypingTarget ρ φ Ψ Φ
+  → a ∉ᵛ σ
+  → φ a ∉ᵛ σ′
+fresh-TypingTarget target fresh Y target-lookup
+    with slot-backward-TypingTarget target target-lookup
+fresh-TypingTarget target fresh .(toRenameᵗ _ X) target-lookup
+    | X , refl , source-lookup = fresh X source-lookup
+
+typingTarget-begin : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    {Y : TyVar (suc Δ)} {a : TyVar Θ} {fresh : a ∉ᵛ σ}
+  → (target : TypingTarget ρ φ Ψ Φ)
+  → TypingTarget (insert↪ᵗ ρ Y) φ
+      (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩)
+      (Φ ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ φ a
+        ]⟨ fresh-TypingTarget target fresh ⟩)
+typingTarget-begin target = typing-target-begin target
+
+------------------------------------------------------------------------
+-- Master typing transport
+------------------------------------------------------------------------
+
+⊢transport-target : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → TypingTarget ρ φ Ψ Φ
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+      ⊢ renameᵗᵐ ρ (renameᶿ φ M) ⦂ renameᵗ (toRenameᵗ ρ) A
+⊢transport-target target (⊢` x∈) = ⊢` (renameᵗ-∋ _ x∈)
+⊢transport-target target (⊢ƛ M⊢) =
+  ⊢ƛ (⊢transport-target target M⊢)
+⊢transport-target target (⊢· L⊢ M⊢) =
+  ⊢· (⊢transport-target target L⊢)
+    (⊢transport-target target M⊢)
+⊢transport-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
+    target (⊢Λ {A = A} M⊢) =
+  ⊢Λ body⊢
+  where
+  renamed-body⊢ = ⊢transport-target (typing-target-typ target) M⊢
+
+  body-context⊢ = subst≡
+    (λ Γ′ → Φ ,typ ∣ Γ′
+      ⊢ renameᵗᵐ (keep ρ) (renameᶿ _ _) ⦂ _)
+    (renameCtx-keep-shift ρ Γ) renamed-body⊢
+
+  body⊢ = subst≡
+    (λ B → Φ ,typ ∣ renameCtx suc (renameCtx (toRenameᵗ ρ) Γ)
+      ⊢ renameᵗᵐ (keep ρ) (renameᶿ _ _) ⦂ B)
+    (renameᵗ-cong A (toRename-keep-eq ρ)) body-context⊢
+⊢transport-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
+    {M = L ⦂∀ C [ A ]} target (⊢⦂∀ L⊢) =
+  subst≡
+    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+      ⊢ renameᵗᵐ ρ (renameᶿ _ L) ⦂∀
+          renameᵗ (toRenameᵗ (keep ρ)) C
+          [ renameᵗ (toRenameᵗ ρ) A ] ⦂ B)
+    (sym (rename-open↪ᵗ ρ C A)) (⊢⦂∀ body⊢)
+  where
+  body-eq = renameᵗ-cong C (toRename-keep-eq ρ)
+  body⊢ = subst≡
+    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+      ⊢ renameᵗᵐ ρ (renameᶿ _ L) ⦂ `∀ B)
+    (sym body-eq) (⊢transport-target target L⊢)
+⊢transport-target {ρ = ρ} target (⊢$ κ) =
+  subst≡ (λ A → _ ∣ _ ⊢ $ κ ⦂ A)
+    (constTy-renameᵗ (toRenameᵗ ρ) κ) (⊢$ κ)
+⊢transport-target target (⊢⊕ addℕ L⊢ M⊢) =
+  ⊢⊕ addℕ (⊢transport-target target L⊢)
+    (⊢transport-target target M⊢)
+⊢transport-target target (⊢⊕ and𝔹 L⊢ M⊢) =
+  ⊢⊕ and𝔹 (⊢transport-target target L⊢)
+    (⊢transport-target target M⊢)
+⊢transport-target {ρ = ρ} target (⊢⟨⟩ M⊢ c) =
+  ⊢⟨⟩ (⊢transport-target target M⊢) (renameᵐᶜ ρ c)
+⊢transport-target target (⊢ν M⊢) =
+  ⊢ν (⊢transport-target (typing-target-ν target) M⊢)
+⊢transport-target {ρ = ρ} {φ = φ} {Φ = Φ} target
+    (⊢reveal {A = A} {B = B} {C = C} {Y = Y} {α = α}
+      {fresh = fresh} α-eq c⊢ M⊢) =
+  ⊢reveal (rep?-TypingTarget target α α-eq) conversion⊢ body⊢
+  where
+  ρ⁺ = insert↪ᵗ ρ Y
+  Y′ = toRenameᵗ ρ⁺ Y
+
+  body⊢ = ⊢transport-target (typingTarget-begin target) M⊢
+
+  conversion-representation⊢ = subst≡
+    (λ R → ⊢↑[ Y′ ⦂ R ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) A
+      ↝ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y B))
+    (rename-insert-wk ρ Y C)
+    (rename-⊢↑ (toRenameᵗ ρ⁺) c⊢)
+
+  conversion⊢ = subst≡
+    (λ B′ → ⊢↑[ Y′
+        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ ρ) C) ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) A ↝ B′)
+    (rename-insert-wk ρ Y B) conversion-representation⊢
+⊢transport-target {ρ = ρ⁺@(keep ρ)} {φ = φ} target
+    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
+      slot-eq α-eq c⊢ M⊢) =
+  ⊢conceal target-slot target-rep conversion⊢ body⊢
+  where
+  deleted = delete↪ᵗ ρ⁺ Y
+  Y′ = toRenameᵗ ρ⁺ Y
+  ended-target = typing-target-end target
+
+  target-slot = slot-forward-TypingTarget target slot-eq
+  target-rep = rep?-TypingTarget ended-target α α-eq
+  body⊢ = ⊢transport-target ended-target M⊢
+
+  conversion-representation⊢ = subst≡
+    (λ R → ⊢↓[ Y′ ⦂ R ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
+      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y C)
+    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
+
+  conversion⊢ = subst≡
+    (λ A′ → ⊢↓[ Y′
+        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
+      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
+⊢transport-target {ρ = ρ⁺@(skip ρ)} {φ = φ} target
+    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
+      slot-eq α-eq c⊢ M⊢) =
+  ⊢conceal target-slot target-rep conversion⊢ body⊢
+  where
+  deleted = delete↪ᵗ ρ⁺ Y
+  Y′ = toRenameᵗ ρ⁺ Y
+  ended-target = typing-target-end target
+
+  target-slot = slot-forward-TypingTarget target slot-eq
+  target-rep = rep?-TypingTarget ended-target α α-eq
+  body⊢ = ⊢transport-target ended-target M⊢
+
+  conversion-representation⊢ = subst≡
+    (λ R → ⊢↓[ Y′ ⦂ R ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
+      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y C)
+    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
+
+  conversion⊢ = subst≡
+    (λ A′ → ⊢↓[ Y′
+        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
+      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
+⊢transport-target target ⊢blame = ⊢blame
+
+⊢≼ : ∀ {Θ Θ′ Δ Δ′ σ σ′ k} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → (extension : Ψ ≼[ k , ρ ] Φ)
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Φ ∣ [] ⊢ renameᵗᵐ ρ (renameᶿ (shiftAlong extension) M)
+      ⦂ renameᵗ (toRenameᵗ ρ) A
+⊢≼ extension M⊢ = ⊢transport-target (balanced-target extension) M⊢

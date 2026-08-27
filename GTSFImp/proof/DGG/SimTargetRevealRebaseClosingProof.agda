@@ -28,6 +28,9 @@ open import proof.DGG.ConversionPivotAlignment using
   (generator-absent; generator-here)
 open import proof.DGG.Catchup.MorePreciseTargetRevealRebaseCatchupDef using
   (MorePreciseTargetRevealRebaseCatchupᵀ)
+open import
+  proof.DGG.Catchup.MorePreciseTargetRevealRebaseContextCatchupDef using
+  (MorePreciseTargetRevealRebaseContextCatchupᵀ)
 open import proof.DGG.SimTargetRevealRebaseClosingDef using
   (SimTargetRevealRebaseClosingᵀ)
 open import proof.DGG.SimTargetRevealRebaseContextDef
@@ -65,6 +68,8 @@ module _
     (transport-CTI : TransportTermImprecisionᵀ)
     (catchup-target-reveal-rebase :
       MorePreciseTargetRevealRebaseCatchupᵀ)
+    (catchup-target-reveal-rebase-context :
+      MorePreciseTargetRevealRebaseContextCatchupᵀ)
   where
 
   replay-edge-keep : ∀
@@ -488,8 +493,13 @@ module _
       (extend-rebuild rebuild (rebuild-edge refl))
   contextual-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
-      (CTI.cast⊑cast² source-cast target-cast related s) path
-      (pure-step (β-id source-value)) rebuild = {!!}
+      relation@(CTI.cast⊑cast²
+        source-cast target-cast related s) path
+      (pure-step (β-id source-value)) rebuild =
+    close-root-keep target-reveal rebase
+      (replay-context-keep root-related relation path
+        (CTI.⊑cast² target-cast related s) rebuild)
+      q
   contextual-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑cast² source-cast target-cast related s) path
@@ -551,8 +561,14 @@ module _
       (extend-rebuild rebuild (rebuild-edge refl))
   contextual-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
-      (CTI.cast⊑² source-cast related s) path
-      (pure-step (β-id source-value)) rebuild = {!!}
+      relation@(CTI.cast⊑² {p = inner-type} source-cast related s) path
+      (pure-step (β-id source-value)) rebuild =
+    close-root-keep target-reveal rebase
+      (replay-context-keep root-related relation path
+        (subst (λ r → _ CTI.⊢² _ ⊑ _ ∶ r)
+          (PI.⊑-unique inner-type s) related)
+        rebuild)
+      q
   contextual-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑² source-cast related s) path

@@ -59,8 +59,8 @@ open import
   proof.DGG.Catchup.MorePreciseTargetInstantiationValueCatchupDef
   using (MorePreciseTargetInstantiationValueCatchupᵀ)
 open import
-  proof.DGG.Catchup.MorePrecisePairedTargetInstantiationInputSquareDef
-  using (MorePrecisePairedTargetInstantiationInputSquareᵀ)
+  proof.DGG.Catchup.MorePrecisePairedTargetInstantiationValueCatchupDef
+  using (MorePrecisePairedTargetInstantiationValueCatchupᵀ)
 open import proof.DGG.InjectionConsistency using (rename∼ⁱ)
 open import proof.DGG.Inversion.SpineValueDef using
   ( SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal
@@ -768,8 +768,8 @@ target-catchup-keep {γ = γ} {L′ = L′} {W′ = W′} {p = p}
 
 module _
     (inst-catchup : MorePreciseTargetInstantiationValueCatchupᵀ)
-    (paired-inst-input-square :
-      MorePrecisePairedTargetInstantiationInputSquareᵀ)
+    (paired-inst-catchup :
+      MorePrecisePairedTargetInstantiationValueCatchupᵀ)
     (close-source-Λ : MorePreciseSourceLambdaClosingᵀ)
     (paired-all-injection-square :
       MorePrecisePairedTargetAllInjectionGroundSquareᵀ)
@@ -1052,21 +1052,10 @@ module _
       {γ = γ} {c′ = (inst cᴿ) B′≠★} {p = q}
       no-rebase
       (CTI.cast⊑cast² {p = p∀} cᴸ c′ prem q)
-      (vV 《 inert 》) vV′
-      with inst-catchup {q = paired-inst-input-square
-          {γ = γ} {cᴸ = cᴸ} {cᴿ = cᴿ}
-          inert B′≠★ p∀ q}
-        no-rebase prem vV vV′
-  more-precise-target-cast-value-catchup
-      {γ = γ} {c′ = (inst cᴿ) B′≠★} {p = q}
-      no-rebase
-      (CTI.cast⊑cast² {p = p∀} cᴸ c′ prem q)
-      (vV 《 inert 》) vV′
-    | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , vW′ , evolution ,
-      final =
-      Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , multi-⊑ᵀ evolution q ,
-        reduction , vW′ , evolution ,
-        CTI.cast⊑² cᴸ final (multi-⊑ᵀ evolution q)
+      (vV 《 inert 》) vV′ =
+    paired-inst-catchup {γ = γ} {cᴸ = cᴸ} {cᴿ = cᴿ}
+      {B′≠★ = B′≠★} {p = p∀} {q = q}
+      no-rebase prem inert vV vV′
 
   more-precise-target-cast-value-catchup {c′ = bot-elim}
       no-rebase rel vV vV′

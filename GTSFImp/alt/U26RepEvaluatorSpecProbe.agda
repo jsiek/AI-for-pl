@@ -6,7 +6,7 @@ module alt.U26RepEvaluatorSpecProbe where
 -- later end, while the walk consumed it as the earlier end's re-entry.
 --
 -- U27 resolves the disagreement by deleting representation lookup evidence.
--- The σ telescope records only the current slot-to-anchor map, and `rep?`
+-- The σ telescope records only the current type-variable-to-anchor map, and `rep?`
 -- transports crossing variables by anchor identity.  Consequently the old
 -- ambiguous telescope computes `＇zero` without consulting either bracketing.
 
@@ -36,8 +36,8 @@ birth-σ = just (suc zero) Vec.∷ Vec.[]
 birth : TyEnv 2 1 birth-σ
 birth = outer ,:= ＇ zero
 
-outer-slot : Vec.lookup birth-σ zero ≡ just (suc zero)
-outer-slot = refl
+outer-tyVar : Vec.lookup birth-σ zero ≡ just (suc zero)
+outer-tyVar = refl
 
 after-end : TyEnv 2 0 Vec.[]
 after-end = birth ,end[ zero ]
@@ -58,7 +58,7 @@ inner-extension = ≼-begin-end ≼-refl (≼-typ ≼-refl)
 
 whole-extension : birth ≼[ 0 , keep (skip empty) ] target
 whole-extension =
-  ≼-end-begin outer-slot ≼-refl inner-extension shifted-zero
+  ≼-end-begin outer-tyVar ≼-refl inner-extension shifted-zero
 
 source-computes : rep? birth zero ≡ just (＇ zero)
 source-computes = refl

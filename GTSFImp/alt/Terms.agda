@@ -111,36 +111,36 @@ weakenConsistency : ∀ {n} {μ : Env∼ n} {A B : Ty n}
 weakenConsistency {μ = μ} X c =
   rename∼ (punchIn X) (insertEnv-punchIn X μ) c
 
--- Commuting an ambient insertion inward across a reveal.  At equal slots,
--- the reveal's own slot comes first.
+-- Commuting an ambient insertion inward across a reveal.  At equal type variables,
+-- the reveal's own type variable comes first.
 underReveal : ∀ {n} → Fin (suc n) → Fin (suc n) → Fin (suc (suc n))
 underReveal zero zero = suc zero
 underReveal zero (suc Y) = zero
 underReveal (suc X) zero = suc (suc X)
 underReveal {n = suc n} (suc X) (suc Y) = suc (underReveal X Y)
 
-weakenRevealSlot : ∀ {n}
+weakenRevealTyVar : ∀ {n}
   → Fin (suc n) → Fin (suc n) → Fin (suc (suc n))
-weakenRevealSlot zero zero = zero
-weakenRevealSlot zero (suc Y) = suc (suc Y)
-weakenRevealSlot (suc X) zero = zero
-weakenRevealSlot {n = suc n} (suc X) (suc Y) =
-  suc (weakenRevealSlot X Y)
+weakenRevealTyVar zero zero = zero
+weakenRevealTyVar zero (suc Y) = suc (suc Y)
+weakenRevealTyVar (suc X) zero = zero
+weakenRevealTyVar {n = suc n} (suc X) (suc Y) =
+  suc (weakenRevealTyVar X Y)
 
--- Commuting an insertion outward across a conceal.  The inserted slot is
--- placed before the conceal slot when they meet at the same outer gap.
+-- Commuting an insertion outward across a conceal.  The inserted type variable is
+-- placed before the conceal type variable when they meet at the same outer gap.
 outsideConceal : ∀ {n}
   → Fin (suc (suc n)) → Fin (suc n) → Fin (suc n)
 outsideConceal zero Y = zero
 outsideConceal (suc X) zero = X
 outsideConceal {n = suc n} (suc X) (suc Y) = suc (outsideConceal X Y)
 
-weakenConcealSlot : ∀ {n}
+weakenConcealTyVar : ∀ {n}
   → Fin (suc (suc n)) → Fin (suc n) → Fin (suc (suc n))
-weakenConcealSlot zero Y = suc Y
-weakenConcealSlot (suc X) zero = zero
-weakenConcealSlot {n = suc n} (suc X) (suc Y) =
-  suc (weakenConcealSlot X Y)
+weakenConcealTyVar zero Y = suc Y
+weakenConcealTyVar (suc X) zero = zero
+weakenConcealTyVar {n = suc n} (suc X) (suc Y) =
+  suc (weakenConcealTyVar X Y)
 
 weakenᵗᵐ : ∀ {n} (X : TyVar (suc n)) → Term n → Term (suc n)
 weakenᵗᵐ X (` x) = ` x
@@ -153,9 +153,9 @@ weakenᵗᵐ X ($ κ) = $ κ
 weakenᵗᵐ X (L ⊕[ op ] M) = weakenᵗᵐ X L ⊕[ op ] weakenᵗᵐ X M
 weakenᵗᵐ X (M ⟨ c ⟩) = weakenᵗᵐ X M ⟨ weakenConsistency X c ⟩
 weakenᵗᵐ X (M ↑[ Y ≔ α ] c) =
-  weakenᵗᵐ (underReveal X Y) M ↑[ weakenRevealSlot X Y ≔ α ] c
+  weakenᵗᵐ (underReveal X Y) M ↑[ weakenRevealTyVar X Y ≔ α ] c
 weakenᵗᵐ X (M ↓[ Y ≔ α ] c) =
-  weakenᵗᵐ (outsideConceal X Y) M ↓[ weakenConcealSlot X Y ≔ α ] c
+  weakenᵗᵐ (outsideConceal X Y) M ↓[ weakenConcealTyVar X Y ≔ α ] c
 weakenᵗᵐ X blame = blame
 
 removeVar : Var → Var → Var

@@ -7,7 +7,7 @@ module alt.ThetaPreservation where
 --     mismatched identity delimiters now form an adapter value rather than a
 --     redex.  That historical instance remains below as a regression.
 --   * The old loose-anchor counterexample is now untypable: crossing entries
---     record their anchors, so typing forces both nodes' slot and anchor data.
+--     record their anchors, so typing forces both nodes' type variable and anchor data.
 --   * At a nonempty term context, `β-reveal-⇒` independently moves a
 --     captured
 --     lambda beneath a conceal delimiter whose typing rule requires a closed
@@ -18,7 +18,7 @@ module alt.ThetaPreservation where
 --   * The former `β-reveal-∀` counterexample is retained as a resolved
 --     regression: source determinacy now computes its body type from the
 --     redex, so the old Boolean contractum is no longer a possible step.
---   * The former slot-dependent `β-conceal-∀` obstruction is retained as
+--   * The former type variable-dependent `β-conceal-∀` obstruction is retained as
 --     a resolved regression.  The contractum resolves its instantiation and
 --     computed source in the ended view, then seals the result on exit.
 --   * The former `β-conceal-⇒` counterexample's contractum remains a checked
@@ -53,7 +53,7 @@ open import alt.ThetaReduction
 open import alt.ThetaTermSubst
 
 ------------------------------------------------------------------------
--- Generator endpoint at a freshly allocated slot
+-- Generator endpoint at a freshly allocated type variable
 ------------------------------------------------------------------------
 
 replaceEnv : ∀ {Δ} → TyVar Δ → Ty Δ → Δ ⇒ˢ Δ
@@ -119,7 +119,7 @@ replace-resolve X C A =
   env-eq Y = sym (resolveSub-reembed X C Y)
 
 ------------------------------------------------------------------------
--- Exchange at the two newest regular slots
+-- Exchange at the two newest regular type variables
 ------------------------------------------------------------------------
 
 renameTy-id : ∀ {Δ} (A : Ty Δ)
@@ -326,9 +326,9 @@ terminal-anchor : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
   → Vec.lookup (insertᵛ X (just α) σ) Y ≡ just β
   → Y ≡ X
   → β ≡ α
-terminal-anchor {σ = σ} {X = X} slot-eq refl =
+terminal-anchor {σ = σ} {X = X} tyVar-eq refl =
   just-injective
-    (trans (sym slot-eq) (lookup-insert-here X (just _) σ))
+    (trans (sym tyVar-eq) (lookup-insert-here X (just _) σ))
 
 ------------------------------------------------------------------------
 -- Preservation cases: computational rules
@@ -417,9 +417,9 @@ preserve-β-reveal-⇒ {Ψ = Ψ} {W = W} {X = X} {α = α}
     (⊢· (⊢reveal {C = C} {fresh = fresh} α-eq
       (⊢↑-⇒ c⊢ d⊢) V⊢) W⊢) =
   ⊢reveal α-eq d⊢
-    (⊢· V⊢ (⊢conceal slot-eq ended-eq c⊢ ended-W⊢))
+    (⊢· V⊢ (⊢conceal tyVar-eq ended-eq c⊢ ended-W⊢))
   where
-  slot-eq = lookup-insert-here X (just α) _
+  tyVar-eq = lookup-insert-here X (just α) _
   ended-eq = rep?-bracket {Ψ = Ψ} {Y = X} {a = α} {q = α}
     {A = C} fresh α-eq
   ended-W⊢ = ⊢bracket {Ψ = Ψ} {Y = X} {a = α} fresh W⊢
@@ -431,17 +431,17 @@ preserve-β-conceal-⇒ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W ⦂ B
   → Ψ ∣ [] ⊢ (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d ⦂ B
 preserve-β-conceal-⇒
-    (⊢· (⊢conceal {A = A ⇒ B} slot-eq α-eq
+    (⊢· (⊢conceal {A = A ⇒ B} tyVar-eq α-eq
       (⊢↓-⇒ c⊢ d⊢) V⊢) W⊢) =
-  ⊢conceal slot-eq α-eq d⊢
-    (⊢· V⊢ (⊢reveal α-eq c⊢ (⊢reenter slot-eq W⊢)))
+  ⊢conceal tyVar-eq α-eq d⊢
+    (⊢· V⊢ (⊢reveal α-eq c⊢ (⊢reenter tyVar-eq W⊢)))
 
 preserve-id-cancel : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {A}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ ⦂ A
   → Ψ ∣ [] ⊢ V ⦂ A
 preserve-id-cancel {Ψ = Ψ} {V = V} {X = X} {α = α}
-    (⊢reveal α∈ c↑ (⊢conceal slot∈ β∈ c↓ V⊢)) =
+    (⊢reveal α∈ c↑ (⊢conceal tyVar∈ β∈ c↓ V⊢)) =
   subst≡ (λ B → Ψ ∣ [] ⊢ V ⦂ B) type-eq ambient-V⊢
   where
   ambient-V⊢ = ⊢unbracket V⊢
@@ -465,7 +465,7 @@ preserve-id-conceal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ} {X} {α}
   → Ψ ∣ [] ⊢ ($ κ) ↓[ X ≔ α ] id↓ ⦂ A
   → Ψ ∣ [] ⊢ $ κ ⦂ A
 preserve-id-conceal {Ψ = Ψ} {X = X} {κ = κ}
-    (⊢conceal slot∈ α∈ c⊢ M⊢) =
+    (⊢conceal tyVar∈ α∈ c⊢ M⊢) =
   subst≡ (λ B → Ψ ∣ [] ⊢ $ κ ⦂ B) type-eq (⊢$ κ)
   where
   type-eq = trans (const-wk X κ)
@@ -479,7 +479,7 @@ preserve-conceal-reveal-matched : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
   → Ψ ∣ [] ⊢ V ⦂ A
 preserve-conceal-reveal-matched {Ψ = Ψ} {X = X} {α = α} refl refl
     (⊢reveal {fresh = fresh} β-eq c↑
-      (⊢conceal slot-eq α-eq c↓ V⊢)) =
+      (⊢conceal tyVar-eq α-eq c↓ V⊢)) =
   subst≡ (λ B → Ψ ∣ [] ⊢ _ ⦂ B) type-eq ambient-V⊢
   where
   ambient-V⊢ = ⊢unbracket V⊢
@@ -497,12 +497,12 @@ preserve-conceal-reveal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal ⦂ A
   → Ψ ∣ [] ⊢ V ⦂ A
 preserve-conceal-reveal typing@(⊢reveal β-eq c↑
-    (⊢conceal inner-slot-eq α-eq c↓ V⊢)) =
-  preserve-conceal-reveal-matched node-slot-eq anchor-eq typing
+    (⊢conceal inner-tyVar-eq α-eq c↓ V⊢)) =
+  preserve-conceal-reveal-matched node-tyVar-eq anchor-eq typing
   where
-  node-slot-eq = ty-var-injective
+  node-tyVar-eq = ty-var-injective
     (trans (sym (seal-target c↓)) (unseal-source c↑))
-  anchor-eq = terminal-anchor inner-slot-eq node-slot-eq
+  anchor-eq = terminal-anchor inner-tyVar-eq node-tyVar-eq
 
 preserve-const-ν : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {C A : Ty Δ} {κ}
   → Ψ ∣ [] ⊢ ν[ C ] ($ κ) ⦂ A
@@ -526,12 +526,12 @@ fresh-delimiter-conceal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
       ]⟨ fresh-zero-after-ν {σ = σ} ⟩ ∣ []
       ⊢ M ↓[ zero ≔ zero ] δ↓ (⇑ᵗ A) ⦂ ⇑ᵗ A
 fresh-delimiter-conceal {σ = σ} {Ψ = Ψ} {A = A} {C = C} M⊢ =
-  ⊢conceal slot-eq ended-eq
+  ⊢conceal tyVar-eq ended-eq
     (delimiter-typed↓ zero (⇑ᵗ C) (⇑ᵗ A)) ended-M⊢
   where
   base-eq : rep? (Ψ ,:= C) zero ≡ just C
   base-eq = rep?-here
-  slot-eq = lookup-insert-here zero (just zero)
+  tyVar-eq = lookup-insert-here zero (just zero)
     (Vec.map (Data.Maybe.map suc) σ)
   ended-eq = rep?-bracket {Ψ = Ψ ,:= C} {Y = zero} {a = zero}
     {q = zero} {A = C} (fresh-zero-after-ν {σ = σ}) base-eq
@@ -562,7 +562,7 @@ fresh-∀-entry-crossed : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {X : TyVar (suc Δ)} {α : TyVar Θ} {fresh : α ∉ᵛ σ}
   → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ∣ [] ⊢ V ⦂ `∀ C
   → ((Ψ ,:= A) ,begin[ zero ≔ zero
-      ]⟨ fresh-zero-map-suc {slots = σ} ⟩)
+      ]⟨ fresh-zero-map-suc {tyVars = σ} ⟩)
       ,begin[ suc X ≔ suc α ]⟨
         fresh-insert-other zero (λ ())
           (fresh-TypingTarget
@@ -580,7 +580,7 @@ fresh-∀-entry-crossed {σ = σ} {Ψ = Ψ} {V = V} {C = C} {A = A}
   old≢new : suc α ≢ zero
   old≢new ()
   ambient = ((Ψ ,:= A)
-      ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩)
+      ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {tyVars = σ} ⟩)
     ,begin[ suc X ≔ suc α ]⟨
       fresh-insert-other {a = suc α} {b = zero} zero old≢new old-fresh ⟩
   deleted = (Ψ ,:= A) ,begin[ X ≔ suc α ]⟨ old-fresh ⟩
@@ -593,9 +593,9 @@ fresh-∀-entry-crossed {σ = σ} {Ψ = Ψ} {V = V} {C = C} {A = A}
   deleted-eq : rep? deleted zero ≡ just (wkᵗ X A)
   deleted-eq = rep?-here-begin
   target-eq = trans (sym (rep?-unbracket target zero)) deleted-eq
-  slot-eq : Vec.lookup (slotsOf ambient) zero ≡ just zero
-  slot-eq = refl
-  entered⊢ = ⊢conceal slot-eq target-eq
+  tyVar-eq : Vec.lookup (tyVarsOf ambient) zero ≡ just zero
+  tyVar-eq = refl
+  entered⊢ = ⊢conceal tyVar-eq target-eq
     (delimiter-typed↓ zero (wkᵗ zero (wkᵗ X A))
       (wkᵗ zero (`∀ C))) target-V⊢
   exchanged⊢ = subst≡ (λ T → ambient ∣ [] ⊢ entered ⦂ T)
@@ -782,13 +782,13 @@ preserve-β-conceal-∀ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
           ↓[ X ≔ α ] 〖 X ↓ (B [ A ]ᵗ) 〗
       ⦂ B [ A ]ᵗ
 preserve-β-conceal-∀ {A = A} {B = B} {X = X} step-eq
-    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} slot-eq typed-eq
+    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} tyVar-eq typed-eq
       (⊢↓-∀ c⊢) V⊢))
     with just-injective (trans (sym typed-eq) step-eq)
 preserve-β-conceal-∀ {A = A} {B = B} {X = X} step-eq
-    (⊢⦂∀ (⊢conceal {A = `∀ C} slot-eq typed-eq
+    (⊢⦂∀ (⊢conceal {A = `∀ C} tyVar-eq typed-eq
       (⊢↓-∀ c⊢) V⊢)) | refl =
-  ⊢conceal slot-eq step-eq exit⊢
+  ⊢conceal tyVar-eq step-eq exit⊢
     (fresh-∀-region (sym (conceal-resolved-body c⊢)) V⊢)
   where
   exit⊢ = subst≡
@@ -909,8 +909,8 @@ preserve-ξ-conceal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
   → ⊢↓[ X ⦂ wkᵗ X C ] c ⦂ wkᵗ X A ↝ B
   → Ψ ,end[ X ] ∣ [] ⊢ M′ ⦂ A
   → Ψ ∣ [] ⊢ M′ ↓[ X ≔ α ] c ⦂ B
-preserve-ξ-conceal slot-eq α-eq c⊢ M′⊢ =
-  ⊢conceal slot-eq α-eq c⊢ M′⊢
+preserve-ξ-conceal tyVar-eq α-eq c⊢ M′⊢ =
+  ⊢conceal tyVar-eq α-eq c⊢ M′⊢
 
 preserve-ξ-⊕₁ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {L L′ M : Term Θ Δ} {op : Prim}
@@ -1025,7 +1025,7 @@ preserve typing@(⊢⟨⟩ V⊢ c) (β-inst Vᵥ B≠★) =
   preserve-β-inst typing
 preserve typing@(⊢⦂∀ (⊢reveal α∈ c⊢ V⊢)) (β-reveal-∀ Vᵥ) =
   preserve-β-reveal-∀ typing
-preserve typing@(⊢⦂∀ (⊢conceal slot∈ β∈ c⊢ V⊢))
+preserve typing@(⊢⦂∀ (⊢conceal tyVar∈ β∈ c⊢ V⊢))
     (β-conceal-∀ α∈ Vᵥ) =
   preserve-β-conceal-∀ α∈ typing
 preserve (⊢· L⊢ M⊢) (ξ-·₁ step) =
@@ -1038,8 +1038,8 @@ preserve typing@(⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) =
   preserve-ξ-⟨⟩ typing (preserve M⊢ step)
 preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
   preserve-ξ-reveal α∈ c⊢ (preserve M⊢ step)
-preserve (⊢conceal slot∈ α∈ c⊢ M⊢) (ξ-conceal step) =
-  preserve-ξ-conceal slot∈ α∈ c⊢ (preserve M⊢ step)
+preserve (⊢conceal tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =
+  preserve-ξ-conceal tyVar∈ α∈ c⊢ (preserve M⊢ step)
 preserve typing@(⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
   preserve-ξ-⊕₁ typing (preserve L⊢ step)
 preserve typing@(⊢⊕ op V⊢ M⊢) (ξ-⊕₂ Vᵥ step) =
@@ -1065,8 +1065,8 @@ preserve typing@(⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
 -- so the checked ℕ/𝔹 instance stepped to an untypable term.  Source
 -- determinacy now computes ℕ from the redex, making that step impossible.
 --
--- `β-conceal-∀`: the old slot-dependent instantiation lost the abstract
--- slot.  The deterministic rule resolves it at the ended view and seals the
+-- `β-conceal-∀`: the old type variable-dependent instantiation lost the abstract
+-- type variable.  The deterministic rule resolves it at the ended view and seals the
 -- result on exit; the former instance is now preserved.
 --
 -- `β-conceal-⇒`: the former obstruction was precisely the missing re-entry
@@ -1077,11 +1077,11 @@ preserve typing@(⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
 -- ν-floats, so regions remain at birth depth.
 --
 -- Strict `id-cancel`: commit c5ee0351 records the loose-rule refutation.
--- Mismatched slot/anchor pairs are adapter values and cannot take the strict
+-- Mismatched type variable/anchor pairs are adapter values and cannot take the strict
 -- rule.  A ν stranded between seal and unseal is classified the same way.
 --
 -- Loose conceal/reveal anchors: the old term is untypable under σ-indexed
--- telescopes because a slot has exactly one intrinsic anchor.
+-- telescopes because a type variable has exactly one intrinsic anchor.
 --
 -- Arbitrary-Γ preservation remains false by design: `β-reveal-⇒` can route a
 -- captured lambda into the closed conceal interior.  This is why `preserve`

@@ -21,7 +21,7 @@ private
     Δ : TyCtx
 
 ------------------------------------------------------------------------
--- Inserting one scoped-variable slot
+-- Inserting one scoped-variable type variable
 ------------------------------------------------------------------------
 
 punchIn : ∀ {Δ} → Fin (Nat.suc Δ) → Fin Δ → Fin (Nat.suc Δ)
@@ -53,7 +53,7 @@ replaceTy X R (A ⇒ B) = replaceTy X R A ⇒ replaceTy X R B
 replaceTy X R (`∀ A) = `∀ (replaceTy (suc X) (⇑ᵗ R) A)
 
 ------------------------------------------------------------------------
--- Resolving one scoped-variable slot
+-- Resolving one scoped-variable type variable
 ------------------------------------------------------------------------
 
 -- Resolution removes Y and replaces it by the representation C.  This lives

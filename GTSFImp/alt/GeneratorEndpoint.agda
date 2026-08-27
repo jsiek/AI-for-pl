@@ -1,7 +1,7 @@
 module alt.GeneratorEndpoint where
 
 -- File Charter:
---   * Proves that the structural generator at the newest type slot has the
+--   * Proves that the structural generator at the newest type type variable has the
 --     weakened open-type endpoint required by allocating reduction rules.
 --   * Reindexes the raw generator's typing proof to that endpoint.
 --   * Depends only on Types and alt.Conversion.

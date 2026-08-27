@@ -31,14 +31,14 @@ u25-target =
     ,begin[ zero ≔ suc zero ]⟨ empty-fresh ⟩
 
 -- The approved specification accepts the path: the later representation
--- `＇zero` is born while the older `suc zero` anchor is live, that slot ends,
+-- `＇zero` is born while the older `suc zero` anchor is live, that type variable ends,
 -- and the same anchor is immediately re-entered at `zero`.
 u25-balanced : u25-source ≼[ 0 , id↪ᵗ ] u25-target
 u25-balanced = ≼-end-begin refl ≼-refl ≼-refl shifted-zero
 
 -- History: the query-specific U25 walk selected a pass case at this end and
 -- got stuck because inverse weakening failed on `＇zero`.  U27 transports
--- this crossing slot by anchor identity, so both sides compute identically.
+-- this crossing type variable by anchor identity, so both sides compute identically.
 u25-source-computes : rep? u25-source zero ≡ just (＇ zero)
 u25-source-computes = refl
 

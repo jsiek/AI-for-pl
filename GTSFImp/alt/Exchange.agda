@@ -1,13 +1,13 @@
 module alt.Exchange where
 
 -- File Charter:
---   * Defines the exchange of the two newest scoped-type slots.
+--   * Defines the exchange of the two newest scoped-type type variables.
 --   * States the omitted β-inst, β-reveal-∀, and β-conceal-∀ redexes and
 --     raw-shape contracta, then validates both sides against explicit
 --     node-level transport and conversion-typing components.
 --   * The exchange is deliberately the top-two transposition, rather than a
 --     general adjacent transposition: all three rules allocate their fresh
---     crossing at slot zero, immediately below a source `∀` binder.  Nested
+--     crossing at type variable zero, immediately below a source `∀` binder.  Nested
 --     pre-existing crossings move from X to suc X by ordinary `punchIn`.
 --   * Raw conversion shapes are unchanged by exchange.  For β-reveal-∀ and
 --     β-conceal-∀ the validation takes the restricted
@@ -32,7 +32,7 @@ open import alt.Terms
 open import alt.GeneratorEndpoint
 
 ------------------------------------------------------------------------
--- Exchange of the two newest scoped slots
+-- Exchange of the two newest scoped type variables
 ------------------------------------------------------------------------
 
 swap : ∀ {Δ} → Fin (suc (suc Δ)) → Fin (suc (suc Δ))

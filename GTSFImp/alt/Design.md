@@ -9,12 +9,12 @@ alternative does not deliberately differ.
 Remove all shifting of terms during reduction. In the live calculus every
 allocation step renames terms, every allocating ξ-frame shifts its untouched
 sibling, and consistency and conversion evidence must move with the term.
-Those traversals exist because allocation adds a de Bruijn type slot to the
+Those traversals exist because allocation adds a de Bruijn type type variable to the
 ambient context.
 
 The alternative separates runtime store names from lexically scoped type
 variables. Allocation extends only an append-only store, while reveal and
-conceal nodes manage scoped slots locally. The ambient type context of a
+conceal nodes manage scoped type variables locally. The ambient type context of a
 reduction step therefore stays fixed.
 
 ## Two classes of type variable
@@ -132,10 +132,10 @@ _↑[_≔_]_ : Term (suc Δ) → TyVar (suc Δ) → Name → Reveal → Term Δ
 _↓[_≔_]_ : Term Δ → TyVar (suc Δ) → Name → Conceal → Term (suc Δ)
 ```
 
-A reveal binds slot `X` over its interior and removes that slot outside. A
+A reveal binds type variable `X` over its interior and removes that type variable outside. A
 conceal is the dual hole: its interior is outside the scope of `X`, while the
 whole node is inside. Both interiors are closed in the term-variable context.
-The explicit slot remains necessary because an all-identity delimiter does
+The explicit type variable remains necessary because an all-identity delimiter does
 not determine a pivot.
 
 Let `p : α ⦂ R ∈ Σ` be the anchor lookup. The checked rules have exactly one
@@ -188,7 +188,7 @@ type-closed; their representation types are type-closed through the global
 store as well.
 
 Term substitution consequently stops at both crossing nodes. Type-context
-weakening still renumbers the explicit crossing slots, but leaves each raw
+weakening still renumbers the explicit crossing type variables, but leaves each raw
 conversion shape unchanged.
 
 ## Canonical interiors and delimiter values
@@ -254,7 +254,7 @@ conceal-reveal :
 
 Typing inversion forces `X = Y` and `α = β`: the conceal produces `＇ X`,
 the reveal consumes `＇ Y` in the same scoped context, and classifier
-agreement at that slot identifies the anchors. Preservation may extract those
+agreement at that type variable identifies the anchors. Preservation may extract those
 equalities; reduction does not carry them.
 
 The loose `id-cancel` formulation is intentionally open for review if
@@ -330,7 +330,7 @@ preservation. This evidence is proof infrastructure, not rule data.
 `_—→[_]_`. Their proposed raw redexes and contracta, plus typing validations,
 live in `alt.Exchange` pending user sign-off.
 
-The two newest scoped slots are exchanged only in types and classifiers. Raw
+The two newest scoped type variables are exchanged only in types and classifiers. Raw
 conversion shapes mention no variables, so conversion-level `swap↑`/`swap↓`
 functions have vanished. Opening a structural `∀` transports only the
 conversion-typing endpoint proof; the shape is unchanged. All three proposed
@@ -352,7 +352,7 @@ from the allocating rule's original transport proof.
 - `Binding`, `Bindings`, `BindingRel`, `LiftRel`, and `Transport` remain in
   `alt.Terms`. `alt.Conversion` imports only `Types`.
 - Conversion renaming, endpoint indices, `PivotStrict↑/↓`, and `Reps↑/↓` have
-  been deleted. Type-context weakening changes crossing slots but reuses the
+  been deleted. Type-context weakening changes crossing type variables but reuses the
   raw shape verbatim.
 - Ordinary lambda beta uses structural single substitution. Substitution
   stops at crossings because their interiors are typed in the empty term

@@ -4,7 +4,7 @@ module alt.ThetaReduction where
 --   * Defines values, results, term-variable substitution, and telescope-
 --     indexed one-step reduction for the Θ-indexed alternative syntax.
 --   * Regular-type renaming uses the repository's context injections.  At a
---     crossing it inserts or deletes the distinguished slot canonically;
+--     crossing it inserts or deletes the distinguished type variable canonically;
 --     weakening is the derived skip-at-position instance.  Term substitution
 --     stops at closed crossing and ν interiors.
 --   * Evaluation descends beneath ν.  A ν-headed result floats through term
@@ -77,7 +77,7 @@ rename ρ blame = blame
 ------------------------------------------------------------------------
 
 -- `insert↪ᵗ` and `delete↪ᵗ` are exported by ThetaTyping because balanced
--- telescope extension and term renaming share exactly this slot bookkeeping.
+-- telescope extension and term renaming share exactly this type variable bookkeeping.
 
 renameᵗᵐ : Δ ↪ᵗ Δ′ → Term Θ Δ → Term Θ Δ′
 renameᵗᵐ ρ (` x) = ` x
@@ -342,7 +342,7 @@ canonical-value (delimited Vᶜ X α) =
   result-val (canonical-value Vᶜ) ↑[ X ≔ α ] delimiter Vᶜ
 
 -- A fresh crossing is inserted immediately below the source `∀` binder.
--- Its slot and the binder's slot must therefore exchange before the inner
+-- Its type variable and the binder's type variable must therefore exchange before the inner
 -- type application opens the binder, exactly as in the v2 validation.
 
 swapTop : ∀ {Δ}
@@ -584,7 +584,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → Ψ ⊢ V ⟨ (inst c) B≢★ ⟩ —→ (V ⦂∀ A [ ★ ]) ⟨ c [ ★/0 ]ᶜ ⟩
 
   -- Unlike the name-based v2 statement, entering ν shifts the old anchor
-  -- from α to `suc α`; inserting the fresh slot shifts its crossing to
+  -- from α to `suc α`; inserting the fresh type variable shifts its crossing to
   -- `suc X`.  The carried raw shape `c` itself is unchanged.
   β-reveal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {A : Ty Δ}
@@ -607,7 +607,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
   -- inside the conceal, the region knows the representation type of the abstract X — so resolving X in the instantiation type through the anchor's representation is legitimate knowledge, not a leak; the conversion's seals continue to mediate the values.
   -- The fresh region therefore lives wholly outside the matching end.  It first
   -- resolves the instantiation and the conversion-determined source body,
-  -- instantiates V there, and closes its fresh slot before the generated
+  -- instantiates V there, and closes its fresh type variable before the generated
   -- exit conceal restores the ambient abstract-X view.
   β-conceal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {V : Term Θ Δ} {A : Ty (suc Δ)}

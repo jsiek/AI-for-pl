@@ -73,18 +73,16 @@ Deleted along the way, and staying deleted: the term-shifting of the
 original design (`⇑ᵗᵐ V`, frame shifts), the global type store, the
 ν-crossing floats (`float-reveal`/`float-conceal` — regions stay at
 their birth delimiter depth and eliminations iterate two-constructor
-rules instead), the slot-deletion function `∖`, marks, `,opaque`, the
-`Mode`/`opaq` lookup modes, canonicalization (`minSlot`, `normalTy`,
+rules instead), the type variable-deletion function `∖`, marks, `,opaque`, the
+`Mode`/`opaq` lookup modes, canonicalization (`minTyVar`, `normalTy`,
 `⇓-var-alias`), the deferred-`ref` layer `Ty⁺` with its discharge
 judgment, and the relational lookup walk `RepWalk`.
 
 ## Next steps
 
-1. **U28 — naming and imports** (prompt staged:
-   `codex-theta-u28-rename-slot.md`). Two increments:
-   - rename every `slot`/`Slot` identifier to the proper term *type
-     variable* (`liveSlot?` → `liveTyVar?` and its lemma family,
-     `emptySlots`, `fresh-renameSlots`, probe-local names), plus the
+1. **U28 — naming and imports** (in progress). Two increments:
+   - use the repository's `TyVar` vocabulary consistently (`liveTyVar?`,
+     `emptyTyVars`, `fresh-renameTyVars`, and probe-local names), plus the
      prose sweep in comments;
    - in `ThetaTyping`, `open import Data.Vec.Base` unqualified so the
      Vec operations read concisely; drop `Data.List` if unused; prefer
@@ -125,7 +123,7 @@ was not visible**.
    anchor-recording telescope entries + agreement premise.
 4. free `C` parameter in `β-reveal-∀`/`β-conceal-∀` → computed
    sources `src↑`/`tgt↓`.
-5. slot-dependent instantiation in `β-conceal-∀` → resolution through
+5. type variable-dependent instantiation in `β-conceal-∀` → resolution through
    the representation.
 6. `β-conceal-⇒` routed a region-side `W` through a knowledge-side
    view → end-markers, then `⊢reenter`.

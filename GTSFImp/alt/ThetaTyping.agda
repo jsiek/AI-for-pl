@@ -2,13 +2,13 @@ module alt.ThetaTyping where
 
 -- File Charter:
 --   * Defines typing for the Θ-indexed alternative syntax.  A telescope is
---     intrinsically indexed by its slot-to-anchor map σ.  `just α` marks the
---     unique live crossing of α; `nothing` marks a lexical slot.  Begins may
+--     intrinsically indexed by its type-variable-to-anchor map σ.  `just α` marks the
+--     unique live crossing of α; `nothing` marks a lexical type variable.  Begins may
 --     insert only an absent anchor, while ends remove exactly the selected
---     slot, so lying marker annotations are unrepresentable.
+--     type variable, so lying marker annotations are unrepresentable.
 --   * Representation lookup is the total function `rep?`.  Its two transports
---     are deliberately different: lexical slots travel by their accumulated
---     position route, while crossing slots travel by anchor identity to the
+--     are deliberately different: lexical type variables travel by their accumulated
+--     position route, while crossing type variables travel by anchor identity to the
 --     query telescope's unique live alias.  A dead crossing recursively reads
 --     its older anchor's representation.  Undefined routes refuse with
 --     `nothing`; begin/end bracket choices are never consulted.
@@ -40,21 +40,21 @@ private
     Δ Δ′ : TyCtx
 
 ------------------------------------------------------------------------
--- Slot maps
+-- TyVar maps
 ------------------------------------------------------------------------
 
--- Apply a function to every entry of a slot map.
+-- Apply a function to every entry of a type-variable map.
 mapᵛ : ∀ {n} {A B : Set} → (A → B) → Vec.Vec A n → Vec.Vec B n
 mapᵛ f Vec.[] = Vec.[]
 mapᵛ f (x Vec.∷ xs) = f x Vec.∷ mapᵛ f xs
 
--- Insert a new entry at position i of a slot map, shifting later entries up.
+-- Insert a new entry at position i of a type-variable map, shifting later entries up.
 insertᵛ : ∀ {n} {A : Set}
   → Fin (suc n) → A → Vec.Vec A n → Vec.Vec A (suc n)
 insertᵛ zero x xs = x Vec.∷ xs
 insertᵛ (suc i) x (y Vec.∷ ys) = y Vec.∷ insertᵛ i x ys
 
--- Remove the entry at position i of a slot map, shifting later entries down.
+-- Remove the entry at position i of a type-variable map, shifting later entries down.
 removeᵛ : ∀ {n} {A : Set}
   → Fin (suc n) → Vec.Vec A (suc n) → Vec.Vec A n
 removeᵛ zero (x Vec.∷ xs) = xs
@@ -63,22 +63,22 @@ removeᵛ {n = suc n} (suc i) (x Vec.∷ xs) =
 
 infix 4 _∉ᵛ_
 
--- `α ∉ᵛ σ`: no slot of σ currently aliases anchor α.
+-- `α ∉ᵛ σ`: no type variable of σ currently aliases anchor α.
 _∉ᵛ_ : ∀ {Θ Δ}
   → TyVar Θ → Vec.Vec (Maybe (TyVar Θ)) Δ → Set
 α ∉ᵛ σ = ∀ Y → Vec.lookup σ Y ≢ just α
 
--- Find the slot that currently aliases anchor α, if any (unique by the
+-- Find the type variable that currently aliases anchor α, if any (unique by the
 -- begin constructor's freshness field).
-liveSlot? : ∀ {Θ Δ}
+liveTyVar? : ∀ {Θ Δ}
   → Vec.Vec (Maybe (TyVar Θ)) Δ → TyVar Θ
   → Maybe (TyVar Δ)
-liveSlot? Vec.[] α = nothing
-liveSlot? (nothing Vec.∷ σ) α = mapMaybe suc (liveSlot? σ α)
-liveSlot? (just β Vec.∷ σ) α with α ≟ β
-liveSlot? (just β Vec.∷ σ) .β | yes refl = just zero
-liveSlot? (just β Vec.∷ σ) α | no α≢β =
-  mapMaybe suc (liveSlot? σ α)
+liveTyVar? Vec.[] α = nothing
+liveTyVar? (nothing Vec.∷ σ) α = mapMaybe suc (liveTyVar? σ α)
+liveTyVar? (just β Vec.∷ σ) α with α ≟ β
+liveTyVar? (just β Vec.∷ σ) .β | yes refl = just zero
+liveTyVar? (just β Vec.∷ σ) α | no α≢β =
+  mapMaybe suc (liveTyVar? σ α)
 
 -- Peel the `just` constructor off an equality.
 just-injective : ∀ {A : Set} {x y : A} → just x ≡ just y → x ≡ y
@@ -87,12 +87,12 @@ just-injective refl = refl
 -- The live lookup is a function, so its selected alias is unique.  The
 -- telescope's begin field is what makes that selected alias also the only
 -- `just α` entry representable in σ.
-liveSlot?-unique : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
+liveTyVar?-unique : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
     {α : TyVar Θ} {X Y : TyVar Δ}
-  → liveSlot? σ α ≡ just X
-  → liveSlot? σ α ≡ just Y
+  → liveTyVar? σ α ≡ just X
+  → liveTyVar? σ α ≡ just Y
   → X ≡ Y
-liveSlot?-unique X-eq Y-eq =
+liveTyVar?-unique X-eq Y-eq =
   just-injective (trans (sym X-eq) Y-eq)
 
 ------------------------------------------------------------------------
@@ -131,15 +131,15 @@ data TyEnv : (Θ : AnchorCtx) (Δ : TyCtx)
 -- Lexical drift and balanced extension
 ------------------------------------------------------------------------
 
--- Widen an injection with one new slot at position Y on both sides,
--- mapping the new slot to the new slot.
+-- Widen an injection with one new type variable at position Y on both sides,
+-- mapping the new type variable to the new type variable.
 insert↪ᵗ : ∀ {Δ Δ′}
   → Δ ↪ᵗ Δ′ → TyVar (suc Δ) → suc Δ ↪ᵗ suc Δ′
 insert↪ᵗ ρ zero = keep ρ
 insert↪ᵗ (keep ρ) (suc Y) = keep (insert↪ᵗ ρ Y)
 insert↪ᵗ (skip ρ) (suc Y) = skip (insert↪ᵗ ρ (suc Y))
 
--- Narrow an injection by deleting source slot Y together with its image.
+-- Narrow an injection by deleting source type variable Y together with its image.
 delete↪ᵗ : ∀ {Δ Δ′}
   → suc Δ ↪ᵗ suc Δ′ → TyVar (suc Δ) → Δ ↪ᵗ Δ′
 delete↪ᵗ (keep ρ) zero = ρ
@@ -221,15 +221,15 @@ shiftAlong (≼-ν extension) α = suc (shiftAlong extension α)
 shiftAlong (≼-typ extension) α = shiftAlong extension α
 shiftAlong (≼-begin-end extension region) α =
   shiftAlong region (shiftAlong extension α)
-shiftAlong (≼-end-begin slot-eq extension region shifted) α =
+shiftAlong (≼-end-begin tyVar-eq extension region shifted) α =
   shiftAlong region (shiftAlong extension α)
 
 ------------------------------------------------------------------------
 -- Anchor-directed executable representation lookup
 ------------------------------------------------------------------------
 
--- Adjust a slot route across an end marker: the ended slot has no image,
--- every other slot punches past it.
+-- Adjust a type-variable route across an end marker: the ended type variable has no image,
+-- every other type variable punches past it.
 route-end : ∀ {Δ Δ′}
   → TyVar (suc Δ) → (TyVar Δ → Maybe (TyVar Δ′))
   → TyVar (suc Δ) → Maybe (TyVar Δ′)
@@ -237,7 +237,7 @@ route-end Y route X with Y ≟ X
 route-end Y route .Y | yes refl = nothing
 route-end Y route X | no Y≢X = route (punchOut Y X Y≢X)
 
--- Extend a slot route under one binder: the new slot maps to the new slot.
+-- Extend a type-variable route under one binder: the new type variable maps to the new type variable.
 ext-route : ∀ {Δ Δ′}
   → (TyVar Δ → Maybe (TyVar Δ′))
   → TyVar (suc Δ) → Maybe (TyVar (suc Δ′))
@@ -253,7 +253,7 @@ aliasResult? : ∀ {Θ Δ Δout}
   → TyVar Θ
   → Maybe (Ty Δout)
 aliasResult? resolve target live-ren anchor
-    with liveSlot? target anchor
+    with liveTyVar? target anchor
 aliasResult? resolve target live-ren anchor | just Y =
   just (＇ live-ren Y)
 aliasResult? resolve target live-ren anchor | nothing
@@ -262,8 +262,8 @@ aliasResult? resolve target live-ren anchor | nothing | nothing = nothing
 aliasResult? resolve target live-ren anchor | nothing | just A =
   just (renameᵗ live-ren A)
 
--- Transport a birth-scope type to the query scope: crossing slots travel by
--- anchor (aliasResult?), lexical slots by the positional route.
+-- Transport a birth-scope type to the query scope: crossing type variables travel by
+-- anchor (aliasResult?), lexical type variables by the positional route.
 repoint? : ∀ {Θ₀ Θ Δ₀ Δ Δout}
   → (TyVar Θ → Maybe (Ty Δ))
   → Vec.Vec (Maybe (TyVar Θ)) Δ
@@ -315,7 +315,7 @@ repointAtν? {σ = σ} {σ₀ = σ₀} resolve target prefix φ route A =
   repoint? resolve σ σ₀ φ route (λ X → X) A
 
 -- Peel the telescope from the query down to the queried ν, accumulating the
--- anchor shift φ and the slot route, then repoint its representation.
+-- anchor shift φ and the type-variable route, then repoint its representation.
 scanRep? : ∀ {Θ Δ σ Θ₀ Δ₀ σ₀}
   → (TyVar Θ → Maybe (Ty Δ))
   → (target : TyEnv Θ Δ σ)

@@ -31,10 +31,10 @@ nothing-fresh : ∀ {Θ} {a : TyVar Θ}
   → a ∉ᵛ (nothing Vec.∷ Vec.[])
 nothing-fresh zero ()
 
-one-zero-slot : Vec.Vec (Maybe (TyVar 2)) 1
-one-zero-slot = just zero Vec.∷ Vec.[]
+one-zero-tyVar : Vec.Vec (Maybe (TyVar 2)) 1
+one-zero-tyVar = just zero Vec.∷ Vec.[]
 
-other-fresh : suc zero ∉ᵛ one-zero-slot
+other-fresh : suc zero ∉ᵛ one-zero-tyVar
 other-fresh zero ()
 
 ------------------------------------------------------------------------

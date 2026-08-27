@@ -4998,7 +4998,7 @@ reenter-anchor-id {Ψ = Ψ} {Y = Y} tyVar-eq q =
 -- Replacing one lexical type variable by a freshly allocated crossing
 ------------------------------------------------------------------------
 
--- `allocTyVars` is the type variable-level invariant of lexical allocation.  Every
+-- `allocTyVars` is the type-variable-level invariant of lexical allocation.  Every
 -- ordinary crossing keeps its anchor through `φ`; the distinguished lexical
 -- position becomes the one fresh target anchor `b`.
 allocTyVars : ∀ {Θ Θ′ Δ}

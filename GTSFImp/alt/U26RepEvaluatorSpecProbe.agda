@@ -6,7 +6,7 @@ module alt.U26RepEvaluatorSpecProbe where
 -- later end, while the walk consumed it as the earlier end's re-entry.
 --
 -- U27 resolves the disagreement by deleting representation lookup evidence.
--- The σ telescope records only the current type-variable-to-anchor map, and `rep?`
+-- The σ telescope records only the current type-variable↦anchor map, and `rep?`
 -- transports crossing variables by anchor identity.  Consequently the old
 -- ambiguous telescope computes `＇zero` without consulting either bracketing.
 

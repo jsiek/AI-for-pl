@@ -73,7 +73,7 @@ Deleted along the way, and staying deleted: the term-shifting of the
 original design (`⇑ᵗᵐ V`, frame shifts), the global type store, the
 ν-crossing floats (`float-reveal`/`float-conceal` — regions stay at
 their birth delimiter depth and eliminations iterate two-constructor
-rules instead), the type variable-deletion function `∖`, marks, `,opaque`, the
+rules instead), the type-variable deletion function `∖`, marks, `,opaque`, the
 `Mode`/`opaq` lookup modes, canonicalization (`minTyVar`, `normalTy`,
 `⇓-var-alias`), the deferred-`ref` layer `Ty⁺` with its discharge
 judgment, and the relational lookup walk `RepWalk`.
@@ -123,7 +123,7 @@ was not visible**.
    anchor-recording telescope entries + agreement premise.
 4. free `C` parameter in `β-reveal-∀`/`β-conceal-∀` → computed
    sources `src↑`/`tgt↓`.
-5. type variable-dependent instantiation in `β-conceal-∀` → resolution through
+5. type-variable-dependent instantiation in `β-conceal-∀` → resolution through
    the representation.
 6. `β-conceal-⇒` routed a region-side `W` through a knowledge-side
    view → end-markers, then `⊢reenter`.

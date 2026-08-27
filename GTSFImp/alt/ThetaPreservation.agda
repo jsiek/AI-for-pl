@@ -18,7 +18,7 @@ module alt.ThetaPreservation where
 --   * The former `β-reveal-∀` counterexample is retained as a resolved
 --     regression: source determinacy now computes its body type from the
 --     redex, so the old Boolean contractum is no longer a possible step.
---   * The former type variable-dependent `β-conceal-∀` obstruction is retained as
+--   * The former type-variable-dependent `β-conceal-∀` obstruction is retained as
 --     a resolved regression.  The contractum resolves its instantiation and
 --     computed source in the ended view, then seals the result on exit.
 --   * The former `β-conceal-⇒` counterexample's contractum remains a checked
@@ -1065,7 +1065,7 @@ preserve typing@(⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
 -- so the checked ℕ/𝔹 instance stepped to an untypable term.  Source
 -- determinacy now computes ℕ from the redex, making that step impossible.
 --
--- `β-conceal-∀`: the old type variable-dependent instantiation lost the abstract
+-- `β-conceal-∀`: the old type-variable-dependent instantiation lost the abstract
 -- type variable.  The deterministic rule resolves it at the ended view and seals the
 -- result on exit; the former instance is now preserved.
 --

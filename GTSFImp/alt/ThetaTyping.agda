@@ -43,15 +43,18 @@ private
 -- Slot maps
 ------------------------------------------------------------------------
 
+-- Apply a function to every entry of a slot map.
 mapᵛ : ∀ {n} {A B : Set} → (A → B) → Vec.Vec A n → Vec.Vec B n
 mapᵛ f Vec.[] = Vec.[]
 mapᵛ f (x Vec.∷ xs) = f x Vec.∷ mapᵛ f xs
 
+-- Insert a new entry at position i of a slot map, shifting later entries up.
 insertᵛ : ∀ {n} {A : Set}
   → Fin (suc n) → A → Vec.Vec A n → Vec.Vec A (suc n)
 insertᵛ zero x xs = x Vec.∷ xs
 insertᵛ (suc i) x (y Vec.∷ ys) = y Vec.∷ insertᵛ i x ys
 
+-- Remove the entry at position i of a slot map, shifting later entries down.
 removeᵛ : ∀ {n} {A : Set}
   → Fin (suc n) → Vec.Vec A (suc n) → Vec.Vec A n
 removeᵛ zero (x Vec.∷ xs) = xs
@@ -60,10 +63,13 @@ removeᵛ {n = suc n} (suc i) (x Vec.∷ xs) =
 
 infix 4 _∉ᵛ_
 
+-- `α ∉ᵛ σ`: no slot of σ currently aliases anchor α.
 _∉ᵛ_ : ∀ {Θ Δ}
   → TyVar Θ → Vec.Vec (Maybe (TyVar Θ)) Δ → Set
 α ∉ᵛ σ = ∀ Y → Vec.lookup σ Y ≢ just α
 
+-- Find the slot that currently aliases anchor α, if any (unique by the
+-- begin constructor's freshness field).
 liveSlot? : ∀ {Θ Δ}
   → Vec.Vec (Maybe (TyVar Θ)) Δ → TyVar Θ
   → Maybe (TyVar Δ)
@@ -74,6 +80,7 @@ liveSlot? (just β Vec.∷ σ) .β | yes refl = just zero
 liveSlot? (just β Vec.∷ σ) α | no α≢β =
   mapMaybe suc (liveSlot? σ α)
 
+-- Peel the `just` constructor off an equality.
 just-injective : ∀ {A : Set} {x y : A} → just x ≡ just y → x ≡ y
 just-injective refl = refl
 
@@ -124,12 +131,15 @@ data TyEnv : (Θ : AnchorCtx) (Δ : TyCtx)
 -- Lexical drift and balanced extension
 ------------------------------------------------------------------------
 
+-- Widen an injection with one new slot at position Y on both sides,
+-- mapping the new slot to the new slot.
 insert↪ᵗ : ∀ {Δ Δ′}
   → Δ ↪ᵗ Δ′ → TyVar (suc Δ) → suc Δ ↪ᵗ suc Δ′
 insert↪ᵗ ρ zero = keep ρ
 insert↪ᵗ (keep ρ) (suc Y) = keep (insert↪ᵗ ρ Y)
 insert↪ᵗ (skip ρ) (suc Y) = skip (insert↪ᵗ ρ (suc Y))
 
+-- Narrow an injection by deleting source slot Y together with its image.
 delete↪ᵗ : ∀ {Δ Δ′}
   → suc Δ ↪ᵗ suc Δ′ → TyVar (suc Δ) → Δ ↪ᵗ Δ′
 delete↪ᵗ (keep ρ) zero = ρ
@@ -141,6 +151,7 @@ delete↪ᵗ {Δ′ = suc Δ′} (skip ρ) Y = skip (delete↪ᵗ ρ Y)
 
 infixl 7 _⨟↪ᵗ_
 
+-- Compose two injections, diagrammatic order.
 _⨟↪ᵗ_ : ∀ {Δ₁ Δ₂ Δ₃}
   → Δ₁ ↪ᵗ Δ₂ → Δ₂ ↪ᵗ Δ₃ → Δ₁ ↪ᵗ Δ₃
 empty ⨟↪ᵗ empty = empty
@@ -151,6 +162,7 @@ skip ρ ⨟↪ᵗ keep η = skip (ρ ⨟↪ᵗ η)
 
 infix 4 _≼[_,_]_
 
+-- `Shifted k α β`: anchor β is α's image after k newer anchors were born.
 data Shifted : ∀ {Θ Θ′} → ℕ → TyVar Θ → TyVar Θ′ → Set where
   shifted-zero : ∀ {Θ} {α : TyVar Θ} → Shifted zero α α
   shifted-suc : ∀ {Θ Θ′ k} {α : TyVar Θ} {β : TyVar Θ′}
@@ -199,6 +211,8 @@ data _≼[_,_]_ : ∀ {Θ Θ′ Δ Δ′ σ σ′}
           toRenameᵗ (insert↪ᵗ (delete↪ᵗ ρ X ⨟↪ᵗ η) X) X ≔ β
         ]⟨ fresh ⟩)
 
+-- Read a balanced extension's anchor shift off its witness: where an anchor
+-- of the small telescope sits in the large one.
 shiftAlong : ∀ {Θ Θ′ Δ Δ′ k σ σ′} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ σ} {Ψ′ : TyEnv Θ′ Δ′ σ′}
   → Ψ ≼[ k , ρ ] Ψ′ → TyVar Θ → TyVar Θ′
@@ -214,6 +228,8 @@ shiftAlong (≼-end-begin slot-eq extension region shifted) α =
 -- Anchor-directed executable representation lookup
 ------------------------------------------------------------------------
 
+-- Adjust a slot route across an end marker: the ended slot has no image,
+-- every other slot punches past it.
 route-end : ∀ {Δ Δ′}
   → TyVar (suc Δ) → (TyVar Δ → Maybe (TyVar Δ′))
   → TyVar (suc Δ) → Maybe (TyVar Δ′)
@@ -221,12 +237,15 @@ route-end Y route X with Y ≟ X
 route-end Y route .Y | yes refl = nothing
 route-end Y route X | no Y≢X = route (punchOut Y X Y≢X)
 
+-- Extend a slot route under one binder: the new slot maps to the new slot.
 ext-route : ∀ {Δ Δ′}
   → (TyVar Δ → Maybe (TyVar Δ′))
   → TyVar (suc Δ) → Maybe (TyVar (suc Δ′))
 ext-route route zero = just zero
 ext-route route (suc X) = mapMaybe suc (route X)
 
+-- The meaning of an anchor at the query: its live alias as a variable, or
+-- its resolved representation if it is dead.
 aliasResult? : ∀ {Θ Δ Δout}
   → (TyVar Θ → Maybe (Ty Δ))
   → Vec.Vec (Maybe (TyVar Θ)) Δ
@@ -243,6 +262,8 @@ aliasResult? resolve target live-ren anchor | nothing | nothing = nothing
 aliasResult? resolve target live-ren anchor | nothing | just A =
   just (renameᵗ live-ren A)
 
+-- Transport a birth-scope type to the query scope: crossing slots travel by
+-- anchor (aliasResult?), lexical slots by the positional route.
 repoint? : ∀ {Θ₀ Θ Δ₀ Δ Δout}
   → (TyVar Θ → Maybe (Ty Δ))
   → Vec.Vec (Maybe (TyVar Θ)) Δ
@@ -280,6 +301,8 @@ repoint? resolve target σ₀ φ route live-ren (`∀ A) | nothing = nothing
 repoint? resolve target σ₀ φ route live-ren (`∀ A) | just A′ =
   just (`∀ A′)
 
+-- Instantiate repoint? at a ν entry: transport its representation from its
+-- birth scope to the query scope.
 repointAtν? : ∀ {Θ Δ σ Θ₀ Δ₀ σ₀}
   → (TyVar Θ → Maybe (Ty Δ))
   → TyEnv Θ Δ σ
@@ -291,6 +314,8 @@ repointAtν? : ∀ {Θ Δ σ Θ₀ Δ₀ σ₀}
 repointAtν? {σ = σ} {σ₀ = σ₀} resolve target prefix φ route A =
   repoint? resolve σ σ₀ φ route (λ X → X) A
 
+-- Peel the telescope from the query down to the queried ν, accumulating the
+-- anchor shift φ and the slot route, then repoint its representation.
 scanRep? : ∀ {Θ Δ σ Θ₀ Δ₀ σ₀}
   → (TyVar Θ → Maybe (Ty Δ))
   → (target : TyEnv Θ Δ σ)
@@ -312,13 +337,16 @@ scanRep? resolve target (Ψ ,:= A) φ route (suc α) =
 scanRep? resolve target (Ψ ,end[ Y ]) φ route α =
   scanRep? resolve target Ψ φ (route-end Y route) α
 
+-- Fuel-indexed lookup body: resolving a dead crossing recurses on a strictly
+-- older ν and consumes one unit of fuel.
 repFuel? : ∀ (fuel : ℕ) {Θ Δ σ}
   → TyEnv Θ Δ σ → TyVar Θ → Maybe (Ty Δ)
 repFuel? zero Ψ α = nothing
 repFuel? (suc fuel) Ψ α =
   scanRep? (repFuel? fuel Ψ) Ψ Ψ (λ β → β) (λ X → just X) α
 
--- Fuel is the queried ν's birth depth: `Θ ∸ toℕ α`.  Resolving a
+-- Look up the representation type of anchor α's ν binding, expressed in the
+-- query scope.  Fuel is the queried ν's birth depth: `Θ ∸ toℕ α`.  Resolving a
 -- dead crossing asks only for an older ν, and is the sole recursive call;
 -- it therefore consumes one unit.  This tighter measure is invariant under
 -- inserting a fresh newest ν (`suc Θ ∸ toℕ (suc α)` computes to the

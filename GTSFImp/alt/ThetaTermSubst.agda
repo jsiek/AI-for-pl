@@ -2283,3 +2283,755 @@ rep?-≼ : ∀ {Θ Θ′ Δ Δ′ σ σ′ k}
 rep?-≼ extension eq =
   trans (rep?-≼-equation extension _)
     (cong (mapMaybe (renameᵗ _)) eq)
+
+------------------------------------------------------------------------
+-- Regular-context insertion through a telescope
+------------------------------------------------------------------------
+
+-- A regular injection inserts only lexical slots.  These four equations
+-- commute that insertion through each telescope constructor.  Keeping them
+-- separate makes the begin/end cases of typing transport read directly as
+-- the corresponding Vec computation.
+
+renameSlots-wk : ∀ {Θ Δ}
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → renameSlots wk↪ᵗ slots ≡ insertᵛ zero nothing slots
+renameSlots-wk slots = cong (nothing Vec.∷_) (renameSlots-id slots)
+
+renameSlots-insert : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    (Y : TyVar (suc Δ)) (entry : Maybe (TyVar Θ))
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → renameSlots (insert↪ᵗ ρ Y) (insertᵛ Y entry slots)
+    ≡ insertᵛ (toRenameᵗ (insert↪ᵗ ρ Y) Y) entry
+        (renameSlots ρ slots)
+renameSlots-insert ρ zero entry slots = refl
+renameSlots-insert (keep ρ) (suc Y) entry (slot Vec.∷ slots) =
+  cong (slot Vec.∷_) (renameSlots-insert ρ Y entry slots)
+renameSlots-insert (skip ρ) (suc Y) entry slots =
+  cong (nothing Vec.∷_) (renameSlots-insert ρ (suc Y) entry slots)
+
+renameSlots-typ : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → renameSlots (keep ρ) (insertᵛ zero nothing slots)
+    ≡ insertᵛ zero nothing (renameSlots ρ slots)
+renameSlots-typ ρ slots = refl
+
+renameSlots-anchor-shift : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → renameSlots ρ (mapᵛ (mapMaybe suc) slots)
+    ≡ mapᵛ (mapMaybe suc) (renameSlots ρ slots)
+renameSlots-anchor-shift {Δ′ = zero} empty Vec.[] = refl
+renameSlots-anchor-shift {Δ′ = suc Δ′} empty Vec.[] =
+  cong (nothing Vec.∷_)
+    (renameSlots-anchor-shift {Δ′ = Δ′} empty Vec.[])
+renameSlots-anchor-shift (skip ρ) slots =
+  cong (nothing Vec.∷_) (renameSlots-anchor-shift ρ slots)
+renameSlots-anchor-shift (keep ρ) (slot Vec.∷ slots) =
+  cong (mapMaybe suc slot Vec.∷_)
+    (renameSlots-anchor-shift ρ slots)
+
+renameSlots-remove : ∀ {Θ Δ Δ′}
+    (ρ : suc Δ ↪ᵗ suc Δ′) (Y : TyVar (suc Δ))
+    (slots : Vec.Vec (Maybe (TyVar Θ)) (suc Δ))
+  → renameSlots (delete↪ᵗ ρ Y) (removeᵛ Y slots)
+    ≡ removeᵛ (toRenameᵗ ρ Y) (renameSlots ρ slots)
+renameSlots-remove (keep ρ) zero (slot Vec.∷ slots) = refl
+renameSlots-remove {Δ = suc Δ} (keep (keep ρ)) (suc Y)
+    (slot Vec.∷ slots)
+    rewrite renameSlots-remove (keep ρ) Y slots = refl
+renameSlots-remove {Δ = suc Δ} (keep (skip ρ)) (suc Y)
+    (slot Vec.∷ slots)
+    rewrite renameSlots-remove (skip ρ) Y slots = refl
+renameSlots-remove (skip (keep ρ)) Y slots =
+  cong (nothing Vec.∷_) (renameSlots-remove (keep ρ) Y slots)
+renameSlots-remove (skip (skip ρ)) Y slots =
+  cong (nothing Vec.∷_) (renameSlots-remove (skip ρ) Y slots)
+
+fresh-renameSlots : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    {slots : Vec.Vec (Maybe (TyVar Θ)) Δ} {a : TyVar Θ}
+  → a ∉ᵛ slots
+  → a ∉ᵛ renameSlots ρ slots
+fresh-renameSlots {Δ′ = zero} empty {slots = Vec.[]} fresh ()
+fresh-renameSlots {Δ′ = suc Δ′} empty {slots = Vec.[]} fresh zero ()
+fresh-renameSlots {Δ′ = suc Δ′} empty {slots = Vec.[]} fresh (suc Y) =
+  fresh-renameSlots {Δ′ = Δ′} empty {slots = Vec.[]} fresh Y
+fresh-renameSlots (skip ρ) fresh zero ()
+fresh-renameSlots (skip ρ) fresh (suc Y) =
+  fresh-renameSlots ρ fresh Y
+fresh-renameSlots (keep ρ) {slots = slot Vec.∷ slots} fresh zero = fresh zero
+fresh-renameSlots (keep ρ) {slots = slot Vec.∷ slots} fresh (suc Y) =
+  fresh-renameSlots ρ (λ X → fresh (suc X)) Y
+
+-- `RenameTarget` records the same lexical insertion as it moves through the
+-- telescope exposed by a typing derivation.  Begins and ends are transported
+-- at their indexed images; ν entries transport their payloads.  This is the
+-- regular-context analogue of `_≼[_,_]_`, but it changes no anchors.
+
+data RenameTarget : ∀ {Θ Δ Δ′ σ σ′}
+    (ρ : Δ ↪ᵗ Δ′) → TyEnv Θ Δ σ → TyEnv Θ Δ′ σ′ → Set where
+  literal-wk-target : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      ------------------------------------------------
+    → RenameTarget wk↪ᵗ Ψ (Ψ ,typ)
+
+  target-begin : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+      {Y : TyVar (suc Δ)} {a : TyVar Θ}
+      {fresh : a ∉ᵛ σ} {fresh′ : a ∉ᵛ σ′}
+    → RenameTarget ρ Ψ Φ
+      ------------------------------------------------------------
+    → RenameTarget (insert↪ᵗ ρ Y)
+        (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩)
+        (Φ ,begin[
+          toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ a
+        ]⟨ fresh′ ⟩)
+
+  target-typ : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+    → RenameTarget ρ Ψ Φ
+      -----------------------------------------------
+    → RenameTarget (keep ρ) (Ψ ,typ) (Φ ,typ)
+
+  target-ν : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′} {A : Ty Δ}
+    → RenameTarget ρ Ψ Φ
+      --------------------------------------------------
+    → RenameTarget ρ (Ψ ,:= A)
+        (Φ ,:= renameᵗ (toRenameᵗ ρ) A)
+
+  target-end : ∀ {Θ Δ Δ′ σ σ′}
+      {ρ : suc Δ ↪ᵗ suc Δ′}
+      {Ψ : TyEnv Θ (suc Δ) σ} {Φ : TyEnv Θ (suc Δ′) σ′}
+      {Y : TyVar (suc Δ)}
+    → RenameTarget ρ Ψ Φ
+      ------------------------------------------------------------
+    → RenameTarget (delete↪ᵗ ρ Y) (Ψ ,end[ Y ])
+        (Φ ,end[ toRenameᵗ ρ Y ])
+
+renameTarget-slots : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+  → RenameTarget ρ Ψ Φ
+  → σ′ ≡ renameSlots ρ σ
+renameTarget-slots {σ = slots} literal-wk-target =
+  sym (renameSlots-wk slots)
+renameTarget-slots
+    (target-begin {ρ = ρ} {Y = Y} {a = a} target)
+    rewrite renameTarget-slots target =
+  sym (renameSlots-insert ρ Y (just a) _)
+renameTarget-slots (target-typ {ρ = ρ} {Ψ = source} target)
+    rewrite renameTarget-slots target =
+  sym (renameSlots-typ ρ (slotsOf source))
+renameTarget-slots (target-ν {ρ = ρ} {Ψ = source} target)
+    rewrite renameTarget-slots target =
+  sym (renameSlots-anchor-shift ρ (slotsOf source))
+renameTarget-slots
+    (target-end {ρ = ρ} {Ψ = source} {Y = Y} target)
+    rewrite renameTarget-slots target =
+  sym (renameSlots-remove ρ Y (slotsOf source))
+
+fresh-RenameTarget : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′} {a : TyVar Θ}
+  → RenameTarget ρ Ψ Φ
+  → a ∉ᵛ σ
+  → a ∉ᵛ σ′
+fresh-RenameTarget {ρ = ρ} target fresh =
+  subst≡ (λ slots → _ ∉ᵛ slots) (sym (renameTarget-slots target))
+    (fresh-renameSlots ρ fresh)
+
+renameTarget-begin : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+    {Y : TyVar (suc Δ)} {a : TyVar Θ} {fresh : a ∉ᵛ σ}
+  → (target : RenameTarget ρ Ψ Φ)
+  → RenameTarget (insert↪ᵗ ρ Y)
+      (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩)
+      (Φ ,begin[ toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ a
+        ]⟨ fresh-RenameTarget target fresh ⟩)
+renameTarget-begin target = target-begin target
+
+lookup-renameSlots-image : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ) X
+  → Vec.lookup (renameSlots ρ slots) (toRenameᵗ ρ X)
+    ≡ Vec.lookup slots X
+lookup-renameSlots-image empty Vec.[] ()
+lookup-renameSlots-image (skip ρ) slots X =
+  lookup-renameSlots-image ρ slots X
+lookup-renameSlots-image (keep ρ) (slot Vec.∷ slots) zero = refl
+lookup-renameSlots-image (keep ρ) (slot Vec.∷ slots) (suc X) =
+  lookup-renameSlots-image ρ slots X
+
+-- Repointing a birth type is insensitive to lexical slots inserted in its
+-- birth scope, provided the accumulated position route agrees on the old
+-- variables.  Crossing variables are unaffected: their payload transport is
+-- selected by anchor identity in the query telescope.
+repoint?-birth-rename : ∀ {Θ₀ Θ Δ₀ Δ₀′ Δ Δout}
+    (η : Δ₀ ↪ᵗ Δ₀′)
+    (resolve : TyVar Θ → Maybe (Ty Δ))
+    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (birth : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+    (route : TyVar Δ₀ → Maybe (TyVar Δout))
+    (route′ : TyVar Δ₀′ → Maybe (TyVar Δout))
+    (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
+  → (∀ X → route′ (toRenameᵗ η X) ≡ route X)
+  → repoint? resolve target (renameSlots η birth) anchor-map route′
+      live-ren (renameᵗ (toRenameᵗ η) A)
+    ≡ repoint? resolve target birth anchor-map route live-ren A
+repoint?-birth-rename η resolve target birth anchor-map route route′
+    live-ren (＇ X) route-eq
+    rewrite lookup-renameSlots-image η birth X
+    with Vec.lookup birth X
+repoint?-birth-rename η resolve target birth anchor-map route route′
+    live-ren (＇ X) route-eq | nothing
+    rewrite route-eq X = refl
+repoint?-birth-rename η resolve target birth anchor-map route route′
+    live-ren (＇ X) route-eq | just q = refl
+repoint?-birth-rename η resolve target birth anchor-map route route′
+    live-ren (‵ ι) route-eq = refl
+repoint?-birth-rename η resolve target birth anchor-map route route′
+    live-ren ★ route-eq = refl
+repoint?-birth-rename η resolve target birth anchor-map route route′
+    live-ren (A ⇒ B) route-eq =
+  trans (repoint?-arrow resolve target (renameSlots η birth) anchor-map
+      route′ live-ren (renameᵗ (toRenameᵗ η) A)
+      (renameᵗ (toRenameᵗ η) B))
+    (trans (cong₂ _⇒?_
+        (repoint?-birth-rename η resolve target birth anchor-map
+          route route′ live-ren A route-eq)
+        (repoint?-birth-rename η resolve target birth anchor-map
+          route route′ live-ren B route-eq))
+      (sym (repoint?-arrow resolve target birth anchor-map route
+        live-ren A B)))
+repoint?-birth-rename η resolve target birth anchor-map route route′
+    live-ren (`∀ A) route-eq =
+  trans (repoint?-all resolve target (renameSlots η birth) anchor-map
+      route′ live-ren (renameᵗ (extᵗ (toRenameᵗ η)) A))
+    (trans (cong all? body-eq)
+      (sym (repoint?-all resolve target birth anchor-map route live-ren A)))
+  where
+  ext-route-eq : ∀ X
+    → ext-route route′ (toRenameᵗ (keep η) X) ≡ ext-route route X
+  ext-route-eq zero = refl
+  ext-route-eq (suc X) = cong (mapMaybe suc) (route-eq X)
+
+  renamed-body-eq : renameᵗ (toRenameᵗ (keep η)) A
+    ≡ renameᵗ (extᵗ (toRenameᵗ η)) A
+  renamed-body-eq = renameᵗ-cong A (toRename-keep-eq η)
+
+  canonical-body-eq = repoint?-birth-rename (keep η) resolve target
+    (nothing Vec.∷ birth) anchor-map (ext-route route)
+    (ext-route route′) (λ X → suc (live-ren X)) A ext-route-eq
+
+  body-eq = subst≡
+    (λ B → repoint? resolve target
+        (nothing Vec.∷ renameSlots η birth) anchor-map
+        (ext-route route′) (λ X → suc (live-ren X)) B
+      ≡ repoint? resolve target (nothing Vec.∷ birth) anchor-map
+          (ext-route route) (λ X → suc (live-ren X)) A)
+    renamed-body-eq canonical-body-eq
+
+repoint?-outer-RenameTarget : ∀ {Θ₀ Θ Δ₀ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+    (target-rel : RenameTarget ρ Ψ Φ)
+    (source-resolve : TyVar Θ → Maybe (Ty Δ))
+    (target-resolve : TyVar Θ → Maybe (Ty Δ′))
+    (birth : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+    (source-route : TyVar Δ₀ → Maybe (TyVar Δ))
+    (target-route : TyVar Δ₀ → Maybe (TyVar Δ′)) (A : Ty Δ₀)
+  → (∀ q → target-resolve q
+      ≡ mapMaybe (renameᵗ (toRenameᵗ ρ)) (source-resolve q))
+  → (∀ X → target-route X
+      ≡ mapMaybe (toRenameᵗ ρ) (source-route X))
+  → repoint? target-resolve σ′ birth anchor-map target-route
+      (λ X → X) A
+    ≡ mapMaybe (renameᵗ (toRenameᵗ ρ))
+        (repoint? source-resolve σ birth anchor-map source-route
+          (λ X → X) A)
+repoint?-outer-RenameTarget {ρ = ρ} {Ψ = source} {Φ = target}
+    target-rel source-resolve target-resolve
+    birth anchor-map source-route target-route A resolve-eq route-eq =
+  subst≡
+    (λ slots → repoint? target-resolve slots birth anchor-map
+        target-route (λ X → X) A
+      ≡ mapMaybe (renameᵗ (toRenameᵗ ρ))
+          (repoint? source-resolve (slotsOf source) birth anchor-map
+            source-route (λ X → X) A))
+    (sym (renameTarget-slots target-rel)) canonical
+  where
+  mapped-resolve = λ q →
+    mapMaybe (renameᵗ (toRenameᵗ ρ)) (source-resolve q)
+  mapped-route = route-map ρ source-route
+
+  canonical =
+    trans (repoint?-resolve-cong (renameSlots ρ (slotsOf source)) birth
+        anchor-map target-route (λ X → X) A resolve-eq)
+      (trans (repoint?-route-cong mapped-resolve
+          (renameSlots ρ (slotsOf source)) birth anchor-map target-route
+          mapped-route (λ X → X) A route-eq)
+        (repoint?-rename zero ρ source-resolve (slotsOf source) birth
+          anchor-map source-route A))
+
+scanRep?-outer-RenameTarget : ∀ {Θ Θ₀ Δ Δ′ Δ₀ σ σ′ σ₀}
+    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+    (target-rel : RenameTarget ρ Ψ Φ)
+    (source-resolve : TyVar Θ → Maybe (Ty Δ))
+    (target-resolve : TyVar Θ → Maybe (Ty Δ′))
+    (current : TyEnv Θ₀ Δ₀ σ₀)
+    (anchor-map : TyVar Θ₀ → TyVar Θ)
+    (source-route : TyVar Δ₀ → Maybe (TyVar Δ))
+    (target-route : TyVar Δ₀ → Maybe (TyVar Δ′))
+    (a : TyVar Θ₀)
+  → (∀ q → target-resolve q
+      ≡ mapMaybe (renameᵗ (toRenameᵗ ρ)) (source-resolve q))
+  → (∀ X → target-route X
+      ≡ mapMaybe (toRenameᵗ ρ) (source-route X))
+  → scanRep? target-resolve Φ current anchor-map target-route a
+    ≡ mapMaybe (renameᵗ (toRenameᵗ ρ))
+        (scanRep? source-resolve Ψ current anchor-map source-route a)
+scanRep?-outer-RenameTarget target-rel source-resolve target-resolve ∅
+    anchor-map source-route target-route () resolve-eq route-eq
+scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    (current ,begin[ Y ≔ q ]⟨ fresh ⟩) anchor-map source-route
+    target-route a resolve-eq route-eq =
+  scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    current anchor-map (λ X → source-route (punchIn Y X))
+    (λ X → target-route (punchIn Y X)) a resolve-eq
+    (λ X → route-eq (punchIn Y X))
+scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    (current ,typ) anchor-map source-route target-route a
+    resolve-eq route-eq =
+  scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    current anchor-map (λ X → source-route (suc X))
+    (λ X → target-route (suc X)) a resolve-eq
+    (λ X → route-eq (suc X))
+scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    (current ,:= A) anchor-map source-route target-route zero
+    resolve-eq route-eq =
+  repoint?-outer-RenameTarget target-rel source-resolve target-resolve
+    (slotsOf current) anchor-map source-route target-route A
+    resolve-eq route-eq
+scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    (current ,:= A) anchor-map source-route target-route (suc a)
+    resolve-eq route-eq =
+  scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    current (λ q → anchor-map (suc q)) source-route target-route a
+    resolve-eq route-eq
+scanRep?-outer-RenameTarget {ρ = ρ} target-rel source-resolve target-resolve
+    (current ,end[ Y ]) anchor-map source-route target-route a
+    resolve-eq route-eq =
+  scanRep?-outer-RenameTarget target-rel source-resolve target-resolve
+    current anchor-map (route-end Y source-route)
+    (route-end Y target-route) a resolve-eq end-route-eq
+  where
+  end-route-eq : ∀ X
+    → route-end Y target-route X
+      ≡ mapMaybe (toRenameᵗ ρ) (route-end Y source-route X)
+  end-route-eq X with Y ≟ X
+  end-route-eq .Y | yes refl = refl
+  end-route-eq X | no Y≢X = route-eq (punchOut Y X Y≢X)
+
+repoint?-current-RenameTarget : ∀ {Θ₀ Θ Δ₀ Δ₀′ Δ σ₀ σ₀′}
+    {η : Δ₀ ↪ᵗ Δ₀′}
+    {source : TyEnv Θ₀ Δ₀ σ₀} {current : TyEnv Θ₀ Δ₀′ σ₀′}
+    (current-rel : RenameTarget η source current)
+    (resolve : TyVar Θ → Maybe (Ty Δ))
+    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+    (source-route : TyVar Δ₀ → Maybe (TyVar Δ))
+    (target-route : TyVar Δ₀′ → Maybe (TyVar Δ))
+    (A : Ty Δ₀)
+  → (∀ X → target-route (toRenameᵗ η X) ≡ source-route X)
+  → repoint? resolve target σ₀′ anchor-map target-route (λ X → X)
+      (renameᵗ (toRenameᵗ η) A)
+    ≡ repoint? resolve target σ₀ anchor-map source-route (λ X → X) A
+repoint?-current-RenameTarget {η = η} {source = source}
+    current-rel resolve target anchor-map source-route target-route
+    A route-eq =
+  subst≡
+    (λ slots → repoint? resolve target slots anchor-map target-route
+        (λ X → X) (renameᵗ (toRenameᵗ η) A)
+      ≡ repoint? resolve target (slotsOf source) anchor-map source-route
+          (λ X → X) A)
+    (sym (renameTarget-slots current-rel))
+    (repoint?-birth-rename η resolve target (slotsOf source)
+      anchor-map source-route target-route (λ X → X) A route-eq)
+
+route-end-image : ∀ {Δ Δ′ D} (ρ : suc Δ ↪ᵗ suc Δ′)
+    (Y : TyVar (suc Δ))
+    (source-route : TyVar Δ → Maybe (TyVar D))
+    (target-route : TyVar Δ′ → Maybe (TyVar D))
+  → (∀ X → target-route (toRenameᵗ (delete↪ᵗ ρ Y) X)
+      ≡ source-route X)
+  → ∀ X
+  → route-end (toRenameᵗ ρ Y) target-route (toRenameᵗ ρ X)
+    ≡ route-end Y source-route X
+route-end-image ρ Y source-route target-route route-eq X
+    with Y ≟ X | toRenameᵗ ρ Y ≟ toRenameᵗ ρ X
+route-end-image ρ Y source-route target-route route-eq .Y
+    | yes refl | yes refl = refl
+route-end-image ρ Y source-route target-route route-eq .Y
+    | yes refl | no image≢image = ⊥-elim (image≢image refl)
+route-end-image ρ Y source-route target-route route-eq X
+    | no Y≢X | yes image-eq =
+  ⊥-elim (Y≢X (toRename-injective ρ image-eq))
+route-end-image ρ Y source-route target-route route-eq X
+    | no Y≢X | no image-neq =
+  trans (cong target-route deleted-eq)
+    (route-eq (punchOut Y X Y≢X))
+  where
+  reduced = punchOut Y X Y≢X
+  source-rebuild : punchIn Y reduced ≡ X
+  source-rebuild = punchIn-punchOut Y X Y≢X
+
+  deleted-eq : punchOut (toRenameᵗ ρ Y) (toRenameᵗ ρ X) image-neq
+      ≡ toRenameᵗ (delete↪ᵗ ρ Y) reduced
+  deleted-eq = punchIn-injectiveᵗ (toRenameᵗ ρ Y)
+    (trans (punchIn-punchOut (toRenameᵗ ρ Y)
+        (toRenameᵗ ρ X) image-neq)
+      (trans (cong (toRenameᵗ ρ) (sym source-rebuild))
+        (delete-punchIn ρ Y reduced)))
+
+scanRep?-current-RenameTarget : ∀ {Θ Θ₀ Δ Δ₀ Δ₀′ σ σ₀ σ₀′}
+    {η : Δ₀ ↪ᵗ Δ₀′}
+    {source : TyEnv Θ₀ Δ₀ σ₀} {current : TyEnv Θ₀ Δ₀′ σ₀′}
+    (current-rel : RenameTarget η source current)
+    (resolve : TyVar Θ → Maybe (Ty Δ)) (target : TyEnv Θ Δ σ)
+    (anchor-map : TyVar Θ₀ → TyVar Θ)
+    (source-route : TyVar Δ₀ → Maybe (TyVar Δ))
+    (target-route : TyVar Δ₀′ → Maybe (TyVar Δ))
+    (a : TyVar Θ₀)
+  → (∀ X → target-route (toRenameᵗ η X) ≡ source-route X)
+  → scanRep? resolve target current anchor-map target-route a
+    ≡ scanRep? resolve target source anchor-map source-route a
+scanRep?-current-RenameTarget {source = source} literal-wk-target
+    resolve target anchor-map source-route target-route a route-eq =
+  scanRep?-route-cong resolve target source anchor-map
+    (λ X → target-route (suc X)) source-route a adjusted-route
+  where
+  adjusted-route : ∀ X → target-route (suc X) ≡ source-route X
+  adjusted-route X =
+    trans (cong target-route (sym (toRename-wk-eq X))) (route-eq X)
+scanRep?-current-RenameTarget
+    (target-begin {ρ = ρ} {Y = Y} current-rel)
+    resolve target anchor-map source-route target-route a route-eq =
+  scanRep?-current-RenameTarget current-rel resolve target anchor-map
+    (λ X → source-route (punchIn Y X))
+    (λ X → target-route (punchIn target-Y X)) a begin-route
+  where
+  target-Y = toRenameᵗ (insert↪ᵗ ρ Y) Y
+
+  begin-route : ∀ X
+    → target-route (punchIn target-Y (toRenameᵗ ρ X))
+      ≡ source-route (punchIn Y X)
+  begin-route X =
+    trans (cong target-route (sym (insert-punchIn ρ Y X)))
+      (route-eq (punchIn Y X))
+scanRep?-current-RenameTarget (target-typ current-rel)
+    resolve target anchor-map source-route target-route a route-eq =
+  scanRep?-current-RenameTarget current-rel resolve target anchor-map
+    (λ X → source-route (suc X)) (λ X → target-route (suc X))
+    a (λ X → route-eq (suc X))
+scanRep?-current-RenameTarget
+    (target-ν {ρ = ρ} {Ψ = source} {Φ = current} {A = A} current-rel)
+    resolve target anchor-map source-route target-route zero route-eq =
+  repoint?-current-RenameTarget current-rel resolve (slotsOf target)
+    anchor-map source-route target-route A route-eq
+scanRep?-current-RenameTarget
+    (target-ν current-rel) resolve target anchor-map source-route
+    target-route (suc a) route-eq =
+  scanRep?-current-RenameTarget current-rel resolve target
+    (λ q → anchor-map (suc q)) source-route target-route a route-eq
+scanRep?-current-RenameTarget
+    (target-end {ρ = ρ} {Y = Y} current-rel)
+    resolve target anchor-map source-route target-route a route-eq =
+  scanRep?-current-RenameTarget current-rel resolve target anchor-map
+    (route-end Y source-route)
+    (route-end (toRenameᵗ ρ Y) target-route) a
+    (route-end-image ρ Y source-route target-route route-eq)
+
+repFuel?-RenameTarget : ∀ fuel {Θ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+    (target : RenameTarget ρ Ψ Φ) a
+  → repFuel? fuel Φ a
+    ≡ mapMaybe (renameᵗ (toRenameᵗ ρ)) (repFuel? fuel Ψ a)
+repFuel?-RenameTarget zero target a = refl
+repFuel?-RenameTarget (suc fuel) {ρ = ρ} {Ψ = Ψ} {Φ = Φ}
+    target a =
+  trans (scanRep?-current-RenameTarget target (repFuel? fuel Φ) Φ
+      (λ q → q) (route-map ρ (λ X → just X)) (λ X → just X)
+      a (λ X → refl))
+    (scanRep?-outer-RenameTarget target (repFuel? fuel Ψ)
+      (repFuel? fuel Φ) Ψ (λ q → q) (λ X → just X)
+      (route-map ρ (λ X → just X)) a
+      (λ q → repFuel?-RenameTarget fuel target q) (λ X → refl))
+
+rep?-RenameTarget-equation : ∀ {Θ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+    (target : RenameTarget ρ Ψ Φ) a
+  → rep? Φ a
+    ≡ mapMaybe (renameᵗ (toRenameᵗ ρ)) (rep? Ψ a)
+rep?-RenameTarget-equation {Θ = Θ} target a =
+  repFuel?-RenameTarget (Θ ∸ toℕ a) target a
+
+rep?-RenameTarget : ∀ {Θ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′}
+    (target : RenameTarget ρ Ψ Φ) (a : TyVar Θ) {A}
+  → rep? Ψ a ≡ just A
+  → rep? Φ a ≡ just (renameᵗ (toRenameᵗ ρ) A)
+rep?-RenameTarget target a eq =
+  trans (rep?-RenameTarget-equation target a)
+    (cong (mapMaybe (renameᵗ _)) eq)
+
+slot-RenameTarget : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′} {a}
+  → (target : RenameTarget ρ Ψ Φ) (X : TyVar Δ)
+  → Vec.lookup σ X ≡ just a
+  → Vec.lookup σ′ (toRenameᵗ ρ X) ≡ just a
+slot-RenameTarget {ρ = ρ} {Ψ = source} target X lookup-eq =
+  trans (cong (λ target-slots →
+      Vec.lookup target-slots (toRenameᵗ ρ X))
+      (renameTarget-slots target))
+    (trans (lookup-renameSlots-image ρ (slotsOf source) X) lookup-eq)
+
+renameCtx-keep-shift : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    (Γ : TermCtx Δ)
+  → renameCtx (toRenameᵗ (keep ρ)) (renameCtx suc Γ)
+    ≡ renameCtx suc (renameCtx (toRenameᵗ ρ) Γ)
+renameCtx-keep-shift ρ [] = refl
+renameCtx-keep-shift ρ (A ∷ Γ) =
+  cong₂ _∷_
+    (trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq ρ))
+      (renameᵗ-shift (toRenameᵗ ρ) A))
+    (renameCtx-keep-shift ρ Γ)
+
+rename-open↪ᵗ : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
+    (C : Ty (suc Δ)) (A : Ty Δ)
+  → renameᵗ (toRenameᵗ ρ) (C [ A ]ᵗ)
+    ≡ renameᵗ (toRenameᵗ (keep ρ)) C
+        [ renameᵗ (toRenameᵗ ρ) A ]ᵗ
+rename-open↪ᵗ ρ C A =
+  trans (renameᵗ-subst (toRenameᵗ ρ) (singleSubᵗ A) C)
+    (trans (substᵗ-cong C env-eq)
+      (sym (substᵗ-rename
+        (singleSubᵗ (renameᵗ (toRenameᵗ ρ) A))
+        (toRenameᵗ (keep ρ)) C)))
+  where
+  env-eq : ∀ X
+    → renameᵗ (toRenameᵗ ρ) (singleSubᵗ A X)
+      ≡ singleSubᵗ (renameᵗ (toRenameᵗ ρ) A)
+          (toRenameᵗ (keep ρ) X)
+  env-eq zero = refl
+  env-eq (suc X) = refl
+
+------------------------------------------------------------------------
+-- Type-variable renaming preserves typing
+------------------------------------------------------------------------
+
+⊢renameᵗᵐ-target : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → RenameTarget ρ Ψ Φ
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+      ⊢ renameᵗᵐ ρ M ⦂ renameᵗ (toRenameᵗ ρ) A
+⊢renameᵗᵐ-target target (⊢` x∈) = ⊢` (renameᵗ-∋ _ x∈)
+⊢renameᵗᵐ-target target (⊢ƛ M⊢) =
+  ⊢ƛ (⊢renameᵗᵐ-target target M⊢)
+⊢renameᵗᵐ-target target (⊢· L⊢ M⊢) =
+  ⊢· (⊢renameᵗᵐ-target target L⊢)
+    (⊢renameᵗᵐ-target target M⊢)
+⊢renameᵗᵐ-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
+    target (⊢Λ {A = A} M⊢) =
+  ⊢Λ body⊢
+  where
+  renamed-body⊢ = ⊢renameᵗᵐ-target (target-typ target) M⊢
+
+  body-context⊢ = subst≡
+    (λ Γ′ → Φ ,typ ∣ Γ′ ⊢ renameᵗᵐ (keep ρ) _ ⦂ _)
+    (renameCtx-keep-shift ρ Γ) renamed-body⊢
+
+  body⊢ = subst≡
+    (λ B → Φ ,typ ∣ renameCtx suc (renameCtx (toRenameᵗ ρ) Γ)
+      ⊢ renameᵗᵐ (keep ρ) _ ⦂ B)
+    (renameᵗ-cong A (toRename-keep-eq ρ)) body-context⊢
+⊢renameᵗᵐ-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
+    {M = L ⦂∀ C [ A ]} target (⊢⦂∀ L⊢) =
+  subst≡
+    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+      ⊢ renameᵗᵐ ρ L ⦂∀ renameᵗ (toRenameᵗ (keep ρ)) C
+        [ renameᵗ (toRenameᵗ ρ) A ] ⦂ B)
+    (sym (rename-open↪ᵗ ρ C A)) (⊢⦂∀ body⊢)
+  where
+  body-eq = renameᵗ-cong C (toRename-keep-eq ρ)
+  body⊢ = subst≡
+    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+      ⊢ renameᵗᵐ ρ L ⦂ `∀ B)
+    (sym body-eq) (⊢renameᵗᵐ-target target L⊢)
+⊢renameᵗᵐ-target {ρ = ρ} target (⊢$ κ) =
+  subst≡ (λ A → _ ∣ _ ⊢ $ κ ⦂ A)
+    (constTy-renameᵗ (toRenameᵗ ρ) κ) (⊢$ κ)
+⊢renameᵗᵐ-target target (⊢⊕ addℕ L⊢ M⊢) =
+  ⊢⊕ addℕ (⊢renameᵗᵐ-target target L⊢)
+    (⊢renameᵗᵐ-target target M⊢)
+⊢renameᵗᵐ-target target (⊢⊕ and𝔹 L⊢ M⊢) =
+  ⊢⊕ and𝔹 (⊢renameᵗᵐ-target target L⊢)
+    (⊢renameᵗᵐ-target target M⊢)
+⊢renameᵗᵐ-target {ρ = ρ} target (⊢⟨⟩ M⊢ c) =
+  ⊢⟨⟩ (⊢renameᵗᵐ-target target M⊢) (renameᵐᶜ ρ c)
+⊢renameᵗᵐ-target target (⊢ν M⊢) =
+  ⊢ν (⊢renameᵗᵐ-target (target-ν target) M⊢)
+⊢renameᵗᵐ-target {ρ = ρ} {Φ = Φ} target
+    (⊢reveal {A = A} {B = B} {C = C} {Y = Y} {α = α}
+      {fresh = fresh} α-eq c⊢ M⊢) =
+  ⊢reveal (rep?-RenameTarget target α α-eq) conversion⊢ body⊢
+  where
+  ρ⁺ = insert↪ᵗ ρ Y
+  Y′ = toRenameᵗ ρ⁺ Y
+
+  body⊢ = ⊢renameᵗᵐ-target (renameTarget-begin target) M⊢
+
+  conversion-representation⊢ = subst≡
+    (λ R → ⊢↑[ Y′ ⦂ R ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) A
+      ↝ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y B))
+    (rename-insert-wk ρ Y C)
+    (rename-⊢↑ (toRenameᵗ ρ⁺) c⊢)
+
+  conversion⊢ = subst≡
+    (λ B′ → ⊢↑[ Y′
+        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ ρ) C) ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) A ↝ B′)
+    (rename-insert-wk ρ Y B) conversion-representation⊢
+⊢renameᵗᵐ-target {ρ = ρ⁺@(keep ρ)} target
+    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
+      slot-eq α-eq c⊢ M⊢) =
+  ⊢conceal target-slot target-rep conversion⊢ body⊢
+  where
+  deleted = delete↪ᵗ ρ⁺ Y
+  Y′ = toRenameᵗ ρ⁺ Y
+  ended-target = target-end target
+
+  target-slot = slot-RenameTarget target Y slot-eq
+  target-rep = rep?-RenameTarget ended-target α α-eq
+  body⊢ = ⊢renameᵗᵐ-target ended-target M⊢
+
+  conversion-representation⊢ = subst≡
+    (λ R → ⊢↓[ Y′ ⦂ R ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
+      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y C)
+    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
+
+  conversion⊢ = subst≡
+    (λ A′ → ⊢↓[ Y′
+        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
+      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
+⊢renameᵗᵐ-target {ρ = ρ⁺@(skip ρ)} target
+    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
+      slot-eq α-eq c⊢ M⊢) =
+  ⊢conceal target-slot target-rep conversion⊢ body⊢
+  where
+  deleted = delete↪ᵗ ρ⁺ Y
+  Y′ = toRenameᵗ ρ⁺ Y
+  ended-target = target-end target
+
+  target-slot = slot-RenameTarget target Y slot-eq
+  target-rep = rep?-RenameTarget ended-target α α-eq
+  body⊢ = ⊢renameᵗᵐ-target ended-target M⊢
+
+  conversion-representation⊢ = subst≡
+    (λ R → ⊢↓[ Y′ ⦂ R ] _
+      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
+      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y C)
+    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
+
+  conversion⊢ = subst≡
+    (λ A′ → ⊢↓[ Y′
+        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
+      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
+    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
+⊢renameᵗᵐ-target target ⊢blame = ⊢blame
+
+------------------------------------------------------------------------
+-- Literal regular-context weakening at zero
+------------------------------------------------------------------------
+
+⊢weakenᵗᵐ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Ψ ,typ ∣ renameCtx suc Γ
+      ⊢ weakenᵗᵐ zero M ⦂ ⇑ᵗ A
+⊢weakenᵗᵐ {Ψ = Ψ} {Γ = Γ} {M = M} {A = A} M⊢ =
+  subst≡
+    (λ B → Ψ ,typ ∣ renameCtx suc Γ
+      ⊢ weakenᵗᵐ zero M ⦂ B)
+    (renameᵗ-wk-eq A)
+    (subst≡
+      (λ Γ′ → Ψ ,typ ∣ Γ′
+        ⊢ weakenᵗᵐ zero M ⦂ renameᵗ (toRenameᵗ wk↪ᵗ) A)
+      (renameCtx-wk-eq Γ)
+      (⊢renameᵗᵐ-target literal-wk-target M⊢))
+
+------------------------------------------------------------------------
+-- Parallel and single term substitution
+------------------------------------------------------------------------
+
+exts-∋ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Δ}
+    {environment : Subst Θ Δ} {A : Ty Δ}
+  → (∀ {x B} → Γ ∋ x ⦂ B → Ψ ∣ Γ′ ⊢ environment x ⦂ B)
+  → ∀ {x B}
+  → A ∷ Γ ∋ x ⦂ B
+  → Ψ ∣ A ∷ Γ′ ⊢ exts environment x ⦂ B
+exts-∋ environment⊢ Z = ⊢` Z
+exts-∋ environment⊢ (S x∈) = ⊢rename-suc (environment⊢ x∈)
+
+liftˢ-∋ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Δ}
+    {environment : Subst Θ Δ}
+  → (∀ {x A} → Γ ∋ x ⦂ A → Ψ ∣ Γ′ ⊢ environment x ⦂ A)
+  → ∀ {x A}
+  → renameCtx suc Γ ∋ x ⦂ A
+  → Ψ ,typ ∣ renameCtx suc Γ′ ⊢ liftˢ environment x ⦂ A
+liftˢ-∋ environment⊢ x∈ with lookup-renameCtx-inv x∈
+liftˢ-∋ environment⊢ x∈ | B , B∈ , refl =
+  ⊢weakenᵗᵐ (environment⊢ B∈)
+
+⊢subst : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Δ}
+    {environment : Subst Θ Δ} {M : Term Θ Δ} {A : Ty Δ}
+  → (∀ {x B} → Γ ∋ x ⦂ B → Ψ ∣ Γ′ ⊢ environment x ⦂ B)
+  → Ψ ∣ Γ ⊢ M ⦂ A
+    --------------------------
+  → Ψ ∣ Γ′ ⊢ subst environment M ⦂ A
+⊢subst environment⊢ (⊢` x∈) = environment⊢ x∈
+⊢subst environment⊢ (⊢ƛ M⊢) =
+  ⊢ƛ (⊢subst (exts-∋ environment⊢) M⊢)
+⊢subst environment⊢ (⊢· L⊢ M⊢) =
+  ⊢· (⊢subst environment⊢ L⊢) (⊢subst environment⊢ M⊢)
+⊢subst environment⊢ (⊢Λ M⊢) =
+  ⊢Λ (⊢subst (liftˢ-∋ environment⊢) M⊢)
+⊢subst environment⊢ (⊢⦂∀ L⊢) = ⊢⦂∀ (⊢subst environment⊢ L⊢)
+⊢subst environment⊢ (⊢$ κ) = ⊢$ κ
+⊢subst environment⊢ (⊢⊕ op L⊢ M⊢) =
+  ⊢⊕ op (⊢subst environment⊢ L⊢) (⊢subst environment⊢ M⊢)
+⊢subst environment⊢ (⊢⟨⟩ M⊢ c) = ⊢⟨⟩ (⊢subst environment⊢ M⊢) c
+⊢subst environment⊢ (⊢ν M⊢) = ⊢ν M⊢
+⊢subst environment⊢ (⊢reveal α-eq c⊢ M⊢) =
+  ⊢reveal α-eq c⊢ M⊢
+⊢subst environment⊢ (⊢conceal slot-eq α-eq c⊢ M⊢) =
+  ⊢conceal slot-eq α-eq c⊢ M⊢
+⊢subst environment⊢ ⊢blame = ⊢blame
+
+⊢[] : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Δ}
+    {M N : Term Θ Δ} {A B : Ty Δ}
+  → Ψ ∣ A ∷ Γ ⊢ M ⦂ B
+  → Ψ ∣ Γ ⊢ N ⦂ A
+    ---------------------
+  → Ψ ∣ Γ ⊢ M [ N ] ⦂ B
+⊢[] {Ψ = Ψ} {Γ = Γ} {N = N} {A = A} M⊢ N⊢ =
+  ⊢subst single⊢ M⊢
+  where
+  single⊢ : ∀ {x C}
+    → A ∷ Γ ∋ x ⦂ C
+    → Ψ ∣ Γ ⊢ singleSub N x ⦂ C
+  single⊢ Z = N⊢
+  single⊢ (S x∈) = ⊢` x∈

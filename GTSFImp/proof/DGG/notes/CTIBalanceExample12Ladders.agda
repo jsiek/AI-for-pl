@@ -56,6 +56,7 @@ checkpoint₁-second-reveal-ladder =
 checkpoint₁-second-reveal-ladder-pinned :
   checkpoint₁-second-reveal-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: ─ ⊑[X⊑★] X′↦＇Y′ │ Z: X↦＇X ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ Y′]\n" ++
     "source term  A        ηᴸA      ⊑ costs                       ηᴿB      B          target term\n" ++
     "───────────  ───────  ───────  ────────────────────────────  ───────  ─────────  ───────────────────\n" ++
     "─            (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase  (Z ⇒ Z)  (Y′ ⇒ Y′)  □ ↑ unseal X′ ⇒-rev\n" ++
@@ -71,6 +72,7 @@ checkpoint₁₂-beta-conceal-ladder =
 checkpoint₁₂-beta-conceal-ladder-pinned :
   checkpoint₁₂-beta-conceal-ladder ≡
     "⟨X: ─ ⊑[X⊑★] X′↦ℕ │ Y: X↦ℕ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ Y′, X ↔ Z′]\n" ++
     "source term  A  ηᴸA  ⊑ costs                          ηᴿB  B   target term\n" ++
     "───────────  ─  ───  ───────────────────────────────  ───  ──  ───────────\n" ++
     "─            X  Y    Y ≈ Y + source rebase            Y    Y′  □ ↓ seal Y′\n" ++

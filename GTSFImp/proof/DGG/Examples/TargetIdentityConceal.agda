@@ -3430,6 +3430,7 @@ checkpoint₉-ladder-pinned = refl
 checkpoint₁₀-ladder-pinned :
   checkpoint₁₀-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ Z: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ X′]\n" ++
     "source term                A        ηᴸA      ⊑ costs                               ηᴿB      B         target term\n" ++
     "─────────────────────────  ───────  ───────  ────────────────────────────────────  ───────  ────────  ─────────────────────────\n" ++
     "□₁ · □₂                    ℕ        ℕ        ℕ⊑ℕ                                   ℕ        ℕ         □₁ · □₂\n" ++

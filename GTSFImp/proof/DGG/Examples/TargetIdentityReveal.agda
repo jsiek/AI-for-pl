@@ -1821,6 +1821,7 @@ checkpoint₈-ladder = impLadderDefault checkpoint₈-imprecision
 checkpoint₈-ladder-pinned :
   checkpoint₈-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ Z: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ X′]\n" ++
     "source term     A        ηᴸA      ⊑ costs                          ηᴿB      B        target term\n" ++
     "──────────────  ───────  ───────  ───────────────────────────────  ───────  ───────  ───────────────\n" ++
     "□₁ · □₂         ℕ        ℕ        ℕ⊑ℕ                              ℕ        ℕ        □₁ · □₂\n" ++
@@ -1889,6 +1890,7 @@ checkpoint₉-ladder = impLadderDefault checkpoint₉-imprecision
 checkpoint₉-ladder-pinned :
   checkpoint₉-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ Z: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ X′]\n" ++
     "source term   A        ηᴸA      ⊑ costs                          ηᴿB      B        target term\n" ++
     "────────────  ───────  ───────  ───────────────────────────────  ───────  ───────  ─────────────\n" ++
     "□₁ · □₂       ℕ        ℕ        ℕ⊑ℕ                              ℕ        ℕ        □₁ · □₂\n" ++
@@ -1933,6 +1935,7 @@ checkpoint₁₀-ladder = impLadderDefault checkpoint₁₀-imprecision
 checkpoint₁₀-ladder-pinned :
   checkpoint₁₀-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ Z: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ X′]\n" ++
     "source term   A        ηᴸA      ⊑ costs                          ηᴿB      B        target term\n" ++
     "────────────  ───────  ───────  ───────────────────────────────  ───────  ───────  ─────────────\n" ++
     "□₁ · □₂       ℕ        ℕ        ℕ⊑ℕ                              ℕ        ℕ        □₁ · □₂\n" ++
@@ -1966,6 +1969,7 @@ checkpoint₁₁-ladder = impLadderDefault checkpoint₁₁-imprecision
 checkpoint₁₁-ladder-pinned :
   checkpoint₁₁-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ Z: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ X′]\n" ++
     "source term   A        ηᴸA      ⊑ costs                          ηᴿB      B        target term\n" ++
     "────────────  ───────  ───────  ───────────────────────────────  ───────  ───────  ─────────────\n" ++
     "□₁ · □₂       ℕ        ℕ        ℕ⊑ℕ                              ℕ        ℕ        □₁ · □₂\n" ++
@@ -1993,6 +1997,7 @@ checkpoint₁₂-ladder = impLadderDefault checkpoint₁₂-imprecision
 checkpoint₁₂-ladder-pinned :
   checkpoint₁₂-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ Z: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ X′]\n" ++
     "source term  A        ηᴸA      ⊑ costs   ηᴿB      B        target term\n" ++
     "───────────  ───────  ───────  ────────  ───────  ───────  ───────────\n" ++
     "□₁ · □₂      ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        □₁ · □₂\n" ++
@@ -2012,6 +2017,7 @@ checkpoint₁₃-ladder = impLadderDefault checkpoint₁₃-imprecision
 checkpoint₁₃-ladder-pinned :
   checkpoint₁₃-ladder ≡
     "⟨X: ─ ⊑[X⊑★] ─ │ Y: X↦ℕ ⊑[X⊑★] X′↦＇Y′ │ Z: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
+    "openFramesᶜ γ = [X ↔ X′]\n" ++
     "source term  A  ηᴸA  ⊑ costs  ηᴿB  B  target term\n" ++
     "───────────  ─  ───  ───────  ───  ─  ───────────\n" ++
     "blame        ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  blame"

@@ -4,6 +4,8 @@ module proof.DGG.WorldSnapshot where
 --   * Renders DGG worlds as canonical one-line snapshots for proof notes.
 --   * Shows each center variable's endpoint pivots, direct store entries, and
 --     imprecision mark in center order.
+--   * Renders a nonempty derived open-frame stack as a separate optional line
+--     using the same endpoint name supplies.
 --   * Exports `defaultName` for unprimed source/center type variables and
 --     `defaultNameᵗ` for primed target type variables.
 --   * Names generated type binders with the first canonical `X`, `Y`, `Z`,
@@ -177,6 +179,36 @@ worldSnapshot nameᴸ nameᴿ W nameᶜ =
     (map (worldCell nameᴸ nameᴿ W nameᶜ)
       (centerVars (centerᶜ W))) ++
   "⟩"
+
+showOpenFrame : ∀ {Δᴸ Δᴿ}
+  → (TyVar Δᴸ → String)
+  → (TyVar Δᴿ → String)
+  → RebaseFrameᶜ Δᴸ Δᴿ
+  → String
+showOpenFrame nameᴸ nameᴿ (Xᴸ ↔ᶜ Xᴿ) =
+  nameᴸ Xᴸ ++ " ↔ " ++ nameᴿ Xᴿ
+
+showOpenFrames : ∀ {Δᴸ Δᴿ}
+  → (TyVar Δᴸ → String)
+  → (TyVar Δᴿ → String)
+  → OpenFramesᶜ Δᴸ Δᴿ
+  → String
+showOpenFrames nameᴸ nameᴿ [] = ""
+showOpenFrames nameᴸ nameᴿ (frame ∷ []) =
+  showOpenFrame nameᴸ nameᴿ frame
+showOpenFrames nameᴸ nameᴿ (frame ∷ next ∷ frames) =
+  showOpenFrame nameᴸ nameᴿ frame ++ ", " ++
+    showOpenFrames nameᴸ nameᴿ (next ∷ frames)
+
+openFramesLine : ∀ {Δᴸ Δᴿ}
+  → (TyVar Δᴸ → String)
+  → (TyVar Δᴿ → String)
+  → OpenFramesᶜ Δᴸ Δᴿ
+  → String
+openFramesLine nameᴸ nameᴿ [] = ""
+openFramesLine nameᴸ nameᴿ (frame ∷ frames) =
+  "\nopenFramesᶜ γ = [" ++
+    showOpenFrames nameᴸ nameᴿ (frame ∷ frames) ++ "]"
 
 defaultName : ∀ {Δ} → TyVar Δ → String
 defaultName X = canonicalTyName (Fin.toℕ X)

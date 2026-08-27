@@ -3,6 +3,8 @@ module proof.DGG.ImpLadder where
 -- File Charter:
 --   * Renders a typed cast-term-imprecision derivation as an outside-in,
 --     seven-column ladder, preceded by its world snapshot.
+--   * Prints the conclusion world's nonempty derived open-frame stack between
+--     the snapshot and table, using the endpoint type-name supplies.
 --   * Shows only the syntax contributed by each derivation node; `□` marks a
 --     child and `─` marks a silent side of a one-sided rule.
 --   * Applies application and primitive branch guides symmetrically to the
@@ -607,7 +609,8 @@ impLadder : TyNameSupply → TyNameSupply → TyNameSupply → (Var → String)
   → W ⊢² M ⊑ M′ ∶ p
   → String
 impLadder nameᴸ nameᴿ nameᶜ xName {W = W} derivation =
-  Snapshot.worldSnapshot nameᴸ nameᴿ W nameᶜ ++ "\n" ++
+  Snapshot.worldSnapshot nameᴸ nameᴿ W nameᶜ ++
+  Snapshot.openFramesLine nameᴸ nameᴿ (openFramesᶜ W) ++ "\n" ++
   renderTable
     (ladderRows nameᴸ nameᴿ nameᶜ zero (centerᶜ W) xName "" "" derivation)
 

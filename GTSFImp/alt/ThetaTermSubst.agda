@@ -1132,6 +1132,129 @@ rep?-ν : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {B : Ty Δ}
 rep?-ν {Θ = Θ} {Ψ = Ψ} {B = B} {a = a} eq =
   trans (repFuel?-ν (Θ ∸ toℕ a) Ψ B a) eq
 
+slotsOf : ∀ {Θ Δ σ} → TyEnv Θ Δ σ
+  → Vec.Vec (Maybe (TyVar Θ)) Δ
+slotsOf {σ = σ} Ψ = σ
+
+fresh-zero-map-suc : ∀ {Θ Δ}
+    {slots : Vec.Vec (Maybe (TyVar Θ)) Δ}
+  → zero ∉ᵛ mapᵛ (mapMaybe suc) slots
+fresh-zero-map-suc {slots = Vec.[]} ()
+fresh-zero-map-suc {slots = nothing Vec.∷ slots} zero ()
+fresh-zero-map-suc {slots = just a Vec.∷ slots} zero ()
+fresh-zero-map-suc {slots = head Vec.∷ slots} (suc Y) eq =
+  fresh-zero-map-suc {slots = slots} Y eq
+
+liveSlot?-allocate : ∀ {Θ Δ}
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ) (a : TyVar Θ)
+  → liveSlot?
+      (just zero Vec.∷ mapᵛ (mapMaybe suc) slots) (suc a)
+    ≡ liveSlot? (nothing Vec.∷ slots) a
+liveSlot?-allocate slots a with suc a ≟ zero
+liveSlot?-allocate slots a | yes ()
+liveSlot?-allocate slots a | no _ rewrite liveSlot?-shift slots a = refl
+
+aliasResult?-allocate : ∀ {Θ Δ Δout}
+    (old : TyVar Θ → Maybe (Ty (suc Δ)))
+    (new : TyVar (suc Θ) → Maybe (Ty (suc Δ)))
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (live-ren : TyVar (suc Δ) → TyVar Δout) (a : TyVar Θ)
+  → (∀ q → new (suc q) ≡ old q)
+  → aliasResult? new
+      (just zero Vec.∷ mapᵛ (mapMaybe suc) slots) live-ren (suc a)
+    ≡ aliasResult? old (nothing Vec.∷ slots) live-ren a
+aliasResult?-allocate old new slots live-ren a eq
+    rewrite liveSlot?-allocate slots a
+    with liveSlot? (nothing Vec.∷ slots) a
+aliasResult?-allocate old new slots live-ren a eq | just Y = refl
+aliasResult?-allocate old new slots live-ren a eq | nothing
+    rewrite eq a = refl
+
+repoint?-allocate : ∀ {Θ₀ Θ Δ₀ Δ Δout}
+    (old : TyVar Θ → Maybe (Ty (suc Δ)))
+    (new : TyVar (suc Θ) → Maybe (Ty (suc Δ)))
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (birth : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+    (route : TyVar Δ₀ → Maybe (TyVar Δout))
+    (live-ren : TyVar (suc Δ) → TyVar Δout) (A : Ty Δ₀)
+  → (∀ q → new (suc q) ≡ old q)
+  → repoint? new (just zero Vec.∷ mapᵛ (mapMaybe suc) slots) birth
+      (λ q → suc (anchor-map q)) route live-ren A
+    ≡ repoint? old (nothing Vec.∷ slots) birth anchor-map route live-ren A
+repoint?-allocate old new slots birth anchor-map route live-ren (＇ X) eq
+    with Vec.lookup birth X
+repoint?-allocate old new slots birth anchor-map route live-ren (＇ X) eq
+    | nothing = refl
+repoint?-allocate old new slots birth anchor-map route live-ren (＇ X) eq
+    | just q = aliasResult?-allocate old new slots live-ren
+      (anchor-map (suc q)) eq
+repoint?-allocate old new slots birth anchor-map route live-ren (‵ ι) eq = refl
+repoint?-allocate old new slots birth anchor-map route live-ren ★ eq = refl
+repoint?-allocate old new slots birth anchor-map route live-ren (A ⇒ B) eq =
+  trans (repoint?-arrow _ _ _ _ _ _ A B)
+    (trans (cong₂ _⇒?_
+        (repoint?-allocate old new slots birth anchor-map route live-ren A eq)
+        (repoint?-allocate old new slots birth anchor-map route live-ren B eq))
+      (sym (repoint?-arrow _ _ _ _ _ _ A B)))
+repoint?-allocate old new slots birth anchor-map route live-ren (`∀ A) eq =
+  trans (repoint?-all _ _ _ _ _ _ A)
+    (trans (cong all?
+        (repoint?-allocate old new slots (nothing Vec.∷ birth)
+          anchor-map (ext-route route) (λ X → suc (live-ren X)) A eq))
+      (sym (repoint?-all _ _ _ _ _ _ A)))
+
+scanRep?-allocate : ∀ {Θ Δ σ Θ₀ Δ₀ σ₀}
+    (old : TyVar Θ → Maybe (Ty (suc Δ)))
+    (new : TyVar (suc Θ) → Maybe (Ty (suc Δ)))
+    (target : TyEnv Θ Δ σ) (current : TyEnv Θ₀ Δ₀ σ₀)
+    (anchor-map : TyVar Θ₀ → TyVar Θ)
+    (route : TyVar Δ₀ → Maybe (TyVar (suc Δ))) (a : TyVar Θ₀)
+  → (∀ q → new (suc q) ≡ old q)
+  → scanRep? new
+      ((target ,:= ‵ `ℕ)
+        ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩)
+      current (λ q → suc (anchor-map q)) route a
+    ≡ scanRep? old (target ,typ) current anchor-map route a
+scanRep?-allocate old new target ∅ anchor-map route () eq
+scanRep?-allocate old new target
+    (Ψ ,begin[ Y ≔ q ]⟨ fresh ⟩) anchor-map route a eq =
+  scanRep?-allocate old new target Ψ anchor-map
+    (λ X → route (punchIn Y X)) a eq
+scanRep?-allocate old new target (Ψ ,typ) anchor-map route a eq =
+  scanRep?-allocate old new target Ψ anchor-map (λ X → route (suc X)) a eq
+scanRep?-allocate old new target (Ψ ,:= A) anchor-map route zero eq =
+  repoint?-allocate old new (slotsOf target) (slotsOf Ψ) anchor-map route
+    (λ X → X) A eq
+scanRep?-allocate old new target (Ψ ,:= A) anchor-map route (suc a) eq =
+  scanRep?-allocate old new target Ψ (λ q → anchor-map (suc q)) route a eq
+scanRep?-allocate old new target (Ψ ,end[ Y ]) anchor-map route a eq =
+  scanRep?-allocate old new target Ψ anchor-map (route-end Y route) a eq
+
+repFuel?-allocate : ∀ fuel {Θ Δ σ} (Ψ : TyEnv Θ Δ σ)
+    (C : Ty Δ) (a : TyVar Θ)
+  → repFuel? fuel
+      ((Ψ ,:= C)
+        ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩) (suc a)
+    ≡ repFuel? fuel (Ψ ,typ) a
+repFuel?-allocate zero Ψ C a = refl
+repFuel?-allocate (suc fuel) {σ = σ} Ψ C a =
+  scanRep?-allocate (repFuel? fuel (Ψ ,typ))
+    (repFuel? fuel
+      ((Ψ ,:= C)
+        ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩))
+    Ψ Ψ (λ q → q) (λ X → just (suc X)) a
+    (repFuel?-allocate fuel Ψ C)
+
+rep?-allocate : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {C : Ty Δ}
+    (a : TyVar Θ)
+  → rep? ((Ψ ,:= C)
+      ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩)
+      (suc a)
+    ≡ rep? (Ψ ,typ) a
+rep?-allocate {Θ = Θ} {Ψ = Ψ} {C = C} a =
+  repFuel?-allocate (Θ ∸ toℕ a) Ψ C a
+
 ------------------------------------------------------------------------
 -- Evaluator transport through an end/re-begin pair
 ------------------------------------------------------------------------
@@ -1516,9 +1639,153 @@ shifted-along : ∀ {Θ Θ′ Δ Δ′ σ σ′ k}
 shifted-along extension shifted =
   shifted-unique shifted (shiftAlong-shifted extension _)
 
-slotsOf : ∀ {Θ Δ σ} → TyEnv Θ Δ σ
+lexSlots : ∀ {Θ Δ} (n : TyCtx)
   → Vec.Vec (Maybe (TyVar Θ)) Δ
-slotsOf {σ = σ} Ψ = σ
+  → Vec.Vec (Maybe (TyVar Θ)) (n + Δ)
+lexSlots zero slots = slots
+lexSlots (suc n) slots = nothing Vec.∷ lexSlots n slots
+
+lexSlots-just : ∀ {Θ Δ} (n : TyCtx)
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ) {X q}
+  → Vec.lookup (lexSlots n slots) X ≡ just q
+  → ∃[ Y ] (X ≡ raise n Y × Vec.lookup slots Y ≡ just q)
+lexSlots-just zero slots {X = X} eq = X , refl , eq
+lexSlots-just (suc n) slots {X = zero} ()
+lexSlots-just (suc n) slots {X = suc X} eq
+    with lexSlots-just n slots eq
+lexSlots-just (suc n) slots {X = suc .(raise n Y)} eq
+    | Y , refl , lookup-eq = Y , refl , lookup-eq
+
+ext-route-id : ∀ {Δ} (X : TyVar (suc Δ))
+  → ext-route (λ Y → just Y) X ≡ just X
+ext-route-id zero = refl
+ext-route-id (suc X) = refl
+
+-- Reading the freshly appended ν itself returns its birth payload.  Under a
+-- type binder, `lexSlots` and `raise` keep the same statement structural.
+repoint?-newest : ∀ {Θ Δ σ} (n : TyCtx) (Ψ : TyEnv Θ Δ σ)
+    (resolve : TyVar (suc Θ) → Maybe (Ty Δ))
+    (A : Ty (n + Δ))
+  → repoint? resolve (mapᵛ (mapMaybe suc) σ) (lexSlots n σ)
+      (λ q → q) (λ X → just X) (raise n) A
+    ≡ just A
+repoint?-newest {σ = σ} n Ψ resolve (＇ X)
+    with Vec.lookup (lexSlots n σ) X in lookup-eq
+repoint?-newest {σ = σ} n Ψ resolve (＇ X) | nothing = refl
+repoint?-newest {σ = σ} n Ψ resolve (＇ X) | just q
+    with lexSlots-just n σ lookup-eq
+repoint?-newest {σ = σ} n Ψ resolve (＇ .(raise n Y)) | just q
+    | Y , refl , source-eq
+    rewrite liveSlot?-shift σ q
+          | liveSlot?-complete σ (aliases-unique Ψ) source-eq = refl
+repoint?-newest n Ψ resolve (‵ ι) = refl
+repoint?-newest n Ψ resolve ★ = refl
+repoint?-newest n Ψ resolve (A ⇒ B) =
+  trans (repoint?-arrow _ _ _ _ _ _ A B)
+    (trans (cong₂ _⇒?_
+        (repoint?-newest n Ψ resolve A)
+        (repoint?-newest n Ψ resolve B)) refl)
+repoint?-newest n Ψ resolve (`∀ A) =
+  trans (repoint?-all _ _ _ _ _ _ A)
+    (cong all?
+      (trans (repoint?-route-cong resolve _ _ (λ q → q)
+          (ext-route (λ X → just X)) (λ X → just X)
+          (raise (suc n)) A ext-route-id)
+        (repoint?-newest (suc n) Ψ resolve A)))
+
+rep?-here : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {A : Ty Δ}
+  → rep? (Ψ ,:= A) zero ≡ just A
+rep?-here {Θ = Θ} {Ψ = Ψ} {A = A} =
+  repoint?-newest zero Ψ (repFuel? Θ (Ψ ,:= A)) A
+
+insertUnder : ∀ {Δ} (n : TyCtx) (X : TyVar (suc Δ))
+  → TyVar (n + Δ) → TyVar (n + suc Δ)
+insertUnder zero X Y = punchIn X Y
+insertUnder (suc n) X zero = zero
+insertUnder (suc n) X (suc Y) = suc (insertUnder n X Y)
+
+raise-punch : ∀ {Δ} (n : TyCtx) (X : TyVar (suc Δ)) (Y : TyVar Δ)
+  → raise n (punchIn X Y) ≡ insertUnder n X (raise n Y)
+raise-punch zero X Y = refl
+raise-punch (suc n) X Y = cong suc (raise-punch n X Y)
+
+ext-route-insertUnder : ∀ {Δ} (n : TyCtx) (X : TyVar (suc Δ))
+    (Y : TyVar (suc (n + Δ)))
+  → ext-route (λ Z → just (insertUnder n X Z)) Y
+    ≡ just (insertUnder (suc n) X Y)
+ext-route-insertUnder n X zero = refl
+ext-route-insertUnder n X (suc Y) = refl
+
+ext-insertUnder : ∀ {Δ} (n : TyCtx) (X : TyVar (suc Δ))
+    (Y : TyVar (suc (n + Δ)))
+  → extᵗ (insertUnder n X) Y ≡ insertUnder (suc n) X Y
+ext-insertUnder n X zero = refl
+ext-insertUnder n X (suc Y) = refl
+
+newest-begin-target-lookup : ∀ {Θ Δ}
+    (σ : Vec.Vec (Maybe (TyVar Θ)) Δ) (X : TyVar (suc Δ))
+    (b : TyVar (suc Θ)) {Y q}
+  → Vec.lookup σ Y ≡ just q
+  → Vec.lookup (insertᵛ X (just b) (mapᵛ (mapMaybe suc) σ))
+      (punchIn X Y) ≡ just (suc q)
+newest-begin-target-lookup σ X b {Y = Y} source-eq =
+  trans (lookup-insert-punch X (just b) (mapᵛ (mapMaybe suc) σ) Y)
+    (trans (lookup-mapᵛ (mapMaybe suc) σ Y)
+      (cong (mapMaybe suc) source-eq))
+
+-- A begin for an anchor fresh at the new ν's birth acts on that ν's payload
+-- as the corresponding regular insertion.  This is the exact evaluator fact
+-- used when a boundary rule crosses a freshly allocated representation.
+repoint?-newest-begin : ∀ {Θ Δ σ} (n : TyCtx)
+    (Ψ : TyEnv Θ Δ σ) (C : Ty Δ) (X : TyVar (suc Δ))
+    (b : TyVar (suc Θ)) (fresh : b ∉ᵛ mapᵛ (mapMaybe suc) σ)
+    (resolve : TyVar (suc Θ) → Maybe (Ty (suc Δ)))
+    (A : Ty (n + Δ))
+  → repoint? resolve
+      (insertᵛ X (just b) (mapᵛ (mapMaybe suc) σ))
+      (lexSlots n σ) (λ q → q)
+      (λ Y → just (insertUnder n X Y)) (raise n) A
+    ≡ just (renameᵗ (insertUnder n X) A)
+repoint?-newest-begin {σ = σ} n Ψ C X b fresh resolve (＇ Y)
+    with Vec.lookup (lexSlots n σ) Y in lookup-eq
+repoint?-newest-begin n Ψ C X b fresh resolve (＇ Y) | nothing = refl
+repoint?-newest-begin {σ = σ} n Ψ C X b fresh resolve (＇ Y)
+    | just q with lexSlots-just n σ lookup-eq
+repoint?-newest-begin {σ = σ} n Ψ C X b fresh resolve
+    (＇ .(raise n z)) | just q | z , refl , source-eq
+    rewrite liveSlot?-complete
+      (insertᵛ X (just b) (mapᵛ (mapMaybe suc) σ))
+      (aliases-unique ((Ψ ,:= C) ,begin[ X ≔ b ]⟨ fresh ⟩))
+      (newest-begin-target-lookup σ X b source-eq)
+    | raise-punch n X z = refl
+repoint?-newest-begin n Ψ C X b fresh resolve (‵ ι) = refl
+repoint?-newest-begin n Ψ C X b fresh resolve ★ = refl
+repoint?-newest-begin n Ψ C X b fresh resolve (A ⇒ B) =
+  trans (repoint?-arrow _ _ _ _ _ _ A B)
+    (trans (cong₂ _⇒?_
+        (repoint?-newest-begin n Ψ C X b fresh resolve A)
+        (repoint?-newest-begin n Ψ C X b fresh resolve B)) refl)
+repoint?-newest-begin n Ψ C X b fresh resolve (`∀ A) =
+  trans (repoint?-all _ _ _ _ _ _ A)
+    (trans (cong all?
+        (repoint?-route-cong resolve _ _ (λ q → q)
+          (ext-route (λ Y → just (insertUnder n X Y)))
+          (λ Y → just (insertUnder (suc n) X Y))
+          (raise (suc n)) A (ext-route-insertUnder n X)))
+      (trans (cong all?
+          (repoint?-newest-begin (suc n) Ψ C X b fresh resolve A))
+        (cong (λ D → just (`∀ D))
+          (renameᵗ-cong A (λ Y → sym (ext-insertUnder n X Y))))))
+
+rep?-here-begin : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {C : Ty Δ}
+    {X : TyVar (suc Δ)} {b : TyVar (suc Θ)}
+    {fresh : b ∉ᵛ mapᵛ (mapMaybe suc) σ}
+  → rep? ((Ψ ,:= C) ,begin[ X ≔ b ]⟨ fresh ⟩) zero
+    ≡ just (wkᵗ X C)
+rep?-here-begin {Θ = Θ} {Ψ = Ψ} {C = C} {X = X}
+    {b = b} {fresh = fresh} =
+  repoint?-newest-begin zero Ψ C X b fresh
+    (repFuel? Θ ((Ψ ,:= C) ,begin[ X ≔ b ]⟨ fresh ⟩)) C
 
 mutual
   slot-forward-≼ : ∀ {Θ Θ′ Δ Δ′ σ σ′ k}
@@ -4352,6 +4619,27 @@ fresh-after-end {Ψ = Ψ} {Y = Y} slot-eq X ended-eq =
   source-eq = trans
     (sym (lookup-remove-punch Y (slotsOf Ψ) X)) ended-eq
 
+fresh-zero-after-ν : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
+  → zero ∉ᵛ mapᵛ (mapMaybe suc) σ
+fresh-zero-after-ν {σ = Vec.[]} ()
+fresh-zero-after-ν {σ = nothing Vec.∷ σ} zero ()
+fresh-zero-after-ν {σ = just a Vec.∷ σ} zero ()
+fresh-zero-after-ν {σ = head Vec.∷ σ} (suc Y) eq =
+  fresh-zero-after-ν {σ = σ} Y eq
+
+fresh-insert-other : ∀ {Θ Δ σ} {a b : TyVar Θ}
+    (Y : TyVar (suc Δ))
+  → a ≢ b
+  → a ∉ᵛ σ
+  → a ∉ᵛ insertᵛ Y (just b) σ
+fresh-insert-other Y a≢b fresh z eq with Y ≟ z
+fresh-insert-other Y a≢b fresh .Y eq | yes refl =
+  a≢b (just-injective (trans (sym eq)
+    (lookup-insert-here Y (just _) _)))
+fresh-insert-other Y a≢b fresh z eq | no Y≢z =
+  fresh (punchOut Y z Y≢z)
+    (trans (sym (lookup-insert-other Y z (just _) _ Y≢z)) eq)
+
 bracket-injection-id : ∀ {Δ} (Y : TyVar (suc Δ)) X
   → toRenameᵗ (id↪ᵗ ⨟↪ᵗ delete↪ᵗ id↪ᵗ Y) X ≡ X
 bracket-injection-id Y X =
@@ -4398,6 +4686,254 @@ reenter-injection-id Y =
       ∣ [] ⊢ renameᶿ (shiftAlong extension) M ⦂ A)
     (toRename-id-eq Y) typed
 
+shifted-zero-eq : ∀ {Θ} {a b : TyVar Θ}
+  → Shifted zero a b
+  → a ≡ b
+shifted-zero-eq shifted-zero = refl
+
+rep?-bracket : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Y : TyVar (suc Δ)} {a q : TyVar Θ} {A : Ty Δ}
+    (fresh : a ∉ᵛ σ)
+  → rep? Ψ q ≡ just A
+  → rep? (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ]) q ≡ just A
+rep?-bracket {Ψ = Ψ} {Y = Y} {a = a} {q = q} {A = A} fresh eq =
+  subst≡
+    (λ Z → rep? (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Z ]) q ≡ just A)
+    (toRename-id-eq Y) anchor-typed
+  where
+  target = Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩
+    ,end[ toRenameᵗ id↪ᵗ Y ]
+  extension : Ψ ≼[ zero , id↪ᵗ ⨟↪ᵗ delete↪ᵗ id↪ᵗ Y ] target
+  extension = ≼-begin-end ≼-refl ≼-refl
+  anchor-id : shiftAlong extension q ≡ q
+  anchor-id = sym (shifted-zero-eq
+    (shiftAlong-shifted extension q))
+  transported : rep? target (shiftAlong extension q) ≡ just A
+  transported = trans (rep?-≼ extension {a = q} {A = A} eq)
+    (cong just (renameᵗ-pointwise-id A (bracket-injection-id Y)))
+  anchor-typed = subst≡
+    (λ b → rep? target b ≡ just A) anchor-id transported
+
+------------------------------------------------------------------------
+-- Erasing an adjacent balanced bracket
+------------------------------------------------------------------------
+
+-- An adjacent begin/end pair has no observable effect on representation
+-- lookup.  `UnbracketTarget` closes that one erasure under identical
+-- telescope suffixes, which is exactly what typing induction needs.
+remove-insert-here : ∀ {n} {X : Set} (Y : TyVar (suc n))
+    (value : X) (values : Vec.Vec X n)
+  → removeᵛ Y (insertᵛ Y value values) ≡ values
+remove-insert-here zero value values = refl
+remove-insert-here (suc Y) value (head Vec.∷ values) =
+  cong (head Vec.∷_) (remove-insert-here Y value values)
+
+data UnbracketTarget : ∀ {Θ Δ σ τ}
+    → TyEnv Θ Δ σ → TyEnv Θ Δ τ → Set where
+  unbracket-base : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {Y : TyVar (suc Δ)} {a : TyVar Θ} {fresh : a ∉ᵛ σ}
+    → UnbracketTarget
+        (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ]) Ψ
+
+  unbracket-fresh-before-begin : ∀ {Θ Δ σ}
+      {Ψ : TyEnv Θ Δ σ} {X : TyVar (suc Δ)} {a b : TyVar Θ}
+      {fresh-a : a ∉ᵛ σ} {fresh-b : b ∉ᵛ σ} {a≢b : a ≢ b}
+    → UnbracketTarget
+        (Ψ ,begin[ X ≔ a ]⟨ fresh-a ⟩)
+        (Ψ ,begin[ zero ≔ b ]⟨ fresh-b ⟩
+          ,begin[ suc X ≔ a
+            ]⟨ fresh-insert-other zero a≢b fresh-a ⟩
+          ,end[ zero ])
+
+  unbracket-begin : ∀ {Θ Δ σ τ}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ τ}
+      {Y : TyVar (suc Δ)} {a : TyVar Θ}
+      {fresh : a ∉ᵛ σ} {fresh′ : a ∉ᵛ τ}
+    → UnbracketTarget Ψ Φ
+    → UnbracketTarget
+        (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩)
+        (Φ ,begin[ Y ≔ a ]⟨ fresh′ ⟩)
+
+  unbracket-typ : ∀ {Θ Δ σ τ}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ τ}
+    → UnbracketTarget Ψ Φ
+    → UnbracketTarget (Ψ ,typ) (Φ ,typ)
+
+  unbracket-ν : ∀ {Θ Δ σ τ}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ τ} {A : Ty Δ}
+    → UnbracketTarget Ψ Φ
+    → UnbracketTarget (Ψ ,:= A) (Φ ,:= A)
+
+  unbracket-end : ∀ {Θ Δ σ τ}
+      {Ψ : TyEnv Θ (suc Δ) σ} {Φ : TyEnv Θ (suc Δ) τ}
+      {Y : TyVar (suc Δ)}
+    → UnbracketTarget Ψ Φ
+    → UnbracketTarget (Ψ ,end[ Y ]) (Φ ,end[ Y ])
+
+unbracket-slots : ∀ {Θ Δ σ τ}
+    {left : TyEnv Θ Δ σ} {right : TyEnv Θ Δ τ}
+  → UnbracketTarget left right
+  → σ ≡ τ
+unbracket-slots (unbracket-base {Y = Y} {a = a}) =
+  remove-insert-here Y (just a) _
+unbracket-slots unbracket-fresh-before-begin = refl
+unbracket-slots (unbracket-begin same) =
+  cong (insertᵛ _ (just _)) (unbracket-slots same)
+unbracket-slots (unbracket-typ same) =
+  cong (insertᵛ zero nothing) (unbracket-slots same)
+unbracket-slots (unbracket-ν same) =
+  cong (mapᵛ (mapMaybe suc)) (unbracket-slots same)
+unbracket-slots (unbracket-end {Y = Y} same) =
+  cong (removeᵛ Y) (unbracket-slots same)
+
+unbracket-fresh : ∀ {Θ Δ σ τ}
+    {left : TyEnv Θ Δ σ} {right : TyEnv Θ Δ τ} {a : TyVar Θ}
+  → UnbracketTarget left right
+  → a ∉ᵛ σ
+  → a ∉ᵛ τ
+unbracket-fresh same fresh
+    rewrite sym (unbracket-slots same) = fresh
+
+unbracket-slot : ∀ {Θ Δ σ τ}
+    {left : TyEnv Θ Δ σ} {right : TyEnv Θ Δ τ}
+    (same : UnbracketTarget left right) {Y a}
+  → Vec.lookup σ Y ≡ just a
+  → Vec.lookup τ Y ≡ just a
+unbracket-slot same slot-eq rewrite sym (unbracket-slots same) = slot-eq
+
+repoint?-birth-cong≡ : ∀ {Θ₀ Θ Δ₀ Δ Δout}
+    (resolve : TyVar Θ → Maybe (Ty Δ))
+    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (left : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (right : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+  → left ≡ right
+  → (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+  → (route : TyVar Δ₀ → Maybe (TyVar Δout))
+  → (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
+  → repoint? resolve target left anchor-map route live-ren A
+    ≡ repoint? resolve target right anchor-map route live-ren A
+repoint?-birth-cong≡ resolve target left .left refl anchor-map route
+    live-ren A = refl
+
+punch-zero-exchange : ∀ {Δ} (X : TyVar (suc Δ)) (Y : TyVar Δ)
+  → punchIn zero (punchIn X Y)
+    ≡ punchIn (suc X) (punchIn zero Y)
+punch-zero-exchange X zero = refl
+punch-zero-exchange X (suc Y) = refl
+
+scanRep?-unbracket : ∀ {Θ Δ σ Θ₀ Δ₀ σ₀ τ₀}
+    (resolve : TyVar Θ → Maybe (Ty Δ))
+    (target : TyEnv Θ Δ σ)
+    {left : TyEnv Θ₀ Δ₀ σ₀} {right : TyEnv Θ₀ Δ₀ τ₀}
+    (same : UnbracketTarget left right)
+    (anchor-map : TyVar Θ₀ → TyVar Θ)
+    (route : TyVar Δ₀ → Maybe (TyVar Δ)) (a : TyVar Θ₀)
+  → scanRep? resolve target left anchor-map route a
+    ≡ scanRep? resolve target right anchor-map route a
+scanRep?-unbracket resolve target
+    (unbracket-base {Ψ = Ψ} {Y = Y}) anchor-map route a =
+  scanRep?-route-cong resolve target Ψ anchor-map
+    (λ X → route-end Y route (punchIn Y X)) route a
+    (route-end-punchIn Y route)
+scanRep?-unbracket resolve target
+    (unbracket-fresh-before-begin {Ψ = Ψ} {X = X})
+    anchor-map route a =
+  scanRep?-route-cong resolve target Ψ anchor-map
+    (λ Y → route (punchIn X Y))
+    (λ Y → route-end zero route
+      (punchIn (suc X) (punchIn zero Y))) a route-eq
+  where
+  route-eq : ∀ Y → route (punchIn X Y)
+    ≡ route-end zero route (punchIn (suc X) (punchIn zero Y))
+  route-eq Y = sym
+    (trans (cong (route-end zero route) (sym (punch-zero-exchange X Y)))
+      (route-end-punchIn zero route (punchIn X Y)))
+scanRep?-unbracket resolve target (unbracket-begin same)
+    anchor-map route a =
+  scanRep?-unbracket resolve target same anchor-map
+    (λ X → route (punchIn _ X)) a
+scanRep?-unbracket resolve target (unbracket-typ same)
+    anchor-map route a =
+  scanRep?-unbracket resolve target same anchor-map
+    (λ X → route (suc X)) a
+scanRep?-unbracket resolve target
+    (unbracket-ν {Ψ = left} {Φ = right} {A = A} same)
+    anchor-map route zero =
+  repoint?-birth-cong≡ resolve (slotsOf target)
+    (slotsOf left) (slotsOf right) (unbracket-slots same)
+    anchor-map route (λ X → X) A
+scanRep?-unbracket resolve target (unbracket-ν same)
+    anchor-map route (suc a) =
+  scanRep?-unbracket resolve target same
+    (λ q → anchor-map (suc q)) route a
+scanRep?-unbracket resolve target (unbracket-end {Y = Y} same)
+    anchor-map route a =
+  scanRep?-unbracket resolve target same anchor-map
+    (route-end Y route) a
+
+repFuel?-unbracket : ∀ fuel {Θ Δ σ τ}
+    {left : TyEnv Θ Δ σ} {right : TyEnv Θ Δ τ}
+  → UnbracketTarget left right
+  → ∀ a → repFuel? fuel left a ≡ repFuel? fuel right a
+repFuel?-unbracket zero same a = refl
+repFuel?-unbracket (suc fuel) {left = left} {right = right} same a =
+  trans (scanRep?-resolve-cong left left (λ q → q) (λ X → just X) a
+      (repFuel?-unbracket fuel same))
+    (trans (scanRep?-target-cong≡ (repFuel? fuel right)
+        left right (unbracket-slots same) left
+        (λ q → q) (λ X → just X) a)
+      (scanRep?-unbracket (repFuel? fuel right) right same
+        (λ q → q) (λ X → just X) a))
+
+rep?-unbracket : ∀ {Θ Δ σ τ}
+    {left : TyEnv Θ Δ σ} {right : TyEnv Θ Δ τ}
+  → UnbracketTarget left right
+  → ∀ a → rep? left a ≡ rep? right a
+rep?-unbracket {Θ = Θ} same a =
+  repFuel?-unbracket (Θ ∸ toℕ a) same a
+
+⊢unbracket-target : ∀ {Θ Δ σ τ}
+    {left : TyEnv Θ Δ σ} {right : TyEnv Θ Δ τ}
+    {Γ : TermCtx Δ} {M : Term Θ Δ} {A : Ty Δ}
+  → UnbracketTarget left right
+  → left ∣ Γ ⊢ M ⦂ A
+  → right ∣ Γ ⊢ M ⦂ A
+⊢unbracket-target same (⊢` x∈) = ⊢` x∈
+⊢unbracket-target same (⊢ƛ M⊢) =
+  ⊢ƛ (⊢unbracket-target same M⊢)
+⊢unbracket-target same (⊢· L⊢ M⊢) =
+  ⊢· (⊢unbracket-target same L⊢) (⊢unbracket-target same M⊢)
+⊢unbracket-target same (⊢Λ M⊢) =
+  ⊢Λ (⊢unbracket-target (unbracket-typ same) M⊢)
+⊢unbracket-target same (⊢⦂∀ M⊢) =
+  ⊢⦂∀ (⊢unbracket-target same M⊢)
+⊢unbracket-target same (⊢$ κ) = ⊢$ κ
+⊢unbracket-target same (⊢⊕ op L⊢ M⊢) =
+  ⊢⊕ op (⊢unbracket-target same L⊢)
+    (⊢unbracket-target same M⊢)
+⊢unbracket-target same (⊢⟨⟩ M⊢ c) =
+  ⊢⟨⟩ (⊢unbracket-target same M⊢) c
+⊢unbracket-target same (⊢ν M⊢) =
+  ⊢ν (⊢unbracket-target (unbracket-ν same) M⊢)
+⊢unbracket-target same
+    (⊢reveal {α = α} {fresh = fresh} α-eq c⊢ M⊢) =
+  ⊢reveal (trans (sym (rep?-unbracket same α)) α-eq) c⊢
+    (⊢unbracket-target
+      (unbracket-begin {fresh′ = unbracket-fresh same fresh} same) M⊢)
+⊢unbracket-target same
+    (⊢conceal {Y = Y} {α = α} slot-eq α-eq c⊢ M⊢) =
+  ⊢conceal (unbracket-slot same slot-eq)
+    (trans (sym (rep?-unbracket (unbracket-end {Y = Y} same) α)) α-eq)
+    c⊢ (⊢unbracket-target (unbracket-end {Y = Y} same) M⊢)
+⊢unbracket-target same ⊢blame = ⊢blame
+
+⊢unbracket : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Γ : TermCtx Δ} {M : Term Θ Δ} {A : Ty Δ}
+    {Y : TyVar (suc Δ)} {a : TyVar Θ} {fresh : a ∉ᵛ σ}
+  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ] ∣ Γ ⊢ M ⦂ A
+  → Ψ ∣ Γ ⊢ M ⦂ A
+⊢unbracket = ⊢unbracket-target unbracket-base
+
 reenter-extension : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
     {Y : TyVar (suc Δ)} {a : TyVar Θ}
     (slot-eq : Vec.lookup σ Y ≡ just a)
@@ -4415,11 +4951,6 @@ reenter-extension {Ψ = Ψ} {Y = Y} slot-eq =
   region = subst≡
     (λ Z → (Ψ ,end[ mapped ]) ≼[ zero , id↪ᵗ ] (Ψ ,end[ Z ]))
     (toRename-id-eq Y) ≼-refl
-
-shifted-zero-eq : ∀ {Θ} {a b : TyVar Θ}
-  → Shifted zero a b
-  → a ≡ b
-shifted-zero-eq shifted-zero = refl
 
 reenter-anchor-id : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
     {Y : TyVar (suc Δ)} {a : TyVar Θ}

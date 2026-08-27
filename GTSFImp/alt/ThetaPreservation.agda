@@ -2,7 +2,8 @@ module alt.ThetaPreservation where
 
 -- File Charter:
 --   * Develops one-step preservation for closed configurations of the
---     Θ-indexed alternative calculus, one lemma per reduction rule.
+--     Θ-indexed alternative calculus.  Substantial reduction cases have
+--     named lemmas; straightforward cases are proved directly in `preserve`.
 --   * The strict rule repairs the counterexample from commit c5ee0351: its
 --     mismatched identity delimiters now form an adapter value rather than a
 --     redex.  That historical instance remains below as a regression.
@@ -331,81 +332,8 @@ terminal-anchor {σ = σ} {X = X} tyVar-eq refl =
     (trans (sym tyVar-eq) (lookup-insert-here X (just _) σ))
 
 ------------------------------------------------------------------------
--- Preservation cases: computational rules
+-- Substantial preservation cases
 ------------------------------------------------------------------------
-
-preserve-δ-⊕ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {op κ₁ κ₂ κ₃} {A}
-  → δ op κ₁ κ₂ κ₃
-  → Ψ ∣ [] ⊢ ($ κ₁ ⊕[ op ] $ κ₂) ⦂ A
-  → Ψ ∣ [] ⊢ $ κ₃ ⦂ A
-preserve-δ-⊕ δ-add (⊢⊕ addℕ (⊢$ _) (⊢$ _)) = ⊢$ _
-preserve-δ-⊕ δ-and (⊢⊕ and𝔹 (⊢$ _) (⊢$ _)) = ⊢$ _
-
-preserve-β : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V N : Term Θ Δ} {A B}
-  → Ψ ∣ [] ⊢ (ƛ A ˙ N) · V ⦂ B
-  → Ψ ∣ [] ⊢ N [ V ] ⦂ B
-preserve-β (⊢· (⊢ƛ N⊢) V⊢) = ⊢[] N⊢ V⊢
-
-preserve-β-id : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V : Term Θ Δ}
-    {μ : Env∼ Δ} {A} {a : Atom A}
-  → Ψ ∣ [] ⊢ V ⟨ id {μ = μ} a ⟩ ⦂ A
-  → Ψ ∣ [] ⊢ V ⦂ A
-preserve-β-id (⊢⟨⟩ V⊢ (id a)) = V⊢
-
-preserve-β-⇒ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V W : Term Θ Δ}
-    {μ : Env∼ Δ} {A A′ B B′}
-    {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
-  → Ψ ∣ [] ⊢ (V ⟨ c ↦ d ⟩) · W ⦂ B′
-  → Ψ ∣ [] ⊢ (V · (W ⟨ c ⟩)) ⟨ d ⟩ ⦂ B′
-preserve-β-⇒ (⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) =
-  ⊢⟨⟩ (⊢· V⊢ (⊢⟨⟩ W⊢ c)) d
-
-preserve-β-∀ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V : Term Θ Δ}
-    {μ : Env∼ Δ} {A B : Ty (suc Δ)} {C : Ty Δ}
-    {c : extᵐ μ ⊢ A ∼ B} {d : μ ⊢ A [ C ]ᵗ ∼ B [ C ]ᵗ}
-  → d ≡ c [ C ]ᶜ
-  → Ψ ∣ [] ⊢ (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
-  → Ψ ∣ [] ⊢ (V ⦂∀ A [ C ]) ⟨ d ⟩ ⦂ B [ C ]ᵗ
-preserve-β-∀ refl (⊢⦂∀ (⊢⟨⟩ V⊢ (∀ᶜ c))) =
-  ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ _ ]ᶜ)
-
-preserve-ground : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V : Term Θ Δ}
-    {μ : Env∼ Δ} {A G : Ty Δ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
-    {c : μ ⊢ A ∼ G} ⦃ Ans : NonStar A ⦄ ⦃ Gns : NonStar G ⦄
-  → Ψ ∣ [] ⊢ V ⟨ c ! ⟩ ⦂ ★
-  → Ψ ∣ [] ⊢ V ⟨ c ⟩ ⟨ (idᵍ Gᵍ) ! ⟩ ⦂ ★
-preserve-ground ⦃ Gᵍ = Gᵍ ⦄ (⊢⟨⟩ V⊢ (c !)) =
-  ⊢⟨⟩ (⊢⟨⟩ V⊢ c) ((idᵍ Gᵍ) !)
-
-preserve-expand : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V : Term Θ Δ}
-    {μ : Env∼ Δ} {G B : Ty Δ}
-    ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
-    {c : μ ⊢ G ∼ B} ⦃ Bns : NonStar B ⦄ ⦃ Gns : NonStar G ⦄
-  → Ψ ∣ [] ⊢ V ⟨ ？ c ⟩ ⦂ B
-  → Ψ ∣ [] ⊢ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩ ⦂ B
-preserve-expand ⦃ Gᵍ = Gᵍ ⦄ (⊢⟨⟩ V⊢ (？ c)) =
-  ⊢⟨⟩ (⊢⟨⟩ V⊢ (？ (idᵍ Gᵍ))) c
-
-preserve-tag-untag : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V : Term Θ Δ}
-    {μ ν : Env∼ Δ} {G : Ty Δ} ⦃ Gᵍ : Ground G ⦄
-    ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
-    ⦃ Gns : NonStar G ⦄
-  → Ψ ∣ [] ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Gᵍ) ⟩ ⦂ G
-  → Ψ ∣ [] ⊢ V ⦂ G
-preserve-tag-untag (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) = V⊢
-
-preserve-tag-untag-bad : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M : Term Θ Δ} {A : Ty Δ}
-  → Ψ ∣ [] ⊢ M ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-tag-untag-bad M⊢ = ⊢blame
-
-preserve-blame-bot-intro : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M : Term Θ Δ} {A : Ty Δ}
-  → Ψ ∣ [] ⊢ M ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-blame-bot-intro M⊢ = ⊢blame
 
 preserve-β-reveal-⇒ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ (suc Δ)} {W : Term Θ Δ}
@@ -503,21 +431,6 @@ preserve-conceal-reveal typing@(⊢reveal β-eq c↑
   node-tyVar-eq = ty-var-injective
     (trans (sym (seal-target c↓)) (unseal-source c↑))
   anchor-eq = terminal-anchor inner-tyVar-eq node-tyVar-eq
-
-preserve-const-ν : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {C A : Ty Δ} {κ}
-  → Ψ ∣ [] ⊢ ν[ C ] ($ κ) ⦂ A
-  → Ψ ∣ [] ⊢ $ κ ⦂ A
-preserve-const-ν (⊢ν (⊢$ κ)) = ⊢$ κ
-
-preserve-β-inst : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {V : Term Θ Δ}
-    {μ : Env∼ Δ} {A : Ty (suc Δ)} {B : Ty Δ}
-    {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
-    ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
-    {B≠★ : B ≢ ★}
-  → Ψ ∣ [] ⊢ V ⟨ (inst c) B≠★ ⟩ ⦂ B
-  → Ψ ∣ [] ⊢ (V ⦂∀ A [ ★ ]) ⟨ c [ ★/0 ]ᶜ ⟩ ⦂ B
-preserve-β-inst (⊢⟨⟩ V⊢ ((inst c) B≠★)) =
-  ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ ★/0 ]ᶜ)
 
 fresh-delimiter-conceal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {M : Term (suc Θ) Δ} {A C : Ty Δ}
@@ -798,187 +711,6 @@ preserve-β-conceal-∀ {A = A} {B = B} {X = X} step-eq
     (generator-typed↓ X (wkᵗ X _) (B [ A ]ᵗ))
 
 ------------------------------------------------------------------------
--- Preservation cases: blame propagation
-------------------------------------------------------------------------
-
-preserve-blame-·₁ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M : Term Θ Δ} {A : Ty Δ}
-  → Ψ ∣ [] ⊢ blame · M ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-blame-·₁ M⊢ = ⊢blame
-
-preserve-blame-·₂ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V : Term Θ Δ} {A : Ty Δ}
-  → Ψ ∣ [] ⊢ V · blame ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-blame-·₂ M⊢ = ⊢blame
-
-preserve-blame-• : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A : Ty Δ} {B : Ty (suc Δ)}
-  → Ψ ∣ [] ⊢ blame ⦂∀ B [ A ] ⦂ B [ A ]ᵗ
-  → Ψ ∣ [] ⊢ blame ⦂ B [ A ]ᵗ
-preserve-blame-• M⊢ = ⊢blame
-
-preserve-blame-⟨⟩ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
-    {c : μ ⊢ A ∼ B}
-  → Ψ ∣ [] ⊢ blame ⟨ c ⟩ ⦂ B
-  → Ψ ∣ [] ⊢ blame ⦂ B
-preserve-blame-⟨⟩ M⊢ = ⊢blame
-
-preserve-blame-reveal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal} {A : Ty Δ}
-  → Ψ ∣ [] ⊢ blame ↑[ X ≔ α ] c ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-blame-reveal M⊢ = ⊢blame
-
-preserve-blame-conceal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
-    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    {A : Ty (suc Δ)}
-  → Ψ ∣ [] ⊢ blame ↓[ X ≔ α ] c ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-blame-conceal M⊢ = ⊢blame
-
-preserve-blame-⊕₁ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M : Term Θ Δ} {op : Prim} {A : Ty Δ}
-  → Ψ ∣ [] ⊢ blame ⊕[ op ] M ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-blame-⊕₁ M⊢ = ⊢blame
-
-preserve-blame-⊕₂ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V : Term Θ Δ} {op : Prim} {A : Ty Δ}
-  → Ψ ∣ [] ⊢ V ⊕[ op ] blame ⦂ A
-  → Ψ ∣ [] ⊢ blame ⦂ A
-preserve-blame-⊕₂ M⊢ = ⊢blame
-
-preserve-blame-ν : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A B : Ty Δ}
-  → Ψ ∣ [] ⊢ ν[ A ] blame ⦂ B
-  → Ψ ∣ [] ⊢ blame ⦂ B
-preserve-blame-ν M⊢ = ⊢blame
-
-------------------------------------------------------------------------
--- Preservation cases: congruence rules
-------------------------------------------------------------------------
-
-preserve-ξ-·₁ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {L′ M : Term Θ Δ} {A B : Ty Δ}
-  → Ψ ∣ [] ⊢ M ⦂ A
-  → Ψ ∣ [] ⊢ L′ ⦂ A ⇒ B
-  → Ψ ∣ [] ⊢ L′ · M ⦂ B
-preserve-ξ-·₁ M⊢ L′⊢ = ⊢· L′⊢ M⊢
-
-preserve-ξ-·₂ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V M′ : Term Θ Δ} {A B : Ty Δ}
-  → Ψ ∣ [] ⊢ V ⦂ A ⇒ B
-  → Ψ ∣ [] ⊢ M′ ⦂ A
-  → Ψ ∣ [] ⊢ V · M′ ⦂ B
-preserve-ξ-·₂ V⊢ M′⊢ = ⊢· V⊢ M′⊢
-
-preserve-ξ-• : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M M′ : Term Θ Δ} {A : Ty Δ} {B : Ty (suc Δ)}
-  → Ψ ∣ [] ⊢ M ⦂∀ B [ A ] ⦂ B [ A ]ᵗ
-  → Ψ ∣ [] ⊢ M′ ⦂ `∀ B
-  → Ψ ∣ [] ⊢ M′ ⦂∀ B [ A ] ⦂ B [ A ]ᵗ
-preserve-ξ-• (⊢⦂∀ M⊢) M′⊢ = ⊢⦂∀ M′⊢
-
-preserve-ξ-⟨⟩ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M M′ : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
-    {c : μ ⊢ A ∼ B}
-  → Ψ ∣ [] ⊢ M ⟨ c ⟩ ⦂ B
-  → Ψ ∣ [] ⊢ M′ ⦂ A
-  → Ψ ∣ [] ⊢ M′ ⟨ c ⟩ ⦂ B
-preserve-ξ-⟨⟩ (⊢⟨⟩ M⊢ c) M′⊢ = ⊢⟨⟩ M′⊢ c
-
-preserve-ξ-reveal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M′ : Term Θ (suc Δ)} {X : TyVar (suc Δ)}
-    {α : TyVar Θ} {c : Reveal} {A : Ty (suc Δ)} {B C : Ty Δ}
-    {fresh : α ∉ᵛ σ}
-  → rep? Ψ α ≡ just C
-  → ⊢↑[ X ⦂ wkᵗ X C ] c ⦂ A ↝ wkᵗ X B
-  → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ∣ [] ⊢ M′ ⦂ A
-  → Ψ ∣ [] ⊢ M′ ↑[ X ≔ α ] c ⦂ B
-preserve-ξ-reveal α-eq c⊢ M′⊢ = ⊢reveal α-eq c⊢ M′⊢
-
-preserve-ξ-conceal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
-    {M′ : Term Θ Δ} {X : TyVar (suc Δ)}
-    {α : TyVar Θ} {c : Conceal} {A C : Ty Δ}
-    {B : Ty (suc Δ)}
-  → Vec.lookup σ X ≡ just α
-  → rep? (Ψ ,end[ X ]) α ≡ just C
-  → ⊢↓[ X ⦂ wkᵗ X C ] c ⦂ wkᵗ X A ↝ B
-  → Ψ ,end[ X ] ∣ [] ⊢ M′ ⦂ A
-  → Ψ ∣ [] ⊢ M′ ↓[ X ≔ α ] c ⦂ B
-preserve-ξ-conceal tyVar-eq α-eq c⊢ M′⊢ =
-  ⊢conceal tyVar-eq α-eq c⊢ M′⊢
-
-preserve-ξ-⊕₁ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {L L′ M : Term Θ Δ} {op : Prim}
-  → Ψ ∣ [] ⊢ L ⊕[ op ] M ⦂ primResultTy op
-  → Ψ ∣ [] ⊢ L′ ⦂ primArgTy op
-  → Ψ ∣ [] ⊢ L′ ⊕[ op ] M ⦂ primResultTy op
-preserve-ξ-⊕₁ (⊢⊕ op L⊢ M⊢) L′⊢ = ⊢⊕ op L′⊢ M⊢
-
-preserve-ξ-⊕₂ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V M M′ : Term Θ Δ} {op : Prim}
-  → Ψ ∣ [] ⊢ V ⊕[ op ] M ⦂ primResultTy op
-  → Ψ ∣ [] ⊢ M′ ⦂ primArgTy op
-  → Ψ ∣ [] ⊢ V ⊕[ op ] M′ ⦂ primResultTy op
-preserve-ξ-⊕₂ (⊢⊕ op V⊢ M⊢) M′⊢ = ⊢⊕ op V⊢ M′⊢
-
-preserve-ξ-ν : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A B : Ty Δ} {M M′ : Term (suc Θ) Δ}
-  → Ψ ∣ [] ⊢ ν[ A ] M ⦂ B
-  → Ψ ,:= A ∣ [] ⊢ M′ ⦂ B
-  → Ψ ∣ [] ⊢ ν[ A ] M′ ⦂ B
-preserve-ξ-ν (⊢ν M⊢) M′⊢ = ⊢ν M′⊢
-
-------------------------------------------------------------------------
--- Preservation cases: straightforward region floats
-------------------------------------------------------------------------
-
-preserve-float-·₁ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A C : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ}
-  → Ψ ∣ [] ⊢ (ν[ A ] M) · N ⦂ C
-  → Ψ ∣ [] ⊢ ν[ A ] (M · shiftᶿ N) ⦂ C
-preserve-float-·₁ (⊢· (⊢ν M⊢) N⊢) =
-  ⊢ν (⊢· M⊢ (⊢shiftᶿ N⊢))
-
-preserve-float-·₂ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A C : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ}
-  → Ψ ∣ [] ⊢ V · (ν[ A ] M) ⦂ C
-  → Ψ ∣ [] ⊢ ν[ A ] (shiftᶿ V · M) ⦂ C
-preserve-float-·₂ (⊢· V⊢ (⊢ν M⊢)) =
-  ⊢ν (⊢· (⊢shiftᶿ V⊢) M⊢)
-
-preserve-float-• : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A C : Ty Δ} {B : Ty (suc Δ)} {M : Term (suc Θ) Δ}
-  → Ψ ∣ [] ⊢ (ν[ A ] M) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
-  → Ψ ∣ [] ⊢ ν[ A ] (M ⦂∀ B [ C ]) ⦂ B [ C ]ᵗ
-preserve-float-• (⊢⦂∀ (⊢ν M⊢)) = ⊢ν (⊢⦂∀ M⊢)
-
-preserve-float-⟨⟩ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A B C : Ty Δ} {M : Term (suc Θ) Δ} {μ : Env∼ Δ}
-    {c : μ ⊢ B ∼ C}
-  → Ψ ∣ [] ⊢ (ν[ A ] M) ⟨ c ⟩ ⦂ C
-  → Ψ ∣ [] ⊢ ν[ A ] (M ⟨ c ⟩) ⦂ C
-preserve-float-⟨⟩ (⊢⟨⟩ (⊢ν M⊢) c) = ⊢ν (⊢⟨⟩ M⊢ c)
-
-preserve-float-⊕₁ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ} {op}
-  → Ψ ∣ [] ⊢ (ν[ A ] M) ⊕[ op ] N ⦂ primResultTy op
-  → Ψ ∣ [] ⊢ ν[ A ] (M ⊕[ op ] shiftᶿ N) ⦂ primResultTy op
-preserve-float-⊕₁ (⊢⊕ op (⊢ν M⊢) N⊢) =
-  ⊢ν (⊢⊕ op M⊢ (⊢shiftᶿ N⊢))
-
-preserve-float-⊕₂ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ} {op}
-  → Ψ ∣ [] ⊢ V ⊕[ op ] (ν[ A ] M) ⦂ primResultTy op
-  → Ψ ∣ [] ⊢ ν[ A ] (shiftᶿ V ⊕[ op ] M) ⦂ primResultTy op
-preserve-float-⊕₂ (⊢⊕ op V⊢ (⊢ν M⊢)) =
-  ⊢ν (⊢⊕ op (⊢shiftᶿ V⊢) M⊢)
-
-------------------------------------------------------------------------
 -- Closed one-step preservation assembler
 ------------------------------------------------------------------------
 
@@ -986,19 +718,19 @@ preserve : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ} {M M′ : Term Θ Δ} {A}
   → Ψ ∣ [] ⊢ M ⦂ A
   → Ψ ⊢ M —→ M′
   → Ψ ∣ [] ⊢ M′ ⦂ A
-preserve typing (δ-⊕ δ) = preserve-δ-⊕ δ typing
-preserve typing (β Vᵥ) = preserve-β typing
+preserve (⊢⊕ addℕ (⊢$ _) (⊢$ _)) (δ-⊕ δ-add) = ⊢$ _
+preserve (⊢⊕ and𝔹 (⊢$ _) (⊢$ _)) (δ-⊕ δ-and) = ⊢$ _
+preserve (⊢· (⊢ƛ N⊢) V⊢) (β Vᵥ) = ⊢[] N⊢ V⊢
 preserve (⊢⟨⟩ V⊢ (id a)) (β-id Vᵥ) = V⊢
-preserve typing@(⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) (β-⇒ Vᵥ Wᵥ) =
-  preserve-β-⇒ typing
-preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ (∀ᶜ c))) (β-∀ Vᵥ eq) =
-  preserve-β-∀ eq typing
-preserve typing@(⊢⟨⟩ V⊢ (c !)) (ground Vᵥ neq) =
-  preserve-ground typing
-preserve typing@(⊢⟨⟩ V⊢ (？ c)) (expand Vᵥ neq) =
-  preserve-expand typing
-preserve typing@(⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) =
-  preserve-tag-untag typing
+preserve (⊢· (⊢⟨⟩ V⊢ (c ↦ d)) W⊢) (β-⇒ Vᵥ Wᵥ) =
+  ⊢⟨⟩ (⊢· V⊢ (⊢⟨⟩ W⊢ c)) d
+preserve (⊢⦂∀ (⊢⟨⟩ V⊢ (∀ᶜ c))) (β-∀ Vᵥ refl) =
+  ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ _ ]ᶜ)
+preserve (⊢⟨⟩ V⊢ (_! ⦃ Gᵍ = Gᵍ ⦄ c)) (ground Vᵥ neq) =
+  ⊢⟨⟩ (⊢⟨⟩ V⊢ c) ((idᵍ Gᵍ) !)
+preserve (⊢⟨⟩ V⊢ (？_ ⦃ Gᵍ = Gᵍ ⦄ c)) (expand Vᵥ neq) =
+  ⊢⟨⟩ (⊢⟨⟩ V⊢ (？ (idᵍ Gᵍ))) c
+preserve (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) = V⊢
 preserve typing (tag-untag-bad Vᵥ neq) = ⊢blame
 preserve typing (blame-bot-intro Vᵥ) = ⊢blame
 preserve typing (β-reveal-⇒ Vᵥ Wᵥ) = preserve-β-reveal-⇒ typing
@@ -1017,45 +749,43 @@ preserve typing blame-conceal = ⊢blame
 preserve typing blame-⊕₁ = ⊢blame
 preserve typing (blame-⊕₂ Vᵥ) = ⊢blame
 preserve typing blame-ν = ⊢blame
-preserve typing const-ν = preserve-const-ν typing
+preserve (⊢ν (⊢$ κ)) const-ν = ⊢$ κ
 preserve typing@(⊢⦂∀ (⊢Λ V⊢)) (β-Λ Vᵥ) = preserve-β-Λ typing
 preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ c)) (β-gen Vᵥ A≠★ safe) =
   preserve-β-gen typing
-preserve typing@(⊢⟨⟩ V⊢ c) (β-inst Vᵥ B≠★) =
-  preserve-β-inst typing
+preserve (⊢⟨⟩ V⊢ ((inst c) B≠★)) (β-inst Vᵥ B≠★) =
+  ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ ★/0 ]ᶜ)
 preserve typing@(⊢⦂∀ (⊢reveal α∈ c⊢ V⊢)) (β-reveal-∀ Vᵥ) =
   preserve-β-reveal-∀ typing
 preserve typing@(⊢⦂∀ (⊢conceal tyVar∈ β∈ c⊢ V⊢))
     (β-conceal-∀ α∈ Vᵥ) =
   preserve-β-conceal-∀ α∈ typing
 preserve (⊢· L⊢ M⊢) (ξ-·₁ step) =
-  preserve-ξ-·₁ M⊢ (preserve L⊢ step)
+  ⊢· (preserve L⊢ step) M⊢
 preserve (⊢· V⊢ M⊢) (ξ-·₂ Vᵥ step) =
-  preserve-ξ-·₂ V⊢ (preserve M⊢ step)
-preserve typing@(⊢⦂∀ M⊢) (ξ-• step) =
-  preserve-ξ-• typing (preserve M⊢ step)
-preserve typing@(⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) =
-  preserve-ξ-⟨⟩ typing (preserve M⊢ step)
+  ⊢· V⊢ (preserve M⊢ step)
+preserve (⊢⦂∀ M⊢) (ξ-• step) = ⊢⦂∀ (preserve M⊢ step)
+preserve (⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) = ⊢⟨⟩ (preserve M⊢ step) c
 preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
-  preserve-ξ-reveal α∈ c⊢ (preserve M⊢ step)
+  ⊢reveal α∈ c⊢ (preserve M⊢ step)
 preserve (⊢conceal tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =
-  preserve-ξ-conceal tyVar∈ α∈ c⊢ (preserve M⊢ step)
-preserve typing@(⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
-  preserve-ξ-⊕₁ typing (preserve L⊢ step)
-preserve typing@(⊢⊕ op V⊢ M⊢) (ξ-⊕₂ Vᵥ step) =
-  preserve-ξ-⊕₂ typing (preserve M⊢ step)
-preserve typing@(⊢ν M⊢) (ξ-ν step) =
-  preserve-ξ-ν typing (preserve M⊢ step)
-preserve typing (float-·₁ result) = preserve-float-·₁ typing
-preserve typing (float-·₂ Vᵥ result) = preserve-float-·₂ typing
-preserve typing@(⊢⦂∀ (⊢ν M⊢)) (float-• result) =
-  preserve-float-• typing
-preserve typing@(⊢⟨⟩ (⊢ν M⊢) c) (float-⟨⟩ result) =
-  preserve-float-⟨⟩ typing
-preserve typing@(⊢⊕ op (⊢ν M⊢) N⊢) (float-⊕₁ result) =
-  preserve-float-⊕₁ typing
-preserve typing@(⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
-  preserve-float-⊕₂ typing
+  ⊢conceal tyVar∈ α∈ c⊢ (preserve M⊢ step)
+preserve (⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
+  ⊢⊕ op (preserve L⊢ step) M⊢
+preserve (⊢⊕ op V⊢ M⊢) (ξ-⊕₂ Vᵥ step) =
+  ⊢⊕ op V⊢ (preserve M⊢ step)
+preserve (⊢ν M⊢) (ξ-ν step) = ⊢ν (preserve M⊢ step)
+preserve (⊢· (⊢ν M⊢) N⊢) (float-·₁ result) =
+  ⊢ν (⊢· M⊢ (⊢shiftᶿ N⊢))
+preserve (⊢· V⊢ (⊢ν M⊢)) (float-·₂ Vᵥ result) =
+  ⊢ν (⊢· (⊢shiftᶿ V⊢) M⊢)
+preserve (⊢⦂∀ (⊢ν M⊢)) (float-• result) = ⊢ν (⊢⦂∀ M⊢)
+preserve (⊢⟨⟩ (⊢ν M⊢) c) (float-⟨⟩ result) =
+  ⊢ν (⊢⟨⟩ M⊢ c)
+preserve (⊢⊕ op (⊢ν M⊢) N⊢) (float-⊕₁ result) =
+  ⊢ν (⊢⊕ op M⊢ (⊢shiftᶿ N⊢))
+preserve (⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
+  ⊢ν (⊢⊕ op (⊢shiftᶿ V⊢) M⊢)
 
 ------------------------------------------------------------------------
 -- Historical refutation records

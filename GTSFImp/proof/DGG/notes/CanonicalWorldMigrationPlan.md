@@ -59,12 +59,22 @@ reveal and target conceal across a source rebase remain as module parameters;
 their exact statements live in `TransportSourceBindDef`, and the goal-free
 parameterized proof lives in `TransportSourceBindProof`.
 
-The remaining work in this milestone is to prove those two source-rebase
-commutations, then implement the target-bind, paired-precise-bind, and
-paired-dynamic-bind inductions in that order. Each proof must traverse all
-current CTI constructors. Keep a clause as a named parameter only when it
-requires a genuine separate world-history induction; discharge ordinary
-same-scope clauses directly.
+The target-bind induction also traverses every current CTI constructor. Its
+single `TargetBindScope` graph follows target allocation through the same
+three scopes and derives the corresponding center, context, store, typing,
+occupancy, and type-imprecision actions. In particular, its source-only
+conversion clauses treat the newly allocated target variable separately;
+they do not assume that every target name lies in the old renaming image.
+Only target reveal and target conceal across a source rebase remain as module
+parameters. Their exact statements live in `TransportTargetBindDef`, and the
+goal-free parameterized proof lives in `TransportTargetBindProof`.
+
+The remaining work in this milestone is to prove the four source-rebase
+commutations isolated by the source-bind and target-bind inductions, then
+implement the paired-precise-bind and paired-dynamic-bind inductions. Each
+proof must traverse all current CTI constructors. Keep a clause as a named
+parameter only when it requires a genuine separate world-history induction;
+discharge ordinary same-scope clauses directly.
 
 ### 2. Canonical CTI substitution
 

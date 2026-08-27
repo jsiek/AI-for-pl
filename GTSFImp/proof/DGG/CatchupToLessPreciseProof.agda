@@ -1,70 +1,26 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.CatchupToLessPreciseProof where
 
 -- File Charter:
---   * Adapts the boundary-general left catch-up worker to the fixed public
---     CatchupToLessPrecise surface.
---   * Instantiates the boundary stack at the closed same-boundary case.
---   * Erases boundary-only pivot and premise-world fields from the result.
+--   * Adapts the canonical fuel-indexed left value catch-up induction to the
+--     public CatchupToLessPrecise surface.
+--   * Chooses the structural source-cast budget directly from the input CTI
+--     derivation.
+--   * Depends on no parked-world, boundary, or residual-family interface.
 
-open import Data.Maybe using (nothing)
-open import Data.Nat using (suc)
-open import Data.Product using (_,_)
-open import Data.Sum using (inj₁; inj₂)
-
-open import proof.DGG.Catchup.LeftBoundaryCatchupDef
-  using (CatchupToLessPreciseBoundary)
-open import proof.DGG.Catchup.LeftValueCatchupProof
-  using
-    ( LeftValueCatchupResidualsAt
-    ; left-value-catchup-with-residuals
-    ; source-cast-bound
-    ; sourceCastBudget
-    )
-open import proof.DGG.CatchupToLessPreciseDef
-  using (CatchupToLessPrecise)
-open import proof.DGG.CatchupToMorePreciseDef
-  using (boundary-refl; same-boundary)
+open import proof.DGG.Catchup.LeftValueCatchupDef using
+  (LeftValueCatchupAt)
+open import proof.DGG.Catchup.LeftValueCatchupLemma using
+  (source-cast-bound)
+open import proof.DGG.CatchupToLessPreciseDef using
+  (CatchupToLessPrecise)
 
 
-left-boundary-catchup→catchup-to-less-precise :
-  CatchupToLessPreciseBoundary → CatchupToLessPrecise
-left-boundary-catchup→catchup-to-less-precise catchup parked rel vV′
-    with catchup
-      {kind = same-boundary}
-      {Xᴸ? = nothing} {Xᴿ? = nothing}
-      parked boundary-refl rel vV′
-left-boundary-catchup→catchup-to-less-precise catchup parked rel vV′
-    | inj₁
-      ( Δᴸ′ , χsᴸ , V , Δ′ , W′ , .W′ , .nothing ,
-        boundary-refl , q , _ ,
-        M↠V , vV , evol , _ , V⊑V′ ) =
-  inj₁ (Δᴸ′ , χsᴸ , V , Δ′ , W′ , q , M↠V , vV , evol , V⊑V′)
-left-boundary-catchup→catchup-to-less-precise catchup parked rel vV′
-    | inj₂
-      ( Δᴸ′ , χsᴸ , Δ′ , W′ , .W′ , .nothing ,
-        boundary-refl , _ , M↠blame , evol , _ ) =
-  inj₂ (Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol)
+module _
+    (left-value-catchup : ∀ {fuel} → LeftValueCatchupAt fuel)
+  where
 
-
-LeftCatchupResidualFamily : Set₁
-LeftCatchupResidualFamily =
-  ∀ fuel → LeftValueCatchupResidualsAt fuel
-
-
-left-residuals→catchup-to-less-precise :
-  LeftCatchupResidualFamily → CatchupToLessPrecise
-left-residuals→catchup-to-less-precise residuals parked rel vV′
-    with left-value-catchup-with-residuals
-      (residuals (suc (sourceCastBudget rel)))
-      parked rel vV′ (source-cast-bound rel)
-left-residuals→catchup-to-less-precise residuals parked rel vV′
-    | inj₁
-      ( Δᴸ′ , χsᴸ , V , Δ′ , W′ , .W′ , .nothing ,
-        boundary-refl , q , _ ,
-        M↠V , vV , evol , _ , V⊑V′ ) =
-  inj₁ (Δᴸ′ , χsᴸ , V , Δ′ , W′ , q , M↠V , vV , evol , V⊑V′)
-left-residuals→catchup-to-less-precise residuals parked rel vV′
-    | inj₂
-      ( Δᴸ′ , χsᴸ , Δ′ , W′ , .W′ , .nothing ,
-        boundary-refl , _ , M↠blame , evol , _ ) =
-  inj₂ (Δᴸ′ , χsᴸ , Δ′ , W′ , M↠blame , evol)
+  catchup-to-less-precise : CatchupToLessPrecise
+  catchup-to-less-precise no-open-frames rel vV′ =
+    left-value-catchup no-open-frames rel vV′ (source-cast-bound rel)

@@ -25,7 +25,7 @@ open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; sym; trans)
 open import Relation.Nullary using (yes; no)
-import Data.Vec.Base as Vec
+open import Data.Vec.Base
 
 open import Types
 open import TermCtx
@@ -44,40 +44,40 @@ private
 ------------------------------------------------------------------------
 
 -- Apply a function to every entry of a type-variable map.
-mapᵛ : ∀ {n} {A B : Set} → (A → B) → Vec.Vec A n → Vec.Vec B n
-mapᵛ f Vec.[] = Vec.[]
-mapᵛ f (x Vec.∷ xs) = f x Vec.∷ mapᵛ f xs
+mapᵛ : ∀ {n} {A B : Set} → (A → B) → Vec A n → Vec B n
+mapᵛ f [] = []
+mapᵛ f (x ∷ xs) = f x ∷ mapᵛ f xs
 
 -- Insert a new entry at position i of a type-variable map, shifting later entries up.
 insertᵛ : ∀ {n} {A : Set}
-  → Fin (suc n) → A → Vec.Vec A n → Vec.Vec A (suc n)
-insertᵛ zero x xs = x Vec.∷ xs
-insertᵛ (suc i) x (y Vec.∷ ys) = y Vec.∷ insertᵛ i x ys
+  → Fin (suc n) → A → Vec A n → Vec A (suc n)
+insertᵛ zero x xs = x ∷ xs
+insertᵛ (suc i) x (y ∷ ys) = y ∷ insertᵛ i x ys
 
 -- Remove the entry at position i of a type-variable map, shifting later entries down.
 removeᵛ : ∀ {n} {A : Set}
-  → Fin (suc n) → Vec.Vec A (suc n) → Vec.Vec A n
-removeᵛ zero (x Vec.∷ xs) = xs
-removeᵛ {n = suc n} (suc i) (x Vec.∷ xs) =
-  x Vec.∷ removeᵛ i xs
+  → Fin (suc n) → Vec A (suc n) → Vec A n
+removeᵛ zero (x ∷ xs) = xs
+removeᵛ {n = suc n} (suc i) (x ∷ xs) =
+  x ∷ removeᵛ i xs
 
 infix 4 _∉ᵛ_
 
 -- `α ∉ᵛ σ`: no type variable of σ currently aliases anchor α.
 _∉ᵛ_ : ∀ {Θ Δ}
-  → TyVar Θ → Vec.Vec (Maybe (TyVar Θ)) Δ → Set
-α ∉ᵛ σ = ∀ Y → Vec.lookup σ Y ≢ just α
+  → TyVar Θ → Vec (Maybe (TyVar Θ)) Δ → Set
+α ∉ᵛ σ = ∀ Y → lookup σ Y ≢ just α
 
 -- Find the type variable that currently aliases anchor α, if any (unique by the
 -- begin constructor's freshness field).
 liveTyVar? : ∀ {Θ Δ}
-  → Vec.Vec (Maybe (TyVar Θ)) Δ → TyVar Θ
+  → Vec (Maybe (TyVar Θ)) Δ → TyVar Θ
   → Maybe (TyVar Δ)
-liveTyVar? Vec.[] α = nothing
-liveTyVar? (nothing Vec.∷ σ) α = mapMaybe suc (liveTyVar? σ α)
-liveTyVar? (just β Vec.∷ σ) α with α ≟ β
-liveTyVar? (just β Vec.∷ σ) .β | yes refl = just zero
-liveTyVar? (just β Vec.∷ σ) α | no α≢β =
+liveTyVar? [] α = nothing
+liveTyVar? (nothing ∷ σ) α = mapMaybe suc (liveTyVar? σ α)
+liveTyVar? (just β ∷ σ) α with α ≟ β
+liveTyVar? (just β ∷ σ) .β | yes refl = just zero
+liveTyVar? (just β ∷ σ) α | no α≢β =
   mapMaybe suc (liveTyVar? σ α)
 
 -- Peel the `just` constructor off an equality.
@@ -87,7 +87,7 @@ just-injective refl = refl
 -- The live lookup is a function, so its selected alias is unique.  The
 -- telescope's begin field is what makes that selected alias also the only
 -- `just α` entry representable in σ.
-liveTyVar?-unique : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
+liveTyVar?-unique : ∀ {Θ Δ} {σ : Vec (Maybe (TyVar Θ)) Δ}
     {α : TyVar Θ} {X Y : TyVar Δ}
   → liveTyVar? σ α ≡ just X
   → liveTyVar? σ α ≡ just Y
@@ -103,8 +103,8 @@ infixl 5 _,begin[_≔_]⟨_⟩ _,typ _,end[_]
 infixl 5 _,:=_
 
 data TyEnv : (Θ : AnchorCtx) (Δ : TyCtx)
-    → Vec.Vec (Maybe (TyVar Θ)) Δ → Set where
-  ∅ : TyEnv zero zero Vec.[]
+    → Vec (Maybe (TyVar Θ)) Δ → Set where
+  ∅ : TyEnv zero zero []
 
   _,begin[_≔_]⟨_⟩ : ∀ {σ}
     → TyEnv Θ Δ σ
@@ -202,7 +202,7 @@ data _≼[_,_]_ : ∀ {Θ Θ′ Δ Δ′ σ σ′}
       {Ψ : TyEnv Θ (suc Δ) σ} {Ψ′ : TyEnv Θ′ (suc Δ′) σ′}
       {Ψ″ : TyEnv Θ″ Δ″ σ″} {X : TyVar (suc Δ)}
       {α : TyVar Θ} {β : TyVar Θ″} {fresh : β ∉ᵛ σ″}
-    → Vec.lookup σ X ≡ just α
+    → lookup σ X ≡ just α
     → Ψ ≼[ k , ρ ] Ψ′
     → (Ψ′ ,end[ toRenameᵗ ρ X ]) ≼[ k′ , η ] Ψ″
     → Shifted (k + k′) α β
@@ -248,7 +248,7 @@ ext-route route (suc X) = mapMaybe suc (route X)
 -- its resolved representation if it is dead.
 aliasResult? : ∀ {Θ Δ Δout}
   → (TyVar Θ → Maybe (Ty Δ))
-  → Vec.Vec (Maybe (TyVar Θ)) Δ
+  → Vec (Maybe (TyVar Θ)) Δ
   → (TyVar Δ → TyVar Δout)
   → TyVar Θ
   → Maybe (Ty Δout)
@@ -266,15 +266,15 @@ aliasResult? resolve target live-ren anchor | nothing | just A =
 -- anchor (aliasResult?), lexical type variables by the positional route.
 repoint? : ∀ {Θ₀ Θ Δ₀ Δ Δout}
   → (TyVar Θ → Maybe (Ty Δ))
-  → Vec.Vec (Maybe (TyVar Θ)) Δ
-  → Vec.Vec (Maybe (TyVar Θ₀)) Δ₀
+  → Vec (Maybe (TyVar Θ)) Δ
+  → Vec (Maybe (TyVar Θ₀)) Δ₀
   → (TyVar (suc Θ₀) → TyVar Θ)
   → (TyVar Δ₀ → Maybe (TyVar Δout))
   → (TyVar Δ → TyVar Δout)
   → Ty Δ₀
   → Maybe (Ty Δout)
 repoint? resolve target σ₀ φ route live-ren (＇ X)
-    with Vec.lookup σ₀ X
+    with lookup σ₀ X
 repoint? resolve target σ₀ φ route live-ren (＇ X) | nothing
     with route X
 repoint? resolve target σ₀ φ route live-ren (＇ X)
@@ -295,7 +295,7 @@ repoint? resolve target σ₀ φ route live-ren (A ⇒ B)
 repoint? resolve target σ₀ φ route live-ren (A ⇒ B)
     | just A′ | just B′ = just (A′ ⇒ B′)
 repoint? resolve target σ₀ φ route live-ren (`∀ A)
-    with repoint? resolve target (nothing Vec.∷ σ₀) φ
+    with repoint? resolve target (nothing ∷ σ₀) φ
       (ext-route route) (λ X → suc (live-ren X)) A
 repoint? resolve target σ₀ φ route live-ren (`∀ A) | nothing = nothing
 repoint? resolve target σ₀ φ route live-ren (`∀ A) | just A′ =
@@ -360,7 +360,7 @@ rep? {Θ = Θ} Ψ α = repFuel? (Θ ∸ toℕ α) Ψ α
 
 private
   variable
-    σ : Vec.Vec (Maybe (TyVar Θ)) Δ
+    σ : Vec (Maybe (TyVar Θ)) Δ
     Ψ Ψ′ : TyEnv Θ Δ σ
     Γ Γ′ : TermCtx Δ
     A B C : Ty Δ
@@ -433,7 +433,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ σ}
       {Γ′ : TermCtx (suc Δ)} {M : Term Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
-    → Vec.lookup σ Y ≡ just α
+    → lookup σ Y ≡ just α
     → rep? (Ψ ,end[ Y ]) α ≡ just C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
     → Ψ ,end[ Y ] ∣ [] ⊢ M ⦂ A

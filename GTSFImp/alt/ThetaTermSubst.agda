@@ -1255,6 +1255,16 @@ rep?-allocate : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {C : Ty Δ}
 rep?-allocate {Θ = Θ} {Ψ = Ψ} {C = C} a =
   repFuel?-allocate (Θ ∸ toℕ a) Ψ C a
 
+rep?-allocate-lexical : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {a : TyVar Θ} {A C : Ty Δ}
+  → rep? Ψ a ≡ just A
+  → rep? ((Ψ ,:= C)
+      ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩)
+      (suc a) ≡ just (⇑ᵗ A)
+rep?-allocate-lexical {Θ = Θ} {Ψ = Ψ} {a = a} {A = A} {C = C} eq =
+  trans (rep?-allocate {Θ = Θ} {Ψ = Ψ} {C = C} a)
+    (rep?-typ {Θ = Θ} {Ψ = Ψ} {α = a} {A = A} eq)
+
 ------------------------------------------------------------------------
 -- Evaluator transport through an end/re-begin pair
 ------------------------------------------------------------------------

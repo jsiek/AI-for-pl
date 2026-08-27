@@ -1,18 +1,19 @@
 module alt.ThetaRegression where
 
 -- File Charter:
---   * Checks the counterexample that previously blocked literal type weakening,
---     term substitution, and preservation of the right-application float.
---   * The ambient telescope ends in an anchor whose representation mentions
---     the slot concealed by `sealed-seven`; crossing its end marker resolves
---     the older natural-number representation in the lookup result.
---   * Exhibits the conceal typing derivation, a chained ν-headed result, its
---     `float-·₂` step, and concrete typings for both sides of that step.
+--   * Exercises anchor-directed representation lookup through end markers,
+--     re-entry, lexical drift, and freshly allocated crossings.
+--   * Retains the ν-headed application-float regression that originally
+--     exposed the missing telescope transports.
+--   * Checks the former β-Λ obstruction as a positive preservation instance.
 
 open import Data.Fin using (zero; suc)
 open import Data.List using ([])
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+import Data.Vec.Base as Vec
 
 open import Types
 open import TermCtx
@@ -23,23 +24,40 @@ open import alt.ThetaTyping
 open import alt.ThetaReduction
 open import alt.ThetaTermSubst
 
-Ψ₂ : TyEnv 2 1
-Ψ₂ = ∅ ,:= ‵ `ℕ ,begin[ zero ≔ zero ] ,:= ＇ zero
+empty-fresh : ∀ {Θ} {a : TyVar Θ} → a ∉ᵛ Vec.[]
+empty-fresh ()
 
-Ψ₂-ended-old-lookup : Ψ₂ ,end[ zero ] ∋rep suc zero ≔ ‵ `ℕ
-Ψ₂-ended-old-lookup =
-  ∋rep-of
-    (skip-end (skip-nu-binding found-begin)
-      (S (skip-begin Z)))
-    ⇓-base
+nothing-fresh : ∀ {Θ} {a : TyVar Θ}
+  → a ∉ᵛ (nothing Vec.∷ Vec.[])
+nothing-fresh zero ()
+
+one-zero-slot : Vec.Vec (Maybe (TyVar 2)) 1
+one-zero-slot = just zero Vec.∷ Vec.[]
+
+other-fresh : suc zero ∉ᵛ one-zero-slot
+other-fresh zero ()
+
+------------------------------------------------------------------------
+-- The original application-float regression
+------------------------------------------------------------------------
+
+Ψ₂-σ : Vec.Vec (Maybe (TyVar 2)) 1
+Ψ₂-σ = just (suc zero) Vec.∷ Vec.[]
+
+Ψ₂ : TyEnv 2 1 Ψ₂-σ
+Ψ₂ =
+  ((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]⟨ empty-fresh ⟩) ,:= ＇ zero
+
+Ψ₂-ended-old-lookup :
+  rep? (Ψ₂ ,end[ zero ]) (suc zero) ≡ just (‵ `ℕ)
+Ψ₂-ended-old-lookup = refl
 
 sealed-seven : Term 2 1
 sealed-seven = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal
 
 sealed-seven-⊢ : Ψ₂ ∣ [] ⊢ sealed-seven ⦂ ＇ zero
 sealed-seven-⊢ =
-  ⊢conceal (skip-nu-binding found-begin) Ψ₂-ended-old-lookup
-    ⊢seal (⊢$ (κℕ 7))
+  ⊢conceal refl Ψ₂-ended-old-lookup ⊢seal (⊢$ (κℕ 7))
 
 g : Term 2 1
 g = ƛ ＇ zero ˙ ` zero
@@ -86,8 +104,7 @@ before-float-⊢ : Ψ₂ ∣ [] ⊢ g · a ⦂ ＇ zero
 before-float-⊢ = ⊢· g-⊢ a-⊢
 
 after-float-⊢ : Ψ₂ ∣ [] ⊢ floated ⦂ ＇ zero
-after-float-⊢ =
-  ⊢ν (⊢· (⊢shiftᶿ g-⊢) a-body-⊢)
+after-float-⊢ = ⊢ν (⊢· (⊢shiftᶿ g-⊢) a-body-⊢)
 
 float-preservation-instance :
   Ψ₂ ∣ [] ⊢ g · a ⦂ ＇ zero
@@ -95,67 +112,63 @@ float-preservation-instance :
 float-preservation-instance = before-float-⊢ , after-float-⊢
 
 ------------------------------------------------------------------------
--- Lazy begin/end lookup regressions
+-- Anchor-directed lookup regressions
 ------------------------------------------------------------------------
 
--- Ending the recorded slot resolves the later anchor's slot-dependent
--- representation in the lookup result; the telescope itself is unchanged.
-resolve-through-end : Ψ₂ ,end[ zero ] ∋rep zero ≔ ‵ `ℕ
-resolve-through-end =
-  ∋rep-of
-    (skip-end (skip-nu-binding found-begin) Z)
-    (⇓-ref Ψ₂-ended-old-lookup)
+-- The old anchor is dead after the end, so its representation resolves.
+resolve-through-end : rep? (Ψ₂ ,end[ zero ]) zero ≡ just (‵ `ℕ)
+resolve-through-end = refl
 
--- A live begin weakens an outer representation verbatim.
+-- A representation is read verbatim at its birth scope through a live begin.
 verbatim-through-live-begin :
-  (∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ] ∋rep zero
-    ≔ wkᵗ zero (‵ `ℕ)
-verbatim-through-live-begin = ∋rep-here-begin
+  rep? ((∅ ,:= ‵ `ℕ)
+    ,begin[ zero ≔ zero ]⟨ empty-fresh ⟩) zero ≡ just (‵ `ℕ)
+verbatim-through-live-begin = refl
 
+two-crossings : TyEnv 2 2
+  (just zero Vec.∷ just (suc zero) Vec.∷ Vec.[])
+two-crossings =
+  ((∅ ,:= ‵ `ℕ ,:= ‵ `𝔹)
+    ,begin[ zero ≔ zero ]⟨ empty-fresh ⟩)
+    ,begin[ suc zero ≔ suc zero ]⟨ other-fresh ⟩
+
+-- Ending one crossing leaves the unrelated live anchor available.
 end-after-live-begin :
-  (((∅ ,:= ‵ `ℕ ,:= ‵ `𝔹) ,begin[ zero ≔ zero ])
-      ,begin[ suc zero ≔ suc zero ]) ,end[ zero ]
-    ∋rep suc zero ≔ ‵ `ℕ
-end-after-live-begin =
-  ∋rep-of
-    (skip-end (skip-begin found-begin)
-      (skip-begin (skip-begin (S Z))))
-    ⇓-base
+  rep? (two-crossings ,end[ zero ]) (suc zero) ≡ just (‵ `ℕ)
+end-after-live-begin = refl
 
--- The telescope from commit 0190acb9 now re-enters the just-ended anchor
--- abstractly.  The end creates `ref (suc zero)` and the adjacent begin turns
--- it back into the new slot.
-adjacent-reentry :
-    (reenter-counterexample-Ψ ,end[ zero ]
-      ,begin[ zero ≔ suc zero ]) ∋rep zero ≔ ＇ zero
-adjacent-reentry = reenter-counterexample-reentered
+adjacent-reentry-Ψ : TyEnv 2 1 Ψ₂-σ
+adjacent-reentry-Ψ =
+  (Ψ₂ ,end[ zero ])
+    ,begin[ zero ≔ suc zero ]⟨ empty-fresh ⟩
 
-nonadjacent-reentry-Ψ : TyEnv (suc (suc zero)) (suc (suc zero))
+-- Commit 0190acb9's adjacent re-entry now computes the same abstract payload.
+adjacent-reentry : rep? adjacent-reentry-Ψ zero ≡ just (＇ zero)
+adjacent-reentry = refl
+
+nonadjacent-reentry-σ : Vec.Vec (Maybe (TyVar 2)) 2
+nonadjacent-reentry-σ = just (suc zero) Vec.∷ nothing Vec.∷ Vec.[]
+
+nonadjacent-reentry-Ψ : TyEnv 2 2 nonadjacent-reentry-σ
 nonadjacent-reentry-Ψ =
-  (((((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]) ,:= ＇ zero)
-    ,end[ zero ]) ,typ) ,begin[ zero ≔ suc zero ]
+  ((Ψ₂ ,end[ zero ]) ,typ)
+    ,begin[ zero ≔ suc zero ]⟨ nothing-fresh ⟩
 
--- A lexical entry between the end and its later begin leaves refs fixed;
--- the later begin still re-aliases the ended anchor to its new abstract slot.
+-- A lexical insertion between end and re-entry changes only positions.
 nonadjacent-reentry :
-    nonadjacent-reentry-Ψ ∋rep zero ≔ ＇ zero
-nonadjacent-reentry =
-  ∋rep-of
-    (skip-begin
-      (skip-typ
-        (skip-end (skip-nu-binding found-begin) Z)))
-    ⇓-var
+  rep? nonadjacent-reentry-Ψ zero ≡ just (＇ zero)
+nonadjacent-reentry = refl
 
 ------------------------------------------------------------------------
 -- The former β-Λ allocation obstruction is now a positive instance
 ------------------------------------------------------------------------
 
-βΛ-Ψ : TyEnv 1 0
-βΛ-Ψ = ((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]) ,end[ zero ]
+βΛ-Ψ : TyEnv 1 0 Vec.[]
+βΛ-Ψ =
+  ((∅ ,:= ‵ `ℕ) ,begin[ zero ≔ zero ]⟨ empty-fresh ⟩) ,end[ zero ]
 
-βΛ-ended-lookup : βΛ-Ψ ∋rep zero ≔ ‵ `ℕ
-βΛ-ended-lookup =
-  ∋rep-of (skip-end found-begin (skip-begin Z)) ⇓-base
+βΛ-ended-lookup : rep? βΛ-Ψ zero ≡ just (‵ `ℕ)
+βΛ-ended-lookup = refl
 
 βΛ-body : Term 1 1
 βΛ-body = (Λ ($ (κℕ 7))) ↑[ zero ≔ zero ] `∀↑ id↑
@@ -166,7 +179,9 @@ nonadjacent-reentry =
 
 βΛ-body-⊢ : βΛ-Ψ ,typ ∣ [] ⊢ βΛ-body ⦂ `∀ (‵ `ℕ)
 βΛ-body-⊢ =
-  ⊢reveal (∋rep-typ βΛ-ended-lookup)
+  ⊢reveal {fresh = nothing-fresh}
+    (rep?-typ {Θ = 1} {Ψ = βΛ-Ψ} {α = zero}
+      {A = ‵ `ℕ} βΛ-ended-lookup)
     (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 7)))
 
 βΛ-redex : Term 1 0
@@ -186,7 +201,8 @@ nonadjacent-reentry =
 βΛ-contractum-⊢ :
   βΛ-Ψ ∣ [] ⊢ βΛ-contractum ⦂ `∀ (‵ `ℕ)
 βΛ-contractum-⊢ =
-  ⊢ν (⊢reveal ∋rep-here (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
+  ⊢ν (⊢reveal (rep?-here {Θ = 1} {Ψ = βΛ-Ψ} {A = ‵ `ℕ})
+    (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
     (⊢allocate-lexical βΛ-body-⊢))
 
 βΛ-positive-preservation :

@@ -10,6 +10,9 @@ module alt.TenthBalancedExtensionProbe where
 
 open import Data.Fin using (zero)
 open import Data.List using ([]; _∷_)
+open import Data.Maybe using (Maybe; nothing)
+open import Relation.Binary.PropositionalEquality using (refl)
+import Data.Vec.Base as Vec
 
 open import Types
 open import TermCtx
@@ -19,9 +22,17 @@ open import alt.Conversion
 open import alt.ThetaTerms
 open import alt.ThetaTyping
 open import alt.ThetaReduction
+open import alt.ThetaTermSubst
 
-tenth-Ψ : TyEnv 1 0
+tenth-Ψ : TyEnv 1 0 Vec.[]
 tenth-Ψ = ∅ ,:= ‵ `ℕ
+
+empty-fresh : ∀ {Θ} {a : TyVar Θ} → a ∉ᵛ Vec.[]
+empty-fresh ()
+
+nothing-fresh : ∀ {Θ} {a : TyVar Θ}
+  → a ∉ᵛ (nothing Vec.∷ Vec.[])
+nothing-fresh zero ()
 
 tenth-A : Ty 0
 tenth-A = `∀ (‵ `ℕ)
@@ -30,7 +41,8 @@ tenth-interior : Term 1 1
 tenth-interior = Λ ($ (κℕ 7))
 
 tenth-interior-⊢ :
-  tenth-Ψ ,begin[ zero ≔ zero ] ∣ [] ⊢ tenth-interior ⦂ `∀ (‵ `ℕ)
+  tenth-Ψ ,begin[ zero ≔ zero ]⟨ empty-fresh ⟩ ∣ []
+    ⊢ tenth-interior ⦂ `∀ (‵ `ℕ)
 tenth-interior-⊢ = ⊢Λ (⊢$ (κℕ 7))
 
 tenth-interior-value : Value tenth-interior
@@ -41,7 +53,7 @@ tenth-V = tenth-interior ↑[ zero ≔ zero ] (`∀↑ id↑)
 
 tenth-V-⊢ : tenth-Ψ ∣ [] ⊢ tenth-V ⦂ tenth-A
 tenth-V-⊢ =
-  ⊢reveal (found ≼-refl) (⊢↑-∀ (⊢id↑ (‵ `ℕ))) tenth-interior-⊢
+  ⊢reveal refl (⊢↑-∀ (⊢id↑ (‵ `ℕ))) tenth-interior-⊢
 
 tenth-V-value : Value tenth-V
 tenth-V-value =
@@ -69,5 +81,7 @@ tenth-step = β tenth-V-value
 tenth-contractum-⊢ :
   tenth-Ψ ∣ [] ⊢ tenth-contractum ⦂ `∀ (⇑ᵗ tenth-A)
 tenth-contractum-⊢ =
-  ⊢Λ (⊢reveal (found (≼-typ ≼-refl))
+  ⊢Λ (⊢reveal {fresh = nothing-fresh}
+    (rep?-typ {Θ = 1} {Ψ = tenth-Ψ} {α = zero}
+      {A = ‵ `ℕ} refl)
     (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 7))))

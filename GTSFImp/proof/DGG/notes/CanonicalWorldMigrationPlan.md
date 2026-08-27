@@ -84,6 +84,22 @@ transport proof. Keep a clause as a named parameter only when it requires a
 genuine separate world-history induction; discharge ordinary same-scope
 clauses directly.
 
+The first rebase-commutation pass exposed a definition-level obstruction, not
+a missing induction. `CanRebaseSourceᵗ` itself commutes structurally through
+both possible center actions: target-only allocation uses
+`canRebaseSource-skipᵗ`, while source and paired allocation use
+`canRebaseSource-keepᵗ`. However, a bind after a conceal-induced rebase has
+world history `rebase ; bind`, whereas the current `⊑conceal-rebase²` rule can
+only conclude a world whose last change is rebase, namely `bind ; rebase`.
+These histories have the same endpoint contexts and corresponding interpreted
+geometry, but they are different inhabitants of `_⊑ᶜ_`. Therefore the six
+parameters cannot be discharged by adding proof adapters. Before completing
+this milestone, replace the reveal/conceal rules' fixed final-change indices
+with one genuine source-rebase graph that is closed under world evolution.
+Gate that relation change through the required concrete reduction square and
+imprecision ladder; do not add a compatibility equality between world
+histories.
+
 ### 2. Canonical CTI substitution
 
 Implement `TermImprecisionSubstitutionᵀ` over `bind-termᶜ`.  Keep the

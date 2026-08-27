@@ -117,6 +117,46 @@ rebaseSourceEmbeddingᵗ (can-rebase-sourceᵗ apart insert) =
   insertSourceEmbeddingᵗ insert
 
 
+canRebaseSource-skipᵗ : ∀ {Delta₀ Delta}
+    {eta : Delta₀ ↪ᵗ Delta}
+    {X : TyVar Delta₀} {Z : TyVar Delta}
+  → CanRebaseSourceᵗ eta X Z
+  → CanRebaseSourceᵗ (skip eta) X (Fin.suc Z)
+canRebaseSource-skipᵗ (can-rebase-sourceᵗ apart insert) =
+  can-rebase-sourceᵗ
+    (λ { refl → apart refl })
+    (insert-skipᵗ insert)
+
+
+canRebaseSource-keepᵗ : ∀ {Delta₀ Delta}
+    {eta : Delta₀ ↪ᵗ Delta}
+    {X : TyVar Delta₀} {Z : TyVar Delta}
+  → CanRebaseSourceᵗ eta X Z
+  → CanRebaseSourceᵗ (keep eta) (Fin.suc X) (Fin.suc Z)
+canRebaseSource-keepᵗ (can-rebase-sourceᵗ apart insert) =
+  can-rebase-sourceᵗ
+    (λ { refl → apart refl })
+    (insert-keepᵗ insert)
+
+
+rebaseSourceEmbedding-skipᵗ : ∀ {Delta₀ Delta}
+    {eta : Delta₀ ↪ᵗ Delta}
+    {X : TyVar Delta₀} {Z : TyVar Delta}
+  → (ok : CanRebaseSourceᵗ eta X Z)
+  → rebaseSourceEmbeddingᵗ (canRebaseSource-skipᵗ ok)
+    ≡ skip (rebaseSourceEmbeddingᵗ ok)
+rebaseSourceEmbedding-skipᵗ (can-rebase-sourceᵗ apart insert) = refl
+
+
+rebaseSourceEmbedding-keepᵗ : ∀ {Delta₀ Delta}
+    {eta : Delta₀ ↪ᵗ Delta}
+    {X : TyVar Delta₀} {Z : TyVar Delta}
+  → (ok : CanRebaseSourceᵗ eta X Z)
+  → rebaseSourceEmbeddingᵗ (canRebaseSource-keepᵗ ok)
+    ≡ keep (rebaseSourceEmbeddingᵗ ok)
+rebaseSourceEmbedding-keepᵗ (can-rebase-sourceᵗ apart insert) = refl
+
+
 rebaseSource-before-apartᵗ : ∀ {Delta₀ Delta}
     {eta : Delta₀ ↪ᵗ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}

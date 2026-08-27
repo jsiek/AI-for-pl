@@ -51,6 +51,8 @@ open import proof.DGG.TargetBlameCatchupLemma using
 open import proof.DGG.TransportTermImprecisionDef using
   (TransportTermImprecisionᵀ)
 open import proof.DGG.World
+open import proof.DGG.SourceRebase using
+  (source-rebase-count≢zero)
 open import proof.DGG.WorldEvolution using (evolution-keep)
 open import proof.DGG.WorldEvolutionSequence
 open import proof.Reduction
@@ -1105,42 +1107,47 @@ module _
       inj₂ (Δᴸ′ , χsᴸ ++χ (keep ∷ []) , conceal-blame-↠ c source-blame)
 
   sim-back no-rebase
-      (⊑reveal-rebase² conversion@(Conv.⊢↑-id-var member X≠Y) ok
-        represented related type-rel)
-      (pure-step target-root@(id-reveal target-value)) =
-    sim-back-target-reveal-rebase-closing no-rebase conversion ok
-      represented related type-rel target-root
-
-  sim-back no-rebase
-      (⊑reveal-rebase² conversion@(Conv.⊢↑-id-base member) ok represented
+      (⊑reveal-rebase² conversion@(Conv.⊢↑-id-var member X≠Y) rebase
         related type-rel)
       (pure-step target-root@(id-reveal target-value)) =
-    sim-back-target-reveal-rebase-closing no-rebase conversion ok
-      represented related type-rel target-root
+    sim-back-target-reveal-rebase-closing no-rebase conversion rebase
+      related type-rel target-root
 
   sim-back no-rebase
-      (⊑reveal-rebase² conversion@(Conv.⊢↑-id-star member) ok represented
+      (⊑reveal-rebase² conversion@(Conv.⊢↑-id-base member) rebase
         related type-rel)
       (pure-step target-root@(id-reveal target-value)) =
-    sim-back-target-reveal-rebase-closing no-rebase conversion ok
-      represented related type-rel target-root
+    sim-back-target-reveal-rebase-closing no-rebase conversion rebase
+      related type-rel target-root
 
   sim-back no-rebase
-      (⊑reveal-rebase² conversion ok represented related type-rel)
+      (⊑reveal-rebase² conversion@(Conv.⊢↑-id-star member) rebase
+        related type-rel)
+      (pure-step target-root@(id-reveal target-value)) =
+    sim-back-target-reveal-rebase-closing no-rebase conversion rebase
+      related type-rel target-root
+
+  sim-back no-rebase
+      (⊑reveal-rebase² conversion rebase related type-rel)
       (pure-step target-root@(conceal-reveal target-value)) =
-    sim-back-target-reveal-rebase-closing no-rebase conversion ok
-      represented related type-rel target-root
+    sim-back-target-reveal-rebase-closing no-rebase conversion rebase
+      related type-rel target-root
 
   sim-back no-rebase
-      (⊑reveal-rebase² conversion ok represented related type-rel)
+      (⊑reveal-rebase² conversion rebase related type-rel)
       (pure-step blame-reveal) =
     inj₂ (target-blame-catchup related)
 
   sim-back no-rebase
-      (⊑reveal-rebase² conversion ok represented related type-rel)
+      (⊑reveal-rebase² conversion rebase related type-rel)
       (ξ-reveal target-step refl) =
-    sim-back-target-reveal-rebase-frame no-rebase conversion ok
-      represented related type-rel target-step
+    sim-back-target-reveal-rebase-frame no-rebase conversion rebase
+      related type-rel target-step
+
+  sim-back no-rebase
+      (⊑conceal-rebase² conversion rebase related type-rel)
+      target-step =
+    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
 
   sim-back no-rebase (blame⊑² target⊢ type-rel) target-step =
     inj₂ (_ , [] , (blame ∎[]))

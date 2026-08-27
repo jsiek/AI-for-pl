@@ -535,40 +535,37 @@ checkpoint₀-ladder-pinned :
     "source term  A            ηᴸA          ⊑ costs              ηᴿB          B            target term\n" ++
     "───────────  ───────────  ───────────  ───────────────────  ───────────  ───────────  ───────────\n" ++
     "□₁ · □₂      ℕ            ℕ            ι⊑★                  ★            ★            □₁ · □₂\n" ++
-    "├ □ [ ℕ ]    (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ι⊑★, ι⊑★             (★ ⇒ ★)      (★ ⇒ ★)      □ [ ★ ]\n" ++
-    "│ Λ□         ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  Λ□\n" ++
-    "│ λ♯0. □     (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    ♭0 ≈ ♭0, ♭0 ≈ ♭0     (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    λ♯0. □\n" ++
-    "│ ♯0         ♭0           ♭0           ♭0 ≈ ♭0              ♭0           ♭0           ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ            ℕ            ι⊑★                  ★            ★            □ ⟨ ℕ↦★ ⟩\n" ++
-    "  42         ℕ            ℕ            ℕ⊑ℕ                  ℕ            ℕ            42"
+    "├ □ [ ℕ ]    (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ι⊑★, ι⊑★             (★ ⇒ ★)      (★ ⇒ ★)      ├ □ [ ★ ]\n" ++
+    "│ Λ□         ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  │ Λ□\n" ++
+    "│ λ♯0. □     (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    ♭0 ≈ ♭0, ♭0 ≈ ♭0     (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    │ λ♯0. □\n" ++
+    "│ ♯0         ♭0           ♭0           ♭0 ≈ ♭0              ♭0           ♭0           │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ            ℕ            ι⊑★                  ★            ★            └ □ ⟨ ℕ↦★ ⟩\n" ++
+    "  42         ℕ            ℕ            ℕ⊑ℕ                  ℕ            ℕ              42"
 checkpoint₀-ladder-pinned = refl
-
 checkpoint₁-ladder-pinned :
   checkpoint₁-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦★⟩\n" ++
     "source term           A        ηᴸA      ⊑ costs                            ηᴿB      B          target term\n" ++
-    "────────────────────  ───────  ───────  ─────────────────────────────────  ───────  ─────────  ───────────────────\n" ++
+    "────────────────────  ───────  ───────  ─────────────────────────────────  ───────  ─────────  ─────────────────────\n" ++
     "□₁ · □₂               ℕ        ℕ        ι⊑★                                ★        ★          □₁ · □₂\n" ++
-    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ι⊑★, ι⊑★ + matched reveal partner  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ λ♯0. □              (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                       (X ⇒ X)  (X′ ⇒ X′)  λ♯0. □\n" ++
-    "│ ♯0                  X        X        X ≈ X                              X        X′         ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩           ℕ        ℕ        ι⊑★                                ★        ★          □ ⟨ ℕ↦★ ⟩\n" ++
-    "  42                  ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ          42"
+    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ι⊑★, ι⊑★ + matched reveal partner  (★ ⇒ ★)  (★ ⇒ ★)    ├ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ λ♯0. □              (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                       (X ⇒ X)  (X′ ⇒ X′)  │ λ♯0. □\n" ++
+    "│ ♯0                  X        X        X ≈ X                              X        X′         │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩           ℕ        ℕ        ι⊑★                                ★        ★          └ □ ⟨ ℕ↦★ ⟩\n" ++
+    "  42                  ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ            42"
 checkpoint₁-ladder-pinned = refl
-
 checkpoint₂-ladder-pinned :
   checkpoint₂-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦★⟩\n" ++
     "source term           A        ηᴸA      ⊑ costs                            ηᴿB      B          target term\n" ++
-    "────────────────────  ───────  ───────  ─────────────────────────────────  ───────  ─────────  ───────────────────\n" ++
+    "────────────────────  ───────  ───────  ─────────────────────────────────  ───────  ─────────  ─────────────────────\n" ++
     "□₁ · □₂               ℕ        ℕ        ι⊑★                                ★        ★          □₁ · □₂\n" ++
-    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ι⊑★, ι⊑★ + matched reveal partner  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ λ♯0. □              (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                       (X ⇒ X)  (X′ ⇒ X′)  λ♯0. □\n" ++
-    "│ ♯0                  X        X        X ≈ X                              X        X′         ♯0\n" ++
-    "└ ─                   ℕ        ℕ        ι⊑★                                ★        ★          □ ⟨ ℕ↦★ ⟩\n" ++
-    "  42                  ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ          42"
+    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ι⊑★, ι⊑★ + matched reveal partner  (★ ⇒ ★)  (★ ⇒ ★)    ├ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ λ♯0. □              (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                       (X ⇒ X)  (X′ ⇒ X′)  │ λ♯0. □\n" ++
+    "│ ♯0                  X        X        X ≈ X                              X        X′         │ ♯0\n" ++
+    "└ ─                   ℕ        ℕ        ι⊑★                                ★        ★          └ □ ⟨ ℕ↦★ ⟩\n" ++
+    "  42                  ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ            42"
 checkpoint₂-ladder-pinned = refl
-
 checkpoint₃-ladder-pinned :
   checkpoint₃-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦★⟩\n" ++
@@ -576,13 +573,12 @@ checkpoint₃-ladder-pinned :
     "────────────  ───────  ───────  ───────────────────────────────  ───────  ─────────  ─────────────\n" ++
     "□ ↑ unseal X  ℕ        ℕ        ι⊑★ + matched reveal partner     ★        ★          □ ↑ unseal X′\n" ++
     "□₁ · □₂       X        X        X ≈ X                            X        X′         □₁ · □₂\n" ++
-    "├ λ♯0. □      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                     (X ⇒ X)  (X′ ⇒ X′)  λ♯0. □\n" ++
-    "│ ♯0          X        X        X ≈ X                            X        X′         ♯0\n" ++
-    "└ □ ↓ seal X  X        X        X ≈ X + matched conceal partner  X        X′         □ ↓ seal X′\n" ++
-    "  ─           ℕ        ℕ        ι⊑★                              ★        ★          □ ⟨ ℕ↦★ ⟩\n" ++
-    "  42          ℕ        ℕ        ℕ⊑ℕ                              ℕ        ℕ          42"
+    "├ λ♯0. □      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                     (X ⇒ X)  (X′ ⇒ X′)  ├ λ♯0. □\n" ++
+    "│ ♯0          X        X        X ≈ X                            X        X′         │ ♯0\n" ++
+    "└ □ ↓ seal X  X        X        X ≈ X + matched conceal partner  X        X′         └ □ ↓ seal X′\n" ++
+    "  ─           ℕ        ℕ        ι⊑★                              ★        ★            □ ⟨ ℕ↦★ ⟩\n" ++
+    "  42          ℕ        ℕ        ℕ⊑ℕ                              ℕ        ℕ            42"
 checkpoint₃-ladder-pinned = refl
-
 checkpoint₄-ladder-pinned :
   checkpoint₄-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦★⟩\n" ++
@@ -593,7 +589,6 @@ checkpoint₄-ladder-pinned :
     "─             ℕ  ℕ    ι⊑★                              ★    ★   □ ⟨ ℕ↦★ ⟩\n" ++
     "42            ℕ  ℕ    ℕ⊑ℕ                              ℕ    ℕ   42"
 checkpoint₄-ladder-pinned = refl
-
 checkpoint₅-ladder-pinned :
   checkpoint₅-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦★⟩\n" ++

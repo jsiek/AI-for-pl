@@ -41,6 +41,7 @@ open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.ConversionPivotAlignment using
   (revealGeneratorPosition)
 open import proof.DGG.World
+open import proof.DGG.SourceRebase
 open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
@@ -85,20 +86,17 @@ SimBackTargetRevealRebaseClosingᵀ =
   ∀ {Deltaᴸ Deltaᴿ : TyCtx}
     {Σᴸ : TyStore Deltaᴸ} {Σᴿ : TyStore Deltaᴿ}
     {γ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Deltaᴿ , Σᴿ , [] ⟩}
+    {γᵖ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Deltaᴿ , Σᴿ , [] ⟩}
     {M : Term Deltaᴸ} {M′ N′ : Term Deltaᴿ}
     {A : Ty Deltaᴸ} {B B′ Rᴿ : Ty Deltaᴿ}
     {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
     {c′ : Conv↑ Deltaᴿ B B′}
   → sourceRebaseCountᶜ γ ≡ 0
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-  → (represented :
-      (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
-  → {p : A ⊑ᵀ⟨
-      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
-  → (γ ▻ᶜ rebase-source-changeᶜ
-      Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ∶ p
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+  → γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → M′ ↑ c′ —→ N′
   → ( Σ[ Deltaᴸ′ ∈ TyCtx ]
@@ -122,6 +120,8 @@ SimBackTargetRevealRebaseFunValuesᵀ =
   ∀ {Deltaᴸ Deltaᴿ : TyCtx}
     {Σᴸ : TyStore Deltaᴸ} {Σᴿ : TyStore Deltaᴿ}
     {γ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Deltaᴿ , Σᴿ , [] ⟩}
+    {γᵖ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Deltaᴿ , Σᴿ , [] ⟩}
     {V W : Term Deltaᴸ} {V′ W′ : Term Deltaᴿ}
     {A B : Ty Deltaᴸ} {A₀ B₀ A′ B′ Rᴿ : Ty Deltaᴿ}
     {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
@@ -129,16 +129,10 @@ SimBackTargetRevealRebaseFunValuesᵀ =
     {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
   → sourceRebaseCountᶜ γ ≡ 0
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] (c ↦↑ d))
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-  → (represented :
-      (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
-  → (pAᵖ : A ⊑ᵀ⟨
-      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ A₀)
-  → (pBᵖ : B ⊑ᵀ⟨
-      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B₀)
-  → (γ ▻ᶜ rebase-source-changeᶜ
-      Xᴸ Xᴿ ok represented) ⊢² V ⊑ V′ ∶ ⇒⊑⇒ pAᵖ pBᵖ
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → (pAᵖ : A ⊑ᵀ⟨ γᵖ ⟩ A₀)
+  → (pBᵖ : B ⊑ᵀ⟨ γᵖ ⟩ B₀)
+  → γᵖ ⊢² V ⊑ V′ ∶ ⇒⊑⇒ pAᵖ pBᵖ
   → γ ⊢² W ⊑ W′ ∶ pA
   → Value V
   → Value W
@@ -165,20 +159,17 @@ SimBackTargetRevealRebaseFrameᵀ =
   ∀ {Deltaᴸ Deltaᴿ Deltaᴿ′ : TyCtx}
     {Σᴸ : TyStore Deltaᴸ} {Σᴿ : TyStore Deltaᴿ}
     {γ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Deltaᴿ , Σᴿ , [] ⟩}
+    {γᵖ : ⟨ Deltaᴸ , Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Deltaᴿ , Σᴿ , [] ⟩}
     {M : Term Deltaᴸ} {M′ : Term Deltaᴿ} {N′ : Term Deltaᴿ′}
     {A : Ty Deltaᴸ} {B B′ Rᴿ : Ty Deltaᴿ}
     {Xᴸ : Fin.Fin Deltaᴸ} {Xᴿ : Fin.Fin Deltaᴿ}
     {c′ : Conv↑ Deltaᴿ B B′} {χᴿ : StoreChange Deltaᴿ Deltaᴿ′}
   → sourceRebaseCountᶜ γ ≡ 0
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-  → (represented :
-      (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
-  → {p : A ⊑ᵀ⟨
-      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
-  → (γ ▻ᶜ rebase-source-changeᶜ
-      Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ∶ p
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+  → γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → M′ —→[ χᴿ ] N′
   → ( Σ[ Deltaᴸ′ ∈ TyCtx ]

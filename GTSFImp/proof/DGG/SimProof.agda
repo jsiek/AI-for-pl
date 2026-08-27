@@ -77,6 +77,8 @@ open import proof.DGG.WorldEvolutionSequence using
   )
 open import proof.DGG.World using
   (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; sourceRebaseCountᶜ)
+open import proof.DGG.SourceRebase using
+  (source-rebase-count≢zero)
 open import proof.Reduction using
   ( applyConceals
   ; applyBodies
@@ -1136,14 +1138,14 @@ module _
         (multi-⊑ᵀ evol q)
 
   sim no-rebase
-      (CTI.⊑reveal-rebase² c′⊢ ok represented prem q)
+      (CTI.⊑reveal-rebase² c′⊢ rebase prem q)
       source-step =
-    sim-target-reveal-rebase-closing no-rebase c′⊢ ok
-      represented prem q source-step
+    sim-target-reveal-rebase-closing no-rebase c′⊢ rebase prem q source-step
 
-  sim ()
-      (CTI.⊑conceal-rebase² c′⊢ ok represented prem q)
-      source-step
+  sim no-rebase
+      (CTI.⊑conceal-rebase² c′⊢ rebase prem q)
+      source-step =
+    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
 
   sim no-rebase (CTI.blame⊑² target⊢ p) (pure-step ())
 

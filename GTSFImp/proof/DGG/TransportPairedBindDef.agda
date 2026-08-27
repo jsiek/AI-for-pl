@@ -28,6 +28,7 @@ open import CastTerms using
   (Term; ⟨_,_,_⟩; renameᵗᵐ; _↑_; _↓_)
 
 open import proof.DGG.World
+open import proof.DGG.SourceRebase
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.ImprecisionConsistency using
   (rename-⊑; toRenameᵗ-injective)
@@ -483,18 +484,16 @@ TransportPairedBindRevealRebaseᵀ = ∀
     {ρᴸ : Δᴸ ↪ᵗ Δᴸ⁺} {ρᴿ : Δᴿ ↪ᵗ Δᴿ⁺}
     {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-  → (represented : (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
-  → {p : A ⊑ᵀ⟨
-      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
-  → (γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented) ⊢²
-      M ⊑ M′ ∶ p
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+  → γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → γ⁺ ⊢² renameᵗᵐ ρᴸ M ⊑ renameᵗᵐ ρᴿ (M′ ↑ c′)
       ∶ paired-scope-⊑ᵀ plan q
@@ -512,19 +511,17 @@ TransportPairedBindConcealRebaseᵀ = ∀
     {c′ : Conv↓ Δᴿ B B′}
     {γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
   → (c′⊢ : Σᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γᵖ) Xᴸ (toRenameᵗ (ηᴿᶜ γᵖ) Xᴿ))
-  → (represented : (＇ Xᴸ) ⊑ᵀ⟨ γᵖ ⟩ lookupStore Σᴿ Xᴿ)
+  → SourceRebaseᶜ γᵖ γ Xᴸ Xᴿ
   → γᵖ ⊢² M ⊑ M′ ∶ p
-  → (q : A ⊑ᵀ⟨
-      γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B′)
+  → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → {ρᴸ : Δᴸ ↪ᵗ Δᴸ⁺} {ρᴿ : Δᴿ ↪ᵗ Δᴿ⁺}
   → {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
-  → (plan : PairedBindScope ρᴸ ρᴿ
-      (γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented) γ⁺)
+  → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
   → γ⁺ ⊢² renameᵗᵐ ρᴸ M ⊑ renameᵗᵐ ρᴿ (M′ ↓ c′)
       ∶ paired-scope-⊑ᵀ plan q

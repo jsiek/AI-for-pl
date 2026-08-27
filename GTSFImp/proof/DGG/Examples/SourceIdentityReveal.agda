@@ -16,7 +16,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just)
 import Data.Nat as Nat
 open import Data.Product using (proj₁; proj₂)
-open import Data.String using (String)
+open import Data.String using (String; _++_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
@@ -784,9 +784,27 @@ checkpoint₀-imprecision =
 checkpoint₀-ladder : String
 checkpoint₀-ladder = impLadderDefault checkpoint₀-imprecision
 
-checkpoint₀-ladder-pinned : checkpoint₀-ladder ≡ "⟨⟩\nsource term       A           ηᴸA         ⊑ costs                  ηᴿB      B        target term\n────────────────  ──────────  ──────────  ───────────────────────  ───────  ───────  ───────────\n□₁ · □₂           ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ        □₁ · □₂\n├ λ♯0. □          (ℕ ⇒ ℕ)     (ℕ ⇒ ℕ)     ℕ⊑ℕ, ℕ⊑ℕ                 (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0              ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ        ♯0\n└ □ ⟨ ★↦ℕ ⟩       ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n  □₁ · □₂         ★           ★           ★⊑★                      ★        ★        □₁ · □₂\n  ├ □ [ ℕ ]       (ℕ ⇒ ★)     (ℕ ⇒ ★)     ι⊑★, ★⊑★                 (★ ⇒ ★)  (★ ⇒ ★)  ─\n  │ Λ□            ∀ (♭0 ⇒ ★)  ∀ (♭0 ⇒ ★)  ∀⊑(mark X⊑★ at ♭0, ★⊑★)  (★ ⇒ ★)  (★ ⇒ ★)  ─\n  │ λ♯0. □        (♭0 ⇒ ★)    (♭0 ⇒ ★)    mark X⊑★ at ♭0, ★⊑★      (★ ⇒ ★)  (★ ⇒ ★)  λ♯0. □\n  │ □₁ · □₂       ★           ★           ★⊑★                      ★        ★        □₁ · □₂\n  │ ├ λ♯1. □      (★ ⇒ ★)     (★ ⇒ ★)     ★⊑★, ★⊑★                 (★ ⇒ ★)  (★ ⇒ ★)  λ♯1. □\n  │ │ ♯1          ★           ★           ★⊑★                      ★        ★        ♯1\n  │ └ □ ⟨ ♭0↦★ ⟩  ★           ★           ★⊑★                      ★        ★        □ ⟨ ★↦★ ⟩\n  │   ♯0          ♭0          ♭0          mark X⊑★ at ♭0           ★        ★        ♯0\n  └ □ ⟨ ℕ↦ℕ ⟩     ℕ           ℕ           ι⊑★                      ★        ★        □ ⟨ ℕ↦★ ⟩\n    42            ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ        42"
+checkpoint₀-ladder-pinned :
+  checkpoint₀-ladder ≡
+    "⟨⟩\n" ++
+    "source term       A           ηᴸA         ⊑ costs                  ηᴿB      B        target term\n" ++
+    "────────────────  ──────────  ──────────  ───────────────────────  ───────  ───────  ───────────────\n" ++
+    "□₁ · □₂           ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □          (ℕ ⇒ ℕ)     (ℕ ⇒ ℕ)     ℕ⊑ℕ, ℕ⊑ℕ                 (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0              ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ        │ ♯0\n" ++
+    "└ □ ⟨ ★↦ℕ ⟩       ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ        └ □ ⟨ ★↦ℕ ⟩\n" ++
+    "  □₁ · □₂         ★           ★           ★⊑★                      ★        ★          □₁ · □₂\n" ++
+    "  ├ □ [ ℕ ]       (ℕ ⇒ ★)     (ℕ ⇒ ★)     ι⊑★, ★⊑★                 (★ ⇒ ★)  (★ ⇒ ★)    ├ ─\n" ++
+    "  │ Λ□            ∀ (♭0 ⇒ ★)  ∀ (♭0 ⇒ ★)  ∀⊑(mark X⊑★ at ♭0, ★⊑★)  (★ ⇒ ★)  (★ ⇒ ★)    │ ─\n" ++
+    "  │ λ♯0. □        (♭0 ⇒ ★)    (♭0 ⇒ ★)    mark X⊑★ at ♭0, ★⊑★      (★ ⇒ ★)  (★ ⇒ ★)    │ λ♯0. □\n" ++
+    "  │ □₁ · □₂       ★           ★           ★⊑★                      ★        ★          │ □₁ · □₂\n" ++
+    "  │ ├ λ♯1. □      (★ ⇒ ★)     (★ ⇒ ★)     ★⊑★, ★⊑★                 (★ ⇒ ★)  (★ ⇒ ★)    │ ├ λ♯1. □\n" ++
+    "  │ │ ♯1          ★           ★           ★⊑★                      ★        ★          │ │ ♯1\n" ++
+    "  │ └ □ ⟨ ♭0↦★ ⟩  ★           ★           ★⊑★                      ★        ★          │ └ □ ⟨ ★↦★ ⟩\n" ++
+    "  │   ♯0          ♭0          ♭0          mark X⊑★ at ♭0           ★        ★          │   ♯0\n" ++
+    "  └ □ ⟨ ℕ↦ℕ ⟩     ℕ           ℕ           ι⊑★                      ★        ★          └ □ ⟨ ℕ↦★ ⟩\n" ++
+    "    42            ℕ           ℕ           ℕ⊑ℕ                      ℕ        ℕ            42"
 checkpoint₀-ladder-pinned = refl
-
 checkpoint₁-imprecision :
   source-only-world CTI.⊢²
     more-checkpoint₁ ⊑ less-checkpoint₁ ∶ I.ι⊑ι
@@ -805,9 +823,26 @@ checkpoint₁-imprecision =
 checkpoint₁-ladder : String
 checkpoint₁-ladder = impLadderDefault checkpoint₁-imprecision
 
-checkpoint₁-ladder-pinned : checkpoint₁-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term      A        ηᴸA      ⊑ costs                       ηᴿB      B        target term\n───────────────  ───────  ───────  ────────────────────────────  ───────  ───────  ───────────\n□₁ · □₂          ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        □₁ · □₂\n├ λ♯0. □         (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0             ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        ♯0\n└ □ ⟨ ★↦ℕ ⟩      ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n  □₁ · □₂        ★        ★        ★⊑★                           ★        ★        □₁ · □₂\n  ├ □ ↑ ⇒-rev    (ℕ ⇒ ★)  (ℕ ⇒ ★)  ι⊑★, ★⊑★ + target unoccupied  (★ ⇒ ★)  (★ ⇒ ★)  ─\n  │ λ♯0. □       (X ⇒ ★)  (X ⇒ ★)  mark X⊑★ at X, ★⊑★            (★ ⇒ ★)  (★ ⇒ ★)  λ♯0. □\n  │ □₁ · □₂      ★        ★        ★⊑★                           ★        ★        □₁ · □₂\n  │ ├ λ♯1. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                      (★ ⇒ ★)  (★ ⇒ ★)  λ♯1. □\n  │ │ ♯1         ★        ★        ★⊑★                           ★        ★        ♯1\n  │ └ □ ⟨ X↦★ ⟩  ★        ★        ★⊑★                           ★        ★        □ ⟨ ★↦★ ⟩\n  │   ♯0         X        X        mark X⊑★ at X                 ★        ★        ♯0\n  └ □ ⟨ ℕ↦ℕ ⟩    ℕ        ℕ        ι⊑★                           ★        ★        □ ⟨ ℕ↦★ ⟩\n    42           ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        42"
+checkpoint₁-ladder-pinned :
+  checkpoint₁-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term      A        ηᴸA      ⊑ costs                       ηᴿB      B        target term\n" ++
+    "───────────────  ───────  ───────  ────────────────────────────  ───────  ───────  ───────────────\n" ++
+    "□₁ · □₂          ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □         (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0             ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        │ ♯0\n" ++
+    "└ □ ⟨ ★↦ℕ ⟩      ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        └ □ ⟨ ★↦ℕ ⟩\n" ++
+    "  □₁ · □₂        ★        ★        ★⊑★                           ★        ★          □₁ · □₂\n" ++
+    "  ├ □ ↑ ⇒-rev    (ℕ ⇒ ★)  (ℕ ⇒ ★)  ι⊑★, ★⊑★ + target unoccupied  (★ ⇒ ★)  (★ ⇒ ★)    ├ ─\n" ++
+    "  │ λ♯0. □       (X ⇒ ★)  (X ⇒ ★)  mark X⊑★ at X, ★⊑★            (★ ⇒ ★)  (★ ⇒ ★)    │ λ♯0. □\n" ++
+    "  │ □₁ · □₂      ★        ★        ★⊑★                           ★        ★          │ □₁ · □₂\n" ++
+    "  │ ├ λ♯1. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                      (★ ⇒ ★)  (★ ⇒ ★)    │ ├ λ♯1. □\n" ++
+    "  │ │ ♯1         ★        ★        ★⊑★                           ★        ★          │ │ ♯1\n" ++
+    "  │ └ □ ⟨ X↦★ ⟩  ★        ★        ★⊑★                           ★        ★          │ └ □ ⟨ ★↦★ ⟩\n" ++
+    "  │   ♯0         X        X        mark X⊑★ at X                 ★        ★          │   ♯0\n" ++
+    "  └ □ ⟨ ℕ↦ℕ ⟩    ℕ        ℕ        ι⊑★                           ★        ★          └ □ ⟨ ℕ↦★ ⟩\n" ++
+    "    42           ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ            42"
 checkpoint₁-ladder-pinned = refl
-
 checkpoint₂-imprecision :
   source-only-world CTI.⊢²
     more-checkpoint₂ ⊑ less-checkpoint₂ ∶ I.ι⊑ι
@@ -826,9 +861,26 @@ checkpoint₂-imprecision =
 checkpoint₂-ladder : String
 checkpoint₂-ladder = impLadderDefault checkpoint₂-imprecision
 
-checkpoint₂-ladder-pinned : checkpoint₂-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term      A        ηᴸA      ⊑ costs                       ηᴿB      B        target term\n───────────────  ───────  ───────  ────────────────────────────  ───────  ───────  ───────────\n□₁ · □₂          ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        □₁ · □₂\n├ λ♯0. □         (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0             ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        ♯0\n└ □ ⟨ ★↦ℕ ⟩      ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n  □₁ · □₂        ★        ★        ★⊑★                           ★        ★        □₁ · □₂\n  ├ □ ↑ ⇒-rev    (ℕ ⇒ ★)  (ℕ ⇒ ★)  ι⊑★, ★⊑★ + target unoccupied  (★ ⇒ ★)  (★ ⇒ ★)  ─\n  │ λ♯0. □       (X ⇒ ★)  (X ⇒ ★)  mark X⊑★ at X, ★⊑★            (★ ⇒ ★)  (★ ⇒ ★)  λ♯0. □\n  │ □₁ · □₂      ★        ★        ★⊑★                           ★        ★        □₁ · □₂\n  │ ├ λ♯1. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                      (★ ⇒ ★)  (★ ⇒ ★)  λ♯1. □\n  │ │ ♯1         ★        ★        ★⊑★                           ★        ★        ♯1\n  │ └ □ ⟨ X↦★ ⟩  ★        ★        ★⊑★                           ★        ★        □ ⟨ ★↦★ ⟩\n  │   ♯0         X        X        mark X⊑★ at X                 ★        ★        ♯0\n  └ ─            ℕ        ℕ        ι⊑★                           ★        ★        □ ⟨ ℕ↦★ ⟩\n    42           ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        42"
+checkpoint₂-ladder-pinned :
+  checkpoint₂-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term      A        ηᴸA      ⊑ costs                       ηᴿB      B        target term\n" ++
+    "───────────────  ───────  ───────  ────────────────────────────  ───────  ───────  ───────────────\n" ++
+    "□₁ · □₂          ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □         (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0             ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        │ ♯0\n" ++
+    "└ □ ⟨ ★↦ℕ ⟩      ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ        └ □ ⟨ ★↦ℕ ⟩\n" ++
+    "  □₁ · □₂        ★        ★        ★⊑★                           ★        ★          □₁ · □₂\n" ++
+    "  ├ □ ↑ ⇒-rev    (ℕ ⇒ ★)  (ℕ ⇒ ★)  ι⊑★, ★⊑★ + target unoccupied  (★ ⇒ ★)  (★ ⇒ ★)    ├ ─\n" ++
+    "  │ λ♯0. □       (X ⇒ ★)  (X ⇒ ★)  mark X⊑★ at X, ★⊑★            (★ ⇒ ★)  (★ ⇒ ★)    │ λ♯0. □\n" ++
+    "  │ □₁ · □₂      ★        ★        ★⊑★                           ★        ★          │ □₁ · □₂\n" ++
+    "  │ ├ λ♯1. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                      (★ ⇒ ★)  (★ ⇒ ★)    │ ├ λ♯1. □\n" ++
+    "  │ │ ♯1         ★        ★        ★⊑★                           ★        ★          │ │ ♯1\n" ++
+    "  │ └ □ ⟨ X↦★ ⟩  ★        ★        ★⊑★                           ★        ★          │ └ □ ⟨ ★↦★ ⟩\n" ++
+    "  │   ♯0         X        X        mark X⊑★ at X                 ★        ★          │   ♯0\n" ++
+    "  └ ─            ℕ        ℕ        ι⊑★                           ★        ★          └ □ ⟨ ℕ↦★ ⟩\n" ++
+    "    42           ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ            42"
 checkpoint₂-ladder-pinned = refl
-
 identity-reveal-application-imprecision :
   source-only-world CTI.⊢²
     ((C.ƛ ((C.ƛ (C.` 0)) C.·
@@ -863,9 +915,27 @@ checkpoint₃-imprecision =
 checkpoint₃-ladder : String
 checkpoint₃-ladder = impLadderDefault checkpoint₃-imprecision
 
-checkpoint₃-ladder-pinned : checkpoint₃-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term      A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n───────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────\n□₁ · □₂          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n├ λ♯0. □         (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0             ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        ♯0\n└ □ ⟨ ★↦ℕ ⟩      ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n  □ ↑ id         ★        ★        ★⊑★ + generator absent             ★        ★        ─\n  □₁ · □₂        ★        ★        ★⊑★                                ★        ★        □₁ · □₂\n  ├ λ♯0. □       (X ⇒ ★)  (X ⇒ ★)  mark X⊑★ at X, ★⊑★                 (★ ⇒ ★)  (★ ⇒ ★)  λ♯0. □\n  │ □₁ · □₂      ★        ★        ★⊑★                                ★        ★        □₁ · □₂\n  │ ├ λ♯1. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                           (★ ⇒ ★)  (★ ⇒ ★)  λ♯1. □\n  │ │ ♯1         ★        ★        ★⊑★                                ★        ★        ♯1\n  │ └ □ ⟨ X↦★ ⟩  ★        ★        ★⊑★                                ★        ★        □ ⟨ ★↦★ ⟩\n  │   ♯0         X        X        mark X⊑★ at X                      ★        ★        ♯0\n  └ □ ↓ seal X   X        X        mark X⊑★ at X + target unoccupied  ★        ★        ─\n    ─            ℕ        ℕ        ι⊑★                                ★        ★        □ ⟨ ℕ↦★ ⟩\n    42           ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        42"
+checkpoint₃-ladder-pinned :
+  checkpoint₃-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term      A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n" ++
+    "───────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────────\n" ++
+    "□₁ · □₂          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □         (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0             ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        │ ♯0\n" ++
+    "└ □ ⟨ ★↦ℕ ⟩      ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        └ □ ⟨ ★↦ℕ ⟩\n" ++
+    "  □ ↑ id         ★        ★        ★⊑★ + generator absent             ★        ★          ─\n" ++
+    "  □₁ · □₂        ★        ★        ★⊑★                                ★        ★          □₁ · □₂\n" ++
+    "  ├ λ♯0. □       (X ⇒ ★)  (X ⇒ ★)  mark X⊑★ at X, ★⊑★                 (★ ⇒ ★)  (★ ⇒ ★)    ├ λ♯0. □\n" ++
+    "  │ □₁ · □₂      ★        ★        ★⊑★                                ★        ★          │ □₁ · □₂\n" ++
+    "  │ ├ λ♯1. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                           (★ ⇒ ★)  (★ ⇒ ★)    │ ├ λ♯1. □\n" ++
+    "  │ │ ♯1         ★        ★        ★⊑★                                ★        ★          │ │ ♯1\n" ++
+    "  │ └ □ ⟨ X↦★ ⟩  ★        ★        ★⊑★                                ★        ★          │ └ □ ⟨ ★↦★ ⟩\n" ++
+    "  │   ♯0         X        X        mark X⊑★ at X                      ★        ★          │   ♯0\n" ++
+    "  └ □ ↓ seal X   X        X        mark X⊑★ at X + target unoccupied  ★        ★          └ ─\n" ++
+    "    ─            ℕ        ℕ        ι⊑★                                ★        ★            □ ⟨ ℕ↦★ ⟩\n" ++
+    "    42           ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ            42"
 checkpoint₃-ladder-pinned = refl
-
 checkpoint₄-imprecision :
   source-only-world CTI.⊢²
     more-checkpoint₄ ⊑ less-checkpoint₄ ∶ I.ι⊑ι
@@ -889,9 +959,24 @@ checkpoint₄-imprecision =
 checkpoint₄-ladder : String
 checkpoint₄-ladder = impLadderDefault checkpoint₄-imprecision
 
-checkpoint₄-ladder-pinned : checkpoint₄-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term     A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n──────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────\n□₁ · □₂         ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n├ λ♯0. □        (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0            ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        ♯0\n└ □ ⟨ ★↦ℕ ⟩     ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n  □ ↑ id        ★        ★        ★⊑★ + generator absent             ★        ★        ─\n  □₁ · □₂       ★        ★        ★⊑★                                ★        ★        □₁ · □₂\n  ├ λ♯0. □      (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                           (★ ⇒ ★)  (★ ⇒ ★)  λ♯0. □\n  │ ♯0          ★        ★        ★⊑★                                ★        ★        ♯0\n  └ □ ⟨ X↦★ ⟩   ★        ★        ★⊑★                                ★        ★        □ ⟨ ★↦★ ⟩\n    □ ↓ seal X  X        X        mark X⊑★ at X + target unoccupied  ★        ★        ─\n    ─           ℕ        ℕ        ι⊑★                                ★        ★        □ ⟨ ℕ↦★ ⟩\n    42          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        42"
+checkpoint₄-ladder-pinned :
+  checkpoint₄-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term     A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n" ++
+    "──────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ─────────────\n" ++
+    "□₁ · □₂         ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □        (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0            ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        │ ♯0\n" ++
+    "└ □ ⟨ ★↦ℕ ⟩     ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        └ □ ⟨ ★↦ℕ ⟩\n" ++
+    "  □ ↑ id        ★        ★        ★⊑★ + generator absent             ★        ★          ─\n" ++
+    "  □₁ · □₂       ★        ★        ★⊑★                                ★        ★          □₁ · □₂\n" ++
+    "  ├ λ♯0. □      (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★                           (★ ⇒ ★)  (★ ⇒ ★)    ├ λ♯0. □\n" ++
+    "  │ ♯0          ★        ★        ★⊑★                                ★        ★          │ ♯0\n" ++
+    "  └ □ ⟨ X↦★ ⟩   ★        ★        ★⊑★                                ★        ★          └ □ ⟨ ★↦★ ⟩\n" ++
+    "    □ ↓ seal X  X        X        mark X⊑★ at X + target unoccupied  ★        ★            ─\n" ++
+    "    ─           ℕ        ℕ        ι⊑★                                ★        ★            □ ⟨ ℕ↦★ ⟩\n" ++
+    "    42          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ            42"
 checkpoint₄-ladder-pinned = refl
-
 checkpoint₅-imprecision :
   source-only-world CTI.⊢²
     more-checkpoint₅ ⊑ less-checkpoint₅ ∶ I.ι⊑ι
@@ -912,9 +997,21 @@ checkpoint₅-imprecision =
 checkpoint₅-ladder : String
 checkpoint₅-ladder = impLadderDefault checkpoint₅-imprecision
 
-checkpoint₅-ladder-pinned : checkpoint₅-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term   A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────\n□₁ · □₂       ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n├ λ♯0. □      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        ♯0\n└ □ ⟨ ★↦ℕ ⟩   ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n  □ ↑ id      ★        ★        ★⊑★ + generator absent             ★        ★        ─\n  □ ⟨ X↦★ ⟩   ★        ★        ★⊑★                                ★        ★        ─\n  □ ↓ seal X  X        X        mark X⊑★ at X + target unoccupied  ★        ★        ─\n  ─           ℕ        ℕ        ι⊑★                                ★        ★        □ ⟨ ℕ↦★ ⟩\n  42          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        42"
+checkpoint₅-ladder-pinned :
+  checkpoint₅-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term   A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n" ++
+    "────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────\n" ++
+    "□₁ · □₂       ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        │ ♯0\n" ++
+    "└ □ ⟨ ★↦ℕ ⟩   ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        └ □ ⟨ ★↦ℕ ⟩\n" ++
+    "  □ ↑ id      ★        ★        ★⊑★ + generator absent             ★        ★          ─\n" ++
+    "  □ ⟨ X↦★ ⟩   ★        ★        ★⊑★                                ★        ★          ─\n" ++
+    "  □ ↓ seal X  X        X        mark X⊑★ at X + target unoccupied  ★        ★          ─\n" ++
+    "  ─           ℕ        ℕ        ι⊑★                                ★        ★          □ ⟨ ℕ↦★ ⟩\n" ++
+    "  42          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ          42"
 checkpoint₅-ladder-pinned = refl
-
 checkpoint₆-imprecision :
   source-only-world CTI.⊢²
     more-checkpoint₆ ⊑ less-checkpoint₆ ∶ I.ι⊑ι
@@ -931,9 +1028,20 @@ checkpoint₆-imprecision =
 checkpoint₆-ladder : String
 checkpoint₆-ladder = impLadderDefault checkpoint₆-imprecision
 
-checkpoint₆-ladder-pinned : checkpoint₆-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term   A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────\n□₁ · □₂       ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n├ λ♯0. □      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        ♯0\n└ □ ⟨ ★↦ℕ ⟩   ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n  □ ⟨ X↦★ ⟩   ★        ★        ★⊑★                                ★        ★        ─\n  □ ↓ seal X  X        X        mark X⊑★ at X + target unoccupied  ★        ★        ─\n  ─           ℕ        ℕ        ι⊑★                                ★        ★        □ ⟨ ℕ↦★ ⟩\n  42          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        42"
+checkpoint₆-ladder-pinned :
+  checkpoint₆-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term   A        ηᴸA      ⊑ costs                            ηᴿB      B        target term\n" ++
+    "────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────\n" ++
+    "□₁ · □₂       ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                           (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        │ ♯0\n" ++
+    "└ □ ⟨ ★↦ℕ ⟩   ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ        └ □ ⟨ ★↦ℕ ⟩\n" ++
+    "  □ ⟨ X↦★ ⟩   ★        ★        ★⊑★                                ★        ★          ─\n" ++
+    "  □ ↓ seal X  X        X        mark X⊑★ at X + target unoccupied  ★        ★          ─\n" ++
+    "  ─           ℕ        ℕ        ι⊑★                                ★        ★          □ ⟨ ℕ↦★ ⟩\n" ++
+    "  42          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ          42"
 checkpoint₆-ladder-pinned = refl
-
 checkpoint₇-imprecision :
   source-only-world CTI.⊢²
     more-checkpoint₇ ⊑ less-checkpoint₇ ∶ I.ι⊑ι
@@ -945,9 +1053,16 @@ checkpoint₇-imprecision =
 checkpoint₇-ladder : String
 checkpoint₇-ladder = impLadderDefault checkpoint₇-imprecision
 
-checkpoint₇-ladder-pinned : checkpoint₇-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term  A        ηᴸA      ⊑ costs   ηᴿB      B        target term\n───────────  ───────  ───────  ────────  ───────  ───────  ───────────\n□₁ · □₂      ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        □₁ · □₂\n├ λ♯0. □     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  λ♯0. □\n│ ♯0         ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        ♯0\n└ blame      ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        42"
+checkpoint₇-ladder-pinned :
+  checkpoint₇-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term  A        ηᴸA      ⊑ costs   ηᴿB      B        target term\n" ++
+    "───────────  ───────  ───────  ────────  ───────  ───────  ───────────\n" ++
+    "□₁ · □₂      ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        □₁ · □₂\n" ++
+    "├ λ♯0. □     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ ♯0         ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        │ ♯0\n" ++
+    "└ blame      ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        └ 42"
 checkpoint₇-ladder-pinned = refl
-
 checkpoint₈-imprecision :
   source-only-world CTI.⊢²
     more-checkpoint₈ ⊑ less-checkpoint₈ ∶ I.ι⊑ι
@@ -957,5 +1072,10 @@ checkpoint₈-imprecision =
 checkpoint₈-ladder : String
 checkpoint₈-ladder = impLadderDefault checkpoint₈-imprecision
 
-checkpoint₈-ladder-pinned : checkpoint₈-ladder ≡ "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\nsource term  A  ηᴸA  ⊑ costs  ηᴿB  B  target term\n───────────  ─  ───  ───────  ───  ─  ───────────\nblame        ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  42"
+checkpoint₈-ladder-pinned :
+  checkpoint₈-ladder ≡
+    "⟨X: X↦ℕ ⊑[X⊑★] ─⟩\n" ++
+    "source term  A  ηᴸA  ⊑ costs  ηᴿB  B  target term\n" ++
+    "───────────  ─  ───  ───────  ───  ─  ───────────\n" ++
+    "blame        ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  42"
 checkpoint₈-ladder-pinned = refl

@@ -100,6 +100,20 @@ Gate that relation change through the required concrete reduction square and
 imprecision ladder; do not add a compatibility equality between world
 histories.
 
+That relation change is now complete. `SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ` records the
+direct rebase and is closed under matching `WorldEvolution` steps, including
+the executable pivot-renaming equations. The reveal and conceal CTI rules
+consume this graph in opposite directions, so the graph remembers the rebase
+when a later allocation follows it. The six structural-transport interfaces
+now consume `SourceRebaseᶜ` directly; their parameterized traversal proofs and
+the Sim/SimBack closing interfaces have been migrated to the same surface.
+
+The next task in this milestone is to prove the six scope-commutation
+interfaces. Those proofs must construct the corresponding source, target, or
+paired scope on the premise world and preserve the rebase graph through that
+scope. Once they are closed, instantiate the source-, target-, and paired-bind
+traversals and then the one-step CTI transport theorem.
+
 ### 2. Canonical CTI substitution
 
 Implement `TermImprecisionSubstitutionᵀ` over `bind-termᶜ`.  Keep the

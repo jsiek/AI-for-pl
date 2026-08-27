@@ -410,13 +410,13 @@ module _
       (toRenameᵗ-injective ρ) (source-scope-store plan) c⊢
 
   transport-source-bind-scope plan
-      (CTI.⊑reveal-rebase² c′⊢ ok represented related q) =
-    transport-target-reveal-rebase plan c′⊢ ok represented related q
+      (CTI.⊑reveal-rebase² c′⊢ rebase related q) =
+    transport-target-reveal-rebase plan c′⊢ rebase related q
 
   transport-source-bind-scope plan
-      (CTI.⊑conceal-rebase² c′⊢ ok represented related q) =
+      (CTI.⊑conceal-rebase² c′⊢ rebase related q) =
     transport-target-conceal-rebase
-      c′⊢ ok represented related q plan
+      c′⊢ rebase related q plan
 
   transport-source-bind-scope plan (CTI.blame⊑² target-typing p) =
     CTI.blame⊑² target-typing

@@ -33,6 +33,7 @@ open import CastTerms using
    ƛ_; Λ_; _↑_; _↓_)
 
 open import proof.DGG.World
+open import proof.DGG.SourceRebase
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.ImprecisionConsistency using
   (rename-⊑; toRenameᵗ-injective)
@@ -389,6 +390,7 @@ TransportSourceBindTargetRevealRebaseᵀ = ∀
     {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
     {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
     {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
@@ -397,13 +399,9 @@ TransportSourceBindTargetRevealRebaseᵀ = ∀
     {c′ : Conv↑ Δᴿ B B′}
   → (plan : SourceBindScope ρ γ γ⁺)
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-  → (represented : (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
-  → {p : A ⊑ᵀ⟨
-      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
-  → (γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented) ⊢²
-      M ⊑ M′ ∶ p
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+  → γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → γ⁺ ⊢² renameᵗᵐ ρ M ⊑ M′ ↑ c′ ∶ source-scope-⊑ᵀ plan q
 
@@ -416,20 +414,17 @@ TransportSourceBindTargetConcealRebaseᵀ = ∀
     {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
     {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
     {γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
     {c′ : Conv↓ Δᴿ B B′}
     {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
   → (c′⊢ : Σᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γᵖ) Xᴸ (toRenameᵗ (ηᴿᶜ γᵖ) Xᴿ))
-  → (represented : (＇ Xᴸ) ⊑ᵀ⟨ γᵖ ⟩ lookupStore Σᴿ Xᴿ)
+  → SourceRebaseᶜ γᵖ γ Xᴸ Xᴿ
   → γᵖ ⊢² M ⊑ M′ ∶ p
-  → (q : A ⊑ᵀ⟨
-      γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B′)
+  → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-  → (plan : SourceBindScope ρ
-      (γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented) γ⁺)
+  → (plan : SourceBindScope ρ γ γ⁺)
   → γ⁺ ⊢² renameᵗᵐ ρ M ⊑ M′ ↓ c′ ∶ source-scope-⊑ᵀ plan q

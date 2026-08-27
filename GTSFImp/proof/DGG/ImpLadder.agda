@@ -5,6 +5,8 @@ module proof.DGG.ImpLadder where
 --     seven-column ladder, preceded by its world snapshot.
 --   * Shows only the syntax contributed by each derivation node; `□` marks a
 --     child and `─` marks a silent side of a one-sided rule.
+--   * Applies application and primitive branch guides symmetrically to the
+--     source and target term columns.
 --   * Reserves `♯`-prefixed names for generated term binders, parallel to the
 --     `♭`-prefixed type-binder namespace used by WorldSnapshot; supplied name
 --     functions must never produce names in either reserved namespace.
@@ -28,7 +30,7 @@ open import Data.Nat.Show using (show)
 open import Data.String using (String; _++_; length)
 import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; refl; cong; sym; trans)
+  (_≡_; refl; cong; sym; trans; subst)
 
 open import Types
 open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
@@ -44,6 +46,8 @@ open import CastTerms using
 import proof.DGG.CastTermImprecision as CTI2
 open CTI2 using (_⊢²_⊑_∶_)
 open import proof.DGG.World
+open import proof.DGG.SourceRebase using
+  (SourceRebaseᶜ; source-rebase-center)
 import proof.DGG.WorldSnapshot as Snapshot
 
 ------------------------------------------------------------------------
@@ -83,6 +87,24 @@ defaultTermName x = "x" ++ show x
 extendTermName : (Var → String) → String → Var → String
 extendTermName name binder zero = binder
 extendTermName name binder (suc x) = name x
+
+sourceRebaseNameForward : ∀
+    {Γᴸ Γᴿ} {γ γᵖ : Γᴸ ⊑ᶜ Γᴿ} {Xᴸ Xᴿ}
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → (TyVar (centerᶜ γ) → String)
+  → TyVar (centerᶜ γᵖ)
+  → String
+sourceRebaseNameForward rebase name Z =
+  name (subst TyVar (sym (source-rebase-center rebase)) Z)
+
+sourceRebaseNameBackward : ∀
+    {Γᴸ Γᴿ} {γ γᵖ : Γᴸ ⊑ᶜ Γᴿ} {Xᴸ Xᴿ}
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → (TyVar (centerᶜ γᵖ) → String)
+  → TyVar (centerᶜ γ)
+  → String
+sourceRebaseNameBackward rebase name Z =
+  name (subst TyVar (source-rebase-center rebase) Z)
 
 showBase : Base → String
 showBase `ℕ = "ℕ"
@@ -251,7 +273,7 @@ makeRow {W = W} {A = A} {B = B}
     (showTy tyDepth nameᶜ
       (renameᵗ (toRenameᵗ (ηᴿᶜ W)) B))
     (showTy tyDepth nameᴿ B)
-    target
+    (prefix ++ target)
 
 record Widths : Set where
   constructor widths
@@ -515,20 +537,22 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.⊑reveal-rebase² {c′ = c′}
-      typed ok represented premise q) =
+      typed rebase premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─"
       ("□ " ++ revealLayer nameᴿ c′) p "source rebase" ∷
-    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    ladderRows nameᴸ nameᴿ (sourceRebaseNameForward rebase nameᶜ)
+      termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.⊑conceal-rebase² {c′ = c′}
-      typed ok represented premise q) =
+      typed rebase premise q) =
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "─"
       ("□ " ++ concealLayer nameᴿ c′) p "source rebase" ∷
-    ladderRows nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
+    ladderRows nameᴸ nameᴿ
+      (sourceRebaseNameBackward rebase nameᶜ) termDepth tyDepth xName
       childPrefix childPrefix premise
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix

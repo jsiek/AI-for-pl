@@ -16,9 +16,8 @@ open import Data.Sum using (_⊎_; inj₁)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl)
 
-open import Types using (Ty; TyCtx; ＇_; _⇒_)
-open import TyStore using (TyStore; lookupStore)
-open import Consistency using (toRenameᵗ)
+open import Types using (Ty; TyCtx; _⇒_)
+open import TyStore using (TyStore)
 open import Conversion using (Conv↑; Conv↓; _↦↑_; _⊢↑[_⦂_]_)
 import Conversion as Conv
 open import CastTerms using
@@ -39,6 +38,7 @@ open import proof.DGG.TermImprecisionSubstitutionDef using
 open import proof.DGG.TransportTermImprecisionDef using
   (TransportTermImprecisionᵀ)
 open import proof.DGG.World
+open import proof.DGG.SourceRebase
 open import proof.DGG.WorldEvolution using (evolution-keep)
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution
@@ -65,12 +65,7 @@ module _
         {pAᵖ : A ⊑ᵀ⟨ γᵖ ⟩ A₀} {pBᵖ : B ⊑ᵀ⟨ γᵖ ⟩ B₀}
       → sourceRebaseCountᶜ γ ≡ 0
       → (conversion : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] (c ↦↑ d))
-      → (ok : CanRebaseSourceᵗ
-          (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-      → (represented :
-          (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
-      → γᵖ ≡
-          γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented
+      → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
       → γᵖ ⊢² V ⊑ V′ ∶ ⇒⊑⇒ pAᵖ pBᵖ
       → γ ⊢² W ⊑ W′ ∶ pA
       → Value V
@@ -94,26 +89,26 @@ module _
     worker {Σᴸ = Σᴸ} {γ = γ} {V = V} {W = W} {pB = pB}
         no-rebase
         (Conv.⊢↑-⇒ target-domain⊢ target-result⊢)
-        ok represented refl body-rel arg-rel
+        rebase body-rel arg-rel
         source-fun-value source-arg-value target-fun-value
         target-arg-value =
       inj₁
         (_ , Σᴸ , []ˢ , V · W , γ , pB ,
           (V · W ∎[]) ,
           evolutions-step-right refl evolution-keep evolutions-refl ,
-          ⊑reveal-rebase² target-result⊢ ok represented
+          ⊑reveal-rebase² target-result⊢ rebase
             (·⊑·² body-rel
-              (⊑conceal-rebase² target-domain⊢ ok represented arg-rel _))
+              (⊑conceal-rebase² target-domain⊢ rebase arg-rel _))
             pB)
 
   sim-back-target-reveal-rebase-fun-values :
     SimBackTargetRevealRebaseFunValuesᵀ
   sim-back-target-reveal-rebase-fun-values {pB = pB} no-rebase
-      conversion ok represented premise-argument-rel
+      conversion rebase premise-argument-rel
       premise-result-rel body-rel arg-rel
       source-fun-value source-arg-value target-fun-value
       target-arg-value =
     worker {pB = pB} {pAᵖ = premise-argument-rel}
       {pBᵖ = premise-result-rel}
-      no-rebase conversion ok represented refl body-rel arg-rel
+      no-rebase conversion rebase body-rel arg-rel
       source-fun-value source-arg-value target-fun-value target-arg-value

@@ -16,6 +16,7 @@ open import Data.Nat using (_<_; s≤s)
 open import Data.Nat.Properties using (n<1+n)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ-syntax; ∃-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.Empty using (⊥-elim)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; cong; refl; subst; sym; trans)
 
@@ -36,6 +37,8 @@ open import proof.DGG.CastTermImprecision
 open import proof.DGG.CatchupToLessPreciseDef using
   (CatchupToLessPrecise)
 open import proof.DGG.World
+open import proof.DGG.SourceRebase using
+  (source-rebase-count≢zero)
 open import proof.DGG.SimBackPairedFunValuesDef using
   (SimBackPairedFunValuesᵀ)
 open import proof.DGG.SimBackRebasedConversionDef using
@@ -285,6 +288,12 @@ module _
           (V · W —↠[ χsᴸ ] blame))
 
   worker no-rebase Nat.zero ()
+
+  worker no-rebase (Nat.suc fuel) size-bound
+      (⊑conceal-rebase² c′⊢ rebase related q)
+      source-arrow target-arrow arg-rel source-fun-value source-arg-value
+      target-fun-value target-arg-value target-step =
+    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
 
   worker {Σᴸ = Σᴸ} {γ = γ} {W = W} {pA = pA} {pB = pB}
       no-rebase (Nat.suc fuel) size-bound
@@ -1360,14 +1369,14 @@ module _
   worker {pA = pA} {pB = pB} no-rebase (Nat.suc fuel) size-bound
       (⊑reveal-rebase²
         (Conv.⊢↑-⇒ target-domain⊢ target-result⊢)
-        ok represented
+        rebase
         {p = ⇒⊑⇒ inner-argument-rel inner-result-rel} body-rel q)
       refl refl arg-rel source-fun-value source-arg-value
       (target-body-value ↑ fun) target-arg-value
       (β-reveal-⇒ target-root-fun-value target-root-arg-value) =
     sim-back-target-reveal-rebase-fun-values {pA = pA} {pB = pB} no-rebase
       (Conv.⊢↑-⇒ target-domain⊢ target-result⊢)
-      ok represented inner-argument-rel inner-result-rel
+      rebase inner-argument-rel inner-result-rel
       body-rel arg-rel source-fun-value source-arg-value target-body-value
       target-arg-value
 

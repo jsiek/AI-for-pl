@@ -325,18 +325,17 @@ checkpoint₀-ladder-pinned :
   checkpoint₀-ladder ≡
     "⟨⟩\n" ++
     "source term    A        ηᴸA      ⊑ costs   ηᴿB      B        target term\n" ++
-    "─────────────  ───────  ───────  ────────  ───────  ───────  ───────────\n" ++
+    "─────────────  ───────  ───────  ────────  ───────  ───────  ─────────────\n" ++
     "□₁ + □₂        ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        □₁ + □₂\n" ++
-    "├ □ ⟨ ★↦ℕ ⟩    ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        □ ⟨ ★↦ℕ ⟩\n" ++
-    "│ □₁ · □₂      ★        ★        ★⊑★       ★        ★        □₁ · □₂\n" ++
-    "│ ├ λ♯0. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★  (★ ⇒ ★)  (★ ⇒ ★)  λ♯0. □\n" ++
-    "│ │ ♯0         ★        ★        ★⊑★       ★        ★        ♯0\n" ++
-    "│ └ □ ⟨ 𝔹↦★ ⟩  ★        ★        ★⊑★       ★        ★        □ ⟨ 𝔹↦★ ⟩\n" ++
-    "│   true       𝔹        𝔹        𝔹⊑𝔹       𝔹        𝔹        true\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩    ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "  1            ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        1"
+    "├ □ ⟨ ★↦ℕ ⟩    ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        ├ □ ⟨ ★↦ℕ ⟩\n" ++
+    "│ □₁ · □₂      ★        ★        ★⊑★       ★        ★        │ □₁ · □₂\n" ++
+    "│ ├ λ♯0. □     (★ ⇒ ★)  (★ ⇒ ★)  ★⊑★, ★⊑★  (★ ⇒ ★)  (★ ⇒ ★)  │ ├ λ♯0. □\n" ++
+    "│ │ ♯0         ★        ★        ★⊑★       ★        ★        │ │ ♯0\n" ++
+    "│ └ □ ⟨ 𝔹↦★ ⟩  ★        ★        ★⊑★       ★        ★        │ └ □ ⟨ 𝔹↦★ ⟩\n" ++
+    "│   true       𝔹        𝔹        𝔹⊑𝔹       𝔹        𝔹        │   true\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩    ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ        └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "  1            ℕ        ℕ        ℕ⊑ℕ       ℕ        ℕ          1"
 checkpoint₀-ladder-pinned = refl
-
 checkpoint₁-imprecision :
   emptyᶜ CTI.⊢² more-checkpoint₁ ⊑ less-checkpoint₁ ∶ I.ι⊑ι
 checkpoint₁-imprecision =
@@ -358,13 +357,12 @@ checkpoint₁-ladder-pinned :
     "source term  A  ηᴸA  ⊑ costs  ηᴿB  B  target term\n" ++
     "───────────  ─  ───  ───────  ───  ─  ───────────\n" ++
     "□₁ + □₂      ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  □₁ + □₂\n" ++
-    "├ □ ⟨ ★↦ℕ ⟩  ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  □ ⟨ ★↦ℕ ⟩\n" ++
-    "│ □ ⟨ 𝔹↦★ ⟩  ★  ★    ★⊑★      ★    ★  □ ⟨ 𝔹↦★ ⟩\n" ++
-    "│ true       𝔹  𝔹    𝔹⊑𝔹      𝔹    𝔹  true\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "  1          ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  1"
+    "├ □ ⟨ ★↦ℕ ⟩  ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  ├ □ ⟨ ★↦ℕ ⟩\n" ++
+    "│ □ ⟨ 𝔹↦★ ⟩  ★  ★    ★⊑★      ★    ★  │ □ ⟨ 𝔹↦★ ⟩\n" ++
+    "│ true       𝔹  𝔹    𝔹⊑𝔹      𝔹    𝔹  │ true\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "  1          ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ    1"
 checkpoint₁-ladder-pinned = refl
-
 checkpoint₂-imprecision :
   emptyᶜ CTI.⊢² more-checkpoint₂ ⊑ less-checkpoint₂ ∶ I.ι⊑ι
 checkpoint₂-imprecision =
@@ -382,11 +380,10 @@ checkpoint₂-ladder-pinned :
     "source term  A  ηᴸA  ⊑ costs  ηᴿB  B  target term\n" ++
     "───────────  ─  ───  ───────  ───  ─  ───────────\n" ++
     "□₁ + □₂      ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  □₁ + □₂\n" ++
-    "├ blame      ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  blame\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "  1          ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  1"
+    "├ blame      ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  ├ blame\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "  1          ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ    1"
 checkpoint₂-ladder-pinned = refl
-
 checkpoint₃-imprecision :
   emptyᶜ CTI.⊢² more-checkpoint₃ ⊑ less-checkpoint₃ ∶ I.ι⊑ι
 checkpoint₃-imprecision =

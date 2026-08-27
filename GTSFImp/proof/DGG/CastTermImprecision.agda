@@ -7,8 +7,8 @@ module proof.DGG.CastTermImprecision where
 --     between two complete CastTerms contexts.
 --   * Uses the endpoint type stores and term contexts from the world indices;
 --     there is no separate context-imprecision list or compatibility world.
---   * Treats the world as an index so reveal and conceal may move between
---     worlds by one explicit source-rebase change.
+--   * Treats the world as an index so reveal and conceal may move along the
+--     canonical source-rebase relation.
 --   * Keeps paired conversions in one world and reserves one-sided rules for
 --     genuinely one-sided syntax.
 --   * Keeps rules syntax directed and avoids packaged action wrappers.
@@ -29,6 +29,7 @@ open import CastTerms using
    _⦂∀_[_]; $; _⊕[_]_; _⟨_⟩; _↑_; _↓_; blame)
 
 open import proof.DGG.World
+open import proof.DGG.SourceRebase
 open import proof.DGG.ConversionPivotAlignment using
   (generator-absent; revealGeneratorPosition; concealGeneratorPosition)
 
@@ -232,17 +233,14 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
       ------------------------------
     → γ ⊢² M ↓ c ⊑ M′ ↓ c′ ∶ q
 
-  ⊑reveal-rebase² : ∀ {M M′ A B B′ Xᴸ Xᴿ Rᴿ}
+  ⊑reveal-rebase² : ∀
+      {γᵖ : Γᴸ ⊑ᶜ Γᴿ}
+      {M M′ A B B′ Xᴸ Xᴿ Rᴿ}
       {c′ : Conv↑ (Δᵉ Γᴿ) B B′}
     → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-    → (ok : CanRebaseSourceᵗ
-        (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-    → (represented :
-        (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Xᴿ)
-    → {p : A ⊑ᵀ⟨
-        γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
-    → (γ ▻ᶜ rebase-source-changeᶜ
-        Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ∶ p
+    → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+    → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+    → γᵖ ⊢² M ⊑ M′ ∶ p
     → (q : A ⊑ᵀ⟨ γ ⟩ B′)
       ---------------------
     → γ ⊢² M ⊑ M′ ↑ c′ ∶ q
@@ -253,16 +251,11 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
       {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
       {c′ : Conv↓ (Δᵉ Γᴿ) B B′}
     → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
-    → (ok : CanRebaseSourceᵗ
-        (ηᴸᶜ γᵖ) Xᴸ (toRenameᵗ (ηᴿᶜ γᵖ) Xᴿ))
-    → (represented :
-        (＇ Xᴸ) ⊑ᵀ⟨ γᵖ ⟩ lookupStore (Σᵉ Γᴿ) Xᴿ)
+    → SourceRebaseᶜ γᵖ γ Xᴸ Xᴿ
     → γᵖ ⊢² M ⊑ M′ ∶ p
-    → (q : A ⊑ᵀ⟨
-        γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B′)
+    → (q : A ⊑ᵀ⟨ γ ⟩ B′)
       ---------------------
-    → (γᵖ ▻ᶜ rebase-source-changeᶜ
-        Xᴸ Xᴿ ok represented) ⊢² M ⊑ M′ ↓ c′ ∶ q
+    → γ ⊢² M ⊑ M′ ↓ c′ ∶ q
 
   blame⊑² : ∀ {M′ A B}
     → Γᴿ ⊢ M′ ⦂ B

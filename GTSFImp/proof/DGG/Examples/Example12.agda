@@ -45,6 +45,7 @@ import proof.DGG.OneStep as Step
 import Example as Ex
 import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.World
+open import proof.DGG.SourceRebase using (source-rebase-now)
 open import proof.DGG.ConversionPivotAlignment using
   (generator-absent; revealGeneratorPosition; concealGeneratorPosition)
 open import proof.DGG.ImpLadder using (impLadderDefault)
@@ -314,24 +315,23 @@ checkpoint₀-ladder-pinned :
   checkpoint₀-ladder ≡
     "⟨⟩\n" ++
     "source term                        A                            ηᴸA                          ⊑ costs                                                                 ηᴿB                  B                    target term\n" ++
-    "─────────────────────────────────  ───────────────────────────  ───────────────────────────  ──────────────────────────────────────────────────────────────────────  ───────────────────  ───────────────────  ─────────────────────────\n" ++
+    "─────────────────────────────────  ───────────────────────────  ───────────────────────────  ──────────────────────────────────────────────────────────────────────  ───────────────────  ───────────────────  ─────────────────────────────\n" ++
     "□₁ · □₂                            ℕ                            ℕ                            ℕ⊑ℕ                                                                     ℕ                    ℕ                    □₁ · □₂\n" ++
-    "├ λ♯0. □                           (∀ (♭0 ⇒ ♭0) ⇒ ℕ)            (∀ (♭0 ⇒ ♭0) ⇒ ℕ)            ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0), ℕ⊑ℕ                                                (∀ (♭0 ⇒ ♭0) ⇒ ℕ)    (∀ (♭0 ⇒ ♭0) ⇒ ℕ)    λ♯0. □\n" ++
-    "│ □₁ · □₂                          ℕ                            ℕ                            ℕ⊑ℕ                                                                     ℕ                    ℕ                    □₁ · □₂\n" ++
-    "│ ├ □ [ ℕ ]                        (ℕ ⇒ ℕ)                      (ℕ ⇒ ℕ)                      ℕ⊑ℕ, ℕ⊑ℕ                                                                (ℕ ⇒ ℕ)              (ℕ ⇒ ℕ)              □ [ ℕ ]\n" ++
-    "│ │ ♯0                             ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                                                     ∀ (♭0 ⇒ ♭0)          ∀ (♭0 ⇒ ♭0)          ♯0\n" ++
-    "│ └ □ ⟨ ℕ↦ℕ ⟩                      ℕ                            ℕ                            ℕ⊑ℕ                                                                     ℕ                    ℕ                    □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "│   7                              ℕ                            ℕ                            ℕ⊑ℕ                                                                     ℕ                    ℕ                    7\n" ++
-    "└ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩    ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                                                     ∀ (♭0 ⇒ ♭0)          ∀ (♭0 ⇒ ♭0)          □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
-    "  □₁ · □₂                          ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)                                      (★ ⇒ ★)              (★ ⇒ ★)              □₁ · □₂\n" ++
-    "  ├ λ♯0. □                         (∀ (♭0 ⇒ ♭0) ⇒ ∀ (♭0 ⇒ ♭0))  (∀ (♭0 ⇒ ♭0) ⇒ ∀ (♭0 ⇒ ♭0))  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0), ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)  ((★ ⇒ ★) ⇒ (★ ⇒ ★))  ((★ ⇒ ★) ⇒ (★ ⇒ ★))  λ♯0. □\n" ++
-    "  │ ♯0                             ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)                                      (★ ⇒ ★)              (★ ⇒ ★)              ♯0\n" ++
-    "  └ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)                                      (★ ⇒ ★)              (★ ⇒ ★)              □ ⟨ ∀ (♭0 ⇒ ♭0)↦(★ ⇒ ★) ⟩\n" ++
-    "    Λ□                             ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                                                     ∀ (♭0 ⇒ ♭0)          ∀ (♭0 ⇒ ♭0)          Λ□\n" ++
-    "    λ♯0. □                         (♭0 ⇒ ♭0)                    (♭0 ⇒ ♭0)                    ♭0 ≈ ♭0, ♭0 ≈ ♭0                                                        (♭0 ⇒ ♭0)            (♭0 ⇒ ♭0)            λ♯0. □\n" ++
-    "    ♯0                             ♭0                           ♭0                           ♭0 ≈ ♭0                                                                 ♭0                   ♭0                   ♯0"
+    "├ λ♯0. □                           (∀ (♭0 ⇒ ♭0) ⇒ ℕ)            (∀ (♭0 ⇒ ♭0) ⇒ ℕ)            ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0), ℕ⊑ℕ                                                (∀ (♭0 ⇒ ♭0) ⇒ ℕ)    (∀ (♭0 ⇒ ♭0) ⇒ ℕ)    ├ λ♯0. □\n" ++
+    "│ □₁ · □₂                          ℕ                            ℕ                            ℕ⊑ℕ                                                                     ℕ                    ℕ                    │ □₁ · □₂\n" ++
+    "│ ├ □ [ ℕ ]                        (ℕ ⇒ ℕ)                      (ℕ ⇒ ℕ)                      ℕ⊑ℕ, ℕ⊑ℕ                                                                (ℕ ⇒ ℕ)              (ℕ ⇒ ℕ)              │ ├ □ [ ℕ ]\n" ++
+    "│ │ ♯0                             ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                                                     ∀ (♭0 ⇒ ♭0)          ∀ (♭0 ⇒ ♭0)          │ │ ♯0\n" ++
+    "│ └ □ ⟨ ℕ↦ℕ ⟩                      ℕ                            ℕ                            ℕ⊑ℕ                                                                     ℕ                    ℕ                    │ └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "│   7                              ℕ                            ℕ                            ℕ⊑ℕ                                                                     ℕ                    ℕ                    │   7\n" ++
+    "└ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩    ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                                                     ∀ (♭0 ⇒ ♭0)          ∀ (♭0 ⇒ ♭0)          └ □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
+    "  □₁ · □₂                          ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)                                      (★ ⇒ ★)              (★ ⇒ ★)                □₁ · □₂\n" ++
+    "  ├ λ♯0. □                         (∀ (♭0 ⇒ ♭0) ⇒ ∀ (♭0 ⇒ ♭0))  (∀ (♭0 ⇒ ♭0) ⇒ ∀ (♭0 ⇒ ♭0))  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0), ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)  ((★ ⇒ ★) ⇒ (★ ⇒ ★))  ((★ ⇒ ★) ⇒ (★ ⇒ ★))    ├ λ♯0. □\n" ++
+    "  │ ♯0                             ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)                                      (★ ⇒ ★)              (★ ⇒ ★)                │ ♯0\n" ++
+    "  └ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)                                      (★ ⇒ ★)              (★ ⇒ ★)                └ □ ⟨ ∀ (♭0 ⇒ ♭0)↦(★ ⇒ ★) ⟩\n" ++
+    "    Λ□                             ∀ (♭0 ⇒ ♭0)                  ∀ (♭0 ⇒ ♭0)                  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                                                     ∀ (♭0 ⇒ ♭0)          ∀ (♭0 ⇒ ♭0)              Λ□\n" ++
+    "    λ♯0. □                         (♭0 ⇒ ♭0)                    (♭0 ⇒ ♭0)                    ♭0 ≈ ♭0, ♭0 ≈ ♭0                                                        (♭0 ⇒ ♭0)            (♭0 ⇒ ♭0)                λ♯0. □\n" ++
+    "    ♯0                             ♭0                           ♭0                           ♭0 ≈ ♭0                                                                 ♭0                   ♭0                       ♯0"
 checkpoint₀-ladder-pinned = refl
-
 -- Milestone 2, C1-C2: both source-level identity applications beta-reduce.
 -- The less-precise side first performs its target-only ★ and alias
 -- allocations.
@@ -527,12 +527,12 @@ checkpoint₁-imprecision =
               (C.⊢ƛ (C.⊢` Z))))
           (CTI.⊑reveal-rebase²
             checkpoint₁-alpha-reveal⊢
-            checkpoint₁-alpha-ok
-            checkpoint₁-alpha-representation
+            (source-rebase-now checkpoint₁-alpha-ok
+              checkpoint₁-alpha-representation)
             (CTI.⊑reveal-rebase²
               checkpoint₁-beta-reveal⊢
-              checkpoint₁-beta-ok
-              checkpoint₁-beta-representation
+              (source-rebase-now checkpoint₁-beta-ok
+                checkpoint₁-beta-representation)
               (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
                 (CTI.x⊑x² {p = I.X⊑X} Z Z))
               (I.⇒⊑⇒ I.X⊑X I.X⊑X))
@@ -548,23 +548,22 @@ checkpoint₁-ladder-pinned :
   checkpoint₁-ladder ≡
     "⟨X: ─ ⊑[X⊑★] X′↦＇Y′ │ Y: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
     "source term                      A                  ηᴸA                ⊑ costs                                         ηᴿB                B                  target term\n" ++
-    "───────────────────────────────  ─────────────────  ─────────────────  ──────────────────────────────────────────────  ─────────────────  ─────────────────  ─────────────────────────\n" ++
+    "───────────────────────────────  ─────────────────  ─────────────────  ──────────────────────────────────────────────  ─────────────────  ─────────────────  ───────────────────────────\n" ++
     "□₁ · □₂                          ℕ                  ℕ                  ℕ⊑ℕ                                             ℕ                  ℕ                  □₁ · □₂\n" ++
-    "├ λ♯0. □                         (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0), ℕ⊑ℕ                        (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  λ♯0. □\n" ++
-    "│ □₁ · □₂                        ℕ                  ℕ                  ℕ⊑ℕ                                             ℕ                  ℕ                  □₁ · □₂\n" ++
-    "│ ├ □ [ ℕ ]                      (ℕ ⇒ ℕ)            (ℕ ⇒ ℕ)            ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)            (ℕ ⇒ ℕ)            □ [ ℕ ]\n" ++
-    "│ │ ♯0                           ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ♯0\n" ++
-    "│ └ □ ⟨ ℕ↦ℕ ⟩                    ℕ                  ℕ                  ℕ⊑ℕ                                             ℕ                  ℕ                  □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "│   7                            ℕ                  ℕ                  ℕ⊑ℕ                                             ℕ                  ℕ                  7\n" ++
-    "└ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
-    "  □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)            (★ ⇒ ★)            □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "  Λ□                             ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)            (★ ⇒ ★)            ─\n" ++
-    "  ─                              (♭0 ⇒ ♭0)          (♭0 ⇒ ♭0)          mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)            (★ ⇒ ★)            □ ↑ unseal Y′ ⇒-rev\n" ++
-    "  ─                              (♭0 ⇒ ♭0)          (Y ⇒ Y)            Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)            (Y′ ⇒ Y′)          □ ↑ unseal X′ ⇒-rev\n" ++
-    "  λ♯0. □                         (♭0 ⇒ ♭0)          (X ⇒ X)            X ≈ X, X ≈ X                                    (X ⇒ X)            (X′ ⇒ X′)          λ♯0. □\n" ++
-    "  ♯0                             ♭0                 X                  X ≈ X                                           X                  X′                 ♯0"
+    "├ λ♯0. □                         (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0), ℕ⊑ℕ                        (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  (∀ (♭0 ⇒ ♭0) ⇒ ℕ)  ├ λ♯0. □\n" ++
+    "│ □₁ · □₂                        ℕ                  ℕ                  ℕ⊑ℕ                                             ℕ                  ℕ                  │ □₁ · □₂\n" ++
+    "│ ├ □ [ ℕ ]                      (ℕ ⇒ ℕ)            (ℕ ⇒ ℕ)            ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)            (ℕ ⇒ ℕ)            │ ├ □ [ ℕ ]\n" ++
+    "│ │ ♯0                           ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        │ │ ♯0\n" ++
+    "│ └ □ ⟨ ℕ↦ℕ ⟩                    ℕ                  ℕ                  ℕ⊑ℕ                                             ℕ                  ℕ                  │ └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "│   7                            ℕ                  ℕ                  ℕ⊑ℕ                                             ℕ                  ℕ                  │   7\n" ++
+    "└ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        └ □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
+    "  □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)            (★ ⇒ ★)              □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "  Λ□                             ∀ (♭0 ⇒ ♭0)        ∀ (♭0 ⇒ ♭0)        ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)            (★ ⇒ ★)              ─\n" ++
+    "  ─                              (♭0 ⇒ ♭0)          (♭0 ⇒ ♭0)          mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)            (★ ⇒ ★)              □ ↑ unseal Y′ ⇒-rev\n" ++
+    "  ─                              (♭0 ⇒ ♭0)          (Y ⇒ Y)            Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)            (Y′ ⇒ Y′)            □ ↑ unseal X′ ⇒-rev\n" ++
+    "  λ♯0. □                         (♭0 ⇒ ♭0)          (X ⇒ X)            X ≈ X, X ≈ X                                    (X ⇒ X)            (X′ ⇒ X′)            λ♯0. □\n" ++
+    "  ♯0                             ♭0                 X                  X ≈ X                                           X                  X′                   ♯0"
 checkpoint₁-ladder-pinned = refl
-
 -- C2 is after the outer source-level identity applications.
 
 more-checkpoint₂ : Term 0
@@ -810,12 +809,12 @@ checkpoint₂-imprecision =
                 (C.⊢ƛ (C.⊢` Z))))
             (CTI.⊑reveal-rebase²
               checkpoint₁-alpha-reveal⊢
-              checkpoint₁-alpha-ok
-              checkpoint₁-alpha-representation
+              (source-rebase-now checkpoint₁-alpha-ok
+                checkpoint₁-alpha-representation)
               (CTI.⊑reveal-rebase²
                 checkpoint₁-beta-reveal⊢
-                checkpoint₁-beta-ok
-                checkpoint₁-beta-representation
+                (source-rebase-now checkpoint₁-beta-ok
+                  checkpoint₁-beta-representation)
                 (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
                   (CTI.x⊑x² {p = I.X⊑X} Z Z))
                 (I.⇒⊑⇒ I.X⊑X I.X⊑X))
@@ -839,20 +838,19 @@ checkpoint₂-ladder-pinned :
   checkpoint₂-ladder ≡
     "⟨X: ─ ⊑[X⊑★] X′↦＇Y′ │ Y: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
     "source term                      A            ηᴸA          ⊑ costs                                         ηᴿB          B            target term\n" ++
-    "───────────────────────────────  ───────────  ───────────  ──────────────────────────────────────────────  ───────────  ───────────  ─────────────────────────\n" ++
+    "───────────────────────────────  ───────────  ───────────  ──────────────────────────────────────────────  ───────────  ───────────  ───────────────────────────\n" ++
     "□₁ · □₂                          ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            □₁ · □₂\n" ++
-    "├ □ [ ℕ ]                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      □ [ ℕ ]\n" ++
-    "│ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
-    "│ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ Λ□                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      ─\n" ++
-    "│ ─                              (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)      (★ ⇒ ★)      □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ ─                              (♭0 ⇒ ♭0)    (Y ⇒ Y)      Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)      (Y′ ⇒ Y′)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ λ♯0. □                         (♭0 ⇒ ♭0)    (X ⇒ X)      X ≈ X, X ≈ X                                    (X ⇒ X)      (X′ ⇒ X′)    λ♯0. □\n" ++
-    "│ ♯0                             ♭0           X            X ≈ X                                           X            X′           ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩                      ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "  7                              ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            7"
+    "├ □ [ ℕ ]                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ├ □ [ ℕ ]\n" ++
+    "│ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  │ □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
+    "│ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ Λ□                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      │ ─\n" ++
+    "│ ─                              (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)      (★ ⇒ ★)      │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ ─                              (♭0 ⇒ ♭0)    (Y ⇒ Y)      Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)      (Y′ ⇒ Y′)    │ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ λ♯0. □                         (♭0 ⇒ ♭0)    (X ⇒ X)      X ≈ X, X ≈ X                                    (X ⇒ X)      (X′ ⇒ X′)    │ λ♯0. □\n" ++
+    "│ ♯0                             ♭0           X            X ≈ X                                           X            X′           │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩                      ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "  7                              ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ              7"
 checkpoint₂-ladder-pinned = refl
-
 checkpoint₃-imprecision :
   checkpoint₁-world CTI.⊢²
     more-checkpoint₃ ⊑ less-checkpoint₃ ∶ ℕ⊑ℕ
@@ -888,12 +886,12 @@ checkpoint₃-imprecision =
                   (C.⊢ƛ (C.⊢` Z))))
               (CTI.⊑reveal-rebase²
                 checkpoint₁-alpha-reveal⊢
-                checkpoint₁-alpha-ok
-                checkpoint₁-alpha-representation
+                (source-rebase-now checkpoint₁-alpha-ok
+                  checkpoint₁-alpha-representation)
                 (CTI.⊑reveal-rebase²
                   checkpoint₁-beta-reveal⊢
-                  checkpoint₁-beta-ok
-                  checkpoint₁-beta-representation
+                  (source-rebase-now checkpoint₁-beta-ok
+                    checkpoint₁-beta-representation)
                   (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
                     (CTI.x⊑x² {p = I.X⊑X} Z Z))
                   (I.⇒⊑⇒ I.X⊑X I.X⊑X))
@@ -918,21 +916,20 @@ checkpoint₃-ladder-pinned :
   checkpoint₃-ladder ≡
     "⟨X: ─ ⊑[X⊑★] X′↦＇Y′ │ Y: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
     "source term                      A            ηᴸA          ⊑ costs                                         ηᴿB          B            target term\n" ++
-    "───────────────────────────────  ───────────  ───────────  ──────────────────────────────────────────────  ───────────  ───────────  ─────────────────────────\n" ++
+    "───────────────────────────────  ───────────  ───────────  ──────────────────────────────────────────────  ───────────  ───────────  ───────────────────────────\n" ++
     "□₁ · □₂                          ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            □₁ · □₂\n" ++
-    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩          (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ─\n" ++
-    "│ □ [ ℕ ]                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      □ [ ℕ ]\n" ++
-    "│ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
-    "│ ─                              ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ Λ□                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      ─\n" ++
-    "│ ─                              (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)      (★ ⇒ ★)      □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ ─                              (♭0 ⇒ ♭0)    (Y ⇒ Y)      Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)      (Y′ ⇒ Y′)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ λ♯0. □                         (♭0 ⇒ ♭0)    (X ⇒ X)      X ≈ X, X ≈ X                                    (X ⇒ X)      (X′ ⇒ X′)    λ♯0. □\n" ++
-    "│ ♯0                             ♭0           X            X ≈ X                                           X            X′           ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩                      ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "  7                              ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            7"
+    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩          (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ├ ─\n" ++
+    "│ □ [ ℕ ]                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      │ □ [ ℕ ]\n" ++
+    "│ □ ⟨ ∀ (♭0 ⇒ ♭0)↦∀ (♭0 ⇒ ♭0) ⟩  ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  │ □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
+    "│ ─                              ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ Λ□                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      │ ─\n" ++
+    "│ ─                              (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)      (★ ⇒ ★)      │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ ─                              (♭0 ⇒ ♭0)    (Y ⇒ Y)      Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)      (Y′ ⇒ Y′)    │ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ λ♯0. □                         (♭0 ⇒ ♭0)    (X ⇒ X)      X ≈ X, X ≈ X                                    (X ⇒ X)      (X′ ⇒ X′)    │ λ♯0. □\n" ++
+    "│ ♯0                             ♭0           X            X ≈ X                                           X            X′           │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩                      ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "  7                              ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ              7"
 checkpoint₃-ladder-pinned = refl
-
 checkpoint₄-imprecision :
   checkpoint₁-world CTI.⊢²
     more-checkpoint₄ ⊑ less-checkpoint₄ ∶ ℕ⊑ℕ
@@ -970,12 +967,12 @@ checkpoint₄-imprecision =
                     (C.⊢ƛ (C.⊢` Z))))
                 (CTI.⊑reveal-rebase²
                   checkpoint₁-alpha-reveal⊢
-                  checkpoint₁-alpha-ok
-                  checkpoint₁-alpha-representation
+                  (source-rebase-now checkpoint₁-alpha-ok
+                    checkpoint₁-alpha-representation)
                   (CTI.⊑reveal-rebase²
                     checkpoint₁-beta-reveal⊢
-                    checkpoint₁-beta-ok
-                    checkpoint₁-beta-representation
+                    (source-rebase-now checkpoint₁-beta-ok
+                      checkpoint₁-beta-representation)
                     (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
                       (CTI.x⊑x² {p = I.X⊑X} Z Z))
                     (I.⇒⊑⇒ I.X⊑X I.X⊑X))
@@ -1001,23 +998,21 @@ checkpoint₄-ladder-pinned :
   checkpoint₄-ladder ≡
     "⟨X: ─ ⊑[X⊑★] X′↦＇Y′ │ Y: ─ ⊑[X⊑★] Y′↦★⟩\n" ++
     "source term              A            ηᴸA          ⊑ costs                                         ηᴿB          B            target term\n" ++
-    "───────────────────────  ───────────  ───────────  ──────────────────────────────────────────────  ───────────  ───────────  ─────────────────────────\n" ++
+    "───────────────────────  ───────────  ───────────  ──────────────────────────────────────────────  ───────────  ───────────  ───────────────────────────\n" ++
     "□₁ · □₂                  ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            □₁ · □₂\n" ++
-    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ─\n" ++
-    "│ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ─\n" ++
-    "│ □ [ ℕ ]                (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      □ [ ℕ ]\n" ++
-    "│ ─                      ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
-    "│ ─                      ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ Λ□                     ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      ─\n" ++
-    "│ ─                      (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)      (★ ⇒ ★)      □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ ─                      (♭0 ⇒ ♭0)    (Y ⇒ Y)      Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)      (Y′ ⇒ Y′)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ λ♯0. □                 (♭0 ⇒ ♭0)    (X ⇒ X)      X ≈ X, X ≈ X                                    (X ⇒ X)      (X′ ⇒ X′)    λ♯0. □\n" ++
-    "│ ♯0                     ♭0           X            X ≈ X                                           X            X′           ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩              ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "  7                      ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            7"
+    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ├ ─\n" ++
+    "│ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      │ ─\n" ++
+    "│ □ [ ℕ ]                (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ℕ⊑ℕ, ℕ⊑ℕ                                        (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      │ □ [ ℕ ]\n" ++
+    "│ ─                      ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀(♭0 ≈ ♭0, ♭0 ≈ ♭0)                             ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  │ □ ⟨ (★ ⇒ ★)↦∀ (♭0 ⇒ ♭0) ⟩\n" ++
+    "│ ─                      ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ Λ□                     ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)              (★ ⇒ ★)      (★ ⇒ ★)      │ ─\n" ++
+    "│ ─                      (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    mark X⊑★ at ♭0, mark X⊑★ at ♭0 + source rebase  (★ ⇒ ★)      (★ ⇒ ★)      │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ ─                      (♭0 ⇒ ♭0)    (Y ⇒ Y)      Y ≈ Y, Y ≈ Y + source rebase                    (Y ⇒ Y)      (Y′ ⇒ Y′)    │ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ λ♯0. □                 (♭0 ⇒ ♭0)    (X ⇒ X)      X ≈ X, X ≈ X                                    (X ⇒ X)      (X′ ⇒ X′)    │ λ♯0. □\n" ++
+    "│ ♯0                     ♭0           X            X ≈ X                                           X            X′           │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩              ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ            └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "  7                      ℕ            ℕ            ℕ⊑ℕ                                             ℕ            ℕ              7"
 checkpoint₄-ladder-pinned = refl
-
-
 ------------------------------------------------------------------------
 -- The paired X allocation and the surviving target alias chain
 ------------------------------------------------------------------------
@@ -1219,12 +1214,12 @@ checkpoint₅-function-payload =
       checkpoint₅-target-id-function
       (CTI.⊑reveal-rebase²
         checkpoint₅-target-alpha-arrow-reveal⊢
-        checkpoint₅-alpha-ok
-        checkpoint₅-alpha-representation
+        (source-rebase-now checkpoint₅-alpha-ok
+          checkpoint₅-alpha-representation)
         (CTI.⊑reveal-rebase²
           checkpoint₅-target-beta-arrow-reveal⊢
-          checkpoint₅-beta-ok
-          checkpoint₅-beta-representation
+          (source-rebase-now checkpoint₅-beta-ok
+            checkpoint₅-beta-representation)
           (CTI.ƛ⊑ƛ² {pA = I.X⊑X} {pB = I.X⊑X}
             (CTI.x⊑x² {p = I.X⊑X} Z Z))
           (I.⇒⊑⇒ I.X⊑X I.X⊑X))
@@ -1319,21 +1314,20 @@ checkpoint₅-ladder-pinned :
   checkpoint₅-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
     "source term              A        ηᴸA      ⊑ costs                                       ηᴿB      B          target term\n" ++
-    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ───────────────────────\n" ++
+    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ─────────────────────────\n" ++
     "□₁ · □₂                  ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          □₁ · □₂\n" ++
-    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ─\n" ++
-    "│ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ─\n" ++
-    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal Z′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  λ♯0. □\n" ++
-    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩              ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          □ ⟨ ℕ↦ℕ ⟩\n" ++
-    "  7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          7"
+    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ├ ─\n" ++
+    "│ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    │ ─\n" ++
+    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    │ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  │ □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ↑ unseal Z′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  │ λ♯0. □\n" ++
+    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩              ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          └ □ ⟨ ℕ↦ℕ ⟩\n" ++
+    "  7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ            7"
 checkpoint₅-ladder-pinned = refl
-
 checkpoint₆-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₆ ⊑ less-checkpoint₆ ∶ ℕ⊑ℕ
@@ -1349,20 +1343,19 @@ checkpoint₆-ladder-pinned :
   checkpoint₆-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
     "source term              A        ηᴸA      ⊑ costs                                       ηᴿB      B          target term\n" ++
-    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ───────────────────────\n" ++
+    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ─────────────────────────\n" ++
     "□₁ · □₂                  ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          □₁ · □₂\n" ++
-    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ─\n" ++
-    "│ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ─\n" ++
-    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal Z′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  λ♯0. □\n" ++
-    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         ♯0\n" ++
-    "└ 7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          7"
+    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ├ ─\n" ++
+    "│ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    │ ─\n" ++
+    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    │ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  │ □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ↑ unseal Z′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  │ λ♯0. □\n" ++
+    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         │ ♯0\n" ++
+    "└ 7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          └ 7"
 checkpoint₆-ladder-pinned = refl
-
 checkpoint₇-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₇ ⊑ less-checkpoint₇ ∶ ℕ⊑ℕ
@@ -1384,21 +1377,20 @@ checkpoint₇-ladder-pinned :
   checkpoint₇-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
     "source term              A        ηᴸA      ⊑ costs                                       ηᴿB      B          target term\n" ++
-    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ───────────────────────\n" ++
+    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ─────────────────────────\n" ++
     "□ ⟨ ℕ↦ℕ ⟩                ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□₁ · □₂                  ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          □₁ · □₂\n" ++
-    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ─\n" ++
-    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal Z′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  λ♯0. □\n" ++
-    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩              ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
-    "  7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          7"
+    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ├ ─\n" ++
+    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    │ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  │ □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ↑ unseal Z′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  │ λ♯0. □\n" ++
+    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩              ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          └ ─\n" ++
+    "  7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ            7"
 checkpoint₇-ladder-pinned = refl
-
 checkpoint₈-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₈ ⊑ less-checkpoint₈ ∶ ℕ⊑ℕ
@@ -1417,20 +1409,19 @@ checkpoint₈-ladder-pinned :
   checkpoint₈-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
     "source term              A        ηᴸA      ⊑ costs                                       ηᴿB      B          target term\n" ++
-    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ───────────────────────\n" ++
+    "───────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ─────────────────────────\n" ++
     "□ ⟨ ℕ↦ℕ ⟩                ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□₁ · □₂                  ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          □₁ · □₂\n" ++
-    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ─\n" ++
-    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal Z′ ⇒-rev\n" ++
-    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  λ♯0. □\n" ++
-    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         ♯0\n" ++
-    "└ 7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          7"
+    "├ □ ⟨ (ℕ ⇒ ℕ)↦(ℕ ⇒ ℕ) ⟩  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ                                      (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ├ ─\n" ++
+    "│ □ ↑ unseal X ⇒-rev     (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    │ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  │ □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ ─                      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ↑ unseal Z′ ⇒-rev\n" ++
+    "│ ─                      (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ λ♯0. □                 (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  │ λ♯0. □\n" ++
+    "│ ♯0                     X        Y        Y ≈ Y                                         Y        Y′         │ ♯0\n" ++
+    "└ 7                      ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          └ 7"
 checkpoint₈-ladder-pinned = refl
-
 checkpoint₉-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₉ ⊑ less-checkpoint₉ ∶ ℕ⊑ℕ
@@ -1455,21 +1446,20 @@ checkpoint₉-ladder-pinned :
   checkpoint₉-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
     "source term           A        ηᴸA      ⊑ costs                                       ηᴿB      B          target term\n" ++
-    "────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ───────────────────────\n" ++
+    "────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ─────────────────────────\n" ++
     "□ ⟨ ℕ↦ℕ ⟩             ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□ ⟨ ℕ↦ℕ ⟩             ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□₁ · □₂               ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          □₁ · □₂\n" ++
-    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ ─                   (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
-    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal Z′ ⇒-rev\n" ++
-    "│ ─                   (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ λ♯0. □              (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  λ♯0. □\n" ++
-    "│ ♯0                  X        Y        Y ≈ Y                                         Y        Y′         ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩           ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
-    "  7                   ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          7"
+    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ├ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ ─                   (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  │ □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
+    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ↑ unseal Z′ ⇒-rev\n" ++
+    "│ ─                   (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ λ♯0. □              (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  │ λ♯0. □\n" ++
+    "│ ♯0                  X        Y        Y ≈ Y                                         Y        Y′         │ ♯0\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩           ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          └ ─\n" ++
+    "  7                   ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ            7"
 checkpoint₉-ladder-pinned = refl
-
 checkpoint₁₀-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₁₀ ⊑ less-checkpoint₁₀ ∶ ℕ⊑ℕ
@@ -1491,20 +1481,19 @@ checkpoint₁₀-ladder-pinned :
   checkpoint₁₀-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
     "source term           A        ηᴸA      ⊑ costs                                       ηᴿB      B          target term\n" ++
-    "────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ───────────────────────\n" ++
+    "────────────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ─────────────────────────\n" ++
     "□ ⟨ ℕ↦ℕ ⟩             ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□ ⟨ ℕ↦ℕ ⟩             ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□₁ · □₂               ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          □₁ · □₂\n" ++
-    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    □ ↑ unseal X′ ⇒-rev\n" ++
-    "│ ─                   (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
-    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal Z′ ⇒-rev\n" ++
-    "│ ─                   (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ λ♯0. □              (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  λ♯0. □\n" ++
-    "│ ♯0                  X        Y        Y ≈ Y                                         Y        Y′         ♯0\n" ++
-    "└ 7                   ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          7"
+    "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ℕ⊑ℕ, ℕ⊑ℕ + matched reveal partner             (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)    ├ □ ↑ unseal X′ ⇒-rev\n" ++
+    "│ ─                   (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  │ □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
+    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ ─                   (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ↑ unseal Z′ ⇒-rev\n" ++
+    "│ ─                   (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ λ♯0. □              (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  │ λ♯0. □\n" ++
+    "│ ♯0                  X        Y        Y ≈ Y                                         Y        Y′         │ ♯0\n" ++
+    "└ 7                   ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          └ 7"
 checkpoint₁₀-ladder-pinned = refl
-
 checkpoint₁₁-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₁₁ ⊑ less-checkpoint₁₁ ∶ ℕ⊑ℕ
@@ -1540,21 +1529,20 @@ checkpoint₁₁-ladder-pinned :
   checkpoint₁₁-ladder ≡
     "⟨X: X↦ℕ ⊑[X⊑★] X′↦ℕ │ Y: ─ ⊑[X⊑★] Y′↦＇Z′ │ Z: ─ ⊑[X⊑★] Z′↦★⟩\n" ++
     "source term   A        ηᴸA      ⊑ costs                                       ηᴿB      B          target term\n" ++
-    "────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ───────────────────────\n" ++
+    "────────────  ───────  ───────  ────────────────────────────────────────────  ───────  ─────────  ─────────────────────────\n" ++
     "□ ⟨ ℕ↦ℕ ⟩     ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□ ⟨ ℕ↦ℕ ⟩     ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          ─\n" ++
     "□ ↑ unseal X  ℕ        ℕ        ℕ⊑ℕ + matched reveal partner                  ℕ        ℕ          □ ↑ unseal X′\n" ++
     "□₁ · □₂       X        X        X ≈ X                                         X        X′         □₁ · □₂\n" ++
-    "├ ─           (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
-    "│ ─           (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
-    "│ ─           (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    □ ↑ unseal Z′ ⇒-rev\n" ++
-    "│ ─           (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  □ ↑ unseal Y′ ⇒-rev\n" ++
-    "│ λ♯0. □      (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  λ♯0. □\n" ++
-    "│ ♯0          X        Y        Y ≈ Y                                         Y        Y′         ♯0\n" ++
-    "└ □ ↓ seal X  X        X        X ≈ X + matched conceal partner               X        X′         □ ↓ seal X′\n" ++
-    "  7           ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ          7"
+    "├ ─           (X ⇒ X)  (X ⇒ X)  X ≈ X, X ≈ X                                  (X ⇒ X)  (X′ ⇒ X′)  ├ □ ⟨ (★ ⇒ ★)↦(X′ ⇒ X′) ⟩\n" ++
+    "│ ─           (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X                  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ⟨ (★ ⇒ ★)↦(★ ⇒ ★) ⟩\n" ++
+    "│ ─           (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X + source rebase  (★ ⇒ ★)  (★ ⇒ ★)    │ □ ↑ unseal Z′ ⇒-rev\n" ++
+    "│ ─           (X ⇒ X)  (Z ⇒ Z)  Z ≈ Z, Z ≈ Z + source rebase                  (Z ⇒ Z)  (Z′ ⇒ Z′)  │ □ ↑ unseal Y′ ⇒-rev\n" ++
+    "│ λ♯0. □      (X ⇒ X)  (Y ⇒ Y)  Y ≈ Y, Y ≈ Y                                  (Y ⇒ Y)  (Y′ ⇒ Y′)  │ λ♯0. □\n" ++
+    "│ ♯0          X        Y        Y ≈ Y                                         Y        Y′         │ ♯0\n" ++
+    "└ □ ↓ seal X  X        X        X ≈ X + matched conceal partner               X        X′         └ □ ↓ seal X′\n" ++
+    "  7           ℕ        ℕ        ℕ⊑ℕ                                           ℕ        ℕ            7"
 checkpoint₁₁-ladder-pinned = refl
-
 checkpoint₅-target-beta-conceal⊢ :
   store-bind (store-bind (store-bind store-empty ★) (＇ Fin.zero)) ℕᵗ
     Conv.⊢↓[
@@ -1658,8 +1646,8 @@ checkpoint₁₂-alpha-concealed :
 checkpoint₁₂-alpha-concealed =
   CTI.⊑conceal-rebase²
     checkpoint₅-target-alpha-conceal⊢
-    checkpoint₅-alpha-ok
-    checkpoint₅-alpha-representation
+    (source-rebase-now checkpoint₅-alpha-ok
+      checkpoint₅-alpha-representation)
     checkpoint₁₂-X-tagged
     I.X⊑X
 
@@ -1674,8 +1662,8 @@ checkpoint₁₂-beta-concealed :
 checkpoint₁₂-beta-concealed =
   CTI.⊑conceal-rebase²
     checkpoint₅-target-beta-conceal⊢
-    checkpoint₅-beta-ok
-    checkpoint₅-beta-representation
+    (source-rebase-now checkpoint₅-beta-ok
+      checkpoint₅-beta-representation)
     checkpoint₁₂-alpha-concealed
     I.X⊑X
 
@@ -1692,8 +1680,8 @@ checkpoint₁₂-beta-revealed :
 checkpoint₁₂-beta-revealed =
   CTI.⊑reveal-rebase²
     checkpoint₅-target-beta-reveal⊢
-    checkpoint₅-beta-ok
-    checkpoint₅-beta-representation
+    (source-rebase-now checkpoint₅-beta-ok
+      checkpoint₅-beta-representation)
     checkpoint₁₂-beta-concealed
     I.X⊑X
 
@@ -1711,8 +1699,8 @@ checkpoint₁₂-alpha-revealed :
 checkpoint₁₂-alpha-revealed =
   CTI.⊑reveal-rebase²
     checkpoint₅-target-alpha-reveal⊢
-    checkpoint₅-alpha-ok
-    checkpoint₅-alpha-representation
+    (source-rebase-now checkpoint₅-alpha-ok
+      checkpoint₅-alpha-representation)
     checkpoint₁₂-beta-revealed
     (I.X⊑★ refl)
 
@@ -1804,7 +1792,6 @@ checkpoint₁₂-ladder-pinned :
     "□ ↓ seal X    X  X    X ≈ X + matched conceal partner  X    X′  □ ↓ seal X′\n" ++
     "7             ℕ  ℕ    ℕ⊑ℕ                              ℕ    ℕ   7"
 checkpoint₁₂-ladder-pinned = refl
-
 checkpoint₁₃-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₁₃ ⊑ less-checkpoint₁₃ ∶ ℕ⊑ℕ
@@ -1826,7 +1813,6 @@ checkpoint₁₃-ladder-pinned :
     "□ ⟨ ℕ↦ℕ ⟩    ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  ─\n" ++
     "7            ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  7"
 checkpoint₁₃-ladder-pinned = refl
-
 checkpoint₁₄-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₁₄ ⊑ less-checkpoint₁₄ ∶ ℕ⊑ℕ
@@ -1845,7 +1831,6 @@ checkpoint₁₄-ladder-pinned :
     "□ ⟨ ℕ↦ℕ ⟩    ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  ─\n" ++
     "7            ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  7"
 checkpoint₁₄-ladder-pinned = refl
-
 checkpoint₁₅-imprecision :
   checkpoint₅-world CTI.⊢²
     more-checkpoint₁₅ ⊑ less-checkpoint₁₅ ∶ ℕ⊑ℕ
@@ -1861,7 +1846,6 @@ checkpoint₁₅-ladder-pinned :
     "───────────  ─  ───  ───────  ───  ─  ───────────\n" ++
     "7            ℕ  ℕ    ℕ⊑ℕ      ℕ    ℕ  7"
 checkpoint₁₅-ladder-pinned = refl
-
 ------------------------------------------------------------------------
 -- One checked more-precise step per checkpoint
 ------------------------------------------------------------------------

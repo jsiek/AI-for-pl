@@ -57,9 +57,9 @@ sourceCastBudget (CTI.reveal⊑reveal² _ _ _ _ _ rel _) =
   sourceCastBudget rel
 sourceCastBudget (CTI.conceal⊑conceal² _ _ _ _ _ rel _) =
   sourceCastBudget rel
-sourceCastBudget (CTI.⊑reveal-rebase² _ _ _ rel _) =
+sourceCastBudget (CTI.⊑reveal-rebase² _ _ rel _) =
   sourceCastBudget rel
-sourceCastBudget (CTI.⊑conceal-rebase² _ _ _ rel _) =
+sourceCastBudget (CTI.⊑conceal-rebase² _ _ rel _) =
   sourceCastBudget rel
 sourceCastBudget (CTI.blame⊑² _ _) = 0
 sourceCastBudget (CTI.⊕⊑⊕² _ rel₁ rel₂ _) =

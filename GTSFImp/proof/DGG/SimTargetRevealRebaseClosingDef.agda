@@ -29,6 +29,7 @@ open import Reduction using
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
 open import proof.DGG.World
+open import proof.DGG.SourceRebase
 open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
@@ -36,6 +37,7 @@ SimTargetRevealRebaseClosingᵀ : Set
 SimTargetRevealRebaseClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
     {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
+    {γᵖ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
     {M : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
     {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
@@ -43,13 +45,9 @@ SimTargetRevealRebaseClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
     {c′ : Conv↑ Δᴿ B B′}
   → sourceRebaseCountᶜ γ ≡ 0
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-  → (ok : CanRebaseSourceᵗ
-      (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
-  → (represented : (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Xᴿ)
-  → {p : A ⊑ᵀ⟨
-      γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B}
-  → (γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented)
-      ⊢² M ⊑ M′ ∶ p
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+  → γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)
   → M —→[ χᴸ ] N
   → Σ[ Δᴿ′ ∈ TyCtx ]

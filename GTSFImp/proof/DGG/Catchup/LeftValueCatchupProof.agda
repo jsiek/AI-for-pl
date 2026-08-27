@@ -8,6 +8,7 @@ module proof.DGG.Catchup.LeftValueCatchupProof where
 
 open import Data.Product using (_,_)
 open import Data.Sum using (inj₁; inj₂)
+open import Data.Empty using (⊥-elim)
 import CastTerms as CT
 open import CastTerms using (Value; _《_》; _↑_; _↓_)
 open import Reduction using ([]; ↠-refl)
@@ -24,6 +25,8 @@ open import proof.DGG.Catchup.LeftTargetRevealRebaseCatchupDef using
   (LeftTargetRevealRebaseCatchupAt)
 open import proof.DGG.Catchup.LeftValueCatchupDef using
   (LeftValueCatchupAt)
+open import proof.DGG.SourceRebase using
+  (source-rebase-count≢zero)
 open import proof.DGG.WorldEvolutionSequence using
   ( evolutions-refl
   ; multi-⊑ᵀ
@@ -163,13 +166,14 @@ module _
     paired-conceal-catchup no-rebase rel target-value bound
 
   left-value-catchup no-rebase
-      rel@(CTI.⊑reveal-rebase² c′⊢ ok represented prem q)
+      rel@(CTI.⊑reveal-rebase² c′⊢ rebase prem q)
       target-value bound =
     target-reveal-rebase-catchup no-rebase rel target-value bound
 
-  left-value-catchup ()
-      (CTI.⊑conceal-rebase² c′⊢ ok represented prem q)
-      vV′ bound
+  left-value-catchup no-rebase
+      (CTI.⊑conceal-rebase² c′⊢ rebase prem q)
+      vV′ bound =
+    ⊥-elim (source-rebase-count≢zero rebase no-rebase)
 
   left-value-catchup {γ = γ} {M = M} no-rebase
       (CTI.blame⊑² target⊢ p) vV′ bound =

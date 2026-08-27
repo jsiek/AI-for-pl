@@ -67,10 +67,10 @@ mutual
       (CTI.conceal⊑conceal² c⊢ c′⊢ aligned matched represented M⊑M′ q) =
     ⊢conceal c⊢ (source-typing M⊑M′)
   source-typing
-      (CTI.⊑reveal-rebase² c′⊢ ok represented M⊑M′ q) =
+      (CTI.⊑reveal-rebase² c′⊢ rebase M⊑M′ q) =
     source-typing M⊑M′
   source-typing
-      (CTI.⊑conceal-rebase² c′⊢ ok represented M⊑M′ q) =
+      (CTI.⊑conceal-rebase² c′⊢ rebase M⊑M′ q) =
     source-typing M⊑M′
   source-typing (CTI.blame⊑² M′⊢ p) = ⊢blame
   source-typing (CTI.⊕⊑⊕² op L⊑L′ M⊑M′ r) =
@@ -112,10 +112,10 @@ mutual
       (CTI.conceal⊑conceal² c⊢ c′⊢ aligned matched represented M⊑M′ q) =
     ⊢conceal c′⊢ (target-typing M⊑M′)
   target-typing
-      (CTI.⊑reveal-rebase² c′⊢ ok represented M⊑M′ q) =
+      (CTI.⊑reveal-rebase² c′⊢ rebase M⊑M′ q) =
     ⊢reveal c′⊢ (target-typing M⊑M′)
   target-typing
-      (CTI.⊑conceal-rebase² c′⊢ ok represented M⊑M′ q) =
+      (CTI.⊑conceal-rebase² c′⊢ rebase M⊑M′ q) =
     ⊢conceal c′⊢ (target-typing M⊑M′)
   target-typing (CTI.blame⊑² M′⊢ p) = M′⊢
   target-typing (CTI.⊕⊑⊕² op L⊑L′ M⊑M′ r) =

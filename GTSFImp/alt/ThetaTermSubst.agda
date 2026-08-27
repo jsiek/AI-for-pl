@@ -4983,3 +4983,730 @@ reenter-anchor-id {Ψ = Ψ} {Y = Y} slot-eq q =
       (⊢≼-id
         (reenter-extension {Ψ = Ψ} {Y = Y} slot-eq)
         (reenter-injection-id Y) M⊢))
+
+------------------------------------------------------------------------
+-- Replacing one lexical slot by a freshly allocated crossing
+------------------------------------------------------------------------
+
+-- `allocSlots` is the slot-level invariant of lexical allocation.  Every
+-- ordinary crossing keeps its anchor through `φ`; the distinguished lexical
+-- position becomes the one fresh target anchor `b`.
+allocSlots : ∀ {Θ Θ′ Δ}
+  → (TyVar Θ → TyVar Θ′)
+  → TyVar Δ → TyVar Θ′
+  → Vec.Vec (Maybe (TyVar Θ)) Δ
+  → Vec.Vec (Maybe (TyVar Θ′)) Δ
+allocSlots φ zero b (entry Vec.∷ slots) =
+  just b Vec.∷ mapᵛ (mapMaybe φ) slots
+allocSlots φ (suc P) b (entry Vec.∷ slots) =
+  mapMaybe φ entry Vec.∷ allocSlots φ P b slots
+
+allocSlots-here : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
+    (P : TyVar Δ) b (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → Vec.lookup (allocSlots φ P b slots) P ≡ just b
+allocSlots-here φ zero b (entry Vec.∷ slots) = refl
+allocSlots-here φ (suc P) b (entry Vec.∷ slots) =
+  allocSlots-here φ P b slots
+
+allocSlots-other : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
+    (P X : TyVar Δ) b (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → P ≢ X
+  → Vec.lookup (allocSlots φ P b slots) X
+    ≡ mapMaybe φ (Vec.lookup slots X)
+allocSlots-other φ zero zero b slots neq = ⊥-elim (neq refl)
+allocSlots-other φ zero (suc X) b (entry Vec.∷ slots) neq =
+  lookup-mapᵛ (mapMaybe φ) slots X
+allocSlots-other φ (suc P) zero b (entry Vec.∷ slots) neq = refl
+allocSlots-other φ (suc P) (suc X) b (entry Vec.∷ slots) neq =
+  allocSlots-other φ P X b slots (λ eq → neq (cong suc eq))
+
+mapᵛ-insert : ∀ {n} {A B : Set} (f : A → B)
+    (Y : TyVar (suc n)) (entry : A) (values : Vec.Vec A n)
+  → mapᵛ f (insertᵛ Y entry values)
+    ≡ insertᵛ Y (f entry) (mapᵛ f values)
+mapᵛ-insert f zero entry values = refl
+mapᵛ-insert f (suc Y) entry (head Vec.∷ values) =
+  cong (f head Vec.∷_) (mapᵛ-insert f Y entry values)
+
+allocSlots-insert : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
+    (Y : TyVar (suc Δ)) (P : TyVar Δ) b entry
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → allocSlots φ (punchIn Y P) b (insertᵛ Y entry slots)
+    ≡ insertᵛ Y (mapMaybe φ entry) (allocSlots φ P b slots)
+allocSlots-insert φ zero P b entry slots = refl
+allocSlots-insert φ (suc Y) zero b entry (head Vec.∷ slots) =
+  cong (just b Vec.∷_) (mapᵛ-insert (mapMaybe φ) Y entry slots)
+allocSlots-insert φ (suc Y) (suc P) b entry (head Vec.∷ slots) =
+  cong (mapMaybe φ head Vec.∷_)
+    (allocSlots-insert φ Y P b entry slots)
+
+map-anchor-ext : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
+    (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → mapᵛ (mapMaybe (extᵗ φ)) (mapᵛ (mapMaybe suc) slots)
+    ≡ mapᵛ (mapMaybe suc) (mapᵛ (mapMaybe φ) slots)
+map-anchor-ext φ Vec.[] = refl
+map-anchor-ext φ (nothing Vec.∷ slots) =
+  cong (nothing Vec.∷_) (map-anchor-ext φ slots)
+map-anchor-ext φ (just a Vec.∷ slots) =
+  cong (just (suc (φ a)) Vec.∷_) (map-anchor-ext φ slots)
+
+allocSlots-ν : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
+    (P : TyVar Δ) b (slots : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → allocSlots (extᵗ φ) P (suc b)
+      (mapᵛ (mapMaybe suc) slots)
+    ≡ mapᵛ (mapMaybe suc) (allocSlots φ P b slots)
+allocSlots-ν φ zero b (nothing Vec.∷ slots) =
+  cong (just (suc b) Vec.∷_) (map-anchor-ext φ slots)
+allocSlots-ν φ zero b (just a Vec.∷ slots) =
+  cong (just (suc b) Vec.∷_) (map-anchor-ext φ slots)
+allocSlots-ν φ (suc P) b (nothing Vec.∷ slots) =
+  cong (nothing Vec.∷_) (allocSlots-ν φ P b slots)
+allocSlots-ν φ (suc P) b (just a Vec.∷ slots) =
+  cong (just (suc (φ a)) Vec.∷_) (allocSlots-ν φ P b slots)
+
+mapᵛ-remove : ∀ {n} {A B : Set} (f : A → B)
+    (Y : TyVar (suc n)) (values : Vec.Vec A (suc n))
+  → mapᵛ f (removeᵛ Y values) ≡ removeᵛ Y (mapᵛ f values)
+mapᵛ-remove f zero (head Vec.∷ values) = refl
+mapᵛ-remove {n = suc n} f (suc Y) (head Vec.∷ values) =
+  cong (f head Vec.∷_) (mapᵛ-remove f Y values)
+
+allocSlots-remove : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
+    (Y P : TyVar (suc Δ)) b
+    (slots : Vec.Vec (Maybe (TyVar Θ)) (suc Δ))
+    (neq : Y ≢ P)
+  → allocSlots φ (punchOut Y P neq) b (removeᵛ Y slots)
+    ≡ removeᵛ Y (allocSlots φ P b slots)
+allocSlots-remove φ zero zero b slots neq = ⊥-elim (neq refl)
+allocSlots-remove φ zero (suc P) b (head Vec.∷ slots) neq = refl
+allocSlots-remove {Δ = suc Δ} φ (suc Y) zero b
+    (head Vec.∷ slots) neq =
+  cong (just b Vec.∷_) (mapᵛ-remove (mapMaybe φ) Y slots)
+allocSlots-remove {Δ = suc Δ} φ (suc Y) (suc P) b
+    (head Vec.∷ slots) neq =
+  cong (mapMaybe φ head Vec.∷_)
+    (allocSlots-remove φ Y P b slots
+      (λ eq → neq (cong suc eq)))
+
+data AllocationTarget : ∀ {Θ Θ′ Δ σ τ}
+    (φ : TyVar Θ → TyVar Θ′) (P : TyVar Δ) (b : TyVar Θ′)
+    → TyEnv Θ Δ σ → TyEnv Θ′ Δ τ → Set where
+  allocation-base : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {C : Ty Δ}
+    → AllocationTarget suc zero zero (Ψ ,typ)
+        ((Ψ ,:= C)
+          ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩)
+
+  allocation-begin : ∀ {Θ Θ′ Δ σ τ}
+      {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+      {Y : TyVar (suc Δ)} {a : TyVar Θ}
+      {fresh : a ∉ᵛ σ} {fresh′ : φ a ∉ᵛ τ}
+    → AllocationTarget φ P b Ψ Φ
+    → AllocationTarget φ (punchIn Y P) b
+        (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩)
+        (Φ ,begin[ Y ≔ φ a ]⟨ fresh′ ⟩)
+
+  allocation-typ : ∀ {Θ Θ′ Δ σ τ}
+      {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    → AllocationTarget φ P b Ψ Φ
+    → AllocationTarget φ (suc P) b (Ψ ,typ) (Φ ,typ)
+
+  allocation-ν : ∀ {Θ Θ′ Δ σ τ}
+      {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ} {A : Ty Δ}
+    → AllocationTarget φ P b Ψ Φ
+    → AllocationTarget (extᵗ φ) P (suc b)
+        (Ψ ,:= A) (Φ ,:= A)
+
+  allocation-end : ∀ {Θ Θ′ Δ σ τ}
+      {φ : TyVar Θ → TyVar Θ′}
+      {P Y : TyVar (suc Δ)} {b : TyVar Θ′}
+      {Ψ : TyEnv Θ (suc Δ) σ} {Φ : TyEnv Θ′ (suc Δ) τ}
+    → (neq : Y ≢ P)
+    → AllocationTarget φ P b Ψ Φ
+    → AllocationTarget φ (punchOut Y P neq) b
+        (Ψ ,end[ Y ]) (Φ ,end[ Y ])
+
+allocation-slots : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → AllocationTarget φ P b Ψ Φ
+  → τ ≡ allocSlots φ P b σ
+allocation-slots allocation-base = refl
+allocation-slots
+    (allocation-begin {φ = φ} {P = P} {Y = Y} target)
+    rewrite allocation-slots target =
+  sym (allocSlots-insert φ Y P _ _ _)
+allocation-slots (allocation-typ target)
+    rewrite allocation-slots target = refl
+allocation-slots (allocation-ν {φ = φ} {P = P} target)
+    rewrite allocation-slots target = sym (allocSlots-ν φ P _ _)
+allocation-slots
+    (allocation-end {φ = φ} {P = P} {Y = Y} neq target)
+    rewrite allocation-slots target =
+  sym (allocSlots-remove φ Y P _ _ neq)
+
+allocation-source-lexical : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → AllocationTarget φ P b Ψ Φ
+  → Vec.lookup σ P ≡ nothing
+allocation-source-lexical allocation-base = refl
+allocation-source-lexical
+    (allocation-begin {σ = σ} {P = P} {Y = Y} {a = a} target) =
+  trans (lookup-insert-punch Y (just a) σ P)
+    (allocation-source-lexical target)
+allocation-source-lexical (allocation-typ target) =
+  allocation-source-lexical target
+allocation-source-lexical
+    (allocation-ν {σ = σ} {P = P} target) =
+  trans (lookup-mapᵛ (mapMaybe suc) σ P)
+    (cong (mapMaybe suc) (allocation-source-lexical target))
+allocation-source-lexical
+    (allocation-end {σ = σ} {P = P} {Y = Y} neq target) =
+  trans (lookup-remove-punch Y σ (punchOut Y P neq))
+    (trans (cong (Vec.lookup σ)
+        (punchIn-punchOut Y P neq))
+      (allocation-source-lexical target))
+
+AllocationTarget-anchor-injective : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → AllocationTarget φ P b Ψ Φ
+  → ∀ {a q} → φ a ≡ φ q → a ≡ q
+AllocationTarget-anchor-injective allocation-base = fin-suc-injective
+AllocationTarget-anchor-injective (allocation-begin target) =
+  AllocationTarget-anchor-injective target
+AllocationTarget-anchor-injective (allocation-typ target) =
+  AllocationTarget-anchor-injective target
+AllocationTarget-anchor-injective (allocation-ν target) =
+  extᵗ-injective′ (AllocationTarget-anchor-injective target)
+AllocationTarget-anchor-injective (allocation-end neq target) =
+  AllocationTarget-anchor-injective target
+
+zero≢fin-suc : ∀ {n} {a : TyVar n} → zero ≢ suc a
+zero≢fin-suc ()
+
+nothing≢just : ∀ {A : Set} {x : A} → nothing ≢ just x
+nothing≢just ()
+
+allocation-extra-distinct : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → AllocationTarget φ P b Ψ Φ
+  → ∀ a → b ≢ φ a
+allocation-extra-distinct allocation-base a = zero≢fin-suc
+allocation-extra-distinct (allocation-begin target) =
+  allocation-extra-distinct target
+allocation-extra-distinct (allocation-typ target) =
+  allocation-extra-distinct target
+allocation-extra-distinct (allocation-ν target) zero ()
+allocation-extra-distinct (allocation-ν target) (suc a) eq =
+  allocation-extra-distinct target a (fin-suc-injective eq)
+allocation-extra-distinct (allocation-end neq target) =
+  allocation-extra-distinct target
+
+allocation-target-extra : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → (target : AllocationTarget φ P b Ψ Φ)
+  → Vec.lookup τ P ≡ just b
+allocation-target-extra {φ = φ} {P = P} {b = b} {Ψ = Ψ} target =
+  trans (cong (λ slots → Vec.lookup slots P) (allocation-slots target))
+    (allocSlots-here φ P b (slotsOf Ψ))
+
+allocation-target-other : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P X : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → (target : AllocationTarget φ P b Ψ Φ)
+  → P ≢ X
+  → Vec.lookup τ X ≡ mapMaybe φ (Vec.lookup σ X)
+allocation-target-other {φ = φ} {P = P} {X = X} {b = b}
+    {Ψ = Ψ} target neq =
+  trans (cong (λ slots → Vec.lookup slots X) (allocation-slots target))
+    (allocSlots-other φ P X b (slotsOf Ψ) neq)
+
+allocation-target-forward : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P X : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ} {a : TyVar Θ}
+  → (target : AllocationTarget φ P b Ψ Φ)
+  → Vec.lookup σ X ≡ just a
+  → Vec.lookup τ X ≡ just (φ a)
+allocation-target-forward {P = P} {X = X} target source-eq =
+  trans (allocation-target-other target P≢X)
+    (cong (mapMaybe _) source-eq)
+  where
+  P≢X : P ≢ X
+  P≢X refl with trans (sym (allocation-source-lexical target)) source-eq
+  P≢X refl | ()
+
+allocation-target-backward : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P X : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ} {a : TyVar Θ}
+  → (target : AllocationTarget φ P b Ψ Φ)
+  → Vec.lookup τ X ≡ just (φ a)
+  → Vec.lookup σ X ≡ just a
+allocation-target-backward {φ = φ} {P = P} {X = X}
+    {Ψ = Ψ} target target-eq with P ≟ X
+allocation-target-backward {φ = φ} {P = P} {X = .P}
+    target target-eq | yes refl =
+  ⊥-elim (allocation-extra-distinct target _
+    (just-injective
+      (trans (sym (allocation-target-extra target)) target-eq)))
+allocation-target-backward {φ = φ} {P = P} {X = X}
+    {Ψ = Ψ} target target-eq | no P≢X
+    with Vec.lookup (slotsOf Ψ) X in source-eq
+allocation-target-backward target target-eq | no P≢X | nothing
+    = ⊥-elim (nothing≢just
+      (trans (sym (cong (mapMaybe _) source-eq))
+        (trans (sym (allocation-target-other target P≢X)) target-eq)))
+allocation-target-backward {φ = φ} target target-eq
+    | no P≢X | just q =
+  cong just (AllocationTarget-anchor-injective target
+    (just-injective
+      (trans (sym (cong (mapMaybe φ) source-eq))
+        (trans (sym (allocation-target-other target P≢X)) target-eq))))
+
+liveSlot?-AllocationTarget : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → (target : AllocationTarget φ P b Ψ Φ) (a : TyVar Θ)
+  → liveSlot? τ (φ a) ≡ liveSlot? σ a
+liveSlot?-AllocationTarget {Ψ = Ψ} {Φ = Φ} target a
+    with liveSlot? (slotsOf Ψ) a in source-live
+       | liveSlot? (slotsOf Φ) _ in target-live
+liveSlot?-AllocationTarget {Ψ = Ψ} {Φ = Φ} target a
+    | nothing | nothing = target-live
+liveSlot?-AllocationTarget {Ψ = Ψ} {Φ = Φ} target a
+    | nothing | just Y =
+  ⊥-elim (nothing≢just
+    (trans (sym source-live)
+      (liveSlot?-complete (slotsOf Ψ) (aliases-unique Ψ) source-eq)))
+  where
+  source-eq = allocation-target-backward target
+    (liveSlot?-sound (slotsOf Φ) _ Y target-live)
+liveSlot?-AllocationTarget {Ψ = Ψ} {Φ = Φ} target a
+    | just X | nothing =
+  ⊥-elim (nothing≢just
+    (trans (sym target-live)
+      (liveSlot?-complete (slotsOf Φ) (aliases-unique Φ) target-eq)))
+  where
+  target-eq = allocation-target-forward target
+    (liveSlot?-sound (slotsOf Ψ) _ X source-live)
+liveSlot?-AllocationTarget {Ψ = Ψ} {Φ = Φ} target a
+    | just X | just Y =
+  trans target-live
+    (cong just (sym (aliases-unique Φ target-X target-Y)))
+  where
+  target-X = allocation-target-forward target
+    (liveSlot?-sound (slotsOf Ψ) _ X source-live)
+  target-Y = liveSlot?-sound (slotsOf Φ) _ Y target-live
+
+liveSlot?-AllocationTarget-extra : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → (target : AllocationTarget φ P b Ψ Φ)
+  → liveSlot? τ b ≡ just P
+liveSlot?-AllocationTarget-extra {Φ = Φ} target =
+  liveSlot?-complete (slotsOf Φ) (aliases-unique Φ)
+    (allocation-target-extra target)
+
+aliasResult?-AllocationTarget : ∀ {Θ Θ′ Δ σ τ Δout}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    (target : AllocationTarget φ P b Ψ Φ)
+    (old : TyVar Θ → Maybe (Ty Δ))
+    (new : TyVar Θ′ → Maybe (Ty Δ))
+    (live-ren : TyVar Δ → TyVar Δout) (a : TyVar Θ)
+  → (∀ q → new (φ q) ≡ old q)
+  → aliasResult? new τ live-ren (φ a)
+    ≡ aliasResult? old σ live-ren a
+aliasResult?-AllocationTarget {Ψ = Ψ} {Φ = Φ} target old new
+    live-ren a resolve-eq
+    rewrite liveSlot?-AllocationTarget target a
+    with liveSlot? (slotsOf Ψ) a
+aliasResult?-AllocationTarget target old new live-ren a resolve-eq
+    | just X = refl
+aliasResult?-AllocationTarget target old new live-ren a resolve-eq
+    | nothing rewrite resolve-eq a = refl
+
+repoint?-AllocationTarget : ∀
+    {Θ Θ′ Θ₀ Θ₀′ Δ Δ₀ Δout σ τ σ₀ τ₀}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    {ψ : TyVar Θ₀ → TyVar Θ₀′} {Q : TyVar Δ₀} {c : TyVar Θ₀′}
+    {Ξ : TyEnv Θ₀ Δ₀ σ₀} {Ω : TyEnv Θ₀′ Δ₀ τ₀}
+    (query : AllocationTarget φ P b Ψ Φ)
+    (birth : AllocationTarget ψ Q c Ξ Ω)
+    (old : TyVar Θ → Maybe (Ty Δ))
+    (new : TyVar Θ′ → Maybe (Ty Δ))
+    (source-anchor : TyVar (suc Θ₀) → TyVar Θ)
+    (target-anchor : TyVar (suc Θ₀′) → TyVar Θ′)
+    (route : TyVar Δ₀ → Maybe (TyVar Δout))
+    (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
+  → (∀ q → new (φ q) ≡ old q)
+  → (∀ q → target-anchor (extᵗ ψ q) ≡ φ (source-anchor q))
+  → target-anchor (suc c) ≡ b
+  → route Q ≡ just (live-ren P)
+  → repoint? new τ τ₀ target-anchor route live-ren A
+    ≡ repoint? old σ σ₀ source-anchor route live-ren A
+repoint?-AllocationTarget {Q = Q} query birth old new source-anchor target-anchor
+    route live-ren (＇ X) resolve-eq anchor-eq extra-eq route-eq
+    with Q ≟ X
+repoint?-AllocationTarget {Ψ = Ψ} {Φ = Φ} {Ξ = Ξ} {Ω = Ω}
+    query birth old new source-anchor target-anchor route live-ren (＇ X)
+    resolve-eq anchor-eq extra-eq route-eq | yes refl
+    rewrite allocation-source-lexical birth
+          | allocation-target-extra birth
+          | extra-eq
+          | liveSlot?-AllocationTarget-extra query
+          | route-eq = refl
+repoint?-AllocationTarget {Ψ = Ψ} {Φ = Φ} {Ξ = Ξ} {Ω = Ω}
+    query birth old new source-anchor target-anchor route live-ren (＇ X)
+    resolve-eq anchor-eq extra-eq route-eq | no Q≢X
+    rewrite allocation-target-other birth Q≢X
+    with Vec.lookup (slotsOf Ξ) X
+repoint?-AllocationTarget {Ψ = Ψ} {Φ = Φ}
+    query birth old new source-anchor target-anchor
+    route live-ren (＇ X) resolve-eq anchor-eq extra-eq route-eq
+    | no Q≢X | nothing = refl
+repoint?-AllocationTarget {Ψ = Ψ} {Φ = Φ}
+    query birth old new source-anchor target-anchor
+    route live-ren (＇ X) resolve-eq anchor-eq extra-eq route-eq
+    | no Q≢X | just q =
+  subst≡
+    (λ anchor → aliasResult? new (slotsOf Φ) live-ren anchor
+      ≡ aliasResult? old (slotsOf Ψ) live-ren (source-anchor (suc q)))
+    (sym (anchor-eq (suc q)))
+    (aliasResult?-AllocationTarget query old new live-ren
+      (source-anchor (suc q)) resolve-eq)
+repoint?-AllocationTarget query birth old new source-anchor target-anchor
+    route live-ren (‵ ι) resolve-eq anchor-eq extra-eq route-eq = refl
+repoint?-AllocationTarget query birth old new source-anchor target-anchor
+    route live-ren ★ resolve-eq anchor-eq extra-eq route-eq = refl
+repoint?-AllocationTarget query birth old new source-anchor target-anchor
+    route live-ren (A ⇒ B) resolve-eq anchor-eq extra-eq route-eq =
+  trans (repoint?-arrow _ _ _ _ _ _ A B)
+    (trans (cong₂ _⇒?_
+        (repoint?-AllocationTarget query birth old new source-anchor
+          target-anchor route live-ren A resolve-eq anchor-eq extra-eq
+          route-eq)
+        (repoint?-AllocationTarget query birth old new source-anchor
+          target-anchor route live-ren B resolve-eq anchor-eq extra-eq
+          route-eq))
+      (sym (repoint?-arrow _ _ _ _ _ _ A B)))
+repoint?-AllocationTarget query birth old new source-anchor target-anchor
+    route live-ren (`∀ A) resolve-eq anchor-eq extra-eq route-eq =
+  trans (repoint?-all _ _ _ _ _ _ A)
+    (trans (cong all?
+        (repoint?-AllocationTarget query (allocation-typ birth) old new
+          source-anchor target-anchor (ext-route route)
+          (λ X → suc (live-ren X)) A resolve-eq anchor-eq extra-eq
+          (trans (cong (mapMaybe suc) route-eq) refl)))
+      (sym (repoint?-all _ _ _ _ _ _ A)))
+
+repoint?-query-AllocationTarget : ∀
+    {Θ Θ′ Θ₀ Δ Δ₀ Δout : TyCtx}
+    {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
+    {τ : Vec.Vec (Maybe (TyVar Θ′)) Δ}
+    {σ₀ : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    (query : AllocationTarget φ P b Ψ Φ)
+    (old : TyVar Θ → Maybe (Ty Δ))
+    (new : TyVar Θ′ → Maybe (Ty Δ))
+    (birth : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (source-anchor : TyVar (suc Θ₀) → TyVar Θ)
+    (target-anchor : TyVar (suc Θ₀) → TyVar Θ′)
+    (route : TyVar Δ₀ → Maybe (TyVar Δout))
+    (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
+  → (∀ q → new (φ q) ≡ old q)
+  → (∀ q → target-anchor q ≡ φ (source-anchor q))
+  → repoint? new τ birth target-anchor route live-ren A
+    ≡ repoint? old σ birth source-anchor route live-ren A
+repoint?-query-AllocationTarget query old new birth source-anchor
+    target-anchor route live-ren (＇ X) resolve-eq anchor-eq
+    with Vec.lookup birth X
+repoint?-query-AllocationTarget query old new birth source-anchor
+    target-anchor route live-ren (＇ X) resolve-eq anchor-eq | nothing = refl
+repoint?-query-AllocationTarget {Ψ = Ψ} {Φ = Φ} query old new birth
+    source-anchor target-anchor route live-ren (＇ X) resolve-eq anchor-eq
+    | just q =
+  subst≡
+    (λ anchor → aliasResult? new (slotsOf Φ) live-ren anchor
+      ≡ aliasResult? old (slotsOf Ψ) live-ren (source-anchor (suc q)))
+    (sym (anchor-eq (suc q)))
+    (aliasResult?-AllocationTarget query old new live-ren
+      (source-anchor (suc q)) resolve-eq)
+repoint?-query-AllocationTarget query old new birth source-anchor
+    target-anchor route live-ren (‵ ι) resolve-eq anchor-eq = refl
+repoint?-query-AllocationTarget query old new birth source-anchor
+    target-anchor route live-ren ★ resolve-eq anchor-eq = refl
+repoint?-query-AllocationTarget query old new birth source-anchor
+    target-anchor route live-ren (A ⇒ B) resolve-eq anchor-eq =
+  trans (repoint?-arrow _ _ _ _ _ _ A B)
+    (trans (cong₂ _⇒?_
+        (repoint?-query-AllocationTarget {σ₀ = birth} query old new birth
+          source-anchor target-anchor route live-ren A resolve-eq anchor-eq)
+        (repoint?-query-AllocationTarget {σ₀ = birth} query old new birth
+          source-anchor target-anchor route live-ren B resolve-eq anchor-eq))
+      (sym (repoint?-arrow _ _ _ _ _ _ A B)))
+repoint?-query-AllocationTarget query old new birth source-anchor
+    target-anchor route live-ren (`∀ A) resolve-eq anchor-eq =
+  trans (repoint?-all _ _ _ _ _ _ A)
+    (trans (cong all?
+        (repoint?-query-AllocationTarget {σ₀ = nothing Vec.∷ birth}
+          query old new (nothing Vec.∷ birth) source-anchor target-anchor
+          (ext-route route) (λ X → suc (live-ren X)) A
+          resolve-eq anchor-eq))
+      (sym (repoint?-all _ _ _ _ _ _ A)))
+
+scanRep?-outer-AllocationTarget : ∀
+    {Θ Θ′ Θ₀ Δ Δ₀ : TyCtx}
+    {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
+    {τ : Vec.Vec (Maybe (TyVar Θ′)) Δ}
+    {σ₀ : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    (query : AllocationTarget φ P b Ψ Φ)
+    (old : TyVar Θ → Maybe (Ty Δ))
+    (new : TyVar Θ′ → Maybe (Ty Δ))
+    (current : TyEnv Θ₀ Δ₀ σ₀)
+    (source-anchor : TyVar Θ₀ → TyVar Θ)
+    (target-anchor : TyVar Θ₀ → TyVar Θ′)
+    (route : TyVar Δ₀ → Maybe (TyVar Δ)) (a : TyVar Θ₀)
+  → (∀ q → new (φ q) ≡ old q)
+  → (∀ q → target-anchor q ≡ φ (source-anchor q))
+  → scanRep? new Φ current target-anchor route a
+    ≡ scanRep? old Ψ current source-anchor route a
+scanRep?-outer-AllocationTarget query old new ∅ source-anchor
+    target-anchor route () resolve-eq anchor-eq
+scanRep?-outer-AllocationTarget query old new
+    (current ,begin[ Y ≔ q ]⟨ fresh ⟩) source-anchor target-anchor
+    route a resolve-eq anchor-eq =
+  scanRep?-outer-AllocationTarget query old new current source-anchor
+    target-anchor (λ X → route (punchIn Y X)) a resolve-eq anchor-eq
+scanRep?-outer-AllocationTarget query old new (current ,typ)
+    source-anchor target-anchor route a resolve-eq anchor-eq =
+  scanRep?-outer-AllocationTarget query old new current source-anchor
+    target-anchor (λ X → route (suc X)) a resolve-eq anchor-eq
+scanRep?-outer-AllocationTarget {Ψ = Ψ} {Φ = Φ} query old new
+    (current ,:= A) source-anchor target-anchor route zero
+    resolve-eq anchor-eq =
+  repoint?-query-AllocationTarget {σ₀ = slotsOf current} query old new
+    (slotsOf current) source-anchor target-anchor route (λ X → X) A
+    resolve-eq anchor-eq
+scanRep?-outer-AllocationTarget query old new (current ,:= A)
+    source-anchor target-anchor route (suc a) resolve-eq anchor-eq =
+  scanRep?-outer-AllocationTarget query old new current
+    (λ q → source-anchor (suc q)) (λ q → target-anchor (suc q))
+    route a resolve-eq (λ q → anchor-eq (suc q))
+scanRep?-outer-AllocationTarget query old new (current ,end[ Y ])
+    source-anchor target-anchor route a resolve-eq anchor-eq =
+  scanRep?-outer-AllocationTarget query old new current source-anchor
+    target-anchor (route-end Y route) a resolve-eq anchor-eq
+
+route-end-other : ∀ {Δ Δ′} (Y : TyVar (suc Δ))
+    (route : TyVar Δ → Maybe (TyVar Δ′)) (X : TyVar (suc Δ))
+    (neq : Y ≢ X)
+  → route-end Y route X ≡ route (punchOut Y X neq)
+route-end-other Y route X neq with Y ≟ X
+route-end-other Y route .Y neq | yes refl = ⊥-elim (neq refl)
+route-end-other Y route X neq | no _ = refl
+
+scanRep?-AllocationTarget : ∀
+    {Θ Θ′ Θ₀ Θ₀′ Δ Δ₀ : TyCtx}
+    {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
+    {τ : Vec.Vec (Maybe (TyVar Θ′)) Δ}
+    {σ₀ : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀}
+    {τ₀ : Vec.Vec (Maybe (TyVar Θ₀′)) Δ₀}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    {ψ : TyVar Θ₀ → TyVar Θ₀′} {Q : TyVar Δ₀} {c : TyVar Θ₀′}
+    {Ξ : TyEnv Θ₀ Δ₀ σ₀} {Ω : TyEnv Θ₀′ Δ₀ τ₀}
+    (query : AllocationTarget φ P b Ψ Φ)
+    (current : AllocationTarget ψ Q c Ξ Ω)
+    (old : TyVar Θ → Maybe (Ty Δ))
+    (new : TyVar Θ′ → Maybe (Ty Δ))
+    (source-anchor : TyVar Θ₀ → TyVar Θ)
+    (target-anchor : TyVar Θ₀′ → TyVar Θ′)
+    (route : TyVar Δ₀ → Maybe (TyVar Δ)) (a : TyVar Θ₀)
+  → (∀ q → new (φ q) ≡ old q)
+  → (∀ q → target-anchor (ψ q) ≡ φ (source-anchor q))
+  → target-anchor c ≡ b
+  → route Q ≡ just P
+  → scanRep? new Φ Ω target-anchor route (ψ a)
+    ≡ scanRep? old Ψ Ξ source-anchor route a
+scanRep?-AllocationTarget query (allocation-base {Ψ = base}) old new source-anchor
+    target-anchor route a resolve-eq anchor-eq extra-eq route-eq =
+  scanRep?-outer-AllocationTarget query old new base source-anchor′
+    target-anchor′ (λ X → route (suc X)) a resolve-eq anchor-eq′
+  where
+  source-anchor′ = source-anchor
+  target-anchor′ = λ q → target-anchor (suc q)
+  anchor-eq′ = λ q → anchor-eq q
+scanRep?-AllocationTarget query (allocation-begin current) old new
+    source-anchor target-anchor route a resolve-eq anchor-eq extra-eq
+    route-eq =
+  scanRep?-AllocationTarget query current old new source-anchor
+    target-anchor (λ X → route (punchIn _ X)) a resolve-eq anchor-eq
+    extra-eq route-eq
+scanRep?-AllocationTarget query (allocation-typ current) old new
+    source-anchor target-anchor route a resolve-eq anchor-eq extra-eq
+    route-eq =
+  scanRep?-AllocationTarget query current old new source-anchor
+    target-anchor (λ X → route (suc X)) a resolve-eq anchor-eq
+    extra-eq route-eq
+scanRep?-AllocationTarget query
+    (allocation-ν {P = Q} {b = c} {A = A} current) old new source-anchor
+    target-anchor route zero resolve-eq anchor-eq extra-eq route-eq =
+  repoint?-AllocationTarget query current old new source-anchor target-anchor
+    route (λ X → X) A resolve-eq anchor-eq extra-eq route-eq
+scanRep?-AllocationTarget query
+    (allocation-ν {P = Q} {b = c} current) old new source-anchor
+    target-anchor route (suc a) resolve-eq anchor-eq extra-eq route-eq =
+  scanRep?-AllocationTarget query current old new
+    (λ q → source-anchor (suc q)) (λ q → target-anchor (suc q))
+    route a resolve-eq (λ q → anchor-eq (suc q)) extra-eq route-eq
+
+scanRep?-AllocationTarget query
+    (allocation-end {P = Q} {Y = Y} neq current) old new
+    source-anchor target-anchor route a resolve-eq anchor-eq extra-eq
+    route-eq =
+  scanRep?-AllocationTarget query current old new source-anchor
+    target-anchor (route-end Y route) a resolve-eq anchor-eq extra-eq
+    (trans (route-end-other Y route Q neq) route-eq)
+
+AllocationTarget-count : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → AllocationTarget φ P b Ψ Φ
+  → Θ′ ≡ suc Θ
+AllocationTarget-count allocation-base = refl
+AllocationTarget-count (allocation-begin target) =
+  AllocationTarget-count target
+AllocationTarget-count (allocation-typ target) =
+  AllocationTarget-count target
+AllocationTarget-count (allocation-ν target) =
+  cong suc (AllocationTarget-count target)
+AllocationTarget-count (allocation-end neq target) =
+  AllocationTarget-count target
+
+AllocationTarget-fuel-offset : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+  → (target : AllocationTarget φ P b Ψ Φ) (a : TyVar Θ)
+  → ∃[ extra ] (Θ′ ∸ toℕ (φ a) ≡ extra + (Θ ∸ toℕ a))
+AllocationTarget-fuel-offset allocation-base a = zero , refl
+AllocationTarget-fuel-offset (allocation-begin target) a =
+  AllocationTarget-fuel-offset target a
+AllocationTarget-fuel-offset (allocation-typ target) a =
+  AllocationTarget-fuel-offset target a
+AllocationTarget-fuel-offset (allocation-ν target) zero
+    with AllocationTarget-count target
+AllocationTarget-fuel-offset (allocation-ν target) zero | refl =
+  suc zero , refl
+AllocationTarget-fuel-offset (allocation-ν target) (suc a) =
+  AllocationTarget-fuel-offset target a
+AllocationTarget-fuel-offset (allocation-end neq target) a =
+  AllocationTarget-fuel-offset target a
+
+repFuel?-AllocationTarget : ∀ fuel {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    (target : AllocationTarget φ P b Ψ Φ) (a : TyVar Θ)
+  → repFuel? fuel Φ (φ a) ≡ repFuel? fuel Ψ a
+repFuel?-AllocationTarget zero target a = refl
+repFuel?-AllocationTarget (suc fuel) {Ψ = Ψ} {Φ = Φ}
+    target a =
+  scanRep?-AllocationTarget target target (repFuel? fuel Ψ)
+    (repFuel? fuel Φ) (λ q → q) (λ q → q) (λ X → just X) a
+    (repFuel?-AllocationTarget fuel target) (λ q → refl) refl refl
+
+rep?-AllocationTarget : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
+    (target : AllocationTarget φ P b Ψ Φ) {a : TyVar Θ} {A : Ty Δ}
+  → rep? Ψ a ≡ just A
+  → rep? Φ (φ a) ≡ just A
+rep?-AllocationTarget {Θ = Θ} {Θ′ = Θ′} {Ψ = Ψ} {Φ = Φ}
+    target {a = a} eq with AllocationTarget-fuel-offset target a
+rep?-AllocationTarget {Θ = Θ} {Θ′ = Θ′} {Ψ = Ψ} {Φ = Φ}
+    target {a = a} eq | extra , fuel-eq rewrite fuel-eq =
+  repFuel?-success-add extra (Θ ∸ toℕ a)
+    (trans (repFuel?-AllocationTarget (Θ ∸ toℕ a) target a) eq)
+
+fresh-AllocationTarget : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ} {a : TyVar Θ}
+  → AllocationTarget φ P b Ψ Φ
+  → a ∉ᵛ σ
+  → φ a ∉ᵛ τ
+fresh-AllocationTarget target fresh X target-eq =
+  fresh X (allocation-target-backward target target-eq)
+
+allocation-source-slot≢ : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P Y : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ} {a : TyVar Θ}
+  → (target : AllocationTarget φ P b Ψ Φ)
+  → Vec.lookup σ Y ≡ just a
+  → Y ≢ P
+allocation-source-slot≢ target slot-eq refl =
+  nothing≢just
+    (trans (sym (allocation-source-lexical target)) slot-eq)
+
+-- A lexical allocation replaces one distinguished lexical slot by the
+-- freshly minted anchor's crossing.  All other slots remain at the same
+-- positions, so typing only renames anchors.  The begin/end cases commute
+-- the distinguished position through the balanced delimiters explicitly.
+
+⊢allocate-target : ∀ {Θ Θ′ Δ σ τ}
+    {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ} {Γ : TermCtx Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
+  → AllocationTarget φ P b Ψ Φ
+  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Φ ∣ Γ ⊢ renameᶿ φ M ⦂ A
+⊢allocate-target target (⊢` x∈) = ⊢` x∈
+⊢allocate-target target (⊢ƛ M⊢) =
+  ⊢ƛ (⊢allocate-target target M⊢)
+⊢allocate-target target (⊢· L⊢ M⊢) =
+  ⊢· (⊢allocate-target target L⊢) (⊢allocate-target target M⊢)
+⊢allocate-target target (⊢Λ M⊢) =
+  ⊢Λ (⊢allocate-target (allocation-typ target) M⊢)
+⊢allocate-target target (⊢⦂∀ M⊢) =
+  ⊢⦂∀ (⊢allocate-target target M⊢)
+⊢allocate-target target (⊢$ κ) = ⊢$ κ
+⊢allocate-target target (⊢⊕ op L⊢ M⊢) =
+  ⊢⊕ op (⊢allocate-target target L⊢)
+    (⊢allocate-target target M⊢)
+⊢allocate-target target (⊢⟨⟩ M⊢ c) =
+  ⊢⟨⟩ (⊢allocate-target target M⊢) c
+⊢allocate-target target (⊢ν M⊢) =
+  ⊢ν (⊢allocate-target (allocation-ν target) M⊢)
+⊢allocate-target {φ = φ} target
+    (⊢reveal {α = a} {fresh = fresh} rep-eq c⊢ M⊢) =
+  ⊢reveal (rep?-AllocationTarget target rep-eq) c⊢
+    (⊢allocate-target
+      (allocation-begin
+        {fresh′ = fresh-AllocationTarget target fresh} target)
+      M⊢)
+⊢allocate-target target
+    (⊢conceal {Y = Y} slot-eq rep-eq c⊢ M⊢) =
+  ⊢conceal (allocation-target-forward target slot-eq)
+    (rep?-AllocationTarget ended-target rep-eq) c⊢
+    (⊢allocate-target ended-target M⊢)
+  where
+  ended-target = allocation-end
+    (allocation-source-slot≢ target slot-eq) target
+⊢allocate-target target ⊢blame = ⊢blame
+
+⊢allocate-lexical : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Γ : TermCtx (suc Δ)} {M : Term Θ (suc Δ)}
+    {A : Ty (suc Δ)} {C : Ty Δ}
+  → Ψ ,typ ∣ Γ ⊢ M ⦂ A
+  → ((Ψ ,:= C)
+      ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {slots = σ} ⟩)
+      ∣ Γ ⊢ shiftᶿ M ⦂ A
+⊢allocate-lexical M⊢ = ⊢allocate-target allocation-base M⊢

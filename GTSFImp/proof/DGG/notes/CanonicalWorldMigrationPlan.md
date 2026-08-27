@@ -29,7 +29,7 @@ discharge their semantic proof interfaces.
 
 The first `All.agda` error is the obsolete `ParkedWorldDef` import of the
 deleted `proof.DGG.CtxImp`.  This is not a reason to port `ParkedWorld`:
-canonical simulation uses `sourceRebaseCountᶜ γ ≡ 0` and
+canonical simulation uses `openFramesᶜ γ ≡ []` and
 `MultiWorldEvolution` directly.  The parked-world family should be deleted
 after its remaining consumers are migrated.
 
@@ -210,40 +210,40 @@ canonical forms to identify the related target constants and takes the matching
 delta step.  The closing proof explicitly composes both operand traces with the
 delta trace and splits exhaustively over addition and conjunction evidence.
 
-Target reveal-rebase closing is checked at its honest world-history boundary.
-`SourceRebaseStack` is now the canonical first-order balance invariant: reveal
-pushes a direct frame, conceal pops that exact frame through three protected
-CTI scopes, and runtime evolution records four chronological bind scopes.  In
-particular, evolution of `(γ ▻ rebase)` produces `(γ ▻ rebase) ▻ bind`; it does
-not normalize that history to `(γ ▻ bind) ▻ rebase`.
+Target reveal-rebase closing now uses its honest term/CTI boundary. The world
+is the sole balance carrier: `openFramesᶜ γ` is derived from role-tagged world
+history, and each nested CTI node owns the world in which its frame is open.
+There is no parallel `SourceRebaseStack` or stack-evolution relation.
 
-`SimSourceRebaseStackᵀ` states the genuine open-stack induction.  It evolves
-the root and top worlds together, returns the evolved stack, and establishes
-CTI at the evolved top.  `SimTargetRevealRebaseClosingProof` builds the
-one-frame stack from its direct `SourceRebaseᶜ` evidence, lifts the returned
-target-body trace through the reveal, projects the root evolution, transports
-the closing rebase, and rebuilds the balanced reveal-rebase node.  Its complete
-CTI split and recursive skeleton are manifested in
-`SimSourceRebaseStackProof.agda`; ordinary `Simᵀ` cannot recurse from the root
-zero-rebase world into an open stack.
+`SimTargetRevealRebaseContextDef` defines a CTI-indexed evaluation-context
+zipper. Its immediate edges are exactly the source evaluation positions of
+the CTI constructors. Each edge stores the related sibling and conversion
+evidence needed for reconstruction. `RebuildSource` carries the actual
+constructor-form source-result equation, including store-change renaming of
+siblings, types, casts, reveals, and conceals. Target-only CTI wrappers record
+identity source reconstruction.
 
-The stack-transport assembly is strict green in its honest parameterized
-state. `TransportSourceRebaseStackBindDef` states the one remaining open-stack
-source-bind induction. `TransportSourceRebaseStackProof` proves the complete
-evolution split, including composition, from that interface and the three
-existing target/paired bind interfaces. It has no interaction goals.
+`ContextualTargetRevealRebaseClosingᵀ` keeps the public closing boundary fixed
+and adds a focused CTI node, a path from the boundary to that node, its source
+step, and source reconstruction. Its conclusion is exactly the existing root
+closing conclusion. The public `SimTargetRevealRebaseClosingᵀ` is its
+`focus-here` adapter, so no caller-facing interface changes.
 
-The open-stack source-bind induction cannot be obtained by indexing the old
-source-bind scope over complete before/after stacks. Trusted Example 12 gives
-a counterexample: after the second direct source rebase its inner lambda binder
-has source `X` related to target `Z′`, but those same endpoint binder types are
-not related before the rebase. Thus lifting the complete stack through the
-lambda would require a false backward type-imprecision theorem. The strict
-probe is
-`notes/probes/SourceRebaseBackwardTypeTransportProbe.agda`. The next design
-gate is a canonical, CTI-indexed balance judgment that records locally open
-reveal frames without pretending that the chronological stack root has the
-current lambda's binder context.
+The recursive proof skeleton is now in
+`SimTargetRevealRebaseClosingProof.agda`. Every contextual application,
+primitive, type-application, cast, reveal, and conceal case extends the zipper
+before making its recursive call. Only the dynamic root families remain as
+manifested semantic goals. The obsolete stack Def/Proof, catch-up, and
+transport modules have been deleted.
+
+The reason a world-only synchronized evolution cannot replace the stack is
+recorded in `GammaDerivedFrameEvolutionAudit.md`. In the trusted
+`TargetIdentityReveal` allocation, root worlds evolve from `[]` to `[]`, while
+the nested CTI changes from `[X ↔ Y′, X ↔ Z′]` to `[X ↔ Y′]`. The outer
+`X ↔ Z′` boundary becomes paired and the inner `X ↔ Y′` boundary survives.
+Those nested worlds are not endpoints of one ordinary `MultiWorldEvolution`.
+The strict `TargetRevealRebaseContextProbe.agda` pins both the ordinary root
+evolution and the final paired-outer/target-rebase-inner CTI shape.
 
 ### 5. Closed simulation
 

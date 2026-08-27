@@ -161,7 +161,7 @@ import proof.DGG.SimSourceRevealClosingProof
 import proof.DGG.SimPairedRevealClosingProof
 import proof.DGG.SimPrimitiveValuesLemma
 import proof.DGG.SimPrimitiveClosingProof
-import proof.DGG.SimTargetRevealRebaseClosingProof
+import proof.DGG.SimTargetRevealRebaseContextDef
 import proof.DGG.MultiSimProof
 import proof.DGG.MultiSimBackProof
 import proof.DGG.SimBackPairedFunValuesProof
@@ -220,6 +220,5 @@ import proof.DGG.Occupancy
 import proof.DGG.WorldSupport
 import proof.DGG.TargetBindLift
 import proof.DGG.TransportSourceBindProof
-import proof.DGG.TransportSourceRebaseStackProof
 import proof.DGG.TransportTargetBindProof
 import proof.DGG.TransportPairedBindProof

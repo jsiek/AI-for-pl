@@ -182,16 +182,15 @@ case.  Replace their geometric zero premise/propagation with the open-frame
 empty fact.  The aligned step preserves emptiness even though it does not
 preserve geometric zero.
 
-### Transitional source-rebase stack
+### Superseded transitional source-rebase stack
 
-`SourceRebaseStackDef.agda` currently treats geometric zero as an empty stack
-and has only shape-preserving bind evolutions.  Both assumptions are invalid
-for the trusted allocation: alpha becomes alignment-only while the newer beta
-remains open, so this is a non-top frame discharge.  Do not add a superficial
-`stack-evolution-bind-left-aligned` that merely shifts the old stack.  Migrate
-the root/stack facts to the role-derived `openFramesᶜ` view, or isolate the
-actual selected-frame removal as its own semantic induction.  The corresponding
-consumers are:
+The deleted `SourceRebaseStackDef.agda` treated geometric zero as an empty
+stack and had only shape-preserving bind evolutions.  Both assumptions were
+invalid for the trusted allocation: the outer frame becomes alignment-only
+while the newer inner frame remains open, so this is a non-top frame
+discharge.  The canonical design now derives `openFramesᶜ` from each CTI
+node's world and uses a CTI evaluation-context zipper for closing.  The
+obsolete consumers were:
 
 - `TransportSourceRebaseStackBindDef.agda`
 - `TransportSourceRebaseStackProof.agda`

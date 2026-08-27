@@ -1,7 +1,10 @@
 # CTI reveal/conceal balance design packet
 
-Status: design only. This packet does not change
-`CastTermImprecision.agda`.
+Status: historical design input, superseded by the role-derived world history
+and CTI evaluation-context zipper described in
+`GammaDerivedFrameEvolutionAudit.md`. This packet does not change
+`CastTermImprecision.agda`; its explicit parallel `OpenFrames` index was not
+adopted because `openFramesᶜ γ` is now derived from each CTI node's world.
 
 The motivating obstruction and both ladders below are checked against the
 live trusted Example 12. The focused ladder definitions and exact generated

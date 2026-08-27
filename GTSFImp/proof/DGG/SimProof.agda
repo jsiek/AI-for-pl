@@ -312,7 +312,7 @@ module _
       CTI.·⊑·² rel′
         (subst (λ r → γ′ CTI.⊢² _ ⊑ _ ∶ r)
           (PI.⊑-unique (multi-⊑ᵀ evol pA) qA)
-          (transport-CTI no-rebase evol arg-rel))
+          (transport-CTI evol arg-rel))
 
   sim no-rebase
       (CTI.·⊑·² {L = L} {L′ = L′} {M′ = M′}
@@ -326,7 +326,7 @@ module _
     | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , fun′ , γ₁ , q₁ , fun-steps ,
       target-value , evol₁ , fun-rel′
       with sim (multi-no-open-frames evol₁ no-rebase)
-        (transport-CTI no-rebase evol₁ arg-rel) arg-step
+        (transport-CTI evol₁ arg-rel) arg-step
   sim no-rebase
       (CTI.·⊑·² {L = L} {L′ = L′} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′} fun-rel arg-rel)
@@ -351,8 +351,7 @@ module _
                 applyTerms χsᴿ₂ fun′ ∶ r))
           (applyTy-⇒ χ A B)
           (multi-⊑ᵀ evol₂ q₁ ,
-            transport-CTI (multi-no-open-frames evol₁ no-rebase)
-              evol₂ fun-rel′))
+            transport-CTI evol₂ fun-rel′))
   sim no-rebase
       (CTI.·⊑·² {L = L} {L′ = L′} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′} fun-rel arg-rel)
@@ -1203,7 +1202,7 @@ module _
             Σ[ s ∈ applyTy χ (primArgTy op) ⊑ᵀ⟨ γ′ ⟩ T ]
               (γ′ CTI.⊢² applyTerm χ M ⊑ applyTerms χsᴿ M′ ∶ s))
           (applyTys-primArgTy χsᴿ op)
-          (multi-⊑ᵀ evol _ , transport-CTI no-rebase evol right-rel))
+          (multi-⊑ᵀ evol _ , transport-CTI evol right-rel))
   sim no-rebase
       (CTI.⊕⊑⊕² op {L′ = target-left} {M = M} {M′ = M′}
         left-rel right-rel r)
@@ -1267,7 +1266,7 @@ module _
     | Δᴿ′ , Σᴿ′ , χsᴿ , left′ , γ′ , q , target-steps ,
       target-value , evol₁ , left-rel′
       with sim (multi-no-open-frames evol₁ no-rebase)
-        (transport-CTI no-rebase evol₁ right-rel) right-step
+        (transport-CTI evol₁ right-rel) right-step
   sim no-rebase
       (CTI.⊕⊑⊕² op {L = L} {L′ = L′} {M′ = M′}
         left-rel right-rel r)
@@ -1290,8 +1289,7 @@ module _
           (trans (applyTys-++ χsᴿ χsᴿ₂ (primArgTy op))
             (applyTys-primArgTy (χsᴿ ++χ χsᴿ₂) op))
           (multi-⊑ᵀ evol₂ q ,
-            transport-CTI (multi-no-open-frames evol₁ no-rebase)
-              evol₂ left-rel′))
+            transport-CTI evol₂ left-rel′))
         | subst
         (λ S →
           Σ[ s ∈ S ⊑ᵀ⟨ γ₂ ⟩ primArgTy op ]

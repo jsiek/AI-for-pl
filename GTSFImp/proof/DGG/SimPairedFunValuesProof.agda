@@ -363,7 +363,7 @@ module _
         (applyTys-⇒ argument-changes _ _)
         (multi-⊑ᵀ argument-evolution
             (⇒⊑⇒ inner-argument-rel inner-result-rel) ,
-          transport-CTI no-rebase argument-evolution body-rel)
+          transport-CTI argument-evolution body-rel)
   worker {V = V} {W = W} {N = N} {W′ = W′}
       {B = B} {pB = pB}
       no-rebase (Nat.suc fuel) (s≤s smaller)
@@ -497,7 +497,7 @@ module _
         (applyTys-⇒ argument-changes _ _)
         (multi-⊑ᵀ argument-evolution
             (⇒⊑⇒ inner-argument-rel inner-result-rel) ,
-          transport-CTI no-rebase argument-evolution body-rel)
+          transport-CTI argument-evolution body-rel)
   worker {V = V} {W = W} {N = N} {W′ = W′}
       {B = B} {pB = pB}
       no-rebase (Nat.suc fuel) (s≤s smaller)
@@ -634,7 +634,7 @@ module _
         (applyTys-⇒ argument-changes _ _)
         (multi-⊑ᵀ argument-evolution
             (⇒⊑⇒ inner-argument-rel inner-result-rel) ,
-          transport-CTI no-rebase argument-evolution body-rel)
+          transport-CTI argument-evolution body-rel)
   worker {V = V} {W = W} {N = N} {W′ = W′}
       {B = B} {pB = pB}
       no-rebase (Nat.suc fuel) (s≤s smaller)

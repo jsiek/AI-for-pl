@@ -456,7 +456,7 @@ module _
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
           smaller)
-        (transport-CTI no-rebase argument-evolution body-rel)
+        (transport-CTI argument-evolution body-rel)
         (applyTys-⇒ argument-changes _ _) refl argument-rel
         (applyTerms-preserves-Value argument-changes source-body-value)
         source-argument-value target-fun-value target-arg-value target-step
@@ -624,7 +624,7 @@ module _
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
           smaller)
-        (transport-CTI no-rebase argument-evolution body-rel)
+        (transport-CTI argument-evolution body-rel)
         (applyTys-⇒ argument-changes _ _) refl argument-rel
         (applyTerms-preserves-Value argument-changes source-body-value)
         source-argument-value target-fun-value target-arg-value target-step
@@ -807,7 +807,7 @@ module _
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
           smaller)
-        (transport-CTI no-rebase argument-evolution body-rel)
+        (transport-CTI argument-evolution body-rel)
         (applyTys-⇒ argument-changes _ _) refl argument-rel
         (applyTerms-preserves-Value argument-changes source-body-value)
         source-argument-value target-fun-value target-arg-value target-step
@@ -996,7 +996,7 @@ module _
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
           smaller)
-        (transport-CTI no-rebase argument-evolution body-rel)
+        (transport-CTI argument-evolution body-rel)
         (applyTys-⇒ argument-changes _ _) refl argument-rel
         (applyTerms-preserves-Value argument-changes source-body-value)
         source-argument-value target-fun-value target-arg-value target-step
@@ -1179,7 +1179,7 @@ module _
         (subst (λ n → n < fuel)
           (sym (sourceFunctionLayers-applyTerms argument-changes M))
           smaller)
-        (transport-CTI no-rebase argument-evolution body-rel)
+        (transport-CTI argument-evolution body-rel)
         (applyTys-⇒ argument-changes _ _) refl argument-rel
         (applyTerms-preserves-Value argument-changes source-body-value)
         source-argument-value target-fun-value target-arg-value target-step

@@ -31,27 +31,26 @@ module _
     where
 
   transport-term-imprecision-step : TransportTermImprecisionStepᵀ
-  transport-term-imprecision-step no-rebase evolution-keep related = related
+  transport-term-imprecision-step evolution-keep related = related
 
   transport-term-imprecision-step
-      no-rebase (evolution-bind-left eqᴸ) related =
-    transport-source-bind no-rebase eqᴸ related
+      (evolution-bind-left eqᴸ) related =
+    transport-source-bind eqᴸ related
 
-  transport-term-imprecision-step no-open
+  transport-term-imprecision-step
       (evolution-bind-left-aligned
         eqᴸ update boundary represented) related =
-    transport-aligned-source-bind no-open
+    transport-aligned-source-bind
       eqᴸ update boundary represented related
 
   transport-term-imprecision-step
-      no-rebase (evolution-bind-right fresh eqᴿ) related =
+      (evolution-bind-right fresh eqᴿ) related =
     transport-target-bind fresh eqᴿ related
 
   transport-term-imprecision-step
-      no-rebase (evolution-bind-both represented eqᴸ eqᴿ) related =
+      (evolution-bind-both represented eqᴸ eqᴿ) related =
     transport-paired-bind represented eqᴸ eqᴿ related
 
   transport-term-imprecision-step
-      no-rebase
       (evolution-bind-both-star represented C≠★ eqᴸ eqᴿ) related =
     transport-paired-star-bind represented C≠★ eqᴸ eqᴿ related

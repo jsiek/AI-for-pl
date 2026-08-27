@@ -11,7 +11,6 @@ module proof.DGG.TransportTermImprecisionStepDef where
 --   * Contains no result wrapper, classifier, compatibility world, or proof.
 
 import Data.Fin as Fin
-open import Data.List using ([])
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 import Data.Nat as Nat
 
@@ -35,7 +34,6 @@ TransportSourceBindᵀ = ∀
     {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → openFramesᶜ γ ≡ []
   → (eqᴸ : Γᴸ⁺ ≡ ⇑ᶜ Γᴸ)
   → γ ⊢² M ⊑ M′ ∶ p
   → (γ ▻ᶜ bind-left-changeᶜ C eqᴸ) ⊢² ⇑ᵗᵐ M ⊑ M′
@@ -52,7 +50,6 @@ TransportAlignedSourceBindᵀ = ∀
     {Xᴿ : TyVar Δᴿ}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → openFramesᶜ γ ≡ []
   → (eqᴸ : Γᴸ⁺ ≡ ⇑ᶜ Γᴸ)
   → (update : PivotUpdateᵗ
       (ηᴸᶜ (γ ▻ᶜ bind-left-changeᶜ C eqᴸ)) Fin.zero

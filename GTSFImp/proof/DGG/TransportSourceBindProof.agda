@@ -438,13 +438,13 @@ module _
       (source-scope-⊑ᵀ plan r)
 
   transport-source-bind : TransportSourceBindᵀ
-  transport-source-bind {A = A} {p = p} no-rebase eqᴸ related =
+  transport-source-bind {A = A} {p = p} eqᴸ related =
     retarget-CTI
       (transport-source-type (renameᵗ-wk-eq A)
         (transport-source-bind-scope (source-scope-root eqᴸ) related))
 
   transport-aligned-source-bind : TransportAlignedSourceBindᵀ
-  transport-aligned-source-bind {A = A} {p = p} no-open eqᴸ
+  transport-aligned-source-bind {A = A} {p = p} eqᴸ
       update boundary represented related =
     retarget-CTI
       (transport-source-type (renameᵗ-wk-eq A)

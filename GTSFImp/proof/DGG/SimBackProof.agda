@@ -119,7 +119,7 @@ module _
         (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , source-value , γ₁ , type-rel₁ ,
           source-steps , value , evolution₁ , fun-rel₁)
       with target-blame-catchup
-        (transport-CTI no-rebase evolution₁ arg-rel)
+        (transport-CTI evolution₁ arg-rel)
   sim-back no-rebase
       (·⊑·² {L = L} {M = M} fun-rel arg-rel)
       (pure-step (blame-·₂ target-value))
@@ -178,7 +178,7 @@ module _
             (subst≡ (λ p → γ′ ⊢² _ ⊑ _ ∶ p)
               (PI.⊑-unique (multi-⊑ᵀ evolution argument-rel)
                 argument-rel′)
-              (transport-CTI no-rebase evolution arg-rel)))
+              (transport-CTI evolution arg-rel)))
   sim-back {χᴿ = χᴿ} no-rebase
       (·⊑·² {L = L} {M = M} {A = A} {A′ = A′} {B = B} {B′ = B′}
         {pA = argument-rel} fun-rel arg-rel)
@@ -207,7 +207,7 @@ module _
         (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , source-value , γ₁ , type-rel₁ ,
           source-steps , value , evolution₁ , fun-rel₁)
       with sim-back (multi-no-open-frames evolution₁ no-rebase)
-        (transport-CTI no-rebase evolution₁ arg-rel) target-step
+        (transport-CTI evolution₁ arg-rel) target-step
   sim-back {χᴿ = χᴿ} no-rebase
       (·⊑·² {L = L} {L′ = L′} {M = M}
         {A = A} {A′ = A′} {B = B} {B′ = B′}
@@ -237,9 +237,7 @@ module _
                 applyTerm χᴿ L′ ∶ q)
           (applyTy-⇒ χᴿ A′ B′)
           (multi-⊑ᵀ evolution₂ type-rel₁ ,
-            transport-CTI
-              (multi-no-open-frames evolution₁ no-rebase)
-              evolution₂ fun-rel₁))
+            transport-CTI evolution₂ fun-rel₁))
   sim-back {χᴿ = χᴿ} no-rebase
       (·⊑·² {L = L} {L′ = L′} {M = M}
         {A = A} {A′ = A′} {B = B} {B′ = B′}
@@ -1183,7 +1181,7 @@ module _
         (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , source-value , γ₁ , type-rel₁ ,
           source-steps , value , evolution₁ , left-rel₁)
       with target-blame-catchup
-        (transport-CTI no-rebase evolution₁ right-rel)
+        (transport-CTI evolution₁ right-rel)
   sim-back no-rebase
       (⊕⊑⊕² op {L = L} {M = M} left-rel right-rel type-rel)
       (pure-step (blame-⊕₂ target-value))
@@ -1247,7 +1245,7 @@ module _
               γ′ ⊢² applyTerms χsᴸ M ⊑ applyTerm χᴿ M′ ∶ p)
           (applyTys-primArgTy (χᴿ ∷ []) op)
           (multi-⊑ᵀ evolution _ ,
-            transport-CTI no-rebase evolution right-rel))
+            transport-CTI evolution right-rel))
       | subst≡
         (λ S → S ⊑ᵀ⟨ γ′ ⟩ primResultTy op)
         (applyTys-primResultTy χsᴸ op)
@@ -1314,7 +1312,7 @@ module _
         (Δᴸ₁ , Σᴸ₁ , χsᴸ₁ , source-value , γ₁ , type-rel₁ ,
           source-steps , value , evolution₁ , left-rel₁)
       with sim-back (multi-no-open-frames evolution₁ no-rebase)
-        (transport-CTI no-rebase evolution₁ right-rel) target-step
+        (transport-CTI evolution₁ right-rel) target-step
   sim-back {χᴿ = χᴿ} no-rebase
       (⊕⊑⊕² op {L = L} {L′ = L′} {M = M}
         left-rel right-rel type-rel)
@@ -1342,9 +1340,7 @@ module _
                 applyTerm χᴿ L′ ∶ p)
           (applyTys-primArgTy (χᴿ ∷ []) op)
           (multi-⊑ᵀ evolution₂ type-rel₁ ,
-            transport-CTI
-              (multi-no-open-frames evolution₁ no-rebase)
-              evolution₂ left-rel₁))
+            transport-CTI evolution₂ left-rel₁))
       | subst≡
         (λ S →
           Σ[ p ∈ S ⊑ᵀ⟨ γ₂ ⟩ primArgTy op ]

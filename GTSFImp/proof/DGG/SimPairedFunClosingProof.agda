@@ -77,7 +77,7 @@ module _
         fun-steps , target-fun-value , evolution₁ , fun-rel₁
         with catchup-to-more-precise
           (multi-no-open-frames evolution₁ no-rebase)
-          (transport-CTI no-rebase evolution₁ arg-rel) source-arg-value
+          (transport-CTI evolution₁ arg-rel) source-arg-value
     close-root {L = L} {M = M} {N = N} {L′ = L′} {M′ = M′}
         {A = A} {B = B} {A′ = A′} {B′ = B′}
         no-rebase fun-rel arg-rel source-fun-value source-arg-value source-step
@@ -93,9 +93,7 @@ module _
             (applyTys-⇒ χsᴿ₂ (applyTys χsᴿ₁ A′)
               (applyTys χsᴿ₁ B′)))
           (multi-⊑ᵀ evolution₂ type-rel₁ ,
-            transport-CTI
-              (multi-no-open-frames evolution₁ no-rebase)
-              evolution₂ fun-rel₁)
+            transport-CTI evolution₂ fun-rel₁)
     close-root {L = L} {M = M} {N = N} {L′ = L′} {M′ = M′}
         {A = A} {B = B} {A′ = A′} {B′ = B′}
         no-rebase fun-rel arg-rel source-fun-value source-arg-value source-step

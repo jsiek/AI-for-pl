@@ -28,7 +28,6 @@ open import proof.DGG.WorldEvolution using
   ; storeChange
   ; evolution-keep
   ; evolution-⊑ᵀ
-  ; evolution-no-open-frames
   )
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution
@@ -150,29 +149,26 @@ module _ (transport-step : TransportTermImprecisionStepᵀ) where
         related)
 
   transport-term-imprecision-from-step : TransportTermImprecisionᵀ
-  transport-term-imprecision-from-step no-open evolutions-refl related =
+  transport-term-imprecision-from-step evolutions-refl related =
     related
 
   transport-term-imprecision-from-step
-      no-open (evolutions-step-left eqᴸ one tail) related =
+      (evolutions-step-left eqᴸ one tail) related =
     finish-left eqᴸ one tail
       (transport-term-imprecision-from-step
-        (evolution-no-open-frames one no-open)
-        tail (transport-step no-open one related))
+        tail (transport-step one related))
 
   transport-term-imprecision-from-step
-      no-open (evolutions-step-right eqᴿ one tail) related =
+      (evolutions-step-right eqᴿ one tail) related =
     finish-right eqᴿ one tail
       (transport-term-imprecision-from-step
-        (evolution-no-open-frames one no-open)
-        tail (transport-step no-open one related))
+        tail (transport-step one related))
 
   transport-term-imprecision-from-step
-      no-open (evolutions-step-both eqᴸ eqᴿ one tail) related =
+      (evolutions-step-both eqᴸ eqᴿ one tail) related =
     finish-both eqᴸ eqᴿ one tail
       (transport-term-imprecision-from-step
-        (evolution-no-open-frames one no-open)
-        tail (transport-step no-open one related))
+        tail (transport-step one related))
 
 
 module _

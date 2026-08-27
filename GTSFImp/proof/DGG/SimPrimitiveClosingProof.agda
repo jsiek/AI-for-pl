@@ -60,7 +60,7 @@ module _
         left-steps , target-left-value , evolution₁ , left-related₁
         with catchup-to-more-precise
           (multi-no-open-frames evolution₁ no-rebase)
-          (transport-CTI no-rebase evolution₁ right-related) ($ κ′)
+          (transport-CTI evolution₁ right-related) ($ κ′)
     close-root {op = op} {κ = κ} {κ′ = κ′}
         no-rebase left-related right-related r primitive-step
       | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , target-left , γ₁ , left-type₁ ,
@@ -74,9 +74,7 @@ module _
           (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primArgTy op))
             (applyTys-primArgTy (χsᴿ₁ ++χ χsᴿ₂) op))
           (multi-⊑ᵀ evolution₂ left-type₁ ,
-            transport-CTI
-              (multi-no-open-frames evolution₁ no-rebase)
-              evolution₂ left-related₁)
+            transport-CTI evolution₂ left-related₁)
     close-root {op = op} {κ = κ} {κ′ = κ′}
         no-rebase left-related right-related r primitive-step
       | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , target-left , γ₁ , left-type₁ ,

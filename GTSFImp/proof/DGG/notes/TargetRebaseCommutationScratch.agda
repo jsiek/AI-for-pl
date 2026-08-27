@@ -72,9 +72,9 @@ data TargetBindStack : ∀
         (＇ Xᴸ) ⊑ᵀ⟨ γ⁺ ⟩ lookupStore Σᴿ⁺ Xᴿ⁺)
     → TargetBindStack ρ
         (γ ▻ᶜ rebase-source-changeᶜ
-          Xᴸ Xᴿ ok represented)
+          Xᴸ Xᴿ ok open-frameᶜ represented)
         (γ⁺ ▻ᶜ rebase-source-changeᶜ
-          Xᴸ Xᴿ⁺ ok⁺ represented⁺)
+          Xᴸ Xᴿ⁺ ok⁺ open-frameᶜ represented⁺)
 
 
 -- Matching the direct SourceRebase proof against the top stack frame recovers

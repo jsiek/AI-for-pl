@@ -30,7 +30,7 @@ open import proof.DGG.World using
   ; InsertSourceᵗ; insert-hereᵗ; insert-skipᵗ
   ; rebaseSourceEmbeddingᵗ
   ; rebaseSource-alignedᵗ; rebaseSource-offᵗ
-  ; rebase-source-changeᶜ
+  ; rebase-source-changeᶜ; open-frameᶜ
   ; bind-termᶜ; liftBothᶜ; liftLeftᶜ
   )
 open import proof.DGG.SourceRebase using
@@ -175,8 +175,10 @@ data DirectSourceScopeSquare : ∀
         (ηᴸᶜ γ⁺) X⁺ (toRenameᵗ (ηᴿᶜ γ⁺) Y))
     → (represented⁺ : (＇ X⁺) ⊑ᵀ⟨ γ⁺ ⟩ lookupStore Σᴿ Y)
     → DirectSourceScopeSquare ρ γ γ⁺
-        (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented)
-        (γ⁺ ▻ᶜ rebase-source-changeᶜ X⁺ Y ok⁺ represented⁺)
+        (γ ▻ᶜ rebase-source-changeᶜ
+          X Y ok open-frameᶜ represented)
+        (γ⁺ ▻ᶜ rebase-source-changeᶜ
+          X⁺ Y ok⁺ open-frameᶜ represented⁺)
         X X⁺ Y
 
 

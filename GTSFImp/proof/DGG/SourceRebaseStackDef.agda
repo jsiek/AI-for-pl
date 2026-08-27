@@ -61,7 +61,8 @@ data SourceRebaseStack : ∀ {Γᴸ Γᴿ}
     → (represented : (＇ X) ⊑ᵀ⟨ γ ⟩
         lookupStore (CastTerms.Σᵉ Γᴿ) Y)
     → SourceRebaseStack γ⁰
-        (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented)
+        (γ ▻ᶜ rebase-source-changeᶜ
+          X Y ok open-frameᶜ represented)
 
   rebase-stack-term : ∀ {Γᴸ Γᴿ}
       {γ⁰ γ : Γᴸ ⊑ᶜ Γᴿ}

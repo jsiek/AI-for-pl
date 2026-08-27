@@ -54,7 +54,7 @@ c1-alpha =
       (toRenameⁱ (ηᴿᶜ c1-outside) (Fin.suc Fin.zero))
       outside-not-X₁
       (λ { Fin.zero zero≠zero eq → zero≠zero refl }))
-    (I.X⊑★ refl)
+    open-frameᶜ (I.X⊑★ refl)
   where
   outside-not-X₁ :
     toRenameⁱ (ηᴸᶜ c1-outside) Fin.zero ≢
@@ -69,7 +69,7 @@ c1-beta =
       (toRenameⁱ (ηᴿᶜ c1-alpha) Fin.zero)
       X₁-not-Z
       (λ { Fin.zero zero≠zero eq → zero≠zero refl }))
-    I.X⊑X
+    open-frameᶜ I.X⊑X
   where
   X₁-not-Z :
     toRenameⁱ (ηᴸᶜ c1-alpha) Fin.zero ≢
@@ -128,7 +128,7 @@ c5-alpha =
         (Fin.suc (Fin.suc Fin.zero)))
       outside-not-X₁
       (λ { Fin.zero zero≠zero eq → zero≠zero refl }))
-    (I.X⊑★ refl)
+    open-frameᶜ (I.X⊑★ refl)
   where
   outside-not-X₁ :
     toRenameⁱ (ηᴸᶜ c5-outside) Fin.zero ≢
@@ -144,7 +144,7 @@ c5-beta =
       (toRenameⁱ (ηᴿᶜ c5-alpha) (Fin.suc Fin.zero))
       X₁-not-Z
       (λ { Fin.zero zero≠zero eq → zero≠zero refl }))
-    I.X⊑X
+    open-frameᶜ I.X⊑X
   where
   X₁-not-Z :
     toRenameⁱ (ηᴸᶜ c5-alpha) Fin.zero ≢

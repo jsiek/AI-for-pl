@@ -152,7 +152,8 @@ targetEmbeddingᶜ
   keep (targetEmbeddingᶜ γ)
 targetEmbeddingᶜ (γ ▻ᶜ bind-term-changeᶜ p) = targetEmbeddingᶜ γ
 targetEmbeddingᶜ
-    (γ ▻ᶜ rebase-source-changeᶜ X Y update represented) =
+    (γ ▻ᶜ
+      rebase-source-changeᶜ X Y update role represented) =
   targetEmbeddingᶜ γ
 
 
@@ -190,7 +191,8 @@ targetEmbeddingᶜ-agrees
 targetEmbeddingᶜ-agrees (γ ▻ᶜ bind-term-changeᶜ p) X =
   targetEmbeddingᶜ-agrees γ X
 targetEmbeddingᶜ-agrees
-    (γ ▻ᶜ rebase-source-changeᶜ X Y update represented) z =
+    (γ ▻ᶜ
+      rebase-source-changeᶜ X Y update role represented) z =
   targetEmbeddingᶜ-agrees γ z
 
 

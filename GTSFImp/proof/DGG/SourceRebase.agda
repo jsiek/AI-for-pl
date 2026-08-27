@@ -5,14 +5,17 @@ module proof.DGG.SourceRebase where
 -- File Charter:
 --   * Defines the source-rebase relation between two worlds with the same
 --     endpoint contexts.
---   * Records a direct source rebase and closes that rebase under matching
---     endpoint-indexed world evolution.
+--   * Records a direct open-frame source rebase and closes that rebase under
+--     matching endpoint-indexed world evolution.
+--   * Proves that every such relation pushes exactly its transported endpoint
+--     pivot pair onto the world's derived open-frame list.
 --   * Keeps transported pivot indices in constructor form by recording their
 --     executable-renaming equations as premises.
 --   * Exports no compatibility equality or action wrapper; depends only on
 --     World and WorldEvolution.
 
 import Data.Fin as Fin
+open import Data.List using (_∷_)
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; cong; sym; trans; subst)
@@ -45,7 +48,7 @@ data SourceRebaseᶜ : ∀ {Γᴸ Γᴿ}
         (＇ Xᴸ) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Xᴿ)
     → SourceRebaseᶜ γ
         (γ ▻ᶜ rebase-source-changeᶜ
-          Xᴸ Xᴿ ok represented)
+          Xᴸ Xᴿ ok open-frameᶜ represented)
         Xᴸ Xᴿ
 
   source-rebase-bind-left : ∀
@@ -149,6 +152,34 @@ data SourceRebaseᶜ : ∀ {Γᴸ Γᴿ}
     → SourceRebaseᶜ
         (liftLeftᶜ γ) (liftLeftᶜ γᵖ)
         (Fin.suc Xᴸ) Xᴿ
+
+
+open-source-rebase-frames : ∀ {Γᴸ Γᴿ}
+    {γ γᵖ : Γᴸ ⊑ᶜ Γᴿ} {Xᴸ Xᴿ}
+  → SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ
+  → openFramesᶜ γᵖ ≡ (Xᴸ ↔ᶜ Xᴿ) ∷ openFramesᶜ γ
+open-source-rebase-frames (source-rebase-now ok represented) = refl
+open-source-rebase-frames
+    (source-rebase-bind-left A rebase eqᴸ eqᴸᵖ)
+  rewrite open-source-rebase-frames rebase = refl
+open-source-rebase-frames
+    (source-rebase-bind-right rebase fresh freshᵖ eqᴿ eqᴿᵖ)
+  rewrite open-source-rebase-frames rebase = refl
+open-source-rebase-frames
+    (source-rebase-bind-both rebase represented representedᵖ
+      eqᴸ eqᴸᵖ eqᴿ eqᴿᵖ)
+  rewrite open-source-rebase-frames rebase = refl
+open-source-rebase-frames
+    (source-rebase-bind-both-star rebase represented representedᵖ
+      A≠★ eqᴸ eqᴸᵖ eqᴿ eqᴿᵖ)
+  rewrite open-source-rebase-frames rebase = refl
+open-source-rebase-frames
+    (source-rebase-bind-term rebase represented representedᵖ) =
+  open-source-rebase-frames rebase
+open-source-rebase-frames (source-rebase-lift-both rebase)
+  rewrite open-source-rebase-frames rebase = refl
+open-source-rebase-frames (source-rebase-lift-left rebase)
+  rewrite open-source-rebase-frames rebase = refl
 
 
 source-rebase-can : ∀ {Γᴸ Γᴿ}

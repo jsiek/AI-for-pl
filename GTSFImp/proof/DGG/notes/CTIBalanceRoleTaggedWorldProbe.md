@@ -1,19 +1,21 @@
 # Role-tagged world-history probe
 
-Status: strict notes-only probe.  This does not change `World.agda` or
-`CastTermImprecision.agda`.
+Status: strict stage-one probe of the live role-aware `World.agda`.  This stage
+does not change `CastTermImprecision.agda` or `WorldEvolution.agda`.
 
-The checked implementation is `CTIBalanceRoleTaggedWorldProbe.agda`.  It
-models the proposed extra argument to `rebase-source-changeᶜ` as:
+The checked implementation is `CTIBalanceRoleTaggedWorldProbe.agda`.
+`World.agda` now gives `rebase-source-changeᶜ` a role from the dependent
+type:
 
 ```agda
-data RebaseRole : Set where
-  alignment-only open-frame : RebaseRole
+data SourceRebaseRoleᶜ γ Xᴸ Xᴿ update : Set where
+  open-frameᶜ : SourceRebaseRoleᶜ γ Xᴸ Xᴿ update
+  alignment-onlyᶜ : AlignmentBoundaryᶜ γ Xᴸ Xᴿ update
+    → SourceRebaseRoleᶜ γ Xᴸ Xᴿ update
 ```
 
-`TaggedHistory γ` contains exactly one role for each source-rebase change in
-the history of the one current world `γ`.  `deriveOpenFrames γ roles` folds
-that history from oldest to newest:
+`openFramesᶜ γ` folds the history of the one current world `γ` from oldest
+to newest:
 
 - `alignment-only` keeps the current frame list;
 - `open-frame` pushes the rebase's endpoint pair;
@@ -42,8 +44,8 @@ open frame.
 | Example 12 C12, inside both reveals | `[X ↔ Y′, X ↔ Z′]` |
 | TargetIdentityReveal C1, inside both reveals | `[X ↔ X′, X ↔ Y′]` |
 | TargetIdentityReveal after source allocation, before rebases | `[]` |
-| TargetIdentityReveal after the alpha alignment rebase | `[]` |
-| TargetIdentityReveal C8, inside the live beta frame | `[X ↔ X′]` |
+| TargetIdentityReveal after the alpha rebase, stage one | `[X ↔ Y′]` |
+| TargetIdentityReveal C8, stage one | `[X ↔ X′, X ↔ Y′]` |
 
 The Example 12 C12 target pivots show the required runtime-allocation
 renaming.  The inner and outer target pivots have shifted from `X′, Y′` to
@@ -51,7 +53,9 @@ renaming.  The inner and outer target pivots have shifted from `X′, Y′` to
 
 ## Non-top allocation discharge
 
-Before the source allocation in TargetIdentityReveal, the alpha frame is
+The separate strict `AlignmentOnlyRebaseInvariantProbe.agda` shows how stage
+two can discharge the non-top allocation frame.  Before the source allocation
+in TargetIdentityReveal, the alpha frame is
 below the live beta frame:
 
 `[X ↔ X′, X ↔ Y′]`.
@@ -63,17 +67,16 @@ old rebase, and then records:
 1. the alpha rebase as `alignment-only`;
 2. the beta rebase as `open-frame`.
 
-The derived C8 list is consequently `[X ↔ X′]`.  The alpha embedding
-change remains in the world, while alpha no longer contributes an open CTI
-frame.  This is the critical reason that an alignment/open role is useful:
-the rebase operation and the dynamic nesting obligation are not the same
-fact.
+Once that checked role is installed by the evolution migration, the derived C8
+list will consequently be `[X ↔ X′]`.  In stage one every production rebase is
+deliberately `open-frameᶜ`, so the live C8 pin remains
+`[X ↔ X′, X ↔ Y′]`.  The alpha embedding change remains in the world in both
+stages; only its dynamic nesting role changes.
 
-The mechanized migration will still need its world-evolution proof to assign
-these roles when it constructs the post-allocation world.  No extra data is
-needed in an individual rebase change beyond the role and its existing
-endpoint pivots; the non-top discharge is a checked change of current world,
-not an in-place list operation.
+The next migration stage must make the world-evolution proof assign the
+alignment-only role when it constructs the post-allocation world.  No extra
+data is needed in an individual rebase change beyond the role and its existing
+endpoint pivots; the non-top discharge is a checked change of current world.
 
 ## Persistent branch sharing
 
@@ -94,20 +97,17 @@ remain adequate.
 ## Result
 
 A role tag on `rebase-source-changeᶜ` is sufficient for every trusted
-geometry checked here.  Together with the existing `Xᴸ` and `Xᴿ` fields, it
-derives the open-frame stack, its binder/runtime renamings, LIFO reveal/conceal
-behavior, branch sharing, and the non-top allocation discharge.  The tag does
-not eliminate the need to prove role preservation or reassignment across
-world evolution; it makes that obligation explicit without duplicating the
-frame stack in CTI.
+geometry checked here.  Stage one derives the open-frame stack and its
+binder/runtime renamings directly from the live world while preserving the old
+behavior by tagging every production rebase `open-frameᶜ`.  The separate
+alignment probe checks the evidence needed for the stage-two non-top discharge.
 
 The mechanical live migration implied by the probe is:
 
-1. add `RebaseRole` to `rebase-source-changeᶜ`;
-2. index `SourceRebaseᶜ` by that role, preserve it through bind/lift closure,
-   and require `open-frame` in the two CTI rebase rules;
-3. define `openFramesᶜ γ` by the checked history fold, so CTI consumers ask
-   only for their current `γ`;
+1. completed: add `SourceRebaseRoleᶜ` to `rebase-source-changeᶜ`;
+2. completed: make `SourceRebaseᶜ.source-rebase-now` construct only
+   `open-frameᶜ` changes and prove its frame equation through all scopes;
+3. completed: define `openFramesᶜ γ` by the checked history fold;
 4. make world-evolution constructors state whether a newly constructed
    rebase is alignment-only or open, with the TargetIdentityReveal allocation
    transition proving the one non-top discharge;

@@ -194,17 +194,21 @@ mutual
         {Δ′} {π : centerᶜ W ↪ᵗ Δ′}
         {X : TyVar (Δᵉ Cᴸ)} {Y : TyVar (Δᵉ Cᴿ)}
         {update : PivotUpdateᵗ (ηᴸᶜ W) X (toRenameⁱ (ηᴿᶜ W) Y)}
+        {role : SourceRebaseRoleᶜ W X Y update}
         {represented : (＇ X) ⊑ᵀ⟨ W ⟩ lookupStore (Σᵉ Cᴿ) Y}
       → (plan : CenterRenamePlan W π)
       → (update′ : PivotUpdateᵗ (ηᴸᶜ (renameCenter plan)) X
           (toRenameⁱ (ηᴿᶜ (renameCenter plan)) Y))
       → (represented′ : (＇ X) ⊑ᵀ⟨ renameCenter plan ⟩
           lookupStore (Σᵉ Cᴿ) Y)
+      → (role′ : SourceRebaseRoleᶜ
+          (renameCenter plan) X Y update′)
       → (∀ Z → toRenameⁱ (pivot-afterᵗ update′) Z
           ≡ subst Fin.Fin (sym (renameCenter-center plan))
               (toRenameᵗ π (toRenameⁱ (pivot-afterᵗ update) Z)))
       → CenterRenamePlan
-          (W ▻ᶜ rebase-source-changeᶜ X Y update represented) π
+          (W ▻ᶜ
+            rebase-source-changeᶜ X Y update role represented) π
 
   renameCenter : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′}
       {π : centerᶜ W ↪ᵗ Δ′}
@@ -239,9 +243,9 @@ mutual
     renameCenter plan ▻ᶜ bind-term-changeᶜ represented′
   renameCenter
       (center-rename-rebase-source
-        {X = X} {Y = Y} plan update′ represented′ after′) =
+        {X = X} {Y = Y} plan update′ represented′ role′ after′) =
     renameCenter plan ▻ᶜ
-      rebase-source-changeᶜ X Y update′ represented′
+      rebase-source-changeᶜ X Y update′ role′ represented′
 
 
   renameCenter-center : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′}
@@ -276,7 +280,8 @@ mutual
       (center-rename-bind-term plan represented′) =
     renameCenter-center plan
   renameCenter-center
-      (center-rename-rebase-source plan update′ represented′ after′) =
+      (center-rename-rebase-source
+        plan update′ represented′ role′ after′) =
     renameCenter-center plan
 
 
@@ -342,7 +347,8 @@ renameCenter-ηᴸ
     (center-rename-bind-term plan represented′) X =
   renameCenter-ηᴸ plan X
 renameCenter-ηᴸ
-    (center-rename-rebase-source plan update′ represented′ after′) X =
+    (center-rename-rebase-source
+      plan update′ represented′ role′ after′) X =
   after′ X
 
 
@@ -406,7 +412,8 @@ renameCenter-ηᴿ
     (center-rename-bind-term plan represented′) X =
   renameCenter-ηᴿ plan X
 renameCenter-ηᴿ
-    (center-rename-rebase-source plan update′ represented′ after′) X =
+    (center-rename-rebase-source
+      plan update′ represented′ role′ after′) X =
   renameCenter-ηᴿ plan X
 
 
@@ -483,7 +490,8 @@ renameCenter-marks
     (center-rename-bind-term plan represented′) Z =
   renameCenter-marks plan Z
 renameCenter-marks
-    (center-rename-rebase-source plan update′ represented′ after′) Z =
+    (center-rename-rebase-source
+      plan update′ represented′ role′ after′) Z =
   renameCenter-marks plan Z
 
 

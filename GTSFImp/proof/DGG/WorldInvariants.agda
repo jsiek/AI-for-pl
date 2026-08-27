@@ -598,7 +598,7 @@ directInvariantsᶜ
       (unshift-star entry) Xᴿ (fin-suc-injective aligned)
 
 directInvariantsᶜ
-    (W ▻ᶜ rebase-source-changeᶜ X Y ok represented) ()
+    (W ▻ᶜ rebase-source-changeᶜ X Y update role represented) ()
 
 
 -- Endpoint indices make both stores and both term contexts definitionally

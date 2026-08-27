@@ -872,6 +872,7 @@ checkpoint₁-alpha-current :
 checkpoint₁-alpha-current =
   rebaseSourceᶜ checkpoint₁-outside-world Fin.zero
     (Fin.suc Fin.zero) checkpoint₁-alpha-ok
+    open-frameᶜ
     checkpoint₁-alpha-representation
 
 checkpoint₁-beta-ok :
@@ -893,7 +894,7 @@ checkpoint₁-beta-current :
   ⇑ᵉᵗ base-context ⊑ᶜ ((base-context ,ˢ ★) ,ˢ ＇ Fin.zero)
 checkpoint₁-beta-current =
   rebaseSourceᶜ checkpoint₁-alpha-current Fin.zero Fin.zero
-    checkpoint₁-beta-ok checkpoint₁-beta-representation
+    checkpoint₁-beta-ok open-frameᶜ checkpoint₁-beta-representation
 
 checkpoint₁-beta-member :
   store-bind (store-bind store-empty ★) (＇ Fin.zero)
@@ -1205,6 +1206,7 @@ checkpoint₃-world :
 checkpoint₃-world =
   rebaseSourceᶜ checkpoint₃-allocation-world Fin.zero
     (Fin.suc Fin.zero) checkpoint₃-alpha-ok
+    open-frameᶜ
     checkpoint₃-alpha-representation
 
 checkpoint₃-beta-ok :
@@ -1226,7 +1228,7 @@ checkpoint₃-beta-current :
   (base-context ,ˢ ℕᵗ) ⊑ᶜ ((base-context ,ˢ ★) ,ˢ ＇ Fin.zero)
 checkpoint₃-beta-current =
   rebaseSourceᶜ checkpoint₃-world Fin.zero Fin.zero
-    checkpoint₃-beta-ok checkpoint₃-beta-representation
+    checkpoint₃-beta-ok open-frameᶜ checkpoint₃-beta-representation
 
 checkpoint₃-source-member :
   store-bind store-empty ℕᵗ ∋ Fin.zero ⦂ ℕᵗ

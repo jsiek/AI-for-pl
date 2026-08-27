@@ -11,6 +11,8 @@ module proof.DGG.World where
 --     allocation and weakening changes remain order-preserving embeddings.
 --   * Interprets source rebase by changing one selected source image while
 --     leaving every other source image fixed.
+--   * Tags source rebases as open-frame or alignment-only changes and derives
+--     the currently open endpoint-pivot frames from the world history.
 --   * Contains no compatibility world or invariant-injection escape.
 --
 -- Endpoint injections are necessary for the protected-binder counterexample
@@ -19,7 +21,7 @@ module proof.DGG.World where
 -- must change from X ↦ 0, Y ↦ 1 to X ↦ 3, Y ↦ 1.  This map is
 -- injective but not order preserving.
 
-open import Data.List using ([]; _∷_)
+open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; suc; zero)
 open import Data.Product using (Σ-syntax; _×_)
 open import Data.Sum using (_⊎_)
@@ -41,6 +43,10 @@ open import Imprecision using
   (ImpEnv; VarImp; X⊑X; X⊑★; extendᵐ; _⊢_⊑_)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; _,ˢ_; ⇑ᵉᵗ)
+open import Conversion using
+  (Conv↑; Conv↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
+open import proof.DGG.ConversionPivotAlignment using
+  (revealGeneratorPosition; concealGeneratorPosition)
 
 infix 4 _⊑ᶜ_
 infix 4 _⊑ᵀ⟨_⟩_
@@ -300,6 +306,54 @@ mutual
       → WorldChange γ Γᴸ′ Γᴿ′
       → Γᴸ′ ⊑ᶜ Γᴿ′
 
+  centerᶜ : ∀ {Γᴸ Γᴿ}
+    → Γᴸ ⊑ᶜ Γᴿ
+    → TyCtx
+
+  ηᴸᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+    → Injectionᵗ (Δᵉ Γᴸ) (centerᶜ γ)
+
+  ηᴿᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+    → Injectionᵗ (Δᵉ Γᴿ) (centerᶜ γ)
+
+  marksᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+    → ImpEnv (centerᶜ γ)
+
+  data AlignmentBoundaryᶜ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ)
+      (Xᴸ : TyVar (Δᵉ Γᴸ)) (Xᴿ : TyVar (Δᵉ Γᴿ))
+      (update : PivotUpdateᵗ (ηᴸᶜ γ) Xᴸ (toRenameⁱ (ηᴿᶜ γ) Xᴿ)) :
+      Set where
+
+    paired-reveal-alignmentᶜ : ∀ {A A′ B B′ Rᴸ Rᴿ}
+        {c : Conv↑ (Δᵉ Γᴸ) A B}
+        {c′ : Conv↑ (Δᵉ Γᴿ) A′ B′}
+      → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
+      → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+      → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
+      → marksᶜ γ ⊢
+          renameᵗ (toRenameⁱ (pivot-afterᵗ update)) Rᴸ
+            ⊑ renameᵗ (toRenameⁱ (ηᴿᶜ γ)) Rᴿ
+      → AlignmentBoundaryᶜ γ Xᴸ Xᴿ update
+
+    paired-conceal-alignmentᶜ : ∀ {A A′ B B′ Rᴸ Rᴿ}
+        {c : Conv↓ (Δᵉ Γᴸ) A B}
+        {c′ : Conv↓ (Δᵉ Γᴿ) A′ B′}
+      → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
+      → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
+      → concealGeneratorPosition c⊢ ≡ concealGeneratorPosition c′⊢
+      → marksᶜ γ ⊢
+          renameᵗ (toRenameⁱ (pivot-afterᵗ update)) Rᴸ
+            ⊑ renameᵗ (toRenameⁱ (ηᴿᶜ γ)) Rᴿ
+      → AlignmentBoundaryᶜ γ Xᴸ Xᴿ update
+
+  data SourceRebaseRoleᶜ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ)
+      (Xᴸ : TyVar (Δᵉ Γᴸ)) (Xᴿ : TyVar (Δᵉ Γᴿ))
+      (update : PivotUpdateᵗ (ηᴸᶜ γ) Xᴸ (toRenameⁱ (ηᴿᶜ γ) Xᴿ)) :
+      Set where
+    open-frameᶜ : SourceRebaseRoleᶜ γ Xᴸ Xᴿ update
+    alignment-onlyᶜ : AlignmentBoundaryᶜ γ Xᴸ Xᴿ update
+      → SourceRebaseRoleᶜ γ Xᴸ Xᴿ update
+
   data WorldChange : ∀ {Γᴸ Γᴿ}
       → Γᴸ ⊑ᶜ Γᴿ
       → Ctx
@@ -400,13 +454,12 @@ mutual
     rebase-source-changeᶜ : ∀ {Γᴸ Γᴿ} {γ : Γᴸ ⊑ᶜ Γᴿ}
       → (X : TyVar (Δᵉ Γᴸ))
       → (Y : TyVar (Δᵉ Γᴿ))
-      → PivotUpdateᵗ (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y)
+      → (update : PivotUpdateᵗ
+          (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y))
+      → SourceRebaseRoleᶜ γ X Y update
       → (＇ X) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Y
       → WorldChange γ Γᴸ Γᴿ
 
-  centerᶜ : ∀ {Γᴸ Γᴿ}
-    → Γᴸ ⊑ᶜ Γᴿ
-    → TyCtx
   centerᶜ emptyᶜ = zero
   centerᶜ (γ ▻ᶜ center-changeᶜ) = suc (centerᶜ γ)
   centerᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) = suc (centerᶜ γ)
@@ -417,11 +470,9 @@ mutual
   centerᶜ (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
     suc (centerᶜ γ)
   centerᶜ (γ ▻ᶜ bind-term-changeᶜ p) = centerᶜ γ
-  centerᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented) =
+  centerᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y update role represented) =
     centerᶜ γ
 
-  ηᴸᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
-    → Injectionᵗ (Δᵉ Γᴸ) (centerᶜ γ)
   ηᴸᶜ emptyᶜ = emptyⁱ
   ηᴸᶜ (γ ▻ᶜ center-changeᶜ) = skipⁱ (ηᴸᶜ γ)
   ηᴸᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) = keepⁱ (ηᴸᶜ γ)
@@ -432,11 +483,9 @@ mutual
   ηᴸᶜ (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
     keepⁱ (ηᴸᶜ γ)
   ηᴸᶜ (γ ▻ᶜ bind-term-changeᶜ p) = ηᴸᶜ γ
-  ηᴸᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented) =
-    rebaseSourceEmbeddingᵗ ok
+  ηᴸᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y update role represented) =
+    rebaseSourceEmbeddingᵗ update
 
-  ηᴿᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
-    → Injectionᵗ (Δᵉ Γᴿ) (centerᶜ γ)
   ηᴿᶜ emptyᶜ = emptyⁱ
   ηᴿᶜ (γ ▻ᶜ center-changeᶜ) = skipⁱ (ηᴿᶜ γ)
   ηᴿᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) = keepⁱ (ηᴿᶜ γ)
@@ -447,11 +496,9 @@ mutual
   ηᴿᶜ (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
     keepⁱ (ηᴿᶜ γ)
   ηᴿᶜ (γ ▻ᶜ bind-term-changeᶜ p) = ηᴿᶜ γ
-  ηᴿᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented) =
+  ηᴿᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y update role represented) =
     ηᴿᶜ γ
 
-  marksᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
-    → ImpEnv (centerᶜ γ)
   marksᶜ emptyᶜ = λ ()
   marksᶜ (γ ▻ᶜ center-changeᶜ) = extendᵐ X⊑★ (marksᶜ γ)
   marksᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) =
@@ -467,7 +514,7 @@ mutual
   marksᶜ (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
     extendᵐ X⊑★ (marksᶜ γ)
   marksᶜ (γ ▻ᶜ bind-term-changeᶜ p) = marksᶜ γ
-  marksᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented) =
+  marksᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y update role represented) =
     marksᶜ γ
 
   RightBindFreshᶜ : ∀ {Γᴸ Γᴿ}
@@ -512,8 +559,56 @@ sourceRebaseCountᶜ
 sourceRebaseCountᶜ (γ ▻ᶜ bind-term-changeᶜ p) =
   sourceRebaseCountᶜ γ
 sourceRebaseCountᶜ
-    (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented) =
+    (γ ▻ᶜ
+      rebase-source-changeᶜ X Y update role represented) =
   suc (sourceRebaseCountᶜ γ)
+
+
+record RebaseFrameᶜ (Δᴸ Δᴿ : TyCtx) : Set where
+  constructor _↔ᶜ_
+  field
+    source-pivotᶜ : TyVar Δᴸ
+    target-pivotᶜ : TyVar Δᴿ
+
+OpenFramesᶜ : TyCtx → TyCtx → Set
+OpenFramesᶜ Δᴸ Δᴿ = List (RebaseFrameᶜ Δᴸ Δᴿ)
+
+renameOpenFramesᶜ : ∀ {Δᴸ Δᴿ Δᴸ′ Δᴿ′}
+  → (TyVar Δᴸ → TyVar Δᴸ′)
+  → (TyVar Δᴿ → TyVar Δᴿ′)
+  → OpenFramesᶜ Δᴸ Δᴿ
+  → OpenFramesᶜ Δᴸ′ Δᴿ′
+renameOpenFramesᶜ renameᴸ renameᴿ [] = []
+renameOpenFramesᶜ renameᴸ renameᴿ ((Xᴸ ↔ᶜ Xᴿ) ∷ frames) =
+  (renameᴸ Xᴸ ↔ᶜ renameᴿ Xᴿ) ∷
+    renameOpenFramesᶜ renameᴸ renameᴿ frames
+
+openFramesᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+  → OpenFramesᶜ (Δᵉ Γᴸ) (Δᵉ Γᴿ)
+openFramesᶜ emptyᶜ = []
+openFramesᶜ (γ ▻ᶜ center-changeᶜ) = openFramesᶜ γ
+openFramesᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) =
+  renameOpenFramesᶜ Fin.suc Fin.suc (openFramesᶜ γ)
+openFramesᶜ (γ ▻ᶜ lift-left-changeᶜ eqᴸ) =
+  renameOpenFramesᶜ Fin.suc (λ X → X) (openFramesᶜ γ)
+openFramesᶜ (γ ▻ᶜ bind-left-changeᶜ A eqᴸ) =
+  renameOpenFramesᶜ Fin.suc (λ X → X) (openFramesᶜ γ)
+openFramesᶜ (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) =
+  renameOpenFramesᶜ (λ X → X) Fin.suc (openFramesᶜ γ)
+openFramesᶜ (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) =
+  renameOpenFramesᶜ Fin.suc Fin.suc (openFramesᶜ γ)
+openFramesᶜ
+    (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
+  renameOpenFramesᶜ Fin.suc Fin.suc (openFramesᶜ γ)
+openFramesᶜ (γ ▻ᶜ bind-term-changeᶜ p) = openFramesᶜ γ
+openFramesᶜ
+    (γ ▻ᶜ rebase-source-changeᶜ
+      Xᴸ Xᴿ update open-frameᶜ represented) =
+  (Xᴸ ↔ᶜ Xᴿ) ∷ openFramesᶜ γ
+openFramesᶜ
+    (γ ▻ᶜ rebase-source-changeᶜ
+      Xᴸ Xᴿ update (alignment-onlyᶜ boundary) represented) =
+  openFramesᶜ γ
 
 liftBothᶜ : ∀ {Γᴸ Γᴿ}
   → VarImp
@@ -575,11 +670,13 @@ rebaseSourceᶜ : ∀ {Γᴸ Γᴿ}
   → (γ : Γᴸ ⊑ᶜ Γᴿ)
   → (X : TyVar (Δᵉ Γᴸ))
   → (Y : TyVar (Δᵉ Γᴿ))
-  → PivotUpdateᵗ (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y)
+  → (update : PivotUpdateᵗ
+      (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y))
+  → SourceRebaseRoleᶜ γ X Y update
   → (＇ X) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Y
   → Γᴸ ⊑ᶜ Γᴿ
-rebaseSourceᶜ γ X Y ok represented =
-  γ ▻ᶜ rebase-source-changeᶜ X Y ok represented
+rebaseSourceᶜ γ X Y update role represented =
+  γ ▻ᶜ rebase-source-changeᶜ X Y update role represented
 
 initialWorldᶜ : ∀ {Delta}
   → ImpEnv Delta

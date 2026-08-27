@@ -34,47 +34,12 @@ import proof.DGG.Examples.TargetIdentityReveal as TIR
 
 
 ------------------------------------------------------------------------
--- Exact proposed payload for an alignment-only source rebase
+-- Live payload for an alignment-only source rebase
 ------------------------------------------------------------------------
 
--- The payload is constructed before the WorldChange, so the comparison that
--- will become `Rᴸ ⊑ᵀ⟨ γ′ ⟩ Rᴿ` is written directly using the
--- post-update source injection.  This avoids an extensional invariant field
--- and avoids referring recursively to the world under construction.
-
-data AlignmentBoundaryᶜ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ)
-    (Xᴸ : TyVar (Δᵉ Γᴸ)) (Xᴿ : TyVar (Δᵉ Γᴿ))
-    (update : PivotUpdateᵗ (ηᴸᶜ γ) Xᴸ (toRenameⁱ (ηᴿᶜ γ) Xᴿ)) : Set where
-
-  paired-reveal-alignmentᶜ : ∀ {A A′ B B′ Rᴸ Rᴿ}
-      {c : Conv↑ (Δᵉ Γᴸ) A B}
-      {c′ : Conv↑ (Δᵉ Γᴿ) A′ B′}
-    → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
-    → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
-    → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
-    → marksᶜ γ ⊢
-        renameᵗ (toRenameⁱ (pivot-afterᵗ update)) Rᴸ
-          ⊑ renameᵗ (toRenameⁱ (ηᴿᶜ γ)) Rᴿ
-    → AlignmentBoundaryᶜ γ Xᴸ Xᴿ update
-
-  paired-conceal-alignmentᶜ : ∀ {A A′ B B′ Rᴸ Rᴿ}
-      {c : Conv↓ (Δᵉ Γᴸ) A B}
-      {c′ : Conv↓ (Δᵉ Γᴿ) A′ B′}
-    → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
-    → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
-    → concealGeneratorPosition c⊢ ≡ concealGeneratorPosition c′⊢
-    → marksᶜ γ ⊢
-        renameᵗ (toRenameⁱ (pivot-afterᵗ update)) Rᴸ
-          ⊑ renameᵗ (toRenameⁱ (ηᴿᶜ γ)) Rᴿ
-    → AlignmentBoundaryᶜ γ Xᴸ Xᴿ update
-
-
-data SourceRebaseRoleᶜ {Γᴸ Γᴿ : Ctx} (γ : Γᴸ ⊑ᶜ Γᴿ)
-    (Xᴸ : TyVar (Δᵉ Γᴸ)) (Xᴿ : TyVar (Δᵉ Γᴿ))
-    (update : PivotUpdateᵗ (ηᴸᶜ γ) Xᴸ (toRenameⁱ (ηᴿᶜ γ) Xᴿ)) : Set where
-  open-frameᶜ : SourceRebaseRoleᶜ γ Xᴸ Xᴿ update
-  alignment-onlyᶜ : AlignmentBoundaryᶜ γ Xᴸ Xᴿ update
-    → SourceRebaseRoleᶜ γ Xᴸ Xᴿ update
+-- AlignmentBoundaryᶜ and SourceRebaseRoleᶜ now live in World.  This
+-- probe supplies the trusted checkpoint-3 paired boundary but deliberately
+-- does not yet install it in the production example.
 
 
 role-open-count : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}

@@ -77,9 +77,10 @@ data PairedBindStack : ∀
     → toRenameᵗ ρᴸ Xᴸ ≡ Xᴸ⁺
     → toRenameᵗ ρᴿ Xᴿ ≡ Xᴿ⁺
     → PairedBindStack ρᴸ ρᴿ
-        (γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented)
+        (γ ▻ᶜ rebase-source-changeᶜ
+          Xᴸ Xᴿ ok open-frameᶜ represented)
         (γ⁺ ▻ᶜ rebase-source-changeᶜ
-          Xᴸ⁺ Xᴿ⁺ ok⁺ represented⁺)
+          Xᴸ⁺ Xᴿ⁺ ok⁺ open-frameᶜ represented⁺)
 
   paired-stack-term : ∀
       {Δᴸ Δᴸ⁺ Δᴿ Δᴿ⁺}
@@ -502,7 +503,7 @@ paired-left-zero-rebase-exists :
       represented = X⊑★ refl
   in SourceRebaseᶜ γ
       (γ ▻ᶜ rebase-source-changeᶜ
-        Fin.zero Fin.zero paired-left-zero-before represented)
+        Fin.zero Fin.zero paired-left-zero-before open-frameᶜ represented)
       Fin.zero Fin.zero
 paired-left-zero-rebase-exists =
   source-rebase-now paired-left-zero-before (X⊑★ refl)

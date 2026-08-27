@@ -420,6 +420,7 @@ checkpoint₁-alpha-current :
 checkpoint₁-alpha-current =
   rebaseSourceᶜ checkpoint₁-outside-world Fin.zero
     (Fin.suc Fin.zero) checkpoint₁-alpha-ok
+    open-frameᶜ
     checkpoint₁-alpha-representation
 
 checkpoint₁-beta-ok :
@@ -443,7 +444,7 @@ checkpoint₁-beta-current :
     ((example12-base-context ,ˢ ★) ,ˢ ＇ Fin.zero)
 checkpoint₁-beta-current =
   rebaseSourceᶜ checkpoint₁-alpha-current Fin.zero Fin.zero
-    checkpoint₁-beta-ok checkpoint₁-beta-representation
+    checkpoint₁-beta-ok open-frameᶜ checkpoint₁-beta-representation
 
 checkpoint₁-beta-member :
   store-bind (store-bind store-empty ★) (＇ Fin.zero)
@@ -1071,6 +1072,7 @@ checkpoint₅-alpha-current :
 checkpoint₅-alpha-current =
   rebaseSourceᶜ checkpoint₅-world Fin.zero
     (Fin.suc (Fin.suc Fin.zero)) checkpoint₅-alpha-ok
+    open-frameᶜ
     checkpoint₅-alpha-representation
 
 checkpoint₅-beta-ok :
@@ -1097,6 +1099,7 @@ checkpoint₅-beta-current :
 checkpoint₅-beta-current =
   rebaseSourceᶜ checkpoint₅-alpha-current Fin.zero
     (Fin.suc Fin.zero) checkpoint₅-beta-ok
+    open-frameᶜ
     checkpoint₅-beta-representation
 
 checkpoint₅-source-X-arrow-reveal⊢ :

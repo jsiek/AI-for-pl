@@ -73,7 +73,8 @@ data SourceRebaseStack : ∀ {Γᴸ Γᴿ}
         (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y))
     → (represented : (＇ X) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Y)
     → SourceRebaseStack γ⁰
-        (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented)
+        (γ ▻ᶜ rebase-source-changeᶜ
+          X Y ok open-frameᶜ represented)
 
   rebase-stack-term : ∀ {Γᴸ Γᴿ}
       {γ⁰ γ : Γᴸ ⊑ᶜ Γᴿ}
@@ -258,8 +259,10 @@ chronological-bind-left-evolution : ∀
     {represented : (＇ X) ⊑ᵀ⟨ γ ⟩ lookupStore Σᴿ Y}
     (eq : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
   → WorldEvolution
-      {W = γ ▻ᶜ rebase-source-changeᶜ X Y ok represented}
-      {W′ = (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented)
+      {W = γ ▻ᶜ rebase-source-changeᶜ
+        X Y ok open-frameᶜ represented}
+      {W′ = (γ ▻ᶜ rebase-source-changeᶜ
+        X Y ok open-frameᶜ represented)
         ▻ᶜ bind-left-changeᶜ A eq}
       (bind-ctx eq) keep-ctx
 chronological-bind-left-evolution eq = evolution-bind-left eq
@@ -281,10 +284,11 @@ no-bind-left-evolution-to-rebuilt-rebase : ∀
     {represented′ : (＇ Fin.suc X)
       ⊑ᵀ⟨ γ ▻ᶜ bind-left-changeᶜ A eq ⟩ lookupStore Σᴿ Y}
   → WorldEvolution
-      {W = γ ▻ᶜ rebase-source-changeᶜ X Y ok represented}
+      {W = γ ▻ᶜ rebase-source-changeᶜ
+        X Y ok open-frameᶜ represented}
       {W′ = (γ ▻ᶜ bind-left-changeᶜ A eq)
         ▻ᶜ rebase-source-changeᶜ
-          (Fin.suc X) Y ok′ represented′}
+          (Fin.suc X) Y ok′ open-frameᶜ represented′}
       (bind-ctx eq) keep-ctx
   → ⊥
 no-bind-left-evolution-to-rebuilt-rebase ()
@@ -342,9 +346,11 @@ data SourceRebaseStackEvolution : ∀
     → SourceRebaseStackEvolution {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
         stack stack′
     → MultiWorldEvolution
-        {W = γ ▻ᶜ rebase-source-changeᶜ X Y ok represented}
+        {W = γ ▻ᶜ rebase-source-changeᶜ
+          X Y ok open-frameᶜ represented}
         {W′ = γ′ ▻ᶜ
-          rebase-source-changeᶜ X′ Y′ ok′ represented′}
+          rebase-source-changeᶜ
+            X′ Y′ ok′ open-frameᶜ represented′}
         χsᴸ χsᴿ
     → SourceRebaseStackEvolution {χsᴸ = χsᴸ} {χsᴿ = χsᴿ}
         (rebase-stack-push stack ok represented)

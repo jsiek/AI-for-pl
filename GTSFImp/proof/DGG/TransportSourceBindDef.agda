@@ -3,159 +3,399 @@
 module proof.DGG.TransportSourceBindDef where
 
 -- File Charter:
---   * Defines source allocation through a prefix of term binders.
---   * States the four remaining commutation lemmas needed by source-bind
---     transport through type scope and source rebasing.
+--   * Defines source allocation through term and type scope.
+--   * States the two remaining commutation lemmas needed by source-bind
+--     transport through source rebasing.
 --   * Each interface exposes the exact CTI constructor fields and conclusion;
 --     none classifies derivations or packages a result family.
---   * The interfaces separate genuinely different inductions through term
---     scope, type scope, and source rebasing.
+--   * The interfaces isolate only the genuinely separate induction through
+--     source rebasing.
 
 import Data.Fin as Fin
 import Data.Nat as Nat
 open import Data.List using (_∷_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; sym; trans; cong; cong₂; subst)
 
-open import Types using (Ty; TyVar; NonVar; _∈ᵗ_; ＇_; `∀; ⇑ᵗ)
-open import Imprecision using (X⊑X)
-open import Consistency using (toRenameᵗ)
+open import Types using
+  (Ty; TyVar; NonVar; _∈ᵗ_; ＇_; `∀; ⇑ᵗ; renameᵗ;
+   renameᵗ-comp; renameᵗ-cong)
+open import Imprecision using (VarImp; X⊑X; _⊢_⊑_)
+open import Consistency using
+  (_↪ᵗ_; toRenameᵗ; wk↪ᵗ; keep)
 open import TyStore using (TyStore; lookupStore; store-bind)
+import TermCtx as TC
 open import TermCtx using (TermCtx; ⇑ᶜ)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import CastTerms using
-  (Ctx; Term; Value; ⟨_,_,_⟩; _⊢_⦂_; ⇑ᵗᵐ; ƛ_; Λ_; _↑_; _↓_)
+  (Ctx; Term; Value; ⟨_,_,_⟩; _⊢_⦂_; renameᵗᵐ;
+   ƛ_; Λ_; _↑_; _↓_)
 
 open import proof.DGG.World
-open import proof.DGG.WorldEvolution using
-  (evolution-bind-left; evolution-⊑ᵀ)
 open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.ImprecisionConsistency using
+  (rename-⊑; toRenameᵗ-injective)
+open import proof.TypeInTermSubst using
+  (StoreRename; StoreRename-wk-bind; StoreRename-keep;
+   toRename-wk-eq; toRename-id-eq; renameCtx-wk-eq;
+   renameCtx-keep-shift)
 
 
-data SourceBindThroughTerms : ∀
-    {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
+data SourceBindScope : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ}
+  → (ρ : Δᴸ ↪ᵗ Δᴸ⁺)
   → (γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩)
-  → (γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
+  → (γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩)
   → Set where
 
-  source-bind-root : ∀
+  source-scope-root : ∀
       {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
       {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
         ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     → (eqᴸ : Γᴸ⁺ ≡ ⇑ᶜ Γᴸ)
-    → SourceBindThroughTerms γ
+    → SourceBindScope wk↪ᵗ γ
         (γ ▻ᶜ bind-left-changeᶜ C eqᴸ)
 
-  source-bind-term : ∀
-      {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-      {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
+  source-scope-term : ∀
+      {Δᴸ Δᴸ⁺ Δᴿ}
+      {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+      {Σᴿ : TyStore Δᴿ}
+      {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+      {Γᴿ : TermCtx Δᴿ}
+      {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
         ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
+      {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
         ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {A : Ty Δᴸ} {B : Ty Δᴿ}
-    → (plan : SourceBindThroughTerms γ γ⁺)
+    → (plan : SourceBindScope ρ γ γ⁺)
     → (p : A ⊑ᵀ⟨ γ ⟩ B)
-    → (p⁺ : ⇑ᵗ A ⊑ᵀ⟨ γ⁺ ⟩ B)
-    → SourceBindThroughTerms
+    → (p⁺ : renameᵗ (toRenameᵗ ρ) A ⊑ᵀ⟨ γ⁺ ⟩ B)
+    → SourceBindScope ρ
         (bind-termᶜ γ p) (bind-termᶜ γ⁺ p⁺)
 
+  source-scope-both : ∀
+      {Δᴸ Δᴸ⁺ Δᴿ}
+      {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+      {Σᴿ : TyStore Δᴿ}
+      {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+      {Γᴿ : TermCtx Δᴿ}
+      {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+      {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+        ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+        ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    → SourceBindScope ρ γ γ⁺
+    → SourceBindScope (keep ρ)
+        (liftBothᶜ X⊑X γ) (liftBothᶜ X⊑X γ⁺)
 
-source-bind-⊑ᵀ : ∀
-    {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
+  source-scope-left : ∀
+      {Δᴸ Δᴸ⁺ Δᴿ}
+      {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+      {Σᴿ : TyStore Δᴿ}
+      {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+      {Γᴿ : TermCtx Δᴿ}
+      {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+      {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+        ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+      {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+        ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    → SourceBindScope ρ γ γ⁺
+    → SourceBindScope (keep ρ) (liftLeftᶜ γ) (liftLeftᶜ γ⁺)
+
+
+source-scope-center : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
     {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    {γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → SourceBindScope ρ γ γ⁺
+  → centerᶜ γ ↪ᵗ centerᶜ γ⁺
+source-scope-center (source-scope-root eqᴸ) = wk↪ᵗ
+source-scope-center (source-scope-term plan p p⁺) =
+  source-scope-center plan
+source-scope-center (source-scope-both plan) =
+  keep (source-scope-center plan)
+source-scope-center (source-scope-left plan) =
+  keep (source-scope-center plan)
+
+
+source-scope-left-commutes : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → (plan : SourceBindScope ρ γ γ⁺)
+  → ∀ X
+  → toRenameᵗ (source-scope-center plan)
+      (toRenameᵗ (ηᴸᶜ γ) X)
+    ≡ toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρ X)
+source-scope-left-commutes {γ = γ}
+    (source-scope-root eqᴸ) X =
+  trans (toRename-wk-eq (toRenameᵗ (ηᴸᶜ γ) X))
+    (sym (cong (toRenameᵗ (keep (ηᴸᶜ γ)))
+      (toRename-wk-eq X)))
+source-scope-left-commutes
+    (source-scope-term plan p p⁺) X =
+  source-scope-left-commutes plan X
+source-scope-left-commutes (source-scope-both plan) Fin.zero = refl
+source-scope-left-commutes
+    (source-scope-both plan) (Fin.suc X) =
+  cong Fin.suc (source-scope-left-commutes plan X)
+source-scope-left-commutes (source-scope-left plan) Fin.zero = refl
+source-scope-left-commutes
+    (source-scope-left plan) (Fin.suc X) =
+  cong Fin.suc (source-scope-left-commutes plan X)
+
+
+source-scope-right-commutes : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → (plan : SourceBindScope ρ γ γ⁺)
+  → ∀ Y
+  → toRenameᵗ (source-scope-center plan)
+      (toRenameᵗ (ηᴿᶜ γ) Y)
+    ≡ toRenameᵗ (ηᴿᶜ γ⁺) Y
+source-scope-right-commutes {γ = γ}
+    (source-scope-root eqᴸ) Y =
+  toRename-wk-eq (toRenameᵗ (ηᴿᶜ γ) Y)
+source-scope-right-commutes
+    (source-scope-term plan p p⁺) Y =
+  source-scope-right-commutes plan Y
+source-scope-right-commutes (source-scope-both plan) Fin.zero = refl
+source-scope-right-commutes
+    (source-scope-both plan) (Fin.suc Y) =
+  cong Fin.suc (source-scope-right-commutes plan Y)
+source-scope-right-commutes (source-scope-left plan) Y =
+  cong Fin.suc (source-scope-right-commutes plan Y)
+
+
+source-scope-mark : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → (plan : SourceBindScope ρ γ γ⁺)
+  → ∀ Z
+  → marksᶜ γ⁺
+      (toRenameᵗ (source-scope-center plan) Z)
+    ≡ marksᶜ γ Z
+source-scope-mark {γ = γ} (source-scope-root eqᴸ) Z =
+  cong (marksᶜ γ) (toRename-id-eq Z)
+source-scope-mark (source-scope-term plan p p⁺) Z =
+  source-scope-mark plan Z
+source-scope-mark (source-scope-both plan) Fin.zero = refl
+source-scope-mark (source-scope-both plan) (Fin.suc Z) =
+  source-scope-mark plan Z
+source-scope-mark (source-scope-left plan) Fin.zero = refl
+source-scope-mark (source-scope-left plan) (Fin.suc Z) =
+  source-scope-mark plan Z
+
+
+source-scope-context : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → SourceBindScope ρ γ γ⁺
+  → Γᴸ⁺ ≡ TC.renameCtx (toRenameᵗ ρ) Γᴸ
+source-scope-context (source-scope-root eqᴸ) =
+  trans eqᴸ (sym (renameCtx-wk-eq _))
+source-scope-context (source-scope-term plan p p⁺) =
+  cong₂ _∷_ refl (source-scope-context plan)
+source-scope-context (source-scope-both {Γᴸ = Γᴸ} plan) =
+  trans (cong ⇑ᶜ (source-scope-context plan))
+    (sym (renameCtx-keep-shift _ Γᴸ))
+source-scope-context (source-scope-left {Γᴸ = Γᴸ} plan) =
+  trans (cong ⇑ᶜ (source-scope-context plan))
+    (sym (renameCtx-keep-shift _ Γᴸ))
+
+
+source-scope-store : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → SourceBindScope ρ γ γ⁺
+  → StoreRename (toRenameᵗ ρ) Σᴸ Σᴸ⁺
+source-scope-store (source-scope-root eqᴸ) = StoreRename-wk-bind
+source-scope-store (source-scope-term plan p p⁺) =
+  source-scope-store plan
+source-scope-store (source-scope-both plan) =
+  StoreRename-keep (source-scope-store plan)
+source-scope-store (source-scope-left plan) =
+  StoreRename-keep (source-scope-store plan)
+
+
+source-scope-source-type : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → (plan : SourceBindScope ρ γ γ⁺)
+  → (A : Ty Δᴸ)
+  → renameᵗ (toRenameᵗ (source-scope-center plan))
+      (renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A)
+    ≡ renameᵗ (toRenameᵗ (ηᴸᶜ γ⁺))
+        (renameᵗ (toRenameᵗ ρ) A)
+source-scope-source-type {ρ = ρ} {γ = γ} {γ⁺ = γ⁺} plan A =
+  trans
+    (renameᵗ-comp (toRenameᵗ (ηᴸᶜ γ))
+      (toRenameᵗ (source-scope-center plan)) A)
+    (trans
+      (renameᵗ-cong A (source-scope-left-commutes plan))
+      (sym (renameᵗ-comp (toRenameᵗ ρ)
+        (toRenameᵗ (ηᴸᶜ γ⁺)) A)))
+
+
+source-scope-target-type : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+  → (plan : SourceBindScope ρ γ γ⁺)
+  → (B : Ty Δᴿ)
+  → renameᵗ (toRenameᵗ (source-scope-center plan))
+      (renameᵗ (toRenameᵗ (ηᴿᶜ γ)) B)
+    ≡ renameᵗ (toRenameᵗ (ηᴿᶜ γ⁺)) B
+source-scope-target-type {γ = γ} plan B =
+  trans
+    (renameᵗ-comp (toRenameᵗ (ηᴿᶜ γ))
+      (toRenameᵗ (source-scope-center plan)) B)
+    (renameᵗ-cong B (source-scope-right-commutes plan))
+
+
+source-scope-⊑ᵀ-at : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+  → (γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩)
+  → (γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩)
+  → {A : Ty Δᴸ} {B : Ty Δᴿ}
+  → (plan : SourceBindScope ρ γ γ⁺)
+  → A ⊑ᵀ⟨ γ ⟩ B
+  → renameᵗ (toRenameᵗ ρ) A ⊑ᵀ⟨ γ⁺ ⟩ B
+source-scope-⊑ᵀ-at {ρ = ρ} γ γ⁺ {A = A} {B = B} plan p =
+  subst (λ L → marksᶜ γ⁺ ⊢ L ⊑
+      renameᵗ (toRenameᵗ (ηᴿᶜ γ⁺)) B)
+    (source-scope-source-type plan A)
+    (subst (λ R → marksᶜ γ⁺ ⊢
+        renameᵗ (toRenameᵗ (source-scope-center plan))
+          (renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A) ⊑ R)
+      (source-scope-target-type plan B)
+      (rename-⊑
+        (toRenameᵗ (source-scope-center plan))
+        (toRenameᵗ-injective (source-scope-center plan))
+        (λ Z mark → trans (source-scope-mark plan Z) mark)
+        p))
+
+
+source-scope-⊑ᵀ : ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
+    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
+      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {A : Ty Δᴸ} {B : Ty Δᴿ}
-  → SourceBindThroughTerms γ γ⁺
+  → (plan : SourceBindScope ρ γ γ⁺)
   → A ⊑ᵀ⟨ γ ⟩ B
-  → ⇑ᵗ A ⊑ᵀ⟨ γ⁺ ⟩ B
-source-bind-⊑ᵀ {C = C} {γ = γ} (source-bind-root eqᴸ) p =
-  evolution-⊑ᵀ
-    (evolution-bind-left {A = C} {W = γ} eqᴸ) p
-source-bind-⊑ᵀ (source-bind-term plan p p⁺) q =
-  source-bind-⊑ᵀ plan q
+  → renameᵗ (toRenameᵗ ρ) A ⊑ᵀ⟨ γ⁺ ⟩ B
+source-scope-⊑ᵀ {γ = γ} {γ⁺ = γ⁺} plan p =
+  source-scope-⊑ᵀ-at γ γ⁺ plan p
 
 
-TransportSourceBindThroughTermsᵀ : Set
-TransportSourceBindThroughTermsᵀ = ∀
-    {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
+TransportSourceBindScopeᵀ : Set
+TransportSourceBindScopeᵀ = ∀
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
     {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    {γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → (plan : SourceBindThroughTerms γ γ⁺)
+  → (plan : SourceBindScope ρ γ γ⁺)
   → γ ⊢² M ⊑ M′ ∶ p
-  → γ⁺ ⊢² ⇑ᵗᵐ M ⊑ M′ ∶ source-bind-⊑ᵀ plan p
-
-
-TransportSourceBindTypeLambdaᵀ : Set
-TransportSourceBindTypeLambdaᵀ = ∀
-    {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
-    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    {γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
-      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    {V : Term (Nat.suc Δᴸ)} {V′ : Term (Nat.suc Δᴿ)}
-    {A : Ty (Nat.suc Δᴸ)} {B : Ty (Nat.suc Δᴿ)}
-    {p : A ⊑ᵀ⟨ liftBothᶜ X⊑X γ ⟩ B}
-  → (plan : SourceBindThroughTerms γ γ⁺)
-  → Value V
-  → Value V′
-  → liftBothᶜ X⊑X γ ⊢² V ⊑ V′ ∶ p
-  → (q : (`∀ A) ⊑ᵀ⟨ γ ⟩ (`∀ B))
-  → γ⁺ ⊢² ⇑ᵗᵐ (Λ V) ⊑ Λ V′ ∶ source-bind-⊑ᵀ plan q
-
-
-TransportSourceBindSourceLambdaᵀ : Set
-TransportSourceBindSourceLambdaᵀ = ∀
-    {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
-    {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    {γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
-      ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    {V : Term (Nat.suc Δᴸ)} {M : Term Δᴿ}
-    {A : Ty (Nat.suc Δᴸ)} {B : Ty Δᴿ}
-    {p : A ⊑ᵀ⟨ γ ▻ᶜ lift-left-changeᶜ refl ⟩ B}
-  → (plan : SourceBindThroughTerms γ γ⁺)
-  → NonVar A
-  → Fin.zero ∈ᵗ A
-  → Value V
-  → ⟨ Δᴿ , Σᴿ , Γᴿ ⟩ ⊢ M ⦂ B
-  → (γ ▻ᶜ lift-left-changeᶜ refl) ⊢² V ⊑ M ∶ p
-  → (q : (`∀ A) ⊑ᵀ⟨ γ ⟩ B)
-  → γ⁺ ⊢² ⇑ᵗᵐ (Λ V) ⊑ M ∶ source-bind-⊑ᵀ plan q
+  → γ⁺ ⊢² renameᵗᵐ ρ M ⊑ M′ ∶ source-scope-⊑ᵀ plan p
 
 
 TransportSourceBindTargetRevealRebaseᵀ : Set
 TransportSourceBindTargetRevealRebaseᵀ = ∀
-    {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
     {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-    {γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
+    {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
     {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
     {c′ : Conv↑ Δᴿ B B′}
-  → (plan : SourceBindThroughTerms γ γ⁺)
+  → (plan : SourceBindScope ρ γ γ⁺)
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → (ok : CanRebaseSourceᵗ
       (ηᴸᶜ γ) Xᴸ (toRenameᵗ (ηᴿᶜ γ) Xᴿ))
@@ -165,14 +405,16 @@ TransportSourceBindTargetRevealRebaseᵀ = ∀
   → (γ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented) ⊢²
       M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)
-  → γ⁺ ⊢² ⇑ᵗᵐ M ⊑ M′ ↑ c′ ∶ source-bind-⊑ᵀ plan q
+  → γ⁺ ⊢² renameᵗᵐ ρ M ⊑ M′ ↑ c′ ∶ source-scope-⊑ᵀ plan q
 
 
 TransportSourceBindTargetConcealRebaseᵀ : Set
 TransportSourceBindTargetConcealRebaseᵀ = ∀
-    {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-    {Γᴸ⁺ : TermCtx (Nat.suc Δᴸ)} {C : Ty Δᴸ}
+    {Δᴸ Δᴸ⁺ Δᴿ}
+    {Σᴸ : TyStore Δᴸ} {Σᴸ⁺ : TyStore Δᴸ⁺}
+    {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴸ⁺ : TermCtx Δᴸ⁺}
+    {Γᴿ : TermCtx Δᴿ} {ρ : Δᴸ ↪ᵗ Δᴸ⁺}
     {γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {M : Term Δᴸ} {M′ : Term Δᴿ}
     {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
@@ -186,8 +428,8 @@ TransportSourceBindTargetConcealRebaseᵀ = ∀
   → γᵖ ⊢² M ⊑ M′ ∶ p
   → (q : A ⊑ᵀ⟨
       γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented ⟩ B′)
-  → {γ⁺ : ⟨ Nat.suc Δᴸ , store-bind Σᴸ C , Γᴸ⁺ ⟩ ⊑ᶜ
+  → {γ⁺ : ⟨ Δᴸ⁺ , Σᴸ⁺ , Γᴸ⁺ ⟩ ⊑ᶜ
       ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-  → (plan : SourceBindThroughTerms
+  → (plan : SourceBindScope ρ
       (γᵖ ▻ᶜ rebase-source-changeᶜ Xᴸ Xᴿ ok represented) γ⁺)
-  → γ⁺ ⊢² ⇑ᵗᵐ M ⊑ M′ ↓ c′ ∶ source-bind-⊑ᵀ plan q
+  → γ⁺ ⊢² renameᵗᵐ ρ M ⊑ M′ ↓ c′ ∶ source-scope-⊑ᵀ plan q

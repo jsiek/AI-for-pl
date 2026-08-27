@@ -49,17 +49,17 @@ commutes definitionally with scope.  Keep those structural inductions as
 explicit module parameters while they are incomplete, then expose the closed
 transport from a `...Lemma` module.
 
-The source-bind induction now traverses every current CTI constructor. Its
-ordinary same-scope clauses are proved directly. Source allocation commutes
-through any prefix of term binders by the two-constructor
-`SourceBindThroughTerms` graph, so term abstraction is no longer a separate
-proof obligation. Four genuine commutation lemmas remain as module parameters:
-paired type abstraction, source-only type abstraction, target reveal across
-source rebase, and target conceal across source rebase. Their exact statements
-live in `TransportSourceBindDef`; the goal-free parameterized proof lives in
-`TransportSourceBindProof`.
+The source-bind induction now traverses every current CTI constructor. The
+single `SourceBindScope` graph follows source allocation through term binders,
+paired type binders, and source-only type binders while recording the source
+thinning and deriving the center, context, store, and type-imprecision
+commutation laws. Term abstraction, paired type abstraction, and source-only
+type abstraction are therefore direct clauses of one induction. Only target
+reveal and target conceal across a source rebase remain as module parameters;
+their exact statements live in `TransportSourceBindDef`, and the goal-free
+parameterized proof lives in `TransportSourceBindProof`.
 
-The remaining work in this milestone is to prove those four source-bind
+The remaining work in this milestone is to prove those two source-rebase
 commutations, then implement the target-bind, paired-precise-bind, and
 paired-dynamic-bind inductions in that order. Each proof must traverse all
 current CTI constructors. Keep a clause as a named parameter only when it

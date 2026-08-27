@@ -49,11 +49,20 @@ commutes definitionally with scope.  Keep those structural inductions as
 explicit module parameters while they are incomplete, then expose the closed
 transport from a `...Lemma` module.
 
-The remaining work in this milestone is to implement those four inductions,
-in that order. Each proof must traverse all current CTI constructors. Its
-term-binder, type-binder, and source-rebase clauses should remain named
-pre-induction obligations when they require a separate world-history
-induction; ordinary same-scope clauses should be discharged directly.
+The source-bind induction now traverses every current CTI constructor. Its
+ordinary same-scope clauses are proved directly. Five genuine commutation
+lemmas remain as module parameters: term binding, paired type abstraction,
+source-only type abstraction, target reveal across source rebase, and target
+conceal across source rebase. Their exact statements live in
+`TransportSourceBindDef`; the goal-free parameterized proof lives in
+`TransportSourceBindProof`.
+
+The remaining work in this milestone is to prove those five source-bind
+commutations, then implement the target-bind, paired-precise-bind, and
+paired-dynamic-bind inductions in that order. Each proof must traverse all
+current CTI constructors. Keep a clause as a named parameter only when it
+requires a genuine separate world-history induction; discharge ordinary
+same-scope clauses directly.
 
 ### 2. Canonical CTI substitution
 

@@ -19,15 +19,12 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; cong; sym; trans; subst)
 
 open import Types using
-  (Ty; TyCtx; TyVar; ＇_; ‵_; ★; _⇒_; `∀; ⇑ᵗ; renameᵗ; renameᵗ-cong;
-   renameᵗ-comp; renameᵗ-shift)
+  (Ty; TyCtx; TyVar; ＇_; ‵_; ★; _⇒_; `∀; ⇑ᵗ; renameᵗ)
 open import TyStore using (lookupStore; store-lift; store-bind)
 open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ)
-open import Consistency using (_↪ᵗ_; keep; skip; toRenameᵗ)
 open import Imprecision using
   (ImpEnv; VarImp; X⊑X; X⊑★; extendᵐ; instᵐ; _⊢_⊑_)
 open import proof.ImprecisionConsistency using (rename-⊑)
-open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.DGG.World
 
 
@@ -48,20 +45,6 @@ private
     → μ ⊢ A ⊑ B
     → μ ⊢ A′ ⊑ B′
   imprecision-cong refl refl A⊑B = A⊑B
-
-  renameᵗ-keep-shift : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (A : Ty Δ₀)
-    → renameᵗ (toRenameᵗ (keep η)) (⇑ᵗ A)
-      ≡ ⇑ᵗ (renameᵗ (toRenameᵗ η) A)
-  renameᵗ-keep-shift η A =
-    trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq η))
-      (renameᵗ-shift (toRenameᵗ η) A)
-
-  renameᵗ-skip : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (A : Ty Δ₀)
-    → renameᵗ (toRenameᵗ (skip η)) A
-      ≡ ⇑ᵗ (renameᵗ (toRenameᵗ η) A)
-  renameᵗ-skip η A =
-    trans (renameᵗ-cong A (λ X → refl))
-      (sym (renameᵗ-comp (toRenameᵗ η) Fin.suc A))
 
   lift-old-representation : ∀ {Δ} {μ : ImpEnv Δ} {v}
       {A B : Ty Δ}
@@ -86,34 +69,34 @@ record DirectWorldInvariantsᶜ {Cᴸ Cᴿ : Ctx}
   field
     preciseMarksAlignedᶜ :
       ∀ (Xᴸ : TyVar (Δᵉ Cᴸ))
-      → marksᶜ W (toRenameᵗ (ηᴸᶜ W) Xᴸ) ≡ X⊑X
+      → marksᶜ W (toRenameⁱ (ηᴸᶜ W) Xᴸ) ≡ X⊑X
       → Σ[ Xᴿ ∈ TyVar (Δᵉ Cᴿ) ]
-          toRenameᵗ (ηᴿᶜ W) Xᴿ ≡ toRenameᵗ (ηᴸᶜ W) Xᴸ
+          toRenameⁱ (ηᴿᶜ W) Xᴿ ≡ toRenameⁱ (ηᴸᶜ W) Xᴸ
 
     representationsImpreciseᶜ :
       ∀ {Xᴸ : TyVar (Δᵉ Cᴸ)} {Xᴿ : TyVar (Δᵉ Cᴿ)}
-      → toRenameᵗ (ηᴸᶜ W) Xᴸ ≡ toRenameᵗ (ηᴿᶜ W) Xᴿ
+      → toRenameⁱ (ηᴸᶜ W) Xᴸ ≡ toRenameⁱ (ηᴿᶜ W) Xᴿ
       → marksᶜ W ⊢
-          renameᵗ (toRenameᵗ (ηᴸᶜ W)) (lookupStore (Σᵉ Cᴸ) Xᴸ)
-          ⊑ renameᵗ (toRenameᵗ (ηᴿᶜ W)) (lookupStore (Σᵉ Cᴿ) Xᴿ)
+          renameᵗ (toRenameⁱ (ηᴸᶜ W)) (lookupStore (Σᵉ Cᴸ) Xᴸ)
+          ⊑ renameᵗ (toRenameⁱ (ηᴿᶜ W)) (lookupStore (Σᵉ Cᴿ) Xᴿ)
 
     unmatchedTargetsDynamicᶜ :
       ∀ (Xᴿ : TyVar (Δᵉ Cᴿ))
       → (∀ (Xᴸ : TyVar (Δᵉ Cᴸ))
-          → toRenameᵗ (ηᴸᶜ W) Xᴸ ≢ toRenameᵗ (ηᴿᶜ W) Xᴿ)
+          → toRenameⁱ (ηᴸᶜ W) Xᴸ ≢ toRenameⁱ (ηᴿᶜ W) Xᴿ)
       → lookupStore (Σᵉ Cᴿ) Xᴿ ≡ ★
         ⊎ Σ[ Yᴿ ∈ TyVar (Δᵉ Cᴿ) ]
             (lookupStore (Σᵉ Cᴿ) Xᴿ ≡ ＇ Yᴿ)
           × (∀ (Xᴸ : TyVar (Δᵉ Cᴸ))
-              → toRenameᵗ (ηᴸᶜ W) Xᴸ
-                ≢ toRenameᵗ (ηᴿᶜ W) Yᴿ)
+              → toRenameⁱ (ηᴸᶜ W) Xᴸ
+                ≢ toRenameⁱ (ηᴿᶜ W) Yᴿ)
 
     dynamicStarSourcesUnoccupiedᶜ :
       ∀ (Xᴸ : TyVar (Δᵉ Cᴸ))
-      → marksᶜ W (toRenameᵗ (ηᴸᶜ W) Xᴸ) ≡ X⊑★
+      → marksᶜ W (toRenameⁱ (ηᴸᶜ W) Xᴸ) ≡ X⊑★
       → lookupStore (Σᵉ Cᴸ) Xᴸ ≡ ★
       → ∀ (Xᴿ : TyVar (Δᵉ Cᴿ))
-      → toRenameᵗ (ηᴿᶜ W) Xᴿ ≢ toRenameᵗ (ηᴸᶜ W) Xᴸ
+      → toRenameⁱ (ηᴿᶜ W) Xᴿ ≢ toRenameⁱ (ηᴸᶜ W) Xᴸ
 
 open DirectWorldInvariantsᶜ public
 
@@ -126,36 +109,36 @@ skipCenter-invariantsᶜ {Cᴸ = Cᴸ} {Cᴿ = Cᴿ} W inv =
   where
   precise : ∀ Xᴸ
     → extendᵐ X⊑★ (marksᶜ W)
-        (toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
+        (toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
-        toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
-          ≡ toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
+        toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
+          ≡ toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
   precise Xᴸ mark with preciseMarksAlignedᶜ inv Xᴸ mark
   precise Xᴸ mark | Xᴿ , aligned = Xᴿ , cong Fin.suc aligned
 
   reps : ∀ {Xᴸ Xᴿ}
-    → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-        ≡ toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
+    → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+        ≡ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
     → extendᵐ X⊑★ (marksᶜ W) ⊢
-        renameᵗ (toRenameᵗ (skip (ηᴸᶜ W)))
+        renameᵗ (toRenameⁱ (skipⁱ (ηᴸᶜ W)))
           (lookupStore (Σᵉ Cᴸ) Xᴸ)
-        ⊑ renameᵗ (toRenameᵗ (skip (ηᴿᶜ W)))
+        ⊑ renameᵗ (toRenameⁱ (skipⁱ (ηᴿᶜ W)))
           (lookupStore (Σᵉ Cᴿ) Xᴿ)
   reps {Xᴸ} {Xᴿ} aligned =
     imprecision-cong
-      (sym (renameᵗ-skip (ηᴸᶜ W) (lookupStore (Σᵉ Cᴸ) Xᴸ)))
-      (sym (renameᵗ-skip (ηᴿᶜ W) (lookupStore (Σᵉ Cᴿ) Xᴿ)))
+      (sym (renameᵗ-skipⁱ (ηᴸᶜ W) (lookupStore (Σᵉ Cᴸ) Xᴸ)))
+      (sym (renameᵗ-skipⁱ (ηᴿᶜ W) (lookupStore (Σᵉ Cᴿ) Xᴿ)))
       (lift-old-representation
         (representationsImpreciseᶜ inv (fin-suc-injective aligned)))
 
   unmatched : ∀ Xᴿ
-    → (∀ Xᴸ → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ)
+    → (∀ Xᴸ → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ)
     → lookupStore (Σᵉ Cᴿ) Xᴿ ≡ ★
       ⊎ Σ[ Yᴿ ∈ TyVar _ ]
           (lookupStore (Σᵉ Cᴿ) Xᴿ ≡ ＇ Yᴿ)
-        × (∀ Xᴸ → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-            ≢ toRenameᵗ (skip (ηᴿᶜ W)) Yᴿ)
+        × (∀ Xᴸ → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+            ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Yᴿ)
   unmatched Xᴿ no-source
       with unmatchedTargetsDynamicᶜ inv Xᴿ
         (λ Xᴸ aligned → no-source Xᴸ (cong Fin.suc aligned))
@@ -164,17 +147,17 @@ skipCenter-invariantsᶜ {Cᴸ = Cᴸ} {Cᴿ = Cᴿ} W inv =
     inj₂ (Yᴿ , entry , shifted-head-no-source)
     where
     shifted-head-no-source : ∀ Xᴸ
-      → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (skip (ηᴿᶜ W)) Yᴿ
+      → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Yᴿ
     shifted-head-no-source Xᴸ aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
   unoccupied : ∀ Xᴸ
     → extendᵐ X⊑★ (marksᶜ W)
-        (toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
+        (toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
     → lookupStore (Σᵉ Cᴸ) Xᴸ ≡ ★
-    → ∀ Xᴿ → toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
-        ≢ toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
+    → ∀ Xᴿ → toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
+        ≢ toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
   unoccupied Xᴸ mark entry Xᴿ aligned =
     dynamicStarSourcesUnoccupiedᶜ inv Xᴸ mark entry Xᴿ
       (fin-suc-injective aligned)
@@ -195,42 +178,42 @@ directInvariantsᶜ
   inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
-    → extendᵐ v (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ)
+    → extendᵐ v (marksᶜ W) (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ)
         ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
-        toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-          ≡ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+        toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+          ≡ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   precise Fin.zero mark = Fin.zero , refl
   precise (Fin.suc Xᴸ) mark with preciseMarksAlignedᶜ inv Xᴸ mark
   precise (Fin.suc Xᴸ) mark | Xᴿ , aligned =
     Fin.suc Xᴿ , cong Fin.suc aligned
 
   reps : ∀ {Xᴸ Xᴿ}
-    → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≡ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
+    → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≡ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
     → extendᵐ v (marksᶜ W) ⊢
-        renameᵗ (toRenameᵗ (keep (ηᴸᶜ W)))
+        renameᵗ (toRenameⁱ (keepⁱ (ηᴸᶜ W)))
           (lookupStore (store-lift Σᴸ) Xᴸ)
-        ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W)))
+        ⊑ renameᵗ (toRenameⁱ (keepⁱ (ηᴿᶜ W)))
           (lookupStore (store-lift Σᴿ) Xᴿ)
   reps {Fin.zero} {Fin.zero} aligned = Imprecision.X⊑X
   reps {Fin.zero} {Fin.suc Xᴿ} ()
   reps {Fin.suc Xᴸ} {Fin.zero} ()
   reps {Fin.suc Xᴸ} {Fin.suc Xᴿ} aligned =
     imprecision-cong
-      (sym (renameᵗ-keep-shift (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
       (lift-old-representation
         (representationsImpreciseᶜ inv (fin-suc-injective aligned)))
 
   unmatched : ∀ Xᴿ
-    → (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ)
+    → (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ)
     → lookupStore (store-lift Σᴿ) Xᴿ ≡ ★
       ⊎ Σ[ Yᴿ ∈ TyVar _ ]
           (lookupStore (store-lift Σᴿ) Xᴿ ≡ ＇ Yᴿ)
-        × (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-            ≢ toRenameᵗ (keep (ηᴿᶜ W)) Yᴿ)
+        × (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+            ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Yᴿ)
   unmatched Fin.zero no-source = ⊥-elim (no-source Fin.zero refl)
   unmatched (Fin.suc Xᴿ) no-source
       with unmatchedTargetsDynamicᶜ inv Xᴿ
@@ -242,18 +225,18 @@ directInvariantsᶜ
     inj₂ (Fin.suc Yᴿ , cong ⇑ᵗ entry , lifted-head-no-source)
     where
     lifted-head-no-source : ∀ Xᴸ
-      → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) (Fin.suc Yᴿ)
+      → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) (Fin.suc Yᴿ)
     lifted-head-no-source Fin.zero ()
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
   unoccupied : ∀ Xᴸ
-    → extendᵐ v (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ)
+    → extendᵐ v (marksᶜ W) (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ)
         ≡ X⊑★
     → lookupStore (store-lift Σᴸ) Xᴸ ≡ ★
-    → ∀ Xᴿ → toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-        ≢ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+    → ∀ Xᴿ → toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+        ≢ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   unoccupied Fin.zero mark entry Xᴿ aligned = variable≢star entry
   unoccupied (Fin.suc Xᴸ) mark entry Fin.zero ()
   unoccupied (Fin.suc Xᴸ) mark entry (Fin.suc Xᴿ) aligned =
@@ -268,37 +251,37 @@ directInvariantsᶜ
   inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
-    → instᵐ (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
+    → instᵐ (marksᶜ W) (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
-        toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
-          ≡ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+        toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
+          ≡ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   precise Fin.zero ()
   precise (Fin.suc Xᴸ) mark with preciseMarksAlignedᶜ inv Xᴸ mark
   precise (Fin.suc Xᴸ) mark | Xᴿ , aligned = Xᴿ , cong Fin.suc aligned
 
   reps : ∀ {Xᴸ Xᴿ}
-    → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≡ toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
+    → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≡ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
     → instᵐ (marksᶜ W) ⊢
-        renameᵗ (toRenameᵗ (keep (ηᴸᶜ W)))
+        renameᵗ (toRenameⁱ (keepⁱ (ηᴸᶜ W)))
           (lookupStore (store-lift Σᴸ) Xᴸ)
-        ⊑ renameᵗ (toRenameᵗ (skip (ηᴿᶜ W)))
+        ⊑ renameᵗ (toRenameⁱ (skipⁱ (ηᴿᶜ W)))
           (lookupStore Σᴿ Xᴿ)
   reps {Fin.zero} {Xᴿ} ()
   reps {Fin.suc Xᴸ} {Xᴿ} aligned =
     imprecision-cong
-      (sym (renameᵗ-keep-shift (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
-      (sym (renameᵗ-skip (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
+      (sym (renameᵗ-skipⁱ (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
       (lift-old-representation
         (representationsImpreciseᶜ inv (fin-suc-injective aligned)))
 
   unmatched : ∀ Xᴿ
-    → (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ)
+    → (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ)
     → lookupStore Σᴿ Xᴿ ≡ ★
       ⊎ Σ[ Yᴿ ∈ TyVar _ ] (lookupStore Σᴿ Xᴿ ≡ ＇ Yᴿ)
-        × (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-            ≢ toRenameᵗ (skip (ηᴿᶜ W)) Yᴿ)
+        × (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+            ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Yᴿ)
   unmatched Xᴿ no-source
       with unmatchedTargetsDynamicᶜ inv Xᴿ
         (λ Xᴸ aligned → no-source (Fin.suc Xᴸ) (cong Fin.suc aligned))
@@ -307,17 +290,17 @@ directInvariantsᶜ
     inj₂ (Yᴿ , entry , lifted-head-no-source)
     where
     lifted-head-no-source : ∀ Xᴸ
-      → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (skip (ηᴿᶜ W)) Yᴿ
+      → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Yᴿ
     lifted-head-no-source Fin.zero ()
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
   unoccupied : ∀ Xᴸ
-    → instᵐ (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
+    → instᵐ (marksᶜ W) (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
     → lookupStore (store-lift Σᴸ) Xᴸ ≡ ★
-    → ∀ Xᴿ → toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
-        ≢ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+    → ∀ Xᴿ → toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
+        ≢ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   unoccupied Fin.zero mark entry Xᴿ aligned = variable≢star entry
   unoccupied (Fin.suc Xᴸ) mark entry Xᴿ aligned =
     dynamicStarSourcesUnoccupiedᶜ inv Xᴸ mark
@@ -341,45 +324,45 @@ directInvariantsᶜ
 
   precise : ∀ Xᴸ
     → extendᵐ X⊑★ (marksᶜ W)
-        (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
+        (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
-        toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-          ≡ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+        toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+          ≡ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   precise Fin.zero ()
   precise (Fin.suc Xᴸ) mark with preciseMarksAlignedᶜ inv Xᴸ mark
   precise (Fin.suc Xᴸ) mark | Xᴿ , aligned =
     Fin.suc Xᴿ , cong Fin.suc aligned
 
   reps : ∀ {Xᴸ Xᴿ}
-    → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≡ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
+    → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≡ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
     → extendᵐ X⊑★ (marksᶜ W) ⊢
-        renameᵗ (toRenameᵗ (keep (ηᴸᶜ W)))
+        renameᵗ (toRenameⁱ (keepⁱ (ηᴸᶜ W)))
           (lookupStore (store-bind Σᴸ A) Xᴸ)
-        ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W)))
+        ⊑ renameᵗ (toRenameⁱ (keepⁱ (ηᴿᶜ W)))
           (lookupStore (store-bind Σᴿ B) Xᴿ)
   reps {Fin.zero} {Fin.zero} aligned =
     imprecision-cong
-      (sym (renameᵗ-keep-shift (ηᴸᶜ W) A))
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) B))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) A))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) B))
       (lift-old-representation represented)
   reps {Fin.zero} {Fin.suc Xᴿ} ()
   reps {Fin.suc Xᴸ} {Fin.zero} ()
   reps {Fin.suc Xᴸ} {Fin.suc Xᴿ} aligned =
     imprecision-cong
-      (sym (renameᵗ-keep-shift (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
       (lift-old-representation
         (representationsImpreciseᶜ inv (fin-suc-injective aligned)))
 
   unmatched : ∀ Xᴿ
-    → (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ)
+    → (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ)
     → lookupStore (store-bind Σᴿ B) Xᴿ ≡ ★
       ⊎ Σ[ Yᴿ ∈ TyVar _ ]
           (lookupStore (store-bind Σᴿ B) Xᴿ ≡ ＇ Yᴿ)
-        × (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-            ≢ toRenameᵗ (keep (ηᴿᶜ W)) Yᴿ)
+        × (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+            ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Yᴿ)
   unmatched Fin.zero no-source = ⊥-elim (no-source Fin.zero refl)
   unmatched (Fin.suc Xᴿ) no-source
       with unmatchedTargetsDynamicᶜ inv Xᴿ
@@ -391,18 +374,18 @@ directInvariantsᶜ
     inj₂ (Fin.suc Yᴿ , cong ⇑ᵗ entry , lifted-head-no-source)
     where
     lifted-head-no-source : ∀ Xᴸ
-      → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) (Fin.suc Yᴿ)
+      → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) (Fin.suc Yᴿ)
     lifted-head-no-source Fin.zero ()
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
   unoccupied : ∀ Xᴸ
     → extendᵐ X⊑★ (marksᶜ W)
-        (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
+        (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
     → lookupStore (store-bind Σᴸ A) Xᴸ ≡ ★
-    → ∀ Xᴿ → toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-        ≢ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+    → ∀ Xᴿ → toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+        ≢ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   unoccupied Fin.zero mark entry Xᴿ aligned = ⊥-elim (A≢★ entry)
   unoccupied (Fin.suc Xᴸ) mark entry Fin.zero ()
   unoccupied (Fin.suc Xᴸ) mark entry (Fin.suc Xᴿ) aligned =
@@ -418,45 +401,45 @@ directInvariantsᶜ
 
   precise : ∀ Xᴸ
     → extendᵐ X⊑X (marksᶜ W)
-        (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
+        (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
-        toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-          ≡ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+        toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+          ≡ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   precise Fin.zero mark = Fin.zero , refl
   precise (Fin.suc Xᴸ) mark with preciseMarksAlignedᶜ inv Xᴸ mark
   precise (Fin.suc Xᴸ) mark | Xᴿ , aligned =
     Fin.suc Xᴿ , cong Fin.suc aligned
 
   reps : ∀ {Xᴸ Xᴿ}
-    → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≡ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
+    → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≡ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
     → extendᵐ X⊑X (marksᶜ W) ⊢
-        renameᵗ (toRenameᵗ (keep (ηᴸᶜ W)))
+        renameᵗ (toRenameⁱ (keepⁱ (ηᴸᶜ W)))
           (lookupStore (store-bind Σᴸ A) Xᴸ)
-        ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W)))
+        ⊑ renameᵗ (toRenameⁱ (keepⁱ (ηᴿᶜ W)))
           (lookupStore (store-bind Σᴿ B) Xᴿ)
   reps {Fin.zero} {Fin.zero} aligned =
     imprecision-cong
-      (sym (renameᵗ-keep-shift (ηᴸᶜ W) A))
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) B))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) A))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) B))
       (lift-old-representation represented)
   reps {Fin.zero} {Fin.suc Xᴿ} ()
   reps {Fin.suc Xᴸ} {Fin.zero} ()
   reps {Fin.suc Xᴸ} {Fin.suc Xᴿ} aligned =
     imprecision-cong
-      (sym (renameᵗ-keep-shift (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
       (lift-old-representation
         (representationsImpreciseᶜ inv (fin-suc-injective aligned)))
 
   unmatched : ∀ Xᴿ
-    → (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ)
+    → (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ)
     → lookupStore (store-bind Σᴿ B) Xᴿ ≡ ★
       ⊎ Σ[ Yᴿ ∈ TyVar _ ]
           (lookupStore (store-bind Σᴿ B) Xᴿ ≡ ＇ Yᴿ)
-        × (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-            ≢ toRenameᵗ (keep (ηᴿᶜ W)) Yᴿ)
+        × (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+            ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Yᴿ)
   unmatched Fin.zero no-source = ⊥-elim (no-source Fin.zero refl)
   unmatched (Fin.suc Xᴿ) no-source
       with unmatchedTargetsDynamicᶜ inv Xᴿ
@@ -468,18 +451,18 @@ directInvariantsᶜ
     inj₂ (Fin.suc Yᴿ , cong ⇑ᵗ entry , lifted-head-no-source)
     where
     lifted-head-no-source : ∀ Xᴸ
-      → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) (Fin.suc Yᴿ)
+      → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) (Fin.suc Yᴿ)
     lifted-head-no-source Fin.zero ()
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
   unoccupied : ∀ Xᴸ
     → extendᵐ X⊑X (marksᶜ W)
-        (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
+        (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
     → lookupStore (store-bind Σᴸ A) Xᴸ ≡ ★
-    → ∀ Xᴿ → toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-        ≢ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+    → ∀ Xᴿ → toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+        ≢ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   unoccupied Fin.zero () entry Xᴿ aligned
   unoccupied (Fin.suc Xᴸ) mark entry Fin.zero ()
   unoccupied (Fin.suc Xᴸ) mark entry (Fin.suc Xᴿ) aligned =
@@ -494,37 +477,37 @@ directInvariantsᶜ
   inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
-    → instᵐ (marksᶜ W) (toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
+    → instᵐ (marksᶜ W) (toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
-        toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-          ≡ toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
+        toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+          ≡ toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
   precise Xᴸ mark with preciseMarksAlignedᶜ inv Xᴸ mark
   precise Xᴸ mark | Xᴿ , aligned = Fin.suc Xᴿ , cong Fin.suc aligned
 
   reps : ∀ {Xᴸ Xᴿ}
-    → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-        ≡ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
+    → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+        ≡ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
     → instᵐ (marksᶜ W) ⊢
-        renameᵗ (toRenameᵗ (skip (ηᴸᶜ W)))
+        renameᵗ (toRenameⁱ (skipⁱ (ηᴸᶜ W)))
           (lookupStore Σᴸ Xᴸ)
-        ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W)))
+        ⊑ renameᵗ (toRenameⁱ (keepⁱ (ηᴿᶜ W)))
           (lookupStore (store-bind Σᴿ B) Xᴿ)
   reps {Xᴸ} {Fin.zero} ()
   reps {Xᴸ} {Fin.suc Xᴿ} aligned =
     imprecision-cong
-      (sym (renameᵗ-skip (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
+      (sym (renameᵗ-skipⁱ (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
       (lift-old-representation
         (representationsImpreciseᶜ inv (fin-suc-injective aligned)))
 
   unmatched : ∀ Xᴿ
-    → (∀ Xᴸ → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ)
+    → (∀ Xᴸ → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ)
     → lookupStore (store-bind Σᴿ B) Xᴿ ≡ ★
       ⊎ Σ[ Yᴿ ∈ TyVar _ ]
           (lookupStore (store-bind Σᴿ B) Xᴿ ≡ ＇ Yᴿ)
-        × (∀ Xᴸ → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-            ≢ toRenameᵗ (keep (ηᴿᶜ W)) Yᴿ)
+        × (∀ Xᴸ → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+            ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) Yᴿ)
   unmatched Fin.zero no-source = fresh
   unmatched (Fin.suc Xᴿ) no-source
       with unmatchedTargetsDynamicᶜ inv Xᴿ
@@ -536,16 +519,16 @@ directInvariantsᶜ
     inj₂ (Fin.suc Yᴿ , cong ⇑ᵗ entry , lifted-head-no-source)
     where
     lifted-head-no-source : ∀ Xᴸ
-      → toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (keep (ηᴿᶜ W)) (Fin.suc Yᴿ)
+      → toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (keepⁱ (ηᴿᶜ W)) (Fin.suc Yᴿ)
     lifted-head-no-source Xᴸ aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
   unoccupied : ∀ Xᴸ
-    → instᵐ (marksᶜ W) (toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
+    → instᵐ (marksᶜ W) (toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
     → lookupStore Σᴸ Xᴸ ≡ ★
-    → ∀ Xᴿ → toRenameᵗ (keep (ηᴿᶜ W)) Xᴿ
-        ≢ toRenameᵗ (skip (ηᴸᶜ W)) Xᴸ
+    → ∀ Xᴿ → toRenameⁱ (keepⁱ (ηᴿᶜ W)) Xᴿ
+        ≢ toRenameⁱ (skipⁱ (ηᴸᶜ W)) Xᴸ
   unoccupied Xᴸ mark entry Fin.zero ()
   unoccupied Xᴸ mark entry (Fin.suc Xᴿ) aligned =
     dynamicStarSourcesUnoccupiedᶜ inv Xᴸ mark entry Xᴿ
@@ -559,37 +542,37 @@ directInvariantsᶜ
   inv = directInvariantsᶜ W no-rebase
 
   precise : ∀ Xᴸ
-    → instᵐ (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
+    → instᵐ (marksᶜ W) (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑X
     → Σ[ Xᴿ ∈ TyVar _ ]
-        toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
-          ≡ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+        toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
+          ≡ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   precise Fin.zero ()
   precise (Fin.suc Xᴸ) mark with preciseMarksAlignedᶜ inv Xᴸ mark
   precise (Fin.suc Xᴸ) mark | Xᴿ , aligned = Xᴿ , cong Fin.suc aligned
 
   reps : ∀ {Xᴸ Xᴿ}
-    → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≡ toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
+    → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≡ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
     → instᵐ (marksᶜ W) ⊢
-        renameᵗ (toRenameᵗ (keep (ηᴸᶜ W)))
+        renameᵗ (toRenameⁱ (keepⁱ (ηᴸᶜ W)))
           (lookupStore (store-bind Σᴸ A) Xᴸ)
-        ⊑ renameᵗ (toRenameᵗ (skip (ηᴿᶜ W)))
+        ⊑ renameᵗ (toRenameⁱ (skipⁱ (ηᴿᶜ W)))
           (lookupStore Σᴿ Xᴿ)
   reps {Fin.zero} {Xᴿ} ()
   reps {Fin.suc Xᴸ} {Xᴿ} aligned =
     imprecision-cong
-      (sym (renameᵗ-keep-shift (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
-      (sym (renameᵗ-skip (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
+      (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) (lookupStore Σᴸ Xᴸ)))
+      (sym (renameᵗ-skipⁱ (ηᴿᶜ W) (lookupStore Σᴿ Xᴿ)))
       (lift-old-representation
         (representationsImpreciseᶜ inv (fin-suc-injective aligned)))
 
   unmatched : ∀ Xᴿ
-    → (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ)
+    → (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ)
     → lookupStore Σᴿ Xᴿ ≡ ★
       ⊎ Σ[ Yᴿ ∈ TyVar _ ] (lookupStore Σᴿ Xᴿ ≡ ＇ Yᴿ)
-        × (∀ Xᴸ → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-            ≢ toRenameᵗ (skip (ηᴿᶜ W)) Yᴿ)
+        × (∀ Xᴸ → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+            ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Yᴿ)
   unmatched Xᴿ no-source
       with unmatchedTargetsDynamicᶜ inv Xᴿ
         (λ Xᴸ aligned → no-source (Fin.suc Xᴸ) (cong Fin.suc aligned))
@@ -598,17 +581,17 @@ directInvariantsᶜ
     inj₂ (Yᴿ , entry , lifted-head-no-source)
     where
     lifted-head-no-source : ∀ Xᴸ
-      → toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
-        ≢ toRenameᵗ (skip (ηᴿᶜ W)) Yᴿ
+      → toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
+        ≢ toRenameⁱ (skipⁱ (ηᴿᶜ W)) Yᴿ
     lifted-head-no-source Fin.zero ()
     lifted-head-no-source (Fin.suc Xᴸ) aligned =
       head-no-source Xᴸ (fin-suc-injective aligned)
 
   unoccupied : ∀ Xᴸ
-    → instᵐ (marksᶜ W) (toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
+    → instᵐ (marksᶜ W) (toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ) ≡ X⊑★
     → lookupStore (store-bind Σᴸ A) Xᴸ ≡ ★
-    → ∀ Xᴿ → toRenameᵗ (skip (ηᴿᶜ W)) Xᴿ
-        ≢ toRenameᵗ (keep (ηᴸᶜ W)) Xᴸ
+    → ∀ Xᴿ → toRenameⁱ (skipⁱ (ηᴿᶜ W)) Xᴿ
+        ≢ toRenameⁱ (keepⁱ (ηᴸᶜ W)) Xᴸ
   unoccupied Fin.zero mark entry Xᴿ ()
   unoccupied (Fin.suc Xᴸ) mark entry Xᴿ aligned =
     dynamicStarSourcesUnoccupiedᶜ inv Xᴸ mark
@@ -627,18 +610,18 @@ data RebaseSourceᶜ {Cᴸ Cᴿ : Ctx} (W : Cᴸ ⊑ᶜ Cᴿ) :
   rebase-sourceᶜ : ∀ {W′ : Cᴸ ⊑ᶜ Cᴿ} {Xᴸ Xᴿ}
     → (center-same : centerᶜ W′ ≡ centerᶜ W)
     → (∀ {Yᴸ} → Yᴸ ≢ Xᴸ
-        → toRenameᵗ (ηᴸᶜ W′) Yᴸ
-          ≡ subst Fin.Fin (sym center-same) (toRenameᵗ (ηᴸᶜ W) Yᴸ))
-    → (∀ Yᴿ → toRenameᵗ (ηᴿᶜ W′) Yᴿ
-        ≡ subst Fin.Fin (sym center-same) (toRenameᵗ (ηᴿᶜ W) Yᴿ))
-    → toRenameᵗ (ηᴸᶜ W′) Xᴸ ≡ toRenameᵗ (ηᴿᶜ W′) Xᴿ
+        → toRenameⁱ (ηᴸᶜ W′) Yᴸ
+          ≡ subst Fin.Fin (sym center-same) (toRenameⁱ (ηᴸᶜ W) Yᴸ))
+    → (∀ Yᴿ → toRenameⁱ (ηᴿᶜ W′) Yᴿ
+        ≡ subst Fin.Fin (sym center-same) (toRenameⁱ (ηᴿᶜ W) Yᴿ))
+    → toRenameⁱ (ηᴸᶜ W′) Xᴸ ≡ toRenameⁱ (ηᴿᶜ W′) Xᴿ
     → lookupStore (Σᵉ Cᴸ) Xᴸ ⊑ᵀ⟨ W′ ⟩ lookupStore (Σᵉ Cᴿ) Xᴿ
     → RebaseSourceᶜ W W′ Xᴸ Xᴿ
 
 
 sameWorldRebaseSourceᶜ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
     {Xᴸ : TyVar (Δᵉ Cᴸ)} {Xᴿ : TyVar (Δᵉ Cᴿ)}
-  → toRenameᵗ (ηᴸᶜ W) Xᴸ ≡ toRenameᵗ (ηᴿᶜ W) Xᴿ
+  → toRenameⁱ (ηᴸᶜ W) Xᴸ ≡ toRenameⁱ (ηᴿᶜ W) Xᴿ
   → lookupStore (Σᵉ Cᴸ) Xᴸ ⊑ᵀ⟨ W ⟩ lookupStore (Σᵉ Cᴿ) Xᴿ
   → RebaseSourceᶜ W W Xᴸ Xᴿ
 sameWorldRebaseSourceᶜ aligned represented =

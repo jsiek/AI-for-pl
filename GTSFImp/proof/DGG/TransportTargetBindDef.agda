@@ -148,11 +148,11 @@ target-scope-left-commutes : ∀
   → (plan : TargetBindScope ρ γ γ⁺)
   → ∀ X
   → toRenameᵗ (target-scope-center plan)
-      (toRenameᵗ (ηᴸᶜ γ) X)
-    ≡ toRenameᵗ (ηᴸᶜ γ⁺) X
+      (toRenameⁱ (ηᴸᶜ γ) X)
+    ≡ toRenameⁱ (ηᴸᶜ γ⁺) X
 target-scope-left-commutes {γ = γ}
     (target-scope-root fresh eqᴿ) X =
-  toRename-wk-eq (toRenameᵗ (ηᴸᶜ γ) X)
+  toRename-wk-eq (toRenameⁱ (ηᴸᶜ γ) X)
 target-scope-left-commutes (target-scope-term plan p p⁺) X =
   target-scope-left-commutes plan X
 target-scope-left-commutes (target-scope-both plan) Fin.zero = refl
@@ -177,12 +177,12 @@ target-scope-right-commutes : ∀
   → (plan : TargetBindScope ρ γ γ⁺)
   → ∀ Y
   → toRenameᵗ (target-scope-center plan)
-      (toRenameᵗ (ηᴿᶜ γ) Y)
-    ≡ toRenameᵗ (ηᴿᶜ γ⁺) (toRenameᵗ ρ Y)
+      (toRenameⁱ (ηᴿᶜ γ) Y)
+    ≡ toRenameⁱ (ηᴿᶜ γ⁺) (toRenameᵗ ρ Y)
 target-scope-right-commutes {γ = γ}
     (target-scope-root fresh eqᴿ) Y =
-  trans (toRename-wk-eq (toRenameᵗ (ηᴿᶜ γ) Y))
-    (sym (cong (toRenameᵗ (keep (ηᴿᶜ γ)))
+  trans (toRename-wk-eq (toRenameⁱ (ηᴿᶜ γ) Y))
+    (sym (cong (toRenameⁱ (keepⁱ (ηᴿᶜ γ)))
       (toRename-wk-eq Y)))
 target-scope-right-commutes (target-scope-term plan p p⁺) Y =
   target-scope-right-commutes plan Y
@@ -280,11 +280,11 @@ target-scope-source-type : ∀
   → (plan : TargetBindScope ρ γ γ⁺)
   → (A : Ty Δᴸ)
   → renameᵗ (toRenameᵗ (target-scope-center plan))
-      (renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A)
-    ≡ renameᵗ (toRenameᵗ (ηᴸᶜ γ⁺)) A
+      (renameᵗ (toRenameⁱ (ηᴸᶜ γ)) A)
+    ≡ renameᵗ (toRenameⁱ (ηᴸᶜ γ⁺)) A
 target-scope-source-type {γ = γ} plan A =
   trans
-    (renameᵗ-comp (toRenameᵗ (ηᴸᶜ γ))
+    (renameᵗ-comp (toRenameⁱ (ηᴸᶜ γ))
       (toRenameᵗ (target-scope-center plan)) A)
     (renameᵗ-cong A (target-scope-left-commutes plan))
 
@@ -303,17 +303,17 @@ target-scope-target-type : ∀
   → (plan : TargetBindScope ρ γ γ⁺)
   → (B : Ty Δᴿ)
   → renameᵗ (toRenameᵗ (target-scope-center plan))
-      (renameᵗ (toRenameᵗ (ηᴿᶜ γ)) B)
-    ≡ renameᵗ (toRenameᵗ (ηᴿᶜ γ⁺))
+      (renameᵗ (toRenameⁱ (ηᴿᶜ γ)) B)
+    ≡ renameᵗ (toRenameⁱ (ηᴿᶜ γ⁺))
         (renameᵗ (toRenameᵗ ρ) B)
 target-scope-target-type {ρ = ρ} {γ = γ} {γ⁺ = γ⁺} plan B =
   trans
-    (renameᵗ-comp (toRenameᵗ (ηᴿᶜ γ))
+    (renameᵗ-comp (toRenameⁱ (ηᴿᶜ γ))
       (toRenameᵗ (target-scope-center plan)) B)
     (trans
       (renameᵗ-cong B (target-scope-right-commutes plan))
       (sym (renameᵗ-comp (toRenameᵗ ρ)
-        (toRenameᵗ (ηᴿᶜ γ⁺)) B)))
+        (toRenameⁱ (ηᴿᶜ γ⁺)) B)))
 
 
 target-scope-⊑ᵀ : ∀
@@ -334,12 +334,12 @@ target-scope-⊑ᵀ : ∀
 target-scope-⊑ᵀ {ρ = ρ} {γ = γ} {γ⁺ = γ⁺} {A = A} {B = B}
     plan p =
   subst (λ L → marksᶜ γ⁺ ⊢ L ⊑
-      renameᵗ (toRenameᵗ (ηᴿᶜ γ⁺))
+      renameᵗ (toRenameⁱ (ηᴿᶜ γ⁺))
         (renameᵗ (toRenameᵗ ρ) B))
     (target-scope-source-type plan A)
     (subst (λ R → marksᶜ γ⁺ ⊢
         renameᵗ (toRenameᵗ (target-scope-center plan))
-          (renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A) ⊑ R)
+          (renameᵗ (toRenameⁱ (ηᴸᶜ γ)) A) ⊑ R)
       (target-scope-target-type plan B)
       (rename-⊑
         (toRenameᵗ (target-scope-center plan))

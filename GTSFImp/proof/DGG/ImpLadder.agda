@@ -7,9 +7,9 @@ module proof.DGG.ImpLadder where
 --     child and `─` marks a silent side of a one-sided rule.
 --   * Applies application and primitive branch guides symmetrically to the
 --     source and target term columns.
---   * Reserves `♯`-prefixed names for generated term binders, parallel to the
---     `♭`-prefixed type-binder namespace used by WorldSnapshot; supplied name
---     functions must never produce names in either reserved namespace.
+--   * Names generated type binders after the current center population and
+--     term binders `x`, `y`, `z`, `x₁`, ...; default free term variables use
+--     the disjoint `u`, `v`, `w`, `u₁`, ... namespace.
 --   * Derives recursive type-name suppliers from the endpoint and center
 --     embeddings that change their scope sizes.
 --   * Uses WorldSnapshot's unprimed default type names for source/center
@@ -33,7 +33,7 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; cong; sym; trans; subst)
 
 open import Types
-open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
+open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using
   (Conv↑; Conv↓; unseal; _↦↑_; `∀↑_; id↑; seal; _↦↓_;
    `∀↓_; id↓)
@@ -76,13 +76,34 @@ private
     "(" ++ showTyAt depth name A ++ " ⇒ " ++ showTyAt depth name B ++ ")"
   showTyAt depth name (`∀ A) =
     "∀ " ++ showTyAt (suc depth)
-      (extendTyName name ("♭" ++ show depth)) A
+      (extendTyName name (Snapshot.canonicalTyName depth)) A
 
   showTy : ∀ {Δ} → ℕ → (TyVar Δ → String) → Ty Δ → String
   showTy = showTyAt
 
+private
+
+  lowerNameAt : String → String → String → ℕ → ℕ → String
+  lowerNameAt first second third zero zero = first
+  lowerNameAt first second third (suc group) zero =
+    first ++ Snapshot.subscript (suc group)
+  lowerNameAt first second third zero (suc zero) = second
+  lowerNameAt first second third (suc group) (suc zero) =
+    second ++ Snapshot.subscript (suc group)
+  lowerNameAt first second third zero (suc (suc zero)) = third
+  lowerNameAt first second third (suc group) (suc (suc zero)) =
+    third ++ Snapshot.subscript (suc group)
+  lowerNameAt first second third group (suc (suc (suc index))) =
+    lowerNameAt first second third (suc group) index
+
+  termBinderNameAt : ℕ → String
+  termBinderNameAt = lowerNameAt "x" "y" "z" zero
+
+  freeTermNameAt : ℕ → String
+  freeTermNameAt = lowerNameAt "u" "v" "w" zero
+
 defaultTermName : Var → String
-defaultTermName x = "x" ++ show x
+defaultTermName = freeTermNameAt
 
 extendTermName : (Var → String) → String → Var → String
 extendTermName name binder zero = binder
@@ -157,7 +178,7 @@ showTerm : ∀ {Δ}
   → String
 showTerm termDepth tyDepth tyName xName (` x) = xName x
 showTerm termDepth tyDepth tyName xName (ƛ M) =
-  let binder = "♯" ++ show termDepth in
+  let binder = termBinderNameAt termDepth in
   "λ" ++ binder ++ ". " ++
   showTerm (suc termDepth) tyDepth tyName
     (extendTermName xName binder) M
@@ -165,7 +186,7 @@ showTerm termDepth tyDepth tyName xName (L · M) =
   "(" ++ showTerm termDepth tyDepth tyName xName L ++ " · " ++
   showTerm termDepth tyDepth tyName xName M ++ ")"
 showTerm termDepth tyDepth tyName xName (Λ M) =
-  let binder = "♭" ++ show tyDepth in
+  let binder = Snapshot.canonicalTyName tyDepth in
   "Λ" ++ showTerm termDepth (suc tyDepth)
     (extendTyName tyName binder) xName M
 showTerm termDepth tyDepth tyName xName (M ⦂∀ C [ A ]) =
@@ -204,7 +225,7 @@ private
     showCostAt depth name p ++ ", " ++ showCostAt depth name q
   showCostAt depth name (I.∀⊑∀ p) =
     "∀(" ++ showCostAt (suc depth)
-      (extendTyName name ("♭" ++ show depth)) p ++ ")"
+      (extendTyName name (Snapshot.canonicalTyName depth)) p ++ ")"
   showCostAt depth name (I.⇒⊑★ p q) =
     showCostAt depth name p ++ ", " ++ showCostAt depth name q
   showCostAt depth name I.ι⊑★ = "ι⊑★"
@@ -212,11 +233,11 @@ private
     "mark X⊑★ at " ++ name X
   showCostAt depth name (I.∀⊑ Anv occurs p) =
     "∀⊑(" ++ showCostAt (suc depth)
-      (extendTyName name ("♭" ++ show depth)) p ++ ")"
+      (extendTyName name (Snapshot.canonicalTyName depth)) p ++ ")"
   showCostAt depth name I.∀★⊑★ = "∀★⊑★"
   showCostAt depth name (I.∀⊑★ Ans p) =
     "∀⊑★(" ++ showCostAt (suc depth)
-      (extendTyName name ("♭" ++ show depth)) p ++ ")"
+      (extendTyName name (Snapshot.canonicalTyName depth)) p ++ ")"
   showCostAt depth name I.bot-elim = "⊥-elim"
   showCostAt depth name I.bot⊑★ = "⊥⊑★"
 
@@ -268,10 +289,10 @@ makeRow {W = W} {A = A} {B = B}
   row (prefix ++ source)
     (showTy tyDepth nameᴸ A)
     (showTy tyDepth nameᶜ
-      (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A))
+      (renameᵗ (toRenameⁱ (ηᴸᶜ W)) A))
     (addCost (showCost tyDepth nameᶜ p) extra)
     (showTy tyDepth nameᶜ
-      (renameᵗ (toRenameᵗ (ηᴿᶜ W)) B))
+      (renameᵗ (toRenameⁱ (ηᴿᶜ W)) B))
     (showTy tyDepth nameᴿ B)
     (prefix ++ target)
 
@@ -379,7 +400,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.ƛ⊑ƛ² premise) =
-  let binder = "♯" ++ show termDepth in
+  let binder = termBinderNameAt termDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix ("λ" ++ binder ++ ". □")
       ("λ" ++ binder ++ ". □") p "" ∷
@@ -399,7 +420,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.Λ⊑Λ² v v′ premise q) =
-  let binder = "♭" ++ show tyDepth in
+  let binder = Snapshot.canonicalTyName tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "Λ□" "Λ□" p "" ∷
     ladderRows (extendTyName nameᴸ binder)
@@ -409,7 +430,7 @@ ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
 ladderRows {W = W} nameᴸ nameᴿ nameᶜ termDepth tyDepth xName
     prefix childPrefix {A = outA} {B = outB} {p = p}
     (CTI2.Λ⊑² Anv occurs v targetTyping premise q) =
-  let binder = "♭" ++ show tyDepth in
+  let binder = Snapshot.canonicalTyName tyDepth in
   makeRow {W = W} {A = outA} {B = outB}
     nameᴸ nameᴿ nameᶜ tyDepth prefix "Λ□" "─" p "" ∷
     ladderRows (extendTyName nameᴸ binder) nameᴿ
@@ -588,7 +609,7 @@ impLadder : TyNameSupply → TyNameSupply → TyNameSupply → (Var → String)
 impLadder nameᴸ nameᴿ nameᶜ xName {W = W} derivation =
   Snapshot.worldSnapshot nameᴸ nameᴿ W nameᶜ ++ "\n" ++
   renderTable
-    (ladderRows nameᴸ nameᴿ nameᶜ zero zero xName "" "" derivation)
+    (ladderRows nameᴸ nameᴿ nameᶜ zero (centerᶜ W) xName "" "" derivation)
 
 impLadderDefault : ∀ {Γᴸ Γᴿ : Ctx} {W : Γᴸ ⊑ᶜ Γᴿ}
     {M : Term (Δᵉ Γᴸ)} {M′ : Term (Δᵉ Γᴿ)}

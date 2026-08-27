@@ -169,17 +169,17 @@ paired-scope-left-commutes : ∀
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
   → ∀ X
   → toRenameᵗ (paired-scope-center plan)
-      (toRenameᵗ (ηᴸᶜ γ) X)
-    ≡ toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ X)
+      (toRenameⁱ (ηᴸᶜ γ) X)
+    ≡ toRenameⁱ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ X)
 paired-scope-left-commutes {γ = γ}
     (paired-scope-root represented eqᴸ eqᴿ) X =
-  trans (toRename-wk-eq (toRenameᵗ (ηᴸᶜ γ) X))
-    (sym (cong (toRenameᵗ (keep (ηᴸᶜ γ)))
+  trans (toRename-wk-eq (toRenameⁱ (ηᴸᶜ γ) X))
+    (sym (cong (toRenameⁱ (keepⁱ (ηᴸᶜ γ)))
       (toRename-wk-eq X)))
 paired-scope-left-commutes {γ = γ}
     (paired-star-scope-root represented A≢★ eqᴸ eqᴿ) X =
-  trans (toRename-wk-eq (toRenameᵗ (ηᴸᶜ γ) X))
-    (sym (cong (toRenameᵗ (keep (ηᴸᶜ γ)))
+  trans (toRename-wk-eq (toRenameⁱ (ηᴸᶜ γ) X))
+    (sym (cong (toRenameⁱ (keepⁱ (ηᴸᶜ γ)))
       (toRename-wk-eq X)))
 paired-scope-left-commutes (paired-scope-term plan p p⁺) X =
   paired-scope-left-commutes plan X
@@ -205,17 +205,17 @@ paired-scope-right-commutes : ∀
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
   → ∀ Y
   → toRenameᵗ (paired-scope-center plan)
-      (toRenameᵗ (ηᴿᶜ γ) Y)
-    ≡ toRenameᵗ (ηᴿᶜ γ⁺) (toRenameᵗ ρᴿ Y)
+      (toRenameⁱ (ηᴿᶜ γ) Y)
+    ≡ toRenameⁱ (ηᴿᶜ γ⁺) (toRenameᵗ ρᴿ Y)
 paired-scope-right-commutes {γ = γ}
     (paired-scope-root represented eqᴸ eqᴿ) Y =
-  trans (toRename-wk-eq (toRenameᵗ (ηᴿᶜ γ) Y))
-    (sym (cong (toRenameᵗ (keep (ηᴿᶜ γ)))
+  trans (toRename-wk-eq (toRenameⁱ (ηᴿᶜ γ) Y))
+    (sym (cong (toRenameⁱ (keepⁱ (ηᴿᶜ γ)))
       (toRename-wk-eq Y)))
 paired-scope-right-commutes {γ = γ}
     (paired-star-scope-root represented A≢★ eqᴸ eqᴿ) Y =
-  trans (toRename-wk-eq (toRenameᵗ (ηᴿᶜ γ) Y))
-    (sym (cong (toRenameᵗ (keep (ηᴿᶜ γ)))
+  trans (toRename-wk-eq (toRenameⁱ (ηᴿᶜ γ) Y))
+    (sym (cong (toRenameⁱ (keepⁱ (ηᴿᶜ γ)))
       (toRename-wk-eq Y)))
 paired-scope-right-commutes (paired-scope-term plan p p⁺) Y =
   paired-scope-right-commutes plan Y
@@ -378,17 +378,17 @@ paired-scope-source-type : ∀
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
   → (A : Ty Δᴸ)
   → renameᵗ (toRenameᵗ (paired-scope-center plan))
-      (renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A)
-    ≡ renameᵗ (toRenameᵗ (ηᴸᶜ γ⁺))
+      (renameᵗ (toRenameⁱ (ηᴸᶜ γ)) A)
+    ≡ renameᵗ (toRenameⁱ (ηᴸᶜ γ⁺))
         (renameᵗ (toRenameᵗ ρᴸ) A)
 paired-scope-source-type {ρᴸ = ρᴸ} {γ = γ} {γ⁺ = γ⁺} plan A =
   trans
-    (renameᵗ-comp (toRenameᵗ (ηᴸᶜ γ))
+    (renameᵗ-comp (toRenameⁱ (ηᴸᶜ γ))
       (toRenameᵗ (paired-scope-center plan)) A)
     (trans
       (renameᵗ-cong A (paired-scope-left-commutes plan))
       (sym (renameᵗ-comp (toRenameᵗ ρᴸ)
-        (toRenameᵗ (ηᴸᶜ γ⁺)) A)))
+        (toRenameⁱ (ηᴸᶜ γ⁺)) A)))
 
 
 paired-scope-target-type : ∀
@@ -405,17 +405,17 @@ paired-scope-target-type : ∀
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
   → (B : Ty Δᴿ)
   → renameᵗ (toRenameᵗ (paired-scope-center plan))
-      (renameᵗ (toRenameᵗ (ηᴿᶜ γ)) B)
-    ≡ renameᵗ (toRenameᵗ (ηᴿᶜ γ⁺))
+      (renameᵗ (toRenameⁱ (ηᴿᶜ γ)) B)
+    ≡ renameᵗ (toRenameⁱ (ηᴿᶜ γ⁺))
         (renameᵗ (toRenameᵗ ρᴿ) B)
 paired-scope-target-type {ρᴿ = ρᴿ} {γ = γ} {γ⁺ = γ⁺} plan B =
   trans
-    (renameᵗ-comp (toRenameᵗ (ηᴿᶜ γ))
+    (renameᵗ-comp (toRenameⁱ (ηᴿᶜ γ))
       (toRenameᵗ (paired-scope-center plan)) B)
     (trans
       (renameᵗ-cong B (paired-scope-right-commutes plan))
       (sym (renameᵗ-comp (toRenameᵗ ρᴿ)
-        (toRenameᵗ (ηᴿᶜ γ⁺)) B)))
+        (toRenameⁱ (ηᴿᶜ γ⁺)) B)))
 
 
 paired-scope-⊑ᵀ : ∀
@@ -437,12 +437,12 @@ paired-scope-⊑ᵀ : ∀
 paired-scope-⊑ᵀ {ρᴸ = ρᴸ} {ρᴿ = ρᴿ} {γ = γ} {γ⁺ = γ⁺}
     {A = A} {B = B} plan p =
   subst (λ L → marksᶜ γ⁺ ⊢ L ⊑
-      renameᵗ (toRenameᵗ (ηᴿᶜ γ⁺))
+      renameᵗ (toRenameⁱ (ηᴿᶜ γ⁺))
         (renameᵗ (toRenameᵗ ρᴿ) B))
     (paired-scope-source-type plan A)
     (subst (λ R → marksᶜ γ⁺ ⊢
         renameᵗ (toRenameᵗ (paired-scope-center plan))
-          (renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A) ⊑ R)
+          (renameᵗ (toRenameⁱ (ηᴸᶜ γ)) A) ⊑ R)
       (paired-scope-target-type plan B)
       (rename-⊑
         (toRenameᵗ (paired-scope-center plan))

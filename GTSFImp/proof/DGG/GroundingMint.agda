@@ -16,7 +16,6 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong)
 
 open import Types
-open import Consistency using (toRenameᵗ)
 open import Imprecision using (ImpEnv; X⊑X)
 open import CastTerms using (Ctx; Δᵉ)
 open import proof.DGG.World
@@ -32,16 +31,17 @@ import proof.DGG.CompilePreservesImprecision as Compile
 initialWorld-occupied : ∀ {Δ} {μ : ImpEnv Δ}
   → (X : TyVar Δ)
   → Σ[ Y ∈ TyVar Δ ]
-      toRenameᵗ (ηᴿᶜ (initialWorldᶜ μ)) Y
-        ≡ toRenameᵗ (ηᴸᶜ (initialWorldᶜ μ)) X
+      toRenameⁱ (ηᴿᶜ (initialWorldᶜ μ)) Y
+        ≡ toRenameⁱ (ηᴸᶜ (initialWorldᶜ μ)) X
 initialWorld-occupied {μ = μ} X =
-  X , cong (λ η → toRenameᵗ η X) (sym (initialWorld-embeddingsᶜ μ))
+  X , cong (λ eta → toRenameⁱ eta X)
+    (sym (initialWorld-embeddingsᶜ μ))
 
 
 initialWorld-no-see-through-empty : ∀ {Δ} {μ : ImpEnv Δ}
   → (X : TyVar Δ)
-  → (∀ Y → toRenameᵗ (ηᴿᶜ (initialWorldᶜ μ)) Y
-      ≢ toRenameᵗ (ηᴸᶜ (initialWorldᶜ μ)) X)
+  → (∀ Y → toRenameⁱ (ηᴿᶜ (initialWorldᶜ μ)) Y
+      ≢ toRenameⁱ (ηᴸᶜ (initialWorldᶜ μ)) X)
   → ⊥
 initialWorld-no-see-through-empty {μ = μ} X no-target
     with initialWorld-occupied {μ = μ} X
@@ -56,7 +56,7 @@ initialWorld-no-see-through-empty X no-target | Y , aligned =
 target-endpoint-occupied : ∀ {Γᴸ Γᴿ} {γ : Γᴸ ⊑ᶜ Γᴿ}
   → (Y : TyVar (Δᵉ Γᴿ))
   → Σ[ Y′ ∈ TyVar (Δᵉ Γᴿ) ]
-      toRenameᵗ (ηᴿᶜ γ) Y′ ≡ toRenameᵗ (ηᴿᶜ γ) Y
+      toRenameⁱ (ηᴿᶜ γ) Y′ ≡ toRenameⁱ (ηᴿᶜ γ) Y
 target-endpoint-occupied Y = Y , refl
 
 
@@ -64,9 +64,9 @@ no-rebase-precise-source-occupied : ∀ {Γᴸ Γᴿ}
     {γ : Γᴸ ⊑ᶜ Γᴿ}
   → sourceRebaseCountᶜ γ ≡ 0
   → (X : TyVar (Δᵉ Γᴸ))
-  → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) X) ≡ X⊑X
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ X⊑X
   → Σ[ Y ∈ TyVar (Δᵉ Γᴿ) ]
-      toRenameᵗ (ηᴿᶜ γ) Y ≡ toRenameᵗ (ηᴸᶜ γ) X
+      toRenameⁱ (ηᴿᶜ γ) Y ≡ toRenameⁱ (ηᴸᶜ γ) X
 no-rebase-precise-source-occupied {γ = γ} no-rebase X precise =
   preciseMarksAlignedᶜ (directInvariantsᶜ γ no-rebase) X precise
 
@@ -75,10 +75,10 @@ initialContext-precise-source-occupied : ∀ {Δ} {μ : ImpEnv Δ}
     (δ : GTI.CtxImp μ)
   → (X : TyVar Δ)
   → marksᶜ (Compile.initialContextWorld δ)
-      (toRenameᵗ (ηᴸᶜ (Compile.initialContextWorld δ)) X) ≡ X⊑X
+      (toRenameⁱ (ηᴸᶜ (Compile.initialContextWorld δ)) X) ≡ X⊑X
   → Σ[ Y ∈ TyVar Δ ]
-      toRenameᵗ (ηᴿᶜ (Compile.initialContextWorld δ)) Y
-        ≡ toRenameᵗ (ηᴸᶜ (Compile.initialContextWorld δ)) X
+      toRenameⁱ (ηᴿᶜ (Compile.initialContextWorld δ)) Y
+        ≡ toRenameⁱ (ηᴸᶜ (Compile.initialContextWorld δ)) X
 initialContext-precise-source-occupied δ =
   no-rebase-precise-source-occupied
     {γ = Compile.initialContextWorld δ}
@@ -87,8 +87,8 @@ initialContext-precise-source-occupied δ =
 
 source-only-fresh-no-target : ∀ {Γᴸ Γᴿ}
     {γ : Γᴸ ⊑ᶜ Γᴿ}
-  → ∀ Y → toRenameᵗ (ηᴿᶜ (liftLeftᶜ γ)) Y
-      ≢ toRenameᵗ (ηᴸᶜ (liftLeftᶜ γ)) Fin.zero
+  → ∀ Y → toRenameⁱ (ηᴿᶜ (liftLeftᶜ γ)) Y
+      ≢ toRenameⁱ (ηᴸᶜ (liftLeftᶜ γ)) Fin.zero
 source-only-fresh-no-target Y ()
 
 
@@ -96,9 +96,9 @@ no-rebase-precise-see-through-empty : ∀ {Γᴸ Γᴿ}
     {γ : Γᴸ ⊑ᶜ Γᴿ}
   → (no-rebase : sourceRebaseCountᶜ γ ≡ 0)
   → (X : TyVar (Δᵉ Γᴸ))
-  → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) X) ≡ X⊑X
-  → (∀ Y → toRenameᵗ (ηᴿᶜ γ) Y
-      ≢ toRenameᵗ (ηᴸᶜ γ) X)
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ X⊑X
+  → (∀ Y → toRenameⁱ (ηᴿᶜ γ) Y
+      ≢ toRenameⁱ (ηᴸᶜ γ) X)
   → ⊥
 no-rebase-precise-see-through-empty {γ = γ}
     no-rebase X precise no-target

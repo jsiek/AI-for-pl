@@ -161,5 +161,5 @@ private
 variable-obligation-aligns : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
     {X : TyVar (Δᵉ Γᴸ)} {Y : TyVar (Δᵉ Γᴿ)}
   → ＇ X ⊑ᵀ⟨ γ ⟩ ＇ Y
-  → toRenameᵗ (ηᴸᶜ γ) X ≡ toRenameᵗ (ηᴿᶜ γ) Y
+  → toRenameⁱ (ηᴸᶜ γ) X ≡ toRenameⁱ (ηᴿᶜ γ) Y
 variable-obligation-aligns q = variable-imprecision-aligns q

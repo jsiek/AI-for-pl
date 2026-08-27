@@ -19,11 +19,8 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; trans; cong)
   renaming (subst to subst≡)
 
-open import Types using
-  (Ty; TyVar; ★; ⇑ᵗ; renameᵗ; renameᵗ-comp; renameᵗ-cong;
-   renameᵗ-shift)
-open import TyStore using (TyStore; store-bind)
-open import Consistency using (_↪ᵗ_; toRenameᵗ; keep; skip)
+open import Types using (Ty; TyVar; ★; ＇_; ⇑ᵗ; renameᵗ)
+open import TyStore using (TyStore; store-bind; lookupStore)
 open import Imprecision using (X⊑X; X⊑★; _⊢_⊑_)
 import TermCtx as TC
 open TC using (TermCtx)
@@ -32,7 +29,6 @@ import Reduction as R
 open import proof.TypeSafety.Preservation using (applyTermCtx)
 open import proof.ImprecisionConsistency using
   (fin-suc-injective; rename-⊑)
-open import proof.TypeInTermSubst using (toRename-keep-eq)
 open import proof.DGG.World
 
 
@@ -132,22 +128,6 @@ empty-evolution : WorldEvolution
 empty-evolution = evolution-keep
 
 
-renameᵗ-skip-eq : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (A : Ty Δ₀)
-  → renameᵗ (toRenameᵗ (skip η)) A
-    ≡ ⇑ᵗ (renameᵗ (toRenameᵗ η) A)
-renameᵗ-skip-eq η A =
-  trans (renameᵗ-cong A (λ X → refl))
-    (sym (renameᵗ-comp (toRenameᵗ η) Fin.suc A))
-
-
-renameᵗ-keep-shift : ∀ {Δ₀ Δ} (η : Δ₀ ↪ᵗ Δ) (A : Ty Δ₀)
-  → renameᵗ (toRenameᵗ (keep η)) (⇑ᵗ A)
-    ≡ ⇑ᵗ (renameᵗ (toRenameᵗ η) A)
-renameᵗ-keep-shift η A =
-  trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq η))
-    (renameᵗ-shift (toRenameᵗ η) A)
-
-
 evolution-⊑ᵀ : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
     {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
     {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
@@ -161,49 +141,102 @@ evolution-⊑ᵀ {A = C} {B = D}
     (evolution-bind-left {A = A} {W = W} eq) p =
   subst≡
     (λ L → marksᶜ (W ▻ᶜ bind-left-changeᶜ A eq) ⊢ L ⊑
-      renameᵗ (toRenameᵗ (skip (ηᴿᶜ W))) D)
-    (sym (renameᵗ-keep-shift (ηᴸᶜ W) C))
+      renameᵗ (toRenameⁱ (skipⁱ (ηᴿᶜ W))) D)
+    (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) C))
     (subst≡
       (λ T → marksᶜ (W ▻ᶜ bind-left-changeᶜ A eq) ⊢
-        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) C) ⊑ T)
-      (sym (renameᵗ-skip-eq (ηᴿᶜ W) D))
+        ⇑ᵗ (renameᵗ (toRenameⁱ (ηᴸᶜ W)) C) ⊑ T)
+      (sym (renameᵗ-skipⁱ (ηᴿᶜ W) D))
       (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
 evolution-⊑ᵀ {A = C} {B = D}
     (evolution-bind-right {B = B} {W = W} fresh eq) p =
   subst≡
     (λ L → marksᶜ (W ▻ᶜ bind-right-changeᶜ B fresh eq) ⊢
-      L ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W))) (⇑ᵗ D))
-    (sym (renameᵗ-skip-eq (ηᴸᶜ W) C))
+      L ⊑ renameᵗ (toRenameⁱ (keepⁱ (ηᴿᶜ W))) (⇑ᵗ D))
+    (sym (renameᵗ-skipⁱ (ηᴸᶜ W) C))
     (subst≡
       (λ T → marksᶜ (W ▻ᶜ bind-right-changeᶜ B fresh eq) ⊢
-        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) C) ⊑ T)
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) D))
+        ⇑ᵗ (renameᵗ (toRenameⁱ (ηᴸᶜ W)) C) ⊑ T)
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) D))
       (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
 evolution-⊑ᵀ {A = A} {B = B}
     (evolution-bind-both {W = W} represented eqᴸ eqᴿ) p =
   subst≡
     (λ L → marksᶜ (W ▻ᶜ bind-both-changeᶜ represented eqᴸ eqᴿ)
-      ⊢ L ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W))) (⇑ᵗ B))
-    (sym (renameᵗ-keep-shift (ηᴸᶜ W) A))
+      ⊢ L ⊑ renameᵗ (toRenameⁱ (keepⁱ (ηᴿᶜ W))) (⇑ᵗ B))
+    (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) A))
     (subst≡
       (λ T →
         marksᶜ (W ▻ᶜ bind-both-changeᶜ represented eqᴸ eqᴿ) ⊢
-        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) ⊑ T)
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) B))
+        ⇑ᵗ (renameᵗ (toRenameⁱ (ηᴸᶜ W)) A) ⊑ T)
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) B))
       (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
+
+
 evolution-⊑ᵀ {A = A} {B = B}
     (evolution-bind-both-star {W = W} represented A≠★ eqᴸ eqᴿ) p =
   subst≡
     (λ L → marksᶜ
       (W ▻ᶜ bind-both-star-changeᶜ represented A≠★ eqᴸ eqᴿ) ⊢
-      L ⊑ renameᵗ (toRenameᵗ (keep (ηᴿᶜ W))) (⇑ᵗ B))
-    (sym (renameᵗ-keep-shift (ηᴸᶜ W) A))
+      L ⊑ renameᵗ (toRenameⁱ (keepⁱ (ηᴿᶜ W))) (⇑ᵗ B))
+    (sym (renameᵗ-keep-shiftⁱ (ηᴸᶜ W) A))
     (subst≡
       (λ T → marksᶜ
         (W ▻ᶜ bind-both-star-changeᶜ represented A≠★ eqᴸ eqᴿ) ⊢
-        ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) ⊑ T)
-      (sym (renameᵗ-keep-shift (ηᴿᶜ W) B))
+        ⇑ᵗ (renameᵗ (toRenameⁱ (ηᴸᶜ W)) A) ⊑ T)
+      (sym (renameᵗ-keep-shiftⁱ (ηᴿᶜ W) B))
       (rename-⊑ Fin.suc fin-suc-injective (λ X mark → mark) p))
+
+
+evolution-can-rebase-source : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
+    {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)}
+    {Xᴿ : TyVar (CastTerms.Δᵉ Cᴿ)}
+  → (evolution : WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ)
+  → PivotUpdateᵗ
+      (ηᴸᶜ W) Xᴸ (toRenameⁱ (ηᴿᶜ W) Xᴿ)
+  → PivotUpdateᵗ
+      (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
+      (toRenameⁱ (ηᴿᶜ W′)
+        (R.applyVar (storeChange stepᴿ) Xᴿ))
+evolution-can-rebase-source evolution-keep ok = ok
+evolution-can-rebase-source (evolution-bind-left eqᴸ) ok =
+  pivotUpdate-keepᵗ ok
+evolution-can-rebase-source (evolution-bind-right fresh eqᴿ) ok =
+  pivotUpdate-skipᵗ ok
+evolution-can-rebase-source
+    (evolution-bind-both represented eqᴸ eqᴿ) ok =
+  pivotUpdate-keepᵗ ok
+evolution-can-rebase-source
+    (evolution-bind-both-star represented A≠★ eqᴸ eqᴿ) ok =
+  pivotUpdate-keepᵗ ok
+
+
+evolution-source-represented : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
+    {W : Cᴸ ⊑ᶜ Cᴿ} {W′ : Cᴸ′ ⊑ᶜ Cᴿ′}
+    {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
+    {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)}
+    {Xᴿ : TyVar (CastTerms.Δᵉ Cᴿ)}
+  → (evolution : WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ)
+  → (＇ Xᴸ) ⊑ᵀ⟨ W ⟩ lookupStore (Σᵉ Cᴿ) Xᴿ
+  → (＇ R.applyVar (storeChange stepᴸ) Xᴸ) ⊑ᵀ⟨ W′ ⟩
+      lookupStore (Σᵉ Cᴿ′)
+        (R.applyVar (storeChange stepᴿ) Xᴿ)
+evolution-source-represented evolution-keep represented = represented
+evolution-source-represented
+    evolution@(evolution-bind-left eqᴸ) represented =
+  evolution-⊑ᵀ evolution represented
+evolution-source-represented
+    evolution@(evolution-bind-right fresh eqᴿ) represented =
+  evolution-⊑ᵀ evolution represented
+evolution-source-represented
+    evolution@(evolution-bind-both paired eqᴸ eqᴿ) represented =
+  evolution-⊑ᵀ evolution represented
+evolution-source-represented
+    evolution@(evolution-bind-both-star paired A≠★ eqᴸ eqᴿ)
+    represented =
+  evolution-⊑ᵀ evolution represented
 
 
 evolution-aligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
@@ -212,9 +245,9 @@ evolution-aligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
     {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)}
     {Xᴿ : TyVar (CastTerms.Δᵉ Cᴿ)}
   → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
-  → toRenameᵗ (ηᴸᶜ W) Xᴸ ≡ toRenameᵗ (ηᴿᶜ W) Xᴿ
-  → toRenameᵗ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
-    ≡ toRenameᵗ (ηᴿᶜ W′) (R.applyVar (storeChange stepᴿ) Xᴿ)
+  → toRenameⁱ (ηᴸᶜ W) Xᴸ ≡ toRenameⁱ (ηᴿᶜ W) Xᴿ
+  → toRenameⁱ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
+    ≡ toRenameⁱ (ηᴿᶜ W′) (R.applyVar (storeChange stepᴿ) Xᴿ)
 evolution-aligned evolution-keep aligned = aligned
 evolution-aligned (evolution-bind-left eqᴸ) aligned =
   cong Fin.suc aligned
@@ -232,9 +265,9 @@ evolution-source-mark : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
     {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
     {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)} {v}
   → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
-  → marksᶜ W (toRenameᵗ (ηᴸᶜ W) Xᴸ) ≡ v
+  → marksᶜ W (toRenameⁱ (ηᴸᶜ W) Xᴸ) ≡ v
   → marksᶜ W′
-      (toRenameᵗ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)) ≡ v
+      (toRenameⁱ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)) ≡ v
 evolution-source-mark evolution-keep mark = mark
 evolution-source-mark (evolution-bind-left eqᴸ) mark = mark
 evolution-source-mark (evolution-bind-right fresh eqᴿ) mark = mark
@@ -250,9 +283,9 @@ evolution-source-disaligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′}
     {stepᴸ : CtxChange Cᴸ Cᴸ′} {stepᴿ : CtxChange Cᴿ Cᴿ′}
     {Xᴸ : TyVar (CastTerms.Δᵉ Cᴸ)}
   → WorldEvolution {W = W} {W′ = W′} stepᴸ stepᴿ
-  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ W) Xᴿ ≢ toRenameᵗ (ηᴸᶜ W) Xᴸ)
-  → ∀ Xᴿ′ → toRenameᵗ (ηᴿᶜ W′) Xᴿ′
-      ≢ toRenameᵗ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
+  → (∀ Xᴿ → toRenameⁱ (ηᴿᶜ W) Xᴿ ≢ toRenameⁱ (ηᴸᶜ W) Xᴸ)
+  → ∀ Xᴿ′ → toRenameⁱ (ηᴿᶜ W′) Xᴿ′
+      ≢ toRenameⁱ (ηᴸᶜ W′) (R.applyVar (storeChange stepᴸ) Xᴸ)
 evolution-source-disaligned evolution-keep free = free
 evolution-source-disaligned (evolution-bind-left eqᴸ) free Xᴿ aligned =
   free Xᴿ (fin-suc-injective aligned)

@@ -21,7 +21,6 @@ open import Relation.Binary.PropositionalEquality
 import TermCtx as TC
 open import Types using (Ty; TyVar; TyCtx)
 open import TyStore using (TyStore)
-open import Consistency using (toRenameᵗ)
 import Conversion as Conv
 open import CastTerms using (Term; ⇑ᵗᵐ; Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ)
 import Reduction as R
@@ -226,9 +225,9 @@ multi-aligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
     {Xᴸ : TyVar (Δᵉ Cᴸ)} {Xᴿ : TyVar (Δᵉ Cᴿ)}
   → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
-  → toRenameᵗ (ηᴸᶜ W) Xᴸ ≡ toRenameᵗ (ηᴿᶜ W) Xᴿ
-  → toRenameᵗ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)
-      ≡ toRenameᵗ (ηᴿᶜ W′) (applyVars χsᴿ Xᴿ)
+  → toRenameⁱ (ηᴸᶜ W) Xᴸ ≡ toRenameⁱ (ηᴿᶜ W) Xᴿ
+  → toRenameⁱ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)
+      ≡ toRenameⁱ (ηᴿᶜ W′) (applyVars χsᴿ Xᴿ)
 multi-aligned evolutions-refl aligned = aligned
 multi-aligned {Xᴸ = Xᴸ}
     (evolutions-step-left {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}
@@ -255,9 +254,9 @@ multi-source-mark : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
     {Xᴸ : TyVar (Δᵉ Cᴸ)} {v}
   → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
-  → marksᶜ W (toRenameᵗ (ηᴸᶜ W) Xᴸ) ≡ v
+  → marksᶜ W (toRenameⁱ (ηᴸᶜ W) Xᴸ) ≡ v
   → marksᶜ W′
-      (toRenameᵗ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)) ≡ v
+      (toRenameⁱ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)) ≡ v
 multi-source-mark evolutions-refl mark = mark
 multi-source-mark {Xᴸ = Xᴸ}
     (evolutions-step-left {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}
@@ -279,9 +278,9 @@ multi-source-disaligned : ∀ {Cᴸ Cᴿ Cᴸ′ Cᴿ′ : Ctx}
     {χsᴿ : StoreChanges (Δᵉ Cᴿ) (Δᵉ Cᴿ′)}
     {Xᴸ : TyVar (Δᵉ Cᴸ)}
   → MultiWorldEvolution {W = W} {W′ = W′} χsᴸ χsᴿ
-  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ W) Xᴿ ≢ toRenameᵗ (ηᴸᶜ W) Xᴸ)
-  → ∀ Xᴿ′ → toRenameᵗ (ηᴿᶜ W′) Xᴿ′
-      ≢ toRenameᵗ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)
+  → (∀ Xᴿ → toRenameⁱ (ηᴿᶜ W) Xᴿ ≢ toRenameⁱ (ηᴸᶜ W) Xᴸ)
+  → ∀ Xᴿ′ → toRenameⁱ (ηᴿᶜ W′) Xᴿ′
+      ≢ toRenameⁱ (ηᴸᶜ W′) (applyVars χsᴸ Xᴸ)
 multi-source-disaligned evolutions-refl free = free
 multi-source-disaligned {Xᴸ = Xᴸ}
     (evolutions-step-left {χsᴸ = χsᴸ} {stepᴸ = stepᴸ}

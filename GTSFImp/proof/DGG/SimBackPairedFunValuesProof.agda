@@ -162,8 +162,8 @@ module _
       {X : TyVar Δᴸ} {R : Ty Δᴸ}
       {p : A ⊑ᵀ⟨ γ ⟩ B} {c : Conv.Conv↑ Δᴸ A A′}
     → (c⊢ : Σᴸ Conv.⊢↑[ X ⦂ R ] c)
-    → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) X) ≡ X⊑★ᵐ
-    → (∀ Y → toRenameᵗ (ηᴿᶜ γ) Y ≢ toRenameᵗ (ηᴸᶜ γ) X)
+    → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ X⊑★ᵐ
+    → (∀ Y → toRenameⁱ (ηᴿᶜ γ) Y ≢ toRenameⁱ (ηᴸᶜ γ) X)
     → R ⊑ᵀ⟨ γ ⟩ ★
     → γ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
@@ -211,8 +211,8 @@ module _
       {X : TyVar Δᴸ} {R : Ty Δᴸ}
       {p : A ⊑ᵀ⟨ γ ⟩ B} {c : Conv.Conv↓ Δᴸ A A′}
     → (c⊢ : Σᴸ Conv.⊢↓[ X ⦂ R ] c)
-    → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) X) ≡ X⊑★ᵐ
-    → (∀ Y → toRenameᵗ (ηᴿᶜ γ) Y ≢ toRenameᵗ (ηᴸᶜ γ) X)
+    → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ X⊑★ᵐ
+    → (∀ Y → toRenameⁱ (ηᴿᶜ γ) Y ≢ toRenameⁱ (ηᴸᶜ γ) X)
     → R ⊑ᵀ⟨ γ ⟩ ★
     → γ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵀ⟨ γ ⟩ B)

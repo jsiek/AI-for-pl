@@ -25,7 +25,6 @@ open import Consistency using
   (Env∼; _⊢_∼_; _⊢_∼★; _↪ᵗ_; keep; skip; toRenameᵗ;
    id; _!; ∀ᶜ_; gen_; inst_)
 import Consistency as C
-import proof.Consistency as PC
 open import Conversion using
   (Conv↑; Conv↓; `∀↑_; `∀↓_; _↦↑_; _↦↓_;
    ⊢↓-seal)
@@ -36,6 +35,7 @@ open import Reduction
 import Conversion as Conv
 import proof.DGG.CastTermImprecision as CTI2
 import proof.DGG.Inversion.SpineValueDef as SVD
+import proof.DGG.InjectionConsistency as IC
 import proof.DGG.TagTransport as TT
 open import proof.DGG.World
 open CTI2 using (_⊢²_⊑_∶_)
@@ -44,12 +44,9 @@ open SVD using
    sv-reveal-fun; sv-conceal-fun; sv-reveal-all; sv-conceal-all;
    variable-obligation-aligns)
 open import proof.ImprecisionConsistency using
-  (ground-cast-source⊑; source-occurs-target; rename-occurs;
-   ext-injective; toRenameᵗ-injective; nonstar-from-≢★; rename-⊑;
-   fin-suc-injective; nonvar-occurs-nonstar; all-ground-body)
+  (ground-cast-source⊑; rename-occurs; ext-injective;
+   nonstar-from-≢★; all-ground-body)
 import proof.Imprecision as PI
-open import proof.TypeInTermSubst using
-  (toRename-keep-eq; renameᵗ-skip-eq)
 open import proof.DGG.Inversion.RightInjInversion2Def using
   (RightInjInversion²)
 
@@ -62,14 +59,15 @@ module _ where
   lift-left-body : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
       {A : Ty (suc (Δᵉ Γᴸ))} {B : Ty (Δᵉ Γᴿ)}
     → instᵐ (marksᶜ γ) ⊢
-        renameᵗ (extᵗ (toRenameᵗ (ηᴸᶜ γ))) A
-          ⊑ ⇑ᵗ (renameᵗ (toRenameᵗ (ηᴿᶜ γ)) B)
+        renameᵗ (extᵗ (toRenameⁱ (ηᴸᶜ γ))) A
+          ⊑ ⇑ᵗ (renameᵗ (toRenameⁱ (ηᴿᶜ γ)) B)
     → A ⊑ᵀ⟨ liftLeftᶜ γ ⟩ B
   lift-left-body {γ = γ} {A = A} body =
     subst≡ (λ Bᶜ → _ ⊢ _ ⊑ Bᶜ)
-      (sym (renameᵗ-skip-eq (ηᴿᶜ γ) _))
+      (sym (renameᵗ-skipⁱ (ηᴿᶜ γ) _))
       (subst≡ (λ Aᶜ → _ ⊢ Aᶜ ⊑ _)
-        (sym (renameᵗ-cong A (toRename-keep-eq (ηᴸᶜ γ)))) body)
+        (sym (renameᵗ-cong A
+          (λ { Fin.zero → refl; (Fin.suc X) → refl }))) body)
 
   right-inj-inversion² : RightInjInversion²
 
@@ -114,8 +112,9 @@ module _ where
       vN (CTI2.cast⊑² {p = p₀} .(∀ᶜ c₁) prem q₀) q =
     CTI2.cast⊑² (∀ᶜ c₁)
       (right-inj-inversion² sv vN prem
-        (ground-cast-source⊑ (PC.renameGroundᵐ (ηᴿᶜ γ) gH) nonstar-∀
-          (C.renameᵐᶜ (ηᴸᶜ γ) (∀ᶜ c₁)) p₀ q₀ q))
+        (ground-cast-source⊑
+          (C.renameGround (toRenameⁱ (ηᴿᶜ γ)) gH) nonstar-∀
+          (IC.rename∼ⁱ (ηᴸᶜ γ) (∀ᶜ c₁)) p₀ q₀ q))
       q
 
   -- Source-only generalization cast: same, with the gen tag's source.
@@ -124,10 +123,11 @@ module _ where
       vN (CTI2.cast⊑² {p = p₀} c prem q₀) q =
     CTI2.cast⊑² c
       (right-inj-inversion² sv vN prem
-        (ground-cast-source⊑ (PC.renameGroundᵐ (ηᴿᶜ γ) gH)
-          (C.renameNonStar (toRenameᵗ (ηᴸᶜ γ))
+        (ground-cast-source⊑
+          (C.renameGround (toRenameⁱ (ηᴿᶜ γ)) gH)
+          (C.renameNonStar (toRenameⁱ (ηᴸᶜ γ))
             (nonstar-from-≢★ A≢★))
-          (C.renameᵐᶜ (ηᴸᶜ γ) c) p₀ q₀ q))
+          (IC.rename∼ⁱ (ηᴸᶜ γ) c) p₀ q₀ q))
       q
 
 
@@ -139,10 +139,10 @@ module _ where
       (right-inj-inversion² sv vN prem
         (lift-left-body {γ = γ} {A = A} {B = H}
           (all-ground-body
-            (renameNonVar (extᵗ (toRenameᵗ (ηᴸᶜ γ))) Anv)
-            (rename-occurs (extᵗ (toRenameᵗ (ηᴸᶜ γ)))
-              (ext-injective (toRenameᵗ-injective (ηᴸᶜ γ))) zero∈A)
-            (PC.renameGroundᵐ (ηᴿᶜ γ) gH) q)))
+            (renameNonVar (extᵗ (toRenameⁱ (ηᴸᶜ γ))) Anv)
+            (rename-occurs (extᵗ (toRenameⁱ (ηᴸᶜ γ)))
+              (ext-injective (toRenameⁱ-injective (ηᴸᶜ γ))) zero∈A)
+            (C.renameGround (toRenameⁱ (ηᴿᶜ γ)) gH) q)))
       q
 
   -- Function-shaped reveal: the premise's ⇒⊑★ components rebuild the
@@ -215,8 +215,8 @@ module _ where
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-fun c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ∀★} (sv-reveal-all sv) vN
@@ -226,8 +226,8 @@ module _ where
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-all c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ‵ ι} (sv-reveal-all sv) vN
@@ -235,14 +235,14 @@ module _ where
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-ι-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   right-inj-inversion² {γ = γ} {gH = ＇ Y} (sv-reveal-all sv) vN
       (CTI2.reveal⊑-identity {p = p₀} (Conv.⊢↑-∀ refl c⊢)
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-var-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   right-inj-inversion² {γ = γ} {gH = ★⇒★}
       (sv-reveal-all sv) vN
@@ -252,8 +252,8 @@ module _ where
       position≠absent dynamic no-target represented
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-fun c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ∀★} (sv-reveal-all sv) vN
@@ -263,8 +263,8 @@ module _ where
       position≠absent dynamic no-target represented
       (right-inj-inversion² sv vN prem
         (TT.transport↑-∀-all c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ‵ ι} (sv-reveal-all sv) vN
@@ -272,14 +272,14 @@ module _ where
         position≠absent dynamic no-target represented prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-ι-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   right-inj-inversion² {γ = γ} {gH = ＇ Y} (sv-reveal-all sv) vN
       (CTI2.reveal⊑-only² {p = p₀} (Conv.⊢↑-∀ refl c⊢)
         position≠absent dynamic no-target represented prem q₀) q =
     ⊥-elim
       (TT.transport↑-∀-var-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   -- Universal conceal: the dual transport has the same obligations, while
   -- the variable-rebase decay uses conceal's opposite rebase orientation.
@@ -291,8 +291,8 @@ module _ where
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-fun c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ∀★}
@@ -303,8 +303,8 @@ module _ where
       position≡absent
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-all c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ‵ ι}
@@ -313,14 +313,14 @@ module _ where
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-ι-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   right-inj-inversion² {γ = γ} {gH = ＇ Y} (sv-conceal-all sv) vN
       (CTI2.conceal⊑-identity {p = p₀} (Conv.⊢↓-∀ refl c⊢)
         position≡absent prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-var-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   right-inj-inversion² {γ = γ} {gH = ★⇒★}
       (sv-conceal-all sv) vN
@@ -330,8 +330,8 @@ module _ where
       dynamic no-target represented
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-fun c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ∀★}
@@ -342,8 +342,8 @@ module _ where
       dynamic no-target represented
       (right-inj-inversion² sv vN prem
         (TT.transport↓-∀-all c⊢
-          (toRenameᵗ-injective (ηᴸᶜ γ))
-          (toRenameᵗ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
+          (toRenameⁱ-injective (ηᴸᶜ γ))
           p₀ q))
       q
   right-inj-inversion² {γ = γ} {gH = ‵ ι}
@@ -352,14 +352,14 @@ module _ where
         position≠absent dynamic no-target represented prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-ι-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   right-inj-inversion² {γ = γ} {gH = ＇ Y} (sv-conceal-all sv) vN
       (CTI2.conceal⊑-only² {p = p₀} (Conv.⊢↓-∀ refl c⊢)
         position≠absent dynamic no-target represented prem q₀) q =
     ⊥-elim
       (TT.transport↓-∀-var-⊥ c⊢
-        (toRenameᵗ-injective (ηᴸᶜ γ)) (toRenameᵗ-injective (ηᴸᶜ γ))
+        (toRenameⁱ-injective (ηᴸᶜ γ)) (toRenameⁱ-injective (ηᴸᶜ γ))
         p₀ q)
   -- Bare unmatched source seal.
   right-inj-inversion² {gH = ‵ ι} (sv-seal sv) vN

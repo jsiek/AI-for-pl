@@ -49,7 +49,7 @@ SimPairedRevealClosingᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
   → (c⊢ : Σᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
   → (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
   → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
-  → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+  → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≡ toRenameⁱ (ηᴿᶜ γ) Xᴿ
   → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
   → γ ⊢² V ⊑ M′ ∶ p
   → (q : B ⊑ᵀ⟨ γ ⟩ B′)

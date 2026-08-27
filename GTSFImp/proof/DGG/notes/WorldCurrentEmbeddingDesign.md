@@ -24,26 +24,26 @@ the nested target reveals in Example 12.
 
 At checkpoint C1, the target allocation history is fixed:
 
-    alpha maps to star
-    beta maps to alpha
+    X₁′ maps to star
+    Z′ maps to X₁′
 
 The source variable `X` occupies three successive current positions:
 
-    outside both reveals: X is not aligned with alpha or beta
-    inside alpha reveal:  X is aligned with alpha
-    inside beta reveal:   X is aligned with beta
+    outside both reveals: X is not aligned with X₁′ or Z′
+    inside the X₁′ reveal: X is aligned with X₁′
+    inside the Z′ reveal:  X is aligned with Z′
 
-The beta representation comparison and beta variable alignment occur in
+The `Z′` representation comparison and `Z′` variable alignment occur in
 different worlds:
 
-    before beta reveal:
-      X is aligned with alpha
-      representation(beta) = alpha
-      therefore X is imprecise to representation(beta)
+    before the Z′ reveal:
+      X is aligned with X₁′
+      representation(Z′) = X₁′
+      therefore X is imprecise to representation(Z′)
 
-    after beta reveal:
-      X is aligned with beta
-      therefore X and beta may be compared in the reveal body
+    after the Z′ reveal:
+      X is aligned with Z′
+      therefore X and Z′ may be compared in the reveal body
 
 Trying to state both facts using one source embedding is the source of the
 earlier tension.
@@ -64,8 +64,8 @@ The former definition derived every view from the same constructor history:
       bind-termᶜ
 
     centerᶜ : Γᴸ ⊑ᶜ Γᴿ -> TyCtx
-    ηᴸᶜ     : (γ : Γᴸ ⊑ᶜ Γᴿ) -> Δᵉ Γᴸ ↪ᵗ centerᶜ γ
-    ηᴿᶜ     : (γ : Γᴸ ⊑ᶜ Γᴿ) -> Δᵉ Γᴿ ↪ᵗ centerᶜ γ
+    ηᴸᶜ     : (γ : Γᴸ ⊑ᶜ Γᴿ) -> Injectionᵗ (Δᵉ Γᴸ) (centerᶜ γ)
+    ηᴿᶜ     : (γ : Γᴸ ⊑ᶜ Γᴿ) -> Injectionᵗ (Δᵉ Γᴿ) (centerᶜ γ)
     marksᶜ  : (γ : Γᴸ ⊑ᶜ Γᴿ) -> ImpEnv (centerᶜ γ)
 
 ## Separating history from changes
@@ -95,8 +95,8 @@ The probe defines a total `world-sequence` translation over every constructor
 of the current live world. Its example checks compute:
 
     Example 4 matched world                 1 change
-    Example 12 alpha allocation             1 change
-    Example 12 beta alias allocation        2 changes
+    Example 12 X₁′ allocation               1 change
+    Example 12 Z′ alias allocation          2 changes
     Example 12 C1 outside-scope world       3 changes
     Example 12 C5 runtime world             3 changes
 
@@ -112,17 +112,32 @@ The additional change needed for reveal is:
         (γ : Γᴸ ⊑ᶜ Γᴿ)
       -> (X : TyVar (Δᵉ Γᴸ))
       -> (Y : TyVar (Δᵉ Γᴿ))
-      -> CanRebaseSourceᵗ
-           (ηᴸᶜ γ) X (toRenameᵗ (ηᴿᶜ γ) Y)
+      -> PivotUpdateᵗ
+           (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y)
       -> (＇ X) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Y
       -> Γᴸ ⊑ᶜ Γᴿ
 
-Here `ηᴸᶜ` means the current source embedding. `CanRebaseSourceᵗ` is structural
-admissibility evidence: delete `X` from the old thinning, then insert it at
-the center position occupied by `Y`. The insertion exists exactly when that
-replacement remains order preserving. The last premise is the direct
-representation comparison in the predecessor world. The resulting embedding
-is interpreted by `rebaseSourceEmbeddingᵗ`; it is not stored in the change.
+Here `ηᴸᶜ` means the current source injection. `PivotUpdateᵗ` stores the new
+source injection, proves that `X` moves to the center position occupied by
+`Y`, and proves that every other source image stays fixed. The last premise is
+the direct representation comparison in the predecessor world.
+
+An order-preserving source thinning is too restrictive. The checked source
+pair in `notes/SourceBindLiftLeftTrustedProbe.agda` reaches a protected-binder
+checkpoint where allocation leaves the source images
+
+    X ↦ X, Y ↦ Y
+
+and the next reveal must rebase `X` to the target pivot at center 3 while
+preserving the fresh allocation:
+
+    X ↦ X₁, Y ↦ Y
+
+This map is injective but not order preserving. The live reconstruction in
+`notes/ArbitraryInjectionWorldProbe.agda` checks both the source-only and
+paired-allocation versions of this counterexample. Actual syntax weakening,
+allocation changes, and center changes remain order-preserving embeddings;
+only the two endpoint-to-center maps are arbitrary injections.
 
 The old extensional premises are now derived theorems:
 
@@ -168,8 +183,8 @@ The checked live probes establish the following cases:
 
 - Example 4's matched `Nat`/star allocation is already aligned and therefore
   uses paired reveal/conceal without a rebase;
-- Example 12's outside-to-alpha edge;
-- Example 12's alpha-to-beta edge;
+- Example 12's outside-to-`X₁′` edge;
+- Example 12's `X₁′`-to-`Z′` edge;
 - the same two Example 12 edges after the paired runtime `Nat` allocation;
 - target embeddings and marks remain frozen across the two rebases;
 - representation comparison holds in the predecessor world while body
@@ -181,8 +196,8 @@ Term and type imprecision always use the current embeddings:
 
     A ⊑ᵀ⟨ γ ⟩ B =
       marksᶜ γ ⊢
-        renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A ⊑
-        renameᵗ (toRenameᵗ (ηᴿᶜ γ)) B
+        renameᵗ (toRenameⁱ (ηᴸᶜ γ)) A ⊑
+        renameᵗ (toRenameⁱ (ηᴿᶜ γ)) B
 
 In particular, `bind-term` must store its argument comparison in the current
 world. It must not silently revert to the predecessor allocation embedding.
@@ -195,12 +210,12 @@ A reveal boundary uses two worlds:
     γ-after = revealWorld γ-before s
       checks the recursively related terms and their result types
 
-For Example 12's beta reveal:
+For Example 12's inner `Z′` reveal:
 
-    γ-before aligns X with alpha
-    γ-after aligns X with beta
+    γ-before aligns X with X₁′
+    γ-after aligns X with Z′
 
-This is why the beta representation comparison succeeds before the rebase and
+This is why the `Z′` representation comparison succeeds before the rebase and
 fails if it is incorrectly repeated after the rebase.
 
 `representationsImprecise` should remain, but its current unrestricted
@@ -215,9 +230,9 @@ store-entry invariant.
 
 ## Allocation history is not replayed
 
-The target alias `beta maps to alpha` was fresh when it was allocated. After
-rebasing `X` to alpha, repeating that old freshness check is false. Therefore a
-rebase must not rebuild the target bind constructors in a new order.
+The target alias `Z′ maps to X₁′` was fresh when it was allocated. After
+rebasing `X` to `X₁′`, repeating that old freshness check is false. Therefore
+a rebase must not rebuild the target bind constructors in a new order.
 
 Appending a source-rebase change preserves the preceding allocation evidence
 verbatim. Later allocations append further changes; lifting a rebase through
@@ -239,5 +254,5 @@ No target rebase should be added without a trusted example that requires it.
 The live CTI now uses its world as an index. Target reveal appends one source
 rebase change and target conceal removes that exact outer change by inversion.
 Example 4 remains in one world through paired reveal/conceal; Example 12 C1
-checks the outside-to-alpha and alpha-to-beta target reveals and has a pinned
+checks the outside-to-`X₁′` and `X₁′`-to-`Z′` target reveals and has a pinned
 generated ladder.

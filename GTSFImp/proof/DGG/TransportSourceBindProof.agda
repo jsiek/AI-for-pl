@@ -31,7 +31,7 @@ open import proof.DGG.ConversionPivotAlignment using
   (revealGeneratorPosition; concealGeneratorPosition;
    revealGeneratorPosition-rename; concealGeneratorPosition-rename)
 open import proof.DGG.World using
-  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ)
+  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ; toRenameⁱ)
 open import proof.DGG.TransportTermImprecisionStepDef using
   (TransportSourceBindᵀ)
 open import proof.DGG.TransportSourceBindDef using
@@ -86,9 +86,9 @@ source-scope-aligned : ∀
       CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Xᴸ : Types.TyVar Δᴸ} {Xᴿ : Types.TyVar Δᴿ}
   → (plan : SourceBindScope ρ γ γ⁺)
-  → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
-  → toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρ Xᴸ)
-    ≡ toRenameᵗ (ηᴿᶜ γ⁺) Xᴿ
+  → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≡ toRenameⁱ (ηᴿᶜ γ) Xᴿ
+  → toRenameⁱ (ηᴸᶜ γ⁺) (toRenameᵗ ρ Xᴸ)
+    ≡ toRenameⁱ (ηᴿᶜ γ⁺) Xᴿ
 source-scope-aligned plan aligned =
   trans (sym (source-scope-left-commutes plan _))
     (trans (cong (toRenameᵗ (source-scope-center plan)) aligned)
@@ -107,9 +107,9 @@ source-scope-source-mark : ∀
       CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Xᴸ : Types.TyVar Δᴸ} {v}
   → (plan : SourceBindScope ρ γ γ⁺)
-  → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ v
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) Xᴸ) ≡ v
   → marksᶜ γ⁺
-      (toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρ Xᴸ)) ≡ v
+      (toRenameⁱ (ηᴸᶜ γ⁺) (toRenameᵗ ρ Xᴸ)) ≡ v
 source-scope-source-mark {γ⁺ = γ⁺} {Xᴸ = Xᴸ} plan mark =
   trans
     (cong (marksᶜ γ⁺) (sym (source-scope-left-commutes plan Xᴸ)))
@@ -128,10 +128,10 @@ source-scope-source-disaligned : ∀
       CastTerms.⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
     {Xᴸ : Types.TyVar Δᴸ}
   → (plan : SourceBindScope ρ γ γ⁺)
-  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
-      ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
-  → ∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ⁺) Xᴿ
-      ≢ toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρ Xᴸ)
+  → (∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ) Xᴿ
+      ≢ toRenameⁱ (ηᴸᶜ γ) Xᴸ)
+  → ∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ⁺) Xᴿ
+      ≢ toRenameⁱ (ηᴸᶜ γ⁺) (toRenameᵗ ρ Xᴸ)
 source-scope-source-disaligned plan free Xᴿ aligned =
   free Xᴿ (toRenameᵗ-injective (source-scope-center plan)
     (trans (source-scope-right-commutes plan Xᴿ)

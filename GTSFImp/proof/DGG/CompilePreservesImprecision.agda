@@ -20,7 +20,7 @@ open import TyStore using (TyStore; store-lift)
 open import TermCtx using (TermCtx; ⇑ᶜ; Z; S)
 import TermCtx as T
 open import Consistency using
-  (_⊢_∼_; _↪ᵗ_; keep; skip; toRenameᵗ; symᶜ)
+  (_⊢_∼_; _↪ᵗ_; empty; keep; skip; toRenameᵗ; symᶜ)
 open import Imprecision
 open import GradualTerms using (GTerm)
 import GradualTerms as G
@@ -54,12 +54,12 @@ initial-⊑ : ∀ {Δ} {μ : ImpEnv Δ} {A B : Ty Δ}
 initial-⊑ {μ = μ} {A = A} {B = B} A⊑B =
   subst
     (λ Bᶜ → marksᶜ (initialWorldᶜ μ) ⊢
-      renameᵗ (toRenameᵗ (ηᴸᶜ (initialWorldᶜ μ))) A ⊑ Bᶜ)
-    (cong (λ η → renameᵗ (toRenameᵗ η) B)
+      renameᵗ (toRenameⁱ (ηᴸᶜ (initialWorldᶜ μ))) A ⊑ Bᶜ)
+    (cong (λ η → renameᵗ (toRenameⁱ η) B)
       (initialWorld-embeddingsᶜ μ))
     (rename-⊑
-      (toRenameᵗ (ηᴸᶜ (initialWorldᶜ μ)))
-      (toRenameᵗ-injective (ηᴸᶜ (initialWorldᶜ μ)))
+      (toRenameⁱ (ηᴸᶜ (initialWorldᶜ μ)))
+      (toRenameⁱ-injective (ηᴸᶜ (initialWorldᶜ μ)))
       (λ X eq → trans (initialWorld-markᶜ μ X) eq)
       A⊑B)
 
@@ -117,25 +117,112 @@ initial-target-lookup (GTI.Sⁱ x∈) = S (initial-target-lookup x∈)
 -- Compile-world geometry
 ------------------------------------------------------------------------
 
-sourceEmbedding : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+sourceInjection : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
   → centerᶜ γ ≡ Δᵉ Γᴸ
-  → Δᵉ Γᴸ ↪ᵗ Δᵉ Γᴸ
-sourceEmbedding {Γᴸ = Γᴸ} γ center-eq =
-  subst (λ Δ → Δᵉ Γᴸ ↪ᵗ Δ) center-eq (ηᴸᶜ γ)
+  → Injectionᵗ (Δᵉ Γᴸ) (Δᵉ Γᴸ)
+sourceInjection {Γᴸ = Γᴸ} γ center-eq =
+  subst (λ Δ → Injectionᵗ (Δᵉ Γᴸ) Δ) center-eq (ηᴸᶜ γ)
+
+
+targetInjection : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+  → centerᶜ γ ≡ Δᵉ Γᴸ
+  → Injectionᵗ (Δᵉ Γᴿ) (Δᵉ Γᴸ)
+targetInjection {Γᴸ = Γᴸ} {Γᴿ = Γᴿ} γ center-eq =
+  subst (λ Δ → Injectionᵗ (Δᵉ Γᴿ) Δ) center-eq (ηᴿᶜ γ)
+
+
+-- Target endpoint maps remain structural even when the source endpoint
+-- rebases.  Elaboration uses this OPE witness; CTI uses the live injection.
+targetEmbeddingᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+  → Δᵉ Γᴿ ↪ᵗ centerᶜ γ
+targetEmbeddingᶜ emptyᶜ = empty
+targetEmbeddingᶜ (γ ▻ᶜ center-changeᶜ) = skip (targetEmbeddingᶜ γ)
+targetEmbeddingᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) =
+  keep (targetEmbeddingᶜ γ)
+targetEmbeddingᶜ (γ ▻ᶜ lift-left-changeᶜ eqᴸ) =
+  skip (targetEmbeddingᶜ γ)
+targetEmbeddingᶜ (γ ▻ᶜ bind-left-changeᶜ A eqᴸ) =
+  skip (targetEmbeddingᶜ γ)
+targetEmbeddingᶜ (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) =
+  keep (targetEmbeddingᶜ γ)
+targetEmbeddingᶜ (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) =
+  keep (targetEmbeddingᶜ γ)
+targetEmbeddingᶜ
+    (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
+  keep (targetEmbeddingᶜ γ)
+targetEmbeddingᶜ (γ ▻ᶜ bind-term-changeᶜ p) = targetEmbeddingᶜ γ
+targetEmbeddingᶜ
+    (γ ▻ᶜ rebase-source-changeᶜ X Y update represented) =
+  targetEmbeddingᶜ γ
+
+
+targetEmbeddingᶜ-agrees : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ) X
+  → toRenameᵗ (targetEmbeddingᶜ γ) X ≡ toRenameⁱ (ηᴿᶜ γ) X
+targetEmbeddingᶜ-agrees emptyᶜ ()
+targetEmbeddingᶜ-agrees (γ ▻ᶜ center-changeᶜ) X =
+  cong Fin.suc (targetEmbeddingᶜ-agrees γ X)
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) Fin.zero = refl
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) (Fin.suc X) =
+  cong Fin.suc (targetEmbeddingᶜ-agrees γ X)
+targetEmbeddingᶜ-agrees (γ ▻ᶜ lift-left-changeᶜ eqᴸ) X =
+  cong Fin.suc (targetEmbeddingᶜ-agrees γ X)
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ bind-left-changeᶜ A eqᴸ) X =
+  cong Fin.suc (targetEmbeddingᶜ-agrees γ X)
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) Fin.zero = refl
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) (Fin.suc X) =
+  cong Fin.suc (targetEmbeddingᶜ-agrees γ X)
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) Fin.zero = refl
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) (Fin.suc X) =
+  cong Fin.suc (targetEmbeddingᶜ-agrees γ X)
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) Fin.zero = refl
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ)
+    (Fin.suc X) =
+  cong Fin.suc (targetEmbeddingᶜ-agrees γ X)
+targetEmbeddingᶜ-agrees (γ ▻ᶜ bind-term-changeᶜ p) X =
+  targetEmbeddingᶜ-agrees γ X
+targetEmbeddingᶜ-agrees
+    (γ ▻ᶜ rebase-source-changeᶜ X Y update represented) z =
+  targetEmbeddingᶜ-agrees γ z
 
 
 targetEmbedding : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
   → centerᶜ γ ≡ Δᵉ Γᴸ
   → Δᵉ Γᴿ ↪ᵗ Δᵉ Γᴸ
 targetEmbedding {Γᴸ = Γᴸ} {Γᴿ = Γᴿ} γ center-eq =
-  subst (λ Δ → Δᵉ Γᴿ ↪ᵗ Δ) center-eq (ηᴿᶜ γ)
+  subst (λ Δ → Δᵉ Γᴿ ↪ᵗ Δ) center-eq (targetEmbeddingᶜ γ)
+
+
+targetEmbedding-agrees-at : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ) {Δ}
+    (center-eq : centerᶜ γ ≡ Δ) X
+  → toRenameᵗ
+      (subst (λ Θ → Δᵉ Γᴿ ↪ᵗ Θ) center-eq (targetEmbeddingᶜ γ)) X
+    ≡ toRenameⁱ
+      (subst (λ Θ → Injectionᵗ (Δᵉ Γᴿ) Θ) center-eq (ηᴿᶜ γ)) X
+targetEmbedding-agrees-at γ refl X = targetEmbeddingᶜ-agrees γ X
+
+
+targetEmbedding-agrees : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
+    (center-eq : centerᶜ γ ≡ Δᵉ Γᴸ) X
+  → toRenameᵗ (targetEmbedding γ center-eq) X
+    ≡ toRenameⁱ (targetInjection γ center-eq) X
+targetEmbedding-agrees γ center-eq =
+  targetEmbedding-agrees-at γ center-eq
 
 
 SourceId : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
   → (center-eq : centerᶜ γ ≡ Δᵉ Γᴸ)
   → Set
 SourceId {Γᴸ = Γᴸ} γ center-eq =
-  ∀ X → toRenameᵗ (sourceEmbedding γ center-eq) X ≡ X
+  ∀ X → toRenameⁱ (sourceInjection γ center-eq) X ≡ X
 
 
 TargetId : ∀ {Δ} {Σᴸ Σᴿ : TyStore Δ} {Ψᴸ Ψᴿ : TermCtx Δ}
@@ -143,10 +230,16 @@ TargetId : ∀ {Δ} {Σᴸ Σᴿ : TyStore Δ} {Ψᴸ Ψᴿ : TermCtx Δ}
   → (center-eq : centerᶜ γ ≡ Δ)
   → Set
 TargetId γ center-eq =
-  ∀ X → toRenameᵗ (targetEmbedding γ center-eq) X ≡ X
+  ∀ X → toRenameⁱ (targetInjection γ center-eq) X ≡ X
 
 
 private
+  subst-keepⁱ : ∀ {m n k} (eq : n ≡ k) (η : Injectionᵗ m n)
+    → subst (λ q → Injectionᵗ (Nat.suc m) q) (cong Nat.suc eq)
+        (keepⁱ η)
+      ≡ keepⁱ (subst (λ q → Injectionᵗ m q) eq η)
+  subst-keepⁱ refl η = refl
+
   subst-keep : ∀ {m n k} (eq : n ≡ k) (η : m ↪ᵗ n)
     → subst (λ q → Nat.suc m ↪ᵗ q) (cong Nat.suc eq) (keep η)
       ≡ keep (subst (λ q → m ↪ᵗ q) eq η)
@@ -157,12 +250,12 @@ initialWorld-source-id : ∀ {Δ} (μ : ImpEnv Δ)
   → SourceId (initialWorldᶜ μ) (initialWorld-centerᶜ μ)
 initialWorld-source-id {Nat.zero} μ ()
 initialWorld-source-id {Nat.suc Δ} μ Fin.zero
-    rewrite subst-keep
+    rewrite subst-keepⁱ
       (initialWorld-centerᶜ (λ Y → μ (Fin.suc Y)))
       (ηᴸᶜ (initialWorldᶜ (λ Y → μ (Fin.suc Y)))) =
   refl
 initialWorld-source-id {Nat.suc Δ} μ (Fin.suc X)
-    rewrite subst-keep
+    rewrite subst-keepⁱ
       (initialWorld-centerᶜ (λ Y → μ (Fin.suc Y)))
       (ηᴸᶜ (initialWorldᶜ (λ Y → μ (Fin.suc Y)))) =
   cong Fin.suc
@@ -174,8 +267,9 @@ initialWorld-target-id : ∀ {Δ} (μ : ImpEnv Δ)
 initialWorld-target-id {Δ = Δ} μ X =
   trans
     (cong
-      (λ η → toRenameᵗ
-        (subst (λ q → Δ ↪ᵗ q) (initialWorld-centerᶜ μ) η) X)
+      (λ η → toRenameⁱ
+        (subst (λ q → Injectionᵗ Δ q)
+          (initialWorld-centerᶜ μ) η) X)
       (sym (initialWorld-embeddingsᶜ μ)))
     (initialWorld-source-id μ X)
 
@@ -184,7 +278,7 @@ EnvMatches : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
   → ImpEnv (Δᵉ Γᴸ)
   → Set
 EnvMatches γ μ =
-  ∀ X → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) X) ≡ μ X
+  ∀ X → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ μ X
 
 
 initialContext-center : ∀ {Δ} {μ : ImpEnv Δ}
@@ -208,6 +302,18 @@ initialContext-target-id {μ = μ} [] = initialWorld-target-id μ
 initialContext-target-id (e ∷ δ) = initialContext-target-id δ
 
 
+initialContext-target-embedding-id : ∀ {Δ} {μ : ImpEnv Δ}
+    (δ : GTI.CtxImp μ) X
+  → toRenameᵗ
+      (targetEmbedding (initialContextWorld δ) (initialContext-center δ)) X
+    ≡ X
+initialContext-target-embedding-id δ X =
+  trans
+    (targetEmbedding-agrees
+      (initialContextWorld δ) (initialContext-center δ) X)
+    (initialContext-target-id δ X)
+
+
 initialContext-matches : ∀ {Δ} {μ : ImpEnv Δ}
     (δ : GTI.CtxImp μ)
   → EnvMatches (initialContextWorld δ) μ
@@ -223,10 +329,10 @@ sourceId-liftBoth : ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ}
   → SourceId γ center-eq
   → SourceId (liftBothᶜ v γ) (cong Nat.suc center-eq)
 sourceId-liftBoth {γ = γ} {center-eq = center-eq} v sid Fin.zero
-    rewrite subst-keep center-eq (ηᴸᶜ γ) =
+    rewrite subst-keepⁱ center-eq (ηᴸᶜ γ) =
   refl
 sourceId-liftBoth {γ = γ} {center-eq = center-eq} v sid (Fin.suc X)
-    rewrite subst-keep center-eq (ηᴸᶜ γ) =
+    rewrite subst-keepⁱ center-eq (ηᴸᶜ γ) =
   cong Fin.suc (sid X)
 
 
@@ -237,10 +343,10 @@ sourceId-liftLeft : ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ}
   → SourceId γ center-eq
   → SourceId (liftLeftᶜ γ) (cong Nat.suc center-eq)
 sourceId-liftLeft {γ = γ} {center-eq = center-eq} sid Fin.zero
-    rewrite subst-keep center-eq (ηᴸᶜ γ) =
+    rewrite subst-keepⁱ center-eq (ηᴸᶜ γ) =
   refl
 sourceId-liftLeft {γ = γ} {center-eq = center-eq} sid (Fin.suc X)
-    rewrite subst-keep center-eq (ηᴸᶜ γ) =
+    rewrite subst-keepⁱ center-eq (ηᴸᶜ γ) =
   cong Fin.suc (sid X)
 
 
@@ -261,24 +367,26 @@ matches-liftLeft matches (Fin.suc X) = matches X
 
 
 embed-imprecision : ∀ {Δ Δᴿ Δᶜ}
-    {ηᴸ : Δ ↪ᵗ Δᶜ} {ηᴿ : Δᴿ ↪ᵗ Δᶜ}
+    {ηᴸ : Injectionᵗ Δ Δᶜ} {ηᴿ : Injectionᵗ Δᴿ Δᶜ}
     {marks : ImpEnv Δᶜ} {μ : ImpEnv Δ}
     {A Bᶜ : Ty Δ} {B : Ty Δᴿ}
   → (center-eq : Δᶜ ≡ Δ)
-  → (∀ X → toRenameᵗ
-      (subst (λ Θ → Δ ↪ᵗ Θ) center-eq ηᴸ) X ≡ X)
-  → (∀ X → marks (toRenameᵗ ηᴸ X) ≡ μ X)
-  → Bᶜ ≡ renameᵗ (toRenameᵗ
-      (subst (λ Θ → Δᴿ ↪ᵗ Θ) center-eq ηᴿ)) B
+  → (∀ X → toRenameⁱ
+      (subst (λ Θ → Injectionᵗ Δ Θ) center-eq ηᴸ) X ≡ X)
+  → (∀ X → marks (toRenameⁱ ηᴸ X) ≡ μ X)
+  → Bᶜ ≡ renameᵗ (toRenameⁱ
+      (subst (λ Θ → Injectionᵗ Δᴿ Θ) center-eq ηᴿ)) B
   → μ ⊢ A ⊑ Bᶜ
-  → marks ⊢ renameᵗ (toRenameᵗ ηᴸ) A
-      ⊑ renameᵗ (toRenameᵗ ηᴿ) B
-embed-imprecision refl source-id matches refl A⊑B =
+  → marks ⊢ renameᵗ (toRenameⁱ ηᴸ) A
+      ⊑ renameᵗ (toRenameⁱ ηᴿ) B
+embed-imprecision {ηᴸ = ηᴸ} {ηᴿ = ηᴿ} {marks = marks} {A = A} {B = B}
+    refl source-id matches refl A⊑B =
   subst
-    (λ B′ → _ ⊢ renameᵗ (toRenameᵗ _) _ ⊑ B′)
-    (renameᵗ-pointwise-id _ _ source-id)
-    (rename-⊑ (toRenameᵗ _)
-      (toRenameᵗ-injective _)
+    (λ B′ → marks ⊢ renameᵗ (toRenameⁱ ηᴸ) A ⊑ B′)
+    (renameᵗ-pointwise-id (toRenameⁱ ηᴸ)
+      (renameᵗ (toRenameⁱ ηᴿ) B) source-id)
+    (rename-⊑ (toRenameⁱ ηᴸ)
+      (toRenameⁱ-injective ηᴸ)
       (λ X eq → trans (matches X) eq)
       A⊑B)
 
@@ -292,8 +400,10 @@ embedded-⊑ : ∀ {Γᴸ Γᴿ} {γ : Γᴸ ⊑ᶜ Γᴿ}
   → Bᶜ ≡ renameᵗ (toRenameᵗ (targetEmbedding γ center-eq)) B
   → μ ⊢ A ⊑ Bᶜ
   → A ⊑ᵀ⟨ γ ⟩ B
-embedded-⊑ {γ = γ} center-eq source-id matches =
+embedded-⊑ {γ = γ} center-eq source-id matches eqB A⊑B =
   embed-imprecision center-eq source-id matches
+    (trans eqB (renameᵗ-cong _ (targetEmbedding-agrees γ center-eq)))
+    A⊑B
 
 
 ------------------------------------------------------------------------
@@ -424,7 +534,7 @@ targetEmbedding-liftBoth : ∀ {Δ Δᴿ} {Σᴸ : TyStore Δ}
   → targetEmbedding (liftBothᶜ X⊑X γ) (cong Nat.suc center-eq)
     ≡ keep (targetEmbedding γ center-eq)
 targetEmbedding-liftBoth {γ = γ} center-eq =
-  subst-keep center-eq (ηᴿᶜ γ)
+  subst-keep center-eq (targetEmbeddingᶜ γ)
 
 
 targetEmbedding-liftLeft : ∀ {Δ Δᴿ} {Σᴸ : TyStore Δ}
@@ -434,7 +544,7 @@ targetEmbedding-liftLeft : ∀ {Δ Δᴿ} {Σᴸ : TyStore Δ}
   → targetEmbedding (liftLeftᶜ γ) (cong Nat.suc center-eq)
     ≡ skip (targetEmbedding γ center-eq)
 targetEmbedding-liftLeft {γ = γ} center-eq =
-  subst-skip center-eq (ηᴿᶜ γ)
+  subst-skip center-eq (targetEmbeddingᶜ γ)
 
 
 embedded-liftBoth : ∀ {Δ Δᴿ} {Σᴸ : TyStore Δ}
@@ -640,7 +750,7 @@ initialEmbeddedCtx (GTI.ctx-imp A B p ∷ δ) =
     (toRenameᵗ
       (targetEmbedding (initialContextWorld (GTI.ctx-imp A B p ∷ δ))
         (initialContext-center (GTI.ctx-imp A B p ∷ δ))))
-    B (initialContext-target-id (GTI.ctx-imp A B p ∷ δ)))
+    B (initialContext-target-embedding-id (GTI.ctx-imp A B p ∷ δ)))
 
 
 ------------------------------------------------------------------------
@@ -1071,7 +1181,7 @@ compile-preserves-imprecision {δ = δ} {M′ = M′} {B = B} {p = p}
       (Elab.compile-elab
         (GTI.gradual-term-imprecision-target-typing M⊑M′)))
   where
-  target-id = initialContext-target-id δ
+  target-id = initialContext-target-embedding-id δ
 
   target-term-id : M′ ≡ Elab.Grenameᵐ
       (targetEmbedding (initialContextWorld δ) (initialContext-center δ)) M′

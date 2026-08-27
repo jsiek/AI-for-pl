@@ -33,7 +33,7 @@ open import proof.DGG.ConversionPivotAlignment using
   (revealGeneratorPosition; concealGeneratorPosition;
    revealGeneratorPosition-rename; concealGeneratorPosition-rename)
 open import proof.DGG.World using
-  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ)
+  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ; toRenameⁱ)
 open import proof.DGG.TransportTermImprecisionStepDef using
   (TransportTargetBindᵀ)
 open import proof.DGG.TransportTargetBindDef using
@@ -112,9 +112,9 @@ target-scope-aligned : ∀
       CastTerms.⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
     {Xᴸ : Types.TyVar Δᴸ} {Xᴿ : Types.TyVar Δᴿ}
   → (plan : TargetBindScope ρ γ γ⁺)
-  → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
-  → toRenameᵗ (ηᴸᶜ γ⁺) Xᴸ
-    ≡ toRenameᵗ (ηᴿᶜ γ⁺) (toRenameᵗ ρ Xᴿ)
+  → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≡ toRenameⁱ (ηᴿᶜ γ) Xᴿ
+  → toRenameⁱ (ηᴸᶜ γ⁺) Xᴸ
+    ≡ toRenameⁱ (ηᴿᶜ γ⁺) (toRenameᵗ ρ Xᴿ)
 target-scope-aligned plan aligned =
   trans (sym (target-scope-left-commutes plan _))
     (trans (cong (toRenameᵗ (target-scope-center plan)) aligned)
@@ -134,8 +134,8 @@ target-scope-source-mark : ∀
       CastTerms.⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
     {Xᴸ : Types.TyVar Δᴸ} {v}
   → (plan : TargetBindScope ρ γ γ⁺)
-  → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ v
-  → marksᶜ γ⁺ (toRenameᵗ (ηᴸᶜ γ⁺) Xᴸ) ≡ v
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) Xᴸ) ≡ v
+  → marksᶜ γ⁺ (toRenameⁱ (ηᴸᶜ γ⁺) Xᴸ) ≡ v
 target-scope-source-mark {γ⁺ = γ⁺} {Xᴸ = Xᴸ} plan mark =
   trans
     (cong (marksᶜ γ⁺) (sym (target-scope-left-commutes plan Xᴸ)))
@@ -155,10 +155,10 @@ target-scope-source-disaligned : ∀
       CastTerms.⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
     {Xᴸ : Types.TyVar Δᴸ}
   → (plan : TargetBindScope ρ γ γ⁺)
-  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
-      ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
-  → ∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ⁺) Xᴿ
-      ≢ toRenameᵗ (ηᴸᶜ γ⁺) Xᴸ
+  → (∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ) Xᴿ
+      ≢ toRenameⁱ (ηᴸᶜ γ) Xᴸ)
+  → ∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ⁺) Xᴿ
+      ≢ toRenameⁱ (ηᴸᶜ γ⁺) Xᴸ
 target-scope-source-disaligned
     (target-scope-root fresh eqᴿ) free Fin.zero ()
 target-scope-source-disaligned

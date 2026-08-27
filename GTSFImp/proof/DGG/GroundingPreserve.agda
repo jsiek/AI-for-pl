@@ -19,8 +19,7 @@ open import Types using (Ty; TyVar; NonVar; _∈ᵗ_; ＇_; ★; ⇑ᵗ)
 open import TyStore using (lookupStore)
 open import Imprecision using (X⊑★)
 open import Consistency using
-  (Env∼; _⊢_∼_; instᵐ; genᵐ; inst_; gen_; ↑ᶜ_; close-instᶜ;
-   toRenameᵗ)
+  (Env∼; _⊢_∼_; instᵐ; genᵐ; inst_; gen_; ↑ᶜ_; close-instᶜ)
 open import CastTerms using
   (Ctx; Term; Value; GenSafe; Δᵉ; Σᵉ; _,ˢ_; _⟨_⟩; _⦂∀_[_]; _↑_; ⇑ᵗᵐ)
 open import Conversion using (〖_,_↑_〗)
@@ -46,7 +45,7 @@ open import proof.DGG.Occupancy using (bindRight-fresh-occupied)
   → (vV : Value V)
   → (B≢★ : B ≢ ★)
   → (Σ[ Y ∈ TyVar (suc (Δᵉ Γᴿ)) ]
-      toRenameᵗ (ηᴿᶜ (bindRightᶜ γ ★ (inj₁ refl))) Y ≡ zero)
+      toRenameⁱ (ηᴿᶜ (bindRightᶜ γ ★ (inj₁ refl))) Y ≡ zero)
     × Σ[ N ∈ Term (suc (Δᵉ Γᴿ)) ]
       ((V ⟨ (inst c) B≢★ ⟩ —→[ bind ★ ] N)
        × ((Σ[ M ∈ Term (suc (Δᵉ Γᴿ)) ]
@@ -78,7 +77,7 @@ open import proof.DGG.Occupancy using (bindRight-fresh-occupied)
   → (safe : GenSafe c)
   → (fresh : RightBindFreshᶜ γ C)
   → (Σ[ Y ∈ TyVar (suc (Δᵉ Γᴿ)) ]
-      toRenameᵗ (ηᴿᶜ (bindRightᶜ γ C fresh)) Y ≡ zero)
+      toRenameⁱ (ηᴿᶜ (bindRightᶜ γ C fresh)) Y ≡ zero)
     × Σ[ N ∈ Term (suc (Δᵉ Γᴿ)) ]
       (((V ⟨ (gen c) A≢★ ⟩) ⦂∀ B [ C ] —→[ bind C ] N)
        × ((Σ[ M ∈ Term (suc (Δᵉ Γᴿ)) ]
@@ -105,10 +104,10 @@ open import proof.DGG.Occupancy using (bindRight-fresh-occupied)
 occupied-see-through-empty : ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
   → sourceRebaseCountᶜ γ ≡ 0
   → (X : TyVar (Δᵉ Γᴸ))
-  → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) X) ≡ X⊑★
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) X) ≡ X⊑★
   → lookupStore (Σᵉ Γᴸ) X ≡ ★
   → (Σ[ Y ∈ TyVar (Δᵉ Γᴿ) ]
-      toRenameᵗ (ηᴿᶜ γ) Y ≡ toRenameᵗ (ηᴸᶜ γ) X)
+      toRenameⁱ (ηᴿᶜ γ) Y ≡ toRenameⁱ (ηᴸᶜ γ) X)
   → ⊥
 occupied-see-through-empty {γ = γ}
     no-rebase X mark entry (Y , aligned) =

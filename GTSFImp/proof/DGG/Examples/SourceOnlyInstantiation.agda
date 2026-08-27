@@ -382,8 +382,8 @@ source-conceal-active :
 source-conceal-active ()
 
 source-unoccupied : ∀ Xᴿ
-  → toRenameᵗ (ηᴿᶜ source-only-world) Xᴿ
-    ≢ toRenameᵗ (ηᴸᶜ source-only-world) Fin.zero
+  → toRenameⁱ (ηᴿᶜ source-only-world) Xᴿ
+    ≢ toRenameⁱ (ηᴸᶜ source-only-world) Fin.zero
 source-unoccupied ()
 
 
@@ -419,15 +419,15 @@ checkpoint₀-ladder = impLadderDefault checkpoint₀-imprecision
 checkpoint₀-ladder-pinned :
   checkpoint₀-ladder ≡
     "⟨⟩\n" ++
-    "source term  A            ηᴸA          ⊑ costs                             ηᴿB      B        target term\n" ++
-    "───────────  ───────────  ───────────  ──────────────────────────────────  ───────  ───────  ───────────\n" ++
-    "□₁ · □₂      ℕ            ℕ            ι⊑★                                 ★        ★        □₁ · □₂\n" ++
-    "├ □ [ ℕ ]    (ℕ ⇒ ℕ)      (ℕ ⇒ ℕ)      ι⊑★, ι⊑★                            (★ ⇒ ★)  (★ ⇒ ★)  ├ ─\n" ++
-    "│ Λ□         ∀ (♭0 ⇒ ♭0)  ∀ (♭0 ⇒ ♭0)  ∀⊑(mark X⊑★ at ♭0, mark X⊑★ at ♭0)  (★ ⇒ ★)  (★ ⇒ ★)  │ ─\n" ++
-    "│ λ♯0. □     (♭0 ⇒ ♭0)    (♭0 ⇒ ♭0)    mark X⊑★ at ♭0, mark X⊑★ at ♭0      (★ ⇒ ★)  (★ ⇒ ★)  │ λ♯0. □\n" ++
-    "│ ♯0         ♭0           ♭0           mark X⊑★ at ♭0                      ★        ★        │ ♯0\n" ++
-    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ            ℕ            ι⊑★                                 ★        ★        └ □ ⟨ ℕ↦★ ⟩\n" ++
-    "  42         ℕ            ℕ            ℕ⊑ℕ                                 ℕ        ℕ          42"
+    "source term  A          ηᴸA        ⊑ costs                           ηᴿB      B        target term\n" ++
+    "───────────  ─────────  ─────────  ────────────────────────────────  ───────  ───────  ───────────\n" ++
+    "□₁ · □₂      ℕ          ℕ          ι⊑★                               ★        ★        □₁ · □₂\n" ++
+    "├ □ [ ℕ ]    (ℕ ⇒ ℕ)    (ℕ ⇒ ℕ)    ι⊑★, ι⊑★                          (★ ⇒ ★)  (★ ⇒ ★)  ├ ─\n" ++
+    "│ Λ□         ∀ (X ⇒ X)  ∀ (X ⇒ X)  ∀⊑(mark X⊑★ at X, mark X⊑★ at X)  (★ ⇒ ★)  (★ ⇒ ★)  │ ─\n" ++
+    "│ λx. □      (X ⇒ X)    (X ⇒ X)    mark X⊑★ at X, mark X⊑★ at X      (★ ⇒ ★)  (★ ⇒ ★)  │ λx. □\n" ++
+    "│ x          X          X          mark X⊑★ at X                     ★        ★        │ x\n" ++
+    "└ □ ⟨ ℕ↦ℕ ⟩  ℕ          ℕ          ι⊑★                               ★        ★        └ □ ⟨ ℕ↦★ ⟩\n" ++
+    "  42         ℕ          ℕ          ℕ⊑ℕ                               ℕ        ℕ          42"
 checkpoint₀-ladder-pinned = refl
 checkpoint₁-function :
   source-only-world CTI.⊢²
@@ -468,8 +468,8 @@ checkpoint₁-ladder-pinned :
     "────────────────────  ───────  ───────  ────────────────────────────  ───────  ───────  ───────────\n" ++
     "□₁ · □₂               ℕ        ℕ        ι⊑★                           ★        ★        □₁ · □₂\n" ++
     "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ι⊑★, ι⊑★ + target unoccupied  (★ ⇒ ★)  (★ ⇒ ★)  ├ ─\n" ++
-    "│ λ♯0. □              (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X  (★ ⇒ ★)  (★ ⇒ ★)  │ λ♯0. □\n" ++
-    "│ ♯0                  X        X        mark X⊑★ at X                 ★        ★        │ ♯0\n" ++
+    "│ λx. □               (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X  (★ ⇒ ★)  (★ ⇒ ★)  │ λx. □\n" ++
+    "│ x                   X        X        mark X⊑★ at X                 ★        ★        │ x\n" ++
     "└ □ ⟨ ℕ↦ℕ ⟩           ℕ        ℕ        ι⊑★                           ★        ★        └ □ ⟨ ℕ↦★ ⟩\n" ++
     "  42                  ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ          42"
 checkpoint₁-ladder-pinned = refl
@@ -494,8 +494,8 @@ checkpoint₂-ladder-pinned :
     "────────────────────  ───────  ───────  ────────────────────────────  ───────  ───────  ───────────\n" ++
     "□₁ · □₂               ℕ        ℕ        ι⊑★                           ★        ★        □₁ · □₂\n" ++
     "├ □ ↑ unseal X ⇒-rev  (ℕ ⇒ ℕ)  (ℕ ⇒ ℕ)  ι⊑★, ι⊑★ + target unoccupied  (★ ⇒ ★)  (★ ⇒ ★)  ├ ─\n" ++
-    "│ λ♯0. □              (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X  (★ ⇒ ★)  (★ ⇒ ★)  │ λ♯0. □\n" ++
-    "│ ♯0                  X        X        mark X⊑★ at X                 ★        ★        │ ♯0\n" ++
+    "│ λx. □               (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X  (★ ⇒ ★)  (★ ⇒ ★)  │ λx. □\n" ++
+    "│ x                   X        X        mark X⊑★ at X                 ★        ★        │ x\n" ++
     "└ ─                   ℕ        ℕ        ι⊑★                           ★        ★        └ □ ⟨ ℕ↦★ ⟩\n" ++
     "  42                  ℕ        ℕ        ℕ⊑ℕ                           ℕ        ℕ          42"
 checkpoint₂-ladder-pinned = refl
@@ -543,8 +543,8 @@ checkpoint₃-ladder-pinned :
     "────────────  ───────  ───────  ─────────────────────────────────  ───────  ───────  ───────────\n" ++
     "□ ↑ unseal X  ℕ        ℕ        ι⊑★ + target unoccupied            ★        ★        ─\n" ++
     "□₁ · □₂       X        X        mark X⊑★ at X                      ★        ★        □₁ · □₂\n" ++
-    "├ λ♯0. □      (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X       (★ ⇒ ★)  (★ ⇒ ★)  ├ λ♯0. □\n" ++
-    "│ ♯0          X        X        mark X⊑★ at X                      ★        ★        │ ♯0\n" ++
+    "├ λx. □       (X ⇒ X)  (X ⇒ X)  mark X⊑★ at X, mark X⊑★ at X       (★ ⇒ ★)  (★ ⇒ ★)  ├ λx. □\n" ++
+    "│ x           X        X        mark X⊑★ at X                      ★        ★        │ x\n" ++
     "└ □ ↓ seal X  X        X        mark X⊑★ at X + target unoccupied  ★        ★        └ ─\n" ++
     "  ─           ℕ        ℕ        ι⊑★                                ★        ★          □ ⟨ ℕ↦★ ⟩\n" ++
     "  42          ℕ        ℕ        ℕ⊑ℕ                                ℕ        ℕ          42"

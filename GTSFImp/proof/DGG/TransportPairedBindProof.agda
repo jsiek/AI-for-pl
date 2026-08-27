@@ -32,7 +32,7 @@ open import proof.DGG.ConversionPivotAlignment using
   (revealGeneratorPosition; concealGeneratorPosition;
    revealGeneratorPosition-rename; concealGeneratorPosition-rename)
 open import proof.DGG.World using
-  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ)
+  (_⊑ᶜ_; _⊑ᵀ⟨_⟩_; ηᴸᶜ; ηᴿᶜ; marksᶜ; toRenameⁱ)
 open import proof.DGG.TransportTermImprecisionStepDef using
   (TransportPairedBindᵀ; TransportPairedStarBindᵀ)
 open import proof.DGG.TransportPairedBindDef using
@@ -135,9 +135,9 @@ paired-scope-aligned : ∀
       CastTerms.⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
     {Xᴸ : Types.TyVar Δᴸ} {Xᴿ : Types.TyVar Δᴿ}
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
-  → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
-  → toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ Xᴸ)
-    ≡ toRenameᵗ (ηᴿᶜ γ⁺) (toRenameᵗ ρᴿ Xᴿ)
+  → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≡ toRenameⁱ (ηᴿᶜ γ) Xᴿ
+  → toRenameⁱ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ Xᴸ)
+    ≡ toRenameⁱ (ηᴿᶜ γ⁺) (toRenameᵗ ρᴿ Xᴿ)
 paired-scope-aligned plan aligned =
   trans (sym (paired-scope-left-commutes plan _))
     (trans (cong (toRenameᵗ (paired-scope-center plan)) aligned)
@@ -157,9 +157,9 @@ paired-scope-source-mark : ∀
       CastTerms.⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
     {Xᴸ : Types.TyVar Δᴸ} {v}
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
-  → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ v
+  → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) Xᴸ) ≡ v
   → marksᶜ γ⁺
-      (toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ Xᴸ)) ≡ v
+      (toRenameⁱ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ Xᴸ)) ≡ v
 paired-scope-source-mark {γ⁺ = γ⁺} {Xᴸ = Xᴸ} plan mark =
   trans
     (cong (marksᶜ γ⁺) (sym (paired-scope-left-commutes plan Xᴸ)))
@@ -179,28 +179,29 @@ paired-scope-source-disaligned : ∀
       CastTerms.⟨ Δᴿ⁺ , Σᴿ⁺ , Γᴿ⁺ ⟩}
     {Xᴸ : Types.TyVar Δᴸ}
   → (plan : PairedBindScope ρᴸ ρᴿ γ γ⁺)
-  → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
-      ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
-  → ∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ⁺) Xᴿ
-      ≢ toRenameᵗ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ Xᴸ)
+  → (∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ) Xᴿ
+      ≢ toRenameⁱ (ηᴸᶜ γ) Xᴸ)
+  → ∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ⁺) Xᴿ
+      ≢ toRenameⁱ (ηᴸᶜ γ⁺) (toRenameᵗ ρᴸ Xᴸ)
 paired-scope-source-disaligned
     (paired-scope-root represented eqᴸ eqᴿ) free Fin.zero ()
 paired-scope-source-disaligned
-    {Xᴸ = Xᴸ} (paired-scope-root represented eqᴸ eqᴿ)
+    {γ = γ} {Xᴸ = Xᴸ}
+    (paired-scope-root represented eqᴸ eqᴿ)
     free (Fin.suc Xᴿ) aligned =
   free Xᴿ
     (trans (fin-suc-injective aligned)
-      (cong (toRenameᵗ _) (toRename-id-eq Xᴸ)))
+      (cong (toRenameⁱ (ηᴸᶜ γ)) (toRename-id-eq Xᴸ)))
 paired-scope-source-disaligned
     (paired-star-scope-root represented A≢★ eqᴸ eqᴿ) free
     Fin.zero ()
 paired-scope-source-disaligned
-    {Xᴸ = Xᴸ}
+    {γ = γ} {Xᴸ = Xᴸ}
     (paired-star-scope-root represented A≢★ eqᴸ eqᴿ) free
     (Fin.suc Xᴿ) aligned =
   free Xᴿ
     (trans (fin-suc-injective aligned)
-      (cong (toRenameᵗ _) (toRename-id-eq Xᴸ)))
+      (cong (toRenameⁱ (ηᴸᶜ γ)) (toRename-id-eq Xᴸ)))
 paired-scope-source-disaligned
     (paired-scope-term plan p p⁺) free Xᴿ aligned =
   paired-scope-source-disaligned plan free Xᴿ aligned

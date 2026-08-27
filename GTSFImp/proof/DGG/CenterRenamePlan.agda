@@ -3,8 +3,8 @@
 module proof.DGG.CenterRenamePlan where
 
 -- File Charter:
---   * Defines structural center renaming over the two-context raw history.
---   * Inserts skipped centers and commutes kept centers through raw world
+--   * Defines structural center renaming over the two-context world history.
+--   * Inserts skipped centers and commutes kept centers through world-change
 --     constructors without accepting a preassembled invariant record.
 --   * Carries rebuilt freshness and type-imprecision premises explicitly,
 --     preserves both endpoint Ctx indices, and proves the embedding and mark
@@ -19,15 +19,15 @@ import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; cong; sym; trans; subst)
 
-open import Types using (Ty; TyCtx; TyVar; ★; ⇑ᵗ)
-open import TyStore using (TyStore)
+open import Types using (Ty; TyCtx; TyVar; ★; ＇_; ⇑ᵗ)
+open import TyStore using (TyStore; lookupStore)
 import TermCtx as TC
 open TC using (TermCtx)
 open import Consistency using
   (_↪ᵗ_; empty; keep; skip; id↪ᵗ; toRenameᵗ)
 open import Imprecision using
   (ImpEnv; VarImp; X⊑★; extendᵐ)
-open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ)
+open import CastTerms using (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ)
 open import proof.TypeInTermSubst using (toRename-id-eq)
 open import proof.DGG.World
 open import proof.DGG.WorldInvariants
@@ -50,6 +50,11 @@ private
       ≡ Fin.suc (subst Fin.Fin (sym eq) X)
   subst-Fin-suc-sym refl X = refl
 
+  subst-Fin-suc-sym′ : ∀ {m n} (eq : m ≡ n) {X : Fin.Fin n}
+    → subst Fin.Fin (sym (cong suc eq)) (Fin.suc X)
+      ≡ Fin.suc (subst Fin.Fin (sym eq) X)
+  subst-Fin-suc-sym′ eq {X} = subst-Fin-suc-sym eq X
+
   subst-Fin-zero-sym : ∀ {m n} (eq : m ≡ n)
     → subst Fin.Fin (sym (cong suc eq)) Fin.zero ≡ Fin.zero
   subst-Fin-zero-sym refl = refl
@@ -68,6 +73,10 @@ private
   renameMarks-id {suc Δ} μ Fin.zero = refl
   renameMarks-id {suc Δ} μ (Fin.suc Z) =
     renameMarks-id (λ X → μ (Fin.suc X)) Z
+
+  toRename-id-eq′ : ∀ {Δ} {X : TyVar Δ}
+    → toRenameᵗ id↪ᵗ X ≡ X
+  toRename-id-eq′ {X = X} = toRename-id-eq X
 
 
 mutual
@@ -89,7 +98,7 @@ mutual
       ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
         {Δ′} {π : centerᶜ W ↪ᵗ Δ′}
       → CenterRenamePlan W π
-      → CenterRenamePlan (skip-centerᶜ W) (keep π)
+      → CenterRenamePlan (W ▻ᶜ center-changeᶜ) (keep π)
 
     center-rename-lift-both :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
@@ -101,7 +110,7 @@ mutual
       → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       → (Γᴿ⁺≡ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
       → CenterRenamePlan
-          (lift-both-rawᶜ W v Γᴸ⁺≡ Γᴿ⁺≡) (keep π)
+          (W ▻ᶜ lift-both-changeᶜ v Γᴸ⁺≡ Γᴿ⁺≡) (keep π)
 
     center-rename-lift-left :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
@@ -112,7 +121,7 @@ mutual
       → CenterRenamePlan W π
       → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       → CenterRenamePlan
-          (lift-left-rawᶜ W Γᴸ⁺≡) (keep π)
+          (W ▻ᶜ lift-left-changeᶜ Γᴸ⁺≡) (keep π)
 
     center-rename-bind-left :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
@@ -123,7 +132,7 @@ mutual
       → CenterRenamePlan W π
       → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       → CenterRenamePlan
-          (bind-left-rawᶜ W A Γᴸ⁺≡) (keep π)
+          (W ▻ᶜ bind-left-changeᶜ A Γᴸ⁺≡) (keep π)
 
     center-rename-bind-right :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
@@ -136,7 +145,7 @@ mutual
       → (fresh′ : RightBindFreshᶜ (renameCenter plan) B)
       → (Γᴿ⁺≡ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
       → CenterRenamePlan
-          (bind-right-rawᶜ W B fresh Γᴿ⁺≡) (keep π)
+          (W ▻ᶜ bind-right-changeᶜ B fresh Γᴿ⁺≡) (keep π)
 
     center-rename-bind-both :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
@@ -151,7 +160,7 @@ mutual
       → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       → (Γᴿ⁺≡ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
       → CenterRenamePlan
-          (bind-both-rawᶜ W represented Γᴸ⁺≡ Γᴿ⁺≡) (keep π)
+          (W ▻ᶜ bind-both-changeᶜ represented Γᴸ⁺≡ Γᴿ⁺≡) (keep π)
 
     center-rename-bind-both-star :
       ∀ {Δᴸ Δᴿ} {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
@@ -166,7 +175,7 @@ mutual
       → (Γᴸ⁺≡ : Γᴸ⁺ ≡ TC.⇑ᶜ Γᴸ)
       → (Γᴿ⁺≡ : Γᴿ⁺ ≡ TC.⇑ᶜ Γᴿ)
       → CenterRenamePlan
-          (bind-both-star-rawᶜ W represented A≠★ Γᴸ⁺≡ Γᴿ⁺≡)
+          (W ▻ᶜ bind-both-star-changeᶜ represented A≠★ Γᴸ⁺≡ Γᴿ⁺≡)
           (keep π)
 
     center-rename-bind-term :
@@ -178,7 +187,24 @@ mutual
         {represented : A ⊑ᵀ⟨ W ⟩ B}
       → (plan : CenterRenamePlan W π)
       → (represented′ : A ⊑ᵀ⟨ renameCenter plan ⟩ B)
-      → CenterRenamePlan (bind-termᶜ W represented) π
+      → CenterRenamePlan (W ▻ᶜ bind-term-changeᶜ represented) π
+
+    center-rename-rebase-source :
+      ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
+        {Δ′} {π : centerᶜ W ↪ᵗ Δ′}
+        {X : TyVar (Δᵉ Cᴸ)} {Y : TyVar (Δᵉ Cᴿ)}
+        {update : PivotUpdateᵗ (ηᴸᶜ W) X (toRenameⁱ (ηᴿᶜ W) Y)}
+        {represented : (＇ X) ⊑ᵀ⟨ W ⟩ lookupStore (Σᵉ Cᴿ) Y}
+      → (plan : CenterRenamePlan W π)
+      → (update′ : PivotUpdateᵗ (ηᴸᶜ (renameCenter plan)) X
+          (toRenameⁱ (ηᴿᶜ (renameCenter plan)) Y))
+      → (represented′ : (＇ X) ⊑ᵀ⟨ renameCenter plan ⟩
+          lookupStore (Σᵉ Cᴿ) Y)
+      → (∀ Z → toRenameⁱ (pivot-afterᵗ update′) Z
+          ≡ subst Fin.Fin (sym (renameCenter-center plan))
+              (toRenameᵗ π (toRenameⁱ (pivot-afterᵗ update) Z)))
+      → CenterRenamePlan
+          (W ▻ᶜ rebase-source-changeᶜ X Y update represented) π
 
   renameCenter : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′}
       {π : centerᶜ W ↪ᵗ Δ′}
@@ -186,112 +212,114 @@ mutual
     → Cᴸ ⊑ᶜ Cᴿ
   renameCenter {W = W} (center-rename-id refl) = W
   renameCenter (center-rename-insert plan) =
-    skip-centerᶜ (renameCenter plan)
+    renameCenter plan ▻ᶜ center-changeᶜ
   renameCenter (center-rename-skip-center plan) =
-    skip-centerᶜ (renameCenter plan)
+    renameCenter plan ▻ᶜ center-changeᶜ
   renameCenter
       (center-rename-lift-both {v = v} plan Γᴸ⁺≡ Γᴿ⁺≡) =
-    lift-both-rawᶜ (renameCenter plan) v Γᴸ⁺≡ Γᴿ⁺≡
+    renameCenter plan ▻ᶜ lift-both-changeᶜ v Γᴸ⁺≡ Γᴿ⁺≡
   renameCenter (center-rename-lift-left plan Γᴸ⁺≡) =
-    lift-left-rawᶜ (renameCenter plan) Γᴸ⁺≡
+    renameCenter plan ▻ᶜ lift-left-changeᶜ Γᴸ⁺≡
   renameCenter
       (center-rename-bind-left {A = A} plan Γᴸ⁺≡) =
-    bind-left-rawᶜ (renameCenter plan) A Γᴸ⁺≡
+    renameCenter plan ▻ᶜ bind-left-changeᶜ A Γᴸ⁺≡
   renameCenter
       (center-rename-bind-right {B = B} plan fresh′ Γᴿ⁺≡) =
-    bind-right-rawᶜ (renameCenter plan) B fresh′ Γᴿ⁺≡
+    renameCenter plan ▻ᶜ bind-right-changeᶜ B fresh′ Γᴿ⁺≡
   renameCenter
       (center-rename-bind-both plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) =
-    bind-both-rawᶜ (renameCenter plan) represented′ Γᴸ⁺≡ Γᴿ⁺≡
+    renameCenter plan ▻ᶜ bind-both-changeᶜ represented′ Γᴸ⁺≡ Γᴿ⁺≡
   renameCenter
       (center-rename-bind-both-star
         {A≠★ = A≠★} plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) =
-    bind-both-star-rawᶜ (renameCenter plan) represented′ A≠★
-      Γᴸ⁺≡ Γᴿ⁺≡
+    renameCenter plan ▻ᶜ
+      bind-both-star-changeᶜ represented′ A≠★ Γᴸ⁺≡ Γᴿ⁺≡
   renameCenter
       (center-rename-bind-term plan represented′) =
-    bind-termᶜ (renameCenter plan) represented′
+    renameCenter plan ▻ᶜ bind-term-changeᶜ represented′
+  renameCenter
+      (center-rename-rebase-source
+        {X = X} {Y = Y} plan update′ represented′ after′) =
+    renameCenter plan ▻ᶜ
+      rebase-source-changeᶜ X Y update′ represented′
 
 
-renameCenter-center : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′}
-    {π : centerᶜ W ↪ᵗ Δ′}
-    (plan : CenterRenamePlan W π)
-  → centerᶜ (renameCenter plan) ≡ Δ′
-renameCenter-center (center-rename-id refl) = refl
-renameCenter-center (center-rename-insert plan) =
-  cong suc (renameCenter-center plan)
-renameCenter-center (center-rename-skip-center plan) =
-  cong suc (renameCenter-center plan)
-renameCenter-center
-    (center-rename-lift-both plan Γᴸ⁺≡ Γᴿ⁺≡) =
-  cong suc (renameCenter-center plan)
-renameCenter-center
-    (center-rename-lift-left plan Γᴸ⁺≡) =
-  cong suc (renameCenter-center plan)
-renameCenter-center
-    (center-rename-bind-left plan Γᴸ⁺≡) =
-  cong suc (renameCenter-center plan)
-renameCenter-center
-    (center-rename-bind-right plan fresh′ Γᴿ⁺≡) =
-  cong suc (renameCenter-center plan)
-renameCenter-center
-    (center-rename-bind-both plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) =
-  cong suc (renameCenter-center plan)
-renameCenter-center
-    (center-rename-bind-both-star
-      plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) =
-  cong suc (renameCenter-center plan)
-renameCenter-center
-    (center-rename-bind-term plan represented′) =
-  renameCenter-center plan
+  renameCenter-center : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′}
+      {π : centerᶜ W ↪ᵗ Δ′}
+      (plan : CenterRenamePlan W π)
+    → centerᶜ (renameCenter plan) ≡ Δ′
+  renameCenter-center (center-rename-id refl) = refl
+  renameCenter-center (center-rename-insert plan) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center (center-rename-skip-center plan) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center
+      (center-rename-lift-both plan Γᴸ⁺≡ Γᴿ⁺≡) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center
+      (center-rename-lift-left plan Γᴸ⁺≡) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center
+      (center-rename-bind-left plan Γᴸ⁺≡) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center
+      (center-rename-bind-right plan fresh′ Γᴿ⁺≡) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center
+      (center-rename-bind-both plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center
+      (center-rename-bind-both-star
+        plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) =
+    cong suc (renameCenter-center plan)
+  renameCenter-center
+      (center-rename-bind-term plan represented′) =
+    renameCenter-center plan
+  renameCenter-center
+      (center-rename-rebase-source plan update′ represented′ after′) =
+    renameCenter-center plan
 
 
 renameCenter-ηᴸ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′}
     {π : centerᶜ W ↪ᵗ Δ′}
     (plan : CenterRenamePlan W π)
     (X : TyVar (Δᵉ Cᴸ))
-  → toRenameᵗ (ηᴸᶜ (renameCenter plan)) X
+  → toRenameⁱ (ηᴸᶜ (renameCenter plan)) X
     ≡ subst Fin.Fin (sym (renameCenter-center plan))
-        (toRenameᵗ π (toRenameᵗ (ηᴸᶜ W) X))
+        (toRenameᵗ π (toRenameⁱ (ηᴸᶜ W) X))
 renameCenter-ηᴸ (center-rename-id refl) X =
-  sym (toRename-id-eq (toRenameᵗ _ X))
+  sym toRename-id-eq′
 renameCenter-ηᴸ (center-rename-insert plan) X =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ (center-rename-skip-center plan) X =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ
     (center-rename-lift-both plan Γᴸ⁺≡ Γᴿ⁺≡) Fin.zero =
   sym (subst-Fin-zero-sym (renameCenter-center plan))
 renameCenter-ηᴸ
     (center-rename-lift-both plan Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ
     (center-rename-lift-left plan Γᴸ⁺≡) Fin.zero =
   sym (subst-Fin-zero-sym (renameCenter-center plan))
 renameCenter-ηᴸ
     (center-rename-lift-left plan Γᴸ⁺≡) (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ
     (center-rename-bind-left plan Γᴸ⁺≡) Fin.zero =
   sym (subst-Fin-zero-sym (renameCenter-center plan))
 renameCenter-ηᴸ
     (center-rename-bind-left plan Γᴸ⁺≡) (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ
     (center-rename-bind-right plan fresh′ Γᴿ⁺≡) X =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ
     (center-rename-bind-both plan represented′ Γᴸ⁺≡ Γᴿ⁺≡)
     Fin.zero =
@@ -300,8 +328,7 @@ renameCenter-ηᴸ
     (center-rename-bind-both plan represented′ Γᴸ⁺≡ Γᴿ⁺≡)
     (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ
     (center-rename-bind-both-star
       plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) Fin.zero =
@@ -310,48 +337,45 @@ renameCenter-ηᴸ
     (center-rename-bind-both-star
       plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴸ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴸ
     (center-rename-bind-term plan represented′) X =
   renameCenter-ηᴸ plan X
+renameCenter-ηᴸ
+    (center-rename-rebase-source plan update′ represented′ after′) X =
+  after′ X
 
 
 renameCenter-ηᴿ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′}
     {π : centerᶜ W ↪ᵗ Δ′}
     (plan : CenterRenamePlan W π)
     (X : TyVar (Δᵉ Cᴿ))
-  → toRenameᵗ (ηᴿᶜ (renameCenter plan)) X
+  → toRenameⁱ (ηᴿᶜ (renameCenter plan)) X
     ≡ subst Fin.Fin (sym (renameCenter-center plan))
-        (toRenameᵗ π (toRenameᵗ (ηᴿᶜ W) X))
+        (toRenameᵗ π (toRenameⁱ (ηᴿᶜ W) X))
 renameCenter-ηᴿ (center-rename-id refl) X =
-  sym (toRename-id-eq (toRenameᵗ _ X))
+  sym toRename-id-eq′
 renameCenter-ηᴿ (center-rename-insert plan) X =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ (center-rename-skip-center plan) X =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ
     (center-rename-lift-both plan Γᴸ⁺≡ Γᴿ⁺≡) Fin.zero =
   sym (subst-Fin-zero-sym (renameCenter-center plan))
 renameCenter-ηᴿ
     (center-rename-lift-both plan Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ
     (center-rename-lift-left plan Γᴸ⁺≡) X =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ
     (center-rename-bind-left plan Γᴸ⁺≡) X =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ
     (center-rename-bind-right plan fresh′ Γᴿ⁺≡) Fin.zero =
   sym (subst-Fin-zero-sym (renameCenter-center plan))
@@ -359,8 +383,7 @@ renameCenter-ηᴿ
     (center-rename-bind-right plan fresh′ Γᴿ⁺≡)
     (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ
     (center-rename-bind-both plan represented′ Γᴸ⁺≡ Γᴿ⁺≡)
     Fin.zero =
@@ -369,8 +392,7 @@ renameCenter-ηᴿ
     (center-rename-bind-both plan represented′ Γᴸ⁺≡ Γᴿ⁺≡)
     (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ
     (center-rename-bind-both-star
       plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) Fin.zero =
@@ -379,10 +401,12 @@ renameCenter-ηᴿ
     (center-rename-bind-both-star
       plan represented′ Γᴸ⁺≡ Γᴿ⁺≡) (Fin.suc X) =
   trans (cong Fin.suc (renameCenter-ηᴿ plan X))
-    (sym (subst-Fin-suc-sym (renameCenter-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+    (sym (subst-Fin-suc-sym′ (renameCenter-center plan)))
 renameCenter-ηᴿ
     (center-rename-bind-term plan represented′) X =
+  renameCenter-ηᴿ plan X
+renameCenter-ηᴿ
+    (center-rename-rebase-source plan update′ represented′ after′) X =
   renameCenter-ηᴿ plan X
 
 
@@ -458,11 +482,15 @@ renameCenter-marks
 renameCenter-marks
     (center-rename-bind-term plan represented′) Z =
   renameCenter-marks plan Z
+renameCenter-marks
+    (center-rename-rebase-source plan update′ represented′ after′) Z =
+  renameCenter-marks plan Z
 
 
 renameCenter-direct-invariants : ∀ {Cᴸ Cᴿ}
     {W : Cᴸ ⊑ᶜ Cᴿ} {Δ′} {π : centerᶜ W ↪ᵗ Δ′}
     (plan : CenterRenamePlan W π)
+  → sourceRebaseCountᶜ (renameCenter plan) ≡ 0
   → DirectWorldInvariantsᶜ (renameCenter plan)
-renameCenter-direct-invariants plan =
-  directInvariantsᶜ (renameCenter plan)
+renameCenter-direct-invariants plan no-rebase =
+  directInvariantsᶜ (renameCenter plan) no-rebase

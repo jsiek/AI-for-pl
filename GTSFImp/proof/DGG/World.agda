@@ -7,9 +7,17 @@ module proof.DGG.World where
 --     two complete CastTerms contexts.
 --   * Derives the common center, current embeddings, marks, endpoint type
 --     imprecision, allocation guards, and smart constructors.
---   * Interprets source rebase structurally by deleting one selected source
---     position and reinserting it at a target position in the common center.
+--   * Represents endpoint-to-center maps by arbitrary injections.  Actual
+--     allocation and weakening changes remain order-preserving embeddings.
+--   * Interprets source rebase by changing one selected source image while
+--     leaving every other source image fixed.
 --   * Contains no compatibility world or invariant-injection escape.
+--
+-- Endpoint injections are necessary for the protected-binder counterexample
+-- checked by notes/SourceBindLiftLeftTrustedProbe.agda and reconstructed in
+-- notes/ArbitraryInjectionWorldProbe.agda: after allocation the source images
+-- must change from X ↦ 0, Y ↦ 1 to X ↦ 3, Y ↦ 1.  This map is
+-- injective but not order preserving.
 
 open import Data.List using ([]; _∷_)
 open import Data.Nat using (ℕ; suc; zero)
@@ -17,16 +25,18 @@ open import Data.Product using (Σ-syntax; _×_)
 open import Data.Sum using (_⊎_)
 open import Data.Empty using (⊥-elim)
 import Data.Fin as Fin
+import Data.Fin.Properties as FinP
 open import Relation.Binary.PropositionalEquality using
   (_≡_; _≢_; refl; cong; sym; trans)
+open import Relation.Nullary using (yes; no)
 
-open import Types using (Ty; TyCtx; TyVar; ★; ＇_; ⇑ᵗ; renameᵗ)
+open import Types using
+  (Ty; TyCtx; TyVar; ★; ＇_; ⇑ᵗ; renameᵗ; renameᵗ-comp;
+   renameᵗ-cong; renameᵗ-shift)
 open import TyStore using
   (TyStore; store-empty; store-lift; store-bind; lookupStore)
 import TermCtx as TC
 open TC using (TermCtx)
-open import Consistency using
-  (_↪ᵗ_; empty; keep; skip; toRenameᵗ)
 open import Imprecision using
   (ImpEnv; VarImp; X⊑X; X⊑★; extendᵐ; _⊢_⊑_)
 open import CastTerms using
@@ -41,239 +51,242 @@ emptyStoreᶜ zero = store-empty
 emptyStoreᶜ (suc Delta) = store-lift (emptyStoreᶜ Delta)
 
 
+-- Arbitrary injective endpoint-to-center maps
 ------------------------------------------------------------------------
--- Replacing one selected center position in a thinning
+
+record Injectionᵗ (Delta Delta′ : TyCtx) : Set where
+  constructor injectionᵗ
+  field
+    toRenameⁱ : TyVar Delta → TyVar Delta′
+    toRenameⁱ-injective : ∀ {X Y}
+      → toRenameⁱ X ≡ toRenameⁱ Y
+      → X ≡ Y
+
+open Injectionᵗ public
+
+
+fin-suc-injectiveⁱ : ∀ {n} {X Y : Fin.Fin n}
+  → Fin.suc X ≡ Fin.suc Y
+  → X ≡ Y
+fin-suc-injectiveⁱ refl = refl
+
+
+emptyⁱ : ∀ {Delta} → Injectionᵗ zero Delta
+emptyⁱ = injectionᵗ (λ ()) (λ { {X = ()} })
+
+
+skipⁱ : ∀ {Delta Delta′}
+  → Injectionᵗ Delta Delta′
+  → Injectionᵗ Delta (suc Delta′)
+skipⁱ eta = injectionᵗ
+  (λ X → Fin.suc (toRenameⁱ eta X))
+  (λ eq → toRenameⁱ-injective eta (fin-suc-injectiveⁱ eq))
+
+
+keep-mapⁱ : ∀ {Delta Delta′}
+  → Injectionᵗ Delta Delta′
+  → TyVar (suc Delta)
+  → TyVar (suc Delta′)
+keep-mapⁱ eta Fin.zero = Fin.zero
+keep-mapⁱ eta (Fin.suc X) = Fin.suc (toRenameⁱ eta X)
+
+
+keep-mapⁱ-injective : ∀ {Delta Delta′}
+    (eta : Injectionᵗ Delta Delta′) {X Y}
+  → keep-mapⁱ eta X ≡ keep-mapⁱ eta Y
+  → X ≡ Y
+keep-mapⁱ-injective eta {Fin.zero} {Fin.zero} eq = refl
+keep-mapⁱ-injective eta {Fin.zero} {Fin.suc Y} ()
+keep-mapⁱ-injective eta {Fin.suc X} {Fin.zero} ()
+keep-mapⁱ-injective eta {Fin.suc X} {Fin.suc Y} eq =
+  cong Fin.suc (toRenameⁱ-injective eta (fin-suc-injectiveⁱ eq))
+
+
+keepⁱ : ∀ {Delta Delta′}
+  → Injectionᵗ Delta Delta′
+  → Injectionᵗ (suc Delta) (suc Delta′)
+keepⁱ eta = injectionᵗ (keep-mapⁱ eta) (keep-mapⁱ-injective eta)
+
+
+renameᵗ-skipⁱ : ∀ {Delta₀ Delta}
+    (eta : Injectionᵗ Delta₀ Delta) (A : Ty Delta₀)
+  → renameᵗ (toRenameⁱ (skipⁱ eta)) A
+    ≡ ⇑ᵗ (renameᵗ (toRenameⁱ eta) A)
+renameᵗ-skipⁱ eta A =
+  trans (renameᵗ-cong A (λ X → refl))
+    (sym (renameᵗ-comp (toRenameⁱ eta) Fin.suc A))
+
+
+renameᵗ-keep-shiftⁱ : ∀ {Delta₀ Delta}
+    (eta : Injectionᵗ Delta₀ Delta) (A : Ty Delta₀)
+  → renameᵗ (toRenameⁱ (keepⁱ eta)) (⇑ᵗ A)
+    ≡ ⇑ᵗ (renameᵗ (toRenameⁱ eta) A)
+renameᵗ-keep-shiftⁱ eta A =
+  trans (renameᵗ-cong (⇑ᵗ A)
+    (λ { Fin.zero → refl; (Fin.suc X) → refl }))
+    (renameᵗ-shift (toRenameⁱ eta) A)
+
+
+------------------------------------------------------------------------
+-- A source rebase changes one source pivot and no other endpoint image
 ------------------------------------------------------------------------
 
-deleteSourceᵗ : ∀ {Delta₀ Delta}
-  → suc Delta₀ ↪ᵗ Delta
-  → TyVar (suc Delta₀)
-  → Delta₀ ↪ᵗ Delta
-deleteSourceᵗ (keep eta) Fin.zero = skip eta
-deleteSourceᵗ {Delta₀ = zero} (keep eta) (Fin.suc ())
-deleteSourceᵗ {Delta₀ = suc Delta₀} (keep eta) (Fin.suc X) =
-  keep (deleteSourceᵗ eta X)
-deleteSourceᵗ (skip eta) X = skip (deleteSourceᵗ eta X)
+record PivotUpdateᵗ {Delta₀ Delta}
+    (before : Injectionᵗ Delta₀ Delta)
+    (X : TyVar Delta₀) (Z : TyVar Delta) : Set where
+  constructor pivot-updateᵗ
+  field
+    pivot-before-apartᵗ : toRenameⁱ before X ≢ Z
+    pivot-afterᵗ : Injectionᵗ Delta₀ Delta
+    pivot-alignedᵗ : toRenameⁱ pivot-afterᵗ X ≡ Z
+    off-pivot-fixedᵗ : ∀ Y → Y ≢ X
+      → toRenameⁱ pivot-afterᵗ Y ≡ toRenameⁱ before Y
+
+open PivotUpdateᵗ public
 
 
-data InsertSourceᵗ : ∀ {Delta₀ Delta}
-    (eta : Delta₀ ↪ᵗ Delta)
-    (X : TyVar (suc Delta₀))
-    (Z : TyVar Delta)
-    → Set where
-  insert-hereᵗ : ∀ {Delta₀ Delta} {eta : Delta₀ ↪ᵗ Delta}
-    → InsertSourceᵗ (skip eta) Fin.zero Fin.zero
-
-  insert-skipᵗ : ∀ {Delta₀ Delta} {eta : Delta₀ ↪ᵗ Delta}
-      {X : TyVar (suc Delta₀)} {Z : TyVar Delta}
-    → InsertSourceᵗ eta X Z
-    → InsertSourceᵗ (skip eta) X (Fin.suc Z)
-
-  insert-keepᵗ : ∀ {Delta₀ Delta} {eta : Delta₀ ↪ᵗ Delta}
-      {X : TyVar (suc Delta₀)} {Z : TyVar Delta}
-    → InsertSourceᵗ eta X Z
-    → InsertSourceᵗ (keep eta) (Fin.suc X) (Fin.suc Z)
+repoint-mapⁱ : ∀ {Delta₀ Delta}
+    (before : Injectionᵗ Delta₀ Delta)
+    (X : TyVar Delta₀) (Z : TyVar Delta)
+  → TyVar Delta₀
+  → TyVar Delta
+repoint-mapⁱ before X Z Y with FinP._≟_ Y X
+repoint-mapⁱ before X Z .X | yes refl = Z
+repoint-mapⁱ before X Z Y | no Y≠X = toRenameⁱ before Y
 
 
-insertSourceEmbeddingᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
-    {X : TyVar (suc Delta₀)} {Z : TyVar Delta}
-  → InsertSourceᵗ eta X Z
-  → suc Delta₀ ↪ᵗ Delta
-insertSourceEmbeddingᵗ {eta = skip eta} insert-hereᵗ = keep eta
-insertSourceEmbeddingᵗ (insert-skipᵗ insert) =
-  skip (insertSourceEmbeddingᵗ insert)
-insertSourceEmbeddingᵗ (insert-keepᵗ insert) =
-  keep (insertSourceEmbeddingᵗ insert)
+repoint-mapⁱ-injective : ∀ {Delta₀ Delta}
+    (before : Injectionᵗ Delta₀ Delta)
+    (X : TyVar Delta₀) (Z : TyVar Delta)
+  → (∀ Y → Y ≢ X → toRenameⁱ before Y ≢ Z)
+  → ∀ {Y Y′}
+  → repoint-mapⁱ before X Z Y ≡ repoint-mapⁱ before X Z Y′
+  → Y ≡ Y′
+repoint-mapⁱ-injective before X Z free {Y} {Y′} eq
+    with FinP._≟_ Y X | FinP._≟_ Y′ X
+repoint-mapⁱ-injective before X Z free {.X} {.X} eq
+    | yes refl | yes refl = refl
+repoint-mapⁱ-injective before X Z free {.X} {Y′} eq
+    | yes refl | no Y′≠X =
+  ⊥-elim (free Y′ Y′≠X (sym eq))
+repoint-mapⁱ-injective before X Z free {Y} {.X} eq
+    | no Y≠X | yes refl =
+  ⊥-elim (free Y Y≠X eq)
+repoint-mapⁱ-injective before X Z free {Y} {Y′} eq
+    | no Y≠X | no Y′≠X =
+  toRenameⁱ-injective before eq
 
 
--- Evidence that the source thinning eta can be changed so that the selected
--- source variable X occupies center position Z.  The old image of X must be
--- different from Z; after deleting X from eta, InsertSourceᵗ shows that X can
--- be reinserted at Z without disturbing the order of the thinning.  Thus the
--- interpreted rebase maps X to Z and leaves every other source variable at
--- its old center position.  This predicate records only that embedding
--- geometry; the representation-type imprecision required by a world rebase
--- is carried separately by rebase-source-changeᶜ.
-data CanRebaseSourceᵗ : ∀ {Delta₀ Delta}
-    (eta : Delta₀ ↪ᵗ Delta)
-    (X : TyVar Delta₀)
-    (Z : TyVar Delta)
-    → Set where
-  can-rebase-sourceᵗ : ∀ {Delta₀ Delta}
-      {eta : suc Delta₀ ↪ᵗ Delta}
-      {X : TyVar (suc Delta₀)} {Z : TyVar Delta}
-    → toRenameᵗ eta X ≢ Z
-    → InsertSourceᵗ (deleteSourceᵗ eta X) X Z
-    → CanRebaseSourceᵗ eta X Z
+repoint-mapⁱ-here : ∀ {Delta₀ Delta}
+    (before : Injectionᵗ Delta₀ Delta)
+    (X : TyVar Delta₀) (Z : TyVar Delta)
+  → repoint-mapⁱ before X Z X ≡ Z
+repoint-mapⁱ-here before X Z with FinP._≟_ X X
+repoint-mapⁱ-here before X Z | yes refl = refl
+repoint-mapⁱ-here before X Z | no X≠X = ⊥-elim (X≠X refl)
+
+
+repointⁱ : ∀ {Delta₀ Delta}
+    (before : Injectionᵗ Delta₀ Delta)
+    (X : TyVar Delta₀) (Z : TyVar Delta)
+  → toRenameⁱ before X ≢ Z
+  → (∀ Y → Y ≢ X → toRenameⁱ before Y ≢ Z)
+  → PivotUpdateᵗ before X Z
+repointⁱ before X Z apart free = pivot-updateᵗ
+  apart
+  (injectionᵗ (repoint-mapⁱ before X Z)
+    (repoint-mapⁱ-injective before X Z free))
+  (repoint-mapⁱ-here before X Z)
+  off
+  where
+  off : ∀ Y → Y ≢ X
+    → repoint-mapⁱ before X Z Y ≡ toRenameⁱ before Y
+  off Y Y≠X with FinP._≟_ Y X
+  off .X Y≠X | yes refl = ⊥-elim (Y≠X refl)
+  off Y Y≠X | no Y≠X′ = refl
 
 
 rebaseSourceEmbeddingᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → CanRebaseSourceᵗ eta X Z
-  → Delta₀ ↪ᵗ Delta
-rebaseSourceEmbeddingᵗ (can-rebase-sourceᵗ apart insert) =
-  insertSourceEmbeddingᵗ insert
+  → PivotUpdateᵗ eta X Z
+  → Injectionᵗ Delta₀ Delta
+rebaseSourceEmbeddingᵗ = pivot-afterᵗ
 
 
-canRebaseSource-skipᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+pivotUpdate-skipᵗ : ∀ {Delta₀ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → CanRebaseSourceᵗ eta X Z
-  → CanRebaseSourceᵗ (skip eta) X (Fin.suc Z)
-canRebaseSource-skipᵗ (can-rebase-sourceᵗ apart insert) =
-  can-rebase-sourceᵗ
-    (λ { refl → apart refl })
-    (insert-skipᵗ insert)
+  → PivotUpdateᵗ eta X Z
+  → PivotUpdateᵗ (skipⁱ eta) X (Fin.suc Z)
+pivotUpdate-skipᵗ update = pivot-updateᵗ
+  (λ eq → pivot-before-apartᵗ update (fin-suc-injectiveⁱ eq))
+  (skipⁱ (pivot-afterᵗ update))
+  (cong Fin.suc (pivot-alignedᵗ update))
+  (λ Y Y≠X → cong Fin.suc (off-pivot-fixedᵗ update Y Y≠X))
 
 
-canRebaseSource-keepᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+pivotUpdate-keepᵗ : ∀ {Delta₀ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → CanRebaseSourceᵗ eta X Z
-  → CanRebaseSourceᵗ (keep eta) (Fin.suc X) (Fin.suc Z)
-canRebaseSource-keepᵗ (can-rebase-sourceᵗ apart insert) =
-  can-rebase-sourceᵗ
-    (λ { refl → apart refl })
-    (insert-keepᵗ insert)
+  → PivotUpdateᵗ eta X Z
+  → PivotUpdateᵗ (keepⁱ eta) (Fin.suc X) (Fin.suc Z)
+pivotUpdate-keepᵗ update = pivot-updateᵗ
+  (λ eq → pivot-before-apartᵗ update (fin-suc-injectiveⁱ eq))
+  (keepⁱ (pivot-afterᵗ update))
+  (cong Fin.suc (pivot-alignedᵗ update))
+  off
+  where
+  off : ∀ Y → Y ≢ Fin.suc _
+    → toRenameⁱ (keepⁱ (pivot-afterᵗ update)) Y
+      ≡ toRenameⁱ (keepⁱ _) Y
+  off Fin.zero Y≠X = refl
+  off (Fin.suc Y) Y≠X = cong Fin.suc
+    (off-pivot-fixedᵗ update Y
+      (λ Y≡X → Y≠X (cong Fin.suc Y≡X)))
 
 
 rebaseSourceEmbedding-skipᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → (ok : CanRebaseSourceᵗ eta X Z)
-  → rebaseSourceEmbeddingᵗ (canRebaseSource-skipᵗ ok)
-    ≡ skip (rebaseSourceEmbeddingᵗ ok)
-rebaseSourceEmbedding-skipᵗ (can-rebase-sourceᵗ apart insert) = refl
+  → (update : PivotUpdateᵗ eta X Z)
+  → rebaseSourceEmbeddingᵗ (pivotUpdate-skipᵗ update)
+    ≡ skipⁱ (rebaseSourceEmbeddingᵗ update)
+rebaseSourceEmbedding-skipᵗ update = refl
 
 
 rebaseSourceEmbedding-keepᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → (ok : CanRebaseSourceᵗ eta X Z)
-  → rebaseSourceEmbeddingᵗ (canRebaseSource-keepᵗ ok)
-    ≡ keep (rebaseSourceEmbeddingᵗ ok)
-rebaseSourceEmbedding-keepᵗ (can-rebase-sourceᵗ apart insert) = refl
+  → (update : PivotUpdateᵗ eta X Z)
+  → rebaseSourceEmbeddingᵗ (pivotUpdate-keepᵗ update)
+    ≡ keepⁱ (rebaseSourceEmbeddingᵗ update)
+rebaseSourceEmbedding-keepᵗ update = refl
 
 
 rebaseSource-before-apartᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → (ok : CanRebaseSourceᵗ eta X Z)
-  → toRenameᵗ eta X ≢ Z
-rebaseSource-before-apartᵗ (can-rebase-sourceᵗ apart insert) = apart
-
-
-insertSource-alignedᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
-    {X : TyVar (suc Delta₀)} {Z : TyVar Delta}
-  → (insert : InsertSourceᵗ eta X Z)
-  → toRenameᵗ (insertSourceEmbeddingᵗ insert) X ≡ Z
-insertSource-alignedᵗ insert-hereᵗ = refl
-insertSource-alignedᵗ (insert-skipᵗ insert) =
-  cong Fin.suc (insertSource-alignedᵗ insert)
-insertSource-alignedᵗ (insert-keepᵗ insert) =
-  cong Fin.suc (insertSource-alignedᵗ insert)
+  → (update : PivotUpdateᵗ eta X Z)
+  → toRenameⁱ eta X ≢ Z
+rebaseSource-before-apartᵗ = pivot-before-apartᵗ
 
 
 rebaseSource-alignedᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → (ok : CanRebaseSourceᵗ eta X Z)
-  → toRenameᵗ (rebaseSourceEmbeddingᵗ ok) X ≡ Z
-rebaseSource-alignedᵗ (can-rebase-sourceᵗ apart insert) =
-  insertSource-alignedᵗ insert
-
-
-private
-
-  insertSourceVarᵗ : ∀ {Delta}
-    → TyVar (suc Delta)
-    → TyVar Delta
-    → TyVar (suc Delta)
-  insertSourceVarᵗ Fin.zero Y = Fin.suc Y
-  insertSourceVarᵗ {zero} (Fin.suc ()) Y
-  insertSourceVarᵗ {suc Delta} (Fin.suc X) Fin.zero = Fin.zero
-  insertSourceVarᵗ {suc Delta} (Fin.suc X) (Fin.suc Y) =
-    Fin.suc (insertSourceVarᵗ X Y)
-
-  removeSourceVarᵗ : ∀ {Delta}
-    → (X Y : TyVar (suc Delta))
-    → Y ≢ X
-    → TyVar Delta
-  removeSourceVarᵗ Fin.zero Fin.zero Y≠X = ⊥-elim (Y≠X refl)
-  removeSourceVarᵗ Fin.zero (Fin.suc Y) Y≠X = Y
-  removeSourceVarᵗ {zero} (Fin.suc ()) Y Y≠X
-  removeSourceVarᵗ {suc Delta} (Fin.suc X) Fin.zero Y≠X = Fin.zero
-  removeSourceVarᵗ {suc Delta} (Fin.suc X) (Fin.suc Y) Y≠X =
-    Fin.suc (removeSourceVarᵗ X Y
-      (λ Y≡X → Y≠X (cong Fin.suc Y≡X)))
-
-  insert-remove-sourceᵗ : ∀ {Delta}
-      (X Y : TyVar (suc Delta))
-      (Y≠X : Y ≢ X)
-    → insertSourceVarᵗ X (removeSourceVarᵗ X Y Y≠X) ≡ Y
-  insert-remove-sourceᵗ Fin.zero Fin.zero Y≠X =
-    ⊥-elim (Y≠X refl)
-  insert-remove-sourceᵗ Fin.zero (Fin.suc Y) Y≠X = refl
-  insert-remove-sourceᵗ {zero} (Fin.suc ()) Y Y≠X
-  insert-remove-sourceᵗ {suc Delta} (Fin.suc X) Fin.zero Y≠X = refl
-  insert-remove-sourceᵗ {suc Delta}
-      (Fin.suc X) (Fin.suc Y) Y≠X =
-    cong Fin.suc (insert-remove-sourceᵗ X Y
-      (λ Y≡X → Y≠X (cong Fin.suc Y≡X)))
-
-  deleteSource-oldᵗ : ∀ {Delta₀ Delta}
-      (eta : suc Delta₀ ↪ᵗ Delta)
-      (X : TyVar (suc Delta₀))
-      (Y : TyVar Delta₀)
-    → toRenameᵗ (deleteSourceᵗ eta X) Y
-      ≡ toRenameᵗ eta (insertSourceVarᵗ X Y)
-  deleteSource-oldᵗ (keep eta) Fin.zero Y = refl
-  deleteSource-oldᵗ {Delta₀ = zero} (keep eta) (Fin.suc ()) Y
-  deleteSource-oldᵗ {Delta₀ = suc Delta₀}
-      (keep eta) (Fin.suc X) Fin.zero = refl
-  deleteSource-oldᵗ {Delta₀ = suc Delta₀}
-      (keep eta) (Fin.suc X) (Fin.suc Y) =
-    cong Fin.suc (deleteSource-oldᵗ eta X Y)
-  deleteSource-oldᵗ (skip eta) X Y =
-    cong Fin.suc (deleteSource-oldᵗ eta X Y)
-
-  insertSource-oldᵗ : ∀ {Delta₀ Delta}
-      {eta : Delta₀ ↪ᵗ Delta}
-      {X : TyVar (suc Delta₀)} {Z : TyVar Delta}
-      (insert : InsertSourceᵗ eta X Z)
-      (Y : TyVar Delta₀)
-    → toRenameᵗ (insertSourceEmbeddingᵗ insert)
-        (insertSourceVarᵗ X Y)
-      ≡ toRenameᵗ eta Y
-  insertSource-oldᵗ insert-hereᵗ Y = refl
-  insertSource-oldᵗ (insert-skipᵗ insert) Y =
-    cong Fin.suc (insertSource-oldᵗ insert Y)
-  insertSource-oldᵗ (insert-keepᵗ insert) Fin.zero = refl
-  insertSource-oldᵗ (insert-keepᵗ insert) (Fin.suc Y) =
-    cong Fin.suc (insertSource-oldᵗ insert Y)
+  → (update : PivotUpdateᵗ eta X Z)
+  → toRenameⁱ (rebaseSourceEmbeddingᵗ update) X ≡ Z
+rebaseSource-alignedᵗ = pivot-alignedᵗ
 
 
 rebaseSource-offᵗ : ∀ {Delta₀ Delta}
-    {eta : Delta₀ ↪ᵗ Delta}
+    {eta : Injectionᵗ Delta₀ Delta}
     {X : TyVar Delta₀} {Z : TyVar Delta}
-  → (ok : CanRebaseSourceᵗ eta X Z)
+  → (update : PivotUpdateᵗ eta X Z)
   → ∀ Y → Y ≢ X
-  → toRenameᵗ (rebaseSourceEmbeddingᵗ ok) Y ≡ toRenameᵗ eta Y
-rebaseSource-offᵗ {eta = eta} {X = X}
-    (can-rebase-sourceᵗ apart insert) Y Y≠X =
-  trans
-    (cong (toRenameᵗ (insertSourceEmbeddingᵗ insert)) (sym same-Y))
-    (trans
-      (insertSource-oldᵗ insert smaller-Y)
-      (trans
-        (deleteSource-oldᵗ eta X smaller-Y)
-        (cong (toRenameᵗ eta) same-Y)))
-  where
-  smaller-Y = removeSourceVarᵗ X Y Y≠X
-  same-Y = insert-remove-sourceᵗ X Y Y≠X
+  → toRenameⁱ (rebaseSourceEmbeddingᵗ update) Y ≡ toRenameⁱ eta Y
+rebaseSource-offᵗ = off-pivot-fixedᵗ
 
 
 mutual
@@ -387,7 +400,7 @@ mutual
     rebase-source-changeᶜ : ∀ {Γᴸ Γᴿ} {γ : Γᴸ ⊑ᶜ Γᴿ}
       → (X : TyVar (Δᵉ Γᴸ))
       → (Y : TyVar (Δᵉ Γᴿ))
-      → CanRebaseSourceᵗ (ηᴸᶜ γ) X (toRenameᵗ (ηᴿᶜ γ) Y)
+      → PivotUpdateᵗ (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y)
       → (＇ X) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Y
       → WorldChange γ Γᴸ Γᴿ
 
@@ -408,31 +421,31 @@ mutual
     centerᶜ γ
 
   ηᴸᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
-    → Δᵉ Γᴸ ↪ᵗ centerᶜ γ
-  ηᴸᶜ emptyᶜ = empty
-  ηᴸᶜ (γ ▻ᶜ center-changeᶜ) = skip (ηᴸᶜ γ)
-  ηᴸᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) = keep (ηᴸᶜ γ)
-  ηᴸᶜ (γ ▻ᶜ lift-left-changeᶜ eqᴸ) = keep (ηᴸᶜ γ)
-  ηᴸᶜ (γ ▻ᶜ bind-left-changeᶜ A eqᴸ) = keep (ηᴸᶜ γ)
-  ηᴸᶜ (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) = skip (ηᴸᶜ γ)
-  ηᴸᶜ (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) = keep (ηᴸᶜ γ)
+    → Injectionᵗ (Δᵉ Γᴸ) (centerᶜ γ)
+  ηᴸᶜ emptyᶜ = emptyⁱ
+  ηᴸᶜ (γ ▻ᶜ center-changeᶜ) = skipⁱ (ηᴸᶜ γ)
+  ηᴸᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) = keepⁱ (ηᴸᶜ γ)
+  ηᴸᶜ (γ ▻ᶜ lift-left-changeᶜ eqᴸ) = keepⁱ (ηᴸᶜ γ)
+  ηᴸᶜ (γ ▻ᶜ bind-left-changeᶜ A eqᴸ) = keepⁱ (ηᴸᶜ γ)
+  ηᴸᶜ (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) = skipⁱ (ηᴸᶜ γ)
+  ηᴸᶜ (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) = keepⁱ (ηᴸᶜ γ)
   ηᴸᶜ (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
-    keep (ηᴸᶜ γ)
+    keepⁱ (ηᴸᶜ γ)
   ηᴸᶜ (γ ▻ᶜ bind-term-changeᶜ p) = ηᴸᶜ γ
   ηᴸᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented) =
     rebaseSourceEmbeddingᵗ ok
 
   ηᴿᶜ : ∀ {Γᴸ Γᴿ} (γ : Γᴸ ⊑ᶜ Γᴿ)
-    → Δᵉ Γᴿ ↪ᵗ centerᶜ γ
-  ηᴿᶜ emptyᶜ = empty
-  ηᴿᶜ (γ ▻ᶜ center-changeᶜ) = skip (ηᴿᶜ γ)
-  ηᴿᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) = keep (ηᴿᶜ γ)
-  ηᴿᶜ (γ ▻ᶜ lift-left-changeᶜ eqᴸ) = skip (ηᴿᶜ γ)
-  ηᴿᶜ (γ ▻ᶜ bind-left-changeᶜ A eqᴸ) = skip (ηᴿᶜ γ)
-  ηᴿᶜ (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) = keep (ηᴿᶜ γ)
-  ηᴿᶜ (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) = keep (ηᴿᶜ γ)
+    → Injectionᵗ (Δᵉ Γᴿ) (centerᶜ γ)
+  ηᴿᶜ emptyᶜ = emptyⁱ
+  ηᴿᶜ (γ ▻ᶜ center-changeᶜ) = skipⁱ (ηᴿᶜ γ)
+  ηᴿᶜ (γ ▻ᶜ lift-both-changeᶜ v eqᴸ eqᴿ) = keepⁱ (ηᴿᶜ γ)
+  ηᴿᶜ (γ ▻ᶜ lift-left-changeᶜ eqᴸ) = skipⁱ (ηᴿᶜ γ)
+  ηᴿᶜ (γ ▻ᶜ bind-left-changeᶜ A eqᴸ) = skipⁱ (ηᴿᶜ γ)
+  ηᴿᶜ (γ ▻ᶜ bind-right-changeᶜ B fresh eqᴿ) = keepⁱ (ηᴿᶜ γ)
+  ηᴿᶜ (γ ▻ᶜ bind-both-changeᶜ p eqᴸ eqᴿ) = keepⁱ (ηᴿᶜ γ)
   ηᴿᶜ (γ ▻ᶜ bind-both-star-changeᶜ p A≢★ eqᴸ eqᴿ) =
-    keep (ηᴿᶜ γ)
+    keepⁱ (ηᴿᶜ γ)
   ηᴿᶜ (γ ▻ᶜ bind-term-changeᶜ p) = ηᴿᶜ γ
   ηᴿᶜ (γ ▻ᶜ rebase-source-changeᶜ X Y ok represented) =
     ηᴿᶜ γ
@@ -466,8 +479,8 @@ mutual
       ⊎ Σ[ Yᴿ ∈ TyVar (suc (Δᵉ Γᴿ)) ]
           (⇑ᵗ B ≡ ＇ Yᴿ)
         × (∀ Xᴸ
-            → toRenameᵗ (skip (ηᴸᶜ γ)) Xᴸ
-              ≢ toRenameᵗ (keep (ηᴿᶜ γ)) Yᴿ)
+            → toRenameⁱ (skipⁱ (ηᴸᶜ γ)) Xᴸ
+              ≢ toRenameⁱ (keepⁱ (ηᴿᶜ γ)) Yᴿ)
 
   _⊑ᵀ⟨_⟩_ : ∀ {Γᴸ Γᴿ}
     → Ty (Δᵉ Γᴸ)
@@ -476,8 +489,8 @@ mutual
     → Set
   A ⊑ᵀ⟨ γ ⟩ B =
     marksᶜ γ ⊢
-      renameᵗ (toRenameᵗ (ηᴸᶜ γ)) A
-        ⊑ renameᵗ (toRenameᵗ (ηᴿᶜ γ)) B
+      renameᵗ (toRenameⁱ (ηᴸᶜ γ)) A
+        ⊑ renameᵗ (toRenameⁱ (ηᴿᶜ γ)) B
 
 
 sourceRebaseCountᶜ : ∀ {Γᴸ Γᴿ} → Γᴸ ⊑ᶜ Γᴿ → ℕ
@@ -562,7 +575,7 @@ rebaseSourceᶜ : ∀ {Γᴸ Γᴿ}
   → (γ : Γᴸ ⊑ᶜ Γᴿ)
   → (X : TyVar (Δᵉ Γᴸ))
   → (Y : TyVar (Δᵉ Γᴿ))
-  → CanRebaseSourceᵗ (ηᴸᶜ γ) X (toRenameᵗ (ηᴿᶜ γ) Y)
+  → PivotUpdateᵗ (ηᴸᶜ γ) X (toRenameⁱ (ηᴿᶜ γ) Y)
   → (＇ X) ⊑ᵀ⟨ γ ⟩ lookupStore (Σᵉ Γᴿ) Y
   → Γᴸ ⊑ᶜ Γᴿ
 rebaseSourceᶜ γ X Y ok represented =
@@ -593,11 +606,11 @@ initialWorld-embeddingsᶜ : ∀ {Delta} (mu : ImpEnv Delta)
     ≡ ηᴿᶜ (initialWorldᶜ mu)
 initialWorld-embeddingsᶜ {zero} mu = refl
 initialWorld-embeddingsᶜ {suc Delta} mu =
-  cong keep (initialWorld-embeddingsᶜ (λ X → mu (Fin.suc X)))
+  cong keepⁱ (initialWorld-embeddingsᶜ (λ X → mu (Fin.suc X)))
 
 initialWorld-markᶜ : ∀ {Delta} (mu : ImpEnv Delta) (X : TyVar Delta)
   → marksᶜ (initialWorldᶜ mu)
-      (toRenameᵗ (ηᴸᶜ (initialWorldᶜ mu)) X)
+      (toRenameⁱ (ηᴸᶜ (initialWorldᶜ mu)) X)
     ≡ mu X
 initialWorld-markᶜ {suc Delta} mu Fin.zero = refl
 initialWorld-markᶜ {suc Delta} mu (Fin.suc X) =
@@ -606,7 +619,7 @@ initialWorld-markᶜ {suc Delta} mu (Fin.suc X) =
 initialWorld-target-markᶜ : ∀ {Delta}
     (mu : ImpEnv Delta) (X : TyVar Delta)
   → marksᶜ (initialWorldᶜ mu)
-      (toRenameᵗ (ηᴿᶜ (initialWorldᶜ mu)) X)
+      (toRenameⁱ (ηᴿᶜ (initialWorldᶜ mu)) X)
     ≡ mu X
 initialWorld-target-markᶜ {suc Delta} mu Fin.zero = refl
 initialWorld-target-markᶜ {suc Delta} mu (Fin.suc X) =
@@ -630,7 +643,7 @@ emptyCenterWorld-embeddingsᶜ : (Delta : TyCtx)
     ≡ ηᴿᶜ (emptyCenterWorldᶜ Delta)
 emptyCenterWorld-embeddingsᶜ zero = refl
 emptyCenterWorld-embeddingsᶜ (suc Delta) =
-  cong skip (emptyCenterWorld-embeddingsᶜ Delta)
+  cong skipⁱ (emptyCenterWorld-embeddingsᶜ Delta)
 
 emptyCenterWorld-markᶜ : (Delta : TyCtx)
     (Z : TyVar (centerᶜ (emptyCenterWorldᶜ Delta)))

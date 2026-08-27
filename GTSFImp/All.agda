@@ -136,6 +136,7 @@ import proof.DGG.Catchup.LeftSourceConversionCatchupDef
 import proof.DGG.Catchup.LeftPairedConversionCatchupDef
 import proof.DGG.Catchup.LeftTargetRevealRebaseCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupProof
+import proof.DGG.CatchupToMorePreciseProof
 
 ------------------------------------------------------------------------
 -- Current frontier (M8: higher-order DGG assembly)

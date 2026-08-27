@@ -17,7 +17,7 @@ import Data.Fin as Fin
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import Types
-open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
+open import Consistency using (Env∼; _⊢_∼_)
 open import Conversion using
   (Conv↑; Conv↓; _⊢↑[_⦂_]_; _⊢↓[_⦂_]_)
 open import Imprecision
@@ -171,9 +171,9 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
       {c : Conv↑ (Δᵉ Γᴸ) A A′}
     → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
     → revealGeneratorPosition c⊢ ≢ generator-absent
-    → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★
-    → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
-        ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
+    → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★
+    → (∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ) Xᴿ
+        ≢ toRenameⁱ (ηᴸᶜ γ) Xᴸ)
     → Rᴸ ⊑ᵀ⟨ γ ⟩ ★
     → γ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
@@ -195,9 +195,9 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
       {c : Conv↓ (Δᵉ Γᴸ) A A′}
     → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
     → concealGeneratorPosition c⊢ ≢ generator-absent
-    → marksᶜ γ (toRenameᵗ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★
-    → (∀ Xᴿ → toRenameᵗ (ηᴿᶜ γ) Xᴿ
-        ≢ toRenameᵗ (ηᴸᶜ γ) Xᴸ)
+    → marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★
+    → (∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ) Xᴿ
+        ≢ toRenameⁱ (ηᴸᶜ γ) Xᴸ)
     → Rᴸ ⊑ᵀ⟨ γ ⟩ ★
     → γ ⊢² M ⊑ M′ ∶ p
     → (q : A′ ⊑ᵀ⟨ γ ⟩ B)
@@ -210,7 +210,7 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
     → (c⊢ : Σᵉ Γᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] c)
     → (c′⊢ : Σᵉ Γᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
     → revealGeneratorPosition c⊢ ≡ revealGeneratorPosition c′⊢
-    → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+    → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≡ toRenameⁱ (ηᴿᶜ γ) Xᴿ
     → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
     → {p : A ⊑ᵀ⟨ γ ⟩ A′}
     → γ ⊢² M ⊑ M′ ∶ p
@@ -226,7 +226,7 @@ data _⊢²_⊑_∶_ {Γᴸ Γᴿ : Ctx} :
     → (c⊢ : Σᵉ Γᴸ ⊢↓[ Xᴸ ⦂ Rᴸ ] c)
     → (c′⊢ : Σᵉ Γᴿ ⊢↓[ Xᴿ ⦂ Rᴿ ] c′)
     → concealGeneratorPosition c⊢ ≡ concealGeneratorPosition c′⊢
-    → toRenameᵗ (ηᴸᶜ γ) Xᴸ ≡ toRenameᵗ (ηᴿᶜ γ) Xᴿ
+    → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≡ toRenameⁱ (ηᴿᶜ γ) Xᴿ
     → Rᴸ ⊑ᵀ⟨ γ ⟩ Rᴿ
     → γ ⊢² M ⊑ M′ ∶ p
     → (q : B ⊑ᵀ⟨ γ ⟩ B′)

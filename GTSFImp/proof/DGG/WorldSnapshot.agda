@@ -6,8 +6,8 @@ module proof.DGG.WorldSnapshot where
 --     imprecision mark in center order.
 --   * Exports `defaultName` for unprimed source/center type variables and
 --     `defaultNameᵗ` for primed target type variables.
---   * Reserves `♭`-prefixed names for generated type binders; supplied name
---     functions must never produce `♭`-prefixed names.
+--   * Names generated type binders with the first canonical `X`, `Y`, `Z`,
+--     `X₁`, ... name after the variables already in scope.
 --   * Renders the canonical complete-context World relation directly; there
 --     is no compatibility-world rendering path.
 
@@ -18,14 +18,53 @@ open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Show using (show)
 open import Data.String using (String; _++_; fromList; toList)
 import Data.Fin as Fin
+import Data.Fin.Properties as FinP
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Nullary using (yes; no)
 
 open import Types
 open import TyStore using (TyStore; store-empty; store-lift; store-bind)
 open import Imprecision using (VarImp; X⊑X; X⊑★)
-open import Consistency using (_↪ᵗ_; empty; keep; skip)
 open import CastTerms using (Ctx; Δᵉ; Σᵉ)
 open import proof.DGG.World
+
+------------------------------------------------------------------------
+-- Canonical names
+------------------------------------------------------------------------
+
+private
+
+  subscriptDigit : Char → Char
+  subscriptDigit '0' = '₀'
+  subscriptDigit '1' = '₁'
+  subscriptDigit '2' = '₂'
+  subscriptDigit '3' = '₃'
+  subscriptDigit '4' = '₄'
+  subscriptDigit '5' = '₅'
+  subscriptDigit '6' = '₆'
+  subscriptDigit '7' = '₇'
+  subscriptDigit '8' = '₈'
+  subscriptDigit '9' = '₉'
+  subscriptDigit c = c
+
+subscript : ℕ → String
+subscript n = fromList (map subscriptDigit (toList (show n)))
+
+private
+
+  defaultNameAt : ℕ → ℕ → String
+  defaultNameAt zero zero = "X"
+  defaultNameAt (suc group) zero = "X" ++ subscript (suc group)
+  defaultNameAt zero (suc zero) = "Y"
+  defaultNameAt (suc group) (suc zero) = "Y" ++ subscript (suc group)
+  defaultNameAt zero (suc (suc zero)) = "Z"
+  defaultNameAt (suc group) (suc (suc zero)) =
+    "Z" ++ subscript (suc group)
+  defaultNameAt group (suc (suc (suc index))) =
+    defaultNameAt (suc group) index
+
+canonicalTyName : ℕ → String
+canonicalTyName = defaultNameAt zero
 
 ------------------------------------------------------------------------
 -- Types and direct store entries
@@ -49,10 +88,11 @@ private
   showTyAt depth name (A ⇒ B) =
     "(" ++ showTyAt depth name A ++ " ⇒ " ++ showTyAt depth name B ++ ")"
   showTyAt depth name (`∀ A) =
-    "∀ " ++ showTyAt (suc depth) (extendName name ("♭" ++ show depth)) A
+    "∀ " ++ showTyAt (suc depth)
+      (extendName name (canonicalTyName depth)) A
 
 showTy : ∀ {Δ} → (TyVar Δ → String) → Ty Δ → String
-showTy = showTyAt zero
+showTy {Δ} = showTyAt Δ
 
 lookupStore : ∀ {Δ} → TyStore Δ → TyVar Δ → Ty Δ
 lookupStore store-empty ()
@@ -65,34 +105,46 @@ lookupStore (store-bind Σ A) (Fin.suc X) = ⇑ᵗ (lookupStore Σ X)
 -- Center-indexed snapshots
 ------------------------------------------------------------------------
 
-pivotAt : ∀ {Δᵉ Δ}
-  → Δᵉ ↪ᵗ Δ
-  → TyVar Δ
-  → Maybe (TyVar Δᵉ)
-pivotAt empty X = nothing
-pivotAt (keep ρ) Fin.zero = just Fin.zero
-pivotAt (keep ρ) (Fin.suc X) with pivotAt ρ X
-pivotAt (keep ρ) (Fin.suc X) | just Y = just (Fin.suc Y)
-pivotAt (keep ρ) (Fin.suc X) | nothing = nothing
-pivotAt (skip ρ) Fin.zero = nothing
-pivotAt (skip ρ) (Fin.suc X) = pivotAt ρ X
-
 centerVars : (Δ : TyCtx) → List (TyVar Δ)
 centerVars zero = []
 centerVars (suc Δ) = Fin.zero ∷ map Fin.suc (centerVars Δ)
 
+pivotAtFrom : ∀ {Δᵉ Δ}
+  → List (TyVar Δᵉ)
+  → Injectionᵗ Δᵉ Δ
+  → TyVar Δ
+  → Maybe (TyVar Δᵉ)
+pivotAtFrom [] η X = nothing
+pivotAtFrom (Y ∷ Ys) η X with FinP._≟_ (toRenameⁱ η Y) X
+pivotAtFrom (Y ∷ Ys) η X | yes eq = just Y
+pivotAtFrom (Y ∷ Ys) η X | no neq = pivotAtFrom Ys η X
+
+pivotAt : ∀ {Δᵉ Δ}
+  → Injectionᵗ Δᵉ Δ
+  → TyVar Δ
+  → Maybe (TyVar Δᵉ)
+pivotAt {Δᵉ} η X = pivotAtFrom (centerVars Δᵉ) η X
+
 showMark : VarImp → String
 showMark X⊑X = "X⊑X"
 showMark X⊑★ = "X⊑★"
+
+showEntryAt : ∀ {Δ}
+  → ℕ
+  → (TyVar Δ → String)
+  → TyStore Δ
+  → Maybe (TyVar Δ)
+  → String
+showEntryAt depth name Σ nothing = "─"
+showEntryAt depth name Σ (just X) =
+  name X ++ "↦" ++ showTyAt depth name (lookupStore Σ X)
 
 showEntry : ∀ {Δ}
   → (TyVar Δ → String)
   → TyStore Δ
   → Maybe (TyVar Δ)
   → String
-showEntry name Σ nothing = "─"
-showEntry name Σ (just X) =
-  name X ++ "↦" ++ showTy name (lookupStore Σ X)
+showEntry {Δ} = showEntryAt Δ
 
 worldCell : ∀ {Γᴸ Γᴿ : Ctx}
   → (TyVar (Δᵉ Γᴸ) → String)
@@ -103,9 +155,9 @@ worldCell : ∀ {Γᴸ Γᴿ : Ctx}
   → String
 worldCell {Γᴸ} {Γᴿ} nameᴸ nameᴿ W nameᶜ X =
   nameᶜ X ++ ": " ++
-  showEntry nameᴸ (Σᵉ Γᴸ) (pivotAt (ηᴸᶜ W) X) ++
+  showEntryAt (centerᶜ W) nameᴸ (Σᵉ Γᴸ) (pivotAt (ηᴸᶜ W) X) ++
   " ⊑[" ++ showMark (marksᶜ W X) ++ "] " ++
-  showEntry nameᴿ (Σᵉ Γᴿ) (pivotAt (ηᴿᶜ W) X)
+  showEntryAt (centerᶜ W) nameᴿ (Σᵉ Γᴿ) (pivotAt (ηᴿᶜ W) X)
 
 joinCells : List String → String
 joinCells [] = ""
@@ -126,37 +178,8 @@ worldSnapshot nameᴸ nameᴿ W nameᶜ =
       (centerVars (centerᶜ W))) ++
   "⟩"
 
-private
-
-  subscriptDigit : Char → Char
-  subscriptDigit '0' = '₀'
-  subscriptDigit '1' = '₁'
-  subscriptDigit '2' = '₂'
-  subscriptDigit '3' = '₃'
-  subscriptDigit '4' = '₄'
-  subscriptDigit '5' = '₅'
-  subscriptDigit '6' = '₆'
-  subscriptDigit '7' = '₇'
-  subscriptDigit '8' = '₈'
-  subscriptDigit '9' = '₉'
-  subscriptDigit c = c
-
-  subscript : ℕ → String
-  subscript n = fromList (map subscriptDigit (toList (show n)))
-
-  defaultNameAt : ℕ → ℕ → String
-  defaultNameAt zero zero = "X"
-  defaultNameAt (suc group) zero = "X" ++ subscript (suc group)
-  defaultNameAt zero (suc zero) = "Y"
-  defaultNameAt (suc group) (suc zero) = "Y" ++ subscript (suc group)
-  defaultNameAt zero (suc (suc zero)) = "Z"
-  defaultNameAt (suc group) (suc (suc zero)) =
-    "Z" ++ subscript (suc group)
-  defaultNameAt group (suc (suc (suc index))) =
-    defaultNameAt (suc group) index
-
 defaultName : ∀ {Δ} → TyVar Δ → String
-defaultName X = defaultNameAt zero (Fin.toℕ X)
+defaultName X = canonicalTyName (Fin.toℕ X)
 
 defaultNameᵗ : ∀ {Δ} → TyVar Δ → String
 defaultNameᵗ X = defaultName X ++ "′"
@@ -187,11 +210,11 @@ nested-∀-store-entry-snapshot :
     (store-bind store-empty
       (`∀ (`∀ (＇ Fin.zero ⇒ ＇ (Fin.suc Fin.zero)))))
     (just Fin.zero) ≡
-      "X↦∀ ∀ (＇♭1 ⇒ ＇♭0)"
+      "X↦∀ ∀ (＇Z ⇒ ＇Y)"
 nested-∀-store-entry-snapshot = refl
 
-outer-b0-reserved-binder-snapshot :
+outer-custom-name-fresh-binder-snapshot :
   showTy {Δ = suc zero} (λ _ → "b0")
     (`∀ (＇ Fin.zero ⇒ ＇ (Fin.suc Fin.zero))) ≡
-      "∀ (＇♭0 ⇒ ＇b0)"
-outer-b0-reserved-binder-snapshot = refl
+      "∀ (＇Y ⇒ ＇b0)"
+outer-custom-name-fresh-binder-snapshot = refl

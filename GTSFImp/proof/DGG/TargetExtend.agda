@@ -315,65 +315,73 @@ extendTarget-ηᴸ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
     {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     (plan : TargetExtendPlan W Cᴿ⁺ rho pi)
     (X : TyVar (Δᵉ Cᴸ))
-  → toRenameᵗ (ηᴸᶜ (extendTarget plan)) X
+  → toRenameⁱ (ηᴸᶜ (extendTarget plan)) X
     ≡ subst Fin.Fin (sym (extendTarget-center plan))
-        (toRenameᵗ pi (toRenameᵗ (ηᴸᶜ W) X))
+        (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))
 extendTarget-ηᴸ
-    (target-extend-star fresh eqᴿ refl refl) X =
-  cong Fin.suc (sym (toRename-id-eq (toRenameᵗ _ X)))
+    {W = W} (target-extend-star fresh eqᴿ refl refl) X =
+  cong Fin.suc
+    (sym (toRename-id-eq (toRenameⁱ (ηᴸᶜ W) X)))
 extendTarget-ηᴸ
-    (target-extend-alias fresh eqᴿ refl refl) X =
-  cong Fin.suc (sym (toRename-id-eq (toRenameᵗ _ X)))
-extendTarget-ηᴸ (target-extend-skip plan) X =
+    {W = W} (target-extend-alias fresh eqᴿ refl refl) X =
+  cong Fin.suc
+    (sym (toRename-id-eq (toRenameⁱ (ηᴸᶜ W) X)))
+extendTarget-ηᴸ
+    (target-extend-skip {W = W} {pi = pi} plan) X =
   trans (cong Fin.suc (extendTarget-ηᴸ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))))
 extendTarget-ηᴸ
     (target-extend-lift-both plan _ _ _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴸ
-    (target-extend-lift-both plan _ _ _) (Fin.suc X) =
+    (target-extend-lift-both {W = W} {pi = pi} plan _ _ _)
+    (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴸ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))))
 extendTarget-ηᴸ
     (target-extend-lift-left plan _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴸ
-    (target-extend-lift-left plan _) (Fin.suc X) =
+    (target-extend-lift-left {W = W} {pi = pi} plan _)
+    (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴸ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))))
 extendTarget-ηᴸ
     (target-extend-bind-left plan _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴸ
-    (target-extend-bind-left plan _) (Fin.suc X) =
+    (target-extend-bind-left {W = W} {pi = pi} plan _)
+    (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴸ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))))
 extendTarget-ηᴸ
-    (target-extend-bind-right plan _ _ _) X =
+    (target-extend-bind-right {W = W} {pi = pi} plan _ _ _) X =
   trans (cong Fin.suc (extendTarget-ηᴸ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))))
 extendTarget-ηᴸ
     (target-extend-bind-both-raw plan _ _ _ _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴸ
-    (target-extend-bind-both-raw plan _ _ _ _) (Fin.suc X) =
+    (target-extend-bind-both-raw {W = W} {pi = pi}
+      plan _ _ _ _) (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴸ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))))
 extendTarget-ηᴸ
     (target-extend-bind-both-star-raw plan _ _ _ _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴸ
-    (target-extend-bind-both-star-raw plan _ _ _ _)
+    (target-extend-bind-both-star-raw {W = W} {pi = pi}
+      plan _ _ _ _)
     (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴸ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴸᶜ W) X))))
 extendTarget-ηᴸ
     (target-extend-bind-term-raw plan _) X =
   extendTarget-ηᴸ plan X
@@ -383,67 +391,72 @@ extendTarget-ηᴿ : ∀ {Cᴸ Cᴿ} {W : Cᴸ ⊑ᶜ Cᴿ}
     {Cᴿ⁺ rho Δ⁺} {pi : centerᶜ W ↪ᵗ Δ⁺}
     (plan : TargetExtendPlan W Cᴿ⁺ rho pi)
     (X : TyVar (Δᵉ Cᴿ))
-  → toRenameᵗ (ηᴿᶜ (extendTarget plan))
+  → toRenameⁱ (ηᴿᶜ (extendTarget plan))
       (toRenameᵗ rho X)
     ≡ subst Fin.Fin (sym (extendTarget-center plan))
-        (toRenameᵗ pi (toRenameᵗ (ηᴿᶜ W) X))
+        (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))
 extendTarget-ηᴿ
-    (target-extend-star fresh eqᴿ refl refl) X =
+    {W = W} (target-extend-star fresh eqᴿ refl refl) X =
   cong Fin.suc
-    (trans (cong (toRenameᵗ _) (toRename-id-eq X))
-      (sym (toRename-id-eq (toRenameᵗ _ X))))
+    (trans (cong (toRenameⁱ (ηᴿᶜ W)) (toRename-id-eq X))
+      (sym (toRename-id-eq (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
-    (target-extend-alias fresh eqᴿ refl refl) X =
+    {W = W} (target-extend-alias fresh eqᴿ refl refl) X =
   cong Fin.suc
-    (trans (cong (toRenameᵗ _) (toRename-id-eq X))
-      (sym (toRename-id-eq (toRenameᵗ _ X))))
-extendTarget-ηᴿ (target-extend-skip plan) X =
+    (trans (cong (toRenameⁱ (ηᴿᶜ W)) (toRename-id-eq X))
+      (sym (toRename-id-eq (toRenameⁱ (ηᴿᶜ W) X))))
+extendTarget-ηᴿ
+    (target-extend-skip {W = W} {pi = pi} plan) X =
   trans (cong Fin.suc (extendTarget-ηᴿ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
     (target-extend-lift-both plan _ _ _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴿ
-    (target-extend-lift-both plan _ _ _) (Fin.suc X) =
+    (target-extend-lift-both {W = W} {pi = pi} plan _ _ _)
+    (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴿ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
-    (target-extend-lift-left plan _) X =
+    (target-extend-lift-left {W = W} {pi = pi} plan _) X =
   trans (cong Fin.suc (extendTarget-ηᴿ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
-    (target-extend-bind-left plan _) X =
+    (target-extend-bind-left {W = W} {pi = pi} plan _) X =
   trans (cong Fin.suc (extendTarget-ηᴿ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
     (target-extend-bind-right plan _ _ _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴿ
-    (target-extend-bind-right plan _ _ _) (Fin.suc X) =
+    (target-extend-bind-right {W = W} {pi = pi} plan _ _ _)
+    (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴿ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
     (target-extend-bind-both-raw plan _ _ _ _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴿ
-    (target-extend-bind-both-raw plan _ _ _ _) (Fin.suc X) =
+    (target-extend-bind-both-raw {W = W} {pi = pi}
+      plan _ _ _ _) (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴿ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
     (target-extend-bind-both-star-raw plan _ _ _ _) Fin.zero =
   sym (subst-Fin-zero-sym (extendTarget-center plan))
 extendTarget-ηᴿ
-    (target-extend-bind-both-star-raw plan _ _ _ _)
+    (target-extend-bind-both-star-raw {W = W} {pi = pi}
+      plan _ _ _ _)
     (Fin.suc X) =
   trans (cong Fin.suc (extendTarget-ηᴿ plan X))
     (sym (subst-Fin-suc-sym (extendTarget-center plan)
-      (toRenameᵗ _ (toRenameᵗ _ X))))
+      (toRenameᵗ pi (toRenameⁱ (ηᴿᶜ W) X))))
 extendTarget-ηᴿ
     (target-extend-bind-term-raw plan _) X =
   extendTarget-ηᴿ plan X
@@ -618,13 +631,13 @@ extendTarget-⊑ᵀ {W = W} {rho = rho} {pi = pi}
     {A = A} {B = B} plan represented =
   subst
     (λ L → marksᶜ (extendTarget plan) ⊢ L ⊑
-      renameᵗ (toRenameᵗ (ηᴿᶜ (extendTarget plan)))
+      renameᵗ (toRenameⁱ (ηᴿᶜ (extendTarget plan)))
         (renameᵗ (toRenameᵗ rho) B))
     (sym source-eq)
     (subst
       (λ R → marksᶜ (extendTarget plan) ⊢
         renameᵗ center-map
-          (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A) ⊑ R)
+          (renameᵗ (toRenameⁱ (ηᴸᶜ W)) A) ⊑ R)
       (sym target-eq)
       (rename-⊑ center-map center-map-injective star-map represented))
   where
@@ -647,24 +660,24 @@ extendTarget-⊑ᵀ {W = W} {rho = rho} {pi = pi}
   star-map Z mark = trans (extendTarget-marks plan Z) mark
 
   source-eq :
-      renameᵗ (toRenameᵗ (ηᴸᶜ (extendTarget plan))) A
+      renameᵗ (toRenameⁱ (ηᴸᶜ (extendTarget plan))) A
     ≡ renameᵗ center-map
-        (renameᵗ (toRenameᵗ (ηᴸᶜ W)) A)
+        (renameᵗ (toRenameⁱ (ηᴸᶜ W)) A)
   source-eq =
     trans (renameᵗ-cong A (extendTarget-ηᴸ plan))
-      (sym (renameᵗ-comp (toRenameᵗ (ηᴸᶜ W)) center-map A))
+      (sym (renameᵗ-comp (toRenameⁱ (ηᴸᶜ W)) center-map A))
 
   target-eq :
-      renameᵗ (toRenameᵗ (ηᴿᶜ (extendTarget plan)))
+      renameᵗ (toRenameⁱ (ηᴿᶜ (extendTarget plan)))
         (renameᵗ (toRenameᵗ rho) B)
     ≡ renameᵗ center-map
-        (renameᵗ (toRenameᵗ (ηᴿᶜ W)) B)
+        (renameᵗ (toRenameⁱ (ηᴿᶜ W)) B)
   target-eq =
     trans
       (renameᵗ-comp (toRenameᵗ rho)
-        (toRenameᵗ (ηᴿᶜ (extendTarget plan))) B)
+        (toRenameⁱ (ηᴿᶜ (extendTarget plan))) B)
       (trans (renameᵗ-cong B (extendTarget-ηᴿ plan))
-        (sym (renameᵗ-comp (toRenameᵗ (ηᴿᶜ W)) center-map B)))
+        (sym (renameᵗ-comp (toRenameⁱ (ηᴿᶜ W)) center-map B)))
 
 
 target-extend-bind-both :

@@ -119,14 +119,51 @@ source allocation that consumes a conversion boundary records an
 active LIFO frames from γ. The geometric `sourceRebaseCountᶜ` remains separate
 for direct world-invariant gates.
 
-The one-step and sequence CTI transport APIs are valid for arbitrary
-γ-carried open-frame histories; they no longer require an empty-frame premise.
-`TransportTermImprecisionStepProof`, `TransportTermImprecisionProof`,
-`SimProof`, and `SimBackProof` all check with zero goals and metas. The
-simulation and catch-up theorem roots still require `openFramesᶜ γ ≡ []`, and
-`MultiWorldEvolution` preserves that root condition. Nested reveal/conceal
-balance is handled where the CTI syntax exposes it, rather than by a universal
-world-history pullback theorem.
+The arbitrary-γ transport claim is false. The strict
+`TransportAlignedRebaseSoundnessProbe` proves the root counterexample
+`TransportAlignedSourceBindᵀ → ⊥`. Its allocation starts at a root with
+`openFramesᶜ γ ≡ []`, uses `evolution-bind-left-aligned`, and leaves no
+open root frame. The newly aligned source pivot nevertheless collides with
+the target pivot needed by an outer target-reveal/rebase sibling. Thus neither
+an empty-frame premise nor a root-scope restriction repairs broad transport.
+
+The complete consumer audit found 28 transport calls. Nine receive
+`MultiWorldEvolution [] χsᴿ` from target catch-up and have moved to the
+sound `TransportTargetTermImprecisionᵀ` interface. The other 19 may receive
+aligned source evolution and must become contextual: four are recursive
+forward `Sim` calls, eight are recursive or catch-up-driven application and
+primitive cases in `SimBack`, two are paired-function backward closing calls,
+and five are paired-function backward value calls.
+
+The forward pre-flight in `ContextualSimPromotionProbe.agda` checks the exact
+whole-root `ContextualSimᵀ` statement, its `focus-here` adapter to `Simᵀ`,
+and the ordinary application-left instance. The worker receives the complete
+root-to-focus CTI zipper, target readiness, the focused source step, and
+source reconstruction. It returns the ordinary final root CTI conclusion;
+it does not return a focus-local result for later sibling transport.
+
+The same probe pins the trusted aligned allocation. Before the allocation,
+the focused path contains two target-reveal/rebase edges. Afterwards, the
+outer edge is paired reveal and only the inner target-reveal/rebase edge
+survives. The path therefore does not retain the same shape across aligned
+source evolution.
+
+The backward pre-flight consequently separates
+`ContextualCatchupToLessPreciseᵀ` from `ContextualSimBackᵀ`. Contextual
+catch-up is independently required by the five paired-function value cases,
+which run after a source function root step and outside recursive `SimBack`.
+Both workers retain the whole root while descending. The catch-up worker
+returns a final value-related root CTI or whole-root source blame; the
+simulation worker returns the final whole-root CTI or source blame. Their
+public theorems remain `focus-here` adapters.
+
+For aligned source evolution, the final CTI derivation is the synchronization
+evidence. A same-shape path-evolution witness would encode the false premise
+that the old sibling constructors survive unchanged. The zipper is an input
+to contextual induction; after an aligned step, later focus choices are
+derived from the returned final CTI rather than replayed from the old path.
+The broad transport parameter remains temporary only at those 19 contextual
+call sites and is retired as their whole-root workers land.
 
 ### 2. Canonical CTI substitution
 

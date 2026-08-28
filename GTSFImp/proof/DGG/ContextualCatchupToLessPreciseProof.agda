@@ -670,9 +670,10 @@ module _
     root-catchup-result focus-related
       (paired-reveal-catchup no-open focus-related target-value bound)
   contextual-left-value-catchup no-open root-related
-      (CTI.reveal⊑reveal²
+      focus-related@(CTI.reveal⊑reveal²
         c⊢ c′⊢ positions aligned represented related q)
-      (focus-there edge tail) target-value bound = {! !}
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-reveal-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.conceal⊑conceal²
@@ -681,9 +682,10 @@ module _
     root-catchup-result focus-related
       (paired-conceal-catchup no-open focus-related target-value bound)
   contextual-left-value-catchup no-open root-related
-      (CTI.conceal⊑conceal²
+      focus-related@(CTI.conceal⊑conceal²
         c⊢ c′⊢ positions aligned represented related q)
-      (focus-there edge tail) target-value bound = {! !}
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-conceal-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.⊑reveal-rebase² c′⊢ rebase related q)

@@ -91,6 +91,7 @@ import proof.DGG.SimBackTargetRevealRebaseFunValuesProof
 import proof.DGG.SimBackProof
 import proof.DGG.TargetBlameCatchupLemma
 import proof.DGG.CatchupToLessPreciseProof
+import proof.DGG.ContextualCatchupToLessPreciseProof
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------

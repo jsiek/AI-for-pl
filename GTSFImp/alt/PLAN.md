@@ -186,6 +186,49 @@ way for the stranded ν to get out of the way. History and constraints:
 Rules must touch at most two term constructors (so a through-prefix
 cancellation mentioning ν, `↓`, and `↑` is out).
 
+## Related work: λN (Rossberg 2003), rule for rule
+
+The paper is `GTSFImp/alt/p241-rossberg.pdf`; Blame for All (λB) is
+`popl116gf-ahmed.pdf`. Post-ScTyWrap, the Θ calculus is essentially
+**λN with two-sorted names, delimiters as terms, and shape-directed
+coercions**:
+
+- **The binder.** λN's `(New)` types `Nγ≈τ′.e : τ` under `Γ, γ≈τ′`
+  with side condition `γ ∉ FTN(τ)`. Our `⊢ν` is the same law enforced
+  by sorting: the result type `B : Ty Δ` cannot mention an anchor at
+  all. λN's names occur in types (it even has a type former
+  `{τ}⁻γ≈τ′`, type-level unsealing); our anchors never do — every λN
+  `FTN` side condition either vanishes (anchors ∉ `Ty`) or becomes a
+  structural guard.
+- **Extrusion.** λN rules (9)–(13) are our float family: past
+  applications (our `float-·` with `shiftᶿ` discharging the freshness
+  condition), past type application (our `float-•`, condition vacuous),
+  and — rule (12) — past a coercion with side conditions `γ ≢ γ′` and
+  `γ ∉ FTN(τ′, τ″)`: exactly the two guards of our
+  `float-reveal`/`float-conceal`, found here independently through the
+  refutation ladder. λN results are ν-prefixed values, extrusion only
+  at the outermost binder of a result, evaluation under N until a
+  result (our `Result` + `ξ-ν`), and **no rule ever discards an N** —
+  matching our deletion of `const-ν` (λB's `NUCONST` belongs to the
+  sinking-ν design; λN's and ours float outward and persist).
+- **Cancellation and identities.** λN rule (3) — seal under unseal at
+  one name cancels, matching by type equality where we match slot and
+  anchor syntactically — and rule (4) drops coercions at unrelated
+  abstract atoms: our atoms-only identities and adapter values.
+- **The divergence: evaluation under Λ.** λN never evaluates under
+  `Λ` — `Λα.e` is a value for any body, type application substitutes
+  (rule 2), and its coercion-at-∀ (rule 6) η-EXPANDS:
+  `{ê : ∀α.τ₁}± → Λα.{ê α : τ₁}±`. Our ScTyWrap instead
+  pattern-matches `(Λ V) ↑[…] (`∀↑ c)`, which is what forced `ξ-Λ` and
+  the `ΛBody` value restriction. λN's η-variant is the road not taken:
+  it needs neither, at the cost of a term-level weakening under the
+  new binder — the cleanest fallback if `ΛBody` ever becomes a burden.
+- **Runtime type information.** λN's coercions are type-annotated and
+  type-DIRECTED at runtime (reduction consults τ; typecase exists).
+  Our conversions are raw shapes directed by their own syntax — no
+  runtime type inspection, paid for with the shape/typing-judgment
+  split.
+
 ## Institutional memory: the refutation ladder
 
 Preservation was refuted eleven times before it closed. Each entry is

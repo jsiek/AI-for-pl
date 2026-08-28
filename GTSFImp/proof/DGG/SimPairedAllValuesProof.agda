@@ -48,6 +48,8 @@ open import proof.DGG.CastTermImprecision
 open import proof.DGG.CastTermImprecisionTyping using (source-typing)
 open import proof.DGG.ClosePairedTypeBinderDef using
   (ClosePairedTypeBinderᵀ)
+open import proof.DGG.ClosePairedUniversalConversionBindDef using
+  (ClosePairedUniversalRevealBindᵀ; ClosePairedUniversalConcealBindᵀ)
 open import proof.DGG.SimPairedAllValuesDef using
   (SimPairedAllValuesᵀ)
 open import proof.DGG.SimSourceLambdaApplicationDef using
@@ -176,6 +178,10 @@ module _
     (transport-CTI : TransportTermImprecisionᵀ)
     (sim-source-lambda-application : SimSourceLambdaApplicationᵀ)
     (close-paired-type-binder : ClosePairedTypeBinderᵀ)
+    (close-paired-universal-reveal-bind :
+      ClosePairedUniversalRevealBindᵀ)
+    (close-paired-universal-conceal-bind :
+      ClosePairedUniversalConcealBindᵀ)
     (paired-value-fresh-generator-position :
       PairedValueFreshGeneratorPositionᵀ)
     (sim-target-reveal-rebase-closing :
@@ -847,18 +853,100 @@ module _
       {C = C} {A = A} {C′ = C′} {A′ = A′}
       no-rebase (Nat.suc fuel) size-bound
       (reveal⊑reveal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
+        {c = Conversion.`∀↑ source-conversion}
+        {c′ = Conversion.`∀↑ target-conversion}
         (Conversion.⊢↑-∀ source-representation source-conversion⊢)
         (Conversion.⊢↑-∀ target-representation target-conversion⊢)
         same-position same-pivot represented {p = inner-universal} related q₁)
       q r source-value (target-value ↑ all) (β-reveal-∀ value)
-    | inj₁ body = {!!}
-  worker no-rebase (Nat.suc fuel) size-bound
-      (reveal⊑reveal²
+    | inj₁ body
+      with close-paired-universal-reveal-bind
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁ q r
+        value target-value
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (reveal⊑reveal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
+        {c = Conversion.`∀↑ source-conversion}
+        {c′ = Conversion.`∀↑ target-conversion}
         (Conversion.⊢↑-∀ source-representation source-conversion⊢)
         (Conversion.⊢↑-∀ target-representation target-conversion⊢)
         same-position same-pivot represented {p = inner-universal} related q₁)
       q r source-value (target-value ↑ all) (β-reveal-∀ value)
-    | inj₂ (inj₁ (non-var , occurs , body)) = {!!}
+    | inj₁ body
+    | result-type-rel , result-rel =
+      _ , store-bind Σᴿ A′ , bind A′ ∷ [] ,
+      ((CastTerms.⇑ᵗᵐ M′
+          ⦂∀ applyBody (bind A′) target-body [ ＇ zero ])
+        ↑ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ,
+      bindBothᶜ γ q , result-type-rel ,
+      (((M′ ↑ Conversion.`∀↑ target-conversion) ⦂∀ C′ [ A′ ])
+        —→[ bind A′ ]⟨ β-reveal-∀ target-value ⟩
+       ((CastTerms.⇑ᵗᵐ M′
+           ⦂∀ applyBody (bind A′) target-body [ ＇ zero ])
+         ↑ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ∎[]) ,
+      evolution , result-rel
+      where
+      evolution : MultiWorldEvolution
+          {W = γ} {W′ = bindBothᶜ γ q}
+          (bind A ∷ []) (bind A′ ∷ [])
+      evolution = evolutions-step-both refl refl
+        (evolution-bind-both q refl refl) evolutions-refl
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (reveal⊑reveal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
+        {c = Conversion.`∀↑ source-conversion}
+        {c′ = Conversion.`∀↑ target-conversion}
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented {p = inner-universal} related q₁)
+      q r source-value (target-value ↑ all) (β-reveal-∀ value)
+    | inj₂ (inj₁ (non-var , occurs , body))
+      with close-paired-universal-reveal-bind
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁ q r
+        value target-value
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (reveal⊑reveal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
+        {c = Conversion.`∀↑ source-conversion}
+        {c′ = Conversion.`∀↑ target-conversion}
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented {p = inner-universal} related q₁)
+      q r source-value (target-value ↑ all) (β-reveal-∀ value)
+    | inj₂ (inj₁ (non-var , occurs , body))
+    | result-type-rel , result-rel =
+      _ , store-bind Σᴿ A′ , bind A′ ∷ [] ,
+      ((CastTerms.⇑ᵗᵐ M′
+          ⦂∀ applyBody (bind A′) target-body [ ＇ zero ])
+        ↑ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ,
+      bindBothᶜ γ q , result-type-rel ,
+      (((M′ ↑ Conversion.`∀↑ target-conversion) ⦂∀ C′ [ A′ ])
+        —→[ bind A′ ]⟨ β-reveal-∀ target-value ⟩
+       ((CastTerms.⇑ᵗᵐ M′
+           ⦂∀ applyBody (bind A′) target-body [ ＇ zero ])
+         ↑ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ∎[]) ,
+      evolution , result-rel
+      where
+      evolution : MultiWorldEvolution
+          {W = γ} {W′ = bindBothᶜ γ q}
+          (bind A ∷ []) (bind A′ ∷ [])
+      evolution = evolutions-step-both refl refl
+        (evolution-bind-both q refl refl) evolutions-refl
   worker no-rebase (Nat.suc fuel) size-bound
       (reveal⊑reveal²
         (Conversion.⊢↑-∀ source-representation source-conversion⊢)
@@ -956,19 +1044,104 @@ module _
       {C = C} {A = A} {C′ = C′} {A′ = A′}
       no-rebase (Nat.suc fuel) size-bound
       (conceal⊑conceal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
         {p = inner-universal}
+        {c = Conversion.`∀↓ source-conversion}
+        {c′ = Conversion.`∀↓ target-conversion}
         (Conversion.⊢↓-∀ source-representation source-conversion⊢)
         (Conversion.⊢↓-∀ target-representation target-conversion⊢)
         same-position same-pivot represented related q₁)
       q r source-value (target-value ↓ all) (β-conceal-∀ value)
-    | inj₁ body = {!!}
-  worker no-rebase (Nat.suc fuel) size-bound
-      (conceal⊑conceal² {p = inner-universal}
+    | inj₁ body
+      with close-paired-universal-conceal-bind
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁ q r
+        value target-value
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (conceal⊑conceal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
+        {p = inner-universal}
+        {c = Conversion.`∀↓ source-conversion}
+        {c′ = Conversion.`∀↓ target-conversion}
         (Conversion.⊢↓-∀ source-representation source-conversion⊢)
         (Conversion.⊢↓-∀ target-representation target-conversion⊢)
         same-position same-pivot represented related q₁)
       q r source-value (target-value ↓ all) (β-conceal-∀ value)
-    | inj₂ (inj₁ (non-var , occurs , body)) = {!!}
+    | inj₁ body
+    | result-type-rel , result-rel =
+      _ , store-bind Σᴿ A′ , bind A′ ∷ [] ,
+      (CastTerms.⇑ᵗᵐ M′
+        ⦂∀ applyBody (bind A′) target-body [ ＇ zero ]
+        ↓ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ,
+      bindBothᶜ γ q , result-type-rel ,
+      (((M′ ↓ Conversion.`∀↓ target-conversion) ⦂∀ C′ [ A′ ])
+        —→[ bind A′ ]⟨ β-conceal-∀ target-value ⟩
+       (CastTerms.⇑ᵗᵐ M′
+         ⦂∀ applyBody (bind A′) target-body [ ＇ zero ]
+         ↓ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ∎[]) ,
+      evolution , result-rel
+      where
+      evolution : MultiWorldEvolution
+          {W = γ} {W′ = bindBothᶜ γ q}
+          (bind A ∷ []) (bind A′ ∷ [])
+      evolution = evolutions-step-both refl refl
+        (evolution-bind-both q refl refl) evolutions-refl
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (conceal⊑conceal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
+        {p = inner-universal}
+        {c = Conversion.`∀↓ source-conversion}
+        {c′ = Conversion.`∀↓ target-conversion}
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁)
+      q r source-value (target-value ↓ all) (β-conceal-∀ value)
+    | inj₂ (inj₁ (non-var , occurs , body))
+      with close-paired-universal-conceal-bind
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁ q r
+        value target-value
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (conceal⊑conceal² {M = M} {M′ = M′}
+        {A = `∀ source-body} {A′ = `∀ target-body}
+        {B = `∀ C} {B′ = `∀ C′}
+        {p = inner-universal}
+        {c = Conversion.`∀↓ source-conversion}
+        {c′ = Conversion.`∀↓ target-conversion}
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁)
+      q r source-value (target-value ↓ all) (β-conceal-∀ value)
+    | inj₂ (inj₁ (non-var , occurs , body))
+    | result-type-rel , result-rel =
+      _ , store-bind Σᴿ A′ , bind A′ ∷ [] ,
+      (CastTerms.⇑ᵗᵐ M′
+        ⦂∀ applyBody (bind A′) target-body [ ＇ zero ]
+        ↓ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ,
+      bindBothᶜ γ q , result-type-rel ,
+      (((M′ ↓ Conversion.`∀↓ target-conversion) ⦂∀ C′ [ A′ ])
+        —→[ bind A′ ]⟨ β-conceal-∀ target-value ⟩
+       (CastTerms.⇑ᵗᵐ M′
+         ⦂∀ applyBody (bind A′) target-body [ ＇ zero ]
+         ↓ target-conversion) ↑ 〖 zero , ⇑ᵗ A′ ↑ C′ 〗 ∎[]) ,
+      evolution , result-rel
+      where
+      evolution : MultiWorldEvolution
+          {W = γ} {W′ = bindBothᶜ γ q}
+          (bind A ∷ []) (bind A′ ∷ [])
+      evolution = evolutions-step-both refl refl
+        (evolution-bind-both q refl refl) evolutions-refl
   worker no-rebase (Nat.suc fuel) size-bound
       (conceal⊑conceal² {p = inner-universal}
         (Conversion.⊢↓-∀ source-representation source-conversion⊢)

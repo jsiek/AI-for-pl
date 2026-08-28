@@ -124,6 +124,22 @@ substᵗ-subst σ τ (`∀ A) =
   exts-compose zero = refl
   exts-compose (suc X) = substᵗ-shift τ (σ X)
 
+open-under-crossing : ∀ {Δ} (X : TyVar (suc Δ))
+    (B : Ty (suc Δ)) (A : Ty Δ)
+  → (renameᵗ (extᵗ (punchIn X)) B) [ wkᵗ X A ]ᵗ
+    ≡ wkᵗ X (B [ A ]ᵗ)
+open-under-crossing X B A =
+  trans (substᵗ-rename (singleSubᵗ (wkᵗ X A))
+      (extᵗ (punchIn X)) B)
+    (trans (substᵗ-cong B environment-eq)
+      (sym (renameᵗ-subst (punchIn X) (singleSubᵗ A) B)))
+  where
+  environment-eq : ∀ Y
+    → singleSubᵗ (wkᵗ X A) (extᵗ (punchIn X) Y)
+      ≡ renameᵗ (punchIn X) (singleSubᵗ A Y)
+  environment-eq zero = refl
+  environment-eq (suc Y) = refl
+
 resolve-openᵗ : ∀ {Δ} (X : TyVar (suc Δ)) (C : Ty Δ)
     (B : Ty (suc (suc Δ))) (A : Ty (suc Δ))
   → substᵗ (resolveSubᵗ X C) (B [ A ]ᵗ)

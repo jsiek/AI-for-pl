@@ -1313,11 +1313,22 @@ module _
               inj₂ (refl ,
                 inj₂ (refl ,
                   inj₂ (refl , n<1+n _))))))
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {q = final-q} view
         (CTI.reveal⊑-only² c⊢ position mark no-target represented prem q)
         (source-value ↑ all) target-value spine (acc smaller)
-      | child =
-        {! replay source-only reveal after the spine catch-up !}
+      | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
+        evolution , final =
+        Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , multi-⊑ᵀ evolution final-q ,
+          reduction , value , evolution ,
+          CTI.reveal⊑-only²
+            (multi-source-reveal evolution c⊢)
+            (λ eq → position
+              (trans (sym (multi-source-reveal-position evolution c⊢)) eq))
+            (multi-source-mark evolution mark)
+            (multi-source-disaligned evolution no-target)
+            (subst≡ (λ B → _ ⊑ᵀ⟨ γ′ ⟩ B) (applyTys-★ χsᴿ)
+              (multi-⊑ᵀ evolution represented))
+            final (multi-⊑ᵀ evolution final-q)
 
     name-spine-catchup-acc {γ = γ} {E = E} {q = final-q} view
         (CTI.conceal⊑-identity c⊢ position prem q)
@@ -1354,11 +1365,22 @@ module _
               inj₂ (refl ,
                 inj₂ (refl ,
                   inj₂ (refl , n<1+n _))))))
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {q = final-q} view
         (CTI.conceal⊑-only² c⊢ position mark no-target represented prem q)
         (source-value ↓ all) target-value spine (acc smaller)
-      | child =
-        {! replay source-only conceal after the spine catch-up !}
+      | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
+        evolution , final =
+        Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , multi-⊑ᵀ evolution final-q ,
+          reduction , value , evolution ,
+          CTI.conceal⊑-only²
+            (multi-source-conceal evolution c⊢)
+            (λ eq → position
+              (trans (sym (multi-source-conceal-position evolution c⊢)) eq))
+            (multi-source-mark evolution mark)
+            (multi-source-disaligned evolution no-target)
+            (subst≡ (λ B → _ ⊑ᵀ⟨ γ′ ⟩ B) (applyTys-★ χsᴿ)
+              (multi-⊑ᵀ evolution represented))
+            final (multi-⊑ᵀ evolution final-q)
 
     name-spine-catchup-acc view (CTI.blame⊑² target-typing p)
         () target-value spine access

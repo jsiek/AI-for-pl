@@ -31,7 +31,7 @@ open import proof.Reduction using (applyReveals; applyVars)
 
 import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.SimTargetRevealRebaseContextDef using
-  (RelatedConfiguration; pack; _↘ᶜ*_; TargetReady)
+  (RelatedConfiguration; pack; _↘ᶜ*_; TargetPathEvolution)
 open import proof.DGG.SourceRebase using (SourceRebaseᶜ)
 open import proof.DGG.World
 open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
@@ -80,4 +80,4 @@ MorePreciseTargetRevealRebaseContextCatchupᵀ = ∀
       × Σ[ root-related′ ∈ γᵖ′ CTI.⊢² M ⊑ M″ ∶ p′ ]
         Σ[ focus-related′ ∈ γᶠ′ CTI.⊢² L ⊑ V′ ∶ s′ ]
           Σ[ path′ ∈ pack root-related′ ↘ᶜ* pack focus-related′ ]
-            TargetReady path′
+            TargetPathEvolution path path′

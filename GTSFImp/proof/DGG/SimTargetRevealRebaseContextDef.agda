@@ -12,9 +12,10 @@ module proof.DGG.SimTargetRevealRebaseContextDef where
 
 open import Data.List using ([])
 import Data.Nat as Nat
-open import Data.Product using (_×_; Σ-syntax)
-open import Data.Unit using (⊤)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
+open import Data.Product using (_,_; _×_; Σ-syntax)
+open import Data.Unit using (⊤; tt)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; _≢_; refl; sym; trans; cong)
 
 open import TermCtx using (TermCtx)
 open import Types using (Ty; TyCtx; TyVar; ★; ＇_; _⇒_; `∀; _[_]ᵗ)
@@ -378,6 +379,219 @@ extend-focus (focus-there outer-edge tail) edge =
 
 
 ------------------------------------------------------------------------
+-- First-order source shapes and synchronized target path evolution
+------------------------------------------------------------------------
+
+data SourceFrame (Δ : TyCtx) : Set where
+  app-leftᶠ : Term Δ → SourceFrame Δ
+  app-rightᶠ : Term Δ → SourceFrame Δ
+  primitive-leftᶠ : Prim → Term Δ → SourceFrame Δ
+  primitive-rightᶠ : Prim → Term Δ → SourceFrame Δ
+  paired-type-applicationᶠ :
+    Ty (Nat.suc Δ) → Ty Δ → SourceFrame Δ
+  source-type-applicationᶠ :
+    Ty (Nat.suc Δ) → Ty Δ → SourceFrame Δ
+  paired-castᶠ : ∀ {μ : Env∼ Δ} {A B : Ty Δ}
+    → μ ⊢ A ∼ B → SourceFrame Δ
+  target-castᶠ : SourceFrame Δ
+  source-castᶠ : ∀ {μ : Env∼ Δ} {A B : Ty Δ}
+    → μ ⊢ A ∼ B → SourceFrame Δ
+  target-reveal-identityᶠ : SourceFrame Δ
+  target-conceal-identityᶠ : SourceFrame Δ
+  source-reveal-identityᶠ :
+    ∀ {A B : Ty Δ} → Conv↑ Δ A B → SourceFrame Δ
+  source-conceal-identityᶠ :
+    ∀ {A B : Ty Δ} → Conv↓ Δ A B → SourceFrame Δ
+  source-reveal-onlyᶠ :
+    ∀ {A B : Ty Δ} → Conv↑ Δ A B → SourceFrame Δ
+  source-conceal-onlyᶠ :
+    ∀ {A B : Ty Δ} → Conv↓ Δ A B → SourceFrame Δ
+  paired-revealᶠ :
+    ∀ {A B : Ty Δ} → Conv↑ Δ A B → SourceFrame Δ
+  paired-concealᶠ :
+    ∀ {A B : Ty Δ} → Conv↓ Δ A B → SourceFrame Δ
+  target-reveal-rebaseᶠ : SourceFrame Δ
+  target-conceal-rebaseᶠ : SourceFrame Δ
+
+rebuildFrame : ∀ {Δ Δ′}
+  → SourceFrame Δ → StoreChange Δ Δ′ → Term Δ′ → Term Δ′
+rebuildFrame (app-leftᶠ M) χ P = P · applyTerm χ M
+rebuildFrame (app-rightᶠ L) χ P = applyTerm χ L · P
+rebuildFrame (primitive-leftᶠ op M) χ P =
+  P ⊕[ op ] applyTerm χ M
+rebuildFrame (primitive-rightᶠ op L) χ P =
+  applyTerm χ L ⊕[ op ] P
+rebuildFrame (paired-type-applicationᶠ C A) χ P =
+  P ⦂∀ applyBody χ C [ applyTy χ A ]
+rebuildFrame (source-type-applicationᶠ C A) χ P =
+  P ⦂∀ applyBody χ C [ applyTy χ A ]
+rebuildFrame (paired-castᶠ c) χ P = P ⟨ applyConsistency χ c ⟩
+rebuildFrame target-castᶠ χ P = P
+rebuildFrame (source-castᶠ c) χ P = P ⟨ applyConsistency χ c ⟩
+rebuildFrame target-reveal-identityᶠ χ P = P
+rebuildFrame target-conceal-identityᶠ χ P = P
+rebuildFrame (source-reveal-identityᶠ c) χ P =
+  P ↑ rename↑ (λ X → applyVar χ X) c
+rebuildFrame (source-conceal-identityᶠ c) χ P =
+  P ↓ rename↓ (λ X → applyVar χ X) c
+rebuildFrame (source-reveal-onlyᶠ c) χ P =
+  P ↑ rename↑ (λ X → applyVar χ X) c
+rebuildFrame (source-conceal-onlyᶠ c) χ P =
+  P ↓ rename↓ (λ X → applyVar χ X) c
+rebuildFrame (paired-revealᶠ c) χ P =
+  P ↑ rename↑ (λ X → applyVar χ X) c
+rebuildFrame (paired-concealᶠ c) χ P =
+  P ↓ rename↓ (λ X → applyVar χ X) c
+rebuildFrame target-reveal-rebaseᶠ χ P = P
+rebuildFrame target-conceal-rebaseᶠ χ P = P
+
+sourceFrame : ∀ {Δᴸ Δᴿ}
+    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+  → outer ↘ᶜ inner → SourceFrame Δᴸ
+sourceFrame (focus-·₁ {M = M} function-rel argument-rel) = app-leftᶠ M
+sourceFrame
+    (focus-·₂ {L = L} function-rel argument-rel source-value) =
+  app-rightᶠ L
+sourceFrame (focus-⊕₁ {M = M} {op = op} left-rel right-rel r) =
+  primitive-leftᶠ op M
+sourceFrame
+    (focus-⊕₂ {L = L} {op = op} left-rel right-rel r source-value) =
+  primitive-rightᶠ op L
+sourceFrame (focus-•-paired {C = C} {A = A} p∀ related q r) =
+  paired-type-applicationᶠ C A
+sourceFrame (focus-•-source {C = C} {A = A} p∀ related q r) =
+  source-type-applicationᶠ C A
+sourceFrame (focus-cast-paired c c′ related q) = paired-castᶠ c
+sourceFrame (focus-cast-target c′ related q) = target-castᶠ
+sourceFrame (focus-cast-source c related q) = source-castᶠ c
+sourceFrame (focus-target-reveal-identity c′⊢ absent related q) =
+  target-reveal-identityᶠ
+sourceFrame (focus-target-conceal-identity c′⊢ absent related q) =
+  target-conceal-identityᶠ
+sourceFrame (focus-source-reveal-identity {c = c} c⊢ absent related q) =
+  source-reveal-identityᶠ c
+sourceFrame (focus-source-conceal-identity {c = c} c⊢ absent related q) =
+  source-conceal-identityᶠ c
+sourceFrame
+    (focus-source-reveal-only {c = c}
+      c⊢ present mark free represented related q) =
+  source-reveal-onlyᶠ c
+sourceFrame
+    (focus-source-conceal-only {c = c}
+      c⊢ present mark free represented related q) =
+  source-conceal-onlyᶠ c
+sourceFrame
+    (focus-reveal-paired {c = c}
+      c⊢ c′⊢ positions aligned represented related q) =
+  paired-revealᶠ c
+sourceFrame
+    (focus-conceal-paired {c = c}
+      c⊢ c′⊢ positions aligned represented related q) =
+  paired-concealᶠ c
+sourceFrame (focus-target-reveal-rebase c′⊢ rebase related q) =
+  target-reveal-rebaseᶠ
+sourceFrame (focus-target-conceal-rebase c′⊢ rebase related q) =
+  target-conceal-rebaseᶠ
+
+TargetEdgeReady : ∀ {Δᴸ Δᴿ}
+    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+  → outer ↘ᶜ inner → Set
+TargetEdgeReady (focus-·₁ function-rel argument-rel) = ⊤
+TargetEdgeReady
+    (focus-·₂ {L′ = L′} function-rel argument-rel source-value) =
+  Value L′
+TargetEdgeReady (focus-⊕₁ left-rel right-rel r) = ⊤
+TargetEdgeReady
+    (focus-⊕₂ {L′ = L′} left-rel right-rel r source-value) =
+  Value L′
+TargetEdgeReady (focus-•-paired p∀ related q r) = ⊤
+TargetEdgeReady (focus-•-source p∀ related q r) = ⊤
+TargetEdgeReady (focus-cast-paired c c′ related q) = ⊤
+TargetEdgeReady (focus-cast-target c′ related q) = ⊤
+TargetEdgeReady (focus-cast-source c related q) = ⊤
+TargetEdgeReady (focus-target-reveal-identity c′⊢ absent related q) = ⊤
+TargetEdgeReady (focus-target-conceal-identity c′⊢ absent related q) = ⊤
+TargetEdgeReady (focus-source-reveal-identity c⊢ absent related q) = ⊤
+TargetEdgeReady (focus-source-conceal-identity c⊢ absent related q) = ⊤
+TargetEdgeReady
+    (focus-source-reveal-only c⊢ present mark free represented related q) =
+  ⊤
+TargetEdgeReady
+    (focus-source-conceal-only c⊢ present mark free represented related q) =
+  ⊤
+TargetEdgeReady
+    (focus-reveal-paired c⊢ c′⊢ positions aligned represented related q) =
+  ⊤
+TargetEdgeReady
+    (focus-conceal-paired c⊢ c′⊢ positions aligned represented related q) =
+  ⊤
+TargetEdgeReady (focus-target-reveal-rebase c′⊢ rebase related q) = ⊤
+TargetEdgeReady (focus-target-conceal-rebase c′⊢ rebase related q) = ⊤
+
+record TargetEdgeEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx}
+    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+    {outer′ inner′ : RelatedConfiguration Δᴸ Δᴿ′}
+    (edge : outer ↘ᶜ inner) (edge′ : outer′ ↘ᶜ inner′) : Set₁ where
+  constructor evolve-edge
+  field
+    same-source-frame : sourceFrame edge ≡ sourceFrame edge′
+    target-edge-ready : TargetEdgeReady edge′
+
+open TargetEdgeEvolution
+
+data TargetPathEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx} :
+    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
+    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+    (path : outer ↘ᶜ* focus) (path′ : outer′ ↘ᶜ* focus′) → Set₁ where
+  evolve-here : ∀ {related related′}
+    → TargetPathEvolution
+        (focus-here {related = related}) (focus-here {related = related′})
+  evolve-there : ∀ {outer middle focus outer′ middle′ focus′}
+      {edge : outer ↘ᶜ middle} {tail : middle ↘ᶜ* focus}
+      {edge′ : outer′ ↘ᶜ middle′} {tail′ : middle′ ↘ᶜ* focus′}
+    → TargetEdgeEvolution edge edge′
+    → TargetPathEvolution tail tail′
+    → TargetPathEvolution
+        (focus-there edge tail) (focus-there edge′ tail′)
+
+data TargetExtendedPathEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx}
+    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+    (path : outer ↘ᶜ* middle) (edge : middle ↘ᶜ focus)
+    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+    (path′ : outer′ ↘ᶜ* focus′) : Set₁ where
+  evolved-extended-path : ∀
+      {middle′ : RelatedConfiguration Δᴸ Δᴿ′}
+      (prefix′ : outer′ ↘ᶜ* middle′)
+      (edge′ : middle′ ↘ᶜ focus′)
+    → path′ ≡ extend-focus prefix′ edge′
+    → TargetPathEvolution path prefix′
+    → TargetEdgeEvolution edge edge′
+    → TargetExtendedPathEvolution path edge path′
+
+split-target-extended-path : ∀ {Δᴸ Δᴿ Δᴿ′}
+    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+    {path : outer ↘ᶜ* middle} {edge : middle ↘ᶜ focus}
+    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+    {path′ : outer′ ↘ᶜ* focus′}
+  → TargetPathEvolution (extend-focus path edge) path′
+  → TargetExtendedPathEvolution path edge path′
+split-target-extended-path {path = focus-here}
+    (evolve-there edge-evolution evolve-here) =
+  evolved-extended-path focus-here _ refl evolve-here edge-evolution
+split-target-extended-path {path = focus-there outer-edge tail}
+    (evolve-there outer-evolution tail-evolution)
+    with split-target-extended-path tail-evolution
+split-target-extended-path {path = focus-there outer-edge tail}
+    (evolve-there outer-evolution tail-evolution)
+  | evolved-extended-path prefix′ edge′ path-eq prefix-evolution
+      edge-evolution =
+    evolved-extended-path (focus-there _ prefix′) edge′
+      (cong (focus-there _) path-eq)
+      (evolve-there outer-evolution prefix-evolution)
+      edge-evolution
+
+
+------------------------------------------------------------------------
 -- Target evaluation readiness after focused value catch-up
 ------------------------------------------------------------------------
 
@@ -452,6 +666,73 @@ TargetReady
     (focus-there
       (focus-target-conceal-rebase c′⊢ rebase related q) tail) =
   TargetReady tail
+
+extend-target-ready : ∀ {Δᴸ Δᴿ}
+    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+    (edge : outer ↘ᶜ middle) {tail : middle ↘ᶜ* focus}
+  → TargetEdgeReady edge
+  → TargetReady tail
+  → TargetReady (focus-there edge tail)
+extend-target-ready (focus-·₁ function-rel argument-rel) tt ready = ready
+extend-target-ready
+    (focus-·₂ function-rel argument-rel source-value)
+    target-value ready =
+  target-value , ready
+extend-target-ready (focus-⊕₁ left-rel right-rel r) tt ready = ready
+extend-target-ready
+    (focus-⊕₂ left-rel right-rel r source-value)
+    target-value ready =
+  target-value , ready
+extend-target-ready (focus-•-paired p∀ related q r) tt ready = ready
+extend-target-ready (focus-•-source p∀ related q r) tt ready = ready
+extend-target-ready (focus-cast-paired c c′ related q) tt ready = ready
+extend-target-ready (focus-cast-target c′ related q) tt ready = ready
+extend-target-ready (focus-cast-source c related q) tt ready = ready
+extend-target-ready
+    (focus-target-reveal-identity c′⊢ absent related q) tt ready =
+  ready
+extend-target-ready
+    (focus-target-conceal-identity c′⊢ absent related q) tt ready =
+  ready
+extend-target-ready
+    (focus-source-reveal-identity c⊢ absent related q) tt ready =
+  ready
+extend-target-ready
+    (focus-source-conceal-identity c⊢ absent related q) tt ready =
+  ready
+extend-target-ready
+    (focus-source-reveal-only c⊢ present mark free represented related q)
+    tt ready =
+  ready
+extend-target-ready
+    (focus-source-conceal-only c⊢ present mark free represented related q)
+    tt ready =
+  ready
+extend-target-ready
+    (focus-reveal-paired c⊢ c′⊢ positions aligned represented related q)
+    tt ready =
+  ready
+extend-target-ready
+    (focus-conceal-paired c⊢ c′⊢ positions aligned represented related q)
+    tt ready =
+  ready
+extend-target-ready
+    (focus-target-reveal-rebase c′⊢ rebase related q) tt ready =
+  ready
+extend-target-ready
+    (focus-target-conceal-rebase c′⊢ rebase related q) tt ready =
+  ready
+
+target-path-ready : ∀ {Δᴸ Δᴿ Δᴿ′}
+    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
+    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+    {path : outer ↘ᶜ* focus} {path′ : outer′ ↘ᶜ* focus′}
+  → TargetPathEvolution path path′
+  → TargetReady path′
+target-path-ready evolve-here = tt
+target-path-ready (evolve-there edge-evolution path-evolution) =
+  extend-target-ready _ (target-edge-ready edge-evolution)
+    (target-path-ready path-evolution)
 
 
 ------------------------------------------------------------------------
@@ -559,6 +840,78 @@ extend-rebuild (rebuild-here refl) edge-rebuild =
   rebuild-there (rebuild-here refl) edge-rebuild
 extend-rebuild (rebuild-there tail-rebuild outer-rebuild) edge-rebuild =
   rebuild-there (extend-rebuild tail-rebuild edge-rebuild) outer-rebuild
+
+source-frame-rebuild : ∀ {Δᴸ Δᴿ Δᴸ′}
+    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+    (edge : outer ↘ᶜ inner) (χᴸ : StoreChange Δᴸ Δᴸ′)
+    (P : Term Δᴸ′)
+  → rebuildSourceEdge edge χᴸ P ≡ rebuildFrame (sourceFrame edge) χᴸ P
+source-frame-rebuild (focus-·₁ function-rel argument-rel) χᴸ P = refl
+source-frame-rebuild
+    (focus-·₂ function-rel argument-rel source-value) χᴸ P = refl
+source-frame-rebuild (focus-⊕₁ left-rel right-rel r) χᴸ P = refl
+source-frame-rebuild
+    (focus-⊕₂ left-rel right-rel r source-value) χᴸ P = refl
+source-frame-rebuild (focus-•-paired p∀ related q r) χᴸ P = refl
+source-frame-rebuild (focus-•-source p∀ related q r) χᴸ P = refl
+source-frame-rebuild (focus-cast-paired c c′ related q) χᴸ P = refl
+source-frame-rebuild (focus-cast-target c′ related q) χᴸ P = refl
+source-frame-rebuild (focus-cast-source c related q) χᴸ P = refl
+source-frame-rebuild
+    (focus-target-reveal-identity c′⊢ absent related q) χᴸ P = refl
+source-frame-rebuild
+    (focus-target-conceal-identity c′⊢ absent related q) χᴸ P = refl
+source-frame-rebuild
+    (focus-source-reveal-identity c⊢ absent related q) χᴸ P = refl
+source-frame-rebuild
+    (focus-source-conceal-identity c⊢ absent related q) χᴸ P = refl
+source-frame-rebuild
+    (focus-source-reveal-only c⊢ present mark free represented related q)
+    χᴸ P = refl
+source-frame-rebuild
+    (focus-source-conceal-only c⊢ present mark free represented related q)
+    χᴸ P = refl
+source-frame-rebuild
+    (focus-reveal-paired c⊢ c′⊢ positions aligned represented related q)
+    χᴸ P = refl
+source-frame-rebuild
+    (focus-conceal-paired c⊢ c′⊢ positions aligned represented related q)
+    χᴸ P = refl
+source-frame-rebuild
+    (focus-target-reveal-rebase c′⊢ rebase related q) χᴸ P = refl
+source-frame-rebuild
+    (focus-target-conceal-rebase c′⊢ rebase related q) χᴸ P = refl
+
+edge-rebuild-equality : ∀ {Δᴸ Δᴿ Δᴿ′ Δᴸ′}
+    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+    {outer′ inner′ : RelatedConfiguration Δᴸ Δᴿ′}
+    {edge : outer ↘ᶜ inner} {edge′ : outer′ ↘ᶜ inner′}
+  → TargetEdgeEvolution edge edge′
+  → (χᴸ : StoreChange Δᴸ Δᴸ′)
+  → (P : Term Δᴸ′)
+  → rebuildSourceEdge edge χᴸ P ≡ rebuildSourceEdge edge′ χᴸ P
+edge-rebuild-equality {edge = edge} {edge′ = edge′} evolution χᴸ P =
+  trans (source-frame-rebuild edge χᴸ P)
+    (trans
+      (cong (λ frame → rebuildFrame frame χᴸ P)
+        (same-source-frame evolution))
+      (sym (source-frame-rebuild edge′ χᴸ P)))
+
+transport-rebuild : ∀ {Δᴸ Δᴿ Δᴿ′ Δᴸ′}
+    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
+    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+    {path : outer ↘ᶜ* focus} {path′ : outer′ ↘ᶜ* focus′}
+    {χᴸ : StoreChange Δᴸ Δᴸ′} {P N : Term Δᴸ′}
+  → TargetPathEvolution path path′
+  → RebuildSource path χᴸ P N
+  → RebuildSource path′ χᴸ P N
+transport-rebuild evolve-here (rebuild-here refl) = rebuild-here refl
+transport-rebuild (evolve-there edge-evolution path-evolution)
+    (rebuild-there tail-rebuild (rebuild-edge outer-eq)) =
+  rebuild-there (transport-rebuild path-evolution tail-rebuild)
+    (rebuild-edge
+      (trans outer-eq
+        (edge-rebuild-equality edge-evolution _ _)))
 
 
 ------------------------------------------------------------------------

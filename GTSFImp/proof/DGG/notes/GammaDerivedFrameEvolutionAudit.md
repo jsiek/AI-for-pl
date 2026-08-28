@@ -137,13 +137,21 @@ the selected enclosing reveal in the target term. Its result returns:
 
 - the ordinary evolution of the enclosing no-frame world;
 - the reconstructed evolved source rebase;
-- evolved root and focus CTI derivations connected by an evolved zipper; and
+- evolved root and focus CTI derivations connected by a synchronized zipper
+  evolution; and
 - the target reduction to the evolved root term under the enclosing reveal.
 
-The result also carries `TargetReady` for the evolved zipper. `TargetReady` is
-derived evidence, not a stronger zipper constructor: it requires a target
-value only at application-right and primitive-right edges and recursively
-preserves that evidence through all other edges. A later target-step replay can
-therefore use `ξ-·₂` or `ξ-⊕₂` honestly. A keep-only source replay needs no such
-evidence because it performs zero target steps and leaves every target sibling
-unchanged.
+`TargetPathEvolution` synchronizes the original and evolved zippers one edge at
+a time. Each edge pair shares one of the 19 constructor-specific `SourceFrame`
+shapes, which records exactly the source sibling or conversion needed by
+reconstruction. An application-right or primitive-right evolved edge also
+records that its target left sibling is a value. Thus the evolved path is not
+an unrelated output path.
+
+Both consequences are derived from this one witness. `target-path-ready`
+derives `TargetReady`, so a later target-step replay can use `ξ-·₂` or `ξ-⊕₂`
+honestly. `transport-rebuild` moves the existing `RebuildSource` derivation to
+the evolved path using the shared `SourceFrame` at every edge. The strict probe
+`TargetRevealRebaseContextEvolutionProbe.agda` separately pins the two
+right-child cases: target-left catch-up supplies precisely the value premise
+needed before the second operand is replayed.

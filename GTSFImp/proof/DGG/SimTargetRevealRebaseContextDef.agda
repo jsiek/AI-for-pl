@@ -746,6 +746,77 @@ primitive-right-edge-view
 primitive-right-edge-view
     (focus-target-conceal-rebase c′⊢ rebase related q) () ready
 
+data PairedTypeApplicationEdgeView {Cᴸ Cᴿ : Ctx}
+    (outer inner : RelatedConfiguration Cᴸ Cᴿ)
+    (source-body : Ty (Nat.suc (Δᵉ Cᴸ)))
+    (source-argument : Ty (Δᵉ Cᴸ)) : Set₁ where
+
+  paired-type-application-edge : ∀
+      {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {M : Term (Δᵉ Cᴸ)} {M′ : Term (Δᵉ Cᴿ)}
+      {target-body : Ty (Nat.suc (Δᵉ Cᴿ))}
+      {target-argument : Ty (Δᵉ Cᴿ)}
+      (universal-related :
+        `∀ source-body ⊑ᵀ⟨ γ ⟩ `∀ target-body)
+      (related : γ CTI.⊢² M ⊑ M′ ∶ universal-related)
+      (argument-related :
+        source-argument ⊑ᵀ⟨ γ ⟩ target-argument)
+      (result-related :
+        source-body [ source-argument ]ᵗ ⊑ᵀ⟨ γ ⟩
+          target-body [ target-argument ]ᵗ)
+    → outer ≡ pack
+        (CTI.•⊑•² universal-related related argument-related result-related)
+    → inner ≡ pack related
+    → PairedTypeApplicationEdgeView
+        outer inner source-body source-argument
+
+paired-type-application-edge-view : ∀ {Cᴸ Cᴿ C A}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    (edge : outer ↘ᶜ inner)
+  → sourceFrame edge ≡ paired-type-applicationᶠ C A
+  → PairedTypeApplicationEdgeView outer inner C A
+paired-type-application-edge-view
+    (focus-·₁ function-rel argument-rel) ()
+paired-type-application-edge-view
+    (focus-·₂ function-rel argument-rel source-value) ()
+paired-type-application-edge-view
+    (focus-⊕₁ left-rel right-rel r) ()
+paired-type-application-edge-view
+    (focus-⊕₂ left-rel right-rel r source-value) ()
+paired-type-application-edge-view
+    (focus-•-paired p∀ related q r) refl =
+  paired-type-application-edge p∀ related q r refl refl
+paired-type-application-edge-view
+    (focus-•-source p∀ related q r) ()
+paired-type-application-edge-view
+    (focus-cast-paired c c′ related q) ()
+paired-type-application-edge-view (focus-cast-target c′ related q) ()
+paired-type-application-edge-view (focus-cast-source c related q) ()
+paired-type-application-edge-view
+    (focus-target-reveal-identity c′⊢ absent related q) ()
+paired-type-application-edge-view
+    (focus-target-conceal-identity c′⊢ absent related q) ()
+paired-type-application-edge-view
+    (focus-source-reveal-identity c⊢ absent related q) ()
+paired-type-application-edge-view
+    (focus-source-conceal-identity c⊢ absent related q) ()
+paired-type-application-edge-view
+    (focus-source-reveal-only
+      c⊢ present mark free represented related q) ()
+paired-type-application-edge-view
+    (focus-source-conceal-only
+      c⊢ present mark free represented related q) ()
+paired-type-application-edge-view
+    (focus-reveal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+paired-type-application-edge-view
+    (focus-conceal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+paired-type-application-edge-view
+    (focus-target-reveal-rebase c′⊢ rebase related q) ()
+paired-type-application-edge-view
+    (focus-target-conceal-rebase c′⊢ rebase related q) ()
+
 data TargetPathEvolution {Cᴸ Cᴿ Cᴿ′ : Ctx} :
     {outer focus : RelatedConfiguration Cᴸ Cᴿ}
     {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}

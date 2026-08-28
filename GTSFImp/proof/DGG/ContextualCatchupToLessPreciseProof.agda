@@ -464,8 +464,10 @@ module _
           focus-here , source-steps , value-source , refl , refl ,
           evolve-source-here , evolution)
   contextual-left-value-catchup no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q)
-      (focus-there edge tail) target-value bound = {! !}
+      focus-related@(CTI.cast⊑cast²
+        source-cast target-cast related q)
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-cast-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open root-related
       (CTI.⊑cast² target-cast related q) path

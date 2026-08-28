@@ -19,7 +19,7 @@ open import Relation.Binary.PropositionalEquality using (_≢_; refl)
 open import Types using (TyVar; ★; ＇_)
 open import TyStore using (store-empty; store-bind)
 import TermCtx as TC
-open import Consistency using (keep; skip; id↪ᵗ; toRenameᵗ)
+open import Consistency using (keep; skip; id↪ᵗ)
 open import CastTerms using
   (Ctx; ⟨_,_,_⟩; Δᵉ; Σᵉ; Γᵉ; _,ˢ_; ⇑ᵉᵗ)
 open import proof.DGG.World
@@ -57,7 +57,7 @@ alias-root-plan =
     refl refl refl
   where
   no-source : ∀ Xᴸ
-    → toRenameᵗ (skip (ηᴸᶜ stable-world)) Xᴸ
-      ≢ toRenameᵗ (keep (ηᴿᶜ stable-world))
+    → toRenameⁱ (skipⁱ (ηᴸᶜ stable-world)) Xᴸ
+      ≢ toRenameⁱ (keepⁱ (ηᴿᶜ stable-world))
           (Fin.suc target-alpha)
   no-source Fin.zero ()

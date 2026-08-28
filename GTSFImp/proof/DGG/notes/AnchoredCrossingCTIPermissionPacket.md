@@ -11,10 +11,11 @@ Keep the CTI judgment singly indexed,
 γ ⊢² M ⊑ M′ ∶ p
 ```
 
-but replace its current world index `γ : Γᴸ ⊑ᶜ Γᴿ` by an enriched `γ` that
-carries one ambient allocation world and a well-bracketed stack of local
-reveal/conceal frames.  Replace the ten current reveal/conceal constructors by
-six syntax-directed constructors:
+but redefine the public relation `_⊑ᶜ_` so that `γ : Γᴸ ⊑ᶜ Γᴿ` carries one
+ambient allocation world and a well-bracketed stack of local reveal/conceal
+frames.  The superscript `ᵃ` used in an earlier draft meant only "anchored";
+it is not a proposed public name.  Replace the ten current reveal/conceal
+constructors by six syntax-directed constructors:
 
 - source reveal pushes a source frame;
 - target reveal pushes a target frame;
@@ -57,6 +58,184 @@ parent's full crossing mark on both generated crossings:
 Thus the residual `id↑ ★` does not need an anchor in the conversion.  Its
 enclosing reveal occurrence still has the parent's `(X,R)` mark.
 
+## The ambient allocation world
+
+The current `_⊑ᶜ_` datatype mixes four concerns:
+
+1. type-store allocation geometry;
+2. term-context imprecision;
+3. source pivot rebasing;
+4. reveal/conceal balance encoded in rebase history.
+
+The new `AmbientWorldᶜ` is the first concern only.  It relates endpoint type
+stores, not complete term contexts:
+
+```agda
+record StoreCtx : Set where
+  constructor ⟨_,_⟩ˢ
+  field
+    Δˢ : TyCtx
+    Σˢ : TyStore Δˢ
+
+mutual
+  data AmbientWorldᶜ : StoreCtx → StoreCtx → Set where
+    emptyᵃᶜ :
+      AmbientWorldᶜ ⟨ zero , store-empty ⟩ˢ
+                     ⟨ zero , store-empty ⟩ˢ
+
+    _▻ᵃᶜ_ : ∀ {Sᴸ Sᴿ Sᴸ′ Sᴿ′}
+      → (W : AmbientWorldᶜ Sᴸ Sᴿ)
+      → AmbientChangeᶜ W Sᴸ′ Sᴿ′
+      → AmbientWorldᶜ Sᴸ′ Sᴿ′
+
+  centerᵃᶜ : AmbientWorldᶜ Sᴸ Sᴿ → TyCtx
+
+  ηᴸᵃᶜ : (W : AmbientWorldᶜ Sᴸ Sᴿ)
+    → Injectionᵗ (Δˢ Sᴸ) (centerᵃᶜ W)
+
+  ηᴿᵃᶜ : (W : AmbientWorldᶜ Sᴸ Sᴿ)
+    → Injectionᵗ (Δˢ Sᴿ) (centerᵃᶜ W)
+
+  marksᵃᶜ : (W : AmbientWorldᶜ Sᴸ Sᴿ)
+    → ImpEnv (centerᵃᶜ W)
+```
+
+For `W : AmbientWorldᶜ ⟨ Δᴸ , Σᴸ ⟩ˢ ⟨ Δᴿ , Σᴿ ⟩ˢ`, its complete geometric
+change family is:
+
+```agda
+data AmbientChangeᶜ : ∀ {Sᴸ Sᴿ}
+    → AmbientWorldᶜ Sᴸ Sᴿ → StoreCtx → StoreCtx → Set where
+
+  center-changeᵃᶜ :
+    AmbientChangeᶜ W
+      ⟨ Δᴸ , Σᴸ ⟩ˢ
+      ⟨ Δᴿ , Σᴿ ⟩ˢ
+
+  lift-both-changeᵃᶜ :
+    (v : VarImp)
+    → AmbientChangeᶜ W
+        ⟨ suc Δᴸ , store-lift Σᴸ ⟩ˢ
+        ⟨ suc Δᴿ , store-lift Σᴿ ⟩ˢ
+
+  lift-left-changeᵃᶜ :
+    AmbientChangeᶜ W
+      ⟨ suc Δᴸ , store-lift Σᴸ ⟩ˢ
+      ⟨ Δᴿ , Σᴿ ⟩ˢ
+
+  bind-left-changeᵃᶜ :
+    (A : Ty Δᴸ)
+    → AmbientChangeᶜ W
+        ⟨ suc Δᴸ , store-bind Σᴸ A ⟩ˢ
+        ⟨ Δᴿ , Σᴿ ⟩ˢ
+
+  bind-right-changeᵃᶜ :
+    (B : Ty Δᴿ)
+    → AmbientChangeᶜ W
+        ⟨ Δᴸ , Σᴸ ⟩ˢ
+        ⟨ suc Δᴿ , store-bind Σᴿ B ⟩ˢ
+
+  bind-both-changeᵃᶜ :
+    (A : Ty Δᴸ) (B : Ty Δᴿ)
+    → AmbientChangeᶜ W
+        ⟨ suc Δᴸ , store-bind Σᴸ A ⟩ˢ
+        ⟨ suc Δᴿ , store-bind Σᴿ B ⟩ˢ
+
+  bind-both-star-changeᵃᶜ :
+    (A : Ty Δᴸ) (B : Ty Δᴿ)
+    → ⇑ᵗ A ≢ ★
+    → AmbientChangeᶜ W
+        ⟨ suc Δᴸ , store-bind Σᴸ A ⟩ˢ
+        ⟨ suc Δᴿ , store-bind Σᴿ B ⟩ˢ
+```
+
+The derived center data changes as follows:
+
+| ambient change | new mark | new source embedding | new target embedding |
+|---|---|---|---|
+| `center-changeᵃᶜ` | `X⊑★` | `skipⁱ` | `skipⁱ` |
+| `lift-both-changeᵃᶜ v` | `v` | `keepⁱ` | `keepⁱ` |
+| `lift-left-changeᵃᶜ` | `X⊑★` | `keepⁱ` | `skipⁱ` |
+| `bind-left-changeᵃᶜ A` | `X⊑★` | `keepⁱ` | `skipⁱ` |
+| `bind-right-changeᵃᶜ B` | `X⊑★` | `skipⁱ` | `keepⁱ` |
+| `bind-both-changeᵃᶜ A B` | `X⊑X` | `keepⁱ` | `keepⁱ` |
+| `bind-both-star-changeᵃᶜ A B A≢★` | `X⊑★` | `keepⁱ` | `keepⁱ` |
+
+There is deliberately no ambient term-bind constructor and no ambient rebase
+constructor.  Consequently `ηᴸᵃᶜ W` and `ηᴿᵃᶜ W` describe allocation
+geometry only.  A frame may derive a different current source view, but it
+does not mutate `W`.
+
+The current constructors are factored as follows:
+
+| current `_⊑ᶜ_` component | new formulation |
+|---|---|
+| `emptyᶜ` and `_▻ᶜ_` | `emptyᵃᶜ` and `_▻ᵃᶜ_` inside `AmbientWorldᶜ` |
+| `center-changeᶜ` | `center-changeᵃᶜ` |
+| `lift-both-changeᶜ` | `lift-both-changeᵃᶜ` |
+| `lift-left-changeᶜ` | `lift-left-changeᵃᶜ` |
+| `bind-left-changeᶜ` | `bind-left-changeᵃᶜ` plus an enriched-world safety proof |
+| `bind-right-changeᶜ` | `bind-right-changeᵃᶜ` plus current-view freshness |
+| `bind-both-changeᶜ` | `bind-both-changeᵃᶜ` plus a current-view allocation certificate |
+| `bind-both-star-changeᶜ` | `bind-both-star-changeᵃᶜ` plus a current-view allocation certificate |
+| `bind-term-changeᶜ` | `term-contextᶜ` in the enriched public world |
+| `rebase-source-changeᶜ` | the checked action of an anchored frame |
+| `AlignmentBoundaryᶜ`, `SourceRebaseRoleᶜ`, `openFramesᶜ` | replaced by exact frame keys and `FrameStackᶜ` |
+
+The old public datatype is deleted after migration; it is not retained as a
+compatibility alias.  Its allocation spine is the implementation basis for
+`AmbientWorldᶜ`, while the canonical public name `_⊑ᶜ_` is reused for the
+enriched relation below.
+
+### Allocation evidence is checked at the current view
+
+The semantic premises of the current bind constructors cannot simply be
+copied into `AmbientChangeᶜ`.  In particular, this current premise is wrong
+for a paired allocation under active frames:
+
+```agda
+A ⊑ᵀ⟨ ambientᶜ γ ⟩ B
+```
+
+The required premise is:
+
+```agda
+A ⊑ᵀ⟨ γ ⟩ B
+```
+
+For the concrete alpha scope, `＇X ⊑ ＇Y′` holds in the current alpha view but
+is refuted in the ambient view.  Therefore paired allocation is an operation
+on the complete enriched world:
+
+```agda
+bindBothᶜ :
+    (γ : Γᴸ ⊑ᶜ Γᴿ)
+  → A ⊑ᵀ⟨ γ ⟩ B
+  → (Γᴸ ,ˢ A) ⊑ᶜ (Γᴿ ,ˢ B)
+```
+
+It performs five operations together:
+
+1. append `bind-both-changeᵃᶜ A B` to `ambientᶜ γ`;
+2. record the representation comparison with the pre-bind
+   `source-viewᶜ γ` as its creation view;
+3. transport every active frame through the bind;
+4. rename `term-contextᶜ` through the bind;
+5. re-establish the complete invariant package.
+
+`bindBothStarᶜ` has the analogous current-view premise and additionally
+records `⇑ᵗ A ≢ ★`.  `bindRightᶜ` checks freshness against the current view
+and every active protected target footprint, rather than only against the
+ambient source embedding.  The raw ambient constructors are implementation
+details; a valid public `_⊑ᶜ_` can be extended only by these checked enriched
+operations.
+
+Each allocation certificate remains tied to the source view at which it was
+created.  A later frame may redirect the current source pivot without
+retroactively changing an older store-representation obligation.  Ambient
+evolution transports these recorded views and their proofs through later
+binds.
+
 ## The enriched `γ`
 
 The following is the proposed semantic public shape.  Names may be adjusted
@@ -88,19 +267,20 @@ record AnchoredFrameᶜ ... : Set where
     representation-at-viewᶜ : ...
     occupancy-safeᶜ         : ...
 
-data FrameStackᶜ (ambient : StoreWorldᶜ ...) :
-    Injectionᵗ Δᴸ (centerᶜ ambient) → Set where
-  []ᶠ : FrameStackᶜ ambient (ηᴸᶜ ambient)
+data FrameStackᶜ (ambient : AmbientWorldᶜ Sᴸ Sᴿ) :
+    Injectionᵗ (Δˢ Sᴸ) (centerᵃᶜ ambient) → Set where
+  []ᶠ : FrameStackᶜ ambient (ηᴸᵃᶜ ambient)
   _∷ᶠ_ : ∀ {before}
     → FrameStackᶜ ambient before
     → (frame : AnchoredFrameᶜ ambient before)
     → FrameStackᶜ ambient (source-view-afterᶜ frame)
 
-record _⊑ᵃᶜ_ (Γᴸ Γᴿ : Ctx) : Set where
+record _⊑ᶜ_ (Γᴸ Γᴿ : Ctx) : Set where
   field
-    ambientᶜ       : StoreWorldᶜ (Δᵉ Γᴸ) (Σᵉ Γᴸ)
-                                  (Δᵉ Γᴿ) (Σᵉ Γᴿ)
-    source-viewᶜ   : Injectionᵗ (Δᵉ Γᴸ) (centerᶜ ambientᶜ)
+    ambientᶜ       : AmbientWorldᶜ
+                       ⟨ Δᵉ Γᴸ , Σᵉ Γᴸ ⟩ˢ
+                       ⟨ Δᵉ Γᴿ , Σᵉ Γᴿ ⟩ˢ
+    source-viewᶜ   : Injectionᵗ (Δᵉ Γᴸ) (centerᵃᶜ ambientᶜ)
     framesᶜ        : FrameStackᶜ ambientᶜ source-viewᶜ
     term-contextᶜ  : ScopedTermContextᶜ ambientᶜ source-viewᶜ
                        (Γᵉ Γᴸ) (Γᵉ Γᴿ)
@@ -117,33 +297,35 @@ Type imprecision reads the current source view and the ambient target view:
 
 ```agda
 A ⊑ᵀ⟨ γ ⟩ B =
-  marksᶜ (ambientᶜ γ) ⊢
+  marksᵃᶜ (ambientᶜ γ) ⊢
     renameᵗ (toRenameⁱ (source-viewᶜ γ)) A
-      ⊑ renameᵗ (toRenameⁱ (ηᴿᶜ (ambientᶜ γ))) B
+      ⊑ renameᵗ (toRenameⁱ (ηᴿᵃᶜ (ambientᶜ γ))) B
 ```
 
 The invariant package contains:
 
-1. the direct allocation invariants of the ambient world;
-2. precise-mark alignment in the current view;
-3. admissibility of unmatched targets, accounting for targets protected by
+1. allocation certificates, each paired with the source view at which its
+   representation or freshness obligation was established;
+2. the direct allocation invariants of the ambient geometry;
+3. precise-mark alignment in the current view;
+4. admissibility of unmatched targets, accounting for targets protected by
    active frames;
-4. unoccupancy of a source whose direct entry is `★` at an `X⊑★` center;
-5. every frame's representation evidence at the view where it was created.
+5. unoccupancy of a source whose direct entry is `★` at an `X⊑★` center;
+6. every frame's representation evidence at the view where it was created.
 
 The checked push operations are deterministic partial functions:
 
 ```agda
 push-sourceᶜ : ... → γ → CrossingMark (Δᵉ Γᴸ)
-  → GeneratorPosition → Maybe (Γᴸ ⊑ᵃᶜ Γᴿ)
+  → GeneratorPosition → Maybe (Γᴸ ⊑ᶜ Γᴿ)
 
 push-targetᶜ : ... → γ → CrossingMark (Δᵉ Γᴿ)
-  → GeneratorPosition → Maybe (Γᴸ ⊑ᵃᶜ Γᴿ)
+  → GeneratorPosition → Maybe (Γᴸ ⊑ᶜ Γᴿ)
 
 push-pairedᶜ : ... → γ
   → CrossingMark (Δᵉ Γᴸ) → CrossingMark (Δᵉ Γᴿ)
   → GeneratorPosition → GeneratorPosition
-  → Maybe (Γᴸ ⊑ᵃᶜ Γᴿ)
+  → Maybe (Γᴸ ⊑ᶜ Γᴿ)
 ```
 
 They implement these fixed choices:
@@ -592,6 +774,11 @@ The current probes establish:
 - `ScopedWorldTransportProbe.agda`: arbitrary frame stacks transport through
   the existing source, target, paired-precise, and paired-dynamic ambient bind
   forms.
+- `ScopedPairedBindRepresentationProbe.agda`: a paired allocation premise may
+  hold in the current framed view while being impossible in the ambient view;
+  the resulting representation certificate is preserved by the bind, while
+  a later frame correctly prevents it from being reinterpreted as a universal
+  current-view invariant.
 - `ScopedOneStepSquareProbe.agda`: the whole checkpoint 6-to-7 forward and
   backward reduction squares close with the ambient world unchanged.
 
@@ -600,13 +787,17 @@ check:
 
 1. total determinism/functionality of the three partial push functions;
 2. exact-pop inversion for all three conceal rules;
-3. transport of marks, frames, term-context evidence, and invariants through
-   every `WorldEvolution` constructor;
-4. endpoint typing projection for all six new rules;
-5. CTI preservation for every reduction rule that distributes or removes a
+3. construction of `AmbientWorldᶜ` and its allocation certificates from every
+   current world-construction path;
+4. transport of ambient allocation certificates, marks, frames, term-context
+   evidence, and invariants through every `WorldEvolution` constructor;
+5. current-view paired-bind and target-freshness lemmas for nonempty frame
+   stacks;
+6. endpoint typing projection for all six new rules;
+7. CTI preservation for every reduction rule that distributes or removes a
    reveal/conceal;
-6. regenerated Imp Ladders and all example gates;
-7. forward and backward one-step simulation without `ContextualSim` and
+8. regenerated Imp Ladders and all example gates;
+9. forward and backward one-step simulation without `ContextualSim` and
    without a sibling-transport premise.
 
 ## Permission requested
@@ -614,7 +805,8 @@ check:
 Permission is requested to replace exactly the ten live crossing constructors
 shown in the **before** section by exactly the six enriched-`γ` constructors
 shown in the **after** section, together with the supporting enriched-world,
-push/pop, transport, invariant, renderer, and proof changes described above.
+`AmbientWorldᶜ`, allocation-certificate, push/pop, transport, invariant,
+renderer, and proof changes described above.
 
 No permission is requested to add a non-syntax-directed scope constructor, to
 change application or primitive rules so that siblings may choose worlds, or

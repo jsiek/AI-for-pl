@@ -11,6 +11,7 @@ AGDA ?= agda
 IN_PROGRESS_PROOFS := proof/DGG/SimPairedAllValuesProof.agda \
 	proof/DGG/SimTargetRevealRebaseClosingProof.agda \
 	proof/DGG/ContextualSimProof.agda \
+	proof/DGG/ContextualCatchupToLessPreciseProof.agda \
 	proof/DGG/Catchup/MorePreciseTargetCastInstantiationCatchupProof.agda
 
 check: agda in-progress-proof-check postulate-check

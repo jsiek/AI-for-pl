@@ -25,6 +25,10 @@ import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.ContextualCatchupToLessPreciseDef using
   (ContextualCatchupToLessPreciseᵀ)
 open import proof.DGG.ContextualSimBackDef using (ContextualSimBackᵀ)
+open import proof.DGG.SourcePathBlameLemma using
+  (source-path-blame-after)
+open import proof.DGG.TargetBlameCatchupLemma using
+  (target-blame-catchup)
 open import proof.DGG.SimBackCastClosingDef using
   (SimBackPairedCastClosingᵀ; SimBackTargetCastClosingᵀ)
 open import proof.DGG.SimBackPairedAllClosingDef using
@@ -43,6 +47,8 @@ open import proof.DGG.SimBackSourceLambdaDef using
 open import proof.DGG.SimTargetRevealRebaseContextDef
 open import proof.DGG.SimBackContextDef
 open import proof.DGG.World
+open import proof.Reduction using
+  (appL-↠; appR-↠; applyTerms-preserves-Value)
 open import proof.Reduction using (_++χ_; _—↠+[_]⟨_⟩_)
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution; composeMultiWorldEvolution
@@ -270,22 +276,112 @@ module _
       rebuild = {! !}
 
   contextual-sim-back-worker no-open root-related
-      (CTI.·⊑·² function-related argument-related)
-      focus-here (pure-step blame-·₁)
-      (rebuild-target-here refl) = {! !}
+      (CTI.·⊑·² {L = L} {M = M}
+        function-related argument-related)
+      path (pure-step blame-·₁) rebuild
+      with target-blame-catchup function-related
   contextual-sim-back-worker no-open root-related
-      (CTI.·⊑·² function-related argument-related)
-      path@(focus-there edge tail) (pure-step blame-·₁)
-      rebuild = {! !}
+      (CTI.·⊑·² {L = L} {M = M}
+        function-related argument-related)
+      path (pure-step blame-·₁) rebuild
+    | DeltaL1 , changesL1 , function-blame
+      with source-path-blame-after path
+        (L · M
+         —↠+[ changesL1 ]⟨ appL-↠ function-blame ⟩
+         blame · applyTerms changesL1 M
+         —→[ keep ]⟨ pure-step blame-·₁ ⟩
+         blame ∎[])
+  contextual-sim-back-worker no-open root-related
+      (CTI.·⊑·² {L = L} {M = M}
+        function-related argument-related)
+      path (pure-step blame-·₁) rebuild
+    | DeltaL1 , changesL1 , function-blame
+    | changesL2 , source-blame , evolve =
+      inj₂ (DeltaL1 , changesL2 , source-blame)
 
   contextual-sim-back-worker no-open root-related
       (CTI.·⊑·² function-related argument-related)
-      focus-here (pure-step (blame-·₂ target-value))
-      (rebuild-target-here refl) = {! !}
+      path (pure-step (blame-·₂ target-value)) rebuild
+      with contextual-catchup no-open
+        (extend-focus path
+          (focus-·₁ function-related argument-related))
+        target-value
   contextual-sim-back-worker no-open root-related
       (CTI.·⊑·² function-related argument-related)
-      path@(focus-there edge tail)
-      (pure-step (blame-·₂ target-value)) rebuild = {! !}
+      path (pure-step (blame-·₂ target-value)) rebuild
+    | inj₂ (DeltaL1 , SigmaL1 , changesL1 , world1 , source-blame ,
+        evolution1) =
+      inj₂ (DeltaL1 , changesL1 , source-blame)
+  contextual-sim-back-worker no-open root-related
+      (CTI.·⊑·² function-related argument-related)
+      path (pure-step (blame-·₂ target-value)) rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack function-related0 , path1 ,
+          source-steps1 , source-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+      with split-source-extended-path
+        {path = path}
+        {edge = focus-·₁ function-related argument-related}
+        path-evolution1
+  contextual-sim-back-worker no-open root-related
+      (CTI.·⊑·² function-related argument-related)
+      path (pure-step (blame-·₂ target-value)) rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack function-related0 , path1 ,
+          source-steps1 , source-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-·₁ function-related1 argument-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+      with target-blame-catchup argument-related1
+  contextual-sim-back-worker no-open root-related
+      (CTI.·⊑·² function-related argument-related)
+      path (pure-step (blame-·₂ target-value)) rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack function-related0 , path1 ,
+          source-steps1 , source-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-·₁ function-related1 argument-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | DeltaL2 , changesL2 , argument-blame
+      with source-path-blame-after prefix1
+        (sourceTerm (pack function-related1)
+           · sourceTerm (pack argument-related1)
+         —↠+[ changesL2 ]⟨
+           appR-↠ source-value1 argument-blame ⟩
+         applyTerms changesL2 (sourceTerm (pack function-related1))
+           · blame
+         —→[ keep ]⟨ pure-step
+           (blame-·₂
+             (applyTerms-preserves-Value changesL2 source-value1)) ⟩
+         blame ∎[])
+  contextual-sim-back-worker no-open root-related
+      (CTI.·⊑·² function-related argument-related)
+      path (pure-step (blame-·₂ target-value)) rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack function-related0 , path1 ,
+          source-steps1 , source-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-·₁ function-related1 argument-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | DeltaL2 , changesL2 , argument-blame
+    | changesL3 , source-blame3 , evolve =
+      inj₂
+        (DeltaL2 , changesL1 ++χ changesL3 ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠[ changesL3 ]⟨ source-blame3 ⟩
+           blame ∎[]))
 
   contextual-sim-back-worker no-open root-related
       (CTI.Λ⊑Λ² source-value target-value related q) path

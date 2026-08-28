@@ -16,7 +16,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.Product using (_,_; _×_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; refl; subst; sym; cong)
+  (_≡_; refl; cong)
 
 import CastTerms as CT
 open import CastTerms using
@@ -24,14 +24,8 @@ open import CastTerms using
 open import Types using (Ty; TyCtx)
 open import TyStore using (TyStore)
 open import Reduction using
-  ( StoreChanges; applyTys; applyTerms; keep; pure-step
-  ; blame-·₁; blame-⊕₁; _—↠[_]_; ↠-refl; ↠-step
-  ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-open import proof.Reduction using
-  ( _++χ_; composeReduction; appL-↠; appR-blame-↠; primL-↠
-  ; primR-↠; typeApp-blame-↠; cast-blame-↠; reveal-blame-↠
-  ; conceal-blame-↠; applyTerms-preserves-Value
-  )
+  (StoreChanges; applyTys; _—↠[_]_; ↠-refl)
+  renaming ([] to []ˢ)
 
 import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.Catchup.ContextualLeftSourceConversionCatchupDef using
@@ -58,6 +52,7 @@ open import proof.DGG.Catchup.LeftValueCatchupLemma using
   (source-cast-bound)
 open import proof.DGG.ContextualCatchupToLessPreciseDef using
   (ContextualCatchupToLessPreciseᵀ)
+open import proof.DGG.SourcePathBlameLemma using (source-path-blame)
 open import proof.DGG.SimTargetRevealRebaseContextDef
 open import proof.DGG.SimBackContextDef using
   ( world; SourcePathEvolution; source-path-reflexive
@@ -69,200 +64,7 @@ open import proof.DGG.World
 open import proof.DGG.SourceRebase using
   (open-source-rebase-nonempty)
 open import proof.DGG.WorldEvolutionSequence using
-  (MultiWorldEvolution; append-left-keep; evolutions-refl)
-
-
-source-path-blame : ∀ {Cᴸ Cᴿ : Ctx} {W : Cᴸ ⊑ᶜ Cᴿ}
-    {root focus : RelatedConfiguration Cᴸ Cᴿ}
-  → (path : root ↘ᶜ* focus)
-  → sourceTerm focus ≡ blame
-  → Σ[ χsᴸ ∈ StoreChanges (Δᵉ Cᴸ) (Δᵉ Cᴸ) ]
-      (sourceTerm root —↠[ χsᴸ ] blame)
-      × MultiWorldEvolution {W = W} {W′ = W} χsᴸ []ˢ
-source-path-blame focus-here focus-blame =
-  []ˢ , subst (λ M → M —↠[ []ˢ ] blame)
-    (sym focus-blame) ↠-refl , evolutions-refl
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-·₁ {M = M} function-rel argument-rel) tail)
-    focus-blame
-    with source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-·₁ {M = M} function-rel argument-rel) tail)
-    focus-blame
-  | χsᴸ , inner-steps , evolution =
-    χsᴸ ++χ (keep ∷ˢ []ˢ)
-  , composeReduction (appL-↠ inner-steps)
-      (↠-step (pure-step blame-·₁) ↠-refl)
-  , append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-·₂ function-rel argument-rel source-value) tail)
-    focus-blame
-    with source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-·₂ function-rel argument-rel source-value) tail)
-    focus-blame
-  | χsᴸ , inner-steps , evolution =
-    χsᴸ ++χ (keep ∷ˢ []ˢ)
-  , appR-blame-↠ source-value inner-steps
-  , append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-⊕₁ {M = M} left-rel right-rel r) tail)
-    focus-blame
-    with source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-⊕₁ {M = M} left-rel right-rel r) tail)
-    focus-blame
-  | χsᴸ , inner-steps , evolution =
-    χsᴸ ++χ (keep ∷ˢ []ˢ)
-  , composeReduction (primL-↠ inner-steps)
-      (↠-step (pure-step blame-⊕₁) ↠-refl)
-  , append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-⊕₂ left-rel right-rel r source-value) tail)
-    focus-blame
-    with source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-⊕₂ left-rel right-rel r source-value) tail)
-    focus-blame
-  | χsᴸ , inner-steps , evolution =
-    χsᴸ ++χ (keep ∷ˢ []ˢ)
-  , composeReduction (primR-↠ source-value inner-steps)
-      (↠-step
-        (pure-step
-          (Reduction.blame-⊕₂
-            (applyTerms-preserves-Value χsᴸ source-value)))
-        ↠-refl)
-  , append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there (focus-•-paired p∀ related q r) tail) focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , typeApp-blame-↠ inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there (focus-•-source p∀ related q r) tail) focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , typeApp-blame-↠ inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there (focus-cast-paired c c′ related q) tail) focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , cast-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there (focus-cast-target c′ related q) tail) focus-blame =
-  source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there (focus-cast-source c related q) tail) focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , cast-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-target-reveal-identity c′⊢ absent related q) tail)
-    focus-blame =
-  source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-target-conceal-identity c′⊢ absent related q) tail)
-    focus-blame =
-  source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-source-reveal-identity {c = c} c⊢ absent related q) tail)
-    focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , reveal-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-source-conceal-identity {c = c} c⊢ absent related q) tail)
-    focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , conceal-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-source-reveal-only
-        {c = c} c⊢ present mark free represented related q) tail)
-    focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , reveal-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-source-conceal-only
-        {c = c} c⊢ present mark free represented related q) tail)
-    focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , conceal-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-reveal-paired
-        {c = c} c⊢ c′⊢ positions aligned represented related q) tail)
-    focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , reveal-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-conceal-paired
-        {c = c} c⊢ c′⊢ positions aligned represented related q) tail)
-    focus-blame =
-  let χsᴸ , inner-steps , evolution =
-        source-path-blame {W = W} tail focus-blame
-  in χsᴸ ++χ (keep ∷ˢ []ˢ) , conceal-blame-↠ c inner-steps ,
-    append-left-keep evolution
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-target-reveal-rebase c′⊢ rebase related q) tail)
-    focus-blame =
-  source-path-blame {W = W} tail focus-blame
-source-path-blame
-    {W = W}
-    (focus-there
-      (focus-target-conceal-rebase c′⊢ rebase related q) tail)
-    focus-blame =
-  source-path-blame {W = W} tail focus-blame
+  (MultiWorldEvolution; evolutions-refl)
 
 
 root-catchup-result : ∀ {Δᴸ Δᴿ : TyCtx}

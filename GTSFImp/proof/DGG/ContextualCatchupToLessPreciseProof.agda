@@ -34,6 +34,8 @@ open import proof.Reduction using
   )
 
 import proof.DGG.CastTermImprecision as CTI
+open import proof.DGG.Catchup.ContextualLeftSourceCastCatchupDef using
+  (ContextualLeftSourceCastCatchupAt)
 open import proof.DGG.Catchup.ContextualLeftSourceTypeAppCatchupDef using
   (ContextualLeftSourceTypeAppCatchupAt)
 open import proof.DGG.Catchup.LeftPairedConversionCatchupDef using
@@ -318,6 +320,8 @@ root-catchup-result related
 
 module _
     (source-cast-catchup : ∀ {fuel} → LeftSourceCastCatchupAt fuel)
+    (contextual-source-cast-catchup : ∀ {fuel}
+      → ContextualLeftSourceCastCatchupAt fuel)
     (source-type-app-catchup : ∀ {fuel}
       → LeftSourceTypeAppCatchupAt fuel)
     (contextual-source-type-app-catchup : ∀ {fuel}
@@ -601,8 +605,9 @@ module _
           focus-here , source-steps , value-source , refl , refl ,
           evolve-source-here , evolution)
   contextual-left-value-catchup no-open root-related
-      (CTI.cast⊑² source-cast related q) (focus-there edge tail)
-      target-value bound = {! !}
+      (CTI.cast⊑² source-cast related q)
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-cast-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.reveal⊑-identity c⊢ absent related q)

@@ -15,6 +15,8 @@ module alt.ThetaReduction where
 --   * Boundary rules accept ν-prefixed results as interiors and carry the
 --     entire prefix verbatim.  Stacked regions move only by iterating the
 --     ordinary two-constructor term-frame rules.
+--   * A ground projection commutes into an identity reveal; `expand↑`
+--     refines the boundary from ★ to the weakened projected ground type.
 --   * Universal crossings use ScTyWrap: they move beneath Λ without
 --     instantiating, allocating, or inspecting the telescope.
 --   * Review suggestion (not undertaken here): `CanonicalInterior` already
@@ -109,10 +111,34 @@ skipAt↪ᵗ : ∀ {Δ} → TyVar (suc Δ) → Δ ↪ᵗ suc Δ
 skipAt↪ᵗ zero = skip id↪ᵗ
 skipAt↪ᵗ {Δ = suc Δ} (suc X) = keep (skipAt↪ᵗ X)
 
+toRename-id↪ᵗ : ∀ {Δ} (X : TyVar Δ)
+  → toRenameᵗ id↪ᵗ X ≡ X
+toRename-id↪ᵗ zero = refl
+toRename-id↪ᵗ (suc X) = cong suc (toRename-id↪ᵗ X)
+
+skipAt-punchIn : ∀ {Δ} (X : TyVar (suc Δ)) (Y : TyVar Δ)
+  → toRenameᵗ (skipAt↪ᵗ X) Y ≡ punchIn X Y
+skipAt-punchIn zero Y = cong suc (toRename-id↪ᵗ Y)
+skipAt-punchIn (suc X) zero = refl
+skipAt-punchIn (suc X) (suc Y) = cong suc (skipAt-punchIn X Y)
+
 weakenᵗᵐ : ∀ {Θ Δ} (X : TyVar (suc Δ))
   → Term Θ Δ
   → Term Θ (suc Δ)
 weakenᵗᵐ X = renameᵗᵐ (skipAt↪ᵗ X)
+
+weakenConsistency : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+  → (X : TyVar (suc Δ))
+  → μ ⊢ A ∼ B
+  → renameEnv∼ (skipAt↪ᵗ X) μ ⊢ wkᵗ X A ∼ wkᵗ X B
+weakenConsistency {μ = μ} X c =
+  rename∼ (punchIn X) preserves c
+  where
+  preserves : ∀ Y
+    → renameEnv∼ (skipAt↪ᵗ X) μ (punchIn X Y) ≡ μ Y
+  preserves Y = trans
+    (cong (renameEnv∼ (skipAt↪ᵗ X) μ) (sym (skipAt-punchIn X Y)))
+    (renameEnv∼-preserves (skipAt↪ᵗ X) μ Y)
 
 ------------------------------------------------------------------------
 -- Term-variable substitution
@@ -215,6 +241,17 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → G ≢ B
       -------------------------------------------------
     → Ψ ⊢ V ⟨ ？ c ⟩ —→ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩
+
+  ★-project-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {μ : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
+      ⦃ Gns : NonStar G ⦄
+    → Result V
+      ------------------------------------------------------------
+    → Ψ ⊢ (V ↑[ X ≔ α ] id↑) ⟨ ？ (idᵍ Gᵍ) ⟩ —→
+        (V ⟨ weakenConsistency X (？ (idᵍ Gᵍ)) ⟩)
+          ↑[ X ≔ α ] expand↑ (wkᵗ X G) id↑
 
   tag-untag : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ μ′ : Env∼ Δ}

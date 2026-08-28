@@ -13,18 +13,18 @@ the shift-free Θ calculus:
 preserve : Ψ ∣ [] ⊢ M ⦂ A → Ψ ⊢ M —→ M′ → Ψ ∣ [] ⊢ M′ ⦂ A
 ```
 
-`alt/ThetaPreservation.agda`, assembler at the end of the file. All
-five Θ modules and all surviving probes pass `agda --safe -v0` with no
-postulates, holes, or pragmas.
+`alt/ThetaPreservation.agda`, assembler at the end of the file. All Θ
+modules and all surviving probes pass `agda --safe -v0` with no postulates,
+holes, or pragmas.
 
 | file | lines | contents |
 | --- | --- | --- |
 | `ThetaTerms.agda` | 100 | syntax `Term Θ Δ`, `renameᶿ`/`shiftᶿ` |
 | `ThetaTyping.agda` | 645 | σ-indexed `TyEnv`, `rep?`, `≼`, typing |
-| `ThetaReduction.agda` | 597 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
+| `ThetaReduction.agda` | 634 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
 | `ThetaTermSubst.agda` | 6359 | transport suite, `⊢≼`, `⊢[]` |
-| `ThetaPreservation.agda` | 624 | per-case lemmas + `preserve` |
-| `ThetaProgress.agda` | 1326 | canonical forms + parameterized assembler |
+| `ThetaPreservation.agda` | 633 | per-case lemmas + `preserve` |
+| `ThetaProgress.agda` | 1378 | canonical forms + parameterized assembler |
 | `ThetaRegression.agda` | 256 | curated positive regressions |
 
 ## The design, in one page
@@ -94,7 +94,7 @@ the delimiter. Neither rule resolves a representation through a crossing.
    two boundary splits, three identity cancellations, two
    `conceal-reveal` variants, four allocation rules).
 3. **Progress** — preservation is total and hole-free; progress is total
-   **modulo five named parameters** in the parameterized module
+   **modulo four named parameters** in the parameterized module
    `alt.ThetaProgress.WithGaps`. Its assembler and canonical forms are
    ordinary total proofs. The parameter types are the inspectable rule
    specifications left by `alt/probes/ProgressGaps.agda`:
@@ -108,12 +108,9 @@ the delimiter. Neither rule resolves a representation through a crossing.
    WithGaps.progress : Ψ ∣ [] ⊢ M ⦂ A → Progress Ψ M
    ```
 
-   - `gap-adapter-⊕`: the indexed blocked-eliminator family: non-floatable
-     adapters, a region under `Λ` at type application, atomic boundaries,
-     and the bottom-elimination canonicity obligation; the checked
-     representative is the base `⊕` witness.
-   - `gap-★-project-reveal`: a ground projection cannot merge through a
-     reveal-delimited ★ value.
+   - `gap-adapter-⊕`: indexed blocked eliminators, including non-floatable
+     adapters and their unseal projection, a region under `Λ` at type
+     application, atomic boundaries, and bottom-elimination canonicity.
    - `gap-★-project-conceal`: the dual ground projection cannot merge
      through a conceal-delimited ★ value.
    - `gap-∀-reveal-cast`: a structural reveal cannot merge through a
@@ -125,6 +122,9 @@ the delimiter. Neither rule resolves a representation through a crossing.
    residual frame, so its type also records the canonical facts left by each
    case. Supplying future merge lemmas discharges the parameters without
    changing the assembler.
+
+   `★-project-reveal` closes the former fifth family: consumers reach into
+   identity-delimited regions, and `expand↑` finds and refines their consumer.
 4. **Merge rules** (deferred design): projection into packages, both
    orientations, comparisons as syntactic anchor-variable equality.
 5. **`Λ` value restriction** — `⊢Λ` still carries a DEFERRED marker.

@@ -4,8 +4,9 @@ module alt.probes.ProgressGaps where
 --   * Checks the former stranded-ν gap as a positive reduction trace.
 --   * The region first floats through reveal, strict conceal/reveal then fires,
 --     and the persistent allocation remains around the final constant.
---   * Records each later progress obstruction as a typed closed term with a
---     checked proof that `Progress` is impossible.
+--   * Records four remaining progress obstructions as typed closed terms with
+--     checked proofs that `Progress` is impossible.
+--   * Checks the resolved ★-project-reveal gap as a positive reduction trace.
 
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
@@ -239,7 +240,7 @@ baseAdapter-gap-witness =
   baseAdapterGap-typed , baseAdapterGap-no-progress
 
 ------------------------------------------------------------------------
--- Remaining gap 2: ★ projection cannot merge through reveal
+-- Resolved gap: ★ projection commutes through identity reveal
 ------------------------------------------------------------------------
 
 taggedInReveal : Term 1 1
@@ -278,29 +279,36 @@ starReveal-value = result-val taggedInReveal-value ↑[ zero ≔ zero ]
 starReveal-no-step : ∀ {M′} → ¬ (baseEnv ⊢ starReveal —→ M′)
 starReveal-no-step = value-no-step starReveal-value
 
-starRevealMerge-no-step : ∀ {M′}
-  → ¬ (baseEnv ⊢ starRevealMerge —→ M′)
-starRevealMerge-no-step (expand Vᵥ G≢G) = G≢G refl
-starRevealMerge-no-step (ξ-⟨⟩ reduction) =
-  starReveal-no-step reduction
+starRevealAfterProject : Term 1 zero
+starRevealAfterProject =
+  (taggedInReveal
+    ⟨ weakenConsistency zero (？ (id {μ = idᶜ} (‵ `ℕ))) ⟩)
+    ↑[ zero ≔ zero ] expand↑ (wkᵗ (zero {n = zero}) ℕᵗ) id↑
 
-starRevealMerge-not-result : ¬ Result starRevealMerge
-starRevealMerge-not-result (result-val (_ 《 () 》))
-
-starRevealMerge-no-progress : ¬ Progress baseEnv starRevealMerge
-starRevealMerge-no-progress (step reduction) =
-  starRevealMerge-no-step reduction
-starRevealMerge-no-progress (done result) =
-  starRevealMerge-not-result result
+starRevealAfterUntag : Term 1 zero
+starRevealAfterUntag =
+  ($ (κℕ zero))
+    ↑[ zero ≔ zero ] expand↑ (wkᵗ (zero {n = zero}) ℕᵗ) id↑
 
 starRevealMerge-gap-witness :
-  (baseEnv ∣ [] ⊢ starRevealMerge ⦂ ℕᵗ)
-  × ¬ Progress baseEnv starRevealMerge
+  baseEnv ⊢ starRevealMerge —↠ $ (κℕ zero)
 starRevealMerge-gap-witness =
-  starRevealMerge-typed , starRevealMerge-no-progress
+    starRevealMerge
+  —→⟨ ★-project-reveal (result-val taggedInReveal-value) ⟩
+    starRevealAfterProject
+  —→⟨ ξ-reveal {fresh = no-live-anchor}
+        (tag-untag ($ (κℕ zero))) ⟩
+    starRevealAfterUntag
+  —→⟨ id-reveal ⟩
+    $ (κℕ zero)
+  ∎
+
+starRevealMerge-progress : Progress baseEnv starRevealMerge
+starRevealMerge-progress =
+  step (★-project-reveal (result-val taggedInReveal-value))
 
 ------------------------------------------------------------------------
--- Remaining gap 3: ★ projection cannot merge through conceal
+-- Remaining gap 2: ★ projection cannot merge through conceal
 ------------------------------------------------------------------------
 
 taggedInConceal : Term 1 zero
@@ -369,7 +377,7 @@ starConcealMerge-gap-witness =
   starConcealMerge-typed , starConcealMerge-no-progress
 
 ------------------------------------------------------------------------
--- Remaining gap 4: ∀ reveal cannot merge through an inert ∀ cast
+-- Remaining gap 3: ∀ reveal cannot merge through an inert ∀ cast
 ------------------------------------------------------------------------
 
 ∀ℕ : ∀ {Δ} → Ty Δ
@@ -426,7 +434,7 @@ allReveal-gap-witness =
   allRevealGap-typed , allRevealGap-no-progress
 
 ------------------------------------------------------------------------
--- Remaining gap 5: ∀ conceal cannot merge through an inert ∀ cast
+-- Remaining gap 4: ∀ conceal cannot merge through an inert ∀ cast
 ------------------------------------------------------------------------
 
 polyInConceal : Term 1 zero

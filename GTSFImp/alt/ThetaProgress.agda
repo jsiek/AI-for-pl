@@ -1,7 +1,7 @@
 module alt.ThetaProgress where
 
 -- File Charter:
---   * Proves closed-term progress from five explicit gap-family interfaces.
+--   * Proves closed-term progress from four explicit gap-family interfaces.
 --   * Supplies total canonical forms and an indexed account of every residual
 --     blocked eliminator; no unresolved obligation is hidden in the assembler.
 --   * The checked witnesses in `alt.probes.ProgressGaps` exhibit one inhabitant
@@ -307,6 +307,20 @@ data BlockedElimination {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) :
       ------------------------------------------------------------
     → BlockedElimination Ψ
         (((ν[ E ] M) ↑[ X ≔ α ] c) ⦂∀ B [ C ])
+
+  adapter-project : ∀ {E : Ty (suc Δ)}
+      {M : Term (suc Θ) (suc Δ)}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {μ : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
+      ⦃ Gns : NonStar G ⦄
+    → Result M
+    → X ∈ᵗ E
+    → Ψ ∣ [] ⊢ ((ν[ E ] M) ↑[ X ≔ α ] unseal)
+        ⟨ ？ (idᵍ Gᵍ) ⟩ ⦂ G
+      ------------------------------------------------------------
+    → BlockedElimination Ψ
+        (((ν[ E ] M) ↑[ X ≔ α ] unseal) ⟨ ？ (idᵍ Gᵍ) ⟩)
 
   region-Λ-• : ∀ {E : Ty (suc Δ)} {C : Ty Δ} {B : Ty (suc Δ)}
       {M : Term (suc Θ) (suc Δ)}
@@ -835,7 +849,7 @@ theta-gen-safe c A≠★ Bnv z∈B =
   theta-gen-safe′ c refl A≠★ Bnv z∈B
 
 ------------------------------------------------------------------------
--- Progress modulo the five checked merge families
+-- Progress modulo the four checked merge families
 ------------------------------------------------------------------------
 
 module WithGaps
@@ -844,17 +858,6 @@ module WithGaps
       {M : Term Θ Δ}
     → BlockedElimination Ψ M
     → Progress Ψ M)
-  -- Witness: `alt.probes.ProgressGaps.starRevealMerge-gap-witness`.
-  (gap-★-project-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
-      {c : Reveal} {μ : Env∼ Δ} {G : Ty Δ} {Gᵍ : Ground G}
-      ⦃ ★∼G : μ ⊢★∼ G ⦄ ⦃ Gns : NonStar G ⦄
-    → Result V
-    → RevealValue V X α c
-    → Ψ ∣ [] ⊢ V ↑[ X ≔ α ] c ⦂ ★
-    → Progress Ψ ((V ↑[ X ≔ α ] c)
-        ⟨ ？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄
-          (idᵍ { μ = μ } Gᵍ) ⦃ Gns ⦄ ⟩))
   -- Witness: `alt.probes.ProgressGaps.starConcealMerge-gap-witness`.
   (gap-★-project-conceal : ∀ {Θ Δ σ}
       {Ψ : TyEnv Θ (suc Δ) σ} {V : Term Θ Δ}
@@ -885,6 +888,55 @@ module WithGaps
     → Ψ ∣ [] ⊢ V ↓[ X ≔ α ] `∀↓ c ⦂ `∀ B
     → Progress Ψ (V ↓[ X ≔ α ] `∀↓ c))
   where
+
+  star-project-reveal-progress-core : ∀ {Θ Δ σ}
+      {Ψ : TyEnv Θ Δ σ} {V : Term Θ (suc Δ)}
+      {C : Ty Δ} {A T : Ty (suc Δ)}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
+      {fresh : α ∉ᵛ σ} {μ : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
+      ⦃ Gns : NonStar G ⦄
+    → Ψ ∣ [] ⊢ V ↑[ X ≔ α ] c ⦂ ★
+    → Result V
+    → RevealValue V X α c
+    → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ∣ [] ⊢ V ⦂ A
+    → ⊢↑[ X ⦂ wkᵗ X C ] c ⦂ A ↝ T
+    → T ≡ wkᵗ X ★
+    → Progress Ψ ((V ↑[ X ≔ α ] c)
+        ⟨ ？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄
+          (idᵍ {μ = μ} Gᵍ) ⦃ Gns ⦄ ⟩)
+  star-project-reveal-progress-core typing (result-ν Rʳ)
+      (adapter-region Rʳ′ X∈E) V⊢ ⊢unseal target-eq =
+    gap-adapter-⊕
+      (adapter-project Rʳ′ X∈E (⊢⟨⟩ typing (？ (idᵍ _))))
+  star-project-reveal-progress-core typing (result-val ())
+      (adapter-region Rʳ′ X∈E) V⊢ ⊢unseal target-eq
+  star-project-reveal-progress-core typing Rʳ gate V⊢
+      (⊢↑-⇒ c⊢ d⊢) ()
+  star-project-reveal-progress-core typing Rʳ gate V⊢
+      (⊢↑-∀ c⊢) ()
+  star-project-reveal-progress-core typing Rʳ gate V⊢
+      (⊢id↑ (＇ Y)) ()
+  star-project-reveal-progress-core typing Rʳ gate V⊢
+      (⊢id↑ (‵ ι)) ()
+  star-project-reveal-progress-core typing Rʳ gate V⊢
+      (⊢id↑ ★) refl =
+    step (★-project-reveal Rʳ)
+
+  star-project-reveal-progress : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {c : Reveal} {μ : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
+      ⦃ Gns : NonStar G ⦄
+    → Result V
+    → RevealValue V X α c
+    → Ψ ∣ [] ⊢ V ↑[ X ≔ α ] c ⦂ ★
+    → Progress Ψ ((V ↑[ X ≔ α ] c)
+        ⟨ ？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄
+          (idᵍ {μ = μ} Gᵍ) ⦃ Gns ⦄ ⟩)
+  star-project-reveal-progress Rʳ gate
+      typing@(⊢reveal α-eq c⊢ V⊢) =
+    star-project-reveal-progress-core typing Rʳ gate V⊢ c⊢ refl
 
   cast-value-progress : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {A B : Ty Δ} {μ : Env∼ Δ}
@@ -943,7 +995,7 @@ module WithGaps
       (Rʳ ↑[ X ≔ α ] gate)
       (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
       | same | cs-reveal Rʳ′ gate′ =
-    gap-★-project-reveal Rʳ gate V⊢
+    star-project-reveal-progress Rʳ gate V⊢
   cast-value-progress V⊢
       (Wᵛ ↓[ X ≔ α ] gate)
       (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)

@@ -30,6 +30,9 @@ module alt.ThetaPreservation where
 --     round trip, without representation resolution.
 --   * The dual `float-conceal` weakens its entry into the larger scope; an
 --     exact end/ν telescope exchange carries the interior typing.
+--   * Projection into an identity reveal preserves typing by weakening its
+--     ground cast and applying the checked `expand↑-typed` identity
+--     expansion.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -531,6 +534,12 @@ preserve (⊢⟨⟩ V⊢ (_! ⦃ Gᵍ = Gᵍ ⦄ c)) (ground Vᵥ neq) =
   ⊢⟨⟩ (⊢⟨⟩ V⊢ c) ((idᵍ Gᵍ) !)
 preserve (⊢⟨⟩ V⊢ (？_ ⦃ Gᵍ = Gᵍ ⦄ c)) (expand Vᵥ neq) =
   ⊢⟨⟩ (⊢⟨⟩ V⊢ (？ (idᵍ Gᵍ))) c
+preserve
+    (⊢⟨⟩ (⊢reveal α-eq (⊢id↑ ★) V⊢)
+      (？_ ⦃ Gᵍ = Gᵍ ⦄ .(idᵍ Gᵍ)))
+    (★-project-reveal {X = X} {G = G} Vʳ) =
+  ⊢reveal α-eq (expand↑-typed (wkᵗ X G))
+    (⊢⟨⟩ V⊢ (weakenConsistency X (？ (idᵍ Gᵍ))))
 preserve (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) = V⊢
 preserve typing (tag-untag-bad Vᵥ neq) = ⊢blame
 preserve typing (blame-bot-intro Vᵥ) = ⊢blame

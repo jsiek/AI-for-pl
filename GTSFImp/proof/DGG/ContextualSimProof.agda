@@ -12,7 +12,7 @@ module proof.DGG.ContextualSimProof where
 --     the broad source-evolution CTI transport theorem.
 
 open import Data.List using ([])
-open import Data.Product using (_,_; _×_; Σ-syntax)
+open import Data.Product using (_,_; _×_; Σ-syntax; proj₁; proj₂)
 open import Data.Unit using (tt)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; cong; refl; subst; sym)
@@ -44,6 +44,7 @@ open import proof.DGG.SimSourceCastValuesDef using
 open import proof.DGG.SimSourceRevealClosingDef using
   (SimSourceRevealClosingᵀ)
 open import proof.DGG.SimTargetRevealRebaseContextDef
+open import proof.DGG.World using (_⊑ᵀ⟨_⟩_)
 open import proof.DGG.WorldEvolutionSequence using
   ( composeMultiWorldEvolution; multi-no-open-frames )
 
@@ -145,7 +146,27 @@ module _
     | application-left-edge function-related₂ argument-related₂ refl
         function-focus-eq
     | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , root-target₂ , γ₂ , result-type₂ ,
-      root-steps₂ , evolution₂ , root-related₂ = {! !}
+      root-steps₂ , evolution₂ , root-related₂ =
+    let
+      target-type-eq = applyTys-++ χsᴿ₁ χsᴿ₂ _
+      normalized-result =
+        subst
+          (λ T →
+            Σ[ q ∈ _ ⊑ᵀ⟨ γ₂ ⟩ T ]
+              γ₂ CTI.⊢² _ ⊑ root-target₂ ∶ q)
+          target-type-eq (result-type₂ , root-related₂)
+      final-type = proj₁ normalized-result
+      final-related = proj₂ normalized-result
+    in
+      Δᴿ₂ , Σᴿ₂ , χsᴿ₁ ++χ χsᴿ₂ , root-target₂ , γ₂ , final-type ,
+      (targetTerm (pack root-related)
+         —↠+[ χsᴿ₁ ]⟨ root-steps₁ ⟩
+       root-target₁
+         —↠[ χsᴿ₂ ]⟨ root-steps₂ ⟩
+       root-target₂ ∎[]) ,
+      composeMultiWorldEvolution evolution₁ evolution₂ ,
+      final-related
+
   contextual-sim no-open
       relation@(CTI.·⊑·² function-related argument-related)
       .relation focus-here tt
@@ -545,7 +566,27 @@ module _
     | primitive-left-edge left-related₂ right-related₂ result-related₂
         refl left-focus-eq
     | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , root-target₂ , γ₂ , result-type₂ ,
-      root-steps₂ , evolution₂ , root-related₂ = {! !}
+      root-steps₂ , evolution₂ , root-related₂ =
+    let
+      target-type-eq = applyTys-++ χsᴿ₁ χsᴿ₂ _
+      normalized-result =
+        subst
+          (λ T →
+            Σ[ q ∈ _ ⊑ᵀ⟨ γ₂ ⟩ T ]
+              γ₂ CTI.⊢² _ ⊑ root-target₂ ∶ q)
+          target-type-eq (result-type₂ , root-related₂)
+      final-type = proj₁ normalized-result
+      final-related = proj₂ normalized-result
+    in
+      Δᴿ₂ , Σᴿ₂ , χsᴿ₁ ++χ χsᴿ₂ , root-target₂ , γ₂ , final-type ,
+      (targetTerm (pack root-related)
+         —↠+[ χsᴿ₁ ]⟨ root-steps₁ ⟩
+       root-target₁
+         —↠[ χsᴿ₂ ]⟨ root-steps₂ ⟩
+       root-target₂ ∎[]) ,
+      composeMultiWorldEvolution evolution₁ evolution₂ ,
+      final-related
+
   contextual-sim no-open root-related
       (CTI.⊕⊑⊕² op left-related right-related r) path ready
       (pure-step

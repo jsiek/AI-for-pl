@@ -339,8 +339,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
     → Value V
       ------------------------------------------------------------
-    → Ψ ⊢ (Λ V) ⦂∀ B [ C ] —→
-        ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+    → Ψ ⊢ (Λ V) ⦂∀ B [ C ] —→ ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
   -- The consistency evidence mentions only the regular context.  `shiftᶿ`
   -- changes only the anchor count, so the inner cast reuses `c` unchanged.
@@ -385,16 +384,14 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
     → Result V
       ------------------------------------------------------------
-    → Ψ ⊢ ((Λ V) ↑[ X ≔ α ] `∀↑ c) —→
-        Λ (V ↑[ suc X ≔ α ] c)
+    → Ψ ⊢ ((Λ V) ↑[ X ≔ α ] `∀↑ c) —→ Λ (V ↑[ suc X ≔ α ] c)
 
   β-conceal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {V : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → Result V
       ------------------------------------------------------------
-    → Ψ ⊢ ((Λ V) ↓[ X ≔ α ] `∀↓ c) —→
-        Λ (V ↓[ suc X ≔ α ] c)
+    → Ψ ⊢ ((Λ V) ↓[ X ≔ α ] `∀↓ c) —→ Λ (V ↓[ suc X ≔ α ] c)
 
   ξ-Λ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {M M′ : Term Θ (suc Δ)}
@@ -446,8 +443,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → Result (ν[ A ] M)
       ------------------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c —→
-        ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c)
+    → Ψ ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c —→ ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c)
 
   ξ-⊕₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {L L′ M : Term Θ Δ} {op : Prim}
@@ -474,8 +470,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → strengthenᵗ? Y A ≡ just A₀
     → Result (ν[ A ] M)
       ------------------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c —→
-        ν[ A₀ ] (M ↑[ Y ≔ suc α ] c)
+    → Ψ ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c —→ ν[ A₀ ] (M ↑[ Y ≔ suc α ] c)
 
   -- ν is the region binder, not an eliminator frame.  Nested ν-headed
   -- results are represented directly by `result-ν`, so there is no float-ν.

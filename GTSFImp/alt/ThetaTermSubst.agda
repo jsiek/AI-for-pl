@@ -353,6 +353,60 @@ mutual
   rename-⊢↓ ρ (⊢id↓ a) = ⊢id↓ (renameAtom ρ a)
 
 ------------------------------------------------------------------------
+-- Conversion typing under type substitution with identity expansion
+------------------------------------------------------------------------
+
+-- A raw identity leaf may cease to be atomic after substitution.  Expansion
+-- is therefore guided by the substituted reveal source or conceal target.
+-- The distinguished pivot must remain a type variable; all other variables
+-- may be replaced by arbitrary types.
+
+mutual
+  subst-⊢↑ : ∀ {Δ Δ′} (τ : Δ ⇒ˢ Δ′)
+      {X : TyVar Δ} {X′ : TyVar Δ′} {R S T : Ty Δ} {c : Reveal}
+    → τ X ≡ ＇ X′
+    → ⊢↑[ X ⦂ R ] c ⦂ S ↝ T
+    → ⊢↑[ X′ ⦂ substᵗ τ R ] expand↑ (substᵗ τ S) c
+        ⦂ substᵗ τ S ↝ substᵗ τ T
+  subst-⊢↑ τ {X′ = X′} {R = R} pivot-eq ⊢unseal =
+    subst≡
+      (λ S → ⊢↑[ X′ ⦂ substᵗ τ R ] unseal ⦂ S ↝ substᵗ τ R)
+      (sym pivot-eq) ⊢unseal
+  subst-⊢↑ τ pivot-eq (⊢↑-⇒ c⊢ d⊢) =
+    ⊢↑-⇒ (subst-⊢↓ τ pivot-eq c⊢) (subst-⊢↑ τ pivot-eq d⊢)
+  subst-⊢↑ τ {X = X} {X′ = X′} {R = R}
+      pivot-eq (⊢↑-∀ c⊢) =
+    ⊢↑-∀
+      (subst≡
+        (λ R′ → ⊢↑[ suc X′ ⦂ R′ ] _ ⦂ _ ↝ _)
+        (substᵗ-shift τ R)
+        (subst-⊢↑ (extsᵗ τ) (cong (renameᵗ suc) pivot-eq) c⊢))
+  subst-⊢↑ τ pivot-eq (⊢id↑ {A = A} atom) =
+    expand↑-typed (substᵗ τ A)
+
+  subst-⊢↓ : ∀ {Δ Δ′} (τ : Δ ⇒ˢ Δ′)
+      {X : TyVar Δ} {X′ : TyVar Δ′} {R S T : Ty Δ} {c : Conceal}
+    → τ X ≡ ＇ X′
+    → ⊢↓[ X ⦂ R ] c ⦂ S ↝ T
+    → ⊢↓[ X′ ⦂ substᵗ τ R ] expand↓ (substᵗ τ T) c
+        ⦂ substᵗ τ S ↝ substᵗ τ T
+  subst-⊢↓ τ {X′ = X′} {R = R} pivot-eq ⊢seal =
+    subst≡
+      (λ T → ⊢↓[ X′ ⦂ substᵗ τ R ] seal ⦂ substᵗ τ R ↝ T)
+      (sym pivot-eq) ⊢seal
+  subst-⊢↓ τ pivot-eq (⊢↓-⇒ c⊢ d⊢) =
+    ⊢↓-⇒ (subst-⊢↑ τ pivot-eq c⊢) (subst-⊢↓ τ pivot-eq d⊢)
+  subst-⊢↓ τ {X = X} {X′ = X′} {R = R}
+      pivot-eq (⊢↓-∀ c⊢) =
+    ⊢↓-∀
+      (subst≡
+        (λ R′ → ⊢↓[ suc X′ ⦂ R′ ] _ ⦂ _ ↝ _)
+        (substᵗ-shift τ R)
+        (subst-⊢↓ (extsᵗ τ) (cong (renameᵗ suc) pivot-eq) c⊢))
+  subst-⊢↓ τ pivot-eq (⊢id↓ {A = A} atom) =
+    expand↓-typed (substᵗ τ A)
+
+------------------------------------------------------------------------
 -- Term-variable renaming preserves typing
 ------------------------------------------------------------------------
 

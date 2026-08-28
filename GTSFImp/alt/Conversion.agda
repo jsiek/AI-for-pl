@@ -3,6 +3,8 @@ module alt.Conversion where
 -- File Charter:
 --   * Defines raw, endpoint-free reveal and conceal conversion shapes.
 --   * Defines the self-contained scoped conversion-typing judgments.
+--   * Expands raw identity leaves against a type so shape substitution
+--     remains typed when a universal variable becomes structural.
 --   * Provides type-directed shape generators and their typing proofs.
 --   * Depends only on Types: stores, anchors, and classifiers are node data.
 
@@ -368,3 +370,51 @@ mutual
     ⊢↓-⇒ (delimiter-typed↑ X R A) (delimiter-typed↓ X R B)
   delimiter-typed↓ X R (`∀ A) =
     ⊢↓-∀ (delimiter-typed↓ (suc X) (⇑ᵗ R) A)
+
+------------------------------------------------------------------------
+-- Type-directed identity expansion
+------------------------------------------------------------------------
+
+-- Reveal expansion is guided by its source endpoint; conceal expansion is
+-- guided by its target endpoint.  Those choices are dual at arrow domains.
+-- Non-identity leaves remain unchanged, while their structural children are
+-- expanded against the corresponding endpoint components.  Mismatched
+-- shape/type pairs use the same junk-total convention as the endpoint
+-- functions above.
+
+mutual
+  expand↑ : Ty Δ → Reveal → Reveal
+  expand↑ T unseal = unseal
+  expand↑ (＇ X) (c ↦↑ d) = c ↦↑ d
+  expand↑ (‵ ι) (c ↦↑ d) = c ↦↑ d
+  expand↑ ★ (c ↦↑ d) = c ↦↑ d
+  expand↑ (A ⇒ B) (c ↦↑ d) = expand↓ A c ↦↑ expand↑ B d
+  expand↑ (`∀ A) (c ↦↑ d) = c ↦↑ d
+  expand↑ (＇ X) (`∀↑ c) = `∀↑ c
+  expand↑ (‵ ι) (`∀↑ c) = `∀↑ c
+  expand↑ ★ (`∀↑ c) = `∀↑ c
+  expand↑ (A ⇒ B) (`∀↑ c) = `∀↑ c
+  expand↑ (`∀ A) (`∀↑ c) = `∀↑ (expand↑ A c)
+  expand↑ T id↑ = δ↑ T
+
+  expand↓ : Ty Δ → Conceal → Conceal
+  expand↓ T seal = seal
+  expand↓ (＇ X) (c ↦↓ d) = c ↦↓ d
+  expand↓ (‵ ι) (c ↦↓ d) = c ↦↓ d
+  expand↓ ★ (c ↦↓ d) = c ↦↓ d
+  expand↓ (A ⇒ B) (c ↦↓ d) = expand↑ A c ↦↓ expand↓ B d
+  expand↓ (`∀ A) (c ↦↓ d) = c ↦↓ d
+  expand↓ (＇ X) (`∀↓ c) = `∀↓ c
+  expand↓ (‵ ι) (`∀↓ c) = `∀↓ c
+  expand↓ ★ (`∀↓ c) = `∀↓ c
+  expand↓ (A ⇒ B) (`∀↓ c) = `∀↓ c
+  expand↓ (`∀ A) (`∀↓ c) = `∀↓ (expand↓ A c)
+  expand↓ T id↓ = δ↓ T
+
+expand↑-typed : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ} (T : Ty Δ)
+  → ⊢↑[ X ⦂ R ] expand↑ T id↑ ⦂ T ↝ T
+expand↑-typed {X = X} {R = R} T = delimiter-typed↑ X R T
+
+expand↓-typed : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ} (T : Ty Δ)
+  → ⊢↓[ X ⦂ R ] expand↓ T id↓ ⦂ T ↝ T
+expand↓-typed {X = X} {R = R} T = delimiter-typed↓ X R T

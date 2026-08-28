@@ -217,20 +217,20 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → Ψ ⊢ V ⟨ ？ c ⟩ —→ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩
 
   tag-untag : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {V : Term Θ Δ} {μ ν : Env∼ Δ}
+      {V : Term Θ Δ} {μ μ′ : Env∼ Δ}
       {G : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄
-      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : ν ⊢★∼ G ⦄
+      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼G : μ′ ⊢★∼ G ⦄
       ⦃ Gns : NonStar G ⦄
     → Value V
       -------------------------------------------------------
     → Ψ ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⟨ ？ (idᵍ Gᵍ) ⟩ —→ V
 
   tag-untag-bad : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {V : Term Θ Δ} {μ ν : Env∼ Δ}
+      {V : Term Θ Δ} {μ μ′ : Env∼ Δ}
       {G H : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄ ⦃ Hᵍ : Ground H ⦄
-      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼H : ν ⊢★∼ H ⦄
+      ⦃ G∼★ : μ ⊢ G ∼★ ⦄ ⦃ ★∼H : μ′ ⊢★∼ H ⦄
       ⦃ Gns : NonStar G ⦄ ⦃ Hns : NonStar H ⦄
     → Value V
     → G ≢ H

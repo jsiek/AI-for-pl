@@ -48,7 +48,8 @@ import CastTerms as CT
 open import Reduction using
   ( StoreChanges; []; _∷_; keep; bind; applyTy; applyBody; applyTys
   ; applyVar
-  ; pure-step; β-id; β-inst; β-∀; β-gen; β-reveal-∀; ground
+  ; pure-step; β-id; β-inst; β-∀; β-gen; β-reveal-∀; β-conceal-∀
+  ; ground
   ; expand; tag-untag; ξ-⟨⟩; applyConsistencies
   ; _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[]
   )
@@ -2020,13 +2021,16 @@ module _
       | child =
         {! prepend target reveal beta-inst and close its rebase world !}
 
-    name-spine-catchup-acc {γ = γ} {X = X}
-        (inst-view-conceal {c = d} view-body-value)
+    name-spine-catchup-acc {γ = γ} {B = Bᴿ} {X = X}
+        (inst-view-conceal {A = Cᴿ} {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         source-value (target-body-value ↓ all) spine
         {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
-          {! transport the conceal premise through target allocation !}
+          (transport-target-bind
+            (target-only-name-fresh {γ = γ}
+              (name-frame-target-only {γ = γ} names))
+            refl prem)
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
@@ -2037,12 +2041,34 @@ module _
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    name-spine-catchup-acc {γ = γ} {X = X}
-        (inst-view-conceal {c = d} view-body-value)
+    name-spine-catchup-acc {γ = γ} {B = Bᴿ} {X = X}
+        (inst-view-conceal {A = Cᴿ} {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
-        source-value (target-body-value ↓ all) spine (acc smaller)
-      | child =
-        {! prepend the target conceal beta-inst reduction !}
+        source-value (target-body-value ↓ all) spine
+        {spine-names = names} (acc smaller)
+      | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
+        evolution , final =
+        Δᴿ′ , Σᴿ′ , bind (＇ X) ∷ χsᴿ , W′ , γ′ , r ,
+          (applyInstantiationSpine
+            (value-term target-body-value ↓ Conv.`∀↓ d
+              ⦂∀ Bᴿ [ ＇ X ]) spine
+          —→[ bind (＇ X) ]⟨ lift-instantiation-spine-bind
+            (β-conceal-∀ target-body-value) spine ⟩
+            applyInstantiationSpine
+              ((⇑ᵗᵐ (value-term target-body-value)
+                  ⦂∀ applyBody (bind (＇ X)) Cᴿ [ ＇ Fin.zero ]) ↓ d
+                ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ Bᴿ 〗)
+              (mapInstantiationSpine (bind (＇ X)) spine)
+          —↠[ χsᴿ ]⟨ reduction ⟩
+            W′ ∎[]) ,
+          value ,
+          evolutions-step-right refl
+            (evolution-bind-right
+              (target-only-name-fresh {γ = γ}
+                (name-frame-target-only {γ = γ} names))
+              refl)
+            evolution ,
+          final
 
     name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)

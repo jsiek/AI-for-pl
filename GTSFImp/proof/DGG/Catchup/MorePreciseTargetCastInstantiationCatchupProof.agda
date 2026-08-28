@@ -46,7 +46,7 @@ open import CastTerms using
 import CastTerms as CT
 open import Reduction using
   ( StoreChanges; []; _∷_; keep; bind; applyTy; applyBody; applyTys
-  ; pure-step; β-id; β-inst; β-∀; ground
+  ; pure-step; β-id; β-inst; β-∀; β-gen; ground
   ; expand; tag-untag; ξ-⟨⟩; applyConsistencies
   ; _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[]
   )
@@ -141,7 +141,7 @@ open import proof.DGG.Catchup.StructuralValueInstantiationRankProof using
 open import proof.DGG.Catchup.StructuralValueInstantiationSpineCastMassProof
   using (spine-cast-mass-map)
 open import proof.DGG.Catchup.StructuralValueInstantiationReductionProof
-  using (lift-instantiation-spine-keep)
+  using (lift-instantiation-spine-keep; lift-instantiation-spine-bind)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
 open import proof.TypeInTermSubst using
@@ -1458,25 +1458,49 @@ module _
 
     -- A generated universal cast exposes an arbitrary target value, so the
     -- recursive call changes to the general value/spine phase.
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {B = B} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p)
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
         spine (acc smaller)
+        with {! target gen allocation freshness !}
+    name-spine-catchup-acc {B = B} {X = X}
+        (inst-view-gen view-body-value D≠★ safe)
+        (CTI.⊑cast² ((gen d) D≠★) prem p)
+        source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
+        spine (acc smaller)
+      | fresh
         with value-spine-catchup-acc
-          {! transport the gen premise through target allocation !}
+          (transport-target-bind fresh refl prem)
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (gen-child-spine {X = X} {c = d} spine)
           (smaller (inj₁
             (gen-primary-decreases target-body-value safe′ spine)))
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {B = B} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p)
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
         spine (acc smaller)
-      | child =
-        {! prepend the target gen beta-inst reduction !}
+      | fresh
+      | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
+        evolution , final =
+        Δᴿ′ , Σᴿ′ , bind (＇ X) ∷ χsᴿ , W′ , γ′ , r ,
+          (applyInstantiationSpine
+            (value-term target-body-value ⟨ (gen d) D≠★ ⟩)
+            (name-type-app-frame B X refl refl ▻ⁱ spine)
+          —→[ bind (＇ X) ]⟨ lift-instantiation-spine-bind
+            (β-gen target-body-value D≠★ safe′) spine ⟩
+            applyInstantiationSpine
+              (⇑ᵗᵐ (value-term target-body-value) ⟨ d ⟩
+                ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ B 〗)
+              (mapInstantiationSpine (bind (＇ X)) spine)
+          —↠[ χsᴿ ]⟨ reduction ⟩
+            W′ ∎[]) ,
+          value ,
+          evolutions-step-right refl (evolution-bind-right fresh refl)
+            evolution ,
+          final
 
     name-spine-catchup-acc {X = X}
         (inst-view-gen view-body-value D≠★ safe)

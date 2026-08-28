@@ -668,8 +668,48 @@ module _
       (target-reveal-rebase-catchup no-open focus-related target-value
         bound)
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑reveal-rebase² c′⊢ rebase related q)
-      (focus-there edge tail) target-value bound = {! !}
+      (CTI.⊑reveal-rebase²
+        {c′ = target-reveal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↑ reveal) bound
+      with contextual-left-value-catchup no-open root-related related
+        (extend-focus path
+          (focus-target-reveal-rebase c′⊢ rebase related q))
+        target-value bound
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑reveal-rebase²
+        {c′ = target-reveal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↑ reveal) bound
+    | inj₂ blame-result = inj₂ blame-result
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑reveal-rebase²
+        {c′ = target-reveal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↑ reveal) bound
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+      with split-source-extended-path
+        {path = path}
+        {edge = focus-target-reveal-rebase c′⊢ rebase related q}
+        path-evolution
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑reveal-rebase²
+        {c′ = target-reveal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↑ reveal) bound
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+    | evolved-source-extended-path prefix′
+        (focus-target-reveal-rebase
+          {c′ = target-reveal′} c′⊢′ rebase′ related′ q′) refl
+        prefix-evolution (evolve-source-edge refl source-ready) =
+      inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ ,
+          pack (CTI.⊑reveal-rebase² c′⊢′ rebase′ related′ q′) ,
+          prefix′ , source-steps , source-value , root-target-eq ,
+          cong (λ M → M ↑ target-reveal) focus-target-eq ,
+          prefix-evolution , evolution)
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.⊑conceal-rebase² c′⊢ rebase related q)

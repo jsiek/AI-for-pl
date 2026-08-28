@@ -43,8 +43,11 @@ open import proof.DGG.SimBackSourceLambdaDef using
 open import proof.DGG.SimTargetRevealRebaseContextDef
 open import proof.DGG.SimBackContextDef
 open import proof.DGG.World
+open import proof.Reduction using (_++χ_; _—↠+[_]⟨_⟩_)
 open import proof.DGG.WorldEvolutionSequence using
-  (MultiWorldEvolution; multi-no-open-frames)
+  ( MultiWorldEvolution; composeMultiWorldEvolution
+  ; multi-no-open-frames
+  )
 
 
 transport-target-rebuild : ∀ {Cᴸ Cᴸ′ Cᴿ Δᴿ′}
@@ -195,7 +198,39 @@ module _
         (focus-·₁ function-related1 argument-related1) refl
         prefix-evolution1
         (evolve-source-edge refl source-ready1)
-    | recursive-result = {! !}
+    | inj₁
+        (DeltaL2 , SigmaL2 , changesL2 , pack root-related2 ,
+          source-steps2 , target-eq2 , evolution2) =
+      inj₁
+        (DeltaL2 , SigmaL2 , changesL1 ++χ changesL2 ,
+          pack root-related2 ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠[ changesL2 ]⟨ source-steps2 ⟩
+           sourceTerm (pack root-related2) ∎[]) ,
+          target-eq2 ,
+          composeMultiWorldEvolution evolution1 evolution2)
+  contextual-sim-back-worker no-open root-related
+        (CTI.·⊑·² function-related argument-related) path
+      (ξ-·₂ target-value argument-step refl) rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack function-related0 , path1 ,
+          source-steps1 , source-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-·₁ function-related1 argument-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | inj₂ (DeltaL2 , changesL2 , source-blame2) =
+      inj₂
+        (DeltaL2 , changesL1 ++χ changesL2 ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠[ changesL2 ]⟨ source-blame2 ⟩
+           blame ∎[]))
 
   contextual-sim-back-worker no-open root-related
         (CTI.·⊑·² function-related argument-related) focus-here
@@ -603,7 +638,39 @@ module _
         (focus-⊕₁ left-related1 right-related1 result-related1) refl
         prefix-evolution1
         (evolve-source-edge refl source-ready1)
-    | recursive-result = {! !}
+    | inj₁
+        (DeltaL2 , SigmaL2 , changesL2 , pack root-related2 ,
+          source-steps2 , target-eq2 , evolution2) =
+      inj₁
+        (DeltaL2 , SigmaL2 , changesL1 ++χ changesL2 ,
+          pack root-related2 ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠[ changesL2 ]⟨ source-steps2 ⟩
+           sourceTerm (pack root-related2) ∎[]) ,
+          target-eq2 ,
+          composeMultiWorldEvolution evolution1 evolution2)
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r) path
+      (ξ-⊕₂ target-value right-step refl) rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-⊕₁ left-related1 right-related1 result-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | inj₂ (DeltaL2 , changesL2 , source-blame2) =
+      inj₂
+        (DeltaL2 , changesL1 ++χ changesL2 ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠[ changesL2 ]⟨ source-blame2 ⟩
+           blame ∎[]))
 
   contextual-sim-back-worker no-open root-related
       (CTI.⊕⊑⊕² op left-related right-related r) path

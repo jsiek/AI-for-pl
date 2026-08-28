@@ -1,9 +1,8 @@
 # Paired universal-cast application boundary
 
-The strict statement is
-`PairedUniversalCastApplicationBoundaryᵀ` in
-`PairedUniversalCastApplicationBoundaryProbe.agda`. It isolates the first
-open nonstructural `β-∀` branch of `SimPairedAllValuesProof.agda` without
+The strict statements are in
+`PairedUniversalCastApplicationBoundaryProbe.agda`. They isolate the three
+open nonstructural `β-∀` branches of `SimPairedAllValuesProof.agda` without
 changing CTI or assuming arbitrary transport.
 
 ## The obstructed square
@@ -55,14 +54,51 @@ preserving a source type-application checkpoint under a result cast.
 
 ## Dependency and promotion audit
 
-The strict boundary directly matches the hole at the first nonstructural
-universal inversion in `SimPairedAllValuesProof.agda`. It does not directly
-match the later target-only-cast or source-only-cast variants: those have a
-different outer result-cast shape.
+### Boundary 1. Both values have outer universal casts
 
-For that reason the statement remains a notes-only probe rather than a
-canonical `Def` module. Promotion should wait until the target-continuation
-induction determines the smallest common operation for all three variants.
-That induction may use the contextual forward worker internally, but its
-public conclusion must remain the direct target trace, evolution, and final
-CTI shown here; it must not expose a generic whole-simulation wrapper.
+`PairedUniversalCastApplicationBoundaryᵀ` matches the first hole. The inner
+relation is `M ⊑ M′`. Both source and target distribute a cast, so the final
+terms retain both result casts. Its histories are
+`keep ∷ []` and `keep ∷ χsᴿ`.
+
+### Boundary 2. The related source head is already a cast
+
+`NestedSourceUniversalCastApplicationBoundaryᵀ` matches the second
+nonstructural hole. Its relation is `V ⟨ ∀ᶜ c ⟩ ⊑ M′`, while its source
+checkpoint contains `V`, not the whole related source head:
+
+`(V ⦂∀ D [ A ]) ⟨ c [ A ]ᶜ ⟩`.
+
+The target still distributes a universal cast. Its histories are again
+`keep ∷ []` and `keep ∷ χsᴿ`.
+
+### Boundary 3. Only the source has an outer universal cast
+
+`SourceUniversalCastApplicationBoundaryᵀ` matches the third hole. The
+target begins directly at `V′ ⦂∀ C′ [ A′ ]`, and no target result cast is
+available in the final CTI. Its histories are `keep ∷ []` and `χsᴿ`; there
+is no leading target `keep`.
+
+### No direct common public interface
+
+A single direct statement cannot abstract these differences without hiding
+semantic syntax. An optional target result cast would be a classifier. An
+arbitrary source checkpoint and arbitrary target closing context would merely
+package a whole simulation result.
+
+Removing the casts before invoking a common induction is not sound from the
+available premises. The paired boundaries would require an intermediate edge
+such as `C [ A ]ᵗ ⊑ D′ [ A′ ]ᵗ` or
+`D [ A ]ᵗ ⊑ D′ [ A′ ]ᵗ`. Neither follows from consistency of `c` and `c′`
+together with the final outer relation. The casts therefore have to remain in
+the conclusion, as they do in the strict probes.
+
+The smallest genuine common induction is internal contextual target
+continuation: keep the complete root CTI path, reduce the selected target type
+application, and return the final whole-root CTI. That is the operation the
+contextual simulation redesign is already intended to perform. Exposing it
+again here would create a parallel whole-simulation wrapper.
+
+The three statements therefore remain notes-only probes rather than a new
+canonical `Def` module. The live proof should consume the contextual worker
+and reconstruct each explicit target chain at its own branch boundary.

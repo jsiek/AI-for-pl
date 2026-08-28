@@ -12,6 +12,8 @@ module alt.ThetaTyping where
 --     query telescope's unique live alias.  A dead crossing recursively reads
 --     its older anchor's representation.  Undefined routes refuse with
 --     `nothing`; begin/end bracket choices are never consulted.
+--   * Defines values, results, and the reduction-stable `ΛBody` restriction
+--     consumed by universal introduction.
 --   * `_≼[_,_]_` remains only a marker-balance certificate.  Its injection
 --     index records lexical drift and delimiter positions for typing transport;
 --     it is not representation lookup evidence.
@@ -22,9 +24,10 @@ open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
   renaming (map to mapMaybe)
 open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
+open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; sym; trans)
-open import Relation.Nullary using (yes; no)
+open import Relation.Nullary using (¬_; yes; no)
 open import Data.Vec.Base
 
 open import Types
@@ -355,6 +358,195 @@ rep? : ∀ {Θ Δ σ} → TyEnv Θ Δ σ → TyVar Θ → Maybe (Ty Δ)
 rep? {Θ = Θ} Ψ α = repFuel? (Θ ∸ toℕ α) Ψ α
 
 ------------------------------------------------------------------------
+-- Values and admissible Λ bodies
+------------------------------------------------------------------------
+
+-- These predicates live beside typing because the Λ rule consumes
+-- `ΛBody`; none depends on reduction.  A ν-prefixed result is an
+-- administrative value at a Λ boundary.  Crossing-wrapped results remain
+-- reducible bodies, and nested Λs retain that permission while `ξ-Λ` works
+-- inward.
+
+data GenSafe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
+    → μ ⊢ A ∼ B → Set where
+  safe-⇒ : ∀ {Δ μ} {A A′ B B′ : Ty Δ}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
+      ---------------------------------------------
+    → GenSafe (c ↦ d)
+
+  safe-∀ : ∀ {Δ μ} {A B : Ty (suc Δ)}
+      {c : extᵐ μ ⊢ A ∼ B}
+      ----------------------
+    → GenSafe (∀ᶜ c)
+
+  safe-inst : ∀ {Δ μ} {A : Ty (suc Δ)} {B : Ty Δ}
+      {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
+      ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
+    → (B≢★ : B ≢ ★)
+      ---------------------------
+    → GenSafe ((inst c) B≢★)
+
+  safe-gen : ∀ {Δ μ} {A : Ty Δ} {B : Ty (suc Δ)}
+      {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
+      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
+    → (A≢★ : A ≢ ★)
+    → GenSafe c
+      --------------------------
+    → GenSafe ((gen c) A≢★)
+
+data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
+    → μ ⊢ A ∼ B → Set where
+  inj : ∀ {Δ} {μ : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+      ⦃ Gns : NonStar G ⦄
+      --------------------------------------
+    → Inert {μ = μ} ((idᵍ {μ = μ} Gᵍ) !)
+
+  fun : ∀ {Δ} {μ : Env∼ Δ} {A A′ B B′ : Ty Δ}
+      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
+      ---------------------------------------------
+    → Inert (c ↦ d)
+
+  all : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty (suc Δ)}
+      {c : extᵐ μ ⊢ A ∼ B}
+      ----------------------
+    → Inert (∀ᶜ c)
+
+  genᵥ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
+      {B : Ty (suc Δ)} {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
+      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
+    → (A≢★ : A ≢ ★)
+    → GenSafe c
+      ------------------------
+    → Inert ((gen c) A≢★)
+
+mutual
+  data RevealValue : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
+      → Term Θ Δ → TyVar Δ → TyVar Θ → Reveal → Set where
+    fun : ∀ {Θ Δ} {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
+        {c d}
+      --------------------------------
+      → RevealValue V X α (c ↦↑ d)
+
+    delimiter : ∀ {Θ Δ} {V : Term Θ Δ}
+        {X : TyVar Δ} {α : TyVar Θ}
+      → CanonicalInterior V
+        ------------------------
+      → RevealValue V X α id↑
+
+    adapter : ∀ {Θ Δ} {V : Term Θ Δ}
+        {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
+      → Result V
+      → ¬ (X ≡ Y × α ≡ β)
+        -------------------------------------------------------
+      → RevealValue (V ↓[ Y ≔ β ] id↓) X α id↑
+
+    adapter-region : ∀ {Θ Δ} {M : Term (suc Θ) Δ} {A : Ty Δ}
+        {X : TyVar Δ} {α : TyVar Θ} {c : Reveal}
+      → Result M
+        ---------------------------------------
+      → RevealValue (ν[ A ] M) X α c
+
+  data ConcealValue {Θ : AnchorCtx} {Δ : TyCtx}
+      (V : Term Θ Δ) : Conceal → Set where
+    sealᵥ : ConcealValue V seal
+
+    fun : ∀ {c d}
+      → ConcealValue V (c ↦↓ d)
+
+    delimiter : CanonicalInterior V
+      → ConcealValue V id↓
+
+  data Value : ∀ {Θ : AnchorCtx} {Δ : TyCtx} → Term Θ Δ → Set where
+    ƛ_˙_ : ∀ {Θ Δ} (A : Ty Δ) (N : Term Θ Δ)
+      → Value (ƛ A ˙ N)
+
+    Λ_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+      → Result V
+      → Value (Λ V)
+
+    $ : ∀ {Θ Δ} (κ : Const)
+      → Value {Θ = Θ} {Δ = Δ} ($ κ)
+
+    _《_》 : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+        {c : μ ⊢ A ∼ B}
+      → Value V
+      → Inert c
+      → Value (V ⟨ c ⟩)
+
+    _↑[_≔_]_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+      → Result V
+      → (X : TyVar (suc Δ))
+      → (α : TyVar Θ)
+      → {c : Reveal}
+      → RevealValue V X α c
+      → Value (V ↑[ X ≔ α ] c)
+
+    _↓[_≔_]_ : ∀ {Θ Δ} {V : Term Θ Δ}
+      → Result V
+      → (X : TyVar (suc Δ))
+      → (α : TyVar Θ)
+      → {c : Conceal}
+      → ConcealValue V c
+      → Value (V ↓[ X ≔ α ] c)
+
+  data CanonicalInterior : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
+      → Term Θ Δ → Set where
+    tagged : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {G : Ty Δ}
+        ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+        ⦃ Gns : NonStar G ⦄
+      → Value V
+      → CanonicalInterior (V ⟨ (idᵍ Gᵍ) ! ⟩)
+
+    sealed : ∀ {Θ Δ} {V : Term Θ Δ}
+      → Result V
+      → (X : TyVar (suc Δ))
+      → (α : TyVar Θ)
+      → CanonicalInterior (V ↓[ X ≔ α ] seal)
+
+    delimited : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+      → CanonicalInterior V
+      → (X : TyVar (suc Δ))
+      → (α : TyVar Θ)
+      → CanonicalInterior (V ↑[ X ≔ α ] id↑)
+
+  data Result : ∀ {Θ Δ} → Term Θ Δ → Set where
+    result-val : ∀ {Θ Δ} {V : Term Θ Δ}
+      → Value V
+      → Result V
+
+    result-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
+      → Result M
+      → Result (ν[ A ] M)
+
+data ΛBody : ∀ {Θ Δ} → Term Θ Δ → Set where
+  body-result : ∀ {Θ Δ} {V : Term Θ Δ}
+    → Result V
+    → ΛBody V
+
+  body-reveal : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
+    → Result V
+    → ΛBody (V ↑[ X ≔ α ] c)
+
+  body-conceal : ∀ {Θ Δ} {V : Term Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+    → Result V
+    → ΛBody (V ↓[ X ≔ α ] c)
+
+  body-Λ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+    → ΛBody V
+    → ΛBody (Λ V)
+
+canonical-value : ∀ {Θ Δ} {V : Term Θ Δ}
+  → CanonicalInterior V
+  → Value V
+canonical-value (tagged Vᵥ) = Vᵥ 《 inj 》
+canonical-value (sealed Vʳ X α) = Vʳ ↓[ X ≔ α ] sealᵥ
+canonical-value (delimited Vᶜ X α) =
+  result-val (canonical-value Vᶜ) ↑[ X ≔ α ] delimiter Vᶜ
+
+------------------------------------------------------------------------
 -- Typing
 ------------------------------------------------------------------------
 
@@ -388,6 +580,8 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ σ}
     → Ψ ∣ Γ ⊢ (F · M) ⦂ B
 
   ⊢Λ :
+      ΛBody M
+    →
       Ψ ,typ ∣ renameCtx suc Γ ⊢ M ⦂ A
       ----------------------------------
     → Ψ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)

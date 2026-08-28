@@ -23,6 +23,7 @@ open import alt.ThetaTerms
 open import alt.ThetaTyping
 open import alt.ThetaReduction
 open import alt.ThetaTermSubst
+open import alt.ThetaPreservation using (preserve)
 
 empty-fresh : ∀ {Θ} {a : TyVar Θ} → a ∉ᵛ Vec.[]
 empty-fresh ()
@@ -173,41 +174,84 @@ nonadjacent-reentry = refl
 βΛ-body : Term 1 1
 βΛ-body = (Λ ($ (κℕ 7))) ↑[ zero ≔ zero ] `∀↑ id↑
 
-βΛ-body-value : Value βΛ-body
-βΛ-body-value =
-  result-val (Λ ($ (κℕ 7))) ↑[ zero ≔ zero ] all
+βΛ-seven-result : ∀ {Δ} → Result {Θ = 1} {Δ = Δ} ($ (κℕ 7))
+βΛ-seven-result = result-val ($ (κℕ 7))
+
+βΛ-inner-result : Result {Θ = 1} {Δ = 2} (Λ ($ (κℕ 7)))
+βΛ-inner-result = result-val (Λ βΛ-seven-result)
+
+βΛ-body-admissible : ΛBody βΛ-body
+βΛ-body-admissible = body-reveal βΛ-inner-result
 
 βΛ-body-⊢ : βΛ-Ψ ,typ ∣ [] ⊢ βΛ-body ⦂ `∀ (‵ `ℕ)
 βΛ-body-⊢ =
   ⊢reveal {fresh = nothing-fresh}
     (rep?-typ {Θ = 1} {Ψ = βΛ-Ψ} {α = zero}
       {A = ‵ `ℕ} βΛ-ended-lookup)
-    (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 7)))
+    (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
+    (⊢Λ (body-result βΛ-seven-result) (⊢$ (κℕ 7)))
+
+βΛ-body-pushed : Term 1 1
+βΛ-body-pushed = Λ (($ (κℕ 7)) ↑[ suc zero ≔ zero ] id↑)
+
+βΛ-body-normal : Term 1 1
+βΛ-body-normal = Λ ($ (κℕ 7))
+
+βΛ-body-step₁ : βΛ-Ψ ,typ ⊢ βΛ-body —→ βΛ-body-pushed
+βΛ-body-step₁ = β-reveal-∀ βΛ-seven-result
+
+βΛ-body-step₂ : βΛ-Ψ ,typ ⊢ βΛ-body-pushed —→ βΛ-body-normal
+βΛ-body-step₂ = ξ-Λ id-reveal
+
+βΛ-body-normal-value : Value βΛ-body-normal
+βΛ-body-normal-value = Λ βΛ-seven-result
 
 βΛ-redex : Term 1 0
 βΛ-redex = (Λ βΛ-body) ⦂∀ `∀ (‵ `ℕ) [ ‵ `ℕ ]
 
+βΛ-redex-pushed : Term 1 0
+βΛ-redex-pushed =
+  (Λ βΛ-body-pushed) ⦂∀ `∀ (‵ `ℕ) [ ‵ `ℕ ]
+
+βΛ-redex-normal : Term 1 0
+βΛ-redex-normal =
+  (Λ βΛ-body-normal) ⦂∀ `∀ (‵ `ℕ) [ ‵ `ℕ ]
+
 βΛ-contractum : Term 1 0
 βΛ-contractum =
   ν[ ‵ `ℕ ]
-    (shiftᶿ βΛ-body ↑[ zero ≔ zero ] `∀↑ id↑)
+    (shiftᶿ βΛ-body-normal ↑[ zero ≔ zero ] `∀↑ id↑)
 
 βΛ-redex-⊢ : βΛ-Ψ ∣ [] ⊢ βΛ-redex ⦂ `∀ (‵ `ℕ)
-βΛ-redex-⊢ = ⊢⦂∀ (⊢Λ βΛ-body-⊢)
+βΛ-redex-⊢ =
+  ⊢⦂∀ (⊢Λ βΛ-body-admissible βΛ-body-⊢)
 
-βΛ-step : βΛ-Ψ ⊢ βΛ-redex —→ βΛ-contractum
-βΛ-step = β-Λ βΛ-body-value
+βΛ-step₁ : βΛ-Ψ ⊢ βΛ-redex —→ βΛ-redex-pushed
+βΛ-step₁ = ξ-• (ξ-Λ βΛ-body-step₁)
+
+βΛ-step₂ : βΛ-Ψ ⊢ βΛ-redex-pushed —→ βΛ-redex-normal
+βΛ-step₂ = ξ-• (ξ-Λ βΛ-body-step₂)
+
+βΛ-step₃ : βΛ-Ψ ⊢ βΛ-redex-normal —→ βΛ-contractum
+βΛ-step₃ = β-Λ βΛ-body-normal-value
+
+βΛ-redex-pushed-⊢ :
+  βΛ-Ψ ∣ [] ⊢ βΛ-redex-pushed ⦂ `∀ (‵ `ℕ)
+βΛ-redex-pushed-⊢ = preserve βΛ-redex-⊢ βΛ-step₁
+
+βΛ-redex-normal-⊢ :
+  βΛ-Ψ ∣ [] ⊢ βΛ-redex-normal ⦂ `∀ (‵ `ℕ)
+βΛ-redex-normal-⊢ = preserve βΛ-redex-pushed-⊢ βΛ-step₂
 
 βΛ-contractum-⊢ :
   βΛ-Ψ ∣ [] ⊢ βΛ-contractum ⦂ `∀ (‵ `ℕ)
-βΛ-contractum-⊢ =
-  ⊢ν (⊢reveal (rep?-here {Θ = 1} {Ψ = βΛ-Ψ} {A = ‵ `ℕ})
-    (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
-    (⊢allocate-lexical βΛ-body-⊢))
+βΛ-contractum-⊢ = preserve βΛ-redex-normal-⊢ βΛ-step₃
 
 βΛ-positive-preservation :
   (βΛ-Ψ ∣ [] ⊢ βΛ-redex ⦂ `∀ (‵ `ℕ))
-  × ((βΛ-Ψ ⊢ βΛ-redex —→ βΛ-contractum)
-    × (βΛ-Ψ ∣ [] ⊢ βΛ-contractum ⦂ `∀ (‵ `ℕ)))
+  × ((βΛ-Ψ ⊢ βΛ-redex —→ βΛ-redex-pushed)
+    × ((βΛ-Ψ ⊢ βΛ-redex-pushed —→ βΛ-redex-normal)
+      × ((βΛ-Ψ ⊢ βΛ-redex-normal —→ βΛ-contractum)
+        × (βΛ-Ψ ∣ [] ⊢ βΛ-contractum ⦂ `∀ (‵ `ℕ)))))
 βΛ-positive-preservation =
-  βΛ-redex-⊢ , βΛ-step , βΛ-contractum-⊢
+  βΛ-redex-⊢ , βΛ-step₁ , βΛ-step₂ , βΛ-step₃ , βΛ-contractum-⊢

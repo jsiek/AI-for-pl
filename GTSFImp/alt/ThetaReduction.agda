@@ -1,8 +1,8 @@
 module alt.ThetaReduction where
 
 -- File Charter:
---   * Defines values, results, term-variable substitution, and telescope-
---     indexed one-step reduction for the Θ-indexed alternative syntax.
+--   * Defines term-variable substitution and telescope-indexed one-step
+--     reduction for the Θ-indexed alternative syntax.
 --   * Regular-type renaming uses the repository's context injections.  At a
 --     crossing it inserts or deletes the distinguished type variable canonically;
 --     weakening is the derived skip-at-position instance.  Term substitution
@@ -15,8 +15,8 @@ module alt.ThetaReduction where
 --   * Boundary rules accept ν-prefixed results as interiors and carry the
 --     entire prefix verbatim.  Stacked regions move only by iterating the
 --     ordinary two-constructor term-frame rules.
---   * `β-conceal-∀` consults the telescope outside the matching end
---     marker; all other computational rules merely thread the telescope.
+--   * Universal crossings use ScTyWrap: they move beneath Λ without
+--     instantiating, allocating, or inspecting the telescope.
 --   * Review suggestion (not undertaken here): `CanonicalInterior` already
 --     projects to `Value`; a later cleanup should assess whether its overlap
 --     with the delimiter cases of `RevealValue` and `ConcealValue` can shrink
@@ -28,7 +28,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Product using (_×_)
+open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong)
 open import Relation.Nullary using (¬_; yes; no)
@@ -151,212 +151,6 @@ singleSub N (suc x) = ` x
 infixl 8 _[_]
 _[_] : Term Θ Δ → Term Θ Δ → Term Θ Δ
 M [ N ] = subst (singleSub N) M
-
-------------------------------------------------------------------------
--- Values
-------------------------------------------------------------------------
-
-data GenSafe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
-    → μ ⊢ A ∼ B → Set where
-  safe-⇒ : ∀ {Δ μ} {A A′ B B′ : Ty Δ}
-      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
-      ---------------------------------------------
-    → GenSafe (c ↦ d)
-
-  safe-∀ : ∀ {Δ μ} {A B : Ty (suc Δ)}
-      {c : extᵐ μ ⊢ A ∼ B}
-      ----------------------
-    → GenSafe (∀ᶜ c)
-
-  safe-inst : ∀ {Δ μ} {A : Ty (suc Δ)} {B : Ty Δ}
-      {c : instᵐ μ ⊢ A ∼ ⇑ᵗ B}
-      ⦃ Anv : NonVar A ⦄ ⦃ z∈A : zero ∈ᵗ A ⦄
-    → (B≢★ : B ≢ ★)
-      ---------------------------
-    → GenSafe ((inst c) B≢★)
-
-  safe-gen : ∀ {Δ μ} {A : Ty Δ} {B : Ty (suc Δ)}
-      {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
-      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
-    → (A≢★ : A ≢ ★)
-    → GenSafe c
-      --------------------------
-    → GenSafe ((gen c) A≢★)
-
-data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
-    → μ ⊢ A ∼ B → Set where
-  inj : ∀ {Δ} {μ : Env∼ Δ} {G : Ty Δ}
-      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
-      ⦃ Gns : NonStar G ⦄
-      --------------------------------------
-    → Inert {μ = μ} ((idᵍ {μ = μ} Gᵍ) !)
-
-  fun : ∀ {Δ} {μ : Env∼ Δ} {A A′ B B′ : Ty Δ}
-      {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
-      ---------------------------------------------
-    → Inert (c ↦ d)
-
-  all : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty (suc Δ)}
-      {c : extᵐ μ ⊢ A ∼ B}
-      ----------------------
-    → Inert (∀ᶜ c)
-
-  genᵥ : ∀ {Δ} {μ : Env∼ Δ} {A : Ty Δ}
-      {B : Ty (suc Δ)} {c : genᵐ μ ⊢ ⇑ᵗ A ∼ B}
-      ⦃ Bnv : NonVar B ⦄ ⦃ z∈B : zero ∈ᵗ B ⦄
-    → (A≢★ : A ≢ ★)
-    → GenSafe c
-      ------------------------
-    → Inert ((gen c) A≢★)
-
-mutual
-  data RevealValue : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
-      → Term Θ Δ → TyVar Δ → TyVar Θ → Reveal → Set where
-    fun : ∀ {Θ Δ} {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
-        {c d}
-      --------------------------------
-      → RevealValue V X α (c ↦↑ d)
-
-    all : ∀ {Θ Δ} {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
-        {c}
-      -------------------------------
-      → RevealValue V X α (`∀↑ c)
-
-    delimiter : ∀ {Θ Δ} {V : Term Θ Δ}
-        {X : TyVar Δ} {α : TyVar Θ}
-      → CanonicalInterior V
-        ------------------------
-      → RevealValue V X α id↑
-
-    adapter : ∀ {Θ Δ} {V : Term Θ Δ}
-        {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
-      → Result V
-      → ¬ (X ≡ Y × α ≡ β)
-        -------------------------------------------------------
-      → RevealValue (V ↓[ Y ≔ β ] id↓) X α id↑
-
-    adapter-region : ∀ {Θ Δ} {M : Term (suc Θ) Δ} {A : Ty Δ}
-        {X : TyVar Δ} {α : TyVar Θ} {c : Reveal}
-      → Result M
-        ---------------------------------------
-      → RevealValue (ν[ A ] M) X α c
-
-  data ConcealValue {Θ : AnchorCtx} {Δ : TyCtx}
-      (V : Term Θ Δ) : Conceal → Set where
-    sealᵥ :
-      -------------------------------
-      ConcealValue V seal
-
-    fun : ∀ {c d}
-      -------------------------
-      → ConcealValue V (c ↦↓ d)
-
-    all : ∀ {c}
-      ------------------------
-      → ConcealValue V (`∀↓ c)
-
-    delimiter :
-      CanonicalInterior V
-      -------------------------
-      → ConcealValue V id↓
-
-  data Value : ∀ {Θ : AnchorCtx} {Δ : TyCtx} → Term Θ Δ → Set where
-    ƛ_˙_ : ∀ {Θ Δ} (A : Ty Δ) (N : Term Θ Δ)
-      ------------------------------------------
-      → Value (ƛ A ˙ N)
-
-    Λ_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      → Value V
-      ----------------
-      → Value (Λ V)
-
-    $ : ∀ {Θ Δ} (κ : Const)
-      ---------------------------
-      → Value {Θ = Θ} {Δ = Δ} ($ κ)
-
-    _《_》 : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
-        {c : μ ⊢ A ∼ B}
-      → Value V
-      → Inert c
-        ----------------
-      → Value (V ⟨ c ⟩)
-
-    _↑[_≔_]_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      → Result V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-      → {c : Reveal}
-      → RevealValue V X α c
-        --------------------------
-      → Value (V ↑[ X ≔ α ] c)
-
-    _↓[_≔_]_ : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Result V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-      → {c : Conceal}
-      → ConcealValue V c
-        --------------------------
-      → Value (V ↓[ X ≔ α ] c)
-
-  data CanonicalInterior : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
-      → Term Θ Δ → Set where
-    tagged : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {G : Ty Δ}
-        ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
-        ⦃ Gns : NonStar G ⦄
-      → Value V
-        ------------------------------------------
-      → CanonicalInterior (V ⟨ (idᵍ Gᵍ) ! ⟩)
-
-    sealed : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Result V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-        --------------------------------------------------------
-      → CanonicalInterior (V ↓[ X ≔ α ] seal)
-
-    delimited : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      → CanonicalInterior V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-        ---------------------------------------------
-      → CanonicalInterior (V ↑[ X ≔ α ] id↑)
-
-  data Result : ∀ {Θ Δ} → Term Θ Δ → Set where
-    result-val : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Value V
-        -------------
-      → Result V
-
-    result-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
-      → Result M
-        -----------------
-      → Result (ν[ A ] M)
-
-canonical-value : ∀ {Θ Δ} {V : Term Θ Δ}
-  → CanonicalInterior V
-  → Value V
-canonical-value (tagged Vᵥ) = Vᵥ 《 inj 》
-canonical-value (sealed Vʳ X α) = Vʳ ↓[ X ≔ α ] sealᵥ
-canonical-value (delimited Vᶜ X α) =
-  result-val (canonical-value Vᶜ) ↑[ X ≔ α ] delimiter Vᶜ
-
--- A fresh crossing is inserted immediately below the source `∀` binder.
--- Its type variable and the binder's type variable must therefore exchange before the inner
--- type application opens the binder, exactly as in the v2 validation.
-
-swapTop : ∀ {Δ}
-  → TyVar (suc (suc Δ))
-  → TyVar (suc (suc Δ))
-swapTop zero = suc zero
-swapTop (suc zero) = zero
-swapTop (suc (suc X)) = suc (suc X)
-
-swapTopᵗ : ∀ {Δ}
-  → Ty (suc (suc Δ))
-  → Ty (suc (suc Δ))
-swapTopᵗ = renameᵗ swapTop
-
 ------------------------------------------------------------------------
 -- One-step reduction
 ------------------------------------------------------------------------
@@ -541,11 +335,6 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       -------------------------
     → Ψ ⊢ ν[ A ] blame —→ blame
 
-  const-ν : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A : Ty Δ} {κ : Const}
-      ----------------------------
-    → Ψ ⊢ ν[ A ] ($ κ) —→ ($ κ)
-
   β-Λ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
     → Value V
@@ -573,6 +362,11 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
   -- ordinary type application, and the downstream ⦂∀ rules (β-Λ, β-∀,
   -- β-gen, β-reveal-∀, β-conceal-∀) perform them for whichever canonical
   -- ∀-value V is.
+  -- U35 producer audit: this is the only rule whose contractum introduces a
+  -- type-application node absent from its redex, and its argument is ★.
+  -- β-∀ copies its existing argument; ξ-• and float-• only propagate an
+  -- existing node.  No reduction rule mints `⦂∀ _ [ ＇ X ]` at a live
+  -- crossing.
   β-inst : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
       {A : Ty (suc Δ)} {B : Ty Δ}
@@ -583,55 +377,30 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       ------------------------------------------------------------
     → Ψ ⊢ V ⟨ (inst c) B≢★ ⟩ —→ (V ⦂∀ A [ ★ ]) ⟨ c [ ★/0 ]ᶜ ⟩
 
-  -- Unlike the name-based v2 statement, entering ν shifts the old anchor
-  -- from α to `suc α`; inserting the fresh type variable shifts its crossing to
-  -- `suc X`.  The carried raw shape `c` itself is unchanged.
+  -- ScTyWrap pushes a crossing through Λ without opening the binder.
+  -- The raw shape is already typed one binder deeper by the crossing rule,
+  -- so it is carried verbatim and the pivot merely shifts by `suc`.
   β-reveal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {V : Term Θ (suc Δ)} {A : Ty Δ}
-      {B : Ty (suc Δ)}
+      {V : Term Θ (suc (suc Δ))}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
     → Result V
       ------------------------------------------------------------
-    → Ψ ⊢ (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ] —→
-        ν[ A ]
-          ((((shiftᶿ V ↓[ zero ≔ zero ]
-                δ↓ (wkᵗ zero (`∀
-                  (src↑ (suc X) c
-                    (renameᵗ (extᵗ (punchIn X)) B)))))
-                ⦂∀ swapTopᵗ
-                  (⇑ᵗ (src↑ (suc X) c
-                    (renameᵗ (extᵗ (punchIn X)) B))) [ ＇ zero ])
-              ↑[ suc X ≔ suc α ] c)
-            ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
+    → Ψ ⊢ ((Λ V) ↑[ X ≔ α ] `∀↑ c) —→
+        Λ (V ↑[ suc X ≔ α ] c)
 
-  -- inside the conceal, the region knows the representation type of the abstract X — so resolving X in the instantiation type through the anchor's representation is legitimate knowledge, not a leak; the conversion's seals continue to mediate the values.
-  -- The fresh region therefore lives wholly outside the matching end.  It first
-  -- resolves the instantiation and the conversion-determined source body,
-  -- instantiates V there, and closes its fresh type variable before the generated
-  -- exit conceal restores the ambient abstract-X view.
   β-conceal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
-      {V : Term Θ Δ} {A : Ty (suc Δ)}
-      {B : Ty (suc (suc Δ))}
-      {C₀ : Ty Δ}
+      {V : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → rep? (Ψ ,end[ X ]) α ≡ just C₀
     → Result V
       ------------------------------------------------------------
-    → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ] —→
-        (ν[ substᵗ (resolveSubᵗ X C₀) A ]
-          ((((shiftᶿ V ↓[ zero ≔ zero ]
-                δ↓ (wkᵗ zero (`∀
-                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))))
-                ⦂∀ swapTopᵗ
-                  (⇑ᵗ (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))
-                  [ ＇ zero ])
-              ↑[ zero ≔ zero ]
-                〖 zero ↑
-                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)) 〗)))
-          ↓[ X ≔ α ] 〖 X ↓ (B [ A ]ᵗ) 〗
+    → Ψ ⊢ ((Λ V) ↓[ X ≔ α ] `∀↓ c) —→
+        Λ (V ↓[ suc X ≔ α ] c)
+
+  ξ-Λ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {M M′ : Term Θ (suc Δ)}
+    → Ψ ,typ ⊢ M —→ M′
+      ----------------------
+    → Ψ ⊢ Λ M —→ Λ M′
 
   ξ-·₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {L L′ M : Term Θ Δ}
     → Ψ ⊢ L —→ L′
@@ -731,3 +500,70 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → Result (ν[ A ] M)
       ------------------------------------------------------------------
     → Ψ ⊢ V ⊕[ op ] (ν[ A ] M) —→ ν[ A ] (shiftᶿ V ⊕[ op ] M)
+
+------------------------------------------------------------------------
+-- Values and results do not reduce
+------------------------------------------------------------------------
+
+mutual
+  value-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {V M′ : Term Θ Δ}
+    → Value V
+    → ¬ (Ψ ⊢ V —→ M′)
+  value-no-step (Λ Vʳ) (ξ-Λ step) = result-no-step Vʳ step
+  value-no-step (Vᵥ 《 inj 》) (ground Vᵥ′ G≢G) = G≢G refl
+  value-no-step (Vᵥ 《 inert 》) (ξ-⟨⟩ step) =
+    value-no-step Vᵥ step
+  value-no-step
+      (Vʳ ↑[ X ≔ α ] adapter Rʳ pair≢)
+      (id-cancel Rʳ′) =
+    pair≢ (refl , refl)
+  value-no-step
+      (Vʳ ↑[ X ≔ α ] delimiter ())
+      id-reveal
+  value-no-step
+      (result-val () ↑[ X ≔ α ] gate)
+      blame-reveal
+  value-no-step (Vʳ ↑[ X ≔ α ] gate) (ξ-reveal step) =
+    result-no-step Vʳ step
+  value-no-step
+      (Vʳ ↓[ X ≔ α ] delimiter ())
+      id-conceal
+  value-no-step
+      (result-val () ↓[ X ≔ α ] gate)
+      blame-conceal
+  value-no-step (Vʳ ↓[ X ≔ α ] gate) (ξ-conceal step) =
+    result-no-step Vʳ step
+
+  result-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {V M′ : Term Θ Δ}
+    → Result V
+    → ¬ (Ψ ⊢ V —→ M′)
+  result-no-step (result-val Vᵥ) step = value-no-step Vᵥ step
+  result-no-step (result-ν (result-val ())) blame-ν
+  result-no-step (result-ν Vʳ) (ξ-ν step) = result-no-step Vʳ step
+
+ΛBody-stable : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {M M′ : Term Θ Δ}
+  → ΛBody M
+  → Ψ ⊢ M —→ M′
+  → ΛBody M′
+ΛBody-stable (body-result Vʳ) step =
+  ⊥-elim (result-no-step Vʳ step)
+ΛBody-stable (body-reveal Vʳ) (id-cancel Rʳ) = body-result Rʳ
+ΛBody-stable (body-reveal (result-val ($ κ))) id-reveal =
+  body-result (result-val ($ κ))
+ΛBody-stable (body-reveal Vʳ) (conceal-reveal Rʳ) = body-result Rʳ
+ΛBody-stable (body-reveal (result-val ())) blame-reveal
+ΛBody-stable (body-reveal Vʳ) (β-reveal-∀ Rʳ) =
+  body-Λ (body-reveal Rʳ)
+ΛBody-stable (body-reveal Vʳ) (ξ-reveal step) =
+  ⊥-elim (result-no-step Vʳ step)
+ΛBody-stable (body-conceal (result-val ($ κ))) id-conceal =
+  body-result (result-val ($ κ))
+ΛBody-stable (body-conceal Vʳ) (β-conceal-∀ Rʳ) =
+  body-Λ (body-conceal Rʳ)
+ΛBody-stable (body-conceal Vʳ) (ξ-conceal step) =
+  ⊥-elim (result-no-step Vʳ step)
+ΛBody-stable (body-Λ body) (ξ-Λ step) =
+  body-Λ (ΛBody-stable body step)

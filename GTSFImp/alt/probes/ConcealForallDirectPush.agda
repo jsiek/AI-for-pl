@@ -65,10 +65,13 @@ inner : Term 1 zero
 inner = Λ (ƛ ＇ zero ˙ ` zero)
 
 inner-result : Result inner
-inner-result = result-val (Λ (ƛ ＇ zero ˙ ` zero))
+inner-result =
+  result-val (Λ (result-val (ƛ ＇ zero ˙ ` zero)))
 
 inner-typed : live-Ψ ,end[ zero ] ∣ [] ⊢ inner ⦂ `∀ identityBody
-inner-typed = ⊢Λ (⊢ƛ (⊢` Z))
+inner-typed =
+  ⊢Λ (body-result (result-val (ƛ ＇ zero ˙ ` zero)))
+    (⊢ƛ (⊢` Z))
 
 shape : Conceal
 shape = id↑ ↦↓ id↓

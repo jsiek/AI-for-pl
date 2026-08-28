@@ -64,13 +64,15 @@ inner : Term 1 1
 inner = Λ (ƛ ＇ zero ˙ ` zero)
 
 inner-value : Value inner
-inner-value = Λ (ƛ ＇ zero ˙ ` zero)
+inner-value = Λ (result-val (ƛ ＇ zero ˙ ` zero))
 
 inner-result : Result inner
 inner-result = result-val inner-value
 
 inner-typed : Ψ₁ ∣ [] ⊢ inner ⦂ `∀ identityBody
-inner-typed = ⊢Λ (⊢ƛ (⊢` Z))
+inner-typed =
+  ⊢Λ (body-result (result-val (ƛ ＇ zero ˙ ` zero)))
+    (⊢ƛ (⊢` Z))
 
 shape : Reveal
 shape = id↓ ↦↑ id↑

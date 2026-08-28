@@ -1,17 +1,15 @@
 module alt.TenthBalancedExtensionProbe where
 
 -- File Charter:
---   * Retains the tenth preservation obstruction found while screening U23's
---     strictly same-depth representation lookup, and checks its U24 repair.
---   * A closed value may cross an ambient anchor at depth zero.  Ordinary
---     beta substitution moves that value below a lexical type binder, where
---     U24's `≼-typ` now transports the representation by pure weakening, so
---     the very same contractum is typable.
+--   * Retains the tenth preservation obstruction found while screening U23.
+--   * The restored ΛBody restriction now excludes its captured-variable Λ
+--     source, so the former beta/substitution trace is no longer reachable.
 
 open import Data.Fin using (zero)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; nothing)
 open import Relation.Binary.PropositionalEquality using (refl)
+open import Relation.Nullary using (¬_)
 import Data.Vec.Base as Vec
 
 open import Types
@@ -43,10 +41,11 @@ tenth-interior = Λ ($ (κℕ 7))
 tenth-interior-⊢ :
   tenth-Ψ ,begin[ zero ≔ zero ]⟨ empty-fresh ⟩ ∣ []
     ⊢ tenth-interior ⦂ `∀ (‵ `ℕ)
-tenth-interior-⊢ = ⊢Λ (⊢$ (κℕ 7))
+tenth-interior-⊢ =
+  ⊢Λ (body-result (result-val ($ (κℕ 7)))) (⊢$ (κℕ 7))
 
 tenth-interior-value : Value tenth-interior
-tenth-interior-value = Λ ($ (κℕ 7))
+tenth-interior-value = Λ (result-val ($ (κℕ 7)))
 
 tenth-V : Term 1 0
 tenth-V = tenth-interior ↑[ zero ≔ zero ] (`∀↑ id↑)
@@ -55,33 +54,19 @@ tenth-V-⊢ : tenth-Ψ ∣ [] ⊢ tenth-V ⦂ tenth-A
 tenth-V-⊢ =
   ⊢reveal refl (⊢↑-∀ (⊢id↑ (‵ `ℕ))) tenth-interior-⊢
 
-tenth-V-value : Value tenth-V
-tenth-V-value =
-  result-val tenth-interior-value ↑[ zero ≔ zero ] all
+tenth-body-interior : Term 1 1
+tenth-body-interior = ` 0
+
+tenth-body-interior-not-admissible : ¬ ΛBody tenth-body-interior
+tenth-body-interior-not-admissible (body-result (result-val ()))
 
 tenth-body : Term 1 0
-tenth-body = Λ (` 0)
+tenth-body = Λ tenth-body-interior
 
 tenth-redex : Term 1 0
 tenth-redex = (ƛ tenth-A ˙ tenth-body) · tenth-V
 
-tenth-redex-⊢ :
-  tenth-Ψ ∣ [] ⊢ tenth-redex ⦂ `∀ (⇑ᵗ tenth-A)
-tenth-redex-⊢ = ⊢· (⊢ƛ (⊢Λ (⊢` Z))) tenth-V-⊢
-
-tenth-contractum : Term 1 0
-tenth-contractum = tenth-body [ tenth-V ]
-
-tenth-step : tenth-Ψ ⊢ tenth-redex —→ tenth-contractum
-tenth-step = β tenth-V-value
-
--- U23 stopped here: the old relation had no constructor capable of ending at
--- the unmatched lexical entry below.  With lexical drift, the birth-to-query
--- path is exactly `≼-typ ≼-refl`, and its payload is weakened once.
-tenth-contractum-⊢ :
-  tenth-Ψ ∣ [] ⊢ tenth-contractum ⦂ `∀ (⇑ᵗ tenth-A)
-tenth-contractum-⊢ =
-  ⊢Λ (⊢reveal {fresh = nothing-fresh}
-    (rep?-typ {Θ = 1} {Ψ = tenth-Ψ} {α = zero}
-      {A = ‵ `ℕ} refl)
-    (⊢↑-∀ (⊢id↑ (‵ `ℕ))) (⊢Λ (⊢$ (κℕ 7))))
+tenth-redex-not-typed :
+  ¬ (tenth-Ψ ∣ [] ⊢ tenth-redex ⦂ `∀ (⇑ᵗ tenth-A))
+tenth-redex-not-typed (⊢· (⊢ƛ (⊢Λ body M⊢)) V⊢) =
+  tenth-body-interior-not-admissible body

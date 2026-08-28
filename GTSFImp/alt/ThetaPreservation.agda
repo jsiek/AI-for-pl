@@ -119,88 +119,6 @@ replace-resolve X C A =
       ≡ renameᵗ (punchIn X) (resolveSubᵗ X C Y)
   env-eq Y = sym (resolveSub-reembed X C Y)
 
-------------------------------------------------------------------------
--- Exchange at the two newest regular type variables
-------------------------------------------------------------------------
-
-renameTy-id : ∀ {Δ} (A : Ty Δ)
-  → renameᵗ (λ X → X) A ≡ A
-renameTy-id (＇ X) = refl
-renameTy-id (‵ ι) = refl
-renameTy-id ★ = refl
-renameTy-id (A ⇒ B) rewrite renameTy-id A | renameTy-id B = refl
-renameTy-id (`∀ A) = cong `∀
-  (trans (renameᵗ-cong A ext-id) (renameTy-id A))
-  where
-  ext-id : ∀ X → extᵗ (λ Y → Y) X ≡ X
-  ext-id zero = refl
-  ext-id (suc X) = refl
-
-substSecond : ∀ {Δ}
-  → Ty (suc Δ) → TyVar (suc (suc Δ)) → Ty (suc Δ)
-substSecond B zero = ＇ zero
-substSecond B (suc zero) = B
-substSecond B (suc (suc X)) = ＇ suc X
-
-swap-open : ∀ {Δ} (A : Ty (suc (suc Δ))) (B : Ty (suc Δ))
-  → (swapTopᵗ A) [ B ]ᵗ ≡ substᵗ (substSecond B) A
-swap-open A B =
-  trans (substᵗ-rename (singleSubᵗ B) swapTop A)
-    (substᵗ-cong A after-swap)
-  where
-  after-swap : ∀ X
-    → singleSubᵗ B (swapTop X) ≡ substSecond B X
-  after-swap zero = refl
-  after-swap (suc zero) = refl
-  after-swap (suc (suc X)) = refl
-
-swap-shift-open-zero : ∀ {Δ} (A : Ty (suc Δ))
-  → (swapTopᵗ (⇑ᵗ A)) [ ＇ zero ]ᵗ ≡ A
-swap-shift-open-zero A =
-  trans (swap-open (⇑ᵗ A) (＇ zero))
-    (trans (substᵗ-rename (substSecond (＇ zero)) suc A)
-      (trans (substᵗ-cong A second-after-shift) (substᵗ-id A)))
-  where
-  second-after-shift : ∀ X
-    → substSecond (＇ zero) (suc X) ≡ ＇ X
-  second-after-shift zero = refl
-  second-after-shift (suc X) = refl
-
-wk-under-∀ : ∀ {Δ} (X : TyVar (suc Δ)) (A : Ty (suc Δ))
-  → renameᵗ (extᵗ (punchIn X)) A ≡ wkᵗ (suc X) A
-wk-under-∀ X A = renameᵗ-cong A under-∀
-  where
-  under-∀ : ∀ Y → extᵗ (punchIn X) Y ≡ punchIn (suc X) Y
-  under-∀ zero = refl
-  under-∀ (suc Y) = refl
-
-wk-zero-∀-swap : ∀ {Δ} (A : Ty (suc Δ))
-  → wkᵗ zero (`∀ A) ≡ `∀ (swapTopᵗ (⇑ᵗ A))
-wk-zero-∀-swap A = cong `∀ (sym (swap-shift A))
-  where
-  swap-shift : ∀ {Δ} (B : Ty (suc Δ))
-    → swapTopᵗ (⇑ᵗ B) ≡ renameᵗ (extᵗ suc) B
-  swap-shift B =
-    trans (renameᵗ-comp suc swapTop B)
-      (renameᵗ-cong B swap-after-shift)
-    where
-    swap-after-shift : ∀ X
-      → swapTop (suc X) ≡ extᵗ suc X
-    swap-after-shift zero = refl
-    swap-after-shift (suc X) = refl
-
-wk-exchange : ∀ {Δ} (X : TyVar (suc Δ)) (A : Ty Δ)
-  → wkᵗ zero (wkᵗ X A) ≡ wkᵗ (suc X) (wkᵗ zero A)
-wk-exchange X A =
-  trans (renameᵗ-comp (punchIn X) (punchIn zero) A)
-    (trans (renameᵗ-cong A punch-exchange)
-      (sym (renameᵗ-comp (punchIn zero) (punchIn (suc X)) A)))
-  where
-  punch-exchange : ∀ Y
-    → punchIn zero (punchIn X Y) ≡ punchIn (suc X) (punchIn zero Y)
-  punch-exchange zero = refl
-  punch-exchange (suc Y) = refl
-
 punchIn-injective : ∀ {Δ} (X : TyVar (suc Δ)) {Y Z : TyVar Δ}
   → punchIn X Y ≡ punchIn X Z
   → Y ≡ Z
@@ -451,121 +369,13 @@ fresh-delimiter-conceal {σ = σ} {Ψ = Ψ} {A = A} {C = C} M⊢ =
   ended-M⊢ = ⊢bracket {Ψ = Ψ ,:= C} {Y = zero} {a = zero}
     (fresh-zero-after-ν {σ = σ}) M⊢
 
-⊢shift-crossing : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {M : Term Θ (suc Δ)} {T : Ty (suc Δ)} {A : Ty Δ}
-    {X : TyVar (suc Δ)} {α : TyVar Θ} {fresh : α ∉ᵛ σ}
-  → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ∣ [] ⊢ M ⦂ T
-  → (Ψ ,:= A) ,begin[ X ≔ suc α
-      ]⟨ fresh-TypingTarget
-          (balanced-target (≼-ν {Ψ = Ψ} {B = A} ≼-refl)) fresh ⟩
-      ∣ [] ⊢ shiftᶿ M ⦂ T
-⊢shift-crossing {Ψ = Ψ} {M = M} {T = T} {A = A}
-    {X = X} {α = α} {fresh = fresh} M⊢ =
-  subst≡
-    (λ Z → (Ψ ,:= A) ,begin[ Z ≔ suc α
-      ]⟨ fresh-TypingTarget target fresh ⟩ ∣ [] ⊢ shiftᶿ M ⦂ T)
-    (insert-here-pointwise-id X toRename-id-eq) typed
-  where
-  target = balanced-target (≼-ν {Ψ = Ψ} {B = A} ≼-refl)
-  typed = ⊢transport-id (typingTarget-begin target)
-    (insert-pointwise-id X toRename-id-eq) M⊢
-
-fresh-∀-entry-crossed : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V : Term Θ (suc Δ)} {C : Ty (suc (suc Δ))} {A : Ty Δ}
-    {X : TyVar (suc Δ)} {α : TyVar Θ} {fresh : α ∉ᵛ σ}
-  → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ∣ [] ⊢ V ⦂ `∀ C
-  → ((Ψ ,:= A) ,begin[ zero ≔ zero
-      ]⟨ fresh-zero-map-suc {tyVars = σ} ⟩)
-      ,begin[ suc X ≔ suc α ]⟨
-        fresh-insert-other zero (λ ())
-          (fresh-TypingTarget
-            (balanced-target (≼-ν {Ψ = Ψ} {B = A} ≼-refl)) fresh)
-        ⟩ ∣ [] ⊢
-      (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
-        ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ] ⦂ C
-fresh-∀-entry-crossed {σ = σ} {Ψ = Ψ} {V = V} {C = C} {A = A}
-    {X = X} {α = α} {fresh = fresh} V⊢ =
-  subst≡ (λ T → ambient ∣ [] ⊢ applied ⦂ T)
-    (swap-shift-open-zero C) (⊢⦂∀ exchanged⊢)
-  where
-  old-fresh = fresh-TypingTarget
-    (balanced-target (≼-ν {Ψ = Ψ} {B = A} ≼-refl)) fresh
-  old≢new : suc α ≢ zero
-  old≢new ()
-  ambient = ((Ψ ,:= A)
-      ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {tyVars = σ} ⟩)
-    ,begin[ suc X ≔ suc α ]⟨
-      fresh-insert-other {a = suc α} {b = zero} zero old≢new old-fresh ⟩
-  deleted = (Ψ ,:= A) ,begin[ X ≔ suc α ]⟨ old-fresh ⟩
-  entered = shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C))
-  applied = entered ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ]
-  deleted-V⊢ = ⊢shift-crossing V⊢
-  target = unbracket-fresh-before-begin
-    {a = suc α} {b = zero} {a≢b = old≢new}
-  target-V⊢ = ⊢unbracket-target target deleted-V⊢
-  deleted-eq : rep? deleted zero ≡ just (wkᵗ X A)
-  deleted-eq = rep?-here-begin
-  target-eq = trans (sym (rep?-unbracket target zero)) deleted-eq
-  tyVar-eq : Vec.lookup (tyVarsOf ambient) zero ≡ just zero
-  tyVar-eq = refl
-  entered⊢ = ⊢conceal tyVar-eq target-eq
-    (delimiter-typed↓ zero (wkᵗ zero (wkᵗ X A))
-      (wkᵗ zero (`∀ C))) target-V⊢
-  exchanged⊢ = subst≡ (λ T → ambient ∣ [] ⊢ entered ⦂ T)
-    (wk-zero-∀-swap C) entered⊢
-
-exchange-reveal-∀ : ∀ {Δ} {X : TyVar (suc Δ)}
-    {R : Ty Δ} {B : Ty (suc Δ)} {C : Ty (suc (suc Δ))}
-    {c : Reveal}
-  → ⊢↑[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] c
-      ⦂ C ↝ renameᵗ (extᵗ (punchIn X)) B
-  → ⊢↑[ suc X ⦂ wkᵗ (suc X) (⇑ᵗ R) ] c
-      ⦂ C ↝ wkᵗ (suc X) B
-exchange-reveal-∀ {X = X} {R = R} {B = B} c⊢ =
-  subst≡ (λ Q → ⊢↑[ suc X ⦂ Q ] _ ⦂ _ ↝ wkᵗ (suc X) B)
-    (wk-exchange X R)
-    (subst≡ (λ T → ⊢↑[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] _ ⦂ _ ↝ T)
-      (wk-under-∀ X B) c⊢)
-
-exchange-conceal-∀ : ∀ {Δ} {X : TyVar (suc Δ)}
-    {R : Ty Δ} {B : Ty (suc Δ)} {C : Ty (suc (suc Δ))}
-    {c : Conceal}
-  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] c
-      ⦂ renameᵗ (extᵗ (punchIn X)) B ↝ C
-  → ⊢↓[ suc X ⦂ wkᵗ (suc X) (⇑ᵗ R) ] c
-      ⦂ wkᵗ (suc X) B ↝ C
-exchange-conceal-∀ {X = X} {R = R} {B = B} c⊢ =
-  subst≡ (λ Q → ⊢↓[ suc X ⦂ Q ] _ ⦂ wkᵗ (suc X) B ↝ _)
-    (wk-exchange X R)
-    (subst≡ (λ S → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X R) ] _ ⦂ S ↝ _)
-      (wk-under-∀ X B) c⊢)
-
-fresh-∀-entry : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V : Term Θ Δ} {A : Ty Δ} {C : Ty (suc Δ)}
-  → Ψ ∣ [] ⊢ V ⦂ `∀ C
-  → (Ψ ,:= A) ,begin[ zero ≔ zero
-      ]⟨ fresh-zero-after-ν {σ = σ} ⟩ ∣ [] ⊢
-      (shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C)))
-        ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ] ⦂ C
-fresh-∀-entry {σ = σ} {Ψ = Ψ} {V = V} {A = A} {C = C} V⊢ =
-  subst≡ (λ T → target ∣ [] ⊢ applied ⦂ T)
-    (swap-shift-open-zero C) (⊢⦂∀ entered⊢)
-  where
-  target = (Ψ ,:= A) ,begin[ zero ≔ zero
-    ]⟨ fresh-zero-after-ν {σ = σ} ⟩
-  entered = shiftᶿ V ↓[ zero ≔ zero ] δ↓ (wkᵗ zero (`∀ C))
-  applied = entered ⦂∀ swapTopᵗ (⇑ᵗ C) [ ＇ zero ]
-  entered⊢ = subst≡ (λ T → target ∣ [] ⊢ entered ⦂ T)
-    (wk-zero-∀-swap C)
-    (fresh-delimiter-conceal (⊢shiftᶿ V⊢))
-
 preserve-β-Λ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
   → Ψ ∣ [] ⊢ (Λ V) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
   → Ψ ∣ [] ⊢
       ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
       ⦂ B [ C ]ᵗ
-preserve-β-Λ {B = B} {C = C} (⊢⦂∀ (⊢Λ V⊢)) =
+preserve-β-Λ {B = B} {C = C} (⊢⦂∀ (⊢Λ body V⊢)) =
   ⊢ν (⊢reveal rep?-here (generator-typed B C)
     (⊢allocate-lexical V⊢))
 
@@ -586,129 +396,82 @@ preserve-β-gen {Ψ = Ψ} {C = C} {B = bodyTy}
   base-eq : rep? (Ψ ,:= C) zero ≡ just C
   base-eq = rep?-here
 
-preserve-β-reveal-∀ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V : Term Θ (suc Δ)} {A : Ty Δ} {B : Ty (suc Δ)}
+preserve-β-reveal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {V : Term Θ (suc (suc Δ))} {B : Ty (suc Δ)}
     {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-  → Ψ ∣ [] ⊢ (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ]
-      ⦂ B [ A ]ᵗ
-  → Ψ ∣ [] ⊢
-      ν[ A ]
-        ((((shiftᶿ V ↓[ zero ≔ zero ]
-              δ↓ (wkᵗ zero (`∀
-                (src↑ (suc X) c
-                  (renameᵗ (extᵗ (punchIn X)) B)))))
-              ⦂∀ swapTopᵗ
-                (⇑ᵗ (src↑ (suc X) c
-                  (renameᵗ (extᵗ (punchIn X)) B))) [ ＇ zero ])
-            ↑[ suc X ≔ suc α ] c)
-          ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
-      ⦂ B [ A ]ᵗ
-preserve-β-reveal-∀ {Ψ = Ψ} {A = A} {B = B}
-    {X = X} {α = α}
-    (⊢⦂∀ (⊢reveal α∈ (⊢↑-∀ c⊢) V⊢))
-    with source-determinacy↑ c⊢
-preserve-β-reveal-∀ {Θ = Θ} {Ψ = Ψ} {A = A} {B = B}
-    {X = X} {α = α}
-    (⊢⦂∀ (⊢reveal {C = C} α∈ (⊢↑-∀ c⊢) V⊢)) | refl =
-  ⊢ν (⊢reveal rep?-here (generator-typed B A)
-    (⊢reveal (rep?-allocate-lexical
-        {Θ = Θ} {Ψ = Ψ} {a = α} {A = C} {C = A} α∈)
-      (exchange-reveal-∀ c⊢) (fresh-∀-entry-crossed V⊢)))
-
-fresh-∀-region : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {V : Term Θ Δ} {A : Ty Δ} {C D : Ty (suc Δ)}
-  → C ≡ D
-  → Ψ ∣ [] ⊢ V ⦂ `∀ C
-  → Ψ ∣ [] ⊢
-      ν[ A ]
-        (((shiftᶿ V ↓[ zero ≔ zero ]
-            δ↓ (wkᵗ zero (`∀ D)))
-            ⦂∀ swapTopᵗ (⇑ᵗ D) [ ＇ zero ])
-          ↑[ zero ≔ zero ] 〖 zero ↑ D 〗)
-      ⦂ D [ A ]ᵗ
-fresh-∀-region refl V⊢ =
-  ⊢ν (⊢reveal rep?-here (generator-typed _ _)
-    (fresh-∀-entry V⊢))
-
-conceal-resolved-body : ∀ {Δ} {X : TyVar (suc Δ)} {C₀ : Ty Δ}
-    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
-  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X C₀) ] c
-      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
-  → substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-      (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B) ≡ C
-conceal-resolved-body {X = X} {C₀ = C₀} {C = C} c⊢ =
-  trans (cong (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀)))
-      (sym (source-determinacy↓ c⊢)))
-    (trans (cong (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀)))
-        (wk-under-∀ X C))
-      (resolve-wkᵗ (suc X) (⇑ᵗ C₀) C))
-
-conceal-resolved-target : ∀ {Δ} {X : TyVar (suc Δ)} {C₀ : Ty Δ}
-    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
-  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X C₀) ] c
-      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
-  → C ≡ substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀)) B
-conceal-resolved-target {X = X} {C₀ = C₀} {C = C} c⊢ =
-  trans (sym (resolve-wkᵗ (suc X) (⇑ᵗ C₀) C))
-    (resolve-conversion↓ (exchange-conceal-∀ c⊢))
-
-conceal-exit-endpoint : ∀ {Δ} {X : TyVar (suc Δ)} {C₀ : Ty Δ}
-    {C : Ty (suc Δ)} {B : Ty (suc (suc Δ))} {c : Conceal}
-    (A : Ty (suc Δ))
-  → ⊢↓[ suc X ⦂ ⇑ᵗ (wkᵗ X C₀) ] c
-      ⦂ renameᵗ (extᵗ (punchIn X)) C ↝ B
-  → replaceTy X (wkᵗ X C₀) (B [ A ]ᵗ)
-    ≡ wkᵗ X
-        ((substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-          (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B))
-          [ substᵗ (resolveSubᵗ X C₀) A ]ᵗ)
-conceal-exit-endpoint {X = X} {C₀ = C₀} {C = C} {B = B}
-    A c⊢ =
-  trans (replace-resolve X C₀ (B [ A ]ᵗ))
-    (cong (wkᵗ X)
-      (trans (resolve-openᵗ X C₀ B A)
-        (cong (λ D → D [ substᵗ (resolveSubᵗ X C₀) A ]ᵗ)
-          (trans (sym (conceal-resolved-target c⊢))
-            (sym (conceal-resolved-body c⊢))))))
-
-preserve-β-conceal-∀ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
-    {V : Term Θ Δ} {A : Ty (suc Δ)}
-    {B : Ty (suc (suc Δ))} {C₀ : Ty Δ}
-    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-  → rep? (Ψ ,end[ X ]) α ≡ just C₀
-  → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ]
-      ⦂ B [ A ]ᵗ
-  → Ψ ∣ [] ⊢
-      ( ν[ substᵗ (resolveSubᵗ X C₀) A ]
-          ((((shiftᶿ V ↓[ zero ≔ zero ]
-                δ↓ (wkᵗ zero (`∀
-                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))))
-                ⦂∀ swapTopᵗ
-                  (⇑ᵗ (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)))
-                  [ ＇ zero ])
-              ↑[ zero ≔ zero ]
-                〖 zero ↑
-                  (substᵗ (resolveSubᵗ (suc X) (⇑ᵗ C₀))
-                    (src↓ (suc X) (⇑ᵗ (wkᵗ X C₀)) c B)) 〗)))
-          ↓[ X ≔ α ] 〖 X ↓ (B [ A ]ᵗ) 〗
-      ⦂ B [ A ]ᵗ
-preserve-β-conceal-∀ {A = A} {B = B} {X = X} step-eq
-    (⊢⦂∀ (⊢conceal {A = `∀ C} {C = R} tyVar-eq typed-eq
-      (⊢↓-∀ c⊢) V⊢))
-    with just-injective (trans (sym typed-eq) step-eq)
-preserve-β-conceal-∀ {A = A} {B = B} {X = X} step-eq
-    (⊢⦂∀ (⊢conceal {A = `∀ C} tyVar-eq typed-eq
-      (⊢↓-∀ c⊢) V⊢)) | refl =
-  ⊢conceal tyVar-eq step-eq exit⊢
-    (fresh-∀-region (sym (conceal-resolved-body c⊢)) V⊢)
+  → Result V
+  → Ψ ∣ [] ⊢ (Λ V) ↑[ X ≔ α ] `∀↑ c ⦂ `∀ B
+  → Ψ ∣ [] ⊢ Λ (V ↑[ suc X ≔ α ] c) ⦂ `∀ B
+preserve-β-reveal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vʳ
+    (⊢reveal {B = `∀ B} {C = C} α-eq (⊢↑-∀ c⊢)
+      (⊢Λ body V⊢)) =
+  ⊢Λ (body-reveal Vʳ)
+    (⊢reveal (rep?-typ {Θ = Θ} {Ψ = Ψ} {α = α} {A = C} α-eq)
+      conversion⊢
+      (⊢begin-typ-exchange V⊢))
   where
-  exit⊢ = subst≡
-    (λ S → ⊢↓[ X ⦂ wkᵗ X _ ] 〖 X ↓ (B [ A ]ᵗ) 〗
-      ⦂ S ↝ B [ A ]ᵗ)
-    (conceal-exit-endpoint A c⊢)
-    (generator-typed↓ X (wkᵗ X _) (B [ A ]ᵗ))
+  representation⊢ = subst≡
+    (λ R → ⊢↑[ suc X ⦂ R ] _ ⦂ _ ↝ _)
+    (resolve-wk-exchange X C) c⊢
+  conversion⊢ = subst≡
+    (λ T → ⊢↑[ suc X ⦂ wkᵗ (suc X) (⇑ᵗ C) ] _ ⦂ _ ↝ T)
+    (wk-under-∀ X B) representation⊢
+
+preserve-β-reveal-∀-any : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {V : Term Θ (suc (suc Δ))} {A : Ty Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
+  → Result V
+  → Ψ ∣ [] ⊢ (Λ V) ↑[ X ≔ α ] `∀↑ c ⦂ A
+  → Ψ ∣ [] ⊢ Λ (V ↑[ suc X ≔ α ] c) ⦂ A
+preserve-β-reveal-∀-any {A = ＇ Y} Vʳ (⊢reveal α-eq () V⊢)
+preserve-β-reveal-∀-any {A = ‵ ι} Vʳ (⊢reveal α-eq () V⊢)
+preserve-β-reveal-∀-any {A = ★} Vʳ (⊢reveal α-eq () V⊢)
+preserve-β-reveal-∀-any {A = A ⇒ B} Vʳ (⊢reveal α-eq () V⊢)
+preserve-β-reveal-∀-any {A = `∀ B} Vʳ typing =
+  preserve-β-reveal-∀ Vʳ typing
+
+preserve-β-conceal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+    {V : Term Θ (suc Δ)} {B : Ty (suc (suc Δ))}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+  → Result V
+  → Ψ ∣ [] ⊢ (Λ V) ↓[ X ≔ α ] `∀↓ c ⦂ `∀ B
+  → Ψ ∣ [] ⊢ Λ (V ↓[ suc X ≔ α ] c) ⦂ `∀ B
+preserve-β-conceal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vʳ
+    (⊢conceal {A = `∀ A} {C = C} tyVar-eq α-eq
+      (⊢↓-∀ c⊢) (⊢Λ body V⊢)) =
+  ⊢Λ (body-conceal Vʳ)
+    (⊢conceal tyVar-eq target-rep conversion⊢
+      (⊢end-typ-exchange V⊢))
+  where
+  target-rep = trans
+    (sym (rep?-unbracket {Θ = Θ}
+      {left = Ψ ,end[ X ] ,typ}
+      {right = Ψ ,typ ,end[ suc X ]}
+      unbracket-end-typ α))
+    (rep?-typ {Θ = Θ} {Ψ = Ψ ,end[ X ]} {α = α} {A = C} α-eq)
+  representation⊢ = subst≡
+    (λ R → ⊢↓[ suc X ⦂ R ] _ ⦂ _ ↝ _)
+    (resolve-wk-exchange X C) c⊢
+  conversion⊢ = subst≡
+    (λ S → ⊢↓[ suc X ⦂ wkᵗ (suc X) (⇑ᵗ C) ] _ ⦂ S ↝ _)
+    (wk-under-∀ X A) representation⊢
+
+preserve-β-conceal-∀-any : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+    {V : Term Θ (suc Δ)} {B : Ty (suc Δ)}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+  → Result V
+  → Ψ ∣ [] ⊢ (Λ V) ↓[ X ≔ α ] `∀↓ c ⦂ B
+  → Ψ ∣ [] ⊢ Λ (V ↓[ suc X ≔ α ] c) ⦂ B
+preserve-β-conceal-∀-any {B = ＇ Y} Vʳ
+    (⊢conceal tyVar-eq α-eq () V⊢)
+preserve-β-conceal-∀-any {B = ‵ ι} Vʳ
+    (⊢conceal tyVar-eq α-eq () V⊢)
+preserve-β-conceal-∀-any {B = ★} Vʳ
+    (⊢conceal tyVar-eq α-eq () V⊢)
+preserve-β-conceal-∀-any {B = A ⇒ B} Vʳ
+    (⊢conceal tyVar-eq α-eq () V⊢)
+preserve-β-conceal-∀-any {B = `∀ B} Vʳ typing =
+  preserve-β-conceal-∀ Vʳ typing
 
 ------------------------------------------------------------------------
 -- Closed one-step preservation assembler
@@ -749,17 +512,17 @@ preserve typing blame-conceal = ⊢blame
 preserve typing blame-⊕₁ = ⊢blame
 preserve typing (blame-⊕₂ Vᵥ) = ⊢blame
 preserve typing blame-ν = ⊢blame
-preserve (⊢ν (⊢$ κ)) const-ν = ⊢$ κ
-preserve typing@(⊢⦂∀ (⊢Λ V⊢)) (β-Λ Vᵥ) = preserve-β-Λ typing
+preserve typing@(⊢⦂∀ (⊢Λ body V⊢)) (β-Λ Vᵥ) = preserve-β-Λ typing
 preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ c)) (β-gen Vᵥ A≠★ safe) =
   preserve-β-gen typing
 preserve (⊢⟨⟩ V⊢ ((inst c) B≠★)) (β-inst Vᵥ B≠★) =
   ⊢⟨⟩ (⊢⦂∀ V⊢) (c [ ★/0 ]ᶜ)
-preserve typing@(⊢⦂∀ (⊢reveal α∈ c⊢ V⊢)) (β-reveal-∀ Vᵥ) =
-  preserve-β-reveal-∀ typing
-preserve typing@(⊢⦂∀ (⊢conceal tyVar∈ β∈ c⊢ V⊢))
-    (β-conceal-∀ α∈ Vᵥ) =
-  preserve-β-conceal-∀ α∈ typing
+preserve typing (β-reveal-∀ Vʳ) =
+  preserve-β-reveal-∀-any Vʳ typing
+preserve typing (β-conceal-∀ Vʳ) =
+  preserve-β-conceal-∀-any Vʳ typing
+preserve (⊢Λ body M⊢) (ξ-Λ step) =
+  ⊢Λ (ΛBody-stable body step) (preserve M⊢ step)
 preserve (⊢· L⊢ M⊢) (ξ-·₁ step) =
   ⊢· (preserve L⊢ step) M⊢
 preserve (⊢· V⊢ M⊢) (ξ-·₂ Vᵥ step) =

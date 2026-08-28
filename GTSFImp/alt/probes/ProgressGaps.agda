@@ -3,12 +3,14 @@ module alt.probes.ProgressGaps where
 -- File Charter:
 --   * Records the missing adapter-region/unseal merge needed before function
 --     application: a ν-stranded seal/unseal value at function type is stuck.
+--   * Rechecks the gap against persistent ν results using `value-no-step`.
 
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc)
+open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Relation.Nullary using (¬_)
 import Data.Vec.Base as Vec
@@ -98,21 +100,15 @@ stuck-not-result (result-val ())
 stuck-not-blame : stuck ≢ blame
 stuck-not-blame ()
 
-identity-no-step : ∀ {M′} → ¬ (regionEnv ,end[ zero ] ⊢ identity —→ M′)
-identity-no-step ()
-
-sealed-no-step : ∀ {M′} → ¬ (regionEnv ⊢ sealedTerm —→ M′)
-sealed-no-step (ξ-conceal reduction) = identity-no-step reduction
-
 stranded-no-step : ∀ {M′} → ¬ (crossedEnv ⊢ stranded —→ M′)
-stranded-no-step (ξ-ν reduction) = sealed-no-step reduction
+stranded-no-step = result-no-step stranded-result
 
 stuckFun-no-step : ∀ {M′} → ¬ (baseEnv ⊢ stuckFun —→ M′)
-stuckFun-no-step (ξ-reveal reduction) = stranded-no-step reduction
+stuckFun-no-step = value-no-step stuckFun-value
 
 constant-no-step : ∀ {M′}
   → ¬ (baseEnv ⊢ $ (κℕ zero) —→ M′)
-constant-no-step ()
+constant-no-step = value-no-step ($ (κℕ zero))
 
 stuck-no-step : ∀ {M′} → ¬ (baseEnv ⊢ stuck —→ M′)
 stuck-no-step (ξ-·₁ reduction) = stuckFun-no-step reduction
@@ -121,3 +117,8 @@ stuck-no-step (ξ-·₂ Vᵥ reduction) = constant-no-step reduction
 stuck-no-progress : ¬ Progress baseEnv stuck
 stuck-no-progress (step reduction) = stuck-no-step reduction
 stuck-no-progress (done result) = stuck-not-result result
+
+stranded-gap-witness :
+  (baseEnv ∣ [] ⊢ stuck ⦂ ℕᵗ)
+  × ¬ Progress baseEnv stuck
+stranded-gap-witness = stuck-typed , stuck-no-progress

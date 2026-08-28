@@ -64,7 +64,7 @@ data CanonicalFun : ∀ {Θ Δ} → Term Θ Δ → Set where
 
 data CanonicalAll : ∀ {Θ Δ} → Term Θ Δ → Set where
   ca-Λ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-    → Value V
+    → Result V
       ------------------
     → CanonicalAll (Λ V)
 

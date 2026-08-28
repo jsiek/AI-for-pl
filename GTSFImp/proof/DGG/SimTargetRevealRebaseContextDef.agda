@@ -884,6 +884,66 @@ source-type-application-edge-view
 source-type-application-edge-view
     (focus-target-conceal-rebase c′⊢ rebase related q) ()
 
+data SourceCastEdgeView {Cᴸ Cᴿ : Ctx}
+    (outer inner : RelatedConfiguration Cᴸ Cᴿ)
+    {μ : Env∼ (Δᵉ Cᴸ)} {A B : Ty (Δᵉ Cᴸ)}
+    (source-cast : μ ⊢ A ∼ B) : Set₁ where
+
+  source-cast-edge : ∀
+      {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {M : Term (Δᵉ Cᴸ)} {M′ : Term (Δᵉ Cᴿ)}
+      {target-type : Ty (Δᵉ Cᴿ)}
+      {inner-related : A ⊑ᵀ⟨ γ ⟩ target-type}
+      (related : γ CTI.⊢² M ⊑ M′ ∶ inner-related)
+      (result-related : B ⊑ᵀ⟨ γ ⟩ target-type)
+    → outer ≡ pack (CTI.cast⊑² source-cast related result-related)
+    → inner ≡ pack related
+    → SourceCastEdgeView outer inner source-cast
+
+source-cast-edge-view : ∀ {Cᴸ Cᴿ}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    {μ : Env∼ (Δᵉ Cᴸ)} {A B : Ty (Δᵉ Cᴸ)}
+    {source-cast : μ ⊢ A ∼ B}
+    (edge : outer ↘ᶜ inner)
+  → sourceFrame edge ≡ source-castᶠ source-cast
+  → SourceCastEdgeView outer inner source-cast
+source-cast-edge-view (focus-·₁ function-rel argument-rel) ()
+source-cast-edge-view
+    (focus-·₂ function-rel argument-rel source-value) ()
+source-cast-edge-view (focus-⊕₁ left-rel right-rel r) ()
+source-cast-edge-view
+    (focus-⊕₂ left-rel right-rel r source-value) ()
+source-cast-edge-view (focus-•-paired p∀ related q r) ()
+source-cast-edge-view (focus-•-source p∀ related q r) ()
+source-cast-edge-view (focus-cast-paired c c′ related q) ()
+source-cast-edge-view (focus-cast-target c′ related q) ()
+source-cast-edge-view (focus-cast-source c related q) refl =
+  source-cast-edge related q refl refl
+source-cast-edge-view
+    (focus-target-reveal-identity c′⊢ absent related q) ()
+source-cast-edge-view
+    (focus-target-conceal-identity c′⊢ absent related q) ()
+source-cast-edge-view
+    (focus-source-reveal-identity c⊢ absent related q) ()
+source-cast-edge-view
+    (focus-source-conceal-identity c⊢ absent related q) ()
+source-cast-edge-view
+    (focus-source-reveal-only
+      c⊢ present mark free represented related q) ()
+source-cast-edge-view
+    (focus-source-conceal-only
+      c⊢ present mark free represented related q) ()
+source-cast-edge-view
+    (focus-reveal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+source-cast-edge-view
+    (focus-conceal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+source-cast-edge-view
+    (focus-target-reveal-rebase c′⊢ rebase related q) ()
+source-cast-edge-view
+    (focus-target-conceal-rebase c′⊢ rebase related q) ()
+
 data TargetPathEvolution {Cᴸ Cᴿ Cᴿ′ : Ctx} :
     {outer focus : RelatedConfiguration Cᴸ Cᴿ}
     {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}

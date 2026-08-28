@@ -31,6 +31,7 @@ import proof.Reduction
 import proof.DGG.CastTermImprecisionTyping
 import proof.DGG.CompilePreservesImprecision
 import proof.DGG.TransportTermImprecisionProof
+import proof.DGG.TransportTargetTermImprecisionProof
 import proof.DGG.GroundingMint
 import proof.DGG.GroundingPreserve
 import proof.DGG.CastConsistencyViews

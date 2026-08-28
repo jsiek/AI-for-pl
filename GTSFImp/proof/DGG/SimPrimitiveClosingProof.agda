@@ -24,8 +24,8 @@ open import proof.DGG.SimPrimitiveClosingDef using
   (SimPrimitiveClosingᵀ)
 open import proof.DGG.SimPrimitiveValuesLemma using
   (sim-primitive-values)
-open import proof.DGG.TransportTermImprecisionDef using
-  (TransportTermImprecisionᵀ)
+open import proof.DGG.TransportTargetTermImprecisionDef using
+  (TransportTargetTermImprecisionᵀ)
 open import proof.DGG.World using (_⊑ᵀ⟨_⟩_)
 open import proof.DGG.WorldEvolutionSequence using
   ( composeMultiWorldEvolution
@@ -45,7 +45,7 @@ open import proof.Reduction using
 
 
 module _
-    (transport-CTI : TransportTermImprecisionᵀ)
+    (transport-target-CTI : TransportTargetTermImprecisionᵀ)
     (catchup-to-more-precise : CatchupToMorePrecise)
   where
 
@@ -60,7 +60,7 @@ module _
         left-steps , target-left-value , evolution₁ , left-related₁
         with catchup-to-more-precise
           (multi-no-open-frames evolution₁ no-rebase)
-          (transport-CTI evolution₁ right-related) ($ κ′)
+          (transport-target-CTI evolution₁ right-related) ($ κ′)
     close-root {op = op} {κ = κ} {κ′ = κ′}
         no-rebase left-related right-related r primitive-step
       | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , target-left , γ₁ , left-type₁ ,
@@ -74,7 +74,7 @@ module _
           (trans (applyTys-++ χsᴿ₁ χsᴿ₂ (primArgTy op))
             (applyTys-primArgTy (χsᴿ₁ ++χ χsᴿ₂) op))
           (multi-⊑ᵀ evolution₂ left-type₁ ,
-            transport-CTI evolution₂ left-related₁)
+            transport-target-CTI evolution₂ left-related₁)
     close-root {op = op} {κ = κ} {κ′ = κ′}
         no-rebase left-related right-related r primitive-step
       | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , target-left , γ₁ , left-type₁ ,

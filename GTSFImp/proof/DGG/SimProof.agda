@@ -56,6 +56,8 @@ open import proof.DGG.SimTargetRevealRebaseClosingDef using
   (SimTargetRevealRebaseClosingᵀ)
 open import proof.DGG.TransportTermImprecisionDef using
   (TransportTermImprecisionᵀ)
+open import proof.DGG.TransportTargetTermImprecisionDef using
+  (TransportTargetTermImprecisionᵀ)
 open import proof.DGG.WorldEvolutionSequence using
   ( multi-no-open-frames
   ; multi-⊑ᵀ
@@ -115,6 +117,7 @@ generator-here≢absent ()
 
 module _
     (transport-CTI : TransportTermImprecisionᵀ)
+    (transport-target-CTI : TransportTargetTermImprecisionᵀ)
     (catchup-to-more-precise : CatchupToMorePrecise)
     (sim-paired-fun-closing : SimPairedFunClosingᵀ)
     (sim-paired-all-closing : SimPairedAllClosingᵀ)
@@ -326,7 +329,7 @@ module _
     | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , fun′ , γ₁ , q₁ , fun-steps ,
       target-value , evol₁ , fun-rel′
       with sim (multi-no-open-frames evol₁ no-rebase)
-        (transport-CTI evol₁ arg-rel) arg-step
+        (transport-target-CTI evol₁ arg-rel) arg-step
   sim no-rebase
       (CTI.·⊑·² {L = L} {L′ = L′} {M′ = M′}
         {A = A} {A′ = A′} {B = B} {B′ = B′} fun-rel arg-rel)
@@ -1266,7 +1269,7 @@ module _
     | Δᴿ′ , Σᴿ′ , χsᴿ , left′ , γ′ , q , target-steps ,
       target-value , evol₁ , left-rel′
       with sim (multi-no-open-frames evol₁ no-rebase)
-        (transport-CTI evol₁ right-rel) right-step
+        (transport-target-CTI evol₁ right-rel) right-step
   sim no-rebase
       (CTI.⊕⊑⊕² op {L = L} {L′ = L′} {M′ = M′}
         left-rel right-rel r)

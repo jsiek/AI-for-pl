@@ -5,8 +5,8 @@ module proof.DGG.SimPairedFunClosingProof where
 -- File Charter:
 --   * Proves forward simulation for paired function roots after separately
 --     catching up the target function and argument to related values.
---   * Is parameterized by CTI transport, target value catch-up, and the
---     value-level paired-function simulation induction.
+--   * Is parameterized by target-only CTI transport, target value catch-up,
+--     and the value-level paired-function simulation induction.
 --   * Contains no root classifier or residual-family interface.
 
 open import Data.List using ([])
@@ -27,8 +27,8 @@ open import proof.DGG.SimPairedFunClosingDef using
   (SimPairedFunClosingᵀ)
 open import proof.DGG.SimPairedFunValuesDef using
   (SimPairedFunValuesᵀ)
-open import proof.DGG.TransportTermImprecisionDef using
-  (TransportTermImprecisionᵀ)
+open import proof.DGG.TransportTargetTermImprecisionDef using
+  (TransportTargetTermImprecisionᵀ)
 open import proof.DGG.World
 open import proof.DGG.WorldEvolutionSequence
 open import proof.Reduction
@@ -36,7 +36,7 @@ import proof.Imprecision as PI
 
 
 module _
-    (transport-CTI : TransportTermImprecisionᵀ)
+    (transport-target-CTI : TransportTargetTermImprecisionᵀ)
     (catchup-to-more-precise : CatchupToMorePrecise)
     (sim-paired-fun-values : SimPairedFunValuesᵀ)
   where
@@ -77,7 +77,7 @@ module _
         fun-steps , target-fun-value , evolution₁ , fun-rel₁
         with catchup-to-more-precise
           (multi-no-open-frames evolution₁ no-rebase)
-          (transport-CTI evolution₁ arg-rel) source-arg-value
+          (transport-target-CTI evolution₁ arg-rel) source-arg-value
     close-root {L = L} {M = M} {N = N} {L′ = L′} {M′ = M′}
         {A = A} {B = B} {A′ = A′} {B′ = B′}
         no-rebase fun-rel arg-rel source-fun-value source-arg-value source-step
@@ -93,7 +93,7 @@ module _
             (applyTys-⇒ χsᴿ₂ (applyTys χsᴿ₁ A′)
               (applyTys χsᴿ₁ B′)))
           (multi-⊑ᵀ evolution₂ type-rel₁ ,
-            transport-CTI evolution₂ fun-rel₁)
+            transport-target-CTI evolution₂ fun-rel₁)
     close-root {L = L} {M = M} {N = N} {L′ = L′} {M′ = M′}
         {A = A} {B = B} {A′ = A′} {B′ = B′}
         no-rebase fun-rel arg-rel source-fun-value source-arg-value source-step

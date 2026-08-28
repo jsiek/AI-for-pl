@@ -5,8 +5,8 @@ module proof.DGG.SimPairedFunValuesProof where
 -- File Charter:
 --   * Proves value-level forward simulation for the nine paired function
 --     root cases selected by the source reduction.
---   * Is parameterized by CTI transport, target value catch-up, substitution,
---     and target reveal-rebase closing.
+--   * Is parameterized by target-only CTI transport, target value catch-up,
+--     substitution, and target reveal-rebase closing.
 --   * Uses direct zero- or one-step target traces and introduces no root
 --     classifier or residual-family interface.
 
@@ -56,8 +56,8 @@ open import proof.DGG.SourceRebase using
   (open-source-rebase-nonempty)
 open import proof.DGG.TermImprecisionSubstitutionDef using
   (TermImprecisionSubstitutionᵀ)
-open import proof.DGG.TransportTermImprecisionDef using
-  (TransportTermImprecisionᵀ)
+open import proof.DGG.TransportTargetTermImprecisionDef using
+  (TransportTargetTermImprecisionᵀ)
 open import proof.DGG.World
 open import proof.DGG.WorldEvolution using (evolution-keep)
 open import proof.DGG.WorldEvolutionSequence using
@@ -128,7 +128,7 @@ private
 
 
 module _
-    (transport-CTI : TransportTermImprecisionᵀ)
+    (transport-target-CTI : TransportTargetTermImprecisionᵀ)
     (catchup-to-more-precise : CatchupToMorePrecise)
     (term-imprecision-substitution : TermImprecisionSubstitutionᵀ)
     (sim-target-reveal-rebase-closing :
@@ -363,7 +363,7 @@ module _
         (applyTys-⇒ argument-changes _ _)
         (multi-⊑ᵀ argument-evolution
             (⇒⊑⇒ inner-argument-rel inner-result-rel) ,
-          transport-CTI argument-evolution body-rel)
+          transport-target-CTI argument-evolution body-rel)
   worker {V = V} {W = W} {N = N} {W′ = W′}
       {B = B} {pB = pB}
       no-rebase (Nat.suc fuel) (s≤s smaller)
@@ -497,7 +497,7 @@ module _
         (applyTys-⇒ argument-changes _ _)
         (multi-⊑ᵀ argument-evolution
             (⇒⊑⇒ inner-argument-rel inner-result-rel) ,
-          transport-CTI argument-evolution body-rel)
+          transport-target-CTI argument-evolution body-rel)
   worker {V = V} {W = W} {N = N} {W′ = W′}
       {B = B} {pB = pB}
       no-rebase (Nat.suc fuel) (s≤s smaller)
@@ -634,7 +634,7 @@ module _
         (applyTys-⇒ argument-changes _ _)
         (multi-⊑ᵀ argument-evolution
             (⇒⊑⇒ inner-argument-rel inner-result-rel) ,
-          transport-CTI argument-evolution body-rel)
+          transport-target-CTI argument-evolution body-rel)
   worker {V = V} {W = W} {N = N} {W′ = W′}
       {B = B} {pB = pB}
       no-rebase (Nat.suc fuel) (s≤s smaller)

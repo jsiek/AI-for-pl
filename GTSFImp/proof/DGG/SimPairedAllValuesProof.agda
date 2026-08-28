@@ -834,10 +834,39 @@ module _
       (reveal⊑-only² c⊢ present marked unoccupied represented
         related q₁)
       q r source-value target-value (β-reveal-∀ value) = {!!}
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (reveal⊑reveal²
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented {p = inner-universal} related q₁)
+      q r source-value (target-value ↑ all) (β-reveal-∀ value)
+      with universal-imprecision-inversion inner-universal
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (reveal⊑reveal² {M = M} {M′ = M′}
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented {p = inner-universal} related q₁)
+      q r source-value (target-value ↑ all) (β-reveal-∀ value)
+    | inj₁ body = {!!}
   worker no-rebase (Nat.suc fuel) size-bound
-      (reveal⊑reveal² c⊢ c′⊢ same-position same-pivot
-        represented related q₁)
-      q r source-value target-value (β-reveal-∀ value) = {!!}
+      (reveal⊑reveal²
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented {p = inner-universal} related q₁)
+      q r source-value (target-value ↑ all) (β-reveal-∀ value)
+    | inj₂ (inj₁ (non-var , occurs , body)) = {!!}
+  worker no-rebase (Nat.suc fuel) size-bound
+      (reveal⊑reveal²
+        (Conversion.⊢↑-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↑-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented {p = inner-universal} related q₁)
+      q r source-value (target-value ↑ all) (β-reveal-∀ value)
+    | inj₂ (inj₂ (source-bot , target-star)) =
+      ⊥-elim (left-universal-not-bottom value related source-bot)
   worker no-rebase (Nat.suc fuel) size-bound
       (⊑reveal-rebase² c′⊢ rebase related q₁) q r
       source-value target-value (β-reveal-∀ value) = {!!}
@@ -914,10 +943,40 @@ module _
       (conceal⊑-only² c⊢ present marked unoccupied represented
         related q₁)
       q r source-value target-value (β-conceal-∀ value) = {!!}
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (conceal⊑conceal² {p = inner-universal}
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁)
+      q r source-value (target-value ↓ all) (β-conceal-∀ value)
+      with universal-imprecision-inversion inner-universal
+  worker {Σᴸ = Σᴸ} {Σᴿ = Σᴿ} {γ = γ}
+      {C = C} {A = A} {C′ = C′} {A′ = A′}
+      no-rebase (Nat.suc fuel) size-bound
+      (conceal⊑conceal² {M = M} {M′ = M′}
+        {p = inner-universal}
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁)
+      q r source-value (target-value ↓ all) (β-conceal-∀ value)
+    | inj₁ body = {!!}
   worker no-rebase (Nat.suc fuel) size-bound
-      (conceal⊑conceal² c⊢ c′⊢ same-position same-pivot
-        represented related q₁)
-      q r source-value target-value (β-conceal-∀ value) = {!!}
+      (conceal⊑conceal² {p = inner-universal}
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁)
+      q r source-value (target-value ↓ all) (β-conceal-∀ value)
+    | inj₂ (inj₁ (non-var , occurs , body)) = {!!}
+  worker no-rebase (Nat.suc fuel) size-bound
+      (conceal⊑conceal² {p = inner-universal}
+        (Conversion.⊢↓-∀ source-representation source-conversion⊢)
+        (Conversion.⊢↓-∀ target-representation target-conversion⊢)
+        same-position same-pivot represented related q₁)
+      q r source-value (target-value ↓ all) (β-conceal-∀ value)
+    | inj₂ (inj₂ (source-bot , target-star)) =
+      ⊥-elim (left-universal-not-bottom value related source-bot)
   worker no-rebase (Nat.suc fuel) size-bound
       (⊑reveal-rebase² c′⊢ rebase related q₁) q r
       source-value target-value (β-conceal-∀ value) = {!!}

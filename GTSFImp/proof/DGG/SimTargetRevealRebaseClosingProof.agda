@@ -1410,7 +1410,212 @@ module _
   contextual-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
-      (pure-step (δ-⊕ primitive-step)) rebuild = {!!}
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+      with catchup-target-reveal-rebase-context
+        no-open target-reveal rebase root-related q left-related
+        (extend-focus path (focus-⊕₁ left-related right-related s))
+        (CastTerms.Value.$ κ)
+  contextual-target-reveal-rebase-closing
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+      with split-target-extended-path path-evolution₁
+  contextual-target-reveal-rebase-closing
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack primitive-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+      with primitive-left-edge-view edge₁
+        (sym (TargetEdgeEvolution.same-source-frame edge-evolution₁))
+  contextual-target-reveal-rebase-closing
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack primitive-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | primitive-left-edge left-related₂ right-related₁ result-related₁
+        refl left-focus-eq₁
+      with catchup-target-reveal-rebase-context
+        (multi-no-open-frames evolution₁ no-open)
+        (multi-target-reveal evolution₁ target-reveal)
+        rebase₁ root-related₁ (multi-⊑ᵀ evolution₁ q)
+        right-related₁
+        (extend-focus prefix₁
+          (focus-⊕₂ left-related₂ right-related₁ result-related₁
+            (subst Value (cong sourceTerm left-focus-eq₁)
+              (CastTerms.Value.$ κ))))
+        (CastTerms.Value.$ κ′)
+  contextual-target-reveal-rebase-closing
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack primitive-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | primitive-left-edge left-related₂ right-related₁ result-related₁
+        refl left-focus-eq₁
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , root-target₂ , target-right₂ , γ₂ , γᵖ₂ ,
+      γᶠ₂ , p₂ , right-type₂ , right-steps₂ , target-right-value₂ ,
+      evolution₂ , rebase₂ , root-related₂ , right-related₂ , path₂ ,
+      path-evolution₂
+      with split-target-extended-path path-evolution₂
+  contextual-target-reveal-rebase-closing
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack primitive-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | primitive-left-edge left-related₂ right-related₁ result-related₁
+        refl left-focus-eq₁
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , root-target₂ , target-right₂ , γ₂ , γᵖ₂ ,
+      γᶠ₂ , p₂ , right-type₂ , right-steps₂ , target-right-value₂ ,
+      evolution₂ , rebase₂ , root-related₂ , right-related₂ , path₂ ,
+      path-evolution₂
+    | evolved-extended-path {middle′ = pack primitive-related₂}
+        prefix₂ edge₂ refl prefix-evolution₂ edge-evolution₂
+      with primitive-right-edge-view edge₂
+        (sym (TargetEdgeEvolution.same-source-frame edge-evolution₂))
+        (TargetEdgeEvolution.target-edge-ready edge-evolution₂)
+  contextual-target-reveal-rebase-closing
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack primitive-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | primitive-left-edge left-related₂ right-related₁ result-related₁
+        refl left-focus-eq₁
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , root-target₂ , target-right₂ , γ₂ , γᵖ₂ ,
+      γᶠ₂ , p₂ , right-type₂ , right-steps₂ , target-right-value₂ ,
+      evolution₂ , rebase₂ , root-related₂ , right-related₂ , path₂ ,
+      path-evolution₂
+    | evolved-extended-path {middle′ = pack primitive-related₂}
+        prefix₂ edge₂ refl prefix-evolution₂ edge-evolution₂
+    | primitive-right-edge left-related₃ right-related₃ result-related₃
+        source-left-value₃ target-left-value₃ refl right-focus-eq₂
+      with cong sourceTerm left-focus-eq₁
+         | cong sourceTerm right-focus-eq₂
+         | cong targetTerm right-focus-eq₂
+  contextual-target-reveal-rebase-closing
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack primitive-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | primitive-left-edge left-related₂ right-related₁ result-related₁
+        refl left-focus-eq₁
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , root-target₂ , target-right₂ , γ₂ , γᵖ₂ ,
+      γᶠ₂ , p₂ , right-type₂ , right-steps₂ , target-right-value₂ ,
+      evolution₂ , rebase₂ , root-related₂ , right-related₂ , path₂ ,
+      path-evolution₂
+    | evolved-extended-path {middle′ = pack primitive-related₂}
+        prefix₂ edge₂ refl prefix-evolution₂ edge-evolution₂
+    | primitive-right-edge left-related₃ right-related₃ result-related₃
+        source-left-value₃ target-left-value₃ refl right-focus-eq₂
+    | refl | refl | refl
+      with sim-context-primitive-values
+        (multi-no-open-frames evolution₂
+          (multi-no-open-frames evolution₁ no-open))
+        (multi-target-reveal evolution₂
+          (multi-target-reveal evolution₁ target-reveal))
+        rebase₂ root-related₂
+        (multi-⊑ᵀ evolution₂ (multi-⊑ᵀ evolution₁ q))
+        left-related₃ right-related₃ result-related₃ prefix₂
+        (target-path-ready
+          (compose-target-path-evolution
+            prefix-evolution₁ prefix-evolution₂))
+        target-left-value₃ target-right-value₂ primitive-step
+        (transport-rebuild
+          (compose-target-path-evolution
+            prefix-evolution₁ prefix-evolution₂)
+          rebuild)
+  contextual-target-reveal-rebase-closing {c′ = c′}
+      no-open target-reveal rebase root-related q
+      (CTI.⊕⊑⊕² op left-related right-related s) path
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step)) rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-left₁ , γ₁ , γᵖ₁ ,
+      γᶠ₁ , p₁ , left-type₁ , left-steps₁ , target-left-value₁ ,
+      evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack primitive-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | primitive-left-edge left-related₂ right-related₁ result-related₁
+        refl left-focus-eq₁
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , root-target₂ , target-right₂ , γ₂ , γᵖ₂ ,
+      γᶠ₂ , p₂ , right-type₂ , right-steps₂ , target-right-value₂ ,
+      evolution₂ , rebase₂ , root-related₂ , right-related₂ , path₂ ,
+      path-evolution₂
+    | evolved-extended-path {middle′ = pack primitive-related₂}
+        prefix₂ edge₂ refl prefix-evolution₂ edge-evolution₂
+    | primitive-right-edge left-related₃ right-related₃ result-related₃
+        source-left-value₃ target-left-value₃ refl right-focus-eq₂
+    | refl | refl | refl
+    | Δᴿ₃ , Σᴿ₃ , χsᴿ₃ , result-target , γ₃ , result-related ,
+      values-steps , values-evolution , result-relation =
+    let
+      target-type-eq =
+        trans
+          (applyTys-++ χsᴿ₂ χsᴿ₃ (applyTys χsᴿ₁ _))
+          (applyTys-++ χsᴿ₁ (χsᴿ₂ ++χ χsᴿ₃) _)
+      normalized-result =
+        subst
+          (λ T →
+            Σ[ r ∈ _ ⊑ᵀ⟨ γ₃ ⟩ T ]
+              γ₃ CTI.⊢² _ ⊑ result-target ∶ r)
+          target-type-eq (result-related , result-relation)
+      final-related = proj₁ normalized-result
+      final-relation = proj₂ normalized-result
+    in
+      Δᴿ₃ , Σᴿ₃ , χsᴿ₁ ++χ (χsᴿ₂ ++χ χsᴿ₃) , result-target , γ₃ ,
+      final-related ,
+      (targetTerm (pack root-related) ↑ c′
+         —↠+[ χsᴿ₁ ]⟨ left-steps₁ ⟩
+       root-target₁ ↑ applyReveals χsᴿ₁ c′
+         —↠+[ χsᴿ₂ ]⟨ right-steps₂ ⟩
+       root-target₂ ↑
+         applyReveals χsᴿ₂ (applyReveals χsᴿ₁ c′)
+         —↠[ χsᴿ₃ ]⟨ values-steps ⟩
+       result-target ∎[]) ,
+      composeMultiWorldEvolution evolution₁
+        (composeMultiWorldEvolution evolution₂ values-evolution) ,
+      final-relation
+
   contextual-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.⊕⊑⊕² op left-related right-related s) path

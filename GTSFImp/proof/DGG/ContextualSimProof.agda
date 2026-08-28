@@ -36,6 +36,8 @@ open import proof.DGG.Catchup.ContextualCatchupToMorePreciseDef using
 open import proof.DGG.ContextualSimDef using (ContextualSimᵀ)
 open import proof.DGG.ContextualSimPairedAllValuesDef using
   (ContextualSimPairedAllValuesᵀ)
+open import proof.DGG.ContextualSimPairedCastValuesDef using
+  (ContextualSimPairedCastValuesᵀ)
 open import proof.DGG.ContextualSimPairedFunValuesDef using
   (ContextualSimPairedFunValuesᵀ)
 open import proof.DGG.ContextualSimPrimitiveValuesDef using
@@ -74,6 +76,8 @@ module _
     (contextual-catchup : ContextualCatchupToMorePreciseᵀ)
     (contextual-sim-paired-all-values :
       ContextualSimPairedAllValuesᵀ)
+    (contextual-sim-paired-cast-values :
+      ContextualSimPairedCastValuesᵀ)
     (contextual-sim-paired-fun-values :
       ContextualSimPairedFunValuesᵀ)
     (contextual-sim-primitive-values :
@@ -781,6 +785,303 @@ module _
       composeMultiWorldEvolution evolution₁ values-evolution ,
       final-related
 
+  contextual-sim-paired-cast-context : ∀
+      {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+      {γ γᶠ :
+        ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
+      {χᴸ : StoreChange Δᴸ Δᴸ′}
+      {root-source : Term Δᴸ}
+      {root-result focus-result : Term Δᴸ′}
+      {root-target target-head : Term Δᴿ}
+      {root-source-type : Ty Δᴸ}
+      {root-target-type : Ty Δᴿ}
+      {source-head : Term Δᴸ}
+      {source-type result-source-type : Ty Δᴸ}
+      {target-type result-target-type : Ty Δᴿ}
+      {μ : Env∼ Δᴸ} {μ′ : Env∼ Δᴿ}
+      {source-cast : μ ⊢ source-type ∼ result-source-type}
+      {target-cast : μ′ ⊢ target-type ∼ result-target-type}
+      {root-type-related :
+        root-source-type ⊑ᵀ⟨ γ ⟩ root-target-type}
+      {head-type-related :
+        source-type ⊑ᵀ⟨ γᶠ ⟩ target-type}
+    → openFramesᶜ γ ≡ []
+    → (root-related :
+        γ CTI.⊢² root-source ⊑ root-target ∶ root-type-related)
+    → (head-related :
+        γᶠ CTI.⊢² source-head ⊑ target-head ∶ head-type-related)
+    → (result-type-related :
+        result-source-type ⊑ᵀ⟨ γᶠ ⟩ result-target-type)
+    → (path : pack root-related ↘ᶜ*
+        pack (CTI.cast⊑cast² source-cast target-cast head-related
+          result-type-related))
+    → TargetReady path
+    → Value source-head
+    → source-head ⟨ source-cast ⟩ —→[ χᴸ ] focus-result
+    → RebuildSource path χᴸ focus-result root-result
+    → Σ[ Δᴿ′ ∈ TyCtx ]
+      Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
+      Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+      Σ[ result-target ∈ Term Δᴿ′ ]
+      Σ[ γ′ ∈
+        ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
+      Σ[ final-related ∈
+        applyTy χᴸ root-source-type ⊑ᵀ⟨ γ′ ⟩
+          applyTys χsᴿ root-target-type ]
+        (root-target —↠[ χsᴿ ] result-target)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} (χᴸ ∷ []) χsᴿ
+        × (γ′ CTI.⊢² root-result ⊑ result-target ∶ final-related)
+  contextual-sim-paired-cast-context
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open root-related head-related result-type-related path ready
+      source-value source-root-step rebuild
+      with contextual-catchup no-open root-related head-related
+        (extend-focus path
+          (focus-cast-paired source-cast target-cast head-related
+            result-type-related))
+        (extend-path-target-ready path
+          (focus-cast-paired source-cast target-cast head-related
+            result-type-related)
+          ready _)
+        source-value
+  contextual-sim-paired-cast-context
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open root-related head-related result-type-related path ready
+      source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+      with split-target-extended-path path-evolution₁
+  contextual-sim-paired-cast-context
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open root-related head-related result-type-related path ready
+      source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack cast-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+      with paired-cast-edge-view {source-cast = source-cast} edge₁
+        (sym (TargetEdgeEvolution.same-source-frame edge-evolution₁))
+  contextual-sim-paired-cast-context
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open root-related head-related result-type-related path ready
+      source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack cast-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | paired-cast-edge target-cast₁ head-related₂
+        result-type-related₁ refl head-focus-eq₁
+      with cong sourceTerm head-focus-eq₁
+         | cong targetTerm head-focus-eq₁
+  contextual-sim-paired-cast-context
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open root-related head-related result-type-related path ready
+      source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack cast-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | paired-cast-edge target-cast₁ head-related₂
+        result-type-related₁ refl head-focus-eq₁
+    | refl | refl
+      with contextual-sim-paired-cast-values
+        (multi-no-open-frames evolution₁ no-open) root-related₁
+        head-related₂ result-type-related₁ prefix₁
+        (target-path-ready prefix-evolution₁) source-value
+        target-head-value₁ source-root-step
+        (transport-rebuild prefix-evolution₁ rebuild)
+  contextual-sim-paired-cast-context
+      no-open root-related head-related result-type-related path ready
+      source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack cast-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | paired-cast-edge target-cast₁ head-related₂
+        result-type-related₁ refl head-focus-eq₁
+    | refl | refl
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , result-target , γ₂ , result-type₂ ,
+      values-steps , values-evolution , result-relation =
+    let
+      target-type-eq = applyTys-++ χsᴿ₁ χsᴿ₂ _
+      normalized-result =
+        subst
+          (λ T →
+            Σ[ q ∈ _ ⊑ᵀ⟨ γ₂ ⟩ T ]
+              γ₂ CTI.⊢² _ ⊑ result-target ∶ q)
+          target-type-eq (result-type₂ , result-relation)
+      final-type = proj₁ normalized-result
+      final-related = proj₂ normalized-result
+    in
+      Δᴿ₂ , Σᴿ₂ , χsᴿ₁ ++χ χsᴿ₂ , result-target , γ₂ , final-type ,
+      (targetTerm (pack root-related)
+         —↠+[ χsᴿ₁ ]⟨ root-steps₁ ⟩
+       root-target₁
+         —↠[ χsᴿ₂ ]⟨ values-steps ⟩
+       result-target ∎[]) ,
+      composeMultiWorldEvolution evolution₁ values-evolution ,
+      final-related
+
+  sim-paired-cast-focus : ∀
+      {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+      {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
+      {χᴸ : StoreChange Δᴸ Δᴸ′}
+      {source-value : Term Δᴸ} {target-term : Term Δᴿ}
+      {source-result : Term Δᴸ′}
+      {source-type result-source-type : Ty Δᴸ}
+      {target-type result-target-type : Ty Δᴿ}
+      {μ : Env∼ Δᴸ} {μ′ : Env∼ Δᴿ}
+      {source-cast : μ ⊢ source-type ∼ result-source-type}
+      {target-cast : μ′ ⊢ target-type ∼ result-target-type}
+      {value-type-related : source-type ⊑ᵀ⟨ γ ⟩ target-type}
+    → openFramesᶜ γ ≡ []
+    → (value-related :
+        γ CTI.⊢² source-value ⊑ target-term ∶ value-type-related)
+    → (result-type-related :
+        result-source-type ⊑ᵀ⟨ γ ⟩ result-target-type)
+    → Value source-value
+    → source-value ⟨ source-cast ⟩ —→[ χᴸ ] source-result
+    → Σ[ Δᴿ′ ∈ TyCtx ]
+      Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
+      Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+      Σ[ result-target ∈ Term Δᴿ′ ]
+      Σ[ γ′ ∈
+        ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
+      Σ[ final-related ∈
+        applyTy χᴸ result-source-type ⊑ᵀ⟨ γ′ ⟩
+          applyTys χsᴿ result-target-type ]
+        (target-term ⟨ target-cast ⟩ —↠[ χsᴿ ] result-target)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} (χᴸ ∷ []) χsᴿ
+        × (γ′ CTI.⊢² source-result ⊑ result-target ∶ final-related)
+  sim-paired-cast-focus
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open value-related result-type-related source-value-proof
+      source-root-step
+      with contextual-catchup no-open
+        (CTI.cast⊑cast² source-cast target-cast value-related
+          result-type-related)
+        value-related
+        (focus-there
+          (focus-cast-paired source-cast target-cast value-related
+            result-type-related)
+          focus-here)
+        (extend-path-target-ready focus-here
+          (focus-cast-paired source-cast target-cast value-related
+            result-type-related)
+          tt _)
+        source-value-proof
+  sim-paired-cast-focus
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open value-related result-type-related source-value-proof
+      source-root-step
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-value₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , value-type₁ , target-steps₁ , target-value-proof₁ ,
+      evolution₁ , root-related₁ , value-related₁ , value-path₁ ,
+      path-evolution₁
+      with path-evolution₁
+  sim-paired-cast-focus
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open value-related result-type-related source-value-proof
+      source-root-step
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-value₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , value-type₁ , target-steps₁ , target-value-proof₁ ,
+      evolution₁ , root-related₁ , value-related₁ , value-path₁ ,
+      path-evolution₁
+    | evolve-there {edge′ = edge₁} edge-evolution₁ evolve-here
+      with paired-cast-edge-view {source-cast = source-cast} edge₁
+        (sym (TargetEdgeEvolution.same-source-frame edge-evolution₁))
+  sim-paired-cast-focus
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open value-related result-type-related source-value-proof
+      source-root-step
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-value₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , value-type₁ , target-steps₁ , target-value-proof₁ ,
+      evolution₁ , root-related₁ , value-related₁ , value-path₁ ,
+      path-evolution₁
+    | evolve-there {edge′ = edge₁} edge-evolution₁ evolve-here
+    | paired-cast-edge target-cast₁ value-related₂
+        result-type-related₁ root-focus-eq₁ value-focus-eq₁
+      with root-focus-eq₁
+         | cong sourceTerm value-focus-eq₁
+         | cong targetTerm value-focus-eq₁
+  sim-paired-cast-focus
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open value-related result-type-related source-value-proof
+      source-root-step
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-value₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , value-type₁ , target-steps₁ , target-value-proof₁ ,
+      evolution₁ , root-related₁ , value-related₁ , value-path₁ ,
+      path-evolution₁
+    | evolve-there {edge′ = edge₁} edge-evolution₁ evolve-here
+    | paired-cast-edge target-cast₁ value-related₂
+        result-type-related₁ root-focus-eq₁ value-focus-eq₁
+    | refl | refl | refl
+      with sim-paired-cast-values {γ = γ₁}
+        (multi-no-open-frames evolution₁ no-open) value-related₂
+        result-type-related₁ source-value-proof target-value-proof₁
+        source-root-step
+  sim-paired-cast-focus {result-target-type = result-target-type}
+      no-open value-related result-type-related source-value-proof
+      source-root-step
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-value₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , value-type₁ , target-steps₁ , target-value-proof₁ ,
+      evolution₁ , root-related₁ , value-related₁ , value-path₁ ,
+      path-evolution₁
+    | evolve-there {edge′ = edge₁} edge-evolution₁ evolve-here
+    | paired-cast-edge target-cast₁ value-related₂
+        result-type-related₁ root-focus-eq₁ value-focus-eq₁
+    | refl | refl | refl
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , result-target , γ₂ , result-type₂ ,
+      values-steps , values-evolution , result-relation
+      with subst
+        (λ T →
+          Σ[ q ∈ _ ⊑ᵀ⟨ γ₂ ⟩ T ]
+            γ₂ CTI.⊢² _ ⊑ result-target ∶ q)
+        (applyTys-++ χsᴿ₁ χsᴿ₂ result-target-type)
+        (result-type₂ , result-relation)
+  sim-paired-cast-focus
+      {source-cast = source-cast} {target-cast = target-cast}
+      no-open value-related result-type-related source-value-proof
+      source-root-step
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-value₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , value-type₁ , target-steps₁ , target-value-proof₁ ,
+      evolution₁ , root-related₁ , value-related₁ , value-path₁ ,
+      path-evolution₁
+    | evolve-there {edge′ = edge₁} edge-evolution₁ evolve-here
+    | paired-cast-edge target-cast₁ value-related₂
+        result-type-related₁ root-focus-eq₁ value-focus-eq₁
+    | refl | refl | refl
+    | Δᴿ₂ , Σᴿ₂ , χsᴿ₂ , result-target , γ₂ , result-type₂ ,
+      values-steps , values-evolution , result-relation
+    | final-type , final-related =
+      Δᴿ₂ , Σᴿ₂ , χsᴿ₁ ++χ χsᴿ₂ , result-target , γ₂ , final-type ,
+      (targetTerm
+          (pack
+            (CTI.cast⊑cast² source-cast target-cast value-related
+              result-type-related))
+         —↠+[ χsᴿ₁ ]⟨ target-steps₁ ⟩
+       root-target₁
+         —↠[ χsᴿ₂ ]⟨ values-steps ⟩
+       result-target ∎[]) ,
+      composeMultiWorldEvolution evolution₁ values-evolution ,
+      final-related
+
   sim-source-cast-focus : ∀
       {Δᴸ Δᴿ Δᴸ′ : TyCtx}
       {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
@@ -1271,30 +1572,97 @@ module _
       (extend-path-target-ready path
         (focus-cast-paired source-cast target-cast related q) ready _)
       source-step (extend-rebuild rebuild (rebuild-edge refl))
+  contextual-sim no-open
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      .relation focus-here tt (root@(pure-step (β-id source-value)))
+      (rebuild-here refl) =
+    sim-paired-cast-focus no-open related q source-value root
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (pure-step (β-id source-value)) rebuild = {! !}
+      (CTI.cast⊑cast² source-cast target-cast related q)
+      path@(focus-there edge tail) ready
+      (root@(pure-step (β-id source-value))) rebuild =
+    contextual-sim-paired-cast-context no-open root-related related q
+      path ready source-value root rebuild
+
+  contextual-sim no-open
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      .relation focus-here tt
+      (root@(pure-step (ground source-value unequal)))
+      (rebuild-here refl) =
+    sim-paired-cast-focus no-open related q source-value root
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (pure-step (ground source-value unequal)) rebuild = {! !}
+      (CTI.cast⊑cast² source-cast target-cast related q)
+      path@(focus-there edge tail) ready
+      (root@(pure-step (ground source-value unequal))) rebuild =
+    contextual-sim-paired-cast-context no-open root-related related q
+      path ready source-value root rebuild
+
+  contextual-sim no-open
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      .relation focus-here tt
+      (root@(pure-step (expand source-value unequal)))
+      (rebuild-here refl) =
+    sim-paired-cast-focus no-open related q source-value root
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (pure-step (expand source-value unequal)) rebuild = {! !}
+      (CTI.cast⊑cast² source-cast target-cast related q)
+      path@(focus-there edge tail) ready
+      (root@(pure-step (expand source-value unequal))) rebuild =
+    contextual-sim-paired-cast-context no-open root-related related q
+      path ready source-value root rebuild
+
+  contextual-sim no-open
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      .relation focus-here tt
+      (root@(pure-step (tag-untag source-value)))
+      (rebuild-here refl) =
+    sim-paired-cast-focus no-open related q
+      (source-value 《 inj 》) root
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (pure-step (tag-untag source-value)) rebuild = {! !}
+      (CTI.cast⊑cast² source-cast target-cast related q)
+      path@(focus-there edge tail) ready
+      (root@(pure-step (tag-untag source-value))) rebuild =
+    contextual-sim-paired-cast-context no-open root-related related q
+      path ready (source-value 《 inj 》) root rebuild
+
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (pure-step (tag-untag-bad source-value unequal)) rebuild = {! !}
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      path ready (pure-step (tag-untag-bad source-value unequal))
+      rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (CTI.blame⊑² (target-typing relation) q) rebuild
+
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (pure-step (blame-bot-intro source-value)) rebuild = {! !}
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      path ready (pure-step (blame-bot-intro source-value)) rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (CTI.blame⊑² (target-typing relation) q) rebuild
+
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (pure-step blame-⟨⟩) rebuild = {! !}
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      path ready (pure-step blame-⟨⟩) rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (CTI.blame⊑² (target-typing relation) q) rebuild
+
+  contextual-sim no-open
+      relation@(CTI.cast⊑cast² source-cast target-cast related q)
+      .relation focus-here tt (root@(β-inst source-value source≠★))
+      (rebuild-here refl) =
+    sim-paired-cast-focus no-open related q source-value root
   contextual-sim no-open root-related
-      (CTI.cast⊑cast² source-cast target-cast related q) path ready
-      (β-inst source-value source≠★) rebuild = {! !}
+      (CTI.cast⊑cast² source-cast target-cast related q)
+      path@(focus-there edge tail) ready
+      (root@(β-inst source-value source≠★)) rebuild =
+    contextual-sim-paired-cast-context no-open root-related related q
+      path ready source-value root rebuild
 
   contextual-sim no-open root-related
       (CTI.⊑cast² target-cast related q) path ready source-step rebuild =

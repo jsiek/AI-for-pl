@@ -20,11 +20,12 @@ postulates, holes, or pragmas.
 | file | lines | contents |
 | --- | --- | --- |
 | `ThetaTerms.agda` | 100 | syntax `Term Θ Δ`, `renameᶿ`/`shiftᶿ` |
-| `ThetaTyping.agda` | 445 | σ-indexed `TyEnv`, `rep?`, `≼`, typing |
-| `ThetaReduction.agda` | 733 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
-| `ThetaTermSubst.agda` | 5722 | transport suite, `⊢≼`, `⊢[]` |
-| `ThetaPreservation.agda` | 820 | per-case lemmas + `preserve` |
-| `ThetaRegression.agda` | 213 | curated positive regressions |
+| `ThetaTyping.agda` | 645 | σ-indexed `TyEnv`, `rep?`, `≼`, typing |
+| `ThetaReduction.agda` | 597 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
+| `ThetaTermSubst.agda` | 6359 | transport suite, `⊢≼`, `⊢[]` |
+| `ThetaPreservation.agda` | 624 | per-case lemmas + `preserve` |
+| `ThetaProgress.agda` | 1326 | canonical forms + parameterized assembler |
+| `ThetaRegression.agda` | 256 | curated positive regressions |
 
 ## The design, in one page
 
@@ -70,13 +71,16 @@ whose instances are `⊢shiftᶿ` (ν-float) and `⊢reenter` (the
 `β-conceal-⇒` end/begin pair).
 
 Deleted along the way, and staying deleted: the term-shifting of the
-original design (`⇑ᵗᵐ V`, frame shifts), the global type store, the
-ν-crossing floats (`float-reveal`/`float-conceal` — regions stay at
-their birth delimiter depth and eliminations iterate two-constructor
-rules instead), the type-variable deletion function `∖`, marks, `,opaque`, the
+original design (`⇑ᵗᵐ V`, frame shifts), the global type store, the old
+resolving ν-crossing floats, the type-variable deletion function `∖`, marks,
+`,opaque`, the
 `Mode`/`opaq` lookup modes, canonicalization (`minTyVar`, `normalTy`,
 `⇓-var-alias`), the deferred-`ref` layer `Ty⁺` with its discharge
 judgment, and the relational lookup walk `RepWalk`.
+
+U36 restored the guarded pair instead: `float-reveal` requires
+`strengthenᵗ? Y A ≡ just A₀`, while `float-conceal` weakens `A` across
+the delimiter. Neither rule resolves a representation through a crossing.
 
 ## Next steps
 
@@ -89,13 +93,11 @@ judgment, and the relational lookup walk `RepWalk`.
    (`fd619e35`): 1090 → 820 lines; eleven substantial lemmas kept (the
    two boundary splits, three identity cancellations, two
    `conceal-reveal` variants, four allocation rules).
-3. **Progress** — statements and protocol approved; the theorem is
-   **open**, blocked on a design decision (see "Open question: the
-   stranded ν" below). Landed so far (`c7ce1d1c`):
-   `alt/ThetaProgress.agda` with the datatype and canonical families,
-   and `alt/probes/ProgressGaps.agda` with the first checked gap.
-
-   The approved statements:
+3. **Progress** — preservation is total and hole-free; progress is total
+   **modulo five named parameters** in the parameterized module
+   `alt.ThetaProgress.WithGaps`. Its assembler and canonical forms are
+   ordinary total proofs. The parameter types are the inspectable rule
+   specifications left by `alt/probes/ProgressGaps.agda`:
 
    ```agda
    data Progress {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) : Term Θ Δ → Set where
@@ -103,24 +105,26 @@ judgment, and the relational lookup walk `RepWalk`.
      done   : Result M             → Progress Ψ M
      failed :                        Progress Ψ blame
 
-   progress : Ψ ∣ [] ⊢ M ⦂ A → Progress Ψ M
+   WithGaps.progress : Ψ ∣ [] ⊢ M ⦂ A → Progress Ψ M
    ```
 
-   with canonical-forms families `CanonicalFun`/`CanonicalAll`/
-   `CanonicalStar`/`CanonicalBase`. Used deliberately as the
-   *merge-family gap-finder*: every case that cannot close is recorded
-   as a checked **gap witness** in `alt/probes/ProgressGaps.agda` (a
-   typed closed term with `¬ Result`, `≢ blame`, and no applicable
-   rule) rather than forced — the witnesses become the mechanized
-   specification of the missing ★-delimiter merge rules. Expected home
-   of the gaps: `canonical-★`.
+   - `gap-adapter-⊕`: the indexed blocked-eliminator family: non-floatable
+     adapters, a region under `Λ` at type application, atomic boundaries,
+     and the bottom-elimination canonicity obligation; the checked
+     representative is the base `⊕` witness.
+   - `gap-★-project-reveal`: a ground projection cannot merge through a
+     reveal-delimited ★ value.
+   - `gap-★-project-conceal`: the dual ground projection cannot merge
+     through a conceal-delimited ★ value.
+   - `gap-∀-reveal-cast`: a structural reveal cannot merge through a
+     non-`Λ` canonical universal value.
+   - `gap-∀-conceal-cast`: the dual structural conceal cannot merge through
+     a non-`Λ` canonical universal value.
 
-   The same run carries a **simplification watch** on the
-   Value/Result/RevealValue/ConcealValue/CanonicalInterior family
-   (`progress` is its main consumer, and the family is suspected of
-   being overly complex): behaviour-preserving local simplifications
-   are enacted; anything that changes *which terms are values* is
-   reported for decision, not enacted.
+   The first parameter is an indexed family with one constructor per exact
+   residual frame, so its type also records the canonical facts left by each
+   case. Supplying future merge lemmas discharges the parameters without
+   changing the assembler.
 4. **Merge rules** (deferred design): projection into packages, both
    orientations, comparisons as syntactic anchor-variable equality.
 5. **`Λ` value restriction** — `⊢Λ` still carries a DEFERRED marker.
@@ -136,55 +140,16 @@ judgment, and the relational lookup walk `RepWalk`.
    against the design above, and decide the fate of the unpushed
    mega-pass commit `257b0381`.
 
-## Open question: the stranded ν
+## Resolved: the stranded ν
 
-`progress` found a **function-level** gap before it ever reached the
-★-merge cases (checked witness, `alt/probes/ProgressGaps.agda`):
-
-```agda
-Ψ = ∅ ,:= (ℕ ⇒ ℕ)
-F = (ν[ ℕ ] ((ƛ ℕ ˙ ` 0) ↓[ 0 ≔ 1 ] seal)) ↑[ 0 ≔ 0 ] unseal
-M = F · $ 0
-```
-
-`F` is typed at `ℕ ⇒ ℕ` and is a `Value` — solely through
-`RevealValue.adapter-region` — but it is not a `CanonicalFun`: its
-conversion is `unseal`, not `c₁ ↦↑ c₂`, so no application rule matches;
-and `F` cannot step on its own, because `conceal-reveal` needs the seal
-node *directly* under the unseal and a ν sits between them (the anchors
-`1` and `0` are the same anchor either side of that ν's binder). So `M`
-is typed, is not a `Result`, is not `blame`, and does not step.
-
-The ν is there legitimately: evaluation inside a region allocates, and
-`adapter-region` exists to classify exactly that. What is missing is a
-way for the stranded ν to get out of the way. History and constraints:
-
-- The **resolving** `float-reveal` (`A₀ = substᵗ (resolveSubᵗ Y C) A`)
-  was refuted in the preservation campaign (ladder entry 7) and both
-  ν-crossing floats were then deleted; only the resolving form was ever
-  refuted, the strengthenable form was dropped as redundant — which
-  this gap shows it was not.
-- A **strengthenable-only** float (`strengthenᵗ? Y A ≡ just A₀`, i.e.
-  the entry does not mention `Y`) closes *this* witness but not the
-  chain case: `β-gen` mints its entry from the type argument verbatim,
-  so `… ⦂∀ B [ ＇Y ]` inside a region yields `ν[ ＇Y ] …`, whose entry
-  cannot strengthen.
-- Jeremy's proposed constraint: the floating ν's own anchor must not be
-  revealed inside its body. Under it, nothing inside the body reads the
-  entry (a conceal at that anchor would need a begin, which needs such
-  a reveal), so **resolving the entry is sound** and the chain case
-  floats too.
-- The catch, and the reason this is still open: `β-gen`'s own
-  contractum is a ν whose body reveals its own anchor
-  (`ν[ C ] (… ↑[ 0 ≔ 0 ] 〖 0 ↑ B 〗)`), so freshly allocated ν's are
-  excluded by that constraint until their own region is consumed.
-  Whether an outer region can then hold such a ν *under an
-  elimination* — reproducing this gap with an unfloatable ν — has not
-  been determined. It is mechanizable: implement the guarded float and
-  re-run `progress` under the gap-witness protocol.
-
-Rules must touch at most two term constructors (so a through-prefix
-cancellation mentioning ν, `↓`, and `↑` is out).
+U36 restored the guarded `float-reveal` and its weakening dual
+`float-conceal`. The former stranded function now follows the checked
+four-step trace in `alt/probes/ProgressGaps.agda`: float the strengthenable
+region through reveal, cancel conceal/reveal inside the region, float the
+region through application, then perform β. The persistent endpoint is
+`ν[ ℕ ] ($ 0)`; no allocation is discarded. Entries that mention the
+crossing remain deliberately non-floatable and are represented by the
+`gap-adapter-⊕` interface above.
 
 ## Related work: λN (Rossberg 2003), rule for rule
 

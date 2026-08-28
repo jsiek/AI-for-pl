@@ -35,6 +35,7 @@ import Imprecision as I
 import proof.DGG.CastTermImprecision as CTI
 import proof.DGG.Examples.TargetIdentityReveal as TIR
 import proof.DGG.OneStep as Step
+open import proof.DGG.ContextualSimDef using (ContextualSimᵀ)
 open import proof.DGG.SimDef using (Simᵀ)
 open import proof.DGG.SimTargetRevealRebaseContextDef
 open import proof.DGG.SourceRebase using (source-rebase-now)
@@ -43,41 +44,6 @@ open import proof.DGG.WorldEvolution using (evolution-bind-left-aligned)
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution; evolutions-refl; evolutions-step-left )
 
-
-------------------------------------------------------------------------
--- Exact proposed whole-root contextual simulation statement
-------------------------------------------------------------------------
-
-ContextualSimᵀ : Set₁
-ContextualSimᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
-    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-    {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
-    {χᴸ : StoreChange Δᴸ Δᴸ′}
-    {M : Term Δᴸ} {M′ : Term Δᴿ} {N : Term Δᴸ′}
-    {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
-  → openFramesᶜ γ ≡ []
-  → (root-related : γ CTI.⊢² M ⊑ M′ ∶ p)
-  → ∀ {γᶠ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
-      {L : Term Δᴸ} {L′ : Term Δᴿ}
-      {C : Ty Δᴸ} {D : Ty Δᴿ} {s : C ⊑ᵀ⟨ γᶠ ⟩ D}
-      (focus-related : γᶠ CTI.⊢² L ⊑ L′ ∶ s)
-  → (path : pack root-related ↘ᶜ* pack focus-related)
-  → TargetReady path
-  → ∀ {P : Term Δᴸ′}
-  → L —→[ χᴸ ] P
-  → RebuildSource path χᴸ P N
-  → Σ[ Δᴿ′ ∈ TyCtx ]
-    Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
-    Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
-    Σ[ N′ ∈ Term Δᴿ′ ]
-    Σ[ γ′ ∈
-      ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
-      ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
-    Σ[ q ∈ applyTy χᴸ A ⊑ᵀ⟨ γ′ ⟩ applyTys χsᴿ B ]
-      (M′ —↠[ χsᴿ ] N′)
-      × MultiWorldEvolution
-          {W = γ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) χsᴿ
-      × (γ′ CTI.⊢² N ⊑ N′ ∶ q)
 
 contextual-sim-adapter : ContextualSimᵀ → Simᵀ
 contextual-sim-adapter sim no-open related step =

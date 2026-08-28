@@ -469,7 +469,7 @@ mutual
   rename-Value ρ ($ κ) = $ κ
   rename-Value ρ (Vᵥ 《 inert 》) = rename-Value ρ Vᵥ 《 inert 》
   rename-Value ρ (Vʳ ↑[ X ≔ α ] gate) = Vʳ ↑[ X ≔ α ] gate
-  rename-Value ρ (Vʳ ↓[ X ≔ α ] gate) = Vʳ ↓[ X ≔ α ] gate
+  rename-Value ρ (Vᵥ ↓[ X ≔ α ] gate) = Vᵥ ↓[ X ≔ α ] gate
 
   rename-Result : ∀ {Θ Δ} (ρ : Rename) {V : Term Θ Δ}
     → Result V
@@ -3323,12 +3323,12 @@ mutual
     renameᵗᵐ-Result (insert↪ᵗ ρ X) Vʳ
       ↑[ toRenameᵗ (insert↪ᵗ ρ X) X ≔ α ]
         renameᵗᵐ-RevealValue (insert↪ᵗ ρ X) gate
-  renameᵗᵐ-Value (keep ρ) (Vʳ ↓[ X ≔ α ] gate) =
-    renameᵗᵐ-Result (delete↪ᵗ (keep ρ) X) Vʳ
+  renameᵗᵐ-Value (keep ρ) (Vᵥ ↓[ X ≔ α ] gate) =
+    renameᵗᵐ-Value (delete↪ᵗ (keep ρ) X) Vᵥ
       ↓[ toRenameᵗ (keep ρ) X ≔ α ]
         renameᵗᵐ-ConcealValue (delete↪ᵗ (keep ρ) X) gate
-  renameᵗᵐ-Value (skip ρ) (Vʳ ↓[ X ≔ α ] gate) =
-    renameᵗᵐ-Result (delete↪ᵗ (skip ρ) X) Vʳ
+  renameᵗᵐ-Value (skip ρ) (Vᵥ ↓[ X ≔ α ] gate) =
+    renameᵗᵐ-Value (delete↪ᵗ (skip ρ) X) Vᵥ
       ↓[ toRenameᵗ (skip ρ) X ≔ α ]
         renameᵗᵐ-ConcealValue (delete↪ᵗ (skip ρ) X) gate
 
@@ -3380,11 +3380,11 @@ mutual
     where
     cast-eq = cong (λ d → renameᵗᵐ ρ V ⟨ d ⟩)
       (renameᵗᵐ-injection ρ Gᵍ ⦃ G∼★ ⦄ ⦃ Gns ⦄)
-  renameᵗᵐ-CanonicalInterior (keep ρ) (sealed Vʳ X α) =
-    sealed (renameᵗᵐ-Result (delete↪ᵗ (keep ρ) X) Vʳ)
+  renameᵗᵐ-CanonicalInterior (keep ρ) (sealed Vᵥ X α) =
+    sealed (renameᵗᵐ-Value (delete↪ᵗ (keep ρ) X) Vᵥ)
       (toRenameᵗ (keep ρ) X) α
-  renameᵗᵐ-CanonicalInterior (skip ρ) (sealed Vʳ X α) =
-    sealed (renameᵗᵐ-Result (delete↪ᵗ (skip ρ) X) Vʳ)
+  renameᵗᵐ-CanonicalInterior (skip ρ) (sealed Vᵥ X α) =
+    sealed (renameᵗᵐ-Value (delete↪ᵗ (skip ρ) X) Vᵥ)
       (toRenameᵗ (skip ρ) X) α
   renameᵗᵐ-CanonicalInterior ρ (delimited canonical X α) =
     delimited
@@ -3590,8 +3590,8 @@ mutual
   subst-Value environment (Vᵥ 《 inert 》) = subst-Value environment Vᵥ 《 inert 》
   subst-Value environment (Vʳ ↑[ X ≔ α ] gate) =
     Vʳ ↑[ X ≔ α ] gate
-  subst-Value environment (Vʳ ↓[ X ≔ α ] gate) =
-    Vʳ ↓[ X ≔ α ] gate
+  subst-Value environment (Vᵥ ↓[ X ≔ α ] gate) =
+    Vᵥ ↓[ X ≔ α ] gate
 
   subst-Result : ∀ {Θ Δ} (environment : Subst Θ Δ)
       {V : Term Θ Δ}
@@ -4660,8 +4660,8 @@ mutual
   renameᶿ-Value φ injective (Vʳ ↑[ X ≔ α ] gate) =
     renameᶿ-Result φ injective Vʳ ↑[ X ≔ φ α ]
       renameᶿ-RevealValue φ injective gate
-  renameᶿ-Value φ injective (Vʳ ↓[ X ≔ α ] gate) =
-    renameᶿ-Result φ injective Vʳ ↓[ X ≔ φ α ]
+  renameᶿ-Value φ injective (Vᵥ ↓[ X ≔ α ] gate) =
+    renameᶿ-Value φ injective Vᵥ ↓[ X ≔ φ α ]
       renameᶿ-ConcealValue φ injective gate
 
   renameᶿ-Result : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
@@ -4711,8 +4711,8 @@ mutual
     → CanonicalInterior (renameᶿ φ V)
   renameᶿ-CanonicalInterior φ injective (tagged Vᵥ) =
     tagged (renameᶿ-Value φ injective Vᵥ)
-  renameᶿ-CanonicalInterior φ injective (sealed Vʳ X α) =
-    sealed (renameᶿ-Result φ injective Vʳ) X (φ α)
+  renameᶿ-CanonicalInterior φ injective (sealed Vᵥ X α) =
+    sealed (renameᶿ-Value φ injective Vᵥ) X (φ α)
   renameᶿ-CanonicalInterior φ injective (delimited canonical X α) =
     delimited (renameᶿ-CanonicalInterior φ injective canonical) X (φ α)
 
@@ -5178,6 +5178,15 @@ map-insert-anchor zero a tyVars = refl
 map-insert-anchor (suc Y) a (entry Vec.∷ tyVars) =
   cong (mapMaybe suc entry Vec.∷_) (map-insert-anchor Y a tyVars)
 
+map-remove-anchor : ∀ {Θ Δ} (Y : TyVar (suc Δ))
+    (tyVars : Vec.Vec (Maybe (TyVar Θ)) (suc Δ))
+  → mapᵛ (mapMaybe suc) (removeᵛ Y tyVars)
+    ≡ removeᵛ Y (mapᵛ (mapMaybe suc) tyVars)
+map-remove-anchor {Θ = Θ} zero (entry Vec.∷ tyVars) = refl
+map-remove-anchor {Θ = Θ} {Δ = suc Δ} (suc Y)
+    (entry Vec.∷ tyVars) =
+  cong (mapMaybe Fin.suc entry Vec.∷_) (map-remove-anchor Y tyVars)
+
 fresh-map-anchor : ∀ {Θ Δ} {a : TyVar Θ}
     {tyVars : Vec.Vec (Maybe (TyVar Θ)) Δ}
   → a ∉ᵛ tyVars
@@ -5243,6 +5252,45 @@ repoint?-begin-ν resolve target birth Y a anchor-map route live-ren
   route-eq zero = refl
   route-eq (suc X) = refl
 
+repoint?-birth-cong≡ : ∀ {Θ₀ Θ Δ₀ Δ Δout}
+    (resolve : TyVar Θ → Maybe (Ty Δ))
+    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (left : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (right : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+  → left ≡ right
+  → (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+  → (route : TyVar Δ₀ → Maybe (TyVar Δout))
+  → (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
+  → repoint? resolve target left anchor-map route live-ren A
+    ≡ repoint? resolve target right anchor-map route live-ren A
+repoint?-birth-cong≡ resolve target left .left refl anchor-map route
+    live-ren A = refl
+
+repoint?-end-ν : ∀ {Θ₀ Θ Δ₀ Δ Δout}
+    (resolve : TyVar Θ → Maybe (Ty Δ))
+    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (birth : Vec.Vec (Maybe (TyVar Θ₀)) (suc Δ₀))
+    (Y : TyVar (suc Δ₀)) (a : TyVar Θ₀)
+  → Vec.lookup birth Y ≡ just a
+  → (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+  → (route : TyVar Δ₀ → Maybe (TyVar Δout))
+  → (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
+  → repoint? resolve target (removeᵛ Y birth) anchor-map route live-ren A
+    ≡ repoint? resolve target birth anchor-map (route-end Y route)
+        live-ren (wkᵗ Y A)
+repoint?-end-ν resolve target birth Y a tyVar-eq anchor-map route
+    live-ren A =
+  trans (repoint?-route-cong resolve target (removeᵛ Y birth)
+      anchor-map route
+      (λ X → route-end Y route (punchIn Y X)) live-ren A
+      (λ X → sym (route-end-punchIn Y route X)))
+    (trans (sym (repoint?-begin-ν resolve target (removeᵛ Y birth) Y a
+        anchor-map (route-end Y route) live-ren A))
+      (repoint?-birth-cong≡ resolve target
+        (insertᵛ Y (just a) (removeᵛ Y birth)) birth
+        (reinsert-alias tyVar-eq) anchor-map (route-end Y route)
+        live-ren (wkᵗ Y A)))
+
 data UnbracketTarget : ∀ {Θ Δ σ τ}
     → TyEnv Θ Δ σ → TyEnv Θ Δ τ → Set where
   unbracket-base : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
@@ -5282,6 +5330,14 @@ data UnbracketTarget : ∀ {Θ Δ σ τ}
         ((Ψ ,:= A) ,begin[ Y ≔ suc a
           ]⟨ fresh-map-anchor {tyVars = σ} fresh ⟩)
 
+  unbracket-end-ν : ∀ {Θ Δ σ}
+      {Ψ : TyEnv Θ (suc Δ) σ} {Y : TyVar (suc Δ)}
+      {a : TyVar Θ} {A : Ty Δ}
+    → Vec.lookup σ Y ≡ just a
+    → UnbracketTarget
+        ((Ψ ,end[ Y ]) ,:= A)
+        ((Ψ ,:= wkᵗ Y A) ,end[ Y ])
+
   unbracket-begin : ∀ {Θ Δ σ τ}
       {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ τ}
       {Y : TyVar (suc Δ)} {a : TyVar Θ}
@@ -5318,6 +5374,8 @@ unbracket-tyVars unbracket-begin-typ = refl
 unbracket-tyVars unbracket-end-typ = refl
 unbracket-tyVars (unbracket-begin-ν {Y = Y} {a = a}) =
   map-insert-anchor Y a _
+unbracket-tyVars (unbracket-end-ν {Y = Y} tyVar-eq) =
+  map-remove-anchor Y _
 unbracket-tyVars (unbracket-begin same) =
   cong (insertᵛ _ (just _)) (unbracket-tyVars same)
 unbracket-tyVars (unbracket-typ same) =
@@ -5341,20 +5399,6 @@ unbracket-tyVar : ∀ {Θ Δ σ τ}
   → Vec.lookup σ Y ≡ just a
   → Vec.lookup τ Y ≡ just a
 unbracket-tyVar same tyVar-eq rewrite sym (unbracket-tyVars same) = tyVar-eq
-
-repoint?-birth-cong≡ : ∀ {Θ₀ Θ Δ₀ Δ Δout}
-    (resolve : TyVar Θ → Maybe (Ty Δ))
-    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
-    (left : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
-    (right : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
-  → left ≡ right
-  → (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
-  → (route : TyVar Δ₀ → Maybe (TyVar Δout))
-  → (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
-  → repoint? resolve target left anchor-map route live-ren A
-    ≡ repoint? resolve target right anchor-map route live-ren A
-repoint?-birth-cong≡ resolve target left .left refl anchor-map route
-    live-ren A = refl
 
 punch-zero-exchange : ∀ {Δ} (X : TyVar (suc Δ)) (Y : TyVar Δ)
   → punchIn zero (punchIn X Y)
@@ -5424,6 +5468,14 @@ scanRep?-unbracket resolve target
 scanRep?-unbracket resolve target
     (unbracket-begin-ν {Ψ = Ψ} {Y = Y} {a = a} {A = A})
     anchor-map route (suc q) =
+  refl
+scanRep?-unbracket resolve target
+    (unbracket-end-ν {Ψ = Ψ} {Y = Y} {a = a} {A = A} tyVar-eq)
+    anchor-map route zero =
+  repoint?-end-ν resolve (tyVarsOf target) (tyVarsOf Ψ) Y a
+    tyVar-eq anchor-map route (λ X → X) A
+scanRep?-unbracket resolve target
+    (unbracket-end-ν tyVar-eq) anchor-map route (suc q) =
   refl
 scanRep?-unbracket resolve target (unbracket-begin same)
     anchor-map route a =

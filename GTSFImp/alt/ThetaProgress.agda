@@ -1,9 +1,10 @@
 module alt.ThetaProgress where
 
 -- File Charter:
---   * Introduces closed-term progress and the intended canonical views.
---   * `alt.probes.ProgressGaps` checks the adapter-region/unseal obstruction
---     that prevents the first canonical-form theorem.
+--   * States closed-term progress and the intended canonical views.
+--   * The theorem remains refuted, rather than postulated: the checked
+--     witnesses in `alt.probes.ProgressGaps` now isolate a non-floatable base
+--     adapter plus reveal/conceal merge gaps at ★ and ∀.
 
 open import Data.Fin using (zero; suc)
 open import Data.List using ([])

@@ -28,13 +28,16 @@ module alt.ThetaPreservation where
 --   * The guarded `float-reveal` moves only entries that strengthen across
 --     the crossing.  Its telescope exchange is justified by the weakening
 --     round trip, without representation resolution.
+--   * The dual `float-conceal` weakens its entry into the larger scope; an
+--     exact end/ν telescope exchange carries the interior typing.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.List using ([]; _∷_)
-open import Data.Maybe using (Maybe; just)
+open import Data.Maybe using (Maybe; just; nothing)
+  renaming (map to mapMaybe)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
@@ -299,6 +302,24 @@ preserve-float-reveal {Θ = Θ} {Ψ = Ψ} {A₀ = A₀} {M = M}
       ∣ [] ⊢ M ⦂ _)
     (strengthenᵗ?-sound strengthens) M⊢
 
+preserve-float-conceal : ∀ {Θ Δ} {σ}
+    {Ψ : TyEnv Θ (suc Δ) σ} {A : Ty Δ}
+    {M : Term (suc Θ) Δ} {Y : TyVar (suc Δ)} {α : TyVar Θ}
+    {c : Conceal} {B : Ty (suc Δ)}
+  → Ψ ∣ [] ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c ⦂ B
+  → Ψ ∣ [] ⊢ ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c) ⦂ B
+preserve-float-conceal {Θ = Θ} {σ = σ} {Ψ = Ψ} {A = A}
+    {Y = Y} {α = α}
+    (⊢conceal tyVar-eq α-eq c⊢ (⊢ν M⊢)) =
+  ⊢ν (⊢conceal shifted-tyVar shifted-rep c⊢
+    (⊢unbracket-target exchange M⊢))
+  where
+  exchange = unbracket-end-ν tyVar-eq
+  shifted-tyVar = trans (lookup-mapᵛ (mapMaybe Fin.suc) σ Y)
+    (cong (mapMaybe Fin.suc) tyVar-eq)
+  shifted-rep = trans (sym (rep?-unbracket exchange (suc α)))
+    (rep?-ν {Θ = Θ} {Ψ = Ψ ,end[ Y ]} {B = A} {a = α} α-eq)
+
 preserve-id-cancel : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {A}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ ⦂ A
@@ -548,6 +569,7 @@ preserve (⊢⦂∀ M⊢) (ξ-• step) = ⊢⦂∀ (preserve M⊢ step)
 preserve (⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) = ⊢⟨⟩ (preserve M⊢ step) c
 preserve typing (float-reveal strengthens result) =
   preserve-float-reveal strengthens typing
+preserve typing (float-conceal result) = preserve-float-conceal typing
 preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
   ⊢reveal α∈ c⊢ (preserve M⊢ step)
 preserve (⊢conceal tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =

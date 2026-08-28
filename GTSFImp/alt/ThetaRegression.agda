@@ -87,8 +87,7 @@ a-⊢ = ⊢ν a-body-⊢
 
 shifted-seven-value : Value (shiftᶿ (shiftᶿ sealed-seven))
 shifted-seven-value =
-  result-val ($ (κℕ 7))
-    ↓[ zero ≔ suc (suc (suc zero)) ] sealᵥ
+  ($ (κℕ 7)) ↓[ zero ≔ suc (suc (suc zero)) ] sealᵥ
 
 a-result : Result a
 a-result = result-ν (result-ν (result-val shifted-seven-value))

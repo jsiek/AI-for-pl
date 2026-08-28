@@ -485,7 +485,7 @@ mutual
       → Value (V ↑[ X ≔ α ] c)
 
     _↓[_≔_]_ : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Result V
+      → Value V
       → (X : TyVar (suc Δ))
       → (α : TyVar Θ)
       → {c : Conceal}
@@ -501,7 +501,7 @@ mutual
       → CanonicalInterior (V ⟨ (idᵍ Gᵍ) ! ⟩)
 
     sealed : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Result V
+      → Value V
       → (X : TyVar (suc Δ))
       → (α : TyVar Θ)
       → CanonicalInterior (V ↓[ X ≔ α ] seal)
@@ -548,7 +548,7 @@ canonical-value : ∀ {Θ Δ} {V : Term Θ Δ}
   → CanonicalInterior V
   → Value V
 canonical-value (tagged Vᵥ) = Vᵥ 《 inj 》
-canonical-value (sealed Vʳ X α) = Vʳ ↓[ X ≔ α ] sealᵥ
+canonical-value (sealed Vᵥ X α) = Vᵥ ↓[ X ≔ α ] sealᵥ
 canonical-value (delimited Vᶜ X α) =
   result-val (canonical-value Vᶜ) ↑[ X ≔ α ] delimiter Vᶜ
 

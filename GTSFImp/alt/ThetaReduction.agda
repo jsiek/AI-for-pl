@@ -441,6 +441,14 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       ------------------------------------------
     → Ψ′ ⊢ M ↓[ X ≔ α ] c —→ M′ ↓[ X ≔ α ] c
 
+  float-conceal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+      {A : Ty Δ} {M : Term (suc Θ) Δ}
+      {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
+    → Result (ν[ A ] M)
+      ------------------------------------------------------------
+    → Ψ ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c —→
+        ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c)
+
   ξ-⊕₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {L L′ M : Term Θ Δ} {op : Prim}
     → Ψ ⊢ L —→ L′
@@ -546,10 +554,10 @@ mutual
       (Vʳ ↓[ X ≔ α ] delimiter ())
       id-conceal
   value-no-step
-      (result-val () ↓[ X ≔ α ] gate)
+      (() ↓[ X ≔ α ] gate)
       blame-conceal
-  value-no-step (Vʳ ↓[ X ≔ α ] gate) (ξ-conceal step) =
-    result-no-step Vʳ step
+  value-no-step (Vᵥ ↓[ X ≔ α ] gate) (ξ-conceal step) =
+    value-no-step Vᵥ step
 
   result-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V M′ : Term Θ Δ}
@@ -582,6 +590,9 @@ mutual
   body-result (result-val ($ κ))
 ΛBody-stable (body-conceal Vʳ) (β-conceal-∀ Rʳ) =
   body-Λ (body-conceal Rʳ)
+ΛBody-stable (body-conceal (result-ν Vʳ))
+    (float-conceal (result-ν Rʳ)) =
+  body-ν (body-conceal Vʳ)
 ΛBody-stable (body-conceal Vʳ) (ξ-conceal step) =
   ⊥-elim (result-no-step Vʳ step)
 ΛBody-stable (body-ν (body-result (result-val ()))) blame-ν

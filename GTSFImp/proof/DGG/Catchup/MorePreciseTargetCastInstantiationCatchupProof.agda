@@ -76,6 +76,8 @@ open import proof.DGG.TransportTermImprecisionStepDef
 open import proof.DGG.InjectionConsistency using (rename∼ⁱ)
 open import proof.DGG.ConversionAbsentEndpointLemma using
   (reveal-absent-endpoints; conceal-absent-endpoints)
+open import proof.DGG.SourceConversionLeftImprecisionLemma using
+  (source-conceal-input-imprecisionᵀ)
 open import proof.DGG.Inversion.SpineValueDef using
   ( AllValueView; allv-Λ; allv-∀; allv-gen; allv-reveal; allv-conceal
   ; SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal
@@ -1354,11 +1356,12 @@ module _
             (trans (multi-source-conceal-position evolution c⊢) position)
             final (multi-⊑ᵀ evolution final-q)
 
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {q = final-q} view
         (CTI.conceal⊑-only² c⊢ position mark no-target represented prem q)
         (source-value ↓ all) target-value spine (acc smaller)
         with name-spine-catchup-acc
-          {q = {! pre-source-only-conceal spine imprecision !}}
+          {q = source-conceal-input-imprecisionᵀ c⊢ mark no-target
+            represented final-q}
           view prem source-value target-value spine
           (smaller
             (inj₂ (refl ,

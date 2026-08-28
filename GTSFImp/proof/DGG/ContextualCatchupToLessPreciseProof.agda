@@ -676,8 +676,48 @@ module _
       focus-here target-value bound =
     ⊥-elim (open-source-rebase-nonempty rebase no-open)
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑conceal-rebase² c′⊢ rebase related q)
-      (focus-there edge tail) target-value bound = {! !}
+      (CTI.⊑conceal-rebase²
+        {c′ = target-conceal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↓ conceal) bound
+      with contextual-left-value-catchup no-open root-related related
+        (extend-focus path
+          (focus-target-conceal-rebase c′⊢ rebase related q))
+        target-value bound
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑conceal-rebase²
+        {c′ = target-conceal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↓ conceal) bound
+    | inj₂ blame-result = inj₂ blame-result
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑conceal-rebase²
+        {c′ = target-conceal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↓ conceal) bound
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+      with split-source-extended-path
+        {path = path}
+        {edge = focus-target-conceal-rebase c′⊢ rebase related q}
+        path-evolution
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑conceal-rebase²
+        {c′ = target-conceal} c′⊢ rebase related q)
+      path@(focus-there edge tail) (target-value ↓ conceal) bound
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+    | evolved-source-extended-path prefix′
+        (focus-target-conceal-rebase
+          {c′ = target-conceal′} c′⊢′ rebase′ related′ q′) refl
+        prefix-evolution (evolve-source-edge refl source-ready) =
+      inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ ,
+          pack (CTI.⊑conceal-rebase² c′⊢′ rebase′ related′ q′) ,
+          prefix′ , source-steps , source-value , root-target-eq ,
+          cong (λ M → M ↓ target-conceal) focus-target-eq ,
+          prefix-evolution , evolution)
 
   contextual-left-value-catchup {γ = γ} no-open root-related
       (CTI.blame⊑² target⊢ p) path target-value bound

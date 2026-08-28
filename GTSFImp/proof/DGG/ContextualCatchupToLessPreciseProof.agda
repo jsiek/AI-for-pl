@@ -34,6 +34,8 @@ open import proof.Reduction using
   )
 
 import proof.DGG.CastTermImprecision as CTI
+open import proof.DGG.Catchup.ContextualLeftSourceConversionCatchupDef using
+  (ContextualLeftSourceRevealCatchupAt)
 open import proof.DGG.Catchup.ContextualLeftSourceCastCatchupDef using
   (ContextualLeftSourceCastCatchupAt)
 open import proof.DGG.Catchup.ContextualLeftSourceTypeAppCatchupDef using
@@ -328,6 +330,8 @@ module _
       → ContextualLeftSourceTypeAppCatchupAt fuel)
     (source-reveal-catchup : ∀ {fuel}
       → LeftSourceRevealCatchupAt fuel)
+    (contextual-source-reveal-catchup : ∀ {fuel}
+      → ContextualLeftSourceRevealCatchupAt fuel)
     (source-conceal-catchup : ∀ {fuel}
       → LeftSourceConcealCatchupAt fuel)
     (paired-reveal-catchup : ∀ {fuel}
@@ -617,8 +621,9 @@ module _
     root-catchup-result focus-related
       (source-reveal-catchup no-open focus-related target-value bound)
   contextual-left-value-catchup no-open root-related
-      (CTI.reveal⊑-identity c⊢ absent related q)
-      (focus-there edge tail) target-value bound = {! !}
+      focus-related@(CTI.reveal⊑-identity c⊢ absent related q)
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-reveal-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.reveal⊑-only²
@@ -627,9 +632,10 @@ module _
     root-catchup-result focus-related
       (source-reveal-catchup no-open focus-related target-value bound)
   contextual-left-value-catchup no-open root-related
-      (CTI.reveal⊑-only²
+      focus-related@(CTI.reveal⊑-only²
         c⊢ present mark free represented related q)
-      (focus-there edge tail) target-value bound = {! !}
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-reveal-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.conceal⊑-identity c⊢ absent related q)

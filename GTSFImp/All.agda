@@ -54,6 +54,7 @@ import proof.DGG.Catchup.ContextualLeftSourceCastCatchupDef
 import proof.DGG.Catchup.LeftSourceTypeAppCatchupDef
 import proof.DGG.Catchup.ContextualLeftSourceTypeAppCatchupDef
 import proof.DGG.Catchup.LeftSourceConversionCatchupDef
+import proof.DGG.Catchup.ContextualLeftSourceConversionCatchupDef
 import proof.DGG.Catchup.LeftPairedConversionCatchupDef
 import proof.DGG.Catchup.LeftTargetRevealRebaseCatchupDef
 import proof.DGG.Catchup.LeftValueCatchupProof

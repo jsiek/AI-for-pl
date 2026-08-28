@@ -10,6 +10,7 @@ AGDA ?= agda
 # Remove a file from this list and add it to All.agda as soon as its metas close.
 IN_PROGRESS_PROOFS := proof/DGG/SimPairedAllValuesProof.agda \
 	proof/DGG/SimTargetRevealRebaseClosingProof.agda \
+	proof/DGG/ContextualSimProof.agda \
 	proof/DGG/Catchup/MorePreciseTargetCastInstantiationCatchupProof.agda
 
 check: agda in-progress-proof-check postulate-check

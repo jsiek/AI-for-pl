@@ -1100,6 +1100,106 @@ extend-target-ready
     (focus-target-conceal-rebase c′⊢ rebase related q) tt ready =
   ready
 
+extend-path-target-ready : ∀ {Cᴸ Cᴿ}
+    {outer middle focus : RelatedConfiguration Cᴸ Cᴿ}
+    (path : outer ↘ᶜ* middle) (edge : middle ↘ᶜ focus)
+  → TargetReady path
+  → TargetEdgeReady edge
+  → TargetReady (extend-focus path edge)
+extend-path-target-ready focus-here edge tt edge-ready =
+  extend-target-ready edge edge-ready tt
+extend-path-target-ready
+    (focus-there (focus-·₁ function-rel argument-rel) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-·₂ function-rel argument-rel source-value) tail)
+    edge (target-value , ready) edge-ready =
+  target-value , extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there (focus-⊕₁ left-rel right-rel r) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there (focus-⊕₂ left-rel right-rel r source-value) tail)
+    edge (target-value , ready) edge-ready =
+  target-value , extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there (focus-•-paired p∀ related q r) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there (focus-•-source p∀ related q r) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there (focus-cast-paired c c′ related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there (focus-cast-target c′ related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there (focus-cast-source c related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-target-reveal-identity c′⊢ absent related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-target-conceal-identity c′⊢ absent related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-source-reveal-identity c⊢ absent related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-source-conceal-identity c⊢ absent related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-source-reveal-only c⊢ present mark free represented related q)
+      tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-source-conceal-only c⊢ present mark free represented related q)
+      tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-reveal-paired c⊢ c′⊢ positions aligned represented related q)
+      tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-conceal-paired c⊢ c′⊢ positions aligned represented related q)
+      tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-target-reveal-rebase c′⊢ rebase related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+extend-path-target-ready
+    (focus-there
+      (focus-target-conceal-rebase c′⊢ rebase related q) tail)
+    edge ready edge-ready =
+  extend-path-target-ready tail edge ready edge-ready
+
 target-path-ready : ∀ {Cᴸ Cᴿ Cᴿ′}
     {outer focus : RelatedConfiguration Cᴸ Cᴿ}
     {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}
@@ -1349,6 +1449,32 @@ extend-selected-reveal : ∀
 extend-selected-reveal selected-here = selected-here
 extend-selected-reveal (selected-there selected) =
   selected-there (extend-selected-reveal selected)
+
+select-appended-reveal : ∀
+    {Δᴸ Δᴿ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+    {γ γᵖ :
+      ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {c′ : Conv↑ Δᴿ B B′}
+    {c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′}
+    {rebase : SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ}
+    {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+    {related : γᵖ CTI.⊢² M ⊑ M′ ∶ p}
+    {q : A ⊑ᵀ⟨ γ ⟩ B′}
+    {root : RelatedConfiguration
+      (⟨ Δᴸ , Σᴸ , Γᴸ ⟩) (⟨ Δᴿ , Σᴿ , Γᴿ ⟩)}
+    (prefix : root ↘ᶜ*
+      pack (CTI.⊑reveal-rebase² c′⊢ rebase related q))
+  → TargetRevealRebaseInPath c′⊢ rebase related q
+      (extend-focus prefix
+        (focus-target-reveal-rebase c′⊢ rebase related q))
+select-appended-reveal focus-here = selected-here
+select-appended-reveal (focus-there edge tail) =
+  selected-there (select-appended-reveal tail)
 
 
 ------------------------------------------------------------------------

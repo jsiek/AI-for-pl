@@ -15,7 +15,7 @@ fresh source or paired allocation while the other endpoint alignments remain
 fixed.  The required endpoint map is injective but not order preserving.
 Center changes produced by weakening and runtime allocation remain OPEs.
 
-`SimProof` and `SimBackProof` are goal-free parameterized proofs.  They are
+`SimProof` and `SimBackProof` are goal-free parameterized proofs. They are
 not yet closed theorems because several semantic closing and catch-up
 interfaces still need canonical implementations.
 
@@ -27,11 +27,17 @@ two parameters exactly to `Simᵀ` and `SimBackᵀ`.  Work therefore proceeds
 top-down through the one-step proof parameters, while independent agents
 discharge their semantic proof interfaces.
 
-The first `All.agda` error is the obsolete `ParkedWorldDef` import of the
-deleted `proof.DGG.CtxImp`.  This is not a reason to port `ParkedWorld`:
-canonical simulation uses `openFramesᶜ γ ≡ []` and
-`MultiWorldEvolution` directly.  The parked-world family should be deleted
-after its remaining consumers are migrated.
+The obsolete `ParkedWorld`, `CtxImp`, residual-dispatcher, and dependent
+scratch families have been retired. `All.agda` has no remaining import edge
+to that architecture, and the aggregate Agda build is green. The live
+simulation boundary uses `openFramesᶜ γ ≡ []` and `MultiWorldEvolution`
+directly.
+
+The current manifested proof frontiers are the paired-universal value
+simulation, target cast/instantiation catch-up, and target reveal-rebase
+closing. Each has a complete primary split and keeps its remaining semantic
+obligations visible. They are developed independently and committed only at
+interaction-green milestones.
 
 ## Milestones
 
@@ -65,15 +71,13 @@ explicit module parameters while they are incomplete, then expose the closed
 transport from a `...Lemma` module.
 
 The source-bind induction now traverses every current CTI constructor. The
-single `SourceBindScope` graph follows source allocation through term binders,
-paired type binders, and source-only type binders while recording the source
-thinning and deriving the center, context, store, and type-imprecision
-commutation laws. Term abstraction, paired type abstraction, and source-only
-type abstraction are therefore direct clauses of one induction. Its root
-records `sourceRebaseCountᶜ γ ≡ 0`. Reveal pushes a synchronized direct-rebase
-frame through the scope; conceal pops that exact frame, recursively through
-protected term and type scopes. `TransportSourceBindProof` is goal-free and is
-parameterized only by the genuine forward rebase-push induction.
+single `SourceBindScope` graph follows ordinary or alignment-closing source
+allocation through term binders, paired type binders, and source-only type
+binders while recording the source thinning and deriving the center, context,
+store, and type-imprecision commutation laws. Term abstraction, paired type
+abstraction, and source-only type abstraction are direct clauses of one
+induction. Open-frame balance is carried by the role-tagged world history;
+there is no separate transport stack.
 
 The target-bind induction also traverses every current CTI constructor. Its
 single `TargetBindScope` graph follows target allocation through the same
@@ -108,22 +112,21 @@ Second, reveal and conceal form a properly nested scope discipline.  A
 universal conceal-pullback theorem is false because it forgets which reveal
 introduced the rebase frame.
 
-The source-bind transport is consequently stated as balanced world-history
-operations. Its root starts at source-rebase count zero; reveal pushes a
-synchronized direct-rebase frame through the bind scope; and conceal pops
-that exact frame. Protected term, paired-type, and source-only type scopes
-recurse through the stack. The same design must be applied to the target and
-paired bind transports. Do not restore the six universal whole-CTI
-commutation interfaces: they were stronger than the simulation call sites and
-erased the nesting invariant needed for the reverse move.
+The source-bind transport is consequently stated over the world history
+itself. An open source rebase is a checked `open-frameᶜ` world change, while a
+source allocation that consumes a conversion boundary records an
+`alignment-onlyᶜ` change with its boundary evidence. `openFramesᶜ γ` folds the
+active LIFO frames from γ. The geometric `sourceRebaseCountᶜ` remains separate
+for direct world-invariant gates.
 
-The one-step and sequence transport APIs now both take the root
-`sourceRebaseCountᶜ γ ≡ 0` premise. That premise has been threaded through all
-live Sim and SimBack consumers. `TransportTermImprecisionStepProof`,
-`TransportTermImprecisionProof`, `SimProof`, and `SimBackProof` all check with
-zero goals and metas. Their remaining module parameters are the honest
-balanced bind-scope operations, not an implicit claim that arbitrary rebased
-histories commute.
+The one-step and sequence CTI transport APIs are valid for arbitrary
+γ-carried open-frame histories; they no longer require an empty-frame premise.
+`TransportTermImprecisionStepProof`, `TransportTermImprecisionProof`,
+`SimProof`, and `SimBackProof` all check with zero goals and metas. The
+simulation and catch-up theorem roots still require `openFramesᶜ γ ≡ []`, and
+`MultiWorldEvolution` preserves that root condition. Nested reveal/conceal
+balance is handled where the CTI syntax exposes it, rather than by a universal
+world-history pullback theorem.
 
 ### 2. Canonical CTI substitution
 
@@ -273,11 +276,13 @@ closed, not another rewrite of the DGG theorem.
 
 ### 7. Closed-world retirement and gates
 
-Delete the obsolete parked-world modules and old boundary/catch-up modules as
-their last consumers disappear.  Migrate or retire remaining red example,
-probe, inversion, and catch-up files rather than removing them silently from
-the aggregate gate.  The migration is complete when `All.agda`, the
-postulate check, and the example checkpoint suites are green.
+This retirement is complete. The obsolete parked-world modules, old
+boundary/catch-up drivers, and dependent red proof stack have been deleted
+after reverse-consumer analysis. Historical Markdown and Redex design records
+remain, while live Agda probes have either been migrated or retired. The
+aggregate `All.agda` build, postulate check, and example checkpoint suites are
+green; manifested partial proofs remain outside `All.agda` until their goals
+are discharged.
 
 ## Validation at every milestone
 

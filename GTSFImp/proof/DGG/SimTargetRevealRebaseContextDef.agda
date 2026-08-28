@@ -52,21 +52,19 @@ open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 -- A CTI node with all of its indices existentially packaged
 ------------------------------------------------------------------------
 
-data RelatedConfiguration (Δᴸ Δᴿ : TyCtx) : Set₁ where
-  pack : ∀ {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
-      {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
-      {M : Term Δᴸ} {M′ : Term Δᴿ}
-      {A : Ty Δᴸ} {B : Ty Δᴿ} {p : A ⊑ᵀ⟨ γ ⟩ B}
+data RelatedConfiguration (Cᴸ Cᴿ : Ctx) : Set₁ where
+  pack : ∀ {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {M : Term (Δᵉ Cᴸ)} {M′ : Term (Δᵉ Cᴿ)}
+      {A : Ty (Δᵉ Cᴸ)} {B : Ty (Δᵉ Cᴿ)} {p : A ⊑ᵀ⟨ γ ⟩ B}
     → γ CTI.⊢² M ⊑ M′ ∶ p
-    → RelatedConfiguration Δᴸ Δᴿ
+    → RelatedConfiguration Cᴸ Cᴿ
 
-sourceTerm : ∀ {Δᴸ Δᴿ}
-  → RelatedConfiguration Δᴸ Δᴿ → Term Δᴸ
+sourceTerm : ∀ {Cᴸ Cᴿ}
+  → RelatedConfiguration Cᴸ Cᴿ → Term (Δᵉ Cᴸ)
 sourceTerm (pack {M = M} related) = M
 
-targetTerm : ∀ {Δᴸ Δᴿ}
-  → RelatedConfiguration Δᴸ Δᴿ → Term Δᴿ
+targetTerm : ∀ {Cᴸ Cᴿ}
+  → RelatedConfiguration Cᴸ Cᴿ → Term (Δᵉ Cᴿ)
 targetTerm (pack {M′ = M′} related) = M′
 
 
@@ -76,13 +74,15 @@ targetTerm (pack {M′ = M′} related) = M′
 
 infix 4 _↘ᶜ_
 
-data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
-    RelatedConfiguration Δᴸ Δᴿ →
-    RelatedConfiguration Δᴸ Δᴿ → Set₁ where
+data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ} :
+    RelatedConfiguration (⟨ Δᴸ , Σᴸ , Γᴸ ⟩)
+      (⟨ Δᴿ , Σᴿ , Γᴿ ⟩) →
+    RelatedConfiguration (⟨ Δᴸ , Σᴸ , Γᴸ ⟩)
+      (⟨ Δᴿ , Σᴿ , Γᴿ ⟩) → Set₁ where
 
   focus-·₁ : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {L M : Term Δᴸ} {L′ M′ : Term Δᴿ}
       {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
@@ -92,8 +92,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.·⊑·² function-rel argument-rel) ↘ᶜ pack function-rel
 
   focus-·₂ : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {L M : Term Δᴸ} {L′ M′ : Term Δᴿ}
       {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
@@ -104,8 +102,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.·⊑·² function-rel argument-rel) ↘ᶜ pack argument-rel
 
   focus-⊕₁ : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {L M : Term Δᴸ} {L′ M′ : Term Δᴿ} {op : Prim}
       {p q : primArgTy op ⊑ᵀ⟨ γ ⟩ primArgTy op}
@@ -115,8 +111,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.⊕⊑⊕² op left-rel right-rel r) ↘ᶜ pack left-rel
 
   focus-⊕₂ : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {L M : Term Δᴸ} {L′ M′ : Term Δᴿ} {op : Prim}
       {p q : primArgTy op ⊑ᵀ⟨ γ ⟩ primArgTy op}
@@ -127,8 +121,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.⊕⊑⊕² op left-rel right-rel r) ↘ᶜ pack right-rel
 
   focus-•-paired : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {C : Ty (Nat.suc Δᴸ)} {C′ : Ty (Nat.suc Δᴿ)}
@@ -140,8 +132,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.•⊑•² p∀ related q r) ↘ᶜ pack related
 
   focus-•-source : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {C : Ty (Nat.suc Δᴸ)} {A : Ty Δᴸ} {B : Ty Δᴿ}
@@ -152,8 +142,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.•⊑² p∀ related q r) ↘ᶜ pack related
 
   focus-cast-paired : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {C A : Ty Δᴸ} {C′ A′ : Ty Δᴿ}
@@ -165,8 +153,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.cast⊑cast² c c′ related q) ↘ᶜ pack related
 
   focus-cast-target : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A : Ty Δᴸ} {B B′ : Ty Δᴿ}
@@ -177,8 +163,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.⊑cast² c′ related q) ↘ᶜ pack related
 
   focus-cast-source : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A A′ : Ty Δᴸ} {B : Ty Δᴿ}
@@ -194,8 +178,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
 ------------------------------------------------------------------------
 
   focus-target-reveal-identity : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ} {Xᴿ : TyVar Δᴿ}
@@ -207,8 +189,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.⊑reveal-identity c′⊢ absent related q) ↘ᶜ pack related
 
   focus-target-conceal-identity : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ} {Xᴿ : TyVar Δᴿ}
@@ -220,8 +200,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.⊑conceal-identity c′⊢ absent related q) ↘ᶜ pack related
 
   focus-source-reveal-identity : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ} {Xᴸ : TyVar Δᴸ}
@@ -233,8 +211,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.reveal⊑-identity c⊢ absent related q) ↘ᶜ pack related
 
   focus-source-conceal-identity : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ} {Xᴸ : TyVar Δᴸ}
@@ -246,8 +222,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.conceal⊑-identity c⊢ absent related q) ↘ᶜ pack related
 
   focus-source-reveal-only : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ} {Xᴸ : TyVar Δᴸ}
@@ -264,8 +238,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
         ↘ᶜ pack related
 
   focus-source-conceal-only : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A A′ Rᴸ : Ty Δᴸ} {B : Ty Δᴿ} {Xᴸ : TyVar Δᴸ}
@@ -282,8 +254,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
         ↘ᶜ pack related
 
   focus-reveal-paired : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A B Rᴸ : Ty Δᴸ} {A′ B′ Rᴿ : Ty Δᴿ}
@@ -303,8 +273,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
         representation-rel related q) ↘ᶜ pack related
 
   focus-conceal-paired : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A B Rᴸ : Ty Δᴸ} {A′ B′ Rᴿ : Ty Δᴿ}
@@ -324,8 +292,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
         representation-rel related q) ↘ᶜ pack related
 
   focus-target-reveal-rebase : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
@@ -339,8 +305,6 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
     → pack (CTI.⊑reveal-rebase² c′⊢ rebase related q) ↘ᶜ pack related
 
   focus-target-conceal-rebase : ∀
-      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
-      {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
       {γ γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
       {M : Term Δᴸ} {M′ : Term Δᴿ}
       {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
@@ -359,17 +323,17 @@ data _↘ᶜ_ {Δᴸ Δᴿ : TyCtx} :
 
 infix 4 _↘ᶜ*_
 
-data _↘ᶜ*_ {Δᴸ Δᴿ : TyCtx} :
-    RelatedConfiguration Δᴸ Δᴿ →
-    RelatedConfiguration Δᴸ Δᴿ → Set₁ where
+data _↘ᶜ*_ {Cᴸ Cᴿ : Ctx} :
+    RelatedConfiguration Cᴸ Cᴿ →
+    RelatedConfiguration Cᴸ Cᴿ → Set₁ where
   focus-here : ∀ {related} → related ↘ᶜ* related
   focus-there : ∀ {outer middle focus}
     → outer ↘ᶜ middle
     → middle ↘ᶜ* focus
     → outer ↘ᶜ* focus
 
-extend-focus : ∀ {Δᴸ Δᴿ}
-    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+extend-focus : ∀ {Cᴸ Cᴿ}
+    {outer middle focus : RelatedConfiguration Cᴸ Cᴿ}
   → outer ↘ᶜ* middle
   → middle ↘ᶜ focus
   → outer ↘ᶜ* focus
@@ -445,9 +409,9 @@ rebuildFrame (paired-concealᶠ c) χ P =
 rebuildFrame target-reveal-rebaseᶠ χ P = P
 rebuildFrame target-conceal-rebaseᶠ χ P = P
 
-sourceFrame : ∀ {Δᴸ Δᴿ}
-    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
-  → outer ↘ᶜ inner → SourceFrame Δᴸ
+sourceFrame : ∀ {Cᴸ Cᴿ}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+  → outer ↘ᶜ inner → SourceFrame (Δᵉ Cᴸ)
 sourceFrame (focus-·₁ {M = M} function-rel argument-rel) = app-leftᶠ M
 sourceFrame
     (focus-·₂ {L = L} function-rel argument-rel source-value) =
@@ -493,8 +457,8 @@ sourceFrame (focus-target-reveal-rebase c′⊢ rebase related q) =
 sourceFrame (focus-target-conceal-rebase c′⊢ rebase related q) =
   target-conceal-rebaseᶠ
 
-TargetEdgeReady : ∀ {Δᴸ Δᴿ}
-    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+TargetEdgeReady : ∀ {Cᴸ Cᴿ}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
   → outer ↘ᶜ inner → Set
 TargetEdgeReady (focus-·₁ function-rel argument-rel) = ⊤
 TargetEdgeReady
@@ -528,9 +492,9 @@ TargetEdgeReady
 TargetEdgeReady (focus-target-reveal-rebase c′⊢ rebase related q) = ⊤
 TargetEdgeReady (focus-target-conceal-rebase c′⊢ rebase related q) = ⊤
 
-record TargetEdgeEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx}
-    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
-    {outer′ inner′ : RelatedConfiguration Δᴸ Δᴿ′}
+record TargetEdgeEvolution {Cᴸ Cᴿ Cᴿ′ : Ctx}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    {outer′ inner′ : RelatedConfiguration Cᴸ Cᴿ′}
     (edge : outer ↘ᶜ inner) (edge′ : outer′ ↘ᶜ inner′) : Set₁ where
   constructor evolve-edge
   field
@@ -539,9 +503,252 @@ record TargetEdgeEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx}
 
 open TargetEdgeEvolution
 
-data TargetPathEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx} :
-    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
-    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+
+------------------------------------------------------------------------
+-- Constructor-form views of the four binary evaluation edges
+------------------------------------------------------------------------
+
+data ApplicationLeftEdgeView {Cᴸ Cᴿ : Ctx}
+    (outer inner : RelatedConfiguration Cᴸ Cᴿ)
+    (source-argument : Term (Δᵉ Cᴸ)) : Set₁ where
+
+  application-left-edge : ∀
+      {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {L : Term (Δᵉ Cᴸ)} {L′ M′ : Term (Δᵉ Cᴿ)}
+      {A B : Ty (Δᵉ Cᴸ)} {A′ B′ : Ty (Δᵉ Cᴿ)}
+      {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
+      (function-rel : γ CTI.⊢² L ⊑ L′ ∶ ⇒⊑⇒ pA pB)
+      (argument-rel : γ CTI.⊢² source-argument ⊑ M′ ∶ pA)
+    → outer ≡ pack (CTI.·⊑·² function-rel argument-rel)
+    → inner ≡ pack function-rel
+    → ApplicationLeftEdgeView outer inner source-argument
+
+application-left-edge-view : ∀ {Cᴸ Cᴿ M}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    (edge : outer ↘ᶜ inner)
+  → sourceFrame edge ≡ app-leftᶠ M
+  → ApplicationLeftEdgeView outer inner M
+application-left-edge-view (focus-·₁ function-rel argument-rel) refl =
+  application-left-edge function-rel argument-rel refl refl
+application-left-edge-view
+    (focus-·₂ function-rel argument-rel source-value) ()
+application-left-edge-view (focus-⊕₁ left-rel right-rel r) ()
+application-left-edge-view
+    (focus-⊕₂ left-rel right-rel r source-value) ()
+application-left-edge-view (focus-•-paired p∀ related q r) ()
+application-left-edge-view (focus-•-source p∀ related q r) ()
+application-left-edge-view (focus-cast-paired c c′ related q) ()
+application-left-edge-view (focus-cast-target c′ related q) ()
+application-left-edge-view (focus-cast-source c related q) ()
+application-left-edge-view
+    (focus-target-reveal-identity c′⊢ absent related q) ()
+application-left-edge-view
+    (focus-target-conceal-identity c′⊢ absent related q) ()
+application-left-edge-view
+    (focus-source-reveal-identity c⊢ absent related q) ()
+application-left-edge-view
+    (focus-source-conceal-identity c⊢ absent related q) ()
+application-left-edge-view
+    (focus-source-reveal-only
+      c⊢ present mark free represented related q) ()
+application-left-edge-view
+    (focus-source-conceal-only
+      c⊢ present mark free represented related q) ()
+application-left-edge-view
+    (focus-reveal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+application-left-edge-view
+    (focus-conceal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+application-left-edge-view
+    (focus-target-reveal-rebase c′⊢ rebase related q) ()
+application-left-edge-view
+    (focus-target-conceal-rebase c′⊢ rebase related q) ()
+
+data ApplicationRightEdgeView {Cᴸ Cᴿ : Ctx}
+    (outer inner : RelatedConfiguration Cᴸ Cᴿ)
+    (source-function : Term (Δᵉ Cᴸ)) : Set₁ where
+
+  application-right-edge : ∀
+      {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {M : Term (Δᵉ Cᴸ)} {L′ M′ : Term (Δᵉ Cᴿ)}
+      {A B : Ty (Δᵉ Cᴸ)} {A′ B′ : Ty (Δᵉ Cᴿ)}
+      {pA : A ⊑ᵀ⟨ γ ⟩ A′} {pB : B ⊑ᵀ⟨ γ ⟩ B′}
+      (function-rel : γ CTI.⊢² source-function ⊑ L′ ∶ ⇒⊑⇒ pA pB)
+      (argument-rel : γ CTI.⊢² M ⊑ M′ ∶ pA)
+      (source-value : Value source-function)
+      (target-value : Value L′)
+    → outer ≡ pack (CTI.·⊑·² function-rel argument-rel)
+    → inner ≡ pack argument-rel
+    → ApplicationRightEdgeView outer inner source-function
+
+application-right-edge-view : ∀ {Cᴸ Cᴿ L}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    (edge : outer ↘ᶜ inner)
+  → sourceFrame edge ≡ app-rightᶠ L
+  → TargetEdgeReady edge
+  → ApplicationRightEdgeView outer inner L
+application-right-edge-view (focus-·₁ function-rel argument-rel) () ready
+application-right-edge-view
+    (focus-·₂ function-rel argument-rel source-value) refl target-value =
+  application-right-edge function-rel argument-rel source-value target-value
+    refl refl
+application-right-edge-view (focus-⊕₁ left-rel right-rel r) () ready
+application-right-edge-view
+    (focus-⊕₂ left-rel right-rel r source-value) () ready
+application-right-edge-view (focus-•-paired p∀ related q r) () ready
+application-right-edge-view (focus-•-source p∀ related q r) () ready
+application-right-edge-view (focus-cast-paired c c′ related q) () ready
+application-right-edge-view (focus-cast-target c′ related q) () ready
+application-right-edge-view (focus-cast-source c related q) () ready
+application-right-edge-view
+    (focus-target-reveal-identity c′⊢ absent related q) () ready
+application-right-edge-view
+    (focus-target-conceal-identity c′⊢ absent related q) () ready
+application-right-edge-view
+    (focus-source-reveal-identity c⊢ absent related q) () ready
+application-right-edge-view
+    (focus-source-conceal-identity c⊢ absent related q) () ready
+application-right-edge-view
+    (focus-source-reveal-only
+      c⊢ present mark free represented related q) () ready
+application-right-edge-view
+    (focus-source-conceal-only
+      c⊢ present mark free represented related q) () ready
+application-right-edge-view
+    (focus-reveal-paired
+      c⊢ c′⊢ positions aligned represented related q) () ready
+application-right-edge-view
+    (focus-conceal-paired
+      c⊢ c′⊢ positions aligned represented related q) () ready
+application-right-edge-view
+    (focus-target-reveal-rebase c′⊢ rebase related q) () ready
+application-right-edge-view
+    (focus-target-conceal-rebase c′⊢ rebase related q) () ready
+
+data PrimitiveLeftEdgeView {Cᴸ Cᴿ : Ctx}
+    (outer inner : RelatedConfiguration Cᴸ Cᴿ)
+    (op : Prim) (source-right : Term (Δᵉ Cᴸ)) : Set₁ where
+
+  primitive-left-edge : ∀
+      {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {L : Term (Δᵉ Cᴸ)} {L′ M′ : Term (Δᵉ Cᴿ)}
+      {p q : primArgTy op ⊑ᵀ⟨ γ ⟩ primArgTy op}
+      (left-rel : γ CTI.⊢² L ⊑ L′ ∶ p)
+      (right-rel : γ CTI.⊢² source-right ⊑ M′ ∶ q)
+      (result-rel :
+        primResultTy op ⊑ᵀ⟨ γ ⟩ primResultTy op)
+    → outer ≡ pack (CTI.⊕⊑⊕² op left-rel right-rel result-rel)
+    → inner ≡ pack left-rel
+    → PrimitiveLeftEdgeView outer inner op source-right
+
+primitive-left-edge-view : ∀ {Cᴸ Cᴿ op M}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    (edge : outer ↘ᶜ inner)
+  → sourceFrame edge ≡ primitive-leftᶠ op M
+  → PrimitiveLeftEdgeView outer inner op M
+primitive-left-edge-view (focus-·₁ function-rel argument-rel) ()
+primitive-left-edge-view
+    (focus-·₂ function-rel argument-rel source-value) ()
+primitive-left-edge-view (focus-⊕₁ left-rel right-rel r) refl =
+  primitive-left-edge left-rel right-rel r refl refl
+primitive-left-edge-view
+    (focus-⊕₂ left-rel right-rel r source-value) ()
+primitive-left-edge-view (focus-•-paired p∀ related q r) ()
+primitive-left-edge-view (focus-•-source p∀ related q r) ()
+primitive-left-edge-view (focus-cast-paired c c′ related q) ()
+primitive-left-edge-view (focus-cast-target c′ related q) ()
+primitive-left-edge-view (focus-cast-source c related q) ()
+primitive-left-edge-view
+    (focus-target-reveal-identity c′⊢ absent related q) ()
+primitive-left-edge-view
+    (focus-target-conceal-identity c′⊢ absent related q) ()
+primitive-left-edge-view
+    (focus-source-reveal-identity c⊢ absent related q) ()
+primitive-left-edge-view
+    (focus-source-conceal-identity c⊢ absent related q) ()
+primitive-left-edge-view
+    (focus-source-reveal-only
+      c⊢ present mark free represented related q) ()
+primitive-left-edge-view
+    (focus-source-conceal-only
+      c⊢ present mark free represented related q) ()
+primitive-left-edge-view
+    (focus-reveal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+primitive-left-edge-view
+    (focus-conceal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+primitive-left-edge-view
+    (focus-target-reveal-rebase c′⊢ rebase related q) ()
+primitive-left-edge-view
+    (focus-target-conceal-rebase c′⊢ rebase related q) ()
+
+data PrimitiveRightEdgeView {Cᴸ Cᴿ : Ctx}
+    (outer inner : RelatedConfiguration Cᴸ Cᴿ)
+    (op : Prim) (source-left : Term (Δᵉ Cᴸ)) : Set₁ where
+
+  primitive-right-edge : ∀
+      {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {M : Term (Δᵉ Cᴸ)} {L′ M′ : Term (Δᵉ Cᴿ)}
+      {p q : primArgTy op ⊑ᵀ⟨ γ ⟩ primArgTy op}
+      (left-rel : γ CTI.⊢² source-left ⊑ L′ ∶ p)
+      (right-rel : γ CTI.⊢² M ⊑ M′ ∶ q)
+      (result-rel :
+        primResultTy op ⊑ᵀ⟨ γ ⟩ primResultTy op)
+      (source-value : Value source-left)
+      (target-value : Value L′)
+    → outer ≡ pack (CTI.⊕⊑⊕² op left-rel right-rel result-rel)
+    → inner ≡ pack right-rel
+    → PrimitiveRightEdgeView outer inner op source-left
+
+primitive-right-edge-view : ∀ {Cᴸ Cᴿ op L}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    (edge : outer ↘ᶜ inner)
+  → sourceFrame edge ≡ primitive-rightᶠ op L
+  → TargetEdgeReady edge
+  → PrimitiveRightEdgeView outer inner op L
+primitive-right-edge-view (focus-·₁ function-rel argument-rel) () ready
+primitive-right-edge-view
+    (focus-·₂ function-rel argument-rel source-value) () ready
+primitive-right-edge-view (focus-⊕₁ left-rel right-rel r) () ready
+primitive-right-edge-view
+    (focus-⊕₂ left-rel right-rel r source-value) refl target-value =
+  primitive-right-edge left-rel right-rel r source-value target-value
+    refl refl
+primitive-right-edge-view (focus-•-paired p∀ related q r) () ready
+primitive-right-edge-view (focus-•-source p∀ related q r) () ready
+primitive-right-edge-view (focus-cast-paired c c′ related q) () ready
+primitive-right-edge-view (focus-cast-target c′ related q) () ready
+primitive-right-edge-view (focus-cast-source c related q) () ready
+primitive-right-edge-view
+    (focus-target-reveal-identity c′⊢ absent related q) () ready
+primitive-right-edge-view
+    (focus-target-conceal-identity c′⊢ absent related q) () ready
+primitive-right-edge-view
+    (focus-source-reveal-identity c⊢ absent related q) () ready
+primitive-right-edge-view
+    (focus-source-conceal-identity c⊢ absent related q) () ready
+primitive-right-edge-view
+    (focus-source-reveal-only
+      c⊢ present mark free represented related q) () ready
+primitive-right-edge-view
+    (focus-source-conceal-only
+      c⊢ present mark free represented related q) () ready
+primitive-right-edge-view
+    (focus-reveal-paired
+      c⊢ c′⊢ positions aligned represented related q) () ready
+primitive-right-edge-view
+    (focus-conceal-paired
+      c⊢ c′⊢ positions aligned represented related q) () ready
+primitive-right-edge-view
+    (focus-target-reveal-rebase c′⊢ rebase related q) () ready
+primitive-right-edge-view
+    (focus-target-conceal-rebase c′⊢ rebase related q) () ready
+
+data TargetPathEvolution {Cᴸ Cᴿ Cᴿ′ : Ctx} :
+    {outer focus : RelatedConfiguration Cᴸ Cᴿ}
+    {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}
     (path : outer ↘ᶜ* focus) (path′ : outer′ ↘ᶜ* focus′) → Set₁ where
   evolve-here : ∀ {related related′}
     → TargetPathEvolution
@@ -554,13 +761,45 @@ data TargetPathEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx} :
     → TargetPathEvolution
         (focus-there edge tail) (focus-there edge′ tail′)
 
-data TargetExtendedPathEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx}
-    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+compose-target-edge-evolution : ∀ {Cᴸ Cᴿ₁ Cᴿ₂ Cᴿ₃}
+    {outer₁ inner₁ : RelatedConfiguration Cᴸ Cᴿ₁}
+    {outer₂ inner₂ : RelatedConfiguration Cᴸ Cᴿ₂}
+    {outer₃ inner₃ : RelatedConfiguration Cᴸ Cᴿ₃}
+    {edge₁ : outer₁ ↘ᶜ inner₁} {edge₂ : outer₂ ↘ᶜ inner₂}
+    {edge₃ : outer₃ ↘ᶜ inner₃}
+  → TargetEdgeEvolution edge₁ edge₂
+  → TargetEdgeEvolution edge₂ edge₃
+  → TargetEdgeEvolution edge₁ edge₃
+compose-target-edge-evolution evolution₁ evolution₂ =
+  evolve-edge
+    (trans (same-source-frame evolution₁)
+      (same-source-frame evolution₂))
+    (target-edge-ready evolution₂)
+
+compose-target-path-evolution : ∀ {Cᴸ Cᴿ₁ Cᴿ₂ Cᴿ₃}
+    {outer₁ focus₁ : RelatedConfiguration Cᴸ Cᴿ₁}
+    {outer₂ focus₂ : RelatedConfiguration Cᴸ Cᴿ₂}
+    {outer₃ focus₃ : RelatedConfiguration Cᴸ Cᴿ₃}
+    {path₁ : outer₁ ↘ᶜ* focus₁} {path₂ : outer₂ ↘ᶜ* focus₂}
+    {path₃ : outer₃ ↘ᶜ* focus₃}
+  → TargetPathEvolution path₁ path₂
+  → TargetPathEvolution path₂ path₃
+  → TargetPathEvolution path₁ path₃
+compose-target-path-evolution evolve-here evolve-here = evolve-here
+compose-target-path-evolution
+    (evolve-there edge-evolution₁ path-evolution₁)
+    (evolve-there edge-evolution₂ path-evolution₂) =
+  evolve-there
+    (compose-target-edge-evolution edge-evolution₁ edge-evolution₂)
+    (compose-target-path-evolution path-evolution₁ path-evolution₂)
+
+data TargetExtendedPathEvolution {Cᴸ Cᴿ Cᴿ′ : Ctx}
+    {outer middle focus : RelatedConfiguration Cᴸ Cᴿ}
     (path : outer ↘ᶜ* middle) (edge : middle ↘ᶜ focus)
-    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+    {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}
     (path′ : outer′ ↘ᶜ* focus′) : Set₁ where
   evolved-extended-path : ∀
-      {middle′ : RelatedConfiguration Δᴸ Δᴿ′}
+      {middle′ : RelatedConfiguration Cᴸ Cᴿ′}
       (prefix′ : outer′ ↘ᶜ* middle′)
       (edge′ : middle′ ↘ᶜ focus′)
     → path′ ≡ extend-focus prefix′ edge′
@@ -568,10 +807,10 @@ data TargetExtendedPathEvolution {Δᴸ Δᴿ Δᴿ′ : TyCtx}
     → TargetEdgeEvolution edge edge′
     → TargetExtendedPathEvolution path edge path′
 
-split-target-extended-path : ∀ {Δᴸ Δᴿ Δᴿ′}
-    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+split-target-extended-path : ∀ {Cᴸ Cᴿ Cᴿ′}
+    {outer middle focus : RelatedConfiguration Cᴸ Cᴿ}
     {path : outer ↘ᶜ* middle} {edge : middle ↘ᶜ focus}
-    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+    {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}
     {path′ : outer′ ↘ᶜ* focus′}
   → TargetPathEvolution (extend-focus path edge) path′
   → TargetExtendedPathEvolution path edge path′
@@ -595,8 +834,8 @@ split-target-extended-path {path = focus-there outer-edge tail}
 -- Target evaluation readiness after focused value catch-up
 ------------------------------------------------------------------------
 
-TargetReady : ∀ {Δᴸ Δᴿ}
-    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
+TargetReady : ∀ {Cᴸ Cᴿ}
+    {outer focus : RelatedConfiguration Cᴸ Cᴿ}
   → outer ↘ᶜ* focus → Set
 TargetReady focus-here = ⊤
 TargetReady (focus-there (focus-·₁ function-rel argument-rel) tail) =
@@ -667,8 +906,8 @@ TargetReady
       (focus-target-conceal-rebase c′⊢ rebase related q) tail) =
   TargetReady tail
 
-extend-target-ready : ∀ {Δᴸ Δᴿ}
-    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+extend-target-ready : ∀ {Cᴸ Cᴿ}
+    {outer middle focus : RelatedConfiguration Cᴸ Cᴿ}
     (edge : outer ↘ᶜ middle) {tail : middle ↘ᶜ* focus}
   → TargetEdgeReady edge
   → TargetReady tail
@@ -723,9 +962,9 @@ extend-target-ready
     (focus-target-conceal-rebase c′⊢ rebase related q) tt ready =
   ready
 
-target-path-ready : ∀ {Δᴸ Δᴿ Δᴿ′}
-    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
-    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+target-path-ready : ∀ {Cᴸ Cᴿ Cᴿ′}
+    {outer focus : RelatedConfiguration Cᴸ Cᴿ}
+    {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}
     {path : outer ↘ᶜ* focus} {path′ : outer′ ↘ᶜ* focus′}
   → TargetPathEvolution path path′
   → TargetReady path′
@@ -739,10 +978,10 @@ target-path-ready (evolve-there edge-evolution path-evolution) =
 -- Source reduct reconstruction through the zipper
 ------------------------------------------------------------------------
 
-rebuildSourceEdge : ∀ {Δᴸ Δᴿ Δᴸ′}
-    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+rebuildSourceEdge : ∀ {Cᴸ Cᴿ Δᴸ′}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
   → outer ↘ᶜ inner
-  → StoreChange Δᴸ Δᴸ′
+  → StoreChange (Δᵉ Cᴸ) Δᴸ′
   → Term Δᴸ′
   → Term Δᴸ′
 rebuildSourceEdge (focus-·₁ {M = M} function-rel argument-rel)
@@ -796,42 +1035,43 @@ rebuildSourceEdge
 rebuildSourceEdge
     (focus-target-conceal-rebase c′⊢ rebase related q) χᴸ N = N
 
-data RebuildSourceEdge {Δᴸ Δᴿ Δᴸ′}
-    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
+data RebuildSourceEdge {Cᴸ Cᴿ : Ctx} {Δᴸ′ : TyCtx}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
     (edge : outer ↘ᶜ inner)
-    (χᴸ : StoreChange Δᴸ Δᴸ′)
+    (χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′)
     (inner-result : Term Δᴸ′) : Term Δᴸ′ → Set where
 
   rebuild-edge : ∀ {outer-result}
     → outer-result ≡ rebuildSourceEdge edge χᴸ inner-result
     → RebuildSourceEdge edge χᴸ inner-result outer-result
 
-data RebuildSource {Δᴸ Δᴿ Δᴸ′} :
-    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
+data RebuildSource {Cᴸ Cᴿ : Ctx} {Δᴸ′ : TyCtx} :
+    {outer focus : RelatedConfiguration Cᴸ Cᴿ}
     → (path : outer ↘ᶜ* focus)
-    → (χᴸ : StoreChange Δᴸ Δᴸ′)
+    → (χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′)
     → (focus-result : Term Δᴸ′)
     → Term Δᴸ′ → Set₁ where
 
-  rebuild-here : ∀ {related : RelatedConfiguration Δᴸ Δᴿ}
-      {χᴸ : StoreChange Δᴸ Δᴸ′} {focus-result result : Term Δᴸ′}
+  rebuild-here : ∀ {related : RelatedConfiguration Cᴸ Cᴿ}
+      {χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′}
+      {focus-result result : Term Δᴸ′}
     → result ≡ focus-result
     → RebuildSource {outer = related} {focus = related}
         focus-here χᴸ focus-result result
 
   rebuild-there : ∀
-      {outer focus middle : RelatedConfiguration Δᴸ Δᴿ}
-      {χᴸ : StoreChange Δᴸ Δᴸ′}
+      {outer focus middle : RelatedConfiguration Cᴸ Cᴿ}
+      {χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′}
       {focus-result middle-result outer-result : Term Δᴸ′}
       {edge : outer ↘ᶜ middle} {tail : middle ↘ᶜ* focus}
     → RebuildSource tail χᴸ focus-result middle-result
     → RebuildSourceEdge edge χᴸ middle-result outer-result
     → RebuildSource (focus-there edge tail) χᴸ focus-result outer-result
 
-extend-rebuild : ∀ {Δᴸ Δᴿ Δᴸ′}
-    {outer middle focus : RelatedConfiguration Δᴸ Δᴿ}
+extend-rebuild : ∀ {Cᴸ Cᴿ Δᴸ′}
+    {outer middle focus : RelatedConfiguration Cᴸ Cᴿ}
     {path : outer ↘ᶜ* middle} {edge : middle ↘ᶜ focus}
-    {χᴸ : StoreChange Δᴸ Δᴸ′}
+    {χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′}
     {focus-result middle-result outer-result : Term Δᴸ′}
   → RebuildSource path χᴸ middle-result outer-result
   → RebuildSourceEdge edge χᴸ focus-result middle-result
@@ -841,9 +1081,9 @@ extend-rebuild (rebuild-here refl) edge-rebuild =
 extend-rebuild (rebuild-there tail-rebuild outer-rebuild) edge-rebuild =
   rebuild-there (extend-rebuild tail-rebuild edge-rebuild) outer-rebuild
 
-source-frame-rebuild : ∀ {Δᴸ Δᴿ Δᴸ′}
-    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
-    (edge : outer ↘ᶜ inner) (χᴸ : StoreChange Δᴸ Δᴸ′)
+source-frame-rebuild : ∀ {Cᴸ Cᴿ Δᴸ′}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    (edge : outer ↘ᶜ inner) (χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′)
     (P : Term Δᴸ′)
   → rebuildSourceEdge edge χᴸ P ≡ rebuildFrame (sourceFrame edge) χᴸ P
 source-frame-rebuild (focus-·₁ function-rel argument-rel) χᴸ P = refl
@@ -882,12 +1122,12 @@ source-frame-rebuild
 source-frame-rebuild
     (focus-target-conceal-rebase c′⊢ rebase related q) χᴸ P = refl
 
-edge-rebuild-equality : ∀ {Δᴸ Δᴿ Δᴿ′ Δᴸ′}
-    {outer inner : RelatedConfiguration Δᴸ Δᴿ}
-    {outer′ inner′ : RelatedConfiguration Δᴸ Δᴿ′}
+edge-rebuild-equality : ∀ {Cᴸ Cᴿ Cᴿ′ Δᴸ′}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    {outer′ inner′ : RelatedConfiguration Cᴸ Cᴿ′}
     {edge : outer ↘ᶜ inner} {edge′ : outer′ ↘ᶜ inner′}
   → TargetEdgeEvolution edge edge′
-  → (χᴸ : StoreChange Δᴸ Δᴸ′)
+  → (χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′)
   → (P : Term Δᴸ′)
   → rebuildSourceEdge edge χᴸ P ≡ rebuildSourceEdge edge′ χᴸ P
 edge-rebuild-equality {edge = edge} {edge′ = edge′} evolution χᴸ P =
@@ -897,11 +1137,11 @@ edge-rebuild-equality {edge = edge} {edge′ = edge′} evolution χᴸ P =
         (same-source-frame evolution))
       (sym (source-frame-rebuild edge′ χᴸ P)))
 
-transport-rebuild : ∀ {Δᴸ Δᴿ Δᴿ′ Δᴸ′}
-    {outer focus : RelatedConfiguration Δᴸ Δᴿ}
-    {outer′ focus′ : RelatedConfiguration Δᴸ Δᴿ′}
+transport-rebuild : ∀ {Cᴸ Cᴿ Cᴿ′ Δᴸ′}
+    {outer focus : RelatedConfiguration Cᴸ Cᴿ}
+    {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}
     {path : outer ↘ᶜ* focus} {path′ : outer′ ↘ᶜ* focus′}
-    {χᴸ : StoreChange Δᴸ Δᴸ′} {P N : Term Δᴸ′}
+    {χᴸ : StoreChange (Δᵉ Cᴸ) Δᴸ′} {P N : Term Δᴸ′}
   → TargetPathEvolution path path′
   → RebuildSource path χᴸ P N
   → RebuildSource path′ χᴸ P N
@@ -934,10 +1174,7 @@ ContextualTargetRevealRebaseClosingᵀ = ∀
   → {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
   → (root-related : γᵖ CTI.⊢² M ⊑ M′ ∶ p)
   → (q : A ⊑ᵀ⟨ γ ⟩ B′)
-  → ∀ {Σᴸᶠ : TyStore Δᴸ} {Σᴿᶠ : TyStore Δᴿ}
-      {Γᴸᶠ : TermCtx Δᴸ} {Γᴿᶠ : TermCtx Δᴿ}
-      {γᶠ : ⟨ Δᴸ , Σᴸᶠ , Γᴸᶠ ⟩ ⊑ᶜ
-        ⟨ Δᴿ , Σᴿᶠ , Γᴿᶠ ⟩}
+  → ∀ {γᶠ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
       {L : Term Δᴸ} {L′ : Term Δᴿ}
       {C : Ty Δᴸ} {D : Ty Δᴿ} {s : C ⊑ᵀ⟨ γᶠ ⟩ D}
       (focus-related : γᶠ CTI.⊢² L ⊑ L′ ∶ s)

@@ -74,6 +74,8 @@ open import
 open import proof.DGG.TransportTermImprecisionStepDef
   using (TransportTargetBindᵀ)
 open import proof.DGG.InjectionConsistency using (rename∼ⁱ)
+open import proof.DGG.ConversionAbsentEndpointLemma using
+  (reveal-absent-endpoints; conceal-absent-endpoints)
 open import proof.DGG.Inversion.SpineValueDef using
   ( AllValueView; allv-Λ; allv-∀; allv-gen; allv-reveal; allv-conceal
   ; SpineValue; sv-ƛ; sv-Λ; sv-$; sv-cast; sv-seal
@@ -1276,22 +1278,29 @@ module _
         (source-value 《 inert 》) target-value spine (acc smaller)
       | child = child
 
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {γ = γ} {E = E} {q = final-q} view
         (CTI.reveal⊑-identity c⊢ position prem q)
         (source-value ↑ all) target-value spine (acc smaller)
         with name-spine-catchup-acc
-          {q = {! pre-reveal spine imprecision !}}
+          {q = subst≡ (λ A → A ⊑ᵀ⟨ γ ⟩ E)
+            (sym (reveal-absent-endpoints c⊢ position)) final-q}
           view prem source-value target-value spine
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
                 inj₂ (refl ,
                   inj₂ (refl , n<1+n _))))))
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {q = final-q} view
         (CTI.reveal⊑-identity c⊢ position prem q)
         (source-value ↑ all) target-value spine (acc smaller)
-      | child =
-        {! replay source identity reveal after the spine catch-up !}
+      | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
+        evolution , final =
+        Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , multi-⊑ᵀ evolution final-q ,
+          reduction , value , evolution ,
+          CTI.reveal⊑-identity
+            (multi-source-reveal evolution c⊢)
+            (trans (multi-source-reveal-position evolution c⊢) position)
+            final (multi-⊑ᵀ evolution final-q)
 
     name-spine-catchup-acc view
         (CTI.reveal⊑-only² c⊢ position mark no-target represented prem q)
@@ -1310,22 +1319,29 @@ module _
       | child =
         {! replay source-only reveal after the spine catch-up !}
 
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {γ = γ} {E = E} {q = final-q} view
         (CTI.conceal⊑-identity c⊢ position prem q)
         (source-value ↓ all) target-value spine (acc smaller)
         with name-spine-catchup-acc
-          {q = {! pre-conceal spine imprecision !}}
+          {q = subst≡ (λ A → A ⊑ᵀ⟨ γ ⟩ E)
+            (sym (conceal-absent-endpoints c⊢ position)) final-q}
           view prem source-value target-value spine
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
                 inj₂ (refl ,
                   inj₂ (refl , n<1+n _))))))
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {q = final-q} view
         (CTI.conceal⊑-identity c⊢ position prem q)
         (source-value ↓ all) target-value spine (acc smaller)
-      | child =
-        {! replay source identity conceal after the spine catch-up !}
+      | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
+        evolution , final =
+        Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , multi-⊑ᵀ evolution final-q ,
+          reduction , value , evolution ,
+          CTI.conceal⊑-identity
+            (multi-source-conceal evolution c⊢)
+            (trans (multi-source-conceal-position evolution c⊢) position)
+            final (multi-⊑ᵀ evolution final-q)
 
     name-spine-catchup-acc view
         (CTI.conceal⊑-only² c⊢ position mark no-target represented prem q)

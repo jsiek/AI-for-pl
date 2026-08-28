@@ -25,9 +25,9 @@ module alt.ThetaPreservation where
 --   * The former `β-conceal-⇒` counterexample's contractum remains a checked
 --     positive instance.  Balanced end/begin extension now supplies the
 --     general re-entry transport.
---   * The refuted resolving `float-reveal` rule was deleted together with
---     `float-conceal`: regions now stay at their birth delimiter depth.  The
---     former checked counterexample remains below as a historical comment.
+--   * The guarded `float-reveal` moves only entries that strengthen across
+--     the crossing.  Its telescope exchange is justified by the weakening
+--     round trip, without representation resolution.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -282,6 +282,23 @@ preserve-β-conceal-⇒
   ⊢conceal tyVar-eq α-eq d⊢
     (⊢· V⊢ (⊢reveal α-eq c⊢ (⊢reenter tyVar-eq W⊢)))
 
+preserve-float-reveal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
+    {A : Ty (suc Δ)} {A₀ B : Ty Δ} {M : Term (suc Θ) (suc Δ)}
+    {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
+  → strengthenᵗ? Y A ≡ just A₀
+  → Ψ ∣ [] ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c ⦂ B
+  → Ψ ∣ [] ⊢ ν[ A₀ ] (M ↑[ Y ≔ suc α ] c) ⦂ B
+preserve-float-reveal {Θ = Θ} {Ψ = Ψ} {A₀ = A₀} {M = M}
+    {Y = Y} {α = α} strengthens
+    (⊢reveal {fresh = fresh} α-eq c⊢ (⊢ν M⊢)) =
+  ⊢ν (⊢reveal (rep?-ν {Θ = Θ} {Ψ = Ψ} {B = A₀} {a = α} α-eq) c⊢
+    (⊢unbracket-target unbracket-begin-ν source-M⊢))
+  where
+  source-M⊢ = subst≡
+    (λ entry → ((Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩) ,:= entry)
+      ∣ [] ⊢ M ⦂ _)
+    (strengthenᵗ?-sound strengthens) M⊢
+
 preserve-id-cancel : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {A}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ ⦂ A
@@ -529,6 +546,8 @@ preserve (⊢· V⊢ M⊢) (ξ-·₂ Vᵥ step) =
   ⊢· V⊢ (preserve M⊢ step)
 preserve (⊢⦂∀ M⊢) (ξ-• step) = ⊢⦂∀ (preserve M⊢ step)
 preserve (⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) = ⊢⟨⟩ (preserve M⊢ step) c
+preserve typing (float-reveal strengthens result) =
+  preserve-float-reveal strengthens typing
 preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
   ⊢reveal α∈ c⊢ (preserve M⊢ step)
 preserve (⊢conceal tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =
@@ -566,8 +585,8 @@ preserve (⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
 -- transport.  `⊢reenter` now supplies the balanced end/begin scope.
 --
 -- `float-reveal`/`float-conceal`: commits 3ee5de8c/a18f75f4 record the
--- resolving-float counterexample.  U11 deleted both delimiter-crossing
--- ν-floats, so regions remain at birth depth.
+-- resolving-float counterexample.  The restored reveal float is guarded by
+-- strengthening; conceal remains absent.
 --
 -- Strict `id-cancel`: commit c5ee0351 records the loose-rule refutation.
 -- Mismatched type variable/anchor pairs are adapter values and cannot take the strict

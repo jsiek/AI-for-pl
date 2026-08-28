@@ -425,6 +425,7 @@ mutual
       → Term Θ Δ → TyVar Δ → TyVar Θ → Reveal → Set where
     fun : ∀ {Θ Δ} {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
         {c d}
+      → Value V
       --------------------------------
       → RevealValue V X α (c ↦↑ d)
 
@@ -444,6 +445,7 @@ mutual
     adapter-region : ∀ {Θ Δ} {M : Term (suc Θ) Δ} {A : Ty Δ}
         {X : TyVar Δ} {α : TyVar Θ} {c : Reveal}
       → Result M
+      → X ∈ᵗ A
         ---------------------------------------
       → RevealValue (ν[ A ] M) X α c
 
@@ -533,6 +535,10 @@ data ΛBody : ∀ {Θ Δ} → Term Θ Δ → Set where
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → Result V
     → ΛBody (V ↓[ X ≔ α ] c)
+
+  body-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
+    → ΛBody M
+    → ΛBody (ν[ A ] M)
 
   body-Λ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
     → ΛBody V

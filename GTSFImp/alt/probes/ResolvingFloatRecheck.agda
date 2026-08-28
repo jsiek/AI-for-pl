@@ -69,7 +69,8 @@ bad-M =
 
 bad-M-value : Value bad-M
 bad-M-value =
-  result-val (ƛ ＇ zero ˙ $ (κℕ zero)) ↑[ zero ≔ zero ] fun
+  result-val (ƛ ＇ zero ˙ $ (κℕ zero)) ↑[ zero ≔ zero ]
+    fun (ƛ ＇ zero ˙ $ (κℕ zero))
 
 own-anchor-rep : rep? bodyEnv zero ≡ just (＇ zero)
 own-anchor-rep = refl

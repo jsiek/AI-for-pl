@@ -11,9 +11,11 @@ module alt.Conversion where
 open import Data.Empty using (⊥-elim)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
+open import Data.Maybe using (Maybe; just; nothing)
 import Data.Nat as Nat
+open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; trans)
+  using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -90,6 +92,126 @@ private
   punchIn-resolved-punchOut {n = Nat.suc n} (suc Y) zero Y≢X = refl
   punchIn-resolved-punchOut {n = Nat.suc n} (suc Y) (suc X) Y≢X =
     cong suc (punchIn-resolved-punchOut Y X _)
+
+------------------------------------------------------------------------
+-- Removing one unused scoped type variable
+------------------------------------------------------------------------
+
+strengthenᵗ? : ∀ {Δ}
+  → (Y : TyVar (Nat.suc Δ))
+  → Ty (Nat.suc Δ)
+  → Maybe (Ty Δ)
+strengthenᵗ? Y (＇ X) with Y ≟ X
+strengthenᵗ? Y (＇ .Y) | yes refl = nothing
+strengthenᵗ? Y (＇ X) | no Y≢X = just (＇ punchOut Y X Y≢X)
+strengthenᵗ? Y (‵ ι) = just (‵ ι)
+strengthenᵗ? Y ★ = just ★
+strengthenᵗ? Y (A ⇒ B) with strengthenᵗ? Y A | strengthenᵗ? Y B
+strengthenᵗ? Y (A ⇒ B) | just A₀ | just B₀ = just (A₀ ⇒ B₀)
+strengthenᵗ? Y (A ⇒ B) | just A₀ | nothing = nothing
+strengthenᵗ? Y (A ⇒ B) | nothing | just B₀ = nothing
+strengthenᵗ? Y (A ⇒ B) | nothing | nothing = nothing
+strengthenᵗ? Y (`∀ A) with strengthenᵗ? (suc Y) A
+strengthenᵗ? Y (`∀ A) | just A₀ = just (`∀ A₀)
+strengthenᵗ? Y (`∀ A) | nothing = nothing
+
+wkᵗ-under-∀ : ∀ {Δ} (Y : TyVar (Nat.suc Δ))
+    (A : Ty (Nat.suc Δ))
+  → renameᵗ (extᵗ (punchIn Y)) A ≡ wkᵗ (suc Y) A
+wkᵗ-under-∀ Y A = renameᵗ-cong A under
+  where
+  under : ∀ X → extᵗ (punchIn Y) X ≡ punchIn (suc Y) X
+  under zero = refl
+  under (suc X) = refl
+
+strengthenᵗ?-wkᵗ : ∀ {Δ} (Y : TyVar (Nat.suc Δ)) (A : Ty Δ)
+  → strengthenᵗ? Y (wkᵗ Y A) ≡ just A
+strengthenᵗ?-wkᵗ Y (＇ X) with Y ≟ punchIn Y X
+strengthenᵗ?-wkᵗ Y (＇ X) | yes eq =
+  ⊥-elim (resolved-punchIn≢ Y X eq)
+strengthenᵗ?-wkᵗ Y (＇ X) | no Y≢X
+    rewrite resolved-punchOut-punchIn Y X Y≢X =
+  refl
+strengthenᵗ?-wkᵗ Y (‵ ι) = refl
+strengthenᵗ?-wkᵗ Y ★ = refl
+strengthenᵗ?-wkᵗ Y (A ⇒ B)
+    rewrite strengthenᵗ?-wkᵗ Y A | strengthenᵗ?-wkᵗ Y B =
+  refl
+strengthenᵗ?-wkᵗ Y (`∀ A)
+    rewrite wkᵗ-under-∀ Y A | strengthenᵗ?-wkᵗ (suc Y) A =
+  refl
+
+strengthenᵗ?-sound : ∀ {Δ} {Y : TyVar (Nat.suc Δ)}
+    {A : Ty (Nat.suc Δ)} {A₀ : Ty Δ}
+  → strengthenᵗ? Y A ≡ just A₀
+  → A ≡ wkᵗ Y A₀
+strengthenᵗ?-sound {Y = Y} {A = ＇ X} eq with Y ≟ X
+strengthenᵗ?-sound {Y = Y} {A = ＇ .Y} () | yes refl
+strengthenᵗ?-sound {Y = Y} {A = ＇ X} refl | no Y≢X =
+  cong ＇_ (sym (punchIn-resolved-punchOut Y X Y≢X))
+strengthenᵗ?-sound {A = ‵ ι} refl = refl
+strengthenᵗ?-sound {A = ★} refl = refl
+strengthenᵗ?-sound {Y = Y} {A = A ⇒ B} eq
+    with strengthenᵗ? Y A in A-eq | strengthenᵗ? Y B in B-eq
+strengthenᵗ?-sound {A = A ⇒ B} refl | just A₀ | just B₀ =
+  cong₂ _⇒_ (strengthenᵗ?-sound {A = A} A-eq)
+    (strengthenᵗ?-sound {A = B} B-eq)
+strengthenᵗ?-sound {A = A ⇒ B} () | just A₀ | nothing
+strengthenᵗ?-sound {A = A ⇒ B} () | nothing | just B₀
+strengthenᵗ?-sound {A = A ⇒ B} () | nothing | nothing
+strengthenᵗ?-sound {Y = Y} {A = `∀ A} eq
+    with strengthenᵗ? (suc Y) A in A-eq
+strengthenᵗ?-sound {Y = Y} {A = `∀ A} refl | just A₀ =
+  cong `∀
+    (trans (strengthenᵗ?-sound {Y = suc Y} {A = A} A-eq)
+      (sym (wkᵗ-under-∀ Y A₀)))
+strengthenᵗ?-sound {A = `∀ A} () | nothing
+
+strengthenᵗ?-absent : ∀ {Δ} {Y : TyVar (Nat.suc Δ)}
+    {A : Ty (Nat.suc Δ)}
+  → Y ∉ᵗ A
+  → Σ[ A₀ ∈ Ty Δ ] (strengthenᵗ? Y A ≡ just A₀)
+strengthenᵗ?-absent {Y = Y} {A = ＇ X} (∉-var Y≠X) with Y ≟ X
+strengthenᵗ?-absent {Y = Y} {A = ＇ .Y} (∉-var Y≠Y) | yes refl =
+  ⊥-elim (≢ᶠ→≢ Y≠Y refl)
+strengthenᵗ?-absent {Y = Y} {A = ＇ X} (∉-var Y≠X) | no Y≢X =
+  ＇ punchOut Y X Y≢X , refl
+strengthenᵗ?-absent ∉-base = _ , refl
+strengthenᵗ?-absent ∉-star = ★ , refl
+strengthenᵗ?-absent (∉-fun Y∉A Y∉B)
+    with strengthenᵗ?-absent Y∉A | strengthenᵗ?-absent Y∉B
+strengthenᵗ?-absent (∉-fun Y∉A Y∉B)
+    | A₀ , A-eq | B₀ , B-eq rewrite A-eq | B-eq =
+  A₀ ⇒ B₀ , refl
+strengthenᵗ?-absent (∉-all Y∉A) with strengthenᵗ?-absent Y∉A
+strengthenᵗ?-absent (∉-all Y∉A) | A₀ , A-eq rewrite A-eq =
+  `∀ A₀ , refl
+
+strengthenᵗ?-present : ∀ {Δ} {Y : TyVar (Nat.suc Δ)}
+    {A : Ty (Nat.suc Δ)}
+  → Y ∈ᵗ A
+  → strengthenᵗ? Y A ≡ nothing
+strengthenᵗ?-present {Y = Y} var-∈ with Y ≟ Y
+strengthenᵗ?-present var-∈ | yes refl = refl
+strengthenᵗ?-present {Y = Y} var-∈ | no Y≢Y = ⊥-elim (Y≢Y refl)
+strengthenᵗ?-present {Y = Y} {A = A ⇒ B} (∈-fun-left Y∈A)
+    rewrite strengthenᵗ?-present Y∈A
+    with strengthenᵗ? Y B
+strengthenᵗ?-present {A = A ⇒ B} (∈-fun-left Y∈A)
+    | just B₀ = refl
+strengthenᵗ?-present {A = A ⇒ B} (∈-fun-left Y∈A)
+    | nothing = refl
+strengthenᵗ?-present {Y = Y} {A = A ⇒ B}
+    (∈-fun-right Y∉A Y∈B)
+    rewrite strengthenᵗ?-present Y∈B
+    with strengthenᵗ? Y A
+strengthenᵗ?-present {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
+    | just A₀ = refl
+strengthenᵗ?-present {A = A ⇒ B} (∈-fun-right Y∉A Y∈B)
+    | nothing = refl
+strengthenᵗ?-present (∈-all Y∈A)
+    rewrite strengthenᵗ?-present Y∈A =
+  refl
 
 resolveSubᵗ : ∀ {Δ} → TyVar (Nat.suc Δ) → Ty Δ → Nat.suc Δ ⇒ˢ Δ
 resolveSubᵗ Y C X with Y ≟ X

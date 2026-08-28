@@ -1,18 +1,15 @@
 module alt.probes.ProgressGaps where
 
 -- File Charter:
---   * Records the missing adapter-region/unseal merge needed before function
---     application: a ν-stranded seal/unseal value at function type is stuck.
---   * Rechecks the gap against persistent ν results using `value-no-step`.
+--   * Checks the former stranded-ν gap as a positive reduction trace.
+--   * The region first floats through reveal, strict conceal/reveal then fires,
+--     and the persistent allocation remains around the final constant.
 
-open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc)
-open import Data.Product using (_×_; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
-open import Relation.Nullary using (¬_)
+open import Relation.Binary.PropositionalEquality using (refl)
 import Data.Vec.Base as Vec
 
 open import Types
@@ -25,6 +22,22 @@ open import alt.ThetaReduction
 open import alt.ThetaTermSubst using (rep?-here)
 open import alt.ThetaProgress using
   (CanonicalFun; Progress; step; done; failed)
+
+infix 2 _⊢_—↠_
+
+data _⊢_—↠_ {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) :
+    Term Θ Δ → Term Θ Δ → Set where
+  ↠-refl : ∀ {M} → Ψ ⊢ M —↠ M
+  ↠-step : ∀ {M N P}
+    → Ψ ⊢ M —→ N
+    → Ψ ⊢ N —↠ P
+    → Ψ ⊢ M —↠ P
+
+infix 3 _∎
+pattern _∎ M = ↠-refl {M = M}
+
+infixr 2 _—→⟨_⟩_
+pattern _—→⟨_⟩_ M M→N N↠P = ↠-step {M = M} M→N N↠P
 
 ℕᵗ : ∀ {Δ} → Ty Δ
 ℕᵗ = ‵ `ℕ
@@ -87,38 +100,33 @@ sealed-result = result-val sealed-value
 stranded-result : Result stranded
 stranded-result = result-ν sealed-result
 
-stuckFun-value : Value stuckFun
-stuckFun-value = stranded-result ↑[ zero ≔ zero ]
-  adapter-region sealed-result
+after-reveal-float : Term 1 zero
+after-reveal-float =
+  (ν[ ℕᵗ ] (sealedTerm ↑[ zero ≔ suc zero ] unseal))
+    · $ (κℕ zero)
 
-stuckFun-not-canonical : ¬ CanonicalFun stuckFun
-stuckFun-not-canonical ()
+after-cancel : Term 1 zero
+after-cancel = (ν[ ℕᵗ ] identity) · $ (κℕ zero)
 
-stuck-not-result : ¬ Result stuck
-stuck-not-result (result-val ())
+after-application-float : Term 1 zero
+after-application-float =
+  ν[ ℕᵗ ] (identity · $ (κℕ zero))
 
-stuck-not-blame : stuck ≢ blame
-stuck-not-blame ()
+endpoint : Term 1 zero
+endpoint = ν[ ℕᵗ ] ($ (κℕ zero))
 
-stranded-no-step : ∀ {M′} → ¬ (crossedEnv ⊢ stranded —→ M′)
-stranded-no-step = result-no-step stranded-result
+stranded-reduction : baseEnv ⊢ stuck —↠ endpoint
+stranded-reduction =
+    stuck
+  —→⟨ ξ-·₁ (float-reveal refl stranded-result) ⟩
+    after-reveal-float
+  —→⟨ ξ-·₁ (ξ-ν (conceal-reveal (result-val identity-value))) ⟩
+    after-cancel
+  —→⟨ float-·₁ (result-ν (result-val identity-value)) ⟩
+    after-application-float
+  —→⟨ ξ-ν (β ($ (κℕ zero))) ⟩
+    endpoint
+  ∎
 
-stuckFun-no-step : ∀ {M′} → ¬ (baseEnv ⊢ stuckFun —→ M′)
-stuckFun-no-step = value-no-step stuckFun-value
-
-constant-no-step : ∀ {M′}
-  → ¬ (baseEnv ⊢ $ (κℕ zero) —→ M′)
-constant-no-step = value-no-step ($ (κℕ zero))
-
-stuck-no-step : ∀ {M′} → ¬ (baseEnv ⊢ stuck —→ M′)
-stuck-no-step (ξ-·₁ reduction) = stuckFun-no-step reduction
-stuck-no-step (ξ-·₂ Vᵥ reduction) = constant-no-step reduction
-
-stuck-no-progress : ¬ Progress baseEnv stuck
-stuck-no-progress (step reduction) = stuck-no-step reduction
-stuck-no-progress (done result) = stuck-not-result result
-
-stranded-gap-witness :
-  (baseEnv ∣ [] ⊢ stuck ⦂ ℕᵗ)
-  × ¬ Progress baseEnv stuck
-stranded-gap-witness = stuck-typed , stuck-no-progress
+stranded-progress : Progress baseEnv stuck
+stranded-progress = step (ξ-·₁ (float-reveal refl stranded-result))

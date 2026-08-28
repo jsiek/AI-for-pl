@@ -483,6 +483,7 @@ mutual
   rename-ΛBody ρ (body-result Vʳ) = body-result (rename-Result ρ Vʳ)
   rename-ΛBody ρ (body-reveal Vʳ) = body-reveal Vʳ
   rename-ΛBody ρ (body-conceal Vʳ) = body-conceal Vʳ
+  rename-ΛBody ρ (body-ν body) = body-ν body
   rename-ΛBody ρ (body-Λ body) = body-Λ (rename-ΛBody ρ body)
 
 ⊢rename : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
@@ -3343,7 +3344,7 @@ mutual
       {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ} {c}
     → RevealValue V X α c
     → RevealValue (renameᵗᵐ ρ V) (toRenameᵗ ρ X) α c
-  renameᵗᵐ-RevealValue ρ fun = fun
+  renameᵗᵐ-RevealValue ρ (fun Vᵛ) = fun (renameᵗᵐ-Value ρ Vᵛ)
   renameᵗᵐ-RevealValue ρ (delimiter canonical) =
     delimiter (renameᵗᵐ-CanonicalInterior ρ canonical)
   renameᵗᵐ-RevealValue (keep ρ) (adapter {Y = Y} Vʳ neq) =
@@ -3352,8 +3353,9 @@ mutual
   renameᵗᵐ-RevealValue (skip ρ) (adapter {Y = Y} Vʳ neq) =
     adapter (renameᵗᵐ-Result (delete↪ᵗ (skip ρ) Y) Vʳ)
       (rename-pair-≠ {ρ = skip ρ} neq)
-  renameᵗᵐ-RevealValue ρ (adapter-region Vʳ) =
+  renameᵗᵐ-RevealValue ρ (adapter-region Vʳ X∈A) =
     adapter-region (renameᵗᵐ-Result ρ Vʳ)
+      (renameᵗ-∈ᵗ (toRenameᵗ ρ) X∈A)
 
   renameᵗᵐ-ConcealValue : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
       {V : Term Θ Δ} {c}
@@ -3401,6 +3403,8 @@ mutual
     body-conceal (renameᵗᵐ-Result (delete↪ᵗ (keep ρ) X) Vʳ)
   renameᵗᵐ-ΛBody (skip ρ) (body-conceal {X = X} Vʳ) =
     body-conceal (renameᵗᵐ-Result (delete↪ᵗ (skip ρ) X) Vʳ)
+  renameᵗᵐ-ΛBody ρ (body-ν body) =
+    body-ν (renameᵗᵐ-ΛBody ρ body)
   renameᵗᵐ-ΛBody ρ (body-Λ body) =
     body-Λ (renameᵗᵐ-ΛBody (keep ρ) body)
 
@@ -3605,6 +3609,7 @@ mutual
     body-result (subst-Result environment Vʳ)
   subst-ΛBody environment (body-reveal Vʳ) = body-reveal Vʳ
   subst-ΛBody environment (body-conceal Vʳ) = body-conceal Vʳ
+  subst-ΛBody environment (body-ν body) = body-ν body
   subst-ΛBody environment (body-Λ body) =
     body-Λ (subst-ΛBody (liftˢ environment) body)
 
@@ -4676,15 +4681,16 @@ mutual
       {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ} {c}
     → RevealValue V X α c
     → RevealValue (renameᶿ φ V) X (φ α) c
-  renameᶿ-RevealValue φ injective fun = fun
+  renameᶿ-RevealValue φ injective (fun Vᵛ) =
+    fun (renameᶿ-Value φ injective Vᵛ)
   renameᶿ-RevealValue φ injective (delimiter canonical) =
     delimiter (renameᶿ-CanonicalInterior φ injective canonical)
   renameᶿ-RevealValue φ injective (adapter Vʳ neq) =
     adapter (renameᶿ-Result φ injective Vʳ)
       (anchor-pair-≠ injective neq)
-  renameᶿ-RevealValue φ injective (adapter-region Vʳ) =
+  renameᶿ-RevealValue φ injective (adapter-region Vʳ X∈A) =
     adapter-region (renameᶿ-Result (extᵗ φ)
-      (extᵗ-injective′ injective) Vʳ)
+      (extᵗ-injective′ injective) Vʳ) X∈A
 
   renameᶿ-ConcealValue : ∀ {Θ Θ′ Δ}
       (φ : TyVar Θ → TyVar Θ′)
@@ -4721,6 +4727,9 @@ mutual
     body-reveal (renameᶿ-Result φ injective Vʳ)
   renameᶿ-ΛBody φ injective (body-conceal Vʳ) =
     body-conceal (renameᶿ-Result φ injective Vʳ)
+  renameᶿ-ΛBody φ injective (body-ν body) =
+    body-ν
+      (renameᶿ-ΛBody (extᵗ φ) (extᵗ-injective′ injective) body)
   renameᶿ-ΛBody φ injective (body-Λ body) =
     body-Λ (renameᶿ-ΛBody φ injective body)
 
@@ -5161,6 +5170,79 @@ remove-insert-here zero value values = refl
 remove-insert-here (suc Y) value (head Vec.∷ values) =
   cong (head Vec.∷_) (remove-insert-here Y value values)
 
+map-insert-anchor : ∀ {Θ Δ} (Y : TyVar (suc Δ))
+    (a : TyVar Θ) (tyVars : Vec.Vec (Maybe (TyVar Θ)) Δ)
+  → mapᵛ (mapMaybe suc) (insertᵛ Y (just a) tyVars)
+    ≡ insertᵛ Y (just (suc a)) (mapᵛ (mapMaybe suc) tyVars)
+map-insert-anchor zero a tyVars = refl
+map-insert-anchor (suc Y) a (entry Vec.∷ tyVars) =
+  cong (mapMaybe suc entry Vec.∷_) (map-insert-anchor Y a tyVars)
+
+fresh-map-anchor : ∀ {Θ Δ} {a : TyVar Θ}
+    {tyVars : Vec.Vec (Maybe (TyVar Θ)) Δ}
+  → a ∉ᵛ tyVars
+  → suc a ∉ᵛ mapᵛ (mapMaybe suc) tyVars
+fresh-map-anchor {tyVars = tyVars} fresh Y eq =
+  fresh Y (mapMaybe-suc-just-injective
+    (trans (sym (lookup-mapᵛ (mapMaybe suc) tyVars Y)) eq))
+
+repoint?-begin-ν : ∀ {Θ₀ Θ Δ₀ Δ Δout}
+    (resolve : TyVar Θ → Maybe (Ty Δ))
+    (target : Vec.Vec (Maybe (TyVar Θ)) Δ)
+    (birth : Vec.Vec (Maybe (TyVar Θ₀)) Δ₀)
+    (Y : TyVar (suc Δ₀)) (a : TyVar Θ₀)
+    (anchor-map : TyVar (suc Θ₀) → TyVar Θ)
+    (route : TyVar (suc Δ₀) → Maybe (TyVar Δout))
+    (live-ren : TyVar Δ → TyVar Δout) (A : Ty Δ₀)
+  → repoint? resolve target (insertᵛ Y (just a) birth)
+      anchor-map route live-ren (wkᵗ Y A)
+    ≡ repoint? resolve target birth anchor-map
+        (λ X → route (punchIn Y X)) live-ren A
+repoint?-begin-ν resolve target birth Y a anchor-map route live-ren
+    (＇ X)
+    rewrite lookup-insert-punch Y (just a) birth X
+    with Vec.lookup birth X
+repoint?-begin-ν resolve target birth Y a anchor-map route live-ren
+    (＇ X) | nothing = refl
+repoint?-begin-ν resolve target birth Y a anchor-map route live-ren
+    (＇ X) | just q = refl
+repoint?-begin-ν resolve target birth Y a anchor-map route live-ren
+    (‵ ι) = refl
+repoint?-begin-ν resolve target birth Y a anchor-map route live-ren ★ = refl
+repoint?-begin-ν resolve target birth Y a anchor-map route live-ren
+    (A ⇒ B) =
+  trans (repoint?-arrow resolve target (insertᵛ Y (just a) birth)
+      anchor-map route live-ren (wkᵗ Y A) (wkᵗ Y B))
+    (trans (cong₂ _⇒?_
+        (repoint?-begin-ν resolve target birth Y a anchor-map route
+          live-ren A)
+        (repoint?-begin-ν resolve target birth Y a anchor-map route
+          live-ren B))
+      (sym (repoint?-arrow resolve target birth anchor-map
+        (λ X → route (punchIn Y X)) live-ren A B)))
+repoint?-begin-ν resolve target birth Y a anchor-map route live-ren
+    (`∀ A)
+    rewrite wkᵗ-under-∀ Y A =
+  trans (repoint?-all resolve target (insertᵛ Y (just a) birth)
+      anchor-map route live-ren (wkᵗ (suc Y) A))
+    (trans (cong all?
+        (trans (repoint?-begin-ν resolve target (nothing Vec.∷ birth)
+            (suc Y) a anchor-map (ext-route route)
+            (λ X → suc (live-ren X)) A)
+          (repoint?-route-cong resolve target (nothing Vec.∷ birth)
+            anchor-map
+            (λ X → ext-route route (punchIn (suc Y) X))
+            (ext-route (λ X → route (punchIn Y X)))
+            (λ X → suc (live-ren X)) A route-eq)))
+      (sym (repoint?-all resolve target birth anchor-map
+        (λ X → route (punchIn Y X)) live-ren A)))
+  where
+  route-eq : ∀ X
+    → ext-route route (punchIn (suc Y) X)
+      ≡ ext-route (λ Z → route (punchIn Y Z)) X
+  route-eq zero = refl
+  route-eq (suc X) = refl
+
 data UnbracketTarget : ∀ {Θ Δ σ τ}
     → TyEnv Θ Δ σ → TyEnv Θ Δ τ → Set where
   unbracket-base : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
@@ -5191,6 +5273,14 @@ data UnbracketTarget : ∀ {Θ Δ σ τ}
     → UnbracketTarget
         (Ψ ,end[ Y ] ,typ)
         (Ψ ,typ ,end[ suc Y ])
+
+  unbracket-begin-ν : ∀ {Θ Δ σ}
+      {Ψ : TyEnv Θ Δ σ} {Y : TyVar (suc Δ)}
+      {a : TyVar Θ} {fresh : a ∉ᵛ σ} {A : Ty Δ}
+    → UnbracketTarget
+        ((Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩) ,:= wkᵗ Y A)
+        ((Ψ ,:= A) ,begin[ Y ≔ suc a
+          ]⟨ fresh-map-anchor {tyVars = σ} fresh ⟩)
 
   unbracket-begin : ∀ {Θ Δ σ τ}
       {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ τ}
@@ -5226,6 +5316,8 @@ unbracket-tyVars (unbracket-base {Y = Y} {a = a}) =
 unbracket-tyVars unbracket-fresh-before-begin = refl
 unbracket-tyVars unbracket-begin-typ = refl
 unbracket-tyVars unbracket-end-typ = refl
+unbracket-tyVars (unbracket-begin-ν {Y = Y} {a = a}) =
+  map-insert-anchor Y a _
 unbracket-tyVars (unbracket-begin same) =
   cong (insertᵛ _ (just _)) (unbracket-tyVars same)
 unbracket-tyVars (unbracket-typ same) =
@@ -5324,6 +5416,15 @@ scanRep?-unbracket resolve target
     (λ X → route-end Y (λ Z → route (suc Z)) X)
     (λ X → route-end (suc Y) route (suc X)) a
     (route-end-typ-exchange Y route)
+scanRep?-unbracket resolve target
+    (unbracket-begin-ν {Ψ = Ψ} {Y = Y} {a = a} {A = A})
+    anchor-map route zero =
+  repoint?-begin-ν resolve (tyVarsOf target) (tyVarsOf Ψ) Y a
+    anchor-map route (λ X → X) A
+scanRep?-unbracket resolve target
+    (unbracket-begin-ν {Ψ = Ψ} {Y = Y} {a = a} {A = A})
+    anchor-map route (suc q) =
+  refl
 scanRep?-unbracket resolve target (unbracket-begin same)
     anchor-map route a =
   scanRep?-unbracket resolve target same anchor-map

@@ -46,7 +46,7 @@ regionEnv : TyEnv 1 2
 regionEnv = lambdaEnv ,begin[ zero ≔ zero ]⟨ no-live-anchor ⟩
 
 region : Term 1 2
-region = ν[ ℕᵗ ] ($ (κℕ zero))
+region = ν[ ＇ zero ] ($ (κℕ zero))
 
 region-result : Result region
 region-result = result-ν (result-val ($ (κℕ zero)))
@@ -65,7 +65,7 @@ wrapped-typed = ⊢reveal
 
 wrapped-value : Value wrapped
 wrapped-value = region-result ↑[ zero ≔ zero ]
-  adapter-region (result-val ($ (κℕ zero)))
+  adapter-region (result-val ($ (κℕ zero))) var-∈
 
 sourceBody : Term 1 1
 sourceBody = wrapped ⟨ ℕ! ⟩

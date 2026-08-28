@@ -8,7 +8,7 @@ module alt.ThetaReduction where
 --     weakening is the derived skip-at-position instance.  Term substitution
 --     stops at closed crossing and ν interiors.
 --   * Evaluation descends beneath ν.  A ν-headed result floats through term
---     frames, while reveal and conceal delimiters remain at their birth depth.
+--     frames and through reveal when its entry strengthens across the crossing.
 --   * Identity cancellation is strict in both node fields.  A mismatched
 --     identity conceal/reveal pair is an inert adapter value, with pair
 --     disequality evidence kept in `RevealValue`.
@@ -24,13 +24,13 @@ module alt.ThetaReduction where
 
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
-open import Data.Empty using (⊥-elim)
+open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
-open import Data.Maybe using (just)
+open import Data.Maybe using (just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong)
+  using (_≡_; _≢_; refl; cong; sym; trans)
 open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
@@ -460,6 +460,15 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       -------------------------------
     → Ψ ⊢ ν[ A ] M —→ ν[ A ] M′
 
+  float-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {A : Ty (suc Δ)} {A₀ : Ty Δ} {M : Term (suc Θ) (suc Δ)}
+      {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
+    → strengthenᵗ? Y A ≡ just A₀
+    → Result (ν[ A ] M)
+      ------------------------------------------------------------
+    → Ψ ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c —→
+        ν[ A₀ ] (M ↑[ Y ≔ suc α ] c)
+
   -- ν is the region binder, not an eliminator frame.  Nested ν-headed
   -- results are represented directly by `result-ν`, so there is no float-ν.
   float-·₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
@@ -527,6 +536,13 @@ mutual
   value-no-step (Vʳ ↑[ X ≔ α ] gate) (ξ-reveal step) =
     result-no-step Vʳ step
   value-no-step
+      (result-ν Vʳ ↑[ X ≔ α ] adapter-region Rʳ X∈A)
+      (float-reveal strengthens result) =
+    ⊥-elim (impossible (trans (sym (strengthenᵗ?-present X∈A)) strengthens))
+    where
+    impossible : ∀ {Δ} {A₀ : Ty Δ} → nothing ≡ just A₀ → ⊥
+    impossible ()
+  value-no-step
       (Vʳ ↓[ X ≔ α ] delimiter ())
       id-conceal
   value-no-step
@@ -557,6 +573,9 @@ mutual
 ΛBody-stable (body-reveal (result-val ())) blame-reveal
 ΛBody-stable (body-reveal Vʳ) (β-reveal-∀ Rʳ) =
   body-Λ (body-reveal Rʳ)
+ΛBody-stable (body-reveal Vʳ)
+    (float-reveal strengthens (result-ν Rʳ)) =
+  body-ν (body-reveal Rʳ)
 ΛBody-stable (body-reveal Vʳ) (ξ-reveal step) =
   ⊥-elim (result-no-step Vʳ step)
 ΛBody-stable (body-conceal (result-val ($ κ))) id-conceal =
@@ -565,5 +584,8 @@ mutual
   body-Λ (body-conceal Rʳ)
 ΛBody-stable (body-conceal Vʳ) (ξ-conceal step) =
   ⊥-elim (result-no-step Vʳ step)
+ΛBody-stable (body-ν (body-result (result-val ()))) blame-ν
+ΛBody-stable (body-ν body) (ξ-ν step) =
+  body-ν (ΛBody-stable body step)
 ΛBody-stable (body-Λ body) (ξ-Λ step) =
   body-Λ (ΛBody-stable body step)

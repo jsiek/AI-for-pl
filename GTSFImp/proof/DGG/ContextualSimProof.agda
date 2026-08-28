@@ -28,6 +28,7 @@ open import Types using (Ty; TyCtx)
 open import TyStore using (TyStore)
 
 import proof.DGG.CastTermImprecision as CTI
+open import proof.DGG.CastTermImprecisionTyping using (target-typing)
 open import proof.DGG.Catchup.ContextualCatchupToMorePreciseDef using
   (ContextualCatchupToMorePreciseᵀ)
 open import proof.DGG.ContextualSimDef using (ContextualSimᵀ)
@@ -50,9 +51,13 @@ open import proof.DGG.SimSourceCastValuesDef using
 open import proof.DGG.SimSourceRevealClosingDef using
   (SimSourceRevealClosingᵀ)
 open import proof.DGG.SimTargetRevealRebaseContextDef
+open import proof.DGG.SimTargetRevealRebaseContextLemma using
+  (replay-context-keep)
 open import proof.DGG.World using (openFramesᶜ; _⊑ᶜ_; _⊑ᵀ⟨_⟩_)
 open import proof.DGG.WorldEvolutionSequence using
-  ( MultiWorldEvolution; composeMultiWorldEvolution; multi-no-open-frames )
+  ( MultiWorldEvolution; append-left-keep; composeMultiWorldEvolution
+  ; evolutions-refl; multi-no-open-frames
+  )
 
 
 module _
@@ -485,11 +490,23 @@ module _
       (function-value ↓ fun) argument-value root rebuild
 
   contextual-sim no-open root-related
-      (CTI.·⊑·² function-related argument-related) path ready
-      (pure-step blame-·₁) rebuild = {! !}
+      relation@(CTI.·⊑·² {pB = result-related}
+        function-related argument-related)
+      path ready (pure-step blame-·₁) rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (CTI.blame⊑² (target-typing relation) result-related) rebuild
   contextual-sim no-open root-related
-      (CTI.·⊑·² function-related argument-related) path ready
-      (pure-step (blame-·₂ function-value)) rebuild = {! !}
+      relation@(CTI.·⊑·² {pB = result-related}
+        function-related argument-related)
+      path ready (pure-step (blame-·₂ function-value)) rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (CTI.blame⊑² (target-typing relation) result-related) rebuild
 
   contextual-sim no-open root-related
       (CTI.Λ⊑Λ² source-value target-value related q) path ready

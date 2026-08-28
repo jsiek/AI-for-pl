@@ -237,3 +237,34 @@ module UniversalConcealProbe {Γᴸ Γᴿ : Ctx}
 -- TargetOnlyNameRevealRebaseCounterexample.agda checks that failure).  Those
 -- branches still require the rebase-aware contextual zipper.  Consequently
 -- this probe should not be promoted to the production worker unchanged.
+--
+-- The smallest honest target-only seed is therefore not a generic spine
+-- builder.  It is the following constructor-form, inst-consistency-indexed
+-- post-Lambda obligation.  The first target allocation introduces X with
+-- representation ★; beta-Lambda then introduces Y with representation ＇ X.
+-- In Agda's de Bruijn presentation its required spine is exactly
+--
+--   lambda-ready-child-spine
+--     {B = applyBody (bind ★) B} {X = Fin.zero}
+--     (inst-residual-tail {B = B} {B′ = B′} {c = c′})
+--
+-- and its semantic certificate has this constructor sequence:
+--
+--   generated reveal at Y
+--   type transport
+--   generated reveal at X
+--   type transport
+--   target cast by ↑ᶜ (close-instᶜ c′)
+--   type transport
+--   empty
+--
+-- The direct private theorem must take the exact post-beta-Lambda body CTI
+-- relation, the final type-imprecision witness at the twice-extended target
+-- endpoint, and c′ : instᵐ ν′ ⊢ B ∼ ⇑ᵗ B′.  It returns
+-- SemanticInstantiationSpineᶜ for the spine above.  Its proof is an induction
+-- on c′: the raw final witness does not determine the intermediate witnesses
+-- at the two reveals or at ↑ᶜ (close-instᶜ c′).  This is separate from the
+-- already-visible strict-Lambda pre-induction obligation, which transports
+-- the original liftBoth body relation into the post-beta-Lambda liftLeft/
+-- two-target-allocation world.  Neither obligation should be hidden as an
+-- arbitrary premise of the general spine worker.

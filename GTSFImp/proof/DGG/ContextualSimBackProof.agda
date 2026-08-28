@@ -25,6 +25,8 @@ import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.ContextualCatchupToLessPreciseDef using
   (ContextualCatchupToLessPreciseᵀ)
 open import proof.DGG.ContextualSimBackDef using (ContextualSimBackᵀ)
+open import proof.DGG.ContextualSimBackPrimitiveValuesDef using
+  (ContextualSimBackPrimitiveValuesᵀ)
 open import proof.DGG.SourcePathBlameLemma using
   (source-path-blame-after)
 open import proof.DGG.TargetBlameCatchupLemma using
@@ -83,6 +85,8 @@ transport-target-rebuild
 
 module _
     (contextual-catchup : ContextualCatchupToLessPreciseᵀ)
+    (contextual-sim-back-primitive-values :
+      ContextualSimBackPrimitiveValuesᵀ)
     (sim-back-paired-fun-closing : SimBackPairedFunClosingᵀ)
     (sim-back-paired-all-closing : SimBackPairedAllClosingᵀ)
     (sim-back-paired-cast-closing : SimBackPairedCastClosingᵀ)
@@ -771,8 +775,241 @@ module _
            blame ∎[]))
 
   contextual-sim-back-worker no-open root-related
-      (CTI.⊕⊑⊕² op left-related right-related r) path
-      (pure-step (δ-⊕ primitive-step)) rebuild = {! !}
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      focus-here (pure-step (δ-⊕ primitive-step))
+      (rebuild-target-here refl)
+      with sim-back-primitive-closing no-open left-related right-related r
+        primitive-step
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      focus-here (pure-step (δ-⊕ primitive-step))
+      (rebuild-target-here refl)
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , result-source , world1 ,
+          result-type1 , source-steps1 , evolution1 , result-related1) =
+      inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack result-related1 ,
+          source-steps1 , refl , evolution1)
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      focus-here (pure-step (δ-⊕ primitive-step))
+      (rebuild-target-here refl)
+    | inj₂ (DeltaL1 , changesL1 , source-blame) =
+      inj₂ (DeltaL1 , changesL1 , source-blame)
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+      with contextual-catchup no-open
+        (extend-focus path
+          (focus-⊕₁ left-related right-related r))
+        (CastTerms.Value.$ κ)
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₂ (DeltaL1 , SigmaL1 , changesL1 , world1 , source-blame ,
+        evolution1) =
+      inj₂ (DeltaL1 , changesL1 , source-blame)
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-left-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+      with split-source-extended-path
+        {path = path}
+        {edge = focus-⊕₁ left-related right-related r}
+        path-evolution1
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-left-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-⊕₁ left-related1 right-related1 result-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+      with contextual-catchup
+        (multi-no-open-frames evolution1 no-open)
+        (extend-focus prefix1
+          (focus-⊕₂ left-related1 right-related1 result-related1
+            source-left-value1))
+        (CastTerms.Value.$ κ′)
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-left-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-⊕₁ left-related1 right-related1 result-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | inj₂ (DeltaL2 , SigmaL2 , changesL2 , world2 , source-blame2 ,
+        evolution2) =
+      inj₂
+        (DeltaL2 , changesL1 ++χ changesL2 ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠[ changesL2 ]⟨ source-blame2 ⟩
+           blame ∎[]))
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-left-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-⊕₁ left-related1 right-related1 result-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | inj₁
+        (DeltaL2 , SigmaL2 , changesL2 , pack root-related2 ,
+          pack right-related0 , path2 ,
+          source-steps2 , source-right-value2 , root-target-eq2 ,
+          refl , path-evolution2 , evolution2)
+      with split-source-extended-path
+        {path = prefix1}
+        {edge =
+          focus-⊕₂ left-related1 right-related1 result-related1
+            source-left-value1}
+        path-evolution2
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-left-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-⊕₁ left-related1 right-related1 result-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | inj₁
+        (DeltaL2 , SigmaL2 , changesL2 , pack root-related2 ,
+          pack right-related0 , path2 ,
+          source-steps2 , source-right-value2 , root-target-eq2 ,
+          refl , path-evolution2 , evolution2)
+    | evolved-source-extended-path prefix2
+        (focus-⊕₂ left-related2 right-related2 result-related2
+          source-left-value2)
+        refl prefix-evolution2
+        (evolve-source-edge refl source-ready2)
+      with contextual-sim-back-primitive-values
+        (multi-no-open-frames evolution2
+          (multi-no-open-frames evolution1 no-open))
+        root-related2 left-related2 right-related2 result-related2
+        prefix2 source-left-value2 source-right-value2 primitive-step
+        (transport-target-rebuild prefix-evolution2
+          (transport-target-rebuild prefix-evolution1 rebuild))
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-left-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-⊕₁ left-related1 right-related1 result-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | inj₁
+        (DeltaL2 , SigmaL2 , changesL2 , pack root-related2 ,
+          pack right-related0 , path2 ,
+          source-steps2 , source-right-value2 , root-target-eq2 ,
+          refl , path-evolution2 , evolution2)
+    | evolved-source-extended-path prefix2
+        (focus-⊕₂ left-related2 right-related2 result-related2
+          source-left-value2)
+        refl prefix-evolution2
+        (evolve-source-edge refl source-ready2)
+    | inj₁
+        (DeltaL3 , SigmaL3 , changesL3 , pack root-related3 ,
+          source-steps3 , target-eq3 , evolution3) =
+      inj₁
+        (DeltaL3 , SigmaL3 ,
+          changesL1 ++χ (changesL2 ++χ changesL3) ,
+          pack root-related3 ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠+[ changesL2 ]⟨ source-steps2 ⟩
+           sourceTerm (pack root-related2)
+           —↠[ changesL3 ]⟨ source-steps3 ⟩
+           sourceTerm (pack root-related3) ∎[]) ,
+          target-eq3 ,
+          composeMultiWorldEvolution evolution1
+            (composeMultiWorldEvolution evolution2 evolution3))
+  contextual-sim-back-worker no-open root-related
+      (CTI.⊕⊑⊕² op left-related right-related r)
+      path@(focus-there edge tail)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild
+    | inj₁
+        (DeltaL1 , SigmaL1 , changesL1 , pack root-related1 ,
+          pack left-related0 , path1 ,
+          source-steps1 , source-left-value1 , root-target-eq1 ,
+          refl , path-evolution1 , evolution1)
+    | evolved-source-extended-path prefix1
+        (focus-⊕₁ left-related1 right-related1 result-related1) refl
+        prefix-evolution1
+        (evolve-source-edge refl source-ready1)
+    | inj₁
+        (DeltaL2 , SigmaL2 , changesL2 , pack root-related2 ,
+          pack right-related0 , path2 ,
+          source-steps2 , source-right-value2 , root-target-eq2 ,
+          refl , path-evolution2 , evolution2)
+    | evolved-source-extended-path prefix2
+        (focus-⊕₂ left-related2 right-related2 result-related2
+          source-left-value2)
+        refl prefix-evolution2
+        (evolve-source-edge refl source-ready2)
+    | inj₂ (DeltaL3 , changesL3 , source-blame3) =
+      inj₂
+        (DeltaL3 , changesL1 ++χ (changesL2 ++χ changesL3) ,
+          (sourceTerm (pack root-related)
+           —↠+[ changesL1 ]⟨ source-steps1 ⟩
+           sourceTerm (pack root-related1)
+           —↠+[ changesL2 ]⟨ source-steps2 ⟩
+           sourceTerm (pack root-related2)
+           —↠[ changesL3 ]⟨ source-blame3 ⟩
+           blame ∎[]))
   contextual-sim-back-worker no-open root-related
       (CTI.⊕⊑⊕² op {L = L} {M = M}
         left-related right-related r)

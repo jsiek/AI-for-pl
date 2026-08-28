@@ -21,6 +21,8 @@ module alt.ThetaReduction where
 --     All three rules use expansion and never inspect a representation.
 --   * Universal crossings use ScTyWrap: they move beneath Λ without
 --     instantiating, allocating, or inspecting the telescope.
+--   * β-Λ eliminates any Result body, including a persistent ν prefix; the
+--     fresh allocation encloses that prefix, and guarded floats move it.
 
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
@@ -455,7 +457,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
 
   β-Λ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
-    → Value V
+    → Result V
       ------------------------------------------------------------
     → Ψ ⊢ (Λ V) ⦂∀ B [ C ] —→ ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 

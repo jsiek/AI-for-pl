@@ -232,7 +232,7 @@ nonadjacent-reentry = refl
 βΛ-step₂ = ξ-• (ξ-Λ βΛ-body-step₂)
 
 βΛ-step₃ : βΛ-Ψ ⊢ βΛ-redex-normal —→ βΛ-contractum
-βΛ-step₃ = β-Λ βΛ-body-normal-value
+βΛ-step₃ = β-Λ (result-val βΛ-body-normal-value)
 
 βΛ-redex-pushed-⊢ :
   βΛ-Ψ ∣ [] ⊢ βΛ-redex-pushed ⦂ `∀ (‵ `ℕ)

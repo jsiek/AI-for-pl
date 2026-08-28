@@ -267,7 +267,8 @@ appEndpoint = appAdapter · $ (κℕ Nat.zero)
 
 app-step₁ : appBaseEnv ⊢ appSource —→ appAfterBeta
 app-step₁ = ξ-·₁
-  (ξ-reveal {fresh = no-live-anchor} (ξ-·₁ (β-Λ polyBody-value)))
+  (ξ-reveal {fresh = no-live-anchor}
+    (ξ-·₁ (β-Λ (result-val polyBody-value))))
 
 app-step₂ : appBaseEnv ⊢ appAfterBeta —→ appAfterFloat
 app-step₂ =
@@ -440,7 +441,8 @@ closedAppEndpoint = ν[ ℕ⇒ℕ ] appEndpoint
 
 closed-app-step₁ :
   emptyEnv ⊢ closedAppSource —→ closedAppAfterOuterBeta
-closed-app-step₁ = ξ-·₁ (ξ-·₁ (β-Λ outerBody-value))
+closed-app-step₁ = ξ-·₁
+  (ξ-·₁ (β-Λ (result-val outerBody-value)))
 
 closed-app-step₂ :
   emptyEnv ⊢ closedAppAfterOuterBeta —→ closedAppAfterOuterFloat
@@ -463,7 +465,7 @@ closed-app-step₅ :
   emptyEnv ⊢ closedAppAfterOuterLambda —→ closedAppAfterInnerBeta
 closed-app-step₅ = ξ-·₁ (ξ-ν
   (ξ-reveal {fresh = no-live-anchor}
-    (ξ-·₁ (β-Λ polyBody-value))))
+    (ξ-·₁ (β-Λ (result-val polyBody-value)))))
 
 closed-app-step₆ :
   emptyEnv ⊢ closedAppAfterInnerBeta —→ closedAppAfterInnerFloat
@@ -662,7 +664,8 @@ starEndpoint = starAdapter ⟨ ？ (id {μ = idᶜ} (‵ `ℕ)) ⟩
 
 star-step₁ : starBaseEnv ⊢ starSource —→ starAfterBeta
 star-step₁ = ξ-⟨⟩
-  (ξ-reveal {fresh = no-live-anchor} (ξ-·₁ (β-Λ polyBody-value)))
+  (ξ-reveal {fresh = no-live-anchor}
+    (ξ-·₁ (β-Λ (result-val polyBody-value))))
 
 star-step₂ : starBaseEnv ⊢ starAfterBeta —→ starAfterFloat
 star-step₂ =
@@ -840,7 +843,8 @@ closedStarEndpoint = ν[ ★ ] starEndpoint
 
 closed-star-step₁ :
   emptyEnv ⊢ closedStarSource —→ closedStarAfterOuterBeta
-closed-star-step₁ = ξ-⟨⟩ (ξ-·₁ (β-Λ outerBody-value))
+closed-star-step₁ = ξ-⟨⟩
+  (ξ-·₁ (β-Λ (result-val outerBody-value)))
 
 closed-star-step₂ :
   emptyEnv ⊢ closedStarAfterOuterBeta —→ closedStarAfterOuterFloat
@@ -863,7 +867,7 @@ closed-star-step₅ :
   emptyEnv ⊢ closedStarAfterOuterLambda —→ closedStarAfterInnerBeta
 closed-star-step₅ = ξ-⟨⟩ (ξ-ν
   (ξ-reveal {fresh = no-live-anchor}
-    (ξ-·₁ (β-Λ polyBody-value))))
+    (ξ-·₁ (β-Λ (result-val polyBody-value)))))
 
 closed-star-step₆ :
   emptyEnv ⊢ closedStarAfterInnerBeta —→ closedStarAfterInnerFloat

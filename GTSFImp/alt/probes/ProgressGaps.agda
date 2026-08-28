@@ -8,6 +8,8 @@ module alt.probes.ProgressGaps where
 --     checked proofs that `Progress` is impossible.
 --   * Checks both outward-injection laws as positive reduction traces,
 --     including a variable projection that reaches ordinary tag blame.
+--   * Checks the former region-Λ type-application gap as a positive trace:
+--     β-Λ accepts its ν-prefixed Result body and guarded floating continues.
 
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
@@ -170,6 +172,65 @@ conceal-float-reduction =
 concealFloatSource-progress : Progress crossedEnv concealFloatSource
 concealFloatSource-progress =
   step (float-conceal (result-ν (result-val ($ (κℕ zero)))))
+
+------------------------------------------------------------------------
+-- Resolved gap: β-Λ accepts a ν-prefixed Result body
+------------------------------------------------------------------------
+
+regionLambdaEnv : TyEnv zero zero Vec.[]
+regionLambdaEnv = ∅
+
+regionLambdaBody : Term zero 1
+regionLambdaBody = ν[ ℕᵗ ] $ (κℕ zero)
+
+regionLambdaRedex : Term zero zero
+regionLambdaRedex = (Λ regionLambdaBody) ⦂∀ ℕᵗ [ ℕᵗ ]
+
+regionLambdaContractum : Term zero zero
+regionLambdaContractum =
+  ν[ ℕᵗ ]
+    (shiftᶿ regionLambdaBody ↑[ zero ≔ zero ] id↑)
+
+regionLambdaAfterFloat : Term zero zero
+regionLambdaAfterFloat =
+  ν[ ℕᵗ ]
+    (ν[ ℕᵗ ] (($ (κℕ zero)) ↑[ zero ≔ suc zero ] id↑))
+
+regionLambdaEndpoint : Term zero zero
+regionLambdaEndpoint = ν[ ℕᵗ ] (ν[ ℕᵗ ] $ (κℕ zero))
+
+regionLambdaBody-result : Result regionLambdaBody
+regionLambdaBody-result = result-ν (result-val ($ (κℕ zero)))
+
+regionLambdaShiftedBody-result : Result (shiftᶿ regionLambdaBody)
+regionLambdaShiftedBody-result =
+  result-ν (result-val ($ (κℕ zero)))
+
+regionLambdaRedex-typed :
+  regionLambdaEnv ∣ [] ⊢ regionLambdaRedex ⦂ ℕᵗ
+regionLambdaRedex-typed =
+  ⊢⦂∀
+    (⊢Λ (body-ν (body-result (result-val ($ (κℕ zero)))))
+      (⊢ν (⊢$ (κℕ zero))))
+
+regionLambda-trace :
+  regionLambdaEnv ⊢ regionLambdaRedex —↠ regionLambdaEndpoint
+regionLambda-trace =
+    regionLambdaRedex
+  —→⟨ β-Λ regionLambdaBody-result ⟩
+    regionLambdaContractum
+  —→⟨ ξ-ν (float-reveal refl regionLambdaShiftedBody-result) ⟩
+    regionLambdaAfterFloat
+  —→⟨ ξ-ν (ξ-ν id-reveal) ⟩
+    regionLambdaEndpoint
+  ∎
+
+regionLambdaEndpoint-result : Result regionLambdaEndpoint
+regionLambdaEndpoint-result =
+  result-ν (result-ν (result-val ($ (κℕ zero))))
+
+regionLambdaRedex-progress : Progress regionLambdaEnv regionLambdaRedex
+regionLambdaRedex-progress = step (β-Λ regionLambdaBody-result)
 
 ------------------------------------------------------------------------
 -- Remaining gap 1: an unfloatable adapter at a base delimiter

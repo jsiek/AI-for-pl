@@ -4,6 +4,8 @@ module alt.ThetaProgress where
 --   * Proves closed-term progress from three explicit gap-family interfaces.
 --   * Supplies total canonical forms and an indexed account of every residual
 --     blocked eliminator; no unresolved obligation is hidden in the assembler.
+--   * A Λ with any Result body now type-applies directly; region-Λ is no
+--     longer a member of the adapter/primitive gap family.
 --   * The checked witnesses in `alt.probes.ProgressGaps` exhibit one inhabitant
 --     of each interface, so future reduction rules can implement them directly.
 
@@ -338,13 +340,6 @@ data BlockedElimination {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) :
       ------------------------------------------------------------
     → BlockedElimination Ψ
         (((ν[ E ] M) ↑[ X ≔ α ] unseal) ⟨ ？ (idᵍ Gᵍ) ⟩)
-
-  region-Λ-• : ∀ {E : Ty (suc Δ)} {C : Ty Δ} {B : Ty (suc Δ)}
-      {M : Term (suc Θ) (suc Δ)}
-    → Result M
-    → Ψ ∣ [] ⊢ (Λ (ν[ E ] M)) ⦂∀ B [ C ] ⦂ B [ C ]ᵗ
-      ------------------------------------------------------------
-    → BlockedElimination Ψ ((Λ (ν[ E ] M)) ⦂∀ B [ C ])
 
   boundary-⊕ : ∀ {op V W}
     → Value V
@@ -1339,10 +1334,10 @@ module WithGaps
       with canonical-∀ Fᵛ F⊢
   progress typing@(⊢⦂∀ F⊢) | done (result-val Fᵛ)
       | ca-Λ (result-val Vᵛ) =
-    step (β-Λ Vᵛ)
+    step (β-Λ (result-val Vᵛ))
   progress typing@(⊢⦂∀ F⊢) | done (result-val Fᵛ)
       | ca-Λ (result-ν Rʳ) =
-    gap-adapter-⊕ (region-Λ-• Rʳ typing)
+    step (β-Λ (result-ν Rʳ))
   progress typing@(⊢⦂∀ F⊢@(⊢⟨⟩ V⊢ (∀ᶜ c)))
       | done (result-val Fᵛ)
       | ca-cast Vᵛ =

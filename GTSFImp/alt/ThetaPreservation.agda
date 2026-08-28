@@ -33,6 +33,8 @@ module alt.ThetaPreservation where
 --   * Injection out of delimiters and restricted projection into reveal
 --     preserve typing by ground weakening/strengthening and the checked
 --     `expand↑`/`expand↓` typing lemmas.
+--   * β-Λ preservation depends only on its body typing, so the same lexical
+--     allocation transport covers both value and ν-prefixed Result bodies.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -601,7 +603,8 @@ preserve typing blame-conceal = ⊢blame
 preserve typing blame-⊕₁ = ⊢blame
 preserve typing (blame-⊕₂ Vᵥ) = ⊢blame
 preserve typing blame-ν = ⊢blame
-preserve typing@(⊢⦂∀ (⊢Λ body V⊢)) (β-Λ Vᵥ) = preserve-β-Λ typing
+preserve typing@(⊢⦂∀ (⊢Λ body V⊢)) (β-Λ Vʳ) =
+  preserve-β-Λ typing
 preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ c)) (β-gen Vᵥ A≠★ safe) =
   preserve-β-gen typing
 preserve (⊢⟨⟩ V⊢ ((inst c) B≠★)) (β-inst Vᵥ B≠★) =

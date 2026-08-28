@@ -21,10 +21,10 @@ holes, or pragmas.
 | --- | --- | --- |
 | `ThetaTerms.agda` | 100 | syntax `Term Θ Δ`, `renameᶿ`/`shiftᶿ` |
 | `ThetaTyping.agda` | 655 | σ-indexed `TyEnv`, `rep?`, `≼`, typing |
-| `ThetaReduction.agda` | 749 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
+| `ThetaReduction.agda` | 751 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
 | `ThetaTermSubst.agda` | 6365 | transport suite, `⊢≼`, `⊢[]` |
-| `ThetaPreservation.agda` | 675 | per-case lemmas + `preserve` |
-| `ThetaProgress.agda` | 1448 | canonical forms + parameterized assembler |
+| `ThetaPreservation.agda` | 678 | per-case lemmas + `preserve` |
+| `ThetaProgress.agda` | 1443 | canonical forms + parameterized assembler |
 | `ThetaRegression.agda` | 256 | curated positive regressions |
 
 ## The design, in one page
@@ -120,8 +120,8 @@ ordinary `tag-untag-bad` rule.
    ```
 
    - `gap-adapter-⊕`: indexed blocked eliminators, including non-floatable
-     adapters and their unseal projection, a region under `Λ` at type
-     application, atomic boundaries, and bottom-elimination canonicity.
+     adapters at application, type application, and unseal projection;
+     atomic reveal/conceal and primitive boundaries; and bottom elimination.
    - `gap-∀-reveal-cast`: a structural reveal cannot merge through a
      non-`Λ` canonical universal value.
    - `gap-∀-conceal-cast`: the dual structural conceal cannot merge through
@@ -137,6 +137,11 @@ ordinary `tag-untag-bad` rule.
    On tagged interiors, the restricted `★-project-reveal` reaches into only
    the remaining unstrengthenable package case; its delimiter and adapter
    coverage remains unchanged, and `expand↑` finds the consumer.
+
+   U41 removes the former `region-Λ-•` member from the first bucket.  `β-Λ`
+   accepts a `Result` body, so a ν-prefixed body allocates normally and its
+   inner region continues by the guarded float rules.  The positive trace is
+   checked in `alt/probes/ProgressGaps.agda`.
 4. **Merge rules** (deferred design): the indexed adapter/`⊕` family and the
    two structural `∀` cast families described above.
 5. **`Λ` value restriction** — `⊢Λ` still carries a DEFERRED marker.

@@ -4,8 +4,13 @@ module alt.probes.ProgressGaps where
 --   * Checks the former stranded-ν gap as a positive reduction trace.
 --   * The region first floats through reveal, strict conceal/reveal then fires,
 --     and the persistent allocation remains around the final constant.
---   * Records three remaining progress obstructions as typed closed terms with
---     checked proofs that `Progress` is impossible.
+--   * Audits the indexed `BlockedElimination` frontier.  The application and
+--     projection adapters have closed-source witnesses in
+--     `ChainNuReachability`; this file supplies the type-application,
+--     primitive, atomic-boundary, and nested-unseal witnesses.
+--   * The atomic reveal/conceal families each include a checked stepping old
+--     shape and a checked no-step value residue.  The primitive audit likewise
+--     contrasts U42's stepping plain pair with its region-adapter residue.
 --   * Checks both outward-injection laws as positive reduction traces,
 --     including a variable projection that reaches ordinary tag blame.
 --   * Checks the former region-Λ type-application gap as a positive trace:
@@ -17,6 +22,7 @@ open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_)
+open import Data.Sum using (inj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (¬_)
 import Data.Vec.Base as Vec
@@ -29,9 +35,13 @@ open import alt.Conversion
 open import alt.ThetaTerms
 open import alt.ThetaTyping
 open import alt.ThetaReduction
-open import alt.ThetaTermSubst using (rep?-bracket; rep?-here)
+open import alt.ThetaTermSubst using (⊢bracket; rep?-bracket; rep?-here)
 open import alt.ThetaProgress using
-  (CanonicalFun; Progress; step; done; failed)
+  (CanonicalFun; Progress; step; done; failed; BlockedElimination;
+   BoundaryValue; adapter-•; boundary-⊕; atomic-reveal; unseal-interior;
+   atomic-conceal; bb-reveal; bv-reveal-adapter; bv-reveal-region;
+   conceal-boundary)
+import alt.probes.LooseIdCancelRecheck as U42
 
 infix 2 _⊢_—↠_
 
@@ -300,6 +310,312 @@ baseAdapter-gap-witness :
   × ¬ Progress baseEnv baseAdapterGap
 baseAdapter-gap-witness =
   baseAdapterGap-typed , baseAdapterGap-no-progress
+
+baseAdapterGap-blocked : BlockedElimination baseEnv baseAdapterGap
+baseAdapterGap-blocked =
+  boundary-⊕ baseAdapter-value ($ (κℕ zero))
+    (inj₁
+      (bb-reveal baseRegion-result
+        (adapter-region (result-val baseRegionBody-value) var-∈)
+      , baseAdapter-no-step))
+    baseAdapterGap-typed
+
+------------------------------------------------------------------------
+-- U43 boundary audit: stepping plain pair and stuck region residue
+------------------------------------------------------------------------
+
+plainBasePrimitive : Term 3 2
+plainBasePrimitive = U42.baseRedex ⊕[ addℕ ] $ (κℕ zero)
+
+plainBasePrimitiveAfterConceal : Term 3 2
+plainBasePrimitiveAfterConceal =
+  U42.baseMiddle ⊕[ addℕ ] $ (κℕ zero)
+
+plainBasePrimitiveReady : Term 3 2
+plainBasePrimitiveReady = $ (κℕ zero) ⊕[ addℕ ] $ (κℕ zero)
+
+plainBasePrimitive-typed :
+  U42.baseEnv ∣ [] ⊢ plainBasePrimitive ⦂ ℕᵗ
+plainBasePrimitive-typed =
+  ⊢⊕ addℕ U42.baseRedex-typed (⊢$ (κℕ zero))
+
+plainBasePrimitive-trace :
+  U42.baseEnv ⊢ plainBasePrimitive —↠ $ (κℕ zero)
+plainBasePrimitive-trace =
+    plainBasePrimitive
+  —→⟨ ξ-⊕₁ U42.base-current-first-step ⟩
+    plainBasePrimitiveAfterConceal
+  —→⟨ ξ-⊕₁ U42.base-current-second-step ⟩
+    plainBasePrimitiveReady
+  —→⟨ δ-⊕ δ-add ⟩
+    $ (κℕ zero)
+  ∎
+
+------------------------------------------------------------------------
+-- U43 adapter-• witness
+------------------------------------------------------------------------
+
+adapterAll : ∀ {Δ} → Ty Δ
+adapterAll = `∀ (‵ `ℕ)
+
+allRegionBody : Term 2 1
+allRegionBody = Λ ($ (κℕ zero))
+
+allRegion : Term 1 1
+allRegion = ν[ ＇ zero ] allRegionBody
+
+allAdapter : Term 1 zero
+allAdapter = allRegion ↑[ zero ≔ zero ] `∀↑ id↑
+
+allAdapterGap : Term 1 zero
+allAdapterGap = allAdapter ⦂∀ (‵ `ℕ) [ ℕᵗ ]
+
+allRegionBody-typed :
+  dependentRegionEnv ∣ [] ⊢ allRegionBody ⦂ adapterAll
+allRegionBody-typed =
+  ⊢Λ (body-result (result-val ($ (κℕ zero)))) (⊢$ (κℕ zero))
+
+allRegion-typed : crossedEnv ∣ [] ⊢ allRegion ⦂ adapterAll
+allRegion-typed = ⊢ν allRegionBody-typed
+
+allAdapter-typed : baseEnv ∣ [] ⊢ allAdapter ⦂ adapterAll
+allAdapter-typed = ⊢reveal {fresh = no-live-anchor}
+  (rep?-here {Ψ = baseEnv} {A = ℕ⇒ℕ})
+  (⊢↑-∀ (⊢id↑ (‵ `ℕ))) allRegion-typed
+
+allAdapterGap-typed : baseEnv ∣ [] ⊢ allAdapterGap ⦂ ℕᵗ
+allAdapterGap-typed = ⊢⦂∀ allAdapter-typed
+
+allRegionBody-result : Result allRegionBody
+allRegionBody-result = result-val (Λ (result-val ($ (κℕ zero))))
+
+allRegion-result : Result allRegion
+allRegion-result = result-ν allRegionBody-result
+
+allAdapter-value : Value allAdapter
+allAdapter-value = allRegion-result ↑[ zero ≔ zero ]
+  adapter-region allRegionBody-result var-∈
+
+allAdapterGap-blocked : BlockedElimination baseEnv allAdapterGap
+allAdapterGap-blocked =
+  adapter-• allRegionBody-result var-∈ allAdapterGap-typed
+
+allAdapterGap-no-step : ∀ {M′}
+  → ¬ (baseEnv ⊢ allAdapterGap —→ M′)
+allAdapterGap-no-step (ξ-• reduction) =
+  value-no-step allAdapter-value reduction
+
+------------------------------------------------------------------------
+-- U43 bottom audit: stuck if inhabited; inhabitation remains open
+------------------------------------------------------------------------
+
+-- Unlike the store-indexed calculus, Theta's universal canonical view has an
+-- adapter-region case.  Thus the old `no-bot-value` proof cannot simply be
+-- imported.  This checked half of the audit isolates the remaining question:
+-- any value-headed `bot-elim` cast is dynamically stuck, but no typed closed
+-- inhabitant (or Theta-specific refutation of one) is currently known.
+bottomCast-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {V : Term Θ Δ} {μ : Env∼ Δ} {M′ : Term Θ Δ}
+  → Value V
+  → ¬ (Ψ ⊢ V ⟨ bot-elim { μ = μ } ⟩ —→ M′)
+bottomCast-no-step Vᵛ (ξ-⟨⟩ reduction) = value-no-step Vᵛ reduction
+
+------------------------------------------------------------------------
+-- U43 atomic-reveal: stepping old shape and narrowed stuck residue
+------------------------------------------------------------------------
+
+plainBoundary : BoundaryValue U42.baseRedex
+plainBoundary =
+  bv-reveal-adapter (result-val ($ (κℕ zero)))
+    U42.variable-node-pair-mismatch
+
+atomicRevealOuterEnv : TyEnv 3 1
+  (just U42.beta Vec.∷ Vec.[])
+atomicRevealOuterEnv =
+  U42.rootEnv ,begin[ zero ≔ U42.beta ]⟨ U42.empty-fresh ⟩
+
+atomicRevealStepping : Term 3 1
+atomicRevealStepping =
+  U42.baseRedex ↑[ suc zero ≔ U42.gamma ] id↑
+
+atomicRevealStepping-typed :
+  atomicRevealOuterEnv ∣ [] ⊢ atomicRevealStepping ⦂ ℕᵗ
+atomicRevealStepping-typed =
+  ⊢reveal {fresh = U42.second-fresh} refl (⊢id↑ (‵ `ℕ))
+    U42.baseRedex-typed
+
+atomicRevealStepping-step : ∀ {M′}
+  → U42.baseEnv ⊢ U42.baseRedex —→ M′
+  → atomicRevealOuterEnv ⊢ atomicRevealStepping —→
+      M′ ↑[ suc zero ≔ U42.gamma ] id↑
+atomicRevealStepping-step reduction =
+  ξ-reveal {fresh = U42.second-fresh} reduction
+
+alpha-after-gamma-fresh : U42.alpha ∉ᵛ
+  (just U42.gamma Vec.∷ Vec.[])
+alpha-after-gamma-fresh zero ()
+
+beta-after-gamma-alpha-fresh : U42.beta ∉ᵛ
+  (just U42.gamma Vec.∷ just U42.alpha Vec.∷ Vec.[])
+beta-after-gamma-alpha-fresh zero ()
+beta-after-gamma-alpha-fresh (suc zero) ()
+
+gammaEnv : TyEnv 3 1 (just U42.gamma Vec.∷ Vec.[])
+gammaEnv =
+  U42.rootEnv ,begin[ zero ≔ U42.gamma ]⟨ U42.empty-fresh ⟩
+
+gammaAlphaEnv : TyEnv 3 2
+  (just U42.gamma Vec.∷ just U42.alpha Vec.∷ Vec.[])
+gammaAlphaEnv =
+  gammaEnv ,begin[ suc zero ≔ U42.alpha ]⟨ alpha-after-gamma-fresh ⟩
+
+sensitiveOperand-typed :
+  gammaAlphaEnv ∣ [] ⊢ U42.baseSensitiveOperand ⦂ ℕᵗ
+sensitiveOperand-typed =
+  ⊢reveal {fresh = beta-after-gamma-alpha-fresh} refl
+    (⊢id↑ (‵ `ℕ)) (⊢ν (⊢$ (κℕ zero)))
+
+sensitiveOperand-boundary : BoundaryValue U42.baseSensitiveOperand
+sensitiveOperand-boundary =
+  bv-reveal-region (result-val ($ (κℕ zero))) var-∈
+
+atomicRevealStuck : Term 3 1
+atomicRevealStuck =
+  U42.baseSensitiveOperand ↑[ suc zero ≔ U42.alpha ] id↑
+
+atomicRevealStuck-typed :
+  gammaEnv ∣ [] ⊢ atomicRevealStuck ⦂ ℕᵗ
+atomicRevealStuck-typed =
+  ⊢reveal {fresh = alpha-after-gamma-fresh} refl
+    (⊢id↑ (‵ `ℕ)) sensitiveOperand-typed
+
+atomicRevealStuck-blocked :
+  BlockedElimination gammaEnv atomicRevealStuck
+atomicRevealStuck-blocked =
+  atomic-reveal (‵ `ℕ) sensitiveOperand-boundary
+    U42.baseSensitiveOperand-value atomicRevealStuck-typed
+
+atomicRevealStuck-no-step : ∀ {M′}
+  → ¬ (gammaEnv ⊢ atomicRevealStuck —→ M′)
+atomicRevealStuck-no-step (ξ-reveal reduction) =
+  value-no-step U42.baseSensitiveOperand-value reduction
+
+------------------------------------------------------------------------
+-- U43 atomic-conceal: stepping old shape and narrowed stuck residue
+------------------------------------------------------------------------
+
+plainConcealEnv : TyEnv 3 3
+  (just U42.alpha Vec.∷ U42.baseΣ)
+plainConcealEnv =
+  U42.baseEnv ,begin[ zero ≔ U42.alpha ]⟨ U42.third-fresh ⟩
+
+atomicConcealStepping : Term 3 3
+atomicConcealStepping =
+  U42.baseRedex ↓[ zero ≔ U42.alpha ] id↓
+
+plainConcealEndedRep :
+  rep? (plainConcealEnv ,end[ zero ]) U42.alpha ≡ just ℕᵗ
+plainConcealEndedRep =
+  rep?-bracket {Ψ = U42.baseEnv} {Y = zero} {a = U42.alpha}
+    {q = U42.alpha} {A = ℕᵗ} U42.third-fresh refl
+
+atomicConcealStepping-typed :
+  plainConcealEnv ∣ [] ⊢ atomicConcealStepping ⦂ ℕᵗ
+atomicConcealStepping-typed =
+  ⊢conceal refl
+    plainConcealEndedRep
+    (⊢id↓ (‵ `ℕ))
+    (⊢bracket U42.third-fresh U42.baseRedex-typed)
+
+atomicConcealStepping-step :
+  plainConcealEnv ⊢ atomicConcealStepping —→
+    U42.baseMiddle ↓[ zero ≔ U42.alpha ] id↓
+atomicConcealStepping-step =
+  ξ-conceal
+    (ξ-reveal {fresh = U42.third-fresh} id-conceal)
+
+atomicConcealStuck-blocked :
+  BlockedElimination U42.outerEnv U42.baseSensitiveInner
+atomicConcealStuck-blocked =
+  atomic-conceal
+    (conceal-boundary sensitiveOperand-boundary
+      U42.baseSensitiveOperand-value)
+    U42.baseSensitiveInner-typed
+
+atomicConcealStuck-no-step : ∀ {M′}
+  → ¬ (U42.outerEnv ⊢ U42.baseSensitiveInner —→ M′)
+atomicConcealStuck-no-step (ξ-conceal reduction) =
+  value-no-step U42.baseSensitiveOperand-value reduction
+
+------------------------------------------------------------------------
+-- U43 unseal-interior narrowed to the delimited residue
+------------------------------------------------------------------------
+
+unsealRoot : TyEnv 2 zero Vec.[]
+unsealRoot = ∅ ,:= ℕᵗ ,:= ℕᵗ
+
+unsealOuterEnv : TyEnv 2 1 (just zero Vec.∷ Vec.[])
+unsealOuterEnv =
+  unsealRoot ,begin[ zero ≔ zero ]⟨ no-live-anchor ⟩
+
+unsealInnerAnchor : TyVar 2
+unsealInnerAnchor = suc zero
+
+unsealInnerFresh : unsealInnerAnchor ∉ᵛ
+  (just (zero {n = 1}) Vec.∷ Vec.[])
+unsealInnerFresh zero ()
+
+unsealInnerEnv : TyEnv 2 2
+  (just zero Vec.∷ just (suc zero) Vec.∷ Vec.[])
+unsealInnerEnv =
+  unsealOuterEnv
+    ,begin[ suc zero ≔ unsealInnerAnchor ]⟨ unsealInnerFresh ⟩
+
+unsealSealed : Term 2 2
+unsealSealed = ($ (κℕ zero)) ↓[ zero ≔ zero ] seal
+
+unsealDelimited : Term 2 1
+unsealDelimited =
+  unsealSealed ↑[ suc zero ≔ unsealInnerAnchor ] id↑
+
+unsealGap : Term 2 zero
+unsealGap = unsealDelimited ↑[ zero ≔ zero ] unseal
+
+unsealSealed-typed :
+  unsealInnerEnv ∣ [] ⊢ unsealSealed ⦂ ＇ zero
+unsealSealed-typed =
+  ⊢conceal refl refl ⊢seal (⊢$ (κℕ zero))
+
+unsealDelimited-typed :
+  unsealOuterEnv ∣ [] ⊢ unsealDelimited ⦂ ＇ zero
+unsealDelimited-typed =
+  ⊢reveal {fresh = unsealInnerFresh} refl
+    (⊢id↑ (＇ zero)) unsealSealed-typed
+
+unsealGap-typed : unsealRoot ∣ [] ⊢ unsealGap ⦂ ℕᵗ
+unsealGap-typed =
+  ⊢reveal {fresh = no-live-anchor} refl ⊢unseal
+    unsealDelimited-typed
+
+unsealSealed-value : Value unsealSealed
+unsealSealed-value = ($ (κℕ zero)) ↓[ zero ≔ zero ] sealᵥ
+
+unsealSealed-canonical : CanonicalInterior unsealSealed
+unsealSealed-canonical = sealed ($ (κℕ zero)) zero zero
+
+unsealDelimited-value : Value unsealDelimited
+unsealDelimited-value =
+  result-val unsealSealed-value ↑[ suc zero ≔ unsealInnerAnchor ]
+    delimiter unsealSealed-canonical
+
+unsealGap-blocked : BlockedElimination unsealRoot unsealGap
+unsealGap-blocked =
+  unseal-interior unsealSealed-canonical unsealGap-typed
+
+unsealGap-no-step : ∀ {M′}
+  → ¬ (unsealRoot ⊢ unsealGap —→ M′)
+unsealGap-no-step (ξ-reveal reduction) =
+  value-no-step unsealDelimited-value reduction
 
 ------------------------------------------------------------------------
 -- Resolved gap: strengthenable injections commute out of identity reveal

@@ -24,7 +24,7 @@ holes, or pragmas.
 | `ThetaReduction.agda` | 751 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
 | `ThetaTermSubst.agda` | 6365 | transport suite, `⊢≼`, `⊢[]` |
 | `ThetaPreservation.agda` | 678 | per-case lemmas + `preserve` |
-| `ThetaProgress.agda` | 1443 | canonical forms + parameterized assembler |
+| `ThetaProgress.agda` | 1451 | canonical forms + parameterized assembler |
 | `ThetaRegression.agda` | 256 | curated positive regressions |
 
 ## The design, in one page
@@ -119,9 +119,7 @@ ordinary `tag-untag-bad` rule.
    WithGaps.progress : Ψ ∣ [] ⊢ M ⦂ A → Progress Ψ M
    ```
 
-   - `gap-adapter-⊕`: indexed blocked eliminators, including non-floatable
-     adapters at application, type application, and unseal projection;
-     atomic reveal/conceal and primitive boundaries; and bottom elimination.
+   - `gap-adapter-⊕`: the audited indexed blocked eliminators listed below.
    - `gap-∀-reveal-cast`: a structural reveal cannot merge through a
      non-`Λ` canonical universal value.
    - `gap-∀-conceal-cast`: the dual structural conceal cannot merge through
@@ -142,6 +140,26 @@ ordinary `tag-untag-bad` rule.
    accepts a `Result` body, so a ν-prefixed body allocates normally and its
    inner region continues by the guarded float rules.  The positive trace is
    checked in `alt/probes/ProgressGaps.agda`.
+
+   U43 audited every constructor of `BlockedElimination`.  Progress still has
+   three parameters: pruning inside the indexed `gap-adapter-⊕` family does
+   not remove that family as a whole.
+
+   | constructor | verdict | checked evidence | reachability |
+   | --- | --- | --- | --- |
+   | `adapter-·` | still earns its place | `ChainNuReachability.appEndpoint-blocked` / `appEndpoint-no-step` | reachable: `closed-app-trace` starts from a closed source-shaped term |
+   | `adapter-•` | still earns its place | `ProgressGaps.allAdapterGap-blocked` / `allAdapterGap-no-step` | typed-only: the current chain producer fixtures end at term application and projection; no polymorphic boundary producer trace has been constructed |
+   | `adapter-project` | still earns its place | `ChainNuReachability.starEndpoint-blocked` / `starEndpoint-no-step` | reachable: `closed-star-trace` starts from a closed source-shaped term |
+   | `boundary-⊕` | narrowed to an explicitly no-step `BoundaryBase` operand | `ProgressGaps.baseAdapterGap-blocked`; contrast `plainBasePrimitive-trace` | typed-only for the residue: the U42 plain pair reduces before primitive canonical classification, while no closed producer trace for the region-adapter operand is checked |
+   | `atomic-reveal` | over-covered; narrowed to a `Value` boundary | `atomicRevealStuck-blocked` / `atomicRevealStuck-no-step`; contrast `atomicRevealStepping-step` | typed-only: a nested source producer trace has not been constructed |
+   | `unseal-interior` | narrowed and still earns its place | `unsealGap-blocked` / `unsealGap-no-step` | typed-only: the tagged arm is typing-impossible (`tagged-not-variable`); no source trace for the nested-delimiter residue is checked |
+   | `atomic-conceal` | over-covered; narrowed to a `Value` boundary | `atomicConcealStuck-blocked` / `atomicConcealStuck-no-step`; contrast `atomicConcealStepping-step` | typed-only: a nested source producer trace has not been constructed |
+   | `bottom-cast` | unsettled | `bottomCast-no-step` proves every value-headed instance is stuck | inhabitation is open: the store proof's `no-bot-value` does not cover Theta's adapter-region universal canonical form, and no typed inhabitant was found |
+
+   The audit therefore removes the impossible tagged `unseal-interior` arm and
+   narrows both atomic boundary cases.  It also makes the primitive premise's
+   no-step residue explicit.  No reduction, typing, or value rule changes are
+   involved.
 4. **Merge rules** (deferred design): the indexed adapter/`⊕` family and the
    two structural `∀` cast families described above.
 5. **`Λ` value restriction** — `⊢Λ` still carries a DEFERRED marker.

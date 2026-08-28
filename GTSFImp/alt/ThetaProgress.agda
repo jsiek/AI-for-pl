@@ -251,26 +251,13 @@ data CanonicalAtom : ∀ {Θ Δ} → Term Θ Δ → Set where
       -------------------
     → CanonicalAtom V
 
-data NonSealInterior : ∀ {Θ Δ} → Term Θ Δ → Set where
-  nsi-tagged : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ}
-      {G : Ty Δ} ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
-      ⦃ Gns : NonStar G ⦄
-    → Value V
-      ----------------------------------------------------
-    → NonSealInterior (V ⟨ _! ⦃ Gᵍ ⦄ (idᵍ Gᵍ) ⟩)
-
-  nsi-delimited : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → CanonicalInterior V
-      -------------------------------------------------
-    → NonSealInterior (V ↑[ X ≔ α ] id↑)
-
 data ConcealBoundary : ∀ {Θ Δ} → Term Θ Δ → Set where
   conceal-boundary : ∀ {Θ Δ} {V : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → BoundaryValue V
+    → Value V
       -------------------------------------------------
-    → ConcealBoundary { Θ = Θ } { Δ = suc Δ }
+    → ConcealBoundary {Θ = Θ} {Δ = suc Δ}
         (V ↓[ X ≔ α ] c)
 
 data NonLambdaAll : ∀ {Θ Δ} → Term Θ Δ → Set where
@@ -344,7 +331,8 @@ data BlockedElimination {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) :
   boundary-⊕ : ∀ {op V W}
     → Value V
     → Value W
-    → (BoundaryBase V ⊎ BoundaryBase W)
+    → ((BoundaryBase V × (∀ {V′} → ¬ (Ψ ⊢ V —→ V′)))
+      ⊎ (BoundaryBase W × (∀ {W′} → ¬ (Ψ ⊢ W —→ W′))))
     → Ψ ∣ [] ⊢ V ⊕[ op ] W ⦂ primResultTy op
       ------------------------------------------------------------
     → BlockedElimination Ψ (V ⊕[ op ] W)
@@ -354,16 +342,20 @@ data BlockedElimination {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) :
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
     → Atom A
     → BoundaryValue V
+    → Value V
     → Ψ ∣ [] ⊢ V ↑[ X ≔ α ] c ⦂ B
       ------------------------------------------------------------
     → BlockedElimination Ψ (V ↑[ X ≔ α ] c)
 
-  unseal-interior : ∀ {B : Ty Δ} {V : Term Θ (suc Δ)}
+  unseal-interior : ∀ {B : Ty Δ} {V : Term Θ (suc (suc Δ))}
+      {Y : TyVar (suc (suc Δ))} {β : TyVar Θ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → NonSealInterior V
-    → Ψ ∣ [] ⊢ V ↑[ X ≔ α ] unseal ⦂ B
+    → CanonicalInterior V
+    → Ψ ∣ [] ⊢ (V ↑[ Y ≔ β ] id↑)
+        ↑[ X ≔ α ] unseal ⦂ B
       ------------------------------------------------------------
-    → BlockedElimination Ψ (V ↑[ X ≔ α ] unseal)
+    → BlockedElimination Ψ
+        ((V ↑[ Y ≔ β ] id↑) ↑[ X ≔ α ] unseal)
 
   atomic-conceal : ∀ {A : Ty Δ} {M : Term Θ Δ}
     → ConcealBoundary M
@@ -714,6 +706,14 @@ constant-not-variable : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
   → ⊥
 constant-not-variable {κ = κℕ n} ()
 constant-not-variable {κ = κ𝔹 b} ()
+
+tagged-not-variable : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {V : Term Θ Δ} {μ : Env∼ Δ} {G : Ty Δ}
+    ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+    ⦃ Gns : NonStar G ⦄ {X : TyVar Δ}
+  → Ψ ∣ [] ⊢ V ⟨ (idᵍ Gᵍ) ! ⟩ ⦂ ＇ X
+  → ⊥
+tagged-not-variable ()
 
 data CanonicalNat : ∀ {Θ Δ} → Term Θ Δ → Set where
   nat-constant : ∀ {Θ Δ n}
@@ -1086,7 +1086,8 @@ module WithGaps
   finish-id-reveal atom typing Vᵛ (atom-interior Vᶜ) =
     done (result-val (result-val Vᵛ ↑[ _ ≔ _ ] delimiter Vᶜ))
   finish-id-reveal {X = X} atom typing Vᵛ (atom-boundary boundary) =
-    gap-adapter-⊕ (atomic-reveal (wk-atom X atom) boundary typing)
+    gap-adapter-⊕
+      (atomic-reveal (wk-atom X atom) boundary Vᵛ typing)
 
   reveal-value-progress-core : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {C B : Ty Δ} {A T : Ty (suc Δ)}
@@ -1107,16 +1108,16 @@ module WithGaps
     ⊥-elim (constant-not-variable V⊢)
   reveal-value-progress-core typing V⊢ Vᵛ ⊢unseal target-eq
       | refl | atom-tagged Wᵛ =
-    gap-adapter-⊕ (unseal-interior (nsi-tagged Wᵛ) typing)
+    ⊥-elim (tagged-not-variable V⊢)
   reveal-value-progress-core typing V⊢ Vᵛ ⊢unseal target-eq
       | refl | atom-interior (sealed Wᵛ Y γ) =
     step (conceal-reveal (result-val Wᵛ))
   reveal-value-progress-core typing V⊢ Vᵛ ⊢unseal target-eq
       | refl | atom-interior (delimited Wᶜ Y γ) =
-    gap-adapter-⊕ (unseal-interior (nsi-delimited Wᶜ) typing)
+    gap-adapter-⊕ (unseal-interior Wᶜ typing)
   reveal-value-progress-core {X = X} typing V⊢ Vᵛ ⊢unseal target-eq
       | refl | atom-boundary boundary =
-    gap-adapter-⊕ (atomic-reveal (＇ X) boundary typing)
+    gap-adapter-⊕ (atomic-reveal (＇ X) boundary Vᵛ typing)
   reveal-value-progress-core typing V⊢ Vᵛ (⊢↑-⇒ c⊢ d⊢) target-eq =
     done (result-val (result-val Vᵛ ↑[ _ ≔ _ ] fun Vᵛ))
   reveal-value-progress-core {B = ＇ Y} typing V⊢ Vᵛ (⊢↑-∀ c⊢) ()
@@ -1195,7 +1196,8 @@ module WithGaps
   finish-id-conceal atom typing Vᵛ (atom-interior Vᶜ) =
     done (result-val (Vᵛ ↓[ _ ≔ _ ] delimiter Vᶜ))
   finish-id-conceal atom typing Vᵛ (atom-boundary boundary) =
-    gap-adapter-⊕ (atomic-conceal (conceal-boundary boundary) typing)
+    gap-adapter-⊕
+      (atomic-conceal (conceal-boundary boundary Vᵛ) typing)
 
   conceal-value-progress-core : ∀ {Θ Δ σ}
       {Ψ : TyEnv Θ (suc Δ) σ} {V : Term Θ Δ}
@@ -1377,13 +1379,16 @@ module WithGaps
     step (δ-⊕ δ-add)
   progress typing@(⊢⊕ addℕ L⊢ M⊢) | done (result-val Lᵛ)
       | done (result-val Mᵛ) | nat-boundary Lᵇ | nat-constant =
-    gap-adapter-⊕ (boundary-⊕ Lᵛ Mᵛ (inj₁ Lᵇ) typing)
+    gap-adapter-⊕
+      (boundary-⊕ Lᵛ Mᵛ (inj₁ (Lᵇ , value-no-step Lᵛ)) typing)
   progress typing@(⊢⊕ addℕ L⊢ M⊢) | done (result-val Lᵛ)
       | done (result-val Mᵛ) | nat-constant | nat-boundary Mᵇ =
-    gap-adapter-⊕ (boundary-⊕ Lᵛ Mᵛ (inj₂ Mᵇ) typing)
+    gap-adapter-⊕
+      (boundary-⊕ Lᵛ Mᵛ (inj₂ (Mᵇ , value-no-step Mᵛ)) typing)
   progress typing@(⊢⊕ addℕ L⊢ M⊢) | done (result-val Lᵛ)
       | done (result-val Mᵛ) | nat-boundary Lᵇ | nat-boundary Mᵇ =
-    gap-adapter-⊕ (boundary-⊕ Lᵛ Mᵛ (inj₁ Lᵇ) typing)
+    gap-adapter-⊕
+      (boundary-⊕ Lᵛ Mᵛ (inj₁ (Lᵇ , value-no-step Lᵛ)) typing)
   progress typing@(⊢⊕ and𝔹 L⊢ M⊢) with progress L⊢
   progress typing@(⊢⊕ and𝔹 L⊢ M⊢) | step L—→L′ =
     step (ξ-⊕₁ L—→L′)
@@ -1408,13 +1413,16 @@ module WithGaps
     step (δ-⊕ δ-and)
   progress typing@(⊢⊕ and𝔹 L⊢ M⊢) | done (result-val Lᵛ)
       | done (result-val Mᵛ) | bool-boundary Lᵇ | bool-constant =
-    gap-adapter-⊕ (boundary-⊕ Lᵛ Mᵛ (inj₁ Lᵇ) typing)
+    gap-adapter-⊕
+      (boundary-⊕ Lᵛ Mᵛ (inj₁ (Lᵇ , value-no-step Lᵛ)) typing)
   progress typing@(⊢⊕ and𝔹 L⊢ M⊢) | done (result-val Lᵛ)
       | done (result-val Mᵛ) | bool-constant | bool-boundary Mᵇ =
-    gap-adapter-⊕ (boundary-⊕ Lᵛ Mᵛ (inj₂ Mᵇ) typing)
+    gap-adapter-⊕
+      (boundary-⊕ Lᵛ Mᵛ (inj₂ (Mᵇ , value-no-step Mᵛ)) typing)
   progress typing@(⊢⊕ and𝔹 L⊢ M⊢) | done (result-val Lᵛ)
       | done (result-val Mᵛ) | bool-boundary Lᵇ | bool-boundary Mᵇ =
-    gap-adapter-⊕ (boundary-⊕ Lᵛ Mᵛ (inj₁ Lᵇ) typing)
+    gap-adapter-⊕
+      (boundary-⊕ Lᵛ Mᵛ (inj₁ (Lᵇ , value-no-step Lᵛ)) typing)
   progress typing@(⊢⟨⟩ M⊢ c) with progress M⊢
   progress typing@(⊢⟨⟩ M⊢ c) | step M—→M′ =
     step (ξ-⟨⟩ M—→M′)

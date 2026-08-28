@@ -48,7 +48,7 @@ import CastTerms as CT
 open import Reduction using
   ( StoreChanges; []; _∷_; keep; bind; applyTy; applyBody; applyTys
   ; applyVar
-  ; pure-step; β-id; β-inst; β-∀; β-gen; ground
+  ; pure-step; β-id; β-inst; β-∀; β-gen; β-reveal-∀; ground
   ; expand; tag-untag; ξ-⟨⟩; applyConsistencies
   ; _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[]
   )
@@ -1080,6 +1080,14 @@ private
     multi-target-only-name {W = W¹} {W′ = W′} tail
       (target-only-name-evolution {W = W} one target-only)
 
+  mapInstantiationSpines : ∀ {Δ Δ′ A B}
+    → (χs : StoreChanges Δ Δ′)
+    → InstantiationSpine A B
+    → InstantiationSpine (applyTys χs A) (applyTys χs B)
+  mapInstantiationSpines [] spine = spine
+  mapInstantiationSpines (χ ∷ χs) spine =
+    mapInstantiationSpines χs (mapInstantiationSpine χ spine)
+
   data SpineNamesTargetOnlyᶜ {Γᴸ Γᴿ : Ctx}
       (γ : Γᴸ ⊑ᶜ Γᴿ) : ∀ {A E}
       → InstantiationSpine A E → Set where
@@ -1187,6 +1195,21 @@ private
     names-conceal {γ = W′}
       (map-spine-names-target-only {W = W} {W′ = W′}
         evolution names)
+
+  multi-map-spine-names-target-only : ∀ {Γᴸ Γᴿ Γᴿ′ : Ctx}
+      {W : Γᴸ ⊑ᶜ Γᴿ} {W′ : Γᴸ ⊑ᶜ Γᴿ′}
+      {χsᴿ : StoreChanges (CT.Δᵉ Γᴿ) (CT.Δᵉ Γᴿ′)} {A E}
+      {spine : InstantiationSpine A E}
+    → MultiWorldEvolution {W = W} {W′ = W′} [] χsᴿ
+    → SpineNamesTargetOnlyᶜ W spine
+    → SpineNamesTargetOnlyᶜ W′
+        (mapInstantiationSpines χsᴿ spine)
+  multi-map-spine-names-target-only {W = W} {W′ = W′}
+      evolutions-refl names = names
+  multi-map-spine-names-target-only {W = W} {W′ = W′}
+      (evolutions-step-right {W¹ = W¹} refl one tail) names =
+    multi-map-spine-names-target-only {W = W¹} {W′ = W′} tail
+      (map-spine-names-target-only {W = W} {W′ = W¹} one names)
 
   lift-left-spine-names : ∀ {Γᴸ Γᴿ : Ctx}
       {γ : Γᴸ ⊑ᶜ Γᴿ} {A E}
@@ -1896,13 +1919,16 @@ module _
 
     -- Universal conversions remain in the name phase.  Rebase branches recurse
     -- in their premise world; gamma itself carries the open-frame balance.
-    name-spine-catchup-acc {γ = γ} {X = X}
-        (inst-view-reveal {c = d} view-body-value)
+    name-spine-catchup-acc {γ = γ} {B = Bᴿ} {X = X}
+        (inst-view-reveal {A = Cᴿ} {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         source-value (target-body-value ↑ all) spine
         {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
-          {! transport the reveal premise through target allocation !}
+          (transport-target-bind
+            (target-only-name-fresh {γ = γ}
+              (name-frame-target-only {γ = γ} names))
+            refl prem)
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
@@ -1913,12 +1939,34 @@ module _
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    name-spine-catchup-acc {γ = γ} {X = X}
-        (inst-view-reveal {c = d} view-body-value)
+    name-spine-catchup-acc {γ = γ} {B = Bᴿ} {X = X}
+        (inst-view-reveal {A = Cᴿ} {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
-        source-value (target-body-value ↑ all) spine (acc smaller)
-      | child =
-        {! prepend the target reveal beta-inst reduction !}
+        source-value (target-body-value ↑ all) spine
+        {spine-names = names} (acc smaller)
+      | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
+        evolution , final =
+        Δᴿ′ , Σᴿ′ , bind (＇ X) ∷ χsᴿ , W′ , γ′ , r ,
+          (applyInstantiationSpine
+            (value-term target-body-value ↑ Conv.`∀↑ d
+              ⦂∀ Bᴿ [ ＇ X ]) spine
+          —→[ bind (＇ X) ]⟨ lift-instantiation-spine-bind
+            (β-reveal-∀ target-body-value) spine ⟩
+            applyInstantiationSpine
+              ((⇑ᵗᵐ (value-term target-body-value)
+                  ⦂∀ applyBody (bind (＇ X)) Cᴿ [ ＇ Fin.zero ]) ↑ d
+                ↑ 〖 Fin.zero , ⇑ᵗ (＇ X) ↑ Bᴿ 〗)
+              (mapInstantiationSpine (bind (＇ X)) spine)
+          —↠[ χsᴿ ]⟨ reduction ⟩
+            W′ ∎[]) ,
+          value ,
+          evolutions-step-right refl
+            (evolution-bind-right
+              (target-only-name-fresh {γ = γ}
+                (name-frame-target-only {γ = γ} names))
+              refl)
+            evolution ,
+          final
 
     name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)

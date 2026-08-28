@@ -1293,6 +1293,124 @@ transport-rebuild (evolve-there edge-evolution path-evolution)
 
 
 ------------------------------------------------------------------------
+-- One selected target reveal/rebase inside a whole caller path
+------------------------------------------------------------------------
+
+data TargetRevealRebaseInPath
+    {Δᴸ Δᴿ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+    {γ γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {c′ : Conv↑ Δᴿ B B′}
+    (c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′)
+    (rebase : SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ)
+    {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+    (related : γᵖ CTI.⊢² M ⊑ M′ ∶ p)
+    (q : A ⊑ᵀ⟨ γ ⟩ B′) :
+    {outer focus : RelatedConfiguration
+      (⟨ Δᴸ , Σᴸ , Γᴸ ⟩) (⟨ Δᴿ , Σᴿ , Γᴿ ⟩)}
+  → (path : outer ↘ᶜ* focus) → Set₁ where
+
+  selected-here : ∀ {focus}
+      {tail : pack related ↘ᶜ* focus}
+    → TargetRevealRebaseInPath c′⊢ rebase related q
+        (focus-there
+          (focus-target-reveal-rebase c′⊢ rebase related q) tail)
+
+  selected-there : ∀ {outer middle focus}
+      {edge : outer ↘ᶜ middle} {tail : middle ↘ᶜ* focus}
+    → TargetRevealRebaseInPath c′⊢ rebase related q tail
+    → TargetRevealRebaseInPath c′⊢ rebase related q
+        (focus-there edge tail)
+
+extend-selected-reveal : ∀
+    {Δᴸ Δᴿ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {Γᴸ : TermCtx Δᴸ} {Γᴿ : TermCtx Δᴿ}
+    {γ γᵖ : ⟨ Δᴸ , Σᴸ , Γᴸ ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , Γᴿ ⟩}
+    {M : Term Δᴸ} {M′ : Term Δᴿ}
+    {A : Ty Δᴸ} {B B′ Rᴿ : Ty Δᴿ}
+    {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+    {c′ : Conv↑ Δᴿ B B′}
+    {c′⊢ : Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] c′}
+    {rebase : SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ}
+    {p : A ⊑ᵀ⟨ γᵖ ⟩ B}
+    {related : γᵖ CTI.⊢² M ⊑ M′ ∶ p}
+    {q : A ⊑ᵀ⟨ γ ⟩ B′}
+    {outer middle focus : RelatedConfiguration
+      (⟨ Δᴸ , Σᴸ , Γᴸ ⟩) (⟨ Δᴿ , Σᴿ , Γᴿ ⟩)}
+    {path : outer ↘ᶜ* middle} {edge : middle ↘ᶜ focus}
+  → TargetRevealRebaseInPath c′⊢ rebase related q path
+  → TargetRevealRebaseInPath c′⊢ rebase related q
+      (extend-focus path edge)
+extend-selected-reveal selected-here = selected-here
+extend-selected-reveal (selected-there selected) =
+  selected-there (extend-selected-reveal selected)
+
+
+------------------------------------------------------------------------
+-- Whole-caller target reveal/rebase closing
+------------------------------------------------------------------------
+
+WholeContextualTargetRevealRebaseClosingᵀ : Set₁
+WholeContextualTargetRevealRebaseClosingᵀ = ∀
+    {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {γʳᵒᵒᵗ γ γᵖ :
+      ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
+    {χᴸ : StoreChange Δᴸ Δᴸ′}
+    {root-source : Term Δᴸ} {root-target : Term Δᴿ}
+    {root-result : Term Δᴸ′}
+    {root-source-type : Ty Δᴸ} {root-target-type : Ty Δᴿ}
+    {root-type-related :
+      root-source-type ⊑ᵀ⟨ γʳᵒᵒᵗ ⟩ root-target-type}
+  → openFramesᶜ γʳᵒᵒᵗ ≡ []
+  → (root-related : γʳᵒᵒᵗ CTI.⊢² root-source ⊑ root-target ∶
+      root-type-related)
+  → ∀ {inner-source : Term Δᴸ} {inner-target : Term Δᴿ}
+      {inner-source-type : Ty Δᴸ}
+      {inner-target-type selected-target-type Rᴿ : Ty Δᴿ}
+      {Xᴸ : TyVar Δᴸ} {Xᴿ : TyVar Δᴿ}
+      {target-reveal : Conv↑ Δᴿ inner-target-type selected-target-type}
+  → (target-reveal⊢ :
+      Σᴿ ⊢↑[ Xᴿ ⦂ Rᴿ ] target-reveal)
+  → (rebase : SourceRebaseᶜ γ γᵖ Xᴸ Xᴿ)
+  → {inner-type-related :
+      inner-source-type ⊑ᵀ⟨ γᵖ ⟩ inner-target-type}
+  → (inner-related :
+      γᵖ CTI.⊢² inner-source ⊑ inner-target ∶ inner-type-related)
+  → (selected-type-related :
+      inner-source-type ⊑ᵀ⟨ γ ⟩ selected-target-type)
+  → ∀ {γᶠ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
+      {L : Term Δᴸ} {L′ : Term Δᴿ}
+      {C : Ty Δᴸ} {D : Ty Δᴿ} {s : C ⊑ᵀ⟨ γᶠ ⟩ D}
+      (focus-related : γᶠ CTI.⊢² L ⊑ L′ ∶ s)
+  → (path : pack root-related ↘ᶜ* pack focus-related)
+  → TargetRevealRebaseInPath target-reveal⊢ rebase inner-related
+      selected-type-related path
+  → ∀ {P : Term Δᴸ′}
+  → L —→[ χᴸ ] P
+  → RebuildSource path χᴸ P root-result
+  → Σ[ Δᴿ′ ∈ TyCtx ]
+    Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
+    Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ N′ ∈ Term Δᴿ′ ]
+    Σ[ γ′ ∈
+      ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
+    Σ[ final-related ∈
+      applyTy χᴸ root-source-type ⊑ᵀ⟨ γ′ ⟩
+        applyTys χsᴿ root-target-type ]
+      (root-target —↠[ χsᴿ ] N′)
+      × MultiWorldEvolution
+          {W = γʳᵒᵒᵗ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) χsᴿ
+      × (γ′ CTI.⊢² root-result ⊑ N′ ∶ final-related)
+
+
+------------------------------------------------------------------------
 -- Generalized induction and adapter to the unchanged public interface
 ------------------------------------------------------------------------
 
@@ -1332,6 +1450,22 @@ ContextualTargetRevealRebaseClosingᵀ = ∀
       × MultiWorldEvolution
           {W = γ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) χsᴿ
       × (γ′ CTI.⊢² N ⊑ N′ ∶ r)
+
+whole-closing-specializes-to-contextual :
+    WholeContextualTargetRevealRebaseClosingᵀ
+  → ContextualTargetRevealRebaseClosingᵀ
+whole-closing-specializes-to-contextual close no-open target-reveal⊢
+    rebase inner-related selected-related focus-related tail step rebuild =
+  close no-open
+    (CTI.⊑reveal-rebase² target-reveal⊢ rebase inner-related
+      selected-related)
+    target-reveal⊢ rebase inner-related selected-related focus-related
+    (focus-there
+      (focus-target-reveal-rebase target-reveal⊢ rebase inner-related
+        selected-related)
+      tail)
+    selected-here step
+    (rebuild-there rebuild (rebuild-edge refl))
 
 contextual-closing-adapter :
     ContextualTargetRevealRebaseClosingᵀ

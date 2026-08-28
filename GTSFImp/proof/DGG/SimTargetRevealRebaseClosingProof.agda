@@ -923,37 +923,37 @@ module _
       composeMultiWorldEvolution evolution₁ values-evolution ,
       final-relation
 
-  contextual-target-reveal-rebase-closing :
+  selected-target-reveal-rebase-closing :
     ContextualTargetRevealRebaseClosingᵀ
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.x⊑x² source∋ target∋) path (pure-step ()) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.ƛ⊑ƛ² related) path (pure-step ()) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (ξ-·₁ function-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q function-related
       (extend-focus path (focus-·₁ function-related argument-related))
       function-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (ξ-·₂ function-value argument-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q argument-related
       (extend-focus path
         (focus-·₂ function-related argument-related function-value))
       argument-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -962,7 +962,7 @@ module _
         (extend-focus path
           (focus-·₁ function-related argument-related))
         (CastTerms.Value.ƛ body)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -971,7 +971,7 @@ module _
       target-function-value₁ , evolution₁ , rebase₁ , root-related₁ ,
       function-related₁ , path₁ , path-evolution₁
       with split-target-extended-path path-evolution₁
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -983,7 +983,7 @@ module _
         prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
       with application-left-edge-view edge₁
         (sym (TargetEdgeEvolution.same-source-frame edge-evolution₁))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -1005,7 +1005,7 @@ module _
             (subst Value (cong sourceTerm function-focus-eq₁)
               (CastTerms.Value.ƛ body))))
         argument-value
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -1022,7 +1022,7 @@ module _
       target-argument-value₂ , evolution₂ , rebase₂ , root-related₂ ,
       argument-related₂ , path₂ , path-evolution₂
       with split-target-extended-path path-evolution₂
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -1043,7 +1043,7 @@ module _
       with application-right-edge-view edge₂
         (sym (TargetEdgeEvolution.same-source-frame edge-evolution₂))
         (TargetEdgeEvolution.target-edge-ready edge-evolution₂)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -1067,7 +1067,7 @@ module _
       with cong sourceTerm function-focus-eq₁
          | cong sourceTerm argument-focus-eq₂
          | cong targetTerm argument-focus-eq₂
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -1106,7 +1106,7 @@ module _
           (compose-target-path-evolution
             prefix-evolution₁ prefix-evolution₂)
           rebuild)
-  contextual-target-reveal-rebase-closing {c′ = c′}
+  selected-target-reveal-rebase-closing {c′ = c′}
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β {N = body} argument-value)) rebuild
@@ -1157,7 +1157,7 @@ module _
       composeMultiWorldEvolution evolution₁
         (composeMultiWorldEvolution evolution₂ values-evolution) ,
       final-relation
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β-⇒ function-value argument-value)) rebuild =
@@ -1167,7 +1167,7 @@ module _
       argument-value
       (β-⇒ function-value argument-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β-reveal-⇒ function-value argument-value)) rebuild =
@@ -1177,7 +1177,7 @@ module _
       argument-value
       (β-reveal-⇒ function-value argument-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.·⊑·² function-related argument-related) path
       (pure-step (β-conceal-⇒ function-value argument-value)) rebuild =
@@ -1187,7 +1187,7 @@ module _
       argument-value
       (β-conceal-⇒ function-value argument-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.·⊑·² {pB = result-related}
         function-related argument-related) path
@@ -1196,7 +1196,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) result-related) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.·⊑·² {pB = result-related}
         function-related argument-related) path
@@ -1206,27 +1206,27 @@ module _
         (CTI.blame⊑² (target-typing relation) result-related) rebuild)
       q
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.Λ⊑Λ² source-value target-value related s) path
       (pure-step ()) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.Λ⊑² nonvar occurs source-value target⊢ related s) path
       (pure-step ()) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑•² p∀ related type-related result-related) path
       (ξ-• source-step refl refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-•-paired p∀ related type-related result-related))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑•² p∀ related type-related result-related) path
       (pure-step (β-∀ source-value instantiated)) rebuild =
@@ -1234,7 +1234,7 @@ module _
       no-open target-reveal rebase root-related q related type-related
       result-related path (source-value 《 all 》)
       (pure-step (β-∀ source-value instantiated)) rebuild
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.•⊑•² p∀ related type-related result-related) path
       (pure-step blame-•) rebuild =
@@ -1242,7 +1242,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) result-related) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑•² p∀ related type-related result-related) path
       (β-Λ source-value) rebuild =
@@ -1250,7 +1250,7 @@ module _
       no-open target-reveal rebase root-related q related type-related
       result-related path (Λ source-value) (β-Λ source-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑•² p∀ related type-related result-related) path
       (β-gen source-value source≢★ safe) rebuild =
@@ -1259,7 +1259,7 @@ module _
       result-related path (source-value 《 genᵥ source≢★ safe 》)
       (β-gen source-value source≢★ safe) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑•² p∀ related type-related result-related) path
       (β-reveal-∀ source-value) rebuild =
@@ -1268,7 +1268,7 @@ module _
       result-related path (source-value ↑ all)
       (β-reveal-∀ source-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑•² p∀ related type-related result-related) path
       (β-conceal-∀ source-value) rebuild =
@@ -1277,17 +1277,17 @@ module _
       result-related path (source-value ↓ all)
       (β-conceal-∀ source-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑² p∀ related type-related result-related) path
       (ξ-• source-step refl refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-•-source p∀ related type-related result-related))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑² p∀ related type-related result-related) path
       (pure-step (β-∀ source-value instantiated)) rebuild =
@@ -1295,7 +1295,7 @@ module _
       no-open target-reveal rebase root-related q related type-related
       result-related path (source-value 《 all 》)
       (pure-step (β-∀ source-value instantiated)) rebuild
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.•⊑² p∀ related type-related result-related) path
       (pure-step blame-•) rebuild =
@@ -1303,7 +1303,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) result-related) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑² p∀ related type-related result-related) path
       (β-Λ source-value) rebuild =
@@ -1311,7 +1311,7 @@ module _
       no-open target-reveal rebase root-related q related type-related
       result-related path (Λ source-value) (β-Λ source-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑² p∀ related type-related result-related) path
       (β-gen source-value source≢★ safe) rebuild =
@@ -1320,7 +1320,7 @@ module _
       result-related path (source-value 《 genᵥ source≢★ safe 》)
       (β-gen source-value source≢★ safe) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑² p∀ related type-related result-related) path
       (β-reveal-∀ source-value) rebuild =
@@ -1329,7 +1329,7 @@ module _
       result-related path (source-value ↑ all)
       (β-reveal-∀ source-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.•⊑² p∀ related type-related result-related) path
       (β-conceal-∀ source-value) rebuild =
@@ -1338,21 +1338,21 @@ module _
       result-related path (source-value ↓ all)
       (β-conceal-∀ source-value) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.κ⊑κ² constant s) path (pure-step ()) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑cast² source-cast target-cast related s) path
       (ξ-⟨⟩ source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-cast-paired source-cast target-cast related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑cast²
         source-cast target-cast related s) path
@@ -1361,19 +1361,19 @@ module _
       (replay-context-keep root-related relation path
         (CTI.⊑cast² target-cast related s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑cast² source-cast target-cast related s) path
       (pure-step (ground source-value unequal)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑cast² source-cast target-cast related s) path
       (pure-step (expand source-value unequal)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑cast² source-cast target-cast related s) path
       (pure-step (tag-untag source-value)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑cast² source-cast target-cast related s) path
       (pure-step (tag-untag-bad source-value unequal)) rebuild =
@@ -1381,7 +1381,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑cast² source-cast target-cast related s) path
       (pure-step (blame-bot-intro source-value)) rebuild =
@@ -1389,7 +1389,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑cast² source-cast target-cast related s) path
       (pure-step blame-⟨⟩) rebuild =
@@ -1397,30 +1397,30 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑cast² source-cast target-cast related s) path
       (β-inst source-value source≢★) rebuild = {!!}
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊑cast² target-cast related s) path source-step rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path (focus-cast-target target-cast related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑² source-cast related s) path
       (ξ-⟨⟩ source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path (focus-cast-source source-cast related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑² {p = inner-type} source-cast related s) path
       (pure-step (β-id source-value)) rebuild =
@@ -1430,19 +1430,19 @@ module _
           (PI.⊑-unique inner-type s) related)
         rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑² source-cast related s) path
       (pure-step (ground source-value unequal)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑² source-cast related s) path
       (pure-step (expand source-value unequal)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑² source-cast related s) path
       (pure-step (tag-untag source-value)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑² source-cast related s) path
       (pure-step (tag-untag-bad source-value unequal)) rebuild =
@@ -1450,7 +1450,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑² source-cast related s) path
       (pure-step (blame-bot-intro source-value)) rebuild =
@@ -1458,7 +1458,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.cast⊑² source-cast related s) path
       (pure-step blame-⟨⟩) rebuild =
@@ -1466,44 +1466,44 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.cast⊑² source-cast related s) path
       (β-inst source-value source≢★) rebuild = {!!}
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊑reveal-identity c⊢ absent related s) path
       source-step rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-target-reveal-identity c⊢ absent related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊑conceal-identity c⊢ absent related s) path
       source-step rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-target-conceal-identity c⊢ absent related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑-identity c⊢ absent related s) path
       (ξ-reveal source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-source-reveal-identity c⊢ absent related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.reveal⊑-identity {p = inner-type}
         c⊢ absent related s) path
@@ -1514,12 +1514,12 @@ module _
           (PI.⊑-unique inner-type s) related)
         rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑-identity (Conv.⊢↑-unseal member) absent related s)
       path (pure-step (conceal-reveal source-value)) rebuild =
     ⊥-elim (generator-here≠absent absent)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.reveal⊑-identity c⊢ absent related s) path
       (pure-step blame-reveal) rebuild =
@@ -1528,39 +1528,39 @@ module _
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑-only² c⊢ present mark free represented related s) path
       (ξ-reveal source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-source-reveal-only c⊢ present mark free represented related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑-only²
         (Conv.⊢↑-id-var member X≠Y) present mark free represented related s)
       path (pure-step (id-reveal source-value)) rebuild =
     ⊥-elim (present refl)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑-only²
         (Conv.⊢↑-id-base member) present mark free represented related s)
       path (pure-step (id-reveal source-value)) rebuild =
     ⊥-elim (present refl)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑-only²
         (Conv.⊢↑-id-star member) present mark free represented related s)
       path (pure-step (id-reveal source-value)) rebuild =
     ⊥-elim (present refl)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑-only² c⊢ present mark free represented related s) path
       (pure-step (conceal-reveal source-value)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.reveal⊑-only²
         c⊢ present mark free represented related s) path
@@ -1570,17 +1570,17 @@ module _
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.conceal⊑-identity c⊢ absent related s) path
       (ξ-conceal source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-source-conceal-identity c⊢ absent related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.conceal⊑-identity {p = inner-type}
         c⊢ absent related s) path
@@ -1591,7 +1591,7 @@ module _
           (PI.⊑-unique inner-type s) related)
         rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.conceal⊑-identity c⊢ absent related s) path
       (pure-step blame-conceal) rebuild =
@@ -1600,35 +1600,35 @@ module _
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.conceal⊑-only² c⊢ present mark free represented related s) path
       (ξ-conceal source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-source-conceal-only c⊢ present mark free represented related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.conceal⊑-only²
         (Conv.⊢↓-id-var member X≠Y) present mark free represented related s)
       path (pure-step (id-conceal source-value)) rebuild =
     ⊥-elim (present refl)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.conceal⊑-only²
         (Conv.⊢↓-id-base member) present mark free represented related s)
       path (pure-step (id-conceal source-value)) rebuild =
     ⊥-elim (present refl)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.conceal⊑-only²
         (Conv.⊢↓-id-star member) present mark free represented related s)
       path (pure-step (id-conceal source-value)) rebuild =
     ⊥-elim (present refl)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.conceal⊑-only²
         c⊢ present mark free represented related s) path
@@ -1638,17 +1638,17 @@ module _
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑reveal² c⊢ c′⊢ positions aligned represented related s)
       path (ξ-reveal source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-reveal-paired c⊢ c′⊢ positions aligned represented related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.reveal⊑reveal²
         (Conv.⊢↑-id-var member X≠Y) c′⊢ positions aligned represented
@@ -1658,7 +1658,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.⊑reveal-identity c′⊢ (sym positions) related s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.reveal⊑reveal²
         (Conv.⊢↑-id-base member) c′⊢ positions aligned represented related s)
@@ -1667,7 +1667,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.⊑reveal-identity c′⊢ (sym positions) related s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.reveal⊑reveal²
         (Conv.⊢↑-id-star member) c′⊢ positions aligned represented related s)
@@ -1676,11 +1676,11 @@ module _
       (replay-context-keep root-related relation path
         (CTI.⊑reveal-identity c′⊢ (sym positions) related s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.reveal⊑reveal² c⊢ c′⊢ positions aligned represented related s)
       path (pure-step (conceal-reveal source-value)) rebuild = {!!}
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.reveal⊑reveal²
         c⊢ c′⊢ positions aligned represented related s)
@@ -1690,17 +1690,17 @@ module _
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.conceal⊑conceal² c⊢ c′⊢ positions aligned represented related s)
       path (ξ-conceal source-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-conceal-paired c⊢ c′⊢ positions aligned represented related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.conceal⊑conceal²
         (Conv.⊢↓-id-var member X≠Y) c′⊢ positions aligned represented
@@ -1710,7 +1710,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.⊑conceal-identity c′⊢ (sym positions) related s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.conceal⊑conceal²
         (Conv.⊢↓-id-base member) c′⊢ positions aligned represented related s)
@@ -1719,7 +1719,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.⊑conceal-identity c′⊢ (sym positions) related s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.conceal⊑conceal²
         (Conv.⊢↓-id-star member) c′⊢ positions aligned represented related s)
@@ -1728,7 +1728,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.⊑conceal-identity c′⊢ (sym positions) related s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.conceal⊑conceal²
         c⊢ c′⊢ positions aligned represented related s)
@@ -1738,52 +1738,52 @@ module _
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊑reveal-rebase² c⊢ nested-rebase related s) path
       source-step rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-target-reveal-rebase c⊢ nested-rebase related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊑conceal-rebase² c⊢ nested-rebase related s) path
       source-step rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q related
       (extend-focus path
         (focus-target-conceal-rebase c⊢ nested-rebase related s))
       source-step
       (extend-rebuild rebuild (rebuild-edge refl))
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.blame⊑² target⊢ s) path (pure-step ()) rebuild
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (ξ-⊕₁ left-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q left-related
       (extend-focus path (focus-⊕₁ left-related right-related s))
       left-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (ξ-⊕₂ left-value right-step refl) rebuild =
-    contextual-target-reveal-rebase-closing
+    selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q right-related
       (extend-focus path
         (focus-⊕₂ left-related right-related s left-value))
       right-step
       (extend-rebuild rebuild (rebuild-edge refl))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1792,7 +1792,7 @@ module _
         no-open target-reveal rebase root-related q left-related
         (extend-focus path (focus-⊕₁ left-related right-related s))
         (CastTerms.Value.$ κ)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1802,7 +1802,7 @@ module _
       evolution₁ , rebase₁ , root-related₁ , left-related₁ , path₁ ,
       path-evolution₁
       with split-target-extended-path path-evolution₁
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1815,7 +1815,7 @@ module _
         prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
       with primitive-left-edge-view edge₁
         (sym (TargetEdgeEvolution.same-source-frame edge-evolution₁))
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1838,7 +1838,7 @@ module _
             (subst Value (cong sourceTerm left-focus-eq₁)
               (CastTerms.Value.$ κ))))
         (CastTerms.Value.$ κ′)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1856,7 +1856,7 @@ module _
       evolution₂ , rebase₂ , root-related₂ , right-related₂ , path₂ ,
       path-evolution₂
       with split-target-extended-path path-evolution₂
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1878,7 +1878,7 @@ module _
       with primitive-right-edge-view edge₂
         (sym (TargetEdgeEvolution.same-source-frame edge-evolution₂))
         (TargetEdgeEvolution.target-edge-ready edge-evolution₂)
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1902,7 +1902,7 @@ module _
       with cong sourceTerm left-focus-eq₁
          | cong sourceTerm right-focus-eq₂
          | cong targetTerm right-focus-eq₂
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1940,7 +1940,7 @@ module _
           (compose-target-path-evolution
             prefix-evolution₁ prefix-evolution₂)
           rebuild)
-  contextual-target-reveal-rebase-closing {c′ = c′}
+  selected-target-reveal-rebase-closing {c′ = c′}
       no-open target-reveal rebase root-related q
       (CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step
@@ -1992,7 +1992,7 @@ module _
         (composeMultiWorldEvolution evolution₂ values-evolution) ,
       final-relation
 
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step blame-⊕₁) rebuild =
@@ -2000,7 +2000,7 @@ module _
       (replay-context-keep root-related relation path
         (CTI.blame⊑² (target-typing relation) s) rebuild)
       q
-  contextual-target-reveal-rebase-closing
+  selected-target-reveal-rebase-closing
       no-open target-reveal rebase root-related q
       relation@(CTI.⊕⊑⊕² op left-related right-related s) path
       (pure-step (blame-⊕₂ source-value)) rebuild =
@@ -2010,6 +2010,564 @@ module _
       q
 
 
+  whole-contextual-target-reveal-rebase-closing :
+    WholeContextualTargetRevealRebaseClosingᵀ
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open
+      (CTI.⊑reveal-rebase² target-reveal rebase inner-related
+        selected-related)
+      target-reveal rebase inner-related selected-related focus-related
+      (focus-there
+        (focus-target-reveal-rebase .target-reveal .rebase
+          .inner-related .selected-related)
+        tail)
+      selected-here step
+      (rebuild-there rebuild (rebuild-edge refl)) =
+    selected-target-reveal-rebase-closing no-open target-reveal rebase
+      inner-related selected-related focus-related tail step rebuild
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.ƛ⊑ƛ² related) path
+      (selected-there selected) (pure-step ()) rebuild
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected) (ξ-·₁ function-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related function-related
+      (extend-focus path (focus-·₁ function-related argument-related))
+      (extend-selected-reveal (selected-there selected)) function-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected)
+      (ξ-·₂ function-value argument-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related argument-related
+      (extend-focus path
+        (focus-·₂ function-related argument-related function-value))
+      (extend-selected-reveal (selected-there selected)) argument-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected)
+      (pure-step (β {N = body} argument-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected)
+      (pure-step (β-⇒ function-value argument-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected)
+      (pure-step (β-reveal-⇒ function-value argument-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected)
+      (pure-step (β-conceal-⇒ function-value argument-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected) (pure-step blame-·₁) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.·⊑·² function-related argument-related) path
+      (selected-there selected)
+      (pure-step (blame-·₂ function-value)) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.Λ⊑Λ² source-value target-value related q) path
+      (selected-there selected) (pure-step ()) rebuild
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.Λ⊑² nonvar occurs source-value target⊢ related q) path
+      (selected-there selected) (pure-step ()) rebuild
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      relation@(CTI.•⊑•² p∀ related type-related result-related) path
+      (selected-there selected) (ξ-• source-step refl refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-•-paired p∀ related type-related result-related))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑•² p∀ related type-related result-related) path
+      (selected-there selected)
+      (pure-step (β-∀ source-value instantiated)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑•² p∀ related type-related result-related) path
+      (selected-there selected) (pure-step blame-•) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑•² p∀ related type-related result-related) path
+      (selected-there selected) (β-Λ source-value) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑•² p∀ related type-related result-related) path
+      (selected-there selected)
+      (β-gen source-value source≠★ safe) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑•² p∀ related type-related result-related) path
+      (selected-there selected) (β-reveal-∀ source-value) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑•² p∀ related type-related result-related) path
+      (selected-there selected) (β-conceal-∀ source-value) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑² p∀ related type-related result-related) path
+      (selected-there selected) (ξ-• source-step refl refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-•-source p∀ related type-related result-related))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑² p∀ related type-related result-related) path
+      (selected-there selected)
+      (pure-step (β-∀ source-value instantiated)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑² p∀ related type-related result-related) path
+      (selected-there selected) (pure-step blame-•) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑² p∀ related type-related result-related) path
+      (selected-there selected) (β-Λ source-value) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑² p∀ related type-related result-related) path
+      (selected-there selected)
+      (β-gen source-value source≠★ safe) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑² p∀ related type-related result-related) path
+      (selected-there selected) (β-reveal-∀ source-value) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.•⊑² p∀ related type-related result-related) path
+      (selected-there selected) (β-conceal-∀ source-value) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.κ⊑κ² constant p) path
+      (selected-there selected) (pure-step ()) rebuild
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected) (ξ-⟨⟩ source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-cast-paired source-cast target-cast related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected)
+      (pure-step (β-id source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected)
+      (pure-step (ground source-value unequal)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected)
+      (pure-step (expand source-value unequal)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected)
+      (pure-step (tag-untag source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected)
+      (pure-step (tag-untag-bad source-value unequal)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected)
+      (pure-step (blame-bot-intro source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected) (pure-step blame-⟨⟩) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.cast⊑cast² source-cast target-cast related s) path
+      (selected-there selected)
+      (β-inst source-value source≠★) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.⊑cast² target-cast related s) path
+      (selected-there selected) source-step rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path (focus-cast-target target-cast related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.⊑reveal-identity c⊢ absent related s) path
+      (selected-there selected) source-step rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-target-reveal-identity c⊢ absent related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.⊑conceal-identity c⊢ absent related s) path
+      (selected-there selected) source-step rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-target-conceal-identity c⊢ absent related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected) (ξ-⟨⟩ source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path (focus-cast-source source-cast related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected)
+      (pure-step (β-id source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected)
+      (pure-step (ground source-value unequal)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected)
+      (pure-step (expand source-value unequal)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected)
+      (pure-step (tag-untag source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected)
+      (pure-step (tag-untag-bad source-value unequal)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected)
+      (pure-step (blame-bot-intro source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected) (pure-step blame-⟨⟩) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.cast⊑² source-cast related s) path
+      (selected-there selected)
+      (β-inst source-value source≠★) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.reveal⊑-identity c⊢ absent related s) path
+      (selected-there selected) (ξ-reveal source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-source-reveal-identity c⊢ absent related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.reveal⊑-identity c⊢ absent related s) path
+      (selected-there selected)
+      (pure-step (id-reveal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.reveal⊑-identity c⊢ absent related s) path
+      (selected-there selected)
+      (pure-step (conceal-reveal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.reveal⊑-identity c⊢ absent related s) path
+      (selected-there selected) (pure-step blame-reveal) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑-only² c⊢ present mark free represented related s) path
+      (selected-there selected) (ξ-reveal source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-source-reveal-only c⊢ present mark free represented
+          related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑-only² c⊢ present mark free represented related s) path
+      (selected-there selected)
+      (pure-step (id-reveal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑-only² c⊢ present mark free represented related s) path
+      (selected-there selected)
+      (pure-step (conceal-reveal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑-only² c⊢ present mark free represented related s) path
+      (selected-there selected) (pure-step blame-reveal) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.conceal⊑-identity c⊢ absent related s) path
+      (selected-there selected) (ξ-conceal source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-source-conceal-identity c⊢ absent related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.conceal⊑-identity c⊢ absent related s) path
+      (selected-there selected)
+      (pure-step (id-conceal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.conceal⊑-identity c⊢ absent related s) path
+      (selected-there selected) (pure-step blame-conceal) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.conceal⊑-only² c⊢ present mark free represented related s) path
+      (selected-there selected) (ξ-conceal source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-source-conceal-only c⊢ present mark free represented
+          related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.conceal⊑-only² c⊢ present mark free represented related s) path
+      (selected-there selected)
+      (pure-step (id-conceal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.conceal⊑-only² c⊢ present mark free represented related s) path
+      (selected-there selected) (pure-step blame-conceal) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑reveal² c⊢ c′⊢ positions aligned represented related s)
+      path (selected-there selected) (ξ-reveal source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-reveal-paired c⊢ c′⊢ positions aligned represented
+          related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑reveal² c⊢ c′⊢ positions aligned represented related s)
+      path (selected-there selected)
+      (pure-step (id-reveal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑reveal² c⊢ c′⊢ positions aligned represented related s)
+      path (selected-there selected)
+      (pure-step (conceal-reveal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.reveal⊑reveal² c⊢ c′⊢ positions aligned represented related s)
+      path (selected-there selected) (pure-step blame-reveal) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.conceal⊑conceal² c⊢ c′⊢ positions aligned represented
+        related s)
+      path (selected-there selected) (ξ-conceal source-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-conceal-paired c⊢ c′⊢ positions aligned represented
+          related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.conceal⊑conceal² c⊢ c′⊢ positions aligned represented
+        related s)
+      path (selected-there selected)
+      (pure-step (id-conceal source-value)) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.conceal⊑conceal² c⊢ c′⊢ positions aligned represented
+        related s)
+      path (selected-there selected) (pure-step blame-conceal) rebuild = {! !}
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.⊑reveal-rebase² c⊢ nested-rebase related s) path
+      (selected-there selected) source-step rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-target-reveal-rebase c⊢ nested-rebase related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related
+      (CTI.⊑conceal-rebase² c⊢ nested-rebase related s) path
+      (selected-there selected) source-step rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related related
+      (extend-focus path
+        (focus-target-conceal-rebase c⊢ nested-rebase related s))
+      (extend-selected-reveal (selected-there selected)) source-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.blame⊑² target⊢ p) path
+      (selected-there selected) (pure-step ()) rebuild
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.⊕⊑⊕² op left-related right-related s) path
+      (selected-there selected) (ξ-⊕₁ left-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related left-related
+      (extend-focus path (focus-⊕₁ left-related right-related s))
+      (extend-selected-reveal (selected-there selected)) left-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.⊕⊑⊕² op left-related right-related s) path
+      (selected-there selected)
+      (ξ-⊕₂ left-value right-step refl) rebuild =
+    whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related right-related
+      (extend-focus path
+        (focus-⊕₂ left-related right-related s left-value))
+      (extend-selected-reveal (selected-there selected)) right-step
+      (extend-rebuild rebuild (rebuild-edge refl))
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.⊕⊑⊕² op left-related right-related s) path
+      (selected-there selected)
+      (pure-step
+        (δ-⊕ {κ = κ} {κ′ = κ′} {κ″ = κ″} primitive-step))
+      rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.⊕⊑⊕² op left-related right-related s) path
+      (selected-there selected) (pure-step blame-⊕₁) rebuild = {! !}
+  whole-contextual-target-reveal-rebase-closing
+      no-open root-related target-reveal rebase inner-related
+      selected-related (CTI.⊕⊑⊕² op left-related right-related s) path
+      (selected-there selected)
+      (pure-step (blame-⊕₂ left-value)) rebuild = {! !}
+
   sim-target-reveal-rebase-closing : SimTargetRevealRebaseClosingᵀ
   sim-target-reveal-rebase-closing =
-    contextual-closing-adapter contextual-target-reveal-rebase-closing
+    contextual-closing-adapter
+      (whole-closing-specializes-to-contextual
+        whole-contextual-target-reveal-rebase-closing)

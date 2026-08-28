@@ -16,7 +16,7 @@ open import Data.Empty using (⊥-elim)
 open import Data.Product using (_,_; _×_; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; refl; subst; sym)
+  (_≡_; refl; subst; sym; cong)
 
 import CastTerms as CT
 open import CastTerms using
@@ -54,6 +54,8 @@ open import proof.DGG.SimTargetRevealRebaseContextDef
 open import proof.DGG.SimBackContextDef using
   ( world; SourcePathEvolution; source-path-reflexive
   ; evolve-source-here; evolve-source-there
+  ; split-source-extended-path; evolved-source-extended-path
+  ; evolve-source-edge
   )
 open import proof.DGG.World
 open import proof.DGG.SourceRebase using
@@ -470,39 +472,109 @@ module _
   contextual-left-value-catchup no-open root-related
       (CTI.⊑cast² target-cast related q) path
       (target-value 《 inert 》) bound
-    | inj₁ success-result = {! success-result !}
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+      with split-source-extended-path path-evolution
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑cast² target-cast related q) path
+      (target-value 《 inert 》) bound
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+    | evolved-source-extended-path prefix′
+        (focus-cast-target target-cast′ related′ q′) refl
+        prefix-evolution (evolve-source-edge refl source-ready) =
+      inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ ,
+          pack (CTI.⊑cast² target-cast′ related′ q′) , prefix′ ,
+          source-steps , source-value , root-target-eq ,
+          cong (λ M → CT._⟨_⟩ M target-cast) focus-target-eq ,
+          prefix-evolution , evolution)
 
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑reveal-identity c′⊢ absent related q) path
+      (CTI.⊑reveal-identity
+        {c′ = target-reveal} c′⊢ absent related q) path
       (target-value ↑ reveal) bound
       with contextual-left-value-catchup no-open root-related related
         (extend-focus path
           (focus-target-reveal-identity c′⊢ absent related q))
         target-value bound
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑reveal-identity c′⊢ absent related q) path
+      (CTI.⊑reveal-identity
+        {c′ = target-reveal} c′⊢ absent related q) path
       (target-value ↑ reveal) bound
     | inj₂ blame-result = inj₂ blame-result
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑reveal-identity c′⊢ absent related q) path
+      (CTI.⊑reveal-identity
+        {c′ = target-reveal} c′⊢ absent related q) path
       (target-value ↑ reveal) bound
-    | inj₁ success-result = {! success-result !}
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+      with split-source-extended-path path-evolution
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑reveal-identity
+        {c′ = target-reveal} c′⊢ absent related q) path
+      (target-value ↑ reveal) bound
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+    | evolved-source-extended-path prefix′
+        (focus-target-reveal-identity
+          {c′ = target-reveal′} c′⊢′ absent′ related′ q′) refl
+        prefix-evolution (evolve-source-edge refl source-ready) =
+      inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ ,
+          pack (CTI.⊑reveal-identity c′⊢′ absent′ related′ q′) ,
+          prefix′ , source-steps , source-value , root-target-eq ,
+          cong (λ M → M ↑ target-reveal) focus-target-eq ,
+          prefix-evolution , evolution)
 
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑conceal-identity c′⊢ absent related q) path
+      (CTI.⊑conceal-identity
+        {c′ = target-conceal} c′⊢ absent related q) path
       (target-value ↓ conceal) bound
       with contextual-left-value-catchup no-open root-related related
         (extend-focus path
           (focus-target-conceal-identity c′⊢ absent related q))
         target-value bound
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑conceal-identity c′⊢ absent related q) path
+      (CTI.⊑conceal-identity
+        {c′ = target-conceal} c′⊢ absent related q) path
       (target-value ↓ conceal) bound
     | inj₂ blame-result = inj₂ blame-result
   contextual-left-value-catchup no-open root-related
-      (CTI.⊑conceal-identity c′⊢ absent related q) path
+      (CTI.⊑conceal-identity
+        {c′ = target-conceal} c′⊢ absent related q) path
       (target-value ↓ conceal) bound
-    | inj₁ success-result = {! success-result !}
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+      with split-source-extended-path path-evolution
+  contextual-left-value-catchup no-open root-related
+      (CTI.⊑conceal-identity
+        {c′ = target-conceal} c′⊢ absent related q) path
+      (target-value ↓ conceal) bound
+    | inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ , focus′ , path′ , source-steps ,
+          source-value , root-target-eq , focus-target-eq , path-evolution ,
+          evolution)
+    | evolved-source-extended-path prefix′
+        (focus-target-conceal-identity
+          {c′ = target-conceal′} c′⊢′ absent′ related′ q′) refl
+        prefix-evolution (evolve-source-edge refl source-ready) =
+      inj₁
+        (Δᴸ′ , Σᴸ′ , χsᴸ , root′ ,
+          pack (CTI.⊑conceal-identity c′⊢′ absent′ related′ q′) ,
+          prefix′ , source-steps , source-value , root-target-eq ,
+          cong (λ M → M ↓ target-conceal) focus-target-eq ,
+          prefix-evolution , evolution)
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.cast⊑² source-cast related q)

@@ -35,7 +35,9 @@ open import proof.Reduction using
 
 import proof.DGG.CastTermImprecision as CTI
 open import proof.DGG.Catchup.ContextualLeftSourceConversionCatchupDef using
-  (ContextualLeftSourceRevealCatchupAt)
+  ( ContextualLeftSourceRevealCatchupAt
+  ; ContextualLeftSourceConcealCatchupAt
+  )
 open import proof.DGG.Catchup.ContextualLeftSourceCastCatchupDef using
   (ContextualLeftSourceCastCatchupAt)
 open import proof.DGG.Catchup.ContextualLeftSourceTypeAppCatchupDef using
@@ -334,6 +336,8 @@ module _
       → ContextualLeftSourceRevealCatchupAt fuel)
     (source-conceal-catchup : ∀ {fuel}
       → LeftSourceConcealCatchupAt fuel)
+    (contextual-source-conceal-catchup : ∀ {fuel}
+      → ContextualLeftSourceConcealCatchupAt fuel)
     (paired-reveal-catchup : ∀ {fuel}
       → LeftPairedRevealCatchupAt fuel)
     (paired-conceal-catchup : ∀ {fuel}
@@ -643,8 +647,9 @@ module _
     root-catchup-result focus-related
       (source-conceal-catchup no-open focus-related target-value bound)
   contextual-left-value-catchup no-open root-related
-      (CTI.conceal⊑-identity c⊢ absent related q)
-      (focus-there edge tail) target-value bound = {! !}
+      focus-related@(CTI.conceal⊑-identity c⊢ absent related q)
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-conceal-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.conceal⊑-only²
@@ -653,9 +658,10 @@ module _
     root-catchup-result focus-related
       (source-conceal-catchup no-open focus-related target-value bound)
   contextual-left-value-catchup no-open root-related
-      (CTI.conceal⊑-only²
+      focus-related@(CTI.conceal⊑-only²
         c⊢ present mark free represented related q)
-      (focus-there edge tail) target-value bound = {! !}
+      path@(focus-there edge tail) target-value bound =
+    contextual-source-conceal-catchup no-open path target-value bound
 
   contextual-left-value-catchup no-open .focus-related
       focus-related@(CTI.reveal⊑reveal²

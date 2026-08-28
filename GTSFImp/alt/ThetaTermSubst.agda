@@ -483,6 +483,8 @@ mutual
   rename-ΛBody ρ (body-result Vʳ) = body-result (rename-Result ρ Vʳ)
   rename-ΛBody ρ (body-reveal Vʳ) = body-reveal Vʳ
   rename-ΛBody ρ (body-conceal Vʳ) = body-conceal Vʳ
+  rename-ΛBody ρ (body-inert body inert) =
+    body-inert (rename-ΛBody ρ body) inert
   rename-ΛBody ρ (body-ν body) = body-ν body
   rename-ΛBody ρ (body-Λ body) = body-Λ (rename-ΛBody ρ body)
 
@@ -1404,14 +1406,6 @@ punchOut-punchIn zero X neq = refl
 punchOut-punchIn (suc Y) zero neq = refl
 punchOut-punchIn (suc Y) (suc X) neq =
   cong suc (punchOut-punchIn Y X _)
-
-punchIn-punchOut : ∀ {n} (Y X : TyVar (suc n)) (neq : Y ≢ X)
-  → punchIn Y (punchOut Y X neq) ≡ X
-punchIn-punchOut zero zero neq = ⊥-elim (neq refl)
-punchIn-punchOut zero (suc X) neq = refl
-punchIn-punchOut {n = suc n} (suc Y) zero neq = refl
-punchIn-punchOut {n = suc n} (suc Y) (suc X) neq =
-  cong suc (punchIn-punchOut Y X _)
 
 route-end-punchIn : ∀ {Δ Δ′} (Y : TyVar (suc Δ))
     (route : TyVar Δ → Maybe (TyVar Δ′)) X
@@ -3347,6 +3341,22 @@ mutual
   renameᵗᵐ-RevealValue ρ (fun Vᵛ) = fun (renameᵗᵐ-Value ρ Vᵛ)
   renameᵗᵐ-RevealValue ρ (delimiter canonical) =
     delimiter (renameᵗᵐ-CanonicalInterior ρ canonical)
+  renameᵗᵐ-RevealValue ρ {X = X} {α = α}
+      (package {V = V} {μ = μ} ⦃ Hᵍ ⦄ ⦃ H∼★ ⦄
+        ⦃ Hns ⦄ Vᵥ X∈H) =
+    subst≡
+      (λ W → RevealValue W (toRenameᵗ ρ X) α id↑)
+      (sym cast-eq)
+      (package
+        ⦃ renameGround (toRenameᵗ ρ) Hᵍ ⦄
+        ⦃ rename∼★ (toRenameᵗ ρ)
+          (renameEnv∼-preserves ρ μ) H∼★ ⦄
+        ⦃ renameNonStar (toRenameᵗ ρ) Hns ⦄
+        (renameᵗᵐ-Value ρ Vᵥ)
+        (renameᵗ-∈ᵗ (toRenameᵗ ρ) X∈H))
+    where
+    cast-eq = cong (λ d → renameᵗᵐ ρ V ⟨ d ⟩)
+      (renameᵗᵐ-injection ρ Hᵍ ⦃ H∼★ ⦄ ⦃ Hns ⦄)
   renameᵗᵐ-RevealValue (keep ρ) (adapter {Y = Y} Vʳ neq) =
     adapter (renameᵗᵐ-Result (delete↪ᵗ (keep ρ) Y) Vʳ)
       (rename-pair-≠ {ρ = keep ρ} neq)
@@ -3370,16 +3380,6 @@ mutual
       (ρ : Δ ↪ᵗ Δ′) {V : Term Θ Δ}
     → CanonicalInterior V
     → CanonicalInterior (renameᵗᵐ ρ V)
-  renameᵗᵐ-CanonicalInterior {Θ = Θ} ρ
-      (tagged {V = V} {μ = μ} ⦃ Gᵍ ⦄ ⦃ G∼★ ⦄ ⦃ Gns ⦄ Vᵥ) =
-    subst≡ CanonicalInterior (sym cast-eq)
-      (tagged ⦃ renameGround (toRenameᵗ ρ) Gᵍ ⦄
-        ⦃ rename∼★ (toRenameᵗ ρ) (renameEnv∼-preserves ρ μ) G∼★ ⦄
-        ⦃ renameNonStar (toRenameᵗ ρ) Gns ⦄
-        (renameᵗᵐ-Value ρ Vᵥ))
-    where
-    cast-eq = cong (λ d → renameᵗᵐ ρ V ⟨ d ⟩)
-      (renameᵗᵐ-injection ρ Gᵍ ⦃ G∼★ ⦄ ⦃ Gns ⦄)
   renameᵗᵐ-CanonicalInterior (keep ρ) (sealed Vᵥ X α) =
     sealed (renameᵗᵐ-Value (delete↪ᵗ (keep ρ) X) Vᵥ)
       (toRenameᵗ (keep ρ) X) α
@@ -3403,6 +3403,8 @@ mutual
     body-conceal (renameᵗᵐ-Result (delete↪ᵗ (keep ρ) X) Vʳ)
   renameᵗᵐ-ΛBody (skip ρ) (body-conceal {X = X} Vʳ) =
     body-conceal (renameᵗᵐ-Result (delete↪ᵗ (skip ρ) X) Vʳ)
+  renameᵗᵐ-ΛBody ρ (body-inert body inert) =
+    body-inert (renameᵗᵐ-ΛBody ρ body) (renameᵗᵐ-Inert ρ inert)
   renameᵗᵐ-ΛBody ρ (body-ν body) =
     body-ν (renameᵗᵐ-ΛBody ρ body)
   renameᵗᵐ-ΛBody ρ (body-Λ body) =
@@ -3609,6 +3611,8 @@ mutual
     body-result (subst-Result environment Vʳ)
   subst-ΛBody environment (body-reveal Vʳ) = body-reveal Vʳ
   subst-ΛBody environment (body-conceal Vʳ) = body-conceal Vʳ
+  subst-ΛBody environment (body-inert body inert) =
+    body-inert (subst-ΛBody environment body) inert
   subst-ΛBody environment (body-ν body) = body-ν body
   subst-ΛBody environment (body-Λ body) =
     body-Λ (subst-ΛBody (liftˢ environment) body)
@@ -4685,6 +4689,8 @@ mutual
     fun (renameᶿ-Value φ injective Vᵛ)
   renameᶿ-RevealValue φ injective (delimiter canonical) =
     delimiter (renameᶿ-CanonicalInterior φ injective canonical)
+  renameᶿ-RevealValue φ injective (package Vᵥ X∈H) =
+    package (renameᶿ-Value φ injective Vᵥ) X∈H
   renameᶿ-RevealValue φ injective (adapter Vʳ neq) =
     adapter (renameᶿ-Result φ injective Vʳ)
       (anchor-pair-≠ injective neq)
@@ -4709,8 +4715,6 @@ mutual
       {V : Term Θ Δ}
     → CanonicalInterior V
     → CanonicalInterior (renameᶿ φ V)
-  renameᶿ-CanonicalInterior φ injective (tagged Vᵥ) =
-    tagged (renameᶿ-Value φ injective Vᵥ)
   renameᶿ-CanonicalInterior φ injective (sealed Vᵥ X α) =
     sealed (renameᶿ-Value φ injective Vᵥ) X (φ α)
   renameᶿ-CanonicalInterior φ injective (delimited canonical X α) =
@@ -4727,6 +4731,8 @@ mutual
     body-reveal (renameᶿ-Result φ injective Vʳ)
   renameᶿ-ΛBody φ injective (body-conceal Vʳ) =
     body-conceal (renameᶿ-Result φ injective Vʳ)
+  renameᶿ-ΛBody φ injective (body-inert body inert) =
+    body-inert (renameᶿ-ΛBody φ injective body) inert
   renameᶿ-ΛBody φ injective (body-ν body) =
     body-ν
       (renameᶿ-ΛBody (extᵗ φ) (extᵗ-injective′ injective) body)

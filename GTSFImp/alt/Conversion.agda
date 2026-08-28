@@ -5,6 +5,7 @@ module alt.Conversion where
 --   * Defines the self-contained scoped conversion-typing judgments.
 --   * Expands raw identity leaves against a type so shape substitution
 --     remains typed when a universal variable becomes structural.
+--   * Provides weakening and strengthening views for ground tags.
 --   * Provides type-directed shape generators and their typing proofs.
 --   * Depends only on Types: stores, anchors, and classifiers are node data.
 
@@ -15,7 +16,7 @@ open import Data.Maybe using (Maybe; just; nothing)
 import Data.Nat as Nat
 open import Data.Product using (Σ-syntax; _,_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; cong₂; sym; trans)
+  using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans)
 open import Relation.Nullary using (yes; no)
 
 open import Types
@@ -114,6 +115,45 @@ strengthenᵗ? Y (A ⇒ B) | nothing | nothing = nothing
 strengthenᵗ? Y (`∀ A) with strengthenᵗ? (suc Y) A
 strengthenᵗ? Y (`∀ A) | just A₀ = just (`∀ A₀)
 strengthenᵗ? Y (`∀ A) | nothing = nothing
+
+wkGround : ∀ {Δ} {H : Ty Δ}
+  → (Y : TyVar (Nat.suc Δ))
+  → Ground H
+  → Ground (wkᵗ Y H)
+wkGround Y (＇ X) = ＇ punchIn Y X
+wkGround Y (‵ ι) = ‵ ι
+wkGround Y ★⇒★ = ★⇒★
+wkGround Y ∀★ = ∀★
+
+punchIn-punchOut : ∀ {Δ} (Y X : TyVar (Nat.suc Δ))
+    (Y≢X : Y ≢ X)
+  → punchIn Y (punchOut Y X Y≢X) ≡ X
+punchIn-punchOut = punchIn-resolved-punchOut
+
+strengthenGround : ∀ {Δ} {Y : TyVar (Nat.suc Δ)}
+    {H : Ty (Nat.suc Δ)} {H₀ : Ty Δ}
+  → Ground H
+  → strengthenᵗ? Y H ≡ just H₀
+  → Ground H₀
+strengthenGround {Y = Y} (＇ X) eq with Y ≟ X
+strengthenGround {Y = Y} (＇ .Y) () | yes refl
+strengthenGround {Y = Y} (＇ X) refl | no Y≢X =
+  ＇ punchOut Y X Y≢X
+strengthenGround (‵ ι) refl = ‵ ι
+strengthenGround ★⇒★ refl = ★⇒★
+strengthenGround ∀★ refl = ∀★
+
+unstrengthenableGround : ∀ {Δ} {Y : TyVar (Nat.suc Δ)}
+    {H : Ty (Nat.suc Δ)}
+  → Ground H
+  → strengthenᵗ? Y H ≡ nothing
+  → Y ∈ᵗ H
+unstrengthenableGround {Y = Y} (＇ X) eq with Y ≟ X
+unstrengthenableGround {Y = Y} (＇ .Y) refl | yes refl = var-∈
+unstrengthenableGround {Y = Y} (＇ X) () | no Y≢X
+unstrengthenableGround (‵ ι) ()
+unstrengthenableGround ★⇒★ ()
+unstrengthenableGround ∀★ ()
 
 wkᵗ-under-∀ : ∀ {Δ} (Y : TyVar (Nat.suc Δ))
     (A : Ty (Nat.suc Δ))
@@ -536,6 +576,14 @@ mutual
 expand↑-typed : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ} (T : Ty Δ)
   → ⊢↑[ X ⦂ R ] expand↑ T id↑ ⦂ T ↝ T
 expand↑-typed {X = X} {R = R} T = delimiter-typed↑ X R T
+
+expand↑-strengthen-typed : ∀ {Δ} {Y : TyVar (Nat.suc Δ)}
+    {R H : Ty (Nat.suc Δ)} {H₀ : Ty Δ}
+  → (strengthens : strengthenᵗ? Y H ≡ just H₀)
+  → ⊢↑[ Y ⦂ R ] expand↑ H id↑ ⦂ H ↝ wkᵗ Y H₀
+expand↑-strengthen-typed {Y = Y} {R = R} {H = H} strengthens =
+  subst (λ T → ⊢↑[ Y ⦂ R ] expand↑ H id↑ ⦂ H ↝ T)
+    (strengthenᵗ?-sound strengthens) (expand↑-typed H)
 
 expand↓-typed : ∀ {Δ} {X : TyVar Δ} {R : Ty Δ} (T : Ty Δ)
   → ⊢↓[ X ⦂ R ] expand↓ T id↓ ⦂ T ↝ T

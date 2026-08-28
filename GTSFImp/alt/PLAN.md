@@ -20,11 +20,11 @@ holes, or pragmas.
 | file | lines | contents |
 | --- | --- | --- |
 | `ThetaTerms.agda` | 100 | syntax `Term Θ Δ`, `renameᶿ`/`shiftᶿ` |
-| `ThetaTyping.agda` | 645 | σ-indexed `TyEnv`, `rep?`, `≼`, typing |
-| `ThetaReduction.agda` | 634 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
-| `ThetaTermSubst.agda` | 6359 | transport suite, `⊢≼`, `⊢[]` |
-| `ThetaPreservation.agda` | 633 | per-case lemmas + `preserve` |
-| `ThetaProgress.agda` | 1378 | canonical forms + parameterized assembler |
+| `ThetaTyping.agda` | 655 | σ-indexed `TyEnv`, `rep?`, `≼`, typing |
+| `ThetaReduction.agda` | 749 | values, PLFA subst, `Ψ ⊢ M —→ M′` |
+| `ThetaTermSubst.agda` | 6365 | transport suite, `⊢≼`, `⊢[]` |
+| `ThetaPreservation.agda` | 675 | per-case lemmas + `preserve` |
+| `ThetaProgress.agda` | 1448 | canonical forms + parameterized assembler |
 | `ThetaRegression.agda` | 256 | curated positive regressions |
 
 ## The design, in one page
@@ -82,6 +82,17 @@ U36 restored the guarded pair instead: `float-reveal` requires
 `strengthenᵗ? Y A ≡ just A₀`, while `float-conceal` weakens `A` across
 the delimiter. Neither rule resolves a representation through a crossing.
 
+### Design I — injections commute outward through delimiters
+
+Casts cross delimiters in the weakening direction.  An injection always
+moves out of an identity conceal, weakening its ground tag into the larger
+scope.  It moves out of an identity reveal exactly when that tag strengthens
+to the outer scope.  A `＇Y` tag at pivot `Y` cannot strengthen and remains a
+package value; only that complementary reveal value admits projection inward.
+Every outcome is therefore decided by the exposed tag and the consumer.
+Representation lookup is never consulted, and blame arises only through the
+ordinary `tag-untag-bad` rule.
+
 ## Next steps
 
 1. ~~**U28 — naming and imports**~~ DONE (`41b5560b`, `3410a1c9`):
@@ -94,7 +105,7 @@ the delimiter. Neither rule resolves a representation through a crossing.
    two boundary splits, three identity cancellations, two
    `conceal-reveal` variants, four allocation rules).
 3. **Progress** — preservation is total and hole-free; progress is total
-   **modulo four named parameters** in the parameterized module
+   **modulo three named parameters** in the parameterized module
    `alt.ThetaProgress.WithGaps`. Its assembler and canonical forms are
    ordinary total proofs. The parameter types are the inspectable rule
    specifications left by `alt/probes/ProgressGaps.agda`:
@@ -111,8 +122,6 @@ the delimiter. Neither rule resolves a representation through a crossing.
    - `gap-adapter-⊕`: indexed blocked eliminators, including non-floatable
      adapters and their unseal projection, a region under `Λ` at type
      application, atomic boundaries, and bottom-elimination canonicity.
-   - `gap-★-project-conceal`: the dual ground projection cannot merge
-     through a conceal-delimited ★ value.
    - `gap-∀-reveal-cast`: a structural reveal cannot merge through a
      non-`Λ` canonical universal value.
    - `gap-∀-conceal-cast`: the dual structural conceal cannot merge through
@@ -123,10 +132,13 @@ the delimiter. Neither rule resolves a representation through a crossing.
    case. Supplying future merge lemmas discharges the parameters without
    changing the assembler.
 
-   `★-project-reveal` closes the former fifth family: consumers reach into
-   identity-delimited regions, and `expand↑` finds and refines their consumer.
-4. **Merge rules** (deferred design): projection into packages, both
-   orientations, comparisons as syntactic anchor-variable equality.
+   Design I closes the former conceal-project family.  `inject-conceal`
+   always exposes its tag; `inject-reveal` does so when strengthening succeeds.
+   On tagged interiors, the restricted `★-project-reveal` reaches into only
+   the remaining unstrengthenable package case; its delimiter and adapter
+   coverage remains unchanged, and `expand↑` finds the consumer.
+4. **Merge rules** (deferred design): the indexed adapter/`⊕` family and the
+   two structural `∀` cast families described above.
 5. **`Λ` value restriction** — `⊢Λ` still carries a DEFERRED marker.
 6. **Probe hygiene** — the counterexample probes now live in two
    places (`alt/*Probe*.agda` and `alt/probes/`); consolidate under

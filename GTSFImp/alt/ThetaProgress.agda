@@ -1,7 +1,7 @@
 module alt.ThetaProgress where
 
 -- File Charter:
---   * Proves closed-term progress from four explicit gap-family interfaces.
+--   * Proves closed-term progress from three explicit gap-family interfaces.
 --   * Supplies total canonical forms and an indexed account of every residual
 --     blocked eliminator; no unresolved obligation is hidden in the assembler.
 --   * The checked witnesses in `alt.probes.ProgressGaps` exhibit one inhabitant
@@ -194,6 +194,16 @@ data BoundaryValue : ∀ {Θ Δ} → Term Θ Δ → Set where
       ------------------------------------------------------------
     → BoundaryValue ((R ↓[ Y ≔ β ] id↓) ↑[ X ≔ α ] id↑)
 
+  bv-reveal-package : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+      {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
+      ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : μ ⊢ H ∼★ ⦄
+      ⦃ Hns : NonStar H ⦄
+    → Value V
+    → X ∈ᵗ H
+      ------------------------------------------------------------
+    → BoundaryValue ((V ⟨ (idᵍ Hᵍ) ! ⟩) ↑[ X ≔ α ] id↑)
+
   bv-reveal-region : ∀ {Θ Δ} {M : Term (suc Θ) (suc Δ)}
       {A : Ty (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
       {c : Reveal}
@@ -226,6 +236,13 @@ data CanonicalAtom : ∀ {Θ Δ} → Term Θ Δ → Set where
     → CanonicalInterior V
       -----------------------
     → CanonicalAtom V
+
+  atom-tagged : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ}
+      {H : Ty Δ} ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : μ ⊢ H ∼★ ⦄
+      ⦃ Hns : NonStar H ⦄
+    → Value V
+      ----------------------------------------------------
+    → CanonicalAtom (V ⟨ (idᵍ Hᵍ) ! ⟩)
 
   atom-boundary : ∀ {Θ Δ} {V : Term Θ Δ}
     → BoundaryValue V
@@ -478,6 +495,8 @@ canonical-⇒ (Vʳ ↑[ X ≔ α ] fun Vᵛ) typing =
   cf-reveal Vʳ
 canonical-⇒ (Vʳ ↑[ X ≔ α ] delimiter Vᶜ)
     (⊢reveal α-eq (⊢id↑ ()) V⊢)
+canonical-⇒ (Vʳ ↑[ X ≔ α ] package Vᵥ X∈H)
+    (⊢reveal α-eq (⊢id↑ ()) V⊢)
 canonical-⇒ (Vʳ ↑[ X ≔ α ] adapter Rʳ pair≢)
     (⊢reveal α-eq (⊢id↑ ()) V⊢)
 canonical-⇒
@@ -511,6 +530,9 @@ canonical-∀ (Vʳ ↑[ X ≔ α ] fun Vᵛ)
     (⊢reveal α-eq c⊢ V⊢) =
   ⊥-elim (no-fun-reveal-∀ c⊢ refl)
 canonical-∀ (Vʳ ↑[ X ≔ α ] delimiter Vᶜ)
+    (⊢reveal α-eq c⊢ V⊢) =
+  ⊥-elim (no-id-reveal-∀ c⊢ refl)
+canonical-∀ (Vʳ ↑[ X ≔ α ] package Vᵥ X∈H)
     (⊢reveal α-eq c⊢ V⊢) =
   ⊥-elim (no-id-reveal-∀ c⊢ refl)
 canonical-∀ (Vʳ ↑[ X ≔ α ] adapter Rʳ pair≢)
@@ -581,6 +603,8 @@ atom-reveal : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
   → CanonicalAtom (V ↑[ X ≔ α ] c)
 atom-reveal Vʳ (fun Vᵛ) = atom-boundary (bv-reveal-fun Vʳ Vᵛ)
 atom-reveal Vʳ (delimiter Vᶜ) = atom-interior (delimited Vᶜ _ _)
+atom-reveal (result-val (Vᵥ 《 inj 》)) (package Vᵥ′ X∈H) =
+  atom-boundary (bv-reveal-package Vᵥ′ X∈H)
 atom-reveal Vʳ (adapter Rʳ pair≢) =
   atom-boundary (bv-reveal-adapter Rʳ pair≢)
 atom-reveal (result-ν Vʳ) (adapter-region Rʳ X∈A) =
@@ -637,13 +661,57 @@ canonical-atom (‵ `𝔹) Vᵛ V⊢ | cb-conceal Wᵛ gate =
 canonical-atom ★ Vᵛ V⊢ with canonical-★ Vᵛ V⊢
 canonical-atom ★ Vᵛ V⊢
     | cs-tag {G = G} {Gᵍ = Gᵍ} ⦃ G∼★ ⦄ ⦃ Gns ⦄ Wᵛ =
-  atom-interior
-    (tagged ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = G∼★ ⦄
-      ⦃ Gns = Gns ⦄ Wᵛ)
+  atom-tagged ⦃ Hᵍ = Gᵍ ⦄ ⦃ H∼★ = G∼★ ⦄
+    ⦃ Hns = Gns ⦄ Wᵛ
 canonical-atom ★ Vᵛ V⊢ | cs-reveal Rʳ gate =
   atom-reveal Rʳ gate
 canonical-atom ★ Vᵛ V⊢ | cs-conceal Wᵛ gate =
   atom-conceal Wᵛ gate
+
+canonical-interior-not-star : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {V : Term Θ Δ}
+  → CanonicalInterior V
+  → Ψ ∣ [] ⊢ V ⦂ ★
+  → ⊥
+canonical-interior-not-star (sealed Vᵥ X α)
+    (⊢conceal X-live α-eq () V⊢)
+canonical-interior-not-star (delimited Vᶜ X α)
+    (⊢reveal α-eq (⊢id↑ ★) V⊢) =
+  canonical-interior-not-star Vᶜ V⊢
+
+canonical-conceal-star-core : ∀ {Θ Δ σ}
+    {Ψ : TyEnv Θ (suc Δ) σ} {V : Term Θ Δ}
+    {A C : Ty Δ} {S T : Ty (suc Δ)}
+    {X : TyVar (suc Δ)}
+  → CanonicalInterior V
+  → Ψ ,end[ X ] ∣ [] ⊢ V ⦂ A
+  → ⊢↓[ X ⦂ wkᵗ X C ] id↓ ⦂ S ↝ T
+  → S ≡ wkᵗ X A
+  → T ≡ ★
+  → ⊥
+canonical-conceal-star-core Vᶜ V⊢ (⊢id↓ (＇ Y)) source-eq ()
+canonical-conceal-star-core Vᶜ V⊢ (⊢id↓ (‵ ι)) source-eq ()
+canonical-conceal-star-core {A = ＇ Y} Vᶜ V⊢
+    (⊢id↓ ★) () refl
+canonical-conceal-star-core {A = ‵ ι} Vᶜ V⊢
+    (⊢id↓ ★) () refl
+canonical-conceal-star-core {A = ★} Vᶜ V⊢
+    (⊢id↓ ★) refl refl =
+  canonical-interior-not-star Vᶜ V⊢
+canonical-conceal-star-core {A = A ⇒ B} Vᶜ V⊢
+    (⊢id↓ ★) () refl
+canonical-conceal-star-core {A = `∀ A} Vᶜ V⊢
+    (⊢id↓ ★) () refl
+
+canonical-conceal-star-impossible : ∀ {Θ Δ σ}
+    {Ψ : TyEnv Θ (suc Δ) σ} {V : Term Θ Δ}
+    {X : TyVar (suc Δ)} {α : TyVar Θ}
+  → CanonicalInterior V
+  → Ψ ∣ [] ⊢ V ↓[ X ≔ α ] id↓ ⦂ ★
+  → ⊥
+canonical-conceal-star-impossible Vᶜ
+    (⊢conceal X-live α-eq c⊢ V⊢) =
+  canonical-conceal-star-core Vᶜ V⊢ c⊢ refl refl
 
 constant-not-variable : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
     {κ : Const} {X : TyVar Δ}
@@ -849,7 +917,7 @@ theta-gen-safe c A≠★ Bnv z∈B =
   theta-gen-safe′ c refl A≠★ Bnv z∈B
 
 ------------------------------------------------------------------------
--- Progress modulo the four checked merge families
+-- Progress modulo the three checked merge families
 ------------------------------------------------------------------------
 
 module WithGaps
@@ -858,18 +926,6 @@ module WithGaps
       {M : Term Θ Δ}
     → BlockedElimination Ψ M
     → Progress Ψ M)
-  -- Witness: `alt.probes.ProgressGaps.starConcealMerge-gap-witness`.
-  (gap-★-project-conceal : ∀ {Θ Δ σ}
-      {Ψ : TyEnv Θ (suc Δ) σ} {V : Term Θ Δ}
-      {X : TyVar (suc Δ)} {α : TyVar Θ} {μ : Env∼ (suc Δ)}
-      {G : Ty (suc Δ)} {Gᵍ : Ground G}
-      ⦃ ★∼G : μ ⊢★∼ G ⦄ ⦃ Gns : NonStar G ⦄
-    → Value V
-    → ConcealValue V id↓
-    → Ψ ∣ [] ⊢ V ↓[ X ≔ α ] id↓ ⦂ ★
-    → Progress Ψ ((V ↓[ X ≔ α ] id↓)
-        ⟨ ？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄
-          (idᵍ { μ = μ } Gᵍ) ⦃ Gns ⦄ ⟩))
   -- Witness: `alt.probes.ProgressGaps.allReveal-gap-witness`.
   (gap-∀-reveal-cast : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {B : Ty (suc Δ)}
@@ -921,7 +977,7 @@ module WithGaps
       (⊢id↑ (‵ ι)) ()
   star-project-reveal-progress-core typing Rʳ gate V⊢
       (⊢id↑ ★) refl =
-    step (★-project-reveal Rʳ)
+    step (★-project-reveal Rʳ gate)
 
   star-project-reveal-progress : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
@@ -997,10 +1053,10 @@ module WithGaps
       | same | cs-reveal Rʳ′ gate′ =
     star-project-reveal-progress Rʳ gate V⊢
   cast-value-progress V⊢
-      (Wᵛ ↓[ X ≔ α ] gate)
+      (Wᵛ ↓[ X ≔ α ] delimiter Vᶜ)
       (？_ {G = G} ⦃ Gᵍ ⦄ ⦃ ★∼G ⦄ .(idᵍ Gᵍ) ⦃ Bns ⦄)
-      | same | cs-conceal Wᵛ′ gate′ =
-    gap-★-project-conceal Wᵛ gate V⊢
+      | same | cs-conceal Wᵛ′ (delimiter Vᶜ′) =
+    ⊥-elim (canonical-conceal-star-impossible Vᶜ V⊢)
   cast-value-progress V⊢ Vᵛ
       (inst_ ⦃ Anv ⦄ ⦃ z∈A ⦄ c B≠★) =
     step (β-inst Vᵛ B≠★)
@@ -1021,6 +1077,17 @@ module WithGaps
     → CanonicalAtom V
     → Progress Ψ (V ↑[ X ≔ α ] id↑)
   finish-id-reveal atom typing ($ κ) atom-constant = step id-reveal
+  finish-id-reveal {X = X} atom typing (Vᵥ 《 inj 》)
+      (atom-tagged {H = H} ⦃ Hᵍ = Hᵍ ⦄ Vᵥ′)
+      with strengthenᵗ? X H in strengthens
+  finish-id-reveal atom typing (Vᵥ 《 inj 》)
+      (atom-tagged Vᵥ′) | just H₀ =
+    step (inject-reveal strengthens Vᵥ′)
+  finish-id-reveal {X = X} atom typing (Vᵥ 《 inj 》)
+      (atom-tagged ⦃ Hᵍ = Hᵍ ⦄ Vᵥ′) | nothing =
+    done (result-val
+      (result-val (Vᵥ′ 《 inj 》) ↑[ _ ≔ _ ]
+        package Vᵥ′ (unstrengthenableGround Hᵍ strengthens)))
   finish-id-reveal atom typing Vᵛ (atom-interior Vᶜ) =
     done (result-val (result-val Vᵛ ↑[ _ ≔ _ ] delimiter Vᶜ))
   finish-id-reveal {X = X} atom typing Vᵛ (atom-boundary boundary) =
@@ -1044,7 +1111,7 @@ module WithGaps
       | refl | atom-constant =
     ⊥-elim (constant-not-variable V⊢)
   reveal-value-progress-core typing V⊢ Vᵛ ⊢unseal target-eq
-      | refl | atom-interior (tagged Wᵛ) =
+      | refl | atom-tagged Wᵛ =
     gap-adapter-⊕ (unseal-interior (nsi-tagged Wᵛ) typing)
   reveal-value-progress-core typing V⊢ Vᵛ ⊢unseal target-eq
       | refl | atom-interior (sealed Wᵛ Y γ) =
@@ -1127,6 +1194,9 @@ module WithGaps
     → CanonicalAtom V
     → Progress Ψ (V ↓[ X ≔ α ] id↓)
   finish-id-conceal atom typing ($ κ) atom-constant = step id-conceal
+  finish-id-conceal atom typing (Vᵥ 《 inj 》)
+      (atom-tagged Vᵥ′) =
+    step (inject-conceal Vᵥ′)
   finish-id-conceal atom typing Vᵛ (atom-interior Vᶜ) =
     done (result-val (Vᵛ ↓[ _ ≔ _ ] delimiter Vᶜ))
   finish-id-conceal atom typing Vᵛ (atom-boundary boundary) =

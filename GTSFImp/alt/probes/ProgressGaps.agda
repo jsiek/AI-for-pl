@@ -4,9 +4,10 @@ module alt.probes.ProgressGaps where
 --   * Checks the former stranded-ν gap as a positive reduction trace.
 --   * The region first floats through reveal, strict conceal/reveal then fires,
 --     and the persistent allocation remains around the final constant.
---   * Records four remaining progress obstructions as typed closed terms with
+--   * Records three remaining progress obstructions as typed closed terms with
 --     checked proofs that `Progress` is impossible.
---   * Checks the resolved ★-project-reveal gap as a positive reduction trace.
+--   * Checks both outward-injection laws as positive reduction traces,
+--     including a variable projection that reaches ordinary tag blame.
 
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
@@ -240,7 +241,7 @@ baseAdapter-gap-witness =
   baseAdapterGap-typed , baseAdapterGap-no-progress
 
 ------------------------------------------------------------------------
--- Resolved gap: ★ projection commutes through identity reveal
+-- Resolved gap: strengthenable injections commute out of identity reveal
 ------------------------------------------------------------------------
 
 taggedInReveal : Term 1 1
@@ -269,46 +270,45 @@ starRevealMerge-typed =
 taggedInReveal-value : Value taggedInReveal
 taggedInReveal-value = ($ (κℕ zero)) 《 inj 》
 
-taggedInReveal-canonical : CanonicalInterior taggedInReveal
-taggedInReveal-canonical = tagged ($ (κℕ zero))
+starRevealAfterInject : Term 1 zero
+starRevealAfterInject =
+  (($ (κℕ zero))
+    ↑[ zero ≔ zero ] expand↑ (ℕᵗ {Δ = 1}) id↑)
+    ⟨ strengthenInjection {Δ = zero} {Y = zero} {μ = idᶜ}
+      (‵ `ℕ) ι∼★ refl ⟩
 
-starReveal-value : Value starReveal
-starReveal-value = result-val taggedInReveal-value ↑[ zero ≔ zero ]
-  delimiter taggedInReveal-canonical
+starRevealMergeAfterInject : Term 1 zero
+starRevealMergeAfterInject =
+  starRevealAfterInject ⟨ ？ (id {μ = idᶜ} (‵ `ℕ)) ⟩
 
-starReveal-no-step : ∀ {M′} → ¬ (baseEnv ⊢ starReveal —→ M′)
-starReveal-no-step = value-no-step starReveal-value
-
-starRevealAfterProject : Term 1 zero
-starRevealAfterProject =
-  (taggedInReveal
-    ⟨ weakenConsistency zero (？ (id {μ = idᶜ} (‵ `ℕ))) ⟩)
-    ↑[ zero ≔ zero ] expand↑ (wkᵗ (zero {n = zero}) ℕᵗ) id↑
-
-starRevealAfterUntag : Term 1 zero
-starRevealAfterUntag =
+taggedOutsideReveal : Term 1 zero
+taggedOutsideReveal =
   ($ (κℕ zero))
-    ↑[ zero ≔ zero ] expand↑ (wkᵗ (zero {n = zero}) ℕᵗ) id↑
+    ⟨ strengthenInjection {Δ = zero} {Y = zero} {μ = idᶜ}
+      (‵ `ℕ) ι∼★ refl ⟩
+
+starRevealMergeAfterReveal : Term 1 zero
+starRevealMergeAfterReveal =
+  taggedOutsideReveal ⟨ ？ (id {μ = idᶜ} (‵ `ℕ)) ⟩
 
 starRevealMerge-gap-witness :
   baseEnv ⊢ starRevealMerge —↠ $ (κℕ zero)
 starRevealMerge-gap-witness =
     starRevealMerge
-  —→⟨ ★-project-reveal (result-val taggedInReveal-value) ⟩
-    starRevealAfterProject
-  —→⟨ ξ-reveal {fresh = no-live-anchor}
-        (tag-untag ($ (κℕ zero))) ⟩
-    starRevealAfterUntag
-  —→⟨ id-reveal ⟩
+  —→⟨ ξ-⟨⟩ (inject-reveal refl ($ (κℕ zero))) ⟩
+    starRevealMergeAfterInject
+  —→⟨ ξ-⟨⟩ (ξ-⟨⟩ id-reveal) ⟩
+    starRevealMergeAfterReveal
+  —→⟨ tag-untag ($ (κℕ zero)) ⟩
     $ (κℕ zero)
   ∎
 
 starRevealMerge-progress : Progress baseEnv starRevealMerge
 starRevealMerge-progress =
-  step (★-project-reveal (result-val taggedInReveal-value))
+  step (ξ-⟨⟩ (inject-reveal refl ($ (κℕ zero))))
 
 ------------------------------------------------------------------------
--- Remaining gap 2: ★ projection cannot merge through conceal
+-- Resolved gap: injections commute outward through identity conceal
 ------------------------------------------------------------------------
 
 taggedInConceal : Term 1 zero
@@ -344,40 +344,79 @@ starConcealMerge-typed =
 taggedInConceal-value : Value taggedInConceal
 taggedInConceal-value = ($ (κℕ zero)) 《 inj 》
 
-taggedInConceal-canonical : CanonicalInterior taggedInConceal
-taggedInConceal-canonical = tagged ($ (κℕ zero))
+starConcealAfterInject : Term 1 1
+starConcealAfterInject =
+  (($ (κℕ zero))
+    ↓[ zero ≔ zero ] expand↓ (wkᵗ (zero {n = zero}) ℕᵗ) id↓)
+    ⟨ weakenInjection {μ = idᶜ} zero (‵ `ℕ) ι∼★ ⟩
 
-starConceal-value : Value starConceal
-starConceal-value = taggedInConceal-value ↓[ zero ≔ zero ]
-  delimiter taggedInConceal-canonical
+starConcealMergeAfterInject : Term 1 1
+starConcealMergeAfterInject =
+  starConcealAfterInject ⟨ ？ (id {μ = idᶜ} (‵ `ℕ)) ⟩
 
-starConceal-no-step : ∀ {M′}
-  → ¬ (crossedEnv ⊢ starConceal —→ M′)
-starConceal-no-step = value-no-step starConceal-value
+taggedOutsideConceal : Term 1 1
+taggedOutsideConceal =
+  ($ (κℕ zero))
+    ⟨ weakenInjection {μ = idᶜ} zero (‵ `ℕ) ι∼★ ⟩
 
-starConcealMerge-no-step : ∀ {M′}
-  → ¬ (crossedEnv ⊢ starConcealMerge —→ M′)
-starConcealMerge-no-step (expand Vᵥ G≢G) = G≢G refl
-starConcealMerge-no-step (ξ-⟨⟩ reduction) =
-  starConceal-no-step reduction
-
-starConcealMerge-not-result : ¬ Result starConcealMerge
-starConcealMerge-not-result (result-val (_ 《 () 》))
-
-starConcealMerge-no-progress : ¬ Progress crossedEnv starConcealMerge
-starConcealMerge-no-progress (step reduction) =
-  starConcealMerge-no-step reduction
-starConcealMerge-no-progress (done result) =
-  starConcealMerge-not-result result
+starConcealMergeAfterConceal : Term 1 1
+starConcealMergeAfterConceal =
+  taggedOutsideConceal ⟨ ？ (id {μ = idᶜ} (‵ `ℕ)) ⟩
 
 starConcealMerge-gap-witness :
-  (crossedEnv ∣ [] ⊢ starConcealMerge ⦂ ℕᵗ)
-  × ¬ Progress crossedEnv starConcealMerge
+  crossedEnv ⊢ starConcealMerge —↠ $ (κℕ zero)
 starConcealMerge-gap-witness =
-  starConcealMerge-typed , starConcealMerge-no-progress
+    starConcealMerge
+  —→⟨ ξ-⟨⟩ (inject-conceal ($ (κℕ zero))) ⟩
+    starConcealMergeAfterInject
+  —→⟨ ξ-⟨⟩ (ξ-⟨⟩ id-conceal) ⟩
+    starConcealMergeAfterConceal
+  —→⟨ tag-untag ($ (κℕ zero)) ⟩
+    $ (κℕ zero)
+  ∎
+
+starConcealMerge-progress : Progress crossedEnv starConcealMerge
+starConcealMerge-progress =
+  step (ξ-⟨⟩ (inject-conceal ($ (κℕ zero))))
+
+varProjectionEnv : Env∼ 1
+varProjectionEnv zero = ★∼X
+
+starConcealVarMerge : Term 1 1
+starConcealVarMerge =
+  starConceal
+    ⟨ ？ (id {μ = varProjectionEnv} (＇ zero)) ⟩
+
+starConcealVarMerge-typed :
+  crossedEnv ∣ [] ⊢ starConcealVarMerge ⦂ ＇ zero
+starConcealVarMerge-typed =
+  ⊢⟨⟩ starConceal-typed
+    (？ (id {μ = varProjectionEnv} (＇ zero)))
+
+starConcealVarMergeAfterInject : Term 1 1
+starConcealVarMergeAfterInject =
+  starConcealAfterInject
+    ⟨ ？ (id {μ = varProjectionEnv} (＇ zero)) ⟩
+
+starConcealVarMergeAfterConceal : Term 1 1
+starConcealVarMergeAfterConceal =
+  taggedOutsideConceal
+    ⟨ ？ (id {μ = varProjectionEnv} (＇ zero)) ⟩
+
+starConcealVarMerge-trace :
+  crossedEnv ⊢ starConcealVarMerge —↠ blame
+starConcealVarMerge-trace =
+    starConcealVarMerge
+  —→⟨ ξ-⟨⟩ (inject-conceal ($ (κℕ zero))) ⟩
+    starConcealVarMergeAfterInject
+  —→⟨ ξ-⟨⟩ (ξ-⟨⟩ id-conceal) ⟩
+    starConcealVarMergeAfterConceal
+  —→⟨ tag-untag-bad ($ (κℕ zero)) (λ ()) ⟩
+    blame
+  ∎
 
 ------------------------------------------------------------------------
--- Remaining gap 3: ∀ reveal cannot merge through an inert ∀ cast
+-- Remaining gap 2: ∀ reveal cannot merge through an inert ∀ cast
 ------------------------------------------------------------------------
 
 ∀ℕ : ∀ {Δ} → Ty Δ
@@ -434,7 +473,7 @@ allReveal-gap-witness =
   allRevealGap-typed , allRevealGap-no-progress
 
 ------------------------------------------------------------------------
--- Remaining gap 4: ∀ conceal cannot merge through an inert ∀ cast
+-- Remaining gap 3: ∀ conceal cannot merge through an inert ∀ cast
 ------------------------------------------------------------------------
 
 polyInConceal : Term 1 zero

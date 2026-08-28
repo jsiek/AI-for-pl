@@ -13,7 +13,9 @@ module alt.ThetaTyping where
 --     its older anchor's representation.  Undefined routes refuse with
 --     `nothing`; begin/end bracket choices are never consulted.
 --   * Defines values, results, and the reduction-stable `ΛBody` restriction
---     consumed by universal introduction.
+--     consumed by universal introduction.  A tagged term is never a canonical
+--     conceal interior; under reveal it is a package value only when its
+--     ground tag mentions the crossing pivot and cannot strengthen outward.
 --   * `_≼[_,_]_` remains only a marker-balance certificate.  Its injection
 --     index records lexical drift and delimiter positions for typing transport;
 --     it is not representation lookup evidence.
@@ -435,6 +437,15 @@ mutual
         ------------------------
       → RevealValue V X α id↑
 
+    package : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ}
+        {H : Ty Δ} {X : TyVar Δ} {α : TyVar Θ}
+        ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : μ ⊢ H ∼★ ⦄
+        ⦃ Hns : NonStar H ⦄
+      → Value V
+      → X ∈ᵗ H
+        ----------------------------------------------------
+      → RevealValue (V ⟨ (idᵍ Hᵍ) ! ⟩) X α id↑
+
     adapter : ∀ {Θ Δ} {V : Term Θ Δ}
         {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
       → Result V
@@ -494,12 +505,6 @@ mutual
 
   data CanonicalInterior : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
       → Term Θ Δ → Set where
-    tagged : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {G : Ty Δ}
-        ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
-        ⦃ Gns : NonStar G ⦄
-      → Value V
-      → CanonicalInterior (V ⟨ (idᵍ Gᵍ) ! ⟩)
-
     sealed : ∀ {Θ Δ} {V : Term Θ Δ}
       → Value V
       → (X : TyVar (suc Δ))
@@ -536,6 +541,12 @@ data ΛBody : ∀ {Θ Δ} → Term Θ Δ → Set where
     → Result V
     → ΛBody (V ↓[ X ≔ α ] c)
 
+  body-inert : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ}
+      {A B : Ty Δ} {c : μ ⊢ A ∼ B}
+    → ΛBody V
+    → Inert c
+    → ΛBody (V ⟨ c ⟩)
+
   body-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
     → ΛBody M
     → ΛBody (ν[ A ] M)
@@ -547,7 +558,6 @@ data ΛBody : ∀ {Θ Δ} → Term Θ Δ → Set where
 canonical-value : ∀ {Θ Δ} {V : Term Θ Δ}
   → CanonicalInterior V
   → Value V
-canonical-value (tagged Vᵥ) = Vᵥ 《 inj 》
 canonical-value (sealed Vᵥ X α) = Vᵥ ↓[ X ≔ α ] sealᵥ
 canonical-value (delimited Vᶜ X α) =
   result-val (canonical-value Vᶜ) ↑[ X ≔ α ] delimiter Vᶜ

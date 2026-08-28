@@ -15,14 +15,12 @@ module alt.ThetaReduction where
 --   * Boundary rules accept ν-prefixed results as interiors and carry the
 --     entire prefix verbatim.  Stacked regions move only by iterating the
 --     ordinary two-constructor term-frame rules.
---   * A ground projection commutes into an identity reveal; `expand↑`
---     refines the boundary from ★ to the weakened projected ground type.
+--   * Ground injections commute out of identity conceals unconditionally and
+--     out of identity reveals when their tags strengthen.  Ground projection
+--     commutes into a reveal value only in the complementary package case.
+--     All three rules use expansion and never inspect a representation.
 --   * Universal crossings use ScTyWrap: they move beneath Λ without
 --     instantiating, allocating, or inspecting the telescope.
---   * Review suggestion (not undertaken here): `CanonicalInterior` already
---     projects to `Value`; a later cleanup should assess whether its overlap
---     with the delimiter cases of `RevealValue` and `ConcealValue` can shrink
---     the existing value-predicate family without changing canonical forms.
 
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
@@ -140,6 +138,65 @@ weakenConsistency {μ = μ} X c =
     (cong (renameEnv∼ (skipAt↪ᵗ X) μ) (sym (skipAt-punchIn X Y)))
     (renameEnv∼-preserves (skipAt↪ᵗ X) μ Y)
 
+strengthenEnv∼ : ∀ {Δ}
+  → TyVar (suc Δ)
+  → Env∼ (suc Δ)
+  → Env∼ Δ
+strengthenEnv∼ Y μ X = μ (punchIn Y X)
+
+strengthen∼★ : ∀ {Δ} {Y : TyVar (suc Δ)}
+    {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)} {H₀ : Ty Δ}
+  → strengthenᵗ? Y H ≡ just H₀
+  → μ ⊢ H ∼★
+  → strengthenEnv∼ Y μ ⊢ H₀ ∼★
+strengthen∼★ refl ⇒∼★ = ⇒∼★
+strengthen∼★ refl ι∼★ = ι∼★
+strengthen∼★ {Y = Y} eq (X∼★ᵍ {X = X} mode) with Y ≟ X
+strengthen∼★ () (X∼★ᵍ mode) | yes refl
+strengthen∼★ {Y = Y} {μ = μ} refl
+    (X∼★ᵍ {X = X} mode) | no Y≢X =
+  X∼★ᵍ (trans (cong μ (punchIn-punchOut Y X Y≢X)) mode)
+strengthen∼★ {Y = Y} eq (X∼★ᶜ {X = X} mode) with Y ≟ X
+strengthen∼★ () (X∼★ᶜ mode) | yes refl
+strengthen∼★ {Y = Y} {μ = μ} refl
+    (X∼★ᶜ {X = X} mode) | no Y≢X =
+  X∼★ᶜ (trans (cong μ (punchIn-punchOut Y X Y≢X)) mode)
+strengthen∼★ refl ∀∼★ = ∀∼★
+
+weaken∼★ : ∀ {Δ} {μ : Env∼ Δ} {H : Ty Δ}
+  → (X : TyVar (suc Δ))
+  → μ ⊢ H ∼★
+  → renameEnv∼ (skipAt↪ᵗ X) μ ⊢ wkᵗ X H ∼★
+weaken∼★ {μ = μ} X H∼★ =
+  rename∼★ (punchIn X) preserves H∼★
+  where
+  preserves : ∀ Y
+    → renameEnv∼ (skipAt↪ᵗ X) μ (punchIn X Y) ≡ μ Y
+  preserves Y = trans
+    (cong (renameEnv∼ (skipAt↪ᵗ X) μ) (sym (skipAt-punchIn X Y)))
+    (renameEnv∼-preserves (skipAt↪ᵗ X) μ Y)
+
+weakenInjection : ∀ {Δ} {μ : Env∼ Δ} {H : Ty Δ}
+  → (X : TyVar (suc Δ))
+  → (Hᵍ : Ground H)
+  → μ ⊢ H ∼★
+  → renameEnv∼ (skipAt↪ᵗ X) μ ⊢ wkᵗ X H ∼ ★
+weakenInjection X Hᵍ H∼★ =
+  _! ⦃ wkGround X Hᵍ ⦄ ⦃ weaken∼★ X H∼★ ⦄
+    (idᵍ (wkGround X Hᵍ)) ⦃ ground-nonstar (wkGround X Hᵍ) ⦄
+
+strengthenInjection : ∀ {Δ} {Y : TyVar (suc Δ)}
+    {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)} {H₀ : Ty Δ}
+  → (Hᵍ : Ground H)
+  → (H∼★ : μ ⊢ H ∼★)
+  → (strengthens : strengthenᵗ? Y H ≡ just H₀)
+  → strengthenEnv∼ Y μ ⊢ H₀ ∼ ★
+strengthenInjection Hᵍ H∼★ strengthens =
+  _! ⦃ strengthenGround Hᵍ strengthens ⦄
+    ⦃ strengthen∼★ strengthens H∼★ ⦄
+    (idᵍ (strengthenGround Hᵍ strengthens))
+    ⦃ ground-nonstar (strengthenGround Hᵍ strengthens) ⦄
+
 ------------------------------------------------------------------------
 -- Term-variable substitution
 ------------------------------------------------------------------------
@@ -242,12 +299,36 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       -------------------------------------------------
     → Ψ ⊢ V ⟨ ？ c ⟩ —→ V ⟨ ？ (idᵍ Gᵍ) ⟩ ⟨ c ⟩
 
+  inject-conceal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+      {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {μ : Env∼ Δ} {H : Ty Δ}
+      ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : μ ⊢ H ∼★ ⦄
+      ⦃ Hns : NonStar H ⦄
+    → Value V
+      ------------------------------------------------------------
+    → Ψ ⊢ (V ⟨ (idᵍ Hᵍ) ! ⟩) ↓[ X ≔ α ] id↓ —→
+        (V ↓[ X ≔ α ] expand↓ (wkᵗ X H) id↓)
+          ⟨ weakenInjection X Hᵍ H∼★ ⟩
+
+  inject-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {V : Term Θ (suc Δ)} {Y : TyVar (suc Δ)} {β : TyVar Θ}
+      {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)} {H₀ : Ty Δ}
+      ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : μ ⊢ H ∼★ ⦄
+      ⦃ Hns : NonStar H ⦄
+    → (strengthens : strengthenᵗ? Y H ≡ just H₀)
+    → Value V
+      ------------------------------------------------------------
+    → Ψ ⊢ (V ⟨ (idᵍ Hᵍ) ! ⟩) ↑[ Y ≔ β ] id↑ —→
+        (V ↑[ Y ≔ β ] expand↑ H id↑)
+          ⟨ strengthenInjection Hᵍ H∼★ strengthens ⟩
+
   ★-project-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
       {μ : Env∼ Δ} {G : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
       ⦃ Gns : NonStar G ⦄
     → Result V
+    → RevealValue V X α id↑
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] id↑) ⟨ ？ (idᵍ Gᵍ) ⟩ —→
         (V ⟨ weakenConsistency X (？ (idᵍ Gᵍ)) ⟩)
@@ -554,6 +635,9 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
 -- Values and results do not reduce
 ------------------------------------------------------------------------
 
+nothing≢just-reduction : ∀ {A : Set} {x : A} → nothing ≢ just x
+nothing≢just-reduction ()
+
 mutual
   value-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V M′ : Term Θ Δ}
@@ -573,15 +657,18 @@ mutual
   value-no-step
       (result-val () ↑[ X ≔ α ] gate)
       blame-reveal
+  value-no-step
+      (result-val (Vᵥ 《 inj 》) ↑[ Y ≔ γ ] package Vᵥ′ Y∈H)
+      (inject-reveal strengthens Vᵥ″) =
+    ⊥-elim (nothing≢just-reduction
+      (trans (sym (strengthenᵗ?-present Y∈H)) strengthens))
   value-no-step (Vʳ ↑[ X ≔ α ] gate) (ξ-reveal step) =
     result-no-step Vʳ step
   value-no-step
       (result-ν Vʳ ↑[ X ≔ α ] adapter-region Rʳ X∈A)
       (float-reveal strengthens result) =
-    ⊥-elim (impossible (trans (sym (strengthenᵗ?-present X∈A)) strengthens))
-    where
-    impossible : ∀ {Δ} {A₀ : Ty Δ} → nothing ≡ just A₀ → ⊥
-    impossible ()
+    ⊥-elim (nothing≢just-reduction
+      (trans (sym (strengthenᵗ?-present X∈A)) strengthens))
   value-no-step
       (Vʳ ↓[ X ≔ α ] delimiter ())
       id-conceal
@@ -611,6 +698,14 @@ mutual
   body-result (result-val ($ κ))
 ΛBody-stable (body-reveal Vʳ) (conceal-reveal Rʳ) = body-result Rʳ
 ΛBody-stable (body-reveal (result-val ())) blame-reveal
+ΛBody-stable
+    (body-reveal (result-val (Vᵥ 《 inj 》)))
+    (inject-reveal ⦃ Hᵍ = Hᵍ ⦄ ⦃ H∼★ = H∼★ ⦄
+      strengthens Vᵥ′) =
+  body-inert (body-reveal (result-val Vᵥ′))
+    (inj ⦃ Gᵍ = strengthenGround Hᵍ strengthens ⦄
+      ⦃ G∼★ = strengthen∼★ strengthens H∼★ ⦄
+      ⦃ Gns = ground-nonstar (strengthenGround Hᵍ strengthens) ⦄)
 ΛBody-stable (body-reveal Vʳ) (β-reveal-∀ Rʳ) =
   body-Λ (body-reveal Rʳ)
 ΛBody-stable (body-reveal Vʳ)
@@ -620,6 +715,14 @@ mutual
   ⊥-elim (result-no-step Vʳ step)
 ΛBody-stable (body-conceal (result-val ($ κ))) id-conceal =
   body-result (result-val ($ κ))
+ΛBody-stable
+    (body-conceal (result-val (Vᵥ 《 inj 》)))
+    (inject-conceal {X = X} ⦃ Hᵍ = Hᵍ ⦄
+      ⦃ H∼★ = H∼★ ⦄ Vᵥ′) =
+  body-inert (body-conceal (result-val Vᵥ′))
+    (inj ⦃ Gᵍ = wkGround X Hᵍ ⦄
+      ⦃ G∼★ = weaken∼★ X H∼★ ⦄
+      ⦃ Gns = ground-nonstar (wkGround X Hᵍ) ⦄)
 ΛBody-stable (body-conceal Vʳ) (β-conceal-∀ Rʳ) =
   body-Λ (body-conceal Rʳ)
 ΛBody-stable (body-conceal (result-ν Vʳ))
@@ -627,6 +730,18 @@ mutual
   body-ν (body-conceal Vʳ)
 ΛBody-stable (body-conceal Vʳ) (ξ-conceal step) =
   ⊥-elim (result-no-step Vʳ step)
+ΛBody-stable (body-inert body inj) (ground Vᵥ H≢H) =
+  ⊥-elim (H≢H refl)
+ΛBody-stable (body-inert (body-result (result-ν Vʳ)) inert)
+    (float-⟨⟩ (result-ν Vʳ′)) =
+  body-ν (body-inert (body-result Vʳ) inert)
+ΛBody-stable (body-inert (body-ν body) inert)
+    (float-⟨⟩ (result-ν Vʳ)) =
+  body-ν (body-inert body inert)
+ΛBody-stable (body-inert (body-result (result-val ())) inj)
+    blame-⟨⟩
+ΛBody-stable (body-inert body inert) (ξ-⟨⟩ step) =
+  body-inert (ΛBody-stable body step) inert
 ΛBody-stable (body-ν (body-result (result-val ()))) blame-ν
 ΛBody-stable (body-ν body) (ξ-ν step) =
   body-ν (ΛBody-stable body step)

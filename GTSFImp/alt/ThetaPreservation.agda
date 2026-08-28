@@ -30,9 +30,9 @@ module alt.ThetaPreservation where
 --     round trip, without representation resolution.
 --   * The dual `float-conceal` weakens its entry into the larger scope; an
 --     exact end/ν telescope exchange carries the interior typing.
---   * Projection into an identity reveal preserves typing by weakening its
---     ground cast and applying the checked `expand↑-typed` identity
---     expansion.
+--   * Injection out of delimiters and restricted projection into reveal
+--     preserve typing by ground weakening/strengthening and the checked
+--     `expand↑`/`expand↓` typing lemmas.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -514,6 +514,34 @@ preserve-β-conceal-∀-any {B = A ⇒ B} Vʳ
 preserve-β-conceal-∀-any {B = `∀ B} Vʳ typing =
   preserve-β-conceal-∀ Vʳ typing
 
+preserve-inject-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Γ : TermCtx Δ} {V : Term Θ (suc Δ)}
+    {Y : TyVar (suc Δ)} {γ : TyVar Θ}
+    {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)} {H₀ B C : Ty Δ}
+    {T : Ty (suc Δ)} {fresh : γ ∉ᵛ σ}
+  → (Hᵍ : Ground H)
+  → (H∼★ : μ ⊢ H ∼★)
+  → rep? Ψ γ ≡ just C
+  → Ψ ,begin[ Y ≔ γ ]⟨ fresh ⟩ ∣ [] ⊢ V ⦂ H
+  → (strengthens : strengthenᵗ? Y H ≡ just H₀)
+  → ⊢↑[ Y ⦂ wkᵗ Y C ] id↑ ⦂ ★ ↝ T
+  → T ≡ wkᵗ Y B
+  → Ψ ∣ Γ ⊢ (V ↑[ Y ≔ γ ] expand↑ H id↑)
+      ⟨ strengthenInjection Hᵍ H∼★ strengthens ⟩ ⦂ B
+preserve-inject-reveal {B = ＇ X} Hᵍ H∼★ α-eq V⊢ strengthens
+    (⊢id↑ ★) ()
+preserve-inject-reveal {B = ‵ ι} Hᵍ H∼★ α-eq V⊢ strengthens
+    (⊢id↑ ★) ()
+preserve-inject-reveal {B = ★} Hᵍ H∼★ α-eq V⊢ strengthens
+    (⊢id↑ ★) refl =
+  ⊢⟨⟩
+    (⊢reveal α-eq (expand↑-strengthen-typed strengthens) V⊢)
+    (strengthenInjection Hᵍ H∼★ strengthens)
+preserve-inject-reveal {B = A ⇒ B} Hᵍ H∼★ α-eq V⊢ strengthens
+    (⊢id↑ ★) ()
+preserve-inject-reveal {B = `∀ B} Hᵍ H∼★ α-eq V⊢ strengthens
+    (⊢id↑ ★) ()
+
 ------------------------------------------------------------------------
 -- Closed one-step preservation assembler
 ------------------------------------------------------------------------
@@ -535,9 +563,23 @@ preserve (⊢⟨⟩ V⊢ (_! ⦃ Gᵍ = Gᵍ ⦄ c)) (ground Vᵥ neq) =
 preserve (⊢⟨⟩ V⊢ (？_ ⦃ Gᵍ = Gᵍ ⦄ c)) (expand Vᵥ neq) =
   ⊢⟨⟩ (⊢⟨⟩ V⊢ (？ (idᵍ Gᵍ))) c
 preserve
+    (⊢conceal X-live α-eq (⊢id↓ ★)
+      (⊢⟨⟩ V⊢ (_! ⦃ Gᵍ = Hᵍ ⦄
+        ⦃ G∼★ = H∼★ ⦄ .(idᵍ Hᵍ))))
+    (inject-conceal {X = X} Vᵥ) =
+  ⊢⟨⟩
+    (⊢conceal X-live α-eq (expand↓-typed (wkᵗ X _)) V⊢)
+    (weakenInjection X Hᵍ H∼★)
+preserve
+    (⊢reveal α-eq c⊢
+      (⊢⟨⟩ V⊢ (_! ⦃ Gᵍ = Hᵍ ⦄
+        ⦃ G∼★ = H∼★ ⦄ .(idᵍ Hᵍ))))
+    (inject-reveal {Y = Y} strengthens Vᵥ) =
+  preserve-inject-reveal Hᵍ H∼★ α-eq V⊢ strengthens c⊢ refl
+preserve
     (⊢⟨⟩ (⊢reveal α-eq (⊢id↑ ★) V⊢)
       (？_ ⦃ Gᵍ = Gᵍ ⦄ .(idᵍ Gᵍ)))
-    (★-project-reveal {X = X} {G = G} Vʳ) =
+    (★-project-reveal {X = X} {G = G} Vʳ gate) =
   ⊢reveal α-eq (expand↑-typed (wkᵗ X G))
     (⊢⟨⟩ V⊢ (weakenConsistency X (？ (idᵍ Gᵍ))))
 preserve (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) = V⊢

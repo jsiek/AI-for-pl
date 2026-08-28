@@ -30,6 +30,7 @@ open import Relation.Binary.PropositionalEquality
 open import Types
 import Imprecision as I
 open import TyStore using (TyStore)
+open import TermCtx using (TermCtx)
 open import Consistency using
   ( Env∼; _⊢_∼_; _⊢_∼★; _⊢★∼_; id; idᵍ; _↦_; ∀ᶜ_; _!
   ; ？_; inst_; gen_; instᵐ; bot-elim; bot-intro; ground-nonstar
@@ -46,6 +47,7 @@ open import CastTerms using
 import CastTerms as CT
 open import Reduction using
   ( StoreChanges; []; _∷_; keep; bind; applyTy; applyBody; applyTys
+  ; applyVar
   ; pure-step; β-id; β-inst; β-∀; β-gen; ground
   ; expand; tag-untag; ξ-⟨⟩; applyConsistencies
   ; _—↠[_]_; _—→[_]⟨_⟩_; _—↠[_]⟨_⟩_; _∎[]
@@ -89,9 +91,12 @@ open import proof.DGG.Inversion.RightInjInversion2Lemma using
 import proof.DGG.TagTransport as TT
 open import proof.DGG.World
 open import proof.DGG.WorldEvolution using
-  (evolution-keep; evolution-bind-right; evolution-⊑ᵀ)
+  ( CtxChange; WorldEvolution; keep-ctx; storeChange
+  ; evolution-keep; evolution-bind-right; evolution-⊑ᵀ
+  )
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution; evolutions-refl; evolutions-step-right; multi-⊑ᵀ
+  ; applyVars-prepend
   ; multi-source-mark; multi-source-disaligned
   ; multi-source-reveal; multi-source-conceal
   ; multi-source-reveal-position; multi-source-conceal-position
@@ -106,7 +111,7 @@ open import proof.ImprecisionConsistency using
   ; ground-cast-target-unique⊑
   ; ground-target-nonvar-to-star⊑; all-ground-body
   ; nonstar-from-≢★; rename-occurs; unshift-nonvar
-  ; ext-injective; renameᵗ-injective
+  ; ext-injective; renameᵗ-injective; fin-suc-injective
   )
 import proof.TypeSafety.Progress as Prog
 open import proof.TypeSafety.Progress using
@@ -114,7 +119,7 @@ open import proof.TypeSafety.Progress using
   ; canonical-★; sv-tag
   )
 open import proof.Reduction using
-  (cast-↠; applyConsistencies-Inert; applyTys-★)
+  (cast-↠; applyConsistencies-Inert; applyTys-★; applyVars)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef using
   ( InstantiationFrame; type-transport-frame; name-type-app-frame
   ; cast-frame; reveal-frame; conceal-frame
@@ -1010,6 +1015,204 @@ private
   progress-all-view (Prog.av-reveal vW refl) = inst-view-reveal vW
   progress-all-view (Prog.av-conceal vW refl) = inst-view-conceal vW
 
+  -- A pending name application is operationally admissible only when its
+  -- target name has no aligned source occupant in the current world.  The
+  -- public beta-inst step establishes this provenance; the private driver
+  -- retains it alongside the syntax-only InstantiationSpine.
+  TargetOnlyNameᶜ : ∀ {Γᴸ Γᴿ : Ctx}
+    → (γ : Γᴸ ⊑ᶜ Γᴿ)
+    → TyVar (CT.Δᵉ Γᴿ)
+    → Set
+  TargetOnlyNameᶜ γ X = ∀ Xᴸ
+    → toRenameⁱ (ηᴸᶜ γ) Xᴸ ≢ toRenameⁱ (ηᴿᶜ γ) X
+
+  target-only-name-fresh : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {X : TyVar (CT.Δᵉ Γᴿ)}
+    → TargetOnlyNameᶜ γ X
+    → RightBindFreshᶜ γ (＇ X)
+  target-only-name-fresh {γ = γ} {X = X} target-only =
+    inj₂ (Fin.suc X , refl , λ Xᴸ aligned →
+      target-only Xᴸ (fin-suc-injective aligned))
+
+  right-bind-new-target-only : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {B : Ty (CT.Δᵉ Γᴿ)}
+      {fresh : RightBindFreshᶜ γ B}
+    → TargetOnlyNameᶜ (bindRightᶜ γ B fresh) Fin.zero
+  right-bind-new-target-only {γ = γ} Xᴸ ()
+
+  target-only-name-evolution : ∀ {Γᴸ Γᴿ Γᴿ′ : Ctx}
+      {W : Γᴸ ⊑ᶜ Γᴿ} {W′ : Γᴸ ⊑ᶜ Γᴿ′}
+      {stepᴿ : CtxChange Γᴿ Γᴿ′}
+      {X : TyVar (CT.Δᵉ Γᴿ)}
+    → WorldEvolution {W = W} {W′ = W′} keep-ctx stepᴿ
+    → TargetOnlyNameᶜ W X
+    → TargetOnlyNameᶜ W′ (applyVar (storeChange stepᴿ) X)
+  target-only-name-evolution {W = W} {W′ = W′} {X = X}
+      evolution-keep target-only = target-only
+  target-only-name-evolution {W = W} {W′ = W′} {X = X}
+      (evolution-bind-right fresh refl) target-only
+      Xᴸ aligned =
+    target-only Xᴸ (fin-suc-injective aligned)
+
+  lift-left-target-only : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {X : TyVar (CT.Δᵉ Γᴿ)}
+    → TargetOnlyNameᶜ γ X
+    → TargetOnlyNameᶜ (liftLeftᶜ γ) X
+  lift-left-target-only {γ = γ} {X = X} target-only Fin.zero ()
+  lift-left-target-only {γ = γ} {X = X} target-only
+      (Fin.suc Xᴸ) aligned =
+    target-only Xᴸ (fin-suc-injective aligned)
+
+  multi-target-only-name : ∀ {Γᴸ Γᴿ Γᴿ′ : Ctx}
+      {W : Γᴸ ⊑ᶜ Γᴿ} {W′ : Γᴸ ⊑ᶜ Γᴿ′}
+      {χsᴿ : StoreChanges (CT.Δᵉ Γᴿ) (CT.Δᵉ Γᴿ′)}
+      {X : TyVar (CT.Δᵉ Γᴿ)}
+    → MultiWorldEvolution {W = W} {W′ = W′} [] χsᴿ
+    → TargetOnlyNameᶜ W X
+    → TargetOnlyNameᶜ W′ (applyVars χsᴿ X)
+  multi-target-only-name {W = W} {W′ = W′} {X = X}
+      evolutions-refl target-only = target-only
+  multi-target-only-name {W = W} {W′ = W′} {X = X}
+      (evolutions-step-right {W¹ = W¹} {χsᴿ = χsᴿ}
+        {stepᴿ = stepᴿ}
+        refl one tail) target-only
+      rewrite applyVars-prepend stepᴿ χsᴿ X =
+    multi-target-only-name {W = W¹} {W′ = W′} tail
+      (target-only-name-evolution {W = W} one target-only)
+
+  data SpineNamesTargetOnlyᶜ {Γᴸ Γᴿ : Ctx}
+      (γ : Γᴸ ⊑ᶜ Γᴿ) : ∀ {A E}
+      → InstantiationSpine A E → Set where
+    names-[] : ∀ {A}
+      → SpineNamesTargetOnlyᶜ γ ([]ⁱ {A = A})
+
+    names-type-transport : ∀ {A B E} {eq : A ≡ B}
+        {spine : InstantiationSpine B E}
+      → SpineNamesTargetOnlyᶜ γ spine
+      → SpineNamesTargetOnlyᶜ γ
+          (type-transport-frame eq ▻ⁱ spine)
+
+    names-name-type-app : ∀ {A C E} {B : Ty (suc (CT.Δᵉ Γᴿ))}
+        {X : TyVar (CT.Δᵉ Γᴿ)} {eqA : A ≡ `∀ B}
+        {eqC : C ≡ B [ ＇ X ]ᵗ} {spine : InstantiationSpine C E}
+      → TargetOnlyNameᶜ γ X
+      → SpineNamesTargetOnlyᶜ γ spine
+      → SpineNamesTargetOnlyᶜ γ
+          (name-type-app-frame B X eqA eqC ▻ⁱ spine)
+
+    names-cast : ∀ {A B E} {μ : Env∼ (CT.Δᵉ Γᴿ)}
+        {c : μ ⊢ A ∼ B} {spine : InstantiationSpine B E}
+      → SpineNamesTargetOnlyᶜ γ spine
+      → SpineNamesTargetOnlyᶜ γ (cast-frame c ▻ⁱ spine)
+
+    names-reveal : ∀ {A B E} {c : Conv.Conv↑ (CT.Δᵉ Γᴿ) A B}
+        {spine : InstantiationSpine B E}
+      → SpineNamesTargetOnlyᶜ γ spine
+      → SpineNamesTargetOnlyᶜ γ (reveal-frame c ▻ⁱ spine)
+
+    names-conceal : ∀ {A B E} {c : Conv.Conv↓ (CT.Δᵉ Γᴿ) A B}
+        {spine : InstantiationSpine B E}
+      → SpineNamesTargetOnlyᶜ γ spine
+      → SpineNamesTargetOnlyᶜ γ (conceal-frame c ▻ⁱ spine)
+
+  map-spine-names-target-only : ∀ {Γᴸ Γᴿ Γᴿ′ : Ctx}
+      {W : Γᴸ ⊑ᶜ Γᴿ} {W′ : Γᴸ ⊑ᶜ Γᴿ′}
+      {stepᴿ : CtxChange Γᴿ Γᴿ′} {A E}
+      {spine : InstantiationSpine A E}
+    → (evolution : WorldEvolution {W = W} {W′ = W′}
+        keep-ctx stepᴿ)
+    → SpineNamesTargetOnlyᶜ W spine
+    → SpineNamesTargetOnlyᶜ W′
+        (mapInstantiationSpine (storeChange stepᴿ) spine)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution-keep names-[] = names-[] {γ = W′}
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution-keep
+      (names-type-transport names) =
+    names-type-transport {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution-keep names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution-keep
+      (names-name-type-app target-only names) =
+    names-name-type-app {γ = W′}
+      (target-only-name-evolution {W = W} {W′ = W′}
+        evolution-keep target-only)
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution-keep names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution-keep (names-cast names) =
+    names-cast {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution-keep names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution-keep (names-reveal names) =
+    names-reveal {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution-keep names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution-keep (names-conceal names) =
+    names-conceal {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution-keep names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution@(evolution-bind-right fresh refl) names-[] =
+    names-[] {γ = W′}
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution@(evolution-bind-right fresh refl)
+      (names-type-transport names) =
+    names-type-transport {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution@(evolution-bind-right fresh refl)
+      (names-name-type-app target-only names) =
+    names-name-type-app {γ = W′}
+      (target-only-name-evolution {W = W} {W′ = W′}
+        evolution target-only)
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution@(evolution-bind-right fresh refl) (names-cast names) =
+    names-cast {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution@(evolution-bind-right fresh refl) (names-reveal names) =
+    names-reveal {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution names)
+  map-spine-names-target-only {W = W} {W′ = W′}
+      evolution@(evolution-bind-right fresh refl) (names-conceal names) =
+    names-conceal {γ = W′}
+      (map-spine-names-target-only {W = W} {W′ = W′}
+        evolution names)
+
+  lift-left-spine-names : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {A E}
+      {spine : InstantiationSpine A E}
+    → SpineNamesTargetOnlyᶜ γ spine
+    → SpineNamesTargetOnlyᶜ (liftLeftᶜ γ) spine
+  lift-left-spine-names {γ = γ} names-[] =
+    names-[] {γ = liftLeftᶜ γ}
+  lift-left-spine-names {γ = γ} (names-type-transport names) =
+    names-type-transport {γ = liftLeftᶜ γ}
+      (lift-left-spine-names {γ = γ} names)
+  lift-left-spine-names {γ = γ}
+      (names-name-type-app target-only names) =
+    names-name-type-app {γ = liftLeftᶜ γ}
+      (lift-left-target-only {γ = γ} target-only)
+      (lift-left-spine-names {γ = γ} names)
+  lift-left-spine-names {γ = γ} (names-cast names) =
+    names-cast {γ = liftLeftᶜ γ}
+      (lift-left-spine-names {γ = γ} names)
+  lift-left-spine-names {γ = γ} (names-reveal names) =
+    names-reveal {γ = liftLeftᶜ γ}
+      (lift-left-spine-names {γ = γ} names)
+  lift-left-spine-names {γ = γ} (names-conceal names) =
+    names-conceal {γ = liftLeftᶜ γ}
+      (lift-left-spine-names {γ = γ} names)
+
   all-child-spine : ∀ {Δ} {μ : Env∼ Δ}
       {A B : Ty (suc Δ)} {E : Ty Δ} {X : TyVar Δ}
       {d : C.extᵐ μ ⊢ A ∼ B}
@@ -1075,6 +1278,148 @@ private
     type-transport-frame (renameᵗ-wk-eq B′) ▻ⁱ
     []ⁱ
 
+  name-frame-target-only : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {A C E}
+      {B : Ty (suc (CT.Δᵉ Γᴿ))} {X : TyVar (CT.Δᵉ Γᴿ)}
+      {eqA : A ≡ `∀ B} {eqC : C ≡ B [ ＇ X ]ᵗ}
+      {spine : InstantiationSpine C E}
+    → SpineNamesTargetOnlyᶜ γ
+        (name-type-app-frame B X eqA eqC ▻ⁱ spine)
+    → TargetOnlyNameᶜ γ X
+  name-frame-target-only {γ = γ}
+      (names-name-type-app target-only names) =
+    target-only
+
+  name-frame-tail-names : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {A C E}
+      {B : Ty (suc (CT.Δᵉ Γᴿ))} {X : TyVar (CT.Δᵉ Γᴿ)}
+      {eqA : A ≡ `∀ B} {eqC : C ≡ B [ ＇ X ]ᵗ}
+      {spine : InstantiationSpine C E}
+    → SpineNamesTargetOnlyᶜ γ
+        (name-type-app-frame B X eqA eqC ▻ⁱ spine)
+    → SpineNamesTargetOnlyᶜ γ spine
+  name-frame-tail-names {γ = γ}
+      (names-name-type-app target-only names) = names
+
+  all-child-spine-names : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {μ : Env∼ (CT.Δᵉ Γᴿ)}
+      {A B : Ty (suc (CT.Δᵉ Γᴿ))} {E : Ty (CT.Δᵉ Γᴿ)}
+      {X : TyVar (CT.Δᵉ Γᴿ)} {d : C.extᵐ μ ⊢ A ∼ B}
+      {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
+    → SpineNamesTargetOnlyᶜ γ
+        (name-type-app-frame B X refl refl ▻ⁱ spine)
+    → SpineNamesTargetOnlyᶜ γ (all-child-spine {d = d} spine)
+  all-child-spine-names {γ = γ}
+      (names-name-type-app target-only names) =
+    names-name-type-app {γ = γ} target-only
+      (names-cast {γ = γ}
+        (map-spine-names-target-only {W = γ} {W′ = γ}
+          evolution-keep names))
+
+  gen-child-spine-names : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {μ : Env∼ (CT.Δᵉ Γᴿ)}
+      {A E : Ty (CT.Δᵉ Γᴿ)}
+      {B : Ty (suc (CT.Δᵉ Γᴿ))} {X : TyVar (CT.Δᵉ Γᴿ)}
+      {c : C.genᵐ μ ⊢ ⇑ᵗ A ∼ B}
+      {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
+    → (target-only : TargetOnlyNameᶜ γ X)
+    → SpineNamesTargetOnlyᶜ γ spine
+    → SpineNamesTargetOnlyᶜ
+        (bindRightᶜ γ (＇ X)
+          (target-only-name-fresh {γ = γ} target-only))
+        (gen-child-spine {c = c} spine)
+  gen-child-spine-names {γ = γ} {X = X} target-only names =
+    names-cast {γ = bindRightᶜ γ (＇ X)
+        (target-only-name-fresh {γ = γ} target-only)}
+      (names-reveal {γ = bindRightᶜ γ (＇ X)
+          (target-only-name-fresh {γ = γ} target-only)}
+        (names-type-transport {γ = bindRightᶜ γ (＇ X)
+            (target-only-name-fresh {γ = γ} target-only)}
+          (map-spine-names-target-only {W = γ}
+            (evolution-bind-right
+              (target-only-name-fresh {γ = γ} target-only) refl)
+            names)))
+
+  reveal-child-spine-names : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {A B : Ty (suc (CT.Δᵉ Γᴿ))}
+      {E : Ty (CT.Δᵉ Γᴿ)} {X : TyVar (CT.Δᵉ Γᴿ)}
+      {c : Conv.Conv↑ (suc (CT.Δᵉ Γᴿ)) A B}
+      {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
+    → (target-only : TargetOnlyNameᶜ γ X)
+    → SpineNamesTargetOnlyᶜ γ spine
+    → SpineNamesTargetOnlyᶜ
+        (bindRightᶜ γ (＇ X)
+          (target-only-name-fresh {γ = γ} target-only))
+        (reveal-child-spine {c = c} spine)
+  reveal-child-spine-names {γ = γ} {X = X} target-only names =
+    names-name-type-app
+      {γ = bindRightᶜ γ (＇ X)
+        (target-only-name-fresh {γ = γ} target-only)}
+      (right-bind-new-target-only {γ = γ})
+      (names-type-transport
+        {γ = bindRightᶜ γ (＇ X)
+          (target-only-name-fresh {γ = γ} target-only)}
+        (names-reveal
+          {γ = bindRightᶜ γ (＇ X)
+            (target-only-name-fresh {γ = γ} target-only)}
+          (names-reveal
+            {γ = bindRightᶜ γ (＇ X)
+              (target-only-name-fresh {γ = γ} target-only)}
+            (names-type-transport
+              {γ = bindRightᶜ γ (＇ X)
+                (target-only-name-fresh {γ = γ} target-only)}
+              (map-spine-names-target-only {W = γ}
+                (evolution-bind-right
+                  (target-only-name-fresh {γ = γ} target-only) refl)
+                names)))))
+
+  conceal-child-spine-names : ∀ {Γᴸ Γᴿ : Ctx}
+      {γ : Γᴸ ⊑ᶜ Γᴿ} {A B : Ty (suc (CT.Δᵉ Γᴿ))}
+      {E : Ty (CT.Δᵉ Γᴿ)} {X : TyVar (CT.Δᵉ Γᴿ)}
+      {c : Conv.Conv↓ (suc (CT.Δᵉ Γᴿ)) A B}
+      {spine : InstantiationSpine (B [ ＇ X ]ᵗ) E}
+    → (target-only : TargetOnlyNameᶜ γ X)
+    → SpineNamesTargetOnlyᶜ γ spine
+    → SpineNamesTargetOnlyᶜ
+        (bindRightᶜ γ (＇ X)
+          (target-only-name-fresh {γ = γ} target-only))
+        (conceal-child-spine {c = c} spine)
+  conceal-child-spine-names {γ = γ} {X = X} target-only names =
+    names-name-type-app
+      {γ = bindRightᶜ γ (＇ X)
+        (target-only-name-fresh {γ = γ} target-only)}
+      (right-bind-new-target-only {γ = γ})
+      (names-type-transport
+        {γ = bindRightᶜ γ (＇ X)
+          (target-only-name-fresh {γ = γ} target-only)}
+        (names-conceal
+          {γ = bindRightᶜ γ (＇ X)
+            (target-only-name-fresh {γ = γ} target-only)}
+          (names-reveal
+            {γ = bindRightᶜ γ (＇ X)
+              (target-only-name-fresh {γ = γ} target-only)}
+            (names-type-transport
+              {γ = bindRightᶜ γ (＇ X)
+                (target-only-name-fresh {γ = γ} target-only)}
+              (map-spine-names-target-only {W = γ}
+                (evolution-bind-right
+                  (target-only-name-fresh {γ = γ} target-only) refl)
+                names)))))
+
+  inst-residual-tail-names : ∀ {Γᴸ : Ctx} {Δ : TyCtx}
+      {Σᴿ : TyStore (suc Δ)} {Ψᴿ : TermCtx (suc Δ)}
+      {γ : Γᴸ ⊑ᶜ ⟨ suc Δ , Σᴿ , Ψᴿ ⟩} {μ : Env∼ Δ}
+      {B : Ty (suc Δ)} {B′ : Ty Δ}
+      {c : instᵐ μ ⊢ B ∼ ⇑ᵗ B′}
+    → SpineNamesTargetOnlyᶜ γ
+        (inst-residual-tail {B = B} {B′ = B′} {c = c})
+  inst-residual-tail-names {γ = γ} {c = c} =
+    names-type-transport {γ = γ}
+      (names-reveal {γ = γ}
+        (names-type-transport {γ = γ}
+          (names-cast {γ = γ} {c = ↑ᶜ (close-instᶜ c)}
+            (names-type-transport {γ = γ} (names-[] {γ = γ})))))
+
 
 ------------------------------------------------------------------------
 -- Structural catch-up for a target cast
@@ -1136,6 +1481,7 @@ module _
       → (vV : Value V)
       → (vV′ : Value V′)
       → (spine : InstantiationSpine B E)
+      → {spine-names : SpineNamesTargetOnlyᶜ γ spine}
       → Acc _<measure_ (pending-measure vV′ spine rel)
       → Σ[ Δᴿ′ ∈ TyCtx ]
         Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
@@ -1150,15 +1496,17 @@ module _
           × MultiWorldEvolution {W = γ} {W′ = γ′} [] χsᴿ
           × (γ′ ⊢² V ⊑ W′ ∶ r)
     value-spine-catchup-acc {Δᴿ = Δᴿ} {Σᴿ = Σᴿ} {γ = γ}
-        {V′ = V′} {p = p} rel source-value target-value []ⁱ access =
+        {V′ = V′} {p = p} rel source-value target-value []ⁱ
+        {spine-names = names-[]} access =
       Δᴿ , Σᴿ , [] , V′ , γ , p ,
         (V′ ∎[]) , target-value , evolutions-refl , rel
 
     value-spine-catchup-acc rel source-value target-value
-        (type-transport-frame eq ▻ⁱ spine) (acc smaller)
+        (type-transport-frame eq ▻ⁱ spine)
+        {spine-names = names-type-transport names} (acc smaller)
         with value-spine-catchup-acc
           (transport-target-type eq rel)
-          source-value target-value spine
+          source-value target-value spine {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1169,11 +1517,12 @@ module _
         child
 
     value-spine-catchup-acc rel source-value target-value
-        (name-type-app-frame B X refl refl ▻ⁱ spine) (acc smaller)
+        (name-type-app-frame B X refl refl ▻ⁱ spine)
+        {spine-names = names} (acc smaller)
         with name-spine-catchup-acc
           (progress-all-view
             (Prog.canonical-∀ target-value (CTIT.target-typing rel)))
-          rel source-value target-value spine
+          rel source-value target-value spine {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1184,17 +1533,19 @@ module _
       | child = child
 
     value-spine-catchup-acc rel source-value target-value
-        (cast-frame c ▻ⁱ spine) access =
+        (cast-frame c ▻ⁱ spine) {spine-names = names-cast names} access =
       {! normalize the pending target cast, then continue with the exact
          evolved relation, value, spine, and justified smaller state !}
 
     value-spine-catchup-acc rel source-value target-value
-        (reveal-frame c ▻ⁱ spine) access =
+        (reveal-frame c ▻ⁱ spine)
+        {spine-names = names-reveal names} access =
       {! normalize the pending target reveal, then continue with the exact
          evolved relation, value, spine, and justified smaller state !}
 
     value-spine-catchup-acc rel source-value target-value
-        (conceal-frame c ▻ⁱ spine) access =
+        (conceal-frame c ▻ⁱ spine)
+        {spine-names = names-conceal names} access =
       {! normalize the pending target conceal, then continue with the exact
          evolved relation, value, spine, and justified smaller state !}
 
@@ -1214,6 +1565,8 @@ module _
       → (vV : Value V)
       → (vV′ : Value V′)
       → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+      → {spine-names : SpineNamesTargetOnlyᶜ γ
+          (name-type-app-frame B X refl refl ▻ⁱ spine)}
       → Acc _<measure_
           (name-measure vV′
             (name-type-app-frame B X refl refl ▻ⁱ spine) rel)
@@ -1250,12 +1603,13 @@ module _
 
     -- Complete generic source-wrapper pass.  Each branch establishes the
     -- structural recursive call before its source replay obligation.
-    name-spine-catchup-acc view
+    name-spine-catchup-acc {γ = γ} view
         (CTI.Λ⊑² Anv zero∈A body-value target-typing prem q)
-        (Λ outer-value) target-value spine (acc smaller)
+        (Λ outer-value) target-value spine {spine-names = names} (acc smaller)
         with name-spine-catchup-acc
           {q = {! pre-Lambda spine imprecision !}}
           view prem body-value target-value spine
+          {spine-names = lift-left-spine-names {γ = γ} names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1268,9 +1622,11 @@ module _
         {! replay source type abstraction after the spine catch-up !}
 
     name-spine-catchup-acc view (CTI.cast⊑² c prem q)
-        (source-value 《 inert 》) target-value spine (acc smaller)
+        (source-value 《 inert 》) target-value spine
+        {spine-names = names} (acc smaller)
         with paired-name-spine-catchup-acc
           view prem inert source-value target-value spine
+          {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1282,17 +1638,18 @@ module _
 
     name-spine-catchup-acc {γ = γ} {E = E} {q = final-q} view
         (CTI.reveal⊑-identity c⊢ position prem q)
-        (source-value ↑ all) target-value spine (acc smaller)
+        (source-value ↑ all) target-value spine
+        {spine-names = names} (acc smaller)
         with name-spine-catchup-acc
           {q = subst≡ (λ A → A ⊑ᵀ⟨ γ ⟩ E)
             (sym (reveal-absent-endpoints c⊢ position)) final-q}
-          view prem source-value target-value spine
+          view prem source-value target-value spine {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
                 inj₂ (refl ,
                   inj₂ (refl , n<1+n _))))))
-    name-spine-catchup-acc {q = final-q} view
+    name-spine-catchup-acc {γ = γ} {q = final-q} view
         (CTI.reveal⊑-identity c⊢ position prem q)
         (source-value ↑ all) target-value spine (acc smaller)
       | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
@@ -1306,10 +1663,11 @@ module _
 
     name-spine-catchup-acc view
         (CTI.reveal⊑-only² c⊢ position mark no-target represented prem q)
-        (source-value ↑ all) target-value spine (acc smaller)
+        (source-value ↑ all) target-value spine
+        {spine-names = names} (acc smaller)
         with name-spine-catchup-acc
           {q = {! pre-source-only-reveal spine imprecision !}}
-          view prem source-value target-value spine
+          view prem source-value target-value spine {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1334,11 +1692,12 @@ module _
 
     name-spine-catchup-acc {γ = γ} {E = E} {q = final-q} view
         (CTI.conceal⊑-identity c⊢ position prem q)
-        (source-value ↓ all) target-value spine (acc smaller)
+        (source-value ↓ all) target-value spine
+        {spine-names = names} (acc smaller)
         with name-spine-catchup-acc
           {q = subst≡ (λ A → A ⊑ᵀ⟨ γ ⟩ E)
             (sym (conceal-absent-endpoints c⊢ position)) final-q}
-          view prem source-value target-value spine
+          view prem source-value target-value spine {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1356,13 +1715,15 @@ module _
             (trans (multi-source-conceal-position evolution c⊢) position)
             final (multi-⊑ᵀ evolution final-q)
 
-    name-spine-catchup-acc {q = final-q} view
+    name-spine-catchup-acc {γ = γ} {q = final-q} view
         (CTI.conceal⊑-only² c⊢ position mark no-target represented prem q)
-        (source-value ↓ all) target-value spine (acc smaller)
+        (source-value ↓ all) target-value spine
+        {spine-names = names} (acc smaller)
         with name-spine-catchup-acc
-          {q = source-conceal-input-imprecisionᵀ c⊢ mark no-target
+          {q = source-conceal-input-imprecisionᵀ {γ = γ}
+            c⊢ mark no-target
             represented final-q}
-          view prem source-value target-value spine
+          view prem source-value target-value spine {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1398,13 +1759,15 @@ module _
          extended worlds, then recurse at its exact smaller state !}
 
     -- A target all cast is moved from the value into the pending spine.
-    name-spine-catchup-acc {B = B} {X = X}
+    name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-all view-body-value)
         (CTI.⊑cast² (∀ᶜ d) prem p)
-        source-value (target-body-value 《 all 》) spine (acc smaller)
+        source-value (target-body-value 《 all 》) spine
+        {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           prem source-value target-body-value
           (all-child-spine {d = d} spine)
+          {spine-names = all-child-spine-names {γ = γ} {d = d} names}
           (smaller (inj₁ (all-primary-decreases-at
             target-body-value d X spine)))
     name-spine-catchup-acc {B = B} {X = X}
@@ -1426,14 +1789,16 @@ module _
           evolutions-step-right refl evolution-keep evolution ,
           final
 
-    name-spine-catchup-acc {B = B} {X = X} {q = q}
+    name-spine-catchup-acc {γ = γ} {B = B} {X = X} {q = q}
         (inst-view-all view-body-value)
         (CTI.cast⊑cast² c (∀ᶜ d) prem p)
         (source-value 《 source-inert 》)
-        (target-body-value 《 all 》) spine (acc smaller)
+        (target-body-value 《 all 》) spine
+        {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc {c = c} {q = q}
           prem source-inert source-value target-body-value
           (all-child-spine {d = d} spine)
+          {spine-names = all-child-spine-names {γ = γ} {d = d} names}
           (smaller (inj₁ (all-primary-decreases-at
             target-body-value d X spine)))
     name-spine-catchup-acc {B = B} {X = X} {q = q}
@@ -1458,31 +1823,29 @@ module _
 
     -- A generated universal cast exposes an arbitrary target value, so the
     -- recursive call changes to the general value/spine phase.
-    name-spine-catchup-acc {B = B} {X = X}
+    name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p)
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
-        spine (acc smaller)
-        with {! target gen allocation freshness !}
-    name-spine-catchup-acc {B = B} {X = X}
-        (inst-view-gen view-body-value D≠★ safe)
-        (CTI.⊑cast² ((gen d) D≠★) prem p)
-        source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
-        spine (acc smaller)
-      | fresh
+        spine {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
-          (transport-target-bind fresh refl prem)
+          (transport-target-bind
+            (target-only-name-fresh {γ = γ}
+              (name-frame-target-only {γ = γ} names))
+            refl prem)
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (gen-child-spine {X = X} {c = d} spine)
+          {spine-names = gen-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (inj₁
             (gen-primary-decreases target-body-value safe′ spine)))
-    name-spine-catchup-acc {B = B} {X = X}
+    name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p)
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
-        spine (acc smaller)
-      | fresh
+        spine {spine-names = names} (acc smaller)
       | Δᴿ′ , Σᴿ′ , χsᴿ , W′ , γ′ , r , reduction , value ,
         evolution , final =
         Δᴿ′ , Σᴿ′ , bind (＇ X) ∷ χsᴿ , W′ , γ′ , r ,
@@ -1498,24 +1861,32 @@ module _
           —↠[ χsᴿ ]⟨ reduction ⟩
             W′ ∎[]) ,
           value ,
-          evolutions-step-right refl (evolution-bind-right fresh refl)
+          evolutions-step-right refl
+            (evolution-bind-right
+              (target-only-name-fresh {γ = γ}
+                (name-frame-target-only {γ = γ} names))
+              refl)
             evolution ,
           final
 
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.cast⊑cast² c ((gen d) D≠★) prem p)
         (source-value 《 source-inert 》)
-        (target-body-value 《 genᵥ D≠★ safe′ 》) spine (acc smaller)
+        (target-body-value 《 genᵥ D≠★ safe′ 》) spine
+        {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           {q = {! post-allocation paired-gen source imprecision !}}
           {! transport the paired gen premise through target allocation !}
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (gen-child-spine {X = X} {c = d} spine)
+          {spine-names = gen-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (inj₁
             (gen-primary-decreases target-body-value safe′ spine)))
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.cast⊑cast² c ((gen d) D≠★) prem p)
         (source-value 《 source-inert 》)
@@ -1525,43 +1896,50 @@ module _
 
     -- Universal conversions remain in the name phase.  Rebase branches recurse
     -- in their premise world; gamma itself carries the open-frame balance.
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
-        source-value (target-body-value ↑ all) spine (acc smaller)
+        source-value (target-body-value ↑ all) spine
+        {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           {! transport the reveal premise through target allocation !}
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         source-value (target-body-value ↑ all) spine (acc smaller)
       | child =
         {! prepend the target reveal beta-inst reduction !}
 
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.reveal⊑reveal² source-typing target-typing positions aligned
           represented prem p)
         (source-value ↑ all) (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           {q = {! post-allocation paired-reveal source imprecision !}}
           {! transport the paired reveal premise through target allocation !}
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.reveal⊑reveal² source-typing target-typing positions aligned
           represented prem p)
@@ -1570,63 +1948,74 @@ module _
       | child =
         {! prepend target reveal beta-inst and replay the source reveal !}
 
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-rebase² target-typing rebase prem p)
-        source-value (target-body-value ↑ all) spine (acc smaller)
+        source-value (target-body-value ↑ all) spine
+        {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           {! transport the reveal-rebase premise through target allocation !}
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-rebase² target-typing rebase prem p)
         source-value (target-body-value ↑ all) spine (acc smaller)
       | child =
         {! prepend target reveal beta-inst and close its rebase world !}
 
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
-        source-value (target-body-value ↓ all) spine (acc smaller)
+        source-value (target-body-value ↓ all) spine
+        {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           {! transport the conceal premise through target allocation !}
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         source-value (target-body-value ↓ all) spine (acc smaller)
       | child =
         {! prepend the target conceal beta-inst reduction !}
 
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.conceal⊑conceal² source-typing target-typing positions aligned
           represented prem p)
         (source-value ↓ all) (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           {q = {! post-allocation paired-conceal source imprecision !}}
           {! transport the paired conceal premise through target allocation !}
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.conceal⊑conceal² source-typing target-typing positions aligned
           represented prem p)
@@ -1635,15 +2024,19 @@ module _
       | child =
         {! prepend target conceal beta-inst and replay the source conceal !}
 
-    name-spine-catchup-acc {X = X}
+    name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-rebase² target-typing rebase prem p)
-        source-value (target-body-value ↓ all) spine (acc smaller)
+        source-value (target-body-value ↓ all) spine
+        {spine-names = names} (acc smaller)
         with value-spine-catchup-acc
           {! transport the conceal-rebase premise through target allocation !}
           source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
@@ -1667,6 +2060,7 @@ module _
       → (vV : Value V)
       → (vV′ : Value V′)
       → (spine : InstantiationSpine B E)
+      → {spine-names : SpineNamesTargetOnlyᶜ γ spine}
       → Acc _<measure_ (pending-measure vV′ spine rel)
       → Σ[ Δᴿ′ ∈ TyCtx ]
         Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
@@ -1682,15 +2076,18 @@ module _
           × (γ′ ⊢² V ⟨ c ⟩ ⊑ W′ ∶ r)
     paired-value-spine-catchup-acc {Δᴿ = Δᴿ} {Σᴿ = Σᴿ}
         {γ = γ} {V′ = V′} {c = c} {q = q}
-        rel inert source-value target-value []ⁱ access =
+        rel inert source-value target-value []ⁱ
+        {spine-names = names-[]} access =
       Δᴿ , Σᴿ , [] , V′ , γ , q ,
         (V′ ∎[]) , target-value , evolutions-refl ,
         CTI.cast⊑² c rel q
 
     paired-value-spine-catchup-acc rel inert source-value target-value
-        (type-transport-frame eq ▻ⁱ spine) (acc smaller)
+        (type-transport-frame eq ▻ⁱ spine)
+        {spine-names = names-type-transport names} (acc smaller)
         with paired-value-spine-catchup-acc
           (transport-target-type eq rel) inert source-value target-value spine
+          {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1701,11 +2098,12 @@ module _
         child
 
     paired-value-spine-catchup-acc rel inert source-value target-value
-        (name-type-app-frame B X refl refl ▻ⁱ spine) (acc smaller)
+        (name-type-app-frame B X refl refl ▻ⁱ spine)
+        {spine-names = names} (acc smaller)
         with paired-name-spine-catchup-acc
           (progress-all-view
             (Prog.canonical-∀ target-value (CTIT.target-typing rel)))
-          rel inert source-value target-value spine
+          rel inert source-value target-value spine {spine-names = names}
           (smaller
             (inj₂ (refl ,
               inj₂ (refl ,
@@ -1716,17 +2114,20 @@ module _
       | child = child
 
     paired-value-spine-catchup-acc rel inert source-value target-value
-        (cast-frame c′ ▻ⁱ spine) access =
+        (cast-frame c′ ▻ⁱ spine)
+        {spine-names = names-cast names} access =
       {! normalize the paired pending target cast, then continue with the
          exact evolved relation, value, and strictly smaller tail state !}
 
     paired-value-spine-catchup-acc rel inert source-value target-value
-        (reveal-frame d ▻ⁱ spine) access =
+        (reveal-frame d ▻ⁱ spine)
+        {spine-names = names-reveal names} access =
       {! normalize the paired pending target reveal, then continue with the
          exact evolved relation, value, and strictly smaller tail state !}
 
     paired-value-spine-catchup-acc rel inert source-value target-value
-        (conceal-frame d ▻ⁱ spine) access =
+        (conceal-frame d ▻ⁱ spine)
+        {spine-names = names-conceal names} access =
       {! normalize the paired pending target conceal, then continue with the
          exact evolved relation, value, and strictly smaller tail state !}
 
@@ -1743,6 +2144,8 @@ module _
       → (vV : Value V)
       → (vV′ : Value V′)
       → (spine : InstantiationSpine (B [ ＇ X ]ᵗ) E)
+      → {spine-names : SpineNamesTargetOnlyᶜ γ
+          (name-type-app-frame B X refl refl ▻ⁱ spine)}
       → Acc _<measure_
           (name-measure vV′
             (name-type-app-frame B X refl refl ▻ⁱ spine) rel)
@@ -1822,16 +2225,18 @@ module _
       {! expose the paired beta-Lambda residual consistency and value in the
          extended worlds, then recurse at its exact smaller state !}
 
-    paired-name-spine-catchup-acc {B = B} {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-all view-body-value)
         (CTI.⊑cast² (∀ᶜ d) prem p) outer-inert@inj source-value
-        (target-body-value 《 all 》) spine (acc smaller)
+        (target-body-value 《 all 》) spine
+        {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           prem outer-inert source-value target-body-value
           (all-child-spine {d = d} spine)
+          {spine-names = all-child-spine-names {γ = γ} {d = d} names}
           (smaller (inj₁ (all-primary-decreases-at
             target-body-value d X spine)))
-    paired-name-spine-catchup-acc {B = B} {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-all view-body-value)
         (CTI.⊑cast² (∀ᶜ d) prem p) inj source-value
         (target-body-value 《 all 》) spine (acc smaller)
@@ -1858,20 +2263,23 @@ module _
       {! compose the constructor-specific outer cast with the paired source
          cast, move the target all cast into the spine, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p) outer-inert@inj
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation gen final imprecision !}}
           {! transport paired gen premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (gen-child-spine {X = X} {c = d} spine)
+          {spine-names = gen-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (inj₁
             (gen-primary-decreases target-body-value safe′ spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p) inj
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
@@ -1888,22 +2296,25 @@ module _
       {! transport the paired gen premise through allocation, compose the
          constructor-specific source casts, and recurse at smaller mass !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         outer-inert@inj source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation reveal final imprecision !}}
           {! transport paired reveal premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         inj source-value (target-body-value ↑ all)
@@ -1919,22 +2330,25 @@ module _
       {! transport the paired reveal premise through allocation, move the
          constructor-specific source cast through reveal, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-rebase² target-typing rebase prem p)
         outer-inert@inj source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired reveal-rebase child final imprecision !}}
           {! transport paired reveal-rebase premise through allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-rebase² target-typing rebase prem p)
         inj source-value (target-body-value ↑ all)
@@ -1942,22 +2356,25 @@ module _
       | child =
         {! prepend paired reveal and close its rebase world !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         outer-inert@inj source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation conceal final imprecision !}}
           {! transport paired conceal premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         inj source-value (target-body-value ↓ all)
@@ -1973,17 +2390,20 @@ module _
       {! transport the paired conceal premise through allocation, move the
          constructor-specific source cast through conceal, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-rebase² target-typing rebase prem p)
         outer-inert@inj source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired conceal-rebase child final imprecision !}}
           {! transport paired conceal-rebase premise through allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
@@ -2007,13 +2427,15 @@ module _
       {! compose the constructor-specific outer cast with the nested source
          cast, recurse structurally, then replay both casts !}
 
-    paired-name-spine-catchup-acc {B = B} {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-all view-body-value)
         (CTI.⊑cast² (∀ᶜ d) prem p) outer-inert@fun source-value
-        (target-body-value 《 all 》) spine (acc smaller)
+        (target-body-value 《 all 》) spine
+        {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           prem outer-inert source-value target-body-value
           (all-child-spine {d = d} spine)
+          {spine-names = all-child-spine-names {γ = γ} {d = d} names}
           (smaller (inj₁ (all-primary-decreases-at
             target-body-value d X spine)))
     paired-name-spine-catchup-acc {B = B} {X = X}
@@ -2043,17 +2465,20 @@ module _
       {! compose the constructor-specific outer cast with the paired source
          cast, move the target all cast into the spine, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p) outer-inert@fun
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation gen final imprecision !}}
           {! transport paired gen premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (gen-child-spine {X = X} {c = d} spine)
+          {spine-names = gen-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (inj₁
             (gen-primary-decreases target-body-value safe′ spine)))
     paired-name-spine-catchup-acc {X = X}
@@ -2073,22 +2498,25 @@ module _
       {! transport the paired gen premise through allocation, compose the
          constructor-specific source casts, and recurse at smaller mass !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         outer-inert@fun source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation reveal final imprecision !}}
           {! transport paired reveal premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         outer-inert@fun source-value (target-body-value ↑ all)
@@ -2096,17 +2524,20 @@ module _
       | child =
         {! prepend paired target reveal beta-inst reduction !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-rebase² target-typing rebase prem p)
         outer-inert@fun source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired reveal-rebase child final imprecision !}}
           {! transport paired reveal-rebase premise through allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
@@ -2119,22 +2550,25 @@ module _
       | child =
         {! prepend paired reveal and close its rebase world !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         outer-inert@fun source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation conceal final imprecision !}}
           {! transport paired conceal premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         outer-inert@fun source-value (target-body-value ↓ all)
@@ -2142,17 +2576,20 @@ module _
       | child =
         {! prepend paired target conceal beta-inst reduction !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-rebase² target-typing rebase prem p)
         outer-inert@fun source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired conceal-rebase child final imprecision !}}
           {! transport paired conceal-rebase premise through allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
@@ -2214,13 +2651,15 @@ module _
       {! expose the paired beta-Lambda residual consistency and value in the
          extended worlds, then recurse at its exact smaller state !}
 
-    paired-name-spine-catchup-acc {B = B} {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-all view-body-value)
         (CTI.⊑cast² (∀ᶜ d) prem p) outer-inert@all source-value
-        (target-body-value 《 all 》) spine (acc smaller)
+        (target-body-value 《 all 》) spine
+        {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           prem outer-inert source-value target-body-value
           (all-child-spine {d = d} spine)
+          {spine-names = all-child-spine-names {γ = γ} {d = d} names}
           (smaller (inj₁ (all-primary-decreases-at
             target-body-value d X spine)))
     paired-name-spine-catchup-acc {B = B} {X = X}
@@ -2250,17 +2689,20 @@ module _
       {! compose the constructor-specific outer cast with the paired source
          cast, move the target all cast into the spine, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p) outer-inert@all
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation gen final imprecision !}}
           {! transport paired gen premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (gen-child-spine {X = X} {c = d} spine)
+          {spine-names = gen-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (inj₁
             (gen-primary-decreases target-body-value safe′ spine)))
     paired-name-spine-catchup-acc {X = X}
@@ -2280,22 +2722,25 @@ module _
       {! transport the paired gen premise through allocation, compose the
          constructor-specific source casts, and recurse at smaller mass !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         outer-inert@all source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation reveal final imprecision !}}
           {! transport paired reveal premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         outer-inert@all source-value (target-body-value ↑ all)
@@ -2311,17 +2756,20 @@ module _
       {! transport the paired reveal premise through allocation, move the
          constructor-specific source cast through reveal, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-rebase² target-typing rebase prem p)
         outer-inert@all source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired reveal-rebase child final imprecision !}}
           {! transport paired reveal-rebase premise through allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
@@ -2334,22 +2782,25 @@ module _
       | child =
         {! prepend paired reveal and close its rebase world !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         outer-inert@all source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation conceal final imprecision !}}
           {! transport paired conceal premise through target allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         outer-inert@all source-value (target-body-value ↓ all)
@@ -2365,17 +2816,20 @@ module _
       {! transport the paired conceal premise through allocation, move the
          constructor-specific source cast through conceal, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-rebase² target-typing rebase prem p)
         outer-inert@all source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired conceal-rebase child final imprecision !}}
           {! transport paired conceal-rebase premise through allocation !}
           outer-inert source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
@@ -2437,13 +2891,15 @@ module _
       {! expose the paired beta-Lambda residual consistency and value in the
          extended worlds, then recurse at its exact smaller state !}
 
-    paired-name-spine-catchup-acc {B = B} {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {B = B} {X = X}
         (inst-view-all view-body-value)
         (CTI.⊑cast² (∀ᶜ d) prem p) outer@(genᵥ A≠★ safeᵒ) source-value
-        (target-body-value 《 all 》) spine (acc smaller)
+        (target-body-value 《 all 》) spine
+        {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           prem outer source-value target-body-value
           (all-child-spine {d = d} spine)
+          {spine-names = all-child-spine-names {γ = γ} {d = d} names}
           (smaller (inj₁ (all-primary-decreases-at
             target-body-value d X spine)))
     paired-name-spine-catchup-acc {B = B} {X = X}
@@ -2473,17 +2929,20 @@ module _
       {! compose the constructor-specific outer cast with the paired source
          cast, move the target all cast into the spine, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-gen view-body-value D≠★ safe)
         (CTI.⊑cast² ((gen d) D≠★) prem p) outer@(genᵥ A≠★ safeᵒ)
         source-value (target-body-value 《 genᵥ D≠★ safe′ 》)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation gen final imprecision !}}
           {! transport paired gen premise through target allocation !}
           outer source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (gen-child-spine {X = X} {c = d} spine)
+          {spine-names = gen-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (inj₁
             (gen-primary-decreases target-body-value safe′ spine)))
     paired-name-spine-catchup-acc {X = X}
@@ -2503,22 +2962,25 @@ module _
       {! transport the paired gen premise through allocation, compose the
          constructor-specific source casts, and recurse at smaller mass !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         outer@(genᵥ A≠★ safeᵒ) source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation reveal final imprecision !}}
           {! transport paired reveal premise through target allocation !}
           outer source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-identity target-typing position prem p)
         outer@(genᵥ A≠★ safeᵒ) source-value (target-body-value ↑ all)
@@ -2534,17 +2996,20 @@ module _
       {! transport the paired reveal premise through allocation, move the
          constructor-specific source cast through reveal, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-reveal {c = d} view-body-value)
         (CTI.⊑reveal-rebase² target-typing rebase prem p)
         outer@(genᵥ A≠★ safeᵒ) source-value (target-body-value ↑ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired reveal-rebase child final imprecision !}}
           {! transport paired reveal-rebase premise through allocation !}
           outer source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (reveal-child-spine {X = X} {c = d} spine)
+          {spine-names = reveal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (reveal-rank-decreases {X = X} {c = d}
@@ -2557,22 +3022,25 @@ module _
       | child =
         {! prepend paired reveal and close its rebase world !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         outer@(genᵥ A≠★ safeᵒ) source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired post-allocation conceal final imprecision !}}
           {! transport paired conceal premise through target allocation !}
           outer source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
               target-body-value spine)))
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-identity target-typing position prem p)
         outer@(genᵥ A≠★ safeᵒ) source-value (target-body-value ↓ all)
@@ -2588,17 +3056,20 @@ module _
       {! transport the paired conceal premise through allocation, move the
          constructor-specific source cast through conceal, and recurse !}
 
-    paired-name-spine-catchup-acc {X = X}
+    paired-name-spine-catchup-acc {γ = γ} {X = X}
         (inst-view-conceal {c = d} view-body-value)
         (CTI.⊑conceal-rebase² target-typing rebase prem p)
         outer@(genᵥ A≠★ safeᵒ) source-value (target-body-value ↓ all)
-        spine (acc smaller)
+        spine {spine-names = names} (acc smaller)
         with paired-value-spine-catchup-acc
           {q = {! paired conceal-rebase child final imprecision !}}
           {! transport paired conceal-rebase premise through allocation !}
           outer source-value
           (renameᵗᵐ-preserves-Value wk↪ᵗ target-body-value)
           (conceal-child-spine {X = X} {c = d} spine)
+          {spine-names = conceal-child-spine-names {γ = γ} {c = d}
+            (name-frame-target-only {γ = γ} names)
+            (name-frame-tail-names {γ = γ} names)}
           (smaller (rank-decrease→measure
             (pending-cast-mass-bind (＇ X) target-body-value spine)
             (conceal-rank-decreases {X = X} {c = d}
@@ -2631,6 +3102,13 @@ module _
       source-value
       (renameᵗᵐ-preserves-Value wk↪ᵗ target-value)
       (inst-residual-tail {B = B} {B′ = B′} {c = c′})
+      {spine-names = names-name-type-app
+        {γ = γ ▻ᶜ bind-right-changeᶜ ★ (inj₁ refl) refl}
+        (right-bind-new-target-only {γ = γ} {B = ★}
+          {fresh = inj₁ refl})
+        (inst-residual-tail-names
+          {γ = γ ▻ᶜ bind-right-changeᶜ ★ (inj₁ refl) refl}
+          {c = c′})}
       (measure-well-founded _)
   more-precise-target-instantiation-value-catchup
       {γ = γ} {V′ = V′} {B = B} {B′ = B′} {c′ = c′}
@@ -2680,6 +3158,13 @@ module _
       inert source-value
       (renameᵗᵐ-preserves-Value wk↪ᵗ target-value)
       (inst-residual-tail {B = B} {B′ = B′} {c = cᴿ})
+      {spine-names = names-name-type-app
+        {γ = γ ▻ᶜ bind-right-changeᶜ ★ (inj₁ refl) refl}
+        (right-bind-new-target-only {γ = γ} {B = ★}
+          {fresh = inj₁ refl})
+        (inst-residual-tail-names
+          {γ = γ ▻ᶜ bind-right-changeᶜ ★ (inj₁ refl) refl}
+          {c = cᴿ})}
       (measure-well-founded _)
   more-precise-paired-target-instantiation-value-catchup
       {γ = γ} {V′ = V′} {B = B} {B′ = B′}

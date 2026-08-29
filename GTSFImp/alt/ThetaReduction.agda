@@ -127,11 +127,11 @@ weakenᵗᵐ : ∀ {Θ Δ} (X : TyVar (suc Δ))
   → Term Θ (suc Δ)
 weakenᵗᵐ X = renameᵗᵐ (skipAt↪ᵗ X)
 
-weakenConsistency : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+wk~ : ∀ {Δ} {μ : Env∼ Δ} {A B : Ty Δ}
   → (X : TyVar (suc Δ))
   → μ ⊢ A ∼ B
   → renameEnv∼ (skipAt↪ᵗ X) μ ⊢ wkᵗ X A ∼ wkᵗ X B
-weakenConsistency {μ = μ} X c =
+wk~ {μ = μ} X c =
   rename∼ (punchIn X) preserves c
   where
   preserves : ∀ Y
@@ -178,22 +178,22 @@ weaken∼★ {μ = μ} X H∼★ =
     (cong (renameEnv∼ (skipAt↪ᵗ X) μ) (sym (skipAt-punchIn X Y)))
     (renameEnv∼-preserves (skipAt↪ᵗ X) μ Y)
 
-weakenInjection : ∀ {Δ} {μ : Env∼ Δ} {H : Ty Δ}
+wkInj : ∀ {Δ} {μ : Env∼ Δ} {H : Ty Δ}
   → (X : TyVar (suc Δ))
   → (Hᵍ : Ground H)
   → μ ⊢ H ∼★
   → renameEnv∼ (skipAt↪ᵗ X) μ ⊢ wkᵗ X H ∼ ★
-weakenInjection X Hᵍ H∼★ =
+wkInj X Hᵍ H∼★ =
   _! ⦃ wkGround X Hᵍ ⦄ ⦃ weaken∼★ X H∼★ ⦄
     (idᵍ (wkGround X Hᵍ)) ⦃ ground-nonstar (wkGround X Hᵍ) ⦄
 
-strengthenInjection : ∀ {Δ} {Y : TyVar (suc Δ)}
+strInj : ∀ {Δ} {Y : TyVar (suc Δ)}
     {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)} {H₀ : Ty Δ}
   → (Hᵍ : Ground H)
   → (H∼★ : μ ⊢ H ∼★)
   → (strengthens : strengthenᵗ? Y H ≡ just H₀)
   → strengthenEnv∼ Y μ ⊢ H₀ ∼ ★
-strengthenInjection Hᵍ H∼★ strengthens =
+strInj Hᵍ H∼★ strengthens =
   _! ⦃ strengthenGround Hᵍ strengthens ⦄
     ⦃ strengthen∼★ strengthens H∼★ ⦄
     (idᵍ (strengthenGround Hᵍ strengthens))
@@ -501,8 +501,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → Value V
     → d ≡ c [ C ]ᶜ
       -------------------------------------------------------
-    → Ψ ⊢ (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] —→
-        (V ⦂∀ A [ C ]) ⟨ d ⟩
+    → Ψ ⊢ (V ⟨ ∀ᶜ c ⟩) ⦂∀ B [ C ] —→ (V ⦂∀ A [ C ]) ⟨ d ⟩
 
   ground : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ : Env∼ Δ}
@@ -532,20 +531,18 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (V ⟨ (idᵍ Hᵍ) ! ⟩) ↓[ X ≔ α ] id↓ —→
-        (V ↓[ X ≔ α ] expand↓ (wkᵗ X H) id↓)
-          ⟨ weakenInjection X Hᵍ H∼★ ⟩
+        (V ↓[ X ≔ α ] expand↓ (wkᵗ X H) id↓) ⟨ wkInj X Hᵍ H∼★ ⟩
 
   inject-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {Y : TyVar (suc Δ)} {β : TyVar Θ}
       {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)} {H₀ : Ty Δ}
       ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : μ ⊢ H ∼★ ⦄
       ⦃ Hns : NonStar H ⦄
-    → (strengthens : strengthenᵗ? Y H ≡ just H₀)
+    → (s : strengthenᵗ? Y H ≡ just H₀)
     → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (V ⟨ (idᵍ Hᵍ) ! ⟩) ↑[ Y ≔ β ] id↑ —→
-        (V ↑[ Y ≔ β ] expand↑ H id↑)
-          ⟨ strengthenInjection Hᵍ H∼★ strengthens ⟩
+        (V ↑[ Y ≔ β ] expand↑ H id↑) ⟨ strInj Hᵍ H∼★ s ⟩
 
   inject-reveal-resolve : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
@@ -568,8 +565,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → Value (V ↑[ X ≔ α ] id↑)
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] id↑) ⟨ ？ (idᵍ Gᵍ) ⟩ —→
-        (V ⟨ weakenConsistency X (？ (idᵍ Gᵍ)) ⟩)
-          ↑[ X ≔ α ] expand↑ (wkᵗ X G) id↑
+        (V ⟨ wk~ X (？ (idᵍ Gᵍ)) ⟩) ↑[ X ≔ α ] expand↑ (wkᵗ X G) id↑
 
   tag-untag : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ Δ} {μ μ′ : Env∼ Δ}
@@ -604,9 +600,8 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       {c : Conceal} {d : Reveal}
     → Value V
     → Value W
-      ------------------------------------------------------------
-    → Ψ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→
-        (V · (W ↓[ X ≔ α ] c)) ↑[ X ≔ α ] d
+      ----------------------------------------------------------------------
+    → Ψ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→ (V · (W ↓[ X ≔ α ] c)) ↑[ X ≔ α ] d
 
   β-conceal-⇒ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {V : Term Θ Δ} {W : Term Θ (suc Δ)}
@@ -614,9 +609,8 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       {c : Reveal} {d : Conceal}
     → Value V
     → Value W
-      ------------------------------------------------------------
-    → Ψ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→
-        (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d
+      ----------------------------------------------------------------------
+    → Ψ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→ (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d
 
   id-cancel : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {R : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}

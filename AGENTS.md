@@ -607,10 +607,28 @@ discard the successful work and do NOT force the blocked case:
 - Structure the proof as one lemma per case from the start, assembled
   by a small top-level function, so completed cases commit green
   immediately regardless of the rest.
-- Leave the blocked case as an Agda hole in the UNCOMMITTED working
-  file (never commit holes; the worktree persists between runs), and
-  report the exact goal and the missing fact.
+- Leave the blocked case as an Agda hole and report the exact goal and
+  the missing fact. Holes MAY be committed in the active theorem file:
+  gate hole-bearing files with `--allow-unsolved-metas` (they cannot
+  use `--safe`; stable modules keep `agda --safe -v0`), and list every
+  committed hole in the run report. Postulates remain forbidden.
 - Expect the supervisor to resume your session (`codex exec resume`)
   once the blocker is resolved; fill the hole then. If the blocker
   turns out to be a falsity, a checked refutation is the deliverable —
   but the per-case lemmas that succeeded still get committed.
+
+## No scaffolding definitions (from 2026-08-30, Jeremy)
+
+Never mint a definition whose only purpose is to patch a partial
+design or a partial proof — auxiliary value forms, guard predicates,
+blocked-state taxonomies, or parameterized theorem modules invented so
+a theorem closes without holes (historical specimens: `ImmobileHead`,
+the adapter value forms, `BlockedElimination`, `NonLambdaAll`,
+`WithGaps` gap parameters). Such definitions pollute the design story
+and outlive their purpose. An open case is represented by a HOLE in
+the real, unparameterized statement — a proof with holes is strictly
+preferred to a complete proof against scaffolding. Checked refutations
+and no-progress witnesses live in probe files, stated per-instance
+without introducing repo-level taxonomies. If closing a theorem seems
+to require a new definition, STOP and report: whether it is design or
+scaffolding is the user's call.

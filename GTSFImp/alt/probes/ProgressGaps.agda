@@ -2,11 +2,12 @@ module alt.probes.ProgressGaps where
 
 -- File Charter:
 --   * Records the U46 progress frontier with checked typing and no-progress
---     witnesses: immobile ν heads, `Λ blame`, and the two ∀ boundary casts.
+--     witnesses: immobile ν heads and the two ∀ boundary casts.
 --   * The adapter-family witness is a ν seal sandwich exposed at a function
 --     boundary.  `ChainNuReachability` separately proves that closed sources
 --     now stop earlier at a ν-wrapped function reveal.
---   * Retains positive traces for the former region-Λ and injection gaps.
+--   * Retains positive traces for the former `Λ blame`, region-Λ, and
+--     injection gaps.
 
 open import Data.Fin using (zero; suc)
 open import Data.List using ([]; _∷_)
@@ -28,7 +29,7 @@ open import alt.ThetaReduction
 open import alt.ThetaTermSubst using (rep?-bracket; rep?-here)
 open import alt.ThetaProgress using
   (Progress; step; done; failed; BlockedElimination; adapter-·;
-   ν-immobile; Λ-blame)
+   ν-immobile)
 
 infix 2 _⊢_—↠_
 
@@ -160,7 +161,10 @@ baseAdapter-gap-witness =
   sealApplication-typed , sealApplication-no-progress
 
 ------------------------------------------------------------------------
--- Gap family 1c: dropping ΛBody admits a stuck `Λ blame`
+-- Resolved former `Λ blame` gap
+--
+-- History: U46 dropped ΛBody from typing, exposing this typed non-value as
+-- stuck.  U47a makes it join the ordinary blame-propagation family.
 ------------------------------------------------------------------------
 
 lambdaBlameEnv : TyEnv zero zero Vec.[]
@@ -172,24 +176,20 @@ lambdaBlame = Λ blame
 lambdaBlame-typed : lambdaBlameEnv ∣ [] ⊢ lambdaBlame ⦂ `∀ ℕᵗ
 lambdaBlame-typed = ⊢Λ ⊢blame
 
-lambdaBlame-blocked : BlockedElimination lambdaBlameEnv lambdaBlame
-lambdaBlame-blocked = Λ-blame lambdaBlame-typed
-
-lambdaBlame-no-step : ∀ {M′}
-  → ¬ (lambdaBlameEnv ⊢ lambdaBlame —→ M′)
-lambdaBlame-no-step (ξ-Λ ())
+lambdaBlame-trace : lambdaBlameEnv ⊢ lambdaBlame —↠ blame
+lambdaBlame-trace =
+    lambdaBlame
+  —→⟨ blame-Λ ⟩
+    blame
+  ∎
 
 lambdaBlame-not-value : ¬ Value lambdaBlame
 lambdaBlame-not-value (Λ ())
 
-lambdaBlame-no-progress : ¬ Progress lambdaBlameEnv lambdaBlame
-lambdaBlame-no-progress (step reduction) = lambdaBlame-no-step reduction
-lambdaBlame-no-progress (done value) = lambdaBlame-not-value value
-
-lambdaBlame-gap-witness :
+lambdaBlame-positive-witness :
   (lambdaBlameEnv ∣ [] ⊢ lambdaBlame ⦂ `∀ ℕᵗ)
-  × ¬ Progress lambdaBlameEnv lambdaBlame
-lambdaBlame-gap-witness = lambdaBlame-typed , lambdaBlame-no-progress
+  × Progress lambdaBlameEnv lambdaBlame
+lambdaBlame-positive-witness = lambdaBlame-typed , step blame-Λ
 
 ------------------------------------------------------------------------
 -- Resolved former region-Λ obstruction

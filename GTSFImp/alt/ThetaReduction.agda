@@ -651,6 +651,10 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       ------------------------
     → Ψ ⊢ V · blame —→ blame
 
+  blame-Λ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      ----------------------
+    → Ψ ⊢ Λ blame —→ blame
+
   blame-• : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
       {σ} {Ψ : TyEnv Θ Δ σ}
       {A : Ty Δ} {B : Ty (suc Δ)}

@@ -588,6 +588,7 @@ preserve typing id-conceal = preserve-id-conceal typing
 preserve typing (conceal-reveal Vᵥ) = preserve-conceal-reveal typing
 preserve typing blame-·₁ = ⊢blame
 preserve typing (blame-·₂ Vᵥ) = ⊢blame
+preserve typing blame-Λ = ⊢blame
 preserve typing blame-• = ⊢blame
 preserve typing blame-⟨⟩ = ⊢blame
 preserve typing blame-reveal = ⊢blame

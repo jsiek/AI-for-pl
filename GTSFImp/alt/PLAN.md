@@ -170,17 +170,18 @@ binder-independent `∀X.★` projection/instantiation path.
    ```
 
    - `gap-adapter-⊕ : BlockedElimination Ψ M → Progress Ψ M` covers
-     immobile adapters and their eliminations, seal-headed ν, bottom casts,
-     and `Λ blame`.
+     immobile adapters and their eliminations, seal-headed ν, and bottom
+     casts.
    - `gap-∀-reveal-cast` covers a structural reveal over a non-`Λ`
      canonical universal value.
    - `gap-∀-conceal-cast` is the dual structural conceal obligation.
 
    `alt/probes/ProgressGaps.agda` gives checked witnesses for all three
-   parameter families. The first family has two new U46 findings:
-   `stranded-gap-witness` is the expected typed-only ν seal sandwich, and
-   `lambdaBlame-gap-witness` shows that dropping ΛBody admits typed, stuck
-   `Λ blame`.
+   parameter families. The first family has the U46
+   `stranded-gap-witness`, the expected typed-only ν seal sandwich. U47a
+   resolves the other U46 finding: `blame-Λ` sends typed, non-value
+   `Λ blame` directly to `blame`, checked by
+   `lambdaBlame-positive-witness`.
 
    The closed-source U40 rerun reaches an even earlier obstruction:
    `ChainNuReachability.closed-app-trace` and `closed-star-trace` each take

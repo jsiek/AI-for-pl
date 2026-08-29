@@ -4,8 +4,8 @@ module alt.ThetaProgress where
 --   * Proves closed-term progress from three explicit gap-family interfaces.
 --   * Supplies total canonical forms and an indexed account of every residual
 --     blocked eliminator; no unresolved obligation is hidden in the assembler.
---   * The adapter-family interface also exposes immobile ν values and the
---     newly typable `Λ blame`; the other interfaces are ∀ boundary casts.
+--   * The adapter-family interface also exposes immobile ν values; the other
+--     interfaces are ∀ boundary casts.
 --   * The checked witnesses in `alt.probes.ProgressGaps` exhibit one inhabitant
 --     of each interface, so future reduction rules can implement them directly.
 
@@ -350,11 +350,6 @@ data BlockedElimination {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) :
     → Ψ ∣ [] ⊢ ν[ A ] V ⦂ B
       ---------------------------------
     → BlockedElimination Ψ (ν[ A ] V)
-
-  Λ-blame : ∀ {A : Ty (suc Δ)}
-    → Ψ ∣ [] ⊢ Λ blame ⦂ `∀ A
-      -----------------------------
-    → BlockedElimination Ψ (Λ blame)
 
 ------------------------------------------------------------------------
 -- Canonical forms
@@ -1127,8 +1122,7 @@ module WithGaps
   progress typing@(⊢Λ M⊢) with progress M⊢
   progress typing@(⊢Λ M⊢) | step M—→M′ = step (ξ-Λ M—→M′)
   progress typing@(⊢Λ M⊢) | done Mᵛ = done (Λ Mᵛ)
-  progress typing@(⊢Λ M⊢) | failed =
-    gap-adapter-⊕ (Λ-blame typing)
+  progress typing@(⊢Λ M⊢) | failed = step blame-Λ
   progress typing@(⊢⦂∀ F⊢) with progress F⊢
   progress typing@(⊢⦂∀ F⊢) | step F—→F′ =
     step (ξ-• F—→F′)

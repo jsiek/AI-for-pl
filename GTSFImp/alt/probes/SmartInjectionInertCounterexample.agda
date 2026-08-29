@@ -13,7 +13,7 @@ module alt.probes.SmartInjectionInertCounterexample where
 
 open import Data.Fin using (zero)
 open import Data.List using ([])
-open import Data.Nat using (zero)
+open import Data.Nat using (zero; suc)
 open import Data.Product using (_×_; _,_; Σ; Σ-syntax)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (¬_)
@@ -137,3 +137,20 @@ forall-box-survives-star :
   (emptyEnv ⊢ constantObservation —→ constantAfterProjection)
   × (emptyEnv ⊢ constantAfterProjection —→ constantAfterInstantiation)
 forall-box-survives-star = constant-project-step , constant-instantiate-step
+
+------------------------------------------------------------------------
+-- Checked limit of the approved dependent-∀ formulation
+------------------------------------------------------------------------
+
+variableOnlyType : Ty zero
+variableOnlyType = `∀ (＇ zero)
+
+variableBody-not-nonvar : ¬ NonVar {Δ = suc zero} (＇ zero)
+variableBody-not-nonvar ()
+
+variableOnly-plan-shape : ∀ {Θ} (V : Term Θ zero)
+  → smart-inj★ V variableOnlyType ≡
+      (V ⟨ bot-elim ⟩)
+        ⟨ _! ⦃ Gᵍ = ∀★ ⦄ ⦃ G∼★ = ∀∼★ ⦄
+          (idᵍ ∀★) ⦃ nonstar-∀ ⦄ ⟩
+variableOnly-plan-shape V = refl

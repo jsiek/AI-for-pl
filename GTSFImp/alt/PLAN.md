@@ -132,6 +132,14 @@ transport suite was generalized accordingly.
 - a dependent universal exposes an inst-headed transient cast, which reduces
   by `β-inst` before the ground tag becomes a value.
 
+There is one checked limit: `∀X.X` cannot form the λB inst rule because that
+rule requires a `NonVar` body. The proof
+`SmartInjectionInertCounterexample.variableBody-not-nonvar` is empty
+elimination, and `variableOnly-plan-shape` records the current `bot-elim`
+fallback. Thus the uniform “every dependent ∀ uses β-inst” wording is refuted
+at this degenerate type; the inhabited `∀X.X⇒X` case does use `β-inst` as
+intended.
+
 The checked positive records are
 `EscapeLambdaBodyCounterexample.bare-escape-preservation-record` and
 `SmartInjectionInertCounterexample.dependent-smart-preserved`. The former

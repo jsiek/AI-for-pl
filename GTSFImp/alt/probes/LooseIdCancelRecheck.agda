@@ -4,10 +4,8 @@ module alt.probes.LooseIdCancelRecheck where
 --   * Rechecks the ladder-1 loose `id-cancel` counterexample against the
 --     current sigma-indexed telescope and anchor-directed `rep?`.
 --   * A mismatched identity pair over a constant is typeable and its
---     cancellation preserves the base type.  Base typing alone is not a
---     sufficient guard: an adapter-region operand gives a second checked
---     counterexample.  At a variable atom, a third live crossing gives the
---     historical counterexample shape directly.
+--     cancellation preserves the base type.  At a variable atom, a third live
+--     crossing gives the historical counterexample shape directly.
 --   * Consequently the adapter value is still necessary.  This module adds
 --     only a hypothetical probe relation; it does not change reduction,
 --     typing, or the value predicates.
@@ -51,7 +49,7 @@ data _⊢_—loose→_ {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) :
     Term Θ Δ → Term Θ Δ → Set where
   loose-id-cancel : ∀ {R : Term Θ Δ}
       {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
-    → Result R
+    → Value R
       ------------------------------------------------------------
     → Ψ ⊢ (R ↓[ Y ≔ β ] id↓) ↑[ X ≔ α ] id↑ —loose→ R
 
@@ -131,7 +129,7 @@ baseOperand-typed-outside : baseEnv ∣ [] ⊢ baseOperand ⦂ ℕᵗ
 baseOperand-typed-outside = ⊢$ (κℕ zero)
 
 base-loose-step : baseEnv ⊢ baseRedex —loose→ baseOperand
-base-loose-step = loose-id-cancel (result-val ($ (κℕ zero)))
+base-loose-step = loose-id-cancel ($ (κℕ zero))
 
 baseMiddle : Term 3 2
 baseMiddle = ($ (κℕ zero)) ↑[ suc (suc zero) ≔ alpha ] id↑
@@ -149,76 +147,6 @@ base-loose-preservation :
     × (baseEnv ∣ [] ⊢ baseOperand ⦂ ℕᵗ))
 base-loose-preservation =
   baseRedex-typed , base-loose-step , baseOperand-typed-outside
-
-------------------------------------------------------------------------
--- Base-typed is not by itself a sufficient guard
-------------------------------------------------------------------------
-
-beta-reentered-fresh : beta ∉ᵛ insideΣ
-beta-reentered-fresh zero ()
-beta-reentered-fresh (suc zero) ()
-
-baseSensitiveRegion : Term 3 3
-baseSensitiveRegion = ν[ ＇ zero ] $ (κℕ zero)
-
-baseSensitiveOperand : Term 3 2
-baseSensitiveOperand =
-  baseSensitiveRegion ↑[ zero ≔ beta ] id↑
-
-baseSensitiveOperand-typed-inside :
-  insideEnv ∣ [] ⊢ baseSensitiveOperand ⦂ ℕᵗ
-baseSensitiveOperand-typed-inside =
-  ⊢reveal {fresh = beta-reentered-fresh} refl (⊢id↑ (‵ `ℕ))
-    (⊢ν (⊢$ (κℕ zero)))
-
-baseSensitiveRegion-result : Result baseSensitiveRegion
-baseSensitiveRegion-result = result-ν (result-val ($ (κℕ zero)))
-
-baseSensitiveOperand-value : Value baseSensitiveOperand
-baseSensitiveOperand-value =
-  baseSensitiveRegion-result ↑[ zero ≔ beta ]
-    adapter-region (result-val ($ (κℕ zero))) var-∈
-
-baseSensitiveOperand-result : Result baseSensitiveOperand
-baseSensitiveOperand-result = result-val baseSensitiveOperand-value
-
-baseSensitiveInner : Term 3 3
-baseSensitiveInner = baseSensitiveOperand ↓[ zero ≔ beta ] id↓
-
-baseSensitiveRedex : Term 3 2
-baseSensitiveRedex =
-  baseSensitiveInner ↑[ suc (suc zero) ≔ alpha ] id↑
-
-baseSensitiveInner-typed :
-  outerEnv ∣ [] ⊢ baseSensitiveInner ⦂ ℕᵗ
-baseSensitiveInner-typed =
-  ⊢conceal refl refl (⊢id↓ (‵ `ℕ))
-    baseSensitiveOperand-typed-inside
-
-baseSensitiveRedex-typed :
-  baseEnv ∣ [] ⊢ baseSensitiveRedex ⦂ ℕᵗ
-baseSensitiveRedex-typed =
-  ⊢reveal refl (⊢id↑ (‵ `ℕ)) baseSensitiveInner-typed
-
-baseSensitive-loose-step :
-  baseEnv ⊢ baseSensitiveRedex —loose→ baseSensitiveOperand
-baseSensitive-loose-step = loose-id-cancel baseSensitiveOperand-result
-
--- The operand's reveal tries to re-enter beta, but beta is already live in
--- baseEnv.  Thus a guard that mentions only the base endpoint is unsound.
-baseSensitiveOperand-not-typed-outside :
-  ¬ (baseEnv ∣ [] ⊢ baseSensitiveOperand ⦂ ℕᵗ)
-baseSensitiveOperand-not-typed-outside
-    (⊢reveal {fresh = beta-fresh} rep-eq conversion⊢ region⊢) =
-  beta-fresh zero refl
-
-base-typed-guard-counterexample :
-  (baseEnv ∣ [] ⊢ baseSensitiveRedex ⦂ ℕᵗ)
-  × (baseEnv ⊢ baseSensitiveRedex —loose→ baseSensitiveOperand
-    × ¬ (baseEnv ∣ [] ⊢ baseSensitiveOperand ⦂ ℕᵗ))
-base-typed-guard-counterexample =
-  baseSensitiveRedex-typed , baseSensitive-loose-step ,
-    baseSensitiveOperand-not-typed-outside
 
 ------------------------------------------------------------------------
 -- Refuting flavor: the shared atom is the third crossing gamma
@@ -258,22 +186,7 @@ variableRedex-typed =
   ⊢reveal refl (⊢id↑ (＇ suc zero)) variableInner-typed
 
 foreignOperand-value : Value foreignOperand
-foreignOperand-value =
-  ($ (κℕ zero)) ↓[ zero ≔ gamma ] sealᵥ
-
-foreignOperand-canonical : CanonicalInterior foreignOperand
-foreignOperand-canonical = sealed ($ (κℕ zero)) zero gamma
-
-foreignOperand-result : Result foreignOperand
-foreignOperand-result = result-val foreignOperand-value
-
-variableInner-value : Value variableInner
-variableInner-value =
-  foreignOperand-value ↓[ zero ≔ beta ]
-    delimiter foreignOperand-canonical
-
-variableInner-result : Result variableInner
-variableInner-result = result-val variableInner-value
+foreignOperand-value = seal-value ($ (κℕ zero))
 
 variable-node-pair-mismatch : ¬ (alpha ≡ beta × alpha ≡ beta)
 variable-node-pair-mismatch (() , anchor-eq)
@@ -281,15 +194,14 @@ variable-node-pair-mismatch (() , anchor-eq)
 -- The current calculus classifies the mismatched pair as an adapter value.
 variableRedex-value : Value variableRedex
 variableRedex-value =
-  variableInner-result ↑[ suc (suc zero) ≔ alpha ]
-    adapter foreignOperand-result variable-node-pair-mismatch
+  adapter foreignOperand-value seal-head variable-node-pair-mismatch
 
 variableRedex-no-current-step : ∀ {M′}
   → ¬ (baseEnv ⊢ variableRedex —→ M′)
 variableRedex-no-current-step = value-no-step variableRedex-value
 
 variable-loose-step : baseEnv ⊢ variableRedex —loose→ foreignOperand
-variable-loose-step = loose-id-cancel foreignOperand-result
+variable-loose-step = loose-id-cancel foreignOperand-value
 
 -- After cancellation the sealing node says that slot zero belongs to gamma,
 -- but baseEnv says that slot zero belongs to beta.  This is the exact current
@@ -320,10 +232,8 @@ variable-preservation-counterexample =
 
 -- Verdict: loose cancellation is still refutable.  The requested paper-level
 -- guard "matched node pair OR identity at `‵ ι`" is sound only if its base
--- branch means a syntactic ambient-parametric base result (`ν* $ κ`), not
--- merely that typing assigned the identity endpoint `‵ ι`.  The latter is
--- refuted above by adapter-region.  The matched branch is current
--- `id-cancel`.  For the corrected base branch, induction on the nu prefix
--- rebuilds `⊢ν` and ends at ambient-parametric `⊢$`; also
--- `wkᵗ X (‵ ι) ≡ ‵ ι` for every X.  That discharges its preservation
+-- branch means a syntactic base constant, not merely that typing assigned the
+-- identity endpoint `‵ ι`.  The matched branch is current `id-cancel`.  For
+-- the corrected base branch, `wkᵗ X (‵ ι) ≡ ‵ ι` for every X and
+-- `⊢$` rebuilds directly. That discharges its preservation
 -- obligation on paper.  No guarded rule is implemented here.

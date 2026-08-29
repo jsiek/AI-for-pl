@@ -34,7 +34,7 @@ data _⊢_—direct-reveal-∀→_ : ∀ {Θ Δ σ}
   direct-β-reveal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {A : Ty Δ} {B : Ty (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → Result V
+    → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] `∀↑ c) ⦂∀ B [ A ]
         —direct-reveal-∀→
@@ -64,15 +64,10 @@ inner : Term 1 1
 inner = Λ (ƛ ＇ zero ˙ ` zero)
 
 inner-value : Value inner
-inner-value = Λ (result-val (ƛ ＇ zero ˙ ` zero))
-
-inner-result : Result inner
-inner-result = result-val inner-value
+inner-value = Λ (ƛ ＇ zero ˙ ` zero)
 
 inner-typed : Ψ₁ ∣ [] ⊢ inner ⦂ `∀ identityBody
-inner-typed =
-  ⊢Λ (body-result (result-val (ƛ ＇ zero ˙ ` zero)))
-    (⊢ƛ (⊢` Z))
+inner-typed = ⊢Λ (⊢ƛ (⊢` Z))
 
 shape : Reveal
 shape = id↓ ↦↑ id↑
@@ -99,7 +94,7 @@ redex-typed =
   ⊢⦂∀ (⊢reveal (rep?-here {Ψ = Ψ₀}) boundary-typed inner-typed)
 
 direct-step : Ψ₀ ⊢ redex —direct-reveal-∀→ contractum
-direct-step = direct-β-reveal-∀ inner-result
+direct-step = direct-β-reveal-∀ inner-value
 
 function-not-atom : ∀ {Δ} → Atom {Δ} (ℕᵗ ⇒ ℕᵗ) → ⊥
 function-not-atom ()

@@ -6,23 +6,23 @@ module alt.ThetaReduction where
 --   * Regular-type renaming uses the repository's context injections.  At a
 --     crossing it inserts or deletes the distinguished type variable canonically;
 --     weakening is the derived skip-at-position instance.  Term substitution
---     stops at closed crossing and ν interiors.
---   * Evaluation descends beneath ν.  A ν-headed result floats through term
---     frames and through reveal when its entry strengthens across the crossing.
+--     stops at closed crossing interiors; open ν interiors receive ordinary
+--     renaming and substitution.
+--   * Evaluation descends beneath ν, but ν is immobile with respect to
+--     eliminations.  Constants, blame, tags, inert casts, lambdas, and type
+--     abstractions dissolve through the λB rules; seal-headed values remain.
 --   * Identity cancellation is strict in both node fields.  A mismatched
---     identity conceal/reveal pair is an inert adapter value, with pair
---     disequality evidence kept in `RevealValue`.
---   * Boundary rules accept ν-prefixed results as interiors and carry the
---     entire prefix verbatim.  Stacked regions move only by iterating the
---     ordinary two-constructor term-frame rules.
+--     identity conceal/reveal pair is an adapter value only when its operand
+--     has an immobile head and the node data differ.
 --   * Ground injections commute out of identity conceals unconditionally and
---     out of identity reveals when their tags strengthen.  Ground projection
---     commutes into a reveal value only in the complementary package case.
---     All three rules use expansion and never inspect a representation.
+--     out of identity reveals when their tags strengthen.  The region's own
+--     tag resolves at its reveal boundary to the representation's injection.
+--     Ground projection commutes into the remaining reveal values.  These
+--     rules use expansion; only the boundary resolution reads `rep?`.
 --   * Universal crossings use ScTyWrap: they move beneath Λ without
 --     instantiating, allocating, or inspecting the telescope.
---   * β-Λ eliminates any Result body, including a persistent ν prefix; the
---     fresh allocation encloses that prefix, and guarded floats move it.
+--   * β-Λ requires a λB Value body.  Typing imposes no corresponding body
+--     predicate, so reducible Λ bodies advance through `ξ-Λ` first.
 
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
@@ -67,11 +67,11 @@ rename ρ (L ⦂∀ C [ A ]) = rename ρ L ⦂∀ C [ A ]
 rename ρ ($ κ) = $ κ
 rename ρ (L ⊕[ op ] M) = rename ρ L ⊕[ op ] rename ρ M
 rename ρ (M ⟨ c ⟩) = rename ρ M ⟨ c ⟩
--- These interiors are literally typed under `[]`, so they contain no outer
--- term variables and renaming leaves them unchanged.
+-- Crossing interiors remain closed.  Region interiors are open and therefore
+-- receive the ordinary term-variable action.
 rename ρ (M ↑[ Y ≔ α ] c) = M ↑[ Y ≔ α ] c
 rename ρ (M ↓[ Y ≔ α ] c) = M ↓[ Y ≔ α ] c
-rename ρ (ν[ A ] M) = ν[ A ] M
+rename ρ (ν[ A ] M) = ν[ A ] rename ρ M
 rename ρ blame = blame
 
 ------------------------------------------------------------------------
@@ -200,6 +200,226 @@ strengthenInjection Hᵍ H∼★ strengthens =
     ⦃ ground-nonstar (strengthenGround Hᵍ strengthens) ⦄
 
 ------------------------------------------------------------------------
+-- Public injection of a representation
+------------------------------------------------------------------------
+
+-- The occurrence-indexed hypotheses let the recursive construction cross a
+-- universal structurally when its binder is absent, and factor through `inst`
+-- or `gen` when it is present.  At the public `idᶜ` entry every free variable
+-- is crossable in both directions.
+
+private
+  not-occurs : ∀ {Δ} {X : TyVar Δ} {A : Ty Δ}
+    → X ∉ᵗ A
+    → X ∈ᵗ A
+    → ⊥
+  not-occurs (∉-var X≠Y) var-∈ = ≢ᶠ→≢ X≠Y refl
+  not-occurs ∉-base ()
+  not-occurs ∉-star ()
+  not-occurs (∉-fun X∉A X∉B) (∈-fun-left X∈A) =
+    not-occurs X∉A X∈A
+  not-occurs (∉-fun X∉A X∉B) (∈-fun-right X∉A′ X∈B) =
+    not-occurs X∉B X∈B
+  not-occurs (∉-all X∉A) (∈-all X∈A) = not-occurs X∉A X∈A
+
+  fun-occurs-left : ∀ {Δ} {X : TyVar Δ} {A B : Ty Δ}
+    → X ∈ᵗ A
+    → X ∈ᵗ A ⇒ B
+  fun-occurs-left = ∈-fun-left
+
+  fun-occurs-right : ∀ {Δ} {X : TyVar Δ} {A B : Ty Δ}
+    → X ∈ᵗ B
+    → X ∈ᵗ A ⇒ B
+  fun-occurs-right {X = X} {A = A} X∈B with occurs? X A
+  fun-occurs-right X∈B | present X∈A = ∈-fun-left X∈A
+  fun-occurs-right X∈B | absent X∉A = ∈-fun-right X∉A X∈B
+
+  mutual
+    inject★-from-occurs : ∀ {Δ} {μ : Env∼ Δ} (A : Ty Δ)
+      → (∀ X → X ∈ᵗ A → μ ⊢ ＇ X ∼★)
+      → μ ⊢ A ∼ ★
+    inject★-from-occurs (＇ X) gate =
+      _! ⦃ G∼★ = gate X var-∈ ⦄ (id (＇ X)) ⦃ nonstar-X ⦄
+    inject★-from-occurs (‵ ι) gate =
+      _! ⦃ Gᵍ = ‵ ι ⦄ (id (‵ ι)) ⦃ nonstar-ι ⦄
+    inject★-from-occurs ★ gate = id ★
+    inject★-from-occurs (A ⇒ B) gate =
+      _! ⦃ Gᵍ = ★⇒★ ⦄
+        (project★-from-occurs A
+          (λ X X∈A → flip-∼★ (gate X (fun-occurs-left X∈A))) ↦
+         inject★-from-occurs B
+          (λ X X∈B → gate X (fun-occurs-right X∈B)))
+        ⦃ nonstar-⇒ ⦄
+    inject★-from-occurs (`∀ A) gate with occurs? zero A
+    inject★-from-occurs (`∀ A) gate | absent z∉A =
+      _! ⦃ Gᵍ = ∀★ ⦄
+        (∀ᶜ (inject★-from-occurs A inner)) ⦃ nonstar-∀ ⦄
+      where
+      inner : ∀ X → X ∈ᵗ A → extᵐ _ ⊢ ＇ X ∼★
+      inner zero z∈A = ⊥-elim (not-occurs z∉A z∈A)
+      inner (suc X) X∈A =
+        rename∼★ suc (λ Y → refl) (gate X (∈-all X∈A))
+    inject★-from-occurs (`∀ (＇ zero)) gate | present var-∈ =
+      _! ⦃ Gᵍ = ∀★ ⦄ bot-elim ⦃ nonstar-∀ ⦄
+    inject★-from-occurs (`∀ (＇ suc X)) gate | present ()
+    inject★-from-occurs (`∀ (‵ ι)) gate | present ()
+    inject★-from-occurs (`∀ ★) gate | present ()
+    inject★-from-occurs (`∀ (A ⇒ B)) gate | present z∈A =
+      factor-inst-star (inject★-from-occurs (A ⇒ B) inner)
+        nonvar-fun z∈A
+      where
+      inner : ∀ X → X ∈ᵗ A ⇒ B → instᵐ _ ⊢ ＇ X ∼★
+      inner zero X∈A = X∼★ᵍ refl
+      inner (suc X) X∈A =
+        rename∼★ suc (λ Y → refl) (gate X (∈-all X∈A))
+    inject★-from-occurs (`∀ (`∀ A)) gate | present z∈A =
+      factor-inst-star (inject★-from-occurs (`∀ A) inner)
+        nonvar-all z∈A
+      where
+      inner : ∀ X → X ∈ᵗ `∀ A → instᵐ _ ⊢ ＇ X ∼★
+      inner zero X∈A = X∼★ᵍ refl
+      inner (suc X) X∈A =
+        rename∼★ suc (λ Y → refl) (gate X (∈-all X∈A))
+
+    project★-from-occurs : ∀ {Δ} {μ : Env∼ Δ} (A : Ty Δ)
+      → (∀ X → X ∈ᵗ A → μ ⊢★∼ ＇ X)
+      → μ ⊢ ★ ∼ A
+    project★-from-occurs (＇ X) gate =
+      ？_ ⦃ ★∼G = gate X var-∈ ⦄ (id (＇ X)) ⦃ nonstar-X ⦄
+    project★-from-occurs (‵ ι) gate =
+      ？_ ⦃ Gᵍ = ‵ ι ⦄ (id (‵ ι)) ⦃ nonstar-ι ⦄
+    project★-from-occurs ★ gate = id ★
+    project★-from-occurs (A ⇒ B) gate =
+      ？_ ⦃ Gᵍ = ★⇒★ ⦄
+        (inject★-from-occurs A
+          (λ X X∈A → flip-★∼ (gate X (fun-occurs-left X∈A))) ↦
+         project★-from-occurs B
+          (λ X X∈B → gate X (fun-occurs-right X∈B)))
+        ⦃ nonstar-⇒ ⦄
+    project★-from-occurs (`∀ A) gate with occurs? zero A
+    project★-from-occurs (`∀ A) gate | absent z∉A =
+      ？_ ⦃ Gᵍ = ∀★ ⦄
+        (∀ᶜ (project★-from-occurs A inner)) ⦃ nonstar-∀ ⦄
+      where
+      inner : ∀ X → X ∈ᵗ A → extᵐ _ ⊢★∼ ＇ X
+      inner zero z∈A = ⊥-elim (not-occurs z∉A z∈A)
+      inner (suc X) X∈A =
+        rename★∼ suc (λ Y → refl) (gate X (∈-all X∈A))
+    project★-from-occurs (`∀ (＇ zero)) gate | present var-∈ =
+      ？_ ⦃ Gᵍ = ∀★ ⦄ bot-intro ⦃ nonstar-∀ ⦄
+    project★-from-occurs (`∀ (＇ suc X)) gate | present ()
+    project★-from-occurs (`∀ (‵ ι)) gate | present ()
+    project★-from-occurs (`∀ ★) gate | present ()
+    project★-from-occurs (`∀ (A ⇒ B)) gate | present z∈A =
+      factor-gen-star (project★-from-occurs (A ⇒ B) inner)
+        nonvar-fun z∈A
+      where
+      inner : ∀ X → X ∈ᵗ A ⇒ B → genᵐ _ ⊢★∼ ＇ X
+      inner zero X∈A = ★∼Xᵍ refl
+      inner (suc X) X∈A =
+        rename★∼ suc (λ Y → refl) (gate X (∈-all X∈A))
+    project★-from-occurs (`∀ (`∀ A)) gate | present z∈A =
+      factor-gen-star (project★-from-occurs (`∀ A) inner)
+        nonvar-all z∈A
+      where
+      inner : ∀ X → X ∈ᵗ `∀ A → genᵐ _ ⊢★∼ ＇ X
+      inner zero X∈A = ★∼Xᵍ refl
+      inner (suc X) X∈A =
+        rename★∼ suc (λ Y → refl) (gate X (∈-all X∈A))
+
+inj★ : ∀ {Δ} (C : Ty Δ) → C ∼ ★
+inj★ C = inject★-from-occurs C (λ X X∈C → X∼★ᶜ refl)
+
+idGround∼★ : ∀ {Δ} {G : Ty Δ} → Ground G → idᶜ ⊢ G ∼★
+idGround∼★ (＇ X) = X∼★ᶜ refl
+idGround∼★ (‵ ι) = ι∼★
+idGround∼★ ★⇒★ = ⇒∼★
+idGround∼★ ∀★ = ∀∼★
+
+inj★-ground : ∀ {Δ} {G : Ty Δ} (Gᵍ : Ground G)
+  → inj★ G ≡ _! ⦃ Gᵍ ⦄ ⦃ idGround∼★ Gᵍ ⦄
+      (idᵍ Gᵍ) ⦃ ground-nonstar Gᵍ ⦄
+inj★-ground (＇ X) = refl
+inj★-ground (‵ ι) = refl
+inj★-ground ★⇒★ = refl
+inj★-ground ∀★ = refl
+
+-- A public injection is either the identity at ★ or a cast to a ground
+-- followed by that ground's exact tag.  The first cast is inert for
+-- functions and binder-independent universals; a dependent universal instead
+-- exposes `inst`, so its contractum is deliberately transient.
+data InjectionPlan {Δ : TyCtx} (μ : Env∼ Δ) : Ty Δ → Set where
+  bare : InjectionPlan μ ★
+  box : ∀ {C G : Ty Δ}
+    → (Gᵍ : Ground G)
+    → μ ⊢ C ∼ G
+    → InjectionPlan μ C
+
+injection-plan-from-cast : ∀ {Δ} {μ : Env∼ Δ} {C : Ty Δ}
+  → μ ⊢ C ∼ ★
+  → InjectionPlan μ C
+injection-plan-from-cast (id ★) = bare
+injection-plan-from-cast (_! ⦃ Gᵍ = Gᵍ ⦄ c) = box Gᵍ c
+injection-plan-from-cast (？_ ⦃ g ⦄ c ⦃ () ⦄)
+injection-plan-from-cast ((inst c) ★≢★) = ⊥-elim (★≢★ refl)
+
+private
+  injectionPlan-from-occurs : ∀ {Δ} {μ : Env∼ Δ} (C : Ty Δ)
+    → (∀ X → X ∈ᵗ C → μ ⊢ ＇ X ∼★)
+    → InjectionPlan μ C
+  injectionPlan-from-occurs (＇ X) gate =
+    box (＇ X) (id (＇ X))
+  injectionPlan-from-occurs (‵ ι) gate = box (‵ ι) (id (‵ ι))
+  injectionPlan-from-occurs ★ gate = bare
+  injectionPlan-from-occurs (A ⇒ B) gate =
+    box ★⇒★
+      (project★-from-occurs A
+        (λ X X∈A → flip-∼★ (gate X (fun-occurs-left X∈A))) ↦
+       inject★-from-occurs B (λ X X∈B → gate X (fun-occurs-right X∈B)))
+  injectionPlan-from-occurs (`∀ A) gate with occurs? zero A
+  injectionPlan-from-occurs (`∀ A) gate | absent z∉A =
+    box ∀★ (∀ᶜ (inject★-from-occurs A inner))
+    where
+    inner : ∀ X → X ∈ᵗ A → extᵐ _ ⊢ ＇ X ∼★
+    inner zero z∈A = ⊥-elim (not-occurs z∉A z∈A)
+    inner (suc X) X∈A =
+      rename∼★ suc (λ Y → refl) (gate X (∈-all X∈A))
+  injectionPlan-from-occurs (`∀ (＇ zero)) gate | present var-∈ =
+    box ∀★ bot-elim
+  injectionPlan-from-occurs (`∀ (＇ suc X)) gate | present ()
+  injectionPlan-from-occurs (`∀ (‵ ι)) gate | present ()
+  injectionPlan-from-occurs (`∀ ★) gate | present ()
+  injectionPlan-from-occurs (`∀ (A ⇒ B)) gate | present z∈A =
+    injection-plan-from-cast
+      (factor-inst-star (inject★-from-occurs (A ⇒ B) inner)
+        nonvar-fun z∈A)
+    where
+    inner : ∀ X → X ∈ᵗ A ⇒ B → instᵐ _ ⊢ ＇ X ∼★
+    inner zero X∈A = X∼★ᵍ refl
+    inner (suc X) X∈A =
+      rename∼★ suc (λ Y → refl) (gate X (∈-all X∈A))
+  injectionPlan-from-occurs (`∀ (`∀ A)) gate | present z∈A =
+    injection-plan-from-cast
+      (factor-inst-star (inject★-from-occurs (`∀ A) inner)
+        nonvar-all z∈A)
+    where
+    inner : ∀ X → X ∈ᵗ `∀ A → instᵐ _ ⊢ ＇ X ∼★
+    inner zero X∈A = X∼★ᵍ refl
+    inner (suc X) X∈A =
+      rename∼★ suc (λ Y → refl) (gate X (∈-all X∈A))
+
+injectionPlan : ∀ {Δ} (C : Ty Δ) → InjectionPlan idᶜ C
+injectionPlan C =
+  injectionPlan-from-occurs C (λ X X∈C → X∼★ᶜ refl)
+
+smart-inj★ : ∀ {Θ Δ} → Term Θ Δ → (C : Ty Δ) → Term Θ Δ
+smart-inj★ V C with injectionPlan C
+smart-inj★ V C | bare = V
+smart-inj★ V C | box Gᵍ c =
+  (V ⟨ c ⟩) ⟨ _! ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = idGround∼★ Gᵍ ⦄
+    (idᵍ Gᵍ) ⦃ ground-nonstar Gᵍ ⦄ ⟩
+
+------------------------------------------------------------------------
 -- Term-variable substitution
 ------------------------------------------------------------------------
 
@@ -213,6 +433,9 @@ exts σ (suc x) = rename suc (σ x)
 liftˢ : Subst Θ Δ → Subst Θ (suc Δ)
 liftˢ σ x = weakenᵗᵐ zero (σ x)
 
+shiftᶿˢ : Subst Θ Δ → Subst (suc Θ) Δ
+shiftᶿˢ σ x = shiftᶿ (σ x)
+
 subst : Subst Θ Δ → Term Θ Δ → Term Θ Δ
 subst σ (` x) = σ x
 subst σ (ƛ A ˙ M) = ƛ A ˙ subst (exts σ) M
@@ -222,11 +445,11 @@ subst σ (L ⦂∀ C [ A ]) = subst σ L ⦂∀ C [ A ]
 subst σ ($ κ) = $ κ
 subst σ (L ⊕[ op ] M) = subst σ L ⊕[ op ] subst σ M
 subst σ (M ⟨ c ⟩) = subst σ M ⟨ c ⟩
--- These interiors are literally typed under `[]`, so they contain no outer
--- term variables and substitution leaves them unchanged.
+-- Crossing interiors remain closed.  Region interiors are open and therefore
+-- receive the ordinary term-variable action.
 subst σ (M ↑[ Y ≔ α ] c) = M ↑[ Y ≔ α ] c
 subst σ (M ↓[ Y ≔ α ] c) = M ↓[ Y ≔ α ] c
-subst σ (ν[ A ] M) = ν[ A ] M
+subst σ (ν[ A ] M) = ν[ A ] subst (shiftᶿˢ σ) M
 subst σ blame = blame
 
 singleSub : Term Θ Δ → Subst Θ Δ
@@ -324,13 +547,25 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
         (V ↑[ Y ≔ β ] expand↑ H id↑)
           ⟨ strengthenInjection Hᵍ H∼★ strengthens ⟩
 
+  inject-reveal-resolve : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {C : Ty Δ} {μ : Env∼ (suc Δ)}
+      ⦃ X∼★ : μ ⊢ ＇ X ∼★ ⦄
+      ⦃ Xns : NonStar (＇ X) ⦄
+    → rep? Ψ α ≡ just C
+    → Value V
+      ------------------------------------------------------------
+    → Ψ ⊢
+        (V ⟨ _! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ ⦄
+          (id { μ = μ } (＇ X)) ⦃ Xns ⦄ ⟩) ↑[ X ≔ α ] id↑ —→
+        smart-inj★ (V ↑[ X ≔ α ] unseal) C
+
   ★-project-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
       {μ : Env∼ Δ} {G : Ty Δ}
       ⦃ Gᵍ : Ground G ⦄ ⦃ ★∼G : μ ⊢★∼ G ⦄
       ⦃ Gns : NonStar G ⦄
-    → Result V
-    → RevealValue V X α id↑
+    → Value (V ↑[ X ≔ α ] id↑)
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] id↑) ⟨ ？ (idᵍ Gᵍ) ⟩ —→
         (V ⟨ weakenConsistency X (？ (idᵍ Gᵍ)) ⟩)
@@ -367,7 +602,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       {V : Term Θ (suc Δ)} {W : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
       {c : Conceal} {d : Reveal}
-    → Result V
+    → Value V
     → Value W
       ------------------------------------------------------------
     → Ψ ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W —→
@@ -377,7 +612,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       {V : Term Θ Δ} {W : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
       {c : Reveal} {d : Conceal}
-    → Result V
+    → Value V
     → Value W
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W —→
@@ -385,7 +620,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
 
   id-cancel : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {R : Term Θ Δ}
       {X : TyVar (suc Δ)} {α : TyVar Θ}
-    → Result R
+    → Value R
       ----------------------------------------------------
     → Ψ ⊢ (R ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ —→ R
 
@@ -403,7 +638,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
 
   conceal-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {R : Term Θ Δ}
       {X Y : TyVar (suc Δ)} {α β : TyVar Θ}
-    → Result R
+    → Value R
       ------------------------------------------------------------
     → Ψ ⊢ (R ↓[ X ≔ α ] seal) ↑[ Y ≔ β ] unseal —→ R
 
@@ -455,9 +690,40 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       -------------------------
     → Ψ ⊢ ν[ A ] blame —→ blame
 
+  const-ν : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {A : Ty Δ} {κ}
+      ----------------------
+    → Ψ ⊢ ν[ A ] ($ κ) —→ $ κ
+
+  tag-out : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {A : Ty Δ} {V : Term (suc Θ) Δ} {μ : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+      ⦃ Gns : NonStar G ⦄
+    → Value V
+      ------------------------------------------------------------
+    → Ψ ⊢ ν[ A ] (V ⟨ (idᵍ Gᵍ) ! ⟩) —→
+        (ν[ A ] V) ⟨ (idᵍ Gᵍ) ! ⟩
+
+  inert-cast-out : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {A : Ty Δ} {V : Term (suc Θ) Δ} {μ : Env∼ Δ}
+      {B C : Ty Δ} {c : μ ⊢ B ∼ C}
+    → Value V
+    → Inert c
+      -----------------------------------------
+    → Ψ ⊢ ν[ A ] (V ⟨ c ⟩) —→ (ν[ A ] V) ⟨ c ⟩
+
+  NUWRAP : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {A B : Ty Δ} {N : Term (suc Θ) Δ}
+      ---------------------------------------------
+    → Ψ ⊢ ν[ A ] (ƛ B ˙ N) —→ ƛ B ˙ (ν[ A ] N)
+
+  NUTYWRAP : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {A : Ty Δ} {V : Term (suc Θ) (suc Δ)}
+      -----------------------------------------
+    → Ψ ⊢ ν[ A ] (Λ V) —→ Λ (ν[ ⇑ᵗ A ] V)
+
   β-Λ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {B : Ty (suc Δ)} {C : Ty Δ}
-    → Result V
+    → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (Λ V) ⦂∀ B [ C ] —→ ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
 
@@ -483,7 +749,7 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
   -- ∀-value V is.
   -- U35 producer audit: this is the only rule whose contractum introduces a
   -- type-application node absent from its redex, and its argument is ★.
-  -- β-∀ copies its existing argument; ξ-• and float-• only propagate an
+  -- β-∀ copies its existing argument; ξ-• only propagates an
   -- existing node.  No reduction rule mints `⦂∀ _ [ ＇ X ]` at a live
   -- crossing.
   β-inst : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
@@ -502,14 +768,14 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
   β-reveal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc (suc Δ))}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → Result V
+    → Value V
       ------------------------------------------------------------
     → Ψ ⊢ ((Λ V) ↑[ X ≔ α ] `∀↑ c) —→ Λ (V ↑[ suc X ≔ α ] c)
 
   β-conceal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
       {V : Term Θ (suc Δ)}
       {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → Result V
+    → Value V
       ------------------------------------------------------------
     → Ψ ⊢ ((Λ V) ↓[ X ≔ α ] `∀↓ c) —→ Λ (V ↓[ suc X ≔ α ] c)
 
@@ -558,13 +824,6 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       ------------------------------------------
     → Ψ′ ⊢ M ↓[ X ≔ α ] c —→ M′ ↓[ X ≔ α ] c
 
-  float-conceal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
-      {A : Ty Δ} {M : Term (suc Θ) Δ}
-      {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → Result (ν[ A ] M)
-      ------------------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c —→ ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c)
-
   ξ-⊕₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {L L′ M : Term Θ Δ} {op : Prim}
     → Ψ ⊢ L —→ L′
@@ -584,168 +843,62 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
       -------------------------------
     → Ψ ⊢ ν[ A ] M —→ ν[ A ] M′
 
-  float-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A : Ty (suc Δ)} {A₀ : Ty Δ} {M : Term (suc Θ) (suc Δ)}
-      {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → strengthenᵗ? Y A ≡ just A₀
-    → Result (ν[ A ] M)
-      ------------------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c —→ ν[ A₀ ] (M ↑[ Y ≔ suc α ] c)
-
-  -- ν is the region binder, not an eliminator frame.  Nested ν-headed
-  -- results are represented directly by `result-ν`, so there is no float-ν.
-  float-·₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ}
-    → Result (ν[ A ] M)
-      --------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) · N —→ ν[ A ] (M · shiftᶿ N)
-
-  float-·₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ}
-    → Value V
-    → Result (ν[ A ] M)
-      --------------------------------------------------
-    → Ψ ⊢ V · (ν[ A ] M) —→ ν[ A ] (shiftᶿ V · M)
-
-  float-• : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A C : Ty Δ} {B : Ty (suc Δ)} {M : Term (suc Θ) Δ}
-    → Result (ν[ A ] M)
-      ------------------------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ⦂∀ B [ C ] —→ ν[ A ] (M ⦂∀ B [ C ])
-
-  float-⟨⟩ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A B C : Ty Δ} {M : Term (suc Θ) Δ} {μ : Env∼ Δ}
-      {c : μ ⊢ B ∼ C}
-    → Result (ν[ A ] M)
-      --------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ⟨ c ⟩ —→ ν[ A ] (M ⟨ c ⟩)
-
-  float-⊕₁ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A : Ty Δ} {M : Term (suc Θ) Δ} {N : Term Θ Δ} {op : Prim}
-    → Result (ν[ A ] M)
-      ------------------------------------------------------------------
-    → Ψ ⊢ (ν[ A ] M) ⊕[ op ] N —→ ν[ A ] (M ⊕[ op ] shiftᶿ N)
-
-  float-⊕₂ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {A : Ty Δ} {V : Term Θ Δ} {M : Term (suc Θ) Δ} {op : Prim}
-    → Value V
-    → Result (ν[ A ] M)
-      ------------------------------------------------------------------
-    → Ψ ⊢ V ⊕[ op ] (ν[ A ] M) —→ ν[ A ] (shiftᶿ V ⊕[ op ] M)
-
 ------------------------------------------------------------------------
--- Values and results do not reduce
+-- Values do not reduce
 ------------------------------------------------------------------------
-
-nothing≢just-reduction : ∀ {A : Set} {x : A} → nothing ≢ just x
-nothing≢just-reduction ()
 
 mutual
   value-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V M′ : Term Θ Δ}
     → Value V
     → ¬ (Ψ ⊢ V —→ M′)
-  value-no-step (Λ Vʳ) (ξ-Λ step) = result-no-step Vʳ step
-  value-no-step (Vᵥ 《 inj 》) (ground Vᵥ′ G≢G) = G≢G refl
+  value-no-step (ƛ A ˙ N) ()
+  value-no-step (Λ Vᵥ) (ξ-Λ step) = value-no-step Vᵥ step
+  value-no-step ($ κ) ()
+  value-no-step (inject Vᵥ) (ground Vᵥ′ G≢G) = G≢G refl
+  value-no-step (inject Vᵥ) (ξ-⟨⟩ step) = value-no-step Vᵥ step
   value-no-step (Vᵥ 《 inert 》) (ξ-⟨⟩ step) =
     value-no-step Vᵥ step
-  value-no-step
-      (Vʳ ↑[ X ≔ α ] adapter Rʳ pair≢)
-      (id-cancel Rʳ′) =
+  value-no-step (seal-value Vᵥ) (ξ-conceal step) =
+    value-no-step Vᵥ step
+  value-no-step (reveal-fun Vᵥ) (ξ-reveal step) =
+    value-no-step Vᵥ step
+  value-no-step (conceal-fun Vᵥ) (ξ-conceal step) =
+    value-no-step Vᵥ step
+  value-no-step (adapter Vᵥ head pair≢) (id-cancel Vᵥ′) =
     pair≢ (refl , refl)
-  value-no-step
-      (Vʳ ↑[ X ≔ α ] delimiter ())
-      id-reveal
-  value-no-step
-      (result-val () ↑[ X ≔ α ] gate)
-      blame-reveal
-  value-no-step
-      (result-val (Vᵥ 《 inj 》) ↑[ Y ≔ γ ] package Vᵥ′ Y∈H)
-      (inject-reveal strengthens Vᵥ″) =
-    ⊥-elim (nothing≢just-reduction
-      (trans (sym (strengthenᵗ?-present Y∈H)) strengthens))
-  value-no-step (Vʳ ↑[ X ≔ α ] gate) (ξ-reveal step) =
-    result-no-step Vʳ step
-  value-no-step
-      (result-ν Vʳ ↑[ X ≔ α ] adapter-region Rʳ X∈A)
-      (float-reveal strengthens result) =
-    ⊥-elim (nothing≢just-reduction
-      (trans (sym (strengthenᵗ?-present X∈A)) strengthens))
-  value-no-step
-      (Vʳ ↓[ X ≔ α ] delimiter ())
-      id-conceal
-  value-no-step
-      (() ↓[ X ≔ α ] gate)
-      blame-conceal
-  value-no-step (Vᵥ ↓[ X ≔ α ] gate) (ξ-conceal step) =
+  value-no-step (adapter Vᵥ head pair≢) (ξ-reveal step) =
+    conceal-id-no-step Vᵥ head step
+  value-no-step (adapter-region Vᵥ head X∈A) (ξ-reveal step) =
+    region-no-step Vᵥ head step
+
+  conceal-id-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+      {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {M′ : Term Θ (suc Δ)}
+    → Value V
+    → ImmobileHead V
+    → ¬ (Ψ ⊢ V ↓[ X ≔ α ] id↓ —→ M′)
+  conceal-id-no-step Vᵥ seal-head (ξ-conceal step) =
+    value-no-step Vᵥ step
+  conceal-id-no-step Vᵥ reveal-fun-head (ξ-conceal step) =
+    value-no-step Vᵥ step
+  conceal-id-no-step Vᵥ conceal-fun-head (ξ-conceal step) =
+    value-no-step Vᵥ step
+  conceal-id-no-step Vᵥ adapter-head (ξ-conceal step) =
+    value-no-step Vᵥ step
+  conceal-id-no-step Vᵥ adapter-region-head (ξ-conceal step) =
     value-no-step Vᵥ step
 
-  result-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-      {V M′ : Term Θ Δ}
-    → Result V
-    → ¬ (Ψ ⊢ V —→ M′)
-  result-no-step (result-val Vᵥ) step = value-no-step Vᵥ step
-  result-no-step (result-ν (result-val ())) blame-ν
-  result-no-step (result-ν Vʳ) (ξ-ν step) = result-no-step Vʳ step
-
-ΛBody-stable : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    {M M′ : Term Θ Δ}
-  → ΛBody M
-  → Ψ ⊢ M —→ M′
-  → ΛBody M′
-ΛBody-stable (body-result Vʳ) step =
-  ⊥-elim (result-no-step Vʳ step)
-ΛBody-stable (body-reveal Vʳ) (id-cancel Rʳ) = body-result Rʳ
-ΛBody-stable (body-reveal (result-val ($ κ))) id-reveal =
-  body-result (result-val ($ κ))
-ΛBody-stable (body-reveal Vʳ) (conceal-reveal Rʳ) = body-result Rʳ
-ΛBody-stable (body-reveal (result-val ())) blame-reveal
-ΛBody-stable
-    (body-reveal (result-val (Vᵥ 《 inj 》)))
-    (inject-reveal ⦃ Hᵍ = Hᵍ ⦄ ⦃ H∼★ = H∼★ ⦄
-      strengthens Vᵥ′) =
-  body-inert (body-reveal (result-val Vᵥ′))
-    (inj ⦃ Gᵍ = strengthenGround Hᵍ strengthens ⦄
-      ⦃ G∼★ = strengthen∼★ strengthens H∼★ ⦄
-      ⦃ Gns = ground-nonstar (strengthenGround Hᵍ strengthens) ⦄)
-ΛBody-stable (body-reveal Vʳ) (β-reveal-∀ Rʳ) =
-  body-Λ (body-reveal Rʳ)
-ΛBody-stable (body-reveal Vʳ)
-    (float-reveal strengthens (result-ν Rʳ)) =
-  body-ν (body-reveal Rʳ)
-ΛBody-stable (body-reveal Vʳ) (ξ-reveal step) =
-  ⊥-elim (result-no-step Vʳ step)
-ΛBody-stable (body-conceal (result-val ($ κ))) id-conceal =
-  body-result (result-val ($ κ))
-ΛBody-stable
-    (body-conceal (result-val (Vᵥ 《 inj 》)))
-    (inject-conceal {X = X} ⦃ Hᵍ = Hᵍ ⦄
-      ⦃ H∼★ = H∼★ ⦄ Vᵥ′) =
-  body-inert (body-conceal (result-val Vᵥ′))
-    (inj ⦃ Gᵍ = wkGround X Hᵍ ⦄
-      ⦃ G∼★ = weaken∼★ X H∼★ ⦄
-      ⦃ Gns = ground-nonstar (wkGround X Hᵍ) ⦄)
-ΛBody-stable (body-conceal Vʳ) (β-conceal-∀ Rʳ) =
-  body-Λ (body-conceal Rʳ)
-ΛBody-stable (body-conceal (result-ν Vʳ))
-    (float-conceal (result-ν Rʳ)) =
-  body-ν (body-conceal Vʳ)
-ΛBody-stable (body-conceal Vʳ) (ξ-conceal step) =
-  ⊥-elim (result-no-step Vʳ step)
-ΛBody-stable (body-inert body inj) (ground Vᵥ H≢H) =
-  ⊥-elim (H≢H refl)
-ΛBody-stable (body-inert (body-result (result-ν Vʳ)) inert)
-    (float-⟨⟩ (result-ν Vʳ′)) =
-  body-ν (body-inert (body-result Vʳ) inert)
-ΛBody-stable (body-inert (body-ν body) inert)
-    (float-⟨⟩ (result-ν Vʳ)) =
-  body-ν (body-inert body inert)
-ΛBody-stable (body-inert (body-result (result-val ())) inj)
-    blame-⟨⟩
-ΛBody-stable (body-inert body inert) (ξ-⟨⟩ step) =
-  body-inert (ΛBody-stable body step) inert
-ΛBody-stable (body-ν (body-result (result-val ()))) blame-ν
-ΛBody-stable (body-ν body) (ξ-ν step) =
-  body-ν (ΛBody-stable body step)
-ΛBody-stable (body-Λ body) (ξ-Λ step) =
-  body-Λ (ΛBody-stable body step)
+  region-no-step : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {A : Ty Δ} {V : Term (suc Θ) Δ} {M′ : Term Θ Δ}
+    → Value V
+    → ImmobileHead V
+    → ¬ (Ψ ⊢ ν[ A ] V —→ M′)
+  region-no-step Vᵥ seal-head (ξ-ν step) = value-no-step Vᵥ step
+  region-no-step Vᵥ reveal-fun-head (ξ-ν step) =
+    value-no-step Vᵥ step
+  region-no-step Vᵥ conceal-fun-head (ξ-ν step) =
+    value-no-step Vᵥ step
+  region-no-step Vᵥ adapter-head (ξ-ν step) = value-no-step Vᵥ step
+  region-no-step Vᵥ adapter-region-head (ξ-ν step) =
+    value-no-step Vᵥ step

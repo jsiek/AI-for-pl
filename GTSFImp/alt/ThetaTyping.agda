@@ -12,10 +12,8 @@ module alt.ThetaTyping where
 --     query telescope's unique live alias.  A dead crossing recursively reads
 --     its older anchor's representation.  Undefined routes refuse with
 --     `nothing`; begin/end bracket choices are never consulted.
---   * Defines values, results, and the reduction-stable `ΛBody` restriction
---     consumed by universal introduction.  A tagged term is never a canonical
---     conceal interior; under reveal it is a package value only when its
---     ground tag mentions the crossing pivot and cannot strengthen outward.
+--   * Defines the λB-aligned value family.  Regions are transient rather
+--     than results, and universal introduction has no dynamic body premise.
 --   * `_≼[_,_]_` remains only a marker-balance certificate.  Its injection
 --     index records lexical drift and delimiter positions for typing transport;
 --     it is not representation lookup evidence.
@@ -360,14 +358,8 @@ rep? : ∀ {Θ Δ σ} → TyEnv Θ Δ σ → TyVar Θ → Maybe (Ty Δ)
 rep? {Θ = Θ} Ψ α = repFuel? (Θ ∸ toℕ α) Ψ α
 
 ------------------------------------------------------------------------
--- Values and admissible Λ bodies
+-- Values
 ------------------------------------------------------------------------
-
--- These predicates live beside typing because the Λ rule consumes
--- `ΛBody`; none depends on reduction.  A ν-prefixed result is an
--- administrative value at a Λ boundary.  Crossing-wrapped results remain
--- reducible bodies, and nested Λs retain that permission while `ξ-Λ` works
--- inward.
 
 data GenSafe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → μ ⊢ A ∼ B → Set where
@@ -398,12 +390,6 @@ data GenSafe : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
 
 data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
     → μ ⊢ A ∼ B → Set where
-  inj : ∀ {Δ} {μ : Env∼ Δ} {G : Ty Δ}
-      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
-      ⦃ Gns : NonStar G ⦄
-      --------------------------------------
-    → Inert {μ = μ} ((idᵍ {μ = μ} Gᵍ) !)
-
   fun : ∀ {Δ} {μ : Env∼ Δ} {A A′ B B′ : Ty Δ}
       {c : flipᵐ μ ⊢ A′ ∼ A} {d : μ ⊢ B ∼ B′}
       ---------------------------------------------
@@ -422,145 +408,83 @@ data Inert : ∀ {Δ : TyCtx} {μ : Env∼ Δ} {A B : Ty Δ}
       ------------------------
     → Inert ((gen c) A≢★)
 
-mutual
-  data RevealValue : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
-      → Term Θ Δ → TyVar Δ → TyVar Θ → Reveal → Set where
-    fun : ∀ {Θ Δ} {V : Term Θ Δ} {X : TyVar Δ} {α : TyVar Θ}
-        {c d}
-      → Value V
-      --------------------------------
-      → RevealValue V X α (c ↦↑ d)
+-- Heads not covered by the ν-dissolution family.  Paired with `Value`, this
+-- is the syntactic guard on a region adapter at a crossing.
+data ImmobileHead : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
+    → Term Θ Δ → Set where
+  seal-head : ∀ {Θ Δ} {V : Term Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
+    → ImmobileHead (V ↓[ X ≔ α ] seal)
 
-    delimiter : ∀ {Θ Δ} {V : Term Θ Δ}
-        {X : TyVar Δ} {α : TyVar Θ}
-      → CanonicalInterior V
-        ------------------------
-      → RevealValue V X α id↑
+  reveal-fun-head : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c d}
+    → ImmobileHead (V ↑[ X ≔ α ] (c ↦↑ d))
 
-    package : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ}
-        {H : Ty Δ} {X : TyVar Δ} {α : TyVar Θ}
-        ⦃ Hᵍ : Ground H ⦄ ⦃ H∼★ : μ ⊢ H ∼★ ⦄
-        ⦃ Hns : NonStar H ⦄
-      → Value V
-      → X ∈ᵗ H
-        ----------------------------------------------------
-      → RevealValue (V ⟨ (idᵍ Hᵍ) ! ⟩) X α id↑
+  conceal-fun-head : ∀ {Θ Δ} {V : Term Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c d}
+    → ImmobileHead (V ↓[ X ≔ α ] (c ↦↓ d))
 
-    adapter : ∀ {Θ Δ} {V : Term Θ Δ}
-        {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
-      → Result V
-      → ¬ (X ≡ Y × α ≡ β)
-        -------------------------------------------------------
-      → RevealValue (V ↓[ Y ≔ β ] id↓) X α id↑
+  adapter-head : ∀ {Θ Δ} {V : Term Θ Δ}
+      {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
+    → ImmobileHead ((V ↓[ Y ≔ β ] id↓) ↑[ X ≔ α ] id↑)
 
-    adapter-region : ∀ {Θ Δ} {M : Term (suc Θ) Δ} {A : Ty Δ}
-        {X : TyVar Δ} {α : TyVar Θ} {c : Reveal}
-      → Result M
-      → X ∈ᵗ A
-        ---------------------------------------
-      → RevealValue (ν[ A ] M) X α c
+  adapter-region-head : ∀ {Θ Δ} {M : Term (suc Θ) (suc Δ)}
+      {A : Ty (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {c : Reveal}
+    → ImmobileHead ((ν[ A ] M) ↑[ X ≔ α ] c)
 
-  data ConcealValue {Θ : AnchorCtx} {Δ : TyCtx}
-      (V : Term Θ Δ) : Conceal → Set where
-    sealᵥ : ConcealValue V seal
+data Value : ∀ {Θ : AnchorCtx} {Δ : TyCtx} → Term Θ Δ → Set where
+  ƛ_˙_ : ∀ {Θ Δ} (A : Ty Δ) (N : Term Θ Δ)
+    → Value (ƛ A ˙ N)
 
-    fun : ∀ {c d}
-      → ConcealValue V (c ↦↓ d)
+  Λ_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+    → Value V
+    → Value (Λ V)
 
-    delimiter : CanonicalInterior V
-      → ConcealValue V id↓
+  $ : ∀ {Θ Δ} (κ : Const)
+    → Value {Θ = Θ} {Δ = Δ} ($ κ)
 
-  data Value : ∀ {Θ : AnchorCtx} {Δ : TyCtx} → Term Θ Δ → Set where
-    ƛ_˙_ : ∀ {Θ Δ} (A : Ty Δ) (N : Term Θ Δ)
-      → Value (ƛ A ˙ N)
+  inject : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {G : Ty Δ}
+      ⦃ Gᵍ : Ground G ⦄ ⦃ G∼★ : μ ⊢ G ∼★ ⦄
+      ⦃ Gns : NonStar G ⦄
+    → Value V
+    → Value (V ⟨ (idᵍ {μ = μ} Gᵍ) ! ⟩)
 
-    Λ_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      → Result V
-      → Value (Λ V)
-
-    $ : ∀ {Θ Δ} (κ : Const)
-      → Value {Θ = Θ} {Δ = Δ} ($ κ)
-
-    _《_》 : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
-        {c : μ ⊢ A ∼ B}
-      → Value V
-      → Inert c
-      → Value (V ⟨ c ⟩)
-
-    _↑[_≔_]_ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      → Result V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-      → {c : Reveal}
-      → RevealValue V X α c
-      → Value (V ↑[ X ≔ α ] c)
-
-    _↓[_≔_]_ : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Value V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-      → {c : Conceal}
-      → ConcealValue V c
-      → Value (V ↓[ X ≔ α ] c)
-
-  data CanonicalInterior : ∀ {Θ : AnchorCtx} {Δ : TyCtx}
-      → Term Θ Δ → Set where
-    sealed : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Value V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-      → CanonicalInterior (V ↓[ X ≔ α ] seal)
-
-    delimited : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      → CanonicalInterior V
-      → (X : TyVar (suc Δ))
-      → (α : TyVar Θ)
-      → CanonicalInterior (V ↑[ X ≔ α ] id↑)
-
-  data Result : ∀ {Θ Δ} → Term Θ Δ → Set where
-    result-val : ∀ {Θ Δ} {V : Term Θ Δ}
-      → Value V
-      → Result V
-
-    result-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
-      → Result M
-      → Result (ν[ A ] M)
-
-data ΛBody : ∀ {Θ Δ} → Term Θ Δ → Set where
-  body-result : ∀ {Θ Δ} {V : Term Θ Δ}
-    → Result V
-    → ΛBody V
-
-  body-reveal : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-      {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-    → Result V
-    → ΛBody (V ↑[ X ≔ α ] c)
-
-  body-conceal : ∀ {Θ Δ} {V : Term Θ Δ}
-      {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-    → Result V
-    → ΛBody (V ↓[ X ≔ α ] c)
-
-  body-inert : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ}
-      {A B : Ty Δ} {c : μ ⊢ A ∼ B}
-    → ΛBody V
+  _《_》 : ∀ {Θ Δ} {V : Term Θ Δ} {μ : Env∼ Δ} {A B : Ty Δ}
+      {c : μ ⊢ A ∼ B}
+    → Value V
     → Inert c
-    → ΛBody (V ⟨ c ⟩)
+    → Value (V ⟨ c ⟩)
 
-  body-ν : ∀ {Θ Δ} {A : Ty Δ} {M : Term (suc Θ) Δ}
-    → ΛBody M
-    → ΛBody (ν[ A ] M)
+  seal-value : ∀ {Θ Δ} {V : Term Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
+    → Value V
+    → Value (V ↓[ X ≔ α ] seal)
 
-  body-Λ : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
-    → ΛBody V
-    → ΛBody (Λ V)
+  reveal-fun : ∀ {Θ Δ} {V : Term Θ (suc Δ)}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c d}
+    → Value V
+    → Value (V ↑[ X ≔ α ] (c ↦↑ d))
 
-canonical-value : ∀ {Θ Δ} {V : Term Θ Δ}
-  → CanonicalInterior V
-  → Value V
-canonical-value (sealed Vᵥ X α) = Vᵥ ↓[ X ≔ α ] sealᵥ
-canonical-value (delimited Vᶜ X α) =
-  result-val (canonical-value Vᶜ) ↑[ X ≔ α ] delimiter Vᶜ
+  conceal-fun : ∀ {Θ Δ} {V : Term Θ Δ}
+      {X : TyVar (suc Δ)} {α : TyVar Θ} {c d}
+    → Value V
+    → Value (V ↓[ X ≔ α ] (c ↦↓ d))
+
+  adapter : ∀ {Θ Δ} {V : Term Θ Δ}
+      {Y X : TyVar (suc Δ)} {β α : TyVar Θ}
+    → Value V
+    → ImmobileHead V
+    → ¬ (X ≡ Y × α ≡ β)
+    → Value ((V ↓[ Y ≔ β ] id↓) ↑[ X ≔ α ] id↑)
+
+  adapter-region : ∀ {Θ Δ} {M : Term (suc Θ) (suc Δ)}
+      {A : Ty (suc Δ)} {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {c : Reveal}
+    → Value M
+    → ImmobileHead M
+    → X ∈ᵗ A
+    → Value ((ν[ A ] M) ↑[ X ≔ α ] c)
 
 ------------------------------------------------------------------------
 -- Typing
@@ -596,8 +520,6 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ σ}
     → Ψ ∣ Γ ⊢ (F · M) ⦂ B
 
   ⊢Λ :
-      ΛBody M
-    →
       Ψ ,typ ∣ renameCtx suc Γ ⊢ M ⦂ A
       ----------------------------------
     → Ψ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
@@ -625,7 +547,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ σ}
     → Ψ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B
 
   ⊢ν :
-      Ψ ,:= A ∣ [] ⊢ M ⦂ B
+      Ψ ,:= A ∣ Γ ⊢ M ⦂ B
       ----------------------
     → Ψ ∣ Γ ⊢ ν[ A ] M ⦂ B
 

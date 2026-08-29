@@ -9,13 +9,8 @@ module alt.ThetaPreservation where
 --     redex.  That historical instance remains below as a regression.
 --   * The old loose-anchor counterexample is now untypable: crossing entries
 --     record their anchors, so typing forces both nodes' type variable and anchor data.
---   * At a nonempty term context, `β-reveal-⇒` independently moves a
---     captured
---     lambda beneath a conceal delimiter whose typing rule requires a closed
---     interior.  That checked instance explains why arbitrary-context
---     preservation would remain false even after repairing `conceal-reveal`.
---   * The theorem is deliberately stated at `[]`; the checked nonempty-context
---     `β-reveal-⇒` refutation remains as a record of that boundary.
+--   * The theorem remains stated at `[]`, while ν typing and all ν transport
+--     lemmas now preserve an arbitrary term context inside the allocation.
 --   * The former `β-reveal-∀` counterexample is retained as a resolved
 --     regression: source determinacy now computes its body type from the
 --     redex, so the old Boolean contractum is no longer a possible step.
@@ -25,16 +20,11 @@ module alt.ThetaPreservation where
 --   * The former `β-conceal-⇒` counterexample's contractum remains a checked
 --     positive instance.  Balanced end/begin extension now supplies the
 --     general re-entry transport.
---   * The guarded `float-reveal` moves only entries that strengthen across
---     the crossing.  Its telescope exchange is justified by the weakening
---     round trip, without representation resolution.
---   * The dual `float-conceal` weakens its entry into the larger scope; an
---     exact end/ν telescope exchange carries the interior typing.
 --   * Injection out of delimiters and restricted projection into reveal
 --     preserve typing by ground weakening/strengthening and the checked
 --     `expand↑`/`expand↓` typing lemmas.
---   * β-Λ preservation depends only on its body typing, so the same lexical
---     allocation transport covers both value and ν-prefixed Result bodies.
+--   * ν dissolution uses weakening, substitution, and the exact type-binder
+--     exchange for NUTYWRAP; β-Λ uses the lexical allocation transport.
 
 open import Data.Empty using (⊥; ⊥-elim)
 import Data.Fin as Fin
@@ -290,41 +280,6 @@ preserve-β-conceal-⇒
   ⊢conceal tyVar-eq α-eq d⊢
     (⊢· V⊢ (⊢reveal α-eq c⊢ (⊢reenter tyVar-eq W⊢)))
 
-preserve-float-reveal : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
-    {A : Ty (suc Δ)} {A₀ B : Ty Δ} {M : Term (suc Θ) (suc Δ)}
-    {Y : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-  → strengthenᵗ? Y A ≡ just A₀
-  → Ψ ∣ [] ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c ⦂ B
-  → Ψ ∣ [] ⊢ ν[ A₀ ] (M ↑[ Y ≔ suc α ] c) ⦂ B
-preserve-float-reveal {Θ = Θ} {Ψ = Ψ} {A₀ = A₀} {M = M}
-    {Y = Y} {α = α} strengthens
-    (⊢reveal {fresh = fresh} α-eq c⊢ (⊢ν M⊢)) =
-  ⊢ν (⊢reveal (rep?-ν {Θ = Θ} {Ψ = Ψ} {B = A₀} {a = α} α-eq) c⊢
-    (⊢unbracket-target unbracket-begin-ν source-M⊢))
-  where
-  source-M⊢ = subst≡
-    (λ entry → ((Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩) ,:= entry)
-      ∣ [] ⊢ M ⦂ _)
-    (strengthenᵗ?-sound strengthens) M⊢
-
-preserve-float-conceal : ∀ {Θ Δ} {σ}
-    {Ψ : TyEnv Θ (suc Δ) σ} {A : Ty Δ}
-    {M : Term (suc Θ) Δ} {Y : TyVar (suc Δ)} {α : TyVar Θ}
-    {c : Conceal} {B : Ty (suc Δ)}
-  → Ψ ∣ [] ⊢ (ν[ A ] M) ↓[ Y ≔ α ] c ⦂ B
-  → Ψ ∣ [] ⊢ ν[ wkᵗ Y A ] (M ↓[ Y ≔ suc α ] c) ⦂ B
-preserve-float-conceal {Θ = Θ} {σ = σ} {Ψ = Ψ} {A = A}
-    {Y = Y} {α = α}
-    (⊢conceal tyVar-eq α-eq c⊢ (⊢ν M⊢)) =
-  ⊢ν (⊢conceal shifted-tyVar shifted-rep c⊢
-    (⊢unbracket-target exchange M⊢))
-  where
-  exchange = unbracket-end-ν tyVar-eq
-  shifted-tyVar = trans (lookup-mapᵛ (mapMaybe Fin.suc) σ Y)
-    (cong (mapMaybe Fin.suc) tyVar-eq)
-  shifted-rep = trans (sym (rep?-unbracket exchange (suc α)))
-    (rep?-ν {Θ = Θ} {Ψ = Ψ ,end[ Y ]} {B = A} {a = α} α-eq)
-
 preserve-id-cancel : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {A}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ ⦂ A
@@ -418,7 +373,7 @@ preserve-β-Λ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
   → Ψ ∣ [] ⊢
       ν[ C ] (shiftᶿ V ↑[ zero ≔ zero ] 〖 zero ↑ B 〗)
       ⦂ B [ C ]ᵗ
-preserve-β-Λ {B = B} {C = C} (⊢⦂∀ (⊢Λ body V⊢)) =
+preserve-β-Λ {B = B} {C = C} (⊢⦂∀ (⊢Λ V⊢)) =
   ⊢ν (⊢reveal rep?-here (generator-typed B C)
     (⊢allocate-lexical V⊢))
 
@@ -442,16 +397,15 @@ preserve-β-gen {Ψ = Ψ} {C = C} {B = bodyTy}
 preserve-β-reveal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ (suc (suc Δ))} {B : Ty (suc Δ)}
     {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-  → Result V
+  → Value V
   → Ψ ∣ [] ⊢ (Λ V) ↑[ X ≔ α ] `∀↑ c ⦂ `∀ B
   → Ψ ∣ [] ⊢ Λ (V ↑[ suc X ≔ α ] c) ⦂ `∀ B
-preserve-β-reveal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vʳ
+preserve-β-reveal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vᵥ
     (⊢reveal {B = `∀ B} {C = C} α-eq (⊢↑-∀ c⊢)
-      (⊢Λ body V⊢)) =
-  ⊢Λ (body-reveal Vʳ)
-    (⊢reveal (rep?-typ {Θ = Θ} {Ψ = Ψ} {α = α} {A = C} α-eq)
-      conversion⊢
-      (⊢begin-typ-exchange V⊢))
+      (⊢Λ V⊢)) =
+  ⊢Λ (⊢reveal
+    (rep?-typ {Θ = Θ} {Ψ = Ψ} {α = α} {A = C} α-eq)
+    conversion⊢ (⊢begin-typ-exchange V⊢))
   where
   representation⊢ = subst≡
     (λ R → ⊢↑[ suc X ⦂ R ] _ ⦂ _ ↝ _)
@@ -463,7 +417,7 @@ preserve-β-reveal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vʳ
 preserve-β-reveal-∀-any : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ (suc (suc Δ))} {A : Ty Δ}
     {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Reveal}
-  → Result V
+  → Value V
   → Ψ ∣ [] ⊢ (Λ V) ↑[ X ≔ α ] `∀↑ c ⦂ A
   → Ψ ∣ [] ⊢ Λ (V ↑[ suc X ≔ α ] c) ⦂ A
 preserve-β-reveal-∀-any {A = ＇ Y} Vʳ (⊢reveal α-eq () V⊢)
@@ -476,15 +430,14 @@ preserve-β-reveal-∀-any {A = `∀ B} Vʳ typing =
 preserve-β-conceal-∀ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
     {V : Term Θ (suc Δ)} {B : Ty (suc (suc Δ))}
     {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-  → Result V
+  → Value V
   → Ψ ∣ [] ⊢ (Λ V) ↓[ X ≔ α ] `∀↓ c ⦂ `∀ B
   → Ψ ∣ [] ⊢ Λ (V ↓[ suc X ≔ α ] c) ⦂ `∀ B
-preserve-β-conceal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vʳ
+preserve-β-conceal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vᵥ
     (⊢conceal {A = `∀ A} {C = C} tyVar-eq α-eq
-      (⊢↓-∀ c⊢) (⊢Λ body V⊢)) =
-  ⊢Λ (body-conceal Vʳ)
-    (⊢conceal tyVar-eq target-rep conversion⊢
-      (⊢end-typ-exchange V⊢))
+      (⊢↓-∀ c⊢) (⊢Λ V⊢)) =
+  ⊢Λ (⊢conceal tyVar-eq target-rep conversion⊢
+    (⊢end-typ-exchange V⊢))
   where
   target-rep = trans
     (sym (rep?-unbracket {Θ = Θ}
@@ -502,7 +455,7 @@ preserve-β-conceal-∀ {Θ = Θ} {Ψ = Ψ} {X = X} {α = α} Vʳ
 preserve-β-conceal-∀-any : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
     {V : Term Θ (suc Δ)} {B : Ty (suc Δ)}
     {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
-  → Result V
+  → Value V
   → Ψ ∣ [] ⊢ (Λ V) ↓[ X ≔ α ] `∀↓ c ⦂ B
   → Ψ ∣ [] ⊢ Λ (V ↓[ suc X ≔ α ] c) ⦂ B
 preserve-β-conceal-∀-any {B = ＇ Y} Vʳ
@@ -544,6 +497,40 @@ preserve-inject-reveal {B = A ⇒ B} Hᵍ H∼★ α-eq V⊢ strengthens
 preserve-inject-reveal {B = `∀ B} Hᵍ H∼★ α-eq V⊢ strengthens
     (⊢id↑ ★) ()
 
+⊢smart-inj★ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Γ : TermCtx Δ} {V : Term Θ Δ} {C : Ty Δ}
+  → Ψ ∣ Γ ⊢ V ⦂ C
+  → Ψ ∣ Γ ⊢ smart-inj★ V C ⦂ ★
+⊢smart-inj★ {C = C} V⊢ with injectionPlan C
+⊢smart-inj★ V⊢ | bare = V⊢
+⊢smart-inj★ V⊢ | box Gᵍ c =
+  ⊢⟨⟩ (⊢⟨⟩ V⊢ c)
+    (_! ⦃ Gᵍ = Gᵍ ⦄ ⦃ G∼★ = idGround∼★ Gᵍ ⦄
+      (idᵍ Gᵍ) ⦃ ground-nonstar Gᵍ ⦄)
+
+preserve-inject-reveal-resolve : ∀ {Θ Δ σ}
+    {Ψ : TyEnv Θ Δ σ} {V : Term Θ (suc Δ)}
+    {X : TyVar (suc Δ)} {α : TyVar Θ} {C A : Ty Δ}
+    {μ : Env∼ (suc Δ)} ⦃ X∼★ : μ ⊢ ＇ X ∼★ ⦄
+    ⦃ Xns : NonStar (＇ X) ⦄
+  → rep? Ψ α ≡ just C
+  → Ψ ∣ [] ⊢
+      (V ⟨ _! ⦃ Gᵍ = ＇ X ⦄ ⦃ G∼★ = X∼★ ⦄
+        (id {μ = μ} (＇ X)) ⦃ Xns ⦄ ⟩)
+        ↑[ X ≔ α ] id↑ ⦂ A
+  → Ψ ∣ [] ⊢ smart-inj★ (V ↑[ X ≔ α ] unseal) C ⦂ A
+preserve-inject-reveal-resolve {V = V} rep-eq
+    (⊢reveal {Y = X} α-eq c↑ (⊢⟨⟩ V⊢ c)) =
+  subst≡
+    (λ T → _ ∣ [] ⊢ smart-inj★ (V ↑[ X ≔ _ ] unseal) _ ⦂ T)
+    outside-eq (⊢smart-inj★ unsealed⊢)
+  where
+  representation-eq = just-injective (trans (sym rep-eq) α-eq)
+  unsealed⊢ = subst≡
+    (λ T → _ ∣ [] ⊢ V ↑[ X ≔ _ ] unseal ⦂ T)
+    (sym representation-eq) (⊢reveal α-eq ⊢unseal V⊢)
+  outside-eq = wkTy-injective X (id↑-endpoint c↑)
+
 ------------------------------------------------------------------------
 -- Closed one-step preservation assembler
 ------------------------------------------------------------------------
@@ -578,10 +565,15 @@ preserve
         ⦃ G∼★ = H∼★ ⦄ .(idᵍ Hᵍ))))
     (inject-reveal {Y = Y} strengthens Vᵥ) =
   preserve-inject-reveal Hᵍ H∼★ α-eq V⊢ strengthens c⊢ refl
+preserve typing
+    (inject-reveal-resolve
+      ⦃ X∼★ = Xtag ⦄ ⦃ Xns = Xns ⦄ rep-eq Vᵥ) =
+  preserve-inject-reveal-resolve
+    ⦃ X∼★ = Xtag ⦄ ⦃ Xns = Xns ⦄ rep-eq typing
 preserve
     (⊢⟨⟩ (⊢reveal α-eq (⊢id↑ ★) V⊢)
       (？_ ⦃ Gᵍ = Gᵍ ⦄ .(idᵍ Gᵍ)))
-    (★-project-reveal {X = X} {G = G} Vʳ gate) =
+    (★-project-reveal {X = X} {G = G} Vᵥ) =
   ⊢reveal α-eq (expand↑-typed (wkᵗ X G))
     (⊢⟨⟩ V⊢ (weakenConsistency X (？ (idᵍ Gᵍ))))
 preserve (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) = V⊢
@@ -602,8 +594,15 @@ preserve typing blame-reveal = ⊢blame
 preserve typing blame-conceal = ⊢blame
 preserve typing blame-⊕₁ = ⊢blame
 preserve typing (blame-⊕₂ Vᵥ) = ⊢blame
+preserve (⊢ν (⊢$ κ)) const-ν = ⊢$ κ
 preserve typing blame-ν = ⊢blame
-preserve typing@(⊢⦂∀ (⊢Λ body V⊢)) (β-Λ Vʳ) =
+preserve (⊢ν (⊢⟨⟩ V⊢ c)) (tag-out Vᵥ) = ⊢⟨⟩ (⊢ν V⊢) c
+preserve (⊢ν (⊢⟨⟩ V⊢ c)) (inert-cast-out Vᵥ inert) =
+  ⊢⟨⟩ (⊢ν V⊢) c
+preserve (⊢ν (⊢ƛ N⊢)) NUWRAP = ⊢ƛ (⊢ν N⊢)
+preserve (⊢ν (⊢Λ V⊢)) NUTYWRAP =
+  ⊢Λ (⊢ν (⊢unbracket-target unbracket-ν-typ V⊢))
+preserve typing@(⊢⦂∀ (⊢Λ V⊢)) (β-Λ Vᵥ) =
   preserve-β-Λ typing
 preserve typing@(⊢⦂∀ (⊢⟨⟩ V⊢ c)) (β-gen Vᵥ A≠★ safe) =
   preserve-β-gen typing
@@ -613,17 +612,13 @@ preserve typing (β-reveal-∀ Vʳ) =
   preserve-β-reveal-∀-any Vʳ typing
 preserve typing (β-conceal-∀ Vʳ) =
   preserve-β-conceal-∀-any Vʳ typing
-preserve (⊢Λ body M⊢) (ξ-Λ step) =
-  ⊢Λ (ΛBody-stable body step) (preserve M⊢ step)
+preserve (⊢Λ M⊢) (ξ-Λ step) = ⊢Λ (preserve M⊢ step)
 preserve (⊢· L⊢ M⊢) (ξ-·₁ step) =
   ⊢· (preserve L⊢ step) M⊢
 preserve (⊢· V⊢ M⊢) (ξ-·₂ Vᵥ step) =
   ⊢· V⊢ (preserve M⊢ step)
 preserve (⊢⦂∀ M⊢) (ξ-• step) = ⊢⦂∀ (preserve M⊢ step)
 preserve (⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) = ⊢⟨⟩ (preserve M⊢ step) c
-preserve typing (float-reveal strengthens result) =
-  preserve-float-reveal strengthens typing
-preserve typing (float-conceal result) = preserve-float-conceal typing
 preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
   ⊢reveal α∈ c⊢ (preserve M⊢ step)
 preserve (⊢conceal tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =
@@ -633,17 +628,6 @@ preserve (⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
 preserve (⊢⊕ op V⊢ M⊢) (ξ-⊕₂ Vᵥ step) =
   ⊢⊕ op V⊢ (preserve M⊢ step)
 preserve (⊢ν M⊢) (ξ-ν step) = ⊢ν (preserve M⊢ step)
-preserve (⊢· (⊢ν M⊢) N⊢) (float-·₁ result) =
-  ⊢ν (⊢· M⊢ (⊢shiftᶿ N⊢))
-preserve (⊢· V⊢ (⊢ν M⊢)) (float-·₂ Vᵥ result) =
-  ⊢ν (⊢· (⊢shiftᶿ V⊢) M⊢)
-preserve (⊢⦂∀ (⊢ν M⊢)) (float-• result) = ⊢ν (⊢⦂∀ M⊢)
-preserve (⊢⟨⟩ (⊢ν M⊢) c) (float-⟨⟩ result) =
-  ⊢ν (⊢⟨⟩ M⊢ c)
-preserve (⊢⊕ op (⊢ν M⊢) N⊢) (float-⊕₁ result) =
-  ⊢ν (⊢⊕ op M⊢ (⊢shiftᶿ N⊢))
-preserve (⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
-  ⊢ν (⊢⊕ op (⊢shiftᶿ V⊢) M⊢)
 
 ------------------------------------------------------------------------
 -- Historical refutation records
@@ -661,18 +645,16 @@ preserve (⊢⊕ op V⊢ (⊢ν M⊢)) (float-⊕₂ Vᵥ result) =
 -- transport.  `⊢reenter` now supplies the balanced end/begin scope.
 --
 -- `float-reveal`/`float-conceal`: commits 3ee5de8c/a18f75f4 record the
--- resolving-float counterexample.  The restored reveal float is guarded by
--- strengthening; conceal remains absent.
+-- resolving-float counterexample.  U46 deletes the entire float family;
+-- `alt.probes.ResolvingFloatRecheck` retains the checked historical refutation.
 --
 -- Strict `id-cancel`: commit c5ee0351 records the loose-rule refutation.
 -- Mismatched type variable/anchor pairs are adapter values and cannot take the strict
--- rule.  A ν stranded between seal and unseal is classified the same way.
+-- rule.  An adapter is a value only when its operand has an immobile head.
 --
 -- Loose conceal/reveal anchors: the old term is untypable under σ-indexed
 -- telescopes because a type variable has exactly one intrinsic anchor.
 --
--- Arbitrary-Γ preservation remains false by design: `β-reveal-⇒` can route a
--- captured lambda into the closed conceal interior.  This is why `preserve`
--- below is stated at `[]`.  The original checked records are retained in the
--- history; current executable coverage lives in `ThetaRegression` and the
--- evaluator probes, whose statements use the equation-based lookup surface.
+-- Closed-source preservation remains the public theorem statement. ν itself
+-- is no longer the reason for that restriction: `⊢ν`, `⊢≼`, renaming,
+-- substitution now carry their ambient Γ through the open interior.

@@ -3,9 +3,8 @@ module alt.ThetaRegression where
 -- File Charter:
 --   * Exercises anchor-directed representation lookup through end markers,
 --     re-entry, lexical drift, and freshly allocated crossings.
---   * Retains the ν-headed application-float regression that originally
---     exposed the missing telescope transports.
---   * Checks the former β-Λ obstruction as a positive preservation instance.
+--   * Checks β-Λ allocation and the subsequent transient ν dissolution under
+--     the λB-aligned value grammar.
 
 open import Data.Fin using (zero; suc)
 open import Data.List using ([])
@@ -39,7 +38,7 @@ other-fresh : suc zero ∉ᵛ one-zero-tyVar
 other-fresh zero ()
 
 ------------------------------------------------------------------------
--- The original application-float regression
+-- A sealed value used by the anchor-directed regressions
 ------------------------------------------------------------------------
 
 Ψ₂-σ : Vec.Vec (Maybe (TyVar 2)) 1
@@ -59,57 +58,6 @@ sealed-seven = ($ (κℕ 7)) ↓[ zero ≔ suc zero ] seal
 sealed-seven-⊢ : Ψ₂ ∣ [] ⊢ sealed-seven ⦂ ＇ zero
 sealed-seven-⊢ =
   ⊢conceal refl Ψ₂-ended-old-lookup ⊢seal (⊢$ (κℕ 7))
-
-g : Term 2 1
-g = ƛ ＇ zero ˙ ` zero
-
-g-⊢ : Ψ₂ ∣ [] ⊢ g ⦂ ＇ zero ⇒ ＇ zero
-g-⊢ = ⊢ƛ (⊢` Z)
-
-g-value : Value g
-g-value = ƛ ＇ zero ˙ ` zero
-
-a : Term 2 1
-a = ν[ ‵ `ℕ ] (ν[ ‵ `ℕ ] shiftᶿ (shiftᶿ sealed-seven))
-
-shifted-seven-⊢ :
-  Ψ₂ ,:= ‵ `ℕ ,:= ‵ `ℕ ∣ []
-    ⊢ shiftᶿ (shiftᶿ sealed-seven) ⦂ ＇ zero
-shifted-seven-⊢ = ⊢shiftᶿ (⊢shiftᶿ sealed-seven-⊢)
-
-a-body-⊢ :
-  Ψ₂ ,:= ‵ `ℕ ∣ []
-    ⊢ ν[ ‵ `ℕ ] shiftᶿ (shiftᶿ sealed-seven) ⦂ ＇ zero
-a-body-⊢ = ⊢ν shifted-seven-⊢
-
-a-⊢ : Ψ₂ ∣ [] ⊢ a ⦂ ＇ zero
-a-⊢ = ⊢ν a-body-⊢
-
-shifted-seven-value : Value (shiftᶿ (shiftᶿ sealed-seven))
-shifted-seven-value =
-  ($ (κℕ 7)) ↓[ zero ≔ suc (suc (suc zero)) ] sealᵥ
-
-a-result : Result a
-a-result = result-ν (result-ν (result-val shifted-seven-value))
-
-floated : Term 2 1
-floated =
-  ν[ ‵ `ℕ ]
-    (shiftᶿ g · (ν[ ‵ `ℕ ] shiftᶿ (shiftᶿ sealed-seven)))
-
-float-step : Ψ₂ ⊢ g · a —→ floated
-float-step = float-·₂ g-value a-result
-
-before-float-⊢ : Ψ₂ ∣ [] ⊢ g · a ⦂ ＇ zero
-before-float-⊢ = ⊢· g-⊢ a-⊢
-
-after-float-⊢ : Ψ₂ ∣ [] ⊢ floated ⦂ ＇ zero
-after-float-⊢ = ⊢ν (⊢· (⊢shiftᶿ g-⊢) a-body-⊢)
-
-float-preservation-instance :
-  Ψ₂ ∣ [] ⊢ g · a ⦂ ＇ zero
-  × Ψ₂ ∣ [] ⊢ floated ⦂ ＇ zero
-float-preservation-instance = before-float-⊢ , after-float-⊢
 
 ------------------------------------------------------------------------
 -- Anchor-directed lookup regressions
@@ -173,14 +121,11 @@ nonadjacent-reentry = refl
 βΛ-body : Term 1 1
 βΛ-body = (Λ ($ (κℕ 7))) ↑[ zero ≔ zero ] `∀↑ id↑
 
-βΛ-seven-result : ∀ {Δ} → Result {Θ = 1} {Δ = Δ} ($ (κℕ 7))
-βΛ-seven-result = result-val ($ (κℕ 7))
+βΛ-seven-value : ∀ {Δ} → Value {Θ = 1} {Δ = Δ} ($ (κℕ 7))
+βΛ-seven-value = $ (κℕ 7)
 
-βΛ-inner-result : Result {Θ = 1} {Δ = 2} (Λ ($ (κℕ 7)))
-βΛ-inner-result = result-val (Λ βΛ-seven-result)
-
-βΛ-body-admissible : ΛBody βΛ-body
-βΛ-body-admissible = body-reveal βΛ-inner-result
+βΛ-inner-value : Value {Θ = 1} {Δ = 2} (Λ ($ (κℕ 7)))
+βΛ-inner-value = Λ βΛ-seven-value
 
 βΛ-body-⊢ : βΛ-Ψ ,typ ∣ [] ⊢ βΛ-body ⦂ `∀ (‵ `ℕ)
 βΛ-body-⊢ =
@@ -188,7 +133,7 @@ nonadjacent-reentry = refl
     (rep?-typ {Θ = 1} {Ψ = βΛ-Ψ} {α = zero}
       {A = ‵ `ℕ} βΛ-ended-lookup)
     (⊢↑-∀ (⊢id↑ (‵ `ℕ)))
-    (⊢Λ (body-result βΛ-seven-result) (⊢$ (κℕ 7)))
+    (⊢Λ (⊢$ (κℕ 7)))
 
 βΛ-body-pushed : Term 1 1
 βΛ-body-pushed = Λ (($ (κℕ 7)) ↑[ suc zero ≔ zero ] id↑)
@@ -197,13 +142,13 @@ nonadjacent-reentry = refl
 βΛ-body-normal = Λ ($ (κℕ 7))
 
 βΛ-body-step₁ : βΛ-Ψ ,typ ⊢ βΛ-body —→ βΛ-body-pushed
-βΛ-body-step₁ = β-reveal-∀ βΛ-seven-result
+βΛ-body-step₁ = β-reveal-∀ βΛ-seven-value
 
 βΛ-body-step₂ : βΛ-Ψ ,typ ⊢ βΛ-body-pushed —→ βΛ-body-normal
 βΛ-body-step₂ = ξ-Λ id-reveal
 
 βΛ-body-normal-value : Value βΛ-body-normal
-βΛ-body-normal-value = Λ βΛ-seven-result
+βΛ-body-normal-value = Λ βΛ-seven-value
 
 βΛ-redex : Term 1 0
 βΛ-redex = (Λ βΛ-body) ⦂∀ `∀ (‵ `ℕ) [ ‵ `ℕ ]
@@ -223,7 +168,7 @@ nonadjacent-reentry = refl
 
 βΛ-redex-⊢ : βΛ-Ψ ∣ [] ⊢ βΛ-redex ⦂ `∀ (‵ `ℕ)
 βΛ-redex-⊢ =
-  ⊢⦂∀ (⊢Λ βΛ-body-admissible βΛ-body-⊢)
+  ⊢⦂∀ (⊢Λ βΛ-body-⊢)
 
 βΛ-step₁ : βΛ-Ψ ⊢ βΛ-redex —→ βΛ-redex-pushed
 βΛ-step₁ = ξ-• (ξ-Λ βΛ-body-step₁)
@@ -232,7 +177,7 @@ nonadjacent-reentry = refl
 βΛ-step₂ = ξ-• (ξ-Λ βΛ-body-step₂)
 
 βΛ-step₃ : βΛ-Ψ ⊢ βΛ-redex-normal —→ βΛ-contractum
-βΛ-step₃ = β-Λ (result-val βΛ-body-normal-value)
+βΛ-step₃ = β-Λ βΛ-body-normal-value
 
 βΛ-redex-pushed-⊢ :
   βΛ-Ψ ∣ [] ⊢ βΛ-redex-pushed ⦂ `∀ (‵ `ℕ)

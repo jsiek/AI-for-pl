@@ -1,9 +1,10 @@
 module alt.probes.ScTyWrapValueRestriction where
 
 -- File Charter:
---   * Checks that the restored Λ value restriction is stable under reduction.
---   * Records the former const-ν counterexample as a positive fixture: its
---     inert-cast body is a value, hence cannot step after const-ν is deleted.
+--   * Records the U46 replacement for the former ΛBody-stability probe.
+--   * Typing admits a Λ whose body is reducible, while the λB value grammar
+--     does not classify that Λ as a value until its body reaches a value.
+--   * The historical const-ν overlap is now intentional transient behavior.
 
 open import Data.Fin using (zero)
 open import Data.List using ([])
@@ -35,10 +36,7 @@ baseEnv = ∅ ,:= ℕᵗ
 lambdaEnv : TyEnv 1 1 (nothing Vec.∷ Vec.[])
 lambdaEnv = baseEnv ,typ
 
-anchor₀ : TyVar 1
-anchor₀ = zero
-
-no-live-anchor : anchor₀ ∉ᵛ (nothing Vec.∷ Vec.[])
+no-live-anchor : zero {n = zero} ∉ᵛ (nothing Vec.∷ Vec.[])
 no-live-anchor zero ()
 
 regionEnv : TyEnv 1 2
@@ -46,10 +44,7 @@ regionEnv : TyEnv 1 2
 regionEnv = lambdaEnv ,begin[ zero ≔ zero ]⟨ no-live-anchor ⟩
 
 region : Term 1 2
-region = ν[ ＇ zero ] ($ (κℕ zero))
-
-region-result : Result region
-region-result = result-ν (result-val ($ (κℕ zero)))
+region = ν[ ＇ zero ] $ (κℕ zero)
 
 region-typed : regionEnv ∣ [] ⊢ region ⦂ ℕᵗ
 region-typed = ⊢ν (⊢$ (κℕ zero))
@@ -63,49 +58,50 @@ wrapped-typed = ⊢reveal
     (rep?-here {Θ = 0} {Ψ = ∅} {A = ℕᵗ}))
   (⊢id↑ (‵ `ℕ)) region-typed
 
-wrapped-value : Value wrapped
-wrapped-value = region-result ↑[ zero ≔ zero ]
-  adapter-region (result-val ($ (κℕ zero))) var-∈
-
 sourceBody : Term 1 1
 sourceBody = wrapped ⟨ ℕ! ⟩
+
+middleBody : Term 1 1
+middleBody = (($ (κℕ zero)) ↑[ zero ≔ zero ] id↑) ⟨ ℕ! ⟩
+
+targetBody : Term 1 1
+targetBody = ($ (κℕ zero)) ⟨ ℕ! ⟩
 
 sourceBody-typed : lambdaEnv ∣ [] ⊢ sourceBody ⦂ ★
 sourceBody-typed = ⊢⟨⟩ wrapped-typed ℕ!
 
-sourceBody-admissible : ΛBody sourceBody
-sourceBody-admissible = body-result (result-val (wrapped-value 《 inj 》))
+sourceBody-step : lambdaEnv ⊢ sourceBody —→ middleBody
+sourceBody-step = ξ-⟨⟩ (ξ-reveal {fresh = no-live-anchor} const-ν)
 
-sourceBody-value : Value sourceBody
-sourceBody-value = wrapped-value 《 inj 》
+middleBody-step : lambdaEnv ⊢ middleBody —→ targetBody
+middleBody-step = ξ-⟨⟩ id-reveal
 
-sourceBody-no-step : ∀ {M′}
-  → ¬ (lambdaEnv ⊢ sourceBody —→ M′)
-sourceBody-no-step = value-no-step sourceBody-value
-
-sourceBody-stable : ∀ {M′}
-  → lambdaEnv ⊢ sourceBody —→ M′
-  → ΛBody M′
-sourceBody-stable = ΛBody-stable sourceBody-admissible
+targetBody-value : Value targetBody
+targetBody-value = inject ($ (κℕ zero))
 
 source : Term 1 zero
 source = Λ sourceBody
 
+target : Term 1 zero
+target = Λ targetBody
+
 source-typed : baseEnv ∣ [] ⊢ source ⦂ `∀ ★
-source-typed = ⊢Λ sourceBody-admissible sourceBody-typed
+source-typed = ⊢Λ sourceBody-typed
 
-source-value : Value source
-source-value = Λ (result-val sourceBody-value)
+wrapped-not-value : ¬ Value wrapped
+wrapped-not-value (adapter-region value () occurrence)
 
-source-no-step : ∀ {M′}
-  → ¬ (baseEnv ⊢ source —→ M′)
-source-no-step = value-no-step source-value
+source-not-value : ¬ Value source
+source-not-value (Λ (inject value)) = wrapped-not-value value
+source-not-value (Λ (_ 《 () 》))
 
-stability-record :
-  (lambdaEnv ∣ [] ⊢ sourceBody ⦂ ★)
-  × (ΛBody sourceBody
-    × (∀ {M′}
-      → lambdaEnv ⊢ sourceBody —→ M′
-      → ΛBody M′))
-stability-record =
-  sourceBody-typed , sourceBody-admissible , sourceBody-stable
+source-step : baseEnv ⊢ source —→ Λ middleBody
+source-step = ξ-Λ sourceBody-step
+
+target-value : Value target
+target-value = Λ targetBody-value
+
+value-grammar-record :
+  (baseEnv ∣ [] ⊢ source ⦂ `∀ ★)
+  × (¬ Value source × Value target)
+value-grammar-record = source-typed , source-not-value , target-value

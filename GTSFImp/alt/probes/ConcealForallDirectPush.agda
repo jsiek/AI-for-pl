@@ -36,7 +36,7 @@ data _⊢_—direct-conceal-∀→_ : ∀ {Θ Δ σ}
       {V : Term Θ Δ} {A : Ty (suc Δ)} {B : Ty (suc (suc Δ))}
       {C₀ : Ty Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {c : Conceal}
     → rep? (Ψ ,end[ X ]) α ≡ just C₀
-    → Result V
+    → Value V
       ------------------------------------------------------------
     → Ψ ⊢ (V ↓[ X ≔ α ] `∀↓ c) ⦂∀ B [ A ]
         —direct-conceal-∀→
@@ -64,14 +64,11 @@ identityBody = ＇ zero ⇒ ＇ zero
 inner : Term 1 zero
 inner = Λ (ƛ ＇ zero ˙ ` zero)
 
-inner-result : Result inner
-inner-result =
-  result-val (Λ (result-val (ƛ ＇ zero ˙ ` zero)))
+inner-value : Value inner
+inner-value = Λ (ƛ ＇ zero ˙ ` zero)
 
 inner-typed : live-Ψ ,end[ zero ] ∣ [] ⊢ inner ⦂ `∀ identityBody
-inner-typed =
-  ⊢Λ (body-result (result-val (ƛ ＇ zero ˙ ` zero)))
-    (⊢ƛ (⊢` Z))
+inner-typed = ⊢Λ (⊢ƛ (⊢` Z))
 
 shape : Conceal
 shape = id↑ ↦↓ id↓
@@ -98,7 +95,7 @@ redex-typed =
   ⊢⦂∀ (⊢conceal refl refl boundary-typed inner-typed)
 
 direct-step : live-Ψ ⊢ redex —direct-conceal-∀→ contractum
-direct-step = direct-β-conceal-∀ refl inner-result
+direct-step = direct-β-conceal-∀ refl inner-value
 
 contractum-untypable :
   live-Ψ ∣ [] ⊢ contractum ⦂ ＇ zero ⇒ ＇ zero

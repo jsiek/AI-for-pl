@@ -34,7 +34,7 @@ data _⊢_—float-reveal→_ : ∀ {Θ Δ σ}
       {M : Term (suc Θ) (suc Δ)} {A : Ty (suc Δ)}
       {Y : TyVar (suc Δ)} {α : TyVar Θ} {C : Ty Δ} {c : Reveal}
     → rep? Ψ α ≡ just C
-    → Result (ν[ A ] M)
+    → Value M
       ------------------------------------------------------------
     → Ψ ⊢ (ν[ A ] M) ↑[ Y ≔ α ] c —float-reveal→
         ν[ substᵗ (resolveSubᵗ Y C) A ]
@@ -68,9 +68,7 @@ bad-M =
     ↑[ zero ≔ zero ] (seal ↦↑ id↑)
 
 bad-M-value : Value bad-M
-bad-M-value =
-  result-val (ƛ ＇ zero ˙ $ (κℕ zero)) ↑[ zero ≔ zero ]
-    fun (ƛ ＇ zero ˙ $ (κℕ zero))
+bad-M-value = reveal-fun (ƛ ＇ zero ˙ $ (κℕ zero))
 
 own-anchor-rep : rep? bodyEnv zero ≡ just (＇ zero)
 own-anchor-rep = refl
@@ -90,16 +88,13 @@ bad-redex-typed =
   ⊢reveal {fresh = empty-fresh} (rep?-here {Ψ = bad-Ψ})
     (⊢↑-⇒ ⊢seal (⊢id↑ (‵ `ℕ))) (⊢ν bad-M-typed)
 
-bad-result : Result (ν[ ＇ zero ] bad-M)
-bad-result = result-ν (result-val bad-M-value)
-
 bad-contractum : Term 1 zero
 bad-contractum =
   ν[ ℕᵗ ] (bad-M ↑[ zero ≔ suc zero ] (seal ↦↑ id↑))
 
 bad-float-shape : bad-Ψ ⊢ bad-redex —float-reveal→ bad-contractum
 bad-float-shape =
-  resolving-float-reveal (rep?-here {Ψ = bad-Ψ}) bad-result
+  resolving-float-reveal (rep?-here {Ψ = bad-Ψ}) bad-M-value
 
 ------------------------------------------------------------------------
 -- The current lookup still leaves the contractum untypable

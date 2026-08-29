@@ -147,6 +147,23 @@ also traces the public escape to `7 ⟨ ℕ ! ⟩` and its outside `？ℕ`
 projection to `7`; the latter checks both dependent `β-inst` and the
 binder-independent `∀X.★` projection/instantiation path.
 
+### U47b stop record — eager SCWRAP needs open lexical crossings
+
+The proposed eager function-boundary rules are not landed. The checked
+identity-function instances in
+`alt/probes/EagerSCWrapPreservationCounterexample.agda` show the same
+preservation failure in both polarities: the boundary redex is closed and
+typed, but the specified lambda contractum places its bound variable beneath
+a crossing, whose typing premise is fixed at `[]`. The probe also checks that
+the current PLFA substitution stops at that crossing, so a later application
+would not replace the migrated variable.
+
+`≼-typ` supports regular-type-context weakening; it does not transport term
+variables through reveal/conceal nodes. Landing eager SCWRAP therefore first
+requires an explicitly approved term-context-aware crossing judgment and
+matching renaming/substitution actions. Until then, function boundaries remain
+values and the lazy `β-reveal-⇒`/`β-conceal-⇒` consumers remain live.
+
 ## Next steps
 
 1. ~~**U28 — naming and imports**~~ DONE (`41b5560b`, `3410a1c9`):
@@ -252,6 +269,9 @@ was not visible**.
     then uniform canonicalization, then (after 11) neither.
 11. bracket-ambiguous payloads (`U26RepEvaluatorSpecProbe`) →
     **anchor-directed transport**: brackets never consulted.
+12. prospective eager SCWRAP moved a lambda variable beneath a crossing
+    whose term context is `[]` → rule rejected pending term-context-aware
+    crossing typing and substitution.
 
 Two further stops were structural rather than semantic and are worth
 remembering as process lessons: a big-step `≼`-only lookup needed a

@@ -482,7 +482,7 @@ preserve-inject-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
   → ⊢↑[ Y ⦂ wkᵗ Y C ] id↑ ⦂ ★ ↝ T
   → T ≡ wkᵗ Y B
   → Ψ ∣ Γ ⊢ (V ↑[ Y ≔ γ ] expand↑ H id↑)
-      ⟨ strengthenInjection Hᵍ H∼★ strengthens ⟩ ⦂ B
+      ⟨ strInj Hᵍ H∼★ strengthens ⟩ ⦂ B
 preserve-inject-reveal {B = ＇ X} Hᵍ H∼★ α-eq V⊢ strengthens
     (⊢id↑ ★) ()
 preserve-inject-reveal {B = ‵ ι} Hᵍ H∼★ α-eq V⊢ strengthens
@@ -491,7 +491,7 @@ preserve-inject-reveal {B = ★} Hᵍ H∼★ α-eq V⊢ strengthens
     (⊢id↑ ★) refl =
   ⊢⟨⟩
     (⊢reveal α-eq (expand↑-strengthen-typed strengthens) V⊢)
-    (strengthenInjection Hᵍ H∼★ strengthens)
+    (strInj Hᵍ H∼★ strengthens)
 preserve-inject-reveal {B = A ⇒ B} Hᵍ H∼★ α-eq V⊢ strengthens
     (⊢id↑ ★) ()
 preserve-inject-reveal {B = `∀ B} Hᵍ H∼★ α-eq V⊢ strengthens
@@ -558,7 +558,7 @@ preserve
     (inject-conceal {X = X} Vᵥ) =
   ⊢⟨⟩
     (⊢conceal X-live α-eq (expand↓-typed (wkᵗ X _)) V⊢)
-    (weakenInjection X Hᵍ H∼★)
+    (wkInj X Hᵍ H∼★)
 preserve
     (⊢reveal α-eq c⊢
       (⊢⟨⟩ V⊢ (_! ⦃ Gᵍ = Hᵍ ⦄
@@ -575,7 +575,7 @@ preserve
       (？_ ⦃ Gᵍ = Gᵍ ⦄ .(idᵍ Gᵍ)))
     (★-project-reveal {X = X} {G = G} Vᵥ) =
   ⊢reveal α-eq (expand↑-typed (wkᵗ X G))
-    (⊢⟨⟩ V⊢ (weakenConsistency X (？ (idᵍ Gᵍ))))
+    (⊢⟨⟩ V⊢ (wk~ X (？ (idᵍ Gᵍ))))
 preserve (⊢⟨⟩ (⊢⟨⟩ V⊢ c) d) (tag-untag Vᵥ) = V⊢
 preserve typing (tag-untag-bad Vᵥ neq) = ⊢blame
 preserve typing (blame-bot-intro Vᵥ) = ⊢blame

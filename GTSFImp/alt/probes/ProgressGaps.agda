@@ -247,7 +247,7 @@ starRevealAfterInject : Term 1 zero
 starRevealAfterInject =
   (($ (κℕ zero))
     ↑[ zero ≔ zero ] expand↑ (ℕᵗ {Δ = 1}) id↑)
-    ⟨ strengthenInjection {Δ = zero} {Y = zero} {μ = idᶜ}
+    ⟨ strInj {Δ = zero} {Y = zero} {μ = idᶜ}
       (‵ `ℕ) ι∼★ refl ⟩
 
 starRevealMergeAfterInject : Term 1 zero
@@ -257,7 +257,7 @@ starRevealMergeAfterInject =
 taggedOutsideReveal : Term 1 zero
 taggedOutsideReveal =
   ($ (κℕ zero))
-    ⟨ strengthenInjection {Δ = zero} {Y = zero} {μ = idᶜ}
+    ⟨ strInj {Δ = zero} {Y = zero} {μ = idᶜ}
       (‵ `ℕ) ι∼★ refl ⟩
 
 starRevealMergeAfterReveal : Term 1 zero

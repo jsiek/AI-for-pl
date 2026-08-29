@@ -28,7 +28,7 @@ open import Data.Fin using (Fin; zero; suc)
 open import Data.Fin.Properties using (_≟_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using ([])
-open import Data.Maybe using (just; nothing)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality
@@ -58,21 +58,115 @@ ext : Rename → Rename
 ext ρ zero = zero
 ext ρ (suc x) = suc (ρ x)
 
+-- A renaming stack records exactly where its current term-variable action was
+-- born.  Lambda extends only the current version; reveal saves that version.
+-- Conceal either restores the version at its matching reveal or reports that
+-- the pocket predates the stack, in which case the traversal is the identity.
+data RenameStack : AnchorCtx → TyCtx → Set where
+  ren-root : Rename → RenameStack Θ Δ
+  ren-bind : RenameStack Θ Δ → RenameStack Θ Δ
+  ren-typ : RenameStack Θ Δ → RenameStack Θ (suc Δ)
+  ren-begin : TyVar (suc Δ) → TyVar Θ → RenameStack Θ Δ
+    → RenameStack Θ (suc Δ)
+  ren-ν : RenameStack Θ Δ → RenameStack (suc Θ) Δ
+
+currentRename : RenameStack Θ Δ → Rename
+currentRename (ren-root ρ) = ρ
+currentRename (ren-bind stack) = ext (currentRename stack)
+currentRename (ren-typ stack) = currentRename stack
+currentRename (ren-begin Y α stack) = currentRename stack
+currentRename (ren-ν stack) = currentRename stack
+
+data RenamePop : AnchorCtx → TyCtx → Set where
+  older-pocket : RenamePop Θ Δ
+  local-pocket : RenameStack Θ Δ → RenamePop Θ Δ
+
+{-
+popRename : ∀ {Δ} → TyVar (suc Δ) → RenameStack (suc Δ)
+  → RenamePop Δ
+popRename Y (ren-root ρ) = older-pocket
+popRename Y (ren-bind stack) = popRename Y stack
+popRename zero (ren-typ stack) = older-pocket
+popRename {suc Δ} (suc Y) (ren-typ stack) with popRename Y stack
+popRename {suc Δ} (suc Y) (ren-typ stack) | older-pocket = older-pocket
+popRename {suc Δ} (suc Y) (ren-typ stack) | local-pocket stack′ =
+  local-pocket (ren-typ stack′)
+popRename Y (ren-begin pivot stack) with Y ≟ pivot
+popRename .pivot (ren-begin pivot stack) | yes refl = local-pocket stack
+popRename {zero} zero (ren-begin zero stack) | no zero≢zero =
+  ⊥-elim (zero≢zero refl)
+popRename {suc Δ} Y (ren-begin pivot stack) | no Y≢pivot
+    with popRename
+      (punchOut pivot Y (λ pivot≡Y → Y≢pivot (sym pivot≡Y))) stack
+popRename {suc Δ} Y (ren-begin pivot stack) | no Y≢pivot
+    | older-pocket =
+  older-pocket
+popRename {suc Δ} Y (ren-begin pivot stack) | no Y≢pivot
+    | local-pocket stack′ =
+  local-pocket
+    (ren-begin (punchOut Y pivot Y≢pivot) stack′)
+-}
+
+popRename : ∀ {Θ Δ} → TyVar (suc Δ) → TyVar Θ
+  → RenameStack Θ (suc Δ) → RenamePop Θ Δ
+popRename Y α (ren-root ρ) = older-pocket
+popRename Y α (ren-bind stack) = popRename Y α stack
+popRename zero α (ren-typ stack) = older-pocket
+popRename { Δ = suc Δ } (suc Y) α (ren-typ stack)
+    with popRename Y α stack
+popRename { Δ = suc Δ } (suc Y) α (ren-typ stack)
+    | older-pocket =
+  older-pocket
+popRename { Δ = suc Δ } (suc Y) α (ren-typ stack)
+    | local-pocket stack′ =
+  local-pocket (ren-typ stack′)
+popRename Y α (ren-begin pivot β stack) with Y ≟ pivot
+popRename .pivot α (ren-begin pivot β stack) | yes refl with α ≟ β
+popRename .pivot .β (ren-begin pivot β stack) | yes refl | yes refl =
+  local-pocket stack
+popRename .pivot α (ren-begin pivot β stack) | yes refl | no α≢β =
+  older-pocket
+popRename { Δ = zero } zero α (ren-begin zero β stack)
+    | no zero≢zero =
+  ⊥-elim (zero≢zero refl)
+popRename { Δ = suc Δ } Y α (ren-begin pivot β stack)
+    | no Y≢pivot
+    with popRename
+      (punchOut pivot Y (λ pivot≡Y → Y≢pivot (sym pivot≡Y))) α stack
+popRename { Δ = suc Δ } Y α (ren-begin pivot β stack)
+    | no Y≢pivot | older-pocket =
+  older-pocket
+popRename { Δ = suc Δ } Y α (ren-begin pivot β stack)
+    | no Y≢pivot | local-pocket stack′ =
+  local-pocket (ren-begin (punchOut Y pivot Y≢pivot) β stack′)
+popRename Y zero (ren-ν stack) = older-pocket
+popRename Y (suc α) (ren-ν stack) with popRename Y α stack
+popRename Y (suc α) (ren-ν stack) | older-pocket = older-pocket
+popRename Y (suc α) (ren-ν stack) | local-pocket stack′ =
+  local-pocket (ren-ν stack′)
+
+renameWith : RenameStack Θ Δ → Term Θ Δ → Term Θ Δ
+renameWith stack (` x) = ` (currentRename stack x)
+renameWith stack (ƛ A ˙ M) = ƛ A ˙ renameWith (ren-bind stack) M
+renameWith stack (L · M) = renameWith stack L · renameWith stack M
+renameWith stack (Λ M) = Λ renameWith (ren-typ stack) M
+renameWith stack (L ⦂∀ C [ A ]) = renameWith stack L ⦂∀ C [ A ]
+renameWith stack ($ κ) = $ κ
+renameWith stack (L ⊕[ op ] M) =
+  renameWith stack L ⊕[ op ] renameWith stack M
+renameWith stack (M ⟨ c ⟩) = renameWith stack M ⟨ c ⟩
+renameWith stack (M ↑[ Y ≔ α ] c) =
+  renameWith (ren-begin Y α stack) M ↑[ Y ≔ α ] c
+renameWith stack (M ↓[ Y ≔ α ] c) with popRename Y α stack
+renameWith stack (M ↓[ Y ≔ α ] c) | older-pocket =
+  M ↓[ Y ≔ α ] c
+renameWith stack (M ↓[ Y ≔ α ] c) | local-pocket stack′ =
+  renameWith stack′ M ↓[ Y ≔ α ] c
+renameWith stack (ν[ A ] M) = ν[ A ] renameWith (ren-ν stack) M
+renameWith stack blame = blame
+
 rename : Rename → Term Θ Δ → Term Θ Δ
-rename ρ (` x) = ` (ρ x)
-rename ρ (ƛ A ˙ M) = ƛ A ˙ rename (ext ρ) M
-rename ρ (L · M) = rename ρ L · rename ρ M
-rename ρ (Λ M) = Λ rename ρ M
-rename ρ (L ⦂∀ C [ A ]) = rename ρ L ⦂∀ C [ A ]
-rename ρ ($ κ) = $ κ
-rename ρ (L ⊕[ op ] M) = rename ρ L ⊕[ op ] rename ρ M
-rename ρ (M ⟨ c ⟩) = rename ρ M ⟨ c ⟩
--- Crossing interiors remain closed.  Region interiors are open and therefore
--- receive the ordinary term-variable action.
-rename ρ (M ↑[ Y ≔ α ] c) = M ↑[ Y ≔ α ] c
-rename ρ (M ↓[ Y ≔ α ] c) = M ↓[ Y ≔ α ] c
-rename ρ (ν[ A ] M) = ν[ A ] rename ρ M
-rename ρ blame = blame
+rename ρ = renameWith (ren-root ρ)
 
 ------------------------------------------------------------------------
 -- Type-variable renaming
@@ -436,21 +530,128 @@ liftˢ σ x = weakenᵗᵐ zero (σ x)
 shiftᶿˢ : Subst Θ Δ → Subst (suc Θ) Δ
 shiftᶿˢ σ x = shiftᶿ (σ x)
 
+weakenSubst : ∀ {Θ Δ} → TyVar (suc Δ) → Subst Θ Δ
+  → Subst Θ (suc Δ)
+weakenSubst Y σ x = weakenᵗᵐ Y (σ x)
+
+data SubstStack : AnchorCtx → TyCtx → Set where
+  sub-root : Subst Θ Δ → SubstStack Θ Δ
+  sub-bind : SubstStack Θ Δ → SubstStack Θ Δ
+  sub-typ : SubstStack Θ Δ → SubstStack Θ (suc Δ)
+  sub-begin : TyVar (suc Δ) → TyVar Θ → SubstStack Θ Δ
+    → SubstStack Θ (suc Δ)
+  sub-ν : SubstStack Θ Δ → SubstStack (suc Θ) Δ
+
+currentSubst : SubstStack Θ Δ → Subst Θ Δ
+currentSubst (sub-root σ) = σ
+currentSubst (sub-bind stack) = exts (currentSubst stack)
+currentSubst (sub-typ stack) = liftˢ (currentSubst stack)
+currentSubst (sub-begin Y α stack) = weakenSubst Y (currentSubst stack)
+currentSubst (sub-ν stack) = shiftᶿˢ (currentSubst stack)
+
+data SubstPop : AnchorCtx → TyCtx → Set where
+  older-subst-pocket : SubstPop Θ Δ
+  local-subst-pocket : SubstStack Θ Δ → SubstPop Θ Δ
+
+{-
+popSubst : ∀ {Θ Δ} → TyVar (suc Δ) → SubstStack Θ (suc Δ)
+  → SubstPop Θ Δ
+popSubst Y (sub-root σ) = older-subst-pocket
+popSubst Y (sub-bind stack) = popSubst Y stack
+popSubst zero (sub-typ stack) = older-subst-pocket
+popSubst { Δ = suc Δ } (suc Y) (sub-typ stack) with popSubst Y stack
+popSubst { Δ = suc Δ } (suc Y) (sub-typ stack)
+    | older-subst-pocket =
+  older-subst-pocket
+popSubst { Δ = suc Δ } (suc Y) (sub-typ stack)
+    | local-subst-pocket stack′ =
+  local-subst-pocket (sub-typ stack′)
+popSubst Y (sub-begin pivot stack) with Y ≟ pivot
+popSubst .pivot (sub-begin pivot stack) | yes refl =
+  local-subst-pocket stack
+popSubst { Δ = zero } zero (sub-begin zero stack) | no zero≢zero =
+  ⊥-elim (zero≢zero refl)
+popSubst { Δ = suc Δ } Y (sub-begin pivot stack) | no Y≢pivot
+    with popSubst
+      (punchOut pivot Y (λ pivot≡Y → Y≢pivot (sym pivot≡Y))) stack
+popSubst { Δ = suc Δ } Y (sub-begin pivot stack) | no Y≢pivot
+    | older-subst-pocket =
+  older-subst-pocket
+popSubst { Δ = suc Δ } Y (sub-begin pivot stack) | no Y≢pivot
+    | local-subst-pocket stack′ =
+  local-subst-pocket
+    (sub-begin (punchOut Y pivot Y≢pivot) stack′)
+popSubst Y (sub-ν stack) with popSubst Y stack
+popSubst Y (sub-ν stack) | older-subst-pocket = older-subst-pocket
+popSubst Y (sub-ν stack) | local-subst-pocket stack′ =
+  local-subst-pocket (sub-ν stack′)
+-}
+
+popSubst : ∀ {Θ Δ} → TyVar (suc Δ) → TyVar Θ
+  → SubstStack Θ (suc Δ) → SubstPop Θ Δ
+popSubst Y α (sub-root σ) = older-subst-pocket
+popSubst Y α (sub-bind stack) = popSubst Y α stack
+popSubst zero α (sub-typ stack) = older-subst-pocket
+popSubst { Δ = suc Δ } (suc Y) α (sub-typ stack)
+    with popSubst Y α stack
+popSubst { Δ = suc Δ } (suc Y) α (sub-typ stack)
+    | older-subst-pocket =
+  older-subst-pocket
+popSubst { Δ = suc Δ } (suc Y) α (sub-typ stack)
+    | local-subst-pocket stack′ =
+  local-subst-pocket (sub-typ stack′)
+popSubst Y α (sub-begin pivot β stack) with Y ≟ pivot
+popSubst .pivot α (sub-begin pivot β stack) | yes refl with α ≟ β
+popSubst .pivot .β (sub-begin pivot β stack)
+    | yes refl | yes refl =
+  local-subst-pocket stack
+popSubst .pivot α (sub-begin pivot β stack)
+    | yes refl | no α≢β =
+  older-subst-pocket
+popSubst { Δ = zero } zero α (sub-begin zero β stack)
+    | no zero≢zero =
+  ⊥-elim (zero≢zero refl)
+popSubst { Δ = suc Δ } Y α (sub-begin pivot β stack)
+    | no Y≢pivot
+    with popSubst
+      (punchOut pivot Y (λ pivot≡Y → Y≢pivot (sym pivot≡Y))) α stack
+popSubst { Δ = suc Δ } Y α (sub-begin pivot β stack)
+    | no Y≢pivot | older-subst-pocket =
+  older-subst-pocket
+popSubst { Δ = suc Δ } Y α (sub-begin pivot β stack)
+    | no Y≢pivot | local-subst-pocket stack′ =
+  local-subst-pocket
+    (sub-begin (punchOut Y pivot Y≢pivot) β stack′)
+popSubst Y zero (sub-ν stack) = older-subst-pocket
+popSubst Y (suc α) (sub-ν stack) with popSubst Y α stack
+popSubst Y (suc α) (sub-ν stack) | older-subst-pocket =
+  older-subst-pocket
+popSubst Y (suc α) (sub-ν stack) | local-subst-pocket stack′ =
+  local-subst-pocket (sub-ν stack′)
+
+substWith : SubstStack Θ Δ → Term Θ Δ → Term Θ Δ
+substWith stack (` x) = currentSubst stack x
+substWith stack (ƛ A ˙ M) = ƛ A ˙ substWith (sub-bind stack) M
+substWith stack (L · M) = substWith stack L · substWith stack M
+substWith stack (Λ M) = Λ (substWith (sub-typ stack) M)
+substWith stack (L ⦂∀ C [ A ]) = substWith stack L ⦂∀ C [ A ]
+substWith stack ($ κ) = $ κ
+substWith stack (L ⊕[ op ] M) =
+  substWith stack L ⊕[ op ] substWith stack M
+substWith stack (M ⟨ c ⟩) = substWith stack M ⟨ c ⟩
+substWith stack (M ↑[ Y ≔ α ] c) =
+  substWith (sub-begin Y α stack) M ↑[ Y ≔ α ] c
+substWith stack (M ↓[ Y ≔ α ] c) with popSubst Y α stack
+substWith stack (M ↓[ Y ≔ α ] c) | older-subst-pocket =
+  M ↓[ Y ≔ α ] c
+substWith stack (M ↓[ Y ≔ α ] c)
+    | local-subst-pocket stack′ =
+  substWith stack′ M ↓[ Y ≔ α ] c
+substWith stack (ν[ A ] M) = ν[ A ] substWith (sub-ν stack) M
+substWith stack blame = blame
+
 subst : Subst Θ Δ → Term Θ Δ → Term Θ Δ
-subst σ (` x) = σ x
-subst σ (ƛ A ˙ M) = ƛ A ˙ subst (exts σ) M
-subst σ (L · M) = subst σ L · subst σ M
-subst σ (Λ M) = Λ (subst (liftˢ σ) M)
-subst σ (L ⦂∀ C [ A ]) = subst σ L ⦂∀ C [ A ]
-subst σ ($ κ) = $ κ
-subst σ (L ⊕[ op ] M) = subst σ L ⊕[ op ] subst σ M
-subst σ (M ⟨ c ⟩) = subst σ M ⟨ c ⟩
--- Crossing interiors remain closed.  Region interiors are open and therefore
--- receive the ordinary term-variable action.
-subst σ (M ↑[ Y ≔ α ] c) = M ↑[ Y ≔ α ] c
-subst σ (M ↓[ Y ≔ α ] c) = M ↓[ Y ≔ α ] c
-subst σ (ν[ A ] M) = ν[ A ] subst (shiftᶿˢ σ) M
-subst σ blame = blame
+subst σ = substWith (sub-root σ)
 
 singleSub : Term Θ Δ → Subst Θ Δ
 singleSub N zero = N
@@ -459,6 +660,18 @@ singleSub N (suc x) = ` x
 infixl 8 _[_]
 _[_] : Term Θ Δ → Term Θ Δ → Term Θ Δ
 M [ N ] = subst (singleSub N) M
+
+-- Compute the reveal wrapper's outside domain.  A typed reveal supplies the
+-- representation and guarantees that the conceal-domain endpoint is an
+-- `X`-weakening; the Curry rule records the successful computation.
+outsideDomain? : ∀ {Θ Δ σ}
+  → TyEnv Θ Δ σ → TyVar Θ → TyVar (suc Δ)
+  → Conceal → Ty (suc Δ) → Maybe (Ty Δ)
+outsideDomain? Ψ α X c A with rep? Ψ α
+outsideDomain? Ψ α X c A | nothing = nothing
+outsideDomain? Ψ α X c A | just C =
+  strengthenᵗ? X (src↓ X (wkᵗ X C) c A)
+
 ------------------------------------------------------------------------
 -- One-step reduction
 ------------------------------------------------------------------------
@@ -597,6 +810,15 @@ data _⊢_—→_ : ∀ {Θ Δ σ}
     → Value V
       ------------------------------------------
     → Ψ ⊢ V ⟨ bot-intro {μ = μ} ⟩ —→ blame
+
+  SCWRAP : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+      {A : Ty (suc Δ)} {A′ : Ty Δ} {N : Term Θ (suc Δ)}
+      {X : TyVar (suc Δ)} {α : TyVar Θ}
+      {c : Conceal} {d : Reveal}
+    → outsideDomain? Ψ α X c A ≡ just A′
+      ------------------------------------------------------------
+    → Ψ ⊢ (ƛ A ˙ N) ↑[ X ≔ α ] (c ↦↑ d) —→
+        ƛ A′ ˙ ((N [ (` zero) ↓[ X ≔ α ] c ]) ↑[ X ≔ α ] d)
 
   β-reveal-⇒ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {V : Term Θ (suc Δ)} {W : Term Θ Δ}
@@ -865,7 +1087,9 @@ mutual
     value-no-step Vᵥ step
   value-no-step (seal-value Vᵥ) (ξ-conceal step) =
     value-no-step Vᵥ step
-  value-no-step (reveal-fun Vᵥ) (ξ-reveal step) =
+  value-no-step (reveal-fun Vᵥ nonλ) (SCWRAP endpoint-eq) =
+    nonλ refl
+  value-no-step (reveal-fun Vᵥ nonλ) (ξ-reveal step) =
     value-no-step Vᵥ step
   value-no-step (conceal-fun Vᵥ) (ξ-conceal step) =
     value-no-step Vᵥ step

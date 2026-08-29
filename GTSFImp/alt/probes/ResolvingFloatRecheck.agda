@@ -2,7 +2,8 @@ module alt.probes.ResolvingFloatRecheck where
 
 -- File Charter:
 --   * Rechecks ladder entry 7 against σ-indexed telescopes and anchor-directed
---     `rep?`: the resolving float-reveal counterexample still refutes.
+--     `rep?`.  Its historical contractum still refutes, but reveal-polarity
+--     SCWRAP now fires first because the reveal-headed lambda is not a value.
 
 open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
@@ -67,8 +68,8 @@ bad-M =
   (ƛ ＇ zero ˙ $ (κℕ zero))
     ↑[ zero ≔ zero ] (seal ↦↑ id↑)
 
-bad-M-value : Value bad-M
-bad-M-value = reveal-fun (ƛ ＇ zero ˙ $ (κℕ zero))
+bad-M-not-value : ¬ Value bad-M
+bad-M-not-value (reveal-fun Vᵛ nonλ) = nonλ refl
 
 own-anchor-rep : rep? bodyEnv zero ≡ just (＇ zero)
 own-anchor-rep = refl
@@ -92,9 +93,19 @@ bad-contractum : Term 1 zero
 bad-contractum =
   ν[ ℕᵗ ] (bad-M ↑[ zero ≔ suc zero ] (seal ↦↑ id↑))
 
-bad-float-shape : bad-Ψ ⊢ bad-redex —float-reveal→ bad-contractum
-bad-float-shape =
-  resolving-float-reveal (rep?-here {Ψ = bad-Ψ}) bad-M-value
+bad-float-shape-refuted :
+  ¬ (bad-Ψ ⊢ bad-redex —float-reveal→ bad-contractum)
+bad-float-shape-refuted
+    (resolving-float-reveal rep-eq Mᵛ) = bad-M-not-value Mᵛ
+
+bad-M-contractum : Term 2 1
+bad-M-contractum =
+  ƛ ＇ zero ˙
+    ((($ (κℕ zero)) [ (` zero) ↓[ zero ≔ zero ] seal ])
+      ↑[ zero ≔ zero ] id↑)
+
+bad-M-scwrap : bodyEnv ⊢ bad-M —→ bad-M-contractum
+bad-M-scwrap = SCWRAP refl
 
 ------------------------------------------------------------------------
 -- The current lookup still leaves the contractum untypable

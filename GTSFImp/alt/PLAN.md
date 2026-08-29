@@ -147,7 +147,7 @@ also traces the public escape to `7 ⟨ ℕ ! ⟩` and its outside `？ℕ`
 projection to `7`; the latter checks both dependent `β-inst` and the
 binder-independent `∀X.★` projection/instantiation path.
 
-### U47b stop record — eager SCWRAP needs open lexical crossings
+### U47b/U48 stop record — bind/antibind needs substitution evidence
 
 The proposed eager function-boundary rules are not landed. The checked
 identity-function instances in
@@ -158,11 +158,22 @@ a crossing, whose typing premise is fixed at `[]`. The probe also checks that
 the current PLFA substitution stops at that crossing, so a later application
 would not replace the migrated variable.
 
-`≼-typ` supports regular-type-context weakening; it does not transport term
-variables through reveal/conceal nodes. Landing eager SCWRAP therefore first
-requires an explicitly approved term-context-aware crossing judgment and
-matching renaming/substitution actions. Until then, function boundaries remain
-values and the lazy `β-reveal-⇒`/`β-conceal-⇒` consumers remain live.
+U48 approved open term contexts, but its conceal image-pattern is not closed
+under the approved contravariant push. The same probe checks a conversion
+from `ℕ⇒ℕ` to `＇X⇒ℕ`; its contractum binds `x : ＇X`, and `＇X` is
+not `wkᵗ X A₀` for any outside `A₀`. A freely threaded pair admits that
+context, but the operational conceal branch has
+`σ x : Term Θ (suc Δ)` where it must produce `Term Θ Δ`. There is no inverse
+type weakening, and the raw delimiter stores no per-variable reveal evidence
+with which to build that term.
+
+Thus `≼-typ` is not the missing operation: it transports regular type-context
+weakening, not term substitutions through an anti-binding node. Landing open
+contexts now requires one additional design choice: enrich delimiter syntax
+with context-conversion evidence, make substitution typing-directed, or
+restrict conceal contexts/SCWRAP to strengthenable domains. Until that choice,
+function boundaries remain values and the lazy
+`β-reveal-⇒`/`β-conceal-⇒` consumers remain live.
 
 ## Next steps
 
@@ -242,7 +253,8 @@ prefix or extrusion family.
 
 ## Institutional memory: the refutation ladder
 
-Preservation was refuted eleven times before it closed. Each entry is
+Preservation was refuted eleven times before it closed; U47b/U48 add a
+twelfth checked rejection for a prospective rule. Each entry is
 a *checked* Agda counterexample kept in the tree (as a probe or a
 history comment) so the fix cannot silently regress. Reading them in
 order is the fastest way to understand why the design looks the way it
@@ -269,9 +281,10 @@ was not visible**.
     then uniform canonicalization, then (after 11) neither.
 11. bracket-ambiguous payloads (`U26RepEvaluatorSpecProbe`) →
     **anchor-directed transport**: brackets never consulted.
-12. prospective eager SCWRAP moved a lambda variable beneath a crossing
-    whose term context is `[]` → rule rejected pending term-context-aware
-    crossing typing and substitution.
+12. prospective eager SCWRAP first moved a lambda variable beneath a closed
+    crossing; U48's open image repair then failed on the checked
+    `ℕ⇒ℕ`-to-`＇X⇒ℕ` conceal domain and exposed the missing
+    anti-binding substitution action.
 
 Two further stops were structural rather than semantic and are worth
 remembering as process lessons: a big-step `≼`-only lookup needed a

@@ -48,10 +48,13 @@ data TyEnv : TyCtx → Set where
 - σ, `∉ᵛ` freshness, `∈acc`/`∈seg`, and the evidence field are all GONE:
   each begin binds a fresh variable by construction, and "naming a hidden
   region" is unrepresentable — the pocket's Δ-index cannot mention X.
-- `rep Ψ X` is a TOTAL lookup for live region variables (weaken the stored
-  R along the entries above its begin). No Maybe, no fuel, no scanRep?/
-  repoint?: *live ⇒ rep exists* is structural. Anchor-directed transport
-  and its dead-crossing resolution are deleted, not reproved.
+- `rep? Ψ X : Maybe (Ty _)` is a ONE-PASS structural lookup: `just` (the
+  stored R, weakened along the entries above its begin) for reveal-bound
+  variables, `nothing` for `,typ`-bound lexicals — the Maybe is the
+  two-sortedness of variables, nothing else (checked: any TOTAL rep lets
+  ⊢conceal fire on a Λ-bound variable — FusedTotalRepCounterexample).
+  No fuel, no scanRep?/repoint?, no dead-crossing resolution: for a LIVE
+  region variable the lookup always succeeds, structurally.
 - Term contexts stay exactly U50-structural: `TermCtx : TyEnv Δ → Set`,
   entries at birth scope, `⊢`` weakens along the path, conceal premises
   truncate with `Γ ↾end[X]`.
@@ -67,7 +70,8 @@ data TyEnv : TyCtx → Set where
   -- freshness is binding)
 
 ⊢conceal :
-    rep Ψ X ≡ R                          -- total lookup at the binder
+    rep? Ψ X ≡ just R                    -- region variables only; nothing
+                                         -- for lexicals (Λ-bound)
   → ⊢↓[ X ⦂ wkᵗ X R ] c ⦂ wkᵗ X A ↝ B
   → Ψ ,end[ X ] ∣ Γ ↾end[ X ] ⊢ M ⦂ A
   → Ψ ∣ Γ ⊢ M ↓[ X ] c ⦂ B

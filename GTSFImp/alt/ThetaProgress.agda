@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module alt.ThetaProgress where
 
 -- File Charter:
@@ -20,6 +22,7 @@ open import Data.Product using (_×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; cong; refl; sym; trans)
+  renaming (subst to subst≡)
 open import Relation.Nullary using (¬_; yes; no)
 
 open import Types
@@ -426,7 +429,7 @@ canonical-⇒ (Vᵛ 《 all 》) ()
 canonical-⇒ (Vᵛ 《 genᵥ A≠★ safe 》) ()
 canonical-⇒ (seal-value Vᵛ)
     (⊢conceal X-live α-eq () V⊢)
-canonical-⇒ (reveal-fun Vᵛ) typing = cf-reveal Vᵛ
+canonical-⇒ (reveal-fun Vᵛ nonλ) typing = cf-reveal Vᵛ
 canonical-⇒ (conceal-fun Vᵛ) typing = cf-conceal Vᵛ
 canonical-⇒ (adapter Vᵛ head pair≢) typing =
   cf-adapter Vᵛ head pair≢
@@ -450,7 +453,7 @@ canonical-∀ (Vᵛ 《 genᵥ A≠★ safe 》)
   ca-gen Vᵛ A≠★ safe
 canonical-∀ (seal-value Vᵛ)
     (⊢conceal X-live α-eq () V⊢)
-canonical-∀ (reveal-fun Vᵛ)
+canonical-∀ (reveal-fun Vᵛ nonλ)
     (⊢reveal α-eq c⊢ V⊢) =
   ⊥-elim (no-fun-reveal-∀ c⊢ refl)
 canonical-∀ (conceal-fun Vᵛ)
@@ -475,7 +478,7 @@ canonical-★ (Vᵛ 《 all 》) ()
 canonical-★ (Vᵛ 《 genᵥ A≠★ safe 》) ()
 canonical-★ (seal-value Vᵛ)
     (⊢conceal X-live α-eq () V⊢)
-canonical-★ (reveal-fun Vᵛ)
+canonical-★ (reveal-fun Vᵛ nonλ)
     (⊢reveal α-eq () V⊢)
 canonical-★ (conceal-fun Vᵛ)
     (⊢conceal X-live α-eq () V⊢)
@@ -499,7 +502,7 @@ canonical-base (Vᵛ 《 all 》) ()
 canonical-base (Vᵛ 《 genᵥ A≠★ safe 》) ()
 canonical-base (seal-value Vᵛ)
     (⊢conceal X-live α-eq () V⊢)
-canonical-base (reveal-fun Vᵛ)
+canonical-base (reveal-fun Vᵛ nonλ)
     (⊢reveal α-eq () V⊢)
 canonical-base (conceal-fun Vᵛ)
     (⊢conceal X-live α-eq () V⊢)
@@ -522,7 +525,7 @@ canonical-variable (Vᵛ 《 fun 》) ()
 canonical-variable (Vᵛ 《 all 》) ()
 canonical-variable (Vᵛ 《 genᵥ A≠★ safe 》) ()
 canonical-variable (seal-value Vᵛ) typing = atom-seal Vᵛ
-canonical-variable (reveal-fun Vᵛ) (⊢reveal α-eq () V⊢)
+canonical-variable (reveal-fun Vᵛ nonλ) (⊢reveal α-eq () V⊢)
 canonical-variable (conceal-fun Vᵛ) (⊢conceal X-live α-eq () V⊢)
 canonical-variable (adapter Vᵛ head pair≢) typing =
   atom-boundary (bv-reveal-adapter Vᵛ head pair≢)
@@ -958,8 +961,7 @@ module WithGaps
       | refl | atom-boundary boundary =
     gap-adapter-⊕
       (atomic-reveal (＇ X) Vᵛ (boundary-head boundary) typing)
-  reveal-value-progress-core typing V⊢ Vᵛ (⊢↑-⇒ c⊢ d⊢) target-eq =
-    done (reveal-fun Vᵛ)
+  reveal-value-progress-core typing V⊢ Vᵛ (⊢↑-⇒ c⊢ d⊢) target-eq = ?
   reveal-value-progress-core {B = ＇ Y} typing V⊢ Vᵛ (⊢↑-∀ c⊢) ()
   reveal-value-progress-core {B = ‵ ι} typing V⊢ Vᵛ (⊢↑-∀ c⊢) ()
   reveal-value-progress-core {B = ★} typing V⊢ Vᵛ (⊢↑-∀ c⊢) ()
@@ -1085,8 +1087,13 @@ module WithGaps
     → Ψ ∣ [] ⊢ V ↓[ X ≔ α ] c ⦂ B
     → Value V
     → Progress Ψ (V ↓[ X ≔ α ] c)
-  conceal-value-progress typing@(⊢conceal X-live α-eq c⊢ V⊢) Vᵛ =
-    conceal-value-progress-core typing V⊢ Vᵛ c⊢ refl refl
+  conceal-value-progress {Ψ = Ψ} {V = V} {X = X}
+      typing@(⊢conceal {A = A} X-live α-eq c⊢ V⊢) Vᵛ =
+    conceal-value-progress-core typing pocket⊢ Vᵛ c⊢ refl refl
+    where
+    pocket⊢ : Ψ ,end[ X ] ∣ [] ⊢ V ⦂ A
+    pocket⊢ = subst≡ (λ Γ → Ψ ,end[ X ] ∣ Γ ⊢ V ⦂ A)
+      (truncateForEnd-empty X) V⊢
 
   progress : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {M : Term Θ Δ} {A : Ty Δ}
@@ -1199,7 +1206,7 @@ module WithGaps
   progress typing@(⊢ν (⊢Λ V⊢)) | done (Λ Vᵛ) = step NUTYWRAP
   progress typing@(⊢ν M⊢) | done Vᵛ@(seal-value Wᵛ) =
     gap-adapter-⊕ (ν-immobile Vᵛ seal-head typing)
-  progress typing@(⊢ν M⊢) | done Vᵛ@(reveal-fun Wᵛ) =
+  progress typing@(⊢ν M⊢) | done Vᵛ@(reveal-fun Wᵛ nonλ) =
     gap-adapter-⊕ (ν-immobile Vᵛ reveal-fun-head typing)
   progress typing@(⊢ν M⊢) | done Vᵛ@(conceal-fun Wᵛ) =
     gap-adapter-⊕ (ν-immobile Vᵛ conceal-fun-head typing)
@@ -1213,7 +1220,10 @@ module WithGaps
   progress typing@(⊢reveal α-eq c⊢ M⊢) | failed = step blame-reveal
   progress typing@(⊢reveal α-eq c⊢ M⊢) | done Mᵛ =
     reveal-value-progress typing Mᵛ
-  progress typing@(⊢conceal X-live α-eq c⊢ M⊢) with progress M⊢
+  progress typing@(⊢conceal {Ψ = Ψ} {M = M} {A = A} {Y = Y}
+      X-live α-eq c⊢ M⊢)
+      with progress (subst≡ (λ Γ → Ψ ,end[ Y ] ∣ Γ ⊢ M ⦂ A)
+        (truncateForEnd-empty Y) M⊢)
   progress typing@(⊢conceal X-live α-eq c⊢ M⊢) | step M—→M′ =
     step (ξ-conceal M—→M′)
   progress typing@(⊢conceal X-live α-eq c⊢ M⊢) | failed =

@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module alt.ThetaTermSubst where
 
 -- File Charter:
@@ -18,8 +20,9 @@ open import Data.Fin.Properties using (_≟_; suc-injective)
 open import Data.List using ([]; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
   renaming (map to mapMaybe)
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
-open import Data.Nat.Properties using (+-assoc; +-comm; +-identityʳ; +-suc)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s)
+open import Data.Nat.Properties
+  using (+-assoc; +-comm; +-identityʳ; +-suc)
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₁; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Binary.PropositionalEquality
@@ -29,7 +32,6 @@ open import Relation.Nullary using (¬_; yes; no)
 import Data.Vec.Base as Vec
 
 open import Types
-open import TermCtx
 open import Consistency
 open import Primitives
 open import alt.Conversion
@@ -43,11 +45,11 @@ private
     Δ Δ′ : TyCtx
     σ : Vec.Vec (Maybe (TyVar Θ)) Δ
     Ψ Ψ′ : TyEnv Θ Δ σ
-    Γ Γ′ : TermCtx Δ
+    Γ Γ′ : TermCtx Ψ
     A B C D : Ty Δ
     L M N : Term Θ Δ
     tyVar inner outer : TyVar Δ
-    entry anchor bound α a : TyVar Θ
+    entry anchor bound α a beta : TyVar Θ
 
 ------------------------------------------------------------------------
 -- Conversion endpoint determinacy
@@ -437,75 +439,99 @@ mutual
 -- Term-variable renaming preserves typing
 ------------------------------------------------------------------------
 
-ext-∋ : ∀ {Δ} {Γ Γ′ : TermCtx Δ} {ρ : Rename} {A : Ty Δ}
-  → (∀ {x B} → Γ ∋ x ⦂ B → Γ′ ∋ ρ x ⦂ B)
-  → ∀ {x B} → A ∷ Γ ∋ x ⦂ B → A ∷ Γ′ ∋ ext ρ x ⦂ B
-ext-∋ hρ Z = Z
-ext-∋ hρ (S x∈) = S (hρ x∈)
+renameWith-NonLambda : ∀ {V : Term Θ Δ} (stack : RenameStack Θ Δ)
+  → NonLambda V
+  → NonLambda (renameWith stack V)
+renameWith-NonLambda {V = ` x} stack nonλ = λ ()
+renameWith-NonLambda {V = ƛ A ˙ M} stack nonλ =
+  ⊥-elim (nonλ refl)
+renameWith-NonLambda {V = L · M} stack nonλ = λ ()
+renameWith-NonLambda {V = Λ M} stack nonλ = λ ()
+renameWith-NonLambda {V = L ⦂∀ C [ A ]} stack nonλ = λ ()
+renameWith-NonLambda {V = $ κ} stack nonλ = λ ()
+renameWith-NonLambda {V = L ⊕[ op ] M} stack nonλ = λ ()
+renameWith-NonLambda {V = M ⟨ c ⟩} stack nonλ = λ ()
+renameWith-NonLambda {V = M ↑[ Y ≔ α ] c} stack nonλ = λ ()
+renameWith-NonLambda {V = M ↓[ Y ≔ α ] c} stack nonλ
+    with popRename Y α stack
+renameWith-NonLambda {V = M ↓[ Y ≔ α ] c} stack nonλ
+    | older-pocket = λ ()
+renameWith-NonLambda {V = M ↓[ Y ≔ α ] c} stack nonλ
+    | local-pocket stack′ = λ ()
+renameWith-NonLambda {V = ν[ A ] M} stack nonλ = λ ()
+renameWith-NonLambda {V = blame} stack nonλ = λ ()
 
-lookup-renameCtx-inv : ∀ {Δ Δ′} {ρ : Δ ⇒ʳ Δ′}
-    {Γ : TermCtx Δ} {x A}
-  → renameCtx ρ Γ ∋ x ⦂ A
-  → ∃[ B ] (Γ ∋ x ⦂ B × renameᵗ ρ B ≡ A)
-lookup-renameCtx-inv {Γ = B ∷ Γ} Z = B , Z , refl
-lookup-renameCtx-inv {Γ = C ∷ Γ} (S x∈)
-    with lookup-renameCtx-inv x∈
-lookup-renameCtx-inv {Γ = C ∷ Γ} (S x∈) | B , B∈ , refl =
-  B , S B∈ , refl
+renameWith-ImmobileHead : ∀ {V : Term Θ Δ}
+    (stack : RenameStack Θ Δ)
+  → ImmobileHead V
+  → ImmobileHead (renameWith stack V)
+renameWith-ImmobileHead stack (seal-head {X = X} {α = α})
+    with popRename X α stack
+renameWith-ImmobileHead stack seal-head | older-pocket = seal-head
+renameWith-ImmobileHead stack seal-head | local-pocket stack′ = seal-head
+renameWith-ImmobileHead stack reveal-fun-head = reveal-fun-head
+renameWith-ImmobileHead stack (conceal-fun-head {X = X} {α = α})
+    with popRename X α stack
+renameWith-ImmobileHead stack conceal-fun-head | older-pocket = conceal-fun-head
+renameWith-ImmobileHead stack conceal-fun-head | local-pocket stack′ =
+  conceal-fun-head
+renameWith-ImmobileHead stack
+    (adapter-head {Y = Y} {X = X} {β = beta} {α = α})
+    with popRename Y beta (ren-begin X α stack)
+renameWith-ImmobileHead stack adapter-head | older-pocket = adapter-head
+renameWith-ImmobileHead stack adapter-head | local-pocket stack′ = adapter-head
+renameWith-ImmobileHead stack adapter-region-head = adapter-region-head
 
-renameCtx-∋ : ∀ {Δ Δ′} {ρᵗ : Δ ⇒ʳ Δ′}
-    {Γ Γ′ : TermCtx Δ} {ρ : Rename}
-  → (∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A)
-  → ∀ {x A}
-  → renameCtx ρᵗ Γ ∋ x ⦂ A
-  → renameCtx ρᵗ Γ′ ∋ ρ x ⦂ A
-renameCtx-∋ hρ x∈ with lookup-renameCtx-inv x∈
-renameCtx-∋ {ρᵗ = ρᵗ} hρ x∈ | B , B∈ , refl =
-  renameᵗ-∋ ρᵗ (hρ B∈)
+renameWith-Value : ∀ {V : Term Θ Δ} (stack : RenameStack Θ Δ)
+  → Value V
+  → Value (renameWith stack V)
+renameWith-Value stack (ƛ A ˙ N) =
+  ƛ A ˙ renameWith (ren-bind stack) N
+renameWith-Value stack (Λ Vᵥ) =
+  Λ (renameWith-Value (ren-typ stack) Vᵥ)
+renameWith-Value stack ($ κ) = $ κ
+renameWith-Value stack (inject Vᵥ) = inject (renameWith-Value stack Vᵥ)
+renameWith-Value stack (Vᵥ 《 inert 》) =
+  renameWith-Value stack Vᵥ 《 inert 》
+renameWith-Value stack (seal-value {X = X} {α = α} Vᵥ)
+    with popRename X α stack
+renameWith-Value stack (seal-value Vᵥ) | older-pocket = seal-value Vᵥ
+renameWith-Value stack (seal-value Vᵥ) | local-pocket stack′ =
+  seal-value (renameWith-Value stack′ Vᵥ)
+renameWith-Value stack (reveal-fun {X = X} {α = α} Vᵥ nonλ) =
+  reveal-fun (renameWith-Value (ren-begin X α stack) Vᵥ)
+    (renameWith-NonLambda (ren-begin X α stack) nonλ)
+renameWith-Value stack (conceal-fun {X = X} {α = α} Vᵥ)
+    with popRename X α stack
+renameWith-Value stack (conceal-fun Vᵥ) | older-pocket = conceal-fun Vᵥ
+renameWith-Value stack (conceal-fun Vᵥ) | local-pocket stack′ =
+  conceal-fun (renameWith-Value stack′ Vᵥ)
+renameWith-Value stack
+    (adapter {Y = Y} {X = X} {β = beta} {α = α} Vᵥ head neq)
+    with popRename Y beta (ren-begin X α stack)
+renameWith-Value stack (adapter Vᵥ head neq) | older-pocket =
+  adapter Vᵥ head neq
+renameWith-Value stack (adapter Vᵥ head neq) | local-pocket stack′ =
+  adapter (renameWith-Value stack′ Vᵥ)
+    (renameWith-ImmobileHead stack′ head) neq
+renameWith-Value stack
+    (adapter-region {X = X} {α = α} Vᵥ head X∈A) =
+  adapter-region
+    (renameWith-Value (ren-ν (ren-begin X α stack)) Vᵥ)
+    (renameWith-ImmobileHead (ren-ν (ren-begin X α stack)) head)
+    X∈A
 
 rename-Value : ∀ {Θ Δ} (ρ : Rename) {V : Term Θ Δ}
   → Value V
   → Value (rename ρ V)
-rename-Value ρ (ƛ A ˙ N) = ƛ A ˙ rename (ext ρ) N
-rename-Value ρ (Λ Vᵥ) = Λ (rename-Value ρ Vᵥ)
-rename-Value ρ ($ κ) = $ κ
-rename-Value ρ (inject Vᵥ) = inject (rename-Value ρ Vᵥ)
-rename-Value ρ (Vᵥ 《 inert 》) = rename-Value ρ Vᵥ 《 inert 》
-rename-Value ρ (seal-value Vᵥ) = seal-value Vᵥ
-rename-Value ρ (reveal-fun Vᵥ) = reveal-fun Vᵥ
-rename-Value ρ (conceal-fun Vᵥ) = conceal-fun Vᵥ
-rename-Value ρ (adapter Vᵥ head neq) = adapter Vᵥ head neq
-rename-Value ρ (adapter-region Vᵥ head X∈A) =
-  adapter-region Vᵥ head X∈A
-
-⊢rename : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
-    {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Δ}
-    {ρ : Rename} {M : Term Θ Δ} {B : Ty Δ}
-  → (∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A)
-  → Ψ ∣ Γ ⊢ M ⦂ B
-  → Ψ ∣ Γ′ ⊢ rename ρ M ⦂ B
-⊢rename hρ (⊢` x∈) = ⊢` (hρ x∈)
-⊢rename hρ (⊢ƛ M⊢) = ⊢ƛ (⊢rename (ext-∋ hρ) M⊢)
-⊢rename hρ (⊢· L⊢ M⊢) =
-  ⊢· (⊢rename hρ L⊢) (⊢rename hρ M⊢)
-⊢rename hρ (⊢Λ M⊢) = ⊢Λ (⊢rename (renameCtx-∋ hρ) M⊢)
-⊢rename hρ (⊢⦂∀ L⊢) = ⊢⦂∀ (⊢rename hρ L⊢)
-⊢rename hρ (⊢$ κ) = ⊢$ κ
-⊢rename hρ (⊢⊕ op L⊢ M⊢) =
-  ⊢⊕ op (⊢rename hρ L⊢) (⊢rename hρ M⊢)
-⊢rename hρ (⊢⟨⟩ M⊢ c) = ⊢⟨⟩ (⊢rename hρ M⊢) c
-⊢rename hρ (⊢ν M⊢) = ⊢ν (⊢rename hρ M⊢)
-⊢rename hρ (⊢reveal α∈ c⊢ M⊢) = ⊢reveal α∈ c⊢ M⊢
-⊢rename hρ (⊢conceal tyVar∈ α∈ c⊢ M⊢) =
-  ⊢conceal tyVar∈ α∈ c⊢ M⊢
-⊢rename hρ ⊢blame = ⊢blame
+rename-Value ρ Vᵥ = renameWith-Value (ren-root ρ) Vᵥ
 
 ⊢rename-suc : ∀ {Θ Δ} {σ : Vec.Vec (Maybe (TyVar Θ)) Δ}
-    {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Δ}
+    {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Ψ}
     {M : Term Θ Δ} {A B : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Ψ ∣ B ∷ Γ ⊢ rename suc M ⦂ A
-⊢rename-suc M⊢ = ⊢rename (λ x∈ → S x∈) M⊢
+  → Ψ ∣ (B at currentScope Ψ) ∷ Γ ⊢ rename suc M ⦂ A
+⊢rename-suc M⊢ = ?
 
 ------------------------------------------------------------------------
 -- Evaluator transport through a lexical type variable
@@ -659,6 +685,13 @@ renameᵗ-id (`∀ A) = cong `∀
   ext-id : ∀ X → extᵗ (λ Y → Y) X ≡ X
   ext-id zero = refl
   ext-id (suc X) = refl
+
+weakenAlong-same : ∀ {Θ₀ Θ Δ σ₀ σ}
+    {birth : TyEnv Θ₀ Δ σ₀} {Ψ : TyEnv Θ Δ σ}
+    {ρ : Δ ↪ᵗ Δ} (ws : ScopeRoute birth Ψ ρ) (A : Ty Δ)
+  → weakenAlong ws A ≡ A
+weakenAlong-same {ρ = ρ} ws A =
+  trans (renameᵗ-cong A (same-injection-pointwise ρ)) (renameᵗ-id A)
 
 route-map : ∀ {Δ₀ Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
   → (TyVar Δ₀ → Maybe (TyVar Δ))
@@ -2567,12 +2600,6 @@ scanRep?-current-≼
         target-route)
       (route-eq X lex)
 
-renameCtx-wk-eq : ∀ {Δ} (Γ : TermCtx Δ)
-  → renameCtx (toRenameᵗ wk↪ᵗ) Γ ≡ renameCtx suc Γ
-renameCtx-wk-eq [] = refl
-renameCtx-wk-eq (A ∷ Γ) =
-  cong₂ _∷_ (renameᵗ-wk-eq A) (renameCtx-wk-eq Γ)
-
 scanRep?-target-≼ : ∀ {Θ Θ′ Θ₀ Δ Δ′ Δ₀ σ σ′ σ₀ k}
     {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
     (extension : Ψ ≼[ k , ρ ] Φ)
@@ -3164,17 +3191,6 @@ tyVar-RenameTarget {ρ = ρ} {Ψ = source} target X lookup-eq =
       (renameTarget-tyVars target))
     (trans (lookup-renameTyVars-image ρ (tyVarsOf source) X) lookup-eq)
 
-renameCtx-keep-shift : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
-    (Γ : TermCtx Δ)
-  → renameCtx (toRenameᵗ (keep ρ)) (renameCtx suc Γ)
-    ≡ renameCtx suc (renameCtx (toRenameᵗ ρ) Γ)
-renameCtx-keep-shift ρ [] = refl
-renameCtx-keep-shift ρ (A ∷ Γ) =
-  cong₂ _∷_
-    (trans (renameᵗ-cong (⇑ᵗ A) (toRename-keep-eq ρ))
-      (renameᵗ-shift (toRenameᵗ ρ) A))
-    (renameCtx-keep-shift ρ Γ)
-
 rename-open↪ᵗ : ∀ {Δ Δ′} (ρ : Δ ↪ᵗ Δ′)
     (C : Ty (suc Δ)) (A : Ty Δ)
   → renameᵗ (toRenameᵗ ρ) (C [ A ]ᵗ)
@@ -3286,6 +3302,23 @@ rename-pair-≠ : ∀ {Δ Δ′} {ρ : Δ ↪ᵗ Δ′}
 rename-pair-≠ {ρ = ρ} neq (image-eq , anchor-eq) =
   neq (toRename-injective ρ image-eq , anchor-eq)
 
+renameᵗᵐ-NonLambda : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′) {V : Term Θ Δ}
+  → NonLambda V
+  → NonLambda (renameᵗᵐ ρ V)
+renameᵗᵐ-NonLambda ρ {V = ` x} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = ƛ A ˙ M} nonλ = ⊥-elim (nonλ refl)
+renameᵗᵐ-NonLambda ρ {V = L · M} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = Λ M} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = L ⦂∀ C [ A ]} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = $ κ} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = L ⊕[ op ] M} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = M ⟨ c ⟩} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = M ↑[ Y ≔ α ] c} nonλ = λ ()
+renameᵗᵐ-NonLambda (keep ρ) {V = M ↓[ Y ≔ α ] c} nonλ = λ ()
+renameᵗᵐ-NonLambda (skip ρ) {V = M ↓[ Y ≔ α ] c} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = ν[ A ] M} nonλ = λ ()
+renameᵗᵐ-NonLambda ρ {V = blame} nonλ = λ ()
+
 mutual
   renameᵗᵐ-Value : ∀ {Θ Δ Δ′} (ρ : Δ ↪ᵗ Δ′) {V : Term Θ Δ}
     → Value V
@@ -3311,8 +3344,9 @@ mutual
     seal-value (renameᵗᵐ-Value (delete↪ᵗ (keep ρ) X) Vᵥ)
   renameᵗᵐ-Value (skip ρ) (seal-value {X = X} Vᵥ) =
     seal-value (renameᵗᵐ-Value (delete↪ᵗ (skip ρ) X) Vᵥ)
-  renameᵗᵐ-Value ρ (reveal-fun {X = X} Vᵥ) =
+  renameᵗᵐ-Value ρ (reveal-fun {X = X} Vᵥ nonλ) =
     reveal-fun (renameᵗᵐ-Value (insert↪ᵗ ρ X) Vᵥ)
+      (renameᵗᵐ-NonLambda (insert↪ᵗ ρ X) nonλ)
   renameᵗᵐ-Value (keep ρ) (conceal-fun {X = X} Vᵥ) =
     conceal-fun (renameᵗᵐ-Value (delete↪ᵗ (keep ρ) X) Vᵥ)
   renameᵗᵐ-Value (skip ρ) (conceal-fun {X = X} Vᵥ) =
@@ -3370,247 +3404,218 @@ mutual
   renameᵗᵐ-ImmobileHead ρ (adapter-region-head {X = X}) =
     adapter-region-head
 
-⊢renameᵗᵐ-target : ∀ {Θ Δ Δ′ σ σ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ Δ′ σ′} {Γ : TermCtx Δ}
-    {M : Term Θ Δ} {A : Ty Δ}
-  → RenameTarget ρ Ψ Φ
-  → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
-      ⊢ renameᵗᵐ ρ M ⦂ renameᵗ (toRenameᵗ ρ) A
-⊢renameᵗᵐ-target target (⊢` x∈) = ⊢` (renameᵗ-∋ _ x∈)
-⊢renameᵗᵐ-target target (⊢ƛ M⊢) =
-  ⊢ƛ (⊢renameᵗᵐ-target target M⊢)
-⊢renameᵗᵐ-target target (⊢· L⊢ M⊢) =
-  ⊢· (⊢renameᵗᵐ-target target L⊢)
-    (⊢renameᵗᵐ-target target M⊢)
-⊢renameᵗᵐ-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
-    target (⊢Λ {A = A} M⊢) =
-  ⊢Λ body⊢
-  where
-  renamed-body⊢ = ⊢renameᵗᵐ-target (target-typ target) M⊢
+mapBinding : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+  → TypingTarget ρ φ Ψ Φ → Binding Ψ → Binding Φ
+mapBinding {ρ = ρ} target (A at scope-here) =
+  renameᵗ (toRenameᵗ ρ) A at scope-here
+mapBinding (balanced-target ≼-refl) binding = binding
+mapBinding (balanced-target (≼-ν extension)) binding =
+  νBinding (mapBinding (balanced-target extension) binding)
+mapBinding (balanced-target (≼-typ extension)) binding =
+  typBinding (mapBinding (balanced-target extension) binding)
+mapBinding target@(balanced-target (≼-begin-end extension region))
+    (A at ws) =
+  A at scope-target ws target
+mapBinding target@(balanced-target
+    (≼-end-begin tyVar-eq extension region shifted)) (A at ws) =
+  A at scope-target ws target
+mapBinding (typing-target-begin target)
+    (A at scope-begin ws insertion) =
+  beginBinding (mapBinding target (A at ws))
+mapBinding (typing-target-typ target) (A at scope-typ ws) =
+  typBinding (mapBinding target (A at ws))
+mapBinding (typing-target-ν target) (A at scope-ν ws) =
+  νBinding (mapBinding target (A at ws))
+mapBinding target (A at scope-end ws deletion) =
+  A at scope-target (scope-end ws deletion) target
+mapBinding target (A at scope-target ws earlier) =
+  A at scope-target (scope-target ws earlier) target
 
-  body-context⊢ = subst≡
-    (λ Γ′ → Φ ,typ ∣ Γ′ ⊢ renameᵗᵐ (keep ρ) _ ⦂ _)
-    (renameCtx-keep-shift ρ Γ) renamed-body⊢
+mapCtx : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+  → TypingTarget ρ φ Ψ Φ → TermCtx Ψ → TermCtx Φ
+mapCtx target [] = []
+mapCtx target (binding ∷ Γ) =
+  mapBinding target binding ∷ mapCtx target Γ
 
-  body⊢ = subst≡
-    (λ B → Φ ,typ ∣ renameCtx suc (renameCtx (toRenameᵗ ρ) Γ)
-      ⊢ renameᵗᵐ (keep ρ) _ ⦂ B)
-    (renameᵗ-cong A (toRename-keep-eq ρ)) body-context⊢
-⊢renameᵗᵐ-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
-    {M = L ⦂∀ C [ A ]} target (⊢⦂∀ L⊢) =
-  subst≡
-    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
-      ⊢ renameᵗᵐ ρ L ⦂∀ renameᵗ (toRenameᵗ (keep ρ)) C
-        [ renameᵗ (toRenameᵗ ρ) A ] ⦂ B)
-    (sym (rename-open↪ᵗ ρ C A)) (⊢⦂∀ body⊢)
-  where
-  body-eq = renameᵗ-cong C (toRename-keep-eq ρ)
-  body⊢ = subst≡
-    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
-      ⊢ renameᵗᵐ ρ L ⦂ `∀ B)
-    (sym body-eq) (⊢renameᵗᵐ-target target L⊢)
-⊢renameᵗᵐ-target {ρ = ρ} target (⊢$ κ) =
-  subst≡ (λ A → _ ∣ _ ⊢ $ κ ⦂ A)
-    (constTy-renameᵗ (toRenameᵗ ρ) κ) (⊢$ κ)
-⊢renameᵗᵐ-target target (⊢⊕ addℕ L⊢ M⊢) =
-  ⊢⊕ addℕ (⊢renameᵗᵐ-target target L⊢)
-    (⊢renameᵗᵐ-target target M⊢)
-⊢renameᵗᵐ-target target (⊢⊕ and𝔹 L⊢ M⊢) =
-  ⊢⊕ and𝔹 (⊢renameᵗᵐ-target target L⊢)
-    (⊢renameᵗᵐ-target target M⊢)
-⊢renameᵗᵐ-target {ρ = ρ} target (⊢⟨⟩ M⊢ c) =
-  ⊢⟨⟩ (⊢renameᵗᵐ-target target M⊢) (renameᵐᶜ ρ c)
-⊢renameᵗᵐ-target target (⊢ν M⊢) =
-  ⊢ν (⊢renameᵗᵐ-target (target-ν target) M⊢)
-⊢renameᵗᵐ-target {ρ = ρ} {Φ = Φ} target
-    (⊢reveal {A = A} {B = B} {C = C} {Y = Y} {α = α}
-      {fresh = fresh} α-eq c⊢ M⊢) =
-  ⊢reveal (rep?-RenameTarget target α α-eq) conversion⊢ body⊢
-  where
-  ρ⁺ = insert↪ᵗ ρ Y
-  Y′ = toRenameᵗ ρ⁺ Y
+mapCtx-typ : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (target : TypingTarget ρ φ Ψ Φ) (Γ : TermCtx Ψ)
+  → mapCtx (typing-target-typ target) (typCtx Γ)
+    ≡ typCtx (mapCtx target Γ)
+mapCtx-typ target [] = refl
+mapCtx-typ target ((A at ws) ∷ Γ) =
+  cong (typBinding (mapBinding target (A at ws)) ∷_)
+    (mapCtx-typ target Γ)
 
-  body⊢ = ⊢renameᵗᵐ-target (renameTarget-begin target) M⊢
-
-  conversion-representation⊢ = subst≡
-    (λ R → ⊢↑[ Y′ ⦂ R ] _
-      ⦂ renameᵗ (toRenameᵗ ρ⁺) A
-      ↝ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y B))
-    (rename-insert-wk ρ Y C)
-    (rename-⊢↑ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ = subst≡
-    (λ B′ → ⊢↑[ Y′
-        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ ρ) C) ] _
-      ⦂ renameᵗ (toRenameᵗ ρ⁺) A ↝ B′)
-    (rename-insert-wk ρ Y B) conversion-representation⊢
-⊢renameᵗᵐ-target {ρ = ρ⁺@(keep ρ)} target
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
-      tyVar-eq α-eq c⊢ M⊢) =
-  ⊢conceal target-tyVar target-rep conversion⊢ body⊢
-  where
-  deleted = delete↪ᵗ ρ⁺ Y
-  Y′ = toRenameᵗ ρ⁺ Y
-  ended-target = target-end target
-
-  target-tyVar = tyVar-RenameTarget target Y tyVar-eq
-  target-rep = rep?-RenameTarget ended-target α α-eq
-  body⊢ = ⊢renameᵗᵐ-target ended-target M⊢
-
-  conversion-representation⊢ = subst≡
-    (λ R → ⊢↓[ Y′ ⦂ R ] _
-      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
-      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y C)
-    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ = subst≡
-    (λ A′ → ⊢↓[ Y′
-        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
-      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
-⊢renameᵗᵐ-target {ρ = ρ⁺@(skip ρ)} target
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
-      tyVar-eq α-eq c⊢ M⊢) =
-  ⊢conceal target-tyVar target-rep conversion⊢ body⊢
-  where
-  deleted = delete↪ᵗ ρ⁺ Y
-  Y′ = toRenameᵗ ρ⁺ Y
-  ended-target = target-end target
-
-  target-tyVar = tyVar-RenameTarget target Y tyVar-eq
-  target-rep = rep?-RenameTarget ended-target α α-eq
-  body⊢ = ⊢renameᵗᵐ-target ended-target M⊢
-
-  conversion-representation⊢ = subst≡
-    (λ R → ⊢↓[ Y′ ⦂ R ] _
-      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
-      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y C)
-    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ = subst≡
-    (λ A′ → ⊢↓[ Y′
-        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
-      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
-⊢renameᵗᵐ-target target ⊢blame = ⊢blame
+mapCtx-ν : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′} {A : Ty Δ}
+    (target : TypingTarget ρ φ Ψ Φ) (Γ : TermCtx Ψ)
+  → mapCtx (typing-target-ν {A = A} target) (νCtx Γ)
+    ≡ νCtx (mapCtx target Γ)
+mapCtx-ν target [] = refl
+mapCtx-ν target ((B at ws) ∷ Γ) =
+  cong (νBinding (mapBinding target (B at ws)) ∷_)
+    (mapCtx-ν target Γ)
 
 ------------------------------------------------------------------------
 -- Literal regular-context weakening at zero
 ------------------------------------------------------------------------
 
-⊢weakenᵗᵐ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Δ}
+⊢weakenᵗᵐ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Ψ}
     {M : Term Θ Δ} {A : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Ψ ,typ ∣ renameCtx suc Γ
+  → Ψ ,typ ∣ typCtx Γ
       ⊢ weakenᵗᵐ zero M ⦂ ⇑ᵗ A
-⊢weakenᵗᵐ {Ψ = Ψ} {Γ = Γ} {M = M} {A = A} M⊢ =
-  subst≡
-    (λ B → Ψ ,typ ∣ renameCtx suc Γ
-      ⊢ weakenᵗᵐ zero M ⦂ B)
-    (renameᵗ-wk-eq A)
-    (subst≡
-      (λ Γ′ → Ψ ,typ ∣ Γ′
-        ⊢ weakenᵗᵐ zero M ⦂ renameᵗ (toRenameᵗ wk↪ᵗ) A)
-      (renameCtx-wk-eq Γ)
-      (⊢renameᵗᵐ-target literal-wk-target M⊢))
+⊢weakenᵗᵐ M⊢ = ?
 
 ------------------------------------------------------------------------
 -- Parallel and single term substitution
 ------------------------------------------------------------------------
 
-exts-∋ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Δ}
+exts-∋ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Γ Γ′ : TermCtx Ψ}
     {environment : Subst Θ Δ} {A : Ty Δ}
-  → (∀ {x B} → Γ ∋ x ⦂ B → Ψ ∣ Γ′ ⊢ environment x ⦂ B)
-  → ∀ {x B}
-  → A ∷ Γ ∋ x ⦂ B
-  → Ψ ∣ A ∷ Γ′ ⊢ exts environment x ⦂ B
+  → (∀ {x Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ} {ws : ScopeRoute birth Ψ ρ}
+      {B : Ty Δ₀}
+    → Γ ∋ x ⦂[ ws ] B
+    → Ψ ∣ Γ′ ⊢ environment x ⦂ weakenAlong ws B)
+  → ∀ {x Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ} {ws : ScopeRoute birth Ψ ρ}
+      {B : Ty Δ₀}
+  → ((A at currentScope Ψ) ∷ Γ) ∋ x ⦂[ ws ] B
+  → Ψ ∣ (A at currentScope Ψ) ∷ Γ′
+      ⊢ exts environment x ⦂ weakenAlong ws B
 exts-∋ environment⊢ Z = ⊢` Z
 exts-∋ environment⊢ (S x∈) = ⊢rename-suc (environment⊢ x∈)
 
-liftˢ-∋ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Δ}
+liftˢ-∋ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Γ Γ′ : TermCtx Ψ}
     {environment : Subst Θ Δ}
-  → (∀ {x A} → Γ ∋ x ⦂ A → Ψ ∣ Γ′ ⊢ environment x ⦂ A)
-  → ∀ {x A}
-  → renameCtx suc Γ ∋ x ⦂ A
-  → Ψ ,typ ∣ renameCtx suc Γ′ ⊢ liftˢ environment x ⦂ A
-liftˢ-∋ environment⊢ x∈ with lookup-renameCtx-inv x∈
-liftˢ-∋ environment⊢ x∈ | B , B∈ , refl =
-  ⊢weakenᵗᵐ (environment⊢ B∈)
+  → (∀ {x Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ} {ws : ScopeRoute birth Ψ ρ}
+      {A : Ty Δ₀}
+    → Γ ∋ x ⦂[ ws ] A
+    → Ψ ∣ Γ′ ⊢ environment x ⦂ weakenAlong ws A)
+  → ∀ {x Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ} {ws : ScopeRoute birth Ψ ρ}
+      {A : Ty Δ₀}
+  → Γ ∋ x ⦂[ ws ] A
+  → Ψ ,typ ∣ typCtx Γ′
+      ⊢ liftˢ environment x ⦂ weakenAlong (scope-typ ws) A
+liftˢ-∋ {Δ = Δ} {environment = environment} environment⊢
+    {x} {ρ = ρ} {ws = ws} {A = A} x∈ =
+  subst≡
+    (λ B → _ ,typ ∣ _ ⊢ weakenᵗᵐ zero (environment x) ⦂ B)
+    (sym (rename-skip ρ A)) (⊢weakenᵗᵐ (environment⊢ x∈))
+
+substWith-ImmobileHead : ∀ {V : Term Θ Δ}
+    (stack : SubstStack Θ Δ)
+  → ImmobileHead V
+  → ImmobileHead (substWith stack V)
+substWith-ImmobileHead stack (seal-head {X = X} {α = α})
+    with popSubst X α stack
+substWith-ImmobileHead stack seal-head | older-subst-pocket = seal-head
+substWith-ImmobileHead stack seal-head | local-subst-pocket stack′ = seal-head
+substWith-ImmobileHead stack reveal-fun-head = reveal-fun-head
+substWith-ImmobileHead stack (conceal-fun-head {X = X} {α = α})
+    with popSubst X α stack
+substWith-ImmobileHead stack conceal-fun-head | older-subst-pocket =
+  conceal-fun-head
+substWith-ImmobileHead stack conceal-fun-head | local-subst-pocket stack′ =
+  conceal-fun-head
+substWith-ImmobileHead stack
+    (adapter-head {Y = Y} {X = X} {β = beta} {α = α})
+    with popSubst Y beta (sub-begin X α stack)
+substWith-ImmobileHead stack adapter-head | older-subst-pocket = adapter-head
+substWith-ImmobileHead stack adapter-head | local-subst-pocket stack′ =
+  adapter-head
+substWith-ImmobileHead stack adapter-region-head = adapter-region-head
+
+substWith-Value-NonLambda : ∀ {V : Term Θ Δ}
+    (stack : SubstStack Θ Δ)
+  → Value V
+  → NonLambda V
+  → NonLambda (substWith stack V)
+substWith-Value-NonLambda stack (ƛ A ˙ N) nonλ =
+  ⊥-elim (nonλ refl)
+substWith-Value-NonLambda stack (Λ Vᵥ) nonλ = λ ()
+substWith-Value-NonLambda stack ($ κ) nonλ = λ ()
+substWith-Value-NonLambda stack (inject Vᵥ) nonλ = λ ()
+substWith-Value-NonLambda stack (Vᵥ 《 inert 》) nonλ = λ ()
+substWith-Value-NonLambda stack (seal-value {X = X} {α = α} Vᵥ) nonλ
+    with popSubst X α stack
+substWith-Value-NonLambda stack (seal-value Vᵥ) nonλ
+    | older-subst-pocket = λ ()
+substWith-Value-NonLambda stack (seal-value Vᵥ) nonλ
+    | local-subst-pocket stack′ = λ ()
+substWith-Value-NonLambda stack (reveal-fun Vᵥ inner-nonλ) nonλ = λ ()
+substWith-Value-NonLambda stack
+    (conceal-fun {X = X} {α = α} Vᵥ) nonλ
+    with popSubst X α stack
+substWith-Value-NonLambda stack (conceal-fun Vᵥ) nonλ
+    | older-subst-pocket = λ ()
+substWith-Value-NonLambda stack (conceal-fun Vᵥ) nonλ
+    | local-subst-pocket stack′ = λ ()
+substWith-Value-NonLambda stack (adapter Vᵥ head neq) nonλ = λ ()
+substWith-Value-NonLambda stack (adapter-region Vᵥ head X∈A) nonλ = λ ()
+
+substWith-Value : ∀ {V : Term Θ Δ} (stack : SubstStack Θ Δ)
+  → Value V
+  → Value (substWith stack V)
+substWith-Value stack (ƛ A ˙ N) =
+  ƛ A ˙ substWith (sub-bind stack) N
+substWith-Value stack (Λ Vᵥ) = Λ (substWith-Value (sub-typ stack) Vᵥ)
+substWith-Value stack ($ κ) = $ κ
+substWith-Value stack (inject Vᵥ) = inject (substWith-Value stack Vᵥ)
+substWith-Value stack (Vᵥ 《 inert 》) =
+  substWith-Value stack Vᵥ 《 inert 》
+substWith-Value stack (seal-value {X = X} {α = α} Vᵥ)
+    with popSubst X α stack
+substWith-Value stack (seal-value Vᵥ) | older-subst-pocket =
+  seal-value Vᵥ
+substWith-Value stack (seal-value Vᵥ) | local-subst-pocket stack′ =
+  seal-value (substWith-Value stack′ Vᵥ)
+substWith-Value stack (reveal-fun {X = X} {α = α} Vᵥ nonλ) =
+  reveal-fun (substWith-Value (sub-begin X α stack) Vᵥ)
+    (substWith-Value-NonLambda (sub-begin X α stack) Vᵥ nonλ)
+substWith-Value stack (conceal-fun {X = X} {α = α} Vᵥ)
+    with popSubst X α stack
+substWith-Value stack (conceal-fun Vᵥ) | older-subst-pocket =
+  conceal-fun Vᵥ
+substWith-Value stack (conceal-fun Vᵥ) | local-subst-pocket stack′ =
+  conceal-fun (substWith-Value stack′ Vᵥ)
+substWith-Value stack
+    (adapter {Y = Y} {X = X} {β = beta} {α = α} Vᵥ head neq)
+    with popSubst Y beta (sub-begin X α stack)
+substWith-Value stack (adapter Vᵥ head neq) | older-subst-pocket =
+  adapter Vᵥ head neq
+substWith-Value stack (adapter Vᵥ head neq)
+    | local-subst-pocket stack′ =
+  adapter (substWith-Value stack′ Vᵥ)
+    (substWith-ImmobileHead stack′ head) neq
+substWith-Value stack
+    (adapter-region {X = X} {α = α} Vᵥ head X∈A) =
+  adapter-region
+    (substWith-Value (sub-ν (sub-begin X α stack)) Vᵥ)
+    (substWith-ImmobileHead (sub-ν (sub-begin X α stack)) head)
+    X∈A
 
 subst-Value : ∀ {Θ Δ} (environment : Subst Θ Δ)
     {V : Term Θ Δ}
   → Value V
   → Value (subst environment V)
-subst-Value environment (ƛ A ˙ N) = ƛ A ˙ subst (exts environment) N
-subst-Value environment (Λ Vᵥ) = Λ (subst-Value (liftˢ environment) Vᵥ)
-subst-Value environment ($ κ) = $ κ
-subst-Value environment (inject Vᵥ) = inject (subst-Value environment Vᵥ)
-subst-Value environment (Vᵥ 《 inert 》) =
-  subst-Value environment Vᵥ 《 inert 》
-subst-Value environment (seal-value Vᵥ) = seal-value Vᵥ
-subst-Value environment (reveal-fun Vᵥ) = reveal-fun Vᵥ
-subst-Value environment (conceal-fun Vᵥ) = conceal-fun Vᵥ
-subst-Value environment (adapter Vᵥ head neq) = adapter Vᵥ head neq
-subst-Value environment (adapter-region Vᵥ head X∈A) =
-  adapter-region Vᵥ head X∈A
+subst-Value environment Vᵥ = substWith-Value (sub-root environment) Vᵥ
 
 ------------------------------------------------------------------------
 -- Typing transport along balanced extension
 ------------------------------------------------------------------------
-
--- A typing derivation descends below syntax already present on both sides of
--- a balanced extension.  `TypingTarget` closes a `_≼[_,_]_` witness under
--- those matching telescope constructors.  Its two maps are exactly the maps
--- applied to terms: a regular injection on type type variables and an anchor map.
-
-data TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-    (ρ : Δ ↪ᵗ Δ′) (φ : TyVar Θ → TyVar Θ′)
-    → TyEnv Θ Δ σ → TyEnv Θ′ Δ′ σ′ → Set where
-  balanced-target : ∀ {Θ Θ′ Δ Δ′ σ σ′ k} {ρ : Δ ↪ᵗ Δ′}
-      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-      (extension : Ψ ≼[ k , ρ ] Φ)
-      -----------------------------------------------------
-    → TypingTarget ρ (shiftAlong extension) Ψ Φ
-
-  typing-target-begin : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-      {Y : TyVar (suc Δ)} {a : TyVar Θ}
-      {fresh : a ∉ᵛ σ} {fresh′ : φ a ∉ᵛ σ′}
-    → TypingTarget ρ φ Ψ Φ
-      ------------------------------------------------------------
-    → TypingTarget (insert↪ᵗ ρ Y) φ
-        (Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩)
-        (Φ ,begin[
-          toRenameᵗ (insert↪ᵗ ρ Y) Y ≔ φ a
-        ]⟨ fresh′ ⟩)
-
-  typing-target-typ : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-    → TypingTarget ρ φ Ψ Φ
-      ---------------------------------------------------
-    → TypingTarget (keep ρ) φ (Ψ ,typ) (Φ ,typ)
-
-  typing-target-ν : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-      {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′} {A : Ty Δ}
-    → TypingTarget ρ φ Ψ Φ
-      --------------------------------------------------
-    → TypingTarget ρ (extᵗ φ) (Ψ ,:= A)
-        (Φ ,:= renameᵗ (toRenameᵗ ρ) A)
-
-  typing-target-end : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-      {ρ : suc Δ ↪ᵗ suc Δ′} {φ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ (suc Δ) σ} {Φ : TyEnv Θ′ (suc Δ′) σ′}
-      {Y : TyVar (suc Δ)}
-    → TypingTarget ρ φ Ψ Φ
-      ------------------------------------------------------------
-    → TypingTarget (delete↪ᵗ ρ Y) φ (Ψ ,end[ Y ])
-        (Φ ,end[ toRenameᵗ ρ Y ])
 
 extᵗ-injective′ : ∀ {Θ Θ′} {φ : TyVar Θ → TyVar Θ′}
   → (∀ {a b} → φ a ≡ φ b → a ≡ b)
@@ -4538,6 +4543,21 @@ typingTarget-begin : ∀ {Θ Θ′ Δ Δ′ σ σ′}
         ]⟨ fresh-TypingTarget target fresh ⟩)
 typingTarget-begin target = typing-target-begin target
 
+mapCtx-begin : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    {Y : TyVar (suc Δ)} {α : TyVar Θ} {fresh : α ∉ᵛ σ}
+    (target : TypingTarget ρ φ Ψ Φ) (Γ : TermCtx Ψ)
+  → mapCtx (typingTarget-begin {fresh = fresh} target) (beginCtx Γ)
+    ≡ beginCtx (mapCtx target Γ)
+mapCtx-begin target [] = refl
+mapCtx-begin {Y = Y} target ((_at_ {ρ = η} A ws) ∷ Γ)
+    with insertView Y η
+mapCtx-begin {Y = Y} target ((A at ws) ∷ Γ)
+    | insert-view insertion =
+  cong (beginBinding (mapBinding target (A at ws)) ∷_)
+    (mapCtx-begin target Γ)
+
 ------------------------------------------------------------------------
 -- Master typing transport
 ------------------------------------------------------------------------
@@ -4549,6 +4569,23 @@ anchor-pair-≠ : ∀ {Θ Θ′} {φ : TyVar Θ → TyVar Θ′}
   → ¬ (X ≡ Y × φ α ≡ φ β)
 anchor-pair-≠ injective neq (tyVar-eq , anchor-eq) =
   neq (tyVar-eq , injective anchor-eq)
+
+renameᶿ-NonLambda : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
+    {V : Term Θ Δ}
+  → NonLambda V
+  → NonLambda (renameᶿ φ V)
+renameᶿ-NonLambda φ {V = ` x} nonλ = λ ()
+renameᶿ-NonLambda φ {V = ƛ A ˙ M} nonλ = ⊥-elim (nonλ refl)
+renameᶿ-NonLambda φ {V = L · M} nonλ = λ ()
+renameᶿ-NonLambda φ {V = Λ M} nonλ = λ ()
+renameᶿ-NonLambda φ {V = L ⦂∀ C [ A ]} nonλ = λ ()
+renameᶿ-NonLambda φ {V = $ κ} nonλ = λ ()
+renameᶿ-NonLambda φ {V = L ⊕[ op ] M} nonλ = λ ()
+renameᶿ-NonLambda φ {V = M ⟨ c ⟩} nonλ = λ ()
+renameᶿ-NonLambda φ {V = M ↑[ Y ≔ α ] c} nonλ = λ ()
+renameᶿ-NonLambda φ {V = M ↓[ Y ≔ α ] c} nonλ = λ ()
+renameᶿ-NonLambda φ {V = ν[ A ] M} nonλ = λ ()
+renameᶿ-NonLambda φ {V = blame} nonλ = λ ()
 
 mutual
   renameᶿ-Value : ∀ {Θ Θ′ Δ} (φ : TyVar Θ → TyVar Θ′)
@@ -4566,8 +4603,9 @@ mutual
     renameᶿ-Value φ injective Vᵥ 《 inert 》
   renameᶿ-Value φ injective (seal-value Vᵥ) =
     seal-value (renameᶿ-Value φ injective Vᵥ)
-  renameᶿ-Value φ injective (reveal-fun Vᵥ) =
+  renameᶿ-Value φ injective (reveal-fun Vᵥ nonλ) =
     reveal-fun (renameᶿ-Value φ injective Vᵥ)
+      (renameᶿ-NonLambda φ nonλ)
   renameᶿ-Value φ injective (conceal-fun Vᵥ) =
     conceal-fun (renameᶿ-Value φ injective Vᵥ)
   renameᶿ-Value φ injective (adapter Vᵥ head neq) =
@@ -4589,49 +4627,107 @@ mutual
   renameᶿ-ImmobileHead φ adapter-head = adapter-head
   renameᶿ-ImmobileHead φ adapter-region-head = adapter-region-head
 
+
+------------------------------------------------------------------------
+-- Structural transport of telescope-indexed term contexts
+------------------------------------------------------------------------
+
+
+weakenAlong-target : ∀ {Θ₀ Θ Θ′ Δ₀ Δ Δ′ σ₀ σ σ′}
+    {birth : TyEnv Θ₀ Δ₀ σ₀}
+    {η : Δ₀ ↪ᵗ Δ} {ρ : Δ ↪ᵗ Δ′}
+    {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    (ws : ScopeRoute birth Ψ η)
+    (target : TypingTarget ρ φ Ψ Φ) (A : Ty Δ₀)
+  → weakenAlong (scope-target ws target) A
+    ≡ renameᵗ (toRenameᵗ ρ) (weakenAlong ws A)
+weakenAlong-target {η = η} {ρ = ρ} ws target A =
+  trans (renameᵗ-cong A (toRename-compose η ρ))
+    (sym (renameᵗ-comp (toRenameᵗ η) (toRenameᵗ ρ) A))
+
+⊢weaken-head : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Ψ}
+    {binding : Binding Ψ} {x : Var} {A : Ty Δ}
+  → Ψ ∣ Γ ⊢ ` x ⦂ A
+  → Ψ ∣ binding ∷ Γ ⊢ ` suc x ⦂ A
+⊢weaken-head {binding = B at head} (⊢` x∈) = ⊢` (S x∈)
+
+target-⊢` : ∀ {Θ Θ′ Δ Δ′ σ σ′}
+    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    {Γ : TermCtx Ψ} {x Θ₀ Δ₀ σ₀}
+    {birth : TyEnv Θ₀ Δ₀ σ₀} {η : Δ₀ ↪ᵗ Δ}
+    {ws : ScopeRoute birth Ψ η} {A : Ty Δ₀}
+  → (target : TypingTarget ρ φ Ψ Φ)
+  → Γ ∋ x ⦂[ ws ] A
+  → Φ ∣ mapCtx target Γ ⊢ ` x
+      ⦂ renameᵗ (toRenameᵗ ρ) (weakenAlong ws A)
+target-⊢` {ws = scope-here} {A = A} target Z =
+  subst≡ (λ B → _ ∣ _ ⊢ ` zero ⦂ B)
+    (trans (rename-id↪ᵗ (renameᵗ _ A))
+      (sym (cong (renameᵗ _) (rename-id↪ᵗ A))))
+    (⊢` Z)
+target-⊢` {ws = scope-ν ws} {A = A} target Z =
+  subst≡ (λ B → _ ∣ _ ⊢ ` zero ⦂ B)
+    (weakenAlong-target (scope-ν ws) target A) (⊢` Z)
+target-⊢` {ws = scope-typ ws} {A = A} target Z =
+  subst≡ (λ B → _ ∣ _ ⊢ ` zero ⦂ B)
+    (weakenAlong-target (scope-typ ws) target A) (⊢` Z)
+target-⊢` {ws = scope-begin ws insertion} {A = A} target Z =
+  subst≡ (λ B → _ ∣ _ ⊢ ` zero ⦂ B)
+    (weakenAlong-target (scope-begin ws insertion) target A) (⊢` Z)
+target-⊢` {ws = scope-end ws deletion} {A = A} target Z =
+  subst≡ (λ B → _ ∣ _ ⊢ ` zero ⦂ B)
+    (weakenAlong-target (scope-end ws deletion) target A) (⊢` Z)
+target-⊢` {ws = scope-target ws earlier} {A = A} target Z =
+  subst≡ (λ B → _ ∣ _ ⊢ ` zero ⦂ B)
+    (weakenAlong-target (scope-target ws earlier) target A) (⊢` Z)
+target-⊢` target (S x∈) = ⊢weaken-head (target-⊢` target x∈)
+
 ⊢transport-target : ∀ {Θ Θ′ Δ Δ′ σ σ′}
     {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′} {Γ : TermCtx Δ}
-    {M : Term Θ Δ} {A : Ty Δ}
-  → TypingTarget ρ φ Ψ Φ
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
+    {Γ : TermCtx Ψ} {M : Term Θ Δ} {A : Ty Δ}
+  → (target : TypingTarget ρ φ Ψ Φ)
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+  → Φ ∣ mapCtx target Γ
       ⊢ renameᵗᵐ ρ (renameᶿ φ M) ⦂ renameᵗ (toRenameᵗ ρ) A
-⊢transport-target target (⊢` x∈) = ⊢` (renameᵗ-∋ _ x∈)
-⊢transport-target target (⊢ƛ M⊢) =
-  ⊢ƛ (⊢transport-target target M⊢)
+⊢transport-target target (⊢` x∈) = target-⊢` target x∈
+⊢transport-target {Γ = Γ} target (⊢ƛ {A = A} M⊢) =
+  ⊢ƛ (⊢transport-target
+    {Γ = (A at currentScope _) ∷ Γ} target M⊢)
 ⊢transport-target target (⊢· L⊢ M⊢) =
-  ⊢· (⊢transport-target target L⊢)
-    (⊢transport-target target M⊢)
-⊢transport-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
-    target (⊢Λ {A = A} M⊢) =
+  ⊢· (⊢transport-target target L⊢) (⊢transport-target target M⊢)
+⊢transport-target {ρ = ρ} {Φ = Φ} target
+    (⊢Λ {A = A} M⊢) =
   ⊢Λ body⊢
   where
-  renamed-body⊢ = ⊢transport-target (typing-target-typ target) M⊢
+  renamed-body⊢ =
+    ⊢transport-target (typing-target-typ target) M⊢
 
-  body-context⊢ = subst≡
+  context-body⊢ = subst≡
     (λ Γ′ → Φ ,typ ∣ Γ′
       ⊢ renameᵗᵐ (keep ρ) (renameᶿ _ _) ⦂ _)
-    (renameCtx-keep-shift ρ Γ) renamed-body⊢
+    (mapCtx-typ target _) renamed-body⊢
 
   body⊢ = subst≡
-    (λ B → Φ ,typ ∣ renameCtx suc (renameCtx (toRenameᵗ ρ) Γ)
+    (λ B → Φ ,typ ∣ _
       ⊢ renameᵗᵐ (keep ρ) (renameᶿ _ _) ⦂ B)
-    (renameᵗ-cong A (toRename-keep-eq ρ)) body-context⊢
-⊢transport-target {ρ = ρ} {Φ = Φ} {Γ = Γ}
-    {M = L ⦂∀ C [ A ]} target (⊢⦂∀ L⊢) =
+    (renameᵗ-cong A (toRename-keep-eq ρ)) context-body⊢
+⊢transport-target {ρ = ρ} {Φ = Φ}
+    {M = F ⦂∀ C [ A ]} target (⊢⦂∀ F⊢) =
   subst≡
-    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
-      ⊢ renameᵗᵐ ρ (renameᶿ _ L) ⦂∀
+    (λ B → Φ ∣ _
+      ⊢ renameᵗᵐ ρ (renameᶿ _ F) ⦂∀
           renameᵗ (toRenameᵗ (keep ρ)) C
           [ renameᵗ (toRenameᵗ ρ) A ] ⦂ B)
     (sym (rename-open↪ᵗ ρ C A)) (⊢⦂∀ body⊢)
   where
   body-eq = renameᵗ-cong C (toRename-keep-eq ρ)
   body⊢ = subst≡
-    (λ B → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
-      ⊢ renameᵗᵐ ρ (renameᶿ _ L) ⦂ `∀ B)
-    (sym body-eq) (⊢transport-target target L⊢)
+    (λ B → Φ ∣ _
+      ⊢ renameᵗᵐ ρ (renameᶿ _ F) ⦂ `∀ B)
+    (sym body-eq) (⊢transport-target target F⊢)
 ⊢transport-target {ρ = ρ} target (⊢$ κ) =
   subst≡ (λ A → _ ∣ _ ⊢ $ κ ⦂ A)
     (constTy-renameᵗ (toRenameᵗ ρ) κ) (⊢$ κ)
@@ -4644,16 +4740,21 @@ mutual
 ⊢transport-target {ρ = ρ} target (⊢⟨⟩ M⊢ c) =
   ⊢⟨⟩ (⊢transport-target target M⊢) (renameᵐᶜ ρ c)
 ⊢transport-target target (⊢ν M⊢) =
-  ⊢ν (⊢transport-target (typing-target-ν target) M⊢)
-⊢transport-target {ρ = ρ} {φ = φ} {Φ = Φ} target
+  ⊢ν (subst≡ (λ Γ′ → _ ∣ Γ′ ⊢ _ ⦂ _)
+    (mapCtx-ν target _) (⊢transport-target (typing-target-ν target) M⊢))
+⊢transport-target {ρ = ρ} {φ = φ} {Φ = Φ} {Γ = Γ} target
     (⊢reveal {A = A} {B = B} {C = C} {Y = Y} {α = α}
       {fresh = fresh} α-eq c⊢ M⊢) =
   ⊢reveal (rep?-TypingTarget target α α-eq) conversion⊢ body⊢
   where
   ρ⁺ = insert↪ᵗ ρ Y
   Y′ = toRenameᵗ ρ⁺ Y
+  begin-target = typingTarget-begin target
 
-  body⊢ = ⊢transport-target (typingTarget-begin target) M⊢
+  transported-body⊢ = ⊢transport-target begin-target M⊢
+  body⊢ = subst≡
+    (λ Γ′ → _ ∣ Γ′ ⊢ renameᵗᵐ ρ⁺ (renameᶿ φ _) ⦂ _)
+    (mapCtx-begin target Γ) transported-body⊢
 
   conversion-representation⊢ = subst≡
     (λ R → ⊢↑[ Y′ ⦂ R ] _
@@ -4667,64 +4768,15 @@ mutual
         ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ ρ) C) ] _
       ⦂ renameᵗ (toRenameᵗ ρ⁺) A ↝ B′)
     (rename-insert-wk ρ Y B) conversion-representation⊢
-⊢transport-target {ρ = ρ⁺@(keep ρ)} {φ = φ} target
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
-      tyVar-eq α-eq c⊢ M⊢) =
-  ⊢conceal target-tyVar target-rep conversion⊢ body⊢
-  where
-  deleted = delete↪ᵗ ρ⁺ Y
-  Y′ = toRenameᵗ ρ⁺ Y
-  ended-target = typing-target-end target
-
-  target-tyVar = tyVar-forward-TypingTarget target tyVar-eq
-  target-rep = rep?-TypingTarget ended-target α α-eq
-  body⊢ = ⊢transport-target ended-target M⊢
-
-  conversion-representation⊢ = subst≡
-    (λ R → ⊢↓[ Y′ ⦂ R ] _
-      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
-      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y C)
-    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ = subst≡
-    (λ A′ → ⊢↓[ Y′
-        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
-      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
-⊢transport-target {ρ = ρ⁺@(skip ρ)} {φ = φ} target
-    (⊢conceal {A = A} {C = C} {B = B} {Y = Y} {α = α}
-      tyVar-eq α-eq c⊢ M⊢) =
-  ⊢conceal target-tyVar target-rep conversion⊢ body⊢
-  where
-  deleted = delete↪ᵗ ρ⁺ Y
-  Y′ = toRenameᵗ ρ⁺ Y
-  ended-target = typing-target-end target
-
-  target-tyVar = tyVar-forward-TypingTarget target tyVar-eq
-  target-rep = rep?-TypingTarget ended-target α α-eq
-  body⊢ = ⊢transport-target ended-target M⊢
-
-  conversion-representation⊢ = subst≡
-    (λ R → ⊢↓[ Y′ ⦂ R ] _
-      ⦂ renameᵗ (toRenameᵗ ρ⁺) (wkᵗ Y A)
-      ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y C)
-    (rename-⊢↓ (toRenameᵗ ρ⁺) c⊢)
-
-  conversion⊢ = subst≡
-    (λ A′ → ⊢↓[ Y′
-        ⦂ wkᵗ Y′ (renameᵗ (toRenameᵗ deleted) C) ] _
-      ⦂ A′ ↝ renameᵗ (toRenameᵗ ρ⁺) B)
-    (rename-delete-wk ρ⁺ Y A) conversion-representation⊢
+⊢transport-target target (⊢conceal tyVar-eq α-eq c⊢ M⊢) = ?
 ⊢transport-target target ⊢blame = ⊢blame
 
 ⊢≼ : ∀ {Θ Θ′ Δ Δ′ σ σ′ k} {ρ : Δ ↪ᵗ Δ′}
     {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-    {Γ : TermCtx Δ} {M : Term Θ Δ} {A : Ty Δ}
+    {Γ : TermCtx Ψ} {M : Term Θ Δ} {A : Ty Δ}
   → (extension : Ψ ≼[ k , ρ ] Φ)
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ renameCtx (toRenameᵗ ρ) Γ
+  → Φ ∣ mapCtx (balanced-target extension) Γ
       ⊢ renameᵗᵐ ρ (renameᶿ (shiftAlong extension) M)
       ⦂ renameᵗ (toRenameᵗ ρ) A
 ⊢≼ extension M⊢ = ⊢transport-target (balanced-target extension) M⊢
@@ -4826,81 +4878,22 @@ delete-pointwise-id {ρ = ρ} Y eq X =
 
 ⊢transport-id : ∀ {Θ Θ′ Δ σ σ′} {ρ : Δ ↪ᵗ Δ}
     {φ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ σ′} {Γ : TermCtx Δ}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ σ′} {Γ : TermCtx Ψ}
     {M : Term Θ Δ} {A : Ty Δ}
   → (target : TypingTarget ρ φ Ψ Φ)
   → (idρ : ∀ X → toRenameᵗ ρ X ≡ X)
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ Γ ⊢ renameᶿ φ M ⦂ A
-⊢transport-id target idρ (⊢` x∈) = ⊢` x∈
-⊢transport-id target idρ (⊢ƛ M⊢) =
-  ⊢ƛ (⊢transport-id target idρ M⊢)
-⊢transport-id target idρ (⊢· L⊢ M⊢) =
-  ⊢· (⊢transport-id target idρ L⊢)
-    (⊢transport-id target idρ M⊢)
-⊢transport-id target idρ (⊢Λ M⊢) =
-  ⊢Λ (⊢transport-id (typing-target-typ target)
-    (keep-pointwise-id idρ) M⊢)
-⊢transport-id target idρ (⊢⦂∀ L⊢) =
-  ⊢⦂∀ (⊢transport-id target idρ L⊢)
-⊢transport-id target idρ (⊢$ κ) = ⊢$ κ
-⊢transport-id target idρ (⊢⊕ op L⊢ M⊢) =
-  ⊢⊕ op (⊢transport-id target idρ L⊢)
-    (⊢transport-id target idρ M⊢)
-⊢transport-id target idρ (⊢⟨⟩ M⊢ c) =
-  ⊢⟨⟩ (⊢transport-id target idρ M⊢) c
-⊢transport-id {ρ = ρ} {φ = φ} {Ψ = Ψ} {Φ = Φ}
-    target idρ (⊢ν {A = A} M⊢) =
-  ⊢ν (⊢transport-id ν-target idρ M⊢)
-  where
-  ν-target = subst≡
-    (λ B → TypingTarget ρ (extᵗ φ) (Ψ ,:= A) (Φ ,:= B))
-    (renameᵗ-pointwise-id A idρ)
-    (typing-target-ν {ρ = ρ} {A = A} target)
-⊢transport-id {ρ = ρ} {φ = φ} {Φ = Φ} target idρ
-    (⊢reveal {C = C} {Y = Y} {α = α} {fresh = fresh}
-      α-eq c⊢ M⊢) =
-  ⊢reveal target-rep c⊢ body-exact
-  where
-  position = insert-here-pointwise-id Y idρ
-  target-fresh = fresh-TypingTarget target fresh
-  target-rep = trans (rep?-TypingTarget target α α-eq)
-    (cong just (renameᵗ-pointwise-id C idρ))
-  body⊢ = ⊢transport-id (typingTarget-begin target)
-    (insert-pointwise-id Y idρ) M⊢
-  body-exact = subst≡
-    (λ Z → Φ ,begin[ Z ≔ φ α ]⟨ target-fresh ⟩ ∣ []
-      ⊢ renameᶿ φ _ ⦂ _)
-    position body⊢
-⊢transport-id {ρ = ρ} {φ = φ} {Φ = Φ} target idρ
-    (⊢conceal {C = C} {Y = Y} {α = α}
-      tyVar-eq α-eq c⊢ M⊢) =
-  ⊢conceal target-tyVar target-rep c⊢ body-exact
-  where
-  position = idρ Y
-  ended-target = typing-target-end target
-  target-tyVar-mapped = tyVar-forward-TypingTarget target tyVar-eq
-  target-tyVar = trans
-    (cong (Vec.lookup (tyVarsOf Φ)) (sym position))
-    target-tyVar-mapped
-  target-rep-mapped = trans (rep?-TypingTarget ended-target α α-eq)
-    (cong just (renameᵗ-pointwise-id C (delete-pointwise-id Y idρ)))
-  target-rep = subst≡
-    (λ Z → rep? (Φ ,end[ Z ]) (φ α) ≡ just C)
-    position target-rep-mapped
-  body⊢ = ⊢transport-id ended-target (delete-pointwise-id Y idρ) M⊢
-  body-exact = subst≡
-    (λ Z → Φ ,end[ Z ] ∣ [] ⊢ renameᶿ φ _ ⦂ _)
-    position body⊢
-⊢transport-id target idρ ⊢blame = ⊢blame
+  → Φ ∣ mapCtx target Γ ⊢ renameᶿ φ M ⦂ A
+⊢transport-id target idρ M⊢ = ?
 
 ⊢≼-id : ∀ {Θ Θ′ Δ σ σ′ k} {ρ : Δ ↪ᵗ Δ}
     {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ σ′}
-    {Γ : TermCtx Δ} {M : Term Θ Δ} {A : Ty Δ}
+    {Γ : TermCtx Ψ} {M : Term Θ Δ} {A : Ty Δ}
   → (extension : Ψ ≼[ k , ρ ] Φ)
   → (∀ X → toRenameᵗ ρ X ≡ X)
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ Γ ⊢ renameᶿ (shiftAlong extension) M ⦂ A
+  → Φ ∣ mapCtx (balanced-target extension) Γ
+      ⊢ renameᶿ (shiftAlong extension) M ⦂ A
 ⊢≼-id extension idρ M⊢ =
   ⊢transport-id (balanced-target extension) idρ M⊢
 
@@ -4956,26 +4949,28 @@ reenter-injection-id : ∀ {Δ} (Y : TyVar (suc Δ)) X
 reenter-injection-id Y =
   insert-pointwise-id Y (reenter-middle-id Y)
 
-⊢shiftᶿ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Δ}
+⊢shiftᶿ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Ψ}
     {M : Term Θ Δ} {A B : Ty Δ}
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Ψ ,:= B ∣ Γ ⊢ shiftᶿ M ⦂ A
-⊢shiftᶿ M⊢ = ⊢transport-id
-  (balanced-target (≼-ν ≼-refl)) toRename-id-eq M⊢
+  → Ψ ,:= B ∣ νCtx Γ ⊢ shiftᶿ M ⦂ A
+⊢shiftᶿ M⊢ = ?
 
-⊢subst : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Δ}
+⊢subst : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ Γ′ : TermCtx Ψ}
     {environment : Subst Θ Δ} {M : Term Θ Δ} {A : Ty Δ}
-  → (∀ {x B} → Γ ∋ x ⦂ B → Ψ ∣ Γ′ ⊢ environment x ⦂ B)
+  → (∀ {x Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ}
+      {ws : ScopeRoute birth Ψ ρ}
+      {B : Ty Δ₀}
+    → Γ ∋ x ⦂[ ws ] B
+    → Ψ ∣ Γ′ ⊢ environment x ⦂ weakenAlong ws B)
   → Ψ ∣ Γ ⊢ M ⦂ A
     --------------------------
   → Ψ ∣ Γ′ ⊢ subst environment M ⦂ A
 ⊢subst environment⊢ (⊢` x∈) = environment⊢ x∈
-⊢subst environment⊢ (⊢ƛ M⊢) =
-  ⊢ƛ (⊢subst (exts-∋ environment⊢) M⊢)
+⊢subst environment⊢ (⊢ƛ M⊢) = ?
 ⊢subst environment⊢ (⊢· L⊢ M⊢) =
   ⊢· (⊢subst environment⊢ L⊢) (⊢subst environment⊢ M⊢)
-⊢subst environment⊢ (⊢Λ M⊢) =
-  ⊢Λ (⊢subst (liftˢ-∋ environment⊢) M⊢)
+⊢subst environment⊢ (⊢Λ M⊢) = ?
 ⊢subst environment⊢ (⊢⦂∀ L⊢) =
   ⊢⦂∀ (⊢subst environment⊢ L⊢)
 ⊢subst environment⊢ (⊢$ κ) = ⊢$ κ
@@ -4983,48 +4978,32 @@ reenter-injection-id Y =
   ⊢⊕ op (⊢subst environment⊢ L⊢) (⊢subst environment⊢ M⊢)
 ⊢subst environment⊢ (⊢⟨⟩ M⊢ c) =
   ⊢⟨⟩ (⊢subst environment⊢ M⊢) c
-⊢subst environment⊢ (⊢ν M⊢) =
-  ⊢ν (⊢subst (λ x∈ → ⊢shiftᶿ (environment⊢ x∈)) M⊢)
-⊢subst environment⊢ (⊢reveal α-eq c⊢ M⊢) =
-  ⊢reveal α-eq c⊢ M⊢
-⊢subst environment⊢ (⊢conceal tyVar-eq α-eq c⊢ M⊢) =
-  ⊢conceal tyVar-eq α-eq c⊢ M⊢
+⊢subst environment⊢ (⊢ν M⊢) = ?
+⊢subst environment⊢ (⊢reveal α-eq c⊢ M⊢) = ?
+⊢subst environment⊢ (⊢conceal tyVar-eq α-eq c⊢ M⊢) = ?
 ⊢subst environment⊢ ⊢blame = ⊢blame
 
-⊢[] : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Δ}
+⊢[] : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Ψ}
     {M N : Term Θ Δ} {A B : Ty Δ}
-  → Ψ ∣ A ∷ Γ ⊢ M ⦂ B
+  → Ψ ∣ (A at currentScope Ψ) ∷ Γ ⊢ M ⦂ B
   → Ψ ∣ Γ ⊢ N ⦂ A
     ---------------------
   → Ψ ∣ Γ ⊢ M [ N ] ⦂ B
 ⊢[] {Ψ = Ψ} {Γ = Γ} {N = N} {A = A} M⊢ N⊢ =
-  ⊢subst single⊢ M⊢
-  where
-  single⊢ : ∀ {x C}
-    → A ∷ Γ ∋ x ⦂ C
-    → Ψ ∣ Γ ⊢ singleSub N x ⦂ C
-  single⊢ Z = N⊢
-  single⊢ (S x∈) = ⊢` x∈
+  ⊢subst
+    (λ { Z → subst≡ (λ C → Ψ ∣ Γ ⊢ N ⦂ C)
+             (sym (rename-id↪ᵗ A)) N⊢
+       ; (S x∈) → ⊢` x∈ })
+    M⊢
 
 ⊢bracket : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    {Γ : TermCtx Δ} {M : Term Θ Δ} {A : Ty Δ}
+    {Γ : TermCtx Ψ} {M : Term Θ Δ} {A : Ty Δ}
     {Y : TyVar (suc Δ)}
     {a : TyVar Θ} (fresh : a ∉ᵛ σ)
   → Ψ ∣ Γ ⊢ M ⦂ A
-  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ] ∣ Γ ⊢ M ⦂ A
-⊢bracket {Ψ = Ψ} {Γ = Γ} {M = M} {A = A} {Y = Y} {a = a}
-    fresh M⊢ =
-  subst≡ (λ N → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ]
-      ∣ Γ ⊢ N ⦂ A)
-    (renameᶿ-pointwise-id (λ q → refl) M) position-typed
-  where
-  extension = ≼-begin-end ≼-refl ≼-refl
-  mapped = toRenameᵗ id↪ᵗ Y
-  typed = ⊢≼-id extension (bracket-injection-id Y) M⊢
-  position-typed = subst≡
-    (λ Z → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Z ]
-      ∣ Γ ⊢ renameᶿ (shiftAlong extension) M ⦂ A)
-    (toRename-id-eq Y) typed
+  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ]
+      ∣ truncateForEnd (beginCtx Γ) Y ⊢ M ⦂ A
+⊢bracket fresh M⊢ = ?
 
 shifted-zero-eq : ∀ {Θ} {a b : TyVar Θ}
   → Shifted zero a b
@@ -5460,61 +5439,34 @@ rep?-unbracket {Θ = Θ} same a =
 
 ⊢unbracket-target : ∀ {Θ Δ σ τ}
     {left : TyEnv Θ Δ σ} {right : TyEnv Θ Δ τ}
-    {Γ : TermCtx Δ} {M : Term Θ Δ} {A : Ty Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
   → UnbracketTarget left right
-  → left ∣ Γ ⊢ M ⦂ A
-  → right ∣ Γ ⊢ M ⦂ A
-⊢unbracket-target same (⊢` x∈) = ⊢` x∈
-⊢unbracket-target same (⊢ƛ M⊢) =
-  ⊢ƛ (⊢unbracket-target same M⊢)
-⊢unbracket-target same (⊢· L⊢ M⊢) =
-  ⊢· (⊢unbracket-target same L⊢) (⊢unbracket-target same M⊢)
-⊢unbracket-target same (⊢Λ M⊢) =
-  ⊢Λ (⊢unbracket-target (unbracket-typ same) M⊢)
-⊢unbracket-target same (⊢⦂∀ M⊢) =
-  ⊢⦂∀ (⊢unbracket-target same M⊢)
-⊢unbracket-target same (⊢$ κ) = ⊢$ κ
-⊢unbracket-target same (⊢⊕ op L⊢ M⊢) =
-  ⊢⊕ op (⊢unbracket-target same L⊢)
-    (⊢unbracket-target same M⊢)
-⊢unbracket-target same (⊢⟨⟩ M⊢ c) =
-  ⊢⟨⟩ (⊢unbracket-target same M⊢) c
-⊢unbracket-target same (⊢ν M⊢) =
-  ⊢ν (⊢unbracket-target (unbracket-ν same) M⊢)
-⊢unbracket-target same
-    (⊢reveal {α = α} {fresh = fresh} α-eq c⊢ M⊢) =
-  ⊢reveal (trans (sym (rep?-unbracket same α)) α-eq) c⊢
-    (⊢unbracket-target
-      (unbracket-begin {fresh′ = unbracket-fresh same fresh} same) M⊢)
-⊢unbracket-target same
-    (⊢conceal {Y = Y} {α = α} tyVar-eq α-eq c⊢ M⊢) =
-  ⊢conceal (unbracket-tyVar same tyVar-eq)
-    (trans (sym (rep?-unbracket (unbracket-end {Y = Y} same) α)) α-eq)
-    c⊢ (⊢unbracket-target (unbracket-end {Y = Y} same) M⊢)
-⊢unbracket-target same ⊢blame = ⊢blame
+  → left ∣ [] ⊢ M ⦂ A
+  → right ∣ [] ⊢ M ⦂ A
+⊢unbracket-target same M⊢ = ?
 
 ⊢begin-typ-exchange : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
     {Y : TyVar (suc Δ)} {a : TyVar Θ} {fresh : a ∉ᵛ σ}
-    {Γ : TermCtx (suc (suc Δ))} {M : Term Θ (suc (suc Δ))}
+    {M : Term Θ (suc (suc Δ))}
     {A : Ty (suc (suc Δ))}
-  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,typ ∣ Γ ⊢ M ⦂ A
+  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,typ ∣ [] ⊢ M ⦂ A
   → Ψ ,typ ,begin[ suc Y ≔ a
       ]⟨ fresh-RenameTarget {Ψ = Ψ} literal-wk-target fresh ⟩
-      ∣ Γ ⊢ M ⦂ A
+      ∣ [] ⊢ M ⦂ A
 ⊢begin-typ-exchange = ⊢unbracket-target unbracket-begin-typ
 
 ⊢end-typ-exchange : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
-    {Y : TyVar (suc Δ)} {Γ : TermCtx (suc Δ)}
+    {Y : TyVar (suc Δ)}
     {M : Term Θ (suc Δ)} {A : Ty (suc Δ)}
-  → Ψ ,end[ Y ] ,typ ∣ Γ ⊢ M ⦂ A
-  → Ψ ,typ ,end[ suc Y ] ∣ Γ ⊢ M ⦂ A
+  → Ψ ,end[ Y ] ,typ ∣ [] ⊢ M ⦂ A
+  → Ψ ,typ ,end[ suc Y ] ∣ [] ⊢ M ⦂ A
 ⊢end-typ-exchange = ⊢unbracket-target unbracket-end-typ
 
 ⊢unbracket : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    {Γ : TermCtx Δ} {M : Term Θ Δ} {A : Ty Δ}
+    {M : Term Θ Δ} {A : Ty Δ}
     {Y : TyVar (suc Δ)} {a : TyVar Θ} {fresh : a ∉ᵛ σ}
-  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ] ∣ Γ ⊢ M ⦂ A
-  → Ψ ∣ Γ ⊢ M ⦂ A
+  → Ψ ,begin[ Y ≔ a ]⟨ fresh ⟩ ,end[ Y ] ∣ [] ⊢ M ⦂ A
+  → Ψ ∣ [] ⊢ M ⦂ A
 ⊢unbracket = ⊢unbracket-target unbracket-base
 
 reenter-extension : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
@@ -5544,29 +5496,14 @@ reenter-anchor-id {Ψ = Ψ} {Y = Y} tyVar-eq q =
     (shiftAlong-shifted (reenter-extension {Ψ = Ψ} {Y = Y} tyVar-eq) q))
 
 ⊢reenter : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
-    {Γ : TermCtx (suc Δ)} {M : Term Θ (suc Δ)} {A : Ty (suc Δ)}
+    {Γ : TermCtx Ψ} {M : Term Θ (suc Δ)} {A : Ty (suc Δ)}
     {Y : TyVar (suc Δ)} {a : TyVar Θ}
     (tyVar-eq : Vec.lookup σ Y ≡ just a)
   → Ψ ∣ Γ ⊢ M ⦂ A
   → Ψ ,end[ Y ] ,begin[ Y ≔ a
       ]⟨ fresh-after-end {Ψ = Ψ} {Y = Y} tyVar-eq ⟩
-      ∣ Γ ⊢ M ⦂ A
-⊢reenter {Ψ = Ψ} {Γ = Γ} {M = M} {A = A} {Y = Y} {a = a}
-    tyVar-eq M⊢ =
-  subst≡ (λ N → Ψ ,end[ Y ] ,begin[ Y ≔ a
-      ]⟨ fresh-after-end {Ψ = Ψ} {Y = Y} tyVar-eq ⟩
-      ∣ Γ ⊢ N ⦂ A)
-    (renameᶿ-pointwise-id
-      (reenter-anchor-id {Ψ = Ψ} {Y = Y} tyVar-eq) M)
-    (subst≡
-      (λ Z → Ψ ,end[ Y ] ,begin[ Z ≔ a
-          ]⟨ fresh-after-end {Ψ = Ψ} {Y = Y} tyVar-eq ⟩
-        ∣ Γ ⊢ renameᶿ
-          (shiftAlong (reenter-extension {Ψ = Ψ} {Y = Y} tyVar-eq)) M ⦂ A)
-      (reenter-injection-id Y Y)
-      (⊢≼-id
-        (reenter-extension {Ψ = Ψ} {Y = Y} tyVar-eq)
-        (reenter-injection-id Y) M⊢))
+      ∣ beginCtx (truncateForEnd Γ Y) ⊢ M ⦂ A
+⊢reenter tyVar-eq M⊢ = ?
 
 ------------------------------------------------------------------------
 -- Replacing one lexical type variable by a freshly allocated crossing
@@ -6247,50 +6184,18 @@ allocation-source-tyVar≢ target tyVar-eq refl =
 
 ⊢allocate-target : ∀ {Θ Θ′ Δ σ τ}
     {φ : TyVar Θ → TyVar Θ′} {P : TyVar Δ} {b : TyVar Θ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ} {Γ : TermCtx Δ}
+    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ τ}
     {M : Term Θ Δ} {A : Ty Δ}
   → AllocationTarget φ P b Ψ Φ
-  → Ψ ∣ Γ ⊢ M ⦂ A
-  → Φ ∣ Γ ⊢ renameᶿ φ M ⦂ A
-⊢allocate-target target (⊢` x∈) = ⊢` x∈
-⊢allocate-target target (⊢ƛ M⊢) =
-  ⊢ƛ (⊢allocate-target target M⊢)
-⊢allocate-target target (⊢· L⊢ M⊢) =
-  ⊢· (⊢allocate-target target L⊢) (⊢allocate-target target M⊢)
-⊢allocate-target target (⊢Λ M⊢) =
-  ⊢Λ (⊢allocate-target (allocation-typ target) M⊢)
-⊢allocate-target target (⊢⦂∀ M⊢) =
-  ⊢⦂∀ (⊢allocate-target target M⊢)
-⊢allocate-target target (⊢$ κ) = ⊢$ κ
-⊢allocate-target target (⊢⊕ op L⊢ M⊢) =
-  ⊢⊕ op (⊢allocate-target target L⊢)
-    (⊢allocate-target target M⊢)
-⊢allocate-target target (⊢⟨⟩ M⊢ c) =
-  ⊢⟨⟩ (⊢allocate-target target M⊢) c
-⊢allocate-target target (⊢ν M⊢) =
-  ⊢ν (⊢allocate-target (allocation-ν target) M⊢)
-⊢allocate-target {φ = φ} target
-    (⊢reveal {α = a} {fresh = fresh} rep-eq c⊢ M⊢) =
-  ⊢reveal (rep?-AllocationTarget target rep-eq) c⊢
-    (⊢allocate-target
-      (allocation-begin
-        {fresh′ = fresh-AllocationTarget target fresh} target)
-      M⊢)
-⊢allocate-target target
-    (⊢conceal {Y = Y} tyVar-eq rep-eq c⊢ M⊢) =
-  ⊢conceal (allocation-target-forward target tyVar-eq)
-    (rep?-AllocationTarget ended-target rep-eq) c⊢
-    (⊢allocate-target ended-target M⊢)
-  where
-  ended-target = allocation-end
-    (allocation-source-tyVar≢ target tyVar-eq) target
-⊢allocate-target target ⊢blame = ⊢blame
+  → Ψ ∣ [] ⊢ M ⦂ A
+  → Φ ∣ [] ⊢ renameᶿ φ M ⦂ A
+⊢allocate-target target M⊢ = ?
 
 ⊢allocate-lexical : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    {Γ : TermCtx (suc Δ)} {M : Term Θ (suc Δ)}
+    {M : Term Θ (suc Δ)}
     {A : Ty (suc Δ)} {C : Ty Δ}
-  → Ψ ,typ ∣ Γ ⊢ M ⦂ A
+  → Ψ ,typ ∣ [] ⊢ M ⦂ A
   → ((Ψ ,:= C)
       ,begin[ zero ≔ zero ]⟨ fresh-zero-map-suc {tyVars = σ} ⟩)
-      ∣ Γ ⊢ shiftᶿ M ⦂ A
+      ∣ [] ⊢ shiftᶿ M ⦂ A
 ⊢allocate-lexical M⊢ = ⊢allocate-target allocation-base M⊢

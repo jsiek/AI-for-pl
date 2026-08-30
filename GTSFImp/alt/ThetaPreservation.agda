@@ -1,3 +1,5 @@
+{-# OPTIONS --allow-unsolved-metas #-}
+
 module alt.ThetaPreservation where
 
 -- File Charter:
@@ -258,7 +260,7 @@ preserve-β-reveal-⇒ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
   → Ψ ∣ [] ⊢ (V ↑[ X ≔ α ] (c ↦↑ d)) · W ⦂ B
   → Ψ ∣ [] ⊢ (V · (W ↓[ X ≔ α ] c)) ↑[ X ≔ α ] d ⦂ B
 preserve-β-reveal-⇒ {Ψ = Ψ} {W = W} {X = X} {α = α}
-    (⊢· (⊢reveal {C = C} {fresh = fresh} α-eq
+    (⊢· {A = D} (⊢reveal {C = C} {fresh = fresh} α-eq
       (⊢↑-⇒ c⊢ d⊢) V⊢) W⊢) =
   ⊢reveal α-eq d⊢
     (⊢· V⊢ (⊢conceal tyVar-eq ended-eq c⊢ ended-W⊢))
@@ -266,7 +268,13 @@ preserve-β-reveal-⇒ {Ψ = Ψ} {W = W} {X = X} {α = α}
   tyVar-eq = lookup-insert-here X (just α) _
   ended-eq = rep?-bracket {Ψ = Ψ} {Y = X} {a = α} {q = α}
     {A = C} fresh α-eq
-  ended-W⊢ = ⊢bracket {Ψ = Ψ} {Y = X} {a = α} fresh W⊢
+  ended-W⊢′ : Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ,end[ X ] ∣ [] ⊢ W ⦂ D
+  ended-W⊢′ = ⊢bracket {Ψ = Ψ} {Y = X} {a = α} fresh W⊢
+  ended-W⊢ : Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ,end[ X ] ∣
+      truncateForEnd [] X ⊢ W ⦂ D
+  ended-W⊢ = subst≡
+    (λ Γ → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ,end[ X ] ∣ Γ ⊢ W ⦂ D)
+    (sym (truncateForEnd-empty X)) ended-W⊢′
 
 preserve-β-conceal-⇒ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
     {V : Term Θ Δ} {W : Term Θ (suc Δ)}
@@ -274,20 +282,25 @@ preserve-β-conceal-⇒ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
     {B : Ty (suc Δ)}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] (c ↦↓ d)) · W ⦂ B
   → Ψ ∣ [] ⊢ (V · (W ↑[ X ≔ α ] c)) ↓[ X ≔ α ] d ⦂ B
-preserve-β-conceal-⇒
-    (⊢· (⊢conceal {A = A ⇒ B} tyVar-eq α-eq
+preserve-β-conceal-⇒ {Ψ = Ψ} {W = W} {X = X}
+    (⊢· {A = D} (⊢conceal {A = A ⇒ B} tyVar-eq α-eq
       (⊢↓-⇒ c⊢ d⊢) V⊢) W⊢) =
   ⊢conceal tyVar-eq α-eq d⊢
-    (⊢· V⊢ (⊢reveal α-eq c⊢ (⊢reenter tyVar-eq W⊢)))
+    (⊢· V⊢ (⊢reveal α-eq c⊢ (⊢reenter tyVar-eq pocket-W⊢)))
+  where
+  pocket-W⊢ : Ψ ∣ [] ⊢ W ⦂ D
+  pocket-W⊢ = W⊢
 
 preserve-id-cancel : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {A}
   → Ψ ∣ [] ⊢ (V ↓[ X ≔ α ] id↓) ↑[ X ≔ α ] id↑ ⦂ A
   → Ψ ∣ [] ⊢ V ⦂ A
 preserve-id-cancel {Ψ = Ψ} {V = V} {X = X} {α = α}
-    (⊢reveal α∈ c↑ (⊢conceal tyVar∈ β∈ c↓ V⊢)) =
+    (⊢reveal {fresh = fresh} α∈ c↑
+      (⊢conceal {A = C} tyVar∈ β∈ c↓ V⊢)) =
   subst≡ (λ B → Ψ ∣ [] ⊢ V ⦂ B) type-eq ambient-V⊢
   where
+  ambient-V⊢ : Ψ ∣ [] ⊢ V ⦂ C
   ambient-V⊢ = ⊢unbracket V⊢
   type-eq = wkTy-injective X
     (trans (id↓-endpoint c↓) (id↑-endpoint c↑))
@@ -323,9 +336,10 @@ preserve-conceal-reveal-matched : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
   → Ψ ∣ [] ⊢ V ⦂ A
 preserve-conceal-reveal-matched {Ψ = Ψ} {X = X} {α = α} refl refl
     (⊢reveal {fresh = fresh} β-eq c↑
-      (⊢conceal tyVar-eq α-eq c↓ V⊢)) =
+      (⊢conceal {A = C} tyVar-eq α-eq c↓ V⊢)) =
   subst≡ (λ B → Ψ ∣ [] ⊢ _ ⦂ B) type-eq ambient-V⊢
   where
+  ambient-V⊢ : Ψ ∣ [] ⊢ _ ⦂ C
   ambient-V⊢ = ⊢unbracket V⊢
   ambient-α-eq = trans
     (sym (rep?-unbracket
@@ -470,7 +484,7 @@ preserve-β-conceal-∀-any {B = `∀ B} Vʳ typing =
   preserve-β-conceal-∀ Vʳ typing
 
 preserve-inject-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    {Γ : TermCtx Δ} {V : Term Θ (suc Δ)}
+    {V : Term Θ (suc Δ)}
     {Y : TyVar (suc Δ)} {γ : TyVar Θ}
     {μ : Env∼ (suc Δ)} {H : Ty (suc Δ)} {H₀ B C : Ty Δ}
     {T : Ty (suc Δ)} {fresh : γ ∉ᵛ σ}
@@ -481,7 +495,7 @@ preserve-inject-reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
   → (strengthens : strengthenᵗ? Y H ≡ just H₀)
   → ⊢↑[ Y ⦂ wkᵗ Y C ] id↑ ⦂ ★ ↝ T
   → T ≡ wkᵗ Y B
-  → Ψ ∣ Γ ⊢ (V ↑[ Y ≔ γ ] expand↑ H id↑)
+  → Ψ ∣ [] ⊢ (V ↑[ Y ≔ γ ] expand↑ H id↑)
       ⟨ strInj Hᵍ H∼★ strengthens ⟩ ⦂ B
 preserve-inject-reveal {B = ＇ X} Hᵍ H∼★ α-eq V⊢ strengthens
     (⊢id↑ ★) ()
@@ -498,7 +512,7 @@ preserve-inject-reveal {B = `∀ B} Hᵍ H∼★ α-eq V⊢ strengthens
     (⊢id↑ ★) ()
 
 ⊢smart-inj★ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    {Γ : TermCtx Δ} {V : Term Θ Δ} {C : Ty Δ}
+    {Γ : alt.ThetaTyping.TermCtx Ψ} {V : Term Θ Δ} {C : Ty Δ}
   → Ψ ∣ Γ ⊢ V ⦂ C
   → Ψ ∣ Γ ⊢ smart-inj★ V C ⦂ ★
 ⊢smart-inj★ {C = C} V⊢ with injectionPlan C
@@ -565,6 +579,8 @@ preserve
         ⦃ G∼★ = H∼★ ⦄ .(idᵍ Hᵍ))))
     (inject-reveal {Y = Y} strengthens Vᵥ) =
   preserve-inject-reveal Hᵍ H∼★ α-eq V⊢ strengthens c⊢ refl
+preserve (⊢reveal α-eq conversion⊢ (⊢ƛ N⊢))
+    (SCWRAP endpoint-eq) = ?
 preserve typing
     (inject-reveal-resolve
       ⦃ X∼★ = Xtag ⦄ ⦃ Xns = Xns ⦄ rep-eq Vᵥ) =
@@ -600,7 +616,7 @@ preserve typing blame-ν = ⊢blame
 preserve (⊢ν (⊢⟨⟩ V⊢ c)) (tag-out Vᵥ) = ⊢⟨⟩ (⊢ν V⊢) c
 preserve (⊢ν (⊢⟨⟩ V⊢ c)) (inert-cast-out Vᵥ inert) =
   ⊢⟨⟩ (⊢ν V⊢) c
-preserve (⊢ν (⊢ƛ N⊢)) NUWRAP = ⊢ƛ (⊢ν N⊢)
+preserve (⊢ν (⊢ƛ N⊢)) NUWRAP = ?
 preserve (⊢ν (⊢Λ V⊢)) NUTYWRAP =
   ⊢Λ (⊢ν (⊢unbracket-target unbracket-ν-typ V⊢))
 preserve typing@(⊢⦂∀ (⊢Λ V⊢)) (β-Λ Vᵥ) =
@@ -622,7 +638,8 @@ preserve (⊢⦂∀ M⊢) (ξ-• step) = ⊢⦂∀ (preserve M⊢ step)
 preserve (⊢⟨⟩ M⊢ c) (ξ-⟨⟩ step) = ⊢⟨⟩ (preserve M⊢ step) c
 preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
   ⊢reveal α∈ c⊢ (preserve M⊢ step)
-preserve (⊢conceal tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =
+preserve (⊢conceal {Ψ = Ψ} {M = M} {A = A} {Y = Y}
+    tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =
   ⊢conceal tyVar∈ α∈ c⊢ (preserve M⊢ step)
 preserve (⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
   ⊢⊕ op (preserve L⊢ step) M⊢

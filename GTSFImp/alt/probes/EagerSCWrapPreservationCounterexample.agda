@@ -1,17 +1,16 @@
 module alt.probes.EagerSCWrapPreservationCounterexample where
 
 -- File Charter:
---   * Checks whether U47b's eager SCWRAP contracta are typeable under the
---     current closed-crossing typing rules.
---   * The identity-function instances in both polarities are typed redexes,
---     while their specified contracta contain a bound variable beneath a
---     crossing and therefore cannot be typed.
+--   * Retains the U47b closed-interior and U48 conceal-image refutations as
+--     history, then rechecks them under U50's telescope-aligned contexts.
+--   * The reveal-polarity contractum is now typed: its outer-born binder
+--     survives the wrapper conceal.  The conceal-polarity rule remains
+--     absent, so its old counterexample is retained only as design history.
 --   * U48's conceal image-pattern does not repair the general rule: the
 --     checked `ℕ⇒ℕ`-to-`＇X⇒ℕ` conversion produces a
 --     non-weakening-image lambda domain.
 
 open import Data.Fin using (zero)
-open import Data.List using ([])
 open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality
@@ -20,7 +19,7 @@ open import Relation.Nullary using (¬_)
 import Data.Vec.Base as Vec
 
 open import Types
-open import TermCtx
+open import Consistency using (empty)
 open import alt.Conversion
 open import alt.ThetaTerms
 open import alt.ThetaTyping
@@ -59,17 +58,48 @@ revealRedex-typed =
     (⊢↑-⇒ (⊢id↓ (‵ `ℕ)) (⊢id↑ (‵ `ℕ)))
     (⊢ƛ (⊢` Z))
 
-revealContractum-not-typed :
-  ¬ (baseEnv ∣ [] ⊢ revealContractum ⦂ ℕ⇒ℕ)
-revealContractum-not-typed
-    (⊢ƛ (⊢reveal rep-eq c↑⊢
-      (⊢conceal tyVar-eq ended-eq c↓⊢ (⊢` ()))))
+outerCtx : TermCtx baseEnv
+outerCtx = (ℕᵗ at currentScope baseEnv) ∷ []
 
-revealBody-substitution-stops : ∀ (W : Term 1 zero)
+outer-route :
+  ScopeRoute baseEnv baseEnv empty
+outer-route = currentScope baseEnv
+
+outer-route-in-pocket :
+  ScopeRoute baseEnv (crossedEnv ,end[ zero ]) empty
+outer-route-in-pocket =
+  scope-end
+    (scope-begin outer-route (target-insert-empty zero))
+    (target-delete-empty zero)
+
+outerCtx-in-pocket : TermCtx (crossedEnv ,end[ zero ])
+outerCtx-in-pocket = (ℕᵗ at outer-route-in-pocket) ∷ []
+
+outer-entry-survives :
+  truncateForEnd (beginCtx outerCtx) zero ≡ outerCtx-in-pocket
+outer-entry-survives = refl
+
+wrapper-typed : crossedEnv ∣ beginCtx outerCtx
+  ⊢ (` zero) ↓[ zero ≔ zero ] id↓ ⦂ ℕᵗ
+wrapper-typed =
+  ⊢conceal refl refl (⊢id↓ (‵ `ℕ))
+    (⊢` Z)
+
+revealContractum-typed :
+  baseEnv ∣ [] ⊢ revealContractum ⦂ ℕ⇒ℕ
+revealContractum-typed =
+  ⊢ƛ
+    (⊢reveal {fresh = no-live-anchor}
+      refl (⊢id↑ (‵ `ℕ)) wrapper-typed)
+
+revealRedex-step : baseEnv ⊢ revealRedex —→ revealContractum
+revealRedex-step = SCWRAP refl
+
+revealBody-substitution-crosses : ∀ (W : Term 1 zero)
   → ((((` zero) ↓[ zero ≔ zero ] id↓)
         ↑[ zero ≔ zero ] id↑) [ W ])
-    ≡ ((` zero) ↓[ zero ≔ zero ] id↓) ↑[ zero ≔ zero ] id↑
-revealBody-substitution-stops W = refl
+    ≡ (W ↓[ zero ≔ zero ] id↓) ↑[ zero ≔ zero ] id↑
+revealBody-substitution-crosses W = refl
 
 concealRedex : Term 1 1
 concealRedex =

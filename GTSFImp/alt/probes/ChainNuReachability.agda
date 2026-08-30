@@ -3,16 +3,17 @@ module alt.probes.ChainNuReachability where
 -- File Charter:
 --   * Rechecks whether source-shaped type applications reach the old chain-ν
 --     adapter gaps after the U46 immobile transition.
---   * They do not: in both an application and a ★ projection, the first β-Λ
---     allocation is immobile around its function reveal.  With no float and
---     no dissolution rule for that value head, evaluation stops before the
---     inner abstract instantiation can mint its `ν[ ＇ X ]` seal sandwich.
+--   * U50 changes the answer: in both an application and a ★ projection, the
+--     first β-Λ allocation reaches a reveal-headed lambda, and reveal-polarity
+--     SCWRAP now steps inside the ν.  Both updated stepping traces are checked.
 --   * Both sources are closed in the empty environment and contain no ν or
 --     mismatched adapter syntax; all boundary nodes are compile-style.
 
 open import Data.Fin using (zero)
 open import Data.List using ([]; _∷_)
+open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (¬_)
 import Data.Vec.Base as Vec
 
@@ -24,6 +25,7 @@ open import alt.Conversion
 open import alt.ThetaTerms
 open import alt.ThetaTyping
 open import alt.ThetaReduction
+open import alt.ThetaTermSubst using (rep?-here)
 open import alt.ThetaPreservation using (preserve)
 open import alt.ThetaProgress using (Progress; step; done; failed)
 
@@ -68,7 +70,9 @@ closedPolyBody-value : Value closedPolyBody
 closedPolyBody-value = ƛ ＇ zero ˙ ` zero
 
 closedPolyIdentity-typed :
-  emptyEnv ,typ ∣ ＇ zero ∷ [] ⊢ closedPolyIdentity ⦂ `∀ identityBody
+  emptyEnv ,typ ∣
+    ((＇ zero) at currentScope (emptyEnv ,typ)) ∷ []
+    ⊢ closedPolyIdentity ⦂ `∀ identityBody
 closedPolyIdentity-typed = ⊢Λ (⊢ƛ (⊢` Z))
 
 outerBody : Term 0 1
@@ -97,13 +101,28 @@ shiftedOuterBody-value =
   ƛ ＇ zero ˙
     ((Λ (ƛ ＇ zero ˙ ` zero)) ⦂∀ identityBody [ ＇ zero ]) · ` zero
 
-outerInstantiationBody-value : Value outerInstantiationBody
-outerInstantiationBody-value = reveal-fun shiftedOuterBody-value
+outerInstantiationBody-not-value : ¬ Value outerInstantiationBody
+outerInstantiationBody-not-value (reveal-fun Vᵛ nonλ) = nonλ refl
 
-outerRegion-no-step : ∀ {A : Ty 0} {M′}
-  → ¬ (emptyEnv ⊢ ν[ A ] outerInstantiationBody —→ M′)
-outerRegion-no-step (ξ-ν reduction) =
-  value-no-step outerInstantiationBody-value reduction
+outerInstantiationContractum : Ty 0 → Term 1 0
+outerInstantiationContractum A =
+  ƛ A ˙
+    (((((Λ (ƛ ＇ zero ˙ ` zero))
+        ⦂∀ identityBody [ ＇ zero ]) · ` zero)
+      [ (` zero) ↓[ zero ≔ zero ] seal ])
+      ↑[ zero ≔ zero ] unseal)
+
+outer-domain-computes : ∀ (A : Ty 0)
+  → outsideDomain? (emptyEnv ,:= A) zero zero
+      seal (＇ zero) ≡ just A
+outer-domain-computes A
+    rewrite rep?-here {Ψ = emptyEnv} {A = A} =
+  strengthenᵗ?-wkᵗ zero A
+
+outerRegion-step : ∀ {A : Ty 0}
+  → emptyEnv ⊢ ν[ A ] outerInstantiationBody —→
+      ν[ A ] outerInstantiationContractum A
+outerRegion-step {A = A} = ξ-ν (SCWRAP (outer-domain-computes A))
 
 ------------------------------------------------------------------------
 -- Application context
@@ -141,26 +160,29 @@ closed-app-trace =
 closedAppEndpoint-typed : emptyEnv ∣ [] ⊢ closedAppEndpoint ⦂ ℕᵗ
 closedAppEndpoint-typed = preserve closedAppSource-typed closed-app-step
 
-closedAppInner-no-step : ∀ {M′}
-  → ¬ (emptyEnv
-      ⊢ (ν[ ℕ⇒ℕ ] outerInstantiationBody) · closedAppSeed —→ M′)
-closedAppInner-no-step (ξ-·₁ reduction) = outerRegion-no-step reduction
-closedAppInner-no-step (ξ-·₂ () reduction)
+closedAppAfterSCWrap : Term 0 0
+closedAppAfterSCWrap =
+  ((ν[ ℕ⇒ℕ ] outerInstantiationContractum ℕ⇒ℕ) · closedAppSeed)
+    · $ (κℕ zero)
 
-closedAppEndpoint-no-step : ∀ {M′}
-  → ¬ (emptyEnv ⊢ closedAppEndpoint —→ M′)
-closedAppEndpoint-no-step (ξ-·₁ reduction) =
-  closedAppInner-no-step reduction
-closedAppEndpoint-no-step (ξ-·₂ () reduction)
+closed-app-scwrap-step :
+  emptyEnv ⊢ closedAppEndpoint —→ closedAppAfterSCWrap
+closed-app-scwrap-step = ξ-·₁ (ξ-·₁ outerRegion-step)
 
-closedAppEndpoint-not-value : ¬ Value closedAppEndpoint
-closedAppEndpoint-not-value ()
+closed-app-scwrap-trace :
+  emptyEnv ⊢ closedAppSource —↠ closedAppAfterSCWrap
+closed-app-scwrap-trace =
+    closedAppSource
+  —→⟨ closed-app-step ⟩
+    closedAppEndpoint
+  —→⟨ closed-app-scwrap-step ⟩
+    closedAppAfterSCWrap
+  ∎
 
-closedAppEndpoint-no-progress : ¬ Progress emptyEnv closedAppEndpoint
-closedAppEndpoint-no-progress (step reduction) =
-  closedAppEndpoint-no-step reduction
-closedAppEndpoint-no-progress (done value) =
-  closedAppEndpoint-not-value value
+closedAppAfterSCWrap-typed :
+  emptyEnv ∣ [] ⊢ closedAppAfterSCWrap ⦂ ℕᵗ
+closedAppAfterSCWrap-typed =
+  preserve closedAppEndpoint-typed closed-app-scwrap-step
 
 ------------------------------------------------------------------------
 -- ★ projection context
@@ -201,22 +223,26 @@ closed-star-trace =
 closedStarEndpoint-typed : emptyEnv ∣ [] ⊢ closedStarEndpoint ⦂ ℕᵗ
 closedStarEndpoint-typed = preserve closedStarSource-typed closed-star-step
 
-closedStarInner-no-step : ∀ {M′}
-  → ¬ (emptyEnv
-      ⊢ (ν[ ★ ] outerInstantiationBody) · closedStarSeed —→ M′)
-closedStarInner-no-step (ξ-·₁ reduction) = outerRegion-no-step reduction
-closedStarInner-no-step (ξ-·₂ () reduction)
+closedStarAfterSCWrap : Term 0 0
+closedStarAfterSCWrap =
+  ((ν[ ★ ] outerInstantiationContractum ★) · closedStarSeed)
+    ⟨ ？ (id {μ = idᶜ} (‵ `ℕ)) ⟩
 
-closedStarEndpoint-no-step : ∀ {M′}
-  → ¬ (emptyEnv ⊢ closedStarEndpoint —→ M′)
-closedStarEndpoint-no-step (ξ-⟨⟩ reduction) =
-  closedStarInner-no-step reduction
+closed-star-scwrap-step :
+  emptyEnv ⊢ closedStarEndpoint —→ closedStarAfterSCWrap
+closed-star-scwrap-step = ξ-⟨⟩ (ξ-·₁ outerRegion-step)
 
-closedStarEndpoint-not-value : ¬ Value closedStarEndpoint
-closedStarEndpoint-not-value (_ 《 () 》)
+closed-star-scwrap-trace :
+  emptyEnv ⊢ closedStarSource —↠ closedStarAfterSCWrap
+closed-star-scwrap-trace =
+    closedStarSource
+  —→⟨ closed-star-step ⟩
+    closedStarEndpoint
+  —→⟨ closed-star-scwrap-step ⟩
+    closedStarAfterSCWrap
+  ∎
 
-closedStarEndpoint-no-progress : ¬ Progress emptyEnv closedStarEndpoint
-closedStarEndpoint-no-progress (step reduction) =
-  closedStarEndpoint-no-step reduction
-closedStarEndpoint-no-progress (done value) =
-  closedStarEndpoint-not-value value
+closedStarAfterSCWrap-typed :
+  emptyEnv ∣ [] ⊢ closedStarAfterSCWrap ⦂ ℕᵗ
+closedStarAfterSCWrap-typed =
+  preserve closedStarEndpoint-typed closed-star-scwrap-step

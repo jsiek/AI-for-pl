@@ -23,9 +23,11 @@ module alt.probes.AnchorAccessibility where
 --     is crossing-free; ξ rules retain their enclosing node telescope.
 
 open import Data.Bool using (Bool; false; true)
+open import Data.Empty using (⊥)
 open import Data.Fin using (zero; suc)
 open import Data.Fin.Properties using (_≟_)
-open import Data.Maybe using (just)
+open import Data.List using ([])
+open import Data.Maybe using (Maybe; just)
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Nullary using (Dec; ¬_; yes; no)
@@ -166,3 +168,47 @@ u49-young-inaccessible ()
 
 u49-old-accessible : suc zero ∈acc U49.pocketEnv
 u49-old-accessible = refl
+
+------------------------------------------------------------------------
+-- U55: raw liveness does not imply accessibility
+------------------------------------------------------------------------
+
+-- The U49 pocket hides its young anchor.  The raw telescope grammar can
+-- nevertheless begin a fresh crossing for that same anchor: begin preserves
+-- `accessibleAnchors`, while its map entry makes the anchor live.
+u55-reopened-pocket : TyEnv 2 1 (just zero Vec.∷ Vec.[])
+u55-reopened-pocket =
+  U49.pocketEnv ,begin[ zero ≔ zero ]⟨ U49.no-live-anchor ⟩
+
+u55-reopened-young-live :
+  Vec.lookup {A = Maybe (TyVar 2)}
+      (just (zero {n = 1}) Vec.∷ Vec.[]) (zero {n = 0})
+    ≡ just (zero {n = 1})
+u55-reopened-young-live = refl
+
+u55-reopened-young-inaccessible : ¬ (zero ∈acc u55-reopened-pocket)
+u55-reopened-young-inaccessible ()
+
+-- This is not merely a raw-environment artifact: the current premise-free
+-- conceal rule types a crossing at the live-but-inaccessible anchor.
+u55-reopened-conceal : Term 2 1
+u55-reopened-conceal =
+  (ƛ U49.ℕᵗ ˙ ` zero) ↓[ zero ≔ zero ] seal
+
+u55-reopened-conceal-typed :
+  u55-reopened-pocket ∣ [] ⊢ u55-reopened-conceal ⦂ ＇ zero
+u55-reopened-conceal-typed =
+  ⊢conceal refl U49.young-rep-survives ⊢seal (⊢ƛ (⊢` Z))
+
+-- Consequently the unqualified liveness-to-accessibility bridge requested by
+-- U55 is false for the exact accessibility relation promoted above.
+u55-liveness→accessibility-refuted :
+  (∀ {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) {Y : TyVar Δ} {α : TyVar Θ}
+    → Vec.lookup σ Y ≡ just α
+    → α ∈acc Ψ)
+  → ⊥
+u55-liveness→accessibility-refuted proposed =
+  u55-reopened-young-inaccessible
+    (proposed u55-reopened-pocket
+      {Y = zero {n = 0}} {α = zero {n = 1}}
+      u55-reopened-young-live)

@@ -13,15 +13,27 @@ immobile/SCWRAP treatment of boundaries (U46/U50).
 ```agda
 Term : TyCtx → Set                       -- one index; Θ is gone
 
-M ↑[ X ⦂= R ] c   -- reveal: binds X (interior at suc Δ), stores R : Ty Δ,
-                  --         conversion c : Reveal; node at Δ
-M ↓[ X ] c        -- conceal: anti-binds live X : TyVar (suc Δ);
-                  --          node at suc Δ, pocket at Δ; c : Conceal
+M ↑[⦂= R ] c      -- reveal: binds ZERO (innermost; interior at suc Δ),
+                  --         stores R : Ty Δ, conversion c : Reveal
+M ↓[ X ] c        -- conceal: anti-binds live X : TyVar (suc Δ), ARBITRARY
+                  --          position; node at suc Δ, pocket at Δ
 ```
 
 No other term changes. The binder is the region's identity: a conceal can
 only reference an X that is in scope, hence sits inside the unique reveal
 that binds it — tight scoping does the work anchors were invented for.
+
+**Asymmetric positions (2026-08-30).** Reveals always bind zero: regions
+OPEN innermost (β-Λ converts the Λ-binder, which is zero, in place), so
+begins are plain cons — no insertᵛ, and the begin side of ScopeRoute is
+canonical. Conceals stay positional: regions provably CLOSE out of order
+(the U57 interleaving trace ends Y under live X), so the end-side
+punchOut is forced by a checked reachable trace. The one candidate payer
+for nonzero reveals is an eager SCTYWRAP (crossing past a Λ), whose
+contractum with zero-only binding needs a 0↔1 exchange rename of the
+interior; the prototype's leading audit decides whether that rule family
+is needed at all (the lazy β-reveal-∀ consumer may cover it), and if it
+is, pays the rename rather than reintroducing positional begins.
 
 ## Telescope
 
@@ -29,7 +41,7 @@ that binds it — tight scoping does the work anchors were invented for.
 data TyEnv : TyCtx → Set where
   ∅        : TyEnv 0
   _,typ    : TyEnv Δ → TyEnv (suc Δ)                        -- Λ-bound
-  _,begin[_⦂=_] : TyEnv Δ → (X : TyVar (suc Δ)) → Ty Δ → TyEnv (suc Δ)
+  _,begin[⦂=_]  : TyEnv Δ → Ty Δ → TyEnv (suc Δ)   -- always binds zero
   _,end[_] : TyEnv (suc Δ) → (X : TyVar (suc Δ)) → TyEnv Δ
 ```
 
@@ -48,9 +60,9 @@ data TyEnv : TyCtx → Set where
 
 ```agda
 ⊢reveal :
-    ⊢↑[ X ⦂ wkᵗ X R ] c ⦂ A ↝ wkᵗ X B
-  → Ψ ,begin[ X ⦂= R ] ∣ Γ ⊢ M ⦂ A
-  → Ψ ∣ Γ ⊢ M ↑[ X ⦂= R ] c ⦂ B
+    ⊢↑[ zero ⦂ wkᵗ zero R ] c ⦂ A ↝ wkᵗ zero B
+  → Ψ ,begin[⦂= R ] ∣ Γ ⊢ M ⦂ A
+  → Ψ ∣ Γ ⊢ M ↑[⦂= R ] c ⦂ B
   -- old premises rep? Ψ α ≡ just C and α ∉ᵛ σ: deleted (R is right here;
   -- freshness is binding)
 
@@ -69,22 +81,23 @@ data TyEnv : TyCtx → Set where
 -- Instantiation opens the region IN PLACE: the Λ-binder becomes the
 -- region binder. No ν, no anchor shift (shiftᶿ is gone).
 β-Λ :  Value V
-  →  (Λ V) ⦂∀ B [ C ]  —→  V ↑[ X ⦂= C ] 〖 X ↑ B 〗
+  →  (Λ V) ⦂∀ B [ C ]  —→  V ↑[⦂= C ] 〖 zero ↑ B 〗
+  -- the Λ-binder (zero) becomes the region binder in place
 
 -- Reveal-polarity SCWRAP, verbatim from U50 minus the anchor:
 SCWRAP :  outsideDomain? … ≡ just A′
-  →  (ƛ A ˙ N) ↑[ X ⦂= R ] (c ↦↑ d)
-       —→  ƛ A′ ˙ ((N [ x := (` x) ↓[ X ] c ]) ↑[ X ⦂= R ] d)
+  →  (ƛ A ˙ N) ↑[⦂= R ] (c ↦↑ d)
+       —→  ƛ A′ ˙ ((N [ x := (` x) ↓[ zero ] c ]) ↑[⦂= R ] d)
 
 -- Matched cancellation happens AT the binding reveal — the sandwich
 -- problem has no home (there is no ν between conceal and reveal):
 cancel :  Value V
-  →  (V ↓[ X ] id↓) ↑[ X ⦂= R ] id↑  —→  V
+  →  (V ↓[ zero ] id↓) ↑[⦂= R ] id↑  —→  V
 
 -- Escape stays public-on-exit, with R read off the node:
 escape :  Result V
-  →  (V ⟨ ＇X ! ⟩) ↑[ X ⦂= R ] id↑
-       —→  (V ↑[ X ⦂= R ] unseal) ⟨ inj★ R ⟩
+  →  (V ⟨ ＇zero ! ⟩) ↑[⦂= R ] id↑
+       —→  (V ↑[⦂= R ] unseal) ⟨ inj★ R ⟩
 
 -- Design-I commutes (inject-conceal unconditional; inject-reveal
 -- strengthen-guarded + resolve variant using the node's R), the

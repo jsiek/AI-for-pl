@@ -34,18 +34,33 @@ BASE_URL = "https://reallms.rescloud.iu.edu/direct/v1"
 
 
 def read_key() -> str:
+    # 1. explicit env override
     k = os.environ.get("REALLMS_API_KEY")
-    if k:
+    if k and k.strip():
         return k.strip()
+    # 2. an `export REALLMS_API_KEY=...` line in ~/.zshrc
     try:
         with open(os.path.expanduser("~/.zshrc")) as f:
             for line in f:
                 m = re.match(r'\s*export\s+REALLMS_API_KEY=(.*)', line)
                 if m:
-                    return m.group(1).strip().strip('"').strip("'")
+                    v = m.group(1).strip().strip('"').strip("'")
+                    if v:
+                        return v
     except FileNotFoundError:
         pass
-    sys.exit("No REALLMS_API_KEY found")
+    # 3. a ~/.reallms_key file holding just the key (handy on a host without
+    #    the export, e.g. copied over to another machine). Ordered last so a
+    #    working zshrc export is never shadowed by a stale file.
+    try:
+        with open(os.path.expanduser("~/.reallms_key")) as f:
+            v = f.read().strip()
+            if v:
+                return v
+    except FileNotFoundError:
+        pass
+    sys.exit("No REALLMS_API_KEY found (checked $REALLMS_API_KEY, ~/.zshrc, "
+             "~/.reallms_key)")
 
 
 def detect_agda_root(file_path: str) -> str:
@@ -136,8 +151,11 @@ class Worker:
         self.last_errors = None
 
     def _safe(self, path):
-        p = os.path.abspath(os.path.join(self.repo_root, path))
-        if not p.startswith(self.repo_root):
+        # Resolve symlinks and use component-aware containment so a sibling
+        # like `<repo>-secret` or a symlink cannot escape the repo root.
+        root = os.path.realpath(self.repo_root)
+        p = os.path.realpath(os.path.join(root, path))
+        if p != root and os.path.commonpath([root, p]) != root:
             raise ValueError("path escapes repo root")
         return p
 
@@ -328,7 +346,10 @@ def main():
             messages.append({"role": "tool", "tool_call_id": cid,
                              "name": c["name"], "content": rendered})
             if c["name"] == "check_solution" and w.last_ok:
+                # Stop immediately: a later failing call in the same turn would
+                # otherwise overwrite the verified solution (last_code/last_ok).
                 status = "solved"
+                break
         if status == "solved":
             break
 

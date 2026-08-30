@@ -22,8 +22,12 @@ Both scripts read the key from, in order:
 
 1. `$REALLMS_API_KEY`
 2. an `export REALLMS_API_KEY=...` line in `~/.zshrc`
+3. a `~/.reallms_key` file holding just the key
 
-The key is never printed. Do **not** commit it.
+The file is checked last so a working zshrc export is never shadowed by a stale
+file; it's the convenient option on a host without the export (e.g. after
+copying the key file to another machine). The key is never printed. Do **not**
+commit it.
 
 ### Live text models (as of 2026-08)
 

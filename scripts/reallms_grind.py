@@ -29,19 +29,30 @@ BASE_URL = "https://reallms.rescloud.iu.edu/direct/v1"
 
 
 def read_key() -> str:
+    # env override, then an export in ~/.zshrc, then a ~/.reallms_key file
+    # (last, so a working zshrc export is never shadowed by a stale file).
     k = os.environ.get("REALLMS_API_KEY")
-    if k:
+    if k and k.strip():
         return k.strip()
-    zshrc = os.path.expanduser("~/.zshrc")
     try:
-        with open(zshrc) as f:
+        with open(os.path.expanduser("~/.zshrc")) as f:
             for line in f:
                 m = re.match(r'\s*export\s+REALLMS_API_KEY=(.*)', line)
                 if m:
-                    return m.group(1).strip().strip('"').strip("'")
+                    v = m.group(1).strip().strip('"').strip("'")
+                    if v:
+                        return v
     except FileNotFoundError:
         pass
-    sys.exit("No REALLMS_API_KEY found in env or ~/.zshrc")
+    try:
+        with open(os.path.expanduser("~/.reallms_key")) as f:
+            v = f.read().strip()
+            if v:
+                return v
+    except FileNotFoundError:
+        pass
+    sys.exit("No REALLMS_API_KEY found (checked $REALLMS_API_KEY, ~/.zshrc, "
+             "~/.reallms_key)")
 
 
 def chat(model: str, messages: list, key: str, temperature: float = 0.2):

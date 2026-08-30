@@ -271,11 +271,10 @@ preserve-β-reveal-⇒ {Ψ = Ψ} {W = W} {X = X} {α = α}
   ended-W⊢′ : Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ,end[ X ] ∣ [] ⊢ W ⦂ D
   ended-W⊢′ = ⊢bracket {Ψ = Ψ} {Y = X} {a = α} fresh W⊢
   ended-W⊢ : Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ,end[ X ] ∣
-      truncateForEnd [] (Ψ ,begin[ X ≔ α ]⟨ fresh ⟩) X ⊢ W ⦂ D
+      truncateForEnd [] X ⊢ W ⦂ D
   ended-W⊢ = subst≡
     (λ Γ → Ψ ,begin[ X ≔ α ]⟨ fresh ⟩ ,end[ X ] ∣ Γ ⊢ W ⦂ D)
-    (sym (truncateForEnd-empty
-      (Ψ ,begin[ X ≔ α ]⟨ fresh ⟩) X)) ended-W⊢′
+    (sym (truncateForEnd-empty X)) ended-W⊢′
 
 preserve-β-conceal-⇒ : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ (suc Δ) σ}
     {V : Term Θ Δ} {W : Term Θ (suc Δ)}
@@ -289,9 +288,8 @@ preserve-β-conceal-⇒ {Ψ = Ψ} {W = W} {X = X}
   ⊢conceal tyVar-eq α-eq d⊢
     (⊢· V⊢ (⊢reveal α-eq c⊢ (⊢reenter tyVar-eq pocket-W⊢)))
   where
-  pocket-W⊢ : Ψ ∣ truncateForEnd [] Ψ X ⊢ W ⦂ D
-  pocket-W⊢ = subst≡ (λ Γ → Ψ ∣ Γ ⊢ W ⦂ D)
-    (sym (truncateForEnd-empty Ψ X)) W⊢
+  pocket-W⊢ : Ψ ∣ [] ⊢ W ⦂ D
+  pocket-W⊢ = W⊢
 
 preserve-id-cancel : ∀ {Θ Δ} {σ} {Ψ : TyEnv Θ Δ σ}
     {V : Term Θ Δ} {X : TyVar (suc Δ)} {α : TyVar Θ} {A}
@@ -303,9 +301,7 @@ preserve-id-cancel {Ψ = Ψ} {V = V} {X = X} {α = α}
   subst≡ (λ B → Ψ ∣ [] ⊢ V ⦂ B) type-eq ambient-V⊢
   where
   ambient-V⊢ : Ψ ∣ [] ⊢ V ⦂ C
-  ambient-V⊢ = subst≡ (λ Γ → Ψ ∣ Γ ⊢ V ⦂ C)
-    (truncateForEnd-empty (Ψ ,begin[ X ≔ α ]⟨ fresh ⟩) X)
-    (⊢unbracket V⊢)
+  ambient-V⊢ = ⊢unbracket V⊢
   type-eq = wkTy-injective X
     (trans (id↓-endpoint c↓) (id↑-endpoint c↑))
 
@@ -344,9 +340,7 @@ preserve-conceal-reveal-matched {Ψ = Ψ} {X = X} {α = α} refl refl
   subst≡ (λ B → Ψ ∣ [] ⊢ _ ⦂ B) type-eq ambient-V⊢
   where
   ambient-V⊢ : Ψ ∣ [] ⊢ _ ⦂ C
-  ambient-V⊢ = subst≡ (λ Γ → Ψ ∣ Γ ⊢ _ ⦂ C)
-    (truncateForEnd-empty (Ψ ,begin[ X ≔ α ]⟨ fresh ⟩) X)
-    (⊢unbracket V⊢)
+  ambient-V⊢ = ⊢unbracket V⊢
   ambient-α-eq = trans
     (sym (rep?-unbracket
       (unbracket-base {fresh = fresh}) α)) α-eq
@@ -518,7 +512,7 @@ preserve-inject-reveal {B = `∀ B} Hᵍ H∼★ α-eq V⊢ strengthens
     (⊢id↑ ★) ()
 
 ⊢smart-inj★ : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    {Γ : alt.ThetaTyping.TermCtx} {V : Term Θ Δ} {C : Ty Δ}
+    {Γ : alt.ThetaTyping.TermCtx Ψ} {V : Term Θ Δ} {C : Ty Δ}
   → Ψ ∣ Γ ⊢ V ⦂ C
   → Ψ ∣ Γ ⊢ smart-inj★ V C ⦂ ★
 ⊢smart-inj★ {C = C} V⊢ with injectionPlan C
@@ -646,15 +640,7 @@ preserve (⊢reveal α∈ c⊢ M⊢) (ξ-reveal step) =
   ⊢reveal α∈ c⊢ (preserve M⊢ step)
 preserve (⊢conceal {Ψ = Ψ} {M = M} {A = A} {Y = Y}
     tyVar∈ α∈ c⊢ M⊢) (ξ-conceal step) =
-  ⊢conceal tyVar∈ α∈ c⊢
-    (subst≡ (λ Γ → Ψ ,end[ Y ] ∣ Γ ⊢ _ ⦂ A)
-      (sym pocket-eq)
-      (preserve
-        (subst≡ (λ Γ → Ψ ,end[ Y ] ∣ Γ ⊢ M ⦂ A)
-          pocket-eq M⊢)
-        step))
-  where
-  pocket-eq = truncateForEnd-empty Ψ Y
+  ⊢conceal tyVar∈ α∈ c⊢ (preserve M⊢ step)
 preserve (⊢⊕ op L⊢ M⊢) (ξ-⊕₁ step) =
   ⊢⊕ op (preserve L⊢ step) M⊢
 preserve (⊢⊕ op V⊢ M⊢) (ξ-⊕₂ Vᵥ step) =

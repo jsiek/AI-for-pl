@@ -21,15 +21,12 @@ module alt.ThetaTyping where
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (Fin; zero; suc; toℕ)
 open import Data.Fin.Properties using (_≟_)
-open import Data.List using (List; []; _∷_)
-import Data.List as List
 open import Data.Maybe using (Maybe; just; nothing)
   renaming (map to mapMaybe)
 open import Data.Nat using
-  (ℕ; zero; suc; _+_; _∸_; _≤_; _<_; z≤n; s≤s)
+  (ℕ; zero; suc; _+_; _∸_; _≤_; z≤n; s≤s)
 import Data.Nat as Nat
-open import Data.Nat.Properties using
-  (+-identityʳ; +-suc; ≤-refl; m≤n⇒m≤1+n)
+open import Data.Nat.Properties using (m≤n⇒m≤1+n)
 open import Data.Product using (_×_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; cong; sym; trans)
@@ -139,62 +136,14 @@ data TyEnv : (Θ : AnchorCtx) (Δ : TyCtx)
 -- Telescope-aligned term contexts
 ------------------------------------------------------------------------
 
--- A stage mark is the set of region-begin positions active at a binding's
--- birth.  Anchor levels are stable when ν shifts de Bruijn indices, so a
--- closed begin/end pair leaves the mark unchanged and non-LIFO ends remove
--- exactly their matching positional token.
-StageMark : Set
-StageMark = List ℕ
-
-anchorLevel : ∀ {Θ} → TyVar Θ → ℕ
-anchorLevel {zero} ()
-anchorLevel {suc Θ} zero = Θ
-anchorLevel {suc Θ} (suc α) = anchorLevel α
-
-tyVarsHere : ∀ {Θ Δ σ} → TyEnv Θ Δ σ
-  → Vec (Maybe (TyVar Θ)) Δ
-tyVarsHere {σ = σ} Ψ = σ
-
-deleteToken : ℕ → StageMark → StageMark
-deleteToken token [] = []
-deleteToken token (mark ∷ marks) with token Nat.≟ mark
-deleteToken .mark (mark ∷ marks) | yes refl = marks
-deleteToken token (mark ∷ marks) | no token≢mark =
-  mark ∷ deleteToken token marks
-
-activeStages : ∀ {Θ Δ σ} → TyEnv Θ Δ σ → StageMark
-activeStages ∅ = []
-activeStages (Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩) =
-  anchorLevel α ∷ activeStages Ψ
-activeStages (Ψ ,typ) = activeStages Ψ
-activeStages (Ψ ,:= A) = activeStages Ψ
-activeStages (Ψ ,end[ Y ]) with lookup (tyVarsHere Ψ) Y
-activeStages (Ψ ,end[ Y ]) | nothing = activeStages Ψ
-activeStages (Ψ ,end[ Y ]) | just α =
-  deleteToken (anchorLevel α) (activeStages Ψ)
-
--- The regular-scope skeleton forgets types and anchors but retains every
--- stage constructor and positional begin/end pivot.  Scope routes depend on
--- this skeleton, so anchor renaming never invalidates term-variable lookup.
-data StageEnv : TyCtx → Set where
-  stage-empty : StageEnv zero
-  stage-begin : StageEnv Δ → TyVar (suc Δ) → StageEnv (suc Δ)
-  stage-typ : StageEnv Δ → StageEnv (suc Δ)
-  stage-ν : StageEnv Δ → StageEnv Δ
-  stage-end : StageEnv (suc Δ) → TyVar (suc Δ) → StageEnv Δ
-
-scopeShape : ∀ {Θ Δ σ} → TyEnv Θ Δ σ → StageEnv Δ
-scopeShape ∅ = stage-empty
-scopeShape (Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩) = stage-begin (scopeShape Ψ) Y
-scopeShape (Ψ ,typ) = stage-typ (scopeShape Ψ)
-scopeShape (Ψ ,:= A) = stage-ν (scopeShape Ψ)
-scopeShape (Ψ ,end[ Y ]) = stage-end (scopeShape Ψ) Y
-
 -- Insert one unused target position into an order-preserving injection.
 -- The relation, rather than a function call in an index, keeps every route
 -- constructor in constructor form.
 data InsertTarget : ∀ {m n}
     → Fin (suc n) → m ↪ᵗ n → m ↪ᵗ suc n → Set where
+  target-insert-empty : ∀ {n} (Y : Fin (suc n))
+    → InsertTarget Y empty empty
+
   target-insert-zero : ∀ {m n} {ρ : m ↪ᵗ n}
     → InsertTarget zero ρ (skip ρ)
 
@@ -213,6 +162,9 @@ data InsertTarget : ∀ {m n}
 -- begin; no type-occurrence test is involved.
 data DeleteTarget : ∀ {m n}
     → Fin (suc n) → m ↪ᵗ suc n → m ↪ᵗ n → Set where
+  target-delete-empty : ∀ {n} (Y : Fin (suc n))
+    → DeleteTarget Y empty empty
+
   target-delete-zero : ∀ {m n} {ρ : m ↪ᵗ n}
     → DeleteTarget zero (skip ρ) ρ
 
@@ -344,88 +296,6 @@ shiftAlong (≼-begin-end extension region) α =
 shiftAlong (≼-end-begin tyVar-eq extension region shifted) α =
   shiftAlong region (shiftAlong extension α)
 
--- Insert a fresh absolute anchor level at `cutoff`.  Levels below the
--- insertion are old births and remain fixed; the cutoff and every future
--- birth move up by one.
-bumpStage : ℕ → ℕ → ℕ
-bumpStage zero level = suc level
-bumpStage (suc cutoff) zero = zero
-bumpStage (suc cutoff) (suc level) = suc (bumpStage cutoff level)
-
-bumpStage-before : ∀ cutoff level
-  → level < cutoff
-  → bumpStage cutoff level ≡ level
-bumpStage-before zero level ()
-bumpStage-before (suc cutoff) zero level<cutoff = refl
-bumpStage-before (suc cutoff) (suc level) (s≤s level<cutoff) =
-  cong suc (bumpStage-before cutoff level level<cutoff)
-
-bumpStage-future : ∀ cutoff extra
-  → bumpStage cutoff (cutoff + extra) ≡ suc cutoff + extra
-bumpStage-future zero extra = refl
-bumpStage-future (suc cutoff) extra =
-  cong suc (bumpStage-future cutoff extra)
-
-anchorLevel-bound : ∀ {Θ} (α : TyVar Θ) → anchorLevel α < Θ
-anchorLevel-bound {suc Θ} zero = s≤s ≤-refl
-anchorLevel-bound {suc Θ} (suc α) =
-  m≤n⇒m≤1+n (anchorLevel-bound α)
-
--- A balanced extension induces a monotone renaming of absolute anchor-birth
--- levels.  Unlike `shiftAlong`, this map is total on naturals: above the
--- source's current anchor count it describes how later matched ν births will
--- line up.  That future extension is what makes the map stable under the
--- matched `typing-target-ν` constructor.
-stageMap≼ : ∀ {Θ Θ′ Δ Δ′ k σ σ′} {ρ : Δ ↪ᵗ Δ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-  → Ψ ≼[ k , ρ ] Φ → ℕ → ℕ
-stageMap≼ ≼-refl level = level
-stageMap≼ (≼-ν {Θ′ = Θ′} extension) level =
-  bumpStage Θ′ (stageMap≼ extension level)
-stageMap≼ (≼-typ extension) level = stageMap≼ extension level
-stageMap≼ (≼-begin-end extension region) level =
-  stageMap≼ region (stageMap≼ extension level)
-stageMap≼ (≼-end-begin tyVar-eq extension region shifted) level =
-  stageMap≼ region (stageMap≼ extension level)
-
-stageMap≼-anchor : ∀ {Θ Θ′ Δ Δ′ k σ σ′}
-    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-    (extension : Ψ ≼[ k , ρ ] Φ) (α : TyVar Θ)
-  → stageMap≼ extension (anchorLevel α)
-    ≡ anchorLevel (shiftAlong extension α)
-stageMap≼-anchor ≼-refl α = refl
-stageMap≼-anchor (≼-ν {Θ′ = Θ′} extension) α
-    rewrite stageMap≼-anchor extension α =
-  bumpStage-before Θ′ (anchorLevel (shiftAlong extension α))
-    (anchorLevel-bound (shiftAlong extension α))
-stageMap≼-anchor (≼-typ extension) α =
-  stageMap≼-anchor extension α
-stageMap≼-anchor (≼-begin-end extension region) α
-    rewrite stageMap≼-anchor extension α =
-  stageMap≼-anchor region (shiftAlong extension α)
-stageMap≼-anchor
-    (≼-end-begin tyVar-eq extension region shifted) α
-    rewrite stageMap≼-anchor extension α =
-  stageMap≼-anchor region (shiftAlong extension α)
-
-stageMap≼-future : ∀ {Θ Θ′ Δ Δ′ k σ σ′}
-    {ρ : Δ ↪ᵗ Δ′} {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-    (extension : Ψ ≼[ k , ρ ] Φ) extra
-  → stageMap≼ extension (Θ + extra) ≡ Θ′ + extra
-stageMap≼-future ≼-refl extra = refl
-stageMap≼-future (≼-ν {Θ′ = Θ′} extension) extra
-    rewrite stageMap≼-future extension extra =
-  bumpStage-future Θ′ extra
-stageMap≼-future (≼-typ extension) extra =
-  stageMap≼-future extension extra
-stageMap≼-future (≼-begin-end extension region) extra
-    rewrite stageMap≼-future extension extra =
-  stageMap≼-future region extra
-stageMap≼-future
-    (≼-end-begin tyVar-eq extension region shifted) extra
-    rewrite stageMap≼-future extension extra =
-  stageMap≼-future region extra
-
 -- A typing target closes a balanced extension under telescope stages already
 -- present on both sides.  It lives with the telescope geometry because term
 -- bindings use it to transport their positional routes without inspecting
@@ -471,193 +341,191 @@ data TypingTarget : ∀ {Θ Θ′ Δ Δ′ σ σ′}
     → TypingTarget (delete↪ᵗ ρ Y) φ (Ψ ,end[ Y ])
         (Φ ,end[ toRenameᵗ ρ Y ])
 
--- The birth-stage component of a typing target.  Matched telescope
--- constructors preserve the already-established absolute map; only the
--- balanced core can insert unmatched ν births.
-stageMap : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-  → TypingTarget ρ φ Ψ Φ → ℕ → ℕ
-stageMap (balanced-target extension) = stageMap≼ extension
-stageMap (typing-target-begin target) = stageMap target
-stageMap (typing-target-typ target) = stageMap target
-stageMap (typing-target-ν target) = stageMap target
-stageMap (typing-target-end target) = stageMap target
+------------------------------------------------------------------------
+-- Structural term-context paths
+------------------------------------------------------------------------
 
-stageMap-future : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-    (target : TypingTarget ρ φ Ψ Φ) extra
-  → stageMap target (Θ + extra) ≡ Θ′ + extra
-stageMap-future (balanced-target extension) extra =
-  stageMap≼-future extension extra
-stageMap-future (typing-target-begin target) extra =
-  stageMap-future target extra
-stageMap-future (typing-target-typ target) extra =
-  stageMap-future target extra
-stageMap-future {Θ = suc Θ} {Θ′ = suc Θ′}
-    (typing-target-ν target) extra =
-  trans (cong (stageMap target) (sym (+-suc Θ extra)))
-    (trans (stageMap-future target (suc extra)) (+-suc Θ′ extra))
-stageMap-future (typing-target-end target) extra =
-  stageMap-future target extra
+-- A scope route names the exact telescope constructors between a binding's
+-- birth telescope and its use telescope.  There is no numeric birth marker:
+-- regular weakening is read directly from the route's injection index.
+data ScopeRoute : ∀ {Θ₀ Θ Δ₀ Δ σ₀ σ}
+    → TyEnv Θ₀ Δ₀ σ₀ → TyEnv Θ Δ σ → Δ₀ ↪ᵗ Δ → Set where
+  scope-here : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    → ScopeRoute Ψ Ψ id↪ᵗ
 
-stageMap-anchor : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-    (target : TypingTarget ρ φ Ψ Φ) (α : TyVar Θ)
-  → stageMap target (anchorLevel α) ≡ anchorLevel (φ α)
-stageMap-anchor (balanced-target extension) α =
-  stageMap≼-anchor extension α
-stageMap-anchor (typing-target-begin target) α =
-  stageMap-anchor target α
-stageMap-anchor (typing-target-typ target) α = stageMap-anchor target α
-stageMap-anchor {Θ = suc Θ} {Θ′ = suc Θ′}
-    (typing-target-ν target) zero =
-  trans (cong (stageMap target) (sym (+-identityʳ Θ)))
-    (trans (stageMap-future target zero) (+-identityʳ Θ′))
-stageMap-anchor (typing-target-ν target) (suc α) =
-  stageMap-anchor target α
-stageMap-anchor (typing-target-end target) α = stageMap-anchor target α
+  scope-ν : ∀ {Θ₀ Θ Δ₀ Δ σ₀ σ} {A : Ty Δ}
+      {birth : TyEnv Θ₀ Δ₀ σ₀} {Ψ : TyEnv Θ Δ σ}
+      {ρ : Δ₀ ↪ᵗ Δ}
+    → ScopeRoute birth Ψ ρ
+    → ScopeRoute birth (Ψ ,:= A) ρ
 
-renameStageMark : ∀ {Θ Θ′ Δ Δ′ σ σ′}
-    {ρ : Δ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-    {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-  → TypingTarget ρ φ Ψ Φ → StageMark → StageMark
-renameStageMark target = List.map (stageMap target)
+  scope-typ : ∀ {Θ₀ Θ Δ₀ Δ σ₀ σ}
+      {birth : TyEnv Θ₀ Δ₀ σ₀} {Ψ : TyEnv Θ Δ σ}
+      {ρ : Δ₀ ↪ᵗ Δ}
+    → ScopeRoute birth Ψ ρ
+    → ScopeRoute birth (Ψ ,typ) (skip ρ)
 
-record BirthScope (Δ : TyCtx) : Set where
-  constructor scope-record
-  field
-    birthShape : StageEnv Δ
-    birthRegions : StageMark
-
-currentScope : ∀ {Θ Δ σ} → TyEnv Θ Δ σ → BirthScope Δ
-currentScope Ψ = scope-record (scopeShape Ψ) (activeStages Ψ)
-
--- `ScopeRoute birth current ρ` says that a binding born at `birth` reaches
--- the current regular-scope skeleton through ρ.  `scope-target`
--- composes a route with a checked telescope target; its explicit pointwise
--- equation keeps the injection index in constructor form.
-data ScopeRoute : ∀ {birthΔ Δ}
-    → BirthScope birthΔ → StageEnv Δ → birthΔ ↪ᵗ Δ → Set where
-  scope-here : ∀ {Δ} {stage : StageEnv Δ} {marks}
-      {ρ : Δ ↪ᵗ Δ}
-    → (∀ X → toRenameᵗ ρ X ≡ X)
-    → ScopeRoute (scope-record stage marks) stage ρ
-
-  scope-ν : ∀ {birthΔ Δ} {birth : BirthScope birthΔ}
-      {stage : StageEnv Δ}
-      {ρ : birthΔ ↪ᵗ Δ}
-    → ScopeRoute birth stage ρ
-    → ScopeRoute birth (stage-ν stage) ρ
-
-  scope-typ : ∀ {birthΔ Δ} {birth : BirthScope birthΔ}
-      {stage : StageEnv Δ}
-      {ρ : birthΔ ↪ᵗ Δ}
-    → ScopeRoute birth stage ρ
-    → ScopeRoute birth (stage-typ stage) (skip ρ)
-
-  scope-begin : ∀ {birthΔ Δ} {birth : BirthScope birthΔ}
-      {stage : StageEnv Δ} {ρ : birthΔ ↪ᵗ Δ}
-      {ρ′ : birthΔ ↪ᵗ suc Δ} {Y : TyVar (suc Δ)}
-    → ScopeRoute birth stage ρ
+  scope-begin : ∀ {Θ₀ Θ Δ₀ Δ σ₀ σ}
+      {birth : TyEnv Θ₀ Δ₀ σ₀} {Ψ : TyEnv Θ Δ σ}
+      {ρ : Δ₀ ↪ᵗ Δ} {ρ′ : Δ₀ ↪ᵗ suc Δ}
+      {Y : TyVar (suc Δ)} {α : TyVar Θ} {fresh : α ∉ᵛ σ}
+    → ScopeRoute birth Ψ ρ
     → InsertTarget Y ρ ρ′
-    → ScopeRoute birth (stage-begin stage Y) ρ′
+    → ScopeRoute birth (Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩) ρ′
 
-  scope-end : ∀ {birthΔ Δ} {birth : BirthScope birthΔ}
-      {stage : StageEnv (suc Δ)} {ρ : birthΔ ↪ᵗ suc Δ}
-      {ρ′ : birthΔ ↪ᵗ Δ} {Y : TyVar (suc Δ)}
-    → ScopeRoute birth stage ρ
+  scope-end : ∀ {Θ₀ Θ Δ₀ Δ σ₀ σ}
+      {birth : TyEnv Θ₀ Δ₀ σ₀} {Ψ : TyEnv Θ (suc Δ) σ}
+      {ρ : Δ₀ ↪ᵗ suc Δ} {ρ′ : Δ₀ ↪ᵗ Δ}
+      {Y : TyVar (suc Δ)}
+    → ScopeRoute birth Ψ ρ
     → DeleteTarget Y ρ ρ′
-    → ScopeRoute birth (stage-end stage Y) ρ′
+    → ScopeRoute birth (Ψ ,end[ Y ]) ρ′
 
-  scope-target : ∀ {Θ Θ′ Δ Δ′ σ σ′ birthΔ}
-      {birth : BirthScope birthΔ}
-      {η : birthΔ ↪ᵗ Δ} {ρ : Δ ↪ᵗ Δ′}
-      {ζ : birthΔ ↪ᵗ Δ′} {φ : TyVar Θ → TyVar Θ′}
-      {Ψ : TyEnv Θ Δ σ} {Φ : TyEnv Θ′ Δ′ σ′}
-      {targetStage : StageEnv Δ′}
-    → ScopeRoute birth (scopeShape Ψ) η
+  scope-target : ∀ {Θ₀ Θ Θ′ Δ₀ Δ Δ′ σ₀ σ σ′}
+      {birth : TyEnv Θ₀ Δ₀ σ₀} {Ψ : TyEnv Θ Δ σ}
+      {Φ : TyEnv Θ′ Δ′ σ′} {η : Δ₀ ↪ᵗ Δ} {ρ : Δ ↪ᵗ Δ′}
+      {φ : TyVar Θ → TyVar Θ′}
+    → ScopeRoute birth Ψ η
     → TypingTarget ρ φ Ψ Φ
-    → scopeShape Φ ≡ targetStage
-    → (∀ X → toRenameᵗ ζ X
-        ≡ toRenameᵗ ρ (toRenameᵗ η X))
-    → ScopeRoute birth targetStage ζ
+    → ScopeRoute birth Φ (η ⨟↪ᵗ ρ)
 
-weakenAlong : ∀ {birthΔ Δ} {birth : BirthScope birthΔ}
-    {stage : StageEnv Δ}
-    {ρ : birthΔ ↪ᵗ Δ}
-  → ScopeRoute birth stage ρ → Ty birthΔ → Ty Δ
+currentScope : ∀ {Θ Δ σ} (Ψ : TyEnv Θ Δ σ)
+  → ScopeRoute Ψ Ψ id↪ᵗ
+currentScope Ψ = scope-here
+
+weakenAlong : ∀ {Θ₀ Θ Δ₀ Δ σ₀ σ}
+    {birth : TyEnv Θ₀ Δ₀ σ₀} {Ψ : TyEnv Θ Δ σ}
+    {ρ : Δ₀ ↪ᵗ Δ}
+  → ScopeRoute birth Ψ ρ → Ty Δ₀ → Ty Δ
 weakenAlong {ρ = ρ} ws A = renameᵗ (toRenameᵗ ρ) A
 
 id↪-pointwise : ∀ {Δ} (X : TyVar Δ) → toRenameᵗ id↪ᵗ X ≡ X
 id↪-pointwise zero = refl
 id↪-pointwise (suc X) = cong suc (id↪-pointwise X)
 
-data Binding : Set where
-  _at_ : ∀ {Δ} → Ty Δ → BirthScope Δ → Binding
+data InsertView : ∀ {m n} → Fin (suc n) → m ↪ᵗ n → Set where
+  insert-view : ∀ {m n} {Y : Fin (suc n)} {ρ : m ↪ᵗ n}
+      {ρ′ : m ↪ᵗ suc n}
+    → InsertTarget Y ρ ρ′
+    → InsertView Y ρ
 
-TermCtx : Set
-TermCtx = List Binding
+insertView : ∀ {m n} (Y : Fin (suc n)) (ρ : m ↪ᵗ n)
+  → InsertView Y ρ
+insertView Y empty = insert-view (target-insert-empty Y)
+insertView zero (keep ρ) = insert-view target-insert-zero
+insertView zero (skip ρ) = insert-view target-insert-zero
+insertView (suc Y) (keep ρ) with insertView Y ρ
+insertView (suc Y) (keep ρ) | insert-view insertion =
+  insert-view (target-insert-keep insertion)
+insertView (suc Y) (skip ρ) with insertView Y ρ
+insertView (suc Y) (skip ρ) | insert-view insertion =
+  insert-view (target-insert-skip insertion)
 
-containsToken? : ℕ → StageMark → Maybe ℕ
-containsToken? token [] = nothing
-containsToken? token (mark ∷ marks) with token Nat.≟ mark
-containsToken? .mark (mark ∷ marks) | yes refl = just mark
-containsToken? token (mark ∷ marks) | no token≢mark =
-  containsToken? token marks
+data DeleteView : ∀ {m n} → Fin (suc n) → m ↪ᵗ suc n → Set where
+  delete-occupied : ∀ {m n} {Y : Fin (suc n)} {ρ : m ↪ᵗ suc n}
+    → DeleteView Y ρ
+  delete-open : ∀ {m n} {Y : Fin (suc n)} {ρ : m ↪ᵗ suc n}
+      {ρ′ : m ↪ᵗ n}
+    → DeleteTarget Y ρ ρ′
+    → DeleteView Y ρ
 
-truncateMarked : ℕ → TermCtx → TermCtx
-truncateMarked token [] = []
-truncateMarked token ((A at scope-record birth marks) ∷ Γ)
-    with containsToken? token marks
-truncateMarked token ((A at scope-record birth marks) ∷ Γ) | just witness =
-  truncateMarked token Γ
-truncateMarked token ((A at scope-record birth marks) ∷ Γ) | nothing =
-  (A at scope-record birth marks) ∷ truncateMarked token Γ
+deleteView : ∀ {m n} (Y : Fin (suc n)) (ρ : m ↪ᵗ suc n)
+  → DeleteView Y ρ
+deleteView Y empty = delete-open (target-delete-empty Y)
+deleteView {n = zero} zero (keep ρ) = delete-occupied
+deleteView {n = zero} zero (skip ρ) = delete-open target-delete-zero
+deleteView {n = suc n} zero (keep ρ) = delete-occupied
+deleteView {n = suc n} zero (skip ρ) = delete-open target-delete-zero
+deleteView {n = suc n} (suc Y) (keep ρ) with deleteView Y ρ
+deleteView {n = suc n} (suc Y) (keep ρ) | delete-occupied =
+  delete-occupied
+deleteView {n = suc n} (suc Y) (keep ρ) | delete-open deletion =
+  delete-open (target-delete-keep deletion)
+deleteView {n = suc n} (suc Y) (skip ρ) with deleteView Y ρ
+deleteView {n = suc n} (suc Y) (skip ρ) | delete-occupied =
+  delete-occupied
+deleteView {n = suc n} (suc Y) (skip ρ) | delete-open deletion =
+  delete-open (target-delete-skip deletion)
 
-truncateForEnd : ∀ {Θ Δ σ}
-  → TermCtx → TyEnv Θ (suc Δ) σ → TyVar (suc Δ) → TermCtx
-truncateForEnd Γ Ψ Y with lookup (tyVarsHere Ψ) Y
-truncateForEnd Γ Ψ Y | nothing = Γ
-truncateForEnd Γ Ψ Y | just α =
-  truncateMarked (anchorLevel α) Γ
+data Binding {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) : Set where
+  _at_ : ∀ {Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ}
+    → Ty Δ₀ → ScopeRoute birth Ψ ρ → Binding Ψ
+
+data TermCtx {Θ Δ σ} (Ψ : TyEnv Θ Δ σ) : Set where
+  [] : TermCtx Ψ
+  _∷_ : Binding Ψ → TermCtx Ψ → TermCtx Ψ
+
+beginBinding : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Y : TyVar (suc Δ)} {α : TyVar Θ} {fresh : α ∉ᵛ σ}
+  → Binding Ψ → Binding (Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩)
+beginBinding {Y = Y} (_at_ {ρ = ρ} A ws) with insertView Y ρ
+beginBinding {Y = Y} (A at ws) | insert-view insertion =
+  A at scope-begin ws insertion
+
+beginCtx : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+    {Y : TyVar (suc Δ)} {α : TyVar Θ} {fresh : α ∉ᵛ σ}
+  → TermCtx Ψ → TermCtx (Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩)
+beginCtx [] = []
+beginCtx (binding ∷ Γ) = beginBinding binding ∷ beginCtx Γ
+
+typBinding : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+  → Binding Ψ → Binding (Ψ ,typ)
+typBinding (A at ws) = A at scope-typ ws
+
+typCtx : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
+  → TermCtx Ψ → TermCtx (Ψ ,typ)
+typCtx [] = []
+typCtx (binding ∷ Γ) = typBinding binding ∷ typCtx Γ
+
+νBinding : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {A : Ty Δ}
+  → Binding Ψ → Binding (Ψ ,:= A)
+νBinding (B at ws) = B at scope-ν ws
+
+νCtx : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {A : Ty Δ}
+  → TermCtx Ψ → TermCtx (Ψ ,:= A)
+νCtx [] = []
+νCtx (binding ∷ Γ) = νBinding binding ∷ νCtx Γ
+
+endBinding? : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+    (Y : TyVar (suc Δ))
+  → Binding Ψ → Maybe (Binding (Ψ ,end[ Y ]))
+endBinding? Y (_at_ {ρ = ρ} A ws) with deleteView Y ρ
+endBinding? Y (A at ws) | delete-occupied = nothing
+endBinding? Y (A at ws) | delete-open deletion =
+  just (A at scope-end ws deletion)
+
+truncateForEnd : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
+  → TermCtx Ψ → (Y : TyVar (suc Δ)) → TermCtx (Ψ ,end[ Y ])
+truncateForEnd [] Y = []
+truncateForEnd (binding ∷ Γ) Y with endBinding? Y binding
+truncateForEnd (binding ∷ Γ) Y | nothing = truncateForEnd Γ Y
+truncateForEnd (binding ∷ Γ) Y | just ended =
+  ended ∷ truncateForEnd Γ Y
 
 truncateForEnd-empty : ∀ {Θ Δ σ}
-    (Ψ : TyEnv Θ (suc Δ) σ) (Y : TyVar (suc Δ))
-  → truncateForEnd [] Ψ Y ≡ []
-truncateForEnd-empty Ψ Y with lookup (tyVarsHere Ψ) Y
-truncateForEnd-empty Ψ Y | nothing = refl
-truncateForEnd-empty Ψ Y | just α = refl
+    {Ψ : TyEnv Θ (suc Δ) σ} (Y : TyVar (suc Δ))
+  → truncateForEnd {Ψ = Ψ} [] Y ≡ []
+truncateForEnd-empty Y = refl
 
 infix 4 _∋_⦂[_]_
 
--- A lookup exposes its birth type and the unique positional route used at
--- this occurrence.  `Z` is the common current-stage case; `Z-at` covers a
--- head binding used after one or more telescope stages.
 data _∋_⦂[_]_ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
-    : (G : TermCtx) (x : ℕ) → ∀ {birthΔ}
-      {birth : BirthScope birthΔ} {ρ : birthΔ ↪ᵗ Δ}
-    → ScopeRoute birth (scopeShape Ψ) ρ
-    → Ty birthΔ → Set where
-  Z : ∀ {A : Ty Δ} {Γ : TermCtx}
-    → ((A at currentScope Ψ) ∷ Γ) ∋ zero ⦂[
-        scope-here {marks = activeStages Ψ} id↪-pointwise ] A
+    : (Γ : TermCtx Ψ) (x : ℕ) → ∀ {Θ₀ Δ₀ σ₀}
+      {birth : TyEnv Θ₀ Δ₀ σ₀} {ρ : Δ₀ ↪ᵗ Δ}
+    → ScopeRoute birth Ψ ρ → Ty Δ₀ → Set where
+  Z : ∀ {Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ} {ws : ScopeRoute birth Ψ ρ}
+      {A : Ty Δ₀} {Γ : TermCtx Ψ}
+    → ((A at ws) ∷ Γ) ∋ zero ⦂[ ws ] A
 
-  Z-at : ∀ {birthΔ} {birth : BirthScope birthΔ}
-      {ρ : birthΔ ↪ᵗ Δ}
-      {ws : ScopeRoute birth (scopeShape Ψ) ρ}
-      {A : Ty birthΔ} {Γ : TermCtx}
-    → ((A at birth) ∷ Γ) ∋ zero ⦂[ ws ] A
-
-  S : ∀ {birthΔ headΔ x}
-      {birth : BirthScope birthΔ} {headBirth : BirthScope headΔ}
-      {ρ : birthΔ ↪ᵗ Δ}
-      {ws : ScopeRoute birth (scopeShape Ψ) ρ}
-      {A : Ty birthΔ} {B : Ty headΔ} {Γ : TermCtx}
+  S : ∀ {Θ₀ Δ₀ σ₀ Θ₁ Δ₁ σ₁ x}
+      {birth : TyEnv Θ₀ Δ₀ σ₀} {headBirth : TyEnv Θ₁ Δ₁ σ₁}
+      {ρ : Δ₀ ↪ᵗ Δ} {η : Δ₁ ↪ᵗ Δ}
+      {ws : ScopeRoute birth Ψ ρ} {head : ScopeRoute headBirth Ψ η}
+      {A : Ty Δ₀} {B : Ty Δ₁} {Γ : TermCtx Ψ}
     → Γ ∋ x ⦂[ ws ] A
-    → ((B at headBirth) ∷ Γ) ∋ suc x ⦂[ ws ] A
+    → ((B at head) ∷ Γ) ∋ suc x ⦂[ ws ] A
 
 ------------------------------------------------------------------------
 -- Anchor-directed executable representation lookup
@@ -930,7 +798,7 @@ private
   variable
     σ : Vec (Maybe (TyVar Θ)) Δ
     Ψ Ψ′ : TyEnv Θ Δ σ
-    Γ Γ′ : TermCtx
+    Γ Γ′ : TermCtx Ψ
     A B C : Ty Δ
     F M N : Term Θ Δ
     x y z : Var
@@ -938,12 +806,11 @@ private
 infix 4 _∣_⊢_⦂_
 
 data _∣_⊢_⦂_ : ∀ {Θ Δ σ}
-  → TyEnv Θ Δ σ → TermCtx → Term Θ Δ → Ty Δ → Set where
-  ⊢` : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx}
-      {x : Var} {birthΔ} {birth : BirthScope birthΔ}
-      {ρ : birthΔ ↪ᵗ Δ}
-      {ws : ScopeRoute birth (scopeShape Ψ) ρ}
-      {A₀ : Ty birthΔ}
+  → (Ψ : TyEnv Θ Δ σ) → TermCtx Ψ → Term Θ Δ → Ty Δ → Set where
+  ⊢` : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Ψ}
+      {x : Var} {Θ₀ Δ₀ σ₀} {birth : TyEnv Θ₀ Δ₀ σ₀}
+      {ρ : Δ₀ ↪ᵗ Δ} {ws : ScopeRoute birth Ψ ρ}
+      {A₀ : Ty Δ₀}
     → Γ ∋ x ⦂[ ws ] A₀
       ---------------------------------------
     → Ψ ∣ Γ ⊢ (` x) ⦂ weakenAlong ws A₀
@@ -960,7 +827,7 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ σ}
     → Ψ ∣ Γ ⊢ (F · M) ⦂ B
 
   ⊢Λ :
-      Ψ ,typ ∣ Γ ⊢ M ⦂ A
+      Ψ ,typ ∣ typCtx Γ ⊢ M ⦂ A
       -------------------------
     → Ψ ∣ Γ ⊢ (Λ M) ⦂ (`∀ A)
 
@@ -987,28 +854,28 @@ data _∣_⊢_⦂_ : ∀ {Θ Δ σ}
     → Ψ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B
 
   ⊢ν :
-      Ψ ,:= A ∣ Γ ⊢ M ⦂ B
+      Ψ ,:= A ∣ νCtx Γ ⊢ M ⦂ B
       ----------------------
     → Ψ ∣ Γ ⊢ ν[ A ] M ⦂ B
 
-  ⊢reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx}
+  ⊢reveal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ} {Γ : TermCtx Ψ}
       {M : Term Θ (suc Δ)}
       {A : Ty (suc Δ)} {B C : Ty Δ} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Reveal} {fresh : α ∉ᵛ σ}
     → rep? Ψ α ≡ just C
     → ⊢↑[ Y ⦂ wkᵗ Y C ] c ⦂ A ↝ wkᵗ Y B
-    → Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩ ∣ Γ ⊢ M ⦂ A
+    → Ψ ,begin[ Y ≔ α ]⟨ fresh ⟩ ∣ beginCtx Γ ⊢ M ⦂ A
       --------------------------------
     → Ψ ∣ Γ ⊢ M ↑[ Y ≔ α ] c ⦂ B
 
   ⊢conceal : ∀ {Θ Δ σ} {Ψ : TyEnv Θ (suc Δ) σ}
-      {Γ : TermCtx} {M : Term Θ Δ}
+      {Γ : TermCtx Ψ} {M : Term Θ Δ}
       {A C : Ty Δ} {B : Ty (suc Δ)} {Y : TyVar (suc Δ)}
       {α : TyVar Θ} {c : Conceal}
     → lookup σ Y ≡ just α
     → rep? (Ψ ,end[ Y ]) α ≡ just C
     → ⊢↓[ Y ⦂ wkᵗ Y C ] c ⦂ wkᵗ Y A ↝ B
-    → Ψ ,end[ Y ] ∣ truncateForEnd Γ Ψ Y ⊢ M ⦂ A
+    → Ψ ,end[ Y ] ∣ truncateForEnd Γ Y ⊢ M ⦂ A
       ------------------------------------------
     → Ψ ∣ Γ ⊢ M ↓[ Y ≔ α ] c ⦂ B
 

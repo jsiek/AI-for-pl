@@ -11,7 +11,6 @@ module alt.probes.EagerSCWrapPreservationCounterexample where
 --     non-weakening-image lambda domain.
 
 open import Data.Fin using (zero)
-open import Data.List using ([]; _∷_)
 open import Data.Maybe using (just)
 open import Data.Nat using (zero; suc)
 open import Relation.Binary.PropositionalEquality
@@ -59,30 +58,32 @@ revealRedex-typed =
     (⊢↑-⇒ (⊢id↓ (‵ `ℕ)) (⊢id↑ (‵ `ℕ)))
     (⊢ƛ (⊢` Z))
 
-outerCtx : TermCtx
+outerCtx : TermCtx baseEnv
 outerCtx = (ℕᵗ at currentScope baseEnv) ∷ []
 
 outer-route :
-  ScopeRoute (currentScope baseEnv) (scopeShape baseEnv) empty
-outer-route = scope-here id↪-pointwise
+  ScopeRoute baseEnv baseEnv empty
+outer-route = currentScope baseEnv
 
 outer-route-in-pocket :
-  ScopeRoute (currentScope baseEnv)
-    (scopeShape (crossedEnv ,end[ zero ])) empty
+  ScopeRoute baseEnv (crossedEnv ,end[ zero ]) empty
 outer-route-in-pocket =
   scope-end
-    (scope-begin outer-route target-insert-zero)
-    target-delete-zero
+    (scope-begin outer-route (target-insert-empty zero))
+    (target-delete-empty zero)
+
+outerCtx-in-pocket : TermCtx (crossedEnv ,end[ zero ])
+outerCtx-in-pocket = (ℕᵗ at outer-route-in-pocket) ∷ []
 
 outer-entry-survives :
-  truncateForEnd outerCtx crossedEnv zero ≡ outerCtx
+  truncateForEnd (beginCtx outerCtx) zero ≡ outerCtx-in-pocket
 outer-entry-survives = refl
 
-wrapper-typed : crossedEnv ∣ outerCtx
+wrapper-typed : crossedEnv ∣ beginCtx outerCtx
   ⊢ (` zero) ↓[ zero ≔ zero ] id↓ ⦂ ℕᵗ
 wrapper-typed =
   ⊢conceal refl refl (⊢id↓ (‵ `ℕ))
-    (⊢` (Z-at {ws = outer-route-in-pocket}))
+    (⊢` Z)
 
 revealContractum-typed :
   baseEnv ∣ [] ⊢ revealContractum ⦂ ℕ⇒ℕ

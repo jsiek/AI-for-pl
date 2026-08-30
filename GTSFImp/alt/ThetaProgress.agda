@@ -1093,7 +1093,7 @@ module WithGaps
     where
     pocket⊢ : Ψ ,end[ X ] ∣ [] ⊢ V ⦂ A
     pocket⊢ = subst≡ (λ Γ → Ψ ,end[ X ] ∣ Γ ⊢ V ⦂ A)
-      (truncateForEnd-empty Ψ X) V⊢
+      (truncateForEnd-empty X) V⊢
 
   progress : ∀ {Θ Δ σ} {Ψ : TyEnv Θ Δ σ}
       {M : Term Θ Δ} {A : Ty Δ}
@@ -1223,7 +1223,7 @@ module WithGaps
   progress typing@(⊢conceal {Ψ = Ψ} {M = M} {A = A} {Y = Y}
       X-live α-eq c⊢ M⊢)
       with progress (subst≡ (λ Γ → Ψ ,end[ Y ] ∣ Γ ⊢ M ⦂ A)
-        (truncateForEnd-empty Ψ Y) M⊢)
+        (truncateForEnd-empty Y) M⊢)
   progress typing@(⊢conceal X-live α-eq c⊢ M⊢) | step M—→M′ =
     step (ξ-conceal M—→M′)
   progress typing@(⊢conceal X-live α-eq c⊢ M⊢) | failed =

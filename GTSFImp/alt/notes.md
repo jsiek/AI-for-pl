@@ -9,7 +9,8 @@ Terms (with variables as names)
   b ∈ 𝔹
   x ∈ Var
   k ::= n | b
-  L,M,N ::= x | k | λx:A. N | L · M | ΛX.N | L [A] | M ↑[X:=A] | M ↓[X:=A]
+  ⊕ ::= + | ×
+  L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | ΛX.N | L [A] | M ↑[X:=A] | M ↓[X:=A]
 
 Values
 
@@ -50,10 +51,18 @@ Well-formed Types   Γ ⊢ A
   (wf-fun)    Γ ⊢ A    Γ ⊢ B    ⟹  Γ ⊢ A → B
   (wf-all)    Γ, X ⊢ A          ⟹  Γ ⊢ ∀X.A
 
+Well-formed Contexts   ⊢ Γ
+
+  (ctx-empty)  ⊢ ∅
+  (ctx-var)    ⊢ Γ   Γ ⊢ A       ⇒ ⊢ Γ, x:A
+  (ctx-tvar)   ⊢ Γ               ⇒ ⊢ Γ, X
+  (ctx-rvl)    ⊢ Γ   Γ ⊢ A       ⇒ ⊢ Γ, X:=A
+
 Type System
 
   (cnst-n)                             ⟹  Γ ⊢ n : ℕ
   (cnst-b)                             ⟹  Γ ⊢ b : 𝔹
+  (arith)   Γ ⊢ L : ℕ  Γ ⊢ M : ℕ       ⟹  Γ ⊢ L ⊕ M : ℕ
   (var)     x:A ∈ Γ                    ⟹  Γ ⊢ x : A
   (lam)     Γ, x:A ⊢ N : B   Γ ⊢ A     ⟹  Γ ⊢ λx:A.N : A→B
   (app)     Γ ⊢ L : A→B    Γ ⊢ M : A   ⟹  Γ ⊢ L·M : B
@@ -66,15 +75,15 @@ Type System
 
 Example 1
 
-                  (Λ Y. λy:Y. (ΛX.λx:X.y) [Y] ) [N] · 7 · 3
-    → TyBeta      (λy:Y. (ΛX.λx:X.y) [Y] ) ↑[Y:=N] · 7 · 3
-    → WrapReveal  ((λy:Y. (ΛX.λx:X.y) [Y] ) · 7↓[Y:=N]) ↑[Y:=N] · 3
-    → Beta        (ΛX. λx:X. 7↓[Y:=N]) [Y] ↑[Y:=N] · 3
-    → TyBeta      (λx:X. 7↓[Y:=N]) ↑[X:=Y] ↑[Y:=N] · 3
-    → WrapReveal  ((λx:X. 7↓[Y:=N]) ↑[X:=Y] · 3↓[Y:=N]) ↑[Y:=N]
-    → WrapReveal  ((λx:X. 7↓[Y:=N]) · 3↓[Y:=N]↓[X:=Y]) ↑[X:=Y] ↑[Y:=N]
-    → Beta        7↓[Y:=N] ↑[X:=Y] ↑[Y:=N]
-    → Drop        7↓[Y:=N] ↑[Y:=N]
+                  (Λ Y. λy:Y. (ΛX.λx:X.y) [Y] ) [ℕ] · 7 · 3
+    → TyBeta      (λy:Y. (ΛX.λx:X.y) [Y] ) ↑[Y:=ℕ] · 7 · 3
+    → WrapReveal  ((λy:Y. (ΛX.λx:X.y) [Y] ) · 7↓[Y:=ℕ]) ↑[Y:=ℕ] · 3
+    → Beta        (ΛX. λx:X. 7↓[Y:=ℕ]) [Y] ↑[Y:=ℕ] · 3
+    → TyBeta      (λx:X. 7↓[Y:=ℕ]) ↑[X:=Y] ↑[Y:=ℕ] · 3
+    → WrapReveal  ((λx:X. 7↓[Y:=ℕ]) ↑[X:=Y] · 3↓[Y:=ℕ]) ↑[Y:=ℕ]
+    → WrapReveal  ((λx:X. 7↓[Y:=ℕ]) · 3↓[Y:=ℕ]↓[X:=Y]) ↑[X:=Y] ↑[Y:=ℕ]
+    → Beta        7↓[Y:=ℕ] ↑[X:=Y] ↑[Y:=ℕ]
+    → Drop        7↓[Y:=ℕ] ↑[Y:=ℕ]
     → Cancel      7
 
 

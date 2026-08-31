@@ -20,7 +20,7 @@ Values
 
 Frames
 
-  R ::= □ · M | V · □ | □ ↑[X:=A] | □ ↓[X:=A] | □ [A]
+  R ::= □ ⊕ M | V ⊕ □ | □ · M | V · □ | □ ↑[X:=A] | □ ↓[X:=A] | □ [A]
 
 Reduction rules
 

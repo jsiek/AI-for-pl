@@ -1,22 +1,25 @@
 Types (with variables as names)
 
   X,Y,Z ∈ TyVar
-  A,B,C ::= X | ℕ | A → B | ∀X.A
+  A,B,C ::= X | ℕ | 𝔹 | A → B | ∀X.A
 
 Terms (with variables as names)
 
   n ∈ ℕ
+  b ∈ 𝔹
   x ∈ Var
-  L,M,N ::= x | n | λx:A. N | L · M | ΛX.N | L [A] | M ↑[X:=A] | M ↓[X:=A]
-
-Non-base type Values
-
-  F ::= G | F ↓[X:=A]
-  G ::= λx:A. N | ΛX.V | G ↑[X:=A]
+  k ::= n | b
+  L,M,N ::= x | k | λx:A. N | L · M | ΛX.N | L [A] | M ↑[X:=A] | M ↓[X:=A]
 
 Values
 
+  F ::= G | F ↓[X:=A]
+  G ::= λx:A. N | ΛX.V | G ↑[X:=A]
   V,W ::= n | F | V ↓[X:=A]
+
+Frames
+
+  R ::= □ · M | V · □ | □ ↑[X:=A] | □ ↓[X:=A] | □ [A]
 
 Reduction rules
 
@@ -28,11 +31,10 @@ Reduction rules
 (TyWrapCncl)  F ↓[X:=A] [B]     -→ F [B[X:=A]] ↓[X:=A]
 
 (Cancel)      V ↓[X:=A] ↑[X:=A] -→ V
-(Drop)        V ↓[Y:=B] ↑[X:=A] -→ V ↓[Y:=B]   (if X ≠ Y and X ∉ V↓[Y:=B])
-(RevealBase)  k ↑[X:=A]         -→ k
+(Drop)        V ↓[Y:=B] ↑[X:=A] -→ V ↓[Y:=B]  if X ≠ Y and X ∉ V↓[Y:=B]
+(RevealCnst)  k ↑[X:=A]         -→ k
 
-(ξ-↑)         M ↑[X:=A]         -→ M′ ↑[X:=A]   if M -→ M′
-...
+(ξ)           R[M]              -→ R[M′]      if M -→ M′
 
 
 Example 1
@@ -74,3 +76,12 @@ Example 3   (type application to wrapped polymorphic values)
     → TyWrapRevl  ((ΛZ. λz:Z. z) [𝔹]) ↑[Y:=ℕ] ↓[X:=𝔹] ↑[X:=𝔹]
     → TyBeta      (λz:Z. z) ↑[Z:=𝔹] ↑[Y:=ℕ] ↓[X:=𝔹] ↑[X:=𝔹]
     → Cancel      (λz:Z. z) ↑[Z:=𝔹] ↑[Y:=ℕ]
+
+
+Example 4   (a constant escaping a reveal)
+
+                  (ΛX. λx:X. 7) [ℕ] · 5
+    → TyBeta      (λx:X. 7) ↑[X:=ℕ] · 5
+    → WrapReveal  ((λx:X. 7) · 5↓[X:=ℕ]) ↑[X:=ℕ]
+    → Beta        7 ↑[X:=ℕ]
+    → RevealCnst  7

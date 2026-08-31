@@ -23,19 +23,46 @@ Frames
 
 Reduction rules
 
-(Beta)        (λx:A. N) · V     -→ N[x:=V]
-(TyBeta)      (Λ X. V) [A]      -→ V ↑[X:=A]
-(WrapReveal)  F ↑[X:=A] · W     -→ (F · W↓[X:=A]) ↑[X:=A]
-(WrapConceal) F ↓[X:=A] · W     -→ (F · W↑[X:=A]) ↓[X:=A]
-(TyWrapRevl)  F ↑[X:=A] [B]     -→ F [B] ↑[X:=A]
-(TyWrapCncl)  F ↓[X:=A] [B]     -→ F [B[X:=A]] ↓[X:=A]
+  (Beta)        (λx:A. N) · V     -→ N[x:=V]
+  (TyBeta)      (Λ X. V) [A]      -→ V ↑[X:=A]
+  (WrapReveal)  F ↑[X:=A] · W     -→ (F · W↓[X:=A]) ↑[X:=A]
+  (WrapConceal) F ↓[X:=A] · W     -→ (F · W↑[X:=A]) ↓[X:=A]
+  (TyWrapRevl)  F ↑[X:=A] [B]     -→ F [B] ↑[X:=A]
+  (TyWrapCncl)  F ↓[X:=A] [B]     -→ F [B[X:=A]] ↓[X:=A]
 
-(Cancel)      V ↓[X:=A] ↑[X:=A] -→ V
-(Drop)        V ↓[Y:=B] ↑[X:=A] -→ V ↓[Y:=B]  if X ≠ Y and X ∉ V↓[Y:=B]
-(RevealCnst)  k ↑[X:=A]         -→ k
+  (Cancel)      V ↓[X:=A] ↑[X:=A] -→ V
+  (Drop)        V ↓[Y:=B] ↑[X:=A] -→ V ↓[Y:=B]  if X ≠ Y and X ∉ V↓[Y:=B]
+  (RevealCnst)  k ↑[X:=A]         -→ k
 
-(ξ)           R[M]              -→ R[M′]      if M -→ M′
+  (ξ)           R[M]              -→ R[M′]      if M -→ M′
 
+
+Contexts
+
+  Γ ::= ∅ | Γ, x:A | Γ, X | Γ, X:=A
+
+Well-formed Types   Γ ⊢ A
+
+  (wf-ℕ)                        ⟹  Γ ⊢ ℕ
+  (wf-𝔹)                        ⟹  Γ ⊢ 𝔹
+  (wf-tvar)   X ∈ Γ             ⟹  Γ ⊢ X
+  (wf-rvar)   X:=A ∈ Γ          ⟹  Γ ⊢ X
+  (wf-fun)    Γ ⊢ A    Γ ⊢ B    ⟹  Γ ⊢ A → B
+  (wf-all)    Γ, X ⊢ A          ⟹  Γ ⊢ ∀X.A
+
+Type System
+
+  (cnst-n)                             ⟹  Γ ⊢ n : ℕ
+  (cnst-b)                             ⟹  Γ ⊢ b : 𝔹
+  (var)     x:A ∈ Γ                    ⟹  Γ ⊢ x : A
+  (lam)     Γ, x:A ⊢ N : B   Γ ⊢ A     ⟹  Γ ⊢ λx:A.N : A→B
+  (app)     Γ ⊢ L : A→B    Γ ⊢ M : A   ⟹  Γ ⊢ L·M : B
+  (tlam)    Γ, X ⊢ N : C               ⟹  Γ ⊢ ΛX.N : ∀X.C
+  (tapp)    Γ ⊢ L : ∀X.C   Γ ⊢ A       ⟹  Γ ⊢ L[A] : C[X:=A]
+
+  (reveal)  Γ, X:=A ⊢ M : C   Γ ⊢ A    ⟹  Γ ⊢ M ↑[X:=A] : C[X:=A]
+
+  (conceal) Γ₁ ⊢ M : C[X:=A]           ⟹  Γ ⊢ M ↓[X:=A] : C    where Γ = Γ₁, X:=A, Γ₂
 
 Example 1
 

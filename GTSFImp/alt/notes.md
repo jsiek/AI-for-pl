@@ -120,6 +120,34 @@
 
   R ::= □ ⊕ M | V ⊕ □ | □ · M | V · □ | □ ↑[X:=A]@B | □ ↓[X:=A]@B | □ @B[A] | Λ □
 
+# Term-variable substitution   N[x := V]     (V a value)
+
+  Capture-avoiding, by recursion on N.  Types carry no term variables, so every type
+  annotation (the A of λx:A, and each X:=A, @B, @B[A]) is untouched.  By the Barendregt
+  convention the bound variables — the y of λy, the X of ΛX and of a reveal ↑[X:=A] — are
+  kept distinct from the free variables of V; at runtime V is term-closed, so no term binder
+  ever needs renaming and only type binders can interact with V's free type variables.
+
+  x[x:=V]             = V
+  y[x:=V]             = y                             (y ≠ x)
+  k[x:=V]             = k
+  (M₁ ⊕ M₂)[x:=V]     = M₁[x:=V] ⊕ M₂[x:=V]
+  (L · M)[x:=V]       = L[x:=V] · M[x:=V]
+  (λx:A. N)[x:=V]     = λx:A. N                       (bound x shadows the substituted x)
+  (λy:A. N)[x:=V]     = λy:A. N[x:=V]                 (y ≠ x)
+  (Λ X. N)[x:=V]      = Λ X. N[x:=V]
+  (L @B[A])[x:=V]     = L[x:=V] @B[A]
+  (M ↑[X:=A]@B)[x:=V] = M[x:=V] ↑[X:=A]@B             -- reveal passes term vars: recurse
+  (M ↓[X:=A]@B)[x:=V] = M ↓[X:=A]@B                   -- conceal blocks term vars: identity
+
+  The reveal/conceal asymmetry mirrors lookup: a reveal ↑[X:=A] leaves term variables
+  visible, so substitution descends into its body; a conceal ↓[X:=A] sits under a marker ↓X
+  that blocks every term variable, so a well-typed conceal body is term-closed and
+  substitution is the identity on it.  Taking that as the defining clause (rather than
+  recursing, which would give the same result) makes seals inert by construction and matches
+  the de Bruijn port, where a substitution for an outer term variable does not reach past the
+  marker into the body's own variable scope.
+
 # Reduction rules
 
   (δ)           n₁ ⊕ n₂               -→ n           if n = n₁ ⟦⊕⟧ n₂
@@ -231,9 +259,20 @@ Runtime contexts.
   W that uses a term variable of Γ — but that configuration is never reachable.)
 
 Supporting lemmas.
-  (L1) Term substitution.  Γ,x:A ⊢ N:B and Γ ⊢ V:A  ⟹  Γ ⊢ N[x:=V]:B.  The conceal case is
-       trivial: a conceal body of N is typed under a ↓Y that blocks x, so x∉body, the
-       substitution skips it (seals are inert), and the blocked x:A strengthens away.
+  (L1) Term substitution.  Let Θ be *marker-free* (contains no ↓Z entry).  If
+       Γ, x:A, Θ ⊢ N : B  and  Γ ⊢ V : A  (V a value), then  Γ, Θ ⊢ N[x:=V] : B.
+       The two-sided context is needed for the induction (descending a binder grows Θ), and
+       Θ marker-free is the invariant the induction maintains: substitution follows only the
+       term-visible spine of N — under λ, Λ, reveal (these keep term variables in scope,
+       growing Θ by y:B′, X, X:=A′) — and stops at every conceal (the ↓ clause is identity).
+       Hence x is never separated from a use by a marker, and V weakens through Θ by L4
+       (no marker to block it).
+       • var x:  returns V; weaken Γ⊢V:A to Γ,Θ⊢V:A (L4).
+       • conceal N=M↓[Y:=D]@E:  identity.  Its body sits at Γ,x:A,Θ,↓Y, where ↓Y blocks x,
+         so x∉M; strengthen x:A away to get Γ,Θ,↓Y ⊢ M and reapply (conceal) at Γ,Θ.
+         (Γ∋Y:=D survives dropping the term variable x, since ∋ skips term variables.)
+       • other cases: homomorphic; Θ stays marker-free.
+       Beta uses the Θ=∅ instance:  Δ,x:A ⊢ N:B  and  Δ ⊢ V:A  ⟹  Δ ⊢ N[x:=V]:B.
   (L2) Revelation.  Γ,X ⊢ M:C  ⟹  Γ,X:=A ⊢ M:C   (given Γ ⊢ A).  Robust now: a conceal
        inside M *blocks* (does not delete) its variable, so revealing X cannot strand it.
   (L3) Commutation.  For X≠Z with Z ∉ A:  C[Z:=B][X:=A] = C[X:=A][Z:=B[X:=A]].
@@ -264,54 +303,58 @@ Supporting lemmas.
 
 ## Preservation
 
-Γ ⊢ M : A  and  M -→ M′   ⟹   Γ ⊢ M′ : A.
+Δ ⊢ M : A  (Δ runtime)  and  M -→ M′   ⟹   Δ ⊢ M′ : A.
 
-By cases on the reduction rule.
+By cases on the reduction rule.  Every displayed context is a runtime context (Δ extended
+only by X, X:=A, ↓X); the sole term variable to appear is the transient x:A introduced by
+inverting (lam) in the Beta case, which lives inside L1.
 
-  δ, Beta.    As before (Beta by L1).
-  TyBeta.     Inv(tapp,tlam): Γ,X⊢V:C, Γ⊢A; result C[X:=A].  (L2) Γ,X:=A⊢V:C;
+  δ, Beta.    As before (Beta by L1, at the Θ=∅ instance: Δ,x:A ⊢ N:B and Δ⊢V:A ⟹ Δ⊢N[x:=V]:B).
+  TyBeta.     Inv(tapp,tlam): Δ,X⊢V:C, Δ⊢A; result C[X:=A].  (L2) Δ,X:=A⊢V:C;
               (reveal) V↑[X:=A]@C : C[X:=A].   [L2 holds even when V contains conceals.]
-  WrapReveal. Inv(app,reveal): Γ,X:=A⊢F:B₁→B₂, Γ⊢W:B₁[X:=A]; result B₂[X:=A].
-              (conceal) Γ,X:=A ∋ X:=A ✓; body W at Γ,X:=A,↓X (Γ⊢W:B₁[X:=A] weakens there,
-              X∉W).  So Γ,X:=A⊢W↓[X:=A]@B₁:B₁; (app) F·W↓…:B₂; (reveal) : B₂[X:=A].
-  WrapConceal. Inv(app): Γ⊢F↓[X:=A]@(B₁→B₂):B₁→B₂, Γ⊢W:B₁; result B₂.
-              Inv(conceal): Γ∋X:=A, Γ,↓X ⊢ F : B₁[X:=A]→B₂[X:=A].
-              (L-mark) Γ,↓X,X:=A ⊢ W:B₁;  (reveal) Γ,↓X ⊢ W↑[X:=A]@B₁ : B₁[X:=A];
-              (app) Γ,↓X ⊢ F·W↑[X:=A]@B₁ : B₂[X:=A];  (conceal) Γ ⊢ (…)↓[X:=A]@B₂ : B₂.  ✓
+  WrapReveal. Inv(app,reveal): Δ,X:=A⊢F:B₁→B₂, Δ⊢W:B₁[X:=A]; result B₂[X:=A].
+              (conceal) Δ,X:=A ∋ X:=A ✓; body W at Δ,X:=A,↓X (Δ⊢W:B₁[X:=A] weakens there,
+              X∉W).  So Δ,X:=A⊢W↓[X:=A]@B₁:B₁; (app) F·W↓…:B₂; (reveal) : B₂[X:=A].
+  WrapConceal. Inv(app): Δ⊢F↓[X:=A]@(B₁→B₂):B₁→B₂, Δ⊢W:B₁; result B₂.
+              Inv(conceal): Δ∋X:=A, Δ,↓X ⊢ F : B₁[X:=A]→B₂[X:=A].
+              (L-mark) Δ,↓X,X:=A ⊢ W:B₁  (W term-closed, as Δ has no term variables);
+              (reveal) Δ,↓X ⊢ W↑[X:=A]@B₁ : B₁[X:=A];
+              (app) Δ,↓X ⊢ F·W↑[X:=A]@B₁ : B₂[X:=A];  (conceal) Δ ⊢ (…)↓[X:=A]@B₂ : B₂.  ✓
               [↓X bars F from X; the inner reveal re-opens X for W past the marker.  No
                strengthening, no L-exch, no side-condition — this is what fixes the case.]
-  TyWrapRevl. (no conceal) Inv(tapp,reveal): Γ,X:=A⊢F:∀Y.B, Γ⊢C (X∉C).  (tapp) F[C]:B[Y:=C];
+  TyWrapRevl. (no conceal) Inv(tapp,reveal): Δ,X:=A⊢F:∀Y.B, Δ⊢C (X∉C).  (tapp) F[C]:B[Y:=C];
               (reveal) : (B[Y:=C])[X:=A] =(L3,X∉C)= (B[X:=A])[Y:=C] = result.
               (Result annotation should read B[Y:=C].)
-  TyWrapCncl. Inv(tapp): Γ⊢F↓[X:=A]@(∀Y.B):∀Y.B, Γ⊢C; result B[Y:=C].
-              Inv(conceal): Γ∋X:=A, Γ,↓X ⊢ F : ∀Y.(B[X:=A]).
-              Γ,↓X ⊢ C[X:=A] (X-free);  (tapp) F[C[X:=A]] : (B[X:=A])[Y:=C[X:=A]] =(L3)= (B[Y:=C])[X:=A];
-              (conceal) Γ ⊢ F[C[X:=A]]↓[X:=A]@(B[Y:=C]) : B[Y:=C] = result.
+  TyWrapCncl. Inv(tapp): Δ⊢F↓[X:=A]@(∀Y.B):∀Y.B, Δ⊢C; result B[Y:=C].
+              Inv(conceal): Δ∋X:=A, Δ,↓X ⊢ F : ∀Y.(B[X:=A]).
+              Δ,↓X ⊢ C[X:=A] (X-free);  (tapp) F[C[X:=A]] : (B[X:=A])[Y:=C[X:=A]] =(L3)= (B[Y:=C])[X:=A];
+              (conceal) Δ ⊢ F[C[X:=A]]↓[X:=A]@(B[Y:=C]) : B[Y:=C] = result.
               (Conceal annotation should read B[Y:=C].)
-  Cancel.     Inv(reveal): Γ,X:=A⊢V↓[X:=A]@B:B; result B[X:=A].
-              Inv(conceal): Γ,X:=A ∋ X:=A;  Γ,X:=A,↓X ⊢ V : B[X:=A].  Under ↓X, X∉V, and
-              B[X:=A] is X-free, so (L-str) Γ ⊢ V : B[X:=A] = result.
-  Drop (X≠Y, X∉V↓[Y:=B]@C).  Inv(reveal): Γ,X:=A⊢V↓[Y:=B]@C:C; result C[X:=A].
-              X ∉ the conceal value ⟹ X∉C ⟹ C[X:=A]=C, and (L-str) Γ⊢V↓[Y:=B]@C:C = result.
+  Cancel.     Inv(reveal): Δ,X:=A⊢V↓[X:=A]@B:B; result B[X:=A].
+              Inv(conceal): Δ,X:=A ∋ X:=A;  Δ,X:=A,↓X ⊢ V : B[X:=A].  Under ↓X, X∉V, and
+              B[X:=A] is X-free, so (L-str) Δ ⊢ V : B[X:=A] = result.
+  Drop (X≠Y, X∉V↓[Y:=B]@C).  Inv(reveal): Δ,X:=A⊢V↓[Y:=B]@C:C; result C[X:=A].
+              X ∉ the conceal value ⟹ X∉C ⟹ C[X:=A]=C, and (L-str) Δ⊢V↓[Y:=B]@C:C = result.
   Commute (X≠Y, X∈V↓[Y:=B]).  Redex V↓[Y:=B]@C ↑[X:=A]@D; well-typed ⟹ D=C (the reveal's
               annotation is the type of its body, and the conceal body has type C).
-              Inv(reveal): Γ,X:=A ⊢ V↓[Y:=B]@C : C,  Γ⊢A;  result C[X:=A].
-              Inv(conceal): Γ,X:=A ∋ Y:=B  (so Γ∋Y:=B; X≠Y ⟹ Y:=B sits left of X:=A in Γ,
-              hence X∉B);  Γ,X:=A,↓Y ⊢ V : C[Y:=B].
+              Inv(reveal): Δ,X:=A ⊢ V↓[Y:=B]@C : C,  Δ⊢A;  result C[X:=A].
+              Inv(conceal): Δ,X:=A ∋ Y:=B  (so Δ∋Y:=B; X≠Y ⟹ Y:=B sits left of X:=A in Δ,
+              hence X∉B);  Δ,X:=A,↓Y ⊢ V : C[Y:=B].
               Reduct (V↑[X:=A′]@C[Y:=B]) ↓[Y:=B]@C[X:=A],  where A′ = A[Y:=B] (so Y∉A′).
-              (L-exch′) from Γ,X:=A,↓Y ⊢ V : C[Y:=B] and Γ∋Y:=B, X∉B:
-                        Γ,↓Y,X:=A′ ⊢ V : C[Y:=B]   (Y∉A′ makes Γ,↓Y⊢A′, so the exchange —
+              (L-exch′) from Δ,X:=A,↓Y ⊢ V : C[Y:=B] and Δ∋Y:=B, X∉B:
+                        Δ,↓Y,X:=A′ ⊢ V : C[Y:=B]   (Y∉A′ makes Δ,↓Y⊢A′, so the exchange —
                         which previously stuck when A mentioned Y — now always goes through).
-              (reveal) Γ,↓Y ⊢ V↑[X:=A′]@C[Y:=B] : (C[Y:=B])[X:=A′].
+              (reveal) Δ,↓Y ⊢ V↑[X:=A′]@C[Y:=B] : (C[Y:=B])[X:=A′].
               (L-sub, X≠Y, X∉B):  (C[Y:=B])[X:=A[Y:=B]] = (C[X:=A])[Y:=B].
-              (conceal) Γ∋Y:=B, body type (C[X:=A])[Y:=B] = ann[Y:=B] with ann=C[X:=A]:
-                        Γ ⊢ (…)↓[Y:=B]@C[X:=A] : C[X:=A] = result.  ✓
+              (conceal) Δ∋Y:=B, body type (C[X:=A])[Y:=B] = ann[Y:=B] with ann=C[X:=A]:
+                        Δ ⊢ (…)↓[Y:=B]@C[X:=A] : C[X:=A] = result.  ✓
               [RESOLVED: floating A′=A[Y:=B] (not A) under ↓Y removes Y from the rep, so the
                exchange and the type match hold with no A-mentions-Y side condition.  When
                Y∉A this is A′=A and the old reduct.]
   RevealCnst. k↑[X:=A]@B → k.
   ξ.          M→M′ ⟹ R[M′] by IH on M at the frame's context (□↑ adds X:=A; □↓ adds ↓X;
-              Λ□ adds abstract X; the rest keep Γ), then re-apply the frame.
+              Λ□ adds abstract X; the rest keep Δ — each is again a runtime context), then
+              re-apply the frame.
 
 ## Progress.
 

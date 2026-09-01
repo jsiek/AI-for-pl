@@ -3,14 +3,18 @@
   X,Y,Z ∈ TyVar
   A,B,C ::= X | ℕ | 𝔹 | A → B | ∀X.A
 
-# Terms (with variables as names)
+# Source Terms (with variables as names)
 
   n ∈ ℕ
   b ∈ 𝔹
   x ∈ Var
   k ::= n | b
   ⊕ ::= + | ×
-  L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | ΛX.N | L @B[A] | M ↑[X:=A]@B | M ↓[X:=A]@B
+  L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | ΛX.N | L @B[A]
+
+# Runtime Terms (with variables as names)
+
+  L,M,N ::= ... | M ↑[X:=A]@B | M ↓[X:=A]@B
 
 # Contexts
 
@@ -23,11 +27,31 @@
 
   (∋-tvar)   Γ, X    ∋ X
   (∋-rvar)   Γ, X:=A ∋ X:=A
-  (∋-var)    Γ ∋ Q  ⟹  Γ, x:A ∋ Q
-  (∋-tskip)  Γ ∋ Q  ⟹  Γ, Y   ∋ Q          (Y ≠ X)
-  (∋-rskip)  Γ ∋ Q  ⟹  Γ, Y:=A ∋ Q         (Y ≠ X)
-  (∋-mskip)  Γ ∋ Q  ⟹  Γ, ↓Y ∋ Q           (Y ≠ X)
-  -- there is no rule for  Γ, ↓X ∋ Q : the marker ↓X blocks X
+  (∋-var)    Γ ∋ Q     ⟹  Γ, x:A ∋ Q
+  (∋-tskip1) Γ ∋ X     ⟹  Γ, Y   ∋ X          (Y ≠ X)
+  (∋-tskip2) Γ ∋ X:=A  ⟹  Γ, Y   ∋ X:=A       (Y ≠ X)
+  (∋-rskip1) Γ ∋ X     ⟹  Γ, Y:=A ∋ X         (Y ≠ X)
+  (∋-rskip2) Γ ∋ X:=A  ⟹  Γ, Y:=A ∋ X:=A      (Y ≠ X)
+  (∋-mskip1) Γ ∋ X     ⟹  Γ, ↓Y ∋ X           (Y ≠ X)
+  (∋-mskip2) Γ ∋ X:=A  ⟹  Γ, ↓Y ∋ X:=A        (Y ≠ X)
+  
+  Note: There is no rule for  Γ, ↓X ∋ X  or  Γ, ↓X ∋ X:=A 
+  because the marker ↓X blocks X
+
+# Term-variable lookup   x:A ∈ Γ
+
+  (∈-here)   x:A ∈ Γ, x:A
+  (∈-var)    x:A ∈ Γ  ⟹  x:A ∈ Γ, y:B       (y ≠ x)
+  (∈-tvar)   x:A ∈ Γ  ⟹  x:A ∈ Γ, Y
+  (∈-rvar)   x:A ∈ Γ  ⟹  x:A ∈ Γ, Y:=B
+
+  Note: There is deliberately no rule for  Γ, ↓Y : every marker ↓Y blocks *every* term
+  variable to its left.  So a term variable is visible iff no ↓ marker sits between its
+  binder and its use.  (Contrast type-variable lookup, where ↓Y blocks only Y and other
+  type variables skip past via ∋-mskip.)  A marker seals the term level entirely — the
+  conceal body typed at Γ,↓X is a self-contained value, using only the type variables of Γ
+  and the term variables it binds itself.  Source programs have no markers, so this is
+  ordinary lookup there; the blocking bites only at runtime.
 
 # Well-formed Types   Γ ⊢ A
 
@@ -59,7 +83,7 @@
             Γ ⊢ L ⊕ M : ℕ
             
   (var)     x:A ∈ Γ
-            -------
+            ---------
             Γ ⊢ x : A
             
   (lam)     Γ, x:A ⊢ N : B   Γ ⊢ A
@@ -98,21 +122,18 @@
 
 # Reduction rules
 
-  (δ)           n₁ ⊕ n₂           -→ n           if n = n₁ ⟦⊕⟧ n₂
-  (Beta)        (λx:A. N) · V     -→ N[x:=V]
-  (TyBeta)      (Λ X. V) @B[A]      -→ V ↑[X:=A]@B
-  (WrapReveal)  F ↑[X:=A]@(B₁→B₂) · W     -→ (F · W↓[X:=A]@B₁) ↑[X:=A]@B₂
-  (WrapConceal) F ↓[X:=A]@(B₁→B₂) · W     -→ (F · W↑[X:=A]@B₁) ↓[X:=A]@B₂
-  (TyWrapRevl)  F ↑[X:=A]@∀Y.B [C]     -→ F [C] ↑[X:=A]@B
-  (TyWrapCncl)  F ↓[X:=A]@∀Y.B [C]     -→ F [C[X:=A]] ↓[X:=A]@B
+  (δ)           n₁ ⊕ n₂               -→ n           if n = n₁ ⟦⊕⟧ n₂
+  (Beta)        (λx:A. N) · V         -→ N[x:=V]
+  (TyBeta)      (Λ X. V) @B[A]        -→ V ↑[X:=A]@B
+  (WrapReveal)  F ↑[X:=A]@(B₁→B₂) · W -→ (F · W↓[X:=A]@B₁) ↑[X:=A]@B₂
+  (WrapConceal) F ↓[X:=A]@(B₁→B₂) · W -→ (F · W↑[X:=A]@B₁) ↓[X:=A]@B₂
+  (TyWrapRevl)  F ↑[X:=A]@∀Y.B [C]    -→ F [C] ↑[X:=A]@B
+  (TyWrapCncl)  F ↓[X:=A]@∀Y.B [C]    -→ F [C[X:=A]] ↓[X:=A]@B
   (Cancel)      V ↓[X:=A]@B ↑[X:=A]@B -→ V
   (Drop)        V ↓[Y:=B]@C ↑[X:=A]@D -→ V ↓[Y:=B]@C  if X ≠ Y and X ∉ V↓[Y:=B]
   (Commute)     V ↓[Y:=B]@C ↑[X:=A]@D -→ (V ↑[X:=A[Y:=B]]@C[Y:=B]) ↓[Y:=B]@C[X:=A]  if X ≠ Y and X ∈ V↓[Y:=B]
-                  -- the floated reveal carries A[Y:=B], not A: past ↓Y the concealed Y is
-                  -- referred to by its representation B.  For a well-typed redex D = C and
-                  -- X ∉ B, so C[X:=A] = D[X:=A] and B[X:=A] = B.
   (RevealCnst)  k ↑[X:=A]@B           -→ k
-  (ξ)           R[M]              -→ R[M′]      if M -→ M′
+  (ξ)           R[M]                  -→ R[M′]      if M -→ M′
 
 
 # Examples
@@ -203,10 +224,16 @@ Runtime contexts.
   The frames R enter reveal, conceal, and Λ bodies (□↑, □↓, Λ□) but never a λ-body, so no
   term binder is descended into.  Every context that arises therefore has only type-variable
   entries:   Δ ::= ∅ | Δ, X | Δ, X:=A | Δ, ↓X   (term variables occur only when checking
-  source terms).  Progress is stated for such Δ; preservation for any Γ.
+  source terms, or transiently under a λ when inverting (lam)).  Both progress and
+  preservation are stated at such runtime contexts Δ: since no reduction fires under a λ,
+  the redex always sits at a term-variable-free Δ.  (This matters now that a marker blocks
+  every term variable: a "preservation for any Γ" claim would fail — e.g. WrapConceal on a
+  W that uses a term variable of Γ — but that configuration is never reachable.)
 
 Supporting lemmas.
-  (L1) Term substitution.  Γ,x:A ⊢ N:B and Γ ⊢ V:A  ⟹  Γ ⊢ N[x:=V]:B.
+  (L1) Term substitution.  Γ,x:A ⊢ N:B and Γ ⊢ V:A  ⟹  Γ ⊢ N[x:=V]:B.  The conceal case is
+       trivial: a conceal body of N is typed under a ↓Y that blocks x, so x∉body, the
+       substitution skips it (seals are inert), and the blocked x:A strengthens away.
   (L2) Revelation.  Γ,X ⊢ M:C  ⟹  Γ,X:=A ⊢ M:C   (given Γ ⊢ A).  Robust now: a conceal
        inside M *blocks* (does not delete) its variable, so revealing X cannot strand it.
   (L3) Commutation.  For X≠Z with Z ∉ A:  C[Z:=B][X:=A] = C[X:=A][Z:=B[X:=A]].
@@ -214,8 +241,10 @@ Supporting lemmas.
        C[Y:=B][X:=A[Y:=B]] = C[X:=A][Y:=B].   (No X∉A condition — the rep A[Y:=B] on
        the left absorbs it; checked variable-by-variable.  Used by Commute.)
   (L4) Weakening (extend the context on the right).
-  (L-mark) Weaken-through-marker.  Γ ⊢ M:C  ⟹  Γ, ↓X, X:=A ⊢ M:C.  Net X-accessibility is
-       unchanged (the trailing X:=A re-opens X past ↓X); no other variable is affected.
+  (L-mark) Weaken-through-marker.  For term-closed M:  Γ ⊢ M:C  ⟹  Γ, ↓X, X:=A ⊢ M:C.  Net
+       X-accessibility is unchanged (the trailing X:=A re-opens X past ↓X) and no type
+       variable is affected; term-closedness is required because ↓X blocks every term
+       variable of Γ.  Only ever applied to a redex argument W, which is term-closed.
   (L-str) Strengthening.  Γ, X:=A ⊢ M:C  with X ∉ M, X ∉ C  ⟹  Γ ⊢ M:C.  A body typed
        under a marker ↓X has X ∉ M for free (any use of X would be blocked), so this also
        covers removing an X:=A adjacent to a ↓X.

@@ -1,19 +1,16 @@
 module strong.Reduction where
 
--- Strong System F — the reduction relation on runtime terms (de Bruijn).
---
--- This is the first increment: the substitution machinery, values, and the
--- computation rules whose de Bruijn form is verified by a full example
--- (TyBeta, WrapReveal, Beta, RevealCnst) plus the ξ congruences.  The remaining
--- rules are collected in the "deferred" note at the bottom, each with the
--- specific index-shift / re-reveal-rename it needs.
+-- Strong System F — the reduction relation on runtime terms (de Bruijn):
+-- the substitution machinery, values, the computation rules, the ξ congruences,
+-- and the reflexive-transitive closure _-↠_.  Worked examples live in
+-- strong.Examples.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (¬_; yes; no)
 open import strong.Types
 open import strong.Terms
-open import strong.ConcealCtx using (_∈ᵗ_; fv-var; fv-⇒l; fv-⇒r; fv-∀)
+open import strong.ConcealCtx using (_∈ᵗ_)
 
 private
   variable
@@ -223,141 +220,3 @@ infix  3 _∎
 data _-↠_ : Term → Term → Set where
   _∎     : (M : Term) → M -↠ M
   _-→⟨_⟩_ : (L : Term) {M N : Term} → L -→ M → M -↠ N → L -↠ N
-
-------------------------------------------------------------------------
--- Example 4:  (ΛX. λx:X. 7) [ℕ] · 5  -↠  7
-------------------------------------------------------------------------
-
-_ : ((Λ (ƛ ` 0 ∙ $ 7)) ·[ (` 0 ⇒ `ℕ) , `ℕ ]) · ($ 5) -↠ $ 7
-_ =
-    ((Λ (ƛ ` 0 ∙ $ 7)) ·[ (` 0 ⇒ `ℕ) , `ℕ ]) · ($ 5)
-  -→⟨ ξ-·-l (β-Λ (V-G G-ƛ)) ⟩                 -- TyBeta
-    ((ƛ ` 0 ∙ $ 7) ↑[ `ℕ , (` 0 ⇒ `ℕ) ]) · ($ 5)
-  -→⟨ β-↑ G-ƛ V-$ ⟩                            -- WrapReveal
-    ((ƛ ` 0 ∙ $ 7) · ($ 5 ↓[ 0 , `ℕ , ` 0 ])) ↑[ `ℕ , `ℕ ]
-  -→⟨ ξ-↑ (β-ƛ (V-↓ V-$)) ⟩                    -- Beta
-    ($ 7) ↑[ `ℕ , `ℕ ]
-  -→⟨ β-$↑ ⟩                                   -- RevealCnst
-    $ 7
-  ∎
-
-------------------------------------------------------------------------
--- Example 6:  (ΛX. λw:ℕ. (ΛY. w) [X→X]) [ℕ] · 5  -↠  5   (uses Drop, Cancel)
-------------------------------------------------------------------------
-
-_ : ((Λ (ƛ `ℕ ∙ ((Λ (` 0)) ·[ `ℕ , (` 0 ⇒ ` 0) ]))) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]) · ($ 5) -↠ $ 5
-_ =
-    ((Λ (ƛ `ℕ ∙ ((Λ (` 0)) ·[ `ℕ , (` 0 ⇒ ` 0) ]))) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]) · ($ 5)
-  -→⟨ ξ-·-l (β-Λ (V-G G-ƛ)) ⟩                       -- TyBeta
-    ((ƛ `ℕ ∙ ((Λ (` 0)) ·[ `ℕ , (` 0 ⇒ ` 0) ])) ↑[ `ℕ , (`ℕ ⇒ `ℕ) ]) · ($ 5)
-  -→⟨ β-↑ G-ƛ V-$ ⟩                                  -- WrapReveal
-    ((ƛ `ℕ ∙ ((Λ (` 0)) ·[ `ℕ , (` 0 ⇒ ` 0) ])) · ($ 5 ↓[ 0 , `ℕ , `ℕ ])) ↑[ `ℕ , `ℕ ]
-  -→⟨ ξ-↑ (β-ƛ (V-↓ V-$)) ⟩                          -- Beta (conceal pushed under Λ: ⇑ᵀ)
-    ((Λ ($ 5 ↓[ 1 , `ℕ , `ℕ ])) ·[ `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , `ℕ ]
-  -→⟨ ξ-↑ (β-Λ (V-↓ V-$)) ⟩                          -- TyBeta (into the conceal)
-    (($ 5 ↓[ 1 , `ℕ , `ℕ ]) ↑[ (` 0 ⇒ ` 0) , `ℕ ]) ↑[ `ℕ , `ℕ ]
-  -→⟨ ξ-↑ (β-drop V-$ (λ ()) (λ ()) (λ ())) ⟩        -- Drop
-    ($ 5 ↓[ 0 , `ℕ , `ℕ ]) ↑[ `ℕ , `ℕ ]
-  -→⟨ β-cancel V-$ ⟩                                 -- Cancel
-    $ 5
-  ∎
-
-------------------------------------------------------------------------
--- Example 5:  (ΛX. λf:(X→X)→X. f · (λx:X.x)) [ℕ] · (λg:ℕ→ℕ. g·42)  -↠  42
---   (uses WrapConceal and Cancel)
-------------------------------------------------------------------------
-
-private
-  g42 : Term        -- λg:ℕ→ℕ. g · 42
-  g42 = ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · ($ 42))
-  idX : Term        -- λx:X. x
-  idX = ƛ ` 0 ∙ ` 0
-
-  _ : ((Λ (ƛ ((` 0 ⇒ ` 0) ⇒ ` 0) ∙ ((` 0) · idX)))
-         ·[ (((` 0 ⇒ ` 0) ⇒ ` 0) ⇒ ` 0) , `ℕ ]) · g42
-      -↠ $ 42
-  _ =
-      ((Λ (ƛ ((` 0 ⇒ ` 0) ⇒ ` 0) ∙ ((` 0) · idX)))
-         ·[ (((` 0 ⇒ ` 0) ⇒ ` 0) ⇒ ` 0) , `ℕ ]) · g42
-    -→⟨ ξ-·-l (β-Λ (V-G G-ƛ)) ⟩                         -- TyBeta
-      ((ƛ ((` 0 ⇒ ` 0) ⇒ ` 0) ∙ ((` 0) · idX))
-         ↑[ `ℕ , (((` 0 ⇒ ` 0) ⇒ ` 0) ⇒ ` 0) ]) · g42
-    -→⟨ β-↑ G-ƛ (V-G G-ƛ) ⟩                             -- WrapReveal
-      ((ƛ ((` 0 ⇒ ` 0) ⇒ ` 0) ∙ ((` 0) · idX))
-         · (g42 ↓[ 0 , `ℕ , ((` 0 ⇒ ` 0) ⇒ ` 0) ])) ↑[ `ℕ , ` 0 ]
-    -→⟨ ξ-↑ (β-ƛ (V-↓ (V-G G-ƛ))) ⟩                     -- Beta
-      ((g42 ↓[ 0 , `ℕ , ((` 0 ⇒ ` 0) ⇒ ` 0) ]) · idX) ↑[ `ℕ , ` 0 ]
-    -→⟨ ξ-↑ (β-↓· (V-G G-ƛ) (V-G G-ƛ)) ⟩               -- WrapConceal
-      ((g42 · (idX ↑[ `ℕ , (` 0 ⇒ ` 0) ])) ↓[ 0 , `ℕ , ` 0 ]) ↑[ `ℕ , ` 0 ]
-    -→⟨ ξ-↑ (ξ-↓ (β-ƛ (V-G (G-↑ G-ƛ)))) ⟩              -- Beta
-      (((idX ↑[ `ℕ , (` 0 ⇒ ` 0) ]) · ($ 42)) ↓[ 0 , `ℕ , ` 0 ]) ↑[ `ℕ , ` 0 ]
-    -→⟨ ξ-↑ (ξ-↓ (β-↑ G-ƛ V-$)) ⟩                       -- WrapReveal
-      (((idX · ($ 42 ↓[ 0 , `ℕ , ` 0 ])) ↑[ `ℕ , ` 0 ]) ↓[ 0 , `ℕ , ` 0 ]) ↑[ `ℕ , ` 0 ]
-    -→⟨ ξ-↑ (ξ-↓ (ξ-↑ (β-ƛ (V-↓ V-$)))) ⟩              -- Beta
-      ((($ 42 ↓[ 0 , `ℕ , ` 0 ]) ↑[ `ℕ , ` 0 ]) ↓[ 0 , `ℕ , ` 0 ]) ↑[ `ℕ , ` 0 ]
-    -→⟨ ξ-↑ (ξ-↓ (β-cancel V-$)) ⟩                      -- Cancel
-      ($ 42 ↓[ 0 , `ℕ , ` 0 ]) ↑[ `ℕ , ` 0 ]
-    -→⟨ β-cancel V-$ ⟩                                  -- Cancel
-      $ 42
-    ∎
-
-------------------------------------------------------------------------
--- Example 3:  (ΛX. λf:(∀Z.Z→Z). f [X]) [𝔹] · ((ΛY. ΛZ. λz:Z. z) [ℕ])
---   -↠  (λz:Z. z) ↑[Z:=𝔹] ↑[Y:=ℕ]     (uses TyWrapCncl, TyWrapRevl, Cancel)
-------------------------------------------------------------------------
-
-private
-  zz : Term         -- λz:Z. z
-  zz = ƛ ` 0 ∙ ` 0
-  fX : Term         -- λf:(∀Z.Z→Z). f [X]
-  fX = ƛ (`∀ (` 0 ⇒ ` 0)) ∙ ((` 0) ·[ (` 0 ⇒ ` 0) , ` 0 ])
-
-  _ : ((Λ fX) ·[ ((`∀ (` 0 ⇒ ` 0)) ⇒ (` 0 ⇒ ` 0)) , `𝔹 ])
-        · ((Λ (Λ zz)) ·[ (`∀ (` 0 ⇒ ` 0)) , `ℕ ])
-      -↠ (zz ↑[ `𝔹 , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (`𝔹 ⇒ `𝔹) ]
-  _ =
-      ((Λ fX) ·[ ((`∀ (` 0 ⇒ ` 0)) ⇒ (` 0 ⇒ ` 0)) , `𝔹 ])
-        · ((Λ (Λ zz)) ·[ (`∀ (` 0 ⇒ ` 0)) , `ℕ ])
-    -→⟨ ξ-·-l (β-Λ (V-G G-ƛ)) ⟩                              -- TyBeta (function)
-      (fX ↑[ `𝔹 , ((`∀ (` 0 ⇒ ` 0)) ⇒ (` 0 ⇒ ` 0)) ])
-        · ((Λ (Λ zz)) ·[ (`∀ (` 0 ⇒ ` 0)) , `ℕ ])
-    -→⟨ ξ-·-r (V-G (G-↑ G-ƛ)) (β-Λ (V-G (G-Λ (V-G G-ƛ)))) ⟩  -- TyBeta (argument)
-      (fX ↑[ `𝔹 , ((`∀ (` 0 ⇒ ` 0)) ⇒ (` 0 ⇒ ` 0)) ])
-        · ((Λ zz) ↑[ `ℕ , (`∀ (` 0 ⇒ ` 0)) ])
-    -→⟨ β-↑ G-ƛ (V-G (G-↑ (G-Λ (V-G G-ƛ)))) ⟩                -- WrapReveal
-      (fX · (((Λ zz) ↑[ `ℕ , (`∀ (` 0 ⇒ ` 0)) ]) ↓[ 0 , `𝔹 , (`∀ (` 0 ⇒ ` 0)) ]))
-        ↑[ `𝔹 , (` 0 ⇒ ` 0) ]
-    -→⟨ ξ-↑ (β-ƛ (V-↓ (V-G (G-↑ (G-Λ (V-G G-ƛ)))))) ⟩        -- Beta
-      ((((Λ zz) ↑[ `ℕ , (`∀ (` 0 ⇒ ` 0)) ]) ↓[ 0 , `𝔹 , (`∀ (` 0 ⇒ ` 0)) ])
-        ·[ (` 0 ⇒ ` 0) , ` 0 ]) ↑[ `𝔹 , (` 0 ⇒ ` 0) ]
-    -→⟨ ξ-↑ (β-↓[] (V-G (G-↑ (G-Λ (V-G G-ƛ))))) ⟩            -- TyWrapCncl
-      ((((Λ zz) ↑[ `ℕ , (`∀ (` 0 ⇒ ` 0)) ]) ·[ (` 0 ⇒ ` 0) , `𝔹 ])
-        ↓[ 0 , `𝔹 , (` 0 ⇒ ` 0) ]) ↑[ `𝔹 , (` 0 ⇒ ` 0) ]
-    -→⟨ ξ-↑ (ξ-↓ (β-↑[] (G-Λ (V-G G-ƛ)))) ⟩                 -- TyWrapRevl
-      ((((Λ zz) ·[ (` 0 ⇒ ` 0) , `𝔹 ]) ↑[ `ℕ , (`𝔹 ⇒ `𝔹) ])
-        ↓[ 0 , `𝔹 , (` 0 ⇒ ` 0) ]) ↑[ `𝔹 , (` 0 ⇒ ` 0) ]
-    -→⟨ ξ-↑ (ξ-↓ (ξ-↑ (β-Λ (V-G G-ƛ)))) ⟩                   -- TyBeta
-      (((zz ↑[ `𝔹 , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (`𝔹 ⇒ `𝔹) ])
-        ↓[ 0 , `𝔹 , (` 0 ⇒ ` 0) ]) ↑[ `𝔹 , (` 0 ⇒ ` 0) ]
-    -→⟨ β-cancel (V-G (G-↑ (G-↑ G-ƛ))) ⟩                     -- Cancel
-      (zz ↑[ `𝔹 , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (`𝔹 ⇒ `𝔹) ]
-    ∎
-
-------------------------------------------------------------------------
--- A Commute step (the one rule no whole-program example reaches).
---
---   (λx:X. x) ↓[Y:=ℕ]@(X→X)  ↑[X:=ℕ]@(X→X)
---     -→  (λx:X. x) ↑[X:=ℕ]@(X→X)  ↓[Y:=ℕ]@(ℕ→ℕ)
---
--- The concealed value λx:X.x mentions the revealed variable X (so ¬Drop), and
--- the conceal is on a *different* variable Y at index suc 0 (so ¬Cancel), which
--- is exactly the Commute branch.  Well typed under an outer Y:=ℕ (context
--- [rvld ℕ]); both sides have type ℕ→ℕ.  The reveal moves inside the conceal;
--- its representation stays ℕ, and the conceal's annotation X→X becomes (X→X)[X:=ℕ]
--- = ℕ→ℕ.
-------------------------------------------------------------------------
-
-private
-  _ : ((ƛ ` 0 ∙ ` 0) ↓[ 1 , `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (` 0 ⇒ ` 0) ]
-      -→ ((ƛ ` 0 ∙ ` 0) ↑[ `ℕ , (` 0 ⇒ ` 0) ]) ↓[ 0 , `ℕ , (`ℕ ⇒ `ℕ) ]
-  _ = β-commute (V-G G-ƛ) (∈ƛ-A fv-var)

@@ -10,3 +10,4 @@ open import strong.ConcealCtx
 open import strong.Terms
 open import strong.Typing
 open import strong.Reduction
+open import strong.Examples

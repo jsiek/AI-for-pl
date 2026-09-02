@@ -70,8 +70,8 @@ data _∋tv_ : TCtx → ℕ → Set where
   here-rvld : (rvld A ∷ Δ) ∋tv zero
   skip-abst : Δ ∋tv X → (abst ∷ Δ) ∋tv suc X
   skip-rvld : Δ ∋tv X → (rvld A ∷ Δ) ∋tv suc X
-  skip-cncl : n < X → Δ ∋tv X → (cncl n ∷ Δ) ∋tv X
-  -- no clause when X ≤ n : the marker blocks its own variable and all shallower.
+  skip-cncl : Y < X → Δ ∋tv X → (cncl Y ∷ Δ) ∋tv X
+  -- no clause when X ≤ Y : the marker blocks its own variable and all shallower.
 
 -- Δ ∋ X := A : the variable at index X is revealed with representation A,
 -- expressed over Δ.  A counting entry shifts the rep by ⇑ᵗ; a marker does not
@@ -145,6 +145,13 @@ data _⊢*_ : TCtx → Ctx → Set where
 -- ∋tv produces a well-formed type variable — this is exactly wf-var.
 ∋tv-⊢ : Δ ∋tv X → Δ ⊢ ` X
 ∋tv-⊢ = wf-var
+
+-- a revealed variable is in scope (forget its representation)
+∋:=→∋tv : Δ ∋ X := A → Δ ∋tv X
+∋:=→∋tv here              = here-rvld
+∋:=→∋tv (skip-abst p)     = skip-abst (∋:=→∋tv p)
+∋:=→∋tv (skip-rvld p)     = skip-rvld (∋:=→∋tv p)
+∋:=→∋tv (skip-cncl n<X p) = skip-cncl n<X (∋:=→∋tv p)
 
 -- With the tightened marker, the analogous statement for ∋ := now HOLDS (given
 -- ⊢ Δ): a looked-up representation is well-formed in the current context — see

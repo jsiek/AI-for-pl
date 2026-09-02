@@ -185,18 +185,10 @@ data _-→_ : Term → Term → Set where
         → (F ↓[ X , A , `∀ B ]) ·[ B₃ , C ]
           -→ (F ·[ B , C [ X := A ]ᵗ ]) ↓[ X , A , B [ C ]ᵗ ]
 
-  -- Commute:  V↓[Y:=B]@C ↑[X:=A]@D → (V↑[X:=A[Y:=B]]@C[Y:=B]) ↓[Y:=B]@C[X:=A]
-  -- The X ∈ V counterpart of Drop (conceal on a *different* variable, index
-  -- suc Y).  The wrappers swap; V itself is unchanged (both contexts place X at
-  -- index 0 and Y at index suc Y), while the representations and annotations are
-  -- substituted, and Y's representation B is downshifted past the removed reveal.
-  -- NOTE: unlike the other rules, no example in the notes takes this branch
-  -- (Examples 1–6 all reduce via Drop or Cancel), so the exact index arithmetic
-  -- here is only pinned down once the Preservation proof forces it.
-  β-commute : Value V → 0 ∈ᵀ V
-            → (V ↓[ suc Y , B , C ]) ↑[ A , D ]
-              -→ (V ↑[ A [ Y := renameᵗ predᵗ B ]ᵗ , C [ suc Y := B ]ᵗ ])
-                   ↓[ Y , renameᵗ predᵗ B , C [ A ]ᵗ ]
+  -- (Commute is omitted.  It is the X ∈ V counterpart of Drop, but the tightened
+  --  conceal marker makes X ∈ V impossible at a reveal-on-conceal: the conceal
+  --  body cannot mention a variable shallower than the sealed one.  So a
+  --  reveal-over-conceal on a *different* variable is always Drop.)
 
   -- ξ congruences (the frames)
   ξ-·-l : L -→ L′ → L · M -→ L′ · M

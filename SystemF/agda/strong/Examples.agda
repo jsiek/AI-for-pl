@@ -212,6 +212,7 @@ _ =
 --         ((ƛ ` 0 ∙ ` 0) ↓[ 1 , `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (` 0 ⇒ ` 0) ]
 --         ⦂ (`ℕ ⇒ `ℕ)                                   -- NO LONGER TYPES
 --
--- (The β-commute reduction rule is now dead code; it can be deleted once
---  Preservation confirms no well-typed term ever takes that branch.)
+-- (The Commute reduction rule has been removed accordingly: no well-typed term
+--  takes that branch, so reveal-over-conceal on a different variable is always
+--  Drop.)
 ------------------------------------------------------------------------

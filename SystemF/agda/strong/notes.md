@@ -1,3 +1,9 @@
+Strong System F
+
+This version of System F keep tight control over where type variables
+can appear and where they cannot. The name "strong" alludes to the
+fact that weakening with respect to type variables is not used.
+
 # Types (with variables as names)
 
   X,Y,Z ∈ TyVar
@@ -68,7 +74,7 @@
   (ctx-var)    ⊢ Γ   Γ ⊢ A       ⇒ ⊢ Γ, x:A
   (ctx-tvar)   ⊢ Γ               ⇒ ⊢ Γ, X
   (ctx-rvl)    ⊢ Γ   Γ ⊢ A       ⇒ ⊢ Γ, X:=A
-
+  (ctx-cncl)   ⊢ Γ               ⇒ ⊢ Γ, ↓X
 
 # Type System
 
@@ -106,14 +112,14 @@
             -------------------------
             Γ ⊢ M ↑[X:=A]@B : B[X:=A]
 
-  (conceal) Γ ∋ X:=A     Γ, ↓X ⊢ M : B[X:=A]
-            ---------------------------------
+  (conceal) Γ ∋ X:=A   Γ ⊢ B   Γ, ↓X ⊢ M : B[X:=A]
+            --------------------------------------
             Γ ⊢ M↓[X:=A]@B : B
 
 # Values
 
-  F ::= G | F ↓[X:=A]@B
   G ::= λx:A. N | ΛX.V | G ↑[X:=A]@B
+  F ::= G | F ↓[X:=A]@B
   V,W ::= k | F | V ↓[X:=A]@B
 
 # Frames

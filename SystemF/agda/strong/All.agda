@@ -6,7 +6,7 @@ module strong.All where
 open import strong.Types
 open import strong.TypeSubst
 open import strong.Context
-open import strong.ConcealCtx
+open import strong.Weakening
 open import strong.Terms
 open import strong.Typing
 open import strong.Reduction

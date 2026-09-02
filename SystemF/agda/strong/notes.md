@@ -42,7 +42,12 @@ fact that weakening with respect to type variables is not used.
   (∋-mskip2) Γ ∋ X:=A  ⟹  Γ, ↓Y ∋ X:=A        (Y ≠ X)
   
   Note: There is no rule for  Γ, ↓X ∋ X  or  Γ, ↓X ∋ X:=A 
-  because the marker ↓X blocks X
+  because the marker ↓X blocks X.
+
+  UPDATE (see "De Bruijn formalization and the tightened conceal marker" below):
+  the Agda development tightens ∋-mskip so that ↓X blocks X *and every variable
+  revealed after X* (only variables revealed before X skip past).  In de Bruijn
+  form this is  n < X  in place of  Y ≠ X.
 
 # Term-variable lookup   x:A ∈ Γ
 
@@ -413,3 +418,69 @@ inverting (lam) in the Beta case, which lives inside L1.
   Y:=(X→X) stays well-formed and the body 5 (which never mentions X) type-checks.
 
 
+
+
+# De Bruijn formalization and the tightened conceal marker  (what we learned)
+
+  We mechanized this calculus in Agda under SystemF/agda/strong/ using de Bruijn
+  indices: Types / TypeSubst (types and their substitution), Context (the two
+  contexts and their lookups), Weakening (well-formedness / weakening lemmas),
+  Terms, Typing (Δ ∣ Γ ⊢ M ⦂ A), Reduction (values, the rules, and -↠), and
+  Examples (Examples 1–6 as machine-checked typing derivations and reduction
+  sequences).  Two design points sharpened along the way.
+
+## Representation well-formedness at a conceal
+
+  The (conceal) rule types its body at Γ,↓X against B[X:=A], so to prove
+  regularity/preservation we need the representation A — recovered by the lookup
+  Γ ∋ X:=A — to be well-formed in the current context.  Lookup alone did NOT
+  guarantee this originally: a marker ↓Y could sit between a use and a revealed
+  variable whose representation mentions a *concealed* variable (the "dangerous
+  shape": Y:=(X→X) with X concealed, so looking up Y returns X→X while X is
+  blocked).  We first fixed this with an inductive predicate, ConcealCtx Δ X,
+  generated from the context shape when a conceal is born (WrapReveal) plus one
+  constructor for each way that context changes under reduction, and proved it
+  implies Δ ⊢ A.
+
+## The insight: a sealed value lives in its existential scope
+
+  We then asked whether a value that uses X can be sealed on a *different*
+  variable Y — the shape that would trigger Commute (V↓[Y:=B]↑[X:=A] with X ∈ V).
+  No closed program produces it.  The reason is an invariant: a sealed value can
+  only depend on type variables revealed BEFORE the sealed one — it can never
+  reference a variable revealed later.  (WrapReveal seals a value on the very
+  variable it just revealed; pushing a conceal under Λ can only involve the
+  freshly-bound variable, which the sealed value cannot mention.)  Equivalently,
+  at a conceal on X the body and annotation mention only X and variables deeper
+  than X.
+
+## The tightened marker
+
+  This invariant is captured by ONE change to type-variable lookup: a marker ↓X
+  blocks not just X but every variable revealed after X.  With de Bruijn indices
+  (index 0 = most-recently-revealed), the marker-skip rules become
+
+      skip-cncl : n < X → Δ ∋tv   X       → (cncl n ∷ Δ) ∋tv   X          (was n ≢ X)
+      skip-cncl : n < X → Δ ∋ X := A      → (cncl n ∷ Δ) ∋ X := A         (was n ≢ X)
+
+  so a conceal body sees exactly the variables in its existential scope.  (The
+  condition is natural with de Bruijn indices, which record the reveal order; a
+  name-based presentation would have to track that order explicitly.)
+
+  Consequences, all machine-checked:
+
+  - Representation lookup now yields a well-formed type directly:
+        ⊢ Δ  and  Δ ∋ X := A   give   Δ ⊢ A        (Agda: ∋:=-⊢).
+    Any marker skipped en route to X conceals something shallower than X, while A
+    mentions only variables deeper than X, so no marker can block A.  This
+    SUBSUMES ConcealCtx, which we deleted (along with its premise on (conceal)).
+
+  - The "dangerous shape" is now impossible to even state: looking up a variable
+    past a marker that conceals a deeper variable no longer type-checks.
+
+  - The Commute redex is rejected statically:
+        (λx:X.x)↓[Y:=ℕ]@(X→X) ↑[X:=ℕ]
+    no longer type-checks, because the body λx:X.x would have to reference X,
+    which is shallower than the sealed Y and thus blocked by ↓Y.  So the Commute
+    reduction rule is dead code — no well-typed term takes that branch — pending
+    its removal once Preservation confirms this.

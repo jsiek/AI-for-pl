@@ -1,17 +1,17 @@
-module strong.ConcealCtx where
+module strong.Weakening where
 
--- The predicate `ConcealCtx Δ X` describes the possible shapes of the type
--- context at a conceal on the variable at index X.  It is built from one
--- constructor for the context at creation (WrapReveal) and one for each way a
--- conceal's context changes during reduction, and it implies that X's
--- representation is well-formed:   ConcealCtx Δ X → Δ ∋ X := A → Δ ⊢ A.
+-- Weakening and well-formedness lemmas for the type context.  Free type
+-- variables (_∈ᵗ_), renaming preserves well-formedness (wf-rename-fv, wf-⇑-*),
+-- a representation's variables are deeper than its index (∋:=-hi), weakening
+-- through a marker (wk-cncl), and — the payoff of the tightened `cncl` marker —
+-- representation lookup yields a well-formed type (∋:=-⊢).
 
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; s≤s; z≤n)
-open import Data.Nat.Properties using (<-trans; <⇒≢; suc-injective)
+open import Data.Nat.Properties using (<-trans; suc-injective)
 open import Data.Product using (Σ; _×_; _,_; ∃)
 open import Data.List using (List; []; _∷_)
 open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; cong; cong₂; trans; subst)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; trans; subst)
 open import strong.Types
 open import strong.TypeSubst using (rename-cong)
 open import strong.Context
@@ -107,24 +107,24 @@ rename-id `𝔹      = refl
 rename-id (A ⇒ B) = cong₂ _⇒_ (rename-id A) (rename-id B)
 rename-id (`∀ A)  = cong `∀ (trans (rename-cong ext-id A) (rename-id A))
 
-wk-cncl : Δ ⊢ A → (∀ {Y} → Y ∈ᵗ A → W ≢ Y) → (cncl W ∷ Δ) ⊢ A
+wk-cncl : Δ ⊢ A → (∀ {Y} → Y ∈ᵗ A → W < Y) → (cncl W ∷ Δ) ⊢ A
 wk-cncl {Δ = Δ} {A = A} {W = W} wfA h =
   subst (λ z → (cncl W ∷ Δ) ⊢ z) (rename-id A)
         (wf-rename-fv {ρ = λ z → z} (λ y → skip-cncl (h y) (fv-scope wfA y)) wfA)
 
 ------------------------------------------------------------------------
--- Conceal contexts
+-- A looked-up representation is well formed
 ------------------------------------------------------------------------
 
-data ConcealCtx : TCtx → ℕ → Set where
-  new   : Δ ⊢ A          → ConcealCtx (rvld A ∷ Δ) zero    -- birth (WrapReveal)
-  ·abst : ConcealCtx Δ X → ConcealCtx (abst   ∷ Δ) (suc X)  -- pushed under a Λ
-  ·rvld : ConcealCtx Δ X → ConcealCtx (rvld C ∷ Δ) (suc X)  -- pushed under a reveal
-  ·cncl : W < X → ConcealCtx Δ X → ConcealCtx (cncl W ∷ Δ) X -- pushed under an outer conceal
-
-ConcealCtx-⊢ : ConcealCtx Δ X → Δ ∋ X := A → Δ ⊢ A
-ConcealCtx-⊢ (new wfA)      here            = wf-⇑-rvld wfA
-ConcealCtx-⊢ (·abst cc)     (skip-abst ∋)   = wf-⇑-abst (ConcealCtx-⊢ cc ∋)
-ConcealCtx-⊢ (·rvld cc)     (skip-rvld ∋)   = wf-⇑-rvld (ConcealCtx-⊢ cc ∋)
-ConcealCtx-⊢ (·cncl W<X cc) (skip-cncl _ ∋) =
-  wk-cncl (ConcealCtx-⊢ cc ∋) (λ y → <⇒≢ (<-trans W<X (∋:=-hi ∋ y)))
+-- With the tightened marker (skip-cncl needs n < X), representation lookup now
+-- yields a well-formed type directly, given a well-formed context.  Any marker
+-- skipped en route to X conceals a variable shallower than X (n < X), while the
+-- representation's free variables are all deeper than X (∋:=-hi); so no marker
+-- can block them.  This SUBSUMES the earlier `ConcealCtx` predicate: the
+-- (conceal) rule no longer needs to carry it.
+∋:=-⊢ : ⊢ Δ → Δ ∋ X := A → Δ ⊢ A
+∋:=-⊢ (⊢rvld ⊢Δ Δ⊢A₀) here             = wf-⇑-rvld Δ⊢A₀
+∋:=-⊢ (⊢abst ⊢Δ)      (skip-abst p)    = wf-⇑-abst (∋:=-⊢ ⊢Δ p)
+∋:=-⊢ (⊢rvld ⊢Δ _)    (skip-rvld p)    = wf-⇑-rvld (∋:=-⊢ ⊢Δ p)
+∋:=-⊢ (⊢cncl ⊢Δ _)    (skip-cncl n<X p) =
+  wk-cncl (∋:=-⊢ ⊢Δ p) (λ y → <-trans n<X (∋:=-hi p y))

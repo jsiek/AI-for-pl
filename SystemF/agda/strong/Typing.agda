@@ -17,7 +17,6 @@ open import Data.Nat using (ℕ)
 open import Data.List using (List; []; _∷_)
 open import strong.Types
 open import strong.Context
-open import strong.ConcealCtx
 open import strong.Terms
 
 -- Δ, Γ, A, B, C, X, x, n are generalizable variables re-exported from Context.
@@ -60,7 +59,6 @@ data _∣_⊢_⦂_ : TCtx → Ctx → Term → Ty → Set where
      → Δ ∣ Γ ⊢ M ↑[ A , B ] ⦂ B [ A ]ᵗ
 
   ⊢↓ : Δ ∋ X := A
-     → ConcealCtx Δ X
      → Δ ⊢ B
      → (cncl X ∷ Δ) ∣ [] ⊢ M ⦂ B [ X := A ]ᵗ
        -------------------------------------

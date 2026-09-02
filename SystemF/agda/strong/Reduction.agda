@@ -10,7 +10,7 @@ open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (¬_; yes; no)
 open import strong.Types
 open import strong.Terms
-open import strong.ConcealCtx using (_∈ᵗ_)
+open import strong.Weakening using (_∈ᵗ_)
 
 private
   variable

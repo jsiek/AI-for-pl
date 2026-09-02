@@ -8,7 +8,6 @@ open import Data.Nat using (ℕ; zero; suc; s≤s; z≤n)
 open import Data.List using (List; []; _∷_)
 open import strong.Types
 open import strong.Context
-open import strong.ConcealCtx
 open import strong.Terms
 open import strong.Typing
 open import strong.Reduction
@@ -20,7 +19,7 @@ open import strong.Reduction
 -- typing:  7↓[Y:=ℕ]@Y : Y   at context  Y:=ℕ.
 -- ∋ recovers A = ℕ; the body 7 is checked at Y[Y:=ℕ] = ℕ, with Y concealed.
 _ : (rvld `ℕ ∷ []) ∣ [] ⊢ ($ 7) ↓[ 0 , `ℕ , ` 0 ] ⦂ ` 0
-_ = ⊢↓ here (new wf-ℕ) (wf-var here-rvld) ⊢$
+_ = ⊢↓ here (wf-var here-rvld) ⊢$
 
 -- typing:  3↓[Y:=ℕ]↓[X:=Y] : X   at context  X:=Y, Y:=ℕ
 -- (X at index 0 with rep Y; Y at index 1 with rep ℕ).  The outer conceal has a
@@ -28,10 +27,9 @@ _ = ⊢↓ here (new wf-ℕ) (wf-var here-rvld) ⊢$
 -- X-marker (skip-cncl in ∋ :=).
 _ : (rvld (` 0) ∷ rvld `ℕ ∷ []) ∣ [] ⊢
       ($ 3) ↓[ 1 , `ℕ , ` 1 ] ↓[ 0 , ` 1 , ` 0 ] ⦂ ` 0
-_ = ⊢↓ here (new (wf-var here-rvld)) (wf-var here-rvld)
-        (⊢↓ (skip-cncl (λ ()) (skip-rvld here))
-            (·cncl (s≤s z≤n) (·rvld (new wf-ℕ)))
-            (wf-var (skip-cncl (λ ()) (skip-rvld here-rvld)))
+_ = ⊢↓ here (wf-var here-rvld)
+        (⊢↓ (skip-cncl (s≤s z≤n) (skip-rvld here))
+            (wf-var (skip-cncl (s≤s z≤n) (skip-rvld here-rvld)))
             ⊢$)
 
 -- the representations above are well formed in their conceal's context:
@@ -50,7 +48,7 @@ _ = wf-ℕ
 -- B = X→X is well-formed (X revealed); the body is checked at (X→X)[X:=ℕ] = ℕ→ℕ
 -- and its own λ rebuilds a fresh term context from [].
 _ : (rvld `ℕ ∷ []) ∣ [] ⊢ (ƛ `ℕ ∙ ` 0) ↓[ 0 , `ℕ , (` 0 ⇒ ` 0) ] ⦂ (` 0 ⇒ ` 0)
-_ = ⊢↓ here (new wf-ℕ) (wf-⇒ (wf-var here-rvld) (wf-var here-rvld))
+_ = ⊢↓ here (wf-⇒ (wf-var here-rvld) (wf-var here-rvld))
         (⊢ƛ wf-ℕ (⊢` here))
 
 ------------------------------------------------------------------------
@@ -128,7 +126,7 @@ private
 -- Concealment over a NON-value body that re-reveals X fresh inside the seal.
 _ : (rvld `ℕ ∷ []) ∣ [] ⊢
       (g42 · (idX ↑[ `ℕ , (` 0 ⇒ ` 0) ])) ↓[ 0 , `ℕ , ` 0 ] ⦂ ` 0
-_ = ⊢↓ here (new wf-ℕ) (wf-var here-rvld)
+_ = ⊢↓ here (wf-var here-rvld)
         (⊢· (⊢ƛ (wf-⇒ wf-ℕ wf-ℕ) (⊢· (⊢` here) ⊢$))
             (⊢↑ (⊢ƛ (wf-var here-rvld) (⊢` here)) wf-ℕ))
 
@@ -173,11 +171,11 @@ private
 -- typing:  5↓[X:=ℕ]@ℕ  concealing X at INDEX 1, past a revealed Y whose rep
 -- mentions the concealed X.  Stresses the representation lookup (skip-rvld).
 _ : Δ₆ ∣ [] ⊢ ($ 5) ↓[ 1 , `ℕ , `ℕ ] ⦂ `ℕ
-_ = ⊢↓ (skip-rvld here) (·rvld (new wf-ℕ)) wf-ℕ ⊢$
+_ = ⊢↓ (skip-rvld here) wf-ℕ ⊢$
 
 -- variant with annotation B = X (not ℕ), exercising single-at at index 1:
 _ : Δ₆ ∣ [] ⊢ ($ 5) ↓[ 1 , `ℕ , ` 1 ] ⦂ ` 1
-_ = ⊢↓ (skip-rvld here) (·rvld (new wf-ℕ)) (wf-var (skip-rvld here-rvld)) ⊢$
+_ = ⊢↓ (skip-rvld here) (wf-var (skip-rvld here-rvld)) ⊢$
 
 _ : Δ₆ ⊢ `ℕ                                      -- the representation A = ℕ
 _ = wf-ℕ
@@ -201,27 +199,19 @@ _ =
   ∎
 
 ------------------------------------------------------------------------
--- A Commute redex (the one shape no whole-program example reaches).
+-- The Commute redex is now REJECTED by the type system.
 --
---   (λx:X. x) ↓[Y:=ℕ]@(X→X)  ↑[X:=ℕ]@(X→X)  :  ℕ→ℕ   at context  Y:=ℕ.
+-- Previously  (λx:X. x) ↓[Y:=ℕ]@(X→X) ↑[X:=ℕ]  type-checked (at context Y:=ℕ):
+-- a value mentioning X, sealed on a *different* Y — the Commute branch.  Under
+-- the tightened `cncl` marker (skip-cncl needs n < X), the conceal body λx:X.x
+-- would have to reference X (index 0) past the marker `cncl 1`, which requires
+-- 1 < 0 and so no longer holds.  The earlier machine-checked derivation of this
+-- redex therefore no longer compiles — the pathological shape is ruled out.
 --
--- The concealed value λx:X.x mentions the revealed X (so ¬Drop), and the conceal
--- is on a *different* variable Y at index suc 0 (so ¬Cancel): the Commute branch.
--- (A vacuous seal: the annotation X→X does not mention the sealed Y — a hint that
--- this shape may not be reachable from a closed program.)
+--   _ : (rvld `ℕ ∷ []) ∣ [] ⊢
+--         ((ƛ ` 0 ∙ ` 0) ↓[ 1 , `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (` 0 ⇒ ` 0) ]
+--         ⦂ (`ℕ ⇒ `ℕ)                                   -- NO LONGER TYPES
+--
+-- (The β-commute reduction rule is now dead code; it can be deleted once
+--  Preservation confirms no well-typed term ever takes that branch.)
 ------------------------------------------------------------------------
-
--- typing:
-_ : (rvld `ℕ ∷ []) ∣ [] ⊢
-      ((ƛ ` 0 ∙ ` 0) ↓[ 1 , `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (` 0 ⇒ ` 0) ]
-      ⦂ (`ℕ ⇒ `ℕ)
-_ = ⊢↑ (⊢↓ (skip-rvld here)
-            (·rvld (new wf-ℕ))
-            (wf-⇒ (wf-var here-rvld) (wf-var here-rvld))
-            (⊢ƛ (wf-var (skip-cncl (λ ()) here-rvld)) (⊢` here)))
-       wf-ℕ
-
--- reduction (a single Commute step):
-_ : ((ƛ ` 0 ∙ ` 0) ↓[ 1 , `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (` 0 ⇒ ` 0) ]
-    -→ ((ƛ ` 0 ∙ ` 0) ↑[ `ℕ , (` 0 ⇒ ` 0) ]) ↓[ 0 , `ℕ , (`ℕ ⇒ `ℕ) ]
-_ = β-commute (V-G G-ƛ) (∈ƛ-A fv-var)

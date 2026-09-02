@@ -18,18 +18,18 @@ module strong.Context where
 --
 -- Markers are NON-COUNTING: a type-variable index skips over a `cncl` without
 -- changing, so concealing shifts no indices and the body's types are literally
--- types over Δ.  A lookup passes transparently over a marker for a *different*
--- variable and is BLOCKED by the marker for its own variable — realising ∋-mskip
--- and "no rule for ↓X ∋ X".
+-- types over Δ.  A marker `cncl n` BLOCKS lookup of n and of every variable
+-- SHALLOWER than n (revealed after it); it passes only DEEPER variables (n < X).
+-- So a conceal body sees exactly the variables revealed strictly before the
+-- sealed one — its existential scope — and can mention nothing revealed later.
 --
 -- reveal vs conceal are asymmetric: reveal BINDS a fresh revealed variable in
 -- its body (context extension `rvld A ∷ Δ`); conceal REFERS to an existing
 -- revealed variable X and blocks it (`cncl X ∷ Δ`).
 
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _<_; s≤s; z≤n)
 open import Data.List using (List; []; _∷_; map)
 open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import strong.Types
 
 ------------------------------------------------------------------------
@@ -62,15 +62,16 @@ variable
 
 -- Δ ∋tv X : the variable at index X is in scope — abstract or revealed and not
 -- blocked by a marker.  A counting entry (abst/rvld) is skipped with suc; a
--- marker `cncl n` is skipped WITHOUT changing the index, and only when n ≢ X.
+-- marker `cncl n` is skipped WITHOUT changing the index, and only when n < X
+-- (X is deeper than the concealed n).
 infix 4 _∋tv_
 data _∋tv_ : TCtx → ℕ → Set where
   here-abst : (abst ∷ Δ) ∋tv zero
   here-rvld : (rvld A ∷ Δ) ∋tv zero
   skip-abst : Δ ∋tv X → (abst ∷ Δ) ∋tv suc X
   skip-rvld : Δ ∋tv X → (rvld A ∷ Δ) ∋tv suc X
-  skip-cncl : n ≢ X → Δ ∋tv X → (cncl n ∷ Δ) ∋tv X
-  -- no clause for  (cncl X ∷ Δ) ∋tv X : the marker blocks its own variable.
+  skip-cncl : n < X → Δ ∋tv X → (cncl n ∷ Δ) ∋tv X
+  -- no clause when X ≤ n : the marker blocks its own variable and all shallower.
 
 -- Δ ∋ X := A : the variable at index X is revealed with representation A,
 -- expressed over Δ.  A counting entry shifts the rep by ⇑ᵗ; a marker does not
@@ -80,7 +81,7 @@ data _∋_:=_ : TCtx → ℕ → Ty → Set where
   here      : (rvld A ∷ Δ) ∋ zero := ⇑ᵗ A
   skip-abst : Δ ∋ X := A → (abst ∷ Δ) ∋ suc X := ⇑ᵗ A
   skip-rvld : Δ ∋ X := A → (rvld B ∷ Δ) ∋ suc X := ⇑ᵗ A
-  skip-cncl : n ≢ X → Δ ∋ X := A → (cncl n ∷ Δ) ∋ X := A
+  skip-cncl : n < X → Δ ∋ X := A → (cncl n ∷ Δ) ∋ X := A
 
 ------------------------------------------------------------------------
 -- Well-formed types
@@ -145,9 +146,11 @@ data _⊢*_ : TCtx → Ctx → Set where
 ∋tv-⊢ : Δ ∋tv X → Δ ⊢ ` X
 ∋tv-⊢ = wf-var
 
--- The analogous statement for ∋ := (a looked-up representation is well-formed in
--- the current context) is FALSE: a marker can conceal a variable the
--- representation mentions.  See the counterexample in the sanity checks below.
+-- With the tightened marker, the analogous statement for ∋ := now HOLDS (given
+-- ⊢ Δ): a looked-up representation is well-formed in the current context — see
+-- ∋:=-⊢ in strong.Weakening.  Any marker skipped en route to X conceals
+-- something shallower than X, while the representation mentions only variables
+-- deeper than X, so no marker can block it.
 
 ------------------------------------------------------------------------
 -- Sanity checks
@@ -158,35 +161,29 @@ private
   Δ0 : TCtx
   Δ0 = rvld `𝔹 ∷ rvld `ℕ ∷ []
 
-  -- after concealing index 1, index 0 is still in scope but index 1 is blocked
-  _ : (cncl 1 ∷ Δ0) ∋tv 0
-  _ = skip-cncl (λ ()) here-rvld
+  -- a marker lets a DEEPER variable through …
+  _ : (cncl 0 ∷ Δ0) ∋tv 1
+  _ = skip-cncl (s≤s z≤n) (skip-rvld here-rvld)
 
-  _ : ¬ ((cncl 1 ∷ Δ0) ∋tv 1)
-  _ = λ { (skip-cncl 1≢1 _) → 1≢1 refl }
+  -- … blocks its own variable …
+  _ : ¬ ((cncl 0 ∷ Δ0) ∋tv 0)
+  _ = λ { (skip-cncl () _) }
 
-  -- the failure case that motivated the redesign: Y:=(X→X) revealed over X:=ℕ.
-  --   index 0 : Y with representation (`0 ⇒ `0) mentioning X   | index 1 : X = ℕ
+  -- … and blocks every SHALLOWER variable (the tightened rule):
+  _ : ¬ ((cncl 1 ∷ Δ0) ∋tv 0)
+  _ = λ { (skip-cncl () _) }
+
+  -- The tightened marker eliminates the "dangerous shape" that motivated the
+  -- redesign.  With Y:=(X→X) revealed over X:=ℕ (index 0 : Y, its rep mentioning
+  -- the deeper X ; index 1 : X = ℕ), concealing X (index 1) and then looking up Y
+  -- (index 0) is now IMPOSSIBLE — Y is shallower than the concealed X, so the
+  -- lookup that would have returned a rep mentioning a concealed variable no
+  -- longer exists.
   Δ1 : TCtx
   Δ1 = rvld (` 0 ⇒ ` 0) ∷ rvld `ℕ ∷ []
 
-  _ : ⊢ Δ1
-  _ = ⊢rvld (⊢rvld ⊢∅ wf-ℕ) (wf-⇒ (wf-var here-rvld) (wf-var here-rvld))
-
-  -- concealing X (index 1) KEEPS the context well-formed: Δ1 is untouched, so
-  -- Y's representation (which mentions X) is still fine.
-  _ : ⊢ (cncl 1 ∷ Δ1)
-  _ = ⊢cncl (⊢rvld (⊢rvld ⊢∅ wf-ℕ) (wf-⇒ (wf-var here-rvld) (wf-var here-rvld)))
-            (skip-rvld here-rvld)
-
-  -- …but looking up Y (index 0) past the marker returns its representation
-  -- (`1 ⇒ `1), which mentions the CONCEALED X (index 1) — and that is NOT
-  -- well-formed here.  So ∋ := does not produce a well-formed type.
-  _ : (cncl 1 ∷ Δ1) ∋ 0 := (` 1 ⇒ ` 1)
-  _ = skip-cncl (λ ()) here
-
-  _ : ¬ ((cncl 1 ∷ Δ1) ⊢ (` 1 ⇒ ` 1))
-  _ = λ { (wf-⇒ (wf-var (skip-cncl 1≢1 _)) _) → 1≢1 refl }
+  _ : ¬ ((cncl 1 ∷ Δ1) ∋ 0 := (` 1 ⇒ ` 1))
+  _ = λ { (skip-cncl () _) }
 
   -- a term context of closed types is well-formed in any Δ
   _ : Δ0 ⊢* (`ℕ ∷ `𝔹 ∷ [])

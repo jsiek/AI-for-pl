@@ -1,0 +1,50 @@
+module strong.Canonical where
+
+-- Canonical forms for values at the runtime term context [] (PLAN.md §5).
+--
+-- Progress works at an arbitrary TYPE context Δ (ξ-⟪⟫ reduces under a boundary,
+-- whose body lives at the interior intOf Δ Θ) but always at the EMPTY term
+-- context, so a value is a numeral, a ƛ, a Λ, or a wrapped value V ⟪ Θ , B₀ ⟫.
+-- The type of the value rules out the constructors that do not fit; only a
+-- wrapper can have any type, including a type variable.
+
+open import Data.Nat using (ℕ)
+open import Data.Product using (Σ; _×_; _,_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.List using ([])
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import strong.Types
+open import strong.Context using (TCtx)
+open import strong.Boundary
+open import strong.BReduction
+  using (Value; GVal; V-$; V-G; V-⟪⟫; G-ƛ; G-Λ; renameᵀ)
+
+-- V is a wrapped term
+Wrapped : Term → Set
+Wrapped V = Σ Term λ V′ → Σ BCtx λ Θ → Σ Ty λ B₀ → V ≡ V′ ⟪ Θ , B₀ ⟫
+
+canon-ℕ : ∀ {Δ V} → Value V → Δ ∣ [] ⊢ V ⦂ `ℕ
+  → (Σ ℕ λ n → V ≡ $ n) ⊎ Wrapped V
+canon-ℕ v ⊢V = {!!}
+
+canon-⇒ : ∀ {Δ V A B} → Value V → Δ ∣ [] ⊢ V ⦂ (A ⇒ B)
+  → (Σ Ty λ A′ → Σ Term λ N → V ≡ ƛ A′ ∙ N) ⊎ Wrapped V
+canon-⇒ v ⊢V = {!!}
+
+canon-∀ : ∀ {Δ V B} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ B
+  → (Σ Term λ V′ → V ≡ Λ V′) ⊎ Wrapped V
+canon-∀ v ⊢V = {!!}
+
+-- the external face of a wrapper is a variable only if its boundary type is
+substᵗ-var : ∀ (σ : Substᵗ) B₀ X → substᵗ σ B₀ ≡ ` X → Σ ℕ λ Y → B₀ ≡ ` Y
+substᵗ-var σ B₀ X eq = {!!}
+
+-- a value of VARIABLE type is a wrapper whose boundary type is a variable
+canon-var : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
+  → Σ Term λ V′ → Σ BCtx λ Θ → Σ ℕ λ Y → V ≡ V′ ⟪ Θ , ` Y ⟫
+canon-var v ⊢V = {!!}
+
+-- type-variable renaming preserves value-hood (needed by β-⟪⟫·[], whose
+-- contractum applies ⇑ᵀ V)
+Value-renameᵀ : ∀ {ρ V} → Value V → Value (renameᵀ ρ V)
+Value-renameᵀ v = {!!}

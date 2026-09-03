@@ -30,12 +30,12 @@ rule shapes are guidance only and may change considerably.
 | file | role | status |
 |---|---|---|
 | `Boundary.agda` | boundary syntax, projections, scope machinery, typing (`_∣_⊢_⦂_`, `env`) | ✅ 0 holes |
-| `BReduction.agda` | values, `_-→_` (TyBeta, Beta, ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫), type-var renaming through boundaries, `⊢renameᵀ` | ✅ 0 holes |
+| `BReduction.agda` | values, `_-→_` (TyBeta, Beta, TyWrap, Wrap, ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫), type-var renaming through boundaries, `⊢renameᵀ`, shift/dual boundary lemmas, `⊢retag` | ✅ 0 holes |
 | `ScopeBridge.agda` | `⊢ty-wf`, `wf→Scoped`, `env-ext-wf`, `scB-bridge` (§3b) | ✅ 0 holes |
 | `TermSubst.agda` | `⊢renameᵀᵐ`, `⊢substᵀᵐ`, `⊢[]ᵐ`, `preserve-Beta` (§3c) | ✅ 0 holes |
 | `BPreservation.agda` | `preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A`, all current rules | ✅ 0 holes |
 | `Canonical.agda` | canonical-form statements `canon-ℕ/⇒/∀`, `canon-var`, `Value-renameᵀ` (§5) | ⚠️ holes (REALLMS) |
-| `Progress.agda` | `progress`, incremental (§5) | 🚧 in flight |
+| `Progress.agda` | `progress`, all rules; 2 holes = the reveal-variable boundary-type cases (Decision 1) | ⚠️ 2 holes |
 | `All.agda` | aggregate driver — now points at the NEW design | ✅ |
 | `notes/BoundaryRules.md`, `notes/BoundaryRulesProbe.agda` | §4 rule design memo + machine-checked probe (R1/R2, dual, `bad`) | ✅ probe checks |
 | `ScratchGamma.agda`, `ScratchBlocked.agda` | evidence for the two design findings (§2) | ✅ |
@@ -124,7 +124,7 @@ its preservation case is why `preservation` is generalised over Δ).
 Boundary-manipulation rules — proposed in `notes/BoundaryRules.md` (all typing
 machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
 
-- **R1 `TyWrap`** (in flight): a wrapped value meets a type application. Float
+- **`TyWrap`** (R1, landed): a wrapped value meets a type application. Float
   the `·[]` inside and RECORD the argument as a new reveal, shifting conceal reps
   (`shiftReps`, reps live over the whole interior which grows by one `abst`):
   `(V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ] -→ ((⇑ᵀ V) ·[ B′ , ` 0 ]) ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`.
@@ -132,7 +132,7 @@ machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
   Never pushes `A` inward — this is how Example 8 is avoided by construction.
   The direct-combine variant R1′ `(Λ V) ⟪ Θ , `∀ B₀ ⟫ ·[ B , A ] -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`
   is tighter but partial (stuck on nested wrappers) and would force a merge rule.
-- **R2 `Wrap`** (next): a wrapped value meets an application; the argument moves
+- **`Wrap`** (R2, landed — preservation keeps its statement via `⊢retag`: typing reads Δ only through its length; see notes/DECISIONS.md for why Option 1a would change that): a wrapped value meets an application; the argument moves
   inside through the DUAL boundary: `(V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→ (V · (W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫`.
   An exact dual exists over all-`abst` exteriors (everything reachable from a
   closed program); over `rvld` exteriors it does not (`no-dual-Γ₃`). Blocked slots
@@ -141,7 +141,7 @@ machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
 - Drop / Cancel / merge: NOT needed for progress with R1/R2 in float-inside form;
   Cancel is sound exactly when the conceal rep equals the enclosing reveal's rep.
 
-**Open design decision (memo §4, Jeremy):** `env` cannot relate a `cnc X A` rep
+**Open design decisions — see `notes/DECISIONS.md` (alternatives as definitions).** Summary of Decision 1: `env` cannot relate a `cnc X A` rep
 to the rep of the enclosing reveal of `X`, so
 `bad = (($ 7) ⟪ cnc 0 `ℕ ∷ [] , ` 0 ⟫) ⟪ rvl (`∀ (` 0 ⇒ ` 0)) ∷ [] , ` 0 ⟫`
 is a closed well-typed value of type `∀(Z→Z)` that no type-preserving rule can
@@ -164,6 +164,8 @@ of source programs. `Progress.agda` keeps this obstruction as a labelled hole.
   rule (or decision) they wait for.
 
 ## 6. Conventions / gotchas (learned)
+
+- **Constructor names match the rule names in notes.md** (Beta, TyBeta, TyWrap, Wrap, ξ-…); keep notes.md in sync with the Agda (named variables there, de Bruijn here).
 
 - **No `postulate`** — leave `{!!}` holes; `make postulate-check` fails on `postulate`.
 - **No `cd`** in Bash — use `agda -v0 strong/File.agda` from `SystemF/agda`, or `make -C`.

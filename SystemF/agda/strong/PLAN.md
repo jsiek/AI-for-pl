@@ -26,8 +26,8 @@ Design invariant (user's dual semantics):
 | `BReduction.agda` | reduction `_-→_`, values, type-var renaming/subst through boundaries, `⊢renameᵀ`, `preservation` | ⚠️ 3 holes |
 | `ScratchGamma.agda` | evidence: the fixed conceal-rep-references-reveal bug | ✅ |
 | `ScratchBlocked.agda` | evidence: the blocked-var aliasing that motivates the scope premise | ✅ |
-| `Scratch7/8/9.agda` | machine-checked proof that the OLD (non-boundary) tightened design was unsound (Example 8) | ✅ keep as evidence |
-| `Types/Context/Typing/Reduction/Weakening/Examples.agda` | the older non-boundary development | pre-existing |
+| `Scratch7/8/9.agda` | machine-checked proof that the OLD per-variable-wrapper design is unsound (Example 8) | ✅ keep as evidence |
+| shared substrate + OLD discarded design | see **§1b** for the precise old/new/shared file map | — |
 
 `BReduction.agda` holes (all in the renaming/substitution path):
 1. `scB` (line ~306) — `β-Λ`'s new `Scoped` obligation.
@@ -35,6 +35,47 @@ Design invariant (user's dual semantics):
 3. `preservation … (β-ƛ …)` (line ~313) — needs `⊢substᵀᵐ`.
 
 `β-Λ` preservation is otherwise proven; `β-ƛ` and `⊢renameᵀ` are the open work.
+
+## 1b. OLD design (DISCARDED) vs NEW design — read this first
+
+Two designs coexist in this directory. **Do not build new work on the old one.**
+
+### NEW design (boundary wrapper `M ⟪ Θ , B₀ ⟫`) — the one to finish
+- `Boundary.agda` — redefines `Term`, values, typing (`_∣_⊢_⦂_`, `env`), boundary syntax, projections, scope machinery.
+- `BReduction.agda` — reduction `_-→_`, renaming/subst through boundaries, `⊢renameᵀ`, `preservation`.
+- `ScratchGamma.agda`, `ScratchBlocked.agda` — evidence for the two new-design findings (§2).
+
+### SHARED substrate (keep — imported by BOTH designs)
+- `Types.agda` (type syntax), `TypeSubst.agda` (type subst/renaming, `subst-cong`, …),
+  `Context.agda` (`TCtx`, wf `_⊢_`, `_∋tv_`, `_↓_`, `abst`/`rvld`), `Weakening.agda`
+  (`wf-rename-fv`, `fv-scope`).
+
+### OLD design (per-variable `↑`/`↓` wrappers) — DISCARDED, do not extend
+- `Terms.agda` — old term syntax with **separate** reveal `_↑[_,_]` and conceal `_↓[_,_,_]` constructors (one wrapper per single reveal/conceal).
+- `Typing.agda` — old typing (`TyWrapRevl`/`TyWrapCncl`, the tightened-conceal-marker rules).
+- `Reduction.agda` — old reduction: `β-↑` (WrapReveal), `β-↓·` (WrapConceal), `β-cancel`, `β-drop`, `β-↑[]` (TyWrapRevl), `β-↓[]` (TyWrapCncl), `ξ-*`.
+- `Examples.agda`, `Preservation.agda` — examples/preservation for the old system.
+- `All.agda` — the aggregate driver **still points at the old system** (Terms/Typing/Reduction/Examples). Repoint it to the new design once §3's holes close.
+- `Scratch7/8/9.agda` — keep, but note they **import the old `Terms`/`Typing`/`Reduction`**: they are the machine-checked proof that the old design is unsound. This is the *only* reason the old files are retained.
+
+### Why the old design was discarded (Example 8)
+The old design made each reveal/conceal a **separate per-variable wrapper**, with
+`TyWrapCncl` pushing a conceal inward under a `Λ` (conceal-of-a-value is a value).
+This is **unsound**: a conceal `↓[X:=A]` whose body, once the context is tightened
+to `X`'s existential scope, references a **shallower** type variable that thereby
+falls out of scope. `Scratch7/8/9.agda` exhibit a closed, well-typed source program
+`P : ∀(Z→Z)` that reduces in 4 steps (via `β-↓[]`) to an **ill-typed** term — a
+direct counterexample to preservation.
+
+The fix is structural, not a patch: replace the separate `↑`/`↓` wrappers with a
+**single combined boundary** `⟪ Θ , B₀ ⟫` in which multiple reveals and conceals
+coexist simultaneously, so a reveal's fresh variable stays visible to a conceal's
+body instead of being blocked — while genuinely-inaccessible variables are blocked
+(and forbidden in `B₀` by the scope premise, §2). Because reveals and conceals live
+on one boundary, **no `Commute` rule is needed**. The old `Reduction.agda` rule
+shapes (WrapReveal/WrapConceal/Cancel/Drop) remain a useful *reference* for the
+boundary-manipulation rules to add in §4, but must be reformulated for the combined
+boundary — do not copy them verbatim.
 
 ## 2. Settled design (do not relitigate)
 

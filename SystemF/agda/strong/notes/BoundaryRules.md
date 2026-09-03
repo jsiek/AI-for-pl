@@ -21,7 +21,7 @@ rule (§2).
   --     RECORD the type argument as a new reveal (never push A inward)
   β-⟪⟫·[] : Value V
     → (V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
-      -→ ((⇑ᵀ V) ·[ substᵗ (extsᵗ (γᵇ Θ)) B₀ , ` 0 ])
+      -→ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀) , ` 0 ])
            ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
 
   -- R2  a boundary meets an application: move the argument inside through
@@ -43,7 +43,9 @@ Proved face laws (probe §1), i.e. exactly the retypings preservation needs:
 * `ρᵇ-shift-ty : substᵗ (ρᵇ (rvl A ∷ shiftReps Θ)) B ≡ (substᵗ (extsᵗ (ρᵇ Θ)) B) [ A ]ᵗ`;
 * `bwf-shift`, `baseS-shift : baseS (rvl A ∷ shiftReps Θ) Γ ≡ ok ∷ baseS Θ Γ`
   (so R1's `Scoped` obligation *is* the `sc-∀` inversion of the redex's);
-* `ext-suc-[]0 : (renameᵗ (extᵗ suc) T) [ ` 0 ]ᵗ ≡ T` for the floated `·[]`.
+* `ext-suc-[]0 : (renameᵗ (extᵗ suc) T) [ ` 0 ]ᵗ ≡ T` for the floated `·[]`
+  (its index is the ∀-body of `⇑ᵀ V`'s type, hence the `renameᵗ (extᵗ suc)`;
+  landed as `β-⟪⟫·[]` in BReduction.agda, preservation case in BPreservation.agda).
 
 `dualᵇ` / `swapᵇ` (probe §3): every **reveal** of `Θ` becomes a **conceal** of
 `dualᵇ Θ` at its interior index, keeping its rep (a reveal rep is read in `Δ`,

@@ -116,7 +116,7 @@ tapp-steps (V-G (G-Λ v)) ⊢L = _ , β-Λ v
 tapp-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v) ⊢L
   with cf-∀-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
 tapp-steps (V-⟪⟫ v) ⊢L | inj₁ (B₀′ , refl) =
-  {!!}   -- R1 β-⟪⟫·[] (in flight)
+  _ , β-⟪⟫·[] v
 tapp-steps (V-⟪⟫ v) ⊢L | inj₂ (X , refl , X<r) =
   {!!}   -- reveal-variable boundary type: needs the grounded rep invariant
          -- (memo §4, decision pending)

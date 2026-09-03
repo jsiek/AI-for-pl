@@ -21,14 +21,14 @@ module strong.BPreservation where
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; trans; sym; subst)
+  using (_≡_; refl; trans; sym; subst; subst₂)
 open import strong.Types
 open import strong.TypeSubst using (subst-cong; subst-id)
-open import strong.Context using (TCtx)
+open import strong.Context using (TCtx; abst; _⊢_; wf-var; here-abst)
 open import strong.Boundary
 open import strong.BReduction
 open import strong.ScopeBridge using (scB-bridge)
-open import strong.TermSubst using (preserve-β-ƛ)
+open import strong.TermSubst using (preserve-β-ƛ; Mono-suc; ∋tv-suc)
 
 private
   variable
@@ -66,6 +66,47 @@ preservation (⊢·[] {B = B} {A = A} (⊢Λ {N = V} ⊢V) ⊢A) (β-Λ v) =
 
 -- Beta:  (λx:A.N) · W  →  N[x:=W]  — the term-substitution lemma (TermSubst)
 preservation (⊢· (⊢ƛ wfA ⊢N) ⊢W) (β-ƛ w) = preserve-β-ƛ (⊢· (⊢ƛ wfA ⊢N) ⊢W)
+
+-- R1:  (V ⟪ Θ , ∀B₀ ⟫) ·[ B , A ]  →  ((⇑ᵀ V) ·[ B′ , ` 0 ]) ⟪ ↑A ∷ Θ⁺ , B₀ ⟫
+--
+-- Both indices of the redex are FORCED, so the pattern supplies them: (env)
+-- types the wrapper at substᵗ (ρᵇ Θ) (`∀ B₀), which is
+-- `∀ (substᵗ (extsᵗ (ρᵇ Θ)) B₀), so B is that ∀-body; and ⇑ᵀ V's type is
+-- `∀ (renameᵗ (extᵗ suc) Bγ), so the floated application's index is
+-- renameᵗ (extᵗ suc) Bγ.  The type argument A is NOT pushed inward — it
+-- becomes the new reveal's rep, read in the exterior, which is what
+-- ρᵇ-shift-ty turns back into the redex's type B [ A ]ᵗ.
+preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} {M = V} bwf (sc-∀ sc) ⊢V)
+                       wfA)
+                 (β-⟪⟫·[] {A = A} v) =
+  subst (λ T → Δ ∣ [] ⊢ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ])
+                          ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫ ⦂ T)
+        (ρᵇ-shift-ty A Θ B₀)
+    (env (bwf-shift Θ bwf wfA) sc′ ⊢body)
+  where
+    -- the interior face of the ∀-body: ⊢V : … ⦂ `∀ Bγ
+    Bγ : Ty
+    Bγ = substᵗ (extsᵗ (γᵇ Θ)) B₀
+    -- scope: the new stack is the old one with the reveal's slot on top
+    -- (baseS-shift), which is exactly what sc-∀ inverted out of the redex's
+    sc′ : Scoped (baseS (rvl A ∷ shiftReps Θ) Δ) B₀
+    sc′ = subst (λ Ψ → Scoped Ψ B₀) (sym (baseS-shift A Θ Δ)) sc
+    -- the floated ·[]: ⇑ᵀ V applied to the FRESH reveal variable ` 0
+    ⊢app : (abst ∷ intOf Δ Θ) ∣ []
+             ⊢ (⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ]
+             ⦂ (renameᵗ (extᵗ suc) Bγ) [ ` 0 ]ᵗ
+    ⊢app = ⊢·[] (⊢renameᵀ ∋tv-suc Mono-suc ⊢V) (wf-var here-abst)
+    -- ⇑ᵀ made room for exactly the variable ` 0 puts back (ext-suc-[]0), and
+    -- the new interior face is extsᵗ of the old one (γᵇ-shift-ty)
+    ty-eq : (renameᵗ (extᵗ suc) Bγ) [ ` 0 ]ᵗ
+            ≡ substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B₀
+    ty-eq = trans (ext-suc-[]0 Bγ) (sym (γᵇ-shift-ty A Θ B₀))
+    ⊢body : intOf Δ (rvl A ∷ shiftReps Θ) ∣ []
+              ⊢ (⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ]
+              ⦂ substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B₀
+    ⊢body = subst₂ (λ Ψ T → Ψ ∣ []
+                              ⊢ (⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ] ⦂ T)
+                   (sym (intOf-shift Δ A Θ)) ty-eq ⊢app
 
 ------------------------------------------------------------------------
 -- ξ (congruence) rules: the induction hypothesis under the typing rule

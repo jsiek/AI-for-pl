@@ -23,11 +23,11 @@ open import Relation.Binary.PropositionalEquality
 open import strong.Types
 open import strong.TypeSubst
   using (subst-cong; subst-id; rename-rename-commute; rename-[]ᵗ-commute;
-         rename-subst; rename-subst-commute)
+         rename-subst; rename-subst-commute; exts-sub-cons; cons-sub)
 open import strong.Context
   using (TCtx; abst; rvld; _↓_; _⊢_; wf-var; wf-ℕ; _∋tv_; here-abst; here-rvld;
          skip-abst; skip-rvld; Ctx; _∋_⦂_; here; there; ⤊)
-open import strong.Weakening using (wf-rename-fv; fv-scope)
+open import strong.Weakening using (wf-rename-fv; fv-scope; wf-⇑-abst)
 open import strong.Boundary
 
 private
@@ -84,6 +84,30 @@ renᴮ : (ℕ → ℕ) → (ℕ → ℕ) → BCtx → BCtx      -- ρ for reveal
 renᴮ ρ ir []             = []
 renᴮ ρ ir (rvl A   ∷ Θ) = rvl (renameᵗ ρ A)  ∷ renᴮ ρ ir Θ
 renᴮ ρ ir (cnc X A ∷ Θ) = cnc (ρ X) (renameᵗ ir A) ∷ renᴮ ρ ir Θ
+
+-- Shifting the conceal reps.  R1 (a boundary meets a type application)
+-- grows the interior by ONE fresh abstract variable, so the conceal reps —
+-- which live over the WHOLE interior — must be renamed by suc.  Reveal reps
+-- are exterior and untouched, so neither face's reveal side moves.
+shiftReps : BCtx → BCtx
+shiftReps []             = []
+shiftReps (rvl A   ∷ Θ) = rvl A ∷ shiftReps Θ
+shiftReps (cnc X A ∷ Θ) = cnc X (renameᵗ suc A) ∷ shiftReps Θ
+
+revs-shiftReps : ∀ Θ → revs (shiftReps Θ) ≡ revs Θ
+revs-shiftReps []             = refl
+revs-shiftReps (rvl A   ∷ Θ) = cong suc (revs-shiftReps Θ)
+revs-shiftReps (cnc X A ∷ Θ) = revs-shiftReps Θ
+
+cmax-shiftReps : ∀ Θ → cmax (shiftReps Θ) ≡ cmax Θ
+cmax-shiftReps []             = refl
+cmax-shiftReps (rvl A   ∷ Θ) = cmax-shiftReps Θ
+cmax-shiftReps (cnc X A ∷ Θ) = cong (suc X ⊔_) (cmax-shiftReps Θ)
+
+-- the interior of the shifted boundary is the old one plus one abst
+intOf-shift : ∀ (Γ : TCtx) A Θ
+            → intOf Γ (rvl A ∷ shiftReps Θ) ≡ abst ∷ intOf Γ Θ
+intOf-shift Γ A Θ rewrite revs-shiftReps Θ | cmax-shiftReps Θ = refl
 
 renameᵀ : (ℕ → ℕ) → Term → Term          -- rename TYPE variables
 renameᵀ ρ (` x)          = ` x
@@ -146,6 +170,20 @@ data _-→_ : Term → Term → Set where
   -- Beta
   β-ƛ : Value W
       → (ƛ A ∙ N) · W -→ N [ W ]ᵐ
+
+  -- R1: a wrapped value meets a TYPE APPLICATION.  The type argument A is
+  -- RECORDED as a new reveal — it is NEVER pushed inward, which is what made
+  -- the old design unsound (Example 8: A may name a variable the interior
+  -- blocks).  The elimination floats INSIDE the boundary and is applied to the
+  -- fresh reveal variable ` 0; the interior gains one abst, so the conceal
+  -- reps shift (shiftReps).  Both indices are forced by the typing: the
+  -- redex's B is substᵗ (extsᵗ (ρᵇ Θ)) B₀ (from (env)), and the floated
+  -- application's index is the ∀-body of ⇑ᵀ V's type, i.e.
+  -- renameᵗ (extᵗ suc) of the interior face.
+  β-⟪⟫·[] : Value V
+      → (V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
+        -→ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀) , ` 0 ])
+             ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
 
   -- ξ (congruence): the evaluation frames, left-to-right call-by-value.
   -- ξ-Λ and ξ-⟪⟫ are not optional bookkeeping: Λ V is a value only when V is
@@ -210,6 +248,65 @@ _ = ξ-⟪⟫ (β-ƛ V-$)
 
 ⊢contractum-bnd : [] ∣ [] ⊢ ($ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫ ⦂ `ℕ
 ⊢contractum-bnd = env (bwf↑ wf-ℕ bwf[]) sc-ℕ ⊢$
+
+------------------------------------------------------------------------
+-- Worked example for β-⟪⟫·[] (R1), on the NEW-DESIGN ANALOGUE OF EXAMPLE 8.
+-- Example 8 (notes/Scratch7-9) is the closed program whose 4th step made the
+-- OLD design ill-typed: a value concealed on X (index 1) is TYPE-APPLIED to
+-- the SHALLOWER Λ-bound Y (index 0), which the interior blocks.  Under the
+-- combined boundary the same redex steps to a WELL-TYPED term, because Y is
+-- recorded as a REVEAL rep (read in the exterior) instead of being pushed
+-- into the interior.
+--
+--   (polyid ⟪ ↓X:=ℕ , ∀(Z→Z) ⟫) ·[ Z→Z , Y ]           : Y→Y
+--     →  (polyid ·[ Z→Z , ` 0 ]) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫ : Y→Y
+--
+-- Δ8/Θ8 (ASCII 8) are this example's own context and boundary — NOT Boundary's
+-- Γ₈/Θ₈, which are a different (spurious-conceal) example.
+------------------------------------------------------------------------
+
+polyid : Term
+polyid = Λ (ƛ ` 0 ∙ ` 0)
+
+∀ZZ : Ty
+∀ZZ = `∀ (` 0 ⇒ ` 0)
+
+Δ8 : TCtx                       -- Y (Λ-bound, index 0), X (index 1)
+Δ8 = abst ∷ abst ∷ []
+
+Θ8 : BCtx                       -- conceal X (index 1), rep ℕ
+Θ8 = cnc 1 `ℕ ∷ []
+
+_ : intOf Δ8 Θ8 ≡ []
+_ = refl
+
+_ : baseS Θ8 Δ8 ≡ blk ∷ ok ∷ []          -- Y is BLOCKED inside
+_ = refl
+
+⊢redex-R1 : Δ8 ∣ [] ⊢ (polyid ⟪ Θ8 , ∀ZZ ⟫) ·[ ` 0 ⇒ ` 0 , ` 0 ]
+                      ⦂ (` 0 ⇒ ` 0)
+⊢redex-R1 =
+  ⊢·[] (env (bwf↓ (skip-abst here-abst) wf-ℕ bwf[])
+            (sc-∀ (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ)))
+            (⊢Λ (⊢ƛ (wf-var here-abst) (⊢` here))))
+       (wf-var here-abst)
+
+-- the floated ·[] index computes: renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ8))
+-- (Z→Z)) = Z→Z, and ⇑ᵀ polyid = polyid, so the step is refl-level
+_ : (polyid ⟪ Θ8 , ∀ZZ ⟫) ·[ ` 0 ⇒ ` 0 , ` 0 ]
+    -→ (polyid ·[ ` 0 ⇒ ` 0 , ` 0 ])
+         ⟪ rvl (` 0) ∷ shiftReps Θ8 , ` 0 ⇒ ` 0 ⟫
+_ = β-⟪⟫·[] (V-G (G-Λ (V-G G-ƛ)))
+
+⊢contractum-R1 :
+  Δ8 ∣ [] ⊢ (polyid ·[ ` 0 ⇒ ` 0 , ` 0 ])
+              ⟪ rvl (` 0) ∷ shiftReps Θ8 , ` 0 ⇒ ` 0 ⟫
+            ⦂ (` 0 ⇒ ` 0)
+⊢contractum-R1 =
+  env (bwf↑ (wf-var here-abst)
+            (bwf↓ (skip-abst here-abst) wf-ℕ bwf[]))
+      (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+      (⊢·[] (⊢Λ (⊢ƛ (wf-var here-abst) (⊢` here))) (wf-var here-abst))
 
 ------------------------------------------------------------------------
 -- renameᵀ through a boundary, verified on ⇑ᵀ of the non-spurious ($7)⟪Θ₈, X⟫.
@@ -833,3 +930,112 @@ sc-ren h mono Θ sc = sc-rename (baseS-ren h mono Θ) sc
          (subst (λ T → _ ∣ [] ⊢ renameᵀ (intRen ρ Θ) M ⦂ T)
                 (sym (C-int mono Θ sc))
                 (⊢renameᵀ (h-int h mono Θ) (Mono-intRen Θ mono) ⊢M)))
+
+------------------------------------------------------------------------
+-- Boundary shift (R1).  The face laws of  rvl A ∷ shiftReps Θ  — the
+-- boundary β-⟪⟫·[] builds.  The interior face becomes extsᵗ of the old one AT
+-- EVERY SLOT (blocked ones included), so R1 carries no scope side-condition
+-- of its own; the exterior face instantiates the ∀ with the type argument A.
+------------------------------------------------------------------------
+
+isConc-shift : ∀ i Θ → isConc i (shiftReps Θ) ≡ isConc i Θ
+isConc-shift i []             = refl
+isConc-shift i (rvl A   ∷ Θ) = isConc-shift i Θ
+isConc-shift i (cnc X A ∷ Θ) = cong (⌊ i ≟ X ⌋ ∨_) (isConc-shift i Θ)
+
+-- shiftReps does not move the reveals, so the EXTERIOR face is untouched
+ρᵇ-shift : ∀ Θ X → ρᵇ (shiftReps Θ) X ≡ ρᵇ Θ X
+ρᵇ-shift []                   X = refl
+ρᵇ-shift (rvl A   ∷ Θ) zero    = refl
+ρᵇ-shift (rvl A   ∷ Θ) (suc X) = ρᵇ-shift Θ X
+ρᵇ-shift (cnc X A ∷ Θ) Y       = ρᵇ-shift Θ Y
+
+γcnc-shift : ∀ r m Θ i
+  → γcnc (suc r) m (shiftReps Θ) i ≡ renameᵗ suc (γcnc r m Θ i)
+γcnc-shift r m []             i = refl
+γcnc-shift r m (rvl A   ∷ Θ) i = γcnc-shift r m Θ i
+γcnc-shift r m (cnc X A ∷ Θ) i with X ≟ i
+γcnc-shift r m (cnc X A ∷ Θ) i | yes _ = refl
+γcnc-shift r m (cnc X A ∷ Θ) i | no  _ = γcnc-shift r m Θ i
+
+γᵇ-shift-raw : ∀ r c Θ X
+  → prepId (suc r) (γcnc (suc r) c (shiftReps Θ)) X
+    ≡ extsᵗ (prepId r (γcnc r c Θ)) X
+γᵇ-shift-raw r c Θ zero =
+  prepId-lo (suc r) (γcnc (suc r) c (shiftReps Θ)) zero (s≤s z≤n)
+γᵇ-shift-raw r c Θ (suc j) with split r j
+γᵇ-shift-raw r c Θ (suc j) | inj₁ j<r =
+  trans (prepId-lo (suc r) (γcnc (suc r) c (shiftReps Θ)) (suc j) (s≤s j<r))
+        (cong (renameᵗ suc) (sym (prepId-lo r (γcnc r c Θ) j j<r)))
+γᵇ-shift-raw r c Θ (suc j) | inj₂ (i , refl) =
+  trans (prepId-hi (suc r) (γcnc (suc r) c (shiftReps Θ)) i)
+        (trans (γcnc-shift r c Θ i)
+               (cong (renameᵗ suc) (sym (prepId-hi r (γcnc r c Θ) i))))
+
+-- FACE LAW (interior).  Adding the reveal of the type argument and shifting
+-- the conceal reps is exactly extsᵗ on the interior face — at EVERY slot.
+γᵇ-shift : ∀ A Θ X → γᵇ (rvl A ∷ shiftReps Θ) X ≡ extsᵗ (γᵇ Θ) X
+γᵇ-shift A Θ X rewrite revs-shiftReps Θ | cmax-shiftReps Θ =
+  γᵇ-shift-raw (revs Θ) (cmax Θ) Θ X
+
+γᵇ-shift-ty : ∀ A Θ B → substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B
+                        ≡ substᵗ (extsᵗ (γᵇ Θ)) B
+γᵇ-shift-ty A Θ B = subst-cong (γᵇ-shift A Θ) B
+
+-- FACE LAW (exterior).  The new reveal instantiates the ∀ with A.
+ρᵇ-shift-ty : ∀ A Θ B → substᵗ (ρᵇ (rvl A ∷ shiftReps Θ)) B
+                        ≡ (substᵗ (extsᵗ (ρᵇ Θ)) B) [ A ]ᵗ
+ρᵇ-shift-ty A Θ B =
+  trans (subst-cong h B) (sym (exts-sub-cons {σ = ρᵇ Θ} {a = B} {v = A}))
+  where
+    h : ∀ X → ρᵇ (rvl A ∷ shiftReps Θ) X ≡ cons-sub A (ρᵇ Θ) X
+    h zero    = refl
+    h (suc X) = ρᵇ-shift Θ X
+
+-- the boundary stays well formed once the interior gains an abstract var
+bwf-shiftReps : ∀ {Δ Ψ} Θ → Δ ∣ Ψ ⊢ᵇ Θ → Δ ∣ (abst ∷ Ψ) ⊢ᵇ shiftReps Θ
+bwf-shiftReps []             bwf[]            = bwf[]
+bwf-shiftReps (rvl A   ∷ Θ) (bwf↑ wfA bwf)   = bwf↑ wfA (bwf-shiftReps Θ bwf)
+bwf-shiftReps (cnc X A ∷ Θ) (bwf↓ p wfA bwf) =
+  bwf↓ p (wf-⇑-abst wfA) (bwf-shiftReps Θ bwf)
+
+-- … at the interior the (env) rule actually uses  (intOf-shift)
+bwf-shift : ∀ {Δ A} Θ → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → Δ ⊢ A
+  → Δ ∣ intOf Δ (rvl A ∷ shiftReps Θ) ⊢ᵇ (rvl A ∷ shiftReps Θ)
+bwf-shift {Δ} {A} Θ bwf wfA =
+  subst (λ Ψ → Δ ∣ Ψ ⊢ᵇ (rvl A ∷ shiftReps Θ))
+        (sym (intOf-shift Δ A Θ))
+        (bwf↑ wfA (bwf-shiftReps Θ bwf))
+
+-- the scope stack just gains one accessible slot for the new reveal, so R1's
+-- Scoped obligation IS the sc-∀ inversion of the redex's
+slotAt-shift : ∀ A Θ i → slotAt (rvl A ∷ shiftReps Θ) i ≡ slotAt Θ i
+slotAt-shift A Θ i with cmax (shiftReps Θ) ≤? i | cmax Θ ≤? i
+slotAt-shift A Θ i | yes _ | yes _ = refl
+slotAt-shift A Θ i | yes p | no ¬q =
+  ⊥-elim (¬q (subst (_≤ i) (cmax-shiftReps Θ) p))
+slotAt-shift A Θ i | no ¬p | yes q =
+  ⊥-elim (¬p (subst (_≤ i) (sym (cmax-shiftReps Θ)) q))
+slotAt-shift A Θ i | no _  | no _ rewrite isConc-shift i Θ = refl
+
+slotsᴳ-shift : ∀ A Θ k (Γ : TCtx)
+  → slotsᴳ (rvl A ∷ shiftReps Θ) k Γ ≡ slotsᴳ Θ k Γ
+slotsᴳ-shift A Θ k []      = refl
+slotsᴳ-shift A Θ k (E ∷ Γ) =
+  cong₂ _∷_ (slotAt-shift A Θ k) (slotsᴳ-shift A Θ (suc k) Γ)
+
+baseS-shift : ∀ A Θ (Γ : TCtx)
+  → baseS (rvl A ∷ shiftReps Θ) Γ ≡ ok ∷ baseS Θ Γ
+baseS-shift A Θ Γ rewrite revs-shiftReps Θ =
+  cong (ok ∷_) (cong (repl-ok (revs Θ) ++_) (slotsᴳ-shift A Θ 0 Γ))
+
+-- the small law R1 needs on the FLOATED type application: the fresh reveal
+-- variable put back for the one that ⇑ᵀ made room for
+ext-suc-[]0 : ∀ T → (renameᵗ (extᵗ suc) T) [ ` 0 ]ᵗ ≡ T
+ext-suc-[]0 T =
+  trans (rename-subst-commute (extᵗ suc) (singleTyEnv (` 0)) T)
+        (trans (subst-cong h T) (subst-id T))
+  where
+    h : ∀ X → singleTyEnv (` 0) (extᵗ suc X) ≡ ` X
+    h zero    = refl
+    h (suc j) = refl

@@ -7,7 +7,8 @@ open import strong.Types
 open import strong.TypeSubst
 open import strong.Context
 open import strong.Weakening
-open import strong.Terms
-open import strong.Typing
-open import strong.Reduction
-open import strong.Examples
+open import strong.Boundary
+open import strong.BReduction
+open import strong.ScopeBridge
+open import strong.TermSubst
+open import strong.BPreservation

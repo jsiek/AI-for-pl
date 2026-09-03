@@ -34,7 +34,7 @@ private
   variable
     Δ : TCtx
     A B C B₀ : Ty
-    L M M′ N V W F : Term
+    L L′ M M′ N N′ V W F : Term
     Θ : BCtx
     n x : ℕ
 
@@ -147,6 +147,25 @@ data _-→_ : Term → Term → Set where
   β-ƛ : Value W
       → (ƛ A ∙ N) · W -→ N [ W ]ᵐ
 
+  -- ξ (congruence): the evaluation frames, left-to-right call-by-value.
+  -- ξ-Λ and ξ-⟪⟫ are not optional bookkeeping: Λ V is a value only when V is
+  -- (G-Λ) and V ⟪ Θ , B₀ ⟫ only when V is (V-⟪⟫), so the body of a Λ and the
+  -- interior of a boundary must be reduced in place before either is a value.
+  ξ-·-l : L -→ L′
+        → L · M -→ L′ · M
+
+  ξ-·-r : Value V → M -→ M′
+        → V · M -→ V · M′
+
+  ξ-·[] : L -→ L′
+        → L ·[ B , A ] -→ L′ ·[ B , A ]
+
+  ξ-Λ   : N -→ N′
+        → Λ N -→ Λ N′
+
+  ξ-⟪⟫  : M -→ M′
+        → M ⟪ Θ , B₀ ⟫ -→ M′ ⟪ Θ , B₀ ⟫
+
 ------------------------------------------------------------------------
 -- Worked example:  (ΛX. λx:X.x) [X→X, ℕ]  →  (λx:X.x)⟪↑X:=ℕ⟫   (both : ℕ→ℕ)
 ------------------------------------------------------------------------
@@ -174,6 +193,23 @@ _ = β-ƛ V-$
 
 ⊢contractum-ƛ : [] ∣ [] ⊢ $ 5 ⦂ `ℕ
 ⊢contractum-ƛ = ⊢$
+
+------------------------------------------------------------------------
+-- Worked example for ξ-⟪⟫:  reduce the INTERIOR of a reveal boundary.
+--   ((λx:ℕ. x) · 5) ⟪ ↑X:=ℕ , B₀=ℕ ⟫  →  5 ⟪ ↑X:=ℕ , B₀=ℕ ⟫   (both : ℕ)
+-- The interior context is  abst ∣ []  (one reveal, no conceal); B₀ = ℕ has
+-- no free variable, so both faces are ℕ: the boundary is inert on the type.
+------------------------------------------------------------------------
+
+⊢redex-bnd : [] ∣ [] ⊢ ((ƛ `ℕ ∙ ` 0) · $ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫ ⦂ `ℕ
+⊢redex-bnd = env (bwf↑ wf-ℕ bwf[]) sc-ℕ (⊢· (⊢ƛ wf-ℕ (⊢` here)) ⊢$)
+
+_ : ((ƛ `ℕ ∙ ` 0) · $ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫
+    -→ ($ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫
+_ = ξ-⟪⟫ (β-ƛ V-$)
+
+⊢contractum-bnd : [] ∣ [] ⊢ ($ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫ ⦂ `ℕ
+⊢contractum-bnd = env (bwf↑ wf-ℕ bwf[]) sc-ℕ ⊢$
 
 ------------------------------------------------------------------------
 -- renameᵀ through a boundary, verified on ⇑ᵀ of the non-spurious ($7)⟪Θ₈, X⟫.
@@ -797,37 +833,3 @@ sc-ren h mono Θ sc = sc-rename (baseS-ren h mono Θ) sc
          (subst (λ T → _ ∣ [] ⊢ renameᵀ (intRen ρ Θ) M ⦂ T)
                 (sym (C-int mono Θ sc))
                 (⊢renameᵀ (h-int h mono Θ) (Mono-intRen Θ mono) ⊢M)))
-
-------------------------------------------------------------------------
--- Preservation (so far: β-Λ)
-------------------------------------------------------------------------
-
-preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
-
-preservation (⊢·[] {B = B} {A = A} (⊢Λ {N = V} ⊢V) ⊢A) (β-Λ v) =
-  subst (λ T → _ ∣ [] ⊢ V ⟪ rvl A ∷ [] , B ⟫ ⦂ T) ext-eq
-    (env {B₀ = B} (bwf↑ ⊢A bwf[])
-         scB
-         (subst (λ T → _ ∣ [] ⊢ V ⦂ T) (sym int-eq) ⊢V))
-  where
-    -- internal face:  γᵇ [rvl A] = prepId 1 (γcnc 1 0 [rvl A]) is pointwise `_
-    gvar : (x : ℕ) → γᵇ (rvl A ∷ []) x ≡ ` x
-    gvar zero    = refl
-    gvar (suc _) = refl
-    int-eq : substᵗ (γᵇ (rvl A ∷ [])) B ≡ B
-    int-eq = trans (subst-cong gvar B) (subst-id B)
-    -- external face:  substᵗ (ρᵇ [rvl A]) B = substᵗ (A •ᵗ `_) B ≡ B [ A ]ᵗ
-    ext-eq : substᵗ (ρᵇ (rvl A ∷ [])) B ≡ B [ A ]ᵗ
-    ext-eq = subst-cong (λ { zero → refl ; (suc _) → refl }) B
-    -- Scoped obligation: baseS [rvl A] Δ is ALL ok (cmax = 0), and B is the
-    -- ∀-body of Λ V — well-scoped over abst ∷ Δ.  Closing this needs a
-    -- context-wf ⇒ typing ⇒ Scoped bridge (the all-ok specialisation).
-    scB : Scoped (baseS (rvl A ∷ []) _) B
-    scB = {!!}
-
--- β-ƛ case: pending the term-substitution lemma
---   ⊢substᵀᵐ : (∀ {x A} → Γ ∋ x ⦂ A → Δ ∣ Γ' ⊢ σ x ⦂ A)
---            → Δ ∣ Γ ⊢ N ⦂ B → Δ ∣ Γ' ⊢ substᵀᵐ σ N ⦂ B
--- whose Λ case needs type-variable renaming THROUGH a boundary (renameᵀ on a
--- wrapper — currently provisional).  That renaming is the next infrastructure.
-preservation (⊢· (⊢ƛ _ ⊢N) ⊢W) (β-ƛ w) = {!!}

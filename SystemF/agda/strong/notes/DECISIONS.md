@@ -125,12 +125,22 @@ Option 3a — depth-1 values (Zdancewic rule (8), p. 203):
   Obligations: contexts compose, internal face composes (their (trans)),
   external face unchanged (notes/Zdancewic-embeddings.md §4).
 
-Option 3b — towers as values, no Merge (current).  Canonical form at a
+### Decision 3 — resolution (2026-09-03)
+
+Jeremy leans to 3a (Merge, depth-1 values).  Plan: after the Decision-1
+rework lands, (i) define Θ₁ ⊕ Θ₂ and probe the three obligations (contexts
+compose; internal face composes given the middle type; external face
+unchanged — notes/Zdancewic-embeddings.md §4); (ii) add `Merge` with its
+example and preservation case (cancel clause discharged by `cancel-agree`);
+(iii) restrict `Value` so a wrapper's body is not itself a wrapper, and
+adjust `Wrap`/`TyWrap`'s progress cases and canonical forms accordingly.
+
+Option 3b — towers as values, no Merge (current, to be replaced).  Canonical form at a
   variable type = a chain of boundaries ending in a conceal; Examples
   1,2,5,6,7 end at towers; progress still needs Decision 1.
 
 ## Recommendation
 
-Decisions 1 and 2 settled (restore the invariant, form above; TyWrap).  Next: rework
-Boundary.agda accordingly and re-run every preservation case; then Merge (3a);
-keep TyWrap, TyWrap′ as a later optimisation.
+All three decisions settled: restore the invariant (transported form above);
+TyWrap; Merge with depth-1 values.  Order: Boundary.agda rework and re-run of every
+preservation case → ⊕ probe → Merge → depth-1 values → progress.

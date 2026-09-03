@@ -13,20 +13,22 @@ module proof.DGG.ContextualSimProof where
 
 open import Data.List using ([])
 import Data.Nat as Nat
+open import Data.Empty using (⊥-elim)
 open import Data.Product using (_,_; _×_; Σ-syntax; proj₁; proj₂)
 open import Data.Unit using (tt)
 open import Relation.Binary.PropositionalEquality using
-  (_≡_; cong; refl; subst; sym; trans)
+  (_≡_; _≢_; cong; refl; subst; sym; trans)
 
 open import CastTerms using
-  ( Term; Value; ⟨_,_,_⟩; _·_; _⦂∀_[_]; _⟨_⟩; _↑_; _↓_; _⊕[_]_
+  ( Term; Value; seal; ⟨_,_,_⟩; _·_; _⦂∀_[_]; _⟨_⟩; _↑_; _↓_; _⊕[_]_
   )
 open import CastTerms using (Λ_; _《_》; all; fun; genᵥ; inj)
-open import Consistency using (Env∼; _⊢_∼_)
-open import Imprecision using (⇒⊑⇒)
+open import Consistency using (Env∼; _⊢_∼_; toRenameᵗ)
+import Conversion as Conv
+open import Imprecision using (X⊑★; ⇒⊑⇒)
 open import Reduction
 open import proof.Reduction using (_++χ_; _—↠+[_]⟨_⟩_; applyTys-++)
-open import Types using (Ty; TyCtx; ★; `∀; _[_]ᵗ)
+open import Types using (Ty; TyCtx; TyVar; ★; ＇_; `∀; _[_]ᵗ)
 open import TyStore using (TyStore)
 
 import proof.DGG.CastTermImprecision as CTI
@@ -46,6 +48,10 @@ open import proof.DGG.ContextualSimSourceAllValuesDef using
   (ContextualSimSourceAllValuesᵀ)
 open import proof.DGG.ContextualSimSourceCastValuesDef using
   (ContextualSimSourceCastValuesᵀ)
+open import proof.DGG.ContextualSimSourceRevealValuesDef using
+  (ContextualSimSourceRevealValuesᵀ)
+open import proof.DGG.ConversionPivotAlignment using
+  (generator-absent; generator-here; revealGeneratorPosition)
 open import proof.DGG.SimPairedAllClosingDef using
   (SimPairedAllClosingᵀ)
 open import proof.DGG.SimPairedCastValuesDef using
@@ -65,11 +71,15 @@ open import proof.DGG.SimSourceRevealClosingDef using
 open import proof.DGG.SimTargetRevealRebaseContextDef
 open import proof.DGG.SimTargetRevealRebaseContextLemma using
   (replay-context-keep)
-open import proof.DGG.World using (openFramesᶜ; _⊑ᶜ_; _⊑ᵀ⟨_⟩_)
+open import proof.DGG.World using
+  ( openFramesᶜ; marksᶜ; ηᴸᶜ; ηᴿᶜ; toRenameⁱ
+  ; _⊑ᶜ_; _⊑ᵀ⟨_⟩_
+  )
 open import proof.DGG.WorldEvolutionSequence using
   ( MultiWorldEvolution; append-left-keep; composeMultiWorldEvolution
   ; evolutions-refl; multi-no-open-frames
   )
+import proof.Imprecision as PI
 
 
 module _
@@ -86,6 +96,8 @@ module _
       ContextualSimSourceAllValuesᵀ)
     (contextual-sim-source-cast-values :
       ContextualSimSourceCastValuesᵀ)
+    (contextual-sim-source-reveal-values :
+      ContextualSimSourceRevealValuesᵀ)
     (sim-paired-fun-closing : SimPairedFunClosingᵀ)
     (sim-paired-all-closing : SimPairedAllClosingᵀ)
     (sim-source-all-closing : SimSourceAllClosingᵀ)
@@ -1216,6 +1228,172 @@ module _
       composeMultiWorldEvolution evolution₁ values-evolution ,
       final-related
 
+  contextual-sim-source-reveal-context : ∀
+      {Δᴸ Δᴿ : TyCtx}
+      {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+      {γ γᶠ :
+        ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
+      {root-source root-result : Term Δᴸ}
+      {root-target target-head : Term Δᴿ}
+      {root-source-type : Ty Δᴸ}
+      {root-target-type : Ty Δᴿ}
+      {source-value : Term Δᴸ}
+      {target-type : Ty Δᴿ}
+      {Xᴸ : TyVar Δᴸ}
+      {root-type-related :
+        root-source-type ⊑ᵀ⟨ γ ⟩ root-target-type}
+      {head-type-related :
+        ＇ Xᴸ ⊑ᵀ⟨ γᶠ ⟩ target-type}
+    → openFramesᶜ γ ≡ []
+    → (root-related :
+        γ CTI.⊢² root-source ⊑ root-target ∶ root-type-related)
+    → (representation-type : Ty Δᴸ)
+    → (c⊢ : Σᴸ Conv.⊢↑[ Xᴸ ⦂ representation-type ]
+        Conv.unseal Xᴸ representation-type)
+    → (present : revealGeneratorPosition c⊢ ≢ generator-absent)
+    → (mark :
+        marksᶜ γᶠ (toRenameⁱ (ηᴸᶜ γᶠ) Xᴸ) ≡ X⊑★)
+    → (free : ∀ Xᴿ → toRenameⁱ (ηᴿᶜ γᶠ) Xᴿ
+        ≢ toRenameⁱ (ηᴸᶜ γᶠ) Xᴸ)
+    → (represented : representation-type ⊑ᵀ⟨ γᶠ ⟩ ★)
+    → (head-related :
+        γᶠ CTI.⊢² source-value ↓ Conv.seal Xᴸ representation-type
+          ⊑ target-head ∶ head-type-related)
+    → (result-type-related :
+        representation-type ⊑ᵀ⟨ γᶠ ⟩ target-type)
+    → (path : pack root-related ↘ᶜ*
+        pack (CTI.reveal⊑-only² c⊢ present mark free represented
+          head-related result-type-related))
+    → TargetReady path
+    → Value source-value
+    → (source-value ↓ Conv.seal Xᴸ representation-type)
+        ↑ Conv.unseal Xᴸ representation-type
+        —→[ keep ] source-value
+    → RebuildSource path keep source-value root-result
+    → Σ[ Δᴿ′ ∈ TyCtx ]
+      Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
+      Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+      Σ[ result-target ∈ Term Δᴿ′ ]
+      Σ[ γ′ ∈
+        ⟨ Δᴸ , applyStore keep Σᴸ , [] ⟩ ⊑ᶜ
+        ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
+      Σ[ final-related ∈
+        applyTy keep root-source-type ⊑ᵀ⟨ γ′ ⟩
+          applyTys χsᴿ root-target-type ]
+        (root-target —↠[ χsᴿ ] result-target)
+        × MultiWorldEvolution
+            {W = γ} {W′ = γ′} (keep ∷ []) χsᴿ
+        × (γ′ CTI.⊢² root-result ⊑ result-target ∶ final-related)
+  contextual-sim-source-reveal-context
+      {Xᴸ = Xᴸ}
+      no-open root-related representation-type c⊢ present mark free
+      represented head-related
+      result-type-related path ready source-value source-root-step rebuild
+      with contextual-catchup no-open root-related head-related
+        (extend-focus path
+          (focus-source-reveal-only c⊢ present mark free represented
+            head-related result-type-related))
+        (extend-path-target-ready path
+          (focus-source-reveal-only c⊢ present mark free represented
+            head-related result-type-related)
+          ready _)
+        (source-value ↓ seal)
+  contextual-sim-source-reveal-context
+      {Xᴸ = Xᴸ}
+      no-open root-related representation-type c⊢ present mark free
+      represented head-related
+      result-type-related path ready source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+      with split-target-extended-path path-evolution₁
+  contextual-sim-source-reveal-context
+      {Xᴸ = Xᴸ}
+      no-open root-related representation-type c⊢ present mark free
+      represented head-related
+      result-type-related path ready source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack reveal-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+      with source-reveal-only-edge-view
+        {source-reveal = Conv.unseal Xᴸ representation-type} edge₁
+        (sym (TargetEdgeEvolution.same-source-frame edge-evolution₁))
+  contextual-sim-source-reveal-context
+      {Xᴸ = Xᴸ}
+      no-open root-related representation-type c⊢ present mark free
+      represented head-related
+      result-type-related path ready source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack reveal-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | source-reveal-only-edge (Conv.⊢↑-unseal member₁)
+        present₁ mark₁ free₁ represented₁
+        head-related₂ result-type-related₁ refl head-focus-eq₁
+      with cong sourceTerm head-focus-eq₁
+         | cong targetTerm head-focus-eq₁
+  contextual-sim-source-reveal-context
+      {Xᴸ = Xᴸ}
+      no-open root-related representation-type c⊢ present mark free
+      represented head-related
+      result-type-related path ready source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack reveal-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | source-reveal-only-edge (Conv.⊢↑-unseal member₁)
+        present₁ mark₁ free₁ represented₁
+        head-related₂ result-type-related₁ refl head-focus-eq₁
+    | refl | refl
+      with contextual-sim-source-reveal-values
+        {Xᴸ = Xᴸ}
+        (multi-no-open-frames evolution₁ no-open) root-related₁
+        (Conv.⊢↑-unseal member₁)
+        present₁ mark₁ free₁ represented₁ head-related₂
+        result-type-related₁ prefix₁ (target-path-ready prefix-evolution₁)
+        source-value target-head-value₁ source-root-step
+        (transport-rebuild prefix-evolution₁ rebuild)
+  contextual-sim-source-reveal-context
+      no-open root-related representation-type c⊢ present mark free
+      represented head-related
+      result-type-related path ready source-value source-root-step rebuild
+    | Δᴿ₁ , Σᴿ₁ , χsᴿ₁ , root-target₁ , target-head₁ , γ₁ , γᶠ₁ ,
+      root-type₁ , head-type₁ , root-steps₁ , target-head-value₁ ,
+      evolution₁ , root-related₁ , head-related₁ , head-path₁ ,
+      path-evolution₁
+    | evolved-extended-path {middle′ = pack reveal-related₁}
+        prefix₁ edge₁ refl prefix-evolution₁ edge-evolution₁
+    | source-reveal-only-edge (Conv.⊢↑-unseal member₁)
+        present₁ mark₁ free₁ represented₁
+        head-related₂ result-type-related₁ refl head-focus-eq₁
+    | refl | refl
+    | γ₂ , result-type₂ , values-evolution , result-relation =
+    let
+      target-type-eq = applyTys-++ χsᴿ₁ [] _
+      normalized-result =
+        subst
+          (λ T →
+            Σ[ q ∈ _ ⊑ᵀ⟨ γ₂ ⟩ T ]
+              γ₂ CTI.⊢² _ ⊑ root-target₁ ∶ q)
+          target-type-eq (result-type₂ , result-relation)
+      final-type = proj₁ normalized-result
+      final-related = proj₂ normalized-result
+    in
+      Δᴿ₁ , Σᴿ₁ , χsᴿ₁ ++χ [] , root-target₁ , γ₂ , final-type ,
+      (targetTerm (pack root-related)
+         —↠+[ χsᴿ₁ ]⟨ root-steps₁ ⟩
+       root-target₁ ∎[]) ,
+      composeMultiWorldEvolution evolution₁ values-evolution ,
+      final-related
+
   contextual-sim : ContextualSimᵀ
   contextual-sim no-open root-related
       (CTI.x⊑x² source∋ target∋) path ready (pure-step ()) rebuild
@@ -1801,14 +1979,26 @@ module _
         (focus-source-reveal-identity c⊢ absent related q) ready _)
       source-step (extend-rebuild rebuild (rebuild-edge refl))
   contextual-sim no-open root-related
-      (CTI.reveal⊑-identity c⊢ absent related q) path ready
-      (pure-step (id-reveal source-value)) rebuild = {! !}
+      relation@(CTI.reveal⊑-identity c⊢ absent related q) path ready
+      (pure-step (id-reveal source-value)) rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (subst (λ r → _ CTI.⊢² _ ⊑ _ ∶ r)
+        (PI.⊑-unique _ q) related)
+      rebuild
   contextual-sim no-open root-related
-      (CTI.reveal⊑-identity c⊢ absent related q) path ready
-      (pure-step (conceal-reveal source-value)) rebuild = {! !}
+      (CTI.reveal⊑-identity (Conv.⊢↑-unseal member) () related q)
+      path ready (pure-step (conceal-reveal source-value)) rebuild
   contextual-sim no-open root-related
-      (CTI.reveal⊑-identity c⊢ absent related q) path ready
-      (pure-step blame-reveal) rebuild = {! !}
+      relation@(CTI.reveal⊑-identity c⊢ absent related q) path ready
+      (pure-step blame-reveal) rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (CTI.blame⊑² (target-typing relation) q) rebuild
 
   contextual-sim no-open root-related
       (CTI.reveal⊑-only² c⊢ present mark free represented related q)
@@ -1823,14 +2013,47 @@ module _
         ready _)
       source-step (extend-rebuild rebuild (rebuild-edge refl))
   contextual-sim no-open root-related
-      (CTI.reveal⊑-only² c⊢ present mark free represented related q)
-      path ready (pure-step (id-reveal source-value)) rebuild = {! !}
+      (CTI.reveal⊑-only² (Conv.⊢↑-id-var member not-equal)
+        present mark free represented related q)
+      path ready (pure-step (id-reveal source-value)) rebuild =
+    ⊥-elim (present refl)
   contextual-sim no-open root-related
-      (CTI.reveal⊑-only² c⊢ present mark free represented related q)
-      path ready (pure-step (conceal-reveal source-value)) rebuild = {! !}
+      (CTI.reveal⊑-only² (Conv.⊢↑-id-base member)
+        present mark free represented related q)
+      path ready (pure-step (id-reveal source-value)) rebuild =
+    ⊥-elim (present refl)
   contextual-sim no-open root-related
-      (CTI.reveal⊑-only² c⊢ present mark free represented related q)
-      path ready (pure-step blame-reveal) rebuild = {! !}
+      (CTI.reveal⊑-only² (Conv.⊢↑-id-star member)
+        present mark free represented related q)
+      path ready (pure-step (id-reveal source-value)) rebuild =
+    ⊥-elim (present refl)
+
+  contextual-sim no-open
+      relation@(CTI.reveal⊑-only² c⊢ present mark free represented
+        related q)
+      .relation focus-here tt
+      root@(pure-step (conceal-reveal source-value))
+      (rebuild-here refl) =
+    sim-source-reveal-closing no-open c⊢ present mark free represented
+      related q (source-value ↓ seal) root
+  contextual-sim no-open root-related
+      (CTI.reveal⊑-only² {Xᴸ = Xᴸ} {Rᴸ = Rᴸ}
+        (Conv.⊢↑-unseal member) present mark free represented related q)
+      path@(focus-there edge tail) ready
+      root@(pure-step (conceal-reveal source-value)) rebuild =
+    contextual-sim-source-reveal-context no-open root-related Rᴸ
+      (Conv.⊢↑-unseal member) present mark free represented related q
+      path ready source-value root rebuild
+
+  contextual-sim no-open root-related
+      relation@(CTI.reveal⊑-only² c⊢ present mark free represented
+        related q)
+      path ready (pure-step blame-reveal) rebuild =
+    _ , _ , [] , _ , _ , _ ,
+    (targetTerm (pack root-related) ∎[]) ,
+    append-left-keep evolutions-refl ,
+    replay-context-keep root-related relation path
+      (CTI.blame⊑² (target-typing relation) q) rebuild
 
   contextual-sim no-open root-related
       (CTI.conceal⊑-identity c⊢ absent related q) path ready

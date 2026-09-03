@@ -95,6 +95,7 @@ import proof.DGG.SourcePathBlameLemma
 import proof.DGG.ContextualCatchupToLessPreciseProof
 import proof.DGG.ContextualSimBackPrimitiveValuesDef
 import proof.DGG.ContextualSimBackPairedAllValuesDef
+import proof.DGG.ContextualSimBackPairedFunValuesDef
 import proof.DGG.DynamicGradualGuaranteeProof
 
 ------------------------------------------------------------------------

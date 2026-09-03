@@ -1007,6 +1007,76 @@ source-cast-edge-view
 source-cast-edge-view
     (focus-target-conceal-rebase c′⊢ rebase related q) ()
 
+data SourceRevealOnlyEdgeView {Cᴸ Cᴿ : Ctx}
+    (outer inner : RelatedConfiguration Cᴸ Cᴿ)
+    {A B : Ty (Δᵉ Cᴸ)}
+    (source-reveal : Conv↑ (Δᵉ Cᴸ) A B) : Set₁ where
+
+  source-reveal-only-edge : ∀
+      {γ : Cᴸ ⊑ᶜ Cᴿ}
+      {M : Term (Δᵉ Cᴸ)} {M′ : Term (Δᵉ Cᴿ)}
+      {target-type : Ty (Δᵉ Cᴿ)}
+      {Xᴸ : TyVar (Δᵉ Cᴸ)} {Rᴸ : Ty (Δᵉ Cᴸ)}
+      {inner-related : A ⊑ᵀ⟨ γ ⟩ target-type}
+      (c⊢ : Σᵉ Cᴸ ⊢↑[ Xᴸ ⦂ Rᴸ ] source-reveal)
+      (present : revealGeneratorPosition c⊢ ≢ generator-absent)
+      (mark : marksᶜ γ (toRenameⁱ (ηᴸᶜ γ) Xᴸ) ≡ X⊑★)
+      (free : ∀ Xᴿ → toRenameⁱ (ηᴿᶜ γ) Xᴿ
+        ≢ toRenameⁱ (ηᴸᶜ γ) Xᴸ)
+      (represented : Rᴸ ⊑ᵀ⟨ γ ⟩ ★)
+      (related : γ CTI.⊢² M ⊑ M′ ∶ inner-related)
+      (result-related : B ⊑ᵀ⟨ γ ⟩ target-type)
+    → outer ≡ pack
+        (CTI.reveal⊑-only² c⊢ present mark free represented
+          related result-related)
+    → inner ≡ pack related
+    → SourceRevealOnlyEdgeView outer inner source-reveal
+
+source-reveal-only-edge-view : ∀ {Cᴸ Cᴿ}
+    {outer inner : RelatedConfiguration Cᴸ Cᴿ}
+    {A B : Ty (Δᵉ Cᴸ)}
+    {source-reveal : Conv↑ (Δᵉ Cᴸ) A B}
+    (edge : outer ↘ᶜ inner)
+  → sourceFrame edge ≡ source-reveal-onlyᶠ source-reveal
+  → SourceRevealOnlyEdgeView outer inner source-reveal
+source-reveal-only-edge-view (focus-·₁ function-rel argument-rel) ()
+source-reveal-only-edge-view
+    (focus-·₂ function-rel argument-rel source-value) ()
+source-reveal-only-edge-view (focus-⊕₁ left-rel right-rel r) ()
+source-reveal-only-edge-view
+    (focus-⊕₂ left-rel right-rel r source-value) ()
+source-reveal-only-edge-view (focus-•-paired p∀ related q r) ()
+source-reveal-only-edge-view (focus-•-source p∀ related q r) ()
+source-reveal-only-edge-view (focus-cast-paired c c′ related q) ()
+source-reveal-only-edge-view (focus-cast-target c′ related q) ()
+source-reveal-only-edge-view (focus-cast-source c related q) ()
+source-reveal-only-edge-view
+    (focus-target-reveal-identity c′⊢ absent related q) ()
+source-reveal-only-edge-view
+    (focus-target-conceal-identity c′⊢ absent related q) ()
+source-reveal-only-edge-view
+    (focus-source-reveal-identity c⊢ absent related q) ()
+source-reveal-only-edge-view
+    (focus-source-conceal-identity c⊢ absent related q) ()
+source-reveal-only-edge-view
+    (focus-source-reveal-only
+      c⊢ present mark free represented related q) refl =
+  source-reveal-only-edge c⊢ present mark free represented related q
+    refl refl
+source-reveal-only-edge-view
+    (focus-source-conceal-only
+      c⊢ present mark free represented related q) ()
+source-reveal-only-edge-view
+    (focus-reveal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+source-reveal-only-edge-view
+    (focus-conceal-paired
+      c⊢ c′⊢ positions aligned represented related q) ()
+source-reveal-only-edge-view
+    (focus-target-reveal-rebase c′⊢ rebase related q) ()
+source-reveal-only-edge-view
+    (focus-target-conceal-rebase c′⊢ rebase related q) ()
+
 data TargetPathEvolution {Cᴸ Cᴿ Cᴿ′ : Ctx} :
     {outer focus : RelatedConfiguration Cᴸ Cᴿ}
     {outer′ focus′ : RelatedConfiguration Cᴸ Cᴿ′}

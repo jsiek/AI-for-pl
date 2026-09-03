@@ -31,85 +31,7 @@ open import proof.DGG.Catchup.StructuralValueInstantiationStateDef using
   ( InstantiationSpine; []ⁱ; _▻ⁱ_; type-transport-frame
   ; name-type-app-frame; cast-frame; reveal-frame; conceal-frame
   )
-
-
--- This is deliberately separate from SpineNamesTargetOnlyᶜ.  Name freshness
--- describes allocation provenance; this judgment describes the semantic
--- boundary crossed by each pending frame.  Its indices mention only data
--- constructors and variables.  In particular, applyInstantiationFrame does
--- not occur in an index.
-data SemanticInstantiationSpineᶜ
-    {Γᴸ Γᴿ : Ctx}
-    {M : Term (Δᵉ Γᴸ)} {A : Ty (Δᵉ Γᴸ)} :
-    ∀ {γ : Γᴸ ⊑ᶜ Γᴿ}
-      {N : Term (Δᵉ Γᴿ)} {B : Ty (Δᵉ Γᴿ)}
-      {p : A ⊑ᵀ⟨ γ ⟩ B}
-    → γ ⊢² M ⊑ N ∶ p
-    → {E : Ty (Δᵉ Γᴿ)}
-    → InstantiationSpine B E
-    → Set where
-
-  semantic-[] : ∀ {γ : Γᴸ ⊑ᶜ Γᴿ}
-      {N : Term (Δᵉ Γᴿ)} {B : Ty (Δᵉ Γᴿ)}
-      {p : A ⊑ᵀ⟨ γ ⟩ B}
-      {rel : γ ⊢² M ⊑ N ∶ p}
-    → SemanticInstantiationSpineᶜ rel []ⁱ
-
-  semantic-type-transport : ∀ {γ : Γᴸ ⊑ᶜ Γᴿ}
-      {N : Term (Δᵉ Γᴿ)} {B C E : Ty (Δᵉ Γᴿ)}
-      {p : A ⊑ᵀ⟨ γ ⟩ B} {q : A ⊑ᵀ⟨ γ ⟩ C}
-      {rel : γ ⊢² M ⊑ N ∶ p} {eq : B ≡ C}
-      {next : γ ⊢² M ⊑ N ∶ q}
-      {spine : InstantiationSpine C E}
-    → SemanticInstantiationSpineᶜ next spine
-    → SemanticInstantiationSpineᶜ rel
-        (type-transport-frame eq ▻ⁱ spine)
-
-  semantic-name-type-app : ∀ {γ : Γᴸ ⊑ᶜ Γᴿ}
-      {N : Term (Δᵉ Γᴿ)} {B C E : Ty (Δᵉ Γᴿ)}
-      {p : A ⊑ᵀ⟨ γ ⟩ B} {q : A ⊑ᵀ⟨ γ ⟩ C}
-      {D : Ty (Nat.suc (Δᵉ Γᴿ))} {X : TyVar (Δᵉ Γᴿ)}
-      {rel : γ ⊢² M ⊑ N ∶ p}
-      {eqB : B ≡ `∀ D} {eqC : C ≡ D [ ＇ X ]ᵗ}
-      {next : γ ⊢² M ⊑ N ⦂∀ D [ ＇ X ] ∶ q}
-      {spine : InstantiationSpine C E}
-    → SemanticInstantiationSpineᶜ next spine
-    → SemanticInstantiationSpineᶜ rel
-        (name-type-app-frame D X eqB eqC ▻ⁱ spine)
-
-  semantic-cast : ∀ {γ : Γᴸ ⊑ᶜ Γᴿ}
-      {N : Term (Δᵉ Γᴿ)} {B C E : Ty (Δᵉ Γᴿ)}
-      {p : A ⊑ᵀ⟨ γ ⟩ B} {q : A ⊑ᵀ⟨ γ ⟩ C}
-      {ν : Env∼ (Δᵉ Γᴿ)} {c : ν ⊢ B ∼ C}
-      {rel : γ ⊢² M ⊑ N ∶ p}
-      {next : γ ⊢² M ⊑ N ⟨ c ⟩ ∶ q}
-      {spine : InstantiationSpine C E}
-    → SemanticInstantiationSpineᶜ next spine
-    → SemanticInstantiationSpineᶜ rel (cast-frame c ▻ⁱ spine)
-
-  semantic-reveal : ∀ {γ γ′ : Γᴸ ⊑ᶜ Γᴿ}
-      {N : Term (Δᵉ Γᴿ)} {B C E : Ty (Δᵉ Γᴿ)}
-      {p : A ⊑ᵀ⟨ γ ⟩ B} {q : A ⊑ᵀ⟨ γ′ ⟩ C}
-      {X : TyVar (Δᵉ Γᴿ)} {R : Ty (Δᵉ Γᴿ)}
-      {c : Conv.Conv↑ (Δᵉ Γᴿ) B C}
-      {rel : γ ⊢² M ⊑ N ∶ p}
-    → (c⊢ : Σᵉ Γᴿ Conv.⊢↑[ X ⦂ R ] c)
-    → {next : γ′ ⊢² M ⊑ N ↑ c ∶ q}
-      {spine : InstantiationSpine C E}
-    → SemanticInstantiationSpineᶜ next spine
-    → SemanticInstantiationSpineᶜ rel (reveal-frame c ▻ⁱ spine)
-
-  semantic-conceal : ∀ {γ γ′ : Γᴸ ⊑ᶜ Γᴿ}
-      {N : Term (Δᵉ Γᴿ)} {B C E : Ty (Δᵉ Γᴿ)}
-      {p : A ⊑ᵀ⟨ γ ⟩ B} {q : A ⊑ᵀ⟨ γ′ ⟩ C}
-      {X : TyVar (Δᵉ Γᴿ)} {R : Ty (Δᵉ Γᴿ)}
-      {c : Conv.Conv↓ (Δᵉ Γᴿ) B C}
-      {rel : γ ⊢² M ⊑ N ∶ p}
-    → (c⊢ : Σᵉ Γᴿ Conv.⊢↓[ X ⦂ R ] c)
-    → {next : γ′ ⊢² M ⊑ N ↓ c ∶ q}
-      {spine : InstantiationSpine C E}
-    → SemanticInstantiationSpineᶜ next spine
-    → SemanticInstantiationSpineᶜ rel (conceal-frame c ▻ⁱ spine)
+open import proof.DGG.Catchup.SemanticInstantiationSpineDef
 
 
 -- Eliminating one conceal node exposes exactly the facts the pending-frame
@@ -218,9 +140,8 @@ module UniversalConcealProbe {Γᴸ Γᴿ : Ctx}
 -- target type application.  CTI has no target-only type-application rule, so
 -- there is no boundary derivation with which to seed semantic-name-type-app.
 -- One can seed the certificate only after the AllValueView branch exposes and
--- reduces that application.  Constructing the later residual reveal/cast
--- boundaries from the final q additionally needs the separate induction on
--- the instantiation consistency; the public inputs do not contain them.
+-- reduces that application.  The resulting post-beta boundary is now the
+-- strict TargetLambdaPostBetaSemanticSpineᵀ interface.
 --
 -- At the paired public beta-inst root, seeding is impossible even after such a
 -- target-only preprocessing step: retaining the source inert cast would need
@@ -258,13 +179,10 @@ module UniversalConcealProbe {Γᴸ Γᴿ : Ctx}
 --   type transport
 --   empty
 --
--- The direct private theorem must take the exact post-beta-Lambda body CTI
--- relation, the final type-imprecision witness at the twice-extended target
--- endpoint, and c′ : instᵐ ν′ ⊢ B ∼ ⇑ᵗ B′.  It returns
--- SemanticInstantiationSpineᶜ for the spine above.  Its proof is an induction
--- on c′: the raw final witness does not determine the intermediate witnesses
--- at the two reveals or at ↑ᶜ (close-instᶜ c′).  This is separate from the
--- already-visible strict-Lambda pre-induction obligation, which transports
--- the original liftBoth body relation into the post-beta-Lambda liftLeft/
--- two-target-allocation world.  Neither obligation should be hidden as an
--- arbitrary premise of the general spine worker.
+-- TargetLambdaPostBetaSemanticSpineLemma discharges this exact boundary
+-- without induction on c′.  The two intermediate reveal witnesses follow by
+-- substitution compatibility from the deepest body witness; c′ only indexes
+-- the closing cast.  The remaining independent strict-Lambda obligation is
+-- to transport the original liftBoth body relation into the post-beta
+-- liftLeft/two-target-allocation beta-premise world.  That transport should
+-- not be hidden as an arbitrary premise of the general spine worker.

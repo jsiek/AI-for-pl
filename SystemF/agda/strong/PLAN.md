@@ -1,6 +1,6 @@
 # Strong System F — handoff plan (finishing preservation & progress)
 
-Status as of the `strong-tightened-conceal-marker` branch. This document is the
+Status as of the `strong-preservation` branch (PR #189), 2026-09-03. This document is the
 authoritative handoff: it captures the design that is now settled, exactly what
 compiles, and the ordered chain of work to close **preservation** and then
 **progress**.
@@ -20,21 +20,30 @@ Design invariant (user's dual semantics):
 
 ## 1. Current state (files under `SystemF/agda/strong/`)
 
+**Method (the rhythm of this development).** Reduction rules are added ONE AT A
+TIME. For each rule: (i) add the constructor to `_-→_`; (ii) a worked example — a
+well-typed redex, the step, and the well-typed contractum at the same type;
+(iii) its `preservation` case; (iv) its `progress` case. The goal is a rule set
+rich enough that `progress` goes through (§5). The old design's `Reduction.agda`
+rule shapes are guidance only and may change considerably.
+
 | file | role | status |
 |---|---|---|
-| `Boundary.agda` | boundary syntax, projections, scope machinery, typing (`_∣_⊢_⦂_`, `env`) | ✅ compiles, 0 holes |
-| `BReduction.agda` | reduction `_-→_`, values, type-var renaming/subst through boundaries, `⊢renameᵀ`, `preservation` | ⚠️ 3 holes |
-| `ScratchGamma.agda` | evidence: the fixed conceal-rep-references-reveal bug | ✅ |
-| `ScratchBlocked.agda` | evidence: the blocked-var aliasing that motivates the scope premise | ✅ |
-| `notes/Scratch7/8/9.agda` | machine-checked proof that the OLD per-variable-wrapper design is unsound (Example 8) | ✅ keep as evidence |
-| shared substrate + OLD discarded design | see **§1b** for the precise old/new/shared file map | — |
+| `Boundary.agda` | boundary syntax, projections, scope machinery, typing (`_∣_⊢_⦂_`, `env`) | ✅ 0 holes |
+| `BReduction.agda` | values, `_-→_` (β-Λ, β-ƛ, ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫), type-var renaming through boundaries, `⊢renameᵀ` | ✅ 0 holes |
+| `ScopeBridge.agda` | `⊢ty-wf`, `wf→Scoped`, `env-ext-wf`, `scB-bridge` (§3b) | ✅ 0 holes |
+| `TermSubst.agda` | `⊢renameᵀᵐ`, `⊢substᵀᵐ`, `⊢[]ᵐ`, `preserve-β-ƛ` (§3c) | ✅ 0 holes |
+| `BPreservation.agda` | `preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A`, all current rules | ✅ 0 holes |
+| `Canonical.agda` | canonical-form statements `canon-ℕ/⇒/∀`, `canon-var`, `Value-renameᵀ` (§5) | ⚠️ holes (REALLMS) |
+| `Progress.agda` | `progress`, incremental (§5) | 🚧 in flight |
+| `All.agda` | aggregate driver — now points at the NEW design | ✅ |
+| `notes/BoundaryRules.md`, `notes/BoundaryRulesProbe.agda` | §4 rule design memo + machine-checked probe (R1/R2, dual, `bad`) | ✅ probe checks |
+| `ScratchGamma.agda`, `ScratchBlocked.agda` | evidence for the two design findings (§2) | ✅ |
+| `notes/Scratch7/8/9.agda` | machine-checked unsoundness of the OLD design (Example 8) | ✅ keep |
 
-`BReduction.agda` holes (all in the renaming/substitution path):
-1. `scB` (line ~306) — `β-Λ`'s new `Scoped` obligation.
-2. `⊢renameᵀ … (env …)` (line ~279) — the `env` case of type-variable renaming.
-3. `preservation … (β-ƛ …)` (line ~313) — needs `⊢substᵀᵐ`.
-
-`β-Λ` preservation is otherwise proven; `β-ƛ` and `⊢renameᵀ` are the open work.
+**Preservation is closed** for the current relation (`make agda` passes under
+`--safe`). `make check` still fails at `postulate-check` only because the OLD
+design's `Preservation.agda` has holes — pending the cleanup decision in §7.
 
 ## 1b. OLD design (DISCARDED) vs NEW design — read this first
 
@@ -89,54 +98,70 @@ boundary — do not copy them verbatim.
 1. **FIXED** — old `γᵇ = extsⁿ(revs)(γᶜ)` shifted conceal reps by `sucᵛ`, disagreeing with `bwf↓`/`renᴮ` when a rep mentions a reveal var. Now `prepId`/`γcnc`, no shift.
 2. **Blocked-var aliasing** — `γᵇ` aliased a blocked var onto a kept var (both → same slot). Resolved by the scope premise (user chose this over a `delAt`-style interior, which would reopen Example 8).
 
-## 3. Finish PRESERVATION (ordered)
+## 3. PRESERVATION — DONE (kept as a record of the lemma architecture)
 
-### 3a. Close `⊢renameᵀ`'s `env` case (the crux)
-`⊢renameᵀ : (∀{X} → Δ ∋tv X → Δ' ∋tv ρ X) → Mono ρ → Δ ∣ Γₜ ⊢ M ⦂ A → Δ' ∣ map (renameᵗ ρ) Γₜ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A`.
-The **`Mono ρ` premise is required**, not optional: boundary renaming depends on index order through `cmax`/`restrictRen`, so a merely lookup-preserving (non-monotone) `ρ` is a genuine counterexample. `Mono` is preserved by `extᵗ` (`Mono-extᵗ`, done) and must also be shown for `intRen ρ Θ` in the `env` case (via `restrictRen`/`liftⁿ` preserving `Mono`).
-The `env` case mirrors the already-proven `C-ext`. Needed lemmas (all in `BReduction.agda`; `C-ext`, `ρᵇ-comm`, `h-restrict`, `↓-∋`/`↓-∋⁻`, `∸-strict`, `Mono` already exist):
+3a `⊢renameᵀ`'s `env` case: closed. The lemma chain is in `BReduction.agda`:
+`Mono→inj`, `Mono-intRen`, `revs-ren`, `⊔-mono-comm`, `cmax-ren` (a `CmaxV` view),
+`liftⁿ-lo/hi`, `prepId-lo/hi`, `split`, the `baseS`/`slotAt` accessibility bridge
+(both directions), `γcnc-comm` / `γᵇ-comm-ok` / `C-int` (via `subst-cong-sc`),
+`h-int` (`dropN-↓` is NOT definitional for abstract Δ), `bwf-ren`, `sc-ren`.
+Two corrections to the original plan: conceal reps rename by `intRen ρ Θ`, not
+`deepRen`; the concealed case of `γcnc-comm` needs `Mono→inj`.
 
-1. `revs-ren`: `revs (renᴮ ρ ir Θ) ≡ revs Θ` (trivial, `renᴮ` preserves reveal count).
-2. `⊔`-monotone-commute (`ρ (a ⊔ b) ≡ ρ a ⊔ ρ b` for `Mono ρ`) → `cmax-ren`: `cmax (renᴮ ρ ir Θ)` relates to `ρ (cmax Θ ∸ 1)` — needed so the interior drop-count aligns under renaming.
-3. `liftⁿ-lo` (`X < r → liftⁿ r ρ X ≡ X`) and `liftⁿ-hi` (`liftⁿ r ρ (r + i) ≡ r + ρ i`).
-4. `prepId-lo` (`X < r → prepId r σ X ≡ ` X`) and `prepId-hi` (`prepId r σ (r + i) ≡ σ i`), via `m+n∸m≡n` / `m+n≮m`. These encapsulate the `<?` reasoning once.
-5. `split : ∀ r X → (X < r) ⊎ (∃ i, X ≡ r + i)` — a view to case on reveal-prefix vs deep.
-6. `γcnc-comm` (base content): `∀ i → γcnc r m' Θ' (ρ i) ≡ renameᵗ (deepRen m ρ) (γcnc r m Θ i)` — **holds at concealed and kept `i`** (fails at blocked, which is fine — see next). By induction on `Θ`; concealed `i` gives the (renamed) rep on both sides, kept `i` uses `cmax-ren` + `restrictRen`.
-7. `γᵇ-comm-ok`: `∀ X → baseS Θ Δ ∋ok X → γᵇ Θ' (liftⁿ (revs Θ) ρ X) ≡ renameᵗ (intRen ρ Θ) (γᵇ Θ X)`. Assemble from 3–6 via `split`. Needs a bridge: `baseS Θ Δ ∋ok X` (with `X = revs + i`) implies `i` is concealed or kept — i.e. `γcnc-comm` applies. Prove `slotAt`/`baseS` bridge lemmas (`∋ok` at a `Γ` slot ⇒ `cmax ≤ i ∨ isConc i Θ`).
-8. `C-int` (mirror `C-ext`, but use `subst-cong-sc sc (γᵇ-comm-ok …)` in the middle step so only `ok` slots are needed):
-   `substᵗ (γᵇ Θ') (renameᵗ (liftⁿ (revs Θ) ρ) B₀) ≡ renameᵗ (intRen ρ Θ) (substᵗ (γᵇ Θ) B₀)`, given `Scoped (baseS Θ Δ) B₀`.
-9. `bwf-ren`: `Δ ∣ intOf Δ Θ ⊢ᵇ Θ → Δ' ∣ intOf Δ' (renᴮ …) ⊢ᵇ (renᴮ …)` (uses `h`, `h-int` = the interior-lookup lemma built from `h-restrict` + `cmax-ren`, and `wf-ren`).
-10. `sc-ren`: `Scoped (baseS Θ Δ) B₀ → Scoped (baseS (renᴮ …) Δ') (renameᵗ (liftⁿ …) B₀)` — the scope premise transports under renaming (renaming is index-preserving on `ok` slots).
-11. Wire the `env` case: `env (bwf-ren …) (sc-ren …) (⊢renameᵀ h-int ⊢M …)`, retyping the two faces by `C-int`/`C-ext`.
+3b `scB`: closed by `ScopeBridge.scB-bridge` (`⊢ty-wf` needs `Δ ⊢* Γₜ`, discharged
+by `⊢[]` since the Λ body is at `⤊ [] = []`). `env`'s `Scoped` premise is what
+makes the external face's well-formedness derivable (`env-ext-wf`).
 
-Note: the interior renaming is now uniform — `intRen ρ Θ = liftⁿ (revs Θ) (deepRen (cmax Θ) ρ)` with a **single** restriction (`deepRen`), not the old progressive per-conceal `restrictRen`.
+3c `β-ƛ`: closed by `TermSubst.preserve-β-ƛ` (`⊢substᵀᵐ`'s Λ case is `⊢renameᵀ`
+at `suc` with `Mono-suc`; `⤊ Γ = map ⇑ᵗ Γ` is definitional).
 
-### 3b. Close `β-Λ`'s `scB`
-Needs a **context-wf ⇒ typing ⇒ `Scoped`** bridge, specialised to the all-`ok` case (`β-Λ`'s boundary `rvl A ∷ []` has `cmax = 0`, so `baseS` is all `ok`). Concretely:
-- `wf→Scoped-allOk : (Δ' ⊢ B) → (baseS Θ Δ is all ok, length = length Δ') → Scoped (baseS Θ Δ) B` via `∋tv → ∋ok`.
-- a **context-wf ⇒ typing ⇒ type-wf** lemma `⊢ty-wf : CtxWf Γₜ Δ → Δ ∣ Γₜ ⊢ M ⦂ A → Δ ⊢ A` (needs a `CtxWf` invariant because `⊢`\` pulls a type from the term context). `β-Λ` uses it at the empty term context `⤊[] = []`. The `env` case of `⊢ty-wf` needs `substᵗ (ρᵇ Θ) B₀` wf — build a `subst-preserves-wf` for `ρᵇ`.
+## 4. Complete the REDUCTION relation (one rule at a time — see §1 Method)
 
-### 3c. `⊢substᵀᵐ` → `β-ƛ`
-`⊢substᵀᵐ : (∀ {x A} → Γₜ ∋ x ⦂ A → Δ ∣ Γₜ' ⊢ σ x ⦂ A) → Δ ∣ Γₜ ⊢ N ⦂ B → Δ ∣ Γₜ' ⊢ substᵀᵐ σ N ⦂ B`. `substᵀᵐ` is the identity on wrappers, so the only nontrivial cases are `ƛ`/`·`/`Λ`; the `Λ` case uses `⊢renameᵀ` (3a) to push `σ` under the type binder. Then `β-ƛ` preservation is `⊢substᵀᵐ (σ from ⊢W) ⊢N`.
+Done: `β-Λ`, `β-ƛ`, and the congruences `ξ-·-l`, `ξ-·-r` (CBV, left to right),
+`ξ-·[]`, `ξ-Λ` (Λ V is a value only when V is), `ξ-⟪⟫` (reduce under a boundary;
+its preservation case is why `preservation` is generalised over Δ).
 
-## 4. Complete the REDUCTION relation
+Boundary-manipulation rules — proposed in `notes/BoundaryRules.md` (all typing
+machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
 
-`_-→_` currently has only `β-Λ` and `β-ƛ`. Add, **one rule at a time**, each with a
-typed redex≈contractum example then its preservation case (the established rhythm):
+- **R1 `β-⟪⟫·[]`** (in flight): a wrapped value meets a type application. Float
+  the `·[]` inside and RECORD the argument as a new reveal, shifting conceal reps
+  (`shiftReps`, reps live over the whole interior which grows by one `abst`):
+  `(V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ] -→ ((⇑ᵀ V) ·[ B′ , ` 0 ]) ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`.
+  Face laws: `γᵇ-shift` (every slot), `ρᵇ-shift-ty`, `bwf-shift`, `baseS-shift`.
+  Never pushes `A` inward — this is how Example 8 is avoided by construction.
+  The direct-combine variant R1′ `(Λ V) ⟪ Θ , `∀ B₀ ⟫ ·[ B , A ] -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`
+  is tighter but partial (stuck on nested wrappers) and would force a merge rule.
+- **R2 `β-⟪⟫·`** (next): a wrapped value meets an application; the argument moves
+  inside through the DUAL boundary: `(V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→ (V · (W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫`.
+  An exact dual exists over all-`abst` exteriors (everything reachable from a
+  closed program); over `rvld` exteriors it does not (`no-dual-Γ₃`). Blocked slots
+  get a dummy rep, sound by the scope premise — R2's preservation needs
+  `subst-cong-sc`.
+- Drop / Cancel / merge: NOT needed for progress with R1/R2 in float-inside form;
+  Cancel is sound exactly when the conceal rep equals the enclosing reveal's rep.
 
-- **ξ (congruence)** rules: `ξ-·-l`, `ξ-·-r`, `ξ-·[]`, `ξ-⟪⟫` (reduce under a boundary), `ξ-Λ`. Preservation cases are routine once 3a–3c land.
-- **Boundary-manipulation** (the interesting rules — combined/simultaneous boundary):
-  - a wrapped value meeting a **type application** combines into one boundary — the motivating `(ΛZ.V) ↓[X:=A] [B] --> V ⟪ ↑Z:=B , ↓X:=A ⟫` (reveal + conceal coexist on one boundary; NO separate `Commute` rule).
-  - a wrapped value meeting an **application** / **another boundary**: push/merge (`Cancel` a reveal against a matching conceal; `Drop` an empty boundary).
-  - the dual builder `dualᵇ` for reveal↔conceal was sketched in earlier notes.
-  These need the boundary-combination semantics finalised; keep them consistent with the `intOf`/`γᵇ`/`ρᵇ` projections and the scope premise.
+**Open design decision (memo §4, Jeremy):** `env` cannot relate a `cnc X A` rep
+to the rep of the enclosing reveal of `X`, so
+`bad = (($ 7) ⟪ cnc 0 `ℕ ∷ [] , ` 0 ⟫) ⟪ rvl (`∀ (` 0 ⇒ ` 0)) ∷ [] , ` 0 ⟫`
+is a closed well-typed value of type `∀(Z→Z)` that no type-preserving rule can
+eliminate. Routes: (1) a reachability companion predicate — against the
+grounded-invariants law; (2) ground it: a reveal puts `rvld A` (not `abst`) in
+`intOf` and `bwf↓` demands `Δ ∋ X := A` — touches §2's `intOf`, with a wrinkle
+when the reveal rep names a dropped slot; (3) prove progress only for the image
+of source programs. `Progress.agda` keeps this obstruction as a labelled hole.
 
-## 5. PROGRESS
+## 5. PROGRESS (in flight, incremental)
 
-Not started. Standard shape:
-- `Progress : [] ∣ [] ⊢ M ⦂ A → Value M ⊎ ∃ M′, M -→ M′`.
-- **Canonical forms** over `Value` including `V-⟪⟫` (a wrapped value): a value of `∀`-type is `Λ`; of `⇒`-type is `ƛ`; and characterise wrapped values so the boundary-manipulation rules fire. The `env` typing rule plus the `Value` grammar (`V-$`, `V-G`, `V-⟪⟫`) drive the case analysis.
-- Each `_-→_` rule must have a matching progress case; boundary-manipulation rules ensure wrapped values at elimination positions always step.
+`progress : Δ ∣ [] ⊢ M ⦂ A → Value M ⊎ (Σ Term λ M′ → M -→ M′)` — generalised over
+Δ (ξ-⟪⟫ recurses into `intOf Δ Θ`), term context always `[]`.
+- `Canonical.agda`: `canon-ℕ/⇒/∀` (value = numeral/ƛ/Λ or a wrapper),
+  `canon-var` (a value of variable type is a wrapper with a variable boundary
+  type — a chain ending in a conceal of that variable), `Value-renameᵀ`.
+- `cf-∀-B₀` / `cf-⇒-B₀` (probe §6): a wrapper's `B₀` is `∀`/`⇒`-shaped (R1/R2
+  fire) or a reveal variable (the `bad` case above).
+- Each `_-→_` rule gets a `progress` case as it lands; holes are labelled with the
+  rule (or decision) they wait for.
 
 ## 6. Conventions / gotchas (learned)
 
@@ -149,10 +174,19 @@ Not started. Standard shape:
 
 ## 7. Build
 
-From `SystemF/agda/`:
-```
-agda -v0 strong/Boundary.agda
-agda -v0 strong/BReduction.agda      # 3 holes until §3 lands
-```
-The strong development is not yet wired into `All.agda`; add it once the holes are
-closed and `make check` is clean.
+From `SystemF/agda/`: `agda --safe -v0 strong/All.agda` (or `make -C strong agda`)
+checks the whole NEW design. `make -C strong check` additionally runs
+`postulate-check`, which currently fails only on the OLD design's
+`Preservation.agda` (8 holes). Proposed cleanup (needs Jeremy's OK): delete old
+`Preservation.agda` and `Examples.agda` (unreferenced), move old `Terms`/`Typing`/
+`Reduction` and `notes/Scratch7/8/9` under `notes/old/` (the scratches import
+them; adjust their module headers).
+
+## 8. Tooling (2026-09-03)
+
+Opus subagents do the Agda loop; REALLMS (free; `scripts/REALLMS.md`,
+`scripts/reallms_holes.py`) grinds lemma-sized holes; the supervisor verifies
+every landing with `agda --safe`. Dependents of a holed module: put
+`{-# OPTIONS --allow-unsolved-metas #-}` in the IMPORTED module only, or better,
+use the repo's `...Def` convention (statement in a `FooDef` module, importer
+parameterised over it, instantiated when the proof lands).

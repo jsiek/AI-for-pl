@@ -1,4 +1,4 @@
-module strong.Scratch7 where
+module strong.notes.Scratch7 where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)

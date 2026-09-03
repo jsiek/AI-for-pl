@@ -227,6 +227,11 @@ ext-h h (skip-abst p) = skip-abst (h p)
 Mono : (ℕ → ℕ) → Set
 Mono ρ = ∀ {a b} → a < b → ρ a < ρ b
 
+-- extᵗ preserves monotonicity, so ⊢renameᵀ can recurse under a Λ.
+Mono-extᵗ : ∀ {ρ} → Mono ρ → Mono (extᵗ ρ)
+Mono-extᵗ mono {zero}  {suc _} _         = s≤s z≤n
+Mono-extᵗ mono {suc _} {suc _} (s≤s a<b) = s≤s (mono a<b)
+
 ∸-strict : ∀ {c p q} → c ≤ p → p < q → (p ∸ c) < (q ∸ c)
 ∸-strict {c} {p} {q} c≤p p<q =
   +-cancelˡ-< c _ _
@@ -262,21 +267,25 @@ h-restrict {ρ} X h mono {Y} p =
     eq : ρ (suc X + Y) ≡ suc (ρ X) + restrictRen X ρ Y
     eq = sym (m+[n∸m]≡n lt)
 
+-- ρ must be MONOTONE, not merely lookup-preserving: boundary renaming depends on
+-- index order through cmax / restrictRen (a non-monotone ρ that permutes indices
+-- could shrink a conceal's interior and strand a variable).
 ⊢renameᵀ : ∀ {ρ Δ Δ' Γₜ M A}
-  → (∀ {X} → Δ ∋tv X → Δ' ∋tv ρ X)
+  → (∀ {X} → Δ ∋tv X → Δ' ∋tv ρ X) → Mono ρ
   → Δ ∣ Γₜ ⊢ M ⦂ A
   → Δ' ∣ map (renameᵗ ρ) Γₜ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A
-⊢renameᵀ h (⊢` p)       = ⊢` (∋-map p)
-⊢renameᵀ h ⊢$           = ⊢$
-⊢renameᵀ h (⊢ƛ wfA ⊢N)  = ⊢ƛ (wf-ren h wfA) (⊢renameᵀ h ⊢N)
-⊢renameᵀ h (⊢· ⊢L ⊢M)   = ⊢· (⊢renameᵀ h ⊢L) (⊢renameᵀ h ⊢M)
-⊢renameᵀ h (⊢Λ {Γₜ = Γₜ} ⊢N) =
-  ⊢Λ (subst (λ Γ' → _ ∣ Γ' ⊢ _ ⦂ _) (⤊-ren Γₜ) (⊢renameᵀ (ext-h h) ⊢N))
-⊢renameᵀ {ρ} h (⊢·[] {L = L} {B = B} {A = A} ⊢L wfA) =
+⊢renameᵀ h mono (⊢` p)       = ⊢` (∋-map p)
+⊢renameᵀ h mono ⊢$           = ⊢$
+⊢renameᵀ h mono (⊢ƛ wfA ⊢N)  = ⊢ƛ (wf-ren h wfA) (⊢renameᵀ h mono ⊢N)
+⊢renameᵀ h mono (⊢· ⊢L ⊢M)   = ⊢· (⊢renameᵀ h mono ⊢L) (⊢renameᵀ h mono ⊢M)
+⊢renameᵀ h mono (⊢Λ {Γₜ = Γₜ} ⊢N) =
+  ⊢Λ (subst (λ Γ' → _ ∣ Γ' ⊢ _ ⦂ _) (⤊-ren Γₜ)
+            (⊢renameᵀ (ext-h h) (Mono-extᵗ mono) ⊢N))
+⊢renameᵀ {ρ} h mono (⊢·[] {L = L} {B = B} {A = A} ⊢L wfA) =
   subst (λ T → _ ∣ _ ⊢ renameᵀ ρ L ·[ renameᵗ (extᵗ ρ) B , renameᵗ ρ A ] ⦂ T)
         (sym (rename-[]ᵗ-commute ρ B A))
-    (⊢·[] (⊢renameᵀ h ⊢L) (wf-ren h wfA))
-⊢renameᵀ h (env bwf sc ⊢M) = {!!}
+    (⊢·[] (⊢renameᵀ h mono ⊢L) (wf-ren h wfA))
+⊢renameᵀ h mono (env bwf sc ⊢M) = {!!}
 
 ------------------------------------------------------------------------
 -- Preservation (so far: β-Λ)

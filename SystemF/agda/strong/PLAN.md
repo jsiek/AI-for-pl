@@ -26,7 +26,7 @@ Design invariant (user's dual semantics):
 | `BReduction.agda` | reduction `_-→_`, values, type-var renaming/subst through boundaries, `⊢renameᵀ`, `preservation` | ⚠️ 3 holes |
 | `ScratchGamma.agda` | evidence: the fixed conceal-rep-references-reveal bug | ✅ |
 | `ScratchBlocked.agda` | evidence: the blocked-var aliasing that motivates the scope premise | ✅ |
-| `Scratch7/8/9.agda` | machine-checked proof that the OLD per-variable-wrapper design is unsound (Example 8) | ✅ keep as evidence |
+| `notes/Scratch7/8/9.agda` | machine-checked proof that the OLD per-variable-wrapper design is unsound (Example 8) | ✅ keep as evidence |
 | shared substrate + OLD discarded design | see **§1b** for the precise old/new/shared file map | — |
 
 `BReduction.agda` holes (all in the renaming/substitution path):
@@ -56,14 +56,14 @@ Two designs coexist in this directory. **Do not build new work on the old one.**
 - `Reduction.agda` — old reduction: `β-↑` (WrapReveal), `β-↓·` (WrapConceal), `β-cancel`, `β-drop`, `β-↑[]` (TyWrapRevl), `β-↓[]` (TyWrapCncl), `ξ-*`.
 - `Examples.agda`, `Preservation.agda` — examples/preservation for the old system.
 - `All.agda` — the aggregate driver **still points at the old system** (Terms/Typing/Reduction/Examples). Repoint it to the new design once §3's holes close.
-- `Scratch7/8/9.agda` — keep, but note they **import the old `Terms`/`Typing`/`Reduction`**: they are the machine-checked proof that the old design is unsound. This is the *only* reason the old files are retained.
+- `notes/Scratch7/8/9.agda` — keep, but note they **import the old `Terms`/`Typing`/`Reduction`**: they are the machine-checked proof that the old design is unsound. This is the *only* reason the old files are retained.
 
 ### Why the old design was discarded (Example 8)
 The old design made each reveal/conceal a **separate per-variable wrapper**, with
 `TyWrapCncl` pushing a conceal inward under a `Λ` (conceal-of-a-value is a value).
 This is **unsound**: a conceal `↓[X:=A]` whose body, once the context is tightened
 to `X`'s existential scope, references a **shallower** type variable that thereby
-falls out of scope. `Scratch7/8/9.agda` exhibit a closed, well-typed source program
+falls out of scope. `notes/Scratch7/8/9.agda` exhibit a closed, well-typed source program
 `P : ∀(Z→Z)` that reduces in 4 steps (via `β-↓[]`) to an **ill-typed** term — a
 direct counterexample to preservation.
 
@@ -92,7 +92,8 @@ boundary — do not copy them verbatim.
 ## 3. Finish PRESERVATION (ordered)
 
 ### 3a. Close `⊢renameᵀ`'s `env` case (the crux)
-`⊢renameᵀ : (∀{X} → Δ ∋tv X → Δ' ∋tv ρ X) → Δ ∣ Γₜ ⊢ M ⦂ A → Δ' ∣ map (renameᵗ ρ) Γₜ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A`.
+`⊢renameᵀ : (∀{X} → Δ ∋tv X → Δ' ∋tv ρ X) → Mono ρ → Δ ∣ Γₜ ⊢ M ⦂ A → Δ' ∣ map (renameᵗ ρ) Γₜ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A`.
+The **`Mono ρ` premise is required**, not optional: boundary renaming depends on index order through `cmax`/`restrictRen`, so a merely lookup-preserving (non-monotone) `ρ` is a genuine counterexample. `Mono` is preserved by `extᵗ` (`Mono-extᵗ`, done) and must also be shown for `intRen ρ Θ` in the `env` case (via `restrictRen`/`liftⁿ` preserving `Mono`).
 The `env` case mirrors the already-proven `C-ext`. Needed lemmas (all in `BReduction.agda`; `C-ext`, `ρᵇ-comm`, `h-restrict`, `↓-∋`/`↓-∋⁻`, `∸-strict`, `Mono` already exist):
 
 1. `revs-ren`: `revs (renᴮ ρ ir Θ) ≡ revs Θ` (trivial, `renᴮ` preserves reveal count).

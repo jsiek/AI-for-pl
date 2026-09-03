@@ -1,4 +1,4 @@
-module strong.Scratch8 where
+module strong.notes.Scratch8 where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)

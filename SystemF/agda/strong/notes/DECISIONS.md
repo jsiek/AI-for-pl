@@ -51,6 +51,50 @@ Option 1b — keep (env); progress for reachable terms via a predicate
 
 Option 1c — accept the gap: progress for source images only; no Merge/Cancel.
 
+### Decision 1 — resolution (2026-09-03, after Jeremy's clarification and the probe)
+
+Jeremy: the old design's (conceal) rule had the premise `Γ ∋ X:=A` and the
+invariant "a conceal's representation is the one the matching reveal
+recorded" was never meant to be dropped.  Decision 1 is therefore settled
+on restoring it (Option 1a); 1b/1c are withdrawn.  The probe
+notes/GroundedProbe.agda (agda --safe clean) fixes the exact form:
+
+    Γ ⇈ Θ    =  (Γ ↓ Y★) , X₁:=A₁ , … , X_r:=A_r       knowledge entries (Aᵢ read in Γ)
+    (bwf-↓)  Γ ∋ Y:=A₀      A = A₀[γΘ]      Γ ∣ Ψ ⊢ Θ   ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
+
+  i.e. the conceal's rep A is the INTERIOR reading of the knowledge Γ holds
+  about Y.  The transport A = A₀[γΘ] is NOT optional: comparing A₀ and A
+  syntactically (the naive 1a) still admits a stuck closed value `bad₂`
+  (probe §5), because ` 0 read in Γ↓Y (= P) and ` 0 read in the interior
+  (= the fresh reveal Z) are different variables.  In de Bruijn A₀ is first
+  shifted past the r reveals and Y (`liftRep`), then γΘ is applied.
+  Since the premise mentions γΘ of the WHOLE boundary, boundary
+  well-formedness takes Θ as a parameter instead of recursing on the list.
+
+  Checked in the probe: `bad` and `bad₂` are untypable; Example 8 T0…T5 all
+  type and every step is a real -→ (TyWrap/Wrap included); Merge's cancel
+  clause is sound by inversion (`cancel-agree`: a ↓X:=A inside a boundary
+  whose reveal is ↑X:=A′ has A = A′) — the payoff.
+
+  Consequences for Wrap (also machine-checked):
+  * typing no longer transports along equal-length contexts (`¬⊢retag-len`);
+    it transports along `Δ ≼ Δ′` (entrywise: abstract ≼ anything, X:=A ≼
+    X:=A) — `⊢retag′`.
+  * the dual rebuilds Γ's entry exactly at CONCEALED slots (the conceal rep
+    is Γ's knowledge), but at BLOCKED slots it yields a dummy `↑Y:=ℕ`, i.e.
+    interior entry Y:=ℕ, which can differ from Γ's entry for Y.  Wrap's
+    argument retypes only if blocked slots are ABSTRACT in Γ (`BlkAbst`),
+    and that property is not preserved unless the dual marks blocked slots
+    specially.  Hence one more syntax change:
+
+    Θ  ::=  …  |  ↑Y:⋆ , Θ      blocked reveal: interior entry abstract, no
+                                 knowledge; external face a dummy (never named,
+                                 by the scope premise); produced only by the
+                                 dual at dropped-but-unconcealed slots
+
+  Open (small): whether `BlkAbst` then holds for every run-time boundary (only
+  Λ, reveals and ↑Y:⋆ create context entries) or must be a premise of (env).
+
 ## Decision 2 — a boundary meets a type application
 
 Both well typed on every step of Example 8 (notes/Example8Trace.agda).
@@ -80,4 +124,6 @@ Option 3b — towers as values, no Merge (current).  Canonical form at a
 
 ## Recommendation
 
-1a → Wrap → Merge (3a); keep TyWrap, TyWrap′ as a later optimisation.
+Decision 1 settled (restore the invariant, form above).  Next: rework
+Boundary.agda accordingly and re-run every preservation case; then Merge (3a);
+keep TyWrap, TyWrap′ as a later optimisation.

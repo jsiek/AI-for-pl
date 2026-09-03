@@ -6,11 +6,11 @@ module strong.BPreservation where
 -- type.  Case order follows BReduction's rhythm — the two computation rules
 -- first, then the five ξ congruences.
 --
---   β-Λ  is where a boundary is BORN.  Its (env) premises are discharged by
+--   TyBeta  is where a boundary is BORN.  Its (env) premises are discharged by
 --        the reveal's well-formedness (bwf↑), the two face equations (int-eq
 --        for γᵇ, ext-eq for ρᵇ), and — for the Scoped premise, which no
 --        reduction rule carries — the typing ⇒ wf ⇒ Scoped bridge scB-bridge.
---   β-ƛ  is the term-substitution lemma, still in flight.
+--   Beta  is the term-substitution lemma, still in flight.
 --   ξ-*  are each one induction hypothesis under the corresponding typing
 --        rule.  Two of them change context: ξ-Λ recurses at the Λ body's
 --        context (abst ∷ Δ) ∣ ⤊ [], and ⤊ [] = [] definitionally
@@ -19,7 +19,7 @@ module strong.BPreservation where
 --        is why preservation is generalised over Δ rather than fixed at [].
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; length)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; trans; sym; subst; subst₂)
 open import strong.Types
@@ -28,12 +28,12 @@ open import strong.Context using (TCtx; abst; _⊢_; wf-var; here-abst)
 open import strong.Boundary
 open import strong.BReduction
 open import strong.ScopeBridge using (scB-bridge)
-open import strong.TermSubst using (preserve-β-ƛ; Mono-suc; ∋tv-suc)
+open import strong.TermSubst using (preserve-Beta; Mono-suc; ∋tv-suc)
 
 private
   variable
     Δ : TCtx
-    A B : Ty
+    A B B₁ B₂ : Ty
     M M′ : Term
 
 preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
@@ -43,7 +43,7 @@ preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ 
 ------------------------------------------------------------------------
 
 -- TyBeta:  (ΛX.V) [B , A]  →  V ⟪ ↑X:=A , B ⟫
-preservation (⊢·[] {B = B} {A = A} (⊢Λ {N = V} ⊢V) ⊢A) (β-Λ v) =
+preservation (⊢·[] {B = B} {A = A} (⊢Λ {N = V} ⊢V) ⊢A) (TyBeta v) =
   subst (λ T → _ ∣ [] ⊢ V ⟪ rvl A ∷ [] , B ⟫ ⦂ T) ext-eq
     (env {B₀ = B} (bwf↑ ⊢A bwf[])
          scB
@@ -65,7 +65,7 @@ preservation (⊢·[] {B = B} {A = A} (⊢Λ {N = V} ⊢V) ⊢A) (β-Λ v) =
     scB = scB-bridge ⊢V
 
 -- Beta:  (λx:A.N) · W  →  N[x:=W]  — the term-substitution lemma (TermSubst)
-preservation (⊢· (⊢ƛ wfA ⊢N) ⊢W) (β-ƛ w) = preserve-β-ƛ (⊢· (⊢ƛ wfA ⊢N) ⊢W)
+preservation (⊢· (⊢ƛ wfA ⊢N) ⊢W) (Beta w) = preserve-Beta (⊢· (⊢ƛ wfA ⊢N) ⊢W)
 
 -- R1:  (V ⟪ Θ , ∀B₀ ⟫) ·[ B , A ]  →  ((⇑ᵀ V) ·[ B′ , ` 0 ]) ⟪ ↑A ∷ Θ⁺ , B₀ ⟫
 --
@@ -78,7 +78,7 @@ preservation (⊢· (⊢ƛ wfA ⊢N) ⊢W) (β-ƛ w) = preserve-β-ƛ (⊢· (�
 -- ρᵇ-shift-ty turns back into the redex's type B [ A ]ᵗ.
 preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} {M = V} bwf (sc-∀ sc) ⊢V)
                        wfA)
-                 (β-⟪⟫·[] {A = A} v) =
+                 (TyWrap {A = A} v) =
   subst (λ T → Δ ∣ [] ⊢ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ])
                           ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫ ⦂ T)
         (ρᵇ-shift-ty A Θ B₀)
@@ -107,6 +107,45 @@ preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} {M = V} bwf (sc-∀
     ⊢body = subst₂ (λ Ψ T → Ψ ∣ []
                               ⊢ (⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ] ⦂ T)
                    (sym (intOf-shift Δ A Θ)) ty-eq ⊢app
+
+-- R2:  (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W  →  (V · (W ⟪ Θᵈ , B₁ᵈ ⟫)) ⟪ Θ , B₂ ⟫
+--
+-- Both indices of the redex are FORCED: (env) types the wrapper at
+-- substᵗ (ρᵇ Θ) (B₁ ⇒ B₂), which is substᵗ (ρᵇ Θ) B₁ ⇒ substᵗ (ρᵇ Θ) B₂,
+-- so ⊢W is at substᵗ (ρᵇ Θ) B₁ and the whole redex at substᵗ (ρᵇ Θ) B₂ —
+-- which is exactly what the rebuilt (env) returns, so the outer type needs
+-- no transport.  The INNER wrapper sits at exterior intOf Δ Θ with the
+-- dual boundary: its exterior face is the argument type V demands
+-- (ρᵇ-dual-ty, scope-restricted — the blocked slots differ, and (env)'s
+-- premise for B₁ is what rules them out) and its interior face is W's own
+-- type (γᵇ-dual-ty).
+--
+-- The dual's interior is  prepAbst (cmax Θ) (dropN (cmax Θ) Δ)  — Δ with
+-- its dropped prefix rebuilt as `abst.  That is Δ on the nose only over an
+-- all-`abst` exterior; in general it is merely a context of the SAME
+-- LENGTH, which is all typing can tell apart (⊢retag), so preservation
+-- keeps its statement — no AllAbst premise.
+preservation {Δ} (⊢· {M = W} (env {Θ = Θ} {B₀ = B₁ ⇒ B₂} {M = V} bwf
+                                  (sc-⇒ sc₁ sc₂) ⊢V)
+                     ⊢W)
+                 (Wrap v w) =
+  env bwf sc₂ (⊢· ⊢V ⊢arg)
+  where
+    -- the dual's interior rebuilds Δ up to the abst/rvld marker …
+    lenq : length Δ ≡ length (intOf (intOf Δ Θ) (dualᵇ Θ))
+    lenq = len-dual Δ Θ (bwf-cmax Θ bwf)
+    -- … so W retypes there, at its own type = the dual's interior face
+    ⊢W′ : intOf (intOf Δ Θ) (dualᵇ Θ) ∣ []
+            ⊢ W ⦂ substᵗ (γᵇ (dualᵇ Θ)) (renameᵗ (swapᵇ Θ) B₁)
+    ⊢W′ = subst (λ T → intOf (intOf Δ Θ) (dualᵇ Θ) ∣ [] ⊢ W ⦂ T)
+                (sym (γᵇ-dual-ty B₁ Θ)) (⊢retag lenq ⊢W)
+    -- the wrapped argument, at the type V's domain demands
+    ⊢arg : intOf Δ Θ ∣ []
+             ⊢ W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ⦂ substᵗ (γᵇ Θ) B₁
+    ⊢arg = subst (λ T → intOf Δ Θ ∣ []
+                          ⊢ W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ⦂ T)
+                 (ρᵇ-dual-ty B₁ Θ sc₁)
+                 (env (bwf-dual Θ bwf lenq) (sc-dual Θ sc₁) ⊢W′)
 
 ------------------------------------------------------------------------
 -- ξ (congruence) rules: the induction hypothesis under the typing rule

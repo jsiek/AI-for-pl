@@ -29,15 +29,10 @@ open import strong.BReduction
 ------------------------------------------------------------------------
 -- 0.  Boundary-type shape analysis
 --
--- Ported from notes/BoundaryRulesProbe.agda §6 (proved there); `split` is
--- already live in strong.BReduction, so only ρᵇ-hi has to come across.
+-- Ported from notes/BoundaryRulesProbe.agda §6 (proved there); `split` and
+-- ρᵇ-hi (the exterior face is the identity on the Γ-part of the boundary
+-- frame) are already live in strong.BReduction.
 ------------------------------------------------------------------------
-
--- the exterior face is the identity on the Γ-part of the boundary frame
-ρᵇ-hi : ∀ Θ i → ρᵇ Θ (revs Θ + i) ≡ ` i
-ρᵇ-hi []            i = refl
-ρᵇ-hi (rvl A   ∷ Θ) i = ρᵇ-hi Θ i
-ρᵇ-hi (cnc X A ∷ Θ) i = ρᵇ-hi Θ i
 
 -- A wrapper whose EXTERNAL face is a ∀ either has a ∀ boundary type — and
 -- then R1 fires — or a REVEAL variable as its boundary type (memo §4).  A
@@ -91,32 +86,32 @@ inv-⟪⟫ (env bwf sc ⊢V) = refl
 -- 2.  The two eliminations applied to a value
 ------------------------------------------------------------------------
 
--- L · M with both sides values.  L : A ⇒ B, so L is a ƛ (β-ƛ) or a wrapper.
+-- L · M with both sides values.  L : A ⇒ B, so L is a ƛ (Beta) or a wrapper.
 app-steps : ∀ {Δ L M A B} → Value L → Value M → Δ ∣ [] ⊢ L ⦂ (A ⇒ B)
           → Σ Term λ M′ → (L · M) -→ M′
 app-steps V-$           w ()
-app-steps (V-G G-ƛ)     w ⊢L = _ , β-ƛ w
+app-steps (V-G G-ƛ)     w ⊢L = _ , Beta w
 app-steps (V-G (G-Λ v)) w ()
 app-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v) w ⊢L
   with cf-⇒-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
 app-steps (V-⟪⟫ v) w ⊢L | inj₁ (B₁ , B₂ , refl) =
-  {!!}   -- R2 β-⟪⟫· (pending)
+  _ , Wrap v w
 app-steps (V-⟪⟫ v) w ⊢L | inj₂ (X , refl , X<r) =
   {!!}   -- reveal-variable boundary type: needs the grounded rep invariant
          -- (memo §4, decision pending)
 
--- L ·[ B , A ] with L a value.  L : `∀ B, so L is a Λ (β-Λ) or a wrapper.
+-- L ·[ B , A ] with L a value.  L : `∀ B, so L is a Λ (TyBeta) or a wrapper.
 -- The Λ case reads the body's value proof straight off G-Λ, so neither a
 -- canonical-form equation nor a subst on the term is needed.
 tapp-steps : ∀ {Δ L B A} → Value L → Δ ∣ [] ⊢ L ⦂ `∀ B
            → Σ Term λ M′ → (L ·[ B , A ]) -→ M′
 tapp-steps V-$           ()
 tapp-steps (V-G G-ƛ)     ()
-tapp-steps (V-G (G-Λ v)) ⊢L = _ , β-Λ v
+tapp-steps (V-G (G-Λ v)) ⊢L = _ , TyBeta v
 tapp-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v) ⊢L
   with cf-∀-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
 tapp-steps (V-⟪⟫ v) ⊢L | inj₁ (B₀′ , refl) =
-  _ , β-⟪⟫·[] v
+  _ , TyWrap v
 tapp-steps (V-⟪⟫ v) ⊢L | inj₂ (X , refl , X<r) =
   {!!}   -- reveal-variable boundary type: needs the grounded rep invariant
          -- (memo §4, decision pending)

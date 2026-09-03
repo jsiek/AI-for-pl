@@ -13,11 +13,11 @@ module strong.notes.BoundaryRulesProbe where
 -- it.  No postulates, no holes.
 --
 -- Naming of the candidate rules (used in the memo):
---   R1  β-⟪⟫·[]   a boundary meets a type application
---   R2  β-⟪⟫·     a boundary meets an application (needs the dual dualᵇ)
+--   R1  TyWrap   a boundary meets a type application
+--   R2  Wrap     a boundary meets an application (needs the dual dualᵇ)
 --   R3  β-drop    V ⟪ [] , B₀ ⟫ -→ V
 --   R4  β-cancel  a reveal cancelled against a matching conceal
---   R1′ β-Λ⟪⟫     the "direct combine" variant of R1 (body must be Λ V)
+--   R1′ TyBeta⟪⟫     the "direct combine" variant of R1 (body must be Λ V)
 
 open import Data.Nat
   using (ℕ; zero; suc; _+_; _∸_; _<_; _≤_; s≤s; z≤n; _<?_; _≤?_; _⊔_)
@@ -461,7 +461,7 @@ no-dual-Γ₃ (Θᵈ , eq) = no-dual-raw (revs Θᵈ) (cmax Θᵈ) eq
 --
 -- The argument, which lives in the exterior Δ, is moved inside by the
 -- DUAL boundary; no term substitution and no ⇑ᵀ is involved, and V need
--- not be syntactically a ƛ (β-ƛ fires afterwards, inside).
+-- not be syntactically a ƛ (Beta fires afterwards, inside).
 ------------------------------------------------------------------------
 
 -- 4a. reveal-only Θ, at the empty exterior — Example 8's second step.
@@ -519,7 +519,7 @@ _ = refl
 -- 4c.  NESTED WRAPPERS AT AN ELIMINATION POSITION
 --
 -- R2 puts a wrapper around the ARGUMENT, so a wrapped argument becomes a
--- NESTED wrapper; after β-ƛ it can end up at an elimination position.
+-- NESTED wrapper; after Beta it can end up at an elimination position.
 -- `nest` below is exactly that (it is ⊢contractum-R2's argument, wrapped
 -- by the enclosing boundary).  R1′ — which requires the body to be
 -- syntactically  Λ V  — is STUCK on it, so the "direct combine" design

@@ -14,7 +14,7 @@ module strong.notes.Example8Trace where
 --   R1  floats the type application inside the boundary and applies it to
 --       the FRESH reveal variable Z (` 0), recording the old type argument
 --       Y as the reveal REP (exterior).  Contractum T4; its interior then
---       β-Λ-steps (a real rule) to T5, which carries a NESTED wrapper
+--       TyBeta-steps (a real rule) to T5, which carries a NESTED wrapper
 --         ((ƛ ` 0 ∙ ` 0) ⟪ ↑Z′:=Z , Z′→Z′ ⟫) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫.
 --       Both wrappers type: the inner one lives over the outer's interior
 --       [Z], and its reveal rep ` 0 IS Z, read in that exterior.
@@ -33,9 +33,9 @@ module strong.notes.Example8Trace where
 -- fix.
 --
 -- Steps that are REAL rules of strong.BReduction are given as `-→`
--- derivations.  R1 (β-⟪⟫·[]) and R2 (β-⟪⟫·) are not yet rules, so for
+-- derivations.  R1 (TyWrap) and R2 (Wrap) are not yet rules, so for
 -- T1→T2 and T3→T4 only the two typings are given (checked at line 1 of
--- this file's date: BReduction exports no β-⟪⟫·[]).
+-- this file's date: BReduction exports no TyWrap).
 --
 -- Imports: Types, Context, Boundary, BReduction only.
 
@@ -50,7 +50,7 @@ open import strong.Context
 open import strong.Boundary
 open import strong.BReduction
   using (Value; GVal; V-$; V-G; V-⟪⟫; G-ƛ; G-Λ; _-→_;
-         β-Λ; β-ƛ; ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫; ⇑ᵀ; _[_]ᵐ)
+         TyBeta; Beta; ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫; ⇑ᵀ; _[_]ᵐ)
 
 ------------------------------------------------------------------------
 -- 0.  Types, boundaries, and the source term
@@ -73,7 +73,7 @@ src : Term                      -- ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]
 src = Λ (ƛ ∀ZZ ∙ body8)
 
 -- the boundaries that occur along the trace
-Θr : BCtx                       -- ↑X:=ℕ   (born at the first β-Λ)
+Θr : BCtx                       -- ↑X:=ℕ   (born at the first TyBeta)
 Θr = rvl `ℕ ∷ []
 
 Θc : BCtx                       -- ↓X:=ℕ   (the dual, wrapping the argument)
@@ -94,7 +94,7 @@ shiftReps (cnc X A ∷ Θ) = cnc X (renameᵗ suc A) ∷ shiftReps Θ
 _ : Θn ≡ rvl (` 0) ∷ cnc 1 `ℕ ∷ []
 _ = refl
 
-Θi : BCtx                       -- the inner boundary β-Λ mints inside T4
+Θi : BCtx                       -- the inner boundary TyBeta mints inside T4
 Θi = rvl (` 0) ∷ []
 
 ------------------------------------------------------------------------
@@ -153,14 +153,14 @@ T0 = (src ·[ Bfun , `ℕ ]) · polyid
 ⊢T0 = ⊢· (⊢·[] (⊢Λ ⊢lam8) wf-ℕ) ⊢polyid
 
 ------------------------------------------------------------------------
--- 2.  T1 — by β-Λ (a real rule).  The boundary is BORN.
+-- 2.  T1 — by TyBeta (a real rule).  The boundary is BORN.
 ------------------------------------------------------------------------
 
 T1 : Term
 T1 = ((ƛ ∀ZZ ∙ body8) ⟪ Θr , Bfun ⟫) · polyid
 
 _ : T0 -→ T1
-_ = ξ-·-l (β-Λ (V-G G-ƛ))
+_ = ξ-·-l (TyBeta (V-G G-ƛ))
 
 ⊢T1 : [] ∣ [] ⊢ T1 ⦂ ∀ZZ
 ⊢T1 = ⊢· (env (bwf↑ wf-ℕ bwf[])
@@ -191,7 +191,7 @@ T2 = ((ƛ ∀ZZ ∙ body8) · W2) ⟪ Θr , ∀ZZ ⟫
           (⊢· ⊢lam8 ⊢W2)
 
 ------------------------------------------------------------------------
--- 4.  T3 — by ξ-⟪⟫ (β-ƛ …) (real rules).  The substitution is performed
+-- 4.  T3 — by ξ-⟪⟫ (Beta …) (real rules).  The substitution is performed
 --     FOR REAL: ⇑ᵀ moves the wrapped argument under the Λ, and the
 --     conceal index 0 (X) really does become 1 — checked by refl below,
 --     not assumed.  That is the probe's Θ8.
@@ -215,7 +215,7 @@ _ = refl
 ⊢W2-value = V-⟪⟫ (V-G (G-Λ (V-G G-ƛ)))
 
 _ : T2 -→ T3
-_ = ξ-⟪⟫ (β-ƛ ⊢W2-value)
+_ = ξ-⟪⟫ (Beta ⊢W2-value)
 
 -- the R1 REDEX, at Δ8, with Y (` 0) as the type argument
 ⊢redex : Δ8 ∣ [] ⊢ (W3 ·[ ` 0 ⇒ ` 0 , ` 0 ]) ⦂ (` 0 ⇒ ` 0)
@@ -271,7 +271,7 @@ _ = refl
           (⊢Λ ⊢R1body)
 
 ------------------------------------------------------------------------
--- 6.  T5 — β-Λ INSIDE T4 (a real rule).  A NESTED wrapper appears.
+-- 6.  T5 — TyBeta INSIDE T4 (a real rule).  A NESTED wrapper appears.
 --
 --     ((ƛ ` 0 ∙ ` 0) ⟪ ↑Z′:=Z , Z′→Z′ ⟫) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫
 --
@@ -286,7 +286,7 @@ T5 : Term
 T5 = (Λ T5body) ⟪ Θr , ∀ZZ ⟫
 
 _ : T4 -→ T5
-_ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (β-Λ (V-G G-ƛ))))
+_ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (TyBeta (V-G G-ƛ))))
 
 -- the inner wrapper, typed over the OUTER's interior [Z]
 ⊢inner : (abst ∷ []) ∣ [] ⊢ (ƛ ` 0 ∙ ` 0) ⟪ Θi , ` 0 ⇒ ` 0 ⟫
@@ -330,11 +330,11 @@ T4′ = (Λ ((ƛ ` 0 ∙ ` 0) ⟪ Θn , ` 0 ⇒ ` 0 ⟫)) ⟪ Θr , ∀ZZ ⟫
 ------------------------------------------------------------------------
 -- 8.  Summary of the trace (all at  [] ∣ [] ⊢ _ ⦂ ∀ZZ)
 --
---   T0  -→ (ξ-·-l (β-Λ …))          T1
+--   T0  -→ (ξ-·-l (TyBeta …))          T1
 --   T1  ⇝  (R2, not a rule)         T2
---   T2  -→ (ξ-⟪⟫ (β-ƛ …))           T3
+--   T2  -→ (ξ-⟪⟫ (Beta …))           T3
 --   T3  ⇝  (R1, not a rule)         T4     ⇝ (R1′) T4′
---   T4  -→ (ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ β-Λ)))  T5
+--   T4  -→ (ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ TyBeta)))  T5
 --
 -- No step is ill-typed.  T5 and T4′ are the two candidate normal forms;
 -- R1′'s is the tighter of the two, and R1's differs from it only by the

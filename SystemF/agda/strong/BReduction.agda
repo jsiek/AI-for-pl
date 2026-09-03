@@ -9,13 +9,15 @@ open import Data.Nat
 open import Data.Nat.Properties
   using (m≤m+n; m+[n∸m]≡n; +-monoʳ-<; +-cancelˡ-<; ≤-trans; <⇒≤; ≤-refl;
          _≟_; <-cmp; <-irrefl; ≰⇒>; m≤n⇒m<n∨m≡n; m≤n⇒m⊔n≡n; m≥n⇒m⊔n≡m;
-         m+n∸m≡n; m+n≮m; +-identityʳ; +-suc)
+         m+n∸m≡n; m+n≮m; +-identityʳ; +-suc; +-assoc; +-comm;
+         ⊔-assoc; ⊔-comm; ⊔-identityʳ; ⊔-lub; m≤m⊔n;
+         n≤1+n; suc-injective; m≤n⊔m)
 open import Data.Bool using (Bool; true; false; _∨_; if_then_else_)
 open import Data.Bool.Properties using (∨-zeroʳ)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.List using (List; []; _∷_; _++_; map)
+open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Relation.Nullary using (Dec; yes; no; ¬_; ⌊_⌋)
 open import Relation.Binary.Definitions using (tri<; tri≈; tri>)
 open import Relation.Binary.PropositionalEquality
@@ -25,7 +27,8 @@ open import strong.TypeSubst
   using (subst-cong; subst-id; rename-rename-commute; rename-[]ᵗ-commute;
          rename-subst; rename-subst-commute; exts-sub-cons; cons-sub)
 open import strong.Context
-  using (TCtx; abst; rvld; _↓_; _⊢_; wf-var; wf-ℕ; _∋tv_; here-abst; here-rvld;
+  using (TCtx; abst; rvld; _↓_; _⊢_; wf-var; wf-ℕ; wf-𝔹; wf-⇒; wf-∀;
+         _∋tv_; here-abst; here-rvld;
          skip-abst; skip-rvld; Ctx; _∋_⦂_; here; there; ⤊)
 open import strong.Weakening using (wf-rename-fv; fv-scope; wf-⇑-abst)
 open import strong.Boundary
@@ -33,7 +36,7 @@ open import strong.Boundary
 private
   variable
     Δ : TCtx
-    A B C B₀ : Ty
+    A B C B₀ B₁ B₂ : Ty
     L L′ M M′ N N′ V W F : Term
     Θ : BCtx
     n x : ℕ
@@ -42,7 +45,7 @@ private
 -- Term-variable substitution (for Beta).  Identity on wrappers: a wrapped value
 -- is term-closed (its body is typed at []), so no term variable reaches inside.
 -- renameᵀ (type-variable renaming through a wrapper) is PROVISIONAL — the simple
--- β-ƛ example below never pushes a wrapper under a Λ, so it isn't exercised; the
+-- Beta example below never pushes a wrapper under a Λ, so it isn't exercised; the
 -- correct version is the next piece (needed for the general substitution lemma).
 ------------------------------------------------------------------------
 
@@ -109,6 +112,52 @@ intOf-shift : ∀ (Γ : TCtx) A Θ
             → intOf Γ (rvl A ∷ shiftReps Θ) ≡ abst ∷ intOf Γ Θ
 intOf-shift Γ A Θ rewrite revs-shiftReps Θ | cmax-shiftReps Θ = refl
 
+------------------------------------------------------------------------
+-- Dual boundary (R2).  Θᵈ = dualᵇ Θ turns the boundary inside out: its
+-- exterior is intOf Δ Θ and its interior is (the rebuild of) Δ.  Every
+-- REVEAL of Θ becomes a CONCEAL of Θᵈ at its interior index, keeping its
+-- rep — a reveal rep is read in Δ, which is Θᵈ's interior, exactly a
+-- conceal rep's home; every Δ-slot 0 … cmax Θ ∸ 1 that Θ dropped becomes a
+-- REVEAL of Θᵈ whose rep is Θ's conceal rep for that slot (read in
+-- intOf Δ Θ = Θᵈ's exterior).  A dropped slot that is NOT concealed is
+-- BLOCKED; it gets an arbitrary rep (`ℕ), which is sound precisely because
+-- (env)'s Scoped premise forbids B₀ from naming it — the exterior face law
+-- fails exactly there (notes/BoundaryRules.md §2(a)).
+------------------------------------------------------------------------
+
+repOf : ℕ → BCtx → Ty            -- the rep Θ conceals slot i at (`ℕ if none)
+repOf i []             = `ℕ
+repOf i (rvl A   ∷ Θ) = repOf i Θ
+repOf i (cnc X A ∷ Θ) with i ≟ X
+repOf i (cnc X A ∷ Θ) | yes _ = A
+repOf i (cnc X A ∷ Θ) | no  _ = repOf i Θ
+
+rvlsOf : ℕ → ℕ → BCtx → BCtx     -- k reveals, for the dropped slots s, s+1, …
+rvlsOf zero    s Θ = []
+rvlsOf (suc k) s Θ = rvl (repOf s Θ) ∷ rvlsOf k (suc s) Θ
+
+cncOfRevs : ℕ → BCtx → BCtx      -- conceal each reveal var, at j, j+1, …
+cncOfRevs j []             = []
+cncOfRevs j (rvl A   ∷ Θ) = cnc j A ∷ cncOfRevs (suc j) Θ
+cncOfRevs j (cnc X A ∷ Θ) = cncOfRevs j Θ
+
+dualᵇ : BCtx → BCtx
+dualᵇ Θ = rvlsOf (cmax Θ) 0 Θ ++ cncOfRevs 0 Θ
+
+-- The two boundary frames hold the same slots in a different order:
+-- [reveals of Θ][dropped Δ-slots][kept Δ-slots] becomes
+-- [dropped Δ-slots][reveals of Θ][kept Δ-slots], so a boundary type read
+-- over Θ's frame is transported to Θᵈ's frame by this block swap.
+swapIdx : ℕ → ℕ → ℕ → ℕ
+swapIdx r c X with X <? r
+swapIdx r c X | yes _ = c + X
+swapIdx r c X | no  _ with (X ∸ r) <? c
+swapIdx r c X | no _ | yes _ = X ∸ r
+swapIdx r c X | no _ | no  _ = X
+
+swapᵇ : BCtx → ℕ → ℕ
+swapᵇ Θ = swapIdx (revs Θ) (cmax Θ)
+
 renameᵀ : (ℕ → ℕ) → Term → Term          -- rename TYPE variables
 renameᵀ ρ (` x)          = ` x
 renameᵀ ρ ($ n)          = $ n
@@ -164,11 +213,11 @@ data _-→_ : Term → Term → Set where
 
   -- TyBeta: a boundary is BORN.  The ∀-body B is recorded as the BOUNDARY type;
   -- internal type = B[γ] = B, external type = B[ρ] = B[A]ᵗ.
-  β-Λ : Value V
+  TyBeta : Value V
       → (Λ V) ·[ B , A ] -→ V ⟪ rvl A ∷ [] , B ⟫
 
   -- Beta
-  β-ƛ : Value W
+  Beta : Value W
       → (ƛ A ∙ N) · W -→ N [ W ]ᵐ
 
   -- R1: a wrapped value meets a TYPE APPLICATION.  The type argument A is
@@ -180,10 +229,23 @@ data _-→_ : Term → Term → Set where
   -- redex's B is substᵗ (extsᵗ (ρᵇ Θ)) B₀ (from (env)), and the floated
   -- application's index is the ∀-body of ⇑ᵀ V's type, i.e.
   -- renameᵗ (extᵗ suc) of the interior face.
-  β-⟪⟫·[] : Value V
+  TyWrap : Value V
       → (V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
         -→ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀) , ` 0 ])
              ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
+
+  -- R2: a wrapped value meets an APPLICATION.  The argument lives in the
+  -- EXTERIOR, so it is moved inside through the DUAL boundary (dualᵇ); no
+  -- term substitution and no ⇑ᵀ is involved, and V need not be
+  -- syntactically a ƛ (Beta fires afterwards, inside).  B₁ is read over Θ's
+  -- boundary frame, so the dual's boundary type is B₁ renamed by the frame
+  -- permutation swapᵇ.  The dual's EXTERIOR face is then the argument type
+  -- V demands and its INTERIOR face is W's type — but only at ACCESSIBLE
+  -- slots (a blocked slot gets a dummy rep), which is why R2's preservation
+  -- goes through subst-cong-sc with (env)'s scope premise for B₁.
+  Wrap : Value V → Value W
+      → (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
+        -→ (V · (W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
 
   -- ξ (congruence): the evaluation frames, left-to-right call-by-value.
   -- ξ-Λ and ξ-⟪⟫ are not optional bookkeeping: Λ V is a value only when V is
@@ -213,21 +275,21 @@ data _-→_ : Term → Term → Set where
 
 _ : (Λ (ƛ ` 0 ∙ ` 0)) ·[ (` 0 ⇒ ` 0) , `ℕ ]
     -→ (ƛ ` 0 ∙ ` 0) ⟪ rvl `ℕ ∷ [] , (` 0 ⇒ ` 0) ⟫
-_ = β-Λ (V-G G-ƛ)
+_ = TyBeta (V-G G-ƛ)
 
 ⊢contractum-Λ : [] ∣ [] ⊢ (ƛ ` 0 ∙ ` 0) ⟪ rvl `ℕ ∷ [] , (` 0 ⇒ ` 0) ⟫ ⦂ (`ℕ ⇒ `ℕ)
 ⊢contractum-Λ = env (bwf↑ wf-ℕ bwf[]) (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
                     (⊢ƛ (wf-var here-abst) (⊢` here))
 
 ------------------------------------------------------------------------
--- Worked example for β-ƛ:  (λx:ℕ. x) · 5  →  5    (both : ℕ)
+-- Worked example for Beta:  (λx:ℕ. x) · 5  →  5    (both : ℕ)
 ------------------------------------------------------------------------
 
 ⊢redex-ƛ : [] ∣ [] ⊢ (ƛ `ℕ ∙ ` 0) · ($ 5) ⦂ `ℕ
 ⊢redex-ƛ = ⊢· (⊢ƛ wf-ℕ (⊢` here)) ⊢$
 
 _ : (ƛ `ℕ ∙ ` 0) · ($ 5) -→ $ 5
-_ = β-ƛ V-$
+_ = Beta V-$
 
 ⊢contractum-ƛ : [] ∣ [] ⊢ $ 5 ⦂ `ℕ
 ⊢contractum-ƛ = ⊢$
@@ -244,13 +306,13 @@ _ = β-ƛ V-$
 
 _ : ((ƛ `ℕ ∙ ` 0) · $ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫
     -→ ($ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫
-_ = ξ-⟪⟫ (β-ƛ V-$)
+_ = ξ-⟪⟫ (Beta V-$)
 
 ⊢contractum-bnd : [] ∣ [] ⊢ ($ 5) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫ ⦂ `ℕ
 ⊢contractum-bnd = env (bwf↑ wf-ℕ bwf[]) sc-ℕ ⊢$
 
 ------------------------------------------------------------------------
--- Worked example for β-⟪⟫·[] (R1), on the NEW-DESIGN ANALOGUE OF EXAMPLE 8.
+-- Worked example for TyWrap (R1), on the NEW-DESIGN ANALOGUE OF EXAMPLE 8.
 -- Example 8 (notes/Scratch7-9) is the closed program whose 4th step made the
 -- OLD design ill-typed: a value concealed on X (index 1) is TYPE-APPLIED to
 -- the SHALLOWER Λ-bound Y (index 0), which the interior blocks.  Under the
@@ -296,7 +358,7 @@ _ = refl
 _ : (polyid ⟪ Θ8 , ∀ZZ ⟫) ·[ ` 0 ⇒ ` 0 , ` 0 ]
     -→ (polyid ·[ ` 0 ⇒ ` 0 , ` 0 ])
          ⟪ rvl (` 0) ∷ shiftReps Θ8 , ` 0 ⇒ ` 0 ⟫
-_ = β-⟪⟫·[] (V-G (G-Λ (V-G G-ƛ)))
+_ = TyWrap (V-G (G-Λ (V-G G-ƛ)))
 
 ⊢contractum-R1 :
   Δ8 ∣ [] ⊢ (polyid ·[ ` 0 ⇒ ` 0 , ` 0 ])
@@ -307,6 +369,64 @@ _ = β-⟪⟫·[] (V-G (G-Λ (V-G G-ƛ)))
             (bwf↓ (skip-abst here-abst) wf-ℕ bwf[]))
       (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
       (⊢·[] (⊢Λ (⊢ƛ (wf-var here-abst) (⊢` here))) (wf-var here-abst))
+
+------------------------------------------------------------------------
+-- Worked example for Wrap (R2), on a MIXED boundary — one reveal AND one
+-- conceal, the shape R1 produces (⊢contractum-R1 above), and the case a
+-- "restrict R2 to cmax Θ = 0" design would not cover.
+--
+--   ((λz:Z. z) ⟪ ↑Z:=ℕ , ↓X:=ℕ ; Z→Z ⟫) · 3                        : ℕ
+--     →  ((λz:Z. z) · (3 ⟪ dualᵇ Θm , X ⟫)) ⟪ ↑Z:=ℕ , ↓X:=ℕ ; Z ⟫  : ℕ
+--
+-- Exterior Δm = [Y , X]; the interior is [Z] and Y is BLOCKED there.  The
+-- dual is [↑ℕ , ↑ℕ , ↓Z:=ℕ]: it reveals the two dropped Δm-slots (X at its
+-- conceal rep ℕ, the blocked Y at the dummy rep ℕ) and conceals the reveal
+-- variable Z at its rep.  swapᵇ Θm sends Θm's frame [Z , Y , X] slot 0 (Z)
+-- to slot 2 of the dual's frame [X , Y , Z], so the dual's boundary type is
+-- ` 2.
+------------------------------------------------------------------------
+
+Δm : TCtx                       -- Y (index 0), X (index 1)
+Δm = abst ∷ abst ∷ []
+
+Θm : BCtx                       -- reveal Z:=ℕ, conceal X (index 1)
+Θm = rvl `ℕ ∷ cnc 1 `ℕ ∷ []
+
+_ : intOf Δm Θm ≡ abst ∷ []
+_ = refl
+
+_ : baseS Θm Δm ≡ ok ∷ blk ∷ ok ∷ []          -- Y is blocked
+_ = refl
+
+_ : dualᵇ Θm ≡ rvl `ℕ ∷ rvl `ℕ ∷ cnc 0 `ℕ ∷ []
+_ = refl
+
+_ : intOf (intOf Δm Θm) (dualᵇ Θm) ≡ Δm       -- the dual's interior is Δm
+_ = refl
+
+_ : swapᵇ Θm 0 ≡ 2
+_ = refl
+
+⊢redex-R2m : Δm ∣ [] ⊢ ((ƛ ` 0 ∙ ` 0) ⟪ Θm , ` 0 ⇒ ` 0 ⟫) · ($ 3) ⦂ `ℕ
+⊢redex-R2m =
+  ⊢· (env (bwf↑ wf-ℕ (bwf↓ (skip-abst here-abst) wf-ℕ bwf[]))
+          (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+          (⊢ƛ (wf-var here-abst) (⊢` here)))
+     ⊢$
+
+_ : ((ƛ ` 0 ∙ ` 0) ⟪ Θm , ` 0 ⇒ ` 0 ⟫) · ($ 3)
+    -→ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫
+_ = Wrap (V-G G-ƛ) V-$
+
+⊢contractum-R2m :
+  Δm ∣ [] ⊢ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫ ⦂ `ℕ
+⊢contractum-R2m =
+  env (bwf↑ wf-ℕ (bwf↓ (skip-abst here-abst) wf-ℕ bwf[]))
+      (sc-var hereᵒ)
+      (⊢· (⊢ƛ (wf-var here-abst) (⊢` here))
+          (env (bwf↑ wf-ℕ (bwf↑ wf-ℕ (bwf↓ here-abst wf-ℕ bwf[])))
+               (sc-var (thereᵒ (thereᵒ hereᵒ)))
+               ⊢$))
 
 ------------------------------------------------------------------------
 -- renameᵀ through a boundary, verified on ⇑ᵀ of the non-spurious ($7)⟪Θ₈, X⟫.
@@ -933,7 +1053,7 @@ sc-ren h mono Θ sc = sc-rename (baseS-ren h mono Θ) sc
 
 ------------------------------------------------------------------------
 -- Boundary shift (R1).  The face laws of  rvl A ∷ shiftReps Θ  — the
--- boundary β-⟪⟫·[] builds.  The interior face becomes extsᵗ of the old one AT
+-- boundary TyWrap builds.  The interior face becomes extsᵗ of the old one AT
 -- EVERY SLOT (blocked ones included), so R1 carries no scope side-condition
 -- of its own; the exterior face instantiates the ∀ with the type argument A.
 ------------------------------------------------------------------------
@@ -1039,3 +1159,536 @@ ext-suc-[]0 T =
     h : ∀ X → singleTyEnv (` 0) (extᵗ suc X) ≡ ` X
     h zero    = refl
     h (suc j) = refl
+
+------------------------------------------------------------------------
+-- Dual boundary (R2), part 1: the SHAPE of dualᵇ.  Its reveal block is the
+-- Δ-prefix Θ drops (so revs Θᵈ = cmax Θ) and its conceal block is Θ's own
+-- reveals (so cmax Θᵈ = revs Θ) — the two blocks of the frame swap.
+------------------------------------------------------------------------
+
+revs-++ : ∀ Θ₁ Θ₂ → revs (Θ₁ ++ Θ₂) ≡ revs Θ₁ + revs Θ₂
+revs-++ []             Θ₂ = refl
+revs-++ (rvl A   ∷ Θ₁) Θ₂ = cong suc (revs-++ Θ₁ Θ₂)
+revs-++ (cnc X A ∷ Θ₁) Θ₂ = revs-++ Θ₁ Θ₂
+
+cmax-++ : ∀ Θ₁ Θ₂ → cmax (Θ₁ ++ Θ₂) ≡ cmax Θ₁ ⊔ cmax Θ₂
+cmax-++ []             Θ₂ = refl
+cmax-++ (rvl A   ∷ Θ₁) Θ₂ = cmax-++ Θ₁ Θ₂
+cmax-++ (cnc X A ∷ Θ₁) Θ₂ =
+  trans (cong (suc X ⊔_) (cmax-++ Θ₁ Θ₂))
+        (sym (⊔-assoc (suc X) (cmax Θ₁) (cmax Θ₂)))
+
+revs-rvlsOf : ∀ k s Θ → revs (rvlsOf k s Θ) ≡ k
+revs-rvlsOf zero    s Θ = refl
+revs-rvlsOf (suc k) s Θ = cong suc (revs-rvlsOf k (suc s) Θ)
+
+cmax-rvlsOf : ∀ k s Θ → cmax (rvlsOf k s Θ) ≡ 0
+cmax-rvlsOf zero    s Θ = refl
+cmax-rvlsOf (suc k) s Θ = cmax-rvlsOf k (suc s) Θ
+
+revs-cncOfRevs : ∀ j Θ → revs (cncOfRevs j Θ) ≡ 0
+revs-cncOfRevs j []             = refl
+revs-cncOfRevs j (rvl A   ∷ Θ) = revs-cncOfRevs (suc j) Θ
+revs-cncOfRevs j (cnc X A ∷ Θ) = revs-cncOfRevs j Θ
+
+-- the conceals sit at j … j + revs Θ ∸ 1, so the deepest is j + revs Θ
+-- (and there is none at all when Θ has no reveal) — stated ⊔ j to cover
+-- both shapes at once
+cmax-cncOfRevs : ∀ j Θ → cmax (cncOfRevs j Θ) ⊔ j ≡ j + revs Θ
+cmax-cncOfRevs j []             = sym (+-identityʳ j)
+cmax-cncOfRevs j (rvl A   ∷ Θ) =
+  trans (m≥n⇒m⊔n≡m (≤-trans (n≤1+n j)
+                            (m≤m⊔n (suc j) (cmax (cncOfRevs (suc j) Θ)))))
+    (trans (⊔-comm (suc j) (cmax (cncOfRevs (suc j) Θ)))
+      (trans (cmax-cncOfRevs (suc j) Θ) (sym (+-suc j (revs Θ)))))
+cmax-cncOfRevs j (cnc X A ∷ Θ) = cmax-cncOfRevs j Θ
+
+cmax-cncOfRevs0 : ∀ Θ → cmax (cncOfRevs 0 Θ) ≡ revs Θ
+cmax-cncOfRevs0 Θ =
+  trans (sym (⊔-identityʳ (cmax (cncOfRevs 0 Θ)))) (cmax-cncOfRevs 0 Θ)
+
+revs-dual : ∀ Θ → revs (dualᵇ Θ) ≡ cmax Θ
+revs-dual Θ =
+  trans (revs-++ (rvlsOf (cmax Θ) 0 Θ) (cncOfRevs 0 Θ))
+    (trans (cong₂ _+_ (revs-rvlsOf (cmax Θ) 0 Θ) (revs-cncOfRevs 0 Θ))
+           (+-identityʳ (cmax Θ)))
+
+cmax-dual : ∀ Θ → cmax (dualᵇ Θ) ≡ revs Θ
+cmax-dual Θ =
+  trans (cmax-++ (rvlsOf (cmax Θ) 0 Θ) (cncOfRevs 0 Θ))
+    (trans (cong (_⊔ cmax (cncOfRevs 0 Θ)) (cmax-rvlsOf (cmax Θ) 0 Θ))
+           (cmax-cncOfRevs0 Θ))
+
+------------------------------------------------------------------------
+-- Part 2: the CONTEXT law and the retagging it needs.
+--
+-- intOf (intOf Δ Θ) (dualᵇ Θ) = prepAbst c (dropN c Δ) — the dual's
+-- interior REBUILDS the exterior, but with the dropped prefix rebuilt as
+-- `abst.  Over an all-`abst` Δ that is Δ on the nose; over a Δ with `rvld`
+-- entries in the dropped prefix it is NOT (no boundary has interior Γ₃ —
+-- notes/BoundaryRulesProbe §3b).  It does not have to be: typing reads a
+-- TCtx only through _∋tv_ and _⊢_, neither of which inspects the marker,
+-- so a derivation transports along ANY context of the same length
+-- (⊢retag).  That is what keeps preservation's statement unchanged.
+------------------------------------------------------------------------
+
+dropN-prepAbst : ∀ r (Γ : TCtx) → dropN r (prepAbst r Γ) ≡ Γ
+dropN-prepAbst zero    Γ = refl
+dropN-prepAbst (suc r) Γ = dropN-prepAbst r Γ
+
+intOf-dual : ∀ (Δ : TCtx) Θ
+  → intOf (intOf Δ Θ) (dualᵇ Θ) ≡ prepAbst (cmax Θ) (dropN (cmax Θ) Δ)
+intOf-dual Δ Θ rewrite revs-dual Θ | cmax-dual Θ =
+  cong (prepAbst (cmax Θ)) (dropN-prepAbst (revs Θ) (dropN (cmax Θ) Δ))
+
+len-dropN : ∀ c (Γ : TCtx) → length (dropN c Γ) ≡ length Γ ∸ c
+len-dropN zero    Γ       = refl
+len-dropN (suc c) []      = refl
+len-dropN (suc c) (E ∷ Γ) = len-dropN c Γ
+
+len-prepAbst : ∀ r (Γ : TCtx) → length (prepAbst r Γ) ≡ r + length Γ
+len-prepAbst zero    Γ = refl
+len-prepAbst (suc r) Γ = cong suc (len-prepAbst r Γ)
+
+len-intOf : ∀ (Γ : TCtx) Θ
+          → length (intOf Γ Θ) ≡ revs Θ + (length Γ ∸ cmax Θ)
+len-intOf Γ Θ = trans (len-prepAbst (revs Θ) (dropN (cmax Θ) Γ))
+                      (cong (revs Θ +_) (len-dropN (cmax Θ) Γ))
+
+len-dual : ∀ (Δ : TCtx) Θ → cmax Θ ≤ length Δ
+         → length Δ ≡ length (intOf (intOf Δ Θ) (dualᵇ Θ))
+len-dual Δ Θ le =
+  sym (trans (cong length (intOf-dual Δ Θ))
+        (trans (len-prepAbst (cmax Θ) (dropN (cmax Θ) Δ))
+          (trans (cong (cmax Θ +_) (len-dropN (cmax Θ) Δ))
+                 (m+[n∸m]≡n le))))
+
+-- the deepest conceal is a variable of Δ, so the dropped prefix is no
+-- longer than Δ — the side condition len-dual needs
+∋tv-len-bound : ∀ {Γ : TCtx} {X} → Γ ∋tv X → suc X ≤ length Γ
+∋tv-len-bound here-abst     = s≤s z≤n
+∋tv-len-bound here-rvld     = s≤s z≤n
+∋tv-len-bound (skip-abst p) = s≤s (∋tv-len-bound p)
+∋tv-len-bound (skip-rvld p) = s≤s (∋tv-len-bound p)
+
+bwf-cmax : ∀ {Δ Ψ} Θ → Δ ∣ Ψ ⊢ᵇ Θ → cmax Θ ≤ length Δ
+bwf-cmax []             bwf[]          = z≤n
+bwf-cmax (rvl A   ∷ Θ) (bwf↑ wfA b)   = bwf-cmax Θ b
+bwf-cmax (cnc X A ∷ Θ) (bwf↓ p wfA b) =
+  ⊔-lub (∋tv-len-bound p) (bwf-cmax Θ b)
+
+∋tv-len : ∀ {Γ Γ' : TCtx} {X} → length Γ ≡ length Γ' → Γ ∋tv X → Γ' ∋tv X
+∋tv-len {Γ' = []}          ()  here-abst
+∋tv-len {Γ' = abst ∷ Γ'}   le  here-abst     = here-abst
+∋tv-len {Γ' = rvld A ∷ Γ'} le  here-abst     = here-rvld
+∋tv-len {Γ' = []}          ()  here-rvld
+∋tv-len {Γ' = abst ∷ Γ'}   le  here-rvld     = here-abst
+∋tv-len {Γ' = rvld A ∷ Γ'} le  here-rvld     = here-rvld
+∋tv-len {Γ' = []}          ()  (skip-abst p)
+∋tv-len {Γ' = abst ∷ Γ'}   le  (skip-abst p) =
+  skip-abst (∋tv-len (suc-injective le) p)
+∋tv-len {Γ' = rvld A ∷ Γ'} le  (skip-abst p) =
+  skip-rvld (∋tv-len (suc-injective le) p)
+∋tv-len {Γ' = []}          ()  (skip-rvld p)
+∋tv-len {Γ' = abst ∷ Γ'}   le  (skip-rvld p) =
+  skip-abst (∋tv-len (suc-injective le) p)
+∋tv-len {Γ' = rvld A ∷ Γ'} le  (skip-rvld p) =
+  skip-rvld (∋tv-len (suc-injective le) p)
+
+wf-retag : ∀ {Γ Γ' : TCtx} {A} → length Γ ≡ length Γ' → Γ ⊢ A → Γ' ⊢ A
+wf-retag le (wf-var p)  = wf-var (∋tv-len le p)
+wf-retag le wf-ℕ        = wf-ℕ
+wf-retag le wf-𝔹        = wf-𝔹
+wf-retag le (wf-⇒ a b)  = wf-⇒ (wf-retag le a) (wf-retag le b)
+wf-retag le (wf-∀ a)    = wf-∀ (wf-retag (cong suc le) a)
+
+bwf-retag : ∀ {Δ Δ' Ψ Ψ' : TCtx} {Θ} → length Δ ≡ length Δ'
+  → length Ψ ≡ length Ψ' → Δ ∣ Ψ ⊢ᵇ Θ → Δ' ∣ Ψ' ⊢ᵇ Θ
+bwf-retag lΔ lΨ bwf[]           = bwf[]
+bwf-retag lΔ lΨ (bwf↑ wfA b)    =
+  bwf↑ (wf-retag lΔ wfA) (bwf-retag lΔ lΨ b)
+bwf-retag lΔ lΨ (bwf↓ p wfA b)  =
+  bwf↓ (∋tv-len lΔ p) (wf-retag lΨ wfA) (bwf-retag lΔ lΨ b)
+
+slotsᴳ-len : ∀ Θ k (Γ Γ' : TCtx) → length Γ ≡ length Γ'
+           → slotsᴳ Θ k Γ ≡ slotsᴳ Θ k Γ'
+slotsᴳ-len Θ k []      []        le = refl
+slotsᴳ-len Θ k []      (E' ∷ Γ') ()
+slotsᴳ-len Θ k (E ∷ Γ) []        ()
+slotsᴳ-len Θ k (E ∷ Γ) (E' ∷ Γ') le =
+  cong (slotAt Θ k ∷_) (slotsᴳ-len Θ (suc k) Γ Γ' (suc-injective le))
+
+baseS-len : ∀ Θ (Γ Γ' : TCtx) → length Γ ≡ length Γ'
+          → baseS Θ Γ ≡ baseS Θ Γ'
+baseS-len Θ Γ Γ' le =
+  cong (repl-ok (revs Θ) ++_) (slotsᴳ-len Θ 0 Γ Γ' le)
+
+-- typing depends on the type context only through its LENGTH: _∋tv_ and
+-- _⊢_ ignore the abst/rvld marker, intOf and baseS read only the shape
+⊢retag : ∀ {Δ Δ' Γₜ M A} → length Δ ≡ length Δ'
+       → Δ ∣ Γₜ ⊢ M ⦂ A → Δ' ∣ Γₜ ⊢ M ⦂ A
+⊢retag le (⊢` p)        = ⊢` p
+⊢retag le ⊢$            = ⊢$
+⊢retag le (⊢ƛ wfA ⊢N)   = ⊢ƛ (wf-retag le wfA) (⊢retag le ⊢N)
+⊢retag le (⊢· ⊢L ⊢M)    = ⊢· (⊢retag le ⊢L) (⊢retag le ⊢M)
+⊢retag le (⊢Λ ⊢N)       = ⊢Λ (⊢retag (cong suc le) ⊢N)
+⊢retag le (⊢·[] ⊢L wfA) = ⊢·[] (⊢retag le ⊢L) (wf-retag le wfA)
+⊢retag {Δ} {Δ'} le (env {Θ = Θ} {B₀ = B₀} bwf sc ⊢M) =
+  env (bwf-retag le lint bwf)
+      (subst (λ Ψ → Scoped Ψ B₀) (baseS-len Θ Δ Δ' le) sc)
+      (⊢retag lint ⊢M)
+  where
+    lint : length (intOf Δ Θ) ≡ length (intOf Δ' Θ)
+    lint = trans (len-intOf Δ Θ)
+                 (trans (cong (λ n → revs Θ + (n ∸ cmax Θ)) le)
+                        (sym (len-intOf Δ' Θ)))
+
+------------------------------------------------------------------------
+-- Part 3: the two FACE laws.  On Θ's boundary frame the slot X is sent by
+-- swapᵇ to the slot of Θᵈ's frame holding the same variable, and there
+--   ρᵇ Θᵈ ∘ swapᵇ Θ = γᵇ Θ    (at ACCESSIBLE slots only)
+--   γᵇ Θᵈ ∘ swapᵇ Θ = ρᵇ Θ    (at every slot)
+-- The first fails at a blocked slot — the dual reveals it at the dummy rep
+-- while γᵇ aliases it onto a kept variable — which is why R2 goes through
+-- subst-cong-sc with (env)'s scope premise (blocked-slot-differs, probe
+-- §3a, is the checked witness).
+------------------------------------------------------------------------
+
+sover-hit : ∀ X A σ i → X ≡ i → sover X A σ i ≡ A
+sover-hit X A σ i e with X ≟ i
+sover-hit X A σ i e | yes _  = refl
+sover-hit X A σ i e | no ¬e  = ⊥-elim (¬e e)
+
+sover-miss : ∀ X A σ i → ¬ (X ≡ i) → sover X A σ i ≡ σ i
+sover-miss X A σ i ne with X ≟ i
+sover-miss X A σ i ne | yes e = ⊥-elim (ne e)
+sover-miss X A σ i ne | no _  = refl
+
+j≢j+suc : ∀ j k → ¬ (j ≡ j + suc k)
+j≢j+suc zero    k ()
+j≢j+suc (suc j) k e = j≢j+suc j k (suc-injective e)
+
+isConc-< : ∀ Θ i → isConc i Θ ≡ true → i < cmax Θ
+isConc-< []             i ()
+isConc-< (rvl A   ∷ Θ) i c = isConc-< Θ i c
+isConc-< (cnc X A ∷ Θ) i c with isConc-cons i X A Θ c
+isConc-< (cnc X A ∷ Θ) i c | inj₁ refl = m≤m⊔n (suc i) (cmax Θ)
+isConc-< (cnc X A ∷ Θ) i c | inj₂ t =
+  ≤-trans (isConc-< Θ i t) (m≤n⊔m (suc X) (cmax Θ))
+
+-- the interior face at a Γ-slot: a concealed one goes to its rep, a kept
+-- one to its interior slot
+γcnc-conc : ∀ r m Θ i → isConc i Θ ≡ true → γcnc r m Θ i ≡ repOf i Θ
+γcnc-conc r m []             i ()
+γcnc-conc r m (rvl A   ∷ Θ) i c = γcnc-conc r m Θ i c
+γcnc-conc r m (cnc X A ∷ Θ) i c with X ≟ i | i ≟ X
+γcnc-conc r m (cnc X A ∷ Θ) i c | yes p | yes q = refl
+γcnc-conc r m (cnc X A ∷ Θ) i c | yes p | no ¬q = ⊥-elim (¬q (sym p))
+γcnc-conc r m (cnc X A ∷ Θ) i c | no ¬p | yes q = ⊥-elim (¬p (sym q))
+γcnc-conc r m (cnc X A ∷ Θ) i c | no ¬p | no ¬q =
+  γcnc-conc r m Θ i c
+
+γcnc-kept : ∀ r m Θ i → cmax Θ ≤ i → γcnc r m Θ i ≡ ` (r + (i ∸ m))
+γcnc-kept r m []             i le = refl
+γcnc-kept r m (rvl A   ∷ Θ) i le = γcnc-kept r m Θ i le
+γcnc-kept r m (cnc X A ∷ Θ) i le =
+  trans (sover-miss X A (γcnc r m Θ) i ne)
+        (γcnc-kept r m Θ i (≤-trans (m≤n⊔m (suc X) (cmax Θ)) le))
+  where
+    ne : ¬ (X ≡ i)
+    ne p = <-irrefl p (≤-trans (m≤m⊔n (suc X) (cmax Θ)) le)
+
+γᵇ-conc : ∀ Θ i → isConc i Θ ≡ true → γᵇ Θ (revs Θ + i) ≡ repOf i Θ
+γᵇ-conc Θ i c =
+  trans (prepId-hi (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ) i)
+        (γcnc-conc (revs Θ) (cmax Θ) Θ i c)
+
+γᵇ-kept : ∀ Θ i → cmax Θ ≤ i
+        → γᵇ Θ (revs Θ + i) ≡ ` (revs Θ + (i ∸ cmax Θ))
+γᵇ-kept Θ i le =
+  trans (prepId-hi (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ) i)
+        (γcnc-kept (revs Θ) (cmax Θ) Θ i le)
+
+-- the exterior face is the identity on the Γ-part of the boundary frame
+ρᵇ-hi : ∀ Θ i → ρᵇ Θ (revs Θ + i) ≡ ` i
+ρᵇ-hi []             i = refl
+ρᵇ-hi (rvl A   ∷ Θ) i = ρᵇ-hi Θ i
+ρᵇ-hi (cnc X A ∷ Θ) i = ρᵇ-hi Θ i
+
+-- the exterior face of the DUAL: its reveal block resolves the dropped
+-- slots to Θ's conceal reps, and everything above it passes through
+ρᵇ-rvls-lo : ∀ k s Θ Θ₂ i → i < k
+           → ρᵇ (rvlsOf k s Θ ++ Θ₂) i ≡ repOf (s + i) Θ
+ρᵇ-rvls-lo zero    s Θ Θ₂ i       ()
+ρᵇ-rvls-lo (suc k) s Θ Θ₂ zero    lt =
+  cong (λ n → repOf n Θ) (sym (+-identityʳ s))
+ρᵇ-rvls-lo (suc k) s Θ Θ₂ (suc i) (s≤s lt) =
+  trans (ρᵇ-rvls-lo k (suc s) Θ Θ₂ i lt)
+        (cong (λ n → repOf n Θ) (sym (+-suc s i)))
+
+ρᵇ-rvls-hi : ∀ k s Θ Θ₂ j → ρᵇ (rvlsOf k s Θ ++ Θ₂) (k + j) ≡ ρᵇ Θ₂ j
+ρᵇ-rvls-hi zero    s Θ Θ₂ j = refl
+ρᵇ-rvls-hi (suc k) s Θ Θ₂ j = ρᵇ-rvls-hi k (suc s) Θ Θ₂ j
+
+ρᵇ-cncOfRevs : ∀ j Θ i → ρᵇ (cncOfRevs j Θ) i ≡ ` i
+ρᵇ-cncOfRevs j []             i = refl
+ρᵇ-cncOfRevs j (rvl A   ∷ Θ) i = ρᵇ-cncOfRevs (suc j) Θ i
+ρᵇ-cncOfRevs j (cnc X A ∷ Θ) i = ρᵇ-cncOfRevs j Θ i
+
+ρᵇ-dual-lo : ∀ Θ i → i < cmax Θ → ρᵇ (dualᵇ Θ) i ≡ repOf i Θ
+ρᵇ-dual-lo Θ i lt = ρᵇ-rvls-lo (cmax Θ) 0 Θ (cncOfRevs 0 Θ) i lt
+
+ρᵇ-dual-hi : ∀ Θ k → ρᵇ (dualᵇ Θ) (cmax Θ + k) ≡ ` k
+ρᵇ-dual-hi Θ k =
+  trans (ρᵇ-rvls-hi (cmax Θ) 0 Θ (cncOfRevs 0 Θ) k) (ρᵇ-cncOfRevs 0 Θ k)
+
+-- the interior face of the DUAL: its conceal block resolves Θ's reveal
+-- variables to Θ's own reveal reps, and everything above it is kept
+γcnc-rvls : ∀ r m k s Θ Θ₂ i
+  → γcnc r m (rvlsOf k s Θ ++ Θ₂) i ≡ γcnc r m Θ₂ i
+γcnc-rvls r m zero    s Θ Θ₂ i = refl
+γcnc-rvls r m (suc k) s Θ Θ₂ i = γcnc-rvls r m k (suc s) Θ Θ₂ i
+
+γcnc-cnc-lo : ∀ r m j Θ k → k < revs Θ
+  → γcnc r m (cncOfRevs j Θ) (j + k) ≡ ρᵇ Θ k
+γcnc-cnc-lo r m j []             k       ()
+γcnc-cnc-lo r m j (rvl A   ∷ Θ) zero    lt =
+  sover-hit j A (γcnc r m (cncOfRevs (suc j) Θ)) (j + 0)
+            (sym (+-identityʳ j))
+γcnc-cnc-lo r m j (rvl A   ∷ Θ) (suc k) (s≤s lt) =
+  trans (sover-miss j A (γcnc r m (cncOfRevs (suc j) Θ)) (j + suc k)
+                    (j≢j+suc j k))
+    (trans (cong (γcnc r m (cncOfRevs (suc j) Θ)) (+-suc j k))
+           (γcnc-cnc-lo r m (suc j) Θ k lt))
+γcnc-cnc-lo r m j (cnc X A ∷ Θ) k       lt = γcnc-cnc-lo r m j Θ k lt
+
+γcnc-cnc-hi : ∀ r m j Θ i → j + revs Θ ≤ i
+  → γcnc r m (cncOfRevs j Θ) i ≡ ` (r + (i ∸ m))
+γcnc-cnc-hi r m j []             i le = refl
+γcnc-cnc-hi r m j (rvl A   ∷ Θ) i le =
+  trans (sover-miss j A (γcnc r m (cncOfRevs (suc j) Θ)) i ne)
+        (γcnc-cnc-hi r m (suc j) Θ i le')
+  where
+    le' : suc j + revs Θ ≤ i
+    le' = subst (_≤ i) (+-suc j (revs Θ)) le
+    ne : ¬ (j ≡ i)
+    ne p = <-irrefl p (≤-trans (s≤s (m≤m+n j (revs Θ))) le')
+γcnc-cnc-hi r m j (cnc X A ∷ Θ) i le = γcnc-cnc-hi r m j Θ i le
+
+γᵇ-dual-lo : ∀ Θ i → i < cmax Θ → γᵇ (dualᵇ Θ) i ≡ ` i
+γᵇ-dual-lo Θ i lt =
+  prepId-lo (revs (dualᵇ Θ))
+            (γcnc (revs (dualᵇ Θ)) (cmax (dualᵇ Θ)) (dualᵇ Θ)) i
+            (subst (i <_) (sym (revs-dual Θ)) lt)
+
+γᵇ-dual-hi : ∀ Θ k
+  → γᵇ (dualᵇ Θ) (cmax Θ + k) ≡ γcnc (cmax Θ) (revs Θ) (dualᵇ Θ) k
+γᵇ-dual-hi Θ k =
+  trans (prepId-hi′ (cmax Θ) (revs (dualᵇ Θ))
+                    (γcnc (revs (dualᵇ Θ)) (cmax (dualᵇ Θ)) (dualᵇ Θ)) k
+                    (revs-dual Θ))
+        (cong₂ (λ a b → γcnc a b (dualᵇ Θ) k) (revs-dual Θ) (cmax-dual Θ))
+
+γcnc-dual-lo : ∀ Θ k → k < revs Θ
+  → γcnc (cmax Θ) (revs Θ) (dualᵇ Θ) k ≡ ρᵇ Θ k
+γcnc-dual-lo Θ k lt =
+  trans (γcnc-rvls (cmax Θ) (revs Θ) (cmax Θ) 0 Θ (cncOfRevs 0 Θ) k)
+        (γcnc-cnc-lo (cmax Θ) (revs Θ) 0 Θ k lt)
+
+γcnc-dual-hi : ∀ Θ k → revs Θ ≤ k
+  → γcnc (cmax Θ) (revs Θ) (dualᵇ Θ) k ≡ ` (cmax Θ + (k ∸ revs Θ))
+γcnc-dual-hi Θ k le =
+  trans (γcnc-rvls (cmax Θ) (revs Θ) (cmax Θ) 0 Θ (cncOfRevs 0 Θ) k)
+        (γcnc-cnc-hi (cmax Θ) (revs Θ) 0 Θ k le)
+
+-- the frame permutation, on the three regions of Θ's frame
+swap-lo : ∀ r c X → X < r → swapIdx r c X ≡ c + X
+swap-lo r c X lt with X <? r
+swap-lo r c X lt | yes _  = refl
+swap-lo r c X lt | no ¬lt = ⊥-elim (¬lt lt)
+
+swap-mid : ∀ r c i → i < c → swapIdx r c (r + i) ≡ i
+swap-mid r c i lt with (r + i) <? r
+swap-mid r c i lt | yes p = ⊥-elim (m+n≮m r i p)
+swap-mid r c i lt | no ¬p with ((r + i) ∸ r) <? c
+swap-mid r c i lt | no ¬p | yes q = m+n∸m≡n r i
+swap-mid r c i lt | no ¬p | no ¬q =
+  ⊥-elim (¬q (subst (_< c) (sym (m+n∸m≡n r i)) lt))
+
+swap-hi : ∀ r c i → c ≤ i → swapIdx r c (r + i) ≡ r + i
+swap-hi r c i le with (r + i) <? r
+swap-hi r c i le | yes p = ⊥-elim (m+n≮m r i p)
+swap-hi r c i le | no ¬p with ((r + i) ∸ r) <? c
+swap-hi r c i le | no ¬p | yes q =
+  ⊥-elim (<-irrefl refl (≤-trans (subst (_< c) (m+n∸m≡n r i) q) le))
+swap-hi r c i le | no ¬p | no ¬q = refl
+
+-- a kept slot keeps its position: c + (r + (i ∸ c)) = r + i
+kept-idx : ∀ r c i → c ≤ i → c + (r + (i ∸ c)) ≡ r + i
+kept-idx r c i le =
+  trans (sym (+-assoc c r (i ∸ c)))
+    (trans (cong (_+ (i ∸ c)) (+-comm c r))
+      (trans (+-assoc r c (i ∸ c)) (cong (r +_) (m+[n∸m]≡n le))))
+
+-- FACE LAW (exterior of the dual = interior of Θ), at accessible slots
+ρᵇ-dual-swap : ∀ {Δ} Θ X → baseS Θ Δ ∋ok X
+             → ρᵇ (dualᵇ Θ) (swapᵇ Θ X) ≡ γᵇ Θ X
+ρᵇ-dual-swap Θ X okp with split (revs Θ) X
+ρᵇ-dual-swap Θ X okp | inj₁ lt =
+  trans (cong (ρᵇ (dualᵇ Θ)) (swap-lo (revs Θ) (cmax Θ) X lt))
+    (trans (ρᵇ-dual-hi Θ X)
+           (sym (prepId-lo (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ) X lt)))
+ρᵇ-dual-swap Θ .(revs Θ + i) okp | inj₂ (i , refl)
+  with baseS-acc Θ i okp
+ρᵇ-dual-swap Θ .(revs Θ + i) okp | inj₂ (i , refl) | inj₁ le =
+  trans (cong (ρᵇ (dualᵇ Θ))
+              (trans (swap-hi (revs Θ) (cmax Θ) i le)
+                     (sym (kept-idx (revs Θ) (cmax Θ) i le))))
+    (trans (ρᵇ-dual-hi Θ (revs Θ + (i ∸ cmax Θ))) (sym (γᵇ-kept Θ i le)))
+ρᵇ-dual-swap Θ .(revs Θ + i) okp | inj₂ (i , refl) | inj₂ cc =
+  trans (cong (ρᵇ (dualᵇ Θ))
+              (swap-mid (revs Θ) (cmax Θ) i (isConc-< Θ i cc)))
+    (trans (ρᵇ-dual-lo Θ i (isConc-< Θ i cc)) (sym (γᵇ-conc Θ i cc)))
+
+-- FACE LAW (interior of the dual = exterior of Θ), at EVERY slot
+γᵇ-dual-swap : ∀ Θ X → γᵇ (dualᵇ Θ) (swapᵇ Θ X) ≡ ρᵇ Θ X
+γᵇ-dual-swap Θ X with split (revs Θ) X
+γᵇ-dual-swap Θ X | inj₁ lt =
+  trans (cong (γᵇ (dualᵇ Θ)) (swap-lo (revs Θ) (cmax Θ) X lt))
+        (trans (γᵇ-dual-hi Θ X) (γcnc-dual-lo Θ X lt))
+γᵇ-dual-swap Θ .(revs Θ + i) | inj₂ (i , refl) with cmax Θ ≤? i
+γᵇ-dual-swap Θ .(revs Θ + i) | inj₂ (i , refl) | yes le =
+  trans (cong (γᵇ (dualᵇ Θ))
+              (trans (swap-hi (revs Θ) (cmax Θ) i le)
+                     (sym (kept-idx (revs Θ) (cmax Θ) i le))))
+    (trans (γᵇ-dual-hi Θ (revs Θ + (i ∸ cmax Θ)))
+      (trans (γcnc-dual-hi Θ (revs Θ + (i ∸ cmax Θ))
+                           (m≤m+n (revs Θ) (i ∸ cmax Θ)))
+        (trans (cong (λ n → ` (cmax Θ + n))
+                     (m+n∸m≡n (revs Θ) (i ∸ cmax Θ)))
+          (trans (cong `_ (m+[n∸m]≡n le)) (sym (ρᵇ-hi Θ i))))))
+γᵇ-dual-swap Θ .(revs Θ + i) | inj₂ (i , refl) | no ¬le =
+  trans (cong (γᵇ (dualᵇ Θ)) (swap-mid (revs Θ) (cmax Θ) i (≰⇒> ¬le)))
+        (trans (γᵇ-dual-lo Θ i (≰⇒> ¬le)) (sym (ρᵇ-hi Θ i)))
+
+-- the two face laws as the retypings preservation needs.  The exterior one
+-- is scope-restricted (subst-cong-sc with (env)'s premise for B₁).
+ρᵇ-dual-ty : ∀ {Δ} B Θ → Scoped (baseS Θ Δ) B
+  → substᵗ (ρᵇ (dualᵇ Θ)) (renameᵗ (swapᵇ Θ) B) ≡ substᵗ (γᵇ Θ) B
+ρᵇ-dual-ty B Θ sc =
+  trans (rename-subst-commute (swapᵇ Θ) (ρᵇ (dualᵇ Θ)) B)
+        (subst-cong-sc sc (λ X okp → ρᵇ-dual-swap Θ X okp))
+
+γᵇ-dual-ty : ∀ B Θ
+  → substᵗ (γᵇ (dualᵇ Θ)) (renameᵗ (swapᵇ Θ) B) ≡ substᵗ (ρᵇ Θ) B
+γᵇ-dual-ty B Θ =
+  trans (rename-subst-commute (swapᵇ Θ) (γᵇ (dualᵇ Θ)) B)
+        (subst-cong (γᵇ-dual-swap Θ) B)
+
+------------------------------------------------------------------------
+-- Part 4: the dual is WELL FORMED and its scope stack is all-accessible.
+-- Reveal reps of Θᵈ are Θ's conceal reps, which bwf reads in intOf Δ Θ =
+-- Θᵈ's exterior; conceal reps of Θᵈ are Θ's reveal reps, which bwf reads
+-- in Δ = Θᵈ's interior (up to retagging).  Every slot of Θᵈ's frame is
+-- accessible: below cmax Θᵈ = revs Θ every index is concealed by Θᵈ.
+------------------------------------------------------------------------
+
+bwf-++ : ∀ {Γ Ψ} Θ₁ Θ₂ → Γ ∣ Ψ ⊢ᵇ Θ₁ → Γ ∣ Ψ ⊢ᵇ Θ₂ → Γ ∣ Ψ ⊢ᵇ (Θ₁ ++ Θ₂)
+bwf-++ []             Θ₂ bwf[]          b₂ = b₂
+bwf-++ (rvl A   ∷ Θ₁) Θ₂ (bwf↑ wfA b)   b₂ = bwf↑ wfA (bwf-++ Θ₁ Θ₂ b b₂)
+bwf-++ (cnc X A ∷ Θ₁) Θ₂ (bwf↓ p wfA b) b₂ =
+  bwf↓ p wfA (bwf-++ Θ₁ Θ₂ b b₂)
+
+repOf-wf : ∀ {Δ Ψ} Θ → Δ ∣ Ψ ⊢ᵇ Θ → ∀ i → Ψ ⊢ repOf i Θ
+repOf-wf []             bwf[]          i = wf-ℕ
+repOf-wf (rvl A   ∷ Θ) (bwf↑ wfA b)   i = repOf-wf Θ b i
+repOf-wf (cnc X A ∷ Θ) (bwf↓ p wfA b) i with i ≟ X
+repOf-wf (cnc X A ∷ Θ) (bwf↓ p wfA b) i | yes q = wfA
+repOf-wf (cnc X A ∷ Θ) (bwf↓ p wfA b) i | no ¬q = repOf-wf Θ b i
+
+bwf-rvlsOf : ∀ {Δ Ψ Δ'} Θ → Δ ∣ Ψ ⊢ᵇ Θ → ∀ k s → Ψ ∣ Δ' ⊢ᵇ rvlsOf k s Θ
+bwf-rvlsOf Θ b zero    s = bwf[]
+bwf-rvlsOf Θ b (suc k) s =
+  bwf↑ (repOf-wf Θ b s) (bwf-rvlsOf Θ b k (suc s))
+
+bwf-cncOfRevs : ∀ {Δ Ψ Δ'} Θ → Δ ∣ Ψ ⊢ᵇ Θ → length Δ ≡ length Δ'
+  → ∀ j → (∀ k → k < revs Θ → Ψ ∋tv (j + k))
+  → Ψ ∣ Δ' ⊢ᵇ cncOfRevs j Θ
+bwf-cncOfRevs {Δ} {Ψ} []             bwf[]          le j h = bwf[]
+bwf-cncOfRevs {Δ} {Ψ} (rvl A   ∷ Θ) (bwf↑ wfA b)   le j h =
+  bwf↓ (subst (Ψ ∋tv_) (+-identityʳ j) (h 0 (s≤s z≤n)))
+       (wf-retag le wfA)
+       (bwf-cncOfRevs Θ b le (suc j) h′)
+  where
+    h′ : ∀ k → k < revs Θ → Ψ ∋tv (suc j + k)
+    h′ k lt = subst (Ψ ∋tv_) (+-suc j k) (h (suc k) (s≤s lt))
+bwf-cncOfRevs {Δ} {Ψ} (cnc X A ∷ Θ) (bwf↓ p wfA b) le j h =
+  bwf-cncOfRevs Θ b le j h
+
+bwf-dual : ∀ {Δ Δ'} Θ → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → length Δ ≡ length Δ'
+         → intOf Δ Θ ∣ Δ' ⊢ᵇ dualᵇ Θ
+bwf-dual {Δ} Θ bwf le =
+  bwf-++ (rvlsOf (cmax Θ) 0 Θ) (cncOfRevs 0 Θ)
+         (bwf-rvlsOf Θ bwf (cmax Θ) 0)
+         (bwf-cncOfRevs Θ bwf le 0 h)
+  where
+    h : ∀ k → k < revs Θ → intOf Δ Θ ∋tv (0 + k)
+    h k lt = prepAbst-lo (revs Θ) (dropN (cmax Θ) Δ) k lt
+
+isConc-++ʳ : ∀ i Θ₁ Θ₂ → isConc i Θ₂ ≡ true → isConc i (Θ₁ ++ Θ₂) ≡ true
+isConc-++ʳ i []             Θ₂ c = c
+isConc-++ʳ i (rvl A   ∷ Θ₁) Θ₂ c = isConc-++ʳ i Θ₁ Θ₂ c
+isConc-++ʳ i (cnc X A ∷ Θ₁) Θ₂ c =
+  isConc-there i X A (Θ₁ ++ Θ₂) (isConc-++ʳ i Θ₁ Θ₂ c)
+
+isConc-cncOfRevs : ∀ j Θ k → k < revs Θ
+                 → isConc (j + k) (cncOfRevs j Θ) ≡ true
+isConc-cncOfRevs j []             k       ()
+isConc-cncOfRevs j (rvl A   ∷ Θ) zero    lt =
+  isConc-here (j + 0) j A (cncOfRevs (suc j) Θ) (+-identityʳ j)
+isConc-cncOfRevs j (rvl A   ∷ Θ) (suc k) (s≤s lt) =
+  isConc-there (j + suc k) j A (cncOfRevs (suc j) Θ)
+    (subst (λ n → isConc n (cncOfRevs (suc j) Θ) ≡ true)
+           (sym (+-suc j k)) (isConc-cncOfRevs (suc j) Θ k lt))
+isConc-cncOfRevs j (cnc X A ∷ Θ) k       lt = isConc-cncOfRevs j Θ k lt
+
+isConc-dual : ∀ Θ k → k < revs Θ → isConc k (dualᵇ Θ) ≡ true
+isConc-dual Θ k lt =
+  isConc-++ʳ k (rvlsOf (cmax Θ) 0 Θ) (cncOfRevs 0 Θ)
+             (isConc-cncOfRevs 0 Θ k lt)
+
+dropN-∋tv : ∀ c (Γ : TCtx) i → c ≤ i → Γ ∋tv i → dropN c Γ ∋tv (i ∸ c)
+dropN-∋tv zero    Γ       i       le       p = p
+dropN-∋tv (suc c) []      i       le       ()
+dropN-∋tv (suc c) (E ∷ Γ) zero    ()       p
+dropN-∋tv (suc c) (E ∷ Γ) (suc i) (s≤s le) p =
+  dropN-∋tv c Γ i le (∋tv-tail p)
+
+-- every slot of the dual's frame is ACCESSIBLE, and swapᵇ lands on the
+-- slot holding the same variable
+swap-ok : ∀ {Δ} Θ X → baseS Θ Δ ∋ok X
+        → baseS (dualᵇ Θ) (intOf Δ Θ) ∋ok swapᵇ Θ X
+swap-ok {Δ} Θ X okp with split (revs Θ) X
+swap-ok {Δ} Θ X okp | inj₁ lt =
+  ∋ok-≡ (trans (cong (_+ X) (revs-dual Θ))
+               (sym (swap-lo (revs Θ) (cmax Θ) X lt)))
+        (baseS-ok (dualᵇ Θ) X (inj₂ (isConc-dual Θ X lt))
+                  (prepAbst-lo (revs Θ) (dropN (cmax Θ) Δ) X lt))
+swap-ok {Δ} Θ .(revs Θ + i) okp | inj₂ (i , refl) with baseS-acc Θ i okp
+swap-ok {Δ} Θ .(revs Θ + i) okp | inj₂ (i , refl) | inj₁ le =
+  ∋ok-≡ (trans (cong (_+ (revs Θ + (i ∸ cmax Θ))) (revs-dual Θ))
+          (trans (kept-idx (revs Θ) (cmax Θ) i le)
+                 (sym (swap-hi (revs Θ) (cmax Θ) i le))))
+        (baseS-ok (dualᵇ Θ) (revs Θ + (i ∸ cmax Θ))
+                  (inj₁ (subst (_≤ revs Θ + (i ∸ cmax Θ)) (sym (cmax-dual Θ))
+                               (m≤m+n (revs Θ) (i ∸ cmax Θ))))
+                  (prepAbst-hi (revs Θ) (dropN (cmax Θ) Δ) (i ∸ cmax Θ)
+                    (dropN-∋tv (cmax Θ) Δ i le (baseS-∋tv Θ i okp))))
+swap-ok {Δ} Θ .(revs Θ + i) okp | inj₂ (i , refl) | inj₂ cc =
+  ∋ok-≡ (sym (swap-mid (revs Θ) (cmax Θ) i (isConc-< Θ i cc)))
+        (repl-lo (revs (dualᵇ Θ)) i
+                 (subst (i <_) (sym (revs-dual Θ)) (isConc-< Θ i cc)))
+
+sc-dual : ∀ {Δ B} Θ → Scoped (baseS Θ Δ) B
+        → Scoped (baseS (dualᵇ Θ) (intOf Δ Θ)) (renameᵗ (swapᵇ Θ) B)
+sc-dual Θ sc = sc-rename (λ X okp → swap-ok Θ X okp) sc

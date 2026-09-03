@@ -2,7 +2,7 @@ module strong.ScopeBridge where
 
 -- Strong System F — the "context-wf ⇒ typing ⇒ Scoped" bridge (PLAN.md §3b).
 --
--- The β-Λ preservation case builds a boundary  rvl A ∷ []  around the body
+-- The TyBeta preservation case builds a boundary  rvl A ∷ []  around the body
 -- of a Λ, and the (env) rule then demands  Scoped (baseS (rvl A ∷ []) Δ) B
 -- for the body's type B.  Nothing in the reduction relation carries that
 -- fact, so it must be RECOVERED from typing.  Three moves do that:
@@ -11,7 +11,7 @@ module strong.ScopeBridge where
 --        ⊢ty-wf    : Δ ⊢* Γₜ → Δ ∣ Γₜ ⊢ M ⦂ A → Δ ⊢ A
 --   2. well-formedness gives scoping
 --        wf→Scoped : Δ ⊢ B → (∋tv ⊆ ∋ok) → Scoped Ψ B
---   3. the β-Λ boundary is all-ok     allOk-∋ok : (abst ∷ Δ) ∋tv X
+--   3. the TyBeta boundary is all-ok     allOk-∋ok : (abst ∷ Δ) ∋tv X
 --                                               → baseS (rvl A ∷ []) Δ ∋ok X
 --
 -- and composes them into  scB-bridge.  Step 1 needs substitution to preserve
@@ -207,7 +207,7 @@ wf→Scoped {Δ = Δ} {Ψ = Ψ} (wf-∀ {A = A₀} a) h =
   h-ext (skip-abst p) = thereᵒ (h p)
 
 ------------------------------------------------------------------------
--- The β-Λ boundary  rvl A ∷ []  has an all-ok accessibility stack
+-- The TyBeta boundary  rvl A ∷ []  has an all-ok accessibility stack
 ------------------------------------------------------------------------
 
 -- cmax (rvl A ∷ []) = 0 and  0 ≤? i  is always `yes z≤n`, so slotAt reduces to
@@ -227,7 +227,7 @@ allOk-∋ok here-abst     = hereᵒ
 allOk-∋ok (skip-abst p) = thereᵒ (slotsᴳ-allOk 0 p)
 
 ------------------------------------------------------------------------
--- The bridge:  β-Λ's  scB  obligation
+-- The bridge:  TyBeta's  scB  obligation
 ------------------------------------------------------------------------
 
 -- The Λ body is typed at term context ⤊ [] = [], one abstract variable deeper

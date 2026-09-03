@@ -177,7 +177,7 @@ Proposed rule, in `BReduction.agda` style:
 ```agda
   -- MERGE (after Zdancewic et al. rule (8), p. 203).
   -- Θ₁ lives over the interior of Θ₂; the composite lives over the exterior of Θ₂.
-  β-⟪⟫⟪⟫ : Value V
+  Merge : Value V
     → (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫  -→  V ⟪ Θ₁ ⊕ᵇ Θ₂ , B₂ ⟫
 
   -- Θ₁ ⊕ᵇ Θ₂ (the analogue of their label append ℓ_j : ℓ_k):
@@ -207,7 +207,7 @@ Two obligations to state before writing any proof:
 ```
 
 `⊕ᵇ-γ` is the whole content; it is the Agda form of their Appendix p. 207 case (8), and it is the statement
-that will fail unless route 2 lands first. Suggested order: **route 2 → `⊕ᵇ` + `⊕ᵇ-int` probe → `β-⟪⟫⟪⟫`
+that will fail unless route 2 lands first. Suggested order: **route 2 → `⊕ᵇ` + `⊕ᵇ-int` probe → `Merge`
 → tighten `canon-var` to depth-1 → progress.**
 
 One further thing the paper does that we have not considered: **their strip rule (6)/(A2)/(H2) fires at any

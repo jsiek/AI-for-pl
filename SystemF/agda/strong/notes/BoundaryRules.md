@@ -19,14 +19,14 @@ rule (§2).
 ```agda
   -- R1  a boundary meets a type application: float the ·[] inside and
   --     RECORD the type argument as a new reveal (never push A inward)
-  β-⟪⟫·[] : Value V
+  TyWrap : Value V
     → (V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
       -→ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀) , ` 0 ])
            ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
 
   -- R2  a boundary meets an application: move the argument inside through
   --     the DUAL boundary
-  β-⟪⟫· : Value V → Value W
+  Wrap : Value V → Value W
     → (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
       -→ (V · (W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
 ```
@@ -45,7 +45,7 @@ Proved face laws (probe §1), i.e. exactly the retypings preservation needs:
   (so R1's `Scoped` obligation *is* the `sc-∀` inversion of the redex's);
 * `ext-suc-[]0 : (renameᵗ (extᵗ suc) T) [ ` 0 ]ᵗ ≡ T` for the floated `·[]`
   (its index is the ∀-body of `⇑ᵀ V`'s type, hence the `renameᵗ (extᵗ suc)`;
-  landed as `β-⟪⟫·[]` in BReduction.agda, preservation case in BPreservation.agda).
+  landed as `TyWrap` in BReduction.agda, preservation case in BPreservation.agda).
 
 `dualᵇ` / `swapᵇ` (probe §3): every **reveal** of `Θ` becomes a **conceal** of
 `dualᵇ Θ` at its interior index, keeping its rep (a reveal rep is read in `Δ`,
@@ -103,7 +103,7 @@ than the sketch feared, but *not* always.
 in probe §2, and the corresponding ƛ rule) produce *tighter* terms — one
 boundary instead of two, no `⇑ᵀ` — but they are **partial**: R2 wraps the
 argument, so nested wrappers are reachable, and R1′ is stuck on them
-(`⊢nest-redex`, probe §4c). Choosing R1′/β-ƛ⟪⟫ therefore forces a merge rule.
+(`⊢nest-redex`, probe §4c). Choosing R1′/Beta⟪⟫ therefore forces a merge rule.
 Merge is also delicate: a composite of two boundaries is expressible in general
 (the contexts line up), but reconciling a rep the inner boundary blocks needs
 its own scope premises — and in the inconsistent case of §4 below no merge can
@@ -149,8 +149,8 @@ so the body must itself be a wrapper with a variable boundary type. The chain
 can only terminate at a **conceal of that same variable** (a conceal rep is
 `γᵇ`'s only non-variable output) — i.e. at a Cancel pair.
 
-Rules needed so that every elimination of a closed value steps: `β-Λ`, `β-ƛ`,
-`β-⟪⟫·[]` (R1), `β-⟪⟫·` (R2), and `ξ-·-l`, `ξ-·-r`, `ξ-·[]`, `ξ-⟪⟫`, `ξ-Λ`.
+Rules needed so that every elimination of a closed value steps: `TyBeta`, `Beta`,
+`TyWrap` (R1), `Wrap` (R2), and `ξ-·-l`, `ξ-·-r`, `ξ-·[]`, `ξ-⟪⟫`, `ξ-Λ`.
 R1 additionally needs `Value V → Value (renameᵀ ρ V)` (structural).
 
 ## 4. Risks
@@ -166,7 +166,7 @@ Machine-checked on Example 8's own redex, at `Δ8 = [Y , X]` with `Y` **blocked*
         (polyid ⟪ ↓X:=ℕ , ∀(Z→Z) ⟫) ·[ Z→Z , Y ]      : Y→Y      ⊢redex-R1
   R1 ↓
         (polyid ·[ Z→Z , ` 0 ]) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫ : Y→Y    ⊢contractum-R1
-  β-Λ ↓
+  TyBeta ↓
         (λz:Z. z) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫              : Y→Y     ⊢contractum-R1′
 ```
 `Y` stays blocked in the interior and `B₀ = Z→Z` never names it, so `Scoped`

@@ -30,9 +30,9 @@ rule shapes are guidance only and may change considerably.
 | file | role | status |
 |---|---|---|
 | `Boundary.agda` | boundary syntax, projections, scope machinery, typing (`_∣_⊢_⦂_`, `env`) | ✅ 0 holes |
-| `BReduction.agda` | values, `_-→_` (β-Λ, β-ƛ, ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫), type-var renaming through boundaries, `⊢renameᵀ` | ✅ 0 holes |
+| `BReduction.agda` | values, `_-→_` (TyBeta, Beta, ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫), type-var renaming through boundaries, `⊢renameᵀ` | ✅ 0 holes |
 | `ScopeBridge.agda` | `⊢ty-wf`, `wf→Scoped`, `env-ext-wf`, `scB-bridge` (§3b) | ✅ 0 holes |
-| `TermSubst.agda` | `⊢renameᵀᵐ`, `⊢substᵀᵐ`, `⊢[]ᵐ`, `preserve-β-ƛ` (§3c) | ✅ 0 holes |
+| `TermSubst.agda` | `⊢renameᵀᵐ`, `⊢substᵀᵐ`, `⊢[]ᵐ`, `preserve-Beta` (§3c) | ✅ 0 holes |
 | `BPreservation.agda` | `preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A`, all current rules | ✅ 0 holes |
 | `Canonical.agda` | canonical-form statements `canon-ℕ/⇒/∀`, `canon-var`, `Value-renameᵀ` (§5) | ⚠️ holes (REALLMS) |
 | `Progress.agda` | `progress`, incremental (§5) | 🚧 in flight |
@@ -112,19 +112,19 @@ Two corrections to the original plan: conceal reps rename by `intRen ρ Θ`, not
 by `⊢[]` since the Λ body is at `⤊ [] = []`). `env`'s `Scoped` premise is what
 makes the external face's well-formedness derivable (`env-ext-wf`).
 
-3c `β-ƛ`: closed by `TermSubst.preserve-β-ƛ` (`⊢substᵀᵐ`'s Λ case is `⊢renameᵀ`
+3c `Beta`: closed by `TermSubst.preserve-Beta` (`⊢substᵀᵐ`'s Λ case is `⊢renameᵀ`
 at `suc` with `Mono-suc`; `⤊ Γ = map ⇑ᵗ Γ` is definitional).
 
 ## 4. Complete the REDUCTION relation (one rule at a time — see §1 Method)
 
-Done: `β-Λ`, `β-ƛ`, and the congruences `ξ-·-l`, `ξ-·-r` (CBV, left to right),
+Done: `TyBeta`, `Beta`, and the congruences `ξ-·-l`, `ξ-·-r` (CBV, left to right),
 `ξ-·[]`, `ξ-Λ` (Λ V is a value only when V is), `ξ-⟪⟫` (reduce under a boundary;
 its preservation case is why `preservation` is generalised over Δ).
 
 Boundary-manipulation rules — proposed in `notes/BoundaryRules.md` (all typing
 machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
 
-- **R1 `β-⟪⟫·[]`** (in flight): a wrapped value meets a type application. Float
+- **R1 `TyWrap`** (in flight): a wrapped value meets a type application. Float
   the `·[]` inside and RECORD the argument as a new reveal, shifting conceal reps
   (`shiftReps`, reps live over the whole interior which grows by one `abst`):
   `(V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ] -→ ((⇑ᵀ V) ·[ B′ , ` 0 ]) ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`.
@@ -132,7 +132,7 @@ machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
   Never pushes `A` inward — this is how Example 8 is avoided by construction.
   The direct-combine variant R1′ `(Λ V) ⟪ Θ , `∀ B₀ ⟫ ·[ B , A ] -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`
   is tighter but partial (stuck on nested wrappers) and would force a merge rule.
-- **R2 `β-⟪⟫·`** (next): a wrapped value meets an application; the argument moves
+- **R2 `Wrap`** (next): a wrapped value meets an application; the argument moves
   inside through the DUAL boundary: `(V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→ (V · (W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫`.
   An exact dual exists over all-`abst` exteriors (everything reachable from a
   closed program); over `rvld` exteriors it does not (`no-dual-Γ₃`). Blocked slots

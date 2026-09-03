@@ -687,17 +687,17 @@ proposed and its case is sketched from the machine-checked face laws of notes/Bo
   Γ ∣ Ψ ⊢ Θ                  _∣_⊢ᵇ_  (bwf[], bwf↑, bwf↓)                Boundary.agda
   (env)                      env                                        Boundary.agda
   L @B[A]                    L ·[ B , A ]        (⊢·[])                 Boundary.agda
-  Beta                       β-ƛ                                        BReduction.agda
-  TyBeta                     β-Λ                                        BReduction.agda
-  TyWrap                     β-⟪⟫·[]   (R1)                             BReduction.agda
-  Wrap                       β-⟪⟫·     (R2) — PROPOSED, not yet a rule  notes/BoundaryRules.md
+  Beta                       Beta                                        BReduction.agda
+  TyBeta                     TyBeta                                        BReduction.agda
+  TyWrap                     TyWrap   (R1)                             BReduction.agda
+  Wrap                       Wrap     (R2) — PROPOSED, not yet a rule  notes/BoundaryRules.md
   ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫            BReduction.agda
   Cancel / Drop              — not in the Agda (optional; see above)
   Θᵈ (dual)                  dualᵇ Θ / swapᵇ Θ                          notes/BoundaryRulesProbe
   L2 (monotone renaming)     ⊢renameᵀ (premise `Mono ρ`)                BReduction.agda
   L-sc                       subst-cong-sc                              Boundary.agda
   L-wf                       ⊢ty-wf, wf→Scoped, scB-bridge              ScopeBridge.agda
-  L1                         ⊢substᵀᵐ, ⊢[]ᵐ, preserve-β-ƛ               TermSubst.agda
+  L1                         ⊢substᵀᵐ, ⊢[]ᵐ, preserve-Beta               TermSubst.agda
   Example 8 trace (T0…T5)    notes/Example8Trace.agda
   old design (historical)    Terms/Typing/Reduction, notes/Scratch7-9.agda
 

@@ -2,7 +2,7 @@ module strong.TermSubst where
 
 -- Strong System F — TERM-variable renaming and substitution preserve typing.
 --
--- This is step 3c of strong/PLAN.md: the last piece needed for the β-ƛ case of
+-- This is step 3c of strong/PLAN.md: the last piece needed for the Beta case of
 -- preservation.  Everything here is about the TERM variables (Γₜ : Ctx); the
 -- TYPE-variable side (renameᵀ / ⊢renameᵀ) lives in strong.BReduction and is
 -- used here only as a black box, at the Λ case, to push a substitution under a
@@ -20,7 +20,7 @@ module strong.TermSubst where
 --     inverse of `∋-map` from strong.BReduction.
 --
 -- Contents: ⊢renameᵀᵐ, ⊢substᵀᵐ, the single-substitution corollary ⊢[]ᵐ, and
--- preserve-β-ƛ, which is the β-ƛ preservation case ready to be wired into
+-- preserve-Beta, which is the Beta preservation case ready to be wired into
 -- strong.BReduction's `preservation`.
 
 open import Data.Nat using (ℕ; zero; suc; s≤s)
@@ -132,7 +132,7 @@ extsᵀᵐ-⊢ h (there p) = ⊢renameᵀᵐ there (h p)
 ⊢substᵀᵐ h (env bwf sc ⊢M) = env bwf sc ⊢M
 
 ------------------------------------------------------------------------
--- Single substitution and the β-ƛ preservation step
+-- Single substitution and the Beta preservation step
 ------------------------------------------------------------------------
 
 -- N [ W ]ᵐ substitutes W for the outermost term variable.  Its environment
@@ -144,12 +144,12 @@ extsᵀᵐ-⊢ h (there p) = ⊢renameᵀᵐ there (h p)
   → Δ ∣ Γₜ ⊢ N [ W ]ᵐ ⦂ B
 ⊢[]ᵐ ⊢N ⊢W = ⊢substᵀᵐ (λ { here → ⊢W ; (there p) → ⊢` p }) ⊢N
 
--- β-ƛ preservation.  (⊢·) is the only rule that can conclude an application —
+-- Beta preservation.  (⊢·) is the only rule that can conclude an application —
 -- (env) concludes a wrapper — so the inversion is a single clause.
-preserve-β-ƛ : ∀ {Δ Γₜ N W A B}
+preserve-Beta : ∀ {Δ Γₜ N W A B}
   → Δ ∣ Γₜ ⊢ (ƛ A ∙ N) · W ⦂ B
   → Δ ∣ Γₜ ⊢ N [ W ]ᵐ ⦂ B
-preserve-β-ƛ (⊢· (⊢ƛ _ ⊢N) ⊢W) = ⊢[]ᵐ ⊢N ⊢W
+preserve-Beta (⊢· (⊢ƛ _ ⊢N) ⊢W) = ⊢[]ᵐ ⊢N ⊢W
 
 ------------------------------------------------------------------------
 -- Sanity checks
@@ -161,7 +161,7 @@ private
   _ = ⊢[]ᵐ {A = `ℕ} (⊢` here) ⊢$
 
   _ : [] ∣ [] ⊢ $ 5 ⦂ `ℕ
-  _ = preserve-β-ƛ (⊢· (⊢ƛ wf-ℕ (⊢` here)) ⊢$)
+  _ = preserve-Beta (⊢· (⊢ƛ wf-ℕ (⊢` here)) ⊢$)
 
   -- The wrapper-identity case.  Δ₁ reveals X:=ℕ; W₁ is Boundary's Example 1,
   -- the value 7 wrapped in the conceal ↓X:=ℕ, so W₁ : X externally.
@@ -180,7 +180,7 @@ private
   _ : Δ₁ ∣ [] ⊢ ƛ `ℕ ∙ W₁ ⦂ (`ℕ ⇒ ` 0)
   _ = ⊢[]ᵐ (⊢ƛ wf-ℕ (⊢` (there here))) ⊢W₁
 
-  -- and the same contractum as a β-ƛ step from (λy:X. λx:ℕ. y) · W₁
+  -- and the same contractum as a Beta step from (λy:X. λx:ℕ. y) · W₁
   _ : Δ₁ ∣ [] ⊢ ƛ `ℕ ∙ W₁ ⦂ (`ℕ ⇒ ` 0)
-  _ = preserve-β-ƛ
+  _ = preserve-Beta
         (⊢· (⊢ƛ (wf-var here-rvld) (⊢ƛ wf-ℕ (⊢` (there here)))) ⊢W₁)

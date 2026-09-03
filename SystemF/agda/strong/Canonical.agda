@@ -44,7 +44,7 @@ canon-var : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
   → Σ Term λ V′ → Σ BCtx λ Θ → Σ ℕ λ Y → V ≡ V′ ⟪ Θ , ` Y ⟫
 canon-var v ⊢V = {!!}
 
--- type-variable renaming preserves value-hood (needed by β-⟪⟫·[], whose
+-- type-variable renaming preserves value-hood (needed by TyWrap, whose
 -- contractum applies ⇑ᵀ V)
 Value-renameᵀ : ∀ {ρ V} → Value V → Value (renameᵀ ρ V)
 Value-renameᵀ v = {!!}

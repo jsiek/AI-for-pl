@@ -149,6 +149,48 @@ class Worker:
         self.last_code = None
         self.last_ok = False
         self.last_errors = None
+        # Pre-existing holes OUTSIDE the target region are tolerated: a
+        # candidate passes iff agda reports no error other than unsolved
+        # interaction metas at (line-shifted) baseline locations.  This lets a
+        # multi-hole file be ground one hole at a time.
+        self.baseline_metas = self._meta_lines(self._run_agda()) - set(
+            range(self.start, self.end + 1))
+
+    def _run_agda(self):
+        proc = subprocess.run(["agda", self.target], cwd=self.agda_root,
+                              capture_output=True, text=True)
+        return proc.returncode, proc.stdout + proc.stderr
+
+    def _meta_lines(self, res):
+        """Line numbers of unsolved interaction metas in the TARGET file
+        (the indented location lines under the UnsolvedInteractionMetas
+        header)."""
+        _, out = res
+        base = re.escape(os.path.basename(self.target))
+        pat = re.compile(r"^\s+\S*" + base + r":(\d+)\.\d+-")
+        return {int(m.group(1)) for ln in out.splitlines()
+                for m in [pat.match(ln)] if m}
+
+    def _only_baseline_metas(self, res, code_nlines):
+        """True iff the only problem agda reports is unsolved interaction
+        metas, all of which are pre-existing holes outside the region."""
+        rc, out = res
+        if rc == 0:
+            return True
+        errs = re.findall(r"error: \[(\w+)\]", out)
+        if not errs or any(e != "UnsolvedInteractionMetas" for e in errs):
+            return False
+        if "Unsolved metas" in out:
+            return False
+        delta = code_nlines - (self.end - self.start + 1)
+        new_end = self.start + code_nlines - 1
+        for ln in self._meta_lines(res):
+            if self.start <= ln <= new_end:
+                return False           # a hole inside the candidate itself
+            orig = ln - delta if ln > new_end else ln
+            if orig not in self.baseline_metas:
+                return False
+        return True
 
     def _safe(self, path):
         # Resolve symlinks and use component-aware containment so a sibling
@@ -193,16 +235,15 @@ class Worker:
         try:
             with open(self.target, "w") as f:
                 f.write("".join(new_lines))
-            proc = subprocess.run(["agda", self.target], cwd=self.agda_root,
-                                  capture_output=True, text=True)
-            out = proc.stdout + proc.stderr
+            res = self._run_agda()
+            out = res[1]
         finally:
             with open(self.target, "w") as f:
                 f.write(self.original)
-        ok = (proc.returncode == 0
-              and "Unsolved interaction metas" not in out
-              and "Unsolved metas" not in out)
+        ok = self._only_baseline_metas(res, code.count("\n") + 1)
         self.last_ok = ok
+        if ok:
+            self.solution_text = "".join(new_lines)
         self.last_errors = "" if ok else trim_agda(out)
         return {"ok": ok, "errors": self.last_errors}
 
@@ -268,6 +309,9 @@ def main():
     ap.add_argument("--max-steps", type=int, default=24)
     ap.add_argument("--temperature", type=float, default=0.2)
     ap.add_argument("--log", default=None)
+    ap.add_argument("--apply", action="store_true",
+                    help="on success, write the verified solution into the "
+                         "target file (default: leave the file untouched)")
     args = ap.parse_args()
 
     key = read_key()
@@ -282,7 +326,8 @@ def main():
         "You have tools to grep and read any file, and a check_solution tool that "
         "type-checks your candidate against the real agda compiler. Your job: "
         "replace the indicated region of the target file so the whole file "
-        "type-checks with NO errors and NO holes. Explore the repo to find the "
+        "type-checks with NO errors and NO holes in YOUR region (holes that "
+        "already exist elsewhere in the file are tolerated). Explore the repo to find the "
         "definitions, reduction rules, and sibling proofs you need -- do not guess "
         "when you can look. Iterate with check_solution until ok=true. Be "
         "thorough; token cost is not a concern. When check_solution returns "
@@ -301,6 +346,8 @@ def main():
                 {"role": "user", "content": user}]
 
     status = "incomplete"
+    nudges = 0
+    MAX_NUDGES = 3
     for step in range(1, args.max_steps + 1):
         try:
             r = chat(args.model, messages, key, TOOLS, args.temperature)
@@ -324,10 +371,25 @@ def main():
         messages.append(assistant_msg)
 
         if not calls:
-            # No tool call: model thinks it's done or is chatting. Stop if solved.
-            logline(fh, "[no tool calls -> stopping]")
-            status = "solved" if w.last_ok else "gave_up"
-            break
+            # No tool call: model thinks it's done or is chatting. Stop if
+            # solved; otherwise nudge it (a few times) to actually submit a
+            # candidate — reasoning models often narrate a proof without
+            # calling check_solution.
+            if w.last_ok:
+                logline(fh, "[no tool calls, solved -> stopping]")
+                status = "solved"
+                break
+            nudges += 1
+            if nudges > MAX_NUDGES:
+                logline(fh, "[no tool calls after nudges -> giving up]")
+                status = "gave_up"
+                break
+            logline(fh, f"[no tool calls -> nudge {nudges}/{MAX_NUDGES}]")
+            messages.append({"role": "user", "content":
+                "You did not call a tool. Reasoning alone does not count: "
+                "submit your complete replacement code for the target region "
+                "NOW via check_solution(code), then fix whatever Agda reports."})
+            continue
 
         for i, c in enumerate(calls):
             cid = assistant_msg["tool_calls"][i]["id"]
@@ -364,6 +426,10 @@ def main():
         "short_error": (w.last_errors or "")[:600] if not w.last_ok else "",
         "log": args.log,
     }
+    if args.apply and w.last_ok:
+        with open(w.target, "w") as f:
+            f.write(w.solution_text)
+        report["applied"] = True
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if fh:
         logline(fh, "\n===== REPORT =====\n" + json.dumps(report, indent=2, ensure_ascii=False))

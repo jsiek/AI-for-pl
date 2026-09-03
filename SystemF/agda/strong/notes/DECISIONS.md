@@ -106,6 +106,13 @@ Both well typed on every step of Example 8 (notes/Example8Trace.agda).
   use.  TyWrap′: one boundary, but stuck when the body is a boundary (which
   Wrap produces) — needs Merge.  TyWrap is what the Agda has (constructor TyWrap).
 
+### Decision 2 — resolution (2026-09-03)
+
+Jeremy: TyWrap.  "It would yield a more consistent calculus … because that
+mirrors the way Wrap works for function typed values" — both rules float the
+elimination inside the boundary and are total in the wrapped value.  TyWrap′
+is at most a later optimisation (and would need Merge).  No change to the Agda.
+
 ## Decision 3 — nested boundaries: merge, or let them pile up?
 
 Option 3a — depth-1 values (Zdancewic rule (8), p. 203):
@@ -124,6 +131,6 @@ Option 3b — towers as values, no Merge (current).  Canonical form at a
 
 ## Recommendation
 
-Decision 1 settled (restore the invariant, form above).  Next: rework
+Decisions 1 and 2 settled (restore the invariant, form above; TyWrap).  Next: rework
 Boundary.agda accordingly and re-run every preservation case; then Merge (3a);
 keep TyWrap, TyWrap′ as a later optimisation.

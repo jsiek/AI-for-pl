@@ -7,6 +7,9 @@ fact that weakening with respect to type variables is not used.
 # TODO
 
 * finish removing Commute
+* FIX TyWrapCncl soundness bug: (tapp) on a concealed ∀ may instantiate at a type
+  variable outside X's existential scope, and TyWrapCncl then leaks it into the
+  sealed body — preservation fails (see Example 8).  Confine the type argument to Γ↓X.
 
 # Types (with variables as names)
 
@@ -131,7 +134,7 @@ fact that weakening with respect to type variables is not used.
             -------------------------
             Γ ⊢ M ↑[X:=A]@B : B[X:=A]
 
-  (conceal) Γ ∋ X:=A   Γ ⊢ B   (Γ↓X) ⊢ M : B[X:=A]
+  (conceal) Γ ∋ X:=A   Γ ⊢ B   Γ ↓ X ⊢ M : B[X:=A]
             --------------------------------------
             Γ ⊢ M↓[X:=A]@B : B
 
@@ -305,6 +308,35 @@ fact that weakening with respect to type variables is not used.
   --> Cancel
   5
 
+## Example 8   (TyWrapCncl leaks a shallower variable — a PRESERVATION COUNTEREXAMPLE)
+
+  A closed, well-typed program that reduces to an ILL-TYPED term.  The key ingredient is
+  `λf. ΛY. f [Y]`: the polymorphic argument f is applied to a type variable Y introduced
+  AFTER f is bound.  (Machine-checked in de Bruijn form as strong/Scratch8.agda.)
+
+  (ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] · (ΛZ. λz:Z. z)              : ∀Y. Y→Y
+  → TyBeta      (λf:(∀Z.Z→Z). ΛY. f [Y]) ↑[X:=ℕ] · (ΛZ. λz:Z. z)
+  → WrapReveal  ((λf. ΛY. f [Y]) · (ΛZ. λz:Z. z)↓[X:=ℕ]) ↑[X:=ℕ]
+  → Beta        (ΛY. (ΛZ. λz:Z. z)↓[X:=ℕ] [Y]) ↑[X:=ℕ]
+  → TyWrapCncl  (ΛY. ((ΛZ. λz:Z. z) [Y]) ↓[X:=ℕ]) ↑[X:=ℕ]              ← ILL-TYPED
+
+  Every line down to the redex is well-typed; the redex (ΛY. (ΛZ.λz.z)↓[X:=ℕ] [Y]) ↑[X:=ℕ]
+  has type ∀Y.Y→Y.  The last term does NOT.
+
+  Does the ill-typed term fail under the informal rules here too?  YES — for the same reason
+  as the de Bruijn version.  Its conceal is  ((ΛZ.λz.z) [Y]) ↓[X:=ℕ]@(Y→Y)  at context
+  X:=ℕ, Y.  The (conceal) rule types the body in the PREFIX (X:=ℕ, Y)↓X = ∅ — Y is shallower
+  than X, so it is dropped from X's existential scope.  But the body (ΛZ.λz.z) [Y] mentions Y,
+  so (tapp) demands ∅ ⊢ Y, which fails.  The reduct is untypable.
+
+  What went wrong.  TyWrapCncl pushes the type argument into the sealed body:
+  F [C[X:=A]] = (ΛZ.λz.z) [ Y[X:=ℕ] ] = (ΛZ.λz.z) [Y], and Y[X:=ℕ] = Y is still shallower
+  than X.  So the invariant "a conceal body mentions only X-and-deeper variables" is BROKEN by
+  TyWrapCncl.  The tightening that confines the sealed VALUE to X's existential scope does not
+  confine the TYPE ARGUMENT at which the sealed value's ∀ is instantiated: (tapp) admits any
+  well-formed C, including a variable Y outside the scope.  A sound system must also require
+  the type argument of a concealed polymorphic value to lie in X's existential scope Γ↓X.
+
 # Metatheory  (proof sketches)
 
 Runtime contexts.
@@ -373,6 +405,11 @@ variable is the transient x:A from inverting (lam) in Beta, inside L1.
               Inv(conceal): Δ∋X:=A, (Δ↓X) ⊢ F : ∀Y.(B[X:=A]).
               (Δ↓X) ⊢ C[X:=A] (X-free);  (tapp) F[C[X:=A]] : (B[X:=A])[Y:=C[X:=A]] =(L3)=
               (B[Y:=C])[X:=A];  (conceal) Δ ⊢ …↓[X:=A]@(B[Y:=C]) : B[Y:=C].
+              *** THIS CASE IS WRONG.  The step "(Δ↓X) ⊢ C[X:=A]" is UNJUSTIFIED: (tapp) only
+              gives Δ⊢C, and when C mentions a variable SHALLOWER than X (revealed after X),
+              C[X:=A] is not well-formed in the prefix Δ↓X.  Example 8 exhibits a closed,
+              well-typed program whose TyWrapCncl step produces an untypable term.  Fixing this
+              requires (tapp) on a conceal to confine C to X's existential scope.  See Ex. 8. ***
   Cancel.     Inv(reveal): Δ,X:=A⊢V↓[X:=A]@B:B; result B[X:=A].
               Inv(conceal): the body V sits at (Δ,X:=A)↓X = Δ, typed B[X:=A].  So Δ⊢V:B[X:=A]
               = result, DIRECTLY — no strengthening, no shift; the body already lives in the

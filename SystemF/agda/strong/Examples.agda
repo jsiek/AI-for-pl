@@ -4,7 +4,7 @@ module strong.Examples where
 -- notes.md).  For each program we give its typing derivation(s) and then its
 -- reduction sequence.  All checks are anonymous; helper terms are private.
 
-open import Data.Nat using (ℕ; zero; suc; s≤s; z≤n)
+open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
 open import strong.Types
 open import strong.Context
@@ -22,22 +22,20 @@ _ : (rvld `ℕ ∷ []) ∣ [] ⊢ ($ 7) ↓[ 0 , `ℕ , ` 0 ] ⦂ ` 0
 _ = ⊢↓ here (wf-var here-rvld) ⊢$
 
 -- typing:  3↓[Y:=ℕ]↓[X:=Y] : X   at context  X:=Y, Y:=ℕ
--- (X at index 0 with rep Y; Y at index 1 with rep ℕ).  The outer conceal has a
--- non-closed representation A = Y, and the inner lookup for Y skips the outer
--- X-marker (skip-cncl in ∋ :=).
+-- (X at index 0 with rep Y; Y at index 1 with rep ℕ).  Under the prefix design a
+-- conceal body is typed in the PREFIX Δ ↓ X: the outer conceal on X (index 0) has
+-- body typed in Δ ↓ 0 = rvld ℕ ∷ [] (where Y is at index 0), so the inner conceal
+-- there is on index 0 with rep ℕ — exactly Example 1a.  The outer conceal has a
+-- non-closed representation A = Y (` 0, the shift-free rep stored at X).
 _ : (rvld (` 0) ∷ rvld `ℕ ∷ []) ∣ [] ⊢
-      ($ 3) ↓[ 1 , `ℕ , ` 1 ] ↓[ 0 , ` 1 , ` 0 ] ⦂ ` 0
+      ($ 3) ↓[ 0 , `ℕ , ` 0 ] ↓[ 0 , ` 0 , ` 0 ] ⦂ ` 0
 _ = ⊢↓ here (wf-var here-rvld)
-        (⊢↓ (skip-cncl (s≤s z≤n) (skip-rvld here))
-            (wf-var (skip-cncl (s≤s z≤n) (skip-rvld here-rvld)))
-            ⊢$)
+        (⊢↓ here (wf-var here-rvld) ⊢$)
 
--- the representations above are well formed in their conceal's context:
-_ : (rvld `ℕ ∷ []) ⊢ `ℕ                          -- 7↓ : A = ℕ
-_ = wf-ℕ
-_ : (rvld (` 0) ∷ rvld `ℕ ∷ []) ⊢ ` 1            -- outer 3↓↓ : A = Y (non-closed)
-_ = wf-var (skip-rvld here-rvld)
-_ : (cncl 0 ∷ rvld (` 0) ∷ rvld `ℕ ∷ []) ⊢ `ℕ    -- inner 3↓↓ : A = ℕ (looked up past ↓X)
+-- the representations above are well formed in their PREFIXES:
+_ : (rvld `ℕ ∷ []) ⊢ ` 0    -- outer 3↓↓ : A = Y (non-closed), over Δ ↓ 0
+_ = wf-var here-rvld
+_ : [] ⊢ `ℕ                 -- inner 3↓↓ : A = ℕ, over (Δ ↓ 0) ↓ 0 = []
 _ = wf-ℕ
 
 ------------------------------------------------------------------------
@@ -173,9 +171,11 @@ private
 _ : Δ₆ ∣ [] ⊢ ($ 5) ↓[ 1 , `ℕ , `ℕ ] ⦂ `ℕ
 _ = ⊢↓ (skip-rvld here) wf-ℕ ⊢$
 
--- variant with annotation B = X (not ℕ), exercising single-at at index 1:
-_ : Δ₆ ∣ [] ⊢ ($ 5) ↓[ 1 , `ℕ , ` 1 ] ⦂ ` 1
-_ = ⊢↓ (skip-rvld here) (wf-var (skip-rvld here-rvld)) ⊢$
+-- variant with annotation B = X, exercising the X-at-0 frame at index 1: the
+-- annotation ` 0 is X in the frame rvld ℕ ∷ (Δ₆ ↓ 1) = rvld ℕ ∷ [], and the
+-- result type shifts it up to ` 1 (= X in Δ₆) via renameᵗ (1 +_).
+_ : Δ₆ ∣ [] ⊢ ($ 5) ↓[ 1 , `ℕ , ` 0 ] ⦂ ` 1
+_ = ⊢↓ (skip-rvld here) (wf-var here-rvld) ⊢$
 
 _ : Δ₆ ⊢ `ℕ                                      -- the representation A = ℕ
 _ = wf-ℕ
@@ -192,25 +192,26 @@ _ =
     ((Λ ($ 5 ↓[ 1 , `ℕ , `ℕ ])) ·[ `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , `ℕ ]
   -→⟨ ξ-↑ (β-Λ (V-↓ V-$)) ⟩                          -- TyBeta (into the conceal)
     (($ 5 ↓[ 1 , `ℕ , `ℕ ]) ↑[ (` 0 ⇒ ` 0) , `ℕ ]) ↑[ `ℕ , `ℕ ]
-  -→⟨ ξ-↑ (β-drop V-$ (λ ()) (λ ()) (λ ())) ⟩        -- Drop
+  -→⟨ ξ-↑ (β-drop V-$) ⟩                             -- Drop
     ($ 5 ↓[ 0 , `ℕ , `ℕ ]) ↑[ `ℕ , `ℕ ]
   -→⟨ β-cancel V-$ ⟩                                 -- Cancel
     $ 5
   ∎
 
 ------------------------------------------------------------------------
--- The Commute redex is now REJECTED by the type system.
+-- The Commute redex is REJECTED by the type system.
 --
--- Previously  (λx:X. x) ↓[Y:=ℕ]@(X→X) ↑[X:=ℕ]  type-checked (at context Y:=ℕ):
--- a value mentioning X, sealed on a *different* Y — the Commute branch.  Under
--- the tightened `cncl` marker (skip-cncl needs n < X), the conceal body λx:X.x
--- would have to reference X (index 0) past the marker `cncl 1`, which requires
--- 1 < 0 and so no longer holds.  The earlier machine-checked derivation of this
--- redex therefore no longer compiles — the pathological shape is ruled out.
+-- Previously  (λx:X. x) ↓[Y:=ℕ]@(X→X) ↑[X:=ℕ]  type-checked: a value mentioning X,
+-- sealed on a *different* Y — the Commute branch.  Under the PREFIX design a
+-- conceal body is typed in the prefix Δ ↓ X, which drops X's slot AND everything
+-- SHALLOWER (indices ≤ X).  Sealing on the outer Y (index 1) types the body
+-- λx:X.x in the prefix (rvld ℕ ∷ rvld ℕ ∷ []) ↓ 1 = [], where X (index 0) is out
+-- of scope; its domain annotation ` 0 fails [] ⊢ ` 0.  So the redex no longer
+-- type-checks — the pathological shape is ruled out.
 --
---   _ : (rvld `ℕ ∷ []) ∣ [] ⊢
+--   _ : (rvld `ℕ ∷ rvld `ℕ ∷ []) ∣ [] ⊢
 --         ((ƛ ` 0 ∙ ` 0) ↓[ 1 , `ℕ , (` 0 ⇒ ` 0) ]) ↑[ `ℕ , (` 0 ⇒ ` 0) ]
---         ⦂ (`ℕ ⇒ `ℕ)                                   -- NO LONGER TYPES
+--         ⦂ (`ℕ ⇒ `ℕ)                                   -- DOES NOT TYPE
 --
 -- (The Commute reduction rule has been removed accordingly: no well-typed term
 --  takes that branch, so reveal-over-conceal on a different variable is always

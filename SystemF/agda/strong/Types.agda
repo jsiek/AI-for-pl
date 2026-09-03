@@ -7,7 +7,7 @@ module strong.Types where
 -- standard operations, mirroring SystemF/agda/extrinsic/Types.agda.  Nothing
 -- here knows about the marker/seal discipline — that lives in strong.Context.
 
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _∸_)
 open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; trans)
@@ -138,3 +138,13 @@ single-at X A Y with X ≟ Y
 infix 8 _[_:=_]ᵗ
 _[_:=_]ᵗ : Ty → ℕ → Ty → Ty
 B [ X := A ]ᵗ = substᵗ (single-at X A) B
+
+-- downTyEnv X A : move a type from the ambient context Δ INTO the prefix Δ ↓ X
+-- (which drops indices 0..X).  The concealed variable X becomes its
+-- representation A; deeper variables Y > X shift down by X+1 to fill the dropped
+-- slots.  (Used by TyWrapCncl to reindex a type argument into the conceal body's
+-- prefix, where X is no longer visible and is replaced by its rep.)
+downTyEnv : ℕ → Ty → Substᵗ
+downTyEnv X A Y with X ≟ Y
+... | yes _ = A
+... | no  _ = ` (Y ∸ suc X)

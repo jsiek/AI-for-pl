@@ -1,26 +1,22 @@
 module strong.Weakening where
 
--- Weakening and well-formedness lemmas for the type context.  Free type
--- variables (_∈ᵗ_), renaming preserves well-formedness (wf-rename-fv, wf-⇑-*),
--- a representation's variables are deeper than its index (∋:=-hi), weakening
--- through a marker (wk-cncl), and — the payoff of the tightened `cncl` marker —
--- representation lookup yields a well-formed type (∋:=-⊢).
+-- Weakening and well-formedness lemmas for the type context.  Free type variables
+-- (_∈ᵗ_), renaming preserves well-formedness (wf-rename-fv, wf-⇑-*), and — the
+-- payoff of the shift-free representation lookup — a looked-up representation is
+-- well-formed in its PREFIX (∋:=-⊢).
 
-open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; s≤s; z≤n)
-open import Data.Nat.Properties using (<-trans; suc-injective)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat.Properties using (suc-injective)
 open import Data.Product using (Σ; _×_; _,_; ∃)
-open import Data.List using (List; []; _∷_)
-open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; trans; subst)
+open import Data.List using ([]; _∷_)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
-open import strong.TypeSubst using (rename-cong)
 open import strong.Context
 
 private
   variable
     Δ′ : TCtx
     ρ : Renameᵗ
-    W : ℕ
 
 ------------------------------------------------------------------------
 -- Free type variables of a type
@@ -72,7 +68,7 @@ wf-rename-fv {Δ′ = Δ′} {ρ = ρ} h (wf-∀ {A = A₀} a) = wf-∀ (wf-rena
         h′ {zero}  _ = here-abst
         h′ {suc Y} y = skip-abst (h (fv-∀ y))
 
--- weaken a well-formed type through one counting entry
+-- weaken a well-formed type through one entry
 wf-⇑-abst : Δ ⊢ A → (abst ∷ Δ) ⊢ ⇑ᵗ A
 wf-⇑-abst wfA = wf-rename-fv {ρ = suc} (λ y → skip-abst (fv-scope wfA y)) wfA
 
@@ -80,51 +76,14 @@ wf-⇑-rvld : Δ ⊢ A → (rvld C ∷ Δ) ⊢ ⇑ᵗ A
 wf-⇑-rvld wfA = wf-rename-fv {ρ = suc} (λ y → skip-rvld (fv-scope wfA y)) wfA
 
 ------------------------------------------------------------------------
--- The representation looked up at X mentions only variables deeper than X
+-- A looked-up representation is well formed in its prefix
 ------------------------------------------------------------------------
 
-∋:=-hi : Δ ∋ X := A → Y ∈ᵗ A → X < Y
-∋:=-hi (here {A = A₀}) y       with fv-rename suc A₀ y
-... | Y′ , refl , _            = s≤s z≤n
-∋:=-hi (skip-abst {A = A₀} p) y with fv-rename suc A₀ y
-... | Y′ , refl , y′           = s≤s (∋:=-hi p y′)
-∋:=-hi (skip-rvld {A = A₀} p) y with fv-rename suc A₀ y
-... | Y′ , refl , y′           = s≤s (∋:=-hi p y′)
-∋:=-hi (skip-cncl _ p) y       = ∋:=-hi p y
-
-------------------------------------------------------------------------
--- Weaken a well-formed type through a marker it does not mention
-------------------------------------------------------------------------
-
-ext-id : (i : ℕ) → extᵗ (λ z → z) i ≡ i
-ext-id zero    = refl
-ext-id (suc i) = refl
-
-rename-id : (A : Ty) → renameᵗ (λ z → z) A ≡ A
-rename-id (` X)   = refl
-rename-id `ℕ      = refl
-rename-id `𝔹      = refl
-rename-id (A ⇒ B) = cong₂ _⇒_ (rename-id A) (rename-id B)
-rename-id (`∀ A)  = cong `∀ (trans (rename-cong ext-id A) (rename-id A))
-
-wk-cncl : Δ ⊢ A → (∀ {Y} → Y ∈ᵗ A → W < Y) → (cncl W ∷ Δ) ⊢ A
-wk-cncl {Δ = Δ} {A = A} {W = W} wfA h =
-  subst (λ z → (cncl W ∷ Δ) ⊢ z) (rename-id A)
-        (wf-rename-fv {ρ = λ z → z} (λ y → skip-cncl (h y) (fv-scope wfA y)) wfA)
-
-------------------------------------------------------------------------
--- A looked-up representation is well formed
-------------------------------------------------------------------------
-
--- With the tightened marker (skip-cncl needs n < X), representation lookup now
--- yields a well-formed type directly, given a well-formed context.  Any marker
--- skipped en route to X conceals a variable shallower than X (n < X), while the
--- representation's free variables are all deeper than X (∋:=-hi); so no marker
--- can block them.  This SUBSUMES the earlier `ConcealCtx` predicate: the
--- (conceal) rule no longer needs to carry it.
-∋:=-⊢ : ⊢ Δ → Δ ∋ X := A → Δ ⊢ A
-∋:=-⊢ (⊢rvld ⊢Δ Δ⊢A₀) here             = wf-⇑-rvld Δ⊢A₀
-∋:=-⊢ (⊢abst ⊢Δ)      (skip-abst p)    = wf-⇑-abst (∋:=-⊢ ⊢Δ p)
-∋:=-⊢ (⊢rvld ⊢Δ _)    (skip-rvld p)    = wf-⇑-rvld (∋:=-⊢ ⊢Δ p)
-∋:=-⊢ (⊢cncl ⊢Δ _)    (skip-cncl n<X p) =
-  wk-cncl (∋:=-⊢ ⊢Δ p) (λ y → <-trans n<X (∋:=-hi p y))
+-- With shift-free representation lookup, the rep stored at X is a type over X's
+-- tail — which is exactly the prefix Δ ↓ X — and a well-formed context makes each
+-- such rep well-formed in its own tail.  So ∋:=-⊢ is a direct projection of ⊢ Δ,
+-- with no weakening, no shifting, and no side conditions.
+∋:=-⊢ : ⊢ Δ → Δ ∋ X := A → (Δ ↓ X) ⊢ A
+∋:=-⊢ (⊢rvld ⊢Δ Δ⊢A) here          = Δ⊢A
+∋:=-⊢ (⊢abst ⊢Δ)     (skip-abst p) = ∋:=-⊢ ⊢Δ p
+∋:=-⊢ (⊢rvld ⊢Δ _)   (skip-rvld p) = ∋:=-⊢ ⊢Δ p

@@ -8,22 +8,24 @@ module strong.Typing where
 --   ⊢↑  (reveal) extends Δ with a FRESH revealed variable (index 0) and shifts
 --       Γ; the result eliminates that variable, so it uses the index-0
 --       substitution  B [ A ]ᵗ.
---   ⊢↓  (conceal) REFERS to an existing revealed variable X, blocks it for the
---       body (cncl X ∷ Δ) and clears the term context; the representation A is
---       recovered by the lookup  Δ ∋ X := A  scoped for that context, and the
---       body's type uses the general-index substitution  B [ X := A ]ᵗ.
+--   ⊢↓  (conceal) REFERS to an existing revealed variable X.  Its body is typed in
+--       the PREFIX Δ ↓ X (X's existential scope) with the term context cleared.  The
+--       representation A (from the shift-free lookup Δ ∋ X := A) is a type over that
+--       prefix, and the body's type is the index-0 substitution B [ A ]ᵗ — exactly
+--       dual to ⊢↑.  The annotation B lives in the X-at-0 frame rvld A ∷ (Δ ↓ X);
+--       the result type is B relocated to the ambient Δ, i.e. shifted up by X.
 
-open import Data.Nat using (ℕ)
+open import Data.Nat using (ℕ; _+_)
 open import Data.List using (List; []; _∷_)
 open import strong.Types
 open import strong.Context
-open import strong.ConcealCtx
 open import strong.Terms
 
--- Δ, Γ, A, B, C, X, x, n are generalizable variables re-exported from Context.
+-- Δ, Γ, A, B, C, X, x are generalizable variables re-exported from Context.
 private
   variable
     L M N : Term
+    n : ℕ
 
 infix 3 _∣_⊢_⦂_
 data _∣_⊢_⦂_ : TCtx → Ctx → Term → Ty → Set where
@@ -60,8 +62,7 @@ data _∣_⊢_⦂_ : TCtx → Ctx → Term → Ty → Set where
      → Δ ∣ Γ ⊢ M ↑[ A , B ] ⦂ B [ A ]ᵗ
 
   ⊢↓ : Δ ∋ X := A
-     → ConcealCtx Δ X
-     → Δ ⊢ B
-     → (cncl X ∷ Δ) ∣ [] ⊢ M ⦂ B [ X := A ]ᵗ
-       -------------------------------------
-     → Δ ∣ Γ ⊢ M ↓[ X , A , B ] ⦂ B
+     → (rvld A ∷ (Δ ↓ X)) ⊢ B
+     → (Δ ↓ X) ∣ [] ⊢ M ⦂ B [ A ]ᵗ
+       ---------------------------------------------
+     → Δ ∣ Γ ⊢ M ↓[ X , A , B ] ⦂ renameᵗ (X +_) B

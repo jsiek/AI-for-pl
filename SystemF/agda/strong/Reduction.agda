@@ -5,12 +5,9 @@ module strong.Reduction where
 -- and the reflexive-transitive closure _-↠_.  Worked examples live in
 -- strong.Examples.
 
-open import Data.Nat using (ℕ; zero; suc)
-open import Data.Nat.Properties using (_≟_)
-open import Relation.Nullary using (¬_; yes; no)
+open import Data.Nat using (ℕ; zero; suc; _∸_)
 open import strong.Types
 open import strong.Terms
-open import strong.ConcealCtx using (_∈ᵗ_)
 
 private
   variable
@@ -77,20 +74,6 @@ infix 8 _[_]ᵐ
 _[_]ᵐ : Term → Term → Term
 N [ W ]ᵐ = substᵀᵐ (λ { zero → W ; (suc x) → ` x }) N
 
--- predᵗ : downshift a type-variable renaming (removes index 0).  Used by Cancel
--- and Drop, which delete the reveal's variable (valid because it is unused).
-predᵗ : ℕ → ℕ
-predᵗ zero    = zero
-predᵗ (suc i) = i
-
--- redirect X : the re-reveal renaming used by WrapConceal.  It sends the
--- concealed variable X to the fresh reveal's index 0, and every other variable
--- up past it.
-redirect : ℕ → ℕ → ℕ
-redirect X y with X ≟ y
-... | yes _ = zero
-... | no  _ = suc y
-
 ------------------------------------------------------------------------
 -- Values
 ------------------------------------------------------------------------
@@ -109,27 +92,6 @@ data Value where
   V-↓ : Value V → Value (V ↓[ X , A , B ])
 
 ------------------------------------------------------------------------
--- Free type variables of a term (for Drop's occurs check)
-------------------------------------------------------------------------
-
-data _∈ᵀ_ : ℕ → Term → Set where
-  ∈ƛ-A : Y ∈ᵗ A → Y ∈ᵀ (ƛ A ∙ N)
-  ∈ƛ-N : Y ∈ᵀ N → Y ∈ᵀ (ƛ A ∙ N)
-  ∈·-l : Y ∈ᵀ L → Y ∈ᵀ (L · M)
-  ∈·-r : Y ∈ᵀ M → Y ∈ᵀ (L · M)
-  ∈Λ   : suc Y ∈ᵀ N → Y ∈ᵀ (Λ N)
-  ∈t-B : suc Y ∈ᵗ B → Y ∈ᵀ (L ·[ B , A ])
-  ∈t-A : Y ∈ᵗ A → Y ∈ᵀ (L ·[ B , A ])
-  ∈t-L : Y ∈ᵀ L → Y ∈ᵀ (L ·[ B , A ])
-  ∈↑-A : Y ∈ᵗ A → Y ∈ᵀ (M ↑[ A , B ])
-  ∈↑-B : suc Y ∈ᵗ B → Y ∈ᵀ (M ↑[ A , B ])
-  ∈↑-M : suc Y ∈ᵀ M → Y ∈ᵀ (M ↑[ A , B ])
-  ∈↓-X : X ∈ᵀ (M ↓[ X , A , B ])
-  ∈↓-A : Y ∈ᵗ A → Y ∈ᵀ (M ↓[ X , A , B ])
-  ∈↓-B : Y ∈ᵗ B → Y ∈ᵀ (M ↓[ X , A , B ])
-  ∈↓-M : Y ∈ᵀ M → Y ∈ᵀ (M ↓[ X , A , B ])
-
-------------------------------------------------------------------------
 -- Reduction
 ------------------------------------------------------------------------
 
@@ -143,31 +105,40 @@ data _-→_ : Term → Term → Set where
   β-ƛ  : Value W → (ƛ A ∙ N) · W -→ N [ W ]ᵐ
 
   -- WrapReveal:  F↑[X:=A]@(B₁→B₂) · W  →  (F · W↓[X:=A]@B₁) ↑[X:=A]@B₂
-  -- W moves inside the reveal (⇑ᵀ), and is sealed on the reveal's variable
-  -- (index 0), whose representation there is ⇑ᵗ A.
+  -- (prefix design)  The reveal's body F is typed in rvld A ∷ Δ, so the fresh
+  -- variable sits at index 0 with representation A — shift-free.  W is sealed on
+  -- that variable; its conceal body lives in the prefix (rvld A ∷ Δ) ↓ 0 = Δ,
+  -- which is exactly W's own context, so W and B₁ need NO shifting.
   β-↑  : GVal F → Value W
        → (F ↑[ A , B₁ ⇒ B₂ ]) · W
-         -→ (F · (⇑ᵀ W ↓[ 0 , ⇑ᵗ A , B₁ ])) ↑[ A , B₂ ]
+         -→ (F · (W ↓[ 0 , A , B₁ ])) ↑[ A , B₂ ]
 
   -- RevealCnst:  k ↑[X:=A]@B  →  k
   β-$↑ : ($ n) ↑[ A , B ] -→ $ n
 
   -- WrapConceal:  F↓[X:=A]@(B₁→B₂) · W  →  (F · W↑[X:=A]@B₁) ↓[X:=A]@B₂
-  -- The inner reveal re-reveals the concealed X: `redirect X` sends W's (and
-  -- B₁'s) references to X onto the fresh reveal's index 0.
+  -- (prefix design)  The conceal body F lives in the prefix Δ ↓ X.  The argument
+  -- W lives in the ambient Δ, so to move it into the prefix — where X sits at the
+  -- rep slot — its type variables are reindexed down by X (λ j → j ∸ X); it is
+  -- then re-revealed on that fresh reveal.  B₁ is the X-at-0 annotation, already
+  -- over rvld A ∷ (Δ ↓ X), so it is unchanged.
+  -- NOTE: sealing external data into the prefix inherently needs this downshift;
+  --   its exact form is pinned down by the reduction-sequence examples.
   β-↓· : Value F → Value W
        → (F ↓[ X , A , B₁ ⇒ B₂ ]) · W
-         -→ (F · (renameᵀ (redirect X) W ↑[ A , renameᵗ (redirect X) B₁ ])) ↓[ X , A , B₂ ]
+         -→ (F · ((renameᵀ (λ j → j ∸ X) W) ↑[ A , B₁ ])) ↓[ X , A , B₂ ]
 
   -- Cancel:  V↓[X:=A]@B ↑[X:=A]@B  →  V   (conceal on the reveal's own variable,
-  -- i.e. index 0; the reveal's variable is deleted, so V is downshifted)
-  β-cancel : Value V → (V ↓[ 0 , A , B ]) ↑[ C , D ] -→ renameᵀ predᵗ V
+  -- index 0)  (prefix design)  V's conceal body already lives in the prefix
+  -- (rvld A ∷ Δ) ↓ 0 = Δ, so nothing was shifted up and nothing is shifted down.
+  β-cancel : Value V → (V ↓[ 0 , A , B ]) ↑[ C , D ] -→ V
 
   -- Drop:  V↓[Y:=B]@C ↑[X:=A]@D  →  V↓[Y:=B]@C   (conceal on a *different*
-  -- variable, index suc X, with the reveal's variable 0 not free in V, B, C)
-  β-drop : Value V → ¬ (0 ∈ᵀ V) → ¬ (0 ∈ᵗ B) → ¬ (0 ∈ᵗ C)
-         → (V ↓[ suc X , B , C ]) ↑[ A , D ]
-         -→ (renameᵀ predᵗ V) ↓[ X , renameᵗ predᵗ B , renameᵗ predᵗ C ]
+  -- variable, index suc X)  (prefix design)  The conceal body and its
+  -- annotations live in the prefix (rvld A ∷ Δ) ↓ suc X = Δ ↓ X, which excludes
+  -- the reveal's variable 0; so V, B, C cannot mention it and need no occurs
+  -- check.  Removing the reveal only decrements the concealed index suc X to X.
+  β-drop : Value V → (V ↓[ suc X , B , C ]) ↑[ A , D ] -→ V ↓[ X , B , C ]
 
   -- TyWrapRevl:  F↑[X:=A]@(∀Z.B) [C]  →  F[C]↑[X:=A]@(B[Z:=C])
   -- The type application floats inside the reveal and is applied to F; the
@@ -177,26 +148,20 @@ data _-→_ : Term → Term → Set where
         → (F ↑[ A , `∀ B ]) ·[ B₃ , C ]
           -→ (F ·[ B , ⇑ᵗ C ]) ↑[ A , B [ ⇑ᵗ C ]ᵗ ]
 
-  -- TyWrapCncl:  F↓[X:=A]@(∀Z.B) [C]  →  F[C[X:=A]]↓[X:=A]@(B[Z:=C])
-  -- The type application floats inside the conceal; since X is blocked there, the
-  -- argument is C with X's representation substituted (C[X:=A]); the conceal's
-  -- annotation becomes the ∀-body B with Z instantiated to the original C.
+  -- TyWrapCncl:  F↓[X:=A]@(∀Z.B) [C]  →  F[C']↓[X:=A]@(B[Z:=C''])
+  -- (prefix design)  The type application floats inside the conceal, whose body F
+  -- lives in the prefix Δ ↓ X with the CONCRETE type (∀B)[A]ᵗ, i.e. F : ∀(B⁺)
+  -- where B⁺ = the ∀-body of (∀B)[A]ᵗ.  So the tapp uses annotation B⁺ and the
+  -- argument C moved into the prefix by downTyEnv X A (the concealed X becomes its
+  -- rep A; deeper variables shift down).  The re-conceal keeps the X-at-0 frame:
+  -- its ∀-body annotation B is instantiated at C moved into that frame (X ↦ 0, the
+  -- rep slot; deeper ↦ Y ∸ X), i.e. renameᵗ (_∸ X) C.
+  -- NOTE: the delicate rule — its X>0 reindexing is derived from the typing but
+  --   example-tested only at X=0 (Example 3); preservation is the real check.
   β-↓[] : Value F
         → (F ↓[ X , A , `∀ B ]) ·[ B₃ , C ]
-          -→ (F ·[ B , C [ X := A ]ᵗ ]) ↓[ X , A , B [ C ]ᵗ ]
-
-  -- Commute:  V↓[Y:=B]@C ↑[X:=A]@D → (V↑[X:=A[Y:=B]]@C[Y:=B]) ↓[Y:=B]@C[X:=A]
-  -- The X ∈ V counterpart of Drop (conceal on a *different* variable, index
-  -- suc Y).  The wrappers swap; V itself is unchanged (both contexts place X at
-  -- index 0 and Y at index suc Y), while the representations and annotations are
-  -- substituted, and Y's representation B is downshifted past the removed reveal.
-  -- NOTE: unlike the other rules, no example in the notes takes this branch
-  -- (Examples 1–6 all reduce via Drop or Cancel), so the exact index arithmetic
-  -- here is only pinned down once the Preservation proof forces it.
-  β-commute : Value V → 0 ∈ᵀ V
-            → (V ↓[ suc Y , B , C ]) ↑[ A , D ]
-              -→ (V ↑[ A [ Y := renameᵗ predᵗ B ]ᵗ , C [ suc Y := B ]ᵗ ])
-                   ↓[ Y , renameᵗ predᵗ B , C [ A ]ᵗ ]
+          -→ (F ·[ substᵗ (extsᵗ (singleTyEnv A)) B , substᵗ (downTyEnv X A) C ])
+               ↓[ X , A , B [ renameᵗ (λ j → j ∸ X) C ]ᵗ ]
 
   -- ξ congruences (the frames)
   ξ-·-l : L -→ L′ → L · M -→ L′ · M

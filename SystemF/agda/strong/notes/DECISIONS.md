@@ -310,7 +310,7 @@ the probe comes back positive, install"):
     the same boundary; ρ becomes the corresponding fold) — this matches the
     repo's existing telescope convention for revealed entries
     (Context.agda: "the rep stored in rvld A is a type over its tail").
-    Flagged for Jeremy's review; revertible.
+    Flagged for Jeremy's review; revertible.  [REVERTED 2026-09-04, see RULING below — landed on the branch.]
 
   (R2) A REVEAL REP NAMING A SLOT ITS OWN BOUNDARY BLOCKS (¬⊢dualᴳΘn;
     Θn = ↑Z:=Y , ↓X:=ℕ with Y Λ-bound and blocked — minted by TyWrap itself

@@ -1568,8 +1568,8 @@ bwf-retag≈ {Δ' = Δ'} pΔ pΨ (bwf↓ {X} {A} {A₀} p rev wfA b)
   | A₀' , r , e =
   bwf↓ r (≈-trans (≈-mono _ Δ' (≼≈→Absorbs pΔ) rev) (≈-upRep X e))
        (≼≈-⊢ pΨ wfA) (bwf-retag≈ pΔ pΨ b)
-bwf-retag≈ pΔ pΨ (bwf↓x p so wfA b) =
-  bwf↓x (≼≈-∋:=x pΔ p) so (≼≈-⊢ pΨ wfA) (bwf-retag≈ pΔ pΨ b)
+bwf-retag≈ pΔ pΨ (bwf↓x p so sk wfA b) =
+  bwf↓x (≼≈-∋:=x pΔ p) so sk (≼≈-⊢ pΨ wfA) (bwf-retag≈ pΔ pΨ b)
 bwf-retag≈ pΔ pΨ (bwf⋆↓ p b) =
   bwf⋆↓ (≼≈-∋tv pΔ p) (bwf-retag≈ pΔ pΨ b)
 
@@ -1758,9 +1758,9 @@ bwf-shiftReps E Θ (rvl⋆ ∷ Ξ)    (bwf⋆ b)           =
 bwf-shiftReps {A = A} E Θ (cnc X B ∷ Ξ) (bwf↓ {A₀ = A₀} p rev wfB b) =
   bwf↓ p (Reversal≈-shift A Θ X B A₀ rev) (wf-⇑ E wfB)
        (bwf-shiftReps E Θ Ξ b)
-bwf-shiftReps {A = A} E Θ (cnc X B ∷ Ξ) (bwf↓x p so wfB b) =
-  bwf↓x p (trans (starOnly-shift A Θ 0 B) so) (wf-⇑ E wfB)
-        (bwf-shiftReps E Θ Ξ b)
+bwf-shiftReps {A = A} E Θ (cnc X B ∷ Ξ) (bwf↓x p so sk wfB b) =
+  bwf↓x p (trans (starOnly-shift A Θ 0 B) so) (skel-renˡ suc sk)
+        (wf-⇑ E wfB) (bwf-shiftReps E Θ Ξ b)
 bwf-shiftReps E Θ (cnc⋆ X ∷ Ξ) (bwf⋆↓ p b) =
   bwf⋆↓ p (bwf-shiftReps E Θ Ξ b)
 
@@ -2364,7 +2364,7 @@ bwf-cmax (rvl A ∷ Ξ)   (bwf↑ wfA b)      = bwf-cmax Ξ b
 bwf-cmax (rvl⋆ ∷ Ξ)    (bwf⋆ b)          = bwf-cmax Ξ b
 bwf-cmax (cnc X A ∷ Ξ) (bwf↓ p rev wfA b) =
   ⊔-lub (∋tv-len-bound (∋:=→∋tv p)) (bwf-cmax Ξ b)
-bwf-cmax (cnc X A ∷ Ξ) (bwf↓x p so wfA b) =
+bwf-cmax (cnc X A ∷ Ξ) (bwf↓x p so sk wfA b) =
   ⊔-lub (∋tv-len-bound (∋:=x→∋tv p)) (bwf-cmax Ξ b)
 bwf-cmax (cnc⋆ X ∷ Ξ)  (bwf⋆↓ p b) =
   ⊔-lub (∋tv-len-bound p) (bwf-cmax Ξ b)
@@ -2390,8 +2390,8 @@ bwf-++ (rvl⋆ ∷ Ξ₁)    Ξ₂ e (bwf⋆ b)           b₂ =
   bwf⋆ (bwf-++ Ξ₁ Ξ₂ e b b₂)
 bwf-++ (cnc X A ∷ Ξ₁) Ξ₂ e (bwf↓ p rev wfA b) b₂ =
   bwf↓ p rev wfA (bwf-++ Ξ₁ Ξ₂ e b b₂)
-bwf-++ (cnc X A ∷ Ξ₁) Ξ₂ e (bwf↓x p so wfA b) b₂ =
-  bwf↓x p so wfA (bwf-++ Ξ₁ Ξ₂ e b b₂)
+bwf-++ (cnc X A ∷ Ξ₁) Ξ₂ e (bwf↓x p so sk wfA b) b₂ =
+  bwf↓x p so sk wfA (bwf-++ Ξ₁ Ξ₂ e b b₂)
 bwf-++ (cnc⋆ X ∷ Ξ₁)  Ξ₂ e (bwf⋆↓ p b) b₂ =
   bwf⋆↓ p (bwf-++ Ξ₁ Ξ₂ e b b₂)
 
@@ -2428,7 +2428,8 @@ bwf-rvlsᴳ (suc k) s Γ Θ Ξ₀ h b =
 CncLic : TCtx → BCtx → ℕ → Ty → Set
 CncLic Ψ Θᵈ j A =
     (Σ Ty λ A₀ → (Ψ ∋ j := A₀) × Reversal≈ Ψ Θᵈ j A A₀)
-  ⊎ (Σ Ty λ A′ → (Ψ ∋ j :=x A′) × (starOnly Θᵈ 0 A ≡ true))
+  ⊎ (Σ Ty λ A′ → (Ψ ∋ j :=x A′) × (starOnly Θᵈ 0 A ≡ true)
+                 × SkelEq A A′)
 
 -- index bookkeeping as the conceal block's recursion moves inward
 shift-lic : ∀ {Ψ Θᵈ} j Ξ (σ : Substᵗ)
@@ -2459,8 +2460,8 @@ bwf-cncOfRevs {Ψ} {Δ'} {Θᵈ} j (rvl A ∷ Ξ) hk hw hv
        (bwf-cncOfRevs (suc j) Ξ (shift-lic j Ξ (ρᵇ (rvl A ∷ Ξ)) hk)
          (λ k lt → hw (suc k) (s≤s lt)) (shift-tv j Ξ hv))
 bwf-cncOfRevs {Ψ} {Δ'} {Θᵈ} j (rvl A ∷ Ξ) hk hw hv
-  | inj₂ (A′ , p , so) =
-  bwf↓x (subst (λ n → Ψ ∋ n :=x A′) (+-identityʳ j) p) so
+  | inj₂ (A′ , p , so , sk) =
+  bwf↓x (subst (λ n → Ψ ∋ n :=x A′) (+-identityʳ j) p) so sk
         (hw 0 (s≤s z≤n))
         (bwf-cncOfRevs (suc j) Ξ (shift-lic j Ξ (ρᵇ (rvl A ∷ Ξ)) hk)
           (λ k lt → hw (suc k) (s≤s lt)) (shift-tv j Ξ hv))
@@ -3095,18 +3096,44 @@ starOnly-ren Θ d (A ⇒ B) =
 starOnly-ren {ρ} Θ d (`∀ A) = starOnly-ren Θ (suc d) A
 
 ------------------------------------------------------------------------
+-- THE x-TRANSPORT HYPOTHESIS (notes/D1Probe.agda §7.1; notes/DECISIONS.md's
+-- "D1 PROBE VERDICT").  The repaired (bwf-↓x) compares the conceal's rep
+-- with the RECORDED one by skeleton, so the x-transport must promise more
+-- than mere EXISTENCE of the target's rep: it must say the target's rep has
+-- the source rep's SKELETON.  That is strictly weaker than
+-- notes/DualLicenseDesign.md §5(i)'s rejected XRen — it does not say WHICH
+-- renaming moved the rep, only that renaming is what moved it — and both
+-- live instances already satisfy it (hx-suc / SkelX-suc for the weakening,
+-- SkelX-mv for the (env) recursion's reveal block).
+------------------------------------------------------------------------
+
+SkelX : Renameᵗ → TCtx → TCtx → Set
+SkelX ρ Δ Δ' = ∀ {X A′} → Δ ∋ X :=x A′
+             → Σ Ty λ A″ → (Δ' ∋ ρ X :=x A″) × SkelEq A′ A″
+
+-- instance 2: the (env) recursion's REVEAL block — the one branch where the
+-- rep genuinely MOVES, by the EXTERIOR ρ (the slot moves by the interior
+-- renaming, which is why the index is left free here)
+SkelX-mv : ∀ (ρ : Renameᵗ) {Δ' : TCtx} {Y} A′
+         → Δ' ∋ Y :=x renameᵗ ρ A′
+         → Σ Ty λ A″ → (Δ' ∋ Y :=x A″) × SkelEq A′ A″
+SkelX-mv ρ A′ q = renameᵗ ρ A′ , q , skel-renʳ ρ A′
+
+------------------------------------------------------------------------
 -- Boundary well-formedness transports.  The reveal premise lives over the
 -- PLAIN exterior, so it renames by ρ itself; the ORDINARY conceal premise
 -- needs both the exterior's knowledge transport (∋:=) and Reversal≈-ren;
--- the x-clause needs only the x-LOOKUP (a plain transport hypothesis, the
--- exact analogue of the ∋tv one) since starOnly is context-free; and a
--- cnc⋆ rides the ∋tv transport alone.
+-- the x-clause needs the x-LOOKUP in its SkelX form (starOnly is
+-- context-free and rides starOnly-ren, and the skeleton premise rides
+-- skel-renˡ against SkelX's own witness — hypothesis-free, which is the
+-- whole point of comparing skeletons); and a cnc⋆ rides the ∋tv transport
+-- alone.
 ------------------------------------------------------------------------
 
 bwf-ren : ∀ {ρ Δ Δ' Ψ Ψ' Θ Ξ} → Mono ρ
   → (∀ {X} → Δ ∋tv X → Δ' ∋tv ρ X)
   → (∀ {X A₀} → Δ ∋ X := A₀ → Δ' ∋ ρ X := renameᵗ (restrictRen X ρ) A₀)
-  → (∀ {X A′} → Δ ∋ X :=x A′ → Σ Ty λ A″ → Δ' ∋ ρ X :=x A″)
+  → SkelX ρ Δ Δ'
   → (∀ {Y} → Ψ ∋tv Y → Ψ' ∋tv intRen ρ Θ Y)
   → Bwf Δ Ψ Θ Ξ
   → Bwf Δ' Ψ' (renᴮ ρ (intRen ρ Θ) Θ) (renᴮ ρ (intRen ρ Θ) Ξ)
@@ -3117,9 +3144,10 @@ bwf-ren mono h hk hx hi (bwf⋆ b) = bwf⋆ (bwf-ren mono h hk hx hi b)
 bwf-ren {ρ} {Θ = Θ} mono h hk hx hi (bwf↓ {X} {A} {A₀} p rev wfA b) =
   bwf↓ (hk p) (Reversal≈-ren mono hk Θ X A A₀ rev)
        (wf-ren hi wfA) (bwf-ren mono h hk hx hi b)
-bwf-ren {ρ} {Θ = Θ} mono h hk hx hi (bwf↓x {X} {A} p so wfA b) =
-  bwf↓x (proj₂ (hx p))
+bwf-ren {ρ} {Θ = Θ} mono h hk hx hi (bwf↓x {X} {A} p so sk wfA b) =
+  bwf↓x (proj₁ (proj₂ (hx p)))
         (trans (starOnly-ren Θ 0 A) so)
+        (skel-renˡ (intRen ρ Θ) (skel-trans sk (proj₂ (proj₂ (hx p)))))
         (wf-ren hi wfA) (bwf-ren mono h hk hx hi b)
 bwf-ren mono h hk hx hi (bwf⋆↓ p b) =
   bwf⋆↓ (h p) (bwf-ren mono h hk hx hi b)
@@ -3131,8 +3159,9 @@ bwf-ren mono h hk hx hi (bwf⋆↓ p b) =
 -- by the interior renaming (notes/DualLicenseDesign.md §5; the shape of
 -- DualLicenseProbe's XRen).  In the reveal block that is exactly what
 -- renᴮ does to the reveal's stored rep; in the kept tail it is what the
--- exterior hypothesis supplies.  Only EXISTENCE of the target's rep is
--- needed, because (bwf-↓x) does not compare it (strong.Boundary).
+-- exterior hypothesis supplies.  Both branches deliver the SkelEq witness
+-- (bwf-↓x's skeleton premise): in the reveal block the rep moved by a
+-- renaming (SkelX-mv), and in the tail the hypothesis hands its own.
 ------------------------------------------------------------------------
 
 dropN-∋:=x : ∀ c (Δ : TCtx) {Z B} → dropN c Δ ∋ Z :=x B → Δ ∋ (c + Z) :=x B
@@ -3161,34 +3190,35 @@ revE-hi:=x⁻ Θ j (rvl⋆ ∷ Ξ)    (skipx p) = revE-hi:=x⁻ Θ (suc j) Ξ p
 revE-hi:=x⁻ Θ j (cnc X A ∷ Ξ) p         = revE-hi:=x⁻ Θ j Ξ p
 revE-hi:=x⁻ Θ j (cnc⋆ X ∷ Ξ)  p         = revE-hi:=x⁻ Θ j Ξ p
 
-∋:=x-int : ∀ {ρ Δ Δ'} → Mono ρ
-  → (∀ {X A′} → Δ ∋ X :=x A′ → Σ Ty λ A″ → Δ' ∋ ρ X :=x A″)
+∋:=x-int : ∀ {ρ Δ Δ'} → Mono ρ → SkelX ρ Δ Δ'
   → ∀ Θ {Y A′}
   → intOf Δ Θ ∋ Y :=x A′
-  → Σ Ty λ A″ → intOf Δ' (renᴮ ρ (intRen ρ Θ) Θ) ∋ intRen ρ Θ Y :=x A″
+  → Σ Ty λ A″ → (intOf Δ' (renᴮ ρ (intRen ρ Θ) Θ) ∋ intRen ρ Θ Y :=x A″)
+                × SkelEq A′ A″
 ∋:=x-int {ρ} {Δ} {Δ'} mono hx Θ {Y} {A′} p with split (revs Θ) Y
 ∋:=x-int {ρ} {Δ} {Δ'} mono hx Θ {Y} {A′} p | inj₁ lt =
-  renameᵗ ρ A′ ,
-  subst (λ Ψ₀ → (Ψ₀ ++ dropN (cmax Θ') Δ')
-                ∋ intRen ρ Θ Y :=x renameᵗ ρ A′)
-        (sym (revEnts-ren mono Θ 0 Θ refl))
-        (subst (λ n → (mapEnts (λ m → entRen₂ ρ (restrictRen m (intRen ρ Θ)))
-                               0 (revEnts Θ 0 Θ) ++ dropN (cmax Θ') Δ')
-                      ∋ n :=x renameᵗ ρ A′)
-               (sym (liftⁿ-lo (revs Θ) (deepRen (cmax Θ) ρ) Y lt))
-               (mapEnts-∋:=x ρ (λ n → restrictRen n (intRen ρ Θ)) 0
-                             (revEnts Θ 0 Θ)
-                             (subst (Y <_) (sym (len-revEnts Θ 0 Θ)) lt) p))
+  SkelX-mv ρ A′
+  (subst (λ Ψ₀ → (Ψ₀ ++ dropN (cmax Θ') Δ')
+                 ∋ intRen ρ Θ Y :=x renameᵗ ρ A′)
+         (sym (revEnts-ren mono Θ 0 Θ refl))
+         (subst (λ n → (mapEnts (λ m → entRen₂ ρ (restrictRen m (intRen ρ Θ)))
+                                0 (revEnts Θ 0 Θ) ++ dropN (cmax Θ') Δ')
+                       ∋ n :=x renameᵗ ρ A′)
+                (sym (liftⁿ-lo (revs Θ) (deepRen (cmax Θ) ρ) Y lt))
+                (mapEnts-∋:=x ρ (λ n → restrictRen n (intRen ρ Θ)) 0
+                              (revEnts Θ 0 Θ)
+                              (subst (Y <_) (sym (len-revEnts Θ 0 Θ)) lt) p)))
   where Θ' = renᴮ ρ (intRen ρ Θ) Θ
 ∋:=x-int {ρ} {Δ} {Δ'} mono hx Θ {.(revs Θ + Z)} {A′} p | inj₂ (Z , refl)
   with hx (dropN-∋:=x (cmax Θ) Δ (revE-hi:=x⁻ Θ 0 Θ p))
 ∋:=x-int {ρ} {Δ} {Δ'} mono hx Θ {.(revs Θ + Z)} {A′} p | inj₂ (Z , refl)
-  | A″ , q =
+  | A″ , q , sq =
   A″ ,
   subst (λ n → intOf Δ' Θ' ∋ n :=x A″) idx
     (revE-hi:=x Θ' 0 Θ'
       (dropN-∋:=x⁻ (cmax Θ') Δ'
-        (subst (λ n → Δ' ∋ n :=x A″) (sym key) q)))
+        (subst (λ n → Δ' ∋ n :=x A″) (sym key) q))) ,
+  sq
   where
     Θ' = renᴮ ρ (intRen ρ Θ) Θ
     idx : revs Θ' + deepRen (cmax Θ) ρ Z ≡ intRen ρ Θ (revs Θ + Z)
@@ -3220,17 +3250,15 @@ hk-ext : ∀ {ρ Δ Δ'}
   → (abst ∷ Δ') ∋ extᵗ ρ X := renameᵗ (restrictRen X (extᵗ ρ)) A₀
 hk-ext hk (skip-abst p) = skip-abst (hk p)
 
-hx-ext : ∀ {ρ} {Δ Δ' : TCtx}
-  → (∀ {X A′} → Δ ∋ X :=x A′ → Σ Ty λ A″ → Δ' ∋ ρ X :=x A″)
-  → ∀ {X A′} → (abst ∷ Δ) ∋ X :=x A′
-  → Σ Ty λ A″ → (abst ∷ Δ') ∋ extᵗ ρ X :=x A″
+hx-ext : ∀ {ρ} {Δ Δ' : TCtx} → SkelX ρ Δ Δ'
+       → SkelX (extᵗ ρ) (abst ∷ Δ) (abst ∷ Δ')
 hx-ext hx (skipx p) with hx p
-... | A″ , q = A″ , skipx q
+hx-ext hx (skipx p) | A″ , q , sq = A″ , skipx q , sq
 
 ⊢renameᵀ : ∀ {ρ Δ Δ' Γₜ M A}
   → (∀ {X} → Δ ∋tv X → Δ' ∋tv ρ X) → Mono ρ
   → (∀ {X A₀} → Δ ∋ X := A₀ → Δ' ∋ ρ X := renameᵗ (restrictRen X ρ) A₀)
-  → (∀ {X A′} → Δ ∋ X :=x A′ → Σ Ty λ A″ → Δ' ∋ ρ X :=x A″)
+  → SkelX ρ Δ Δ'
   → Δ ∣ Γₜ ⊢ M ⦂ A
   → Δ' ∣ map (renameᵗ ρ) Γₜ ⊢ renameᵀ ρ M ⦂ renameᵗ ρ A
 ⊢renameᵀ h mono hk hx (⊢` p)      = ⊢` (∋-map p)
@@ -3265,9 +3293,14 @@ hx-ext hx (skipx p) with hx p
 Mono-suc : Mono suc
 Mono-suc lt = s≤s lt
 
+-- instance 1: the weakening ⇑ᵀ uses.  It carries the entry across VERBATIM,
+-- so the skeleton premise is skel-refl — the strengthening is free.
 hx-suc : ∀ {Δ : TCtx} {E X A′} → Δ ∋ X :=x A′
-       → Σ Ty λ A″ → (E ∷ Δ) ∋ suc X :=x A″
-hx-suc {A′ = A′} p = A′ , skipx p
+       → Σ Ty λ A″ → ((E ∷ Δ) ∋ suc X :=x A″) × SkelEq A′ A″
+hx-suc {A′ = A′} p = A′ , skipx p , skel-refl A′
+
+SkelX-suc : ∀ {Δ : TCtx} {E} → SkelX suc Δ (E ∷ Δ)
+SkelX-suc = hx-suc
 
 hk-suc : ∀ {Δ : TCtx} {E X A₀} → Δ ∋ X := A₀
        → (E ∷ Δ) ∋ suc X := renameᵗ (restrictRen X suc) A₀

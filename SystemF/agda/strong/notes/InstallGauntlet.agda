@@ -28,9 +28,13 @@ module strong.notes.InstallGauntlet where
 --       the ⊢3n-adv adversary refuted (and refuted UNDER ≈ — the §5(ii)
 --       gauntlet item), the conceal of a plain Λ-bound variable refused.
 --   §7  RENAMING: a transport instance that touches an xrvld entry, and the
---       counter-instance showing why (bwf-↓x) carries no rep comparison.
+--       counter-instance showing why (bwf-↓x)'s rep comparison can be
+--       neither ≡ nor ≈Δ̄.
+--   §8  THE SkelEq REPAIR: the premise discharged at the dual's birth by
+--       xrep-stored, surviving §7b's weakening, refusing the soundness hole
+--       the comparison-free licence had, and leaving ⊢3n-adv to starOnly.
 
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; _<_; s≤s; z≤n)
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
@@ -41,6 +45,7 @@ open import strong.Context
 open import strong.Unfold
 open import strong.Boundary
 open import strong.BReduction
+open import strong.DualDef using (xrep-stored; dual-cnc-skel)
 
 ------------------------------------------------------------------------
 -- §1.  E★′, END TO END
@@ -219,7 +224,7 @@ DualInt-E★′ = ≼≈-refl Γ★
 
 bwf-dualᵛ : Γz ∣ intOf Γz dualᵛ ⊢ᵇ dualᵛ
 bwf-dualᵛ =
-  bwf⋆ (bwf↑ wf-ℕ (bwf↓x herex refl (wf-var here-abst) bwf[]))
+  bwf⋆ (bwf↑ wf-ℕ (bwf↓x herex refl sk-var (wf-var here-abst) bwf[]))
 
 ⊢W′ : ∀ {Γ₁ : Ctx} → Γz ∣ Γ₁ ⊢ W′ ⦂ (` 0 ⇒ `ℕ)
 ⊢W′ = env bwf-dualᵛ
@@ -455,16 +460,16 @@ _ : renameᵀ suc W′ ≡ argY ⟪ rvl⋆ ∷ rvl `ℕ ∷ cnc 1 (` 0) ∷ []
 _ = refl
 
 ------------------------------------------------------------------------
--- (b) WHY (bwf-↓x) CARRIES NO REP COMPARISON (notes/DualLicenseDesign.md
---     §5).  Weaken Γ★ by a fresh Λ-bound V.  The renaming ⊢renameᵀ hands
---     the sealed body is ρ₁ = intRen suc Θ★, which is the IDENTITY on the
---     dual's frame — so the TERM's conceal rep is FROZEN at ` 0 while the
---     CONTEXT's x-rep moves to ` 1.  The syntactic comparison fails, and so
---     does the ≈Δ̄ one: in the renamed interior ` 0 is the x-revealed Z and
---     ` 1 is out of range, so their unfoldings are themselves and differ.
---     Ruling (ii) therefore does NOT make the comparison ⊢renameᵀ-stable,
---     and the install lands (bwf-↓x) with the x-LOOKUP plus the
---     claims-nothing premise, which are both stable.
+-- (b) WHY (bwf-↓x)'s COMPARISON IS NEITHER ≡ NOR ≈Δ̄
+--     (notes/DualLicenseDesign.md §5).  Weaken Γ★ by a fresh Λ-bound V.
+--     The renaming ⊢renameᵀ hands the sealed body is ρ₁ = intRen suc Θ★,
+--     which is the IDENTITY on the dual's frame — so the TERM's conceal rep
+--     is FROZEN at ` 0 while the CONTEXT's x-rep moves to ` 1.  The
+--     syntactic comparison fails, and so does the ≈Δ̄ one: in the renamed
+--     interior ` 0 is the x-revealed Z and ` 1 is out of range, so their
+--     unfoldings are themselves and differ.  Ruling (ii) therefore does NOT
+--     make EITHER of those forms ⊢renameᵀ-stable; §8 is the form that
+--     survives, and it survives exactly this instance.
 ------------------------------------------------------------------------
 
 Δw : TCtx
@@ -500,3 +505,142 @@ xlic-ren-ok = herex
 
 star-ren-ok : starOnly (renᴮ ρ₁ (intRen ρ₁ dualᵛ) dualᵛ) 0 (` 0) ≡ true
 star-ren-ok = refl
+
+------------------------------------------------------------------------
+-- §8.  THE SkelEq REPAIR (notes/DECISIONS.md's "D1 PROBE VERDICT — … the
+-- SkelEq repair"; the reference probe is notes/D1Probe.agda §7).
+--
+-- (bwf-↓x) now carries a third premise: SkelEq A A′, "the conceal's rep has
+-- the same SKELETON as the recorded x-rep" — the constructor tree, with
+-- VARIABLE POSITIONS IDENTIFIED.  Four things had to be true of it, and all
+-- four are checked below:
+--
+--   §8.1  it is DISCHARGED AT BIRTH by a theorem — at every dual's birth the
+--         two reps are SYNTACTICALLY equal (xrep-stored / dual-cnc-skel), so
+--         the only rule that mints x-conceals pays nothing;
+--   §8.2  it SURVIVES §7b's weakening, the very instance that refutes ≡ and
+--         ≈Δ̄ — and by the hypothesis-free stability theorem, not by
+--         computation;
+--   §8.3  it REFUSES the soundness hole the comparison-free licence had: a
+--         CLOSED rep at an x-slot, which starOnly admits;
+--   §8.4  the ⊢3n-adv adversary still PASSES it, so §6's refutation is
+--         still carried by starOnly alone — the repair is orthogonal.
+------------------------------------------------------------------------
+
+-- §8.1  BIRTH.  E★′'s dual conceals Z at the rep ` 0 and the interior's
+-- x-entry records ` 0 — not by coincidence: the x-lookup inside a reveal
+-- block RETURNS the stored reveal rep, which is the rep cncOfRevs hands the
+-- dual's conceal.
+xrep-stored-E★′ : (` 0) ≡ ρᵇ Θ★ 0
+xrep-stored-E★′ = xrep-stored Θ★ 0 Θ★ 0 (s≤s z≤n) xlic-E★′
+
+skel-birth-E★′ : SkelEq (ρᵇ Θ★ 0) (` 0)
+skel-birth-E★′ = dual-cnc-skel {Δ₀ = Γ★} Θ★ 0 (s≤s z≤n) xlic-E★′
+
+-- … which is exactly the premise the live bwf-dualᵛ now supplies
+skel-live-E★′ : SkelEq (` 0) (` 0)
+skel-live-E★′ = sk-var
+
+-- and the whole contractum still types through it (§1.3, re-run)
+⊢T4′-still : Γ★ ∣ [] ⊢ T4′ ⦂ (` 0 ⇒ `ℕ)
+⊢T4′-still = ⊢T4′
+
+------------------------------------------------------------------------
+-- §8.2  THE WEAKENING.  §7b's pair — the frozen conceal rep ` 0 against the
+-- moved x-rep ` 1 — is still LICENSED, because skeletons identify variable
+-- positions.  The witness comes from skel-ren applied to the two INDEPENDENT
+-- renamings (the interior one, which absorbs the shift, and the exterior
+-- suc): no Mono, no transport hypothesis, no absorption side condition.
+------------------------------------------------------------------------
+
+skel-post-ren : SkelEq (renameᵗ (intRen ρ₁ dualᵛ) (` 0)) (renameᵗ suc (` 0))
+skel-post-ren = skel-ren (intRen ρ₁ dualᵛ) suc sk-var
+
+skel-ok-ren : SkelEq (` 0) (` 1)
+skel-ok-ren = skel-post-ren
+
+-- the same pair, in the two forms that FAIL there (cited from §7b)
+skel-vs-≡ : ¬ (intOf Δw Θ★w ∋ 0 :=x (` 0))
+skel-vs-≡ = ¬x-rep-match-ren
+
+skel-vs-≈ : ¬ ((` 0) ≈Δ̄⟨ intOf Δw Θ★w ⟩ (` 1))
+skel-vs-≈ = ¬x-rep-match-ren≈
+
+-- … and §7a's live transport instance is unchanged: hx-suc now carries the
+-- SkelEq witness too (skel-refl — a weakening copies the entry verbatim),
+-- so ⊢renameᵀ's strengthened hypothesis is discharged by the same term
+⊢W′-weakened-still :
+  (abst ∷ Γz) ∣ map (renameᵗ suc) [] ⊢ renameᵀ suc W′ ⦂ renameᵗ suc (` 0 ⇒ `ℕ)
+⊢W′-weakened-still = ⊢renameᵀ h-suc Mono-suc hk-suc SkelX-suc (⊢W′ {Γ₁ = []})
+
+------------------------------------------------------------------------
+-- §8.3  THE HOLE, CLOSED.  Θg conceals E★′'s own x-slot at the CLOSED rep
+-- ℕ.  starOnly ADMITS it (starOnly Θ d `ℕ = true), so the comparison-free
+-- licence typed a ℕ literal at the Λ-BOUND Y — and, one ⊢retag≈ away, at a
+-- slot the exterior knows to be ∀Z.Z→Z, which is `bad`'s own configuration.
+-- Both are now REFUTED, by the skeleton premise alone.
+------------------------------------------------------------------------
+
+starOnly-does-not-refuse : starOnly Θg 0 `ℕ ≡ true
+starOnly-does-not-refuse = starOnly-ground
+
+skel-does-refuse : ¬ (SkelEq `ℕ (` 0))
+skel-does-refuse = ¬skel-ground
+
+-- the inner half and the two towers (strong.Boundary's refutations, cited)
+¬⊢gnd-here : ¬ (Γz ∣ [] ⊢ ($ 7) ⟪ Θg , ` 0 ⟫ ⦂ ` 0)
+¬⊢gnd-here = ¬⊢gnd
+
+¬⊢Tg-here : ¬ (Γ₈ ∣ [] ⊢ Tg ⦂ ` 0)
+¬⊢Tg-here = ¬⊢Tg
+
+¬⊢Tbad-here : ¬ (Δbad ∣ [] ⊢ Tg ⦂ ` 0)
+¬⊢Tbad-here = ¬⊢Tbad
+
+-- the same tower on E★′'s OWN boundary ordering (D1Probe's ⊢Tg verbatim),
+-- so the refutation is not an artefact of Θ₈'s entry order
+Tg★ : Term
+Tg★ = (($ 7) ⟪ Θg , ` 0 ⟫) ⟪ Θ★ , ` 0 ⟫
+
+¬⊢Tg★ : ¬ (Γ★ ∣ [] ⊢ Tg★ ⦂ ` 0)
+¬⊢Tg★ (env _ _ (env (bwf↓  () _ _ _) _ _))
+¬⊢Tg★ (env _ _ (env (bwf↓x herex _ () _ _) _ _))
+
+-- REACHABILITY, for the record: ⊢retag≈ along Γ★ ≼≈ Γ𝔹 is the transport
+-- TyBeta performs when the Λ is instantiated, and it carried D1Probe's ⊢Tg
+-- into a context that KNOWS Y.  With the tower refuted at BOTH ends there is
+-- nothing left to transport.
+Γ𝔹 : TCtx
+Γ𝔹 = rvld `𝔹 ∷ rvld `ℕ ∷ []
+
+Γ★≼Γ𝔹 : Γ★ ≼≈ Γ𝔹
+Γ★≼Γ𝔹 = ≼≈abst (≼≈rvld ≼≈[] ≈-refl)
+
+¬⊢Tg★-instantiated : ¬ (Γ𝔹 ∣ [] ⊢ Tg★ ⦂ ` 0)
+¬⊢Tg★-instantiated (env _ _ (env (bwf↓  () _ _ _) _ _))
+¬⊢Tg★-instantiated (env _ _ (env (bwf↓x herex _ () _ _) _ _))
+
+------------------------------------------------------------------------
+-- §8.4  ORTHOGONALITY.  The ⊢3n-adv adversary's conceal rep IS the recorded
+-- one, so it passes SkelEq exactly as it passes ≡ and ≈Δ̄ (§6).  Its
+-- refutation is still carried entirely by claims-nothing — so the repair
+-- adds a refutation and removes none.
+------------------------------------------------------------------------
+
+adv-passes-skel : SkelEq (` 0) (` 0)
+adv-passes-skel = adv-rep-skel
+
+adv-still-refuted : ¬ (Γz ∣ [] ⊢ adv ⦂ ` 0)
+adv-still-refuted = ¬⊢adv
+
+adv-still-by-starOnly : ¬ (starOnly Ξadv 0 (` 0) ≡ true)
+adv-still-by-starOnly = ¬starOnly-adv
+
+-- and the ⊢3s-alias residue and a COMPOUND blocked rep are still admitted,
+-- so the premise is not over-restrictive (a "the rep must BE the recorded
+-- variable" premise would have refused the latter)
+skel-alias : SkelEq (` 0) (` 0)
+skel-alias = sk-var
+
+skel-compound-ok : SkelEq (` 0 ⇒ `ℕ) (` 1 ⇒ `ℕ)
+skel-compound-ok = skel-compound

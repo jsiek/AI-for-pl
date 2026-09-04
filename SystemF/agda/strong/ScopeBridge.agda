@@ -172,7 +172,7 @@ revSlots-view (cnc⋆ Y ∷ Θ)  Ψ X       p = revSlots-view Θ Ψ X p
 ρᵇ-lo (rvl⋆ ∷ Ξ)    (bwf⋆ b)     zero          lt = wf-ℕ
 ρᵇ-lo (rvl⋆ ∷ Ξ)    (bwf⋆ b)     (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
 ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓ k rev wfA b) X       lt = ρᵇ-lo Ξ b X lt
-ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓x k so wfA b) X       lt = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓x k so sk wfA b) X    lt = ρᵇ-lo Ξ b X lt
 ρᵇ-lo (cnc⋆ Y ∷ Ξ)  (bwf⋆↓ k b)        X       lt = ρᵇ-lo Ξ b X lt
 
 ρᵇ-lookup-wf : Δ ∣ Ψᵗ ⊢ᵇ Θ → (X : ℕ) → baseS Θ Δ ∋ok X → Δ ⊢ ρᵇ Θ X

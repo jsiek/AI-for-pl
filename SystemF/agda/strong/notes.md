@@ -278,39 +278,53 @@ see "Old per-variable design" and the historical Example 8 below.)
   (bwf-⋆)                                 Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↑X:⋆ , Θ
   (bwf-↓)   Γ ∋ Y:=A₀     A[ρΘ] ≈Δ̄⟨Γ⟩ A₀    Ψ ⊢ A
                                           Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
-  (bwf-↓x)  Γ ∋ Y:=ˣA′    A claims nothing in Θ    Ψ ⊢ A
+  (bwf-↓x)  Γ ∋ Y:=ˣA′    A claims nothing in Θ    A ≐ˢᵏ A′    Ψ ⊢ A
                                           Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
   (bwf-⋆↓)  Γ ∋ Y                         Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↓Y:⋆ , Θ
 
   THREE conceal-facing clauses, one per way a conceal can be licensed.
 
   **(bwf-↓x) — the exterior-read licence** (notes/DualLicenseDesign.md).  Y is x-revealed —
-  revealed, but asserting nothing HERE — and the rep A CLAIMS NOTHING: every free variable of
-  A names a REP-LESS reveal slot of Θ itself.  A rep-less reveal contributes an abstract
-  entry and a blocked slot, so the interior has no knowledge about it and no boundary type can
-  name it: the conceal aliases Y to a genuinely fresh abstract slot.  This is `↓Y:⋆`'s
-  "claims nothing" WITH a rep attached, so the boundary type can still be TRANSLATED — which
-  is exactly what E★′ needs and exactly what `↓Y:⋆` cannot give.
+  revealed, but asserting nothing HERE — the rep A CLAIMS NOTHING (every free variable of A
+  names a REP-LESS reveal slot of Θ itself), and A has the same SKELETON as the recorded rep
+  A′.  A rep-less reveal contributes an abstract entry and a blocked slot, so the interior has
+  no knowledge about it and no boundary type can name it: the conceal aliases Y to a genuinely
+  fresh abstract slot.  This is `↓Y:⋆`'s "claims nothing" WITH a rep attached, so the boundary
+  type can still be TRANSLATED — which is exactly what E★′ needs and exactly what `↓Y:⋆`
+  cannot give.
 
-  The claims-nothing premise is LOAD-BEARING, not hygiene: dropping it admits an adversary
-  that types `7 : ℕ` at an abstract Z, by pairing the x-entry with a NON-dual boundary
-  ↑W:=ℕ , ↓Z:=W whose rep smuggles interior content in.  Machine-checked both ways in
-  strong/Boundary.agda (¬starOnly-adv, ¬⊢adv) and in notes/InstallGauntlet.agda §6.
+  **A ≐ˢᵏ A′ — SKELETON EQUALITY**: the two types have the same CONSTRUCTOR TREE, with
+  VARIABLE POSITIONS IDENTIFIED (`X ≐ˢᵏ `Y for any X and Y; ℕ ≐ˢᵏ ℕ; A⇒B ≐ˢᵏ A′⇒B′ when both
+  halves are; ∀A ≐ˢᵏ ∀A′ likewise).  It is stable under renaming EACH SIDE INDEPENDENTLY, with
+  NO hypotheses at all, which the exact-variable comparisons are not — see §Metatheory's
+  "Why skeletons" below for why that is the deciding property.
 
-  Two deviations from notes/DualLicenseDesign.md, both flagged in the Agda:
+  BOTH premises are LOAD-BEARING, and each catches what the other misses.
 
-    * the premise is stated on the BOUNDARY ("A names only rep-less reveals of Θ"), not on
-      the interior ("A names only abstract variables of Ψ").  The interior form is
-      ANTI-MONOTONE in knowledge, so it does not survive the retag TyBeta and TyWrap perform
-      (`abst ↦ rvld` at the Λ-binder's slot).  The boundary form mentions no context at all,
-      so it is retag-stable outright and renaming-stable through renᴮ; on the whole gauntlet
-      it decides identically.
-    * there is NO rep comparison ("A is, up to ≈Δ̄, the recorded rep A′").  §5's warning is
-      real and the congruence does NOT repair it: under a weakening the x-rep moves by the
-      OUTER ρ while renᴮ freezes the conceal's rep, and in the renamed interior the two are a
-      genuinely abstract slot apart — so the ≈ form fails exactly where the ≡ form does
-      (notes/InstallGauntlet.agda §7b).  The x-LOOKUP still does the discriminating work: a
-      conceal of a plain Λ-bound abstract variable stays unlicensed.
+    * Claims-nothing: dropping it admits an adversary that types `7 : ℕ` at an abstract Z, by
+      pairing the x-entry with a NON-dual boundary ↑W:=ℕ , ↓Z:=W whose rep smuggles interior
+      content in.  Its rep IS the recorded one, so it passes the skeleton comparison.
+      Machine-checked in strong/Boundary.agda (¬starOnly-adv, ¬⊢adv, adv-rep-skel) and in
+      notes/InstallGauntlet.agda §6, §8.4.
+    * Skeleton equality: dropping it admits a CLOSED rep, since "A names only rep-less
+      reveals" is VACUOUSLY true of ℕ.  The licence then asserts "Z is ℕ" at a slot about
+      which the interior knows nothing — a ℕ literal exported at a Λ-bound variable, and one
+      retag away `bad`'s own configuration.  That was the soundness hole of the first x-licence
+      install (notes/DECISIONS.md's "D1 PROBE VERDICT"), and it is kept refuted permanently in
+      strong/Boundary.agda (starOnly-ground, ¬skel-ground, ¬⊢gnd, ¬⊢Tg, ¬⊢Tbad) and in
+      notes/InstallGauntlet.agda §8.3.
+
+  One deviation from notes/DualLicenseDesign.md, flagged in the Agda: the claims-nothing
+  premise is stated on the BOUNDARY ("A names only rep-less reveals of Θ"), not on the
+  interior ("A names only abstract variables of Ψ").  The interior form is ANTI-MONOTONE in
+  knowledge, so it does not survive the retag TyBeta and TyWrap perform (`abst ↦ rvld` at the
+  Λ-binder's slot).  The boundary form mentions no context at all, so it is retag-stable
+  outright and renaming-stable through renᴮ; on the whole gauntlet it decides identically.
+
+  And §5's rep comparison is present, but in SKELETON form, not as "A is, up to ≈Δ̄, the
+  recorded rep A′" — that form is refuted, not merely unproven
+  (notes/InstallGauntlet.agda §7b).  The x-LOOKUP still does its own discriminating work: a
+  conceal of a plain Λ-bound abstract variable stays unlicensed.
 
   **(bwf-⋆↓)** asks only that the slot exist.  A rep-less conceal asserts nothing, so it
   needs nothing; that its slot is blocked is what keeps it honest.
@@ -972,11 +986,40 @@ Supporting lemmas.
        times: TyBeta and TyWrap turn the consumed Λ's ABSTRACT slot into the new reveal's
        entry, and Wrap retypes the argument in the dual's rebuild of Γ.  Its two interesting
        clauses: (bwf-↓)'s reversal premise moves by MONOTONICITY of ≈Δ̄ composed with the
-       target's own knowledge witness, and (bwf-↓x) moves because its two premises are the
-       x-LOOKUP (which ≼≈ preserves by construction) and a claims-nothing condition that
-       mentions no context at all.  The interior's monotonicity —
+       target's own knowledge witness, and (bwf-↓x) moves because all THREE of its premises
+       are context-stable: the x-LOOKUP (which ≼≈ preserves by construction), a
+       claims-nothing condition that mentions no context at all, and a skeleton comparison
+       that mentions none either.  The interior's monotonicity —
        Γ ≼≈ Γ′ ⟹ Γ⇈Θ ≼≈ Γ′⇈Θ — holds ON THE NOSE, because the interior computation consults
        the BOUNDARY alone; that is why the ambient unfold retry had to go, not this lemma.
+  (L-sk) SKELETON STABILITY.  A ≐ˢᵏ B ⟹ A[f] ≐ˢᵏ B[g] for ARBITRARY, UNRELATED renamings f
+       and g — no monotonicity, no transport hypothesis, no side condition.  It is what makes
+       (bwf-↓x)'s rep comparison a legal premise of boundary well-formedness.
+
+  WHY SKELETONS, AND NOT ≡ OR ≈Δ̄.  (bwf-↓x) compares two copies of the same representation
+  that DO NOT LIVE IN THE SAME COORDINATE SYSTEM.  The recorded rep A′ of an x-entry X:=ˣA′ is
+  a type over the exterior-OF-the-exterior — "readable one level out" is the whole content of
+  the mark — while the conceal's rep A is a type over the boundary's own interior.  The two
+  are identified only through the dual's REBUILD, and (L2) moves them by two DIFFERENT maps:
+  an x-entry's rep by the EXTERIOR ρ (that is one line of the entry-renaming function), a
+  conceal's rep by the INDUCED INTERIOR renaming.  Those maps differ on the rep's support
+  exactly when the boundary's frame ABSORBS the renaming — and an x-entry exists only where a
+  rep's reading is blocked, which only a conceal creates, so the absorbing case contains EVERY
+  weakening.  The D1 example: weaken E★′'s Γ★ = Y , X:=ℕ by a fresh Λ-bound V.  The x-rep
+  moves ` 0 ↦ ` 1 while the induced interior renaming is the identity and freezes the conceal's
+  rep at ` 0; in the renamed interior ` 0 is the x-revealed Z and ` 1 is out of range, so the
+  two differ syntactically AND up to unfolding, and even in the rebuild's own coordinates —
+  after an absorbed weakening the renamed exterior has one slot MORE than the rebuild, so
+  there is no context over which both reps are readable at all
+  (notes/InstallGauntlet.agda §7b, notes/D1Probe.agda §1–§2).  A comparison therefore survives
+  the renaming lemma iff it is invariant under renaming each side independently, and skeleton
+  equality is the strongest such comparison: it forgets exactly the variable IDENTITIES the
+  drift changes and keeps the constructor tree the drift cannot touch.  Nothing is lost at the
+  only rule that mints an x-conceal, because there the two reps are SYNTACTICALLY equal — an
+  x-lookup inside a reveal block returns the stored reveal rep, which is the very rep the dual
+  conceals (DualDef.agda's xrep-stored / dual-cnc-skel, notes/InstallGauntlet.agda §8.1).
+  That birth-time equality is not itself renaming-stable, which is why it is a THEOREM about
+  the dual and not a premise of the rule.
 
   Inversion of (env): from Γ ⊢ M ⟪ Θ , B₀ ⟫ : C we get Γ ∣ (Γ⇈Θ) ⊢ Θ, Θ;Γ ⊢ᵒᵏ B₀,
   Γ⇈Θ ⊢ M : B₀[γΘ], and C = B₀[ρΘ].
@@ -998,9 +1041,12 @@ its exterior-read transport, and the retagging lemma — is unconditional.
   theorems: the ⋆ half of the conceal block (every reveal slot exists in the interior,
   whatever entry it carries) and the copied reps' well-formedness in the dual's interior
   (which follows from the rebuild law).  DualCnc≈ is now a per-reveal DISJUNCTION — ordinary
-  knowledge with the read-back up to ≈, or the exterior-read mark with the claims-nothing
-  premise — and the residue is exactly where neither disjunct holds: a reveal whose rep names
-  a blocked slot that the dual re-reveals AT KNOWLEDGE (the Pn shape).  Wrap's INTERNAL face
+  knowledge with the read-back up to ≈, or the exterior-read mark with the claims-nothing and
+  skeleton premises — and the residue is exactly where neither disjunct holds: a reveal whose
+  rep names a blocked slot that the dual re-reveals AT KNOWLEDGE (the Pn shape).  The SkelEq
+  repair added the skeleton conjunct to the x-disjunct but NOT to the residue: at a dual's
+  birth the two reps are syntactically equal, so the conjunct is a theorem
+  (DualDef.agda's dual-cnc-skel).  Wrap's INTERNAL face
   law also became scope-restricted, like the external one, because a rep-lessly concealed slot
   has no internal image; (L-sc) with (env)'s premise on B₁ covers exactly the difference.
 
@@ -1159,6 +1205,8 @@ its exterior-read transport, and the retagging lemma — is unconditional.
   A[ρΘ] ≈Δ̄⟨Γ⟩ A₀ (reversal)  Reversal≈ Γ Θ X A A₀
                                = outRead Θ A ≈Δ̄⟨ Γ ⟩ upRep X A₀         Boundary.agda
   A claims nothing in Θ      starOnly Θ 0 A ≡ true  (revStar)           Boundary.agda
+  A ≐ˢᵏ A′  (same skeleton)  SkelEq  (sk-var, sk-ℕ, sk-𝔹, sk-⇒, sk-∀)   Boundary.agda
+  L-sk (skeleton stability)  skel-ren; skel-renˡ/ʳ, skel-refl/trans     Boundary.agda
   Θ;Γ ⊢ᵒᵏ B₀ (scoped)        Scoped (baseS Θ Δ) B₀                      Boundary.agda
   Γ ∣ Ψ ⊢ Θ                  _∣_⊢ᵇ_  (bwf[], bwf↑, bwf⋆, bwf↓,          Boundary.agda
                                bwf↓x, bwf⋆↓)
@@ -1181,9 +1229,10 @@ its exterior-read transport, and the retagging lemma — is unconditional.
   dual well-formedness       bwf-dualᴳ / bwf-dual + DualRep≈,           DualDef.agda
                                DualCnc≈ (CncLic), DualInt≈; the proven
                                parts: cnc⋆-licensed, revE-lo:=x,
-                               dual-rep-ok
+                               dual-rep-ok, dual-cnc-skel
   L2 (monotone renaming)     ⊢renameᵀ (premises `Mono ρ`, ∋:= and the   BReduction.agda
-                               exterior-read ∋:=x; hk-suc / hx-suc)
+                               exterior-read x-transport SkelX; hk-suc,
+                               SkelX-suc / SkelX-mv)
   ≈ transport from ∋:=       UnfRen≈-hk (unfSub-dich, unf-up, unf-self) BReduction.agda
   L-sc                       subst-cong-sc                              Boundary.agda
   L-≼≈ (retagging)           _≼≈_, ⊢retag≈, bwf-retag≈, ≼≈-intOf,       BReduction.agda
@@ -1192,12 +1241,17 @@ its exterior-read transport, and the retagging lemma — is unconditional.
   L1                         ⊢substᵀᵐ, ⊢[]ᵐ, preserve-Beta              TermSubst.agda
   bad / bad₂ refuted         ¬⊢bad, ¬Reversal≈-bad₂                     Boundary.agda
   near-bad / far-bad         Reversal≈-near-bad, ¬Reversal≈-far-bad     Boundary.agda
-  the x-licence adversary    ¬⊢adv, ¬starOnly-adv, adv-rep-match≈       Boundary.agda
+  the x-licence adversary    ¬⊢adv, ¬starOnly-adv, adv-rep-match≈,      Boundary.agda
+                               adv-rep-skel (it PASSES the skeleton test)
+  the closed-rep hole,       ¬⊢gnd, ¬⊢Tg, ¬⊢Tbad, ¬skel-ground,         Boundary.agda
+    refuted by SkelEq          starOnly-ground (starOnly admits it)
+  birth-time rep agreement   xrep-stored, dual-cnc-skel                 DualDef.agda
   Example 8's T4′ boundary   Θ₈  (the [R2] shape)                       Boundary.agda
   Examples 9, 10  (P, E)     Γp/Γp′/Θp (chained dual), Δm/Θm            BReduction.agda
   Examples 11, 12 (E★′, Pc)  notes/InstallGauntlet.agda §1, §5  — NOT in All.agda
   the install gauntlet       notes/InstallGauntlet.agda  (E★′, E★, Pn,
-                               dual-of-dual, Pc, soundness, renaming)
+                               dual-of-dual, Pc, soundness, renaming,
+                               the SkelEq repair in §8)
   design-path probes         notes/old/*Probe.agda — do NOT compile
   old design (historical)    Terms/Typing/Reduction, notes/old/Scratch7-9.agda
 

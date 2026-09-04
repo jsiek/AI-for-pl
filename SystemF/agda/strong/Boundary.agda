@@ -431,6 +431,86 @@ starOnly Θ d (A ⇒ B) = starOnly Θ d A ∧ starOnly Θ d B
 starOnly Θ d (`∀ A)  = starOnly Θ (suc d) A
 
 ------------------------------------------------------------------------
+-- SKELETON EQUALITY — the rep comparison (bwf-↓x) carries (notes/D1Probe.agda
+-- §7; notes/DECISIONS.md's "D1 PROBE VERDICT … the SkelEq repair").
+--
+-- WHY A COMPARISON AT ALL.  (bwf-↓x) licenses a conceal ↓X:=A against an
+-- x-entry X:=ˣA′.  With only the x-LOOKUP and starOnly, the two reps are
+-- unrelated — and starOnly is VACUOUSLY TRUE of a closed type
+-- (starOnly Θ d `ℕ = true), so the licence admitted ↓X:=ℕ at an x-slot,
+-- asserting "X is ℕ" with nothing behind it.  That is a SOUNDNESS hole, not
+-- hygiene: it re-types `bad`'s configuration through the x-clause
+-- (¬⊢gnd / ¬⊢Tg / ¬⊢Tbad at the foot of this file).
+--
+-- WHY NOT ≡ OR ≈Δ̄.  The two reps move by DIFFERENT maps under ⊢renameᵀ: an
+-- x-entry's rep moves by the EXTERIOR ρ (entRen₂) while renᴮ moves a
+-- conceal's rep by the INDUCED INTERIOR renaming — which, on any boundary
+-- that conceals, absorbs a weakening outright.  So both A ≡ A′ and
+-- A ≈Δ̄ A′ are unstable, machine-checked rather than merely unproven
+-- (notes/InstallGauntlet.agda §7b).
+--
+-- WHY SKELETONS.  A comparison transports for free exactly when it is
+-- invariant under renaming EACH SIDE INDEPENDENTLY.  SkelEq — the
+-- constructor tree with VARIABLE POSITIONS IDENTIFIED (sk-var relates ` X
+-- to ` Y for any X and Y) — is such a comparison: skel-ren has NO
+-- hypotheses, no Mono, no transport, no absorption side condition.  It sits
+-- strictly between "nothing" and "≡ / ≈Δ̄": strong enough to refuse a closed
+-- rep against a recorded variable (closing the hole), weak enough to admit
+-- every item the x-clause exists for, and orthogonal to starOnly, which
+-- keeps carrying the ⊢3n-adv refutation on its own.
+------------------------------------------------------------------------
+
+data SkelEq : Ty → Ty → Set where
+  sk-var : ∀ {X Y}                        → SkelEq (` X) (` Y)
+  sk-ℕ   :                                  SkelEq `ℕ `ℕ
+  sk-𝔹   :                                  SkelEq `𝔹 `𝔹
+  sk-⇒   : ∀ {A B A′ B′} → SkelEq A A′ → SkelEq B B′
+                                          → SkelEq (A ⇒ B) (A′ ⇒ B′)
+  sk-∀   : ∀ {A A′} → SkelEq A A′         → SkelEq (`∀ A) (`∀ A′)
+
+-- *** THE STABILITY THEOREM ***  no hypotheses at all — f and g are
+-- unrelated maps.  This is precisely what ≡ and ≈Δ̄ cannot have.
+skel-ren : ∀ {A B} (f g : Renameᵗ)
+         → SkelEq A B → SkelEq (renameᵗ f A) (renameᵗ g B)
+skel-ren f g sk-var     = sk-var
+skel-ren f g sk-ℕ       = sk-ℕ
+skel-ren f g sk-𝔹       = sk-𝔹
+skel-ren f g (sk-⇒ a b) = sk-⇒ (skel-ren f g a) (skel-ren f g b)
+skel-ren f g (sk-∀ a)   = sk-∀ (skel-ren (extᵗ f) (extᵗ g) a)
+
+-- the ONE-SIDED forms, which is how the transports consume it: renᴮ moves
+-- only the conceal's rep, and entRen₂ only the x-entry's
+skel-renˡ : ∀ {A B} (f : Renameᵗ) → SkelEq A B → SkelEq (renameᵗ f A) B
+skel-renˡ f sk-var     = sk-var
+skel-renˡ f sk-ℕ       = sk-ℕ
+skel-renˡ f sk-𝔹       = sk-𝔹
+skel-renˡ f (sk-⇒ a b) = sk-⇒ (skel-renˡ f a) (skel-renˡ f b)
+skel-renˡ f (sk-∀ a)   = sk-∀ (skel-renˡ (extᵗ f) a)
+
+skel-renʳ : ∀ (f : Renameᵗ) A → SkelEq A (renameᵗ f A)
+skel-renʳ f (` X)   = sk-var
+skel-renʳ f `ℕ      = sk-ℕ
+skel-renʳ f `𝔹      = sk-𝔹
+skel-renʳ f (A ⇒ B) = sk-⇒ (skel-renʳ f A) (skel-renʳ f B)
+skel-renʳ f (`∀ A)  = sk-∀ (skel-renʳ (extᵗ f) A)
+
+-- it is a genuine WEAKENING of both refuted forms, so nothing the landed
+-- design could already license is lost
+skel-refl : ∀ A → SkelEq A A
+skel-refl (` X)   = sk-var
+skel-refl `ℕ      = sk-ℕ
+skel-refl `𝔹      = sk-𝔹
+skel-refl (A ⇒ B) = sk-⇒ (skel-refl A) (skel-refl B)
+skel-refl (`∀ A)  = sk-∀ (skel-refl A)
+
+skel-trans : ∀ {A B C₁} → SkelEq A B → SkelEq B C₁ → SkelEq A C₁
+skel-trans sk-var     sk-var     = sk-var
+skel-trans sk-ℕ       sk-ℕ       = sk-ℕ
+skel-trans sk-𝔹       sk-𝔹       = sk-𝔹
+skel-trans (sk-⇒ a b) (sk-⇒ c d) = sk-⇒ (skel-trans a c) (skel-trans b d)
+skel-trans (sk-∀ a)   (sk-∀ c)   = sk-∀ (skel-trans a c)
+
+------------------------------------------------------------------------
 -- Boundary well-formedness.  The reveal block is read SIMULTANEOUSLY: every
 -- reveal's rep is well formed in the PLAIN exterior Γ, with no interference
 -- from the boundary's other entries.  The conceal premise is the REVERSAL
@@ -444,27 +524,29 @@ starOnly Θ d (`∀ A)  = starOnly Θ (suc d) A
 --             ≈Δ̄ at Γ (candidate (a″): Pc's chained knowledge and the
 --             near-bad reach the same knowledge by the other route).
 --   (bwf-↓x)  EXTERIOR-READ KNOWLEDGE.  X is x-revealed — revealed, but
---             asserting nothing HERE — and the rep CLAIMS NOTHING in the
---             interior.  This is cnc⋆'s "claims nothing" WITH a rep, so the
---             boundary type can still be TRANSLATED; that is exactly what
---             E★′ needs and exactly what cnc⋆ cannot give
---             (¬Scoped-⋆-E★′).
+--             asserting nothing HERE — the rep CLAIMS NOTHING in the
+--             interior, and it has the same SKELETON as the recorded rep.
+--             This is cnc⋆'s "claims nothing" WITH a rep, so the boundary
+--             type can still be TRANSLATED; that is exactly what E★′ needs
+--             and exactly what cnc⋆ cannot give (¬Scoped-⋆-E★′).
 --   (bwf-⋆↓)  REP-LESS.  The only premise is that the slot exists: a cnc⋆
 --             asserts nothing, so it needs nothing.
 --
--- DEVIATION FROM notes/DualLicenseDesign.md §2/§5, flagged: (bwf-↓x) does
--- NOT carry the rep comparison "A is (up to ≈Δ̄) the recorded rep A′".  The
--- x-rep's home is the exterior-OF-the-exterior while a conceal's rep lives
--- over the interior, and renᴮ freezes the latter while a context renaming
--- moves the former by the OUTER ρ — so the comparison is unstable under
--- ⊢renameᵀ in the ≈ form exactly as in the ≡ form (§5's ¬xlic-ren survives
--- the congruence; the counter-instance is machine-checked as
--- ¬x-rep-match-ren in notes/InstallGauntlet.agda).  Nothing is lost: the
--- LOAD-BEARING premise is "claims nothing" (§3, here starOnly), the whole
--- gauntlet (E★′, E★, Pn, bad, bad₂, near/far, dual-of-dual, ⊢3n-adv) turns
--- only on it, and the x-LOOKUP still does the discriminating work — a
--- conceal of a plain Λ-bound abstract variable stays unlicensed
--- (bwf1-garbage's shape).
+-- THE REP COMPARISON, IN ITS ONLY STABLE FORM (notes/DECISIONS.md's "D1
+-- PROBE VERDICT"; notes/D1Probe.agda §7).  notes/DualLicenseDesign.md §2/§5
+-- asked for "A is (up to ≈Δ̄) the recorded rep A′", and that form is refuted:
+-- the x-rep's home is the exterior-OF-the-exterior while a conceal's rep
+-- lives over the interior, renᴮ freezes the latter while a context renaming
+-- moves the former by the OUTER ρ, and the two then differ even up to
+-- unfolding (¬x-rep-match-ren / ¬x-rep-match-ren≈ in
+-- notes/InstallGauntlet.agda §7b).  But DROPPING the comparison is UNSOUND —
+-- starOnly is vacuously true of a CLOSED rep, so ↓X:=ℕ was licensed at an
+-- x-slot and `bad`'s configuration came back through the x-clause (¬⊢gnd /
+-- ¬⊢Tg / ¬⊢Tbad at the foot of this file).  SkelEq is the comparison that
+-- survives: stable under renaming each side independently with NO hypotheses
+-- (skel-ren), so the ⊢renameᵀ case closes, while still refusing the closed
+-- rep.  All three premises are now stable: the x-LOOKUP, starOnly (which
+-- mentions no context), and SkelEq.
 ------------------------------------------------------------------------
 
 data Bwf (Γ Ψ : TCtx) (Θ : BCtx) : BCtx → Set where
@@ -476,7 +558,7 @@ data Bwf (Γ Ψ : TCtx) (Θ : BCtx) : BCtx → Set where
         → Γ ∋ X := A₀ → Reversal≈ Γ Θ X A A₀ → Ψ ⊢ A
         → Bwf Γ Ψ Θ Ξ → Bwf Γ Ψ Θ (cnc X A ∷ Ξ)
   bwf↓x : ∀ {X A A′ Ξ}
-        → Γ ∋ X :=x A′ → starOnly Θ 0 A ≡ true → Ψ ⊢ A
+        → Γ ∋ X :=x A′ → starOnly Θ 0 A ≡ true → SkelEq A A′ → Ψ ⊢ A
         → Bwf Γ Ψ Θ Ξ → Bwf Γ Ψ Θ (cnc X A ∷ Ξ)
   bwf⋆↓ : ∀ {X Ξ}
         → Γ ∋tv X
@@ -777,7 +859,7 @@ _ = refl
 
 ¬⊢bad : ¬ ([] ∣ [] ⊢ bad ⦂ ∀ZZ)
 ¬⊢bad (env _ _ (env (bwf↓ here rev _ _) _ _))  = ¬Reversal≈-bad rev
-¬⊢bad (env _ _ (env (bwf↓x () _ _ _) _ _))
+¬⊢bad (env _ _ (env (bwf↓x () _ _ _ _) _ _))
 
 -- bad₂ (probe §5): the naive interior comparison accepts it because ` 0 read
 -- in Γ↓X and ` 0 read in the interior are different variables; the reversal
@@ -859,7 +941,7 @@ adv = (($ 7) ⟪ cnc 0 `ℕ ∷ [] , ` 0 ⟫) ⟪ Ξadv , ` 1 ⟫
 -- nothing (it claims W = ℕ).
 ¬⊢adv : ¬ (Γz ∣ [] ⊢ adv ⦂ ` 0)
 ¬⊢adv (env (bwf↑ _ (bwf↓ () _ _ _)) _ _)
-¬⊢adv (env (bwf↑ _ (bwf↓x herex () _ _)) _ _)
+¬⊢adv (env (bwf↑ _ (bwf↓x herex () _ _ _)) _ _)
 
 -- AND THE §5(ii) GAUNTLET ITEM.  Adding the rep comparison to (bwf-↓x) —
 -- syntactically, or up to ≈Δ̄ as the ruling directs — does NOT refute the
@@ -873,6 +955,13 @@ adv-rep-match = refl
 
 adv-rep-match≈ : (` 0) ≈Δ̄⟨ Γz ⟩ (` 0)
 adv-rep-match≈ = ≈-refl
+
+-- … AND THE SAME UNDER SkelEq, which is the comparison the rule now carries:
+-- the adversary PASSES it (its rep is the recorded one), so the refutation
+-- above is still carried entirely by starOnly.  SkelEq is orthogonal to the
+-- adversary, exactly as ≡ and ≈Δ̄ are.
+adv-rep-skel : SkelEq (` 0) (` 0)
+adv-rep-skel = sk-var
 
 -- WHAT THE x-LICENCE DOES ADMIT (⊢3s-alias): an alias between two ABSTRACT
 -- slots — a fresh ↑V:⋆ paired with ↓Z:=V.  Neither side carries knowledge,
@@ -890,7 +979,7 @@ _ : starOnly Ξalias 0 (` 0) ≡ true
 _ = refl
 
 _ : Γz ∣ [] ⊢ (ƛ ` 0 ∙ $ 5) ⟪ Ξalias , ` 1 ⇒ `ℕ ⟫ ⦂ (` 0 ⇒ `ℕ)
-_ = env (bwf⋆ (bwf↓x herex refl (wf-var here-abst) bwf[]))
+_ = env (bwf⋆ (bwf↓x herex refl sk-var (wf-var here-abst) bwf[]))
         (sc-⇒ (sc-var (thereᵒ hereᵒ)) sc-ℕ)
         (⊢ƛ (wf-var here-abst) ⊢$)
 
@@ -898,3 +987,80 @@ _ = env (bwf⋆ (bwf↓x herex refl (wf-var here-abst) bwf[]))
 -- x-lookup is what discriminates (bwf1-garbage's shape, refused).
 ¬x-plain-abst : ∀ {A₁} → (abst ∷ []) ∋ 0 :=x A₁ → ⊥
 ¬x-plain-abst ()
+
+------------------------------------------------------------------------
+-- THE SOUNDNESS HOLE THE SkelEq PREMISE CLOSES, KEPT AS REFUTATIONS
+-- (notes/D1Probe.agda §4.2/§4.5, whose ⊢gnd / ⊢Tg / ⊢Tbad were INHABITANTS
+-- of the comparison-free licence).  These stay here permanently, next to
+-- ¬⊢bad / ¬Reversal≈-bad₂ / ¬⊢adv, so the hole cannot silently reopen.
+--
+-- Θg conceals E★′'s own x-slot at the CLOSED rep ℕ.  starOnly is vacuously
+-- true of it (starOnly-ground), so the claims-nothing premise does NOT
+-- refuse it: on its own the x-licence asserted "Z is ℕ" at a slot about
+-- which the interior knows nothing, and 7 : ℕ acquired the abstract type Z.
+------------------------------------------------------------------------
+
+Θg : BCtx
+Θg = cnc 0 `ℕ ∷ []
+
+-- the claims-nothing premise is SATISFIED — this is why the comparison is
+-- load-bearing and not hygiene
+starOnly-ground : starOnly Θg 0 `ℕ ≡ true
+starOnly-ground = refl
+
+-- … and the SKELETON premise is what refuses it: a closed rep against the
+-- recorded VARIABLE
+¬skel-ground : ¬ (SkelEq `ℕ (` 0))
+¬skel-ground ()
+
+-- the inner half, REFUTED (it was D1Probe's ⊢gnd).  (bwf-↓) cannot fire —
+-- Γz carries no ordinary knowledge of Z — and (bwf-↓x) is now refused by
+-- SkelEq.
+¬⊢gnd : ¬ (Γz ∣ [] ⊢ ($ 7) ⟪ Θg , ` 0 ⟫ ⦂ ` 0)
+¬⊢gnd (env (bwf↓  () _ _ _) _ _)
+¬⊢gnd (env (bwf↓x herex _ () _ _) _ _)
+
+-- THE FULL TOWER, REFUTED (D1Probe's ⊢Tg): E★′'s own shape with the dual's
+-- rep Y replaced by the closed ℕ — a ℕ literal exported at the Λ-BOUND Y.
+Tg : Term
+Tg = (($ 7) ⟪ Θg , ` 0 ⟫) ⟪ Θ₈ , ` 0 ⟫
+
+¬⊢Tg : ¬ (Γ₈ ∣ [] ⊢ Tg ⦂ ` 0)
+¬⊢Tg (env _ _ (env (bwf↓  () _ _ _) _ _))
+¬⊢Tg (env _ _ (env (bwf↓x herex _ () _ _) _ _))
+
+-- AND ONE INDIRECTION AWAY, `bad`'s OWN CONFIGURATION (D1Probe's ⊢Tbad):
+-- replace Γ₈'s Λ-bound Y by a slot the exterior KNOWS to be ∀Z.Z→Z.  The
+-- reveal's rep is then a BLOCKED variable, so the interior entry is the
+-- x-one and (bwf-↓) — whose reversal premise refutes `bad` — never runs.
+-- Reachable: ⊢retag≈ along Γ₈ ≼≈ Δbad is the transport TyBeta performs.
+Δbad : TCtx
+Δbad = rvld ∀ZZ ∷ rvld `ℕ ∷ []
+
+_ : intOf Δbad Θ₈ ≡ xrvld (` 0) ∷ []
+_ = refl
+
+know-bad : Δbad ∋ 0 := ∀ZZ
+know-bad = here
+
+¬⊢Tbad : ¬ (Δbad ∣ [] ⊢ Tg ⦂ ` 0)
+¬⊢Tbad (env _ _ (env (bwf↓  () _ _ _) _ _))
+¬⊢Tbad (env _ _ (env (bwf↓x herex _ () _ _) _ _))
+
+-- the comparison the landed licence dropped would have refused it in EITHER
+-- form — but only the SKELETON form survives ⊢renameᵀ, which is the whole
+-- content of the repair
+would-refute-≡ : ¬ (_≡_ {A = Ty} `ℕ (` 0))
+would-refute-≡ ()
+
+would-refute-≈ : ¬ (`ℕ ≈Δ̄⟨ Δbad ⟩ (` 0))
+would-refute-≈ (≈unf ())
+
+-- what SkelEq still ADMITS, so the repair costs the design nothing: E★′'s
+-- own variable-against-variable pair, and a COMPOUND blocked rep (which a
+-- "the rep must BE the recorded variable" premise would have over-refused)
+skel-E★′ : SkelEq (` 0) (` 0)
+skel-E★′ = sk-var
+
+skel-compound : SkelEq (` 0 ⇒ `ℕ) (` 1 ⇒ `ℕ)
+skel-compound = sk-⇒ sk-var sk-ℕ

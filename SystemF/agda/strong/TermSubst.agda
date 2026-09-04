@@ -116,9 +116,11 @@ extsᵀᵐ-⊢ h (there p) = ⊢renameᵀᵐ there (h p)
 -- Mono-suc, whose lookup premise is skip-abst, and whose KNOWLEDGE-transport
 -- premise (new: the reversal-form conceal rule reads the exterior's ∋:=) is
 -- hk-suc — restrictRen X suc is pointwise the identity, so the rep is
--- carried across unchanged — and whose EXTERIOR-READ transport is hx-suc:
--- weakening does not touch a stored entry, so the x-rep is carried across
--- verbatim (only the lookup index shifts).
+-- carried across unchanged — and whose EXTERIOR-READ transport (in its
+-- SkelX form, since the repaired (bwf-↓x) compares the two reps by
+-- skeleton) is hx-suc: weakening does not touch a stored entry, so the
+-- x-rep is carried across verbatim (only the lookup index shifts) and its
+-- skeleton witness is skel-refl.
 ⇑ᵀ-⊢ : ∀ {σ : ℕ → Term} {Δ Γₜ Γₜ′}
   → (∀ {x B} → Γₜ ∋ x ⦂ B → Δ ∣ Γₜ′ ⊢ σ x ⦂ B)
   → (∀ {x B} → ⤊ Γₜ ∋ x ⦂ B → (abst ∷ Δ) ∣ ⤊ Γₜ′ ⊢ ⇑ᵀ (σ x) ⦂ B)

@@ -1,8 +1,24 @@
-module strong.notes.D1Probe where
+module strong.notes.old.D1Probe where
 
 -- ADVERSARIAL DESIGN PROBE for DEVIATION (D1) — the comparison-free
 -- (bwf-↓x) (notes/DECISIONS.md "THE X-LICENSE INSTALL … (D1)";
 -- notes/DualLicenseDesign.md §5; notes/InstallGauntlet.agda §7b).
+--
+-- *** SUPERSEDED, AND DELIBERATELY NOT MAINTAINED. ***  §7's SkelEq repair
+-- was RULED AND INSTALLED (notes/DECISIONS.md "D1 PROBE VERDICT"), so this
+-- file no longer type-checks BY CONSTRUCTION: §4.2/§4.5's ⊢gnd / ⊢Tg /
+-- ⊢Tbad were INHABITANTS of the comparison-free licence, and the installed
+-- (bwf-↓x) refuses them.  It is kept as the pre-repair record — the root
+-- cause (§1), the birth-time rep agreement (§2.1), the Merge verdicts
+-- (§4–§6) and the repair itself (§7) are what it is read for.
+--
+-- WHERE ITS CONTENT NOW LIVES, live and checked:
+--   SkelEq / skel-ren / skel-trans / ≡→skel  →  strong.Boundary
+--   SkelX / SkelX-suc / SkelX-mv             →  strong.BReduction
+--   xrep-stored (+ the birth discharge)      →  strong.DualDef
+--   ⊢gnd / ⊢Tg / ⊢Tbad, as REFUTATIONS       →  strong.Boundary (¬⊢gnd,
+--     ¬⊢Tg, ¬⊢Tbad, ¬skel-ground, starOnly-ground) and
+--     notes/InstallGauntlet.agda §8
 --
 -- Everything is run against the LIVE strong.* modules; notes/InstallGauntlet
 -- is imported read-only for its shapes (Γ★, Θ★, dualᵛ, Δw, ρ₁, Θ★w, and the

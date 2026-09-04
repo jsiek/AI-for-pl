@@ -51,9 +51,13 @@ module strong.DualDef where
 --       (b) exterior-read knowledge:  intOf Δ Θ ∋ j :=x A′ (which the
 --           entry map always supplies for a rep-carrying reveal whose raw
 --           reading is blocked) PLUS "A claims nothing" — every variable of
---           A names a REP-LESS reveal of Θᵈ.
---     (b)'s lookup is a theorem (revE-lo:=x below); its claims-nothing half
---     is not, and E★′ is exactly where it holds (the dual re-reveals the
+--           A names a REP-LESS reveal of Θᵈ — PLUS the skeleton agreement
+--           SkelEq A A′ that the repaired (bwf-↓x) asks for.
+--     (b)'s lookup is a theorem (revE-lo:=x below) and so is its SKELETON
+--     conjunct (dual-cnc-skel, from xrep-stored: at a dual's birth the two
+--     reps are syntactically equal), so the SkelEq repair grew the statement
+--     but NOT the residue.  What is not a theorem is the claims-nothing
+--     half, and E★′ is exactly where it holds (the dual re-reveals the
 --     Λ-bound Y with ↑Y:⋆) while Pn is exactly where it fails (the dual
 --     re-reveals Y at the KNOWLEDGE ℕ, so the rep claims something).  Pn was
 --     closed by the AMBIENT unfold retry in the probes; that retry is gone
@@ -110,9 +114,9 @@ repOf-wf (cnc⋆ X ∷ Ξ)  (bwf⋆↓ p b)          i = repOf-wf Ξ b i
 repOf-wf (cnc X A ∷ Ξ) (bwf↓ p rev wfA b)   i with i ≟ X
 repOf-wf (cnc X A ∷ Ξ) (bwf↓ p rev wfA b)   i | yes _ = wfA
 repOf-wf (cnc X A ∷ Ξ) (bwf↓ p rev wfA b)   i | no  _ = repOf-wf Ξ b i
-repOf-wf (cnc X A ∷ Ξ) (bwf↓x p so wfA b)   i with i ≟ X
-repOf-wf (cnc X A ∷ Ξ) (bwf↓x p so wfA b)   i | yes _ = wfA
-repOf-wf (cnc X A ∷ Ξ) (bwf↓x p so wfA b)   i | no  _ = repOf-wf Ξ b i
+repOf-wf (cnc X A ∷ Ξ) (bwf↓x p so sk wfA b) i with i ≟ X
+repOf-wf (cnc X A ∷ Ξ) (bwf↓x p so sk wfA b) i | yes _ = wfA
+repOf-wf (cnc X A ∷ Ξ) (bwf↓x p so sk wfA b) i | no  _ = repOf-wf Ξ b i
 
 rvl-inj : ∀ {A B} → rvl A ≡ rvl B → A ≡ B
 rvl-inj refl = refl
@@ -227,6 +231,45 @@ revE-lo:=x Θ j Ξ {A = A} ef
 revE-lo:=x Θ j Ξ {A = A} ef | false | _ = herex
 
 ------------------------------------------------------------------------
+-- PROVEN.  THE BIRTH-TIME AGREEMENT OF THE TWO REPS (notes/D1Probe.agda
+-- §2.1; notes/DECISIONS.md's "D1 PROBE VERDICT").  An x-lookup INSIDE a
+-- boundary's reveal block returns the STORED reveal rep ρᵇ Ξ k on the nose —
+-- the x-analogue of the old `cancel-agree`.  The dual's conceal at slot k
+-- carries exactly that same ρᵇ Θ k (cncOfRevs), so at every dual's birth the
+-- two reps are SYNTACTICALLY EQUAL and (bwf-↓x)'s skeleton premise is FREE:
+-- DualCnc≈'s x-disjunct gained a conjunct, but not an obligation
+-- (dual-cnc-skel).  This is the theorem that discharges the repaired
+-- premise at the only rule that mints x-conceals.
+--
+-- It is a BIRTH-TIME fact only: it is not renaming-stable (D1Probe §2.2's
+-- ¬RepMatchᴿ-ren / ¬rebuild-ren — after an absorbed weakening the rebuild
+-- has fewer slots than the ambient context, so ≼≈ is FALSE, not unproven).
+-- That is precisely why the RULE compares skeletons and not reps.
+------------------------------------------------------------------------
+
+xrep-stored : ∀ Θ j Ξ {Γ : TCtx} {A′} k → k < revs Ξ
+            → (revEnts Θ j Ξ ++ Γ) ∋ k :=x A′ → A′ ≡ ρᵇ Ξ k
+xrep-stored Θ j []            k       ()       p
+xrep-stored Θ j (rvl A ∷ Ξ)   zero    lt       p with expr Θ j A
+xrep-stored Θ j (rvl A ∷ Ξ)   zero    lt herex | false = refl
+xrep-stored Θ j (rvl A ∷ Ξ)   zero    lt ()    | true
+xrep-stored Θ j (rvl A ∷ Ξ)   (suc k) (s≤s lt) (skipx p) =
+  xrep-stored Θ (suc j) Ξ k lt p
+xrep-stored Θ j (rvl⋆ ∷ Ξ)    zero    lt       ()
+xrep-stored Θ j (rvl⋆ ∷ Ξ)    (suc k) (s≤s lt) (skipx p) =
+  xrep-stored Θ (suc j) Ξ k lt p
+xrep-stored Θ j (cnc X A ∷ Ξ) k       lt       p =
+  xrep-stored Θ j Ξ k lt p
+xrep-stored Θ j (cnc⋆ X ∷ Ξ)  k       lt       p =
+  xrep-stored Θ j Ξ k lt p
+
+-- … and so the SkelEq conjunct of DualCnc≈'s x-disjunct is derivable
+dual-cnc-skel : ∀ {Δ₀ : TCtx} Θ k {A′} → k < revs Θ
+              → intOf Δ₀ Θ ∋ k :=x A′ → SkelEq (ρᵇ Θ k) A′
+dual-cnc-skel Θ k lt p
+  rewrite xrep-stored Θ 0 Θ k lt p = skel-refl (ρᵇ Θ k)
+
+------------------------------------------------------------------------
 -- RESIDUE (1).  The reveal the dual emits at a slot that Θ drops without
 -- concealing and that Δ REVEALS: it copies Δ's entry `rvld B` into the
 -- dual's PLAIN exterior by copyRep — raw when the first guard permits, and
@@ -301,7 +344,7 @@ rep-wf-lo Θ (rvl⋆ ∷ Ξ)    (bwf⋆ b)     (suc k) (s≤s lt) =
   rep-wf-lo Θ Ξ b k lt
 rep-wf-lo Θ (cnc X A ∷ Ξ) (bwf↓ p rev wfA b) k       lt =
   rep-wf-lo Θ Ξ b k lt
-rep-wf-lo Θ (cnc X A ∷ Ξ) (bwf↓x p so wfA b) k       lt =
+rep-wf-lo Θ (cnc X A ∷ Ξ) (bwf↓x p so sk wfA b) k    lt =
   rep-wf-lo Θ Ξ b k lt
 rep-wf-lo Θ (cnc⋆ X ∷ Ξ)  (bwf⋆↓ p b)        k       lt =
   rep-wf-lo Θ Ξ b k lt
@@ -322,10 +365,12 @@ DualRep≈ = ∀ {Δ : TCtx} {Θ : BCtx} → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → Bl
 
 -- (2) the dual's CONCEAL block: per rep-carrying reveal, EITHER the
 -- interior's ordinary knowledge meets the read-back of the stored rep
--- (bwf-↓, up to ≈), OR the interior's exterior-read mark licenses it and
--- the rep claims nothing (bwf-↓x).  The ⋆ half is a theorem
--- (cnc⋆-licensed) and the rep well-formedness half is a theorem given (3)
--- (dual-rep-ok), so this is exactly the licensing residue.
+-- (bwf-↓, up to ≈), OR the interior's exterior-read mark licenses it, the
+-- rep claims nothing, and the two reps have the same skeleton (bwf-↓x).
+-- The ⋆ half is a theorem (cnc⋆-licensed), the rep well-formedness half is
+-- a theorem given (3) (dual-rep-ok), and the SKELETON conjunct is a theorem
+-- outright (dual-cnc-skel), so this is exactly the licensing residue — the
+-- same residue as before the SkelEq repair.
 DualCnc≈ : Set
 DualCnc≈ = ∀ {Δ : TCtx} {Θ : BCtx} → Δ ∣ intOf Δ Θ ⊢ᵇ Θ
          → ∀ k → k < revs Θ

@@ -1052,10 +1052,27 @@ Why progress did not close: `MergeOK` is falsifiable. The example (gauntlet §9d
 Δ = X:=ℕ  ⊢  ((ƛ y:W. 3) ⟪ ↑W:=ℕ , W⇒ℕ ⟫) ⟪ ↓X:=ℕ , X⇒ℕ ⟫  :  X⇒ℕ
 ```
 
-If Merge fires with the current ⊕, then the cancelled reveal's rep is pushed OUT through
-Θ₂, resolving W to ℕ — the merged wrapper would export `ℕ⇒ℕ` where the redex has type
-`X⇒ℕ`, dropping X's abstraction (exactly TOPLAS's authority warning, reachable at an ⇒
-face). But a CORRECT merged boundary exists and types (`⊢repair-cx`):
+(No cancel fires here — W's reveal and X's conceal sit at different slots; the cancel
+variant of the same failure is §9d(ii).)  If Merge fires with the current ⊕, then the
+result is (`Θcx1 ⊕ Θcx2 ≡ rvl ℕ ∷ cnc 0 ℕ` and `mrgB Θcx1 Θcx2 (W⇒ℕ) ≡ W⇒ℕ`, both
+by `refl` in the gauntlet):
+
+```
+(ƛ y:W. 3) ⟪ ↑W:=ℕ , ↓X:=ℕ , W⇒ℕ ⟫
+
+  internal face:  (γᵇ) W⇒ℕ = ℕ⇒ℕ   ✓ matches the body
+  external face:  (ρᵇ) W⇒ℕ = ℕ⇒ℕ   ✗ the redex has X⇒ℕ   (¬ext-cx)
+```
+
+The flattening lost the outer boundary's re-abstraction step: in the nested redex the
+inner wrapper exports ℕ⇒ℕ into the middle region and the outer conceal re-abstracts
+that to X⇒ℕ; in the composite, ρᵇ reads ↑W's rep — kept as the RESOLVED ℕ by mapL's
+push-out — directly in the exterior, so the wrapper exports ℕ⇒ℕ and X's abstraction
+is dropped (exactly TOPLAS's authority warning, reachable at an ⇒ face; `¬⊢merged-cx`
+— the merged wrapper is not typable at X⇒ℕ).  This bad term is never actually
+produced: MergeOK's external-face premise refuses it, so Merge does not fire — which
+is precisely why `NestedApp` is unprovable and progress stalls on this redex.  But a
+CORRECT merged boundary exists and types (`⊢repair-cx`):
 
 ```
 (ƛ y:W. 3) ⟪ ↑W:=X , ↓X:=ℕ , X⇒ℕ ⟫        -- re-abstract W AT X, not at ℕ

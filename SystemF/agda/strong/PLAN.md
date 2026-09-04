@@ -273,7 +273,20 @@ relation now carries the same index), term context always `[]`.
    closes. Also flagged: `cmax Θ₁ ≤ revs Θ₂` over-refuses conceal-of-conceal (the TOPLAS
    adversary merge is sound, `⊢merged-ag`, but `Merge` won't fire on it). The TOPLAS
    Δ-refinement strengthening (Def. 5.4/Lemma 5.5) is still to adopt.
-2. **[IN FLIGHT] The PEEL install** (Decision 5 RULED for fork (b), 2026-09-04 night —
+2. **[LANDED 2026-09-04 night] The PEEL install** — gates green. `Peel` replaces `Wrap`
+   (any value body; old Wrap ≡ Peel + Beta, machine-checked `peel-is-wrap+beta`);
+   `TyPeel` added for wrapper-bodied ∀ faces, form (β) — `TyWrap` kept for Λ bodies
+   ((α) recreates the Ξalias residue and needlessly shifts the Λ case);
+   `NestedApp`/`NestedTApp` DISCHARGED and deleted from ProgressDef. TWO FLAGS FOR
+   JEREMY (DECISIONS.md Decision 6): (i) `RevealVarApp`/`RevealVarTApp` are again
+   parameters, tightened to the nested variable-face shape — gauntlet §9i machine-checks
+   that at that shape MERGE IS THE ONLY RULE THAT FIRES (reachable by peel steps alone),
+   so Merge/Drop∅ were NOT deleted; §9j machine-checks that with them `det` and
+   values-don't-step are FALSE (Peel vs ξ-·-r+Merge). PROGRESS-NEEDS-MERGE vs THE
+   DETERMINISM LAW is Decision 6 — option (A) fold-the-merge-into-the-elimination is the
+   front-runner. (ii) TyPeel's contractum weakens the term (`⇑ᵀ`) — the one term-moving
+   rule; confined to the wrapper-bodied case; to confirm or overrule.
+   Original brief (superseded, kept for the record): (Decision 5 RULED for fork (b), 2026-09-04 night —
    see DECISIONS.md "Decision 5 — RULING"). The flatten-first route died: §9f showed a
    reachable stuck well-typed term, Jeremy identified the W/X linkage as a coincidence of
    reps stipulated by the FACE TYPES (not lineage), and §9g machine-checked that one

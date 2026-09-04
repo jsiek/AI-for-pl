@@ -7,7 +7,7 @@ module strong.BReduction where
 -- Reduction is KNOWLEDGE-INDEXED (notes/DECISIONS.md, Decision 4's ambient
 -- dual): the judgement is  Δ ⊢ M -→ M′, mirroring the Δ of typing.  ξ-⟪⟫
 -- extends the index by the boundary's interior and ξ-Λ by an abstract entry;
--- every other rule passes Δ through.  Only Wrap reads it — its dual copies
+-- every other rule passes Δ through.  Only Peel reads it — its dual copies
 -- the ambient context's own entry at each slot the boundary drops without
 -- concealing, so no knowledge is ever lost and no term traversal is needed.
 
@@ -450,6 +450,22 @@ _[_]ᵐ : Term → Term → Term
 N [ W ]ᵐ = substᵀᵐ (λ { zero → W ; (suc x) → ` x }) N
 
 ------------------------------------------------------------------------
+-- TyPeel's INNER TYPE-APPLICATION ANNOTATION.
+--
+-- TyPeel pushes a type application INSIDE the boundary, where the wrapped
+-- value has the boundary's INTERNAL face.  A type application carries its
+-- ∀-body annotation, and that annotation is FORCED: the body of
+--   ⇑ᵗ (substᵗ (γᵇ Θ) (`∀ B₀))
+--     =  `∀ (renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀))
+-- — the internal face of the ∀ boundary type, weakened by the ONE fresh
+-- slot the new reveal adds to the interior.  Nothing here is a choice; it
+-- is the type the interior's own (tapp) demands.
+------------------------------------------------------------------------
+
+peelB : BCtx → Ty → Ty
+peelB Θ B₀ = renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀)
+
+------------------------------------------------------------------------
 -- Values
 ------------------------------------------------------------------------
 
@@ -467,7 +483,7 @@ data Value where
 
 ------------------------------------------------------------------------
 -- Reduction.  Γ-INDEXED: the index is the type context in which the redex
--- sits, exactly the Δ of the typing judgement, and only Wrap consults it.
+-- sits, exactly the Δ of the typing judgement, and only Peel consults it.
 ------------------------------------------------------------------------
 
 infix 2 _⊢_-→_
@@ -495,23 +511,56 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
   -- PARALLEL reading a reveal's rep is read in the plain exterior, where A
   -- already lives, so its external face is A on the nose.  (The lift
   -- `renameᵗ (revs Θ +_) A` was forced only by the reverted telescope.)
-  -- Partial by design: a wrapper-bodied wrapper at a ∀ face is a Merge
-  -- redex (Decision 3), not a TyWrap redex.
+  -- Λ-bodied only, and it stays that way under PEEL: for a Λ body the
+  -- Λ-binder's slot IS the new reveal slot, so nothing moves in the term
+  -- and the step is a single one.  A WRAPPER-bodied wrapper at a ∀ face is
+  -- TyPeel's redex (the two are syntactically disjoint: `Λ V` vs
+  -- `V ⟪ Θ₁ , B₁ ⟫`).
   TyWrap : Value V
       → Δ ⊢ ((Λ V) ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
         -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
 
-  -- R2: a wrapped ƛ meets an APPLICATION.  Symmetric to TyWrap: the
-  -- elimination CONSUMES the ƛ and β-substitutes in one step.  The argument
-  -- lives in the EXTERIOR, so it is moved inside through the AMBIENT DUAL
-  -- first; _[_]ᵐ is TERM-variable substitution only, so again no term shift
-  -- is involved.  B₁ is read over Θ's boundary frame, so the dual's boundary
-  -- type is B₁ renamed by the frame permutation swapᵇ.  This is the ONE rule
-  -- that reads the ambient Δ: the dual copies Δ's own entry at every slot Θ
+  -- TyPeel (Decision 5, fork (b), the ∀ face) — GENERALIZES TyWrap from a
+  -- Λ-bodied wrapper to a WRAPPER-bodied one.  The elimination is pushed
+  -- INSIDE the boundary, exactly as Peel pushes an application inside; the
+  -- new reveal ↑·:=A is minted on the boundary as in TyWrap, and the INNER
+  -- type application instantiates at THE NEW REVEAL'S OWN ABSTRACT VARIABLE
+  -- ` 0 — no exterior type is ever pushed inward (Example 8's constraint).
+  --
+  -- This is the one rule that WEAKENS the wrapped term (⇑ᵀ), and it must:
+  -- the new reveal occupies interior slot 0, so a body that was written
+  -- over the old interior has every type index one lower than the new
+  -- interior's.  ⇑ᵀ is a pure WEAKENING — ⊢renameᵀ at `suc` (⊢⇑ᵀ below) —
+  -- not the old "push the type argument inward", which is what Example 8
+  -- refuted.  For a Λ body the weakening is unnecessary (the binder's slot
+  -- is the reveal's), which is exactly why TyWrap is kept: see
+  -- notes/DECISIONS.md, "Decision 5 install" — form (β).
+  TyPeel : Value V
+      → Δ ⊢ ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
+        -→ (⇑ᵀ (V ⟪ Θ₁ , B₁ ⟫) ·[ peelB Θ B₀ , ` 0 ])
+           ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
+
+  -- Peel (Decision 5, fork (b), the ⇒ face) — REPLACES Wrap.  A boundary
+  -- meets an APPLICATION: the application is pushed INSIDE the boundary by
+  -- ONE layer, and the argument crosses inward through the AMBIENT DUAL.
+  -- Unlike the old Wrap the ƛ is NOT consumed and there is no
+  -- β-substitution: the wrapped value may be ANY value, so the rule is
+  -- total at an ⇒ face and progress needs no case analysis of the body.
+  -- For a ƛ-bodied V, `Peel` followed by `ξ-⟪⟫ (Beta …)` reproduces
+  -- exactly the old Wrap contractum (peel-is-wrap+beta below).
+  --
+  -- ALL READINGS ARE INWARD (γ-direction, functional): the outward,
+  -- relational re-abstraction that a face-directed ⊕ would need is never
+  -- performed — which is why the §9g double coincidence, where flattening
+  -- is IMPOSSIBLE under any ⊕, simply runs here.
+  --
+  -- B₁ is read over Θ's boundary frame, so the dual's boundary type is B₁
+  -- renamed by the frame permutation swapᵇ.  This is the ONE rule that
+  -- reads the ambient Δ: the dual copies Δ's own entry at every slot Θ
   -- drops without concealing.
-  Wrap : Value W
-      → Δ ⊢ ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
-        -→ (N [ W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫
+  Peel : Value V → Value W
+      → Δ ⊢ ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W)
+        -→ (V · (W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
 
   -- Merge (Decision 3): a wrapper-bodied wrapper collapses to ONE
   -- boundary.  The composite is Θ₁ ⊕ Θ₂ — Θ₁'s reveals with their reps
@@ -550,6 +599,34 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
 
   ξ-⟪⟫  : intOf Δ Θ ⊢ M -→ M′
         → Δ ⊢ M ⟪ Θ , B₀ ⟫ -→ M′ ⟪ Θ , B₀ ⟫
+
+------------------------------------------------------------------------
+-- DETERMINISM AND VALUES-DON'T-STEP — *** NEXT, AND CURRENTLY FALSE ***
+-- (Jeremy's design requirement, 2026-09-04; evidence in
+-- notes/InstallGauntlet §9j).  The two statements wanted are
+--
+--   V-¬-→ : Value V → ¬ (Δ ⊢ V -→ M′)
+--   det   : Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+--
+-- and BOTH FAIL as the relation stands, for one reason: Merge and Drop∅
+-- are the only rules whose LEFT-HAND SIDE IS A VALUE.  §9j exhibits a
+-- value that steps (val-steps) and, from that, a term with two different
+-- contracta (nd-peel / nd-merge / nd-≢) — ξ-·-r's Value premise is
+-- satisfied by a cancellable lineage pair, so Merge competes with the
+-- Peel on the same redex.  They are NOT stated as lemmas here because
+-- they would be unprovable, and no postulate is admitted.
+--
+-- Every other pair is already disjoint by syntax, so removing Merge and
+-- Drop∅ would give both properties at once:
+--   Beta vs Peel      bare ƛ            vs wrapper, in function position
+--   TyBeta vs TyWrap  bare Λ            vs wrapper
+--   TyWrap vs TyPeel  Λ-bodied wrapper  vs wrapper-bodied wrapper
+--   ξ frames          left-to-right, each guarded by Value
+-- What blocks the removal is PROGRESS at a reveal-variable face, where
+-- no elimination can be pushed inward at all and Merge is the only rule
+-- that fires — machine-checked, on a REACHABLE term, in §9i
+-- (rv-only-merge).  The ruling is Jeremy's.
+------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 -- Worked example:  (ΛX. λx:X.x) [X→X, ℕ]  →  (λx:X.x)⟪↑X:=ℕ⟫   (both : ℕ→ℕ)
@@ -716,7 +793,7 @@ _ = refl
       (⊢ƛ (wf-var here-rvld) (⊢` here))
 
 ------------------------------------------------------------------------
--- Worked example for Wrap (R2), on a MIXED boundary — one reveal AND one
+-- Worked example for Peel, on a MIXED boundary — one reveal AND one
 -- conceal, the shape R1 produces (⊢contractum-R1 above), and the case a
 -- "restrict R2 to cmax Θ = 0" design would not cover.
 --
@@ -765,10 +842,23 @@ _ = refl
           (⊢ƛ (wf-var here-rvld) (⊢` here)))
      ⊢$
 
--- the ƛ's body is ` 0, so N [ … ]ᵐ IS the wrapped argument (definitionally)
-_ : Δm ⊢ ((ƛ ` 0 ∙ ` 0) ⟪ Θm , ` 0 ⇒ ` 0 ⟫) · ($ 3)
+-- PEEL, then the ordinary Beta INSIDE the boundary.  The peel step moves
+-- the application inward and wraps the argument in the dual; the ƛ is
+-- still there, and Beta consumes it one step later — the two steps
+-- together are exactly the old Wrap contractum (the ƛ's body is ` 0, so
+-- N [ … ]ᵐ IS the wrapped argument, definitionally).
+peel-R2m : Δm ⊢ ((ƛ ` 0 ∙ ` 0) ⟪ Θm , ` 0 ⇒ ` 0 ⟫) · ($ 3)
+    -→ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫
+peel-R2m = Peel (V-G G-ƛ) V-$
+
+peel-is-wrap+beta :
+  intOf Δm Θm ⊢ (ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫)
+    -→ ($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫
+peel-is-wrap+beta = Beta (V-⟪⟫ V-$)
+
+_ : Δm ⊢ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫
     -→ (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫) ⟪ Θm , ` 0 ⟫
-_ = Wrap V-$
+_ = ξ-⟪⟫ peel-is-wrap+beta
 
 ⊢contractum-R2m :
   Δm ∣ [] ⊢ (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫) ⟪ Θm , ` 0 ⟫ ⦂ `ℕ
@@ -3512,6 +3602,56 @@ hk-suc {E = E} {X} {A₀} p =
       where ext-id : ∀ i → extᵗ (λ n → n) i ≡ i
             ext-id zero    = refl
             ext-id (suc i) = refl
+
+------------------------------------------------------------------------
+-- THE ONE-SLOT WEAKENING ⊢⇑ᵀ, and the substitution identity TyPeel needs.
+--
+-- TyPeel's inner type application lives in the interior of the SHIFTED
+-- boundary, which is the old interior with ONE entry pushed on top
+-- (intOf-shift).  The entry's flavour is not known statically — it is
+-- ⟦ rvl A ∷ shiftReps Θ ⟧ᴴ 0 A — so the two lookup facts are stated for an
+-- ARBITRARY entry, exactly as ent-skip:= already is.
+------------------------------------------------------------------------
+
+ent-here-tv : ∀ (E : TyEntry) {Δ : TCtx} → (E ∷ Δ) ∋tv 0
+ent-here-tv abst      = here-abst
+ent-here-tv (rvld B₃) = here-rvld
+ent-here-tv (xrvld B₃) = here-xrvld
+
+ent-skip-tv : ∀ (E : TyEntry) {Δ : TCtx} {X} → Δ ∋tv X → (E ∷ Δ) ∋tv suc X
+ent-skip-tv abst       p = skip-abst p
+ent-skip-tv (rvld B₃)  p = skip-rvld p
+ent-skip-tv (xrvld B₃) p = skip-xrvld p
+
+-- ⇑ᵀ is a pure WEAKENING: the entry crosses verbatim, so the skeleton
+-- premise is skel-refl and the knowledge premise is hk-suc.
+⊢⇑ᵀ : ∀ {Δ : TCtx} {E M A} → Δ ∣ [] ⊢ M ⦂ A → (E ∷ Δ) ∣ [] ⊢ ⇑ᵀ M ⦂ ⇑ᵗ A
+⊢⇑ᵀ {E = E} ⊢M = ⊢renameᵀ (ent-skip-tv E) Mono-suc hk-suc SkelX-suc ⊢M
+
+-- a renaming undone by a substitution, pointwise ⇒ on the nose
+ren-sub-id : ∀ (ρ : Renameᵗ) (σ : Substᵗ) → (∀ X → σ (ρ X) ≡ ` X)
+           → ∀ T → substᵗ σ (renameᵗ ρ T) ≡ T
+ren-sub-id ρ σ h (` X)   = h X
+ren-sub-id ρ σ h `ℕ      = refl
+ren-sub-id ρ σ h `𝔹      = refl
+ren-sub-id ρ σ h (T ⇒ U) =
+  cong₂ _⇒_ (ren-sub-id ρ σ h T) (ren-sub-id ρ σ h U)
+ren-sub-id ρ σ h (`∀ T)  = cong `∀ (ren-sub-id (extᵗ ρ) (extsᵗ σ) h′ T)
+  where
+    h′ : ∀ X → extsᵗ σ (extᵗ ρ X) ≡ ` X
+    h′ zero    = refl
+    h′ (suc X) = cong ⇑ᵗ (h X)
+
+-- INSTANTIATING AT THE FRESH VARIABLE UNDOES THE WEAKENING.  This is what
+-- makes TyPeel's inner type application type-neutral: the ∀-body is the
+-- weakened interior face, and applying it to ` 0 gives that face back.
+peel-tyarg : ∀ T → (renameᵗ (extᵗ suc) T) [ ` 0 ]ᵗ ≡ T
+peel-tyarg = ren-sub-id (extᵗ suc) (singleTyEnv (` 0)) h
+  where
+    h : ∀ X → singleTyEnv (` 0) (extᵗ suc X) ≡ ` X
+    h zero    = refl
+    h (suc X) = refl
+
 ------------------------------------------------------------------------
 -- The interior of the SHIFTED boundary.  Every reveal of Θ keeps its rep
 -- and moves one slot down, and its interior reading moves with it: the

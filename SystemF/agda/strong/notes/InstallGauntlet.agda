@@ -38,7 +38,7 @@ open import Data.Nat using (ℕ; zero; suc; _<_; s≤s; z≤n)
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
-open import Data.Product using (_,_)
+open import Data.Product using (Σ; _,_)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
@@ -113,22 +113,41 @@ T4′ = (ƛ ` 0 ∙ (W′ · (` 0))) ⟪ Θ★ , ` 0 ⇒ `ℕ ⟫
 T4full′ = (Λ T4′) ⟪ Θ1 , `∀ (` 0 ⇒ `ℕ) ⟫
 
 ------------------------------------------------------------------------
--- §1.1  the four steps, by the LIVE reduction relation
+-- §1.1  the steps, by the LIVE reduction relation.
+--
+-- UNDER PEEL each of the two old Wrap steps becomes TWO: the peel moves
+-- the application inside the boundary and wraps the argument in the dual;
+-- the ƛ is untouched, and the ordinary Beta consumes it one step later,
+-- INSIDE the boundary (ξ-⟪⟫).  The intermediate terms T1½′ / T3½′ are the
+-- only new inhabitants; T2′ and T4full′ are reached UNCHANGED.
 ------------------------------------------------------------------------
+
+T1½′ T3½′ : Term
+T1½′ = (fn′ · (idg ⟪ dualᴳ [] Θ1 , polyg ⟫)) ⟪ Θ1 , `∀ (` 0 ⇒ `ℕ) ⟫
+T3½′ = (Λ (((ƛ (` 0 ⇒ `ℕ) ∙ (ƛ ` 0 ∙ ((` 1) · (` 0)))) · W′)
+             ⟪ Θ★ , ` 0 ⇒ `ℕ ⟫))
+       ⟪ Θ1 , `∀ (` 0 ⇒ `ℕ) ⟫
 
 step01′ : [] ⊢ T0′ -→ T1′
 step01′ = ξ-·-l (TyBeta (V-G G-ƛ))
 
-step12′ : [] ⊢ T1′ -→ T2′
-step12′ = Wrap (V-G (G-Λ (V-G G-ƛ)))
+step12a′ : [] ⊢ T1′ -→ T1½′
+step12a′ = Peel (V-G G-ƛ) (V-G (G-Λ (V-G G-ƛ)))
+
+step12b′ : [] ⊢ T1½′ -→ T2′
+step12b′ = ξ-⟪⟫ (Beta (V-⟪⟫ (V-G (G-Λ (V-G G-ƛ)))))
 
 step23′ : [] ⊢ T2′ -→ T3′
 step23′ = ξ-⟪⟫ (ξ-Λ (ξ-·-l (TyWrap (V-G G-ƛ))))
 
-step34′ : [] ⊢ T3′ -→ T4full′
-step34′ = ξ-⟪⟫ (ξ-Λ (Wrap (V-G G-ƛ)))
+step34a′ : [] ⊢ T3′ -→ T3½′
+step34a′ = ξ-⟪⟫ (ξ-Λ (Peel (V-G G-ƛ) (V-G G-ƛ)))
 
--- the failing Wrap is FORCED: at T3′ the only redex is that application
+step34b′ : [] ⊢ T3½′ -→ T4full′
+step34b′ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (Beta (V-⟪⟫ (V-G G-ƛ)))))
+
+-- the failing crossing is FORCED: at T3′ the only redex is that
+-- application, and its argument is a value
 _ : Value argY
 _ = V-G G-ƛ
 
@@ -1063,17 +1082,32 @@ cxP₄ = (((Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) ⟪ Θcx2 , ` 0 ⇒ `ℕ ⟫) · V
           ⊢$)
       (⊢·[] (⊢Λ (⊢ƛ (wf-var here-abst) ⊢$)) wf-ℕ)
 
+-- the two old Wrap steps are now Peel + Beta; cxP₂ and cxP₄ are reached
+-- unchanged
+cxP₁½ cxP₃½ : Term
+cxP₁½ = ((pkgV · V★cx) ⟪ Θcx1 , (` 0 ⇒ `ℕ) ⇒ `ℕ ⟫)
+          · (mkW ·[ ` 0 ⇒ `ℕ , `ℕ ])
+cxP₃½ = ((ƛ (` 0 ⇒ `ℕ) ∙ ((` 0) · V★cx))
+          · ((Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) ⟪ Θcx2 , ` 0 ⇒ `ℕ ⟫))
+        ⟪ Θcx1 , `ℕ ⟫
+
 cx-step₁ : [] ⊢ cxP₀ -→ cxP₁
 cx-step₁ = ξ-·-l (ξ-·-l (TyBeta (V-G G-ƛ)))
 
-cx-step₂ : [] ⊢ cxP₁ -→ cxP₂
-cx-step₂ = ξ-·-l (Wrap V-$)
+cx-step₂a : [] ⊢ cxP₁ -→ cxP₁½
+cx-step₂a = ξ-·-l (Peel (V-G G-ƛ) V-$)
+
+cx-step₂b : [] ⊢ cxP₁½ -→ cxP₂
+cx-step₂b = ξ-·-l (ξ-⟪⟫ (Beta (V-⟪⟫ V-$)))
 
 cx-step₃ : [] ⊢ cxP₂ -→ cxP₃
 cx-step₃ = ξ-·-r (V-⟪⟫ (V-G G-ƛ)) (TyBeta (V-G G-ƛ))
 
-cx-step₄ : [] ⊢ cxP₃ -→ cxP₄
-cx-step₄ = Wrap (V-⟪⟫ (V-G G-ƛ))
+cx-step₄a : [] ⊢ cxP₃ -→ cxP₃½
+cx-step₄a = Peel (V-G G-ƛ) (V-⟪⟫ (V-G G-ƛ))
+
+cx-step₄b : [] ⊢ cxP₃½ -→ cxP₄
+cx-step₄b = ξ-⟪⟫ (Beta (V-⟪⟫ (V-⟪⟫ (V-G G-ƛ))))
 
 -- the stuck term is WELL-TYPED at ℕ (⊢redex-cx is its function part)
 ⊢cxP₄ : [] ∣ [] ⊢ cxP₄ ⦂ `ℕ
@@ -1082,26 +1116,58 @@ cx-step₄ = Wrap (V-⟪⟫ (V-G G-ƛ))
       (⊢· ⊢redex-cx
           (env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$))
 
--- …and NO rule fires on its active redex: the only candidate is Merge
--- via ξ-·-l, and MergeOK's external-face component is ¬ext-cx
-stuck-cx : ∀ {M′}
-  → ¬ (Δcx ⊢ ((Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) ⟪ Θcx2 , ` 0 ⇒ `ℕ ⟫) · V★cx
-        -→ M′)
-stuck-cx (ξ-·-l (Merge v (le , bwf , sc , int , eq))) = ¬ext-cx eq
-stuck-cx (ξ-·-l (ξ-⟪⟫ (ξ-⟪⟫ ())))
-stuck-cx (ξ-·-r v (ξ-⟪⟫ ()))
+-- *** WHAT §9f USED TO SAY, AND WHAT IT SAYS NOW. ***  Under the
+-- flatten-first design cxP₄ was STUCK: the only candidate on its active
+-- redex was Merge via ξ-·-l, and MergeOK's external-face component is
+-- ¬ext-cx above — a REACHABLE counterexample to type safety, which is
+-- what forced Decision 5.  ¬ext-cx / ¬⊢merged-cx / ⊢repair-cx are kept
+-- above as the permanent record of that, and §9g records why no ⊕
+-- whatever could have repaired it.
+--
+-- UNDER PEEL cxP₄ STEPS, and runs to a value in three steps, all live
+-- inhabitants below.  The peel crosses the argument 5 ⟪ ↓X:=ℕ , X ⟫
+-- INWARD through the outer conceal, whose dual is the reveal ↑X:=ℕ
+-- (dual-cx, §9h) — a LINEAGE pair, not a coincidence — and the inner
+-- ƛ-bodied wrapper is then peeled and β-reduced in the ordinary way.  No
+-- merge is performed anywhere; the resulting tower is a value.
 
--- CONTRAST: with the repaired boundary Θcx′ (↑W:=X , ↓X:=ℕ — the merge
--- Decision 5 asks ⊕ to compute) in place of the un-mergeable nesting,
--- Wrap fires and the program runs on to 3
+cxP₅ cxP₆ cxP₇ : Term
+cxP₅ = (((Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫)
+           · ((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫))
+         ⟪ Θcx2 , `ℕ ⟫) ⟪ Θcx1 , `ℕ ⟫
+cxP₆ = (((Vcx · (((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫)
+                   ⟪ Θcx2 , ` 0 ⟫))
+           ⟪ Θcx1 , `ℕ ⟫)
+         ⟪ Θcx2 , `ℕ ⟫) ⟪ Θcx1 , `ℕ ⟫
+cxP₇ = ((($ 3) ⟪ Θcx1 , `ℕ ⟫) ⟪ Θcx2 , `ℕ ⟫) ⟪ Θcx1 , `ℕ ⟫
+
+-- step 1: THE PEEL.  The argument crosses the outer conceal inward.
+cx-step₅ : [] ⊢ cxP₄ -→ cxP₅
+cx-step₅ = ξ-⟪⟫ (Peel (V-⟪⟫ (V-G G-ƛ)) (V-⟪⟫ V-$))
+
+-- step 2: the inner wrapper is ƛ-bodied — peel again
+cx-step₆ : [] ⊢ cxP₅ -→ cxP₆
+cx-step₆ = ξ-⟪⟫ (ξ-⟪⟫ (Peel (V-G G-ƛ) (V-⟪⟫ (V-⟪⟫ V-$))))
+
+-- step 3: β.  y is unused, so the crossed argument is discarded
+cx-step₇ : [] ⊢ cxP₆ -→ cxP₇
+cx-step₇ = ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (Beta (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$))))))
+
+-- … and cxP₇ IS A VALUE: the program that used to get stuck now answers 3
+-- under a three-boundary tower (↑X:=ℕ , ↓X:=ℕ , ↑X:=ℕ — two cancelling
+-- lineage pairs, which Merge/Drop∅ may collect but progress no longer
+-- needs)
+val-cxP₇ : Value cxP₇
+val-cxP₇ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$))
+
+-- CONTRAST, kept for the record: with the repaired boundary Θcx′
+-- (↑W:=X , ↓X:=ℕ — the merge Decision 5 asked ⊕ to compute) in place of
+-- the un-mergeable nesting, the peel fires there too
 run-repair-cx : Δcx ⊢ (Vcx ⟪ Θcx′ , ` 0 ⇒ `ℕ ⟫) · V★cx
-                  -→ ($ 3) ⟪ Θcx′ , `ℕ ⟫
-run-repair-cx = Wrap (V-⟪⟫ V-$)
-
--- lifted to the WHOLE post-T4 term: a well-typed (⊢cxP₄) non-value
--- normal form — type safety itself needs Decision 5 (or a Value change)
-stuck-cxP₄ : ∀ {M′} → ¬ ([] ⊢ cxP₄ -→ M′)
-stuck-cxP₄ (ξ-⟪⟫ s) = stuck-cx s
+                  -→ (Vcx · (V★cx ⟪ dualᴳ Δcx Θcx′
+                                  , renameᵗ (swapᵇ Θcx′) (` 0) ⟫))
+                     ⟪ Θcx′ , `ℕ ⟫
+run-repair-cx = Peel (V-G G-ƛ) (V-⟪⟫ V-$)
 
 -- …and the repaired run CONTINUES PAST the package reveal: the resulting
 -- nesting merges with a FULLY DISCHARGED MergeOK — the ↓X/↑X pair
@@ -1206,24 +1272,63 @@ Bd2 = ` 0 ⇒ ` 1                        -- X⇒Z
 ¬γ-dWZ : ¬ (substᵗ (γᵇ ΘdX) (` 0 ⇒ ` 2) ≡ substᵗ (γᵇ Θd1) Bd1)
 ¬γ-dWZ ()
 
+-- *** AND YET IT RUNS. ***  The shape on which flattening is IMPOSSIBLE is
+-- an ordinary Peel redex: the outer boundary type is ⇒-shaped, so the
+-- argument simply crosses inward.  The dual of the DOUBLE conceal is the
+-- DOUBLE reveal ↑X:=ℕ , ↑Z:=ℕ — two lineage pairs, minted from the very
+-- conceals they face — so nothing has to be re-abstracted outward and the
+-- W-vs-{X,Z} coincidence is never consulted.  Three steps to a value.
+
+Wd : Term                              -- a value at the domain type X
+Wd = ($ 7) ⟪ Θd2 , ` 0 ⟫
+
+bwf-Θd2 : Δd ∣ intOf Δd Θd2 ⊢ᵇ Θd2
+bwf-Θd2 = bwf↓ here (≡→≈ refl) wf-ℕ
+            (bwf↓ (skip-rvld here) (≡→≈ refl) wf-ℕ bwf[])
+
+⊢Wd : Δd ∣ [] ⊢ Wd ⦂ ` 0
+⊢Wd = env bwf-Θd2 (sc-var hereᵒ) ⊢$
+
+-- the dual of the double conceal is the DOUBLE REVEAL
+dual-d : dualᴳ Δd Θd2 ≡ (rvl `ℕ ∷ rvl `ℕ ∷ [])
+dual-d = refl
+
+run-d₁ : Δd ⊢ ((Vd ⟪ Θd1 , Bd1 ⟫) ⟪ Θd2 , Bd2 ⟫) · Wd
+           -→ ((Vd ⟪ Θd1 , Bd1 ⟫)
+                 · (Wd ⟪ dualᴳ Δd Θd2 , ` 0 ⟫)) ⟪ Θd2 , ` 1 ⟫
+run-d₁ = Peel (V-⟪⟫ (V-G G-ƛ)) (V-⟪⟫ V-$)
+
+run-d₂ : Δd ⊢ ((Vd ⟪ Θd1 , Bd1 ⟫)
+                 · (Wd ⟪ dualᴳ Δd Θd2 , ` 0 ⟫)) ⟪ Θd2 , ` 1 ⟫
+           -→ ((Vd · ((Wd ⟪ dualᴳ Δd Θd2 , ` 0 ⟫)
+                        ⟪ dualᴳ (intOf Δd Θd2) Θd1 , ` 0 ⟫))
+                ⟪ Θd1 , ` 0 ⟫) ⟪ Θd2 , ` 1 ⟫
+run-d₂ = ξ-⟪⟫ (Peel (V-G G-ƛ) (V-⟪⟫ (V-⟪⟫ V-$)))
+
+run-d₃ : Δd ⊢ ((Vd · ((Wd ⟪ dualᴳ Δd Θd2 , ` 0 ⟫)
+                        ⟪ dualᴳ (intOf Δd Θd2) Θd1 , ` 0 ⟫))
+                ⟪ Θd1 , ` 0 ⟫) ⟪ Θd2 , ` 1 ⟫
+           -→ (((Wd ⟪ dualᴳ Δd Θd2 , ` 0 ⟫)
+                  ⟪ dualᴳ (intOf Δd Θd2) Θd1 , ` 0 ⟫)
+                ⟪ Θd1 , ` 0 ⟫) ⟪ Θd2 , ` 1 ⟫
+run-d₃ = ξ-⟪⟫ (ξ-⟪⟫ (Beta (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$)))))
+
 ------------------------------------------------------------------------
--- §9h.  AFTER A PEEL, EVERYTHING ELSE IS ALREADY LANDED.  The candidate
--- rule (DECISIONS "Decision 5, REFRAMED", fork (b)) generalizes Wrap
--- from ƛ-bodied to VALUE-bodied wrappers:
+-- §9h.  AFTER A PEEL, EVERYTHING ELSE IS ALREADY LANDED — NOW LIVE.  The
+-- rule (DECISIONS "Decision 5, REFRAMED", fork (b)) generalizes Wrap from
+-- ƛ-bodied to VALUE-bodied wrappers, and is INSTALLED:
 --
---   Peel : (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
+--   Peel : Value V → Value W → (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
 --        -→ (V · (W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
 --
--- On §9f's stuck redex, Θ = Θcx2 = ↓X:=ℕ and dualᴳ Δcx Θcx2 = ↑X:=ℕ
--- (= Θcx1, definitionally — dual-cx below), so the peel moves the
--- argument 5 ⟪ ↓X:=ℕ , X ⟫ INWARD, wrapping it in ↑X:=ℕ: a LINEAGE
--- pair (the reveal is minted from the very conceal it faces), and the
--- landed Merge cancels it with a FULLY DISCHARGED MergeOK
--- (peel-cancel below) — no coincidence linkage, no outward
--- re-abstraction, no face-directed ⊕.  Then Drop∅, then the ordinary
--- Wrap on the inner ƛ-bodied wrapper.  Only the peel step itself is
--- not a live inhabitant (the rule is not installed); every subsequent
--- step is, and is checked here.
+-- On §9f's once-stuck redex, Θ = Θcx2 = ↓X:=ℕ and dualᴳ Δcx Θcx2 = ↑X:=ℕ
+-- (= Θcx1, definitionally — dual-cx), so the peel moves the argument
+-- 5 ⟪ ↓X:=ℕ , X ⟫ INWARD, wrapping it in ↑X:=ℕ: a LINEAGE pair (the
+-- reveal is minted from the very conceal it faces), no coincidence
+-- linkage, no outward re-abstraction, no face-directed ⊕.  The whole run
+-- is cx-step₅ … cx-step₇ in §9f; what is recorded HERE is that the
+-- lineage pair the peel creates is exactly the pair Merge/Drop∅ collect —
+-- they are now OPTIONAL garbage collection, not a step progress needs.
 ------------------------------------------------------------------------
 
 -- the peeled dual IS the reveal Θcx1, and its boundary type is X
@@ -1233,7 +1338,7 @@ dual-cx = refl
 swap-cx : renameᵗ (swapᵇ Θcx2) (` 0) ≡ ` 0
 swap-cx = refl
 
--- step A (landed Merge, ambient = the peel boundary's interior []):
+-- GC step A (landed Merge, ambient = the peel boundary's interior []):
 -- the lineage pair ↓X:=ℕ under ↑X:=ℕ cancels, MergeOK fully discharged
 peel-cancel : [] ⊢ (($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫
                 -→ ($ 5) ⟪ Θcx2 ⊕ Θcx1 , mrgB Θcx2 Θcx1 (` 0) ⟫
@@ -1246,9 +1351,187 @@ peel-∅ = refl
 peel-drop : [] ⊢ ($ 5) ⟪ [] , mrgB Θcx2 Θcx1 (` 0) ⟫ -→ ($ 5)
 peel-drop = Drop∅ V-$
 
--- step B (landed Wrap): the inner wrapper is ƛ-bodied, so the ordinary
--- rule finishes the application; y is unused and the result is 3's
--- wrapper
+-- GC step B: with the pair collected the inner wrapper's argument is the
+-- bare 5 — but the peel does not care, and fires on the tower as it
+-- stands (cx-step₆).  Both routes reach 3's wrapper.
 peel-wrap : [] ⊢ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) · ($ 5)
-              -→ ($ 3) ⟪ Θcx1 , `ℕ ⟫
-peel-wrap = Wrap V-$
+              -→ (Vcx · (($ 5) ⟪ dualᴳ [] Θcx1 , ` 0 ⟫)) ⟪ Θcx1 , `ℕ ⟫
+peel-wrap = Peel (V-G G-ƛ) V-$
+
+------------------------------------------------------------------------
+-- §9i.  THE ONE PLACE PEEL DOES NOT REACH: A REVEAL-VARIABLE FACE.
+--
+-- Peel and TyPeel push an elimination INWARD.  That is impossible when
+-- the boundary type is one of the boundary's own REVEAL VARIABLES ` X,
+-- because then the two faces are
+--
+--   internal:  γᵇ Θ X = ` X          (γᵇ-lo)
+--   external:  ρᵇ Θ X = repOf X Θ    (⇒-shaped, or the redex would not
+--                                     type)
+--
+-- so the wrapped value has ABSTRACT type inside and no elimination of it
+-- is typable.  Re-spelling the boundary type as the rep is barred by
+-- §9g's ¬γ argument (the body is typed at ` X on the nose and terms are
+-- never rewritten).  The only move left is to COLLAPSE the nesting —
+-- canon-var says the body is a wrapper — i.e. Merge.
+--
+-- AND THE SHAPE IS REACHABLE, from a closed plain System F source, by
+-- PEEL STEPS ONLY.  The package's ∀-body returns the abstract X:
+--
+--   Q = ((ΛX. λf:(ℕ⇒X). f · 3) ·[ (ℕ⇒X)⇒X , ℕ⇒ℕ ] · g) · 5
+--       g = λn:ℕ. λm:ℕ. 7
+--
+--   R1 TyBeta(X)   ↑X:=ℕ⇒ℕ is born
+--   R2 Peel(g)     g crosses in; the dual ↓X:=ℕ⇒ℕ is minted
+--   R3 Beta        f := the crossed g
+--   R4 Peel(3)     3 crosses the dual inward
+--   R5 Beta        g's body — a ƛ — is left UNDER THE DUAL
+--
+-- and R5's term is  (((λm:ℕ.7) ⟪ ↓X:=ℕ⇒ℕ , X ⟫) ⟪ ↑X:=ℕ⇒ℕ , X ⟫) · 5 :
+-- a reveal-variable face, with a LINEAGE pair inside it.  rv-only-merge
+-- is the machine-checked statement that EVERY step from it is a Merge —
+-- delete Merge and the calculus is STUCK here, so progress needs it.
+------------------------------------------------------------------------
+
+Θr Θrᵈ : BCtx
+Θr  = rvl (`ℕ ⇒ `ℕ) ∷ []               -- ↑X:=ℕ⇒ℕ
+Θrᵈ = cnc 0 (`ℕ ⇒ `ℕ) ∷ []             -- ↓X:=ℕ⇒ℕ (its dual)
+
+Bpkg-rv : Ty                           -- (ℕ⇒X)⇒X
+Bpkg-rv = (`ℕ ⇒ ` 0) ⇒ ` 0
+
+pkgV-rv : Term                         -- λf:(ℕ⇒X). f · 3
+pkgV-rv = ƛ (`ℕ ⇒ ` 0) ∙ ((` 0) · ($ 3))
+
+g-rv : Term                            -- λn:ℕ. λm:ℕ. 7
+g-rv = ƛ `ℕ ∙ (ƛ `ℕ ∙ ($ 7))
+
+Ψr : TCtx                              -- the reveal's interior
+Ψr = rvld (`ℕ ⇒ `ℕ) ∷ []
+
+rvQ₀ rvQ₁ rvQ₂ rvQ₃ rvQ₄ rvQ₅ : Term
+rvQ₀ = (((Λ pkgV-rv) ·[ Bpkg-rv , `ℕ ⇒ `ℕ ]) · g-rv) · ($ 5)
+rvQ₁ = ((pkgV-rv ⟪ Θr , Bpkg-rv ⟫) · g-rv) · ($ 5)
+rvQ₂ = ((pkgV-rv · (g-rv ⟪ Θrᵈ , `ℕ ⇒ ` 0 ⟫)) ⟪ Θr , ` 0 ⟫) · ($ 5)
+rvQ₃ = (((g-rv ⟪ Θrᵈ , `ℕ ⇒ ` 0 ⟫) · ($ 3)) ⟪ Θr , ` 0 ⟫) · ($ 5)
+rvQ₄ = (((g-rv · (($ 3) ⟪ Θr , `ℕ ⟫)) ⟪ Θrᵈ , ` 0 ⟫) ⟪ Θr , ` 0 ⟫)
+         · ($ 5)
+rvQ₅ = (((ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ , ` 0 ⟫) ⟪ Θr , ` 0 ⟫) · ($ 5)
+
+-- a closed plain System F source, typed at ℕ
+⊢rvQ₀ : [] ∣ [] ⊢ rvQ₀ ⦂ `ℕ
+⊢rvQ₀ =
+  ⊢· (⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-⇒ wf-ℕ (wf-var here-abst))
+                       (⊢· (⊢` here) ⊢$)))
+               (wf-⇒ wf-ℕ wf-ℕ))
+         (⊢ƛ wf-ℕ (⊢ƛ wf-ℕ ⊢$)))
+     ⊢$
+
+rv-step₁ : [] ⊢ rvQ₀ -→ rvQ₁
+rv-step₁ = ξ-·-l (ξ-·-l (TyBeta (V-G G-ƛ)))
+
+rv-step₂ : [] ⊢ rvQ₁ -→ rvQ₂
+rv-step₂ = ξ-·-l (Peel (V-G G-ƛ) (V-G G-ƛ))
+
+rv-step₃ : [] ⊢ rvQ₂ -→ rvQ₃
+rv-step₃ = ξ-·-l (ξ-⟪⟫ (Beta (V-⟪⟫ (V-G G-ƛ))))
+
+rv-step₄ : [] ⊢ rvQ₃ -→ rvQ₄
+rv-step₄ = ξ-·-l (ξ-⟪⟫ (Peel (V-G G-ƛ) V-$))
+
+rv-step₅ : [] ⊢ rvQ₄ -→ rvQ₅
+rv-step₅ = ξ-·-l (ξ-⟪⟫ (ξ-⟪⟫ (Beta (V-⟪⟫ V-$))))
+
+-- the inner conceal really is the peel's own dual — a LINEAGE pair
+dual-rv : dualᴳ Ψr Θrᵈ ≡ Θr
+dual-rv = refl
+
+-- rvQ₅ is well typed at ℕ …
+⊢rvQ₅ : [] ∣ [] ⊢ rvQ₅ ⦂ `ℕ
+⊢rvQ₅ =
+  ⊢· (env (bwf↑ (wf-⇒ wf-ℕ wf-ℕ) bwf[]) (sc-var hereᵒ)
+          (env (bwf↓ here (≡→≈ refl) (wf-⇒ wf-ℕ wf-ℕ) bwf[])
+               (sc-var hereᵒ)
+               (⊢ƛ wf-ℕ ⊢$)))
+     ⊢$
+
+-- … it is not a value, and EVERY step it can take is a Merge on its
+-- function part: Peel cannot fire (the boundary type is ` 0, not
+-- ⇒-shaped), Beta cannot (no bare ƛ in function position), Drop∅ cannot
+-- (neither boundary is empty), ξ-⟪⟫ cannot (the innermost body is a ƛ)
+-- and ξ-·-r cannot (the argument is a numeral).
+rv-only-merge : ∀ {M′} → [] ⊢ rvQ₅ -→ M′
+  → Σ BCtx λ Θ₁ → Σ BCtx λ Θ₂ → Σ Ty λ B₁ → Σ Ty λ B₂
+      → MergeOK [] Θ₁ Θ₂ B₁ B₂
+rv-only-merge (ξ-·-l (Merge v mok)) = Θrᵈ , Θr , ` 0 , ` 0 , mok
+rv-only-merge (ξ-·-l (ξ-⟪⟫ (ξ-⟪⟫ ())))
+rv-only-merge (ξ-·-r v ())
+
+-- and the Merge DOES fire, MergeOK fully discharged: the lineage pair
+-- cancels to the empty boundary and X's rep resolves to ℕ⇒ℕ
+rv-merge : [] ⊢ ((ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ , ` 0 ⟫) ⟪ Θr , ` 0 ⟫
+             -→ (ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ ⊕ Θr , mrgB Θrᵈ Θr (` 0) ⟫
+rv-merge = Merge (V-G G-ƛ)
+  (s≤s z≤n , bwf[] , sc-⇒ sc-ℕ sc-ℕ , ≼≈[] , refl)
+
+rv-⊕-∅ : Θrᵈ ⊕ Θr ≡ []
+rv-⊕-∅ = refl
+
+rv-mrgB : mrgB Θrᵈ Θr (` 0) ≡ (`ℕ ⇒ `ℕ)
+rv-mrgB = refl
+
+-- after the cancel the ordinary Peel finishes the program
+rv-finish : [] ⊢ ((ƛ `ℕ ∙ ($ 7)) ⟪ [] , `ℕ ⇒ `ℕ ⟫) · ($ 5)
+              -→ ((ƛ `ℕ ∙ ($ 7)) · (($ 5) ⟪ [] , `ℕ ⟫)) ⟪ [] , `ℕ ⟫
+rv-finish = Peel (V-G G-ƛ) V-$
+
+------------------------------------------------------------------------
+-- §9j.  DETERMINISM — WHAT MERGE COSTS.
+--
+-- Merge and Drop∅ are the ONLY rules whose left-hand side is a VALUE.
+-- That is what breaks both of the properties the peel design otherwise
+-- has:
+--
+--   * VALUES DO STEP (val-cancel / val-steps), so
+--     `Value V → ¬ (Δ ⊢ V -→ M′)` is FALSE as the relation stands;
+--   * REDUCTION IS NONDETERMINISTIC (nd-peel / nd-merge / nd-≢): at an
+--     application whose ARGUMENT is a cancellable lineage pair, ξ-·-r's
+--     Value premise is satisfied AND the argument steps, so Merge
+--     competes with the Peel on the very same term, with two different
+--     contracta.
+--
+-- Every other overlap is closed by syntax: Peel needs a wrapper in
+-- function position and Beta a bare ƛ; TyBeta needs a bare Λ, TyWrap a
+-- wrapper whose body is a Λ, and TyPeel a wrapper whose body is a
+-- wrapper — three disjoint shapes; the ξ frames are left-to-right with
+-- Value premises.  So the peel calculus MINUS Merge/Drop∅ would be
+-- deterministic and values would not step — and, by §9i, it would not
+-- have progress.  That is the open ruling.
+------------------------------------------------------------------------
+
+-- a VALUE that steps
+val-cancel : Value ((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫)
+val-cancel = V-⟪⟫ (V-⟪⟫ V-$)
+
+val-steps : [] ⊢ (($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫
+              -→ ($ 5) ⟪ Θcx2 ⊕ Θcx1 , mrgB Θcx2 Θcx1 (` 0) ⟫
+val-steps = peel-cancel
+
+-- … and the same term in argument position makes the step ambiguous
+nd-peel : [] ⊢ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫)
+                 · ((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫)
+            -→ (Vcx · (((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫)
+                         ⟪ Θcx2 , ` 0 ⟫)) ⟪ Θcx1 , `ℕ ⟫
+nd-peel = Peel (V-G G-ƛ) (V-⟪⟫ (V-⟪⟫ V-$))
+
+nd-merge : [] ⊢ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫)
+                  · ((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫)
+             -→ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫)
+                  · (($ 5) ⟪ Θcx2 ⊕ Θcx1 , mrgB Θcx2 Θcx1 (` 0) ⟫)
+nd-merge = ξ-·-r (V-⟪⟫ (V-G G-ƛ)) peel-cancel
+
+nd-≢ : ¬ ((Vcx · (((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫)
+                    ⟪ Θcx2 , ` 0 ⟫)) ⟪ Θcx1 , `ℕ ⟫
+          ≡ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫)
+              · (($ 5) ⟪ Θcx2 ⊕ Θcx1 , mrgB Θcx2 Θcx1 (` 0) ⟫))
+nd-≢ ()

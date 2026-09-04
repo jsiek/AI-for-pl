@@ -1324,3 +1324,79 @@ Deliverables at the install: values-don't-step
 never postulated).  Rule-pair disjointness to preserve: Peel vs Beta
 (wrapper vs ƛ function), TyPeel vs TyBeta (wrapper vs bare Λ), ξ frames
 directed left-to-right with Value premises.
+
+## Decision 6 — PROGRESS NEEDS MERGE; THE DETERMINISM LAW FORBIDS IT
+## (2026-09-04 night, at the Peel install — NEEDS A RULING)
+
+The Peel install landed green (Peel replaces Wrap; TyPeel added for
+wrapper-bodied ∀ faces, form (β) — TyWrap kept for Λ bodies;
+NestedApp/NestedTApp DISCHARGED and deleted).  But the install surfaced a
+genuine conflict between two rulings, both sides machine-checked:
+
+(1) PROGRESS NEEDS MERGE (gauntlet §9i).  At a reveal-variable face the
+interior type is `γᵇ Θ X = ` X` — abstract — so Peel/TyPeel, which push
+the elimination INWARD, cannot type there; re-spelling B₀ as the rep
+breaks the internal face by §9g's own ¬γ argument.  The nesting must
+collapse: Merge is the ONLY rule that fires.  Reachable BY PEEL STEPS
+ALONE from a closed plain source (`⊢rvQ₀`, `rv-step₁…₅` live):
+
+    Q = ((ΛX. λf:(ℕ⇒X). f · 3) ·[ (ℕ⇒X)⇒X , ℕ⇒ℕ ] · (λn.λm.7)) · 5
+      →TyBeta →Peel →Beta →Peel →Beta
+      (((λm.7) ⟪ ↓X:=ℕ⇒ℕ , X ⟫) ⟪ ↑X:=ℕ⇒ℕ , X ⟫) · 5      : ℕ
+
+`rv-only-merge` (coverage-complete): every step from this term is a
+Merge; `rv-merge`: the Merge fires with MergeOK FULLY discharged (a
+lineage pair, composite ∅); `rv-finish` runs on to 7.  So Merge was NOT
+deleted.  RevealVarApp/RevealVarTApp are again Progress.Impl parameters,
+now TIGHTENED to exactly this nested variable-face shape (strictly
+weaker than before).
+
+(2) DETERMINISM FAILS WITH MERGE (gauntlet §9j).  Merge/Drop∅ are the
+only rules whose LHS is a VALUE.  Machine-checked counterexample
+`nd-peel`/`nd-merge`/`nd-≢`: at
+
+    (Vcx ⟪ ↑X:=ℕ , X⇒ℕ ⟫) · ((($5) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫)
+
+both Peel (consuming the tower argument as a value) and ξ-·-r + Merge
+(stepping it) fire, with provably distinct contracta.  So as landed:
+values-don't-step is FALSE and `det` is FALSE (both left as a NEXT
+comment, not postulated).  No other rule pair overlaps — deleting
+Merge/Drop∅ would give determinism immediately, and by (1) lose progress.
+
+### The option space (no ruling taken)
+
+(A) FOLD THE MERGE INTO THE ELIMINATION — front-runner.  Delete
+    standalone Merge/Drop∅ (restoring values-don't-step + det) and add
+    variable-face ELIMINATION rules whose LHS is the APPLICATION, e.g.
+
+      MergeApp : … ((V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫) · W -→
+                   (V ⟪ Θ₁ ⊕ Θ₂ , mrgB Θ₁ Θ₂ (` Y) ⟫) · W   (+ ∀ analog)
+
+    An application never IS a value, so determinism survives; the
+    collapse happens exactly where progress needs it.  OPEN QUESTION
+    (the crux): the rv parameters demand a step for EVERY well-typed
+    variable-face nesting — is the needed MergeOK derivable there in
+    general (§9i's instance is a fully-discharged lineage pair), or does
+    typing/bwf need a grounded strengthening so that only
+    MergeOK-satisfying nestings type?  If some well-typed instance lacks
+    MergeOK, this option needs the invariant minted at birth (the
+    grounded-invariants law) — or the shape shown unreachable-and-
+    untypeable.
+(B) KEEP MERGE, SHRINK VALUE: a tower whose adjacent pair cancels is not
+    a value (conditional, knowledge-relative value-hood — TOPLAS p.1074
+    style).  Restores values-don't-step by construction; costs the
+    simple value grammar and reintroduces a Decision-3-flavor depth
+    restriction, now semantic.
+(C) KEEP MERGE, WEAKEN THE LAW to determinism-up-to-GC (Merge/Drop∅
+    confluent with everything).  Conflicts with the law as stated.
+
+### Also flagged at this install (law-touching deviation)
+
+TyPeel WEAKENS THE TERM: its contractum is `⇑ᵀ (V ⟪ Θ₁ , B₁ ⟫) ·[ … ]`
+— the one rule that moves a term, against the no-term-shift law.  The
+agent's case: it is a pure weakening (⊢renameᵀ at suc, a landed
+theorem), not the forbidden push-a-type-inward (that is TyWrapCncl,
+refuted by Example 8), and it is confined to the wrapper-bodied case
+(TyWrap for Λ bodies stays shift-free — that is why form (β) was
+chosen over (α), which also recreates the Ξalias residue and breaks the
+E★′ trace).  Jeremy to confirm or overrule.

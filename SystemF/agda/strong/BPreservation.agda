@@ -14,12 +14,16 @@ module strong.BPreservation where
 --        The Λ-binder's abstract slot becomes the new reveal's KNOWLEDGE slot,
 --        so the body is retagged along `abst ≼≈ anything` (⊢retag≈).
 --   Beta  is the term-substitution lemma (strong.TermSubst).
+--   TyPeel is TyWrap's case with the body weakened by ⊢⇑ᵀ and type-applied
+--        at the new reveal's variable (peel-tyarg); everything outside the
+--        wrapped term is TyWrap's, verbatim.
 --   TyWrap transports the Λ body by the shift family (intOf-shift,
 --        γᵇ-shift-ty, ρᵇ-shift-ty, baseS-shift, bwf-shift); the type argument
 --        is recorded UNCHANGED as the new reveal's rep — the PARALLEL reveal
 --        block reads it in the plain exterior, where the redex's own Δ ⊢ A
 --        already places it, so no lift and no wf-lift.
---   Wrap  builds the AMBIENT DUAL.  Its face laws are theorems
+--   Peel  builds the AMBIENT DUAL (as the old Wrap did, minus the
+--        β-substitution).  Its face laws are theorems
 --        (ρᵇ-dual-ty / γᵇ-dual-ty); its well-formedness and its rebuild law
 --        are the strong.DualDef parameters — see there for exactly which part
 --        is proven and which is the (R2) residue.
@@ -35,11 +39,11 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; trans; sym; subst; subst₂)
 open import strong.Types
 open import strong.TypeSubst using (subst-cong; subst-id)
-open import strong.Context using (TCtx; _⊢_)
+open import strong.Context using (TCtx; TyEntry; _⊢_; wf-var)
 open import strong.Boundary
 open import strong.BReduction
 open import strong.ScopeBridge using (scB-bridge)
-open import strong.TermSubst using (preserve-Beta; ⊢[]ᵐ)
+open import strong.TermSubst using (preserve-Beta)
 open import strong.DualDef
   using (DualRep≈; DualCnc≈; DualInt≈; bwf-dual)
 
@@ -125,30 +129,78 @@ module Impl (dual-rep : DualRep≈) (dual-cnc : DualCnc≈)
                      (sym (γᵇ-shift-ty A Θ B₀))
                      (⊢retag≈ (≼≈abst (≼≈-refl (intOf Δ Θ))) ⊢V)
 
-  -- R2:  ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
-  --         →  (N [ W ⟪ Θᵈ , B₁ᵈ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫
+  -- TyPeel:  ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ , ∀B₀ ⟫) ·[ B , A ]
+  --            →  (⇑ᵀ (V ⟪ Θ₁ , B₁ ⟫) ·[ peelB Θ B₀ , ` 0 ])
+  --                 ⟪ ↑?:=A ∷ Θ⁺ , B₀ ⟫
+  --
+  -- Everything OUTSIDE the wrapped term is TyWrap's case verbatim: the same
+  -- boundary is minted (bwf-shift), the same scope premise survives
+  -- (baseS-shift), and the same external face law (ρᵇ-shift-ty) carries the
+  -- contractum to the redex's B [ A ]ᵗ.  What changes is the BODY.  TyWrap
+  -- consumed a Λ whose binder's slot BECAME the new reveal slot, so its body
+  -- was already typed one context deeper; TyPeel's body is an arbitrary
+  -- wrapper typed at the OLD interior, so it is WEAKENED by the one slot the
+  -- new reveal adds (⊢⇑ᵀ) and then type-applied to that very slot's
+  -- variable ` 0.  Instantiating a weakened ∀ at the fresh variable is the
+  -- identity on types (peel-tyarg), so the body lands at the interior face
+  -- substᵗ (extsᵗ (γᵇ Θ)) B₀ — which γᵇ-shift-ty turns into the new
+  -- boundary's internal face, exactly as in TyWrap.
+  preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} bwf (sc-∀ sc) ⊢Vw)
+                         wfA)
+                   (TyPeel {V = V} {Θ₁ = Θ₁} {B₁ = B₁} {A = A} v) =
+    subst (λ T → Δ ∣ [] ⊢ Ctr ⦂ T) (ρᵇ-shift-ty A Θ B₀)
+      (env (bwf-shift Θ bwf wfA) sc′ ⊢body)
+    where
+      Ent : TyEntry
+      Ent = ⟦ rvl A ∷ shiftReps Θ ⟧ᴴ 0 A
+      Inn : Term                                   -- the peeled application
+      Inn = ⇑ᵀ (V ⟪ Θ₁ , B₁ ⟫) ·[ peelB Θ B₀ , ` 0 ]
+      Ctr : Term                                   -- the contractum
+      Ctr = Inn ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
+      sc′ : Scoped (baseS (rvl A ∷ shiftReps Θ) Δ) B₀
+      sc′ = subst (λ Ψ → Scoped Ψ B₀) (sym (baseS-shift A Θ Δ)) sc
+      -- the wrapped value, weakened by the new reveal's slot
+      ⊢w : (Ent ∷ intOf Δ Θ) ∣ []
+             ⊢ ⇑ᵀ (V ⟪ Θ₁ , B₁ ⟫) ⦂ ⇑ᵗ (substᵗ (γᵇ Θ) (`∀ B₀))
+      ⊢w = ⊢⇑ᵀ ⊢Vw
+      -- … type-applied at the new reveal's own variable
+      ⊢app : (Ent ∷ intOf Δ Θ) ∣ []
+               ⊢ Inn ⦂ substᵗ (extsᵗ (γᵇ Θ)) B₀
+      ⊢app = subst (λ T → (Ent ∷ intOf Δ Θ) ∣ [] ⊢ Inn ⦂ T)
+                   (peel-tyarg (substᵗ (extsᵗ (γᵇ Θ)) B₀))
+                   (⊢·[] ⊢w (wf-var (ent-here-tv Ent)))
+      ⊢body : intOf Δ (rvl A ∷ shiftReps Θ) ∣ []
+                ⊢ Inn ⦂ substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B₀
+      ⊢body = subst₂ (λ Ψ T → Ψ ∣ [] ⊢ Inn ⦂ T)
+                     (sym (intOf-shift Δ A Θ))
+                     (sym (γᵇ-shift-ty A Θ B₀))
+                     ⊢app
+
+  -- Peel:  ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W)
+  --         →  (V · (W ⟪ Θᵈ , B₁ᵈ ⟫)) ⟪ Θ , B₂ ⟫
   --
   -- Both indices of the redex are FORCED: (env) types the wrapper at
   -- substᵗ (ρᵇ Θ) (B₁ ⇒ B₂), which is substᵗ (ρᵇ Θ) B₁ ⇒ substᵗ (ρᵇ Θ) B₂,
   -- so ⊢W is at substᵗ (ρᵇ Θ) B₁ and the whole redex at substᵗ (ρᵇ Θ) B₂ —
   -- which is exactly what the rebuilt (env) returns, so the outer type needs
-  -- no transport.  Likewise the body is typed at the INTERIOR face
-  -- substᵗ (γᵇ Θ) B₁ ⇒ substᵗ (γᵇ Θ) B₂, so inverting ⊢ƛ forces the ƛ's
-  -- annotation to be substᵗ (γᵇ Θ) B₁ and gives ⊢N at the term context
-  -- (substᵗ (γᵇ Θ) B₁ ∷ []) — exactly ⊢[]ᵐ's shape.
+  -- no transport.  The body is typed at the INTERIOR face
+  -- substᵗ (γᵇ Θ) B₁ ⇒ substᵗ (γᵇ Θ) B₂, so it applies to the crossed
+  -- argument on the nose — THIS IS THE OLD Wrap CASE MINUS THE
+  -- β-SUBSTITUTION: the ⊢ƛ inversion and strong.TermSubst's ⊢[]ᵐ are gone,
+  -- and (⊢·) takes their place.  The dual-crossing machinery is untouched.
   --
   -- The INNER wrapper sits at exterior intOf Δ Θ with the AMBIENT dual: its
-  -- exterior face is the argument type the ƛ demands (ρᵇ-dual-ty, scope-
-  -- restricted — the blocked slots differ, and (env)'s premise for B₁ is what
-  -- rules them out) and its interior face is W's own type (γᵇ-dual-ty).
-  -- Both are theorems.  What is assumed is only that the dual is a WELL-FORMED
-  -- boundary (dual-rep / dual-cnc, assembled by bwf-dualᴳ) and that its
-  -- interior rebuilds Δ up to ≼ (dual-int) — strong.DualDef.
+  -- exterior face is the argument type the interior demands (ρᵇ-dual-ty,
+  -- scope-restricted — the blocked slots differ, and (env)'s premise for B₁
+  -- is what rules them out) and its interior face is W's own type
+  -- (γᵇ-dual-ty).  Both are theorems.  What is assumed is only that the dual
+  -- is a WELL-FORMED boundary (dual-rep / dual-cnc, assembled by bwf-dualᴳ)
+  -- and that its interior rebuilds Δ up to ≼ (dual-int) — strong.DualDef.
   preservation {Δ} (⊢· {M = W} (env {Θ = Θ} {B₀ = B₁ ⇒ B₂} bwf
-                                    (sc-⇒ sc₁ sc₂) (⊢ƛ wfA′ ⊢N))
+                                    (sc-⇒ sc₁ sc₂) ⊢V)
                        ⊢W)
-                   (Wrap w) =
-    env bwf sc₂ (⊢[]ᵐ ⊢N ⊢arg)
+                   (Peel v w) =
+    env bwf sc₂ (⊢· ⊢V ⊢arg)
     where
       -- W retypes in the dual's interior, at the dual's interior face
       ⊢W′ : intOf (intOf Δ Θ) (dualᴳ Δ Θ) ∣ []

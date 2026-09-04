@@ -12,9 +12,10 @@ module strong.Progress where
 -- recover the wrapper's external-face equation and its body's typing without
 -- pattern-matching (env) against a non-constructor type index.  What remains
 -- is the shape of the BOUNDARY type B₀ — that is what selects the rule —
--- which is cf-⇒-B₀ / cf-∀-B₀, ported from notes/old/BoundaryRulesProbe §6, and
--- then, since Wrap/TyWrap consume the ƛ/Λ they are applied to, the shape of
--- the wrapper's BODY (app-⇒ / tapp-∀).
+-- which is cf-⇒-B₀ / cf-∀-B₀, ported from notes/old/BoundaryRulesProbe §6.
+-- At an ⇒ face that is the WHOLE analysis: Peel does not consume the ƛ, so
+-- app-⇒ fires on any value body.  At a ∀ face one further split is needed,
+-- on the wrapper's BODY (a Λ ⇒ TyWrap, a wrapper ⇒ TyPeel).
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -30,15 +31,15 @@ open import strong.BReduction
 open import strong.Canonical using (canon-var)
 open import strong.ProgressDef
 
--- Parameterised over TWO open cases now, not four (Merge's landing, 2026-
--- 09-04): the reveal-variable family DISSOLVES into the nested-wrapper one
--- (rv-app / rv-tapp below).  A wrapper whose boundary type is a reveal
--- VARIABLE ` X types its body at substᵗ (γᵇ Θ) (` X) = ` X — a variable
--- type — and a value of variable type is itself a wrapper (canon-var), so
--- the redex was a wrapper-bodied wrapper all along and the SAME Merge
--- frame reaches it.  What is left open is exactly Merge's own premise at
--- an ⇒ / ∀-faced nested wrapper: see strong.ProgressDef.
-module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
+-- Parameterised over the TWO REVEAL-VARIABLE cases (the peel install,
+-- 2026-09-04).  The nested-wrapper family at an ⇒ / ∀ face — the two
+-- parameters this module used to take — is DISCHARGED: Peel fires at an ⇒
+-- face on any value body and TyWrap / TyPeel at a ∀ face on a Λ / wrapper
+-- body, so app-⇒ and tapp-∀ below are total.  What is left is the
+-- reveal-variable face, where the wrapped value has ABSTRACT type and no
+-- elimination can be pushed inward at all: see strong.ProgressDef for the
+-- obstruction and notes/InstallGauntlet §9i for the reachable witness.
+module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
 
   ------------------------------------------------------------------------
   -- 0.  Boundary-type shape analysis
@@ -103,20 +104,21 @@ module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
   inv-body (env bwf sc ⊢V) = ⊢V
 
   ------------------------------------------------------------------------
-  -- 1b.  THE REVEAL-VARIABLE FAMILY DISSOLVES (Merge's landing).
+  -- 1b.  THE REVEAL-VARIABLE FAMILY, AFTER PEEL.
   --
-  -- Decision 1 left `RevealVarApp` / `RevealVarTApp` open as a separate
-  -- family: a wrapper whose BOUNDARY TYPE is one of its own reveal
-  -- variables ` X is neither a Wrap nor a TyWrap redex.  It is, however,
-  -- always a NESTED wrapper — which is Merge's redex — because
+  -- A wrapper whose BOUNDARY TYPE is one of its own reveal variables ` X
+  -- types its body at
   --
   --   γᵇ Θ X = ` X          (γᵇ-lo, since X < revs Θ: a reveal variable
   --                          passes through the interior face unchanged)
   --
   -- so the body is a value AT A VARIABLE TYPE, and `canon-var` says such a
-  -- value is a wrapper with a variable boundary type (a chain ending in a
-  -- conceal of that variable).  Both cases therefore reduce to the nested
-  -- ones, with NO new hypothesis: four ProgressDef parameters become two.
+  -- value is a wrapper with a variable boundary type.  That much is a
+  -- THEOREM (rv-nested), and it is all this module proves here: it turns
+  -- the ProgressDef parameters' NESTED shape into an available fact.  The
+  -- step itself is not available — a variable-faced boundary is neither a
+  -- Peel nor a TyPeel redex, because pushing the elimination inward would
+  -- eliminate a term of variable type.  See strong.ProgressDef.
   ------------------------------------------------------------------------
 
   unwrap-val : ∀ {V′ Θ′ B} → Value (V′ ⟪ Θ′ , B ⟫) → Value V′
@@ -128,28 +130,17 @@ module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
   rv-nested {Δ} {V} {Θ} {X} v lt ⊢V =
     canon-var v (subst (λ T → intOf Δ Θ ∣ [] ⊢ V ⦂ T) (γᵇ-lo Θ X lt) ⊢V)
 
-  rv-app : RevealVarApp
-  rv-app {Δ} {V} {W} {Θ} {X} v w ⊢L lt
-    with rv-nested {Δ} {V} {Θ} {X} v lt (inv-body ⊢L)
-  rv-app {Δ} {V} {W} {Θ} {X} v w ⊢L lt | (V′ , Θ′ , Y , refl) =
-    nt-app (unwrap-val v) w ⊢L
-
-  rv-tapp : RevealVarTApp
-  rv-tapp {Δ} {V} {Θ} {X} v ⊢L lt
-    with rv-nested {Δ} {V} {Θ} {X} v lt (inv-body ⊢L)
-  rv-tapp {Δ} {V} {Θ} {X} v ⊢L lt | (V′ , Θ′ , Y , refl) =
-    nt-tapp (unwrap-val v) ⊢L
-
   ------------------------------------------------------------------------
   -- 2.  The two eliminations applied to a value
   --
-  -- Wrap and TyWrap are PARTIAL in the wrapped value: each consumes a binder
-  -- (a ƛ / a Λ), so a wrapper at an ⇒ / ∀ boundary type must have its BODY
-  -- analysed too.  The body's own typing — at the interior face, which is
-  -- ⇒ / ∀-shaped by construction — refutes the numeral and the mismatched
-  -- binder; what is left is the binder (the rule fires) or a nested wrapper
-  -- — Merge's redex, and the ProgressDef parameter that remains is exactly
-  -- the supply of Merge's own premise there (see strong.ProgressDef).
+  -- PEEL IS TOTAL AT AN ⇒ FACE: it does not consume the ƛ, so the wrapped
+  -- value's shape is irrelevant and app-⇒ needs no case analysis at all.
+  -- At a ∀ face the pair TyWrap / TyPeel covers the two shapes a value of
+  -- ∀-type can have — a Λ (TyWrap: the binder's slot BECOMES the reveal
+  -- slot, no weakening, one step) and a wrapper (TyPeel: the elimination is
+  -- pushed inside and the body weakened by the new reveal's slot) — and the
+  -- numeral and the ƛ are refuted by the body's own typing at the ∀-shaped
+  -- interior face.  NOTHING here is assumed.
   ------------------------------------------------------------------------
 
   -- a wrapper whose boundary type is ⇒-shaped, applied to a value
@@ -157,10 +148,7 @@ module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
         → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (B₁ ⇒ B₂)
         → Δ ∣ [] ⊢ V ⟪ Θ , B₁ ⇒ B₂ ⟫ ⦂ (A ⇒ B)
         → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W) -→ M′
-  app-⇒ V-$           w () ⊢L
-  app-⇒ (V-G G-ƛ)     w ⊢V ⊢L = _ , Wrap w
-  app-⇒ (V-G (G-Λ v)) w () ⊢L
-  app-⇒ (V-⟪⟫ v)      w ⊢V ⊢L = nt-app v w ⊢L   -- nested wrapper (Merge)
+  app-⇒ v w ⊢V ⊢L = _ , Peel v w
 
   -- a wrapper whose boundary type is ∀-shaped, type-applied
   tapp-∀ : ∀ {Δ V Θ B₀ B A} → Value V
@@ -170,7 +158,7 @@ module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
   tapp-∀ V-$           () ⊢L
   tapp-∀ (V-G G-ƛ)     () ⊢L
   tapp-∀ (V-G (G-Λ v)) ⊢V ⊢L = _ , TyWrap v
-  tapp-∀ (V-⟪⟫ v)      ⊢V ⊢L = nt-tapp v ⊢L     -- nested wrapper (Merge)
+  tapp-∀ (V-⟪⟫ v)      ⊢V ⊢L = _ , TyPeel v     -- wrapper body: peel
 
   -- L · M with both sides values.  L : A ⇒ B, so L is a ƛ (Beta) or a wrapper.
   app-steps : ∀ {Δ L M A B} → Value L → Value M → Δ ∣ [] ⊢ L ⦂ (A ⇒ B)
@@ -182,8 +170,12 @@ module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
     with cf-⇒-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
   app-steps (V-⟪⟫ v) w ⊢L | inj₁ (B₁ , B₂ , refl) =
     app-⇒ v w (inv-body ⊢L) ⊢L
-  app-steps (V-⟪⟫ v) w ⊢L | inj₂ (X , refl , X<r) =
-    rv-app v w ⊢L X<r      -- reveal-variable boundary type (ProgressDef)
+  -- reveal-variable boundary type: canon-var exposes the NESTED shape the
+  -- ProgressDef parameter is stated over (strong.ProgressDef)
+  app-steps {Δ} (V-⟪⟫ {Θ = Θ} v) w ⊢L | inj₂ (X , refl , X<r)
+    with rv-nested {Δ} {Θ = Θ} {X = X} v X<r (inv-body ⊢L)
+  app-steps {Δ} (V-⟪⟫ {Θ = Θ} v) w ⊢L | inj₂ (X , refl , X<r)
+    | (V′ , Θ′ , Y , refl) = rv-app (unwrap-val v) w ⊢L X<r
 
   -- L ·[ B , A ] with L a value.  L : `∀ B, so L is a Λ (TyBeta) or a wrapper.
   -- The Λ case reads the body's value proof straight off G-Λ, so neither a
@@ -197,8 +189,10 @@ module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
     with cf-∀-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
   tapp-steps (V-⟪⟫ v) ⊢L | inj₁ (B₀′ , refl) =
     tapp-∀ v (inv-body ⊢L) ⊢L
-  tapp-steps (V-⟪⟫ v) ⊢L | inj₂ (X , refl , X<r) =
-    rv-tapp v ⊢L X<r       -- reveal-variable boundary type (ProgressDef)
+  tapp-steps {Δ} (V-⟪⟫ {Θ = Θ} v) ⊢L | inj₂ (X , refl , X<r)
+    with rv-nested {Δ} {Θ = Θ} {X = X} v X<r (inv-body ⊢L)
+  tapp-steps {Δ} (V-⟪⟫ {Θ = Θ} v) ⊢L | inj₂ (X , refl , X<r)
+    | (V′ , Θ′ , Y , refl) = rv-tapp (unwrap-val v) ⊢L X<r
 
   ------------------------------------------------------------------------
   -- 3.  Progress

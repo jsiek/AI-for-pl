@@ -5,7 +5,7 @@ module strong.DualDef where
 -- the "(a″) PROBE VERDICT" and "STAR-CONCEAL PROBE VERDICT" blocks of
 -- notes/DECISIONS.md).
 --
--- Wrap's preservation case needs two facts about  Θᵈ = dualᴳ Δ Θ  beyond the
+-- Peel's preservation case needs two facts about  Θᵈ = dualᴳ Δ Θ  beyond the
 -- two face laws (which ARE theorems — ρᵇ-dual-ty / γᵇ-dual-ty):
 --
 --   (i)  Θᵈ is a WELL-FORMED boundary over the exterior intOf Δ Θ, so that

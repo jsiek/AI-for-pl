@@ -750,9 +750,12 @@ namespace); the faces-agree strip is unsound except at Θ = ∅ (= Drop∅).
 Towers collapse via DELETING merge + strip at a closed B₀ — which needs
 cancel-agree anyway.  So the ranked recommendation is unambiguous:
 
-  (i) REPAIR (bwf-↓x) WITH SkelEq  — closes the soundness hole, restores
-      Merge's cancel justification, one premise + one hypothesis-free
-      lemma + the SkelX strengthening.  RECOMMENDED; awaiting Jeremy.
+  (i) REPAIR (bwf-↓x) WITH SkelEq — RULED BY JEREMY AND LANDED (commit
+      "the SkelEq repair").  ⊢Tg/⊢Tbad are now permanent refutations in
+      Boundary.agda; ¬⊢adv reconfirmed; CncLic's x-disjunct carries the
+      SkelEq conjunct at zero residual cost (dual-cnc-skel discharges it
+      at every dual's birth via xrep-stored); D1 is CLOSED — the landed
+      license now reads: x-lookup + starOnly + SkelEq + Ψ ⊢ A.
   (ii)/(iii) accepting D1, with either cancel flavor: refuted or dominated.
 
 ## DESIGN LAW, restated by Jeremy via the trace coloring (2026-09-04)

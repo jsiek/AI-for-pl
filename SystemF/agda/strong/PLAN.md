@@ -245,9 +245,10 @@ relation now carries the same index), term context always `[]`.
 
 0. **[LANDED, e07e8863] The x-license install.** Gates green; E★′ closed through
    `(bwf-↓x)`; E★ no longer needs `cnc⋆`; the ⊢3n-adv adversary refuted in `Boundary.agda`.
-   THREE DEVIATIONS for Jeremy's review (DECISIONS): `(bwf-↓x)` carries NO rep comparison
-   (ruling (ii)'s ≈ is not ⊢renameᵀ-stable at that clause — `¬x-rep-match-ren≈`; the license
-   is x-lookup + `starOnly` + `Ψ ⊢ A`); claims-nothing is the boundary-relative `starOnly`;
+   Deviation (D1) is RESOLVED: the SkelEq repair landed (the license is x-lookup + `starOnly`
+   + `SkelEq` + `Ψ ⊢ A`; the D1 soundness hole's witnesses are permanent refutations; Merge's
+   cancel-agree for x-pairs is restored via `xrep-stored`/`dual-cnc-skel`). Remaining from the
+   install review: claims-nothing is the boundary-relative `starOnly`;
    the ambient unfold retry is NOT installed (transports fail), so Pn's conceal now lives in
    the `DualCnc≈` residue. Preservation keeps three (smaller) parameters: `DualRep≈` (wants
    `⊢ Δ`), `DualCnc≈` (residue = the Pn shape), `DualInt≈`.

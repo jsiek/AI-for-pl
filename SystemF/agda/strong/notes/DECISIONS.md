@@ -1400,3 +1400,36 @@ refuted by Example 8), and it is confined to the wrapper-bodied case
 (TyWrap for Λ bodies stays shift-free — that is why form (β) was
 chosen over (α), which also recreates the Ξalias residue and breaks the
 E★′ trace).  Jeremy to confirm or overrule.
+
+### Decision 6 — Jeremy's direction (2026-09-04 night): CANCEL, not Merge
+
+"That example looks like it needs a Cancel reduction, not Merge."
+Confirmed by §9i's own numbers: the firing Merge computes `Θrᵈ ⊕ Θr ≡ []`
+— nothing is re-indexed; it is the CANCEL CLAUSE alone.  Precedent: the
+old design's Cancel rule; the standing roadmap note "revive Cancel — its
+side condition is exactly what Reversal now guarantees."  The option
+space accordingly REPLACES (A)/(B):
+
+  Cancel : Value V → (side condition)
+         → Δ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫ -→ V
+
+(A′) FOLDED: CancelApp/CancelTApp with the APPLICATION as LHS, restricted
+     to variable-faced outer boundaries (where Peel/TyPeel cannot fire) —
+     Value grammar untouched, towers at rest stay values, determinism by
+     disjointness.
+(B′) STANDALONE Cancel + Value restriction: a cancellable tower is NOT a
+     value (decidable side condition required) — towers GC eagerly;
+     Peel's Value premise and ξ-·-r become disjoint by construction.
+
+Probe in flight (notes/CancelProbe.agda): the side condition (syntactic
+inverse vs Reversal≈ agreement vs lineage/dualᴳ form — the ≈ form is
+suspected necessary, since a conceal rep spelled `X` under a reveal rep
+spelled `ℕ⇒ℕ` may type via Reversal≈ unfolding while failing the
+syntactic check); the (A′)/(B′) determinism tables; THE CRUX — whether
+Cancel discharges the tightened rv parameters for EVERY well-typed
+variable-face nesting (adversaries: the alias-reveal tower ↑Y:=X over a
+conceal bottom; extra-entry Θ₁), or whether typing must mint
+cancellability at birth (grounded-invariants law) / an extra rule is
+needed; and the deletion inventory (Merge/Drop∅/⊕/MergeOK all die if
+Cancel suffices — "either towers or merge/drop" resolved as towers +
+Cancel).

@@ -484,8 +484,15 @@ smallest closed program minting CHAINED knowledge above a seal:
   CHAINED Y does), so one mechanism closes both Pn and Pc, with the
   Λ-bound case abstract-as-today plus the no-abstract-value vacuity lemma.
 
-  Status: awaiting Jeremy's ruling on (a′); the revert track keeps §6b/Pc
-  inside the DualRep parameter meanwhile.
+  RULING (Jeremy, 2026-09-04): conditional go-ahead — "If the probe finds no
+  mismatches, go ahead with (a′)."  notes/UnfoldProbe.agda (in flight) hunts
+  for unfolded-vs-abstracted mismatches at six sites (two-routes, Merge
+  middle type, Cancel, faces at an application, renaming commutation,
+  ≼-retag) and checks the sealed body's view is bit-identical under (a′).
+  All-safe ⇒ install (a′) (knowledge entries stored fully resolved; the
+  no-abstract-value vacuity lemma; attempt to discharge the DualDef
+  parameters).  Any mismatch ⇒ stop, record the witness, present (a″)
+  (raw entries, comparison up to unfolding) as the fallback.
 
 ## Would Merge solve Pc instead of (a′)?  (Jeremy's question, 2026-09-04)
 

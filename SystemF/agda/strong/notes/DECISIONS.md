@@ -285,6 +285,53 @@ write it as a rep-less reveal ↑Y rather than ↑Y:⋆.
 Status: probe launched (contextual dual on E and P, compatibility with the
 reversal-form premise).  W3-as-traversal kept as the fallback.
 
+### Decision 4 — ambient dual probe verdict and the overnight install (2026-09-04, Jeremy asleep)
+
+notes/AmbientDualProbe.agda (agda --safe clean).  Verdict: POSITIVE on the
+candidate itself —
+  ✓ P repaired with NO insertion anywhere (dualᴳ copies Y:=𝔹; rebuild = Γ on
+    the nose; dualᵇ version refuted);
+  ✓ E handled with ZERO traversal (both blocked knowledge entries copied at
+    the moment of use; the sealed boundary stays the plain ↓X:=ℕ for its
+    whole life);
+  ✓ Λ-bound blocked slot: rep-less abstract reveal, exact rebuild (dualᵇ
+    rebuilt bogus knowledge Y:=ℕ there — an exactness leak now fixed);
+  ✓ reversal-premise compatibility reproduced in general.
+
+Two residues, and the overnight scoping calls made under the mandate ("if
+the probe comes back positive, install"):
+
+  (R1) CHAINED KNOWLEDGE (probe §6b, reachable): Γ = Y:=Y′ , Y′:=𝔹 , X:=ℕ,
+    Θ = ↓X:=ℕ — the copied entry for Y names Y′, which Θ also blocks, so the
+    dual's reveal rep ` 0 is ill-formed under the PARALLEL reading of a
+    boundary's reveal block.  Probe: it is exactly the right TELESCOPIC
+    entry.  CALL: adopt the telescopic reading of the reveal block
+    ((bwf-↑) reads each reveal rep over Γ extended by the DEEPER reveals of
+    the same boundary; ρ becomes the corresponding fold) — this matches the
+    repo's existing telescope convention for revealed entries
+    (Context.agda: "the rep stored in rvld A is a type over its tail").
+    Flagged for Jeremy's review; revertible.
+
+  (R2) A REVEAL REP NAMING A SLOT ITS OWN BOUNDARY BLOCKS (¬⊢dualᴳΘn;
+    Θn = ↑Z:=Y , ↓X:=ℕ with Y Λ-bound and blocked — minted by TyWrap itself
+    whenever a sealed polymorphic value is instantiated at an abstract
+    variable, e.g. Example 8's f [Y]).  "Z is Y" is not expressible in an
+    interior that dropped Y: Z's knowledge entry is abstract, so the dual's
+    conceal of Z is unlicensed and Wrap's contractum does not type.  NOT
+    resolved by the ambient dual (nor by W3).  CALL: do not invent a fix
+    overnight; the Wrap preservation case for such boundaries is isolated
+    as a `...Def` statement parameter with the obligation stated precisely,
+    and the candidate resolutions recorded: (a) Γ-aware knowledge closure in
+    ⟦·⟧ (resolve blocked variables of a reveal rep through Γ's knowledge
+    when it exists — helps the revealed case, not the Λ-bound one);
+    (b) a conceal premise licensed by the boundary's own reveal rep rather
+    than the interior entry; (c) Merge-first normalization.  Jeremy rules.
+
+Install scope (Track L/M): knowledge interiors ⟦A⟧ + reversal-form (bwf-↓)
++ rep-less abstract reveal entry + telescopic reveal block + Γ-indexed
+reduction with dualᴳ; preservation and progress updated; Merge still NOT
+landed (unfolding-transport open); ProgressDef keeps its parameters.
+
 ### Decision 3 — tension with Decision 1 found by the Merge probe (needs a ruling)
 
 notes/MergeProbe.agda (agda --safe clean) defines Θ₁ ⊕ Θ₂ and proves the

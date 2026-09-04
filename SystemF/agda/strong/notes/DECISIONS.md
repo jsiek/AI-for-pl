@@ -549,6 +549,32 @@ not the reverse — Zdancewic's structure exactly (their merge (8) is sound
 only over Δ̄-resolved annotations, maintained eagerly by retag (7); (a′) is
 our rule (7)).  Order of work: (a′) → Merge.
 
+## (a″) PROBE VERDICT — SURVIVED (notes/UpToProbe.agda, 2026-09-04)
+
+All seven sites SAFE, with one requirement and one residual:
+  ✓ the (a′) killer reversed (DualCnc≈-Pc: raw conceal licenses by refl);
+  ✓ Pc end-to-end (the chained copy unfolds, the argument retypes: ≼≈);
+  ✓ Pn/R2 — pure (a″) is NOT enough (¬DualCnc≈-Pn-raw: bwf↓'s ∋:= lookup
+    is a lookup, no congruence relaxes it); the HYBRID entry ⟦·⟧ᴴ is
+    REQUIRED and fixes it (raw entry where expressible, retried at
+    unfoldᵉ Γ A where not, abstract only when both fail).  Bonus finding:
+    with the hybrid, the dual's read-back at Pn resolves through the dual's
+    own copied reveal and the licensing premise holds SYNTACTICALLY;
+  ✓ bad/bad₂ stay refuted under ≈; near-bad-by-a-different-route rightly
+    admitted; genuinely different knowledge rejected;
+  ✓ renaming: better than (a′) — the entrywise strengthening dissolves
+    (UnfRen≈-abst is refl).  RESIDUAL: the hybrid entry commutes with
+    renaming only up to ≼≈ (¬⟦⟧ᴴ-ren / ⟦⟧ᴴ-ren≼≈) — one ⊢retag≈ inside
+    ⊢renameᵀ's (env) case;
+  ✓ Merge's retyping-along-unfolding collapses into ≼≈ (both directions);
+  ✓ the raw/unfolded mixture is coherent (mix-≼≈, idempotence, two-routes,
+    abstraction barrier bit-identical).
+  Λ-bound blocked case still stuck as expected → the no-abstract-value
+  vacuity lemma is still the closing piece (bases proven, chain step a
+  commented conjecture).
+
+Design summary (before/after, home relations) presented to Jeremy for
+sign-off; install pending his approval.
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

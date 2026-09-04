@@ -1511,3 +1511,28 @@ Placement detail from the probe (§4 disjointness tables): under (A′/A)
 the §9j tower simply does not step at rest (nd-arg-stuckᴬ) and Peel is
 the unique step at the application (nd-onlyᴬ); the Value grammar stays
 untouched.  AWAITING JEREMY'S RULING on installing (A).
+
+### Decision 6 — Jeremy's face-type restriction, checked (gauntlet §9k)
+
+Proposal: "restrict Merge to function and universal face types" (keep it
+standalone; the elimination position is maybe not the point).  Verdict:
+the face types ARE the right discriminator, but the restriction alone
+does not restore determinism — §9k, machine-checked.  §9j's clash does
+vanish (that tower's external face is base ℕ).  But §9i's own tower has
+EXTERNAL face ℕ⇒ℕ — a function face, so the restricted Merge still fires
+on it — and in ARGUMENT position it clashes: `nd-beta` (Beta consumes
+the tower as a value) and `nd-mergeArg` (ξ-·-r merges it) are both live
+steps with distinct contracta (`nd-fnface-≢`).  A merge-redex that IS a
+value clashes somewhere, whatever the face restriction.  The two exits:
+  (i) exclude ⇒/∀-faced merge-redexes from Value — but ⊢redex-cx (§9d)
+      is a ⇒-faced nesting with MergeOK FALSE: at rest it would be
+      neither a value nor able to step, reviving the §9f hole — unless
+      value-hood is conditioned on MergeOK itself (knowledge-relative
+      values + a MergeOK decidability burden);
+  (ii) put the merge at the elimination (MergeApp/MergeTApp) — the LHS
+      is an application, never a value, so Value stays untouched and
+      determinism is free.  Note the face types remain the point there
+      too: at an elimination the merge fires exactly when the outer face
+      is a VARIABLE (the complement of Peel/TyPeel's syntactic ⇒/∀)
+      whose external reading is the function/universal type — the merge
+      exists to EXPOSE the face Peel needs.

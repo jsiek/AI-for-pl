@@ -455,6 +455,38 @@ Consequences (worked out before reverting):
     One operator would then serve both: interior entries ⟦·⟧ and the dual's
     copied reps.
 
+## CANDIDATE (a) SHARPENED TO (a′) — unfold AT ENTRY BIRTH (2026-09-04)
+
+Worked example Pc (colored trace: the "Scope Trace of Pc" artifact) — the
+smallest closed program minting CHAINED knowledge above a seal:
+
+    Pc = (ΛX. λg:(X→X). ΛY. λx:X. ((ΛW. λu:X. g u) [Y]) x) [ℕ] · (λn:ℕ. n) · [𝔹] · 3
+
+  By T5 the ambient context is  W:=Y , Y:=𝔹 , X:=ℕ  and the seal ↓X:=ℕ (in
+  application position — Merge can never reach it) must eventually dualise,
+  copying knowledge for W.  Raw copy of W:=Y is inexpressible under the
+  parallel reveal reading (Y is itself dropped) → ↑W:⋆ → the argument's
+  ↓W conceal is unlicensed → ✗.
+
+  Fix, sharpened by the trace: unfold WHEN THE ENTRY IS BORN — ⟦·⟧ stores
+  knowledge fully resolved through the ambient context (Zdancewic's Δ̄), so
+  T5's entry is W:=𝔹, T6's dual conceal is minted as ↓W:=𝔹, and T7's copy
+  is a plain closed type.  Unfolding lazily in the DUAL instead is wrong:
+  the rebuilt entry (W:=𝔹) would mismatch conceals minted at the raw
+  knowledge (↓W:=Y), forcing "retyping along unfolding" — Merge's open
+  obligation — into Wrap.  At-birth unfolding keeps every conceal and copy
+  in agreement by construction.
+
+  (a′) preserves the rulings: simultaneity — the boundary SYNTAX ↑W:=Y is
+  untouched, reps still read in the plain exterior; tightness — nothing new
+  enters an interior, entries only become more resolved.  It is the same
+  operator that fixes R2's Pn (there the BLOCKED Y unfolds; here the
+  CHAINED Y does), so one mechanism closes both Pn and Pc, with the
+  Λ-bound case abstract-as-today plus the no-abstract-value vacuity lemma.
+
+  Status: awaiting Jeremy's ruling on (a′); the revert track keeps §6b/Pc
+  inside the DualRep parameter meanwhile.
+
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

@@ -17,8 +17,9 @@ module strong.DualDef where
 --   * repOf-wf     — a conceal rep of Θ is well formed in Θ's interior,
 --                    which is the dual's exterior;
 --   * dual-rep-conc — hence the dual's reveal at a CONCEALED slot is well
---                    formed (its rep is that conceal rep, lifted past the
---                    deeper dual reveals);
+--                    formed (under the PARALLEL reveal block its rep IS that
+--                    conceal rep, copied unchanged — the telescopic lift is
+--                    gone, and with it the prepAbst in these statements);
 --   * bwf-dualᴳ    — the whole dual is well formed as soon as the two
 --                    residues below are supplied.
 --
@@ -32,6 +33,15 @@ module strong.DualDef where
 --     every knowledge entry ⟦A⟧ is well formed over its own tail — the same
 --     obligation one level down).  Λ-BOUND blocked slots are fine: the dual
 --     emits the rep-less reveal rvl⋆, which carries no premise at all.
+--     Under the parallel reveal block the copy is additionally GUARDED by
+--     `dfree 0 k B` — a CHAINED rep (one naming another slot the boundary
+--     drops) is not expressible over the dual's plain exterior, so the dual
+--     falls back to rvl⋆ there.  The obligation therefore SHRANK for DualRep
+--     (it now assumes the guard, and the copied rep is copyRep k (revs Θ) B
+--     rather than the telescopic renameᵗ (upFrom k (revs Θ)) B), and the
+--     lost knowledge reappears in DualInt, which the fallback now also
+--     violates (BReduction's Γp: AmbientDualProbe §6b).  Repairing it needs
+--     the knowledge-closure operator of candidate (a).
 --
 --   * DualCnc.  The dual CONCEALS each reveal variable of Θ, and the
 --     reversal premise asks the dual's exterior — Θ's interior — to KNOW
@@ -45,7 +55,8 @@ module strong.DualDef where
 --   * DualInt.  The rebuild law.  Its Λ-bound and abstract slots are exact
 --     by construction; a concealed or copied slot is exact exactly when the
 --     rep round-trips through ⟦·⟧, which is the same knowledge question as
---     DualCnc one level out.
+--     DualCnc one level out — plus, since the parallel revert, the slots
+--     whose copy the `dfree 0 k` guard refuses (BReduction's Γp).
 --
 -- strong.BPreservation is parameterised over the three (the repo's `…Def`
 -- convention, as strong.Progress is over strong.ProgressDef).
@@ -58,16 +69,15 @@ open import Data.Bool using (Bool; true; false)
 open import Data.List using (List; []; _∷_; _++_)
 open import Relation.Nullary using (¬_; yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong; subst)
-open import Data.Nat.Properties using (_≟_; +-identityʳ)
+  using (_≡_; refl; sym; trans; subst)
+open import Data.Nat.Properties using (_≟_)
 open import strong.Types
 open import strong.Context
   using (TCtx; TyEntry; abst; rvld; _⊢_; wf-ℕ)
 open import strong.Boundary
 open import strong.BReduction
-  using (repOf; entAt; upFrom; entᴳ; rvlsᴳ; cncOfRevs; dualᴳ;
-         revs-cncOfRevs; bwf-++; bwf-ent; bwf-rvlsᴳ; bwf-cncOfRevs;
-         wf-ren; prepAbst-hi; _≼_)
+  using (repOf; entAt; copyRep; entᴳ; rvlsᴳ; cncOfRevs; dualᴳ;
+         bwf-++; bwf-ent; bwf-rvlsᴳ; bwf-cncOfRevs; _≼_)
 
 private
   variable
@@ -102,34 +112,50 @@ entᴳ-⋆ Δ Θ s k ec ee | false | _ with entAt Δ s | ee
 entᴳ-⋆ Δ Θ s k ec ee | false | _ | abst   | _  = refl
 entᴳ-⋆ Δ Θ s k ec ee | false | _ | rvld B | ()
 
+-- the copy happens only when the guard holds; a CHAINED rep falls back to
+-- the rep-less reveal (see the DualRep note above)
 entᴳ-B : ∀ (Δ : TCtx) Θ s k B → isConc s Θ ≡ false → entAt Δ s ≡ rvld B
-       → entᴳ Δ Θ s k ≡ rvl (renameᵗ (upFrom k (revs Θ)) B)
-entᴳ-B Δ Θ s k B ec ee with isConc s Θ | ec
-entᴳ-B Δ Θ s k B ec ee | true  | ()
-entᴳ-B Δ Θ s k B ec ee | false | _ with entAt Δ s | ee
-entᴳ-B Δ Θ s k B ec ee | false | _ | abst   | ()
-entᴳ-B Δ Θ s k B ec ee | false | _ | rvld C | refl = refl
+       → dfree 0 k B ≡ true
+       → entᴳ Δ Θ s k ≡ rvl (copyRep k (revs Θ) B)
+entᴳ-B Δ Θ s k B ec ee eg with isConc s Θ | ec
+entᴳ-B Δ Θ s k B ec ee eg | true  | ()
+entᴳ-B Δ Θ s k B ec ee eg | false | _ with entAt Δ s | ee
+entᴳ-B Δ Θ s k B ec ee eg | false | _ | abst   | ()
+entᴳ-B Δ Θ s k B ec ee eg | false | _ | rvld C | refl
+  with dfree 0 k C | eg
+entᴳ-B Δ Θ s k B ec ee eg | false | _ | rvld C | refl | true  | _  = refl
+entᴳ-B Δ Θ s k B ec ee eg | false | _ | rvld C | refl | false | ()
+
+entᴳ-B⋆ : ∀ (Δ : TCtx) Θ s k B → isConc s Θ ≡ false → entAt Δ s ≡ rvld B
+        → dfree 0 k B ≡ false → entᴳ Δ Θ s k ≡ rvl⋆
+entᴳ-B⋆ Δ Θ s k B ec ee eg with isConc s Θ | ec
+entᴳ-B⋆ Δ Θ s k B ec ee eg | true  | ()
+entᴳ-B⋆ Δ Θ s k B ec ee eg | false | _ with entAt Δ s | ee
+entᴳ-B⋆ Δ Θ s k B ec ee eg | false | _ | abst   | ()
+entᴳ-B⋆ Δ Θ s k B ec ee eg | false | _ | rvld C | refl
+  with dfree 0 k C | eg
+entᴳ-B⋆ Δ Θ s k B ec ee eg | false | _ | rvld C | refl | true  | ()
+entᴳ-B⋆ Δ Θ s k B ec ee eg | false | _ | rvld C | refl | false | _ = refl
 
 dual-rep-conc : ∀ Θ → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → ∀ k i → isConc i Θ ≡ true
               → ∀ R → entᴳ Δ Θ i k ≡ rvl R
-              → prepAbst k (intOf Δ Θ) ⊢ R
+              → intOf Δ Θ ⊢ R
 dual-rep-conc {Δ = Δ} Θ bwf k i c R e
   with isConc i Θ | c
 dual-rep-conc {Δ = Δ} Θ bwf k i c R e | true  | _ =
-  subst (λ T → prepAbst k (intOf Δ Θ) ⊢ T) (rvl-inj e)
-        (wf-ren (λ {X} p → prepAbst-hi k (intOf Δ Θ) X p)
-                (repOf-wf Θ bwf i))
+  subst (λ T → intOf Δ Θ ⊢ T) (rvl-inj e) (repOf-wf Θ bwf i)
 dual-rep-conc {Δ = Δ} Θ bwf k i c R e | false | ()
 
 ------------------------------------------------------------------------
 -- OPEN (1).  The reveal the dual emits at a slot that Θ drops without
--- concealing and that Δ REVEALS: it copies Δ's entry `rvld B`, transported
--- into the dual's telescopic reveal block by upFrom.
+-- concealing and that Δ REVEALS: it copies Δ's entry `rvld B` into the
+-- dual's PLAIN exterior by copyRep, when the guard permits.
 ------------------------------------------------------------------------
 
 BlkRepWf : TCtx → BCtx → Set
 BlkRepWf Δ Θ = ∀ k i B → isConc i Θ ≡ false → entAt Δ i ≡ rvld B
-             → prepAbst k (intOf Δ Θ) ⊢ renameᵗ (upFrom k (revs Θ)) B
+             → dfree 0 k B ≡ true
+             → intOf Δ Θ ⊢ copyRep k (revs Θ) B
 
 ------------------------------------------------------------------------
 -- PROVEN.  Given (1) and the conceal block, the whole dual is well formed.
@@ -141,34 +167,34 @@ bwf-dualᴳ : ∀ {Δ Δ'} Θ → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → BlkRepWf Δ �
 bwf-dualᴳ {Δ} {Δ'} Θ bwf hblk bcnc =
   bwf-rvlsᴳ (cmax Θ) 0 Δ Θ (cncOfRevs 0 Θ) hrvl bcnc
   where
-    fix : ∀ k → prepAbst (k + revs (cncOfRevs 0 Θ)) (intOf Δ Θ)
-              ≡ prepAbst k (intOf Δ Θ)
-    fix k = cong (λ n → prepAbst n (intOf Δ Θ))
-                 (trans (cong (k +_) (revs-cncOfRevs 0 Θ)) (+-identityʳ k))
-    hrvl : ∀ k s R → entᴳ Δ Θ s k ≡ rvl R
-         → prepAbst (k + revs (cncOfRevs 0 Θ)) (intOf Δ Θ) ⊢ R
-    hrvl k s R e =
-      subst (λ Ψ → Ψ ⊢ R) (sym (fix k)) (go (isConc s Θ) refl)
+    hrvl : ∀ k s R → entᴳ Δ Θ s k ≡ rvl R → intOf Δ Θ ⊢ R
+    hrvl k s R e = go (isConc s Θ) refl
       where
-        go : ∀ b → isConc s Θ ≡ b → prepAbst k (intOf Δ Θ) ⊢ R
+        go : ∀ b → isConc s Θ ≡ b → intOf Δ Θ ⊢ R
         go true  ec = dual-rep-conc Θ bwf k s ec R e
         go false ec = blkcase (entAt Δ s) refl
           where
-            blkcase : ∀ (E : TyEntry) → entAt Δ s ≡ E
-                → prepAbst k (intOf Δ Θ) ⊢ R
+            blkcase : ∀ (E : TyEntry) → entAt Δ s ≡ E → intOf Δ Θ ⊢ R
             blkcase abst     ee =
               ⊥-elim (⋆≢rvl (trans (sym (entᴳ-⋆ Δ Θ s k ec ee)) e))
-            blkcase (rvld B) ee =
-              subst (λ T → prepAbst k (intOf Δ Θ) ⊢ T)
-                    (rvl-inj (trans (sym (entᴳ-B Δ Θ s k B ec ee)) e))
-                    (hblk k s B ec ee)
+            blkcase (rvld B) ee = guardcase (dfree 0 k B) refl
+              where
+                guardcase : ∀ g → dfree 0 k B ≡ g → intOf Δ Θ ⊢ R
+                guardcase true  eg =
+                  subst (λ T → intOf Δ Θ ⊢ T)
+                        (rvl-inj
+                          (trans (sym (entᴳ-B Δ Θ s k B ec ee eg)) e))
+                        (hblk k s B ec ee eg)
+                guardcase false eg =
+                  ⊥-elim (⋆≢rvl
+                           (trans (sym (entᴳ-B⋆ Δ Θ s k B ec ee eg)) e))
 
 ------------------------------------------------------------------------
 -- OPEN (2) and (3).  The two statements strong.BPreservation is
 -- parameterised over, together with the reveal-rep one.
 ------------------------------------------------------------------------
 
--- (1) every copied knowledge rep is well formed in the dual's telescope
+-- (1) every copied knowledge rep is well formed in the dual's exterior
 DualRep : Set
 DualRep = ∀ {Δ : TCtx} {Θ : BCtx} → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → BlkRepWf Δ Θ
 

@@ -69,10 +69,10 @@ renameᵀᵐ ρ (Λ N)          = Λ (renameᵀᵐ ρ N)
 renameᵀᵐ ρ (L ·[ B , A ]) = renameᵀᵐ ρ L ·[ B , A ]
 renameᵀᵐ ρ (M ⟪ Θ , B₀ ⟫) = M ⟪ Θ , B₀ ⟫
 
--- Renaming a wrapper's type variables (ρ : Γ → Γ').  A REVEAL rep is now a
--- type over the frame of its own TAIL (the telescopic reveal block), so it
--- renames by liftⁿ (revs Ξ) ρ; conceal indices rename by ρ; B₀ lives over the
--- boundary frame (reveals ++ Γ) so it renames by liftⁿ (revs Θ) ρ; the body
+-- Renaming a wrapper's type variables (ρ : Γ → Γ').  A REVEAL rep is a type
+-- over the PLAIN exterior (the parallel reveal block), so it renames by ρ
+-- itself, as do conceal indices; B₀ lives over the boundary frame
+-- (reveals ++ Γ) so it renames by liftⁿ (revs Θ) ρ; the body
 -- and conceal reps live over the interior, which renames by intRen —
 -- identity below a conceal that absorbs ρ (a conceal restricts to Γ↓X, and
 -- restrictRen X ρ is the induced renaming on Γ↓X).
@@ -94,8 +94,7 @@ intRen ρ Θ = liftⁿ (revs Θ) (deepRen (cmax Θ) ρ)
 
 renᴮ : (ℕ → ℕ) → (ℕ → ℕ) → BCtx → BCtx
 renᴮ ρ ir []            = []
-renᴮ ρ ir (rvl A ∷ Θ)   =
-  rvl (renameᵗ (liftⁿ (revs Θ) ρ) A) ∷ renᴮ ρ ir Θ
+renᴮ ρ ir (rvl A ∷ Θ)   = rvl (renameᵗ ρ A) ∷ renᴮ ρ ir Θ
 renᴮ ρ ir (rvl⋆ ∷ Θ)    = rvl⋆ ∷ renᴮ ρ ir Θ
 renᴮ ρ ir (cnc X A ∷ Θ) = cnc (ρ X) (renameᵗ ir A) ∷ renᴮ ρ ir Θ
 
@@ -125,22 +124,29 @@ cmax-shiftReps (cnc X A ∷ Θ) = cong (suc X ⊔_) (cmax-shiftReps Θ)
 -- The AMBIENT dual boundary.  Θᵈ = dualᴳ Γ Θ turns the boundary inside out:
 -- its exterior is intOf Γ Θ and its interior REBUILDS Γ.  Every REVEAL of Θ
 -- becomes a CONCEAL of Θᵈ at its interior index, carrying its EXTERNAL FACE
--- (a Γ-type — the telescopic reveal block must be resolved first, since a
--- conceal rep lives over the dual's interior); every Γ-slot 0 … cmax Θ ∸ 1
--- that Θ dropped becomes a REVEAL of Θᵈ, whose rep is
+-- — which, under the PARALLEL reveal block, is the rep AS STORED (a Γ-type,
+-- and a conceal rep lives over the dual's interior = Γ); every Γ-slot
+-- 0 … cmax Θ ∸ 1 that Θ dropped becomes a REVEAL of Θᵈ, whose rep is
 --
---   * Θ's own conceal rep for that slot, if Θ conceals it;
+--   * Θ's own conceal rep for that slot, if Θ conceals it — already a type
+--     over the dual's exterior, so it is copied unchanged (the telescopic
+--     lift by k dissolves with the parallel reading);
 --   * otherwise the slot is BLOCKED, and the dual COPIES Γ's own entry —
 --     a `rvld B` becomes a reveal at B, an `abst` becomes the REP-LESS
---     reveal rvl⋆.  This is what keeps the rebuild exact: dualᵇ, which
+--     reveal rvl⋆.  Copying is what keeps the rebuild exact: dualᵇ, which
 --     invented a dummy rep at every blocked slot, lost the knowledge and
 --     broke preservation (notes/old/AmbientDualProbe.agda §3, §5).
 --
--- Both kinds of rep must be transported into the dual's TELESCOPIC reveal
--- block: at slot i there are k = cmax Θ ∸ suc i deeper dual reveals below,
--- so a rep over the dual's exterior shifts up by k, and a Γ↓i-relative
--- knowledge rep keeps its first k indices (they name the deeper rebuilt
--- slots) and shifts the rest by revs Θ (the kept part of the exterior).
+-- Γ's entry at slot i is a type over Γ ↓ i, whose k = cmax Θ ∸ suc i
+-- shallowest slots are the DEEPER slots the dual rebuilds and whose rest is
+-- the kept part of Γ.  A rep over the dual's PLAIN exterior may not name the
+-- former (that is CHAINED knowledge — AmbientDualProbe §6b, the case the
+-- reverted telescope was buying), so the copy is guarded by `dfree 0 k`: the
+-- knowledge is copied when the rep names no other dropped slot, and
+-- otherwise the dual falls back to the rep-less rvl⋆.  Resolving a chained
+-- rep would need the SAME knowledge-closure operator as candidate (a) for
+-- (R2); until that is ruled on, the widened fallback's obligation lives
+-- inside strong.DualDef's DualRep / DualInt parameters.
 ------------------------------------------------------------------------
 
 repOf : ℕ → BCtx → Ty            -- the rep Θ conceals slot i at (`ℕ if none)
@@ -156,17 +162,20 @@ entAt []      i       = abst
 entAt (E ∷ Γ) zero    = E
 entAt (E ∷ Γ) (suc i) = entAt Γ i
 
-upFrom : ℕ → ℕ → ℕ → ℕ           -- identity below k, shift by n above
-upFrom k n j with j <? k
-upFrom k n j | yes _ = j
-upFrom k n j | no  _ = n + j
+-- a copied knowledge rep, moved from Γ ↓ i to the dual's exterior: its first
+-- k indices are dropped by dnT (legitimate exactly when dfree 0 k holds) and
+-- the rest lands above the reveal block Θ keeps
+copyRep : ℕ → ℕ → Ty → Ty
+copyRep k n B = renameᵗ (n +_) (dnT k B)
 
 entᴳ : TCtx → BCtx → ℕ → ℕ → BEntry   -- Γ, Θ, slot i, deeper dual reveals k
 entᴳ Γ Θ i k with isConc i Θ
-entᴳ Γ Θ i k | true  = rvl (renameᵗ (k +_) (repOf i Θ))
+entᴳ Γ Θ i k | true  = rvl (repOf i Θ)
 entᴳ Γ Θ i k | false with entAt Γ i
 entᴳ Γ Θ i k | false | abst   = rvl⋆
-entᴳ Γ Θ i k | false | rvld B = rvl (renameᵗ (upFrom k (revs Θ)) B)
+entᴳ Γ Θ i k | false | rvld B with dfree 0 k B
+entᴳ Γ Θ i k | false | rvld B | true  = rvl (copyRep k (revs Θ) B)
+entᴳ Γ Θ i k | false | rvld B | false = rvl⋆
 
 rvlsᴳ : ℕ → ℕ → TCtx → BCtx → BCtx    -- k reveals, for dropped slots s, s+1, …
 rvlsᴳ zero    s Γ Θ = []
@@ -174,8 +183,7 @@ rvlsᴳ (suc k) s Γ Θ = entᴳ Γ Θ s k ∷ rvlsᴳ k (suc s) Γ Θ
 
 cncOfRevs : ℕ → BCtx → BCtx      -- conceal each reveal var, at j, j+1, …
 cncOfRevs j []            = []
-cncOfRevs j (rvl A ∷ Θ)   =
-  cnc j (substᵗ (ρᵇ Θ) A) ∷ cncOfRevs (suc j) Θ
+cncOfRevs j (rvl A ∷ Θ)   = cnc j A ∷ cncOfRevs (suc j) Θ
 cncOfRevs j (rvl⋆ ∷ Θ)    = cnc j `ℕ ∷ cncOfRevs (suc j) Θ
 cncOfRevs j (cnc X A ∷ Θ) = cncOfRevs j Θ
 
@@ -269,15 +277,15 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
   -- principle: a shift forgets which variables a term may not mention); the
   -- CONCEAL REPS do shift, but they are types, and they must, since they live
   -- over the whole interior, which gains the new reveal's variable
-  -- (shiftReps).  The new reveal is the SHALLOWEST one, and under the
-  -- TELESCOPIC reading of the reveal block a reveal's rep is read over the
-  -- exterior extended by the DEEPER reveals, so the type argument A — a
-  -- plain exterior type — is lifted past them; its external face is A again
-  -- (ρᵇ-lift).  Partial by design: a wrapper-bodied wrapper at a ∀ face is
-  -- a Merge redex (Decision 3), not a TyWrap redex.
+  -- (shiftReps).  The type argument A is recorded UNLIFTED: under the
+  -- PARALLEL reading a reveal's rep is read in the plain exterior, where A
+  -- already lives, so its external face is A on the nose.  (The lift
+  -- `renameᵗ (revs Θ +_) A` was forced only by the reverted telescope.)
+  -- Partial by design: a wrapper-bodied wrapper at a ∀ face is a Merge
+  -- redex (Decision 3), not a TyWrap redex.
   TyWrap : Value V
       → Δ ⊢ ((Λ V) ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
-        -→ V ⟪ rvl (renameᵗ (revs Θ +_) A) ∷ shiftReps Θ , B₀ ⟫
+        -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
 
   -- R2: a wrapped ƛ meets an APPLICATION.  Symmetric to TyWrap: the
   -- elimination CONSUMES the ƛ and β-substitutes in one step.  The argument
@@ -420,17 +428,18 @@ _ = refl
       (⊢ƛ (wf-var here-abst) (⊢` here))
 
 ------------------------------------------------------------------------
--- Worked example for TyWrap where the LIFT bites: the boundary already
--- REVEALS, so the type argument X must move past that reveal slot to
--- become the shallowest reveal's telescopic rep.
+-- Worked example for TyWrap over a boundary that ALREADY REVEALS — the case
+-- the reverted telescope needed a rep lift for.  Under the parallel reading
+-- the type argument is recorded VERBATIM: it is an exterior type and a
+-- reveal's rep is read in the plain exterior, so nothing moves.
 --
 --   Δt = X:=𝔹            Θt = ↑Z:=ℕ            (revs Θt = 1)
 --   ((ΛW. λw:W. w) ⟪ Θt , ∀(W→W) ⟫) ·[ W→W , X ]      : X→X
---     →  (λw:W. w) ⟪ ↑W:=(the lift of X) , ↑Z:=ℕ , W→W ⟫
+--     →  (λw:W. w) ⟪ ↑W:=X , ↑Z:=ℕ , W→W ⟫
 --
--- The new reveal's rep is ` 1, which is X read over the frame of the tail
--- [↑Z:=ℕ] ++ Δt — and its interior entry is the KNOWLEDGE W:=` 1, the
--- interior slot of X read over the entry's own tail.
+-- The new reveal's rep is ` 0 = X (a Δt index, NOT lifted past ↑Z), and its
+-- interior entry is the KNOWLEDGE W:=` 1 — X's interior slot read over the
+-- entry's own tail, which the reading ⟦·⟧ computes either way.
 ------------------------------------------------------------------------
 
 Δt : TCtx
@@ -451,23 +460,23 @@ _ = refl
        (wf-var here-rvld)
 
 _ : Δt ⊢ (polyid ⟪ Θt , ∀ZZ ⟫) ·[ ` 0 ⇒ ` 0 , ` 0 ]
-    -→ (ƛ ` 0 ∙ ` 0) ⟪ rvl (` 1) ∷ rvl `ℕ ∷ [] , ` 0 ⇒ ` 0 ⟫
+    -→ (ƛ ` 0 ∙ ` 0) ⟪ rvl (` 0) ∷ rvl `ℕ ∷ [] , ` 0 ⇒ ` 0 ⟫
 _ = TyWrap (V-G G-ƛ)
 
--- the new reveal's external face is the type argument again …
-_ : ρᵇ (rvl (` 1) ∷ rvl `ℕ ∷ []) 0 ≡ ` 0
+-- the new reveal's external face is the type argument itself …
+_ : ρᵇ (rvl (` 0) ∷ rvl `ℕ ∷ []) 0 ≡ ` 0
 _ = refl
 
--- … and its interior entry is X's interior slot, read over its own tail
-_ : intOf Δt (rvl (` 1) ∷ rvl `ℕ ∷ [])
+-- … and its interior entry is still X's interior slot, over its own tail
+_ : intOf Δt (rvl (` 0) ∷ rvl `ℕ ∷ [])
     ≡ rvld (` 1) ∷ rvld `ℕ ∷ rvld `𝔹 ∷ []
 _ = refl
 
 ⊢contractum-R1t :
-  Δt ∣ [] ⊢ (ƛ ` 0 ∙ ` 0) ⟪ rvl (` 1) ∷ rvl `ℕ ∷ [] , ` 0 ⇒ ` 0 ⟫
+  Δt ∣ [] ⊢ (ƛ ` 0 ∙ ` 0) ⟪ rvl (` 0) ∷ rvl `ℕ ∷ [] , ` 0 ⇒ ` 0 ⟫
             ⦂ (` 0 ⇒ ` 0)
 ⊢contractum-R1t =
-  env (bwf↑ (wf-var (skip-abst here-rvld)) (bwf↑ wf-ℕ bwf[]))
+  env (bwf↑ (wf-var here-rvld) (bwf↑ wf-ℕ bwf[]))
       (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
       (⊢ƛ (wf-var here-rvld) (⊢` here))
 
@@ -536,13 +545,19 @@ _ = Wrap V-$
            ⊢$)
 
 ------------------------------------------------------------------------
--- The CHAINED-KNOWLEDGE dual (notes/old/AmbientDualProbe.agda §6b, the residue
--- (R1) that forced the telescopic reveal block).  Γp = Y:=Y′ , Y′:=𝔹 , X:=ℕ
--- is reachable — TyBeta turns a Λ-bound Y into Y:=Y′ without renaming — and
--- Θp = ↓X:=ℕ drops all three.  The copied entry for Y names Y′, which the
--- boundary also drops; under the PARALLEL reading of a reveal block that rep
--- was ill formed.  Telescopically it is exactly the right entry, and the
--- rebuild is Γp on the nose.
+-- The CHAINED-KNOWLEDGE dual (notes/old/AmbientDualProbe.agda §6b — the
+-- residue (R1) that the reverted telescope was buying).  Γp = Y:=Y′ , Y′:=𝔹 ,
+-- X:=ℕ is reachable — TyBeta turns a Λ-bound Y into Y:=Y′ without renaming —
+-- and Θp = ↓X:=ℕ drops all three.  Γp's entry for Y is the CHAIN "Y is Y′",
+-- and Θp drops Y′ too, so under the parallel reading there is no rep for the
+-- dual's reveal of Y: the guard fires and the dual falls back to the
+-- rep-less rvl⋆, losing that knowledge.
+--
+-- Consequence, recorded here: the rebuild is Γp only up to the abstract
+-- entry for Y, so Γp ≼ (rebuild) FAILS at slot 0 and DualInt/DualRep now
+-- carry this case as well.  Repairing it needs the knowledge-closure
+-- operator of candidate (a) (unfold Y:=Y′ through Γp until only surviving
+-- variables remain) — deliberately NOT invented here.
 ------------------------------------------------------------------------
 
 Γp : TCtx                       -- Y:=Y′ , Y′:=𝔹 , X:=ℕ
@@ -551,18 +566,20 @@ _ = Wrap V-$
 Θp : BCtx
 Θp = cnc 2 `ℕ ∷ []
 
-_ : dualᴳ Γp Θp ≡ rvl (` 0) ∷ rvl `𝔹 ∷ rvl `ℕ ∷ []
+-- Y′ and X are copied; the CHAINED Y is not (its rep names the dropped Y′)
+_ : dualᴳ Γp Θp ≡ rvl⋆ ∷ rvl `𝔹 ∷ rvl `ℕ ∷ []
 _ = refl
 
 _ : intOf Γp Θp ≡ []
 _ = refl
 
--- WELL FORMED (the probe's ¬⊢dualᴳΓp is refuted by the telescopic reading)
+-- still WELL FORMED — every rep it does carry is a plain-exterior type
 ⊢dualᴳΓp : [] ∣ intOf [] (dualᴳ Γp Θp) ⊢ᵇ dualᴳ Γp Θp
-⊢dualᴳΓp = bwf↑ (wf-var here-abst) (bwf↑ wf-𝔹 (bwf↑ wf-ℕ bwf[]))
+⊢dualᴳΓp = bwf⋆ (bwf↑ wf-𝔹 (bwf↑ wf-ℕ bwf[]))
 
--- … and it rebuilds Γp exactly
-_ : intOf (intOf Γp Θp) (dualᴳ Γp Θp) ≡ Γp
+-- … but the rebuild is Γp only with Y ABSTRACT: the chain is lost
+_ : intOf (intOf Γp Θp) (dualᴳ Γp Θp)
+    ≡ abst ∷ rvld `𝔹 ∷ rvld `ℕ ∷ []
 _ = refl
 
 ------------------------------------------------------------------------
@@ -680,18 +697,14 @@ split (suc r) (suc X) | inj₂ (i , X≡ri) = inj₂ (i , cong suc X≡ri)
 
 ------------------------------------------------------------------------
 -- external commutation: renaming commutes with the external projection ρᵇ.
--- With the TELESCOPIC reveal block this is no longer a plain lookup: at a
--- reveal slot both sides substitute the tail's own external face into the
--- rep, so the induction hypothesis is used at every index of the rep.
+-- Under the PARALLEL reveal block this is a plain LOOKUP at every slot — a
+-- reveal's image is its rep as stored, which renᴮ renames by ρ itself.
 ------------------------------------------------------------------------
 
 ρᵇ-comm : ∀ ρ ir Θ X
         → ρᵇ (renᴮ ρ ir Θ) (liftⁿ (revs Θ) ρ X) ≡ renameᵗ ρ (ρᵇ Θ X)
 ρᵇ-comm ρ ir []            X       = refl
-ρᵇ-comm ρ ir (rvl A ∷ Θ)   zero    =
-  trans (rename-subst-commute (liftⁿ (revs Θ) ρ) (ρᵇ (renᴮ ρ ir Θ)) A)
-    (trans (subst-cong (ρᵇ-comm ρ ir Θ) A)
-           (sym (rename-subst ρ (ρᵇ Θ) A)))
+ρᵇ-comm ρ ir (rvl A ∷ Θ)   zero    = refl
 ρᵇ-comm ρ ir (rvl A ∷ Θ)   (suc Y) = ρᵇ-comm ρ ir Θ Y
 ρᵇ-comm ρ ir (rvl⋆ ∷ Θ)    zero    = refl
 ρᵇ-comm ρ ir (rvl⋆ ∷ Θ)    (suc Y) = ρᵇ-comm ρ ir Θ Y
@@ -1187,9 +1200,9 @@ ent-skip (rvld A) p = skip-rvld p
 
 revE-lo : ∀ Θ j Ξ {Γ : TCtx} Y → Y < revs Ξ → (revEnts Θ j Ξ ++ Γ) ∋tv Y
 revE-lo Θ j []            Y       ()
-revE-lo Θ j (rvl A ∷ Ξ)   zero    lt = ent-here (⟦ Θ ⟧ᵉ j (revs Ξ) A) _
+revE-lo Θ j (rvl A ∷ Ξ)   zero    lt = ent-here (⟦ Θ ⟧ᵉ j A) _
 revE-lo Θ j (rvl A ∷ Ξ)   (suc Y) (s≤s lt) =
-  ent-skip (⟦ Θ ⟧ᵉ j (revs Ξ) A) (revE-lo Θ (suc j) Ξ Y lt)
+  ent-skip (⟦ Θ ⟧ᵉ j A) (revE-lo Θ (suc j) Ξ Y lt)
 revE-lo Θ j (rvl⋆ ∷ Ξ)    zero    lt = here-abst
 revE-lo Θ j (rvl⋆ ∷ Ξ)    (suc Y) (s≤s lt) =
   skip-abst (revE-lo Θ (suc j) Ξ Y lt)
@@ -1199,7 +1212,7 @@ revE-hi : ∀ Θ j Ξ {Γ : TCtx} {Z} → Γ ∋tv Z
         → (revEnts Θ j Ξ ++ Γ) ∋tv (revs Ξ + Z)
 revE-hi Θ j []            p = p
 revE-hi Θ j (rvl A ∷ Ξ)   p =
-  ent-skip (⟦ Θ ⟧ᵉ j (revs Ξ) A) (revE-hi Θ (suc j) Ξ p)
+  ent-skip (⟦ Θ ⟧ᵉ j A) (revE-hi Θ (suc j) Ξ p)
 revE-hi Θ j (rvl⋆ ∷ Ξ)    p = skip-abst (revE-hi Θ (suc j) Ξ p)
 revE-hi Θ j (cnc X A ∷ Ξ) p = revE-hi Θ j Ξ p
 
@@ -1304,41 +1317,9 @@ sc-ren h mono Θ sc = sc-rename (baseS-ren h mono Θ) sc
 
 ------------------------------------------------------------------------
 -- Boundary well-formedness transports.  The reveal premise lives over the
--- exterior extended by the DEEPER reveals, so it renames by liftⁿ; the
--- conceal premise needs BOTH the exterior's knowledge transport (∋:=) and
--- Reversal-ren.
+-- PLAIN exterior, so it renames by ρ itself; the conceal premise needs BOTH
+-- the exterior's knowledge transport (∋:=) and Reversal-ren.
 ------------------------------------------------------------------------
-
-h-prep : ∀ {ρ Δ Δ'} r → (∀ {X} → Δ ∋tv X → Δ' ∋tv ρ X)
-       → ∀ {Y} → prepAbst r Δ ∋tv Y → prepAbst r Δ' ∋tv liftⁿ r ρ Y
-h-prep {ρ} {Δ} {Δ'} r h {Y} p with split r Y
-h-prep {ρ} {Δ} {Δ'} r h {Y} p | inj₁ lt =
-  ∋tv-≡ refl (sym (liftⁿ-lo r ρ Y lt)) (prepAbst-lo r Δ' Y lt)
-  where
-    prepAbst-lo : ∀ r (Γ : TCtx) Y → Y < r → prepAbst r Γ ∋tv Y
-    prepAbst-lo zero    Γ Y       ()
-    prepAbst-lo (suc r) Γ zero    _         = here-abst
-    prepAbst-lo (suc r) Γ (suc Y) (s≤s Y<r) =
-      skip-abst (prepAbst-lo r Γ Y Y<r)
-h-prep {ρ} {Δ} {Δ'} r h {Y} p | inj₂ (Z , refl) =
-  ∋tv-≡ refl (sym (liftⁿ-hi r ρ Z)) (pa-hi r Δ' (h (pa-hi⁻ r Δ Z p)))
-  where
-    pa-hi : ∀ r (Γ : TCtx) {Z} → Γ ∋tv Z → prepAbst r Γ ∋tv (r + Z)
-    pa-hi zero    Γ p = p
-    pa-hi (suc r) Γ p = skip-abst (pa-hi r Γ p)
-    pa-hi⁻ : ∀ r (Γ : TCtx) Z → prepAbst r Γ ∋tv (r + Z) → Γ ∋tv Z
-    pa-hi⁻ zero    Γ Z p             = p
-    pa-hi⁻ (suc r) Γ Z (skip-abst p) = pa-hi⁻ r Γ Z p
-
-prepAbst-lo : ∀ r (Γ : TCtx) Y → Y < r → prepAbst r Γ ∋tv Y
-prepAbst-lo zero    Γ Y       ()
-prepAbst-lo (suc r) Γ zero    _         = here-abst
-prepAbst-lo (suc r) Γ (suc Y) (s≤s Y<r) =
-  skip-abst (prepAbst-lo r Γ Y Y<r)
-
-prepAbst-hi : ∀ r (Γ : TCtx) Z → Γ ∋tv Z → prepAbst r Γ ∋tv (r + Z)
-prepAbst-hi zero    Γ Z p = p
-prepAbst-hi (suc r) Γ Z p = skip-abst (prepAbst-hi r Γ Z p)
 
 bwf-ren : ∀ {ρ Δ Δ' Ψ Ψ' Θ Ξ} → Mono ρ
   → (∀ {X} → Δ ∋tv X → Δ' ∋tv ρ X)
@@ -1348,10 +1329,7 @@ bwf-ren : ∀ {ρ Δ Δ' Ψ Ψ' Θ Ξ} → Mono ρ
   → Bwf Δ' Ψ' (renᴮ ρ (intRen ρ Θ) Θ) (renᴮ ρ (intRen ρ Θ) Ξ)
 bwf-ren mono h hk hi bwf[] = bwf[]
 bwf-ren {ρ} {Θ = Θ} mono h hk hi (bwf↑ {A} {Ξ} wfA b) =
-  bwf↑ (subst (λ r → prepAbst r _ ⊢ renameᵗ (liftⁿ (revs Ξ) ρ) A)
-              (sym (revs-ren ρ (intRen ρ Θ) Ξ))
-              (wf-ren (h-prep (revs Ξ) h) wfA))
-       (bwf-ren mono h hk hi b)
+  bwf↑ (wf-ren h wfA) (bwf-ren mono h hk hi b)
 bwf-ren mono h hk hi (bwf⋆ b) = bwf⋆ (bwf-ren mono h hk hi b)
 bwf-ren {ρ} {Θ = Θ} mono h hk hi (bwf↓ {X} {A} {A₀} p rev wfA b) =
   bwf↓ (hk p) (Reversal-ren mono Θ X A A₀ rev)
@@ -1408,10 +1386,6 @@ data _≼_ : TCtx → TCtx → Set where
 ≼-dropN (suc c) (≼abst p)   = ≼-dropN c p
 ≼-dropN (suc c) (≼rvld p)   = ≼-dropN c p
 
-≼-prepAbst : ∀ r {Δ Δ'} → Δ ≼ Δ' → prepAbst r Δ ≼ prepAbst r Δ'
-≼-prepAbst zero    p = p
-≼-prepAbst (suc r) p = ≼abst (≼-prepAbst r p)
-
 ≼-app : ∀ (Ψ₀ : TCtx) {Δ Δ'} → Δ ≼ Δ' → (Ψ₀ ++ Δ) ≼ (Ψ₀ ++ Δ')
 ≼-app []            p = p
 ≼-app (abst ∷ Ψ₀)   p = ≼abst (≼-app Ψ₀ p)
@@ -1424,7 +1398,7 @@ bwf-retag : ∀ {Δ Δ' Ψ Ψ' Θ Ξ} → Δ ≼ Δ' → Ψ ≼ Ψ'
           → Bwf Δ Ψ Θ Ξ → Bwf Δ' Ψ' Θ Ξ
 bwf-retag pΔ pΨ bwf[]              = bwf[]
 bwf-retag pΔ pΨ (bwf↑ {Ξ = Ξ} wfA b) =
-  bwf↑ (≼-⊢ (≼-prepAbst (revs Ξ) pΔ) wfA) (bwf-retag pΔ pΨ b)
+  bwf↑ (≼-⊢ pΔ wfA) (bwf-retag pΔ pΨ b)
 bwf-retag pΔ pΨ (bwf⋆ b)           = bwf⋆ (bwf-retag pΔ pΨ b)
 bwf-retag pΔ pΨ (bwf↓ p rev wfA b) =
   bwf↓ (≼-∋:= pΔ p) rev (≼-⊢ pΨ wfA) (bwf-retag pΔ pΨ b)
@@ -1456,10 +1430,10 @@ baseS-len Θ Γ Γ' le =
       (⊢retag (≼-intOf Θ p) ⊢M)
 
 ------------------------------------------------------------------------
--- Boundary shift (R1).  The face laws of  rvl A′ ∷ shiftReps Θ  — the
--- boundary TyWrap builds, whose new reveal is the SHALLOWEST one, so its
--- rep A′ is the type argument A LIFTED past the boundary's existing
--- reveals (the telescopic reading; a type shift, not a term shift).  The
+-- Boundary shift (R1).  The face laws of  rvl A ∷ shiftReps Θ  — the
+-- boundary TyWrap builds, whose new reveal is the SHALLOWEST one and whose
+-- rep is the type argument A ITSELF (a plain-exterior type, read in the
+-- plain exterior: the parallel reveal block asks for no lift).  The
 -- interior face becomes extsᵗ of the old one AT EVERY SLOT (blocked ones
 -- included), so R1 carries no scope side-condition of its own; the
 -- exterior face instantiates the ∀ with the type argument A.
@@ -1474,7 +1448,7 @@ isConc-shift i (cnc X A ∷ Θ) = cong (⌊ i ≟ X ⌋ ∨_) (isConc-shift i Θ
 -- shiftReps does not move the reveals, so the EXTERIOR face is untouched
 ρᵇ-shift : ∀ Θ X → ρᵇ (shiftReps Θ) X ≡ ρᵇ Θ X
 ρᵇ-shift []            X       = refl
-ρᵇ-shift (rvl A ∷ Θ)   zero    = subst-cong (ρᵇ-shift Θ) A
+ρᵇ-shift (rvl A ∷ Θ)   zero    = refl
 ρᵇ-shift (rvl A ∷ Θ)   (suc X) = ρᵇ-shift Θ X
 ρᵇ-shift (rvl⋆ ∷ Θ)    zero    = refl
 ρᵇ-shift (rvl⋆ ∷ Θ)    (suc X) = ρᵇ-shift Θ X
@@ -1520,25 +1494,16 @@ isConc-shift i (cnc X A ∷ Θ) = cong (⌊ i ≟ X ⌋ ∨_) (isConc-shift i Θ
 ρᵇ-hi (rvl⋆ ∷ Θ)    i = ρᵇ-hi Θ i
 ρᵇ-hi (cnc X A ∷ Θ) i = ρᵇ-hi Θ i
 
--- the LIFTED type argument reads back as itself: the new reveal's external
--- face is exactly A
-ρᵇ-lift : ∀ Θ A → substᵗ (ρᵇ Θ) (renameᵗ (revs Θ +_) A) ≡ A
-ρᵇ-lift Θ A =
-  trans (rename-subst-commute (revs Θ +_) (ρᵇ Θ) A)
-        (trans (subst-cong (ρᵇ-hi Θ) A) (subst-id A))
-
--- FACE LAW (exterior).  The new reveal instantiates the ∀ with A.
+-- FACE LAW (exterior).  The new reveal instantiates the ∀ with A — and its
+-- rep IS A, read in the plain exterior, so no lift is resolved.
 ρᵇ-shift-ty : ∀ A Θ B
-  → substᵗ (ρᵇ (rvl (renameᵗ (revs Θ +_) A) ∷ shiftReps Θ)) B
+  → substᵗ (ρᵇ (rvl A ∷ shiftReps Θ)) B
     ≡ (substᵗ (extsᵗ (ρᵇ Θ)) B) [ A ]ᵗ
 ρᵇ-shift-ty A Θ B =
   trans (subst-cong h B) (sym (exts-sub-cons {σ = ρᵇ Θ} {a = B} {v = A}))
   where
-    h : ∀ X → ρᵇ (rvl (renameᵗ (revs Θ +_) A) ∷ shiftReps Θ) X
-            ≡ cons-sub A (ρᵇ Θ) X
-    h zero    =
-      trans (subst-cong (ρᵇ-shift Θ) (renameᵗ (revs Θ +_) A))
-            (ρᵇ-lift Θ A)
+    h : ∀ X → ρᵇ (rvl A ∷ shiftReps Θ) X ≡ cons-sub A (ρᵇ Θ) X
+    h zero    = refl
     h (suc X) = ρᵇ-shift Θ X
 
 -- the reversal premise survives the shift: the conceal reps move by suc and
@@ -1584,8 +1549,7 @@ bwf-shiftReps : ∀ {Δ Ψ A} (E : TyEntry) Θ Ξ → Bwf Δ Ψ Θ Ξ
   → Bwf Δ (E ∷ Ψ) (rvl A ∷ shiftReps Θ) (shiftReps Ξ)
 bwf-shiftReps E Θ []            bwf[]              = bwf[]
 bwf-shiftReps E Θ (rvl B ∷ Ξ)   (bwf↑ wfB b)       =
-  bwf↑ (subst (λ r → prepAbst r _ ⊢ B) (sym (revs-shiftReps Ξ)) wfB)
-       (bwf-shiftReps E Θ Ξ b)
+  bwf↑ wfB (bwf-shiftReps E Θ Ξ b)
 bwf-shiftReps E Θ (rvl⋆ ∷ Ξ)    (bwf⋆ b)           =
   bwf⋆ (bwf-shiftReps E Θ Ξ b)
 bwf-shiftReps {A = A} E Θ (cnc X B ∷ Ξ) (bwf↓ {A₀ = A₀} p rev wfB b) =
@@ -1621,11 +1585,9 @@ baseS-shift A Θ Γ =
   cong (ok ∷_)
     (cong₂ _++_ (revSlots-shift Θ) (slotsᴳ-shift A Θ 0 Γ))
 
--- the lift really is needed: over a boundary that already reveals, the type
--- argument moves past the existing reveal slots and its external face is
--- itself again
-_ : ρᵇ (rvl (renameᵗ (revs (rvl `ℕ ∷ []) +_) (` 0)) ∷ rvl `ℕ ∷ []) 0
-    ≡ ` 0
+-- no lift is needed: over a boundary that already reveals, the type argument
+-- is stored verbatim and its external face is itself
+_ : ρᵇ (rvl (` 0) ∷ rvl `ℕ ∷ []) 0 ≡ ` 0
 _ = refl
 
 ------------------------------------------------------------------------
@@ -1645,7 +1607,9 @@ entᴳ-RvlE Γ Θ i k with isConc i Θ
 entᴳ-RvlE Γ Θ i k | true  = is-rvl
 entᴳ-RvlE Γ Θ i k | false with entAt Γ i
 entᴳ-RvlE Γ Θ i k | false | abst   = is-⋆
-entᴳ-RvlE Γ Θ i k | false | rvld B = is-rvl
+entᴳ-RvlE Γ Θ i k | false | rvld B with dfree 0 k B
+entᴳ-RvlE Γ Θ i k | false | rvld B | true  = is-rvl
+entᴳ-RvlE Γ Θ i k | false | rvld B | false = is-⋆
 
 revs-R : ∀ {E} → RvlE E → ∀ Ξ → revs (E ∷ Ξ) ≡ suc (revs Ξ)
 revs-R is-rvl Ξ = refl
@@ -1823,25 +1787,20 @@ isConc-< (cnc X A ∷ Θ) i c | inj₂ t =
   trans (ρᵇ-rvlsᴳ-hi (cmax Θ) 0 Γ Θ (cncOfRevs 0 Θ) k)
         (ρᵇ-cncOfRevs 0 Θ k)
 
--- at a CONCEALED slot the dual's reveal carries Θ's own conceal rep, shifted
--- past the deeper dual reveals; resolving the telescope gives it back
+-- at a CONCEALED slot the dual's reveal carries Θ's own conceal rep, and the
+-- PARALLEL external face hands it straight back — no telescope to resolve
 ρᵇ-ent-conc : ∀ Γ Θ s k (Ξ : BCtx) → isConc s Θ ≡ true
-  → (∀ m → ρᵇ Ξ (k + m) ≡ ` m)
   → ρᵇ (entᴳ Γ Θ s k ∷ Ξ) zero ≡ repOf s Θ
-ρᵇ-ent-conc Γ Θ s k Ξ c h with isConc s Θ | c
-ρᵇ-ent-conc Γ Θ s k Ξ c h | true  | _ =
-  trans (rename-subst-commute (k +_) (ρᵇ Ξ) (repOf s Θ))
-        (trans (subst-cong h (repOf s Θ)) (subst-id (repOf s Θ)))
-ρᵇ-ent-conc Γ Θ s k Ξ c h | false | ()
+ρᵇ-ent-conc Γ Θ s k Ξ c with isConc s Θ | c
+ρᵇ-ent-conc Γ Θ s k Ξ c | true  | _ = refl
+ρᵇ-ent-conc Γ Θ s k Ξ c | false | ()
 
 ρᵇ-rvlsᴳ-conc : ∀ k s Γ Θ i → i < k → isConc (s + i) Θ ≡ true
   → ρᵇ (rvlsᴳ k s Γ Θ ++ cncOfRevs 0 Θ) i ≡ repOf (s + i) Θ
 ρᵇ-rvlsᴳ-conc zero    s Γ Θ i       ()       c
 ρᵇ-rvlsᴳ-conc (suc k) s Γ Θ zero    lt       c =
   trans (ρᵇ-ent-conc Γ Θ s k (rvlsᴳ k (suc s) Γ Θ ++ cncOfRevs 0 Θ)
-          (trans (cong (λ n → isConc n Θ) (sym (+-identityʳ s))) c)
-          (λ m → trans (ρᵇ-rvlsᴳ-hi k (suc s) Γ Θ (cncOfRevs 0 Θ) m)
-                       (ρᵇ-cncOfRevs 0 Θ m)))
+          (trans (cong (λ n → isConc n Θ) (sym (+-identityʳ s))) c))
         (cong (λ n → repOf n Θ) (sym (+-identityʳ s)))
 ρᵇ-rvlsᴳ-conc (suc k) s Γ Θ (suc i) (s≤s lt) c =
   trans (ρᵇ-R-suc (entᴳ-RvlE Γ Θ s k) (rvlsᴳ k (suc s) Γ Θ ++ cncOfRevs 0 Θ)
@@ -1868,11 +1827,10 @@ isConc-< (cnc X A ∷ Θ) i c | inj₂ t =
   → γcnc r m (cncOfRevs j Θ) (j + k) ≡ ρᵇ Θ k
 γcnc-cnc-lo r m j []            k       ()
 γcnc-cnc-lo r m j (rvl A ∷ Θ)   zero    lt =
-  sover-hit j (substᵗ (ρᵇ Θ) A) (γcnc r m (cncOfRevs (suc j) Θ)) (j + 0)
+  sover-hit j A (γcnc r m (cncOfRevs (suc j) Θ)) (j + 0)
             (sym (+-identityʳ j))
 γcnc-cnc-lo r m j (rvl A ∷ Θ)   (suc k) (s≤s lt) =
-  trans (sover-miss j (substᵗ (ρᵇ Θ) A)
-                    (γcnc r m (cncOfRevs (suc j) Θ)) (j + suc k)
+  trans (sover-miss j A (γcnc r m (cncOfRevs (suc j) Θ)) (j + suc k)
                     (j≢j+suc j k))
     (trans (cong (γcnc r m (cncOfRevs (suc j) Θ)) (+-suc j k))
            (γcnc-cnc-lo r m (suc j) Θ k lt))
@@ -1890,8 +1848,7 @@ isConc-< (cnc X A ∷ Θ) i c | inj₂ t =
   → γcnc r m (cncOfRevs j Θ) i ≡ ` (r + (i ∸ m))
 γcnc-cnc-hi r m j []            i le = refl
 γcnc-cnc-hi r m j (rvl A ∷ Θ)   i le =
-  trans (sover-miss j (substᵗ (ρᵇ Θ) A)
-                    (γcnc r m (cncOfRevs (suc j) Θ)) i ne)
+  trans (sover-miss j A (γcnc r m (cncOfRevs (suc j) Θ)) i ne)
         (γcnc-cnc-hi r m (suc j) Θ i le')
   where
     le' : suc j + revs Θ ≤ i
@@ -2037,10 +1994,10 @@ isConc-cncOfRevs : ∀ j Θ k → k < revs Θ
                  → isConc (j + k) (cncOfRevs j Θ) ≡ true
 isConc-cncOfRevs j []            k       ()
 isConc-cncOfRevs j (rvl A ∷ Θ)   zero    lt =
-  isConc-here (j + 0) j (substᵗ (ρᵇ Θ) A) (cncOfRevs (suc j) Θ)
+  isConc-here (j + 0) j A (cncOfRevs (suc j) Θ)
               (+-identityʳ j)
 isConc-cncOfRevs j (rvl A ∷ Θ)   (suc k) (s≤s lt) =
-  isConc-there (j + suc k) j (substᵗ (ρᵇ Θ) A) (cncOfRevs (suc j) Θ)
+  isConc-there (j + suc k) j A (cncOfRevs (suc j) Θ)
     (subst (λ n → isConc n (cncOfRevs (suc j) Θ) ≡ true)
            (sym (+-suc j k)) (isConc-cncOfRevs (suc j) Θ k lt))
 isConc-cncOfRevs j (rvl⋆ ∷ Θ)    zero    lt =
@@ -2161,10 +2118,10 @@ bwf-cmax (cnc X A ∷ Ξ) (bwf↓ p rev wfA b) =
 
 ------------------------------------------------------------------------
 -- Part 5: the dual's well-formedness, block by block.  Its REVEAL block
--- asks that every re-introduced rep be well formed over the dual's
--- exterior extended by the deeper dual reveals (the telescope); its
--- CONCEAL block asks that the dual's exterior — Θ's interior — KNOW each
--- reveal variable, and that Θ's external face read back to that knowledge.
+-- asks that every re-introduced rep be well formed over the dual's PLAIN
+-- exterior (the parallel reading); its CONCEAL block asks that the dual's
+-- exterior — Θ's interior — KNOW each reveal variable, and that Θ's external
+-- face read back to that knowledge.
 -- The second is exactly where the (R2) residue lives (a reveal whose rep
 -- names a slot its own boundary blocks gets an `abst` interior entry, so
 -- there is no knowledge to meet); it is left as a pointwise obligation for
@@ -2175,38 +2132,31 @@ bwf-++ : ∀ {Γ Ψ Θ} Ξ₁ Ξ₂ → revs Ξ₂ ≡ 0
        → Bwf Γ Ψ Θ Ξ₁ → Bwf Γ Ψ Θ Ξ₂ → Bwf Γ Ψ Θ (Ξ₁ ++ Ξ₂)
 bwf-++ []             Ξ₂ e bwf[]              b₂ = b₂
 bwf-++ (rvl A ∷ Ξ₁)   Ξ₂ e (bwf↑ wfA b)       b₂ =
-  bwf↑ (subst (λ r → prepAbst r _ ⊢ A) eq wfA) (bwf-++ Ξ₁ Ξ₂ e b b₂)
-  where eq : revs Ξ₁ ≡ revs (Ξ₁ ++ Ξ₂)
-        eq = sym (trans (revs-++ Ξ₁ Ξ₂)
-                        (trans (cong (revs Ξ₁ +_) e)
-                               (+-identityʳ (revs Ξ₁))))
+  bwf↑ wfA (bwf-++ Ξ₁ Ξ₂ e b b₂)
 bwf-++ (rvl⋆ ∷ Ξ₁)    Ξ₂ e (bwf⋆ b)           b₂ =
   bwf⋆ (bwf-++ Ξ₁ Ξ₂ e b b₂)
 bwf-++ (cnc X A ∷ Ξ₁) Ξ₂ e (bwf↓ p rev wfA b) b₂ =
   bwf↓ p rev wfA (bwf-++ Ξ₁ Ξ₂ e b b₂)
 
 bwf-ent : ∀ {Ψ Δ' Θᵈ} Γ Θ s k Ξ
-  → (∀ R → entᴳ Γ Θ s k ≡ rvl R → prepAbst (revs Ξ) Ψ ⊢ R)
+  → (∀ R → entᴳ Γ Θ s k ≡ rvl R → Ψ ⊢ R)
   → Bwf Ψ Δ' Θᵈ Ξ → Bwf Ψ Δ' Θᵈ (entᴳ Γ Θ s k ∷ Ξ)
 bwf-ent Γ Θ s k Ξ h b with isConc s Θ
 bwf-ent Γ Θ s k Ξ h b | true  = bwf↑ (h _ refl) b
 bwf-ent Γ Θ s k Ξ h b | false with entAt Γ s
 bwf-ent Γ Θ s k Ξ h b | false | abst   = bwf⋆ b
-bwf-ent Γ Θ s k Ξ h b | false | rvld B = bwf↑ (h _ refl) b
+bwf-ent Γ Θ s k Ξ h b | false | rvld B with dfree 0 k B
+bwf-ent Γ Θ s k Ξ h b | false | rvld B | true  = bwf↑ (h _ refl) b
+bwf-ent Γ Θ s k Ξ h b | false | rvld B | false = bwf⋆ b
 
 bwf-rvlsᴳ : ∀ {Ψ Δ' Θᵈ} k s Γ Θ Ξ₀
-  → (∀ k' s' R → entᴳ Γ Θ s' k' ≡ rvl R
-       → prepAbst (k' + revs Ξ₀) Ψ ⊢ R)
+  → (∀ k' s' R → entᴳ Γ Θ s' k' ≡ rvl R → Ψ ⊢ R)
   → Bwf Ψ Δ' Θᵈ Ξ₀
   → Bwf Ψ Δ' Θᵈ (rvlsᴳ k s Γ Θ ++ Ξ₀)
 bwf-rvlsᴳ zero    s Γ Θ Ξ₀ h b = b
 bwf-rvlsᴳ (suc k) s Γ Θ Ξ₀ h b =
-  bwf-ent Γ Θ s k (rvlsᴳ k (suc s) Γ Θ ++ Ξ₀)
-    (λ R e → subst (λ r → prepAbst r _ ⊢ R) eq (h k s R e))
+  bwf-ent Γ Θ s k (rvlsᴳ k (suc s) Γ Θ ++ Ξ₀) (h k s)
     (bwf-rvlsᴳ k (suc s) Γ Θ Ξ₀ h b)
-  where eq : k + revs Ξ₀ ≡ revs (rvlsᴳ k (suc s) Γ Θ ++ Ξ₀)
-        eq = sym (trans (revs-++ (rvlsᴳ k (suc s) Γ Θ) Ξ₀)
-                        (cong (_+ revs Ξ₀) (revs-rvlsᴳ k (suc s) Γ Θ)))
 
 bwf-cncOfRevs : ∀ {Ψ Δ' Θᵈ} j Ξ
   → (∀ k → k < revs Ξ → Σ Ty (λ A₀ →
@@ -2217,8 +2167,7 @@ bwf-cncOfRevs j []            hk hw = bwf[]
 bwf-cncOfRevs {Ψ} {Δ'} {Θᵈ} j (rvl A ∷ Ξ) hk hw with hk 0 (s≤s z≤n)
 bwf-cncOfRevs {Ψ} {Δ'} {Θᵈ} j (rvl A ∷ Ξ) hk hw | A₀ , p , rev =
   bwf↓ (subst (λ n → Ψ ∋ n := A₀) (+-identityʳ j) p)
-       (subst (λ n → Reversal Θᵈ n (substᵗ (ρᵇ Ξ) A) A₀)
-              (+-identityʳ j) rev)
+       (subst (λ n → Reversal Θᵈ n A A₀) (+-identityʳ j) rev)
        (hw 0 (s≤s z≤n))
        (bwf-cncOfRevs (suc j) Ξ
          (λ k lt → shiftΣ k lt (hk (suc k) (s≤s lt)))
@@ -2257,8 +2206,8 @@ bwf-cncOfRevs j (cnc X A ∷ Ξ) hk hw = bwf-cncOfRevs j Ξ hk hw
 -- show that those entries move with the renaming.  The chain is:
 --   slotAt-ren  → bfree-ren      (the blocked-freeness guard is stable)
 --   γcnc-comm   → rawRead-ren    (the reading commutes, at accessible slots)
---   dfree-ren   → dnT-ren        (the telescope guard is stable, and the
---                                 down-shift commutes where it holds)
+--   dfree-ren   → dnT-ren        (the telescope-ENTRY guard is stable, and
+--                                 the down-shift commutes where it holds)
 -- and hence ⟦⟧-ren, revEnts-ren, ∋:=-int.
 ------------------------------------------------------------------------
 
@@ -2344,17 +2293,6 @@ bfree-ren mono Θ d (`∀ A)  = bfree-ren mono Θ (suc d) A
 ⌊⌋-iff (no ¬p) (yes q) f g = ⊥-elim (¬p (g q))
 ⌊⌋-iff (no ¬p) (no ¬q) f g = refl
 
-rdSub-lo : ∀ Θ j d k → k < d → rdSub Θ j d k ≡ ` (suc j + k)
-rdSub-lo Θ j d k lt with k <? d
-rdSub-lo Θ j d k lt | yes _  = refl
-rdSub-lo Θ j d k lt | no ¬lt = ⊥-elim (¬lt lt)
-
-rdSub-hi : ∀ Θ j d i → rdSub Θ j d (d + i) ≡ γcnc (revs Θ) (cmax Θ) Θ i
-rdSub-hi Θ j d i with (d + i) <? d
-rdSub-hi Θ j d i | yes lt = ⊥-elim (m+n≮m d i lt)
-rdSub-hi Θ j d i | no  _  =
-  cong (γcnc (revs Θ) (cmax Θ) Θ) (m+n∸m≡n d i)
-
 exts-step : ∀ (σ' σ : Substᵗ) g m n → σ' m ≡ renameᵗ g (σ n)
           → extsᵗ σ' (suc m) ≡ renameᵗ (extᵗ g) (extsᵗ σ (suc n))
 exts-step σ' σ g m n e =
@@ -2399,35 +2337,23 @@ bf-cong Θ d σ' σ f g (`∀ A) bf h1 h2 =
           ≡ renameᵗ (extᵗ g) (extsᵗ σ (suc d + i))
     h2' i okp = exts-step σ' σ g (liftⁿ d f (d + i)) (d + i) (h2 i okp)
 
-rawRead-ren : ∀ {ρ} → Mono ρ → ∀ Θ j d A → suc j + d ≡ revs Θ
-  → bfree Θ d A ≡ true
-  → rawRead (renᴮ ρ (intRen ρ Θ) Θ) j d (renameᵗ (liftⁿ d ρ) A)
-    ≡ renameᵗ (intRen ρ Θ) (rawRead Θ j d A)
-rawRead-ren {ρ} mono Θ j d A hd bf =
-  bf-cong Θ d (rdSub Θ' j d) (rdSub Θ j d) ρ (intRen ρ Θ) A bf h1 h2
+-- the reading commutes with renaming.  Parallel: the rep is an EXTERIOR
+-- type, so bf-cong is entered at binder depth 0 and its low case is vacuous.
+rawRead-ren : ∀ {ρ} → Mono ρ → ∀ Θ A
+  → bfree Θ 0 A ≡ true
+  → rawRead (renᴮ ρ (intRen ρ Θ) Θ) (renameᵗ ρ A)
+    ≡ renameᵗ (intRen ρ Θ) (rawRead Θ A)
+rawRead-ren {ρ} mono Θ A bf =
+  bf-cong Θ 0 (rdSub Θ') (rdSub Θ) ρ (intRen ρ Θ) A bf (λ X ()) h2
   where
     Θ' = renᴮ ρ (intRen ρ Θ) Θ
-    h1 : ∀ X → X < d → rdSub Θ' j d (liftⁿ d ρ X)
-                       ≡ renameᵗ (intRen ρ Θ) (rdSub Θ j d X)
-    h1 X lt =
-      trans (cong (rdSub Θ' j d) (liftⁿ-lo d ρ X lt))
-        (trans (rdSub-lo Θ' j d X lt)
-          (trans (cong `_ (sym (liftⁿ-lo (revs Θ) (deepRen (cmax Θ) ρ)
-                                         (suc j + X) sjX)))
-                 (cong (renameᵗ (intRen ρ Θ)) (sym (rdSub-lo Θ j d X lt)))))
-      where sjX : suc j + X < revs Θ
-            sjX = subst (suc j + X <_) hd (+-monoʳ-< (suc j) lt)
     h2 : ∀ i → slotAt Θ i ≡ ok
-       → rdSub Θ' j d (liftⁿ d ρ (d + i))
-         ≡ renameᵗ (intRen ρ Θ) (rdSub Θ j d (d + i))
+       → rdSub Θ' (ρ i) ≡ renameᵗ (intRen ρ Θ) (rdSub Θ i)
     h2 i okp =
-      trans (cong (rdSub Θ' j d) (liftⁿ-hi d ρ i))
-        (trans (rdSub-hi Θ' j d (ρ i))
-          (trans (cong (λ r → γcnc r (cmax Θ') Θ' (ρ i))
-                       (revs-ren ρ (intRen ρ Θ) Θ))
-            (trans (γcnc-comm mono (revs Θ) (cmax Θ) (cmax Θ') Θ i
-                              (deep-hyp mono Θ) (acc-of Θ i okp))
-                   (cong (renameᵗ (intRen ρ Θ)) (sym (rdSub-hi Θ j d i))))))
+      trans (cong (λ r → γcnc r (cmax Θ') Θ' (ρ i))
+                  (revs-ren ρ (intRen ρ Θ) Θ))
+            (γcnc-comm mono (revs Θ) (cmax Θ) (cmax Θ') Θ i
+                       (deep-hyp mono Θ) (acc-of Θ i okp))
 
 dfree-ren : ∀ τ → Mono τ → ∀ j → τ j ≡ j → ∀ b T
   → dfree b (suc j) (renameᵗ (liftⁿ b τ) T) ≡ dfree b (suc j) T
@@ -2501,26 +2427,25 @@ ent-if : ∀ (b b' : Bool) (T T' : Ty) (f : ℕ → ℕ)
 ent-if true  b' T T' f e₁ e₂ rewrite e₁ = cong rvld (e₂ refl)
 ent-if false b' T T' f e₁ e₂ rewrite e₁ = refl
 
-⟦⟧-ren : ∀ {ρ} → Mono ρ → ∀ Θ j d A → suc j + d ≡ revs Θ
-  → ⟦ renᴮ ρ (intRen ρ Θ) Θ ⟧ᵉ j d (renameᵗ (liftⁿ d ρ) A)
-    ≡ entRen (restrictRen j (intRen ρ Θ)) (⟦ Θ ⟧ᵉ j d A)
-⟦⟧-ren {ρ} mono Θ j d A hd with bfree Θ d A in eb
-⟦⟧-ren {ρ} mono Θ j d A hd | false
-  rewrite trans (bfree-ren mono Θ d A) eb = refl
-⟦⟧-ren {ρ} mono Θ j d A hd | true
-  rewrite trans (bfree-ren mono Θ d A) eb
-        | rawRead-ren mono Θ j d A hd eb =
-  ent-if (dfree 0 (suc j) (rawRead Θ j d A))
-         (dfree 0 (suc j) (renameᵗ (intRen ρ Θ) (rawRead Θ j d A)))
-         (dnT (suc j) (rawRead Θ j d A))
-         (dnT (suc j) (renameᵗ (intRen ρ Θ) (rawRead Θ j d A)))
+⟦⟧-ren : ∀ {ρ} → Mono ρ → ∀ Θ j A → j < revs Θ
+  → ⟦ renᴮ ρ (intRen ρ Θ) Θ ⟧ᵉ j (renameᵗ ρ A)
+    ≡ entRen (restrictRen j (intRen ρ Θ)) (⟦ Θ ⟧ᵉ j A)
+⟦⟧-ren {ρ} mono Θ j A lt with bfree Θ 0 A in eb
+⟦⟧-ren {ρ} mono Θ j A lt | false
+  rewrite trans (bfree-ren mono Θ 0 A) eb = refl
+⟦⟧-ren {ρ} mono Θ j A lt | true
+  rewrite trans (bfree-ren mono Θ 0 A) eb
+        | rawRead-ren mono Θ A eb =
+  ent-if (dfree 0 (suc j) (rawRead Θ A))
+         (dfree 0 (suc j) (renameᵗ (intRen ρ Θ) (rawRead Θ A)))
+         (dnT (suc j) (rawRead Θ A))
+         (dnT (suc j) (renameᵗ (intRen ρ Θ) (rawRead Θ A)))
          (restrictRen j (intRen ρ Θ))
          (dfree-ren (intRen ρ Θ) (Mono-intRen Θ mono) j τj 0
-                    (rawRead Θ j d A))
-         (λ df → dnT-ren (intRen ρ Θ) j τj 0 (rawRead Θ j d A) df)
+                    (rawRead Θ A))
+         (λ df → dnT-ren (intRen ρ Θ) j τj 0 (rawRead Θ A) df)
   where τj : intRen ρ Θ j ≡ j
-        τj = liftⁿ-lo (revs Θ) (deepRen (cmax Θ) ρ) j
-                      (subst (j <_) hd (m≤m+n (suc j) d))
+        τj = liftⁿ-lo (revs Θ) (deepRen (cmax Θ) ρ) j lt
 
 mapEnts : (ℕ → TyEntry → TyEntry) → ℕ → TCtx → TCtx
 mapEnts f j []      = []
@@ -2536,12 +2461,11 @@ revEnts-ren {ρ} mono Θ j (rvl A ∷ Ξ) hj =
   where
     hd : suc j + revs Ξ ≡ revs Θ
     hd = trans (sym (+-suc j (revs Ξ))) hj
-    eq-head : ⟦ renᴮ ρ (intRen ρ Θ) Θ ⟧ᵉ j
-                (revs (renᴮ ρ (intRen ρ Θ) Ξ))
-                (renameᵗ (liftⁿ (revs Ξ) ρ) A)
-              ≡ entRen (restrictRen j (intRen ρ Θ)) (⟦ Θ ⟧ᵉ j (revs Ξ) A)
-    eq-head rewrite revs-ren ρ (intRen ρ Θ) Ξ =
-      ⟦⟧-ren mono Θ j (revs Ξ) A hd
+    lt : j < revs Θ
+    lt = subst (j <_) hd (m≤m+n (suc j) (revs Ξ))
+    eq-head : ⟦ renᴮ ρ (intRen ρ Θ) Θ ⟧ᵉ j (renameᵗ ρ A)
+              ≡ entRen (restrictRen j (intRen ρ Θ)) (⟦ Θ ⟧ᵉ j A)
+    eq-head = ⟦⟧-ren mono Θ j A lt
 revEnts-ren {ρ} mono Θ j (rvl⋆ ∷ Ξ) hj =
   cong (abst ∷_) (revEnts-ren mono Θ (suc j) Ξ hd)
   where
@@ -2595,7 +2519,7 @@ revE-hi:= : ∀ Θ j Ξ {Γ : TCtx} {Z B} → Γ ∋ Z := B
           → (revEnts Θ j Ξ ++ Γ) ∋ (revs Ξ + Z) := B
 revE-hi:= Θ j []            p = p
 revE-hi:= Θ j (rvl A ∷ Ξ)   p =
-  ent-skip:= (⟦ Θ ⟧ᵉ j (revs Ξ) A) (revE-hi:= Θ (suc j) Ξ p)
+  ent-skip:= (⟦ Θ ⟧ᵉ j A) (revE-hi:= Θ (suc j) Ξ p)
 revE-hi:= Θ j (rvl⋆ ∷ Ξ)    p = skip-abst (revE-hi:= Θ (suc j) Ξ p)
 revE-hi:= Θ j (cnc X A ∷ Ξ) p = revE-hi:= Θ j Ξ p
 
@@ -2603,7 +2527,7 @@ revE-hi:=⁻ : ∀ Θ j Ξ {Γ : TCtx} {Z B}
            → (revEnts Θ j Ξ ++ Γ) ∋ (revs Ξ + Z) := B → Γ ∋ Z := B
 revE-hi:=⁻ Θ j []            p = p
 revE-hi:=⁻ Θ j (rvl A ∷ Ξ)   p =
-  revE-hi:=⁻ Θ (suc j) Ξ (ent-tail:= (⟦ Θ ⟧ᵉ j (revs Ξ) A) p)
+  revE-hi:=⁻ Θ (suc j) Ξ (ent-tail:= (⟦ Θ ⟧ᵉ j A) p)
 revE-hi:=⁻ Θ j (rvl⋆ ∷ Ξ)    p =
   revE-hi:=⁻ Θ (suc j) Ξ (ent-tail:= abst p)
 revE-hi:=⁻ Θ j (cnc X A ∷ Ξ) p = revE-hi:=⁻ Θ j Ξ p
@@ -2780,31 +2704,18 @@ bfree-shift A Θ d (B ⇒ C) =
   cong₂ _∧_ (bfree-shift A Θ d B) (bfree-shift A Θ d C)
 bfree-shift A Θ d (`∀ B)  = bfree-shift A Θ (suc d) B
 
-rdSub-shift : ∀ A Θ j d k
-  → rdSub (rvl A ∷ shiftReps Θ) (suc j) d k
-    ≡ renameᵗ suc (rdSub Θ j d k)
-rdSub-shift A Θ j d k with dec-< k d
-rdSub-shift A Θ j d k | inj₁ lt =
-  trans (rdSub-lo (rvl A ∷ shiftReps Θ) (suc j) d k lt)
-        (cong (renameᵗ suc) (sym (rdSub-lo Θ j d k lt)))
-rdSub-shift A Θ j d k | inj₂ ¬lt =
-  trans (cong (rdSub (rvl A ∷ shiftReps Θ) (suc j) d) (sym idx))
-    (trans (rdSub-hi (rvl A ∷ shiftReps Θ) (suc j) d (k ∸ d))
-      (trans (cong₂ (λ r c → γcnc r c (shiftReps Θ) (k ∸ d))
-                    (cong suc (revs-shiftReps Θ)) (cmax-shiftReps Θ))
-        (trans (γcnc-shift (revs Θ) (cmax Θ) Θ (k ∸ d))
-          (cong (renameᵗ suc)
-                (trans (sym (rdSub-hi Θ j d (k ∸ d)))
-                       (cong (rdSub Θ j d) idx))))))
-  where idx : d + (k ∸ d) ≡ k
-        idx = m+[n∸m]≡n (≤-pred (≰⇒> ¬lt))
+rdSub-shift : ∀ A Θ k
+  → rdSub (rvl A ∷ shiftReps Θ) k ≡ renameᵗ suc (rdSub Θ k)
+rdSub-shift A Θ k =
+  trans (cong₂ (λ r c → γcnc r c (shiftReps Θ) k)
+               (cong suc (revs-shiftReps Θ)) (cmax-shiftReps Θ))
+        (γcnc-shift (revs Θ) (cmax Θ) Θ k)
 
-rawRead-shift : ∀ A Θ j d A₁
-  → rawRead (rvl A ∷ shiftReps Θ) (suc j) d A₁
-    ≡ renameᵗ suc (rawRead Θ j d A₁)
-rawRead-shift A Θ j d A₁ =
-  trans (subst-cong (rdSub-shift A Θ j d) A₁)
-        (sym (rename-subst suc (rdSub Θ j d) A₁))
+rawRead-shift : ∀ A Θ A₁
+  → rawRead (rvl A ∷ shiftReps Θ) A₁ ≡ renameᵗ suc (rawRead Θ A₁)
+rawRead-shift A Θ A₁ =
+  trans (subst-cong (rdSub-shift A Θ) A₁)
+        (sym (rename-subst suc (rdSub Θ) A₁))
 
 dfree-shift : ∀ j b T
   → dfree b (suc (suc j)) (renameᵗ (liftⁿ b suc) T) ≡ dfree b (suc j) T
@@ -2847,23 +2758,19 @@ dnT-shift j b (T ⇒ U) =
   cong₂ _⇒_ (dnT-shift j b T) (dnT-shift j b U)
 dnT-shift j b (`∀ T)  = cong `∀ (dnT-shift j (suc b) T)
 
-⟦⟧-shift : ∀ A Θ j d A₁
-  → ⟦ rvl A ∷ shiftReps Θ ⟧ᵉ (suc j) d A₁ ≡ ⟦ Θ ⟧ᵉ j d A₁
-⟦⟧-shift A Θ j d A₁
-  rewrite bfree-shift A Θ d A₁ | rawRead-shift A Θ j d A₁
-        | dfree-shift j 0 (rawRead Θ j d A₁)
-        | dnT-shift j 0 (rawRead Θ j d A₁) = refl
+⟦⟧-shift : ∀ A Θ j A₁
+  → ⟦ rvl A ∷ shiftReps Θ ⟧ᵉ (suc j) A₁ ≡ ⟦ Θ ⟧ᵉ j A₁
+⟦⟧-shift A Θ j A₁
+  rewrite bfree-shift A Θ 0 A₁ | rawRead-shift A Θ A₁
+        | dfree-shift j 0 (rawRead Θ A₁)
+        | dnT-shift j 0 (rawRead Θ A₁) = refl
 
 revEnts-shift : ∀ A Θ j Ξ
   → revEnts (rvl A ∷ shiftReps Θ) (suc j) (shiftReps Ξ)
     ≡ revEnts Θ j Ξ
 revEnts-shift A Θ j []            = refl
 revEnts-shift A Θ j (rvl B ∷ Ξ)   =
-  cong₂ _∷_ hd (revEnts-shift A Θ (suc j) Ξ)
-  where
-    hd : ⟦ rvl A ∷ shiftReps Θ ⟧ᵉ (suc j) (revs (shiftReps Ξ)) B
-         ≡ ⟦ Θ ⟧ᵉ j (revs Ξ) B
-    hd rewrite revs-shiftReps Ξ = ⟦⟧-shift A Θ j (revs Ξ) B
+  cong₂ _∷_ (⟦⟧-shift A Θ j B) (revEnts-shift A Θ (suc j) Ξ)
 revEnts-shift A Θ j (rvl⋆ ∷ Ξ)    =
   cong (abst ∷_) (revEnts-shift A Θ (suc j) Ξ)
 revEnts-shift A Θ j (cnc X B ∷ Ξ) = revEnts-shift A Θ j Ξ
@@ -2872,27 +2779,20 @@ revEnts-shift A Θ j (cnc X B ∷ Ξ) = revEnts-shift A Θ j Ξ
 -- reveal's own knowledge entry on top
 intOf-shift : ∀ (Γ : TCtx) A Θ
   → intOf Γ (rvl A ∷ shiftReps Θ)
-    ≡ ⟦ rvl A ∷ shiftReps Θ ⟧ᵉ 0 (revs Θ) A ∷ intOf Γ Θ
-intOf-shift Γ A Θ
-  rewrite revs-shiftReps Θ | cmax-shiftReps Θ =
-  cong (λ Ψ → ⟦ rvl A ∷ shiftReps Θ ⟧ᵉ 0 (revs Θ) A
-              ∷ (Ψ ++ dropN (cmax Θ) Γ))
-       (revEnts-shift A Θ 0 Θ)
+    ≡ ⟦ rvl A ∷ shiftReps Θ ⟧ᵉ 0 A ∷ intOf Γ Θ
+intOf-shift Γ A Θ =
+  cong₂ (λ Ψ c → ⟦ rvl A ∷ shiftReps Θ ⟧ᵉ 0 A ∷ (Ψ ++ dropN c Γ))
+        (revEnts-shift A Θ 0 Θ) (cmax-shiftReps Θ)
 
--- … so R1's boundary is well formed at the interior (env) uses
-bwf-shift : ∀ {Δ A} Θ → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → prepAbst (revs Θ) Δ ⊢ A
+-- … so R1's boundary is well formed at the interior (env) uses.  TyWrap's own
+-- premise is now the PLAIN Δ ⊢ A of the redex's ⊢·[]: no lift, because a
+-- reveal's rep is read in the plain exterior.
+bwf-shift : ∀ {Δ A} Θ → Δ ∣ intOf Δ Θ ⊢ᵇ Θ → Δ ⊢ A
   → Δ ∣ intOf Δ (rvl A ∷ shiftReps Θ) ⊢ᵇ (rvl A ∷ shiftReps Θ)
 bwf-shift {Δ} {A} Θ bwf wfA =
   subst (λ Ψ → Bwf Δ Ψ (rvl A ∷ shiftReps Θ) (rvl A ∷ shiftReps Θ))
         (sym (intOf-shift Δ A Θ))
-        (bwf↑ (subst (λ r → prepAbst r Δ ⊢ A)
-                     (sym (revs-shiftReps Θ)) wfA)
-              (bwf-shiftReps (⟦ rvl A ∷ shiftReps Θ ⟧ᵉ 0 (revs Θ) A)
+        (bwf↑ wfA
+              (bwf-shiftReps (⟦ rvl A ∷ shiftReps Θ ⟧ᵉ 0 A)
                              Θ Θ bwf))
-
--- TyWrap's own premise: the LIFTED type argument is well formed over the
--- exterior extended by the boundary's existing reveal slots
-wf-lift : ∀ {Δ A} Θ → Δ ⊢ A → prepAbst (revs Θ) Δ ⊢ renameᵗ (revs Θ +_) A
-wf-lift {Δ} Θ wfA =
-  wf-ren (λ {X} p → prepAbst-hi (revs Θ) Δ X p) wfA
 

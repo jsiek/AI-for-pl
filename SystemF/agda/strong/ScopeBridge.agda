@@ -17,8 +17,8 @@ module strong.ScopeBridge where
 -- and composes them into  scB-bridge.  Step 1 needs substitution to preserve
 -- well-formedness (wf-subst / wf-subst-sc) because the ⊢·[] and (env) cases
 -- hand back a substituted type; for (env) that substitution is the
--- reveal-resolve ρᵇ,
--- whose per-index well-formedness is ρᵇ-lookup-wf.
+-- reveal-resolve ρᵇ, whose per-index well-formedness is ρᵇ-lookup-wf — and,
+-- with the PARALLEL reveal block, that is a plain lookup into bwf↑.
 --
 -- Everything here is about the type context only; no reduction is imported.
 
@@ -143,19 +143,6 @@ revSlots-view (rvl⋆ ∷ Θ) Ψ (suc X) (thereᵒ p) | inj₂ (i , eq , q) =
   inj₂ (i , cong suc eq , q)
 revSlots-view (cnc Y A ∷ Θ) Ψ X       p = revSlots-view Θ Ψ X p
 
--- the same split for a prepAbst-extended TYPE context (bwf↑'s premise reads
--- a reveal's rep over Δ extended by the DEEPER reveal slots)
-prepAbst-view : (r : ℕ) (Δ : TCtx) (X : ℕ) → prepAbst r Δ ∋tv X
-  → (X < r) ⊎ (∃ λ i → (X ≡ r + i) × Δ ∋tv i)
-prepAbst-view zero    Δ X       p             = inj₂ (X , refl , p)
-prepAbst-view (suc r) Δ zero    p             = inj₁ (s≤s z≤n)
-prepAbst-view (suc r) Δ (suc X) (skip-abst p)
-  with prepAbst-view r Δ X p
-prepAbst-view (suc r) Δ (suc X) (skip-abst p) | inj₁ lt =
-  inj₁ (s≤s lt)
-prepAbst-view (suc r) Δ (suc X) (skip-abst p) | inj₂ (i , eq , q) =
-  inj₂ (i , cong suc eq , q)
-
 ------------------------------------------------------------------------
 -- The external face ρᵇ is well formed, index by index
 ------------------------------------------------------------------------
@@ -167,26 +154,18 @@ prepAbst-view (suc r) Δ (suc X) (skip-abst p) | inj₂ (i , eq , q) =
 ρᵇ-deep (rvl⋆ ∷ Θ)    i = ρᵇ-deep Θ i
 ρᵇ-deep (cnc X A ∷ Θ) i = ρᵇ-deep Θ i
 
--- a reveal-prefix index resolves to that reveal's EXTERNAL FACE.  Under the
--- telescopic reveal block that face is no longer the stored rep but the fold
--- substᵗ (ρᵇ Ξ) A — the rep read over the deeper reveals — so this is a
--- substitution lemma, not a lookup: bwf↑ stores A over prepAbst (revs Ξ) Δ,
--- and every one of those slots resolves (recursively) to a Δ-type.  A
--- REP-LESS reveal's face is the dummy `ℕ, well formed anywhere.
+-- a reveal-prefix index resolves to that reveal's EXTERNAL FACE, which under
+-- the PARALLEL reveal block is the STORED rep — so this is a plain LOOKUP,
+-- discharged by bwf↑'s own premise Δ ⊢ A.  A REP-LESS reveal's face is the
+-- dummy `ℕ, well formed anywhere.
 ρᵇ-lo : ∀ {Δ Ψᵗ Θ} (Ξ : BCtx) → Bwf Δ Ψᵗ Θ Ξ
       → (X : ℕ) → X < revs Ξ → Δ ⊢ ρᵇ Ξ X
 ρᵇ-lo []            bwf[]              X       ()
-ρᵇ-lo {Δ = Δ} (rvl A ∷ Ξ) (bwf↑ wfA b) zero    lt = wf-subst h wfA
-  where
-    h : ∀ {X} → prepAbst (revs Ξ) Δ ∋tv X → Δ ⊢ ρᵇ Ξ X
-    h {X} p with prepAbst-view (revs Ξ) Δ X p
-    h {X} p | inj₁ lt′            = ρᵇ-lo Ξ b X lt′
-    h {.(revs Ξ + i)} p | inj₂ (i , refl , q) =
-      subst (λ T → Δ ⊢ T) (sym (ρᵇ-deep Ξ i)) (wf-var q)
-ρᵇ-lo (rvl A ∷ Ξ) (bwf↑ wfA b) (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
-ρᵇ-lo (rvl⋆ ∷ Ξ)  (bwf⋆ b)     zero    lt       = wf-ℕ
-ρᵇ-lo (rvl⋆ ∷ Ξ)  (bwf⋆ b)     (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
-ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓ k rev wfA b) X lt     = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (rvl A ∷ Ξ)   (bwf↑ wfA b) zero          lt = wfA
+ρᵇ-lo (rvl A ∷ Ξ)   (bwf↑ wfA b) (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (rvl⋆ ∷ Ξ)    (bwf⋆ b)     zero          lt = wf-ℕ
+ρᵇ-lo (rvl⋆ ∷ Ξ)    (bwf⋆ b)     (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓ k rev wfA b) X       lt = ρᵇ-lo Ξ b X lt
 
 ρᵇ-lookup-wf : Δ ∣ Ψᵗ ⊢ᵇ Θ → (X : ℕ) → baseS Θ Δ ∋ok X → Δ ⊢ ρᵇ Θ X
 ρᵇ-lookup-wf {Δ = Δ} {Θ = Θ} bwf X p
@@ -305,8 +284,9 @@ private
              (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
              (⊢ƛ (wf-var here-abst) (⊢` here)))
 
-  -- the telescopic face, on Boundary's chained example ↑Y:=Y′ , ↑Y′:=𝔹:
-  -- Y's external face is 𝔹, and ρᵇ-lookup-wf produces its well-formedness
-  _ : [] ⊢ `𝔹
-  _ = ρᵇ-lookup-wf {Δ = []} {Ψᵗ = intOf [] Θch} {Θ = Θch}
-                   (bwf↑ (wf-var here-abst) (bwf↑ wf-𝔹 bwf[])) 0 hereᵒ
+  -- the PARALLEL face, on Boundary's example ↑Y:=Y′ , ↑Y′:=𝔹 over Δch = Y′:=𝔹:
+  -- Y's external face is the exterior variable Y′ (NOT 𝔹, as the reverted
+  -- telescope would have folded it), and ρᵇ-lookup-wf is now a lookup
+  _ : Δch ⊢ ` 0
+  _ = ρᵇ-lookup-wf {Δ = Δch} {Ψᵗ = intOf Δch Θch} {Θ = Θch}
+                   (bwf↑ (wf-var here-rvld) (bwf↑ wf-𝔹 bwf[])) 0 hereᵒ

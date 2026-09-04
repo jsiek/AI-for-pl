@@ -16,8 +16,9 @@ module strong.BPreservation where
 --   Beta  is the term-substitution lemma (strong.TermSubst).
 --   TyWrap transports the Λ body by the shift family (intOf-shift,
 --        γᵇ-shift-ty, ρᵇ-shift-ty, baseS-shift, bwf-shift); the type argument
---        is LIFTED past the boundary's existing reveals (the telescopic reveal
---        block), and wf-lift is that lift's well-formedness.
+--        is recorded UNCHANGED as the new reveal's rep — the PARALLEL reveal
+--        block reads it in the plain exterior, where the redex's own Δ ⊢ A
+--        already places it, so no lift and no wf-lift.
 --   Wrap  builds the AMBIENT DUAL.  Its face laws are theorems
 --        (ρᵇ-dual-ty / γᵇ-dual-ty); its well-formedness and its rebuild law
 --        are the strong.DualDef parameters — see there for exactly which part
@@ -74,9 +75,9 @@ module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
       gvar (suc _) = refl
       int-eq : substᵗ (γᵇ (rvl A ∷ [])) B ≡ B
       int-eq = trans (subst-cong gvar B) (subst-id B)
-      -- external face:  ρᵇ [rvl A] is (substᵗ `_ A) •ᵗ `_, i.e. singleTyEnv A
+      -- external face:  ρᵇ [rvl A] is A •ᵗ `_, i.e. singleTyEnv A on the nose
       ext-eq : substᵗ (ρᵇ (rvl A ∷ [])) B ≡ B [ A ]ᵗ
-      ext-eq = subst-cong (λ { zero → subst-id A ; (suc _) → refl }) B
+      ext-eq = subst-cong (λ { zero → refl ; (suc _) → refl }) B
       -- Scoped obligation: baseS [rvl A] Δ is ALL ok (cmax = 0), and B is the
       -- ∀-body of Λ V — well-scoped over abst ∷ Δ.  ⊢V is typed at ⤊ [] = [],
       -- exactly scB-bridge's shape.
@@ -87,7 +88,7 @@ module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
   preservation (⊢· (⊢ƛ wfA ⊢N) ⊢W) (Beta w) =
     preserve-Beta (⊢· (⊢ƛ wfA ⊢N) ⊢W)
 
-  -- R1:  ((Λ V) ⟪ Θ , ∀B₀ ⟫) ·[ B , A ]  →  V ⟪ ↑(A lifted) ∷ Θ⁺ , B₀ ⟫
+  -- R1:  ((Λ V) ⟪ Θ , ∀B₀ ⟫) ·[ B , A ]  →  V ⟪ ↑?:=A ∷ Θ⁺ , B₀ ⟫
   --
   -- The redex's B is FORCED, so the pattern supplies it: (env) types the
   -- wrapper at substᵗ (ρᵇ Θ) (`∀ B₀), which is `∀ (substᵗ (extsᵗ (ρᵇ Θ)) B₀),
@@ -98,30 +99,28 @@ module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
   -- abstract one (intOf-shift), so ⊢retag along `abst ≼ anything` moves V
   -- there; its interior face is γᵇ-shift-ty.  NOTHING renames the term: the
   -- Λ-binder's slot became the reveal slot.  The type argument A is not
-  -- pushed inward — it is the new reveal's rep, lifted past the boundary's
-  -- existing reveals (the telescope) and read back by ρᵇ-shift-ty into the
-  -- redex's B [ A ]ᵗ.
+  -- pushed inward and NOT LIFTED either — under the parallel reveal block it
+  -- is the new reveal's rep verbatim, licensed by the redex's own Δ ⊢ A and
+  -- read back by ρᵇ-shift-ty into the redex's B [ A ]ᵗ.
   preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} bwf (sc-∀ sc)
                               (⊢Λ {N = V} ⊢V))
                          wfA)
                    (TyWrap {A = A} v) =
-    subst (λ T → Δ ∣ [] ⊢ V ⟪ rvl A′ ∷ shiftReps Θ , B₀ ⟫ ⦂ T)
+    subst (λ T → Δ ∣ [] ⊢ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫ ⦂ T)
           (ρᵇ-shift-ty A Θ B₀)
-      (env (bwf-shift Θ bwf (wf-lift Θ wfA)) sc′ ⊢body)
+      (env (bwf-shift Θ bwf wfA) sc′ ⊢body)
     where
-      A′ : Ty
-      A′ = renameᵗ (revs Θ +_) A
       -- scope: the new stack is the old one with the reveal's slot on top
       -- (baseS-shift), which is exactly what sc-∀ inverted out of the redex's
-      sc′ : Scoped (baseS (rvl A′ ∷ shiftReps Θ) Δ) B₀
-      sc′ = subst (λ Ψ → Scoped Ψ B₀) (sym (baseS-shift A′ Θ Δ)) sc
+      sc′ : Scoped (baseS (rvl A ∷ shiftReps Θ) Δ) B₀
+      sc′ = subst (λ Ψ → Scoped Ψ B₀) (sym (baseS-shift A Θ Δ)) sc
       -- the Λ-body, retagged into the new interior and retyped at the new
       -- interior face
-      ⊢body : intOf Δ (rvl A′ ∷ shiftReps Θ) ∣ []
-                ⊢ V ⦂ substᵗ (γᵇ (rvl A′ ∷ shiftReps Θ)) B₀
+      ⊢body : intOf Δ (rvl A ∷ shiftReps Θ) ∣ []
+                ⊢ V ⦂ substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B₀
       ⊢body = subst₂ (λ Ψ T → Ψ ∣ [] ⊢ V ⦂ T)
-                     (sym (intOf-shift Δ A′ Θ))
-                     (sym (γᵇ-shift-ty A′ Θ B₀))
+                     (sym (intOf-shift Δ A Θ))
+                     (sym (γᵇ-shift-ty A Θ B₀))
                      (⊢retag (≼abst (≼-refl (intOf Δ Θ))) ⊢V)
 
   -- R2:  ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W

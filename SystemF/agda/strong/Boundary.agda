@@ -3,10 +3,17 @@ module strong.Boundary where
 -- Tight, dual boundary — typing, on the BOUNDARY-TYPE (B₀) formulation.
 --
 --   reveal  X:=A :  X fresh INTERNAL var;  A (rep) EXTERNAL to the boundary,
---                   read TELESCOPICALLY — over the exterior extended by the
---                   DEEPER reveals of the same boundary (notes/DECISIONS.md,
---                   Decision 4's residue (R1); the convention of Context.agda,
---                   where a `rvld A` entry stores a type over its own tail).
+--                   read in the PLAIN exterior Γ — with no interference from
+--                   the boundary's other entries (Jeremy's ruling,
+--                   notes/DECISIONS.md "RULING — telescopic (bwf-↑)
+--                   REVERTED").  This is the SIMULTANEITY of a boundary:
+--                     (i)  a conceal's rep MAY mention the boundary's reveal
+--                          variables (the original Example-8 fix), and
+--                     (ii) a reveal's rep is read in the plain exterior,
+--                          independent of its siblings.
+--                   The two directions are not symmetric because the two
+--                   blocks face opposite ways, but each block is read
+--                   SIMULTANEOUSLY: no reveal is read over another.
 --   reveal  X:⋆   :  a REP-LESS abstract reveal (constructor `rvl⋆`).  It
 --                   contributes an `abst` interior entry, carries no
 --                   knowledge, and its `baseS` slot is `blk`, so no Scoped
@@ -88,16 +95,15 @@ prepAbst : ℕ → TCtx → TCtx      -- prepend n fresh abstract variables
 prepAbst zero    Γ = Γ
 prepAbst (suc n) Γ = abst ∷ prepAbst n Γ
 
--- ρᵇ : reveal-resolve, the EXTERNAL face.  TELESCOPIC: the rep of the reveal
--- at slot 0 is a type over the frame of the TAIL — the deeper reveals of the
--- same boundary, then the exterior — so the external face resolves it by the
--- tail's own external face, in sequence.  Conceals leave the exterior
--- unchanged, and the exterior passes through (shifted below the reveal vars).
--- A rep-less reveal gets a DUMMY image; (env)'s scope premise (baseS marks
--- its slot `blk`) keeps any Scoped type from naming it.
+-- ρᵇ : reveal-resolve, the EXTERNAL face.  PARALLEL (simultaneous): a
+-- reveal's rep is a type over the plain exterior, so it is substituted AS
+-- STORED — never folded through the boundary's other reveals.  Conceals leave
+-- the exterior unchanged, and the exterior passes through (shifted below the
+-- reveal vars).  A rep-less reveal gets a DUMMY image; (env)'s scope premise
+-- (baseS marks its slot `blk`) keeps any Scoped type from naming it.
 ρᵇ : BCtx → Substᵗ
 ρᵇ []            = `_
-ρᵇ (rvl A ∷ Θ)   = substᵗ (ρᵇ Θ) A •ᵗ ρᵇ Θ
+ρᵇ (rvl A ∷ Θ)   = A •ᵗ ρᵇ Θ
 ρᵇ (rvl⋆ ∷ Θ)    = `ℕ •ᵗ ρᵇ Θ
 ρᵇ (cnc X A ∷ Θ) = ρᵇ Θ
 
@@ -212,18 +218,21 @@ subst-cong-sc {Ψ}{σ}{τ} (sc-∀ sA) h = cong `∀ (subst-cong-sc sA h-ext)
 --           is not a legitimate TELESCOPE entry (Context.agda reads a `rvld`
 --           rep over its own tail), and the down-shift dnT would truncate it.
 --
--- The rep A of the reveal at interior slot j sits over the frame of the TAIL
--- Ξ (d = revs Ξ deeper reveal slots, then the exterior), so its reading sends
--- slot k < d to interior slot suc j + k and an exterior index i to γcnc's
--- image; dnT (suc j) then moves the result down to the entry's own tail.
+-- Under the PARALLEL reading the rep A of a reveal sits over the plain
+-- exterior, so its reading involves only EXTERIOR variables: a concealed one
+-- goes to its rep (γcnc), a kept one to its interior slot.  A rep therefore
+-- never names a sibling reveal variable — but its READING can still reach
+-- one, because a conceal's rep may (simultaneity (i)); that is why the dfree
+-- guard survives the revert.  dnT (suc j) moves the reading down to the
+-- entry's own tail.
 ------------------------------------------------------------------------
 
 isOk : Slot → Bool
 isOk ok  = true
 isOk blk = false
 
--- bfree Θ d A : A (a type over the tail's frame, under d binders/reveal
--- slots) names no BLOCKED slot of Θ
+-- bfree Θ d A : A (an EXTERIOR type, under d binders) names no BLOCKED slot
+-- of Θ
 bfree : BCtx → ℕ → Ty → Bool
 bfree Θ d (` X)   = ⌊ X <? d ⌋ ∨ isOk (slotAt Θ (X ∸ d))
 bfree Θ d `ℕ      = true
@@ -243,26 +252,24 @@ dfree b d (`∀ A)  = dfree (suc b) d A
 dnT : ℕ → Ty → Ty                     -- shift down past k entries
 dnT k = renameᵗ (_∸ k)
 
--- rdSub Θ j d : the reading map for a rep over the tail's frame (d reveal
--- slots), into the WHOLE interior of Θ
-rdSub : BCtx → ℕ → ℕ → Substᵗ
-rdSub Θ j d k with k <? d
-rdSub Θ j d k | yes _ = ` (suc j + k)
-rdSub Θ j d k | no  _ = γcnc (revs Θ) (cmax Θ) Θ (k ∸ d)
+-- rdSub Θ : the reading map for an EXTERIOR type, into the WHOLE interior
+-- of Θ.  Parallel: no reveal-slot window to skip, so it is γcnc itself.
+rdSub : BCtx → Substᵗ
+rdSub Θ = γcnc (revs Θ) (cmax Θ) Θ
 
-rawRead : BCtx → ℕ → ℕ → Ty → Ty
-rawRead Θ j d A = substᵗ (rdSub Θ j d) A
+rawRead : BCtx → Ty → Ty
+rawRead Θ A = substᵗ (rdSub Θ) A
 
--- ⟦ Θ ⟧ᵉ j d A : the interior ENTRY of the reveal at slot j whose rep is A
-⟦_⟧ᵉ : BCtx → ℕ → ℕ → Ty → TyEntry
-⟦ Θ ⟧ᵉ j d A =
-  if bfree Θ d A ∧ dfree 0 (suc j) (rawRead Θ j d A)
-  then rvld (dnT (suc j) (rawRead Θ j d A))
+-- ⟦ Θ ⟧ᵉ j A : the interior ENTRY of the reveal at slot j whose rep is A
+⟦_⟧ᵉ : BCtx → ℕ → Ty → TyEntry
+⟦ Θ ⟧ᵉ j A =
+  if bfree Θ 0 A ∧ dfree 0 (suc j) (rawRead Θ A)
+  then rvld (dnT (suc j) (rawRead Θ A))
   else abst
 
 revEnts : BCtx → ℕ → BCtx → TCtx
 revEnts Θ j []            = []
-revEnts Θ j (rvl A ∷ Ξ)   = ⟦ Θ ⟧ᵉ j (revs Ξ) A ∷ revEnts Θ (suc j) Ξ
+revEnts Θ j (rvl A ∷ Ξ)   = ⟦ Θ ⟧ᵉ j A ∷ revEnts Θ (suc j) Ξ
 revEnts Θ j (rvl⋆ ∷ Ξ)    = abst ∷ revEnts Θ (suc j) Ξ
 revEnts Θ j (cnc X A ∷ Ξ) = revEnts Θ j Ξ
 
@@ -281,10 +288,10 @@ intOf Γ Θ = revEnts Θ 0 Θ ++ dropN (cmax Θ) Γ
 -- THE REVERSAL PREMISE (notes/DECISIONS.md, Decision 3's ruling).
 --
 -- outRead Θ A reads an INTERIOR type back out to the exterior: a reveal
--- variable ↦ its (telescopically resolved) external face, a kept interior
--- variable ↦ its exterior index.  A conceal ↓X:=A is licensed when that
--- read-back is exactly the exterior's knowledge about X — which, since
--- Context.agda's ∋:= is tail-relative, is A₀ lifted by upRep X.
+-- variable ↦ its external face (its rep as stored, the parallel reading), a
+-- kept interior variable ↦ its exterior index.  A conceal ↓X:=A is licensed
+-- when that read-back is exactly the exterior's knowledge about X — which,
+-- since Context.agda's ∋:= is tail-relative, is A₀ lifted by upRep X.
 ------------------------------------------------------------------------
 
 outSub : BCtx → Substᵗ
@@ -302,17 +309,16 @@ Reversal : BCtx → ℕ → Ty → Ty → Set
 Reversal Θ X A A₀ = outRead Θ A ≡ upRep X A₀
 
 ------------------------------------------------------------------------
--- Boundary well-formedness.  The reveal block is a TELESCOPE: reveal j's rep
--- is read over the exterior extended by the DEEPER reveals of the same
--- boundary.  Since _⊢_ inspects a context only for SCOPE (no rule looks at an
--- entry's representation), we spell that extension as `prepAbst (revs Ξ) Γ`.
--- The conceal premise is the REVERSAL form and mentions the whole boundary,
--- so Θ is a parameter and the recursion runs on a suffix Ξ.
+-- Boundary well-formedness.  The reveal block is read SIMULTANEOUSLY: every
+-- reveal's rep is well formed in the PLAIN exterior Γ, with no interference
+-- from the boundary's other entries.  The conceal premise is the REVERSAL
+-- form and mentions the whole boundary, so Θ is still a parameter and the
+-- recursion runs on a suffix Ξ.
 ------------------------------------------------------------------------
 
 data Bwf (Γ Ψ : TCtx) (Θ : BCtx) : BCtx → Set where
   bwf[] : Bwf Γ Ψ Θ []
-  bwf↑  : ∀ {A Ξ} → prepAbst (revs Ξ) Γ ⊢ A
+  bwf↑  : ∀ {A Ξ} → Γ ⊢ A
         → Bwf Γ Ψ Θ Ξ → Bwf Γ Ψ Θ (rvl A ∷ Ξ)
   bwf⋆  : ∀ {Ξ} → Bwf Γ Ψ Θ Ξ → Bwf Γ Ψ Θ (rvl⋆ ∷ Ξ)
   bwf↓  : ∀ {X A A₀ Ξ}
@@ -410,34 +416,44 @@ _ = env (bwf↑ wf-ℕ bwf[]) (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
         (⊢ƛ (wf-var here-rvld) (⊢` here))
 
 ------------------------------------------------------------------------
--- THE TELESCOPIC REVEAL BLOCK (Decision 4's residue (R1)).  A reveal's rep
--- may name the DEEPER reveals of its own boundary; the external face
--- resolves the chain in sequence.
+-- THE PARALLEL REVEAL BLOCK (Jeremy's ruling; formerly the telescopic
+-- residue (R1)).  Every reveal's rep is read in the PLAIN exterior, so the
+-- external face substitutes it as stored — no chain is resolved.  The
+-- semantic difference from the reverted telescopic reading, on the boundary
+-- ↑Y:=Y′ , ↑Y′:=𝔹 over an exterior that HAS a Y′:
 --
---   Θch  =  ↑Y:=Y′ , ↑Y′:=𝔹        external face of Y is 𝔹, of Y′ is 𝔹
+--   Θch  =  ↑Y:=Y′ , ↑Y′:=𝔹   over  Δch = Y′:=𝔹
+--   parallel:    ρᵇ Θch 0  =  ` 0  =  Y′ THE EXTERIOR VARIABLE
+--   telescopic:  ρᵇ Θch 0  would have been  𝔹  (the sibling's rep folded in)
+--
+-- Under the parallel reading the same boundary over the EMPTY exterior is
+-- ill formed (its first rep names a variable that does not exist), which is
+-- why the example now carries Δch.
 ------------------------------------------------------------------------
+
+Δch : TCtx
+Δch = rvld `𝔹 ∷ []
 
 Θch : BCtx
 Θch = rvl (` 0) ∷ rvl `𝔹 ∷ []
 
-_ : ρᵇ Θch 0 ≡ `𝔹
+_ : ρᵇ Θch 0 ≡ ` 0                     -- Y ↦ the EXTERIOR Y′, not 𝔹
 _ = refl
 
 _ : ρᵇ Θch 1 ≡ `𝔹
 _ = refl
 
--- both entries carry knowledge; Y's is the interior slot of Y′
-_ : intOf [] Θch ≡ rvld (` 0) ∷ rvld `𝔹 ∷ []
+-- both entries carry knowledge; Y's is the interior slot of the exterior Y′
+_ : intOf Δch Θch ≡ rvld (` 1) ∷ rvld `𝔹 ∷ rvld `𝔹 ∷ []
 _ = refl
 
--- the chained rep is well formed over the exterior extended by ONE deeper
--- reveal slot — which is what bwf↑ asks for
-_ : [] ∣ intOf [] Θch ⊢ᵇ Θch
-_ = bwf↑ (wf-var here-abst) (bwf↑ wf-𝔹 bwf[])
+-- each rep is well formed in the PLAIN exterior — which is what bwf↑ asks for
+_ : Δch ∣ intOf Δch Θch ⊢ᵇ Θch
+_ = bwf↑ (wf-var here-rvld) (bwf↑ wf-𝔹 bwf[])
 
--- a value sealed at the chained boundary:  B₀ = Y→Y, external 𝔹→𝔹
-_ : [] ∣ [] ⊢ (ƛ ` 0 ∙ ` 0) ⟪ Θch , (` 0 ⇒ ` 0) ⟫ ⦂ (`𝔹 ⇒ `𝔹)
-_ = env (bwf↑ (wf-var here-abst) (bwf↑ wf-𝔹 bwf[]))
+-- a value sealed at that boundary:  B₀ = Y→Y, external Y′→Y′
+_ : Δch ∣ [] ⊢ (ƛ ` 0 ∙ ` 0) ⟪ Θch , (` 0 ⇒ ` 0) ⟫ ⦂ (` 0 ⇒ ` 0)
+_ = env (bwf↑ (wf-var here-rvld) (bwf↑ wf-𝔹 bwf[]))
         (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
         (⊢ƛ (wf-var here-rvld) (⊢` here))
 

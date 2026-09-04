@@ -22,20 +22,23 @@ open import Data.Product using (Σ; _,_; _×_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.List using (List; []; _∷_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans)
+  using (_≡_; refl; sym; trans; subst)
 open import strong.Types
 open import strong.Context using (TCtx; Ctx)
 open import strong.Boundary
 open import strong.BReduction
+open import strong.Canonical using (canon-var)
 open import strong.ProgressDef
 
--- Parameterised over the four open cases (strong.ProgressDef): the two
--- reveal-variable ones (Decision 1) and the two nested-wrapper ones (Merge,
--- Decision 3).  Order: application before type application within each
--- family, reveal-variable family first.  Instantiate `Impl` once they are
--- proven.
-module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
-            (nt-app : NestedApp)    (nt-tapp : NestedTApp) where
+-- Parameterised over TWO open cases now, not four (Merge's landing, 2026-
+-- 09-04): the reveal-variable family DISSOLVES into the nested-wrapper one
+-- (rv-app / rv-tapp below).  A wrapper whose boundary type is a reveal
+-- VARIABLE ` X types its body at substᵗ (γᵇ Θ) (` X) = ` X — a variable
+-- type — and a value of variable type is itself a wrapper (canon-var), so
+-- the redex was a wrapper-bodied wrapper all along and the SAME Merge
+-- frame reaches it.  What is left open is exactly Merge's own premise at
+-- an ⇒ / ∀-faced nested wrapper: see strong.ProgressDef.
+module Impl (nt-app : NestedApp) (nt-tapp : NestedTApp) where
 
   ------------------------------------------------------------------------
   -- 0.  Boundary-type shape analysis
@@ -100,6 +103,44 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
   inv-body (env bwf sc ⊢V) = ⊢V
 
   ------------------------------------------------------------------------
+  -- 1b.  THE REVEAL-VARIABLE FAMILY DISSOLVES (Merge's landing).
+  --
+  -- Decision 1 left `RevealVarApp` / `RevealVarTApp` open as a separate
+  -- family: a wrapper whose BOUNDARY TYPE is one of its own reveal
+  -- variables ` X is neither a Wrap nor a TyWrap redex.  It is, however,
+  -- always a NESTED wrapper — which is Merge's redex — because
+  --
+  --   γᵇ Θ X = ` X          (γᵇ-lo, since X < revs Θ: a reveal variable
+  --                          passes through the interior face unchanged)
+  --
+  -- so the body is a value AT A VARIABLE TYPE, and `canon-var` says such a
+  -- value is a wrapper with a variable boundary type (a chain ending in a
+  -- conceal of that variable).  Both cases therefore reduce to the nested
+  -- ones, with NO new hypothesis: four ProgressDef parameters become two.
+  ------------------------------------------------------------------------
+
+  unwrap-val : ∀ {V′ Θ′ B} → Value (V′ ⟪ Θ′ , B ⟫) → Value V′
+  unwrap-val (V-⟪⟫ v) = v
+
+  rv-nested : ∀ {Δ V Θ X} → Value V → X < revs Θ
+            → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (` X)
+            → Σ Term λ V′ → Σ BCtx λ Θ′ → Σ ℕ λ Y → V ≡ V′ ⟪ Θ′ , ` Y ⟫
+  rv-nested {Δ} {V} {Θ} {X} v lt ⊢V =
+    canon-var v (subst (λ T → intOf Δ Θ ∣ [] ⊢ V ⦂ T) (γᵇ-lo Θ X lt) ⊢V)
+
+  rv-app : RevealVarApp
+  rv-app {Δ} {V} {W} {Θ} {X} v w ⊢L lt
+    with rv-nested {Δ} {V} {Θ} {X} v lt (inv-body ⊢L)
+  rv-app {Δ} {V} {W} {Θ} {X} v w ⊢L lt | (V′ , Θ′ , Y , refl) =
+    nt-app (unwrap-val v) w ⊢L
+
+  rv-tapp : RevealVarTApp
+  rv-tapp {Δ} {V} {Θ} {X} v ⊢L lt
+    with rv-nested {Δ} {V} {Θ} {X} v lt (inv-body ⊢L)
+  rv-tapp {Δ} {V} {Θ} {X} v ⊢L lt | (V′ , Θ′ , Y , refl) =
+    nt-tapp (unwrap-val v) ⊢L
+
+  ------------------------------------------------------------------------
   -- 2.  The two eliminations applied to a value
   --
   -- Wrap and TyWrap are PARTIAL in the wrapped value: each consumes a binder
@@ -107,7 +148,8 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
   -- analysed too.  The body's own typing — at the interior face, which is
   -- ⇒ / ∀-shaped by construction — refutes the numeral and the mismatched
   -- binder; what is left is the binder (the rule fires) or a nested wrapper
-  -- (Merge's job, a ProgressDef parameter until Merge lands).
+  -- — Merge's redex, and the ProgressDef parameter that remains is exactly
+  -- the supply of Merge's own premise there (see strong.ProgressDef).
   ------------------------------------------------------------------------
 
   -- a wrapper whose boundary type is ⇒-shaped, applied to a value

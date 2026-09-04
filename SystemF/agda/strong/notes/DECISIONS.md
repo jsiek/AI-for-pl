@@ -1005,3 +1005,78 @@ Settled: TyWrap′ and push-through Wrap (both revised 2026-09-04); Merge (3a). 
 form (probe-verified).  Awaiting Jeremy: W3 vs W4 (Decision 4).  Then: Boundary.agda
 rework (reversal premise + W3/W4) and re-run of every preservation case → Merge with
 retyping-along-unfolding → depth-1 values → progress.
+
+## THE MERGE + DROP∅ LANDING — LANDED, ONE OPEN RULING (2026-09-04 night)
+
+Gates green cold (`make -C strong check` + InstallGauntlet `--safe`). The rules as landed
+(`BReduction.agda`):
+
+```agda
+Merge : Value V
+      → MergeOK Δ Θ₁ Θ₂ B₁ B₂
+      → Δ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫ -→ V ⟪ Θ₁ ⊕ Θ₂ , mrgB Θ₁ Θ₂ B₁ ⟫
+
+Drop∅ : Value V
+      → Δ ⊢ V ⟪ [] , B₀ ⟫ -→ V
+```
+
+`Θ₁ ⊕ Θ₂ = mapL Θ₂ Θ₁ ++ mapR Θ₁ 0 Θ₂`: Θ₁'s reveals stay, reps pushed out through Θ₂;
+a Θ₁-conceal (or `cnc⋆`) of a Θ₂-reveal slot CANCELS both (the clause is on the index, not
+the flavour — sound because only a `rvl`/`cnc` pair transports a rep, and that pair is
+`cancel-agree`); surviving conceals re-index. Both preservation cases are FULLY PROVEN, no
+new parameters: `⊕-γ` (the internal face composes on the nose), `cancel-agree` re-derived
+as a theorem on the live core (ordinary pairs; x-pairs are `xrep-stored`/`dual-cnc-skel`),
+body transport = `⊢retag≈` along `≼≈` — so "retyping-along-unfolding = ≼≈" is now USED,
+not just probed. Worked examples in gauntlet §9: the cancel pair
+`(7 ⟪ ↓X:=ℕ ⟫) ⟪ ↑X:=ℕ ⟫ → 7 ⟪ ∅ ⟫ → 7`, E★′'s continuation tower (the reachable x-pair
+cancel — exact, `⊢merged-★`), Example 3's tower merged twice, and the TOPLAS three-agent
+shape (`⊢merged-ag` — types with both authorities kept, NO abstraction breach).
+
+DEVIATION (grounded, not a parameter): `Merge` carries `MergeOK` as a rule premise —
+`cmax Θ₁ ≤ revs Θ₂`, bwf + Scoped + `≼≈` for the composite, and the external-face
+equation `substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (ρᵇ Θ₂) B₂`. A `MergeDef`
+parameter was NOT used because the residues are FALSE as universal statements (below).
+
+PROGRESS SCORECARD: `RevealVarApp`/`RevealVarTApp` DIED — theorems inside
+`Progress.Impl`, no new hypothesis: at a reveal-variable face `γᵇ Θ X = \` X` (`γᵇ-lo`),
+so the wrapper's body is a value of variable type, hence itself a wrapper by `canon-var` —
+the redex was a wrapper-bodied wrapper all along, and `ξ-·-l (Merge v ok)` steps it.
+`NestedApp`/`NestedTApp` remain, reduced to exactly "supply `MergeOK`".
+
+### Decision 5 — ⊕ must keep the abstract witness (NEEDS A RULING)
+
+Why progress did not close: `MergeOK` is falsifiable. The example (gauntlet §9d(i),
+`⊢redex-cx`/`¬ext-cx`/`¬⊢merged-cx`):
+
+```
+Δ = X:=ℕ  ⊢  ((ƛ y:W. 3) ⟪ ↑W:=ℕ , W⇒ℕ ⟫) ⟪ ↓X:=ℕ , X⇒ℕ ⟫  :  X⇒ℕ
+```
+
+If Merge fires with the current ⊕, then the cancelled reveal's rep is pushed OUT through
+Θ₂, resolving W to ℕ — the merged wrapper would export `ℕ⇒ℕ` where the redex has type
+`X⇒ℕ`, dropping X's abstraction (exactly TOPLAS's authority warning, reachable at an ⇒
+face). But a CORRECT merged boundary exists and types (`⊢repair-cx`):
+
+```
+(ƛ y:W. 3) ⟪ ↑W:=X , ↓X:=ℕ , X⇒ℕ ⟫        -- re-abstract W AT X, not at ℕ
+```
+
+— the reveal is kept, re-abstracted at the OUTER conceal's variable (the abstract
+witness) instead of its resolved rep; both faces are then exact and the interior is
+identical. Same story for the alias/x-pair shape (§9d(ii), `⊢repair-al`: keep Θ₂'s reveal
+rather than the alias's ⋆-slot). And B₂′ is NOT a mrg₁-vs-mrg₂ coin flip — both are
+machine-refuted in opposite directions (`¬γ-mrg₂-tower`: TOPLAS's keep-the-outer fails on
+Example 3's tower; `¬ρ-mrgB-ag`: the landed pushed-out form fails on the three-agent
+shape). The pattern in all four verdicts: the transport is wrong exactly when it
+RESOLVES a cancelled reveal's rep through an enclosing conceal instead of naming that
+conceal's variable.
+
+THE PROPOSAL: change `mapL` so a Θ₁-reveal whose rep crosses a Θ₂-conceal is re-abstracted
+at that conceal's variable (⊕ consults Θ₂'s conceals, not only its reveal count). If this
+holds up, both `MergeOK` faces plausibly become theorems, `MergeOK` shrinks or vanishes,
+and `NestedApp`/`NestedTApp` — the last two progress parameters — close.
+
+Also flagged for later: `cmax Θ₁ ≤ revs Θ₂` (⊕-γ's side condition) is sufficient, not
+necessary — it over-refuses conceal-of-conceal, the very TOPLAS-adversary shape whose
+merge IS sound (`⊢merged-ag`); Merge simply doesn't fire there (no stuckness: such
+towers are values pending depth-1).

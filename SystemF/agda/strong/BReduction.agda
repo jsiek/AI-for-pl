@@ -17,6 +17,8 @@ open import Data.Nat.Properties
   using (m≤m+n; m+[n∸m]≡n; +-monoʳ-<; +-cancelˡ-<; ≤-trans; <⇒≤; ≤-refl;
          _≟_; <-cmp; <-irrefl; ≰⇒>; m≤n⇒m<n∨m≡n; m≤n⇒m⊔n≡n; m≥n⇒m⊔n≡m;
          m+n∸m≡n; m+n≮m; +-identityʳ; +-suc; +-assoc; +-comm;
+         0∸n≡0; m≤n⇒m∸n≡0; ∸-monoˡ-<; ≮⇒≥; n≤0⇒n≡0;
+         ∸-distribʳ-⊔; +-distribˡ-⊔;
          ⊔-assoc; ⊔-comm; ⊔-identityʳ; ⊔-lub; m≤m⊔n;
          n≤1+n; suc-injective; m≤n⊔m; ≤⇒≯; +-cancelˡ-≡; ≤-pred;
          +-cancelˡ-≤; +-monoʳ-≤; +-∸-assoc; ∸-+-assoc)
@@ -34,7 +36,7 @@ open import strong.Types
 open import strong.TypeSubst
   using (subst-cong; rename-cong; rename-rename-commute; rename-[]ᵗ-commute;
          rename-subst; rename-subst-commute; exts-sub-cons; cons-sub;
-         subst-id)
+         subst-id; sub-sub)
 open import strong.Context
   using (TCtx; TyEntry; abst; rvld; xrvld; _↓_; _⊢_;
          wf-var; wf-ℕ; wf-𝔹; wf-⇒; wf-∀; entAt;
@@ -56,7 +58,7 @@ private
     Δ : TCtx
     A A′ B C B₀ B₁ B₂ : Ty
     L L′ M M′ N N′ V W F : Term
-    Θ : BCtx
+    Θ Θ₁ Θ₂ : BCtx
     n x : ℕ
 
 ------------------------------------------------------------------------
@@ -237,6 +239,185 @@ swapIdx r c X | no _ | no  _ = X
 swapᵇ : BCtx → ℕ → ℕ
 swapᵇ Θ = swapIdx (revs Θ) (cmax Θ)
 
+------------------------------------------------------------------------
+-- THE KNOWLEDGE ORDERING _≼≈_ (its lemmas, and the design commentary that
+-- motivates the four clauses, are further down at the ⊢retag≈ block).  It
+-- is DECLARED here because Merge's premise mentions it and the reduction
+-- relation mentions Merge.
+------------------------------------------------------------------------
+
+infix 4 _≼≈_
+data _≼≈_ : TCtx → TCtx → Set where
+  ≼≈[]    : [] ≼≈ []
+  ≼≈abst  : ∀ {Δ Δ' E} → Δ ≼≈ Δ' → (abst ∷ Δ) ≼≈ (E ∷ Δ')
+  ≼≈xrvld : ∀ {Δ Δ' A} → Δ ≼≈ Δ' → (xrvld A ∷ Δ) ≼≈ (xrvld A ∷ Δ')
+  ≼≈rvld  : ∀ {Δ Δ' A B} → Δ ≼≈ Δ' → A ≈Δ̄⟨ Δ' ⟩ B
+          → (rvld A ∷ Δ) ≼≈ (rvld B ∷ Δ')
+
+------------------------------------------------------------------------
+-- MERGE: THE COMPOSITE BOUNDARY  Θ₁ ⊕ Θ₂  (Decision 3; ported from
+-- notes/old/MergeProbe.agda §1 to the LIVE entry forms).
+--
+-- Θ₂ sits OUTSIDE Θ₁ — the redex is  (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫ — so
+-- Θ₁'s exterior is Θ₂'s interior Ψ₂ = intOf Δ Θ₂, and the composite's
+-- exterior is Δ while its interior is Θ₁'s interior Ψ₁.  Two maps move a
+-- Ψ₂-type to the two ends, and BOTH are already live:
+--
+--   outSub Θ₂ :  Ψ₂-index ↦ Δ-type    (strong.Boundary — the read-back the
+--                reversal premise runs on: a Θ₂-reveal ↦ its stored rep, a
+--                kept slot ↦ its exterior index)
+--   rdSub  Θ₁ :  Ψ₂-index ↦ Ψ₁-type   (strong.Boundary — γcnc, the interior
+--                reading: a Θ₁-conceal ↦ its rep, a kept slot ↦ its
+--                interior index)
+--
+-- ⊕ is  mapL Θ₂ Θ₁ ++ mapR Θ₁ 0 Θ₂, entry by entry:
+--
+--   * Θ₁'s REVEALS stay reveals with their reps PUSHED OUT through Θ₂ (a
+--     reveal's rep is read in the PLAIN exterior, which is now Δ).  A
+--     rep-less rvl⋆ stays rvl⋆ — there is no rep to push, and the slot
+--     stays blocked, which is what it was.
+--   * Θ₁'s CONCEAL of a slot Θ₂ REVEALS cancels — BOTH entries vanish (the
+--     deleting clause: mapL drops the conceal, mapR drops that reveal).
+--     A cnc⋆ of a Θ₂-reveal cancels the same way (its slot carried no rep
+--     on either side).  For the MIXED pairs see the note below.
+--   * Θ₁'s conceals of INHERITED exterior slots RE-INDEX from Ψ₂ to Δ: the
+--     Ψ₂-index X ≥ revs Θ₂ is the Δ-index cmax Θ₂ + (X ∸ revs Θ₂).  Their
+--     reps already live over Ψ₁ = the composite's interior, so they are
+--     copied unchanged.
+--   * Θ₂'s CONCEALS (and cnc⋆) stay at their Δ-indices, with their reps
+--     pushed IN through Θ₁ (they now live over Ψ₁) — exactly where the old
+--     mapR put them.
+--
+-- THE MIXED CANCEL PAIRS.  A cnc⋆ of a rvl (Θ₁ ⋆-conceals a slot Θ₂
+-- revealed WITH a rep) and a cnc of a rvl⋆ (Θ₁ conceals at a rep a slot Θ₂
+-- revealed rep-lessly) both cancel here as well — the clause is on the
+-- INDEX, not on the flavours.  Neither can carry knowledge across the
+-- cancel: a cnc⋆ asserts nothing (bwf-⋆↓'s only premise is that the slot
+-- exists) and a rvl⋆'s slot is `blk` in baseS, so no boundary type names
+-- it and the composite's faces never consult it.  The cancel is therefore
+-- sound on all four combinations; only the rvl/cnc pair transports a rep,
+-- and that is the pair cancel-agree is about.
+------------------------------------------------------------------------
+
+inSub : BCtx → Substᵗ                  -- Ψ₂-index ↦ Ψ₁-type
+inSub = rdSub
+
+mapL : BCtx → BCtx → BCtx              -- mapL Θ₂ Θ₁ : Θ₁'s entries, moved
+mapL Θ₂ []            = []
+mapL Θ₂ (rvl A ∷ Θ)   = rvl (substᵗ (outSub Θ₂) A) ∷ mapL Θ₂ Θ
+mapL Θ₂ (rvl⋆ ∷ Θ)    = rvl⋆ ∷ mapL Θ₂ Θ
+mapL Θ₂ (cnc X A ∷ Θ) with X <? revs Θ₂
+mapL Θ₂ (cnc X A ∷ Θ) | yes _ = mapL Θ₂ Θ                    -- CANCEL
+mapL Θ₂ (cnc X A ∷ Θ) | no  _ =
+  cnc (cmax Θ₂ + (X ∸ revs Θ₂)) A ∷ mapL Θ₂ Θ
+mapL Θ₂ (cnc⋆ X ∷ Θ)  with X <? revs Θ₂
+mapL Θ₂ (cnc⋆ X ∷ Θ)  | yes _ = mapL Θ₂ Θ                    -- CANCEL (⋆)
+mapL Θ₂ (cnc⋆ X ∷ Θ)  | no  _ =
+  cnc⋆ (cmax Θ₂ + (X ∸ revs Θ₂)) ∷ mapL Θ₂ Θ
+
+mapR : BCtx → ℕ → BCtx → BCtx          -- mapR Θ₁ j Θ₂ : Θ₂'s entries, moved
+mapR Θ₁ j []            = []
+mapR Θ₁ j (rvl A ∷ Θ)   with j <? cmax Θ₁
+mapR Θ₁ j (rvl A ∷ Θ)   | yes _ = mapR Θ₁ (suc j) Θ          -- CANCELLED
+mapR Θ₁ j (rvl A ∷ Θ)   | no  _ = rvl A ∷ mapR Θ₁ (suc j) Θ
+mapR Θ₁ j (rvl⋆ ∷ Θ)    with j <? cmax Θ₁
+mapR Θ₁ j (rvl⋆ ∷ Θ)    | yes _ = mapR Θ₁ (suc j) Θ          -- CANCELLED
+mapR Θ₁ j (rvl⋆ ∷ Θ)    | no  _ = rvl⋆ ∷ mapR Θ₁ (suc j) Θ
+mapR Θ₁ j (cnc X A ∷ Θ) = cnc X (substᵗ (inSub Θ₁) A) ∷ mapR Θ₁ j Θ
+mapR Θ₁ j (cnc⋆ X ∷ Θ)  = cnc⋆ X ∷ mapR Θ₁ j Θ
+
+infixl 6 _⊕_
+_⊕_ : BCtx → BCtx → BCtx
+Θ₁ ⊕ Θ₂ = mapL Θ₂ Θ₁ ++ mapR Θ₁ 0 Θ₂
+
+------------------------------------------------------------------------
+-- THE FRAME MAPS.  ⊕'s frame is
+--   [reveals of Θ₁][surviving reveals of Θ₂][Δ]
+-- of reveal width R⊕ and dropping C⊕ exterior slots (revs-⊕ / cmax-⊕
+-- below).  up⊕ embeds Ψ₁ back into that frame; mrg₁ carries Θ₁'s frame
+-- into it and mrg₂ carries Θ₂'s.  Both are SUBSTITUTIONS, not renamings:
+-- a slot killed by the cancel clause must be replaced by the agreed rep.
+------------------------------------------------------------------------
+
+R⊕ C⊕ : BCtx → BCtx → ℕ
+R⊕ Θ₁ Θ₂ = revs Θ₁ + (revs Θ₂ ∸ cmax Θ₁)
+C⊕ Θ₁ Θ₂ = cmax Θ₂ + (cmax Θ₁ ∸ revs Θ₂)
+
+upF : ℕ → ℕ → ℕ → ℕ                    -- Ψ₁-index ↦ ⊕-frame index
+upF R C j with j <? R
+upF R C j | yes _ = j
+upF R C j | no  _ = R + (C + (j ∸ R))
+
+up⊕ : BCtx → BCtx → ℕ → ℕ
+up⊕ Θ₁ Θ₂ = upF (R⊕ Θ₁ Θ₂) (C⊕ Θ₁ Θ₂)
+
+mrgΨ : BCtx → BCtx → ℕ → Ty            -- a Ψ₂-index, into ⊕'s frame
+mrgΨ Θ₁ Θ₂ X with X <? revs Θ₂
+mrgΨ Θ₁ Θ₂ X | yes _ with X <? cmax Θ₁
+mrgΨ Θ₁ Θ₂ X | yes _ | yes _ =
+  renameᵗ (up⊕ Θ₁ Θ₂) (repOf X Θ₁)                     -- CANCELLED slot
+mrgΨ Θ₁ Θ₂ X | yes _ | no  _ = ` (revs Θ₁ + (X ∸ cmax Θ₁))
+mrgΨ Θ₁ Θ₂ X | no  _ = ` (R⊕ Θ₁ Θ₂ + (cmax Θ₂ + (X ∸ revs Θ₂)))
+
+mrg₁ : BCtx → BCtx → Substᵗ            -- Θ₁'s frame ↦ ⊕'s frame
+mrg₁ Θ₁ Θ₂ j with j <? revs Θ₁
+mrg₁ Θ₁ Θ₂ j | yes _ = ` j
+mrg₁ Θ₁ Θ₂ j | no  _ = mrgΨ Θ₁ Θ₂ (j ∸ revs Θ₁)
+
+mrg₂ : BCtx → BCtx → Substᵗ            -- Θ₂'s frame ↦ ⊕'s frame
+mrg₂ Θ₁ Θ₂ j with j <? revs Θ₂
+mrg₂ Θ₁ Θ₂ j | yes _ with j <? cmax Θ₁
+mrg₂ Θ₁ Θ₂ j | yes _ | yes _ =
+  renameᵗ (up⊕ Θ₁ Θ₂) (repOf j Θ₁)                     -- CANCELLED slot
+mrg₂ Θ₁ Θ₂ j | yes _ | no  _ = ` (revs Θ₁ + (j ∸ cmax Θ₁))
+mrg₂ Θ₁ Θ₂ j | no  _ = ` (R⊕ Θ₁ Θ₂ + (j ∸ revs Θ₂))
+
+------------------------------------------------------------------------
+-- B₂′ — THE MERGED BOUNDARY TYPE, AND WHAT MERGE ASKS OF THE REDEX.
+--
+-- Two candidates, the two transports above (MergeProbe §8):
+--
+--   substᵗ (mrg₁ Θ₁ Θ₂) B₁   -- the INTERNAL face is then FREE (⊕-γ)
+--   substᵗ (mrg₂ Θ₁ Θ₂) B₂   -- the EXTERNAL face is then free (⊕-ρ)
+--
+-- The landed choice is the FIRST (`mrgB`), because the internal face is
+-- the one the body's own typing forces and ⊕-γ discharges it as a THEOREM
+-- for every redex, whereas the second is refuted outright by any tower
+-- whose inner boundary reveals over the outer one (notes/InstallGauntlet
+-- §9c: ¬γ-mrg₂-tower).  This DIVERGES from the TOPLAS reading "keep the
+-- OUTER boundary type" — see the note in notes.md.
+--
+-- The external face is then NOT free, and it is not a theorem either: the
+-- composite's ρ-face reads B₁'s slots out through Θ₂, which resolves a
+-- CONCEAL of Θ₂ to its rep, while the redex's own type keeps the concealed
+-- VARIABLE.  The two agree up to one unfolding (≈Δ̄) and NOT
+-- syntactically, and preservation needs syntactic agreement — so the
+-- equation is a PREMISE of the rule, i.e. an invariant carried by the
+-- relation, in the design's own idiom.  notes/InstallGauntlet §9d has the
+-- counterexample that makes it a premise rather than a lemma.
+--
+-- MergeOK collects, in one place, exactly what ⊕ does not supply for the
+-- merged wrapper's (env):
+--   (1) Θ₁ drops only slots Θ₂ reveals   — ⊕-γ's side condition;
+--   (2) the composite is a well-formed boundary over Δ;
+--   (3) B₂′ is Scoped over the composite's stack;
+--   (4) the contexts compose, in the direction ⊢retag≈ consumes;
+--   (5) the composite's EXTERNAL face is the redex's own type.
+-- The INTERNAL face is free (⊕-γ) and so is the frame arithmetic
+-- (revs-⊕ / cmax-⊕).
+------------------------------------------------------------------------
+
+mrgB : BCtx → BCtx → Ty → Ty
+mrgB Θ₁ Θ₂ B₁ = substᵗ (mrg₁ Θ₁ Θ₂) B₁
+
+MergeOK : TCtx → BCtx → BCtx → Ty → Ty → Set
+MergeOK Δ Θ₁ Θ₂ B₁ B₂ =
+    (cmax Θ₁ ≤ revs Θ₂)
+  × (Δ ∣ intOf Δ (Θ₁ ⊕ Θ₂) ⊢ᵇ (Θ₁ ⊕ Θ₂))
+  × Scoped (baseS (Θ₁ ⊕ Θ₂) Δ) (mrgB Θ₁ Θ₂ B₁)
+  × (intOf (intOf Δ Θ₂) Θ₁ ≼≈ intOf Δ (Θ₁ ⊕ Θ₂))
+  × (substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (ρᵇ Θ₂) B₂)
+
 renameᵀ : (ℕ → ℕ) → Term → Term          -- rename TYPE variables
 renameᵀ ρ (` x)          = ` x
 renameᵀ ρ ($ n)          = $ n
@@ -331,6 +512,24 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
   Wrap : Value W
       → Δ ⊢ ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
         -→ (N [ W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫
+
+  -- Merge (Decision 3): a wrapper-bodied wrapper collapses to ONE
+  -- boundary.  The composite is Θ₁ ⊕ Θ₂ — Θ₁'s reveals with their reps
+  -- pushed out, Θ₁'s conceals of Θ₂-revealed slots CANCELLED against those
+  -- reveals, everything else re-indexed — and the merged boundary type is
+  -- B₁ carried into the composite's frame (mrgB).  MergeOK carries the
+  -- five obligations the composite does not discharge on its own; the
+  -- INTERNAL face is free (⊕-γ, a theorem).
+  Merge : Value V
+      → MergeOK Δ Θ₁ Θ₂ B₁ B₂
+      → Δ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫ -→ V ⟪ Θ₁ ⊕ Θ₂ , mrgB Θ₁ Θ₂ B₁ ⟫
+
+  -- Drop∅ (Decision 3's addendum): an EMPTY boundary is the identity on
+  -- both faces (γᵇ [] = ρᵇ [] = `_), so it may be dropped.  It becomes
+  -- REACHABLE exactly now: Merge's cancel clause is the only rule that
+  -- mints an empty boundary.
+  Drop∅ : Value V
+      → Δ ⊢ V ⟪ [] , B₀ ⟫ -→ V
 
   -- ξ (congruence): the evaluation frames, left-to-right call-by-value.
   -- ξ-Λ and ξ-⟪⟫ are not optional bookkeeping: Λ V is a value only when V is
@@ -1411,13 +1610,8 @@ sc-ren h mono Θ sc = sc-rename (baseS-ren h mono Θ) sc
 -- both ways.  That is the whole content of the relaxation.
 ------------------------------------------------------------------------
 
-infix 4 _≼≈_
-data _≼≈_ : TCtx → TCtx → Set where
-  ≼≈[]    : [] ≼≈ []
-  ≼≈abst  : ∀ {Δ Δ' E} → Δ ≼≈ Δ' → (abst ∷ Δ) ≼≈ (E ∷ Δ')
-  ≼≈xrvld : ∀ {Δ Δ' A} → Δ ≼≈ Δ' → (xrvld A ∷ Δ) ≼≈ (xrvld A ∷ Δ')
-  ≼≈rvld  : ∀ {Δ Δ' A B} → Δ ≼≈ Δ' → A ≈Δ̄⟨ Δ' ⟩ B
-          → (rvld A ∷ Δ) ≼≈ (rvld B ∷ Δ')
+-- (the four clauses are declared UP FRONT, next to _⊕_ — Merge's premise
+-- mentions the ordering and the reduction relation mentions Merge.)
 
 ≼≈-refl : ∀ (Δ : TCtx) → Δ ≼≈ Δ
 ≼≈-refl []             = ≼≈[]
@@ -3429,3 +3623,627 @@ bwf-shift {Δ} {A} Θ bwf wfA =
               (bwf-shiftReps (⟦ rvl A ∷ shiftReps Θ ⟧ᴴ 0 A)
                              Θ Θ bwf))
 
+
+------------------------------------------------------------------------
+-- MERGE, PART 2: THE SHAPE LAWS.
+--
+--   revs (Θ₁ ⊕ Θ₂) = revs Θ₁ + (revs Θ₂ ∸ cmax Θ₁)   -- R⊕
+--   cmax (Θ₁ ⊕ Θ₂) = cmax Θ₂ + (cmax Θ₁ ∸ revs Θ₂)   -- C⊕
+--
+-- Both are pure entry-counting: the composite keeps Θ₁'s reveals and the
+-- reveals of Θ₂ that Θ₁ did not drop, and it drops Θ₂'s conceals plus the
+-- Θ₁-conceals that landed on inherited exterior slots.
+------------------------------------------------------------------------
+
+drop-lo : ∀ m j → j < m → m ∸ j ≡ suc (m ∸ suc j)
+drop-lo (suc m) zero    (s≤s z≤n) = refl
+drop-lo (suc m) (suc j) (s≤s lt)  = drop-lo m j lt
+
+-- a ⊔ b, cut at a bound that already dominates a, is b cut at that bound
+⊔∸-lo : ∀ a b c → a ≤ c → (a ⊔ b) ∸ c ≡ b ∸ c
+⊔∸-lo a b c le with a ≤? b
+⊔∸-lo a b c le | yes ab = cong (_∸ c) (m≤n⇒m⊔n≡n ab)
+⊔∸-lo a b c le | no  ba =
+  trans (cong (_∸ c) (m≥n⇒m⊔n≡m (<⇒≤ (≰⇒> ba))))
+        (trans (m≤n⇒m∸n≡0 le)
+               (sym (m≤n⇒m∸n≡0 (≤-trans (<⇒≤ (≰⇒> ba)) le))))
+
+revs-mapL : ∀ Θ₂ Θ₁ → revs (mapL Θ₂ Θ₁) ≡ revs Θ₁
+revs-mapL Θ₂ []            = refl
+revs-mapL Θ₂ (rvl A ∷ Θ)   = cong suc (revs-mapL Θ₂ Θ)
+revs-mapL Θ₂ (rvl⋆ ∷ Θ)    = cong suc (revs-mapL Θ₂ Θ)
+revs-mapL Θ₂ (cnc X A ∷ Θ) with X <? revs Θ₂
+revs-mapL Θ₂ (cnc X A ∷ Θ) | yes _ = revs-mapL Θ₂ Θ
+revs-mapL Θ₂ (cnc X A ∷ Θ) | no  _ = revs-mapL Θ₂ Θ
+revs-mapL Θ₂ (cnc⋆ X ∷ Θ)  with X <? revs Θ₂
+revs-mapL Θ₂ (cnc⋆ X ∷ Θ)  | yes _ = revs-mapL Θ₂ Θ
+revs-mapL Θ₂ (cnc⋆ X ∷ Θ)  | no  _ = revs-mapL Θ₂ Θ
+
+cmax-mapR : ∀ Θ₁ j Θ₂ → cmax (mapR Θ₁ j Θ₂) ≡ cmax Θ₂
+cmax-mapR Θ₁ j []            = refl
+cmax-mapR Θ₁ j (rvl A ∷ Θ)   with j <? cmax Θ₁
+cmax-mapR Θ₁ j (rvl A ∷ Θ)   | yes _ = cmax-mapR Θ₁ (suc j) Θ
+cmax-mapR Θ₁ j (rvl A ∷ Θ)   | no  _ = cmax-mapR Θ₁ (suc j) Θ
+cmax-mapR Θ₁ j (rvl⋆ ∷ Θ)    with j <? cmax Θ₁
+cmax-mapR Θ₁ j (rvl⋆ ∷ Θ)    | yes _ = cmax-mapR Θ₁ (suc j) Θ
+cmax-mapR Θ₁ j (rvl⋆ ∷ Θ)    | no  _ = cmax-mapR Θ₁ (suc j) Θ
+cmax-mapR Θ₁ j (cnc X A ∷ Θ) = cong (suc X ⊔_) (cmax-mapR Θ₁ j Θ)
+cmax-mapR Θ₁ j (cnc⋆ X ∷ Θ)  = cong (suc X ⊔_) (cmax-mapR Θ₁ j Θ)
+
+revs-mapR : ∀ Θ₁ j Θ₂ → revs (mapR Θ₁ j Θ₂) ≡ revs Θ₂ ∸ (cmax Θ₁ ∸ j)
+revs-mapR Θ₁ j []          = sym (0∸n≡0 (cmax Θ₁ ∸ j))
+revs-mapR Θ₁ j (rvl A ∷ Θ) with j <? cmax Θ₁
+revs-mapR Θ₁ j (rvl A ∷ Θ) | yes lt =
+  trans (revs-mapR Θ₁ (suc j) Θ)
+        (sym (cong (suc (revs Θ) ∸_) (drop-lo (cmax Θ₁) j lt)))
+revs-mapR Θ₁ j (rvl A ∷ Θ) | no ge =
+  trans (cong suc (revs-mapR Θ₁ (suc j) Θ))
+        (trans (cong (λ n → suc (revs Θ ∸ n))
+                     (m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))))
+               (sym (cong (suc (revs Θ) ∸_) (m≤n⇒m∸n≡0 (≮⇒≥ ge)))))
+revs-mapR Θ₁ j (rvl⋆ ∷ Θ) with j <? cmax Θ₁
+revs-mapR Θ₁ j (rvl⋆ ∷ Θ) | yes lt =
+  trans (revs-mapR Θ₁ (suc j) Θ)
+        (sym (cong (suc (revs Θ) ∸_) (drop-lo (cmax Θ₁) j lt)))
+revs-mapR Θ₁ j (rvl⋆ ∷ Θ) | no ge =
+  trans (cong suc (revs-mapR Θ₁ (suc j) Θ))
+        (trans (cong (λ n → suc (revs Θ ∸ n))
+                     (m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))))
+               (sym (cong (suc (revs Θ) ∸_) (m≤n⇒m∸n≡0 (≮⇒≥ ge)))))
+revs-mapR Θ₁ j (cnc X A ∷ Θ) = revs-mapR Θ₁ j Θ
+revs-mapR Θ₁ j (cnc⋆ X ∷ Θ)  = revs-mapR Θ₁ j Θ
+
+-- the kept-conceal case, shared by cnc and cnc⋆ (same index arithmetic)
+cmax-mapL-kept : ∀ Θ₂ X Θ → revs Θ₂ ≤ X
+  → cmax (mapL Θ₂ Θ) ⊔ cmax Θ₂ ≡ cmax Θ₂ + (cmax Θ ∸ revs Θ₂)
+  → (suc (cmax Θ₂ + (X ∸ revs Θ₂)) ⊔ cmax (mapL Θ₂ Θ)) ⊔ cmax Θ₂
+    ≡ cmax Θ₂ + ((suc X ⊔ cmax Θ) ∸ revs Θ₂)
+cmax-mapL-kept Θ₂ X Θ ge ih =
+  trans (⊔-assoc (suc (cmax Θ₂ + (X ∸ revs Θ₂))) (cmax (mapL Θ₂ Θ))
+                 (cmax Θ₂))
+        (trans (cong (suc (cmax Θ₂ + (X ∸ revs Θ₂)) ⊔_) ih)
+               (trans (cong (_⊔ (cmax Θ₂ + (cmax Θ ∸ revs Θ₂))) sucstep)
+                      (trans (sym (+-distribˡ-⊔ (cmax Θ₂) (suc X ∸ revs Θ₂)
+                                                (cmax Θ ∸ revs Θ₂)))
+                             (cong (cmax Θ₂ +_)
+                                   (sym (∸-distribʳ-⊔ (revs Θ₂) (suc X)
+                                                      (cmax Θ)))))))
+  where
+    sucstep : suc (cmax Θ₂ + (X ∸ revs Θ₂)) ≡ cmax Θ₂ + (suc X ∸ revs Θ₂)
+    sucstep =
+      trans (sym (+-suc (cmax Θ₂) (X ∸ revs Θ₂)))
+            (cong (cmax Θ₂ +_) (sym (+-∸-assoc 1 ge)))
+
+cmax-mapL⊔ : ∀ Θ₂ Θ₁
+  → cmax (mapL Θ₂ Θ₁) ⊔ cmax Θ₂ ≡ cmax Θ₂ + (cmax Θ₁ ∸ revs Θ₂)
+cmax-mapL⊔ Θ₂ []          =
+  sym (trans (cong (cmax Θ₂ +_) (0∸n≡0 (revs Θ₂))) (+-identityʳ (cmax Θ₂)))
+cmax-mapL⊔ Θ₂ (rvl A ∷ Θ) = cmax-mapL⊔ Θ₂ Θ
+cmax-mapL⊔ Θ₂ (rvl⋆ ∷ Θ)  = cmax-mapL⊔ Θ₂ Θ
+cmax-mapL⊔ Θ₂ (cnc X A ∷ Θ) with X <? revs Θ₂
+cmax-mapL⊔ Θ₂ (cnc X A ∷ Θ) | yes lt =
+  trans (cmax-mapL⊔ Θ₂ Θ)
+        (cong (cmax Θ₂ +_) (sym (⊔∸-lo (suc X) (cmax Θ) (revs Θ₂) lt)))
+cmax-mapL⊔ Θ₂ (cnc X A ∷ Θ) | no ge =
+  cmax-mapL-kept Θ₂ X Θ (≮⇒≥ ge) (cmax-mapL⊔ Θ₂ Θ)
+cmax-mapL⊔ Θ₂ (cnc⋆ X ∷ Θ)  with X <? revs Θ₂
+cmax-mapL⊔ Θ₂ (cnc⋆ X ∷ Θ)  | yes lt =
+  trans (cmax-mapL⊔ Θ₂ Θ)
+        (cong (cmax Θ₂ +_) (sym (⊔∸-lo (suc X) (cmax Θ) (revs Θ₂) lt)))
+cmax-mapL⊔ Θ₂ (cnc⋆ X ∷ Θ)  | no ge =
+  cmax-mapL-kept Θ₂ X Θ (≮⇒≥ ge) (cmax-mapL⊔ Θ₂ Θ)
+
+revs-⊕ : ∀ Θ₁ Θ₂ → revs (Θ₁ ⊕ Θ₂) ≡ R⊕ Θ₁ Θ₂
+revs-⊕ Θ₁ Θ₂ =
+  trans (revs-++ (mapL Θ₂ Θ₁) (mapR Θ₁ 0 Θ₂))
+        (cong₂ _+_ (revs-mapL Θ₂ Θ₁) (revs-mapR Θ₁ 0 Θ₂))
+
+cmax-⊕ : ∀ Θ₁ Θ₂ → cmax (Θ₁ ⊕ Θ₂) ≡ C⊕ Θ₁ Θ₂
+cmax-⊕ Θ₁ Θ₂ =
+  trans (cmax-++ (mapL Θ₂ Θ₁) (mapR Θ₁ 0 Θ₂))
+        (trans (cong (cmax (mapL Θ₂ Θ₁) ⊔_) (cmax-mapR Θ₁ 0 Θ₂))
+               (cmax-mapL⊔ Θ₂ Θ₁))
+
+------------------------------------------------------------------------
+-- MERGE, PART 3: THE INTERNAL FACE COMPOSES — ⊕-γ, A THEOREM.
+--
+--   ⊕-γ : cmax Θ₁ ≤ revs Θ₂ → Scoped (baseS Θ₁ Ψ₂) B₁
+--       → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (γᵇ Θ₁) B₁
+--
+-- i.e. the merged wrapper types the SAME body at the SAME interior type —
+-- which is why mrgB (B₁ pushed out) is the landed B₂′.  The side
+-- condition says Θ₁ drops only slots Θ₂ reveals; it is MergeOK's first
+-- component.  It is the EXTERNAL face that has no general law (part 4).
+------------------------------------------------------------------------
+
+γᵇ-lo : ∀ Θ X → X < revs Θ → γᵇ Θ X ≡ ` X
+γᵇ-lo Θ X lt = prepId-lo (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ) X lt
+
+γᵇ-hi : ∀ Θ i → γᵇ Θ (revs Θ + i) ≡ γcnc (revs Θ) (cmax Θ) Θ i
+γᵇ-hi Θ i = prepId-hi (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ) i
+
+sub-ren : ∀ ρ σ A → substᵗ σ (renameᵗ ρ A) ≡ substᵗ (λ X → σ (ρ X)) A
+sub-ren ρ σ A =
+  trans (cong (substᵗ σ) (sym (substᵗ-renᵗ ρ A))) (sub-sub (renᵗ ρ) σ A)
+
+-- Ψ₁ embeds into ⊕'s frame by up⊕, and γᵇ of the composite undoes it
+γ-generic : ∀ Θ R C j → revs Θ ≡ R → cmax Θ ≡ C → R ≤ j
+          → γᵇ Θ (R + (C + (j ∸ R))) ≡ ` j
+γ-generic Θ R C j refl refl le =
+  trans (γᵇ-hi Θ (cmax Θ + (j ∸ revs Θ)))
+        (trans (γcnc-kept (revs Θ) (cmax Θ) Θ (cmax Θ + (j ∸ revs Θ))
+                          (m≤m+n (cmax Θ) (j ∸ revs Θ)))
+               (cong `_ (trans (cong (revs Θ +_)
+                                     (m+n∸m≡n (cmax Θ) (j ∸ revs Θ)))
+                               (m+[n∸m]≡n le))))
+
+γ⊕-up : ∀ Θ₁ Θ₂ j → γᵇ (Θ₁ ⊕ Θ₂) (up⊕ Θ₁ Θ₂ j) ≡ ` j
+γ⊕-up Θ₁ Θ₂ j with j <? R⊕ Θ₁ Θ₂
+γ⊕-up Θ₁ Θ₂ j | yes lt =
+  γᵇ-lo (Θ₁ ⊕ Θ₂) j (subst (j <_) (sym (revs-⊕ Θ₁ Θ₂)) lt)
+γ⊕-up Θ₁ Θ₂ j | no ge =
+  γ-generic (Θ₁ ⊕ Θ₂) (R⊕ Θ₁ Θ₂) (C⊕ Θ₁ Θ₂) j
+            (revs-⊕ Θ₁ Θ₂) (cmax-⊕ Θ₁ Θ₂) (≮⇒≥ ge)
+
+γ⊕-rep : ∀ Θ₁ Θ₂ A
+       → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (renameᵗ (up⊕ Θ₁ Θ₂) A) ≡ A
+γ⊕-rep Θ₁ Θ₂ A =
+  trans (sub-ren (up⊕ Θ₁ Θ₂) (γᵇ (Θ₁ ⊕ Θ₂)) A)
+        (trans (subst-cong (γ⊕-up Θ₁ Θ₂) A) (subst-id A))
+
+∸-chain : ∀ {a b c} → a ≤ b → b ≤ c → (b ∸ a) + (c ∸ b) ≡ c ∸ a
+∸-chain {zero}  z≤n      bc      = m+[n∸m]≡n bc
+∸-chain (s≤s ab) (s≤s bc)        = ∸-chain ab bc
+
+mrg₁-lo : ∀ Θ₁ Θ₂ j → j < revs Θ₁ → mrg₁ Θ₁ Θ₂ j ≡ ` j
+mrg₁-lo Θ₁ Θ₂ j l with j <? revs Θ₁
+mrg₁-lo Θ₁ Θ₂ j l | yes _  = refl
+mrg₁-lo Θ₁ Θ₂ j l | no  ¬p = ⊥-elim (¬p l)
+
+mrg₁-hi : ∀ Θ₁ Θ₂ X → mrg₁ Θ₁ Θ₂ (revs Θ₁ + X) ≡ mrgΨ Θ₁ Θ₂ X
+mrg₁-hi Θ₁ Θ₂ X with (revs Θ₁ + X) <? revs Θ₁
+mrg₁-hi Θ₁ Θ₂ X | yes lt = ⊥-elim (m+n≮m (revs Θ₁) X lt)
+mrg₁-hi Θ₁ Θ₂ X | no  _  = cong (mrgΨ Θ₁ Θ₂) (m+n∸m≡n (revs Θ₁) X)
+
+mrgΨ-c : ∀ Θ₁ Θ₂ X → X < revs Θ₂ → X < cmax Θ₁
+       → mrgΨ Θ₁ Θ₂ X ≡ renameᵗ (up⊕ Θ₁ Θ₂) (repOf X Θ₁)
+mrgΨ-c Θ₁ Θ₂ X l₂ l₁ with X <? revs Θ₂
+mrgΨ-c Θ₁ Θ₂ X l₂ l₁ | yes _ with X <? cmax Θ₁
+mrgΨ-c Θ₁ Θ₂ X l₂ l₁ | yes _ | yes _ = refl
+mrgΨ-c Θ₁ Θ₂ X l₂ l₁ | yes _ | no ¬p = ⊥-elim (¬p l₁)
+mrgΨ-c Θ₁ Θ₂ X l₂ l₁ | no ¬p         = ⊥-elim (¬p l₂)
+
+mrgΨ-r : ∀ Θ₁ Θ₂ X → X < revs Θ₂ → cmax Θ₁ ≤ X
+       → mrgΨ Θ₁ Θ₂ X ≡ ` (revs Θ₁ + (X ∸ cmax Θ₁))
+mrgΨ-r Θ₁ Θ₂ X l₂ g₁ with X <? revs Θ₂
+mrgΨ-r Θ₁ Θ₂ X l₂ g₁ | yes _ with X <? cmax Θ₁
+mrgΨ-r Θ₁ Θ₂ X l₂ g₁ | yes _ | yes p = ⊥-elim (≤⇒≯ g₁ p)
+mrgΨ-r Θ₁ Θ₂ X l₂ g₁ | yes _ | no  _ = refl
+mrgΨ-r Θ₁ Θ₂ X l₂ g₁ | no ¬p         = ⊥-elim (¬p l₂)
+
+mrgΨ-d : ∀ Θ₁ Θ₂ X → revs Θ₂ ≤ X
+       → mrgΨ Θ₁ Θ₂ X ≡ ` (R⊕ Θ₁ Θ₂ + (cmax Θ₂ + (X ∸ revs Θ₂)))
+mrgΨ-d Θ₁ Θ₂ X g₂ with X <? revs Θ₂
+mrgΨ-d Θ₁ Θ₂ X g₂ | yes p = ⊥-elim (≤⇒≯ g₂ p)
+mrgΨ-d Θ₁ Θ₂ X g₂ | no  _ = refl
+
+-- the KEPT case of a Θ₂-revealed slot: Θ₁ does not drop it, so both sides
+-- land on the composite's own reveal slot
+⊕-γ-kept : ∀ Θ₁ Θ₂ X → X < revs Θ₂ → cmax Θ₁ ≤ X
+     → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrg₁ Θ₁ Θ₂ (revs Θ₁ + X))
+       ≡ γᵇ Θ₁ (revs Θ₁ + X)
+⊕-γ-kept Θ₁ Θ₂ X l₂ g₁ =
+  trans (cong (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)))
+              (trans (mrg₁-hi Θ₁ Θ₂ X) (mrgΨ-r Θ₁ Θ₂ X l₂ g₁)))
+        (trans (γᵇ-lo (Θ₁ ⊕ Θ₂) (revs Θ₁ + (X ∸ cmax Θ₁)) lt⊕)
+               (sym (trans (γᵇ-hi Θ₁ X)
+                           (γcnc-kept (revs Θ₁) (cmax Θ₁) Θ₁ X g₁))))
+  where
+    lt⊕ : revs Θ₁ + (X ∸ cmax Θ₁) < revs (Θ₁ ⊕ Θ₂)
+    lt⊕ = subst (revs Θ₁ + (X ∸ cmax Θ₁) <_) (sym (revs-⊕ Θ₁ Θ₂))
+                (+-monoʳ-< (revs Θ₁) (∸-monoˡ-< l₂ g₁))
+
+-- the pointwise internal-face law, at an ACCESSIBLE slot of Θ₁'s frame
+⊕-γ-pt : ∀ Θ₁ Θ₂ → cmax Θ₁ ≤ revs Θ₂ → ∀ X
+       → (cmax Θ₁ ≤ X) ⊎ (isConc X Θ₁ ≡ true)
+       → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrg₁ Θ₁ Θ₂ (revs Θ₁ + X))
+         ≡ γᵇ Θ₁ (revs Θ₁ + X)
+⊕-γ-pt Θ₁ Θ₂ sc X acc with X <? revs Θ₂
+⊕-γ-pt Θ₁ Θ₂ sc X (inj₁ g₁) | yes l₂ = ⊕-γ-kept Θ₁ Θ₂ X l₂ g₁
+⊕-γ-pt Θ₁ Θ₂ sc X (inj₂ c)  | yes l₂ with cmax Θ₁ ≤? X
+⊕-γ-pt Θ₁ Θ₂ sc X (inj₂ c)  | yes l₂ | yes g₁ = ⊕-γ-kept Θ₁ Θ₂ X l₂ g₁
+⊕-γ-pt Θ₁ Θ₂ sc X (inj₂ c)  | yes l₂ | no  l₁ =
+  trans (cong (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)))
+              (trans (mrg₁-hi Θ₁ Θ₂ X) (mrgΨ-c Θ₁ Θ₂ X l₂ (≰⇒> l₁))))
+        (trans (γ⊕-rep Θ₁ Θ₂ (repOf X Θ₁))
+               (sym (trans (γᵇ-hi Θ₁ X)
+                           (γcnc-conc (revs Θ₁) (cmax Θ₁) Θ₁ X c))))
+⊕-γ-pt Θ₁ Θ₂ sc X acc | no g₂ =
+  trans (cong (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)))
+              (trans (mrg₁-hi Θ₁ Θ₂ X) (mrgΨ-d Θ₁ Θ₂ X (≮⇒≥ g₂))))
+        (trans lhs (sym rhs))
+  where
+    g₂' : revs Θ₂ ≤ X
+    g₂' = ≮⇒≥ g₂
+    g₁ : cmax Θ₁ ≤ X
+    g₁ = ≤-trans sc g₂'
+    cC : C⊕ Θ₁ Θ₂ ≡ cmax Θ₂
+    cC = trans (cong (cmax Θ₂ +_) (m≤n⇒m∸n≡0 sc)) (+-identityʳ (cmax Θ₂))
+    shape : C⊕ Θ₁ Θ₂ + ((R⊕ Θ₁ Θ₂ + (X ∸ revs Θ₂)) ∸ R⊕ Θ₁ Θ₂)
+          ≡ cmax Θ₂ + (X ∸ revs Θ₂)
+    shape = cong₂ _+_ cC (m+n∸m≡n (R⊕ Θ₁ Θ₂) (X ∸ revs Θ₂))
+    lhs : γᵇ (Θ₁ ⊕ Θ₂) (R⊕ Θ₁ Θ₂ + (cmax Θ₂ + (X ∸ revs Θ₂)))
+        ≡ ` (revs Θ₁ + (X ∸ cmax Θ₁))
+    lhs = trans (cong (λ u → γᵇ (Θ₁ ⊕ Θ₂) (R⊕ Θ₁ Θ₂ + u)) (sym shape))
+                (trans (γ-generic (Θ₁ ⊕ Θ₂) (R⊕ Θ₁ Θ₂) (C⊕ Θ₁ Θ₂)
+                                  (R⊕ Θ₁ Θ₂ + (X ∸ revs Θ₂))
+                                  (revs-⊕ Θ₁ Θ₂) (cmax-⊕ Θ₁ Θ₂)
+                                  (m≤m+n (R⊕ Θ₁ Θ₂) (X ∸ revs Θ₂)))
+                       (cong `_ (trans (+-assoc (revs Θ₁)
+                                                (revs Θ₂ ∸ cmax Θ₁)
+                                                (X ∸ revs Θ₂))
+                                       (cong (revs Θ₁ +_)
+                                             (∸-chain sc g₂')))))
+    rhs : γᵇ Θ₁ (revs Θ₁ + X) ≡ ` (revs Θ₁ + (X ∸ cmax Θ₁))
+    rhs = trans (γᵇ-hi Θ₁ X) (γcnc-kept (revs Θ₁) (cmax Θ₁) Θ₁ X g₁)
+
+⊕-γ : ∀ {Ψ₂ : TCtx} {B₁} Θ₁ Θ₂ → cmax Θ₁ ≤ revs Θ₂
+    → Scoped (baseS Θ₁ Ψ₂) B₁
+    → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (γᵇ Θ₁) B₁
+⊕-γ {Ψ₂} {B₁} Θ₁ Θ₂ sc scB =
+  trans (sub-sub (mrg₁ Θ₁ Θ₂) (γᵇ (Θ₁ ⊕ Θ₂)) B₁) (subst-cong-sc scB pt)
+  where
+    pt : ∀ j → baseS Θ₁ Ψ₂ ∋ok j
+       → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrg₁ Θ₁ Θ₂ j) ≡ γᵇ Θ₁ j
+    pt j p with split (revs Θ₁) j
+    pt j p | inj₁ lt
+      rewrite mrg₁-lo Θ₁ Θ₂ j lt =
+        trans (γᵇ-lo (Θ₁ ⊕ Θ₂) j
+                     (subst (j <_) (sym (revs-⊕ Θ₁ Θ₂))
+                            (≤-trans lt
+                                     (m≤m+n (revs Θ₁)
+                                            (revs Θ₂ ∸ cmax Θ₁)))))
+              (sym (γᵇ-lo Θ₁ j lt))
+    pt j p | inj₂ (X , refl) =
+      ⊕-γ-pt Θ₁ Θ₂ sc X (baseS-acc Θ₁ X p)
+
+------------------------------------------------------------------------
+-- MERGE, PART 4: THE EXTERNAL FACE, AND WHY IT IS A PREMISE.
+--
+-- ρᵇ of the composite reads off as expected at Θ₁'s reveals (their reps
+-- PUSHED OUT), at Θ₂'s surviving reveals, and at the exterior — that is
+-- ρ⊕-lo / ρ⊕-mid / ρᵇ-hi below, all theorems.  Composing them gives
+--
+--   substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁)
+--     = substᵗ (outSub Θ₂) (substᵗ (ρᵇ Θ₁) B₁)     … away from cancels
+--     = substᵗ (outSub Θ₂) (substᵗ (γᵇ Θ₂) B₂)     … the middle-type eq
+--
+-- and the redex's own type is substᵗ (ρᵇ Θ₂) B₂.  The two differ exactly
+-- where B₂ names a CONCEAL of Θ₂: read IN, the slot becomes the conceal's
+-- rep; read OUT, the reversal premise says that rep is Δ's KNOWLEDGE about
+-- the slot — ≈Δ̄-equal to the concealed variable, never syntactically equal
+-- to it.  So the equation is MergeOK's last component, not a lemma; the
+-- counterexample is notes/InstallGauntlet §9d.
+------------------------------------------------------------------------
+
+ρᵇ-mapL-lo : ∀ Θ₂ Θ₁ Ξ j → j < revs Θ₁
+  → ρᵇ (mapL Θ₂ Θ₁ ++ Ξ) j ≡ substᵗ (outSub Θ₂) (ρᵇ Θ₁ j)
+ρᵇ-mapL-lo Θ₂ []            Ξ j       ()
+ρᵇ-mapL-lo Θ₂ (rvl A ∷ Θ)   Ξ zero    lt       = refl
+ρᵇ-mapL-lo Θ₂ (rvl A ∷ Θ)   Ξ (suc j) (s≤s lt) = ρᵇ-mapL-lo Θ₂ Θ Ξ j lt
+ρᵇ-mapL-lo Θ₂ (rvl⋆ ∷ Θ)    Ξ zero    lt       = refl
+ρᵇ-mapL-lo Θ₂ (rvl⋆ ∷ Θ)    Ξ (suc j) (s≤s lt) = ρᵇ-mapL-lo Θ₂ Θ Ξ j lt
+ρᵇ-mapL-lo Θ₂ (cnc X A ∷ Θ) Ξ j lt with X <? revs Θ₂
+ρᵇ-mapL-lo Θ₂ (cnc X A ∷ Θ) Ξ j lt | yes _ = ρᵇ-mapL-lo Θ₂ Θ Ξ j lt
+ρᵇ-mapL-lo Θ₂ (cnc X A ∷ Θ) Ξ j lt | no  _ = ρᵇ-mapL-lo Θ₂ Θ Ξ j lt
+ρᵇ-mapL-lo Θ₂ (cnc⋆ X ∷ Θ)  Ξ j lt with X <? revs Θ₂
+ρᵇ-mapL-lo Θ₂ (cnc⋆ X ∷ Θ)  Ξ j lt | yes _ = ρᵇ-mapL-lo Θ₂ Θ Ξ j lt
+ρᵇ-mapL-lo Θ₂ (cnc⋆ X ∷ Θ)  Ξ j lt | no  _ = ρᵇ-mapL-lo Θ₂ Θ Ξ j lt
+
+ρᵇ-mapL-hi : ∀ Θ₂ Θ₁ Ξ t → ρᵇ (mapL Θ₂ Θ₁ ++ Ξ) (revs Θ₁ + t) ≡ ρᵇ Ξ t
+ρᵇ-mapL-hi Θ₂ []            Ξ t = refl
+ρᵇ-mapL-hi Θ₂ (rvl A ∷ Θ)   Ξ t = ρᵇ-mapL-hi Θ₂ Θ Ξ t
+ρᵇ-mapL-hi Θ₂ (rvl⋆ ∷ Θ)    Ξ t = ρᵇ-mapL-hi Θ₂ Θ Ξ t
+ρᵇ-mapL-hi Θ₂ (cnc X A ∷ Θ) Ξ t with X <? revs Θ₂
+ρᵇ-mapL-hi Θ₂ (cnc X A ∷ Θ) Ξ t | yes _ = ρᵇ-mapL-hi Θ₂ Θ Ξ t
+ρᵇ-mapL-hi Θ₂ (cnc X A ∷ Θ) Ξ t | no  _ = ρᵇ-mapL-hi Θ₂ Θ Ξ t
+ρᵇ-mapL-hi Θ₂ (cnc⋆ X ∷ Θ)  Ξ t with X <? revs Θ₂
+ρᵇ-mapL-hi Θ₂ (cnc⋆ X ∷ Θ)  Ξ t | yes _ = ρᵇ-mapL-hi Θ₂ Θ Ξ t
+ρᵇ-mapL-hi Θ₂ (cnc⋆ X ∷ Θ)  Ξ t | no  _ = ρᵇ-mapL-hi Θ₂ Θ Ξ t
+
+-- the composite's face at Θ₁'s OWN reveal slots: the rep, pushed out
+ρ⊕-lo : ∀ Θ₁ Θ₂ j → j < revs Θ₁
+      → ρᵇ (Θ₁ ⊕ Θ₂) j ≡ substᵗ (outSub Θ₂) (ρᵇ Θ₁ j)
+ρ⊕-lo Θ₁ Θ₂ j lt = ρᵇ-mapL-lo Θ₂ Θ₁ (mapR Θ₁ 0 Θ₂) j lt
+
+ρᵇ-mapR : ∀ Θ₁ j Θ₂ t → (cmax Θ₁ ∸ j) ≤ revs Θ₂
+  → ρᵇ (mapR Θ₁ j Θ₂) t ≡ ρᵇ Θ₂ ((cmax Θ₁ ∸ j) + t)
+ρᵇ-mapR Θ₁ j []            t le = cong (λ n → ` (n + t)) (sym (n≤0⇒n≡0 le))
+ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t le with j <? cmax Θ₁
+ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t le | yes lt =
+  trans (ρᵇ-mapR Θ₁ (suc j) Θ t le')
+        (cong (λ n → ρᵇ (rvl A ∷ Θ) (n + t)) (sym dd))
+  where
+    dd : cmax Θ₁ ∸ j ≡ suc (cmax Θ₁ ∸ suc j)
+    dd = drop-lo (cmax Θ₁) j lt
+    le' : (cmax Θ₁ ∸ suc j) ≤ revs Θ
+    le' = ≤-pred (subst (_≤ suc (revs Θ)) dd le)
+ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t le | no ge =
+  trans (body t) (cong (λ n → ρᵇ (rvl A ∷ Θ) (n + t)) (sym z))
+  where
+    z : cmax Θ₁ ∸ j ≡ 0
+    z = m≤n⇒m∸n≡0 (≮⇒≥ ge)
+    z' : cmax Θ₁ ∸ suc j ≡ 0
+    z' = m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))
+    body : ∀ u → ρᵇ (rvl A ∷ mapR Θ₁ (suc j) Θ) u ≡ ρᵇ (rvl A ∷ Θ) u
+    body zero    = refl
+    body (suc u) =
+      trans (ρᵇ-mapR Θ₁ (suc j) Θ u (subst (_≤ revs Θ) (sym z') z≤n))
+            (cong (λ n → ρᵇ Θ (n + u)) z')
+ρᵇ-mapR Θ₁ j (rvl⋆ ∷ Θ)    t le with j <? cmax Θ₁
+ρᵇ-mapR Θ₁ j (rvl⋆ ∷ Θ)    t le | yes lt =
+  trans (ρᵇ-mapR Θ₁ (suc j) Θ t le')
+        (cong (λ n → ρᵇ (rvl⋆ ∷ Θ) (n + t)) (sym dd))
+  where
+    dd : cmax Θ₁ ∸ j ≡ suc (cmax Θ₁ ∸ suc j)
+    dd = drop-lo (cmax Θ₁) j lt
+    le' : (cmax Θ₁ ∸ suc j) ≤ revs Θ
+    le' = ≤-pred (subst (_≤ suc (revs Θ)) dd le)
+ρᵇ-mapR Θ₁ j (rvl⋆ ∷ Θ)    t le | no ge =
+  trans (body t) (cong (λ n → ρᵇ (rvl⋆ ∷ Θ) (n + t)) (sym z))
+  where
+    z : cmax Θ₁ ∸ j ≡ 0
+    z = m≤n⇒m∸n≡0 (≮⇒≥ ge)
+    z' : cmax Θ₁ ∸ suc j ≡ 0
+    z' = m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))
+    body : ∀ u → ρᵇ (rvl⋆ ∷ mapR Θ₁ (suc j) Θ) u ≡ ρᵇ (rvl⋆ ∷ Θ) u
+    body zero    = refl
+    body (suc u) =
+      trans (ρᵇ-mapR Θ₁ (suc j) Θ u (subst (_≤ revs Θ) (sym z') z≤n))
+            (cong (λ n → ρᵇ Θ (n + u)) z')
+ρᵇ-mapR Θ₁ j (cnc X A ∷ Θ) t le = ρᵇ-mapR Θ₁ j Θ t le
+ρᵇ-mapR Θ₁ j (cnc⋆ X ∷ Θ)  t le = ρᵇ-mapR Θ₁ j Θ t le
+
+-- the composite's face at Θ₂'s SURVIVING reveal slots
+ρ⊕-mid : ∀ Θ₁ Θ₂ t → cmax Θ₁ ≤ revs Θ₂
+  → ρᵇ (Θ₁ ⊕ Θ₂) (revs Θ₁ + t) ≡ ρᵇ Θ₂ (cmax Θ₁ + t)
+ρ⊕-mid Θ₁ Θ₂ t sc =
+  trans (ρᵇ-mapL-hi Θ₂ Θ₁ (mapR Θ₁ 0 Θ₂) t) (ρᵇ-mapR Θ₁ 0 Θ₂ t sc)
+
+------------------------------------------------------------------------
+-- MERGE, PART 5: WORKED EXAMPLE (a) — THE CANCEL PAIR.
+--
+--   (7 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫  --Merge--→  7 ⟪ ∅ , ℕ ⟫
+--                                    --Drop∅--→  7          (all : ℕ)
+--
+-- The inner boundary CONCEALS the very slot the outer one REVEALS, so
+-- mapL deletes the conceal and mapR deletes the reveal: the composite is
+-- EMPTY.  B₂′ is the cancelled slot rewritten through the agreed rep — ℕ —
+-- and Drop∅ then removes the vacuous wrapper.  This is the pair that made
+-- Drop∅ ship with Merge (Decision 3's addendum).
+------------------------------------------------------------------------
+
+Θ1c Θ2c : BCtx
+Θ1c = cnc 0 `ℕ ∷ []                    -- ↓X:=ℕ, over the interior of Θ2c
+Θ2c = rvl `ℕ ∷ []                      -- ↑X:=ℕ
+
+_ : Θ1c ⊕ Θ2c ≡ []                     -- both entries cancel
+_ = refl
+
+_ : mrgB Θ1c Θ2c (` 0) ≡ `ℕ            -- B₂′ = the agreed rep
+_ = refl
+
+⊢redex-c : [] ∣ [] ⊢ (($ 7) ⟪ Θ1c , ` 0 ⟫) ⟪ Θ2c , ` 0 ⟫ ⦂ `ℕ
+⊢redex-c = env (bwf↑ wf-ℕ bwf[]) (sc-var hereᵒ)
+               (env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$)
+
+ok-c : MergeOK [] Θ1c Θ2c (` 0) (` 0)
+ok-c = s≤s z≤n , bwf[] , sc-ℕ , ≼≈[] , refl
+
+_ : [] ⊢ (($ 7) ⟪ Θ1c , ` 0 ⟫) ⟪ Θ2c , ` 0 ⟫ -→ ($ 7) ⟪ [] , `ℕ ⟫
+_ = Merge V-$ ok-c
+
+⊢contractum-c : [] ∣ [] ⊢ ($ 7) ⟪ [] , `ℕ ⟫ ⦂ `ℕ
+⊢contractum-c = env bwf[] sc-ℕ ⊢$
+
+_ : [] ⊢ ($ 7) ⟪ [] , `ℕ ⟫ -→ $ 7
+_ = Drop∅ V-$
+
+⊢final-c : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
+⊢final-c = ⊢$
+
+------------------------------------------------------------------------
+-- MERGE, PART 6: WORKED EXAMPLE (c) — AN EXAMPLE-3-SHAPED TOWER, MERGED
+-- TWICE.  Δtw = X:=𝔹 ;  Θtw3 = ↑Z₁:=X , ↓X:=𝔹 ;  Θtw2 = ↑Z₂:=Z₁ , ↑Y:=ℕ ;
+-- Θtw1 = ↑Z₃:=Z₂ ;  V = λz:Z₃. z.
+--
+-- Every boundary type is Z→Z at its own level, and each merge keeps both
+-- faces on the nose.  The INTERIORS, however, compose only up to _≼≈_:
+-- nested, Z₃'s entry is the reveal variable Z₂; merged, it is Z₂'s own rep
+-- — and the two agree after ONE unfolding, which is exactly the knowledge
+-- ordering ⊢retag≈ consumes (MergeProbe's ¬⊕-intR, resolved by ≼≈).
+------------------------------------------------------------------------
+
+Δtw : TCtx
+Δtw = rvld `𝔹 ∷ []
+
+Θtw3 Θtw2 Θtw1 : BCtx
+Θtw3 = rvl (` 0) ∷ cnc 0 `𝔹 ∷ []
+Θtw2 = rvl (` 0) ∷ rvl `ℕ ∷ []
+Θtw1 = rvl (` 0) ∷ []
+
+Ψtw3 : TCtx
+Ψtw3 = intOf Δtw Θtw3
+
+Vtw : Term
+Vtw = ƛ ` 0 ∙ ` 0
+
+-- the nested interiors, and the composite's — equal EXCEPT at the entries
+-- the merge resolves one step further
+_ : intOf (intOf Ψtw3 Θtw2) Θtw1
+    ≡ rvld (` 0) ∷ rvld (` 1) ∷ rvld `ℕ ∷ rvld `𝔹 ∷ []
+_ = refl
+
+_ : intOf Ψtw3 (Θtw1 ⊕ Θtw2)
+    ≡ rvld (` 2) ∷ rvld (` 1) ∷ rvld `ℕ ∷ rvld `𝔹 ∷ []
+_ = refl
+
+int-tw1 : intOf (intOf Ψtw3 Θtw2) Θtw1 ≼≈ intOf Ψtw3 (Θtw1 ⊕ Θtw2)
+int-tw1 = ≼≈rvld (≼≈-refl _) (≈unf refl)
+
+_ : Θtw1 ⊕ Θtw2 ≡ rvl (` 0) ∷ rvl (` 0) ∷ rvl `ℕ ∷ []
+_ = refl
+
+⊢tower : Δtw ∣ []
+  ⊢ ((Vtw ⟪ Θtw1 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+  ⦂ (` 0 ⇒ ` 0)
+⊢tower =
+  env (bwf↑ (wf-var here-rvld) (bwf↓ here (≡→≈ refl) wf-𝔹 bwf[]))
+      (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+      (env (bwf↑ (wf-var here-rvld) (bwf↑ wf-ℕ bwf[]))
+           (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+           (env (bwf↑ (wf-var here-rvld) bwf[])
+                (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+                (⊢ƛ (wf-var here-rvld) (⊢` here))))
+
+ok-tw1 : MergeOK Ψtw3 Θtw1 Θtw2 (` 0 ⇒ ` 0) (` 0 ⇒ ` 0)
+ok-tw1 = z≤n
+       , bwf↑ (wf-var here-rvld) (bwf↑ (wf-var here-rvld)
+                                       (bwf↑ wf-ℕ bwf[]))
+       , sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ)
+       , int-tw1
+       , refl
+
+-- the INNER merge, under the outermost boundary (ξ-⟪⟫ carries the index
+-- into the interior, which is exactly the exterior of the merge)
+_ : Δtw ⊢ ((Vtw ⟪ Θtw1 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw2 , ` 0 ⇒ ` 0 ⟫)
+            ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+    -→ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+_ = ξ-⟪⟫ (Merge (V-G G-ƛ) ok-tw1)
+
+⊢tower′ : Δtw ∣ []
+  ⊢ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+  ⦂ (` 0 ⇒ ` 0)
+⊢tower′ =
+  env (bwf↑ (wf-var here-rvld) (bwf↓ here (≡→≈ refl) wf-𝔹 bwf[]))
+      (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+      (env (bwf↑ (wf-var here-rvld)
+                 (bwf↑ (wf-var here-rvld) (bwf↑ wf-ℕ bwf[])))
+           (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+           (⊢ƛ (wf-var here-rvld) (⊢` here)))
+
+Θtw⊕ : BCtx
+Θtw⊕ = (Θtw1 ⊕ Θtw2) ⊕ Θtw3
+
+_ : Θtw⊕ ≡ rvl (` 0) ∷ rvl (` 0) ∷ rvl `ℕ ∷ rvl (` 0) ∷ cnc 0 `𝔹 ∷ []
+_ = refl
+
+int-tw2 : intOf Ψtw3 (Θtw1 ⊕ Θtw2) ≼≈ intOf Δtw Θtw⊕
+int-tw2 = ≼≈rvld (≼≈rvld (≼≈-refl _) (≈unf refl)) (≈unf refl)
+
+ok-tw2 : MergeOK Δtw (Θtw1 ⊕ Θtw2) Θtw3 (` 0 ⇒ ` 0) (` 0 ⇒ ` 0)
+ok-tw2 = z≤n
+       , bwf↑ (wf-var here-rvld)
+              (bwf↑ (wf-var here-rvld)
+                    (bwf↑ wf-ℕ
+                          (bwf↑ (wf-var here-rvld)
+                                (bwf↓ here (≡→≈ refl) wf-𝔹 bwf[]))))
+       , sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ)
+       , int-tw2
+       , refl
+
+_ : Δtw ⊢ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+    -→ Vtw ⟪ Θtw⊕ , ` 0 ⇒ ` 0 ⟫
+_ = Merge (V-G G-ƛ) ok-tw2
+
+⊢tower″ : Δtw ∣ [] ⊢ Vtw ⟪ Θtw⊕ , ` 0 ⇒ ` 0 ⟫ ⦂ (` 0 ⇒ ` 0)
+⊢tower″ =
+  env (bwf↑ (wf-var here-rvld)
+            (bwf↑ (wf-var here-rvld)
+                  (bwf↑ wf-ℕ
+                        (bwf↑ (wf-var here-rvld)
+                              (bwf↓ here (≡→≈ refl) wf-𝔹 bwf[])))))
+      (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+      (⊢ƛ (wf-var here-rvld) (⊢` here))
+
+------------------------------------------------------------------------
+-- (env) INVERSION, WITH A FREE RESULT INDEX.  (env) is the only rule whose
+-- subject is a wrapper, so a wrapper's type is FORCED to be its external
+-- face.  Stated with a free T so the unifier never has to match a
+-- constructor type against the neutral substᵗ (ρᵇ Θ) B₀ — the same trick
+-- strong.Progress uses, and what Merge's preservation case needs to invert
+-- the NESTED (env) and read off the middle type.
+------------------------------------------------------------------------
+
+env-ty : ∀ {Δ Γₜ M Θ B₀ T} → Δ ∣ Γₜ ⊢ M ⟪ Θ , B₀ ⟫ ⦂ T
+       → T ≡ substᵗ (ρᵇ Θ) B₀
+env-ty (env bwf sc ⊢M) = refl
+
+env-bwf : ∀ {Δ Γₜ M Θ B₀ T} → Δ ∣ Γₜ ⊢ M ⟪ Θ , B₀ ⟫ ⦂ T
+        → Δ ∣ intOf Δ Θ ⊢ᵇ Θ
+env-bwf (env bwf sc ⊢M) = bwf
+
+env-sc : ∀ {Δ Γₜ M Θ B₀ T} → Δ ∣ Γₜ ⊢ M ⟪ Θ , B₀ ⟫ ⦂ T
+       → Scoped (baseS Θ Δ) B₀
+env-sc (env bwf sc ⊢M) = sc
+
+env-body : ∀ {Δ Γₜ M Θ B₀ T} → Δ ∣ Γₜ ⊢ M ⟪ Θ , B₀ ⟫ ⦂ T
+         → intOf Δ Θ ∣ [] ⊢ M ⦂ substᵗ (γᵇ Θ) B₀
+env-body (env bwf sc ⊢M) = ⊢M
+
+-- THE MIDDLE-TYPE EQUATION, read off the nested (env)s: the inner
+-- wrapper's EXTERNAL face is the outer wrapper's INTERNAL face.  This is
+-- what Merge's two obligations are stated relative to.
+mid-eq : ∀ {Δ V Θ₁ Θ₂ B₁ B₂}
+       → intOf Δ Θ₂ ∣ [] ⊢ V ⟪ Θ₁ , B₁ ⟫ ⦂ substᵗ (γᵇ Θ₂) B₂
+       → substᵗ (γᵇ Θ₂) B₂ ≡ substᵗ (ρᵇ Θ₁) B₁
+mid-eq ⊢in = env-ty ⊢in
+
+------------------------------------------------------------------------
+-- CANCEL-AGREE, ORDINARY — THE ≡-ANALOGUE OF DualDef's xrep-stored, ON THE
+-- LIVE CORE.  An ORDINARY knowledge lookup inside a boundary's reveal block
+-- returns the READING of that reveal's STORED rep, on the nose:
+--
+--   rep-stored :  (revEnts Θ j Ξ ++ Γ) ∋ k := A₀
+--              →  A₀ ≡ dnT (suc (j + k)) (rawRead Θ (ρᵇ Ξ k))
+--
+-- This is what justifies MERGE'S DELETING CANCEL for an ordinary pair.  A
+-- conceal of Θ₁ at a slot Θ₂ REVEALS is licensed by (bwf-↓) against the
+-- interior's knowledge about that slot — and by this lemma that knowledge
+-- IS the reading of the deleted reveal's rep.  So the rep the cancel keeps
+-- and the rep the deleted reveal carried are the same type, read at the two
+-- ends of the boundary: exactly the old `cancel-agree`, re-derived here on
+-- the knowledge interiors.  (The x-pair's version is DualDef's xrep-stored
+-- + dual-cnc-skel; between them the two disjuncts of every conceal licence
+-- are covered.)
+------------------------------------------------------------------------
+
+rep-stored : ∀ Θ j Ξ {Γ : TCtx} {A₀} k → k < revs Ξ
+           → (revEnts Θ j Ξ ++ Γ) ∋ k := A₀
+           → A₀ ≡ dnT (suc (j + k)) (rawRead Θ (ρᵇ Ξ k))
+rep-stored Θ j []            k       ()       p
+rep-stored Θ j (rvl A ∷ Ξ)   zero    lt       p
+  with expr Θ j A | p
+rep-stored Θ j (rvl A ∷ Ξ)   zero    lt       p | true  | here =
+  cong (λ n → dnT (suc n) (rawRead Θ A)) (sym (+-identityʳ j))
+rep-stored Θ j (rvl A ∷ Ξ)   zero    lt       p | false | ()
+rep-stored Θ j (rvl A ∷ Ξ)   (suc k) (s≤s lt) p
+  with expr Θ j A | p
+rep-stored Θ j (rvl A ∷ Ξ)   (suc k) (s≤s lt) p | true  | skip-rvld q =
+  trans (rep-stored Θ (suc j) Ξ k lt q)
+        (cong (λ n → dnT (suc n) (rawRead Θ (ρᵇ Ξ k))) (sym (+-suc j k)))
+rep-stored Θ j (rvl A ∷ Ξ)   (suc k) (s≤s lt) p | false | skip-xrvld q =
+  trans (rep-stored Θ (suc j) Ξ k lt q)
+        (cong (λ n → dnT (suc n) (rawRead Θ (ρᵇ Ξ k))) (sym (+-suc j k)))
+rep-stored Θ j (rvl⋆ ∷ Ξ)    zero    lt       ()
+rep-stored Θ j (rvl⋆ ∷ Ξ)    (suc k) (s≤s lt) (skip-abst q) =
+  trans (rep-stored Θ (suc j) Ξ k lt q)
+        (cong (λ n → dnT (suc n) (rawRead Θ (ρᵇ Ξ k))) (sym (+-suc j k)))
+rep-stored Θ j (cnc X A ∷ Ξ) k       lt       p = rep-stored Θ j Ξ k lt p
+rep-stored Θ j (cnc⋆ X ∷ Ξ)  k       lt       p = rep-stored Θ j Ξ k lt p
+
+-- … and at a boundary's own interior, which is the form the cancel consumes
+cancel-agree : ∀ {Δ₀ : TCtx} Θ {A₀} k → k < revs Θ
+             → intOf Δ₀ Θ ∋ k := A₀
+             → A₀ ≡ dnT (suc k) (rawRead Θ (ρᵇ Θ k))
+cancel-agree Θ k lt p = rep-stored Θ 0 Θ k lt p

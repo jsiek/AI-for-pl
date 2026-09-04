@@ -38,6 +38,7 @@ open import Data.Nat using (ℕ; zero; suc; _<_; s≤s; z≤n)
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
+open import Data.Product using (_,_)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
@@ -644,3 +645,359 @@ skel-alias = sk-var
 
 skel-compound-ok : SkelEq (` 0 ⇒ `ℕ) (` 1 ⇒ `ℕ)
 skel-compound-ok = skel-compound
+
+------------------------------------------------------------------------
+-- §9.  MERGE AND Drop∅ (Decision 3 + its addendum; the landing of
+-- 2026-09-04).  The suite is in five parts:
+--
+--   §9a  the cancel pair, end to end: Merge then Drop∅ to the bare value;
+--   §9b  E★'s own continuation tower merged — an X-PAIR cancel, licensed
+--        by (bwf-↓x), with the two reps agreeing by xrep-stored;
+--   §9c  the Example-3-shaped tower merged twice, and the REFUTATION of the
+--        mrg₂ (TOPLAS "keep the outer type") form on it;
+--   §9d  THE TWO LIMITS of the landed ⊕: the external-face equation is a
+--        rule PREMISE and not a lemma (an ⇒-faced counterexample), and the
+--        scope premise can fail on an alias cancel.  Both come with the
+--        alternative merged boundary that DOES work, so the obstruction is
+--        ⊕'s eager push-out and not Merge itself;
+--   §9e  the TOPLAS three-agent adversary re-checked against the live ⊕:
+--        their shape does not reach our cancel clause (nor, under ⊕-γ's
+--        side condition, our Merge at all), the appended merge types with
+--        both authorities kept — and there the RIGHT B₂′ is the mrg₂ one,
+--        which is the other half of §9c's refutation.
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+-- §9a.  THE CANCEL PAIR.  (7 ⟪ ↓X:=ℕ ⟫) ⟪ ↑X:=ℕ ⟫ --Merge--→ 7 ⟪ ∅ , ℕ ⟫
+-- --Drop∅--→ 7.  Cited from strong.BReduction, where the rule's worked
+-- example lives (PLAN §1's Method).
+------------------------------------------------------------------------
+
+merge-c : [] ⊢ (($ 7) ⟪ Θ1c , ` 0 ⟫) ⟪ Θ2c , ` 0 ⟫ -→ ($ 7) ⟪ [] , `ℕ ⟫
+merge-c = Merge V-$ ok-c
+
+drop-c : [] ⊢ ($ 7) ⟪ [] , `ℕ ⟫ -→ $ 7
+drop-c = Drop∅ V-$
+
+types-c : [] ∣ [] ⊢ (($ 7) ⟪ Θ1c , ` 0 ⟫) ⟪ Θ2c , ` 0 ⟫ ⦂ `ℕ
+types-c = ⊢redex-c
+
+types-c′ : [] ∣ [] ⊢ ($ 7) ⟪ [] , `ℕ ⟫ ⦂ `ℕ
+types-c′ = ⊢contractum-c
+
+types-c″ : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
+types-c″ = ⊢final-c
+
+-- *** CANCEL-AGREE FOR AN ORDINARY PAIR ***, through the GENERAL lemma
+-- (strong.BReduction's rep-stored / cancel-agree — the ≡-analogue of
+-- DualDef's xrep-stored): the interior's knowledge at a reveal slot IS the
+-- reading of that reveal's STORED rep …
+cancel-agree-gen : `ℕ ≡ dnT 1 (rawRead Θ2c (ρᵇ Θ2c 0))
+cancel-agree-gen = cancel-agree {Δ₀ = []} Θ2c 0 (s≤s z≤n) here
+
+-- … and the deleted conceal's own (bwf-↓) premise ties ITS rep to that same
+-- knowledge, read BACK OUT through the boundary.  Between them, the rep the
+-- cancel keeps and the rep the deleted reveal carried are one type.
+cancel-rev-c : Reversal≈ (intOf [] Θ2c) Θ1c 0 `ℕ `ℕ
+cancel-rev-c = ≡→≈ refl
+
+cancel-agree-c : outRead Θ1c `ℕ ≡ upRep 0 `ℕ
+cancel-agree-c = refl
+
+------------------------------------------------------------------------
+-- §9b.  E★'s CONTINUATION TOWER, MERGED — THE X-PAIR CANCEL.
+--
+-- T4 = (5 ⟪ Θᵈ , ℕ ⟫) ⟪ ↑Z:=Y , ↓X:=ℕ , ℕ ⟫  (§2) is a nested wrapper, and
+-- the cancelling pair is Θᵈ's ↓Z:=Y — the conceal the whole x-licence
+-- exists for — against Θ★'s ↑Z:=Y.  The composite keeps the dual's ↑Y:⋆
+-- and ↑X:=ℕ and Θ★'s ↓X:=ℕ; both faces are ℕ, so the merge is exact.
+------------------------------------------------------------------------
+
+Θmg : BCtx
+Θmg = dualᵛ ⊕ Θ★
+
+_ : Θmg ≡ rvl⋆ ∷ rvl `ℕ ∷ cnc 1 `ℕ ∷ []
+_ = refl
+
+-- the interiors compose ON THE NOSE here (the dual's rebuild is exact)
+_ : intOf Γ★ Θmg ≡ Γ★
+_ = refl
+
+bwf-Θmg : Γ★ ∣ intOf Γ★ Θmg ⊢ᵇ Θmg
+bwf-Θmg =
+  bwf⋆ (bwf↑ wf-ℕ (bwf↓ (skip-abst here) (≡→≈ refl) wf-ℕ bwf[]))
+
+ok-★ : MergeOK Γ★ dualᵛ Θ★ `ℕ `ℕ
+ok-★ = s≤s z≤n , bwf-Θmg , sc-ℕ , ≼≈-refl Γ★ , refl
+
+merge-★ : Γ★ ⊢ T4 -→ ($ 5) ⟪ Θmg , `ℕ ⟫
+merge-★ = Merge V-$ ok-★
+
+⊢merged-★ : Γ★ ∣ [] ⊢ ($ 5) ⟪ Θmg , `ℕ ⟫ ⦂ `ℕ
+⊢merged-★ = env bwf-Θmg sc-ℕ ⊢$
+
+-- *** CANCEL-AGREE FOR THE X-PAIR ***  the interior's x-entry at Θ★'s
+-- reveal slot records exactly the stored rep (xrep-stored), so the two reps
+-- of the cancelling pair are SYNTACTICALLY EQUAL at the dual's birth, and
+-- the skeleton premise the licence carries is free (dual-cnc-skel).
+cancel-agree-x : (` 0) ≡ ρᵇ Θ★ 0
+cancel-agree-x = xrep-stored Θ★ 0 Θ★ 0 (s≤s z≤n) xlic-E★′
+
+cancel-skel-x : SkelEq (ρᵇ Θ★ 0) (` 0)
+cancel-skel-x = dual-cnc-skel {Δ₀ = Γ★} Θ★ 0 (s≤s z≤n) xlic-E★′
+
+-- … and the whole tower under the outermost ↑X:=ℕ still steps, by ξ-Λ /
+-- ξ-⟪⟫ carrying the index into the interior where the merge happens
+merge-★full : [] ⊢ T4full -→ (Λ (($ 5) ⟪ Θmg , `ℕ ⟫)) ⟪ Θ1 , `∀ `ℕ ⟫
+merge-★full = ξ-⟪⟫ (ξ-Λ merge-★)
+
+------------------------------------------------------------------------
+-- §9c.  THE EXAMPLE-3-SHAPED TOWER, MERGED TWICE (strong.BReduction's
+-- worked example (c)) — and the REFUTATION of the mrg₂ form.
+------------------------------------------------------------------------
+
+tower-types : Δtw ∣ []
+  ⊢ ((Vtw ⟪ Θtw1 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+  ⦂ (` 0 ⇒ ` 0)
+tower-types = ⊢tower
+
+tower-merge₁ : Δtw ⊢
+  ((Vtw ⟪ Θtw1 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+  -→ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+tower-merge₁ = ξ-⟪⟫ (Merge (V-G G-ƛ) ok-tw1)
+
+tower-merge₂ : Δtw ⊢ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
+  -→ Vtw ⟪ Θtw⊕ , ` 0 ⇒ ` 0 ⟫
+tower-merge₂ = Merge (V-G G-ƛ) ok-tw2
+
+tower-merged : Δtw ∣ [] ⊢ Vtw ⟪ Θtw⊕ , ` 0 ⇒ ` 0 ⟫ ⦂ (` 0 ⇒ ` 0)
+tower-merged = ⊢tower″
+
+-- *** THE mrg₂ FORM IS REFUTED HERE. ***  "Keep the OUTER boundary type"
+-- transports B₂ = Z₂→Z₂ to the composite's Z₂ SLOT — but the body is typed
+-- at Z₃, the composite's own first reveal, and the two differ (they are
+-- ≈Δ̄-equal in the merged interior, which typing does not see).  This is
+-- why the landed B₂′ is the B₁-pushed-out form mrgB.
+_ : substᵗ (mrg₂ Θtw1 Θtw2) (` 0 ⇒ ` 0) ≡ (` 1 ⇒ ` 1)
+_ = refl
+
+¬γ-mrg₂-tower :
+  ¬ (substᵗ (γᵇ (Θtw1 ⊕ Θtw2)) (substᵗ (mrg₂ Θtw1 Θtw2) (` 0 ⇒ ` 0))
+     ≡ substᵗ (γᵇ Θtw1) (` 0 ⇒ ` 0))
+¬γ-mrg₂-tower ()
+
+-- the landed form, by contrast, is exact on both faces here
+γ-mrgB-tower : substᵗ (γᵇ (Θtw1 ⊕ Θtw2)) (mrgB Θtw1 Θtw2 (` 0 ⇒ ` 0))
+             ≡ substᵗ (γᵇ Θtw1) (` 0 ⇒ ` 0)
+γ-mrgB-tower = refl
+
+ρ-mrgB-tower : substᵗ (ρᵇ (Θtw1 ⊕ Θtw2)) (mrgB Θtw1 Θtw2 (` 0 ⇒ ` 0))
+             ≡ substᵗ (ρᵇ Θtw2) (` 0 ⇒ ` 0)
+ρ-mrgB-tower = refl
+
+------------------------------------------------------------------------
+-- §9d.  THE TWO LIMITS OF THE LANDED ⊕.
+--
+-- (i) THE EXTERNAL FACE IS A PREMISE, NOT A LEMMA.  Δcx = X:=ℕ; the outer
+-- boundary CONCEALS X at ℕ and its boundary type NAMES X (X⇒ℕ); the inner
+-- one re-reveals a fresh W at that same ℕ (W⇒ℕ).  Everything type-checks,
+-- and the term is an ⇒-faced nested wrapper — a NestedApp redex.  But ⊕
+-- pushes the inner reveal's rep OUT through Θ₂, which resolves it to ℕ, so
+-- the composite exports ℕ⇒ℕ where the redex had X⇒ℕ: the merge would DROP
+-- X's abstraction (TOPLAS's authority warning, in our syntax).  The
+-- boundary that DOES work keeps the abstract witness — rvl (` 0), i.e. the
+-- reveal re-abstracted AT X — so the obstruction is ⊕'s eager push-out,
+-- not Merge.
+------------------------------------------------------------------------
+
+Δcx : TCtx
+Δcx = rvld `ℕ ∷ []
+
+Θcx2 Θcx1 : BCtx
+Θcx2 = cnc 0 `ℕ ∷ []                   -- ↓X:=ℕ  (the OUTER boundary)
+Θcx1 = rvl `ℕ ∷ []                     -- ↑W:=ℕ  (the INNER one)
+
+Vcx : Term
+Vcx = ƛ ` 0 ∙ ($ 3)
+
+⊢redex-cx : Δcx ∣ []
+  ⊢ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) ⟪ Θcx2 , ` 0 ⇒ `ℕ ⟫ ⦂ (` 0 ⇒ `ℕ)
+⊢redex-cx =
+  env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[])
+      (sc-⇒ (sc-var hereᵒ) sc-ℕ)
+      (env (bwf↑ wf-ℕ bwf[]) (sc-⇒ (sc-var hereᵒ) sc-ℕ)
+           (⊢ƛ (wf-var here-rvld) ⊢$))
+
+_ : Θcx1 ⊕ Θcx2 ≡ rvl `ℕ ∷ cnc 0 `ℕ ∷ []
+_ = refl
+
+_ : mrgB Θcx1 Θcx2 (` 0 ⇒ `ℕ) ≡ (` 0 ⇒ `ℕ)
+_ = refl
+
+-- the composite's external face is ℕ⇒ℕ, the redex's type is X⇒ℕ
+¬ext-cx : ¬ (substᵗ (ρᵇ (Θcx1 ⊕ Θcx2)) (mrgB Θcx1 Θcx2 (` 0 ⇒ `ℕ))
+             ≡ substᵗ (ρᵇ Θcx2) (` 0 ⇒ `ℕ))
+¬ext-cx ()
+
+-- … so the merged wrapper is NOT typable at the redex's type: MergeOK's
+-- last component is genuinely load-bearing
+¬⊢merged-cx : ¬ (Δcx ∣ []
+  ⊢ Vcx ⟪ Θcx1 ⊕ Θcx2 , mrgB Θcx1 Θcx2 (` 0 ⇒ `ℕ) ⟫ ⦂ (` 0 ⇒ `ℕ))
+¬⊢merged-cx ⊢M with env-ty ⊢M
+¬⊢merged-cx ⊢M | ()
+
+-- THE REPAIR: a merged boundary whose reveal keeps the abstract witness.
+-- Both faces are then exactly the redex's, and its interior is the nested
+-- one on the nose.
+Θcx′ : BCtx
+Θcx′ = rvl (` 0) ∷ cnc 0 `ℕ ∷ []
+
+_ : intOf Δcx Θcx′ ≡ intOf (intOf Δcx Θcx2) Θcx1
+_ = refl
+
+_ : substᵗ (γᵇ Θcx′) (` 0 ⇒ `ℕ) ≡ substᵗ (γᵇ Θcx1) (` 0 ⇒ `ℕ)
+_ = refl
+
+_ : substᵗ (ρᵇ Θcx′) (` 0 ⇒ `ℕ) ≡ substᵗ (ρᵇ Θcx2) (` 0 ⇒ `ℕ)
+_ = refl
+
+⊢repair-cx : Δcx ∣ [] ⊢ Vcx ⟪ Θcx′ , ` 0 ⇒ `ℕ ⟫ ⦂ (` 0 ⇒ `ℕ)
+⊢repair-cx =
+  env (bwf↑ (wf-var here-rvld) (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]))
+      (sc-⇒ (sc-var hereᵒ) sc-ℕ)
+      (⊢ƛ (wf-var here-rvld) ⊢$)
+
+------------------------------------------------------------------------
+-- (ii) THE SCOPE PREMISE CAN FAIL ON AN ALIAS CANCEL.  Take E★′'s admitted
+-- alias residue (strong.Boundary's Ξalias: ↑V:⋆ , ↓Z:=V) as the INNER
+-- boundary over Θ★'s interior, with a boundary type that NAMES the aliased
+-- slot.  The cancel deletes ↓Z:=V against Θ★'s ↑Z:=Y and leaves the
+-- rep-less ↑V:⋆ — whose baseS slot is `blk`, so the merged boundary type
+-- (which is that very slot) is UNSCOPED.  Again the repair exists: keep
+-- Θ★'s reveal instead of the alias's ⋆-reveal.
+------------------------------------------------------------------------
+
+Θal : BCtx
+Θal = Ξalias                           -- ↑V:⋆ , ↓Z:=V  over Θ★'s interior
+
+Val : Term
+Val = ƛ ` 0 ∙ ($ 5)
+
+⊢redex-al : Γ★ ∣ []
+  ⊢ (Val ⟪ Θal , ` 1 ⇒ `ℕ ⟫) ⟪ Θ★ , ` 0 ⇒ ` 2 ⟫ ⦂ (` 0 ⇒ ` 1)
+⊢redex-al =
+  env bwf-Θ★ (sc-⇒ (sc-var hereᵒ) (sc-var (thereᵒ (thereᵒ hereᵒ))))
+      (env (bwf⋆ (bwf↓x herex refl sk-var (wf-var here-abst) bwf[]))
+           (sc-⇒ (sc-var (thereᵒ hereᵒ)) sc-ℕ)
+           (⊢ƛ (wf-var here-abst) ⊢$))
+
+_ : Θal ⊕ Θ★ ≡ rvl⋆ ∷ cnc 1 `ℕ ∷ []
+_ = refl
+
+_ : mrgB Θal Θ★ (` 1 ⇒ `ℕ) ≡ (` 0 ⇒ `ℕ)
+_ = refl
+
+_ : baseS (Θal ⊕ Θ★) Γ★ ≡ blk ∷ blk ∷ ok ∷ []
+_ = refl
+
+¬sc-al : ¬ (Scoped (baseS (Θal ⊕ Θ★) Γ★) (mrgB Θal Θ★ (` 1 ⇒ `ℕ)))
+¬sc-al (sc-⇒ (sc-var ()) _)
+
+-- THE REPAIR: re-reveal at Y (Θ★'s own rep) instead of keeping the ⋆-slot
+Θal′ : BCtx
+Θal′ = rvl (` 0) ∷ cnc 1 `ℕ ∷ []
+
+_ : intOf Γ★ Θal′ ≡ intOf Γ★ Θ★                -- the same interior
+_ = refl
+
+_ : substᵗ (γᵇ Θal′) (` 0 ⇒ ` 2) ≡ substᵗ (γᵇ Θal) (` 1 ⇒ `ℕ)
+_ = refl
+
+_ : substᵗ (ρᵇ Θal′) (` 0 ⇒ ` 2) ≡ substᵗ (ρᵇ Θ★) (` 0 ⇒ ` 2)
+_ = refl
+
+⊢repair-al : Γ★ ∣ [] ⊢ Val ⟪ Θal′ , ` 0 ⇒ ` 2 ⟫ ⦂ (` 0 ⇒ ` 1)
+⊢repair-al =
+  env (bwf↑ (wf-var here-abst)
+            (bwf↓ (skip-abst here) (≡→≈ refl) wf-ℕ bwf[]))
+      (sc-⇒ (sc-var hereᵒ) (sc-var (thereᵒ (thereᵒ hereᵒ))))
+      (⊢ƛ (wf-var here-xrvld) ⊢$)
+
+------------------------------------------------------------------------
+-- §9e.  THE TOPLAS THREE-AGENT ADVERSARY (p. 1048–49), against the LIVE ⊕
+-- (ported from notes/old/D1Probe.agda §5).
+--
+--   δ_i(t) = int , δ_j(s) = t , δ_k = ⊥ ,  the k-term ⌈⌈3_i⌉^t_i⌉^s_j
+--
+-- Their shape is CONCEAL-OF-CONCEAL, so our deleting cancel never fires on
+-- it: ⊕ APPENDS both hidings and the middle agent's contribution survives
+-- as the pushed-in rep.  It does not even reach Merge here, because ⊕-γ's
+-- side condition (Θ₁ drops only slots Θ₂ reveals) fails — a sufficient
+-- condition, not a necessary one, and this is the shape it over-refuses.
+------------------------------------------------------------------------
+
+Δag : TCtx                             -- s := t (0) , t := ℕ (1)
+Δag = rvld (` 0) ∷ rvld `ℕ ∷ []
+
+Θag-o Θag-i : BCtx
+Θag-o = cnc 0 (` 0) ∷ []               -- agent j: hide s, rep t
+Θag-i = cnc 0 `ℕ ∷ []                  -- agent i: hide t, rep ℕ
+
+_ : intOf Δag Θag-o ≡ rvld `ℕ ∷ []
+_ = refl
+
+⊢Tag : Δag ∣ [] ⊢ (($ 3) ⟪ Θag-i , ` 0 ⟫) ⟪ Θag-o , ` 0 ⟫ ⦂ ` 0
+⊢Tag = env (bwf↓ here (≡→≈ refl) (wf-var here-rvld) bwf[])
+           (sc-var hereᵒ)
+           (env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$)
+
+-- ⊕ APPENDS: no entry is deleted, so no authority is dropped
+_ : Θag-i ⊕ Θag-o ≡ cnc 1 `ℕ ∷ cnc 0 `ℕ ∷ []
+_ = refl
+
+-- the middle authority ("s is t") is what discharges the second conceal's
+-- reversal premise, through Δag's own chain — the ≈Δ̄ congruence's job
+mid-authority : `ℕ ≈Δ̄⟨ Δag ⟩ (` 1)
+mid-authority = ≈unf refl
+
+⊢merged-ag : Δag ∣ [] ⊢ ($ 3) ⟪ Θag-i ⊕ Θag-o , ` 0 ⟫ ⦂ ` 0
+⊢merged-ag =
+  env (bwf↓ (skip-rvld here) (≡→≈ refl) wf-ℕ
+            (bwf↓ here mid-authority wf-ℕ bwf[]))
+      (sc-var hereᵒ) ⊢$
+
+-- *** THE OTHER HALF OF THE B₂′ DILEMMA. ***  On THIS shape the merged
+-- boundary type that works is the mrg₂ (outer) one — ` 0, the concealed
+-- variable itself — while the landed mrg₁ form gives the composite's
+-- SECOND slot and the wrong external face.  §9c refutes mrg₂ and this
+-- refutes mrg₁: NEITHER single transport is right everywhere, which is
+-- exactly why the external face is a rule premise.
+_ : substᵗ (mrg₂ Θag-i Θag-o) (` 0) ≡ ` 0
+_ = refl
+
+_ : mrgB Θag-i Θag-o (` 0) ≡ ` 1
+_ = refl
+
+ρ-mrg₂-ag : substᵗ (ρᵇ (Θag-i ⊕ Θag-o)) (substᵗ (mrg₂ Θag-i Θag-o) (` 0))
+          ≡ substᵗ (ρᵇ Θag-o) (` 0)
+ρ-mrg₂-ag = refl
+
+¬ρ-mrgB-ag : ¬ (substᵗ (ρᵇ (Θag-i ⊕ Θag-o)) (mrgB Θag-i Θag-o (` 0))
+                ≡ substᵗ (ρᵇ Θag-o) (` 0))
+¬ρ-mrgB-ag ()
+
+-- APPEND-ONLY, for the record, is still not available to US where the
+-- cancel DOES fire: the appended boundary is inadmissible over any
+-- exterior, because an inner conceal of an outer REVEAL points at a slot
+-- that exists only in the composite's own reveal block.
+Θ⊞ : BCtx
+Θ⊞ = cnc 0 `ℕ ∷ rvl `ℕ ∷ []
+
+¬bwf-append : ∀ {Ψ : TCtx} → Bwf [] Ψ Θ⊞ Θ⊞ → ⊥
+¬bwf-append (bwf↓  () _ _ _)
+¬bwf-append (bwf↓x () _ _ _ _)
+
+-- and towers DO collapse to bare values where the composite empties: §9a's
+-- cancel pair is the witness, and Drop∅ is what finishes it
+tower-collapses : [] ⊢ ($ 7) ⟪ Θ1c ⊕ Θ2c , mrgB Θ1c Θ2c (` 0) ⟫ -→ $ 7
+tower-collapses = Drop∅ V-$

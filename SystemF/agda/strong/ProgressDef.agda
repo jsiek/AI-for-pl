@@ -1,23 +1,36 @@
 module strong.ProgressDef where
 
--- Statements of the four progress cases that still await the restored conceal
--- invariant (notes/DECISIONS.md, Decision 1) and Merge (Decision 3).  Two
--- families, one per elimination:
+-- Statements of the progress cases still open.  AFTER MERGE'S LANDING
+-- (2026-09-04) there are TWO, not four, and strong.Progress.Impl takes
+-- exactly those two:
 --
---   RevealVar…  a wrapped VALUE whose boundary type is a REVEAL VARIABLE —
---               neither TyWrap nor Wrap applies (Decision 1);
 --   Nested…     a WRAPPER-BODIED wrapper at a ∀ / ⇒ face — TyWrap and Wrap
 --               are partial in their body (they consume a Λ / a ƛ), so a
 --               wrapper body is a Merge redex (Decision 3).
+--   RevealVar…  a wrapped VALUE whose boundary type is a REVEAL VARIABLE.
+--               *** THESE TWO ARE NOW THEOREMS *** — strong.Progress's
+--               rv-app / rv-tapp.  At a reveal-variable face the INTERNAL
+--               face is that same variable (γᵇ-lo: a reveal passes through
+--               unchanged), so the wrapped value has VARIABLE type and
+--               strong.Canonical's canon-var makes it a wrapper: the redex
+--               was a wrapper-bodied wrapper all along and the SAME Merge
+--               frame reaches it.  The statements are kept here because
+--               Progress still exports the two theorems at these types.
 --
 -- Each is stated over the KNOWLEDGE-INDEXED reduction relation: the redex
 -- sits at the type context Δ that also types it.
 --
--- strong.Progress is parameterised over these statements (the repo's `…Def`
--- convention) and is instantiated once they are proven.  Merge discharges the
--- Nested… pair uniformly: the contractum is the merged wrapper back under the
--- same elimination frame (ξ-·-l / ξ-·[]), so nothing beyond the redex's own
--- typing is assumed here.
+-- WHAT IS LEFT IN THE Nested… PAIR, EXACTLY.  The step itself is settled —
+-- it is `ξ-·-l (Merge v ok)` / `ξ-·[] (Merge v ok)` — and everything in
+-- `ok : MergeOK Δ Θ₁ Θ₂ B₁ B₀₂` except its LAST component follows from the
+-- redex's own typing (the frame arithmetic revs-⊕ / cmax-⊕ and the internal
+-- face ⊕-γ are theorems).  The last component — the composite's EXTERNAL
+-- face is the redex's own type — is a premise of Merge and NOT derivable:
+-- notes/InstallGauntlet.agda §9d(i) is an ⇒-faced wrapper-bodied wrapper,
+-- well typed, for which it FAILS (the composite would export ℕ⇒ℕ where the
+-- redex has X⇒ℕ, dropping X's abstraction), and §9d exhibits the merged
+-- boundary that DOES work there.  So these two parameters are not waiting
+-- on a proof but on the B₂′ / ⊕ ruling recorded in notes.md §Merge.
 
 open import Data.Nat using (ℕ; _<_)
 open import Data.Product using (Σ)

@@ -29,6 +29,7 @@ module strong.BPreservation where
 --        intOf Δ Θ, which is exactly what the reduction rule extends by.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.Product using (_×_; _,_)
 open import Data.List using (List; []; _∷_; length)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; trans; sym; subst; subst₂)
@@ -163,6 +164,50 @@ module Impl (dual-rep : DualRep≈) (dual-cnc : DualCnc≈)
                    (ρᵇ-dual-ty Δ B₁ Θ sc₁)
                    (env (bwf-dual dual-rep dual-cnc dual-int bwf)
                         (sc-dual Δ Θ sc₁) ⊢W′)
+
+  -- Merge:  (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫  →  V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫
+  --
+  -- The redex's type is FORCED to be the outer wrapper's external face
+  -- substᵗ (ρᵇ Θ₂) B₂, and the merged wrapper's is substᵗ (ρᵇ (Θ₁ ⊕ Θ₂))
+  -- B₂′ — MergeOK's last component is exactly the equation between them
+  -- (see strong.BReduction's part 4 for why it is a premise and not a
+  -- lemma).  Everything else:
+  --
+  --   * the MIDDLE-TYPE equation comes from inverting the nested (env)
+  --     (env-ty / mid-eq): the inner wrapper's external face IS the outer
+  --     one's internal face, which is what makes the body's own typing
+  --     usable at all;
+  --   * the body moves from the nested interior intOf (intOf Δ Θ₂) Θ₁ to
+  --     the composite's intOf Δ (Θ₁ ⊕ Θ₂) by ⊢retag≈ along MergeOK's
+  --     ordering — the interiors compose only UP TO ≼≈ (Example 3's tower:
+  --     nested, the innermost entry is the reveal VARIABLE below it;
+  --     merged, it is that reveal's own rep, one unfolding further);
+  --   * its TYPE is unchanged, because the INTERNAL face composes on the
+  --     nose — ⊕-γ, a theorem, given MergeOK's scope side condition and
+  --     the inner (env)'s own Scoped premise (env-sc).
+  preservation {Δ} (env {Θ = Θ₂} {B₀ = B₂} bwf₂ sc₂ ⊢in)
+                   (Merge {Θ₁ = Θ₁} {B₁ = B₁} v
+                          (le , b⊕ , sc⊕ , int , ext)) =
+    subst (λ T → Δ ∣ [] ⊢ _ ⦂ T) ext (env b⊕ sc⊕ ⊢body)
+    where
+      ⊢body : intOf Δ (Θ₁ ⊕ Θ₂) ∣ []
+                ⊢ _ ⦂ substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁)
+      ⊢body = subst (λ T → intOf Δ (Θ₁ ⊕ Θ₂) ∣ [] ⊢ _ ⦂ T)
+                    (sym (⊕-γ Θ₁ Θ₂ le (env-sc ⊢in)))
+                    (⊢retag≈ int (env-body ⊢in))
+
+  -- Drop∅:  V ⟪ ∅ , B₀ ⟫  →  V.  At Θ = [] the interior IS the exterior
+  -- (revEnts [] = [] and dropN 0 Δ = Δ, both definitionally) and BOTH
+  -- faces are the identity substitution — ρᵇ [] is `_ on the nose and
+  -- γᵇ [] is pointwise `_ — so the case is refl up to that one
+  -- subst-cong.
+  preservation {Δ} (env {B₀ = B₀} bwf sc ⊢V) (Drop∅ v) =
+    subst (λ T → Δ ∣ [] ⊢ _ ⦂ T) faces ⊢V
+    where
+      gvar : ∀ j → γᵇ [] j ≡ ρᵇ [] j
+      gvar j = refl
+      faces : substᵗ (γᵇ []) B₀ ≡ substᵗ (ρᵇ []) B₀
+      faces = subst-cong gvar B₀
 
   ----------------------------------------------------------------------
   -- ξ (congruence) rules: the induction hypothesis under the typing rule

@@ -11,9 +11,18 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 # TODO
 
-* land **Merge** (Decision 3) and **Drop∅**; Merge discharges the two `Nested…` progress
-  parameters and enables depth-1 values.
-* close progress's two `RevealVar…` parameters.
+* **Merge** and **Drop∅** are LANDED (2026-09-04) — see the rule table and §Merge below.
+  Drop∅ is now a real rule and REACHABLE (Merge's cancel clause mints the empty boundary).
+  Progress's two `RevealVar…` parameters are GONE (they dissolve into the `Nested…` ones —
+  a wrapper at a reveal-variable face has a body of variable type, hence a wrapper).
+* **the one thing Merge still asks of its redex** (`MergeOK`, a premise of the rule): the
+  composite's EXTERNAL face must be the redex's own type.  It is a premise and not a lemma:
+  NEITHER of the two candidate merged boundary types works everywhere — the B₁-pushed-out
+  one (landed) is refuted on the TOPLAS three-agent shape and the B₂ ("keep the outer type")
+  one on Example 3's tower (notes/InstallGauntlet.agda §9c, §9e).  Both failures trace to ⊕
+  RESOLVING an inner reveal's rep through the outer boundary where the abstract witness had
+  to be kept; §9d exhibits, for each, the merged boundary that DOES work.  **Needs a
+  ruling.**
 * shrink what is left of `DualDef.agda`'s three parameters.  Two of the four components they
   used to bundle are now theorems (the ⋆ half of the conceal block, and the copied reps'
   well-formedness); the licensing residue is precisely a reveal whose representation names a
@@ -518,10 +527,12 @@ see "Old per-variable design" and the historical Example 8 below.)
   (ξ-@)     Γ ⊢ L -→ L′                   ⟹  Γ ⊢ L @B[A] -→ L′ @B[A]
   (ξ-Λ)     Γ, X ⊢ N -→ N′                ⟹  Γ ⊢ ΛX.N    -→ ΛX.N′
   (ξ-⟪⟫)    Γ⇈Θ ⊢ M -→ M′                 ⟹  Γ ⊢ M ⟪ Θ , B₀ ⟫ -→ M′ ⟪ Θ , B₀ ⟫
+  (Merge)   Γ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫
+                                          -→ V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫       if MergeOK
+  (Drop∅)   Γ ⊢ V ⟪ ∅ , B₀ ⟫              -→ V
   (Cancel)  Γ ⊢ (V ⟪ ↓X:=A , B₀ ⟫) ⟪ ↑X:=A′ , B₀′ ⟫  -→ V     if A = A′    [OPTIONAL]
   (Drop)    Γ ⊢ V ⟪ ↑X:=A , Θ , B₀ ⟫      -→ V ⟪ Θ , B₀ ⟫     if X ∉ B₀, X ∉ V,
                                                               X ∉ the reps of Θ  [OPTIONAL]
-  (Drop∅)   Γ ⊢ V ⟪ ∅ , B₀ ⟫              -→ V                             [OPTIONAL]
 
   In TyWrap the type argument A is recorded VERBATIM as the new reveal's representation: a
   reveal's rep is read in the plain exterior (simultaneity (ii)), where A already lives, so
@@ -628,6 +639,102 @@ see "Old per-variable design" and the historical Example 8 below.)
   `_[_]ᵐ`, which is the identity on wrappers (a boundary body is term-closed), so the
   argument's own boundaries are never descended into.
 
+## Merge — nested boundaries collapse to one
+
+  (Merge)   Γ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫  -→  V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫       if MergeOK
+
+  Merge is NOT an optimisation: TyWrap and Wrap consume the Λ / λ they eliminate, so a
+  WRAPPER-bodied wrapper at an elimination is a Merge redex and nothing else.  Θ₂ is the
+  OUTER boundary, so Θ₁'s exterior is Θ₂'s interior Γ⇈Θ₂, and the composite's exterior is Γ
+  while its interior is Θ₁'s.  Two maps move a (Γ⇈Θ₂)-type to the two ends, and both are the
+  ones the design already runs on:
+
+    A[ρΘ₂]  the READ-BACK out to Γ  (the map the reversal premise uses: a reveal of Θ₂ ↦ its
+            stored rep, a kept slot ↦ its exterior index)
+    A[γΘ₁]  the READING in to Γ⇈Θ₁ (a conceal of Θ₁ ↦ its rep, a kept slot ↦ its interior
+            index)
+
+  **Θ₁ ⊕ Θ₂, entry by entry.**
+
+    ↑X:=A ∈ Θ₁      ↦  ↑X:=A[ρΘ₂]      the rep is PUSHED OUT: a reveal's rep is read in the
+                                       plain exterior, which is now Γ
+    ↑X:⋆  ∈ Θ₁      ↦  ↑X:⋆            no rep to push; the slot stays blocked, as it was
+    ↓Y:=A ∈ Θ₁, Y a REVEAL slot of Θ₂  ↦  DELETED, together with that reveal  ***CANCEL***
+    ↓Y:⋆  ∈ Θ₁, Y a REVEAL slot of Θ₂  ↦  DELETED, together with that reveal  ***CANCEL***
+    ↓Y:=A ∈ Θ₁, Y an INHERITED slot    ↦  ↓Y′:=A, Y′ the same slot's Γ-index (A already lives
+                                          over the composite's interior, so it is unchanged)
+    ↓Y:⋆  ∈ Θ₁, Y an INHERITED slot    ↦  ↓Y′:⋆
+    ↓Z:=C ∈ Θ₂     ↦  ↓Z:=C[γΘ₁]       the rep is PUSHED IN: it now lives over Θ₁'s interior
+    ↓Z:⋆  ∈ Θ₂     ↦  ↓Z:⋆
+    ↑Z:=C / ↑Z:⋆ ∈ Θ₂  ↦  kept, UNLESS Θ₁ DROPS that slot — either by concealing it (the
+                          cancel above) or by merely BLOCKING it, in which case the slot is
+                          absent from Θ₁'s interior as well and no type can name it
+
+  So the composite's frame is [reveals of Θ₁][surviving reveals of Θ₂][Γ], and its shape is
+  pure entry-counting (both proven in the Agda):
+
+    revs (Θ₁ ⊕ Θ₂) = revs Θ₁ + (revs Θ₂ ∸ cmax Θ₁)
+    cmax (Θ₁ ⊕ Θ₂) = cmax Θ₂ + (cmax Θ₁ ∸ revs Θ₂)
+
+  **THE DELETING CANCEL is the one clause that transports knowledge**, and it is licensed by
+  the invariant, not by hygiene: the deleted conceal's rep read BACK OUT is the interior's own
+  knowledge about the slot (bwf-↓), and at a REVEAL slot that knowledge IS the reading of the
+  reveal's own stored rep — a THEOREM on the live core (`rep-stored` / `cancel-agree`, the
+  ≡-analogue of `xrep-stored`) — so the rep the cancel keeps is the rep the deleted reveal
+  carried.
+  For an X-PAIR (a conceal licensed by (bwf-↓x) against an exterior-read entry) the agreement
+  is a THEOREM and syntactic: `xrep-stored` says an x-entry at a reveal slot records exactly
+  the stored rep, so at every dual's birth the two reps are equal, and the skeleton premise
+  the licence carries comes for free (`dual-cnc-skel`).  This is what closed the never-delete
+  warning: the TOPLAS three-agent counterexample is CONCEAL-OF-CONCEAL, so our cancel never
+  fires on it — ⊕ appends, both authorities survive, and the merged term types.  The MIXED
+  pairs (a ↓Y:⋆ of a ↑Y:=A, a ↓Y:=A of a ↑Y:⋆) cancel too, and soundly: a ⋆-conceal asserts
+  nothing at all, and a ⋆-reveal's slot is blocked in baseS, so no boundary type can name it
+  and neither face ever consults it.
+
+  **B₂′, and the one premise.**  There are exactly two candidates, B₁ and B₂ carried into the
+  composite's frame.  The landed choice is B₁'s: the INTERNAL face is then free — the merged
+  wrapper types the same body at the same type, a theorem (⊕-γ) for every redex — while B₂'s
+  transport is refuted outright by any tower whose inner boundary reveals over the outer one.
+  This DIVERGES from the TOPLAS reading "keep the outer boundary type", which is right on
+  THEIR shape and wrong on ours; and on their shape ours is wrong, so neither transport is
+  right everywhere.  What is left is the external face, and it is a PREMISE of the rule
+  (`MergeOK`, an invariant carried by the relation) rather than a lemma:
+
+    MergeOK Γ Θ₁ Θ₂ B₁ B₂  =  Θ₁ drops only slots Θ₂ reveals   (⊕-γ's side condition)
+                            ∧  Γ ∣ Γ⇈(Θ₁⊕Θ₂) ⊢ Θ₁ ⊕ Θ₂        (the composite is well formed)
+                            ∧  (Θ₁⊕Θ₂) ; Γ ⊢ᵒᵏ B₂′            (B₂′ is scoped)
+                            ∧  Γ⇈Θ₂⇈Θ₁ ≼≈ Γ⇈(Θ₁⊕Θ₂)           (the contexts compose)
+                            ∧  B₂′[ρ(Θ₁⊕Θ₂)] = B₂[ρΘ₂]        (the redex's type is kept)
+
+  Why the last one cannot be proven: the composite reads B₁'s slots out through Θ₂, which
+  resolves a CONCEAL of Θ₂ to its rep, while the redex's own type keeps the concealed
+  VARIABLE.  The two are ≈Δ̄-equal — Γ's knowledge about that slot IS the rep — and typing is
+  syntactic.  The counterexample is a ⇒-faced tower over Γ = X:=ℕ whose outer boundary hides
+  X at ℕ and whose inner one re-reveals a fresh W at that same ℕ: the merge would export
+  ℕ→ℕ where the redex had X→ℕ, i.e. it would DROP X's abstraction.  And the composite that
+  DOES work there is ↑W:=X , ↓X:=ℕ — the reveal re-abstracted AT X.  So the obstruction is
+  ⊕'s eager push-out, not Merge; the repair is to keep the abstract witness, which needs
+  B₂ (or Θ₂'s conceals) consulted where ⊕ currently consults only Θ₁'s rep.  Machine-checked
+  both ways in notes/InstallGauntlet.agda §9d.
+
+  **The contexts compose only up to ≼≈.**  Γ⇈Θ₂⇈Θ₁ and Γ⇈(Θ₁⊕Θ₂) hold the same slots, but an
+  entry can differ by one unfolding: in Example 3's tower, nested, Z₃'s entry is the reveal
+  VARIABLE Z₂ below it; merged, it is Z₂'s own rep.  That is exactly the retagging ordering
+  (§Retagging), and Merge's preservation case moves the body along it — so "retyping along
+  unfolding", Zdancewic's Δ̄, IS ≼≈ here, which is what the reversal form was chosen to make
+  possible.
+
+## Drop∅ — the vacuous boundary
+
+  (Drop∅)   Γ ⊢ V ⟪ ∅ , B₀ ⟫  -→  V
+
+  At Θ = ∅ the interior IS the exterior and BOTH faces are the identity substitution
+  (γ∅ = ρ∅ = id), so preservation is that one substitution-congruence step.  Drop∅ was
+  type-preserving all along but UNREACHABLE; Merge's cancel clause is what mints an empty
+  boundary, so the two ship together (Decision 3's addendum) and a cancelled tower collapses
+  to the bare value rather than to a vacuous wrapper.
+
 ## ξ — congruences
 
   Call-by-value, left to right; also under a Λ and under a boundary.  The last two are not
@@ -647,8 +754,10 @@ see "Old per-variable design" and the historical Example 8 below.)
 
   Cancel is sound ONLY when the conceal's rep equals the enclosing reveal's rep.  Nothing in
   (env) enforces that (see the `bad` term in Metatheory §Progress), so Cancel must carry the
-  side condition explicitly.  Drop∅ is type-preserving but unreachable — no rule mints an
-  empty boundary.
+  side condition explicitly — and that side condition is now exactly what the reversal
+  premise guarantees, so Cancel survives as a cheap optimisation of Merge-then-Drop∅.
+  Drop∅ is no longer optional (§Drop∅): it is a rule, and Merge's cancel clause makes it
+  reachable.
 
 ## Old per-variable design — superseded; see Example 8
 
@@ -684,10 +793,10 @@ see "Old per-variable design" and the historical Example 8 below.)
 Traces are in named notation with the new rules; each line is annotated with the rule that
 fires (ξ steps that merely locate the redex are left implicit).  Steps marked [opt] use the
 optional Cancel/Drop rules; without them the trace stops at a value that is a tower of
-boundaries around the answer.  Steps marked [D3] use Merge, which is settled but not yet a
-rule (Decision 3): since TyWrap and Wrap consume the Λ / λ they eliminate, a WRAPPER-bodied
-wrapper at an elimination is a Merge redex.  The merged boundary is written Θ₁ ⊕ Θ₂ — its
-entry-level definition is Decision 3's (notes/old/MergeProbe.agda), not fixed here.
+boundaries around the answer — but a tower whose composite EMPTIES now collapses for real,
+by Merge then Drop∅ (Examples 1, 2, 5, 6, 7 all end that way).  Merge steps are written out
+with the composite Θ₁ ⊕ Θ₂ computed entry-wise (§Merge), so the reps that are pushed out or
+pushed in are visible in the trace.
 
 ## Example 1
 
@@ -695,9 +804,16 @@ entry-level definition is Decision 3's (notes/old/MergeProbe.agda), not fixed he
   → TyBeta      ((λy:Y. (ΛX.λx:X.y) [Y]) ⟪ ↑Y:=ℕ , Y→Y→Y ⟫) · 7 · 3
   → Wrap        (((ΛX. λx:X. 7⟪↓Y:=ℕ,Y⟫) [Y]) ⟪ ↑Y:=ℕ , Y→Y ⟫) · 3
   → TyBeta      (((λx:X. 7⟪↓Y:=ℕ,Y⟫) ⟪ ↑X:=Y , X→Y ⟫) ⟪ ↑Y:=ℕ , Y→Y ⟫) · 3
-  → Merge [D3]  ((λx:X. 7⟪↓Y:=ℕ,Y⟫) ⟪ (↑X:=Y) ⊕ (↑Y:=ℕ) , X→Y ⟫) · 3
-  → Wrap        (7⟪↓Y:=ℕ,Y⟫) ⟪ (↑X:=Y) ⊕ (↑Y:=ℕ) , Y ⟫                  -- a VALUE
-  → [opt]       7
+  → Merge       ((λx:X. 7⟪↓Y:=ℕ,Y⟫) ⟪ ↑X:=ℕ , ↑Y:=ℕ , X→Y ⟫) · 3
+  → Wrap        (7⟪↓Y:=ℕ,Y⟫) ⟪ ↑X:=ℕ , ↑Y:=ℕ , Y ⟫
+  → Merge       7 ⟪ ∅ , ℕ ⟫                                  -- the cancel EMPTIES it
+  → Drop∅       7
+
+  The merge on the fourth line pushes X's rep OUT through the outer boundary: Y[ρ(↑Y:=ℕ)] = ℕ,
+  so the composite reveals X at ℕ.  B₂′ is B₁ = X→Y carried into the composite's frame (X its
+  own reveal slot, Y the surviving one) — both faces are then exactly the redex's.  The
+  SECOND merge is a cancel: ↓Y:=ℕ conceals the slot the composite reveals, so both entries
+  vanish, B₂′ becomes the agreed rep ℕ, and Drop∅ finishes.
 
   The head of the fourth line is a wrapper wrapped in a wrapper: Wrap consumes the λ, and
   there is no λ until the two boundaries merge.  The λ's body does not use x, so the Wrap step
@@ -726,8 +842,8 @@ entry-level definition is Decision 3's (notes/old/MergeProbe.agda), not fixed he
   → TyBeta      ((λf:(∀Z.Z→Z). f [X]) ⟪ ↑X:=𝔹 , (∀Z.Z→Z)→(X→X) ⟫) · ((ΛY.ΛZ.λz:Z.z) [ℕ])
   → TyBeta      (…) · ((ΛZ.λz:Z.z) ⟪ ↑Y:=ℕ , ∀Z.Z→Z ⟫)                   -- call it W
   → Wrap        ((W ⟪ ↓X:=𝔹 , ∀Z.Z→Z ⟫) [X]) ⟪ ↑X:=𝔹 , X→X ⟫
-  → Merge [D3]  ((ΛZ.λz:Z.z) ⟪ (↑Y:=ℕ) ⊕ (↓X:=𝔹) , ∀Z.Z→Z ⟫ [X]) ⟪ ↑X:=𝔹 , X→X ⟫
-  → TyWrap      ((λz:Z₁.z) ⟪ ↑Z₁:=X , (↑Y:=ℕ) ⊕ (↓X:=𝔹) , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
+  → Merge       ((ΛZ.λz:Z.z) ⟪ ↑Y:=ℕ , ↓X:=𝔹 , ∀Z.Z→Z ⟫ [X]) ⟪ ↑X:=𝔹 , X→X ⟫
+  → TyWrap      ((λz:Z₁.z) ⟪ ↑Z₁:=X , ↑Y:=ℕ , ↓X:=𝔹 , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
 
   A value: the polymorphic identity behind two boundaries, external type 𝔹→𝔹.  Note that the
   type argument X of TyWrap is recorded as the rep of the reveal Z₁ — the slot the consumed
@@ -848,7 +964,7 @@ entry-level definition is Decision 3's (notes/old/MergeProbe.agda), not fixed he
              ((ΛY. ((λz:X. f′ z) ⟪ ↑Z:=ℕ , X→X ⟫)) ⟪ ↑X:=ℕ , ∀Y.X→X ⟫) [𝔹] · 3
                                                             f′ = (λn:ℕ.n)⟪↓X:=ℕ,X→X⟫
   → TyWrap   ((λz:X. f′ z) ⟪ ↑Z:=ℕ , X→X ⟫) ⟪ ↑Y:=𝔹 , ↑X:=ℕ , X→X ⟫ · 3
-  → Merge [D3] ; Wrap  …                                     ambient Γ = Z:=ℕ , Y:=𝔹 , X:=ℕ
+  → Merge ; Wrap  …                                          ambient Γ = Z:=ℕ , Y:=𝔹 , X:=ℕ
   → Wrap     the sealed f′ (boundary still the PLAIN ↓X:=ℕ) meets its argument at that Γ,
              blocking BOTH Z and Y, both of which carry knowledge
 
@@ -1031,10 +1147,13 @@ Supporting lemmas.
 The SAME Γ indexes both judgements — which is exactly why ξ-Λ and ξ-⟪⟫ had to extend the
 reduction's index by the context the corresponding typing rule extends by.
 
-Proved in the Agda (BPreservation.agda) for every rule: Beta, TyBeta, TyWrap, Wrap and the
-five ξ congruences.  Wrap's case is proved MODULO three statements about the ambient dual
-(DualDef.agda); everything else — including both of Wrap's face laws, the renaming lemma with
-its exterior-read transport, and the retagging lemma — is unconditional.
+Proved in the Agda (BPreservation.agda) for every rule: Beta, TyBeta, TyWrap, Wrap, Merge,
+Drop∅ and the five ξ congruences.  Wrap's case is proved MODULO three statements about the
+ambient dual (DualDef.agda); everything else — including both of Wrap's face laws, the
+renaming lemma with its exterior-read transport, the retagging lemma, and BOTH of the new
+cases — is unconditional.  Merge and Drop∅ add NO module parameter: what Merge cannot prove
+it ASKS OF THE REDEX (MergeOK, §Merge), so the invariant lives in the relation, as the
+grounded-invariant law requires.
 
   What the licence install changed in the three dual statements.  Their SHAPES are now up to
   ≈Δ̄ (DualRep≈ / DualCnc≈ / DualInt≈), and two of their four former components became
@@ -1089,6 +1208,20 @@ its exterior-read transport, and the retagging lemma — is unconditional.
               at blocked slots, where the re-introduced entry makes them differ; (L-sc) with
               the scope premise on B₁ makes that difference irrelevant.  BOTH face laws are
               theorems.  Then (L1) at that argument, and (env) at B₂.
+  Merge.      Inversion of the NESTED (env)s (env-ty / mid-eq): the redex's type is the outer
+              wrapper's external face B₂[ρΘ₂], and the inner wrapper's external face IS the
+              outer one's internal face — the middle-type equation.  The body is typed at the
+              nested interior Γ⇈Θ₂⇈Θ₁ with the inner internal face B₁[γΘ₁]; it moves to the
+              composite's interior by (L-≼≈) along MergeOK's ordering, and its TYPE does not
+              move at all, because the INTERNAL face composes on the nose: that is ⊕-γ, a
+              theorem, from MergeOK's side condition (Θ₁ drops only slots Θ₂ reveals) and the
+              inner (env)'s own scope premise.  The composite's external face is MergeOK's
+              last component; the frame arithmetic (revs-⊕ / cmax-⊕) and the pointwise
+              external-face laws away from the cancelled slots (ρ⊕-lo / ρ⊕-mid) are theorems
+              too.  Nothing renames the term.
+  Drop∅.      Both faces of the empty boundary are the identity substitution and its interior
+              IS the exterior, so the case is the body's own typing modulo one
+              substitution-congruence step (§Drop∅).
 
               THREE facts about the dual are NOT proved and are the module parameters of
               `DualDef.agda` (the repo's `…Def` convention):
@@ -1138,9 +1271,11 @@ its exterior-read transport, and the retagging lemma — is unconditional.
 
   In the first two cases the wrapped value's own type is the internal face of B₀, which is
   ∀- resp. ⇒-shaped, so it is the matching binder or a WRAPPER; the wrapper subcase is a Merge
-  redex (Decision 3), which is why the two rules being partial costs no progress once Merge
-  lands.  In the Agda those two subcases are the module parameters NestedTApp / NestedApp of
-  strong.ProgressDef, alongside the two reveal-variable ones.
+  redex.  The THIRD case is no longer separate: at a reveal-variable face the internal face is
+  that same variable (a reveal passes through γΘ unchanged), so the wrapped value has VARIABLE
+  type and canonical forms make it a wrapper — the redex was a wrapper-bodied wrapper all
+  along.  In the Agda that is `rv-app` / `rv-tapp`, now THEOREMS inside strong.Progress, and
+  the module parameters are down to NestedTApp / NestedApp of strong.ProgressDef.
 
   Cases on M: constants and λ are values; a variable is impossible (empty term context); an
   application or type application reduces a non-value part by ξ, and with both parts values
@@ -1165,17 +1300,21 @@ its exterior-read transport, and the retagging lemma — is unconditional.
   which the untransported comparison still admitted.  A conceal is now licensed only against
   real knowledge, so a Λ-bound variable can never be concealed at all.
 
-  WHAT REMAINS OPEN in progress.  Four cases, all module parameters of ProgressDef.agda,
-  none of them the old inconsistency:
+  WHAT REMAINS OPEN in progress.  TWO cases now, both module parameters of ProgressDef.agda,
+  neither of them the old inconsistency:
 
-    RevealVarApp / RevealVarTApp — the wrapper's B₀ is a REVEAL VARIABLE.  Its external face
-      is that reveal's rep, which can be ⇒- or ∀-shaped, so the term IS at an elimination;
-      what fires is a Merge or a Cancel against the enclosing boundary.
-    NestedApp / NestedTApp — a WRAPPER-bodied wrapper at a ⇒ / ∀ face.  Merge (Decision 3)
-      discharges both uniformly.
+    NestedApp / NestedTApp — a WRAPPER-bodied wrapper at a ⇒ / ∀ face.  Merge is the rule
+      that fires, and the whole content of both parameters is now to SUPPLY MergeOK at such a
+      redex (§Merge): the frame and the internal face are theorems, and so is the step's
+      shape — `ξ-·-l (Merge …)` / `ξ-·[] (Merge …)` — but the external-face equation is a
+      premise, and there are redexes of exactly this shape where it FAILS
+      (notes/InstallGauntlet.agda §9d(i) is an ⇒-faced one).  So progress is not closed by
+      Merge as it stands; it is closed by whichever repair the B₂′ ruling picks.
+    RevealVarApp / RevealVarTApp — GONE, discharged (see above).
 
-  So progress reduces to Merge, and Merge to "retyping along unfolding" (Zdancewic's Δ̄) —
-  which the reversal form was chosen to make possible.
+  So progress reduces to Merge, and Merge to "retyping along unfolding" (Zdancewic's Δ̄),
+  which the reversal form was chosen to make possible — and that half IS done: it is the
+  retagging ordering ≼≈, and Merge's preservation case runs on it.
 
 # Correspondence with the Agda   (SystemF/agda/strong/)
 
@@ -1217,8 +1356,27 @@ its exterior-read transport, and the retagging lemma — is unconditional.
   TyBeta                     TyBeta                                     BReduction.agda
   TyWrap  (A unlifted)       TyWrap   (R1)                              BReduction.agda
   Wrap                       Wrap     (R2)                              BReduction.agda
-  Merge                      — not yet a rule; the four open progress   ProgressDef.agda
-                               cases are its module parameters
+  Merge                      Merge  (its premise: MergeOK)               BReduction.agda
+  Drop∅                      Drop∅                                      BReduction.agda
+  Θ₁ ⊕ Θ₂                    _⊕_ = mapL Θ₂ Θ₁ ++ mapR Θ₁ 0 Θ₂           BReduction.agda
+  A[ρΘ₂] (push a rep out)    outSub Θ₂ / outRead                        Boundary.agda
+  A[γΘ₁] (push a rep in)     inSub = rdSub Θ₁ (= γcnc)                  Boundary.agda
+  the composite's shape      revs-⊕, cmax-⊕ (R⊕, C⊕)                    BReduction.agda
+  the frame maps             mrg₁ / mrg₂ / mrgΨ / up⊕ (substitutions:   BReduction.agda
+                               a cancelled slot goes to the agreed rep)
+  B₂′ (B₁ pushed out)        mrgB Θ₁ Θ₂ B₁ = substᵗ (mrg₁ Θ₁ Θ₂) B₁     BReduction.agda
+  the internal face composes ⊕-γ (a THEOREM; ⊕-γ-pt, γ⊕-up, γ⊕-rep)     BReduction.agda
+  cancel-agree, ordinary     rep-stored / cancel-agree (the knowledge at  BReduction.agda
+                               a reveal slot IS the stored rep's reading)
+  cancel-agree, x-pair       xrep-stored / dual-cnc-skel                 DualDef.agda
+  the external face          ρ⊕-lo / ρ⊕-mid / ρᵇ-hi, and MergeOK's      BReduction.agda
+                               last component where they do not compose
+  (env) inversion            env-ty / env-bwf / env-sc / env-body,      BReduction.agda
+                               mid-eq (the middle-type equation)
+  the Merge/Drop∅ suite      notes/InstallGauntlet.agda §9 (the cancel
+                               pair, E★'s x-pair cancel, Example 3's
+                               tower twice, the two limits + their
+                               repairs, the TOPLAS three-agent shape)
   ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫             BReduction.agda
   Cancel / Drop              — not in the Agda (optional; see above)
   Θᵈ(Γ)  (ambient dual)      dualᴳ Δ Θ / entᴳ / swapᵇ Θ                 BReduction.agda
@@ -1265,9 +1423,10 @@ its exterior-read transport, and the retagging lemma — is unconditional.
   * reveal reps are exterior and never shift with the interior;
   * B₀ lives over the boundary frame (reveal variables ++ Γ), so it renames by a lift past the
     reveal block, and Θᵈ permutes that frame by a block swap (`swapᵇ`);
-  * the Agda's `Term` has no arithmetic `_⊕_` and no boolean constants, so it has no (δ) and
+  * the Agda's `Term` has no arithmetic and no boolean constants, so it has no (δ) and
     no (arith)/(cnst-b) — the type 𝔹 exists but no term inhabits it.  The (δ)/(arith)/(cnst-b)
-    lines above are part of the informal language only.
+    lines above are part of the informal language only, and the live `_⊕_` is the BOUNDARY
+    composition of §Merge, not arithmetic.
 
 # Why the earlier conceal-b design failed  (kept as a cautionary record)
 

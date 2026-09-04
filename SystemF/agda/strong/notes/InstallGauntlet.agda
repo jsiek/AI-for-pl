@@ -1205,3 +1205,50 @@ Bd2 = ` 0 ⇒ ` 1                        -- X⇒Z
 
 ¬γ-dWZ : ¬ (substᵗ (γᵇ ΘdX) (` 0 ⇒ ` 2) ≡ substᵗ (γᵇ Θd1) Bd1)
 ¬γ-dWZ ()
+
+------------------------------------------------------------------------
+-- §9h.  AFTER A PEEL, EVERYTHING ELSE IS ALREADY LANDED.  The candidate
+-- rule (DECISIONS "Decision 5, REFRAMED", fork (b)) generalizes Wrap
+-- from ƛ-bodied to VALUE-bodied wrappers:
+--
+--   Peel : (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
+--        -→ (V · (W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
+--
+-- On §9f's stuck redex, Θ = Θcx2 = ↓X:=ℕ and dualᴳ Δcx Θcx2 = ↑X:=ℕ
+-- (= Θcx1, definitionally — dual-cx below), so the peel moves the
+-- argument 5 ⟪ ↓X:=ℕ , X ⟫ INWARD, wrapping it in ↑X:=ℕ: a LINEAGE
+-- pair (the reveal is minted from the very conceal it faces), and the
+-- landed Merge cancels it with a FULLY DISCHARGED MergeOK
+-- (peel-cancel below) — no coincidence linkage, no outward
+-- re-abstraction, no face-directed ⊕.  Then Drop∅, then the ordinary
+-- Wrap on the inner ƛ-bodied wrapper.  Only the peel step itself is
+-- not a live inhabitant (the rule is not installed); every subsequent
+-- step is, and is checked here.
+------------------------------------------------------------------------
+
+-- the peeled dual IS the reveal Θcx1, and its boundary type is X
+dual-cx : dualᴳ Δcx Θcx2 ≡ Θcx1
+dual-cx = refl
+
+swap-cx : renameᵗ (swapᵇ Θcx2) (` 0) ≡ ` 0
+swap-cx = refl
+
+-- step A (landed Merge, ambient = the peel boundary's interior []):
+-- the lineage pair ↓X:=ℕ under ↑X:=ℕ cancels, MergeOK fully discharged
+peel-cancel : [] ⊢ (($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫
+                -→ ($ 5) ⟪ Θcx2 ⊕ Θcx1 , mrgB Θcx2 Θcx1 (` 0) ⟫
+peel-cancel = Merge V-$ (s≤s z≤n , bwf[] , sc-ℕ , ≼≈[] , refl)
+
+-- …and the composite is EMPTY: the crossing consumed both boundaries
+peel-∅ : Θcx2 ⊕ Θcx1 ≡ []
+peel-∅ = refl
+
+peel-drop : [] ⊢ ($ 5) ⟪ [] , mrgB Θcx2 Θcx1 (` 0) ⟫ -→ ($ 5)
+peel-drop = Drop∅ V-$
+
+-- step B (landed Wrap): the inner wrapper is ƛ-bodied, so the ordinary
+-- rule finishes the application; y is unused and the result is 3's
+-- wrapper
+peel-wrap : [] ⊢ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) · ($ 5)
+              -→ ($ 3) ⟪ Θcx1 , `ℕ ⟫
+peel-wrap = Wrap V-$

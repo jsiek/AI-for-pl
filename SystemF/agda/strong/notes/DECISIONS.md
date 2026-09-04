@@ -1634,3 +1634,20 @@ demoted to the theorem discharging it under cmax≤revs (existing
 witnesses rebuild); §9l's counterexample steps; the target is
 MergeDerivable proven → Progress.Impl instantiated → progress TOP-LEVEL
 UNCONDITIONAL, with det/V-¬-→ kept.
+
+## THE PRESERVATION ENDGAME (2026-09-05) — plan + three parallel tracks
+
+Jeremy: "speed up the push to finish preservation; plan DualCnc≈ now,
+launch subagents for DualRep≈ and DualInt≈."  Done — the full plan is
+notes/PreservationEndgame.md.  Key points: all three residues are
+PROBE-FIRST (each has a suspected-false corner: DualRep≈ lacks ⊢ᶜ Δ —
+the store-typing pattern, a preservation-STATEMENT change to confirm;
+DualInt≈'s ≼≈ has no clause for the rebuild's abst at xrvld /
+double-refusal slots; DualCnc≈'s starOnly is caught in the Pc-copy vs
+Pn-license tension INSIDE dualᴳ).  The DualCnc crux = whether the
+copy-needing and license-needing demands can hit the SAME slot (probe
+Q2); if not, the repair is per-slot copy suppression in dualᴳ
+(decidable, birth-time, grounded); else starOnly′ "claims nothing new"
+(renaming-stable form only — D1 lesson; must re-refute ⊢3n-adv) or a
+birth-time minting.  Rulings will be asked with the probes' examples on
+the table.

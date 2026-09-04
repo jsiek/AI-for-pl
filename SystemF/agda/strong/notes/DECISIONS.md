@@ -1451,3 +1451,63 @@ gives V ⟪ ∅ , mrgB ⟫, Drop∅ gives V), and derives the preservation
 equation for the face-anchored form (what the OTHER entries of Θ₁/Θ₂
 must satisfy — or be absent — for bare V to be typed in Δ at
 ρᵇ Θ₂ (` X)).
+
+### Decision 6 — CANCEL PROBE VERDICT (notes/CancelProbe.agda, 2026-09-04)
+
+Jeremy's identity CONFIRMED as a machine fact, and the side condition is
+DERIVED, not chosen — but Cancel cannot carry progress alone.
+
+(1) THE SOUND CANCEL.  Inverting (env) twice forces the side condition:
+
+    CancelOK Δ Θ₁ Θ₂ B₁ B₂ =
+        (intOf (intOf Δ Θ₂) Θ₁ ≡ Δ)                 -- contexts undo
+      × (substᵗ (γᵇ Θ₁) B₁ ≡ substᵗ (ρᵇ Θ₂) B₂)     -- faces agree, ON THE NOSE
+
+`cancel-pres` proves preservation for -→ V IN GENERAL from just these
+two equations (no bwf, no Reversal, no MergeOK); `cancelOK?` decides it.
+SURPRISE: the CONTEXT conjunct is the load-bearing one, not the face
+pair — `Θe` (an extra reveal beside the conceal) has all four
+face-anchored conjuncts yet its interior term can be ill-typed at Δ
+(`¬⊢Ve`); a face-only Cancel is UNSOUND.  The ≈ form is also UNSOUND
+(`¬a-inner-pres`: contexts undo, faces agree up to ≈Δ̄, contractum has
+no type) — this CLOSES the old note "Cancel's side condition is exactly
+what Reversal now guarantees": only ≡ works.
+
+(2) CANCEL = MERGE + DROP∅, exactly: `cancel-≡-merge+drop` +
+`merge+drop-general` — Cancel is Merge's `Θ₁ ⊕ Θ₂ ≡ []` case with Drop∅
+fused; its only gain is 2 equations instead of MergeOK's 5 components.
+
+(3) THE CRUX — Cancel does NOT discharge the rv parameters; progress
+FAILS under both placements.  The well-typed variable-face nestings
+`(V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫` classify into THREE families (typing
+forces ρᵇ Θ₁ (` Y) ≡ ` X):
+    α  alias-reveal: Y < revs Θ₁, rep ` X — NO conceal anywhere
+       (¬a-CancelFace holds for every Y,X); typed: ⊢Ma.
+    β1 the cancel case: Y = revs Θ₁ + X, X concealed — Cancel fires
+       iff contexts undo; typed: ⊢rvQ₅ (§9i).
+    β2 transparent layer: X kept and unconcealed — Cancel refuted
+       (¬p-CancelOK); typed: ⊢Mtp; REACHABLE IN ONE LIVE TyBeta STEP
+       from plain source (⊢p-src/p-birth/p-reaches — a ∀-body returning
+       an OUTER type variable mints it: (ΛW. e) ·[ ` X-spelling , ℕ ]).
+`progress-failsᴬ/ᴮ`: Ma · 5 and Mtp · 5 are closed, well-typed at ℕ, not
+values, and take NO step in either Cancel placement (coverage-complete).
+Merge fires on ALL THREE families with MergeOK FULLY DISCHARGED
+(a-MergeOK, p-MergeOK, e-MergeOK).
+
+(4) PRACTICAL CONCLUSION.  Piecemeal rules for α and β2 re-derive Merge
+(β2 = the [] ⊕ Θ₂ case, α = the reveal-over-reveal case).  The design
+that works is option (A) FOLDED MERGE: MergeApp/MergeTApp with the
+APPLICATION as LHS, restricted to variable-faced outer boundaries
+(disjoint from Peel/TyPeel by the face constructor — Progress's own
+cf-⇒-B₀/cf-∀-B₀ split); standalone Merge/Drop∅ (the value-LHS rules)
+DELETED → values-don't-step and det restored.  Cancel remains a
+noteworthy special case (the 2-equation form), not a rule.  The three
+fully-discharged MergeOK instances are positive evidence for (A)'s
+remaining crux: the general lemma "MergeOK is derivable at every
+well-typed variable-face nesting" (needed to discharge rv-app/rv-tapp;
+if it resists, the rv parameters carry exactly it).
+
+Placement detail from the probe (§4 disjointness tables): under (A′/A)
+the §9j tower simply does not step at rest (nd-arg-stuckᴬ) and Peel is
+the unique step at the application (nd-onlyᴬ); the Value grammar stays
+untouched.  AWAITING JEREMY'S RULING on installing (A).

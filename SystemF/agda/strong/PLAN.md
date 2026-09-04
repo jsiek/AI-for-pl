@@ -273,18 +273,19 @@ relation now carries the same index), term context always `[]`.
    closes. Also flagged: `cmax Θ₁ ≤ revs Θ₂` over-refuses conceal-of-conceal (the TOPLAS
    adversary merge is sound, `⊢merged-ag`, but `Merge` won't fire on it). The TOPLAS
    Δ-refinement strengthening (Def. 5.4/Lemma 5.5) is still to adopt.
-2. **Depth-1 values** (Decision 3: a wrapper's body is never a wrapper; Zdancewic's value
-   grammar — NOTE from the TOPLAS paper: under polymorphism their value-hood is DYNAMIC,
-   relative to the ambient knowledge (p. 1074); expect our `Value` to become Δ-indexed or
-   face-conditional at this step) + the strengthened canonical form `canon-var-conceal` (a value at variable type:
-   the variable is revealed — `:=` or `:=ˣ` — and the chain ends in a licensed conceal) +
-   `no-abstract-value` where still load-bearing. STATUS AFTER STEP 1:
-   `RevealVarApp`/`RevealVarTApp` are DISCHARGED (theorems inside `Progress.Impl`, via
-   `γᵇ-lo` + `canon-var` — the reveal-var-faced wrapper's body is itself a wrapper);
-   `NestedApp`/`NestedTApp` remain and now say exactly "supply `MergeOK` at an ⇒/∀-faced
-   nested wrapper", which is FALSE for the current `⊕` (`⊢redex-cx`/`¬ext-cx`, gauntlet
-   §9d). Closing them = Decision 5 (the abstract-witness `⊕` repair) and/or depth-1
-   values. Then **instantiate `Progress.Impl`**: **PROGRESS COMPLETE.**
+2. **[IN FLIGHT] The PEEL install** (Decision 5 RULED for fork (b), 2026-09-04 night —
+   see DECISIONS.md "Decision 5 — RULING"). The flatten-first route died: §9f showed a
+   reachable stuck well-typed term, Jeremy identified the W/X linkage as a coincidence of
+   reps stipulated by the FACE TYPES (not lineage), and §9g machine-checked that one
+   reveal against two equal-rep conceals has NO flattening under ANY ⊕. Install: replace
+   `Wrap` with `Peel` (any value body — the argument crosses INWARD via `dualᴳ`; old Wrap
+   = Peel + Beta), a `TyPeel` analog at ∀ faces (form fixed by probe at install), Merge +
+   Drop∅ stay as landed but demote to lineage-pair GC behind `MergeOK`. Depth-1 values
+   are SUPERSEDED (towers stay values; no `Value` change; TOPLAS's Δ-indexed value-hood
+   note is moot for us). Expected outcome: `NestedApp`/`NestedTApp` become theorems (Peel
+   fires on any value body at a ⇒/∀ face), the rv-* discharges kept — **`progress`
+   unconditional at this step.** The strengthened canonical form `canon-var-conceal` and
+   `no-abstract-value` only where still load-bearing.
 3. **Top-level `TypeSafety.agda`** per the AGENTS.md maximal-join checklist: `progress` and
    `preservation` stated explicitly at the language's top level as thin wrappers (plus
    multi-step safety), `All.agda`, `make check`.

@@ -1241,3 +1241,59 @@ THE FORK THIS LEAVES (for Jeremy):
     peel = the Wrap case minus the β-substitution, plus the ∀-face analog.
 
 Status: NO RULING YET.  §9g evidence is in; the fork is Jeremy's call.
+
+### Decision 5 — RULING (Jeremy, 2026-09-04 night): PEEL (fork (b))
+
+"Let's go with the Peel design."  Install in flight.  The finding that
+led here, in full, since it reshapes the calculus:
+
+THE CHAIN.  (1) The Merge landing left `MergeOK`'s external-face equation
+as a rule premise, and §9f showed a reachable well-typed term stuck on it
+(`cxP₄`) — the flatten-first design had a type-safety hole.  (2) Jeremy,
+reading the §9f trace: W and X are NOT tied to each other — they merely
+happen to share a rep type; the linkage that lets a revealed W line up
+with a concealed X lives in the FACE TYPES, stipulated positionally by
+B₂, not in the entries.  So any correct flattening ⊕ must consult the
+faces.  (3) The limit (§9g, machine-checked): because the linkage is
+coincidence rather than lineage, one revealed W can coincide with TWO
+equal-rep conceals at once (`⊢redex-d`, face X⇒Z over ↑W:=ℕ against
+↓X:=ℕ,↓Z:=ℕ), and then NO flat boundary exists under ANY ⊕ — the
+external face needs W↦X and W↦Z simultaneously (`¬ext-dX`, `¬ext-dZ`),
+rewriting B₀ breaks the internal face against the body's type
+(`¬γ-dXZ`, `¬γ-dWZ`), and splitting the reveal is barred the same way.
+Flattening is not underdetermined but IMPOSSIBLE.  (4) The root cause,
+stated once: flattening must move an inner boundary OUTWARD across a
+conceal, and the outward re-expression is the inverse of the conceal's
+interior reading — relational (Zdancewic's Δ̄), with no syntactic home.
+
+THE DESIGN.  Peel moves the ARGUMENT INWARD instead — the inward
+re-expression is dualᴳ, a function, already live:
+
+    Peel : Value V → Value W
+         → Δ ⊢ (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
+           -→ (V · (W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
+
+(generalizing Wrap from ƛ-bodied to any value body; old Wrap = Peel
+followed by Beta; a TyPeel analog replaces/extends TyWrap at ∀ faces —
+form to be fixed by probe at install, flagged for review).  The pairs
+Peel creates are LINEAGE pairs — `dualᴳ Δcx Θcx2 ≡ Θcx1` by refl (§9h
+`dual-cx`): the minted reveal comes from the very conceal it faces — and
+those are exactly the cancels `cancel-agree`/`xrep-stored` justify.  On
+§9f's stuck term: Peel, then the LANDED Merge cancels the argument's
+↓X/↑X pair with a fully discharged MergeOK (`peel-cancel`), Drop∅, the
+ordinary ƛ-crossing — a value.  §9g's double coincidence runs the same
+way.  Each boundary is consumed by its own crossing, in its own
+coordinates; the coincidence linkage is never needed.
+
+CONSEQUENCES:
+- Merge + Drop∅ STAY AS LANDED (preservation proven), demoted from
+  load-bearing to lineage-pair GARBAGE COLLECTION behind MergeOK.
+- Decision 3's depth-1 value grammar (option (iii)) is SUPERSEDED:
+  towers remain values; no Value change needed.
+- Progress: at a ⇒/∀ face Peel/TyPeel fires on ANY value body —
+  NestedApp/NestedTApp become theorems; with the rv-* discharges kept,
+  `progress` should become a top-level unconditional theorem at this
+  install.
+- §9f's stuck-cx/stuck-cxP₄ change meaning: cxP₄ now steps; the gauntlet
+  keeps ¬ext-cx/§9g as the permanent record of why flattening was
+  abandoned, and replaces the stuckness lemmas with the live Peel run.

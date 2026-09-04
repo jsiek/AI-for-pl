@@ -485,14 +485,50 @@ smallest closed program minting CHAINED knowledge above a seal:
   Λ-bound case abstract-as-today plus the no-abstract-value vacuity lemma.
 
   RULING (Jeremy, 2026-09-04): conditional go-ahead — "If the probe finds no
-  mismatches, go ahead with (a′)."  notes/UnfoldProbe.agda (in flight) hunts
-  for unfolded-vs-abstracted mismatches at six sites (two-routes, Merge
-  middle type, Cancel, faces at an application, renaming commutation,
-  ≼-retag) and checks the sealed body's view is bit-identical under (a′).
-  All-safe ⇒ install (a′) (knowledge entries stored fully resolved; the
-  no-abstract-value vacuity lemma; attempt to discharge the DualDef
-  parameters).  Any mismatch ⇒ stop, record the witness, present (a″)
-  (raw entries, comparison up to unfolding) as the fallback.
+  mismatches, go ahead with (a′)."
+
+  PROBE VERDICT (notes/UnfoldProbe.agda, agda --safe clean): MISMATCH FOUND
+  — (a′) NOT INSTALLED, per the ruling.  Jeremy's worry is real, structural,
+  and lands at exactly one consumer: THE DUAL'S CONCEAL-OF-A-REVEAL.
+
+  The witness (¬DualCnc-a′), on Pc's own next step, exterior Y:=ℕ , X:=ℕ,
+  boundary ΘW = ↑W:=Y:
+
+      (a′) entry for W:  W:=ℕ  (unfolded)
+      the dual's conceal is FORCED to carry the raw stored rep:  ↓W:=Y
+        (simultaneity: cncOfRevs reads the reveal's stored rep, which stays
+         raw — the same ruling that reverted the telescope)
+      read-back Y  ≠  knowledge ℕ   →  the Wrap contractum does not type.
+
+  All three placements of eager unfolding fail, each refl-checked:
+    entry only          → ¬DualCnc-a′   (above)
+    + dual's conceal    → ¬face-unfolded, ¬argY-retype (internal face and
+                          the argument's retype break)
+    + the stored rep    → ¬TyBeta-unfold-rep (TyBeta breaks; also rewrites
+                          the TERM, against the no-term-shift spirit)
+  and each is repaired by the same missing ingredient: EQUALITY UP TO
+  UNFOLDING.  So (a′) does not eliminate retyping-along-unfolding — it
+  relocates it from Merge into Wrap — and it additionally needs a
+  strengthened ⊢renameᵀ hypothesis (¬UnfRen-hk).
+
+  Provably impossible under uniform (a′) (the sites that are SAFE):
+  route divergence (routes-agree — and note ¬cnc-W-raw: in the RAW regime
+  chained knowledge can never be concealed at all), Merge's middle-type
+  mismatch (⊕-int-a′ on the nose), ≼-retag (⊕-retag-a′ via idempotence),
+  faces/scope/blocked slots bit-identical (barrier-* — the abstraction
+  barrier is untouched by either regime).  Bonus: under normal-form
+  knowledge the dfree guard is vacuous (rd-dfree).
+
+  RECOMMENDATION → (a″): keep RAW entries (no information erased anywhere),
+  and make the KNOWLEDGE COMPARISONS up-to-unfolding: bwf↓'s licensing
+  compares Δ̄(read-back) with Δ̄(knowledge); the dual's copy is the one-step
+  unfold of Γ's entry (differing from it by exactly unf-eq-entries); ≼ and
+  the Merge middle type compare up to Δ̄.  This is Zdancewic's (eq) rule
+  (compare at Δ̄) WITHOUT their eager retag (7).  On the probe's witnesses
+  (a″) needs nothing at site 3 (DualCnc-raw is refl today), dissolves the
+  ⊢renameᵀ strengthening, and repairs site 1 by unfolding only the copy.
+  Cost: the licensing premise becomes 'up to Δ̄' — one congruence threaded
+  through bwf↓/dual/retag — instead of syntactic equality.  Awaiting ruling.
 
 ## Would Merge solve Pc instead of (a′)?  (Jeremy's question, 2026-09-04)
 

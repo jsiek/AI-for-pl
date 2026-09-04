@@ -221,6 +221,19 @@ The alternatives, on this example:
   reveal-rep-names-a-blocked-variable case (¬⊢dualΘnʳ, e.g. TyWrap's own
   ↑Z:=Y with Y Λ-bound and blocked) still open under tightness.
 
+  Would Merge help instead? (Jeremy's question, 2026-09-04.)  No — checked on
+  P: after the second TyBeta the two nested reveal boundaries DO merge
+  (Θ₁ = ↑Y:=Y′ against Θ₂ = ↑Y′:=𝔹,↑X:=ℕ; nothing cancels; Y's rep unfolds
+  to 𝔹), and the trace gets nicer — the argument then carries ONE dual
+  boundary ↓Y:=𝔹,↓Y′:=𝔹,↓X:=ℕ with fully unfolded reps instead of the nested
+  W₂ — but the failing step is unchanged: f′ = (λn:ℕ.n) ⟪ ↓X:=ℕ , X→X ⟫ sits
+  UNDER the λ in λw:X. f′ w, so no wrapper-on-wrapper Merge ever reaches it,
+  and its dual still rebuilds Y, Y′ as ⋆ where Γ has knowledge.  The blocked-
+  knowledge configuration is created by TyBeta/TyWrap weakening boundaries
+  INSIDE the body; only those rules are positioned to fix it, which is W3 —
+  indeed W3's inserted ↓Z:=⟦A⟧ is exactly the entry a merge with the new
+  reveal's dual would deliver if the λ were not in the way.
+
 ### Decision 3 — tension with Decision 1 found by the Merge probe (needs a ruling)
 
 notes/MergeProbe.agda (agda --safe clean) defines Θ₁ ⊕ Θ₂ and proves the

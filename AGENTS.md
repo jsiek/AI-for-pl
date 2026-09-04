@@ -141,6 +141,13 @@ Use this as guidance when creating a new language folder.
   top level as a thin wrapper around its corresponding `proof/*` theorem.
   The main theorems should be explicitly stated and not just imported
   as public from the corresponding `proof/*` file.
+  The audit principle behind the split (Jeremy, 2026-09-04): one should be
+  able to audit a development by reading ONLY the top-level directory — the
+  definitions the theorem statements depend on, and the statements themselves
+  — while ignoring `proof/` entirely, and still have 100% confidence, because
+  everything under `proof/` is checked by Agda with `--safe`.  So a
+  definition belongs at top level exactly when a main theorem statement
+  depends on it; everything else goes under `proof/`.
 
 ### 2) Baseline metatheory (default target)
 

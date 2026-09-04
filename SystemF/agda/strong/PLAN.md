@@ -263,16 +263,27 @@ relation now carries the same index), term context always `[]`.
 3. **Top-level `TypeSafety.agda`** per the AGENTS.md maximal-join checklist: `progress` and
    `preservation` stated explicitly at the language's top level as thin wrappers (plus
    multi-step safety), `All.agda`, `make check`.
-4. **Deferred general lemmas** (tracked, not blocking): dual-of-dual is the identity on
+4. **The public/proof split refactoring** (Jeremy, 2026-09-04; the AGENTS.md
+   "public/private split for trust" item, with its audit principle). Restructure so that
+   `strong/` holds ONLY the definitions the main theorem statements depend on (Types,
+   Context, Boundary's syntax/typing, the reduction relation, Value) plus the explicit
+   statements of the main theorems (type safety, for now: progress + preservation + the
+   multi-step corollary), each a thin wrapper around its `proof/` theorem; EVERYTHING else
+   — the lemma chains (`⊢renameᵀ` and its ~100 lemmas, the shift/dual families, ScopeBridge,
+   TermSubst, Canonical, the Def modules and their instantiations) — moves to
+   `strong/proof/`. Audit contract: reading `strong/` alone gives 100% confidence, because
+   `proof/` is `--safe`-checked. Best done immediately after step 3, when the theorem set
+   is stable; the postulate-check already sweeps both directories.
+5. **Deferred general lemmas** (tracked, not blocking): dual-of-dual is the identity on
    x-licensed boundaries (checked on shapes, wants the general theorem); the copied-rep
    fv-lemma (`renameᵗ (n +_)` never hits the dual's own ⋆-slots); `DualRep`'s `⊢ Δ`
    question if any residue survives step 0.
-5. **Join-checklist round-out** once safety is closed: `Eval.agda` (step function/fuel
+6. **Join-checklist round-out** once safety is closed: `Eval.agda` (step function/fuel
    evaluator over `Δ ⊢ M -→ M′`), a fresh `Examples.agda` for the new calculus (notes.md
    Examples 1–8 mechanized end-to-end, incl. the towers collapsing through Merge/Drop∅),
    README/Design notes; optional cheap win: revive `Cancel` as an optimisation (its side
    condition is exactly what `Reversal` now guarantees).
-6. **Research directions after safety** (Jeremy's call, unscheduled): the abstraction
+7. **Research directions after safety** (Jeremy's call, unscheduled): the abstraction
    theorems the calculus was built for (the `barrier-*` bit-identity results are the seed),
    and the Zdancewic correspondence written up properly (notes/Zdancewic-embeddings.md).
 

@@ -1535,3 +1535,38 @@ nd-≢ : ¬ ((Vcx · (((($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫)
           ≡ (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫)
               · (($ 5) ⟪ Θcx2 ⊕ Θcx1 , mrgB Θcx2 Θcx1 (` 0) ⟫))
 nd-≢ ()
+
+------------------------------------------------------------------------
+-- §9k.  RESTRICTING Merge TO FUNCTION/UNIVERSAL FACES DOES NOT RESTORE
+-- DETERMINISM (checking Jeremy's proposal at the Cancel-probe review).
+-- §9j's clash does disappear under the restriction — that tower's
+-- external face is ℕ, a base type, so the restricted Merge would not
+-- fire on it.  But the SAME tower family with a FUNCTION external face
+-- clashes in ARGUMENT position: the tower is a value, so Beta consumes
+-- it while ξ-·-r merges it — two live steps, distinct contracta.  The
+-- restriction shrinks the overlap; it cannot remove it while a
+-- merge-redex is a value.  (And excluding ⇒/∀-faced merge-redexes from
+-- Value instead revives §9d(i): the cx nesting ⊢redex-cx has a ⇒ face
+-- with MergeOK FALSE (¬ext-cx), so at rest it would be neither a value
+-- nor able to step — unless value-hood is conditioned on MergeOK
+-- itself, i.e. knowledge-relative values plus a decidability burden.)
+------------------------------------------------------------------------
+
+Trv : Term                              -- §9i's tower; external type ℕ⇒ℕ
+Trv = ((ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ , ` 0 ⟫) ⟪ Θr , ` 0 ⟫
+
+nd-fnface : Term
+nd-fnface = (ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · ($ 5))) · Trv
+
+nd-beta : [] ⊢ nd-fnface -→ rvQ₅
+nd-beta = Beta (V-⟪⟫ (V-⟪⟫ (V-G G-ƛ)))
+
+nd-mergeArg : [] ⊢ nd-fnface
+   -→ (ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · ($ 5)))
+      · ((ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ ⊕ Θr , mrgB Θrᵈ Θr (` 0) ⟫)
+nd-mergeArg = ξ-·-r (V-G G-ƛ) rv-merge
+
+nd-fnface-≢ : ¬ (rvQ₅
+    ≡ (ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · ($ 5)))
+      · ((ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ ⊕ Θr , mrgB Θrᵈ Θr (` 0) ⟫))
+nd-fnface-≢ ()

@@ -32,6 +32,7 @@ open import strong.Types
 open import strong.TypeSubst using (single-subst-def)
 open import strong.Context
 open import strong.Weakening using (wf-⇑-abst)
+open import strong.Unfold using (≡→≈)
 open import strong.Boundary
 
 -- Δ, A, B, C, X, x are generalizable variables exported by strong.Context.
@@ -115,6 +116,9 @@ slotsᴳ-length Θ k (E ∷ Δ) = cong suc (slotsᴳ-length Θ (suc k) Δ)
   skip-abst (<length→∋tv lt)
 <length→∋tv {X = suc X} {Δ = rvld A ∷ Δ} (s≤s lt) =
   skip-rvld (<length→∋tv lt)
+<length→∋tv {X = zero}  {Δ = xrvld A ∷ Δ} lt      = here-xrvld
+<length→∋tv {X = suc X} {Δ = xrvld A ∷ Δ} (s≤s lt) =
+  skip-xrvld (<length→∋tv lt)
 
 -- an accessible Γ-slot names a type variable of Δ
 slotsᴳ-∋tv : (Θ : BCtx) (k : ℕ) → slotsᴳ Θ k Δ ∋ok X → Δ ∋tv X
@@ -142,6 +146,7 @@ revSlots-view (rvl⋆ ∷ Θ) Ψ (suc X) (thereᵒ p) | inj₁ lt =
 revSlots-view (rvl⋆ ∷ Θ) Ψ (suc X) (thereᵒ p) | inj₂ (i , eq , q) =
   inj₂ (i , cong suc eq , q)
 revSlots-view (cnc Y A ∷ Θ) Ψ X       p = revSlots-view Θ Ψ X p
+revSlots-view (cnc⋆ Y ∷ Θ)  Ψ X       p = revSlots-view Θ Ψ X p
 
 ------------------------------------------------------------------------
 -- The external face ρᵇ is well formed, index by index
@@ -153,6 +158,7 @@ revSlots-view (cnc Y A ∷ Θ) Ψ X       p = revSlots-view Θ Ψ X p
 ρᵇ-deep (rvl A ∷ Θ)   i = ρᵇ-deep Θ i
 ρᵇ-deep (rvl⋆ ∷ Θ)    i = ρᵇ-deep Θ i
 ρᵇ-deep (cnc X A ∷ Θ) i = ρᵇ-deep Θ i
+ρᵇ-deep (cnc⋆ X ∷ Θ)  i = ρᵇ-deep Θ i
 
 -- a reveal-prefix index resolves to that reveal's EXTERNAL FACE, which under
 -- the PARALLEL reveal block is the STORED rep — so this is a plain LOOKUP,
@@ -166,6 +172,8 @@ revSlots-view (cnc Y A ∷ Θ) Ψ X       p = revSlots-view Θ Ψ X p
 ρᵇ-lo (rvl⋆ ∷ Ξ)    (bwf⋆ b)     zero          lt = wf-ℕ
 ρᵇ-lo (rvl⋆ ∷ Ξ)    (bwf⋆ b)     (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
 ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓ k rev wfA b) X       lt = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓x k so wfA b) X       lt = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (cnc⋆ Y ∷ Ξ)  (bwf⋆↓ k b)        X       lt = ρᵇ-lo Ξ b X lt
 
 ρᵇ-lookup-wf : Δ ∣ Ψᵗ ⊢ᵇ Θ → (X : ℕ) → baseS Θ Δ ∋ok X → Δ ⊢ ρᵇ Θ X
 ρᵇ-lookup-wf {Δ = Δ} {Θ = Θ} bwf X p
@@ -236,6 +244,8 @@ slotsᴳ-allOk k here-abst      = hereᵒ
 slotsᴳ-allOk k here-rvld      = hereᵒ
 slotsᴳ-allOk k (skip-abst p)  = thereᵒ (slotsᴳ-allOk (suc k) p)
 slotsᴳ-allOk k (skip-rvld p)  = thereᵒ (slotsᴳ-allOk (suc k) p)
+slotsᴳ-allOk k here-xrvld     = hereᵒ
+slotsᴳ-allOk k (skip-xrvld p) = thereᵒ (slotsᴳ-allOk (suc k) p)
 
 -- baseS (rvl A ∷ []) Δ = ok ∷ slotsᴳ (rvl A ∷ []) 0 Δ, definitionally
 allOk-∋ok : (abst ∷ Δ) ∋tv X → baseS (rvl A ∷ []) Δ ∋ok X
@@ -279,10 +289,10 @@ private
   -- ⊢ty-wf on an (env) wrapper: the external face of Example 8's boundary
   _ : Γ₈ ⊢ (` 0 ⇒ ` 0)
   _ = ⊢ty-wf ⊢[]
-        (env (bwf↓ (skip-abst here) refl wf-ℕ
+        (env (bwf↓ (skip-abst here) (≡→≈ refl) wf-ℕ
                (bwf↑ (wf-var here-abst) bwf[]))
              (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
-             (⊢ƛ (wf-var here-abst) (⊢` here)))
+             (⊢ƛ (wf-var here-xrvld) (⊢` here)))
 
   -- the PARALLEL face, on Boundary's example ↑Y:=Y′ , ↑Y′:=𝔹 over Δch = Y′:=𝔹:
   -- Y's external face is the exterior variable Y′ (NOT 𝔹, as the reverted

@@ -7,6 +7,7 @@ open import strong.Types
 open import strong.TypeSubst
 open import strong.Context
 open import strong.Weakening
+open import strong.Unfold
 open import strong.Boundary
 open import strong.BReduction
 open import strong.ScopeBridge

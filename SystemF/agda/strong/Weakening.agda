@@ -75,6 +75,10 @@ wf-⇑-abst wfA = wf-rename-fv {ρ = suc} (λ y → skip-abst (fv-scope wfA y)) 
 wf-⇑-rvld : Δ ⊢ A → (rvld C ∷ Δ) ⊢ ⇑ᵗ A
 wf-⇑-rvld wfA = wf-rename-fv {ρ = suc} (λ y → skip-rvld (fv-scope wfA y)) wfA
 
+wf-⇑-xrvld : Δ ⊢ A → (xrvld C ∷ Δ) ⊢ ⇑ᵗ A
+wf-⇑-xrvld wfA =
+  wf-rename-fv {ρ = suc} (λ y → skip-xrvld (fv-scope wfA y)) wfA
+
 ------------------------------------------------------------------------
 -- A looked-up representation is well formed in its prefix
 ------------------------------------------------------------------------
@@ -84,6 +88,7 @@ wf-⇑-rvld wfA = wf-rename-fv {ρ = suc} (λ y → skip-rvld (fv-scope wfA y)) 
 -- such rep well-formed in its own tail.  So ∋:=-⊢ is a direct projection of ⊢ Δ,
 -- with no weakening, no shifting, and no side conditions.
 ∋:=-⊢ : ⊢ Δ → Δ ∋ X := A → (Δ ↓ X) ⊢ A
-∋:=-⊢ (⊢rvld ⊢Δ Δ⊢A) here          = Δ⊢A
-∋:=-⊢ (⊢abst ⊢Δ)     (skip-abst p) = ∋:=-⊢ ⊢Δ p
-∋:=-⊢ (⊢rvld ⊢Δ _)   (skip-rvld p) = ∋:=-⊢ ⊢Δ p
+∋:=-⊢ (⊢rvld ⊢Δ Δ⊢A) here           = Δ⊢A
+∋:=-⊢ (⊢abst ⊢Δ)     (skip-abst p)  = ∋:=-⊢ ⊢Δ p
+∋:=-⊢ (⊢rvld ⊢Δ _)   (skip-rvld p)  = ∋:=-⊢ ⊢Δ p
+∋:=-⊢ (⊢xrvld ⊢Δ)    (skip-xrvld p) = ∋:=-⊢ ⊢Δ p

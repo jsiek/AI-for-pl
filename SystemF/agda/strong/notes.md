@@ -11,17 +11,21 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 # TODO
 
-* rule on the **(R2) residue** (notes/DECISIONS.md, Decision 4): a reveal whose
-  representation names a slot its OWN boundary blocks — e.g. Example 8's run-time boundary
-  `↑Z:=Y , ↓X:=ℕ` with Y Λ-bound — gets an ABSTRACT interior entry, so the dual's conceal of
-  Z has no knowledge to meet and Wrap's contractum does not type.  Isolated as the three
-  parameters of `DualDef.agda`.
-* land **Merge** (Decision 3), with retyping along unfolding (Zdancewic's Δ̄); that discharges
-  the two `Nested…` progress parameters and enables depth-1 values.
+* land **Merge** (Decision 3) and **Drop∅**; Merge discharges the two `Nested…` progress
+  parameters and enables depth-1 values.
 * close progress's two `RevealVar…` parameters.
-* the *ambient dual* (Decision 4) and the *grounded knowledge interiors + reversal-form
-  conceal* (Decisions 1, 3) are SETTLED and INSTALLED — the notes below describe the
-  installed semantics, not a proposal.
+* shrink what is left of `DualDef.agda`'s three parameters.  Two of the four components they
+  used to bundle are now theorems (the ⋆ half of the conceal block, and the copied reps'
+  well-formedness); the licensing residue is precisely a reveal whose representation names a
+  blocked slot that the dual re-reveals AT KNOWLEDGE — the Pn shape, i.e. Example 8's
+  run-time boundary `↑Z:=Y , ↓X:=ℕ` over an exterior that KNOWS Y.  That case was closed
+  in the probes by the ambient unfold retry, which this install had to drop (§The interior
+  context); recovering it means finding a retry that is stable under renaming and retagging.
+* the *ambient dual* (Decision 4), the *grounded knowledge interiors + reversal-form conceal*
+  (Decisions 1, 3), the *up-to-unfolding comparisons* ((a″)), the *rep-less conceal* `↓Y:⋆`
+  and the *exterior-read entry* `X:=ˣA` with its licence (bwf-↓x) are SETTLED and INSTALLED —
+  the notes below describe the installed semantics, not a proposal.  The design document is
+  notes/DualLicenseDesign.md; the evidence is notes/InstallGauntlet.agda.
 
 # Types (with variables as names)
 
@@ -61,10 +65,35 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 # Contexts
 
-  Γ ::= ∅ | Γ, x:A | Γ, X | Γ, X:=A
+  Γ ::= ∅ | Γ, x:A | Γ, X | Γ, X:=A | Γ, X:=ˣA
 
   As before, `X` is an abstract type variable and `X:=A` a revealed one.  There is no conceal
   marker: a conceal restricts the *interior context* (below) instead of extending Γ.
+
+  **ENTRY FORMS — the whole table.**  Four boundary entries and three context entries, and
+  the two columns line up: each boundary entry says what the interior gets.
+
+     boundary entry     read as                        interior entry it contributes
+     ---------------------------------------------------------------------------------
+     ↑X:=A              reveal X, external rep A       X:=⟦A⟧ if expressible, else X:=ˣA
+     ↑X:⋆               reveal X, NO rep               X            (abstract)
+     ↓Y:=A              conceal Y, internal rep A      — (Y is dropped)
+     ↓Y:⋆               conceal Y, NO rep              — (Y is dropped, and BLOCKED)
+
+     context entry      read as
+     ---------------------------------------------------------------------------------
+     X                  abstract (from ∀ / Λ)
+     X:=A               revealed, A a TELESCOPE type — over the entries below X's own slot
+     X:=ˣA              exterior-read: "revealed; A readable ONE LEVEL OUT; asserts nothing
+                        HERE".  NOT a telescope entry — A is a type over THIS context's
+                        exterior.  Minted only by the interior computation (below) and
+                        consumed only by (bwf-↓x).  Ordinary knowledge lookup `Γ ∋ X:=A`
+                        does NOT see it; that separation is what keeps it off the telescope
+                        and out of the renaming trap.
+
+  Both new forms are the design of notes/DualLicenseDesign.md: `↓Y:⋆` is the mirror of the
+  rep-less reveal, and `X:=ˣA` is what lets a dual TRANSLATE a type mentioning a variable it
+  knows nothing about — the thing E★′ (Examples) needs and `↓Y:⋆` cannot give.
   (The Agda splits Γ into a type context Δ and a term context Γₜ, judgment `Δ ∣ Γₜ ⊢ M ⦂ A`;
   runtime contexts are term-variable-free anyway, so the merged Γ used here loses nothing.)
 
@@ -115,16 +144,42 @@ see "Old per-variable design" and the historical Example 8 below.)
        name a sibling reveal, but its READING can reach one, since a conceal's
        representation may.
 
-  **Rep-less reveal ↑Y.**  A third boundary entry carries no representation:
+  **THE FALLBACK CHAIN, exactly.**  For a REP-CARRYING reveal ↑X:=A at interior slot j:
 
-     Θ  ::=  ∅ | ↑X:=A , Θ | ↑X , Θ | ↓Y:=A , Θ
+     1.  the reading ⟦A⟧ is a legal telescope entry  ⟹  X:=⟦A⟧      (knowledge)
+     2.  otherwise                                   ⟹  X:=ˣA       (exterior-read)
 
-  `↑X` contributes an ABSTRACT interior entry, has no (bwf-↑) premise, and its slot is BLOCKED
-  in the boundary-type scope (below), so no B₀ can name it — its external face is an
+  and a REP-LESS reveal ↑X:⋆ contributes the abstract X.  Step 2 replaces what used to be an
+  abstract entry, and that is the whole difference the licence design makes: the interior
+  still learns nothing about X, but the rep is RECORDED, so a later dual can conceal X at it.
+
+  **What is deliberately NOT here** (flagged in strong/Boundary.agda).  The probes had a
+  middle step: retry the reading at the AMBIENT unfolding of A, which closes Pn (Example 11).
+  It makes the interior a function of the ambient as well as the boundary, and then neither
+  transport the metatheory runs on survives — renaming (the interior's entries must move with
+  ρ, and unfolding does not commute with ρ) nor retagging (the interior must be MONOTONE in
+  the ambient's knowledge, and it is not: a further-resolved rep may name a slot the boundary
+  blocks).  Both are knowledge-WEAKENING steps the design cannot do without, since TyBeta
+  turns a Λ-binder's abstract slot into a reveal's knowledge slot.  Price: Pn's dual conceal
+  is unlicensed, and that case sits in DualCnc≈.
+
+  **Rep-less reveal ↑X:⋆ and rep-less conceal ↓Y:⋆.**  Four boundary entries in all:
+
+     Θ  ::=  ∅ | ↑X:=A , Θ | ↑X:⋆ , Θ | ↓Y:=A , Θ | ↓Y:⋆ , Θ
+
+  `↑X:⋆` contributes an ABSTRACT interior entry, has no (bwf-↑) premise, and its slot is
+  BLOCKED in the boundary-type scope (below), so no B₀ can name it — its external face is an
   arbitrary dummy that is therefore never consulted.  It is minted only by the DUAL, at a slot
   the boundary drops without concealing and which the ambient context binds ABSTRACTLY (a
-  Λ-bound variable).  Under the old design that slot got a reveal at a fabricated
-  representation, i.e. invented knowledge; `↑X` is the exact re-introduction.
+  Λ-bound variable) or exterior-reads.  Under the old design that slot got a reveal at a
+  fabricated representation, i.e. invented knowledge; `↑X:⋆` is the exact re-introduction.
+
+  `↓Y:⋆` is its exact mirror: it COUNTS as a conceal (Y is dropped, so it counts in the
+  interior restriction and the frame keeps its width), has NO internal image at all, and its
+  slot is BLOCKED — a dummy image would be a dangling index, which is how a rep-less conceal
+  differs from a rep-less reveal.  Its only premise is that the slot exists (bwf-⋆↓ below).
+  It is minted only by the DUAL, for the dual of a REP-LESS reveal, where there is no rep to
+  keep; the old dual invented `↓Y:=ℕ` there, which nothing licenses.
 
   Why knowledge, and not abstraction?  Because a conceal is licensed by the exterior's
   knowledge ((bwf-↓) below), a nested boundary inside the interior must be able to see it.
@@ -220,21 +275,58 @@ see "Old per-variable design" and the historical Example 8 below.)
 
   (bwf-∅)                                                   ⟹  Γ ∣ Ψ ⊢ ∅
   (bwf-↑)   Γ ⊢ A                         Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↑X_i:=A , Θ
-  (bwf-⋆)                                 Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↑X , Θ
-  (bwf-↓)   Γ ∋ Y:=A₀     A[ρΘ] = A₀      Ψ ⊢ A
+  (bwf-⋆)                                 Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↑X:⋆ , Θ
+  (bwf-↓)   Γ ∋ Y:=A₀     A[ρΘ] ≈Δ̄⟨Γ⟩ A₀    Ψ ⊢ A
                                           Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
+  (bwf-↓x)  Γ ∋ Y:=ˣA′    A claims nothing in Θ    Ψ ⊢ A
+                                          Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
+  (bwf-⋆↓)  Γ ∋ Y                         Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↓Y:⋆ , Θ
+
+  THREE conceal-facing clauses, one per way a conceal can be licensed.
+
+  **(bwf-↓x) — the exterior-read licence** (notes/DualLicenseDesign.md).  Y is x-revealed —
+  revealed, but asserting nothing HERE — and the rep A CLAIMS NOTHING: every free variable of
+  A names a REP-LESS reveal slot of Θ itself.  A rep-less reveal contributes an abstract
+  entry and a blocked slot, so the interior has no knowledge about it and no boundary type can
+  name it: the conceal aliases Y to a genuinely fresh abstract slot.  This is `↓Y:⋆`'s
+  "claims nothing" WITH a rep attached, so the boundary type can still be TRANSLATED — which
+  is exactly what E★′ needs and exactly what `↓Y:⋆` cannot give.
+
+  The claims-nothing premise is LOAD-BEARING, not hygiene: dropping it admits an adversary
+  that types `7 : ℕ` at an abstract Z, by pairing the x-entry with a NON-dual boundary
+  ↑W:=ℕ , ↓Z:=W whose rep smuggles interior content in.  Machine-checked both ways in
+  strong/Boundary.agda (¬starOnly-adv, ¬⊢adv) and in notes/InstallGauntlet.agda §6.
+
+  Two deviations from notes/DualLicenseDesign.md, both flagged in the Agda:
+
+    * the premise is stated on the BOUNDARY ("A names only rep-less reveals of Θ"), not on
+      the interior ("A names only abstract variables of Ψ").  The interior form is
+      ANTI-MONOTONE in knowledge, so it does not survive the retag TyBeta and TyWrap perform
+      (`abst ↦ rvld` at the Λ-binder's slot).  The boundary form mentions no context at all,
+      so it is retag-stable outright and renaming-stable through renᴮ; on the whole gauntlet
+      it decides identically.
+    * there is NO rep comparison ("A is, up to ≈Δ̄, the recorded rep A′").  §5's warning is
+      real and the congruence does NOT repair it: under a weakening the x-rep moves by the
+      OUTER ρ while renᴮ freezes the conceal's rep, and in the renamed interior the two are a
+      genuinely abstract slot apart — so the ≈ form fails exactly where the ≡ form does
+      (notes/InstallGauntlet.agda §7b).  The x-LOOKUP still does the discriminating work: a
+      conceal of a plain Λ-bound abstract variable stays unlicensed.
+
+  **(bwf-⋆↓)** asks only that the slot exist.  A rep-less conceal asserts nothing, so it
+  needs nothing; that its slot is blocked is what keeps it honest.
 
   **(bwf-↑) is PARALLEL** (Jeremy's ruling; the earlier telescopic (bwf-↑) of Decision 4's
   residue (R1) is reverted): a reveal's representation is well formed in the PLAIN exterior Γ,
   with no interference from the boundary's other entries — simultaneity (ii) above.  Price: a
   CHAIN of knowledge (Γ = Y:=Y′ , Y′:=𝔹 , X:=ℕ dropped by ↓X:=ℕ) is no longer expressible as
-  a raw copy in the dual's reveal block; the dual falls back to the rep-less ↑Y there and the
-  lost knowledge is an obligation of DualRep / DualInt until candidate (a)'s knowledge
-  closure is ruled on.
+  a raw copy in the dual's reveal block — but the dual's SECOND-CHANCE copy (below) unfolds
+  the representation in its own tail, which collapses the chain and recovers it; the rebuild
+  is then one unfolding away from Γ, which ≼≈ absorbs (Example 12).
 
-  **(bwf-↓) is in REVERSAL FORM** (Decision 3's ruling): a conceal's representation A, READ
-  BACK OUT through the boundary (reveal variables ↦ their external faces, kept interior
-  variables ↦ their exterior index), must be exactly the exterior's own knowledge about Y.
+  **(bwf-↓) is in REVERSAL FORM, UP TO ≈Δ̄** (Decision 3's ruling, relaxed by candidate
+  (a″)): a conceal's representation A, READ BACK OUT through the boundary (reveal variables ↦
+  their external faces, kept interior variables ↦ their exterior index), must be the
+  exterior's own knowledge about Y — up to the unfolding congruence (below).
   Comparing on the OUTSIDE, rather than transporting the knowledge inwards, is what lets the
   boundary's own reveals be UNFOLDED — which is Zdancewic's (trans) / Δ̄ and is what Merge
   needs.  It also transports under any monotone renaming with no scope restriction, unlike
@@ -243,13 +335,70 @@ see "Old per-variable design" and the historical Example 8 below.)
   Consequences.  `bad` and `bad₂` (Metatheory §Progress) are ill typed; a conceal is
   licensed only against real knowledge, so a Λ-bound variable can never be concealed.
 
+# The unfolding congruence   A ≈Δ̄⟨Γ⟩ B
+
+  Knowledge entries are kept RAW — a reveal's representation is stored as written, so the
+  external face and the interior entry agree — and instead every KNOWLEDGE COMPARISON is
+  taken up to unfolding.  This is candidate (a″); it is what makes the dual's rebuild
+  usable, since the rebuild differs from the original context by exactly an unfolding.
+
+     Δ̄(Γ) A          Zdancewic's Δ̄ applied to A: every revealed variable of Γ replaced by
+                     its (recursively unfolded) representation.  The recursion is on the
+                     CONTEXT — `X:=B` stores B over its own TAIL — so it is well founded for
+                     free.  ABSTRACT and EXTERIOR-READ slots are left alone: an x-entry's rep
+                     lives one level out, so it is not a type this context can resolve.
+
+     A ≈Δ̄⟨Γ⟩ B      Δ̄(Γ) A = Δ̄(Γ) B, i.e. the two types have the same unfolding in Γ.
+
+  It is the PROPOSITIONAL EQUALITY of unfoldings, not an inductive congruence: equivalence
+  and the ⇒ / ∀ congruence rules are then theorems rather than constructors, every witness is
+  refl-checkable, and every refutation is a one-line absurd pattern on two closed normal
+  forms.
+
+  Two properties carry the metatheory:
+
+    * MONOTONICITY.  If Γ′ resolves at least what Γ resolves, the same way, then every ≈ at
+      Γ is an ≈ at Γ′.  The retag ordering (below) supplies exactly that.
+    * RENAMING.  The OPERATOR Δ̄ does NOT commute with renaming under the hypotheses the
+      renaming lemma carries — an abstract slot may land on a revealed one, and unfolding
+      notices.  The CONGRUENCE transports with strictly less, in ABSORBED form, and THAT
+      follows from the knowledge-transport hypothesis the renaming lemma already has:
+      every slot either unfolds to itself (abstract, exterior-read, out of range), making
+      the equation an identity, or is knowledge, and then its renamed representation is read
+      in the slot's own PREFIX.  So the congruence needs NO new top-level hypothesis, which
+      is what ruling (ii) of notes/DualLicenseDesign.md §5 hoped for.
+
+  Three comparisons are taken up to ≈Δ̄: (bwf-↓)'s reversal premise, the retag ordering
+  Γ ≼≈ Γ′, and the dual's three laws (DualRep≈ / DualCnc≈ / DualInt≈).
+
+# Retagging   Γ ≼≈ Γ′
+
+  Typing READS the entry flavour, so a derivation transports along an ORDERING of contexts,
+  not along equal length.  Entrywise:
+
+     X       ≼≈  anything          (a Λ-binder's slot becoming a reveal's knowledge slot is
+                                    exactly this step — TyBeta, TyWrap)
+     X:=ˣA   ≼≈  X:=ˣA             the mark is PRESERVED: its whole content is "revealed, but
+                                    I know nothing here", which a richer context does not
+                                    satisfy, so it may not be traded for knowledge.  That is
+                                    what keeps (bwf-↓x) transportable — and what keeps `bad`
+                                    refuted, since a conceal of a KNOWN slot must not become
+                                    x-licensable.
+     X:=A    ≼≈  X:=B              when A ≈Δ̄⟨Γ′↓X⟩ B — knowledge up to unfolding, which is
+                                    what the dual's rebuild delivers when it collapses a
+                                    chain (Example 12)
+
+  Syntactic equality of entries orders the chained context and its rebuild in NEITHER
+  direction; ≼≈ orders them both ways.  That is the whole content of the relaxation.
+
 # Boundary-type scope   Θ ; Γ ⊢ᵒᵏ B₀
 
   B₀ is well-scoped over the boundary frame when it names no BLOCKED variable: reveal
   variables WITH a representation are fine, kept exterior variables are fine, concealed
   exterior variables are fine (the internal face resolves them), and a
-  dropped-but-not-concealed variable is not — nor is a REP-LESS reveal ↑X, whose external
-  face is a dummy.  Structural, with ∀-bound variables always accessible:
+  dropped-but-not-concealed variable is not — nor is a REP-LESS reveal ↑X:⋆, whose external
+  face is a dummy, nor a REP-LESSLY concealed variable ↓Y:⋆, which has no internal image.
+  Structural, with ∀-bound variables always accessible:
 
   (sc-var)  X is a reveal variable with a rep, a kept variable, or a concealed variable
                                                                              ⟹ Θ;Γ ⊢ᵒᵏ X
@@ -413,15 +562,30 @@ see "Old per-variable design" and the historical Example 8 below.)
                                                     under the parallel reading IS A — a
                                                     Γ-type, i.e. a Θᵈ-interior type, exactly
                                                     a conceal rep's home)
+     each  ↑X:⋆   of Θ  becomes  ↓X:⋆   of Θᵈ      (there is no rep to keep; the old dual
+                                                    invented ↓X:=ℕ here, which nothing
+                                                    licenses)
      each  ↓Y:=A  of Θ  becomes  ↑Y:=A  of Θᵈ      (Y's slot is rebuilt as a fresh interior
                                                     variable of Θᵈ; A was interior to Θ, i.e.
                                                     exterior to Θᵈ — a reveal rep's home)
      each BLOCKED slot i    becomes  Γ's OWN ENTRY at i:
-                                     Γ has i:=B  ⟹  ↑i:=B  of Θᵈ, IF B names no other
-                                                    dropped slot; otherwise ↑i (the copy
-                                                    guard — B would be a CHAINED rep, which
-                                                    the plain exterior cannot express)
-                                     Γ has i     ⟹  ↑i     of Θᵈ  (rep-less)
+                                     Γ has i:=B  ⟹  ↑i:=B  of Θᵈ if B names no other dropped
+                                                    slot; ELSE ↑i:=Δ̄(Γ↓i) B if THAT names
+                                                    none — the SECOND-CHANCE copy, which
+                                                    collapses a CHAIN; else ↑i:⋆
+                                     Γ has i     ⟹  ↑i:⋆   of Θᵈ  (rep-less)
+                                     Γ has i:=ˣB ⟹  ↑i:⋆   of Θᵈ  (B lives one level further
+                                                    out than the dual's exterior)
+
+  The CONCEAL block is ENTRY-INDEPENDENT: every rep-carrying reveal is concealed at its
+  stored rep, and the licence comes from whichever clause the interior supports — (bwf-↓)
+  when it has ordinary knowledge of the slot, (bwf-↓x) when it only x-knows it.  Only a
+  rep-LESS reveal is treated differently, and that is forced: there is nothing to conceal at.
+
+  The SECOND-CHANCE copy is what recovers Pc's chained knowledge (Example 12): the raw copy's
+  guard refuses a rep naming another dropped slot, and unfolding the rep in its own tail
+  collapses the chain to something the dual's plain exterior can express.  The rebuild is
+  then one unfolding away from Γ — which is exactly what ≼≈ absorbs.
 
   The third clause is the point of the ambient dual.  A variable that Θ drops but does not
   conceal is blocked, and the OLD dual gave it a fabricated representation (ℕ) — which loses
@@ -435,12 +599,14 @@ see "Old per-variable design" and the historical Example 8 below.)
   preservation still goes through the scope-restricted congruence (`subst-cong-sc`) with
   (env)'s scope premise for B₁, not a pointwise identity of the two faces.
 
-  Still open at Wrap: (a) when a reveal's own representation names a slot the SAME boundary
-  blocks, that reveal's interior entry is abstract and the dual's conceal of it is
-  unlicensed — the (R2) residue; and (b) when Γ's entry for a blocked slot is a CHAIN naming
-  another dropped slot, the copy guard fires and that knowledge is lost (the (R1) case the
-  reverted telescope used to carry).  Both want the same knowledge-closure operator —
-  candidate (a) of the agenda; see `DualDef.agda` and Metatheory §Preservation.
+  Still open at Wrap, and now precisely: the dual's conceal of a rep-carrying reveal needs
+  ONE of the two licences, and neither is available when the reveal's rep names a blocked
+  slot that the dual re-reveals AT KNOWLEDGE (the Pn shape: the interior x-knows Z, but the
+  rep names ↑Y:=ℕ, which claims something).  The ⋆ half of the conceal block is a THEOREM
+  (every reveal slot exists in the interior, whatever entry it carries), the copied reps'
+  well-formedness is a theorem given the rebuild law, and the rebuild law's own residue is a
+  slot whose copy BOTH guards refuse plus an exterior-read slot, which the dual re-reveals
+  rep-lessly.  See `DualDef.agda` for the three statements and exactly what is proven.
 
   De Bruijn remark.  The boundary frame of Θᵈ is Θ's frame with the reveal block and the
   dropped block interchanged, so B₁ is renamed by that block swap (`swapᵇ`).  Named notation
@@ -675,6 +841,55 @@ entry-level definition is Decision 3's (notes/old/MergeProbe.agda), not fixed he
   With the ambient dual the sealed boundary is never touched — it stays ↓X:=ℕ for its whole
   life — and both knowledge entries are copied at the moment of use.  Zero traversal.
 
+## Example 11   (E★′ — the counterexample the LICENCE design closes)
+
+  The supervisor's E★′.  The Pn shape (Example 8's run-time boundary ↑Z:=Y , ↓X:=ℕ) with ONE
+  change: the instantiated ∀-body MENTIONS its own variable, so the failing Wrap must move a
+  value whose type NAMES the reveal Z.  A rep-less conceal cannot do that (a re-hidden slot
+  is blocked, so the dual cannot even carry the boundary type), and a rep-keeping conceal was
+  unlicensed — which is what forced the exterior-read entry.
+
+  E★′ = (ΛX. λf:(∀Z.(Z→ℕ)→(Z→ℕ)). ΛY. (f [Y]) (λy:Y. 5)) [ℕ]
+          · (ΛZ. λg:(Z→ℕ). λz:Z. g z)                          : ∀Y. Y→ℕ
+
+  → TyBeta   (λf. ΛY. …) ⟪ ↑X:=ℕ , (∀Z.(Z→ℕ)→(Z→ℕ)) → ∀Y.Y→ℕ ⟫ · (ΛZ. …)
+  → Wrap     (ΛY. ((g′ [Y]) (λy:Y. 5))) ⟪ ↑X:=ℕ , ∀Y.Y→ℕ ⟫
+                                       g′ = (ΛZ. …) ⟪ ↓X:=ℕ , ∀Z.(Z→ℕ)→(Z→ℕ) ⟫
+  → ξ⟪⟫ ξΛ TyWrap                                        ambient Γ★ = Y , X:=ℕ
+             (ΛY. ((λg. λz. g z) ⟪ ↑Z:=Y , ↓X:=ℕ , (Z→ℕ)→(Z→ℕ) ⟫) (λy:Y. 5))
+             ⟪ ↑X:=ℕ , ∀Y.Y→ℕ ⟫
+  → ξ⟪⟫ ξΛ Wrap
+             (ΛY. (λz:Z. W′ z) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→ℕ ⟫) ⟪ ↑X:=ℕ , ∀Y.Y→ℕ ⟫
+                                       W′ = (λy:Y. 5) ⟪ ↑Y:⋆ , ↑X:=ℕ , ↓Z:=Y , Z→ℕ ⟫
+
+  At the TyWrap step the knowledge "Z is Y" is inexpressible in the interior (Y is blocked by
+  ↓X) and un-unfoldable (Y is Λ-bound), so Z's entry is the EXTERIOR-READ  Z:=ˣY  — the
+  interior learns nothing, but the rep is recorded.  The final Wrap's dual is
+
+     ↑Y:⋆ , ↑X:=ℕ , ↓Z:=Y
+
+  and its conceal of Z is licensed by (bwf-↓x): Z is x-revealed, and the rep Y names the
+  dual's OWN rep-less reveal ↑Y:⋆, so it claims nothing.  Both faces were already exactly
+  right; only the licence was missing.  The dual's interior rebuilds Γ★ on the nose, and
+  dualising the dual round-trips exactly (with ↓Y:⋆ where the rep-less reveal has to be
+  re-hidden — the one place ↓·:⋆ is indispensable).
+
+  Machine-checked end to end, against the live rules, in notes/InstallGauntlet.agda §1.
+
+## Example 12   (Pc — the chained dual, recovered by the second-chance copy)
+
+  Γq = W:=Y , Y:=ℕ , X:=ℕ is reachable (TyBeta turns a Λ-bound Y into W:=Y without renaming)
+  and the seal ↓X:=ℕ drops all three.  W's entry is the CHAIN "W is Y", and the seal drops Y
+  too, so the dual's RAW copy of W is refused: its rep names another dropped slot, which the
+  dual's plain exterior cannot express.  That knowledge used to be LOST to ↑W:⋆.
+
+  The dual now retries at Δ̄(Γq↓W) Y = ℕ, which the exterior CAN express, so all three slots
+  come back with knowledge and the rebuild is  W:=ℕ , Y:=ℕ , X:=ℕ  — Γq up to exactly one
+  unfolding.  Syntactic equality of entries orders the two contexts in neither direction; ≼≈
+  orders them, and the argument's own ↓W:=Y conceal — whose read-back is the raw variable Y
+  while the rebuilt knowledge is ℕ — retypes because (bwf-↓) is up to ≈Δ̄.  That single site
+  is what the whole congruence exists for (notes/InstallGauntlet.agda §5).
+
 ## Example 8, historical   (why the OLD per-variable design was discarded)
 
   A closed, well-typed program that reduced to an ILL-TYPED term under the old rules.  The key
@@ -750,12 +965,18 @@ Supporting lemmas.
        Θ;Γ ⊢ᵒᵏ B₀ is discharged in the cases where no reduction rule supplies it.  With the
        parallel (bwf-↑) the "external face is well formed" step is a plain LOOKUP into
        (bwf-↑)'s own premise (it was a substitution lemma while the face was a fold).
-  (L-≼) Retagging along KNOWLEDGE GROWTH.  Write Γ ≼ Γ′ for "entrywise, an abstract entry
-       sits below anything and a knowledge entry below itself"; then Γ ⊢ M : A ⟹ Γ′ ⊢ M : A.
-       Typing now READS the abst/X:=A distinction (a conceal is licensed by knowledge), so it
-       no longer transports along a context of the same LENGTH — ≼ is the replacement.  It is
-       used three times: TyBeta and TyWrap turn the consumed Λ's ABSTRACT slot into the new
-       reveal's knowledge slot, and Wrap retypes the argument in the dual's rebuild of Γ.
+  (L-≼≈) Retagging along KNOWLEDGE GROWTH, up to unfolding.  Γ ≼≈ Γ′ is the ordering of
+       §Retagging above; then Γ ⊢ M : A ⟹ Γ′ ⊢ M : A.  Typing READS the entry flavour (a
+       conceal is licensed by knowledge, or by the exterior-read mark), so it no longer
+       transports along a context of the same LENGTH — ≼≈ is the replacement.  Used three
+       times: TyBeta and TyWrap turn the consumed Λ's ABSTRACT slot into the new reveal's
+       entry, and Wrap retypes the argument in the dual's rebuild of Γ.  Its two interesting
+       clauses: (bwf-↓)'s reversal premise moves by MONOTONICITY of ≈Δ̄ composed with the
+       target's own knowledge witness, and (bwf-↓x) moves because its two premises are the
+       x-LOOKUP (which ≼≈ preserves by construction) and a claims-nothing condition that
+       mentions no context at all.  The interior's monotonicity —
+       Γ ≼≈ Γ′ ⟹ Γ⇈Θ ≼≈ Γ′⇈Θ — holds ON THE NOSE, because the interior computation consults
+       the BOUNDARY alone; that is why the ambient unfold retry had to go, not this lemma.
 
   Inversion of (env): from Γ ⊢ M ⟪ Θ , B₀ ⟫ : C we get Γ ∣ (Γ⇈Θ) ⊢ Θ, Θ;Γ ⊢ᵒᵏ B₀,
   Γ⇈Θ ⊢ M : B₀[γΘ], and C = B₀[ρΘ].
@@ -769,7 +990,19 @@ reduction's index by the context the corresponding typing rule extends by.
 
 Proved in the Agda (BPreservation.agda) for every rule: Beta, TyBeta, TyWrap, Wrap and the
 five ξ congruences.  Wrap's case is proved MODULO three statements about the ambient dual
-(DualDef.agda); everything else, including both of Wrap's face laws, is unconditional.
+(DualDef.agda); everything else — including both of Wrap's face laws, the renaming lemma with
+its exterior-read transport, and the retagging lemma — is unconditional.
+
+  What the licence install changed in the three dual statements.  Their SHAPES are now up to
+  ≈Δ̄ (DualRep≈ / DualCnc≈ / DualInt≈), and two of their four former components became
+  theorems: the ⋆ half of the conceal block (every reveal slot exists in the interior,
+  whatever entry it carries) and the copied reps' well-formedness in the dual's interior
+  (which follows from the rebuild law).  DualCnc≈ is now a per-reveal DISJUNCTION — ordinary
+  knowledge with the read-back up to ≈, or the exterior-read mark with the claims-nothing
+  premise — and the residue is exactly where neither disjunct holds: a reveal whose rep names
+  a blocked slot that the dual re-reveals AT KNOWLEDGE (the Pn shape).  Wrap's INTERNAL face
+  law also became scope-restricted, like the external one, because a rep-lessly concealed slot
+  has no internal image; (L-sc) with (env)'s premise on B₁ covers exactly the difference.
 
   Beta.       (L1).  Substitution is the identity on boundaries (their bodies are term-closed),
               and the Λ case of the substitution lemma is (L2) at ρ = suc, whose monotonicity
@@ -906,17 +1139,29 @@ five ξ congruences.  Wrap's case is proved MODULO three statements about the am
   -------------------------  -----------------------------------------  --------------
   M ⟪ Θ , B₀ ⟫               _⟪_,_⟫                                     Boundary.agda
   ↑X:=A                      rvl A                                      Boundary.agda
-  ↑X       (rep-less)        rvl⋆                                       Boundary.agda
+  ↑X:⋆     (rep-less)        rvl⋆                                       Boundary.agda
   ↓Y:=A                      cnc Y A                                    Boundary.agda
+  ↓Y:⋆     (rep-less)        cnc⋆ Y                                     Boundary.agda
+  X  (abstract entry)        abst                                       Context.agda
+  X:=A  (knowledge entry)    rvld A                                     Context.agda
+  X:=ˣA (exterior-read)      xrvld A                                    Context.agda
+  Γ ∋ X:=ˣA                  _∋_:=x_  (herex, skipx)                    Context.agda
   Θ                          BCtx = List BEntry                         Boundary.agda
   Γ ⇈ Θ  (interior)          intOf Δ Θ = revEnts Θ 0 Θ ++ dropN (cmax Θ) Δ
-  ⟦A⟧  (knowledge entry)     ⟦_⟧ᵉ  (guards bfree / dfree; rawRead, dnT)  Boundary.agda
+  the fallback chain         ⟦_⟧ᴴ  (raw ⇒ rvld, else xrvld; guards       Boundary.agda
+                               bfree / dfree via expr; rawRead, dnT)
+  Δ̄(Γ) A  (unfolding)        unfoldᵉ Γ A  (unfSub, context-recursive)    Unfold.agda
+  A ≈Δ̄⟨Γ⟩ B                  _≈Δ̄⟨_⟩_  (≈unf; ≈-refl/sym/trans, ≈-⇒/∀)   Unfold.agda
+  ≈ monotone / renaming      ≈-mono (Absorbs), ≈-ren (UnfRen≈)          Unfold.agda
   Γ ↓ X  (prefix)            _↓_                                        Context.agda
   B₀[γΘ] (internal face)     substᵗ (γᵇ Θ) B₀                           Boundary.agda
   B₀[ρΘ] (external face)     substᵗ (ρᵇ Θ) B₀   (a LOOKUP: parallel)    Boundary.agda
-  A[ρΘ] = A₀  (reversal)     Reversal Θ X A A₀ = outRead Θ A ≡ upRep X A₀
+  A[ρΘ] ≈Δ̄⟨Γ⟩ A₀ (reversal)  Reversal≈ Γ Θ X A A₀
+                               = outRead Θ A ≈Δ̄⟨ Γ ⟩ upRep X A₀         Boundary.agda
+  A claims nothing in Θ      starOnly Θ 0 A ≡ true  (revStar)           Boundary.agda
   Θ;Γ ⊢ᵒᵏ B₀ (scoped)        Scoped (baseS Θ Δ) B₀                      Boundary.agda
-  Γ ∣ Ψ ⊢ Θ                  _∣_⊢ᵇ_  (bwf[], bwf↑, bwf⋆, bwf↓)          Boundary.agda
+  Γ ∣ Ψ ⊢ Θ                  _∣_⊢ᵇ_  (bwf[], bwf↑, bwf⋆, bwf↓,          Boundary.agda
+                               bwf↓x, bwf⋆↓)
   (env)                      env                                        Boundary.agda
   L @B[A]                    L ·[ B , A ]        (⊢·[])                 Boundary.agda
   Γ ⊢ M -→ M′                _⊢_-→_                                     BReduction.agda
@@ -929,16 +1174,30 @@ five ξ congruences.  Wrap's case is proved MODULO three statements about the am
   ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫             BReduction.agda
   Cancel / Drop              — not in the Agda (optional; see above)
   Θᵈ(Γ)  (ambient dual)      dualᴳ Δ Θ / entᴳ / swapᵇ Θ                 BReduction.agda
-  dual face laws             ρᵇ-dual-ty, γᵇ-dual-ty, sc-dual            BReduction.agda
-  dual well-formedness       bwf-dualᴳ + DualRep, DualCnc, DualInt      DualDef.agda
-  L2 (monotone renaming)     ⊢renameᵀ (premises `Mono ρ` and ∋:=)       BReduction.agda
+  second-chance copy         entᴳ's `unfEnt Γ i B` retry                BReduction.agda
+  entry-independent conceal  cncOfRevs (rvl ↦ cnc, rvl⋆ ↦ cnc⋆)         BReduction.agda
+  dual face laws             ρᵇ-dual-ty, γᵇ-dual-ty (both now           BReduction.agda
+                               scope-restricted), sc-dual
+  dual well-formedness       bwf-dualᴳ / bwf-dual + DualRep≈,           DualDef.agda
+                               DualCnc≈ (CncLic), DualInt≈; the proven
+                               parts: cnc⋆-licensed, revE-lo:=x,
+                               dual-rep-ok
+  L2 (monotone renaming)     ⊢renameᵀ (premises `Mono ρ`, ∋:= and the   BReduction.agda
+                               exterior-read ∋:=x; hk-suc / hx-suc)
+  ≈ transport from ∋:=       UnfRen≈-hk (unfSub-dich, unf-up, unf-self) BReduction.agda
   L-sc                       subst-cong-sc                              Boundary.agda
-  L-≼ (retagging)            _≼_, ⊢retag                                BReduction.agda
+  L-≼≈ (retagging)           _≼≈_, ⊢retag≈, bwf-retag≈, ≼≈-intOf,       BReduction.agda
+                               ≼≈→Absorbs
   L-wf                       ⊢ty-wf, wf→Scoped, scB-bridge              ScopeBridge.agda
   L1                         ⊢substᵀᵐ, ⊢[]ᵐ, preserve-Beta              TermSubst.agda
-  bad / bad₂ refuted         ¬⊢bad, ¬Reversal-bad₂                      Boundary.agda
+  bad / bad₂ refuted         ¬⊢bad, ¬Reversal≈-bad₂                     Boundary.agda
+  near-bad / far-bad         Reversal≈-near-bad, ¬Reversal≈-far-bad     Boundary.agda
+  the x-licence adversary    ¬⊢adv, ¬starOnly-adv, adv-rep-match≈       Boundary.agda
   Example 8's T4′ boundary   Θ₈  (the [R2] shape)                       Boundary.agda
-  Examples 9, 10  (P, E)     Γp/Θp (chained dual), Δm/Θm (rep-less)     BReduction.agda
+  Examples 9, 10  (P, E)     Γp/Γp′/Θp (chained dual), Δm/Θm            BReduction.agda
+  Examples 11, 12 (E★′, Pc)  notes/InstallGauntlet.agda §1, §5  — NOT in All.agda
+  the install gauntlet       notes/InstallGauntlet.agda  (E★′, E★, Pn,
+                               dual-of-dual, Pc, soundness, renaming)
   design-path probes         notes/old/*Probe.agda — do NOT compile
   old design (historical)    Terms/Typing/Reduction, notes/old/Scratch7-9.agda
 

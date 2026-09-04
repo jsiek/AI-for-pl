@@ -31,10 +31,11 @@ open import strong.Types
 open import strong.Context
   using (TCtx; abst; rvld; _⊢_; wf-var; wf-ℕ; _∋tv_; here-rvld; skip-abst;
          _∋_:=_; Ctx; _∋_⦂_; here; there; ⤊)
+open import strong.Unfold using (≡→≈)
 open import strong.Boundary
 open import strong.BReduction
   using (extⁿ; renameᵀᵐ; ⇑ᵀ; extsᵀᵐ; substᵀᵐ; _[_]ᵐ; Mono; ⊢renameᵀ; ∋-map;
-         hk-suc)
+         hk-suc; hx-suc)
 
 ------------------------------------------------------------------------
 -- Pulling a lookup back through `map`
@@ -115,13 +116,15 @@ extsᵀᵐ-⊢ h (there p) = ⊢renameᵀᵐ there (h p)
 -- Mono-suc, whose lookup premise is skip-abst, and whose KNOWLEDGE-transport
 -- premise (new: the reversal-form conceal rule reads the exterior's ∋:=) is
 -- hk-suc — restrictRen X suc is pointwise the identity, so the rep is
--- carried across unchanged.
+-- carried across unchanged — and whose EXTERIOR-READ transport is hx-suc:
+-- weakening does not touch a stored entry, so the x-rep is carried across
+-- verbatim (only the lookup index shifts).
 ⇑ᵀ-⊢ : ∀ {σ : ℕ → Term} {Δ Γₜ Γₜ′}
   → (∀ {x B} → Γₜ ∋ x ⦂ B → Δ ∣ Γₜ′ ⊢ σ x ⦂ B)
   → (∀ {x B} → ⤊ Γₜ ∋ x ⦂ B → (abst ∷ Δ) ∣ ⤊ Γₜ′ ⊢ ⇑ᵀ (σ x) ⦂ B)
 ⇑ᵀ-⊢ h {x} {B} p with ∋-map⁻ p
 ⇑ᵀ-⊢ h {x} {B} p | A , refl , q =
-  ⊢renameᵀ ∋tv-suc Mono-suc hk-suc (h q)
+  ⊢renameᵀ ∋tv-suc Mono-suc hk-suc hx-suc (h q)
 
 -- As for renaming, substᵀᵐ is the identity on wrappers, so (env) is rebuilt.
 ⊢substᵀᵐ : ∀ {σ Δ Γₜ Γₜ′ N B}
@@ -177,7 +180,7 @@ private
   W₁ = ($ 7) ⟪ cnc 0 `ℕ ∷ [] , ` 0 ⟫
 
   ⊢W₁ : Δ₁ ∣ [] ⊢ W₁ ⦂ ` 0
-  ⊢W₁ = env (bwf↓ here refl wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$
+  ⊢W₁ = env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$
 
   -- Substituting W₁ under a ƛ: the body's occurrence sits at index 1, so
   -- extsᵀᵐ weakens W₁ by renameᵀᵐ suc — which is the IDENTITY on wrappers.

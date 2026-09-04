@@ -1,4 +1,8 @@
-module strong.notes.UnfoldProbe where
+module strong.notes.old.UnfoldProbe where
+
+-- SUPERSEDED 2026-09-04 by the dual-conceal licence install
+-- (notes/DualLicenseDesign.md): unfSub / unfoldae are live in
+-- strong.Unfold, and (a') is settled -- the design keeps RAW entries.
 
 -- ADVERSARIAL PROBE of candidate (a′) — "unfold knowledge AT ENTRY BIRTH"
 -- (notes/DECISIONS.md, "CANDIDATE (a) SHARPENED TO (a′)").

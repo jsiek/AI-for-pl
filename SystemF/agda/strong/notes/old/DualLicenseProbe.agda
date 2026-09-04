@@ -1,4 +1,11 @@
-module strong.notes.DualLicenseProbe where
+module strong.notes.old.DualLicenseProbe where
+
+-- SUPERSEDED 2026-09-04 by the dual-conceal licence install
+-- (notes/DualLicenseDesign.md): (b3)-sound is live -- the exterior-read
+-- entry in strong.Context and its boundary clause in strong.Boundary --
+-- with absOnly replaced by the boundary-local starOnly and the rep
+-- comparison dropped (section 5's counter-instance survives the
+-- congruence: notes/InstallGauntlet.agda).
 
 -- ADVERSARIAL PROBE of the LICENSING PREMISE for the DUAL's
 -- CONCEAL-OF-A-REVEAL (notes/DECISIONS.md, candidate (b); the STAR-CONCEAL
@@ -62,11 +69,11 @@ open import strong.BReduction
          liftⁿ; deepRen; restrictRen;
          Value; GVal; G-ƛ; G-Λ; V-$; V-G; V-⟪⟫;
          _⊢_-→_; Wrap; TyWrap; TyBeta; ξ-·-l; ξ-Λ; ξ-⟪⟫)
-open import strong.notes.UnfoldProbe using (unfSub; unfoldᵉ; rvld≢abst)
-open import strong.notes.UpToProbe
+open import strong.notes.old.UnfoldProbe using (unfSub; unfoldᵉ; rvld≢abst)
+open import strong.notes.old.UpToProbe
   using (_≈Δ̄[_]_; ≈unf; ≈-refl; ≈-sym; ≈-trans; ≡→≈; ≈-⇒;
          cnc-needs-knowledge; Γnb; Θnb)
-open import strong.notes.StarConcealProbe
+open import strong.notes.old.StarConcealProbe
 
 private
   variable

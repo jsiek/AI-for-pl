@@ -5,6 +5,7 @@ open import Data.List using (List; []; _∷_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
 open import strong.Context
+open import strong.Unfold using (≡→≈)
 open import strong.Boundary
 
 -- A boundary whose conceal rep MENTIONS the revealed variable — the evidence
@@ -33,7 +34,7 @@ _ : outRead Θ₉ (` 0) ≡ `ℕ
 _ = refl
 
 _ : Γ₉ ∣ intOf Γ₉ Θ₉ ⊢ᵇ Θ₉
-_ = bwf↓ here refl (wf-var here-rvld) (bwf↑ wf-ℕ bwf[])
+_ = bwf↓ here (≡→≈ refl) (wf-var here-rvld) (bwf↑ wf-ℕ bwf[])
 
 -- The concealed Γ-var 0 sits at bframe index revs+0 = 1.  Its INTERNAL face:
 -- the conceal resolves to its rep (` 0) = the reveal var Z(0).  The FIXED γᵇ

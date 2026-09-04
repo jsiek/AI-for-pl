@@ -12,7 +12,7 @@ module strong.BPreservation where
 --        for γᵇ, ext-eq for ρᵇ), and — for the Scoped premise, which no
 --        reduction rule carries — the typing ⇒ wf ⇒ Scoped bridge scB-bridge.
 --        The Λ-binder's abstract slot becomes the new reveal's KNOWLEDGE slot,
---        so the body is retagged along `abst ≼ anything` (⊢retag).
+--        so the body is retagged along `abst ≼≈ anything` (⊢retag≈).
 --   Beta  is the term-substitution lemma (strong.TermSubst).
 --   TyWrap transports the Λ body by the shift family (intOf-shift,
 --        γᵇ-shift-ty, ρᵇ-shift-ty, baseS-shift, bwf-shift); the type argument
@@ -40,7 +40,7 @@ open import strong.BReduction
 open import strong.ScopeBridge using (scB-bridge)
 open import strong.TermSubst using (preserve-Beta; ⊢[]ᵐ)
 open import strong.DualDef
-  using (DualRep; DualCnc; DualInt; bwf-dualᴳ)
+  using (DualRep≈; DualCnc≈; DualInt≈; bwf-dual)
 
 private
   variable
@@ -51,7 +51,8 @@ private
 -- Parameterised over the three open facts about the ambient dual
 -- (strong.DualDef).  Everything else is proven.  Instantiate `Impl` once the
 -- (R2) residue is ruled on.
-module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
+module Impl (dual-rep : DualRep≈) (dual-cnc : DualCnc≈)
+            (dual-int : DualInt≈)
   where
 
   preservation : Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
@@ -66,7 +67,7 @@ module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
       (env {B₀ = B} (bwf↑ ⊢A bwf[])
            scB
            (subst (λ T → intOf Δ (rvl A ∷ []) ∣ [] ⊢ V ⦂ T) (sym int-eq)
-                  (⊢retag (≼abst (≼-refl Δ)) ⊢V)))
+                  (⊢retag≈ (≼≈abst (≼≈-refl Δ)) ⊢V)))
     where
       -- internal face:  γᵇ [rvl A] = prepId 1 (γcnc 1 0 [rvl A]),
       -- pointwise `_
@@ -96,7 +97,7 @@ module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
   -- substᵗ (γᵇ Θ) (`∀ B₀) = `∀ (substᵗ (extsᵗ (γᵇ Θ)) B₀), so inverting ⊢Λ
   -- gives ⊢V at (abst ∷ intOf Δ Θ) ∣ ⤊ [].  The new boundary's interior is
   -- that context with the new reveal's KNOWLEDGE entry in place of the
-  -- abstract one (intOf-shift), so ⊢retag along `abst ≼ anything` moves V
+  -- abstract one (intOf-shift), so ⊢retag≈ along `abst ≼≈ anything` moves V
   -- there; its interior face is γᵇ-shift-ty.  NOTHING renames the term: the
   -- Λ-binder's slot became the reveal slot.  The type argument A is not
   -- pushed inward and NOT LIFTED either — under the parallel reveal block it
@@ -121,7 +122,7 @@ module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
       ⊢body = subst₂ (λ Ψ T → Ψ ∣ [] ⊢ V ⦂ T)
                      (sym (intOf-shift Δ A Θ))
                      (sym (γᵇ-shift-ty A Θ B₀))
-                     (⊢retag (≼abst (≼-refl (intOf Δ Θ))) ⊢V)
+                     (⊢retag≈ (≼≈abst (≼≈-refl (intOf Δ Θ))) ⊢V)
 
   -- R2:  ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
   --         →  (N [ W ⟪ Θᵈ , B₁ᵈ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫
@@ -152,14 +153,15 @@ module Impl (dual-rep : DualRep) (dual-cnc : DualCnc) (dual-int : DualInt)
       ⊢W′ : intOf (intOf Δ Θ) (dualᴳ Δ Θ) ∣ []
               ⊢ W ⦂ substᵗ (γᵇ (dualᴳ Δ Θ)) (renameᵗ (swapᵇ Θ) B₁)
       ⊢W′ = subst (λ T → intOf (intOf Δ Θ) (dualᴳ Δ Θ) ∣ [] ⊢ W ⦂ T)
-                  (sym (γᵇ-dual-ty Δ B₁ Θ)) (⊢retag (dual-int bwf) ⊢W)
+                  (sym (γᵇ-dual-ty Δ B₁ Θ sc₁))
+                  (⊢retag≈ (dual-int bwf) ⊢W)
       -- the wrapped argument, at the type the ƛ's annotation demands
       ⊢arg : intOf Δ Θ ∣ []
                ⊢ W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ⦂ substᵗ (γᵇ Θ) B₁
       ⊢arg = subst (λ T → intOf Δ Θ ∣ []
                             ⊢ W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ⦂ T)
                    (ρᵇ-dual-ty Δ B₁ Θ sc₁)
-                   (env (bwf-dualᴳ Θ bwf (dual-rep bwf) (dual-cnc bwf))
+                   (env (bwf-dual dual-rep dual-cnc dual-int bwf)
                         (sc-dual Δ Θ sc₁) ⊢W′)
 
   ----------------------------------------------------------------------

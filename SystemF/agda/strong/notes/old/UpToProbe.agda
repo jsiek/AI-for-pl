@@ -1,4 +1,11 @@
-module strong.notes.UpToProbe where
+module strong.notes.old.UpToProbe where
+
+-- SUPERSEDED 2026-09-04 by the dual-conceal licence install
+-- (notes/DualLicenseDesign.md): the congruence and its renaming transport
+-- are live in strong.Unfold, and Reversal-approx / the retag ordering /
+-- the retag lemma in strong.Boundary and strong.BReduction.  The one
+-- probed piece NOT installed is the hybrid entry's AMBIENT unfold retry --
+-- see strong.Boundary's flagged deviation and notes/InstallGauntlet.agda.
 
 -- ADVERSARIAL PROBE of candidate (a″) — "keep RAW entries, make the
 -- KNOWLEDGE COMPARISONS up to unfolding" (notes/DECISIONS.md, the
@@ -41,7 +48,7 @@ open import strong.BReduction
          GVal; Value; G-ƛ; G-Λ; V-$; V-G; V-⟪⟫;
          _⊢_-→_; Wrap; Γp; Θp)
 open import strong.DualDef using (BlkRepWf; DualRep; DualCnc; DualInt)
-open import strong.notes.UnfoldProbe
+open import strong.notes.old.UnfoldProbe
   using (unfSub; unfoldᵉ; UnfRen; unf-ren; ¬UnfRen-hk; Γid; Γ′id; idρ;
          KNF; KNFᵗ; knf[]; knfabst; knfrvld; absSlots; okS;
          unf-scoped; knf-fix; unf-idem; wf→sc; ∋:=-entAt; rvld≢abst;

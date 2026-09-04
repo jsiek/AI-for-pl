@@ -1,4 +1,10 @@
-module strong.notes.StarConcealProbe where
+module strong.notes.old.StarConcealProbe where
+
+-- SUPERSEDED 2026-09-04 by the dual-conceal licence install
+-- (notes/DualLicenseDesign.md): the rep-less conceal is live in
+-- strong.Boundary, the dual emits it for a rep-LESS reveal
+-- (strong.BReduction's cncOfRevs), and its licensing is proven in
+-- strong.DualDef.
 
 -- ADVERSARIAL PROBE of the REP-LESS CONCEAL  ↓Z:⋆  (constructor cnc⋆), the
 -- mirror of today's rep-less reveal rvl⋆ (notes/DECISIONS.md, R2 / DualCnc,
@@ -56,10 +62,10 @@ open import strong.BReduction
          _⊢_-→_; TyBeta; Beta; TyWrap; Wrap;
          ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫)
 open import strong.DualDef using (DualRep; DualCnc; DualInt)
-open import strong.notes.UnfoldProbe
+open import strong.notes.old.UnfoldProbe
   using (unfSub; unfoldᵉ; ∋:=-entAt; rvld≢abst; suc-inj; len-++;
          ∋tv-len; ⊢-len; baseS-len)
-open import strong.notes.UpToProbe
+open import strong.notes.old.UpToProbe
   using (_≈Δ̄[_]_; ≈unf; ≈-refl; ≈-sym; ≈-trans; ≡→≈; ≈-⇒; ≈-∀;
          Reversal≈; Reversal→≈; ⟦_∣_⟧ᴴ; revEntsᴴ; intOfᴴ;
          Bwf≈; bwf≈[]; bwf≈↑; bwf≈⋆; bwf≈↓; _∣_⊢ᵇ≈_; bwf→bwf≈;

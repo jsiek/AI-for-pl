@@ -424,6 +424,37 @@ DualDef.agda / ProgressDef.agda).  Rulings wanted, in rough priority:
    rep equals the enclosing reveal's rep") is now exactly what Reversal
    guarantees.
 
+## RULING (Jeremy, 2026-09-04 morning) — telescopic (bwf-↑) REVERTED
+
+"The representation type of a reveal entry is well-formed in the EXTERNAL
+context, without any interference from the other entries in the boundary.
+This is an important part of the simultaneous nature of the boundaries."
+
+The R1 overnight call (telescopic reveal block) is therefore a mistake and
+is reverted: (bwf-↑) reads each reveal rep over the plain exterior Γ, in
+parallel; ρ returns to the parallel form (rep substituted as-is, not folded
+through the other reveals).  Recorded as a design principle alongside
+tightness and no-term-shifts: SIMULTANEITY = (i) a conceal's rep may mention
+the boundary's reveal variables (the original Example-8 fix), and (ii) a
+reveal's rep is read in the plain exterior, independent of its siblings.
+
+Consequences (worked out before reverting):
+  * TyWrap's rep lift `renameᵗ (revs Θ +_) A` was forced ONLY by the
+    telescope — it disappears; the rule returns to
+    `((Λ V) ⟪ Θ , ∀·B₀ ⟫)·[B,A] -→ V ⟪ ↑?:=A , shiftReps Θ , B₀ ⟫` with A
+    unlifted.  Agenda items 3 and 5 are hereby closed.
+  * ρᵇ-comm / C-ext revert to their simpler pre-fold proofs; the Reversal
+    premise's read-back returns to the ReversalProbe-verified parallel form.
+  * The one thing the telescope was buying — AmbientDualProbe §6b (chained
+    knowledge: the dual's copied rep for Y is Y′, itself blocked) — is no
+    longer expressible as a raw copy.  Under the parallel reading the dual's
+    copied rep must be UNFOLDED through Γ's knowledge until it mentions only
+    surviving variables (well-founded: Γ's entries are a telescope), which is
+    the SAME knowledge-closure operator as candidate (a) for R2.  Until (a)
+    is ruled on, §6b's obligation simply lives inside the DualRep parameter.
+    One operator would then serve both: interior entries ⟦·⟧ and the dual's
+    copied reps.
+
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

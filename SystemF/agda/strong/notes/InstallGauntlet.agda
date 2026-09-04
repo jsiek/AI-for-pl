@@ -1115,3 +1115,93 @@ run-repair-tail : [] ⊢ (($ 3) ⟪ Θcx′ , `ℕ ⟫) ⟪ Θcx1 , `ℕ ⟫
 run-repair-tail = Merge V-$
   (s≤s z≤n , bwf↑ wf-ℕ bwf[] , sc-ℕ ,
    ≼≈rvld ≼≈[] (≡→≈ refl) , refl)
+
+------------------------------------------------------------------------
+-- §9g.  JEREMY'S OBSERVATION AT THE §9f REVIEW, SHARPENED AND CHECKED.
+--
+-- The observation: "W and X are not really tied to each other, they just
+-- both happen to have the same rep type — a revealed W can line up with
+-- a concealed X."  And its corollary: "the merge operator needs to know
+-- the face types, because it's the face types that cause W and X to be
+-- linked."
+--
+-- Both are confirmed here, and the second has a machine-checked LIMIT.
+--
+-- (i) The linkage is a COINCIDENCE OF REPS, stipulated positionally by
+-- the outer boundary type — NOT a lineage.  (Contrast the x-pair
+-- cancels, which ARE lineage: xrep-stored ties the dual's conceal to
+-- the very reveal it was born from.)  So a correct ⊕ cannot be
+-- face-blind: the landed ⊕ : BCtx → BCtx → BCtx never consults B₁/B₂,
+-- which is exactly why the face equation had to be a MergeOK premise.
+--
+-- (ii) THE LIMIT: if the linkage is coincidence, one revealed W can
+-- coincide with TWO different conceals at once — and then NO single
+-- flat boundary exists, face-aware or not.  Take the double package
+-- (the §9f construction with two abstractions, client's Λ still opened
+-- outside):
+--
+--   (ΛX. ΛZ. λx:X. λg:X⇒Z. g·x) ·[ℕ] ·[ℕ] · 5 · ((ΛW. λy:W. y) ·[ℕ])
+--
+-- After the two TyBetas, Wrap(5), and the client's exterior TyBeta(W),
+-- the client crosses the double reveal: the dual mints ↓X:=ℕ , ↓Z:=ℕ at
+-- boundary type X⇒Z around (λy:W. y) ⟪ ↑W:=ℕ , W⇒W ⟫.  The external
+-- face needs W ↦ X at the domain and W ↦ Z at the codomain: a single
+-- reveal entry cannot carry both, rewriting B₀ instead breaks the
+-- INTERNAL face against the body's type W⇒W (terms are never rewritten,
+-- so the body stays typed at W⇒W), and splitting the reveal in two is
+-- barred for the same reason.  Merge — under ANY ⊕ — cannot fire here:
+-- flattening is IMPOSSIBLE, not just underdetermined.  NestedApp needs
+-- a non-Merge answer on this shape.
+------------------------------------------------------------------------
+
+Δd : TCtx                              -- ambient: the two reveals' interior
+Δd = rvld `ℕ ∷ rvld `ℕ ∷ []
+
+Θd2 : BCtx                             -- ↓X:=ℕ , ↓Z:=ℕ (the double dual)
+Θd2 = cnc 0 `ℕ ∷ cnc 1 `ℕ ∷ []
+
+Θd1 : BCtx                             -- ↑W:=ℕ (client, exterior-born)
+Θd1 = rvl `ℕ ∷ []
+
+Vd : Term                              -- λy:W. y
+Vd = ƛ ` 0 ∙ ` 0
+
+Bd1 Bd2 : Ty
+Bd1 = ` 0 ⇒ ` 0                        -- W⇒W
+Bd2 = ` 0 ⇒ ` 1                        -- X⇒Z
+
+-- the nesting TYPES: one client reveal against TWO equal-rep conceals
+⊢redex-d : Δd ∣ [] ⊢ (Vd ⟪ Θd1 , Bd1 ⟫) ⟪ Θd2 , Bd2 ⟫ ⦂ Bd2
+⊢redex-d =
+  env (bwf↓ here (≡→≈ refl) wf-ℕ
+        (bwf↓ (skip-rvld here) (≡→≈ refl) wf-ℕ bwf[]))
+      (sc-⇒ (sc-var hereᵒ) (sc-var (thereᵒ hereᵒ)))
+      (env (bwf↑ wf-ℕ bwf[])
+           (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+           (⊢ƛ (wf-var here-rvld) (⊢` here)))
+
+-- the landed (face-blind) ⊕ exports ℕ⇒ℕ where the redex has X⇒Z
+¬ext-d : ¬ (substᵗ (ρᵇ (Θd1 ⊕ Θd2)) (mrgB Θd1 Θd2 Bd1)
+            ≡ substᵗ (ρᵇ Θd2) Bd2)
+¬ext-d ()
+
+-- the two FACE-DIRECTED single-rep candidates — re-abstract W at X, or
+-- at Z: each fixes ONE position of the external face and breaks the other
+ΘdX ΘdZ : BCtx
+ΘdX = rvl (` 0) ∷ cnc 0 `ℕ ∷ cnc 1 `ℕ ∷ []
+ΘdZ = rvl (` 1) ∷ cnc 0 `ℕ ∷ cnc 1 `ℕ ∷ []
+
+¬ext-dX : ¬ (substᵗ (ρᵇ ΘdX) Bd1 ≡ substᵗ (ρᵇ Θd2) Bd2)
+¬ext-dX ()
+
+¬ext-dZ : ¬ (substᵗ (ρᵇ ΘdZ) Bd1 ≡ substᵗ (ρᵇ Θd2) Bd2)
+¬ext-dZ ()
+
+-- and REWRITING B₀ to spell the external face breaks the INTERNAL one
+-- against the body's type W⇒W: any B₀ position that is not the reveal's
+-- own variable γ-reads to ℕ, never to W
+¬γ-dXZ : ¬ (substᵗ (γᵇ ΘdX) (` 1 ⇒ ` 2) ≡ substᵗ (γᵇ Θd1) Bd1)
+¬γ-dXZ ()
+
+¬γ-dWZ : ¬ (substᵗ (γᵇ ΘdX) (` 0 ⇒ ` 2) ≡ substᵗ (γᵇ Θd1) Bd1)
+¬γ-dWZ ()

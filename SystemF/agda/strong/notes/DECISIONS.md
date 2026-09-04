@@ -1170,3 +1170,74 @@ pair CANCELS and W's rep resolves to ℕ legitimately, the outward crossing
 passing the reveal that publishes X:=ℕ.  Final value: `3 ⟪ ↑W:=ℕ , ℕ ⟫`.
 The resolved spelling ℕ is CORRECT in the plain exterior; it was wrong
 only across ↓X:=ℕ — Decision 5 in one example.
+
+### Decision 5, REFRAMED by Jeremy at the §9f review (2026-09-04 night):
+### the linkage lives in the FACE TYPES — and Merge cannot be the whole story
+
+Jeremy, reading the §9f trace: "W and X are not really tied to each other,
+they just both happen to have the same rep type, and that means a revealed
+W can line up with a concealed X" — and then: "the merge operator needs to
+know the face types, because it's the face types that cause W and X to be
+linked."  Both confirmed, machine-checked (gauntlet §9g); the second has a
+machine-checked LIMIT.
+
+(i) CONFIRMED: the W/X alignment is a COINCIDENCE OF REPS stipulated
+positionally by B₂ — not a lineage.  (The x-pair cancels ARE lineage:
+`xrep-stored` ties the dual's conceal to the reveal it was born from.
+The §9f pair has no common birth.)  Consequence: a correct ⊕ cannot be
+face-blind.  The landed `⊕ : BCtx → BCtx → BCtx` never consults B₁/B₂ —
+which is exactly why the external-face equation had to be carried as a
+MergeOK premise.  Any repaired merge is at least `⊕ Θ₁ Θ₂ B₁ B₂`.
+
+(ii) THE LIMIT (gauntlet §9g): if the linkage is coincidence, one revealed
+W can coincide with TWO different conceals at once.  The double package —
+the §9f construction with two abstractions, client's Λ still opened
+outside:
+
+```
+(ΛX. ΛZ. λx:X. λg:X⇒Z. g·x) ·[ℕ] ·[ℕ] · 5 · ((ΛW. λy:W. y) ·[ℕ])
+```
+
+The client `(λy:W. y) ⟪ ↑W:=ℕ , W⇒W ⟫` crosses the double reveal; the
+dual mints `↓X:=ℕ , ↓Z:=ℕ` at boundary type `X⇒Z`.  The nesting types
+(`⊢redex-d`).  But the external face needs W ↦ X at the domain and W ↦ Z
+at the codomain, and:
+- a single rep cannot carry both (`¬ext-dX`, `¬ext-dZ` — the two
+  face-directed candidates each fix one position and break the other);
+- rewriting B₀ to spell X⇒Z breaks the INTERNAL face against the body's
+  type W⇒W (`¬γ-dXZ`, `¬γ-dWZ`) — terms are never rewritten, so the body
+  stays typed at W⇒W;
+- splitting the reveal in two (↑W₁:=X, ↑W₂:=Z with B₀ = W₁⇒W₂) is barred
+  by the same internal-face pinning.
+
+So on this shape FLATTENING IS IMPOSSIBLE — not underdetermined,
+impossible, under ANY ⊕.  If this nesting is reachable (the construction
+is the §9f trace with one more TyBeta; full mechanization of the trace is
+queued), then `NestedApp` cannot be discharged by Merge at all, and the
+abstract-witness ⊕ repair — even face-directed — is NOT sufficient for
+progress/safety.
+
+THE FORK THIS LEAVES (for Jeremy):
+(a) FACE-DIRECTED ⊕ (`⊕ Θ₁ Θ₂ B₁ B₂`, keep the abstract witness where B₂
+    stipulates one).  Fixes §9f's single-coincidence; machine-refuted on
+    §9g's double coincidence — Merge stays partial, so progress
+    additionally needs un-mergeable nestings to be handled some other way
+    (values? a peel rule?).
+(b) PEEL instead of flatten — generalize Wrap (and TyWrap) from ƛ-bodied
+    (Λ-bodied) wrappers to VALUE-bodied wrappers:
+      (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→
+        (V · (W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
+    (today's Wrap = peel + Beta when V is a ƛ; a TyWrap analog would have
+    the inner type application instantiate at the new reveal's own
+    abstract variable).  The application unwinds ONE boundary per step —
+    all readings are INWARD (γ-direction, functional); the outward
+    (relational, Δ̄) re-abstraction is never needed.  On §9f's stuck term:
+    peel crosses the argument through ↓X:=ℕ (its dual re-reveals X:=ℕ),
+    the inner Wrap then fires — runs, no merge.  On §9g's double
+    coincidence: same, runs.  Merge + Drop∅ remain as MergeOK-guarded
+    GARBAGE COLLECTION (they are sound as landed — preservation is
+    proven), no longer load-bearing for progress; depth-1 values would be
+    dropped (towers stay values).  Needs its own probe: preservation of
+    peel = the Wrap case minus the β-substitution, plus the ∀-face analog.
+
+Status: NO RULING YET.  §9g evidence is in; the fork is Jeremy's call.

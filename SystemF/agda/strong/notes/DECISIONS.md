@@ -345,10 +345,18 @@ stays TyWrap (its definition changes to the direct-combine shape):
   wrapper: Λ body → TyWrap; wrapper body → Merge (a ProgressDef parameter
   until Merge lands).  W3 is still needed and now acts in TyBeta and TyWrap
   (both upgrade a Λ-bound slot above inner boundaries to revealed).
-  Note: the same argument does NOT apply to Wrap — consuming the ƛ there
-  would substitute a wrapped argument into the body (term substitution is
-  fine) but the application's result face still needs the boundary, and the
-  ƛ-under-wrapper is exactly what Wrap's float preserves; Wrap stays.
+  Follow-up ruling (Jeremy, 2026-09-04, same day): switch Wrap too, from the
+  lazy/float form to PUSH-THROUGH-THE-LAMBDA, symmetric to TyWrap′ — consume
+  the ƛ and β-substitute the dual-wrapped argument in one step:
+
+    (Wrap)  ((λx:B₁′. N) ⟪ Θ , B₁→B₂ ⟫) · W  -→  N[x := W ⟪ Θᵈ , B₁ ⟫] ⟪ Θ , B₂ ⟫
+
+  (this is PLAN §4's original sketch, before the memo generalised it to the
+  total float form).  The dual Θᵈ and its face laws are unchanged, so
+  Decision 4 / W3 is unaffected.  Totality: a wrapper-bodied wrapper at a
+  ⇒ face waits for Merge, exactly as at a ∀ face — progress carries two
+  further ProgressDef parameters (NestedApp, NestedTApp) until Merge lands.
+  No term shift anywhere: _[_]ᵐ substitutes term variables only.
 
 ### Decision 3 — resolution (2026-09-03)
 
@@ -366,7 +374,7 @@ Option 3b — towers as values, no Merge (current, to be replaced).  Canonical f
 
 ## Recommendation
 
-Settled: TyWrap′ (revised 2026-09-04); Merge (3a).  Decision 1: restore the invariant in the REVERSAL
+Settled: TyWrap′ and push-through Wrap (both revised 2026-09-04); Merge (3a).  Decision 1: restore the invariant in the REVERSAL
 form (probe-verified).  Awaiting Jeremy: W3 vs W4 (Decision 4).  Then: Boundary.agda
 rework (reversal premise + W3/W4) and re-run of every preservation case → Merge with
 retyping-along-unfolding → depth-1 values → progress.

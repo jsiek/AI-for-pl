@@ -1624,3 +1624,13 @@ keeping `⊕-γ` as the theorem that discharges it whenever
 counterexample then steps, and `MergeDerivable` plausibly becomes a
 theorem — PROGRESS UNCONDITIONAL.  This edits `MergeOK`, a Decision-3
 object in the reduction relation: Jeremy's ruling required.
+
+### Decision 7 — RULING (Jeremy, 2026-09-05): repair MergeOK
+
+"Go ahead with the MergeOK repair."  Install in flight: MergeOK's
+component (1) `cmax Θ₁ ≤ revs Θ₂` becomes the internal-face equation
+`substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (γᵇ Θ₁) B₁`, with ⊕-γ
+demoted to the theorem discharging it under cmax≤revs (existing
+witnesses rebuild); §9l's counterexample steps; the target is
+MergeDerivable proven → Progress.Impl instantiated → progress TOP-LEVEL
+UNCONDITIONAL, with det/V-¬-→ kept.

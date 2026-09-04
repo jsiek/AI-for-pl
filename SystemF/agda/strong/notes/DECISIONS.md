@@ -694,6 +694,38 @@ bad₂/near-bad gauntlet:
        subsumes the (a″) hybrid at Pn, and the structural argument ruling
        out (b4) (a co-boundary-parameterized judgment: the contractum must
        be typed by plain env).
+## THE TOPLAS FOLLOW-ON (notes/SyntacticTypeAbstraction.md, 2026-09-04)
+
+Jeremy pushed p1037-grossman.pdf ("Syntactic Type Abstraction", the journal
+version, WITH a System F treatment).  Digest highlights, as they bear on our
+open items:
+
+  * OUR E★′-CLASS CONFIGURATIONS ARE UNREACHABLE FOR THEM — dissolved
+    upstream by a global type-variable namespace plus eager retag, not
+    solved.  Reconstructing E★′ inside their own encoding yields exactly an
+    ordinary δ-entry `Z=Y` with Y Λ-bound and in nobody's domain — i.e. our
+    `Z:=ˣY` — compatible precisely because Y is nobody's key.  Independent
+    support for (bwf-↓x) + the "claims nothing" premise; ruling (ii) intact
+    (the paper has no transport hypotheses anywhere — substitution is a
+    judgment-level lemma).
+  * (a″) VALIDATED WITH A WARNING: they keep eager retag [7] AND (eq)-at-Δ̄;
+    p. 1049 notes relaxing eagerness needs "additional proof-normalization
+    arguments" — our ≈Δ̄ congruence is exactly that normalization.
+  * MERGE: their [8] APPENDS AND NEVER DELETES; a three-agent counterexample
+    (p. 1048–49: δ_i(t)=int, δ_j(s)=t, δ_k=⊥) shows dropping authority
+    breaks abstraction.  Our ⊕ deletes matched ↑X/↓X pairs (cancel).  Before
+    Merge lands: build the cancel adversary on their example; if cancel
+    fails, fall back to append-only merge + Drop∅ (which we adopted anyway).
+  * B₂′ ANSWERED: keep the OUTER boundary type; the ⊕ obligation is "the
+    middle type is abstract to the middle boundary" ([trans] + Idempotence
+    is their entire preservation case for merge).
+  * PRESERVATION STRENGTHENING to adopt: the outgoing context REFINES the
+    incoming one (their Def. 5.4 / Lemma 5.5) — a grounded invariant our
+    statement does not yet carry.
+  * Depth-1 values + canon-var-conceal are literally their Lemma 3.2 third
+    clause; under polymorphism their VALUE-HOOD IS DYNAMIC (p. 1074) —
+    expect our Value to become Δ-indexed at the depth-1 step.
+
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

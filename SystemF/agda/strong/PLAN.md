@@ -251,11 +251,21 @@ relation now carries the same index), term context always `[]`.
    notes/old/MergeProbe to the new core; the cancel clause's soundness is the restored
    invariant (`cancel-agree` — an x-conceal cancels the very reveal it was born from);
    retyping-along-unfolding = `≼≈`. Per the §1 Method: rule → example (the cancel pair,
-   Example 3's tower, E★′'s continuation) → preservation case → progress case. OPEN
-   sub-decision for Jeremy at landing time: the merged wrapper's boundary type (the probe's
-   `B₁`-pushed-out form vs the alternative).
+   Example 3's tower, E★′'s continuation) → preservation case → progress case.
+   FROM THE TOPLAS PAPER (notes/SyntacticTypeAbstraction.md): (i) the B₂′ sub-decision is
+   answered — KEEP THE OUTER boundary type ([8], p. 1049), and state the `⊕` obligation as
+   "the middle type is abstract to the middle boundary"; Jeremy confirms at landing. (ii) A
+   WARNING for the cancel clause: their merge APPENDS AND NEVER DELETES — p. 1048–49 gives a
+   three-agent counterexample where collapsing nested embeddings while dropping authority
+   breaks abstraction. Our `⊕` deletes a matched ↑X/↓X pair (justified so far by
+   `cancel-agree`); before landing, build the cancel ADVERSARY modeled on their three-agent
+   example, and if cancel fails it, fall back to APPEND-ONLY merge + `Drop∅`. (iii) Also
+   adopt their preservation strengthening: the step's outgoing context REFINES the incoming
+   one (their Def. 5.4/Lemma 5.5) — a grounded invariant we currently do not state.
 2. **Depth-1 values** (Decision 3: a wrapper's body is never a wrapper; Zdancewic's value
-   grammar) + the strengthened canonical form `canon-var-conceal` (a value at variable type:
+   grammar — NOTE from the TOPLAS paper: under polymorphism their value-hood is DYNAMIC,
+   relative to the ambient knowledge (p. 1074); expect our `Value` to become Δ-indexed or
+   face-conditional at this step) + the strengthened canonical form `canon-var-conceal` (a value at variable type:
    the variable is revealed — `:=` or `:=ˣ` — and the chain ends in a licensed conceal) +
    `no-abstract-value` where still load-bearing. Then **instantiate `Progress.Impl`**: Merge
    discharges `NestedApp`/`NestedTApp`; Merge-against-the-enclosing-boundary plus the

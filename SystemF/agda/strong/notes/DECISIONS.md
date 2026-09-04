@@ -95,6 +95,60 @@ notes/GroundedProbe.agda (agda --safe clean) fixes the exact form:
   Open (small): whether `BlkAbst` then holds for every run-time boundary (only
   Λ, reveals and ↑Y:⋆ create context entries) or must be a premise of (env).
 
+### Decision 1 — refinement forced by the implementation (2026-09-04)
+
+The rework (worktree, not merged; 2 labelled holes) machine-checked that the
+form above is not yet right: storing a reveal's rep "as written, read in the
+exterior" as the interior entry X:=A is inconsistent with renaming, because
+every other use of an entry (∋ X:=A, the shift liftRep, ⊢renameᵀ) reads it as
+a TELESCOPE entry, over the entries below it.  Witness (`¬hk-int`):
+
+    Γ = X:=ℕ , W        Θ = ↑Z:=W , ↓X:=ℕ        weaken by a new abstract V
+    Γ ⇈ Θ = ∅ , Z:=W    but after weakening the entry reads Z:=(the slot W moved to)
+    while the interior renaming (identity here) demands the entry be unchanged.
+
+Fix (worked out, to implement): the interior entry is the INTERIOR READING of
+the reveal's rep — concealed variables replaced by their reps, kept variables
+re-indexed — and a reveal whose rep names a BLOCKED variable contributes an
+abstract entry (no knowledge):
+
+    Γ ⇈ Θ    =  (Γ ↓ Y★) , X₁:⟦A₁⟧ , … , X_r:⟦A_r⟧
+       ⟦A⟧    =  A[γΘ]  if A names no blocked variable,   X:⟦A⟧ = X abstract otherwise
+    (bwf-↓)  Γ ∋ Y:=A₀     ⟦A₀⟧ scoped (names no blocked var)     A = ⟦A₀⟧
+             Ψ ⊢ A     Γ ∣ Ψ ⊢ Θ                             ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
+
+  Under the grounded premise a conceal rep never names a reveal variable (it
+  is the reading of exterior knowledge, which bottoms out in kept variables),
+  so ⟦A⟧ is a legitimate telescope entry.  `bad`/`bad₂` stay refuted.
+
+A second finding concerns Wrap, and needs a ruling.  Wrap retypes the
+argument W (typed in Γ) inside the dual boundary, whose interior rebuilds
+Γ ↓ Y★ … exactly, EXCEPT at slots Γ drops without concealing: there the dual
+can only produce an abstract entry, but Γ may hold knowledge (a slot that
+was a reveal of an ENCLOSING boundary and became blocked when a conceal
+deeper than it was formed — e.g. by ⇑ᵀ under TyWrap's new reveal).  The
+rework closed Wrap's case only with a premise `RunOK Δ M` on preservation
+("at every boundary the dual rebuilds the exterior") — a companion predicate,
+against the design law, so NOT accepted as final.  Options:
+
+  (W1) accept RunOK as a premise of preservation/progress (companion).
+  (W2) make it an (env) premise — "every dropped-but-unconcealed slot is
+       abstract" — grounded; but TyWrap then breaks it: weakening an inner
+       boundary that has conceals by the new reveal slot makes that revealed
+       slot blocked.
+  (W3) fix the weakening instead: when a boundary WITH conceals is weakened by
+       a new REVEALED variable Z:=A, add the conceal ↓Z:=⟦A⟧ to it (the boundary
+       passes on all knowledge it can express); new ABSTRACT variables stay
+       blocked.  Then (W2)'s premise holds invariantly (blocked ⇒ abstract), the
+       dual's abstract entries match Γ, and no companion predicate is needed.
+       Cost: type-variable renaming through a boundary becomes knowledge-aware
+       (it needs the entry of the new variable), i.e. ⊢renameᵀ/⇑ᵀ take the
+       context's knowledge as input — in de Bruijn, `renameᵀ` gains a Γ-indexed
+       argument or TyWrap's contractum performs the insertion explicitly.
+
+  Recommendation: (W3), implemented as an explicit step in TyWrap's contractum
+  (only TyWrap introduces a revealed variable above existing boundaries).
+
 ## Decision 2 — a boundary meets a type application
 
 Both well typed on every step of Example 8 (notes/Example8Trace.agda).

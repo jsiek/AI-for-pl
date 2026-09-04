@@ -3,7 +3,7 @@ module strong.Canonical where
 -- Canonical forms for values at the runtime term context [] (PLAN.md §5).
 --
 -- Progress works at an arbitrary TYPE context Δ (ξ-⟪⟫ reduces under a
--- whose body lives at the interior intOf Δ Θ) but always at the EMPTY term
+-- boundary, whose body lives at the interior intOf Δ Θ) but always at the
 -- context, so a value is a numeral, a ƛ, a Λ, or a wrapped value V ⟪ Θ , B₀ ⟫.
 -- The type of the value rules out the constructors that do not fit; only a
 -- wrapper can have any type, including a type variable.

@@ -466,7 +466,94 @@ peelB : BCtx → Ty → Ty
 peelB Θ B₀ = renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀)
 
 ------------------------------------------------------------------------
--- Values
+-- ACTIVE AND INERT BOUNDARIES (Siek & Chen, "Parameterized Cast Calculi
+-- and Reusable Meta-theory for Gradually Typed Lambda Calculi", JFP
+-- 31(e30), 2021, §3; the mapping is notes/ParameterizedCastCalculi.md).
+--
+-- A boundary plays the role of the paper's CAST, and its FACE B₀ — read
+-- together with Θ's slot kinds — is a DECIDABLE, purely syntactic
+-- classifier:
+--
+--   INERT   the ⇒ and ∀ faces (the paper's CROSS casts: they are
+--           decomposed at their USE site, by Peel and by TyWrap/TyPeel,
+--           never at rest), and a VARIABLE face ` X that Θ does NOT
+--           reveal (revs Θ ≤ X — a conceal slot, or an ambient one).
+--           There ρᵇ reads the face back to an ABSTRACT variable, so no
+--           elimination can ever consume it and none is needed: these
+--           are the SEALED values, `5 ⟪ ↓X:=ℕ , X ⟫`.
+--           An inert boundary around a value IS a value (V-⟪⟫) — the
+--           paper's `Vcast`, and the discipline this development was
+--           missing (notes/DECISIONS.md, Decision 6).
+--   ACTIVE  a REVEAL-variable face ` X (X < revs Θ): ρᵇ reads it to the
+--           reveal's REP, so the wrapper is concrete outside and
+--           ABSTRACT inside, and no elimination can be pushed inward at
+--           all (ProgressDef's obstruction) — the nesting must COLLAPSE
+--           (Merge).  And the BASE faces ℕ / 𝔹, whose two readings are
+--           identical, so the boundary is vacuous on the type and is
+--           simply dropped (Drop$) — the paper's `baseNotInert`.
+--           An active boundary is NOT a value; it STEPS.
+--
+-- Θ ≡ [] needs no special case: revs [] = 0, so a variable face is inert
+-- there and a base face active, exactly as anywhere else.  That is what
+-- retires the standalone Drop∅ (Decision 3's addendum): an empty
+-- boundary is classified by its face like every other.
+--
+-- DETERMINISM FALLS OUT (V-¬-→ / det, below): the collapse rules never
+-- fire on a value because their redex's face is active, and Peel /
+-- TyWrap / TyPeel need the SYNTACTIC ⇒ / ∀ face, which is inert.
+------------------------------------------------------------------------
+
+data Inert : BCtx → Ty → Set where
+  I-⇒   : ∀ {Θ A′ B′}             → Inert Θ (A′ ⇒ B′)
+  I-∀   : ∀ {Θ B′}                → Inert Θ (`∀ B′)
+  I-var : ∀ {Θ X} → revs Θ ≤ X    → Inert Θ (` X)
+
+data Active : BCtx → Ty → Set where
+  A-var : ∀ {Θ X} → X < revs Θ    → Active Θ (` X)
+  A-ℕ   : ∀ {Θ}                   → Active Θ `ℕ
+  A-𝔹   : ∀ {Θ}                   → Active Θ `𝔹
+
+-- the paper's ActiveOrInert: the classification is TOTAL, and decidable
+-- by the face's head constructor plus one _≤?_ on the slot index
+ActiveOrInert : ∀ Θ B₀ → Active Θ B₀ ⊎ Inert Θ B₀
+ActiveOrInert Θ (` X)     with revs Θ ≤? X
+ActiveOrInert Θ (` X)     | yes ge = inj₂ (I-var ge)
+ActiveOrInert Θ (` X)     | no  hi = inj₁ (A-var (≰⇒> hi))
+ActiveOrInert Θ `ℕ        = inj₁ A-ℕ
+ActiveOrInert Θ `𝔹        = inj₁ A-𝔹
+ActiveOrInert Θ (A′ ⇒ B′) = inj₂ I-⇒
+ActiveOrInert Θ (`∀ B′)   = inj₂ I-∀
+
+-- … and never BOTH.  This one fact closes every rule overlap below.
+active-not-inert : ∀ {Θ B₀} → Active Θ B₀ → Inert Θ B₀ → ⊥
+active-not-inert (A-var lt) (I-var ge) = ≤⇒≯ ge lt
+
+-- INERTNESS IS STABLE UNDER TYPE-VARIABLE RENAMING (what
+-- strong.Canonical's Value-renameᵀ needs, since renameᵀ rebuilds the
+-- boundary): renaming keeps a face's head constructor, and a NON-REVEALED
+-- slot stays non-revealed, because renᴮ preserves the reveal count and
+-- liftⁿ maps the ≥-block into itself.
+revs-renᴮ : ∀ ρ ir Θ → revs (renᴮ ρ ir Θ) ≡ revs Θ
+revs-renᴮ ρ ir []            = refl
+revs-renᴮ ρ ir (rvl A ∷ Θ)   = cong suc (revs-renᴮ ρ ir Θ)
+revs-renᴮ ρ ir (rvl⋆ ∷ Θ)    = cong suc (revs-renᴮ ρ ir Θ)
+revs-renᴮ ρ ir (cnc X A ∷ Θ) = revs-renᴮ ρ ir Θ
+revs-renᴮ ρ ir (cnc⋆ X ∷ Θ)  = revs-renᴮ ρ ir Θ
+
+liftⁿ-≥ : ∀ r ρ X → r ≤ X → r ≤ liftⁿ r ρ X
+liftⁿ-≥ zero    ρ X       le       = z≤n
+liftⁿ-≥ (suc r) ρ (suc X) (s≤s le) = s≤s (liftⁿ-≥ r ρ X le)
+
+Inert-ren : ∀ ρ ir Θ B₀ → Inert Θ B₀
+  → Inert (renᴮ ρ ir Θ) (renameᵗ (liftⁿ (revs Θ) ρ) B₀)
+Inert-ren ρ ir Θ (A′ ⇒ B′) I-⇒ = I-⇒
+Inert-ren ρ ir Θ (`∀ B′)   I-∀ = I-∀
+Inert-ren ρ ir Θ (` X) (I-var ge) =
+  I-var (subst (_≤ liftⁿ (revs Θ) ρ X) (sym (revs-renᴮ ρ ir Θ))
+               (liftⁿ-≥ (revs Θ) ρ X ge))
+
+------------------------------------------------------------------------
+-- Values.  V-⟪⟫ now carries the paper's INERT premise.
 ------------------------------------------------------------------------
 
 data GVal : Term → Set
@@ -479,7 +566,7 @@ data GVal where
 data Value where
   V-$  : Value ($ n)
   V-G  : GVal V → Value V
-  V-⟪⟫ : Value V → Value (V ⟪ Θ , B₀ ⟫)
+  V-⟪⟫ : Value V → Inert Θ B₀ → Value (V ⟪ Θ , B₀ ⟫)
 
 ------------------------------------------------------------------------
 -- Reduction.  Γ-INDEXED: the index is the type context in which the redex
@@ -535,7 +622,10 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
   -- refuted.  For a Λ body the weakening is unnecessary (the binder's slot
   -- is the reveal's), which is exactly why TyWrap is kept: see
   -- notes/DECISIONS.md, "Decision 5 install" — form (β).
-  TyPeel : Value V
+  -- The INERT premise on the inner boundary is the value restriction, not
+  -- decoration: without it the redex's body could be an ACTIVE wrapper,
+  -- which steps by Merge under ξ-·[] — and TyPeel would clash with it.
+  TyPeel : Value V → Inert Θ₁ B₁
       → Δ ⊢ ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
         -→ (⇑ᵀ (V ⟪ Θ₁ , B₁ ⟫) ·[ peelB Θ B₀ , ` 0 ])
            ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
@@ -562,23 +652,44 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
       → Δ ⊢ ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W)
         -→ (V · (W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
 
-  -- Merge (Decision 3): a wrapper-bodied wrapper collapses to ONE
-  -- boundary.  The composite is Θ₁ ⊕ Θ₂ — Θ₁'s reveals with their reps
-  -- pushed out, Θ₁'s conceals of Θ₂-revealed slots CANCELLED against those
-  -- reveals, everything else re-indexed — and the merged boundary type is
-  -- B₁ carried into the composite's frame (mrgB).  MergeOK carries the
-  -- five obligations the composite does not discharge on its own; the
-  -- INTERNAL face is free (⊕-γ, a theorem).
-  Merge : Value V
+  -- Merge (Decision 3, RESTRICTED BY DECISION 6 TO AN ACTIVE OUTER FACE)
+  -- — the paper's `applyCast` at a REVEAL-VARIABLE face.  A wrapper-bodied
+  -- wrapper collapses to ONE boundary.  The composite is Θ₁ ⊕ Θ₂ — Θ₁'s
+  -- reveals with their reps pushed out, Θ₁'s conceals of Θ₂-revealed slots
+  -- CANCELLED against those reveals, everything else re-indexed — and the
+  -- merged boundary type is B₁ carried into the composite's frame (mrgB).
+  -- MergeOK carries the five obligations the composite does not discharge
+  -- on its own; the INTERNAL face is free (⊕-γ, a theorem).
+  --
+  -- THE TWO CLASSIFICATION PREMISES ARE THE DECISION-6 INSTALL.  The
+  -- OUTER face is ACTIVE, so the redex is NOT a value — which is what
+  -- §9j's counterexample cost (a value that steps, and a Peel that
+  -- competes with it in argument position).  The INNER face is INERT, so
+  -- the body IS a value and ξ-⟪⟫ cannot compete either.  Together they
+  -- make Merge disjoint from every other rule.
+  Merge : Value V → Inert Θ₁ B₁ → Active Θ₂ B₂
       → MergeOK Δ Θ₁ Θ₂ B₁ B₂
       → Δ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫ -→ V ⟪ Θ₁ ⊕ Θ₂ , mrgB Θ₁ Θ₂ B₁ ⟫
 
-  -- Drop∅ (Decision 3's addendum): an EMPTY boundary is the identity on
-  -- both faces (γᵇ [] = ρᵇ [] = `_), so it may be dropped.  It becomes
-  -- REACHABLE exactly now: Merge's cancel clause is the only rule that
-  -- mints an empty boundary.
-  Drop∅ : Value V
-      → Δ ⊢ V ⟪ [] , B₀ ⟫ -→ V
+  -- Drop$ — the paper's `baseNotInert` clause, and the whole of the
+  -- BASE-FACE action set.  At a base face the two readings coincide
+  -- (substᵗ σ `ℕ = `ℕ for every σ), so the boundary carries no type
+  -- information; but the body must still be typeable in the EXTERIOR Δ,
+  -- and that is exactly CancelProbe's lesson (CancelOK's CONTEXT
+  -- conjunct is the load-bearing one — a face-only drop is UNSOUND).
+  -- The rule is therefore stated on the body it is sound for: a NUMERAL,
+  -- which ⊢$ types in any context whatever.  Nothing is lost, because
+  -- the sharpened canonical form canon-ℕ says a VALUE of type ℕ is a
+  -- numeral and nothing else: a wrapper of type ℕ would need an
+  -- ℕ-reading INERT face, and by inert-ext there is none.  So this rule
+  -- is TOTAL on well-typed active base-faced wrappers, and no
+  -- base-faced merge clause is needed.
+  --
+  -- Drop∅ is RETIRED, not replaced: an empty boundary is now classified
+  -- by its face like any other — `V ⟪ ∅ , B₁ ⇒ B₂ ⟫` and `V ⟪ ∅ , ` X ⟫`
+  -- are inert VALUES (revs [] = 0, so every variable face is inert
+  -- there), and `($ n) ⟪ ∅ , ℕ ⟫` is this rule's redex.
+  Drop$ : Δ ⊢ ($ n) ⟪ Θ , `ℕ ⟫ -→ $ n
 
   -- ξ (congruence): the evaluation frames, left-to-right call-by-value.
   -- ξ-Λ and ξ-⟪⟫ are not optional bookkeeping: Λ V is a value only when V is
@@ -601,32 +712,80 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
         → Δ ⊢ M ⟪ Θ , B₀ ⟫ -→ M′ ⟪ Θ , B₀ ⟫
 
 ------------------------------------------------------------------------
--- DETERMINISM AND VALUES-DON'T-STEP — *** NEXT, AND CURRENTLY FALSE ***
--- (Jeremy's design requirement, 2026-09-04; evidence in
--- notes/InstallGauntlet §9j).  The two statements wanted are
+-- DETERMINISM AND VALUES-DON'T-STEP — *** NOW THEOREMS ***
+-- (Jeremy's design law, 2026-09-04; the counterexamples they replace are
+-- notes/InstallGauntlet §9j / §9k, restated there as UNIQUENESS proofs).
 --
---   V-¬-→ : Value V → ¬ (Δ ⊢ V -→ M′)
---   det   : Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+-- Both were FALSE before the Decision-6 install, for one reason: Merge
+-- and Drop∅ were the only rules whose LEFT-HAND SIDE WAS A VALUE.  The
+-- active/inert split removes that by construction — an active face is
+-- not a value, and the collapse rules fire only at active faces — so the
+-- whole rule table is pairwise disjoint:
 --
--- and BOTH FAIL as the relation stands, for one reason: Merge and Drop∅
--- are the only rules whose LEFT-HAND SIDE IS A VALUE.  §9j exhibits a
--- value that steps (val-steps) and, from that, a term with two different
--- contracta (nd-peel / nd-merge / nd-≢) — ξ-·-r's Value premise is
--- satisfied by a cancellable lineage pair, so Merge competes with the
--- Peel on the same redex.  They are NOT stated as lemmas here because
--- they would be unprovable, and no postulate is admitted.
---
--- Every other pair is already disjoint by syntax, so removing Merge and
--- Drop∅ would give both properties at once:
---   Beta vs Peel      bare ƛ            vs wrapper, in function position
---   TyBeta vs TyWrap  bare Λ            vs wrapper
---   TyWrap vs TyPeel  Λ-bodied wrapper  vs wrapper-bodied wrapper
---   ξ frames          left-to-right, each guarded by Value
--- What blocks the removal is PROGRESS at a reveal-variable face, where
--- no elimination can be pushed inward at all and Merge is the only rule
--- that fires — machine-checked, on a REACHABLE term, in §9i
--- (rv-only-merge).  The ruling is Jeremy's.
+--   Beta   vs Peel     bare ƛ vs ⇒-faced wrapper, in function position
+--   TyBeta vs TyWrap   bare Λ vs ∀-faced wrapper
+--   TyWrap vs TyPeel   Λ-bodied wrapper vs wrapper-bodied wrapper
+--   Merge  vs Drop$    wrapper body vs numeral body
+--   Merge/Drop$ vs Peel/TyWrap/TyPeel   ACTIVE vs SYNTACTIC ⇒/∀ face
+--   collapse vs ξ-⟪⟫   the collapse's body is a value (V-¬-→)
+--   ξ frames           left-to-right, each guarded by Value (V-¬-→)
 ------------------------------------------------------------------------
+
+-- values do not step
+V-¬-→ : ∀ {Δ V M′} → Value V → Δ ⊢ V -→ M′ → ⊥
+V-¬-→ (V-G (G-Λ v)) (ξ-Λ st)        = V-¬-→ v st
+V-¬-→ (V-⟪⟫ v i)    (ξ-⟪⟫ st)       = V-¬-→ v st
+V-¬-→ (V-⟪⟫ v i)    (Merge _ _ a _) = active-not-inert a i
+V-¬-→ (V-⟪⟫ v ())   Drop$
+
+-- reduction is deterministic
+det : ∀ {Δ M M₁ M₂} → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+
+det (TyBeta v)   (TyBeta w)   = refl
+det (TyBeta v)   (ξ-·[] st)   = ⊥-elim (V-¬-→ (V-G (G-Λ v)) st)
+det (ξ-·[] st)   (TyBeta v)   = ⊥-elim (V-¬-→ (V-G (G-Λ v)) st)
+
+det (Beta v)     (Beta w)     = refl
+det (Beta v)     (ξ-·-l st)   = ⊥-elim (V-¬-→ (V-G G-ƛ) st)
+det (Beta v)     (ξ-·-r w st) = ⊥-elim (V-¬-→ v st)
+det (ξ-·-l st)   (Beta v)     = ⊥-elim (V-¬-→ (V-G G-ƛ) st)
+det (ξ-·-r w st) (Beta v)     = ⊥-elim (V-¬-→ v st)
+
+det (TyWrap v)   (TyWrap w)   = refl
+det (TyWrap v)   (ξ-·[] st)   =
+  ⊥-elim (V-¬-→ (V-⟪⟫ (V-G (G-Λ v)) I-∀) st)
+det (ξ-·[] st)   (TyWrap v)   =
+  ⊥-elim (V-¬-→ (V-⟪⟫ (V-G (G-Λ v)) I-∀) st)
+
+det (TyPeel v i) (TyPeel w j) = refl
+det (TyPeel v i) (ξ-·[] st)   =
+  ⊥-elim (V-¬-→ (V-⟪⟫ (V-⟪⟫ v i) I-∀) st)
+det (ξ-·[] st)   (TyPeel v i) =
+  ⊥-elim (V-¬-→ (V-⟪⟫ (V-⟪⟫ v i) I-∀) st)
+
+det (Peel v w)   (Peel v′ w′) = refl
+det (Peel v w)   (ξ-·-l st)   = ⊥-elim (V-¬-→ (V-⟪⟫ v I-⇒) st)
+det (Peel v w)   (ξ-·-r u st) = ⊥-elim (V-¬-→ w st)
+det (ξ-·-l st)   (Peel v w)   = ⊥-elim (V-¬-→ (V-⟪⟫ v I-⇒) st)
+det (ξ-·-r u st) (Peel v w)   = ⊥-elim (V-¬-→ w st)
+
+det (Merge v i a p) (Merge w j b q) = refl
+det (Merge v i a p) (ξ-⟪⟫ st)       = ⊥-elim (V-¬-→ (V-⟪⟫ v i) st)
+det (ξ-⟪⟫ st)       (Merge v i a p) = ⊥-elim (V-¬-→ (V-⟪⟫ v i) st)
+
+det Drop$            Drop$             = refl
+det Drop$            (ξ-⟪⟫ st)         = ⊥-elim (V-¬-→ V-$ st)
+det (ξ-⟪⟫ st)        Drop$             = ⊥-elim (V-¬-→ V-$ st)
+
+det (ξ-·-l {M = M} st)  (ξ-·-l st′)  = cong (_· M) (det st st′)
+det (ξ-·-l st)          (ξ-·-r v st′) = ⊥-elim (V-¬-→ v st)
+det (ξ-·-r v st)        (ξ-·-l st′)   = ⊥-elim (V-¬-→ v st′)
+det (ξ-·-r {V = V} v st) (ξ-·-r w st′) = cong (V ·_) (det st st′)
+det (ξ-·[] {B = B} {A = A} st) (ξ-·[] st′) =
+  cong (_·[ B , A ]) (det st st′)
+det (ξ-Λ st)            (ξ-Λ st′)     = cong Λ_ (det st st′)
+det (ξ-⟪⟫ {Θ = Θ} {B₀ = B₀} st) (ξ-⟪⟫ st′) =
+  cong (_⟪ Θ , B₀ ⟫) (det st st′)
 
 ------------------------------------------------------------------------
 -- Worked example:  (ΛX. λx:X.x) [X→X, ℕ]  →  (λx:X.x)⟪↑X:=ℕ⟫   (both : ℕ→ℕ)
@@ -854,7 +1013,7 @@ peel-R2m = Peel (V-G G-ƛ) V-$
 peel-is-wrap+beta :
   intOf Δm Θm ⊢ (ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫)
     -→ ($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫
-peel-is-wrap+beta = Beta (V-⟪⟫ V-$)
+peel-is-wrap+beta = Beta (V-⟪⟫ V-$ (I-var (s≤s (s≤s z≤n))))
 
 _ : Δm ⊢ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫
     -→ (($ 3) ⟪ dualᴳ Δm Θm , ` 2 ⟫) ⟪ Θm , ` 0 ⟫
@@ -1938,6 +2097,48 @@ isConc-shift i (cnc⋆ X ∷ Θ)  = isConc-shift i Θ
 ρᵇ-hi (rvl⋆ ∷ Θ)    i = ρᵇ-hi Θ i
 ρᵇ-hi (cnc X A ∷ Θ) i = ρᵇ-hi Θ i
 ρᵇ-hi (cnc⋆ X ∷ Θ)  i = ρᵇ-hi Θ i
+
+-- THE EXTERIOR READING OF AN INERT FACE KEEPS ITS HEAD CONSTRUCTOR: ⇒
+-- stays ⇒, ∀ stays ∀, and a non-revealed variable reads back to an
+-- exterior VARIABLE (ρᵇ-hi).  This is the paper's `InertCross→` and its
+-- `baseNotInert` in one statement: an inert boundary can NEVER export a
+-- base type, and when it exports an arrow / a ∀ its face is SYNTACTICALLY
+-- that arrow / that ∀ — which is what Peel and TyWrap/TyPeel need, and
+-- what makes progress's elimination cases total.
+inert-ext : ∀ Θ B₀ → Inert Θ B₀
+  → (Σ Ty λ A′ → Σ Ty λ B′ →
+       (B₀ ≡ (A′ ⇒ B′)) × (substᵗ (ρᵇ Θ) B₀ ≡
+                             (substᵗ (ρᵇ Θ) A′ ⇒ substᵗ (ρᵇ Θ) B′)))
+  ⊎ (Σ Ty λ B′ → (B₀ ≡ `∀ B′) × (substᵗ (ρᵇ Θ) B₀ ≡
+                                   `∀ (substᵗ (extsᵗ (ρᵇ Θ)) B′)))
+  ⊎ (Σ ℕ λ i → substᵗ (ρᵇ Θ) B₀ ≡ ` i)
+inert-ext Θ (A′ ⇒ B′) I-⇒ = inj₁ (A′ , B′ , refl , refl)
+inert-ext Θ (`∀ B′)   I-∀ = inj₂ (inj₁ (B′ , refl , refl))
+inert-ext Θ (` X) (I-var ge) =
+  inj₂ (inj₂ (X ∸ revs Θ ,
+              trans (cong (ρᵇ Θ) (sym (m+[n∸m]≡n ge)))
+                    (ρᵇ-hi Θ (X ∸ revs Θ))))
+
+-- `baseNotInert`, both bases: no inert boundary exports ℕ or 𝔹
+baseNotInert-ℕ : ∀ Θ B₀ → Inert Θ B₀ → substᵗ (ρᵇ Θ) B₀ ≡ `ℕ → ⊥
+baseNotInert-ℕ Θ B₀ i eq with inert-ext Θ B₀ i
+baseNotInert-ℕ Θ B₀ i eq | inj₁ (A′ , B′ , refl , e) with trans (sym e) eq
+baseNotInert-ℕ Θ B₀ i eq | inj₁ (A′ , B′ , refl , e) | ()
+baseNotInert-ℕ Θ B₀ i eq | inj₂ (inj₁ (B′ , refl , e))
+  with trans (sym e) eq
+baseNotInert-ℕ Θ B₀ i eq | inj₂ (inj₁ (B′ , refl , e)) | ()
+baseNotInert-ℕ Θ B₀ i eq | inj₂ (inj₂ (j , e)) with trans (sym e) eq
+baseNotInert-ℕ Θ B₀ i eq | inj₂ (inj₂ (j , e)) | ()
+
+baseNotInert-𝔹 : ∀ Θ B₀ → Inert Θ B₀ → substᵗ (ρᵇ Θ) B₀ ≡ `𝔹 → ⊥
+baseNotInert-𝔹 Θ B₀ i eq with inert-ext Θ B₀ i
+baseNotInert-𝔹 Θ B₀ i eq | inj₁ (A′ , B′ , refl , e) with trans (sym e) eq
+baseNotInert-𝔹 Θ B₀ i eq | inj₁ (A′ , B′ , refl , e) | ()
+baseNotInert-𝔹 Θ B₀ i eq | inj₂ (inj₁ (B′ , refl , e))
+  with trans (sym e) eq
+baseNotInert-𝔹 Θ B₀ i eq | inj₂ (inj₁ (B′ , refl , e)) | ()
+baseNotInert-𝔹 Θ B₀ i eq | inj₂ (inj₂ (j , e)) with trans (sym e) eq
+baseNotInert-𝔹 Θ B₀ i eq | inj₂ (inj₂ (j , e)) | ()
 
 -- FACE LAW (exterior).  The new reveal instantiates the ∀ with A — and its
 -- rep IS A, read in the plain exterior, so no lift is resolved.
@@ -4154,13 +4355,18 @@ mrgΨ-d Θ₁ Θ₂ X g₂ | no  _ = refl
 -- MERGE, PART 5: WORKED EXAMPLE (a) — THE CANCEL PAIR.
 --
 --   (7 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫  --Merge--→  7 ⟪ ∅ , ℕ ⟫
---                                    --Drop∅--→  7          (all : ℕ)
+--                                    --Drop$--→  7          (all : ℕ)
 --
 -- The inner boundary CONCEALS the very slot the outer one REVEALS, so
 -- mapL deletes the conceal and mapR deletes the reveal: the composite is
--- EMPTY.  B₂′ is the cancelled slot rewritten through the agreed rep — ℕ —
--- and Drop∅ then removes the vacuous wrapper.  This is the pair that made
--- Drop∅ ship with Merge (Decision 3's addendum).
+-- EMPTY.  B₂′ is the cancelled slot rewritten through the agreed rep — ℕ.
+--
+-- THE PAIR IS THE DECISION-6 CLASSIFICATION IN MINIATURE.  The inner
+-- face ` 0 is INERT (revs Θ1c = 0, so slot 0 is a conceal), the outer
+-- face ` 0 is ACTIVE (0 < revs Θ2c = 1), so the redex is not a value and
+-- Merge is its unique step; the contractum's face is the BASE type ℕ,
+-- active again, so Drop$ removes the vacuous wrapper — which is what
+-- Drop∅ used to do, and why Drop∅ is retired rather than replaced.
 ------------------------------------------------------------------------
 
 Θ1c Θ2c : BCtx
@@ -4181,13 +4387,13 @@ ok-c : MergeOK [] Θ1c Θ2c (` 0) (` 0)
 ok-c = s≤s z≤n , bwf[] , sc-ℕ , ≼≈[] , refl
 
 _ : [] ⊢ (($ 7) ⟪ Θ1c , ` 0 ⟫) ⟪ Θ2c , ` 0 ⟫ -→ ($ 7) ⟪ [] , `ℕ ⟫
-_ = Merge V-$ ok-c
+_ = Merge V-$ (I-var z≤n) (A-var (s≤s z≤n)) ok-c
 
 ⊢contractum-c : [] ∣ [] ⊢ ($ 7) ⟪ [] , `ℕ ⟫ ⦂ `ℕ
 ⊢contractum-c = env bwf[] sc-ℕ ⊢$
 
 _ : [] ⊢ ($ 7) ⟪ [] , `ℕ ⟫ -→ $ 7
-_ = Drop∅ V-$
+_ = Drop$
 
 ⊢final-c : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
 ⊢final-c = ⊢$
@@ -4197,11 +4403,22 @@ _ = Drop∅ V-$
 -- TWICE.  Δtw = X:=𝔹 ;  Θtw3 = ↑Z₁:=X , ↓X:=𝔹 ;  Θtw2 = ↑Z₂:=Z₁ , ↑Y:=ℕ ;
 -- Θtw1 = ↑Z₃:=Z₂ ;  V = λz:Z₃. z.
 --
--- Every boundary type is Z→Z at its own level, and each merge keeps both
--- faces on the nose.  The INTERIORS, however, compose only up to _≼≈_:
--- nested, Z₃'s entry is the reveal variable Z₂; merged, it is Z₂'s own rep
--- — and the two agree after ONE unfolding, which is exactly the knowledge
--- ordering ⊢retag≈ consumes (MergeProbe's ¬⊕-intR, resolved by ≼≈).
+-- Every boundary type is Z→Z at its own level, and each composite keeps
+-- both faces on the nose.  The INTERIORS, however, compose only up to
+-- _≼≈_: nested, Z₃'s entry is the reveal variable Z₂; merged, it is Z₂'s
+-- own rep — and the two agree after ONE unfolding, which is exactly the
+-- knowledge ordering ⊢retag≈ consumes (MergeProbe's ¬⊕-intR, resolved
+-- by ≼≈).
+--
+-- AFTER DECISION 6 THIS TOWER DOES NOT STEP, and that is the point: every
+-- face here is ⇒-shaped, hence INERT, so the tower is a VALUE at rest
+-- (val-tower / tower-¬-→) and its boundaries are consumed at their USE
+-- site by Peel, one layer per application — never merged.  What survives
+-- as evidence is the ⊕ ARITHMETIC and the MergeOK packages themselves
+-- (ok-tw1 / ok-tw2, still fully discharged): the composite is well
+-- formed and both faces agree, which is what a merge WOULD need.  The
+-- steps are gone because the value restriction forbids them, not because
+-- the composite got worse.
 ------------------------------------------------------------------------
 
 Δtw : TCtx
@@ -4254,12 +4471,16 @@ ok-tw1 = z≤n
        , int-tw1
        , refl
 
--- the INNER merge, under the outermost boundary (ξ-⟪⟫ carries the index
--- into the interior, which is exactly the exterior of the merge)
-_ : Δtw ⊢ ((Vtw ⟪ Θtw1 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw2 , ` 0 ⇒ ` 0 ⟫)
-            ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
-    -→ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
-_ = ξ-⟪⟫ (Merge (V-G G-ƛ) ok-tw1)
+-- THE TOWER IS A VALUE, and therefore takes no step at all: all three
+-- faces are ⇒-shaped, so all three boundaries are inert.
+val-tower : Value (((Vtw ⟪ Θtw1 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw2 , ` 0 ⇒ ` 0 ⟫)
+                     ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫)
+val-tower = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ (V-G G-ƛ) I-⇒) I-⇒) I-⇒
+
+tower-¬-→ : ∀ {M′}
+  → Δtw ⊢ ((Vtw ⟪ Θtw1 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw2 , ` 0 ⇒ ` 0 ⟫)
+            ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫ -→ M′ → ⊥
+tower-¬-→ = V-¬-→ val-tower
 
 ⊢tower′ : Δtw ∣ []
   ⊢ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
@@ -4292,10 +4513,8 @@ ok-tw2 = z≤n
        , int-tw2
        , refl
 
-_ : Δtw ⊢ (Vtw ⟪ Θtw1 ⊕ Θtw2 , ` 0 ⇒ ` 0 ⟫) ⟪ Θtw3 , ` 0 ⇒ ` 0 ⟫
-    -→ Vtw ⟪ Θtw⊕ , ` 0 ⇒ ` 0 ⟫
-_ = Merge (V-G G-ƛ) ok-tw2
-
+-- the twice-merged boundary still types the value at the tower's own
+-- type — the composite is right, it is just never reached by a step
 ⊢tower″ : Δtw ∣ [] ⊢ Vtw ⟪ Θtw⊕ , ` 0 ⇒ ` 0 ⟫ ⦂ (` 0 ⇒ ` 0)
 ⊢tower″ =
   env (bwf↑ (wf-var here-rvld)

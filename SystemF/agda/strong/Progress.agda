@@ -1,23 +1,31 @@
 module strong.Progress where
 
--- Progress for the tight dual boundary (B₀) design (PLAN.md §5).
+-- Progress for the tight dual boundary (B₀) design (PLAN.md §5), under the
+-- Decision-6 ACTIVE/INERT discipline (Siek & Chen, JFP 31(e30) 2021;
+-- notes/ParameterizedCastCalculi.md).
 --
 -- Generalised over the TYPE context Δ, exactly as preservation is: ξ-⟪⟫
 -- reduces the INTERIOR of a boundary, which is typed at intOf Δ Θ, i.e. at a
 -- different Δ.  The TERM context is always [] (runtime), so ⊢` is impossible.
 --
--- The value cases of the two eliminations are factored into app-steps and
--- tapp-steps.  Neither goes through strong.Canonical: inverting the Value
--- proof already pins the head constructor of the term, and inv-⟪⟫ / inv-body
--- recover the wrapper's external-face equation and its body's typing without
--- pattern-matching (env) against a non-constructor type index.  What remains
--- is the shape of the BOUNDARY type B₀ — that is what selects the rule —
--- which is cf-⇒-B₀ / cf-∀-B₀, ported from notes/old/BoundaryRulesProbe §6.
--- At an ⇒ face that is the WHOLE analysis: Peel does not consume the ƛ, so
--- app-⇒ fires on any value body.  At a ∀ face one further split is needed,
--- on the wrapper's BODY (a Λ ⇒ TyWrap, a wrapper ⇒ TyPeel).
+-- THE SHAPE OF THE PROOF AFTER THE INSTALL.  The paper's Theorem 14 splits a
+-- well-typed term into a value, a step, or a wrapper whose cast is ACTIVE and
+-- therefore steps by applyCast.  Ours does the same, in three places:
+--
+--   * the ELIMINATIONS (app-steps / tapp-steps) see only INERT wrappers,
+--     because an active one is not a value.  By inert-ext an inert face keeps
+--     its head constructor when read outward, so an arrow-typed wrapper value
+--     has the SYNTACTIC ⇒ face Peel needs (`InertCross→`) and a ∀-typed one
+--     has the syntactic ∀ face — cf-⇒-B₀ / cf-∀-B₀'s reveal-variable branch
+--     is REFUTED by inertness, which is precisely how rv-app / rv-tapp
+--     dissolved.  Neither elimination case assumes anything.
+--   * the WRAPPER case of progress classifies the face (ActiveOrInert): inert
+--     ⇒ the wrapper is a value; active ⇒ apply-active steps it.
+--   * apply-active IS applyCast: canon-ℕ / canon-𝔹 / canon-var-conceal pin
+--     the body's shape at each active face, leaving Merge's MergeOK premise
+--     at a reveal-variable face as the one residue (strong.ProgressDef).
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ; _,_; _×_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -28,18 +36,14 @@ open import strong.Types
 open import strong.Context using (TCtx; Ctx)
 open import strong.Boundary
 open import strong.BReduction
-open import strong.Canonical using (canon-var)
+open import strong.Canonical using (canon-ℕ; canon-𝔹; canon-var-conceal)
 open import strong.ProgressDef
 
--- Parameterised over the TWO REVEAL-VARIABLE cases (the peel install,
--- 2026-09-04).  The nested-wrapper family at an ⇒ / ∀ face — the two
--- parameters this module used to take — is DISCHARGED: Peel fires at an ⇒
--- face on any value body and TyWrap / TyPeel at a ∀ face on a Λ / wrapper
--- body, so app-⇒ and tapp-∀ below are total.  What is left is the
--- reveal-variable face, where the wrapped value has ABSTRACT type and no
--- elimination can be pushed inward at all: see strong.ProgressDef for the
--- obstruction and notes/InstallGauntlet §9i for the reachable witness.
-module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
+-- Parameterised over the ONE open fact: applyCast totality at a
+-- reveal-variable face, i.e. MergeOK's derivability there
+-- (strong.ProgressDef, and notes/DECISIONS.md's Decision-6 crux).
+-- Everything else below is proven.
+module Impl (mrg-ok : MergeDerivable) where
 
   ------------------------------------------------------------------------
   -- 0.  Boundary-type shape analysis
@@ -104,98 +108,88 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
   inv-body (env bwf sc ⊢V) = ⊢V
 
   ------------------------------------------------------------------------
-  -- 1b.  THE REVEAL-VARIABLE FAMILY, AFTER PEEL.
+  -- 2.  APPLYCAST: every well-typed ACTIVE wrapper around a value steps.
   --
-  -- A wrapper whose BOUNDARY TYPE is one of its own reveal variables ` X
-  -- types its body at
+  -- This is the paper's `applyCast` totality field, and it is where the
+  -- sharpened canonical forms do their work.  At each active face the
+  -- body's INTERIOR type is forced, and the canonical form for that type
+  -- names the one shape that can occur:
   --
-  --   γᵇ Θ X = ` X          (γᵇ-lo, since X < revs Θ: a reveal variable
-  --                          passes through the interior face unchanged)
-  --
-  -- so the body is a value AT A VARIABLE TYPE, and `canon-var` says such a
-  -- value is a wrapper with a variable boundary type.  That much is a
-  -- THEOREM (rv-nested), and it is all this module proves here: it turns
-  -- the ProgressDef parameters' NESTED shape into an available fact.  The
-  -- step itself is not available — a variable-faced boundary is neither a
-  -- Peel nor a TyPeel redex, because pushing the elimination inward would
-  -- eliminate a term of variable type.  See strong.ProgressDef.
+  --   ℕ face   internal face substᵗ (γᵇ Θ) `ℕ = `ℕ, so canon-ℕ makes the
+  --            body a NUMERAL — Drop$.  (A wrapper body is impossible: it
+  --            would have to be a value of type ℕ, and baseNotInert-ℕ
+  --            forbids an ℕ-exporting inert face.  This is what collapses
+  --            the base-face action set to ONE rule.)
+  --   𝔹 face   canon-𝔹: there is no value of type 𝔹 — vacuous.
+  --   ` X face internal face γᵇ Θ X = ` X (γᵇ-lo), so canon-var-conceal
+  --            makes the body a SEALED value V′ ⟪ Θ₁ , ` Y ⟫ with
+  --            revs Θ₁ ≤ Y — Merge, with MergeOK from the parameter.
   ------------------------------------------------------------------------
 
-  unwrap-val : ∀ {V′ Θ′ B} → Value (V′ ⟪ Θ′ , B ⟫) → Value V′
-  unwrap-val (V-⟪⟫ v) = v
+  apply-active : ∀ {Δ V Θ B₀} → Value V → Active Θ B₀
+    → Δ ∣ [] ⊢ V ⟪ Θ , B₀ ⟫ ⦂ substᵗ (ρᵇ Θ) B₀
+    → Σ Term λ M′ → Δ ⊢ V ⟪ Θ , B₀ ⟫ -→ M′
 
-  rv-nested : ∀ {Δ V Θ X} → Value V → X < revs Θ
-            → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (` X)
-            → Σ Term λ V′ → Σ BCtx λ Θ′ → Σ ℕ λ Y → V ≡ V′ ⟪ Θ′ , ` Y ⟫
-  rv-nested {Δ} {V} {Θ} {X} v lt ⊢V =
-    canon-var v (subst (λ T → intOf Δ Θ ∣ [] ⊢ V ⦂ T) (γᵇ-lo Θ X lt) ⊢V)
+  apply-active v A-ℕ ⊢W with canon-ℕ v (inv-body ⊢W)
+  apply-active v A-ℕ ⊢W | (n , refl) = _ , Drop$
+
+  apply-active v A-𝔹 ⊢W = ⊥-elim (canon-𝔹 v (inv-body ⊢W))
+
+  apply-active {Δ} {V} {Θ} {` X} v (A-var X<r) ⊢W
+    with canon-var-conceal v
+           (subst (λ T → intOf Δ Θ ∣ [] ⊢ V ⦂ T) (γᵇ-lo Θ X X<r)
+                  (inv-body ⊢W))
+  apply-active v (A-var X<r) ⊢W | (V′ , Θ₁ , Y , refl , ge , v′) =
+    _ , Merge v′ (I-var ge) (A-var X<r) (mrg-ok v′ ge X<r ⊢W)
 
   ------------------------------------------------------------------------
-  -- 2.  The two eliminations applied to a value
+  -- 3.  The two eliminations applied to a value
   --
   -- PEEL IS TOTAL AT AN ⇒ FACE: it does not consume the ƛ, so the wrapped
-  -- value's shape is irrelevant and app-⇒ needs no case analysis at all.
-  -- At a ∀ face the pair TyWrap / TyPeel covers the two shapes a value of
-  -- ∀-type can have — a Λ (TyWrap: the binder's slot BECOMES the reveal
-  -- slot, no weakening, one step) and a wrapper (TyPeel: the elimination is
-  -- pushed inside and the body weakened by the new reveal's slot) — and the
-  -- numeral and the ƛ are refuted by the body's own typing at the ∀-shaped
-  -- interior face.  NOTHING here is assumed.
+  -- value's shape is irrelevant.  At a ∀ face one further split is needed,
+  -- on the wrapper's BODY (a Λ ⇒ TyWrap, a wrapper ⇒ TyPeel).  The
+  -- reveal-variable branch of cf-⇒-B₀ / cf-∀-B₀ is REFUTED: the wrapper is a
+  -- value, so its face is inert, and no face is both.
   ------------------------------------------------------------------------
-
-  -- a wrapper whose boundary type is ⇒-shaped, applied to a value
-  app-⇒ : ∀ {Δ V W Θ B₁ B₂ A B} → Value V → Value W
-        → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (B₁ ⇒ B₂)
-        → Δ ∣ [] ⊢ V ⟪ Θ , B₁ ⇒ B₂ ⟫ ⦂ (A ⇒ B)
-        → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W) -→ M′
-  app-⇒ v w ⊢V ⊢L = _ , Peel v w
 
   -- a wrapper whose boundary type is ∀-shaped, type-applied
   tapp-∀ : ∀ {Δ V Θ B₀ B A} → Value V
          → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (`∀ B₀)
-         → Δ ∣ [] ⊢ V ⟪ Θ , `∀ B₀ ⟫ ⦂ `∀ B
          → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]) -→ M′
-  tapp-∀ V-$           () ⊢L
-  tapp-∀ (V-G G-ƛ)     () ⊢L
-  tapp-∀ (V-G (G-Λ v)) ⊢V ⊢L = _ , TyWrap v
-  tapp-∀ (V-⟪⟫ v)      ⊢V ⊢L = _ , TyPeel v     -- wrapper body: peel
+  tapp-∀ V-$           ()
+  tapp-∀ (V-G G-ƛ)     ()
+  tapp-∀ (V-G (G-Λ v)) ⊢V = _ , TyWrap v
+  tapp-∀ (V-⟪⟫ v i)    ⊢V = _ , TyPeel v i   -- wrapper body: peel
 
-  -- L · M with both sides values.  L : A ⇒ B, so L is a ƛ (Beta) or a wrapper.
+  -- L · M with both sides values.  L : A ⇒ B, so L is a ƛ (Beta) or a
+  -- wrapper — and an INERT one, so its face is syntactically an arrow.
   app-steps : ∀ {Δ L M A B} → Value L → Value M → Δ ∣ [] ⊢ L ⦂ (A ⇒ B)
             → Σ Term λ M′ → Δ ⊢ (L · M) -→ M′
   app-steps V-$           w ()
   app-steps (V-G G-ƛ)     w ⊢L = _ , Beta w
   app-steps (V-G (G-Λ v)) w ()
-  app-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v) w ⊢L
+  app-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v i) w ⊢L
     with cf-⇒-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
-  app-steps (V-⟪⟫ v) w ⊢L | inj₁ (B₁ , B₂ , refl) =
-    app-⇒ v w (inv-body ⊢L) ⊢L
-  -- reveal-variable boundary type: canon-var exposes the NESTED shape the
-  -- ProgressDef parameter is stated over (strong.ProgressDef)
-  app-steps {Δ} (V-⟪⟫ {Θ = Θ} v) w ⊢L | inj₂ (X , refl , X<r)
-    with rv-nested {Δ} {Θ = Θ} {X = X} v X<r (inv-body ⊢L)
-  app-steps {Δ} (V-⟪⟫ {Θ = Θ} v) w ⊢L | inj₂ (X , refl , X<r)
-    | (V′ , Θ′ , Y , refl) = rv-app (unwrap-val v) w ⊢L X<r
+  app-steps (V-⟪⟫ v i) w ⊢L | inj₁ (B₁ , B₂ , refl) = _ , Peel v w
+  -- a reveal-variable face is ACTIVE, so this wrapper is not a value
+  app-steps (V-⟪⟫ v i) w ⊢L | inj₂ (X , refl , X<r) =
+    ⊥-elim (active-not-inert (A-var X<r) i)
 
-  -- L ·[ B , A ] with L a value.  L : `∀ B, so L is a Λ (TyBeta) or a wrapper.
-  -- The Λ case reads the body's value proof straight off G-Λ, so neither a
-  -- canonical-form equation nor a subst on the term is needed.
+  -- L ·[ B , A ] with L a value.  L : `∀ B, so L is a Λ (TyBeta) or an
+  -- INERT wrapper, whose face is then syntactically a ∀.
   tapp-steps : ∀ {Δ L B A} → Value L → Δ ∣ [] ⊢ L ⦂ `∀ B
              → Σ Term λ M′ → Δ ⊢ (L ·[ B , A ]) -→ M′
   tapp-steps V-$           ()
   tapp-steps (V-G G-ƛ)     ()
   tapp-steps (V-G (G-Λ v)) ⊢L = _ , TyBeta v
-  tapp-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v) ⊢L
+  tapp-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v i) ⊢L
     with cf-∀-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
-  tapp-steps (V-⟪⟫ v) ⊢L | inj₁ (B₀′ , refl) =
-    tapp-∀ v (inv-body ⊢L) ⊢L
-  tapp-steps {Δ} (V-⟪⟫ {Θ = Θ} v) ⊢L | inj₂ (X , refl , X<r)
-    with rv-nested {Δ} {Θ = Θ} {X = X} v X<r (inv-body ⊢L)
-  tapp-steps {Δ} (V-⟪⟫ {Θ = Θ} v) ⊢L | inj₂ (X , refl , X<r)
-    | (V′ , Θ′ , Y , refl) = rv-tapp (unwrap-val v) ⊢L X<r
+  tapp-steps (V-⟪⟫ v i) ⊢L | inj₁ (B₀′ , refl) = tapp-∀ v (inv-body ⊢L)
+  tapp-steps (V-⟪⟫ v i) ⊢L | inj₂ (X , refl , X<r) =
+    ⊥-elim (active-not-inert (A-var X<r) i)
 
   ------------------------------------------------------------------------
-  -- 3.  Progress
+  -- 4.  Progress
   ------------------------------------------------------------------------
 
   progress : ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
@@ -213,11 +207,16 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
   progress (⊢Λ ⊢N) | inj₁ v           = inj₁ (V-G (G-Λ v))
   progress (⊢Λ ⊢N) | inj₂ (N′ , N→N′) = inj₂ (Λ N′ , ξ-Λ N→N′)
 
-  -- likewise the INTERIOR of a boundary, typed at intOf Δ Θ ∣ []
+  -- likewise the INTERIOR of a boundary, typed at intOf Δ Θ ∣ [] — and then
+  -- the FACE decides: inert ⇒ a value, active ⇒ applyCast
   progress (env bwf sc ⊢M) with progress ⊢M
-  progress (env bwf sc ⊢M) | inj₁ v = inj₁ (V-⟪⟫ v)
   progress (env {Θ = Θ} {B₀ = B₀} bwf sc ⊢M) | inj₂ (M′ , M→M′) =
     inj₂ (M′ ⟪ Θ , B₀ ⟫ , ξ-⟪⟫ M→M′)
+  progress (env {Θ = Θ} {B₀ = B₀} bwf sc ⊢M) | inj₁ v
+    with ActiveOrInert Θ B₀
+  progress (env bwf sc ⊢M) | inj₁ v | inj₂ i = inj₁ (V-⟪⟫ v i)
+  progress (env bwf sc ⊢M) | inj₁ v | inj₁ a =
+    inj₂ (apply-active v a (env bwf sc ⊢M))
 
   progress (⊢· ⊢L ⊢M) with progress ⊢L
   progress (⊢· {M = M} ⊢L ⊢M) | inj₂ (L′ , L→L′) =

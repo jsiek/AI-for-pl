@@ -11,10 +11,15 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 # TODO
 
-* **Merge** and **Drop∅** are LANDED (2026-09-04) — see the rule table and §Merge below.
-  Drop∅ is now a real rule and REACHABLE (Merge's cancel clause mints the empty boundary).
-  Progress's two `RevealVar…` parameters are GONE (they dissolve into the `Nested…` ones —
-  a wrapper at a reveal-variable face has a body of variable type, hence a wrapper).
+* **The ACTIVE/INERT discipline is INSTALLED (Decision 6, 2026-09-04)** — see §Values,
+  §Merge, §Drop$ and §Determinism.  `V-⟪⟫` now requires the face to be INERT; Merge is
+  restricted to an ACTIVE (reveal-variable) outer face over an inert inner one; `Drop∅` is
+  RETIRED in favour of `Drop$` at a BASE face.  `V-¬-→` and `det` are now THEOREMS, and
+  progress's `RevealVarApp` / `RevealVarTApp` parameters DISSOLVED.
+* **the ONE open obligation** is `MergeDerivable` (ProgressDef.agda) — the paper's
+  `applyCast` totality.  It is FALSE as stated; gauntlet §9l has the counterexample and the
+  indicated repair (weaken MergeOK's component (1) to the internal-face equation it buys).
+  **Needs a ruling.**
 * **the one thing Merge still asks of its redex** (`MergeOK`, a premise of the rule): the
   composite's EXTERNAL face must be the redex's own type.  It is a premise and not a lemma:
   NEITHER of the two candidate merged boundary types works everywhere — the B₁-pushed-out
@@ -475,13 +480,45 @@ see "Old per-variable design" and the historical Example 8 below.)
     the old (conceal).  The point of combining them is that a conceal's body can still see a
     reveal's fresh variable, which is exactly what the old design could not express.
 
-# Values
+# Values, and the ACTIVE / INERT classification
 
   G     ::= λx:A. N | ΛX.V
-  V,W   ::= k | G | V ⟪ Θ , B₀ ⟫
+  V,W   ::= k | G | V ⟪ Θ , B₀ ⟫       *** only when Θ ⊢ B₀ inert ***
 
-  A wrapped value is a value, whatever Θ is — including a wrapped constant.  (The old
-  RevealCnst rule, which unwrapped a constant, is gone.)
+  A wrapped value is a value **only when its boundary is INERT**.  This is the value
+  restriction of Siek & Chen, "Parameterized Cast Calculi and Reusable Meta-theory for
+  Gradually Typed Lambda Calculi", JFP 31(e30), 2021, §3 — their
+
+      Vcast : Value V → Inert c → Value (V ⟨ c ⟩)
+
+  transported to boundaries (the full mapping is `notes/ParameterizedCastCalculi.md`;
+  the ruling is Decision 6, 2026-09-04).  A boundary plays the role of their CAST, and
+  its FACE B₀, read together with Θ's slot kinds, classifies it — decidably, and by
+  syntax alone:
+
+  | face B₀ | side condition | class | why | eliminated by |
+  |---|---|---|---|---|
+  | `B₁ → B₂` | — | **inert** | a CROSS boundary: it is decomposed at its USE site, never at rest | Peel |
+  | `∀Y. B₀′` | — | **inert** | likewise, at a type application | TyWrap / TyPeel |
+  | `X` | `X` is NOT revealed by Θ (a conceal slot, or ambient) | **inert** | ρ reads the face back to an ABSTRACT variable, so no elimination can ever consume it and none is needed — the SEALED values, `5 ⟪ ↓X:=ℕ , X ⟫` | nothing |
+  | `X` | `X` IS revealed by Θ | **active** | ρ reads the face to the reveal's REP: concrete outside, abstract inside, so no elimination can be pushed inward at all — the nesting must COLLAPSE | Merge |
+  | `ℕ` / `𝔹` | — | **active** | both readings are that base type, so the boundary carries no type information | Drop$ |
+
+  `Θ = ∅` needs no special case: it reveals nothing, so a variable face is inert there and a
+  base face active, exactly as anywhere else.  That is what RETIRES the standalone `Drop∅`.
+
+  The classification is TOTAL and never overlapping (`ActiveOrInert`, `active-not-inert` in
+  `BReduction.agda`) — the paper's `ActiveOrInert` coherence field.  Its two companions are
+  there too, in one statement `inert-ext`: the exterior reading of an inert face keeps the
+  face's head constructor, so
+
+  * an inert boundary at a FUNCTION type has the syntactic `→` face Peel needs, and at a ∀
+    type the syntactic `∀` face TyWrap/TyPeel need — the paper's `InertCross→`;
+  * no inert boundary exports a BASE type — the paper's `baseNotInert` (`baseNotInert-ℕ`,
+    `baseNotInert-𝔹`).
+
+  (The old RevealCnst rule, which unwrapped a constant, is gone; `Drop$` is its principled
+  descendant, licensed by the classification rather than by the constant.)
 
 # Frames
 
@@ -530,11 +567,20 @@ see "Old per-variable design" and the historical Example 8 below.)
   (ξ-Λ)     Γ, X ⊢ N -→ N′                ⟹  Γ ⊢ ΛX.N    -→ ΛX.N′
   (ξ-⟪⟫)    Γ⇈Θ ⊢ M -→ M′                 ⟹  Γ ⊢ M ⟪ Θ , B₀ ⟫ -→ M′ ⟪ Θ , B₀ ⟫
   (Merge)   Γ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫
-                                          -→ V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫       if MergeOK
-  (Drop∅)   Γ ⊢ V ⟪ ∅ , B₀ ⟫              -→ V
-  (Cancel)  Γ ⊢ (V ⟪ ↓X:=A , B₀ ⟫) ⟪ ↑X:=A′ , B₀′ ⟫  -→ V     if A = A′    [OPTIONAL]
+                                          -→ V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫
+                                             if B₁ INERT in Θ₁, B₂ ACTIVE in Θ₂,
+                                             and MergeOK
+  (Drop$)   Γ ⊢ k ⟪ Θ , ℕ ⟫               -→ k
   (Drop)    Γ ⊢ V ⟪ ↑X:=A , Θ , B₀ ⟫      -→ V ⟪ Θ , B₀ ⟫     if X ∉ B₀, X ∉ V,
                                                               X ∉ the reps of Θ  [OPTIONAL]
+
+  Merge and Drop$ are the calculus's `applyCast`: the two ACTIVE faces, and the only rules
+  that fire on a boundary at rest.  Both have NON-VALUE left-hand sides by construction —
+  an active face is not a value — which is what makes the table pairwise disjoint.  `Drop∅`
+  is RETIRED, not replaced: the ∅-boundary is classified by its face like any other.
+  `Cancel` is gone as a rule: `notes/old/CancelProbe.agda` proved it to be exactly Merge's
+  `Θ₁ ⊕ Θ₂ ≡ ∅` case with the drop fused (`cancel-≡-merge+drop`), and showed it cannot
+  carry progress on its own.
 
   Peel and TyPeel (Decision 5's fork (b), installed 2026-09-04) REPLACE and GENERALIZE the
   old Wrap and complete TyWrap.  See "Peel — a boundary meets an application" below.
@@ -676,26 +722,40 @@ see "Old per-variable design" and the historical Example 8 below.)
   `_[_]ᵐ`, which is the identity on wrappers (a boundary body is term-closed), so the
   argument's own boundaries are never descended into.
 
-## Merge — nested boundaries collapse to one
+## Merge — a reveal-variable-faced nesting collapses to one boundary
 
-  (Merge)   Γ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫  -→  V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫       if MergeOK
+  (Merge)   Γ ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫  -→  V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫
+            if B₁ is INERT in Θ₁, B₂ is ACTIVE in Θ₂, and MergeOK
 
-  **After the peel install, Merge's role has changed** (2026-09-04).  It used to be the ONLY
-  rule that could fire on a wrapper-bodied wrapper at an elimination — and
-  notes/InstallGauntlet §9d(i)/§9f showed a REACHABLE well-typed term where it could not
-  fire, and §9g showed a shape where NO ⊕ could ever make it fire.  Peel and TyPeel now
-  handle every ⇒- and ∀-faced nesting directly, so Merge is no longer load-bearing there:
-  it is garbage collection for the LINEAGE PAIRS peeling creates (a conceal and the reveal
-  its dual mints), which always cancel with `MergeOK` fully discharged.
+  **Merge is now `applyCast` at a reveal-variable face** (Decision 6, 2026-09-04).  The two
+  classification premises are the whole of the install:
 
-  **One dependency remains, and it is machine-checked** (§9i).  At a REVEAL-VARIABLE face —
-  boundary type ` X with X a reveal of Θ — the interior sees the abstract ` X and the
-  exterior sees the rep, so no elimination can be pushed inward at all and neither Peel nor
-  TyPeel applies; the nesting must collapse.  §9i exhibits a closed plain System F source
-  that reaches such a term by PEEL STEPS ONLY, and `rv-only-merge` proves that every step it
-  can take is a Merge.  So progress still needs Merge — which conflicts with determinism,
-  because Merge and Drop∅ are the only rules whose LHS is a VALUE (§9j, and §Progress
-  below).  That is an open ruling, not a settled design.
+  * the OUTER face is ACTIVE — necessarily a REVEAL VARIABLE, since a base face's body is a
+    numeral (canonical forms, below) and no numeral is a wrapper.  So the redex is NOT a
+    value, which is exactly what §9j's counterexample used to cost: a value that stepped,
+    and a Peel that competed with it in argument position.
+  * the INNER face is INERT, so the body IS a value and ξ-⟪⟫ cannot compete either.  By
+    `canon-var-conceal` this is not a restriction at all: at a reveal-variable face the body
+    is typed at the abstract `X`, and a value of variable type IS a sealed wrapper.
+
+  Together they make Merge disjoint from every other rule, and `det` follows.
+
+  **Why the collapse is the only move there.**  At a REVEAL-VARIABLE face the interior sees
+  the abstract `X` and the exterior sees the rep, so no elimination can be pushed inward and
+  neither Peel nor TyPeel applies.  §9i exhibits a closed plain System F source that reaches
+  such a term by PEEL STEPS ONLY, and `rv-only-merge` proves that every step it can take is
+  a Merge.  What used to conflict with determinism no longer does: the ⇒- and ∀-faced
+  nestings that Merge also used to fire on are now INERT, i.e. values, consumed one layer per
+  elimination by Peel/TyPeel and never merged (notes/InstallGauntlet §9c).
+
+  **The one open obligation** is `MergeOK`'s DERIVABILITY at that shape — the paper's
+  `applyCast` totality field, `MergeDerivable` in `ProgressDef.agda`, and the sole thing
+  progress is parameterised over.  It is NOT true as stated: gauntlet §9l exhibits a
+  well-typed, non-value, non-stepping instance whose inner boundary drops an AMBIENT slot
+  the outer one does not reveal, so `MergeOK`'s first component `cmax Θ₁ ≤ revs Θ₂` — which
+  is ⊕-γ's SIDE CONDITION — is false, while components (2)–(5) and ⊕-γ's own CONCLUSION all
+  hold there.  §9l records the indicated repair (weaken component (1) to the internal-face
+  equation it buys); it has not been taken, since it is a Decision-3 change to MergeOK.
 
   Θ₂ is the
   OUTER boundary, so Θ₁'s exterior is Θ₂'s interior Γ⇈Θ₂, and the composite's exterior is Γ
@@ -778,15 +838,31 @@ see "Old per-variable design" and the historical Example 8 below.)
   unfolding", Zdancewic's Δ̄, IS ≼≈ here, which is what the reversal form was chosen to make
   possible.
 
-## Drop∅ — the vacuous boundary
+## Drop$ — the vacuous BASE-FACED boundary  (and what became of Drop∅)
 
-  (Drop∅)   Γ ⊢ V ⟪ ∅ , B₀ ⟫  -→  V
+  (Drop$)   Γ ⊢ k ⟪ Θ , ℕ ⟫  -→  k
 
-  At Θ = ∅ the interior IS the exterior and BOTH faces are the identity substitution
-  (γ∅ = ρ∅ = id), so preservation is that one substitution-congruence step.  Drop∅ was
-  type-preserving all along but UNREACHABLE; Merge's cancel clause is what mints an empty
-  boundary, so the two ship together (Decision 3's addendum) and a cancelled tower collapses
-  to the bare value rather than to a vacuous wrapper.
+  At a BASE face both readings are that base type (`ℕ[γΘ] = ℕ[ρΘ] = ℕ` for every Θ), so the
+  boundary carries no type information — the paper's `baseNotInert`.  But the two faces
+  agreeing is NOT enough to drop a boundary, and that is `notes/old/CancelProbe.agda`'s
+  lesson: `CancelOK`'s two conjuncts are "the contexts undo" and "the faces agree", and the
+  **CONTEXT one is the load-bearing one** — `¬⊢Ve` there is a term with all four
+  face-anchored conjuncts whose interior is nevertheless ill-typed in the exterior.  So the
+  rule is stated on the body it is sound for: a NUMERAL, which `⊢$` types in ANY context
+  whatever.  Preservation is then literally `⊢$`.
+
+  **Nothing is lost by that restriction.**  The sharpened `canon-ℕ` says a VALUE of type ℕ is
+  a numeral and nothing else — a wrapper of type ℕ would need an ℕ-exporting INERT face, and
+  `baseNotInert-ℕ` says there is none — and `canon-𝔹` says there is no value of type 𝔹 at
+  all.  So `Drop$` is TOTAL on well-typed active base-faced wrappers, and the base-face
+  action set is this ONE rule: no base-faced merge clause is needed.
+
+  **Drop∅ is RETIRED, not replaced.**  An empty boundary is now classified by its face like
+  any other: `V ⟪ ∅ , B₁→B₂ ⟫` and `V ⟪ ∅ , X ⟫` are INERT — `∅` reveals nothing, so every
+  variable face is inert there — hence VALUES, while `k ⟪ ∅ , ℕ ⟫` is this rule's redex.
+  Merge's cancel clause mints exactly the latter (the composite's face is the agreed rep), so
+  the pair Merge-then-Drop$ collapses a cancelled tower to the bare value, which is what
+  Merge-then-Drop∅ used to do (notes/InstallGauntlet §9a).
 
 ## ξ — congruences
 
@@ -798,19 +874,39 @@ see "Old per-variable design" and the historical Example 8 below.)
   reduction itself is Γ-indexed, those two rules EXTEND the index by exactly the context the
   corresponding typing rule extends by, so the two judgements stay in step.
 
-## Cancel / Drop — optional, NOT in the Agda
+## Determinism and values-don't-step   (`V-¬-→`, `det` — THEOREMS)
 
-  None of these is needed for progress; they are space optimisations that collapse the towers
-  of boundaries the examples below accumulate.  (Merge, Decision 3, is a different matter: it
-  is still needed, but now only at a REVEAL-VARIABLE face — see §Merge and
-  notes/InstallGauntlet §9i.)
+  The point of the active/inert discipline, and Jeremy's design law:
 
-  Cancel is sound ONLY when the conceal's rep equals the enclosing reveal's rep.  Nothing in
-  (env) enforces that (see the `bad` term in Metatheory §Progress), so Cancel must carry the
-  side condition explicitly — and that side condition is now exactly what the reversal
-  premise guarantees, so Cancel survives as a cheap optimisation of Merge-then-Drop∅.
-  Drop∅ is no longer optional (§Drop∅): it is a rule, and Merge's cancel clause makes it
-  reachable.
+    V-¬-→ : Value V → ¬ (Γ ⊢ V -→ M′)
+    det   : Γ ⊢ M -→ M₁ → Γ ⊢ M -→ M₂ → M₁ ≡ M₂
+
+  Both are proven outright in `BReduction.agda`, with no parameters.  Before Decision 6 both
+  were FALSE, for one reason: Merge and Drop∅ were the only rules whose LEFT-HAND SIDE WAS A
+  VALUE (notes/InstallGauntlet §9j, now restated there as UNIQUENESS proofs).  The value
+  restriction removes that by construction, and the whole table is then pairwise disjoint:
+
+    Beta        vs Peel                bare λ vs →-faced wrapper, in function position
+    TyBeta      vs TyWrap              bare Λ vs ∀-faced wrapper
+    TyWrap      vs TyPeel              Λ-bodied wrapper vs wrapper-bodied wrapper
+    Merge       vs Drop$               wrapper body vs numeral body
+    Merge/Drop$ vs Peel/TyWrap/TyPeel  ACTIVE face vs SYNTACTIC → / ∀ face
+    collapse    vs ξ-⟪⟫                the collapse's body is a value (V-¬-→)
+    ξ frames                           left-to-right, each guarded by Value (V-¬-→)
+
+  One rule needed strengthening for this: **TyPeel now carries `Inert Θ₁ B₁`** on its inner
+  boundary.  Without it the redex's body could be an ACTIVE wrapper, which steps by Merge
+  under ξ-·[], and TyPeel would clash with that step.
+
+## Drop — optional, NOT in the Agda
+
+  Drop is a space optimisation that collapses the towers of boundaries the examples below
+  accumulate; it is not needed for progress.  `Cancel` is NOT a rule and never was: the
+  probe (`notes/old/CancelProbe.agda`) proved it to be exactly Merge's `Θ₁ ⊕ Θ₂ ≡ ∅` case
+  with the drop fused (`cancel-≡-merge+drop`, `merge+drop-general`), sound only under the
+  two-equation `CancelOK` — of which the CONTEXT conjunct is load-bearing and the `≈` form
+  outright unsound (`¬a-inner-pres`) — and unable to carry progress on any of the three
+  reveal-variable families α / β1 / β2 (`progress-failsᴬ/ᴮ`).
 
 ## Old per-variable design — superseded; see Example 8
 
@@ -856,13 +952,25 @@ next line; the machine-checked witness of that equation is `peel-R2m` / `peel-is
 in BReduction.agda, and the two-step forms of the E★′ trace are `step12a′/step12b′` and
 `step34a′/step34b′` in notes/InstallGauntlet.agda §1.1.  `→ TyWrap` lines are unchanged
 (TyWrap is kept for Λ-bodied wrappers); a WRAPPER-bodied wrapper at a ∀ face, which those
-traces send to Merge, now steps by `TyPeel`.
+traces send to Merge, now steps by `TyPeel` — so Example 3's and Example 10's `→ Merge`
+lines are `→ TyPeel` and `→ Peel` respectively (both faces there are ∀- or ⇒-shaped, hence
+INERT, and inert boundaries are never merged).
+
+**And the Decision-6 delta** (2026-09-04), which the traces below predate in two further
+ways.  (i) A collapse at a REVEAL-VARIABLE face is no longer optional: such a wrapper is
+ACTIVE, hence not a value, so where a trace writes `Cancel[opt]` on a
+`(V ⟪ ↓X:=A , X ⟫) ⟪ ↑X:=A , X ⟫` tower the machine now FORCES `Merge` there, and there is
+no other step (`det`).  (ii) A BASE-faced residue is likewise active and DROPS, so traces
+that used to stop at a tower around the answer now reach the bare answer:
+`3 ⟪ ↑W:=ℕ , ℕ ⟫ → 3`.  Example 13 is written out in full under the new rules; the earlier
+traces are left in their historical form.
 
 Traces are in named notation with the new rules; each line is annotated with the rule that
 fires (ξ steps that merely locate the redex are left implicit).  Steps marked [opt] use the
-optional Cancel/Drop rules; without them the trace stops at a value that is a tower of
+optional Drop rule; without it the trace stops at a value that is a tower of
 boundaries around the answer — but a tower whose composite EMPTIES now collapses for real,
-by Merge then Drop∅ (Examples 1, 2, 5, 6, 7 all end that way).  Merge steps are written out
+by Merge then Drop$ (Examples 1, 2, 5, 6, 7 all end that way), and so does any BASE-faced
+residue a peel leaves behind (`3 ⟪ ↑W:=ℕ , ℕ ⟫ → 3`), since a base face is ACTIVE.  Merge steps are written out
 with the composite Θ₁ ⊕ Θ₂ computed entry-wise (§Merge), so the reps that are pushed out or
 pushed in are visible in the trace.
 
@@ -875,13 +983,14 @@ pushed in are visible in the trace.
   → Merge       ((λx:X. 7⟪↓Y:=ℕ,Y⟫) ⟪ ↑X:=ℕ , ↑Y:=ℕ , X→Y ⟫) · 3
   → Wrap        (7⟪↓Y:=ℕ,Y⟫) ⟪ ↑X:=ℕ , ↑Y:=ℕ , Y ⟫
   → Merge       7 ⟪ ∅ , ℕ ⟫                                  -- the cancel EMPTIES it
-  → Drop∅       7
+  → Drop$       7                                            -- the residue's face is ℕ
 
   The merge on the fourth line pushes X's rep OUT through the outer boundary: Y[ρ(↑Y:=ℕ)] = ℕ,
   so the composite reveals X at ℕ.  B₂′ is B₁ = X→Y carried into the composite's frame (X its
   own reveal slot, Y the surviving one) — both faces are then exactly the redex's.  The
   SECOND merge is a cancel: ↓Y:=ℕ conceals the slot the composite reveals, so both entries
-  vanish, B₂′ becomes the agreed rep ℕ, and Drop∅ finishes.
+  vanish, B₂′ becomes the agreed rep ℕ, and Drop$ finishes (the residue's face is the BASE
+  type ℕ — ACTIVE — and its body is the numeral 7).
 
   The head of the fourth line is a wrapper wrapped in a wrapper: Wrap consumes the λ, and
   there is no λ until the two boundaries merge.  The λ's body does not use x, so the Wrap step
@@ -897,9 +1006,9 @@ pushed in are visible in the trace.
   → Wrap        ((λy:X. (λn:ℕ.n+1)⟪↓X:=ℕ,X→X⟫ · y) ⟪ ↑X:=ℕ , X→X ⟫) · 7
   → Wrap        ((λn:ℕ.n+1)⟪↓X:=ℕ,X→X⟫ · (7⟪↓X:=ℕ,X⟫)) ⟪ ↑X:=ℕ , X ⟫  -- sealed fn in head pos
   → Wrap        ((((7⟪↓X:=ℕ,X⟫) ⟪ ↑X:=ℕ , X ⟫)+1) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Cancel[opt] ((7+1) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → δ           (8 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Cancel[opt] 8
+  → Merge       ((7+1) ⟪ ∅ , ℕ ⟫) ⟪ ↑X:=ℕ , X ⟫              -- FORCED: X is revealed, ACTIVE
+  → Drop$ ; δ   (8 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
+  → Merge ; Drop$   8
 
   Note how Wrap on a conceal-only boundary reproduces the old WrapConceal: the dual of ↓X:=ℕ
   is ↑X:=ℕ, so the argument is revealed on its way in.
@@ -910,16 +1019,18 @@ pushed in are visible in the trace.
   → TyBeta      ((λf:(∀Z.Z→Z). f [X]) ⟪ ↑X:=𝔹 , (∀Z.Z→Z)→(X→X) ⟫) · ((ΛY.ΛZ.λz:Z.z) [ℕ])
   → TyBeta      (…) · ((ΛZ.λz:Z.z) ⟪ ↑Y:=ℕ , ∀Z.Z→Z ⟫)                   -- call it W
   → Wrap        ((W ⟪ ↓X:=𝔹 , ∀Z.Z→Z ⟫) [X]) ⟪ ↑X:=𝔹 , X→X ⟫
-  → Merge       ((ΛZ.λz:Z.z) ⟪ ↑Y:=ℕ , ↓X:=𝔹 , ∀Z.Z→Z ⟫ [X]) ⟪ ↑X:=𝔹 , X→X ⟫
-  → TyWrap      ((λz:Z₁.z) ⟪ ↑Z₁:=X , ↑Y:=ℕ , ↓X:=𝔹 , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
+  → TyPeel      ((λz:Z₁.z) ⟪ ↑Z₁:=X , ↑Y:=ℕ , ↓X:=𝔹 , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
+                (the ∀ face is INERT — a value — so no merge fires; TyPeel pushes the type
+                 application inside the boundary instead)
 
   A value: the polymorphic identity behind two boundaries, external type 𝔹→𝔹.  Note that the
   type argument X of TyWrap is recorded as the rep of the reveal Z₁ — the slot the consumed
   ΛZ used to bind, read in the exterior, where X is in scope — and the concealed X is never
   used to instantiate anything.  This is the step where the old design applied TyWrapCncl and
-  substituted into the sealed body.  The type application meets a WRAPPER-bodied wrapper, so
-  Merge has to fire first; the old float-inside TyWrap fired directly here but left one extra
-  boundary per use, and a further TyBeta to run.
+  substituted into the sealed body.  The type application meets a WRAPPER-bodied wrapper —
+  which is TyPeel's redex; under the pre-peel design a Merge had to fire first, and under the
+  pre-Decision-6 design that merge competed with the elimination.  Neither happens now: the
+  ∀ face is INERT, so the nesting is a value and TyPeel consumes one layer.
 
 ## Example 4   (a constant escaping a boundary)
 
@@ -1108,12 +1219,20 @@ pushed in are visible in the trace.
   → Peel        the argument 5⟪↓X:=ℕ,X⟫ crosses ↓X:=ℕ inward; its dual is ↑X:=ℕ — a LINEAGE
                 pair, minted from the very conceal it faces
                 ( (λy:W.3)⟪↑W:=ℕ,W→ℕ⟫ · ((5⟪↓X:=ℕ,X⟫)⟪↑X:=ℕ,X⟫) ) ⟪↓X:=ℕ,ℕ⟫ ⟪↑X:=ℕ,ℕ⟫
+  → Merge       the crossed argument's OUTER face is a reveal variable — ACTIVE — so it is
+                not a value, Peel cannot consume it, and the lineage pair collapses first
+  → Drop$       the composite is EMPTY and its face is the agreed rep ℕ
   → Peel        the inner wrapper is λ-bodied; peel again
   → Beta        y is unused, so the crossed argument is discarded
-                ( (3 ⟪↑W:=ℕ,ℕ⟫) ⟪↓X:=ℕ,ℕ⟫ ) ⟪↑X:=ℕ,ℕ⟫                     — A VALUE
+                ( (3 ⟪↑W:=ℕ,ℕ⟫) ⟪↓X:=ℕ,ℕ⟫ ) ⟪↑X:=ℕ,ℕ⟫
+  → Drop$ ×3    every residual face is the BASE type ℕ — ACTIVE
+                3                                                          — THE ANSWER
 
-  No merge is performed anywhere; the two lineage pairs in the answer are garbage that
-  Merge/Drop∅ may collect.  Live in the Agda: `cx-step₅ … cx-step₇`, `val-cxP₇`.
+  **Decision 6 changes this run in two places, and improves both.**  The lineage pair in
+  ARGUMENT position used to be a VALUE that also stepped — §9j's nondeterminism — and is now
+  a non-value with a UNIQUE step; and the three-boundary residue the run used to stop at is
+  now dropped layer by layer, so the program answers the bare 3.  Live in the Agda:
+  `cx-step₅ … cx-step₁₀`, `val-cx-answer`, `nd-arg-uniq`.
 
   The same reading applies to §9g's DOUBLE coincidence — one revealed W lining up with TWO
   different conceals X and Z at once — where flattening is IMPOSSIBLE under any ⊕, not merely
@@ -1252,15 +1371,17 @@ The SAME Γ indexes both judgements — which is exactly why ξ-Λ and ξ-⟪⟫
 reduction's index by the context the corresponding typing rule extends by.
 
 Proved in the Agda (BPreservation.agda) for every rule: Beta, TyBeta, TyWrap, TyPeel, Peel,
-Merge, Drop∅ and the five ξ congruences.  Peel's case is proved MODULO three statements about
+Merge, Drop$ and the five ξ congruences.  Peel's case is proved MODULO three statements about
 the ambient dual (DualDef.agda) — the same three the old Wrap needed, unchanged, since the
 dual-crossing machinery is untouched and only the β-substitution step (TermSubst's ⊢[]ᵐ) is
 dropped; TyPeel's is unconditional.  Everything else — including both of Peel's face laws,
 the
 renaming lemma with its exterior-read transport, the retagging lemma, and BOTH of the new
-cases — is unconditional.  Merge and Drop∅ add NO module parameter: what Merge cannot prove
+cases — is unconditional.  Merge and Drop$ add NO module parameter: what Merge cannot prove
 it ASKS OF THE REDEX (MergeOK, §Merge), so the invariant lives in the relation, as the
-grounded-invariant law requires.
+grounded-invariant law requires; and Drop$'s case is literally `⊢$`, because the ONLY body a
+base-faced active boundary can have is a numeral (§Drop$).  The Decision-6 install added no
+parameter to preservation at all.
 
   What the licence install changed in the three dual statements.  Their SHAPES are now up to
   ≈Δ̄ (DualRep≈ / DualCnc≈ / DualInt≈), and two of their four former components became
@@ -1336,9 +1457,9 @@ grounded-invariant law requires.
               last component; the frame arithmetic (revs-⊕ / cmax-⊕) and the pointwise
               external-face laws away from the cancelled slots (ρ⊕-lo / ρ⊕-mid) are theorems
               too.  Nothing renames the term.
-  Drop∅.      Both faces of the empty boundary are the identity substitution and its interior
-              IS the exterior, so the case is the body's own typing modulo one
-              substitution-congruence step (§Drop∅).
+  Drop$.      Both faces of a base face ARE that base type, so the redex's own type is ℕ and
+              nothing is transported; and the contractum is a numeral, which ⊢$ types in any
+              context, so the case is literally `⊢$` (§Drop$).
 
               THREE facts about the dual are NOT proved and are the module parameters of
               `DualDef.agda` (the repo's `…Def` convention):
@@ -1368,40 +1489,55 @@ grounded-invariant law requires.
               boundary the IH is at the INTERIOR Γ⇈Θ — a different context, which is why the
               statement must be generalised over Γ.  The (env) premises mention only Θ and B₀
               and are carried across intact.
-  Cancel/Drop.  Not in the Agda.  Drop∅ is immediate (both faces of an empty boundary are B₀);
-              Cancel needs the two reps to agree, and is unsound otherwise (next section).
+  Drop$.      Immediate: both faces of a BASE face are that base type, and the contractum is
+              a numeral, which ⊢$ types in ANY context — so the case is literally `⊢$`.  A
+              boundary is NOT droppable merely because its faces agree: the body must type in
+              the EXTERIOR, which is `notes/old/CancelProbe.agda`'s `CancelOK` context
+              conjunct, and the numeral restriction is what makes it free.
+  Drop.       Not in the Agda (optional space optimisation).
 
 ## Progress
 
 Γ ⊢ M : A  (Γ runtime, empty term context)   ⟹   M is a value  or  Γ ⊢ M -→ M′.
 
-  Canonical forms.  A value of type ℕ is a numeral or a wrapper; of type A→B a λ or a wrapper;
-  of type ∀X.C a Λ or a wrapper; of a VARIABLE type it must be a wrapper whose B₀ is a
-  variable (no constant, λ or Λ has a variable type).  So at an elimination position the first
-  analysis is the shape of B₀, not of the value:
+  **Canonical forms, SHARPENED by the value restriction** (Canonical.agda).  A wrapper is a
+  value only when its face is INERT, and `inert-ext` says an inert face keeps its head
+  constructor when read outward.  So:
 
-     B₀ = ∀Y.B₀′        ⟹  TyWrap fires if the wrapped value is a Λ, TyPeel if it is a
-                            wrapper — and by canonical forms at the ∀-shaped internal face
-                            those are the only two shapes.  NO PARAMETER.
-     B₀ = B₁→B₂         ⟹  Peel fires, whatever the wrapped value is.  NO PARAMETER, and no
-                            case analysis of the body at all.
-     B₀ = a reveal variable  ⟹  see the obstruction below
-     B₀ = a kept/concealed variable  is impossible at an elimination: the external face would
-                                     then be a variable, and no elimination types a variable.
+     type ℕ         ⟹  a NUMERAL, full stop (`canon-ℕ`).  A wrapper would need an
+                        ℕ-exporting inert face, and `baseNotInert-ℕ` says there is none.
+     type 𝔹         ⟹  NOTHING: there is no value of type 𝔹 at all (`canon-𝔹`) — the
+                        calculus has no boolean literal, and no inert face exports 𝔹.
+     type A→B       ⟹  a λ, or a wrapper whose face is SYNTACTICALLY B₁→B₂ (`InertCross→`).
+     type ∀X.C      ⟹  a Λ, or a wrapper whose face is syntactically ∀Y.B₀′.
+     a VARIABLE type ⟹  a wrapper whose face is a variable the boundary does NOT reveal —
+                        the SEALED value (`canon-var-conceal`).  Not merely "a wrapper with a
+                        variable face": if the face were a REVEAL variable the boundary would
+                        be ACTIVE and the term would not be a value at all.
 
-  The THIRD case is the one that is left.  At a reveal-variable face the internal face is that
-  same variable (a reveal passes through γΘ unchanged), so the wrapped value has VARIABLE type
-  — and an elimination of a term of variable type is not typable, so an inward push, which is
-  all Peel and TyPeel do, cannot happen here.  Canonical forms make the body a wrapper, so the
-  redex is a wrapper-bodied wrapper and the only rule left is Merge.  In the Agda that is
-  `rv-app` / `rv-tapp`, and they are now the two module parameters of strong.Progress.Impl;
-  NestedApp / NestedTApp are gone, discharged.
+  **The eliminations are therefore TOTAL, with no parameters.**  A value in function position
+  is a λ (Beta) or an INERT wrapper, whose face is then syntactically an arrow — so Peel
+  fires, whatever the wrapped value is.  A value in type-application position is a Λ (TyBeta)
+  or an inert wrapper with a syntactic ∀ face — TyWrap on a Λ body, TyPeel on a wrapper body.
+  The reveal-variable branch of the face analysis is REFUTED by inertness (`active-not-inert`),
+  which is exactly how `rv-app` / `rv-tapp` DISSOLVED.
+
+  **`applyCast`: the wrapper case.**  What replaces them is one case in progress itself: a
+  boundary whose body is a value is classified by `ActiveOrInert`; inert ⇒ the wrapper is a
+  VALUE; active ⇒ it STEPS (`apply-active`), and each active face names its body's shape:
+
+     face ℕ         ⟹  the body is typed at ℕ inside, so `canon-ℕ` makes it a numeral: Drop$.
+     face 𝔹         ⟹  `canon-𝔹`: vacuous, no such value exists.
+     face `X` (reveal) ⟹  the body is typed at the abstract `X` inside (a reveal passes
+                        through γΘ unchanged), so `canon-var-conceal` makes it a SEALED
+                        wrapper: Merge — with `MergeOK` from the one remaining parameter.
 
   Cases on M: constants and λ are values; a variable is impossible (empty term context); an
   application or type application reduces a non-value part by ξ, and with both parts values
-  steps by Beta / TyBeta (unwrapped head) or Peel / TyWrap / TyPeel (wrapped head, non-variable
-  face) or Merge (wrapped head, reveal-variable face); Λ N and M ⟪ Θ , B₀ ⟫ reduce their body
-  by ξ, and are values once the body is.
+  steps by Beta / TyBeta (unwrapped head) or Peel / TyWrap / TyPeel (wrapped head — always an
+  inert, syntactically-faced one); Λ N reduces its body by ξ and is a value once the body is;
+  M ⟪ Θ , B₀ ⟫ reduces its body by ξ, and once the body is a value the FACE decides — a value
+  if inert, a step if active.
 
   THE OBSTRUCTION THAT WAS — rep inconsistency (notes/BoundaryRules.md §4), now CLOSED.
   The old (env) recorded one B₀ per wrapper and derived both faces, but could not relate a
@@ -1421,28 +1557,38 @@ grounded-invariant law requires.
   which the untransported comparison still admitted.  A conceal is now licensed only against
   real knowledge, so a Λ-bound variable can never be concealed at all.
 
-  WHAT REMAINS OPEN in progress, after the peel install.  TWO cases, both module parameters
-  of ProgressDef.agda — and they are the OTHER two:
+  WHAT REMAINS OPEN in progress, after the Decision-6 install.  ONE case, one module
+  parameter of ProgressDef.agda — the paper's `applyCast` TOTALITY field, and nothing else:
 
-    NestedApp / NestedTApp — GONE, discharged.  Peel is total at an ⇒ face and TyWrap/TyPeel
-      cover the two ∀-face body shapes, so the wrapper-bodied nestings that used to wait for
-      Merge — including the ones §9d(i) and §9g proved unmergeable under ANY ⊕ — simply step.
-    RevealVarApp / RevealVarTApp — a wrapper at a REVEAL-VARIABLE face, eliminated.  Stated
-      over the NESTED shape canon-var derives, so the hypothesis is strictly weaker than the
-      form these two had before.  The whole content is to SUPPLY MergeOK at such a redex
-      (§Merge).  notes/InstallGauntlet §9i has a closed plain System F source that REACHES
-      one of these terms by peel steps only, and `rv-only-merge` proves that every step it
-      can take is a Merge — so this is a real dependency, not an artefact of the proof shape.
+    NestedApp / NestedTApp — GONE, discharged at the peel install.  Peel is total at an ⇒
+      face and TyWrap/TyPeel cover the two ∀-face body shapes, so the wrapper-bodied nestings
+      that used to wait for Merge — including the ones §9d(i) and §9g proved unmergeable
+      under ANY ⊕ — simply step.
+    RevealVarApp / RevealVarTApp — GONE, dissolved by the value restriction.  A wrapper that
+      is a VALUE has an INERT face, so a reveal-variable-faced wrapper never reaches an
+      elimination as a value at all: it steps first, under ξ.
+    MergeDerivable — the residue.  At the one shape progress can produce and has no rule for,
 
-  THE COST, AND THE OPEN RULING.  Merge and Drop∅ are the only rules whose left-hand side is
-  a VALUE.  Consequently `Value V ⟹ V does not step` is FALSE, and reduction is
-  NONDETERMINISTIC: at an application whose ARGUMENT is a cancellable lineage pair, ξ-·-r's
-  Value premise is met and the argument steps, so Merge competes with Peel on the same term
-  (§9j: `val-steps`, `nd-peel` / `nd-merge` / `nd-≢`).  Every other rule pair is disjoint by
-  syntax (Peel needs a wrapper in function position, Beta a bare λ; TyBeta a bare Λ, TyWrap a
-  Λ-bodied wrapper, TyPeel a wrapper-bodied one), so the calculus MINUS Merge/Drop∅ would be
-  deterministic and values would not step — and, by §9i, would not have progress.  Choosing
-  between them is Jeremy's ruling.
+        (V ⟪ Θ₁ , Y ⟫) ⟪ Θ₂ , X ⟫       Y not revealed by Θ₁, X revealed by Θ₂
+
+      `MergeOK Γ Θ₁ Θ₂ Y X` must be DERIVABLE from the redex's own typing.  Four instances
+      are fully discharged (notes/InstallGauntlet §9i's `rv-merge`, and the α / β1 / β2
+      families' `a-`/`p-`/`e-MergeOK` in notes/old/CancelProbe.agda).
+
+  IT IS NOT TRUE AS STATED, and gauntlet §9l says exactly why.  With ambient `W:=𝔹`,
+  `Θ₂ = ↑X:=ℕ` and `Θ₁ = ↓X:=ℕ , ↓W:=𝔹`, the term `(3 ⟪ Θ₁ , X ⟫) ⟪ Θ₂ , X ⟫ : ℕ` is well
+  typed, is not a value (its outer face is active) and takes NO step, because the inner
+  boundary drops an AMBIENT slot the outer one does not reveal and `MergeOK`'s first
+  component `cmax Θ₁ ≤ revs Θ₂` is `2 ≤ 1`.  The diagnosis is sharp: components (2)–(5) all
+  hold on the nose there, the composite is the single conceal ↓W:=𝔹, the contractum types at
+  the redex's own type — and ⊕-γ's own CONCLUSION, the internal-face equation that component
+  (1) exists to buy, holds too.  Component (1) is ⊕-γ's SUFFICIENT side condition, not a
+  necessary one, and it is the sole obstruction.  The indicated repair — replace component
+  (1) by the internal-face equation, keeping ⊕-γ as the theorem that discharges it whenever
+  `cmax Θ₁ ≤ revs Θ₂` — is a Decision-3 change to MergeOK and is Jeremy's ruling.
+
+  THE COST IS PAID, though: `V-¬-→` and `det` are now THEOREMS (§Determinism above), where
+  before the install both were false.
 
 # Correspondence with the Agda   (SystemF/agda/strong/)
 
@@ -1485,8 +1631,18 @@ grounded-invariant law requires.
   TyWrap  (A unlifted)       TyWrap   (Λ-bodied ∀ face)                  BReduction.agda
   TyPeel                     TyPeel   (wrapper-bodied ∀ face; peelB)     BReduction.agda
   Peel    (replaces Wrap)    Peel     (⇒ face, any value body)           BReduction.agda
-  Merge                      Merge  (its premise: MergeOK)               BReduction.agda
-  Drop∅                      Drop∅                                      BReduction.agda
+  Merge                      Merge  (premises: Inert, Active, MergeOK)   BReduction.agda
+  Drop$                      Drop$  (base face, numeral body)            BReduction.agda
+  Θ ⊢ B₀ inert / active      Inert (I-⇒, I-∀, I-var) / Active (A-var,    BReduction.agda
+                               A-ℕ, A-𝔹); ActiveOrInert, active-not-inert
+  InertCross→ / baseNotInert inert-ext; baseNotInert-ℕ, baseNotInert-𝔹   BReduction.agda
+  Vcast (the value restr.)   V-⟪⟫ : Value V → Inert Θ B₀ → …             BReduction.agda
+  values do not step         V-¬-→                                       BReduction.agda
+  determinism                det                                         BReduction.agda
+  canonical forms            canon-ℕ (a numeral), canon-𝔹 (⊥),           Canonical.agda
+                               canon-⇒, canon-∀, canon-var-conceal
+  applyCast (on actives)     apply-active                                Progress.agda
+  applyCast TOTALITY         MergeDerivable — the ONE parameter          ProgressDef.agda
   Θ₁ ⊕ Θ₂                    _⊕_ = mapL Θ₂ Θ₁ ++ mapR Θ₁ 0 Θ₂           BReduction.agda
   A[ρΘ₂] (push a rep out)    outSub Θ₂ / outRead                        Boundary.agda
   A[γΘ₁] (push a rep in)     inSub = rdSub Θ₁ (= γcnc)                  Boundary.agda
@@ -1502,12 +1658,16 @@ grounded-invariant law requires.
                                last component where they do not compose
   (env) inversion            env-ty / env-bwf / env-sc / env-body,      BReduction.agda
                                mid-eq (the middle-type equation)
-  the Merge/Drop∅ suite      notes/InstallGauntlet.agda §9 (the cancel
+  the collapse suite         notes/InstallGauntlet.agda §9 (the cancel
                                pair, E★'s x-pair cancel, Example 3's
-                               tower twice, the two limits + their
-                               repairs, the TOPLAS three-agent shape)
+                               tower — now a VALUE, the two limits + their
+                               repairs, the TOPLAS three-agent shape,
+                               §9j/§9k's uniqueness proofs, and §9l's
+                               counterexample to MergeDerivable)
   ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫             BReduction.agda
-  Cancel / Drop              — not in the Agda (optional; see above)
+  Drop                       — not in the Agda (optional; see above)
+  Cancel                     — not a rule; = Merge's ∅-composite case with
+                               the drop fused (notes/old/CancelProbe.agda)
   Θᵈ(Γ)  (ambient dual)      dualᴳ Δ Θ / entᴳ / swapᵇ Θ                 BReduction.agda
   second-chance copy         entᴳ's `unfEnt Γ i B` retry                BReduction.agda
   entry-independent conceal  cncOfRevs (rvl ↦ cnc, rvl⋆ ↦ cnc⋆)         BReduction.agda

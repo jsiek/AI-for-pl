@@ -1,68 +1,73 @@
 module strong.ProgressDef where
 
--- Statements of the progress cases still open.  AFTER THE PEEL INSTALL
--- (2026-09-04) there are TWO, and they are NOT the two that were open
--- before: the roles have SWAPPED.
+-- The ONE progress obligation still open, after the Decision-6 install
+-- (ACTIVE/INERT, 2026-09-04; notes/ParameterizedCastCalculi.md).
 --
---   Nested… (a wrapper-bodied wrapper at a ⇒ / ∀ face) — *** DISCHARGED ***.
---       Peel fires at an ⇒ face on ANY value body and TyPeel at a ∀ face on
---       any WRAPPER body (TyWrap on a Λ body), so strong.Progress's app-⇒ /
---       tapp-∀ are now total, with no case analysis left over and no Merge
---       premise to supply.  This is what the peel design bought: the shapes
---       notes/InstallGauntlet §9d(i) and §9g proved UNMERGEABLE (§9g: under
---       ANY ⊕, face-directed or not) simply step.
+-- WHAT CLOSED.  RevealVarApp / RevealVarTApp — the two parameters this
+-- module carried at the peel landing — are GONE, and so is the pair of
+-- nested-wrapper parameters before them.  The value restriction
+-- (`V-⟪⟫ : Value V → Inert Θ B₀ → Value (V ⟪ Θ , B₀ ⟫)`) dissolves them:
+-- a wrapper that is a VALUE has an INERT face, and by `inert-ext` an
+-- inert face keeps its head constructor when read outward, so a value of
+-- ARROW type in function position has the SYNTACTIC ⇒ face Peel needs and
+-- a value of ∀ type has the syntactic ∀ face TyWrap / TyPeel need (the
+-- paper's `InertCross→`).  A reveal-variable face is ACTIVE, so such a
+-- wrapper never reaches an elimination as a value at all: it steps first,
+-- under ξ.  strong.Progress's app-steps / tapp-steps are therefore TOTAL.
 --
---   RevealVar… — a wrapped VALUE whose BOUNDARY TYPE is one of the
---       boundary's own REVEAL VARIABLES ` X, eliminated.  These were
---       theorems at the Merge landing, but only BECAUSE they routed into
---       the Nested… parameters; they are now the residue, and they are the
---       ONE place where progress still needs Merge.  See the obstruction
---       below, and notes/InstallGauntlet §9i for the machine-checked,
---       REACHABLE witness.
+-- WHAT REMAINS — the paper's `applyCast` TOTALITY, and nothing else.
+-- Progress must show that every well-typed ACTIVE wrapper around a value
+-- steps.  Three of the four active shapes are theorems in
+-- strong.Progress:
 --
--- THE OBSTRUCTION, precisely.  At a reveal-variable face the two faces are
+--   base face ℕ   canon-ℕ says the body is a NUMERAL (a wrapper of type
+--                 ℕ would need an ℕ-exporting inert face, and
+--                 baseNotInert-ℕ says there is none), so Drop$ fires;
+--   base face 𝔹   canon-𝔹 says there is NO value of type 𝔹 at all, so
+--                 the shape is vacuous;
+--   reveal-var    canon-var-conceal says the body is a wrapper whose own
+--     face ` X    face is INERT (` Y with revs Θ₁ ≤ Y — a SEALED value),
+--                 so Merge's redex shape is FORCED …
 --
---   internal:  substᵗ (γᵇ Θ) (` X) = ` X        (γᵇ-lo — a reveal variable
---                                                passes through unchanged)
---   external:  substᵗ (ρᵇ Θ) (` X) = repOf X Θ  (the reveal's rep, which
---                                                the elimination's typing
---                                                forces to be ⇒ / ∀-shaped)
+-- … and the fourth is this parameter: Merge's premise MergeOK must be
+-- DERIVABLE at that forced shape.  Three instances are already fully
+-- discharged (notes/old/CancelProbe.agda's a-MergeOK / p-MergeOK /
+-- e-MergeOK, one per family α / β1 / β2, plus notes/InstallGauntlet §9i's
+-- rv-merge).  IT IS NOT A THEOREM, AND NOT TRUE AS STATED: gauntlet §9l
+-- exhibits a well-typed, non-value, non-stepping instance whose inner
+-- boundary drops an AMBIENT slot the outer one does not reveal, so
+-- MergeOK's first component (cmax Θ₁ ≤ revs Θ₂ — ⊕-γ's side condition)
+-- is false there while components (2)–(5), and ⊕-γ's own conclusion,
+-- all hold.  See §9l for the diagnosis and the indicated repair (weaken
+-- MergeOK's component (1) to the internal-face equation it buys); until
+-- that is ruled on, progress carries exactly this parameter.  See also
+-- notes/DECISIONS.md "Decision 6 — CANCEL PROBE VERDICT" (3)–(4), where
+-- this obligation is named THE CRUX.
 --
--- so the wrapped value has ABSTRACT type ` X in the interior.  Peel and
--- TyPeel push the elimination INWARD, and an eliminationof a term of
--- VARIABLE type is not typable — so neither rule can fire here, whatever
--- its premises.  Re-spelling the boundary type as the rep is barred by the
--- same argument that kills flattening in §9g: the body is typed at ` X on
--- the nose and terms are never rewritten, so any B₀ ≠ ` X breaks the
--- INTERNAL face.  The only remaining move is to collapse the nesting —
--- `canon-var` says the body IS a wrapper — i.e. Merge.  Its MergeOK premise
--- is fully discharged on the reachable witness (§9i), but is not a theorem
--- in general, which is exactly what these two statements assume.
---
--- Each is stated over the KNOWLEDGE-INDEXED reduction relation: the redex
--- sits at the type context Δ that also types it.  The NESTED SHAPE is part
--- of the statement — strong.Canonical's canon-var derives it, so assuming
--- it makes the hypothesis STRICTLY WEAKER than the plain reveal-variable
--- form these two had before.
+-- The statement below is EXACTLY that residue and nothing more: the
+-- hypotheses are the shape progress can actually produce (a value body,
+-- an inert inner face, an active reveal-variable outer face, and the
+-- redex's own typing at its own external face), and the conclusion is
+-- MergeOK verbatim.
 
-open import Data.Nat using (ℕ; _<_)
-open import Data.Product using (Σ)
+open import Data.Nat using (ℕ; _<_; _≤_)
 open import Data.List using ([])
 open import strong.Types
 open import strong.Context using (TCtx)
 open import strong.Boundary
-open import strong.BReduction using (Value; _⊢_-→_)
+open import strong.BReduction using (Value; MergeOK)
 
--- ((V ⟪ Θ₁ , Y ⟫) ⟪ Θ₂ , X ⟫) · W steps, when X is a reveal variable of Θ₂
-RevealVarApp : Set
-RevealVarApp = ∀ {Δ : TCtx} {V W : Term} {Θ₁ Θ₂ : BCtx} {X Y : ℕ} {A B : Ty}
-  → Value V → Value W
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ ⦂ (A ⇒ B) → X < revs Θ₂
-  → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫) · W -→ M′
-
--- ((V ⟪ Θ₁ , Y ⟫) ⟪ Θ₂ , X ⟫) ·[ B , A ] steps, same side condition
-RevealVarTApp : Set
-RevealVarTApp = ∀ {Δ : TCtx} {V : Term} {Θ₁ Θ₂ : BCtx} {X Y : ℕ} {B A : Ty}
-  → Value V
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ ⦂ `∀ B → X < revs Θ₂
-  → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫) ·[ B , A ] -→ M′
+-- APPLYCAST TOTALITY AT A REVEAL-VARIABLE FACE.  The redex is
+--
+--   (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫       revs Θ₁ ≤ Y ,  X < revs Θ₂
+--
+-- — a SEALED value inside an ACTIVE reveal-variable boundary, which is
+-- the only shape strong.Progress reaches with no rule yet available.
+-- Typing forces ρᵇ Θ₁ (` Y) ≡ ` X (the middle-type equation), so the
+-- five MergeOK components have to come from the two (env) derivations'
+-- own bwf / Scoped / ≼≈ / external-face content.
+MergeDerivable : Set
+MergeDerivable = ∀ {Δ : TCtx} {V : Term} {Θ₁ Θ₂ : BCtx} {X Y : ℕ}
+  → Value V → revs Θ₁ ≤ Y → X < revs Θ₂
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ ⦂ substᵗ (ρᵇ Θ₂) (` X)
+  → MergeOK Δ Θ₁ Θ₂ (` Y) (` X)

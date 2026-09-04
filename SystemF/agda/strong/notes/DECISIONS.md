@@ -1421,7 +1421,7 @@ space accordingly REPLACES (A)/(B):
      value (decidable side condition required) — towers GC eagerly;
      Peel's Value premise and ξ-·-r become disjoint by construction.
 
-Probe in flight (notes/CancelProbe.agda): the side condition (syntactic
+Probe in flight (notes/CancelProbe.agda — now notes/old/CancelProbe.agda, pinned to the pre-Decision-6 relation): the side condition (syntactic
 inverse vs Reversal≈ agreement vs lineage/dualᴳ form — the ≈ form is
 suspected necessary, since a conceal rep spelled `X` under a reveal rep
 spelled `ℕ⇒ℕ` may type via Reversal≈ unfolding while failing the
@@ -1452,7 +1452,7 @@ equation for the face-anchored form (what the OTHER entries of Θ₁/Θ₂
 must satisfy — or be absent — for bare V to be typed in Δ at
 ρᵇ Θ₂ (` X)).
 
-### Decision 6 — CANCEL PROBE VERDICT (notes/CancelProbe.agda, 2026-09-04)
+### Decision 6 — CANCEL PROBE VERDICT (notes/CancelProbe.agda — now notes/old/, 2026-09-04)
 
 Jeremy's identity CONFIRMED as a machine fact, and the side condition is
 DERIVED, not chosen — but Cancel cannot carry progress alone.
@@ -1558,3 +1558,69 @@ flight: Value restriction, active rules replacing standalone
 Merge/Drop∅, canonical forms (canon-ℕ = numerals, canon-var-conceal),
 applyCast-totality lemma (discharges rv-app/rv-tapp → progress
 unconditional), values-don't-step + det.
+
+### Decision 6 — INSTALLED (2026-09-04 night); Decision 7 opened
+
+The active/inert install is LANDED, gates green cold.  As landed:
+
+- `Inert`/`Active` classifiers (I-⇒ / I-∀ / I-var (revs Θ ≤ X);
+  A-var (X < revs Θ) / A-ℕ / A-𝔹), `ActiveOrInert` total,
+  `active-not-inert`; `V-⟪⟫ : Value V → Inert Θ B₀ → Value (V ⟪ Θ , B₀ ⟫)`.
+- Active rules: `Merge` (kept name; now carries `Inert Θ₁ B₁`,
+  `Active Θ₂ B₂`, and MergeOK — its LHS is no longer a value) and
+  `Drop$ : Δ ⊢ ($ n) ⟪ Θ , `ℕ ⟫ -→ $ n`.  The base-face action set is a
+  THEOREM, not a choice: `inert-ext` (InertCross→ + baseNotInert in one)
+  gives the sharpened `canon-ℕ` (a value of type ℕ IS a numeral) and
+  `canon-𝔹` (no 𝔹 values exist), so a numeral is the only possible body
+  — CancelProbe's context conjunct is free (`⊢$` types anywhere).
+  `Drop∅` DELETED (subsumed: at ∅ every var face is inert, every base
+  face is Drop$'s redex).
+- `TyPeel` gained `Inert Θ₁ B₁` (required for det — otherwise an active
+  body stepping under ξ-·[] clashes with TyPeel).
+- **DESIGN LAW SATISFIED — DETERMINISM IS PROVEN**:
+  `V-¬-→ : Value V → ¬ (Δ ⊢ V -→ M′)` and
+  `det : Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂`, both in BReduction.agda,
+  no parameters — the whole proof runs off `active-not-inert` + the
+  Value premises on the ξ frames.
+- Canonical forms sharpened across the board; `canon-var-conceal`
+  landed (a value at variable type is an INERT — conceal/ambient-faced
+  — wrapper).
+- `rv-app`/`rv-tapp` DISSOLVED (the reveal-var branch of the arrow/∀
+  canonical-form analysis is refuted by `active-not-inert`).
+- CancelProbe.agda retired to notes/old (pinned to the pre-Decision-6
+  relation; its verdict lives here and in gauntlet §9a–§9l).
+
+### Decision 7 — MergeOK's component (1) is the LAST obstruction to
+### unconditional progress (gauntlet §9l — NEEDS A RULING)
+
+Progress now carries exactly ONE parameter:
+
+    MergeDerivable = ∀ {Δ V Θ₁ Θ₂ X Y}
+      → Value V → revs Θ₁ ≤ Y → X < revs Θ₂
+      → Δ ∣ [] ⊢ (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ ⦂ substᵗ (ρᵇ Θ₂) (` X)
+      → MergeOK Δ Θ₁ Θ₂ (` Y) (` X)
+
+and it is FALSE as stated — machine-checked (§9l).  With Δ = W:=𝔹,
+Θ₂ = ↑X:=ℕ, Θ₁ = ↓X:=ℕ , ↓W:=𝔹:
+
+    (3 ⟪ ↓X:=ℕ , ↓W:=𝔹 , X ⟫) ⟪ ↑X:=ℕ , X ⟫   :  ℕ     (⊢p)
+
+is well typed, NOT a value (outer face active, ¬val-p), and takes NO
+step: MergeOK's component (1) — `cmax Θ₁ ≤ revs Θ₂` — is 2 ≤ 1 (¬mok-p).
+The inner boundary conceals an AMBIENT slot (W) the outer does not
+reveal.  THE DIAGNOSIS IS SHARP: components (2)–(5) all hold on the nose
+(bwf-p, sc-p, int⊕-p, ext-p), the contractum types at the redex's type
+(⊢merged-p), and the INTERNAL-FACE EQUATION — the very thing component
+(1) exists to buy via ⊕-γ — ALSO holds (int-p = refl).  Component (1)
+is ⊕-γ's sufficient side condition, mistaken for a necessary one.
+
+THE INDICATED REPAIR: replace MergeOK's component (1) by the
+internal-face equation itself
+
+    substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (γᵇ Θ₁) B₁
+
+keeping `⊕-γ` as the theorem that discharges it whenever
+`cmax Θ₁ ≤ revs Θ₂` (every existing Merge witness still builds).  §9l's
+counterexample then steps, and `MergeDerivable` plausibly becomes a
+theorem — PROGRESS UNCONDITIONAL.  This edits `MergeOK`, a Decision-3
+object in the reduction relation: Jeremy's ruling required.

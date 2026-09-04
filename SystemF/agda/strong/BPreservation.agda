@@ -147,7 +147,7 @@ module Impl (dual-rep : DualRep≈) (dual-cnc : DualCnc≈)
   -- boundary's internal face, exactly as in TyWrap.
   preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} bwf (sc-∀ sc) ⊢Vw)
                          wfA)
-                   (TyPeel {V = V} {Θ₁ = Θ₁} {B₁ = B₁} {A = A} v) =
+                   (TyPeel {V = V} {Θ₁ = Θ₁} {B₁ = B₁} {A = A} v i) =
     subst (λ T → Δ ∣ [] ⊢ Ctr ⦂ T) (ρᵇ-shift-ty A Θ B₀)
       (env (bwf-shift Θ bwf wfA) sc′ ⊢body)
     where
@@ -238,7 +238,7 @@ module Impl (dual-rep : DualRep≈) (dual-cnc : DualCnc≈)
   --     nose — ⊕-γ, a theorem, given MergeOK's scope side condition and
   --     the inner (env)'s own Scoped premise (env-sc).
   preservation {Δ} (env {Θ = Θ₂} {B₀ = B₂} bwf₂ sc₂ ⊢in)
-                   (Merge {Θ₁ = Θ₁} {B₁ = B₁} v
+                   (Merge {Θ₁ = Θ₁} {B₁ = B₁} v i a
                           (le , b⊕ , sc⊕ , int , ext)) =
     subst (λ T → Δ ∣ [] ⊢ _ ⦂ T) ext (env b⊕ sc⊕ ⊢body)
     where
@@ -248,18 +248,16 @@ module Impl (dual-rep : DualRep≈) (dual-cnc : DualCnc≈)
                     (sym (⊕-γ Θ₁ Θ₂ le (env-sc ⊢in)))
                     (⊢retag≈ int (env-body ⊢in))
 
-  -- Drop∅:  V ⟪ ∅ , B₀ ⟫  →  V.  At Θ = [] the interior IS the exterior
-  -- (revEnts [] = [] and dropN 0 Δ = Δ, both definitionally) and BOTH
-  -- faces are the identity substitution — ρᵇ [] is `_ on the nose and
-  -- γᵇ [] is pointwise `_ — so the case is refl up to that one
-  -- subst-cong.
-  preservation {Δ} (env {B₀ = B₀} bwf sc ⊢V) (Drop∅ v) =
-    subst (λ T → Δ ∣ [] ⊢ _ ⦂ T) faces ⊢V
-    where
-      gvar : ∀ j → γᵇ [] j ≡ ρᵇ [] j
-      gvar j = refl
-      faces : substᵗ (γᵇ []) B₀ ≡ substᵗ (ρᵇ []) B₀
-      faces = subst-cong gvar B₀
+  -- Drop$:  ($ n) ⟪ Θ , ℕ ⟫  →  $ n.  Both faces of a BASE face are that
+  -- base type on the nose (substᵗ σ `ℕ = `ℕ for every σ), so the redex's
+  -- own type IS ℕ and nothing has to be transported.  What a general
+  -- V ⟪ Θ , ℕ ⟫ → V would need — and what CancelProbe's `cancel-pres`
+  -- showed to be the LOAD-BEARING half of the side condition — is that
+  -- the body still types in the EXTERIOR Δ, and for a numeral that is
+  -- free: ⊢$ types $ n in every context.  This is why the base-face
+  -- action set is exactly this one rule (canon-ℕ: a value of type ℕ is a
+  -- numeral, so no other body can occur here).
+  preservation (env bwf sc ⊢V) Drop$ = ⊢$
 
   ----------------------------------------------------------------------
   -- ξ (congruence) rules: the induction hypothesis under the typing rule

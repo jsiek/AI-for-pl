@@ -1,5 +1,17 @@
 module strong.notes.CancelProbe where
 
+-- *** PINNED TO THE PRE-DECISION-6 RELATION (moved to notes/old on the
+-- ACTIVE/INERT install, 2026-09-04).  Its verdict — Cancel = Merge +
+-- Drop∅, the CONTEXT conjunct is the load-bearing one, and Cancel does
+-- not discharge progress on the three families α / β1 / β2 — is what
+-- produced that install and is recorded in notes/DECISIONS.md under
+-- "Decision 6 — CANCEL PROBE VERDICT".  It does not type-check against
+-- the installed relation (Value now carries an Inert premise, Merge is
+-- restricted to an active outer face, and Drop∅ has been replaced by
+-- Drop$); the surviving evidence is restated in notes/InstallGauntlet
+-- §9a–§9l.  DECISIONS.md still cites it at its old path,
+-- notes/CancelProbe.agda. ***
+
 ------------------------------------------------------------------------
 -- CANCEL — a design probe for Decision 6 (notes/DECISIONS.md).
 --

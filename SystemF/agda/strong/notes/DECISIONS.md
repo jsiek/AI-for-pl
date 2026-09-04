@@ -632,10 +632,27 @@ What PASSED:
     (a″) obligations; the inexpressible-and-unneeded case is now a THEOREM
     (cnc⋆-licensed); no-abstract-value is no longer needed for DualCnc.
 
-What FAILED — the new counterexample E★′ (both regimes):
+What FAILED — the new counterexample E★′ (both regimes), full trace:
 
     E★′ = (ΛX. λf:(∀Z.(Z→ℕ)→(Z→ℕ)). ΛY. (f [Y]) (λy:Y. 5)) [ℕ]
             · (ΛZ. λg:(Z→ℕ). λz:Z. g z)      : ∀Y. Y→ℕ
+
+    TyBeta(X)  ((λf:(∀Z.(Z→ℕ)→(Z→ℕ)). ΛY. (f [Y]) (λy:Y. 5)) ⟪ ↑X:=ℕ ⟫)
+                 · (ΛZ. λg:(Z→ℕ). λz:Z. g z)
+    Wrap       (ΛY. (((ΛZ. λg:(Z→ℕ). λz:Z. g z) ⟪ ↓X:=ℕ ⟫) [Y]) (λy:Y. 5))
+                 ⟪ ↑X:=ℕ ⟫
+    ξ TyWrap(Z)  (ΛY. ((λg:(Z→ℕ). λz:Z. g z) ⟪ ↑Z:=Y , ↓X:=ℕ ⟫) (λy:Y. 5))
+                 ⟪ ↑X:=ℕ ⟫
+       — Y Λ-bound AND blocked: Z's entry abstract, nothing to unfold; the
+         boundary's type (Z→ℕ)→(Z→ℕ) NAMES Z.
+    ξ Wrap     STUCK.  The argument λy:Y.5 is a VALUE at the arrow type Y→ℕ
+       (the external face of the domain Z→ℕ), so no-abstract-value is silent.
+       Attempt 1, rep-keeping dual  ↓Z:=Y , ↑Y:⋆ , ↑X:=ℕ : both faces are
+       exactly right (face-int-E★′, face-ext-E★′, sc-live-E★′) — only
+       bwf↓'s knowledge lookup fails (¬⊢T4′).
+       Attempt 2, star dual  ↓Z:⋆ , ↑Y:⋆ , ↑X:=ℕ : licensed by nothing, but
+       the re-hidden slot is blk and the dual cannot express its own
+       boundary type Z→ℕ (¬Scoped-⋆-E★′, ¬⊢T4′⋆).
 
   Same shape as E★, but B₁ = Z→ℕ NAMES Z, and the argument λy:Y.5 is a
   VALUE at the arrow type Y→ℕ — reachable, and vacuity is silent.  At the
@@ -650,8 +667,24 @@ What FAILED — the new counterexample E★′ (both regimes):
 Probe's recommendation: candidate (b) for rep-carrying reveals — a
 DUAL-ONLY conceal that KEEPS the rep and is licensed by the reveal it
 cancels (Zdancewic Lemma A.2, Reversal) rather than by interior knowledge —
-with cnc⋆ retained for duals of rvl⋆.  The open design question is the
-grounded form of (b)'s licensing premise.  Awaiting Jeremy's ruling.
+with cnc⋆ retained for duals of rvl⋆.
+
+RULING (Jeremy, 2026-09-04): probe the candidate premises for (b); a full
+design description of (b) to follow the probe.  In flight
+(notes/DualLicenseProbe.agda), three candidates against the E★′/E★/Pn/bad/
+bad₂/near-bad gauntlet:
+  (b1) read-back identity (concealing-then-revealing is the identity on the
+       slot's face) — expected to produce garbage past rep-less reveals;
+  (b2) the face laws themselves as the bwf↓ premise — expected to be
+       whole-boundary, not per-entry, and possibly circular;
+  (b3) an exterior-read knowledge entry `xrvld A` in the interior (minted by
+       ⟦·⟧ when a rep-carrying reveal's knowledge is neither expressible nor
+       unfoldable; consumed ONLY by a new bwf↓ clause with syntactic rep
+       equality — the homes align: the x-entry's rep and a dual conceal's
+       rep both live over the same context).  Also probed: whether (b3)
+       subsumes the (a″) hybrid at Pn, and the structural argument ruling
+       out (b4) (a co-boundary-parameterized judgment: the contractum must
+       be typed by plain env).
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

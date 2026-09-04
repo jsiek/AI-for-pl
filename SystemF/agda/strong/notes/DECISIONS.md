@@ -328,6 +328,28 @@ Option 3a — depth-1 values (Zdancewic rule (8), p. 203):
   Obligations: contexts compose, internal face composes (their (trans)),
   external face unchanged (notes/Zdancewic-embeddings.md §4).
 
+### Decision 2 — REVISED to TyWrap′ (Jeremy, 2026-09-04)
+
+The 2026-09-03 objection to TyWrap′ (partial: the body must be syntactically
+Λ) dissolves under Decision 3: with depth-1 values a wrapper-bodied wrapper is
+a Merge redex, and after merging, a value wrapped at a ∀-shaped B₀ has a Λ
+body by canonical forms.  And TyWrap′ has NO ⇑ᵀ on the term — the shift in
+TyWrap existed only because it declined to consume the Λ (the Λ-binder's slot
+IS the new reveal slot) — so the switch also discharges the no-term-shift
+principle's one exception.  Ruling: switch to TyWrap′; the notes.md rule name
+stays TyWrap (its definition changes to the direct-combine shape):
+
+    (TyWrap)  ((ΛY.V) ⟪ Θ , ∀Y.B₀ ⟫) @B[A]   -→   V ⟪ ↑Y:=A , Θ , B₀ ⟫
+
+  (conceal reps still shift — types, not terms).  Progress at a ∀-faced
+  wrapper: Λ body → TyWrap; wrapper body → Merge (a ProgressDef parameter
+  until Merge lands).  W3 is still needed and now acts in TyBeta and TyWrap
+  (both upgrade a Λ-bound slot above inner boundaries to revealed).
+  Note: the same argument does NOT apply to Wrap — consuming the ƛ there
+  would substitute a wrapped argument into the body (term substitution is
+  fine) but the application's result face still needs the boundary, and the
+  ƛ-under-wrapper is exactly what Wrap's float preserves; Wrap stays.
+
 ### Decision 3 — resolution (2026-09-03)
 
 Jeremy leans to 3a (Merge, depth-1 values).  Plan: after the Decision-1
@@ -344,7 +366,7 @@ Option 3b — towers as values, no Merge (current, to be replaced).  Canonical f
 
 ## Recommendation
 
-Settled: TyWrap; Merge (3a).  Decision 1: restore the invariant in the REVERSAL
+Settled: TyWrap′ (revised 2026-09-04); Merge (3a).  Decision 1: restore the invariant in the REVERSAL
 form (probe-verified).  Awaiting Jeremy: W3 vs W4 (Decision 4).  Then: Boundary.agda
 rework (reversal premise + W3/W4) and re-run of every preservation case → Merge with
 retyping-along-unfolding → depth-1 values → progress.

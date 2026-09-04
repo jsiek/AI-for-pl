@@ -230,11 +230,11 @@ _ = ξ-·-l (TyBeta (V-G G-ƛ))
 W2 : Term
 W2 = polyid ⟪ Θc , ∀ZZ ⟫
 
+-- 2026-09-04 (Decision 2 revised): Wrap now CONSUMES the ƛ, so T1 steps
+-- straight to T3 (T2's own Beta contractum) — see the step below T3.  T2 is
+-- kept as a typing record: the claim here is that it types under ⊢′.
 T2 : Term
 T2 = ((ƛ ∀ZZ ∙ body8) · W2) ⟪ Θr , ∀ZZ ⟫
-
-_ : T1 -→ T2
-_ = Wrap (V-G G-ƛ) (V-G (G-Λ (V-G G-ƛ)))
 
 ⊢W2 : Δ1′ ∣ [] ⊢′ W2 ⦂ ∀ZZ
 ⊢W2 = env′ (bwf↓′ here wf-ℕ bwf[]′) sc∀ZZ ⊢polyid′
@@ -255,6 +255,11 @@ _ = refl
 _ : T2 -→ T3
 _ = ξ-⟪⟫ (Beta (V-⟪⟫ (V-G (G-Λ (V-G G-ƛ)))))
 
+-- … and the ONE step the current Wrap makes of the two: the dual-wrapped
+-- argument it substitutes IS W2, so the contractum is T3 on the nose.
+_ : T1 -→ T3
+_ = Wrap (V-G (G-Λ (V-G G-ƛ)))
+
 -- the conceal of X is licensed by Δ8′'s knowledge X:=ℕ
 ⊢redex′ : Δ8′ ∣ [] ⊢′ (W3 ·[ ` 0 ⇒ ` 0 , ` 0 ]) ⦂ (` 0 ⇒ ` 0)
 ⊢redex′ = ⊢·[]′ (env′ (bwf↓′ (skip-abst here) wf-ℕ bwf[]′) sc∀ZZ ⊢polyid′)
@@ -263,16 +268,28 @@ _ = ξ-⟪⟫ (Beta (V-⟪⟫ (V-G (G-Λ (V-G G-ƛ)))))
 ⊢T3 : [] ∣ [] ⊢′ T3 ⦂ ∀ZZ
 ⊢T3 = env′ (bwf↑′ wf-ℕ bwf[]′) sc∀ZZ (⊢Λ′ ⊢redex′)
 
--- T4 (TyWrap).  ★ the floated type application is applied to the fresh
--- reveal variable, which is now a REVEALED entry: wf-var here-rvld.
+-- T4 (the OLD float-inside TyWrap's contractum).  ★ the floated type
+-- application is applied to the fresh reveal variable, which is now a
+-- REVEALED entry: wf-var here-rvld.
+-- 2026-09-04 (Decision 2 revised): TyWrap now CONSUMES the Λ, so T3 steps to
+-- T4′ below instead; T4 and T5 are kept as typing records (and T4 -→ T5 is
+-- still a real step from T4).
 R1body : Term
 R1body = (polyid ·[ ` 0 ⇒ ` 0 , ` 0 ]) ⟪ Θn , ` 0 ⇒ ` 0 ⟫
 
 T4 : Term
 T4 = (Λ R1body) ⟪ Θr , ∀ZZ ⟫
 
-_ : T3 -→ T4
-_ = ξ-⟪⟫ (ξ-Λ (TyWrap (V-G (G-Λ (V-G G-ƛ)))))
+-- the direct-combine contractum: the Λ's slot IS the new reveal's, so the
+-- Λ-body stands where the floated application used to be
+T4′body : Term
+T4′body = (ƛ ` 0 ∙ ` 0) ⟪ Θn , ` 0 ⇒ ` 0 ⟫
+
+T4′ : Term
+T4′ = (Λ T4′body) ⟪ Θr , ∀ZZ ⟫
+
+_ : T3 -→ T4′
+_ = ξ-⟪⟫ (ξ-Λ (TyWrap (V-G G-ƛ)))
 
 ⊢R1body : Δ8′ ∣ [] ⊢′ R1body ⦂ (` 0 ⇒ ` 0)
 ⊢R1body =
@@ -282,6 +299,15 @@ _ = ξ-⟪⟫ (ξ-Λ (TyWrap (V-G (G-Λ (V-G G-ƛ)))))
 
 ⊢T4 : [] ∣ [] ⊢′ T4 ⦂ ∀ZZ
 ⊢T4 = env′ (bwf↑′ wf-ℕ bwf[]′) sc∀ZZ (⊢Λ′ ⊢R1body)
+
+⊢T4′body : Δ8′ ∣ [] ⊢′ T4′body ⦂ (` 0 ⇒ ` 0)
+⊢T4′body =
+  env′ (bwf↑′ (wf-var here-abst) (bwf↓′ (skip-abst here) wf-ℕ bwf[]′))
+       (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+       (⊢ƛ′ (wf-var here-rvld) (⊢`′ here))          -- ★ was here-abst
+
+⊢T4′ : [] ∣ [] ⊢′ T4′ ⦂ ∀ZZ
+⊢T4′ = env′ (bwf↑′ wf-ℕ bwf[]′) sc∀ZZ (⊢Λ′ ⊢T4′body)
 
 -- T5 (TyBeta inside T4): the nested wrapper.  ★ twice.
 T5body : Term
@@ -586,14 +612,19 @@ _ = refl                               -- … whereas Δ✗ has  rvld 𝔹  at s
                     (⊢ƛ′ wf-ℕ (⊢`′ here)))
               ⊢W✗
 
+-- 2026-09-04 (Decision 2 revised): Wrap consumes the ƛ, so the contractum is
+-- the substituted body — here V✗'s body is ` 0, i.e. the dual-wrapped
+-- argument itself.  The refutation is unchanged in substance (one ⊢·′ layer
+-- fewer): W✗'s conceal ↓Y:=𝔹 has no knowledge to match in the dual's
+-- interior, which reveals the blocked Y at the DUMMY rep ℕ.
 contractum✗ : Term
-contractum✗ = (V✗ · (W✗ ⟪ dualᵇ Θ✗ , renameᵗ (swapᵇ Θ✗) `ℕ ⟫)) ⟪ Θ✗ , `ℕ ⟫
+contractum✗ = (W✗ ⟪ dualᵇ Θ✗ , renameᵗ (swapᵇ Θ✗) `ℕ ⟫) ⟪ Θ✗ , `ℕ ⟫
 
 _ : (V✗ ⟪ Θ✗ , `ℕ ⇒ `ℕ ⟫) · W✗ -→ contractum✗
-_ = Wrap (V-G G-ƛ) (V-⟪⟫ V-$)
+_ = Wrap (V-⟪⟫ V-$)
 
 ¬⊢contractum✗ : ¬ (Δ✗ ∣ [] ⊢′ contractum✗ ⦂ `ℕ)
-¬⊢contractum✗ (env′ _ _ (⊢·′ _ (env′ _ _ (env′ (bwf↓′ () _ _) _ _))))
+¬⊢contractum✗ (env′ _ _ (env′ _ _ (env′ (bwf↓′ () _ _) _ _)))
 
 -- and indeed the invariant fails on Δ✗ (slot 0 is rvld 𝔹, not abst)
 ¬fits✗ : ¬ (Fits Θ✗ (cmax Θ✗) 0 Δ✗)
@@ -637,19 +668,20 @@ fitsm = fitsA (fitsR refl fits0)
             (⊢ƛ′ (wf-var here-rvld) (⊢`′ here)))
       ⊢$′
 
+-- 2026-09-04 (Decision 2 revised): Wrap consumes the ƛ; its body is ` 0, so
+-- the contractum is the dual-wrapped argument under the original boundary.
 _ : ((ƛ ` 0 ∙ ` 0) ⟪ Θm , ` 0 ⇒ ` 0 ⟫) · ($ 3)
-    -→ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫
-_ = Wrap (V-G G-ƛ) V-$
+    -→ (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫) ⟪ Θm , ` 0 ⟫
+_ = Wrap V-$
 
 ⊢contractum-m :
-  Δm′ ∣ [] ⊢′ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫ ⦂ `ℕ
+  Δm′ ∣ [] ⊢′ (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫) ⟪ Θm , ` 0 ⟫ ⦂ `ℕ
 ⊢contractum-m =
   env′ (bwf↑′ wf-ℕ (bwf↓′ (skip-abst here) wf-ℕ bwf[]′))
        (sc-var hereᵒ)
-       (⊢·′ (⊢ƛ′ (wf-var here-rvld) (⊢`′ here))
-            (env′ (bwf↑′ wf-ℕ (bwf↑′ wf-ℕ (bwf↓′ here wf-ℕ bwf[]′)))
-                  (sc-var (thereᵒ (thereᵒ hereᵒ)))
-                  ⊢$′))
+       (env′ (bwf↑′ wf-ℕ (bwf↑′ wf-ℕ (bwf↓′ here wf-ℕ bwf[]′)))
+             (sc-var (thereᵒ (thereᵒ hereᵒ)))
+             ⊢$′)
 
 -- BUT: the blocked slot Y, `abst` in Δm′, becomes `rvld ℕ` in the dual's
 -- interior — so BlkAbst is NOT preserved by Wrap.  Any later boundary

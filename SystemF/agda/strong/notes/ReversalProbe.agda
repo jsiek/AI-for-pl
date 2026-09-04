@@ -65,7 +65,8 @@ open import strong.BReduction
 open import strong.notes.GroundedProbe
   using (bad; bad₂; ⊢∀ZZ; sc∀ZZ; Bfun; body8; src;
          Θr; Θc; Θ8′; Θn; Θi; Δ1′; Δ8′;
-         T0; T1; T2; T3; T4; T5; W2; W3; R1body; T5body; inner₂; mid₂;
+         T0; T1; T2; T3; T4; T4′; T4′body; T5; W2; W3; R1body; T5body;
+         inner₂; mid₂;
          Δb; Θb; Δm′; Θm; liftRep; grounded)
 open import strong.notes.MergeProbe
   using (outSub; sub-ren; _⊕_; Δo; Θ1o; Θ2o; Vo; redexo; Θold;
@@ -381,17 +382,29 @@ _ = refl
 ⊢T5ʳ : [] ∣ [] ⊢ʳ T5 ⦂ ∀ZZ
 ⊢T5ʳ = envʳ (bwf↑ʳ wf-ℕ bwf[]ʳ) sc∀ZZ (⊢Λʳ ⊢T5bodyʳ)
 
--- every step is a real -→ (unchanged from GroundedProbe §2)
+-- every step is a real -→ (unchanged from GroundedProbe §2).
+-- 2026-09-04 (Decision 2 revised): Wrap consumes the ƛ and TyWrap the Λ, so
+-- the trace short-circuits — T1 goes straight to T3 (T2's Beta contractum)
+-- and T3 to T4′ (the direct-combine contractum).  T2 -→ T3 and T4 -→ T5 are
+-- still real steps out of those terms; T4′ types below.
 _ : T0 -→ T1
 _ = ξ-·-l (TyBeta (V-G G-ƛ))
-_ : T1 -→ T2
-_ = Wrap (V-G G-ƛ) (V-G (G-Λ (V-G G-ƛ)))
+_ : T1 -→ T3
+_ = Wrap (V-G (G-Λ (V-G G-ƛ)))
 _ : T2 -→ T3
 _ = ξ-⟪⟫ (Beta (V-⟪⟫ (V-G (G-Λ (V-G G-ƛ)))))
-_ : T3 -→ T4
-_ = ξ-⟪⟫ (ξ-Λ (TyWrap (V-G (G-Λ (V-G G-ƛ)))))
+_ : T3 -→ T4′
+_ = ξ-⟪⟫ (ξ-Λ (TyWrap (V-G G-ƛ)))
 _ : T4 -→ T5
 _ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (TyBeta (V-G G-ƛ))))
+
+⊢T4′bodyʳ : Δ8′ ∣ [] ⊢ʳ T4′body ⦂ (` 0 ⇒ ` 0)
+⊢T4′bodyʳ =
+  envʳ ⊢Θnʳ (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
+       (⊢ƛʳ (wf-var here-abst) (⊢`ʳ here))
+
+⊢T4′ʳ : [] ∣ [] ⊢ʳ T4′ ⦂ ∀ZZ
+⊢T4′ʳ = envʳ (bwf↑ʳ wf-ℕ bwf[]ʳ) sc∀ZZ (⊢Λʳ ⊢T4′bodyʳ)
 
 ------------------------------------------------------------------------
 -- §4.  Wrap's dual.

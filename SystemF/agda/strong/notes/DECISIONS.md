@@ -1536,3 +1536,25 @@ value clashes somewhere, whatever the face restriction.  The two exits:
       is a VARIABLE (the complement of Peel/TyPeel's syntactic ⇒/∀)
       whose external reading is the function/universal type — the merge
       exists to EXPOSE the face Peel needs.
+
+### Decision 6 — RULING (Jeremy, 2026-09-04 night): ACTIVE/INERT, inert/inert
+
+Jeremy pushed the Siek–Chen JFP'21 parameterized-cast-calculi paper
+(digest: notes/ParameterizedCastCalculi.md): reveals/conceals are casts;
+casts classify as ACTIVE (reduce on values; not values themselves) or
+INERT (value-forming; eliminated at use sites), with coherence fields
+(ActiveOrInert totality, InertCross→, baseNotInert, applyCast totality)
+that name exactly our failure modes — §9j/§9k were an active rule
+(Merge) on inert-classified values; pre-Peel §9f was an inert shape
+with no elimination.  RULED: **inert for function faces, inert for
+universal faces** (Peel/TyWrap/TyPeel are the eliminations — active-⇒
+would eta-expand and hide the boundary; active-∀ needs a type shift on
+the term, barred by the no-term-shift law).  The classification table
+(notes/ParameterizedCastCalculi.md): reveal-var faces and base faces
+are ACTIVE (collapse via ⊕ / drop), conceal-var and ambient-var faces
+INERT (the sealed values; no elimination exists at abstract type).
+V-⟪⟫ gains the Inert premise (the Vcast discipline).  Install in
+flight: Value restriction, active rules replacing standalone
+Merge/Drop∅, canonical forms (canon-ℕ = numerals, canon-var-conceal),
+applyCast-totality lemma (discharges rv-app/rv-tapp → progress
+unconditional), values-don't-step + det.

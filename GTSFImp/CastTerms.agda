@@ -217,14 +217,14 @@ data _⊢_⦂_ (Γ : Ctx) : Term (Δᵉ Γ) → Ty (Δᵉ Γ) → Set where
       ---------------------
       → Γ ⊢ M ⟨ c ⟩ ⦂ B
 
-  ⊢reveal : ∀ {M A B} {c : Conv↑ (Δᵉ Γ) A B}
-      → Σᵉ Γ ⊢↑ c
+  ⊢reveal : ∀ {M A B X R} {c : Conv↑ (Δᵉ Γ) A B}
+      → Σᵉ Γ ⊢↑[ X ⦂ R ] c
       → Γ ⊢ M ⦂ A
       ---------------------
       → Γ ⊢ M ↑ c ⦂ B
 
-  ⊢conceal : ∀ {M A B} {c : Conv↓ (Δᵉ Γ) A B}
-      → Σᵉ Γ ⊢↓ c
+  ⊢conceal : ∀ {M A B X R} {c : Conv↓ (Δᵉ Γ) A B}
+      → Σᵉ Γ ⊢↓[ X ⦂ R ] c
       → Γ ⊢ M ⦂ A
       ---------------------
       → Γ ⊢ M ↓ c ⦂ B

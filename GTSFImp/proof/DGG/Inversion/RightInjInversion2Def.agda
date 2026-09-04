@@ -1,10 +1,11 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.Inversion.RightInjInversion2Def where
 
 -- File Charter:
 --   * States the M3 version-2 right-injection inversion theorem.
---   * Uses the frozen `RebaseAt` relation directly; no ParkedWorld or
---     OpenStrata premise appears in the public statement.
---   * Depends on the stable SpineValueDef surface and CastTermImprecision2.
+--   * Uses the canonical complete-context world and cast-term imprecision.
+--   * Depends only on the stable SpineValueDef surface and the live relation.
 --
 -- Refuted route, kept here so the bare-seal proof does not retry it:
 -- peeling the target tag first asks a wrapper head such as `Λ⊑²` to prove
@@ -21,27 +22,24 @@ module proof.DGG.Inversion.RightInjInversion2Def where
 
 open import Types
 open import Consistency using (Env∼; _⊢_∼_; _⊢_∼★; _!)
-open import CastTerms using (Term; Value; _⟨_⟩)
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
+open import CastTerms using (Ctx; Δᵉ; Term; Value; _⟨_⟩)
+import proof.DGG.CastTermImprecision as CTI
+open import proof.DGG.World
 open import proof.DGG.Inversion.SpineValueDef using (SpineValue)
-open CTX using
-  (World;
-   CtxImp;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+open CTI using (_⊢²_⊑_∶_)
 
 RightInjInversion² : Set
 RightInjInversion² =
-  ∀ {Δᴸ Δᴿ Δ} {W : World Δᴸ Δᴿ Δ} {γ : CtxImp W}
-    {M : Term Δᴸ} {N : Term Δᴿ} {A : Ty Δᴸ} {H : Ty Δᴿ}
-    {ν : Env∼ Δᴿ}
+  ∀ {Γᴸ Γᴿ : Ctx} {γ : Γᴸ ⊑ᶜ Γᴿ}
+    {M : Term (Δᵉ Γᴸ)} {N : Term (Δᵉ Γᴿ)}
+    {A : Ty (Δᵉ Γᴸ)} {H : Ty (Δᵉ Γᴿ)}
+    {ν : Env∼ (Δᵉ Γᴿ)}
     {gH : Ground H} {H∼★ : ν ⊢ H ∼★} {Hns : NonStar H}
     {cH : ν ⊢ H ∼ H}
-    {p : A ⊑ᵂ⟨ W ⟩ ★}
+    {p : A ⊑ᵀ⟨ γ ⟩ ★}
   → SpineValue M
   → Value N
-  → W ∣ γ ⊢² M
+  → γ ⊢² M
       ⊑ N ⟨ _! ⦃ gH ⦄ ⦃ H∼★ ⦄ cH ⦃ Hns ⦄ ⟩ ∶ p
-  → (q : A ⊑ᵂ⟨ W ⟩ H)
-  → W ∣ γ ⊢² M ⊑ N ∶ q
+  → (q : A ⊑ᵀ⟨ γ ⟩ H)
+  → γ ⊢² M ⊑ N ∶ q

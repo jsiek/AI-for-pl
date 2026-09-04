@@ -7,7 +7,8 @@ module
 
 import Data.Fin as Fin
 open import Data.Nat using (_<_; suc)
-open import Data.Nat.Properties using (+-monoˡ-<; +-monoʳ-<)
+open import Data.Nat.Properties using
+  (+-monoˡ-<; +-monoʳ-<; n<1+n; ≤-<-trans)
 open import Relation.Binary.PropositionalEquality using
   (_≢_; refl; sym; trans)
 
@@ -21,8 +22,7 @@ open import proof.TypeInTermSubst using
   (renameᵗ-wk-eq; renameᵗᵐ-preserves-Value)
 open import proof.TypeSafety.Preservation using
   (applyBody-open-zero; replace-zero-open)
-open import proof.DGG.Catchup.FuelSupportProof using
-  (inst-alloc-decrease)
+open import proof.Consistency using (castSize; castSize-close-inst-≤)
 open import proof.DGG.Catchup.StructuralValueInstantiationStateDef
 open import
   proof.DGG.Catchup.StructuralValueInstantiationCastMassDef
@@ -54,4 +54,5 @@ inst-primary-decreases {c = c} vV B≠★ spine
           | spine-cast-mass-map (bind ★) spine =
   +-monoʳ-< (valueCastMass vV)
     (+-monoˡ-< (spineCastMass spine)
-      (inst-alloc-decrease {c = c} B≠★))
+      (≤-<-trans (castSize-close-inst-≤ c)
+        (n<1+n (castSize c))))

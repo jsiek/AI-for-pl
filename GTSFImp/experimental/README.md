@@ -145,33 +145,3 @@ from both `gen` and `inst` eliminates that obstruction.
 
 The experiment does not replace the live consistency relation, evaluator, or
 full type-safety development.
-
-## Raw conversion typing experiment
-
-[`CollapsedConversion.agda`](CollapsedConversion.agda) applies the same
-raw-syntax/contextual-typing split to reveal and conceal conversions. A single
-store-independent `Conversion` tree has the constructors `id`, `unseal X`,
-`seal X`, `_↦_`, and `` `∀_ ``. In particular, an unseal or seal leaf does
-not record the representation type stored at `X`.
-
-The two directional typing judgments recover the endpoints, store lookup, and
-optional pivot while remaining indexed by the unchanged raw conversion:
-
-```agda
-Σ ⊢↑[ X? ] c ∶ A ⇒ B
-Σ ⊢↓[ X? ] c ∶ A ⇒ B
-```
-
-The four arrow rules in each direction internalize the former `PivotJoin`
-cases (`none`, `left`, `right`, and `both`). The experiment supplies maps to
-the live intrinsic conversion syntax, ordinary store validity, and
-pivot-indexed validity, together with reverse maps from the live
-pivot-indexed judgments. The checked round trips recover both the original
-live intrinsic conversion and the original experimental raw conversion.
-
-Unlike the first proof-carrying version of the experiment, raw conversions can
-be stored directly in terms without indexing terms by a type store. The final
-typing judgments reject a raw arrow conversion whose two non-identity halves
-use different pivots. A checked example records that the current ordinary live
-validity judgment accepts such a conversion, so replacing it with the final
-judgments would intentionally narrow the typable conversion language.

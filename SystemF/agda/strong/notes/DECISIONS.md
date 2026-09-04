@@ -575,6 +575,32 @@ All seven sites SAFE, with one requirement and one residual:
 
 Design summary (before/after, home relations) presented to Jeremy for
 sign-off; install pending his approval.
+## E★ — the vacuity lemma is insufficient; the rep-less conceal ↓·:⋆ (2026-09-04)
+
+    E★ = (ΛX. λf:(∀Z. ℕ→ℕ). ΛY. (f [Y]) 5) [ℕ] · (ΛZ. λn:ℕ. n)   : ∀Y. ℕ
+
+    TyBeta(X); Wrap  ⇒  (ΛY. (((ΛZ. λn:ℕ. n) ⟪ ↓X:=ℕ ⟫) [Y]) 5) ⟪ ↑X:=ℕ ⟫
+    ξ TyWrap(Z)      ⇒  (ΛY. ((λn:ℕ. n) ⟪ ↑Z:=Y , ↓X:=ℕ ⟫) 5) ⟪ ↑X:=ℕ ⟫
+      Y is Λ-bound AND blocked: Z's entry is abstract under raw, hybrid, and
+      unfolding alike — nothing to unfold.
+    ξ Wrap on (…) · 5  ⇒  STUCK: the dual must conceal Z, no knowledge exists,
+      and the argument is 5 : ℕ — so no-abstract-value says NOTHING here
+      (the boundary's type ℕ→ℕ never mentions Z).
+
+  Fix proposed to Jeremy (trace artifact "Scope Trace of E★"): the REP-LESS
+  CONCEAL ↓Z:⋆, mirror of ↑Y:⋆ — re-hide the variable claiming nothing,
+  licensed by nothing, slot blocked in baseS so no boundary type may depend
+  on it; the dual emits it exactly when a reveal's knowledge is
+  inexpressible and un-unfoldable.  Completed case split for the dual's
+  conceal-of-a-reveal:
+    knowledge expressible raw        → as today
+    expressible after unfolding      → the (a″) copy
+    inexpressible, named by the type → vacuous (no-abstract-value: no redex)
+    inexpressible, not named         → ↓·:⋆
+  Probe in flight (notes/StarConcealProbe.agda): E★ end-to-end before/after,
+  bad-via-⋆ refutation, whether no-abstract-value stays load-bearing, dual-of-
+  dual/renaming/retag behaviour of cnc⋆.
+
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

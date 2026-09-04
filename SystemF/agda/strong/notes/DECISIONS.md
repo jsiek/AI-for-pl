@@ -811,6 +811,17 @@ stays TyWrap (its definition changes to the direct-combine shape):
   further ProgressDef parameters (NestedApp, NestedTApp) until Merge lands.
   No term shift anywhere: _[_]ᵐ substitutes term variables only.
 
+### Decision 3, addendum (Jeremy, 2026-09-04): Drop∅ ships WITH Merge
+
+    (Drop∅)   V ⟪ ∅ , B₀ ⟫   -→   V          both faces are B₀; long proven safe
+
+Merge's cancel clause empties matched boundaries (e.g. the cancel pair
+(7 ⟪ ↓X:=ℕ ⟫) ⟪ ↑X:=ℕ ⟫ merges to 7 ⟪ ∅ ⟫), so without Drop∅ towers
+collapse to a vacuous wrapper rather than the bare value.  Adopt both in
+one landing: rule + example + preservation + progress cases each, per the
+§1 Method.  Note Drop∅ finally becomes REACHABLE at that point (today no
+rule mints an empty boundary).
+
 ### Decision 3 — resolution (2026-09-03)
 
 Jeremy leans to 3a (Merge, depth-1 values).  Plan: after the Decision-1

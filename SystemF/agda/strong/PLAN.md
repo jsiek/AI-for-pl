@@ -1,15 +1,17 @@
 # Strong System F — handoff plan (finishing preservation & progress)
 
-Status as of the `strong-preservation` branch (PR #189), **2026-09-04 (ambient-dual
-install)**. This document is the authoritative handoff: it captures the design that is now
-settled, exactly what compiles, and the ordered chain of work to close **preservation** and
-then **progress**.
+Status as of the `strong-preservation` branch (PR #189), **2026-09-04, evening (x-license
+install IN FLIGHT)**. This document is the authoritative handoff. The DESIGN LOG lives in
+`notes/DECISIONS.md` (decisions as definitions, examples, probe verdicts) and
+`notes/DualLicenseDesign.md` (the dual-conceal license, fully ruled); this file carries the
+state, the settled design, and the roadmap (§9).
 
-**What landed on 2026-09-04** (notes/DECISIONS.md, Decisions 1/3/4): grounded **knowledge
-interiors** `⟦A⟧`, the **rep-less abstract reveal** `rvl⋆`, the **telescopic reveal block**,
-the **reversal-form** conceal premise, and **Γ-indexed reduction with the ambient dual
-`dualᴳ`**. `make -C strong check` is green; the residue is three `DualDef` parameters plus
-the four `ProgressDef` ones.
+**Landed 2026-09-04**: grounded knowledge interiors `⟦A⟧`; the rep-less abstract reveal
+`rvl⋆`; the reversal-form conceal premise; Γ-indexed reduction with the ambient dual
+`dualᴳ`; the telescopic reveal block was landed and then REVERTED the same day
+(simultaneity ruling — reveal reps are read in the PLAIN exterior). `make -C strong check`
+is green; the residue is three `DualDef` parameters plus the four `ProgressDef` ones,
+both targeted by the in-flight install (§9 step 0).
 
 ## 0. What "Strong System F" is
 
@@ -97,10 +99,10 @@ boundary — do not copy them verbatim.
 
 ## 2. Settled design (do not relitigate)
 
-- **Delta-indexed boundary.** `BEntry = rvl (A : Ty) | rvl⋆ | cnc (X : ℕ) (A : Ty)`; `BCtx = List BEntry`. Reveal rep `A` over the exterior `Γ` **extended by the deeper reveals of the same boundary** (telescopic); `rvl⋆` is the rep-less abstract reveal; conceal index `X` a whole-`Γ` de Bruijn index, rep `A` over the interior.
+- **Delta-indexed boundary.** `BEntry = rvl (A : Ty) | rvl⋆ | cnc (X : ℕ) (A : Ty)`; `BCtx = List BEntry`. Reveal rep `A` over the **plain exterior `Γ`** — SIMULTANEOUS, no interference from sibling entries (the telescopic reading was tried and reverted); `rvl⋆` is the rep-less abstract reveal; the in-flight install adds `cnc⋆` (rep-less conceal) and the context entry `X:=ˣA`; conceal index `X` a whole-`Γ` de Bruijn index, rep `A` over the interior.
 - **B₀ typing (`env`), not a consistency premise.** Record one boundary type `B₀`; derive both faces: internal `= substᵗ (γᵇ Θ) B₀`, external `= substᵗ (ρᵇ Θ) B₀`. No `τ(A)=σ(B)` premise.
 - **Whole-`Γ` tight interior, with KNOWLEDGE.** `intOf Γ Θ = revEnts Θ 0 Θ ++ dropN (cmax Θ) Γ` — the reveal block's entries prepended over "everything deeper than the deepest conceal" (`cmax = 1 + max conceal index`). This is the **Example-8 soundness fix**: variables shallower than the deepest conceal are intentionally **blocked** (inaccessible in the interior). Conceal indices are whole-`Γ`-relative → renaming is uniform.
-- **Projections.** `ρᵇ` (reveal-resolve): reveal var ↦ its rep RESOLVED THROUGH THE DEEPER REVEALS (a fold, not a lookup — the telescopic reveal block), `rvl⋆` ↦ a dummy, others pass through. `γᵇ Θ = prepId (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ)`: reveal var passes through, concealed index ↦ its rep (**unshifted** — reps live over the whole interior and may mention reveal vars), kept index ↦ its interior slot `` ` (revs + (i ∸ cmax)) ``.
+- **Projections.** `ρᵇ` (reveal-resolve): reveal var ↦ its rep AS STORED (a lookup — parallel/simultaneous), `rvl⋆` ↦ a dummy (never nameable, its slot is `blk`), others pass through. `γᵇ Θ = prepId (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ)`: reveal var passes through, concealed index ↦ its rep (**unshifted** — reps live over the whole interior and may mention reveal vars), kept index ↦ its interior slot `` ` (revs + (i ∸ cmax)) ``.
 - **Scope premise on `env`.** `Scoped (baseS Θ Δ) B₀` forbids `B₀` from naming a **blocked** slot. `baseS` marks each bframe slot `ok`/`blk`; `Scoped`/`_∋ok_` is a wf judgment that only accepts `ok` slots (binders push `ok`). `subst-cong-sc` is the scope-restricted `subst-cong` — it needs the pointwise equality only at `ok` slots, which is what makes `γcnc-comm`'s failure at blocked indices irrelevant.
 
 ### Settled 2026-09-04 (notes/DECISIONS.md, Decisions 1, 3, 4) — INSTALLED, do not relitigate
@@ -116,11 +118,15 @@ boundary — do not copy them verbatim.
   — which is what Merge needs; it also transports under any monotone renaming with no scope
   restriction. `bad`/`bad₂` are refuted in `Boundary.agda`. Boundary well-formedness carries
   the whole `Θ` as a parameter and recurses on a suffix.
-- **Telescopic reveal block (Decision 4's residue (R1)).** `(bwf-↑)` reads a reveal's rep over
-  the exterior extended by the DEEPER reveals of the same boundary. Consequence for `TyWrap`:
-  the new reveal is the shallowest, so the type argument is LIFTED past the existing reveals
-  (`renameᵗ (revs Θ +_) A`); its external face is `A` again (`ρᵇ-lift`), and this is a TYPE
-  shift, so the no-term-shift principle stands.
+- **Parallel (simultaneous) reveal block — the telescope is REVERTED.** `(bwf-↑)` is plain
+  `Γ ⊢ A`; `TyWrap` records the type argument UNLIFTED. Design law (Jeremy): "the
+  representation type of a reveal entry is well-formed in the external context, without any
+  interference from the other entries in the boundary."
+- **Design laws (standing, do not relitigate):** grounded invariants (in the relation, no
+  companion predicates); TIGHTNESS (tight interiors wanted for their own sake); NO TERM
+  SHIFTS (shift types, never terms); SIMULTANEITY (both directions: a conceal's rep may use
+  the boundary's reveal variables; a reveal's rep reads in the plain exterior); CLOSURE
+  UNDER DUALIZATION (every entry form has a dual image — rvl↔cnc, rvl⋆↔cnc⋆).
 - **Γ-indexed reduction and the ambient dual (Decision 4).** `_⊢_-→_ : TCtx → Term → Term →
   Set`; `ξ-⟪⟫` extends by `intOf Δ Θ`, `ξ-Λ` by `abst`, the rest pass Δ through. `Wrap` uses
   `dualᴳ Δ Θ`, which at a slot the boundary drops without concealing COPIES Δ's own entry
@@ -130,6 +136,22 @@ boundary — do not copy them verbatim.
   dual's conceal block carries the reveal's EXTERNAL FACE, not its raw rep.
 - **Typing reads the marker, so `⊢retag` is along `_≼_`.** `abst ≼ anything`, `X:=A ≼ X:=A`;
   the old equal-length retagging is unsound now that a conceal is licensed by knowledge.
+
+### Being installed now (probed, ruled, IN FLIGHT — notes/DualLicenseDesign.md)
+
+- **The unfolding congruence `≈Δ̄`** (`unfoldᵉ` through the context's knowledge; equality of
+  unfoldings). Used at exactly the knowledge-COMPARING sites: `(bwf-↓)`'s Reversal becomes
+  `Reversal≈`; the new `(bwf-↓x)` compares up to `≈Δ̄` (ruling (ii), for duality); `≼`/⊢retag
+  becomes `≼≈`. Reveal reps, conceal reps, faces, terms: never unfolded — nothing is erased.
+- **Hybrid interior entries**: raw where expressible → retry at the unfolding → for a
+  rep-carrying reveal the EXTERIOR-READ entry `X:=ˣA` (consumed only by `(bwf-↓x)`) → abst.
+- **`cnc⋆`** (rep-less conceal, dual image of `rvl⋆`) and the entry-independent dual conceal
+  block. **`(bwf-↓x)`** licenses a dual's conceal of an unknowable reveal: `Γ ∋ X:=ˣA`, rep
+  equal up to `≈Δ̄`, and the LOAD-BEARING "claims nothing" premise (the rep names only
+  abstract interior variables — this is what refutes the ⊢3n-adv adversary).
+- Gauntlet: Pn, Pc, E★, E★′ end-to-end; bad/bad₂/far-bad refuted, near-bad admitted;
+  ⊢3n-adv under ≈; dual-of-dual round trip. Goal: discharge all three `DualDef` parameters
+  (preservation unconditional).
 
 ### Two findings that produced the current design (see scratch files)
 1. **FIXED** — old `γᵇ = extsⁿ(revs)(γᶜ)` shifted conceal reps by `sucᵛ`, disagreeing with `bwf↓`/`renᴮ` when a rep mentions a reveal var. Now `prepId`/`γcnc`, no shift.
@@ -216,8 +238,43 @@ relation now carries the same index), term context always `[]`.
   `RevealVarApp`/`RevealVarTApp` (the boundary type is a reveal variable — a
   Merge/Cancel against the enclosing boundary) and `NestedApp`/`NestedTApp` (a
   wrapper-bodied wrapper at a ⇒/∀ face). Merge in turn needs "retyping along
-  unfolding" (Zdancewic's Δ̄), which is exactly what the reversal form was chosen
-  to make possible. **Next piece of work.**
+  unfolding" (Zdancewic's Δ̄), which under the in-flight
+  install collapses into `≼≈` (UpToProbe, both directions). **See the roadmap, §9.**
+
+## 9. ROADMAP — what comes after the in-flight install
+
+0. **[IN FLIGHT] The x-license install** (notes/DualLicenseDesign.md; all rulings taken):
+   `≈Δ̄`, hybrid `⟦·⟧` with `X:=ˣA`, `cnc⋆`, `(bwf-↓x)` under (ii), the dual's unfolded
+   second-chance copy, `≼≈`; the full gauntlet incl. E★′ and ⊢3n-adv-under-≈; attempt to
+   discharge `DualRep`/`DualCnc`/`DualInt` → **preservation unconditional** if all three go.
+1. **Merge + Drop∅ in one landing** (Decisions 3 + addendum; both ruled). Port `⊕` from
+   notes/old/MergeProbe to the new core; the cancel clause's soundness is the restored
+   invariant (`cancel-agree` — an x-conceal cancels the very reveal it was born from);
+   retyping-along-unfolding = `≼≈`. Per the §1 Method: rule → example (the cancel pair,
+   Example 3's tower, E★′'s continuation) → preservation case → progress case. OPEN
+   sub-decision for Jeremy at landing time: the merged wrapper's boundary type (the probe's
+   `B₁`-pushed-out form vs the alternative).
+2. **Depth-1 values** (Decision 3: a wrapper's body is never a wrapper; Zdancewic's value
+   grammar) + the strengthened canonical form `canon-var-conceal` (a value at variable type:
+   the variable is revealed — `:=` or `:=ˣ` — and the chain ends in a licensed conceal) +
+   `no-abstract-value` where still load-bearing. Then **instantiate `Progress.Impl`**: Merge
+   discharges `NestedApp`/`NestedTApp`; Merge-against-the-enclosing-boundary plus the
+   canonical form discharge `RevealVarApp`/`RevealVarTApp`. **PROGRESS COMPLETE.**
+3. **Top-level `TypeSafety.agda`** per the AGENTS.md maximal-join checklist: `progress` and
+   `preservation` stated explicitly at the language's top level as thin wrappers (plus
+   multi-step safety), `All.agda`, `make check`.
+4. **Deferred general lemmas** (tracked, not blocking): dual-of-dual is the identity on
+   x-licensed boundaries (checked on shapes, wants the general theorem); the copied-rep
+   fv-lemma (`renameᵗ (n +_)` never hits the dual's own ⋆-slots); `DualRep`'s `⊢ Δ`
+   question if any residue survives step 0.
+5. **Join-checklist round-out** once safety is closed: `Eval.agda` (step function/fuel
+   evaluator over `Δ ⊢ M -→ M′`), a fresh `Examples.agda` for the new calculus (notes.md
+   Examples 1–8 mechanized end-to-end, incl. the towers collapsing through Merge/Drop∅),
+   README/Design notes; optional cheap win: revive `Cancel` as an optimisation (its side
+   condition is exactly what `Reversal` now guarantees).
+6. **Research directions after safety** (Jeremy's call, unscheduled): the abstraction
+   theorems the calculus was built for (the `barrier-*` bit-identity results are the seed),
+   and the Zdancewic correspondence written up properly (notes/Zdancewic-embeddings.md).
 
 ## 6. Conventions / gotchas (learned)
 

@@ -670,7 +670,16 @@ cancels (Zdancewic Lemma A.2, Reversal) rather than by interior knowledge —
 with cnc⋆ retained for duals of rvl⋆.
 
 RULING (Jeremy, 2026-09-04): probe the candidate premises for (b); a full
-design description of (b) to follow the probe.  In flight
+design description of (b) to follow the probe.
+
+(b)-PROBE VERDICT (notes/DualLicenseProbe.agda, agda --safe clean):
+(b3)-SOUND WINS; (b1) and (b2) refuted; the NAIVE (b3) was itself unsound
+(an adversary reuses a planted x-entry in a non-dual boundary, ⊢3n-adv) and
+is repaired by the load-bearing "claims nothing" premise.  Full design
+description with example, before/after rules and homes, the soundness
+story, the uncovered obligations, and the one open renaming lemma:
+notes/DualLicenseDesign.md.  Awaiting Jeremy's sign-off on that design
+(and on §5's choice (i) vs (ii)) before the combined install.  In flight
 (notes/DualLicenseProbe.agda), three candidates against the E★′/E★/Pn/bad/
 bad₂/near-bad gauntlet:
   (b1) read-back identity (concealing-then-revealing is the identity on the

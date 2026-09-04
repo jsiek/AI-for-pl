@@ -396,6 +396,34 @@ Candidate fix — compare in the EXTERIOR instead of the interior (the
   UNFOLDING (probe: ⊕ pushes Θ₂'s conceal rep in as ℕ→ℕ, Merge needs W→W);
   preservation of Merge needs retyping along unfolding (Zdancewic's Δ̄).
 
+## MORNING AGENDA (2026-09-04, after the overnight install — commit acebd7f5)
+
+The ambient dual is INSTALLED and `make check` is green.  Preservation lives
+in `BPreservation.Impl (dual-rep) (dual-cnc) (dual-int)`; progress in
+`Progress.Impl (rv-app) (rv-tapp) (nt-app) (nt-tapp)` (statements in
+DualDef.agda / ProgressDef.agda).  Rulings wanted, in rough priority:
+
+1. R2 (`DualCnc`): a reveal whose rep names a slot its own boundary blocks
+   (Example 8's ↑Z:=Y , ↓X:=ℕ with Y Λ-bound).  Candidates: (a) Γ-aware
+   knowledge closure in ⟦·⟧; (b) license the dual's conceal by the reveal's
+   own rep; (c) Merge-first normalisation (may subsume R2 — see 6).
+2. `DualRep` vs a `⊢ Δ` premise on preservation: the copied-knowledge rep's
+   well-formedness is provable if preservation carries well-formedness of
+   the ambient context (needs an intOf-closure lemma).  Accept parameter or
+   add the premise?
+3. Confirm/revert the telescopic reveal block (R1 call, provisional).
+4. Confirm the `dfree` guard on ⟦·⟧ (a reveal whose interior reading is not
+   a legal telescope entry contributes an abstract entry — some knowledge
+   silently dropped; without the guard ⊢renameᵀ is false).
+5. TyWrap's rep lift `renameᵗ (revs Θ +_) A` (type shift only) — forced by
+   the telescope; confirm the rule as landed.
+6. Next big piece order: Merge (discharges the four ProgressDef parameters;
+   needs retyping-along-unfolding) vs resolving R2 first — note candidate
+   (c) would make Merge subsume R2.
+7. Cheap win, if wanted: revive Cancel — its old side condition ("conceal
+   rep equals the enclosing reveal's rep") is now exactly what Reversal
+   guarantees.
+
 ## Decision 2 — a boundary meets a type application
 
 Both well typed on every step of Example 8 (notes/old/Example8Trace.agda).

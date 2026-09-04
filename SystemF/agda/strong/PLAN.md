@@ -124,22 +124,26 @@ its preservation case is why `preservation` is generalised over Δ).
 Boundary-manipulation rules — proposed in `notes/BoundaryRules.md` (all typing
 machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
 
-- **`TyWrap`** (R1, landed): a wrapped value meets a type application. Float
-  the `·[]` inside and RECORD the argument as a new reveal, shifting conceal reps
-  (`shiftReps`, reps live over the whole interior which grows by one `abst`):
-  `(V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ] -→ ((⇑ᵀ V) ·[ B′ , ` 0 ]) ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`.
+- **`TyWrap`** (landed; REVISED 2026-09-04 to the direct-combine form — Decision 2):
+  `((Λ V) ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ] -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`.
+  Consumes the Λ (its binder slot IS the new reveal slot), so NO ⇑ᵀ on the
+  term — the no-term-shift principle; conceal reps still shift (types).
   Face laws: `γᵇ-shift` (every slot), `ρᵇ-shift-ty`, `bwf-shift`, `baseS-shift`.
-  Never pushes `A` inward — this is how Example 8 is avoided by construction.
-  The direct-combine variant R1′ `(Λ V) ⟪ Θ , `∀ B₀ ⟫ ·[ B , A ] -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫`
-  is tighter but partial (stuck on nested wrappers) and would force a merge rule.
-- **`Wrap`** (R2, landed — preservation keeps its statement via `⊢retag`: typing reads Δ only through its length; see notes/DECISIONS.md for why Option 1a would change that): a wrapped value meets an application; the argument moves
-  inside through the DUAL boundary: `(V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→ (V · (W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫`.
+  Never pushes `A` inward — Example 8 avoided by construction.  A wrapper-
+  bodied wrapper at a ∀ face waits for Merge (ProgressDef.NestedTApp).
+- **`Wrap`** (R2, landed — preservation keeps its statement via `⊢retag`: typing reads Δ only through its length; see notes/DECISIONS.md for why Option 1a would change that; REVISED 2026-09-04 to push-through — Decision 4 discussion):
+  `((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→ (N [ W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫`
+  — consumes the ƛ and β-substitutes the dual-wrapped argument in one step.
+  A wrapper-bodied wrapper at a ⇒ face waits for Merge (ProgressDef.NestedApp).
   An exact dual exists over all-`abst` exteriors (everything reachable from a
   closed program); over `rvld` exteriors it does not (`no-dual-Γ₃`). Blocked slots
   get a dummy rep, sound by the scope premise — R2's preservation needs
   `subst-cong-sc`.
-- Drop / Cancel / merge: NOT needed for progress with R1/R2 in float-inside form;
-  Cancel is sound exactly when the conceal rep equals the enclosing reveal's rep.
+- **Merge is now load-bearing** (Decision 3, notes/DECISIONS.md): the revised
+  TyWrap/Wrap are partial on wrapper-bodied wrappers, and notes.md Examples 1/3
+  hit that mid-trace.  Progress carries four ProgressDef parameters until the
+  reversal-form rework and Merge land.  `Canonical.Value-renameᵀ` is currently
+  unused (its consumer was the old TyWrap's ⇑ᵀ) — keep until Merge/W3 decide.
 
 **Open design decisions — see `notes/DECISIONS.md` (alternatives as definitions).** Summary of Decision 1: `env` cannot relate a `cnc X A` rep
 to the rep of the enclosing reveal of `X`, so

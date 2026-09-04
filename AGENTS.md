@@ -1,6 +1,14 @@
 ## Working agreements
 
 - Never read or write files outside the current directory (AI-for-pl/).
+- **Present problems and design alternatives to Jeremy with a concrete
+  example, always** (standing request, 2026-09-04): when reporting a
+  problem, a counterexample, or a set of candidate solutions, lead with a
+  concrete program/term/trace that exhibits it, and show each alternative
+  acting ON THAT EXAMPLE, before (or instead of) any general description.
+  Jeremy: "I'm able to process examples MUCH faster than general
+  descriptions."  A colored/annotated trace is welcome for anything
+  scope- or boundary-related.
 - This is a closed-world repository: prefer direct internal references and a
   small canonical public surface over compatibility re-exports, aliases, or
   wrapper files. When consolidating APIs, delete obsolete shims instead of

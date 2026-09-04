@@ -105,12 +105,19 @@ admitted (⊢3s-near-bad).  Dual-of-dual round-trips exactly (bwf3-dd).
 The x-rep lives in the exterior, so under type-variable renaming it moves
 by the exterior ρ, while renᴮ freezes a conceal's stored rep — so the
 syntactic equality in (bwf-↓x) is not ⊢renameᵀ-stable as stated
-(¬xlic-ren, ¬dual-ren-comm).  Two candidate repairs, to be settled at
-install time (both machine-checkable before landing):
-  (i) an XRen transport hypothesis on ⊢renameᵀ, alongside the existing
-      ∋:= hypothesis (the shape xren-E★′ exhibits);
-  (ii) state (bwf-↓x)'s equality up to the (a″) congruence ≈Δ̄, making the
-      clause renaming-stable the way Reversal≈ already is.
+(¬xlic-ren, ¬dual-ren-comm).  Two candidate repairs; RULING (Jeremy, 2026-09-04): (ii), for duality —
+"It would be strange to use the congruence only for conceal and never for
+reveal."  With (ii) the design is ≈-symmetric on both axes: syntactic rep
+well-formedness (reveal in the exterior / conceal in the interior), and
+knowledge coherence up to ≈Δ̄ (conceals CONSUMING knowledge via bwf-↓ and
+bwf-↓x / the dual's reveal block REBUILDING knowledge via ≼≈, DualInt≈).
+  (i) an XRen transport hypothesis on ⊢renameᵀ — REJECTED (grows the
+      renaming interface; asymmetric);
+  (ii) state (bwf-↓x)'s equality up to ≈Δ̄, renaming-stable the way
+      Reversal≈ already is — CHOSEN.  Install-gauntlet addition: re-run the
+      ⊢3n-adv adversary under the congruence (expected refuted — the
+      load-bearing premise is "claims nothing", orthogonal to how the rep
+      equality is compared — but it is a check, not an assumption).
 
 ## 6. Verdict table (from the probe)
 

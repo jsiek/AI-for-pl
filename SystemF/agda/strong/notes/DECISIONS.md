@@ -1297,3 +1297,30 @@ CONSEQUENCES:
 - §9f's stuck-cx/stuck-cxP₄ change meaning: cxP₄ now steps; the gauntlet
   keeps ¬ext-cx/§9g as the permanent record of why flattening was
   abandoned, and replaces the stuckness lemmas with the live Peel run.
+
+### Decision 5 — refinement rulings (Jeremy, 2026-09-04 night)
+
+(1) EITHER TOWERS OR MERGE/DROP∅, NOT BOTH.  Since Peel forces towers
+(§9g killed collapse-by-flattening, so depth-1 + Merge was never
+available), Merge/Drop∅ must be DELETED unless some progress case has no
+Merge-free route — the known hinge is the RevealVarApp/RevealVarTApp
+discharges (a variable-faced wrapper whose external rep is an arrow does
+not match Peel's syntactic ⇒ face).  The install agent is determining
+the dependency on the machine; if a case genuinely needs Merge, it stops
+and reports rather than keeping Merge silently.  On deletion, the
+flatten-first record (⊕, MergeOK, the §9 refutations) freezes into
+notes/old per repo convention.
+
+(2) DESIGN LAW — DETERMINISM: "I do indeed want determinism for this
+language."  This independently evicts Merge/Drop∅: they are the only
+rules whose LHS is a VALUE, so with them a tower in argument position
+steps by ξ-·-r + Merge or is consumed by Peel — two different reducts.
+Deliverables at the install: values-don't-step
+(`Value V → ¬ (Δ ⊢ V -→ M′)`) and the determinism statement
+
+    det : Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+
+(proof included if it doesn't balloon the install, else queued NEXT —
+never postulated).  Rule-pair disjointness to preserve: Peel vs Beta
+(wrapper vs ƛ function), TyPeel vs TyBeta (wrapper vs bare Λ), ξ frames
+directed left-to-right with Value premises.

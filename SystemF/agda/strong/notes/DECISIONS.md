@@ -1433,3 +1433,21 @@ cancellability at birth (grounded-invariants law) / an extra rule is
 needed; and the deletion inventory (Merge/Drop∅/⊕/MergeOK all die if
 Cancel suffices — "either towers or merge/drop" resolved as towers +
 Cancel).
+
+Jeremy's refinement (same night): "cancel is a special form of merge +
+drop — the special case where the inner value has type X, concealed by
+the inner boundary and revealed by the outer boundary."  So Cancel's LHS
+is FACE-ANCHORED:
+
+    Cancel : Value V → (side condition)
+           → Δ ⊢ (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ -→ V
+
+with ` Y a conceal of Θ₁ (V's interior type = the conceal's rep,
+concrete) and ` X the matching reveal of Θ₂ — exactly the tightened
+RevealVarApp/RevealVarTApp shape, so Cancel targets precisely the
+progress residue.  The probe additionally verifies the identity
+cancel ≡ merge-then-drop∅ on the shapes where both fire (§9i: Merge
+gives V ⟪ ∅ , mrgB ⟫, Drop∅ gives V), and derives the preservation
+equation for the face-anchored form (what the OTHER entries of Θ₁/Θ₂
+must satisfy — or be absent — for bare V to be typed in Δ at
+ρᵇ Θ₂ (` X)).

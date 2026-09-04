@@ -24,7 +24,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; trans; sym; subst; subst₂; cong; cong₂)
 open import strong.Types
 open import strong.TypeSubst
-  using (subst-cong; subst-id; rename-rename-commute; rename-[]ᵗ-commute;
+  using (subst-cong; rename-rename-commute; rename-[]ᵗ-commute;
          rename-subst; rename-subst-commute; exts-sub-cons; cons-sub)
 open import strong.Context
   using (TCtx; abst; rvld; _↓_; _⊢_; wf-var; wf-ℕ; wf-𝔹; wf-⇒; wf-∀;
@@ -36,7 +36,7 @@ open import strong.Boundary
 private
   variable
     Δ : TCtx
-    A B C B₀ B₁ B₂ : Ty
+    A A′ B C B₀ B₁ B₂ : Ty
     L L′ M M′ N N′ V W F : Term
     Θ : BCtx
     n x : ℕ
@@ -220,32 +220,37 @@ data _-→_ : Term → Term → Set where
   Beta : Value W
       → (ƛ A ∙ N) · W -→ N [ W ]ᵐ
 
-  -- R1: a wrapped value meets a TYPE APPLICATION.  The type argument A is
-  -- RECORDED as a new reveal — it is NEVER pushed inward, which is what made
+  -- R1: a wrapped Λ meets a TYPE APPLICATION (the DIRECT-COMBINE form —
+  -- notes/DECISIONS.md, Decision 2 as revised).  The elimination CONSUMES the
+  -- Λ: the Λ-binder's slot IS the new reveal slot, so the type argument A is
+  -- RECORDED as that reveal's rep — never pushed inward, which is what made
   -- the old design unsound (Example 8: A may name a variable the interior
-  -- blocks).  The elimination floats INSIDE the boundary and is applied to the
-  -- fresh reveal variable ` 0; the interior gains one abst, so the conceal
-  -- reps shift (shiftReps).  Both indices are forced by the typing: the
-  -- redex's B is substᵗ (extsᵗ (ρᵇ Θ)) B₀ (from (env)), and the floated
-  -- application's index is the ∀-body of ⇑ᵀ V's type, i.e.
-  -- renameᵗ (extᵗ suc) of the interior face.
+  -- blocks).  There is NO ⇑ᵀ on the term (the design's no-term-shift
+  -- principle: a shift forgets which variables a term may not mention); the
+  -- CONCEAL REPS do shift, but they are types, and they must, since they live
+  -- over the whole interior, which gains the Λ's abstract variable
+  -- (shiftReps).  The redex's B is forced by the typing: (env) gives the
+  -- wrapper's external face as `∀ (substᵗ (extsᵗ (ρᵇ Θ)) B₀).
+  -- Partial by design: a wrapper-bodied wrapper at a ∀ face is a Merge redex
+  -- (Decision 3), not a TyWrap redex.
   TyWrap : Value V
-      → (V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
-        -→ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ)) B₀) , ` 0 ])
-             ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
+      → ((Λ V) ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]
+        -→ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
 
-  -- R2: a wrapped value meets an APPLICATION.  The argument lives in the
-  -- EXTERIOR, so it is moved inside through the DUAL boundary (dualᵇ); no
-  -- term substitution and no ⇑ᵀ is involved, and V need not be
-  -- syntactically a ƛ (Beta fires afterwards, inside).  B₁ is read over Θ's
-  -- boundary frame, so the dual's boundary type is B₁ renamed by the frame
-  -- permutation swapᵇ.  The dual's EXTERIOR face is then the argument type
-  -- V demands and its INTERIOR face is W's type — but only at ACCESSIBLE
-  -- slots (a blocked slot gets a dummy rep), which is why R2's preservation
-  -- goes through subst-cong-sc with (env)'s scope premise for B₁.
-  Wrap : Value V → Value W
-      → (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
-        -→ (V · (W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
+  -- R2: a wrapped ƛ meets an APPLICATION.  Symmetric to TyWrap: the
+  -- elimination CONSUMES the ƛ and β-substitutes in one step.  The argument
+  -- lives in the EXTERIOR, so it is moved inside through the DUAL boundary
+  -- (dualᵇ) first; _[_]ᵐ is TERM-variable substitution only, so again no term
+  -- shift is involved.  B₁ is read over Θ's boundary frame, so the dual's
+  -- boundary type is B₁ renamed by the frame permutation swapᵇ.  The dual's
+  -- EXTERIOR face is then the argument type the ƛ demands and its INTERIOR
+  -- face is W's type — but only at ACCESSIBLE slots (a blocked slot gets a
+  -- dummy rep), which is why R2's preservation goes through subst-cong-sc
+  -- with (env)'s scope premise for B₁.  Partial like TyWrap: a wrapper-bodied
+  -- wrapper at a ⇒ face waits for Merge.
+  Wrap : Value W
+      → ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W
+        -→ (N [ W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫
 
   -- ξ (congruence): the evaluation frames, left-to-right call-by-value.
   -- ξ-Λ and ξ-⟪⟫ are not optional bookkeeping: Λ V is a value only when V is
@@ -320,8 +325,11 @@ _ = ξ-⟪⟫ (Beta V-$)
 -- recorded as a REVEAL rep (read in the exterior) instead of being pushed
 -- into the interior.
 --
---   (polyid ⟪ ↓X:=ℕ , ∀(Z→Z) ⟫) ·[ Z→Z , Y ]           : Y→Y
---     →  (polyid ·[ Z→Z , ` 0 ]) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫ : Y→Y
+--   ((ΛZ. λz:Z. z) ⟪ ↓X:=ℕ , ∀(Z→Z) ⟫) ·[ Z→Z , Y ]    : Y→Y
+--     →  (λz:Z. z) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫             : Y→Y
+--
+-- The Λ is consumed: its binder's slot becomes the reveal slot, whose rep is
+-- the type argument Y.  Nothing moves in the term (no ⇑ᵀ).
 --
 -- Δ8/Θ8 (ASCII 8) are this example's own context and boundary — NOT Boundary's
 -- Γ₈/Θ₈, which are a different (spurious-conceal) example.
@@ -353,22 +361,21 @@ _ = refl
             (⊢Λ (⊢ƛ (wf-var here-abst) (⊢` here))))
        (wf-var here-abst)
 
--- the floated ·[] index computes: renameᵗ (extᵗ suc) (substᵗ (extsᵗ (γᵇ Θ8))
--- (Z→Z)) = Z→Z, and ⇑ᵀ polyid = polyid, so the step is refl-level
+-- polyid is Λ (ƛ ` 0 ∙ ` 0), so the rule's Value premise is the Λ-BODY's:
+-- V-G G-ƛ, not the whole polyid's V-G (G-Λ …)
 _ : (polyid ⟪ Θ8 , ∀ZZ ⟫) ·[ ` 0 ⇒ ` 0 , ` 0 ]
-    -→ (polyid ·[ ` 0 ⇒ ` 0 , ` 0 ])
-         ⟪ rvl (` 0) ∷ shiftReps Θ8 , ` 0 ⇒ ` 0 ⟫
-_ = TyWrap (V-G (G-Λ (V-G G-ƛ)))
+    -→ (ƛ ` 0 ∙ ` 0) ⟪ rvl (` 0) ∷ shiftReps Θ8 , ` 0 ⇒ ` 0 ⟫
+_ = TyWrap (V-G G-ƛ)
 
+-- this is notes/BoundaryRulesProbe.agda §2's ⊢contractum-R1′ verbatim
 ⊢contractum-R1 :
-  Δ8 ∣ [] ⊢ (polyid ·[ ` 0 ⇒ ` 0 , ` 0 ])
-              ⟪ rvl (` 0) ∷ shiftReps Θ8 , ` 0 ⇒ ` 0 ⟫
+  Δ8 ∣ [] ⊢ (ƛ ` 0 ∙ ` 0) ⟪ rvl (` 0) ∷ shiftReps Θ8 , ` 0 ⇒ ` 0 ⟫
             ⦂ (` 0 ⇒ ` 0)
 ⊢contractum-R1 =
   env (bwf↑ (wf-var here-abst)
             (bwf↓ (skip-abst here-abst) wf-ℕ bwf[]))
       (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
-      (⊢·[] (⊢Λ (⊢ƛ (wf-var here-abst) (⊢` here))) (wf-var here-abst))
+      (⊢ƛ (wf-var here-abst) (⊢` here))
 
 ------------------------------------------------------------------------
 -- Worked example for Wrap (R2), on a MIXED boundary — one reveal AND one
@@ -376,7 +383,10 @@ _ = TyWrap (V-G (G-Λ (V-G G-ƛ)))
 -- "restrict R2 to cmax Θ = 0" design would not cover.
 --
 --   ((λz:Z. z) ⟪ ↑Z:=ℕ , ↓X:=ℕ ; Z→Z ⟫) · 3                        : ℕ
---     →  ((λz:Z. z) · (3 ⟪ dualᵇ Θm , X ⟫)) ⟪ ↑Z:=ℕ , ↓X:=ℕ ; Z ⟫  : ℕ
+--     →  (3 ⟪ dualᵇ Θm , X ⟫) ⟪ ↑Z:=ℕ , ↓X:=ℕ ; Z ⟫                : ℕ
+--
+-- The ƛ is consumed and its body ` 0 is substituted for, so the contractum is
+-- the dual-wrapped argument under the original boundary.
 --
 -- Exterior Δm = [Y , X]; the interior is [Z] and Y is BLOCKED there.  The
 -- dual is [↑ℕ , ↑ℕ , ↓Z:=ℕ]: it reveals the two dropped Δm-slots (X at its
@@ -414,19 +424,19 @@ _ = refl
           (⊢ƛ (wf-var here-abst) (⊢` here)))
      ⊢$
 
+-- the ƛ's body is ` 0, so N [ … ]ᵐ IS the wrapped argument (definitionally)
 _ : ((ƛ ` 0 ∙ ` 0) ⟪ Θm , ` 0 ⇒ ` 0 ⟫) · ($ 3)
-    -→ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫
-_ = Wrap (V-G G-ƛ) V-$
+    -→ (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫) ⟪ Θm , ` 0 ⟫
+_ = Wrap V-$
 
 ⊢contractum-R2m :
-  Δm ∣ [] ⊢ ((ƛ ` 0 ∙ ` 0) · (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫)) ⟪ Θm , ` 0 ⟫ ⦂ `ℕ
+  Δm ∣ [] ⊢ (($ 3) ⟪ dualᵇ Θm , ` 2 ⟫) ⟪ Θm , ` 0 ⟫ ⦂ `ℕ
 ⊢contractum-R2m =
   env (bwf↑ wf-ℕ (bwf↓ (skip-abst here-abst) wf-ℕ bwf[]))
       (sc-var hereᵒ)
-      (⊢· (⊢ƛ (wf-var here-abst) (⊢` here))
-          (env (bwf↑ wf-ℕ (bwf↑ wf-ℕ (bwf↓ here-abst wf-ℕ bwf[])))
-               (sc-var (thereᵒ (thereᵒ hereᵒ)))
-               ⊢$))
+      (env (bwf↑ wf-ℕ (bwf↑ wf-ℕ (bwf↓ here-abst wf-ℕ bwf[])))
+           (sc-var (thereᵒ (thereᵒ hereᵒ)))
+           ⊢$)
 
 ------------------------------------------------------------------------
 -- renameᵀ through a boundary, verified on ⇑ᵀ of the non-spurious ($7)⟪Θ₈, X⟫.
@@ -1056,6 +1066,9 @@ sc-ren h mono Θ sc = sc-rename (baseS-ren h mono Θ) sc
 -- boundary TyWrap builds.  The interior face becomes extsᵗ of the old one AT
 -- EVERY SLOT (blocked ones included), so R1 carries no scope side-condition
 -- of its own; the exterior face instantiates the ∀ with the type argument A.
+-- Under the direct-combine TyWrap these laws are the WHOLE preservation case:
+-- the Λ-body is already typed at abst ∷ intOf Δ Θ with the extsᵗ face, so it
+-- transports by these equations alone — no renaming of the term.
 ------------------------------------------------------------------------
 
 isConc-shift : ∀ i Θ → isConc i (shiftReps Θ) ≡ isConc i Θ
@@ -1148,17 +1161,6 @@ baseS-shift : ∀ A Θ (Γ : TCtx)
   → baseS (rvl A ∷ shiftReps Θ) Γ ≡ ok ∷ baseS Θ Γ
 baseS-shift A Θ Γ rewrite revs-shiftReps Θ =
   cong (ok ∷_) (cong (repl-ok (revs Θ) ++_) (slotsᴳ-shift A Θ 0 Γ))
-
--- the small law R1 needs on the FLOATED type application: the fresh reveal
--- variable put back for the one that ⇑ᵀ made room for
-ext-suc-[]0 : ∀ T → (renameᵗ (extᵗ suc) T) [ ` 0 ]ᵗ ≡ T
-ext-suc-[]0 T =
-  trans (rename-subst-commute (extᵗ suc) (singleTyEnv (` 0)) T)
-        (trans (subst-cong h T) (subst-id T))
-  where
-    h : ∀ X → singleTyEnv (` 0) (extᵗ suc X) ≡ ` X
-    h zero    = refl
-    h (suc j) = refl
 
 ------------------------------------------------------------------------
 -- Dual boundary (R2), part 1: the SHAPE of dualᵇ.  Its reveal block is the

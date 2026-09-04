@@ -69,8 +69,10 @@ canon-var v ⊢V = canon-var′ v ⊢V refl
   canon-var′ (V-⟪⟫ {V′} {Θ} {B₀} _) (env _ _ _) eq | (Y , refl) =
     V′ , Θ , Y , refl
 
--- type-variable renaming preserves value-hood (needed by TyWrap, whose
--- contractum applies ⇑ᵀ V)
+-- type-variable renaming preserves value-hood.  No reduction rule needs it
+-- any more (the direct-combine TyWrap shifts no term — notes/DECISIONS.md,
+-- Decision 2 as revised); kept because renameᵀ is still applied to terms by
+-- substᵀᵐ's Λ case, so a value-stability fact about it stays wanted.
 Value-renameᵀ : ∀ {ρ V} → Value V → Value (renameᵀ ρ V)
 Value-renameᵀ {ρ} V-$ = V-$
 Value-renameᵀ {ρ} (V-G G-ƛ) = V-G G-ƛ

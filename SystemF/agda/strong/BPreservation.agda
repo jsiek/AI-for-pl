@@ -24,11 +24,11 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; trans; sym; subst; subst₂)
 open import strong.Types
 open import strong.TypeSubst using (subst-cong; subst-id)
-open import strong.Context using (TCtx; abst; _⊢_; wf-var; here-abst)
+open import strong.Context using (TCtx; _⊢_)
 open import strong.Boundary
 open import strong.BReduction
 open import strong.ScopeBridge using (scB-bridge)
-open import strong.TermSubst using (preserve-Beta; Mono-suc; ∋tv-suc)
+open import strong.TermSubst using (preserve-Beta; ⊢[]ᵐ)
 
 private
   variable
@@ -67,69 +67,64 @@ preservation (⊢·[] {B = B} {A = A} (⊢Λ {N = V} ⊢V) ⊢A) (TyBeta v) =
 -- Beta:  (λx:A.N) · W  →  N[x:=W]  — the term-substitution lemma (TermSubst)
 preservation (⊢· (⊢ƛ wfA ⊢N) ⊢W) (Beta w) = preserve-Beta (⊢· (⊢ƛ wfA ⊢N) ⊢W)
 
--- R1:  (V ⟪ Θ , ∀B₀ ⟫) ·[ B , A ]  →  ((⇑ᵀ V) ·[ B′ , ` 0 ]) ⟪ ↑A ∷ Θ⁺ , B₀ ⟫
+-- R1:  ((Λ V) ⟪ Θ , ∀B₀ ⟫) ·[ B , A ]  →  V ⟪ ↑A ∷ Θ⁺ , B₀ ⟫
 --
--- Both indices of the redex are FORCED, so the pattern supplies them: (env)
--- types the wrapper at substᵗ (ρᵇ Θ) (`∀ B₀), which is
--- `∀ (substᵗ (extsᵗ (ρᵇ Θ)) B₀), so B is that ∀-body; and ⇑ᵀ V's type is
--- `∀ (renameᵗ (extᵗ suc) Bγ), so the floated application's index is
--- renameᵗ (extᵗ suc) Bγ.  The type argument A is NOT pushed inward — it
--- becomes the new reveal's rep, read in the exterior, which is what
--- ρᵇ-shift-ty turns back into the redex's type B [ A ]ᵗ.
-preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} {M = V} bwf (sc-∀ sc) ⊢V)
+-- The redex's B is FORCED, so the pattern supplies it: (env) types the
+-- wrapper at substᵗ (ρᵇ Θ) (`∀ B₀), which is `∀ (substᵗ (extsᵗ (ρᵇ Θ)) B₀),
+-- so B is that ∀-body.  Likewise the body Λ V is typed at
+-- substᵗ (γᵇ Θ) (`∀ B₀) = `∀ (substᵗ (extsᵗ (γᵇ Θ)) B₀), so inverting ⊢Λ
+-- gives ⊢V at (abst ∷ intOf Δ Θ) ∣ ⤊ [] with the extsᵗ face — which is
+-- EXACTLY the new boundary's interior (intOf-shift, ⤊ [] = [] definitionally)
+-- and interior face (γᵇ-shift-ty).  So V transports by two substs and NOTHING
+-- renames the term: the Λ-binder's slot became the reveal slot.  The type
+-- argument A is not pushed inward — it is the new reveal's rep, read in the
+-- exterior, which is what ρᵇ-shift-ty turns back into the redex's B [ A ]ᵗ.
+preservation {Δ} (⊢·[] (env {Θ = Θ} {B₀ = `∀ B₀} bwf (sc-∀ sc)
+                            (⊢Λ {N = V} ⊢V))
                        wfA)
                  (TyWrap {A = A} v) =
-  subst (λ T → Δ ∣ [] ⊢ ((⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ])
-                          ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫ ⦂ T)
+  subst (λ T → Δ ∣ [] ⊢ V ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫ ⦂ T)
         (ρᵇ-shift-ty A Θ B₀)
     (env (bwf-shift Θ bwf wfA) sc′ ⊢body)
   where
-    -- the interior face of the ∀-body: ⊢V : … ⦂ `∀ Bγ
-    Bγ : Ty
-    Bγ = substᵗ (extsᵗ (γᵇ Θ)) B₀
     -- scope: the new stack is the old one with the reveal's slot on top
     -- (baseS-shift), which is exactly what sc-∀ inverted out of the redex's
     sc′ : Scoped (baseS (rvl A ∷ shiftReps Θ) Δ) B₀
     sc′ = subst (λ Ψ → Scoped Ψ B₀) (sym (baseS-shift A Θ Δ)) sc
-    -- the floated ·[]: ⇑ᵀ V applied to the FRESH reveal variable ` 0
-    ⊢app : (abst ∷ intOf Δ Θ) ∣ []
-             ⊢ (⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ]
-             ⦂ (renameᵗ (extᵗ suc) Bγ) [ ` 0 ]ᵗ
-    ⊢app = ⊢·[] (⊢renameᵀ ∋tv-suc Mono-suc ⊢V) (wf-var here-abst)
-    -- ⇑ᵀ made room for exactly the variable ` 0 puts back (ext-suc-[]0), and
-    -- the new interior face is extsᵗ of the old one (γᵇ-shift-ty)
-    ty-eq : (renameᵗ (extᵗ suc) Bγ) [ ` 0 ]ᵗ
-            ≡ substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B₀
-    ty-eq = trans (ext-suc-[]0 Bγ) (sym (γᵇ-shift-ty A Θ B₀))
+    -- the Λ-body, retyped at the new interior and the new interior face
     ⊢body : intOf Δ (rvl A ∷ shiftReps Θ) ∣ []
-              ⊢ (⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ]
-              ⦂ substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B₀
-    ⊢body = subst₂ (λ Ψ T → Ψ ∣ []
-                              ⊢ (⇑ᵀ V) ·[ renameᵗ (extᵗ suc) Bγ , ` 0 ] ⦂ T)
-                   (sym (intOf-shift Δ A Θ)) ty-eq ⊢app
+              ⊢ V ⦂ substᵗ (γᵇ (rvl A ∷ shiftReps Θ)) B₀
+    ⊢body = subst₂ (λ Ψ T → Ψ ∣ [] ⊢ V ⦂ T)
+                   (sym (intOf-shift Δ A Θ))
+                   (sym (γᵇ-shift-ty A Θ B₀))
+                   ⊢V
 
--- R2:  (V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W  →  (V · (W ⟪ Θᵈ , B₁ᵈ ⟫)) ⟪ Θ , B₂ ⟫
+-- R2:  ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W  →  (N [ W ⟪ Θᵈ , B₁ᵈ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫
 --
 -- Both indices of the redex are FORCED: (env) types the wrapper at
 -- substᵗ (ρᵇ Θ) (B₁ ⇒ B₂), which is substᵗ (ρᵇ Θ) B₁ ⇒ substᵗ (ρᵇ Θ) B₂,
 -- so ⊢W is at substᵗ (ρᵇ Θ) B₁ and the whole redex at substᵗ (ρᵇ Θ) B₂ —
 -- which is exactly what the rebuilt (env) returns, so the outer type needs
--- no transport.  The INNER wrapper sits at exterior intOf Δ Θ with the
--- dual boundary: its exterior face is the argument type V demands
--- (ρᵇ-dual-ty, scope-restricted — the blocked slots differ, and (env)'s
--- premise for B₁ is what rules them out) and its interior face is W's own
--- type (γᵇ-dual-ty).
+-- no transport.  Likewise the body is typed at the INTERIOR face
+-- substᵗ (γᵇ Θ) B₁ ⇒ substᵗ (γᵇ Θ) B₂, so inverting ⊢ƛ forces the ƛ's
+-- annotation A′ to be substᵗ (γᵇ Θ) B₁ and gives ⊢N at the term context
+-- (substᵗ (γᵇ Θ) B₁ ∷ []) — exactly ⊢[]ᵐ's shape.
+--
+-- The INNER wrapper sits at exterior intOf Δ Θ with the dual boundary: its
+-- exterior face is the argument type the ƛ demands (ρᵇ-dual-ty, scope-
+-- restricted — the blocked slots differ, and (env)'s premise for B₁ is what
+-- rules them out) and its interior face is W's own type (γᵇ-dual-ty).
 --
 -- The dual's interior is  prepAbst (cmax Θ) (dropN (cmax Θ) Δ)  — Δ with
 -- its dropped prefix rebuilt as `abst.  That is Δ on the nose only over an
 -- all-`abst` exterior; in general it is merely a context of the SAME
 -- LENGTH, which is all typing can tell apart (⊢retag), so preservation
 -- keeps its statement — no AllAbst premise.
-preservation {Δ} (⊢· {M = W} (env {Θ = Θ} {B₀ = B₁ ⇒ B₂} {M = V} bwf
-                                  (sc-⇒ sc₁ sc₂) ⊢V)
+preservation {Δ} (⊢· {M = W} (env {Θ = Θ} {B₀ = B₁ ⇒ B₂} bwf
+                                  (sc-⇒ sc₁ sc₂) (⊢ƛ wfA′ ⊢N))
                      ⊢W)
-                 (Wrap v w) =
-  env bwf sc₂ (⊢· ⊢V ⊢arg)
+                 (Wrap w) =
+  env bwf sc₂ (⊢[]ᵐ ⊢N ⊢arg)
   where
     -- the dual's interior rebuilds Δ up to the abst/rvld marker …
     lenq : length Δ ≡ length (intOf (intOf Δ Θ) (dualᵇ Θ))
@@ -139,7 +134,7 @@ preservation {Δ} (⊢· {M = W} (env {Θ = Θ} {B₀ = B₁ ⇒ B₂} {M = V} b
             ⊢ W ⦂ substᵗ (γᵇ (dualᵇ Θ)) (renameᵗ (swapᵇ Θ) B₁)
     ⊢W′ = subst (λ T → intOf (intOf Δ Θ) (dualᵇ Θ) ∣ [] ⊢ W ⦂ T)
                 (sym (γᵇ-dual-ty B₁ Θ)) (⊢retag lenq ⊢W)
-    -- the wrapped argument, at the type V's domain demands
+    -- the wrapped argument, at the type the ƛ's annotation demands
     ⊢arg : intOf Δ Θ ∣ []
              ⊢ W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ⦂ substᵗ (γᵇ Θ) B₁
     ⊢arg = subst (λ T → intOf Δ Θ ∣ []

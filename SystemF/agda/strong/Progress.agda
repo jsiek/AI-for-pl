@@ -8,11 +8,13 @@ module strong.Progress where
 --
 -- The value cases of the two eliminations are factored into app-steps and
 -- tapp-steps.  Neither goes through strong.Canonical: inverting the Value
--- proof already pins the head constructor of the term, and inv-⟪⟫ recovers the
--- wrapper's external-face equation without pattern-matching (env) against a
--- non-constructor type index.  What remains is the shape of the BOUNDARY type
--- B₀ — that is what selects the rule — which is cf-⇒-B₀ / cf-∀-B₀, ported
--- from notes/BoundaryRulesProbe §6.
+-- proof already pins the head constructor of the term, and inv-⟪⟫ / inv-body
+-- recover the wrapper's external-face equation and its body's typing without
+-- pattern-matching (env) against a non-constructor type index.  What remains
+-- is the shape of the BOUNDARY type B₀ — that is what selects the rule —
+-- which is cf-⇒-B₀ / cf-∀-B₀, ported from notes/BoundaryRulesProbe §6, and
+-- then, since Wrap/TyWrap consume the ƛ/Λ they are applied to, the shape of
+-- the wrapper's BODY (app-⇒ / tapp-∀).
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -27,9 +29,13 @@ open import strong.Boundary
 open import strong.BReduction
 open import strong.ProgressDef
 
--- Parameterised over the two reveal-variable cases (strong.ProgressDef);
--- instantiate `Impl` once they are proven.
-module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
+-- Parameterised over the four open cases (strong.ProgressDef): the two
+-- reveal-variable ones (Decision 1) and the two nested-wrapper ones (Merge,
+-- Decision 3).  Order: application before type application within each
+-- family, reveal-variable family first.  Instantiate `Impl` once they are
+-- proven.
+module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
+            (nt-app : NestedApp)    (nt-tapp : NestedTApp) where
 
   ------------------------------------------------------------------------
   -- 0.  Boundary-type shape analysis
@@ -87,9 +93,42 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
          → T ≡ substᵗ (ρᵇ Θ) B₀
   inv-⟪⟫ (env bwf sc ⊢V) = refl
 
+  -- the (env) premise that types the BODY, at the wrapper's interior and
+  -- interior face.  Free result index T, for the same reason as inv-⟪⟫.
+  inv-body : ∀ {Δ Γₜ V Θ B₀ T} → Δ ∣ Γₜ ⊢ V ⟪ Θ , B₀ ⟫ ⦂ T
+           → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) B₀
+  inv-body (env bwf sc ⊢V) = ⊢V
+
   ------------------------------------------------------------------------
   -- 2.  The two eliminations applied to a value
+  --
+  -- Wrap and TyWrap are PARTIAL in the wrapped value: each consumes a binder
+  -- (a ƛ / a Λ), so a wrapper at an ⇒ / ∀ boundary type must have its BODY
+  -- analysed too.  The body's own typing — at the interior face, which is
+  -- ⇒ / ∀-shaped by construction — refutes the numeral and the mismatched
+  -- binder; what is left is the binder (the rule fires) or a nested wrapper
+  -- (Merge's job, a ProgressDef parameter until Merge lands).
   ------------------------------------------------------------------------
+
+  -- a wrapper whose boundary type is ⇒-shaped, applied to a value
+  app-⇒ : ∀ {Δ V W Θ B₁ B₂ A B} → Value V → Value W
+        → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (B₁ ⇒ B₂)
+        → Δ ∣ [] ⊢ V ⟪ Θ , B₁ ⇒ B₂ ⟫ ⦂ (A ⇒ B)
+        → Σ Term λ M′ → ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W) -→ M′
+  app-⇒ V-$           w () ⊢L
+  app-⇒ (V-G G-ƛ)     w ⊢V ⊢L = _ , Wrap w
+  app-⇒ (V-G (G-Λ v)) w () ⊢L
+  app-⇒ (V-⟪⟫ v)      w ⊢V ⊢L = nt-app v w ⊢L   -- nested wrapper (Merge)
+
+  -- a wrapper whose boundary type is ∀-shaped, type-applied
+  tapp-∀ : ∀ {Δ V Θ B₀ B A} → Value V
+         → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (`∀ B₀)
+         → Δ ∣ [] ⊢ V ⟪ Θ , `∀ B₀ ⟫ ⦂ `∀ B
+         → Σ Term λ M′ → ((V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]) -→ M′
+  tapp-∀ V-$           () ⊢L
+  tapp-∀ (V-G G-ƛ)     () ⊢L
+  tapp-∀ (V-G (G-Λ v)) ⊢V ⊢L = _ , TyWrap v
+  tapp-∀ (V-⟪⟫ v)      ⊢V ⊢L = nt-tapp v ⊢L     -- nested wrapper (Merge)
 
   -- L · M with both sides values.  L : A ⇒ B, so L is a ƛ (Beta) or a wrapper.
   app-steps : ∀ {Δ L M A B} → Value L → Value M → Δ ∣ [] ⊢ L ⦂ (A ⇒ B)
@@ -100,7 +139,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
   app-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v) w ⊢L
     with cf-⇒-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
   app-steps (V-⟪⟫ v) w ⊢L | inj₁ (B₁ , B₂ , refl) =
-    _ , Wrap v w
+    app-⇒ v w (inv-body ⊢L) ⊢L
   app-steps (V-⟪⟫ v) w ⊢L | inj₂ (X , refl , X<r) =
     rv-app v w ⊢L X<r      -- reveal-variable boundary type (ProgressDef)
 
@@ -115,7 +154,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp) where
   tapp-steps (V-⟪⟫ {Θ = Θ} {B₀ = B₀} v) ⊢L
     with cf-∀-B₀ Θ B₀ (sym (inv-⟪⟫ ⊢L))
   tapp-steps (V-⟪⟫ v) ⊢L | inj₁ (B₀′ , refl) =
-    _ , TyWrap v
+    tapp-∀ v (inv-body ⊢L) ⊢L
   tapp-steps (V-⟪⟫ v) ⊢L | inj₂ (X , refl , X<r) =
     rv-tapp v ⊢L X<r       -- reveal-variable boundary type (ProgressDef)
 

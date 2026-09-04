@@ -158,6 +158,27 @@ exotic: Γ is the interior of two reveals; h is a sealed value weakened by a
 later reveal Y — exactly what TyWrap does to the boundaries inside V; W's
 conceal of Y is what the dual of a boundary revealing Y produces.)
 
+A closed System F program that reaches this configuration (two blocked
+knowledge slots instead of one):
+
+    P  =  (ΛX. λf:(X→X). ΛY. λw:X. f w) [ℕ] (λn:ℕ. n) [𝔹] 3      : ℕ
+
+    TyBeta   (λf. ΛY. λw. f w) ⟪ ↑X:=ℕ , (X→X)→∀Y.X→X ⟫ · (λn.n) [𝔹] 3
+    Wrap     ((λf. ΛY. λw. f w) · f′) ⟪ ↑X:=ℕ , ∀Y.X→X ⟫ [𝔹] 3        f′ = (λn:ℕ.n) ⟪ ↓X:=ℕ , X→X ⟫
+    Beta     (ΛY. λw:X. f′ w) ⟪ ↑X:=ℕ , ∀Y.X→X ⟫ [𝔹] 3
+    TyWrap   ((ΛY. λw. f′ w) [Y′]) ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X→X ⟫ 3          interior Y′:=𝔹 , X:=ℕ
+    TyBeta   ((λw:X. f′ w) ⟪ ↑Y:=Y′ , X→X ⟫) ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X→X ⟫ 3
+    Wrap     (((λw. f′ w) ⟪ ↑Y:=Y′ , X→X ⟫) · W₁) ⟪ … , X ⟫              W₁ = 3 ⟪ ↓Y′:=𝔹 , ↓X:=ℕ , X ⟫
+    Wrap     ((λw. f′ w) · W₂) ⟪ ↑Y:=Y′ , X ⟫ ⟪ … ⟫                     W₂ = W₁ ⟪ ↓Y:=Y′ , X ⟫
+    Beta     (f′ · W₂) ⟪ ↑Y:=Y′ , X ⟫ ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X ⟫
+
+  The last line is a Wrap redex at exterior Γ = Y:=Y′ , Y′:=𝔹 , X:=ℕ; f′'s
+  boundary ↓X:=ℕ blocks Y and Y′ (both revealed), W₂ conceals both; the dual
+  of ↓X:=ℕ is ↑Y:⋆ , ↑Y′:⋆ , ↑X:=ℕ with interior Y , Y′ , X:=ℕ ≠ Γ, and W₂'s
+  two conceals fail to retype.  Note that BOTH TyWrap and TyBeta introduce a
+  revealed variable above f′ (TyBeta turns the Λ-bound Y into Y:=Y′ without
+  renaming), so W3 has to act in both rules.
+
 The alternatives, on this example:
 
   (W1)  Add a premise to preservation, RunOK Γ M: "at every boundary in M the
@@ -187,7 +208,44 @@ The alternatives, on this example:
         in every boundary of V that has a conceal" (named notation: nothing
         moves, the conceal ↓Z:=⟦A⟧ is inserted).
 
-  Recommendation: (W3).
+  (W4)  Stop dropping: Γ ⇈ Θ = Γ , X₁:⟦A₁⟧ , … , X_r:⟦A_r⟧ — concealed variables
+        stay in scope (γ still resolves them to their reps) and no slot is ever
+        blocked.  Then the dual has nothing to rebuild (its interior is a
+        weakening of Γ by the reveal slots, which ⊢renameᵀ supplies), the
+        scope premise of (env) becomes vacuous, Merge's context law is trivial,
+        and the counterexample below (a reveal rep naming a blocked slot)
+        cannot arise.  Cost: it gives up the TIGHT interior of §2 — the
+        property that a sealed value's context contains only variables that
+        existed when the seal was made.  Terms cannot mention later variables
+        anyway (they predate them), so tightness restricts derivations, not
+        terms; but it is the design intent behind "strong", so this is
+        Jeremy's call, not a technicality.  (Under W4 the old design's Example
+        8 reduct would even be well typed: the type argument Y is in scope.)
+
+  Recommendation was W4; OVERRULED (Jeremy, 2026-09-04): tightness is wanted
+  for its own sake — W4 withdrawn.  Design principle made explicit: almost no
+  rule performs a type shift on a TERM, and that is the point — a shift
+  forgets which type variables a term is not allowed to mention.  The only
+  exception is TyWrap's ⇑ᵀ V, which Jeremy would also like to eliminate
+  (open; candidate: introduce the new reveal at the DEEP end of the interior
+  instead of the shallow end, so existing term indices are untouched and the
+  shift lands on the boundary type B₀ instead of on V — to be probed).
+  So Decision 4 is resolved by W3 (knowledge-preserving weakening), with the
+  reveal-rep-names-a-blocked-variable case (¬⊢dualΘnʳ, e.g. TyWrap's own
+  ↑Z:=Y with Y Λ-bound and blocked) still open under tightness.
+
+  Would Merge help instead? (Jeremy's question, 2026-09-04.)  No — checked on
+  P: after the second TyBeta the two nested reveal boundaries DO merge
+  (Θ₁ = ↑Y:=Y′ against Θ₂ = ↑Y′:=𝔹,↑X:=ℕ; nothing cancels; Y's rep unfolds
+  to 𝔹), and the trace gets nicer — the argument then carries ONE dual
+  boundary ↓Y:=𝔹,↓Y′:=𝔹,↓X:=ℕ with fully unfolded reps instead of the nested
+  W₂ — but the failing step is unchanged: f′ = (λn:ℕ.n) ⟪ ↓X:=ℕ , X→X ⟫ sits
+  UNDER the λ in λw:X. f′ w, so no wrapper-on-wrapper Merge ever reaches it,
+  and its dual still rebuilds Y, Y′ as ⋆ where Γ has knowledge.  The blocked-
+  knowledge configuration is created by TyBeta/TyWrap weakening boundaries
+  INSIDE the body; only those rules are positioned to fix it, which is W3 —
+  indeed W3's inserted ↓Z:=⟦A⟧ is exactly the entry a merge with the new
+  reveal's dual would deliver if the λ were not in the way.
 
 ### Decision 3 — tension with Decision 1 found by the Merge probe (needs a ruling)
 
@@ -228,7 +286,30 @@ Candidate fix — compare in the EXTERIOR instead of the interior (the
   nested one by UNFOLDING (probe: nested W:=Z vs merged W:=ℕ when Z:=ℕ), so
   Merge's preservation needs "retyping along unfolding", Zdancewic's Δ̄.
 
-  To be verified by a probe before adoption.
+  Probe verdict (notes/ReversalProbe.agda, agda --safe clean, 2026-09-04):
+  ADOPT.  Verbatim premise (over Δ; A₀ lifted from Δ ↓ X):
+
+      Reversal Θ X A A₀ = outRead Θ A ≡ upRep X A₀
+      bwf↓ʳ : Δ ∋ X := A₀ → Reversal Θ X A A₀ → Ψ ⊢ A → … → ⊢ᵇʳ (cnc X A ∷ Ξ)
+
+  ✓ bad, bad₂ refuted;  ✓ the no-merge redex AND its merged boundary type;
+  ✓ MergeProbe's ¬⊕-bwf pair now composes;  ✓ Example 8 T0…T5 with all steps;
+  ✓ Wrap's dual conceals satisfy the premise (dual-read-back, general, for
+  reps naming no blocked slot);  ✓ transports under ANY monotone renaming
+  with no scope restriction (Reversal-ren) — the interior form's failure
+  point;  ✓ W3's h′ types, its dual interior is Γ on the nose, W retypes.
+
+  NEW COUNTEREXAMPLE (¬⊢dualΘnʳ): a reveal whose rep names a BLOCKED slot —
+  Example 8's own run-time boundary ↑Z:=Y , ↓X:=ℕ over Y , X (Y blocked) —
+  gets an abstract interior entry for Z under the Decision-1 refinement, so
+  the dual's conceal ↓Z:=Y has no knowledge to match: Wrap is stuck on the
+  T5 boundary.  W3 does not help (Y is Λ-bound, so nothing conceals it); W4
+  removes the problem (Y is not dropped, Z:=Y is a legal entry).  Otherwise:
+  forbid reveal reps that name blocked slots in (bwf-↑), which would reject
+  T4/T5.
+  Still open: Merge's contractum interior differs from the nested one by one
+  UNFOLDING (probe: ⊕ pushes Θ₂'s conceal rep in as ℕ→ℕ, Merge needs W→W);
+  preservation of Merge needs retyping along unfolding (Zdancewic's Δ̄).
 
 ## Decision 2 — a boundary meets a type application
 
@@ -260,6 +341,36 @@ Option 3a — depth-1 values (Zdancewic rule (8), p. 203):
   Obligations: contexts compose, internal face composes (their (trans)),
   external face unchanged (notes/Zdancewic-embeddings.md §4).
 
+### Decision 2 — REVISED to TyWrap′ (Jeremy, 2026-09-04)
+
+The 2026-09-03 objection to TyWrap′ (partial: the body must be syntactically
+Λ) dissolves under Decision 3: with depth-1 values a wrapper-bodied wrapper is
+a Merge redex, and after merging, a value wrapped at a ∀-shaped B₀ has a Λ
+body by canonical forms.  And TyWrap′ has NO ⇑ᵀ on the term — the shift in
+TyWrap existed only because it declined to consume the Λ (the Λ-binder's slot
+IS the new reveal slot) — so the switch also discharges the no-term-shift
+principle's one exception.  Ruling: switch to TyWrap′; the notes.md rule name
+stays TyWrap (its definition changes to the direct-combine shape):
+
+    (TyWrap)  ((ΛY.V) ⟪ Θ , ∀Y.B₀ ⟫) @B[A]   -→   V ⟪ ↑Y:=A , Θ , B₀ ⟫
+
+  (conceal reps still shift — types, not terms).  Progress at a ∀-faced
+  wrapper: Λ body → TyWrap; wrapper body → Merge (a ProgressDef parameter
+  until Merge lands).  W3 is still needed and now acts in TyBeta and TyWrap
+  (both upgrade a Λ-bound slot above inner boundaries to revealed).
+  Follow-up ruling (Jeremy, 2026-09-04, same day): switch Wrap too, from the
+  lazy/float form to PUSH-THROUGH-THE-LAMBDA, symmetric to TyWrap′ — consume
+  the ƛ and β-substitute the dual-wrapped argument in one step:
+
+    (Wrap)  ((λx:B₁′. N) ⟪ Θ , B₁→B₂ ⟫) · W  -→  N[x := W ⟪ Θᵈ , B₁ ⟫] ⟪ Θ , B₂ ⟫
+
+  (this is PLAN §4's original sketch, before the memo generalised it to the
+  total float form).  The dual Θᵈ and its face laws are unchanged, so
+  Decision 4 / W3 is unaffected.  Totality: a wrapper-bodied wrapper at a
+  ⇒ face waits for Merge, exactly as at a ∀ face — progress carries two
+  further ProgressDef parameters (NestedApp, NestedTApp) until Merge lands.
+  No term shift anywhere: _[_]ᵐ substitutes term variables only.
+
 ### Decision 3 — resolution (2026-09-03)
 
 Jeremy leans to 3a (Merge, depth-1 values).  Plan: after the Decision-1
@@ -276,6 +387,7 @@ Option 3b — towers as values, no Merge (current, to be replaced).  Canonical f
 
 ## Recommendation
 
-All three decisions settled: restore the invariant (transported form above);
-TyWrap; Merge with depth-1 values.  Order: Boundary.agda rework and re-run of every
-preservation case → ⊕ probe → Merge → depth-1 values → progress.
+Settled: TyWrap′ and push-through Wrap (both revised 2026-09-04); Merge (3a).  Decision 1: restore the invariant in the REVERSAL
+form (probe-verified).  Awaiting Jeremy: W3 vs W4 (Decision 4).  Then: Boundary.agda
+rework (reversal premise + W3/W4) and re-run of every preservation case → Merge with
+retyping-along-unfolding → depth-1 values → progress.

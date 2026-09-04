@@ -209,9 +209,17 @@ The alternatives, on this example:
         Jeremy's call, not a technicality.  (Under W4 the old design's Example
         8 reduct would even be well typed: the type argument Y is in scope.)
 
-  Recommendation: W3 fixes Decision 4's example; W4 fixes it AND the
-  counterexample below, and simplifies the dual and Merge.  Prefer W4 unless
-  tightness is wanted for its own sake.
+  Recommendation was W4; OVERRULED (Jeremy, 2026-09-04): tightness is wanted
+  for its own sake — W4 withdrawn.  Design principle made explicit: almost no
+  rule performs a type shift on a TERM, and that is the point — a shift
+  forgets which type variables a term is not allowed to mention.  The only
+  exception is TyWrap's ⇑ᵀ V, which Jeremy would also like to eliminate
+  (open; candidate: introduce the new reveal at the DEEP end of the interior
+  instead of the shallow end, so existing term indices are untouched and the
+  shift lands on the boundary type B₀ instead of on V — to be probed).
+  So Decision 4 is resolved by W3 (knowledge-preserving weakening), with the
+  reveal-rep-names-a-blocked-variable case (¬⊢dualΘnʳ, e.g. TyWrap's own
+  ↑Z:=Y with Y Λ-bound and blocked) still open under tightness.
 
 ### Decision 3 — tension with Decision 1 found by the Merge probe (needs a ruling)
 

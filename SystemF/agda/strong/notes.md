@@ -260,13 +260,14 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 # Reduction rules
 
-  V, W range over values; the wrapped term of TyWrap/Wrap must be a value.
+  V, W range over values; TyWrap's wrapped term is ΛY.V with V a value, and Wrap's is a λ.
 
   (δ)       n₁ ⊕ n₂                       -→ n                if n = n₁ ⟦⊕⟧ n₂
   (Beta)    (λx:A. N) · W                 -→ N[x:=W]
   (TyBeta)  (ΛX. V) @B[A]                 -→ V ⟪ ↑X:=A , B ⟫
-  (TyWrap)  (V ⟪ Θ , ∀Z.B₀ ⟫) @B[A]       -→ (V @(B₀[γΘ])[Z]) ⟪ ↑Z:=A , Θ , B₀ ⟫
-  (Wrap)    (V ⟪ Θ , B₁→B₂ ⟫) · W         -→ (V · (W ⟪ Θᵈ , B₁ ⟫)) ⟪ Θ , B₂ ⟫    [PROPOSED]
+  (TyWrap)  ((ΛY.V) ⟪ Θ , ∀Y.B₀ ⟫) @B[A]  -→ V ⟪ ↑Y:=A , Θ , B₀ ⟫
+  (Wrap)    ((λx:B₁[γΘ]. N) ⟪ Θ , B₁→B₂ ⟫) · W
+                                          -→ N[x := W ⟪ Θᵈ , B₁ ⟫] ⟪ Θ , B₂ ⟫
   (ξ)       R[M]                          -→ R[M′]            if M -→ M′
   (Cancel)  (V ⟪ ↓X:=A , B₀ ⟫) ⟪ ↑X:=A′ , B₀′ ⟫  -→ V         if A = A′    [OPTIONAL]
   (Drop)    V ⟪ ↑X:=A , Θ , B₀ ⟫          -→ V ⟪ Θ , B₀ ⟫     if X ∉ B₀, X ∉ V,
@@ -282,21 +283,34 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 ## TyWrap — a boundary meets a type application (R1)
 
-  Z is FRESH.  The elimination floats INSIDE the boundary and is applied to the fresh reveal
-  variable Z, not to A; the type argument A is RECORDED as Z's representation, read in the
-  EXTERIOR.  The annotation of the floated application is the ∀-body of V's interior type,
-  i.e. the internal face of B₀ (with Z free).  The redex's own annotation B is forced: (env)
-  gives it as the ∀-body of the external face.
+  The DIRECT-COMBINE form (Decision 2 as revised, notes/DECISIONS.md).  The elimination
+  CONSUMES the Λ: the Λ-binder Y and the reveal variable are the SAME slot, so the wrapped
+  value's body V needs no relocation at all, and the type argument A is RECORDED as Y's
+  representation, read in the EXTERIOR.  The redex's own annotation B is forced: (env) gives
+  it as the ∀-body of the external face.  Faces: internal B₀[γ], and external
+  B₀[ρ] = B[Y:=A] — the redex's type.
 
   Never pushing A inward is precisely what makes this rule sound where the old TyWrapCncl was
   not: A may name a variable the interior blocks (Example 8), and here it never has to be read
-  there.  Faces: internal B₀[γ], and external B₀[ρ] = B[Z:=A] — the redex's type.
+  there.
+
+  Partial, by design: the wrapped value must be a Λ.  A WRAPPER-bodied wrapper at a ∀ face is
+  a Merge redex (Decision 3), not a TyWrap redex — after merging, canonical forms give the
+  single boundary a Λ body.  This is the price of the tighter contractum, and it buys the
+  no-term-shift principle: no rule performs a type shift on a TERM (a shift forgets which
+  type variables a term is not allowed to mention).
 
   De Bruijn remark.  The interior grows by one abstract variable, so the CONCEAL reps — which
   live over the whole interior — shift by one (`shiftReps`); reveal reps are exterior and are
-  untouched, and the wrapped value is weakened (`⇑ᵀ V`).  In named notation nothing moves.
+  untouched.  Those are TYPES; the term is untouched.  In named notation nothing moves.
 
-## Wrap — a boundary meets an application (R2)   [PROPOSED — not yet in the Agda]
+## Wrap — a boundary meets an application (R2)
+
+  Symmetric to TyWrap: the elimination CONSUMES the λ and β-substitutes in one step.  The
+  argument lives in the EXTERIOR, so it is first moved inside through the DUAL boundary Θᵈ;
+  N[x := …] is TERM-variable substitution only, so, as in TyWrap, no term is type-shifted.
+  The λ's annotation is forced by (env) to be the internal face B₁[γΘ].  Partial in the same
+  way: a WRAPPER-bodied wrapper at a ⇒ face waits for Merge (Decision 3).
 
   Θᵈ is the DUAL boundary: it is read from the interior's point of view, so every arrow flips.
 
@@ -318,7 +332,9 @@ see "Old per-variable design" and the historical Example 8 below.)
 
   De Bruijn remark.  The boundary frame of Θᵈ is Θ's frame with the reveal block and the
   dropped block interchanged, so B₁ is renamed by that block swap (`swapᵇ`).  Named notation
-  hides this: B₁ is the same type, read on the other side.
+  hides this: B₁ is the same type, read on the other side.  The substitution N[x := …] is
+  `_[_]ᵐ`, which is the identity on wrappers (a boundary body is term-closed), so the
+  argument's own boundaries are never descended into.
 
 ## ξ — congruences
 
@@ -330,9 +346,10 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 ## Cancel / Drop — optional, NOT in the Agda
 
-  None of these is needed for progress: with TyWrap and Wrap in float-inside form, every
-  elimination of a wrapped value steps.  They are space optimisations that collapse the towers
-  of boundaries the examples below accumulate.
+  None of these is needed for progress; they are space optimisations that collapse the towers
+  of boundaries the examples below accumulate.  (Merge, Decision 3, is a different matter: it
+  IS needed, because TyWrap and Wrap consume the Λ / λ they eliminate and so do not fire on a
+  wrapper-bodied wrapper.)
 
   Cancel is sound ONLY when the conceal's rep equals the enclosing reveal's rep.  Nothing in
   (env) enforces that (see the `bad` term in Metatheory §Progress), so Cancel must carry the
@@ -371,23 +388,26 @@ see "Old per-variable design" and the historical Example 8 below.)
 # Examples
 
 Traces are in named notation with the new rules; each line is annotated with the rule that
-fires (ξ steps that merely locate the redex are left implicit).  Steps marked [Wrap] use the
-PROPOSED application rule.  Steps marked [opt] use the optional Cancel/Drop rules; without
-them the trace stops at a value that is a tower of boundaries around the answer.
+fires (ξ steps that merely locate the redex are left implicit).  Steps marked [opt] use the
+optional Cancel/Drop rules; without them the trace stops at a value that is a tower of
+boundaries around the answer.  Steps marked [D3] use Merge, which is settled but not yet a
+rule (Decision 3): since TyWrap and Wrap consume the Λ / λ they eliminate, a WRAPPER-bodied
+wrapper at an elimination is a Merge redex.  The merged boundary is written Θ₁ ⊕ Θ₂ — its
+entry-level definition is Decision 3's (notes/MergeProbe.agda), not fixed here.
 
 ## Example 1
 
   (Λ Y. λy:Y. (ΛX.λx:X.y) [Y] ) [ℕ] · 7 · 3                                      : ℕ
   → TyBeta      ((λy:Y. (ΛX.λx:X.y) [Y]) ⟪ ↑Y:=ℕ , Y→Y→Y ⟫) · 7 · 3
-  → Wrap [P]    (((λy:Y. …) · (7 ⟪ ↓Y:=ℕ , Y ⟫)) ⟪ ↑Y:=ℕ , Y→Y ⟫) · 3
-  → Beta        (((ΛX. λx:X. 7⟪↓Y:=ℕ,Y⟫) [Y]) ⟪ ↑Y:=ℕ , Y→Y ⟫) · 3
+  → Wrap        (((ΛX. λx:X. 7⟪↓Y:=ℕ,Y⟫) [Y]) ⟪ ↑Y:=ℕ , Y→Y ⟫) · 3
   → TyBeta      (((λx:X. 7⟪↓Y:=ℕ,Y⟫) ⟪ ↑X:=Y , X→Y ⟫) ⟪ ↑Y:=ℕ , Y→Y ⟫) · 3
-  → Wrap [P]    (((λx:X. …)⟪↑X:=Y,X→Y⟫ · (3 ⟪ ↓Y:=ℕ , Y ⟫)) ⟪ ↑Y:=ℕ , Y ⟫)
-  → Wrap [P]    ((((λx:X. 7⟪↓Y:=ℕ,Y⟫) · ((3⟪↓Y:=ℕ,Y⟫) ⟪ ↓X:=Y , X ⟫)) ⟪ ↑X:=Y , Y ⟫)
-                                                                     ⟪ ↑Y:=ℕ , Y ⟫)
-  → Beta        ((7⟪↓Y:=ℕ,Y⟫) ⟪ ↑X:=Y , Y ⟫) ⟪ ↑Y:=ℕ , Y ⟫              -- a VALUE
-  → Drop [opt]  (7⟪↓Y:=ℕ,Y⟫) ⟪ ↑Y:=ℕ , Y ⟫                              -- X ∉ B₀ = Y
-  → Cancel[opt] 7
+  → Merge [D3]  ((λx:X. 7⟪↓Y:=ℕ,Y⟫) ⟪ (↑X:=Y) ⊕ (↑Y:=ℕ) , X→Y ⟫) · 3
+  → Wrap        (7⟪↓Y:=ℕ,Y⟫) ⟪ (↑X:=Y) ⊕ (↑Y:=ℕ) , Y ⟫                  -- a VALUE
+  → [opt]       7
+
+  The head of the fourth line is a wrapper wrapped in a wrapper: Wrap consumes the λ, and
+  there is no λ until the two boundaries merge.  The λ's body does not use x, so the Wrap step
+  discards the dual-wrapped 3 outright.
 
   The inner boundary ⟪↑X:=Y , X→Y⟫ sits over the outer one's interior (which contains Y), and
   its external face X→Y[ρ] = Y→Y is exactly the outer boundary's internal type.
@@ -396,13 +416,11 @@ them the trace stops at a value that is a tower of boundaries around the answer.
 
   (ΛX. λf:X→X. λy:X. f·y) [ℕ] · (λn:ℕ.n+1) · 7                                   : ℕ
   → TyBeta      ((λf:X→X. λy:X. f·y) ⟪ ↑X:=ℕ , (X→X)→(X→X) ⟫) · (λn:ℕ.n+1) · 7
-  → Wrap [P]    (((λf. λy. f·y) · ((λn:ℕ.n+1) ⟪ ↓X:=ℕ , X→X ⟫)) ⟪ ↑X:=ℕ , X→X ⟫) · 7
-  → Beta        ((λy:X. (λn:ℕ.n+1)⟪↓X:=ℕ,X→X⟫ · y) ⟪ ↑X:=ℕ , X→X ⟫) · 7
-  → Wrap [P]    ((λy:X. …) · (7 ⟪ ↓X:=ℕ , X ⟫)) ⟪ ↑X:=ℕ , X ⟫
-  → Beta        ((λn:ℕ.n+1)⟪↓X:=ℕ,X→X⟫ · (7⟪↓X:=ℕ,X⟫)) ⟪ ↑X:=ℕ , X ⟫  -- sealed fn in head pos
-  → Wrap [P]    (((λn:ℕ.n+1) · ((7⟪↓X:=ℕ,X⟫) ⟪ ↑X:=ℕ , X ⟫)) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Cancel[opt] (((λn:ℕ.n+1) · 7) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Beta        (8 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
+  → Wrap        ((λy:X. (λn:ℕ.n+1)⟪↓X:=ℕ,X→X⟫ · y) ⟪ ↑X:=ℕ , X→X ⟫) · 7
+  → Wrap        ((λn:ℕ.n+1)⟪↓X:=ℕ,X→X⟫ · (7⟪↓X:=ℕ,X⟫)) ⟪ ↑X:=ℕ , X ⟫  -- sealed fn in head pos
+  → Wrap        ((((7⟪↓X:=ℕ,X⟫) ⟪ ↑X:=ℕ , X ⟫)+1) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
+  → Cancel[opt] ((7+1) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
+  → δ           (8 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
   → Cancel[opt] 8
 
   Note how Wrap on a conceal-only boundary reproduces the old WrapConceal: the dual of ↓X:=ℕ
@@ -413,39 +431,34 @@ them the trace stops at a value that is a tower of boundaries around the answer.
   (ΛX. λf:(∀Z.Z→Z). f [X]) [𝔹] · ((ΛY. ΛZ. λz:Z. z) [ℕ])                         : 𝔹→𝔹
   → TyBeta      ((λf:(∀Z.Z→Z). f [X]) ⟪ ↑X:=𝔹 , (∀Z.Z→Z)→(X→X) ⟫) · ((ΛY.ΛZ.λz:Z.z) [ℕ])
   → TyBeta      (…) · ((ΛZ.λz:Z.z) ⟪ ↑Y:=ℕ , ∀Z.Z→Z ⟫)                   -- call it W
-  → Wrap [P]    ((λf. f [X]) · (W ⟪ ↓X:=𝔹 , ∀Z.Z→Z ⟫)) ⟪ ↑X:=𝔹 , X→X ⟫
-  → Beta        (((W ⟪ ↓X:=𝔹 , ∀Z.Z→Z ⟫) [X])) ⟪ ↑X:=𝔹 , X→X ⟫
-  → TyWrap      ((W [Z₁]) ⟪ ↑Z₁:=X , ↓X:=𝔹 , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
-  → TyWrap      ((((ΛZ.λz:Z.z) [Z₂]) ⟪ ↑Z₂:=Z₁ , ↑Y:=ℕ , Z₂→Z₂ ⟫)
-                                     ⟪ ↑Z₁:=X , ↓X:=𝔹 , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
-  → TyBeta      ((((λz:Z₃.z) ⟪ ↑Z₃:=Z₂ , Z₃→Z₃ ⟫) ⟪ ↑Z₂:=Z₁ , ↑Y:=ℕ , Z₂→Z₂ ⟫)
-                                     ⟪ ↑Z₁:=X , ↓X:=𝔹 , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
+  → Wrap        ((W ⟪ ↓X:=𝔹 , ∀Z.Z→Z ⟫) [X]) ⟪ ↑X:=𝔹 , X→X ⟫
+  → Merge [D3]  ((ΛZ.λz:Z.z) ⟪ (↑Y:=ℕ) ⊕ (↓X:=𝔹) , ∀Z.Z→Z ⟫ [X]) ⟪ ↑X:=𝔹 , X→X ⟫
+  → TyWrap      ((λz:Z₁.z) ⟪ ↑Z₁:=X , (↑Y:=ℕ) ⊕ (↓X:=𝔹) , Z₁→Z₁ ⟫) ⟪ ↑X:=𝔹 , X→X ⟫
 
-  A value: the polymorphic identity behind a tower of boundaries, external type 𝔹→𝔹.  Note
-  that the type argument X of the first TyWrap is recorded as the rep of the FRESH Z₁ (read in
-  the exterior, where X is in scope) and the interior application is to Z₁; the concealed X is
-  never used to instantiate anything.  This is the step where the old design applied
-  TyWrapCncl and substituted into the sealed body.  A merge or Cancel rule would collapse the
-  tower; none is needed for progress.
+  A value: the polymorphic identity behind two boundaries, external type 𝔹→𝔹.  Note that the
+  type argument X of TyWrap is recorded as the rep of the reveal Z₁ — the slot the consumed
+  ΛZ used to bind, read in the exterior, where X is in scope — and the concealed X is never
+  used to instantiate anything.  This is the step where the old design applied TyWrapCncl and
+  substituted into the sealed body.  The type application meets a WRAPPER-bodied wrapper, so
+  Merge has to fire first; the old float-inside TyWrap fired directly here but left one extra
+  boundary per use, and a further TyBeta to run.
 
 ## Example 4   (a constant escaping a boundary)
 
   (ΛX. λx:X. 7) [ℕ] · 5                                                          : ℕ
   → TyBeta      ((λx:X. 7) ⟪ ↑X:=ℕ , X→ℕ ⟫) · 5
-  → Wrap [P]    ((λx:X. 7) · (5 ⟪ ↓X:=ℕ , X ⟫)) ⟪ ↑X:=ℕ , ℕ ⟫
-  → Beta        7 ⟪ ↑X:=ℕ , ℕ ⟫                              -- a VALUE (no RevealCnst)
+  → Wrap        7 ⟪ ↑X:=ℕ , ℕ ⟫                              -- a VALUE (no RevealCnst)
   → Drop [opt]  7
+
+  The λ's body ignores x, so the dual-wrapped 5 is discarded by the Wrap step itself.
 
 ## Example 5
 
   (ΛX. λf:(X→X)→X. f · (λx:X. x)) [ℕ] · (λg:ℕ→ℕ. g · 42)                         : ℕ
   → TyBeta      ((λf. f · (λx:X.x)) ⟪ ↑X:=ℕ , ((X→X)→X)→X ⟫) · (λg:ℕ→ℕ. g·42)
-  → Wrap [P]    ((λf. …) · ((λg:ℕ→ℕ.g·42) ⟪ ↓X:=ℕ , (X→X)→X ⟫)) ⟪ ↑X:=ℕ , X ⟫
-  → Beta        ((λg:ℕ→ℕ.g·42)⟪↓X:=ℕ,(X→X)→X⟫ · (λx:X.x)) ⟪ ↑X:=ℕ , X ⟫
-  → Wrap [P]    (((λg:ℕ→ℕ.g·42) · ((λx:X.x) ⟪ ↑X:=ℕ , X→X ⟫)) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Beta        ((((λx:X.x)⟪↑X:=ℕ,X→X⟫) · 42) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Wrap [P]    ((((λx:X.x) · (42 ⟪↓X:=ℕ,X⟫)) ⟪↑X:=ℕ,X⟫) ⟪↓X:=ℕ,X⟫) ⟪↑X:=ℕ,X⟫
-  → Beta        (((42⟪↓X:=ℕ,X⟫) ⟪↑X:=ℕ,X⟫) ⟪↓X:=ℕ,X⟫) ⟪↑X:=ℕ,X⟫
+  → Wrap        ((λg:ℕ→ℕ.g·42)⟪↓X:=ℕ,(X→X)→X⟫ · (λx:X.x)) ⟪ ↑X:=ℕ , X ⟫
+  → Wrap        ((((λx:X.x)⟪↑X:=ℕ,X→X⟫) · 42) ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=ℕ , X ⟫
+  → Wrap        (((42⟪↓X:=ℕ,X⟫) ⟪↑X:=ℕ,X⟫) ⟪↓X:=ℕ,X⟫) ⟪↑X:=ℕ,X⟫
   → Cancel[opt] (42 ⟪↓X:=ℕ,X⟫) ⟪↑X:=ℕ,X⟫
   → Cancel[opt] 42
 
@@ -453,8 +466,7 @@ them the trace stops at a value that is a tower of boundaries around the answer.
 
   (ΛX. λw:ℕ. (ΛY. w) [X→X]) [ℕ] · 5                                              : ℕ
   → TyBeta      ((λw:ℕ. (ΛY. w) [X→X]) ⟪ ↑X:=ℕ , ℕ→ℕ ⟫) · 5
-  → Wrap [P]    ((λw:ℕ. (ΛY.w) [X→X]) · (5 ⟪ ↓X:=ℕ , ℕ ⟫)) ⟪ ↑X:=ℕ , ℕ ⟫
-  → Beta        ((ΛY. 5⟪↓X:=ℕ,ℕ⟫) [X→X]) ⟪ ↑X:=ℕ , ℕ ⟫
+  → Wrap        ((ΛY. 5⟪↓X:=ℕ,ℕ⟫) [X→X]) ⟪ ↑X:=ℕ , ℕ ⟫
   → TyBeta      ((5⟪↓X:=ℕ,ℕ⟫) ⟪ ↑Y:=X→X , ℕ ⟫) ⟪ ↑X:=ℕ , ℕ ⟫
   → Drop [opt]  (5⟪↓X:=ℕ,ℕ⟫) ⟪ ↑X:=ℕ , ℕ ⟫
   → Cancel[opt] 5
@@ -467,48 +479,42 @@ them the trace stops at a value that is a tower of boundaries around the answer.
 
   (ΛX. λw:X. (ΛY. λy:X → Y. y · w) [X] · (λz:X.z)) [ℕ] · 5                       : ℕ
   → TyBeta      ((λw:X. (ΛY. λy:X→Y. y·w) [X] · (λz:X.z)) ⟪ ↑X:=ℕ , X→X ⟫) · 5
-  → Wrap [P]    ((λw:X. …) · (5 ⟪ ↓X:=ℕ , X ⟫)) ⟪ ↑X:=ℕ , X ⟫
-  → Beta        ((ΛY. λy:X→Y. y·(5⟪↓X:=ℕ,X⟫)) [X] · (λz:X.z)) ⟪ ↑X:=ℕ , X ⟫
+  → Wrap        ((ΛY. λy:X→Y. y·(5⟪↓X:=ℕ,X⟫)) [X] · (λz:X.z)) ⟪ ↑X:=ℕ , X ⟫
   → TyBeta      (((λy:X→Y. y·5⟪…⟫) ⟪ ↑Y:=X , (X→Y)→Y ⟫) · (λz:X.z)) ⟪ ↑X:=ℕ , X ⟫
-  → Wrap [P]    (((λy. y·5⟪…⟫) · ((λz:X.z) ⟪ ↓Y:=X , X→Y ⟫)) ⟪ ↑Y:=X , Y ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Beta        ((((λz:X.z)⟪↓Y:=X,X→Y⟫) · (5⟪↓X:=ℕ,X⟫)) ⟪ ↑Y:=X , Y ⟫) ⟪ ↑X:=ℕ , X ⟫
-  → Wrap [P]    ((((λz:X.z) · ((5⟪↓X:=ℕ,X⟫) ⟪↑Y:=X , X⟫)) ⟪↓Y:=X , Y⟫) ⟪↑Y:=X,Y⟫) ⟪↑X:=ℕ,X⟫
-  → Drop [opt]  ((((λz:X.z) · (5⟪↓X:=ℕ,X⟫)) ⟪↓Y:=X , Y⟫) ⟪↑Y:=X,Y⟫) ⟪↑X:=ℕ,X⟫
-  → Beta        (((5⟪↓X:=ℕ,X⟫) ⟪↓Y:=X , Y⟫) ⟪↑Y:=X,Y⟫) ⟪↑X:=ℕ,X⟫
+  → Wrap        ((((λz:X.z)⟪↓Y:=X,X→Y⟫) · (5⟪↓X:=ℕ,X⟫)) ⟪ ↑Y:=X , Y ⟫) ⟪ ↑X:=ℕ , X ⟫
+  → Wrap        ((((5⟪↓X:=ℕ,X⟫) ⟪↑Y:=X , X⟫) ⟪↓Y:=X , Y⟫) ⟪↑Y:=X,Y⟫) ⟪↑X:=ℕ,X⟫
+  → Drop [opt]  (((5⟪↓X:=ℕ,X⟫) ⟪↓Y:=X , Y⟫) ⟪↑Y:=X,Y⟫) ⟪↑X:=ℕ,X⟫
   → Cancel[opt] (5⟪↓X:=ℕ,X⟫) ⟪↑X:=ℕ,X⟫
   → Cancel[opt] 5
 
 ## Example 8   (the OLD design's preservation counterexample — now well typed)
 
-  This is the program of the historical failure below.  Machine-checked step for step, with
-  every term typed at ∀Y.Y→Y, in notes/Example8Trace.agda (T0 … T5).
+  This is the program of the historical failure below.  Every term is typed, at ∀Y.Y→Y, in
+  notes/Example8Trace.agda; the labels T0…T5, T4′ are that file's (a historical record of the
+  two candidate TyWrap forms, so it still carries the float-inside T4 and T5).  With the rules
+  as they now stand the trace goes T0 → T1 → T3 → T4′ and stops: T2 and T4/T5 do not occur.
 
   T0  (ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] · (ΛZ. λz:Z. z)                       : ∀Y.Y→Y
   → TyBeta
   T1  ((λf:(∀Z.Z→Z). ΛY. f [Y]) ⟪ ↑X:=ℕ , (∀Z.Z→Z)→(∀Y.Y→Y) ⟫) · (ΛZ. λz:Z. z)
-  → Wrap [P]
-  T2  ((λf. ΛY. f [Y]) · ((ΛZ.λz:Z.z) ⟪ ↓X:=ℕ , ∀Z.Z→Z ⟫)) ⟪ ↑X:=ℕ , ∀Y.Y→Y ⟫
-  → Beta
+  → Wrap        (the λ is consumed; T2, the float-form's intermediate, is skipped)
   T3  (ΛY. ((ΛZ.λz:Z.z) ⟪ ↓X:=ℕ , ∀Z.Z→Z ⟫) [Y]) ⟪ ↑X:=ℕ , ∀Y.Y→Y ⟫
-  → TyWrap
-  T4  (ΛY. (((ΛZ.λz:Z.z) [Z]) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫)) ⟪ ↑X:=ℕ , ∀Y.Y→Y ⟫
-  → TyBeta
-  T5  (ΛY. (((λz:Z.z) ⟪ ↑Z′:=Z , Z′→Z′ ⟫) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫)) ⟪ ↑X:=ℕ , ∀Y.Y→Y ⟫
+  → TyWrap      (the ΛZ is consumed; T4's floated application and T5 are skipped)
+  T4′ (ΛY. ((λz:Z.z) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫)) ⟪ ↑X:=ℕ , ∀Y.Y→Y ⟫            -- a VALUE
 
   Why the old failure does not recur.  At T3 the redex is a value concealed on X, type-applied
   to the Λ-bound Y — and Y is SHALLOWER than X, hence blocked in the boundary's interior (in
   the exterior Γ = Y , X:=ℕ the interior of ↓X:=ℕ is Γ↓X = ∅).  The old TyWrapCncl pushed the
   type argument INTO the sealed body, producing `(ΛZ.λz.z) [Y]` at a context without Y:
-  untypable.  TyWrap instead RECORDS Y as the representation of the fresh reveal Z — read in
-  the exterior Γ, where Y is perfectly in scope — and applies the interior term to Z.  The
-  boundary of T4 is ↑Z:=Y , ↓X:=ℕ with interior Z (Y still blocked) and B₀ = Z→Z, which names
+  untypable.  TyWrap instead RECORDS Y as the representation of the reveal Z — the slot the
+  consumed ΛZ used to bind, read in the exterior Γ, where Y is perfectly in scope.  The
+  boundary of T4′ is ↑Z:=Y , ↓X:=ℕ with interior Z (Y still blocked) and B₀ = Z→Z, which names
   no blocked variable; both faces compute to Y→Y externally and Z→Z internally.
 
-  T5 shows the nested-boundary shape TyWrap makes reachable: the inner boundary lives over the
-  outer one's interior, and its reveal rep Z is a variable OF that interior.  The "direct
-  combine" variant R1′ would instead produce, in T4's place,
-  (ΛY. ((λz:Z.z) ⟪ ↑Z:=Y , ↓X:=ℕ , Z→Z ⟫)) ⟪ ↑X:=ℕ , ∀Y.Y→Y ⟫ — tighter, but partial: it is
-  stuck on a nested wrapper, so it would force a merge rule.  Both are machine-checked.
+  The trace is two steps shorter than the float-inside form's and ends in a SINGLE boundary
+  where that form ended in the nested T5.  What is given up is totality: the T3 redex fires
+  only because the wrapped value is syntactically a Λ.  Example 3 shows the other case, where
+  it is a wrapper and Merge must fire first.
 
 ## Example 8, historical   (why the OLD per-variable design was discarded)
 
@@ -545,11 +551,13 @@ Runtime contexts.
   runtime contexts, with an EMPTY term context.
 
 The interior at work.
-  Only two operations touch the interior: TyWrap grows it by one fresh abstract variable (so
-  conceal reps, which live over the whole interior, shift; reveal reps do not), and moving a
-  wrapper under a Λ grows the EXTERIOR by one (so conceal indices shift; in named notation,
-  nothing).  Everything else leaves Γ⇈Θ alone; in particular (env)'s premises mention only Θ
-  and B₀, so ξ-⟪⟫ carries them across unchanged.
+  Only two operations touch the interior: TyWrap grows it by one fresh abstract variable — the
+  slot the consumed Λ used to bind — so conceal reps, which live over the whole interior,
+  shift, while reveal reps do not; and moving a wrapper under a Λ grows the EXTERIOR by one
+  (so conceal indices shift; in named notation, nothing).  Everything else leaves Γ⇈Θ alone;
+  in particular (env)'s premises mention only Θ and B₀, so ξ-⟪⟫ carries them across unchanged.
+  Note that no rule shifts a TERM: TyWrap's contractum is the Λ-body exactly as it stood, and
+  Wrap's is a term-variable substitution.  Only TYPES (the conceal reps) move.
 
 Supporting lemmas.
   (L1) Term substitution.  If Γ, x:A, Θ ⊢ N : B and Γ ⊢ V : A (V a value), then
@@ -580,8 +588,8 @@ Supporting lemmas.
 
 Γ ⊢ M : A  (Γ runtime)  and  M -→ M′   ⟹   Γ ⊢ M′ : A.
 
-Proved in the Agda (BPreservation.agda) for Beta, TyBeta, TyWrap and the five ξ rules; Wrap is
-proposed and its case is sketched from the machine-checked face laws of notes/BoundaryRules.md.
+Proved in the Agda (BPreservation.agda) for every rule: Beta, TyBeta, TyWrap, Wrap and the
+five ξ congruences.
 
   Beta.       (L1).  Substitution is the identity on boundaries (their bodies are term-closed),
               and the Λ case of the substitution lemma is (L2) at ρ = suc, whose monotonicity
@@ -594,26 +602,29 @@ proposed and its case is sketched from the machine-checked face laws of notes/Bo
               the typing of V.  This is the case that makes preservation need the wf/scope
               bridge at all.
   TyWrap.     Inversion of (tapp) and (env): the wrapper's external face is ∀-shaped, so
-              B₀ = ∀Z.B₀′ and the redex's annotation B is FORCED to be the ∀-body of the
-              external face.  Four face laws do the work, all machine-checked:
-              (i) the internal face of the SHIFTED boundary equals the extension of the old
-              internal face — AT EVERY SLOT, blocked ones included, so the rule needs no scope
-              side condition; (ii) the external face of the shifted boundary is the old
-              external face's ∀-body instantiated at A, i.e. exactly the redex's type;
-              (iii) boundary well-formedness survives the shift (reveal reps are exterior and
-              untouched, conceal reps are weakened by one); (iv) the scope stack of the shifted
-              boundary is the old one with one accessible slot pushed, so the new Scoped
-              obligation IS the sc-all inversion of the redex's.  The floated application is
-              typed by (L2) at suc, and its annotation collapses under instantiation at the
-              fresh Z.
-  Wrap.       [PROPOSED]  Inversion of (app) and (env): B₀ = B₁→B₂, the argument W has the
-              external face B₁[ρΘ].  The dual boundary Θᵈ has the wrapper's interior as its
-              exterior and (over an all-abstract exterior) the original Γ as its interior, so
-              W ⟪ Θᵈ , B₁ ⟫ types at the interior with internal face B₁[γΘ] — the argument
-              type of V.  The two faces of B₁ under Θᵈ are the two faces under Θ with the
-              sides exchanged, EXCEPT at blocked slots, where the dummy rep makes them differ;
-              (L-sc) with the scope premise on B₁ makes that difference irrelevant.  Then
-              (app) and (env) at B₂.
+              B₀ = ∀Y.B₀′ and the redex's annotation B is FORCED to be the ∀-body of the
+              external face.  Inverting (tlam) on the (env) body premise — whose type is the
+              internal face ∀Y.(B₀′[γΘ]) — gives the Λ-body typed at Γ⇈Θ, Y with the internal
+              face of B₀′.  That is ALREADY the contractum's interior and interior face, so
+              the body is transported by two equations and nothing renames it.  Four face
+              laws do the work, all machine-checked: (i) the internal face of the SHIFTED
+              boundary equals the extension of the old internal face — AT EVERY SLOT, blocked
+              ones included, so the rule needs no scope side condition; (ii) the external face
+              of the shifted boundary is the old external face's ∀-body instantiated at A,
+              i.e. exactly the redex's type; (iii) boundary well-formedness survives the shift
+              (reveal reps are exterior and untouched, conceal reps are weakened by one);
+              (iv) the scope stack of the shifted boundary is the old one with one accessible
+              slot pushed, so the new Scoped obligation IS the sc-all inversion of the redex's.
+  Wrap.       Inversion of (app) and (env): B₀ = B₁→B₂, the argument W has the external face
+              B₁[ρΘ], and inverting (lam) on the body premise — whose type is the internal
+              face B₁[γΘ] → B₂[γΘ] — forces the λ's annotation to B₁[γΘ] and gives its body
+              at the term context x:B₁[γΘ].  The dual boundary Θᵈ has the wrapper's interior
+              as its exterior and (over an all-abstract exterior) the original Γ as its
+              interior, so W ⟪ Θᵈ , B₁ ⟫ types at the interior with internal face B₁[γΘ] —
+              exactly the annotation.  The two faces of B₁ under Θᵈ are the two faces under Θ
+              with the sides exchanged, EXCEPT at blocked slots, where the dummy rep makes
+              them differ; (L-sc) with the scope premise on B₁ makes that difference
+              irrelevant.  Then (L1) at that argument, and (env) at B₂.
   ξ.          One induction hypothesis under the corresponding typing rule.  Two change
               context: under Λ the IH is at Γ,X (the term context stays empty), and under a
               boundary the IH is at the INTERIOR Γ⇈Θ — a different context, which is why the
@@ -628,18 +639,24 @@ proposed and its case is sketched from the machine-checked face laws of notes/Bo
 
   Canonical forms.  A value of type ℕ is a numeral or a wrapper; of type A→B a λ or a wrapper;
   of type ∀X.C a Λ or a wrapper; of a VARIABLE type it must be a wrapper whose B₀ is a
-  variable (no constant, λ or Λ has a variable type).  So at an elimination position the
-  analysis that matters is the shape of B₀, not of the value:
+  variable (no constant, λ or Λ has a variable type).  So at an elimination position the first
+  analysis is the shape of B₀, not of the value:
 
-     B₀ = ∀Z.B₀′        ⟹  TyWrap fires
-     B₀ = B₁→B₂         ⟹  Wrap fires
+     B₀ = ∀Y.B₀′        ⟹  TyWrap fires, IF the wrapped value is a Λ
+     B₀ = B₁→B₂         ⟹  Wrap fires,   IF the wrapped value is a λ
      B₀ = a reveal variable  ⟹  see the obstruction below
      B₀ = a kept/concealed variable  is impossible at an elimination: the external face would
                                      then be a variable, and no elimination types a variable.
 
+  In the first two cases the wrapped value's own type is the internal face of B₀, which is
+  ∀- resp. ⇒-shaped, so it is the matching binder or a WRAPPER; the wrapper subcase is a Merge
+  redex (Decision 3), which is why the two rules being partial costs no progress once Merge
+  lands.  In the Agda those two subcases are the module parameters NestedTApp / NestedApp of
+  strong.ProgressDef, alongside the two reveal-variable ones.
+
   Cases on M: constants and λ are values; a variable is impossible (empty term context); an
   application or type application reduces a non-value part by ξ, and with both parts values
-  steps by Beta / TyBeta (unwrapped head) or Wrap / TyWrap (wrapped head); Λ N and
+  steps by Beta / TyBeta (unwrapped head) or Wrap / TyWrap / Merge (wrapped head); Λ N and
   M ⟪ Θ , B₀ ⟫ reduce their body by ξ, and are values once the body is.
 
   THE OPEN OBSTRUCTION — rep inconsistency (notes/BoundaryRules.md §4).  (env) records one B₀
@@ -652,7 +669,8 @@ proposed and its case is sketched from the machine-checked face laws of notes/Bo
   whose entire content is the numeral 7.  The outer boundary reveals X with rep ∀Z.Z→Z, so its
   external face is ∀Z.Z→Z; the inner boundary conceals that same X with the INCONSISTENT rep
   ℕ, so its internal face is ℕ and 7 type-checks.  Now bad @(Z→Z)[ℕ] : ℕ→ℕ is well typed, is
-  not a Λ, and its B₀ is a variable — so neither TyWrap nor the direct-combine variant applies;
+  not a Λ, and its B₀ is a variable — so TyWrap does not apply (and neither did the old
+  float-inside form);
   Cancel would produce 7 : ∀Z.Z→Z, which is false; and no merge rule can help, since the
   composite of the two boundaries would have to have two coinciding faces that must be ℕ and
   ∀Z.Z→Z.  So progress is NOT provable from (env) alone.  bad is unreachable (Wrap's conceals
@@ -690,7 +708,9 @@ proposed and its case is sketched from the machine-checked face laws of notes/Bo
   Beta                       Beta                                        BReduction.agda
   TyBeta                     TyBeta                                        BReduction.agda
   TyWrap                     TyWrap   (R1)                             BReduction.agda
-  Wrap                       Wrap     (R2) — PROPOSED, not yet a rule  notes/BoundaryRules.md
+  Wrap                       Wrap     (R2)                             BReduction.agda
+  Merge                      — not yet a rule; the four open progress  ProgressDef.agda
+                               cases are its module parameters
   ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫            BReduction.agda
   Cancel / Drop              — not in the Agda (optional; see above)
   Θᵈ (dual)                  dualᵇ Θ / swapᵇ Θ                          notes/BoundaryRulesProbe

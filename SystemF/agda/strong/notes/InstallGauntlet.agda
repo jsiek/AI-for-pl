@@ -1001,3 +1001,117 @@ _ = refl
 -- cancel pair is the witness, and Drop∅ is what finishes it
 tower-collapses : [] ⊢ ($ 7) ⟪ Θ1c ⊕ Θ2c , mrgB Θ1c Θ2c (` 0) ⟫ -→ $ 7
 tower-collapses = Drop∅ V-$
+
+------------------------------------------------------------------------
+-- §9f.  §9d(i) IS REACHABLE — AND THE MACHINE IS STUCK THERE.
+--
+-- Jeremy's question at the Merge landing: why does the inner boundary say
+-- ↑W:=ℕ instead of ↑W:=X?  Answer: a reveal's rep is minted by TyBeta as
+-- the LITERAL type argument at the application site, and that site (T3
+-- below) lies in the plain exterior, where the ΛX was already eliminated
+-- at T1 — X is not a name there, so `ℕ is the only spelling of that type.
+-- The witness form ↑W:=X is only WRITABLE inside ↑X:=ℕ's interior; where
+-- the source can write ·[X], the landed ⊕ is exact.  The re-expression of
+-- ℕ as X is the job of the CROSSING: T4's dual ↓X:=ℕ re-expresses the
+-- crossing term's boundary TYPE, but not the reps of the boundaries
+-- already inside the crossing term — exactly the gap Decision 5 names.
+--
+--   P = ((ΛX. λx:X. λf:X⇒ℕ. f·x) ·[X⇒(X⇒ℕ)⇒ℕ, ℕ] · 5)
+--         · ((ΛW. λy:W. 3) ·[W⇒ℕ, ℕ])
+--
+--   T1 (TyBeta, X)  the package opens: ↑X:=ℕ is born
+--   T2 (Wrap, 5)    5 crosses in as the abstract x: ↓X:=ℕ is born (dualᴳ)
+--   T3 (TyBeta, W)  the client's Λ opens IN THE EXTERIOR: ↑W:=ℕ, forced
+--   T4 (Wrap)       the client's function crosses in: the §9d(i) NESTING
+--
+-- After T4 the active redex, in ambient Δcx, is the §9d(i) term with its
+-- argument —  (Vcx ⟪Θcx1⟫ ⟪Θcx2⟫) · (5 ⟪↓X:=ℕ, X⟫)  — and NO rule fires
+-- (stuck-cx).  With the repaired boundary Θcx′ in its place, Wrap fires
+-- and the program runs on to 3 (run-repair-cx).
+------------------------------------------------------------------------
+
+B∀pkg : Ty
+B∀pkg = ` 0 ⇒ ((` 0 ⇒ `ℕ) ⇒ `ℕ)
+
+pkgV : Term                              -- λx:X. λf:X⇒ℕ. f·x
+pkgV = ƛ ` 0 ∙ (ƛ (` 0 ⇒ `ℕ) ∙ ((` 0) · (` 1)))
+
+mkW : Term                               -- ΛW. λy:W. 3
+mkW = Λ Vcx
+
+V★cx : Term                              -- 5 ⟪ ↓X:=ℕ , X ⟫
+V★cx = ($ 5) ⟪ Θcx2 , ` 0 ⟫
+
+useW : Term                              -- T2's contractum, a value
+useW = (ƛ (` 0 ⇒ `ℕ) ∙ ((` 0) · V★cx)) ⟪ Θcx1 , (` 0 ⇒ `ℕ) ⇒ `ℕ ⟫
+
+cxP₀ cxP₁ cxP₂ cxP₃ cxP₄ : Term
+cxP₀ = (((Λ pkgV) ·[ B∀pkg , `ℕ ]) · ($ 5)) · (mkW ·[ ` 0 ⇒ `ℕ , `ℕ ])
+cxP₁ = ((pkgV ⟪ Θcx1 , B∀pkg ⟫) · ($ 5)) · (mkW ·[ ` 0 ⇒ `ℕ , `ℕ ])
+cxP₂ = useW · (mkW ·[ ` 0 ⇒ `ℕ , `ℕ ])
+cxP₃ = useW · (Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫)
+cxP₄ = (((Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) ⟪ Θcx2 , ` 0 ⇒ `ℕ ⟫) · V★cx)
+         ⟪ Θcx1 , `ℕ ⟫
+
+-- the source is a CLOSED plain System F program, typed at ℕ
+⊢cxP₀ : [] ∣ [] ⊢ cxP₀ ⦂ `ℕ
+⊢cxP₀ =
+  ⊢· (⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var here-abst)
+                        (⊢ƛ (wf-⇒ (wf-var here-abst) wf-ℕ)
+                            (⊢· (⊢` here) (⊢` (there here))))))
+                wf-ℕ)
+          ⊢$)
+      (⊢·[] (⊢Λ (⊢ƛ (wf-var here-abst) ⊢$)) wf-ℕ)
+
+cx-step₁ : [] ⊢ cxP₀ -→ cxP₁
+cx-step₁ = ξ-·-l (ξ-·-l (TyBeta (V-G G-ƛ)))
+
+cx-step₂ : [] ⊢ cxP₁ -→ cxP₂
+cx-step₂ = ξ-·-l (Wrap V-$)
+
+cx-step₃ : [] ⊢ cxP₂ -→ cxP₃
+cx-step₃ = ξ-·-r (V-⟪⟫ (V-G G-ƛ)) (TyBeta (V-G G-ƛ))
+
+cx-step₄ : [] ⊢ cxP₃ -→ cxP₄
+cx-step₄ = Wrap (V-⟪⟫ (V-G G-ƛ))
+
+-- the stuck term is WELL-TYPED at ℕ (⊢redex-cx is its function part)
+⊢cxP₄ : [] ∣ [] ⊢ cxP₄ ⦂ `ℕ
+⊢cxP₄ =
+  env (bwf↑ wf-ℕ bwf[]) sc-ℕ
+      (⊢· ⊢redex-cx
+          (env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$))
+
+-- …and NO rule fires on its active redex: the only candidate is Merge
+-- via ξ-·-l, and MergeOK's external-face component is ¬ext-cx
+stuck-cx : ∀ {M′}
+  → ¬ (Δcx ⊢ ((Vcx ⟪ Θcx1 , ` 0 ⇒ `ℕ ⟫) ⟪ Θcx2 , ` 0 ⇒ `ℕ ⟫) · V★cx
+        -→ M′)
+stuck-cx (ξ-·-l (Merge v (le , bwf , sc , int , eq))) = ¬ext-cx eq
+stuck-cx (ξ-·-l (ξ-⟪⟫ (ξ-⟪⟫ ())))
+stuck-cx (ξ-·-r v (ξ-⟪⟫ ()))
+
+-- CONTRAST: with the repaired boundary Θcx′ (↑W:=X , ↓X:=ℕ — the merge
+-- Decision 5 asks ⊕ to compute) in place of the un-mergeable nesting,
+-- Wrap fires and the program runs on to 3
+run-repair-cx : Δcx ⊢ (Vcx ⟪ Θcx′ , ` 0 ⇒ `ℕ ⟫) · V★cx
+                  -→ ($ 3) ⟪ Θcx′ , `ℕ ⟫
+run-repair-cx = Wrap (V-⟪⟫ V-$)
+
+-- lifted to the WHOLE post-T4 term: a well-typed (⊢cxP₄) non-value
+-- normal form — type safety itself needs Decision 5 (or a Value change)
+stuck-cxP₄ : ∀ {M′} → ¬ ([] ⊢ cxP₄ -→ M′)
+stuck-cxP₄ (ξ-⟪⟫ s) = stuck-cx s
+
+-- …and the repaired run CONTINUES PAST the package reveal: the resulting
+-- nesting merges with a FULLY DISCHARGED MergeOK — the ↓X/↑X pair
+-- CANCELS, and W's rep now resolves to ℕ LEGITIMATELY (the outward
+-- crossing passes the reveal that publishes X:=ℕ).  The final value is
+-- 3 ⟪ ↑W:=ℕ , ℕ ⟫: the resolved spelling is CORRECT in the plain
+-- exterior — it was wrong only across ↓X:=ℕ, which is Decision 5 in one
+-- example.
+run-repair-tail : [] ⊢ (($ 3) ⟪ Θcx′ , `ℕ ⟫) ⟪ Θcx1 , `ℕ ⟫
+                    -→ ($ 3) ⟪ rvl `ℕ ∷ [] , `ℕ ⟫
+run-repair-tail = Merge V-$
+  (s≤s z≤n , bwf↑ wf-ℕ bwf[] , sc-ℕ ,
+   ≼≈rvld ≼≈[] (≡→≈ refl) , refl)

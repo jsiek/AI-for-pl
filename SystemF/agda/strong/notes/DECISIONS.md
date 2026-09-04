@@ -1097,3 +1097,76 @@ Also flagged for later: `cmax Θ₁ ≤ revs Θ₂` (⊕-γ's side condition) is
 necessary — it over-refuses conceal-of-conceal, the very TOPLAS-adversary shape whose
 merge IS sound (`⊢merged-ag`); Merge simply doesn't fire there (no stuckness: such
 towers are values pending depth-1).
+
+### Decision 5, addendum (Jeremy's question, 2026-09-04 night): why ↑W:=ℕ
+### and not ↑W:=X — the redex is REACHABLE, and the machine is STUCK there
+
+Jeremy asked why the counterexample's inner boundary carries `↑W:=ℕ` rather
+than the witness form `↑W:=X`.  The answer upgraded Decision 5's severity,
+so it is recorded in full (machine-checked: gauntlet §9f).
+
+WHERE A REVEAL'S REP COMES FROM.  A rep is minted by `TyBeta` as the
+LITERAL type argument at the application site:
+
+```agda
+TyBeta : Value V → Δ ⊢ (Λ V) ·[ B , A ] -→ V ⟪ rvl A ∷ [] , B ⟫
+```
+
+So the question "ℕ or X?" is "what did the source program write at
+`·[_]`?" — and that depends on whether X is NAMEABLE at that site.  Inside
+`↑X:=ℕ`'s interior it is (`rvld` slot), and there the source writes `·[X]`
+and the landed ⊕ is exact.  But in the PLAIN EXTERIOR — after the `ΛX` was
+eliminated — X does not exist, and `ℕ` is the only spelling of that type;
+inside `↓X:=ℕ` likewise (`intOf` DROPS the concealed slot: tightness).
+The counterexample's form is therefore not exotic; it is what any client
+that instantiates its own `ΛW` OUTSIDE the package produces.
+
+THE WHOLE TRACE (gauntlet §9f: `cxP₀ … cxP₄`, `cx-step₁ … cx-step₄`,
+`⊢cxP₀`, `⊢cxP₄`, all live inhabitants).  A closed plain System F source:
+
+```
+P = ((ΛX. λx:X. λf:X⇒ℕ. f·x) ·[X⇒(X⇒ℕ)⇒ℕ, ℕ] · 5) · ((ΛW. λy:W. 3) ·[W⇒ℕ, ℕ])
+
+T1 TyBeta(X):  the package opens
+    → ((λx:X. λf:X⇒ℕ. f·x) ⟪ ↑X:=ℕ , X⇒(X⇒ℕ)⇒ℕ ⟫ · 5) · ((ΛW. λy:W. 3) ·[W⇒ℕ, ℕ])
+T2 Wrap(5):    5 crosses in as the abstract x; dualᴳ mints ↓X:=ℕ
+    → (λf:X⇒ℕ. f · (5 ⟪ ↓X:=ℕ , X ⟫)) ⟪ ↑X:=ℕ , (X⇒ℕ)⇒ℕ ⟫
+        · ((ΛW. λy:W. 3) ·[W⇒ℕ, ℕ])
+T3 TyBeta(W):  the client's Λ opens IN THE EXTERIOR — ↑W:=ℕ is FORCED,
+               X is not a name here
+    → (λf:X⇒ℕ. f · (5 ⟪ ↓X:=ℕ , X ⟫)) ⟪ ↑X:=ℕ , (X⇒ℕ)⇒ℕ ⟫
+        · ((λy:W. 3) ⟪ ↑W:=ℕ , W⇒ℕ ⟫)
+T4 Wrap:       the client's function crosses in — the §9d(i) nesting
+    → ( ((λy:W. 3) ⟪ ↑W:=ℕ , W⇒ℕ ⟫ ⟪ ↓X:=ℕ , X⇒ℕ ⟫)
+          · (5 ⟪ ↓X:=ℕ , X ⟫) ) ⟪ ↑X:=ℕ , ℕ ⟫
+```
+
+STUCK — MACHINE-CHECKED (`stuck-cx`, `stuck-cxP₄`): the post-T4 term is
+well-typed at ℕ (`⊢cxP₄`), is not a value, and NO rule fires on it: the
+only candidate on the active redex is `Merge` via ξ-·-l, and `MergeOK`'s
+external-face component is exactly `¬ext-cx`.  So this is no longer just
+"NestedApp is unprovable": `cxP₄` is a reachable counterexample to TYPE
+SAFETY of the calculus as it stands.  Decision 5 (or a change to `Value`)
+is REQUIRED, not optional.
+
+THE CROSSING IS THE GAP.  T4's dual re-expresses the crossing term's
+boundary TYPE from interior to exterior coordinates (X⇒ℕ), but the reps of
+boundaries ALREADY INSIDE the crossing term keep their exterior spelling
+(↑W:=ℕ).  The re-abstraction ℕ↦X is exactly what Decision 5 asks ⊕ to
+perform at merge time — and it is the INVERSE of the conceal's interior
+reading γᵇ, which is relational in general (which ℕs become X?  In
+`⊢repair-cx` the whole rep; for a rep like ℕ⇒ℕ under ↓X:=ℕ the candidates
+X⇒ℕ / ℕ⇒X / X⇒X differ).  The external-face equation (B₂'s positional
+alignment) is what selects the right one — so the repaired ⊕ must consult
+Θ₂'s conceals AND B₂, or equivalently Zdancewic's Δ̄ backward reading.
+
+CONTRAST, machine-checked (`run-repair-cx`): with the repaired boundary
+`Θcx′ = ↑W:=X , ↓X:=ℕ` in place of the un-mergeable nesting, `Wrap` fires
+and the program runs on to 3.
+
+AND THE REPAIRED RUN FINISHES (`run-repair-tail`, fully-discharged
+`MergeOK`): `(3 ⟪ ↑W:=X , ↓X:=ℕ , ℕ ⟫) ⟪ ↑X:=ℕ , ℕ ⟫` merges — the ↓X/↑X
+pair CANCELS and W's rep resolves to ℕ legitimately, the outward crossing
+passing the reveal that publishes X:=ℕ.  Final value: `3 ⟪ ↑W:=ℕ , ℕ ⟫`.
+The resolved spelling ℕ is CORRECT in the plain exterior; it was wrong
+only across ↓X:=ℕ — Decision 5 in one example.

@@ -601,6 +601,15 @@ sign-off; install pending his approval.
   bad-via-⋆ refutation, whether no-abstract-value stays load-bearing, dual-of-
   dual/renaming/retag behaviour of cnc⋆.
 
+  RULING (Jeremy, 2026-09-04): conditional — "if the probe passes, install
+  a″ with the star conceal."  His observation, recorded as the design's
+  symmetry principle: "I suppose we should have expected to need a rep-less
+  conceal because we already have a rep-less reveal."  Formal version: the
+  entry syntax must be CLOSED UNDER DUALIZATION — the dual maps reveals to
+  conceals and back, ↑Y:⋆ was forced by the dual re-introducing Λ-bound
+  slots, so its dual image ↓Y:⋆ was inevitable; E★ is merely the program
+  that makes the missing image observable.
+
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

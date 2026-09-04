@@ -694,6 +694,22 @@ bad₂/near-bad gauntlet:
        subsumes the (a″) hybrid at Pn, and the structural argument ruling
        out (b4) (a co-boundary-parameterized judgment: the contractum must
        be typed by plain env).
+## DESIGN LAW, restated by Jeremy via the trace coloring (2026-09-04)
+
+"Another way to think about the tightness property that I'm going for is
+that THE COLOR OF A NON-BOUNDARY TERM SHOULD NEVER CHANGE DURING REDUCTION."
+
+I.e. reduction never changes which type variables a non-boundary subterm
+can see — scope regions are preserved; only boundary syntax moves.  Two
+instances already in the calculus: TyWrap consumes a Λ but its body keeps
+its color (the binder's slot becomes the boundary's reveal slot — same
+scope, new binder site); Wrap moves an argument inside a dual whose
+interior REBUILDS exactly the context the argument was colored by — the
+argument keeps its color, which is the DualInt law stated visually.  A
+candidate rule that recolors a non-boundary term is thereby suspect on
+sight.  Recorded next to tightness / no-term-shifts / simultaneity /
+closure-under-dualization.
+
 ## THE X-LICENSE INSTALL — LANDED (e07e8863), WITH THREE DEVIATIONS (2026-09-04 night)
 
 Gates green (cold make check + notes/InstallGauntlet.agda, worktree and main

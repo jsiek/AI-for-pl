@@ -487,6 +487,25 @@ smallest closed program minting CHAINED knowledge above a seal:
   Status: awaiting Jeremy's ruling on (a′); the revert track keeps §6b/Pc
   inside the DualRep parameter meanwhile.
 
+## Would Merge solve Pc instead of (a′)?  (Jeremy's question, 2026-09-04)
+
+No — checked on Pc's T6 argument (3 ⟪ ↓Y:=𝔹 , ↓X:=ℕ ⟫) ⟪ ↓W:=Y ⟫, which IS a
+Merge redex.  ⊕ pushes the outer conceal's rep through the inner γ, so the
+merge UNFOLDS correctly: 3 ⟪ ↓W:=𝔹 , ↓Y:=𝔹 , ↓X:=ℕ ⟫.  But:
+  (1) the merge step itself is ill typed in the raw-knowledge world — the
+      merged ↓W:=𝔹 is licensed against the ambient entry, which is still the
+      raw W:=Y from T5 (read-back 𝔹 ≠ Y) — MergeProbe's retyping-along-
+      unfolding gap, live on this trace;
+  (2) even granting it, T7 still fails: the seal's dual copies the AMBIENT
+      entry (raw W:=Y → ↑W:⋆), which no restructuring of the argument can
+      reach.
+Under (a′) both vanish: entries are born unfolded (W:=𝔹 from T5′), the
+argument's conceal is minted unfolded, Merge's output agrees with the
+context and becomes type-preserving.  Conclusion: MERGE PRESUPPOSES (a′),
+not the reverse — Zdancewic's structure exactly (their merge (8) is sound
+only over Δ̄-resolved annotations, maintained eagerly by retag (7); (a′) is
+our rule (7)).  Order of work: (a′) → Merge.
+
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

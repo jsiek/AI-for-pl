@@ -424,6 +424,72 @@ DualDef.agda / ProgressDef.agda).  Rulings wanted, in rough priority:
    rep equals the enclosing reveal's rep") is now exactly what Reversal
    guarantees.
 
+## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
+
+The program (ordinary System F; the essential move is instantiating an
+imported polymorphic value AT AN ABSTRACT VARIABLE, f [Y] — Example 8's core):
+
+    Pn = (ΛX. λf:(∀Z.Z→Z). ΛY. λy:Y. f [Y] y) [ℕ] · (ΛZ. λz:Z. z) · [𝔹] · true   : 𝔹
+
+    TyBeta(X)  ((λf:(∀Z.Z→Z). ΛY. λy:Y. f [Y] y) ⟪ ↑X:=ℕ ⟫) · (ΛZ. λz:Z. z)  [𝔹] · true
+    Wrap       ((ΛY. λy:Y. (((ΛZ. λz:Z. z) ⟪ ↓X:=ℕ ⟫) [Y]) y) ⟪ ↑X:=ℕ ⟫)  [𝔹] · true
+    TyWrap(Y)  ((λy:Y. (((ΛZ. λz:Z. z) ⟪ ↓X:=ℕ ⟫) [Y]) y) ⟪ ↑Y:=𝔹 , ↑X:=ℕ ⟫) · true
+    Wrap       ((((ΛZ. λz:Z. z) ⟪ ↓X:=ℕ ⟫) [Y]) · (true ⟪ ↓Y:=𝔹 , ↓X:=ℕ ⟫)) ⟪ ↑Y:=𝔹 , ↑X:=ℕ ⟫
+    ξ TyWrap   (((λz:Z. z) ⟪ ↑Z:=Y , ↓X:=ℕ ⟫) · (true ⟪ ↓Y:=𝔹 , ↓X:=ℕ ⟫)) ⟪ ↑Y:=𝔹 , ↑X:=ℕ ⟫
+
+  All well typed so far.  The inner TyWrap minted, at exterior Γn = Y:=𝔹 , X:=ℕ:
+
+    Θn = ↑Z:=Y , ↓X:=ℕ          interior:  Z ABSTRACT
+
+  Z's entry should be the knowledge "Z is Y", but ⟦·⟧ reads Θn ALONE, and in
+  Θn's interior Y is BLOCKED (↓X drops everything up to X, including the
+  shallower Y): no interior reading exists, so the entry falls back to
+  abstract.  "Z is Y" — and via Γn, "Z is 𝔹" — is known ambiently, recorded
+  nowhere in Θn.
+
+  The failing step: the last Wrap's dual must CONCEAL Z (duals turn reveals
+  into conceals), and a conceal ↓Z:=A₀ is licensed only by interior knowledge
+  Ψn ∋ Z := A₀ — which does not exist.  Contractum untypable.  That is
+  DualCnc's counterexample; the dual's REVEAL block is fine (↑Y:=𝔹 copied
+  from Γn, ↑X:=ℕ from the conceal) — only the conceal-of-a-reveal side is
+  stuck.
+
+  Candidates, on Pn:
+
+  (a) KNOWLEDGE CLOSURE IN ⟦·⟧ — compute the entry with the ambient Γ: when
+      a reveal's rep names a blocked variable, resolve it through Γ's
+      knowledge first.  At the ξ TyWrap step, ⟦Y⟧ under Γn unfolds Y:=𝔹, so
+      Z's entry is Z:=𝔹; the dual's ↓Z:=𝔹 is licensed and the rebuild is
+      exact.  FIXES Pn.  The residual case — same shape with Y still
+      Λ-bound — is conjectured VACUOUS: the failing Wrap needs a VALUE of
+      type Y, and no value inhabits an abstract variable's type (a value at
+      variable type is a wrapper chain that can only terminate in a conceal,
+      and a conceal of an abstract variable is unlicensed by the restored
+      invariant).  New lemma to prove: no-abstract-value.  If it holds, (a)
+      closes DualCnc completely.  Cost: intOf consults Γ's entries (it
+      already takes Γ; renaming transport rides ⊢renameᵀ's ∋:= hypothesis).
+      bad/bad₂ unaffected (their failure is the conceal check).
+
+  (b) SELF-JUSTIFYING DUAL CONCEALS — a marked entry ↓Z:≈A minted only by
+      dualᴳ, licensed by the read-back law against the reveal it cancels
+      (A = the reveal's own rep; Zdancewic's Reversal lemma made syntactic).
+      On Pn: ↓Z:≈Y, Y in scope in the dual's interior (= Γn).  Spot-checks:
+      read-back alone still refutes bad (ℕ ≠ ∀Z.Z→Z) and bad₂.  Cost: a
+      fourth entry form whose typing reaches across to ANOTHER boundary —
+      the kind of non-local premise the design has avoided.  Probe first.
+
+  (c) MERGE-FIRST — REFUTED AS A COMPLETE SOLUTION BY Pn.  Merge fuses only
+      adjacent wrappers.  In the E8-shape (sealed value = the Λ-body) TyWrap
+      creates the adjacency and Merge dissolves Θn (the cancel unfolds
+      ↑Z:=Y against ↑Y:=𝔹 into ↑Z:=𝔹).  In Pn the sealed value sits in
+      APPLICATION position inside the boundary — never wrapper-on-wrapper —
+      and Merge cannot reach it before the failing Wrap.  Shape-dependent;
+      not an R2 fix on its own.
+
+  RECOMMENDATION: (a) + the no-abstract-value lemma, probed before install.
+  (b) is the fallback if the vacuity lemma fails; (c) stays desirable for
+  Decision 3 but does not resolve R2.
+
 ## Decision 2 — a boundary meets a type application
 
 Both well typed on every step of Example 8 (notes/old/Example8Trace.agda).

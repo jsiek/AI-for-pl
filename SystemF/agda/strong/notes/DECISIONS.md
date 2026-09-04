@@ -610,6 +610,48 @@ sign-off; install pending his approval.
   slots, so its dual image ↓Y:⋆ was inevitable; E★ is merely the program
   that makes the missing image observable.
 
+## STAR-CONCEAL PROBE VERDICT — sound and required, NOT sufficient (2026-09-04)
+
+notes/StarConcealProbe.agda (agda --safe clean, 1531 lines).  Per the
+conditional mandate, (a″)+↓·:⋆ is NOT installed: a new counterexample.
+
+What PASSED:
+  ✓ E★ verified end-to-end (two index corrections: the dual's conceal is
+    cnc 1 under the ΛY, and the dual's entry order is ↑Y:⋆ , ↑X:=ℕ , ↓Z);
+    the fix types E★'s contractum, exact rebuild, final value at ∀Y.ℕ;
+  ✓ cnc⋆ soundness clean: bad-via-⋆ refuted (the scope premise forbids a
+    boundary type naming a ⋆-slot), no new route to variable-typed values,
+    faces unchanged, renaming/retag trivial;
+  ✓ closure under dualization confirmed (dual-of-dual round-trips; a
+    cnc⋆-dropped slot duals to rvl⋆ when abstract, to the exterior's own
+    knowledge when revealed);
+  ✓ cnc⋆ is REQUIRED regardless of E★: today's dual of a boundary containing
+    rvl⋆ mints cnc j ℕ, which is ALREADY unlicensable (¬DualCnc-rvl⋆) and
+    reachable — E★'s own dual contains a rvl⋆;
+  ✓ the DualCnc case split: raw and unfoldable knowledge are the standing
+    (a″) obligations; the inexpressible-and-unneeded case is now a THEOREM
+    (cnc⋆-licensed); no-abstract-value is no longer needed for DualCnc.
+
+What FAILED — the new counterexample E★′ (both regimes):
+
+    E★′ = (ΛX. λf:(∀Z.(Z→ℕ)→(Z→ℕ)). ΛY. (f [Y]) (λy:Y. 5)) [ℕ]
+            · (ΛZ. λg:(Z→ℕ). λz:Z. g z)      : ∀Y. Y→ℕ
+
+  Same shape as E★, but B₁ = Z→ℕ NAMES Z, and the argument λy:Y.5 is a
+  VALUE at the arrow type Y→ℕ — reachable, and vacuity is silent.  At the
+  Wrap: if the dual conceals with the rep kept (↓Z:=Y), then both faces are
+  already EXACTLY right (face-int-E★′, face-ext-E★′, sc-live-E★′) and the
+  ONLY defect is bwf↓'s knowledge lookup (Z's entry is abstract); if the
+  dual conceals with ↓Z:⋆ instead, then the re-hidden slot is blk and the
+  dual cannot express its own boundary type Z→ℕ (¬Scoped-⋆-E★′).  So cnc⋆
+  trades a boundary failure for a scope failure exactly when the type
+  mentions the unknowable reveal.
+
+Probe's recommendation: candidate (b) for rep-carrying reveals — a
+DUAL-ONLY conceal that KEEPS the rep and is licensed by the reveal it
+cancels (Zdancewic Lemma A.2, Reversal) rather than by interior knowledge —
+with cnc⋆ retained for duals of rvl⋆.  The open design question is the
+grounded form of (b)'s licensing premise.  Awaiting Jeremy's ruling.
 ## AGENDA ITEM 1 IN DETAIL — R2 / DualCnc, by example (2026-09-04)
 
 The program (ordinary System F; the essential move is instantiating an

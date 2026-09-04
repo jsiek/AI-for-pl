@@ -11,7 +11,7 @@ Today:
     (bwf-↓)  Γ ∋ Y      Ψ ⊢ A      Γ ∣ Ψ ⊢ Θ   ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
 
 Consequence — a closed well-typed value that no type-preserving rule can
-eliminate (machine-checked, notes/BoundaryRulesProbe.agda §5a):
+eliminate (machine-checked, notes/old/BoundaryRulesProbe.agda §5a):
 
     bad  =  (7 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=∀Z.Z→Z , X ⟫   :  ∀Z.Z→Z
     bad @(Z→Z)[ℕ]  :  ℕ→ℕ          stuck: B₀ is the variable X, not a ∀
@@ -57,7 +57,7 @@ Jeremy: the old design's (conceal) rule had the premise `Γ ∋ X:=A` and the
 invariant "a conceal's representation is the one the matching reveal
 recorded" was never meant to be dropped.  Decision 1 is therefore settled
 on restoring it (Option 1a); 1b/1c are withdrawn.  The probe
-notes/GroundedProbe.agda (agda --safe clean) fixes the exact form:
+notes/old/GroundedProbe.agda (agda --safe clean) fixes the exact form:
 
     Γ ⇈ Θ    =  (Γ ↓ Y★) , X₁:=A₁ , … , X_r:=A_r       knowledge entries (Aᵢ read in Γ)
     (bwf-↓)  Γ ∋ Y:=A₀      A = A₀[γΘ]      Γ ∣ Ψ ⊢ Θ   ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
@@ -287,7 +287,7 @@ reversal-form premise).  W3-as-traversal kept as the fallback.
 
 ### Decision 4 — ambient dual probe verdict and the overnight install (2026-09-04, Jeremy asleep)
 
-notes/AmbientDualProbe.agda (agda --safe clean).  Verdict: POSITIVE on the
+notes/old/AmbientDualProbe.agda (agda --safe clean).  Verdict: POSITIVE on the
 candidate itself —
   ✓ P repaired with NO insertion anywhere (dualᴳ copies Y:=𝔹; rebuild = Γ on
     the nose; dualᵇ version refuted);
@@ -334,7 +334,7 @@ landed (unfolding-transport open); ProgressDef keeps its parameters.
 
 ### Decision 3 — tension with Decision 1 found by the Merge probe (needs a ruling)
 
-notes/MergeProbe.agda (agda --safe clean) defines Θ₁ ⊕ Θ₂ and proves the
+notes/old/MergeProbe.agda (agda --safe clean) defines Θ₁ ⊕ Θ₂ and proves the
 face laws in general, but exhibits a Merge redex with NO well-typed
 contractum under the grounded premise as stated:
 
@@ -371,7 +371,7 @@ Candidate fix — compare in the EXTERIOR instead of the interior (the
   nested one by UNFOLDING (probe: nested W:=Z vs merged W:=ℕ when Z:=ℕ), so
   Merge's preservation needs "retyping along unfolding", Zdancewic's Δ̄.
 
-  Probe verdict (notes/ReversalProbe.agda, agda --safe clean, 2026-09-04):
+  Probe verdict (notes/old/ReversalProbe.agda, agda --safe clean, 2026-09-04):
   ADOPT.  Verbatim premise (over Δ; A₀ lifted from Δ ↓ X):
 
       Reversal Θ X A A₀ = outRead Θ A ≡ upRep X A₀
@@ -398,7 +398,7 @@ Candidate fix — compare in the EXTERIOR instead of the interior (the
 
 ## Decision 2 — a boundary meets a type application
 
-Both well typed on every step of Example 8 (notes/Example8Trace.agda).
+Both well typed on every step of Example 8 (notes/old/Example8Trace.agda).
 
     (TyWrap)   (V ⟪ Θ , ∀Z.B₀ ⟫) @B[A]        -→  (V @(B₀[γΘ])[Z]) ⟪ ↑Z:=A , Θ , B₀ ⟫
     (TyWrap′)  ((ΛZ.V) ⟪ Θ , ∀Z.B₀ ⟫) @B[A]   -→  V ⟪ ↑Z:=A , Θ , B₀ ⟫

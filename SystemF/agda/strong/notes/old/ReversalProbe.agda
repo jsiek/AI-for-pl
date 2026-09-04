@@ -1,4 +1,13 @@
-module strong.notes.ReversalProbe where
+module strong.notes.old.ReversalProbe where
+
+-- SUPERSEDED 2026-09-04 by the ambient-dual install (knowledge
+-- interiors, reversal-form conceal, telescopic reveal block,
+-- Γ-indexed reduction with dualᴳ).  The surviving content — the
+-- bad/bad₂ refutations, the face laws, the dual's read-back — now
+-- lives in strong.Boundary / strong.BReduction; this file is kept as
+-- a record of the design path and does NOT compile against the
+-- current core.
+
 
 -- DESIGN FEASIBILITY PROBE (not part of the development) for DECISIONS.md
 -- Decision 3's CANDIDATE FIX: compare a conceal's representation with the
@@ -62,13 +71,13 @@ open import strong.BReduction
          Mono; Mono→≤; restrictRen; deepRen; intRen; renᴮ; liftⁿ;
          liftⁿ-lo; liftⁿ-hi; revs-ren; cmax-ren; CmaxV; cm-0; cm-s;
          split; ρᵇ-comm; prepId-hi)
-open import strong.notes.GroundedProbe
+open import strong.notes.old.GroundedProbe
   using (bad; bad₂; ⊢∀ZZ; sc∀ZZ; Bfun; body8; src;
          Θr; Θc; Θ8′; Θn; Θi; Δ1′; Δ8′;
          T0; T1; T2; T3; T4; T4′; T4′body; T5; W2; W3; R1body; T5body;
          inner₂; mid₂;
          Δb; Θb; Δm′; Θm; liftRep; grounded)
-open import strong.notes.MergeProbe
+open import strong.notes.old.MergeProbe
   using (outSub; sub-ren; _⊕_; Δo; Θ1o; Θ2o; Vo; redexo; Θold;
          Δbw; Θ1bw; Θ2bw)
 

@@ -11,6 +11,7 @@ open import strong.Boundary
 open import strong.BReduction
 open import strong.ScopeBridge
 open import strong.TermSubst
+open import strong.DualDef
 open import strong.BPreservation
 open import strong.Canonical
 open import strong.ProgressDef

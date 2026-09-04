@@ -121,41 +121,78 @@ slotsᴳ-∋tv : (Θ : BCtx) (k : ℕ) → slotsᴳ Θ k Δ ∋ok X → Δ ∋tv
 slotsᴳ-∋tv {Δ = Δ} {X = X} Θ k p =
   <length→∋tv (subst (X <_) (slotsᴳ-length Θ k Δ) (∋ok-length p))
 
--- the reveal prefix / Γ-slot case split, phrased on the raw append
-repl-view : (r : ℕ) (Ψ : SCtx) (X : ℕ) → (repl-ok r ++ Ψ) ∋ok X
-  → (X < r) ⊎ (∃ λ i → (X ≡ r + i) × Ψ ∋ok i)
-repl-view zero Ψ X p = inj₂ (X , refl , p)
-repl-view (suc r) Ψ zero hereᵒ = inj₁ (s≤s z≤n)
-repl-view (suc r) Ψ (suc X) (thereᵒ p)
-  with repl-view r Ψ X p
-repl-view (suc r) Ψ (suc X) (thereᵒ p) | inj₁ lt =
+-- the reveal prefix / Γ-slot case split, phrased on the raw append.  The
+-- prefix is now PER ENTRY (revSlots): a REP-LESS reveal's slot is `blk`, so
+-- it cannot be accessible at all — the `rvl⋆` clause is absurd.
+revSlots-view : (Θ : BCtx) (Ψ : SCtx) (X : ℕ) → (revSlots Θ ++ Ψ) ∋ok X
+  → (X < revs Θ) ⊎ (∃ λ i → (X ≡ revs Θ + i) × Ψ ∋ok i)
+revSlots-view []            Ψ X       p = inj₂ (X , refl , p)
+revSlots-view (rvl A ∷ Θ)   Ψ zero    p = inj₁ (s≤s z≤n)
+revSlots-view (rvl A ∷ Θ)   Ψ (suc X) (thereᵒ p)
+  with revSlots-view Θ Ψ X p
+revSlots-view (rvl A ∷ Θ) Ψ (suc X) (thereᵒ p) | inj₁ lt =
   inj₁ (s≤s lt)
-repl-view (suc r) Ψ (suc X) (thereᵒ p) | inj₂ (i , eq , q) =
+revSlots-view (rvl A ∷ Θ) Ψ (suc X) (thereᵒ p) | inj₂ (i , eq , q) =
+  inj₂ (i , cong suc eq , q)
+revSlots-view (rvl⋆ ∷ Θ)    Ψ zero    ()
+revSlots-view (rvl⋆ ∷ Θ)    Ψ (suc X) (thereᵒ p)
+  with revSlots-view Θ Ψ X p
+revSlots-view (rvl⋆ ∷ Θ) Ψ (suc X) (thereᵒ p) | inj₁ lt =
+  inj₁ (s≤s lt)
+revSlots-view (rvl⋆ ∷ Θ) Ψ (suc X) (thereᵒ p) | inj₂ (i , eq , q) =
+  inj₂ (i , cong suc eq , q)
+revSlots-view (cnc Y A ∷ Θ) Ψ X       p = revSlots-view Θ Ψ X p
+
+-- the same split for a prepAbst-extended TYPE context (bwf↑'s premise reads
+-- a reveal's rep over Δ extended by the DEEPER reveal slots)
+prepAbst-view : (r : ℕ) (Δ : TCtx) (X : ℕ) → prepAbst r Δ ∋tv X
+  → (X < r) ⊎ (∃ λ i → (X ≡ r + i) × Δ ∋tv i)
+prepAbst-view zero    Δ X       p             = inj₂ (X , refl , p)
+prepAbst-view (suc r) Δ zero    p             = inj₁ (s≤s z≤n)
+prepAbst-view (suc r) Δ (suc X) (skip-abst p)
+  with prepAbst-view r Δ X p
+prepAbst-view (suc r) Δ (suc X) (skip-abst p) | inj₁ lt =
+  inj₁ (s≤s lt)
+prepAbst-view (suc r) Δ (suc X) (skip-abst p) | inj₂ (i , eq , q) =
   inj₂ (i , cong suc eq , q)
 
 ------------------------------------------------------------------------
 -- The external face ρᵇ is well formed, index by index
 ------------------------------------------------------------------------
 
--- a reveal-prefix index resolves to that reveal's representation, which bwf↑
--- stores as a type over the EXTERIOR Δ
-ρᵇ-lo : Δ ∣ Ψᵗ ⊢ᵇ Θ → (X : ℕ) → X < revs Θ → Δ ⊢ ρᵇ Θ X
-ρᵇ-lo bwf[] X ()
-ρᵇ-lo (bwf↑ wfA bwf) zero    lt       = wfA
-ρᵇ-lo (bwf↑ wfA bwf) (suc X) (s≤s lt) = ρᵇ-lo bwf X lt
-ρᵇ-lo (bwf↓ tv wfA bwf) X lt          = ρᵇ-lo bwf X lt
-
 -- a deep index passes through unchanged (conceals do not touch the exterior)
 ρᵇ-deep : (Θ : BCtx) (i : ℕ) → ρᵇ Θ (revs Θ + i) ≡ ` i
 ρᵇ-deep []            i = refl
 ρᵇ-deep (rvl A ∷ Θ)   i = ρᵇ-deep Θ i
+ρᵇ-deep (rvl⋆ ∷ Θ)    i = ρᵇ-deep Θ i
 ρᵇ-deep (cnc X A ∷ Θ) i = ρᵇ-deep Θ i
+
+-- a reveal-prefix index resolves to that reveal's EXTERNAL FACE.  Under the
+-- telescopic reveal block that face is no longer the stored rep but the fold
+-- substᵗ (ρᵇ Ξ) A — the rep read over the deeper reveals — so this is a
+-- substitution lemma, not a lookup: bwf↑ stores A over prepAbst (revs Ξ) Δ,
+-- and every one of those slots resolves (recursively) to a Δ-type.  A
+-- REP-LESS reveal's face is the dummy `ℕ, well formed anywhere.
+ρᵇ-lo : ∀ {Δ Ψᵗ Θ} (Ξ : BCtx) → Bwf Δ Ψᵗ Θ Ξ
+      → (X : ℕ) → X < revs Ξ → Δ ⊢ ρᵇ Ξ X
+ρᵇ-lo []            bwf[]              X       ()
+ρᵇ-lo {Δ = Δ} (rvl A ∷ Ξ) (bwf↑ wfA b) zero    lt = wf-subst h wfA
+  where
+    h : ∀ {X} → prepAbst (revs Ξ) Δ ∋tv X → Δ ⊢ ρᵇ Ξ X
+    h {X} p with prepAbst-view (revs Ξ) Δ X p
+    h {X} p | inj₁ lt′            = ρᵇ-lo Ξ b X lt′
+    h {.(revs Ξ + i)} p | inj₂ (i , refl , q) =
+      subst (λ T → Δ ⊢ T) (sym (ρᵇ-deep Ξ i)) (wf-var q)
+ρᵇ-lo (rvl A ∷ Ξ) (bwf↑ wfA b) (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (rvl⋆ ∷ Ξ)  (bwf⋆ b)     zero    lt       = wf-ℕ
+ρᵇ-lo (rvl⋆ ∷ Ξ)  (bwf⋆ b)     (suc X) (s≤s lt) = ρᵇ-lo Ξ b X lt
+ρᵇ-lo (cnc Y A ∷ Ξ) (bwf↓ k rev wfA b) X lt     = ρᵇ-lo Ξ b X lt
 
 ρᵇ-lookup-wf : Δ ∣ Ψᵗ ⊢ᵇ Θ → (X : ℕ) → baseS Θ Δ ∋ok X → Δ ⊢ ρᵇ Θ X
 ρᵇ-lookup-wf {Δ = Δ} {Θ = Θ} bwf X p
-  with repl-view (revs Θ) (slotsᴳ Θ 0 Δ) X p
+  with revSlots-view Θ (slotsᴳ Θ 0 Δ) X p
 ρᵇ-lookup-wf {Δ = Δ} {Θ = Θ} bwf X p | inj₁ lt =
-  ρᵇ-lo bwf X lt
+  ρᵇ-lo Θ bwf X lt
 ρᵇ-lookup-wf {Δ = Δ} {Θ = Θ} bwf X p | inj₂ (i , refl , q) =
   subst (λ T → Δ ⊢ T) (sym (ρᵇ-deep Θ i)) (wf-var (slotsᴳ-∋tv Θ 0 q))
 
@@ -263,7 +300,13 @@ private
   -- ⊢ty-wf on an (env) wrapper: the external face of Example 8's boundary
   _ : Γ₈ ⊢ (` 0 ⇒ ` 0)
   _ = ⊢ty-wf ⊢[]
-        (env (bwf↓ (skip-abst here-rvld) wf-ℕ
+        (env (bwf↓ (skip-abst here) refl wf-ℕ
                (bwf↑ (wf-var here-abst) bwf[]))
              (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
              (⊢ƛ (wf-var here-abst) (⊢` here)))
+
+  -- the telescopic face, on Boundary's chained example ↑Y:=Y′ , ↑Y′:=𝔹:
+  -- Y's external face is 𝔹, and ρᵇ-lookup-wf produces its well-formedness
+  _ : [] ⊢ `𝔹
+  _ = ρᵇ-lookup-wf {Δ = []} {Ψᵗ = intOf [] Θch} {Θ = Θch}
+                   (bwf↑ (wf-var here-abst) (bwf↑ wf-𝔹 bwf[])) 0 hereᵒ

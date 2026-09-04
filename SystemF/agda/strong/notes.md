@@ -11,11 +11,17 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 # TODO
 
-* land `Wrap` (the application rule, R2 of notes/BoundaryRules.md) in the Agda; it is the
-  only rule of the table below that is still only proposed.
-* close progress.  The one open obstruction is rep inconsistency (`bad`, Metatheory §Progress):
-  (env) cannot relate a conceal's rep to the rep of the reveal that binds the same variable.
-* rename the Agda constructors to the names used here (Beta, TyBeta, TyWrap, Wrap, ξ).
+* rule on the **(R2) residue** (notes/DECISIONS.md, Decision 4): a reveal whose
+  representation names a slot its OWN boundary blocks — e.g. Example 8's run-time boundary
+  `↑Z:=Y , ↓X:=ℕ` with Y Λ-bound — gets an ABSTRACT interior entry, so the dual's conceal of
+  Z has no knowledge to meet and Wrap's contractum does not type.  Isolated as the three
+  parameters of `DualDef.agda`.
+* land **Merge** (Decision 3), with retyping along unfolding (Zdancewic's Δ̄); that discharges
+  the two `Nested…` progress parameters and enables depth-1 values.
+* close progress's two `RevealVar…` parameters.
+* the *ambient dual* (Decision 4) and the *grounded knowledge interiors + reversal-form
+  conceal* (Decisions 1, 3) are SETTLED and INSTALLED — the notes below describe the
+  installed semantics, not a proposal.
 
 # Types (with variables as names)
 
@@ -82,16 +88,45 @@ see "Old per-variable design" and the historical Example 8 below.)
 # The interior context     Γ ⇈ Θ
 
   A boundary's body is typed in the *interior* context.  ONE restriction is taken, at the
-  DEEPEST concealed variable, and the reveal variables are added on top:
+  DEEPEST concealed variable, and the reveal variables are added on top — each carrying the
+  KNOWLEDGE its representation gives:
 
-     Γ ⇈ Θ  =  (Γ ↓ Y★) , X₁ , … , X_r        where  Y★ = the deepest variable concealed
+     Γ ⇈ Θ  =  (Γ ↓ Y★) , X₁:=⟦A₁⟧ , … , X_r:=⟦A_r⟧
+                                              where  Y★ = the deepest variable concealed
                                                      by Θ (if Θ conceals nothing, Γ↓Y★ = Γ)
-                                                     X₁ … X_r = the reveal variables of Θ,
-                                                     fresh and abstract
+                                                     X₁ … X_r = the reveal variables of Θ
 
   In words: everything from the shallowest end of Γ down to and including Y★ is dropped —
   those variables are **blocked**, they have no interior image — and the reveal variables are
   appended (so they are the shallowest interior variables, in Θ's order).
+
+  **Knowledge entries** (Decision 1's refinement).  A reveal is NOT abstract inside: the
+  interior records what the boundary knows about it.  ⟦A⟧ is the INTERIOR READING of the
+  reveal's representation A — concealed exterior variables ↦ their conceal representations,
+  kept ones ↦ their interior slot, and the deeper reveals of the same boundary ↦ themselves —
+  read as a TELESCOPE entry, i.e. over the entries below X's own slot (the convention of
+  `Γ, X:=A` everywhere else in these notes: A is a type over the part of the context that
+  precedes X).  Two cases fall back to an ABSTRACT entry, with no knowledge:
+
+     * A names a BLOCKED variable — its reading is not a type of the interior at all;
+     * the reading names a reveal slot at or above X's own — it is then not a legal telescope
+       entry (this is what makes the entry stable under renaming).
+
+  **Rep-less reveal ↑Y.**  A third boundary entry carries no representation:
+
+     Θ  ::=  ∅ | ↑X:=A , Θ | ↑X , Θ | ↓Y:=A , Θ
+
+  `↑X` contributes an ABSTRACT interior entry, has no (bwf-↑) premise, and its slot is BLOCKED
+  in the boundary-type scope (below), so no B₀ can name it — its external face is an
+  arbitrary dummy that is therefore never consulted.  It is minted only by the DUAL, at a slot
+  the boundary drops without concealing and which the ambient context binds ABSTRACTLY (a
+  Λ-bound variable).  Under the old design that slot got a reveal at a fabricated
+  representation, i.e. invented knowledge; `↑X` is the exact re-introduction.
+
+  Why knowledge, and not abstraction?  Because a conceal is licensed by the exterior's
+  knowledge ((bwf-↓) below), a nested boundary inside the interior must be able to see it.
+  This is the in-the-relation form of Zdancewic's global δ-consistency; without it the closed
+  well-typed value `bad` (Metatheory §Progress) is stuck.
 
   Taking a SINGLE restriction at the deepest conceal (rather than one restriction per conceal,
   progressively) is what keeps a conceal of a shallow variable from over-dropping a deeper
@@ -105,7 +140,11 @@ see "Old per-variable design" and the historical Example 8 below.)
 # The two faces of B₀
 
   external face   B₀[ρΘ]     read in the exterior Γ:
-                             each reveal variable X ↦ its representation A;
+                             each reveal variable X ↦ its representation A, itself read out
+                             through the DEEPER reveals of the same boundary (the reveal
+                             block is a telescope, so ρ is a FOLD, not a lookup: the rep of
+                             ↑Y:=Y′ in ↑Y:=Y′ , ↑Y′:=𝔹 has external face 𝔹, not Y′);
+                             a rep-less reveal ↑X ↦ a dummy (never consulted);
                              every exterior variable (concealed or not) passes through.
 
   internal face   B₀[γΘ]     read in the interior Γ ⇈ Θ:
@@ -161,20 +200,41 @@ see "Old per-variable design" and the historical Example 8 below.)
 # Well-formed Boundaries   Γ ∣ Ψ ⊢ Θ        (Γ the exterior, Ψ = Γ ⇈ Θ the interior)
 
   Each representation is read on the side it belongs to: a reveal's outside, a conceal's
-  inside.
+  inside.  Since a conceal's premise reads back out through the WHOLE boundary, the judgement
+  carries Θ as a parameter and the rules recurse on a suffix; Θ is left implicit below.
 
   (bwf-∅)                                                   ⟹  Γ ∣ Ψ ⊢ ∅
-  (bwf-↑)   Γ ⊢ A      Γ ∣ Ψ ⊢ Θ                            ⟹  Γ ∣ Ψ ⊢ ↑X:=A , Θ
-  (bwf-↓)   Γ ∋ Y      Ψ ⊢ A      Γ ∣ Ψ ⊢ Θ                 ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
+  (bwf-↑)   Γ , X_{i+1} , … , X_r ⊢ A     Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↑X_i:=A , Θ
+  (bwf-⋆)                                 Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↑X , Θ
+  (bwf-↓)   Γ ∋ Y:=A₀     A[ρΘ] = A₀      Ψ ⊢ A
+                                          Γ ∣ Ψ ⊢ Θ         ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
+
+  **(bwf-↑) is TELESCOPIC** (Decision 4's residue (R1)): a reveal's representation is read
+  over the exterior EXTENDED BY THE DEEPER REVEALS of the same boundary, exactly as `Γ, X:=A`
+  reads A over what precedes X.  This is what lets the dual re-introduce a chain of knowledge
+  (Γ = Y:=Y′ , Y′:=𝔹 , X:=ℕ dropped by ↓X:=ℕ) without flattening it first.
+
+  **(bwf-↓) is in REVERSAL FORM** (Decision 3's ruling): a conceal's representation A, READ
+  BACK OUT through the boundary (reveal variables ↦ their external faces, kept interior
+  variables ↦ their exterior index), must be exactly the exterior's own knowledge about Y.
+  Comparing on the OUTSIDE, rather than transporting the knowledge inwards, is what lets the
+  boundary's own reveals be UNFOLDED — which is Zdancewic's (trans) / Δ̄ and is what Merge
+  needs.  It also transports under any monotone renaming with no scope restriction, unlike
+  the interior comparison.
+
+  Consequences.  `bad` and `bad₂` (Metatheory §Progress) are ill typed; a conceal is
+  licensed only against real knowledge, so a Λ-bound variable can never be concealed.
 
 # Boundary-type scope   Θ ; Γ ⊢ᵒᵏ B₀
 
   B₀ is well-scoped over the boundary frame when it names no BLOCKED variable: reveal
-  variables are fine, kept exterior variables are fine, concealed exterior variables are fine
-  (the internal face resolves them), and a dropped-but-not-concealed variable is not.
-  Structural, with ∀-bound variables always accessible:
+  variables WITH a representation are fine, kept exterior variables are fine, concealed
+  exterior variables are fine (the internal face resolves them), and a
+  dropped-but-not-concealed variable is not — nor is a REP-LESS reveal ↑X, whose external
+  face is a dummy.  Structural, with ∀-bound variables always accessible:
 
-  (sc-var)  X is a reveal variable, a kept variable, or a concealed variable  ⟹ Θ;Γ ⊢ᵒᵏ X
+  (sc-var)  X is a reveal variable with a rep, a kept variable, or a concealed variable
+                                                                             ⟹ Θ;Γ ⊢ᵒᵏ X
   (sc-ℕ) (sc-𝔹)                                                              ⟹ Θ;Γ ⊢ᵒᵏ ℕ , 𝔹
   (sc-fun)  Θ;Γ ⊢ᵒᵏ A    Θ;Γ ⊢ᵒᵏ B                                           ⟹ Θ;Γ ⊢ᵒᵏ A→B
   (sc-all)  Θ;(Γ,Z) ⊢ᵒᵏ A                                                    ⟹ Θ;Γ ⊢ᵒᵏ ∀Z.A
@@ -260,19 +320,33 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 # Reduction rules
 
-  V, W range over values; TyWrap's wrapped term is ΛY.V with V a value, and Wrap's is a λ.
+  Reduction is **knowledge-indexed**: the judgement is `Γ ⊢ M -→ M′`, where Γ is the type
+  context in which the redex sits — the very Γ that types it.  Only Wrap consults it, to
+  build the dual; the ξ rules carry it into the sub-term's own context.  V, W range over
+  values; TyWrap's wrapped term is ΛY.V with V a value, and Wrap's is a λ.
 
-  (δ)       n₁ ⊕ n₂                       -→ n                if n = n₁ ⟦⊕⟧ n₂
-  (Beta)    (λx:A. N) · W                 -→ N[x:=W]
-  (TyBeta)  (ΛX. V) @B[A]                 -→ V ⟪ ↑X:=A , B ⟫
-  (TyWrap)  ((ΛY.V) ⟪ Θ , ∀Y.B₀ ⟫) @B[A]  -→ V ⟪ ↑Y:=A , Θ , B₀ ⟫
-  (Wrap)    ((λx:B₁[γΘ]. N) ⟪ Θ , B₁→B₂ ⟫) · W
-                                          -→ N[x := W ⟪ Θᵈ , B₁ ⟫] ⟪ Θ , B₂ ⟫
-  (ξ)       R[M]                          -→ R[M′]            if M -→ M′
-  (Cancel)  (V ⟪ ↓X:=A , B₀ ⟫) ⟪ ↑X:=A′ , B₀′ ⟫  -→ V         if A = A′    [OPTIONAL]
-  (Drop)    V ⟪ ↑X:=A , Θ , B₀ ⟫          -→ V ⟪ Θ , B₀ ⟫     if X ∉ B₀, X ∉ V,
+  (δ)       Γ ⊢ n₁ ⊕ n₂                   -→ n                if n = n₁ ⟦⊕⟧ n₂
+  (Beta)    Γ ⊢ (λx:A. N) · W             -→ N[x:=W]
+  (TyBeta)  Γ ⊢ (ΛX. V) @B[A]             -→ V ⟪ ↑X:=A , B ⟫
+  (TyWrap)  Γ ⊢ ((ΛY.V) ⟪ Θ , ∀Y.B₀ ⟫) @B[A]
+                                          -→ V ⟪ ↑Y:=A↑ , Θ , B₀ ⟫
+  (Wrap)    Γ ⊢ ((λx:B₁[γΘ]. N) ⟪ Θ , B₁→B₂ ⟫) · W
+                                          -→ N[x := W ⟪ Θᵈ(Γ) , B₁ ⟫] ⟪ Θ , B₂ ⟫
+  (ξ-·-l)   Γ ⊢ L -→ L′                   ⟹  Γ ⊢ L · M   -→ L′ · M
+  (ξ-·-r)   Γ ⊢ M -→ M′                   ⟹  Γ ⊢ V · M   -→ V · M′
+  (ξ-@)     Γ ⊢ L -→ L′                   ⟹  Γ ⊢ L @B[A] -→ L′ @B[A]
+  (ξ-Λ)     Γ, X ⊢ N -→ N′                ⟹  Γ ⊢ ΛX.N    -→ ΛX.N′
+  (ξ-⟪⟫)    Γ⇈Θ ⊢ M -→ M′                 ⟹  Γ ⊢ M ⟪ Θ , B₀ ⟫ -→ M′ ⟪ Θ , B₀ ⟫
+  (Cancel)  Γ ⊢ (V ⟪ ↓X:=A , B₀ ⟫) ⟪ ↑X:=A′ , B₀′ ⟫  -→ V     if A = A′    [OPTIONAL]
+  (Drop)    Γ ⊢ V ⟪ ↑X:=A , Θ , B₀ ⟫      -→ V ⟪ Θ , B₀ ⟫     if X ∉ B₀, X ∉ V,
                                                               X ∉ the reps of Θ  [OPTIONAL]
-  (Drop∅)   V ⟪ ∅ , B₀ ⟫                  -→ V                             [OPTIONAL]
+  (Drop∅)   Γ ⊢ V ⟪ ∅ , B₀ ⟫              -→ V                             [OPTIONAL]
+
+  In TyWrap, `A↑` is the type argument A LIFTED past Θ's existing reveal slots: the new
+  reveal is the SHALLOWEST one, and the reveal block is a telescope, so its representation is
+  read over the exterior extended by the deeper reveals.  Its external face is A again, so
+  the rule's result type is unchanged.  In named notation nothing moves — A↑ *is* A.  In
+  Θᵈ(Γ) the ambient Γ is the dual's second argument (below).
 
 ## TyBeta — a boundary is BORN
 
@@ -312,23 +386,38 @@ see "Old per-variable design" and the historical Example 8 below.)
   The λ's annotation is forced by (env) to be the internal face B₁[γΘ].  Partial in the same
   way: a WRAPPER-bodied wrapper at a ⇒ face waits for Merge (Decision 3).
 
-  Θᵈ is the DUAL boundary: it is read from the interior's point of view, so every arrow flips.
+  Θᵈ(Γ) is the AMBIENT DUAL boundary (Decision 4): it is read from the interior's point of
+  view, so every arrow flips, and it takes the ambient context Γ as a second argument.
 
-     each  ↑X:=A  of Θ  becomes  ↓X:=A  of Θᵈ      (X was interior to Θ, so it is exterior to
-                                                    Θᵈ; A was exterior to Θ, i.e. interior to
-                                                    Θᵈ — exactly a conceal rep's home)
+     each  ↑X:=A  of Θ  becomes  ↓X:=A[ρΘ]  of Θᵈ  (X was interior to Θ, so it is exterior to
+                                                    Θᵈ; the rep is X's EXTERNAL FACE — a
+                                                    Γ-type, i.e. a Θᵈ-interior type, exactly
+                                                    a conceal rep's home.  Resolving the
+                                                    telescope here is what a conceal rep,
+                                                    which lives over the whole interior,
+                                                    requires)
      each  ↓Y:=A  of Θ  becomes  ↑Y:=A  of Θᵈ      (Y's slot is rebuilt as a fresh interior
                                                     variable of Θᵈ; A was interior to Θ, i.e.
                                                     exterior to Θᵈ — a reveal rep's home)
+     each BLOCKED slot i    becomes  Γ's OWN ENTRY at i:
+                                     Γ has i:=B  ⟹  ↑i:=B  of Θᵈ
+                                     Γ has i     ⟹  ↑i     of Θᵈ  (rep-less)
 
-  A variable that Θ drops but does not conceal is blocked; it becomes a reveal of Θᵈ with an
-  arbitrary rep (ℕ).  That is sound because (env)'s scope premise forbids B₁ from naming it —
-  so Wrap's preservation must go through the scope-restricted congruence (`subst-cong-sc`),
-  not a pointwise identity of the two faces.
+  The third clause is the point of the ambient dual.  A variable that Θ drops but does not
+  conceal is blocked, and the OLD dual gave it a fabricated representation (ℕ) — which loses
+  the knowledge Γ held about it and breaks preservation as soon as the argument W uses that
+  knowledge (Decision 4's programs P and E, Examples 9 and 10 below).  Copying Γ's entry
+  loses nothing and invents nothing: a Λ-bound slot comes back ABSTRACT, via the rep-less
+  reveal.  No term traversal, no insertion, and every step stays local — which is why
+  reduction is indexed by Γ at all.
 
-  Wrap is exact over exteriors built only from abstract variables, which is everything
-  reachable from a closed program; over a hand-written exterior containing revealed variables
-  the dual may not exist (`no-dual-Γ₃`).
+  The fabricated rep is still what a blocked slot's EXTERNAL face would need, so Wrap's
+  preservation still goes through the scope-restricted congruence (`subst-cong-sc`) with
+  (env)'s scope premise for B₁, not a pointwise identity of the two faces.
+
+  Still open at Wrap: when a reveal's own representation names a slot the SAME boundary
+  blocks, that reveal's interior entry is abstract and the dual's conceal of it is
+  unlicensed — the (R2) residue; see `DualDef.agda` and Metatheory §Preservation.
 
   De Bruijn remark.  The boundary frame of Θᵈ is Θ's frame with the reveal block and the
   dropped block interchanged, so B₁ is renamed by that block swap (`swapᵇ`).  Named notation
@@ -341,8 +430,10 @@ see "Old per-variable design" and the historical Example 8 below.)
   Call-by-value, left to right; also under a Λ and under a boundary.  The last two are not
   bookkeeping: `ΛX.N` is a value only when N is, and `M ⟪ Θ , B₀ ⟫` only when M is, so both
   bodies must be reduced in place.  In the Agda these are five constructors ξ-·-l, ξ-·-r,
-  ξ-·[], ξ-Λ, ξ-⟪⟫; ξ-⟪⟫ recurses at the INTERIOR context, which is why preservation and
-  progress are generalised over Γ rather than fixed at ∅.
+  ξ-·[], ξ-Λ, ξ-⟪⟫; ξ-⟪⟫ recurses at the INTERIOR context and ξ-Λ at `Γ, X`, which is why
+  preservation and progress are generalised over Γ rather than fixed at ∅ — and, now that
+  reduction itself is Γ-indexed, those two rules EXTEND the index by exactly the context the
+  corresponding typing rule extends by, so the two judgements stay in step.
 
 ## Cancel / Drop — optional, NOT in the Agda
 
@@ -393,7 +484,7 @@ optional Cancel/Drop rules; without them the trace stops at a value that is a to
 boundaries around the answer.  Steps marked [D3] use Merge, which is settled but not yet a
 rule (Decision 3): since TyWrap and Wrap consume the Λ / λ they eliminate, a WRAPPER-bodied
 wrapper at an elimination is a Merge redex.  The merged boundary is written Θ₁ ⊕ Θ₂ — its
-entry-level definition is Decision 3's (notes/MergeProbe.agda), not fixed here.
+entry-level definition is Decision 3's (notes/old/MergeProbe.agda), not fixed here.
 
 ## Example 1
 
@@ -490,7 +581,7 @@ entry-level definition is Decision 3's (notes/MergeProbe.agda), not fixed here.
 ## Example 8   (the OLD design's preservation counterexample — now well typed)
 
   This is the program of the historical failure below.  Every term is typed, at ∀Y.Y→Y, in
-  notes/Example8Trace.agda; the labels T0…T5, T4′ are that file's (a historical record of the
+  notes/old/Example8Trace.agda; the labels T0…T5, T4′ are that file's (a historical record of the
   two candidate TyWrap forms, so it still carries the float-inside T4 and T5).  With the rules
   as they now stand the trace goes T0 → T1 → T3 → T4′ and stops: T2 and T4/T5 do not occur.
 
@@ -515,6 +606,51 @@ entry-level definition is Decision 3's (notes/MergeProbe.agda), not fixed here.
   where that form ended in the nested T5.  What is given up is totality: the T3 redex fires
   only because the wrapped value is syntactically a Λ.  Example 3 shows the other case, where
   it is a wrapper and Merge must fire first.
+
+  **[R2]** T4′'s boundary ↑Z:=Y , ↓X:=ℕ is exactly the still-open residue: Z's representation
+  Y names a slot the SAME boundary blocks, so Z's interior entry is ABSTRACT, and if that
+  wrapper is ever the function of an application its dual's conceal ↓Z:=Y has no knowledge to
+  meet.  Here it never is (T4′ is a value of ∀-type whose next elimination is a type
+  application, which TyWrap handles), but nothing rules the shape out in general.
+
+## Example 9   (blocked KNOWLEDGE — what forced the ambient dual)
+
+  Decision 4's program.  Two Λ-bound variables become REVEALED while a sealed value sits
+  under them, so the sealed boundary blocks slots that carry knowledge.
+
+  P = (ΛX. λf:(X→X). ΛY. λw:X. f w) [ℕ] · (λn:ℕ. n) [𝔹] · 3                          : ℕ
+
+  → TyBeta   ((λf. ΛY. λw. f w) ⟪ ↑X:=ℕ , (X→X)→∀Y.X→X ⟫) · (λn.n) [𝔹] · 3
+  → Wrap     ((ΛY. λw. f′ w) ⟪ ↑X:=ℕ , ∀Y.X→X ⟫) [𝔹] · 3      f′ = (λn:ℕ.n)⟪↓X:=ℕ,X→X⟫
+  → TyWrap   ((λw:X. f′ w) ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X→X ⟫) · 3      interior Y′:=𝔹 , X:=ℕ
+  → Wrap     (f′ · W₁) ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X ⟫                 W₁ = 3 ⟪ ↓Y′:=𝔹 , ↓X:=ℕ , X ⟫
+  → Wrap     ((λn:ℕ.n) · (W₁ ⟪ Θᵈ , X ⟫)) ⟪ ↓X:=ℕ , X ⟫ ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X ⟫
+
+  At the last step the sealed f′ meets an argument, at ambient Γ = Y′:=𝔹 , X:=ℕ.  Its
+  boundary ↓X:=ℕ BLOCKS Y′, and W₁ uses Y′'s knowledge (its outer conceal is ↓Y′:=𝔹).  The
+  old dual re-introduced Y′ at the fabricated ℕ, so W₁ did not retype and preservation broke.
+  The ambient dual copies Γ's entry — Θᵈ = ↑Y′:=𝔹 , ↑X:=ℕ, interior Y′:=𝔹 , X:=ℕ = Γ on the
+  nose — and W₁ retypes unchanged.
+
+## Example 10   (why a term traversal will not do)
+
+  Decision 4's forcing example: a type abstraction sits BETWEEN the ΛY and the sealed value,
+  and is evaluated under the Λ before Y's TyWrap can fire.  A "push the knowledge down into
+  the term" repair (option W3) would have to CROSS it, and iterating the gadget makes the
+  crossing depth unbounded.
+
+  E = (ΛX. λf:(X→X). ΛY. (ΛZ. λz:X. f z) [ℕ]) [ℕ] · (λn:ℕ. n) [𝔹] · 3               : ℕ
+
+  → TyBeta ; Wrap ; ξ-Λ TyBeta
+             ((ΛY. ((λz:X. f′ z) ⟪ ↑Z:=ℕ , X→X ⟫)) ⟪ ↑X:=ℕ , ∀Y.X→X ⟫) [𝔹] · 3
+                                                            f′ = (λn:ℕ.n)⟪↓X:=ℕ,X→X⟫
+  → TyWrap   ((λz:X. f′ z) ⟪ ↑Z:=ℕ , X→X ⟫) ⟪ ↑Y:=𝔹 , ↑X:=ℕ , X→X ⟫ · 3
+  → Merge [D3] ; Wrap  …                                     ambient Γ = Z:=ℕ , Y:=𝔹 , X:=ℕ
+  → Wrap     the sealed f′ (boundary still the PLAIN ↓X:=ℕ) meets its argument at that Γ,
+             blocking BOTH Z and Y, both of which carry knowledge
+
+  With the ambient dual the sealed boundary is never touched — it stays ↓X:=ℕ for its whole
+  life — and both knowledge entries are copied at the moment of use.  Zero traversal.
 
 ## Example 8, historical   (why the OLD per-variable design was discarded)
 
@@ -551,21 +687,29 @@ Runtime contexts.
   runtime contexts, with an EMPTY term context.
 
 The interior at work.
-  Only two operations touch the interior: TyWrap grows it by one fresh abstract variable — the
-  slot the consumed Λ used to bind — so conceal reps, which live over the whole interior,
-  shift, while reveal reps do not; and moving a wrapper under a Λ grows the EXTERIOR by one
-  (so conceal indices shift; in named notation, nothing).  Everything else leaves Γ⇈Θ alone;
-  in particular (env)'s premises mention only Θ and B₀, so ξ-⟪⟫ carries them across unchanged.
+  Only two operations touch the interior: TyWrap grows it by one variable — the slot the
+  consumed Λ used to bind, which becomes the new reveal's KNOWLEDGE slot — so conceal reps,
+  which live over the whole interior, shift, while reveal reps do not; and moving a wrapper
+  under a Λ grows the EXTERIOR by one (so conceal indices shift; in named notation, nothing).
+  Everything else leaves Γ⇈Θ alone; in particular (env)'s premises mention only Θ and B₀, so
+  ξ-⟪⟫ carries them across unchanged.
   Note that no rule shifts a TERM: TyWrap's contractum is the Λ-body exactly as it stood, and
-  Wrap's is a term-variable substitution.  Only TYPES (the conceal reps) move.
+  Wrap's is a term-variable substitution.  Only TYPES (the conceal reps, and TyWrap's lift of
+  the type argument into the reveal telescope) move.
 
 Supporting lemmas.
   (L1) Term substitution.  If Γ, x:A, Θ ⊢ N : B and Γ ⊢ V : A (V a value), then
        Γ, Θ ⊢ N[x:=V] : B.  The boundary case is the identity: a boundary body is typed with
        an empty term context, so x ∉ M.  The Λ case needs type-variable renaming (below) at
        the weakening ρ = suc.  Beta uses Θ = ∅.
-  (L2) Type-variable renaming.  If Γ ⊢ M : A and ρ : Γ → Γ′ preserves lookup AND IS MONOTONE,
-       then Γ′ ⊢ ρM : ρA.  Monotonicity is not a convenience: the interior of a boundary is
+  (L2) Type-variable renaming.  If Γ ⊢ M : A and ρ : Γ → Γ′ preserves lookup, IS MONOTONE,
+       and TRANSPORTS KNOWLEDGE (Γ ∋ X:=A₀ ⟹ Γ′ ∋ ρX:=ρ↓A₀, where ρ↓ is the renaming ρ
+       induces on X's prefix), then Γ′ ⊢ ρM : ρA.  The third premise is new with the
+       reversal-form (bwf-↓), which reads the exterior's knowledge; it holds at the weakening
+       ρ = suc (the induced prefix renaming is the identity) and extends under a Λ.  The
+       boundary case must then also show that the INTERIOR's knowledge entries ⟦A⟧ transport,
+       which is where the two guards on ⟦·⟧ earn their keep.
+       Monotonicity is not a convenience: the interior of a boundary is
        determined by the ORDER of the indices (a single restriction at the deepest conceal),
        so a renaming that permuted indices could shrink a conceal's interior and strand a
        variable.  In the Agda (`⊢renameᵀ`) the boundary case renames the conceal indices and
@@ -579,24 +723,38 @@ Supporting lemmas.
        slots harmless: the faces need only agree where B₀ can look.
   (L-wf) Typing ⇒ well-formedness ⇒ scope.  A derivable Γ ⊢ M : A has Γ ⊢ A, and a
        well-formed type over the boundary frame is well-scoped — this is how the (env) premise
-       Θ;Γ ⊢ᵒᵏ B₀ is discharged in the cases where no reduction rule supplies it.
+       Θ;Γ ⊢ᵒᵏ B₀ is discharged in the cases where no reduction rule supplies it.  With the
+       telescopic (bwf-↑) the "external face is well formed" step is itself a substitution
+       lemma (the face is a fold), not a lookup.
+  (L-≼) Retagging along KNOWLEDGE GROWTH.  Write Γ ≼ Γ′ for "entrywise, an abstract entry
+       sits below anything and a knowledge entry below itself"; then Γ ⊢ M : A ⟹ Γ′ ⊢ M : A.
+       Typing now READS the abst/X:=A distinction (a conceal is licensed by knowledge), so it
+       no longer transports along a context of the same LENGTH — ≼ is the replacement.  It is
+       used three times: TyBeta and TyWrap turn the consumed Λ's ABSTRACT slot into the new
+       reveal's knowledge slot, and Wrap retypes the argument in the dual's rebuild of Γ.
 
   Inversion of (env): from Γ ⊢ M ⟪ Θ , B₀ ⟫ : C we get Γ ∣ (Γ⇈Θ) ⊢ Θ, Θ;Γ ⊢ᵒᵏ B₀,
   Γ⇈Θ ⊢ M : B₀[γΘ], and C = B₀[ρΘ].
 
 ## Preservation
 
-Γ ⊢ M : A  (Γ runtime)  and  M -→ M′   ⟹   Γ ⊢ M′ : A.
+Γ ⊢ M : A  (Γ runtime)  and  Γ ⊢ M -→ M′   ⟹   Γ ⊢ M′ : A.
+
+The SAME Γ indexes both judgements — which is exactly why ξ-Λ and ξ-⟪⟫ had to extend the
+reduction's index by the context the corresponding typing rule extends by.
 
 Proved in the Agda (BPreservation.agda) for every rule: Beta, TyBeta, TyWrap, Wrap and the
-five ξ congruences.
+five ξ congruences.  Wrap's case is proved MODULO three statements about the ambient dual
+(DualDef.agda); everything else, including both of Wrap's face laws, is unconditional.
 
   Beta.       (L1).  Substitution is the identity on boundaries (their bodies are term-closed),
               and the Λ case of the substitution lemma is (L2) at ρ = suc, whose monotonicity
               premise is immediate.  This is the only case where a term variable appears.
   TyBeta.     Inversion of (tapp) and (tlam): Γ, X ⊢ V : B and Γ ⊢ A, result B[X:=A].  The
-              new boundary is ↑X:=A: (bwf-↑) from Γ ⊢ A; the interior is Γ,X, where V is
-              already typed; the internal face of B is B itself (a reveal variable passes
+              new boundary is ↑X:=A: (bwf-↑) from Γ ⊢ A; the interior is Γ, X:=⟦A⟧, where V
+              is typed by (L-≼) from Γ, X (abstract ≼ knowledge — the ONLY thing that
+              changes with the knowledge interiors); the internal face of B is B itself
+              (a reveal variable passes
               through γ) and the external face is B[X:=A] — the two face equations.  The scope
               premise Θ;Γ ⊢ᵒᵏ B is not supplied by the rule and is discharged by (L-wf) from
               the typing of V.  This is the case that makes preservation need the wf/scope
@@ -605,8 +763,11 @@ five ξ congruences.
               B₀ = ∀Y.B₀′ and the redex's annotation B is FORCED to be the ∀-body of the
               external face.  Inverting (tlam) on the (env) body premise — whose type is the
               internal face ∀Y.(B₀′[γΘ]) — gives the Λ-body typed at Γ⇈Θ, Y with the internal
-              face of B₀′.  That is ALREADY the contractum's interior and interior face, so
-              the body is transported by two equations and nothing renames it.  Four face
+              face of B₀′.  That is ALREADY the contractum's interior (up to (L-≼): the Λ's
+              abstract slot becomes the new reveal's knowledge slot) and interior face, so
+              the body is transported by (L-≼) and two equations and nothing renames it.
+              The type argument is LIFTED into the reveal telescope, and that lift's own
+              well-formedness is a weakening.  Four face
               laws do the work, all machine-checked: (i) the internal face of the SHIFTED
               boundary equals the extension of the old internal face — AT EVERY SLOT, blocked
               ones included, so the rule needs no scope side condition; (ii) the external face
@@ -618,13 +779,30 @@ five ξ congruences.
   Wrap.       Inversion of (app) and (env): B₀ = B₁→B₂, the argument W has the external face
               B₁[ρΘ], and inverting (lam) on the body premise — whose type is the internal
               face B₁[γΘ] → B₂[γΘ] — forces the λ's annotation to B₁[γΘ] and gives its body
-              at the term context x:B₁[γΘ].  The dual boundary Θᵈ has the wrapper's interior
-              as its exterior and (over an all-abstract exterior) the original Γ as its
-              interior, so W ⟪ Θᵈ , B₁ ⟫ types at the interior with internal face B₁[γΘ] —
-              exactly the annotation.  The two faces of B₁ under Θᵈ are the two faces under Θ
-              with the sides exchanged, EXCEPT at blocked slots, where the dummy rep makes
-              them differ; (L-sc) with the scope premise on B₁ makes that difference
-              irrelevant.  Then (L1) at that argument, and (env) at B₂.
+              at the term context x:B₁[γΘ].  The ambient dual Θᵈ(Γ) has the wrapper's
+              interior as its exterior and rebuilds Γ as its interior, so W ⟪ Θᵈ , B₁ ⟫ types
+              at the interior with internal face B₁[γΘ] — exactly the annotation.  The two
+              faces of B₁ under Θᵈ are the two faces under Θ with the sides exchanged, EXCEPT
+              at blocked slots, where the re-introduced entry makes them differ; (L-sc) with
+              the scope premise on B₁ makes that difference irrelevant.  BOTH face laws are
+              theorems.  Then (L1) at that argument, and (env) at B₂.
+
+              THREE facts about the dual are NOT proved and are the module parameters of
+              `DualDef.agda` (the repo's `…Def` convention):
+
+                DualRep — every re-introduced KNOWLEDGE rep is well formed in the dual's
+                          telescope.  This is a fact about the well-formedness of Γ itself,
+                          which the preservation statement does not carry; the CONCEALED and
+                          the Λ-BOUND slots of the reveal block ARE proved (dual-rep-conc and
+                          the rep-less reveal's absent premise), and `bwf-dualᴳ` assembles
+                          the whole reveal block from this one gap.
+                DualCnc — the dual's CONCEAL block: Θ's interior knows each reveal variable,
+                          and Θ's external face for it reads back to that knowledge.  This is
+                          the [R2] residue: false exactly when a reveal's rep names a slot
+                          the same boundary blocks (Example 8's T4′).
+                DualInt — the rebuild law, Γ ≼ (Γ⇈Θ)⇈Θᵈ.  Its Λ-bound and abstract slots are
+                          exact by construction; the others need the same round trip as
+                          DualCnc, one level out.
   ξ.          One induction hypothesis under the corresponding typing rule.  Two change
               context: under Λ the IH is at Γ,X (the term context stays empty), and under a
               boundary the IH is at the INTERIOR Γ⇈Θ — a different context, which is why the
@@ -635,7 +813,7 @@ five ξ congruences.
 
 ## Progress
 
-Γ ⊢ M : A  (Γ runtime, empty term context)   ⟹   M is a value  or  M -→ M′.
+Γ ⊢ M : A  (Γ runtime, empty term context)   ⟹   M is a value  or  Γ ⊢ M -→ M′.
 
   Canonical forms.  A value of type ℕ is a numeral or a wrapper; of type A→B a λ or a wrapper;
   of type ∀X.C a Λ or a wrapper; of a VARIABLE type it must be a wrapper whose B₀ is a
@@ -659,33 +837,35 @@ five ξ congruences.
   steps by Beta / TyBeta (unwrapped head) or Wrap / TyWrap / Merge (wrapped head); Λ N and
   M ⟪ Θ , B₀ ⟫ reduce their body by ξ, and are values once the body is.
 
-  THE OPEN OBSTRUCTION — rep inconsistency (notes/BoundaryRules.md §4).  (env) records one B₀
-  per wrapper and derives both faces, but it cannot relate a conceal ↓X:=A to the rep of the
-  REVEAL that binds X — that reveal lives on an ENCLOSING wrapper, so no local premise could
-  see it.  Hence the closed, well-typed value
+  THE OBSTRUCTION THAT WAS — rep inconsistency (notes/BoundaryRules.md §4), now CLOSED.
+  The old (env) recorded one B₀ per wrapper and derived both faces, but could not relate a
+  conceal ↓X:=A to the rep of the REVEAL that binds X — that reveal lives on an ENCLOSING
+  wrapper, so no local premise saw it.  Hence the closed, well-typed value
 
      bad  =  (7 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↑X:=(∀Z.Z→Z) , X ⟫        :  ∀Z.Z→Z
 
-  whose entire content is the numeral 7.  The outer boundary reveals X with rep ∀Z.Z→Z, so its
-  external face is ∀Z.Z→Z; the inner boundary conceals that same X with the INCONSISTENT rep
-  ℕ, so its internal face is ℕ and 7 type-checks.  Now bad @(Z→Z)[ℕ] : ℕ→ℕ is well typed, is
-  not a Λ, and its B₀ is a variable — so TyWrap does not apply (and neither did the old
-  float-inside form);
-  Cancel would produce 7 : ∀Z.Z→Z, which is false; and no merge rule can help, since the
-  composite of the two boundaries would have to have two coinciding faces that must be ℕ and
-  ∀Z.Z→Z.  So progress is NOT provable from (env) alone.  bad is unreachable (Wrap's conceals
-  come from the dual, which copies the reveal's own rep), leaving three routes:
+  whose entire content is the numeral 7: the outer boundary revealed X at ∀Z.Z→Z while the
+  inner concealed it at the INCONSISTENT ℕ, and `bad @(Z→Z)[ℕ] : ℕ→ℕ` was well typed, not a
+  Λ, with a variable B₀ — stuck.
 
-    1. state progress for a reachable class — a companion predicate "every conceal matches its
-       enclosing reveal", which is against the standing grounded-invariants design law;
-    2. ground the invariant in the relation: let a reveal put a REVEALED entry X:=A (not an
-       abstract X) into the interior, and let (bwf-↓) demand Γ ∋ Y:=A.  This kills bad and
-       legitimises the dual's conceals.  Wrinkle: a reveal rep is read in the exterior and may
-       name a blocked variable, in which case the entry can only be abstract — and the
-       pathology returns exactly there;
-    3. accept it and prove progress only for the image of a source program.
+  This is what the KNOWLEDGE INTERIORS plus the REVERSAL-FORM (bwf-↓) fix, in the relation
+  and not by a companion predicate: the outer reveal puts X:=⟦∀Z.Z→Z⟧ into the interior, and
+  the inner conceal must read its rep BACK OUT to exactly that.  ℕ does not, so `bad` is
+  ill typed — machine-checked in Boundary.agda (`¬⊢bad`), together with the subtler `bad₂`,
+  which the untransported comparison still admitted.  A conceal is now licensed only against
+  real knowledge, so a Λ-bound variable can never be concealed at all.
 
-  The Agda keeps this as a labelled hole in Progress.agda.
+  WHAT REMAINS OPEN in progress.  Four cases, all module parameters of ProgressDef.agda,
+  none of them the old inconsistency:
+
+    RevealVarApp / RevealVarTApp — the wrapper's B₀ is a REVEAL VARIABLE.  Its external face
+      is that reveal's rep, which can be ⇒- or ∀-shaped, so the term IS at an elimination;
+      what fires is a Merge or a Cancel against the enclosing boundary.
+    NestedApp / NestedTApp — a WRAPPER-bodied wrapper at a ⇒ / ∀ face.  Merge (Decision 3)
+      discharges both uniformly.
+
+  So progress reduces to Merge, and Merge to "retyping along unfolding" (Zdancewic's Δ̄) —
+  which the reversal form was chosen to make possible.
 
 # Correspondence with the Agda   (SystemF/agda/strong/)
 
@@ -695,30 +875,40 @@ five ξ congruences.
   -------------------------  -----------------------------------------  --------------
   M ⟪ Θ , B₀ ⟫               _⟪_,_⟫                                     Boundary.agda
   ↑X:=A                      rvl A                                      Boundary.agda
+  ↑X       (rep-less)        rvl⋆                                       Boundary.agda
   ↓Y:=A                      cnc Y A                                    Boundary.agda
   Θ                          BCtx = List BEntry                         Boundary.agda
-  Γ ⇈ Θ  (interior)          intOf Δ Θ = prepAbst (revs Θ) (dropN (cmax Θ) Δ)
+  Γ ⇈ Θ  (interior)          intOf Δ Θ = revEnts Θ 0 Θ ++ dropN (cmax Θ) Δ
+  ⟦A⟧  (knowledge entry)     ⟦_⟧ᵉ  (guards bfree / dfree; rawRead, dnT)  Boundary.agda
   Γ ↓ X  (prefix)            _↓_                                        Context.agda
   B₀[γΘ] (internal face)     substᵗ (γᵇ Θ) B₀                           Boundary.agda
-  B₀[ρΘ] (external face)     substᵗ (ρᵇ Θ) B₀                           Boundary.agda
+  B₀[ρΘ] (external face)     substᵗ (ρᵇ Θ) B₀   (a FOLD: telescopic)    Boundary.agda
+  A[ρΘ] = A₀  (reversal)     Reversal Θ X A A₀ = outRead Θ A ≡ upRep X A₀
   Θ;Γ ⊢ᵒᵏ B₀ (scoped)        Scoped (baseS Θ Δ) B₀                      Boundary.agda
-  Γ ∣ Ψ ⊢ Θ                  _∣_⊢ᵇ_  (bwf[], bwf↑, bwf↓)                Boundary.agda
+  Γ ∣ Ψ ⊢ Θ                  _∣_⊢ᵇ_  (bwf[], bwf↑, bwf⋆, bwf↓)          Boundary.agda
   (env)                      env                                        Boundary.agda
   L @B[A]                    L ·[ B , A ]        (⊢·[])                 Boundary.agda
-  Beta                       Beta                                        BReduction.agda
-  TyBeta                     TyBeta                                        BReduction.agda
-  TyWrap                     TyWrap   (R1)                             BReduction.agda
-  Wrap                       Wrap     (R2)                             BReduction.agda
-  Merge                      — not yet a rule; the four open progress  ProgressDef.agda
+  Γ ⊢ M -→ M′                _⊢_-→_                                     BReduction.agda
+  Beta                       Beta                                       BReduction.agda
+  TyBeta                     TyBeta                                     BReduction.agda
+  TyWrap  (A↑ = the lift)    TyWrap   (R1)                              BReduction.agda
+  Wrap                       Wrap     (R2)                              BReduction.agda
+  Merge                      — not yet a rule; the four open progress   ProgressDef.agda
                                cases are its module parameters
-  ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫            BReduction.agda
+  ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫             BReduction.agda
   Cancel / Drop              — not in the Agda (optional; see above)
-  Θᵈ (dual)                  dualᵇ Θ / swapᵇ Θ                          notes/BoundaryRulesProbe
-  L2 (monotone renaming)     ⊢renameᵀ (premise `Mono ρ`)                BReduction.agda
+  Θᵈ(Γ)  (ambient dual)      dualᴳ Δ Θ / entᴳ / swapᵇ Θ                 BReduction.agda
+  dual face laws             ρᵇ-dual-ty, γᵇ-dual-ty, sc-dual            BReduction.agda
+  dual well-formedness       bwf-dualᴳ + DualRep, DualCnc, DualInt      DualDef.agda
+  L2 (monotone renaming)     ⊢renameᵀ (premises `Mono ρ` and ∋:=)       BReduction.agda
   L-sc                       subst-cong-sc                              Boundary.agda
+  L-≼ (retagging)            _≼_, ⊢retag                                BReduction.agda
   L-wf                       ⊢ty-wf, wf→Scoped, scB-bridge              ScopeBridge.agda
-  L1                         ⊢substᵀᵐ, ⊢[]ᵐ, preserve-Beta               TermSubst.agda
-  Example 8 trace (T0…T5)    notes/Example8Trace.agda
+  L1                         ⊢substᵀᵐ, ⊢[]ᵐ, preserve-Beta              TermSubst.agda
+  bad / bad₂ refuted         ¬⊢bad, ¬Reversal-bad₂                      Boundary.agda
+  Example 8's T4′ boundary   Θ₈  (the [R2] shape)                       Boundary.agda
+  Examples 9, 10  (P, E)     Γp/Θp (chained dual), Δm/Θm (rep-less)     BReduction.agda
+  design-path probes         notes/old/*Probe.agda — do NOT compile
   old design (historical)    Terms/Typing/Reduction, notes/old/Scratch7-9.agda
 
   Named vs de Bruijn.  The Agda differences that named notation hides:

@@ -1,7 +1,7 @@
 # Boundary-manipulation rules — decision memo
 
 For Jeremy. Everything asserted here is machine-checked in
-`notes/BoundaryRulesProbe.agda` (`agda --safe -v0` clean, no holes, no
+`notes/old/BoundaryRulesProbe.agda` (`agda --safe -v0` clean, no holes, no
 postulates); section numbers below point at that file. Nothing in
 `BReduction.agda` is imported or changed.
 

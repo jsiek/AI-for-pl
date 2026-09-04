@@ -1,4 +1,13 @@
-module strong.notes.BoundaryRulesProbe where
+module strong.notes.old.BoundaryRulesProbe where
+
+-- SUPERSEDED 2026-09-04 by the ambient-dual install (knowledge
+-- interiors, reversal-form conceal, telescopic reveal block,
+-- Γ-indexed reduction with dualᴳ).  The surviving content — the
+-- bad/bad₂ refutations, the face laws, the dual's read-back — now
+-- lives in strong.Boundary / strong.BReduction; this file is kept as
+-- a record of the design path and does NOT compile against the
+-- current core.
+
 
 -- DESIGN PROBE (not part of the development).  Candidate boundary-
 -- manipulation rules for the combined boundary  M ⟪ Θ , B₀ ⟫  (PLAN §4),

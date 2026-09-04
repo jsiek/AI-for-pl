@@ -1,4 +1,13 @@
-module strong.notes.MergeProbe where
+module strong.notes.old.MergeProbe where
+
+-- SUPERSEDED 2026-09-04 by the ambient-dual install (knowledge
+-- interiors, reversal-form conceal, telescopic reveal block,
+-- Γ-indexed reduction with dualᴳ).  The surviving content — the
+-- bad/bad₂ refutations, the face laws, the dual's read-back — now
+-- lives in strong.Boundary / strong.BReduction; this file is kept as
+-- a record of the design path and does NOT compile against the
+-- current core.
+
 
 -- DESIGN PROBE (not part of the development) for DECISIONS.md Decision 3:
 -- the boundary composition  Θ₁ ⊕ Θ₂  behind Zdancewic et al.'s rule (8),
@@ -55,7 +64,7 @@ open import strong.BReduction
          TyBeta; Beta; TyWrap; Wrap; ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫;
          repOf; dualᵇ; shiftReps; polyid; ∀ZZ;
          prepId-lo; prepId-hi; split; acc-of; baseS-acc)
-open import strong.notes.GroundedProbe
+open import strong.notes.old.GroundedProbe
   using (intOf′; revEnts; _∣_⊢ᵇ′_; bwf[]′; bwf↑′; bwf↓′;
          _∣_⊢′_⦂_; ⊢`′; ⊢$′; ⊢ƛ′; ⊢·′; ⊢Λ′; ⊢·[]′; env′;
          _≼_; ≼[]; ≼abst; ≼rvld; ≼-refl; ⊢retag′; cancel-agree;

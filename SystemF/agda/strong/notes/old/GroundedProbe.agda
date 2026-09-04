@@ -1,4 +1,13 @@
-module strong.notes.GroundedProbe where
+module strong.notes.old.GroundedProbe where
+
+-- SUPERSEDED 2026-09-04 by the ambient-dual install (knowledge
+-- interiors, reversal-form conceal, telescopic reveal block,
+-- Γ-indexed reduction with dualᴳ).  The surviving content — the
+-- bad/bad₂ refutations, the face laws, the dual's read-back — now
+-- lives in strong.Boundary / strong.BReduction; this file is kept as
+-- a record of the design path and does NOT compile against the
+-- current core.
+
 
 -- DESIGN FEASIBILITY PROBE (not part of the development) for DECISIONS.md
 -- Decision 1, Option 1a — "grounded reps": a reveal puts a REVEALED entry

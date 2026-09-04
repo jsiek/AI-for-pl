@@ -10,6 +10,9 @@ module strong.ProgressDef where
 --               are partial in their body (they consume a Λ / a ƛ), so a
 --               wrapper body is a Merge redex (Decision 3).
 --
+-- Each is stated over the KNOWLEDGE-INDEXED reduction relation: the redex
+-- sits at the type context Δ that also types it.
+--
 -- strong.Progress is parameterised over these statements (the repo's `…Def`
 -- convention) and is instantiated once they are proven.  Merge discharges the
 -- Nested… pair uniformly: the contractum is the merged wrapper back under the
@@ -22,19 +25,19 @@ open import Data.List using ([])
 open import strong.Types
 open import strong.Context using (TCtx)
 open import strong.Boundary
-open import strong.BReduction using (Value; _-→_)
+open import strong.BReduction using (Value; _⊢_-→_)
 
 -- (V ⟪ Θ , X ⟫) · W steps, when X is a reveal variable of Θ and both are values
 RevealVarApp : Set
 RevealVarApp = ∀ {Δ : TCtx} {V W : Term} {Θ : BCtx} {X : ℕ} {A B : Ty}
   → Value V → Value W → Δ ∣ [] ⊢ V ⟪ Θ , ` X ⟫ ⦂ (A ⇒ B) → X < revs Θ
-  → Σ Term λ M′ → (V ⟪ Θ , ` X ⟫) · W -→ M′
+  → Σ Term λ M′ → Δ ⊢ (V ⟪ Θ , ` X ⟫) · W -→ M′
 
 -- (V ⟪ Θ , X ⟫) ·[ B , A ] steps, when X is a reveal variable of Θ
 RevealVarTApp : Set
 RevealVarTApp = ∀ {Δ : TCtx} {V : Term} {Θ : BCtx} {X : ℕ} {B A : Ty}
   → Value V → Δ ∣ [] ⊢ V ⟪ Θ , ` X ⟫ ⦂ `∀ B → X < revs Θ
-  → Σ Term λ M′ → (V ⟪ Θ , ` X ⟫) ·[ B , A ] -→ M′
+  → Σ Term λ M′ → Δ ⊢ (V ⟪ Θ , ` X ⟫) ·[ B , A ] -→ M′
 
 -- a wrapper-bodied wrapper at ⇒ face steps (Merge, Decision 3): Wrap
 -- consumes the ƛ, so a wrapper body is not a Wrap redex
@@ -42,7 +45,7 @@ NestedApp : Set
 NestedApp = ∀ {Δ : TCtx} {V W : Term} {Θ₁ Θ₂ : BCtx} {B₁ B₀₂ A B : Ty}
   → Value V → Value W
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₀₂ ⟫ ⦂ (A ⇒ B)
-  → Σ Term λ M′ → ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₀₂ ⟫) · W -→ M′
+  → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₀₂ ⟫) · W -→ M′
 
 -- a wrapper-bodied wrapper at ∀ face steps (Merge, Decision 3): TyWrap
 -- consumes the Λ, so a wrapper body is not a TyWrap redex
@@ -50,4 +53,4 @@ NestedTApp : Set
 NestedTApp = ∀ {Δ : TCtx} {V : Term} {Θ₁ Θ₂ : BCtx} {B₁ B₀₂ B A : Ty}
   → Value V
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₀₂ ⟫ ⦂ `∀ B
-  → Σ Term λ M′ → ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₀₂ ⟫) ·[ B , A ] -→ M′
+  → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₀₂ ⟫) ·[ B , A ] -→ M′

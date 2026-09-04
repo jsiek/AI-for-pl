@@ -1,9 +1,15 @@
 # Strong System F — handoff plan (finishing preservation & progress)
 
-Status as of the `strong-preservation` branch (PR #189), 2026-09-03. This document is the
-authoritative handoff: it captures the design that is now settled, exactly what
-compiles, and the ordered chain of work to close **preservation** and then
-**progress**.
+Status as of the `strong-preservation` branch (PR #189), **2026-09-04 (ambient-dual
+install)**. This document is the authoritative handoff: it captures the design that is now
+settled, exactly what compiles, and the ordered chain of work to close **preservation** and
+then **progress**.
+
+**What landed on 2026-09-04** (notes/DECISIONS.md, Decisions 1/3/4): grounded **knowledge
+interiors** `⟦A⟧`, the **rep-less abstract reveal** `rvl⋆`, the **telescopic reveal block**,
+the **reversal-form** conceal premise, and **Γ-indexed reduction with the ambient dual
+`dualᴳ`**. `make -C strong check` is green; the residue is three `DualDef` parameters plus
+the four `ProgressDef` ones.
 
 ## 0. What "Strong System F" is
 
@@ -30,20 +36,23 @@ rule shapes are guidance only and may change considerably.
 | file | role | status |
 |---|---|---|
 | `Boundary.agda` | boundary syntax, projections, scope machinery, typing (`_∣_⊢_⦂_`, `env`) | ✅ 0 holes |
-| `BReduction.agda` | values, `_-→_` (TyBeta, Beta, TyWrap, Wrap, ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫), type-var renaming through boundaries, `⊢renameᵀ`, shift/dual boundary lemmas, `⊢retag` | ✅ 0 holes |
+| `BReduction.agda` | values, `_⊢_-→_` (TyBeta, Beta, TyWrap, Wrap, ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫), `dualᴳ`, type-var renaming through boundaries, `⊢renameᵀ`, the ⟦·⟧-transport chain, shift/dual boundary lemmas, `_≼_`/`⊢retag` | ✅ 0 holes |
 | `ScopeBridge.agda` | `⊢ty-wf`, `wf→Scoped`, `env-ext-wf`, `scB-bridge` (§3b) | ✅ 0 holes |
 | `TermSubst.agda` | `⊢renameᵀᵐ`, `⊢substᵀᵐ`, `⊢[]ᵐ`, `preserve-Beta` (§3c) | ✅ 0 holes |
-| `BPreservation.agda` | `preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A`, all current rules | ✅ 0 holes |
+| `BPreservation.agda` | `module Impl (dual-rep dual-cnc dual-int)`: `preservation : Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A`, all current rules | ✅ 0 holes |
 | `Canonical.agda` | canonical forms `canon-ℕ/⇒/∀`, `canon-var`, `Value-renameᵀ` (§5; 5 of 6 ground by REALLMS) | ✅ 0 holes |
-| `ProgressDef.agda`, `Progress.agda` | `progress` for all rules; module `Impl` is parameterised over the two reveal-variable cases stated in `ProgressDef` (`RevealVarApp`, `RevealVarTApp`), to be instantiated after Decisions 1/3 land | ✅ 0 holes |
+| `DualDef.agda` | the ambient dual's well-formedness: `repOf-wf`, `dual-rep-conc`, `bwf-dualᴳ` PROVEN; `DualRep`, `DualCnc`, `DualInt` stated (the (R2) residue) | ✅ 0 holes |
+| `ProgressDef.agda`, `Progress.agda` | `progress` for all rules over `Δ ⊢ M -→ M′`; module `Impl` is parameterised over the four cases stated in `ProgressDef` (`RevealVarApp`, `RevealVarTApp`, `NestedApp`, `NestedTApp`), to be instantiated once Merge lands | ✅ 0 holes |
 | `All.agda` | aggregate driver — now points at the NEW design | ✅ |
-| `notes/BoundaryRules.md`, `notes/BoundaryRulesProbe.agda` | §4 rule design memo + machine-checked probe (R1/R2, dual, `bad`) | ✅ probe checks |
+| `notes/BoundaryRules.md`, `notes/DECISIONS.md` | §4 rule design memo; the decision record (1–4) with the (R1)/(R2) residues | ✅ |
+| `notes/old/*Probe.agda`, `notes/old/Example8Trace.agda` | the design-path probes (Grounded, Reversal, Merge, AmbientDual, BoundaryRules, Example 8). **Superseded 2026-09-04; they do NOT compile against the current core** and are kept only as a record — their surviving content is now in `Boundary.agda`/`BReduction.agda` | 📄 record |
 | `ScratchGamma.agda`, `ScratchBlocked.agda` | evidence for the two design findings (§2) | ✅ |
 | `notes/old/Scratch7/8/9.agda` | machine-checked unsoundness of the OLD design (Example 8) | ✅ keep |
 
-**Preservation is closed** for the current relation and **`make check` passes**
-(2026-09-04): the old design moved under `notes/old/`, old `Examples`/`Preservation`
-deleted, and the two open progress cases are module parameters (`ProgressDef`).
+**Preservation is closed** for the current relation modulo the three `DualDef`
+parameters, and **`make check` passes** (2026-09-04, post-install): the old design and the
+design-path probes live under `notes/old/`, and the open cases are module parameters
+(`DualDef`, `ProgressDef`) — no holes, no postulates anywhere under `strong/`.
 
 ## 1b. OLD design (DISCARDED) vs NEW design — read this first
 
@@ -88,11 +97,39 @@ boundary — do not copy them verbatim.
 
 ## 2. Settled design (do not relitigate)
 
-- **Delta-indexed boundary.** `BEntry = rvl (A : Ty) | cnc (X : ℕ) (A : Ty)`; `BCtx = List BEntry`. Reveal rep `A` over the exterior `Γ`; conceal index `X` a whole-`Γ` de Bruijn index, rep `A` over the interior.
+- **Delta-indexed boundary.** `BEntry = rvl (A : Ty) | rvl⋆ | cnc (X : ℕ) (A : Ty)`; `BCtx = List BEntry`. Reveal rep `A` over the exterior `Γ` **extended by the deeper reveals of the same boundary** (telescopic); `rvl⋆` is the rep-less abstract reveal; conceal index `X` a whole-`Γ` de Bruijn index, rep `A` over the interior.
 - **B₀ typing (`env`), not a consistency premise.** Record one boundary type `B₀`; derive both faces: internal `= substᵗ (γᵇ Θ) B₀`, external `= substᵗ (ρᵇ Θ) B₀`. No `τ(A)=σ(B)` premise.
-- **Whole-`Γ` tight interior.** `intOf Γ Θ = prepAbst (revs Θ) (dropN (cmax Θ) Γ)` — reveals prepended over "everything deeper than the deepest conceal" (`cmax = 1 + max conceal index`). This is the **Example-8 soundness fix**: variables shallower than the deepest conceal are intentionally **blocked** (inaccessible in the interior). Conceal indices are whole-`Γ`-relative → renaming is uniform.
-- **Projections.** `ρᵇ` (reveal-resolve): reveal var ↦ rep, others pass through. `γᵇ Θ = prepId (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ)`: reveal var passes through, concealed index ↦ its rep (**unshifted** — reps live over the whole interior and may mention reveal vars), kept index ↦ its interior slot `` ` (revs + (i ∸ cmax)) ``.
+- **Whole-`Γ` tight interior, with KNOWLEDGE.** `intOf Γ Θ = revEnts Θ 0 Θ ++ dropN (cmax Θ) Γ` — the reveal block's entries prepended over "everything deeper than the deepest conceal" (`cmax = 1 + max conceal index`). This is the **Example-8 soundness fix**: variables shallower than the deepest conceal are intentionally **blocked** (inaccessible in the interior). Conceal indices are whole-`Γ`-relative → renaming is uniform.
+- **Projections.** `ρᵇ` (reveal-resolve): reveal var ↦ its rep RESOLVED THROUGH THE DEEPER REVEALS (a fold, not a lookup — the telescopic reveal block), `rvl⋆` ↦ a dummy, others pass through. `γᵇ Θ = prepId (revs Θ) (γcnc (revs Θ) (cmax Θ) Θ)`: reveal var passes through, concealed index ↦ its rep (**unshifted** — reps live over the whole interior and may mention reveal vars), kept index ↦ its interior slot `` ` (revs + (i ∸ cmax)) ``.
 - **Scope premise on `env`.** `Scoped (baseS Θ Δ) B₀` forbids `B₀` from naming a **blocked** slot. `baseS` marks each bframe slot `ok`/`blk`; `Scoped`/`_∋ok_` is a wf judgment that only accepts `ok` slots (binders push `ok`). `subst-cong-sc` is the scope-restricted `subst-cong` — it needs the pointwise equality only at `ok` slots, which is what makes `γcnc-comm`'s failure at blocked indices irrelevant.
+
+### Settled 2026-09-04 (notes/DECISIONS.md, Decisions 1, 3, 4) — INSTALLED, do not relitigate
+
+- **Grounded knowledge interiors (Decision 1, refined).** A reveal contributes the knowledge
+  entry `X:=⟦A⟧`, the interior reading of its rep, read as a TELESCOPE entry. Two total
+  guards fall back to `abst`: `bfree` (the rep names a BLOCKED slot) and `dfree` (the reading
+  names a reveal slot at or above this one, so it is not a legal telescope entry — this guard
+  is what makes the entries stable under renaming, i.e. what makes `⊢renameᵀ` provable).
+- **Reversal-form (bwf-↓) (Decision 3's ruling).** `Γ ∋ Y:=A₀`, `Reversal Θ Y A A₀` (the
+  conceal's rep read BACK OUT through the whole boundary equals the exterior's knowledge),
+  `Ψ ⊢ A`. Comparing on the outside unfolds the boundary's own reveals — Zdancewic's (trans)
+  — which is what Merge needs; it also transports under any monotone renaming with no scope
+  restriction. `bad`/`bad₂` are refuted in `Boundary.agda`. Boundary well-formedness carries
+  the whole `Θ` as a parameter and recurses on a suffix.
+- **Telescopic reveal block (Decision 4's residue (R1)).** `(bwf-↑)` reads a reveal's rep over
+  the exterior extended by the DEEPER reveals of the same boundary. Consequence for `TyWrap`:
+  the new reveal is the shallowest, so the type argument is LIFTED past the existing reveals
+  (`renameᵗ (revs Θ +_) A`); its external face is `A` again (`ρᵇ-lift`), and this is a TYPE
+  shift, so the no-term-shift principle stands.
+- **Γ-indexed reduction and the ambient dual (Decision 4).** `_⊢_-→_ : TCtx → Term → Term →
+  Set`; `ξ-⟪⟫` extends by `intOf Δ Θ`, `ξ-Λ` by `abst`, the rest pass Δ through. `Wrap` uses
+  `dualᴳ Δ Θ`, which at a slot the boundary drops without concealing COPIES Δ's own entry
+  (`rvld B` ⇒ a reveal at B, `abst` ⇒ `rvl⋆`) instead of inventing one. Both of Wrap's face
+  laws (`ρᵇ-dual-ty`, `γᵇ-dual-ty`) are theorems; the reps are transported into the dual's
+  telescope (`renameᵗ (k +_)` for a conceal rep, `upFrom k (revs Θ)` for a copied one) and the
+  dual's conceal block carries the reveal's EXTERNAL FACE, not its raw rep.
+- **Typing reads the marker, so `⊢retag` is along `_≼_`.** `abst ≼ anything`, `X:=A ≼ X:=A`;
+  the old equal-length retagging is unsound now that a conceal is licensed by knowledge.
 
 ### Two findings that produced the current design (see scratch files)
 1. **FIXED** — old `γᵇ = extsⁿ(revs)(γᶜ)` shifted conceal reps by `sucᵛ`, disagreeing with `bwf↓`/`renᴮ` when a rep mentions a reveal var. Now `prepId`/`γcnc`, no shift.
@@ -131,41 +168,56 @@ machine-checked in `notes/BoundaryRulesProbe.agda`), in order of adoption:
   Face laws: `γᵇ-shift` (every slot), `ρᵇ-shift-ty`, `bwf-shift`, `baseS-shift`.
   Never pushes `A` inward — Example 8 avoided by construction.  A wrapper-
   bodied wrapper at a ∀ face waits for Merge (ProgressDef.NestedTApp).
-- **`Wrap`** (R2, landed — preservation keeps its statement via `⊢retag`: typing reads Δ only through its length; see notes/DECISIONS.md for why Option 1a would change that; REVISED 2026-09-04 to push-through — Decision 4 discussion):
-  `((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→ (N [ W ⟪ dualᵇ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫`
+- **`Wrap`** (R2, landed; REVISED 2026-09-04 to push-through + the AMBIENT dual — Decision 4):
+  `Δ ⊢ ((ƛ A′ ∙ N) ⟪ Θ , B₁ ⇒ B₂ ⟫) · W -→ (N [ W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫ ]ᵐ) ⟪ Θ , B₂ ⟫`
   — consumes the ƛ and β-substitutes the dual-wrapped argument in one step.
   A wrapper-bodied wrapper at a ⇒ face waits for Merge (ProgressDef.NestedApp).
-  An exact dual exists over all-`abst` exteriors (everything reachable from a
-  closed program); over `rvld` exteriors it does not (`no-dual-Γ₃`). Blocked slots
-  get a dummy rep, sound by the scope premise — R2's preservation needs
-  `subst-cong-sc`.
+  The dual now COPIES the ambient context's entry at every dropped-but-unconcealed
+  slot, so no knowledge is lost and no term traversal is needed (Decision 4's
+  programs P and E, notes.md Examples 9 and 10); a Λ-bound slot comes back via the
+  rep-less `rvl⋆`. Blocked slots still make the two faces differ, so R2's
+  preservation still goes through `subst-cong-sc`.
+  **Outstanding:** the dual's well-formedness and its rebuild law — `DualRep`,
+  `DualCnc`, `DualInt` in `DualDef.agda`. `bwf-dualᴳ` proves everything else, and
+  the concealed / Λ-bound slots of the reveal block are proven outright.
 - **Merge is now load-bearing** (Decision 3, notes/DECISIONS.md): the revised
   TyWrap/Wrap are partial on wrapper-bodied wrappers, and notes.md Examples 1/3
   hit that mid-trace.  Progress carries four ProgressDef parameters until the
   reversal-form rework and Merge land.  `Canonical.Value-renameᵀ` is currently
   unused (its consumer was the old TyWrap's ⇑ᵀ) — keep until Merge/W3 decide.
 
-**Open design decisions — see `notes/DECISIONS.md` (alternatives as definitions).** Summary of Decision 1: `env` cannot relate a `cnc X A` rep
-to the rep of the enclosing reveal of `X`, so
-`bad = (($ 7) ⟪ cnc 0 `ℕ ∷ [] , ` 0 ⟫) ⟪ rvl (`∀ (` 0 ⇒ ` 0)) ∷ [] , ` 0 ⟫`
-is a closed well-typed value of type `∀(Z→Z)` that no type-preserving rule can
-eliminate. Routes: (1) a reachability companion predicate — against the
-grounded-invariants law; (2) ground it: a reveal puts `rvld A` (not `abst`) in
-`intOf` and `bwf↓` demands `Δ ∋ X := A` — touches §2's `intOf`, with a wrinkle
-when the reveal rep names a dropped slot; (3) prove progress only for the image
-of source programs. `Progress.agda` keeps this obstruction as a labelled hole.
+**Decision 1 is CLOSED** (2026-09-04): `bad` and `bad₂` are now ill typed —
+the reversal-form `(bwf-↓)` against the interior's knowledge entry refutes both,
+machine-checked in `Boundary.agda` (`¬⊢bad`, `¬Reversal-bad₂`). No companion
+predicate; the invariant lives in the relation, as the grounded-invariants law
+demands.
+
+**The one design question still open — [R2].** A reveal whose representation names
+a slot its OWN boundary blocks (Example 8's run-time `↑Z:=Y , ↓X:=ℕ` with `Y`
+Λ-bound) gets an ABSTRACT interior entry, so the dual's conceal of `Z` has nothing
+to meet. Neither the ambient dual nor W3 dissolves it; it is structural — "Z is Y"
+is not expressible in a context that dropped Y. Candidate resolutions recorded in
+notes/DECISIONS.md: (a) Γ-aware knowledge closure in `⟦·⟧`; (b) a conceal premise
+licensed by the boundary's own reveal rep; (c) Merge-first normalisation; (d)
+forbid such reveal reps in `(bwf-↑)`, which would reject Example 8's T4/T5.
+Isolated as `DualDef.DualCnc` (with `DualRep` and `DualInt` alongside).
 
 ## 5. PROGRESS (in flight, incremental)
 
-`progress : Δ ∣ [] ⊢ M ⦂ A → Value M ⊎ (Σ Term λ M′ → M -→ M′)` — generalised over
-Δ (ξ-⟪⟫ recurses into `intOf Δ Θ`), term context always `[]`.
+`progress : Δ ∣ [] ⊢ M ⦂ A → Value M ⊎ (Σ Term λ M′ → Δ ⊢ M -→ M′)` — generalised
+over Δ (ξ-⟪⟫ recurses into `intOf Δ Θ`, ξ-Λ into `abst ∷ Δ`, and the reduction
+relation now carries the same index), term context always `[]`.
 - `Canonical.agda`: `canon-ℕ/⇒/∀` (value = numeral/ƛ/Λ or a wrapper),
   `canon-var` (a value of variable type is a wrapper with a variable boundary
   type — a chain ending in a conceal of that variable), `Value-renameᵀ`.
-- `cf-∀-B₀` / `cf-⇒-B₀` (probe §6): a wrapper's `B₀` is `∀`/`⇒`-shaped (R1/R2
-  fire) or a reveal variable (the `bad` case above).
-- Each `_-→_` rule gets a `progress` case as it lands; holes are labelled with the
-  rule (or decision) they wait for.
+- `cf-∀-B₀` / `cf-⇒-B₀`: a wrapper's `B₀` is `∀`/`⇒`-shaped (R1/R2 fire) or a
+  reveal variable.
+- **Four parameters remain** (`ProgressDef`), all waiting on Merge (Decision 3):
+  `RevealVarApp`/`RevealVarTApp` (the boundary type is a reveal variable — a
+  Merge/Cancel against the enclosing boundary) and `NestedApp`/`NestedTApp` (a
+  wrapper-bodied wrapper at a ⇒/∀ face). Merge in turn needs "retyping along
+  unfolding" (Zdancewic's Δ̄), which is exactly what the reversal form was chosen
+  to make possible. **Next piece of work.**
 
 ## 6. Conventions / gotchas (learned)
 
@@ -183,9 +235,18 @@ of source programs. `Progress.agda` keeps this obstruction as a labelled hole.
 From `SystemF/agda/`: `agda --safe -v0 strong/All.agda` (or `make -C strong agda`)
 checks the whole NEW design; `make -C strong check` adds `postulate-check`
 (no `postulate`/holes/unsafe pragmas anywhere under `strong/`, `notes/old/`
-included). The OLD design lives under `notes/old/` (Terms/Typing/Reduction +
-Scratch7/8/9, the Example-8 unsoundness evidence); old `Examples.agda` and
-`Preservation.agda` were deleted on 2026-09-04.
+included). `All.agda` drives Types, TypeSubst, Context, Weakening, Boundary,
+BReduction, ScopeBridge, TermSubst, **DualDef**, BPreservation, Canonical,
+ProgressDef, Progress.
+
+`notes/old/` holds everything that is a RECORD rather than live code: the old
+per-variable design (Terms/Typing/Reduction + Scratch7/8/9, the Example-8
+unsoundness evidence) and, since 2026-09-04, the six design-path probes
+(GroundedProbe, ReversalProbe, MergeProbe, AmbientDualProbe, BoundaryRulesProbe,
+Example8Trace). **The probes do not compile against the current core and are not
+meant to** — they are the record of how Decisions 1/3/4 were reached; their
+surviving content now lives in `Boundary.agda` and `BReduction.agda`. They are
+free of `postulate`/holes, so `postulate-check` still passes over them.
 
 ## 8. Tooling (2026-09-03)
 

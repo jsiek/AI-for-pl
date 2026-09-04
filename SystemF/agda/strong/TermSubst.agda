@@ -30,10 +30,11 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
 open import strong.Context
   using (TCtx; abst; rvld; _⊢_; wf-var; wf-ℕ; _∋tv_; here-rvld; skip-abst;
-         Ctx; _∋_⦂_; here; there; ⤊)
+         _∋_:=_; Ctx; _∋_⦂_; here; there; ⤊)
 open import strong.Boundary
 open import strong.BReduction
-  using (extⁿ; renameᵀᵐ; ⇑ᵀ; extsᵀᵐ; substᵀᵐ; _[_]ᵐ; Mono; ⊢renameᵀ; ∋-map)
+  using (extⁿ; renameᵀᵐ; ⇑ᵀ; extsᵀᵐ; substᵀᵐ; _[_]ᵐ; Mono; ⊢renameᵀ; ∋-map;
+         hk-suc)
 
 ------------------------------------------------------------------------
 -- Pulling a lookup back through `map`
@@ -111,12 +112,16 @@ extsᵀᵐ-⊢ h (there p) = ⊢renameᵀᵐ there (h p)
 -- Λ (substᵀᵐ (λ x → ⇑ᵀ (σ x)) N), so every image must be shifted by the
 -- TYPE-variable weakening ⇑ᵀ = renameᵀ suc.
 -- That is ⊢renameᵀ at ρ = suc (used as a black box), whose Mono premise is
--- Mono-suc and whose lookup premise is skip-abst.
+-- Mono-suc, whose lookup premise is skip-abst, and whose KNOWLEDGE-transport
+-- premise (new: the reversal-form conceal rule reads the exterior's ∋:=) is
+-- hk-suc — restrictRen X suc is pointwise the identity, so the rep is
+-- carried across unchanged.
 ⇑ᵀ-⊢ : ∀ {σ : ℕ → Term} {Δ Γₜ Γₜ′}
   → (∀ {x B} → Γₜ ∋ x ⦂ B → Δ ∣ Γₜ′ ⊢ σ x ⦂ B)
   → (∀ {x B} → ⤊ Γₜ ∋ x ⦂ B → (abst ∷ Δ) ∣ ⤊ Γₜ′ ⊢ ⇑ᵀ (σ x) ⦂ B)
 ⇑ᵀ-⊢ h {x} {B} p with ∋-map⁻ p
-⇑ᵀ-⊢ h {x} {B} p | A , refl , q = ⊢renameᵀ ∋tv-suc Mono-suc (h q)
+⇑ᵀ-⊢ h {x} {B} p | A , refl , q =
+  ⊢renameᵀ ∋tv-suc Mono-suc hk-suc (h q)
 
 -- As for renaming, substᵀᵐ is the identity on wrappers, so (env) is rebuilt.
 ⊢substᵀᵐ : ∀ {σ Δ Γₜ Γₜ′ N B}
@@ -172,7 +177,7 @@ private
   W₁ = ($ 7) ⟪ cnc 0 `ℕ ∷ [] , ` 0 ⟫
 
   ⊢W₁ : Δ₁ ∣ [] ⊢ W₁ ⦂ ` 0
-  ⊢W₁ = env (bwf↓ here-rvld wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$
+  ⊢W₁ = env (bwf↓ here refl wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$
 
   -- Substituting W₁ under a ƛ: the body's occurrence sits at index 1, so
   -- extsᵀᵐ weakens W₁ by renameᵀᵐ suc — which is the IDENTITY on wrappers.

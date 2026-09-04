@@ -12,7 +12,7 @@ module strong.Progress where
 -- recover the wrapper's external-face equation and its body's typing without
 -- pattern-matching (env) against a non-constructor type index.  What remains
 -- is the shape of the BOUNDARY type B₀ — that is what selects the rule —
--- which is cf-⇒-B₀ / cf-∀-B₀, ported from notes/BoundaryRulesProbe §6, and
+-- which is cf-⇒-B₀ / cf-∀-B₀, ported from notes/old/BoundaryRulesProbe §6, and
 -- then, since Wrap/TyWrap consume the ƛ/Λ they are applied to, the shape of
 -- the wrapper's BODY (app-⇒ / tapp-∀).
 
@@ -40,7 +40,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
   ------------------------------------------------------------------------
   -- 0.  Boundary-type shape analysis
   --
-  -- Ported from notes/BoundaryRulesProbe.agda §6 (proved there); `split` and
+  -- Ported from notes/old/BoundaryRulesProbe.agda §6; `split` and
   -- ρᵇ-hi (the exterior face is the identity on the Γ-part of the boundary
   -- frame) are already live in strong.BReduction.
   ------------------------------------------------------------------------
@@ -114,7 +114,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
   app-⇒ : ∀ {Δ V W Θ B₁ B₂ A B} → Value V → Value W
         → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (B₁ ⇒ B₂)
         → Δ ∣ [] ⊢ V ⟪ Θ , B₁ ⇒ B₂ ⟫ ⦂ (A ⇒ B)
-        → Σ Term λ M′ → ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W) -→ M′
+        → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ , B₁ ⇒ B₂ ⟫) · W) -→ M′
   app-⇒ V-$           w () ⊢L
   app-⇒ (V-G G-ƛ)     w ⊢V ⊢L = _ , Wrap w
   app-⇒ (V-G (G-Λ v)) w () ⊢L
@@ -124,7 +124,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
   tapp-∀ : ∀ {Δ V Θ B₀ B A} → Value V
          → intOf Δ Θ ∣ [] ⊢ V ⦂ substᵗ (γᵇ Θ) (`∀ B₀)
          → Δ ∣ [] ⊢ V ⟪ Θ , `∀ B₀ ⟫ ⦂ `∀ B
-         → Σ Term λ M′ → ((V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]) -→ M′
+         → Σ Term λ M′ → Δ ⊢ ((V ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]) -→ M′
   tapp-∀ V-$           () ⊢L
   tapp-∀ (V-G G-ƛ)     () ⊢L
   tapp-∀ (V-G (G-Λ v)) ⊢V ⊢L = _ , TyWrap v
@@ -132,7 +132,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
 
   -- L · M with both sides values.  L : A ⇒ B, so L is a ƛ (Beta) or a wrapper.
   app-steps : ∀ {Δ L M A B} → Value L → Value M → Δ ∣ [] ⊢ L ⦂ (A ⇒ B)
-            → Σ Term λ M′ → (L · M) -→ M′
+            → Σ Term λ M′ → Δ ⊢ (L · M) -→ M′
   app-steps V-$           w ()
   app-steps (V-G G-ƛ)     w ⊢L = _ , Beta w
   app-steps (V-G (G-Λ v)) w ()
@@ -147,7 +147,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
   -- The Λ case reads the body's value proof straight off G-Λ, so neither a
   -- canonical-form equation nor a subst on the term is needed.
   tapp-steps : ∀ {Δ L B A} → Value L → Δ ∣ [] ⊢ L ⦂ `∀ B
-             → Σ Term λ M′ → (L ·[ B , A ]) -→ M′
+             → Σ Term λ M′ → Δ ⊢ (L ·[ B , A ]) -→ M′
   tapp-steps V-$           ()
   tapp-steps (V-G G-ƛ)     ()
   tapp-steps (V-G (G-Λ v)) ⊢L = _ , TyBeta v
@@ -163,7 +163,7 @@ module Impl (rv-app : RevealVarApp) (rv-tapp : RevealVarTApp)
   ------------------------------------------------------------------------
 
   progress : ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
-           → Value M ⊎ (Σ Term λ M′ → M -→ M′)
+           → Value M ⊎ (Σ Term λ M′ → Δ ⊢ M -→ M′)
 
   -- no term variable is in scope at the runtime term context
   progress (⊢` ())

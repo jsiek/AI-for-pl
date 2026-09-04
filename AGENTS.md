@@ -8,7 +8,9 @@
   acting ON THAT EXAMPLE, before (or instead of) any general description.
   Jeremy: "I'm able to process examples MUCH faster than general
   descriptions."  A colored/annotated trace is welcome for anything
-  scope- or boundary-related.
+  scope- or boundary-related.  In paragraph prose, write conditionals as
+  "if P then Q", never "P → Q" — without the "if" keyword, "P" can be
+  misread as an assertion that P holds (2026-09-04).
 - This is a closed-world repository: prefer direct internal references and a
   small canonical public surface over compatibility re-exports, aliases, or
   wrapper files. When consolidating APIs, delete obsolete shims instead of

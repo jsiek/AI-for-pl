@@ -121,33 +121,101 @@ abstract entry (no knowledge):
   is the reading of exterior knowledge, which bottoms out in kept variables),
   so ⟦A⟧ is a legitimate telescope entry.  `bad`/`bad₂` stay refuted.
 
-A second finding concerns Wrap, and needs a ruling.  Wrap retypes the
-argument W (typed in Γ) inside the dual boundary, whose interior rebuilds
-Γ ↓ Y★ … exactly, EXCEPT at slots Γ drops without concealing: there the dual
-can only produce an abstract entry, but Γ may hold knowledge (a slot that
-was a reveal of an ENCLOSING boundary and became blocked when a conceal
-deeper than it was formed — e.g. by ⇑ᵀ under TyWrap's new reveal).  The
-rework closed Wrap's case only with a premise `RunOK Δ M` on preservation
-("at every boundary the dual rebuilds the exterior") — a companion predicate,
-against the design law, so NOT accepted as final.  Options:
+### Decision 4 — Wrap and a blocked slot that carries knowledge (needs a ruling)
 
-  (W1) accept RunOK as a premise of preservation/progress (companion).
-  (W2) make it an (env) premise — "every dropped-but-unconcealed slot is
-       abstract" — grounded; but TyWrap then breaks it: weakening an inner
-       boundary that has conceals by the new reveal slot makes that revealed
-       slot blocked.
-  (W3) fix the weakening instead: when a boundary WITH conceals is weakened by
-       a new REVEALED variable Z:=A, add the conceal ↓Z:=⟦A⟧ to it (the boundary
-       passes on all knowledge it can express); new ABSTRACT variables stay
-       blocked.  Then (W2)'s premise holds invariantly (blocked ⇒ abstract), the
-       dual's abstract entries match Γ, and no companion predicate is needed.
-       Cost: type-variable renaming through a boundary becomes knowledge-aware
-       (it needs the entry of the new variable), i.e. ⊢renameᵀ/⇑ᵀ take the
-       context's knowledge as input — in de Bruijn, `renameᵀ` gains a Γ-indexed
-       argument or TyWrap's contractum performs the insertion explicitly.
+The example.  Exterior Γ = Y:=𝔹 , X:=ℕ (both revealed; Y shallower).  A sealed
+identity on X, and an argument of type X that USES Y's knowledge:
 
-  Recommendation: (W3), implemented as an explicit step in TyWrap's contractum
-  (only TyWrap introduces a revealed variable above existing boundaries).
+    h  =  (λx:ℕ. x) ⟪ ↓X:=ℕ , X→X ⟫              : X→X      Γ ⇈ (↓X:=ℕ) = ∅ ; Y is BLOCKED
+    W  =  (3 ⟪ ↓X:=ℕ , X ⟫) ⟪ ↓Y:=𝔹 , X ⟫         : X        the outer conceal reads Γ ∋ Y:=𝔹
+    R  =  h · W                                   : X        well typed, a Wrap redex
+
+    (Wrap)  R  -→  ((λx:ℕ. x) · (W ⟪ Θᵈ , X ⟫)) ⟪ ↓X:=ℕ , X ⟫
+
+Θᵈ, the dual of ↓X:=ℕ over Γ, has exterior ∅ and must rebuild Γ as its
+interior.  It can rebuild X (concealed: its rep ℕ is Γ's knowledge), but for
+the BLOCKED slot Y it has nothing to copy — the dual is syntactic and cannot
+see Γ — so it emits a blocked reveal ↑Y:⋆, whose interior entry is Y abstract:
+
+    Γ ⇈ (↓X:=ℕ) ⇈ Θᵈ  =  Y , X:=ℕ        ≠   Y:=𝔹 , X:=ℕ  =  Γ
+
+W must now be retyped there, and its outer conceal ↓Y:=𝔹 needs Y:=𝔹 — FAILS.
+The contractum is ill typed: preservation breaks on R.  (Nothing here is
+exotic: Γ is the interior of two reveals; h is a sealed value weakened by a
+later reveal Y — exactly what TyWrap does to the boundaries inside V; W's
+conceal of Y is what the dual of a boundary revealing Y produces.)
+
+The alternatives, on this example:
+
+  (W1)  Add a premise to preservation, RunOK Γ M: "at every boundary in M the
+        dual rebuilds the exterior" (here: false, so R is simply excluded).
+        Works (the rework closed Wrap with it) but it is a companion predicate
+        on terms — against the grounded-invariants law.
+
+  (W2)  Make it an (env) premise: "every slot the boundary drops without
+        concealing is ABSTRACT".  h is then ill typed (Y:=𝔹 is dropped and not
+        concealed).  Grounded — but TyWrap creates h-like terms by weakening a
+        sealed value under a new reveal, so TyWrap would fail preservation.
+
+  (W3)  Never let a revealed slot be blocked: when a boundary with conceals is
+        weakened by a NEW REVEALED variable, conceal that variable in it too,
+        with the interior reading of its knowledge.  In the example h becomes
+
+            h′ = (λx:ℕ. x) ⟪ ↓Y:=𝔹 , ↓X:=ℕ , X→X ⟫         Y concealed, not blocked
+
+        the body is unchanged (interior still ∅, X→X[γ] = ℕ→ℕ), and the dual
+        is ↑Y:=𝔹 , ↑X:=ℕ with interior Y:=𝔹 , X:=ℕ = Γ, so W retypes and
+        Wrap preserves types.  Blocked slots are then always ABSTRACT
+        (Λ-bound), (W2)'s condition holds by construction, and no premise is
+        needed anywhere.  Cost: type-variable weakening through a boundary
+        becomes knowledge-aware.  Only TyWrap introduces a revealed variable
+        above existing boundaries, so the cleanest place is TyWrap's
+        contractum: instead of a plain ⇑ᵀ V, weaken V by "↑Z:=A, concealing Z
+        in every boundary of V that has a conceal" (named notation: nothing
+        moves, the conceal ↓Z:=⟦A⟧ is inserted).
+
+  Recommendation: (W3).
+
+### Decision 3 — tension with Decision 1 found by the Merge probe (needs a ruling)
+
+notes/MergeProbe.agda (agda --safe clean) defines Θ₁ ⊕ Θ₂ and proves the
+face laws in general, but exhibits a Merge redex with NO well-typed
+contractum under the grounded premise as stated:
+
+    Γ  =  X:=ℕ→ℕ
+    inner  (λw:W. w) ⟪ ↑W:=ℕ , W→W ⟫            : ℕ→ℕ    in the interior of the outer boundary
+    outer  ( … ) ⟪ ↓X:=ℕ→ℕ , X ⟫                : X       internal face of X is ℕ→ℕ  ✓
+
+A merged single boundary must have external face X and internal face W→W:
+
+    (λw:W. w) ⟪ ↑W:=ℕ , ↓X:=(W→W) , X ⟫
+
+i.e. the conceal of X must carry the rep W→W — "X is W→W", true because W is
+ℕ — but the grounded premise as written pins X's rep to the interior
+READING of Γ's knowledge, ℕ→ℕ, syntactically.  So Decisions 1 and 3a
+conflict: the premise compares knowledge without UNFOLDING the boundary's
+own reveals, which is exactly what Zdancewic's Δ̄ (transitive closure) and
+their (trans) rule allow.
+
+Candidate fix — compare in the EXTERIOR instead of the interior (the
+"reversal" form):
+
+    (bwf-↓)  Γ ∋ Y:=A₀     A[ρΘ] = A₀     Ψ ⊢ A     Γ ∣ Ψ ⊢ Θ   ⟹  Γ ∣ Ψ ⊢ ↓Y:=A , Θ
+
+  the conceal's rep A, read back out through the boundary (reveal variables
+  ↦ their reps), must equal the exterior's knowledge.  On the examples:
+  merged boundary above: (W→W)[W↦ℕ] = ℕ→ℕ = Γ's knowledge  ✓ accepted;
+  bad: ℕ ≠ ∀Z.Z→Z  ✓ rejected;  bad₂: ` 0[Z↦ℕ] = ℕ ≠ P  ✓ rejected;
+  dual conceal of a reveal Z:=A: A read back = A = the entry  ✓.
+  Bonus: the external face commutes with renaming WITHOUT a scope restriction
+  (BReduction.ρᵇ-comm / C-ext), unlike γ, so this premise should transport
+  under ⊢renameᵀ more easily than the interior form.  Interior knowledge
+  entries stay as in the Decision-1 refinement (X:⟦A⟧).
+  Still open even with the fix: Merge's contractum interior differs from the
+  nested one by UNFOLDING (probe: nested W:=Z vs merged W:=ℕ when Z:=ℕ), so
+  Merge's preservation needs "retyping along unfolding", Zdancewic's Δ̄.
+
+  To be verified by a probe before adoption.
 
 ## Decision 2 — a boundary meets a type application
 

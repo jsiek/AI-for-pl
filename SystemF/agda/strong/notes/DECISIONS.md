@@ -247,6 +247,44 @@ The alternatives, on this example:
   indeed W3's inserted ↓Z:=⟦A⟧ is exactly the entry a merge with the new
   reveal's dual would deliver if the λ were not in the way.
 
+### Decision 4, continued — W3's traversal, the forcing example E, and the ambient dual (2026-09-04)
+
+Jeremy: W3's ⇓ ("pass Y:=A down into V") is a term traversal — wants a
+localized/incremental mechanism.  Forcing example (closed source; the gadget
+is a TYPE abstraction between ΛY and the sealed value, evaluated under the Λ
+by ξ-Λ before Y's TyWrap can fire):
+
+    E  =  (ΛX. λf:(X→X). ΛY. (ΛZ. λz:X. f z) [ℕ]) [ℕ] · (λn:ℕ. n) · [𝔹] · 3
+
+    TyBeta(X); Wrap; ξ TyBeta(Z)  [TyBeta needs W3 too: ↓X blocks Z ⇒ insert ↓Z:=ℕ]
+      ⇒ ((ΛY. ((λz:X. ((λn:ℕ.n) ⟪ ↓Z:=ℕ , ↓X:=ℕ ⟫) z) ⟪ ↑Z:=ℕ ⟫)) ⟪ ↑X:=ℕ ⟫) [𝔹] · 3
+    TyWrap(Y)+W3: the Λ-body is the REVEAL-ONLY wrapper ⟪↑Z:=ℕ⟫, which does not
+    block Y ⇒ ⇓ must CROSS it (and λz, and an application) to insert ↓Y:=𝔹 at
+    the sealed boundary.  Merge cannot pre-flatten (the ΛY sits between the two
+    boundaries); iterating the (ΛZ.…)[ℕ] gadget makes the crossing depth
+    unbounded; P already made the binder depth unbounded.
+
+Where the knowledge is CONSUMED: only when the sealed boundary's own
+Wrap/TyWrap builds its dual — and that redex sits under the ξ-⟪⟫ frames of
+the boundaries that revealed Y, whose interiors are exactly the redex's
+typing context.  Hence the incremental candidate:
+
+  (A) AMBIENT DUAL / knowledge-indexed reduction:  Γ ⊢ M -→ M′  (mirroring
+      the Δ-indexed typing);  ξ-⟪⟫ extends Γ with the boundary's interior,
+      ξ-Λ with an abstract entry;  Wrap's dual is  dualᵇ Γ Θ  — for each slot
+      Θ drops without concealing, copy Γ's OWN entry (knowledge if revealed,
+      abstract if Λ-bound).  No ⇓, no insertion, no ⋆-with-lost-knowledge;
+      every step local; grounded (it is the reduction judgment itself).
+      By typing, Γ always suffices.
+
+Star nuance: W3/(A) eliminate the HARMFUL stars (knowledge existed and was
+lost).  A genuinely Λ-bound blocked slot still gets an abstract
+re-introduction under either scheme — exact, since Γ's entry is abstract too;
+write it as a rep-less reveal ↑Y rather than ↑Y:⋆.
+
+Status: probe launched (contextual dual on E and P, compatibility with the
+reversal-form premise).  W3-as-traversal kept as the fallback.
+
 ### Decision 3 — tension with Decision 1 found by the Merge probe (needs a ruling)
 
 notes/MergeProbe.agda (agda --safe clean) defines Θ₁ ⊕ Θ₂ and proves the

@@ -123,6 +123,19 @@ abstract entry (no knowledge):
 
 ### Decision 4 — Wrap and a blocked slot that carries knowledge (needs a ruling)
 
+  P  =  (ΛX. λf:(X→X). ΛY. λw:X. f w) [ℕ] (λn:ℕ. n) [𝔹] 3      : ℕ
+
+  → TyBeta   (λf. ΛY. λw. f w) ⟪ ↑X:=ℕ , (X→X)→∀Y.X→X ⟫ · (λn.n) [𝔹] 3
+  → Wrap     ((λf. ΛY. λw. f w) · f′) ⟪ ↑X:=ℕ , ∀Y.X→X ⟫ [𝔹] 3          f′ = (λn:ℕ.n) ⟪ ↓X:=ℕ , X→X ⟫
+  → Beta     (ΛY. λw:X. f′ w) ⟪ ↑X:=ℕ , ∀Y.X→X ⟫ [𝔹] 3
+  → TyWrap   ((ΛY. λw. f′ w) [Y′]) ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X→X ⟫ 3            interior Y′:=𝔹 , X:=ℕ
+  → TyBeta   ((λw:X. f′ w) ⟪ ↑Y:=Y′ , X→X ⟫) ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X→X ⟫ 3
+  → Wrap     (((λw. f′ w) ⟪ ↑Y:=Y′ , X→X ⟫) · W₁) ⟪ … , X ⟫                W₁ = 3 ⟪ ↓Y′:=𝔹 , ↓X:=ℕ , X ⟫
+  → Wrap     ((λw. f′ w) · W₂) ⟪ ↑Y:=Y′ , X ⟫ ⟪ … ⟫                       W₂ = W₁ ⟪ ↓Y:=Y′ , X ⟫
+  → Beta     ((λn:ℕ.n) ⟪ ↓X:=ℕ , X→X ⟫ · W₂) ⟪ ↑Y:=Y′ , X ⟫ ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X ⟫
+  → Wrap     ((λn:ℕ.n) · (W₂ ⟪ ↑Y:⋆,↑Y′:⋆, ↑X:=ℕ , X ⟫)) 
+                 ⟪ ↓X:=ℕ , X ⟫ ⟪ ↑Y:=Y′ , X ⟫ ⟪ ↑Y′:=𝔹 , ↑X:=ℕ , X ⟫
+
 The example.  Exterior Γ = Y:=𝔹 , X:=ℕ (both revealed; Y shallower).  A sealed
 identity on X, and an argument of type X that USES Y's knowledge:
 

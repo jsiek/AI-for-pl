@@ -1,13 +1,13 @@
-module strong.notes.Scratch9 where
+module strong.notes.old.Scratch9 where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
 open import strong.Types
 open import strong.Context
-open import strong.Terms
-open import strong.Typing
-open import strong.Reduction
-open import strong.notes.Scratch8 using (polyid; P; ⊢P)
+open import strong.notes.old.Terms
+open import strong.notes.old.Typing
+open import strong.notes.old.Reduction
+open import strong.notes.old.Scratch8 using (polyid; P; ⊢P)
 
 -- T4 : the ill-typed term produced by TyWrapCncl (end of Scratch8)
 T4 : Term

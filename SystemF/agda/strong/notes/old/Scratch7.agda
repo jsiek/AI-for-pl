@@ -1,12 +1,12 @@
-module strong.notes.Scratch7 where
+module strong.notes.old.Scratch7 where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
 open import strong.Types
 open import strong.Context
-open import strong.Terms
-open import strong.Typing
-open import strong.Reduction
+open import strong.notes.old.Terms
+open import strong.notes.old.Typing
+open import strong.notes.old.Reduction
 
 -- context  index 0 : Y:=ℕ | index 1 : X:=ℕ | index 2 : W:=ℕ   (all reps closed)
 Δ7 : TCtx

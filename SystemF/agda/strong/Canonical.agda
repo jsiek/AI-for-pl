@@ -56,7 +56,18 @@ substᵗ-var σ (`∀ A) X ()
 -- a value of VARIABLE type is a wrapper whose boundary type is a variable
 canon-var : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
   → Σ Term λ V′ → Σ BCtx λ Θ → Σ ℕ λ Y → V ≡ V′ ⟪ Θ , ` Y ⟫
-canon-var v ⊢V = {!!}
+canon-var v ⊢V = canon-var′ v ⊢V refl
+  where
+  -- generalise the type so the derivation can be matched first
+  canon-var′ : ∀ {Δ V T X} → Value V → Δ ∣ [] ⊢ V ⦂ T → T ≡ ` X
+    → Σ Term λ V′ → Σ BCtx λ Θ → Σ ℕ λ Y → V ≡ V′ ⟪ Θ , ` Y ⟫
+  canon-var′ V-$            ⊢$        ()
+  canon-var′ (V-G G-ƛ)      (⊢ƛ _ _)  ()
+  canon-var′ (V-G (G-Λ _))  (⊢Λ _)    ()
+  canon-var′ (V-⟪⟫ {V′} {Θ} {B₀} _) (env _ _ _) eq
+    with substᵗ-var (ρᵇ Θ) B₀ _ eq
+  canon-var′ (V-⟪⟫ {V′} {Θ} {B₀} _) (env _ _ _) eq | (Y , refl) =
+    V′ , Θ , Y , refl
 
 -- type-variable renaming preserves value-hood (needed by TyWrap, whose
 -- contractum applies ⇑ᵀ V)

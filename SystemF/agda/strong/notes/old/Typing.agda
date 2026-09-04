@@ -1,4 +1,4 @@
-module strong.Typing where
+module strong.notes.old.Typing where
 
 -- Strong System F — the term typing judgement  Δ ∣ Γ ⊢ M ⦂ A.
 --
@@ -19,7 +19,7 @@ open import Data.Nat using (ℕ; _+_)
 open import Data.List using (List; []; _∷_)
 open import strong.Types
 open import strong.Context
-open import strong.Terms
+open import strong.notes.old.Terms
 
 -- Δ, Γ, A, B, C, X, x are generalizable variables re-exported from Context.
 private

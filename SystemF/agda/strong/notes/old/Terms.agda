@@ -1,4 +1,4 @@
-module strong.Terms where
+module strong.notes.old.Terms where
 
 -- Strong System F — runtime terms in de Bruijn form.  Source terms are the
 -- fragment without the reveal/conceal wrappers; those two are runtime-only.

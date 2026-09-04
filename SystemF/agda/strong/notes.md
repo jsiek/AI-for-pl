@@ -341,7 +341,7 @@ see "Old per-variable design" and the historical Example 8 below.)
 
 ## Old per-variable design — superseded; see Example 8
 
-  Kept because notes/Scratch7-9.agda and the historical Example 8 below refer to it.  Runtime
+  Kept because notes/old/Scratch7-9.agda and the historical Example 8 below refer to it.  Runtime
   terms were `M ↑[X:=A]@B` and `M ↓[X:=A]@B`, one wrapper per variable, with (reveal) and
   (conceal) as separate typing rules.
 
@@ -514,7 +514,7 @@ them the trace stops at a value that is a tower of boundaries around the answer.
 
   A closed, well-typed program that reduced to an ILL-TYPED term under the old rules.  The key
   ingredient is `λf. ΛY. f [Y]`: the polymorphic argument f is applied to a type variable Y
-  introduced AFTER f is bound.  (Machine-checked in de Bruijn form as notes/Scratch8.agda.)
+  introduced AFTER f is bound.  (Machine-checked in de Bruijn form as notes/old/Scratch8.agda.)
 
   (ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] · (ΛZ. λz:Z. z)              : ∀Y. Y→Y
   → TyBeta      (λf:(∀Z.Z→Z). ΛY. f [Y]) ↑[X:=ℕ] · (ΛZ. λz:Z. z)
@@ -699,7 +699,7 @@ proposed and its case is sketched from the machine-checked face laws of notes/Bo
   L-wf                       ⊢ty-wf, wf→Scoped, scB-bridge              ScopeBridge.agda
   L1                         ⊢substᵀᵐ, ⊢[]ᵐ, preserve-Beta               TermSubst.agda
   Example 8 trace (T0…T5)    notes/Example8Trace.agda
-  old design (historical)    Terms/Typing/Reduction, notes/Scratch7-9.agda
+  old design (historical)    Terms/Typing/Reduction, notes/old/Scratch7-9.agda
 
   Named vs de Bruijn.  The Agda differences that named notation hides:
 

@@ -206,7 +206,7 @@ ext-suc-[]0 T =
 ------------------------------------------------------------------------
 -- 2.  R1 / R1′ on the NEW-DESIGN ANALOGUE OF EXAMPLE 8
 --
--- Example 8 (notes/Scratch7-9) is the closed program whose 4th step made
+-- Example 8 (notes/old/Scratch7-9) is the closed program whose 4th step made
 -- the OLD design ill-typed: a value concealed on X (index 1) is TYPE-
 -- APPLIED to the shallower Λ-bound Y (index 0).  Under the combined
 -- boundary the same redex steps to a WELL-TYPED term, because the type

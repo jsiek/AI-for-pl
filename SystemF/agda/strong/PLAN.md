@@ -34,16 +34,16 @@ rule shapes are guidance only and may change considerably.
 | `ScopeBridge.agda` | `⊢ty-wf`, `wf→Scoped`, `env-ext-wf`, `scB-bridge` (§3b) | ✅ 0 holes |
 | `TermSubst.agda` | `⊢renameᵀᵐ`, `⊢substᵀᵐ`, `⊢[]ᵐ`, `preserve-Beta` (§3c) | ✅ 0 holes |
 | `BPreservation.agda` | `preservation : Δ ∣ [] ⊢ M ⦂ A → M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A`, all current rules | ✅ 0 holes |
-| `Canonical.agda` | canonical-form statements `canon-ℕ/⇒/∀`, `canon-var`, `Value-renameᵀ` (§5) | ⚠️ holes (REALLMS) |
-| `Progress.agda` | `progress`, all rules; 2 holes = the reveal-variable boundary-type cases (Decision 1) | ⚠️ 2 holes |
+| `Canonical.agda` | canonical forms `canon-ℕ/⇒/∀`, `canon-var`, `Value-renameᵀ` (§5; 5 of 6 ground by REALLMS) | ✅ 0 holes |
+| `ProgressDef.agda`, `Progress.agda` | `progress` for all rules; module `Impl` is parameterised over the two reveal-variable cases stated in `ProgressDef` (`RevealVarApp`, `RevealVarTApp`), to be instantiated after Decisions 1/3 land | ✅ 0 holes |
 | `All.agda` | aggregate driver — now points at the NEW design | ✅ |
 | `notes/BoundaryRules.md`, `notes/BoundaryRulesProbe.agda` | §4 rule design memo + machine-checked probe (R1/R2, dual, `bad`) | ✅ probe checks |
 | `ScratchGamma.agda`, `ScratchBlocked.agda` | evidence for the two design findings (§2) | ✅ |
-| `notes/Scratch7/8/9.agda` | machine-checked unsoundness of the OLD design (Example 8) | ✅ keep |
+| `notes/old/Scratch7/8/9.agda` | machine-checked unsoundness of the OLD design (Example 8) | ✅ keep |
 
-**Preservation is closed** for the current relation (`make agda` passes under
-`--safe`). `make check` still fails at `postulate-check` only because the OLD
-design's `Preservation.agda` has holes — pending the cleanup decision in §7.
+**Preservation is closed** for the current relation and **`make check` passes**
+(2026-09-04): the old design moved under `notes/old/`, old `Examples`/`Preservation`
+deleted, and the two open progress cases are module parameters (`ProgressDef`).
 
 ## 1b. OLD design (DISCARDED) vs NEW design — read this first
 
@@ -60,19 +60,19 @@ Two designs coexist in this directory. **Do not build new work on the old one.**
   (`wf-rename-fv`, `fv-scope`).
 
 ### OLD design (per-variable `↑`/`↓` wrappers) — DISCARDED, do not extend
-- `Terms.agda` — old term syntax with **separate** reveal `_↑[_,_]` and conceal `_↓[_,_,_]` constructors (one wrapper per single reveal/conceal).
-- `Typing.agda` — old typing (`TyWrapRevl`/`TyWrapCncl`, the tightened-conceal-marker rules).
-- `Reduction.agda` — old reduction: `β-↑` (WrapReveal), `β-↓·` (WrapConceal), `β-cancel`, `β-drop`, `β-↑[]` (TyWrapRevl), `β-↓[]` (TyWrapCncl), `ξ-*`.
-- `Examples.agda`, `Preservation.agda` — examples/preservation for the old system.
-- `All.agda` — the aggregate driver **still points at the old system** (Terms/Typing/Reduction/Examples). Repoint it to the new design once §3's holes close.
-- `notes/Scratch7/8/9.agda` — keep, but note they **import the old `Terms`/`Typing`/`Reduction`**: they are the machine-checked proof that the old design is unsound. This is the *only* reason the old files are retained.
+- `notes/old/Terms.agda` — old term syntax with **separate** reveal `_↑[_,_]` and conceal `_↓[_,_,_]` constructors (one wrapper per single reveal/conceal).
+- `notes/old/Typing.agda` — old typing (`TyWrapRevl`/`TyWrapCncl`, the tightened-conceal-marker rules).
+- `notes/old/Reduction.agda` — old reduction: `β-↑` (WrapReveal), `β-↓·` (WrapConceal), `β-cancel`, `β-drop`, `β-↑[]` (TyWrapRevl), `β-↓[]` (TyWrapCncl), `ξ-*`.
+- old `Examples.agda`, `Preservation.agda` — DELETED (2026-09-04; unreferenced, the latter had 8 holes).
+- `All.agda` — drives the NEW design.
+- `notes/old/Scratch7/8/9.agda` — keep, but note they **import the old `Terms`/`Typing`/`Reduction` (also under `notes/old/`)**: they are the machine-checked proof that the old design is unsound. This is the *only* reason the old files are retained.
 
 ### Why the old design was discarded (Example 8)
 The old design made each reveal/conceal a **separate per-variable wrapper**, with
 `TyWrapCncl` pushing a conceal inward under a `Λ` (conceal-of-a-value is a value).
 This is **unsound**: a conceal `↓[X:=A]` whose body, once the context is tightened
 to `X`'s existential scope, references a **shallower** type variable that thereby
-falls out of scope. `notes/Scratch7/8/9.agda` exhibit a closed, well-typed source program
+falls out of scope. `notes/old/Scratch7/8/9.agda` exhibit a closed, well-typed source program
 `P : ∀(Z→Z)` that reduces in 4 steps (via `β-↓[]`) to an **ill-typed** term — a
 direct counterexample to preservation.
 
@@ -177,12 +177,11 @@ of source programs. `Progress.agda` keeps this obstruction as a labelled hole.
 ## 7. Build
 
 From `SystemF/agda/`: `agda --safe -v0 strong/All.agda` (or `make -C strong agda`)
-checks the whole NEW design. `make -C strong check` additionally runs
-`postulate-check`, which currently fails only on the OLD design's
-`Preservation.agda` (8 holes). Proposed cleanup (needs Jeremy's OK): delete old
-`Preservation.agda` and `Examples.agda` (unreferenced), move old `Terms`/`Typing`/
-`Reduction` and `notes/Scratch7/8/9` under `notes/old/` (the scratches import
-them; adjust their module headers).
+checks the whole NEW design; `make -C strong check` adds `postulate-check`
+(no `postulate`/holes/unsafe pragmas anywhere under `strong/`, `notes/old/`
+included). The OLD design lives under `notes/old/` (Terms/Typing/Reduction +
+Scratch7/8/9, the Example-8 unsoundness evidence); old `Examples.agda` and
+`Preservation.agda` were deleted on 2026-09-04.
 
 ## 8. Tooling (2026-09-03)
 

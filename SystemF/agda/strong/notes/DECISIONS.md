@@ -694,6 +694,48 @@ bad₂/near-bad gauntlet:
        subsumes the (a″) hybrid at Pn, and the structural argument ruling
        out (b4) (a co-boundary-parameterized judgment: the contractum must
        be typed by plain env).
+## THE X-LICENSE INSTALL — LANDED (e07e8863), WITH THREE DEVIATIONS (2026-09-04 night)
+
+Gates green (cold make check + notes/InstallGauntlet.agda, worktree and main
+tree).  E★′ closed through (bwf-↓x); E★ needs no cnc⋆ under the x-license;
+bad/bad₂/far-bad refuted, near-bad admitted, dual-of-dual exact.  Honest
+scorecard: preservation did NOT become unconditional — three parameters
+remain, materially smaller (DualRep≈ wants ⊢ Δ; DualCnc≈ is a per-reveal
+disjunction whose residue is exactly the Pn shape; DualInt≈ the rebuild law).
+
+Deviations from the ruled design, all machine-checked, FOR JEREMY'S REVIEW:
+
+  (D1) (bwf-↓x) carries NO rep comparison — neither ≡ nor ≈.  Ruling (ii)
+       does not survive ⊢renameᵀ at this clause: under a weakening the
+       x-entry's rep moves by the exterior renaming while renᴮ freezes the
+       conceal's stored rep, and the two end a genuinely-abstract slot
+       apart even up to unfolding (¬x-rep-match-ren≈, InstallGauntlet §7b).
+       The license is: the x-LOOKUP (the slot is x-marked) + the
+       claims-nothing premise + Ψ ⊢ A.  The whole soundness gauntlet turns
+       on claims-nothing (the ⊢3n-adv rep MATCHES on both sides — the
+       comparison never was the load-bearing part, confirming (ii)'s
+       orthogonality expectation from the wrong direction).
+  (D2) Claims-nothing is the BOUNDARY-relative `starOnly Θ` ("the rep names
+       only rep-less reveal slots of Θ"), not the interior-relative absOnly:
+       the interior form is anti-monotone in knowledge and dies at the
+       abst↦rvld retag TyBeta/TyWrap perform.  Same verdicts on the whole
+       gauntlet.
+  (D3) The ambient unfold retry in ⟦·⟧ is NOT installed: an ambient-
+       dependent interior breaks both required transports (renaming:
+       ¬UnfRen-hk; knowledge-monotonicity: a further-resolved rep may name
+       a blocked slot).  Price: Pn's dual conceal is unlicensed again and
+       is now EXACTLY the DualCnc≈ residue.  The congruence ≈Δ̄ itself,
+       Reversal≈, ≼≈, and the dual's second-chance unfolded copy ARE
+       installed and carry Pc.
+
+Open questions this leaves (beyond the roadmap): whether to accept (D1)'s
+comparison-free license as final (the rep is still constrained by starOnly
++ Ψ ⊢ A, and the faces use it; but "the conceal repeats the recorded rep"
+is now unchecked — is that acceptable, or should the x-entry itself be
+REDEFINED to be renaming-stable so a comparison can return?), and whether
+Pn's residue is acceptable pending Merge (Merge-first unfolds Pn's chain in
+the cases that reach eliminations — to check at the Merge landing).
+
 ## THE TOPLAS FOLLOW-ON (notes/SyntacticTypeAbstraction.md, 2026-09-04)
 
 Jeremy pushed p1037-grossman.pdf ("Syntactic Type Abstraction", the journal

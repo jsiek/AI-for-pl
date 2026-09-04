@@ -1,7 +1,7 @@
 # Strong System F — handoff plan (finishing preservation & progress)
 
-Status as of the `strong-preservation` branch (PR #189), **2026-09-04, evening (x-license
-install IN FLIGHT)**. This document is the authoritative handoff. The DESIGN LOG lives in
+Status as of the `strong-preservation` branch (PR #189), **2026-09-04, night (x-license
+install LANDED, e07e8863)**. This document is the authoritative handoff. The DESIGN LOG lives in
 `notes/DECISIONS.md` (decisions as definitions, examples, probe verdicts) and
 `notes/DualLicenseDesign.md` (the dual-conceal license, fully ruled); this file carries the
 state, the settled design, and the roadmap (§9).
@@ -137,7 +137,7 @@ boundary — do not copy them verbatim.
 - **Typing reads the marker, so `⊢retag` is along `_≼_`.** `abst ≼ anything`, `X:=A ≼ X:=A`;
   the old equal-length retagging is unsound now that a conceal is licensed by knowledge.
 
-### Being installed now (probed, ruled, IN FLIGHT — notes/DualLicenseDesign.md)
+### Installed 2026-09-04 evening (notes/DualLicenseDesign.md; commit e07e8863) — three deviations, see DECISIONS
 
 - **The unfolding congruence `≈Δ̄`** (`unfoldᵉ` through the context's knowledge; equality of
   unfoldings). Used at exactly the knowledge-COMPARING sites: `(bwf-↓)`'s Reversal becomes
@@ -243,10 +243,14 @@ relation now carries the same index), term context always `[]`.
 
 ## 9. ROADMAP — what comes after the in-flight install
 
-0. **[IN FLIGHT] The x-license install** (notes/DualLicenseDesign.md; all rulings taken):
-   `≈Δ̄`, hybrid `⟦·⟧` with `X:=ˣA`, `cnc⋆`, `(bwf-↓x)` under (ii), the dual's unfolded
-   second-chance copy, `≼≈`; the full gauntlet incl. E★′ and ⊢3n-adv-under-≈; attempt to
-   discharge `DualRep`/`DualCnc`/`DualInt` → **preservation unconditional** if all three go.
+0. **[LANDED, e07e8863] The x-license install.** Gates green; E★′ closed through
+   `(bwf-↓x)`; E★ no longer needs `cnc⋆`; the ⊢3n-adv adversary refuted in `Boundary.agda`.
+   THREE DEVIATIONS for Jeremy's review (DECISIONS): `(bwf-↓x)` carries NO rep comparison
+   (ruling (ii)'s ≈ is not ⊢renameᵀ-stable at that clause — `¬x-rep-match-ren≈`; the license
+   is x-lookup + `starOnly` + `Ψ ⊢ A`); claims-nothing is the boundary-relative `starOnly`;
+   the ambient unfold retry is NOT installed (transports fail), so Pn's conceal now lives in
+   the `DualCnc≈` residue. Preservation keeps three (smaller) parameters: `DualRep≈` (wants
+   `⊢ Δ`), `DualCnc≈` (residue = the Pn shape), `DualInt≈`.
 1. **Merge + Drop∅ in one landing** (Decisions 3 + addendum; both ruled). Port `⊕` from
    notes/old/MergeProbe to the new core; the cancel clause's soundness is the restored
    invariant (`cancel-agree` — an x-conceal cancels the very reveal it was born from);

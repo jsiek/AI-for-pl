@@ -11,10 +11,17 @@ module strong.notes.MergeProbe where
 --
 -- Contents
 --   §1  the three index maps and the definition of _⊕_
---   §2  revs/cmax of Θ₁ ⊕ Θ₂ and ⊕-int (contexts compose)              ✓ general
+--   §2  revs/cmax of Θ₁ ⊕ Θ₂; ⊕-int                          ✓ general (shape)
+--       ¬⊕-int′ / ¬⊕-intR: FAILS for either knowledge-carrying interior
 --   §3  the frame maps mrg₁ (Θ₁'s frame → ⊕'s frame) and mrg₂
---   §4  ⊕-γ (internal face) and ⊕-ρ (external face) — and the OBSTRUCTION
---   §5  worked examples
+--   §4  the faces on Example 8's T5; the cancel pair; THE OBSTRUCTION
+--       (no-merge: a typed redex with NO merged boundary type at all)
+--   §5  ⊕-γ (internal face)               ✓ general, given cmax Θ₁ ≤ revs Θ₂
+--   §6  ⊕-ρ-pt (external face, away from the cancelled slots)   ✓ general
+--   §7  ⊕-ρ            ✓ general, given the cancelled-slot round trip (§7b)
+--   §8  the Merge rule, B₂′, Aligned / MergeOK, the counterexamples
+--   §9  ⊕-bwf: refuted for GroundedProbe's untransported bwf↓′; scope
+--   §10 depth-1 values, and the stuck term Merge cannot reach
 --
 -- Nothing here edits any other file.
 
@@ -25,7 +32,8 @@ open import Data.Nat.Properties
          ⊔-identityʳ; ⊔-lub; m≤m⊔n; m≤n⇒m⊔n≡n; m≥n⇒m⊔n≡m; ≤-trans; <⇒≤;
          ≰⇒>; +-distribˡ-⊔; ∸-distribʳ-⊔; m+n∸m≡n; n≤1+n; ≤-refl;
          m≤m+n; +-cancelˡ-≡; _≟_; m≤n⊔m; m+[n∸m]≡n; 0∸n≡0;
-         m≤n⇒m∸n≡0; ≮⇒≥; +-∸-assoc; m+n≮m; ≤⇒≯; ∸-monoˡ-<; +-monoʳ-<)
+         m≤n⇒m∸n≡0; ≮⇒≥; +-∸-assoc; m+n≮m; ≤⇒≯; ∸-monoˡ-<; +-monoʳ-<;
+         n≤0⇒n≡0; ≤-pred)
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ; _×_; _,_)
@@ -74,7 +82,7 @@ private
 --   Ψ₁   = intOf Ψ₂ Θ₁ = [r₁ reveals of Θ₁] ++ dropN c₁ Ψ₂.
 --
 -- and two boundary FRAMES (the space B₀ is read in):
---   frame Θ₂ = [r₂ reveals] ++ Δ       (bframe X<r₂ ↦ reveal X; r₂+i ↦ Δ-slot i)
+--   frame Θ₂ = [r₂ reveals] ++ Δ    (X<r₂ ↦ reveal X; r₂+i ↦ Δ-slot i)
 --   frame Θ₁ = [r₁ reveals] ++ Ψ₂
 --
 -- `outSub Θ₂` pushes a Ψ₂-type OUT to a Δ-type (used on Θ₁'s reveal reps, which
@@ -276,7 +284,41 @@ _ = refl
 ¬⊕-int′≼ : ¬ (intOf′ (intOf′ [] Θb) Θa ≼ intOf′ [] (Θa ⊕ Θb))
 ¬⊕-int′≼ ()
 
--- (the same pair is fine for the current intOf: both sides are abst ∷ abst ∷ [])
+-- The same pair also refutes ⊕-int for the REFINED reading of Decision 1
+-- (DECISIONS.md 2026-09-04: the interior entry is ⟦A⟧ = A[γΘ], the INTERIOR
+-- reading of the reveal's rep).  Nested, W's entry is the reveal variable Z;
+-- merged, it is Z's own rep ℕ — the two agree only after UNFOLDING, i.e.
+-- only under Zdancewic's Δ̄_i (iterate δ), never syntactically.  So no
+-- knowledge-carrying interior composes on the nose, and Merge's contractum
+-- must be retyped along an unfolding relation (a ≼ with an unfold step),
+-- not along _≡_ or GroundedProbe's _≼_.
+rdRep : BCtx → Ty → Ty
+rdRep Θ A = substᵗ (γᵇ Θ) (renameᵗ (revs Θ +_) A)
+
+revEntsR : BCtx → BCtx → TCtx
+revEntsR Θ []            = []
+revEntsR Θ (rvl A   ∷ Ξ) = rvld (rdRep Θ A) ∷ revEntsR Θ Ξ
+revEntsR Θ (cnc X A ∷ Ξ) = revEntsR Θ Ξ
+
+intOfR : TCtx → BCtx → TCtx
+intOfR Δ Θ = revEntsR Θ Θ ++ dropN (cmax Θ) Δ
+
+_ : intOfR [] Θb ≡ rvld `ℕ ∷ []
+_ = refl
+
+_ : intOfR (intOfR [] Θb) Θa ≡ rvld (` 1) ∷ rvld `ℕ ∷ []
+_ = refl
+
+_ : intOfR [] (Θa ⊕ Θb) ≡ rvld `ℕ ∷ rvld `ℕ ∷ []
+_ = refl
+
+¬⊕-intR : ¬ (intOfR [] (Θa ⊕ Θb) ≡ intOfR (intOfR [] Θb) Θa)
+¬⊕-intR ()
+
+¬⊕-intR≼ : ¬ (intOfR (intOfR [] Θb) Θa ≼ intOfR [] (Θa ⊕ Θb))
+¬⊕-intR≼ ()
+
+-- (the same pair is fine for the current intOf: both sides all-abstract)
 _ : intOf [] (Θa ⊕ Θb) ≡ intOf (intOf [] Θb) Θa
 _ = ⊕-int [] Θa Θb
 
@@ -840,43 +882,324 @@ _ = ⊕-γ {Ψ₂ = abst ∷ []} (Θ3₁ ⊕ Θ3₂) Θ3₃ z≤n
 ρᵇ-mapL-hi Θ₂ (cnc X A ∷ Θ) Ξ t | yes _ = ρᵇ-mapL-hi Θ₂ Θ Ξ t
 ρᵇ-mapL-hi Θ₂ (cnc X A ∷ Θ) Ξ t | no  _ = ρᵇ-mapL-hi Θ₂ Θ Ξ t
 
-ρᵇ-mapR : ∀ Θ₁ j Θ₂ t
+-- NOTE (first failed attempt, kept per the probe convention): the law was
+-- first stated WITHOUT the side condition `(cmax Θ₁ ∸ j) ≤ revs Θ₂`, and the
+-- empty case does not hold —
+--   ρᵇ (mapR Θ₁ j []) t ≡ ρᵇ [] (cmax Θ₁ ∸ j + t)
+--   error: [UnequalTerms] t != cmax Θ₁ ∸ j + t of type ℕ
+-- (mapR can only DROP reveals that Θ₂ actually has).
+ρᵇ-mapR : ∀ Θ₁ j Θ₂ t → (cmax Θ₁ ∸ j) ≤ revs Θ₂
   → ρᵇ (mapR Θ₁ j Θ₂) t ≡ ρᵇ Θ₂ ((cmax Θ₁ ∸ j) + t)
-ρᵇ-mapR Θ₁ j []            t = refl
-ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t with j <? cmax Θ₁
-ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t | yes lt
-  rewrite drop-lo (cmax Θ₁) j lt = ρᵇ-mapR Θ₁ (suc j) Θ t
-ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   zero    | no ge
-  rewrite m≤n⇒m∸n≡0 (≮⇒≥ ge) = refl
-ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   (suc t) | no ge
-  rewrite m≤n⇒m∸n≡0 (≮⇒≥ ge) =
-  trans (ρᵇ-mapR Θ₁ (suc j) Θ t)
-        (cong (λ n → ρᵇ Θ (n + t))
-              (m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))))
-ρᵇ-mapR Θ₁ j (cnc X A ∷ Θ) t = ρᵇ-mapR Θ₁ j Θ t
+ρᵇ-mapR Θ₁ j []            t le = cong (λ n → ` (n + t)) (sym (n≤0⇒n≡0 le))
+ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t le with j <? cmax Θ₁
+ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t le | yes lt =
+  trans (ρᵇ-mapR Θ₁ (suc j) Θ t le′)
+        (cong (λ n → ρᵇ (rvl A ∷ Θ) (n + t)) (sym dd))
+  where
+    dd : cmax Θ₁ ∸ j ≡ suc (cmax Θ₁ ∸ suc j)
+    dd = drop-lo (cmax Θ₁) j lt
+    le′ : (cmax Θ₁ ∸ suc j) ≤ revs Θ
+    le′ = ≤-pred (subst (_≤ suc (revs Θ)) dd le)
+ρᵇ-mapR Θ₁ j (rvl A ∷ Θ)   t le | no ge =
+  trans (body t) (cong (λ n → ρᵇ (rvl A ∷ Θ) (n + t)) (sym z))
+  where
+    z : cmax Θ₁ ∸ j ≡ 0
+    z = m≤n⇒m∸n≡0 (≮⇒≥ ge)
+    z′ : cmax Θ₁ ∸ suc j ≡ 0
+    z′ = m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))
+    body : ∀ u → ρᵇ (rvl A ∷ mapR Θ₁ (suc j) Θ) u ≡ ρᵇ (rvl A ∷ Θ) u
+    body zero    = refl
+    body (suc u) =
+      trans (ρᵇ-mapR Θ₁ (suc j) Θ u (subst (_≤ revs Θ) (sym z′) z≤n))
+            (cong (λ n → ρᵇ Θ (n + u)) z′)
+ρᵇ-mapR Θ₁ j (cnc X A ∷ Θ) t le = ρᵇ-mapR Θ₁ j Θ t le
 
-ρ⊕-mid : ∀ Θ₁ Θ₂ t
+ρ⊕-mid : ∀ Θ₁ Θ₂ t → cmax Θ₁ ≤ revs Θ₂
   → ρᵇ (Θ₁ ⊕ Θ₂) (revs Θ₁ + t) ≡ ρᵇ Θ₂ (cmax Θ₁ + t)
-ρ⊕-mid Θ₁ Θ₂ t =
-  trans (ρᵇ-mapL-hi Θ₂ Θ₁ (mapR Θ₁ 0 Θ₂) t) (ρᵇ-mapR Θ₁ 0 Θ₂ t)
+ρ⊕-mid Θ₁ Θ₂ t sc =
+  trans (ρᵇ-mapL-hi Θ₂ Θ₁ (mapR Θ₁ 0 Θ₂) t) (ρᵇ-mapR Θ₁ 0 Θ₂ t sc)
 
 -- the pointwise external-face law, away from the cancelled slots
-⊕-ρ-pt : ∀ Θ₁ Θ₂ j → ¬ (j < cmax Θ₁)
+⊕-ρ-pt : ∀ Θ₁ Θ₂ j → cmax Θ₁ ≤ revs Θ₂ → ¬ (j < cmax Θ₁)
        → substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrg₂ Θ₁ Θ₂ j) ≡ ρᵇ Θ₂ j
-⊕-ρ-pt Θ₁ Θ₂ j nc with j <? revs Θ₂
-⊕-ρ-pt Θ₁ Θ₂ j nc | yes l₂ with j <? cmax Θ₁
-⊕-ρ-pt Θ₁ Θ₂ j nc | yes l₂ | yes p = ⊥-elim (nc p)
-⊕-ρ-pt Θ₁ Θ₂ j nc | yes l₂ | no  _ =
-  trans (ρ⊕-mid Θ₁ Θ₂ (j ∸ cmax Θ₁))
+⊕-ρ-pt Θ₁ Θ₂ j sc nc with j <? revs Θ₂
+⊕-ρ-pt Θ₁ Θ₂ j sc nc | yes l₂ with j <? cmax Θ₁
+⊕-ρ-pt Θ₁ Θ₂ j sc nc | yes l₂ | yes p = ⊥-elim (nc p)
+⊕-ρ-pt Θ₁ Θ₂ j sc nc | yes l₂ | no  _ =
+  trans (ρ⊕-mid Θ₁ Θ₂ (j ∸ cmax Θ₁) sc)
         (cong (ρᵇ Θ₂) (m+[n∸m]≡n (≮⇒≥ nc)))
-⊕-ρ-pt Θ₁ Θ₂ j nc | no g₂ =
-  trans (cong (λ n → ρᵇ (Θ₁ ⊕ Θ₂) (R⊕ Θ₁ Θ₂ + n))
-              (sym (m+n∸m≡n (revs Θ₂) (j ∸ revs Θ₂))))
-        (trans (hi (j ∸ revs Θ₂))
-               (sym (trans (cong (ρᵇ Θ₂) (sym (m+[n∸m]≡n (≮⇒≥ g₂))))
-                           (ρᵇ-hi Θ₂ (j ∸ revs Θ₂)))))
+⊕-ρ-pt Θ₁ Θ₂ j sc nc | no g₂ = trans lhs (sym rhs)
   where
-    hi : ∀ i → ρᵇ (Θ₁ ⊕ Θ₂) (R⊕ Θ₁ Θ₂ + (revs Θ₂ ∸ revs Θ₂ + i)) ≡ ` i
-    hi i rewrite m≤n⇒m∸n≡0 (≤-refl {revs Θ₂}) =
-      subst (λ n → ρᵇ (Θ₁ ⊕ Θ₂) (n + i) ≡ ` i) (revs-⊕ Θ₁ Θ₂)
-            (ρᵇ-hi (Θ₁ ⊕ Θ₂) i)
+    ii : ℕ
+    ii = j ∸ revs Θ₂
+    lhs : ρᵇ (Θ₁ ⊕ Θ₂) (R⊕ Θ₁ Θ₂ + ii) ≡ ` ii
+    lhs = subst (λ n → ρᵇ (Θ₁ ⊕ Θ₂) (n + ii) ≡ ` ii)
+                (revs-⊕ Θ₁ Θ₂) (ρᵇ-hi (Θ₁ ⊕ Θ₂) ii)
+    rhs : ρᵇ Θ₂ j ≡ ` ii
+    rhs = trans (cong (ρᵇ Θ₂) (sym (m+[n∸m]≡n (≮⇒≥ g₂)))) (ρᵇ-hi Θ₂ ii)
+
+------------------------------------------------------------------------
+-- §7.  ⊕-ρ : the external face, in general.
+--
+-- Away from the cancelled slots this is ⊕-ρ-pt.  AT a cancelled slot the
+-- composite has no slot left and mrg₂ puts Θ₁'s conceal rep there, so the
+-- law needs that rep to survive the round trip Ψ₁ ↪ ⊕-frame → Δ.  We keep
+-- that as an explicit premise and then discharge it (§7b) for GROUND reps,
+-- which is every rep occurring in Example 8, the cancel pair and Example 3.
+------------------------------------------------------------------------
+
+⊕-ρ : ∀ Θ₁ Θ₂ {B₂ : Ty} → cmax Θ₁ ≤ revs Θ₂
+    → (∀ j → j < cmax Θ₁
+           → substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrg₂ Θ₁ Θ₂ j) ≡ ρᵇ Θ₂ j)
+    → substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (substᵗ (mrg₂ Θ₁ Θ₂) B₂)
+      ≡ substᵗ (ρᵇ Θ₂) B₂
+⊕-ρ Θ₁ Θ₂ {B₂} sc cn =
+  trans (sub-sub (mrg₂ Θ₁ Θ₂) (ρᵇ (Θ₁ ⊕ Θ₂)) B₂) (subst-cong pt B₂)
+  where
+    pt : ∀ j → substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrg₂ Θ₁ Θ₂ j) ≡ ρᵇ Θ₂ j
+    pt j with j <? cmax Θ₁
+    pt j | yes lt = cn j lt
+    pt j | no  ge = ⊕-ρ-pt Θ₁ Θ₂ j sc ge
+
+------------------------------------------------------------------------
+-- §7b.  Discharging the cancel premise for ground reps.
+------------------------------------------------------------------------
+
+data Ground : Ty → Set where
+  gr-ℕ : Ground `ℕ
+  gr-𝔹 : Ground `𝔹
+  gr-⇒ : ∀ {A B} → Ground A → Ground B → Ground (A ⇒ B)
+
+ground-ren : ∀ {A} ρ → Ground A → renameᵗ ρ A ≡ A
+ground-ren ρ gr-ℕ         = refl
+ground-ren ρ gr-𝔹         = refl
+ground-ren ρ (gr-⇒ gA gB) = cong₂ _⇒_ (ground-ren ρ gA) (ground-ren ρ gB)
+
+ground-sub : ∀ {A} σ → Ground A → substᵗ σ A ≡ A
+ground-sub σ gr-ℕ         = refl
+ground-sub σ gr-𝔹         = refl
+ground-sub σ (gr-⇒ gA gB) = cong₂ _⇒_ (ground-sub σ gA) (ground-sub σ gB)
+
+mrg₂-c : ∀ Θ₁ Θ₂ j → j < revs Θ₂ → j < cmax Θ₁
+       → mrg₂ Θ₁ Θ₂ j ≡ renameᵗ (up⊕ Θ₁ Θ₂) (repOf j Θ₁)
+mrg₂-c Θ₁ Θ₂ j l₂ l₁ with j <? revs Θ₂
+mrg₂-c Θ₁ Θ₂ j l₂ l₁ | yes _ with j <? cmax Θ₁
+mrg₂-c Θ₁ Θ₂ j l₂ l₁ | yes _ | yes _ = refl
+mrg₂-c Θ₁ Θ₂ j l₂ l₁ | yes _ | no ¬p = ⊥-elim (¬p l₁)
+mrg₂-c Θ₁ Θ₂ j l₂ l₁ | no ¬p = ⊥-elim (¬p l₂)
+
+-- Θ₁ has no BLOCKED slot: every slot it drops, it conceals.  (A blocked slot
+-- of Θ₁ that is one of Θ₂'s reveals is the future `↑Y:⋆` of DECISIONS.md —
+-- the composite has no slot for it and mrg₂ would read repOf's `ℕ dummy.)
+NoBlk : BCtx → Set
+NoBlk Θ = ∀ j → j < cmax Θ → isConc j Θ ≡ true
+
+cancel-rt : ∀ {Δ Ψ} Θ₁ Θ₂ → intOf′ Δ Θ₂ ∣ Ψ ⊢ᵇ′ Θ₁
+          → cmax Θ₁ ≤ revs Θ₂ → NoBlk Θ₁
+          → (∀ j → j < cmax Θ₁ → Ground (repOf j Θ₁))
+          → ∀ j → j < cmax Θ₁
+          → substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrg₂ Θ₁ Θ₂ j) ≡ ρᵇ Θ₂ j
+cancel-rt {Δ} Θ₁ Θ₂ b sc nb gr j lt =
+  trans (cong (substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)))
+              (trans (mrg₂-c Θ₁ Θ₂ j (≤-trans lt sc) lt)
+                     (ground-ren (up⊕ Θ₁ Θ₂) (gr j lt))))
+        (trans (ground-sub (ρᵇ (Θ₁ ⊕ Θ₂)) (gr j lt))
+               (sym (cancel-agree Θ₂ Δ j (repOf j Θ₁) (≤-trans lt sc)
+                                  (bwf-repOf Θ₁ b j (nb j lt)))))
+
+-- the cancel pair, through the GENERAL lemmas (not by refl)
+nb-c : NoBlk Θ1c
+nb-c zero    (s≤s z≤n) = refl
+nb-c (suc j) (s≤s ())
+
+gr-c : ∀ j → j < cmax Θ1c → Ground (repOf j Θ1c)
+gr-c zero    (s≤s z≤n) = gr-ℕ
+gr-c (suc j) (s≤s ())
+
+rt-c : ∀ j → j < cmax Θ1c
+     → substᵗ (ρᵇ (Θ1c ⊕ Θ2c)) (mrg₂ Θ1c Θ2c j) ≡ ρᵇ Θ2c j
+rt-c = cancel-rt {Δ = []} {Ψ = []} Θ1c Θ2c
+         (bwf↓′ here wf-ℕ bwf[]′) (s≤s z≤n) nb-c gr-c
+
+_ : substᵗ (ρᵇ (Θ1c ⊕ Θ2c)) (substᵗ (mrg₂ Θ1c Θ2c) (` 0))
+    ≡ substᵗ (ρᵇ Θ2c) (` 0)
+_ = ⊕-ρ Θ1c Θ2c {B₂ = ` 0} (s≤s z≤n) rt-c
+
+------------------------------------------------------------------------
+-- §8.  The Merge rule, and what B₂′ has to be.
+--
+--   Merge : Value V
+--     → (V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫  -→  V ⟪ Θ₁ ⊕ Θ₂ , B₂′ ⟫
+--
+-- There are exactly two candidates for B₂′, and they are the two transports
+-- of §3:
+--
+--   B₂′ = substᵗ (mrg₁ Θ₁ Θ₂) B₁      -- the INTERNAL face is then free (⊕-γ)
+--   B₂′ = substᵗ (mrg₂ Θ₁ Θ₂) B₂      -- the EXTERNAL face is then free (⊕-ρ)
+--
+-- On the cancel pair (§4b) the two agree and both give the expected `ℕ, i.e.
+-- "B₂ with the cancelled reveal variable replaced by its rep".  In general
+-- they do NOT agree — not even under the middle-type equation (¬Aligned-o
+-- below) — and §4c shows a redex for which NEITHER (indeed no boundary type
+-- whatsoever) works.  So Merge is sound exactly on the redexes satisfying
+------------------------------------------------------------------------
+
+Aligned : BCtx → BCtx → Ty → Ty → Set
+Aligned Θ₁ Θ₂ B₁ B₂ =
+  substᵗ (mrg₁ Θ₁ Θ₂) B₁ ≡ substᵗ (mrg₂ Θ₁ Θ₂) B₂
+
+-- … or, weaker and all that Merge actually needs, on those satisfying
+MergeOK : BCtx → BCtx → Ty → Ty → Set
+MergeOK Θ₁ Θ₂ B₁ B₂ =
+  substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (substᵗ (mrg₁ Θ₁ Θ₂) B₁) ≡ substᵗ (ρᵇ Θ₂) B₂
+
+aligned⇒ok : ∀ Θ₁ Θ₂ {B₁ B₂} → cmax Θ₁ ≤ revs Θ₂
+  → (∀ j → j < cmax Θ₁
+         → substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrg₂ Θ₁ Θ₂ j) ≡ ρᵇ Θ₂ j)
+  → Aligned Θ₁ Θ₂ B₁ B₂ → MergeOK Θ₁ Θ₂ B₁ B₂
+aligned⇒ok Θ₁ Θ₂ {B₁} {B₂} sc cn al =
+  trans (cong (substᵗ (ρᵇ (Θ₁ ⊕ Θ₂))) al) (⊕-ρ Θ₁ Θ₂ {B₂} sc cn)
+
+-- THE PRESERVATION STATEMENT for Merge, with B₂′ = substᵗ (mrg₁ Θ₁ Θ₂) B₁:
+-- both faces of the composite are the faces the redex had.
+merge-faces : ∀ {Ψ₂ : TCtx} {B₁ B₂} Θ₁ Θ₂ → cmax Θ₁ ≤ revs Θ₂
+  → Scoped (baseS Θ₁ Ψ₂) B₁ → MergeOK Θ₁ Θ₂ B₁ B₂
+  → (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (substᵗ (mrg₁ Θ₁ Θ₂) B₁) ≡ substᵗ (γᵇ Θ₁) B₁)
+  × (substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (substᵗ (mrg₁ Θ₁ Θ₂) B₁) ≡ substᵗ (ρᵇ Θ₂) B₂)
+merge-faces {Ψ₂} {B₁} Θ₁ Θ₂ sc scB mok = ⊕-γ {Ψ₂} {B₁} Θ₁ Θ₂ sc scB , mok
+
+-- the middle-type equation does NOT lift to Aligned: §4c's redex satisfies
+-- it, yet the two transports differ (and by no-merge nothing repairs it).
+_ : substᵗ (ρᵇ Θ1o) (` 0 ⇒ ` 0) ≡ substᵗ (γᵇ Θ2o) (` 0)
+_ = refl
+
+_ : substᵗ (mrg₁ Θ1o Θ2o) (` 0 ⇒ ` 0) ≡ (` 0 ⇒ ` 0)
+_ = refl
+
+-- (Θ2o has no reveal, so mrg₂ just re-indexes X past Θ1o's reveal)
+_ : substᵗ (mrg₂ Θ1o Θ2o) (` 0) ≡ ` 1
+_ = refl
+
+¬Aligned-o : ¬ (Aligned Θ1o Θ2o (` 0 ⇒ ` 0) (` 0))
+¬Aligned-o ()
+
+¬MergeOK-o : ¬ (MergeOK Θ1o Θ2o (` 0 ⇒ ` 0) (` 0))
+¬MergeOK-o ()
+
+-- MergeOK on the three positive examples (T5, the cancel pair, the tower)
+okT5 : MergeOK Θi Θn (` 0 ⇒ ` 0) (` 0 ⇒ ` 0)
+okT5 = refl
+
+ok-c : MergeOK Θ1c Θ2c (` 0) (` 0)
+ok-c = refl
+
+ok-3a : MergeOK Θ3₁ Θ3₂ (` 0 ⇒ ` 0) (` 0 ⇒ ` 0)
+ok-3a = refl
+
+ok-3b : MergeOK (Θ3₁ ⊕ Θ3₂) Θ3₃ (` 0 ⇒ ` 0) (` 0 ⇒ ` 0)
+ok-3b = refl
+
+-- T5 shows Aligned is strictly stronger than MergeOK
+¬Aligned-T5 : ¬ (Aligned Θi Θn (` 0 ⇒ ` 0) (` 0 ⇒ ` 0))
+¬Aligned-T5 ()
+
+------------------------------------------------------------------------
+-- §9.  bwf and scope for the composite.
+--
+-- ⊕-bwf does NOT hold for GroundedProbe's (untransported) bwf↓′: the
+-- composite must read Θ₂'s conceal reps in Ψ₁ (mapR pushes them in through
+-- inSub Θ₁), while bwf↓′ compares them SYNTACTICALLY with the knowledge Δ
+-- holds.  Counterexample: Δ = [X:=P , P] , Θ₂ = ↓X:=P , Θ₁ = ↑W:=𝔹.
+-- Under DECISIONS.md §5c's TRANSPORTED premise (grounded Θ X A A₀, i.e.
+-- A = (↑A₀)[γΘ]) the composite's rep is by construction the γᵇ-image of the
+-- same A₀ through the whole composite, and this mismatch disappears — so
+-- ⊕-bwf is a reason to land the transported premise, not a counterexample
+-- to Merge.
+------------------------------------------------------------------------
+
+Δbw : TCtx
+Δbw = rvld (` 0) ∷ abst ∷ []
+
+Θ2bw Θ1bw : BCtx
+Θ2bw = cnc 0 (` 0) ∷ []
+Θ1bw = rvl `𝔹 ∷ []
+
+_ : intOf′ Δbw Θ2bw ≡ abst ∷ []
+_ = refl
+
+_ : Θ1bw ⊕ Θ2bw ≡ rvl `𝔹 ∷ cnc 0 (` 1) ∷ []
+_ = refl
+
+⊢Θ2bw : Δbw ∣ intOf′ Δbw Θ2bw ⊢ᵇ′ Θ2bw
+⊢Θ2bw = bwf↓′ here (wf-var here-abst) bwf[]′
+
+⊢Θ1bw : intOf′ Δbw Θ2bw ∣ intOf′ (intOf′ Δbw Θ2bw) Θ1bw ⊢ᵇ′ Θ1bw
+⊢Θ1bw = bwf↑′ wf-𝔹 bwf[]′
+
+¬⊕-bwf : ¬ (Δbw ∣ intOf′ (intOf′ Δbw Θ2bw) Θ1bw ⊢ᵇ′ (Θ1bw ⊕ Θ2bw))
+¬⊕-bwf (bwf↑′ _ (bwf↓′ () _ _))
+
+-- … whereas the composite IS well formed on every example whose reps are
+-- ground (the derivations are the ones already given: ⊢mergedT5,
+-- ⊢contractum-c, ⊢merged3), e.g.
+⊢Θ⊕8 : Δ8′ ∣ intOf′ Δ8′ Θ⊕8 ⊢ᵇ′ Θ⊕8
+⊢Θ⊕8 = bwf↑′ (wf-var here-abst)
+        (bwf↑′ (wf-var here-abst) (bwf↓′ (skip-abst here) wf-ℕ bwf[]′))
+
+-- Scope: on the examples, B₂′ is Scoped over the composite's stack.
+_ : baseS Θ⊕8 Δ8 ≡ ok ∷ ok ∷ blk ∷ ok ∷ []
+_ = refl
+
+scB⊕8 : Scoped (baseS Θ⊕8 Δ8) (substᵗ (mrg₁ Θi Θn) (` 0 ⇒ ` 0))
+scB⊕8 = sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ)
+
+scB⊕c : Scoped (baseS (Θ1c ⊕ Θ2c) []) (substᵗ (mrg₁ Θ1c Θ2c) (` 0))
+scB⊕c = sc-ℕ
+
+scB⊕3 : Scoped (baseS Θ3⊕ Δ3) (substᵗ (mrg₁ (Θ3₁ ⊕ Θ3₂) Θ3₃) (` 0 ⇒ ` 0))
+scB⊕3 = sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ)
+
+------------------------------------------------------------------------
+-- §10.  Depth-1 values (Decision 3a, Zdancewic Fig. 11): a wrapper's body
+-- is a PRIMVAL (constant, λ or Λ), never another wrapper.
+------------------------------------------------------------------------
+
+data GVal₁ : Term → Set
+data Val₁  : Term → Set
+data PVal  : Term → Set
+
+data GVal₁ where
+  G₁-ƛ : GVal₁ (ƛ A ∙ M)
+  G₁-Λ : Val₁ M → GVal₁ (Λ M)
+
+data PVal where
+  P-$ : ∀ {n} → PVal ($ n)
+  P-G : GVal₁ M → PVal M
+
+data Val₁ where
+  V₁-P  : PVal M → Val₁ M
+  V₁-⟪⟫ : PVal M → Val₁ (M ⟪ Θ , B₀ ⟫)
+
+-- the merged forms of the three examples are depth-1 values …
+_ : Val₁ mergedT5
+_ = V₁-⟪⟫ (P-G G₁-ƛ)
+
+_ : Val₁ (($ 7) ⟪ [] , `ℕ ⟫)
+_ = V₁-⟪⟫ P-$
+
+_ : Val₁ ((ƛ ` 0 ∙ ` 0) ⟪ Θ3⊕ , ` 0 ⇒ ` 0 ⟫)
+_ = V₁-⟪⟫ (P-G G₁-ƛ)
+
+-- … and §4c's redex is NOT (its body is a wrapper), yet no Merge applies:
+-- with depth-1 values, `redexo` is a CLOSED WELL-TYPED STUCK TERM.  This is
+-- the price of Decision 3a as stated; ⊢redexo / no-merge above are the proof.
+¬Val₁-redexo : ¬ (Val₁ redexo)
+¬Val₁-redexo (V₁-P (P-G ()))
+¬Val₁-redexo (V₁-⟪⟫ (P-G ()))
+
+-- Where the depth-2 towers come from: TyWrap's contractum wraps a type
+-- application, and TyBeta turns that into a wrapper (Example 8, T4 -→ T5);
+-- Wrap's contractum wraps an application, and Beta can turn that into a
+-- wrapper too.  Merge is what returns them to depth 1.
+_ : Value ((ƛ ` 0 ∙ ` 0) ⟪ Θi , ` 0 ⇒ ` 0 ⟫)
+_ = V-⟪⟫ (V-G G-ƛ)

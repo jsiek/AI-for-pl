@@ -694,6 +694,67 @@ bad₂/near-bad gauntlet:
        subsumes the (a″) hybrid at Pn, and the structural argument ruling
        out (b4) (a co-boundary-parameterized judgment: the contractum must
        be typed by plain env).
+## D1 PROBE VERDICT — root cause pinned; A SOUNDNESS HOLE in the landed license; the SkelEq repair (2026-09-04)
+
+notes/D1Probe.agda (agda --safe clean).  Answers to Jeremy's two questions:
+
+ROOT CAUSE — CONFIRMED, one line: x-entry reps rename by the EXTERIOR ρ
+(entRen₂), conceal reps by the induced INTERIOR renaming (renᴮ).  The
+divergence class is exactly "ρ differs from the induced interior renaming
+on the rep's support" — and it contains EVERY weakening, because an x-entry
+forces a conceal, and a conceal absorbs suc outright.  A renaming inserting
+deeper than cmax leaves the comparison intact, so the class is proper.
+CORRECTION: DualLicenseDesign §2's "the homes align" was false — the two
+reps are identified only through the rebuild.  The rebuild-relative
+comparison (Jeremy's re-alignment instinct) HOLDS AT BIRTH — xrep-stored is
+the x-analogue of cancel-agree, the two reps are syntactically equal at
+every dual's birth — but is NOT renaming-stable, fatally: after an absorbed
+weakening the rebuild has fewer slots than the ambient context (¬rebuild-ren
+— ≼≈ is FALSE, not unproven).
+
+PROPAGATION — WORSE THAN FEARED.  CORRECTION to this file's earlier claim
+"the comparison never was the load-bearing part": REFUTED.  starOnly is
+vacuously true of CLOSED types (starOnly Θ d ℕ = true), so the landed
+(bwf-↓x) licenses  ↓Z:=ℕ  at an x-slot — asserting "Z is ℕ" with no
+justification.  Machine-checked: ⊢Tg exports 7 at the Λ-bound Y through
+E★′'s own x-slot; ⊢Tbad is bad's configuration one indirection away,
+reached via the ⊢retag≈ transport TyBeta performs.  The dropped comparison
+is exactly what refuses it (would-refute-≡/-≈).  The same hole was in the
+original absOnly form.  Once depth-1 values land, ⊢Tg's term becomes a
+stuck Merge redex — a progress failure.
+
+THE REPAIR — SkelEq (found by the probe): compare the conceal's rep with
+the recorded one by SKELETON (constructor tree with variable positions
+identified) — stable under arbitrary independent renamings with NO
+hypotheses (skel-ren), so it survives exactly the drift that killed ≡ and
+≈Δ̄, while still refusing ↓Z:=ℕ against a recorded variable (closing the
+hole) and the ⊢3n-adv adversary, and admitting the whole gauntlet.
+
+    (bwf-↓x)   Γ ∋ X:=ˣA′     starOnly Θ 0 A ≡ true     SkelEq A A′
+               Ψ ⊢ A
+               ──────────────────────────────────────────────────
+               Γ ∣ Ψ ⊢ ↓X:=A , Θ
+
+Cost: ⊢renameᵀ's hx hypothesis strengthens to SkelX (weaker than the
+rejected XRen; both live call sites already satisfy it — SkelX-suc,
+SkelX-mv).  Bonus: SkelEq + xrep-stored discharge MERGE'S cancel-agree for
+x-pairs, so the deleting cancel keeps its justification.
+
+MERGE VERDICTS: the TOPLAS three-agent adversary CLEARS our deleting cancel
+(their term is conceal-of-conceal — our cancel never fires; the appended
+merge types, the middle authority discharging Reversal through ≈Δ̄; the
+variant where cancel DOES fire survives via the agreed rep).  APPEND-ONLY
+IS REFUTED FOR US (¬bwf-append: exterior-relative conceal indices make the
+appended boundary inadmissible — theirs works only over a global
+namespace); the faces-agree strip is unsound except at Θ = ∅ (= Drop∅).
+Towers collapse via DELETING merge + strip at a closed B₀ — which needs
+cancel-agree anyway.  So the ranked recommendation is unambiguous:
+
+  (i) REPAIR (bwf-↓x) WITH SkelEq  — closes the soundness hole, restores
+      Merge's cancel justification, one premise + one hypothesis-free
+      lemma + the SkelX strengthening.  RECOMMENDED; awaiting Jeremy.
+  (ii)/(iii) accepting D1, with either cancel flavor: refuted or dominated.
+
 ## DESIGN LAW, restated by Jeremy via the trace coloring (2026-09-04)
 
 "Another way to think about the tightness property that I'm going for is

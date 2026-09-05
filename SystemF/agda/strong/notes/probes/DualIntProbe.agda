@@ -335,3 +335,21 @@ peel-step = Peel (V-G G-ƛ) Wval
 ¬DualIntHead-2 : ¬ DualIntHead Δd Θ2
 ¬DualIntHead-2 h with head-⋆-abst Δd Θ2 h 0 (s≤s z≤n) refl
 ¬DualIntHead-2 h | ()
+
+------------------------------------------------------------------------
+-- §5  THE HEADLINE, CONFIRMED: peel-step is a LIVE PRESERVATION
+-- COUNTEREXAMPLE.  ⊢Redex types the redex at ℕ, peel-step steps it, and
+-- the contractum has NO typing at ℕ: the only rule for the outer wrapper
+-- is (env), whose interior forces ⊢· with Vtm's annotation pinning the
+-- argument type, and the dual wrapper's own (env) then demands Wtm typed
+-- in the REBUILD Rd at ` 0 ⇒ ` 0 — refuted (¬⊢W-rebuild).  So the
+-- calculus AS IT STANDS loses subject reduction at this Peel; the three
+-- DualDef parameters were not just unprovable, they were covering a
+-- false theorem.
+------------------------------------------------------------------------
+
+¬⊢contractum : ¬ (Δd ∣ []
+  ⊢ (Vtm · (Wtm ⟪ dualᴳ Δd Θ2 , renameᵗ (swapᵇ Θ2) (` 0 ⇒ ` 0) ⟫))
+      ⟪ Θ2 , `ℕ ⟫ ⦂ `ℕ)
+¬⊢contractum (env _ _ (⊢· (⊢ƛ _ _) (env _ _ ⊢Wtm))) =
+  ¬⊢W-rebuild ⊢Wtm

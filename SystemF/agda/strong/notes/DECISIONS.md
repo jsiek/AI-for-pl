@@ -1729,3 +1729,89 @@ DualRep≈/DualInt≈ agents still out, their verdicts fold in):
     check).
 NO RULING YET.  The ask will be assembled with the DualRep≈/DualInt≈
 verdicts and reachability probes, on concrete examples.
+
+## THE PRESERVATION VERDICT (2026-09-05) — SUBJECT REDUCTION IS FALSE;
+## the endgame probes converge on the REP DISCIPLINE (Decision 8, full ask)
+
+All four endgame tracks are in.  The headline, machine-checked
+(notes/probes/DualIntProbe.agda §3.3 + §5):
+
+    ⊢Redex     : Δd ∣ [] ⊢ (Vtm ⟪ Θ2 , (` 0 ⇒ ` 0) ⇒ `ℕ ⟫) · Wtm ⦂ `ℕ
+    peel-step  : a live Peel step on it
+    ¬⊢contractum : the contractum has NO typing at ℕ
+
+with Δd = rvld (` 0) ∷ abst ∷ rvld `ℕ (a chained-knowledge ambient),
+Θ2 = ↑?:=(` 0) , ↓·:=ℕ (a reveal whose REP names the chained slot), and
+Wtm a value sealed by ORDINARY knowledge of that same slot
+(↓0:=(` 0), bwf↓ at Δd ∋ 0 := ` 0).  The Peel's dual DEMOTES slot 0
+(both copy guards refuse → rvl⋆ → the rebuild has abst), and Wtm's own
+conceal license — which consults slot 0 — dies inside the dual
+(¬⊢W-rebuild).  So the loss is not in the proofs: the CALCULUS loses
+subject reduction at this Peel.  Combined with §9m's ¬progress, both
+halves of type safety are false as things stand; the DualDef
+parameterization was covering a false theorem (and ¬DualCnc≈-soundness
+had already shown the three parameters mutually inconsistent).
+
+WHAT IS CLOSED, in the same sweep:
+- DualRep≈: FALSE as stated, REPAIRED AND FULLY PROVEN
+  (strong/DualRepProof.agda): BlkRepWf (the index relation
+  cmax Θ ≤ suc (i + k) the emitter guarantees) + the EXISTING ⊢_ context
+  judgment; threading lemmas ⊢-[], ⊢-abst, ⊢-intOf, ⊢-intOf-dual all
+  proven — preservation's statement gains a ⊢ Δ premise (store-typing
+  pattern; every ξ case covered).  bwf-dual-wf drops the parameter: the
+  residue set shrinks by one.
+- DualInt≈: FALSE (two corners, xrvld and double-refusal — both the
+  rvl⋆→abst demotion); the ≼≈-weakening repair REFUTED at the live Peel
+  above; strongest-true version delivered (strong/DualIntProof.agda):
+  dual-int≈ reduces it to DualIntHead, a per-slot residue on the cmax Θ
+  dropped slots, and head-⋆-abst shows the residue at an rvl⋆ slot IS
+  "Δ was abstract there" — dual-int-nodrop / dual-int-abst are the
+  closed sub-cases.
+- DualCnc≈: FALSE; unfixable at its own site (no-per-slot-suppression;
+  CNN re-admits ⊢3n-adv; Pn's dual IS the adversary's (bwf-↓x) instance).
+- Decision 7's component (1): closed for good (merge-derivable).
+- det / values-don't-step: STAND (they are about the rules, not the
+  typing).
+
+THE CONVERGENT DIAGNOSIS.  Every counterexample of the sweep — Pn
+(DualCnc), §9m (progress), the two DualInt corners, and the live
+preservation break — threads through the same gap: THE SCOPE DISCIPLINE
+POLICES B₀ BUT NOT THE REPS.  `Scoped (baseS Θ Δ) B₀` forbids the
+boundary type from naming a blocked slot, but bwf↑ licenses a reveal
+rep to be ANY Δ-type — chained spellings (` Y with Y:=ℕ), abstract
+witnesses (` X licensed only ≈-through-unfolding), and demotable slots
+included — and bwf↓/bwf↓x's licenses are NOT stable under the demotion
+the dual performs (≼≈ has no knowledge-below-abst clause, correctly:
+¬⊢W-rebuild is exactly a license dying under demotion).  The ≡/≈ gap
+(§9m) is the same phenomenon one level up.
+
+DECISION 8 — the ask (rulings on direction, then probes before install):
+(A) A REP DISCIPLINE in bwf: reps must be Scoped like B₀ (no blocked
+    slots) AND resolved (no spelling through rvld-chained slots — the
+    resolved spelling exists and is what the license compares against
+    anyway).  Kills Pn and §9m at birth (their boundaries become
+    unmintable as written; TyBeta/source can still write ·[Y] — the
+    RULE would mint the resolved rep, which is where the known
+    obstacle lives: TyBeta's contractum must still be typed at
+    B [ A ]ᵗ with the syntactic A — needs a probe).  ASSESSMENT, not
+    machine-checked: this alone does NOT close the live preservation
+    break — §3.3's resolved rep lands on an abst (Λ-bound) slot and
+    the demotion problem remains.
+(B) DEMOTION-COMPATIBLE CROSSINGS: Peel (the only rule reading Δ)
+    gains a grounded premise in the MergeOK style — the crossing value
+    W must be typeable against the dual's rebuild ("PeelOK"), with
+    progress then obligated to derive it at well-typed redexes or the
+    redex classified a value/stuck-by-design.  §3.3's redex would fail
+    PeelOK; the question becomes whether every SOURCE-reachable
+    crossing satisfies it (reachability probe) — if yes, this is the
+    grounded-invariants answer; if no, the calculus needs (C).
+(C) RETHINK THE DEMOTION: the dual's rvl⋆ fallback is the only
+    knowledge-destroying step in the system; alternatives (keep an
+    x-marked copy instead of rvl⋆ so licenses survive demotion as
+    x-licenses; or forbid boundaries whose reps/licences depend on
+    demotable slots — a transitive rep discipline) need design work
+    with the five counterexamples (Pn, §9m, DualInt ×2, §3.3-peel,
+    plus ⊢3n-adv as the soundness gate) as the fixed test suite.
+Recommendation: (A)+(B) probed together first — (A) shrinks the shapes
+to Λ-bound-only demotions, (B) polices exactly those; (C) only if the
+reachability probe under (B) finds a source-reachable failing crossing.

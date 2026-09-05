@@ -1986,3 +1986,23 @@ every corpus instance but the general induction (nrev index bookkeeping)
 is NOT done; ⊢subst not done (sources not run end-to-end); n4/E★′
 checked structurally.  These are the first work items of the build-out,
 not design risks.
+
+## Redesign — the id-layer rule (Jeremy, 2026-09-05): IdAbsorb, ACTIVE-guarded
+
+Jeremy's question "can a value wrapped at an id (` X) face be eliminated?"
+exposed the mini-core's first progress hole (ConvBoundaryProbe §6: T₆ is
+stuck-well-typed — the β2/transparent-layer family landing in the
+redesign; Cancel covers only β1).  RULED: a new reduction rule of the
+absorption shape, WITH THE ACTIVE/INERT METHODOLOGY EXPLICIT — the outer
+conversion must be ACTIVE:
+
+    IdAbsorb : Value V → Active c
+      → Δ ⊢ (V ⟪ Θ₁ , id A ⟫) ⟪ Θ₂ , c ⟫ -→ V ⟪ Θ₁ ⊳ Θ₂ , c⁺ ⟫
+
+The Active premise is load-bearing: with c inert the LHS is a VALUE
+(V-⟪⟫), so the premise is exactly what preserves values-don't-step and
+det.  `id` is composition's unit, so no conversion is composed — ⊳ must
+be owners+names-only (the no-⊕ test).  Probe in flight: T₆ runs to 7;
+stacked id-layers; the mask-jam analysis for ⊳; whether R1 (vacuous
+instantiation) earns a place as companion; the door-closing on naked
+id-drop (the context conjunct).

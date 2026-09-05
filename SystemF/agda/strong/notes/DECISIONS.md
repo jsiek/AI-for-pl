@@ -1843,3 +1843,22 @@ BoundarySurvey.md.  Because synthesis needs no typability, the
 instrument keeps reporting through the ill-typed states after the §9n
 break — the obligation rows there ARE the requirements spec the redesign
 must meet.
+
+## REDESIGN ADVICE (2026-09-05) — notes/RedesignAdvice.md
+
+Jeremy's four questions answered from the survey data (full memo in
+RedesignAdvice.md): Q1 central rep storage YES (the strongest-supported
+change; every failure is a failed rep copy; ownership makes the pointer
+stable where the copy was not; GTSF's Σ-store realization comes with
+proven transport lemmas); Q2 simultaneity KEEP (no finding implicates
+siblings; the failures are all cross-boundary); Q3 Conversion YES as the
+FACE half of a split boundary — scope skeleton (strong/, rep-free) +
+conversion witness (GTSF), closing R3's 61 undetermined rows; Q4 the
+cancel face-match becomes DEFINITIONAL under ownership (one algebra
+lemma replaces cancel-agree/Reversal≈/SkelEq/MergeOK-faces).  Q5 extras:
+Merge→Cancel (⊕ retired, F8/F9), no ≈ in rules (§9m disease), retire the
+x-machinery (F4), the dual shrinks to slot re-pointing (demotion concept
+deleted), keep active/inert + inward-only + det + tightness-for-scope;
+FLAGGED for ruling: owner lookup vs the tightness law.  Soundness gate:
+⊢3n-adv must be unmintable.  Next: ConversionBoundaryProbe (transport
+risk probed FIRST), corpus as kill criteria.

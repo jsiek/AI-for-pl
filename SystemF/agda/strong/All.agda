@@ -20,3 +20,4 @@ open import strong.proof.IdLayer
 -- the regression corpus and the renderer
 open import strong.Examples
 open import strong.Show
+open import strong.proof.Canonicity

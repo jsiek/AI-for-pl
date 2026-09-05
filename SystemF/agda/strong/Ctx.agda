@@ -1,20 +1,20 @@
 module strong.Ctx where
 
--- Strong System F — THE SPINE (type contexts) and its transports.
+-- Strong System F — THE TYPE CONTEXT (type contexts) and its transports.
 --
--- A spine entry is one of
+-- A type context entry is one of
 --
 --   abst    a Λ-bound variable — no representation, and none can be invented.
 --   own A   THE OWNER of an instantiation event.  A is the representation,
 --           stored ONCE, as a type over this entry's own tail.  Every inner
 --           boundary that talks about this variable carries only its NAME.
 --   blk E   the slot is CONCEALED here: it may not be NAMED (tightness), but
---           its entry E is RETAINED, so the knowledge is still on the spine
+--           its entry E is RETAINED, so the knowledge is still on the type context
 --           for a later re-exposure (`ali`) to point back at.
 --
 -- Under Jeremy's Q1 ruling (OWNER-SYNTACTIC, 2026-09-05) a variable's
 -- representation lives ONLY at its owner; every face and every licence
--- resolves the rep by LOOKING THE NAME UP along the enclosing spine.  There
+-- resolves the rep by LOOKING THE NAME UP along the enclosing type context.  There
 -- is no store and no copy, so knowledge transport (`ren-kn`, `⊑-kn`) is
 -- definitional and the old design's demotion is not expressible.
 --
@@ -53,7 +53,7 @@ map-length f []       = refl
 map-length f (x ∷ xs) = cong suc (map-length f xs)
 
 ------------------------------------------------------------------------
--- 1.  The spine:  type contexts with OWNER entries and BLOCKED entries
+-- 1.  The type context:  type contexts with OWNER entries and BLOCKED entries
 ------------------------------------------------------------------------
 
 data Ent : Set where
@@ -129,7 +129,7 @@ own-inj refl = refl
 ∋:=-det d d′ = own-inj (∋e-det d d′)
 
 ------------------------------------------------------------------------
--- 2.  Well-formed types over a spine
+-- 2.  Well-formed types over a type context
 ------------------------------------------------------------------------
 
 infix 4 _⊢ᵗ_
@@ -153,10 +153,10 @@ base-ren base-ℕ = refl
 base-ren base-𝔹 = refl
 
 ------------------------------------------------------------------------
--- 3.  TRANSPORT I — spine renaming
+-- 3.  TRANSPORT I — type context renaming
 ------------------------------------------------------------------------
 
--- A renaming of spines.  ONE field: it moves the ENTRY at every slot,
+-- A renaming of type contexts.  ONE field: it moves the ENTRY at every slot,
 -- blocked entries included.  Knowledge transport (`ren-kn` below) is then
 -- DEFINITIONAL — which is the whole bet of the ownership design: a name is
 -- moved by ρ, a spelling would have had to be re-derived.
@@ -188,7 +188,7 @@ wf-ren r (wf-⇒ wA wB) = wf-⇒ (wf-ren r wA) (wf-ren r wB)
 wf-ren r (wf-∀ wA)    = wf-∀ (wf-ren (ren-ext r) wA)
 
 ------------------------------------------------------------------------
--- 4.  TRANSPORT II — spine growth / knowledge refinement
+-- 4.  TRANSPORT II — type context growth / knowledge refinement
 ------------------------------------------------------------------------
 
 -- E ⊑ᵉ E′ : E′ knows at least what E knows.
@@ -370,7 +370,7 @@ module _ (f : Ent → Ent)
   upd-miss⁻ {Δ = E₁ ∷ Δ} {suc X} ne (es d) =
     es (upd-miss⁻ (λ eq → ne (cong suc eq)) d)
 
-  -- TRANSPORT of one mask/unmask across a spine renaming.
+  -- TRANSPORT of one mask/unmask across a type context renaming.
   ren-upd : ∀ {Δ Δ′ ρ X} → Ren ρ Δ Δ′ → Inj ρ
           → Ren ρ (upd f X Δ) (upd f (ρ X) Δ′)
   ren-upd {ρ = ρ} {X = X} r i = mkRen go
@@ -394,7 +394,7 @@ module _ (f : Ent → Ent)
 blk-mono : E ⊑ᵉ E′ → blk E ⊑ᵉ blk E′
 blk-mono = le-bb
 
--- Masking a slot only LOSES nameability, so a masked spine refines to the
+-- Masking a slot only LOSES nameability, so a masked type context refines to the
 -- unmasked one.  (There is no converse: that is the deleted demotion.)
 blk-le : E ⊑ᵉ E′ → blk E ⊑ᵉ E′
 blk-le le-aa       = le-bu le-aa vis-a

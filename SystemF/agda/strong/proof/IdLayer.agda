@@ -63,14 +63,14 @@ outer-id-base-untypeable {Θ₁ = Θ₁} bA (env _ (env _ _ ⊢cᵢ _) ⊢cₒ _
 ... | refl = base≢var (nrev Θ₁) bA (conv-idv-tgt ⊢cᵢ)
 
 -- The mask jam is a phantom, twice over.  (1) A conceal is INVISIBLE to the
--- face spine: `fscp` skips `cnc`, so a face never lands on a slot the layer
+-- face type context: `fscp` skips `cnc`, so a face never lands on a slot the layer
 -- masks.
 fceC-cnc : ∀ {X} (Θ : BCtx) (Δ : Ctxᵗ) → fceC (cnc X ∷ Θ) Δ ≡ fceC Θ Δ
 fceC-cnc Θ Δ = refl
 
 -- (2) And a boundary can never conceal the slot its OWN face names —
 -- `value-var-visible` (strong.Terms) says a value's variable type is
--- visible on the value's own spine, because `env`'s last conjunct checks it
+-- visible on the value's own type context, because `env`'s last conjunct checks it
 -- there.  So "Θ₁ contains `cnc Y` while the face cites Y" is untypeable.
 
 ------------------------------------------------------------------------

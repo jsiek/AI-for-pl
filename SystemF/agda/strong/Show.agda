@@ -24,7 +24,7 @@ module strong.Show where
 --     `ext`; neither carries a rep, which is the whole point of the
 --     redesign;
 --   * the FACE `c` is shown under the interior/face supply, and its
---     `seal`/`unseal` names are read there — by their spine, not by a
+--     `seal`/`unseal` names are read there — by their type context, not by a
 --     stored spelling.
 --
 -- USED AS A TOOL non-interactively via scripts/render_term.sh, which

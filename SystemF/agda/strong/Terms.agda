@@ -10,12 +10,12 @@ module strong.Terms where
 --                other entries).  The only rep-carrying form; born once,
 --                bound once.
 --        cnc X   MASKS exterior slot X: the interior may not NAME it.  The
---                entry is RETAINED on the spine — nothing is dropped and
+--                entry is RETAINED on the type context — nothing is dropped and
 --                nothing is re-spelled, so there is no demotion to perform.
 --        ali X   UNMASKS exterior slot X; it claims nothing, it merely
 --                restores nameability.
---   c : Conv     the FACE, a conversion checked on the FACE SPINE (the
---                interior spine with Θ's own masks lifted), where a
+--   c : Conv     the FACE, a conversion checked on the FACE TYPE CONTEXT (the
+--                interior type context with Θ's own masks lifted), where a
 --                `seal X` can still resolve X at its owner.
 --
 -- Frames change ONLY at binders: `intC Θ Δ` is `Δ` with the masks applied
@@ -72,9 +72,9 @@ scp (own A ∷ Θ) Δ = scp Θ Δ
 scp (ali X ∷ Θ) Δ = unmask X (scp Θ Δ)
 scp (cnc X ∷ Θ) Δ = mask X (scp Θ Δ)
 
--- The FACE spine: like `scp` but WITHOUT the conceal masks, so a `seal X`
+-- The FACE type context: like `scp` but WITHOUT the conceal masks, so a `seal X`
 -- can resolve X at its owner.  This is owner-syntactic lookup: the licence
--- is read on the spine that encloses the boundary, never inside it.
+-- is read on the type context that encloses the boundary, never inside it.
 fscp : BCtx → Ctxᵗ → Ctxᵗ
 fscp []          Δ = Δ
 fscp (own A ∷ Θ) Δ = fscp Θ Δ
@@ -89,8 +89,8 @@ intC Θ Δ = prep (reps Θ) (scp Θ Δ)
 fceC : BCtx → Ctxᵗ → Ctxᵗ
 fceC Θ Δ = prep (reps Θ) (fscp Θ Δ)
 
--- The interior spine is the face spine with Θ's own masks on, so anything
--- well formed inside is well formed on the face spine.
+-- The interior type context is the face type context with Θ's own masks on, so anything
+-- well formed inside is well formed on the face type context.
 scp⊑fscp : (Θ : BCtx) (Δ : Ctxᵗ) → scp Θ Δ ⊑ fscp Θ Δ
 scp⊑fscp []          Δ = ⊑-refl Δ
 scp⊑fscp (own A ∷ Θ) Δ = scp⊑fscp Θ Δ
@@ -200,7 +200,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
        → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
 
   -- (env).  ONE frame change.  The interior is term-closed and typed on the
-  -- interior spine; the face conversion is checked on the FACE spine, where
+  -- interior type context; the face conversion is checked on the FACE type context, where
   -- the boundary's owners and the slots it masks are both live; the exterior
   -- face is a type over the plain exterior.  Both faces are on the wrapper.
   env : ∀ {Δ Γ Θ c M Bᵢ Bₑ p}
@@ -257,7 +257,7 @@ data Value : Term → Set where
   V-Λ  : ∀ {N} → Value N → Value (Λ N)
   V-⟪⟫ : ∀ {M Θ c} → Value M → Inert c → Value (M ⟪ Θ , c ⟫)
 
--- A value's variable type is VISIBLE on the value's own spine, because
+-- A value's variable type is VISIBLE on the value's own type context, because
 -- `env`'s last conjunct checks it there.  So a boundary can never conceal
 -- the slot its own face names.
 value-var-visible : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X

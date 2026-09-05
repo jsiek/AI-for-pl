@@ -148,7 +148,7 @@ LB = LA ⟪ own `ℕ ∷ [] , id (` 1) ⟫
 T₈ = LB ⟪ own `ℕ ∷ [] , unseal 0 ⟫
 
 SA : Ctxᵗ
-SA = own (` 0) ∷ S₆₂            -- the interior spine of LA
+SA = own (` 0) ∷ S₆₂            -- the interior type context of LA
 
 ⊢LA-in : SA ∣ [] ⊢ ($ 7) ⟪ [] , seal 2 ⟫ ⦂ ` 2
 ⊢LA-in = env bw[] ⊢$ (conv-seal (es (es ez)))
@@ -318,7 +318,7 @@ run-Tᵣ = push-Tᵣ
 
 -- ── Tₘ (IdLayerProbe §4b): Θ₂ re-exposes a masked slot (`ali 0`) and the
 -- id-layer masks it again (`cnc 0`).  The merged skeleton computed both
--- spines correctly and yet `Bwf` refused it, because `Bwf` checks every
+-- type contexts correctly and yet `Bwf` refused it, because `Bwf` checks every
 -- entry against the PLAIN exterior.  Again: IdPush merges nothing.
 
 Δₘ Mₘ : Ctxᵗ
@@ -392,7 +392,7 @@ _ = ez
 _ : intC Θ2 Δd ≡ own (` 0) ∷ own (` 0) ∷ abst ∷ blk (own `ℕ) ∷ []
 _ = refl
 
--- the FACE spine keeps every slot live, so a conceal's licence resolves.
+-- the FACE type context keeps every slot live, so a conceal's licence resolves.
 _ : fceC Θ2 Δd ≡ own (` 0) ∷ own (` 0) ∷ abst ∷ own `ℕ ∷ []
 _ = refl
 
@@ -448,7 +448,7 @@ _ = refl
 _ : intC (dual Θ2) (intC Θ2 Δd) ≡ blk (own (` 0)) ∷ Δd
 _ = refl
 
--- and the dual's FACE spine is IDENTICAL to the crossed boundary's, so `s`
+-- and the dual's FACE type context is IDENTICAL to the crossed boundary's, so `s`
 -- transplants verbatim (no swapᵇ, no re-derivation).
 _ : fceC (dual Θ2) (intC Θ2 Δd) ≡ fceC Θ2 Δd
 _ = refl

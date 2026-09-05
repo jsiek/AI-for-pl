@@ -11,7 +11,7 @@ module strong.Conversion where
 --
 -- Conversions are REP-FREE by construction: `seal` and `unseal` carry a
 -- NAME, never a spelling, and the rep is read by an OWNER LOOKUP on the
--- spine (`Δ ∋ X := A`).  That is what makes Q4's cancel face-equation
+-- type context (`Δ ∋ X := A`).  That is what makes Q4's cancel face-equation
 -- definitional (proof/CancelFaces.agda) and what makes both transports
 -- below hypothesis-free.
 
@@ -74,7 +74,7 @@ flip-flip ↓ˢ = refl
 ------------------------------------------------------------------------
 
 -- Δ ⊢ c ∶ A ⇝ B ∙ p   —   c converts the INTERIOR face A to the EXTERIOR
--- face B, both read on the spine Δ (the FACE CONTEXT: the spine at which the
+-- face B, both read on the type context Δ (the FACE CONTEXT: the type context at which the
 -- boundary's owners are live).  Every rep is read by NAME from Δ.
 infix 4 _⊢_∶_⇝_∙_
 data _⊢_∶_⇝_∙_ : Ctxᵗ → Conv → Ty → Ty → Pol → Set where
@@ -93,7 +93,7 @@ data _⊢_∶_⇝_∙_ : Ctxᵗ → Conv → Ty → Ty → Pol → Set where
     → Δ ⊢ unseal X ∶ ` X ⇝ A ∙ ↑ˢ
 
   -- CONCEAL: the interior sees the rep, the exterior the abstract name.
-  -- THE SOUNDNESS GATE: a seal must cite a LIVE OWNER on its spine.
+  -- THE SOUNDNESS GATE: a seal must cite a LIVE OWNER on its type context.
   conv-seal : Δ ∋ X := A
       --------------------------------
     → Δ ⊢ seal X ∶ A ⇝ ` X ∙ ↓ˢ
@@ -126,14 +126,14 @@ idc-⊢ (wf-⇒ wA wB) = conv-fun (idc-⊢ wA) (idc-⊢ wB)
 idc-⊢ (wf-∀ wA)    = conv-all (idc-⊢ wA)
 
 ------------------------------------------------------------------------
--- 4.  TRANSPORT I — spine renaming (the ⊢renameᵗ analogue)
+-- 4.  TRANSPORT I — type context renaming (the ⊢renameᵗ analogue)
 ------------------------------------------------------------------------
 
--- A spine-indexed conversion typing moves along ANY spine renaming, with NO
+-- A context-indexed conversion typing moves along ANY type context renaming, with NO
 -- hypothesis beyond `Ren` itself: no SkelEq, no starOnly, no unfolding, no
 -- second chance.  The `conv-unseal`/`conv-seal` cases are literally
 -- `ren-kn` — the name is carried, and the rep comes back out of the target
--- spine already renamed.
+-- type context already renamed.
 conv-ren : ∀ {p c} → Ren ρ Δ Δ′
   → Δ  ⊢ c ∶ A ⇝ B ∙ p
     -----------------------------------------------------------

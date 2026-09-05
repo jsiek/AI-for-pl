@@ -6,12 +6,12 @@ module strong.TermSubst where
 -- never descended into.  The interesting content is the pair of TYPE-LEVEL
 -- transports the ownership design has to pay for, and both come out cheap:
 --
---   ⊢rename : a spine renaming moves a whole typing derivation, with the ONE
+--   ⊢rename : a type context renaming moves a whole typing derivation, with the ONE
 --             structural hypothesis `Inj ρ` (positional masking; no
 --             hypothesis mentions a representation).
 --   ⊢retag  : knowledge refinement moves a whole typing derivation with the
 --             TERM AND THE TYPE UNCHANGED — no ≈, no unfolding, no residue,
---             because nothing on the spine is ever destroyed.
+--             because nothing on the type context is ever destroyed.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -76,7 +76,7 @@ Inj-wkN zero    eq = eq
 Inj-wkN (suc n) eq = Inj-wkN n (Inj-suc eq)
 
 ------------------------------------------------------------------------
--- 2.  The spine operations transport (the structural half)
+-- 2.  The type context operations transport (the structural half)
 ------------------------------------------------------------------------
 
 ren-scp : (Θ : BCtx) → Ren ρ Δ Δ′ → Inj ρ

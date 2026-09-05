@@ -146,7 +146,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE SINGLE-NAME PRESUMPTION, EXAMINED (3b).  The mini-core wrote ONE
   -- name X on both faces.  That presumes `nrev Θ₁ ≡ 0`: the inner face is
   -- checked on `fceC Θ₁ (intC Θ₂ Δ)`, which is `nrev Θ₁` binders INSIDE the
-  -- spine `fceC Θ₂ Δ` the outer face is checked on.  The honest general form
+  -- type context `fceC Θ₂ Δ` the outer face is checked on.  The honest general form
   -- carries TWO names — and needs no extra premise to relate them, because
   -- typing already FORCES `X ≡ nrev Θ₁ + Y` (proof/IdLayer.agda,
   -- `cancel-name`), exactly as it does for IdPush (`idpush-name`).

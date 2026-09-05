@@ -38,7 +38,7 @@ ali-claims-nothing = bw-a
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
 ------------------------------------------------------------------------
 
--- At a spine where slot 0 is ABSTRACT (Λ-bound — no owner) the adversary
+-- At a type context where slot 0 is ABSTRACT (Λ-bound — no owner) the adversary
 -- exported `7 : ℕ` at the abstract type.  Here the boundary is unmintable,
 -- because `seal 0` demands `Δ ∋ 0 := `ℕ` and an `abst` slot has no rep to
 -- cite.  Unmasking cannot manufacture one either (`ali-claims-nothing`).
@@ -81,7 +81,7 @@ seal-bad-face (conv-seal ez) = refl
 ------------------------------------------------------------------------
 
 -- At a cancel the inner conceal's interior face and the outer reveal's
--- exterior face are the SAME lookup on the SAME spine, hence literally
+-- exterior face are the SAME lookup on the SAME type context, hence literally
 -- equal.  This one lemma replaces cancel-agree + Reversal≈ + SkelEq +
 -- xrep-stored + MergeOK's two face equations.
 cancel-faces-agree : ∀ {Δ X A B A′ B′ p q}

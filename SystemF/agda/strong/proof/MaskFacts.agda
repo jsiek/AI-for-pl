@@ -31,7 +31,7 @@ mask-retains {X = X} {Y = Y} d with Y ≟ℕ X
 ali-recovers : ∀ {Δ X A} → Δ ∋e X , blk (own A) → unmask X Δ ∋ X := A
 ali-recovers d = upd-hit unblk unblk-comm d
 
--- The round trip is the identity on the spine: a program that hides from
+-- The round trip is the identity on the type context: a program that hides from
 -- itself and then looks again is harmless and typeable.
 cnc-then-ali : intC (ali 0 ∷ []) (intC (cnc 0 ∷ []) (own `ℕ ∷ []))
              ≡ own `ℕ ∷ []

@@ -17,3 +17,4 @@ open import strong.BPreservation
 open import strong.Canonical
 open import strong.ProgressDef
 open import strong.Progress
+open import strong.Show

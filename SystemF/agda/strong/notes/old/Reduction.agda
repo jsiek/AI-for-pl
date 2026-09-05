@@ -1,4 +1,4 @@
-module strong.Reduction where
+module strong.notes.old.Reduction where
 
 -- Strong System F — the reduction relation on runtime terms (de Bruijn):
 -- the substitution machinery, values, the computation rules, the ξ congruences,
@@ -7,7 +7,7 @@ module strong.Reduction where
 
 open import Data.Nat using (ℕ; zero; suc; _∸_)
 open import strong.Types
-open import strong.Terms
+open import strong.notes.old.Terms
 
 private
   variable

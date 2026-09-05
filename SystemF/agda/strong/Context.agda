@@ -15,6 +15,7 @@ module strong.Context where
 -- tail is exactly the prefix, so it is returned unchanged (no ⇑ᵗ).
 
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Empty using (⊥)
 open import Data.List using (List; []; _∷_; map)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
@@ -23,9 +24,23 @@ open import strong.Types
 -- The type context
 ------------------------------------------------------------------------
 
+-- Three entry forms (notes/DualLicenseDesign.md §2):
+--
+--   abst      abstract type variable X               (from ∀ / Λ)
+--   rvld A    revealed  X:=A   — a TELESCOPE entry: the rep A is a type over
+--             this entry's own TAIL, and ordinary knowledge lookup (∋:=)
+--             returns it unshifted.
+--   xrvld A   exterior-read  X:=ˣA — "revealed; rep A readable one level OUT;
+--             asserts nothing HERE".  NOT a telescope entry: A is a type over
+--             THIS context's exterior.  Minted only by the interior
+--             computation ⟦·⟧ (strong.Boundary) and consumed only by the
+--             boundary clause (bwf-↓x).  Ordinary knowledge lookup (∋:=) does
+--             NOT see it — that separation is what dodges the ¬hk-int
+--             renaming trap (DualLicenseProbe's no-know-Z).
 data TyEntry : Set where
-  abst : TyEntry        -- abstract type variable X       (from ∀ / Λ)
-  rvld : Ty → TyEntry   -- revealed type variable X:=A    (rep A over the tail)
+  abst  : TyEntry        -- abstract type variable X       (from ∀ / Λ)
+  rvld  : Ty → TyEntry   -- revealed type variable X:=A   (rep A over the tail)
+  xrvld : Ty → TyEntry   -- exterior-read variable X:=ˣA  (rep A one level out)
 
 TCtx : Set
 TCtx = List TyEntry
@@ -48,11 +63,13 @@ variable
 -- clause is a never-reached default.
 infix 5 _↓_
 _↓_ : TCtx → ℕ → TCtx
-[]           ↓ X     = []
-(abst   ∷ Δ) ↓ zero  = Δ
-(rvld A ∷ Δ) ↓ zero  = Δ
-(abst   ∷ Δ) ↓ suc X = Δ ↓ X
-(rvld A ∷ Δ) ↓ suc X = Δ ↓ X
+[]            ↓ X     = []
+(abst    ∷ Δ) ↓ zero  = Δ
+(rvld A  ∷ Δ) ↓ zero  = Δ
+(xrvld A ∷ Δ) ↓ zero  = Δ
+(abst    ∷ Δ) ↓ suc X = Δ ↓ X
+(rvld A  ∷ Δ) ↓ suc X = Δ ↓ X
+(xrvld A ∷ Δ) ↓ suc X = Δ ↓ X
 
 ------------------------------------------------------------------------
 -- Type-variable lookup
@@ -61,19 +78,41 @@ _↓_ : TCtx → ℕ → TCtx
 -- Δ ∋tv X : the variable at index X is in scope.  Ordinary lookup — no markers.
 infix 4 _∋tv_
 data _∋tv_ : TCtx → ℕ → Set where
-  here-abst : (abst ∷ Δ) ∋tv zero
-  here-rvld : (rvld A ∷ Δ) ∋tv zero
-  skip-abst : Δ ∋tv X → (abst ∷ Δ) ∋tv suc X
-  skip-rvld : Δ ∋tv X → (rvld A ∷ Δ) ∋tv suc X
+  here-abst  : (abst ∷ Δ) ∋tv zero
+  here-rvld  : (rvld A ∷ Δ) ∋tv zero
+  here-xrvld : (xrvld A ∷ Δ) ∋tv zero
+  skip-abst  : Δ ∋tv X → (abst ∷ Δ) ∋tv suc X
+  skip-rvld  : Δ ∋tv X → (rvld A ∷ Δ) ∋tv suc X
+  skip-xrvld : Δ ∋tv X → (xrvld A ∷ Δ) ∋tv suc X
 
 -- Δ ∋ X := A : the variable at index X is revealed with representation A.  The rep
 -- is a type over the tail below X's entry — which is exactly the prefix Δ ↓ X — so
 -- it is returned WITHOUT shifting.
+--
+-- There is deliberately NO `here` clause for an xrvld entry: an exterior-read
+-- entry asserts nothing where it sits, so it carries no ordinary knowledge.
 infix 4 _∋_:=_
 data _∋_:=_ : TCtx → ℕ → Ty → Set where
-  here      : (rvld A ∷ Δ) ∋ zero := A
-  skip-abst : Δ ∋ X := A → (abst ∷ Δ) ∋ suc X := A
-  skip-rvld : Δ ∋ X := A → (rvld B ∷ Δ) ∋ suc X := A
+  here       : (rvld A ∷ Δ) ∋ zero := A
+  skip-abst  : Δ ∋ X := A → (abst ∷ Δ) ∋ suc X := A
+  skip-rvld  : Δ ∋ X := A → (rvld B ∷ Δ) ∋ suc X := A
+  skip-xrvld : Δ ∋ X := A → (xrvld B ∷ Δ) ∋ suc X := A
+
+-- Δ ∋ X :=x A : the variable at index X is EXTERIOR-READ revealed with rep A.
+-- A is a type over Δ's own exterior, so it is returned verbatim; the skip
+-- clause is entry-generic, since no entry form interferes with the reading.
+infix 4 _∋_:=x_
+data _∋_:=x_ : TCtx → ℕ → Ty → Set where
+  herex : (xrvld A ∷ Δ) ∋ zero :=x A
+  skipx : Δ ∋ X :=x A → (E ∷ Δ) ∋ suc X :=x A
+
+-- Δ's entry at slot X, `abst` when the slot does not exist.  A total
+-- read-off of the entry FLAVOUR, used by the boundary machinery (the dual's
+-- copy) where a decision must be made for every index.
+entAt : TCtx → ℕ → TyEntry
+entAt []      i       = abst
+entAt (E ∷ Δ) zero    = E
+entAt (E ∷ Δ) (suc i) = entAt Δ i
 
 ------------------------------------------------------------------------
 -- Well-formed types
@@ -91,12 +130,15 @@ data _⊢_ : TCtx → Ty → Set where
 -- Well-formed type contexts
 ------------------------------------------------------------------------
 
--- Each entry is well-formed in its own prefix.
+-- Each entry is well-formed in its own prefix.  An xrvld entry carries no
+-- premise: its rep lives one level OUT, where this judgement cannot see it
+-- (the exterior's own bwf↑ certified it — strong.Boundary).
 infix 4 ⊢_
 data ⊢_ : TCtx → Set where
-  ⊢∅    : ⊢ []
-  ⊢abst : ⊢ Δ →         ⊢ (abst ∷ Δ)
-  ⊢rvld : ⊢ Δ → Δ ⊢ A → ⊢ (rvld A ∷ Δ)
+  ⊢∅     : ⊢ []
+  ⊢abst  : ⊢ Δ →         ⊢ (abst ∷ Δ)
+  ⊢rvld  : ⊢ Δ → Δ ⊢ A → ⊢ (rvld A ∷ Δ)
+  ⊢xrvld : ⊢ Δ →         ⊢ (xrvld A ∷ Δ)
 
 ------------------------------------------------------------------------
 -- The term context and its lookup
@@ -133,9 +175,17 @@ data _⊢*_ : TCtx → Ctx → Set where
 
 -- a revealed variable is in scope (forget its representation)
 ∋:=→∋tv : Δ ∋ X := A → Δ ∋tv X
-∋:=→∋tv here          = here-rvld
-∋:=→∋tv (skip-abst p) = skip-abst (∋:=→∋tv p)
-∋:=→∋tv (skip-rvld p) = skip-rvld (∋:=→∋tv p)
+∋:=→∋tv here           = here-rvld
+∋:=→∋tv (skip-abst p)  = skip-abst (∋:=→∋tv p)
+∋:=→∋tv (skip-rvld p)  = skip-rvld (∋:=→∋tv p)
+∋:=→∋tv (skip-xrvld p) = skip-xrvld (∋:=→∋tv p)
+
+-- an exterior-read variable is in scope too
+∋:=x→∋tv : Δ ∋ X :=x A → Δ ∋tv X
+∋:=x→∋tv herex                     = here-xrvld
+∋:=x→∋tv (skipx {E = abst}     p)  = skip-abst  (∋:=x→∋tv p)
+∋:=x→∋tv (skipx {E = rvld B}   p)  = skip-rvld  (∋:=x→∋tv p)
+∋:=x→∋tv (skipx {E = xrvld B}  p)  = skip-xrvld (∋:=x→∋tv p)
 
 ------------------------------------------------------------------------
 -- Sanity checks
@@ -173,3 +223,23 @@ private
   -- a term context of closed types is well-formed in any Δ
   _ : Δ0 ⊢* (`ℕ ∷ `𝔹 ∷ [])
   _ = wf-ℕ ⊢∷ (wf-𝔹 ⊢∷ ⊢[])
+
+  ------------------------------------------------------------------
+  -- the exterior-read entry.  Δx is the interior of E★′'s boundary
+  -- ↑Z:=Y , ↓X:=ℕ : Z alone, x-revealed as the Λ-bound Y one level out.
+  ------------------------------------------------------------------
+  Δx : TCtx
+  Δx = xrvld (` 0) ∷ []
+
+  -- the slot exists …
+  _ : Δx ∋tv 0
+  _ = here-xrvld
+
+  -- … the x-lookup finds the rep VERBATIM (no shift: it is an exterior type) …
+  _ : Δx ∋ 0 :=x ` 0
+  _ = herex
+
+  -- … and ORDINARY knowledge lookup does not see it.  This is the separation
+  -- that keeps an x-entry off the telescope (DualLicenseProbe's no-know-Z).
+  no-know-x : ∀ {A₁} → Δx ∋ 0 := A₁ → ⊥
+  no-know-x ()

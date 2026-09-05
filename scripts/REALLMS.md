@@ -87,6 +87,38 @@ python3.13 scripts/reallms_agent.py \
 - The Agda project root is auto-detected from the file's `module A.B.C` line;
   override with `--agda-root` if needed.
 
+#### Multi-hole files, `--apply`, and nudging (added 2026-09-03)
+
+- The verdict now **tolerates pre-existing holes outside the target region**:
+  a candidate passes iff agda reports nothing except unsolved interaction
+  metas at (line-shifted) locations that were already holes before the run.
+  A hole left inside the candidate itself still fails. So a file with several
+  holes can be ground one hole at a time without splitting it.
+- `--apply` writes the verified solution into the file on success (default is
+  still to leave the file untouched).
+- If the model answers with prose and no tool call while unsolved, the harness
+  nudges it ("submit via check_solution now") up to 3 times before giving up —
+  reasoning models like to narrate a whole proof without ever checking it.
+- Dependent modules: if the target file imports a module that still has holes,
+  put `{-# OPTIONS --allow-unsolved-metas #-}` as line 1 of the **imported**
+  module only (never in the target: its own holes would go silent). stdlib's
+  `--safe` pragmas reject the flag on the command line, so use the pragma.
+
+### `reallms_holes.py` — walk every hole in a file
+
+```bash
+python3 scripts/reallms_holes.py --file SystemF/agda/strong/Foo.agda \
+  --repo-root . --model glm-5.2 --escalate gpt-oss-120b \
+  --goal-prefix "Context: …" --hint "…" --log-dir /tmp/holes-logs
+```
+
+Finds each `{!!}` line, runs `reallms_agent.py --apply` on it (goal = the
+clause text, prefixed by `--goal-prefix`), re-scans line numbers after every
+success, optionally retries failures with the `--escalate` model, and prints a
+JSON summary of solved / remaining holes. `--only name1,name2` restricts to
+given declarations. Run it in a worktree copy if other agents are editing the
+same file.
+
 ### `reallms_grind.py` — scripted single-region loop
 
 No tool use: sends the whole file, asks for replacement code for a line range,

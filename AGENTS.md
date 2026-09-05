@@ -1,6 +1,16 @@
 ## Working agreements
 
 - Never read or write files outside the current directory (AI-for-pl/).
+- **Present problems and design alternatives to Jeremy with a concrete
+  example, always** (standing request, 2026-09-04): when reporting a
+  problem, a counterexample, or a set of candidate solutions, lead with a
+  concrete program/term/trace that exhibits it, and show each alternative
+  acting ON THAT EXAMPLE, before (or instead of) any general description.
+  Jeremy: "I'm able to process examples MUCH faster than general
+  descriptions."  A colored/annotated trace is welcome for anything
+  scope- or boundary-related.  In paragraph prose, write conditionals as
+  "if P then Q", never "P → Q" — without the "if" keyword, "P" can be
+  misread as an assertion that P holds (2026-09-04).
 - This is a closed-world repository: prefer direct internal references and a
   small canonical public surface over compatibility re-exports, aliases, or
   wrapper files. When consolidating APIs, delete obsolete shims instead of
@@ -131,6 +141,13 @@ Use this as guidance when creating a new language folder.
   top level as a thin wrapper around its corresponding `proof/*` theorem.
   The main theorems should be explicitly stated and not just imported
   as public from the corresponding `proof/*` file.
+  The audit principle behind the split (Jeremy, 2026-09-04): one should be
+  able to audit a development by reading ONLY the top-level directory — the
+  definitions the theorem statements depend on, and the statements themselves
+  — while ignoring `proof/` entirely, and still have 100% confidence, because
+  everything under `proof/` is checked by Agda with `--safe`.  So a
+  definition belongs at top level exactly when a main theorem statement
+  depends on it; everything else goes under `proof/`.
 
 ### 2) Baseline metatheory (default target)
 

@@ -1924,3 +1924,65 @@ Simultaneity note: nesting single-purpose constructors is sequential,
 but the keep-simultaneity ruling concerned SIBLING REP interference in
 one multi-entry boundary — with at most one rep per constructor there
 are no siblings; the probe reports if any interference reappears.
+
+## THE REDESIGN PROBE VERDICT (notes/probes/ConvBoundary{Core,Terms,Probe}.agda,
+## 2026-09-05) — GREEN; one ruling ask (POLARITY); the redesign branch is cut
+
+TRANSPORT (the make-or-break): PASSES.  `conv-ren` needs NOTHING beyond
+the spine renaming (knowledge transport is DEFINITIONAL: `Δ ∋ X := A` is
+an entry lookup, so the rep comes back out of the renamed spine already
+renamed — the inverse of D1); `⊢rename` needs one structural hypothesis
+`Inj ρ` (positional masking, not reps; stable under all binder
+extensions); `⊢retag` has NO residue (the ⊑ ordering has no clause that
+loses an owner — the demotion is not expressible).  Jeremy's mask-not-
+drop prediction confirmed: one frame per spine is what makes it go.
+
+THE MINI-CORE (verbatim in the probe): spine entries abst / own A /
+blk E (mask retains the entry); conversions c-b/c-v/c-u(unseal at
+owner)/c-s(seal at owner)/c-f(⇛, contravariant)/c-a(∀ᶜ), polarity-
+indexed; one boundary form M ⟪ Θ , c ⟫ with own/ali/cnc entries and
+(env) checking the conversion between the faces over a face spine;
+rules TyBeta/Beta/Peel/TyPeel/Cancel/Drop$/ξ; dual Θ = maskOwns ++
+name-flips (cnc↔ali) — NAMES ONLY; Inert = {cv, csl, ⇛, ∀ᶜ}, Active =
+{cb, cus} — constructor totality, no arithmetic.
+
+VERDICTS: the three breaks (c10/c11, n1b; n4 structurally) TYPE, CROSS,
+and their contracta are TYPED (⊢contractumd directly contradicts
+DI.¬⊢contractum; mask-retains + ali-recovers prove no operation can
+take an owner away); ⊢3n-adv UNMINTABLE by one inversion
+(seal-cites-owner); bad/bad₂ dead (a seal's interior face IS the
+owner's rep); §9m CANNOT ARISE (cancel-faces-agree = ∋:=-det twice —
+one lemma replacing cancel-agree/Reversal≈/SkelEq/xrep-stored/MergeOK's
+faces); the cancel pair runs (Cancel + Drop$); shape-IV obligations all
+typeable, Rows B/C now SURVIVE their crossings.
+
+DELETED (no analog): ⊕/mrgB/MergeOK, the x-machinery, ≈/Unfold/
+Reversal≈, entᴳ/copy guards/second chance/rvl⋆/demotion, cmax/dropN/
+Δ↓X/swapᵇ/shiftReps, baseS/Scoped as a separate stack (the mask IS the
+entry), DualDef's three parameters, ≼≈.  SURVIVES: simultaneity (own
+reps read in the plain exterior), active/inert + values, inward-only,
+nrev as the only index arithmetic (ordinary binder offsets).
+
+FOUR NEW OBLIGATIONS the advice memo missed:
+1. **POLARITY — NEEDS JEREMY'S RULING.**  Conversions are polarized
+   (⇛ flips on domains), so one boundary unseals OR seals at positive
+   face positions; a boundary revealing X and concealing Y with BOTH
+   positive in the face is inexpressible.  The corpus never needs it —
+   every corpus conceal is PURE SCOPE (absent from the face).  Ruling:
+   accept single-polarity boundaries (+ prove source-reachable
+   boundaries are single-polarity), or add a mixed conversion form.
+2. Mask-not-drop is FORCED, not stylistic: the split-constructor +
+   dropping variant was built far enough to fail — a dropping conceal's
+   dual must reintroduce a telescope of rep COPIES (D1's disease one
+   level out).  Masking also lets mask/unmask be FUNCTIONS (the
+   split form needed relations, blocking inversion).
+3. A context-wellformedness premise (⊢ Δ, the store-typing pattern
+   DualRepProof already built) is needed for "a conversion's faces are
+   well-formed" — preservation will carry it.
+4. Inj ρ (structural, positional-masking-only).
+
+HONEST LIMITS: the two general Peel context identities are refl on
+every corpus instance but the general induction (nrev index bookkeeping)
+is NOT done; ⊢subst not done (sources not run end-to-end); n4/E★′
+checked structurally.  These are the first work items of the build-out,
+not design risks.

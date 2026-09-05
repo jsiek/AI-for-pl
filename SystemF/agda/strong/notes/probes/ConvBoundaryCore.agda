@@ -89,7 +89,7 @@ renᵉ-⇑-comm ρ abst    = refl
 renᵉ-⇑-comm ρ (own A) = cong own (ren-⇑-comm ρ A)
 renᵉ-⇑-comm ρ (blk E) = cong blk (renᵉ-⇑-comm ρ E)
 
--- Slot lookup.  The entry is returned SHIFTED into the ambient context, so
+-- Entry lookup.  The entry is returned SHIFTED into the ambient context, so
 -- `Δ ∋e X , own A` means "slot X is an owner whose rep, read in Δ, is A".
 -- One relation serves every purpose: knowledge, visibility, and blocking.
 infix 4 _∋e_,_

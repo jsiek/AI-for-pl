@@ -35,27 +35,30 @@ open import strong.notes.probes.ConvBoundaryTerms
 -- No face type is inspected and no slot arithmetic occurs: the current
 -- core's `I-var : revs Θ ≤ X → …` has no analogue.
 data Inert : Conv → Set where
-  I-v : ∀ {X}   → Inert (cv X)
-  I-s : ∀ {X}   → Inert (csl X)
-  I-f : ∀ {s t} → Inert (s ⇛ t)
-  I-a : ∀ {s}   → Inert (∀ᶜ s)
+  I-idv  : ∀ {X}   → Inert (id (` X))
+  I-seal : ∀ {X}   → Inert (seal X)
+  I-fun  : ∀ {s t} → Inert (s ↦ t)
+  I-all  : ∀ {s}   → Inert (`∀ s)
 
 data Active : Conv → Set where
-  A-b : ∀ {A} → Active (cb A)
-  A-u : ∀ {X} → Active (cus X)
+  A-idb    : ∀ {A} → Base A → Active (id A)
+  A-unseal : ∀ {X} → Active (unseal X)
 
 -- (i) ActiveOrInert is CONSTRUCTOR TOTALITY.
-act-or-inert : (c : Conv) → Active c ⊎ Inert c
-act-or-inert (cb A)  = inj₁ A-b
-act-or-inert (cv X)  = inj₂ I-v
-act-or-inert (csl X) = inj₂ I-s
-act-or-inert (cus X) = inj₁ A-u
-act-or-inert (s ⇛ t) = inj₂ I-f
-act-or-inert (∀ᶜ s)  = inj₂ I-a
+-- totality over TYPED conversions: the payload restriction on `id` makes
+-- classification a match on the TYPING derivation (Jeremy's ruling — the
+-- untypeable compound identities are never classified at all)
+act-or-inert : ∀ {Δ c A B p} → Δ ⊢ c ∶ A ⇝ B ∙ p → Active c ⊎ Inert c
+act-or-inert (conv-id b)       = inj₁ (A-idb b)
+act-or-inert (conv-idv tv)     = inj₂ I-idv
+act-or-inert (conv-seal o)     = inj₂ I-seal
+act-or-inert (conv-unseal o)   = inj₁ A-unseal
+act-or-inert (conv-fun s t)    = inj₂ I-fun
+act-or-inert (conv-all s)      = inj₂ I-all
 
 act-not-inert : ∀ {c} → Active c → Inert c → ⊥
-act-not-inert A-b ()
-act-not-inert A-u ()
+act-not-inert (A-idb ()) I-idv
+act-not-inert A-unseal ()
 
 data Value : Term → Set where
   V-$  : ∀ {n} → Value ($ n)
@@ -101,21 +104,21 @@ N [ W ]ᵐ = substᵐ (λ { zero → W ; (suc x) → ` x }) N
 mutual
   unsealAt : ℕ → Ty → Conv
   unsealAt X (` Y) with X ≟ℕ Y
-  ... | yes _ = cus X
-  ... | no  _ = cv Y
-  unsealAt X `ℕ      = cb `ℕ
-  unsealAt X `𝔹      = cb `𝔹
-  unsealAt X (A ⇒ B) = sealAt X A ⇛ unsealAt X B
-  unsealAt X (`∀ A)  = ∀ᶜ (unsealAt (suc X) A)
+  ... | yes _ = unseal X
+  ... | no  _ = id (` Y)
+  unsealAt X `ℕ      = id `ℕ
+  unsealAt X `𝔹      = id `𝔹
+  unsealAt X (A ⇒ B) = sealAt X A ↦ unsealAt X B
+  unsealAt X (`∀ A)  = `∀ (unsealAt (suc X) A)
 
   sealAt : ℕ → Ty → Conv
   sealAt X (` Y) with X ≟ℕ Y
-  ... | yes _ = csl X
-  ... | no  _ = cv Y
-  sealAt X `ℕ      = cb `ℕ
-  sealAt X `𝔹      = cb `𝔹
-  sealAt X (A ⇒ B) = unsealAt X A ⇛ sealAt X B
-  sealAt X (`∀ A)  = ∀ᶜ (sealAt (suc X) A)
+  ... | yes _ = seal X
+  ... | no  _ = id (` Y)
+  sealAt X `ℕ      = id `ℕ
+  sealAt X `𝔹      = id `𝔹
+  sealAt X (A ⇒ B) = unsealAt X A ↦ sealAt X B
+  sealAt X (`∀ A)  = `∀ (sealAt (suc X) A)
 
 -- THE DUAL, in full.  It mints ONLY name-carrying entries: a `cnc` for each
 -- of the crossed boundary's owners (the argument may not see them) and an
@@ -162,26 +165,26 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- argument acquires the DUAL.  `s`/`t` are literally ↦'s components:
   -- the crossing argument's conversion is RE-BASED by the repointing.
   Peel : ∀ {Δ V W Θ s t} → Value V → Value W
-    → Δ ⊢ (V ⟪ Θ , s ⇛ t ⟫) · W
+    → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
         -→ (V · (wkᴹ (nrev Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫
 
   -- TYPEEL — the ∀-face analogue; the new owner is prepended (direct
   -- combine), and the elimination instantiates at the new owner's own name.
   TyPeel : ∀ {Δ V Θ s B A} → Value V
-    → Δ ⊢ (V ⟪ Θ , ∀ᶜ s ⟫) ·[ B , A ]
+    → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ (wkᴹ 1 V ·[ B , ` 0 ]) ⟪ own A ∷ renᴮ suc Θ , s ⟫
 
   -- CANCEL — a conceal directly under the owner it names.  The face match
-  -- is DEFINITIONAL: `csl X` and `cus X` cite the SAME entry, so there is
+  -- is DEFINITIONAL: `seal X` and `unseal X` cite the SAME entry, so there is
   -- no second spelling to disagree with the first.  The residue masks the
   -- boundary's own owners, which is exactly "the composite is empty".
   Cancel : ∀ {Δ V Θ₁ Θ₂ X B} → Value V
-    → Δ ⊢ (V ⟪ Θ₁ , csl X ⟫) ⟪ Θ₂ , cus X ⟫
+    → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal X ⟫
         -→ V ⟪ reps→own (reps Θ₂) ++ maskOwns (nrev Θ₂) , idc B ⟫
 
   -- DROP$ — a base-faced boundary over a numeral (`⊢$` types it anywhere).
-  Drop$ : ∀ {Δ n Θ A}
-    → Δ ⊢ ($ n) ⟪ Θ , cb A ⟫ -→ $ n
+  Drop$ : ∀ {Δ n Θ A} → Base A
+    → Δ ⊢ ($ n) ⟪ Θ , id A ⟫ -→ $ n
 
   ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
   ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V · M -→ V · M′
@@ -195,12 +198,12 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
 ------------------------------------------------------------------------
 
 -- A CONCEAL MUST CITE A LIVE OWNER.  This is the whole gate, and it is a
--- one-line inversion: `c-s` has no other premise.  Under the old design the
+-- one-line inversion: `conv-seal` has no other premise.  Under the old design the
 -- same fact needed `bwf↓`+`Reversal≈` OR `bwf↓x`+`starOnly`+`SkelEq`, and
 -- the adversary passed ≡, ≈Δ̄ and SkelEq (only `starOnly` refused it).
 seal-cites-owner : ∀ {Δ X A B p c}
-  → Δ ⊢ c ∶ A ⇝ B ∙ p → c ≡ csl X → Δ ∋ X := A
-seal-cites-owner (c-s d) refl = d
+  → Δ ⊢ c ∶ A ⇝ B ∙ p → c ≡ seal X → Δ ∋ X := A
+seal-cites-owner (conv-seal d) refl = d
 
 -- `ali` claims nothing: it is a NAME with no rep, so it cannot assert
 -- knowledge.  Formally: the boundary skeleton carries no type at an alias,
@@ -211,7 +214,7 @@ ali-claims-nothing = bw-a
 -- THE ADVERSARY (⊢3n-adv / `adv`).  Its harm was a conceal ASSERTING false
 -- knowledge: at a spine where slot 0 is ABSTRACT (Λ-bound — no owner), it
 -- exported `7 : ℕ` at the abstract type.  In the mini-core the boundary is
--- unmintable, because `csl 0` demands `Δ ∋ 0 := `ℕ` and an `abst` slot has
+-- unmintable, because `seal 0` demands `Δ ∋ 0 := `ℕ` and an `abst` slot has
 -- no rep to cite.  Unmasking cannot manufacture one either (§ali above).
 Δadv : Ctxᵗ
 Δadv = abst ∷ []
@@ -221,16 +224,16 @@ ali-claims-nothing = bw-a
 ¬know-adv ()
 
 -- … hence no seal at it, in either polarity …
-¬seal-adv : ∀ {A B p} → Δadv ⊢ csl 0 ∶ A ⇝ B ∙ p → ⊥
-¬seal-adv (c-s d) = ¬know-adv d
+¬seal-adv : ∀ {A B p} → Δadv ⊢ seal 0 ∶ A ⇝ B ∙ p → ⊥
+¬seal-adv (conv-seal d) = ¬know-adv d
 
 -- … hence the adversary's boundary has no face at all, and the term
--- `7 ⟪ cnc 0 ∷ [] , csl 0 ⟫ : ` 0` is UNTYPABLE.
-¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ cnc 0 ∷ [] , csl 0 ⟫ ⦂ ` 0 → ⊥
+-- `7 ⟪ cnc 0 ∷ [] , seal 0 ⟫ : ` 0` is UNTYPABLE.
+¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ cnc 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
 ¬⊢adv (env bw ⊢M ⊢c wE) = ¬seal-adv ⊢c
 
 -- `bad`: an inner conceal at rep ℕ under an owner whose rep is ∀Z.Z→Z.
--- The two spellings cannot disagree, because there is only ONE: `csl 0`
+-- The two spellings cannot disagree, because there is only ONE: `seal 0`
 -- reads the owner, so the interior face IS the owner's rep.  The
 -- ill-typed configuration is not expressible.
 ∀ZZ : Ty
@@ -239,12 +242,12 @@ ali-claims-nothing = bw-a
 Δbad : Ctxᵗ
 Δbad = own ∀ZZ ∷ []
 
--- the ONLY interior face a `csl 0` can have here is the owner's rep …
-seal-bad-face : ∀ {A B p} → Δbad ⊢ csl 0 ∶ A ⇝ B ∙ p → A ≡ ⇑ᵗ ∀ZZ
-seal-bad-face (c-s ez) = refl
+-- the ONLY interior face a `seal 0` can have here is the owner's rep …
+seal-bad-face : ∀ {A B p} → Δbad ⊢ seal 0 ∶ A ⇝ B ∙ p → A ≡ ⇑ᵗ ∀ZZ
+seal-bad-face (conv-seal ez) = refl
 
 -- … so `7 : ℕ` can never acquire the abstract type there.
-¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ cnc 0 ∷ [] , csl 0 ⟫ ⦂ ` 0 → ⊥
+¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ cnc 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
 ¬⊢bad (env bw ⊢$ ⊢c wE) with seal-bad-face ⊢c
 ... | ()
 
@@ -280,13 +283,13 @@ _ : fceC Θ2 Δd ≡ own (` 0) ∷ own (` 0) ∷ abst ∷ own `ℕ ∷ []
 _ = refl
 
 cΘ2 : Conv                      -- (X⇒X)⇒ℕ  ⇝  (W⇒W)⇒ℕ
-cΘ2 = (cus 0 ⇛ csl 0) ⇛ cb `ℕ
+cΘ2 = (unseal 0 ↦ seal 0) ↦ id `ℕ
 
 Vd : Term
 Vd = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
 
-⊢cΘ2 : fceC Θ2 Δd ⊢ cΘ2 ∶ ((` 0 ⇒ ` 0) ⇒ `ℕ) ⇝ ((` 1 ⇒ ` 1) ⇒ `ℕ) ∙ pos
-⊢cΘ2 = c-f (c-f (c-u ez) (c-s ez)) (c-b base-ℕ)
+⊢cΘ2 : fceC Θ2 Δd ⊢ cΘ2 ∶ ((` 0 ⇒ ` 0) ⇒ `ℕ) ⇝ ((` 1 ⇒ ` 1) ⇒ `ℕ) ∙ ↑ˢ
+⊢cΘ2 = conv-fun (conv-fun (conv-unseal ez) (conv-seal ez)) (conv-id base-ℕ)
 
 ⊢Fnd : Δd ∣ [] ⊢ Vd ⟪ Θ2 , cΘ2 ⟫ ⦂ ((` 0 ⇒ ` 0) ⇒ `ℕ)
 ⊢Fnd = env (bw-o (wf-var (_ , ez , vis-o)) (bw-c (_ , es (es ez) , vis-o) bw[]))
@@ -297,12 +300,12 @@ Vd = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
                        (wf-var (_ , ez , vis-o))) wf-ℕ)
 
 -- THE CROSSING VALUE.  Its own boundary masks W and seals at it: the licence
--- `csl 0` cites the owner at slot 0 of Δd, whose rep is X = ` 1.
+-- `seal 0` cites the owner at slot 0 of Δd, whose rep is X = ` 1.
 Θw : BCtx
 Θw = cnc 0 ∷ []
 
 Wd : Term
-Wd = (ƛ (` 1) ∙ (` 0)) ⟪ Θw , cus 0 ⇛ csl 0 ⟫
+Wd = (ƛ (` 1) ∙ (` 0)) ⟪ Θw , unseal 0 ↦ seal 0 ⟫
 
 _ : intC Θw Δd ≡ blk (own (` 0)) ∷ abst ∷ own `ℕ ∷ []
 _ = refl
@@ -310,19 +313,19 @@ _ = refl
 ⊢Wd : Δd ∣ [] ⊢ Wd ⦂ (` 0 ⇒ ` 0)
 ⊢Wd = env (bw-c (_ , ez , vis-o) bw[])
           (⊢ƛ (wf-var (_ , es ez , vis-a)) (⊢` here))
-          (c-f (c-u ez) (c-s ez))
+          (conv-fun (conv-unseal ez) (conv-seal ez))
           (wf-⇒ (wf-var (_ , ez , vis-o))
                 (wf-var (_ , ez , vis-o)))
 
 Wd-value : Value Wd
-Wd-value = V-⟪⟫ V-ƛ I-f
+Wd-value = V-⟪⟫ V-ƛ I-fun
 
 ⊢Redexd : Δd ∣ [] ⊢ (Vd ⟪ Θ2 , cΘ2 ⟫) · Wd ⦂ `ℕ
 ⊢Redexd = ⊢· ⊢Fnd ⊢Wd
 
 -- THE PEEL STEP.
 peel-d : Δd ⊢ (Vd ⟪ Θ2 , cΘ2 ⟫) · Wd
-           -→ (Vd · (wkᴹ 1 Wd ⟪ dual Θ2 , cus 0 ⇛ csl 0 ⟫)) ⟪ Θ2 , cb `ℕ ⟫
+           -→ (Vd · (wkᴹ 1 Wd ⟪ dual Θ2 , unseal 0 ↦ seal 0 ⟫)) ⟪ Θ2 , id `ℕ ⟫
 peel-d = Peel V-ƛ Wd-value
 
 -- THE DUAL is two names and nothing else: mask the owner, re-expose V.
@@ -342,15 +345,15 @@ _ = refl
 
 -- THE CONTRACTUM IS TYPED.  Compare `DI.¬⊢contractum` / `¬⊢qP₈`.
 ⊢contractumd :
-  Δd ∣ [] ⊢ (Vd · (wkᴹ 1 Wd ⟪ dual Θ2 , cus 0 ⇛ csl 0 ⟫)) ⟪ Θ2 , cb `ℕ ⟫ ⦂ `ℕ
+  Δd ∣ [] ⊢ (Vd · (wkᴹ 1 Wd ⟪ dual Θ2 , unseal 0 ↦ seal 0 ⟫)) ⟪ Θ2 , id `ℕ ⟫ ⦂ `ℕ
 ⊢contractumd =
-  env {p = pos}
+  env {p = ↑ˢ}
       (bw-o (wf-var (_ , ez , vis-o))
             (bw-c (_ , es (es ez) , vis-o) bw[]))
       (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-o))
                     (wf-var (_ , ez , vis-o))) ⊢$)
           ⊢Wd-crossed)
-      (c-b base-ℕ)
+      (conv-id base-ℕ)
       wf-ℕ
   where
   -- the crossing argument, re-typed INSIDE, by ⊢rename at the weakening.
@@ -359,13 +362,13 @@ _ = refl
     where
     suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
     suc-inj refl = refl
-  ⊢Wd-crossed : intC Θ2 Δd ∣ [] ⊢ wkᴹ 1 Wd ⟪ dual Θ2 , cus 0 ⇛ csl 0 ⟫
+  ⊢Wd-crossed : intC Θ2 Δd ∣ [] ⊢ wkᴹ 1 Wd ⟪ dual Θ2 , unseal 0 ↦ seal 0 ⟫
                                 ⦂ (` 0 ⇒ ` 0)
   ⊢Wd-crossed =
     env (bw-c (_ , ez , vis-o)
               (bw-a (es (es (es ez))) bw[]))
         ⊢Wd-in
-        (c-f (c-u ez) (c-s ez))
+        (conv-fun (conv-unseal ez) (conv-seal ez))
         (wf-⇒ (wf-var (_ , ez , vis-o))
               (wf-var (_ , ez , vis-o)))
 
@@ -384,12 +387,12 @@ _ : intC Θ1b Δ1b ≡ own (` 0) ∷ own (` 0) ∷ blk abst ∷ []
 _ = refl
 
 W1b : Term
-W1b = (ƛ (` 1) ∙ (` 0)) ⟪ cnc 0 ∷ [] , cus 0 ⇛ csl 0 ⟫
+W1b = (ƛ (` 1) ∙ (` 0)) ⟪ cnc 0 ∷ [] , unseal 0 ↦ seal 0 ⟫
 
 ⊢W1b : Δ1b ∣ [] ⊢ W1b ⦂ (` 0 ⇒ ` 0)
 ⊢W1b = env (bw-c (_ , ez , vis-o) bw[])
            (⊢ƛ (wf-var (_ , es ez , vis-a)) (⊢` here))
-           (c-f (c-u ez) (c-s ez))
+           (conv-fun (conv-unseal ez) (conv-seal ez))
            (wf-⇒ (wf-var (_ , ez , vis-o))
                  (wf-var (_ , ez , vis-o)))
 
@@ -407,7 +410,7 @@ _ = es ez
 -- THE MINIMIZED BREAK, TYPED THROUGH ITS CROSSING.
 
 cΘ1b : Conv
-cΘ1b = (cus 0 ⇛ csl 0) ⇛ cb `ℕ
+cΘ1b = (unseal 0 ↦ seal 0) ↦ id `ℕ
 
 V1b : Term
 V1b = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
@@ -416,7 +419,7 @@ V1b = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
 ⊢Fn1b = env (bw-o (wf-var (_ , ez , vis-o)) (bw-c (_ , es ez , vis-a) bw[]))
             (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-o))
                       (wf-var (_ , ez , vis-o))) ⊢$)
-            (c-f (c-f (c-u ez) (c-s ez)) (c-b base-ℕ))
+            (conv-fun (conv-fun (conv-unseal ez) (conv-seal ez)) (conv-id base-ℕ))
             (wf-⇒ (wf-⇒ (wf-var (_ , ez , vis-o))
                         (wf-var (_ , ez , vis-o))) wf-ℕ)
 
@@ -424,32 +427,32 @@ V1b = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
 ⊢Redex1b = ⊢· ⊢Fn1b ⊢W1b
 
 peel-1b : Δ1b ⊢ (V1b ⟪ Θ1b , cΘ1b ⟫) · W1b
-            -→ (V1b · (wkᴹ 1 W1b ⟪ dual Θ1b , cus 0 ⇛ csl 0 ⟫)) ⟪ Θ1b , cb `ℕ ⟫
-peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-f)
+            -→ (V1b · (wkᴹ 1 W1b ⟪ dual Θ1b , unseal 0 ↦ seal 0 ⟫)) ⟪ Θ1b , id `ℕ ⟫
+peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
 
 -- compare `n1b-¬W-rebuild` and `n1b-¬contractum`.
 ⊢contractum1b :
-  Δ1b ∣ [] ⊢ (V1b · (wkᴹ 1 W1b ⟪ dual Θ1b , cus 0 ⇛ csl 0 ⟫)) ⟪ Θ1b , cb `ℕ ⟫
+  Δ1b ∣ [] ⊢ (V1b · (wkᴹ 1 W1b ⟪ dual Θ1b , unseal 0 ↦ seal 0 ⟫)) ⟪ Θ1b , id `ℕ ⟫
            ⦂ `ℕ
 ⊢contractum1b =
-  env {p = pos}
+  env {p = ↑ˢ}
       (bw-o (wf-var (_ , ez , vis-o)) (bw-c (_ , es ez , vis-a) bw[]))
       (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-o))
                     (wf-var (_ , ez , vis-o))) ⊢$)
           ⊢W1b-crossed)
-      (c-b base-ℕ)
+      (conv-id base-ℕ)
       wf-ℕ
   where
   suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
   suc-inj refl = refl
   ⊢W1b-in : (blk (own (` 0)) ∷ Δ1b) ∣ [] ⊢ wkᴹ 1 W1b ⦂ (` 1 ⇒ ` 1)
   ⊢W1b-in = ⊢rename (mkRen (λ d → es d)) (λ eq → suc-inj eq) ⊢W1b
-  ⊢W1b-crossed : intC Θ1b Δ1b ∣ [] ⊢ wkᴹ 1 W1b ⟪ dual Θ1b , cus 0 ⇛ csl 0 ⟫
+  ⊢W1b-crossed : intC Θ1b Δ1b ∣ [] ⊢ wkᴹ 1 W1b ⟪ dual Θ1b , unseal 0 ↦ seal 0 ⟫
                                    ⦂ (` 0 ⇒ ` 0)
   ⊢W1b-crossed =
     env (bw-c (_ , ez , vis-o) (bw-a (es (es ez)) bw[]))
         ⊢W1b-in
-        (c-f (c-u ez) (c-s ez))
+        (conv-fun (conv-unseal ez) (conv-seal ez))
         (wf-⇒ (wf-var (_ , ez , vis-o)) (wf-var (_ , ez , vis-o)))
 
 -- THE GENERAL FACT BEHIND ALL THREE.  Masking RETAINS the owner's entry, and
@@ -517,8 +520,8 @@ _ = refl
 -- §5  Q4 — the safe corpus
 ------------------------------------------------------------------------
 
--- THE CANCEL PAIR (c4 / gauntlet §9a):  (7 ⟪ ↓X , csl 0 ⟫) ⟪ ↑X:=ℕ , cus 0 ⟫
--- Outer face ACTIVE (`cus`), inner face INERT (`csl`) — exactly the old
+-- THE CANCEL PAIR (c4 / gauntlet §9a):  (7 ⟪ ↓X , seal 0 ⟫) ⟪ ↑X:=ℕ , unseal 0 ⟫
+-- Outer face ACTIVE (`unseal`), inner face INERT (`seal`) — exactly the old
 -- Merge classification, now read off the conversion constructors.
 
 Θ↑ : BCtx
@@ -528,13 +531,13 @@ _ = refl
 Θ↓ = cnc 0 ∷ []
 
 cancelTm : Term
-cancelTm = (($ 7) ⟪ Θ↓ , csl 0 ⟫) ⟪ Θ↑ , cus 0 ⟫
+cancelTm = (($ 7) ⟪ Θ↓ , seal 0 ⟫) ⟪ Θ↑ , unseal 0 ⟫
 
 ⊢cancelTm : [] ∣ [] ⊢ cancelTm ⦂ `ℕ
 ⊢cancelTm =
   env (bw-o wf-ℕ bw[])
-      (env (bw-c (_ , ez , vis-o) bw[]) ⊢$ (c-s ez) (wf-var (_ , ez , vis-o)))
-      (c-u ez)
+      (env (bw-c (_ , ez , vis-o) bw[]) ⊢$ (conv-seal ez) (wf-var (_ , ez , vis-o)))
+      (conv-unseal ez)
       wf-ℕ
 
 -- the pair is NOT a value (the outer face is active) and the cancel fires.
@@ -542,10 +545,10 @@ cancel-step : [] ⊢ cancelTm -→ ($ 7) ⟪ own `ℕ ∷ cnc 0 ∷ [] , idc `�
 cancel-step = Cancel {B = `ℕ} V-$
 
 -- the residue is base-faced over a numeral, so `Drop$` finishes it.
-drop-step : [] ⊢ ($ 7) ⟪ own `ℕ ∷ cnc 0 ∷ [] , cb `ℕ ⟫ -→ $ 7
-drop-step = Drop$
+drop-step : [] ⊢ ($ 7) ⟪ own `ℕ ∷ cnc 0 ∷ [] , id `ℕ ⟫ -→ $ 7
+drop-step = Drop$ base-ℕ
 
-_ : idc `ℕ ≡ cb `ℕ
+_ : idc `ℕ ≡ id `ℕ
 _ = refl
 
 -- ── §9m (c9): the ≡/≈ gap CANNOT ARISE ──────────────────────────────────
@@ -553,17 +556,17 @@ _ = refl
 --   (the conceal stores the VARIABLE ` 0).  Two spellings of one fact; the
 --   merge demanded ≡ and only ≈ held, so the term was STUCK (¬progress).
 --
---   Here the conceal stores NO rep at all: `csl 0` names slot 0 and its
+--   Here the conceal stores NO rep at all: `seal 0` names slot 0 and its
 --   interior face is READ OFF the owner.  There is no second spelling, so
 --   there is nothing for ≡ and ≈ to disagree about.  The theorem:
 
 seal-face-is-the-owners-rep : ∀ {Δ X A B p}
-  → Δ ⊢ csl X ∶ A ⇝ B ∙ p → Δ ∋ X := A
-seal-face-is-the-owners-rep (c-s d) = d
+  → Δ ⊢ seal X ∶ A ⇝ B ∙ p → Δ ∋ X := A
+seal-face-is-the-owners-rep (conv-seal d) = d
 
 unseal-face-is-the-owners-rep : ∀ {Δ X A B p}
-  → Δ ⊢ cus X ∶ A ⇝ B ∙ p → Δ ∋ X := B
-unseal-face-is-the-owners-rep (c-u d) = d
+  → Δ ⊢ unseal X ∶ A ⇝ B ∙ p → Δ ∋ X := B
+unseal-face-is-the-owners-rep (conv-unseal d) = d
 
 -- CANCEL'S FACE EQUATION, DEFINITIONAL (Q4).  At a cancel the inner
 -- conceal's interior face and the outer reveal's exterior face are the
@@ -581,8 +584,8 @@ own-inj refl = refl
 ∋:=-det d d′ = own-inj (∋e-det d d′)
 
 cancel-faces-agree : ∀ {Δ X A B A′ B′ p q}
-  → Δ ⊢ csl X ∶ A ⇝ B ∙ p     -- the inner conceal
-  → Δ ⊢ cus X ∶ A′ ⇝ B′ ∙ q   -- the owner it names
+  → Δ ⊢ seal X ∶ A ⇝ B ∙ p     -- the inner conceal
+  → Δ ⊢ unseal X ∶ A′ ⇝ B′ ∙ q   -- the owner it names
     ---------------------------
   → A ≡ B′
 cancel-faces-agree cs cu =

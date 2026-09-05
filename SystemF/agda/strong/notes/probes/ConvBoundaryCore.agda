@@ -11,7 +11,7 @@ module strong.notes.probes.ConvBoundaryCore where
 --     enclosing spine (the type context).  There is no store and no copy.
 --   * Q3 the faces are GTSF-style CONVERSIONS (id / seal / unseal / ↦ / ∀).
 --     Here the two directions of GTSF's mutual pair are ONE judgement indexed
---     by a POLARITY, which is exactly GTSF's ↑ˢ/↓ˢ split (`c-f` flips).
+--     by a POLARITY, which is exactly GTSF's ↑ˢ/↓ˢ split (`conv-fun` flips).
 --   * conceal BLOCKS a slot in place (`blk E`, the entry is RETAINED); it
 --     never drops it and never re-spells it.  That single change is what
 --     deletes the demotion concept: the dual re-points, and the knowledge it
@@ -147,42 +147,40 @@ base-ren base-𝔹 = refl
 -- 3.  Conversions — the FACE half of the boundary (GTSF's grammar)
 ------------------------------------------------------------------------
 
--- Rep-free by construction: `csl`/`cus` carry a NAME, never a spelling.
--- `cb`/`cv` are the two identity forms, kept apart so that the
--- ACTIVE/INERT classification is a one-level match on the constructor
--- (see ConvBoundaryRed).
+-- Rep-free by construction: `seal`/`unseal` carry a NAME, never a spelling.
+-- `id A` is restricted to BASE TYPES AND VARIABLES by the typing judgment
+-- (conv-id / conv-idv) and by the classification (A-idb needs Base A,
+-- I-idv needs a variable payload); compound identities stay structural
+-- (idc).  Names follow GTSF/Coercions.agda.
 data Conv : Set where
-  cb   : Ty → Conv          -- id at a base type          ACTIVE
-  cv   : ℕ → Conv           -- id at a type variable      INERT
-  csl  : ℕ → Conv           -- seal   at the owner named  INERT
-  cus  : ℕ → Conv           -- unseal at the owner named  ACTIVE
-  _⇛_  : Conv → Conv → Conv -- s ↦ t, contravariant dom   INERT
-  ∀ᶜ_  : Conv → Conv        -- ∀ s                        INERT
+  id   : Ty → Conv          -- id: ACTIVE at base, INERT at a variable
+  seal  : ℕ → Conv           -- seal   at the owner named  INERT
+  unseal  : ℕ → Conv           -- unseal at the owner named  ACTIVE
+  _↦_  : Conv → Conv → Conv -- s ↦ t, contravariant dom   INERT
+  `∀  : Conv → Conv        -- ∀ s                        INERT
 
-infixr 7 _⇛_
-infix 6 ∀ᶜ_
+infixr 7 _↦_
 
 renᶜ : Renameᵗ → Conv → Conv
-renᶜ ρ (cb A)  = cb (renameᵗ ρ A)
-renᶜ ρ (cv X)  = cv (ρ X)
-renᶜ ρ (csl X) = csl (ρ X)
-renᶜ ρ (cus X) = cus (ρ X)
-renᶜ ρ (s ⇛ t) = renᶜ ρ s ⇛ renᶜ ρ t
-renᶜ ρ (∀ᶜ s)  = ∀ᶜ (renᶜ (extᵗ ρ) s)
+renᶜ ρ (id A)  = id (renameᵗ ρ A)
+renᶜ ρ (seal X) = seal (ρ X)
+renᶜ ρ (unseal X) = unseal (ρ X)
+renᶜ ρ (s ↦ t) = renᶜ ρ s ↦ renᶜ ρ t
+renᶜ ρ (`∀ s)  = `∀ (renᶜ (extᵗ ρ) s)
 
 -- Polarity.  GTSF's two mutually defined judgements ↑ˢ / ↓ˢ, merged into one
 -- indexed family: `+` unseals at positive positions (a REVEAL face), `-`
--- seals at positive positions (a CONCEAL face), and `c-f` flips on domains.
+-- seals at positive positions (a CONCEAL face), and `conv-fun` flips on domains.
 data Pol : Set where
-  pos neg : Pol
+  ↑ˢ ↓ˢ : Pol
 
 flip : Pol → Pol
-flip pos = neg
-flip neg = pos
+flip ↑ˢ = ↓ˢ
+flip ↓ˢ = ↑ˢ
 
 flip-flip : (p : Pol) → flip (flip p) ≡ p
-flip-flip pos = refl
-flip-flip neg = refl
+flip-flip ↑ˢ = refl
+flip-flip ↓ˢ = refl
 
 -- Δ ⊢ c ∶ A ⇝ B ∙ p   —   c converts the INTERIOR face A to the EXTERIOR
 -- face B, both read on the spine Δ (the FACE CONTEXT: the spine at which the
@@ -190,50 +188,50 @@ flip-flip neg = refl
 infix 4 _⊢_∶_⇝_∙_
 data _⊢_∶_⇝_∙_ : Ctxᵗ → Conv → Ty → Ty → Pol → Set where
 
-  c-b : ∀ {p} → Base A
+  conv-id : ∀ {p} → Base A
         --------------------------------
-      → Δ ⊢ cb A ∶ A ⇝ A ∙ p
+      → Δ ⊢ id A ∶ A ⇝ A ∙ p
 
-  c-v : ∀ {p} → Δ ∋tv X
+  conv-idv : ∀ {p} → Δ ∋tv X
         --------------------------------
-      → Δ ⊢ cv X ∶ ` X ⇝ ` X ∙ p
+      → Δ ⊢ id (` X) ∶ ` X ⇝ ` X ∙ p
 
   -- REVEAL: the interior sees the abstract name, the exterior its rep.
-  c-u : Δ ∋ X := A
+  conv-unseal : Δ ∋ X := A
         --------------------------------
-      → Δ ⊢ cus X ∶ ` X ⇝ A ∙ pos
+      → Δ ⊢ unseal X ∶ ` X ⇝ A ∙ ↑ˢ
 
   -- CONCEAL: the interior sees the rep, the exterior the abstract name.
   -- THE SOUNDNESS GATE (Q3): a seal must cite a LIVE OWNER on its spine.
-  c-s : Δ ∋ X := A
+  conv-seal : Δ ∋ X := A
         --------------------------------
-      → Δ ⊢ csl X ∶ A ⇝ ` X ∙ neg
+      → Δ ⊢ seal X ∶ A ⇝ ` X ∙ ↓ˢ
 
-  c-f : ∀ {p s t} → Δ ⊢ s ∶ A′ ⇝ A ∙ flip p → Δ ⊢ t ∶ B ⇝ B′ ∙ p
+  conv-fun : ∀ {p s t} → Δ ⊢ s ∶ A′ ⇝ A ∙ flip p → Δ ⊢ t ∶ B ⇝ B′ ∙ p
         ----------------------------------------------------------
-      → Δ ⊢ s ⇛ t ∶ (A ⇒ B) ⇝ (A′ ⇒ B′) ∙ p
+      → Δ ⊢ s ↦ t ∶ (A ⇒ B) ⇝ (A′ ⇒ B′) ∙ p
 
-  c-a : ∀ {p s} → (abst ∷ Δ) ⊢ s ∶ A ⇝ B ∙ p
+  conv-all : ∀ {p s} → (abst ∷ Δ) ⊢ s ∶ A ⇝ B ∙ p
         --------------------------------------
-      → Δ ⊢ ∀ᶜ s ∶ `∀ A ⇝ `∀ B ∙ p
+      → Δ ⊢ `∀ s ∶ `∀ A ⇝ `∀ B ∙ p
 
 ------------------------------------------------------------------------
 -- 4.  The identity conversion at an arbitrary type
 ------------------------------------------------------------------------
 
 idc : Ty → Conv
-idc (` X)   = cv X
-idc `ℕ      = cb `ℕ
-idc `𝔹      = cb `𝔹
-idc (A ⇒ B) = idc A ⇛ idc B
-idc (`∀ A)  = ∀ᶜ (idc A)
+idc (` X)   = id (` X)
+idc `ℕ      = id `ℕ
+idc `𝔹      = id `𝔹
+idc (A ⇒ B) = idc A ↦ idc B
+idc (`∀ A)  = `∀ (idc A)
 
 idc-⊢ : ∀ {p} → Δ ⊢ᵗ A → Δ ⊢ idc A ∶ A ⇝ A ∙ p
-idc-⊢ (wf-var tv)  = c-v tv
-idc-⊢ wf-ℕ         = c-b base-ℕ
-idc-⊢ wf-𝔹         = c-b base-𝔹
-idc-⊢ (wf-⇒ wA wB) = c-f (idc-⊢ wA) (idc-⊢ wB)
-idc-⊢ (wf-∀ wA)    = c-a (idc-⊢ wA)
+idc-⊢ (wf-var tv)  = conv-idv tv
+idc-⊢ wf-ℕ         = conv-id base-ℕ
+idc-⊢ wf-𝔹         = conv-id base-𝔹
+idc-⊢ (wf-⇒ wA wB) = conv-fun (idc-⊢ wA) (idc-⊢ wB)
+idc-⊢ (wf-∀ wA)    = conv-all (idc-⊢ wA)
 
 ------------------------------------------------------------------------
 -- 5.  TRANSPORT I — spine renaming  (the ⊢renameᵀ analog)
@@ -273,19 +271,19 @@ wf-ren r (wf-∀ wA)    = wf-∀ (wf-ren (ren-ext r) wA)
 
 -- THE FIRST HALF OF Q1.  A spine-indexed conversion typing moves along ANY
 -- spine renaming, with NO hypothesis beyond `Ren` itself: no SkelEq, no
--- starOnly, no unfolding, no second chance.  The `c-u`/`c-s` cases are
+-- starOnly, no unfolding, no second chance.  The `conv-unseal`/`conv-seal` cases are
 -- literally `ren-kn` — the name is carried, and the rep comes back out of
 -- the target spine already renamed.
 conv-ren : ∀ {p c} → Ren ρ Δ Δ′
   → Δ  ⊢ c ∶ A ⇝ B ∙ p
     -----------------------------------------------------------
   → Δ′ ⊢ renᶜ ρ c ∶ renameᵗ ρ A ⇝ renameᵗ ρ B ∙ p
-conv-ren {ρ = ρ} r (c-b bA) rewrite base-ren {A = _} {ρ = ρ} bA = c-b bA
-conv-ren r (c-v tv)  = c-v (ren-tv r tv)
-conv-ren r (c-u d)   = c-u (ren-kn r d)
-conv-ren r (c-s d)   = c-s (ren-kn r d)
-conv-ren r (c-f s t) = c-f (conv-ren r s) (conv-ren r t)
-conv-ren r (c-a s)   = c-a (conv-ren (ren-ext r) s)
+conv-ren {ρ = ρ} r (conv-id bA) rewrite base-ren {A = _} {ρ = ρ} bA = conv-id bA
+conv-ren r (conv-idv tv)  = conv-idv (ren-tv r tv)
+conv-ren r (conv-unseal d)   = conv-unseal (ren-kn r d)
+conv-ren r (conv-seal d)   = conv-seal (ren-kn r d)
+conv-ren r (conv-fun s t) = conv-fun (conv-ren r s) (conv-ren r t)
+conv-ren r (conv-all s)   = conv-all (conv-ren (ren-ext r) s)
 
 ------------------------------------------------------------------------
 -- 6.  TRANSPORT II — spine growth / knowledge refinement (the ⊢retag analog)
@@ -360,9 +358,9 @@ conv-⊑ : ∀ {p c} → Δ ⊑ Δ′
   → Δ  ⊢ c ∶ A ⇝ B ∙ p
     ------------------------
   → Δ′ ⊢ c ∶ A ⇝ B ∙ p
-conv-⊑ ls (c-b bA)  = c-b bA
-conv-⊑ ls (c-v tv)  = c-v (⊑-tv ls tv)
-conv-⊑ ls (c-u d)   = c-u (⊑-kn ls d)
-conv-⊑ ls (c-s d)   = c-s (⊑-kn ls d)
-conv-⊑ ls (c-f s t) = c-f (conv-⊑ ls s) (conv-⊑ ls t)
-conv-⊑ ls (c-a s)   = c-a (conv-⊑ (le∷ le-aa ls) s)
+conv-⊑ ls (conv-id bA)  = conv-id bA
+conv-⊑ ls (conv-idv tv)  = conv-idv (⊑-tv ls tv)
+conv-⊑ ls (conv-unseal d)   = conv-unseal (⊑-kn ls d)
+conv-⊑ ls (conv-seal d)   = conv-seal (⊑-kn ls d)
+conv-⊑ ls (conv-fun s t) = conv-fun (conv-⊑ ls s) (conv-⊑ ls t)
+conv-⊑ ls (conv-all s)   = conv-all (conv-⊑ (le∷ le-aa ls) s)

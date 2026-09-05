@@ -227,7 +227,7 @@ scp (own A ∷ Θ) Δ = scp Θ Δ
 scp (ali X ∷ Θ) Δ = unmask X (scp Θ Δ)
 scp (cnc X ∷ Θ) Δ = mask X (scp Θ Δ)
 
--- The FACE spine: like `scp` but WITHOUT the conceal masks, so a `csl X`
+-- The FACE spine: like `scp` but WITHOUT the conceal masks, so a `seal X`
 -- can resolve X at its owner.  This is owner-syntactic lookup: the licence
 -- is read on the spine that encloses the boundary, never inside it.
 fscp : BCtx → Ctxᵗ → Ctxᵗ
@@ -274,7 +274,7 @@ intC⊑fceC Θ Δ = ⊑-prep (reps Θ) (scp⊑fscp Θ Δ)
 -- Every premise names a slot or checks a rep in the PLAIN exterior.  There
 -- is no `Reversal≈`, no `starOnly`, no `SkelEq`, no x-lookup: an `ali`
 -- claims nothing at all, and a `cnc` claims nothing either — the claim lives
--- in the FACE (`csl X`, which must cite a live owner).
+-- in the FACE (`seal X`, which must cite a live owner).
 -- An `ali X` premise asks only that the slot EXISTS.  It cannot ask that the
 -- slot be masked and stay stable under refinement (a `Cancel` may already
 -- have un-masked it), and it need not: `unmask` is total and an alias at an

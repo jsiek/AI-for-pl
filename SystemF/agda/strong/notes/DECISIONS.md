@@ -1831,3 +1831,15 @@ under a second dual, Λ-bound reps crossed twice), and
 notes/BoundarySurvey.md (the master table + machine-backed findings).
 The corpus doubles as the regression suite / kill criterion for any
 redesign candidate.
+
+Survey amendment (Jeremy, same day): additionally instrument WHAT THE
+BOUNDARY MUST PROVIDE, ignoring the current bookkeeping — per boundary
+occurrence per trace state: the internal face (synthesized bottom-up
+from the interior TERM alone — interiors are term-closed and annotated,
+so no γᵇ/ρᵇ/intOf is consulted), the external face (the top-down DEMAND
+from the use site), and the type variables in scope/mentioned on each
+side.  Oblig.agda + obligLog; a REQUIREMENTS section in
+BoundarySurvey.md.  Because synthesis needs no typability, the
+instrument keeps reporting through the ill-typed states after the §9n
+break — the obligation rows there ARE the requirements spec the redesign
+must meet.

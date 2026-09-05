@@ -12,10 +12,15 @@ open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
 
+-- the main theorems
+open import strong.Preservation
+
 -- the proof scripts
 open import strong.proof.Adversary
 open import strong.proof.MaskFacts
 open import strong.proof.IdLayer
+open import strong.proof.Preserve
+open import strong.proof.PreserveObstruct
 
 -- the regression corpus and the renderer
 open import strong.Examples

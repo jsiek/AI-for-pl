@@ -816,3 +816,33 @@ progress-end : Value ($ 7)
 progress-end with progress {Δ = []} {A = `ℕ} (⊢$ {Γ = []} {n = 7})
 progress-end | inj₁ v        = v
 progress-end | inj₂ (_ , st) = ⊥-elim (value-¬step V-$ st)
+
+open import strong.Preservation
+  using (preservation-TyBeta; preservation-Beta; preservation-Drop$)
+
+------------------------------------------------------------------------
+-- §9  PRESERVATION ALONG run-P₀
+------------------------------------------------------------------------
+
+-- Each ⊢Pᵢ₊₁ from ⊢Pᵢ, by the preservation case of the rule that fired.
+-- THREE of the five steps go by the UNCONDITIONAL cases of
+-- strong.Preservation (TyBeta, Beta, Drop$).  The other two — step 2
+-- (Peel) and step 4 (CancelR) — are the rules whose GENERAL case is
+-- REFUTED (proof/PreserveObstruct §3 and §1); ⊢P₂ and ⊢P₄ above are their
+-- instances, typed by hand.  Once those two rules are repaired,
+-- instantiating strong.Preservation's `Conditional` module gives the
+-- whole run in one line:  preservation* ⊢P₀ run-P₀.
+
+-- STEP 1 — TyBeta, under ξ-·-l.
+⊢P₁-pres : [] ∣ [] ⊢ P₁ ⦂ `ℕ
+⊢P₁-pres = ⊢· (preservation-TyBeta (⊢·[] ⊢polyid wf-ℕ)) ⊢$
+
+-- STEP 3 — Beta, under ξ-⟪⟫: the ξ case rebuilds the same `env` around
+-- the stepped interior, and that interior is `preservation-Beta`
+-- (⊢P₃-in above).
+⊢P₃-pres : [] ∣ [] ⊢ P₃ ⦂ `ℕ
+⊢P₃-pres = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
+
+-- STEP 5 — Drop$.
+⊢P₅-pres : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
+⊢P₅-pres = preservation-Drop$ base-ℕ ⊢P₄

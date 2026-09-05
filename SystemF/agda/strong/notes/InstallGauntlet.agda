@@ -33,12 +33,20 @@ module strong.notes.InstallGauntlet where
 --   §8  THE SkelEq REPAIR: the premise discharged at the dual's birth by
 --       xrep-stored, surviving §7b's weakening, refusing the soundness hole
 --       the comparison-free licence had, and leaving ⊢3n-adv to starOnly.
+--   §9  THE COLLAPSE RULES (§9a–§9m; the sub-contents are at §9's own
+--       header, below §8).
+--   §9n THE REACHABILITY TRACE OF THE PRESERVATION COUNTEREXAMPLE: a
+--       CLOSED, PLAIN System F source program whose nine-state live run
+--       reaches notes/probes/DualIntProbe.agda's Peel redex ON THE NOSE
+--       (same Δd, Θ2, Vtm, Wtm), so the probe's ¬⊢contractum ports as an
+--       identity and preservation is false on a REACHABLE state
+--       (qPreservationFails).
 
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; s≤s; z≤n)
 open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
-open import Data.Product using (Σ; _,_)
+open import Data.Product using (Σ; _,_; _×_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -50,6 +58,9 @@ open import strong.BReduction
 open import strong.DualDef using (xrep-stored; dual-cnc-skel)
 open import strong.ProgressDef
   using (MergeDerivable; MergeRest; merge-derivable)
+-- §9n only.  QUALIFIED: the probe's `Δd` and §9g's `Δd` are different
+-- contexts, and both are wanted in this file.
+import strong.notes.probes.DualIntProbe as DIP
 
 ------------------------------------------------------------------------
 -- §1.  E★′, END TO END
@@ -2094,3 +2105,296 @@ mok-q′ = ⊕-γ {intOf Δq Θq2} {` 0} Θq1′ Θq2 (s≤s z≤n) (sc-var here
 merge-q′ : Δq ⊢ (($ 5) ⟪ Θq1′ , ` 0 ⟫) ⟪ Θq2 , ` 0 ⟫
              -→ ($ 5) ⟪ Θq1′ ⊕ Θq2 , mrgB Θq1′ Θq2 (` 0) ⟫
 merge-q′ = Merge V-$ (I-var z≤n) (A-var (s≤s z≤n)) mok-q′
+
+------------------------------------------------------------------------
+-- §9n.  *** THE REACHABILITY TRACE OF THE PRESERVATION COUNTEREXAMPLE ***
+--
+-- notes/probes/DualIntProbe.agda §3.3 + §5 exhibits a Peel redex, well
+-- typed at the ambient
+--
+--   Δd = X:=Y , Y Λ-bound , Z:=ℕ    (rvld (` 0) ∷ abst ∷ rvld `ℕ ∷ [])
+--
+-- whose contractum has NO typing (its ¬⊢contractum): subject reduction
+-- fails there.  What the probe does not show is that Δd, Θ2, Vtm and Wtm
+-- are REACHABLE — a hand-built ambient proves nothing about the calculus.
+-- This section closes that gap.  A CLOSED, PLAIN System F source program
+-- — no boundary syntax whatever, no wrapper, no conceal, nothing the
+-- surface language cannot write — runs to the probe's redex ON THE NOSE,
+-- in eight live steps, each a `_⊢_-→_` inhabitant carrying its ξ-frames.
+--
+--   qP₀ = ((ΛZ. λp:(∀X′. (X′⇒X′)⇒ℕ).
+--             ΛY. (((ΛX. λw:(X⇒X). (p [X]) · w) [Y]) · (λv:Y. v)))
+--           [ℕ])
+--         · (ΛX′. λg:(X′⇒X′). 5)              :  ∀Y. ℕ
+--
+--   T1  ξ-·-l TyBeta(Z:=ℕ)      the boundary ↑Z:=ℕ is BORN; the ambient
+--                               inside it is Z:=ℕ
+--   T2  Peel                    the ∀-package crosses inward through that
+--                               boundary; its ambient dual is ↓Z:=ℕ
+--   T3  ξ-⟪⟫ Beta               p := the ↓Z-wrapped package.  substᵀᵐ
+--                               carries it under BOTH ΛY and ΛX, so ⇑ᵀ
+--                               fires TWICE and the conceal's index walks
+--                               0 ↦ 1 ↦ 2 (renᴮ moves a conceal INDEX by
+--                               ρ) while restrictRen leaves its rep alone
+--   T4  ξ-⟪⟫ ξ-Λ ξ-·-l TyBeta(X:=Y)
+--                               the CHAINED-KNOWLEDGE reveal ↑X:=Y is
+--                               born over the Λ-bound Y; the ambient at
+--                               the redex is now intOf (abst ∷ Z:=ℕ) qΘx,
+--                               which COMPUTES to the probe's Δd
+--   T5  ξ-⟪⟫ ξ-Λ Peel           (λv:Y. v) crosses ↑X:=Y.  dualᴳ of a
+--                               cmax-0 boundary is just cncOfRevs, i.e.
+--                               ↓X:=X — so the crossing value IS Wtm
+--   T6  ξ-⟪⟫ ξ-Λ ξ-⟪⟫ Beta      w := Wtm
+--   T7  ξ-⟪⟫ ξ-Λ ξ-⟪⟫ ξ-·-l TyWrap(X′:=X)
+--                               the ↓Z-wrapped Λ meets `[X]`: the tower
+--                               ↑X′:=X , ↓Z:=ℕ is minted — the probe's Θ2
+--   T8  = the probe's ⊢Redex, VERBATIM, in ambient Δd
+--   T9  ξ-⟪⟫ ξ-Λ ξ-⟪⟫ Peel      *** THE FATAL STEP *** — the probe's own
+--                               peel-step, lifted through its ξ-frames
+--
+-- NOTHING WAS FIDDLED.  The reached Θ2 / Vtm / Wtm / Δd are the probe's
+-- own definitions, used as such below; its ¬-typing therefore ports as an
+-- IDENTITY (DIP.¬⊢contractum, applied unchanged), not as a variant.  The
+-- whole configuration after T9 has no typing at ∀Y.ℕ either (¬⊢qP₈), by
+-- three inversions — env, ⊢Λ, env — down to that same refutation.
+--
+-- WHY THE SOURCE HAS THE SHAPE IT HAS, term by term:
+--   * ΛZ … [ℕ]   supplies Δd's DEEPEST entry Z:=ℕ, the slot the tower's
+--                conceal ↓Z:=ℕ points at;
+--   * ΛY         supplies Δd's MIDDLE entry, and it must be Λ-BOUND —
+--                that is exactly what makes the dual's second-chance copy
+--                fail at slot 0 (unfEnt is the identity at an abst), which
+--                is what demotes the chained reveal to rvl⋆ (§2 of the
+--                probe);
+--   * ΛX … [Y]   supplies Δd's SHALLOWEST entry X:=Y, the CHAINED rep;
+--   * λw:(X⇒X)   makes the crossing type reach the chained slot through a
+--                REVEAL rep, which bwf↑ licenses freely — the probe's §3.3
+--                observation, here FORCED by the source's own typing;
+--   * λv:Y. v    is the value that crosses, and the dual-borne conceal
+--                ↓X:=X it acquires is what the rebuild cannot re-license;
+--   * p : ∀X′.(X′⇒X′)⇒ℕ, applied at X INSIDE the ΛX, is what makes T7 a
+--                TyWrap rather than a plain TyBeta — the ↓Z:=ℕ conceal
+--                must ALREADY sit on the eliminated Λ for the tower Θ2 to
+--                exist at all.
+------------------------------------------------------------------------
+
+qPoly : Ty                      -- ∀X′. (X′⇒X′) ⇒ ℕ      (p's type)
+qPoly = `∀ ((` 0 ⇒ ` 0) ⇒ `ℕ)
+
+qB : Ty                         -- (X⇒X) ⇒ ℕ   — qPoly's ∀-body
+qB = (` 0 ⇒ ` 0) ⇒ `ℕ
+
+qBz : Ty                        -- qPoly ⇒ ∀Y.ℕ — the ΛZ's ∀-body (Z unused)
+qBz = qPoly ⇒ `∀ `ℕ
+
+qQ : Term                       -- ΛX′. λg:(X′⇒X′). 5
+qQ = Λ (ƛ (` 0 ⇒ ` 0) ∙ ($ 5))
+
+qArgV : Term                    -- λv:Y. v
+qArgV = ƛ (` 0) ∙ (` 0)
+
+qLamW : Term                    -- λw:(X⇒X). (p [X]) · w   (p = ` 1, w = ` 0)
+qLamW = ƛ (` 0 ⇒ ` 0) ∙ (((` 1) ·[ qB , ` 0 ]) · (` 0))
+
+qLamY : Term                    -- ΛY. ((ΛX. qLamW) [Y]) · (λv:Y. v)
+qLamY = Λ (((Λ qLamW) ·[ qB , ` 0 ]) · qArgV)
+
+qP₀ : Term
+qP₀ = ((Λ (ƛ qPoly ∙ qLamY)) ·[ qBz , `ℕ ]) · qQ
+
+------------------------------------------------------------------------
+-- §9n.1  the boundaries and the ambients the trace passes through
+------------------------------------------------------------------------
+
+qΘz : BCtx                      -- ↑Z:=ℕ,  born at T1
+qΘz = rvl `ℕ ∷ []
+
+qΘx : BCtx                      -- ↑X:=Y,  born at T4
+qΘx = rvl (` 0) ∷ []
+
+qΓ1 : TCtx                      -- inside qΘz:       Z:=ℕ
+qΓ1 = rvld `ℕ ∷ []
+
+qΓ2 : TCtx                      -- and under the ΛY: Y Λ-bound , Z:=ℕ
+qΓ2 = abst ∷ qΓ1
+
+_ : intOf [] qΘz ≡ qΓ1
+_ = refl
+
+-- *** THE AMBIENT OF THE COUNTEREXAMPLE, REACHED BY COMPUTATION ***
+-- ⟦·⟧ᴴ's guards both SUCCEED at ↑X:=Y (the rep names no blocked slot, and
+-- its reading ` 1 is a legitimate telescope entry), so the reveal keeps
+-- its knowledge and the interior is the probe's Δd on the nose.
+qΔ-is-Δd : intOf qΓ2 qΘx ≡ DIP.Δd
+qΔ-is-Δd = refl
+
+-- the two duals the trace mints, both by computation
+qdual-z : dualᴳ [] qΘz ≡ cnc 0 `ℕ ∷ []
+qdual-z = refl
+
+qdual-x : dualᴳ qΓ2 qΘx ≡ DIP.Θw
+qdual-x = refl
+
+-- the ↓Z-wrapped package, after substᵀᵐ has carried it under ΛY and ΛX:
+-- TWO ⇑ᵀ's, each moving the conceal INDEX by renᴮ's ρ = suc while
+-- restrictRen leaves the closed rep ℕ alone
+qWp : Term
+qWp = qQ ⟪ cnc 2 `ℕ ∷ [] , qPoly ⟫
+
+qLamW′ : Term                   -- qLamW with p already substituted
+qLamW′ = ƛ (` 0 ⇒ ` 0) ∙ ((qWp ·[ qB , ` 0 ]) · (` 0))
+
+-- and the tower T7 mints IS the probe's Θ2 (shiftReps is the identity on
+-- a closed rep, and the new reveal's rep is the type argument ` 0 = X)
+qtower : rvl (` 0) ∷ shiftReps (cnc 2 `ℕ ∷ []) ≡ DIP.Θ2
+qtower = refl
+
+------------------------------------------------------------------------
+-- §9n.2  THE TRACE, state by state.  qP₇ / qP₈ are written with the
+-- probe's own Vtm / Wtm / Θ2 — no local copies of anything.
+------------------------------------------------------------------------
+
+qP₁ qP₂ qP₃ qP₄ qP₅ qP₆ qP₇ qP₈ : Term
+
+qP₁ = ((ƛ qPoly ∙ qLamY) ⟪ qΘz , qBz ⟫) · qQ
+
+qP₂ = ((ƛ qPoly ∙ qLamY) · (qQ ⟪ cnc 0 `ℕ ∷ [] , qPoly ⟫))
+      ⟪ qΘz , `∀ `ℕ ⟫
+
+qP₃ = (Λ (((Λ qLamW′) ·[ qB , ` 0 ]) · qArgV)) ⟪ qΘz , `∀ `ℕ ⟫
+
+qP₄ = (Λ ((qLamW′ ⟪ qΘx , qB ⟫) · qArgV)) ⟪ qΘz , `∀ `ℕ ⟫
+
+qP₅ = (Λ ((qLamW′ · DIP.Wtm) ⟪ qΘx , `ℕ ⟫)) ⟪ qΘz , `∀ `ℕ ⟫
+
+qP₆ = (Λ (((qWp ·[ qB , ` 0 ]) · DIP.Wtm) ⟪ qΘx , `ℕ ⟫)) ⟪ qΘz , `∀ `ℕ ⟫
+
+qP₇ = (Λ (((DIP.Vtm ⟪ DIP.Θ2 , qB ⟫) · DIP.Wtm) ⟪ qΘx , `ℕ ⟫))
+      ⟪ qΘz , `∀ `ℕ ⟫
+
+qP₈ = (Λ ((((DIP.Vtm
+              · (DIP.Wtm ⟪ dualᴳ DIP.Δd DIP.Θ2
+                         , renameᵗ (swapᵇ DIP.Θ2) (` 0 ⇒ ` 0) ⟫))
+             ⟪ DIP.Θ2 , `ℕ ⟫)
+            ⟪ qΘx , `ℕ ⟫)))
+      ⟪ qΘz , `∀ `ℕ ⟫
+
+-- T8 IS the probe's redex under its two ξ-frames — stated as an equation
+-- so the identity is machine-checked and not merely asserted
+qT8-is-probe : qP₇
+  ≡ (Λ (((DIP.Vtm ⟪ DIP.Θ2 , (` 0 ⇒ ` 0) ⇒ `ℕ ⟫) · DIP.Wtm)
+        ⟪ qΘx , `ℕ ⟫))
+    ⟪ qΘz , `∀ `ℕ ⟫
+qT8-is-probe = refl
+
+------------------------------------------------------------------------
+-- §9n.3  THE STEPS.  Every one is a live `_⊢_-→_` inhabitant at the
+-- TOP-LEVEL ambient [], ξ-frames included.
+------------------------------------------------------------------------
+
+qs01 : [] ⊢ qP₀ -→ qP₁                                    -- T1  TyBeta(Z)
+qs01 = ξ-·-l (TyBeta (V-G G-ƛ))
+
+qs12 : [] ⊢ qP₁ -→ qP₂                                    -- T2  Peel
+qs12 = Peel (V-G G-ƛ) (V-G (G-Λ (V-G G-ƛ)))
+
+qs23 : [] ⊢ qP₂ -→ qP₃                                    -- T3  Beta (p)
+qs23 = ξ-⟪⟫ (Beta (V-⟪⟫ (V-G (G-Λ (V-G G-ƛ))) I-∀))
+
+qs34 : [] ⊢ qP₃ -→ qP₄                                    -- T4  TyBeta(X)
+qs34 = ξ-⟪⟫ (ξ-Λ (ξ-·-l (TyBeta (V-G G-ƛ))))
+
+qs45 : [] ⊢ qP₄ -→ qP₅                                    -- T5  Peel
+qs45 = ξ-⟪⟫ (ξ-Λ (Peel (V-G G-ƛ) (V-G G-ƛ)))
+
+qs56 : [] ⊢ qP₅ -→ qP₆                                    -- T6  Beta (w)
+qs56 = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (Beta DIP.Wval)))
+
+qs67 : [] ⊢ qP₆ -→ qP₇                                    -- T7  TyWrap(X′)
+qs67 = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (ξ-·-l (TyWrap (V-G G-ƛ)))))
+
+-- T9 — THE FATAL STEP.  The inner inhabitant is the probe's peel-step
+-- itself; ξ-⟪⟫'s index premise forces the ambient there to be Δd.
+qs78 : [] ⊢ qP₇ -→ qP₈                                    -- T9  Peel
+qs78 = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ DIP.peel-step))
+
+------------------------------------------------------------------------
+-- §9n.4  THE TYPINGS.  The source is closed and plain; the state before
+-- the fatal step is well typed at the SAME type; the state after it is
+-- not typeable at all.
+------------------------------------------------------------------------
+
+wf-qPoly : ∀ {Δ₁ : TCtx} → Δ₁ ⊢ qPoly
+wf-qPoly = wf-∀ (wf-⇒ (wf-⇒ (wf-var here-abst) (wf-var here-abst)) wf-ℕ)
+
+⊢qQ : ∀ {Δ₁ : TCtx} {Γ₁ : Ctx} → Δ₁ ∣ Γ₁ ⊢ qQ ⦂ qPoly
+⊢qQ = ⊢Λ (⊢ƛ (wf-⇒ (wf-var here-abst) (wf-var here-abst)) ⊢$)
+
+-- *** THE SOURCE IS CLOSED, PLAIN, AND WELL TYPED ***
+⊢qP₀ : [] ∣ [] ⊢ qP₀ ⦂ `∀ `ℕ
+⊢qP₀ =
+  ⊢· (⊢·[] (⊢Λ (⊢ƛ wf-qPoly
+                   (⊢Λ (⊢· (⊢·[]
+                             (⊢Λ (⊢ƛ (wf-⇒ (wf-var here-abst)
+                                           (wf-var here-abst))
+                                     (⊢· (⊢·[] (⊢` (there here))
+                                               (wf-var here-abst))
+                                         (⊢` here))))
+                             (wf-var here-abst))
+                           (⊢ƛ (wf-var here-abst) (⊢` here))))))
+           wf-ℕ)
+     ⊢qQ
+
+-- the boundary well-formedness the two frames need
+qbwf-z : [] ∣ intOf [] qΘz ⊢ᵇ qΘz
+qbwf-z = bwf↑ wf-ℕ bwf[]
+
+qbwf-x : qΓ2 ∣ intOf qΓ2 qΘx ⊢ᵇ qΘx
+qbwf-x = bwf↑ (wf-var here-abst) bwf[]
+
+-- *** THE STATE AT THE FATAL REDEX IS WELL TYPED, AT THE SOURCE'S TYPE.
+-- Its innermost premise is the probe's ⊢Redex, unchanged. ***
+⊢qP₇ : [] ∣ [] ⊢ qP₇ ⦂ `∀ `ℕ
+⊢qP₇ = env qbwf-z (sc-∀ sc-ℕ)
+           (⊢Λ (env qbwf-x sc-ℕ DIP.⊢Redex))
+
+-- *** AND THE CONTRACTUM DOES NOT TYPE — WHOLE CONFIGURATION. ***
+-- Three inversions: (env) is the only rule for a wrapper, ⊢Λ the only one
+-- for a Λ; the residue is exactly the probe's refuted judgement.
+¬⊢qP₈ : ¬ ([] ∣ [] ⊢ qP₈ ⦂ `∀ `ℕ)
+¬⊢qP₈ (env _ _ (⊢Λ (env _ _ d))) = DIP.¬⊢contractum d
+
+------------------------------------------------------------------------
+-- §9n.5  *** THE HEADLINE.  PRESERVATION IS FALSE ON A REACHABLE STATE
+-- OF A CLOSED, PLAIN SOURCE PROGRAM. ***  Not "false at a hand-built
+-- ambient": qP₀ is ordinary System F, ⊢qP₀ types it, the eight steps are
+-- live inhabitants, qP₇ still types at ∀Y.ℕ, and qP₈ types at nothing.
+------------------------------------------------------------------------
+
+qPreservationFails :
+    ([] ∣ [] ⊢ qP₀ ⦂ `∀ `ℕ)
+  × ([] ∣ [] ⊢ qP₇ ⦂ `∀ `ℕ)
+  × ([] ⊢ qP₇ -→ qP₈)
+  × (¬ ([] ∣ [] ⊢ qP₈ ⦂ `∀ `ℕ))
+qPreservationFails = ⊢qP₀ , ⊢qP₇ , qs78 , ¬⊢qP₈
+
+------------------------------------------------------------------------
+-- §9n.6  RENDERING THE TRACE.  The named form of every state is produced
+-- by strong.Show, NOT by hand (the transcription error that motivated
+-- Show.agda is exactly what hand-copying these costs).  From the repo
+-- root, for k = ₀ … ₈:
+--
+--   scripts/render_term.sh 'showTmIn 0 qP<k>' \
+--     'open import strong.Types' 'open import strong.Boundary' \
+--     'open import strong.notes.InstallGauntlet'
+--
+-- and for the contexts, 'showTCtx qΓ1' / 'showTCtx qΓ2' /
+-- 'showTCtx (intOf qΓ2 qΘx)'.
+--
+-- READING THE OUTPUT.  Show.agda names binders in the order it MEETS
+-- them (X, Y, Z, X′, …), so the source's ΛZ/ΛY/ΛX print as X/Y/Z and the
+-- ambient at the fatal redex prints as  Z:=Y , Y Λ-bound , X:=ℕ  inside
+-- the term, while `showTCtx (intOf qΓ2 qΘx)` — which names slot 0 X —
+-- prints the SAME context as  X := Y , Y Λ-bound , Z := ℕ .  Both are
+-- DIP.Δd; only the name supply differs.
+------------------------------------------------------------------------

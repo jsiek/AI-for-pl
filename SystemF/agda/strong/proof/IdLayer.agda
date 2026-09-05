@@ -4,7 +4,7 @@ module strong.proof.IdLayer where
 --
 -- §1  the pushed name is ALREADY WRITTEN in the id-face (idpush-name), and
 --     the same argument fixes CancelR's two names (cancel-name): typing
---     forces X ≡ nrev Θ₁ + Y in both cases, so neither rule moves an index
+--     forces X ≡ nbind Θ₁ + Y in both cases, so neither rule moves an index
 --     or invents a slot, and neither needs an equation as a premise.
 -- §2  `unseal` is the ONLY active face an id-(` X) layer can ever meet, so
 --     the id-base branch of `Active` is vacuous for these rules.
@@ -32,22 +32,22 @@ open import strong.Terms
 -- pushed conversion's name.  IdPush therefore moves no index.
 idpush-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
   → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → X ≡ nrev Θ₁ + Y
+  → X ≡ nbind Θ₁ + Y
 idpush-name {Θ₁ = Θ₁} (env _ (env _ _ ⊢cᵢ _) ⊢cₒ _)
   with conv-unseal-src ⊢cₒ
 ... | refl = tvar-inj (trans (sym (conv-idv-tgt ⊢cᵢ))
-                            (liftN-var (nrev Θ₁) _))
+                            (liftN-var (nbind Θ₁) _))
 
 -- THE SAME FACT FOR CANCEL.  The mini-core's Cancel wrote one name on both
--- faces, which presumes nrev Θ₁ ≡ 0.  strong.Reduction's CancelR carries two
+-- faces, which presumes nbind Θ₁ ≡ 0.  strong.Reduction's CancelR carries two
 -- names; this lemma is why no premise has to relate them.
 cancel-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
   → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → X ≡ nrev Θ₁ + Y
+  → X ≡ nbind Θ₁ + Y
 cancel-name {Θ₁ = Θ₁} (env _ (env _ _ ⊢cᵢ _) ⊢cₒ _)
   with conv-unseal-src ⊢cₒ
 ... | refl = tvar-inj (trans (sym (conv-seal-tgt ⊢cᵢ))
-                            (liftN-var (nrev Θ₁) _))
+                            (liftN-var (nbind Θ₁) _))
 
 ------------------------------------------------------------------------
 -- §2  THE ONLY ACTIVE FACE AN ID-LAYER MEETS IS `unseal`
@@ -60,7 +60,7 @@ outer-id-base-untypeable : ∀ {Δ Γ V Θ₁ Θ₂ X A C} → Base A
   → ¬ (Δ ∣ Γ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , id A ⟫ ⦂ C)
 outer-id-base-untypeable {Θ₁ = Θ₁} bA (env _ (env _ _ ⊢cᵢ _) ⊢cₒ _)
   with conv-id-base-src bA ⊢cₒ
-... | refl = base≢var (nrev Θ₁) bA (conv-idv-tgt ⊢cᵢ)
+... | refl = base≢var (nbind Θ₁) bA (conv-idv-tgt ⊢cᵢ)
 
 -- The mask jam is a phantom, twice over.  (1) A conceal is INVISIBLE to the
 -- face type context: `fscp` skips `lock`, so a face never lands on a slot the layer

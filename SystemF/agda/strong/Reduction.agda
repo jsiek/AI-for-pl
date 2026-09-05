@@ -83,7 +83,7 @@ dualS n (unlock X ∷ Θ) = lock (n + X) ∷ dualS n Θ
 dualS n (lock X ∷ Θ) = unlock (n + X) ∷ dualS n Θ
 
 dual : CtxMorph → CtxMorph
-dual Θ = lockBinds (nrev Θ) ++ dualS (nrev Θ) Θ
+dual Θ = lockBinds (nbind Θ) ++ dualS (nbind Θ) Θ
 
 -- A context morphism that binds Θ's owners and nothing else (Cancel's residue).
 reps→bind : List Ty → CtxMorph
@@ -94,8 +94,8 @@ reps-reps→bind : (As : List Ty) → reps (reps→bind As) ≡ As
 reps-reps→bind []       = refl
 reps-reps→bind (A ∷ As) = cong (A ∷_) (reps-reps→bind As)
 
-nrev-reps→bind : (As : List Ty) → nrev (reps→bind As) ≡ length As
-nrev-reps→bind As = cong length (reps-reps→bind As)
+nbind-reps→bind : (As : List Ty) → nbind (reps→bind As) ≡ length As
+nbind-reps→bind As = cong length (reps-reps→bind As)
 
 ------------------------------------------------------------------------
 -- 3.  The rules
@@ -121,7 +121,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- crossing argument's conversion is RE-BASED by the repointing.
   Peel : ∀ {Δ V W Θ s t} → Value V → Value W
     → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-        -→ (V · (wkᴹ (nrev Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫
+        -→ (V · (wkᴹ (nbind Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫
 
   -- TYPEEL — the ∀-face analogue; the new owner is prepended and the
   -- elimination instantiates at the new owner's bind name.
@@ -138,17 +138,17 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- DEFINITIONAL: `seal X` and `unseal Y` cite the SAME entry, so there is
   -- no second spelling to disagree with the first.
   --
-  -- THE RESIDUE REPAIR (3a).  The mini-core appended `lockBinds (nrev Θ₂)`,
+  -- THE RESIDUE REPAIR (3a).  The mini-core appended `lockBinds (nbind Θ₂)`,
   -- which masks EXTERIOR slots that need not exist (proof/MaskFacts.agda,
   -- `¬Bwf-cancel-residue`).  It is dropped: `intC` retains the entries
   -- anyway and ⊢retag covers the extra knowledge.
   --
   -- THE SINGLE-NAME PRESUMPTION, EXAMINED (3b).  The mini-core wrote ONE
-  -- name X on both faces.  That presumes `nrev Θ₁ ≡ 0`: the inner face is
-  -- checked on `fceC Θ₁ (intC Θ₂ Δ)`, which is `nrev Θ₁` binders INSIDE the
+  -- name X on both faces.  That presumes `nbind Θ₁ ≡ 0`: the inner face is
+  -- checked on `fceC Θ₁ (intC Θ₂ Δ)`, which is `nbind Θ₁` binders INSIDE the
   -- type context `fceC Θ₂ Δ` the outer face is checked on.  The honest general form
   -- carries TWO names — and needs no extra premise to relate them, because
-  -- typing already FORCES `X ≡ nrev Θ₁ + Y` (proof/IdLayer.agda,
+  -- typing already FORCES `X ≡ nbind Θ₁ + Y` (proof/IdLayer.agda,
   -- `cancel-name`), exactly as it does for IdPush (`idpush-name`).
   --
   -- THE LOOKUP PREMISE (3c).  `idc A` is an identity face minted at a

@@ -2065,3 +2065,17 @@ V-Λ gains the Value premise (restores det/values-don't-step), CancelR
 TyPeelR (shifted annotation), lookup-determined idc faces.  R1 (vacuous
 TyBeta) deferred as optional hygiene.  ⊳/IdAbsorb retired (fails the
 no-⊕ test — IdLayerProbe Tᵣ).
+
+### v2 vocabulary + repair (5) CONFIRMED (Jeremy, 2026-09-05)
+
+Names ruled and landed: "boundary skeleton" → "boundary CONTEXT
+MORPHISM"; BCtx → CtxMorph, BEnt → MorphEnt; own → bind (both the
+morphism entry and the type-context entry it creates), ali → unlock,
+cnc → lock; derived: bw-b/bw-l/bw-u, bindNames, lockBinds, reps→bind,
+nrev → nbind, vis-o → vis-b.  Prose: "spine" → "type context"
+(standard terminology), "slot lookup" → "entry lookup".
+
+REPAIR (5) CONFIRMED: TyBeta carries `Value N` — the fifth determinism
+repair (TyBeta vs ξ-·[]⨟ξ-Λ was a genuine overlap; mirrors Beta;
+positive witness run-Ωt).  With it, det and values-don't-step are
+theorems of the landed v2 rule set.

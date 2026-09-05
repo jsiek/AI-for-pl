@@ -59,11 +59,11 @@ reps (bind A ∷ Θ) = A ∷ reps Θ
 reps (unlock X ∷ Θ) = reps Θ
 reps (lock X ∷ Θ) = reps Θ
 
--- `nrev` is the boundary's FRAME EXTENSION: the number of binders it adds.
+-- `nbind` is the boundary's FRAME EXTENSION: the number of binders it adds.
 -- It is the only surviving list arithmetic; cmax/dropN have no analogue,
 -- because conceal masks in place.
-nrev : CtxMorph → ℕ
-nrev Θ = length (reps Θ)
+nbind : CtxMorph → ℕ
+nbind Θ = length (reps Θ)
 
 -- The masks (`lock`) and unmasks (`unlock`), applied in place.
 scp : CtxMorph → Ctxᵗ → Ctxᵗ
@@ -206,7 +206,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   env : ∀ {Δ Γ Θ c M Bᵢ Bₑ p}
       → Bwf Δ Θ
       → intC Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-      → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nrev Θ) Bₑ ∙ p
+      → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nbind Θ) Bₑ ∙ p
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ

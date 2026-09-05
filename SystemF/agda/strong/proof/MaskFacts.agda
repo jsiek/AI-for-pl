@@ -41,7 +41,7 @@ lock-then-unlock = refl
 -- Cancel's residue defect (repair 3a), as a refutation
 ------------------------------------------------------------------------
 
--- The mini-core's Cancel appended `lockBinds (nrev Θ₂)` to the residue.
+-- The mini-core's Cancel appended `lockBinds (nbind Θ₂)` to the residue.
 -- `scp` applies those masks to Δ, not to the boundary's bind owners, so on
 -- the mini-core's OWN cancel example the residue is not well formed.  This
 -- is why strong.Reduction's CancelR drops it.

@@ -50,12 +50,12 @@ T₆  = W₆₁ ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 
 ⊢W₆₀ : S₆₂ ∣ [] ⊢ W₆₀ ⦂ ` 1
 ⊢W₆₀ = env bw[] ⊢$ (conv-seal (es ez))
-           (wf-var (bind `ℕ , es ez , vis-o))
+           (wf-var (bind `ℕ , es ez , vis-b))
 
 ⊢W₆₁ : S₆₁ ∣ [] ⊢ W₆₁ ⦂ ` 0
 ⊢W₆₁ = env (bw-b wf-ℕ bw[]) ⊢W₆₀
-           (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-o))
-           (wf-var (bind `ℕ , ez , vis-o))
+           (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-b))
+           (wf-var (bind `ℕ , ez , vis-b))
 
 ⊢T₆ : Δ₆ ∣ [] ⊢ T₆ ⦂ `ℕ
 ⊢T₆ = env (bw-b wf-ℕ bw[]) ⊢W₆₁ (conv-unseal ez) wf-ℕ
@@ -117,8 +117,8 @@ cancelTm = (($ 7) ⟪ Θ↓ , seal 0 ⟫) ⟪ Θ↑ , unseal 0 ⟫
 ⊢cancelTm : [] ∣ [] ⊢ cancelTm ⦂ `ℕ
 ⊢cancelTm =
   env (bw-b wf-ℕ bw[])
-      (env (bw-l (_ , ez , vis-o) bw[]) ⊢$
-           (conv-seal ez) (wf-var (_ , ez , vis-o)))
+      (env (bw-l (_ , ez , vis-b) bw[]) ⊢$
+           (conv-seal ez) (wf-var (_ , ez , vis-b)))
       (conv-unseal ez)
       wf-ℕ
 
@@ -152,17 +152,17 @@ SA = bind (` 0) ∷ S₆₂            -- the interior type context of LA
 
 ⊢LA-in : SA ∣ [] ⊢ ($ 7) ⟪ [] , seal 2 ⟫ ⦂ ` 2
 ⊢LA-in = env bw[] ⊢$ (conv-seal (es (es ez)))
-             (wf-var (bind `ℕ , es (es ez) , vis-o))
+             (wf-var (bind `ℕ , es (es ez) , vis-b))
 
 ⊢LA : S₆₂ ∣ [] ⊢ LA ⦂ ` 1
-⊢LA = env (bw-b (wf-var (bind `ℕ , ez , vis-o)) bw[]) ⊢LA-in
-          (conv-idv {p = ↑ˢ} (bind `ℕ , es (es ez) , vis-o))
-          (wf-var (bind `ℕ , es ez , vis-o))
+⊢LA = env (bw-b (wf-var (bind `ℕ , ez , vis-b)) bw[]) ⊢LA-in
+          (conv-idv {p = ↑ˢ} (bind `ℕ , es (es ez) , vis-b))
+          (wf-var (bind `ℕ , es ez , vis-b))
 
 ⊢LB : S₆₁ ∣ [] ⊢ LB ⦂ ` 0
 ⊢LB = env (bw-b wf-ℕ bw[]) ⊢LA
-          (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-o))
-          (wf-var (bind `ℕ , ez , vis-o))
+          (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-b))
+          (wf-var (bind `ℕ , ez , vis-b))
 
 ⊢T₈ : Δ₆ ∣ [] ⊢ T₈ ⦂ `ℕ
 ⊢T₈ = env (bw-b wf-ℕ bw[]) ⊢LB (conv-unseal ez) wf-ℕ
@@ -206,15 +206,15 @@ _ = refl
 
 ⊢W₆₀Λ : (abst ∷ S₆₁) ∣ [] ⊢ W₆₀ ⦂ ` 1
 ⊢W₆₀Λ = env bw[] ⊢$ (conv-seal (es ez))
-            (wf-var (bind `ℕ , es ez , vis-o))
+            (wf-var (bind `ℕ , es ez , vis-b))
 
 Pkg : Term
 Pkg = (Λ W₆₀) ⟪ [] , `∀ (id (` 1)) ⟫
 
 ⊢Pkg : S₆₁ ∣ [] ⊢ Pkg ⦂ `∀ (` 1)
 ⊢Pkg = env bw[] (⊢Λ ⊢W₆₀Λ)
-           (conv-all (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-o)))
-           (wf-∀ (wf-var (bind `ℕ , es ez , vis-o)))
+           (conv-all (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-b)))
+           (wf-∀ (wf-var (bind `ℕ , es ez , vis-b)))
 
 T₉ : Term
 T₉ = (Pkg ·[ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
@@ -291,13 +291,13 @@ _ : intC Θᵣ₁ (intC Θᵣ₂ []) ≡ Sᵣ
 _ = refl
 
 ⊢Vᵣ : Sᵣ ∣ [] ⊢ Vᵣ ⦂ ` 1
-⊢Vᵣ = env bw[] ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , vis-o))
+⊢Vᵣ = env bw[] ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , vis-b))
 
 ⊢Tᵣ : [] ∣ [] ⊢ Tᵣ ⦂ `ℕ
 ⊢Tᵣ = env (bw-b wf-ℕ bw[])
-          (env (bw-b (wf-var (bind `ℕ , ez , vis-o)) bw[]) ⊢Vᵣ
-               (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-o))
-               (wf-var (bind `ℕ , ez , vis-o)))
+          (env (bw-b (wf-var (bind `ℕ , ez , vis-b)) bw[]) ⊢Vᵣ
+               (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-b))
+               (wf-var (bind `ℕ , ez , vis-b)))
           (conv-unseal ez) wf-ℕ
 
 push-Tᵣ : [] ⊢ Tᵣ -→ (Vᵣ ⟪ Θᵣ₁ , unseal 1 ⟫) ⟪ Θᵣ₂ , id `ℕ ⟫
@@ -305,7 +305,7 @@ push-Tᵣ = IdPush (V-⟪⟫ V-$ I-seal) ez
 
 ⊢push-Tᵣ : [] ∣ [] ⊢ (Vᵣ ⟪ Θᵣ₁ , unseal 1 ⟫) ⟪ Θᵣ₂ , id `ℕ ⟫ ⦂ `ℕ
 ⊢push-Tᵣ = env {p = ↑ˢ} (bw-b wf-ℕ bw[])
-               (env (bw-b (wf-var (bind `ℕ , ez , vis-o)) bw[]) ⊢Vᵣ
+               (env (bw-b (wf-var (bind `ℕ , ez , vis-b)) bw[]) ⊢Vᵣ
                     (conv-unseal (es ez)) wf-ℕ)
                (conv-id base-ℕ) wf-ℕ
 
@@ -337,13 +337,13 @@ _ : intC Θₘ₂ Δₘ ≡ Mₘ
 _ = refl
 
 ⊢Vₘ : Δₘ ∣ [] ⊢ Vₘ ⦂ ` 1
-⊢Vₘ = env bw[] ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , vis-o))
+⊢Vₘ = env bw[] ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , vis-b))
 
 ⊢Tₘ : Δₘ ∣ [] ⊢ Tₘ ⦂ `ℕ
 ⊢Tₘ = env (bw-u ez bw[])
-          (env (bw-l (bind `𝔹 , ez , vis-o) bw[]) ⊢Vₘ
-               (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-o))
-               (wf-var (bind `ℕ , es ez , vis-o)))
+          (env (bw-l (bind `𝔹 , ez , vis-b) bw[]) ⊢Vₘ
+               (conv-idv {p = ↑ˢ} (bind `ℕ , es ez , vis-b))
+               (wf-var (bind `ℕ , es ez , vis-b)))
           (conv-unseal (es ez)) wf-ℕ
 
 push-Tₘ : Δₘ ⊢ Tₘ -→ (Vₘ ⟪ Θₘ₁ , unseal 1 ⟫) ⟪ Θₘ₂ , id `ℕ ⟫
@@ -351,7 +351,7 @@ push-Tₘ = IdPush (V-⟪⟫ V-$ I-seal) (es ez)
 
 ⊢push-Tₘ : Δₘ ∣ [] ⊢ (Vₘ ⟪ Θₘ₁ , unseal 1 ⟫) ⟪ Θₘ₂ , id `ℕ ⟫ ⦂ `ℕ
 ⊢push-Tₘ = env {p = ↑ˢ} (bw-u ez bw[])
-               (env (bw-l (bind `𝔹 , ez , vis-o) bw[]) ⊢Vₘ
+               (env (bw-l (bind `𝔹 , ez , vis-b) bw[]) ⊢Vₘ
                     (conv-unseal (es ez)) wf-ℕ)
                (conv-id base-ℕ) wf-ℕ
 
@@ -407,13 +407,13 @@ Wd = (ƛ (` 1) ∙ (` 0)) ⟪ lock 0 ∷ [] , unseal 0 ↦ seal 0 ⟫
 ⊢cΘ2 = conv-fun (conv-fun (conv-unseal ez) (conv-seal ez)) (conv-id base-ℕ)
 
 ⊢Fnd : Δd ∣ [] ⊢ Vd ⟪ Θ2 , cΘ2 ⟫ ⦂ ((` 0 ⇒ ` 0) ⇒ `ℕ)
-⊢Fnd = env (bw-b (wf-var (_ , ez , vis-o))
-                 (bw-l (_ , es (es ez) , vis-o) bw[]))
-           (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-o))
-                     (wf-var (_ , ez , vis-o))) ⊢$)
+⊢Fnd = env (bw-b (wf-var (_ , ez , vis-b))
+                 (bw-l (_ , es (es ez) , vis-b) bw[]))
+           (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-b))
+                     (wf-var (_ , ez , vis-b))) ⊢$)
            ⊢cΘ2
-           (wf-⇒ (wf-⇒ (wf-var (_ , ez , vis-o))
-                       (wf-var (_ , ez , vis-o))) wf-ℕ)
+           (wf-⇒ (wf-⇒ (wf-var (_ , ez , vis-b))
+                       (wf-var (_ , ez , vis-b))) wf-ℕ)
 
 -- THE CROSSING VALUE.  Its bind boundary masks W and seals at it: the licence
 -- `seal 0` cites the owner at slot 0 of Δd, whose rep is X = ` 1.
@@ -421,11 +421,11 @@ _ : intC (lock 0 ∷ []) Δd ≡ blk (bind (` 0)) ∷ abst ∷ bind `ℕ ∷ []
 _ = refl
 
 ⊢Wd : Δd ∣ [] ⊢ Wd ⦂ (` 0 ⇒ ` 0)
-⊢Wd = env (bw-l (_ , ez , vis-o) bw[])
+⊢Wd = env (bw-l (_ , ez , vis-b) bw[])
           (⊢ƛ (wf-var (_ , es ez , vis-a)) (⊢` here))
           (conv-fun (conv-unseal ez) (conv-seal ez))
-          (wf-⇒ (wf-var (_ , ez , vis-o))
-                (wf-var (_ , ez , vis-o)))
+          (wf-⇒ (wf-var (_ , ez , vis-b))
+                (wf-var (_ , ez , vis-b)))
 
 Wd-value : Value Wd
 Wd-value = V-⟪⟫ V-ƛ I-fun
@@ -459,10 +459,10 @@ _ = refl
               ⟪ Θ2 , id `ℕ ⟫ ⦂ `ℕ
 ⊢contractumd =
   env {p = ↑ˢ}
-      (bw-b (wf-var (_ , ez , vis-o))
-            (bw-l (_ , es (es ez) , vis-o) bw[]))
-      (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-o))
-                    (wf-var (_ , ez , vis-o))) ⊢$)
+      (bw-b (wf-var (_ , ez , vis-b))
+            (bw-l (_ , es (es ez) , vis-b) bw[]))
+      (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-b))
+                    (wf-var (_ , ez , vis-b))) ⊢$)
           ⊢Wd-crossed)
       (conv-id base-ℕ)
       wf-ℕ
@@ -474,12 +474,12 @@ _ = refl
                   ⊢ wkᴹ 1 Wd ⟪ dual Θ2 , unseal 0 ↦ seal 0 ⟫
                   ⦂ (` 0 ⇒ ` 0)
   ⊢Wd-crossed =
-    env (bw-l (_ , ez , vis-o)
+    env (bw-l (_ , ez , vis-b)
               (bw-u (es (es (es ez))) bw[]))
         ⊢Wd-in
         (conv-fun (conv-unseal ez) (conv-seal ez))
-        (wf-⇒ (wf-var (_ , ez , vis-o))
-              (wf-var (_ , ez , vis-o)))
+        (wf-⇒ (wf-var (_ , ez , vis-b))
+              (wf-var (_ , ez , vis-b)))
 
 -- ── n1b (the break, minimized) ─────────────────────────────────────────
 -- The chain X:=Y over a Λ-bound Y, with the ambient's third slot and the
@@ -502,21 +502,21 @@ cΘ1b : Conv
 cΘ1b = (unseal 0 ↦ seal 0) ↦ id `ℕ
 
 ⊢W1b : Δ1b ∣ [] ⊢ W1b ⦂ (` 0 ⇒ ` 0)
-⊢W1b = env (bw-l (_ , ez , vis-o) bw[])
+⊢W1b = env (bw-l (_ , ez , vis-b) bw[])
            (⊢ƛ (wf-var (_ , es ez , vis-a)) (⊢` here))
            (conv-fun (conv-unseal ez) (conv-seal ez))
-           (wf-⇒ (wf-var (_ , ez , vis-o))
-                 (wf-var (_ , ez , vis-o)))
+           (wf-⇒ (wf-var (_ , ez , vis-b))
+                 (wf-var (_ , ez , vis-b)))
 
 ⊢Fn1b : Δ1b ∣ [] ⊢ V1b ⟪ Θ1b , cΘ1b ⟫ ⦂ ((` 0 ⇒ ` 0) ⇒ `ℕ)
-⊢Fn1b = env (bw-b (wf-var (_ , ez , vis-o))
+⊢Fn1b = env (bw-b (wf-var (_ , ez , vis-b))
                   (bw-l (_ , es ez , vis-a) bw[]))
-            (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-o))
-                      (wf-var (_ , ez , vis-o))) ⊢$)
+            (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-b))
+                      (wf-var (_ , ez , vis-b))) ⊢$)
             (conv-fun (conv-fun (conv-unseal ez) (conv-seal ez))
                       (conv-id base-ℕ))
-            (wf-⇒ (wf-⇒ (wf-var (_ , ez , vis-o))
-                        (wf-var (_ , ez , vis-o))) wf-ℕ)
+            (wf-⇒ (wf-⇒ (wf-var (_ , ez , vis-b))
+                        (wf-var (_ , ez , vis-b))) wf-ℕ)
 
 ⊢Redex1b : Δ1b ∣ [] ⊢ (V1b ⟪ Θ1b , cΘ1b ⟫) · W1b ⦂ `ℕ
 ⊢Redex1b = ⊢· ⊢Fn1b ⊢W1b
@@ -543,9 +543,9 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
                ⟪ Θ1b , id `ℕ ⟫ ⦂ `ℕ
 ⊢contractum1b =
   env {p = ↑ˢ}
-      (bw-b (wf-var (_ , ez , vis-o)) (bw-l (_ , es ez , vis-a) bw[]))
-      (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-o))
-                    (wf-var (_ , ez , vis-o))) ⊢$)
+      (bw-b (wf-var (_ , ez , vis-b)) (bw-l (_ , es ez , vis-a) bw[]))
+      (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , vis-b))
+                    (wf-var (_ , ez , vis-b))) ⊢$)
           ⊢W1b-crossed)
       (conv-id base-ℕ)
       wf-ℕ
@@ -556,10 +556,10 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
                    ⊢ wkᴹ 1 W1b ⟪ dual Θ1b , unseal 0 ↦ seal 0 ⟫
                    ⦂ (` 0 ⇒ ` 0)
   ⊢W1b-crossed =
-    env (bw-l (_ , ez , vis-o) (bw-u (es (es ez)) bw[]))
+    env (bw-l (_ , ez , vis-b) (bw-u (es (es ez)) bw[]))
         ⊢W1b-in
         (conv-fun (conv-unseal ez) (conv-seal ez))
-        (wf-⇒ (wf-var (_ , ez , vis-o)) (wf-var (_ , ez , vis-o)))
+        (wf-⇒ (wf-var (_ , ez , vis-b)) (wf-var (_ , ez , vis-b)))
 
 -- ── n4 (the x-alias break) ─────────────────────────────────────────────
 -- There is no x-entry and no rep-less reveal to alias: a conceal cites an

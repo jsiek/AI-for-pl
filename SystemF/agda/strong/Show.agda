@@ -42,7 +42,7 @@ open import strong.Ctx using (Ent; abst; bind; blk; Ctxᵗ)
 open import strong.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
 open import strong.Terms
   using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
-         CtxMorph; MorphEnt; bind; unlock; lock; nrev)
+         CtxMorph; MorphEnt; bind; unlock; lock; nbind)
 
 Supply : Set
 Supply = ℕ → String
@@ -128,7 +128,7 @@ nth (s ∷ ss) (suc k) = nth ss k
 -- No `cmax` correction: conceal masks in place, so no slot is dropped.
 intSup : CtxMorph → List String → Supply → Supply
 intSup Θ on ext k =
-  if k <ᵇ nrev Θ then nth on k else ext (k ∸ nrev Θ)
+  if k <ᵇ nbind Θ then nth on k else ext (k ∸ nbind Θ)
 
 ------------------------------------------------------------------------
 -- boundary context morphisms
@@ -160,7 +160,7 @@ showBnd d ext [] c =
   "⟪ " ++ showConv d ext c ++ " ⟫"
 showBnd d ext Θ@(_ ∷ _) c =
   "⟪ " ++ showEnts d on ext Θ ++ " , "
-       ++ showConv (d + nrev Θ) (intSup Θ on ext) c ++ " ⟫"
+       ++ showConv (d + nbind Θ) (intSup Θ on ext) c ++ " ⟫"
   where on = bindNames d Θ
 
 ------------------------------------------------------------------------
@@ -182,7 +182,7 @@ showTm td xd tys tms (Λ N)      =
 showTm td xd tys tms (L ·[ B , A ]) =
   showTm td xd tys tms L ++ " [" ++ showTy td tys A ++ "]"
 showTm td xd tys tms (M ⟪ Θ , c ⟫) =
-  "(" ++ showTm (td + nrev Θ) xd (intSup Θ on tys) tms M
+  "(" ++ showTm (td + nbind Θ) xd (intSup Θ on tys) tms M
       ++ " " ++ showBnd td tys Θ c ++ ")"
   where on = bindNames td Θ
 

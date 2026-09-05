@@ -48,8 +48,8 @@ reps-ren ρ (bind A ∷ Θ) = cong (renameᵗ ρ A ∷_) (reps-ren ρ Θ)
 reps-ren ρ (unlock X ∷ Θ) = reps-ren ρ Θ
 reps-ren ρ (lock X ∷ Θ) = reps-ren ρ Θ
 
-nrev-ren : (ρ : Renameᵗ) (Θ : CtxMorph) → nrev (renᴮ ρ Θ) ≡ nrev Θ
-nrev-ren ρ Θ =
+nbind-ren : (ρ : Renameᵗ) (Θ : CtxMorph) → nbind (renᴮ ρ Θ) ≡ nbind Θ
+nbind-ren ρ Θ =
   trans (cong length (reps-ren ρ Θ)) (map-length (renameᵗ ρ) (reps Θ))
 
 renᴹ : Renameᵗ → Term → Term
@@ -60,10 +60,10 @@ renᴹ ρ (L · M)        = renᴹ ρ L · renᴹ ρ M
 renᴹ ρ (Λ N)          = Λ (renᴹ (extᵗ ρ) N)
 renᴹ ρ (L ·[ B , A ]) = renᴹ ρ L ·[ renameᵗ (extᵗ ρ) B , renameᵗ ρ A ]
 renᴹ ρ (M ⟪ Θ , c ⟫)  =
-  renᴹ (extN (nrev Θ) ρ) M ⟪ renᴮ ρ Θ , renᶜ (extN (nrev Θ) ρ) c ⟫
+  renᴹ (extN (nbind Θ) ρ) M ⟪ renᴮ ρ Θ , renᶜ (extN (nbind Θ) ρ) c ⟫
 
 -- The weakening a crossing argument undergoes: the boundary's frame grew by
--- `nrev Θ` binders, so the argument's ANNOTATIONS shift.  Ordinary de Bruijn
+-- `nbind Θ` binders, so the argument's ANNOTATIONS shift.  Ordinary de Bruijn
 -- weakening, not a re-spelling.
 wkN : ℕ → Renameᵗ
 wkN n X = n + X
@@ -94,11 +94,11 @@ ren-fscp (unlock X ∷ Θ) r i = ren-unmask (ren-fscp Θ r i) i
 ren-fscp (lock X ∷ Θ) r i = ren-fscp Θ r i
 
 ren-intC : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
-  → Ren (extN (nrev Θ) ρ) (intC Θ Δ) (intC (renᴮ ρ Θ) Δ′)
+  → Ren (extN (nbind Θ) ρ) (intC Θ Δ) (intC (renᴮ ρ Θ) Δ′)
 ren-intC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-scp Θ r i)
 
 ren-fceC : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
-  → Ren (extN (nrev Θ) ρ) (fceC Θ Δ) (fceC (renᴮ ρ Θ) Δ′)
+  → Ren (extN (nbind Θ) ρ) (fceC Θ Δ) (fceC (renᴮ ρ Θ) Δ′)
 ren-fceC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-fscp Θ r i)
 
 Bwf-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → Bwf Δ Θ → Bwf Δ′ (renᴮ ρ Θ)
@@ -140,20 +140,20 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
 ⊢rename {Δ′ = Δ′} {ρ = ρ} r i
         (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} {p = p} bw ⊢M ⊢c wE) =
   env (Bwf-ren r i bw)
-      (⊢rename (ren-intC Θ ρ r i) (Inj-extN (nrev Θ) i) ⊢M)
+      (⊢rename (ren-intC Θ ρ r i) (Inj-extN (nbind Θ) i) ⊢M)
       cprem
       (wf-ren r wE)
   where
-  cprem : fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nrev Θ) ρ) c
-            ∶ renameᵗ (extN (nrev Θ) ρ) Bᵢ
-            ⇝ liftN (nrev (renᴮ ρ Θ)) (renameᵗ ρ Bₑ) ∙ p
-  cprem = subst (λ n → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nrev Θ) ρ) c
-                         ∶ renameᵗ (extN (nrev Θ) ρ) Bᵢ
+  cprem : fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
+            ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ
+            ⇝ liftN (nbind (renᴮ ρ Θ)) (renameᵗ ρ Bₑ) ∙ p
+  cprem = subst (λ n → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
+                         ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ
                          ⇝ liftN n (renameᵗ ρ Bₑ) ∙ p)
-                (sym (nrev-ren ρ Θ))
-                (subst (λ t → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nrev Θ) ρ) c
-                                ∶ renameᵗ (extN (nrev Θ) ρ) Bᵢ ⇝ t ∙ p)
-                       (liftN-ren (nrev Θ) ρ Bₑ)
+                (sym (nbind-ren ρ Θ))
+                (subst (λ t → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
+                                ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ ⇝ t ∙ p)
+                       (liftN-ren (nbind Θ) ρ Bₑ)
                        (conv-ren (ren-fceC Θ ρ r i) ⊢c))
 
 ------------------------------------------------------------------------

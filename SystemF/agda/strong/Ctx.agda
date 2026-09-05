@@ -98,11 +98,11 @@ data _∋e_,_ : Ctxᵗ → ℕ → Ent → Set where
 -- the tightness discipline: `blk` is invisible to types and to terms.
 data Vis : Ent → Set where
   vis-a : Vis abst
-  vis-o : Vis (bind A)
+  vis-b : Vis (bind A)
 
 renᵉ-Vis : Vis E → Vis (renᵉ ρ E)
 renᵉ-Vis vis-a = vis-a
-renᵉ-Vis vis-o = vis-o
+renᵉ-Vis vis-b = vis-b
 
 infix 4 _∋tv_
 _∋tv_ : Ctxᵗ → ℕ → Set
@@ -114,7 +114,7 @@ _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
 Δ ∋ X := A = Δ ∋e X , bind A
 
 ∋:=→∋tv : Δ ∋ X := A → Δ ∋tv X
-∋:=→∋tv d = bind _ , d , vis-o
+∋:=→∋tv d = bind _ , d , vis-b
 
 -- Lookup is a partial FUNCTION, which is what makes every rule that mints an
 -- identity face at a looked-up rep deterministic.
@@ -231,8 +231,8 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 
 vis-mono : E ⊑ᵉ E′ → Vis E → Vis E′
 vis-mono le-aa        vis-a = vis-a
-vis-mono le-ao        vis-a = vis-o
-vis-mono le-oo        vis-o = vis-o
+vis-mono le-ao        vis-a = vis-b
+vis-mono le-oo        vis-b = vis-b
 vis-mono (le-bb _)    ()
 vis-mono (le-bu _ _)  ()
 
@@ -398,14 +398,14 @@ blk-mono = le-bb
 -- unmasked one.  (There is no converse: that is the deleted demotion.)
 blk-le : E ⊑ᵉ E′ → blk E ⊑ᵉ E′
 blk-le le-aa       = le-bu le-aa vis-a
-blk-le le-ao       = le-bu le-ao vis-o
-blk-le le-oo       = le-bu le-oo vis-o
+blk-le le-ao       = le-bu le-ao vis-b
+blk-le le-oo       = le-bu le-oo vis-b
 blk-le (le-bb l)   = le-bb (blk-le l)
 blk-le (le-bu l v) = le-bu (le-bu l v) v
 
 unblk-vis : E ⊑ᵉ E′ → Vis E′ → E ⊑ᵉ unblk E′
 unblk-vis l vis-a = l
-unblk-vis l vis-o = l
+unblk-vis l vis-b = l
 
 unblk-mono : E ⊑ᵉ E′ → unblk E ⊑ᵉ unblk E′
 unblk-mono le-aa       = le-aa

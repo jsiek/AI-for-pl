@@ -1,7 +1,7 @@
 module strong.Show where
 
 -- de Bruijn → NAMED rendering for strong System F terms, types, boundary
--- skeletons, conversions and type contexts — adapted from the name-supply
+-- context morphisms, conversions and type contexts — adapted from the name-supply
 -- infrastructure of GTSFImp/proof/DGG/ImpLadder.agda (Jeremy's request,
 -- 2026-09-05, after a hand-transcription error read an interior ` 0 in the
 -- exterior frame), and PORTED to the conversion-boundary design.
@@ -12,7 +12,7 @@ module strong.Show where
 --
 -- THE POINT of the adaptation: a boundary changes the type-variable frame.
 -- Rendering M ⟪ Θ , c ⟫ under an exterior supply `ext`:
---   * Θ's OWNERS bind fresh interior slots; the interior supply is
+--   * Θ's BINDS bind fresh interior slots; the interior supply is
 --     [fresh names for the owners] then ext SHIFTED past them.  Nothing is
 --     dropped any more (conceal masks in place), so there is exactly ONE
 --     inner supply — the old `cmax` correction has no analogue, and the
@@ -20,7 +20,7 @@ module strong.Show where
 --     differ in blocking, not in slot layout).
 --   * an OWNER's rep is shown under `ext` — a rep is a type over the PLAIN
 --     exterior (simultaneity);
---   * a `cnc X` / `ali X` names an EXTERIOR slot, so it is shown under
+--   * a `lock X` / `unlock X` names an EXTERIOR slot, so it is shown under
 --     `ext`; neither carries a rep, which is the whole point of the
 --     redesign;
 --   * the FACE `c` is shown under the interior/face supply, and its
@@ -38,11 +38,11 @@ open import Data.List using (List; []; _∷_)
 open import Data.String using (String; _++_)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
-open import strong.Ctx using (Ent; abst; own; blk; Ctxᵗ)
+open import strong.Ctx using (Ent; abst; bind; blk; Ctxᵗ)
 open import strong.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
 open import strong.Terms
   using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
-         BCtx; BEnt; own; ali; cnc; nrev)
+         CtxMorph; MorphEnt; bind; unlock; lock; nrev)
 
 Supply : Set
 Supply = ℕ → String
@@ -113,28 +113,28 @@ showConv d sup (`∀ s)     =
 ------------------------------------------------------------------------
 
 -- one fresh name per OWNER, newest first (owner 0 is interior slot 0)
-ownNames : ℕ → BCtx → List String
-ownNames d []            = []
-ownNames d (own A ∷ Θ)   = tyBinder d ∷ ownNames (suc d) Θ
-ownNames d (ali X ∷ Θ)   = ownNames d Θ
-ownNames d (cnc X ∷ Θ)   = ownNames d Θ
+bindNames : ℕ → CtxMorph → List String
+bindNames d []            = []
+bindNames d (bind A ∷ Θ)   = tyBinder d ∷ bindNames (suc d) Θ
+bindNames d (unlock X ∷ Θ)   = bindNames d Θ
+bindNames d (lock X ∷ Θ)   = bindNames d Θ
 
 nth : List String → ℕ → String
 nth []       k       = "?"
 nth (s ∷ ss) zero    = s
 nth (s ∷ ss) (suc k) = nth ss k
 
--- interior (= face) supply: owner names, then ext shifted past them.
+-- interior (= face) supply: bind names, then ext shifted past them.
 -- No `cmax` correction: conceal masks in place, so no slot is dropped.
-intSup : BCtx → List String → Supply → Supply
+intSup : CtxMorph → List String → Supply → Supply
 intSup Θ on ext k =
   if k <ᵇ nrev Θ then nth on k else ext (k ∸ nrev Θ)
 
 ------------------------------------------------------------------------
--- boundary skeletons
+-- boundary context morphisms
 ------------------------------------------------------------------------
 
-sep : BCtx → String
+sep : CtxMorph → String
 sep [] = ""
 sep (_ ∷ _) = " , "
 
@@ -143,25 +143,25 @@ tl []       = []
 tl (s ∷ ss) = ss
 
 -- `on` is the owner-name list still to be consumed; `ext` names exterior
--- slots.  An owner's rep is read in the PLAIN exterior; `cnc`/`ali` carry
+-- slots.  An owner's rep is read in the PLAIN exterior; `lock`/`unlock` carry
 -- a name only.
-showEnts : ℕ → List String → Supply → BCtx → String
+showEnts : ℕ → List String → Supply → CtxMorph → String
 showEnts d on ext [] = ""
-showEnts d on ext (own A ∷ Θ) =
+showEnts d on ext (bind A ∷ Θ) =
   "↑" ++ nth on 0 ++ ":=" ++ showTy d ext A ++ sep Θ
       ++ showEnts d (tl on) ext Θ
-showEnts d on ext (cnc X ∷ Θ) =
+showEnts d on ext (lock X ∷ Θ) =
   "↓" ++ ext X ++ sep Θ ++ showEnts d on ext Θ
-showEnts d on ext (ali X ∷ Θ) =
+showEnts d on ext (unlock X ∷ Θ) =
   "↥" ++ ext X ++ sep Θ ++ showEnts d on ext Θ
 
-showBnd : ℕ → Supply → BCtx → Conv → String
+showBnd : ℕ → Supply → CtxMorph → Conv → String
 showBnd d ext [] c =
   "⟪ " ++ showConv d ext c ++ " ⟫"
 showBnd d ext Θ@(_ ∷ _) c =
   "⟪ " ++ showEnts d on ext Θ ++ " , "
        ++ showConv (d + nrev Θ) (intSup Θ on ext) c ++ " ⟫"
-  where on = ownNames d Θ
+  where on = bindNames d Θ
 
 ------------------------------------------------------------------------
 -- terms
@@ -184,7 +184,7 @@ showTm td xd tys tms (L ·[ B , A ]) =
 showTm td xd tys tms (M ⟪ Θ , c ⟫) =
   "(" ++ showTm (td + nrev Θ) xd (intSup Θ on tys) tms M
       ++ " " ++ showBnd td tys Θ c ++ ")"
-  where on = ownNames td Θ
+  where on = bindNames td Θ
 
 ------------------------------------------------------------------------
 -- type contexts (entries named newest-first: slot 0 = X)
@@ -192,7 +192,7 @@ showTm td xd tys tms (M ⟪ Θ , c ⟫) =
 
 showEntry : ℕ → Supply → String → Ent → String
 showEntry d sup nm abst    = nm ++ " Λ-bound"
-showEntry d sup nm (own A) = nm ++ " := " ++ showTy d sup A
+showEntry d sup nm (bind A) = nm ++ " := " ++ showTy d sup A
 showEntry d sup nm (blk E) = "⌷[" ++ showEntry d sup nm E ++ "]"
 
 showTCtxAt : ℕ → ℕ → Supply → Ctxᵗ → String
@@ -216,7 +216,7 @@ showTmIn n M = showTm n zero tyBinder tmBinder M
 showConvIn : ℕ → Conv → String
 showConvIn n c = showConv n tyBinder c
 
-showBndIn : ℕ → BCtx → Conv → String
+showBndIn : ℕ → CtxMorph → Conv → String
 showBndIn n Θ c = showBnd n tyBinder Θ c
 
 showTCtx : Ctxᵗ → String

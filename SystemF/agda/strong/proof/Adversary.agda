@@ -28,11 +28,11 @@ seal-cites-owner : ∀ {Δ X A B p c}
   → Δ ⊢ c ∶ A ⇝ B ∙ p → c ≡ seal X → Δ ∋ X := A
 seal-cites-owner (conv-seal d) refl = d
 
--- `ali` claims nothing: it is a NAME with no rep, so it cannot assert
--- knowledge.  The boundary skeleton carries no type at an alias, and Bwf's
+-- `unlock` claims nothing: it is a NAME with no rep, so it cannot assert
+-- knowledge.  The boundary context morphism carries no type at an alias, and Bwf's
 -- alias premise is `Δ ∋e X , E` — pure existence.
-ali-claims-nothing : ∀ {Δ X E Θ} → Δ ∋e X , E → Bwf Δ Θ → Bwf Δ (ali X ∷ Θ)
-ali-claims-nothing = bw-a
+unlock-claims-nothing : ∀ {Δ X E Θ} → Δ ∋e X , E → Bwf Δ Θ → Bwf Δ (unlock X ∷ Θ)
+unlock-claims-nothing = bw-u
 
 ------------------------------------------------------------------------
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
@@ -41,7 +41,7 @@ ali-claims-nothing = bw-a
 -- At a type context where slot 0 is ABSTRACT (Λ-bound — no owner) the adversary
 -- exported `7 : ℕ` at the abstract type.  Here the boundary is unmintable,
 -- because `seal 0` demands `Δ ∋ 0 := `ℕ` and an `abst` slot has no rep to
--- cite.  Unmasking cannot manufacture one either (`ali-claims-nothing`).
+-- cite.  Unmasking cannot manufacture one either (`unlock-claims-nothing`).
 
 Δadv : Ctxᵗ
 Δadv = abst ∷ []
@@ -52,7 +52,7 @@ ali-claims-nothing = bw-a
 ¬seal-adv : ∀ {A B p} → Δadv ⊢ seal 0 ∶ A ⇝ B ∙ p → ⊥
 ¬seal-adv (conv-seal d) = ¬know-adv d
 
-¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ cnc 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
+¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
 ¬⊢adv (env bw ⊢M ⊢c wE) = ¬seal-adv ⊢c
 
 ------------------------------------------------------------------------
@@ -67,12 +67,12 @@ ali-claims-nothing = bw-a
 ∀ZZ = `∀ (` 0 ⇒ ` 0)
 
 Δbad : Ctxᵗ
-Δbad = own ∀ZZ ∷ []
+Δbad = bind ∀ZZ ∷ []
 
 seal-bad-face : ∀ {A B p} → Δbad ⊢ seal 0 ∶ A ⇝ B ∙ p → A ≡ ⇑ᵗ ∀ZZ
 seal-bad-face (conv-seal ez) = refl
 
-¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ cnc 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
+¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
 ¬⊢bad (env bw ⊢$ ⊢c wE) with seal-bad-face ⊢c
 ... | ()
 

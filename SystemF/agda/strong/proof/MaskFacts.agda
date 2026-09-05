@@ -23,27 +23,27 @@ open import strong.Conversion
 open import strong.Terms
 
 mask-retains : ∀ {Δ X Y A} → Δ ∋ X := A
-  → (mask Y Δ ∋ X := A) ⊎ (mask Y Δ ∋e X , blk (own A))
+  → (mask Y Δ ∋ X := A) ⊎ (mask Y Δ ∋e X , blk (bind A))
 mask-retains {X = X} {Y = Y} d with Y ≟ℕ X
 ... | yes refl = inj₂ (upd-hit blk blk-comm d)
 ... | no ne    = inj₁ (upd-miss blk blk-comm ne d)
 
-ali-recovers : ∀ {Δ X A} → Δ ∋e X , blk (own A) → unmask X Δ ∋ X := A
-ali-recovers d = upd-hit unblk unblk-comm d
+unlock-recovers : ∀ {Δ X A} → Δ ∋e X , blk (bind A) → unmask X Δ ∋ X := A
+unlock-recovers d = upd-hit unblk unblk-comm d
 
 -- The round trip is the identity on the type context: a program that hides from
 -- itself and then looks again is harmless and typeable.
-cnc-then-ali : intC (ali 0 ∷ []) (intC (cnc 0 ∷ []) (own `ℕ ∷ []))
-             ≡ own `ℕ ∷ []
-cnc-then-ali = refl
+lock-then-unlock : intC (unlock 0 ∷ []) (intC (lock 0 ∷ []) (bind `ℕ ∷ []))
+             ≡ bind `ℕ ∷ []
+lock-then-unlock = refl
 
 ------------------------------------------------------------------------
 -- Cancel's residue defect (repair 3a), as a refutation
 ------------------------------------------------------------------------
 
--- The mini-core's Cancel appended `maskOwns (nrev Θ₂)` to the residue.
--- `scp` applies those masks to Δ, not to the boundary's own owners, so on
+-- The mini-core's Cancel appended `lockBinds (nrev Θ₂)` to the residue.
+-- `scp` applies those masks to Δ, not to the boundary's bind owners, so on
 -- the mini-core's OWN cancel example the residue is not well formed.  This
 -- is why strong.Reduction's CancelR drops it.
-¬Bwf-cancel-residue : ¬ Bwf [] (own `ℕ ∷ cnc 0 ∷ [])
-¬Bwf-cancel-residue (bw-o _ (bw-c (_ , () , _) _))
+¬Bwf-cancel-residue : ¬ Bwf [] (bind `ℕ ∷ lock 0 ∷ [])
+¬Bwf-cancel-residue (bw-b _ (bw-l (_ , () , _) _))

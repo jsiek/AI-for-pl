@@ -5,12 +5,12 @@ module strong.Ctx where
 -- A type context entry is one of
 --
 --   abst    a Λ-bound variable — no representation, and none can be invented.
---   own A   THE OWNER of an instantiation event.  A is the representation,
---           stored ONCE, as a type over this entry's own tail.  Every inner
+--   bind A   THE OWNER of an instantiation event.  A is the representation,
+--           stored ONCE, as a type over this entry's bind tail.  Every inner
 --           boundary that talks about this variable carries only its NAME.
 --   blk E   the slot is CONCEALED here: it may not be NAMED (tightness), but
 --           its entry E is RETAINED, so the knowledge is still on the type context
---           for a later re-exposure (`ali`) to point back at.
+--           for a later re-exposure (`unlock`) to point back at.
 --
 -- Under Jeremy's Q1 ruling (OWNER-SYNTACTIC, 2026-09-05) a variable's
 -- representation lives ONLY at its owner; every face and every licence
@@ -58,7 +58,7 @@ map-length f (x ∷ xs) = cong suc (map-length f xs)
 
 data Ent : Set where
   abst : Ent
-  own  : Ty → Ent
+  bind  : Ty → Ent
   blk  : Ent → Ent
 
 Ctxᵗ : Set
@@ -74,7 +74,7 @@ private
 
 renᵉ : Renameᵗ → Ent → Ent
 renᵉ ρ abst    = abst
-renᵉ ρ (own A) = own (renameᵗ ρ A)
+renᵉ ρ (bind A) = bind (renameᵗ ρ A)
 renᵉ ρ (blk E) = blk (renᵉ ρ E)
 
 ⇑ᵉ : Ent → Ent
@@ -83,11 +83,11 @@ renᵉ ρ (blk E) = blk (renᵉ ρ E)
 renᵉ-⇑-comm : (ρ : Renameᵗ) (E : Ent)
   → renᵉ (extᵗ ρ) (⇑ᵉ E) ≡ ⇑ᵉ (renᵉ ρ E)
 renᵉ-⇑-comm ρ abst    = refl
-renᵉ-⇑-comm ρ (own A) = cong own (ren-⇑-comm ρ A)
+renᵉ-⇑-comm ρ (bind A) = cong bind (ren-⇑-comm ρ A)
 renᵉ-⇑-comm ρ (blk E) = cong blk (renᵉ-⇑-comm ρ E)
 
 -- Entry lookup.  The entry is returned SHIFTED into the ambient context, so
--- `Δ ∋e X , own A` means "slot X is an owner whose rep, read in Δ, is A".
+-- `Δ ∋e X , bind A` means "slot X is an owner whose rep, read in Δ, is A".
 -- One relation serves every purpose: knowledge, visibility, and blocking.
 infix 4 _∋e_,_
 data _∋e_,_ : Ctxᵗ → ℕ → Ent → Set where
@@ -98,7 +98,7 @@ data _∋e_,_ : Ctxᵗ → ℕ → Ent → Set where
 -- the tightness discipline: `blk` is invisible to types and to terms.
 data Vis : Ent → Set where
   vis-a : Vis abst
-  vis-o : Vis (own A)
+  vis-o : Vis (bind A)
 
 renᵉ-Vis : Vis E → Vis (renᵉ ρ E)
 renᵉ-Vis vis-a = vis-a
@@ -111,10 +111,10 @@ _∋tv_ : Ctxᵗ → ℕ → Set
 -- OWNER-SYNTACTIC LOOKUP.  This is the only way any rep is ever read.
 infix 4 _∋_:=_
 _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
-Δ ∋ X := A = Δ ∋e X , own A
+Δ ∋ X := A = Δ ∋e X , bind A
 
 ∋:=→∋tv : Δ ∋ X := A → Δ ∋tv X
-∋:=→∋tv d = own _ , d , vis-o
+∋:=→∋tv d = bind _ , d , vis-o
 
 -- Lookup is a partial FUNCTION, which is what makes every rule that mints an
 -- identity face at a looked-up rep deterministic.
@@ -122,11 +122,11 @@ _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
 ∋e-det ez     ez      = refl
 ∋e-det (es d) (es d′) = cong ⇑ᵉ (∋e-det d d′)
 
-own-inj : _≡_ {A = Ent} (own A) (own B) → A ≡ B
-own-inj refl = refl
+bind-inj : _≡_ {A = Ent} (bind A) (bind B) → A ≡ B
+bind-inj refl = refl
 
 ∋:=-det : Δ ∋ X := A → Δ ∋ X := B → A ≡ B
-∋:=-det d d′ = own-inj (∋e-det d d′)
+∋:=-det d d′ = bind-inj (∋e-det d d′)
 
 ------------------------------------------------------------------------
 -- 2.  Well-formed types over a type context
@@ -198,8 +198,8 @@ wf-ren r (wf-∀ wA)    = wf-∀ (wf-ren (ren-ext r) wA)
 -- There is NO clause in the other direction: an owner never loses its rep.
 data _⊑ᵉ_ : Ent → Ent → Set where
   le-aa : abst ⊑ᵉ abst
-  le-ao : abst ⊑ᵉ own A
-  le-oo : own A ⊑ᵉ own A
+  le-ao : abst ⊑ᵉ bind A
+  le-oo : bind A ⊑ᵉ bind A
   le-bb : E ⊑ᵉ E′ → blk E ⊑ᵉ blk E′
   le-bu : E ⊑ᵉ E′ → Vis E′ → blk E ⊑ᵉ E′
 
@@ -210,7 +210,7 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 
 ⊑ᵉ-refl : (E : Ent) → E ⊑ᵉ E
 ⊑ᵉ-refl abst    = le-aa
-⊑ᵉ-refl (own A) = le-oo
+⊑ᵉ-refl (bind A) = le-oo
 ⊑ᵉ-refl (blk E) = le-bb (⊑ᵉ-refl E)
 
 ⊑-refl : (Δ : Ctxᵗ) → Δ ⊑ Δ
@@ -241,10 +241,10 @@ vis-mono (le-bu _ _)  ()
 ... | E′ , d′ , l′ = E′ , d′ , vis-mono l′ v
 
 -- An owner is never lost and never re-spelled: the ONLY ⊑ᵉ clause whose
--- source is `own A` is `le-oo`.  This is the deleted demotion, as a theorem.
+-- source is `bind A` is `le-oo`.  This is the deleted demotion, as a theorem.
 ⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A
 ⊑-kn ls d with ⊑-∋e ls d
-... | own A , d′ , le-oo = d′
+... | bind A , d′ , le-oo = d′
 
 ⊑-wf : Δ ⊑ Δ′ → Δ ⊢ᵗ A → Δ′ ⊢ᵗ A
 ⊑-wf ls (wf-var tv)  = wf-var (⊑-tv ls tv)
@@ -320,7 +320,7 @@ upd f (suc X) (E ∷ Δ) = E ∷ upd f X Δ
 
 unblk : Ent → Ent
 unblk abst    = abst
-unblk (own A) = own A
+unblk (bind A) = bind A
 unblk (blk E) = E
 
 mask unmask : ℕ → Ctxᵗ → Ctxᵗ
@@ -333,7 +333,7 @@ blk-comm ρ E = refl
 
 unblk-comm : (ρ : Renameᵗ) (E : Ent) → renᵉ ρ (unblk E) ≡ unblk (renᵉ ρ E)
 unblk-comm ρ abst    = refl
-unblk-comm ρ (own A) = refl
+unblk-comm ρ (bind A) = refl
 unblk-comm ρ (blk E) = refl
 
 _≟ℕ_ : (X Y : ℕ) → Dec (X ≡ Y)
@@ -435,7 +435,7 @@ mask-⊑ (suc Y) (le∷ l ls)  = le∷ l (mask-⊑ Y ls)
 -- else (SIMULTANEITY: boundary entries never interfere).
 prep : List Ty → Ctxᵗ → Ctxᵗ
 prep []       Δ = Δ
-prep (A ∷ As) Δ = own (liftN (length As) A) ∷ prep As Δ
+prep (A ∷ As) Δ = bind (liftN (length As) A) ∷ prep As Δ
 
 ⊑-prep : (As : List Ty) → Δ ⊑ Δ′ → prep As Δ ⊑ prep As Δ′
 ⊑-prep []       ls = ls

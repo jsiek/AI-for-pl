@@ -7,11 +7,11 @@ module strong.Reduction where
 --
 --   (1) V-Λ carries `Value N` (in strong.Terms) — reduction goes under Λ.
 --   (2) TyPeelR shifts its type annotation.
---   (3) CancelR drops the `maskOwns` residue, carries the OWNER-LOOKUP
+--   (3) CancelR drops the `lockBinds` residue, carries the OWNER-LOOKUP
 --       premise that determines its `idc` face, and names its two faces
 --       separately (the single-name presumption, examined below).
 --   (4) IdPush replaces IdAbsorb: the two faces are SWAPPED instead of the
---       two frames being merged, so no skeleton arithmetic (`⊳`) is needed
+--       two frames being merged, so no context morphism arithmetic (`⊳`) is needed
 --       and the no-⊕ test is passed by construction.
 --   (5) TyBeta carries `Value N` — see the note on the rule.  Without it
 --       TyBeta and ξ-·[] ⨟ ξ-Λ are a genuine overlap (repair (1) alone does
@@ -67,35 +67,35 @@ mutual
 -- 2.  The dual of a crossed boundary
 ------------------------------------------------------------------------
 
--- THE DUAL, in full.  It mints ONLY name-carrying entries: a `cnc` for each
+-- THE DUAL, in full.  It mints ONLY name-carrying entries: a `lock` for each
 -- of the crossed boundary's owners (the argument may not see them) and an
--- `ali` for each of its conceals (the argument came from outside, where they
+-- `unlock` for each of its conceals (the argument came from outside, where they
 -- were nameable).  Nothing is copied, nothing is guarded, nothing is
 -- demoted; the old design's `entᴳ` has no analogue.
-maskOwns : ℕ → BCtx
-maskOwns zero    = []
-maskOwns (suc k) = cnc k ∷ maskOwns k
+lockBinds : ℕ → CtxMorph
+lockBinds zero    = []
+lockBinds (suc k) = lock k ∷ lockBinds k
 
-dualS : ℕ → BCtx → BCtx
+dualS : ℕ → CtxMorph → CtxMorph
 dualS n []          = []
-dualS n (own A ∷ Θ) = dualS n Θ
-dualS n (ali X ∷ Θ) = cnc (n + X) ∷ dualS n Θ
-dualS n (cnc X ∷ Θ) = ali (n + X) ∷ dualS n Θ
+dualS n (bind A ∷ Θ) = dualS n Θ
+dualS n (unlock X ∷ Θ) = lock (n + X) ∷ dualS n Θ
+dualS n (lock X ∷ Θ) = unlock (n + X) ∷ dualS n Θ
 
-dual : BCtx → BCtx
-dual Θ = maskOwns (nrev Θ) ++ dualS (nrev Θ) Θ
+dual : CtxMorph → CtxMorph
+dual Θ = lockBinds (nrev Θ) ++ dualS (nrev Θ) Θ
 
--- A skeleton that binds Θ's owners and nothing else (Cancel's residue).
-reps→own : List Ty → BCtx
-reps→own []       = []
-reps→own (A ∷ As) = own A ∷ reps→own As
+-- A context morphism that binds Θ's owners and nothing else (Cancel's residue).
+reps→bind : List Ty → CtxMorph
+reps→bind []       = []
+reps→bind (A ∷ As) = bind A ∷ reps→bind As
 
-reps-reps→own : (As : List Ty) → reps (reps→own As) ≡ As
-reps-reps→own []       = refl
-reps-reps→own (A ∷ As) = cong (A ∷_) (reps-reps→own As)
+reps-reps→bind : (As : List Ty) → reps (reps→bind As) ≡ As
+reps-reps→bind []       = refl
+reps-reps→bind (A ∷ As) = cong (A ∷_) (reps-reps→bind As)
 
-nrev-reps→own : (As : List Ty) → nrev (reps→own As) ≡ length As
-nrev-reps→own As = cong length (reps-reps→own As)
+nrev-reps→bind : (As : List Ty) → nrev (reps→bind As) ≡ length As
+nrev-reps→bind As = cong length (reps-reps→bind As)
 
 ------------------------------------------------------------------------
 -- 3.  The rules
@@ -111,7 +111,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `(Λ N) ·[ B , A ]` with N a redex has TWO distinct steps — this one and
   -- ξ-·[] ⨟ ξ-Λ — and determinism fails.  The premise mirrors Beta's.
   TyBeta : ∀ {Δ B A N} → Value N
-    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ own A ∷ [] , unsealAt 0 B ⟫
+    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ bind A ∷ [] , unsealAt 0 B ⟫
 
   Beta : ∀ {Δ A N W} → Value W
     → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ]ᵐ
@@ -124,21 +124,21 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
         -→ (V · (wkᴹ (nrev Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫
 
   -- TYPEEL — the ∀-face analogue; the new owner is prepended and the
-  -- elimination instantiates at the new owner's own name.
+  -- elimination instantiates at the new owner's bind name.
   --
   -- THE ANNOTATION REPAIR (2).  `B` is read over `abst ∷ Δ`; the contractum
-  -- reads it over `abst ∷ own A ∷ Δ`, so it must be shifted past the new
+  -- reads it over `abst ∷ bind A ∷ Δ`, so it must be shifted past the new
   -- owner: `renameᵗ (extᵗ suc) B`.
   TyPeelR : ∀ {Δ V Θ s B A} → Value V
     → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) B , ` 0 ])
-             ⟪ own A ∷ renᴮ suc Θ , s ⟫
+             ⟪ bind A ∷ renᴮ suc Θ , s ⟫
 
   -- CANCEL — a conceal directly under the owner it names.  The face match is
   -- DEFINITIONAL: `seal X` and `unseal Y` cite the SAME entry, so there is
   -- no second spelling to disagree with the first.
   --
-  -- THE RESIDUE REPAIR (3a).  The mini-core appended `maskOwns (nrev Θ₂)`,
+  -- THE RESIDUE REPAIR (3a).  The mini-core appended `lockBinds (nrev Θ₂)`,
   -- which masks EXTERIOR slots that need not exist (proof/MaskFacts.agda,
   -- `¬Bwf-cancel-residue`).  It is dropped: `intC` retains the entries
   -- anyway and ⊢retag covers the extra knowledge.
@@ -156,7 +156,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- is `∋:=-det`.
   CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → fceC Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ V ⟪ reps→own (reps Θ₂) , idc A ⟫
+        -→ V ⟪ reps→bind (reps Θ₂) , idc A ⟫
 
   -- DROP$ — a base-faced boundary over a numeral (`⊢$` types it anywhere).
   Drop$ : ∀ {Δ n Θ A} → Base A

@@ -35,20 +35,20 @@ private
 -- 1.  Renaming boundaries and terms
 ------------------------------------------------------------------------
 
-renᴮ : Renameᵗ → BCtx → BCtx
+renᴮ : Renameᵗ → CtxMorph → CtxMorph
 renᴮ ρ []          = []
-renᴮ ρ (own A ∷ Θ) = own (renameᵗ ρ A) ∷ renᴮ ρ Θ
-renᴮ ρ (ali X ∷ Θ) = ali (ρ X) ∷ renᴮ ρ Θ
-renᴮ ρ (cnc X ∷ Θ) = cnc (ρ X) ∷ renᴮ ρ Θ
+renᴮ ρ (bind A ∷ Θ) = bind (renameᵗ ρ A) ∷ renᴮ ρ Θ
+renᴮ ρ (unlock X ∷ Θ) = unlock (ρ X) ∷ renᴮ ρ Θ
+renᴮ ρ (lock X ∷ Θ) = lock (ρ X) ∷ renᴮ ρ Θ
 
-reps-ren : (ρ : Renameᵗ) (Θ : BCtx)
+reps-ren : (ρ : Renameᵗ) (Θ : CtxMorph)
   → reps (renᴮ ρ Θ) ≡ map (renameᵗ ρ) (reps Θ)
 reps-ren ρ []          = refl
-reps-ren ρ (own A ∷ Θ) = cong (renameᵗ ρ A ∷_) (reps-ren ρ Θ)
-reps-ren ρ (ali X ∷ Θ) = reps-ren ρ Θ
-reps-ren ρ (cnc X ∷ Θ) = reps-ren ρ Θ
+reps-ren ρ (bind A ∷ Θ) = cong (renameᵗ ρ A ∷_) (reps-ren ρ Θ)
+reps-ren ρ (unlock X ∷ Θ) = reps-ren ρ Θ
+reps-ren ρ (lock X ∷ Θ) = reps-ren ρ Θ
 
-nrev-ren : (ρ : Renameᵗ) (Θ : BCtx) → nrev (renᴮ ρ Θ) ≡ nrev Θ
+nrev-ren : (ρ : Renameᵗ) (Θ : CtxMorph) → nrev (renᴮ ρ Θ) ≡ nrev Θ
 nrev-ren ρ Θ =
   trans (cong length (reps-ren ρ Θ)) (map-length (renameᵗ ρ) (reps Θ))
 
@@ -79,33 +79,33 @@ Inj-wkN (suc n) eq = Inj-wkN n (Inj-suc eq)
 -- 2.  The type context operations transport (the structural half)
 ------------------------------------------------------------------------
 
-ren-scp : (Θ : BCtx) → Ren ρ Δ Δ′ → Inj ρ
+ren-scp : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
         → Ren ρ (scp Θ Δ) (scp (renᴮ ρ Θ) Δ′)
 ren-scp []          r i = r
-ren-scp (own A ∷ Θ) r i = ren-scp Θ r i
-ren-scp (ali X ∷ Θ) r i = ren-unmask (ren-scp Θ r i) i
-ren-scp (cnc X ∷ Θ) r i = ren-mask (ren-scp Θ r i) i
+ren-scp (bind A ∷ Θ) r i = ren-scp Θ r i
+ren-scp (unlock X ∷ Θ) r i = ren-unmask (ren-scp Θ r i) i
+ren-scp (lock X ∷ Θ) r i = ren-mask (ren-scp Θ r i) i
 
-ren-fscp : (Θ : BCtx) → Ren ρ Δ Δ′ → Inj ρ
+ren-fscp : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
          → Ren ρ (fscp Θ Δ) (fscp (renᴮ ρ Θ) Δ′)
 ren-fscp []          r i = r
-ren-fscp (own A ∷ Θ) r i = ren-fscp Θ r i
-ren-fscp (ali X ∷ Θ) r i = ren-unmask (ren-fscp Θ r i) i
-ren-fscp (cnc X ∷ Θ) r i = ren-fscp Θ r i
+ren-fscp (bind A ∷ Θ) r i = ren-fscp Θ r i
+ren-fscp (unlock X ∷ Θ) r i = ren-unmask (ren-fscp Θ r i) i
+ren-fscp (lock X ∷ Θ) r i = ren-fscp Θ r i
 
-ren-intC : (Θ : BCtx) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
+ren-intC : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
   → Ren (extN (nrev Θ) ρ) (intC Θ Δ) (intC (renᴮ ρ Θ) Δ′)
 ren-intC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-scp Θ r i)
 
-ren-fceC : (Θ : BCtx) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
+ren-fceC : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
   → Ren (extN (nrev Θ) ρ) (fceC Θ Δ) (fceC (renᴮ ρ Θ) Δ′)
 ren-fceC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-fscp Θ r i)
 
 Bwf-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → Bwf Δ Θ → Bwf Δ′ (renᴮ ρ Θ)
 Bwf-ren r i bw[]        = bw[]
-Bwf-ren r i (bw-o w b)  = bw-o (wf-ren r w) (Bwf-ren r i b)
-Bwf-ren r i (bw-c tv b) = bw-c (ren-tv r tv) (Bwf-ren r i b)
-Bwf-ren r i (bw-a d b)  = bw-a (ren∋ r d) (Bwf-ren r i b)
+Bwf-ren r i (bw-b w b)  = bw-b (wf-ren r w) (Bwf-ren r i b)
+Bwf-ren r i (bw-l tv b) = bw-l (ren-tv r tv) (Bwf-ren r i b)
+Bwf-ren r i (bw-u d b)  = bw-u (ren∋ r d) (Bwf-ren r i b)
 
 ------------------------------------------------------------------------
 -- 3.  THE RENAMING TRANSPORT

@@ -63,15 +63,15 @@ outer-id-base-untypeable {Θ₁ = Θ₁} bA (env _ (env _ _ ⊢cᵢ _) ⊢cₒ _
 ... | refl = base≢var (nrev Θ₁) bA (conv-idv-tgt ⊢cᵢ)
 
 -- The mask jam is a phantom, twice over.  (1) A conceal is INVISIBLE to the
--- face type context: `fscp` skips `cnc`, so a face never lands on a slot the layer
+-- face type context: `fscp` skips `lock`, so a face never lands on a slot the layer
 -- masks.
-fceC-cnc : ∀ {X} (Θ : BCtx) (Δ : Ctxᵗ) → fceC (cnc X ∷ Θ) Δ ≡ fceC Θ Δ
-fceC-cnc Θ Δ = refl
+fceC-lock : ∀ {X} (Θ : CtxMorph) (Δ : Ctxᵗ) → fceC (lock X ∷ Θ) Δ ≡ fceC Θ Δ
+fceC-lock Θ Δ = refl
 
 -- (2) And a boundary can never conceal the slot its OWN face names —
 -- `value-var-visible` (strong.Terms) says a value's variable type is
--- visible on the value's own type context, because `env`'s last conjunct checks it
--- there.  So "Θ₁ contains `cnc Y` while the face cites Y" is untypeable.
+-- visible on the value's bind type context, because `env`'s last conjunct checks it
+-- there.  So "Θ₁ contains `lock Y` while the face cites Y" is untypeable.
 
 ------------------------------------------------------------------------
 -- §3  THE NAKED DROP — the door, closed
@@ -82,7 +82,7 @@ fceC-cnc Θ Δ = refl
 -- licence cites a slot Δ does not even have.
 
 Δₑ : Ctxᵗ
-Δₑ = own `ℕ ∷ []
+Δₑ = bind `ℕ ∷ []
 
 Δₑ-no-1 : ∀ {E} → Δₑ ∋e 1 , E → ⊥
 Δₑ-no-1 (es ())

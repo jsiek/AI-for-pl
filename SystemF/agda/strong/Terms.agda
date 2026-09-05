@@ -4,18 +4,18 @@ module strong.Terms where
 --
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --
---   Θ : BCtx   the SCOPE SKELETON, rep-free except for owners
---        own A   BINDS a fresh interior slot; A is its representation, read
+--   Θ : CtxMorph   the SCOPE SKELETON, rep-free except for owners
+--        bind A   BINDS a fresh interior slot; A is its representation, read
 --                in the PLAIN EXTERIOR (simultaneity: never through Θ's
 --                other entries).  The only rep-carrying form; born once,
 --                bound once.
---        cnc X   MASKS exterior slot X: the interior may not NAME it.  The
+--        lock X   MASKS exterior slot X: the interior may not NAME it.  The
 --                entry is RETAINED on the type context — nothing is dropped and
 --                nothing is re-spelled, so there is no demotion to perform.
---        ali X   UNMASKS exterior slot X; it claims nothing, it merely
+--        unlock X   UNMASKS exterior slot X; it claims nothing, it merely
 --                restores nameability.
 --   c : Conv     the FACE, a conversion checked on the FACE TYPE CONTEXT (the
---                interior type context with Θ's own masks lifted), where a
+--                interior type context with Θ's bind masks lifted), where a
 --                `seal X` can still resolve X at its owner.
 --
 -- Frames change ONLY at binders: `intC Θ Δ` is `Δ` with the masks applied
@@ -42,80 +42,80 @@ private
     X Y : ℕ
 
 ------------------------------------------------------------------------
--- 1.  The boundary skeleton
+-- 1.  The boundary context morphism
 ------------------------------------------------------------------------
 
-data BEnt : Set where
-  own : Ty → BEnt      -- BINDS a fresh slot at rep A (A over the exterior)
-  ali : ℕ → BEnt       -- unmask exterior slot X   (name only)
-  cnc : ℕ → BEnt       -- mask   exterior slot X   (name only)
+data MorphEnt : Set where
+  bind : Ty → MorphEnt      -- BINDS a fresh slot at rep A (A over the exterior)
+  unlock : ℕ → MorphEnt       -- unmask exterior slot X   (name only)
+  lock : ℕ → MorphEnt       -- mask   exterior slot X   (name only)
 
-BCtx : Set
-BCtx = List BEnt
+CtxMorph : Set
+CtxMorph = List MorphEnt
 
-reps : BCtx → List Ty
+reps : CtxMorph → List Ty
 reps []          = []
-reps (own A ∷ Θ) = A ∷ reps Θ
-reps (ali X ∷ Θ) = reps Θ
-reps (cnc X ∷ Θ) = reps Θ
+reps (bind A ∷ Θ) = A ∷ reps Θ
+reps (unlock X ∷ Θ) = reps Θ
+reps (lock X ∷ Θ) = reps Θ
 
 -- `nrev` is the boundary's FRAME EXTENSION: the number of binders it adds.
 -- It is the only surviving list arithmetic; cmax/dropN have no analogue,
 -- because conceal masks in place.
-nrev : BCtx → ℕ
+nrev : CtxMorph → ℕ
 nrev Θ = length (reps Θ)
 
--- The masks (`cnc`) and unmasks (`ali`), applied in place.
-scp : BCtx → Ctxᵗ → Ctxᵗ
+-- The masks (`lock`) and unmasks (`unlock`), applied in place.
+scp : CtxMorph → Ctxᵗ → Ctxᵗ
 scp []          Δ = Δ
-scp (own A ∷ Θ) Δ = scp Θ Δ
-scp (ali X ∷ Θ) Δ = unmask X (scp Θ Δ)
-scp (cnc X ∷ Θ) Δ = mask X (scp Θ Δ)
+scp (bind A ∷ Θ) Δ = scp Θ Δ
+scp (unlock X ∷ Θ) Δ = unmask X (scp Θ Δ)
+scp (lock X ∷ Θ) Δ = mask X (scp Θ Δ)
 
 -- The FACE type context: like `scp` but WITHOUT the conceal masks, so a `seal X`
 -- can resolve X at its owner.  This is owner-syntactic lookup: the licence
 -- is read on the type context that encloses the boundary, never inside it.
-fscp : BCtx → Ctxᵗ → Ctxᵗ
+fscp : CtxMorph → Ctxᵗ → Ctxᵗ
 fscp []          Δ = Δ
-fscp (own A ∷ Θ) Δ = fscp Θ Δ
-fscp (ali X ∷ Θ) Δ = unmask X (fscp Θ Δ)
-fscp (cnc X ∷ Θ) Δ = fscp Θ Δ
+fscp (bind A ∷ Θ) Δ = fscp Θ Δ
+fscp (unlock X ∷ Θ) Δ = unmask X (fscp Θ Δ)
+fscp (lock X ∷ Θ) Δ = fscp Θ Δ
 
 -- What replaces `intOf`: the same slot list, the interior mask, and the
 -- owner extension.  Nothing is dropped and no rep is recomputed.
-intC : BCtx → Ctxᵗ → Ctxᵗ
+intC : CtxMorph → Ctxᵗ → Ctxᵗ
 intC Θ Δ = prep (reps Θ) (scp Θ Δ)
 
-fceC : BCtx → Ctxᵗ → Ctxᵗ
+fceC : CtxMorph → Ctxᵗ → Ctxᵗ
 fceC Θ Δ = prep (reps Θ) (fscp Θ Δ)
 
--- The interior type context is the face type context with Θ's own masks on, so anything
+-- The interior type context is the face type context with Θ's bind masks on, so anything
 -- well formed inside is well formed on the face type context.
-scp⊑fscp : (Θ : BCtx) (Δ : Ctxᵗ) → scp Θ Δ ⊑ fscp Θ Δ
+scp⊑fscp : (Θ : CtxMorph) (Δ : Ctxᵗ) → scp Θ Δ ⊑ fscp Θ Δ
 scp⊑fscp []          Δ = ⊑-refl Δ
-scp⊑fscp (own A ∷ Θ) Δ = scp⊑fscp Θ Δ
-scp⊑fscp (ali X ∷ Θ) Δ = ⊑-upd unblk unblk-comm unblk-mono (scp⊑fscp Θ Δ)
-scp⊑fscp (cnc X ∷ Θ) Δ = mask-⊑ X (scp⊑fscp Θ Δ)
+scp⊑fscp (bind A ∷ Θ) Δ = scp⊑fscp Θ Δ
+scp⊑fscp (unlock X ∷ Θ) Δ = ⊑-upd unblk unblk-comm unblk-mono (scp⊑fscp Θ Δ)
+scp⊑fscp (lock X ∷ Θ) Δ = mask-⊑ X (scp⊑fscp Θ Δ)
 
-intC⊑fceC : (Θ : BCtx) (Δ : Ctxᵗ) → intC Θ Δ ⊑ fceC Θ Δ
+intC⊑fceC : (Θ : CtxMorph) (Δ : Ctxᵗ) → intC Θ Δ ⊑ fceC Θ Δ
 intC⊑fceC Θ Δ = ⊑-prep (reps Θ) (scp⊑fscp Θ Δ)
 
-⊑-scp : (Θ : BCtx) → Δ ⊑ Δ′ → scp Θ Δ ⊑ scp Θ Δ′
+⊑-scp : (Θ : CtxMorph) → Δ ⊑ Δ′ → scp Θ Δ ⊑ scp Θ Δ′
 ⊑-scp []          ls = ls
-⊑-scp (own A ∷ Θ) ls = ⊑-scp Θ ls
-⊑-scp (ali X ∷ Θ) ls = ⊑-upd unblk unblk-comm unblk-mono (⊑-scp Θ ls)
-⊑-scp (cnc X ∷ Θ) ls = ⊑-upd blk blk-comm blk-mono (⊑-scp Θ ls)
+⊑-scp (bind A ∷ Θ) ls = ⊑-scp Θ ls
+⊑-scp (unlock X ∷ Θ) ls = ⊑-upd unblk unblk-comm unblk-mono (⊑-scp Θ ls)
+⊑-scp (lock X ∷ Θ) ls = ⊑-upd blk blk-comm blk-mono (⊑-scp Θ ls)
 
-⊑-fscp : (Θ : BCtx) → Δ ⊑ Δ′ → fscp Θ Δ ⊑ fscp Θ Δ′
+⊑-fscp : (Θ : CtxMorph) → Δ ⊑ Δ′ → fscp Θ Δ ⊑ fscp Θ Δ′
 ⊑-fscp []          ls = ls
-⊑-fscp (own A ∷ Θ) ls = ⊑-fscp Θ ls
-⊑-fscp (ali X ∷ Θ) ls = ⊑-upd unblk unblk-comm unblk-mono (⊑-fscp Θ ls)
-⊑-fscp (cnc X ∷ Θ) ls = ⊑-fscp Θ ls
+⊑-fscp (bind A ∷ Θ) ls = ⊑-fscp Θ ls
+⊑-fscp (unlock X ∷ Θ) ls = ⊑-upd unblk unblk-comm unblk-mono (⊑-fscp Θ ls)
+⊑-fscp (lock X ∷ Θ) ls = ⊑-fscp Θ ls
 
-⊑-intC : (Θ : BCtx) → Δ ⊑ Δ′ → intC Θ Δ ⊑ intC Θ Δ′
+⊑-intC : (Θ : CtxMorph) → Δ ⊑ Δ′ → intC Θ Δ ⊑ intC Θ Δ′
 ⊑-intC Θ ls = ⊑-prep (reps Θ) (⊑-scp Θ ls)
 
-⊑-fceC : (Θ : BCtx) → Δ ⊑ Δ′ → fceC Θ Δ ⊑ fceC Θ Δ′
+⊑-fceC : (Θ : CtxMorph) → Δ ⊑ Δ′ → fceC Θ Δ ⊑ fceC Θ Δ′
 ⊑-fceC Θ ls = ⊑-prep (reps Θ) (⊑-fscp Θ ls)
 
 ------------------------------------------------------------------------
@@ -123,29 +123,29 @@ intC⊑fceC Θ Δ = ⊑-prep (reps Θ) (scp⊑fscp Θ Δ)
 ------------------------------------------------------------------------
 
 -- Every premise names a slot or checks a rep in the PLAIN exterior.  There
--- is no Reversal≈, no starOnly, no SkelEq, no x-lookup: an `ali` claims
--- nothing at all, and a `cnc` claims nothing either — the claim lives in the
+-- is no Reversal≈, no starOnly, no SkelEq, no x-lookup: an `unlock` claims
+-- nothing at all, and a `lock` claims nothing either — the claim lives in the
 -- FACE (`seal X`, which must cite a live owner).
 --
--- An `ali X` premise asks only that the slot EXISTS.  It cannot ask that the
+-- An `unlock X` premise asks only that the slot EXISTS.  It cannot ask that the
 -- slot be masked and stay stable under refinement (a Cancel may already have
 -- un-masked it), and it need not: `unmask` is total and an alias at an
 -- un-masked slot is a no-op.  Note the distinction the mask discipline
--- forces: `ali X`/`cnc X` NAME a masked index — that is an ENTRY, not a type
+-- forces: `unlock X`/`lock X` NAME a masked index — that is an ENTRY, not a type
 -- — while `Δ ⊢ᵗ ` X` at a masked slot is refused.  Tightness is about USE in
--- a type, not about mentioning the index in the skeleton.
-data Bwf (Δ : Ctxᵗ) : BCtx → Set where
+-- a type, not about mentioning the index in the context morphism.
+data Bwf (Δ : Ctxᵗ) : CtxMorph → Set where
   bw[] : Bwf Δ []
-  bw-o : ∀ {A Θ} → Δ ⊢ᵗ A → Bwf Δ Θ → Bwf Δ (own A ∷ Θ)
-  bw-c : ∀ {X Θ} → Δ ∋tv X → Bwf Δ Θ → Bwf Δ (cnc X ∷ Θ)
-  bw-a : ∀ {X E Θ} → Δ ∋e X , E → Bwf Δ Θ → Bwf Δ (ali X ∷ Θ)
+  bw-b : ∀ {A Θ} → Δ ⊢ᵗ A → Bwf Δ Θ → Bwf Δ (bind A ∷ Θ)
+  bw-l : ∀ {X Θ} → Δ ∋tv X → Bwf Δ Θ → Bwf Δ (lock X ∷ Θ)
+  bw-u : ∀ {X E Θ} → Δ ∋e X , E → Bwf Δ Θ → Bwf Δ (unlock X ∷ Θ)
 
 Bwf-⊑ : ∀ {Θ} → Δ ⊑ Δ′ → Bwf Δ Θ → Bwf Δ′ Θ
 Bwf-⊑ ls bw[]        = bw[]
-Bwf-⊑ ls (bw-o w b)  = bw-o (⊑-wf ls w) (Bwf-⊑ ls b)
-Bwf-⊑ ls (bw-c tv b) = bw-c (⊑-tv ls tv) (Bwf-⊑ ls b)
-Bwf-⊑ ls (bw-a d b)  with ⊑-∋e ls d
-... | E′ , d′ , _ = bw-a d′ (Bwf-⊑ ls b)
+Bwf-⊑ ls (bw-b w b)  = bw-b (⊑-wf ls w) (Bwf-⊑ ls b)
+Bwf-⊑ ls (bw-l tv b) = bw-l (⊑-tv ls tv) (Bwf-⊑ ls b)
+Bwf-⊑ ls (bw-u d b)  with ⊑-∋e ls d
+... | E′ , d′ , _ = bw-u d′ (Bwf-⊑ ls b)
 
 ------------------------------------------------------------------------
 -- 3.  Terms
@@ -164,7 +164,7 @@ data Term : Set where
   _·_     : Term → Term → Term
   Λ_      : Term → Term
   _·[_,_] : Term → Ty → Ty → Term
-  _⟪_,_⟫  : Term → BCtx → Conv → Term
+  _⟪_,_⟫  : Term → CtxMorph → Conv → Term
 
 Ctx : Set
 Ctx = List Ty
@@ -257,8 +257,8 @@ data Value : Term → Set where
   V-Λ  : ∀ {N} → Value N → Value (Λ N)
   V-⟪⟫ : ∀ {M Θ c} → Value M → Inert c → Value (M ⟪ Θ , c ⟫)
 
--- A value's variable type is VISIBLE on the value's own type context, because
+-- A value's variable type is VISIBLE on the value's bind type context, because
 -- `env`'s last conjunct checks it there.  So a boundary can never conceal
--- the slot its own face names.
+-- the slot its bind face names.
 value-var-visible : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
 value-var-visible (V-⟪⟫ _ _) (env _ _ _ (wf-var tv)) = tv

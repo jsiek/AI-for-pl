@@ -2112,3 +2112,32 @@ whether the c10/c11 configuration is even reachable under v2's rules, or
 whether IdPush needs a scoping premise / a different contractum.  NEXT:
 repair the three local bugs, then settle IdPush by reachability probe;
 each repair is validated by instantiating `Conditional`.
+
+### IdPush reachability probe (proof/IdPushReach.agda, 2026-09-05)
+
+VERDICT: the refuting configuration (a lock in Θ₂ blocking the slot the
+id-face's owner-rep names) is reachable ONLY through the Peel/dual bug
+(dualS's `unlock X ↦ lock (n+X)` defect); under the repaired dual the
+only locks a Peel ever mints are lockBinds of the crossed boundary's OWN
+new binders, and by SIMULTANEITY (an owner's rep is a type over the
+plain exterior, lifted past the owners bound inside it) those never
+block a face's rep.  The exact fact the swapped-face contractum needs
+and the redex does not provide: `intC Θ₂ Δ ⊢ᵗ A` (scoped-fails on the
+witness; owner-holds still true).  Machine-checked: adding that premise
+to IdPush makes its preservation case PROVABLE (idPush⁺ : IdPushCase⁺;
+idPushCase-scoped shows the companion owner-lookup follows from the
+redex typing via MaskOnly — the one interface lemma left un-rederived).
+
+SUPERVISOR'S CAUTION (the v1 lesson): the premise route trades the
+preservation break for a PROGRESS hole unless typing excludes the bad
+configuration — the ¬IdPushCase witness is WELL-TYPED (Bwf's bw-l asks
+only that the locked slot exist), so with the premise IdPush would not
+fire on it and progress would lose a well-typed non-value.  Grounded
+resolution options: (α) Bwf strengthening so a lock may not block a
+slot that a visible owner's rep names (makes the witness ill-formed;
+non-local — needs a formulation), or (β) Jeremy's hunch — a
+CONTRACTUM that never presents A inside Θ₂'s locks (the swapped face
+forces the inner wrapper to EXPORT the rep into a region that cannot
+name it).  The trace Jeremy asked for was NOT built (the agent judged it
+redundant post-repair); to be built if wanted.  Open for ruling after
+the three-bug fix lands.

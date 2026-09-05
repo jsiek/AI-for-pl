@@ -846,3 +846,44 @@ open import strong.Preservation
 -- STEP 5 — Drop$.
 ⊢P₅-pres : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
 ⊢P₅-pres = preservation-Drop$ base-ℕ ⊢P₄
+
+------------------------------------------------------------------------
+-- §10  IDPUSH — THE REACHABILITY VERDICT (soundness, not a break)
+------------------------------------------------------------------------
+
+-- proof/PreserveObstruct §4 refutes IdPush's preservation case on a
+-- HAND-BUILT redex whose Θ₂ = `lock 1 ∷ []` blocks the very slot the
+-- id-face's owner rep (` 1) names.  IS THAT CONFIGURATION REACHABLE from a
+-- closed, plain source?  VERDICT: NO — once the separately-diagnosed
+-- Peel/`dual` bug (§3 of PreserveObstruct) is fixed.
+--
+--   * TyBeta, the ONLY rule that mints a boundary from a plain redex, mints
+--     a LOCK-FREE `bind A ∷ []`; so a lock reaches an ACTIVE outer face only
+--     via a Peel's `dual Θ`.
+--   * A REPAIRED dual installs only the owner locks `lockBinds (nbind Θ)`,
+--     which block Θ's own new owner slots.  By SIMULTANEITY (`prep` lifts
+--     each rep past the owners bound inside it — a rep is a type over the
+--     PLAIN exterior) NO owner's rep names another owner slot, so those
+--     owner locks never block a face's rep.
+--   * The `¬IdPushCase` witness has its lock on a NON-owner slot the rep
+--     names; that shape is producible ONLY by the current dual's
+--     `unlock X ↦ lock (n+X)` defect — the §3 Peel refutation — not by
+--     IdPush.
+--
+-- THE SOUNDNESS FIX (machine-checked in proof/IdPushReach).  `idPush⁺`
+-- discharges the IdPush case under the single added scoping side-condition
+-- `intC Θ₂ Δ ⊢ᵗ A` (Q3(a)); the companion `owner : intC Θ₂ Δ ∋ Y := A` is a
+-- CONSEQUENCE of the redex typing (mask-only), not an assumption.
+
+open import strong.proof.IdPushReach
+  using (idPush⁺; idPushCase-scoped; owner-holds; scoped-fails)
+
+-- The interior of the counterexample: slot 1 blocked under the lock.
+§10-Ξi : Ctxᵗ
+§10-Ξi = bind (` 0) ∷ blk (bind `ℕ) ∷ []
+
+-- The scoping premise is EXACTLY what the counterexample denies: on the
+-- witness the owner fact still holds, but the rep ` 1 is not well formed
+-- inside the locked interior.
+§10-verdict : (§10-Ξi ∋ 0 := ` 1) × ¬ (§10-Ξi ⊢ᵗ ` 1)
+§10-verdict = owner-holds , scoped-fails

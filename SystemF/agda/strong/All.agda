@@ -21,6 +21,7 @@ open import strong.proof.MaskFacts
 open import strong.proof.IdLayer
 open import strong.proof.Preserve
 open import strong.proof.PreserveObstruct
+open import strong.proof.IdPushReach
 
 -- the regression corpus and the renderer
 open import strong.Examples

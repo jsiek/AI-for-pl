@@ -32,3 +32,6 @@ open import strong.proof.Canonicity
 -- progress (the canonical-forms suite and the theorem)
 open import strong.proof.Canonical
 open import strong.Progress
+
+-- the wall: the RepWf invariant, the dual's locks, and the scoping fact
+open import strong.proof.WallReach

@@ -2169,3 +2169,46 @@ post-repair (simultaneity says no for IdPush); if not, a grounded
 Bwf/typing invariant makes the offending configurations ill-formed and
 the `intC Θ₂ Δ ⊢ᵗ A` facts derivable; if yes, contracta must be
 reformulated so no inner wrapper presents a rep under a lock.
+
+### First closed-source IdPush traces + the wall's reachability (2026-09-05)
+
+Examples §11: Q = ((ΛY. λx:Y. ((ΛZ. x)·[Y,ℕ]))·[Y⇒Y,ℕ])·7 — the FIRST
+IdPush ever reached from plain System F (8 live steps to 7; TyBeta,
+Peel, Beta, TyBeta minting id (` 1), IDPUSH, CancelR, Drop$, Drop$; all
+states typed; IdPush's contractum TYPES).  Variants: D (IdPush twice —
+stacked vacuous Λs; both contracta type), R (chained face rep, three
+IdPush firings; types — the exported rep lands where it is nameable).
+Variant (i) nontrivial Θ₁ REQUIRES TyPeelR (nbind arithmetic:
+TyBeta≡1, dual≡0, CancelR preserves, TyPeelR≡suc) and G₀ =
+((ΛX. λx:X. ((ΛY. ΛZ. x)·[ℕ])·[ℕ])·[ℕ])·7 gives ¬⊢G₅ — THE FIRST
+CLOSED-SOURCE REFUTATION OF TyPeelR, from the `renᴮ suc Θ` double-shift
+alone (the face is an identity, so the annotation defect is not what
+fires); K shows the multi-bind frame types once the shift is fixed.
+
+Examples §12 + proof/WallReach.agda — THE WALL: reachable? SPLIT.  L₀
+(instantiate the vacuous ΛZ at Y instead of ℕ) reaches the c10/c11
+blocked-context shape from closed source — but only at a Θ₁ (inert
+seal-faced) position; every Θ₂ on the run is lock-free and IdPush's
+contractum types.  INVARIANT RepWf Ξ ("no lock blocks a slot a NAMEABLE
+owner's rep names"): closure under abst/bind/blk/prep proven
+(RepWf-prep = simultaneity: prep stores reps lifted past inner owners);
+the wall itself is a theorem (mask-breaks-RepWf); THE ANSWER RepWf-dual:
+a Peel's locks can never block a rep, no side condition on Θ (one line
+off intC-dual); PAYOFF: unseal-scoped gives `intC Θ Δ ⊢ᵗ A` at every
+unseal-faced wrapper from RepWf + MaskOnly, idPush-RepWf DISCHARGES
+IdPush's case over the invariant (no rule premise), cancelR-scoped the
+same for CancelR's honest contractum.  LIMIT: the global term invariant
+WallFree is REFUTED on reachable L (¬wall-step) — the carried invariant
+must be "RepWf at every Θ₂"; its mint obligations (TyBeta/Peel/CancelR/
+binds-only frames) are all discharged; REMAINING = the term-level
+induction's ⊑/renaming/substitution transports for the Θ₂-only predicate
+(stated, not faked).
+
+READ: IdPush is RIGHT as formulated — it needs only the grounded fact
+RepWf supplies.  Remaining design items for Jeremy: (1) TyPeelR — fix
+the double-shift (mechanical) and rule on the annotation: srcOf closes
+↑ˢ faces; ↓ˢ ∀-faces (a polymorphic ARGUMENT crossing) need either a
+stored source type or a different elimination; (2) CancelR's honest
+contractum (keep both frames, faces idc) is a rule change to approve;
+(3) finish the Θ₂-RepWf induction → IdPush + CancelR discharge with
+zero rule premises.

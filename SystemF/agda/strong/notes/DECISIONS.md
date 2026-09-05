@@ -1815,3 +1815,19 @@ DECISION 8 — the ask (rulings on direction, then probes before install):
 Recommendation: (A)+(B) probed together first — (A) shrinks the shapes
 to Λ-bound-only demotions, (B) polices exactly those; (C) only if the
 reachability probe under (B) finds a source-reachable failing crossing.
+
+## REDESIGN SURVEY ORDERED (Jeremy, 2026-09-05)
+
+"I'm worried that our current boundary bookkeeping is rather broken...
+time for a fresh look at all the critical examples and perhaps more, now
+that trace generation is easy, and use the data to inform a redesign."
+This SUPERSEDES Decision 8's install track: no repair is installed until
+the survey data is in.  In flight: EvalLog.agda (an event annotator over
+stepΣ's derivations — boundary mints with rep classification, crossings
+with per-slot dual outcomes incl. DEMOTION markers, merges/cancels),
+notes/probes/SurveyCorpus.agda (the critical examples + new families:
+depth-2 chains, double crossings, returned sealed values, x-entries
+under a second dual, Λ-bound reps crossed twice), and
+notes/BoundarySurvey.md (the master table + machine-backed findings).
+The corpus doubles as the regression suite / kill criterion for any
+redesign candidate.

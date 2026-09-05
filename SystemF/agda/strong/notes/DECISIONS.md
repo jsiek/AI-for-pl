@@ -1862,3 +1862,19 @@ deleted), keep active/inert + inward-only + det + tightness-for-scope;
 FLAGGED for ruling: owner lookup vs the tightness law.  Soundness gate:
 ⊢3n-adv must be unmintable.  Next: ConversionBoundaryProbe (transport
 risk probed FIRST), corpus as kill criteria.
+
+### Redesign — Q1 realization RULED (Jeremy, 2026-09-05): OWNER-SYNTACTIC (ii)
+
+"Once type variables are in a global store, it becomes more difficult to
+talk about their lexical scope relationships, which we are currently
+using in conceal blocking.  So I'd lean towards realization (ii) for
+now."  Recorded: the outermost reveal wrapper IS the store entry; inner
+boundaries carry names only; faces/licenses resolve by lookup along the
+ENCLOSING SPINE.  Note the coherence this buys: conceal blocking and
+ownership are both lexical-enclosure notions — the owner outlives every
+reference because the variable's scope is inside its wrapper (the
+owner-liveness invariant, to be machine-checked).  The known risk stays:
+faces become spine-dependent, so the ⊢renameᵀ/⊢retag transport analogs
+must be probed FIRST (mitigation: lookup is by slot identity along the
+spine, which renamings move coherently — the inverse of D1's refuted
+spelled-copies).  ConversionBoundaryProbe launched with this mandate.

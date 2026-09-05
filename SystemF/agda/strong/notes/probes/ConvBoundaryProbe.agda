@@ -590,3 +590,46 @@ cancel-faces-agree : ∀ {Δ X A B A′ B′ p q}
   → A ≡ B′
 cancel-faces-agree cs cu =
   ∋:=-det (seal-face-is-the-owners-rep cs) (unseal-face-is-the-owners-rep cu)
+
+------------------------------------------------------------------------
+-- §6  JEREMY'S QUESTION AT THE RENAME REVIEW: can a value wrapped at an
+-- `id (` X)` face be ELIMINATED?  ANSWER: NO — and that is the β2
+-- (transparent-layer) progress obligation landing in the mini-core.
+--
+-- At rest the id-faced wrapper is a harmless INERT value.  But as the
+-- INTERIOR of an active `unseal`-faced wrapper it is STUCK-WELL-TYPED:
+-- Cancel demands a seal-topped interior, Drop$ a base face, ξ-⟪⟫ a
+-- stepping interior.  The instance below (all reps ℕ) types at ℕ, is
+-- not a value, and takes no step.  The candidate repairs (an id-layer
+-- absorption rule vs an owner-unused drop) are a design decision — the
+-- CancelProbe warning applies: β2 was "the [] ⊕ Θ₂ case of Merge", so
+-- the rule must not quietly regrow composition.
+------------------------------------------------------------------------
+
+Δ₆ S₆₁ S₆₂ : Ctxᵗ
+Δ₆  = own `ℕ ∷ []
+S₆₁ = own `ℕ ∷ Δ₆
+S₆₂ = own `ℕ ∷ S₆₁
+
+W₆₀ W₆₁ T₆ : Term
+W₆₀ = ($ 7) ⟪ [] , seal 1 ⟫
+W₆₁ = W₆₀ ⟪ own `ℕ ∷ [] , id (` 1) ⟫
+T₆  = W₆₁ ⟪ own `ℕ ∷ [] , unseal 0 ⟫
+
+⊢W₆₀ : S₆₂ ∣ [] ⊢ W₆₀ ⦂ ` 1
+⊢W₆₀ = env bw[] ⊢$ (conv-seal (es ez))
+           (wf-var (own `ℕ , es ez , vis-o))
+
+⊢W₆₁ : S₆₁ ∣ [] ⊢ W₆₁ ⦂ ` 0
+⊢W₆₁ = env (bw-o wf-ℕ bw[]) ⊢W₆₀
+           (conv-idv {p = ↑ˢ} (own `ℕ , es ez , vis-o))
+           (wf-var (own `ℕ , ez , vis-o))
+
+⊢T₆ : Δ₆ ∣ [] ⊢ T₆ ⦂ `ℕ
+⊢T₆ = env (bw-o wf-ℕ bw[]) ⊢W₆₁ (conv-unseal ez) wf-ℕ
+
+¬val-T₆ : ¬ Value T₆
+¬val-T₆ (V-⟪⟫ _ ())
+
+stuck-T₆ : ∀ {M} → ¬ (Δ₆ ⊢ T₆ -→ M)
+stuck-T₆ (ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ ())))

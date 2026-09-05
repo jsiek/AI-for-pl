@@ -2046,3 +2046,22 @@ THREE MINI-CORE BUGS the probing surfaced (repairs for the restructure):
    det-already-broken are machine-checked.  REPAIR (restores Jeremy's
    determinism law): V-Λ : Value N → Value (Λ N).  With that fix and
    either new rule, no new overlaps (IdAbsorb≢Cancel etc.).
+
+### Id-layer RULING (Jeremy, 2026-09-05): IdPush + the lookup premise + all repairs
+
+"Go ahead with IdPush and the lookup premise and the other repairs."
+The rule as ruled:
+
+    IdPush : Value V → fceC Θ₂ Δ ∋ Y := A
+      → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+          -→ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫
+
+with the principle made explicit: EVERY rule minting an identity face at
+a looked-up rep carries the owner-lookup premise (Cancel's idc B too) —
+determinism via ∋:=-determinacy; the premise is the rule-level twin of
+conv-unseal's typing premise.  The repair set for the restructure:
+V-Λ gains the Value premise (restores det/values-don't-step), CancelR
+(residue fixed, lookup premise, single-name presumption generalized),
+TyPeelR (shifted annotation), lookup-determined idc faces.  R1 (vacuous
+TyBeta) deferred as optional hygiene.  ⊳/IdAbsorb retired (fails the
+no-⊕ test — IdLayerProbe Tᵣ).

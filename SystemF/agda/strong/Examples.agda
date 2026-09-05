@@ -764,3 +764,55 @@ _ = refl
 
 _ : [] ∣ [] ⊢ (ƛ `ℕ ∙ (` 1)) [ ƛ `ℕ ∙ (` 0) ]ᵐ ⦂ (`ℕ ⇒ (`ℕ ⇒ `ℕ))
 _ = ⊢subst (⊢ƛ wf-ℕ (⊢` (there here))) (⊢ƛ wf-ℕ (⊢` here))
+
+------------------------------------------------------------------------
+-- §8  PROGRESS, on the run of §6
+------------------------------------------------------------------------
+
+-- The five redex states of `run-P₀`, each handed to `progress`: at every
+-- one of them the theorem answers "it steps", and `det` (strong.Reduction)
+-- identifies the step it found with the step the run actually takes.  So
+-- progress is not merely non-vacuous here — it recomputes §6's trace.
+--
+-- Read the imports as part of the section: §8 is the only part of this
+-- file that depends on the theorem.
+
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import strong.Progress using (progress)
+
+progress-P₀ : Σ[ M′ ∈ Term ] (([] ⊢ P₀ -→ M′) × (M′ ≡ P₁))
+progress-P₀ with progress ⊢P₀
+progress-P₀ | inj₁ ()
+progress-P₀ | inj₂ (M′ , st) = M′ , st , det st step₁
+
+progress-P₁ : Σ[ M′ ∈ Term ] (([] ⊢ P₁ -→ M′) × (M′ ≡ P₂))
+progress-P₁ with progress ⊢P₁
+progress-P₁ | inj₁ ()
+progress-P₁ | inj₂ (M′ , st) = M′ , st , det st step₂
+
+-- P₂ is a boundary over a REDEX, so progress recurses into the interior
+-- and comes back out through ξ-⟪⟫.
+progress-P₂ : Σ[ M′ ∈ Term ] (([] ⊢ P₂ -→ M′) × (M′ ≡ P₃))
+progress-P₂ with progress ⊢P₂
+progress-P₂ | inj₁ (V-⟪⟫ () _)
+progress-P₂ | inj₂ (M′ , st) = M′ , st , det st step₃
+
+-- P₃ is the CANCEL state: the interior is a value, the face is the ACTIVE
+-- `unseal 0`, and canon-var picks out the seal-faced layer under it.
+progress-P₃ : Σ[ M′ ∈ Term ] (([] ⊢ P₃ -→ M′) × (M′ ≡ P₄))
+progress-P₃ with progress ⊢P₃
+progress-P₃ | inj₁ (V-⟪⟫ _ ())
+progress-P₃ | inj₂ (M′ , st) = M′ , st , det st step₄
+
+-- P₄ is the DROP$ state: the face is the ACTIVE `id `ℕ` and canon-base
+-- says the interior value is a numeral.
+progress-P₄ : Σ[ M′ ∈ Term ] (([] ⊢ P₄ -→ M′) × (M′ ≡ $ 7))
+progress-P₄ with progress ⊢P₄
+progress-P₄ | inj₁ (V-⟪⟫ _ ())
+progress-P₄ | inj₂ (M′ , st) = M′ , st , det st step₅
+
+-- and the endpoint: at `$ 7` progress answers VALUE, not step.
+progress-end : Value ($ 7)
+progress-end with progress {Δ = []} {A = `ℕ} (⊢$ {Γ = []} {n = 7})
+progress-end | inj₁ v        = v
+progress-end | inj₂ (_ , st) = ⊥-elim (value-¬step V-$ st)

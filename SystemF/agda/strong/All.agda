@@ -21,3 +21,7 @@ open import strong.proof.IdLayer
 open import strong.Examples
 open import strong.Show
 open import strong.proof.Canonicity
+
+-- progress (the canonical-forms suite and the theorem)
+open import strong.proof.Canonical
+open import strong.Progress

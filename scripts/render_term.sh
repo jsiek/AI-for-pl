@@ -3,8 +3,8 @@
 # Uses strong/Show.agda via the type-error trick: `oops : e ≡ ""` makes
 # Agda print e's normal form in the mismatch error.
 #   usage: scripts/render_term.sh '<String expr>' ['<import line>' ...]
-#   example: scripts/render_term.sh 'showTmIn 3 Wtm' \
-#              'open import strong.notes.probes.DualIntProbe'
+#   example: scripts/render_term.sh 'showTmIn 1 T₆' \
+#              'open import strong.Examples'
 set -u
 cd "$(dirname "$0")/../SystemF/agda" || exit 1
 EXPR="$1"; shift

@@ -3,22 +3,35 @@ module strong.All where
 -- Aggregate driver for Strong System F: type-checking this module
 -- type-checks the whole development.
 
+-- the core
 open import strong.Types
 open import strong.TypeSubst
-open import strong.Context
-open import strong.Weakening
-open import strong.Unfold
-open import strong.Boundary
-open import strong.BReduction
-open import strong.ScopeBridge
+open import strong.Ctx
+open import strong.Conversion
+open import strong.Terms
 open import strong.TermSubst
-open import strong.DualDef
-open import strong.BPreservation
-open import strong.Canonical
-open import strong.ProgressDef
-open import strong.Progress
+open import strong.Reduction
+
+-- the main theorems
+open import strong.Preservation
+
+-- the proof scripts
+open import strong.proof.Adversary
+open import strong.proof.MaskFacts
+open import strong.proof.IdLayer
+open import strong.proof.Preserve
+open import strong.proof.PeelDual
+open import strong.proof.PreserveObstruct
+open import strong.proof.IdPushReach
+
+-- the regression corpus and the renderer
+open import strong.Examples
 open import strong.Show
-open import strong.EvalDec
-open import strong.Eval
-open import strong.EvalLog
-open import strong.Oblig
+open import strong.proof.Canonicity
+
+-- progress (the canonical-forms suite and the theorem)
+open import strong.proof.Canonical
+open import strong.Progress
+
+-- the wall: the RepWf invariant, the dual's locks, and the scoping fact
+open import strong.proof.WallReach

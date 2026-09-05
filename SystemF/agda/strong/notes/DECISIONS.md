@@ -2006,3 +2006,43 @@ be owners+names-only (the no-⊕ test).  Probe in flight: T₆ runs to 7;
 stacked id-layers; the mask-jam analysis for ⊳; whether R1 (vacuous
 instantiation) earns a place as companion; the door-closing on naked
 id-drop (the context conjunct).
+
+## THE ID-LAYER PROBE VERDICT (notes/probes/IdLayerProbe.agda, 2026-09-05)
+
+IdAbsorb's SHAPE (Active c premise) is right; its operator ⊳ is not.
+Machine-checked: T₆ runs to 7 under IdAbsorb, and the id-base branch of
+Active is vacuous (outer-id-base-untypeable — unseal is the only active
+face the rule meets; the inner face must be spelled id (` X)).  BUT ⊳
+has two failure modes: Jam #2 (Tᵣ, typed and stuck) — an id-layer whose
+skeleton carries a rep naming Θ₂'s owner: the merge equations fail and
+the only repair is substituting reps into reps — REP ARITHMETIC, i.e.
+⊕ REGROWN.  Fails the no-⊕ test.  Jam #1 (Tₘ) — ⊳ computes both spines
+correctly yet Bwf refuses: Bwf is not compositional (entries checked
+against the plain exterior, not the spine the earlier entries build).
+
+THE RECOMMENDED ALTERNATIVE — IdPush, IdAbsorb's degenerate form with
+⊳ deleted (same LHS, same methodology, both frames untouched):
+
+    IdPush : Value V → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+                     -→ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫
+
+No merge equations ever arise; idpush-name proves typing FORCES
+X ≡ nrev Θ₁ + Y (the pushed name is already written in the id face); it
+runs T₆ AND both of ⊳'s adversaries (run-Tᵣ-push, push-Tₘ); each step
+moves the active face one layer inward toward the seal, so it
+terminates.  R1 (vacuous TyBeta) = optional hygiene only (TyPeel mints
+the same layers regardless); R2 (deep Cancel) dead; naked drop sound
+only at Θ ≡ [] (drop-empty-frame).  AWAITING JEREMY: IdPush vs
+pay-for-⊳ (compositional Bwf + an owners-exterior-readable discipline).
+
+THREE MINI-CORE BUGS the probing surfaced (repairs for the restructure):
+1. Cancel's residue maskOwns (nrev Θ₂) masks exterior slots that need
+   not exist (¬Bwf-cancelTm-residue); CancelR (drop maskOwns) types on
+   every instance.  Also Cancel's single name X presumes nrev Θ₁ ≡ 0.
+2. TyPeel does not shift its type annotation: repair
+   ·[ renameᵗ (extᵗ suc) B , ` 0 ] (TyPeelR).
+3. V-Λ lacks the Value premise (v1's G-Λ had it): Λ N is a value for
+   EVERY N while ξ-Λ reduces under Λ — value-that-steps and
+   det-already-broken are machine-checked.  REPAIR (restores Jeremy's
+   determinism law): V-Λ : Value N → Value (Λ N).  With that fix and
+   either new rule, no new overlaps (IdAbsorb≢Cancel etc.).

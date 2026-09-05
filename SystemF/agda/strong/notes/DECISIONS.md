@@ -1906,3 +1906,21 @@ faces become spine-dependent, so the ⊢renameᵀ/⊢retag transport analogs
 must be probed FIRST (mitigation: lookup is by slot identity along the
 spine, which renamings move coherently — the inverse of D1's refuted
 spelled-copies).  ConversionBoundaryProbe launched with this mandate.
+
+### Redesign — split term constructors (Jeremy, 2026-09-05)
+
+"Should we create a different term constructor for the outermost reveal,
+that stores the rep type, then another for conceals, and another for
+inner reveals?"  Adopted into the probe mandate.  Assessment: this makes
+OWNERSHIP A SYNTACTIC INVARIANT (the rep field exists only on the owner
+constructor — R1's one-spelling-per-variable enforced by the grammar);
+the constructors pair one-to-one with the Conversion forms (owner ↔
+unseal-at-owner, conceal ↔ seal, alias ↔ id) so the face witness may be
+derivable from the constructor itself; the entry-list machinery
+(revs/cmax/shiftReps/swapᵇ) should disappear into ordinary de Bruijn
+binder discipline; Cancel becomes an adjacent-pair syntactic rule with
+no composite/⊕ notion at all; duals mint only rep-free constructors.
+Simultaneity note: nesting single-purpose constructors is sequential,
+but the keep-simultaneity ruling concerned SIBLING REP interference in
+one multi-entry boundary — with at most one rep per constructor there
+are no siblings; the probe reports if any interference reappears.

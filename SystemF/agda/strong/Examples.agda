@@ -596,3 +596,171 @@ _ = refl
 
 _ : intC (dual Θ★) (intC Θ★ Γ★) ≡ blk (bind (` 0)) ∷ Γ★
 _ = refl
+
+------------------------------------------------------------------------
+-- §6  THE FIRST END-TO-END RUN — a CLOSED, PLAIN source program
+------------------------------------------------------------------------
+
+-- Every earlier section starts from a term that already carries boundaries.
+-- This one starts from ORDINARY SYSTEM F: no wrapper, no context morphism,
+-- no conversion, typed at the EMPTY type context and the EMPTY term
+-- context.  Every boundary below is MINTED BY REDUCTION, and the run ends
+-- at a value.
+--
+--   P₀ = (ΛX. λx:X. x) [ℕ] · 7   ↦*   7
+--
+-- The five rules it exercises, in order:
+--   TyBeta  — the boundary is BORN, at the owner X := ℕ
+--   Peel    — the crossing: the argument 7 acquires the DUAL
+--   Beta    — the ordinary β step, i.e. ⊢subst (strong.TermSubst)
+--   CancelR — the seal/unseal pair, minted by TyBeta and Peel, annihilates
+--   Drop$   — the surviving base face over a numeral is dropped
+
+polyid : Term
+polyid = Λ (ƛ (` 0) ∙ (` 0))
+
+⊢polyid : [] ∣ [] ⊢ polyid ⦂ `∀ (` 0 ⇒ ` 0)
+⊢polyid = ⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a)) (⊢` here))
+
+P₀ : Term
+P₀ = (polyid ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+
+⊢P₀ : [] ∣ [] ⊢ P₀ ⦂ `ℕ
+⊢P₀ = ⊢· (⊢·[] ⊢polyid wf-ℕ) ⊢$
+
+-- ── STEP 1 — TYBETA.  The ∀-elimination mints THE OWNER of the event and
+-- derives its face from the body type: `unsealAt 0 (X⇒X)` is the ↦-pair
+-- that seals on the domain and unseals on the codomain.
+
+_ : unsealAt 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
+_ = refl
+
+P₁ : Term
+P₁ = ((ƛ (` 0) ∙ (` 0)) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
+
+step₁ : [] ⊢ P₀ -→ P₁
+step₁ = ξ-·-l (TyBeta V-ƛ)
+
+⊢fn₁ : [] ∣ [] ⊢ (ƛ (` 0) ∙ (` 0)) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫
+         ⦂ (`ℕ ⇒ `ℕ)
+⊢fn₁ = env {p = ↑ˢ} (bw-b wf-ℕ bw[])
+           (⊢ƛ (wf-var (bind `ℕ , ez , vis-b)) (⊢` here))
+           (conv-fun (conv-seal ez) (conv-unseal ez))
+           (wf-⇒ wf-ℕ wf-ℕ)
+
+⊢P₁ : [] ∣ [] ⊢ P₁ ⦂ `ℕ
+⊢P₁ = ⊢· ⊢fn₁ ⊢$
+
+-- ── STEP 2 — PEEL.  The application is pushed one layer in and the argument
+-- acquires the DUAL: one `lock` per owner of the crossed boundary and
+-- nothing else.  Its face is `s`, the ↦'s domain component, transplanted
+-- VERBATIM — the dual's face type context IS the crossed boundary's.
+
+_ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
+_ = refl
+
+_ : fceC (dual (bind `ℕ ∷ [])) (intC (bind `ℕ ∷ []) [])
+      ≡ fceC (bind `ℕ ∷ []) []
+_ = refl
+
+P₂ : Term
+P₂ = ((ƛ (` 0) ∙ (` 0)) · (($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫))
+       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+
+step₂ : [] ⊢ P₁ -→ P₂
+step₂ = Peel V-ƛ V-$
+
+-- the crossing argument, typed INSIDE: 7 is sealed at the new owner, so the
+-- interior sees it at the abstract name X.
+⊢arg₂ : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0
+⊢arg₂ = env {p = ↓ˢ} (bw-l (bind `ℕ , ez , vis-b) bw[]) ⊢$
+            (conv-seal ez) (wf-var (bind `ℕ , ez , vis-b))
+
+⊢P₂ : [] ∣ [] ⊢ P₂ ⦂ `ℕ
+⊢P₂ = env {p = ↑ˢ} (bw-b wf-ℕ bw[])
+          (⊢· (⊢ƛ (wf-var (bind `ℕ , ez , vis-b)) (⊢` here)) ⊢arg₂)
+          (conv-unseal ez) wf-ℕ
+
+-- ── STEP 3 — BETA, under the boundary.  This is the step ⊢subst pays for:
+-- the contractum's typing below is `preserve-Beta` (strong.TermSubst),
+-- i.e. ⊢subst applied to the interior redex.
+
+P₃ : Term
+P₃ = (($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+
+_ : (` 0) [ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ]ᵐ
+      ≡ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫
+_ = refl
+
+step₃ : [] ⊢ P₂ -→ P₃
+step₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
+
+⊢P₃-in : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0
+⊢P₃-in = preserve-Beta
+           (⊢· (⊢ƛ (wf-var (bind `ℕ , ez , vis-b)) (⊢` here)) ⊢arg₂)
+
+⊢P₃ : [] ∣ [] ⊢ P₃ ⦂ `ℕ
+⊢P₃ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
+
+-- ── STEP 4 — CANCEL.  The seal minted by Peel and the unseal minted by
+-- TyBeta are now adjacent and cite THE SAME ENTRY, so the face match is
+-- definitional; the residue is the identity at the LOOKED-UP rep.
+
+P₄ : Term
+P₄ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+
+step₄ : [] ⊢ P₃ -→ P₄
+step₄ = CancelR V-$ ez
+
+⊢P₄ : [] ∣ [] ⊢ P₄ ⦂ `ℕ
+⊢P₄ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+
+-- ── STEP 5 — DROP$, and the whole run.
+
+step₅ : [] ⊢ P₄ -→ $ 7
+step₅ = Drop$ base-ℕ
+
+run-P₀ : [] ⊢ P₀ -→* $ 7
+run-P₀ = step₁ then step₂ then step₃ then step₄ then step₅ then done
+
+val-P₀ : Value ($ 7)
+val-P₀ = V-$
+
+------------------------------------------------------------------------
+-- §7  Two regressions on substᵐ itself
+------------------------------------------------------------------------
+
+-- ── the Λ clause: an image is TYPE-SHIFTED past the new Λ-bound slot ────
+-- Under a Λ the term context is ⤊ Γ, so a term written over Δ must have its
+-- boundary NAMES shifted before it is planted inside.  Here `seal 0` becomes
+-- `seal 1` — and it must, since slot 0 inside the Λ is `abst`, where
+-- `conv-seal` has no owner to cite.
+
+Δₛ : Ctxᵗ
+Δₛ = bind `ℕ ∷ []
+
+Wₛ Nₛ : Term
+Wₛ = ($ 7) ⟪ [] , seal 0 ⟫
+Nₛ = Λ (` 0)
+
+⊢Wₛ : Δₛ ∣ [] ⊢ Wₛ ⦂ ` 0
+⊢Wₛ = env {p = ↓ˢ} bw[] ⊢$ (conv-seal ez) (wf-var (bind `ℕ , ez , vis-b))
+
+⊢Nₛ : Δₛ ∣ (` 0 ∷ []) ⊢ Nₛ ⦂ `∀ (` 1)
+⊢Nₛ = ⊢Λ (⊢` here)
+
+_ : Nₛ [ Wₛ ]ᵐ ≡ Λ (($ 7) ⟪ [] , seal 1 ⟫)
+_ = refl
+
+⊢Nₛ[Wₛ] : Δₛ ∣ [] ⊢ Nₛ [ Wₛ ]ᵐ ⦂ `∀ (` 1)
+⊢Nₛ[Wₛ] = ⊢subst ⊢Nₛ ⊢Wₛ
+
+-- ── the ƛ clause: `shiftᵐ` protects the ƛ-bound slot ───────────────────
+-- `extᵐ` weakens an image by ONE TERM VARIABLE, so the image's own binders
+-- must be skipped: the substituted identity keeps naming its own argument.
+
+_ : (ƛ `ℕ ∙ (` 1)) [ ƛ `ℕ ∙ (` 0) ]ᵐ ≡ ƛ `ℕ ∙ (ƛ `ℕ ∙ (` 0))
+_ = refl
+
+_ : [] ∣ [] ⊢ (ƛ `ℕ ∙ (` 1)) [ ƛ `ℕ ∙ (` 0) ]ᵐ ⦂ (`ℕ ⇒ (`ℕ ⇒ `ℕ))
+_ = ⊢subst (⊢ƛ wf-ℕ (⊢` (there here))) (⊢ƛ wf-ℕ (⊢` here))

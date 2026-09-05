@@ -5,7 +5,7 @@ module strong.Types where
 -- Types are ordinary System F types in de Bruijn form; a type variable is a
 -- natural-number index (` X).  Renaming and (parallel) substitution are the
 -- standard operations, mirroring SystemF/agda/extrinsic/Types.agda.  Nothing
--- here knows about the marker/seal discipline — that lives in strong.Context.
+-- here knows about the owner/seal discipline — that lives in strong.Ctx.
 
 open import Data.Nat using (ℕ; zero; suc; _∸_)
 open import Data.Nat.Properties using (_≟_)

@@ -1,196 +1,208 @@
 module strong.TermSubst where
 
--- Strong System F — TERM-variable renaming and substitution preserve typing.
+-- Strong System F — SUBSTITUTION AND THE TWO TRANSPORTS.
 --
--- This is step 3c of strong/PLAN.md: the last piece needed for the Beta case of
--- preservation.  Everything here is about the TERM variables (Γₜ : Ctx); the
--- TYPE-variable side (renameᵀ / ⊢renameᵀ) lives in strong.BReduction and is
--- used here only as a black box, at the Λ case, to push a substitution under a
--- type binder.
+-- Term substitution is ordinary: boundaries are term-closed, so a wrapper is
+-- never descended into.  The interesting content is the pair of TYPE-LEVEL
+-- transports the ownership design has to pay for, and both come out cheap:
 --
--- Two things make these proofs shorter than the usual System F versions:
---
---   * A boundary wrapper is TERM-CLOSED — the (env) rule types its body at the
---     empty term context [] — so both renameᵀᵐ and substᵀᵐ are the IDENTITY on
---     wrappers, and the (env) case is literally `env bwf sc ⊢M` (the rule's
---     conclusion carries an arbitrary term context).
---
---   * Under a Λ the term context is shifted, ⤊ Γₜ = map ⇑ᵗ Γₜ, so a lookup in
---     the body must be pulled back through `map`.  That is `∋-map⁻`, the
---     inverse of `∋-map` from strong.BReduction.
---
--- Contents: ⊢renameᵀᵐ, ⊢substᵀᵐ, the single-substitution corollary ⊢[]ᵐ, and
--- preserve-Beta, which is the Beta preservation case ready to be wired into
--- strong.BReduction's `preservation`.
+--   ⊢rename : a spine renaming moves a whole typing derivation, with the ONE
+--             structural hypothesis `Inj ρ` (positional masking; no
+--             hypothesis mentions a representation).
+--   ⊢retag  : knowledge refinement moves a whole typing derivation with the
+--             TERM AND THE TYPE UNCHANGED — no ≈, no unfolding, no residue,
+--             because nothing on the spine is ever destroyed.
 
-open import Data.Nat using (ℕ; zero; suc; s≤s)
-open import Data.List using (List; []; _∷_; map)
-open import Data.Product using (∃; _×_; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.List using (List; []; _∷_; map; length)
+open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; cong; cong₂; trans; subst)
+
 open import strong.Types
-open import strong.Context
-  using (TCtx; abst; rvld; _⊢_; wf-var; wf-ℕ; _∋tv_; here-rvld; skip-abst;
-         _∋_:=_; Ctx; _∋_⦂_; here; there; ⤊)
-open import strong.Unfold using (≡→≈)
-open import strong.Boundary
-open import strong.BReduction
-  using (extⁿ; renameᵀᵐ; ⇑ᵀ; extsᵀᵐ; substᵀᵐ; _[_]ᵐ; Mono; ⊢renameᵀ; ∋-map;
-         hk-suc; hx-suc)
-
-------------------------------------------------------------------------
--- Pulling a lookup back through `map`
-------------------------------------------------------------------------
-
--- The inverse of ∋-map (strong.BReduction): every entry of a mapped context is
--- the image of an entry of the original.  Needed at the ⊢Λ cases below, where
--- the body's context is ⤊ Γₜ = map ⇑ᵗ Γₜ.
-∋-map⁻ : ∀ {f : Ty → Ty} {Γₜ : Ctx} {x A′}
-  → map f Γₜ ∋ x ⦂ A′
-  → ∃ λ A → (A′ ≡ f A) × (Γₜ ∋ x ⦂ A)
-∋-map⁻ {Γₜ = []}      ()
-∋-map⁻ {Γₜ = A₀ ∷ Γ₀} here      = A₀ , refl , here
-∋-map⁻ {Γₜ = A₀ ∷ Γ₀} (there p) with ∋-map⁻ p
-∋-map⁻ {Γₜ = A₀ ∷ Γ₀} (there p) | A , eq , q = A , eq , there q
-
-------------------------------------------------------------------------
--- Term-variable renaming preserves typing
-------------------------------------------------------------------------
-
--- extⁿ extends a term renaming under a ƛ.
-extⁿ-∋ : ∀ {ρ Γₜ Γₜ′ A}
-  → (∀ {x B} → Γₜ ∋ x ⦂ B → Γₜ′ ∋ ρ x ⦂ B)
-  → (∀ {x B} → (A ∷ Γₜ) ∋ x ⦂ B → (A ∷ Γₜ′) ∋ extⁿ ρ x ⦂ B)
-extⁿ-∋ h here      = here
-extⁿ-∋ h (there p) = there (h p)
-
--- A term renaming survives the type-context shift ⤊ imposed by a Λ: the term
--- variables are untouched, only their types are shifted, so we pull back with
--- ∋-map⁻ and push forward with ∋-map.
-⤊-∋ : ∀ {ρ : ℕ → ℕ} {Γₜ Γₜ′ : Ctx}
-  → (∀ {x B} → Γₜ ∋ x ⦂ B → Γₜ′ ∋ ρ x ⦂ B)
-  → (∀ {x B} → ⤊ Γₜ ∋ x ⦂ B → ⤊ Γₜ′ ∋ ρ x ⦂ B)
-⤊-∋ h {x} {B} p with ∋-map⁻ p
-⤊-∋ h {x} {B} p | A , refl , q = ∋-map {ρ = suc} (h q)
-
--- renameᵀᵐ is the identity on wrappers (a wrapped body is term-closed),
--- and the (env) rule's conclusion holds at an arbitrary term context, so
--- that case just rebuilds the derivation.
-⊢renameᵀᵐ : ∀ {ρ Δ Γₜ Γₜ′ M A}
-  → (∀ {x B} → Γₜ ∋ x ⦂ B → Γₜ′ ∋ ρ x ⦂ B)
-  → Δ ∣ Γₜ ⊢ M ⦂ A
-  → Δ ∣ Γₜ′ ⊢ renameᵀᵐ ρ M ⦂ A
-⊢renameᵀᵐ h (⊢` p)          = ⊢` (h p)
-⊢renameᵀᵐ h ⊢$              = ⊢$
-⊢renameᵀᵐ h (⊢ƛ wfA ⊢N)     = ⊢ƛ wfA (⊢renameᵀᵐ (extⁿ-∋ h) ⊢N)
-⊢renameᵀᵐ h (⊢· ⊢L ⊢M)      = ⊢· (⊢renameᵀᵐ h ⊢L) (⊢renameᵀᵐ h ⊢M)
-⊢renameᵀᵐ h (⊢Λ ⊢N)         = ⊢Λ (⊢renameᵀᵐ (⤊-∋ h) ⊢N)
-⊢renameᵀᵐ h (⊢·[] ⊢L wfA)   = ⊢·[] (⊢renameᵀᵐ h ⊢L) wfA
-⊢renameᵀᵐ h (env bwf sc ⊢M) = env bwf sc ⊢M
-
-------------------------------------------------------------------------
--- Term-variable substitution preserves typing
-------------------------------------------------------------------------
-
--- The weakening renaming `suc` is strictly monotone, which is what ⊢renameᵀ
--- demands of a TYPE renaming (boundary renaming depends on index order).
-Mono-suc : Mono suc
-Mono-suc a<b = s≤s a<b
-
--- Disambiguates the _∋tv_ constructor from the like-named _∋_:=_ one when
--- it is handed to ⊢renameᵀ as its lookup premise.
-∋tv-suc : ∀ {Δ : TCtx} {X} → Δ ∋tv X → (abst ∷ Δ) ∋tv suc X
-∋tv-suc p = skip-abst p
-
--- extsᵀᵐ extends a term substitution under a ƛ: the new variable maps to
--- itself and the old images are weakened by ⊢renameᵀᵐ.
-extsᵀᵐ-⊢ : ∀ {σ Δ Γₜ Γₜ′ A}
-  → (∀ {x B} → Γₜ ∋ x ⦂ B → Δ ∣ Γₜ′ ⊢ σ x ⦂ B)
-  → (∀ {x B} → (A ∷ Γₜ) ∋ x ⦂ B → Δ ∣ (A ∷ Γₜ′) ⊢ extsᵀᵐ σ x ⦂ B)
-extsᵀᵐ-⊢ h here      = ⊢` here
-extsᵀᵐ-⊢ h (there p) = ⊢renameᵀᵐ there (h p)
-
--- Pushing a term substitution under a Λ:  substᵀᵐ σ (Λ N) is
--- Λ (substᵀᵐ (λ x → ⇑ᵀ (σ x)) N), so every image must be shifted by the
--- TYPE-variable weakening ⇑ᵀ = renameᵀ suc.
--- That is ⊢renameᵀ at ρ = suc (used as a black box), whose Mono premise is
--- Mono-suc, whose lookup premise is skip-abst, and whose KNOWLEDGE-transport
--- premise (new: the reversal-form conceal rule reads the exterior's ∋:=) is
--- hk-suc — restrictRen X suc is pointwise the identity, so the rep is
--- carried across unchanged — and whose EXTERIOR-READ transport (in its
--- SkelX form, since the repaired (bwf-↓x) compares the two reps by
--- skeleton) is hx-suc: weakening does not touch a stored entry, so the
--- x-rep is carried across verbatim (only the lookup index shifts) and its
--- skeleton witness is skel-refl.
-⇑ᵀ-⊢ : ∀ {σ : ℕ → Term} {Δ Γₜ Γₜ′}
-  → (∀ {x B} → Γₜ ∋ x ⦂ B → Δ ∣ Γₜ′ ⊢ σ x ⦂ B)
-  → (∀ {x B} → ⤊ Γₜ ∋ x ⦂ B → (abst ∷ Δ) ∣ ⤊ Γₜ′ ⊢ ⇑ᵀ (σ x) ⦂ B)
-⇑ᵀ-⊢ h {x} {B} p with ∋-map⁻ p
-⇑ᵀ-⊢ h {x} {B} p | A , refl , q =
-  ⊢renameᵀ ∋tv-suc Mono-suc hk-suc hx-suc (h q)
-
--- As for renaming, substᵀᵐ is the identity on wrappers, so (env) is rebuilt.
-⊢substᵀᵐ : ∀ {σ Δ Γₜ Γₜ′ N B}
-  → (∀ {x A} → Γₜ ∋ x ⦂ A → Δ ∣ Γₜ′ ⊢ σ x ⦂ A)
-  → Δ ∣ Γₜ ⊢ N ⦂ B
-  → Δ ∣ Γₜ′ ⊢ substᵀᵐ σ N ⦂ B
-⊢substᵀᵐ h (⊢` p)          = h p
-⊢substᵀᵐ h ⊢$              = ⊢$
-⊢substᵀᵐ h (⊢ƛ wfA ⊢N)     = ⊢ƛ wfA (⊢substᵀᵐ (extsᵀᵐ-⊢ h) ⊢N)
-⊢substᵀᵐ h (⊢· ⊢L ⊢M)      = ⊢· (⊢substᵀᵐ h ⊢L) (⊢substᵀᵐ h ⊢M)
-⊢substᵀᵐ h (⊢Λ ⊢N)         = ⊢Λ (⊢substᵀᵐ (⇑ᵀ-⊢ h) ⊢N)
-⊢substᵀᵐ h (⊢·[] ⊢L wfA)   = ⊢·[] (⊢substᵀᵐ h ⊢L) wfA
-⊢substᵀᵐ h (env bwf sc ⊢M) = env bwf sc ⊢M
-
-------------------------------------------------------------------------
--- Single substitution and the Beta preservation step
-------------------------------------------------------------------------
-
--- N [ W ]ᵐ substitutes W for the outermost term variable.  Its environment
--- sends zero to W and suc x to ` x, so the lookup hypothesis is exactly the
--- two-case function below.
-⊢[]ᵐ : ∀ {Δ Γₜ N W A B}
-  → Δ ∣ (A ∷ Γₜ) ⊢ N ⦂ B
-  → Δ ∣ Γₜ ⊢ W ⦂ A
-  → Δ ∣ Γₜ ⊢ N [ W ]ᵐ ⦂ B
-⊢[]ᵐ ⊢N ⊢W = ⊢substᵀᵐ (λ { here → ⊢W ; (there p) → ⊢` p }) ⊢N
-
--- Beta preservation.  (⊢·) is the only rule that can conclude an application —
--- (env) concludes a wrapper — so the inversion is a single clause.
-preserve-Beta : ∀ {Δ Γₜ N W A B}
-  → Δ ∣ Γₜ ⊢ (ƛ A ∙ N) · W ⦂ B
-  → Δ ∣ Γₜ ⊢ N [ W ]ᵐ ⦂ B
-preserve-Beta (⊢· (⊢ƛ _ ⊢N) ⊢W) = ⊢[]ᵐ ⊢N ⊢W
-
-------------------------------------------------------------------------
--- Sanity checks
-------------------------------------------------------------------------
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ)
+open import strong.TypeSubst using (rename-[]ᵗ-commute)
+open import strong.Ctx
+open import strong.Conversion
+open import strong.Terms
 
 private
-  -- (λx:ℕ. x) · 5  ↦  5 : the substitution really produces $ 5.
-  _ : [] ∣ [] ⊢ $ 5 ⦂ `ℕ
-  _ = ⊢[]ᵐ {A = `ℕ} (⊢` here) ⊢$
+  variable
+    Δ Δ′ : Ctxᵗ
+    ρ : Renameᵗ
 
-  _ : [] ∣ [] ⊢ $ 5 ⦂ `ℕ
-  _ = preserve-Beta (⊢· (⊢ƛ wf-ℕ (⊢` here)) ⊢$)
+------------------------------------------------------------------------
+-- 1.  Renaming boundaries and terms
+------------------------------------------------------------------------
 
-  -- The wrapper-identity case.  Δ₁ reveals X:=ℕ; W₁ is Boundary's Example 1,
-  -- the value 7 wrapped in the conceal ↓X:=ℕ, so W₁ : X externally.
-  Δ₁ : TCtx
-  Δ₁ = rvld `ℕ ∷ []
+renᴮ : Renameᵗ → BCtx → BCtx
+renᴮ ρ []          = []
+renᴮ ρ (own A ∷ Θ) = own (renameᵗ ρ A) ∷ renᴮ ρ Θ
+renᴮ ρ (ali X ∷ Θ) = ali (ρ X) ∷ renᴮ ρ Θ
+renᴮ ρ (cnc X ∷ Θ) = cnc (ρ X) ∷ renᴮ ρ Θ
 
-  W₁ : Term
-  W₁ = ($ 7) ⟪ cnc 0 `ℕ ∷ [] , ` 0 ⟫
+reps-ren : (ρ : Renameᵗ) (Θ : BCtx)
+  → reps (renᴮ ρ Θ) ≡ map (renameᵗ ρ) (reps Θ)
+reps-ren ρ []          = refl
+reps-ren ρ (own A ∷ Θ) = cong (renameᵗ ρ A ∷_) (reps-ren ρ Θ)
+reps-ren ρ (ali X ∷ Θ) = reps-ren ρ Θ
+reps-ren ρ (cnc X ∷ Θ) = reps-ren ρ Θ
 
-  ⊢W₁ : Δ₁ ∣ [] ⊢ W₁ ⦂ ` 0
-  ⊢W₁ = env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$
+nrev-ren : (ρ : Renameᵗ) (Θ : BCtx) → nrev (renᴮ ρ Θ) ≡ nrev Θ
+nrev-ren ρ Θ =
+  trans (cong length (reps-ren ρ Θ)) (map-length (renameᵗ ρ) (reps Θ))
 
-  -- Substituting W₁ under a ƛ: the body's occurrence sits at index 1, so
-  -- extsᵀᵐ weakens W₁ by renameᵀᵐ suc — which is the IDENTITY on wrappers.
-  -- Hence the contractum is ƛ ℕ ∙ W₁, with W₁ unchanged.
-  _ : Δ₁ ∣ [] ⊢ ƛ `ℕ ∙ W₁ ⦂ (`ℕ ⇒ ` 0)
-  _ = ⊢[]ᵐ (⊢ƛ wf-ℕ (⊢` (there here))) ⊢W₁
+renᴹ : Renameᵗ → Term → Term
+renᴹ ρ (` x)          = ` x
+renᴹ ρ ($ n)          = $ n
+renᴹ ρ (ƛ A ∙ N)      = ƛ renameᵗ ρ A ∙ renᴹ ρ N
+renᴹ ρ (L · M)        = renᴹ ρ L · renᴹ ρ M
+renᴹ ρ (Λ N)          = Λ (renᴹ (extᵗ ρ) N)
+renᴹ ρ (L ·[ B , A ]) = renᴹ ρ L ·[ renameᵗ (extᵗ ρ) B , renameᵗ ρ A ]
+renᴹ ρ (M ⟪ Θ , c ⟫)  =
+  renᴹ (extN (nrev Θ) ρ) M ⟪ renᴮ ρ Θ , renᶜ (extN (nrev Θ) ρ) c ⟫
 
-  -- and the same contractum as a Beta step from (λy:X. λx:ℕ. y) · W₁
-  _ : Δ₁ ∣ [] ⊢ ƛ `ℕ ∙ W₁ ⦂ (`ℕ ⇒ ` 0)
-  _ = preserve-Beta
-        (⊢· (⊢ƛ (wf-var here-rvld) (⊢ƛ wf-ℕ (⊢` (there here)))) ⊢W₁)
+-- The weakening a crossing argument undergoes: the boundary's frame grew by
+-- `nrev Θ` binders, so the argument's ANNOTATIONS shift.  Ordinary de Bruijn
+-- weakening, not a re-spelling.
+wkN : ℕ → Renameᵗ
+wkN n X = n + X
+
+wkᴹ : ℕ → Term → Term
+wkᴹ n = renᴹ (wkN n)
+
+Inj-wkN : (n : ℕ) → Inj (wkN n)
+Inj-wkN zero    eq = eq
+Inj-wkN (suc n) eq = Inj-wkN n (Inj-suc eq)
+
+------------------------------------------------------------------------
+-- 2.  The spine operations transport (the structural half)
+------------------------------------------------------------------------
+
+ren-scp : (Θ : BCtx) → Ren ρ Δ Δ′ → Inj ρ
+        → Ren ρ (scp Θ Δ) (scp (renᴮ ρ Θ) Δ′)
+ren-scp []          r i = r
+ren-scp (own A ∷ Θ) r i = ren-scp Θ r i
+ren-scp (ali X ∷ Θ) r i = ren-unmask (ren-scp Θ r i) i
+ren-scp (cnc X ∷ Θ) r i = ren-mask (ren-scp Θ r i) i
+
+ren-fscp : (Θ : BCtx) → Ren ρ Δ Δ′ → Inj ρ
+         → Ren ρ (fscp Θ Δ) (fscp (renᴮ ρ Θ) Δ′)
+ren-fscp []          r i = r
+ren-fscp (own A ∷ Θ) r i = ren-fscp Θ r i
+ren-fscp (ali X ∷ Θ) r i = ren-unmask (ren-fscp Θ r i) i
+ren-fscp (cnc X ∷ Θ) r i = ren-fscp Θ r i
+
+ren-intC : (Θ : BCtx) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
+  → Ren (extN (nrev Θ) ρ) (intC Θ Δ) (intC (renᴮ ρ Θ) Δ′)
+ren-intC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-scp Θ r i)
+
+ren-fceC : (Θ : BCtx) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
+  → Ren (extN (nrev Θ) ρ) (fceC Θ Δ) (fceC (renᴮ ρ Θ) Δ′)
+ren-fceC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-fscp Θ r i)
+
+Bwf-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → Bwf Δ Θ → Bwf Δ′ (renᴮ ρ Θ)
+Bwf-ren r i bw[]        = bw[]
+Bwf-ren r i (bw-o w b)  = bw-o (wf-ren r w) (Bwf-ren r i b)
+Bwf-ren r i (bw-c tv b) = bw-c (ren-tv r tv) (Bwf-ren r i b)
+Bwf-ren r i (bw-a d b)  = bw-a (ren∋ r d) (Bwf-ren r i b)
+
+------------------------------------------------------------------------
+-- 3.  THE RENAMING TRANSPORT
+------------------------------------------------------------------------
+
+renΓ : Renameᵗ → Ctx → Ctx
+renΓ ρ Γ = map (renameᵗ ρ) Γ
+
+∋⦂-ren : ∀ {Γ x A} (ρ : Renameᵗ) → Γ ∋ x ⦂ A → renΓ ρ Γ ∋ x ⦂ renameᵗ ρ A
+∋⦂-ren ρ here      = here
+∋⦂-ren ρ (there d) = there (∋⦂-ren ρ d)
+
+⤊-ren : (ρ : Renameᵗ) (Γ : Ctx) → ⤊ (renΓ ρ Γ) ≡ renΓ (extᵗ ρ) (⤊ Γ)
+⤊-ren ρ []      = refl
+⤊-ren ρ (A ∷ Γ) = cong₂ _∷_ (sym (ren-⇑-comm ρ A)) (⤊-ren ρ Γ)
+
+⊢rename : ∀ {Δ Δ′ Γ M A ρ}
+  → Ren ρ Δ Δ′ → Inj ρ
+  → Δ  ∣ Γ ⊢ M ⦂ A
+    ------------------------------------------------
+  → Δ′ ∣ renΓ ρ Γ ⊢ renᴹ ρ M ⦂ renameᵗ ρ A
+⊢rename {ρ = ρ} r i (⊢` d)   = ⊢` (∋⦂-ren ρ d)
+⊢rename r i ⊢$               = ⊢$
+⊢rename r i (⊢ƛ w ⊢N)        = ⊢ƛ (wf-ren r w) (⊢rename r i ⊢N)
+⊢rename r i (⊢· ⊢L ⊢M)       = ⊢· (⊢rename r i ⊢L) (⊢rename r i ⊢M)
+⊢rename {Γ = Γ} {ρ = ρ} r i (⊢Λ ⊢N) =
+  ⊢Λ (subst (λ Γ′ → _ ∣ Γ′ ⊢ _ ⦂ _) (sym (⤊-ren ρ Γ))
+            (⊢rename (ren-ext r) (Inj-ext i) ⊢N))
+⊢rename {ρ = ρ} r i (⊢·[] {A = A} {B = B} ⊢L w)
+  rewrite rename-[]ᵗ-commute ρ B A =
+  ⊢·[] (⊢rename r i ⊢L) (wf-ren r w)
+⊢rename {Δ′ = Δ′} {ρ = ρ} r i
+        (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} {p = p} bw ⊢M ⊢c wE) =
+  env (Bwf-ren r i bw)
+      (⊢rename (ren-intC Θ ρ r i) (Inj-extN (nrev Θ) i) ⊢M)
+      cprem
+      (wf-ren r wE)
+  where
+  cprem : fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nrev Θ) ρ) c
+            ∶ renameᵗ (extN (nrev Θ) ρ) Bᵢ
+            ⇝ liftN (nrev (renᴮ ρ Θ)) (renameᵗ ρ Bₑ) ∙ p
+  cprem = subst (λ n → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nrev Θ) ρ) c
+                         ∶ renameᵗ (extN (nrev Θ) ρ) Bᵢ
+                         ⇝ liftN n (renameᵗ ρ Bₑ) ∙ p)
+                (sym (nrev-ren ρ Θ))
+                (subst (λ t → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nrev Θ) ρ) c
+                                ∶ renameᵗ (extN (nrev Θ) ρ) Bᵢ ⇝ t ∙ p)
+                       (liftN-ren (nrev Θ) ρ Bₑ)
+                       (conv-ren (ren-fceC Θ ρ r i) ⊢c))
+
+------------------------------------------------------------------------
+-- 4.  THE RETAGGING TRANSPORT
+------------------------------------------------------------------------
+
+⊢retag : ∀ {Δ Δ′ Γ M A}
+  → Δ ⊑ Δ′
+  → Δ  ∣ Γ ⊢ M ⦂ A
+    ---------------
+  → Δ′ ∣ Γ ⊢ M ⦂ A
+⊢retag ls (⊢` d)       = ⊢` d
+⊢retag ls ⊢$           = ⊢$
+⊢retag ls (⊢ƛ w ⊢N)    = ⊢ƛ (⊑-wf ls w) (⊢retag ls ⊢N)
+⊢retag ls (⊢· ⊢L ⊢M)   = ⊢· (⊢retag ls ⊢L) (⊢retag ls ⊢M)
+⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (le∷ le-aa ls) ⊢N)
+⊢retag ls (⊢·[] ⊢L w)  = ⊢·[] (⊢retag ls ⊢L) (⊑-wf ls w)
+⊢retag ls (env {Θ = Θ} bw ⊢M ⊢c wE) =
+  env (Bwf-⊑ ls bw)
+      (⊢retag (⊑-intC Θ ls) ⊢M)
+      (conv-⊑ (⊑-fceC Θ ls) ⊢c)
+      (⊑-wf ls wE)
+
+------------------------------------------------------------------------
+-- 5.  Term substitution
+------------------------------------------------------------------------
+
+shiftᵐ : Term → Term
+shiftᵐ (` x)          = ` suc x
+shiftᵐ ($ n)          = $ n
+shiftᵐ (ƛ A ∙ N)      = ƛ A ∙ shiftᵐ N
+shiftᵐ (L · M)        = shiftᵐ L · shiftᵐ M
+shiftᵐ (Λ N)          = Λ (shiftᵐ N)
+shiftᵐ (L ·[ B , A ]) = shiftᵐ L ·[ B , A ]
+shiftᵐ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
+
+extᵐ : (ℕ → Term) → (ℕ → Term)
+extᵐ σ zero    = ` zero
+extᵐ σ (suc x) = shiftᵐ (σ x)
+
+substᵐ : (ℕ → Term) → Term → Term
+substᵐ σ (` x)          = σ x
+substᵐ σ ($ n)          = $ n
+substᵐ σ (ƛ A ∙ N)      = ƛ A ∙ substᵐ (extᵐ σ) N
+substᵐ σ (L · M)        = substᵐ σ L · substᵐ σ M
+substᵐ σ (Λ N)          = Λ (substᵐ σ N)
+substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
+substᵐ σ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
+
+infix 8 _[_]ᵐ
+_[_]ᵐ : Term → Term → Term
+N [ W ]ᵐ = substᵐ (λ { zero → W ; (suc x) → ` x }) N

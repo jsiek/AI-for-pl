@@ -1843,3 +1843,30 @@ BoundarySurvey.md.  Because synthesis needs no typability, the
 instrument keeps reporting through the ill-typed states after the §9n
 break — the obligation rows there ARE the requirements spec the redesign
 must meet.
+
+## Jeremy's Questions
+
+The next step is to turn this data into advice regarding the design of
+the boundaries. 
+
+* For example, we're having a lot of trouble propagating the
+  representation types. Should we instead only store the
+  representation type with the outermost reveal and perform lookup to
+  access it from the inner boundaries associated with the same type
+  variable?
+
+* What about the simultaneous aspect of the design? Is that holding up
+  or should be go back to a sequential/telescopic treatment?
+  Something that we have not yet explored is using the notion of
+  Conversion (see GTSF/Conversion.agda) for relating the interior face
+  to the exterior face of a boundary. It seems Conversion by itself
+  cannot explain the scoping of type variables in the terms, but
+  perhaps it would still be useful.
+
+* As we think about all of this, the load bearing thing is that when
+  we cancel a matching conceal and reveal (or in Conversion terms, a
+  seal and unseal), we need to know that the interior and exterior
+  face types match, otherwise we have a preservation problem.
+
+In addition to those design questions, are there other aspects of the
+design that we should think about changing?

@@ -301,14 +301,19 @@ canon-wkᴹ n cM = canon-renᴹ (wkN n) cM
 CanonSub : (ℕ → Term) → Set
 CanonSub σ = ∀ x → CanonTm (σ x)
 
+-- Term-variable renaming touches no conversion (a wrapper is
+-- term-closed), so canonicity passes through renⁿ unconditionally.
+canon-renⁿ : (ρ : ℕ → ℕ) → CanonTm M → CanonTm (renⁿ ρ M)
+canon-renⁿ ρ ct-var        = ct-var
+canon-renⁿ ρ ct-lit        = ct-lit
+canon-renⁿ ρ (ct-ƛ cN)     = ct-ƛ (canon-renⁿ (extⁿ ρ) cN)
+canon-renⁿ ρ (ct-· cL cM)  = ct-· (canon-renⁿ ρ cL) (canon-renⁿ ρ cM)
+canon-renⁿ ρ (ct-Λ cN)     = ct-Λ (canon-renⁿ ρ cN)
+canon-renⁿ ρ (ct-·[] cL)   = ct-·[] (canon-renⁿ ρ cL)
+canon-renⁿ ρ (ct-⟪⟫ cM cc) = ct-⟪⟫ cM cc
+
 canon-shiftᵐ : CanonTm M → CanonTm (shiftᵐ M)
-canon-shiftᵐ ct-var        = ct-var
-canon-shiftᵐ ct-lit        = ct-lit
-canon-shiftᵐ (ct-ƛ cN)     = ct-ƛ (canon-shiftᵐ cN)
-canon-shiftᵐ (ct-· cL cM)  = ct-· (canon-shiftᵐ cL) (canon-shiftᵐ cM)
-canon-shiftᵐ (ct-Λ cN)     = ct-Λ (canon-shiftᵐ cN)
-canon-shiftᵐ (ct-·[] cL)   = ct-·[] (canon-shiftᵐ cL)
-canon-shiftᵐ (ct-⟪⟫ cM cc) = ct-⟪⟫ cM cc
+canon-shiftᵐ = canon-renⁿ suc
 
 canon-extᵐ : CanonSub σ → CanonSub (extᵐ σ)
 canon-extᵐ cσ zero    = ct-var
@@ -320,7 +325,8 @@ canon-substᵐ cσ ct-lit           = ct-lit
 canon-substᵐ cσ (ct-ƛ cN)        = ct-ƛ (canon-substᵐ (canon-extᵐ cσ) cN)
 canon-substᵐ cσ (ct-· cL cM)     =
   ct-· (canon-substᵐ cσ cL) (canon-substᵐ cσ cM)
-canon-substᵐ cσ (ct-Λ cN)        = ct-Λ (canon-substᵐ cσ cN)
+canon-substᵐ cσ (ct-Λ cN)        =
+  ct-Λ (canon-substᵐ (λ x → canon-renᴹ suc (cσ x)) cN)
 canon-substᵐ cσ (ct-·[] cL)      = ct-·[] (canon-substᵐ cσ cL)
 canon-substᵐ cσ (ct-⟪⟫ cM cc)    = ct-⟪⟫ cM cc
 

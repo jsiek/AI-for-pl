@@ -2079,3 +2079,36 @@ REPAIR (5) CONFIRMED: TyBeta carries `Value N` — the fifth determinism
 repair (TyBeta vs ξ-·[]⨟ξ-Λ was a genuine overlap; mirrors Beta;
 positive witness run-Ωt).  With it, det and values-don't-step are
 theorems of the landed v2 rule set.
+
+## v2 PRESERVATION VERDICT (2026-09-05) — FALSE as the rules stand; four rules to repair
+
+Committed 5554c6b2 (Preservation.agda + proof/Preserve.agda +
+proof/PreserveObstruct.agda).  det, values-don't-step, and PROGRESS are
+parameter-free theorems.  Preservation:
+- preservation-fails : ¬ Preservation PROVEN; the positive theorem lives
+  in `Conditional` over four refuted rule obligations.
+- PROVEN outright: TyBeta (⊢unsealAt/⊢sealAt; abst→bind retag; intC
+  (bind A ∷ []) Δ definitional), Beta, Drop$, all five ξ.  NO ⊢ᶜ Δ
+  premise needed — ⊢ᵗ-of recovers face wf from the derivation.
+- REFUTED, each with a diagnosed cause (a RULE bug, not a proof gap):
+  * Peel — `dual` is wrong: dualS maps a no-op `unlock X` to a real
+    `lock`, and it replays Θ's ops in Θ-order so a same-slot mask/unmask
+    pair fails to cancel; intC-dual is FALSE (¬intC-dual).  fceC-dual is
+    fine (refl).
+  * TyPeelR — the pushed `·[ B , ` 0 ]` must carry the INTERIOR ∀-body,
+    not the exterior B; and `renᴮ suc Θ` double-counts the new binder.
+  * CancelR — residue `reps→bind (reps Θ₂)` discards Θ₁'s whole frame
+    (and any `unlock` in Θ₂).
+  * IdPush — swapping the faces demands the owner's rep well-formed in
+    Θ₂'s interior, which a `lock` there has blocked: the c10/c11
+    chained-rep shape, resurfacing at the rule level.
+
+READ: three of the four are LOCAL rule-definition bugs (dual's flip
+logic + non-reversal; TyPeelR's annotation + shift; CancelR's residue) —
+fixable in the rules with the frames already computed by the proven
+cases.  IdPush is the one that may be a genuine DESIGN question (its
+swapped-face typing obligation is the old chained-rep shape) — probe
+whether the c10/c11 configuration is even reachable under v2's rules, or
+whether IdPush needs a scoping premise / a different contractum.  NEXT:
+repair the three local bugs, then settle IdPush by reachability probe;
+each repair is validated by instantiating `Conditional`.

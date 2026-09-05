@@ -1651,3 +1651,81 @@ Q2); if not, the repair is per-slot copy suppression in dualᴳ
 (renaming-stable form only — D1 lesson; must re-refute ⊢3n-adv) or a
 birth-time minting.  Rulings will be asked with the probes' examples on
 the table.
+
+## DECISION 7 LANDED; TWO REFUTATIONS OPEN DECISION 8 (2026-09-05)
+
+The MergeOK repair is in (component (1) = the internal-face equation,
+⊕-γ demoted to its discharge; every witness rebuilt; preservation's
+Merge case simpler; det/V-¬-→ untouched).  `merge-derivable :
+MergeRest → MergeDerivable` is PROVEN — Decision 7 closed component (1)
+for good (`mid-var` pins Y ≡ revs Θ₁ + X, `⊕-γ-var` discharges (1) with
+no side condition).  Progress's parameter shrank to `MergeRest`
+(components (2)–(5)).
+
+BUT two refutations landed the same hour, and they share a root cause.
+
+(1) `¬MergeRest` and `¬progress` (gauntlet §9m).  Δq = X:=ℕ,
+Θq2 = ↑X:=ℕ, Θq1 = ↓X:=(` 0) — the conceal's rep is spelled `X`, the
+ABSTRACT witness, licensed by bwf↓'s Reversal≈ THROUGH THE UNFOLDING
+(rev-q = ≈unf refl; the syntactic form is refuted, ¬rev-q-≡).  The pair
+cancels, and MergeOK's external-face component — stated with ≡ because
+preservation transports by subst — fails: mrgB = ` 0 vs ℕ (¬ext-q).
+The same tower with the lineage rep ℕ steps (merge-q′).  Half is
+settled: ⊕-ρ-var-kept proves the external face free in the KEPT branch;
+the CANCELLED branch is the refuted half.  So the unconditional
+progress statement is FALSE as things stand (¬progress, machine).
+
+(2) `¬DualCnc≈` and — the sharp one — `¬DualCnc≈-soundness :
+DualRep≈ → DualInt≈ → ¬ DualCnc≈` (notes/probes/DualCncProbe.agda).
+Pn refutes DualCnc≈ with the hypothesis discharged; per-slot copy
+suppression is IMPOSSIBLE as a theorem (`no-per-slot-suppression`:
+every rep-carryingly-copied slot is non-abst in Δ and ≼≈ has no
+knowledge-below-abst clause — the copy the license wants gone is the
+copy the rebuild law requires, ALWAYS the same slot); the
+claims-nothing-NEW weakening re-admits ⊢3n-adv via the same
+constructor, and the machine shows WHY nothing can work at that site:
+`Ψn≡Γz` — Pn's dual conceal and the ⊢3n-adv adversary are THE SAME
+(bwf-↓x) INSTANCE (same Γ, Ψ, Θ, X, A, A′).  The three preservation
+parameters are mutually INCONSISTENT: BPreservation.Impl as
+parameterized can never be instantiated.  The residue must not be
+attacked at DualCnc≈.
+
+THE SHARED ROOT CAUSE: reps spelled through knowledge CHAINS rather
+than resolved.  §9m's conceal rep is the abstract spelling `X` whose
+license is ≈-through-unfolding while the merge's faces demand ≡; Pn's
+reveal rep is the chained spelling `Y` whose dual re-reveals the
+knowledge rep-carryingly.  In both, the ≡/≈ gap between what bwf
+licenses (≈Δ̄, Decision 1's (a″)) and what the metatheory transports
+(subst over ≡) is the obstruction.
+
+DECISION 8 — the option space (probing before the ask is complete;
+DualRep≈/DualInt≈ agents still out, their verdicts fold in):
+(α) FACES UP TO ≈: state MergeOK's two face components (and possibly
+    the middle-type equation) with ≈Δ̄ instead of ≡, and transport
+    preservation's Merge case by a retag≈-style lemma.  Obstacle: ⊢retag≈
+    moves CONTEXTS; a type-side ≈ in the typing judgment has no
+    transport today — this road may lead to a conversion-style typing
+    rule or ≈-stated (env) faces, a deep change to Boundary.agda.
+(β) BORN-RESOLVED REPS: normalize reps THROUGH THE AMBIENT AT MINT TIME
+    (in the RULES — TyBeta/TyWrap/dualᴳ — not in the entry maps, so the
+    transports that killed (a′)-at-entry-birth are untouched).  Kills
+    §9m (conceal born ↓X:=ℕ — merge-q′ steps) and Pn (reveal born
+    ↑Z:=ℕ — raw-readable, ordinary license) and collapses Pc's chain
+    (second-chance copy retired).  KNOWN OBSTACLE, stated honestly: the
+    ≡-rigidity relocates — e.g. TyBeta's contractum must be typed at
+    B [ A ]ᵗ with the SYNTACTIC A, so normalizing a reveal rep changes
+    the external face away from the redex's type unless the face
+    equations/typing absorb ≈ somewhere.  Needs a probe (distinct from
+    the refuted (a′): UnfoldProbe's ¬DualCnc-a′ was about the ENTRY
+    map).
+(γ) UPSTREAM DISSOLUTION: make the chained/abstract-rep shapes
+    unmintable or non-values (classification/typing strengthening), or
+    dissolve Pn-shaped boundaries by an eager collapse before any dual
+    is taken.  Shape unclear; the probes' reachability analysis
+    matters (is §9m's ↓X:=(` 0) conceal MINTABLE by the current rules?
+    — dualᴳ mints conceal reps as the STORED reveal reps, and TyBeta
+    mints reveals from literal type arguments; a ↓X:=X-spelled conceal
+    may only arise from a source-written abstract-witness spelling —
+    check).
+NO RULING YET.  The ask will be assembled with the DualRep≈/DualInt≈
+verdicts and reachability probes, on concrete examples.

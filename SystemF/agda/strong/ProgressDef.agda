@@ -1,10 +1,10 @@
 module strong.ProgressDef where
 
--- The ONE progress obligation still open, after the Decision-6 install
--- (ACTIVE/INERT, 2026-09-04; notes/ParameterizedCastCalculi.md).
+-- The progress obligation still open after the Decision-7 install
+-- (2026-09-04; notes/DECISIONS.md "Decision 7", gauntlet §9l / §9m).
 --
--- WHAT CLOSED.  RevealVarApp / RevealVarTApp — the two parameters this
--- module carried at the peel landing — are GONE, and so is the pair of
+-- WHAT CLOSED EARLIER.  RevealVarApp / RevealVarTApp — the two parameters
+-- this module carried at the peel landing — are GONE, and so is the pair of
 -- nested-wrapper parameters before them.  The value restriction
 -- (`V-⟪⟫ : Value V → Inert Θ B₀ → Value (V ⟪ Θ , B₀ ⟫)`) dissolves them:
 -- a wrapper that is a VALUE has an INERT face, and by `inert-ext` an
@@ -29,33 +29,63 @@ module strong.ProgressDef where
 --     face ` X    face is INERT (` Y with revs Θ₁ ≤ Y — a SEALED value),
 --                 so Merge's redex shape is FORCED …
 --
--- … and the fourth is this parameter: Merge's premise MergeOK must be
--- DERIVABLE at that forced shape.  Three instances are already fully
--- discharged (notes/old/CancelProbe.agda's a-MergeOK / p-MergeOK /
--- e-MergeOK, one per family α / β1 / β2, plus notes/InstallGauntlet §9i's
--- rv-merge).  IT IS NOT A THEOREM, AND NOT TRUE AS STATED: gauntlet §9l
--- exhibits a well-typed, non-value, non-stepping instance whose inner
--- boundary drops an AMBIENT slot the outer one does not reveal, so
--- MergeOK's first component (cmax Θ₁ ≤ revs Θ₂ — ⊕-γ's side condition)
--- is false there while components (2)–(5), and ⊕-γ's own conclusion,
--- all hold.  See §9l for the diagnosis and the indicated repair (weaken
--- MergeOK's component (1) to the internal-face equation it buys); until
--- that is ruled on, progress carries exactly this parameter.  See also
--- notes/DECISIONS.md "Decision 6 — CANCEL PROBE VERDICT" (3)–(4), where
--- this obligation is named THE CRUX.
+-- … and the fourth is `MergeDerivable`: Merge's premise MergeOK must be
+-- DERIVABLE at that forced shape.
 --
--- The statement below is EXACTLY that residue and nothing more: the
--- hypotheses are the shape progress can actually produce (a value body,
--- an inert inner face, an active reveal-variable outer face, and the
--- redex's own typing at its own external face), and the conclusion is
--- MergeOK verbatim.
+-- WHAT DECISION 7 CLOSED, AND WHAT IT DID NOT.
+--
+-- Decision 7 replaced MergeOK's component (1) — the SCOPE side condition
+-- `cmax Θ₁ ≤ revs Θ₂`, which is ⊕-γ's hypothesis — by the INTERNAL-FACE
+-- EQUATION it was only ever used to buy.  At the reveal-variable redex
+-- that component is now a THEOREM:
+--
+--   mid-var    the middle-type equation pins Y ≡ revs Θ₁ + X, so the
+--              inner boundary type is Θ₁'s frame slot for the very
+--              exterior index Θ₂ reveals;
+--   ⊕-γ-var    at that slot the internal face composes with NO side
+--              condition (⊕-γ-pt-lo: both the cancelled and the kept
+--              branch land without ever comparing cmax Θ₁ to revs Θ₂).
+--
+-- So gauntlet §9l — the term that was well typed, not a value, and took
+-- NO step — now STEPS (§9l's merge-p), and `merge-derivable` below
+-- reduces the whole of MergeDerivable to the FOUR remaining components.
+--
+-- THE OBSTRUCTION MOVED, IT DID NOT VANISH.  MergeRest is still FALSE,
+-- and gauntlet §9m is the machine-checked refutation — of MergeRest, of
+-- MergeDerivable (¬MergeDerivable), and of PROGRESS itself (stuck-q).
+-- The failing component is now the FIFTH, the EXTERNAL face, on a
+-- CANCELLED slot:
+--
+--   Δq = X:=ℕ ;  Θ₂ = ↑X:=ℕ ;  Θ₁ = ↓X:=(` 0)
+--   ((5 ⟪ ↓·:=ℕ , · ⟫) ⟪ Θ₁ , · ⟫) ⟪ Θ₂ , · ⟫  :  ℕ
+--
+-- Θ₁ conceals the very slot Θ₂ reveals, so the pair CANCELS and the
+-- composite is EMPTY — but Θ₁'s rep is Δ's own variable (` 0), which is
+-- ≈Δ̄-equal to Θ₂'s stored rep ℕ and NOT syntactically equal to it.
+-- `bwf↓` licenses that conceal (its premise is `Reversal≈`, up to
+-- unfolding — Decision 1's candidate (a″)), while MergeOK's external-face
+-- component demands SYNTACTIC agreement, because preservation transports
+-- the contractum's type by `subst`.  ≈ ⊄ ≡, and the merge is refused.
+-- That gap is a DESIGN question, not an arithmetic one, and it is the
+-- next ruling.  Two halves of the component are already settled:
+--
+--   ⊕-ρ-var-kept   (strong.BReduction) — a THEOREM: when Θ₁ does NOT
+--                  conceal the revealed slot (cmax Θ₁ ≤ X) the external
+--                  face composes with no side condition;
+--   §9m            the CANCELLED branch (X < cmax Θ₁), REFUTED.
+--
+-- The statements below are EXACTLY that residue and nothing more.
 
-open import Data.Nat using (ℕ; _<_; _≤_)
+open import Data.Nat using (ℕ; _+_; _<_; _≤_)
+open import Data.Product using (_×_; _,_)
 open import Data.List using ([])
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
 open import strong.Context using (TCtx)
 open import strong.Boundary
-open import strong.BReduction using (Value; MergeOK)
+open import strong.BReduction
+  using (Value; MergeOK; _⊕_; mrgB; _≼≈_;
+         env-body; env-sc; mid-var; ⊕-γ-var)
 
 -- APPLYCAST TOTALITY AT A REVEAL-VARIABLE FACE.  The redex is
 --
@@ -71,3 +101,26 @@ MergeDerivable = ∀ {Δ : TCtx} {V : Term} {Θ₁ Θ₂ : BCtx} {X Y : ℕ}
   → Value V → revs Θ₁ ≤ Y → X < revs Θ₂
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ ⦂ substᵗ (ρᵇ Θ₂) (` X)
   → MergeOK Δ Θ₁ Θ₂ (` Y) (` X)
+
+-- THE RESIDUE (the Def-module split): MergeDerivable minus the component
+-- Decision 7 discharged.  Components (2)–(5) of MergeOK, at the same
+-- redex, in the same order.
+MergeRest : Set
+MergeRest = ∀ {Δ : TCtx} {V : Term} {Θ₁ Θ₂ : BCtx} {X Y : ℕ}
+  → Value V → revs Θ₁ ≤ Y → X < revs Θ₂
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ ⦂ substᵗ (ρᵇ Θ₂) (` X)
+  → (Δ ∣ intOf Δ (Θ₁ ⊕ Θ₂) ⊢ᵇ (Θ₁ ⊕ Θ₂))
+  × Scoped (baseS (Θ₁ ⊕ Θ₂) Δ) (mrgB Θ₁ Θ₂ (` Y))
+  × (intOf (intOf Δ Θ₂) Θ₁ ≼≈ intOf Δ (Θ₁ ⊕ Θ₂))
+  × (substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ (` Y)) ≡ substᵗ (ρᵇ Θ₂) (` X))
+
+-- … AND THE SPLIT IS MACHINE-CHECKED: component (1) is a theorem here.
+-- `mid-var` pins the inner face's slot at revs Θ₁ + X, and `⊕-γ-var`
+-- discharges the internal-face equation there with no side condition —
+-- the whole of Decision 7, in two applications.
+merge-derivable : MergeRest → MergeDerivable
+merge-derivable rest {Δ} {V} {Θ₁} {Θ₂} {X} {Y} v ge lt ⊢W
+  with mid-var {Δ} {V} {Θ₁} {Θ₂} {X} {Y} ge lt (env-body ⊢W)
+merge-derivable rest {Δ} {V} {Θ₁} {Θ₂} {X} v ge lt ⊢W | refl =
+    ⊕-γ-var Θ₁ Θ₂ X lt (env-sc (env-body ⊢W))
+  , rest v ge lt ⊢W

@@ -39,6 +39,7 @@ open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Product using (Σ; _,_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types
@@ -47,6 +48,8 @@ open import strong.Unfold
 open import strong.Boundary
 open import strong.BReduction
 open import strong.DualDef using (xrep-stored; dual-cnc-skel)
+open import strong.ProgressDef
+  using (MergeDerivable; MergeRest; merge-derivable)
 
 ------------------------------------------------------------------------
 -- §1.  E★′, END TO END
@@ -799,8 +802,12 @@ bwf-Θmg : Γ★ ∣ intOf Γ★ Θmg ⊢ᵇ Θmg
 bwf-Θmg =
   bwf⋆ (bwf↑ wf-ℕ (bwf↓ (skip-abst here) (≡→≈ refl) wf-ℕ bwf[]))
 
+-- DECISION 7: component (1) is now the INTERNAL-FACE EQUATION, and every
+-- witness built under the old side condition rebuilds by discharging it
+-- with ⊕-γ — the theorem the side condition was always used through.
 ok-★ : MergeOK Γ★ dualᵛ Θ★ `ℕ `ℕ
-ok-★ = s≤s z≤n , bwf-Θmg , sc-ℕ , ≼≈-refl Γ★ , refl
+ok-★ = ⊕-γ {intOf Γ★ Θ★} {`ℕ} dualᵛ Θ★ (s≤s z≤n) sc-ℕ
+     , bwf-Θmg , sc-ℕ , ≼≈-refl Γ★ , refl
 
 -- the merged wrapper still TYPES at the tower's own type: the composite
 -- and its faces are right, it is simply not what the machine computes
@@ -1240,7 +1247,8 @@ cx-step₅ = ξ-⟪⟫ (Peel (V-⟪⟫ (V-G G-ƛ) I-⇒) (V-⟪⟫ V-$ (I-var z�
 cx-step₆a : [] ⊢ cxP₅ -→ cxP₅′
 cx-step₆a = ξ-⟪⟫ (ξ-⟪⟫ (ξ-·-r (V-⟪⟫ (V-G G-ƛ) I-⇒)
   (Merge V-$ (I-var z≤n) (A-var (s≤s z≤n))
-         (s≤s z≤n , bwf[] , sc-ℕ , ≼≈[] , refl))))
+         (⊕-γ {intOf [] Θcx1} {` 0} Θcx2 Θcx1 (s≤s z≤n) (sc-var hereᵒ)
+         , bwf[] , sc-ℕ , ≼≈[] , refl))))
 
 cx-step₆b : [] ⊢ cxP₅′ -→ cxP₅″
 cx-step₆b = ξ-⟪⟫ (ξ-⟪⟫ (ξ-·-r (V-⟪⟫ (V-G G-ƛ) I-⇒) Drop$))
@@ -1295,7 +1303,8 @@ run-repair-end = Drop$
 
 run-repair-ok : MergeOK [] Θcx′ Θcx1 `ℕ `ℕ
 run-repair-ok =
-  s≤s z≤n , bwf↑ wf-ℕ bwf[] , sc-ℕ ,
+  ⊕-γ {intOf [] Θcx1} {`ℕ} Θcx′ Θcx1 (s≤s z≤n) sc-ℕ ,
+  bwf↑ wf-ℕ bwf[] , sc-ℕ ,
   ≼≈rvld ≼≈[] (≡→≈ refl) , refl
 
 ------------------------------------------------------------------------
@@ -1428,7 +1437,9 @@ run-d₁a : Δd ⊢ ((Vd ⟪ Θd1 , Bd1 ⟫)
                ⟪ Θd2 , ` 1 ⟫
 run-d₁a = ξ-⟪⟫ (ξ-·-r (V-⟪⟫ (V-G G-ƛ) I-⇒)
   (Merge V-$ (I-var z≤n) (A-var (s≤s z≤n))
-         (s≤s (s≤s z≤n) , bwf[] , sc-ℕ , ≼≈[] , refl)))
+         (⊕-γ {intOf Δd (dualᴳ Δd Θd2)} {` 0} Θd2 (dualᴳ Δd Θd2)
+              (s≤s (s≤s z≤n)) (sc-var hereᵒ)
+         , bwf[] , sc-ℕ , ≼≈[] , refl)))
 
 run-d-∅ : Θd2 ⊕ dualᴳ Δd Θd2 ≡ []
 run-d-∅ = refl
@@ -1485,7 +1496,8 @@ swap-cx = refl
 peel-cancel : [] ⊢ (($ 5) ⟪ Θcx2 , ` 0 ⟫) ⟪ Θcx1 , ` 0 ⟫
                 -→ ($ 5) ⟪ Θcx2 ⊕ Θcx1 , mrgB Θcx2 Θcx1 (` 0) ⟫
 peel-cancel = Merge V-$ (I-var z≤n) (A-var (s≤s z≤n))
-  (s≤s z≤n , bwf[] , sc-ℕ , ≼≈[] , refl)
+  (⊕-γ {intOf [] Θcx1} {` 0} Θcx2 Θcx1 (s≤s z≤n) (sc-var hereᵒ)
+  , bwf[] , sc-ℕ , ≼≈[] , refl)
 
 -- … and it is the UNIQUE step from that tower (det), where before the
 -- install the tower was a VALUE that also stepped (§9j)
@@ -1631,7 +1643,8 @@ rv-only-merge (ξ-·-r v ())
 rv-merge : [] ⊢ ((ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ , ` 0 ⟫) ⟪ Θr , ` 0 ⟫
              -→ (ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ ⊕ Θr , mrgB Θrᵈ Θr (` 0) ⟫
 rv-merge = Merge (V-G G-ƛ) (I-var z≤n) (A-var (s≤s z≤n))
-  (s≤s z≤n , bwf[] , sc-⇒ sc-ℕ sc-ℕ , ≼≈[] , refl)
+  (⊕-γ {intOf [] Θr} {` 0} Θrᵈ Θr (s≤s z≤n) (sc-var hereᵒ)
+  , bwf[] , sc-⇒ sc-ℕ sc-ℕ , ≼≈[] , refl)
 
 -- the tower is not a value, so the collapse has no competitor …
 ¬val-rv : ¬ Value (((ƛ `ℕ ∙ ($ 7)) ⟪ Θrᵈ , ` 0 ⟫) ⟪ Θr , ` 0 ⟫)
@@ -1765,46 +1778,46 @@ redex-cx-¬-→ : ∀ {M′}
 redex-cx-¬-→ = V-¬-→ val-redex-cx
 
 ------------------------------------------------------------------------
--- §9l.  *** THE DECISION-6 RESIDUE, AND A COUNTEREXAMPLE TO IT. ***
+-- §9l.  *** THE DECISION-7 REDEX: THE OLD COUNTEREXAMPLE, NOW LIVE. ***
 --
--- After the install, progress has exactly ONE open obligation
--- (strong.ProgressDef's MergeDerivable, the paper's applyCast totality):
--- at a well-typed nesting
+-- Progress's one open obligation used to be (strong.ProgressDef's
+-- MergeDerivable, the paper's applyCast totality): at a well-typed
+-- nesting
 --
 --   (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫      revs Θ₁ ≤ Y ,  X < revs Θ₂
 --
 -- — a SEALED value inside an ACTIVE reveal-variable boundary — MergeOK
--- must be DERIVABLE.  Three instances are fully discharged (§9i's
--- rv-merge here, and CancelProbe's a-/p-/e-MergeOK, one per family).
---
--- IT IS NOT DERIVABLE IN GENERAL, and here is why, on one term.  Take an
--- ambient W:=𝔹, an outer boundary that reveals X:=ℕ, and an inner one
--- that conceals BOTH X and the ambient W:
+-- must be DERIVABLE.  Under the PRE-DECISION-7 MergeOK it was FALSE, and
+-- here is the term that refuted it.  Take an ambient W:=𝔹, an outer
+-- boundary that reveals X:=ℕ, and an inner one that conceals BOTH X and
+-- the ambient W:
 --
 --   Δp = W:=𝔹 ;  Θ₂ = ↑X:=ℕ ;  Θ₁ = ↓X:=ℕ , ↓W:=𝔹
 --   (3 ⟪ Θ₁ , X ⟫) ⟪ Θ₂ , X ⟫  :  ℕ           -- ⊢p, below
 --
 -- The inner face is INERT (Θ₁ reveals nothing) and the outer one ACTIVE
 -- (0 < revs Θ₂ = 1): this is exactly progress's shape, so the term is not
--- a value and Merge must fire.  But MergeOK's FIRST component is
+-- a value and Merge must fire.  But the OLD component (1) was
 -- cmax Θ₁ ≤ revs Θ₂, i.e. 2 ≤ 1 — FALSE, because Θ₁ drops the ambient
--- slot W, which Θ₂ does not reveal.  So the term is WELL TYPED, NOT A
--- VALUE, and TAKES NO STEP.
+-- slot W, which Θ₂ does not reveal (¬le-p, kept below).  So the term was
+-- WELL TYPED, NOT A VALUE, and TOOK NO STEP.
 --
--- THE DIAGNOSIS IS SHARP, and it is not that the merge is wrong here.
--- Components (2)–(5) all hold ON THE NOSE (bwf-p / sc-p / int⊕-p /
--- ext-p), the composite is the single conceal ↓W:=𝔹, the contractum
+-- THE DIAGNOSIS WAS SHARP, and it was never that the merge is wrong
+-- here.  Components (2)–(5) all hold ON THE NOSE (bwf-p / sc-p / int⊕-p
+-- / ext-p), the composite is the single conceal ↓W:=𝔹, the contractum
 -- types at the redex's own type (⊢merged-p) — and ⊕-γ's CONCLUSION, the
--- internal-face equation that component (1) exists to buy, holds too
--- (int-p).  Component (1) is ⊕-γ's SUFFICIENT side condition, not a
--- necessary one, and it is the sole obstruction.
+-- internal-face equation the old component (1) existed to buy, holds too
+-- (int-p = refl).  The old component (1) was ⊕-γ's SUFFICIENT side
+-- condition mistaken for a necessary one, and it was the sole
+-- obstruction.
 --
--- INDICATED REPAIR (a Decision-3 change to MergeOK, NOT taken here):
--- replace component (1) by the internal-face equation it is used to
--- derive, keeping ⊕-γ as the theorem that discharges it whenever
--- cmax Θ₁ ≤ revs Θ₂ — every existing MergeOK witness then still builds,
--- and this counterexample dies.  Whether MergeDerivable becomes a
--- theorem under that MergeOK is the remaining question.
+-- DECISION 7 (Jeremy, 2026-09-04) TAKES THE INDICATED REPAIR: MergeOK's
+-- component (1) IS the internal-face equation, and ⊕-γ is kept as the
+-- theorem that discharges it whenever cmax Θ₁ ≤ revs Θ₂ (every witness
+-- above rebuilds that way — ok-★, run-repair-ok, rv-merge, tower-ok₁₂).
+-- SO THIS TERM NOW STEPS: merge-p below is its Merge, built from int-p
+-- and the already-checked (2)–(5), and merge-p-uniq says by det that it
+-- is the ONLY step.  The run finishes at the bare numeral.
 ------------------------------------------------------------------------
 
 Δp : TCtx
@@ -1853,7 +1866,8 @@ active-p = A-var (s≤s z≤n)
 ¬val-p : ¬ Value ((($ 3) ⟪ Θ1p , ` 0 ⟫) ⟪ Θ2p , ` 0 ⟫)
 ¬val-p (V-⟪⟫ _ (I-var ()))
 
--- … and MergeOK's FIRST component is 2 ≤ 1
+-- … and the OLD component (1) was 2 ≤ 1 — still false, still the reason
+-- ⊕-γ cannot be the discharge here
 _ : cmax Θ1p ≡ 2
 _ = refl
 
@@ -1863,10 +1877,7 @@ _ = refl
 ¬le-p : ¬ (cmax Θ1p ≤ revs Θ2p)
 ¬le-p (s≤s ())
 
-¬mok-p : ¬ (MergeOK Δp Θ1p Θ2p (` 0) (` 0))
-¬mok-p (le , _) = ¬le-p le
-
--- EVERYTHING ELSE the merge needs is in place
+-- EVERYTHING the merge needs is in place
 _ : Θ1p ⊕ Θ2p ≡ cnc 0 `𝔹 ∷ []
 _ = refl
 
@@ -1894,3 +1905,192 @@ bwf-p = bwf↓ here (≡→≈ refl) wf-𝔹 bwf[]
 -- and the CONTRACTUM types, at the redex's own type
 ⊢merged-p : Δp ∣ [] ⊢ ($ 3) ⟪ Θ1p ⊕ Θ2p , mrgB Θ1p Θ2p (` 0) ⟫ ⦂ `ℕ
 ⊢merged-p = env bwf-p sc-p ⊢$
+
+-- *** SO THE TERM STEPS. ***  Component (1) is int-p, the very equation
+-- the old side condition existed to buy; (2)–(5) are unchanged.
+mok-p : MergeOK Δp Θ1p Θ2p (` 0) (` 0)
+mok-p = int-p , bwf-p , sc-p , int⊕-p , ext-p
+
+merge-p : Δp ⊢ (($ 3) ⟪ Θ1p , ` 0 ⟫) ⟪ Θ2p , ` 0 ⟫
+            -→ ($ 3) ⟪ Θ1p ⊕ Θ2p , mrgB Θ1p Θ2p (` 0) ⟫
+merge-p = Merge V-$ inert-p active-p mok-p
+
+-- … and it is the UNIQUE step (det), so the machine is no longer stuck
+merge-p-uniq : ∀ {M′} → Δp ⊢ (($ 3) ⟪ Θ1p , ` 0 ⟫) ⟪ Θ2p , ` 0 ⟫ -→ M′
+             → M′ ≡ ($ 3) ⟪ Θ1p ⊕ Θ2p , mrgB Θ1p Θ2p (` 0) ⟫
+merge-p-uniq st = det st merge-p
+
+-- the composite is the single conceal ↓W:=𝔹 with a BASE face, so the
+-- residue drops and the run ends at the bare numeral
+_ : mrgB Θ1p Θ2p (` 0) ≡ `ℕ
+_ = refl
+
+drop-p : Δp ⊢ ($ 3) ⟪ Θ1p ⊕ Θ2p , mrgB Θ1p Θ2p (` 0) ⟫ -→ $ 3
+drop-p = Drop$
+
+⊢answer-p : Δp ∣ [] ⊢ $ 3 ⦂ `ℕ
+⊢answer-p = ⊢$
+
+-- THE DECISION-7 REGRESSION.  ⊕-γ still discharges component (1) for
+-- every witness that met the old side condition — here on §9b's x-pair
+-- cancel, one representative of the rebuilt ok-* packages.
+⊕-γ-still-discharges : substᵗ (γᵇ (dualᵛ ⊕ Θ★)) (mrgB dualᵛ Θ★ `ℕ)
+                       ≡ substᵗ (γᵇ dualᵛ) `ℕ
+⊕-γ-still-discharges = ⊕-γ {intOf Γ★ Θ★} {`ℕ} dualᵛ Θ★ (s≤s z≤n) sc-ℕ
+
+------------------------------------------------------------------------
+-- §9m.  *** AFTER DECISION 7: THE OBSTRUCTION MOVES TO THE EXTERNAL
+-- FACE, AND PROGRESS IS STILL NOT UNCONDITIONAL. ***
+--
+-- With component (1) repaired, MergeDerivable reduces (machine-checked:
+-- strong.ProgressDef's `merge-derivable`) to MergeOK's components
+-- (2)–(5) — `MergeRest`.  THAT IS STILL FALSE, and here is the term.
+--
+-- The shape is §9l's, with ONE change: the inner boundary's conceal
+-- carries a rep that is ≈Δ̄-equal to the outer reveal's stored rep
+-- WITHOUT being syntactically equal to it.
+--
+--   Δq = X:=ℕ ;  Θ₂ = ↑X:=ℕ ;  Θ₁ = ↓X:=(` 0)
+--   ((5 ⟪ ↓·:=ℕ , · ⟫) ⟪ Θ₁ , · ⟫) ⟪ Θ₂ , · ⟫  :  ℕ        (⊢q)
+--
+-- Θ₁'s conceal names the very slot Θ₂ reveals, so mapL/mapR CANCEL the
+-- pair and the composite is EMPTY.  The kept rep is then the CONCEAL's,
+-- ` 0 — Δq's own variable, whose knowledge is also ℕ — while the redex's
+-- own type is the REVEAL's stored rep, ℕ.  The two are ≈Δ̄-equal in Γqm
+-- and NOT syntactically equal, so:
+--
+--   int-q   component (1) HOLDS (Decision 7's repair is not at fault);
+--   ¬ext-q  component (5) FAILS: ` 0 ≢ ℕ;
+--   ¬val-q  the term is not a value (outer face ACTIVE);
+--   stuck-q it takes NO STEP AT ALL.
+--
+-- WHY THE GAP EXISTS, precisely.  `bwf↓` licenses Θ₁'s conceal against
+-- the exterior's knowledge UP TO UNFOLDING — its premise is `Reversal≈`,
+-- Decision 1's candidate (a″), and here it is discharged by a genuine
+-- unfolding step (rev-q = ≈unf refl, and ¬rev-q-≡ refutes the syntactic
+-- form).  MergeOK's external-face component demands SYNTACTIC agreement,
+-- because preservation transports the contractum's type by `subst`.
+-- ≈Δ̄ ⊄ ≡, so the merge is refused on a boundary the typing rules admit.
+-- This is a DESIGN question about the ≈/≡ boundary, not an arithmetic
+-- one — cf. §9d(i), the same gap at an ⇒ face, where a REPAIRED
+-- composite (one that keeps the abstract witness) exists.
+--
+-- The component is HALF settled: ⊕-ρ-var-kept (strong.BReduction) proves
+-- the external face free at a reveal-variable face whose slot Θ₁ does
+-- NOT conceal (cmax Θ₁ ≤ X).  What is refuted is exactly the CANCELLED
+-- branch, X < cmax Θ₁ — the branch this term is in (0 < cmax Θq1 = 1).
+------------------------------------------------------------------------
+
+Δq : TCtx
+Δq = rvld `ℕ ∷ []
+
+Θq2 : BCtx                             -- outer: ↑X:=ℕ
+Θq2 = rvl `ℕ ∷ []
+
+Γqm : TCtx
+Γqm = intOf Δq Θq2
+
+_ : Γqm ≡ rvld `ℕ ∷ rvld `ℕ ∷ []
+_ = refl
+
+Θq1 : BCtx                             -- inner: ↓X:=(Δq's OWN slot 0)
+Θq1 = cnc 0 (` 0) ∷ []
+
+Ψqm : TCtx
+Ψqm = intOf Γqm Θq1
+
+_ : Ψqm ≡ rvld `ℕ ∷ []
+_ = refl
+
+Θq3 : BCtx                             -- the sealed body's own boundary
+Θq3 = cnc 0 `ℕ ∷ []
+
+Vq : Term
+Vq = ($ 5) ⟪ Θq3 , ` 0 ⟫
+
+val-Vq : Value Vq
+val-Vq = V-⟪⟫ V-$ (I-var z≤n)
+
+⊢Vq : Ψqm ∣ [] ⊢ Vq ⦂ ` 0
+⊢Vq = env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$
+
+-- THE LICENCE THAT OPENS THE GAP: a genuine unfolding, not an equality
+rev-q : Reversal≈ Γqm Θq1 0 (` 0) `ℕ
+rev-q = ≈unf refl
+
+¬rev-q-≡ : ¬ (Reversal Θq1 0 (` 0) `ℕ)
+¬rev-q-≡ ()
+
+⊢mid-q : Γqm ∣ [] ⊢ Vq ⟪ Θq1 , ` 0 ⟫ ⦂ ` 0
+⊢mid-q =
+  env (bwf↓ here rev-q (wf-var here-rvld) bwf[]) (sc-var hereᵒ) ⊢Vq
+
+⊢q : Δq ∣ [] ⊢ (Vq ⟪ Θq1 , ` 0 ⟫) ⟪ Θq2 , ` 0 ⟫ ⦂ `ℕ
+⊢q = env (bwf↑ wf-ℕ bwf[]) (sc-var hereᵒ) ⊢mid-q
+
+-- progress's own shape: an INERT face inside an ACTIVE one
+inert-q : Inert Θq1 (` 0)
+inert-q = I-var z≤n
+
+active-q : Active Θq2 (` 0)
+active-q = A-var (s≤s z≤n)
+
+¬val-q : ¬ Value ((Vq ⟪ Θq1 , ` 0 ⟫) ⟪ Θq2 , ` 0 ⟫)
+¬val-q (V-⟪⟫ _ (I-var ()))
+
+-- the pair CANCELS, and the kept rep is the CONCEAL's
+_ : Θq1 ⊕ Θq2 ≡ []
+_ = refl
+
+_ : mrgB Θq1 Θq2 (` 0) ≡ ` 0
+_ = refl
+
+-- component (1) — Decision 7's — HOLDS
+int-q : substᵗ (γᵇ (Θq1 ⊕ Θq2)) (mrgB Θq1 Θq2 (` 0))
+        ≡ substᵗ (γᵇ Θq1) (` 0)
+int-q = refl
+
+-- component (5) — the EXTERNAL face — FAILS: ` 0 vs ℕ
+¬ext-q : ¬ (substᵗ (ρᵇ (Θq1 ⊕ Θq2)) (mrgB Θq1 Θq2 (` 0))
+            ≡ substᵗ (ρᵇ Θq2) (` 0))
+¬ext-q ()
+
+¬mok-q : ¬ (MergeOK Δq Θq1 Θq2 (` 0) (` 0))
+¬mok-q (_ , _ , _ , _ , ext) = ¬ext-q ext
+
+-- … so MergeDerivable and its Decision-7 residue are both FALSE …
+¬MergeDerivable : ¬ MergeDerivable
+¬MergeDerivable f = ¬mok-q (f val-Vq z≤n (s≤s z≤n) ⊢q)
+
+¬MergeRest : ¬ MergeRest
+¬MergeRest r = ¬MergeDerivable (merge-derivable r)
+
+-- … AND PROGRESS IS REFUTED AS AN UNCONDITIONAL STATEMENT: this term is
+-- well typed, is not a value, and takes no step.
+stuck-q : ∀ {M′} → Δq ⊢ (Vq ⟪ Θq1 , ` 0 ⟫) ⟪ Θq2 , ` 0 ⟫ -→ M′ → ⊥
+stuck-q (Merge v i a mok) = ¬mok-q mok
+stuck-q (ξ-⟪⟫ st)         = V-¬-→ (V-⟪⟫ val-Vq inert-q) st
+
+¬progress : ¬ (∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
+               → Value M ⊎ (Σ Term λ M′ → Δ ⊢ M -→ M′))
+¬progress p with p ⊢q
+¬progress p | inj₁ v         = ¬val-q v
+¬progress p | inj₂ (M′ , st) = stuck-q st
+
+-- FOR CONTRAST: the same tower with the LINEAGE rep (ℕ, the reveal's own
+-- stored rep) in place of the coincident variable STEPS, exactly as §9l
+-- does — the ≈-licensed rep is the whole of the difference.
+Θq1′ : BCtx
+Θq1′ = cnc 0 `ℕ ∷ []
+
+⊢q′ : Δq ∣ [] ⊢ (($ 5) ⟪ Θq1′ , ` 0 ⟫) ⟪ Θq2 , ` 0 ⟫ ⦂ `ℕ
+⊢q′ = env (bwf↑ wf-ℕ bwf[]) (sc-var hereᵒ)
+          (env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$)
+
+mok-q′ : MergeOK Δq Θq1′ Θq2 (` 0) (` 0)
+mok-q′ = ⊕-γ {intOf Δq Θq2} {` 0} Θq1′ Θq2 (s≤s z≤n) (sc-var hereᵒ)
+       , bwf[] , sc-ℕ , ≼≈rvld ≼≈[] (≈unf refl) , refl
+
+merge-q′ : Δq ⊢ (($ 5) ⟪ Θq1′ , ` 0 ⟫) ⟪ Θq2 , ` 0 ⟫
+             -→ ($ 5) ⟪ Θq1′ ⊕ Θq2 , mrgB Θq1′ Θq2 (` 0) ⟫
+merge-q′ = Merge V-$ (I-var z≤n) (A-var (s≤s z≤n)) mok-q′

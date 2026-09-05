@@ -23,7 +23,9 @@ module strong.Progress where
 --     ⇒ the wrapper is a value; active ⇒ apply-active steps it.
 --   * apply-active IS applyCast: canon-ℕ / canon-𝔹 / canon-var-conceal pin
 --     the body's shape at each active face, leaving Merge's MergeOK premise
---     at a reveal-variable face as the one residue (strong.ProgressDef).
+--     at a reveal-variable face as the one residue.  Decision 7 shrank that
+--     residue: component (1) is discharged here as a theorem, so the module
+--     parameter is MergeRest, components (2)-(5) (strong.ProgressDef).
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -40,10 +42,18 @@ open import strong.Canonical using (canon-ℕ; canon-𝔹; canon-var-conceal)
 open import strong.ProgressDef
 
 -- Parameterised over the ONE open fact: applyCast totality at a
--- reveal-variable face, i.e. MergeOK's derivability there
--- (strong.ProgressDef, and notes/DECISIONS.md's Decision-6 crux).
--- Everything else below is proven.
-module Impl (mrg-ok : MergeDerivable) where
+-- reveal-variable face — and, since Decision 7, only the RESIDUE of it.
+-- MergeOK's component (1) is now the internal-face equation, which
+-- `merge-derivable` discharges here as a THEOREM (mid-var + ⊕-γ-var), so
+-- the parameter is `MergeRest`: MergeOK's components (2)–(5) at that
+-- redex.  See strong.ProgressDef for what is closed and what is not —
+-- the residue is still refuted, by its FIFTH component (the external
+-- face on a cancelled slot), in gauntlet §9m.  Everything else below is
+-- proven.
+module Impl (mrg-rest : MergeRest) where
+
+  mrg-ok : MergeDerivable
+  mrg-ok = merge-derivable mrg-rest
 
   ------------------------------------------------------------------------
   -- 0.  Boundary-type shape analysis
@@ -123,7 +133,8 @@ module Impl (mrg-ok : MergeDerivable) where
   --   𝔹 face   canon-𝔹: there is no value of type 𝔹 — vacuous.
   --   ` X face internal face γᵇ Θ X = ` X (γᵇ-lo), so canon-var-conceal
   --            makes the body a SEALED value V′ ⟪ Θ₁ , ` Y ⟫ with
-  --            revs Θ₁ ≤ Y — Merge, with MergeOK from the parameter.
+  --            revs Θ₁ ≤ Y — Merge, with MergeOK's component (1) proven
+  --            (mid-var + ⊕-γ-var) and (2)-(5) from the parameter.
   ------------------------------------------------------------------------
 
   apply-active : ∀ {Δ V Θ B₀} → Value V → Active Θ B₀

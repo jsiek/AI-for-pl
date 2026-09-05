@@ -16,10 +16,23 @@ see "Old per-variable design" and the historical Example 8 below.)
   restricted to an ACTIVE (reveal-variable) outer face over an inert inner one; `Drop∅` is
   RETIRED in favour of `Drop$` at a BASE face.  `V-¬-→` and `det` are now THEOREMS, and
   progress's `RevealVarApp` / `RevealVarTApp` parameters DISSOLVED.
-* **the ONE open obligation** is `MergeDerivable` (ProgressDef.agda) — the paper's
-  `applyCast` totality.  It is FALSE as stated; gauntlet §9l has the counterexample and the
-  indicated repair (weaken MergeOK's component (1) to the internal-face equation it buys).
-  **Needs a ruling.**
+* **DECISION 7 IS INSTALLED (2026-09-05)** — `MergeOK`'s component (1) is now the
+  INTERNAL-FACE EQUATION `substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (γᵇ Θ₁) B₁`, and
+  `⊕-γ` is kept as the THEOREM that discharges it whenever `cmax Θ₁ ≤ revs Θ₂` (every
+  pre-Decision-7 witness rebuilds that way).  Gauntlet §9l's counterexample — well typed,
+  not a value, no step — now STEPS (`merge-p`), and preservation's Merge case reads the
+  equation straight off the premise instead of rebuilding it from ⊕-γ.
+* **progress is NOT yet unconditional, and the obstruction has MOVED.**  At the
+  reveal-variable redex the middle-type equation pins `Y ≡ revs Θ₁ + X` (`mid-var`) and
+  component (1) is then a THEOREM with no side condition (`⊕-γ-var`), so
+  `merge-derivable : MergeRest → MergeDerivable` reduces the whole obligation to MergeOK's
+  components (2)–(5).  **That residue is still FALSE**: gauntlet §9m is a well-typed,
+  non-value, NON-STEPPING term (and `¬progress`, a machine-checked refutation of
+  unconditional progress) whose failing component is the FIFTH, the EXTERNAL face on a
+  CANCELLED slot.  Root cause: `bwf↓` licenses a conceal against the exterior's knowledge
+  UP TO UNFOLDING (`Reversal≈`, candidate (a″)) while the external-face component demands
+  SYNTACTIC equality, because preservation transports by `subst`.  The kept branch is a
+  theorem (`⊕-ρ-var-kept`); the cancelled branch is the ruling.  **Needs a ruling.**
 * **the one thing Merge still asks of its redex** (`MergeOK`, a premise of the rule): the
   composite's EXTERNAL face must be the redex's own type.  It is a premise and not a lemma:
   NEITHER of the two candidate merged boundary types works everywhere — the B₁-pushed-out
@@ -750,12 +763,18 @@ see "Old per-variable design" and the historical Example 8 below.)
 
   **The one open obligation** is `MergeOK`'s DERIVABILITY at that shape — the paper's
   `applyCast` totality field, `MergeDerivable` in `ProgressDef.agda`, and the sole thing
-  progress is parameterised over.  It is NOT true as stated: gauntlet §9l exhibits a
-  well-typed, non-value, non-stepping instance whose inner boundary drops an AMBIENT slot
-  the outer one does not reveal, so `MergeOK`'s first component `cmax Θ₁ ≤ revs Θ₂` — which
-  is ⊕-γ's SIDE CONDITION — is false, while components (2)–(5) and ⊕-γ's own CONCLUSION all
-  hold there.  §9l records the indicated repair (weaken component (1) to the internal-face
-  equation it buys); it has not been taken, since it is a Decision-3 change to MergeOK.
+  progress is parameterised over.  **Decision 7 (2026-09-05) closed its first component and
+  no more.**  What is proven: the middle-type equation pins the inner face's slot,
+  `mid-var : Y ≡ revs Θ₁ + X`, and there the internal face composes with no side condition,
+  `⊕-γ-var` — so `merge-derivable : MergeRest → MergeDerivable` reduces the obligation to
+  MergeOK's components (2)–(5), and §9l's old counterexample now STEPS.  What is NOT:
+  `MergeRest` is itself FALSE.  Gauntlet §9m is a well-typed, non-value, non-stepping
+  instance — with `¬progress`, the refutation of unconditional progress — in which the inner
+  boundary CONCEALS the very slot the outer one reveals (so the pair cancels) but carries a
+  rep that is only ≈Δ̄-equal to the reveal's stored rep, not syntactically equal to it.  The
+  failing component is the FIFTH, the external face, on a CANCELLED slot; the KEPT branch is
+  a theorem (`⊕-ρ-var-kept`).  The gap is `bwf↓`'s `Reversal≈` (up to unfolding) against a
+  MergeOK component stated with `≡`.  **Needs a ruling.**
 
   Θ₂ is the
   OUTER boundary, so Θ₁'s exterior is Θ₂'s interior Γ⇈Θ₂, and the composite's exterior is Γ
@@ -814,11 +833,23 @@ see "Old per-variable design" and the historical Example 8 below.)
   right everywhere.  What is left is the external face, and it is a PREMISE of the rule
   (`MergeOK`, an invariant carried by the relation) rather than a lemma:
 
-    MergeOK Γ Θ₁ Θ₂ B₁ B₂  =  Θ₁ drops only slots Θ₂ reveals   (⊕-γ's side condition)
+    MergeOK Γ Θ₁ Θ₂ B₁ B₂  =  B₂′[γ(Θ₁⊕Θ₂)] = B₁[γΘ₁]         (the internal face composes)
                             ∧  Γ ∣ Γ⇈(Θ₁⊕Θ₂) ⊢ Θ₁ ⊕ Θ₂        (the composite is well formed)
                             ∧  (Θ₁⊕Θ₂) ; Γ ⊢ᵒᵏ B₂′            (B₂′ is scoped)
                             ∧  Γ⇈Θ₂⇈Θ₁ ≼≈ Γ⇈(Θ₁⊕Θ₂)           (the contexts compose)
                             ∧  B₂′[ρ(Θ₁⊕Θ₂)] = B₂[ρΘ₂]        (the redex's type is kept)
+
+  **Component (1) is DECISION 7 (2026-09-05).**  It used to be ⊕-γ's SIDE CONDITION
+  `cmax Θ₁ ≤ revs Θ₂` ("Θ₁ drops only slots Θ₂ reveals"), and preservation consumed it only
+  by feeding it to ⊕-γ, i.e. only for ⊕-γ's conclusion — a sufficient condition mistaken for
+  a necessary one.  Gauntlet §9l is the term that pays for the mistake: well typed, not a
+  value, and NO STEP, with `2 ≤ 1` false while every other component AND ⊕-γ's own conclusion
+  hold on the nose.  So component (1) is now that conclusion, and **⊕-γ discharges it
+  whenever the old side condition holds** — every witness in BReduction.agda and the gauntlet
+  rebuilds as `⊕-γ Θ₁ Θ₂ le scB`.  Preservation's Merge case got simpler (it reads the
+  equation off the premise).  At the reveal-variable redex progress needs it with NO side
+  condition, and gets it: `mid-var` pins `Y ≡ revs Θ₁ + X` and `⊕-γ-var` (via `⊕-γ-pt-lo`)
+  proves the equation at that slot outright.
 
   Why the last one cannot be proven: the composite reads B₁'s slots out through Θ₂, which
   resolves a CONCEAL of Θ₂ to its rep, while the redex's own type keeps the concealed
@@ -1451,9 +1482,10 @@ parameter to preservation at all.
               outer one's internal face — the middle-type equation.  The body is typed at the
               nested interior Γ⇈Θ₂⇈Θ₁ with the inner internal face B₁[γΘ₁]; it moves to the
               composite's interior by (L-≼≈) along MergeOK's ordering, and its TYPE does not
-              move at all, because the INTERNAL face composes on the nose: that is ⊕-γ, a
-              theorem, from MergeOK's side condition (Θ₁ drops only slots Θ₂ reveals) and the
-              inner (env)'s own scope premise.  The composite's external face is MergeOK's
+              move at all, because the INTERNAL face composes on the nose — which since
+              Decision 7 IS MergeOK's first component, read straight off the premise (before,
+              the case rebuilt it by applying ⊕-γ to the side condition and the inner (env)'s
+              scope premise; the case got SIMPLER).  The composite's external face is MergeOK's
               last component; the frame arithmetic (revs-⊕ / cmax-⊕) and the pointwise
               external-face laws away from the cancelled slots (ρ⊕-lo / ρ⊕-mid) are theorems
               too.  Nothing renames the term.
@@ -1530,7 +1562,9 @@ parameter to preservation at all.
      face 𝔹         ⟹  `canon-𝔹`: vacuous, no such value exists.
      face `X` (reveal) ⟹  the body is typed at the abstract `X` inside (a reveal passes
                         through γΘ unchanged), so `canon-var-conceal` makes it a SEALED
-                        wrapper: Merge — with `MergeOK` from the one remaining parameter.
+                        wrapper: Merge — `MergeOK`'s component (1) is a THEOREM there
+                        (`mid-var` + `⊕-γ-var`, Decision 7) and (2)–(5) come from the one
+                        remaining parameter, `MergeRest`.
 
   Cases on M: constants and λ are values; a variable is impossible (empty term context); an
   application or type application reduces a non-value part by ξ, and with both parts values
@@ -1575,17 +1609,34 @@ parameter to preservation at all.
       are fully discharged (notes/InstallGauntlet §9i's `rv-merge`, and the α / β1 / β2
       families' `a-`/`p-`/`e-MergeOK` in notes/old/CancelProbe.agda).
 
-  IT IS NOT TRUE AS STATED, and gauntlet §9l says exactly why.  With ambient `W:=𝔹`,
-  `Θ₂ = ↑X:=ℕ` and `Θ₁ = ↓X:=ℕ , ↓W:=𝔹`, the term `(3 ⟪ Θ₁ , X ⟫) ⟪ Θ₂ , X ⟫ : ℕ` is well
-  typed, is not a value (its outer face is active) and takes NO step, because the inner
+  IT WAS NOT TRUE AS STATED, and gauntlet §9l said exactly why.  With ambient `W:=𝔹`,
+  `Θ₂ = ↑X:=ℕ` and `Θ₁ = ↓X:=ℕ , ↓W:=𝔹`, the term `(3 ⟪ Θ₁ , X ⟫) ⟪ Θ₂ , X ⟫ : ℕ` was well
+  typed, was not a value (its outer face is active) and took NO step, because the inner
   boundary drops an AMBIENT slot the outer one does not reveal and `MergeOK`'s first
-  component `cmax Θ₁ ≤ revs Θ₂` is `2 ≤ 1`.  The diagnosis is sharp: components (2)–(5) all
-  hold on the nose there, the composite is the single conceal ↓W:=𝔹, the contractum types at
-  the redex's own type — and ⊕-γ's own CONCLUSION, the internal-face equation that component
-  (1) exists to buy, holds too.  Component (1) is ⊕-γ's SUFFICIENT side condition, not a
-  necessary one, and it is the sole obstruction.  The indicated repair — replace component
-  (1) by the internal-face equation, keeping ⊕-γ as the theorem that discharges it whenever
-  `cmax Θ₁ ≤ revs Θ₂` — is a Decision-3 change to MergeOK and is Jeremy's ruling.
+  component `cmax Θ₁ ≤ revs Θ₂` was `2 ≤ 1`.  The diagnosis was sharp: components (2)–(5)
+  all held on the nose there, the composite is the single conceal ↓W:=𝔹, the contractum
+  types at the redex's own type — and ⊕-γ's own CONCLUSION, the internal-face equation the
+  old component (1) existed to buy, held too.  **DECISION 7 took the indicated repair**:
+  component (1) IS that equation, and ⊕-γ is kept as the theorem discharging it whenever
+  `cmax Θ₁ ≤ revs Θ₂`.  §9l's term now steps (`merge-p`, unique by `det`), and every witness
+  rebuilds as `⊕-γ Θ₁ Θ₂ le scB`.
+
+  AND THE OBSTRUCTION MOVED RATHER THAN VANISHED.  `mid-var` pins the inner face's slot at
+  `revs Θ₁ + X` and `⊕-γ-var` discharges component (1) there with no side condition, so
+  `merge-derivable : MergeRest → MergeDerivable` is a THEOREM and the parameter is now
+  `MergeRest` — MergeOK's components (2)–(5) at that redex.  `MergeRest` is still FALSE.
+  Gauntlet §9m: with `Δ = X:=ℕ`, `Θ₂ = ↑X:=ℕ` and `Θ₁ = ↓X:=(` 0)` — the conceal names the
+  very slot the reveal binds, so the pair CANCELS and the composite is EMPTY — the term
+  `((5 ⟪ ↓·:=ℕ , · ⟫) ⟪ Θ₁ , · ⟫) ⟪ Θ₂ , · ⟫ : ℕ` is well typed, is not a value, and takes
+  NO step.  Component (1) holds; component (5) FAILS, because the kept rep is the CONCEAL's
+  (`` ` 0 ``, Δ's own variable, whose knowledge is also ℕ) while the redex's type is the
+  REVEAL's stored rep ℕ.  The two are ≈Δ̄-equal and not syntactically equal — and `bwf↓`
+  licenses exactly that, its premise being `Reversal≈` (candidate (a″), up to unfolding),
+  while MergeOK's external-face component is stated with `≡` because preservation transports
+  by `subst`.  §9m also carries `¬progress`, the machine-checked refutation of unconditional
+  progress, and `¬rev-q-≡`, which shows the licence really is the ≈ one.  The KEPT branch of
+  that component (Θ₁ does not conceal the revealed slot) is a theorem, `⊕-ρ-var-kept`; the
+  CANCELLED branch is the open ruling.
 
   THE COST IS PAID, though: `V-¬-→` and `det` are now THEOREMS (§Determinism above), where
   before the install both were false.
@@ -1642,7 +1693,9 @@ parameter to preservation at all.
   canonical forms            canon-ℕ (a numeral), canon-𝔹 (⊥),           Canonical.agda
                                canon-⇒, canon-∀, canon-var-conceal
   applyCast (on actives)     apply-active                                Progress.agda
-  applyCast TOTALITY         MergeDerivable — the ONE parameter          ProgressDef.agda
+  applyCast TOTALITY         MergeRest — the ONE parameter (Decision 7   ProgressDef.agda
+                               made component (1) a theorem;
+                               merge-derivable : MergeRest → MergeDerivable)
   Θ₁ ⊕ Θ₂                    _⊕_ = mapL Θ₂ Θ₁ ++ mapR Θ₁ 0 Θ₂           BReduction.agda
   A[ρΘ₂] (push a rep out)    outSub Θ₂ / outRead                        Boundary.agda
   A[γΘ₁] (push a rep in)     inSub = rdSub Θ₁ (= γcnc)                  Boundary.agda
@@ -1650,20 +1703,29 @@ parameter to preservation at all.
   the frame maps             mrg₁ / mrg₂ / mrgΨ / up⊕ (substitutions:   BReduction.agda
                                a cancelled slot goes to the agreed rep)
   B₂′ (B₁ pushed out)        mrgB Θ₁ Θ₂ B₁ = substᵗ (mrg₁ Θ₁ Θ₂) B₁     BReduction.agda
-  the internal face composes ⊕-γ (a THEOREM; ⊕-γ-pt, γ⊕-up, γ⊕-rep)     BReduction.agda
+  the internal face composes MergeOK's component (1) since Decision 7;   BReduction.agda
+                               ⊕-γ is the THEOREM that discharges it under
+                               cmax Θ₁ ≤ revs Θ₂ (⊕-γ-pt, γ⊕-up, γ⊕-rep),
+                               and ⊕-γ-var / ⊕-γ-pt-lo discharge it at a
+                               reveal-variable face with NO side condition
   cancel-agree, ordinary     rep-stored / cancel-agree (the knowledge at  BReduction.agda
                                a reveal slot IS the stored rep's reading)
   cancel-agree, x-pair       xrep-stored / dual-cnc-skel                 DualDef.agda
-  the external face          ρ⊕-lo / ρ⊕-mid / ρᵇ-hi, and MergeOK's      BReduction.agda
-                               last component where they do not compose
+  the external face          ρ⊕-lo / ρ⊕-mid / ρ⊕-mid-lo / ρᵇ-hi, and     BReduction.agda
+                               MergeOK's last component where they do not
+                               compose; ⊕-ρ-var-kept is the reveal-variable
+                               KEPT branch (a theorem), §9m refutes the
+                               CANCELLED one
   (env) inversion            env-ty / env-bwf / env-sc / env-body,      BReduction.agda
-                               mid-eq (the middle-type equation)
+                               mid-eq (the middle-type equation) and
+                               mid-var (it pins Y ≡ revs Θ₁ + X)
   the collapse suite         notes/InstallGauntlet.agda §9 (the cancel
                                pair, E★'s x-pair cancel, Example 3's
                                tower — now a VALUE, the two limits + their
                                repairs, the TOPLAS three-agent shape,
-                               §9j/§9k's uniqueness proofs, and §9l's
-                               counterexample to MergeDerivable)
+                               §9j/§9k's uniqueness proofs, §9l's old
+                               counterexample — which now STEPS — and §9m's
+                               refutation of MergeRest and of progress)
   ξ                          ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫             BReduction.agda
   Drop                       — not in the Agda (optional; see above)
   Cancel                     — not a rule; = Merge's ∅-composite case with

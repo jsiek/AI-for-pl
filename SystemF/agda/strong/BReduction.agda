@@ -398,13 +398,27 @@ mrg₂ Θ₁ Θ₂ j | no  _ = ` (R⊕ Θ₁ Θ₂ + (j ∸ revs Θ₂))
 --
 -- MergeOK collects, in one place, exactly what ⊕ does not supply for the
 -- merged wrapper's (env):
---   (1) Θ₁ drops only slots Θ₂ reveals   — ⊕-γ's side condition;
+--   (1) the composite's INTERNAL face is the inner boundary's own;
 --   (2) the composite is a well-formed boundary over Δ;
 --   (3) B₂′ is Scoped over the composite's stack;
 --   (4) the contexts compose, in the direction ⊢retag≈ consumes;
 --   (5) the composite's EXTERNAL face is the redex's own type.
--- The INTERNAL face is free (⊕-γ) and so is the frame arithmetic
--- (revs-⊕ / cmax-⊕).
+-- The frame arithmetic is free (revs-⊕ / cmax-⊕).
+--
+-- DECISION 7 (2026-09-04).  Component (1) USED TO BE the SCOPE side
+-- condition `cmax Θ₁ ≤ revs Θ₂` — "Θ₁ drops only slots Θ₂ reveals" —
+-- which is ⊕-γ's hypothesis, and preservation consumed it ONLY through
+-- ⊕-γ, i.e. only for ⊕-γ's CONCLUSION.  That made a SUFFICIENT
+-- condition into a premise, and gauntlet §9l exhibits a well-typed,
+-- non-value, non-stepping term on which the side condition is false
+-- (2 ≤ 1 — the inner boundary drops an AMBIENT slot the outer does not
+-- reveal) while ⊕-γ's conclusion, and every other component, holds on
+-- the nose.  So component (1) is now THE INTERNAL-FACE EQUATION itself,
+-- and `⊕-γ` (part 3 below) is the THEOREM that discharges it whenever
+-- `cmax Θ₁ ≤ revs Θ₂` — every witness built under the old premise still
+-- builds, via `⊕-γ Θ₁ Θ₂ le scB`.  §9l's term now steps, and
+-- MergeDerivable (strong.ProgressDef) becomes a theorem: PROGRESS IS
+-- UNCONDITIONAL.
 ------------------------------------------------------------------------
 
 mrgB : BCtx → BCtx → Ty → Ty
@@ -412,7 +426,7 @@ mrgB Θ₁ Θ₂ B₁ = substᵗ (mrg₁ Θ₁ Θ₂) B₁
 
 MergeOK : TCtx → BCtx → BCtx → Ty → Ty → Set
 MergeOK Δ Θ₁ Θ₂ B₁ B₂ =
-    (cmax Θ₁ ≤ revs Θ₂)
+    (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁) ≡ substᵗ (γᵇ Θ₁) B₁)
   × (Δ ∣ intOf Δ (Θ₁ ⊕ Θ₂) ⊢ᵇ (Θ₁ ⊕ Θ₂))
   × Scoped (baseS (Θ₁ ⊕ Θ₂) Δ) (mrgB Θ₁ Θ₂ B₁)
   × (intOf (intOf Δ Θ₂) Θ₁ ≼≈ intOf Δ (Θ₁ ⊕ Θ₂))
@@ -659,7 +673,8 @@ data _⊢_-→_ : TCtx → Term → Term → Set where
   -- CANCELLED against those reveals, everything else re-indexed — and the
   -- merged boundary type is B₁ carried into the composite's frame (mrgB).
   -- MergeOK carries the five obligations the composite does not discharge
-  -- on its own; the INTERNAL face is free (⊕-γ, a theorem).
+  -- on its own; its first is the INTERNAL-FACE EQUATION, which ⊕-γ (a
+  -- theorem) discharges whenever cmax Θ₁ ≤ revs Θ₂ (Decision 7).
   --
   -- THE TWO CLASSIFICATION PREMISES ARE THE DECISION-6 INSTALL.  The
   -- OUTER face is ACTIVE, so the redex is NOT a value — which is what
@@ -4093,8 +4108,12 @@ cmax-⊕ Θ₁ Θ₂ =
 --
 -- i.e. the merged wrapper types the SAME body at the SAME interior type —
 -- which is why mrgB (B₁ pushed out) is the landed B₂′.  The side
--- condition says Θ₁ drops only slots Θ₂ reveals; it is MergeOK's first
--- component.  It is the EXTERNAL face that has no general law (part 4).
+-- condition says Θ₁ drops only slots Θ₂ reveals; since Decision 7 it is
+-- NOT MergeOK's first component — the CONCLUSION is, and this theorem
+-- discharges it whenever the side condition holds (gauntlet §9l is the
+-- redex where the conclusion holds and the side condition does not).
+-- ⊕-γ-lo below is the OTHER discharge, the one progress uses.
+-- It is the EXTERNAL face that has no general law (part 4).
 ------------------------------------------------------------------------
 
 γᵇ-lo : ∀ Θ X → X < revs Θ → γᵇ Θ X ≡ ` X
@@ -4184,21 +4203,36 @@ mrgΨ-d Θ₁ Θ₂ X g₂ | no  _ = refl
     lt⊕ = subst (revs Θ₁ + (X ∸ cmax Θ₁) <_) (sym (revs-⊕ Θ₁ Θ₂))
                 (+-monoʳ-< (revs Θ₁) (∸-monoˡ-< l₂ g₁))
 
+-- THE POINTWISE LAW AT A SLOT Θ₂ REVEALS — AND IT NEEDS NO SIDE
+-- CONDITION.  This is Decision 7's whole content: at X < revs Θ₂ the
+-- composite's γ-face agrees with Θ₁'s whether or not cmax Θ₁ ≤ revs Θ₂,
+-- because both the CANCELLED branch (X a conceal of Θ₁ — the rep, pushed
+-- out and read straight back by γ⊕-rep) and the KEPT branch land without
+-- ever comparing cmax Θ₁ to revs Θ₂.  `⊕-γ-pt` below only needs the side
+-- condition for slots at or ABOVE revs Θ₂, which is exactly the region
+-- §9l's counterexample lives in (its dropped ambient slot W = 1 = revs Θ₂
+-- is not a slot the merged FACE ever names).
+⊕-γ-pt-lo : ∀ Θ₁ Θ₂ X → X < revs Θ₂
+          → (cmax Θ₁ ≤ X) ⊎ (isConc X Θ₁ ≡ true)
+          → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrg₁ Θ₁ Θ₂ (revs Θ₁ + X))
+            ≡ γᵇ Θ₁ (revs Θ₁ + X)
+⊕-γ-pt-lo Θ₁ Θ₂ X l₂ (inj₁ g₁) = ⊕-γ-kept Θ₁ Θ₂ X l₂ g₁
+⊕-γ-pt-lo Θ₁ Θ₂ X l₂ (inj₂ c) with cmax Θ₁ ≤? X
+⊕-γ-pt-lo Θ₁ Θ₂ X l₂ (inj₂ c) | yes g₁ = ⊕-γ-kept Θ₁ Θ₂ X l₂ g₁
+⊕-γ-pt-lo Θ₁ Θ₂ X l₂ (inj₂ c) | no  l₁ =
+  trans (cong (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)))
+              (trans (mrg₁-hi Θ₁ Θ₂ X) (mrgΨ-c Θ₁ Θ₂ X l₂ (≰⇒> l₁))))
+        (trans (γ⊕-rep Θ₁ Θ₂ (repOf X Θ₁))
+               (sym (trans (γᵇ-hi Θ₁ X)
+                           (γcnc-conc (revs Θ₁) (cmax Θ₁) Θ₁ X c))))
+
 -- the pointwise internal-face law, at an ACCESSIBLE slot of Θ₁'s frame
 ⊕-γ-pt : ∀ Θ₁ Θ₂ → cmax Θ₁ ≤ revs Θ₂ → ∀ X
        → (cmax Θ₁ ≤ X) ⊎ (isConc X Θ₁ ≡ true)
        → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrg₁ Θ₁ Θ₂ (revs Θ₁ + X))
          ≡ γᵇ Θ₁ (revs Θ₁ + X)
 ⊕-γ-pt Θ₁ Θ₂ sc X acc with X <? revs Θ₂
-⊕-γ-pt Θ₁ Θ₂ sc X (inj₁ g₁) | yes l₂ = ⊕-γ-kept Θ₁ Θ₂ X l₂ g₁
-⊕-γ-pt Θ₁ Θ₂ sc X (inj₂ c)  | yes l₂ with cmax Θ₁ ≤? X
-⊕-γ-pt Θ₁ Θ₂ sc X (inj₂ c)  | yes l₂ | yes g₁ = ⊕-γ-kept Θ₁ Θ₂ X l₂ g₁
-⊕-γ-pt Θ₁ Θ₂ sc X (inj₂ c)  | yes l₂ | no  l₁ =
-  trans (cong (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)))
-              (trans (mrg₁-hi Θ₁ Θ₂ X) (mrgΨ-c Θ₁ Θ₂ X l₂ (≰⇒> l₁))))
-        (trans (γ⊕-rep Θ₁ Θ₂ (repOf X Θ₁))
-               (sym (trans (γᵇ-hi Θ₁ X)
-                           (γcnc-conc (revs Θ₁) (cmax Θ₁) Θ₁ X c))))
+⊕-γ-pt Θ₁ Θ₂ sc X acc | yes l₂ = ⊕-γ-pt-lo Θ₁ Θ₂ X l₂ acc
 ⊕-γ-pt Θ₁ Θ₂ sc X acc | no g₂ =
   trans (cong (substᵗ (γᵇ (Θ₁ ⊕ Θ₂)))
               (trans (mrg₁-hi Θ₁ Θ₂ X) (mrgΨ-d Θ₁ Θ₂ X (≮⇒≥ g₂))))
@@ -4247,6 +4281,19 @@ mrgΨ-d Θ₁ Θ₂ X g₂ | no  _ = refl
               (sym (γᵇ-lo Θ₁ j lt))
     pt j p | inj₂ (X , refl) =
       ⊕-γ-pt Θ₁ Θ₂ sc X (baseS-acc Θ₁ X p)
+
+-- ⊕-γ's SECOND discharge, the one PROGRESS uses (Decision 7).  At the
+-- reveal-variable face the inner boundary type is a SINGLE slot of Θ₁'s
+-- frame, and the middle-type equation pins that slot to revs Θ₁ + X with
+-- X < revs Θ₂ (mid-var below).  There ⊕-γ-pt-lo applies with no side
+-- condition at all — this is what makes MergeDerivable a theorem where
+-- the old component (1) blocked it (gauntlet §9l).
+⊕-γ-var : ∀ {Ψ₂ : TCtx} Θ₁ Θ₂ X → X < revs Θ₂
+        → Scoped (baseS Θ₁ Ψ₂) (` (revs Θ₁ + X))
+        → substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ (` (revs Θ₁ + X)))
+          ≡ substᵗ (γᵇ Θ₁) (` (revs Θ₁ + X))
+⊕-γ-var Θ₁ Θ₂ X l₂ (sc-var p) =
+  ⊕-γ-pt-lo Θ₁ Θ₂ X l₂ (baseS-acc Θ₁ X p)
 
 ------------------------------------------------------------------------
 -- MERGE, PART 4: THE EXTERNAL FACE, AND WHY IT IS A PREMISE.
@@ -4351,6 +4398,90 @@ mrgΨ-d Θ₁ Θ₂ X g₂ | no  _ = refl
 ρ⊕-mid Θ₁ Θ₂ t sc =
   trans (ρᵇ-mapL-hi Θ₂ Θ₁ (mapR Θ₁ 0 Θ₂) t) (ρᵇ-mapR Θ₁ 0 Θ₂ t sc)
 
+-- THE SIDE-CONDITION-FREE FORM (Decision 7's companion for the EXTERNAL
+-- face).  ρᵇ-mapR needs `cmax Θ₁ ∸ j ≤ revs Θ₂` only to know that mapR
+-- has not eaten past the end of Θ₂'s reveal block; if the slot BEING
+-- READ is itself inside that block the same induction runs with no
+-- global bound.  This is what makes the external face free at a
+-- reveal-variable face whose slot Θ₁ does NOT conceal (⊕-ρ-var-kept).
+ρᵇ-mapR-lo : ∀ Θ₁ j Θ₂ t → (cmax Θ₁ ∸ j) + t < revs Θ₂
+  → ρᵇ (mapR Θ₁ j Θ₂) t ≡ ρᵇ Θ₂ ((cmax Θ₁ ∸ j) + t)
+ρᵇ-mapR-lo Θ₁ j []            t ()
+ρᵇ-mapR-lo Θ₁ j (rvl A ∷ Θ)   t le with j <? cmax Θ₁
+ρᵇ-mapR-lo Θ₁ j (rvl A ∷ Θ)   t le | yes lt =
+  trans (ρᵇ-mapR-lo Θ₁ (suc j) Θ t le')
+        (cong (λ n → ρᵇ (rvl A ∷ Θ) (n + t)) (sym dd))
+  where
+    dd : cmax Θ₁ ∸ j ≡ suc (cmax Θ₁ ∸ suc j)
+    dd = drop-lo (cmax Θ₁) j lt
+    le' : (cmax Θ₁ ∸ suc j) + t < revs Θ
+    le' = ≤-pred (subst (λ n → n + t < suc (revs Θ)) dd le)
+ρᵇ-mapR-lo Θ₁ j (rvl A ∷ Θ)   t le | no ge =
+  trans (body t (subst (λ n → n + t < suc (revs Θ)) z le))
+        (cong (λ n → ρᵇ (rvl A ∷ Θ) (n + t)) (sym z))
+  where
+    z : cmax Θ₁ ∸ j ≡ 0
+    z = m≤n⇒m∸n≡0 (≮⇒≥ ge)
+    z' : cmax Θ₁ ∸ suc j ≡ 0
+    z' = m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))
+    body : ∀ u → u < suc (revs Θ)
+         → ρᵇ (rvl A ∷ mapR Θ₁ (suc j) Θ) u ≡ ρᵇ (rvl A ∷ Θ) u
+    body zero    l       = refl
+    body (suc u) (s≤s l) =
+      trans (ρᵇ-mapR-lo Θ₁ (suc j) Θ u
+                        (subst (λ n → n + u < revs Θ) (sym z') l))
+            (cong (λ n → ρᵇ Θ (n + u)) z')
+ρᵇ-mapR-lo Θ₁ j (rvl⋆ ∷ Θ)    t le with j <? cmax Θ₁
+ρᵇ-mapR-lo Θ₁ j (rvl⋆ ∷ Θ)    t le | yes lt =
+  trans (ρᵇ-mapR-lo Θ₁ (suc j) Θ t le')
+        (cong (λ n → ρᵇ (rvl⋆ ∷ Θ) (n + t)) (sym dd))
+  where
+    dd : cmax Θ₁ ∸ j ≡ suc (cmax Θ₁ ∸ suc j)
+    dd = drop-lo (cmax Θ₁) j lt
+    le' : (cmax Θ₁ ∸ suc j) + t < revs Θ
+    le' = ≤-pred (subst (λ n → n + t < suc (revs Θ)) dd le)
+ρᵇ-mapR-lo Θ₁ j (rvl⋆ ∷ Θ)    t le | no ge =
+  trans (body t (subst (λ n → n + t < suc (revs Θ)) z le))
+        (cong (λ n → ρᵇ (rvl⋆ ∷ Θ) (n + t)) (sym z))
+  where
+    z : cmax Θ₁ ∸ j ≡ 0
+    z = m≤n⇒m∸n≡0 (≮⇒≥ ge)
+    z' : cmax Θ₁ ∸ suc j ≡ 0
+    z' = m≤n⇒m∸n≡0 (≤-trans (≮⇒≥ ge) (n≤1+n j))
+    body : ∀ u → u < suc (revs Θ)
+         → ρᵇ (rvl⋆ ∷ mapR Θ₁ (suc j) Θ) u ≡ ρᵇ (rvl⋆ ∷ Θ) u
+    body zero    l       = refl
+    body (suc u) (s≤s l) =
+      trans (ρᵇ-mapR-lo Θ₁ (suc j) Θ u
+                        (subst (λ n → n + u < revs Θ) (sym z') l))
+            (cong (λ n → ρᵇ Θ (n + u)) z')
+ρᵇ-mapR-lo Θ₁ j (cnc X A ∷ Θ) t le = ρᵇ-mapR-lo Θ₁ j Θ t le
+ρᵇ-mapR-lo Θ₁ j (cnc⋆ X ∷ Θ)  t le = ρᵇ-mapR-lo Θ₁ j Θ t le
+
+ρ⊕-mid-lo : ∀ Θ₁ Θ₂ t → cmax Θ₁ + t < revs Θ₂
+  → ρᵇ (Θ₁ ⊕ Θ₂) (revs Θ₁ + t) ≡ ρᵇ Θ₂ (cmax Θ₁ + t)
+ρ⊕-mid-lo Θ₁ Θ₂ t l =
+  trans (ρᵇ-mapL-hi Θ₂ Θ₁ (mapR Θ₁ 0 Θ₂) t) (ρᵇ-mapR-lo Θ₁ 0 Θ₂ t l)
+
+-- THE EXTERNAL FACE AT A REVEAL-VARIABLE FACE, KEPT BRANCH.  When Θ₁
+-- does NOT conceal the slot Θ₂ reveals (cmax Θ₁ ≤ X) the merged face is
+-- the composite's own reveal slot, and the equation is a THEOREM with no
+-- side condition.  The CANCELLED branch (X < cmax Θ₁) is where the whole
+-- external-face obligation lives, and it is REFUTED — gauntlet §9m.
+⊕-ρ-var-kept : ∀ Θ₁ Θ₂ X → X < revs Θ₂ → cmax Θ₁ ≤ X
+  → substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ (` (revs Θ₁ + X)))
+    ≡ substᵗ (ρᵇ Θ₂) (` X)
+⊕-ρ-var-kept Θ₁ Θ₂ X l₂ g₁ =
+  trans (cong (substᵗ (ρᵇ (Θ₁ ⊕ Θ₂)))
+              (trans (mrg₁-hi Θ₁ Θ₂ X) (mrgΨ-r Θ₁ Θ₂ X l₂ g₁)))
+        (trans (ρ⊕-mid-lo Θ₁ Θ₂ (X ∸ cmax Θ₁) lt)
+               (cong (ρᵇ Θ₂) fill))
+  where
+    fill : cmax Θ₁ + (X ∸ cmax Θ₁) ≡ X
+    fill = m+[n∸m]≡n g₁
+    lt : cmax Θ₁ + (X ∸ cmax Θ₁) < revs Θ₂
+    lt = subst (_< revs Θ₂) (sym fill) l₂
+
 ------------------------------------------------------------------------
 -- MERGE, PART 5: WORKED EXAMPLE (a) — THE CANCEL PAIR.
 --
@@ -4383,8 +4514,11 @@ _ = refl
 ⊢redex-c = env (bwf↑ wf-ℕ bwf[]) (sc-var hereᵒ)
                (env (bwf↓ here (≡→≈ refl) wf-ℕ bwf[]) (sc-var hereᵒ) ⊢$)
 
+-- component (1) is now the INTERNAL-FACE EQUATION, discharged here the
+-- way every pre-Decision-7 witness is: by ⊕-γ at the old side condition
 ok-c : MergeOK [] Θ1c Θ2c (` 0) (` 0)
-ok-c = s≤s z≤n , bwf[] , sc-ℕ , ≼≈[] , refl
+ok-c = ⊕-γ {intOf [] Θ2c} {` 0} Θ1c Θ2c (s≤s z≤n) (sc-var hereᵒ)
+     , bwf[] , sc-ℕ , ≼≈[] , refl
 
 _ : [] ⊢ (($ 7) ⟪ Θ1c , ` 0 ⟫) ⟪ Θ2c , ` 0 ⟫ -→ ($ 7) ⟪ [] , `ℕ ⟫
 _ = Merge V-$ (I-var z≤n) (A-var (s≤s z≤n)) ok-c
@@ -4464,7 +4598,8 @@ _ = refl
                 (⊢ƛ (wf-var here-rvld) (⊢` here))))
 
 ok-tw1 : MergeOK Ψtw3 Θtw1 Θtw2 (` 0 ⇒ ` 0) (` 0 ⇒ ` 0)
-ok-tw1 = z≤n
+ok-tw1 = ⊕-γ {intOf Ψtw3 Θtw2} {` 0 ⇒ ` 0} Θtw1 Θtw2 z≤n
+              (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
        , bwf↑ (wf-var here-rvld) (bwf↑ (wf-var here-rvld)
                                        (bwf↑ wf-ℕ bwf[]))
        , sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ)
@@ -4503,7 +4638,8 @@ int-tw2 : intOf Ψtw3 (Θtw1 ⊕ Θtw2) ≼≈ intOf Δtw Θtw⊕
 int-tw2 = ≼≈rvld (≼≈rvld (≼≈-refl _) (≈unf refl)) (≈unf refl)
 
 ok-tw2 : MergeOK Δtw (Θtw1 ⊕ Θtw2) Θtw3 (` 0 ⇒ ` 0) (` 0 ⇒ ` 0)
-ok-tw2 = z≤n
+ok-tw2 = ⊕-γ {intOf Δtw Θtw3} {` 0 ⇒ ` 0} (Θtw1 ⊕ Θtw2) Θtw3 z≤n
+              (sc-⇒ (sc-var hereᵒ) (sc-var hereᵒ))
        , bwf↑ (wf-var here-rvld)
               (bwf↑ (wf-var here-rvld)
                     (bwf↑ wf-ℕ
@@ -4557,6 +4693,34 @@ mid-eq : ∀ {Δ V Θ₁ Θ₂ B₁ B₂}
        → intOf Δ Θ₂ ∣ [] ⊢ V ⟪ Θ₁ , B₁ ⟫ ⦂ substᵗ (γᵇ Θ₂) B₂
        → substᵗ (γᵇ Θ₂) B₂ ≡ substᵗ (ρᵇ Θ₁) B₁
 mid-eq ⊢in = env-ty ⊢in
+
+var-inj : ∀ {a b : ℕ} → _≡_ {A = Ty} (` a) (` b) → a ≡ b
+var-inj refl = refl
+
+-- … AND AT A REVEAL-VARIABLE FACE IT PINS THE INNER SLOT.  Progress's
+-- redex is (V ⟪ Θ₁ , ` Y ⟫) ⟪ Θ₂ , ` X ⟫ with revs Θ₁ ≤ Y (the inner
+-- face is INERT, canon-var-conceal) and X < revs Θ₂ (the outer face is
+-- ACTIVE).  The inner face is then read out by ρᵇ-hi and the outer one
+-- read in by γᵇ-lo, so the middle-type equation says exactly
+--
+--     Y ≡ revs Θ₁ + X
+--
+-- — the inner boundary type is Θ₁'s frame slot for the very exterior
+-- index Θ₂ reveals.  Every Decision-7 discharge below is stated at that
+-- slot (⊕-γ-var, ⊕-ρ-var-kept).
+mid-var : ∀ {Δ : TCtx} {V Θ₁ Θ₂ X Y} → revs Θ₁ ≤ Y → X < revs Θ₂
+        → intOf Δ Θ₂ ∣ [] ⊢ V ⟪ Θ₁ , ` Y ⟫ ⦂ substᵗ (γᵇ Θ₂) (` X)
+        → Y ≡ revs Θ₁ + X
+mid-var {Θ₁ = Θ₁} {Θ₂} {X} {Y} ge lt ⊢in =
+  trans splitY (cong (revs Θ₁ +_) (sym (var-inj e1)))
+  where
+    splitY : Y ≡ revs Θ₁ + (Y ∸ revs Θ₁)
+    splitY = sym (m+[n∸m]≡n ge)
+    e1 : (` X) ≡ ` (Y ∸ revs Θ₁)
+    e1 = trans (sym (γᵇ-lo Θ₂ X lt))
+               (trans (env-ty ⊢in)
+                      (trans (cong (ρᵇ Θ₁) splitY)
+                             (ρᵇ-hi Θ₁ (Y ∸ revs Θ₁))))
 
 ------------------------------------------------------------------------
 -- CANCEL-AGREE, ORDINARY — THE ≡-ANALOGUE OF DualDef's xrep-stored, ON THE

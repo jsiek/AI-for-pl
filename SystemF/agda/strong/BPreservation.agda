@@ -235,17 +235,18 @@ module Impl (dual-rep : DualRep≈) (dual-cnc : DualCnc≈)
   --     nested, the innermost entry is the reveal VARIABLE below it;
   --     merged, it is that reveal's own rep, one unfolding further);
   --   * its TYPE is unchanged, because the INTERNAL face composes on the
-  --     nose — ⊕-γ, a theorem, given MergeOK's scope side condition and
-  --     the inner (env)'s own Scoped premise (env-sc).
+  --     nose — and since Decision 7 that equation IS MergeOK's first
+  --     component (`intf`), read off directly instead of being rebuilt
+  --     from ⊕-γ and the inner (env)'s Scoped premise.
   preservation {Δ} (env {Θ = Θ₂} {B₀ = B₂} bwf₂ sc₂ ⊢in)
                    (Merge {Θ₁ = Θ₁} {B₁ = B₁} v i a
-                          (le , b⊕ , sc⊕ , int , ext)) =
+                          (intf , b⊕ , sc⊕ , int , ext)) =
     subst (λ T → Δ ∣ [] ⊢ _ ⦂ T) ext (env b⊕ sc⊕ ⊢body)
     where
       ⊢body : intOf Δ (Θ₁ ⊕ Θ₂) ∣ []
                 ⊢ _ ⦂ substᵗ (γᵇ (Θ₁ ⊕ Θ₂)) (mrgB Θ₁ Θ₂ B₁)
       ⊢body = subst (λ T → intOf Δ (Θ₁ ⊕ Θ₂) ∣ [] ⊢ _ ⦂ T)
-                    (sym (⊕-γ Θ₁ Θ₂ le (env-sc ⊢in)))
+                    (sym intf)
                     (⊢retag≈ int (env-body ⊢in))
 
   -- Drop$:  ($ n) ⟪ Θ , ℕ ⟫  →  $ n.  Both faces of a BASE face are that

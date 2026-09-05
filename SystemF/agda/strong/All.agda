@@ -20,3 +20,5 @@ open import strong.Progress
 open import strong.Show
 open import strong.EvalDec
 open import strong.Eval
+open import strong.EvalLog
+open import strong.Oblig

@@ -18,3 +18,5 @@ open import strong.Canonical
 open import strong.ProgressDef
 open import strong.Progress
 open import strong.Show
+open import strong.EvalDec
+open import strong.Eval

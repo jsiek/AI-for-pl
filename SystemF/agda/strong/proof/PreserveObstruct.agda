@@ -160,72 +160,16 @@ _ = refl
 ¬TyPeelRCase tc = ¬⊢t-contractum (tc val-Vt ⊢Rt)
 
 ------------------------------------------------------------------------
--- §3  Peel's dual re-blocks a no-op `unlock`
+-- §3  Peel — REPAIRED (refutation removed)
 ------------------------------------------------------------------------
 
--- Θ = unlock 0 at a slot that is NOT masked: `Bwf`'s `bw-u` asks only
--- that the slot EXIST (strong.Terms says so in as many words), so this is
--- a legal boundary and `intC Θ Δ ≡ Δ`.  Its dual is `lock 0`, which
--- BLOCKS the owner — and the crossing argument's `seal 0` licence dies.
-
-Δp : Ctxᵗ
-Δp = bind `ℕ ∷ []
-
-Θp : CtxMorph
-Θp = unlock 0 ∷ []
-
--- the boundary changes NOTHING …
-_ : intC Θp Δp ≡ Δp
-_ = refl
-
--- … but its dual blocks the owner.
-_ : dual Θp ≡ lock 0 ∷ []
-_ = refl
-
-_ : intC (dual Θp) (intC Θp Δp) ≡ blk (bind `ℕ) ∷ []
-_ = refl
-
-Vp Wp : Term
-Vp = ƛ `ℕ ∙ ($ 5)
-Wp = ($ 7) ⟪ [] , seal 0 ⟫
-
-⊢Wp : Δp ∣ [] ⊢ Wp ⦂ ` 0
-⊢Wp = env {p = ↓ˢ} bw[] ⊢$ (conv-seal ez)
-          (wf-var (bind `ℕ , ez , vis-b))
-
-val-Wp : Value Wp
-val-Wp = V-⟪⟫ V-$ I-seal
-
-Fp : Term
-Fp = Vp ⟪ Θp , unseal 0 ↦ id `ℕ ⟫
-
-⊢Fp : Δp ∣ [] ⊢ Fp ⦂ (` 0 ⇒ `ℕ)
-⊢Fp = env {p = ↓ˢ} (bw-u ez bw[])
-          (⊢ƛ wf-ℕ ⊢$)
-          (conv-fun (conv-unseal ez) (conv-id base-ℕ))
-          (wf-⇒ (wf-var (bind `ℕ , ez , vis-b)) wf-ℕ)
-
-Rp : Term
-Rp = Fp · Wp
-
-⊢Rp : Δp ∣ [] ⊢ Rp ⦂ `ℕ
-⊢Rp = ⊢· ⊢Fp ⊢Wp
-
-step-p : Δp ⊢ Rp
-       -→ (Vp · (wkᴹ (nbind Θp) Wp ⟪ dual Θp , unseal 0 ⟫))
-            ⟪ Θp , id `ℕ ⟫
-step-p = Peel V-ƛ val-Wp
-
--- the crossing argument, at the dual's interior: its licence is gone.
-¬⊢p-crossed : ∀ {T} → ¬ ((blk (bind `ℕ) ∷ []) ∣ [] ⊢ Wp ⦂ T)
-¬⊢p-crossed (env _ _ (conv-seal ()) _)
-
-¬⊢p-contractum :
-  ¬ (Δp ∣ [] ⊢ (Vp · (Wp ⟪ lock 0 ∷ [] , unseal 0 ⟫)) ⟪ Θp , id `ℕ ⟫ ⦂ `ℕ)
-¬⊢p-contractum (env _ (⊢· _ (env _ ⊢W _ _)) _ _) = ¬⊢p-crossed ⊢W
-
-¬PeelCase : ¬ PeelCase
-¬PeelCase pc = ¬⊢p-contractum (pc V-ƛ val-Wp ⊢Rp)
+-- The old §3 refuted the OLD `dual` (`unlock X ↦ lock (n+X)`), which
+-- re-blocked a no-op `unlock` (`Θ = unlock 0` at an unmasked slot) and
+-- failed same-slot cancellation.  strong.Reduction's repaired `dualS`
+-- DROPS the `unlock` case, so `dual (unlock 0 ∷ []) ≡ []` and the
+-- crossing no longer masks the owner.  `PeelCase` is now PROVEN
+-- (strong.proof.PeelDual.preserve-Peel), with `intC-dual`/`fceC-dual`
+-- true in general — so this refutation is gone.
 
 ------------------------------------------------------------------------
 -- §4  IdPush pushes a rep across a lock
@@ -300,41 +244,8 @@ _ = refl
 -- §5  THE HEADLINE, and the verdict on `intC-dual`
 ------------------------------------------------------------------------
 
--- Preservation, as targeted, is FALSE for the rule set as it stands.
--- (§3's Peel witness is the smallest; any of the four does it.)
+-- Preservation, as targeted, is still FALSE while IdPush stands (§4 is the
+-- surviving witness; Peel is now repaired and proven).
 ¬preservation :
   ¬ (∀ {Δ M M′ A} → Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A)
-¬preservation pr = ¬⊢p-contractum (pr ⊢Rp step-p)
-
--- THE FIRST OF THE TWO CONTEXT IDENTITIES IS FALSE.  `intC-dual` was
--- conjectured as "the lockBinds image of prep (reps Θ) Δ", which is what
--- every instance in Examples §5 computes to.  §3's Θ refutes it: the
--- dual's `lock` lands on a slot the crossed boundary never masked.
-¬intC-dual :
-  ¬ (intC (dual Θp) (intC Θp Δp)
-       ≡ scp (lockBinds (nbind Θp)) (prep (reps Θp) Δp))
-¬intC-dual ()
-
--- The SECOND identity does hold on every instance, including the
--- same-slot interleavings that break the first — but it is only ever
--- consumed by Peel, whose case is refuted above, so it is left unproven.
-_ : fceC (dual Θp) (intC Θp Δp) ≡ fceC Θp Δp
-_ = refl
-
-Θx : CtxMorph
-Θx = lock 0 ∷ unlock 0 ∷ []
-
-Δx : Ctxᵗ
-Δx = abst ∷ []
-
-_ : fceC (dual Θx) (intC Θx Δx) ≡ fceC Θx Δx
-_ = refl
-
--- (and the same Θ shows the first identity failing for a SECOND reason:
--- the dual replays Θ's ops in Θ's own order, not in reverse, so the
--- mask/unmask pair at one slot does not cancel)
-_ : intC (dual Θx) (intC Θx Δx) ≡ blk abst ∷ []
-_ = refl
-
-_ : scp (lockBinds (nbind Θx)) (prep (reps Θx) Δx) ≡ abst ∷ []
-_ = refl
+¬preservation pr = ¬⊢i-contractum (pr ⊢Ri step-i)

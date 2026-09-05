@@ -2141,3 +2141,31 @@ forces the inner wrapper to EXPORT the rep into a region that cannot
 name it).  The trace Jeremy asked for was NOT built (the agent judged it
 redundant post-repair); to be built if wanted.  Open for ruling after
 the three-bug fix lands.
+
+### Peel FIXED and PROVEN; CancelR/TyPeelR/IdPush share ONE wall (2026-09-05)
+
+Peel/dual repair landed: `dualS` drops the `unlock` case (a no-op unlock
+must dualize to nothing — fixes both the no-op→lock defect and the
+same-slot cancellation), `intC-dual : intC (dual Θ) (intC Θ Δ) ≡
+map blk (prep (reps Θ) []) ++ fscp Θ Δ` and `fceC-dual` PROVEN in general
+(proof/PeelDual.agda); `PeelCase` discharged; Conditional now over
+(typeel, cancel, idpush).  det/value-¬step/examples unchanged.
+
+THE FINDING: CancelR and TyPeelR are NOT local bugs — they hit the SAME
+wall as IdPush.  CancelR's honest contractum (keep both frames,
+neutralize the faces: `(V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc
+A ⟫`) fixes the frame-drop but demands `intC Θ₂ Δ ⊢ᵗ A` — failing
+exactly when Θ₂ locks a slot A names while Θ₁ re-exposes it (the IdPush
+§4 witness with seal for id).  TyPeelR's annotation must be the
+INTERIOR ∀-body, i.e. the SOURCE of the face `s`, which is not
+syntactically recoverable for `↓ˢ` conceal faces (a seal's source is a
+rep, absent from the rep-free conversion) — closable for `↑ˢ` reveal
+faces via a `srcOf : Conv → Ty` reconstruction, not in full generality.
+Common denominator: a contractum's inner wrapper must PRESENT A REP
+inside Θ₂'s interior; rep-free conversions + masks make that either
+non-syntactic (TyPeelR) or ill-scoped (CancelR/IdPush).  DESIGN
+QUESTION for Jeremy, informed by the re-probe: is the wall REACHABLE
+post-repair (simultaneity says no for IdPush); if not, a grounded
+Bwf/typing invariant makes the offending configurations ill-formed and
+the `intC Θ₂ Δ ⊢ᵗ A` facts derivable; if yes, contracta must be
+reformulated so no inner wrapper presents a rep under a lock.

@@ -76,10 +76,19 @@ lockBinds : ℕ → CtxMorph
 lockBinds zero    = []
 lockBinds (suc k) = lock k ∷ lockBinds k
 
+-- THE UNLOCK CASE IS DROPPED (repair, 2026-09-05).  The old design mapped
+-- `unlock X ↦ lock (n + X)`, which (i) re-blocks a NO-OP unlock (a slot the
+-- crossed boundary never masked — `Bwf`'s `bw-u` permits it) and (ii) makes
+-- a same-slot mask/unmask pair fail to cancel.  A faithful dual only has to
+-- UNDO the crossed boundary's LOCKS (turning `scp Θ Δ` back into `fscp Θ Δ`
+-- in the tail) and MASK its owners; an `unlock` in Θ leaves the tail MORE
+-- nameable, which the crossing argument absorbs by `⊢retag`.  With this,
+-- `intC-dual` and `fceC-dual` become true in general
+-- (proof/PeelDual.agda), and the Peel case is proven.
 dualS : ℕ → CtxMorph → CtxMorph
 dualS n []          = []
 dualS n (bind A ∷ Θ) = dualS n Θ
-dualS n (unlock X ∷ Θ) = lock (n + X) ∷ dualS n Θ
+dualS n (unlock X ∷ Θ) = dualS n Θ
 dualS n (lock X ∷ Θ) = unlock (n + X) ∷ dualS n Θ
 
 dual : CtxMorph → CtxMorph

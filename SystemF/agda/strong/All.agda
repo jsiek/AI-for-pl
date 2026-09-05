@@ -20,6 +20,7 @@ open import strong.proof.Adversary
 open import strong.proof.MaskFacts
 open import strong.proof.IdLayer
 open import strong.proof.Preserve
+open import strong.proof.PeelDual
 open import strong.proof.PreserveObstruct
 open import strong.proof.IdPushReach
 

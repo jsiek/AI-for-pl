@@ -21,19 +21,19 @@ module strong.Preservation where
 --   is a value at Γ = `ℕ ∷ [], TyBeta fires, and the contractum's interior
 --   would have to mention a term variable that a wrapper body may not have.
 --
--- THE STATUS.  As the rules in strong.Reduction stand, preservation is
--- FALSE: four of the eight rules have machine-checked counterexamples
--- (proof/PreserveObstruct — a typed redex whose contractum is untypeable
--- at the redex's type), one per root cause:
+-- THE STATUS.  PEEL IS NOW REPAIRED AND PROVEN: strong.Reduction's `dualS`
+-- drops the `unlock` case, which makes `intC-dual`/`fceC-dual` true in
+-- general and `PeelCase` a theorem (proof/PeelDual.preserve-Peel).  Three
+-- rules still have machine-checked counterexamples (proof/PreserveObstruct
+-- — a typed redex whose contractum is untypeable at the redex's type):
 --
 --   CancelR  drops Θ₁'s frame
 --   TyPeelR  reuses the exterior ∀-body as the pushed-in annotation
---   Peel     the dual re-blocks a no-op `unlock`
 --   IdPush   pushes an owner's rep across a `lock`
 --
--- What IS proven, unconditionally: TyBeta (the mint), Beta, Drop$ and all
--- five congruences — and preservation itself, over the four open cases as
--- premises (`module Conditional`).
+-- What IS proven, unconditionally: TyBeta (the mint), Beta, Drop$, PEEL,
+-- and all five congruences — and preservation itself, over the three open
+-- cases as premises (`module Conditional`).
 
 open import Data.List using (List; []; _∷_)
 open import Relation.Nullary using (¬_)
@@ -49,6 +49,7 @@ open import strong.proof.Preserve
   using (PeelCase; TyPeelRCase; CancelRCase; IdPushCase;
          preserve-TyBeta; preserve-Drop$; ⊢ᵗ-of; CtxWf-[])
 import strong.proof.Preserve as P
+open import strong.proof.PeelDual using (preserve-Peel)
 open import strong.proof.PreserveObstruct using (¬preservation)
 
 private
@@ -90,14 +91,13 @@ preservation-fails = ¬preservation
 -- module's parameters.  Instantiating this module is exactly the work a
 -- repair of those four rules would unlock.
 module Conditional
-  (peel   : PeelCase)
   (typeel : TyPeelRCase)
   (cancel : CancelRCase)
   (idpush : IdPushCase)
   where
 
   private
-    module I = P.Impl peel typeel cancel idpush
+    module I = P.Impl preserve-Peel typeel cancel idpush
 
   preservation : Preservation
   preservation = I.preserve

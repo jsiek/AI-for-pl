@@ -1,33 +1,29 @@
 module strong.proof.PreserveObstruct where
 
--- THE FOUR PRESERVATION OBSTRUCTIONS, as refutations.
+-- THE PRESERVATION OBSTRUCTIONS, as refutations — and what is LEFT of
+-- them after the 2026-09-05/06 rule repairs.
 --
 -- Each section exhibits a TYPED redex, the step the rule takes on it, and
--- a proof that the CONTRACTUM IS NOT TYPEABLE AT THE REDEX'S TYPE.  Each
--- therefore refutes the corresponding case statement of proof/Preserve
--- (`¬PeelCase`, `¬TyPeelRCase`, `¬CancelRCase`, `¬IdPushCase`), which is
--- why those four are module parameters there and not lemmas.
+-- a proof that the CONTRACTUM IS NOT TYPEABLE AT THE REDEX'S TYPE.
 --
--- The four root causes are distinct:
---
---   §1 CancelR  DROPS Θ₁'S FRAME.  The residue rebinds only Θ₂'s owners,
---               so a value that names one of Θ₁'s `nbind` slots loses it.
---   §2 TyPeelR  REUSES THE EXTERIOR ANNOTATION.  The pushed-in `·[ B , _ ]`
---               must be annotated with the INTERIOR face's ∀-body, which
---               differs from `B` at every non-identity ∀-face.  (The rule's
---               `renᴮ suc Θ` is a second, independent defect: `prep`
---               already lifts past the new owner, so the shift double-counts
---               — visible in `intC (bind A ∷ renᴮ suc Θ) Δ` below.)
---   §3 Peel     THE DUAL RE-BLOCKS A NO-OP `unlock`.  `dualS` maps
---               `unlock X ↦ lock (n+X)` unconditionally, so a Θ whose
---               `unlock` names an ALREADY-NAMEABLE slot (which `Bwf`'s
---               `bw-u` explicitly permits) makes the dual BLOCK a slot the
---               crossing argument's own derivation needs.
+--   §1 CancelR  REPAIRED.  The old contractum dropped Θ₁'s frame, so a
+--               value naming one of Θ₁'s own slots lost it.  The repaired
+--               rule keeps BOTH frames, and §1's witness now TYPES
+--               (`⊢c-contractum`) — the refutation is gone.
+--   §2 TyPeelR  REPAIRED, and what remains is THE POLARITY DISCIPLINE,
+--               not the rule.  The pushed-in annotation is now the
+--               premise-determined interior ∀-body and the frame is plain
+--               `Θ`; the minted face `unsealAtᶜ 0 s` types at an `↑ˢ`
+--               (reveal) ∀-face (proof/Preserve.preserve-TyPeelR-↑) and is
+--               MIXED-POLARITY at a `↓ˢ` (conceal) one — `¬TyPeelRCase`
+--               below, reached from closed plain source in Examples §13a.
+--   §3 Peel     REPAIRED and PROVEN (proof/PeelDual); refutation removed.
 --   §4 IdPush   PUSHES A REP ACROSS A LOCK.  The inner wrapper's new
 --               exterior type is the owner's rep `A`, which `env`'s last
 --               premise then demands be well formed on the INTERIOR type
 --               context — where Θ₂'s `lock` may have blocked the slot the
 --               rep names (the chained-rep configuration of §5's c10/c11).
+--               proof/WallReach answers it over the `RepWf` invariant.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -86,78 +82,123 @@ Rc = (Vc ⟪ Θc₁ , seal 1 ⟫) ⟪ Θc₂ , unseal 0 ⟫
                (wf-var (bind (`ℕ ⇒ `ℕ) , ez , vis-b)))
           (conv-unseal ez) (wf-⇒ wf-ℕ wf-ℕ)
 
-step-c : [] ⊢ Rc -→ Vc ⟪ reps→bind (reps Θc₂) , idc (`ℕ ⇒ `ℕ) ⟫
+step-c : [] ⊢ Rc
+       -→ (Vc ⟪ Θc₁ , idc (liftN (nbind Θc₁) (`ℕ ⇒ `ℕ)) ⟫)
+            ⟪ Θc₂ , idc (`ℕ ⇒ `ℕ) ⟫
 step-c = CancelR val-Vc ez
 
--- the contractum, with the residue and the identity face computed out
-_ : Vc ⟪ reps→bind (reps Θc₂) , idc (`ℕ ⇒ `ℕ) ⟫
-      ≡ Vc ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫
+-- the contractum, with both identity faces computed out
+_ : (Vc ⟪ Θc₁ , idc (liftN (nbind Θc₁) (`ℕ ⇒ `ℕ)) ⟫) ⟪ Θc₂ , idc (`ℕ ⇒ `ℕ) ⟫
+      ≡ (Vc ⟪ bind `𝔹 ∷ [] , id `ℕ ↦ id `ℕ ⟫)
+          ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫
 _ = refl
 
-¬⊢c-contractum :
-  ¬ ([] ∣ [] ⊢ Vc ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫ ⦂ (`ℕ ⇒ `ℕ))
-¬⊢c-contractum (env _ (⊢ƛ _ (env (bw-l (_ , es () , _) _) _ _ _)) _ _)
-
-¬CancelRCase : ¬ CancelRCase
-¬CancelRCase cc = ¬⊢c-contractum (cc val-Vc ez ⊢Rc)
+-- AND IT TYPES.  The old contractum `V ⟪ reps→bind (reps Θ₂) , idc A ⟫`
+-- dropped Θ₁'s frame, so `Vc`'s `lock 1` named a slot that no longer
+-- existed; the repaired one KEEPS BOTH FRAMES, and `Vc` retypes exactly
+-- where it was — `⊢Vc` is reused verbatim.
+⊢c-contractum :
+  [] ∣ [] ⊢ (Vc ⟪ bind `𝔹 ∷ [] , id `ℕ ↦ id `ℕ ⟫)
+              ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫ ⦂ (`ℕ ⇒ `ℕ)
+⊢c-contractum =
+  env {p = ↑ˢ} (bw-b (wf-⇒ wf-ℕ wf-ℕ) bw[])
+      (env {p = ↑ˢ} (bw-b wf-𝔹 bw[]) ⊢Vc
+           (conv-fun (conv-id base-ℕ) (conv-id base-ℕ))
+           (wf-⇒ wf-ℕ wf-ℕ))
+      (conv-fun (conv-id base-ℕ) (conv-id base-ℕ))
+      (wf-⇒ wf-ℕ wf-ℕ)
 
 ------------------------------------------------------------------------
--- §2  TyPeelR reuses the exterior annotation
+-- §2  TyPeelR under a `↓ˢ` ∀-face — THE POLARITY OBSTRUCTION
 ------------------------------------------------------------------------
 
--- The boundary's ∀-face is a REVEAL, so its interior body (` 1) and its
--- exterior body (`ℕ) differ.  The contractum annotates the pushed-in
--- instantiation with the EXTERIOR one, and the interior application then
--- has the wrong type.
+-- The two old defects (exterior annotation, double shift) are REPAIRED
+-- in strong.Reduction: the pushed-in annotation is the premise-determined
+-- interior body, the frame is plain `Θ`, and the face is `unsealAtᶜ 0 s`
+-- — the leaf-wise mint that turns the face's now-OWNED slot 0 into its
+-- instantiation.  At an `↑ˢ` (reveal) ∀-face that is a THEOREM
+-- (proof/Preserve.preserve-TyPeelR-↑).
+--
+-- WHAT REMAINS IS NOT A RULE DEFECT BUT THE POLARITY DISCIPLINE.  Under a
+-- `↓ˢ` (conceal) ∀-face — a POLYMORPHIC ARGUMENT that crossed a Peel —
+-- the mint inserts `seal 0` at CONTRAVARIANT positions and `unseal 0` at
+-- COVARIANT ones, i.e. at `↑ˢ` and `↓ˢ` respectively; but `conv-unseal`
+-- is fixed at `↑ˢ` and `conv-seal` at `↓ˢ`, so under a `↓ˢ` face EVERY
+-- inserted leaf sits at the polarity the judgment refuses, while the
+-- face's own pre-existing `seal` leaves sit at the other one.  The
+-- resulting face is MIXED-POLARITY and has NO typing at either p.
+--
+-- The witness below is exactly the shape Examples §13 reaches from closed
+-- plain source: `f : ∀Y. Y ⇒ X` crossing a Peel and then instantiated.
 
+-- the crossed boundary's interior — the owner X := ℕ
 Δt : Ctxᵗ
 Δt = bind `ℕ ∷ []
 
-Vt : Term
-Vt = Λ (($ 7) ⟪ [] , seal 1 ⟫)
+-- the polymorphic ARGUMENT, closed and plain: ΛY. λy:Y. 3
+Wt : Term
+Wt = Λ (ƛ (` 0) ∙ ($ 3))
 
-⊢Vt : Δt ∣ [] ⊢ Vt ⦂ `∀ (` 1)
-⊢Vt = ⊢Λ (env {p = ↓ˢ} bw[] ⊢$ (conv-seal (es ez))
-              (wf-var (bind `ℕ , es ez , vis-b)))
+val-Wt : Value Wt
+val-Wt = V-Λ V-ƛ
 
-val-Vt : Value Vt
-val-Vt = V-Λ (V-⟪⟫ V-$ I-seal)
+⊢Wt : ∀ {Δ Γ} → Δ ∣ Γ ⊢ Wt ⦂ `∀ (` 0 ⇒ `ℕ)
+⊢Wt = ⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a)) ⊢$)
 
-Bt : Term
-Bt = Vt ⟪ [] , `∀ (unseal 1) ⟫
+-- the `↓ˢ` ∀-face a Peel hands it: `sealAt 0 (∀Y. Y ⇒ X)`
+Θt : CtxMorph
+Θt = lock 0 ∷ []
 
-⊢Bt : Δt ∣ [] ⊢ Bt ⦂ `∀ `ℕ
-⊢Bt = env {p = ↑ˢ} bw[] ⊢Vt
-          (conv-all (conv-unseal (es ez))) (wf-∀ wf-ℕ)
+st : Conv
+st = id (` 0) ↦ seal 1
 
-Rt : Term
-Rt = Bt ·[ `ℕ , `ℕ ]
-
-⊢Rt : Δt ∣ [] ⊢ Rt ⦂ `ℕ
-⊢Rt = ⊢·[] ⊢Bt wf-ℕ
-
-step-t : Δt ⊢ Rt
-       -→ (wkᴹ 1 Vt ·[ renameᵗ (extᵗ suc) `ℕ , ` 0 ])
-            ⟪ bind `ℕ ∷ renᴮ suc [] , unseal 1 ⟫
-step-t = TyPeelR val-Vt
-
-_ : (wkᴹ 1 Vt ·[ renameᵗ (extᵗ suc) `ℕ , ` 0 ])
-      ⟪ bind `ℕ ∷ renᴮ suc [] , unseal 1 ⟫
-  ≡ (wkᴹ 1 Vt ·[ `ℕ , ` 0 ]) ⟪ bind `ℕ ∷ [] , unseal 1 ⟫
+_ : sealAt 0 (`∀ (` 0 ⇒ ` 1)) ≡ `∀ st
 _ = refl
 
--- The face forces the interior to have type ` 1; the annotation gives it
--- type `ℕ [ ` 0 ]ᵗ = `ℕ.
-¬⊢t-interior :
-  ¬ ((bind `ℕ ∷ Δt) ∣ [] ⊢ wkᴹ 1 Vt ·[ `ℕ , ` 0 ] ⦂ ` 1)
-¬⊢t-interior ()
+-- the premise TyPeelR carries, at THIS redex: p = ↓ˢ, and no other p
+-- types it (the pre-existing `seal 1` leaf is covariant).
+⊢st : (abst ∷ fceC Θt Δt) ⊢ st ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1) ∙ ↓ˢ
+⊢st = conv-fun (conv-idv (abst , ez , vis-a)) (conv-seal (es ez))
 
-¬⊢t-contractum :
-  ¬ (Δt ∣ [] ⊢ (wkᴹ 1 Vt ·[ `ℕ , ` 0 ]) ⟪ bind `ℕ ∷ [] , unseal 1 ⟫ ⦂ `ℕ)
-¬⊢t-contractum (env _ ⊢i (conv-unseal _) _) = ¬⊢t-interior ⊢i
+Wft : Term
+Wft = Wt ⟪ Θt , `∀ st ⟫
+
+⊢Wft : Δt ∣ [] ⊢ Wft ⦂ `∀ (` 0 ⇒ ` 1)
+⊢Wft = env {p = ↓ˢ} (bw-l (bind `ℕ , ez , vis-b) bw[]) ⊢Wt
+           (conv-all ⊢st)
+           (wf-∀ (wf-⇒ (wf-var (abst , ez , vis-a))
+                       (wf-var (bind `ℕ , es ez , vis-b))))
+
+Rt : Term
+Rt = Wft ·[ ` 0 ⇒ ` 1 , ` 0 ]
+
+⊢Rt : Δt ∣ [] ⊢ Rt ⦂ (` 0 ⇒ ` 0)
+⊢Rt = ⊢·[] ⊢Wft (wf-var (bind `ℕ , ez , vis-b))
+
+step-t : Δt ⊢ Rt
+       -→ (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
+            ⟪ bind (` 0) ∷ Θt , unsealAtᶜ 0 st ⟫
+step-t = TyPeelR val-Wt ⊢st
+
+-- THE MINTED FACE, computed: the inserted leaf is the DOMAIN `seal 0`.
+_ : unsealAtᶜ 0 st ≡ seal 0 ↦ seal 1
+_ = refl
+
+-- THE FAILING LEAF, precisely.  `seal 0` sits contravariantly, so it
+-- needs `flip p ≡ ↓ˢ` (p = ↑ˢ); `seal 1` sits covariantly, so it needs
+-- `p ≡ ↓ˢ`.  Nothing else about the types matters — the refutation does
+-- not even look at them.
+¬seal↦seal : ∀ {Δ A B p} → ¬ (Δ ⊢ seal 0 ↦ seal 1 ∶ A ⇝ B ∙ p)
+¬seal↦seal {p = ↑ˢ} (conv-fun ⊢s ())
+¬seal↦seal {p = ↓ˢ} (conv-fun () ⊢t)
+
+¬⊢t-contractum : ∀ {C}
+  → ¬ (Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
+                   ⟪ bind (` 0) ∷ Θt , seal 0 ↦ seal 1 ⟫ ⦂ C)
+¬⊢t-contractum (env _ _ ⊢c _) = ¬seal↦seal ⊢c
 
 ¬TyPeelRCase : ¬ TyPeelRCase
-¬TyPeelRCase tc = ¬⊢t-contractum (tc val-Vt ⊢Rt)
+¬TyPeelRCase tc = ¬⊢t-contractum (tc val-Wt ⊢st ⊢Rt)
 
 ------------------------------------------------------------------------
 -- §3  Peel — REPAIRED (refutation removed)

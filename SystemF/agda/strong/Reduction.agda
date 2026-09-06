@@ -63,6 +63,51 @@ mutual
   sealAt X (A ⇒ B) = unsealAt X A ↦ sealAt X B
   sealAt X (`∀ A)  = `∀ (sealAt (suc X) A)
 
+-- THE SAME MINT, APPLIED TO A CONVERSION (the TyPeelR repair,
+-- notes/RuleRepairs-TyPeelR-CancelR.md §1).  When a ∀-faced boundary is
+-- instantiated, the boundary's frame gains an OWNER at slot 0 — the slot
+-- the face's `` `∀ `` had left ABSTRACT.  Every leaf of the face that
+-- reads that slot is an identity (`id (` 0)`, because an abstract slot has
+-- no owner to seal or unseal at), and each such leaf must become the
+-- instantiation step: `unseal 0` where the face runs covariantly, `seal 0`
+-- where it runs contravariantly.  That is exactly `unsealAt`/`sealAt`,
+-- pushed through a CONVERSION instead of through a type — and on an
+-- identity face the two agree (`unsealAtᶜ-idc` below).
+mutual
+  unsealAtᶜ : ℕ → Conv → Conv
+  unsealAtᶜ X (id A)     = unsealAt X A
+  unsealAtᶜ X (seal Y)   = seal Y
+  unsealAtᶜ X (unseal Y) = unseal Y
+  unsealAtᶜ X (s ↦ t)    = sealAtᶜ X s ↦ unsealAtᶜ X t
+  unsealAtᶜ X (`∀ s)     = `∀ (unsealAtᶜ (suc X) s)
+
+  sealAtᶜ : ℕ → Conv → Conv
+  sealAtᶜ X (id A)     = sealAt X A
+  sealAtᶜ X (seal Y)   = seal Y
+  sealAtᶜ X (unseal Y) = unseal Y
+  sealAtᶜ X (s ↦ t)    = unsealAtᶜ X s ↦ sealAtᶜ X t
+  sealAtᶜ X (`∀ s)     = `∀ (sealAtᶜ (suc X) s)
+
+-- TyBeta's minted face IS this operation at an identity face: the type
+-- version is the conversion version on `idc`.  (So the `↑ˢ` reveal case of
+-- TyPeelR really is TyBeta's mint, one ∀ inside.)
+mutual
+  unsealAtᶜ-idc : (X : ℕ) (B : Ty) → unsealAtᶜ X (idc B) ≡ unsealAt X B
+  unsealAtᶜ-idc X (` Y)   = refl
+  unsealAtᶜ-idc X `ℕ      = refl
+  unsealAtᶜ-idc X `𝔹      = refl
+  unsealAtᶜ-idc X (A ⇒ B) =
+    cong₂ _↦_ (sealAtᶜ-idc X A) (unsealAtᶜ-idc X B)
+  unsealAtᶜ-idc X (`∀ A)  = cong `∀ (unsealAtᶜ-idc (suc X) A)
+
+  sealAtᶜ-idc : (X : ℕ) (B : Ty) → sealAtᶜ X (idc B) ≡ sealAt X B
+  sealAtᶜ-idc X (` Y)   = refl
+  sealAtᶜ-idc X `ℕ      = refl
+  sealAtᶜ-idc X `𝔹      = refl
+  sealAtᶜ-idc X (A ⇒ B) =
+    cong₂ _↦_ (unsealAtᶜ-idc X A) (sealAtᶜ-idc X B)
+  sealAtᶜ-idc X (`∀ A)  = cong `∀ (sealAtᶜ-idc (suc X) A)
+
 ------------------------------------------------------------------------
 -- 2.  The dual of a crossed boundary
 ------------------------------------------------------------------------
@@ -94,17 +139,9 @@ dualS n (lock X ∷ Θ) = unlock (n + X) ∷ dualS n Θ
 dual : CtxMorph → CtxMorph
 dual Θ = lockBinds (nbind Θ) ++ dualS (nbind Θ) Θ
 
--- A context morphism that binds Θ's owners and nothing else (Cancel's residue).
-reps→bind : List Ty → CtxMorph
-reps→bind []       = []
-reps→bind (A ∷ As) = bind A ∷ reps→bind As
-
-reps-reps→bind : (As : List Ty) → reps (reps→bind As) ≡ As
-reps-reps→bind []       = refl
-reps-reps→bind (A ∷ As) = cong (A ∷_) (reps-reps→bind As)
-
-nbind-reps→bind : (As : List Ty) → nbind (reps→bind As) ≡ length As
-nbind-reps→bind As = cong length (reps-reps→bind As)
+-- (The old Cancel residue `reps→bind` — a frame that rebinds Θ₂'s owners
+-- and nothing else — is GONE with the rule that wrote it: the repaired
+-- CancelR keeps both frames and mints none.)
 
 ------------------------------------------------------------------------
 -- 3.  The rules
@@ -135,22 +172,49 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- TYPEEL — the ∀-face analogue; the new owner is prepended and the
   -- elimination instantiates at the new owner's bind name.
   --
-  -- THE ANNOTATION REPAIR (2).  `B` is read over `abst ∷ Δ`; the contractum
-  -- reads it over `abst ∷ bind A ∷ Δ`, so it must be shifted past the new
-  -- owner: `renameᵗ (extᵗ suc) B`.
-  TyPeelR : ∀ {Δ V Θ s B A} → Value V
+  -- THE ANNOTATION REPAIR (2a).  The pushed-in `·[ _ , ` 0 ]` must carry
+  -- the INTERIOR ∀-body — what the interior's own `⊢·[]` demands — not the
+  -- exterior body `B`, from which it differs at every non-identity face.
+  -- The interior body is not syntactic (a `seal`'s source is an owner's
+  -- rep, which the rep-free conversion does not carry) but it IS
+  -- DETERMINED by the conversion typing, so the rule carries that typing
+  -- as a PREMISE — the same move already ruled for the `idc` faces.  It is
+  -- read at the ∀-body, i.e. under one `abst`, and Progress derives it for
+  -- free by inverting the redex's own `env` (`conv-all-inv`).  Determinism
+  -- is `conv-faces-unique` (strong.Conversion), exactly as it is `∋:=-det`
+  -- for the lookup-carrying rules.
+  --
+  -- THE SHIFT REPAIR (2b).  `renᴮ suc Θ` double-counts: `intC` already
+  -- lifts Θ's reps past the owner `bind A` prepended here
+  -- (`intC (bind A ∷ Θ) Δ ≡ bind (liftN (nbind Θ) A) ∷ intC Θ Δ`), so the
+  -- frame is plain `Θ`.
+  --
+  -- THE FACE (2c).  Slot 0 of the face's body was ABSTRACT and is now the
+  -- OWNER this rule binds, so every leaf of `s` that reads it must become
+  -- the instantiation step: `unsealAtᶜ 0 s`.  Keeping `s` itself is
+  -- ill-typed — its exterior body still mentions `` ` 0 `` where `env`
+  -- demands the instantiated `liftN (nbind Θ + 1) (Bₑ [ A ])`.
+  TyPeelR : ∀ {Δ V Θ s B A Bᵢ Bₑ p} → Value V
+    → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
     → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) B , ` 0 ])
-             ⟪ bind A ∷ renᴮ suc Θ , s ⟫
+        -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+             ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫
 
   -- CANCEL — a conceal directly under the owner it names.  The face match is
   -- DEFINITIONAL: `seal X` and `unseal Y` cite the SAME entry, so there is
   -- no second spelling to disagree with the first.
   --
-  -- THE RESIDUE REPAIR (3a).  The mini-core appended `lockBinds (nbind Θ₂)`,
-  -- which masks EXTERIOR slots that need not exist (proof/MaskFacts.agda,
-  -- `¬Bwf-cancel-residue`).  It is dropped: `intC` retains the entries
-  -- anyway and ⊢retag covers the extra knowledge.
+  -- THE RESIDUE REPAIR (3a), AS RE-RULED (2026-09-05).  The mini-core
+  -- appended `lockBinds (nbind Θ₂)`, which masks EXTERIOR slots that need
+  -- not exist (proof/MaskFacts.agda, `¬Bwf-cancel-residue`); dropping the
+  -- residue was not enough either, because `reps→bind (reps Θ₂)` DISCARDS
+  -- Θ₁'s whole frame, and a `V` that names one of Θ₁'s own binders loses
+  -- it (the old proof/PreserveObstruct §1 witness).  The honest form keeps
+  -- BOTH FRAMES and neutralises BOTH FACES: composition happens only on
+  -- the faces, where `unseal ∘ seal = id` is the algebra we already trust,
+  -- so no context-morphism arithmetic (`⊕`, `⊳`) returns.  `V` retypes
+  -- exactly where it was, and the two `idc` layers are transparent at a
+  -- variable and finished by `Drop$` at a base type.
   --
   -- THE SINGLE-NAME PRESUMPTION, EXAMINED (3b).  The mini-core wrote ONE
   -- name X on both faces.  That presumes `nbind Θ₁ ≡ 0`: the inner face is
@@ -165,7 +229,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- is `∋:=-det`.
   CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → fceC Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ V ⟪ reps→bind (reps Θ₂) , idc A ⟫
+        -→ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫
 
   -- DROP$ — a base-faced boundary over a numeral (`⊢$` types it anywhere).
   Drop$ : ∀ {Δ n Θ A} → Base A
@@ -233,13 +297,20 @@ det (Peel v w)   (ξ-·-r u st) = ⊥-elim (value-¬step w st)
 det (ξ-·-l st)   (Peel v w)   = ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
 det (ξ-·-r u st) (Peel v w)   = ⊥-elim (value-¬step w st)
 
--- TyPeelR
-det (TyPeelR v)  (TyPeelR v′) = refl
-det (TyPeelR v)  (ξ-·[] st)   = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
-det (ξ-·[] st)   (TyPeelR v)  = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
+-- TyPeelR — the two contracta agree because the FACES are a function of
+-- the conversion and the type context (`conv-faces-unique`), so the two
+-- premises determine the SAME pushed-in annotation.
+det (TyPeelR {V = V} {Θ = Θ} {s = s} {A = A} v ⊢s) (TyPeelR v′ ⊢s′) =
+  cong (λ T → (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) T , ` 0 ])
+                ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫)
+       (conv-src-unique ⊢s ⊢s′)
+det (TyPeelR v ⊢s) (ξ-·[] st)     = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
+det (ξ-·[] st)     (TyPeelR v ⊢s) = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
 
 -- CancelR — the two contracta agree because the lookup is a function.
-det (CancelR v d) (CancelR v′ d′) = cong (λ A → _ ⟪ _ , idc A ⟫) (∋:=-det d d′)
+det (CancelR {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} v d) (CancelR v′ d′) =
+  cong (λ T → (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) T) ⟫) ⟪ Θ₂ , idc T ⟫)
+       (∋:=-det d d′)
 det (CancelR v d) (ξ-⟪⟫ st) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 det (ξ-⟪⟫ st) (CancelR v d) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 

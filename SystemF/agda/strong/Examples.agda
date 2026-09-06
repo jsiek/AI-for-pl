@@ -90,23 +90,30 @@ push-T₆ = IdPush (V-⟪⟫ V-$ I-seal) ez
 ⊢T₆-1 : Δ₆ ∣ [] ⊢ T₆-1 ⦂ `ℕ
 ⊢T₆-1 = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢T₆-1-in (conv-id base-ℕ) wf-ℕ
 
--- STEP 2 — the seal/unseal pair is now ADJACENT: the ordinary cancel fires.
+-- STEP 2 — the seal/unseal pair is now ADJACENT: the ordinary cancel
+-- fires.  BOTH FRAMES STAY (the repaired rule) and both faces become the
+-- identity at the looked-up rep, so the seal's own (here empty) frame
+-- survives as one more transparent layer.
 T₆-2 : Term
-T₆-2 = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+T₆-2 = ((($ 7) ⟪ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
+         ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 cancel-T₆ : Δ₆ ⊢ T₆-1 -→ T₆-2
 cancel-T₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 
-⊢T₆-2-in : S₆₁ ∣ [] ⊢ ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢T₆-2-in = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+⊢T₆-2-in : S₆₁ ∣ [] ⊢ ($ 7) ⟪ [] , id `ℕ ⟫ ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
+⊢T₆-2-in = env {p = ↑ˢ} (bw-b wf-ℕ bw[])
+                (env {p = ↑ˢ} bw[] ⊢$ (conv-id base-ℕ) wf-ℕ)
+                (conv-id base-ℕ) wf-ℕ
 
 ⊢T₆-2 : Δ₆ ∣ [] ⊢ T₆-2 ⦂ `ℕ
 ⊢T₆-2 = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢T₆-2-in (conv-id base-ℕ) wf-ℕ
 
--- STEPS 3, 4 — base faces over a numeral.
+-- STEPS 3, 4, 5 — base faces over a numeral, innermost first.
 run-T₆ : Δ₆ ⊢ T₆ -→* $ 7
 run-T₆ = push-T₆
     then cancel-T₆
+    then ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
     then ξ-⟪⟫ (Drop$ base-ℕ)
     then Drop$ base-ℕ
     then done
@@ -133,18 +140,25 @@ cancelTm = (($ 7) ⟪ Θ↓ , seal 0 ⟫) ⟪ Θ↑ , unseal 0 ⟫
       (conv-unseal ez)
       wf-ℕ
 
--- the pair is NOT a value (the outer face is active) and the cancel fires.
--- The residue binds Θ↑'s owner and nothing else: the mini-core's extra
--- `lockBinds` masked an exterior slot that does not exist (repair 3a,
--- proof/MaskFacts.agda `¬Bwf-cancel-residue`).
-cancel-step : [] ⊢ cancelTm -→ ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+-- the pair is NOT a value (the outer face is active) and the cancel
+-- fires.  BOTH FRAMES STAY and both faces become the identity at the
+-- looked-up rep (the repaired rule): nothing that `V` might name is
+-- dropped, and the mini-core's extra `lockBinds` — which masked an
+-- exterior slot that does not exist (proof/MaskFacts `¬Bwf-cancel-residue`)
+-- — is gone for good.
+cancel-step : [] ⊢ cancelTm
+            -→ (($ 7) ⟪ Θ↓ , id `ℕ ⟫) ⟪ Θ↑ , id `ℕ ⟫
 cancel-step = CancelR V-$ ez
 
-drop-step : [] ⊢ ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ -→ $ 7
+drop-step-in : [] ⊢ (($ 7) ⟪ Θ↓ , id `ℕ ⟫) ⟪ Θ↑ , id `ℕ ⟫
+             -→ ($ 7) ⟪ Θ↑ , id `ℕ ⟫
+drop-step-in = ξ-⟪⟫ (Drop$ base-ℕ)
+
+drop-step : [] ⊢ ($ 7) ⟪ Θ↑ , id `ℕ ⟫ -→ $ 7
 drop-step = Drop$ base-ℕ
 
 run-cancelTm : [] ⊢ cancelTm -→* $ 7
-run-cancelTm = cancel-step then drop-step then done
+run-cancelTm = cancel-step then drop-step-in then drop-step then done
 
 _ : idc `ℕ ≡ id `ℕ
 _ = refl
@@ -187,7 +201,7 @@ T₈-1 T₈-2 T₈-3 : Term
 T₈-1 = (LA ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 T₈-2 = (((($ 7) ⟪ [] , seal 2 ⟫) ⟪ bind (` 0) ∷ [] , unseal 2 ⟫)
           ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-T₈-3 = ((($ 7) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫)
+T₈-3 = (((($ 7) ⟪ [] , id `ℕ ⟫) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫)
           ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 push-T₈  : Δ₆ ⊢ T₈ -→ T₈-1
@@ -203,6 +217,7 @@ run-T₈ : Δ₆ ⊢ T₈ -→* $ 7
 run-T₈ = push-T₈
     then push-T₈′
     then cancel-T₈
+    then ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ)))
     then ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
     then ξ-⟪⟫ (Drop$ base-ℕ)
     then Drop$ base-ℕ
@@ -233,15 +248,20 @@ T₉ = (Pkg ·[ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 ⊢T₉ : Δ₆ ∣ [] ⊢ T₉ ⦂ `ℕ
 ⊢T₉ = env (bw-b wf-ℕ bw[]) (⊢·[] ⊢Pkg wf-ℕ) (conv-unseal ez) wf-ℕ
 
--- TyPeelR copies the ∀-face's body verbatim, so the id-layer is minted no
--- matter what TyBeta does.  Note the SHIFTED annotation (repair 2): the
--- contractum reads `B` one owner further out, `` ` 2 `` rather than `` ` 1 ``.
+-- TyPeelR mints the id-layer no matter what TyBeta does.  On an IDENTITY
+-- ∀-face the minted face is the face itself (`unsealAtᶜ 0 (id (` 1)) =
+-- id (` 1)`, since slot 1 is not the new owner) and the pushed-in
+-- annotation is the interior ∀-body, SHIFTED past the owner the rule
+-- binds: `` ` 2 `` rather than `` ` 1 ``.
 Pk-1 : Term
 Pk-1 = ((Λ (($ 7) ⟪ [] , seal 2 ⟫)) ·[ ` 2 , ` 0 ])
          ⟪ bind `ℕ ∷ [] , id (` 1) ⟫
 
+⊢Pk-face : (abst ∷ fceC [] S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1 ∙ ↑ˢ
+⊢Pk-face = conv-idv (bind `ℕ , es ez , vis-b)
+
 typeel-T₉ : Δ₆ ⊢ T₉ -→ Pk-1 ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-typeel-T₉ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)))
+typeel-T₉ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Pk-face)
 
 -- and TyBeta then mints exactly T₈'s inner layer.
 reaches-T₈ : Δ₆ ⊢ T₉ -→* T₈
@@ -323,6 +343,7 @@ push-Tᵣ = IdPush (V-⟪⟫ V-$ I-seal) ez
 run-Tᵣ : [] ⊢ Tᵣ -→* $ 7
 run-Tᵣ = push-Tᵣ
     then ξ-⟪⟫ (CancelR V-$ (es ez))
+    then ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
     then ξ-⟪⟫ (Drop$ base-ℕ)
     then Drop$ base-ℕ
     then done
@@ -369,6 +390,7 @@ push-Tₘ = IdPush (V-⟪⟫ V-$ I-seal) (es ez)
 run-Tₘ : Δₘ ⊢ Tₘ -→* $ 7
 run-Tₘ = push-Tₘ
     then ξ-⟪⟫ (CancelR V-$ (es ez))
+    then ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
     then ξ-⟪⟫ (Drop$ base-ℕ)
     then Drop$ base-ℕ
     then done
@@ -715,24 +737,40 @@ step₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
 -- ── STEP 4 — CANCEL.  The seal minted by Peel and the unseal minted by
 -- TyBeta are now adjacent and cite THE SAME ENTRY, so the face match is
--- definitional; the residue is the identity at the LOOKED-UP rep.
+-- definitional; each face becomes the identity at the LOOKED-UP rep, and
+-- BOTH FRAMES STAY (the repaired rule) — so the crossing's own `lock 0`
+-- survives as a transparent layer, to be dropped in its own right.
 
 P₄ : Term
-P₄ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+P₄ = (($ 7) ⟪ lock 0 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 step₄ : [] ⊢ P₃ -→ P₄
 step₄ = CancelR V-$ ez
 
+⊢P₄-in : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ lock 0 ∷ [] , id `ℕ ⟫ ⦂ `ℕ
+⊢P₄-in = env {p = ↑ˢ} (bw-l (bind `ℕ , ez , vis-b) bw[])
+              ⊢$ (conv-id base-ℕ) wf-ℕ
+
 ⊢P₄ : [] ∣ [] ⊢ P₄ ⦂ `ℕ
-⊢P₄ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+⊢P₄ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₄-in (conv-id base-ℕ) wf-ℕ
 
--- ── STEP 5 — DROP$, and the whole run.
+-- ── STEPS 5, 6 — the two base faces over the numeral, and the whole run.
 
-step₅ : [] ⊢ P₄ -→ $ 7
-step₅ = Drop$ base-ℕ
+P₅ : Term
+P₅ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+
+step₅ : [] ⊢ P₄ -→ P₅
+step₅ = ξ-⟪⟫ (Drop$ base-ℕ)
+
+⊢P₅ : [] ∣ [] ⊢ P₅ ⦂ `ℕ
+⊢P₅ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+
+step₆ : [] ⊢ P₅ -→ $ 7
+step₆ = Drop$ base-ℕ
 
 run-P₀ : [] ⊢ P₀ -→* $ 7
-run-P₀ = step₁ then step₂ then step₃ then step₄ then step₅ then done
+run-P₀ = step₁ then step₂ then step₃ then step₄ then step₅ then step₆
+    then done
 
 val-P₀ : Value ($ 7)
 val-P₀ = V-$
@@ -815,12 +853,19 @@ progress-P₃ with progress ⊢P₃
 progress-P₃ | inj₁ (V-⟪⟫ _ ())
 progress-P₃ | inj₂ (M′ , st) = M′ , st , det st step₄
 
--- P₄ is the DROP$ state: the face is the ACTIVE `id `ℕ` and canon-base
--- says the interior value is a numeral.
-progress-P₄ : Σ[ M′ ∈ Term ] (([] ⊢ P₄ -→ M′) × (M′ ≡ $ 7))
+-- P₄ is a DROP$ state UNDER a boundary: the interior transparent layer
+-- goes first, by ξ-⟪⟫.
+progress-P₄ : Σ[ M′ ∈ Term ] (([] ⊢ P₄ -→ M′) × (M′ ≡ P₅))
 progress-P₄ with progress ⊢P₄
 progress-P₄ | inj₁ (V-⟪⟫ _ ())
 progress-P₄ | inj₂ (M′ , st) = M′ , st , det st step₅
+
+-- P₅ is the last DROP$ state: the face is the ACTIVE `id `ℕ` and
+-- canon-base says the interior value is a numeral.
+progress-P₅ : Σ[ M′ ∈ Term ] (([] ⊢ P₅ -→ M′) × (M′ ≡ $ 7))
+progress-P₅ with progress ⊢P₅
+progress-P₅ | inj₁ (V-⟪⟫ _ ())
+progress-P₅ | inj₂ (M′ , st) = M′ , st , det st step₆
 
 -- and the endpoint: at `$ 7` progress answers VALUE, not step.
 progress-end : Value ($ 7)
@@ -854,9 +899,9 @@ open import strong.Preservation
 ⊢P₃-pres : [] ∣ [] ⊢ P₃ ⦂ `ℕ
 ⊢P₃-pres = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
 
--- STEP 5 — Drop$.
-⊢P₅-pres : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
-⊢P₅-pres = preservation-Drop$ base-ℕ ⊢P₄
+-- STEP 6 — Drop$ (step 5 is the same rule, under ξ-⟪⟫).
+⊢P₆-pres : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
+⊢P₆-pres = preservation-Drop$ base-ℕ ⊢P₅
 
 ------------------------------------------------------------------------
 -- §10  IDPUSH — THE REACHABILITY VERDICT (soundness, not a break)
@@ -1062,40 +1107,58 @@ qstep₅ = IdPush (V-⟪⟫ V-$ I-seal) ez
 ⊢Q₅ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢Q₅-in (conv-id base-ℕ) wf-ℕ
 
 -- ── STEP 6 — CANCEL, under ξ-⟪⟫.  The seal minted by Peel and the unseal
--- IdPush just moved inwards are now adjacent.
+-- IdPush just moved inwards are now adjacent.  BOTH FRAMES STAY: the
+-- crossing's own `lock 1` survives under an identity face, one more
+-- transparent layer for Drop$ to finish.
 
 Q₆ : Term
-Q₆ = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+Q₆ = ((($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
+       ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 qstep₆ : [] ⊢ Q₅ -→ Q₆
 qstep₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 
-⊢Q₆-in : QΔ₁ ∣ [] ⊢ ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢Q₆-in = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+⊢Q₆-in2 : QΞ₂ ∣ [] ⊢ ($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫ ⦂ `ℕ
+⊢Q₆-in2 = env {p = ↑ˢ} (bw-l (bind `ℕ , es ez , vis-b) bw[])
+               ⊢$ (conv-id base-ℕ) wf-ℕ
+
+⊢Q₆-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫)
+                      ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
+⊢Q₆-in = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢Q₆-in2 (conv-id base-ℕ) wf-ℕ
 
 ⊢Q₆ : [] ∣ [] ⊢ Q₆ ⦂ `ℕ
 ⊢Q₆ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢Q₆-in (conv-id base-ℕ) wf-ℕ
 
--- ── STEPS 7, 8 — the two base faces over the numeral.
+-- ── STEPS 7, 8, 9 — the three base faces over the numeral.
 
-Q₇ : Term
-Q₇ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+Q₇ Q₈ : Term
+Q₇ = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+Q₈ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 qstep₇ : [] ⊢ Q₆ -→ Q₇
-qstep₇ = ξ-⟪⟫ (Drop$ base-ℕ)
+qstep₇ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
+
+⊢Q₇-in : QΔ₁ ∣ [] ⊢ ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
+⊢Q₇-in = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
 
 ⊢Q₇ : [] ∣ [] ⊢ Q₇ ⦂ `ℕ
-⊢Q₇ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+⊢Q₇ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢Q₇-in (conv-id base-ℕ) wf-ℕ
 
-qstep₈ : [] ⊢ Q₇ -→ $ 7
-qstep₈ = Drop$ base-ℕ
+qstep₈ : [] ⊢ Q₇ -→ Q₈
+qstep₈ = ξ-⟪⟫ (Drop$ base-ℕ)
 
-⊢Q₈ : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
-⊢Q₈ = preservation-Drop$ base-ℕ ⊢Q₇
+⊢Q₈ : [] ∣ [] ⊢ Q₈ ⦂ `ℕ
+⊢Q₈ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+
+qstep₉ : [] ⊢ Q₈ -→ $ 7
+qstep₉ = Drop$ base-ℕ
+
+⊢Q₉ : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
+⊢Q₉ = preservation-Drop$ base-ℕ ⊢Q₈
 
 run-Q₀ : [] ⊢ Q₀ -→* $ 7
 run-Q₀ = qstep₁ then qstep₂ then qstep₃ then qstep₄ then qstep₅
-    then qstep₆ then qstep₇ then qstep₈ then done
+    then qstep₆ then qstep₇ then qstep₈ then qstep₉ then done
 
 -- ── DETERMINISM PINS.  Each state has exactly ONE successor, so the run
 -- above is THE run: nothing else can fire at Q₄, in particular.
@@ -1121,8 +1184,11 @@ qdet₆ st = det st qstep₆
 qdet₇ : ∀ {M′} → [] ⊢ Q₆ -→ M′ → M′ ≡ Q₇
 qdet₇ st = det st qstep₇
 
-qdet₈ : ∀ {M′} → [] ⊢ Q₇ -→ M′ → M′ ≡ $ 7
+qdet₈ : ∀ {M′} → [] ⊢ Q₇ -→ M′ → M′ ≡ Q₈
 qdet₈ st = det st qstep₈
+
+qdet₉ : ∀ {M′} → [] ⊢ Q₈ -→ M′ → M′ ≡ $ 7
+qdet₉ st = det st qstep₉
 
 ------------------------------------------------------------------------
 -- §11a  VARIANT (iii) — IDPUSH FIRING TWICE IN ONE RUN
@@ -1156,7 +1222,7 @@ D₀     = (Dfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 QΞ₃ : Ctxᵗ
 QΞ₃ = bind `ℕ ∷ QΞ₂
 
-D₁ D₂ D₃ D₄ D₅ D₆ D₇ D₈ D₉ D₁₀ : Term
+D₁ D₂ D₃ D₄ D₅ D₆ D₇ D₈ D₉ D₁₀ D₁₁ : Term
 D₁  = ((ƛ (` 0) ∙ Dbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
 D₂  = ((ƛ (` 0) ∙ Dbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 D₃  = ((Λ ((Λ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)) ·[ ` 2 , `ℕ ]))
@@ -1170,10 +1236,12 @@ D₆  = (((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ bind `ℕ ∷ [] , id (` 2)
           ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 D₇  = (((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ bind `ℕ ∷ [] , unseal 2 ⟫)
           ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₈  = ((($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
+D₈  = (((($ 7) ⟪ lock 2 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
+          ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+D₉  = ((($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
         ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₉  = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₁₀ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+D₁₀ = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+D₁₁ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 dstep₁ : [] ⊢ D₀ -→ D₁
 dstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1204,18 +1272,21 @@ dstep₈ : [] ⊢ D₇ -→ D₈
 dstep₈ = ξ-⟪⟫ (ξ-⟪⟫ (CancelR V-$ (es (es ez))))
 
 dstep₉ : [] ⊢ D₈ -→ D₉
-dstep₉ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
+dstep₉ = ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ)))
 
 dstep₁₀ : [] ⊢ D₉ -→ D₁₀
-dstep₁₀ = ξ-⟪⟫ (Drop$ base-ℕ)
+dstep₁₀ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
 
-dstep₁₁ : [] ⊢ D₁₀ -→ $ 7
-dstep₁₁ = Drop$ base-ℕ
+dstep₁₁ : [] ⊢ D₁₀ -→ D₁₁
+dstep₁₁ = ξ-⟪⟫ (Drop$ base-ℕ)
+
+dstep₁₂ : [] ⊢ D₁₁ -→ $ 7
+dstep₁₂ = Drop$ base-ℕ
 
 run-D₀ : [] ⊢ D₀ -→* $ 7
 run-D₀ = dstep₁ then dstep₂ then dstep₃ then dstep₄ then dstep₅
     then dstep₆ then dstep₇ then dstep₈ then dstep₉ then dstep₁₀
-    then dstep₁₁ then done
+    then dstep₁₁ then dstep₁₂ then done
 
 -- ── BOTH IDPUSH CONTRACTA TYPE ─────────────────────────────────────────
 
@@ -1321,7 +1392,8 @@ Rchain-scoped = wf-var (_ , es ez , vis-b)
 RS RS↑ RW : Term
 RS  = (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ lock 0 ∷ [] , seal 0 ⟫
 RS↑ = (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ lock 1 ∷ [] , seal 1 ⟫
-RW  = (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ bind `ℕ ∷ [] , id (` 2) ⟫
+RW  = ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ lock 1 ∷ [] , id (` 2) ⟫)
+        ⟪ bind `ℕ ∷ [] , id (` 2) ⟫
 
 _ : wkᴹ 1 QS₇ ≡ ($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫
 _ = refl
@@ -1329,7 +1401,7 @@ _ = refl
 _ : ⇑ᴹ RS ≡ RS↑
 _ = refl
 
-R₁ R₂ R₃ R₄ R₅ R₆ R₇ R₈ R₉ R₁₀ R₁₁ R₁₂ R₁₃ R₁₄ : Term
+R₁ R₂ R₃ R₄ R₅ R₆ R₇ R₈ R₉ : Term
 R₁  = ((ƛ (` 0) ∙ Rbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
 R₂  = ((ƛ (` 0) ∙ Rbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 R₃  = ((Qfun ·[ ` 0 ⇒ ` 0 , ` 0 ]) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
@@ -1344,13 +1416,6 @@ R₇  = ((RS↑ ⟪ bind `ℕ ∷ [] , id (` 1) ⟫) ⟪ bind (` 0) ∷ [] , uns
 R₈  = ((RS↑ ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind (` 0) ∷ [] , id (` 1) ⟫)
         ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 R₉  = (RW ⟪ bind (` 0) ∷ [] , id (` 1) ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₁₀ = (RW ⟪ bind (` 0) ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-R₁₁ = ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫ ⟪ bind `ℕ ∷ [] , unseal 2 ⟫)
-          ⟪ bind (` 0) ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-R₁₂ = ((($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫)
-        ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-R₁₃ = (($ 7) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-R₁₄ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 rstep₁ : [] ⊢ R₀ -→ R₁
 rstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1378,32 +1443,27 @@ rstep₇ = ξ-⟪⟫ (ξ-⟪⟫ (TyBeta (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal))
 rstep₈ : [] ⊢ R₇ -→ R₈
 rstep₈ = ξ-⟪⟫ (IdPush (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal) ez)
 
+-- CANCEL, at the chained rep.  Both frames stay, so the crossing's own
+-- `lock 1` survives as a transparent layer carrying the CHAINED rep ` 2 —
+-- which is where the run's remaining id-layers come from.
 rstep₉ : [] ⊢ R₈ -→ R₉
 rstep₉ = ξ-⟪⟫ (ξ-⟪⟫ (CancelR (V-⟪⟫ V-$ I-seal) (es ez)))
 
--- IDPUSH #2 and #3: the residue face `idc (` 1)` is ITSELF an id-layer.
-rstep₁₀ : [] ⊢ R₉ -→ R₁₀
-rstep₁₀ = IdPush (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) ez
-
-rstep₁₁ : [] ⊢ R₁₀ -→ R₁₁
-rstep₁₁ = ξ-⟪⟫ (IdPush (V-⟪⟫ V-$ I-seal) (es ez))
-
-rstep₁₂ : [] ⊢ R₁₁ -→ R₁₂
-rstep₁₂ = ξ-⟪⟫ (ξ-⟪⟫ (CancelR V-$ (es (es ez))))
-
-rstep₁₃ : [] ⊢ R₁₂ -→ R₁₃
-rstep₁₃ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
-
-rstep₁₄ : [] ⊢ R₁₃ -→ R₁₄
-rstep₁₄ = ξ-⟪⟫ (Drop$ base-ℕ)
-
-rstep₁₅ : [] ⊢ R₁₄ -→ $ 7
-rstep₁₅ = Drop$ base-ℕ
-
+-- The tail: three more IdPushes (each residue face is ITSELF an
+-- id-layer), the last seal/unseal pair, and five transparent layers over
+-- the numeral.  The states are the ones the rules compute.
 run-R₀ : [] ⊢ R₀ -→* $ 7
 run-R₀ = rstep₁ then rstep₂ then rstep₃ then rstep₄ then rstep₅
-    then rstep₆ then rstep₇ then rstep₈ then rstep₉ then rstep₁₀
-    then rstep₁₁ then rstep₁₂ then rstep₁₃ then rstep₁₄ then rstep₁₅
+    then rstep₆ then rstep₇ then rstep₈ then rstep₉
+    then IdPush (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) I-idv) ez
+    then ξ-⟪⟫ (IdPush (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) (es ez))
+    then ξ-⟪⟫ (ξ-⟪⟫ (IdPush (V-⟪⟫ V-$ I-seal) (es (es ez))))
+    then ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (CancelR V-$ (es (es ez)))))
+    then ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))))
+    then ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ)))
+    then ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
+    then ξ-⟪⟫ (Drop$ base-ℕ)
+    then Drop$ base-ℕ
     then done
 
 -- ── THE CHAINED IDPUSH REDEX AND ITS CONTRACTUM BOTH TYPE ──────────────
@@ -1451,12 +1511,12 @@ run-R₀ = rstep₁ then rstep₂ then rstep₃ then rstep₄ then rstep₅
 --
 --   TyBeta   mints `bind A ∷ []`                       nbind 1
 --   Peel     mints `dual Θ`, which is ALL locks/unlocks nbind 0
---   CancelR  mints `reps→bind (reps Θ₂)`                nbind = nbind Θ₂
+--   CancelR  mints NO frame (both are carried over)
 --   IdPush   mints NO frame (both are carried over)
---   TyPeelR  mints `bind A ∷ renᴮ suc Θ`               nbind = 1 + nbind Θ
+--   TyPeelR  mints `bind A ∷ Θ`                        nbind = 1 + nbind Θ
 --
--- so `nbind Θ ≥ 2` is reachable ONLY through TyPeelR (CancelR merely
--- propagates whatever Θ₂ already had).  Those five facts, machine-checked:
+-- so `nbind Θ ≥ 2` is reachable ONLY through TyPeelR.  Those facts,
+-- machine-checked:
 
 nbind-TyBeta : (A : Ty) → nbind (bind A ∷ []) ≡ 1
 nbind-TyBeta A = refl
@@ -1464,12 +1524,9 @@ nbind-TyBeta A = refl
 nbind-dual : (Θ : CtxMorph) → nbind (dual Θ) ≡ 0
 nbind-dual Θ = cong length (reps-dual Θ)
 
-nbind-CancelR : (Θ : CtxMorph) → nbind (reps→bind (reps Θ)) ≡ nbind Θ
-nbind-CancelR Θ = nbind-reps→bind (reps Θ)
-
 nbind-TyPeelR : (A : Ty) (Θ : CtxMorph)
-  → nbind (bind A ∷ renᴮ suc Θ) ≡ suc (nbind Θ)
-nbind-TyPeelR A Θ = cong suc (nbind-ren suc Θ)
+  → nbind (bind A ∷ Θ) ≡ suc (nbind Θ)
+nbind-TyPeelR A Θ = refl
 
 -- ── A CLOSED SOURCE THAT REACHES TYPEELR ───────────────────────────────
 --
@@ -1503,7 +1560,7 @@ G₃ = (((Λ GV) ·[ `∀ (` 2) , `ℕ ]) ·[ ` 1 , `ℕ ])
        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 G₄ = ((GV ⟪ bind `ℕ ∷ [] , `∀ (id (` 2)) ⟫) ·[ ` 1 , `ℕ ])
        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-G₅ = ((Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫)) ·[ ` 2 , ` 0 ])
+G₅ = ((Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫)) ·[ ` 3 , ` 0 ])
        ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , id (` 2) ⟫
        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 
@@ -1519,9 +1576,14 @@ gstep₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 gstep₄ : [] ⊢ G₃ -→ G₄
 gstep₄ = ξ-⟪⟫ (ξ-·[] (TyBeta (V-Λ (V-⟪⟫ V-$ I-seal))))
 
--- the TyPeelR step, whose contractum is the wanted `nbind Θ₁ ≡ 2` layer
+-- the TyPeelR step, whose contractum is the wanted `nbind Θ₁ ≡ 2` layer.
+-- Its face premise is the redex's own conversion, one `` `∀ `` inside —
+-- here the identity at the OUTER owner, read under the ∀-binder.
+⊢Gface : (abst ∷ fceC (bind `ℕ ∷ []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2 ∙ ↑ˢ
+⊢Gface = conv-idv (bind `ℕ , es (es ez) , vis-b)
+
 gstep₅ : [] ⊢ G₄ -→ G₅
-gstep₅ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)))
+gstep₅ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Gface)
 
 _ : nbind (bind `ℕ ∷ bind `ℕ ∷ []) ≡ 2
 _ = refl
@@ -1539,27 +1601,29 @@ _ = refl
 ⊢G₄ : [] ∣ [] ⊢ G₄ ⦂ `ℕ
 ⊢G₄ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) (⊢·[] ⊢Gpkg wf-ℕ) (conv-unseal ez) wf-ℕ
 
--- … AND ITS TYPEELR CONTRACTUM IS NOT.  The pushed-in annotation is the
--- EXTERIOR ∀-body `renameᵗ (extᵗ suc) (` 1) = ` 2`, while `wkᴹ 1 GV` has
--- type `∀ (` 3): `renᴮ suc Θ` double-counts the binder `prep` already
--- adds.  So variant (i) HAS NO WELL-TYPED CLOSED-SOURCE INSTANCE while
--- TyPeelR stands — this is proof/PreserveObstruct §2's break, reached
--- from ORDINARY SYSTEM F for the first time.
-¬⊢G₅-interior :
-  ¬ (QΞ₃ ∣ [] ⊢ (Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫)) ·[ ` 2 , ` 0 ] ⦂ ` 2)
-¬⊢G₅-interior ()
+-- … AND SO IS ITS TYPEELR CONTRACTUM, with the repaired rule.  The
+-- pushed-in annotation is the INTERIOR ∀-body shifted past the new owner
+-- (`` ` 3 ``, matching `wkᴹ 1 GV : `∀ (` 3)`), and the frame is plain `Θ`
+-- — the `renᴮ suc Θ` double-shift that made `¬⊢G₅` true is gone.  So
+-- variant (i) now HAS a well-typed closed-source instance.
+⊢G₅-Λ : QΞ₃ ∣ [] ⊢ Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫) ⦂ `∀ (` 3)
+⊢G₅-Λ = ⊢Λ (env {p = ↓ˢ}
+                (bw-l (bind `ℕ , es (es (es ez)) , vis-b) bw[]) ⊢$
+                (conv-seal (es (es (es ez))))
+                (wf-var (bind `ℕ , es (es (es ez)) , vis-b)))
 
-¬⊢G₅-in :
-  ¬ (QΔ₁ ∣ [] ⊢ ((Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫)) ·[ ` 2 , ` 0 ])
-                  ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , id (` 2) ⟫ ⦂ ` 0)
-¬⊢G₅-in (env _ _  (conv-id ()) _)
-¬⊢G₅-in (env _ ⊢i (conv-idv _) _) = ¬⊢G₅-interior ⊢i
+⊢G₅-in : QΔ₁ ∣ [] ⊢ ((Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫)) ·[ ` 3 , ` 0 ])
+                      ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , id (` 2) ⟫ ⦂ ` 0
+⊢G₅-in = env {p = ↑ˢ} (bw-b wf-ℕ (bw-b wf-ℕ bw[]))
+              (⊢·[] ⊢G₅-Λ (wf-var (bind `ℕ , ez , vis-b)))
+              (conv-idv (bind `ℕ , es (es ez) , vis-b))
+              (wf-var (bind `ℕ , ez , vis-b))
 
-¬⊢G₅ : ¬ ([] ∣ [] ⊢ G₅ ⦂ `ℕ)
-¬⊢G₅ (env _ ⊢i (conv-unseal _) _) = ¬⊢G₅-in ⊢i
+⊢G₅ : [] ∣ [] ⊢ G₅ ⦂ `ℕ
+⊢G₅ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢G₅-in (conv-unseal ez) wf-ℕ
 
--- ── WHAT A REPAIRED TYPEELR WOULD DELIVER ──────────────────────────────
--- The same shape, HAND-BUILT with the frame the repaired rule would give
+-- ── AND THE MULTI-BIND ID-LAYER IT DELIVERS ────────────────────────────
+-- The same shape, hand-built at the frame the repaired rule produces
 -- (`bind A ∷ Θ`, no double shift): IdPush fires at `nbind Θ₁ ≡ 2` and the
 -- contractum TYPES.  So the multi-bind case is not itself an obstruction
 -- — the lifting `liftN 2` is exactly absorbed by `prep`.
@@ -1644,7 +1708,7 @@ _ = refl
 _ : intC (lock 1 ∷ []) LΔ ≡ LΞ
 _ = refl
 
-L₁ L₂ L₃ L₄ L₅ L₆ L₇ : Term
+L₁ L₂ L₃ L₄ L₅ L₆ L₇ L₈ : Term
 L₁ = ((ƛ (` 0) ∙ Lbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
 L₂ = ((ƛ (` 0) ∙ Lbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 L₃ = ((Λ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)) ·[ ` 1 , ` 0 ])
@@ -1653,8 +1717,10 @@ L₄ = ((($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ bind (` 0) ∷ [] , id (` 1) 
        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 L₅ = ((($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ bind (` 0) ∷ [] , unseal 1 ⟫)
        ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-L₆ = (($ 7) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-L₇ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+L₆ = ((($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫)
+       ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+L₇ = (($ 7) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+L₈ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
 lstep₁ : [] ⊢ L₀ -→ L₁
 lstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1678,14 +1744,17 @@ lstep₆ : [] ⊢ L₅ -→ L₆
 lstep₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 
 lstep₇ : [] ⊢ L₆ -→ L₇
-lstep₇ = ξ-⟪⟫ (Drop$ base-ℕ)
+lstep₇ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
 
-lstep₈ : [] ⊢ L₇ -→ $ 7
-lstep₈ = Drop$ base-ℕ
+lstep₈ : [] ⊢ L₇ -→ L₈
+lstep₈ = ξ-⟪⟫ (Drop$ base-ℕ)
+
+lstep₉ : [] ⊢ L₈ -→ $ 7
+lstep₉ = Drop$ base-ℕ
 
 run-L₀ : [] ⊢ L₀ -→* $ 7
 run-L₀ = lstep₁ then lstep₂ then lstep₃ then lstep₄ then lstep₅
-    then lstep₆ then lstep₇ then lstep₈ then done
+    then lstep₆ then lstep₇ then lstep₈ then lstep₉ then done
 
 -- ── every state on the run TYPES, including the two the wall touches ───
 
@@ -1715,3 +1784,258 @@ run-L₀ = lstep₁ then lstep₂ then lstep₃ then lstep₄ then lstep₅
 -- is `bind ℕ ∷ []`, which locks nothing.  proof/WallReach turns "a Θ₂
 -- never locks a slot a visible owner's rep names" into a theorem about
 -- the only rule that mints locks at all (Peel's `dual`).
+
+------------------------------------------------------------------------
+-- §13  TYPEELR FROM CLOSED, PLAIN SOURCE — THE TWO POLARITIES
+------------------------------------------------------------------------
+
+-- §11c's G reaches TyPeelR at an IDENTITY ∀-face, where the annotation
+-- repair cannot fire.  This section reaches it at the two faces that DO
+-- exercise the minted face `unsealAtᶜ 0 s`, from ordinary System F:
+--
+--   §13a  a `↓ˢ` ∀-face — a POLYMORPHIC ARGUMENT that crossed a Peel.
+--         Three machine-checked facts: (i) keeping `s` is untypeable,
+--         (ii) the mint `unsealAtᶜ 0 s` fails ONLY at the polarity
+--         constraint, with the failing leaf exhibited, and (iii) …
+--   §13b  … the `↑ˢ` mirror image TYPES, by `preservation-TyPeelR-↑`.
+--
+-- The two sources differ by ONE thing — whether the ∀ crosses the
+-- boundary INWARD (as an argument, §13a) or OUTWARD (as a result, §13b)
+-- — and that decides the ∀-face's polarity, hence everything.
+
+open import strong.Preservation using (preservation-TyPeelR-↑)
+open import strong.proof.PreserveObstruct
+  using (Δt; Wt; val-Wt; ⊢Wt; Θt; st; ⊢st; Wft; ⊢Wft; Rt; ⊢Rt; step-t;
+         ¬seal↦seal; ¬⊢t-contractum)
+
+------------------------------------------------------------------------
+-- §13a  A `↓ˢ` ∀-FACE: the polymorphic argument
+------------------------------------------------------------------------
+
+--   J = ((ΛX. λx:X. λf:(∀Y. Y ⇒ X). (f [X]) · x) [ℕ]) · 7 · (ΛY. λy:Y. 3)
+--
+-- `f`'s type mentions X, so TyBeta's minted face CONCEALS X on f's
+-- domain: `sealAt 0 (∀Y. Y ⇒ X) = ∀ (id Y ↦ seal X)`, a `↓ˢ` ∀-face.
+-- The Peel hands it to the crossing argument verbatim, and the body's
+-- `f [X]` is then a TyPeelR redex at that face.
+
+JT : Ty                                  -- ∀Y. Y ⇒ X, read under X
+JT = `∀ (` 0 ⇒ ` 1)
+
+JB : Ty                                  -- the ΛX body type
+JB = ` 0 ⇒ (JT ⇒ ` 0)
+
+Jbody Jfun J₀ : Term
+Jbody = ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · (` 1))
+Jfun  = Λ (ƛ (` 0) ∙ Jbody)
+J₀    = ((Jfun ·[ JB , `ℕ ]) · ($ 7)) · Wt
+
+⊢JT : ∀ {Δ} → (abst ∷ Δ) ⊢ᵗ JT
+⊢JT = wf-∀ (wf-⇒ (wf-var (abst , ez , vis-a))
+                 (wf-var (abst , es ez , vis-a)))
+
+⊢Jfun : [] ∣ [] ⊢ Jfun ⦂ `∀ JB
+⊢Jfun = ⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a))
+               (⊢ƛ ⊢JT (⊢· (⊢·[] (⊢` here) (wf-var (abst , ez , vis-a)))
+                           (⊢` (there here)))))
+
+⊢J₀ : [] ∣ [] ⊢ J₀ ⦂ `ℕ
+⊢J₀ = ⊢· (⊢· (⊢·[] ⊢Jfun wf-ℕ) ⊢$) ⊢Wt
+
+-- ── the run to the TyPeelR redex ───────────────────────────────────────
+
+-- TyBeta's mint: the argument's ∀-type is CONCEALED (it is a domain).
+_ : unsealAt 0 JB ≡ seal 0 ↦ ((`∀ (id (` 0) ↦ seal 1)) ↦ unseal 0)
+_ = refl
+
+_ : sealAt 0 JT ≡ `∀ st
+_ = refl
+
+J₁ J₂ J₃ J₄ J₅ : Term
+J₁ = (((ƛ (` 0) ∙ Jbody)
+         ⟪ bind `ℕ ∷ [] , seal 0 ↦ ((`∀ st) ↦ unseal 0) ⟫) · ($ 7)) · Wt
+J₂ = (((ƛ (` 0) ∙ Jbody) · QS₇)
+        ⟪ bind `ℕ ∷ [] , (`∀ st) ↦ unseal 0 ⟫) · Wt
+J₃ = ((ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · QS₇))
+        ⟪ bind `ℕ ∷ [] , (`∀ st) ↦ unseal 0 ⟫) · Wt
+J₄ = ((ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · QS₇)) · Wft)
+       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+J₅ = (Rt · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+
+jstep₁ : [] ⊢ J₀ -→ J₁
+jstep₁ = ξ-·-l (ξ-·-l (TyBeta V-ƛ))
+
+jstep₂ : [] ⊢ J₁ -→ J₂
+jstep₂ = ξ-·-l (Peel V-ƛ V-$)
+
+jstep₃ : [] ⊢ J₂ -→ J₃
+jstep₃ = ξ-·-l (ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal)))
+
+-- THE CROSSING: the polymorphic argument acquires the `↓ˢ` ∀-face.
+jstep₄ : [] ⊢ J₃ -→ J₄
+jstep₄ = Peel V-ƛ (V-Λ V-ƛ)
+
+jstep₅ : [] ⊢ J₄ -→ J₅
+jstep₅ = ξ-⟪⟫ (Beta (V-⟪⟫ (V-Λ V-ƛ) I-all))
+
+run-J₀ : [] ⊢ J₀ -→* J₅
+run-J₀ = jstep₁ then jstep₂ then jstep₃ then jstep₄ then jstep₅ then done
+
+-- J₅'s head IS proof/PreserveObstruct §2's redex, and it is TYPED there.
+_ : J₅ ≡ (((Wt ⟪ Θt , `∀ st ⟫) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · QS₇)
+           ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+_ = refl
+
+⊢J₅-head : Δt ∣ [] ⊢ Rt ⦂ (` 0 ⇒ ` 0)
+⊢J₅-head = ⊢Rt
+
+-- … and TyPeelR fires on it, from this closed source.
+jstep₆ : [] ⊢ J₅
+       -→ (((wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
+              ⟪ bind (` 0) ∷ Θt , unsealAtᶜ 0 st ⟫) · QS₇)
+            ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+jstep₆ = ξ-⟪⟫ (ξ-·-l step-t)
+
+-- ── FACT (i): KEEPING `s` IS UNTYPEABLE ────────────────────────────────
+-- The note's contractum keeps the face `s`, whose exterior body still
+-- mentions the ∀-bound `` ` 0 `` where `env` now demands the
+-- INSTANTIATED body: the domain leaf `id (` 0)` would have to convert
+-- `` ` 1 `` (the new owner's rep, read inside) to `` ` 0 ``, and an
+-- identity converts a type to ITSELF (`conv-id-refl`).
+¬⊢J-plain :
+  ¬ (Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
+                 ⟪ bind (` 0) ∷ Θt , st ⟫ ⦂ (` 0 ⇒ ` 0))
+¬⊢J-plain (env _ (⊢·[] _ _) (conv-fun ⊢s ⊢t) _) with conv-id-refl ⊢s
+... | ()
+
+-- ── FACT (ii): THE MINT FAILS ONLY AT THE POLARITY ─────────────────────
+-- `unsealAtᶜ 0 st` inserts the instantiation leaf at the ∀-bound slot:
+
+_ : unsealAtᶜ 0 st ≡ seal 0 ↦ seal 1
+_ = refl
+
+J-face-ctx : Ctxᵗ
+J-face-ctx = fceC (bind (` 0) ∷ Θt) Δt
+
+_ : J-face-ctx ≡ bind (` 0) ∷ bind `ℕ ∷ []
+_ = refl
+
+-- BOTH LEAVES TYPE, each at ITS OWN polarity …
+-- the INSERTED leaf: the new owner's rep ` 1, concealed at its own name
+J-dom : J-face-ctx ⊢ seal 0 ∶ ` 1 ⇝ ` 0 ∙ ↓ˢ
+J-dom = conv-seal ez
+
+-- the face's OWN leaf: ℕ concealed at the crossed boundary's owner
+J-cod : J-face-ctx ⊢ seal 1 ∶ `ℕ ⇝ ` 1 ∙ ↓ˢ
+J-cod = conv-seal (es ez)
+
+-- … and the TREE does not, at EITHER polarity.  `seal 0` sits
+-- CONTRAVARIANTLY, so it wants `flip p ≡ ↓ˢ`, i.e. p = ↑ˢ; `seal 1` sits
+-- COVARIANTLY, so it wants p = ↓ˢ.  MIXED POLARITY — the failing leaf is
+-- the INSERTED one, and the refutation never looks at a type.
+¬J-face : ∀ {A B p} → ¬ (J-face-ctx ⊢ seal 0 ↦ seal 1 ∶ A ⇝ B ∙ p)
+¬J-face = ¬seal↦seal
+
+-- hence the whole contractum is untypeable: TyPeelR's general
+-- preservation case is refuted BY THE POLARITY DISCIPLINE ALONE.
+¬⊢J-mint :
+  ¬ (Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
+                 ⟪ bind (` 0) ∷ Θt , seal 0 ↦ seal 1 ⟫ ⦂ (` 0 ⇒ ` 0))
+¬⊢J-mint = ¬⊢t-contractum
+
+------------------------------------------------------------------------
+-- §13b  FACT (iii) — THE `↑ˢ` MIRROR IMAGE TYPES
+------------------------------------------------------------------------
+
+--   H = (((ΛX. λx:X. ΛY. λy:Y. x) [ℕ]) · 7) [ℕ]
+--
+-- Here the ∀ crosses OUTWARD, as the RESULT, so TyBeta's mint REVEALS X
+-- on the codomain: `unsealAt 0 (X ⇒ ∀Y. Y ⇒ X)` is
+-- `seal X ↦ ∀ (id Y ↦ unseal X)` — §13a's shape with the polarity
+-- flipped.  Now the inserted leaf lands where the judgment allows it, and
+-- the contractum types BY THE THEOREM.
+
+HB : Ty
+HB = ` 0 ⇒ `∀ (` 0 ⇒ ` 1)
+
+Hfun H₀ : Term
+Hfun = Λ (ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1))))
+H₀   = ((Hfun ·[ HB , `ℕ ]) · ($ 7)) ·[ ` 0 ⇒ `ℕ , `ℕ ]
+
+⊢Hfun : [] ∣ [] ⊢ Hfun ⦂ `∀ HB
+⊢Hfun = ⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a))
+               (⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a)) (⊢` (there here)))))
+
+⊢H₀ : [] ∣ [] ⊢ H₀ ⦂ (`ℕ ⇒ `ℕ)
+⊢H₀ = ⊢·[] (⊢· (⊢·[] ⊢Hfun wf-ℕ) ⊢$) wf-ℕ
+
+-- the ↑ˢ ∀-face, minted by the same rule that minted §13a's ↓ˢ one
+_ : unsealAt 0 HB ≡ seal 0 ↦ (`∀ (id (` 0) ↦ unseal 1))
+_ = refl
+
+HV H₁ H₂ H₃ H₄ : Term
+HV = Λ (ƛ (` 0) ∙ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫))
+H₁ = (((ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1))))
+         ⟪ bind `ℕ ∷ [] , seal 0 ↦ (`∀ (id (` 0) ↦ unseal 1)) ⟫) · ($ 7))
+       ·[ ` 0 ⇒ `ℕ , `ℕ ]
+H₂ = (((ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1)))) · QS₇)
+        ⟪ bind `ℕ ∷ [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
+H₃ = (HV ⟪ bind `ℕ ∷ [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
+H₄ = ((Λ (ƛ (` 0) ∙ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫))) ·[ ` 0 ⇒ ` 2 , ` 0 ])
+       ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , seal 0 ↦ unseal 1 ⟫
+
+hstep₁ : [] ⊢ H₀ -→ H₁
+hstep₁ = ξ-·[] (ξ-·-l (TyBeta V-ƛ))
+
+hstep₂ : [] ⊢ H₁ -→ H₂
+hstep₂ = ξ-·[] (Peel V-ƛ V-$)
+
+hstep₃ : [] ⊢ H₂ -→ H₃
+hstep₃ = ξ-·[] (ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal)))
+
+-- THE `↑ˢ` PREMISE, read off the redex's own `env`, one `` `∀ `` inside.
+⊢Hface : (abst ∷ fceC (bind `ℕ ∷ []) []) ⊢ id (` 0) ↦ unseal 1
+           ∶ (` 0 ⇒ ` 1) ⇝ (` 0 ⇒ `ℕ) ∙ ↑ˢ
+⊢Hface = conv-fun (conv-idv (abst , ez , vis-a)) (conv-unseal (es ez))
+
+-- the mint, at the polarity the judgment allows: the inserted `seal 0`
+-- is CONTRAVARIANT under a COVARIANT `unseal 1`, and `↑ˢ` wants exactly
+-- that.
+_ : unsealAtᶜ 0 (id (` 0) ↦ unseal 1) ≡ seal 0 ↦ unseal 1
+_ = refl
+
+hstep₄ : [] ⊢ H₃ -→ H₄
+hstep₄ = TyPeelR (V-Λ V-ƛ) ⊢Hface
+
+run-H₀ : [] ⊢ H₀ -→* H₄
+run-H₀ = hstep₁ then hstep₂ then hstep₃ then hstep₄ then done
+
+-- ── AND THE CONTRACTUM TYPES — by the theorem, not by hand ─────────────
+
+⊢HV : (bind `ℕ ∷ []) ∣ [] ⊢ HV ⦂ `∀ (` 0 ⇒ ` 1)
+⊢HV = ⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a))
+             (env {p = ↓ˢ} (bw-l (bind `ℕ , es ez , vis-b) bw[]) ⊢$
+                  (conv-seal (es ez))
+                  (wf-var (bind `ℕ , es ez , vis-b))))
+
+⊢H₃ : [] ∣ [] ⊢ H₃ ⦂ (`ℕ ⇒ `ℕ)
+⊢H₃ = ⊢·[] (env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢HV
+                (conv-all ⊢Hface)
+                (wf-∀ (wf-⇒ (wf-var (abst , ez , vis-a)) wf-ℕ)))
+           wf-ℕ
+
+⊢H₄ : [] ∣ [] ⊢ H₄ ⦂ (`ℕ ⇒ `ℕ)
+⊢H₄ = preservation-TyPeelR-↑ (V-Λ V-ƛ) ⊢Hface ⊢H₃
+
+-- and H₄ is ONE TyBeta from a value, so the repaired rule does not
+-- strand the run either.
+hstep₅ : [] ⊢ H₄
+       -→ ((ƛ (` 0) ∙ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫))
+             ⟪ bind (` 0) ∷ [] , unsealAt 0 (` 0 ⇒ ` 2) ⟫)
+            ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , seal 0 ↦ unseal 1 ⟫
+hstep₅ = ξ-⟪⟫ (TyBeta V-ƛ)
+
+val-H₅ : Value (((ƛ (` 0) ∙ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫))
+                   ⟪ bind (` 0) ∷ [] , unsealAt 0 (` 0 ⇒ ` 2) ⟫)
+                  ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , seal 0 ↦ unseal 1 ⟫)
+val-H₅ = V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun

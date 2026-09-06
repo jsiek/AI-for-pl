@@ -135,9 +135,8 @@ RepWf-blks (P ∷ Ps) rw = RepWf-blk (RepWf-blks Ps rw)
 -- each rep LIFTED past the owners bound INSIDE it, so a rep never names
 -- another owner of the same boundary — and that is exactly what makes
 -- `RepWf` survive `prep`.
-wf-liftN-prep : (As : List Ty) → Δ ⊢ᵗ A → prep As Δ ⊢ᵗ liftN (length As) A
-wf-liftN-prep []       w = w
-wf-liftN-prep (C ∷ As) w = wf-ren Ren-wk (wf-liftN-prep As w)
+-- (`wf-liftN-prep` — a rep is a type over the plain exterior, lifted past
+-- the owners bound inside it — is strong.Ctx's, §7.)
 
 data AllWf (Δ : Ctxᵗ) : List Ty → Set where
   aw[] : AllWf Δ []
@@ -351,29 +350,19 @@ mint-Peel : (Θ : CtxMorph) (Δ : Ctxᵗ)
   → RepWf (fscp Θ Δ) → RepWf (intC (dual Θ) (intC Θ Δ))
 mint-Peel = RepWf-dual
 
--- CANCELR's residue rebinds Θ₂'s owners and locks nothing.
-scp-reps→bind : (As : List Ty) (Δ : Ctxᵗ) → scp (reps→bind As) Δ ≡ Δ
-scp-reps→bind []       Δ = refl
-scp-reps→bind (A ∷ As) Δ = scp-reps→bind As Δ
-
-mint-CancelR : (Θ : CtxMorph) → Bwf Δ Θ → RepWf Δ
-             → RepWf (intC (reps→bind (reps Θ)) Δ)
-mint-CancelR {Δ = Δ} Θ bw rw
-  rewrite reps-reps→bind (reps Θ)
-        | scp-reps→bind (reps Θ) Δ =
-  RepWf-prep (reps Θ) (Bwf→AllWf bw) rw
+-- CANCELR MINTS NO FRAME AT ALL (the repaired rule, 2026-09-05): it
+-- keeps both frames and neutralises both faces, so it owes the invariant
+-- exactly what IdPush owes — nothing.  (The old residue
+-- `reps→bind (reps Θ₂)` was BINDS-ONLY, so it was covered by the general
+-- form below in any case.)
 
 -- THE GENERAL FORM.  A frame that only BINDS (no lock, no unlock) touches
 -- no existing entry, so `intC` is just `prep` and §2's simultaneity step
--- carries it.  TyBeta's `bind A ∷ []` and CancelR's `reps→bind (reps Θ₂)`
--- are both of this shape.
+-- carries it.  TyBeta's `bind A ∷ []` and TyPeelR's `bind A ∷ Θ` (when Θ
+-- is binds-only) are both of this shape.
 data BindsOnly : CtxMorph → Set where
   bo[] : BindsOnly []
   bo-b : BindsOnly Θ → BindsOnly (bind A ∷ Θ)
-
-bo-reps→bind : (As : List Ty) → BindsOnly (reps→bind As)
-bo-reps→bind []       = bo[]
-bo-reps→bind (A ∷ As) = bo-b (bo-reps→bind As)
 
 scp-BindsOnly : (Θ : CtxMorph) (Δ : Ctxᵗ) → BindsOnly Θ → scp Θ Δ ≡ Δ
 scp-BindsOnly []           Δ bo[]      = refl

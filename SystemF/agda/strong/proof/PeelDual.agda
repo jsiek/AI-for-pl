@@ -25,7 +25,7 @@ open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
 open import strong.TermSubst
-open import strong.Reduction using (lockBinds; reps→bind; dualS; dual)
+open import strong.Reduction using (lockBinds; dualS; dual)
 open import strong.proof.Preserve using (PeelCase; ⊢ᵗ-of; CtxWf-[])
 open import strong.proof.Canonical using (liftN-⇒; conv-tgt≡)
 

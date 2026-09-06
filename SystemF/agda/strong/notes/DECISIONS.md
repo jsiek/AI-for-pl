@@ -2212,3 +2212,59 @@ stored source type or a different elimination; (2) CancelR's honest
 contractum (keep both frames, faces idc) is a rule change to approve;
 (3) finish the Θ₂-RepWf induction → IdPush + CancelR discharge with
 zero rule premises.
+
+### Rule repairs LANDED; the invariant hunt; polarity is the TyPeelR blocker (2026-09-06)
+
+Jeremy ordered (2026-09-05): "land both repairs and proceed to finish
+the preservation proof".  LANDED (Reduction.agda):
+
+    CancelR : Value V → fceC Θ₂ Δ ∋ Y := A
+      → (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+        -→ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫
+    TyPeelR : Value V → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
+      → (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+        -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ]) ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫
+
+The RuleRepairs note MISSED one defect: the pushed face `s` still names
+the bound variable in its target while env demands liftN (n+1) (Bₑ[A]);
+the new bind slot needs the instantiation leaves — `unsealAtᶜ`, the Conv
+analogue of TyBeta's unsealAt (unsealAtᶜ X (idc B) ≡ unsealAt X B).
+det/value-¬step re-proven (conv-faces-unique: faces are a function of
+conversion + context).  CancelRCase DISCHARGED (proof/CancelFaces) over
+one interface, ScopedAtUnseal (proof/ScopedAtUnsealDef): "at a
+well-typed (V ⟪Θ₁,c₁⟫) ⟪Θ₂, unseal Y⟫ with Y := A, intC Θ₂ Δ ⊢ᵗ A".
+TyPeelRCase↑ (↑ˢ face) PROVEN (Preservation.preservation-TyPeelR-↑);
+Examples §13b H runs it.  MaskOnly is a theorem (MaskFacts.mask-only).
+Conditional = (typeel : TyPeelRCase) (scoped : ScopedAtUnseal) (idpush).
+
+POLARITY VERDICT (Examples §13, machine-checked): closed source
+  (((ΛX. λx:X. λy:(∀Y. Y⇒X). y[X]·x)[ℕ]·7) · (ΛX. λx:X. 3))
+reaches the TyPeelR redex ((ΛY. λx:Y. 3) ⟪ ↓X , ∀Y. (id Y ↦ seal X) ⟫)[X]
+— a ↓ˢ ∀-face (a polymorphic ARGUMENT that crossed a Peel).  Keeping `s`
+is untypeable (¬⊢J-plain); unsealAtᶜ 0 s = seal 0 ↦ seal 1, whose
+leaves each type alone but whose tree types at NEITHER polarity
+(¬seal↦seal: the inserted domain seal needs flip p = ↓ˢ, the covariant
+seal needs p = ↓ˢ).  So ¬TyPeelRCase is now a fact about the POLARITY
+DISCIPLINE, not the rule.  notes/polarity-relaxation.patch (NOT applied)
+frees conv-seal/conv-unseal from their fixed polarity: with it the full
+TyPeelRCase discharges; collateral = Canonicity §5 (typed→canon,
+canon-pol, pol-unique) becomes FALSE, i.e. `p` is vacuous and the honest
+form is to DROP Pol; nothing else breaks.  RULING NEEDED (Jeremy).
+
+THE INVARIANT HUNT (IdPush/CancelR need intC Θ₂ Δ ⊢ᵗ A), all refuted
+by machine, proof/WallGrounding + proof/ScopedFace (phase-one worktree,
+to land next):
+ (1) RepWf folded into Bwf's lock clause — IMPOSSIBLE: the unsound
+     IdPush witness Ri and the reachable L₄ have the SAME (Δ, Θ); and
+     RepWf of the interior is not ⊑-stable at le-ao (TyBeta refines
+     abst→bind under existing locks): BwfWall → ¬TyBetaCase.
+ (2) Scoped = exterior type wf in scp Θ Δ, on reveal faces — ⊑-stable,
+     refuses Ri, admits L₄, and the ↓ˢ-Peel crossing is dischargeable
+     (peel-crossing-scoped) — but TOO WEAK: IdPush's swapped inner face
+     owes X's REP (R★: ¬ScopedAt ↑ˢ Ξ★ Θ★₁ (` 2) while the redex passes).
+ (3) pointwise RepWf at name-faced boundaries — hand-refuted by
+     (ΛX′. λx′:X′. ((ΛZ. λx:X′. (ΛY. x)[Z])[ℕ] · x′))[ℕ] · 7 (TyBeta
+     mints Y := Z under the lock Z of an id-faced wrapper); kill test in
+     flight.
+ Candidate under probe: CHAIN-scoped — at faces naming X, every rep
+ reachable from X by owner lookup is wf in the interior.

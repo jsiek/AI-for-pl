@@ -1,0 +1,233 @@
+THE POLARITY RELAXATION — NOT APPLIED, FOR JEREMY'S RULING (2026-09-06)
+
+WHAT IT IS.  Two constructors of strong.Conversion's judgment
+(`conv-unseal`, `conv-seal`) are freed from their fixed polarity, so that
+a reveal may sit at a `↓ˢ` position and a conceal at a `↑ˢ` one.  Nothing
+else in the judgment changes.
+
+WHY.  TyPeelR's repaired contractum mints `unsealAtᶜ 0 s`: the ∀-face's
+identity leaves at the slot the instantiation just OWNED become the
+instantiation itself — `unseal 0` covariantly, `seal 0` contravariantly.
+Under an `↑ˢ` (reveal) ∀-face those land exactly where the judgment
+allows them and the case is a theorem TODAY
+(strong.proof.Preserve.preserve-TyPeelR-↑).  Under a `↓ˢ` (conceal)
+∀-face — a polymorphic ARGUMENT that crossed a Peel, reachable from
+closed plain source (Examples §13a) — every inserted leaf lands at the
+opposite polarity, and the resulting face is MIXED:
+
+    unsealAtᶜ 0 (id (` 0) ↦ seal 1)  =  seal 0 ↦ seal 1
+
+    the inserted `seal 0` is CONTRAVARIANT, so it wants flip p ≡ ↓ˢ, i.e.
+    p = ↑ˢ; the face's own `seal 1` is COVARIANT, so it wants p = ↓ˢ.
+
+MACHINE-CHECKED, on an isolated copy of the tree (no commits):
+
+  * WITH the relaxation, `TyPeelRCase` — the FULL case, polarity
+    quantified — DISCHARGES: the hunks below make
+    `preserve-TyPeelR : TyPeelRCase` a theorem, by exactly the `↑ˢ`
+    proof with `p` carried through.  The only new content is that
+    `⊢unsealAtᶜ`/`⊢sealAtᶜ` acquire the two leaf cases that were
+    previously impossible (a `seal` at a covariant position and an
+    `unseal` at a contravariant one), each closed by the fact that an
+    owner of `abstN n (abst ∷ Ψ)` is never slot n itself (`abstN-≢`).
+
+COLLATERAL, also machine-checked:
+
+  * strong.proof.Canonicity §5 COLLAPSES.  `typed→canon` becomes FALSE
+    (`conv-seal ez : Δ ⊢ seal 0 ∶ ℕ ⇝ ` 0 ∙ ↑ˢ`, while
+    `Canon ↑ˢ (seal 0)` is empty), and with it `canon-pol` and
+    `pol-unique` — the same non-identity conversion now types at BOTH
+    polarities, which is precisely what `pol-unique` denies.  That is
+    the honest reading of "p becomes vacuous": the right follow-up is to
+    DROP `Pol` from the judgment altogether and delete §5, not to keep a
+    polarity index that constrains nothing.
+  * strong.proof.PreserveObstruct §2 dies: `¬seal↦seal` is refuted by
+    `conv-fun (conv-seal ez) (conv-seal (es ez)) ∙ ↓ˢ`, so
+    `¬TyPeelRCase` goes and Examples §13a's facts (ii) and (iii) become
+    the positive statement that the contractum TYPES.
+  * strong.proof.IdPushReach.idPush⁺ needs two `{p = ↑ˢ}` annotations
+    (the polarity is no longer forced by `conv-unseal`); included below.
+    This is cosmetic — nothing about IdPush changes.
+  * NOTHING ELSE.  strong.Progress, strong.proof.Canonical,
+    strong.proof.IdLayer, strong.proof.Adversary, strong.proof.PeelDual,
+    strong.proof.CancelFaces and strong.TermSubst check unchanged: no
+    canonical-forms lemma and no progress case reads a polarity.
+
+HOW TO APPLY (from the repo root):
+  git apply --directory=SystemF/agda \
+    SystemF/agda/strong/notes/polarity-relaxation.patch
+(checked with `git apply --check`; it applies cleanly to this tree.)
+Then delete `¬seal↦seal`/`¬⊢t-contractum`/`¬TyPeelRCase` (PreserveObstruct
+§2), replace Examples §13a's `¬J-face`/`¬⊢J-mint` by the positive
+typings, and either delete Canonicity §5 or drop `Pol` from the
+judgment.  DO NOT apply without Jeremy's ruling: this is a change to the
+conversion judgment, not to a rule.
+
+--- a/strong/Conversion.agda
++++ b/strong/Conversion.agda
+@@ -88,15 +88,15 @@
+     → Δ ⊢ id (` X) ∶ ` X ⇝ ` X ∙ p
+ 
+   -- REVEAL: the interior sees the abstract name, the exterior its rep.
+-  conv-unseal : Δ ∋ X := A
++  conv-unseal : ∀ {p} → Δ ∋ X := A
+       --------------------------------
+-    → Δ ⊢ unseal X ∶ ` X ⇝ A ∙ ↑ˢ
++    → Δ ⊢ unseal X ∶ ` X ⇝ A ∙ p
+ 
+   -- CONCEAL: the interior sees the rep, the exterior the abstract name.
+   -- THE SOUNDNESS GATE: a seal must cite a LIVE OWNER on its type context.
+-  conv-seal : Δ ∋ X := A
++  conv-seal : ∀ {p} → Δ ∋ X := A
+       --------------------------------
+-    → Δ ⊢ seal X ∶ A ⇝ ` X ∙ ↓ˢ
++    → Δ ⊢ seal X ∶ A ⇝ ` X ∙ p
+ 
+   conv-fun : ∀ {p s t}
+     → Δ ⊢ s ∶ A′ ⇝ A ∙ flip p → Δ ⊢ t ∶ B ⇝ B′ ∙ p
+--- a/strong/proof/Preserve.agda
++++ b/strong/proof/Preserve.agda
+@@ -290,6 +290,25 @@
+ ... | inj₂ (d′ , eq) =
+   inj₂ (es d′ , trans (substᵉ-⇑ n (liftN (suc n) A) E) (cong ⇑ᵉ eq))
+ 
++-- (probe) an owner of `abstN n (abst ∷ Ψ)` is never slot n itself.
++abstN-ent-≢ : ∀ {Ψ} (n : ℕ) {Y E}
++  → abstN n (abst ∷ Ψ) ∋e Y , E → (E ≡ abst) ⊎ ¬ (n ≡ Y)
++abstN-ent-≢ zero    ez     = inj₁ refl
++abstN-ent-≢ zero    (es d) = inj₂ (λ ())
++abstN-ent-≢ (suc m) ez     = inj₁ refl
++abstN-ent-≢ (suc m) (es d) with abstN-ent-≢ m d
++... | inj₁ refl = inj₁ refl
++... | inj₂ ne   = inj₂ (λ eq → ne (suc-inj″ eq))
++  where
++  suc-inj″ : ∀ {a b : ℕ} → suc a ≡ suc b → a ≡ b
++  suc-inj″ refl = refl
++
++abstN-≢ : ∀ {Ψ} (n : ℕ) {Y B}
++  → abstN n (abst ∷ Ψ) ∋ Y := B → ¬ (n ≡ Y)
++abstN-≢ n d with abstN-ent-≢ n d
++... | inj₁ ()
++... | inj₂ ne = ne
++
+ abstN-kn : ∀ {Ψ A} (n : ℕ) {Y B}
+   → abstN n (abst ∷ Ψ) ∋ Y := B
+     -------------------------------------------------------
+@@ -310,11 +329,11 @@
+ -- inserted leaf would sit at the polarity the judgment refuses
+ -- (proof/PreserveObstruct §2).
+ mutual
+-  ⊢unsealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
+-    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↑ˢ
++  ⊢unsealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ p} (n : ℕ)
++    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
+       ------------------------------------------------------------
+     → abstN n (bind A ∷ Ψ) ⊢ unsealAtᶜ n s
+-        ∶ Bᵢ ⇝ Bₑ [ n := liftN (suc n) A ]ᵗ ∙ ↑ˢ
++        ∶ Bᵢ ⇝ Bₑ [ n := liftN (suc n) A ]ᵗ ∙ p
+   ⊢unsealAtᶜ n (conv-id base-ℕ) = conv-id base-ℕ
+   ⊢unsealAtᶜ n (conv-id base-𝔹) = conv-id base-𝔹
+   ⊢unsealAtᶜ {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
+@@ -324,16 +343,20 @@
+     conv-idv (⊑-tv (abstN-⊑ n) tv)
+   ⊢unsealAtᶜ {A = A} n (conv-unseal d) with abstN-kn {A = A} n d
+   ... | d′ , eq rewrite eq = conv-unseal d′
++  ⊢unsealAtᶜ {A = A} n (conv-seal {X = Y} d) with abstN-kn {A = A} n d
++  ... | d′ , eq
++    rewrite single-at-miss n Y (liftN (suc n) A) (abstN-≢ n d) =
++    conv-seal d′
+   ⊢unsealAtᶜ n (conv-fun ⊢s ⊢t) =
+     conv-fun (⊢sealAtᶜ n ⊢s) (⊢unsealAtᶜ n ⊢t)
+   ⊢unsealAtᶜ {A = A} {Bₑ = `∀ Bₑ} n (conv-all ⊢s)
+     rewrite subst-at-∀ n (liftN (suc n) A) Bₑ = conv-all (⊢unsealAtᶜ (suc n) ⊢s)
+ 
+-  ⊢sealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
+-    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↓ˢ
++  ⊢sealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ p} (n : ℕ)
++    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
+       ------------------------------------------------------------
+     → abstN n (bind A ∷ Ψ) ⊢ sealAtᶜ n s
+-        ∶ Bᵢ [ n := liftN (suc n) A ]ᵗ ⇝ Bₑ ∙ ↓ˢ
++        ∶ Bᵢ [ n := liftN (suc n) A ]ᵗ ⇝ Bₑ ∙ p
+   ⊢sealAtᶜ n (conv-id base-ℕ) = conv-id base-ℕ
+   ⊢sealAtᶜ n (conv-id base-𝔹) = conv-id base-𝔹
+   ⊢sealAtᶜ {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
+@@ -343,6 +366,10 @@
+     conv-idv (⊑-tv (abstN-⊑ n) tv)
+   ⊢sealAtᶜ {A = A} n (conv-seal d) with abstN-kn {A = A} n d
+   ... | d′ , eq rewrite eq = conv-seal d′
++  ⊢sealAtᶜ {A = A} n (conv-unseal {X = Y} d) with abstN-kn {A = A} n d
++  ... | d′ , eq
++    rewrite single-at-miss n Y (liftN (suc n) A) (abstN-≢ n d) =
++    conv-unseal d′
+   ⊢sealAtᶜ n (conv-fun ⊢s ⊢t) =
+     conv-fun (⊢unsealAtᶜ n ⊢s) (⊢sealAtᶜ n ⊢t)
+   ⊢sealAtᶜ {A = A} {Bᵢ = `∀ Bᵢ} n (conv-all ⊢s)
+@@ -408,8 +435,8 @@
+ -- polarity quantified — is `TyPeelRCase` in §4, and it is REFUTED by the
+ -- polarity discipline alone: proof/PreserveObstruct §2.)
+ TyPeelRCase↑ : Set
+-TyPeelRCase↑ = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
+-  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↑ˢ
++TyPeelRCase↑ = ∀ {Δ V Θ s B A C Bᵢ Bₑ p} → Value V
++  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
+   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+                ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
+@@ -430,12 +457,13 @@
+ 
+ preserve-TyPeelR-↑ : TyPeelRCase↑
+ preserve-TyPeelR-↑ {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
+-                   {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env bw ⊢V ⊢c wE) wA)
++                   {Bᵢ = Bᵢ} {Bₑ = Bₑ} {p = p} v ⊢s
++                   (⊢·[] (env bw ⊢V ⊢c wE) wA)
+   with conv-all-inv ⊢c
+ ... | A₀ , B₀ , refl , eqE , ⊢s₀
+   with conv-faces-unique ⊢s ⊢s₀
+ ... | refl , refl =
+-  env {p = ↑ˢ} (bw-b wA bw) interior face (wf-[]ᵗ (wf-∀⁻ wE) wA)
++  env {p = p} (bw-b wA bw) interior face (wf-[]ᵗ (wf-∀⁻ wE) wA)
+   where
+   A′ : Ty
+   A′ = liftN (nbind Θ) A
+@@ -461,10 +489,11 @@
+                      (cong ⇑ᵗ (sym (liftN-[]ᵗ (nbind Θ) B A))))
+ 
+   face : fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s
+-           ∶ Bᵢ ⇝ liftN (suc (nbind Θ)) (B [ A ]ᵗ) ∙ ↑ˢ
+-  face = subst (λ T → fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s ∶ Bᵢ ⇝ T ∙ ↑ˢ)
++           ∶ Bᵢ ⇝ liftN (suc (nbind Θ)) (B [ A ]ᵗ) ∙ p
++  face = subst (λ T → fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s ∶ Bᵢ ⇝ T ∙ p)
+                eqT (⊢unsealAtᶜ {A = A′} 0 ⊢s)
+ 
++
+ -- ── DROP$ ──────────────────────────────────────────────────────────────
+ -- `⊢$` types a numeral anywhere; the only content is that the boundary's
+ -- exterior type really is `ℕ, which the identity face forces.
+@@ -503,8 +532,11 @@
+   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+                ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
+ 
+--- (`TyPeelRCase↑`, the polarity-restricted case that IS a theorem, is
+--- stated and proven in §3.)
++-- (probe) THE GENERAL CASE, at every polarity — under the relaxed
++-- conv-unseal/conv-seal this is exactly the ↑ˢ proof of §3, with the
++-- polarity carried through.
++preserve-TyPeelR : TyPeelRCase
++preserve-TyPeelR = preserve-TyPeelR-↑
+ 
+ -- CANCELR, at the repaired rule (both frames kept, both faces
+ -- neutralised).  Discharged over ONE interface in proof/CancelFaces.
+--- a/strong/proof/IdPushReach.agda
++++ b/strong/proof/IdPushReach.agda
+@@ -112,8 +112,8 @@
+         (env bw₂ (env bw₁ ⊢V ⊢cᵢ wE′) ⊢cₒ wE)
+   with ⊢cₒ
+ ... | conv-unseal dₒ =
+-  env bw₂
+-      (env bw₁ ⊢V′ (conv-unseal dX) scoped)
++  env {p = ↑ˢ} bw₂
++      (env {p = ↑ˢ} bw₁ ⊢V′ (conv-unseal dX) scoped)
+       (subst (λ T → fceC Θ₂ Δ ⊢ idc A ∶ A ⇝ T ∙ ↑ˢ) eqAC
+              (idc-⊢ (⊑-wf (intC⊑fceC Θ₂ Δ) scoped)))
+       wE

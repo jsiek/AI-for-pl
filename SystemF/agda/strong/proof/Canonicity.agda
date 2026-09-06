@@ -91,11 +91,14 @@ canonAt→canon (ca-fun cs ct) =
 canonAt→canon (ca-all cs)    = can-all (canonAt→canon cs)
 
 -- The term-level reading: a wrapper's conversion is canonical for SOME
--- polarity at SOME owner.  Both are existential because different
--- wrappers in one term name different owners at different polarities;
--- typing pins them down again (§5).
+-- polarity.  It is the POLARITY shape alone, not the tight single-name
+-- reading `CanonAt`, and it has to be: TyPeelR's minted face
+-- `unsealAtᶜ 0 s` reads TWO owners in one wrapper — the face's own, and
+-- the one the instantiation just bound at slot 0 — so no single name
+-- tracks it.  (`CanonAt` is still what the MINT lemmas produce, and
+-- `canonAt→canon` is how they land here.)
 CanonC : Conv → Set
-CanonC c = ∃[ p ] ∃[ X ] CanonAt p X c
+CanonC c = ∃[ p ] Canon p c
 
 ------------------------------------------------------------------------
 -- 2.  MINT — the faces the rules write are canonical
@@ -135,18 +138,46 @@ canonAt-idc p X (A ⇒ B) =
   ca-fun (canonAt-idc (flip p) X A) (canonAt-idc p X B)
 canonAt-idc p X (`∀ A)  = ca-all (canonAt-idc p (suc X) A)
 
+canon-unsealAt : (X : ℕ) (B : Ty) → Canon ↑ˢ (unsealAt X B)
+canon-unsealAt X B = canonAt→canon (canonAt-unsealAt X B)
+
+canon-sealAt : (X : ℕ) (B : Ty) → Canon ↓ˢ (sealAt X B)
+canon-sealAt X B = canonAt→canon (canonAt-sealAt X B)
+
 canonC-unsealAt : (X : ℕ) (B : Ty) → CanonC (unsealAt X B)
-canonC-unsealAt X B = ↑ˢ , X , canonAt-unsealAt X B
+canonC-unsealAt X B = ↑ˢ , canon-unsealAt X B
 
 canonC-sealAt : (X : ℕ) (B : Ty) → CanonC (sealAt X B)
-canonC-sealAt X B = ↓ˢ , X , canonAt-sealAt X B
+canonC-sealAt X B = ↓ˢ , canon-sealAt X B
 
 canonC-idc : (A : Ty) → CanonC (idc A)
-canonC-idc A = ↑ˢ , 0 , canonAt-idc ↑ˢ 0 A
+canonC-idc A = ↑ˢ , canonAt→canon (canonAt-idc ↑ˢ 0 A)
 
 -- IdPush's other mint: the pushed `unseal` at the name the id-face wrote.
 canonC-unseal : (X : ℕ) → CanonC (unseal X)
-canonC-unseal X = ↑ˢ , X , ca-unseal
+canonC-unseal X = ↑ˢ , can-unseal
+
+-- (c) TYPEELR's mint — `unsealAtᶜ`, the leaf-wise instantiation of the
+-- ∀-face at the owner the rule binds.  THE POLARITIES LINE UP ONLY ONE
+-- WAY: an inserted `unseal 0` sits where the face runs COVARIANTLY and an
+-- inserted `seal 0` where it runs CONTRAVARIANTLY, so the mint stays in
+-- the family exactly when the ∀-face is a REVEAL (`↑ˢ`).  Under a
+-- CONCEAL (`↓ˢ`) face the two are swapped and the result is a MIXED tree
+-- — `¬CanonTyPeelR`, §8.
+mutual
+  canon-unsealAtᶜ : (n : ℕ) → Canon ↑ˢ c → Canon ↑ˢ (unsealAtᶜ n c)
+  canon-unsealAtᶜ n (can-id {A = A})   = canon-unsealAt n A
+  canon-unsealAtᶜ n can-unseal         = can-unseal
+  canon-unsealAtᶜ n (can-fun cs ct)    =
+    can-fun (canon-sealAtᶜ n cs) (canon-unsealAtᶜ n ct)
+  canon-unsealAtᶜ n (can-all cs)       = can-all (canon-unsealAtᶜ (suc n) cs)
+
+  canon-sealAtᶜ : (n : ℕ) → Canon ↓ˢ c → Canon ↓ˢ (sealAtᶜ n c)
+  canon-sealAtᶜ n (can-id {A = A})     = canon-sealAt n A
+  canon-sealAtᶜ n can-seal             = can-seal
+  canon-sealAtᶜ n (can-fun cs ct)      =
+    can-fun (canon-unsealAtᶜ n cs) (canon-sealAtᶜ n ct)
+  canon-sealAtᶜ n (can-all cs)         = can-all (canon-sealAtᶜ (suc n) cs)
 
 ------------------------------------------------------------------------
 -- 3.  DECOMPOSE — the subtree readings the crossing rules perform
@@ -156,16 +187,17 @@ canonC-unseal X = ↑ˢ , X , ca-unseal
 -- polarity and the SAME owner, which is exactly the crossing argument's
 -- face.
 canonC-fun-dom : CanonC (s ↦ t) → CanonC s
-canonC-fun-dom (p , X , ca-fun cs ct) = flip p , X , cs
+canonC-fun-dom (p , can-fun cs ct) = flip p , cs
 
 canonC-fun-cod : CanonC (s ↦ t) → CanonC t
-canonC-fun-cod (p , X , ca-fun cs ct) = p , X , ct
+canonC-fun-cod (p , can-fun cs ct) = p , ct
 
--- TyPeelR reads `∀ s` apart.  The owner shifts by one — and so does the
--- contractum's frame (`bind A ∷ renᴮ suc Θ`), which is why the rule can
--- reuse `s` verbatim without renaming it.
+-- TyPeelR reads `∀ s` apart — and then MINTS on the body (`unsealAtᶜ 0`,
+-- §2c): the slot the `` `∀ `` left abstract is now the owner the rule
+-- binds, so the face's identity leaves at that slot become the
+-- instantiation.  The polarity is unchanged by the decomposition.
 canonC-all : CanonC (`∀ s) → CanonC s
-canonC-all (p , X , ca-all cs) = p , suc X , cs
+canonC-all (p , can-all cs) = p , cs
 
 ------------------------------------------------------------------------
 -- 4.  RENAME — canonicity survives a type-context renaming
@@ -181,8 +213,15 @@ canonAt-ren ρ (ca-fun cs ct) =
   ca-fun (canonAt-ren ρ cs) (canonAt-ren ρ ct)
 canonAt-ren ρ (ca-all cs)    = ca-all (canonAt-ren (extᵗ ρ) cs)
 
+canon-ren : (ρ : Renameᵗ) → Canon p c → Canon p (renᶜ ρ c)
+canon-ren ρ can-id          = can-id
+canon-ren ρ can-unseal      = can-unseal
+canon-ren ρ can-seal        = can-seal
+canon-ren ρ (can-fun cs ct) = can-fun (canon-ren ρ cs) (canon-ren ρ ct)
+canon-ren ρ (can-all cs)    = can-all (canon-ren (extᵗ ρ) cs)
+
 canonC-ren : (ρ : Renameᵗ) → CanonC c → CanonC (renᶜ ρ c)
-canonC-ren ρ (p , X , cc) = p , ρ X , canonAt-ren ρ cc
+canonC-ren ρ (p , cc) = p , canon-ren ρ cc
 
 ------------------------------------------------------------------------
 -- 5.  THE POLARITY PAYOFF
@@ -344,10 +383,11 @@ canon-subst cN cW =
 --   Beta     substitutes — §7, wrappers are opaque to `substᵐ`.
 --   Peel     DECOMPOSES `s ↦ t`; the argument is `wkᴹ`-renamed (§4) and
 --            takes the domain `s` at the FLIPPED polarity.
---   TyPeelR  DECOMPOSES `∀ s` and RENAMES the moved value (`wkᴹ 1`); the
---            face `s` itself is NOT renamed, and it need not be — the
---            `∀-decomposition already tracks the owner at `suc X`, which
---            is the slot the new `bind A` occupies.
+--   TyPeelR  DECOMPOSES `∀ s`, RENAMES the moved value (`wkᴹ 1`), and
+--            MINTS `unsealAtᶜ 0 s` on the body — the ONE case that is not
+--            unconditional, because the mint is in the family only at a
+--            REVEAL face (`canon-unsealAtᶜ`); hence the hypothesis
+--            `CanonTyPeelR` below, whose general form is REFUTED.
 --   CancelR  MINTS `idc A` at the looked-up rep — a LEAF of the family
 --            (`idOnly-idc`), canonical at every polarity and name.
 --   IdPush   MINTS BOTH faces: the pushed `unseal X` (canonical at ↑ˢ,
@@ -357,29 +397,57 @@ canon-subst cN cW =
 --            is the right one (proof/IdLayer.agda, `idpush-name`).
 --   Drop$    contracts to `$ n`; no wrappers at all.
 --   ξ-*      structural.
-canon-step : ∀ {Δ} → CanonTm M → Δ ⊢ M -→ M′ → CanonTm M′
-canon-step (ct-·[] (ct-Λ cN)) (TyBeta {B = B} _) =
+-- WHAT TYPEELR'S MINT OWES THE FAMILY, as a statement.
+CanonTyPeelR : Set
+CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (unsealAtᶜ 0 s)
+
+-- It HOLDS at a reveal face …
+canonC-unsealAtᶜ-↑ : Canon ↑ˢ s → CanonC (unsealAtᶜ 0 s)
+canonC-unsealAtᶜ-↑ cs = ↑ˢ , canon-unsealAtᶜ 0 cs
+
+-- … and FAILS at a conceal face: the ∀-face `∀ (id (` 0) ↦ seal 1)` — a
+-- polymorphic ARGUMENT that crossed a Peel, `sealAt 0 (∀Y. Y ⇒ X)` — is
+-- canonical at ↓ˢ, and its mint `seal 0 ↦ seal 1` is a MIXED tree: the
+-- inserted `seal 0` sits contravariantly (wanting ↑ˢ) under a `seal 1`
+-- that sits covariantly (wanting ↓ˢ).  By `typed→canon` the mint is
+-- therefore untypeable at either polarity — which is exactly
+-- proof/PreserveObstruct §2, at the level of the family.
+canonC-↓ˢ-∀face : CanonC (`∀ (id (` 0) ↦ seal 1))
+canonC-↓ˢ-∀face = ↓ˢ , can-all (can-fun can-id can-seal)
+
+_ : unsealAtᶜ 0 (id (` 0) ↦ seal 1) ≡ seal 0 ↦ seal 1
+_ = refl
+
+¬canonC-seal↦seal : ¬ CanonC (seal 0 ↦ seal 1)
+¬canonC-seal↦seal (↑ˢ , can-fun cs ())
+¬canonC-seal↦seal (↓ˢ , can-fun () ct)
+
+¬CanonTyPeelR : ¬ CanonTyPeelR
+¬CanonTyPeelR tp = ¬canonC-seal↦seal (tp canonC-↓ˢ-∀face)
+
+canon-step : ∀ {Δ} → CanonTyPeelR → CanonTm M → Δ ⊢ M -→ M′ → CanonTm M′
+canon-step tp (ct-·[] (ct-Λ cN)) (TyBeta {B = B} _) =
   ct-⟪⟫ cN (canonC-unsealAt 0 B)
-canon-step (ct-· (ct-ƛ cN) cW) (Beta _) = canon-subst cN cW
-canon-step (ct-· (ct-⟪⟫ cV cst) cW) (Peel {Θ = Θ} _ _) =
+canon-step tp (ct-· (ct-ƛ cN) cW) (Beta _) = canon-subst cN cW
+canon-step tp (ct-· (ct-⟪⟫ cV cst) cW) (Peel {Θ = Θ} _ _) =
   ct-⟪⟫ (ct-· cV (ct-⟪⟫ (canon-wkᴹ (nbind Θ) cW) (canonC-fun-dom cst)))
         (canonC-fun-cod cst)
-canon-step (ct-·[] (ct-⟪⟫ cV cs)) (TyPeelR _) =
-  ct-⟪⟫ (ct-·[] (canon-wkᴹ 1 cV)) (canonC-all cs)
-canon-step (ct-⟪⟫ (ct-⟪⟫ cV _) _) (CancelR {A = A} _ _) =
-  ct-⟪⟫ cV (canonC-idc A)
-canon-step (ct-⟪⟫ _ _) (Drop$ _) = ct-lit
-canon-step (ct-⟪⟫ (ct-⟪⟫ cV _) _) (IdPush {X = X} {A = A} _ _) =
+canon-step tp (ct-·[] (ct-⟪⟫ cV cs)) (TyPeelR _ _) =
+  ct-⟪⟫ (ct-·[] (canon-wkᴹ 1 cV)) (tp cs)
+canon-step tp (ct-⟪⟫ (ct-⟪⟫ cV _) _) (CancelR {Θ₁ = Θ₁} {A = A} _ _) =
+  ct-⟪⟫ (ct-⟪⟫ cV (canonC-idc (liftN (nbind Θ₁) A))) (canonC-idc A)
+canon-step tp (ct-⟪⟫ _ _) (Drop$ _) = ct-lit
+canon-step tp (ct-⟪⟫ (ct-⟪⟫ cV _) _) (IdPush {X = X} {A = A} _ _) =
   ct-⟪⟫ (ct-⟪⟫ cV (canonC-unseal X)) (canonC-idc A)
-canon-step (ct-· cL cM)  (ξ-·-l st)   = ct-· (canon-step cL st) cM
-canon-step (ct-· cV cM)  (ξ-·-r _ st) = ct-· cV (canon-step cM st)
-canon-step (ct-·[] cL)   (ξ-·[] st)   = ct-·[] (canon-step cL st)
-canon-step (ct-Λ cN)     (ξ-Λ st)     = ct-Λ (canon-step cN st)
-canon-step (ct-⟪⟫ cM cc) (ξ-⟪⟫ st)    = ct-⟪⟫ (canon-step cM st) cc
+canon-step tp (ct-· cL cM)  (ξ-·-l st)   = ct-· (canon-step tp cL st) cM
+canon-step tp (ct-· cV cM)  (ξ-·-r _ st) = ct-· cV (canon-step tp cM st)
+canon-step tp (ct-·[] cL)   (ξ-·[] st)   = ct-·[] (canon-step tp cL st)
+canon-step tp (ct-Λ cN)     (ξ-Λ st)     = ct-Λ (canon-step tp cN st)
+canon-step tp (ct-⟪⟫ cM cc) (ξ-⟪⟫ st)    = ct-⟪⟫ (canon-step tp cM st) cc
 
-canon-steps : ∀ {Δ} → CanonTm M → Δ ⊢ M -→* M′ → CanonTm M′
-canon-steps cM done          = cM
-canon-steps cM (st then sts) = canon-steps (canon-step cM st) sts
+canon-steps : ∀ {Δ} → CanonTyPeelR → CanonTm M → Δ ⊢ M -→* M′ → CanonTm M′
+canon-steps tp cM done          = cM
+canon-steps tp cM (st then sts) = canon-steps tp (canon-step tp cM st) sts
 
 ------------------------------------------------------------------------
 -- 9.  SOURCES — plain System F terms are canonical, vacuously
@@ -413,21 +481,22 @@ canon-source (pl-·[] pL)   = ct-·[] (canon-source pL)
 -- id-layer, a reveal at owner 0.
 canonTm-T₆ : CanonTm T₆
 canonTm-T₆ =
-  ct-⟪⟫ (ct-⟪⟫ (ct-⟪⟫ ct-lit (↓ˢ , 1 , ca-seal))
-               (↑ˢ , 0 , ca-id))
+  ct-⟪⟫ (ct-⟪⟫ (ct-⟪⟫ ct-lit (↓ˢ , can-seal))
+               (↑ˢ , can-id))
         (canonC-unseal 0)
 
 -- …and the invariant survives the whole IdPush ⨟ Cancel ⨟ Drop$ ⨟ Drop$
--- run, which is what `canon-step` is for.
-canonTm-T₆-run : CanonTm ($ 7)
-canonTm-T₆-run = canon-steps canonTm-T₆ run-T₆
+-- run, which is what `canon-step` is for.  (Neither run takes a TyPeelR
+-- step, so the hypothesis is carried but never consumed.)
+canonTm-T₆-run : CanonTyPeelR → CanonTm ($ 7)
+canonTm-T₆-run tp = canon-steps tp canonTm-T₆ run-T₆
 
 canonTm-cancelTm : CanonTm cancelTm
 canonTm-cancelTm =
-  ct-⟪⟫ (ct-⟪⟫ ct-lit (↓ˢ , 0 , ca-seal)) (canonC-unseal 0)
+  ct-⟪⟫ (ct-⟪⟫ ct-lit (↓ˢ , can-seal)) (canonC-unseal 0)
 
-canonTm-cancelTm-run : CanonTm ($ 7)
-canonTm-cancelTm-run = canon-steps canonTm-cancelTm run-cancelTm
+canonTm-cancelTm-run : CanonTyPeelR → CanonTm ($ 7)
+canonTm-cancelTm-run tp = canon-steps tp canonTm-cancelTm run-cancelTm
 
 -- The mint lemmas, on the ground: TyBeta's face at a function type is the
 -- ↦-tree whose domain is the DUAL family.

@@ -17,7 +17,7 @@ module strong.Conversion where
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_)
-open import Data.Product using (_×_; _,_; ∃-syntax)
+open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans)
 
@@ -196,3 +196,45 @@ conv-id-base-src () (conv-idv _)
 conv-id-refl : ∀ {C p} → Δ ⊢ id A ∶ B ⇝ C ∙ p → B ≡ C
 conv-id-refl (conv-id _)  = refl
 conv-id-refl (conv-idv _) = refl
+
+-- The ∀-face's body, as an inversion that does NOT have to see through
+-- `liftN`: `env` pins the exterior face to `liftN (nbind Θ) Bₑ`, which is
+-- a stuck term, so TyPeelR's premise is recovered by this lemma rather
+-- than by matching `conv-all` directly.
+conv-all-inv : ∀ {s A B p} → Δ ⊢ `∀ s ∶ A ⇝ B ∙ p
+  → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]
+      ((A ≡ `∀ A₀) × (B ≡ `∀ B₀) × ((abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B₀ ∙ p))
+conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
+
+------------------------------------------------------------------------
+-- 7.  FACES ARE A FUNCTION OF THE CONVERSION AND THE TYPE CONTEXT
+------------------------------------------------------------------------
+
+-- A conversion determines BOTH its faces: `id` carries its own, a
+-- `seal`/`unseal` reads its rep by the owner lookup (`∋:=-det`), and
+-- `↦`/`` `∀ `` are structural.  The POLARITIES need not agree — the faces
+-- do not depend on them.  This is what makes TyPeelR deterministic even
+-- though its pushed-in annotation is premise-determined rather than
+-- syntactic (strong.Reduction, `det`).
+conv-faces-unique : ∀ {c A A′ B B′ p p′}
+  → Δ ⊢ c ∶ A  ⇝ B  ∙ p
+  → Δ ⊢ c ∶ A′ ⇝ B′ ∙ p′
+    ----------------------
+  → (A ≡ A′) × (B ≡ B′)
+conv-faces-unique (conv-id b)     (conv-id b′)     = refl , refl
+conv-faces-unique (conv-id ())    (conv-idv tv′)
+conv-faces-unique (conv-idv tv)   (conv-id ())
+conv-faces-unique (conv-idv tv)   (conv-idv tv′)   = refl , refl
+conv-faces-unique (conv-unseal d) (conv-unseal d′) = refl , ∋:=-det d d′
+conv-faces-unique (conv-seal d)   (conv-seal d′)   = ∋:=-det d d′ , refl
+conv-faces-unique (conv-fun s t)  (conv-fun s′ t′)
+  with conv-faces-unique s s′ | conv-faces-unique t t′
+... | refl , refl | refl , refl = refl , refl
+conv-faces-unique (conv-all s)    (conv-all s′)
+  with conv-faces-unique s s′
+... | refl , refl = refl , refl
+
+conv-src-unique : ∀ {c A A′ B B′ p p′}
+  → Δ ⊢ c ∶ A ⇝ B ∙ p → Δ ⊢ c ∶ A′ ⇝ B′ ∙ p′ → A ≡ A′
+conv-src-unique ⊢c ⊢c′ with conv-faces-unique ⊢c ⊢c′
+... | eq , _ = eq

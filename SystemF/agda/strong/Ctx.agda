@@ -290,6 +290,17 @@ liftN-ren (suc n) ρ A =
   trans (ren-⇑-comm (extN n ρ) (liftN n A))
         (cong ⇑ᵗ (liftN-ren n ρ A))
 
+-- The SAME lifting, read UNDER one binder: `liftN n` on a `` `∀ `` body.
+-- TyPeelR needs it, because the ∀-face's exterior body is the exterior
+-- type's body lifted past the boundary's owners.
+liftᵇ : ℕ → Ty → Ty
+liftᵇ zero    B = B
+liftᵇ (suc n) B = renameᵗ (extᵗ suc) (liftᵇ n B)
+
+liftN-liftᵇ : (n : ℕ) (B : Ty) → liftN n (`∀ B) ≡ `∀ (liftᵇ n B)
+liftN-liftᵇ zero    B = refl
+liftN-liftᵇ (suc n) B rewrite liftN-liftᵇ n B = refl
+
 liftN-base : (n : ℕ) → Base A → liftN n A ≡ A
 liftN-base zero    b = refl
 liftN-base (suc n) b rewrite liftN-base n b = base-ren b
@@ -425,6 +436,19 @@ mask-⊑ Y       le[]        = le[]
 mask-⊑ zero    (le∷ l ls)  = le∷ (blk-le l) ls
 mask-⊑ (suc Y) (le∷ l ls)  = le∷ l (mask-⊑ Y ls)
 
+-- Unmasking only ADDS nameability, so the type context refines to its own
+-- unmasking.  (The `blk` clause is `blk-le` at reflexivity: peeling one
+-- `blk` is the ⊑ᵉ step `le-bu`.)
+⊑ᵉ-unblk : (E : Ent) → E ⊑ᵉ unblk E
+⊑ᵉ-unblk abst     = le-aa
+⊑ᵉ-unblk (bind A) = le-oo
+⊑ᵉ-unblk (blk E)  = blk-le (⊑ᵉ-refl E)
+
+unmask-⊑ : (Y : ℕ) (Δ : Ctxᵗ) → Δ ⊑ unmask Y Δ
+unmask-⊑ Y       []      = le[]
+unmask-⊑ zero    (E ∷ Δ) = le∷ (⊑ᵉ-unblk E) (⊑-refl Δ)
+unmask-⊑ (suc Y) (E ∷ Δ) = le∷ (⊑ᵉ-refl E) (unmask-⊑ Y Δ)
+
 ------------------------------------------------------------------------
 -- 7.  The owner prefix
 ------------------------------------------------------------------------
@@ -436,6 +460,20 @@ mask-⊑ (suc Y) (le∷ l ls)  = le∷ l (mask-⊑ Y ls)
 prep : List Ty → Ctxᵗ → Ctxᵗ
 prep []       Δ = Δ
 prep (A ∷ As) Δ = bind (liftN (length As) A) ∷ prep As Δ
+
+-- SIMULTANEITY, as a well-formedness fact: a type over the plain exterior
+-- is a type inside the owner prefix, lifted past exactly the owners bound
+-- there.
+wf-liftN-prep : (As : List Ty) → Δ ⊢ᵗ A → prep As Δ ⊢ᵗ liftN (length As) A
+wf-liftN-prep []       w = w
+wf-liftN-prep (C ∷ As) w = wf-ren Ren-wk-prep (wf-liftN-prep As w)
+  where
+  Ren-wk-prep : ∀ {E Δ″} → Ren suc Δ″ (E ∷ Δ″)
+  Ren-wk-prep = mkRen es
+
+-- A well-formed variable type IS a visible slot.
+wf-var⁻ : Δ ⊢ᵗ ` X → Δ ∋tv X
+wf-var⁻ (wf-var tv) = tv
 
 ⊑-prep : (As : List Ty) → Δ ⊑ Δ′ → prep As Δ ⊑ prep As Δ′
 ⊑-prep []       ls = ls

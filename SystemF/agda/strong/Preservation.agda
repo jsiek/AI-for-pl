@@ -21,35 +21,52 @@ module strong.Preservation where
 --   is a value at Γ = `ℕ ∷ [], TyBeta fires, and the contractum's interior
 --   would have to mention a term variable that a wrapper body may not have.
 --
--- THE STATUS.  PEEL IS NOW REPAIRED AND PROVEN: strong.Reduction's `dualS`
--- drops the `unlock` case, which makes `intC-dual`/`fceC-dual` true in
--- general and `PeelCase` a theorem (proof/PeelDual.preserve-Peel).  Three
--- rules still have machine-checked counterexamples (proof/PreserveObstruct
--- — a typed redex whose contractum is untypeable at the redex's type):
+-- THE STATUS (2026-09-05, after the CancelR/TyPeelR rule repairs).
 --
---   CancelR  drops Θ₁'s frame
---   TyPeelR  reuses the exterior ∀-body as the pushed-in annotation
---   IdPush   pushes an owner's rep across a `lock`
+--   PEEL      PROVEN (proof/PeelDual.preserve-Peel), since `dualS` drops
+--             the `unlock` case.
+--   CANCELR   REPAIRED — both frames kept, both faces neutralised — and
+--             DISCHARGED over ONE interface, `ScopedAtUnseal`
+--             (proof/CancelFaces.preserve-CancelR).  Its old
+--             counterexample now TYPES (proof/PreserveObstruct §1).
+--   TYPEELR   REPAIRED — premise-determined annotation, plain frame,
+--             minted face `unsealAtᶜ 0 s` — and PROVEN at an `↑ˢ`
+--             (reveal) ∀-face (proof/Preserve.preserve-TyPeelR-↑).  At a
+--             `↓ˢ` (conceal) ∀-face the contractum's face is
+--             MIXED-POLARITY, which the conversion judgment forbids
+--             outright: `¬TyPeelRCase` (proof/PreserveObstruct §2) is now
+--             a statement about the POLARITY DISCIPLINE, not about the
+--             rule.  Examples §13 reaches it from closed plain source.
+--   IDPUSH    right as formulated; it needs only the grounded scoping
+--             fact (proof/WallReach.idPush-RepWf).
 --
 -- What IS proven, unconditionally: TyBeta (the mint), Beta, Drop$, PEEL,
--- and all five congruences — and preservation itself, over the three open
--- cases as premises (`module Conditional`).
+-- and all five congruences — and preservation itself, over the remaining
+-- open cases as premises (`module Conditional`).
 
+open import Data.Nat using (ℕ; suc)
 open import Data.List using (List; []; _∷_)
 open import Relation.Nullary using (¬_)
 
-open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; _[_]ᵗ)
-open import strong.Ctx using (Ctxᵗ; Ent; abst; bind; blk; Base; _⊢ᵗ_)
-open import strong.Conversion using (Conv; id)
+open import strong.Types
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; _[_]ᵗ; renameᵗ; extᵗ)
+open import strong.Ctx
+  using (Ctxᵗ; Ent; abst; bind; blk; Base; _⊢ᵗ_; _∋_:=_; liftN)
+open import strong.Conversion
+  using (Conv; id; seal; unseal; _↦_; `∀; idc; _⊢_∶_⇝_∙_; Pol; ↑ˢ; ↓ˢ)
 open import strong.Terms
-open import strong.TermSubst using (_[_]ᵐ; preserve-Beta)
-open import strong.Reduction using (_⊢_-→_; _⊢_-→*_; unsealAt)
+open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
+open import strong.Reduction
+  using (_⊢_-→_; _⊢_-→*_; unsealAt; unsealAtᶜ)
 
 open import strong.proof.Preserve
-  using (PeelCase; TyPeelRCase; CancelRCase; IdPushCase;
-         preserve-TyBeta; preserve-Drop$; ⊢ᵗ-of; CtxWf-[])
+  using (PeelCase; TyPeelRCase; TyPeelRCase↑; CancelRCase; IdPushCase;
+         preserve-TyBeta; preserve-Drop$; preserve-TyPeelR-↑;
+         ⊢ᵗ-of; CtxWf-[])
 import strong.proof.Preserve as P
 open import strong.proof.PeelDual using (preserve-Peel)
+open import strong.proof.CancelFaces using (preserve-CancelR)
+open import strong.proof.ScopedAtUnsealDef using (ScopedAtUnseal)
 open import strong.proof.PreserveObstruct using (¬preservation)
 
 private
@@ -87,17 +104,19 @@ preservation-fails = ¬preservation
 -- 3.  CONDITIONAL preservation
 ------------------------------------------------------------------------
 
--- Every case is discharged except the four refuted ones, which are the
--- module's parameters.  Instantiating this module is exactly the work a
--- repair of those four rules would unlock.
+-- Every case is discharged except the ones still open, which are the
+-- module's parameters.  Note what CancelR's parameter now is: NOT its
+-- preservation case, but the SCOPING FACT `ScopedAtUnseal` — the rule's
+-- case is derived from it (`preserve-CancelR`).  That is the whole of
+-- CancelR's remaining debt, and it is the common wall, stated once.
 module Conditional
   (typeel : TyPeelRCase)
-  (cancel : CancelRCase)
+  (scoped : ScopedAtUnseal)
   (idpush : IdPushCase)
   where
 
   private
-    module I = P.Impl preserve-Peel typeel cancel idpush
+    module I = P.Impl preserve-Peel typeel (preserve-CancelR scoped) idpush
 
   preservation : Preservation
   preservation = I.preserve
@@ -131,6 +150,27 @@ preservation-Drop$ : ∀ {n Θ}
     -------------------------------
   → Δ ∣ [] ⊢ $ n ⦂ C
 preservation-Drop$ = preserve-Drop$
+
+-- TYPEELR AT AN `↑ˢ` ∀-FACE — the repaired rule, unconditionally.  The
+-- pushed-in annotation is the interior ∀-body the premise determines, and
+-- the face is the mint at the owner the rule binds.
+preservation-TyPeelR-↑ : ∀ {V Θ s B Bᵢ Bₑ}
+  → Value V
+  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↑ˢ
+  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+    -----------------------------------------------------
+  → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+               ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
+preservation-TyPeelR-↑ = preserve-TyPeelR-↑
+
+-- CANCELR — over the ONE scoping interface.
+preservation-CancelR : ∀ {V Θ₁ Θ₂ X Y}
+  → ScopedAtUnseal
+  → Value V → fceC Θ₂ Δ ∋ Y := A
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
+    ---------------------------------------------------------------
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫ ⦂ C
+preservation-CancelR sc = preserve-CancelR sc
 
 ------------------------------------------------------------------------
 -- 5.  A by-product worth naming: typed terms have well-formed types

@@ -95,6 +95,22 @@ progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
   inj₂ (_ , IdPush vW (unseal-face-is-the-owners-rep ⊢c))
 
 ------------------------------------------------------------------------
+-- TYPEELR'S FACE PREMISE, READ OFF THE REDEX
+------------------------------------------------------------------------
+
+-- TyPeelR's pushed-in annotation is the INTERIOR ∀-body, which the rule
+-- carries as a conversion-typing premise (strong.Reduction, repair 2a).
+-- Progress supplies it for FREE: it is the redex's own `env` conversion,
+-- one `` `∀ `` inside.  `conv-all-inv` (strong.Conversion) does the
+-- inversion without having to see through `env`'s `liftN`.
+∀-face-premise : ∀ {Δ W Θ s B} → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ B
+  → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ] Σ[ p ∈ Pol ]
+      ((abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p)
+∀-face-premise (env bw ⊢W ⊢c wE) with conv-all-inv ⊢c
+∀-face-premise (env bw ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
+  Bᵢ , Bₑ , _ , ⊢s
+
+------------------------------------------------------------------------
 -- THE THEOREM
 ------------------------------------------------------------------------
 
@@ -132,8 +148,10 @@ progress (⊢·[] ⊢L wA) | inj₂ (L′ , st) = inj₂ (L′ ·[ _ , _ ] , ξ-
 progress (⊢·[] ⊢L wA) | inj₁ vL with canon-∀ vL ⊢L
 progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl) =
   inj₂ (_ , TyBeta vN)
-progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl) =
-  inj₂ (_ , TyPeelR vW)
+progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
+  with ∀-face-premise ⊢L
+progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
+  | Bᵢ , Bₑ , p , ⊢s = inj₂ (_ , TyPeelR vW ⊢s)
 
 -- M ⟪ Θ , c ⟫ — the boundary.  The interior is typed at `intC Θ Δ`; an
 -- interior step lifts by ξ-⟪⟫, an interior value goes to `progress-env`.

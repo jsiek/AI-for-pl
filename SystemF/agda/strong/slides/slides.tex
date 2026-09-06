@@ -37,7 +37,7 @@
 \newcommand{\lockX}[1]{-#1}
 \newcommand{\unlockX}[1]{+#1}
 \newcommand{\dual}[1]{#1^{\mathrm{op}}}
-\newcommand{\owners}[1]{\mathsf{owners}(#1)}
+\newcommand{\owners}[1]{\mathsf{binds}(#1)}
 \newcommand{\unlocked}[1]{#1^{+}}
 \newcommand{\scopemove}{\mathbin{\triangleleft}}
 \newcommand{\idc}[1]{\mathsf{Id}(#1)}
@@ -93,9 +93,9 @@
 \item $\bind{X}{A}$ binds $X$ whose representation type is $A$;
   $\lockX{X}$ locks its name from the boundary interior; $\unlockX{X}$ unlocks that name.
 \item $\intc{\Delta}{\Psi}$ applies the locks and then introduces the
-  owners. $\fce{\Delta}{\Psi}$ introduces the same owners but leaves
+  bindings. $\fce{\Delta}{\Psi}$ introduces the same bindings but leaves
   their locked names visible to the conversion face.
-\item $\Delta_1\scopemove\Delta_2$ moves $\Delta_2$'s scope entries into
+\item $\Delta_1\scopemove\Delta_2$ moves $\Delta_2$'s +/- entries into
   $\Delta_1$; $\unlocked{\Delta_2}$ retains only $\Delta_2$'s bindings and
   unlocks.
 \end{itemize}

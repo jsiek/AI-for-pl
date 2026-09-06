@@ -645,7 +645,7 @@ question the value can answer now (reveal a binder's representation, or
 drop a base identity over a numeral).
 
 
-## 6. Reduction (`strong.Reduction`)
+## 6. Reduction (`strong.Reduction`; the minted conversions `reveal`/`conceal`/`instReveal`/`instConceal` are in `strong.Conversion` §4)
 
 The relation is `Δ ⊢ M -→ M′`, indexed by the type context only — there
 is no term context, and there cannot be one (§7).  `Δ ⊢ M -→* M′` is its

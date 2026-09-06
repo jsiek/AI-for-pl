@@ -25,10 +25,11 @@ module strong.Conversion where
 -- below hypothesis-free.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Relation.Nullary using (yes; no)
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; trans)
+  using (_≡_; refl; sym; cong; trans; cong₂; subst)
 
 open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
@@ -124,7 +125,80 @@ mkId-⊢ (wf-⇒ wA wB) = conv-fun (mkId-⊢ wA) (mkId-⊢ wB)
 mkId-⊢ (wf-∀ wA)    = conv-all (mkId-⊢ wA)
 
 ------------------------------------------------------------------------
--- 4.  TRANSPORT I — type context renaming (the ⊢renameᵗ analogue)
+-- 4.  The canonical conversions at a slot
+------------------------------------------------------------------------
+
+-- Unseal every occurrence of X where the conversion runs covariantly /
+-- seal it back where it runs contravariantly.  These are what the
+-- boundary rules mint at a fresh binder; they are DERIVED FROM THE TYPE,
+-- not from stored knowledge, and they carry only the NAME X.
+mutual
+  reveal : ℕ → Ty → Conv
+  reveal X (` Y) with X ≟ℕ Y
+  ... | yes _ = unseal X
+  ... | no  _ = id (` Y)
+  reveal X `ℕ      = id `ℕ
+  reveal X `𝔹      = id `𝔹
+  reveal X (A ⇒ B) = conceal X A ↦ reveal X B
+  reveal X (`∀ A)  = `∀ (reveal (suc X) A)
+
+  conceal : ℕ → Ty → Conv
+  conceal X (` Y) with X ≟ℕ Y
+  ... | yes _ = seal X
+  ... | no  _ = id (` Y)
+  conceal X `ℕ      = id `ℕ
+  conceal X `𝔹      = id `𝔹
+  conceal X (A ⇒ B) = reveal X A ↦ conceal X B
+  conceal X (`∀ A)  = `∀ (conceal (suc X) A)
+
+-- THE SAME MINT, APPLIED TO A CONVERSION (the TyPeelR repair,
+-- notes/RuleRepairs-TyPeelR-CancelR.md §1).  When a boundary whose
+-- conversion is a `` `∀ `` is instantiated, the boundary's frame gains
+-- a BINDER at slot 0 — the slot the conversion's `` `∀ `` had left
+-- ABSTRACT.  Every leaf of the conversion that reads that slot is an
+-- identity (`id (` 0)`, because an abstract slot has no binder to seal or
+-- unseal at), and each such leaf must become the instantiation step:
+-- `unseal 0` where the conversion runs covariantly, `seal 0` where it
+-- runs contravariantly.  That is exactly `reveal`/`conceal`, pushed
+-- through a CONVERSION instead of through a type — and on an identity
+-- conversion the two agree (`instReveal-mkId` below).
+mutual
+  instReveal : ℕ → Conv → Conv
+  instReveal X (id A)     = reveal X A
+  instReveal X (seal Y)   = seal Y
+  instReveal X (unseal Y) = unseal Y
+  instReveal X (s ↦ t)    = instConceal X s ↦ instReveal X t
+  instReveal X (`∀ s)     = `∀ (instReveal (suc X) s)
+
+  instConceal : ℕ → Conv → Conv
+  instConceal X (id A)     = conceal X A
+  instConceal X (seal Y)   = seal Y
+  instConceal X (unseal Y) = unseal Y
+  instConceal X (s ↦ t)    = instReveal X s ↦ instConceal X t
+  instConceal X (`∀ s)     = `∀ (instConceal (suc X) s)
+
+-- TyBeta's minted conversion IS this operation at an identity
+-- conversion: the type version is the conversion version on `mkId`.  (So
+-- TyPeelR's reveal case really is TyBeta's mint, one ∀ inside.)
+mutual
+  instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ reveal X B
+  instReveal-mkId X (` Y)   = refl
+  instReveal-mkId X `ℕ      = refl
+  instReveal-mkId X `𝔹      = refl
+  instReveal-mkId X (A ⇒ B) =
+    cong₂ _↦_ (instConceal-mkId X A) (instReveal-mkId X B)
+  instReveal-mkId X (`∀ A)  = cong `∀ (instReveal-mkId (suc X) A)
+
+  instConceal-mkId : (X : ℕ) (B : Ty) → instConceal X (mkId B) ≡ conceal X B
+  instConceal-mkId X (` Y)   = refl
+  instConceal-mkId X `ℕ      = refl
+  instConceal-mkId X `𝔹      = refl
+  instConceal-mkId X (A ⇒ B) =
+    cong₂ _↦_ (instReveal-mkId X A) (instConceal-mkId X B)
+  instConceal-mkId X (`∀ A)  = cong `∀ (instConceal-mkId (suc X) A)
+
+------------------------------------------------------------------------
+-- 5.  TRANSPORT I — type context renaming (the ⊢renameᵗ analogue)
 ------------------------------------------------------------------------
 
 -- A context-indexed conversion typing moves along ANY type context renaming, with NO
@@ -145,7 +219,7 @@ conv-ren r (conv-fun s t)    = conv-fun (conv-ren r s) (conv-ren r t)
 conv-ren r (conv-all s)      = conv-all (conv-ren (ren-ext r) s)
 
 ------------------------------------------------------------------------
--- 5.  TRANSPORT II — knowledge refinement (the ⊢retag analogue)
+-- 6.  TRANSPORT II — knowledge refinement (the ⊢retag analogue)
 ------------------------------------------------------------------------
 
 -- Knowledge refinement preserves conversion typing with the SOURCE AND
@@ -162,7 +236,7 @@ conv-⊑ ls (conv-fun s t)   = conv-fun (conv-⊑ ls s) (conv-⊑ ls t)
 conv-⊑ ls (conv-all s)     = conv-all (conv-⊑ (le∷ le-aa ls) s)
 
 ------------------------------------------------------------------------
--- 6.  Conversion inversions
+-- 7.  Conversion inversions
 ------------------------------------------------------------------------
 
 -- Every rep a conversion mentions IS the binder's rep — there is no second
@@ -205,7 +279,7 @@ conv-all-inv : ∀ {s A B} → Δ ⊢ `∀ s ∶ A ⇝ B
 conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 
 ------------------------------------------------------------------------
--- 7.  THE TYPES ARE A FUNCTION OF THE CONVERSION AND THE TYPE CONTEXT
+-- 8.  THE TYPES ARE A FUNCTION OF THE CONVERSION AND THE TYPE CONTEXT
 ------------------------------------------------------------------------
 
 -- A conversion determines BOTH its types: `id` carries its own, a

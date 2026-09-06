@@ -39,80 +39,7 @@ open import strong.Terms
 open import strong.TermSubst
 
 ------------------------------------------------------------------------
--- 1.  The canonical conversion at a slot
-------------------------------------------------------------------------
-
--- Unseal every occurrence of X where the conversion runs covariantly /
--- seal it back where it runs contravariantly.  These are what the
--- boundary rules mint at a fresh binder; they are DERIVED FROM THE TYPE,
--- not from stored knowledge, and they carry only the NAME X.
-mutual
-  reveal : ℕ → Ty → Conv
-  reveal X (` Y) with X ≟ℕ Y
-  ... | yes _ = unseal X
-  ... | no  _ = id (` Y)
-  reveal X `ℕ      = id `ℕ
-  reveal X `𝔹      = id `𝔹
-  reveal X (A ⇒ B) = conceal X A ↦ reveal X B
-  reveal X (`∀ A)  = `∀ (reveal (suc X) A)
-
-  conceal : ℕ → Ty → Conv
-  conceal X (` Y) with X ≟ℕ Y
-  ... | yes _ = seal X
-  ... | no  _ = id (` Y)
-  conceal X `ℕ      = id `ℕ
-  conceal X `𝔹      = id `𝔹
-  conceal X (A ⇒ B) = reveal X A ↦ conceal X B
-  conceal X (`∀ A)  = `∀ (conceal (suc X) A)
-
--- THE SAME MINT, APPLIED TO A CONVERSION (the TyPeelR repair,
--- notes/RuleRepairs-TyPeelR-CancelR.md §1).  When a boundary whose
--- conversion is a `` `∀ `` is instantiated, the boundary's frame gains
--- a BINDER at slot 0 — the slot the conversion's `` `∀ `` had left
--- ABSTRACT.  Every leaf of the conversion that reads that slot is an
--- identity (`id (` 0)`, because an abstract slot has no binder to seal or
--- unseal at), and each such leaf must become the instantiation step:
--- `unseal 0` where the conversion runs covariantly, `seal 0` where it
--- runs contravariantly.  That is exactly `reveal`/`conceal`, pushed
--- through a CONVERSION instead of through a type — and on an identity
--- conversion the two agree (`instReveal-mkId` below).
-mutual
-  instReveal : ℕ → Conv → Conv
-  instReveal X (id A)     = reveal X A
-  instReveal X (seal Y)   = seal Y
-  instReveal X (unseal Y) = unseal Y
-  instReveal X (s ↦ t)    = instConceal X s ↦ instReveal X t
-  instReveal X (`∀ s)     = `∀ (instReveal (suc X) s)
-
-  instConceal : ℕ → Conv → Conv
-  instConceal X (id A)     = conceal X A
-  instConceal X (seal Y)   = seal Y
-  instConceal X (unseal Y) = unseal Y
-  instConceal X (s ↦ t)    = instReveal X s ↦ instConceal X t
-  instConceal X (`∀ s)     = `∀ (instConceal (suc X) s)
-
--- TyBeta's minted conversion IS this operation at an identity
--- conversion: the type version is the conversion version on `mkId`.  (So
--- TyPeelR's reveal case really is TyBeta's mint, one ∀ inside.)
-mutual
-  instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ reveal X B
-  instReveal-mkId X (` Y)   = refl
-  instReveal-mkId X `ℕ      = refl
-  instReveal-mkId X `𝔹      = refl
-  instReveal-mkId X (A ⇒ B) =
-    cong₂ _↦_ (instConceal-mkId X A) (instReveal-mkId X B)
-  instReveal-mkId X (`∀ A)  = cong `∀ (instReveal-mkId (suc X) A)
-
-  instConceal-mkId : (X : ℕ) (B : Ty) → instConceal X (mkId B) ≡ conceal X B
-  instConceal-mkId X (` Y)   = refl
-  instConceal-mkId X `ℕ      = refl
-  instConceal-mkId X `𝔹      = refl
-  instConceal-mkId X (A ⇒ B) =
-    cong₂ _↦_ (instReveal-mkId X A) (instConceal-mkId X B)
-  instConceal-mkId X (`∀ A)  = cong `∀ (instConceal-mkId (suc X) A)
-
-------------------------------------------------------------------------
--- 2.  The rules
+-- 1.  The rules
 ------------------------------------------------------------------------
 
 infix 2 _⊢_-→_
@@ -251,7 +178,7 @@ data _⊢_-→*_ : Ctxᵗ → Term → Term → Set where
 infixr 2 _then_
 
 ------------------------------------------------------------------------
--- 3.  VALUES DON'T STEP
+-- 2.  VALUES DON'T STEP
 ------------------------------------------------------------------------
 
 -- With V-Λ's `Value N` premise this holds on the nose.  (In the mini-core it
@@ -262,7 +189,7 @@ value-¬step (V-⟪⟫ v ic)    (ξ-⟪⟫ st) = value-¬step v st
 value-¬step (V-Λ v)        (ξ-Λ st)  = value-¬step v st
 
 ------------------------------------------------------------------------
--- 4.  DETERMINISM
+-- 3.  DETERMINISM
 ------------------------------------------------------------------------
 
 det : ∀ {Δ M M₁ M₂} → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂

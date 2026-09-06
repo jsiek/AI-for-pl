@@ -70,11 +70,10 @@ open import strong.Types
 open import strong.Ctx
   using (Ctxᵗ; Ent; abst; bind; masked; Base; _⊢ᵗ_; _∋_:=_; shiftBy)
 open import strong.Conversion
-  using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_)
+  using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_; reveal; instReveal)
 open import strong.Terms
 open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
-open import strong.Reduction
-  using (_⊢_-→_; _⊢_-→*_; reveal; instReveal)
+open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 
 open import strong.CtxMorph using (_⋉_; rewind)
 open import strong.proof.Preserve

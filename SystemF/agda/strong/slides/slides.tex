@@ -22,21 +22,26 @@
 \newcommand{\Lam}[1]{\Lambda #1 \dotspace}
 \newcommand{\of}{{:}}
 \newcommand{\by}{\mapsto}
+\newcommand{\func}{\to}
 \newcommand{\reduce}{\longrightarrow}
-\newcommand{\boundary}[3]{#1\,\left\langle\begin{array}{c} #2 \\  #3\end{array}\right\rangle}
+\newcommand{\boundary}[3]{\left[#1\right]^{#2}_{#3}}
 \newcommand{\tyapp}[2]{#1\,#2}
 \newcommand{\app}[2]{#1\,#2}
-\newcommand{\seal}[1]{\kw{seal}\,#1}
-\newcommand{\unseal}[1]{\kw{unseal}\,#1}
-\newcommand{\unsealat}[3]{#2 \Rightarrow #2[#1\mapsto#3]}
+\newcommand{\seal}[1]{-#1}
+\newcommand{\unseal}[1]{+#1}
+\newcommand{\unsealat}[2]{\mathsf{reveal}(#1, #2)}
+\newcommand{\unsealatc}[2]{\mathsf{reveal}(#1,#2)}
 \newcommand{\bind}[2]{#1{:=}#2}
-\newcommand{\dual}[1]{-#1}
-\newcommand{\owners}[1]{\mathit{owners}(#1)}
-\newcommand{\idc}[1]{\mathit{idc}(#1)}
-\newcommand{\Value}[1]{\mathit{Value}(#1)}
-\newcommand{\Base}[1]{\mathit{Base}(#1)}
-\newcommand{\fce}[2]{\mathit{exterior}(#1,#2)}
-\newcommand{\intc}[2]{\mathit{interior}(#1,#2)}
+\newcommand{\lockX}[1]{-#1}
+\newcommand{\unlockX}[1]{+#1}
+\newcommand{\dual}[1]{#1^{\mathrm{op}}}
+\newcommand{\owners}[1]{\mathsf{owners}(#1)}
+\newcommand{\unlocked}[1]{#1^{+}}
+\newcommand{\scopemove}{\mathbin{\triangleleft}}
+\newcommand{\idc}[1]{\mathsf{Id}(#1)}
+\newcommand{\Value}[1]{\mathsf{Value}(#1)}
+\newcommand{\fce}[2]{\mathsf{convCtx}(#1,#2)}
+\newcommand{\intc}[2]{#1(#2)}
 
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
@@ -64,101 +69,227 @@
 }
 %===============================================================================
 \frame{
-  \frametitle{Terms}
+  \frametitle{Terms, Conversions, and Context Morphisms}
+\begingroup\small
+{\small
 \[
 \begin{array}{lcl}
  A,B,C,D &::=& \iota \mid A \to B \mid X \mid \forall X.A \\
- L,M,N&::=& k \mid x \mid \lam{x\of A}N \mid \app{L}{M} \mid 
-       \Lambda X. N \mid \tyapp{L}{A}
+ L,M,N&::=& k \mid x \mid \lam{x\of A}N \mid \app{L}{M} \\
+      && \mid \Lambda X. N \mid \tyapp{L}{A} \mid \boundary{M}{\Delta}{c} \\
+ c,d &::=& \kw{id}\,A \mid \seal{X} \mid \unseal{X}
+          \mid c \func d \mid \forall X.\,c \\
+ \Psi &::=& \emptyset \mid \Psi,X \\
+ \Delta &::=& \emptyset \mid \bind{X}{A},\Delta
+          \mid \lockX{X},\Delta \mid \unlockX{X},\Delta
 \end{array}
 \]
+}
+\endgroup
   
+\begin{itemize}
+\item $\bind{X}{A}$ binds $X$ whose representation type is $A$;
+  $\lockX{X}$ locks its name from the boundary interior; $\unlockX{X}$ unlocks that name.
+\item $\intc{\Delta}{\Psi}$ applies the locks and then introduces the
+  owners. $\fce{\Delta}{\Psi}$ introduces the same owners but leaves
+  their locked names visible to the conversion face.
+\item $\Delta_1\scopemove\Delta_2$ moves $\Delta_2$'s scope entries into
+  $\Delta_1$; $\unlocked{\Delta_2}$ retains only $\Delta_2$'s bindings and
+  unlocks.
+\end{itemize}
 }
 %===============================================================================
 \frame{
-\frametitle{Reduction: $\beta$ rules}
+  \frametitle{Values, Inert and Active Conversions}
 
-\hfill\fbox{$\Delta \vdash M \reduce N$}
-
-\vspace{20pt}
-\begin{align*}
-  \Delta \vdash (\lam{x\of A}N)\,W
-    & \reduce N[x\by W] \\[2ex]
-  \Delta \vdash \tyapp{(\Lam{X}V_B)}{A}
-    &\reduce  \boundary{V}{\bind{X}{A}}{\unsealat{X}{B}{A}}
-\end{align*}
-
-
-}
-%===============================================================================
-\frame{
-\frametitle{Reduction: elimination crosses a boundary}
-
-\hfill\fbox{$\Delta \vdash M \reduce N$}
-
-\begin{align*}
- \Delta \vdash \left(\boundary{V}{\Theta}{s \mapsto t}\right)\,W
-    &\reduce \boundary{V\,\left(\boundary{W}{\dual{\Theta}}{s}\right)}{\Theta}{t} \\[2ex]
- \Delta \vdash
-         \tyapp{\left(\boundary{V}{\Theta}{\forall X.\,s}\right)}{A}
-       &\reduce \boundary{\tyapp{V}{X}}{\bind{X}{A},\Theta}{s}
-\end{align*}
-
-}
-%===============================================================================
-\frame{
-\frametitle{Reduction: cancellation and identity}
-
-\hfill\fbox{$\Delta \vdash M \reduce N$}
 {\small
-\begin{align*}
- \Delta \vdash \boundary{\boundary{V}{\Theta_1}{\seal{X}}}{\Theta_2}{\unseal{X}}
-       &\reduce \boundary{V}{\owners{\Theta_2}}{\idc{A}} \\[2ex]
-       \quad\text{where }\fce{\Theta_2}{\Delta} \ni X := A \\[2ex]
- \Delta \vdash \boundary{k}{\Theta}{\kw{id}\,\iota}
-       &\reduce k \\[2ex]
- \Delta \vdash \boundary{\boundary{V}{\Theta_1}{\kw{id}\,X}}
-                  {\Theta_2}{\unseal{X}}
-       &\reduce \boundary{\boundary{V}{\Theta_1 + \Theta_2}{\unseal{X}}}
-                 {\emptyset}{\idc{A}} \\[2ex]
-       \quad\text{where }\fce{\Theta_2}{\Delta} \ni X := A
-\end{align*}
+\[
+\begin{array}{llcl}
+\text{values} & V,W &::=& k \mid \lam{x\of A}N \mid \Lambda X.\,V
+       \mid \boundary{V}{\Delta}{c^i} \\[1ex]
+\text{inert}& c^i &::=& \kw{id}\,X \mid \seal{X}
+              \mid c\func d \mid \forall X.\,c \\[1ex]
+\text{active}& c^a &::=& \kw{id}\,\iota \mid \unseal{X}
+\end{array}
+\]
+
+\vspace{18pt}
+
+\begin{center}
+A boundary is a value exactly when its interior is a value\\
+and its conversion face has inert form $c^i$.
+\end{center}
 }
-\vfill
-{\small $\owners{\Theta}$ retains the $X{:=}A$ entries of
-$\Theta$ and drops its $\kw{lock}$ and $\kw{unlock}$ entries.}
 }
 %===============================================================================
 \frame{
-\frametitle{Reduction: congruence}
+  \frametitle{Term typing}
 
-\hfill\fbox{$\Delta \vdash M \reduce N$}
+\hfill\fbox{$\Psi \mid \Gamma \vdash M : A$}
 
+{\scriptsize
 \begin{gather*}
-  \inference
-    {\Delta \vdash L \reduce L'}
-    {\Delta \vdash L\,M \reduce L'\,M}
-  \quad
-  \inference
-    {\Delta \vdash M \reduce M'}
-    {\Delta \vdash V\,M \reduce V\,M'}
-  \\[2ex]
-  \inference
-    {\Delta \vdash L \reduce L'}
-    {\Delta \vdash \tyapp{L}{A}
-      \reduce \tyapp{L'}{A}}
-  \quad      
-  \inference
-    {\Delta,X \vdash N \reduce N'}
-    {\Delta \vdash \Lam{X}N \reduce \Lam{X}N'}
-  \\[2ex]
-  \inference
-    {\intc{\Theta}{\Delta} \vdash M \reduce M'}
-    {\Delta \vdash
-       \boundary{M}{\Theta}{c}
-       \reduce
-       \boundary{M'}{\Theta}{c}}
+\inference{x:A\in\Gamma}
+          {\Psi\mid\Gamma\vdash x:A}
+\quad
+\inference{}
+          {\Psi\mid\Gamma\vdash k:\iota}
+\\[2ex]
+\inference{\Psi\vdash A \qquad
+           \Psi\mid\Gamma,x:A\vdash N:B}
+          {\Psi\mid\Gamma\vdash \lam{x\of A}N:A\to B}
+\quad
+\inference{\Psi\mid\Gamma\vdash L:A\to B \qquad
+           \Psi\mid\Gamma\vdash M:A}
+          {\Psi\mid\Gamma\vdash \app{L}{M}:B}
+\\[2ex]
+\inference{\Psi,X\mid\Gamma\vdash N:B}
+          {\Psi\mid\Gamma\vdash \Lambda X.\,N:\forall X.B}
+\quad
+\inference{\Psi\mid\Gamma\vdash L:\forall X.B \qquad \Psi\vdash A}
+          {\Psi\mid\Gamma\vdash \tyapp{L}{A}:B[X\mapsto A]}
 \end{gather*}
+}
+\[
+\frac{
+  \begin{gathered}
+  \Psi \vdash \Delta
+  \qquad
+  \intc{\Delta}{\Psi}\mid\emptyset\vdash M:B_i
+  \\[1ex]
+  \fce{\Delta}{\Psi}\vdash c:B_i\Rightarrow B_e
+  \qquad
+  \Psi\vdash B_e
+  \end{gathered}
+}{
+  \Psi\mid\Gamma\vdash\boundary{M}{\Delta}{c}:B_e
+}
+\]
+
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction}
+
+\hfill\fbox{$\Psi \vdash M \reduce N$}
+
+\begin{align*}
+\Psi \vdash (\lam{x\of A}N)\,W
+  &\reduce N[x\by W]
+\\[2ex]
+\Psi \vdash \tyapp{(\Lam{X}V_B)}{A}
+  &\reduce \boundary{V}{\bind{X}{A}}{\unsealat{X}{B}}
+\\[2ex]
+\Psi \vdash \boundary{V}{\Delta}{c\func d}\,W
+  &\reduce \boundary{V\,\boundary{W}{\dual{\Delta}}{c}}
+                    {\Delta}{d}
+\\[2ex]
+\Psi \vdash \tyapp{\boundary{V}{\Delta}{\forall X.\,c}}{A}
+&\reduce \boundary{\tyapp{V}{X}}{\bind{X}{A},\Delta}{\unsealatc{X}{c}}
+\\[2ex]
+\Psi \vdash
+\boundary{\boundary{V}{\Delta_1}{\seal{X}}}
+          {\Delta_2}{\unseal{X}}
+&\reduce
+\boundary{\boundary{V}{\Delta_1\scopemove\Delta_2}{\idc{A}}}
+          {\unlocked{\Delta_2}}{\idc{A}}
+ \\
+&\text{where }\fce{\Delta_2}{\Psi}\ni X:=A
+\end{align*}
+
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction: active identities and congruence}
+
+\hfill\fbox{$\Psi \vdash M \reduce N$}
+
+\begin{align*}
+\Psi \vdash \boundary{k}{\Delta}{\kw{id}\,\iota}
+  &\reduce k
+\\[2ex]
+\Psi \vdash
+\boundary{\boundary{V}{\Delta_1}{\kw{id}\,X}}
+          {\Delta_2}{\unseal{X}}
+&\reduce
+\boundary{\boundary{V}{\Delta_1\scopemove\Delta_2}{\unseal{X}}}
+          {\unlocked{\Delta_2}}{\idc{A}}
+&&\text{if }\fce{\Delta_2}{\Psi}\ni X:=A
+\\[2ex]
+\Psi \vdash L\,M
+  &\reduce L'\,M
+  &&\text{if }\Psi \vdash L\reduce L'
+  \\
+\Psi \vdash V\,M
+  &\reduce V\,M'
+  &&\text{if }\Psi \vdash M\reduce M'
+  \\
+\Psi \vdash \tyapp{L}{A}
+  &\reduce \tyapp{L'}{A}
+  &&\text{if }\Psi \vdash L\reduce L'
+  \\
+\Psi \vdash \Lam{X}N
+  &\reduce \Lam{X}N'
+  &&\text{if }\Psi,X\vdash N\reduce N'
+  \\
+\Psi \vdash \boundary{M}{\Delta}{c}
+  &\reduce \boundary{M'}{\Delta}{c}
+  &&\text{if }\intc{\Delta}{\Psi}\vdash M\reduce M'
+\end{align*}
+
+}
+%===============================================================================
+\frame{
+\frametitle{Progress}
+
+\[
+\begin{aligned}
+&\text{If }\Psi\mid\emptyset\vdash M:A \\
+&\text{then } M \text{ is a value or } \exists M'.\ \Psi\vdash M\reduce M'.
+\end{aligned}
+\]
+
+\vspace{24pt}
+
+\begin{center}
+Every closed, well-typed term is a value or can take a reduction step.
+\end{center}
+}
+%===============================================================================
+\frame{
+\frametitle{Preservation}
+
+\[
+\begin{aligned}
+&\text{If }\Psi\mid\emptyset\vdash M:A
+  \text{ and }\Psi\vdash M\reduce M' \\
+&\text{then } \Psi\mid\emptyset\vdash M':A.
+\end{aligned}
+\]
+
+\vspace{24pt}
+
+\begin{center}
+A reduction step preserves the type of a closed term.
+\end{center}
+}
+%===============================================================================
+\frame{
+\frametitle{Determinism}
+
+\[
+\begin{aligned}
+&\text{If }\Psi\vdash M\reduce M_1
+  \text{ and }\Psi\vdash M\reduce M_2 \\
+&\text{then } M_1=M_2.
+\end{aligned}
+\]
+
+\vspace{24pt}
+
+\begin{center}
+Every term has at most one immediate reduct.
+\end{center}
 }
 
 \end{document}

@@ -11,7 +11,7 @@ module strong.proof.PeelDual where
 -- and the face `s` transplants verbatim through `fceC-dual`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; s≤s; z≤n)
-open import Data.Nat.Properties using (≤-refl; ≤-step)
+open import Data.Nat.Properties using (≤-refl; m≤n⇒m≤1+n)
 open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -290,7 +290,7 @@ Bwf-lockBinds : (k : ℕ) (Ξ : Ctxᵗ)
   → ((j : ℕ) → j < k → Ξ ∋tv j) → Bwf Ξ (lockBinds k)
 Bwf-lockBinds zero    Ξ h = bw[]
 Bwf-lockBinds (suc k) Ξ h =
-  bw-l (h k ≤-refl) (Bwf-lockBinds k Ξ (λ j lt → h j (≤-step lt)))
+  bw-l (h k ≤-refl) (Bwf-lockBinds k Ξ (λ j lt → h j (m≤n⇒m≤1+n lt)))
 
 -- existence of a slot survives an in-place update
 upd-∋e-ex : (f : Ent → Ent) (Y : ℕ) {Δ : Ctxᵗ} {X : ℕ} {E : Ent}

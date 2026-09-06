@@ -224,7 +224,8 @@ t-cod = conv-seal (es ez)
 -- The old §3 refuted a `dual` that mapped `unlock X ↦ lock (n+X)` while
 -- `sw-u` still admitted a VACUOUS unlock: the restored lock then masked a
 -- slot the exterior left nameable.  Both halves are now repaired
--- TOGETHER — `sw-u` demands `applyChanges S Δ ∋lk X` and `dualScope` restores AND
+-- TOGETHER — `sw-u` demands `applyChanges S Δ ∋lk X` and `dualScope`
+-- restores AND
 -- reverses — so `interior-dual` is an EXACT identity and `PeelCase` is
 -- PROVEN (strong.proof.PeelDual.preserve-Peel).  Refutation gone.
 

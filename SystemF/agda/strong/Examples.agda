@@ -226,7 +226,7 @@ SA = bind (` 0) ∷ S₆₂            -- the interior type context of LA
 -- The stack resolves ONE LAYER PER STEP, outermost first: each IdPush moves
 -- the active conversion one layer inward toward the seal, so any depth
 -- terminates.  (IdAbsorb needed `⊳` to merge the frames and could not do
--- this one — the inner layer's context morphism `bind (` 0)` names the next layer's
+-- this one — the inner layer's bind `` ` 0 `` names the next layer's
 -- binder, IdLayerProbe §4c.  IdPush touches no frame.)
 T₈-1 T₈-2 T₈-3 : Term
 T₈-1 = (LA ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
@@ -382,7 +382,7 @@ run-Tᵣ = push-Tᵣ
     then done
 
 -- ── Tₘ (IdLayerProbe §4b): Θ₂ re-exposes a masked slot (`unlock 0`) and the
--- id-layer masks it again (`lock 0`).  The merged context morphism computed both
+-- id-layer masks it again (`lock 0`).  The merged morphism computed both
 -- type contexts correctly and yet the FORMER, simultaneous `_⊢ᵐ_` refused
 -- it, because it checked every entry against the plain exterior.  The
 -- SEQUENTIAL judgement checks each entry on the frame it acts on, and
@@ -1706,7 +1706,8 @@ _ = refl
 
 -- ── AND THE MULTI-BIND ID-LAYER IT DELIVERS ────────────────────────────
 -- The same shape, hand-built at the frame the repaired rule produces
--- (one bind prepended, no double shift): IdPush fires at `numBinds Θ₁ ≡ 2` and the
+-- (one bind prepended, no double shift): IdPush fires at
+-- `numBinds Θ₁ ≡ 2` and the
 -- contractum TYPES.  So the multi-bind case is not itself an obstruction
 -- — the lifting `shiftBy 2` is exactly absorbed by `pushBinds`.
 
@@ -1898,7 +1899,8 @@ _ = refl
 -- `unlock 1`.)  READ THE TWO LINES SIDE BY SIDE: `↓Y` has moved from the
 -- OUTER boundary to the INNER one, and the reveal `unseal X` went with
 -- it; what is left outside is the REWOUND frame `↥Y , ↓Y`, whose net
--- effect on the type context is nothing at all.  The rep `Y` the reveal hands back is therefore presented on the
+-- effect on the type context is nothing at all.  The rep `Y` the reveal
+-- hands back is therefore presented on the
 -- outer boundary's own type context — where Y is live — instead of
 -- inside the lock, which is exactly what `env`'s last premise refused.
 -- The value's frame is unchanged, so `V` retypes where it was.
@@ -2837,7 +2839,8 @@ stepᵃ∅ = TyBeta val-prb
 --       tracks it
 ------------------------------------------------------------------------
 
--- `V` moves from `interior Θ Δ` into `interior (morph (A ∷ binds Θ) (changes Θ)) Δ`, which is
+-- `V` moves from `interior Θ Δ` into
+-- `interior (morph (A ∷ binds Θ) (changes Θ)) Δ`, which is
 -- that type context with ONE binder prepended — and the rule shifts `V`
 -- by `wkᴹ 1` to match.  A slot Θ MASKS is therefore masked on both
 -- sides, one index apart.

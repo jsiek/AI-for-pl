@@ -60,8 +60,8 @@ lock-then-unlock = refl
 -- same unmasks.  Masking never turns an `abst` into a `bind` — it only
 -- wraps and unwraps `masked` — so a slot that is VISIBLE inside and a BINDER
 -- outside is that same binder inside.  This is the one structural step
--- `idPush⁺` (proof/IdPushReach, `MaskOnly`) and CancelR's preservation
--- case consume; here it is a theorem, not an interface.
+-- the old IdPush side-condition proof and CancelR's preservation case
+-- consume; here it is a theorem, not an interface.
 --
 -- The invariant that carries it: the CORE of an entry — what it is once
 -- every conceal is peeled — is untouched by `masked` and by `unmaskEnt` alike.
@@ -137,7 +137,7 @@ CoreEq-pushBinds (A ∷ As) ce (es {E = E} d) (es {E = E′} d′) =
         (trans (cong ⇑ᵉ (CoreEq-pushBinds As ce d d′))
                (sym (core-ren suc E′)))
 
--- THE FACT.  (Stated exactly as `strong.proof.IdPushReach.MaskOnly`.)
+-- THE FACT.
 mask-only : ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
   → interior Θ Δ ∋tv Y → convCtx Θ Δ ∋ Y := A → interior Θ Δ ∋ Y := A
 mask-only Θ Δ (E , d , v) df =

@@ -1,7 +1,7 @@
 # Zdancewic, Grossman & Morrisett, *Principals in Programming Languages* (ICFP'99, pp. 197–207) — what it says about our boundaries
 
 Digest for Jeremy + supervisor. Only the parts bearing on `notes/BoundaryRules.md` §1–§2 (R1/R1′/R2, merge)
-and PLAN.md §4. Page numbers are the printed pages (197–207); PDF page = printed − 196.
+and notes/old/PLAN-v1.md §4. Page numbers are the printed pages (197–207); PDF page = printed − 196.
 Transcriptions below are read off the rendered figures, not the OCR layer.
 
 ## 1. The embedding construct

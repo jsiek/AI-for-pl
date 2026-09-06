@@ -1,3 +1,7 @@
+> SUPERSEDED.  This is the PR #189 handoff plan for the v1 (per-variable)
+> design, which was REFUTED; the landed design is v2 (see `Design.md`,
+> `README.md`, and `notes/DECISIONS.md`).  Kept as a historical record.
+
 # Strong System F — handoff plan (finishing preservation & progress)
 
 Status as of the `strong-preservation` branch (PR #189), **2026-09-04, night (x-license

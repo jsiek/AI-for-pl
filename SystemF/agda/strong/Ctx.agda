@@ -196,17 +196,21 @@ wf-ren r (wf-∀ wA)    = wf-∀ (wf-ren (ren-ext r) wA)
 -- 4.  TRANSPORT II — type context growth / knowledge refinement
 ------------------------------------------------------------------------
 
--- E ⊑ᵉ E′ : E′ knows at least what E knows.
---   le-ao : a Λ-bound slot may become a binder              (TyBeta)
---   le-bu : a concealed slot may be re-exposed              (Cancel)
---   le-bb : concealment is monotone in what it hides
+-- E ⊑ᵉ E′ : E′ knows at least what E knows.  Each constructor's two
+-- letters are the two entries it relates — `a` = abst, `b` = bind,
+-- `m` = masked — with `u` for "unmasked, whatever it is".
+--   le-aa : abst stays abst
+--   le-ab : a Λ-bound slot may become a binder              (TyBeta)
+--   le-bb : a binder keeps its rep
+--   le-mm : concealment is monotone in what it hides
+--   le-mu : a concealed slot may be re-exposed              (Cancel)
 -- There is NO clause in the other direction: a binder never loses its rep.
 data _⊑ᵉ_ : Ent → Ent → Set where
   le-aa : abst ⊑ᵉ abst
-  le-ao : abst ⊑ᵉ bind A
-  le-oo : bind A ⊑ᵉ bind A
-  le-bb : E ⊑ᵉ E′ → masked E ⊑ᵉ masked E′
-  le-bu : E ⊑ᵉ E′ → Nameable E′ → masked E ⊑ᵉ E′
+  le-ab : abst ⊑ᵉ bind A
+  le-bb : bind A ⊑ᵉ bind A
+  le-mm : E ⊑ᵉ E′ → masked E ⊑ᵉ masked E′
+  le-mu : E ⊑ᵉ E′ → Nameable E′ → masked E ⊑ᵉ E′
 
 infix 4 _⊑_
 data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
@@ -215,8 +219,8 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 
 ⊑ᵉ-refl : (E : Ent) → E ⊑ᵉ E
 ⊑ᵉ-refl abst    = le-aa
-⊑ᵉ-refl (bind A) = le-oo
-⊑ᵉ-refl (masked E) = le-bb (⊑ᵉ-refl E)
+⊑ᵉ-refl (bind A) = le-bb
+⊑ᵉ-refl (masked E) = le-mm (⊑ᵉ-refl E)
 
 ⊑-refl : (Δ : Ctxᵗ) → Δ ⊑ Δ
 ⊑-refl []      = le[]
@@ -224,10 +228,10 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 
 ⊑ᵉ-⇑ : E ⊑ᵉ E′ → ⇑ᵉ E ⊑ᵉ ⇑ᵉ E′
 ⊑ᵉ-⇑ le-aa        = le-aa
-⊑ᵉ-⇑ le-ao        = le-ao
-⊑ᵉ-⇑ le-oo        = le-oo
-⊑ᵉ-⇑ (le-bb l)    = le-bb (⊑ᵉ-⇑ l)
-⊑ᵉ-⇑ (le-bu l v)  = le-bu (⊑ᵉ-⇑ l) (renᵉ-Nameable v)
+⊑ᵉ-⇑ le-ab        = le-ab
+⊑ᵉ-⇑ le-bb        = le-bb
+⊑ᵉ-⇑ (le-mm l)    = le-mm (⊑ᵉ-⇑ l)
+⊑ᵉ-⇑ (le-mu l v)  = le-mu (⊑ᵉ-⇑ l) (renᵉ-Nameable v)
 
 ⊑-∋e : Δ ⊑ Δ′ → Δ ∋e X , E → ∃[ E′ ] ((Δ′ ∋e X , E′) × E ⊑ᵉ E′)
 ⊑-∋e (le∷ l ls) ez     = _ , ez , ⊑ᵉ-⇑ l
@@ -236,31 +240,31 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 
 nameable-mono : E ⊑ᵉ E′ → Nameable E → Nameable E′
 nameable-mono le-aa        nameable-a = nameable-a
-nameable-mono le-ao        nameable-a = nameable-b
-nameable-mono le-oo        nameable-b = nameable-b
-nameable-mono (le-bb _)    ()
-nameable-mono (le-bu _ _)  ()
+nameable-mono le-ab        nameable-a = nameable-b
+nameable-mono le-bb        nameable-b = nameable-b
+nameable-mono (le-mm _)    ()
+nameable-mono (le-mu _ _)  ()
 
 ⊑-tv : Δ ⊑ Δ′ → Δ ∋tv X → Δ′ ∋tv X
 ⊑-tv ls (E , d , v) with ⊑-∋e ls d
 ... | E′ , d′ , l′ = E′ , d′ , nameable-mono l′ v
 
 -- A binder is never lost and never re-spelled: the ONLY ⊑ᵉ clause whose
--- source is `bind A` is `le-oo`.  This is the deleted demotion, as a theorem.
+-- source is `bind A` is `le-bb`.  This is the deleted demotion, as a theorem.
 ⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A
 ⊑-kn ls d with ⊑-∋e ls d
-... | bind A , d′ , le-oo = d′
+... | bind A , d′ , le-bb = d′
 
--- Refinement composes.  (The only clause that has to think is `le-bu`:
+-- Refinement composes.  (The only clause that has to think is `le-mu`:
 -- an entry that stops being blocked stays unblocked, and `nameable-mono`
 -- carries its visibility along the second step.)
 ⊑ᵉ-trans : E ⊑ᵉ E′ → E′ ⊑ᵉ E″ → E ⊑ᵉ E″
 ⊑ᵉ-trans le-aa       l′           = l′
-⊑ᵉ-trans le-ao       le-oo        = le-ao
-⊑ᵉ-trans le-oo       le-oo        = le-oo
-⊑ᵉ-trans (le-bb l)   (le-bb l′)   = le-bb (⊑ᵉ-trans l l′)
-⊑ᵉ-trans (le-bb l)   (le-bu l′ v) = le-bu (⊑ᵉ-trans l l′) v
-⊑ᵉ-trans (le-bu l v) l′           = le-bu (⊑ᵉ-trans l l′) (nameable-mono l′ v)
+⊑ᵉ-trans le-ab       le-bb        = le-ab
+⊑ᵉ-trans le-bb       le-bb        = le-bb
+⊑ᵉ-trans (le-mm l)   (le-mm l′)   = le-mm (⊑ᵉ-trans l l′)
+⊑ᵉ-trans (le-mm l)   (le-mu l′ v) = le-mu (⊑ᵉ-trans l l′) v
+⊑ᵉ-trans (le-mu l v) l′           = le-mu (⊑ᵉ-trans l l′) (nameable-mono l′ v)
 
 ⊑-trans : Δ ⊑ Δ′ → Δ′ ⊑ Δ″ → Δ ⊑ Δ″
 ⊑-trans le[]       le[]         = le[]
@@ -427,16 +431,16 @@ module _ (f : Ent → Ent)
   ⊑-updateAt         fm le[]       = le[]
 
 masked-mono : E ⊑ᵉ E′ → masked E ⊑ᵉ masked E′
-masked-mono = le-bb
+masked-mono = le-mm
 
 -- Masking a slot only LOSES nameability, so a masked type context refines to the
 -- unmasked one.  (There is no converse: that is the deleted demotion.)
 masked-le : E ⊑ᵉ E′ → masked E ⊑ᵉ E′
-masked-le le-aa       = le-bu le-aa nameable-a
-masked-le le-ao       = le-bu le-ao nameable-b
-masked-le le-oo       = le-bu le-oo nameable-b
-masked-le (le-bb l)   = le-bb (masked-le l)
-masked-le (le-bu l v) = le-bu (le-bu l v) v
+masked-le le-aa       = le-mu le-aa nameable-a
+masked-le le-ab       = le-mu le-ab nameable-b
+masked-le le-bb       = le-mu le-bb nameable-b
+masked-le (le-mm l)   = le-mm (masked-le l)
+masked-le (le-mu l v) = le-mu (le-mu l v) v
 
 unmaskEnt-nameable : E ⊑ᵉ E′ → Nameable E′ → E ⊑ᵉ unmaskEnt E′
 unmaskEnt-nameable l nameable-a = l
@@ -444,10 +448,10 @@ unmaskEnt-nameable l nameable-b = l
 
 unmaskEnt-mono : E ⊑ᵉ E′ → unmaskEnt E ⊑ᵉ unmaskEnt E′
 unmaskEnt-mono le-aa       = le-aa
-unmaskEnt-mono le-ao       = le-ao
-unmaskEnt-mono le-oo       = le-oo
-unmaskEnt-mono (le-bb l)   = l
-unmaskEnt-mono (le-bu l v) = unmaskEnt-nameable l v
+unmaskEnt-mono le-ab       = le-ab
+unmaskEnt-mono le-bb       = le-bb
+unmaskEnt-mono (le-mm l)   = l
+unmaskEnt-mono (le-mu l v) = unmaskEnt-nameable l v
 
 ren-mask : Ren ρ Δ Δ′ → Inj ρ → Ren ρ (mask X Δ) (mask (ρ X) Δ′)
 ren-mask = ren-updateAt masked masked-comm
@@ -462,10 +466,10 @@ mask-⊑ (suc Y) (le∷ l ls)  = le∷ l (mask-⊑ Y ls)
 
 -- Unmasking only ADDS nameability, so the type context refines to its own
 -- unmasking.  (The `masked` clause is `masked-le` at reflexivity: peeling one
--- `masked` is the ⊑ᵉ step `le-bu`.)
+-- `masked` is the ⊑ᵉ step `le-mu`.)
 ⊑ᵉ-unmaskEnt : (E : Ent) → E ⊑ᵉ unmaskEnt E
 ⊑ᵉ-unmaskEnt abst        = le-aa
-⊑ᵉ-unmaskEnt (bind A)    = le-oo
+⊑ᵉ-unmaskEnt (bind A)    = le-bb
 ⊑ᵉ-unmaskEnt (masked E)  = masked-le (⊑ᵉ-refl E)
 
 unmask-⊑ : (Y : ℕ) (Δ : Ctxᵗ) → Δ ⊑ unmask Y Δ
@@ -513,7 +517,7 @@ wf-var⁻ (wf-var tv) = tv
 
 ⊑-pushBinds : (As : List Ty) → Δ ⊑ Δ′ → pushBinds As Δ ⊑ pushBinds As Δ′
 ⊑-pushBinds []       ls = ls
-⊑-pushBinds (A ∷ As) ls = le∷ le-oo (⊑-pushBinds As ls)
+⊑-pushBinds (A ∷ As) ls = le∷ le-bb (⊑-pushBinds As ls)
 
 ren-pushBinds : (As : List Ty) (ρ : Renameᵗ) → Ren ρ Δ Δ′
          → Ren (extN (length As) ρ) (pushBinds As Δ)

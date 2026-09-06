@@ -25,7 +25,6 @@ open import strong.proof.PeelDual
 open import strong.proof.MoveScope
 open import strong.proof.TypeSafety
 open import strong.proof.PreserveObstruct
-open import strong.proof.IdPushReach
 
 -- the regression corpus and the renderer
 open import strong.Examples
@@ -36,14 +35,9 @@ open import strong.proof.Canonicity
 open import strong.proof.Canonical
 open import strong.Progress
 
--- THE WALL, AS A HISTORICAL RECORD.  These three modules searched for an
--- INVARIANT that would ground the premise `interior Θ₂ Δ ⊢ᵗ A` — the one the
--- old CancelR/IdPush contracta needed.  The SCOPE MOVE (strong.Reduction
--- §2b) removes the need: the contractum presents the rep on Θ₂'s
--- CONVERSION CONTEXT, where `wf-shiftBy-pushBinds` supplies it.  They are kept
--- because each is a machine-checked refutation of a candidate design, and each
--- still says something true about `Δ`, `Θ` and `RepWf`; nothing in the
--- main development depends on them.
-open import strong.proof.WallReach
-open import strong.proof.WallGrounding
-open import strong.proof.ChainScoped
+-- THE WALL.  The search for an INVARIANT grounding the premise
+-- `interior Θ₂ Δ ⊢ᵗ A` — the one the old CancelR/IdPush contracta needed —
+-- is recorded in notes/DECISIONS.md (2026-09-06 entries).  The SCOPE MOVE
+-- (strong.Reduction §2b) removes the need, so the development carries no
+-- module for it; the two surviving artifacts are proof/MaskFacts.mask-only
+-- and Examples §12/§12b.

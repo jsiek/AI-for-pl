@@ -64,9 +64,8 @@ type-checking it type-checks the whole development.
 | `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full |
 | `All.agda` | aggregate driver |
-| `Examples.agda` | the regression corpus: 14 sections of runs and refutations, most from closed plain System F source, §14 being the pre-boundary counterexample run in v2 (see `Design.md` for which example illustrates which rule) |
+| `Examples.agda` | the regression corpus: §§1–9 and §§11–14 of runs and refutations, most from closed plain System F source, §14 being the pre-boundary counterexample run in v2 (§10 was deleted with the invariant hunt; later numbers are unchanged).  See `Design.md` for which example illustrates which rule |
 | `Show.agda` | de Bruijn → named renderer (see **Tools**) |
-| `PLAN.md` | **historical**: the v1 handoff plan (PR #189); superseded by `Design.md` + `notes/DECISIONS.md` |
 
 ### The proofs (`proof/`)
 
@@ -83,20 +82,17 @@ type-checking it type-checks the whole development.
 | `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
-Four modules are **historical records of the invariant hunt** — the
-search for a side condition that would ground the premise
-`interior Θ₂ Δ ⊢ᵗ A` for the old `CancelR`/`IdPush` contracta.  The scope
-move removed the need for it entirely.  They compile, they carry
-`RETIRED` banners, nothing in the main development depends on them, and
-each is a machine-checked refutation of a candidate design.
-**Deletion pending Jeremy's call** (closed-world repo):
-
-| file | the candidate it kills |
-|------|------------------------|
-| `WallReach.agda` | `RepWf` ("no lock blocks a slot a nameable binder's rep names") as a global term invariant — refuted on a reachable run |
-| `WallGrounding.agda` | folding `RepWf` into `_⊢ᵐ_`'s lock clause — impossible: the unsound and the reachable witness share the same `(Δ, Θ)` |
-| `ChainScoped.agda` | the rep **chain** as the invariant — preserved by the rules but not `⊑`-stable |
-| `IdPushReach.agda` | the reachability verdict for the old `IdPush` configuration, and `maskOnly` |
+**The invariant hunt** — the search for a side condition that would
+ground the premise `interior Θ₂ Δ ⊢ᵗ A` for the old `CancelR`/`IdPush`
+contracta — carried four record modules (`WallReach`, `WallGrounding`,
+`ChainScoped`, `IdPushReach`).  The scope move removed the need for the
+premise entirely and every candidate side condition was refuted, so the
+four were **deleted** (Jeremy, 2026-09-06; closed-world repo).  The record
+itself lives in `notes/DECISIONS.md` (2026-09-06 entries); the two
+artifacts worth keeping survived the deletion as
+`proof/MaskFacts.mask-only` (the mask-only fact, once an interface) and
+`Examples` §12/§12b (the wall context reached from closed source, and the
+wall witness stepping after the move).
 
 ## Tools
 

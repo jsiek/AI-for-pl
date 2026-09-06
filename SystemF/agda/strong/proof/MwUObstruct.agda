@@ -1,48 +1,41 @@
 module strong.proof.MwUObstruct where
 
--- THE PROPOSED TIGHTNESS REPAIR, REFUTED — with witnesses.
+-- WHAT LANDED, AND WHAT THE ALTERNATIVES COST — the record of the
+-- 2026-09-06 tightness repair.
 --
--- proof/DualTightness.agda machine-checks the defect: `dualScope` DROPS
--- the crossed boundary's `unlock` entries, so `Peel` GAINS SCOPE.  The
--- repair on the table (Jeremy, 2026-09-06) is three coupled changes:
+-- The repair Jeremy proposed had three parts; this module used to refute
+-- them as a package.  All three LANDED, in the corrected form the
+-- refutations forced:
 --
---   (1) `mw-u` requires the slot to be MASKED —
---       `mw-u : Δ ∋e X , masked E → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (unlock X ∷ Θ)`
---       (no vacuous unlocks);
---   (2) `dualScope n (unlock X ∷ Θ) = lock (n + X) ∷ dualScope n Θ`
---       (restore what Θ unlocked);
---   (3) the outer boundary of CancelR/IdPush becomes BINDS-ONLY
---       (`bindsOnly Θ₂` in place of `dropLocks Θ₂`), so the moved scope
---       duplicates no unlock.
+--   (1) `mw-u` demands the slot be LOCKED — LANDED, and STRENGTHENED to
+--       the SEQUENTIAL reading `scope Θ Δ ∋lk X` (the entry is judged on
+--       the frame it acts on), with the same reading for `mw-l` and, for
+--       a rep, `unlockedScope Θ Δ ⊢ᵗ A`.  The old refutations §2/§3/§4
+--       were all artefacts of reading every premise on the PLAIN Δ.
+--       `⊢ᵐ-⊑` survives as `⊢ᵐ-⊑ᵃ` over `_⊑ᵃ_`, the refinement WITHOUT
+--       `le-mu` (strong.Ctx §4b); `⊢retag` runs on that.
+--   (2) `dualScope n (unlock X ∷ Θ) = … ++ lock (n + X) ∷ []` — LANDED,
+--       AND REVERSED (the old §5, which was right).
+--   (3) the outer frame of CancelR/IdPush loses its scope — LANDED as
+--       `rewind Θ₂ = dualScope 0 Θ₂ ++ Θ₂`, NOT as `bindsOnly Θ₂` and
+--       NOT as `dropLocks Θ₂`.
 --
--- THIS MODULE ESTABLISHES:
+-- WHAT REMAINS HERE ARE THE THREE REFUTATIONS THAT CHOSE `rewind`, on
+-- ONE running configuration:
 --
---   §1  (2) FORCES (1).  With (2) alone, `Peel` OVER-masks at a vacuous
---       unlock and `preserve-Peel` is FALSE — witness: a WELL-TYPED redex
---       whose contractum is ill typed.
---   §2  (1) REFUTES `⊢ᵐ-⊑`, hence `⊢retag` (strong.TermSubst) — the
---       transport `Δ ⊑ Δ′` cannot carry an `unlock` across a refinement
---       that UNMASKS the slot it names.
---   §3  (1) REFUTES THE SCOPE MOVE, at `Θ₂` locking what `Θ₁` unlocks:
---       a WELL-TYPED IdPush redex whose contractum's merged frame
---       `Θ₁ ⋉ Θ₂ = unlock 1 ∷ lock 1 ∷ []` is read over a type context
---       where slot 1 is a PLAIN BINDER.  Both candidate outer frames
---       (`dropLocks Θ₂` and `bindsOnly Θ₂`) fail on it.
---   §4  … and the MIRROR, at `Θ₂` unlocking what `Θ₁` locks.
---   §5  IF `⊢ᵐ` were made SEQUENTIAL (the only reading of §3/§4 that
---       survives), THEN `dualScope` must also REVERSE its list: the
---       same-order dual is not an inverse.
---   §6  … and `bindsOnly`'s own `⊢ᵐ` then fails, because a `bind`'s rep is
---       read on the PLAIN exterior (simultaneity) while the move needs it
---       read past the frame's own unlocks.
+--   §1  the exterior Δ₆ masks a slot; Θ₂ UNLOCKS it; the inner frame
+--       BINDS a rep that names it.  All three morphisms are well formed.
+--   §2  `dropLocks Θ₂` as the outer frame: the moved copy of Θ₂'s unlock
+--       is then VACUOUS, and `mw-u` refuses it.
+--   §3  `bindsOnly Θ₂` as the outer frame: Θ₂'s OWN bind rep loses the
+--       unlock it was read past, and `mw-b` refuses it.
+--   §4  `rewind Θ₂` does both jobs — and §4 is also the answer to the
+--       simultaneity question: under a mw-b read on the PLAIN exterior
+--       the MERGED frame `Θ₁ ⋉ Θ₂` has no derivation, because Θ₁'s rep
+--       names a slot the merged frame's own tail unlocks.
 --
--- THE SHAPE OF THE OBSTRUCTION, in one line: `⊢ᵐ` is SIMULTANEOUS (every
--- entry's premise is read on the PLAIN exterior Δ) while `scope` is
--- SEQUENTIAL (the list is applied head-last).  Under (1) `mw-l` and `mw-u`
--- become EXACT COMPLEMENTS — a lock names a NAMEABLE slot, an unlock a
--- MASKED one — so no simultaneous `⊢ᵐ` can hold of a list that both locks
--- and unlocks the same slot.  The scope move `_⋉_` builds exactly such
--- lists.
+-- The vacuous-unlock witness that used to live in §1 is now
+-- proof/DualTightness §5, where it is REFUSED.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; length)
@@ -56,375 +49,137 @@ open import strong.Types
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
-open import strong.TermSubst using (wkᴹ)
 open import strong.Reduction
-open import strong.proof.DualTightness using (Δᵤ; Θᵤ)
-open import strong.proof.MoveScope using (interior-⋉; convCtx-⋉; scope-scopeOf)
 
 ------------------------------------------------------------------------
--- §0  The three proposed definitions, LOCALLY
+-- §0  The two REJECTED outer frames, locally
 ------------------------------------------------------------------------
 
--- (2): the dual RESTORES what Θ unlocked, keeping `lock ↦ unlock`.
-dualScope′ : ℕ → CtxMorph → CtxMorph
-dualScope′ n []             = []
-dualScope′ n (bind A ∷ Θ)   = dualScope′ n Θ
-dualScope′ n (unlock X ∷ Θ) = lock   (n + X) ∷ dualScope′ n Θ
-dualScope′ n (lock X ∷ Θ)   = unlock (n + X) ∷ dualScope′ n Θ
+-- Θ with its locks removed (it keeps the binds and the unlocks) …
+dropLocks : CtxMorph → CtxMorph
+dropLocks []             = []
+dropLocks (bind A ∷ Θ)   = bind A ∷ dropLocks Θ
+dropLocks (unlock X ∷ Θ) = unlock X ∷ dropLocks Θ
+dropLocks (lock X ∷ Θ)   = dropLocks Θ
 
-dual′ : CtxMorph → CtxMorph
-dual′ Θ = hideBinds (numBinds Θ) ++ dualScope′ (numBinds Θ) Θ
-
--- (3): the outer boundary keeps ONLY the binds.
+-- … and Θ with its whole scope deleted.
 bindsOnly : CtxMorph → CtxMorph
 bindsOnly []             = []
 bindsOnly (bind A ∷ Θ)   = bind A ∷ bindsOnly Θ
 bindsOnly (unlock X ∷ Θ) = bindsOnly Θ
 bindsOnly (lock X ∷ Θ)   = bindsOnly Θ
 
-------------------------------------------------------------------------
--- §1  (2) FORCES (1):  the vacuous unlock, and preserve-Peel REFUTED
-------------------------------------------------------------------------
-
--- ON JEREMY'S WITNESS (proof/DualTightness) THE REPAIR WORKS.  Θᵤ unlocks
--- a slot Δᵤ MASKS, so the restored lock lands where it should and the
--- crossing frame is Δᵤ EXACTLY — the contractum's argument is refused,
--- which is tightness.
-_ : dual′ Θᵤ ≡ lock 0 ∷ []
-_ = refl
-
-_ : interior (dual′ Θᵤ) (interior Θᵤ Δᵤ) ≡ Δᵤ
-_ = refl
-
--- BUT `mw-u` AS IT STANDS PERMITS A VACUOUS UNLOCK — a slot that is NOT
--- masked — and there the restored lock MASKS A SLOT THE EXTERIOR LEFT
--- NAMEABLE.  Δᵥ has one PLAIN binder; Θᵥ unlocks it for nothing.
-Δᵥ : Ctxᵗ
-Δᵥ = bind `ℕ ∷ []
-
-Θᵥ : CtxMorph
-Θᵥ = unlock 0 ∷ []
-
-⊢ᵐΘᵥ : Δᵥ ⊢ᵐ Θᵥ                  -- legal today: an unlock claims nothing
-⊢ᵐΘᵥ = mw-u ez mw[]
-
-_ : interior Θᵥ Δᵥ ≡ Δᵥ          -- and does nothing
-_ = refl
-
--- V₀ = λx:ℕ. 7,  crossed at  (ℕ⇒ℕ) inside  ⇝  (Z⇒ℕ) outside
-V₀ : Term
-V₀ = ƛ `ℕ ∙ ($ 7)
-
-c₀ : Conv
-c₀ = unseal 0 ↦ id `ℕ
-
--- W₀ = 3 sealed at Z's binder: a VALUE of type ` 0 at Δᵥ
-W₀ : Term
-W₀ = ($ 3) ⟪ [] , seal 0 ⟫
-
-⊢W₀ : Δᵥ ∣ [] ⊢ W₀ ⦂ ` 0
-⊢W₀ = env mw[] ⊢$ (conv-seal ez) (wf-var (bind `ℕ , ez , nameable-b))
-
-Redexᵥ : Term
-Redexᵥ = (V₀ ⟪ Θᵥ , c₀ ⟫) · W₀
-
--- THE REDEX IS WELL TYPED.
-⊢Redexᵥ : Δᵥ ∣ [] ⊢ Redexᵥ ⦂ `ℕ
-⊢Redexᵥ =
-  ⊢· (env ⊢ᵐΘᵥ (⊢ƛ wf-ℕ ⊢$)
-          (conv-fun (conv-unseal ez) (conv-id base-ℕ))
-          (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b)) wf-ℕ))
-     ⊢W₀
-
-stepᵥ : Δᵥ ⊢ Redexᵥ -→ (V₀ · (wkᴹ 0 W₀ ⟪ dual Θᵥ , unseal 0 ⟫)) ⟪ Θᵥ , id `ℕ ⟫
-stepᵥ = Peel V-ƛ (V-⟪⟫ V-$ I-seal)
-
--- UNDER (2) THE CROSSING FRAME MASKS Z, WHICH Δᵥ DID NOT.
-_ : dual′ Θᵥ ≡ lock 0 ∷ []
-_ = refl
-
-_ : interior (dual′ Θᵥ) (interior Θᵥ Δᵥ) ≡ masked (bind `ℕ) ∷ []
-_ = refl
-
--- … so the crossing argument does not retype, and the contractum is ILL
--- TYPED.  `preserve-Peel` is FALSE under (2) alone: hence (1).
-¬⊢W₀-inside : ∀ {A} → ¬ (masked (bind `ℕ) ∷ [] ∣ [] ⊢ W₀ ⦂ A)
-¬⊢W₀-inside (env _ _ _ (wf-var (_ , ez , ())))
+-- All three agree on the type context they leave behind — that is why
+-- the choice looks free until `_⊢ᵐ_` is asked.
 
 ------------------------------------------------------------------------
--- §2  (1) REFUTES `⊢ᵐ-⊑`, HENCE `⊢retag`
+-- §1  The configuration
 ------------------------------------------------------------------------
 
--- `⊢retag : Δ ⊑ Δ′ → Δ ∣ Γ ⊢ M ⦂ A → Δ′ ∣ Γ ⊢ M ⦂ A` (strong.TermSubst)
--- runs `⊢ᵐ-⊑` on every boundary it crosses.  Under (1) an `unlock X`
--- CLAIMS that X is masked, and `le-mu` — the ⊑ᵉ clause that RE-EXPOSES a
--- concealed slot (Cancel's own refinement) — destroys the claim.
-Δₘ Δₙ : Ctxᵗ
-Δₘ = masked (bind `ℕ) ∷ []
-Δₙ = bind `ℕ ∷ []
-
-refine-mn : Δₘ ⊑ Δₙ
-refine-mn = le∷ (le-mu le-bb nameable-b) le[]
-
-M₂ : Term
-M₂ = ($ 3) ⟪ unlock 0 ∷ [] , id `ℕ ⟫
-
-⊢M₂ : Δₘ ∣ [] ⊢ M₂ ⦂ `ℕ
-⊢M₂ = env (mw-u ez mw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
-
--- but slot 0 of Δₙ is a PLAIN binder, so `mw-u` under (1) has no premise
--- to offer, and `Δₙ ⊢ᵐ (unlock 0 ∷ [])` is not derivable.
-no-masked-Δₙ : ∀ {E} → ¬ (Δₙ ∋e 0 , masked E)
-no-masked-Δₙ ()
-
-------------------------------------------------------------------------
--- §3  (1) REFUTES THE SCOPE MOVE — Θ₂ LOCKS WHAT Θ₁ UNLOCKS
-------------------------------------------------------------------------
-
--- Δᵢ: slot 0 a binder at ℕ, slot 1 a binder at 𝔹.
-Δᵢ : Ctxᵗ
-Δᵢ = bind `ℕ ∷ bind `𝔹 ∷ []
-
-Θ₂ᵢ : CtxMorph          -- the OUTER frame LOCKS slot 1
-Θ₂ᵢ = lock 1 ∷ []
-
-Θ₁ᵢ : CtxMorph          -- the INNER frame UNLOCKS it again
-Θ₁ᵢ = unlock 1 ∷ []
-
-_ : interior Θ₂ᵢ Δᵢ ≡ bind `ℕ ∷ masked (bind `𝔹) ∷ []
-_ = refl
-
--- LEGAL UNDER (1): the inner unlock names a slot its OWN exterior masks.
-⊢ᵐΘ₁ᵢ : interior Θ₂ᵢ Δᵢ ⊢ᵐ Θ₁ᵢ
-⊢ᵐΘ₁ᵢ = mw-u (es ez) mw[]
-
-_ : interior Θ₁ᵢ (interior Θ₂ᵢ Δᵢ) ≡ bind `ℕ ∷ bind `𝔹 ∷ []
-_ = refl
-
--- a value of type ` 0: a numeral sealed at slot 0's binder
-Vᵢ : Term
-Vᵢ = ($ 5) ⟪ [] , seal 0 ⟫
-
-Redexᵢ : Term
-Redexᵢ = (Vᵢ ⟪ Θ₁ᵢ , id (` 0) ⟫) ⟪ Θ₂ᵢ , unseal 0 ⟫
-
--- THE REDEX IS WELL TYPED.
-⊢Redexᵢ : Δᵢ ∣ [] ⊢ Redexᵢ ⦂ `ℕ
-⊢Redexᵢ =
-  env (mw-l (bind `𝔹 , es ez , nameable-b) mw[])
-      (env ⊢ᵐΘ₁ᵢ
-           (env mw[] ⊢$ (conv-seal ez) (wf-var (bind `ℕ , ez , nameable-b)))
-           (conv-idv (bind `ℕ , ez , nameable-b))
-           (wf-var (bind `ℕ , ez , nameable-b)))
-      (conv-unseal ez)
-      wf-ℕ
-
-stepᵢ : Δᵢ ⊢ Redexᵢ -→ (Vᵢ ⟪ Θ₁ᵢ ⋉ Θ₂ᵢ , unseal 0 ⟫) ⟪ dropLocks Θ₂ᵢ , mkId `ℕ ⟫
-stepᵢ = IdPush (V-⟪⟫ V-$ I-seal) ez
-
--- THE MERGED FRAME both unlocks and locks slot 1 …
-_ : _≡_ {A = CtxMorph} (Θ₁ᵢ ⋉ Θ₂ᵢ) (unlock 1 ∷ lock 1 ∷ [])
-_ = refl
-
--- … and BOTH candidate outer frames leave it read over Δᵢ, where slot 1
--- is a PLAIN binder.  (Θ₂ᵢ has neither binds nor unlocks, so `dropLocks`
--- and `bindsOnly` agree here.)
-_ : _≡_ {A = CtxMorph} (dropLocks Θ₂ᵢ) []
-_ = refl
-
-_ : _≡_ {A = CtxMorph} (bindsOnly Θ₂ᵢ) []
-_ = refl
-
-_ : interior (dropLocks Θ₂ᵢ) Δᵢ ≡ Δᵢ
-_ = refl
-
--- THE OBSTRUCTION: under (1) `Δᵢ ⊢ᵐ (unlock 1 ∷ lock 1 ∷ [])` has no
--- derivation, because `mw-u` would need slot 1 of Δᵢ to be MASKED.
-no-masked-Δᵢ : ∀ {E} → ¬ (Δᵢ ∋e 1 , masked E)
-no-masked-Δᵢ d with ∋e-det d (es ez)
-... | ()
-
--- (The frame ITSELF is right: the merged frame's interior is the redex's
--- interior on the nose.  It is only `⊢ᵐ`, read simultaneously, that
--- refuses it.)
-_ : interior (Θ₁ᵢ ⋉ Θ₂ᵢ) (interior (dropLocks Θ₂ᵢ) Δᵢ)
-      ≡ interior Θ₁ᵢ (interior Θ₂ᵢ Δᵢ)
-_ = refl
-
-------------------------------------------------------------------------
--- §3b  WHAT (3) *DOES* BUY — the frame lemmas become EQUALITIES
-------------------------------------------------------------------------
-
--- The positive half of the proposal, proven in general and independent of
--- `_⊢ᵐ_`: with a BINDS-ONLY outer frame the move is EXACT.  `frame-move`
--- (proof/MoveScope) is a ⊑ only because `dropLocks` retains Θ₂'s unlocks
--- and so applies them twice; drop them and the two frames coincide on the
--- nose, and the value crosses by `subst` with no `⊢retag` at all.
-repsOf-bindsOnly : (Θ : CtxMorph) → repsOf (bindsOnly Θ) ≡ repsOf Θ
-repsOf-bindsOnly []             = refl
-repsOf-bindsOnly (bind A ∷ Θ)   = cong (A ∷_) (repsOf-bindsOnly Θ)
-repsOf-bindsOnly (unlock X ∷ Θ) = repsOf-bindsOnly Θ
-repsOf-bindsOnly (lock X ∷ Θ)   = repsOf-bindsOnly Θ
-
-scope-bindsOnly : (Θ : CtxMorph) (Δ : Ctxᵗ) → scope (bindsOnly Θ) Δ ≡ Δ
-scope-bindsOnly []             Δ = refl
-scope-bindsOnly (bind A ∷ Θ)   Δ = scope-bindsOnly Θ Δ
-scope-bindsOnly (unlock X ∷ Θ) Δ = scope-bindsOnly Θ Δ
-scope-bindsOnly (lock X ∷ Θ)   Δ = scope-bindsOnly Θ Δ
-
-interior-bindsOnly : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → interior (bindsOnly Θ) Δ ≡ pushBinds (repsOf Θ) Δ
-interior-bindsOnly Θ Δ
-  rewrite repsOf-bindsOnly Θ | scope-bindsOnly Θ Δ = refl
-
--- (b), FIRST HALF: the value's frame is preserved EXACTLY.
-interior-⋉-bindsOnly : (Θ₁ Θ₂ : CtxMorph) (Δ : Ctxᵗ)
-  → interior (Θ₁ ⋉ Θ₂) (interior (bindsOnly Θ₂) Δ)
-      ≡ interior Θ₁ (interior Θ₂ Δ)
-interior-⋉-bindsOnly Θ₁ Θ₂ Δ
-  rewrite interior-bindsOnly Θ₂ Δ =
-  trans (interior-⋉ Θ₁ Θ₂ (pushBinds (repsOf Θ₂) Δ))
-        (cong (λ Ξ → pushBinds (repsOf Θ₁) (scope Θ₁ Ξ))
-              (scope-scopeOf (repsOf Θ₂) Θ₂ Δ))
-
--- (b), SECOND HALF: the conversion context of the moved frame is the
--- redex's own inner conversion context with Θ₂'s LOCKS lifted off — which
--- is the whole point of the move (the rep the swapped conversion presents
--- is read OUTSIDE those locks).
-unlockedScope-scopeOf : (As : List Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → unlockedScope (scopeOf (length As) Θ) (pushBinds As Δ)
-      ≡ pushBinds As (unlockedScope Θ Δ)
-unlockedScope-scopeOf As []             Δ = refl
-unlockedScope-scopeOf As (bind A ∷ Θ)   Δ = unlockedScope-scopeOf As Θ Δ
-unlockedScope-scopeOf As (lock X ∷ Θ)   Δ = unlockedScope-scopeOf As Θ Δ
-unlockedScope-scopeOf As (unlock X ∷ Θ) Δ =
-  trans (cong (unmask (length As + X)) (unlockedScope-scopeOf As Θ Δ))
-        (updateAt-pushBinds unmaskEnt As X (unlockedScope Θ Δ))
-
-convCtx-⋉-bindsOnly : (Θ₁ Θ₂ : CtxMorph) (Δ : Ctxᵗ)
-  → convCtx (Θ₁ ⋉ Θ₂) (interior (bindsOnly Θ₂) Δ)
-      ≡ convCtx Θ₁ (convCtx Θ₂ Δ)
-convCtx-⋉-bindsOnly Θ₁ Θ₂ Δ
-  rewrite interior-bindsOnly Θ₂ Δ =
-  trans (convCtx-⋉ Θ₁ Θ₂ (pushBinds (repsOf Θ₂) Δ))
-        (cong (λ Ξ → pushBinds (repsOf Θ₁) (unlockedScope Θ₁ Ξ))
-              (unlockedScope-scopeOf (repsOf Θ₂) Θ₂ Δ))
-
--- SO THE ONLY CASUALTY IS `⊢ᵐ-⋉`.  §3 and §4 are exactly that: the two
--- frames the move builds are semantically right and `_⊢ᵐ_`-illegal.
-
-------------------------------------------------------------------------
--- §4  THE MIRROR — Θ₂ UNLOCKS WHAT Θ₁ LOCKS
-------------------------------------------------------------------------
-
--- Δⱼ: slot 0 a MASKED binder at ℕ, slot 1 a plain binder at ℕ.
-Δⱼ : Ctxᵗ
-Δⱼ = masked (bind `ℕ) ∷ bind `ℕ ∷ []
-
-Θ₂ⱼ : CtxMorph          -- the OUTER frame UNLOCKS slot 0 …
-Θ₂ⱼ = unlock 0 ∷ []
-
-Θ₁ⱼ : CtxMorph          -- … and the INNER frame LOCKS it again
-Θ₁ⱼ = lock 0 ∷ []
-
-_ : interior Θ₂ⱼ Δⱼ ≡ bind `ℕ ∷ bind `ℕ ∷ []
-_ = refl
-
-Vⱼ : Term
-Vⱼ = ($ 5) ⟪ [] , seal 1 ⟫
-
-Redexⱼ : Term
-Redexⱼ = (Vⱼ ⟪ Θ₁ⱼ , id (` 1) ⟫) ⟪ Θ₂ⱼ , unseal 1 ⟫
-
-⊢Redexⱼ : Δⱼ ∣ [] ⊢ Redexⱼ ⦂ `ℕ
-⊢Redexⱼ =
-  env (mw-u ez mw[])
-      (env (mw-l (bind `ℕ , ez , nameable-b) mw[])
-           (env mw[] ⊢$ (conv-seal (es ez))
-                (wf-var (bind `ℕ , es ez , nameable-b)))
-           (conv-idv (bind `ℕ , es ez , nameable-b))
-           (wf-var (bind `ℕ , es ez , nameable-b)))
-      (conv-unseal (es ez))
-      wf-ℕ
-
-stepⱼ : Δⱼ ⊢ Redexⱼ -→ (Vⱼ ⟪ Θ₁ⱼ ⋉ Θ₂ⱼ , unseal 1 ⟫) ⟪ dropLocks Θ₂ⱼ , mkId `ℕ ⟫
-stepⱼ = IdPush (V-⟪⟫ V-$ I-seal) (es ez)
-
-_ : _≡_ {A = CtxMorph} (Θ₁ⱼ ⋉ Θ₂ⱼ) (lock 0 ∷ unlock 0 ∷ [])
-_ = refl
-
--- WITH `bindsOnly` the merged frame is read over Δⱼ, where slot 0 is
--- MASKED — so its `lock 0` has no `mw-l` premise …
-_ : _≡_ {A = CtxMorph} (bindsOnly Θ₂ⱼ) []
-_ = refl
-
-¬∋tv-Δⱼ : ¬ (Δⱼ ∋tv 0)
-¬∋tv-Δⱼ (_ , ez , ())
-
--- … and WITH `dropLocks` it is read over `convCtx Θ₂ⱼ Δⱼ`, where slot 0 is
--- a PLAIN binder — so its `unlock 0` has no `mw-u` premise under (1).
-_ : interior (dropLocks Θ₂ⱼ) Δⱼ ≡ bind `ℕ ∷ bind `ℕ ∷ []
-_ = refl
-
-no-masked-cc : ∀ {E} → ¬ (interior (dropLocks Θ₂ⱼ) Δⱼ ∋e 0 , masked E)
-no-masked-cc ()
-
-------------------------------------------------------------------------
--- §5  IF `⊢ᵐ` WERE SEQUENTIAL, `dualScope` MUST ALSO REVERSE
-------------------------------------------------------------------------
-
--- §3/§4 fail only because `⊢ᵐ` reads every entry on the PLAIN exterior.
--- The reading that survives them checks each entry against `scope Θ Δ` —
--- the type context the LATER entries have already produced, which is the
--- order `scope` applies them.  Under that reading a frame may toggle one
--- slot repeatedly, and then a SAME-ORDER dual is no longer an inverse:
--- `scope` applies its list HEAD-LAST, so undoing it must run the entries
--- BACK TO FRONT.
-Θᵣ : CtxMorph
-Θᵣ = unlock 0 ∷ lock 0 ∷ []
-
-Δᵣ : Ctxᵗ
-Δᵣ = bind `ℕ ∷ []
-
-_ : scope Θᵣ Δᵣ ≡ Δᵣ                       -- lock then unlock: a no-op
-_ = refl
-
--- the SAME-ORDER dual OVER-masks …
-_ : scope (dualScope′ 0 Θᵣ) (scope Θᵣ Δᵣ) ≡ masked (bind `ℕ) ∷ []
-_ = refl
-
-¬inverse-same-order : ¬ (scope (dualScope′ 0 Θᵣ) (scope Θᵣ Δᵣ) ≡ Δᵣ)
-¬inverse-same-order ()
-
--- … while the REVERSED one is exact.
-_ : scope (unlock 0 ∷ lock 0 ∷ []) (scope Θᵣ Δᵣ) ≡ Δᵣ
-_ = refl
-
-------------------------------------------------------------------------
--- §6  … AND THEN `bindsOnly` LOSES ITS OWN `⊢ᵐ`
-------------------------------------------------------------------------
-
--- A sequential `⊢ᵐ` must read `mw-b`'s rep sequentially too — otherwise
--- the moved frame `Θ₁ ⋉ Θ₂` has no `mw-b` premise for Θ₁'s own binders,
--- whose reps the redex only ever checked on `interior Θ₂ Δ`.  But then
--- `bindsOnly Θ₂` has no `⊢ᵐ` either: its binds are read on the PLAIN Δ,
--- where a rep naming a slot Θ₂ UNLOCKED is not well formed.
+-- Δ₆ masks slot 0 (a binder at ℕ).
 Δ₆ : Ctxᵗ
 Δ₆ = masked (bind `ℕ) ∷ []
 
+-- Θ₂ UNLOCKS it — legal, because the slot really is locked.
+Θ₂ : CtxMorph
+Θ₂ = unlock 0 ∷ []
+
+⊢ᵐΘ₂ : Δ₆ ⊢ᵐ Θ₂
+⊢ᵐΘ₂ = mw-u (masked (bind `ℕ) , ez , locked nameable-b) mw[]
+
+_ : interior Θ₂ Δ₆ ≡ bind `ℕ ∷ []
+_ = refl
+
+-- An inner frame that BINDS a rep naming that slot — legal at Θ₂'s
+-- interior, where the slot is live.
+Θ₁ : CtxMorph
+Θ₁ = bind (` 0) ∷ []
+
+⊢ᵐΘ₁ : interior Θ₂ Δ₆ ⊢ᵐ Θ₁
+⊢ᵐΘ₁ = mw-b (wf-var (bind `ℕ , ez , nameable-b)) mw[]
+
+-- THE MERGED FRAME the scope move builds.  Θ₂ carries no binder, so the
+-- moved scope keeps its index.
 Θ₆ : CtxMorph
 Θ₆ = bind (` 0) ∷ unlock 0 ∷ []
 
--- the rep IS well formed past the frame's own unlock …
-_ : scope (unlock 0 ∷ []) Δ₆ ≡ bind `ℕ ∷ []
+_ : _≡_ {A = CtxMorph} (Θ₁ ⋉ Θ₂) Θ₆
 _ = refl
 
-⊢ᵗ-rep-seq : scope (unlock 0 ∷ []) Δ₆ ⊢ᵗ ` 0
-⊢ᵗ-rep-seq = wf-var (bind `ℕ , ez , nameable-b)
+-- It is well formed over Δ₆ — its rep is read past its OWN tail, i.e.
+-- past the unlock, which is where the redex read it.
+⊢ᵐΘ₆ : Δ₆ ⊢ᵐ Θ₆
+⊢ᵐΘ₆ = mw-b (wf-var (bind `ℕ , ez , nameable-b))
+            (mw-u (masked (bind `ℕ) , ez , locked nameable-b) mw[])
 
--- … and NOT on the plain exterior, which is where `bindsOnly Θ₆` reads it.
+------------------------------------------------------------------------
+-- §2  `dropLocks` REFUTED — the moved unlock goes vacuous
+------------------------------------------------------------------------
+
+-- Θ₂ has no locks, so `dropLocks Θ₂` is Θ₂ itself: the outer frame
+-- unmasks the slot, and the merged frame's own copy of that unlock then
+-- names a slot that is already NAMEABLE.
+_ : _≡_ {A = CtxMorph} (dropLocks Θ₂) Θ₂
+_ = refl
+
+_ : interior (dropLocks Θ₂) Δ₆ ≡ bind `ℕ ∷ []
+_ = refl
+
+-- The merged frame is read there, and its `unlock 0` has no premise.
+¬⊢ᵐ-dropLocks : ¬ (interior (dropLocks Θ₂) Δ₆ ⊢ᵐ (Θ₁ ⋉ Θ₂))
+¬⊢ᵐ-dropLocks (mw-b _ (mw-u (_ , ez , ()) _))
+
+------------------------------------------------------------------------
+-- §3  `bindsOnly` REFUTED — the frame's own rep loses its unlock
+------------------------------------------------------------------------
+
+-- Take the MERGED frame Θ₆ as the next redex's outer frame — it is
+-- reachable, being exactly what §1's move just produced.  Deleting its
+-- scope strands its bind rep on the plain exterior.
 _ : _≡_ {A = CtxMorph} (bindsOnly Θ₆) (bind (` 0) ∷ [])
 _ = refl
 
 ¬⊢ᵗ-rep-plain : ¬ (Δ₆ ⊢ᵗ ` 0)
 ¬⊢ᵗ-rep-plain (wf-var (_ , ez , ()))
+
+¬⊢ᵐ-bindsOnly : ¬ (Δ₆ ⊢ᵐ bindsOnly Θ₆)
+¬⊢ᵐ-bindsOnly (mw-b w _) = ¬⊢ᵗ-rep-plain w
+
+------------------------------------------------------------------------
+-- §4  `rewind` DOES BOTH JOBS
+------------------------------------------------------------------------
+
+-- It keeps every entry and runs the inverse scope on top, so the type
+-- context it leaves is the bind prefix over the PLAIN exterior …
+_ : _≡_ {A = CtxMorph} (rewind Θ₂) (lock 0 ∷ unlock 0 ∷ [])
+_ = refl
+
+_ : interior (rewind Θ₂) Δ₆ ≡ Δ₆
+_ = refl
+
+_ : _≡_ {A = CtxMorph} (rewind Θ₆) (lock 0 ∷ bind (` 0) ∷ unlock 0 ∷ [])
+_ = refl
+
+_ : interior (rewind Θ₆) Δ₆ ≡ pushBinds (repsOf Θ₆) Δ₆
+_ = refl
+
+-- … and every premise is still read where the redex read it.
+⊢ᵐ-rewind-Θ₂ : Δ₆ ⊢ᵐ rewind Θ₂
+⊢ᵐ-rewind-Θ₂ = mw-l (bind `ℕ , ez , nameable-b) ⊢ᵐΘ₂
+
+⊢ᵐ-rewind-Θ₆ : Δ₆ ⊢ᵐ rewind Θ₆
+⊢ᵐ-rewind-Θ₆ = mw-l (bind `ℕ , ez , nameable-b) ⊢ᵐΘ₆
+
+-- THE MERGED FRAME IS WELL FORMED OVER IT.
+⊢ᵐ-merged : interior (rewind Θ₂) Δ₆ ⊢ᵐ (Θ₁ ⋉ Θ₂)
+⊢ᵐ-merged = ⊢ᵐΘ₆
+
+-- AND THIS IS WHY `mw-b` READS ITS REP ON `unlockedScope Θ Δ`.  The
+-- merged frame's rep `` ` 0 `` is NOT well formed on the plain exterior
+-- (`¬⊢ᵗ-rep-plain`) and IS well formed past the frame's own tail — so a
+-- SIMULTANEOUS `mw-b`, reading every rep on Δ, would refuse the frame the
+-- move builds.  Reading it past the tail's UNMASKS (and never past the
+-- tail's locks — `unlockedScope`, not `scope`) is what makes both the
+-- move and TyPeelR's `bind A ∷ Θ` well formed at once.
+⊢ᵗ-rep-past-tail : unlockedScope (unlock 0 ∷ []) Δ₆ ⊢ᵗ ` 0
+⊢ᵗ-rep-past-tail = wf-var (bind `ℕ , ez , nameable-b)

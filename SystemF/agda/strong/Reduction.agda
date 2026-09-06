@@ -124,21 +124,29 @@ hideBinds : ℕ → CtxMorph
 hideBinds zero    = []
 hideBinds (suc k) = lock k ∷ hideBinds k
 
--- THE UNLOCK CASE IS DROPPED (repair, 2026-09-05).  The old design mapped
--- `unlock X ↦ lock (n + X)`, which (i) re-blocks a NO-OP unlock (a slot the
--- crossed boundary never masked — `mw-u` permits it) and (ii) makes
--- a same-slot mask/unmask pair fail to cancel.  A faithful dual only has to
--- UNDO the crossed boundary's LOCKS (turning `scope Θ Δ` back into
--- `unlockedScope Θ Δ` in the tail) and MASK its binders; an `unlock` in Θ
--- leaves the tail MORE
--- nameable, which the crossing argument absorbs by `⊢retag`.  With this,
--- `interior-dual` and `convCtx-dual` become true in general
--- (proof/PeelDual.agda), and the Peel case is proven.
+-- THE DUAL IS AN INVERSE, AND AN INVERSE RUNS BACKWARDS (2026-09-06).
+--
+-- The mini-core DROPPED the `unlock` case, on the reading that an
+-- `unlock` "claims nothing".  It claims plenty: it UNMASKS, and a dual
+-- that does not re-mask hands the crossing argument a frame STRICTLY MORE
+-- NAMEABLE than the exterior — `Peel` GAINS SCOPE, machine-checked in
+-- proof/DualTightness.agda.  So `unlock X ↦ lock (n + X)`, and the
+-- restoring `lock` is sound exactly because `mw-u` (strong.Terms) refuses
+-- a VACUOUS unlock: `mask ∘ unmask` is the identity at a LOCKED slot
+-- (`mask-unmask`, strong.Ctx) and nowhere else.
+--
+-- AND THE LIST IS REVERSED.  `scope` applies its list HEAD-LAST, so
+-- undoing it runs the entries BACK TO FRONT; a same-order dual is not an
+-- inverse at a frame that toggles one slot twice (`Θ = ↥X ∷ ↧X ∷ []`,
+-- which the judgement admits).  With both repairs the frame identity is
+-- EXACT (proof/PeelDual, `interior-dual`): the crossing argument's frame
+-- is the exterior itself, one bind prefix in, and it crosses by
+-- `⊢rename` alone — no `⊢retag`, no `le-mu`.
 dualScope : ℕ → CtxMorph → CtxMorph
 dualScope n []             = []
 dualScope n (bind A ∷ Θ)   = dualScope n Θ
-dualScope n (unlock X ∷ Θ) = dualScope n Θ
-dualScope n (lock X ∷ Θ)   = unlock (n + X) ∷ dualScope n Θ
+dualScope n (unlock X ∷ Θ) = dualScope n Θ ++ (lock   (n + X) ∷ [])
+dualScope n (lock X ∷ Θ)   = dualScope n Θ ++ (unlock (n + X) ∷ [])
 
 dual : CtxMorph → CtxMorph
 dual Θ = hideBinds (numBinds Θ) ++ dualScope (numBinds Θ) Θ
@@ -184,15 +192,26 @@ scopeOf n (bind A ∷ Θ)   = scopeOf n Θ
 scopeOf n (unlock X ∷ Θ) = unlock (n + X) ∷ scopeOf n Θ
 scopeOf n (lock X ∷ Θ)   = lock (n + X) ∷ scopeOf n Θ
 
--- What is LEFT of the outer frame: its binds and its unlocks.  Its
--- interior IS its conversion context (`interior-dropLocks`,
--- proof/MoveScope) — which is exactly why the rep it now presents is
--- well formed there.
-dropLocks : CtxMorph → CtxMorph
-dropLocks []             = []
-dropLocks (bind A ∷ Θ)   = bind A ∷ dropLocks Θ
-dropLocks (unlock X ∷ Θ) = unlock X ∷ dropLocks Θ
-dropLocks (lock X ∷ Θ)   = dropLocks Θ
+-- WHAT IS LEFT OF THE OUTER FRAME: the frame with its OWN SCOPE REWOUND.
+--
+-- `rewind Θ` is Θ with its inverse scope run on top, so its net effect on
+-- the exterior is the BIND PREFIX ALONE:
+--
+--     scope    (rewind Θ) Δ ≡ Δ                       (given Δ ⊢ᵐ Θ)
+--     interior (rewind Θ) Δ ≡ pushBinds (repsOf Θ) Δ
+--
+-- which is what makes the moved scope reproduce the redex's frame ON THE
+-- NOSE (`interior-⋉-rewind`, proof/MoveScope) — no `⊢retag` and no
+-- `le-mu` anywhere in the two cases.
+--
+-- IT IS NOT `bindsOnly Θ`, AND THAT IS THE POINT.  Simply DELETING Θ's
+-- scope has the same effect on the type context but loses the frame's own
+-- `⊢ᵐ`: Θ's bind reps are read on `unlockedScope Θ′ Δ` (strong.Terms,
+-- `mw-b`) and a rep naming a slot Θ's tail UNLOCKED is not well formed on
+-- the plain Δ.  Keeping the entries and rewinding them keeps every rep
+-- exactly where it was read.
+rewind : CtxMorph → CtxMorph
+rewind Θ = dualScope 0 Θ ++ Θ
 
 -- The inner frame, with the outer frame's scope moved in at its TAIL.
 -- `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`: the move carries no binder.
@@ -297,7 +316,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
         -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
-             ⟪ dropLocks Θ₂ , mkId A ⟫
+             ⟪ rewind Θ₂ , mkId A ⟫
 
   -- DROP$ — an identity boundary at a base type, over a numeral (`⊢$`
   -- types it anywhere).
@@ -317,13 +336,13 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE SCOPE MOVE (2026-09-06).  The swap makes the INNER boundary the
   -- revealing one, so its exterior type becomes Y's rep `A`.  Θ₂'s LOCKS
   -- travel into the inner frame (§2b) so that the rep is presented
-  -- OUTSIDE them, where it is nameable: `interior (dropLocks Θ₂) Δ` IS
-  -- `convCtx Θ₂ Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
+  -- OUTSIDE them, where it is nameable: `interior (rewind Θ₂) Δ` IS
+  -- `pushBinds (repsOf Θ₂) Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
   -- exterior type C.  That is what retires the wall — the case needs no
   -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
   IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫
+        -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ rewind Θ₂ , mkId A ⟫
 
   ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
   ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V · M -→ V · M′
@@ -389,7 +408,7 @@ det (ξ-·[] st)     (TyPeelR v ⊢s) = ⊥-elim (value-¬step (V-⟪⟫ v I-all
 -- CancelR — the two contracta agree because the lookup is a function.
 det (CancelR {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} v d) (CancelR v′ d′) =
   cong (λ T → (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) T) ⟫)
-                ⟪ dropLocks Θ₂ , mkId T ⟫)
+                ⟪ rewind Θ₂ , mkId T ⟫)
        (∋:=-det d d′)
 det (CancelR v d) (ξ-⟪⟫ st) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 det (ξ-⟪⟫ st) (CancelR v d) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)

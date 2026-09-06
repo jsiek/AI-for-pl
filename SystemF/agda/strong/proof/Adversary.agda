@@ -28,12 +28,21 @@ seal-cites-binder : ∀ {Δ X A B c}
   → Δ ⊢ c ∶ A ⇝ B → c ≡ seal X → Δ ∋ X := A
 seal-cites-binder (conv-seal d) refl = d
 
--- `unlock` claims nothing: it is a NAME with no rep, so it cannot assert
--- knowledge.  The boundary context morphism carries no type at an alias,
--- and `Δ ⊢ᵐ Θ`'s alias premise is `Δ ∋e X , E` — pure existence.
-unlock-claims-nothing : ∀ {Δ X E Θ} → Δ ∋e X , E → Δ ⊢ᵐ Θ
+-- `unlock` claims NO KNOWLEDGE: it is a NAME with no rep, so it cannot
+-- assert what a slot stands for.  What it now does claim is that the
+-- slot is LOCKED (`scope Θ Δ ∋lk X`) — a statement about MASKING, in
+-- which no type occurs, and which is what makes the dual's restoring
+-- `lock` sound (proof/DualTightness).  A VACUOUS unlock, at a slot the
+-- frame leaves nameable, is REFUSED.
+unlock-claims-a-lock : ∀ {Δ X Θ} → scope Θ Δ ∋lk X → Δ ⊢ᵐ Θ
   → Δ ⊢ᵐ (unlock X ∷ Θ)
-unlock-claims-nothing = mw-u
+unlock-claims-a-lock = mw-u
+
+-- The claim mentions no representation: all it hands back is a
+-- NAMEABLE entry under one mask, and `Nameable` is `abst` or `bind`
+-- without reading the bind's type.
+unlock-mentions-no-rep : ∀ {Δ X} → Δ ∋lk X → ∃[ E ] Nameable E
+unlock-mentions-no-rep (masked E , _ , locked v) = E , v
 
 ------------------------------------------------------------------------
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
@@ -43,7 +52,7 @@ unlock-claims-nothing = mw-u
 -- adversary exported `7 : ℕ` at the abstract type.  Here the boundary is
 -- unmintable, because `seal 0` demands `Δ ∋ 0 := `ℕ` and an `abst` slot
 -- has no rep to cite.  Unmasking cannot manufacture one either
--- (`unlock-claims-nothing`).
+-- (`unlock-claims-a-lock`).
 
 Δadv : Ctxᵗ
 Δadv = abst ∷ []

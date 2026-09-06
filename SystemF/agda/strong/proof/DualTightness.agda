@@ -1,31 +1,29 @@
 module strong.proof.DualTightness where
 
--- TIGHTNESS OF THE DUAL — Jeremy's test (2026-09-06), MACHINE-CHECKED.
+-- TIGHTNESS OF THE DUAL — Jeremy's test (2026-09-06), MACHINE-CHECKED,
+-- AND THE LEAK CLOSED.
 --
--- THE DEFECT.  `dualScope` (strong.Reduction §2) DROPS the crossed
--- boundary's `unlock` entries.  So a boundary whose morphism UNMASKS an
--- exterior slot hands its crossing argument a frame in which that slot is
--- STILL unmasked: `interior (dual Θ) (interior Θ Δ)` is
--- `map masked (bind prefix) ++ unlockedScope Θ Δ` (proof/PeelDual,
--- `interior-dual`), and `unlockedScope Θ Δ` is STRICTLY MORE NAMEABLE than
--- Δ whenever Θ unlocks a slot Δ masks.  SCOPE IS GAINED THROUGH THE
--- BOUNDARY.
+-- THE DEFECT THAT WAS.  `dualScope` DROPPED the crossed boundary's
+-- `unlock` entries, so a boundary whose morphism UNMASKS an exterior slot
+-- handed its crossing argument a frame in which that slot was STILL
+-- unmasked: `interior (dual Θ) (interior Θ Δ)` was
+-- `map masked (bind prefix) ++ unlockedScope Θ Δ`, STRICTLY MORE
+-- NAMEABLE than Δ whenever Θ unlocked a slot Δ masked.  SCOPE WAS GAINED
+-- THROUGH THE BOUNDARY: the redex below is ILL TYPED at Δᵤ (its argument
+-- W names a slot MASKED at Δᵤ) and its `Peel` contractum was WELL TYPED.
 --
--- The witness below exhibits the gain as a rule-level fact: a redex that
--- is ILL TYPED at Δ (its argument W names a slot MASKED at Δ) whose `Peel`
--- contractum is WELL TYPED.  `Peel` therefore does not preserve the
--- exterior's scope discipline; the crossing is not tight.
+-- THE REPAIR, in two coupled halves (strong.Reduction §2, strong.Terms):
 --
--- Nothing here contradicts preservation — `Peel`'s preservation case is
--- proven (proof/PeelDual.preserve-Peel) and only ever runs on a
--- WELL-TYPED redex, which this one is not.  What fails is TIGHTNESS: the
--- REDUCTION RELATION relates a term the exterior refuses to a term it
--- accepts.
+--   (1) `mw-u` demands `scope Θ Δ ∋lk X` — the slot must be LOCKED.  A
+--       VACUOUS unlock is REFUSED (§5 below); it is the premise the
+--       judgement used to drop.
+--   (2) `dualScope n (unlock X ∷ Θ) = dualScope n Θ ++ lock (n + X) ∷ []`
+--       — the dual RESTORES what Θ unlocked, and the list is REVERSED,
+--       because `scope` applies it HEAD-LAST.
 --
--- The repair Jeremy proposes — `dualScope n (unlock X ∷ Θ) =
--- lock (n + X) ∷ dualScope n Θ`, together with an `mw-u` that requires the
--- slot to be MASKED — is REFUTED in proof/MwUObstruct.agda: it is
--- incompatible with the scope move (`_⋉_`) and with `⊢retag`.
+-- With both, `interior (dual Θ) (interior Θ Δ) ≡ map masked (bind prefix)
+-- ++ Δ` EXACTLY (proof/PeelDual, `interior-dual`), the crossing is
+-- `⊢rename` alone, and the contractum below is REFUSED — §3.
 
 open import Data.Nat using (ℕ)
 open import Data.List using ([]; _∷_)
@@ -51,6 +49,10 @@ open import strong.Reduction
 -- U is not nameable at the exterior — that is the whole of tightness.
 ¬∋tv-Δᵤ : ¬ (Δᵤ ∋tv 0)
 ¬∋tv-Δᵤ (_ , ez , ())
+
+-- … but it IS locked, so an `unlock` may cite it.
+∋lk-Δᵤ : Δᵤ ∋lk 0
+∋lk-Δᵤ = masked (bind `ℕ) , ez , locked nameable-b
 
 -- The boundary's morphism UNMASKS U for its interior (the
 -- crossing-of-crossing shape: an inner region re-exposes what an outer
@@ -85,7 +87,7 @@ W = ƛ `ℕ ∙ ((Λ ($ 3)) ·[ `ℕ , ` 0 ])
 
 -- The boundary ALONE is well typed at Δᵤ …
 ⊢Vb : Δᵤ ∣ [] ⊢ V ⟪ Θᵤ , cᵤ ⟫ ⦂ ((`ℕ ⇒ `ℕ) ⇒ (`ℕ ⇒ `ℕ))
-⊢Vb = env (mw-u ez mw[])
+⊢Vb = env (mw-u ∋lk-Δᵤ mw[])
           (⊢ƛ (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b)) wf-ℕ) (⊢` here))
           (conv-fun (conv-fun (conv-unseal ez) (conv-id base-ℕ))
                     (conv-fun (conv-seal ez) (conv-id base-ℕ)))
@@ -102,49 +104,41 @@ Redex = (V ⟪ Θᵤ , cᵤ ⟫) · W
 ¬⊢Redex (⊢· _ ⊢W) = ¬⊢W-ext ⊢W
 
 ------------------------------------------------------------------------
--- §3  The step, and the WELL-TYPED contractum
+-- §3  The step, and the contractum — NOW REFUSED
 ------------------------------------------------------------------------
 
--- THE DUAL DROPS THE UNLOCK.
-_ : dual Θᵤ ≡ []
+-- THE DUAL RESTORES THE LOCK.
+_ : dual Θᵤ ≡ lock 0 ∷ []
 _ = refl
 
 --   scripts/render_term.sh 'showTmIn 1 Contractum'  =
---     (((λx:(X⇒ℕ). x) · ((λx:ℕ. (ΛY. 3) [X]) ⟪ (unseal X ↦ id ℕ) ⟫))
+--     (((λx:(X⇒ℕ). x) · ((λx:ℕ. (ΛY. 3) [X]) ⟪ ↧X , (unseal X ↦ id ℕ) ⟫))
 --        ⟪ ↥X , (seal X ↦ id ℕ) ⟫)
--- — note the crossing argument's frame is EMPTY (`dual Θᵤ ≡ []`).
 Contractum : Term
 Contractum = (V · (W ⟪ dual Θᵤ , unseal 0 ↦ id `ℕ ⟫)) ⟪ Θᵤ , seal 0 ↦ id `ℕ ⟫
 
 step-u : Δᵤ ⊢ Redex -→ Contractum
 step-u = Peel V-ƛ V-ƛ
 
--- W's frame INSIDE the crossing is `bind ℕ ∷ []` — U is nameable there,
--- because the dual restored nothing.
-_ : interior (dual Θᵤ) (interior Θᵤ Δᵤ) ≡ bind `ℕ ∷ []
+-- (†) AT THIS Θ: W's frame INSIDE the crossing IS THE EXTERIOR — U is
+-- masked there, exactly as it is outside.  Nothing is gained.
+_ : interior (dual Θᵤ) (interior Θᵤ Δᵤ) ≡ Δᵤ
 _ = refl
 
--- … and so the contractum TYPES.  SCOPE WAS GAINED.
-⊢Contractum : Δᵤ ∣ [] ⊢ Contractum ⦂ (`ℕ ⇒ `ℕ)
-⊢Contractum =
-  env (mw-u ez mw[])
-      (⊢· (⊢ƛ (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b)) wf-ℕ) (⊢` here))
-          (env mw[]
-               (⊢ƛ wf-ℕ (⊢·[] (⊢Λ ⊢$) (wf-var (bind `ℕ , ez , nameable-b))))
-               (conv-fun (conv-unseal ez) (conv-id base-ℕ))
-               (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b)) wf-ℕ)))
-      (conv-fun (conv-seal ez) (conv-id base-ℕ))
-      (wf-⇒ wf-ℕ wf-ℕ)
+-- … and so the contractum DOES NOT TYPE.  The reduction relation no
+-- longer relates a term the exterior refuses to one it accepts.
+¬⊢Contractum : ∀ {A} → ¬ (Δᵤ ∣ [] ⊢ Contractum ⦂ A)
+¬⊢Contractum (env _ (⊢· _ (env _ ⊢W _ _)) _ _) = ¬⊢W-ext ⊢W
 
 ------------------------------------------------------------------------
 -- §4  THE POSITIVE CONTROL
 ------------------------------------------------------------------------
 
--- The same shape with a Θ-LOCKED slot behaves correctly: `dual` DOES mint
--- an `unlock` for a `lock`, so a crossing argument that names a slot the
--- boundary locked keeps its frame.  Δ has ONE nameable binder Z; Θˡ locks
--- it; the dual unlocks it again, and the argument's frame inside is Δ with
--- the bind prefix masked — Z still nameable.
+-- The same shape with a Θ-LOCKED slot still behaves correctly: `dual`
+-- mints an `unlock` for a `lock`, so a crossing argument that names a
+-- slot the boundary locked keeps its frame.  Δ has ONE nameable binder Z;
+-- Θˡ locks it; the dual unlocks it again, and the argument's frame inside
+-- is Δ with the bind prefix masked — Z still nameable.
 Δˡ : Ctxᵗ
 Δˡ = bind `ℕ ∷ []
 
@@ -160,3 +154,30 @@ _ = refl
 -- the crossing frame is Δˡ back: Z is nameable, exactly as at the exterior
 _ : interior (dual Θˡ) (interior Θˡ Δˡ) ≡ bind `ℕ ∷ []
 _ = refl
+
+------------------------------------------------------------------------
+-- §5  THE VACUOUS UNLOCK, REFUSED
+------------------------------------------------------------------------
+
+-- The restoring `lock` of §3 is sound ONLY because the slot really was
+-- masked: `mask ∘ unmask` is the identity at a LOCKED slot and nowhere
+-- else (`mask-unmask`, strong.Ctx §6b).  At a slot the exterior leaves
+-- NAMEABLE, an `unlock` does nothing and its restored `lock` would mask
+-- what the exterior left visible — so the judgement must refuse it, and
+-- does.
+Δᵥ : Ctxᵗ
+Δᵥ = bind `ℕ ∷ []
+
+Θᵥ : CtxMorph
+Θᵥ = unlock 0 ∷ []
+
+_ : interior Θᵥ Δᵥ ≡ Δᵥ            -- the unlock does nothing …
+_ = refl
+
+¬⊢ᵐΘᵥ : ¬ (Δᵥ ⊢ᵐ Θᵥ)              -- … and is REFUSED
+¬⊢ᵐΘᵥ (mw-u (_ , ez , ()) _)
+
+-- A DOUBLE LOCK IS REFUSED TOO — which is what keeps `Locked` one mask
+-- deep, and hence `unmaskEnt` an exact inverse of `masked`.
+¬⊢ᵐ-double-lock : ¬ (Δᵥ ⊢ᵐ (lock 0 ∷ lock 0 ∷ []))
+¬⊢ᵐ-double-lock (mw-l (_ , ez , ()) _)

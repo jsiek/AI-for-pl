@@ -412,11 +412,11 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
       conv
       (wf-[]ᵗ wB wA)
   where
-  refine : (abst ∷ Δ) ⊑ (bind A ∷ Δ)
-  refine = le∷ le-ab (⊑-refl Δ)
+  refine : (abst ∷ Δ) ⊑ᵃ (bind A ∷ Δ)
+  refine = la∷ la-ab (⊑ᵃ-refl Δ)
 
   conv : (bind A ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
-  conv rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf refine wB)
+  conv rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf (⊑ᵃ→⊑ refine) wB)
 
 -- ── TYPEELR, AT ANY ∀ CONVERSION ───────────────────────────────────────
 -- Four moves, one per premise of the contractum's `env`:
@@ -470,7 +470,8 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
 ... | A₀ , B₀ , refl , eqE , ⊢s₀
   with conv-types-unique ⊢s ⊢s₀
 ... | refl , refl =
-  env (mw-b wA mw) int conv (wf-[]ᵗ (wf-∀⁻ wE) wA)
+  env (mw-b (⊑-wf (Δ⊑unlockedScope Θ Δ) wA) mw) int conv
+      (wf-[]ᵗ (wf-∀⁻ wE) wA)
   where
   A′ : Ty
   A′ = shiftBy (numBinds Θ) A
@@ -533,14 +534,14 @@ CancelRCase : Set
 CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
-               ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
+               ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 
 -- IDPUSH, at the moved scope.  PROVEN in proof/MoveScope — the wall the
 -- old contractum ran into is gone with the frame move.
 IdPushCase : Set
 IdPushCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 
 -- THE TERM CONTEXT IS EMPTY, and it has to be.  Reduction carries no term
 -- context (`_⊢_-→_` indexes on the TYPE context alone) and TyBeta's

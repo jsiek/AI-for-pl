@@ -52,10 +52,10 @@ module strong.Preservation where
 -- ground the premise is recorded in notes/DECISIONS.md, 2026-09-06).
 --
 -- The repair is a FRAME MOVE, not a side condition: the outer frame keeps
--- only its binds and unmasks (`dropLocks Θ₂`) and its whole SCOPE travels
+-- only its binds and unmasks (`rewind Θ₂`) and its whole SCOPE travels
 -- into the inner frame's tail (`Θ₁ ⋉ Θ₂`), where `scope` applies it first —
 -- exactly where it applied before.  Then
--- `interior (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ`, the rep is presented OUTSIDE the
+-- `interior (rewind Θ₂) Δ ≡ convCtx Θ₂ Δ`, the rep is presented OUTSIDE the
 -- locks, and the missing premise is `wf-shiftBy-pushBinds` on the redex's own
 -- exterior type: the reveal's target IS that type, lifted.  Nothing is
 -- assumed about the world, and the old counterexample now REDUCES to a
@@ -76,7 +76,7 @@ open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
 open import strong.Reduction
   using (_⊢_-→_; _⊢_-→*_; reveal; instReveal)
 
-open import strong.Reduction using (_⋉_; dropLocks)
+open import strong.Reduction using (_⋉_; rewind)
 open import strong.proof.Preserve
   using (preserve-TyBeta; preserve-Drop$; preserve-TyPeelR;
          ⊢ᵗ-of; CtxWf-[])
@@ -170,7 +170,7 @@ preservation-CancelR : ∀ {V Θ₁ Θ₂ X Y}
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     ---------------------------------------------------------------
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
-               ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
+               ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 preservation-CancelR = preserve-CancelR
 
 -- IDPUSH — the case the wall used to block, likewise unconditional.
@@ -178,7 +178,7 @@ preservation-IdPush : ∀ {V Θ₁ Θ₂ X Y}
   → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     ---------------------------------------------------------------
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 preservation-IdPush = preserve-IdPush
 
 ------------------------------------------------------------------------

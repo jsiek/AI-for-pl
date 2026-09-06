@@ -83,6 +83,8 @@ driver: type-checking it type-checks the whole thing.
 | `MaskFacts.agda` | no boundary operation can take a binder away (masking retains, unlocking recovers); the old cancel residue is not well formed |
 | `Adversary.agda` | the soundness gate: a conceal must cite a live binder, and v1's adversaries refuted by that one inversion |
 | `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
+| `DualTightness.agda` | **tightness of the crossing**, Jeremy's test (2026-09-06) and its repair: the redex that is ill typed at the exterior now has an ill-typed contractum too (`¬⊢Contractum`), (†) `interior (dual Θᵤ) (interior Θᵤ Δᵤ) ≡ Δᵤ`, the positive control at a `lock`, and the VACUOUS UNLOCK refused (`¬⊢ᵐΘᵥ`) |
+| `MwUObstruct.agda` | which outer frame the scope move may use, on one configuration: `dropLocks Θ₂` **refuted** (the moved unlock goes vacuous), `bindsOnly Θ₂` **refuted** (the frame's own rep loses its unlock), `rewind Θ₂` does both jobs — and why `mw-b` reads its rep on `unlockedScope Θ Δ` rather than on the plain exterior |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 **The invariant hunt** — the search for a side condition that would

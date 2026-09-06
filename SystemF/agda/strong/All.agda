@@ -26,6 +26,11 @@ open import strong.proof.MoveScope
 open import strong.proof.TypeSafety
 open import strong.proof.PreserveObstruct
 
+-- the TIGHTNESS OF THE DUAL: the defect (`Peel` gained scope), its
+-- repair, and the frame choice the repair forced
+open import strong.proof.DualTightness
+open import strong.proof.MwUObstruct
+
 -- the regression corpus and the renderer
 open import strong.Examples
 open import strong.Show

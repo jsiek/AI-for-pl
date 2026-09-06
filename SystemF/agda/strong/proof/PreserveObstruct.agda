@@ -219,13 +219,12 @@ t-cod = conv-seal (es ez)
 -- §3  Peel — REPAIRED (refutation removed)
 ------------------------------------------------------------------------
 
--- The old §3 refuted the OLD `dual` (`unlock X ↦ lock (n+X)`), which
--- re-blocked a no-op `unlock` (`Θ = unlock 0` at an unmasked slot) and
--- failed same-slot cancellation.  strong.Reduction's repaired `dualScope`
--- DROPS the `unlock` case, so `dual (unlock 0 ∷ []) ≡ []` and the
--- crossing no longer masks the binder.  `PeelCase` is now PROVEN
--- (strong.proof.PeelDual.preserve-Peel), with `interior-dual`/`convCtx-dual`
--- true in general — so this refutation is gone.
+-- The old §3 refuted a `dual` that mapped `unlock X ↦ lock (n+X)` while
+-- `mw-u` still admitted a VACUOUS unlock: the restored lock then masked a
+-- slot the exterior left nameable.  Both halves are now repaired
+-- TOGETHER — `mw-u` demands `scope Θ Δ ∋lk X` and `dualScope` restores AND
+-- reverses — so `interior-dual` is an EXACT identity and `PeelCase` is
+-- PROVEN (strong.proof.PeelDual.preserve-Peel).  Refutation gone.
 
 ------------------------------------------------------------------------
 -- §4  IdPush pushes a rep across a lock
@@ -259,7 +258,7 @@ Vi : Term
 Vi = (($ 7) ⟪ [] , seal 1 ⟫) ⟪ unlock 1 ∷ [] , seal 0 ⟫
 
 ⊢Vi : Ξi ∣ [] ⊢ Vi ⦂ ` 0
-⊢Vi = env (mw-u (es ez) mw[])
+⊢Vi = env (mw-u (_ , es ez , locked nameable-b) mw[])
           (env mw[] ⊢$ (conv-seal (es ez))
                (wf-var (bind `ℕ , es ez , nameable-b)))
           (conv-seal ez)
@@ -280,15 +279,19 @@ Ri = (Vi ⟪ [] , id (` 0) ⟫) ⟪ Θi , unseal 0 ⟫
           (wf-var (bind `ℕ , es ez , nameable-b))
 
 -- THE STEP, AT THE MOVED SCOPE.  `Θ₂ = lock 1 ∷ []` is binder-free, so
--- the move is `[] ⋉ Θi ≡ lock 1 ∷ []` and `dropLocks Θi ≡ []`: the lock
--- goes INTO the inner boundary and the outer one keeps nothing.
-step-i : Δi ⊢ Ri -→ (Vi ⟪ [] ⋉ Θi , unseal 0 ⟫) ⟪ dropLocks Θi , mkId (` 1) ⟫
+-- the move is `[] ⋉ Θi ≡ lock 1 ∷ []`, and the outer frame is Θi with
+-- its own lock REWOUND — `rewind Θi ≡ unlock 1 ∷ lock 1 ∷ []`, whose net
+-- effect on Δi is nothing at all.
+step-i : Δi ⊢ Ri -→ (Vi ⟪ [] ⋉ Θi , unseal 0 ⟫) ⟪ rewind Θi , mkId (` 1) ⟫
 step-i = IdPush val-Vi ez
 
 _ : _≡_ {A = CtxMorph} ([] ⋉ Θi) (lock 1 ∷ [])
 _ = refl
 
-_ : _≡_ {A = CtxMorph} (dropLocks Θi) []
+_ : _≡_ {A = CtxMorph} (rewind Θi) (unlock 1 ∷ lock 1 ∷ [])
+_ = refl
+
+_ : interior (rewind Θi) Δi ≡ Δi
 _ = refl
 
 _ : mkId (` 1) ≡ id (` 1)
@@ -311,7 +314,8 @@ _ = refl
 -- slot 1 is live — and the contractum TYPES.  (`ProbeMove.agda` in the
 -- main tree checked this derivation by hand; here it is the theorem.)
 ⊢i-contractum :
-  Δi ∣ [] ⊢ (Vi ⟪ lock 1 ∷ [] , unseal 0 ⟫) ⟪ [] , id (` 1) ⟫ ⦂ ` 1
+  Δi ∣ [] ⊢ (Vi ⟪ lock 1 ∷ [] , unseal 0 ⟫)
+              ⟪ unlock 1 ∷ lock 1 ∷ [] , id (` 1) ⟫ ⦂ ` 1
 ⊢i-contractum = preserve-IdPush val-Vi ez ⊢Ri
 
 ------------------------------------------------------------------------

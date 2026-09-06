@@ -181,7 +181,7 @@ makes exactly one frame change, described by `Θ`, and carries exactly one
 conversion `c`.  Its interior `M` is **term-closed**: `env` types it at
 the empty term context.
 
-### Context morphisms (`strong.Terms`)
+### Context morphisms (`strong.CtxMorph`)
 
 `Θ : CtxMorph` is a list of **morphism entries**, Jeremy's *context
 morphism*: it maps the type context outside the boundary to the type
@@ -199,7 +199,7 @@ read in the **exterior**, never through `Θ`'s other entries
 (§8, simultaneity).  `lock` and `unlock` carry a name and nothing else.
 The list is applied **head-last**: in `↥Y , ↓Y` the `↓Y` acts first.
 
-Two derived numbers, both in `strong.Terms`:
+Two derived numbers, both in `strong.CtxMorph`:
 
     repsOf   : CtxMorph → List Ty     -- the bind entries' reps, in order
     numBinds : CtxMorph → ℕ            -- numBinds Θ = length (repsOf Θ)
@@ -448,7 +448,7 @@ representations on as binders*, `numBinds` = *number of binds*, `shiftBy` =
 *shift past n binders*.
 
 
-## 4. Typing (`strong.Terms`, `strong.Conversion`)
+## 4. Typing (`strong.CtxMorph`, `strong.Terms`, `strong.Conversion`)
 
 ### 4.1 Well-formed types
 

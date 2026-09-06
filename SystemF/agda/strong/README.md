@@ -57,7 +57,7 @@ driver: type-checking it type-checks the whole thing.
 | `Types.agda` | System F types in de Bruijn form; renaming and parallel substitution; `_[_]ᵗ` and the at-a-slot substitution `_[_:=_]ᵗ` |
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
 | `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the bind prefix `pushBinds` with `shiftBy` |
-| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, and `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
+| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
 | `CtxMorph.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`), the type contexts it induces (`scope`, `unlockedScope`, `interior`, `convCtx`) with their refinement transports, and the well-formedness judgement `Δ ⊢ᵐ Θ`, and the derived morphisms `dual` (Peel) and `rewind`/`_⋉_` (the scope move) |
 | `Terms.agda` | terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` (re-exports `CtxMorph`) |
 | `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |

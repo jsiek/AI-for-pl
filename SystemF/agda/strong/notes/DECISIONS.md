@@ -2424,3 +2424,7 @@ seal-face-is-the-owners-rep → seal-source-is-rep, inert-*-face →
 inert-*-conv, J-face-ctx/t-face-ctx → J-convCtx/t-convCtx, ⊢Hface/⊢Gface/
 ⊢Pk-face → ⊢Hconv/⊢Gconv/⊢Pk-conv, face-move → convCtx-move,
 ∀-face-premise → ∀-conv-premise, ¬ChainFaced → ¬ChainConv.
+ ADDENDUM (Jeremy, same day): `MorphWf Δ Θ` becomes the infix judgment
+ `Δ ⊢ᵐ Θ` (the context morphism Θ is well formed over Δ), in the family
+ of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`; constructors mw[]/mw-b/mw-l/mw-u stay;
+ lemma names follow (⊢ᵐ-⊑, ⊢ᵐ-⋉, …).

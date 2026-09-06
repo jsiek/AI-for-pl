@@ -15,7 +15,9 @@
 \usepackage{color}
 
 \definecolor{darkgray}{gray}{0.6}
+\definecolor{brightyellow}{rgb}{1,0.94,0}
 \newcommand{\gray}[1]{{\color{darkgray} #1}}
+\newcommand{\hilight}[1]{\colorbox{brightyellow}{\color{black}\ensuremath{#1}}}
 \newcommand{\kw}[1]{\mathtt{#1}}
 \newcommand{\dotspace}{.\,}
 \newcommand{\lam}[1]{\lambda #1 \dotspace}
@@ -76,12 +78,12 @@
 \begin{array}{lcl}
  A,B,C,D &::=& \iota \mid A \to B \mid X \mid \forall X.A \\
  L,M,N&::=& k \mid x \mid \lam{x\of A}N \mid \app{L}{M} \\
-      && \mid \Lambda X. N \mid \tyapp{L}{A} \mid \boundary{M}{\Delta}{c} \\
+      && \mid \Lambda X. N \mid \tyapp{L}{A} \mid \hilight{\boundary{M}{\Delta}{c}} \\
  c,d &::=& \kw{id}\,A \mid \seal{X} \mid \unseal{X}
           \mid c \func d \mid \forall X.\,c \\
  \Psi &::=& \emptyset \mid \Psi,X \\
- \Delta &::=& \emptyset \mid \bind{X}{A},\Delta
-          \mid \lockX{X},\Delta \mid \unlockX{X},\Delta
+ \hilight{\Delta} &::=& \hilight{\emptyset \mid \bind{X}{A},\Delta
+          \mid \lockX{X},\Delta \mid \unlockX{X},\Delta}
 \end{array}
 \]
 }
@@ -100,26 +102,31 @@
 }
 %===============================================================================
 \frame{
-  \frametitle{Values, Inert and Active Conversions}
+  \frametitle{Conversion typing}
 
-{\small
-\[
-\begin{array}{llcl}
-\text{values} & V,W &::=& k \mid \lam{x\of A}N \mid \Lambda X.\,V
-       \mid \boundary{V}{\Delta}{c^i} \\[1ex]
-\text{inert}& c^i &::=& \kw{id}\,X \mid \seal{X}
-              \mid c\func d \mid \forall X.\,c \\[1ex]
-\text{active}& c^a &::=& \kw{id}\,\iota \mid \unseal{X}
-\end{array}
-\]
+\hfill\fbox{$\Psi\vdash c:A\Rightarrow B$}
 
-\vspace{18pt}
+\begin{gather*}
+\inference{}
+          {\Psi\vdash\kw{id}\,\iota:\iota\Rightarrow\iota}
+\quad
+\inference{X\in\Psi}
+          {\Psi\vdash\kw{id}\,X:X\Rightarrow X}
+\\[2ex]
+\inference{\Psi\ni X:=A}
+          {\Psi\vdash\unseal{X}:X\Rightarrow A}
+\quad
+\inference{\Psi\ni X:=A}
+          {\Psi\vdash\seal{X}:A\Rightarrow X}
+\\[2ex]
+\inference{\Psi\vdash c:A'\Rightarrow A \qquad
+           \Psi\vdash d:B\Rightarrow B'}
+          {\Psi\vdash c\func d:(A\func B)\Rightarrow(A'\func B')}
+\\[2ex]
+\inference{\Psi,X\vdash c:A\Rightarrow B}
+          {\Psi\vdash\forall X.\,c:(\forall X.A)\Rightarrow(\forall X.B)}
+\end{gather*}
 
-\begin{center}
-A boundary is a value exactly when its interior is a value\\
-and its conversion face has inert form $c^i$.
-\end{center}
-}
 }
 %===============================================================================
 \frame{
@@ -169,7 +176,30 @@ and its conversion face has inert form $c^i$.
 }
 %===============================================================================
 \frame{
-\frametitle{Reduction}
+  \frametitle{Values, Inert and Active Conversions}
+
+{\small
+\[
+\begin{array}{llcl}
+\text{values} & V,W &::=& k \mid \lam{x\of A}N \mid \Lambda X.\,V
+       \mid \boundary{V}{\Delta}{c^i} \\[1ex]
+\text{inert}& c^i &::=& \kw{id}\,X \mid \seal{X}
+              \mid c\func d \mid \forall X.\,c \\[1ex]
+\text{active}& c^a &::=& \kw{id}\,\iota \mid \unseal{X}
+\end{array}
+\]
+
+\vspace{18pt}
+
+\begin{center}
+A boundary is a value exactly when its interior is a value\\
+and its conversion face has inert form $c^i$.
+\end{center}
+}
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction: elimination rules}
 
 \hfill\fbox{$\Psi \vdash M \reduce N$}
 
@@ -177,30 +207,21 @@ and its conversion face has inert form $c^i$.
 \Psi \vdash (\lam{x\of A}N)\,W
   &\reduce N[x\by W]
 \\[2ex]
-\Psi \vdash \tyapp{(\Lam{X}V_B)}{A}
-  &\reduce \boundary{V}{\bind{X}{A}}{\unsealat{X}{B}}
-\\[2ex]
 \Psi \vdash \boundary{V}{\Delta}{c\func d}\,W
   &\reduce \boundary{V\,\boundary{W}{\dual{\Delta}}{c}}
                     {\Delta}{d}
 \\[2ex]
+\Psi \vdash \tyapp{(\Lam{X}V_B)}{A}
+  &\reduce \boundary{V}{\bind{X}{A}}{\unsealat{X}{B}}
+\\[2ex]
 \Psi \vdash \tyapp{\boundary{V}{\Delta}{\forall X.\,c}}{A}
 &\reduce \boundary{\tyapp{V}{X}}{\bind{X}{A},\Delta}{\unsealatc{X}{c}}
-\\[2ex]
-\Psi \vdash
-\boundary{\boundary{V}{\Delta_1}{\seal{X}}}
-          {\Delta_2}{\unseal{X}}
-&\reduce
-\boundary{\boundary{V}{\Delta_1\scopemove\Delta_2}{\idc{A}}}
-          {\unlocked{\Delta_2}}{\idc{A}}
- \\
-&\text{where }\fce{\Delta_2}{\Psi}\ni X:=A
 \end{align*}
 
 }
 %===============================================================================
 \frame{
-\frametitle{Reduction: active identities and congruence}
+\frametitle{Reduction: active conversions and congruence}
 
 \hfill\fbox{$\Psi \vdash M \reduce N$}
 
@@ -209,13 +230,24 @@ and its conversion face has inert form $c^i$.
   &\reduce k
 \\[2ex]
 \Psi \vdash
+\boundary{\boundary{V}{\Delta_1}{\seal{X}}}
+          {\Delta_2}{\unseal{X}}
+&\reduce
+\boundary{\boundary{V}{\Delta_1\scopemove\Delta_2}{\idc{A}}}
+          {\unlocked{\Delta_2}}{\idc{A}}
+&&\text{if }\fce{\Delta_2}{\Psi}\ni X:=A
+\\[2ex]
+\Psi \vdash
 \boundary{\boundary{V}{\Delta_1}{\kw{id}\,X}}
           {\Delta_2}{\unseal{X}}
 &\reduce
 \boundary{\boundary{V}{\Delta_1\scopemove\Delta_2}{\unseal{X}}}
           {\unlocked{\Delta_2}}{\idc{A}}
 &&\text{if }\fce{\Delta_2}{\Psi}\ni X:=A
-\\[2ex]
+\end{align*}
+
+{\footnotesize
+\begin{align*}
 \Psi \vdash L\,M
   &\reduce L'\,M
   &&\text{if }\Psi \vdash L\reduce L'
@@ -236,7 +268,7 @@ and its conversion face has inert form $c^i$.
   &\reduce \boundary{M'}{\Delta}{c}
   &&\text{if }\intc{\Delta}{\Psi}\vdash M\reduce M'
 \end{align*}
-
+}
 }
 %===============================================================================
 \frame{

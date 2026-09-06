@@ -2394,3 +2394,18 @@ Reading: `exterior Θ Δ` is not the plain Δ the whole term is typed in
 but Δ as seen from the boundary (binds pushed, unlocks applied); the
 identity `interior (dropLocks Θ) Δ ≡ exterior Θ Δ` is the one that
 retired the wall.  Earlier entries of this log use the old names.
+
+### Naming correction: `exterior` → `convCtx` (Jeremy, 2026-09-06)
+
+The helper fceC had been renamed `exterior` after Jeremy's slides, but it
+is NOT the type context at the boundary's exterior (that is the plain Δ):
+fceC Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ) — Δ with the
+boundary's binds pushed and its locks lifted.  Jeremy: "fce is not the
+same as the context at the exterior of the boundary … 'conversion
+context' is a phrase you use.  Then we can use 'exterior' to mean 'plain
+exterior'."  RULED: the function is `convCtx Θ Δ` (conversion context);
+"exterior" means the plain Δ everywhere.  Why a separate context: the
+conversion names the boundary's own binds (absent from Δ) and cites
+owners by lookup, including locked ones (masked in the interior), so it
+types in neither; convCtx = interior (dropLocks Θ) Δ is the smallest
+context where both resolve (Design.md §3).

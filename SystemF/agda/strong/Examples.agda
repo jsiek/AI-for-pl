@@ -57,6 +57,7 @@ open import strong.Types
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
+open import strong.CtxMorph
 open import strong.TermSubst
 open import strong.Reduction
 
@@ -370,8 +371,8 @@ run-Tᵣ = push-Tᵣ
 
 -- ── Tₘ (IdLayerProbe §4b): Θ₂ re-exposes a masked slot (`unlock 0`) and the
 -- id-layer masks it again (`lock 0`).  The merged context morphism computed both
--- type contexts correctly and yet the SIMULTANEOUS `_⊢ᵐ_` refused it,
--- because it checked every entry against the PLAIN exterior.  The
+-- type contexts correctly and yet the FORMER, simultaneous `_⊢ᵐ_` refused
+-- it, because it checked every entry against the plain exterior.  The
 -- SEQUENTIAL judgement checks each entry on the frame it acts on, and
 -- accepts it.  Again: IdPush merges nothing.
 
@@ -1846,7 +1847,7 @@ _ = refl
 ------------------------------------------------------------------------
 
 -- §12 asked whether the wall CONFIGURATION is reachable.  The scope move
--- (strong.Reduction §2b, 2026-09-06) makes the question moot: the
+-- (strong.CtxMorph §4, 2026-09-06) makes the question moot: the
 -- configuration is fine.  Here is the hand-built witness itself
 -- (proof/PreserveObstruct §4) — `Δi = X := Y , Y := ℕ`, where X's rep
 -- NAMES Y, under an outer boundary that LOCKS Y — taking its step.
@@ -2456,8 +2457,9 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , id `ℕ ↦ unseal 0 
 --
 -- E₃ is the old design's fourth line, and E₄ is where the two designs
 -- part: `↑Z:=Y , ↓X` is a boundary that MASKS X and BINDS a fresh Z at
--- the rep Y — no type is pushed into the sealed body, and Y is read in
--- the plain exterior, where it is in scope.
+-- the rep Y — no type is pushed into the sealed body, and Y is read at
+-- the boundary's exterior (there are no unlocks, so that is
+-- `unlockedScope Θ Δ`), where it is in scope.
 
 -- ── the source ─────────────────────────────────────────────────────────
 

@@ -24,6 +24,7 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
+open import strong.CtxMorph
 
 ------------------------------------------------------------------------
 -- §1  THE NAMES ARE FORCED

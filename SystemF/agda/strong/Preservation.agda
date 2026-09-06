@@ -43,7 +43,7 @@ module strong.Preservation where
 --   IDPUSH    PROVEN (proof/MoveScope.preserve-IdPush).
 --
 -- WHAT CLOSED THE LAST TWO: THE SCOPE MOVE (Jeremy, 2026-09-06;
--- strong.Reduction §2b).  Both rules swap the two conversions, so the
+-- strong.CtxMorph §4).  Both rules swap the two conversions, so the
 -- inner boundary stops presenting the abstract name and starts presenting
 -- the BINDER'S REP — and `env`'s last premise then asks for that rep to be
 -- well formed INSIDE the outer frame, where its own `lock`s may have
@@ -70,13 +70,12 @@ open import strong.Types
 open import strong.Ctx
   using (Ctxᵗ; Ent; abst; bind; masked; Base; _⊢ᵗ_; _∋_:=_; shiftBy)
 open import strong.Conversion
-  using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_)
+  using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_; reveal; instReveal)
 open import strong.Terms
 open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
-open import strong.Reduction
-  using (_⊢_-→_; _⊢_-→*_; reveal; instReveal)
+open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 
-open import strong.Reduction using (_⋉_; rewind)
+open import strong.CtxMorph
 open import strong.proof.Preserve
   using (preserve-TyBeta; preserve-Drop$; preserve-TyPeelR;
          ⊢ᵗ-of; CtxWf-[])

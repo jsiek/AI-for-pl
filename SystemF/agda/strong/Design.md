@@ -381,14 +381,13 @@ name it.
 
 So the conversion needs the binders **and** the locked slots: binds
 pushed, locks lifted.  That is `convCtx Θ Δ`, the smallest context in
-which both leaves resolve.  It is not a third *construction*:
-
-    scope (dropLocks Θ) Δ ≡ unlockedScope Θ Δ
-
-where `dropLocks Θ` is `Θ` with its locks removed — **the conversion
-context is the interior of the same boundary with its locks removed**.
-(As an *operation* on frames `dropLocks` is retired: it cannot be the
-outer frame of the scope move, §6.7.)
+which both leaves resolve.  It is not a third *construction* but the same
+one with the locks skipped: `unlockedScope` is `scope` minus its `lock`
+clause, so **the conversion context is the interior of the same boundary
+with its locks removed**.  (As an *operation* on frames, removing the
+locks — `dropLocks` — is retired: it cannot be the outer frame of the
+scope move, §6.7, and it survives only as a local definition in
+`proof/MwUObstruct` §0, where it is refuted.)
 
 The three contexts are ordered by refinement, in one direction only:
 
@@ -880,7 +879,7 @@ Example (`Examples` §6, `P₅ → 7`):  `(7 ⟪ ↑X:=ℕ , id ℕ ⟫)  →  7
     CancelR : Value V → convCtx Θ₂ Δ ∋ Y := A
       → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
           -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
-               ⟪ dropLocks Θ₂ , mkId A ⟫
+               ⟪ rewind Θ₂ , mkId A ⟫
 
 **Bookkeeping.**  The two conversions cite the *same entry*, so the match
 is definitional — there is no second spelling to disagree with the first,
@@ -895,8 +894,8 @@ rule mints identity conversions *at a looked-up representation*, and
 determinism for such rules is exactly `∋:=-det`.  The frames move as in
 §6.7.
 
-Example (`Examples` §6, `P₃ → P₄`; here `Θ₂ = ↑X:=ℕ` locks nothing, so
-`Θ₁ ⋉ Θ₂ ≡ Θ₁` and `dropLocks Θ₂ ≡ Θ₂`):
+Example (`Examples` §6, `P₃ → P₄`; here `Θ₂ = ↑X:=ℕ` has no scope at
+all, so `Θ₁ ⋉ Θ₂ ≡ Θ₁` and `rewind Θ₂ ≡ Θ₂`):
 
     ((7 ⟪ ↓X , seal X ⟫) ⟪ ↑X:=ℕ , unseal X ⟫)
       →  ((7 ⟪ ↓X , id ℕ ⟫) ⟪ ↑X:=ℕ , id ℕ ⟫)
@@ -1168,6 +1167,40 @@ whose contracta are not syntactically determined by the redex:
 Everything else is either `refl` or an appeal to `value-¬step` at an
 overlapping `ξ`.
 
+### Tightness
+
+The six theorems above say nothing about **ill-typed** terms, and design
+law 2 (§8) is a claim about exactly those: reduction must never take a
+term the exterior refuses to one it accepts.  That is a property of the
+*relation*, so it is checked the way Jeremy proposed — by exhibiting it
+(`proof/DualTightness`, `Examples` §15).  Build an ill-typed redex whose
+fault is one localized `wf-var` premise: a subterm names a type variable
+the frame at its position masks, or has no entry for at all.  Take the
+step.  The rule moves that subterm into a new frame.  The rule is
+**tight** iff the contractum is refused for the same reason.
+
+It is a theorem rather than five anecdotes because each rule's new frame
+is a known function of the old one:
+
+| rule | the moved subterm's new frame |
+|------|-------------------------------|
+| `TyBeta` | `interior (bind A ∷ []) Δ ≡ bind A ∷ Δ` — `Δ` on the nose, one refinement (`abst ⊑ᵃᵉ bind A`) at the slot the rule reveals |
+| `TyPeelR` | `interior (bind A ∷ Θ) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ` — the redex's frame, one binder in, which `wkᴹ 1` matches |
+| `Peel` | (†) `interior (dual Θ) (interior Θ Δ) ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ`, given `Δ ⊢ᵐ Θ` (`proof/PeelDual.interior-dual`) |
+| `CancelR`, `IdPush` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)`, given `Δ ⊢ᵐ Θ₂` (`proof/MoveScope.interior-⋉-rewind`) |
+| `Beta` | `Δ` — no frame changes |
+
+The first two are `refl` (`Examples.interior-TyBeta`,
+`interior-TyPeelR`); the last two are the theorems whose `Δ ⊢ᵐ Θ`
+premise is where the sequential judgement pays for itself (§4.2).
+`Drop$` and the five congruences move nothing into a new frame.
+
+Every rule passes.  **The one exception is recorded and is not a scope
+gain**: `Beta` at an erasing body — `(λx:ℕ⇒ℕ. 3) · W` with `W` ill typed
+steps to `3`, which types.  Substitution may *drop* its argument, and a
+dropped subterm crosses nowhere; what is left was already typed inside
+the redex (`Examples` §15d).
+
 ### `type-safety`
 
 `progress ∘ preservation*` (`proof/TypeSafety`): a well-typed closed term
@@ -1244,7 +1277,11 @@ machine-checked consequence in tree.
    relation** by a `dual` that dropped `unlock` entries; it is repaired
    (§4.2, §6.3) and the witness that broke it is now refused
    (`proof/DualTightness.¬⊢Contractum`).  The frame identity (†) is the
-   law in one line: *the crossing frame IS the exterior*.
+   law in one line: *the crossing frame IS the exterior*.  The law is now
+   tested at **every** rule that moves a subterm into a new frame
+   (`Examples` §15, and the frame-identity table in §7), with one
+   recorded exception that is not a scope gain — `Beta` may *erase* its
+   argument.
 3. **No term type-shifts.**  Shift types, not terms.  The only index
    arithmetic in the design is ordinary de Bruijn binder offsets:
    `numBinds Θ`, `shiftBy`, and the `n + X` lift in `scopeOf` and `dualScope`.
@@ -1282,7 +1319,9 @@ machine-checked consequence in tree.
 ## 9. How we got here
 
 The design log is `notes/DECISIONS.md`, in order; this is only a map.
-Do not read the sections below for content — read them there.
+Do not read the sections below for content — read them there.  The
+*graphical* map — fifty design points, with the evidence on every edge —
+is `notes/DesignSpace.md`, with `notes/DesignPoints.md` as its glossary.
 
 * **The pre-boundary design refuted.**  One wrapper per variable, with an
   interior that *dropped* the shallower context and a rule that pushed
@@ -1314,6 +1353,39 @@ Do not read the sections below for content — read them there.
   ruling (2026-09-06); `notes/DECISIONS.md` is the whole record, and its
   two surviving artifacts are `proof/MaskFacts.mask-only` and `Examples`
   §12/§12b.
+* **The tightness episode.**  The last thing that moved the design, and
+  the one that reshaped `_⊢ᵐ_`, `dual`, `⊢retag` and the scope move at
+  once.  In order:
+  * *the leak* — "Peel's dual is NOT tight for `unlock` entries
+    (Jeremy's test, 2026-09-06)".  Jeremy asked for a `Peel` step whose
+    argument is ill formed before and after; `proof/DualTightness`
+    produced one where the contractum **typed**.  Design law 2 was false
+    for the reduction relation.
+  * *the refuted package* — same section, "PROBED FIX, REFUTED"
+    (`proof/MwUObstruct`): masked-only `mw-u` + unconditional
+    `unlock ↦ lock` + `bindsOnly` as the outer frame.  Under a
+    **simultaneous** `_⊢ᵐ_` it kills `⊢retag` (`le-mu` unmasks a slot an
+    `unlock` cites) and `⊢ᵐ-⋉` (the merged list both locks and unlocks
+    one slot).
+  * *the Δ-dependent dual* — the `(δ)` candidate of the same section and
+    of "RULING: vacuous unlocks are wrong and unreachable (Jeremy,
+    2026-09-06)": let `dual` read the exterior and re-lock only
+    non-vacuous unlocks.  It closes the leak while leaving `_⊢ᵐ_` alone,
+    and is **superseded** — branch `dual-relock`.
+  * *the principled package* — the second probe of that ruling, and what
+    landed: **sequential** `Δ ⊢ᵐ Θ` (no vacuous unlocks, no double
+    locks), the restoring and **reversed** `dualScope`, `rewind Θ₂` as
+    the scope move's outer frame, `⊢retag` over `⊑ᵃ`.  The two frame
+    lemmas become equalities and (†) becomes exact.
+  * *the ratification* — "RATIFIED: representations read past the tail's
+    unlocks; PR #193 merged (Jeremy, 2026-09-06)".  A representation is
+    read on `unlockedScope Θ′ Δ`, and design **law 4 is reduced to its
+    surviving half** (§8): no interference from the frame's own entries;
+    the "every premise on the plain exterior" half is retired.
+
+  The tests that came out of it are `proof/DualTightness` (the `unlock`
+  half) and `Examples` §15 (every other rule that moves a subterm), with
+  the frame-identity table in §7.
 
 
 ## Appendix A. Names
@@ -1348,7 +1420,6 @@ the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
 | `dualScope n Θ` | its scope half: `Θ`'s scope inverted and reversed |
 | `hideBinds n` | lock the crossed boundary's own binders |
 | `scopeOf n Θ` | `Θ`'s scope, indices lifted by `n` |
-| `dropLocks Θ` | `Θ` with its locks removed |
 | `rewind Θ` | `Θ` with its own scope undone: `dualScope 0 Θ ++ Θ` |
 | `Θ₁ ⋉ Θ₂` | `Θ₁` with `Θ₂`'s scope moved into its tail |
 | `Locked E` | the entry is masked over a nameable one |
@@ -1361,15 +1432,17 @@ name spells the two entries it relates (§3, *Refinement*):
 `le-ao` → `le-ab`, `le-oo` → `le-bb`, `le-bb` → `le-mm`,
 `le-bu` → `le-mu`; `le-aa` unchanged.
 
-Three identities worth stating, because they are what the names are meant
+Two identities worth stating, because they are what the names are meant
 to make obvious:
 
-    scope (dropLocks Θ) Δ ≡ unlockedScope Θ Δ
     interior (rewind Θ) Δ ≡ pushBinds (repsOf Θ) Δ      given Δ ⊢ᵐ Θ
     interior (dual Θ) (interior Θ Δ)
       ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ       given Δ ⊢ᵐ Θ
 
-The second is `proof/MoveScope.interior-rewind` — *a rewound frame leaves
+The first is `proof/MoveScope.interior-rewind` — *a rewound frame leaves
 its bind prefix and nothing else* — and it is the identity that retired
-the wall.  The third is (†), `proof/PeelDual.interior-dual`: *the
-crossing frame is the exterior*, which is tightness for `Peel`.
+the wall.  The second is (†), `proof/PeelDual.interior-dual`: *the
+crossing frame is the exterior*, which is tightness for `Peel`.  Both
+appear in the frame-identity table of `Examples` §15f, alongside
+`interior-⋉-rewind` and the two `refl` identities for `TyBeta` and
+`TyPeelR`.

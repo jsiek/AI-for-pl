@@ -47,8 +47,8 @@ lock-then-unlock = refl
 -- `scope` applies those masks to Δ, not to the boundary's bind owners, so on
 -- the mini-core's OWN cancel example the residue is not well formed.  This
 -- is why strong.Reduction's CancelR drops it.
-¬MorphWf-cancel-residue : ¬ MorphWf [] (bind `ℕ ∷ lock 0 ∷ [])
-¬MorphWf-cancel-residue (mw-b _ (mw-l (_ , () , _) _))
+¬⊢ᵐ-cancel-residue : ¬ ([] ⊢ᵐ (bind `ℕ ∷ lock 0 ∷ []))
+¬⊢ᵐ-cancel-residue (mw-b _ (mw-l (_ , () , _) _))
 
 ------------------------------------------------------------------------
 -- THE MASK-ONLY FACT, PROVEN

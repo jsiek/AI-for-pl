@@ -16,14 +16,14 @@ module strong.Show where
 --     [fresh names for the owners] then ext SHIFTED past them.  Nothing is
 --     dropped any more (conceal masks in place), so there is exactly ONE
 --     inner supply — the old `cmax` correction has no analogue, and the
---     interior supply and the FACE supply coincide (`interior` and `convCtx`
---     differ in blocking, not in slot layout).
+--     interior supply and the CONVERSION-CONTEXT supply coincide
+--     (`interior` and `convCtx` differ in blocking, not in slot layout).
 --   * an OWNER's rep is shown under `ext` — a rep is a type over the PLAIN
 --     exterior (simultaneity);
 --   * a `lock X` / `unlock X` names an EXTERIOR slot, so it is shown under
 --     `ext`; neither carries a rep, which is the whole point of the
 --     redesign;
---   * the FACE `c` is shown under the interior/face supply, and its
+--   * the CONVERSION `c` is shown under that same supply, and its
 --     `seal`/`unseal` names are read there — by their type context, not by a
 --     stored spelling.
 --
@@ -125,8 +125,9 @@ nth []       k       = "?"
 nth (s ∷ ss) zero    = s
 nth (s ∷ ss) (suc k) = nth ss k
 
--- interior (= face) supply: bind names, then ext shifted past them.
--- No `cmax` correction: conceal masks in place, so no slot is dropped.
+-- interior (= conversion-context) supply: bind names, then ext shifted
+-- past them.  No `cmax` correction: conceal masks in place, so no slot
+-- is dropped.
 intSup : CtxMorph → List String → Supply → Supply
 intSup Θ on ext k =
   if k <ᵇ numBinds Θ then nth on k else ext (k ∸ numBinds Θ)

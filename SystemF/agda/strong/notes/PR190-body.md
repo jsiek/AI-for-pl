@@ -1,8 +1,9 @@
 # Strong System F v2: mask-based boundaries with conversions and owner-bound representations
 
-*(proposed title — the current one says "conversion faces"; the note and
-the Agda now speak of a boundary's **interior** and **exterior** instead,
-so "faces" should go.)*
+*(proposed title — the current one uses the vocabulary Jeremy retired on
+2026-09-06; the note and the Agda now speak of a boundary's
+**conversion** `c`, its **source** and **target** types, and its
+**interior** and **exterior**.)*
 
 ## Summary
 
@@ -49,7 +50,7 @@ All six, with **no module parameters, no postulates, no holes**, under
    context** `convCtx Θ Δ` (the interior with `Θ`'s locks lifted) is
    where the conversion is checked, so a `seal X` at a locked `X` can
    still cite its owner.  `interior (dropLocks Θ) Δ ≡ convCtx Θ Δ`.
-5. **Simultaneity.**  Every `MorphWf` premise and every representation is
+5. **Simultaneity.**  Every `Δ ⊢ᵐ Θ` premise and every representation is
    read in the exterior; `pushBinds` lifts a representation past exactly
    the owners bound inside it.  Sibling entries never interfere.
 6. **Conversions are GTSF's.**  `id` / `seal` / `unseal` / `_↦_` / `∀`,
@@ -108,7 +109,8 @@ All six, with **no module parameters, no postulates, no holes**, under
   §5 retired).
 * **The scope move, and the theorem.**  `cdb24a41` — **preservation
   proven, parameter-free**; `Conditional`, `ScopedAtUnseal`,
-  `CancelFaces` and `¬IdPushCase` all retired, the old wall witness now
+  the cancel type-equation module and `¬IdPushCase` all retired, the old
+  wall witness now
   runs to a value.  `9005914c` (stdlib 2.0 deprecation), `5f67634f`
   (`TypeSafety.agda`, the public surface).
 
@@ -134,7 +136,7 @@ All six, with **no module parameters, no postulates, no holes**, under
   `fscp` → `unlockedScope`, `prep` → `pushBinds`, `reps` → `repsOf`,
   `nbind` → `numBinds`, `liftN` → `shiftBy`, `liftᵇ` → `shiftBodyBy`,
   `upd` → `updateAt`, `blk` → `masked`, `unblk` → `unmaskEnt`,
-  `Vis` → `Nameable`, `Bwf` → `MorphWf` (`bw*` → `mw*`), `idc` → `mkId`,
+  `Vis` → `Nameable`, `Bwf` → `_⊢ᵐ_` (`bw*` → `mw*`), `idc` → `mkId`,
   `unsealAt`/`sealAt` → `reveal`/`conceal`,
   `unsealAtᶜ`/`sealAtᶜ` → `instReveal`/`instConceal`, `dualS` →
   `dualScope`, `lockBinds` → `hideBinds`, `moveS` → `scopeOf`,

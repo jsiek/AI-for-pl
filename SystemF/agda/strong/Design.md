@@ -441,15 +441,17 @@ owners on as binders*, `numBinds` = *number of binds*, `shiftBy` =
 The only interesting clause is `wf-var`: it asks for **visibility**, so a
 masked slot is unnameable, and a `∀` pushes `abst`, never a `bind`.
 
-### 4.2 Well-formed context morphisms — `MorphWf Δ Θ`
+### 4.2 Well-formed context morphisms — `Δ ⊢ᵐ Θ`
 
-Every premise is read on the **exterior** `Δ` (simultaneity),
-never on the context the earlier entries build:
+Read "the context morphism `Θ` is well formed over `Δ`"; an infix
+judgement in the family of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`.  Every premise
+is read on the **exterior** `Δ` (simultaneity), never on the context the
+earlier entries build:
 
-    mw[] : MorphWf Δ []
-    mw-b : Δ ⊢ᵗ A     → MorphWf Δ Θ → MorphWf Δ (bind A ∷ Θ)
-    mw-l : Δ ∋tv X    → MorphWf Δ Θ → MorphWf Δ (lock X ∷ Θ)
-    mw-u : Δ ∋e X , E → MorphWf Δ Θ → MorphWf Δ (unlock X ∷ Θ)
+    mw[] : Δ ⊢ᵐ []
+    mw-b : Δ ⊢ᵗ A     → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (bind A ∷ Θ)
+    mw-l : Δ ∋tv X    → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (lock X ∷ Θ)
+    mw-u : Δ ∋e X , E → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (unlock X ∷ Θ)
 
 A `bind` checks its representation in the exterior.  A `lock` names
 a **visible** slot.  An `unlock` asks only that the slot **exist** — it
@@ -470,7 +472,7 @@ where `seal X` must cite a live owner.
 
 and the boundary rule, in full:
 
-    env : MorphWf Δ Θ
+    env : Δ ⊢ᵐ Θ
         → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
         → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
         → Δ ⊢ᵗ Bₑ
@@ -479,7 +481,7 @@ and the boundary rule, in full:
 
 Premise by premise:
 
-1. **`MorphWf Δ Θ`** — the morphism is well formed in the exterior
+1. **`Δ ⊢ᵐ Θ`** — the morphism is well formed over the exterior
    (§4.2).  This is the only place the morphism's own entries are
    checked, and they are all checked *simultaneously*, against `Δ`.
 2. **`interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ`** — the interior is typed in the interior
@@ -540,7 +542,7 @@ Two derived facts used pervasively:
 
 and, the one the determinism proof needs:
 
-    conv-faces-unique :
+    conv-types-unique :
       if Δ ⊢ c ∶ A ⇝ B and Δ ⊢ c ∶ A′ ⇝ B′ then A ≡ A′ and B ≡ B′
 
 i.e. a conversion **determines both of its types**, given the context:
@@ -743,7 +745,7 @@ where `Bᵢ` is the interior `∀`-body determined by the premise.
    (a `seal`'s source is an owner's representation), so the rule carries
    the conversion typing as a **premise**.  `Progress` supplies it for
    free by inverting the redex's own `env` (`conv-all-inv`), and
-   determinism is `conv-faces-unique`.
+   determinism is `conv-types-unique`.
 3. **The conversion is re-minted at the new slot.**  Slot 0 of `s`'s body
    was `abst` and is now the owner this rule binds, so every leaf that
    reads it must become the instantiation step: `unseal 0` where the
@@ -880,7 +882,7 @@ list head-last, so moving only the *locks* past a same-slot `unlock`
 reorders a mask/unmask pair, and the value's frame is then not refined
 but **corrupted** — a slot it may name in the redex is masked in the
 contractum.  The refutation is in tree
-(`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `MorphWf`-legal witness
+(`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `_⊢ᵐ_`-legal witness
 `Θ✗ = unlock 0 ∷ lock 0 ∷ []` over `Δ✗ = bind ℕ ∷ []`, where
 `interior Θ✗ Δ✗ ≡ bind ℕ ∷ []` but the lock-only contractum's interior is
 `masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and the
@@ -1010,7 +1012,7 @@ Induction on the step, with the rule cases distributed:
   exterior type to be the base type.
 * **`CancelR`, `IdPush`** (`proof/MoveScope`) — the scope move, §6.7.
   Four moves each, one per premise of the contractum's inner `env`:
-  the frame is `Θ₁ ⋉ Θ₂`, well formed by `MorphWf-⋉`; the interior is `V`,
+  the frame is `Θ₁ ⋉ Θ₂`, well formed by `⊢ᵐ-⋉`; the interior is `V`,
   retagged along `frame-move`; the conversion cites the owner that
   `move-∋` transports; and the exterior premise is `moved-scoped`, the
   one the wall used to deny — which is now just `wf-shiftBy-pushBinds` on
@@ -1035,7 +1037,7 @@ case analysis on the two steps; the interesting entries are the rules
 whose contracta are not syntactically determined by the redex:
 
 * `TyPeelR`'s pushed-in annotation is premise-determined, and the two
-  premises give the same annotation by `conv-faces-unique` (§4.4);
+  premises give the same annotation by `conv-types-unique` (§4.4);
 * `CancelR` and `IdPush` mint identity conversions at a looked-up
   representation, and the two lookups agree by `∋:=-det`.
 
@@ -1061,12 +1063,12 @@ machine-checked consequence in tree.
 2. **Tightness, for terms and for scope.**  A masked slot may not be
    named in any type; `Nameable` and `wf-var` are the whole enforcement.  But
    *mentioning* a masked index in a morphism entry (`↓X`, `↥X`) is not a
-   use, and `MorphWf` permits it.
+   use, and `_⊢ᵐ_` permits it.
 3. **No term type-shifts.**  Shift types, not terms.  The only index
    arithmetic in the design is ordinary de Bruijn binder offsets:
    `numBinds Θ`, `shiftBy`, and the `n + X` lift in `scopeOf` and `dualScope`.
    `cmax`, `dropN`, `swapᵇ`, `shiftReps` have no analogue.
-4. **Simultaneity.**  A boundary's entries never interfere: every `MorphWf`
+4. **Simultaneity.**  A boundary's entries never interfere: every `_⊢ᵐ_`
    premise, and every representation, is read in the **exterior**,
    and `pushBinds` lifts a representation past exactly the owners bound inside
    it.  The telescopic variant was landed and reverted
@@ -1143,7 +1145,7 @@ the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
 | `masked E` | the retained, unnameable entry |
 | `unmaskEnt E` | peel one mask |
 | `Nameable E` | the entry may be named in a type |
-| `MorphWf Δ Θ` | the morphism is well formed |
+| `Δ ⊢ᵐ Θ` | the morphism is well formed over Δ |
 | `mkId A` | the identity conversion at any type |
 | `reveal X A` | mint: reveal `X` through `A` |
 | `conceal X A` | mint: conceal `X` through `A` |

@@ -4,11 +4,12 @@ module strong.proof.WallReach where
 --
 -- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
 -- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
--- contracta present the rep on Θ₂'s FACE type context — `interior (dropLocks
--- Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
--- (proof/MoveScope).  So no invariant has to be grounded at all.  What
--- follows is still TRUE, and is the machine-checked record of the
--- candidates that were tried; nothing in the main development uses it.
+-- contracta present the rep on Θ₂'s CONVERSION CONTEXT — `interior
+-- (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds`
+-- supplies it outright (proof/MoveScope).  So no invariant has to be
+-- grounded at all.  What follows is still TRUE, and is the machine-checked
+-- record of the candidates that were tried; nothing in the main development
+-- uses it.
 --
 --
 -- IdPush, CancelR and TyPeelR share ONE obstruction (notes/DECISIONS.md,
@@ -44,14 +45,15 @@ module strong.proof.WallReach where
 --       prefix and names none of
 --       it.  A crossing's locks CANNOT block a rep.
 --   §5  The payoff: `unseal-scoped` derives `interior Θ Δ ⊢ᵗ A` for EVERY
---       unseal-faced wrapper from `RepWf (interior Θ Δ)` alone, which is
+--       revealing wrapper from `RepWf (interior Θ Δ)` alone, which is
 --       exactly the premise `idPush⁺` (proof/IdPushReach) needs and
 --       exactly the fact CancelR's honest contractum demands.
 --   §6  The term-level reading, and its LIMIT: the naive global invariant
 --       ("RepWf at every wrapper's interior") is REFUTED BY A REACHABLE
 --       TERM (Examples §12, `run-L₀`) — a `lock` may indeed block a rep,
---       but only in a `Θ₁` position, under an INERT face.  §7 discharges
---       the mint obligations for the narrowed, `Θ₂`-only reading.
+--       but only in a `Θ₁` position, under an INERT conversion.  §7
+--       discharges the mint obligations for the narrowed, `Θ₂`-only
+--       reading.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Unit using (⊤; tt)
@@ -154,11 +156,11 @@ data AllWf (Δ : Ctxᵗ) : List Ty → Set where
 
 -- A well-formed boundary supplies exactly this: every rep it binds is a
 -- well-formed type over the PLAIN exterior (`mw-b`).
-MorphWf→AllWf : MorphWf Δ Θ → AllWf Δ (repsOf Θ)
-MorphWf→AllWf mw[]        = aw[]
-MorphWf→AllWf (mw-b w b)  = aw∷ w (MorphWf→AllWf b)
-MorphWf→AllWf (mw-l tv b) = MorphWf→AllWf b
-MorphWf→AllWf (mw-u d b)  = MorphWf→AllWf b
+⊢ᵐ→AllWf : Δ ⊢ᵐ Θ → AllWf Δ (repsOf Θ)
+⊢ᵐ→AllWf mw[]        = aw[]
+⊢ᵐ→AllWf (mw-b w b)  = aw∷ w (⊢ᵐ→AllWf b)
+⊢ᵐ→AllWf (mw-l tv b) = ⊢ᵐ→AllWf b
+⊢ᵐ→AllWf (mw-u d b)  = ⊢ᵐ→AllWf b
 
 RepWf-pushBinds : (As : List Ty) → AllWf Δ As → RepWf Δ → RepWf (pushBinds As Δ)
 RepWf-pushBinds []       aw[]        rw = rw
@@ -240,10 +242,11 @@ RepWf-dual′ Θ Δ nu rw =
 ⊢ᵗ→∋tv : Δ ⊢ᵗ ` X → Δ ∋tv X
 ⊢ᵗ→∋tv (wf-var tv) = tv
 
--- The companion owner lookup, from the redex alone: an `unseal Y`-faced
--- wrapper types its body at `` ` Y ``, so Y is VISIBLE inside, and
--- `maskOnly` (interior differs from `convCtx` only by masking) turns the
--- `convCtx` owner fact into an interior one.  No assumption about the world.
+-- The companion owner lookup, from the redex alone: a wrapper whose
+-- conversion is `unseal Y` types its body at `` ` Y ``, so Y is VISIBLE
+-- inside, and `maskOnly` (interior differs from `convCtx` only by masking)
+-- turns the `convCtx` owner fact into an interior one.  No assumption about
+-- the world.
 unseal-owner : ∀ {Δ Γ M Θ Y A C}
   → convCtx Θ Δ ∋ Y := A
   → Δ ∣ Γ ⊢ M ⟪ Θ , unseal Y ⟫ ⦂ C
@@ -254,7 +257,7 @@ unseal-owner {Δ = Δ} {Θ = Θ} d (env _ ⊢M (conv-unseal _) _) =
 
 -- THE SCOPING FACT.  `interior Θ Δ ⊢ᵗ A` — the premise CancelR's honest
 -- contractum demands and `idPush⁺` takes as `scoped` — is a CONSEQUENCE
--- of `RepWf (interior Θ Δ)`, for EVERY unseal-faced wrapper.
+-- of `RepWf (interior Θ Δ)`, for EVERY revealing wrapper.
 unseal-scoped : ∀ {Δ Γ M Θ Y A C} → RepWf (interior Θ Δ)
   → convCtx Θ Δ ∋ Y := A
   → Δ ∣ Γ ⊢ M ⟪ Θ , unseal Y ⟫ ⦂ C
@@ -293,8 +296,8 @@ idPush-RepWf rw v d ⊢R =
 -- its own `unseal Y` hands back to be well formed INSIDE the frame that
 -- hands it back — read off the redex, given only the invariant at the
 -- ACTIVE boundary's interior.  (`RepWf (interior Θ₂ Δ)` cannot be grounded in
--- `MorphWf`: proof/WallGrounding refutes that, so it stays a hypothesis until
--- the condition is attached to the `unseal`-faced `env` node itself.)
+-- `Δ ⊢ᵐ Θ`: proof/WallGrounding refutes that, so it stays a hypothesis
+-- until the condition is attached to the revealing `env` node itself.)
 scoped-at-unseal : ∀ {Δ V Θ₁ Θ₂ c₁ Y A C}
   → RepWf (interior Θ₂ Δ)
   → convCtx Θ₂ Δ ∋ Y := A
@@ -303,8 +306,8 @@ scoped-at-unseal : ∀ {Δ V Θ₁ Θ₂ c₁ Y A C}
   → interior Θ₂ Δ ⊢ᵗ A
 scoped-at-unseal rw d ⊢R = unseal-scoped rw d ⊢R
 
--- CANCELR's honest contractum (keep both frames, neutralise both faces)
--- needs the SAME fact, at the SAME redex shape.
+-- CANCELR's honest contractum (keep both frames, neutralise both
+-- conversions) needs the SAME fact, at the SAME redex shape.
 cancelR-scoped : ∀ {Δ V Θ₁ Θ₂ X Y A C}
   → RepWf (interior Θ₂ Δ)
   → convCtx Θ₂ Δ ∋ Y := A
@@ -350,13 +353,13 @@ wallfree-L₃ =
 ¬wall-step ws = ¬wallfree-L₄ (ws wallfree-L₃ lstep₄)
 
 -- THE READING, and it is the design answer.  The blocked context is
--- reached in a `Θ₁` POSITION — the interior of an INERT `seal`-faced
+-- reached in a `Θ₁` POSITION — the interior of an INERT concealing
 -- wrapper.  A rule only ever READS a rep out of a `Θ₂`: the frame of the
--- wrapper carrying the ACTIVE `unseal` face.  §4 says a Peel's locks sit
--- strictly BELOW everything a rep of that frame can name, and §5 turns
--- that into the three rules' missing premise.  So the invariant to carry
--- is not "no lock blocks a rep anywhere" (false, above) but "`RepWf` at
--- every Θ₂", whose mint obligations are §7.
+-- wrapper carrying the ACTIVE `unseal` conversion.  §4 says a Peel's
+-- locks sit strictly BELOW everything a rep of that frame can name, and §5
+-- turns that into the three rules' missing premise.  So the invariant to
+-- carry is not "no lock blocks a rep anywhere" (false, above) but "`RepWf`
+-- at every Θ₂", whose mint obligations are §7.
 
 ------------------------------------------------------------------------
 -- §7  THE MINT OBLIGATIONS, DISCHARGED
@@ -377,10 +380,10 @@ mint-Peel : (Θ : CtxMorph) (Δ : Ctxᵗ)
 mint-Peel = RepWf-dual
 
 -- CANCELR MINTS NO FRAME AT ALL (the repaired rule, 2026-09-05): it
--- keeps both frames and neutralises both faces, so it owes the invariant
--- exactly what IdPush owes — nothing.  (The old residue
--- `repsOf→bind (repsOf Θ₂)` was BINDS-ONLY, so it was covered by the general
--- form below in any case.)
+-- keeps both frames and neutralises both conversions, so it owes the
+-- invariant exactly what IdPush owes — nothing.  (The old residue
+-- `repsOf→bind (repsOf Θ₂)` was BINDS-ONLY, so it was covered by the
+-- general form below in any case.)
 
 -- THE GENERAL FORM.  A frame that only BINDS (no lock, no unlock) touches
 -- no existing entry, so `interior` is just `pushBinds` and §2's
@@ -394,10 +397,10 @@ scope-BindsOnly : (Θ : CtxMorph) (Δ : Ctxᵗ) → BindsOnly Θ → scope Θ Δ
 scope-BindsOnly []           Δ bo[]      = refl
 scope-BindsOnly (bind A ∷ Θ) Δ (bo-b bo) = scope-BindsOnly Θ Δ bo
 
-mint-binds : (Θ : CtxMorph) → BindsOnly Θ → MorphWf Δ Θ → RepWf Δ
+mint-binds : (Θ : CtxMorph) → BindsOnly Θ → Δ ⊢ᵐ Θ → RepWf Δ
            → RepWf (interior Θ Δ)
 mint-binds {Δ = Δ} Θ bo mw rw rewrite scope-BindsOnly Θ Δ bo =
-  RepWf-pushBinds (repsOf Θ) (MorphWf→AllWf mw) rw
+  RepWf-pushBinds (repsOf Θ) (⊢ᵐ→AllWf mw) rw
 
 -- SUMMARY.  Every frame any rule mints is either BINDS-ONLY (TyBeta,
 -- CancelR — `mint-binds`) or a DUAL (Peel — `RepWf-dual`); IdPush mints
@@ -411,6 +414,6 @@ mint-binds {Δ = Δ} Θ bo mw rw rewrite scope-BindsOnly Θ Δ bo =
 -- type context changes: TyBeta REFINES a Λ-bound slot into an OWNER under
 -- whatever locks the body already carries (`preserve-TyBeta`'s `refine`,
 -- the `le-ao` clause), and `RepWf (interior Θ ·)` does not survive that.  So
--- the narrowed reading cannot be grounded in `MorphWf`, whose every premise
--- must be ⊑-stable for `MorphWf-⊑`/`⊢retag`.  proof/WallGrounding is the
+-- the narrowed reading cannot be grounded in `Δ ⊢ᵐ Θ`, whose every premise
+-- must be ⊑-stable for `⊢ᵐ-⊑`/`⊢retag`.  proof/WallGrounding is the
 -- machine-checked verdict, with the alternative home for the condition.

@@ -13,24 +13,25 @@ module strong.proof.IdPushReach where
 --
 -- proof/PreserveObstruct §4 refutes IdPush's preservation case with a
 -- HAND-BUILT redex whose Θ₂ = `lock 1 ∷ []` blocks exactly the slot the
--- id-face's owner rep (` 1) names — the v1 c10/c11 chained-rep shape.  The
--- mission: is that configuration REACHABLE by v2 reductions from a closed,
--- plain System F source?
+-- inner identity conversion's owner rep (` 1) names — the v1 c10/c11
+-- chained-rep shape.  The mission: is that configuration REACHABLE by v2
+-- reductions from a closed, plain System F source?
 --
 -- THE VERDICT (worked out in the report and recorded in Examples §10):
 --
 --   NOT reachable, once the SEPARATELY-DIAGNOSED Peel/`dual` bug is fixed.
 --   The obstruction is `interior Θ₂ Δ ⊬ᵗ A`, where A is Y's rep.  For a lock in
---   Θ₂ to reach an ACTIVE outer face at all, Θ₂ must come from a Peel's
---   `dual Θ` (TyBeta only ever mints a lock-free `bind A ∷ []`).  A repaired
---   dual installs ONLY the owner locks `hideBinds (numBinds Θ)`, which block
---   Θ's own new owner slots — and by SIMULTANEITY (Ctx.pushBinds lifts each rep
---   past the owners bound INSIDE it, so a rep is a type over the PLAIN
---   exterior) no owner's rep ever names another owner slot.  So the owner
---   locks never block a face's rep, and the `¬IdPushCase` witness — whose
---   `Θ₂`'s lock lands on a NON-owner slot the rep names — is producible only
---   by the CURRENT `dual`'s `unlock X ↦ lock (n+X)` defect (the §3 Peel
---   refutation), not by IdPush itself.
+--   Θ₂ to reach an ACTIVE outer conversion at all, Θ₂ must come from a
+--   Peel's `dual Θ` (TyBeta only ever mints a lock-free `bind A ∷ []`).  A
+--   repaired dual installs ONLY the owner locks `hideBinds (numBinds Θ)`,
+--   which block Θ's own new owner slots — and by SIMULTANEITY
+--   (Ctx.pushBinds lifts each rep past the owners bound INSIDE it, so a rep
+--   is a type over the PLAIN exterior) no owner's rep ever names another
+--   owner slot.  So the owner locks never block a conversion's rep, and the
+--   `¬IdPushCase` witness — whose `Θ₂`'s lock lands on a NON-owner slot
+--   the rep names — is producible only by the CURRENT `dual`'s
+--   `unlock X ↦ lock (n+X)` defect (the §3 Peel refutation), not by
+--   IdPush itself.
 --
 -- THE SOUNDNESS FIX (this file, machine-checked).  `idPush⁺` proves the
 -- IdPush preservation case under ONE genuinely-added scoping side-condition
@@ -45,8 +46,8 @@ module strong.proof.IdPushReach where
 -- (That "mask-only" step is `MaskOnly` below; it is now PROVEN — `maskOnly`,
 -- §2 — so this file assumes nothing.)
 --
--- With both in hand the swapped-face contractum type-checks: the reconstruction
--- is the whole of §3.
+-- With both in hand the conversion-swapped contractum type-checks: the
+-- reconstruction is the whole of §3.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; length)
@@ -184,7 +185,7 @@ maskOnly Θ Δ (E , d , v) d′ with ⊑ᵐ-∋e (interior⊑ᵐconvCtx Θ Δ) d
 -- The preservation obligation of IdPush, EXACTLY as `IdPushCase`, but with
 -- the added scoping premise `interior Θ₂ Δ ⊢ᵗ A` (Q3(a)) and the mask-only
 -- owner fact fed in as a hypothesis.  This is a PROOF, not a parameter: the
--- swapped-face contractum types.
+-- conversion-swapped contractum types.
 IdPushCase⁺ : Set
 IdPushCase⁺ = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → interior Θ₂ Δ ⊢ᵗ A
@@ -208,8 +209,9 @@ idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A =
   eqAC : A ≡ shiftBy (numBinds Θ₂) C
   eqAC = ∋:=-det d dₒ
 
-  -- The inner `id (` X)` face: its interior is ` X, and its exterior
-  -- `shiftBy (numBinds Θ₁) (` Y)` equals ` X, so X = numBinds Θ₁ + Y.
+  -- The inner `id (` X)` conversion: its source type is ` X, and its
+  -- target `shiftBy (numBinds Θ₁) (` Y)` equals ` X, so
+  -- X = numBinds Θ₁ + Y.
   srcX : _ ≡ ` X
   srcX = conv-idv-src ⊢cᵢ
 
@@ -240,8 +242,8 @@ idPushCase-scoped {Δ = Δ} {Θ₂ = Θ₂} v d scoped ⊢R
 ... | env mw₂ (env mw₁ ⊢V ⊢cᵢ wE′) (conv-unseal dₒ) wE =
   idPush⁺ v d scoped (maskOnly Θ₂ Δ (⊢ᵗ→∋tv wE′) d) ⊢R
   where
-  -- With the outer face matched to `conv-unseal`, `wE′ : interior Θ₂ Δ ⊢ᵗ ` Y`
-  -- reflects Y visible inside.
+  -- With the outer conversion matched to `conv-unseal`,
+  -- `wE′ : interior Θ₂ Δ ⊢ᵗ ` Y` reflects Y visible inside.
   ⊢ᵗ→∋tv : ∀ {Δ′ Z} → Δ′ ⊢ᵗ ` Z → Δ′ ∋tv Z
   ⊢ᵗ→∋tv (wf-var tv) = tv
 

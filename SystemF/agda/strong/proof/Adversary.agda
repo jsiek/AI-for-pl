@@ -30,9 +30,9 @@ seal-cites-owner (conv-seal d) refl = d
 
 -- `unlock` claims nothing: it is a NAME with no rep, so it cannot assert
 -- knowledge.  The boundary context morphism carries no type at an alias,
--- and MorphWf's alias premise is `Δ ∋e X , E` — pure existence.
-unlock-claims-nothing : ∀ {Δ X E Θ} → Δ ∋e X , E → MorphWf Δ Θ
-  → MorphWf Δ (unlock X ∷ Θ)
+-- and `Δ ⊢ᵐ Θ`'s alias premise is `Δ ∋e X , E` — pure existence.
+unlock-claims-nothing : ∀ {Δ X E Θ} → Δ ∋e X , E → Δ ⊢ᵐ Θ
+  → Δ ⊢ᵐ (unlock X ∷ Θ)
 unlock-claims-nothing = mw-u
 
 ------------------------------------------------------------------------
@@ -62,7 +62,7 @@ unlock-claims-nothing = mw-u
 
 -- An inner conceal at rep ℕ under an owner whose rep is ∀Z.Z→Z.  The two
 -- spellings cannot disagree, because there is only ONE: `seal 0` reads the
--- owner, so the interior face IS the owner's rep.
+-- owner, so the source type IS the owner's rep.
 
 ∀ZZ : Ty
 ∀ZZ = `∀ (` 0 ⇒ ` 0)
@@ -70,26 +70,26 @@ unlock-claims-nothing = mw-u
 Δbad : Ctxᵗ
 Δbad = bind ∀ZZ ∷ []
 
-seal-bad-face : ∀ {A B} → Δbad ⊢ seal 0 ∶ A ⇝ B → A ≡ ⇑ᵗ ∀ZZ
-seal-bad-face (conv-seal ez) = refl
+seal-bad-conv : ∀ {A B} → Δbad ⊢ seal 0 ∶ A ⇝ B → A ≡ ⇑ᵗ ∀ZZ
+seal-bad-conv (conv-seal ez) = refl
 
 ¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
-¬⊢bad (env mw ⊢$ ⊢c wE) with seal-bad-face ⊢c
+¬⊢bad (env mw ⊢$ ⊢c wE) with seal-bad-conv ⊢c
 ... | ()
 
 ------------------------------------------------------------------------
--- 4.  CANCEL'S FACE EQUATION, DEFINITIONAL
+-- 4.  CANCEL'S TYPE EQUATION, DEFINITIONAL
 ------------------------------------------------------------------------
 
--- At a cancel the inner conceal's interior face and the outer reveal's
--- exterior face are the SAME lookup on the SAME type context, hence literally
--- equal.  This one lemma replaces cancel-agree + Reversal≈ + SkelEq +
--- xrep-stored + MergeOK's two face equations.
-cancel-faces-agree : ∀ {Δ X A B A′ B′}
+-- At a cancel the inner conceal's SOURCE type and the outer reveal's
+-- TARGET type are the SAME lookup on the SAME type context, hence
+-- literally equal.  This one lemma replaces cancel-agree + Reversal≈ +
+-- SkelEq + xrep-stored + MergeOK's two type equations.
+cancel-types-agree : ∀ {Δ X A B A′ B′}
   → Δ ⊢ seal X ∶ A ⇝ B       -- the inner conceal
   → Δ ⊢ unseal X ∶ A′ ⇝ B′   -- the owner it names
     ---------------------------
   → A ≡ B′
-cancel-faces-agree cs cu =
-  ∋:=-det (seal-face-is-the-owners-rep cs)
-          (unseal-face-is-the-owners-rep cu)
+cancel-types-agree cs cu =
+  ∋:=-det (seal-source-is-rep cs)
+          (unseal-target-is-rep cu)

@@ -4,8 +4,8 @@ module strong.proof.Canonical where
 --
 -- A closed value is one of five shapes, and its EXTERIOR TYPE decides
 -- which.  The whole suite is driven by ONE observation: for a wrapper
--- value `V ⟪ Θ , c ⟫` the `env` rule pins the exterior face of `c` to
--- `shiftBy (numBinds Θ) Bₑ`, and an INERT `c` determines that face's head
+-- value `V ⟪ Θ , c ⟫` the `env` rule pins the TARGET TYPE of `c` to
+-- `shiftBy (numBinds Θ) Bₑ`, and an INERT `c` determines that type's head
 -- constructor outright:
 --
 --   id (` X)  ⇝  ` X          I-idv
@@ -13,13 +13,14 @@ module strong.proof.Canonical where
 --   s ↦ t     ⇝  A′ ⇒ B′      I-fun
 --   `∀ s      ⇝  `∀ B         I-all
 --
--- Neither ACTIVE face can occur under `V-⟪⟫`, so no inert face has a BASE
--- exterior at all — which is why `canon-base` returns a numeral OUTRIGHT
--- (§3), with no wrapper escape hatch.  Dually, the two faces with a
--- VARIABLE exterior are exactly `seal` and the id-at-a-variable — the two
--- left-hand sides of CancelR and IdPush (§3, canon-var).  This is the v1
--- "canon-var nightmare", dissolved: it is a two-way case split on a face
--- constructor, with no rep comparison anywhere.
+-- Neither ACTIVE conversion can occur under `V-⟪⟫`, so no inert
+-- conversion has a BASE target at all — which is why `canon-base` returns
+-- a numeral OUTRIGHT (§3), with no wrapper escape hatch.  Dually, the two
+-- conversions with a VARIABLE target are exactly `seal` and the
+-- id-at-a-variable — the two left-hand sides of CancelR and IdPush (§3,
+-- canon-var).  This is the v1 "canon-var nightmare", dissolved: it is a
+-- two-way case split on a conversion constructor, with no rep comparison
+-- anywhere.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_)
@@ -44,13 +45,13 @@ private
     c : Conv
 
 ------------------------------------------------------------------------
--- §1  The exterior face is the term's type, LIFTED past the owners
+-- §1  The TARGET type is the exterior type, LIFTED past the owners
 ------------------------------------------------------------------------
 
--- `env` reads the exterior face at `shiftBy (numBinds Θ) Bₑ`, so every face
--- inversion below has to see through `shiftBy`.  Lifting preserves the head
--- constructor; that is all we need.  (`shiftBy-base` and `shiftBy-var` are
--- already in strong.Ctx.)
+-- `env` reads the target type at `shiftBy (numBinds Θ) Bₑ`, so every
+-- conversion inversion below has to see through `shiftBy`.  Lifting
+-- preserves the head constructor; that is all we need.  (`shiftBy-base`
+-- and `shiftBy-var` are already in strong.Ctx.)
 
 shiftBy-⇒ : (n : ℕ) (A B : Ty) → shiftBy n (A ⇒ B) ≡ shiftBy n A ⇒ shiftBy n B
 shiftBy-⇒ zero    A B = refl
@@ -61,24 +62,24 @@ shiftBy-∀ zero    C = C , refl
 shiftBy-∀ (suc n) C with shiftBy-∀ n C
 ... | C′ , eq = renameᵗ (extᵗ suc) C′ , cong ⇑ᵗ eq
 
--- Retype a conversion along an equality of its exterior face.
+-- Retype a conversion along an equality of its target type.
 conv-tgt≡ : ∀ {B′} → B ≡ B′
   → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A ⇝ B′
 conv-tgt≡ refl ⊢c = ⊢c
 
 -- Retype a term along an equality of its type.  Used to move an interior
--- derivation along the face inversions of strong.Conversion (which name
--- the INTERIOR face of an `id`/`unseal`), so that the canonical-forms
+-- derivation along the conversion inversions of strong.Conversion (which
+-- name the SOURCE type of an `id`/`unseal`), so that the canonical-forms
 -- lemmas can be applied to it.
 ⊢ty≡ : ∀ {Γ M} → A ≡ B → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ ⊢ M ⦂ B
 ⊢ty≡ refl ⊢M = ⊢M
 
 ------------------------------------------------------------------------
--- §2  What an INERT face can look like, read off its EXTERIOR type
+-- §2  What an INERT conversion can look like, read off its TARGET type
 ------------------------------------------------------------------------
 
--- No inert face has a base exterior.  `id A` at a base type is the one
--- conversion with a base exterior, and it is ACTIVE (A-idb), so `V-⟪⟫`
+-- No inert conversion has a base target.  `id A` at a base type is the
+-- one conversion with a base target, and it is ACTIVE (A-idb), so `V-⟪⟫`
 -- can never build a value at a base type.
 inert-¬base : Inert c → Δ ⊢ c ∶ A ⇝ B → ¬ Base B
 inert-¬base I-idv  (conv-id ())
@@ -87,25 +88,25 @@ inert-¬base I-seal (conv-seal _)  ()
 inert-¬base I-fun  (conv-fun _ _) ()
 inert-¬base I-all  (conv-all _)   ()
 
--- An ARROW exterior forces the ↦ face: `id`/`seal` have variable
--- exteriors and `` `∀ `` has a ∀ exterior.
-inert-fun-face : Inert c → Δ ⊢ c ∶ A ⇝ (B ⇒ C)
+-- An ARROW target forces a function conversion: `id`/`seal` have
+-- variable targets and `` `∀ `` has a ∀ target.
+inert-fun-conv : Inert c → Δ ⊢ c ∶ A ⇝ (B ⇒ C)
   → Σ[ s ∈ Conv ] Σ[ t ∈ Conv ] (c ≡ s ↦ t)
-inert-fun-face I-fun (conv-fun ⊢s ⊢t) = _ , _ , refl
+inert-fun-conv I-fun (conv-fun ⊢s ⊢t) = _ , _ , refl
 
--- A ∀ exterior forces the ∀ face.
-inert-all-face : Inert c → Δ ⊢ c ∶ A ⇝ `∀ B
+-- A ∀ target forces a ∀ conversion.
+inert-all-conv : Inert c → Δ ⊢ c ∶ A ⇝ `∀ B
   → Σ[ s ∈ Conv ] (c ≡ `∀ s)
-inert-all-face I-all (conv-all ⊢s) = _ , refl
+inert-all-conv I-all (conv-all ⊢s) = _ , refl
 
--- A VARIABLE exterior admits exactly TWO faces, and the variable is
+-- A VARIABLE target admits exactly TWO conversions, and the variable is
 -- literally the name they carry — there is no second spelling to compare.
 -- These two are the left-hand sides of CancelR and IdPush.
-inert-var-face : Inert c → Δ ⊢ c ∶ A ⇝ ` X
+inert-var-conv : Inert c → Δ ⊢ c ∶ A ⇝ ` X
   → (c ≡ seal X) ⊎ (c ≡ id (` X))
-inert-var-face I-idv  (conv-id ())
-inert-var-face I-idv  (conv-idv _)  = inj₂ refl
-inert-var-face I-seal (conv-seal _) = inj₁ refl
+inert-var-conv I-idv  (conv-id ())
+inert-var-conv I-idv  (conv-idv _)  = inj₂ refl
+inert-var-conv I-seal (conv-seal _) = inj₁ refl
 
 ------------------------------------------------------------------------
 -- §3  CANONICAL FORMS
@@ -126,9 +127,10 @@ canon-base (V-⟪⟫ v ic) b (env {Θ = Θ} _ _ ⊢c _) =
 canon-ℕ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `ℕ → Σ[ n ∈ ℕ ] (V ≡ $ n)
 canon-ℕ v ⊢V = canon-base v base-ℕ ⊢V
 
--- ARROW.  A closed value at an arrow type is a λ or a ↦-FACED WRAPPER —
--- the two left-hand sides of Beta and Peel.  The wrapper's interior is
--- itself a value, which is exactly Peel's first premise.
+-- ARROW.  A closed value at an arrow type is a λ or a wrapper with a
+-- FUNCTION CONVERSION — the two left-hand sides of Beta and Peel.  The
+-- wrapper's interior is itself a value, which is exactly Peel's first
+-- premise.
 canon-⇒ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ (A ⇒ B)
   → (Σ[ N ∈ Term ] (V ≡ ƛ A ∙ N))
   ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
@@ -137,13 +139,13 @@ canon-⇒ V-$     ()
 canon-⇒ V-ƛ     (⊢ƛ _ _) = inj₁ (_ , refl)
 canon-⇒ (V-Λ _) ()
 canon-⇒ {A = A} {B = B} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with inert-fun-face ic
+  with inert-fun-conv ic
          (conv-tgt≡ (shiftBy-⇒ (numBinds Θ) A B) ⊢c)
 canon-⇒ (V-⟪⟫ v ic) (env _ _ ⊢c _) | s , t , refl =
   inj₂ (_ , _ , s , t , v , refl)
 
 -- ∀.  A closed value at a ∀ type is a Λ over a VALUE (V-Λ's premise, and
--- exactly TyBeta's premise) or a ∀-FACED WRAPPER (TyPeelR's).
+-- exactly TyBeta's premise) or a wrapper with a ∀ CONVERSION (TyPeelR's).
 canon-∀ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → (Σ[ N ∈ Term ] (Value N × (V ≡ Λ N)))
   ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ]
@@ -154,15 +156,16 @@ canon-∀ (V-Λ vN) (⊢Λ _) = inj₁ (_ , vN , refl)
 canon-∀ {C = C} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
   with shiftBy-∀ (numBinds Θ) C
 canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq
-  with inert-all-face ic (conv-tgt≡ eq ⊢c)
+  with inert-all-conv ic (conv-tgt≡ eq ⊢c)
 canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq | s , refl =
   inj₂ (_ , _ , s , v , refl)
 
 -- VARIABLE — the v2 canon-var.  A closed value at an abstract type is a
--- wrapper whose face is `seal Y` or `id (` Y)`, nothing else: the two
--- left-hand sides of CancelR and IdPush.  (`value-var-visible` is NOT
--- needed here — the face inversion already decides the shape; visibility
--- of the named slot is a separate, and independently available, fact.)
+-- wrapper whose conversion is `seal Y` or `id (` Y)`, nothing else: the
+-- two left-hand sides of CancelR and IdPush.  (`value-var-visible` is NOT
+-- needed here — the conversion inversion already decides the shape;
+-- visibility of the named slot is a separate, and independently available,
+-- fact.)
 canon-var : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
   → Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ Y ∈ ℕ ]
       (Value W
@@ -171,7 +174,7 @@ canon-var V-$     ()
 canon-var V-ƛ     ()
 canon-var (V-Λ _) ()
 canon-var {X = X} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with inert-var-face ic
+  with inert-var-conv ic
          (conv-tgt≡ (shiftBy-var (numBinds Θ) X) ⊢c)
 canon-var (V-⟪⟫ v ic) (env _ _ ⊢c _) | inj₁ refl =
   _ , _ , _ , v , inj₁ refl

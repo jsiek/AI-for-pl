@@ -16,10 +16,11 @@ module strong.Ctx where
 --             (`unlock`) to point back at.
 --
 -- Under Jeremy's Q1 ruling (OWNER-SYNTACTIC, 2026-09-05) a variable's
--- representation lives ONLY at its owner; every face and every licence
--- resolves the rep by LOOKING THE NAME UP along the enclosing type context.  There
--- is no store and no copy, so knowledge transport (`ren-kn`, `⊑-kn`) is
--- definitional and the old design's demotion is not expressible.
+-- representation lives ONLY at its owner; every conversion and every
+-- licence resolves the rep by LOOKING THE NAME UP along the enclosing
+-- type context.  There is no store and no copy, so knowledge transport
+-- (`ren-kn`, `⊑-kn`) is definitional and the old design's demotion is
+-- not expressible.
 --
 -- This module also carries the POSITIONAL machinery the boundary needs:
 -- injective renamings (`Inj`), one-slot entry update
@@ -121,7 +122,7 @@ _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
 ∋:=→∋tv d = bind _ , d , nameable-b
 
 -- Lookup is a partial FUNCTION, which is what makes every rule that mints an
--- identity face at a looked-up rep deterministic.
+-- identity conversion at a looked-up rep deterministic.
 ∋e-det : Δ ∋e X , E → Δ ∋e X , E′ → E ≡ E′
 ∋e-det ez     ez      = refl
 ∋e-det (es d) (es d′) = cong ⇑ᵉ (∋e-det d d′)
@@ -310,8 +311,8 @@ shiftBy-ren (suc n) ρ A =
         (cong ⇑ᵗ (shiftBy-ren n ρ A))
 
 -- The SAME lifting, read UNDER one binder: `shiftBy n` on a `` `∀ `` body.
--- TyPeelR needs it, because the ∀-face's exterior body is the exterior
--- type's body lifted past the boundary's owners.
+-- TyPeelR needs it, because a ∀ conversion's TARGET body is the
+-- exterior type's body lifted past the boundary's owners.
 shiftBodyBy : ℕ → Ty → Ty
 shiftBodyBy zero    B = B
 shiftBodyBy (suc n) B = renameᵗ (extᵗ suc) (shiftBodyBy n B)

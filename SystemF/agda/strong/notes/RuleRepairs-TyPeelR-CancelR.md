@@ -29,8 +29,8 @@ program
 
 reaches `G₄ = ((ΛZ. 7⟪↓X, seal X⟫) ⟪ ↑Y:=ℕ , ∀Z. id X ⟫) [ℕ]` (typed) and
 TyPeelR steps it to `G₅`, whose interior mentions `` ` 3 `` while the
-pushed annotation says `` ` 2 `` — `¬⊢G₅` (untypeable).  The face here is
-an identity, so the annotation defect (a) is NOT what fires: the
+pushed annotation says `` ` 2 `` — `¬⊢G₅` (untypeable).  The conversion
+here is an identity, so the annotation defect (a) is NOT what fires: the
 double-count alone kills it.  The frame identity that makes plain `Θ`
 right is definitional:
 
@@ -42,28 +42,30 @@ shift is removed.
 
 ### Defect (a) — the interior ∀-body is not syntactic: make it premise-determined
 
-The inner `·[ Bᵢ , ` 0 ]` must carry the SOURCE face of `s` — what the
+The inner `·[ Bᵢ , ` 0 ]` must carry the SOURCE type of `s` — what the
 interior's own `⊢·[]` demands — not the exterior body `B`.  For `↑ˢ`
-(reveal) faces `Bᵢ` is reconstructible syntactically (`unseal X ↦ ` X`,
-`id A ↦ A`, `↦`/`∀` structural), but for a `↓ˢ` ∀-face — a POLYMORPHIC
-ARGUMENT that crossed a Peel, reachable — a `seal`'s source is an owner's
-REP, which the rep-free conversion does not carry.  It is, however,
-DETERMINED by the conversion typing.  Proposal — the same move already
-ruled for the `mkId` faces (owner-lookup premises):
+(revealing) conversions `Bᵢ` is reconstructible syntactically
+(`unseal X ↦ ` X`, `id A ↦ A`, `↦`/`∀` structural), but for a `↓ˢ` ∀
+conversion — a POLYMORPHIC ARGUMENT that crossed a Peel, reachable — a
+`seal`'s source is an owner's REP, which the rep-free conversion does not
+carry.  It is, however, DETERMINED by the conversion typing.  Proposal —
+the same move already ruled for the `mkId` conversions (owner-lookup
+premises):
 
 ```agda
 TyPeelR : ∀ {Δ V Θ s A Bᵢ Bₑ p} → Value V
-  → (abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p            -- NEW: the face typing, read at the
-                                                    --   ∀-body (under one abst) — gives
-                                                    --   the INTERIOR body Bᵢ
-  → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ ⟨exterior body⟩ , A ]
+  → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
+        -- NEW: the conversion typing, read at the ∀-body (under one
+        --   abst) — gives the INTERIOR body Bᵢ
+  → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ ⟨target body⟩ , A ]
       -→ (wkᴹ 1 V ·[ Bᵢ′ , ` 0 ]) ⟪ bind A ∷ Θ , s ⟫  -- Bᵢ′ = Bᵢ re-based to the interior
                                                     --   frame with bind A at slot 0
 ```
 
-Determinism: faces are functions of (type context, conversion) — `id A`
-carries its face, `unseal X`/`seal X` faces come from the owner lookup
-(`∋:=`-det), `↦`/`∀` are structural — so a `conv-faces-unique` lemma
+Determinism: a conversion's source and target types are functions of
+(type context, conversion) — `id A` carries its own, `unseal X`/`seal X`
+read theirs from the owner lookup
+(`∋:=`-det), `↦`/`∀` are structural — so a `conv-types-unique` lemma
 (to prove alongside) closes the TyPeelR-vs-TyPeelR det case.  Progress
 derives the premise for free by inverting the redex's `env` (its
 conversion typing IS this fact, one `∀` inside), exactly as it recovers
@@ -75,7 +77,7 @@ becomes a corollary, not a restriction.
 ### Current, with the defect marked
 
 ```agda
-CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → exterior Θ₂ Δ ∋ Y := A
+CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
       -→ V ⟪ repsOf→bind (repsOf Θ₂) , mkId A ⟫   -- drops Θ₁'s ENTIRE frame
                                              --   and Θ₂'s unlocks; V was
@@ -83,14 +85,15 @@ CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → exterior Θ₂ Δ ∋ Y :
                                              --   interior Θ₁ (interior Θ₂ Δ)
 ```
 
-### Proposal — keep both frames, neutralize both faces
+### Proposal — keep both frames, neutralize both conversions
 
-Composition happens only on the FACES, where `unseal ∘ seal = id` is the
+Composition happens only on the CONVERSIONS, where `unseal ∘ seal = id`
+is the
 algebra we already trust; the context morphisms stay put, so no `⊕`
 returns:
 
 ```agda
-CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → exterior Θ₂ Δ ∋ Y := A
+CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
       -→ (V ⟪ Θ₁ , mkId (shiftBy (numBinds Θ₁) A) ⟫) ⟪ Θ₂ , mkId A ⟫
 ```

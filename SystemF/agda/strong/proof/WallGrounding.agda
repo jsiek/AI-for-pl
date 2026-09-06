@@ -4,11 +4,12 @@ module strong.proof.WallGrounding where
 --
 -- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
 -- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
--- contracta present the rep on Θ₂'s FACE type context — `interior (dropLocks
--- Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
--- (proof/MoveScope).  So no invariant has to be grounded at all.  What
--- follows is still TRUE, and is the machine-checked record of the
--- candidates that were tried; nothing in the main development uses it.
+-- contracta present the rep on Θ₂'s CONVERSION CONTEXT — `interior
+-- (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds`
+-- supplies it outright (proof/MoveScope).  So no invariant has to be
+-- grounded at all.  What follows is still TRUE, and is the machine-checked
+-- record of the candidates that were tried; nothing in the main development
+-- uses it.
 --
 --
 -- proof/WallReach turns the wall into the type-context invariant
@@ -17,9 +18,9 @@ module strong.proof.WallGrounding where
 --
 -- and shows (§5) that `RepWf (interior Θ₂ Δ)` is EXACTLY the premise IdPush
 -- and CancelR are missing.  The obvious next move is to GROUND it in the
--- typing rules by strengthening `MorphWf`'s lock clause, so that
+-- typing rules by strengthening `_⊢ᵐ_`'s lock clause, so that
 --
---     MorphWf→RepWf : RepWf Δ → MorphWf Δ Θ → RepWf (interior Θ Δ)
+--     ⊢ᵐ→RepWf : RepWf Δ → Δ ⊢ᵐ Θ → RepWf (interior Θ Δ)
 --
 -- becomes a theorem.  THIS FILE REFUTES THAT MOVE, and says what the
 -- right home for the condition is instead.
@@ -28,12 +29,12 @@ module strong.proof.WallGrounding where
 --       witness (proof/PreserveObstruct §4) and the REACHABLE wrapper of
 --       Examples §12's `run-L₀` have THE SAME exterior type context
 --       `bind (` 0) ∷ bind ℕ ∷ []` and THE SAME frame `lock 1 ∷ []`.
---       They differ ONLY in their FACE — `unseal 0` (active) versus
+--       They differ ONLY in their CONVERSION — `unseal 0` (active) versus
 --       `seal 1` (inert).  So NO condition on `Δ` and `Θ` alone — i.e.
---       no condition expressible in `MorphWf Δ Θ` — can reject the first and
+--       no condition expressible in `Δ ⊢ᵐ Θ` — can reject the first and
 --       admit the second.
 --
---   §2  THE REFUTATION, from the reachable side.  Any `MorphWf→RepWf` makes
+--   §2  THE REFUTATION, from the reachable side.  Any `⊢ᵐ→RepWf` makes
 --       `⊢L₄` (Examples §12) underivable; `⊢L₃` is derivable and
 --       `L₃ -→ L₄` is an ORDINARY TYBETA STEP, so preservation would
 --       fail at TyBeta — the one boundary-minting rule that is currently
@@ -43,22 +44,22 @@ module strong.proof.WallGrounding where
 --       under knowledge refinement `_⊑_`, and it fails at exactly the
 --       clause `le-ao : abst ⊑ᵉ bind A` — which is the refinement TyBeta
 --       performs on its own contractum (`preserve-TyBeta`'s `refine`).
---       `MorphWf` must be ⊑-stable, because `⊢retag` (strong.TermSubst)
---       transports a whole derivation along `_⊑_` via `MorphWf-⊑`.  A wall
---       premise inside `MorphWf` therefore breaks `MorphWf-⊑`, hence `⊢retag`,
+--       `_⊢ᵐ_` must be ⊑-stable, because `⊢retag` (strong.TermSubst)
+--       transports a whole derivation along `_⊑_` via `⊢ᵐ-⊑`.  A wall
+--       premise inside `_⊢ᵐ_` therefore breaks `⊢ᵐ-⊑`, hence `⊢retag`,
 --       hence TyBeta.
 --
 --   §4  WHERE IT DOES BELONG.  The condition the rules need is about the
 --       boundary that READS a rep back — the one carrying the ACTIVE
---       (`unseal`) face — and it is exactly
+--       (`unseal`) conversion — and it is exactly
 --
 --         scope Θ Δ ⊢ᵗ Bₑ      ("the exterior type survives my own locks")
 --
 --       This is ⊑-STABLE (§4a), it DELIVERS `interior Θ Δ ⊢ᵗ A` (§4b), it
 --       REJECTS the `¬IdPushCase` witness (§4c), and it is VACUOUS on
 --       every lock-free frame — including every `Θ₂` on the `run-L₀` and
---       `run-D₀` runs (§4d).  It cannot live in `MorphWf`; its home is the
---       `env` rule, where the face is in scope.
+--       `run-D₀` runs (§4d).  It cannot live in `_⊢ᵐ_`; its home is the
+--       `env` rule, where the conversion is in scope.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Unit using (⊤; tt)
@@ -83,7 +84,7 @@ open import strong.proof.PreserveObstruct
   using (Δi; Θi; Ξi; Vi; Ri; ⊢Ri; step-i)
 
 ------------------------------------------------------------------------
--- §1  ONE BOUNDARY, TWO FACES
+-- §1  ONE BOUNDARY, TWO CONVERSIONS
 ------------------------------------------------------------------------
 
 -- The frame the wall is about.
@@ -105,9 +106,9 @@ _ = refl
 _ : interior Θi Δi ≡ Ξi
 _ = refl
 
--- THE ONLY DIFFERENCE IS THE FACE.  In `Ri` the frame `Θw` carries the
--- ACTIVE face `unseal 0`; in `L₄` the very same frame over the very same
--- type context carries the INERT face `seal 1`.
+-- THE ONLY DIFFERENCE IS THE CONVERSION.  In `Ri` the frame `Θw` carries
+-- the ACTIVE conversion `unseal 0`; in `L₄` the very same frame over the
+-- very same type context carries the INERT conversion `seal 1`.
 _ : Ri ≡ (Vi ⟪ [] , id (` 0) ⟫) ⟪ Θw , unseal 0 ⟫
 _ = refl
 
@@ -115,35 +116,35 @@ _ : L₄ ≡ ((($ 7) ⟪ Θw , seal 1 ⟫) ⟪ bind (` 0) ∷ [] , id (` 1) ⟫)
            ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 _ = refl
 
--- A `MorphWf Δ Θ` premise sees Δ and Θ and NOTHING ELSE, so it either
+-- A `Δ ⊢ᵐ Θ` premise sees Δ and Θ and NOTHING ELSE, so it either
 -- accepts both boundaries or rejects both.
-face-is-the-only-difference : (Δi ≡ LΔ) × (Θi ≡ Θw)
-face-is-the-only-difference = refl , refl
+conv-is-the-only-difference : (Δi ≡ LΔ) × (Θi ≡ Θw)
+conv-is-the-only-difference = refl , refl
 
 ------------------------------------------------------------------------
 -- §2  THE REFUTATION
 ------------------------------------------------------------------------
 
 -- The property the strengthened lock clause is supposed to buy.
-MorphWfWall : Set
-MorphWfWall = ∀ {Δ Θ} → RepWf Δ → MorphWf Δ Θ → RepWf (interior Θ Δ)
+⊢ᵐWall : Set
+⊢ᵐWall = ∀ {Δ Θ} → RepWf Δ → Δ ⊢ᵐ Θ → RepWf (interior Θ Δ)
 
--- Every typing of `L₄` contains the boundary `MorphWf LΔ Θw` — the wrapper
+-- Every typing of `L₄` contains the boundary `LΔ ⊢ᵐ Θw` — the wrapper
 -- three `env` nodes down, whose frame is `Θw`.  (The two enclosing
 -- frames compute: `interior (bind ℕ ∷ []) [] ≡ QΔ₁` and
 -- `interior (bind (` 0) ∷ []) QΔ₁ ≡ LΔ`.)
-L₄-lock : [] ∣ [] ⊢ L₄ ⦂ `ℕ → MorphWf LΔ Θw
+L₄-lock : [] ∣ [] ⊢ L₄ ⦂ `ℕ → LΔ ⊢ᵐ Θw
 L₄-lock (env _ (env _ (env mw _ _ _) _ _) _ _) = mw
 
 -- THE REFUTATION, stated so that it bites BOTH ways: read left to right
--- it says a `MorphWf`-level wall makes `L₄` untypeable; read with the
--- CURRENT `MorphWf` (where `⊢L₄` exists) it says the wall is not a
--- consequence of `MorphWf` at all.
-wall-vs-L₄ : MorphWfWall → ¬ ([] ∣ [] ⊢ L₄ ⦂ `ℕ)
+-- it says a `_⊢ᵐ_`-level wall makes `L₄` untypeable; read with the
+-- CURRENT `_⊢ᵐ_` (where `⊢L₄` exists) it says the wall is not a
+-- consequence of `_⊢ᵐ_` at all.
+wall-vs-L₄ : ⊢ᵐWall → ¬ ([] ∣ [] ⊢ L₄ ⦂ `ℕ)
 wall-vs-L₄ h ⊢L = ¬RepWf-WΞ (h RepWf-WΔ (L₄-lock ⊢L))
 
-¬MorphWfWall : ¬ MorphWfWall
-¬MorphWfWall h = wall-vs-L₄ h ⊢L₄
+¬⊢ᵐWall : ¬ ⊢ᵐWall
+¬⊢ᵐWall h = wall-vs-L₄ h ⊢L₄
 
 -- ── AND THE REDEX IT COMES FROM STILL TYPES ────────────────────────────
 
@@ -170,9 +171,9 @@ RepWf-L₃w (es (es ()))
 
 -- THE HEADLINE.  `L₃ -→ L₄` is `ξ-⟪⟫ (TyBeta …)` — an ordinary TyBeta,
 -- the ONE boundary-minting rule whose preservation case is PROVEN.  So a
--- wall premise inside `MorphWf` does not repair preservation; it BREAKS it,
+-- wall premise inside `_⊢ᵐ_` does not repair preservation; it BREAKS it,
 -- at a rule that currently holds.
-wall-vs-TyBeta : MorphWfWall
+wall-vs-TyBeta : ⊢ᵐWall
   → ¬ (∀ {Δ M M′ A} → Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A)
 wall-vs-TyBeta h pr = wall-vs-L₄ h (pr ⊢L₃ lstep₄)
 
@@ -188,12 +189,12 @@ TyBetaCase = ∀ {Δ N B A C}
 tyBetaCase : TyBetaCase
 tyBetaCase = preserve-TyBeta
 
--- … and the minted face at this redex is the id-layer.
+-- … and the minted conversion at this redex is the id-layer.
 _ : reveal 0 (` 1) ≡ id (` 1)
 _ = refl
 
--- … but it CANNOT hold alongside a `MorphWf`-level wall.
-wall-vs-preserve-TyBeta : MorphWfWall → ¬ TyBetaCase
+-- … but it CANNOT hold alongside a `_⊢ᵐ_`-level wall.
+wall-vs-preserve-TyBeta : ⊢ᵐWall → ¬ TyBetaCase
 wall-vs-preserve-TyBeta h tb =
   wall-vs-L₄ h
     (env (mw-b wf-ℕ mw[]) (tb ⊢L₃-in) (conv-unseal ez) wf-ℕ)
@@ -216,28 +217,28 @@ wall-not-⊑-stable :
        → RepWf (interior Θ Δ) → RepWf (interior Θ Δ′))
 wall-not-⊑-stable h = ¬RepWf-WΞ (h Θw refineᴸ RepWf-L₃w)
 
--- WHY THAT IS FATAL FOR `MorphWf`.  `MorphWf-⊑` (strong.Terms) transports a
+-- WHY THAT IS FATAL FOR `_⊢ᵐ_`.  `⊢ᵐ-⊑` (strong.Terms) transports a
 -- boundary along `_⊑_`, and `⊢retag` (strong.TermSubst) calls it on
 -- EVERY wrapper of a retagged derivation.  `preserve-TyBeta` retags its
--- contractum along exactly `refineᴸ`'s shape.  A `MorphWf` clause carrying a
--- non-⊑-stable premise makes `MorphWf-⊑` unprovable, and `⊢retag` with it.
-retag-needs-MorphWf-⊑ : ∀ {Δ Δ′ Γ M A}
+-- contractum along exactly `refineᴸ`'s shape.  A `_⊢ᵐ_` clause carrying a
+-- non-⊑-stable premise makes `⊢ᵐ-⊑` unprovable, and `⊢retag` with it.
+retag-needs-⊢ᵐ-⊑ : ∀ {Δ Δ′ Γ M A}
   → Δ ⊑ Δ′ → Δ ∣ Γ ⊢ M ⦂ A → Δ′ ∣ Γ ⊢ M ⦂ A
-retag-needs-MorphWf-⊑ = ⊢retag
+retag-needs-⊢ᵐ-⊑ = ⊢retag
 
 ------------------------------------------------------------------------
--- §4  THE CONDITION THAT DOES WORK — on the ACTIVE face's boundary
+-- §4  THE CONDITION THAT DOES WORK — on the ACTIVE conversion's boundary
 ------------------------------------------------------------------------
 
 -- What IdPush and CancelR actually need is `interior Θ₂ Δ ⊢ᵗ A` for the rep
--- `A` the ACTIVE face hands back.  For an `unseal`-faced `env` node that
+-- `A` the ACTIVE conversion hands back.  For a revealing `env` node that
 -- rep IS `shiftBy (numBinds Θ) Bₑ` (the exterior type, lifted), so the whole
 -- requirement is that the boundary's OWN exterior type survives its OWN
 -- locks:
 Scoped : Ctxᵗ → CtxMorph → Ty → Set
 Scoped Δ Θ Bₑ = scope Θ Δ ⊢ᵗ Bₑ
 
--- ── §4a  IT IS ⊑-STABLE — the property §3 denies the `MorphWf` version ────
+-- ── §4a  IT IS ⊑-STABLE — the property §3 denies the `_⊢ᵐ_` version ───
 --
 -- Masking is positional, so it commutes with refinement (`⊑-scope`), and
 -- well-formedness is monotone (`⊑-wf`).  Nothing here depends on which
@@ -295,7 +296,8 @@ _ = refl
 -- The candidate that separated them asked `Scoped` at REVEAL boundaries
 -- only, switching on the conversion judgment's POLARITY index — which
 -- Jeremy's 2026-09-06 ruling RETIRED (strong.Conversion).  With no `p` on
--- an `env` node there is no face-conditioned premise to state, so this
--- branch of the search is closed along with the index; the surviving
--- candidate is the REP CHAIN of proof/ChainScoped, which reads the face's
--- NAME rather than a polarity, and is killed there by TyBeta's retag.
+-- an `env` node there is no conversion-conditioned premise to state, so
+-- this branch of the search is closed along with the index; the surviving
+-- candidate is the REP CHAIN of proof/ChainScoped, which reads the
+-- conversion's NAME rather than a polarity, and is killed there by
+-- TyBeta's retag.

@@ -12,7 +12,11 @@ module strong.Examples where
 --     contracta are TYPED.
 -- §6  the first end-to-end run from a CLOSED, PLAIN source program.
 -- §7  two regressions on substᵐ; §8 progress on §6; §9 preservation on §6.
--- §10 IdPush — the reachability verdict of proof/IdPushReach.
+-- (§10 is GONE.  It held the reachability verdict for the old IdPush
+--     contractum's scoping side-condition; the scope move (strong.Reduction
+--     §2b) removed the side-condition, and the invariant hunt behind it is
+--     recorded in notes/DECISIONS.md, 2026-09-06.  Later section numbers
+--     are unchanged.)
 -- §11 IDPUSH FROM CLOSED, PLAIN SOURCE — the run `Q` Jeremy asked for,
 --     plus the three variants: (ii) a CHAINED conversion rep (`R`),
 --     (iii) IdPush firing TWICE (`D`), and (i) a multi-bind Θ₁, which
@@ -935,53 +939,6 @@ run-P₀-pres = preservation* ⊢P₀ run-P₀
 ⊢P₆-pres = preservation-Drop$ base-ℕ ⊢P₅
 
 ------------------------------------------------------------------------
--- §10  IDPUSH — THE REACHABILITY VERDICT (soundness, not a break)
-------------------------------------------------------------------------
-
--- SUPERSEDED BY THE SCOPE MOVE (2026-09-06), and kept as the record of
--- the question it answered.  The old IdPush contractum was refuted on a
--- HAND-BUILT redex whose Θ₂ = `lock 1 ∷ []` blocks the very slot the
--- identity conversion's binder rep (` 1) names, and this section asked
--- whether that configuration was REACHABLE.  The repaired rule MOVES
--- Θ₂'s scope into the inner frame, so the configuration is no longer a
--- problem whether it is reachable or not (§12b runs the witness), and
--- the scoping side-condition below is no longer asked of anything.  The
--- verdict as it stood:  NO — once the separately-diagnosed Peel/`dual`
--- bug (§3 of PreserveObstruct) is fixed.
---
---   * TyBeta, the ONLY rule that mints a boundary from a plain redex,
---     mints a LOCK-FREE `bind A ∷ []`; so a lock reaches an ACTIVE outer
---     conversion only via a Peel's `dual Θ`.
---   * A REPAIRED dual installs only the binder locks `hideBinds (numBinds Θ)`,
---     which block Θ's own new binder slots.  By SIMULTANEITY (`pushBinds` lifts
---     each rep past the binders inside it — a rep is a type over the
---     PLAIN exterior) NO binder's rep names another binder slot, so those
---     binder locks never block a conversion's rep.
---   * The `¬IdPushCase` witness has its lock on a NON-binder slot the rep
---     names; that shape is producible ONLY by the current dual's
---     `unlock X ↦ lock (n+X)` defect — the §3 Peel refutation — not by
---     IdPush.
---
--- THE SOUNDNESS FIX (machine-checked in proof/IdPushReach).  `idPush⁺`
--- discharges the IdPush case under the single added scoping side-condition
--- `interior Θ₂ Δ ⊢ᵗ A` (Q3(a)); the companion
--- `binder : interior Θ₂ Δ ∋ Y := A` is a CONSEQUENCE of the redex typing
--- (mask-only), not an assumption.
-
-open import strong.proof.IdPushReach
-  using (idPush⁺; idPushCase-scoped; binder-holds; scoped-fails)
-
--- The interior of the counterexample: slot 1 blocked under the lock.
-§10-Ξi : Ctxᵗ
-§10-Ξi = bind (` 0) ∷ masked (bind `ℕ) ∷ []
-
--- The scoping premise is EXACTLY what the counterexample denies: on the
--- witness the binder fact still holds, but the rep ` 1 is not well formed
--- inside the locked interior.
-§10-verdict : (§10-Ξi ∋ 0 := ` 1) × ¬ (§10-Ξi ⊢ᵗ ` 1)
-§10-verdict = binder-holds , scoped-fails
-
-------------------------------------------------------------------------
 -- §11  IDPUSH FROM A CLOSED, PLAIN SOURCE
 ------------------------------------------------------------------------
 
@@ -1707,7 +1664,8 @@ kstep = IdPush (V-⟪⟫ V-$ I-seal) ez
 -- `interior Θ₂ Δi = bind (` 0) ∷ masked (bind ℕ) ∷ []` — the binder at slot
 -- 0 has rep ` 1, and slot 1 is blocked.
 --
--- §10 recorded the verdict "NOT reachable".  THIS SECTION SHARPENS IT.
+-- The retired §10 recorded the verdict "NOT reachable" (the hunt itself is
+-- in notes/DECISIONS.md, 2026-09-06).  THIS SECTION SHARPENS IT.
 -- Change ONE character of §11's Q — instantiate the vacuous `ΛZ` at the
 -- OUTER type variable `Y` instead of at `ℕ`:
 --
@@ -1721,8 +1679,9 @@ kstep = IdPush (V-⟪⟫ V-$ I-seal) ez
 -- the CONCEALING (inert) wrapper, i.e. in a `Θ₁` position; the `Θ₂` of
 -- every IdPush/CancelR redex on this run is lock-free, and both
 -- contracta type.  The run reaches a VALUE.  So: THE WALL CONTEXT IS
--- REACHABLE, THE WALL CONFIGURATION IS NOT — which is precisely what
--- proof/WallReach turns into an invariant.
+-- REACHABLE, THE WALL CONFIGURATION IS NOT — the observation the invariant
+-- hunt tried, and failed, to turn into a theorem (notes/DECISIONS.md,
+-- 2026-09-06).
 
 Lbody Lfun L₀ : Term
 Lbody = (Λ (` 0)) ·[ ` 1 , ` 0 ]         -- (ΛZ. x) [Y]
@@ -1819,10 +1778,11 @@ run-L₀ = lstep₁ then lstep₂ then lstep₃ then lstep₄ then lstep₅
 -- THE PRECISE READING.  On this run the blocked slot lives inside a
 -- wrapper that is a `Θ₁` (an INERT `seal` conversion, the CancelR
 -- pattern's inner layer); the `Θ₂` of `lstep₅`'s IdPush and of
--- `lstep₆`'s CancelR is `bind ℕ ∷ []`, which locks nothing.
--- proof/WallReach turns "a Θ₂ never locks a slot a visible binder's rep
--- names" into a theorem about the only rule that mints locks at all
--- (Peel's `dual`).
+-- `lstep₆`'s CancelR is `bind ℕ ∷ []`, which locks nothing.  "A Θ₂ never
+-- locks a slot a visible binder's rep names" is the statement the invariant
+-- hunt tried to prove about the only rule that mints locks at all (Peel's
+-- `dual`); it was refuted (notes/DECISIONS.md, 2026-09-06), and the scope
+-- move made it unnecessary.
 
 ------------------------------------------------------------------------
 -- §12b  THE WALL WITNESS, AFTER THE SCOPE MOVE

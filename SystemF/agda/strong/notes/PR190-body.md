@@ -142,13 +142,19 @@ All six, with **no module parameters, no postulates, no holes**, under
   `dualScope`, `lockBinds` → `hideBinds`, `moveS` → `scopeOf`,
   `unlocked` → `dropLocks`, `_◃_` → `_⋉_`.  `dual`, `Inj`, `Θ`, `bind`,
   `lock`, `unlock`, `abst`, `mask`, `unmask`, `Ent`, `Ctxᵗ`, `CtxMorph`
-  and `MorphEnt` are unchanged.  Appendix A of `Design.md` is the list.
-* **Deletion of four record files.**  `proof/WallReach`,
-  `proof/WallGrounding`, `proof/ChainScoped`, `proof/IdPushReach` are the
-  invariant hunt for a premise that no longer exists.  They compile,
-  carry `RETIRED` banners, and nothing depends on them; each is a
-  machine-checked refutation of a candidate design.  Keep or delete —
-  Jeremy's call (closed-world repo).
+  and `MorphEnt` are unchanged.  The `_⊑ᵉ_` constructors were relettered
+  to spell the entries they relate: `le-ao` → `le-ab`, `le-oo` → `le-bb`,
+  `le-bb` → `le-mm`, `le-bu` → `le-mu` (`le-aa` unchanged).
+  Appendix A of `Design.md` is the list.
+* **Deletion of four record files — RULED, DELETED.**  `proof/WallReach`,
+  `proof/WallGrounding`, `proof/ChainScoped`, `proof/IdPushReach` were the
+  invariant hunt for a premise that no longer exists.  Jeremy ruled
+  *delete* (2026-09-06, closed-world repo); the record lives in
+  `notes/DECISIONS.md` and the two artifacts worth keeping survive as
+  `proof/MaskFacts.mask-only` and `Examples` §12/§12b.  `Examples` §10
+  (the reachability verdict for the retired scoping side-condition) went
+  with them; later section numbers are unchanged.  `strong/PLAN.md` moved
+  to `notes/old/PLAN-v1.md` on the same ruling.
 * **`SurveyCorpus` translation.**  The 16-program survey corpus
   (`831591b3`) was written against v1 and was deleted at the restructure
   (`4c4c44c6`); it has not been ported.  Porting it would turn

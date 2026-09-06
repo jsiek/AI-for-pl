@@ -291,10 +291,13 @@ type*, not about mentioning the index in a context morphism.
 `E ⊑ᵉ E′` says `E′` knows at least what `E` knows:
 
     abst ⊑ᵉ abst          abst ⊑ᵉ bind A          bind A ⊑ᵉ bind A
-    E ⊑ᵉ E′ ⇒ masked E ⊑ᵉ masked E′
-    E ⊑ᵉ E′ and Nameable E′ ⇒ masked E ⊑ᵉ E′
+      le-aa                  le-ab                   le-bb
+    E ⊑ᵉ E′ ⇒ masked E ⊑ᵉ masked E′                            le-mm
+    E ⊑ᵉ E′ and Nameable E′ ⇒ masked E ⊑ᵉ E′                   le-mu
 
-with `Δ ⊑ Δ′` pointwise.  There is **no** clause whose source is
+Each constructor's two letters are the two entries it relates —
+`a` = `abst`, `b` = `bind`, `m` = `masked`, with `u` for "unmasked,
+whatever it is" (Jeremy, 2026-09-06).  With `Δ ⊑ Δ′` pointwise.  There is **no** clause whose source is
 `bind A` other than reflexivity: a binder never loses its representation.
 That is the deleted v1 demotion, stated as the theorem
 `⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A`.  Masking only loses
@@ -836,9 +839,10 @@ boundary stop presenting the abstract name and start presenting `Y`'s
 **representation** `A`.  A representation is a type over the
 exterior, so `env`'s last premise now asks for `A` to be well formed
 *inside* the outer frame — and `Θ₂`'s own locks may have masked the very
-slot `A` names.  That was **the wall**, and the whole invariant hunt
-(`proof/WallReach`, `proof/WallGrounding`, `proof/ChainScoped`,
-`proof/IdPushReach`) was a search for a side condition to ground it.
+slot `A` names.  That was **the wall**, and the whole invariant hunt was a
+search for a side condition to ground it.  Every candidate was refuted;
+the record is in `notes/DECISIONS.md` (2026-09-06 entries), and its two
+surviving artifacts are `proof/MaskFacts.mask-only` and `Examples` §12/§12b.
 
 The repair is not a side condition but a **frame move** (Jeremy,
 2026-09-06).  The outer frame keeps only what binds and what unmasks
@@ -987,7 +991,7 @@ Induction on the step, with the rule cases distributed:
 
 * **`TyBeta`** (`proof/Preserve.preserve-TyBeta`) — the mint.  The new
   binder is the `abst ⊑ᵉ bind A` refinement of the `Λ`'s own slot
-  (`le-ao`), so the interior retypes by `⊢retag`; the minted conversion
+  (`le-ab`), so the interior retypes by `⊢retag`; the minted conversion
   types by `⊢reveal`/`⊢conceal`, and its exterior type is the
   instantiated body by `subst-at-0`.  The exterior premise is `⊢·[]`'s
   own two premises through `wf-[]ᵗ`, and `interior (bind A ∷ []) Δ` is
@@ -1119,7 +1123,10 @@ Do not read the sections below for content — read them there.
 * **The scope move.**  "PRESERVATION PROVEN, PARAMETER-FREE — Jeremy's
   lock-moving contractum (2026-09-06)", with the artifact *The Wall*;
   the invariant hunt it retired is "Rule repairs LANDED; the invariant
-  hunt; …".
+  hunt; …".  The hunt's four record modules were **deleted** on Jeremy's
+  ruling (2026-09-06); `notes/DECISIONS.md` is the whole record, and its
+  two surviving artifacts are `proof/MaskFacts.mask-only` and `Examples`
+  §12/§12b.
 
 
 ## Appendix A. Names
@@ -1157,6 +1164,11 @@ the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
 | `dropLocks Θ` | `Θ` with its locks removed |
 | `Θ₁ ⋉ Θ₂` | `Θ₁` with `Θ₂`'s scope moved into its tail |
 | `Inj ρ` | the renaming does not confuse two slots |
+
+The `_⊑ᵉ_` constructors were relettered on the same ruling so that each
+name spells the two entries it relates (§3, *Refinement*):
+`le-ao` → `le-ab`, `le-oo` → `le-bb`, `le-bb` → `le-mm`,
+`le-bu` → `le-mu`; `le-aa` unchanged.
 
 Two identities worth stating, because they are what the names are meant to
 make obvious:

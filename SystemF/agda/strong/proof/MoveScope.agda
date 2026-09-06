@@ -9,8 +9,8 @@ module strong.proof.MoveScope where
 -- Y's REP.  A rep is a type over the PLAIN exterior; inside Θ₂'s
 -- LOCKS it need not be nameable at all, and `env`'s last premise then
 -- fails — that was the wall (the old proof/PreserveObstruct §4
--- refutation, and the whole of proof/WallReach, proof/WallGrounding,
--- proof/ChainScoped).
+-- refutation, and the invariant hunt recorded in notes/DECISIONS.md,
+-- 2026-09-06).
 --
 -- So the frames move with the conversions:
 --

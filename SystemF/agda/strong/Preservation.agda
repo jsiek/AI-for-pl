@@ -48,9 +48,8 @@ module strong.Preservation where
 -- the BINDER'S REP — and `env`'s last premise then asks for that rep to be
 -- well formed INSIDE the outer frame, where its own `lock`s may have
 -- blocked the slot the rep names.  That was the wall (the old
--- proof/PreserveObstruct §4 refutation, and the whole search for an
--- invariant to ground it: proof/WallReach, proof/WallGrounding,
--- proof/ChainScoped, and the retired `ScopedAtUnseal` interface).
+-- proof/PreserveObstruct §4 refutation; the search for an invariant to
+-- ground the premise is recorded in notes/DECISIONS.md, 2026-09-06).
 --
 -- The repair is a FRAME MOVE, not a side condition: the outer frame keeps
 -- only its binds and unmasks (`dropLocks Θ₂`) and its whole SCOPE travels

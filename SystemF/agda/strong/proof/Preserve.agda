@@ -257,7 +257,7 @@ abstN-binder zero    = ez
 abstN-binder (suc n) = es (abstN-binder n)
 
 abstN-⊑ : ∀ {Ψ A} (n : ℕ) → abstN n (abst ∷ Ψ) ⊑ abstN n (bind A ∷ Ψ)
-abstN-⊑ {Ψ = Ψ} zero = le∷ le-ao (⊑-refl Ψ)
+abstN-⊑ {Ψ = Ψ} zero = le∷ le-ab (⊑-refl Ψ)
 abstN-⊑ (suc n)      = le∷ le-aa (abstN-⊑ n)
 
 -- The mint, applied to a whole ENTRY (the form the lookup transport
@@ -396,7 +396,7 @@ shiftBy-ℕ⁻ (suc n) eq = shiftBy-ℕ⁻ n (ren-ℕ⁻ eq)
 
 -- ── TYBETA ─────────────────────────────────────────────────────────────
 -- The boundary is BORN.  Three moves: the interior is RETAGGED (the slot
--- the Λ bound abstractly is now the BINDER — `le-ao`, the one ⊑ᵉ clause
+-- the Λ bound abstractly is now the BINDER — `le-ab`, the one ⊑ᵉ clause
 -- that refines an `abst`), the conversion is MINTED by `⊢reveal` at the
 -- rep the binder was just given, and the target-type equation is
 -- `subst-at-0`.
@@ -413,7 +413,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
       (wf-[]ᵗ wB wA)
   where
   refine : (abst ∷ Δ) ⊑ (bind A ∷ Δ)
-  refine = le∷ le-ao (⊑-refl Δ)
+  refine = le∷ le-ab (⊑-refl Δ)
 
   conv : (bind A ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
   conv rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf refine wB)

@@ -40,6 +40,13 @@
 \newcommand{\owners}[1]{\mathsf{binds}(#1)}
 \newcommand{\unlocked}[1]{#1^{+}}
 \newcommand{\scopemove}{\mathbin{\triangleleft}}
+\newcommand{\mask}[2]{\mathsf{mask}_{#1}(#2)}
+\newcommand{\unmask}[2]{\mathsf{unmask}_{#1}(#2)}
+\newcommand{\pushbinds}[2]{\mathsf{pushBinds}(#1,#2)}
+\newcommand{\hide}[1]{\mathsf{hide}(#1)}
+\newcommand{\dualscope}[1]{\mathsf{dualScope}(#1)}
+\newcommand{\scopepart}[1]{\mathsf{scopeOf}(#1)}
+\newcommand{\rewind}[1]{\mathsf{rewind}(#1)}
 \newcommand{\idc}[1]{\mathsf{Id}(#1)}
 \newcommand{\Value}[1]{\mathsf{Value}(#1)}
 \newcommand{\fce}[2]{\mathsf{convCtx}(#1,#2)}
@@ -73,7 +80,6 @@
 \frame{
   \frametitle{Terms, Conversions, and Context Morphisms}
 \begingroup\small
-{\small
 \[
 \begin{array}{lcl}
  A,B,C,D &::=& \iota \mid A \to B \mid X \mid \forall X.A \\
@@ -86,19 +92,107 @@
           \mid \lockX{X},\Delta \mid \unlockX{X},\Delta}
 \end{array}
 \]
-}
 \endgroup
-  
-\begin{itemize}
-\item $\bind{X}{A}$ binds $X$ whose representation type is $A$;
-  $\lockX{X}$ locks its name from the boundary interior; $\unlockX{X}$ unlocks that name.
-\item $\intc{\Delta}{\Psi}$ applies the locks and then introduces the
-  bindings. $\fce{\Delta}{\Psi}$ introduces the same bindings but leaves
-  their locked names visible to the conversion face.
-\item $\Delta_1\scopemove\Delta_2$ moves $\Delta_2$'s +/- entries into
-  $\Delta_1$; $\unlocked{\Delta_2}$ retains only $\Delta_2$'s bindings and
-  unlocks.
-\end{itemize}
+}
+%===============================================================================
+\frame{
+  \frametitle{Type-variable lookup}
+
+\hfill\fbox{$\Psi\ni X$}
+
+\vspace{16pt}
+
+\[
+\inference{}
+          {\Psi,X\ni X}
+\qquad
+\inference{\Psi\ni X\qquad X\neq Y}
+          {\Psi,Y\ni X}
+\]
+
+\vspace{28pt}
+
+\begin{center}
+The only visible type variables are those introduced by the type context.
+\end{center}
+}
+%===============================================================================
+\frame{
+  \frametitle{Frames acting on type contexts}
+
+{\scriptsize
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\[
+\begin{aligned}
+\emptyset(\Psi) &= \Psi \\
+(\bind{X}{A},\Delta)(\Psi) &= \Delta(\Psi) \\
+(\lockX{X},\Delta)(\Psi) &= \mask{X}{\Delta(\Psi)} \\
+(\unlockX{X},\Delta)(\Psi) &= \unmask{X}{\Delta(\Psi)}
+\end{aligned}
+\]
+\end{column}
+\begin{column}{0.5\textwidth}
+\[
+\begin{aligned}
+\emptyset^{+}(\Psi) &= \Psi \\
+(\bind{X}{A},\Delta)^{+}(\Psi) &= \Delta^{+}(\Psi) \\
+(\lockX{X},\Delta)^{+}(\Psi) &= \Delta^{+}(\Psi) \\
+(\unlockX{X},\Delta)^{+}(\Psi) &= \unmask{X}{\Delta^{+}(\Psi)}
+\end{aligned}
+\]
+\end{column}
+\end{columns}
+
+\[
+\begin{aligned}
+\owners{\emptyset} &= \emptyset
+& \owners{\bind{X}{A},\Delta} &= A,\owners{\Delta} \\
+\owners{\pm X,\Delta} &= \owners{\Delta}
+\end{aligned}
+\]
+\[
+\begin{aligned}
+\intc{\Delta}{\Psi} &= \pushbinds{\owners{\Delta}}{\Delta(\Psi)} \\
+\fce{\Delta}{\Psi} &= \pushbinds{\owners{\Delta}}{\unlocked{\Delta}(\Psi)}
+\end{aligned}
+\]
+}
+}
+%===============================================================================
+\frame{
+  \frametitle{Dual, rewind, and scope move}
+
+{\fontsize{7}{8}\selectfont
+\begin{columns}[T]
+\begin{column}{0.54\textwidth}
+\[
+\begin{aligned}
+\hide{\emptyset} &= \emptyset \\
+\hide{\bind{X}{A},\Delta} &= \lockX{X},\hide{\Delta} \\
+\hide{\pm X,\Delta} &= \hide{\Delta} \\
+\dualscope{\emptyset} &= \emptyset \\
+\dualscope{\bind{X}{A},\Delta} &= \dualscope{\Delta} \\
+\dualscope{\unlockX{X},\Delta} &= \dualscope{\Delta},\lockX{X} \\
+\dualscope{\lockX{X},\Delta} &= \dualscope{\Delta},\unlockX{X} \\
+\dual{\Delta} &= \hide{\Delta},\dualscope{\Delta}
+\end{aligned}
+\]
+\end{column}
+\begin{column}{0.45\textwidth}
+\[
+\begin{aligned}
+\scopepart{\emptyset} &= \emptyset \\
+\scopepart{\bind{X}{A},\Delta} &= \scopepart{\Delta} \\
+\scopepart{\pm X,\Delta} &= \pm X,\scopepart{\Delta} \\
+\rewind{\Delta} &= \dualscope{\Delta},\Delta \\
+\Delta_1\scopemove\Delta_2
+  &= \Delta_1,\scopepart{\Delta_2}
+\end{aligned}
+\]
+\end{column}
+\end{columns}
+}
 }
 %===============================================================================
 \frame{
@@ -110,7 +204,7 @@
 \inference{}
           {\Psi\vdash\kw{id}\,\iota:\iota\Rightarrow\iota}
 \quad
-\inference{X\in\Psi}
+\inference{\Psi\ni X}
           {\Psi\vdash\kw{id}\,X:X\Rightarrow X}
 \\[2ex]
 \inference{\Psi\ni X:=A}
@@ -127,6 +221,50 @@
           {\Psi\vdash\forall X.\,c:(\forall X.A)\Rightarrow(\forall X.B)}
 \end{gather*}
 
+}
+%===============================================================================
+\frame{
+  \frametitle{Well-formed types and context morphisms}
+
+\begin{columns}[T]
+\begin{column}{0.45\textwidth}
+\centering
+\fbox{$\Psi\vdash A$}
+
+{\scriptsize
+\begin{gather*}
+\inference{\Psi\ni X}{\Psi\vdash X}
+\quad
+\inference{}{\Psi\vdash\iota}
+\\[2ex]
+\inference{\Psi\vdash A\qquad\Psi\vdash B}
+          {\Psi\vdash A\func B}
+\\[2ex]
+\inference{\Psi,X\vdash A}
+          {\Psi\vdash\forall X.A}
+\end{gather*}
+}
+\end{column}
+\begin{column}{0.55\textwidth}
+\centering
+\fbox{$\Psi\vdash\Delta$}
+
+{\scriptsize
+\begin{gather*}
+\inference{}{\Psi\vdash\emptyset}
+\\[2ex]
+\inference{\unlocked{\Delta}(\Psi)\vdash A\qquad\Psi\vdash\Delta}
+          {\Psi\vdash\bind{X}{A},\Delta}
+\\[2ex]
+\inference{\intc{\Delta}{\Psi}\ni X\qquad\Psi\vdash\Delta}
+          {\Psi\vdash\lockX{X},\Delta}
+\\[2ex]
+\inference{\intc{\Delta}{\Psi}\ni\lockX{X}\qquad\Psi\vdash\Delta}
+          {\Psi\vdash\unlockX{X},\Delta}
+\end{gather*}
+}
+\end{column}
+\end{columns}
 }
 %===============================================================================
 \frame{

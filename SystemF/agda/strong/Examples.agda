@@ -36,6 +36,13 @@ module strong.Examples where
 --     term is `estep₄`, and `E-int`/`E-ext` are its two type contexts.
 --
 -- Every `_ : … ≡ …` in this file is a machine-checked frame computation.
+--
+-- AND EVERY PINNED RUN IS CHECKED AGAINST THE GENERATED ONE.  The chains
+-- below are hand-composed, because they are readable; `strong.Eval`'s
+-- `evalTerms` — progress iterated under preservation — regenerates them,
+-- and the seven runs from closed or hand-built sources (§6 `P₀`,
+-- §11 `Q₀`, §12 `L₀`, §12b `Ri`, §13a `J₀`, §13b `H₀`, §14 `E₀`) each
+-- carry an `evalTerms n ⊢X₀ ≡ …` line that Agda checks by `refl`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; length)
@@ -809,6 +816,35 @@ run-P₀ = step₁ then step₂ then step₃ then step₄ then step₅ then step
 val-P₀ : Value ($ 7)
 val-P₀ = V-$
 
+-- ── AND THE GENERATED RUN AGREES ───────────────────────────────────────
+--
+-- `eval` (strong.Eval) is PROGRESS iterated under PRESERVATION, so the
+-- six steps above are not merely A run but THE run the machine takes.
+-- The hand-composed chain stays (it is what a reader reads); this line
+-- is what checks it.
+--
+-- RENDERED (scripts/render_term.sh 'showTrace 0 (eval 6 ⊢P₀)'):
+--
+--   ((ΛX. (λx:X. x)) [ℕ] · 7)
+--     --[TyBeta]-->
+--   (((λx:X. x) ⟪ ↑X:=ℕ , (seal X ↦ unseal X) ⟫) · 7)
+--     --[Peel]-->
+--   (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
+--     --[Beta]-->
+--   ((7 ⟪ ↓X , seal X ⟫) ⟪ ↑X:=ℕ , unseal X ⟫)
+--     --[CancelR]-->
+--   ((7 ⟪ ↓X , id ℕ ⟫) ⟪ ↑X:=ℕ , id ℕ ⟫)
+--     --[Drop$]-->
+--   (7 ⟪ ↑X:=ℕ , id ℕ ⟫)
+--     --[Drop$]-->
+--   7
+--     -- VALUE
+
+open import strong.Eval using (evalTerms)
+
+_ : evalTerms 6 ⊢P₀ ≡ P₀ ∷ P₁ ∷ P₂ ∷ P₃ ∷ P₄ ∷ P₅ ∷ ($ 7) ∷ []
+_ = refl
+
 ------------------------------------------------------------------------
 -- §7  Two regressions on substᵐ itself
 ------------------------------------------------------------------------
@@ -1153,6 +1189,11 @@ qstep₉ = Drop$ base-ℕ
 run-Q₀ : [] ⊢ Q₀ -→* $ 7
 run-Q₀ = qstep₁ then qstep₂ then qstep₃ then qstep₄ then qstep₅
     then qstep₆ then qstep₇ then qstep₈ then qstep₉ then done
+
+-- … and the generated run agrees, IdPush state and all.
+_ : evalTerms 9 ⊢Q₀
+      ≡ Q₀ ∷ Q₁ ∷ Q₂ ∷ Q₃ ∷ Q₄ ∷ Q₅ ∷ Q₆ ∷ Q₇ ∷ Q₈ ∷ ($ 7) ∷ []
+_ = refl
 
 -- ── DETERMINISM PINS.  Each state has exactly ONE successor, so the run
 -- above is THE run: nothing else can fire at Q₄, in particular.
@@ -1753,6 +1794,12 @@ run-L₀ : [] ⊢ L₀ -→* $ 7
 run-L₀ = lstep₁ then lstep₂ then lstep₃ then lstep₄ then lstep₅
     then lstep₆ then lstep₇ then lstep₈ then lstep₉ then done
 
+-- … and the generated run agrees, so the wall CONTEXT really is on the
+-- machine's own trace and not only on a hand-written one.
+_ : evalTerms 9 ⊢L₀
+      ≡ L₀ ∷ L₁ ∷ L₂ ∷ L₃ ∷ L₄ ∷ L₅ ∷ L₆ ∷ L₇ ∷ L₈ ∷ ($ 7) ∷ []
+_ = refl
+
 -- ── every state on the run TYPES, including the two the wall touches ───
 
 ⊢Lseal₇ : LΔ ∣ [] ⊢ ($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫ ⦂ ` 1
@@ -1844,6 +1891,11 @@ wallstep₂ = ξ-⟪⟫ (CancelR (V-⟪⟫ V-$ I-seal) ez)
 
 run-wall : Δi ⊢ Ri -→* wallR₂
 run-wall = wallstep₁ then wallstep₂ then done
+
+-- … and the generated run agrees: the machine takes the moved step, at a
+-- NON-EMPTY ambient (Δi = X := Y , Y := ℕ).
+_ : evalTerms 2 ⊢Ri ≡ Ri ∷ wallR₁ ∷ wallR₂ ∷ []
+_ = refl
 
 val-wallR₂ : Value wallR₂
 val-wallR₂ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) I-idv) I-idv
@@ -2135,6 +2187,14 @@ run-J : [] ⊢ J₀ -→* $ 3
 run-J = jstep₁ then jstep₂ then jstep₃ then jstep₄ then jstep₅
    then jstep₆ then run-J₆
 
+-- … and the generated run agrees on all fourteen steps, TyPeelR (J₅ → J₆)
+-- included: the rule the retired polarity index refused is the step the
+-- machine takes.
+_ : evalTerms 14 ⊢J₀
+      ≡ J₀ ∷ J₁ ∷ J₂ ∷ J₃ ∷ J₄ ∷ J₅ ∷ J₆ ∷ J₇ ∷ J₈ ∷ J₉ ∷ J₁₀ ∷ J₁₁
+      ∷ J₁₂ ∷ J₁₃ ∷ ($ 3) ∷ []
+_ = refl
+
 ------------------------------------------------------------------------
 -- §13b  THE REVEAL MIRROR IMAGE
 ------------------------------------------------------------------------
@@ -2201,6 +2261,12 @@ hstep₄ = TyPeelR (V-Λ V-ƛ) ⊢Hconv
 
 run-H₀ : [] ⊢ H₀ -→* H₄
 run-H₀ = hstep₁ then hstep₂ then hstep₃ then hstep₄ then done
+
+-- … and the generated run agrees.  Four steps is exactly `run-H₀`'s
+-- length, so the trace stops OUT OF FUEL at H₄ — which is right: H₄ is
+-- not a value, and `hstep₅` below is its next step.
+_ : evalTerms 4 ⊢H₀ ≡ H₀ ∷ H₁ ∷ H₂ ∷ H₃ ∷ H₄ ∷ []
+_ = refl
 
 -- ── AND THE CONTRACTUM TYPES — by the theorem, not by hand ─────────────
 
@@ -2543,6 +2609,11 @@ val-E₅ = V-⟪⟫ (V-Λ (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun)) I-all
 
 run-E : [] ⊢ E₀ -→* E₅
 run-E = estep₁ then estep₂ then estep₃ then estep₄ then estep₅ then done
+
+-- … and the generated run agrees, step 4 (the one the OLD design died on)
+-- included.
+_ : evalTerms 5 ⊢E₀ ≡ E₀ ∷ E₁ ∷ E₂ ∷ E₃ ∷ E₄ ∷ E₅ ∷ []
+_ = refl
 
 -- THE ANSWER TYPES, at the source's own type ∀Y. Y ⇒ Y.
 ⊢E₅ : [] ∣ [] ⊢ E₅ ⦂ EID

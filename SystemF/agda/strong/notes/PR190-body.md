@@ -128,6 +128,51 @@ All six, with **no module parameters, no postulates, no holes**, under
   Jeremy's lock-moving contractum: `R₀ → R₁′ → R₂`, the old refutation
   witness running to a value.)
 
+## Review round 1 (Codex, 2026-09-06)
+
+* **Public/proof split for progress.**  `Progress.agda` held the whole
+  proof.  The implementation moved to `proof/Progress.agda`
+  (`progress-env`, `∀-conv-premise`, the recursive `progress`); the
+  public `strong.Progress` now holds only the statement `Progress` and
+  the one-line `progress = P.progress`, exactly as `Preservation.agda`
+  does.  `Examples` §8 and `proof/TypeSafety` still open the public
+  module and still see the one name they use.  `All.agda`, the README
+  module map and `Design.md` §7 point at both halves.
+* **`Eval` for v2 — DONE.**  New public `strong/Eval.agda`; no
+  `proof/Eval` was needed, every lemma being three lines.  **The step
+  function is progress**: v1's evaluator was a second, type-blind
+  transcription of the rule table with a `step-sound` theorem tying it
+  back to the relation, because progress was false for v1 as it stood.
+  Here `step ⊢M = progress ⊢M : Value M ⊎ ∃ M′. (Δ ⊢ M -→ M′)` already
+  decides "value or redex" and hands back the contractum **with its
+  derivation**, so there is no second rule table, no `Maybe`, no
+  `value?`/`inert?` decision procedure, and no soundness obligation.
+  `eval k ⊢M` iterates it with fuel, retyping each contractum by
+  `preservation`, and returns a `Trace` storing the step derivations and
+  the final status (`value v` / `out-of-fuel`).  Hence `trace-sound`
+  (`Δ ⊢ M -→* traceEnd tr`, assembled from the stored steps),
+  `traceFinal` (the status is the *last* state's), `trace-unique` (two
+  traces of equal length from one term have the same states, by `det`),
+  and `eval-⦂` (the endpoint keeps the type).  `showTrace n tr` renders a
+  run with `Show.agda`'s `showTmIn`, one state per line, each arrow
+  labelled by `ruleName` — the redex rule, found by descending through
+  the congruences of the stored derivation.  **`Examples.agda` is now
+  regression-checked against the generated runs**: `evalTerms n ⊢X₀ ≡ …`
+  by `refl` for §6 `P₀` (6), §11 `Q₀` (9), §12 `L₀` (9), §12b `Ri` (2,
+  at a non-empty ambient), §13a `J₀` (14, TyPeelR included), §13b `H₀`
+  (4, stopping out of fuel at the non-value `H₄`) and §14 `E₀` (5).  The
+  hand-composed chains stay — they are what a reader reads — and §6
+  carries a rendered `showTrace`.
+* **Stranded v1 Agda deleted.**  Every `.agda` under `notes/old/` (the
+  retired v1 `Reduction`/`Terms`/`Typing` and fifteen probe and scratch
+  files) imported v1 modules — `strong.Context`, `strong.Boundary`,
+  `strong.BReduction`, `strong.Weakening`, `strong.Unfold` — deleted at
+  the v2 restructure, so none of them could type-check on this branch;
+  they were only being swept by the hygiene grep.  All eighteen are
+  removed and `notes/` is `.md` only.  They are preserved on `main` (the
+  v1 tree, commit `c5db9f59`, `SystemF/agda/strong/notes/old/`), where
+  they compile; `notes/old/notes-v1.md` says so in its header.
+
 ## Open items
 
 * **Naming — RULED AND LANDED (2026-09-06).**  The terse helpers now
@@ -160,9 +205,10 @@ All six, with **no module parameters, no postulates, no holes**, under
   (`4c4c44c6`); it has not been ported.  Porting it would turn
   `Examples.agda` into a proper regression suite rather than a
   hand-curated set of runs.
-* **`Eval`.**  v1's step/trace evaluator with `step-sound`
-  (`strong/Eval` + `EvalDec`, `8530bb7f`) went the same way.  Every run
-  in `Examples.agda` is therefore a hand-composed `-→*` chain; rebuilding
-  the evaluator against the v2 rules would also give back `showTrace`.
+* **`Eval` — DONE**, review round 1 above.  v1's step/trace evaluator
+  with `step-sound` (`strong/Eval` + `EvalDec`, `8530bb7f`) went the way
+  of the rest of v1; the v2 successor is `strong/Eval.agda`, where the
+  step function IS progress and `EvalDec` has no successor because there
+  is nothing left to decide.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

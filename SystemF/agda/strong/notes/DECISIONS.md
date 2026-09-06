@@ -2521,3 +2521,28 @@ retired.  Landed with it: sequential `Δ ⊢ᵐ Θ` (no vacuous unlocks, no
 double locks), the exact dual (†), `rewind Θ₂` as the scope move's outer
 frame, `⊢retag` over `⊑ᵃ`.  Branch dual-relock (Δ-dependent dual) is the
 superseded alternative; PR #192 is contained in #193.
+
+### The context morphism becomes a PAIR (Jeremy, 2026-09-06)
+
+Jeremy, reading `dual`: binds are treated specially (hideBinds, all at the
+front) while lock/unlock are sequential — "is that essential … perhaps
+the main difference between the current design and the very first design
+with single reveal/conceal … should we keep the list of binds separately
+from the list of lock/unlock?"  Analysis: the special treatment IS
+essential (binds are PARALLEL — reps read outside all of the morphism's
+own binders, the surviving half of simultaneity; lock/unlock are
+SEQUENTIAL — the sequential ⊢ᵐ, the reversed dual and rewind depend on
+it; the very first design was the fully sequential composition and died
+on the drifted ↓X), but the INTERLEAVING was not: interior/convCtx/dual/
+rewind/⋉ never used bind-vs-change order; only mw-b's rep frame did
+(tail's unlocks).  RULED: refactor into a record `morph binds changes`
+(field name `changes`, Jeremy's choice; entry type `Change` with
+lock/unlock), `Δ ⊢ᵐ Θ` = `unlockedScope Θ Δ ⊢ʳ binds Θ` × `Δ ⊢ˢ
+changes Θ`.  ONE semantic change: a rep is read past ALL of the
+morphism's unlocks (not just those listed after it) — strictly more
+permissive, no theorem weakened, no example affected (every reachable
+morphism has all binds before all changes); the one lemma that pays is
+⊢ᵐ-rewind (rewind's inverse half adds unmasks).  Lemma deltas: 8 repsOf
+lemmas deleted, 3 numBinds lemmas became refl, ⊢ᵐ-++ vanished (⊢ˢ-++ is
+rep-free), 26 change-list inductions lost their bind case.  Rendering
+unchanged.  Branch morph-pair, PR to follow.

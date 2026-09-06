@@ -55,7 +55,7 @@ module strong.Preservation where
 -- only its binds and unmasks (`dropLocks Θ₂`) and its whole SCOPE travels
 -- into the inner frame's tail (`Θ₁ ⋉ Θ₂`), where `scope` applies it first —
 -- exactly where it applied before.  Then
--- `interior (dropLocks Θ₂) Δ ≡ exterior Θ₂ Δ`, the rep is presented OUTSIDE the
+-- `interior (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ`, the rep is presented OUTSIDE the
 -- locks, and the missing premise is `wf-shiftBy-pushBinds` on the redex's own
 -- exterior type: the reveal's target IS that type, lifted.  Nothing is
 -- assumed about the world, and the old counterexample now REDUCES to a
@@ -157,7 +157,7 @@ preservation-Drop$ = preserve-Drop$
 -- the face is the mint at the owner the rule binds.
 preservation-TyPeelR : ∀ {V Θ s B Bᵢ Bₑ}
   → Value V
-  → (abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
     -----------------------------------------------------
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
@@ -166,7 +166,7 @@ preservation-TyPeelR = preserve-TyPeelR
 
 -- CANCELR — at the moved scope, unconditionally.
 preservation-CancelR : ∀ {V Θ₁ Θ₂ X Y}
-  → Value V → exterior Θ₂ Δ ∋ Y := A
+  → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     ---------------------------------------------------------------
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
@@ -175,7 +175,7 @@ preservation-CancelR = preserve-CancelR
 
 -- IDPUSH — the case the wall used to block, likewise unconditional.
 preservation-IdPush : ∀ {V Θ₁ Θ₂ X Y}
-  → Value V → exterior Θ₂ Δ ∋ Y := A
+  → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     ---------------------------------------------------------------
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C

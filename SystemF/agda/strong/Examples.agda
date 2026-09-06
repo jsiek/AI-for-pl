@@ -266,7 +266,7 @@ Pk-1 : Term
 Pk-1 = ((Λ (($ 7) ⟪ [] , seal 2 ⟫)) ·[ ` 2 , ` 0 ])
          ⟪ bind `ℕ ∷ [] , id (` 1) ⟫
 
-⊢Pk-face : (abst ∷ exterior [] S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1
+⊢Pk-face : (abst ∷ convCtx [] S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1
 ⊢Pk-face = conv-idv (bind `ℕ , es ez , nameable-b)
 
 typeel-T₉ : Δ₆ ⊢ T₉ -→ Pk-1 ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
@@ -454,7 +454,7 @@ _ : interior Θ2 Δd ≡ bind (` 0) ∷ bind (` 0) ∷ abst ∷ masked (bind `�
 _ = refl
 
 -- the FACE type context keeps every slot live, so a conceal's licence resolves.
-_ : exterior Θ2 Δd ≡ bind (` 0) ∷ bind (` 0) ∷ abst ∷ bind `ℕ ∷ []
+_ : convCtx Θ2 Δd ≡ bind (` 0) ∷ bind (` 0) ∷ abst ∷ bind `ℕ ∷ []
 _ = refl
 
 cΘ2 : Conv                      -- (X⇒X)⇒ℕ  ⇝  (W⇒W)⇒ℕ
@@ -464,7 +464,7 @@ Vd Wd : Term
 Vd = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
 Wd = (ƛ (` 1) ∙ (` 0)) ⟪ lock 0 ∷ [] , unseal 0 ↦ seal 0 ⟫
 
-⊢cΘ2 : exterior Θ2 Δd ⊢ cΘ2 ∶ ((` 0 ⇒ ` 0) ⇒ `ℕ) ⇝ ((` 1 ⇒ ` 1) ⇒ `ℕ)
+⊢cΘ2 : convCtx Θ2 Δd ⊢ cΘ2 ∶ ((` 0 ⇒ ` 0) ⇒ `ℕ) ⇝ ((` 1 ⇒ ` 1) ⇒ `ℕ)
 ⊢cΘ2 = conv-fun (conv-fun (conv-unseal ez) (conv-seal ez)) (conv-id base-ℕ)
 
 ⊢Fnd : Δd ∣ [] ⊢ Vd ⟪ Θ2 , cΘ2 ⟫ ⦂ ((` 0 ⇒ ` 0) ⇒ `ℕ)
@@ -511,7 +511,7 @@ _ = refl
 
 -- and the dual's FACE type context is IDENTICAL to the crossed boundary's, so `s`
 -- transplants verbatim (no swapᵇ, no re-derivation).
-_ : exterior (dual Θ2) (interior Θ2 Δd) ≡ exterior Θ2 Δd
+_ : convCtx (dual Θ2) (interior Θ2 Δd) ≡ convCtx Θ2 Δd
 _ = refl
 
 -- THE CONTRACTUM IS TYPED.  (The previous design has `¬⊢contractum` here.)
@@ -718,8 +718,8 @@ step₁ = ξ-·-l (TyBeta V-ƛ)
 _ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
 _ = refl
 
-_ : exterior (dual (bind `ℕ ∷ [])) (interior (bind `ℕ ∷ []) [])
-      ≡ exterior (bind `ℕ ∷ []) []
+_ : convCtx (dual (bind `ℕ ∷ [])) (interior (bind `ℕ ∷ []) [])
+      ≡ convCtx (bind `ℕ ∷ []) []
 _ = refl
 
 P₂ : Term
@@ -1378,7 +1378,7 @@ run-D₀ = dstep₁ then dstep₂ then dstep₃ then dstep₄ then dstep₅
 --   R = ((ΛX. λy:X. ((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [X]) · y) [ℕ]) · 7
 --
 -- The inner instantiation `[X]` mints an owner whose rep is `X`, so at
--- the IdPush redex `exterior Θ₂ Δ ∋ 0 := ` 1` — Y's rep NAMES the outer owner
+-- the IdPush redex `convCtx Θ₂ Δ ∋ 0 := ` 1` — Y's rep NAMES the outer owner
 -- X.  IDPUSH FIRES AND THE CONTRACTUM TYPES: nothing in Θ₂ is locked, so
 -- the scoping fact `interior Θ₂ Δ ⊢ᵗ ` 1` holds.
 
@@ -1413,7 +1413,7 @@ _ = refl
 
 -- THE CHAINED REP, as a lookup: Θ₂'s owner 0 has rep ` 1, which NAMES
 -- the outer owner — and that slot is VISIBLE inside Θ₂ (nothing locks it).
-Rchain : exterior (bind (` 0) ∷ []) QΔ₁ ∋ 0 := ` 1
+Rchain : convCtx (bind (` 0) ∷ []) QΔ₁ ∋ 0 := ` 1
 Rchain = ez
 
 Rchain-scoped : interior (bind (` 0) ∷ []) QΔ₁ ⊢ᵗ ` 1
@@ -1612,7 +1612,7 @@ gstep₄ = ξ-⟪⟫ (ξ-·[] (TyBeta (V-Λ (V-⟪⟫ V-$ I-seal))))
 -- the TyPeelR step, whose contractum is the wanted `numBinds Θ₁ ≡ 2` layer.
 -- Its face premise is the redex's own conversion, one `` `∀ `` inside —
 -- here the identity at the OUTER owner, read under the ∀-binder.
-⊢Gface : (abst ∷ exterior (bind `ℕ ∷ []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
+⊢Gface : (abst ∷ convCtx (bind `ℕ ∷ []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
 ⊢Gface = conv-idv (bind `ℕ , es (es ez) , nameable-b)
 
 gstep₅ : [] ⊢ G₄ -→ G₅
@@ -2022,7 +2022,7 @@ _ : instReveal 0 st ≡ seal 0 ↦ seal 1
 _ = refl
 
 J-face-ctx : Ctxᵗ
-J-face-ctx = exterior (bind (` 0) ∷ Θt) Δt
+J-face-ctx = convCtx (bind (` 0) ∷ Θt) Δt
 
 _ : J-face-ctx ≡ bind (` 0) ∷ bind `ℕ ∷ []
 _ = refl
@@ -2216,7 +2216,7 @@ hstep₃ : [] ⊢ H₂ -→ H₃
 hstep₃ = ξ-·[] (ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal)))
 
 -- THE FACE PREMISE, read off the redex's own `env`, one `` `∀ `` inside.
-⊢Hface : (abst ∷ exterior (bind `ℕ ∷ []) []) ⊢ id (` 0) ↦ unseal 1
+⊢Hface : (abst ∷ convCtx (bind `ℕ ∷ []) []) ⊢ id (` 0) ↦ unseal 1
            ∶ (` 0 ⇒ ` 1) ⇝ (` 0 ⇒ `ℕ)
 ⊢Hface = conv-fun (conv-idv (abst , ez , nameable-a)) (conv-unseal (es ez))
 
@@ -2503,7 +2503,7 @@ _ = refl
 
 E-int E-ext : Ctxᵗ
 E-int = interior (lock 1 ∷ []) EΔ₃
-E-ext = exterior (lock 1 ∷ []) EΔ₃
+E-ext = convCtx (lock 1 ∷ []) EΔ₃
 
 -- THE INTERIOR IS THE EXTERIOR WITH X MASKED — NOT TRUNCATED.  The old
 -- design's interior at this point was Γ↓X = ∅.  RENDERED
@@ -2534,7 +2534,7 @@ E-X-hidden (wf-var (_ , es ez , ()))
 -- instantiation step.
 
 E-face-ctx : Ctxᵗ
-E-face-ctx = abst ∷ exterior (lock 1 ∷ []) EΔ₃
+E-face-ctx = abst ∷ convCtx (lock 1 ∷ []) EΔ₃
 
 ⊢Es : E-face-ctx ⊢ id (` 0) ↦ id (` 0) ∶ (` 0 ⇒ ` 0) ⇝ (` 0 ⇒ ` 0)
 ⊢Es = conv-fun (conv-idv (abst , ez , nameable-a))

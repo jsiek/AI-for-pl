@@ -5,7 +5,7 @@ module strong.proof.WallReach where
 -- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
 -- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
 -- contracta present the rep on Θ₂'s FACE type context — `interior (dropLocks
--- Θ₂) Δ ≡ exterior Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
+-- Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
 -- (proof/MoveScope).  So no invariant has to be grounded at all.  What
 -- follows is still TRUE, and is the machine-checked record of the
 -- candidates that were tried; nothing in the main development uses it.
@@ -242,10 +242,10 @@ RepWf-dual′ Θ Δ nu rw =
 
 -- The companion owner lookup, from the redex alone: an `unseal Y`-faced
 -- wrapper types its body at `` ` Y ``, so Y is VISIBLE inside, and
--- `maskOnly` (interior differs from exterior only by masking) turns the
--- exterior owner fact into an interior one.  No assumption about the world.
+-- `maskOnly` (interior differs from `convCtx` only by masking) turns the
+-- `convCtx` owner fact into an interior one.  No assumption about the world.
 unseal-owner : ∀ {Δ Γ M Θ Y A C}
-  → exterior Θ Δ ∋ Y := A
+  → convCtx Θ Δ ∋ Y := A
   → Δ ∣ Γ ⊢ M ⟪ Θ , unseal Y ⟫ ⦂ C
     ------------------------------
   → interior Θ Δ ∋ Y := A
@@ -256,7 +256,7 @@ unseal-owner {Δ = Δ} {Θ = Θ} d (env _ ⊢M (conv-unseal _) _) =
 -- contractum demands and `idPush⁺` takes as `scoped` — is a CONSEQUENCE
 -- of `RepWf (interior Θ Δ)`, for EVERY unseal-faced wrapper.
 unseal-scoped : ∀ {Δ Γ M Θ Y A C} → RepWf (interior Θ Δ)
-  → exterior Θ Δ ∋ Y := A
+  → convCtx Θ Δ ∋ Y := A
   → Δ ∣ Γ ⊢ M ⟪ Θ , unseal Y ⟫ ⦂ C
     ------------------------------
   → interior Θ Δ ⊢ᵗ A
@@ -269,7 +269,7 @@ unseal-scoped rw d ⊢R = rw (unseal-owner d ⊢R)
 -- premise the rule would have to carry: `RepWf-dual` plus `unseal-scoped`.
 peel-Θ₂-scoped : ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Γ M Y A C}
   → RepWf (unlockedScope Θ Δ)
-  → exterior (dual Θ) (interior Θ Δ) ∋ Y := A
+  → convCtx (dual Θ) (interior Θ Δ) ∋ Y := A
   → interior Θ Δ ∣ Γ ⊢ M ⟪ dual Θ , unseal Y ⟫ ⦂ C
     ---------------------------------------------
   → interior (dual Θ) (interior Θ Δ) ⊢ᵗ A
@@ -280,7 +280,7 @@ peel-Θ₂-scoped Θ Δ rw d ⊢R = unseal-scoped (RepWf-dual Θ Δ rw) d ⊢R
 -- context, not a side condition Progress would have to supply.
 IdPushCase-RepWf : Set
 IdPushCase-RepWf = ∀ {Δ V Θ₁ Θ₂ X Y A C}
-  → RepWf (interior Θ₂ Δ) → Value V → exterior Θ₂ Δ ∋ Y := A
+  → RepWf (interior Θ₂ Δ) → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     ---------------------------------------------------
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , mkId A ⟫ ⦂ C
@@ -297,7 +297,7 @@ idPush-RepWf rw v d ⊢R =
 -- the condition is attached to the `unseal`-faced `env` node itself.)
 scoped-at-unseal : ∀ {Δ V Θ₁ Θ₂ c₁ Y A C}
   → RepWf (interior Θ₂ Δ)
-  → exterior Θ₂ Δ ∋ Y := A
+  → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , c₁ ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     ---------------------------------------------
   → interior Θ₂ Δ ⊢ᵗ A
@@ -307,7 +307,7 @@ scoped-at-unseal rw d ⊢R = unseal-scoped rw d ⊢R
 -- needs the SAME fact, at the SAME redex shape.
 cancelR-scoped : ∀ {Δ V Θ₁ Θ₂ X Y A C}
   → RepWf (interior Θ₂ Δ)
-  → exterior Θ₂ Δ ∋ Y := A
+  → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     -------------------------------------------------
   → interior Θ₂ Δ ⊢ᵗ A

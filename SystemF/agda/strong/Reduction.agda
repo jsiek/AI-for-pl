@@ -130,7 +130,7 @@ hideBinds (suc k) = lock k ∷ hideBinds k
 -- `unlockedScope Θ Δ` in the tail) and MASK its owners; an `unlock` in Θ
 -- leaves the tail MORE
 -- nameable, which the crossing argument absorbs by `⊢retag`.  With this,
--- `interior-dual` and `exterior-dual` become true in general
+-- `interior-dual` and `convCtx-dual` become true in general
 -- (proof/PeelDual.agda), and the Peel case is proven.
 dualScope : ℕ → CtxMorph → CtxMorph
 dualScope n []             = []
@@ -249,7 +249,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- ill-typed — its exterior body still mentions `` ` 0 `` where `env`
   -- demands the instantiated `shiftBy (numBinds Θ + 1) (Bₑ [ A ])`.
   TyPeelR : ∀ {Δ V Θ s B A Bᵢ Bₑ} → Value V
-    → (abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+    → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
              ⟪ bind A ∷ Θ , instReveal 0 s ⟫
@@ -272,8 +272,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   --
   -- THE SINGLE-NAME PRESUMPTION, EXAMINED (3b).  The mini-core wrote ONE
   -- name X on both faces.  That presumes `numBinds Θ₁ ≡ 0`: the inner face is
-  -- checked on `exterior Θ₁ (interior Θ₂ Δ)`, which is `numBinds Θ₁`
-  -- binders INSIDE the type context `exterior Θ₂ Δ` the outer face is
+  -- checked on `convCtx Θ₁ (interior Θ₂ Δ)`, which is `numBinds Θ₁`
+  -- binders INSIDE the type context `convCtx Θ₂ Δ` the outer face is
   -- checked on.  The honest general form carries TWO names — and needs no
   -- extra premise to relate them, because typing already FORCES
   -- `X ≡ numBinds Θ₁ + Y` (proof/IdLayer.agda,
@@ -288,7 +288,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- name, so Θ₂'s LOCKS travel into the inner frame (§2b) — otherwise
   -- `env`'s last premise reads that rep INSIDE Θ₂'s masking.  The lift is
   -- unchanged, because `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`.
-  CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → exterior Θ₂ Δ ∋ Y := A
+  CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
         -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
              ⟪ dropLocks Θ₂ , mkId A ⟫
@@ -310,10 +310,10 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- revealing one, so its exterior type becomes Y's rep `A`.  Θ₂'s LOCKS
   -- travel into the inner frame (§2b) so that the rep is presented
   -- OUTSIDE them, where it is nameable: `interior (dropLocks Θ₂) Δ` IS
-  -- `exterior Θ₂ Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
+  -- `convCtx Θ₂ Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
   -- exterior type C.  That is what retires the wall — the case needs no
   -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
-  IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → exterior Θ₂ Δ ∋ Y := A
+  IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
         -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫
 

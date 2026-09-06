@@ -24,7 +24,7 @@ module strong.Progress where
 --          conv-unseal d — the interior value has the VARIABLE type ` Y,
 --                        so it is a seal-faced or id-variable-faced
 --                        wrapper (canon-var) and CancelR / IdPush fires.
---                        Both rules ask for `exterior Θ Δ ∋ Y := A`, which IS
+--                        Both rules ask for `convCtx Θ Δ ∋ Y := A`, which IS
 --                        `conv-unseal`'s own premise `d` — the lookup is
 --                        FREE, never re-derived.
 --
@@ -66,11 +66,11 @@ open import strong.proof.Canonical
 --               conv-id-base-src pins the interior face to the base type.
 --   A-unseal  : conv-unseal-src pins the interior face to ` Y, and
 --               unseal-face-is-the-owners-rep IS CancelR's / IdPush's
---               `exterior Θ Δ ∋ Y := A` premise.
+--               `convCtx Θ Δ ∋ Y := A` premise.
 progress-env : ∀ {Δ Θ c M Bᵢ Bₑ}
   → Value M
   → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-  → exterior Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
+  → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
     ------------------------------------------------------------
   → Value (M ⟪ Θ , c ⟫)
   ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′))
@@ -105,7 +105,7 @@ progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
 -- inversion without having to see through `env`'s `shiftBy`.
 ∀-face-premise : ∀ {Δ W Θ s B} → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ B
   → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ]
-      ((abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
+      ((abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
 ∀-face-premise (env mw ⊢W ⊢c wE) with conv-all-inv ⊢c
 ∀-face-premise (env mw ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
   Bᵢ , Bₑ , ⊢s

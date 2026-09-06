@@ -138,12 +138,12 @@ two type contexts at that redex are (`Examples` §14, `E-int` / `E-ext`,
 rendered at the trace's own names):
 
     interior (↓X) Δ    Y Λ-bound , ⌷[X := ℕ]
-    exterior (↓X) Δ    Y Λ-bound ,   X := ℕ
+    convCtx (↓X) Δ     Y Λ-bound ,   X := ℕ
 
 where the old design had `∅`.  `Y` is still nameable inside
 (`E-Y-inside`) and `X` still is not (`E-X-hidden`): lesson 1.  And the
 argument `Y` is not written into the sealed body — `↑Z:=Y` binds a fresh
-`Z` at the representation `Y`, read in the plain exterior, and the
+`Z` at the representation `Y`, read in the exterior, and the
 interior instantiates at `Z`: lesson 2.  The contractum types by
 `preservation-TyPeelR`.
 
@@ -195,7 +195,7 @@ the renderer prints:
 | `unlock X`| `↥X`     | **unmasks** exterior slot `X`                  |
 
 Only `bind` carries a type, and that type — the *representation* — is
-read in the **plain exterior**, never through `Θ`'s other entries
+read in the **exterior**, never through `Θ`'s other entries
 (§8, simultaneity).  `lock` and `unlock` carry a name and nothing else.
 The list is applied **head-last**: in `↥Y , ↓Y` the `↓Y` acts first.
 
@@ -318,66 +318,88 @@ no representation at all.
     pushBinds (A ∷ As) Δ = bind (shiftBy (length As) A) ∷ pushBinds As Δ
 
 The head of the list is interior slot 0.  A representation is a type over
-the *plain exterior*, so it is lifted past exactly the owners bound
-**inside** it and past nothing else — sibling entries of the same
-boundary never interfere.  As a well-formedness fact:
+the *exterior*, so it is lifted past exactly the owners bound **inside**
+it and past nothing else — sibling entries of the same boundary never
+interfere.  As a well-formedness fact:
 
     wf-shiftBy-pushBinds : Δ ⊢ᵗ A → pushBinds As Δ ⊢ᵗ shiftBy (length As) A
 
 ### The two type contexts a boundary induces
 
-This is the heart of the design, so it gets its own definitions.  Write
-the *plain exterior* `Δ` for the type context in which the whole term
-`M ⟪ Θ , c ⟫` is typed.  Then:
+Write `Δ` for the **exterior** — the type context in which the whole
+term `M ⟪ Θ , c ⟫` is typed.  A boundary induces two more:
 
-    scope  Θ Δ    -- Δ with Θ's locks AND unlocks applied, in order
+    scope  Θ Δ           -- Δ with Θ's locks AND unlocks applied, in order
     unlockedScope Θ Δ    -- Δ with only Θ's unlocks applied (locks skipped)
 
     interior Θ Δ = pushBinds (repsOf Θ) (scope Θ Δ)
                                         -- THE INTERIOR context
-    exterior Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ)
-                                        -- the CONVERSION context
+    convCtx  Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ)
+                                        -- THE CONVERSION context
 
-`interior Θ Δ` is the context the interior `M` is typed in: `Θ`'s masks are
-applied, and `Θ`'s owners are pushed on as fresh binders.  `exterior Θ Δ` is
-the same thing **with `Θ`'s locks lifted** — it is the context the
-conversion `c` is checked in, and it is exactly where a `seal X` can
-still resolve `X` at its owner even though the interior may not name it.
-The relation between them is a refinement in one direction only:
+`interior Θ Δ` is where `M` is typed: `Θ`'s masks are applied and `Θ`'s
+owners are pushed on as fresh binders.  Why the conversion needs a
+context of its *own* — why `c : Bᵢ ⇝ Bₑ` can be checked neither inside
+nor outside — is the question this section answers, on `Examples` §13a's
+inner boundary
 
-    interior⊑exterior : interior Θ Δ ⊑ exterior Θ Δ
-    Δ⊑unlockedScope    : Δ ⊑ unlockedScope Θ Δ
+    ((ΛZ. λx:Z. 3) [Y]) ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫
 
-`exterior` has a second, sharper reading, which is the identity that closes
-the whole preservation proof (`proof/MoveScope.interior-dropLocks`):
+over the exterior `Δ = X := ℕ`.  The morphism binds a fresh `Y` at the
+representation `X` and locks `X`; the conversion is `seal Y ↦ seal X`.
 
-    interior (dropLocks Θ) Δ ≡ exterior Θ Δ
+**The exterior cannot check it.**  `seal Y` names `Y` — a slot the
+boundary *itself* binds.  `Y` does not exist in `Δ = X := ℕ` at all, so
+no judgment over `Δ` can even state the conversion: its leaves live
+inside the owner prefix, `numBinds Θ` slots deeper than everything in
+`Δ`.
 
-where `dropLocks Θ` is `Θ` with its locks removed.  So **the conversion
-context is the interior of the dropLocks boundary** — not a third kind of
-context, just the same construction on a smaller morphism.
+**The interior cannot check it either.**  Every leaf cites its owner by
+*lookup*: `conv-seal` and `conv-unseal` need `Δ ∋ X := A`, which does not
+hold of a `masked` entry.  Here `seal X : ℕ ⇝ X` must cite `X`'s owner —
+and `X` is exactly the slot `↓X` masks, so in `interior Θ Δ` that lookup
+fails.  This is not a defect to repair: masking `X` *is* the type
+abstraction the boundary enforces, and the interior is supposed not to
+name it.
+
+So the conversion needs the owners **and** the locked slots: binds
+pushed, locks lifted.  That is `convCtx Θ Δ`, the smallest context in
+which both leaves resolve.  It is not a third *construction*:
+
+    interior (dropLocks Θ) Δ ≡ convCtx Θ Δ    (proof/MoveScope)
+
+where `dropLocks Θ` is `Θ` with its locks removed — **the conversion
+context is the interior of the same boundary with its locks removed**.
+
+The three contexts are ordered by refinement, in one direction only:
+
+    interior⊑convCtx : interior Θ Δ ⊑ convCtx Θ Δ
+    Δ⊑unlockedScope  : Δ ⊑ unlockedScope Θ Δ
+
+and each buys one side of `env`'s conversion premise — for the two sides
+of `c` live in different contexts.  The source is the interior type `Bᵢ`,
+a type of `interior Θ Δ`, read up in the conversion context by the first
+refinement (`⊢retag` / `conv-⊑`, types unchanged).  The target is
+`shiftBy (numBinds Θ) Bₑ` for the **exterior** type `Bₑ`, a type over
+`Δ`; the second refinement with `wf-shiftBy-pushBinds` is what makes that
+shifted type well formed in `convCtx Θ Δ` (`wf-convCtx`).
 
 ### Diagram: one boundary, two contexts
 
-Here is the inner boundary of `Examples` §13a's `J₆`, machine-rendered.
-The whole term is
-
-    ((ΛZ. (λx:Z. 3)) [Y] ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫)
-
-sitting over the plain exterior `Δ = X := ℕ`.  The morphism binds a fresh
-`Y` at rep `X` and locks `X`.  Its two induced contexts, rendered by
-`showTCtxAt` at the same names:
+Here is that same boundary — the inner one of `Examples` §13a's `J₆` —
+with its two induced contexts rendered by `showTCtxAt` at the same
+names:
 
 Diagram:
 
-    plain exterior  Δ                          X := ℕ
+    exterior        Δ                          X := ℕ
                     |                            |
        ↑Y:=X , ↓X   |  pushBinds + masks         |  pushBinds, locks SKIPPED
                     v                            v
     interior        interior Θ Δ            Y := X , ⌷[X := ℕ]
                                                  ^
                                                  |  the lock, lifted
-    conversion      exterior Θ Δ            Y := X ,   X := ℕ
+    conversion      convCtx Θ Δ             Y := X ,   X := ℕ
 
 `⌷[…]` is the renderer's mark for `masked`.  Read the two bottom rows: the
 interior may name `Y` but **not** `X` — that is the type abstraction the
@@ -400,10 +422,11 @@ morphism inward lift those names by the owner count (`scopeOf`, §6.7).
 
 This note uses the Agda names throughout; they are the plain-English ones,
 and Appendix A lists them all.  The ones used most here:
-`interior` = *interior type context*, `exterior` = *the type context the
-conversion is checked in*, `scope` = *scope*, `unlockedScope` = *scope with
-the locks lifted*, `pushBinds` = *push the owners on as binders*,
-`numBinds` = *number of binds*, `shiftBy` = *shift past n binders*.
+`interior` = *interior type context*, `convCtx` = *conversion context,
+the one the conversion is checked in*, `scope` = *scope*,
+`unlockedScope` = *scope with the locks lifted*, `pushBinds` = *push the
+owners on as binders*, `numBinds` = *number of binds*, `shiftBy` =
+*shift past n binders*.
 
 
 ## 4. Typing (`strong.Terms`, `strong.Conversion`)
@@ -420,7 +443,7 @@ masked slot is unnameable, and a `∀` pushes `abst`, never a `bind`.
 
 ### 4.2 Well-formed context morphisms — `MorphWf Δ Θ`
 
-Every premise is read on the **plain exterior** `Δ` (simultaneity),
+Every premise is read on the **exterior** `Δ` (simultaneity),
 never on the context the earlier entries build:
 
     mw[] : MorphWf Δ []
@@ -428,7 +451,7 @@ never on the context the earlier entries build:
     mw-l : Δ ∋tv X    → MorphWf Δ Θ → MorphWf Δ (lock X ∷ Θ)
     mw-u : Δ ∋e X , E → MorphWf Δ Θ → MorphWf Δ (unlock X ∷ Θ)
 
-A `bind` checks its representation in the plain exterior.  A `lock` names
+A `bind` checks its representation in the exterior.  A `lock` names
 a **visible** slot.  An `unlock` asks only that the slot **exist** — it
 cannot ask that the slot be masked and stay masked under refinement (a
 cancel may already have unmasked it), and it need not: `unmask` is total
@@ -449,14 +472,14 @@ and the boundary rule, in full:
 
     env : MorphWf Δ Θ
         → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-        → exterior Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
+        → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
         → Δ ⊢ᵗ Bₑ
           ------------------------------------
         → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
 
 Premise by premise:
 
-1. **`MorphWf Δ Θ`** — the morphism is well formed in the plain exterior
+1. **`MorphWf Δ Θ`** — the morphism is well formed in the exterior
    (§4.2).  This is the only place the morphism's own entries are
    checked, and they are all checked *simultaneously*, against `Δ`.
 2. **`interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ`** — the interior is typed in the interior
@@ -464,22 +487,22 @@ Premise by premise:
    term-closed.  `Bᵢ` is the **interior type**, a type of the interior
    context, and it is where the masks bite: if `Θ` locks `X`, then `Bᵢ`
    cannot name `X`.
-3. **`exterior Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ`** — the conversion is
+3. **`convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ`** — the conversion is
    checked in the **conversion context**, and it converts the interior
    type `Bᵢ` to the exterior type `Bₑ` *read inside*, i.e. shifted past
    the boundary's own `numBinds Θ` binders.  Both endpoints of `c` therefore
    live at the interior's depth; the conversion context is the interior
    context with `Θ`'s locks lifted, so a `seal X` at a locked `X` is
    typeable here and only here.
-4. **`Δ ⊢ᵗ Bₑ`** — the **exterior type** is a type of the plain
-   exterior.  This is the premise that the whole preservation endgame
-   turned on (§7): a rule whose contractum makes a boundary present a
+4. **`Δ ⊢ᵗ Bₑ`** — the **exterior type** is a type of the exterior.
+   This is the premise that the whole preservation endgame turned on
+   (§7): a rule whose contractum makes a boundary present a
    representation must present it where this premise can be discharged.
 
 So: `c` converts the **interior type** (the type of `M`, in the interior
-type context) to the **exterior type** (in the plain exterior, shifted
+type context) to the **exterior type** (in the exterior, shifted
 into the interior's frame), and it is typed in neither of those two
-contexts but in the third, `exterior Θ Δ` — the interior with `Θ`'s locks
+contexts but in the third, `convCtx Θ Δ` — the interior with `Θ`'s locks
 lifted.
 
 ### 4.4 The conversion judgment
@@ -604,7 +627,7 @@ crossing argument may not see them) and **unlocks** each of its locks
 `unlock` case of `dualScope` is deliberately dropped: mapping
 `unlock X ↦ lock (n+X)` would re-block a no-op unlock and would make a
 same-slot mask/unmask pair fail to cancel.  With it dropped,
-`interior-dual` and `exterior-dual` hold in general (`proof/PeelDual.agda`).
+`interior-dual` and `convCtx-dual` hold in general (`proof/PeelDual.agda`).
 
 **The scope move** (§6.7):
 
@@ -678,7 +701,7 @@ Named: `(V ⟪ Θ , s ↦ t ⟫) · W → (V · (W ⟪ dual Θ , s ⟫)) ⟪ Θ 
 conversion splits: `t` stays on the boundary, and `s` — the domain
 component, which `conv-fun` already read contravariantly — becomes the
 crossing argument's own conversion, transplanted **verbatim**.  That is
-sound because `exterior (dual Θ) (interior Θ Δ) ≡ exterior Θ Δ`: the dual's
+sound because `convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ`: the dual's
 conversion context *is* the crossed boundary's.  The argument's frame is
 the dual: a `↓` for each of `Θ`'s binds (the argument may not name the
 new owners) and a `↥` for each of `Θ`'s locks (the argument came from
@@ -698,7 +721,7 @@ interior sees it at the abstract name `X` — which is exactly what
 ### 6.4 `TyPeelR` — a `∀` conversion meets a type application
 
     TyPeelR : Value V
-      → (abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+      → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
           -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ bind A ∷ Θ , instReveal 0 s ⟫
@@ -763,7 +786,7 @@ Example (`Examples` §6, `P₅ → 7`):  `(7 ⟪ ↑X:=ℕ , id ℕ ⟫)  →  7
 
 ### 6.6 `CancelR` — a conceal directly under its reveal
 
-    CancelR : Value V → exterior Θ₂ Δ ∋ Y := A
+    CancelR : Value V → convCtx Θ₂ Δ ∋ Y := A
       → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
           -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
                ⟪ dropLocks Θ₂ , mkId A ⟫
@@ -791,7 +814,7 @@ Two `Drop$` steps then finish the run to `7`.
 
 ### 6.7 `IdPush`, and the scope move
 
-    IdPush : Value V → exterior Θ₂ Δ ∋ Y := A
+    IdPush : Value V → convCtx Θ₂ Δ ∋ Y := A
       → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
           -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫
 
@@ -809,7 +832,7 @@ active conversion this left-hand side can meet
 
 **Why the frames move.**  Both `IdPush` and `CancelR` make the *inner*
 boundary stop presenting the abstract name and start presenting `Y`'s
-**representation** `A`.  A representation is a type over the plain
+**representation** `A`.  A representation is a type over the
 exterior, so `env`'s last premise now asks for `A` to be well formed
 *inside* the outer frame — and `Θ₂`'s own locks may have masked the very
 slot `A` names.  That was **the wall**, and the whole invariant hunt
@@ -950,7 +973,7 @@ active branches' premises:
 * **`conv-unseal d`** — the interior value sits at a *variable* type, so
   by `canon-var` it is a `seal`-converted or an `` id (` Y) ``-converted
   boundary — precisely `CancelR`'s and `IdPush`'s left-hand sides.  Both
-  rules ask for `exterior Θ Δ ∋ Y := A`, which **is** `conv-unseal`'s own
+  rules ask for `convCtx Θ Δ ∋ Y := A`, which **is** `conv-unseal`'s own
   premise `d`: the lookup is free, never re-derived.
 
 The historically hard case — a value at an abstract type — costs one
@@ -973,7 +996,7 @@ Induction on the step, with the rule cases distributed:
   identities are what carries it:
   `interior (dual Θ) (interior Θ Δ)
   ≡ map masked (pushBinds (repsOf Θ) []) ++ unlockedScope Θ Δ`
-  and `exterior (dual Θ) (interior Θ Δ) ≡ exterior Θ Δ`.  The crossing
+  and `convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ`.  The crossing
   argument, typed in `Δ`, retypes one owner-frame deeper by
   `⊢rename (wkN (numBinds Θ))` and then `⊢retag` (the tail relaxes along
   `Δ ⊑ unlockedScope Θ Δ`), and the conversion `s` transplants verbatim
@@ -992,12 +1015,12 @@ Induction on the step, with the rule cases distributed:
   `move-∋` transports; and the exterior premise is `moved-scoped`, the
   one the wall used to deny — which is now just `wf-shiftBy-pushBinds` on
   the redex's own exterior type, because
-  `interior (dropLocks Θ₂) Δ ≡ exterior Θ₂ Δ`
+  `interior (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ`
   and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's `C`.
   The two frame lemmas are **refinements**, not equalities —
   `interior Θ₁ (interior Θ₂ Δ)
   ⊑ interior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)` and the
-  same for `exterior` — because the retained unmasks apply twice; `⊢retag`
+  same for `convCtx` — because the retained unmasks apply twice; `⊢retag`
   and `conv-⊑` carry that.
 * the five `ξ` rules — structural, using the same `env` node.
 
@@ -1044,7 +1067,7 @@ machine-checked consequence in tree.
    `numBinds Θ`, `shiftBy`, and the `n + X` lift in `scopeOf` and `dualScope`.
    `cmax`, `dropN`, `swapᵇ`, `shiftReps` have no analogue.
 4. **Simultaneity.**  A boundary's entries never interfere: every `MorphWf`
-   premise, and every representation, is read in the **plain exterior**,
+   premise, and every representation, is read in the **exterior**,
    and `pushBinds` lifts a representation past exactly the owners bound inside
    it.  The telescopic variant was landed and reverted
    (`notes/DECISIONS.md`, "RULING … telescopic (mwf-↑) REVERTED").
@@ -1108,7 +1131,7 @@ the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
 | name | reading |
 |------|---------|
 | `interior Θ Δ` | the interior type context |
-| `exterior Θ Δ` | the type context the conversion is checked in |
+| `convCtx Θ Δ` | the conversion context: where the conversion is checked |
 | `scope Θ Δ` | `Δ` with `Θ`'s masks and unmasks applied |
 | `unlockedScope Θ Δ` | `Δ` with only `Θ`'s unmasks applied |
 | `pushBinds As Δ` | push the representations on as binders |
@@ -1138,8 +1161,9 @@ Two identities worth stating, because they are what the names are meant to
 make obvious:
 
     scope (dropLocks Θ) Δ ≡ unlockedScope Θ Δ
-    interior (dropLocks Θ) Δ ≡ exterior Θ Δ
+    interior (dropLocks Θ) Δ ≡ convCtx Θ Δ
 
-The second is `proof/MoveScope.interior-dropLocks` — *the exterior is the
-interior of the dropLocks boundary* — and it is the identity that retired
+The second is `proof/MoveScope.interior-dropLocks` — *the conversion
+context is the interior of the dropLocks boundary* — and it is the
+identity that retired
 the wall.

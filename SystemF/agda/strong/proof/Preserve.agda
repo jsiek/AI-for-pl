@@ -439,7 +439,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- typing (`⊢instReveal`, §2b) is total, and so is this case.
 TyPeelRCase : Set
 TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
-  → (abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ bind A ∷ Θ , instReveal 0 s ⟫ ⦂ C
@@ -490,9 +490,9 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
               (trans (subst-at-0 A′ (shiftBodyBy (numBinds Θ) B))
                      (cong ⇑ᵗ (sym (shiftBy-[]ᵗ (numBinds Θ) B A))))
 
-  face : exterior (bind A ∷ Θ) Δ ⊢ instReveal 0 s
+  face : convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s
            ∶ Bᵢ ⇝ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
-  face = subst (λ T → exterior (bind A ∷ Θ) Δ ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
+  face = subst (λ T → convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
                eqT (⊢instReveal {A = A′} 0 ⊢s)
 
 -- ── DROP$ ──────────────────────────────────────────────────────────────
@@ -525,7 +525,7 @@ PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
 -- CANCELR, at the repaired rule (both frames kept, both faces
 -- neutralised, Θ₂'s scope MOVED IN).  PROVEN in proof/MoveScope.
 CancelRCase : Set
-CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → exterior Θ₂ Δ ∋ Y := A
+CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
                ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
@@ -533,7 +533,7 @@ CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → exterior Θ₂ Δ �
 -- IDPUSH, at the moved scope.  PROVEN in proof/MoveScope — the wall the
 -- old contractum ran into is gone with the frame move.
 IdPushCase : Set
-IdPushCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → exterior Θ₂ Δ ∋ Y := A
+IdPushCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
 

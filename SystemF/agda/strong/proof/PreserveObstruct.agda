@@ -161,7 +161,7 @@ _ : conceal 0 (`∀ (` 0 ⇒ ` 1)) ≡ `∀ st
 _ = refl
 
 -- the premise TyPeelR carries, at THIS redex.
-⊢st : (abst ∷ exterior Θt Δt) ⊢ st ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1)
+⊢st : (abst ∷ convCtx Θt Δt) ⊢ st ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1)
 ⊢st = conv-fun (conv-idv (abst , ez , nameable-a)) (conv-seal (es ez))
 
 Wft : Term
@@ -193,7 +193,7 @@ _ = refl
 -- one conceals ℕ at the crossed boundary's owner.  Per variable each is
 -- exactly the conceal its owner licenses.
 t-face-ctx : Ctxᵗ
-t-face-ctx = exterior (bind (` 0) ∷ Θt) Δt
+t-face-ctx = convCtx (bind (` 0) ∷ Θt) Δt
 
 _ : t-face-ctx ≡ bind (` 0) ∷ bind `ℕ ∷ []
 _ = refl
@@ -223,7 +223,7 @@ t-cod = conv-seal (es ez)
 -- failed same-slot cancellation.  strong.Reduction's repaired `dualScope`
 -- DROPS the `unlock` case, so `dual (unlock 0 ∷ []) ≡ []` and the
 -- crossing no longer masks the owner.  `PeelCase` is now PROVEN
--- (strong.proof.PeelDual.preserve-Peel), with `interior-dual`/`exterior-dual`
+-- (strong.proof.PeelDual.preserve-Peel), with `interior-dual`/`convCtx-dual`
 -- true in general — so this refutation is gone.
 
 ------------------------------------------------------------------------
@@ -247,7 +247,7 @@ t-cod = conv-seal (es ez)
 _ : interior Θi Δi ≡ Ξi
 _ = refl
 
-_ : exterior Θi Δi ≡ Δi
+_ : convCtx Θi Δi ≡ Δi
 _ = refl
 
 -- slot 0's rep, read on the face type context, is slot 1
@@ -306,7 +306,7 @@ _ = refl
   ¬wf-i w
 
 -- THE POSITIVE FACT.  With the lock moved into the inner boundary the
--- rep is presented on the FACE type context `exterior Θi Δi ≡ Δi`, where
+-- rep is presented on the FACE type context `convCtx Θi Δi ≡ Δi`, where
 -- slot 1 is live — and the contractum TYPES.  (`ProbeMove.agda` in the
 -- main tree checked this derivation by hand; here it is the theorem.)
 ⊢i-contractum :

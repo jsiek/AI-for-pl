@@ -5,7 +5,7 @@ module strong.proof.ChainScoped where
 -- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
 -- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
 -- contracta present the rep on Θ₂'s FACE type context — `interior (dropLocks
--- Θ₂) Δ ≡ exterior Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
+-- Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
 -- (proof/MoveScope).  So no invariant has to be grounded at all.  What
 -- follows is still TRUE, and is the machine-checked record of the
 -- candidates that were tried; nothing in the main development uses it.
@@ -258,17 +258,17 @@ data Reach (Δ : Ctxᵗ) : ℕ → Ty → Set where
   rs : ∀ {X A Y B} → Reach Δ X A → Y ∈ᵗ A → Δ ∋ Y := B → Reach Δ X B
 
 -- THE PREMISE, VERBATIM.  The face's name and the interior live in the
--- SAME index space (`interior Θ Δ` and `exterior Θ Δ` differ only by masking —
+-- SAME index space (`interior Θ Δ` and `convCtx Θ Δ` differ only by masking —
 -- `maskOnly`), so there is no lifting to insert: the chain is read on the
 -- FACE type context, and every member of it must be readable INSIDE.
 ChainScoped : Ctxᵗ → CtxMorph → ℕ → Set
-ChainScoped Δ Θ X = ∀ {A} → Reach (exterior Θ Δ) X A → interior Θ Δ ⊢ᵗ A
+ChainScoped Δ Θ X = ∀ {A} → Reach (convCtx Θ Δ) X A → interior Θ Δ ⊢ᵗ A
 
 -- WHAT IT DELIVERS.  The `rz` member is exactly the premise `idPush⁺`
 -- takes as `scoped` and `unseal-scoped` concludes — no lifting, on the
 -- nose.
 chain-rep : ∀ {Δ Θ X A}
-  → ChainScoped Δ Θ X → exterior Θ Δ ∋ X := A → interior Θ Δ ⊢ᵗ A
+  → ChainScoped Δ Θ X → convCtx Θ Δ ∋ X := A → interior Θ Δ ⊢ᵗ A
 chain-rep cs d = cs (rz d)
 
 -- WHAT THE COMPOSITE FACES NEED.  A face is attached at its LEAVES: the
@@ -541,7 +541,7 @@ chain-mono r i (rs r′ i′ d) = rs (chain-mono r i r′) i′ d
 -- no lifting into Θ₁ and no extra hypothesis.  This is precisely what
 -- following the chain buys over stopping at the rep.
 cancelR-leaves : ∀ {Δ Θ Y Z A}
-  → ChainScoped Δ Θ Y → Reach (exterior Θ Δ) Y A → Z ∈ᵗ A
+  → ChainScoped Δ Θ Y → Reach (convCtx Θ Δ) Y A → Z ∈ᵗ A
     ----------------------------------------------------
   → ChainScoped Δ Θ Z
 cancelR-leaves cs r i r′ = cs (chain-mono r i r′)

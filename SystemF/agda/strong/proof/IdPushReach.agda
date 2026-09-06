@@ -39,8 +39,8 @@ module strong.proof.IdPushReach where
 --
 -- together with `owner : interior Θ₂ Δ ∋ Y := A`, which is NOT an assumption
 -- about the world but a CONSEQUENCE of the redex being typed: `wE′` gives Y
--- visible in `interior Θ₂ Δ` and `d` gives Y an owner in `exterior Θ₂ Δ`, and
--- `interior` differs from `exterior` only by masking (never abst↔bind), so a
+-- visible in `interior Θ₂ Δ` and `d` gives Y an owner in `convCtx Θ₂ Δ`, and
+-- `interior` differs from `convCtx` only by masking (never abst↔bind), so a
 -- visible interior slot that is an owner outside is that same owner inside.
 -- (That "mask-only" step is `MaskOnly` below; it is now PROVEN — `maskOnly`,
 -- §2 — so this file assumes nothing.)
@@ -74,14 +74,14 @@ open import strong.proof.MoveScope using (unlockedScope-∋bind; pushBinds-∋)
 -- §2  THE MASK-ONLY FACT — PROVEN (2026-09-05)
 ------------------------------------------------------------------------
 
--- `interior Θ Δ` differs from `exterior Θ Δ` ONLY by masking (`scope`
+-- `interior Θ Δ` differs from `convCtx Θ Δ` ONLY by masking (`scope`
 -- applies the `lock` masks, `unlockedScope` skips them; both do the same
 -- binds and unmasks).  Masking never turns an `abst` into a `bind`, so a
--- slot that is NAMEABLE in `interior Θ Δ` and an OWNER in `exterior Θ Δ`
+-- slot that is NAMEABLE in `interior Θ Δ` and an OWNER in `convCtx Θ Δ`
 -- is that same owner in `interior Θ Δ`.
 MaskOnly : Set
 MaskOnly = ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
-  → interior Θ Δ ∋tv Y → exterior Θ Δ ∋ Y := A → interior Θ Δ ∋ Y := A
+  → interior Θ Δ ∋tv Y → convCtx Θ Δ ∋ Y := A → interior Θ Δ ∋ Y := A
 
 -- THE REFINEMENT THAT ONLY MASKS.  This is `Ctx._⊑ᵉ_` MINUS the one
 -- clause that invents knowledge (`le-ao : abst ⊑ᵉ bind A`).  `scope` and
@@ -168,12 +168,12 @@ scope⊑ᵐunlockedScope (bind A ∷ Θ)   Δ = scope⊑ᵐunlockedScope Θ Δ
 scope⊑ᵐunlockedScope (unlock X ∷ Θ) Δ = unmask-⊑ᵐ X (scope⊑ᵐunlockedScope Θ Δ)
 scope⊑ᵐunlockedScope (lock X ∷ Θ)   Δ = mask-⊑ᵐ X (scope⊑ᵐunlockedScope Θ Δ)
 
-interior⊑ᵐexterior : (Θ : CtxMorph) (Δ : Ctxᵗ) → interior Θ Δ ⊑ᵐ exterior Θ Δ
-interior⊑ᵐexterior Θ Δ = ⊑ᵐ-pushBinds (repsOf Θ) (scope⊑ᵐunlockedScope Θ Δ)
+interior⊑ᵐconvCtx : (Θ : CtxMorph) (Δ : Ctxᵗ) → interior Θ Δ ⊑ᵐ convCtx Θ Δ
+interior⊑ᵐconvCtx Θ Δ = ⊑ᵐ-pushBinds (repsOf Θ) (scope⊑ᵐunlockedScope Θ Δ)
 
 -- THE LEMMA, no longer an interface.
 maskOnly : MaskOnly
-maskOnly Θ Δ (E , d , v) d′ with ⊑ᵐ-∋e (interior⊑ᵐexterior Θ Δ) d
+maskOnly Θ Δ (E , d , v) d′ with ⊑ᵐ-∋e (interior⊑ᵐconvCtx Θ Δ) d
 ... | E′ , d″ , l with ∋e-det d″ d′
 ...   | refl = subst (λ e → interior Θ Δ ∋e _ , e) (⊑ᵐᵉ-bind l v) d
 
@@ -186,7 +186,7 @@ maskOnly Θ Δ (E , d , v) d′ with ⊑ᵐ-∋e (interior⊑ᵐexterior Θ Δ) 
 -- owner fact fed in as a hypothesis.  This is a PROOF, not a parameter: the
 -- swapped-face contractum types.
 IdPushCase⁺ : Set
-IdPushCase⁺ = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → exterior Θ₂ Δ ∋ Y := A
+IdPushCase⁺ = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → interior Θ₂ Δ ⊢ᵗ A
   → interior Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
@@ -200,8 +200,8 @@ idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A =
 ... | conv-unseal dₒ =
   env mw₂
       (env mw₁ ⊢V′ (conv-unseal dX) scoped)
-      (subst (λ T → exterior Θ₂ Δ ⊢ mkId A ∶ A ⇝ T) eqAC
-             (mkId-⊢ (⊑-wf (interior⊑exterior Θ₂ Δ) scoped)))
+      (subst (λ T → convCtx Θ₂ Δ ⊢ mkId A ∶ A ⇝ T) eqAC
+             (mkId-⊢ (⊑-wf (interior⊑convCtx Θ₂ Δ) scoped)))
       wE
   where
   -- The outer `unseal Y`'s rep is `shiftBy (numBinds Θ₂) C`; it IS A.
@@ -223,15 +223,15 @@ idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A =
   -- The inner unseal's owner lookup: Y is a live owner inside (owner), so
   -- it is one in `unlockedScope Θ₁ (interior Θ₂ Δ)`, and the prefix lifts
   -- it to slot `numBinds Θ₁ + Y = X` at rep `shiftBy (numBinds Θ₁) A`.
-  dX : exterior Θ₁ (interior Θ₂ Δ) ∋ X := shiftBy (numBinds Θ₁) A
-  dX = subst (λ Z → exterior Θ₁ (interior Θ₂ Δ)
+  dX : convCtx Θ₁ (interior Θ₂ Δ) ∋ X := shiftBy (numBinds Θ₁) A
+  dX = subst (λ Z → convCtx Θ₁ (interior Θ₂ Δ)
                       ∋ Z := shiftBy (numBinds Θ₁) A) eqX
              (pushBinds-∋ (repsOf Θ₁) (unlockedScope-∋bind Θ₁ owner))
 
 -- With `maskOnly` PROVEN, `owner` is derived from the redex, so the SINGLE
 -- genuinely-added premise is the scoping side-condition `interior Θ₂ Δ ⊢ᵗ A`.
 idPushCase-scoped :
-  ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → exterior Θ₂ Δ ∋ Y := A
+  ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → interior Θ₂ Δ ⊢ᵗ A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , mkId A ⟫ ⦂ C

@@ -1,16 +1,16 @@
 module strong.proof.PeelDual where
 
 -- THE PEEL REPAIR — with the fixed `dual` (strong.Reduction), `interior-dual`
--- and `exterior-dual` are TRUE in general and `PeelCase` is PROVEN.
+-- and `convCtx-dual` are TRUE in general and `PeelCase` is PROVEN.
 --
 --   interior (dual Θ) (interior Θ Δ)
 --     ≡ map masked (pushBinds (repsOf Θ) []) ++ unlockedScope Θ Δ
---   exterior (dual Θ) (interior Θ Δ) ≡ exterior Θ Δ
+--   convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ
 --
 -- The crossing argument (typed in Δ) retypes one owner-frame deeper by
 -- `⊢rename (wkN (numBinds Θ))` + `⊢retag` (the tail relaxes
 -- Δ ⊑ unlockedScope Θ Δ), and the face `s` transplants verbatim through
--- `exterior-dual`.
+-- `convCtx-dual`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; s≤s; z≤n)
 open import Data.Nat.Properties using (≤-refl; m≤n⇒m≤1+n)
@@ -180,7 +180,7 @@ interior-dual Θ Δ
            | stepB Ow (unlockedScope Θ Δ) = refl
 
 ------------------------------------------------------------------------
--- exterior-dual : the face context is UNCHANGED by the dual
+-- convCtx-dual : the face context is UNCHANGED by the dual
 ------------------------------------------------------------------------
 
 -- On an all-unlock morphism (like dualScope), unlockedScope = scope.
@@ -197,9 +197,9 @@ unlockedScope-hideBinds : (k : ℕ) (Ξ : Ctxᵗ) → unlockedScope (hideBinds k
 unlockedScope-hideBinds zero    Ξ = refl
 unlockedScope-hideBinds (suc k) Ξ = unlockedScope-hideBinds k Ξ
 
-exterior-dual : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → exterior (dual Θ) (interior Θ Δ) ≡ exterior Θ Δ
-exterior-dual Θ Δ
+convCtx-dual : (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ
+convCtx-dual Θ Δ
   rewrite repsOf-dual Θ
         | pushBinds-++ (repsOf Θ) (scope Θ Δ)
         | pushBinds-++ (repsOf Θ) (unlockedScope Θ Δ)
@@ -396,11 +396,11 @@ preserve-Peel {Δ} {V} {W} {Θ} {s} {t} {C} vV vW
 ...   | wf-⇒ wAᵈ wBᶜ =
   env mw (⊢· ⊢V ⊢argcross) ⊢t wC
   where
-  ⊢s-tr : exterior (dual Θ) (interior Θ Δ) ⊢ s
+  ⊢s-tr : convCtx (dual Θ) (interior Θ Δ) ⊢ s
             ∶ shiftBy (numBinds Θ) _ ⇝ shiftBy (numBinds (dual Θ)) _
   ⊢s-tr rewrite numBinds-dual Θ =
     subst (λ Ct → Ct ⊢ s ∶ shiftBy (numBinds Θ) _ ⇝ _)
-          (sym (exterior-dual Θ Δ)) ⊢s
+          (sym (convCtx-dual Θ Δ)) ⊢s
   ⊢argcross : interior Θ Δ ∣ [] ⊢ wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫ ⦂ _
   ⊢argcross = env (MorphWf-dual Θ Δ mw)
                   (crossing Θ ⊢W) ⊢s-tr wAᵈ

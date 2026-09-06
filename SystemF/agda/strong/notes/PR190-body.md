@@ -45,12 +45,12 @@ All six, with **no module parameters, no postulates, no holes**, under
    knowledge transport is definitional (`ren-kn`) and demotion is not
    expressible (`⊑-kn`).
 4. **Two type contexts per boundary.**  `interior Θ Δ` (interior: masks
-   applied, owners pushed on) types the interior; `exterior Θ Δ` (the
-   interior with `Θ`'s locks lifted) is where the conversion is checked,
-   so a `seal X` at a locked `X` can still cite its owner.
-   `interior (dropLocks Θ) Δ ≡ exterior Θ Δ`.
+   applied, owners pushed on) types the interior; the **conversion
+   context** `convCtx Θ Δ` (the interior with `Θ`'s locks lifted) is
+   where the conversion is checked, so a `seal X` at a locked `X` can
+   still cite its owner.  `interior (dropLocks Θ) Δ ≡ convCtx Θ Δ`.
 5. **Simultaneity.**  Every `MorphWf` premise and every representation is
-   read in the plain exterior; `pushBinds` lifts a representation past exactly
+   read in the exterior; `pushBinds` lifts a representation past exactly
    the owners bound inside it.  Sibling entries never interfere.
 6. **Conversions are GTSF's.**  `id` / `seal` / `unseal` / `_↦_` / `∀`,
    with `id` restricted to base types and variables and compound
@@ -97,7 +97,7 @@ All six, with **no module parameters, no postulates, no holes**, under
   `1caf9b27` (**progress proven, zero parameters**).
 * **Rule repairs.**  `5554c6b2` + `b167f622` (v2 preservation verdict:
   four rules to repair), `6ac9a33c` (`IdPush` reachability), `7e9c4109`
-  (**`Peel` fixed and proven**; `interior-dual`/`exterior-dual` general),
+  (**`Peel` fixed and proven**; `interior-dual`/`convCtx-dual` general),
   `97c94967` (first closed-source `IdPush` traces; the wall's
   reachability split), `4defe7b5` + `5d69c0d7` (`CancelR`/`TyPeelR`
   landed), `e4c9fe88` (the invariant hunt, all candidates refuted by
@@ -130,7 +130,7 @@ All six, with **no module parameters, no postulates, no holes**, under
 
 * **Naming — RULED AND LANDED (2026-09-06).**  The terse helpers now
   carry plain-English names throughout the Agda, `Design.md` and this
-  note: `intC` → `interior`, `fceC` → `exterior`, `scp` → `scope`,
+  note: `intC` → `interior`, `fceC` → `convCtx`, `scp` → `scope`,
   `fscp` → `unlockedScope`, `prep` → `pushBinds`, `reps` → `repsOf`,
   `nbind` → `numBinds`, `liftN` → `shiftBy`, `liftᵇ` → `shiftBodyBy`,
   `upd` → `updateAt`, `blk` → `masked`, `unblk` → `unmaskEnt`,

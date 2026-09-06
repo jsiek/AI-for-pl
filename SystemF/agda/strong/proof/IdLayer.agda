@@ -65,9 +65,9 @@ outer-id-base-untypeable {Θ₁ = Θ₁} bA (env _ (env _ _ ⊢cᵢ _) ⊢cₒ _
 -- The mask jam is a phantom, twice over.  (1) A conceal is INVISIBLE to the
 -- face type context: `unlockedScope` skips `lock`, so a face never lands
 -- on a slot the layer masks.
-exterior-lock : ∀ {X} (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → exterior (lock X ∷ Θ) Δ ≡ exterior Θ Δ
-exterior-lock Θ Δ = refl
+convCtx-lock : ∀ {X} (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → convCtx (lock X ∷ Θ) Δ ≡ convCtx Θ Δ
+convCtx-lock Θ Δ = refl
 
 -- (2) And a boundary can never conceal the slot its OWN face names —
 -- `value-var-visible` (strong.Terms) says a value's variable type is

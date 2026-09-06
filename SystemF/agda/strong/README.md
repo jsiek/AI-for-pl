@@ -57,7 +57,7 @@ type-checking it type-checks the whole development.
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
 | `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the owner prefix `pushBinds` with `shiftBy` |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, and `conv-faces-unique` |
-| `Terms.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`, `scope`, `unlockedScope`, `interior`, `exterior`), `MorphWf`, terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` |
+| `Terms.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`, `scope`, `unlockedScope`, `interior`, `convCtx`), `MorphWf`, terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` |
 | `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |
 | `Reduction.agda` | `reveal`/`conceal` and their conversion analogues, `dual`, the scope move (`scopeOf`, `dropLocks`, `_⋉_`), the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
 | `Progress.agda` | `progress`, with the boundary case split out as `progress-env` and `TyPeelR`'s premise read off the redex (`∀-face-premise`) |
@@ -73,7 +73,7 @@ type-checking it type-checks the whole development.
 | file | one line |
 |------|----------|
 | `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢reveal`/`⊢conceal`/`⊢instReveal`/`⊢instConceal`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR`, the three case statements, and `module Impl` |
-| `PeelDual.agda` | the `Peel` case: `interior-dual` and `exterior-dual` in general, and `preserve-Peel` |
+| `PeelDual.agda` | the `Peel` case: `interior-dual` and `convCtx-dual` in general, and `preserve-Peel` |
 | `MoveScope.agda` | **the scope move**: the list algebra of `scopeOf`/`dropLocks`/`_⋉_`, `interior-dropLocks`, the unconditional frame lemmas `frame-move`/`face-move`, `move-∋`, `MorphWf-⋉`, the lock-only refutation, and `preserve-CancelR` / `preserve-IdPush` |
 | `Canonical.agda` | canonical forms: `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` |
 | `Canonicity.agda` | the canonical conversion family (`reveal`/`conceal`/`mkId` subtrees) and its closure under the rules |

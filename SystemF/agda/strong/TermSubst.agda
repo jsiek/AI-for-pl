@@ -114,9 +114,9 @@ ren-interior : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
 ren-interior Θ ρ r i rewrite repsOf-ren ρ Θ =
   ren-pushBinds (repsOf Θ) ρ (ren-scope Θ r i)
 
-ren-exterior : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
-  → Ren (extN (numBinds Θ) ρ) (exterior Θ Δ) (exterior (renᴮ ρ Θ) Δ′)
-ren-exterior Θ ρ r i rewrite repsOf-ren ρ Θ =
+ren-convCtx : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
+  → Ren (extN (numBinds Θ) ρ) (convCtx Θ Δ) (convCtx (renᴮ ρ Θ) Δ′)
+ren-convCtx Θ ρ r i rewrite repsOf-ren ρ Θ =
   ren-pushBinds (repsOf Θ) ρ (ren-unlockedScope Θ r i)
 
 MorphWf-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → MorphWf Δ Θ → MorphWf Δ′ (renᴮ ρ Θ)
@@ -162,18 +162,18 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
       cprem
       (wf-ren r wE)
   where
-  cprem : exterior (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (numBinds Θ) ρ) c
+  cprem : convCtx (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (numBinds Θ) ρ) c
             ∶ renameᵗ (extN (numBinds Θ) ρ) Bᵢ
             ⇝ shiftBy (numBinds (renᴮ ρ Θ)) (renameᵗ ρ Bₑ)
-  cprem = subst (λ n → exterior (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (numBinds Θ) ρ) c
+  cprem = subst (λ n → convCtx (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (numBinds Θ) ρ) c
                          ∶ renameᵗ (extN (numBinds Θ) ρ) Bᵢ
                          ⇝ shiftBy n (renameᵗ ρ Bₑ))
                 (sym (numBinds-ren ρ Θ))
-                (subst (λ t → exterior (renᴮ ρ Θ) Δ′
+                (subst (λ t → convCtx (renᴮ ρ Θ) Δ′
                                 ⊢ renᶜ (extN (numBinds Θ) ρ) c
                                 ∶ renameᵗ (extN (numBinds Θ) ρ) Bᵢ ⇝ t)
                        (shiftBy-ren (numBinds Θ) ρ Bₑ)
-                       (conv-ren (ren-exterior Θ ρ r i) ⊢c))
+                       (conv-ren (ren-convCtx Θ ρ r i) ⊢c))
 
 ------------------------------------------------------------------------
 -- 4.  THE RETAGGING TRANSPORT
@@ -193,7 +193,7 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
 ⊢retag ls (env {Θ = Θ} mw ⊢M ⊢c wE) =
   env (MorphWf-⊑ ls mw)
       (⊢retag (⊑-interior Θ ls) ⊢M)
-      (conv-⊑ (⊑-exterior Θ ls) ⊢c)
+      (conv-⊑ (⊑-convCtx Θ ls) ⊢c)
       (⊑-wf ls wE)
 
 ------------------------------------------------------------------------

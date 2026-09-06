@@ -20,7 +20,7 @@ module strong.proof.MoveScope where
 -- whole SCOPE (locks AND unlocks, in order, lifted past Θ₂'s owners) at
 -- Θ₁'s TAIL, where `scope` applies it FIRST.
 --
--- WHY IT WORKS, in one line: `interior (dropLocks Θ₂) Δ ≡ exterior Θ₂ Δ`
+-- WHY IT WORKS, in one line: `interior (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ`
 -- (§3), and the rep the outer `unseal Y` hands back IS the redex's own exterior
 -- type lifted, `A ≡ shiftBy (numBinds Θ₂) C` with `Δ ⊢ᵗ C` — so
 -- `wf-shiftBy-pushBinds` gives the premise the wall used to deny (§6).
@@ -171,13 +171,13 @@ unlockedScope-dropLocks (lock X ∷ Θ)   Δ = unlockedScope-dropLocks Θ Δ
 -- IS ITS FACE TYPE CONTEXT — so a rep read on the face is nameable
 -- inside, and nothing has to be assumed about the world.
 interior-dropLocks : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → interior (dropLocks Θ) Δ ≡ exterior Θ Δ
+  → interior (dropLocks Θ) Δ ≡ convCtx Θ Δ
 interior-dropLocks Θ Δ
   rewrite repsOf-dropLocks Θ | scope-dropLocks Θ Δ = refl
 
-exterior-dropLocks : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → exterior (dropLocks Θ) Δ ≡ exterior Θ Δ
-exterior-dropLocks Θ Δ
+convCtx-dropLocks : (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → convCtx (dropLocks Θ) Δ ≡ convCtx Θ Δ
+convCtx-dropLocks Θ Δ
   rewrite repsOf-dropLocks Θ | unlockedScope-dropLocks Θ Δ = refl
 
 -- The two frames of the contractum, unfolded.
@@ -187,11 +187,11 @@ interior-⋉ : (Θ₁ Θ₂ : CtxMorph) (Ξ : Ctxᵗ)
 interior-⋉ Θ₁ Θ₂ Ξ rewrite repsOf-⋉ Θ₁ Θ₂ =
   cong (pushBinds (repsOf Θ₁)) (scope-++ Θ₁ (scopeOf (numBinds Θ₂) Θ₂) Ξ)
 
-exterior-⋉ : (Θ₁ Θ₂ : CtxMorph) (Ξ : Ctxᵗ)
-  → exterior (Θ₁ ⋉ Θ₂) Ξ
+convCtx-⋉ : (Θ₁ Θ₂ : CtxMorph) (Ξ : Ctxᵗ)
+  → convCtx (Θ₁ ⋉ Θ₂) Ξ
       ≡ pushBinds (repsOf Θ₁)
           (unlockedScope Θ₁ (unlockedScope (scopeOf (numBinds Θ₂) Θ₂) Ξ))
-exterior-⋉ Θ₁ Θ₂ Ξ rewrite repsOf-⋉ Θ₁ Θ₂ =
+convCtx-⋉ Θ₁ Θ₂ Ξ rewrite repsOf-⋉ Θ₁ Θ₂ =
   cong (pushBinds (repsOf Θ₁))
        (unlockedScope-++ Θ₁ (scopeOf (numBinds Θ₂) Θ₂) Ξ)
 
@@ -205,9 +205,9 @@ exterior-⋉ Θ₁ Θ₂ Ξ rewrite repsOf-⋉ Θ₁ Θ₂ =
 wf-unlockedScope : ∀ {Δ A} (Θ : CtxMorph) → Δ ⊢ᵗ A → unlockedScope Θ Δ ⊢ᵗ A
 wf-unlockedScope Θ w = ⊑-wf (Δ⊑unlockedScope Θ _) w
 
-wf-exterior : ∀ {Δ A} (Θ : CtxMorph)
-  → Δ ⊢ᵗ A → exterior Θ Δ ⊢ᵗ shiftBy (numBinds Θ) A
-wf-exterior Θ w = wf-shiftBy-pushBinds (repsOf Θ) (wf-unlockedScope Θ w)
+wf-convCtx : ∀ {Δ A} (Θ : CtxMorph)
+  → Δ ⊢ᵗ A → convCtx Θ Δ ⊢ᵗ shiftBy (numBinds Θ) A
+wf-convCtx Θ w = wf-shiftBy-pushBinds (repsOf Θ) (wf-unlockedScope Θ w)
 
 -- THE VALUE'S FRAME IS REFINED BY THE MOVE.  Everything Θ₂ masked, the
 -- moved scope masks again — at the same slots, in the same order, one
@@ -239,17 +239,17 @@ frame-move Θ₁ Θ₂ Δ =
 -- the move exists for: the inner face is now read where Θ₂'s locks are
 -- not applied at all.
 face-move : (Θ₁ Θ₂ : CtxMorph) (Δ : Ctxᵗ)
-  → exterior Θ₁ (interior Θ₂ Δ) ⊑ exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  → convCtx Θ₁ (interior Θ₂ Δ) ⊑ convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
 face-move Θ₁ Θ₂ Δ =
-  subst (λ Ξ → exterior Θ₁ (interior Θ₂ Δ) ⊑ Ξ) (sym eq)
-        (⊑-exterior Θ₁ (⊑-trans (interior⊑exterior Θ₂ Δ)
+  subst (λ Ξ → convCtx Θ₁ (interior Θ₂ Δ) ⊑ Ξ) (sym eq)
+        (⊑-convCtx Θ₁ (⊑-trans (interior⊑convCtx Θ₂ Δ)
                           (Δ⊑unlockedScope (scopeOf (numBinds Θ₂) Θ₂)
-                                           (exterior Θ₂ Δ))))
+                                           (convCtx Θ₂ Δ))))
   where
-  eq : exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
-         ≡ exterior Θ₁ (unlockedScope (scopeOf (numBinds Θ₂) Θ₂)
-                                      (exterior Θ₂ Δ))
-  eq = trans (exterior-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ))
+  eq : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+         ≡ convCtx Θ₁ (unlockedScope (scopeOf (numBinds Θ₂) Θ₂)
+                                     (convCtx Θ₂ Δ))
+  eq = trans (convCtx-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ))
              (cong (λ Ξ → pushBinds (repsOf Θ₁)
                             (unlockedScope Θ₁
                               (unlockedScope (scopeOf (numBinds Θ₂) Θ₂) Ξ)))
@@ -296,17 +296,17 @@ _ = refl
 ¬frame-locksOnly (le∷ () ls)
 
 -- THE OWNER, ON THE CONTRACTUM'S INNER FACE TYPE CONTEXT.  The outer
--- reveal's own lookup — read on `exterior Θ₂ Δ`, which the move makes the
+-- reveal's own lookup — read on `convCtx Θ₂ Δ`, which the move makes the
 -- inner boundary's exterior — transported past the moved scope, past Θ₁'s
 -- unmasks, and past Θ₁'s owners.  NO `maskOnly` step: the old proof had
 -- to push the lookup INSIDE Θ₂'s locks, and this one never does.
 move-∋ : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {Y : ℕ} {A : Ty}
-  → exterior Θ₂ Δ ∋ Y := A
-  → exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  → convCtx Θ₂ Δ ∋ Y := A
+  → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
       ∋ (numBinds Θ₁ + Y) := shiftBy (numBinds Θ₁) A
 move-∋ Θ₁ Θ₂ {Δ = Δ} {Y = Y} {A = A} d =
   subst (λ Ξ → Ξ ∋ (numBinds Θ₁ + Y) := shiftBy (numBinds Θ₁) A)
-        (sym (exterior-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ)))
+        (sym (convCtx-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ)))
         (pushBinds-∋ (repsOf Θ₁)
           (unlockedScope-∋bind Θ₁
             (unlockedScope-∋bind (scopeOf (numBinds Θ₂) Θ₂)
@@ -316,10 +316,10 @@ move-∋ Θ₁ Θ₂ {Δ = Δ} {Y = Y} {A = A} d =
 -- its own exterior carries — it only ADDS unmasks and the owner prefix.
 wf-face-move : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {A : Ty}
   → interior (dropLocks Θ₂) Δ ⊢ᵗ A
-  → exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ) ⊢ᵗ shiftBy (numBinds Θ₁) A
+  → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ) ⊢ᵗ shiftBy (numBinds Θ₁) A
 wf-face-move Θ₁ Θ₂ {Δ = Δ} {A = A} w =
   subst (λ Ξ → Ξ ⊢ᵗ shiftBy (numBinds Θ₁) A)
-        (sym (exterior-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ)))
+        (sym (convCtx-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ)))
         (wf-shiftBy-pushBinds (repsOf Θ₁)
           (wf-unlockedScope Θ₁ (wf-unlockedScope (scopeOf (numBinds Θ₂) Θ₂) w)))
 
@@ -345,7 +345,7 @@ MorphWf-dropLocks (unlock X ∷ Θ) (mw-u d b)  = mw-u d (MorphWf-dropLocks Θ b
 
 -- THE MOVED SCOPE IS WELL FORMED WHERE IT LANDS.  A `lock X` of Θ₂ named
 -- a VISIBLE slot of Δ; the move reads it at `numBinds Θ₂ + X` on
--- `exterior Θ₂ Δ`, where Θ₂'s own locks are NOT applied — so the slot is
+-- `convCtx Θ₂ Δ`, where Θ₂'s own locks are NOT applied — so the slot is
 -- still visible, which is precisely the nameability the move buys.
 MorphWf-scopeOf : ∀ (As : List Ty) (Θ : CtxMorph) {Δ Ξ : Ctxᵗ}
   → Δ ⊑ Ξ → MorphWf Δ Θ → MorphWf (pushBinds As Ξ) (scopeOf (length As) Θ)
@@ -363,7 +363,7 @@ MorphWf-⋉ : ∀ (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ}
 MorphWf-⋉ Θ₁ Θ₂ {Δ = Δ} b₁ b₂ =
   subst (λ Ξ → MorphWf Ξ (Θ₁ ⋉ Θ₂)) (sym (interior-dropLocks Θ₂ Δ))
         (MorphWf-++ Θ₁ (scopeOf (numBinds Θ₂) Θ₂)
-                (MorphWf-⊑ (interior⊑exterior Θ₂ Δ) b₁)
+                (MorphWf-⊑ (interior⊑convCtx Θ₂ Δ) b₁)
                 (MorphWf-scopeOf (repsOf Θ₂) Θ₂ (Δ⊑unlockedScope Θ₂ Δ) b₂))
 
 ------------------------------------------------------------------------
@@ -377,15 +377,15 @@ module _ {Δ : Ctxᵗ} (Θ₂ : CtxMorph) {A C : Ty}
          (wE : Δ ⊢ᵗ C) (eqAC : A ≡ shiftBy (numBinds Θ₂) C) where
 
   -- THE PREMISE THE WALL USED TO DENY.  `interior (dropLocks Θ₂) Δ` IS
-  -- `exterior Θ₂ Δ` (§3), and A is C lifted past Θ₂'s owners — so this is
+  -- `convCtx Θ₂ Δ` (§3), and A is C lifted past Θ₂'s owners — so this is
   -- `wf-shiftBy-pushBinds` at Θ₂'s reps, and nothing else.
   moved-scoped : interior (dropLocks Θ₂) Δ ⊢ᵗ A
-  moved-scoped rewrite eqAC | interior-dropLocks Θ₂ Δ = wf-exterior Θ₂ wE
+  moved-scoped rewrite eqAC | interior-dropLocks Θ₂ Δ = wf-convCtx Θ₂ wE
 
-  moved-face : exterior (dropLocks Θ₂) Δ
+  moved-face : convCtx (dropLocks Θ₂) Δ
                  ⊢ mkId A ∶ A ⇝ shiftBy (numBinds (dropLocks Θ₂)) C
-  moved-face rewrite numBinds-dropLocks Θ₂ | exterior-dropLocks Θ₂ Δ | eqAC =
-    mkId-⊢ (wf-exterior Θ₂ wE)
+  moved-face rewrite numBinds-dropLocks Θ₂ | convCtx-dropLocks Θ₂ Δ | eqAC =
+    mkId-⊢ (wf-convCtx Θ₂ wE)
 
 -- ── IDPUSH ─────────────────────────────────────────────────────────────
 -- The faces are swapped and the scope moves.  Four moves, one per premise
@@ -420,13 +420,13 @@ preserve-IdPush {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y
           (subst (λ T → interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ T)
                  (conv-idv-src ⊢cᵢ) ⊢V)
 
-  dX : exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
          ∋ X := shiftBy (numBinds Θ₁) A
-  dX = subst (λ Z → exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX = subst (λ Z → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
                       ∋ Z := shiftBy (numBinds Θ₁) A)
              eqX (move-∋ Θ₁ Θ₂ d)
 
-  faceᵢ : exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  faceᵢ : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
             ⊢ unseal X ∶ ` X ⇝ shiftBy (numBinds (Θ₁ ⋉ Θ₂)) A
   faceᵢ rewrite numBinds-⋉ Θ₁ Θ₂ = conv-unseal dX
 
@@ -452,9 +452,9 @@ preserve-CancelR {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = 
   eqX : numBinds Θ₁ + Y ≡ X
   eqX = tvar-inj (trans (sym (shiftBy-var (numBinds Θ₁) Y)) (conv-seal-tgt ⊢c₁))
 
-  dX : exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
          ∋ X := shiftBy (numBinds Θ₁) A
-  dX = subst (λ Z → exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX = subst (λ Z → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
                       ∋ Z := shiftBy (numBinds Θ₁) A)
              eqX (move-∋ Θ₁ Θ₂ d)
 
@@ -469,7 +469,7 @@ preserve-CancelR {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = 
   ⊢V′ = ⊢retag (frame-move Θ₁ Θ₂ Δ)
           (subst (λ T → interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ T) eqV ⊢V)
 
-  faceᵢ : exterior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  faceᵢ : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
             ⊢ mkId (shiftBy (numBinds Θ₁) A)
             ∶ shiftBy (numBinds Θ₁) A ⇝ shiftBy (numBinds (Θ₁ ⋉ Θ₂)) A
   faceᵢ rewrite numBinds-⋉ Θ₁ Θ₂ =

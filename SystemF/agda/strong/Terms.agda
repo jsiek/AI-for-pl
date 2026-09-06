@@ -87,8 +87,8 @@ unlockedScope (lock X ∷ Θ)   Δ = unlockedScope Θ Δ
 interior : CtxMorph → Ctxᵗ → Ctxᵗ
 interior Θ Δ = pushBinds (repsOf Θ) (scope Θ Δ)
 
-exterior : CtxMorph → Ctxᵗ → Ctxᵗ
-exterior Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ)
+convCtx : CtxMorph → Ctxᵗ → Ctxᵗ
+convCtx Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ)
 
 -- The interior type context is the face type context with Θ's bind masks
 -- on, so anything well formed inside is well formed on the face type
@@ -102,8 +102,8 @@ scope⊑unlockedScope (unlock X ∷ Θ) Δ =
     (scope⊑unlockedScope Θ Δ)
 scope⊑unlockedScope (lock X ∷ Θ)   Δ = mask-⊑ X (scope⊑unlockedScope Θ Δ)
 
-interior⊑exterior : (Θ : CtxMorph) (Δ : Ctxᵗ) → interior Θ Δ ⊑ exterior Θ Δ
-interior⊑exterior Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ Δ)
+interior⊑convCtx : (Θ : CtxMorph) (Δ : Ctxᵗ) → interior Θ Δ ⊑ convCtx Θ Δ
+interior⊑convCtx Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ Δ)
 
 -- The FACE type context only ever ADDS nameability to the plain
 -- exterior: `unlockedScope` skips the binds and the locks, and an
@@ -135,8 +135,8 @@ interior⊑exterior Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ 
 ⊑-interior : (Θ : CtxMorph) → Δ ⊑ Δ′ → interior Θ Δ ⊑ interior Θ Δ′
 ⊑-interior Θ ls = ⊑-pushBinds (repsOf Θ) (⊑-scope Θ ls)
 
-⊑-exterior : (Θ : CtxMorph) → Δ ⊑ Δ′ → exterior Θ Δ ⊑ exterior Θ Δ′
-⊑-exterior Θ ls = ⊑-pushBinds (repsOf Θ) (⊑-unlockedScope Θ ls)
+⊑-convCtx : (Θ : CtxMorph) → Δ ⊑ Δ′ → convCtx Θ Δ ⊑ convCtx Θ Δ′
+⊑-convCtx Θ ls = ⊑-pushBinds (repsOf Θ) (⊑-unlockedScope Θ ls)
 
 ------------------------------------------------------------------------
 -- 2.  Boundary well-formedness
@@ -226,7 +226,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
       → MorphWf Δ Θ
       → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-      → exterior Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
+      → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ

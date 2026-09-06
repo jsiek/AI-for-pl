@@ -54,7 +54,7 @@ lock-then-unlock = refl
 -- THE MASK-ONLY FACT, PROVEN
 ------------------------------------------------------------------------
 
--- `interior Θ Δ` and `exterior Θ Δ` differ ONLY by masking: `scope` applies the
+-- `interior Θ Δ` and `convCtx Θ Δ` differ ONLY by masking: `scope` applies the
 -- `lock` masks, `unlockedScope` skips them, and both do the same binds and the
 -- same unmasks.  Masking never turns an `abst` into a `bind` — it only
 -- wraps and unwraps `masked` — so a slot that is VISIBLE inside and an OWNER
@@ -138,7 +138,7 @@ CoreEq-pushBinds (A ∷ As) ce (es {E = E} d) (es {E = E′} d′) =
 
 -- THE FACT.  (Stated exactly as `strong.proof.IdPushReach.MaskOnly`.)
 mask-only : ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
-  → interior Θ Δ ∋tv Y → exterior Θ Δ ∋ Y := A → interior Θ Δ ∋ Y := A
+  → interior Θ Δ ∋tv Y → convCtx Θ Δ ∋ Y := A → interior Θ Δ ∋ Y := A
 mask-only Θ Δ (E , d , v) df =
   subst (λ F → interior Θ Δ ∋e _ , F)
         (trans (sym (core-nameable v))

@@ -5,7 +5,7 @@ module strong.proof.WallGrounding where
 -- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
 -- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
 -- contracta present the rep on Θ₂'s FACE type context — `interior (dropLocks
--- Θ₂) Δ ≡ exterior Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
+-- Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
 -- (proof/MoveScope).  So no invariant has to be grounded at all.  What
 -- follows is still TRUE, and is the machine-checked record of the
 -- candidates that were tried; nothing in the main development uses it.

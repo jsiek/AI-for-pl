@@ -16,7 +16,7 @@ module strong.Show where
 --     [fresh names for the owners] then ext SHIFTED past them.  Nothing is
 --     dropped any more (conceal masks in place), so there is exactly ONE
 --     inner supply — the old `cmax` correction has no analogue, and the
---     interior supply and the FACE supply coincide (`interior` and `exterior`
+--     interior supply and the FACE supply coincide (`interior` and `convCtx`
 --     differ in blocking, not in slot layout).
 --   * an OWNER's rep is shown under `ext` — a rep is a type over the PLAIN
 --     exterior (simultaneity);

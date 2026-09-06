@@ -1449,7 +1449,7 @@ is `notes/DesignSpace.md`, with `notes/DesignPoints.md` as its glossary.
     read past the unlocks, and design **law 4 is reduced to its
     surviving half** (§8): no interference from the frame's own entries;
     the "every premise on the plain exterior" half is retired.
-* **The pair** (Jeremy, 2026-09-06, branch `morph-pair`).  The
+* **The pair** (Jeremy, 2026-09-06; PR #195, `3f080fdb`).  The
   ratification left `_⊢ᵐ_` reading a rep past its own TAIL's unlocks,
   which is a sequential statement about something that is not sequential.
   The morphism became a PAIR — `morph (binds : List Ty)

@@ -24,8 +24,8 @@ open import strong.Terms
 -- 1.  The gate
 ------------------------------------------------------------------------
 
-seal-cites-owner : ∀ {Δ X A B p c}
-  → Δ ⊢ c ∶ A ⇝ B ∙ p → c ≡ seal X → Δ ∋ X := A
+seal-cites-owner : ∀ {Δ X A B c}
+  → Δ ⊢ c ∶ A ⇝ B → c ≡ seal X → Δ ∋ X := A
 seal-cites-owner (conv-seal d) refl = d
 
 -- `unlock` claims nothing: it is a NAME with no rep, so it cannot assert
@@ -49,7 +49,7 @@ unlock-claims-nothing = bw-u
 ¬know-adv : ∀ {A} → Δadv ∋ 0 := A → ⊥
 ¬know-adv ()
 
-¬seal-adv : ∀ {A B p} → Δadv ⊢ seal 0 ∶ A ⇝ B ∙ p → ⊥
+¬seal-adv : ∀ {A B} → Δadv ⊢ seal 0 ∶ A ⇝ B → ⊥
 ¬seal-adv (conv-seal d) = ¬know-adv d
 
 ¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
@@ -69,7 +69,7 @@ unlock-claims-nothing = bw-u
 Δbad : Ctxᵗ
 Δbad = bind ∀ZZ ∷ []
 
-seal-bad-face : ∀ {A B p} → Δbad ⊢ seal 0 ∶ A ⇝ B ∙ p → A ≡ ⇑ᵗ ∀ZZ
+seal-bad-face : ∀ {A B} → Δbad ⊢ seal 0 ∶ A ⇝ B → A ≡ ⇑ᵗ ∀ZZ
 seal-bad-face (conv-seal ez) = refl
 
 ¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
@@ -84,9 +84,9 @@ seal-bad-face (conv-seal ez) = refl
 -- exterior face are the SAME lookup on the SAME type context, hence literally
 -- equal.  This one lemma replaces cancel-agree + Reversal≈ + SkelEq +
 -- xrep-stored + MergeOK's two face equations.
-cancel-faces-agree : ∀ {Δ X A B A′ B′ p q}
-  → Δ ⊢ seal X ∶ A ⇝ B ∙ p       -- the inner conceal
-  → Δ ⊢ unseal X ∶ A′ ⇝ B′ ∙ q   -- the owner it names
+cancel-faces-agree : ∀ {Δ X A B A′ B′}
+  → Δ ⊢ seal X ∶ A ⇝ B       -- the inner conceal
+  → Δ ⊢ unseal X ∶ A′ ⇝ B′   -- the owner it names
     ---------------------------
   → A ≡ B′
 cancel-faces-agree cs cu =

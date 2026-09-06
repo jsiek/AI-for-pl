@@ -154,7 +154,7 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
   rewrite rename-[]ᵗ-commute ρ B A =
   ⊢·[] (⊢rename r i ⊢L) (wf-ren r w)
 ⊢rename {Δ′ = Δ′} {ρ = ρ} r i
-        (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} {p = p} bw ⊢M ⊢c wE) =
+        (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} bw ⊢M ⊢c wE) =
   env (Bwf-ren r i bw)
       (⊢rename (ren-intC Θ ρ r i) (Inj-extN (nbind Θ) i) ⊢M)
       cprem
@@ -162,13 +162,13 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
   where
   cprem : fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
             ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ
-            ⇝ liftN (nbind (renᴮ ρ Θ)) (renameᵗ ρ Bₑ) ∙ p
+            ⇝ liftN (nbind (renᴮ ρ Θ)) (renameᵗ ρ Bₑ)
   cprem = subst (λ n → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
                          ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ
-                         ⇝ liftN n (renameᵗ ρ Bₑ) ∙ p)
+                         ⇝ liftN n (renameᵗ ρ Bₑ))
                 (sym (nbind-ren ρ Θ))
                 (subst (λ t → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
-                                ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ ⇝ t ∙ p)
+                                ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ ⇝ t)
                        (liftN-ren (nbind Θ) ρ Bₑ)
                        (conv-ren (ren-fceC Θ ρ r i) ⊢c))
 

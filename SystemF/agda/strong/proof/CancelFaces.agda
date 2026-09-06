@@ -79,8 +79,8 @@ preserve-CancelR : ScopedAtUnseal → CancelRCase
 preserve-CancelR sc {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
                     {A = A} {C = C} v d ⊢R with ⊢R
 ... | env bw₂ (env bw₁ ⊢V ⊢c₁ wE′) (conv-unseal dₒ) wE =
-  env {p = ↑ˢ} bw₂
-      (env {p = ↑ˢ} bw₁ ⊢V′ faceᵢ scoped)
+  env bw₂
+      (env bw₁ ⊢V′ faceᵢ scoped)
       faceₒ
       wE
   where
@@ -115,9 +115,9 @@ preserve-CancelR sc {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y
   ⊢V′ = subst (λ T → intC Θ₁ (intC Θ₂ Δ) ∣ [] ⊢ V ⦂ T) eqV ⊢V
 
   faceᵢ : fceC Θ₁ (intC Θ₂ Δ) ⊢ idc (liftN (nbind Θ₁) A)
-            ∶ liftN (nbind Θ₁) A ⇝ liftN (nbind Θ₁) A ∙ ↑ˢ
+            ∶ liftN (nbind Θ₁) A ⇝ liftN (nbind Θ₁) A
   faceᵢ = idc-⊢ (wf-fceC Θ₁ scoped)
 
-  faceₒ : fceC Θ₂ Δ ⊢ idc A ∶ A ⇝ liftN (nbind Θ₂) C ∙ ↑ˢ
-  faceₒ = subst (λ T → fceC Θ₂ Δ ⊢ idc A ∶ A ⇝ T ∙ ↑ˢ) eqAC
+  faceₒ : fceC Θ₂ Δ ⊢ idc A ∶ A ⇝ liftN (nbind Θ₂) C
+  faceₒ = subst (λ T → fceC Θ₂ Δ ⊢ idc A ∶ A ⇝ T) eqAC
                 (idc-⊢ (⊑-wf (intC⊑fceC Θ₂ Δ) scoped))

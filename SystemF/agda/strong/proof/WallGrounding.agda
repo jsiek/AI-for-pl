@@ -150,14 +150,14 @@ RepWf-L₃w (es ez)     = tt
 RepWf-L₃w (es (es ()))
 
 ⊢Lseal₇′ : (abst ∷ QΔ₁) ∣ [] ⊢ ($ 7) ⟪ Θw , seal 1 ⟫ ⦂ ` 1
-⊢Lseal₇′ = env {p = ↓ˢ} (bw-l (bind `ℕ , es ez , vis-b) bw[]) ⊢$
+⊢Lseal₇′ = env (bw-l (bind `ℕ , es ez , vis-b) bw[]) ⊢$
                 (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , vis-b))
 
 ⊢L₃-in : QΔ₁ ∣ [] ⊢ (Λ (($ 7) ⟪ Θw , seal 1 ⟫)) ·[ ` 1 , ` 0 ] ⦂ ` 0
 ⊢L₃-in = ⊢·[] (⊢Λ ⊢Lseal₇′) (wf-var (bind `ℕ , ez , vis-b))
 
 ⊢L₃ : [] ∣ [] ⊢ L₃ ⦂ `ℕ
-⊢L₃ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢L₃-in (conv-unseal ez) wf-ℕ
+⊢L₃ = env (bw-b wf-ℕ bw[]) ⊢L₃-in (conv-unseal ez) wf-ℕ
 
 -- THE HEADLINE.  `L₃ -→ L₄` is `ξ-⟪⟫ (TyBeta …)` — an ordinary TyBeta,
 -- the ONE boundary-minting rule whose preservation case is PROVEN.  So a
@@ -187,7 +187,7 @@ _ = refl
 wall-vs-preserve-TyBeta : BwfWall → ¬ TyBetaCase
 wall-vs-preserve-TyBeta h tb =
   wall-vs-L₄ h
-    (env {p = ↑ˢ} (bw-b wf-ℕ bw[]) (tb ⊢L₃-in) (conv-unseal ez) wf-ℕ)
+    (env (bw-b wf-ℕ bw[]) (tb ⊢L₃-in) (conv-unseal ez) wf-ℕ)
 
 ------------------------------------------------------------------------
 -- §3  THE ROOT CAUSE — the wall is not ⊑-STABLE
@@ -274,31 +274,18 @@ _ = refl
 ¬Scoped-crossing : ¬ Scoped (intC Θ2 Δd) (dual Θ2) (` 0 ⇒ ` 0)
 ¬Scoped-crossing (wf-⇒ (wf-var (_ , ez , ())) _)
 
--- ── §4f  WHAT SEPARATES THE THREE — THE POLARITY ──────────────────────
+-- ── §4f  WHAT WOULD HAVE SEPARATED THE THREE ──────────────────────────
 --
--- The face fixes the polarity: a `seal` boundary is a CONCEAL (↓ˢ), an
--- `unseal` boundary a REVEAL (↑ˢ), and `env`'s crossing wrapper is at
--- `flip p` of the boundary it crosses.
-seal-is-↓ : ∀ {Δ X A B p} → Δ ⊢ seal X ∶ A ⇝ B ∙ p → p ≡ ↓ˢ
-seal-is-↓ (conv-seal _) = refl
-
-unseal-is-↑ : ∀ {Δ X A B p} → Δ ⊢ unseal X ∶ A ⇝ B ∙ p → p ≡ ↑ˢ
-unseal-is-↑ (conv-unseal _) = refl
-
--- So the three boundaries this file has weighed line up:
+-- The three boundaries this file has weighed are:
 --
---   `L₄`'s wall wrapper  (`seal 1`, ↓ˢ)   REACHABLE, must be ADMITTED
---   Peel's crossing      (`s`, flip p)    PROVEN,    must be ADMITTED
---   `Ri`'s outer wrapper (`unseal 0`, ↑ˢ) UNSOUND,   must be REJECTED
+--   `L₄`'s wall wrapper  (`seal 1`)   REACHABLE, must be ADMITTED
+--   Peel's crossing      (`s`)        PROVEN,    must be ADMITTED
+--   `Ri`'s outer wrapper (`unseal 0`) UNSOUND,   must be REJECTED
 --
--- and `Scoped` at the REVEAL boundaries alone separates them: §4c rejects
--- the third, §4e's counterexample sits at a `flip p` crossing, and the
--- first is a conceal.
---
--- BOTH FOLLOW-UPS ARE NOW SETTLED, in proof/ScopedFace:
---   * the ↓ˢ-Peel crossing (a Peel at p = ↓ˢ puts its crossing at ↑ˢ, so
---     §4e's shape would have to be ruled out) is DISCHARGEABLE —
---     `peel-crossing-scoped`;
---   * but the premise does NOT discharge IdPush: the obstruction MOVES to
---     Θ₁, the inner id-faced layer, which the premise never constrains —
---     `contractum-owes`, on a redex satisfying every proposed premise.
+-- The candidate that separated them asked `Scoped` at REVEAL boundaries
+-- only, switching on the conversion judgment's POLARITY index — which
+-- Jeremy's 2026-09-06 ruling RETIRED (strong.Conversion).  With no `p` on
+-- an `env` node there is no face-conditioned premise to state, so this
+-- branch of the search is closed along with the index; the surviving
+-- candidate is the REP CHAIN of proof/ChainScoped, which reads the face's
+-- NAME rather than a polarity, and is killed there by TyBeta's retag.

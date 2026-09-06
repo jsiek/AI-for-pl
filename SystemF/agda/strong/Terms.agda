@@ -203,10 +203,10 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   -- interior type context; the face conversion is checked on the FACE type context, where
   -- the boundary's owners and the slots it masks are both live; the exterior
   -- face is a type over the plain exterior.  Both faces are on the wrapper.
-  env : ∀ {Δ Γ Θ c M Bᵢ Bₑ p}
+  env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
       → Bwf Δ Θ
       → intC Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-      → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nbind Θ) Bₑ ∙ p
+      → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nbind Θ) Bₑ
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
@@ -231,7 +231,7 @@ data Active : Conv → Set where
 -- Totality over TYPED conversions: the payload restriction on `id` makes
 -- classification a match on the TYPING derivation (the untypeable compound
 -- identities are never classified at all).
-act-or-inert : ∀ {Δ c A B p} → Δ ⊢ c ∶ A ⇝ B ∙ p → Active c ⊎ Inert c
+act-or-inert : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → Active c ⊎ Inert c
 act-or-inert (conv-id b)      = inj₁ (A-idb b)
 act-or-inert (conv-idv tv)    = inj₂ I-idv
 act-or-inert (conv-seal o)    = inj₂ I-seal

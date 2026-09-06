@@ -67,10 +67,10 @@ open import strong.proof.Canonical
 --   A-unseal  : conv-unseal-src pins the interior face to ` Y, and
 --               unseal-face-is-the-owners-rep IS CancelR's / IdPush's
 --               `fceC Θ Δ ∋ Y := A` premise.
-progress-env : ∀ {Δ Θ c M Bᵢ Bₑ p}
+progress-env : ∀ {Δ Θ c M Bᵢ Bₑ}
   → Value M
   → intC Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-  → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nbind Θ) Bₑ ∙ p
+  → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nbind Θ) Bₑ
     ------------------------------------------------------------
   → Value (M ⟪ Θ , c ⟫)
   ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′))
@@ -104,11 +104,11 @@ progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
 -- one `` `∀ `` inside.  `conv-all-inv` (strong.Conversion) does the
 -- inversion without having to see through `env`'s `liftN`.
 ∀-face-premise : ∀ {Δ W Θ s B} → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ B
-  → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ] Σ[ p ∈ Pol ]
-      ((abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p)
+  → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ]
+      ((abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
 ∀-face-premise (env bw ⊢W ⊢c wE) with conv-all-inv ⊢c
 ∀-face-premise (env bw ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
-  Bᵢ , Bₑ , _ , ⊢s
+  Bᵢ , Bₑ , ⊢s
 
 ------------------------------------------------------------------------
 -- THE THEOREM
@@ -151,7 +151,7 @@ progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl) =
 progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
   with ∀-face-premise ⊢L
 progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
-  | Bᵢ , Bₑ , p , ⊢s = inj₂ (_ , TyPeelR vW ⊢s)
+  | Bᵢ , Bₑ , ⊢s = inj₂ (_ , TyPeelR vW ⊢s)
 
 -- M ⟪ Θ , c ⟫ — the boundary.  The interior is typed at `intC Θ Δ`; an
 -- interior step lifts by ξ-⟪⟫, an interior value goes to `progress-env`.

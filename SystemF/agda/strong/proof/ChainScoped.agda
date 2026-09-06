@@ -7,9 +7,10 @@ module strong.proof.ChainScoped where
 --   * in `Bwf` (a condition on Δ and Θ alone) — proof/WallGrounding: the
 --     `¬IdPushCase` witness and a REACHABLE wrapper have the same Δ and
 --     the same Θ and differ only in their FACE.
---   * the EXTERIOR TYPE at a reveal face (`ScopedAt`) —
---     proof/ScopedFace §3: IdPush swaps the faces, so the obstruction
---     moves to Θ₁, about which the premise says nothing.
+--   * the EXTERIOR TYPE at a reveal face — the FACE-CONDITIONED
+--     candidate, which switched on the retired POLARITY index: IdPush
+--     swaps the faces, so the obstruction moves to Θ₁, about which the
+--     premise says nothing (its witness `R★` is rebuilt in §3 below).
 --   * POINTWISE `RepWf` at every name-faced boundary — §1 below, killed
 --     by a closed program.
 --
@@ -35,7 +36,6 @@ open import strong.Reduction
 open import strong.proof.Preserve using (preserve-TyBeta)
 open import strong.proof.WallReach using (RepWf; EntWf)
 open import strong.proof.PreserveObstruct using (Δi; Θi)
-open import strong.proof.ScopedFace using (Ξ★; Θ★₁)
 open import strong.Examples using (LΔ)
 
 ------------------------------------------------------------------------
@@ -166,8 +166,8 @@ RepWf-Ξᴷ′ (es (es (es ())))
 
 ⊢⇑xK-redex : Ξᴷ ∣ [] ⊢ ⇑xK ⦂ ` 2
 ⊢⇑xK-redex =
-  env {p = ↑ˢ} (bw-l (bind `ℕ , es ez , vis-b) bw[])
-      (env {p = ↓ˢ} (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢$
+  env (bw-l (bind `ℕ , es ez , vis-b) bw[])
+      (env (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢$
            (conv-seal (es (es ez)))
            (wf-var (bind `ℕ , es (es ez) , vis-b)))
       (conv-idv (bind `ℕ , es (es ez) , vis-b))
@@ -178,36 +178,36 @@ RepWf-Ξᴷ′ (es (es (es ())))
 
 ⊢P₆-mid : KΔ₁ ∣ [] ⊢ ((Λ ⇑xK) ·[ ` 2 , ` 0 ])
                        ⟪ bind `ℕ ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢P₆-mid = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₆-in
+⊢P₆-mid = env (bw-b wf-ℕ bw[]) ⊢P₆-in
                (conv-idv (bind `ℕ , es ez , vis-b))
                (wf-var (bind `ℕ , ez , vis-b))
 
 ⊢P₆ : [] ∣ [] ⊢ P₆ ⦂ `ℕ
-⊢P₆ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₆-mid (conv-unseal ez) wf-ℕ
+⊢P₆ = env (bw-b wf-ℕ bw[]) ⊢P₆-mid (conv-unseal ez) wf-ℕ
 
 ⊢⇑xK-contractum : Δᴷ ∣ [] ⊢ ⇑xK ⦂ ` 2
 ⊢⇑xK-contractum =
-  env {p = ↑ˢ} (bw-l (bind `ℕ , es ez , vis-b) bw[])
-      (env {p = ↓ˢ} (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢$
+  env (bw-l (bind `ℕ , es ez , vis-b) bw[])
+      (env (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢$
            (conv-seal (es (es ez)))
            (wf-var (bind `ℕ , es (es ez) , vis-b)))
       (conv-idv (bind `ℕ , es (es ez) , vis-b))
       (wf-var (bind `ℕ , es (es ez) , vis-b))
 
 ⊢P₇-in : KΞ₂ ∣ [] ⊢ ⇑xK ⟪ bind (` 0) ∷ [] , id (` 2) ⟫ ⦂ ` 1
-⊢P₇-in = env {p = ↑ˢ} (bw-b (wf-var (bind `ℕ , ez , vis-b)) bw[])
+⊢P₇-in = env (bw-b (wf-var (bind `ℕ , ez , vis-b)) bw[])
               ⊢⇑xK-contractum
               (conv-idv (bind `ℕ , es (es ez) , vis-b))
               (wf-var (bind `ℕ , es ez , vis-b))
 
 ⊢P₇-mid : KΔ₁ ∣ [] ⊢ (⇑xK ⟪ bind (` 0) ∷ [] , id (` 2) ⟫)
                        ⟪ bind `ℕ ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢P₇-mid = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₇-in
+⊢P₇-mid = env (bw-b wf-ℕ bw[]) ⊢P₇-in
                (conv-idv (bind `ℕ , es ez , vis-b))
                (wf-var (bind `ℕ , ez , vis-b))
 
 ⊢P₇ : [] ∣ [] ⊢ P₇ ⦂ `ℕ
-⊢P₇ = env {p = ↑ˢ} (bw-b wf-ℕ bw[]) ⊢P₇-mid (conv-unseal ez) wf-ℕ
+⊢P₇ = env (bw-b wf-ℕ bw[]) ⊢P₇-mid (conv-unseal ez) wf-ℕ
 
 -- ── THE VERDICT ───────────────────────────────────────────────────────
 
@@ -294,7 +294,18 @@ abst-not-owner d d′ with ∋e-det d d′
 ¬ChainScoped-Ri cs with cs (rz ez)
 ... | wf-var (_ , es ez , ())
 
--- ── REFUSES the Θ₁-lock witness (proof/ScopedFace §3) ─────────────────
+-- ── REFUSES the Θ₁-lock witness ───────────────────────────────────────
+--
+-- `Ξ★` is the CHAINED-REP face type context (slot 1's rep is slot 2) and
+-- `Θ★₁` locks slot 2 — the REP of the slot its own id-face names.  This
+-- is the configuration that refuted the face-conditioned candidate: the
+-- exterior type `` ` 1 `` is nameable inside, its rep `` ` 2 `` is not.
+
+Ξ★ : Ctxᵗ
+Ξ★ = bind `ℕ ∷ bind (` 0) ∷ bind `ℕ ∷ []
+
+Θ★₁ : CtxMorph
+Θ★₁ = lock 2 ∷ []
 
 ¬ChainScoped-R★ : ¬ ChainScoped Ξ★ Θ★₁ 1
 ¬ChainScoped-R★ cs with cs (rz (es ez))
@@ -386,19 +397,18 @@ _ : unsealAt 0 (`ℕ ⇒ (` 0 ⇒ `ℕ)) ≡ id `ℕ ↦ (seal 0 ↦ id `ℕ)
 _ = refl
 
 ⊢CV : CΔ⁺′ ∣ [] ⊢ CV ⦂ ` 0
-⊢CV = env {p = ↓ˢ} bw[]
+⊢CV = env bw[]
            (⊢ƛ (wf-var (abst , es ez , vis-a)) ⊢$)
            (conv-seal ez)
            (wf-var (bind (` 1 ⇒ `ℕ) , ez , vis-b))
 
 ⊢CW : CΔ⁺ ∣ [] ⊢ CW ⦂ ` 0
-⊢CW = env {p = ↑ˢ} (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢CV
+⊢CW = env (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢CV
            (conv-idv (bind (` 1 ⇒ `ℕ) , ez , vis-b))
            (wf-var (bind (` 1 ⇒ `ℕ) , ez , vis-b))
 
 ⊢CM : ∀ {Γ} → (abst ∷ CΔ) ∣ Γ ⊢ CM ⦂ (` 0 ⇒ `ℕ)
-⊢CM = env {p = ↑ˢ}
-           (bw-b (wf-⇒ (wf-var (abst , ez , vis-a)) wf-ℕ) bw[]) ⊢CW
+⊢CM = env (bw-b (wf-⇒ (wf-var (abst , ez , vis-a)) wf-ℕ) bw[]) ⊢CW
            (conv-unseal ez)
            (wf-⇒ (wf-var (abst , ez , vis-a)) wf-ℕ)
 
@@ -531,8 +541,8 @@ cancelR-leaves cs r i r′ = cs (chain-mono r i r′)
 -- the faces: the inner `id (` X)` becomes `unseal X` at the SAME Θ₁, and
 -- the outer `unseal Y` becomes `idc A` at the SAME Θ₂ (whose leaves are
 -- covered by `cancelR-leaves`).  So the premise transports on the nose —
--- the gap proof/ScopedFace §3 found (the exterior type says nothing about
--- Θ₁) does NOT recur, and its witness `R★` is refused outright
+-- the gap the face-conditioned candidate had (the exterior type says
+-- nothing about Θ₁) does NOT recur, and its witness `R★` is refused
 -- (`¬ChainScoped-R★`) rather than stepping to something untypeable.
 idPush-inner : ∀ {Ξ Θ₁ X} → ChainScoped Ξ Θ₁ X → ChainScoped Ξ Θ₁ X
 idPush-inner cs = cs
@@ -541,7 +551,7 @@ idPush-inner cs = cs
 --
 --   ⊑-stable                       NO   §4 (`¬ChainFaced`) — the kill
 --   refuses `¬IdPushCase`'s Ri     yes  `¬ChainScoped-Ri`
---   refuses ScopedFace's R★        yes  `¬ChainScoped-R★`
+--   refuses the Θ₁-lock witness R★ yes  `¬ChainScoped-R★`
 --   admits Examples §12's L₄       yes  `ChainScoped-L₄`
 --   admits the §1 kill test        yes  `ChainScoped-killtest`(`-redex`)
 --   preserved by IdPush            yes  `idPush-inner`
@@ -549,10 +559,9 @@ idPush-inner cs = cs
 --   mintable at TyBeta             n/a  the mint is lock-free, but §4
 --                                       shows TyBeta breaks the premise
 --                                       at OTHER wrappers, by retagging
---   Peel crossing                  yes  proof/ScopedFace's
---                                       `peel-crossing-scoped` argument
---                                       is about the FACE's source and
---                                       transfers unchanged
+--   Peel crossing                  yes  the crossing face's SOURCE is a
+--                                       `liftN`, so its target names no
+--                                       owner of the crossed boundary
 --   TyPeelR                        n/a  same retag defect as TyBeta
 --
 -- Every entry but the first is green.  The first is the whole game.

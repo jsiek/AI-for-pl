@@ -403,20 +403,20 @@ nbind-dual Θ = cong length (reps-dual Θ)
 
 preserve-Peel : PeelCase
 preserve-Peel {Δ} {V} {W} {Θ} {s} {t} {C} vV vW
-         (⊢· (env {Bᵢ = Bᵢ} {Bₑ = Aarg⇒C} {p = p} bw ⊢V ⊢c wE) ⊢W)
+         (⊢· (env {Bᵢ = Bᵢ} {Bₑ = Aarg⇒C} bw ⊢V ⊢c wE) ⊢W)
   with wE
 ... | wf-⇒ wAarg wC
   with conv-tgt≡ (liftN-⇒ (nbind Θ) _ _) ⊢c
 ...  | conv-fun ⊢s ⊢t
   with ⊢ᵗ-of CtxWf-[] ⊢V
 ...   | wf-⇒ wAᵈ wBᶜ =
-  env {p = p} bw (⊢· ⊢V ⊢argcross) ⊢t wC
+  env bw (⊢· ⊢V ⊢argcross) ⊢t wC
   where
   ⊢s-tr : fceC (dual Θ) (intC Θ Δ) ⊢ s
-            ∶ liftN (nbind Θ) _ ⇝ liftN (nbind (dual Θ)) _ ∙ flip p
+            ∶ liftN (nbind Θ) _ ⇝ liftN (nbind (dual Θ)) _
   ⊢s-tr rewrite nbind-dual Θ =
-    subst (λ Ct → Ct ⊢ s ∶ liftN (nbind Θ) _ ⇝ _ ∙ flip p)
+    subst (λ Ct → Ct ⊢ s ∶ liftN (nbind Θ) _ ⇝ _)
           (sym (fceC-dual Θ Δ)) ⊢s
   ⊢argcross : intC Θ Δ ∣ [] ⊢ wkᴹ (nbind Θ) W ⟪ dual Θ , s ⟫ ⦂ _
-  ⊢argcross = env {p = flip p} (Bwf-dual Θ Δ bw)
+  ⊢argcross = env (Bwf-dual Θ Δ bw)
                   (crossing Θ ⊢W) ⊢s-tr wAᵈ

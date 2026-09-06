@@ -13,11 +13,16 @@ module strong.proof.Preserve where
 --     proven mutually over the face type exactly as the two functions are
 --     defined.
 --
--- §3  the per-rule cases that hold, one lemma each.
+-- §2b THE MINTED FACE TYPEELR WRITES (`⊢unsealAtᶜ`/`⊢sealAtᶜ`), the
+--     conversion-level analogue of §2.  Since the polarity index was
+--     retired (strong.Conversion) both directions are TOTAL.
 --
--- §4  `preserve`, over a module parameterized by the four cases that do
---     NOT hold as the rules currently stand (see proof/PreserveObstruct
---     for the machine-checked counterexamples).
+-- §3  the per-rule cases that hold, one lemma each — TyBeta, TyPeelR at
+--     ANY ∀-face, and Drop$.
+--
+-- §4  `preserve`, over a module parameterized by the cases whose proofs
+--     live downstream (Peel, CancelR) and by IdPush, which is still
+--     REFUTED (proof/PreserveObstruct §4).
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (_≟_)
@@ -163,10 +168,10 @@ subst-at-0 A B =
   env-eq zero    = refl
   env-eq (suc Y) = refl
 
--- THE MINTED FACE, both polarities, mutually.
+-- THE MINTED FACE, both directions, mutually.
 mutual
   ⊢unsealAt : Δ ∋ X := A → Δ ⊢ᵗ B
-    → Δ ⊢ unsealAt X B ∶ B ⇝ B [ X := A ]ᵗ ∙ ↑ˢ
+    → Δ ⊢ unsealAt X B ∶ B ⇝ B [ X := A ]ᵗ
   ⊢unsealAt {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
   ... | yes refl rewrite single-at-hit X A       = conv-unseal d
   ... | no  ne   rewrite single-at-miss X Y A ne = conv-idv tv
@@ -177,7 +182,7 @@ mutual
     rewrite subst-at-∀ X A B = conv-all (⊢unsealAt (es d) wB)
 
   ⊢sealAt : Δ ∋ X := A → Δ ⊢ᵗ B
-    → Δ ⊢ sealAt X B ∶ B [ X := A ]ᵗ ⇝ B ∙ ↓ˢ
+    → Δ ⊢ sealAt X B ∶ B [ X := A ]ᵗ ⇝ B
   ⊢sealAt {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
   ... | yes refl rewrite single-at-hit X A       = conv-seal d
   ... | no  ne   rewrite single-at-miss X Y A ne = conv-idv tv
@@ -299,22 +304,34 @@ abstN-kn {A = A} n d with abstN-ent {A = A} n d
 ... | inj₁ ()
 ... | inj₂ (d′ , eq) = d′ , bind-inj eq
 
--- THE MINTED FACE, both polarities, mutually — the conversion analogue of
+-- SLOT n IS ABSTRACT, so no face leaf the premise already carries can
+-- name it.  This is what closes the two leaf cases the polarity index
+-- used to rule out (a `seal` under `unsealAtᶜ`, an `unseal` under
+-- `sealAtᶜ`): such a leaf cites an OWNER, and slot n has none.
+abstN-abst : ∀ {Ψ E} (n : ℕ) → abstN n (abst ∷ Ψ) ∋e n , E → E ≡ abst
+abstN-abst zero    ez     = refl
+abstN-abst (suc n) (es d) = cong ⇑ᵉ (abstN-abst n d)
+
+abstN-≢ : ∀ {Ψ B Y} (n : ℕ) → abstN n (abst ∷ Ψ) ∋ Y := B → ¬ (n ≡ Y)
+abstN-≢ n d refl with abstN-abst n d
+... | ()
+
+-- THE MINTED FACE, both directions, mutually — the conversion analogue of
 -- `⊢unsealAt`/`⊢sealAt` (§2), and equal to them on an identity face
 -- (`unsealAtᶜ-idc`, strong.Reduction).
 --
--- READ THE POLARITY.  A `↑ˢ` face runs COVARIANTLY at `↑ˢ` and
--- contravariantly at `↓ˢ`, which is exactly where `unseal`
--- (`` ` n ⇝ rep``, fixed at `↑ˢ`) and `seal` (fixed at `↓ˢ`) are legal.
--- The `↓ˢ` case is the MIRROR IMAGE and therefore NOT covered here: every
--- inserted leaf would sit at the polarity the judgment refuses
--- (proof/PreserveObstruct §2).
+-- WITHOUT THE POLARITY INDEX BOTH DIRECTIONS ARE TOTAL.  The mint inserts
+-- `unseal n` where the face runs covariantly and `seal n` where it runs
+-- contravariantly; the leaves the face ALREADY carries are copied
+-- unchanged, and each of them names an owner ≠ n (`abstN-≢`), so the
+-- substitution at slot n leaves its face alone.  That is the whole of the
+-- old CONCEAL-face obstruction: it was the index, not the terms.
 mutual
   ⊢unsealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
-    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↑ˢ
+    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       ------------------------------------------------------------
     → abstN n (bind A ∷ Ψ) ⊢ unsealAtᶜ n s
-        ∶ Bᵢ ⇝ Bₑ [ n := liftN (suc n) A ]ᵗ ∙ ↑ˢ
+        ∶ Bᵢ ⇝ Bₑ [ n := liftN (suc n) A ]ᵗ
   ⊢unsealAtᶜ n (conv-id base-ℕ) = conv-id base-ℕ
   ⊢unsealAtᶜ n (conv-id base-𝔹) = conv-id base-𝔹
   ⊢unsealAtᶜ {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
@@ -324,16 +341,19 @@ mutual
     conv-idv (⊑-tv (abstN-⊑ n) tv)
   ⊢unsealAtᶜ {A = A} n (conv-unseal d) with abstN-kn {A = A} n d
   ... | d′ , eq rewrite eq = conv-unseal d′
+  ⊢unsealAtᶜ {A = A} n (conv-seal {X = Y} d)
+    rewrite single-at-miss n Y (liftN (suc n) A) (abstN-≢ n d) =
+    conv-seal (proj₁ (abstN-kn {A = A} n d))
   ⊢unsealAtᶜ n (conv-fun ⊢s ⊢t) =
     conv-fun (⊢sealAtᶜ n ⊢s) (⊢unsealAtᶜ n ⊢t)
   ⊢unsealAtᶜ {A = A} {Bₑ = `∀ Bₑ} n (conv-all ⊢s)
     rewrite subst-at-∀ n (liftN (suc n) A) Bₑ = conv-all (⊢unsealAtᶜ (suc n) ⊢s)
 
   ⊢sealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
-    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↓ˢ
+    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       ------------------------------------------------------------
     → abstN n (bind A ∷ Ψ) ⊢ sealAtᶜ n s
-        ∶ Bᵢ [ n := liftN (suc n) A ]ᵗ ⇝ Bₑ ∙ ↓ˢ
+        ∶ Bᵢ [ n := liftN (suc n) A ]ᵗ ⇝ Bₑ
   ⊢sealAtᶜ n (conv-id base-ℕ) = conv-id base-ℕ
   ⊢sealAtᶜ n (conv-id base-𝔹) = conv-id base-𝔹
   ⊢sealAtᶜ {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
@@ -343,6 +363,9 @@ mutual
     conv-idv (⊑-tv (abstN-⊑ n) tv)
   ⊢sealAtᶜ {A = A} n (conv-seal d) with abstN-kn {A = A} n d
   ... | d′ , eq rewrite eq = conv-seal d′
+  ⊢sealAtᶜ {A = A} n (conv-unseal {X = Y} d)
+    rewrite single-at-miss n Y (liftN (suc n) A) (abstN-≢ n d) =
+    conv-unseal (proj₁ (abstN-kn {A = A} n d))
   ⊢sealAtᶜ n (conv-fun ⊢s ⊢t) =
     conv-fun (⊢unsealAtᶜ n ⊢s) (⊢sealAtᶜ n ⊢t)
   ⊢sealAtᶜ {A = A} {Bᵢ = `∀ Bᵢ} n (conv-all ⊢s)
@@ -376,7 +399,7 @@ preserve-TyBeta : ∀ {N B A}
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
   with ⊢ᵗ-of CtxWf-[] (⊢Λ ⊢N)
 ... | wf-∀ wB =
-  env {p = ↑ˢ} (bw-b wA bw[])
+  env (bw-b wA bw[])
       (⊢retag refine ⊢N)
       face
       (wf-[]ᵗ wB wA)
@@ -384,10 +407,10 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
   refine : (abst ∷ Δ) ⊑ (bind A ∷ Δ)
   refine = le∷ le-ao (⊑-refl Δ)
 
-  face : (bind A ∷ Δ) ⊢ unsealAt 0 B ∶ B ⇝ liftN 1 (B [ A ]ᵗ) ∙ ↑ˢ
+  face : (bind A ∷ Δ) ⊢ unsealAt 0 B ∶ B ⇝ liftN 1 (B [ A ]ᵗ)
   face rewrite sym (subst-at-0 A B) = ⊢unsealAt ez (⊑-wf refine wB)
 
--- ── TYPEELR, AT AN `↑ˢ` ∀-FACE ─────────────────────────────────────────
+-- ── TYPEELR, AT ANY ∀-FACE ─────────────────────────────────────────────
 -- Four moves, one per premise of the contractum's `env`:
 --
 --   FRAME     `bind A ∷ Θ`, whose interior is `bind (liftN (nbind Θ) A) ∷
@@ -404,12 +427,15 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- The premise `⊢s` and the redex's own face derivation agree, by
 -- `conv-faces-unique`: that is what makes the pushed-in annotation a
 -- function of the redex (and hence `det` true).
--- THE CASE, at an `↑ˢ` ∀-face.  (The general case — the premise's
--- polarity quantified — is `TyPeelRCase` in §4, and it is REFUTED by the
--- polarity discipline alone: proof/PreserveObstruct §2.)
-TyPeelRCase↑ : Set
-TyPeelRCase↑ = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
-  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↑ˢ
+--
+-- THE CASE IS NOW GENERAL.  Under the polarity index this was a theorem
+-- only at a REVEAL ∀-face, because the mint inserts `seal 0`
+-- contravariantly and `unseal 0` covariantly and one of the two always
+-- sat where the index refused it.  With the index retired the mint's
+-- typing (`⊢unsealAtᶜ`, §2b) is total, and so is this case.
+TyPeelRCase : Set
+TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
+  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
@@ -428,14 +454,14 @@ liftN-[]ᵗ (suc n) B A =
   trans (cong ⇑ᵗ (liftN-[]ᵗ n B A))
         (rename-[]ᵗ-commute suc (liftᵇ n B) (liftN n A))
 
-preserve-TyPeelR-↑ : TyPeelRCase↑
-preserve-TyPeelR-↑ {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
-                   {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env bw ⊢V ⊢c wE) wA)
+preserve-TyPeelR : TyPeelRCase
+preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
+                 {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env bw ⊢V ⊢c wE) wA)
   with conv-all-inv ⊢c
 ... | A₀ , B₀ , refl , eqE , ⊢s₀
   with conv-faces-unique ⊢s ⊢s₀
 ... | refl , refl =
-  env {p = ↑ˢ} (bw-b wA bw) interior face (wf-[]ᵗ (wf-∀⁻ wE) wA)
+  env (bw-b wA bw) interior face (wf-[]ᵗ (wf-∀⁻ wE) wA)
   where
   A′ : Ty
   A′ = liftN (nbind Θ) A
@@ -461,8 +487,8 @@ preserve-TyPeelR-↑ {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
                      (cong ⇑ᵗ (sym (liftN-[]ᵗ (nbind Θ) B A))))
 
   face : fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s
-           ∶ Bᵢ ⇝ liftN (suc (nbind Θ)) (B [ A ]ᵗ) ∙ ↑ˢ
-  face = subst (λ T → fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s ∶ Bᵢ ⇝ T ∙ ↑ˢ)
+           ∶ Bᵢ ⇝ liftN (suc (nbind Θ)) (B [ A ]ᵗ)
+  face = subst (λ T → fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s ∶ Bᵢ ⇝ T)
                eqT (⊢unsealAtᶜ {A = A′} 0 ⊢s)
 
 -- ── DROP$ ──────────────────────────────────────────────────────────────
@@ -477,34 +503,21 @@ preserve-Drop$ {C = C} bA (env {Θ = Θ} bw ⊢$ ⊢c wE)
   rewrite liftN-ℕ⁻ {A = C} (nbind Θ) (sym (conv-id-refl ⊢c)) = ⊢$
 
 ------------------------------------------------------------------------
--- §4  The four cases that do NOT hold, and `preserve` over them
+-- §4  The cases carried as parameters, and `preserve` over them
 ------------------------------------------------------------------------
 
--- Each of the four statements below is the preservation obligation of ONE
--- reduction rule, verbatim.  Each is REFUTED in proof/PreserveObstruct by
--- a typed redex whose contractum is untypeable, so they are carried as
--- module parameters rather than proven.  See that file for which design
--- premise each counterexample turns on.
+-- Each statement below is the preservation obligation of ONE reduction
+-- rule, verbatim.  `PeelCase` is PROVEN (proof/PeelDual) and `CancelRCase`
+-- is DISCHARGED over one scoping interface (proof/CancelFaces); both are
+-- stated here because their proofs live downstream of this module.
+-- `IdPushCase` is REFUTED as it stands (proof/PreserveObstruct §4).
 
 PeelCase : Set
 PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
   → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
   → Δ ∣ [] ⊢ (V · (wkᴹ (nbind Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
--- TYPEELR, at the repaired rule (premise-determined annotation, plain
--- frame, minted face).  The premise's POLARITY is quantified here — and
--- that is where the case still breaks: `TyPeelRCase↑` below (p = ↑ˢ) is a
--- THEOREM, while the `↓ˢ` instance is refuted by the polarity discipline
--- alone (proof/PreserveObstruct §2, `¬TyPeelRCase`).
-TyPeelRCase : Set
-TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ p} → Value V
-  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
-  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
-
--- (`TyPeelRCase↑`, the polarity-restricted case that IS a theorem, is
--- stated and proven in §3.)
+-- (`TyPeelRCase` is stated and PROVEN in §3.)
 
 -- CANCELR, at the repaired rule (both frames kept, both faces
 -- neutralised).  Discharged over ONE interface in proof/CancelFaces.
@@ -526,7 +539,6 @@ IdPushCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → fceC Θ₂ Δ ∋ Y 
 -- term variable a wrapper body may not have.
 module Impl
   (peel   : PeelCase)
-  (typeel : TyPeelRCase)
   (cancel : CancelRCase)
   (idpush : IdPushCase)
   where
@@ -539,7 +551,7 @@ module Impl
   preserve ⊢M (TyBeta v)             = preserve-TyBeta ⊢M
   preserve ⊢M (Beta w)               = preserve-Beta ⊢M
   preserve ⊢M (Peel v w)             = peel v w ⊢M
-  preserve ⊢M (TyPeelR v ⊢s)         = typeel v ⊢s ⊢M
+  preserve ⊢M (TyPeelR v ⊢s)         = preserve-TyPeelR v ⊢s ⊢M
   preserve ⊢M (CancelR v d)          = cancel v d ⊢M
   preserve ⊢M (Drop$ b)              = preserve-Drop$ b ⊢M
   preserve ⊢M (IdPush v d)           = idpush v d ⊢M

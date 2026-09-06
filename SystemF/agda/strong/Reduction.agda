@@ -40,8 +40,9 @@ open import strong.TermSubst
 -- 1.  The canonical conversion at a slot
 ------------------------------------------------------------------------
 
--- Unseal every occurrence of X (read in the ↑ polarity) / seal it back (in
--- the ↓ polarity).  These are what the reveal rules mint; they are DERIVED
+-- Unseal every occurrence of X where the face runs covariantly / seal it
+-- back where it runs contravariantly.  These are what the boundary rules
+-- mint at a fresh owner; they are DERIVED
 -- from the face type, not from stored knowledge, and they carry only the
 -- NAME X.
 mutual
@@ -89,8 +90,8 @@ mutual
   sealAtᶜ X (`∀ s)     = `∀ (sealAtᶜ (suc X) s)
 
 -- TyBeta's minted face IS this operation at an identity face: the type
--- version is the conversion version on `idc`.  (So the `↑ˢ` reveal case of
--- TyPeelR really is TyBeta's mint, one ∀ inside.)
+-- version is the conversion version on `idc`.  (So TyPeelR's reveal case
+-- really is TyBeta's mint, one ∀ inside.)
 mutual
   unsealAtᶜ-idc : (X : ℕ) (B : Ty) → unsealAtᶜ X (idc B) ≡ unsealAt X B
   unsealAtᶜ-idc X (` Y)   = refl
@@ -194,8 +195,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- the instantiation step: `unsealAtᶜ 0 s`.  Keeping `s` itself is
   -- ill-typed — its exterior body still mentions `` ` 0 `` where `env`
   -- demands the instantiated `liftN (nbind Θ + 1) (Bₑ [ A ])`.
-  TyPeelR : ∀ {Δ V Θ s B A Bᵢ Bₑ p} → Value V
-    → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
+  TyPeelR : ∀ {Δ V Θ s B A Bᵢ Bₑ} → Value V
+    → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
              ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫

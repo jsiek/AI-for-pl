@@ -6,8 +6,17 @@ module strong.Conversion where
 -- GTSF/Coercions.agda): id / seal / unseal / _↦_ / `∀.  The echo is
 -- deliberate — Jeremy's Q3 answer was "use Conversion for relating the
 -- interior face to the exterior face", and this is that judgement, with
--- GTSF's two mutually defined directions (↑ˢ / ↓ˢ) merged into ONE family
--- indexed by a POLARITY (`conv-fun` flips on domains).
+-- GTSF's two mutually defined directions merged into ONE family.
+--
+-- NO POLARITY (Jeremy's ruling, 2026-09-06).  The judgement carried a
+-- global index `p` that fixed `unseal` to a REVEAL position and `seal` to
+-- a CONCEAL one, flipping on `conv-fun`'s domain.  It is REDUNDANT: the
+-- discipline it enforced is PER TYPE VARIABLE, and `env` already enforces
+-- it with the FRAMES — a LOCKED X is masked in `intC`, so it cannot sit
+-- on the interior side of a leaf, and a BOUND X is not in the image of
+-- `liftN`, so it cannot sit on the exterior side.  Dropping `p` is what
+-- makes TyPeelR's preservation case a theorem at every ∀-face rather
+-- than only at a reveal one (proof/Preserve.preserve-TyPeelR).
 --
 -- Conversions are REP-FREE by construction: `seal` and `unseal` carry a
 -- NAME, never a spelling, and the rep is read by an OWNER LOOKUP on the
@@ -56,56 +65,45 @@ renᶜ ρ (unseal X)  = unseal (ρ X)
 renᶜ ρ (s ↦ t)     = renᶜ ρ s ↦ renᶜ ρ t
 renᶜ ρ (`∀ s)      = `∀ (renᶜ (extᵗ ρ) s)
 
--- Polarity.  `↑ˢ` unseals at positive positions (a REVEAL face), `↓ˢ` seals
--- at positive positions (a CONCEAL face), and `conv-fun` flips on domains.
-data Pol : Set where
-  ↑ˢ ↓ˢ : Pol
-
-flip : Pol → Pol
-flip ↑ˢ = ↓ˢ
-flip ↓ˢ = ↑ˢ
-
-flip-flip : (p : Pol) → flip (flip p) ≡ p
-flip-flip ↑ˢ = refl
-flip-flip ↓ˢ = refl
-
 ------------------------------------------------------------------------
 -- 2.  The typing judgment
 ------------------------------------------------------------------------
 
--- Δ ⊢ c ∶ A ⇝ B ∙ p   —   c converts the INTERIOR face A to the EXTERIOR
--- face B, both read on the type context Δ (the FACE CONTEXT: the type context at which the
--- boundary's owners are live).  Every rep is read by NAME from Δ.
-infix 4 _⊢_∶_⇝_∙_
-data _⊢_∶_⇝_∙_ : Ctxᵗ → Conv → Ty → Ty → Pol → Set where
+-- Δ ⊢ c ∶ A ⇝ B   —   c converts the INTERIOR face A to the EXTERIOR
+-- face B, both read on the type context Δ (the FACE CONTEXT: the type
+-- context at which the boundary's owners are live).  Every rep is read by
+-- NAME from Δ.  `conv-fun` is CONTRAVARIANT in its domain — that is the
+-- only trace the retired polarity index leaves.
+infix 4 _⊢_∶_⇝_
+data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
 
-  conv-id : ∀ {p} → Base A
+  conv-id : Base A
       --------------------------------
-    → Δ ⊢ id A ∶ A ⇝ A ∙ p
+    → Δ ⊢ id A ∶ A ⇝ A
 
-  conv-idv : ∀ {p} → Δ ∋tv X
+  conv-idv : Δ ∋tv X
       --------------------------------
-    → Δ ⊢ id (` X) ∶ ` X ⇝ ` X ∙ p
+    → Δ ⊢ id (` X) ∶ ` X ⇝ ` X
 
   -- REVEAL: the interior sees the abstract name, the exterior its rep.
   conv-unseal : Δ ∋ X := A
       --------------------------------
-    → Δ ⊢ unseal X ∶ ` X ⇝ A ∙ ↑ˢ
+    → Δ ⊢ unseal X ∶ ` X ⇝ A
 
   -- CONCEAL: the interior sees the rep, the exterior the abstract name.
   -- THE SOUNDNESS GATE: a seal must cite a LIVE OWNER on its type context.
   conv-seal : Δ ∋ X := A
       --------------------------------
-    → Δ ⊢ seal X ∶ A ⇝ ` X ∙ ↓ˢ
+    → Δ ⊢ seal X ∶ A ⇝ ` X
 
-  conv-fun : ∀ {p s t}
-    → Δ ⊢ s ∶ A′ ⇝ A ∙ flip p → Δ ⊢ t ∶ B ⇝ B′ ∙ p
+  conv-fun : ∀ {s t}
+    → Δ ⊢ s ∶ A′ ⇝ A → Δ ⊢ t ∶ B ⇝ B′
       ----------------------------------------------
-    → Δ ⊢ s ↦ t ∶ (A ⇒ B) ⇝ (A′ ⇒ B′) ∙ p
+    → Δ ⊢ s ↦ t ∶ (A ⇒ B) ⇝ (A′ ⇒ B′)
 
-  conv-all : ∀ {p s} → (abst ∷ Δ) ⊢ s ∶ A ⇝ B ∙ p
+  conv-all : ∀ {s} → (abst ∷ Δ) ⊢ s ∶ A ⇝ B
       --------------------------------------
-    → Δ ⊢ `∀ s ∶ `∀ A ⇝ `∀ B ∙ p
+    → Δ ⊢ `∀ s ∶ `∀ A ⇝ `∀ B
 
 ------------------------------------------------------------------------
 -- 3.  The identity conversion at an arbitrary type
@@ -118,7 +116,7 @@ idc `𝔹      = id `𝔹
 idc (A ⇒ B) = idc A ↦ idc B
 idc (`∀ A)  = `∀ (idc A)
 
-idc-⊢ : ∀ {p} → Δ ⊢ᵗ A → Δ ⊢ idc A ∶ A ⇝ A ∙ p
+idc-⊢ : Δ ⊢ᵗ A → Δ ⊢ idc A ∶ A ⇝ A
 idc-⊢ (wf-var tv)  = conv-idv tv
 idc-⊢ wf-ℕ         = conv-id base-ℕ
 idc-⊢ wf-𝔹         = conv-id base-𝔹
@@ -134,10 +132,10 @@ idc-⊢ (wf-∀ wA)    = conv-all (idc-⊢ wA)
 -- second chance.  The `conv-unseal`/`conv-seal` cases are literally
 -- `ren-kn` — the name is carried, and the rep comes back out of the target
 -- type context already renamed.
-conv-ren : ∀ {p c} → Ren ρ Δ Δ′
-  → Δ  ⊢ c ∶ A ⇝ B ∙ p
-    -----------------------------------------------------------
-  → Δ′ ⊢ renᶜ ρ c ∶ renameᵗ ρ A ⇝ renameᵗ ρ B ∙ p
+conv-ren : ∀ {c} → Ren ρ Δ Δ′
+  → Δ  ⊢ c ∶ A ⇝ B
+    -----------------------------------------------
+  → Δ′ ⊢ renᶜ ρ c ∶ renameᵗ ρ A ⇝ renameᵗ ρ B
 conv-ren {ρ = ρ} r (conv-id bA)
   rewrite base-ren {A = _} {ρ = ρ} bA  = conv-id bA
 conv-ren r (conv-idv tv)     = conv-idv (ren-tv r tv)
@@ -152,10 +150,10 @@ conv-ren r (conv-all s)      = conv-all (conv-ren (ren-ext r) s)
 
 -- Knowledge refinement preserves conversion typing with the FACES
 -- UNCHANGED — no ≈, no unfolding, no retagging of the types.
-conv-⊑ : ∀ {p c} → Δ ⊑ Δ′
-  → Δ  ⊢ c ∶ A ⇝ B ∙ p
+conv-⊑ : ∀ {c} → Δ ⊑ Δ′
+  → Δ  ⊢ c ∶ A ⇝ B
     ------------------------
-  → Δ′ ⊢ c ∶ A ⇝ B ∙ p
+  → Δ′ ⊢ c ∶ A ⇝ B
 conv-⊑ ls (conv-id bA)     = conv-id bA
 conv-⊑ ls (conv-idv tv)    = conv-idv (⊑-tv ls tv)
 conv-⊑ ls (conv-unseal d)  = conv-unseal (⊑-kn ls d)
@@ -169,31 +167,31 @@ conv-⊑ ls (conv-all s)     = conv-all (conv-⊑ (le∷ le-aa ls) s)
 
 -- Every rep a face mentions IS the owner's rep — there is no second
 -- spelling, which is why the §9m ≡/≈ gap cannot arise.
-seal-face-is-the-owners-rep : ∀ {p}
-  → Δ ⊢ seal X ∶ A ⇝ B ∙ p → Δ ∋ X := A
+seal-face-is-the-owners-rep :
+  Δ ⊢ seal X ∶ A ⇝ B → Δ ∋ X := A
 seal-face-is-the-owners-rep (conv-seal d) = d
 
-unseal-face-is-the-owners-rep : ∀ {p}
-  → Δ ⊢ unseal X ∶ A ⇝ B ∙ p → Δ ∋ X := B
+unseal-face-is-the-owners-rep :
+  Δ ⊢ unseal X ∶ A ⇝ B → Δ ∋ X := B
 unseal-face-is-the-owners-rep (conv-unseal d) = d
 
-conv-unseal-src : ∀ {p} → Δ ⊢ unseal X ∶ A ⇝ B ∙ p → A ≡ ` X
+conv-unseal-src : Δ ⊢ unseal X ∶ A ⇝ B → A ≡ ` X
 conv-unseal-src (conv-unseal _) = refl
 
-conv-seal-tgt : ∀ {p} → Δ ⊢ seal X ∶ A ⇝ B ∙ p → B ≡ ` X
+conv-seal-tgt : Δ ⊢ seal X ∶ A ⇝ B → B ≡ ` X
 conv-seal-tgt (conv-seal _) = refl
 
-conv-idv-src : ∀ {p} → Δ ⊢ id (` X) ∶ A ⇝ B ∙ p → A ≡ ` X
+conv-idv-src : Δ ⊢ id (` X) ∶ A ⇝ B → A ≡ ` X
 conv-idv-src (conv-idv _) = refl
 
-conv-idv-tgt : ∀ {p} → Δ ⊢ id (` X) ∶ A ⇝ B ∙ p → B ≡ ` X
+conv-idv-tgt : Δ ⊢ id (` X) ∶ A ⇝ B → B ≡ ` X
 conv-idv-tgt (conv-idv _) = refl
 
-conv-id-base-src : ∀ {C p} → Base A → Δ ⊢ id A ∶ B ⇝ C ∙ p → B ≡ A
+conv-id-base-src : ∀ {C} → Base A → Δ ⊢ id A ∶ B ⇝ C → B ≡ A
 conv-id-base-src bA (conv-id _)  = refl
 conv-id-base-src () (conv-idv _)
 
-conv-id-refl : ∀ {C p} → Δ ⊢ id A ∶ B ⇝ C ∙ p → B ≡ C
+conv-id-refl : ∀ {C} → Δ ⊢ id A ∶ B ⇝ C → B ≡ C
 conv-id-refl (conv-id _)  = refl
 conv-id-refl (conv-idv _) = refl
 
@@ -201,9 +199,9 @@ conv-id-refl (conv-idv _) = refl
 -- `liftN`: `env` pins the exterior face to `liftN (nbind Θ) Bₑ`, which is
 -- a stuck term, so TyPeelR's premise is recovered by this lemma rather
 -- than by matching `conv-all` directly.
-conv-all-inv : ∀ {s A B p} → Δ ⊢ `∀ s ∶ A ⇝ B ∙ p
+conv-all-inv : ∀ {s A B} → Δ ⊢ `∀ s ∶ A ⇝ B
   → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]
-      ((A ≡ `∀ A₀) × (B ≡ `∀ B₀) × ((abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B₀ ∙ p))
+      ((A ≡ `∀ A₀) × (B ≡ `∀ B₀) × ((abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B₀))
 conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 
 ------------------------------------------------------------------------
@@ -212,13 +210,12 @@ conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 
 -- A conversion determines BOTH its faces: `id` carries its own, a
 -- `seal`/`unseal` reads its rep by the owner lookup (`∋:=-det`), and
--- `↦`/`` `∀ `` are structural.  The POLARITIES need not agree — the faces
--- do not depend on them.  This is what makes TyPeelR deterministic even
+-- `↦`/`` `∀ `` are structural.  This is what makes TyPeelR deterministic even
 -- though its pushed-in annotation is premise-determined rather than
 -- syntactic (strong.Reduction, `det`).
-conv-faces-unique : ∀ {c A A′ B B′ p p′}
-  → Δ ⊢ c ∶ A  ⇝ B  ∙ p
-  → Δ ⊢ c ∶ A′ ⇝ B′ ∙ p′
+conv-faces-unique : ∀ {c A A′ B B′}
+  → Δ ⊢ c ∶ A  ⇝ B
+  → Δ ⊢ c ∶ A′ ⇝ B′
     ----------------------
   → (A ≡ A′) × (B ≡ B′)
 conv-faces-unique (conv-id b)     (conv-id b′)     = refl , refl
@@ -234,7 +231,7 @@ conv-faces-unique (conv-all s)    (conv-all s′)
   with conv-faces-unique s s′
 ... | refl , refl = refl , refl
 
-conv-src-unique : ∀ {c A A′ B B′ p p′}
-  → Δ ⊢ c ∶ A ⇝ B ∙ p → Δ ⊢ c ∶ A′ ⇝ B′ ∙ p′ → A ≡ A′
+conv-src-unique : ∀ {c A A′ B B′}
+  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A′ ⇝ B′ → A ≡ A′
 conv-src-unique ⊢c ⊢c′ with conv-faces-unique ⊢c ⊢c′
 ... | eq , _ = eq

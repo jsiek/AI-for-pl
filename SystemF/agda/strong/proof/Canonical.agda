@@ -42,7 +42,6 @@ private
     A B C : Ty
     X Y : ℕ
     c : Conv
-    p : Pol
 
 ------------------------------------------------------------------------
 -- §1  The exterior face is the term's type, LIFTED past the owners
@@ -64,7 +63,7 @@ liftN-∀ (suc n) C with liftN-∀ n C
 
 -- Retype a conversion along an equality of its exterior face.
 conv-tgt≡ : ∀ {B′} → B ≡ B′
-  → Δ ⊢ c ∶ A ⇝ B ∙ p → Δ ⊢ c ∶ A ⇝ B′ ∙ p
+  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A ⇝ B′
 conv-tgt≡ refl ⊢c = ⊢c
 
 -- Retype a term along an equality of its type.  Used to move an interior
@@ -81,7 +80,7 @@ conv-tgt≡ refl ⊢c = ⊢c
 -- No inert face has a base exterior.  `id A` at a base type is the one
 -- conversion with a base exterior, and it is ACTIVE (A-idb), so `V-⟪⟫`
 -- can never build a value at a base type.
-inert-¬base : Inert c → Δ ⊢ c ∶ A ⇝ B ∙ p → ¬ Base B
+inert-¬base : Inert c → Δ ⊢ c ∶ A ⇝ B → ¬ Base B
 inert-¬base I-idv  (conv-id ())
 inert-¬base I-idv  (conv-idv _)   ()
 inert-¬base I-seal (conv-seal _)  ()
@@ -90,19 +89,19 @@ inert-¬base I-all  (conv-all _)   ()
 
 -- An ARROW exterior forces the ↦ face: `id`/`seal` have variable
 -- exteriors and `` `∀ `` has a ∀ exterior.
-inert-fun-face : Inert c → Δ ⊢ c ∶ A ⇝ (B ⇒ C) ∙ p
+inert-fun-face : Inert c → Δ ⊢ c ∶ A ⇝ (B ⇒ C)
   → Σ[ s ∈ Conv ] Σ[ t ∈ Conv ] (c ≡ s ↦ t)
 inert-fun-face I-fun (conv-fun ⊢s ⊢t) = _ , _ , refl
 
 -- A ∀ exterior forces the ∀ face.
-inert-all-face : Inert c → Δ ⊢ c ∶ A ⇝ `∀ B ∙ p
+inert-all-face : Inert c → Δ ⊢ c ∶ A ⇝ `∀ B
   → Σ[ s ∈ Conv ] (c ≡ `∀ s)
 inert-all-face I-all (conv-all ⊢s) = _ , refl
 
 -- A VARIABLE exterior admits exactly TWO faces, and the variable is
 -- literally the name they carry — there is no second spelling to compare.
 -- These two are the left-hand sides of CancelR and IdPush.
-inert-var-face : Inert c → Δ ⊢ c ∶ A ⇝ ` X ∙ p
+inert-var-face : Inert c → Δ ⊢ c ∶ A ⇝ ` X
   → (c ≡ seal X) ⊎ (c ≡ id (` X))
 inert-var-face I-idv  (conv-id ())
 inert-var-face I-idv  (conv-idv _)  = inj₂ refl

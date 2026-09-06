@@ -204,7 +204,7 @@ idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A =
 ... | conv-unseal dₒ =
   env bw₂
       (env bw₁ ⊢V′ (conv-unseal dX) scoped)
-      (subst (λ T → fceC Θ₂ Δ ⊢ idc A ∶ A ⇝ T ∙ ↑ˢ) eqAC
+      (subst (λ T → fceC Θ₂ Δ ⊢ idc A ∶ A ⇝ T) eqAC
              (idc-⊢ (⊑-wf (intC⊑fceC Θ₂ Δ) scoped)))
       wE
   where

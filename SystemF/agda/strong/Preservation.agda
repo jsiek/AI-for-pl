@@ -21,7 +21,7 @@ module strong.Preservation where
 --   is a value at Γ = `ℕ ∷ [], TyBeta fires, and the contractum's interior
 --   would have to mention a term variable that a wrapper body may not have.
 --
--- THE STATUS (2026-09-05, after the CancelR/TyPeelR rule repairs).
+-- THE STATUS (2026-09-06, after the polarity index was retired).
 --
 --   PEEL      PROVEN (proof/PeelDual.preserve-Peel), since `dualS` drops
 --             the `unlock` case.
@@ -29,20 +29,21 @@ module strong.Preservation where
 --             DISCHARGED over ONE interface, `ScopedAtUnseal`
 --             (proof/CancelFaces.preserve-CancelR).  Its old
 --             counterexample now TYPES (proof/PreserveObstruct §1).
---   TYPEELR   REPAIRED — premise-determined annotation, plain frame,
---             minted face `unsealAtᶜ 0 s` — and PROVEN at an `↑ˢ`
---             (reveal) ∀-face (proof/Preserve.preserve-TyPeelR-↑).  At a
---             `↓ˢ` (conceal) ∀-face the contractum's face is
---             MIXED-POLARITY, which the conversion judgment forbids
---             outright: `¬TyPeelRCase` (proof/PreserveObstruct §2) is now
---             a statement about the POLARITY DISCIPLINE, not about the
---             rule.  Examples §13 reaches it from closed plain source.
---   IDPUSH    right as formulated; it needs only the grounded scoping
---             fact (proof/WallReach.idPush-RepWf).
+--   TYPEELR   REPAIRED and PROVEN, at EVERY ∀-face
+--             (proof/Preserve.preserve-TyPeelR).  The rule pushes in the
+--             premise-determined interior ∀-body, keeps the frame plain,
+--             and mints the face `unsealAtᶜ 0 s`.  Under the retired
+--             POLARITY index this held only at a reveal face, because the
+--             mint's inserted `seal 0` sat where a global `p` refused it;
+--             per variable each leaf cites its own owner, and `env`'s
+--             frame checks are what keep the two apart.  Examples §13
+--             runs both faces from closed plain source.
+--   IDPUSH    the one case still open; it needs the grounded scoping fact
+--             (proof/WallReach.idPush-RepWf).
 --
 -- What IS proven, unconditionally: TyBeta (the mint), Beta, Drop$, PEEL,
--- and all five congruences — and preservation itself, over the remaining
--- open cases as premises (`module Conditional`).
+-- TYPEELR, and all five congruences — and preservation itself, over the
+-- remaining open cases as premises (`module Conditional`).
 --
 -- WHERE IDPUSH'S MISSING PREMISE CAN LIVE.  proof/WallReach shows the
 -- missing premise is `RepWf (intC Θ₂ Δ)` and proof/IdPushReach proves the
@@ -51,13 +52,10 @@ module strong.Preservation where
 -- `Bwf`, because the `¬IdPushCase` witness and a REACHABLE wrapper of
 -- Examples §12 have the SAME `Δ` and the SAME `Θ` and differ only in
 -- their FACE — so a `Bwf`-level wall would make `preserve-TyBeta` false.
--- The candidate that follows — a face-conditioned `env` premise
--- (`ScopedAt ↑ˢ Δ Θ Bₑ = scp Θ Δ ⊢ᵗ Bₑ`) — is run on the examples in
--- proof/ScopedFace: it is ⊑-stable, it refuses the `¬IdPushCase` witness,
--- and its one open Peel obligation is discharged
--- (`peel-crossing-scoped`) — but it does NOT make IdPush a theorem, since
--- IdPush turns the INNER, id-faced layer into an `unseal`-faced one and
--- the premise says nothing about that layer's REP (`contractum-owes`).
+-- The candidate that followed — a FACE-CONDITIONED `env` premise, asked
+-- at reveal faces only — switched on the polarity index and is retired
+-- with it; its witness survives as `Ξ★`/`Θ★₁` (proof/ChainScoped §3),
+-- which shows the obstruction MOVES to the inner, id-faced layer.
 -- proof/ChainScoped runs the next two: POINTWISE `RepWf` at every
 -- name-faced boundary, killed by a closed program (`¬NameFacedRepWf`),
 -- and the REP CHAIN of the face's own name, which gets IdPush and
@@ -73,15 +71,14 @@ open import strong.Types
 open import strong.Ctx
   using (Ctxᵗ; Ent; abst; bind; blk; Base; _⊢ᵗ_; _∋_:=_; liftN)
 open import strong.Conversion
-  using (Conv; id; seal; unseal; _↦_; `∀; idc; _⊢_∶_⇝_∙_; Pol; ↑ˢ; ↓ˢ)
+  using (Conv; id; seal; unseal; _↦_; `∀; idc; _⊢_∶_⇝_)
 open import strong.Terms
 open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
 open import strong.Reduction
   using (_⊢_-→_; _⊢_-→*_; unsealAt; unsealAtᶜ)
 
 open import strong.proof.Preserve
-  using (PeelCase; TyPeelRCase; TyPeelRCase↑; CancelRCase; IdPushCase;
-         preserve-TyBeta; preserve-Drop$; preserve-TyPeelR-↑;
+  using (IdPushCase; preserve-TyBeta; preserve-Drop$; preserve-TyPeelR;
          ⊢ᵗ-of; CtxWf-[])
 import strong.proof.Preserve as P
 open import strong.proof.PeelDual using (preserve-Peel)
@@ -125,18 +122,18 @@ preservation-fails = ¬preservation
 ------------------------------------------------------------------------
 
 -- Every case is discharged except the ones still open, which are the
--- module's parameters.  Note what CancelR's parameter now is: NOT its
--- preservation case, but the SCOPING FACT `ScopedAtUnseal` — the rule's
--- case is derived from it (`preserve-CancelR`).  That is the whole of
--- CancelR's remaining debt, and it is the common wall, stated once.
+-- module's TWO parameters (TyPeelR left the list when the polarity index
+-- did).  Note what CancelR's parameter is: NOT its preservation case, but
+-- the SCOPING FACT `ScopedAtUnseal` — the rule's case is derived from it
+-- (`preserve-CancelR`).  That is the whole of CancelR's remaining debt,
+-- and it is the common wall, stated once.
 module Conditional
-  (typeel : TyPeelRCase)
   (scoped : ScopedAtUnseal)
   (idpush : IdPushCase)
   where
 
   private
-    module I = P.Impl preserve-Peel typeel (preserve-CancelR scoped) idpush
+    module I = P.Impl preserve-Peel (preserve-CancelR scoped) idpush
 
   preservation : Preservation
   preservation = I.preserve
@@ -171,17 +168,17 @@ preservation-Drop$ : ∀ {n Θ}
   → Δ ∣ [] ⊢ $ n ⦂ C
 preservation-Drop$ = preserve-Drop$
 
--- TYPEELR AT AN `↑ˢ` ∀-FACE — the repaired rule, unconditionally.  The
+-- TYPEELR AT ANY ∀-FACE — the repaired rule, unconditionally.  The
 -- pushed-in annotation is the interior ∀-body the premise determines, and
 -- the face is the mint at the owner the rule binds.
-preservation-TyPeelR-↑ : ∀ {V Θ s B Bᵢ Bₑ}
+preservation-TyPeelR : ∀ {V Θ s B Bᵢ Bₑ}
   → Value V
-  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ ↑ˢ
+  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
     -----------------------------------------------------
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
-preservation-TyPeelR-↑ = preserve-TyPeelR-↑
+preservation-TyPeelR = preserve-TyPeelR
 
 -- CANCELR — over the ONE scoping interface.
 preservation-CancelR : ∀ {V Θ₁ Θ₂ X Y}

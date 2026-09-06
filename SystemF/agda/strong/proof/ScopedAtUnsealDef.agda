@@ -32,9 +32,12 @@ module strong.proof.ScopedAtUnsealDef where
 --     putting it in `Bwf` breaks `Bwf-⊑`/`⊢retag`/`preserve-TyBeta`.
 --
 --   * as a consequence of a face-conditioned `env` premise
---     (`ScopedAt ↑ˢ Δ Θ Bₑ = scp Θ Δ ⊢ᵗ Bₑ`) — refuted for IdPush,
---     proof/ScopedFace §3: the obstruction moves to Θ₁, the INNER
---     (id-faced) layer, which the premise does not constrain.
+--     (`scp Θ Δ ⊢ᵗ Bₑ` asked at REVEAL faces only) — refuted for IdPush:
+--     the obstruction moves to Θ₁, the INNER (id-faced) layer, which the
+--     premise does not constrain (the witness is `Ξ★`/`Θ★₁`,
+--     proof/ChainScoped §3).  The candidate switched on the conversion
+--     judgment's POLARITY index, retired 2026-09-06, so it can no longer
+--     even be stated.
 --
 --   * pointwise `RepWf` at name-faced boundaries and the REP-CHAIN
 --     premise — proof/ChainScoped: the first dies on a closed program,

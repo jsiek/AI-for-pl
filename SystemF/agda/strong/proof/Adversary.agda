@@ -2,7 +2,7 @@ module strong.proof.Adversary where
 
 -- THE SOUNDNESS GATE, and the adversaries of the previous design, refuted.
 --
--- A CONCEAL MUST CITE A LIVE OWNER.  That is the whole gate, and it is a
+-- A CONCEAL MUST CITE A LIVE BINDER.  That is the whole gate, and it is a
 -- one-line inversion: `conv-seal` has no other premise.  Under the previous
 -- design the same fact needed mwf↓ + Reversal≈, or mwf↓x + starOnly +
 -- SkelEq, and the adversary passed ≡, ≈Δ̄ and SkelEq (only `starOnly`
@@ -24,9 +24,9 @@ open import strong.Terms
 -- 1.  The gate
 ------------------------------------------------------------------------
 
-seal-cites-owner : ∀ {Δ X A B c}
+seal-cites-binder : ∀ {Δ X A B c}
   → Δ ⊢ c ∶ A ⇝ B → c ≡ seal X → Δ ∋ X := A
-seal-cites-owner (conv-seal d) refl = d
+seal-cites-binder (conv-seal d) refl = d
 
 -- `unlock` claims nothing: it is a NAME with no rep, so it cannot assert
 -- knowledge.  The boundary context morphism carries no type at an alias,
@@ -39,10 +39,11 @@ unlock-claims-nothing = mw-u
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
 ------------------------------------------------------------------------
 
--- At a type context where slot 0 is ABSTRACT (Λ-bound — no owner) the adversary
--- exported `7 : ℕ` at the abstract type.  Here the boundary is unmintable,
--- because `seal 0` demands `Δ ∋ 0 := `ℕ` and an `abst` slot has no rep to
--- cite.  Unmasking cannot manufacture one either (`unlock-claims-nothing`).
+-- At a type context where slot 0 is ABSTRACT (Λ-bound — no binder) the
+-- adversary exported `7 : ℕ` at the abstract type.  Here the boundary is
+-- unmintable, because `seal 0` demands `Δ ∋ 0 := `ℕ` and an `abst` slot
+-- has no rep to cite.  Unmasking cannot manufacture one either
+-- (`unlock-claims-nothing`).
 
 Δadv : Ctxᵗ
 Δadv = abst ∷ []
@@ -60,9 +61,9 @@ unlock-claims-nothing = mw-u
 -- 3.  `bad`: two spellings of one fact — inexpressible
 ------------------------------------------------------------------------
 
--- An inner conceal at rep ℕ under an owner whose rep is ∀Z.Z→Z.  The two
+-- An inner conceal at rep ℕ under a binder whose rep is ∀Z.Z→Z.  The two
 -- spellings cannot disagree, because there is only ONE: `seal 0` reads the
--- owner, so the source type IS the owner's rep.
+-- binder, so the source type IS the binder's rep.
 
 ∀ZZ : Ty
 ∀ZZ = `∀ (` 0 ⇒ ` 0)
@@ -87,7 +88,7 @@ seal-bad-conv (conv-seal ez) = refl
 -- SkelEq + xrep-stored + MergeOK's two type equations.
 cancel-types-agree : ∀ {Δ X A B A′ B′}
   → Δ ⊢ seal X ∶ A ⇝ B       -- the inner conceal
-  → Δ ⊢ unseal X ∶ A′ ⇝ B′   -- the owner it names
+  → Δ ⊢ unseal X ∶ A′ ⇝ B′   -- the binder it names
     ---------------------------
   → A ≡ B′
 cancel-types-agree cs cu =

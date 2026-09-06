@@ -4,7 +4,7 @@ module strong.Terms where
 --
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --
---   Θ : CtxMorph   the SCOPE SKELETON, rep-free except for owners
+--   Θ : CtxMorph   the SCOPE SKELETON, rep-free except for binders
 --        bind A   BINDS a fresh interior slot; A is its representation, read
 --                in the PLAIN EXTERIOR (simultaneity: never through Θ's
 --                other entries).  The only rep-carrying form; born once,
@@ -16,10 +16,10 @@ module strong.Terms where
 --                restores nameability.
 --   c : Conv     the CONVERSION, checked on the CONVERSION CONTEXT (the
 --                interior type context with Θ's bind masks lifted), where a
---                `seal X` can still resolve X at its owner.
+--                `seal X` can still resolve X at its binder.
 --
 -- Frames change ONLY at binders: `interior Θ Δ` is `Δ` with the masks applied
--- and Θ's owners pushed on.  There is no dropN, no cmax, no swapᵇ.
+-- and Θ's binders pushed on.  There is no dropN, no cmax, no swapᵇ.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -73,8 +73,8 @@ scope (unlock X ∷ Θ) Δ = unmask X (scope Θ Δ)
 scope (lock X ∷ Θ)   Δ = mask X (scope Θ Δ)
 
 -- The CONVERSION CONTEXT's slots: like `scope` but WITHOUT the conceal
--- masks, so a `seal X` can resolve X at its owner.  This is
--- owner-syntactic lookup: the licence is read on the type context that
+-- masks, so a `seal X` can resolve X at its binder.  This is
+-- binder-syntactic lookup: the licence is read on the type context that
 -- encloses the boundary, never inside it.
 unlockedScope : CtxMorph → Ctxᵗ → Ctxᵗ
 unlockedScope []             Δ = Δ
@@ -83,7 +83,7 @@ unlockedScope (unlock X ∷ Θ) Δ = unmask X (unlockedScope Θ Δ)
 unlockedScope (lock X ∷ Θ)   Δ = unlockedScope Θ Δ
 
 -- What replaces `intOf`: the same slot list, the interior mask, and the
--- owner extension.  Nothing is dropped and no rep is recomputed.
+-- binder extension.  Nothing is dropped and no rep is recomputed.
 interior : CtxMorph → Ctxᵗ → Ctxᵗ
 interior Θ Δ = pushBinds (repsOf Θ) (scope Θ Δ)
 
@@ -145,7 +145,7 @@ interior⊑convCtx Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ �
 -- Every premise names a slot or checks a rep in the PLAIN exterior.  There
 -- is no Reversal≈, no starOnly, no SkelEq, no x-lookup: an `unlock` claims
 -- nothing at all, and a `lock` claims nothing either — the claim lives in the
--- CONVERSION (`seal X`, which must cite a live owner).
+-- CONVERSION (`seal X`, which must cite a live binder).
 --
 -- An `unlock X` premise asks only that the slot EXISTS.  It cannot ask that the
 -- slot be masked and stay stable under refinement (a Cancel may already have
@@ -225,9 +225,9 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 
   -- (env).  ONE frame change.  The interior is term-closed and typed on the
   -- interior type context; the conversion is checked on the CONVERSION
-  -- CONTEXT, where the boundary's owners and the slots it masks are both
+  -- CONTEXT, where the boundary's binders and the slots it masks are both
   -- live; and its target type is the exterior type shifted past the
-  -- boundary's owners.  Interior and conversion are both on the wrapper.
+  -- boundary's binders.  Interior and conversion are both on the wrapper.
   env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
       → Δ ⊢ᵐ Θ
       → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ

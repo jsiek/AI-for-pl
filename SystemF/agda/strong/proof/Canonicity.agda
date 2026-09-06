@@ -1,6 +1,6 @@
 module strong.proof.Canonicity where
 
--- THE CANONICITY INVARIANT — the OWNER-NAME reading.
+-- THE CANONICITY INVARIANT — the BINDER-NAME reading.
 --
 -- Every conversion that reduction ever writes on a wrapper is a member of
 -- the CANONICAL FAMILY: it is (a subtree of) `reveal X B`, `conceal X B`,
@@ -12,7 +12,7 @@ module strong.proof.Canonicity where
 -- WHAT THE FAMILY SAYS, NOW THAT THE POLARITY INDEX IS GONE.  It used to
 -- say two things at once: a POLARITY SHAPE (`unseal` leaves covariant,
 -- `seal` leaves contravariant) and a NAME (every non-identity leaf cites
--- the SAME owner X, shifted under each `` `∀ `` exactly as
+-- the SAME binder X, shifted under each `` `∀ `` exactly as
 -- `reveal`/`conceal` shift it).  The first half was a restatement of
 -- what the indexed typing judgment already forced, and it went with the
 -- index (Jeremy's ruling, strong.Conversion): a mixed tree like
@@ -21,7 +21,7 @@ module strong.proof.Canonicity where
 -- that survives, and it is what `CanonAt X c` states below.
 --
 -- The term-level invariant (`CanonC`) quantifies the name existentially,
--- because a term's wrappers name different owners.
+-- because a term's wrappers name different binders.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_)
@@ -55,7 +55,7 @@ private
 -- 1.  The canonical family
 ------------------------------------------------------------------------
 
--- `CanonAt X c` — every non-identity leaf of c cites the owner X.  A
+-- `CanonAt X c` — every non-identity leaf of c cites the binder X.  A
 -- `` `∀ `` pushes a binder in front of the leaves, so the name it tracks
 -- is `suc X`, which is precisely the shift `reveal`/`conceal` perform on
 -- the `` `∀ `` case.
@@ -66,9 +66,9 @@ data CanonAt : ℕ → Conv → Set where
   ca-fun    : CanonAt X s → CanonAt X t → CanonAt X (s ↦ t)
   ca-all    : CanonAt (suc X) s → CanonAt X (`∀ s)
 
--- The term-level reading: a wrapper's conversion cites SOME single owner.
+-- The term-level reading: a wrapper's conversion cites SOME single binder.
 -- It has to be existential and it has to be single-name: TyPeelR's minted
--- conversion `instReveal 0 s` reads TWO owners in one wrapper — the
+-- conversion `instReveal 0 s` reads TWO binders in one wrapper — the
 -- conversion's own, and the one the instantiation just bound at slot 0 —
 -- which is exactly what `¬CanonTyPeelR` (§8) records.
 CanonC : Conv → Set
@@ -130,7 +130,7 @@ canonC-unseal X = X , ca-unseal
 -- 3.  DECOMPOSE — the subtree readings the crossing rules perform
 ------------------------------------------------------------------------
 
--- Peel reads `s ↦ t` apart; the DOMAIN comes back at the SAME owner,
+-- Peel reads `s ↦ t` apart; the DOMAIN comes back at the SAME binder,
 -- which is exactly the crossing argument's conversion.
 canonC-fun-dom : CanonC (s ↦ t) → CanonC s
 canonC-fun-dom (X , ca-fun cs ct) = X , cs
@@ -139,10 +139,10 @@ canonC-fun-cod : CanonC (s ↦ t) → CanonC t
 canonC-fun-cod (X , ca-fun cs ct) = X , ct
 
 -- TyPeelR reads `∀ s` apart — and then MINTS on the body (`instReveal 0`):
--- the slot the `` `∀ `` left abstract is now the owner the rule binds, so
--- the conversion's identity leaves at that slot become the
--- instantiation.  The decomposition itself only walks the name past the
--- binder.
+-- the slot the `` `∀ `` left abstract is now the binder the rule
+-- introduces, so the conversion's identity leaves at that slot become
+-- the instantiation.  The decomposition itself only walks the name past
+-- the binder.
 canonC-all : CanonC (`∀ s) → CanonC s
 canonC-all (X , ca-all cs) = suc X , cs
 
@@ -244,23 +244,23 @@ canon-subst cN cW =
 
 -- One case per rule.  The story:
 --
---   TyBeta   MINTS `reveal 0 B` at the owner it just bound (name 0).
+--   TyBeta   MINTS `reveal 0 B` at the binder it just bound (name 0).
 --   Beta     substitutes — §7, wrappers are opaque to `substᵐ`.
 --   Peel     DECOMPOSES `s ↦ t`; the argument is `wkᴹ`-renamed (§4) and
---            takes the domain `s` at the SAME owner.
+--            takes the domain `s` at the SAME binder.
 --   TyPeelR  DECOMPOSES `∀ s`, RENAMES the moved value (`wkᴹ 1`), and
 --            MINTS `instReveal 0 s` on the body — the ONE case that is not
 --            unconditional, because the mint puts leaves at slot 0
 --            ALONGSIDE the conversion's own, so the result cites TWO
---            owners; hence the hypothesis `CanonTyPeelR` below, which
+--            binders; hence the hypothesis `CanonTyPeelR` below, which
 --            is REFUTED.  (This is NOT a leftover of the polarity
 --            index: it survives the index's retirement, for the
---            two-owner reason.)
+--            two-binder reason.)
 --   CancelR  MINTS `mkId A` at the looked-up rep — a LEAF of the family
 --            (`canonAt-mkId`), canonical at every name.
---   IdPush   MINTS BOTH conversions: the pushed `unseal X` (owner X) and
+--   IdPush   MINTS BOTH conversions: the pushed `unseal X` (binder X) and
 --            the residue `mkId A`.  The old inner conversion was
---            `id (` X)`, a leaf that carries no owner, so the name comes
+--            `id (` X)`, a leaf that carries no binder, so the name comes
 --            from that conversion's own payload — which typing shows is
 --            the right one (proof/IdLayer.agda, `idpush-name`).
 --   Drop$    contracts to `$ n`; no wrappers at all.
@@ -271,11 +271,11 @@ CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (instReveal 0 s)
 
 -- IT FAILS on the ∀ conversion `∀ (id (` 0) ↦ seal 1)` — a polymorphic
 -- ARGUMENT that crossed a Peel, `conceal 0 (∀Y. Y ⇒ X)`.  That
--- conversion cites the ONE owner X (slot 1 under the `` `∀ ``), but its
--- mint `seal 0 ↦ seal 1` cites TWO: the owner TyPeelR just bound at slot 0
+-- conversion cites the ONE binder X (slot 1 under the `` `∀ ``), but its
+-- mint `seal 0 ↦ seal 1` cites TWO: the binder TyPeelR just bound at slot 0
 -- and the crossed boundary's at slot 1.  The mint TYPES (proof/Preserve.
 -- preserve-TyPeelR; the tree was untypeable only under the retired polarity
--- index) — it is the SINGLE-OWNER reading that it leaves.
+-- index) — it is the SINGLE-BINDER reading that it leaves.
 canonC-∀conv : CanonC (`∀ (id (` 0) ↦ seal 1))
 canonC-∀conv = 0 , ca-all (ca-fun ca-id ca-seal)
 
@@ -340,8 +340,8 @@ canon-source (pl-·[] pL)   = ct-·[] (canon-source pL)
 ------------------------------------------------------------------------
 
 -- T₆ = ((7 ⟪ [] , seal 1 ⟫) ⟪ bind ℕ , id (` 1) ⟫) ⟪ bind ℕ , unseal 0 ⟫
--- Three wrappers, three families: a conceal at owner 1, an ambipolar
--- id-layer, a reveal at owner 0.
+-- Three wrappers, three families: a conceal at binder 1, an ambipolar
+-- id-layer, a reveal at binder 0.
 canonTm-T₆ : CanonTm T₆
 canonTm-T₆ =
   ct-⟪⟫ (ct-⟪⟫ (ct-⟪⟫ ct-lit (1 , ca-seal))
@@ -369,9 +369,9 @@ _ = refl
 _ : CanonC (reveal 0 (` 0 ⇒ ` 0))
 _ = canonC-reveal 0 (` 0 ⇒ ` 0)
 
--- A TWO-OWNER tree — `seal` leaves at two different names — is outside
+-- A TWO-BINDER tree — `seal` leaves at two different names — is outside
 -- the family, though (unlike under the retired polarity index) it is
 -- perfectly TYPEABLE: it is what TyPeelR mints, and the frames, not a
--- global index, are what keep the two owners apart.
-¬canonC-two-owners : ¬ CanonC (seal 0 ↦ seal 1)
-¬canonC-two-owners = ¬canonC-seal↦seal
+-- global index, are what keep the two binders apart.
+¬canonC-two-binders : ¬ CanonC (seal 0 ↦ seal 1)
+¬canonC-two-binders = ¬canonC-seal↦seal

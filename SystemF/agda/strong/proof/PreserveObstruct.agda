@@ -19,7 +19,7 @@ module strong.proof.PreserveObstruct where
 --               it; Examples §13 reaches it from closed plain source.
 --   §3 Peel     REPAIRED and PROVEN (proof/PeelDual); refutation removed.
 --   §4 IdPush   REPAIRED by the SCOPE MOVE (Jeremy, 2026-09-06).  The
---               inner wrapper's new exterior type is the owner's rep `A`,
+--               inner wrapper's new exterior type is the binder's rep `A`,
 --               which `env`'s last premise demands be well formed where
 --               the contractum puts it.  The old contractum put it INSIDE
 --               Θ₂'s `lock` — §4's witness, and the refutation that stood
@@ -48,8 +48,8 @@ open import strong.proof.MoveScope using (preserve-IdPush)
 -- §1  CancelR drops Θ₁'s frame
 ------------------------------------------------------------------------
 
--- Θ₁ binds ONE owner, so the cancelled value V lives two binders deep;
--- the residue `repsOf→bind (repsOf Θ₂)` rebinds only Θ₂'s one owner, and V's
+-- Θ₁ has ONE `bind`, so the cancelled value V lives two binders deep;
+-- the residue `repsOf→bind (repsOf Θ₂)` rebinds only Θ₂'s one binder, and V's
 -- `lock 1` — perfectly well formed inside — names a slot that no longer
 -- exists.
 
@@ -60,7 +60,7 @@ open import strong.proof.MoveScope using (preserve-IdPush)
 Vc : Term
 Vc = ƛ `ℕ ∙ (($ 5) ⟪ lock 1 ∷ [] , id `ℕ ⟫)
 
--- V's home: Θ₁'s owner over Θ₂'s owner over the empty type context.
+-- V's home: Θ₁'s binder over Θ₂'s binder over the empty type context.
 Ξc : Ctxᵗ
 Ξc = bind `𝔹 ∷ bind (`ℕ ⇒ `ℕ) ∷ []
 
@@ -128,15 +128,15 @@ _ = refl
 -- inserts `seal 0` CONTRAVARIANTLY under that conversion's own covariant
 -- `seal`, so the tree was MIXED-POLARITY and the indexed judgment refused
 -- it at both `p`.  With the index retired (Jeremy's ruling,
--- strong.Conversion) the tree types: each leaf cites its own owner, `seal
--- 0` the owner this very rule bound and `seal 1` the crossed boundary's,
+-- strong.Conversion) the tree types: each leaf cites its own binder, `seal
+-- 0` the binder this very rule bound and `seal 1` the crossed boundary's,
 -- and no global index has to reconcile them.
 --
 -- So the section now records the POSITIVE fact, on the same witness —
 -- the shape Examples §13 reaches from closed plain source, `f : ∀Y. Y ⇒ X`
 -- crossing a Peel and then instantiated.
 
--- the crossed boundary's interior — the owner X := ℕ
+-- the crossed boundary's interior — the binder X := ℕ
 Δt : Ctxᵗ
 Δt = bind `ℕ ∷ []
 
@@ -190,9 +190,9 @@ _ : instReveal 0 st ≡ seal 0 ↦ seal 1
 _ = refl
 
 -- BOTH LEAVES, on the contractum's conversion context: the INSERTED one
--- conceals the new owner's rep at the new owner's name, the conversion's
--- OWN one conceals ℕ at the crossed boundary's owner.  Per variable each is
--- exactly the conceal its owner licenses.
+-- conceals the new binder's rep at the new binder's name, the conversion's
+-- OWN one conceals ℕ at the crossed boundary's binder.  Per variable each is
+-- exactly the conceal its binder licenses.
 t-convCtx : Ctxᵗ
 t-convCtx = convCtx (bind (` 0) ∷ Θt) Δt
 
@@ -223,7 +223,7 @@ t-cod = conv-seal (es ez)
 -- re-blocked a no-op `unlock` (`Θ = unlock 0` at an unmasked slot) and
 -- failed same-slot cancellation.  strong.Reduction's repaired `dualScope`
 -- DROPS the `unlock` case, so `dual (unlock 0 ∷ []) ≡ []` and the
--- crossing no longer masks the owner.  `PeelCase` is now PROVEN
+-- crossing no longer masks the binder.  `PeelCase` is now PROVEN
 -- (strong.proof.PeelDual.preserve-Peel), with `interior-dual`/`convCtx-dual`
 -- true in general — so this refutation is gone.
 

@@ -7,7 +7,7 @@ module strong.proof.Preserve where
 --     needed: every rep a rule reads back out of the type context arrives
 --     with its well-formedness already on the derivation — `env`'s last
 --     premise `Δ ⊢ᵗ Bₑ` — and `reveal`'s minted conversion reads its
---     rep from the OWNER THE RULE ITSELF JUST BOUND, whose rep is
+--     rep from the BINDER THE RULE ITSELF JUST BOUND, whose rep is
 --     `⊢·[]`'s premise.
 --
 -- §2  THE MINTED CONVERSION (`⊢reveal`/`⊢conceal`), TyBeta's contractum
@@ -124,7 +124,7 @@ CtxWf-⤊ h d with ∋⦂-map⁻ d
 ------------------------------------------------------------------------
 
 -- `reveal X B` reveals X inside B; the target type is B with X
--- replaced by the OWNER'S REP — `_[_:=_]ᵗ`, the in-place substitution
+-- replaced by the BINDER'S REP — `_[_:=_]ᵗ`, the in-place substitution
 -- (the concealed variable stays on the type context, so nothing shifts).
 
 -- The two reduction facts about `single-at`.  They are stated against
@@ -196,7 +196,7 @@ mutual
     rewrite subst-at-∀ X A B = conv-all (⊢conceal (es d) wB)
 
 ------------------------------------------------------------------------
--- §2b  The conversion TYPEELR mints — `instReveal` at the new owner
+-- §2b  The conversion TYPEELR mints — `instReveal` at the new binder
 ------------------------------------------------------------------------
 
 -- Four substitution facts about `single-at`, all shift arithmetic.
@@ -246,15 +246,15 @@ ren-suc-[0] T =
 
 -- THE TYPE CONTEXT A ∀ CONVERSION IS READ ON.  A conversion's `` `∀ ``
 -- pushes one ABSTRACT slot; TyPeelR turns the outermost such slot into
--- the OWNER it binds, so the two type contexts differ at exactly one
--- entry, `n` binders in.
+-- the BINDER it introduces, so the two type contexts differ at exactly
+-- one entry, `n` binders in.
 abstN : ℕ → Ctxᵗ → Ctxᵗ
 abstN zero    Ξ = Ξ
 abstN (suc n) Ξ = abst ∷ abstN n Ξ
 
-abstN-owner : ∀ {Ψ A} (n : ℕ) → abstN n (bind A ∷ Ψ) ∋ n := shiftBy (suc n) A
-abstN-owner zero    = ez
-abstN-owner (suc n) = es (abstN-owner n)
+abstN-binder : ∀ {Ψ A} (n : ℕ) → abstN n (bind A ∷ Ψ) ∋ n := shiftBy (suc n) A
+abstN-binder zero    = ez
+abstN-binder (suc n) = es (abstN-binder n)
 
 abstN-⊑ : ∀ {Ψ A} (n : ℕ) → abstN n (abst ∷ Ψ) ⊑ abstN n (bind A ∷ Ψ)
 abstN-⊑ {Ψ = Ψ} zero = le∷ le-ao (⊑-refl Ψ)
@@ -282,7 +282,7 @@ substᵉ-⇑ n R (masked E)  = cong masked (substᵉ-⇑ n R E)
 -- either ABSTRACT (the prefix, and slot n itself) or an entry of Ψ read
 -- past `n+1` binders — and such an entry names no slot ≤ n, so the mint
 -- at slot n leaves it alone.  This is SIMULTANEITY again: a rep is a type
--- over the plain exterior, lifted past the owners bound inside it.
+-- over the plain exterior, lifted past the binders inside it.
 abstN-ent : ∀ {Ψ A} (n : ℕ) {Y E}
   → abstN n (abst ∷ Ψ) ∋e Y , E
     ------------------------------------------------------------
@@ -310,7 +310,7 @@ abstN-kn {A = A} n d with abstN-ent {A = A} n d
 -- SLOT n IS ABSTRACT, so no conversion leaf the premise already carries
 -- can name it.  This is what closes the two leaf cases the polarity
 -- index used to rule out (a `seal` under `instReveal`, an `unseal`
--- under `instConceal`): such a leaf cites an OWNER, and slot n has
+-- under `instConceal`): such a leaf cites a BINDER, and slot n has
 -- none.
 abstN-abst : ∀ {Ψ E} (n : ℕ) → abstN n (abst ∷ Ψ) ∋e n , E → E ≡ abst
 abstN-abst zero    ez     = refl
@@ -327,7 +327,7 @@ abstN-≢ n d refl with abstN-abst n d
 -- WITHOUT THE POLARITY INDEX BOTH DIRECTIONS ARE TOTAL.  The mint
 -- inserts `unseal n` where the conversion runs covariantly and `seal n`
 -- where it runs contravariantly; the leaves the conversion ALREADY
--- carries are copied unchanged, and each of them names an owner ≠ n
+-- carries are copied unchanged, and each of them names a binder ≠ n
 -- (`abstN-≢`), so the substitution at slot n leaves those leaves alone.
 -- That is the whole of the old CONCEAL obstruction: it was the index,
 -- not the terms.
@@ -341,7 +341,7 @@ mutual
   ⊢instReveal n (conv-id base-𝔹) = conv-id base-𝔹
   ⊢instReveal {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
   ... | yes refl rewrite single-at-hit n (shiftBy (suc n) A) =
-    conv-unseal (abstN-owner n)
+    conv-unseal (abstN-binder n)
   ... | no ne rewrite single-at-miss n Y (shiftBy (suc n) A) ne =
     conv-idv (⊑-tv (abstN-⊑ n) tv)
   ⊢instReveal {A = A} n (conv-unseal d) with abstN-kn {A = A} n d
@@ -364,7 +364,7 @@ mutual
   ⊢instConceal n (conv-id base-𝔹) = conv-id base-𝔹
   ⊢instConceal {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
   ... | yes refl rewrite single-at-hit n (shiftBy (suc n) A) =
-    conv-seal (abstN-owner n)
+    conv-seal (abstN-binder n)
   ... | no ne rewrite single-at-miss n Y (shiftBy (suc n) A) ne =
     conv-idv (⊑-tv (abstN-⊑ n) tv)
   ⊢instConceal {A = A} n (conv-seal d) with abstN-kn {A = A} n d
@@ -396,9 +396,9 @@ shiftBy-ℕ⁻ (suc n) eq = shiftBy-ℕ⁻ n (ren-ℕ⁻ eq)
 
 -- ── TYBETA ─────────────────────────────────────────────────────────────
 -- The boundary is BORN.  Three moves: the interior is RETAGGED (the slot
--- the Λ bound abstractly is now the OWNER — `le-ao`, the one ⊑ᵉ clause
+-- the Λ bound abstractly is now the BINDER — `le-ao`, the one ⊑ᵉ clause
 -- that refines an `abst`), the conversion is MINTED by `⊢reveal` at the
--- rep the owner was just given, and the target-type equation is
+-- rep the binder was just given, and the target-type equation is
 -- `subst-at-0`.
 preserve-TyBeta : ∀ {N B A}
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
@@ -426,10 +426,10 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 --               DEFINITIONALLY — the shift `renᴮ suc Θ` used to add is
 --               the one `pushBinds` already performs.
 --   INTERIOR    `wkᴹ 1 V` (⊢rename at `Ren-wk`) instantiated at the new
---               owner's own name; the annotation is the INTERIOR
+--               binder's own name; the annotation is the INTERIOR
 --               ∀-body, shifted, and `ren-suc-[0]` returns it unchanged.
 --   CONVERSION  `instReveal 0 s` (§2b), whose TARGET type is its SOURCE
---               with slot 0 replaced by the owner's rep — which is the
+--               with slot 0 replaced by the binder's rep — which is the
 --               instantiated exterior body, by `subst-at-0`.
 --   EXTERIOR    `wf-[]ᵗ`, i.e. `⊢·[]`'s own two premises.
 --

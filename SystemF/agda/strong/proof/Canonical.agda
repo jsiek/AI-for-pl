@@ -45,7 +45,7 @@ private
     c : Conv
 
 ------------------------------------------------------------------------
--- §1  The TARGET type is the exterior type, LIFTED past the owners
+-- §1  The TARGET type is the exterior type, LIFTED past the binders
 ------------------------------------------------------------------------
 
 -- `env` reads the target type at `shiftBy (numBinds Θ) Bₑ`, so every

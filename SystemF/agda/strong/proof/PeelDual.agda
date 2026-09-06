@@ -7,7 +7,7 @@ module strong.proof.PeelDual where
 --     ≡ map masked (pushBinds (repsOf Θ) []) ++ unlockedScope Θ Δ
 --   convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ
 --
--- The crossing argument (typed in Δ) retypes one owner-frame deeper by
+-- The crossing argument (typed in Δ) retypes one bind frame deeper by
 -- `⊢rename (wkN (numBinds Θ))` + `⊢retag` (the tail relaxes
 -- Δ ⊑ unlockedScope Θ Δ), and the conversion `s` transplants verbatim
 -- through `convCtx-dual`.
@@ -116,7 +116,7 @@ stepA Ow (lock X ∷ Θ)   Δ
         | stepA Ow Θ Δ = refl
 
 ------------------------------------------------------------------------
--- STEP B: hideBinds masks the whole owner prefix.
+-- STEP B: hideBinds masks the whole bind prefix.
 ------------------------------------------------------------------------
 
 hideBinds-cons : (k : ℕ) (E : Ent) (Ξ : Ctxᵗ)
@@ -289,7 +289,7 @@ Ren-wkN Ξ = mkRen (ren∋-wkN Ξ)
 ⊢ᵐ-++ (mw-l tv b) b₂ = mw-l tv (⊢ᵐ-++ b b₂)
 ⊢ᵐ-++ (mw-u d b)  b₂ = mw-u d (⊢ᵐ-++ b b₂)
 
--- owner slots of a pushBinds are visible
+-- binder slots of a pushBinds are visible
 pushBinds-∋tv : (As : List Ty) (Ξ : Ctxᵗ) (j : ℕ)
   → j < length As → pushBinds As Ξ ∋tv j
 pushBinds-∋tv (A ∷ As) Ξ zero    (s≤s _)  = bind _ , ez , nameable-b
@@ -320,7 +320,7 @@ scope-∋e-ex (unlock Y ∷ Θ) d with scope-∋e-ex Θ d
 scope-∋e-ex (lock Y ∷ Θ)   d with scope-∋e-ex Θ d
 ... | E′ , d′ = updateAt-∋e-ex masked Y d′
 
--- a slot of pushBinds(As)Ξ past the owners
+-- a slot of pushBinds(As)Ξ past the binders
 pushBinds-∋e-tail : (As : List Ty) {Ξ : Ctxᵗ} {X : ℕ} {E : Ent}
   → Ξ ∋e X , E → ∃[ E′ ] (pushBinds As Ξ ∋e (length As + X) , E′)
 pushBinds-∋e-tail As {Ξ} {X} d

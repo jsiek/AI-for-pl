@@ -18,7 +18,7 @@ module strong.proof.MoveScope where
 --     -→ (V ⟪ Θ₁ ⋉ Θ₂ , c′ ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫
 --
 -- `dropLocks Θ₂` keeps Θ₂'s binds and unmasks; `Θ₁ ⋉ Θ₂` appends Θ₂'s
--- whole SCOPE (locks AND unlocks, in order, lifted past Θ₂'s owners) at
+-- whole SCOPE (locks AND unlocks, in order, lifted past Θ₂'s binders) at
 -- Θ₁'s TAIL, where `scope` applies it FIRST.
 --
 -- WHY IT WORKS, in one line: `interior (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ`
@@ -55,7 +55,7 @@ open import strong.proof.Preserve using (CancelRCase; IdPushCase)
 -- §1  Lookup transports
 ------------------------------------------------------------------------
 
--- An owner survives `unlockedScope`: it only unmasks (`unmaskEnt`, which fixes
+-- A binder survives `unlockedScope`: it only unmasks (`unmaskEnt`, which fixes
 -- `bind`) and skips locks, so a `bind` lookup is preserved unchanged.
 unlockedScope-∋bind : ∀ (Θ : CtxMorph) {Δ Y A}
   → Δ ∋ Y := A → unlockedScope Θ Δ ∋ Y := A
@@ -68,8 +68,8 @@ unlockedScope-∋bind (unlock Z ∷ Θ) {Y = Y} d with Z ≟ℕ Y
 ... | no  ne   =
   updateAt-miss unmaskEnt unmaskEnt-comm ne (unlockedScope-∋bind Θ d)
 
--- The owner prefix lifts an owner: slot Y in the tail becomes slot
--- `length As + Y` at the rep lifted past the `length As` prefix owners.
+-- The bind prefix lifts a binder: slot Y in the tail becomes slot
+-- `length As + Y` at the rep lifted past the `length As` prefix binders.
 pushBinds-∋ : ∀ (As : List Ty) {Δ Y A}
   → Δ ∋ Y := A → pushBinds As Δ ∋ (length As + Y) := shiftBy (length As) A
 pushBinds-∋ []       d = d
@@ -111,7 +111,7 @@ numBinds-⋉ : (Θ₁ Θ₂ : CtxMorph) → numBinds (Θ₁ ⋉ Θ₂) ≡ numBi
 numBinds-⋉ Θ₁ Θ₂ = cong length (repsOf-⋉ Θ₁ Θ₂)
 
 
--- DROPPING THE LOCKS KEEPS THE OWNERS.
+-- DROPPING THE LOCKS KEEPS THE BINDERS.
 repsOf-dropLocks : (Θ : CtxMorph) → repsOf (dropLocks Θ) ≡ repsOf Θ
 repsOf-dropLocks []             = refl
 repsOf-dropLocks (bind A ∷ Θ)   = cong (A ∷_) (repsOf-dropLocks Θ)
@@ -135,7 +135,7 @@ unlockedScope-++ (bind A ∷ Θ)   Ψ Δ = unlockedScope-++ Θ Ψ Δ
 unlockedScope-++ (unlock X ∷ Θ) Ψ Δ = cong (unmask X) (unlockedScope-++ Θ Ψ Δ)
 unlockedScope-++ (lock X ∷ Θ)   Ψ Δ = unlockedScope-++ Θ Ψ Δ
 
--- THE MOVED SCOPE, APPLIED PAST THE OWNER PREFIX, IS THE ORIGINAL SCOPE
+-- THE MOVED SCOPE, APPLIED PAST THE BIND PREFIX, IS THE ORIGINAL SCOPE
 -- APPLIED UNDER IT.  This is the whole point of the index lift `n + X`,
 -- and it is `updateAt-pushBinds` (strong.Ctx) once per entry.
 scope-scopeOf : (As : List Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
@@ -200,7 +200,7 @@ convCtx-⋉ Θ₁ Θ₂ Ξ rewrite repsOf-⋉ Θ₁ Θ₂ =
 -- §4  THE FRAME LEMMAS
 ------------------------------------------------------------------------
 
--- A rep survives `unlockedScope` and the owner prefix (this is
+-- A rep survives `unlockedScope` and the bind prefix (this is
 -- `wf-unlockedScope`'s reason for existing: `scope` would not do —
 -- masking is what the wall was about).
 wf-unlockedScope : ∀ {Δ A} (Θ : CtxMorph) → Δ ⊢ᵗ A → unlockedScope Θ Δ ⊢ᵗ A
@@ -296,10 +296,10 @@ _ = refl
                   (interior (dropLocks Θ✗) Δ✗))
 ¬frame-locksOnly (le∷ () ls)
 
--- THE OWNER, ON THE CONTRACTUM'S INNER CONVERSION CONTEXT.  The outer
+-- THE BINDER, ON THE CONTRACTUM'S INNER CONVERSION CONTEXT.  The outer
 -- reveal's own lookup — read on `convCtx Θ₂ Δ`, which the move makes
 -- the inner boundary's exterior — transported past the moved scope,
--- past Θ₁'s unmasks, and past Θ₁'s owners.  NO `maskOnly` step: the old
+-- past Θ₁'s unmasks, and past Θ₁'s binders.  NO `maskOnly` step: the old
 -- proof had to push the lookup INSIDE Θ₂'s locks, and this one never
 -- does.
 move-∋ : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {Y : ℕ} {A : Ty}
@@ -315,7 +315,7 @@ move-∋ Θ₁ Θ₂ {Δ = Δ} {Y = Y} {A = A} d =
               (subst (λ Ξ → Ξ ∋ Y := A) (sym (interior-dropLocks Θ₂ Δ)) d))))
 
 -- The conversion context of the moved inner frame also carries every
--- rep its own exterior carries — it only ADDS unmasks and the owner
+-- rep its own exterior carries — it only ADDS unmasks and the bind
 -- prefix.
 wf-convCtx-move : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {A : Ty}
   → interior (dropLocks Θ₂) Δ ⊢ᵗ A
@@ -380,7 +380,7 @@ module _ {Δ : Ctxᵗ} (Θ₂ : CtxMorph) {A C : Ty}
          (wE : Δ ⊢ᵗ C) (eqAC : A ≡ shiftBy (numBinds Θ₂) C) where
 
   -- THE PREMISE THE WALL USED TO DENY.  `interior (dropLocks Θ₂) Δ` IS
-  -- `convCtx Θ₂ Δ` (§3), and A is C lifted past Θ₂'s owners — so this is
+  -- `convCtx Θ₂ Δ` (§3), and A is C lifted past Θ₂'s binders — so this is
   -- `wf-shiftBy-pushBinds` at Θ₂'s reps, and nothing else.
   moved-scoped : interior (dropLocks Θ₂) Δ ⊢ᵗ A
   moved-scoped rewrite eqAC | interior-dropLocks Θ₂ Δ = wf-convCtx Θ₂ wE
@@ -396,7 +396,7 @@ module _ {Δ : Ctxᵗ} (Θ₂ : CtxMorph) {A C : Ty}
 --
 --   FRAME       `Θ₁ ⋉ Θ₂`, well formed by §5.
 --   INTERIOR    `V`, retagged along `frame-move` (§4).
---   CONVERSION  `unseal X` at the owner `move-∋` transports (§4); the
+--   CONVERSION  `unseal X` at the binder `move-∋` transports (§4); the
 --               two names are forced equal by the inner identity
 --               conversion's own TARGET type, `X ≡ numBinds Θ₁ + Y`
 --               (proof/IdLayer, `idpush-name`).

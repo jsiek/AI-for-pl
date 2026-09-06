@@ -59,10 +59,10 @@ open import strong.Examples using (LΔ)
 --
 -- Two nested crossings put the argument `7` behind TWO wrappers, the
 -- outer of which is an IDENTITY BOUNDARY at X′ and carries the
--- Peel-minted lock of the ΛZ boundary's owner.  The innermost TyBeta
--- then instantiates Y at Z — minting the owner `Y := Z` — INSIDE that
+-- Peel-minted lock of the ΛZ boundary's binder.  The innermost TyBeta
+-- then instantiates Y at Z — minting the binder `Y := Z` — INSIDE that
 -- wrapper's scope.  So the identity boundary's interior blocks the slot
--- the fresh owner's rep names, and pointwise `RepWf` there is false
+-- the fresh binder's rep names, and pointwise `RepWf` there is false
 -- while the contractum types.
 
 Pinner Pfun2 PZ Pbody Pfun1 P₀ : Term
@@ -91,7 +91,7 @@ KS₇ : Term
 KS₇ = ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫
 
 -- the crossing argument the SECOND Peel builds: `7` behind a seal at X′
--- and then behind an ID CONVERSION at X′, under the lock of Z's owner slot
+-- and then behind an ID CONVERSION at X′, under the lock of Z's binder slot
 xK ⇑xK : Term
 xK  = (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ lock 0 ∷ [] , id (` 1) ⟫
 ⇑xK = (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ lock 1 ∷ [] , id (` 2) ⟫
@@ -127,7 +127,7 @@ kstep₄ : [] ⊢ P₃ -→ P₄
 kstep₄ = ξ-⟪⟫ (ξ-·-l (TyBeta V-ƛ))
 
 -- the SECOND Peel: `dual (bind ℕ ∷ []) = lock 0 ∷ []`, so the crossing
--- argument acquires the lock of Z's own owner slot, under an ID conversion
+-- argument acquires the lock of Z's own binder slot, under an ID conversion
 kstep₅ : [] ⊢ P₄ -→ P₅
 kstep₅ = ξ-⟪⟫ (Peel V-ƛ (V-⟪⟫ V-$ I-seal))
 
@@ -169,7 +169,7 @@ RepWf-Ξᴷ′ (es ez)          = tt
 RepWf-Ξᴷ′ (es (es ez))     = wf-ℕ
 RepWf-Ξᴷ′ (es (es (es ())))
 
--- AFTER it, the fresh owner `Y := Z` names the blocked slot.
+-- AFTER it, the fresh binder `Y := Z` names the blocked slot.
 ¬RepWf-Δᴷ′ : ¬ RepWf Δᴷ′
 ¬RepWf-Δᴷ′ rw with rw (ez {E = bind (` 0)})
 ... | wf-var (_ , es ez , ())
@@ -299,8 +299,8 @@ chain-rep cs d = cs (rz d)
 ------------------------------------------------------------------------
 
 -- an `abst` slot has no rep, so a chain STOPS there
-abst-not-owner : ∀ {Δ X B} → Δ ∋e X , abst → Δ ∋ X := B → ⊥
-abst-not-owner d d′ with ∋e-det d d′
+abst-not-binder : ∀ {Δ X B} → Δ ∋e X , abst → Δ ∋ X := B → ⊥
+abst-not-binder d d′ with ∋e-det d d′
 ... | ()
 
 -- ── REFUSES the `¬IdPushCase` witness (proof/PreserveObstruct §4) ─────
@@ -374,10 +374,11 @@ ChainScoped-killtest-redex r with chain-Ξᴷ r
 -- short of it) becomes fatal, and `⊢retag` cannot carry the premise
 -- across.  This is `le-ao` again (proof/WallGrounding §3), one level down.
 --
--- THE WITNESS.  `Λ` binds a slot; inside it a boundary binds an owner
--- whose rep NAMES that slot; inside THAT, a wrapper locks an older slot
--- and its identity conversion names the owner.  Instantiating the Λ at
--- a type that names the locked slot closes the circuit.
+-- THE WITNESS.  `Λ` binds a slot; inside it a boundary introduces a
+-- binder whose rep NAMES that slot; inside THAT, a wrapper locks an
+-- older slot and its identity conversion names the binder.
+-- Instantiating the Λ at a type that names the locked slot closes the
+-- circuit.
 
 CΔ CΔ⁺ CΔ⁺′ CΔ′ CΔ′′ : Ctxᵗ
 CΔ   = bind `ℕ ∷ []
@@ -450,7 +451,7 @@ chain-CΔ⁺ (rs r i d) with chain-CΔ⁺ r
 ... | refl = ⊥-elim (stop i d)
   where
   stop : ∀ {Y B} → Y ∈ᵗ (` 1 ⇒ `ℕ) → CΔ⁺ ∋ Y := B → ⊥
-  stop (in-⇒-l in-var) d′ = abst-not-owner (es ez) d′
+  stop (in-⇒-l in-var) d′ = abst-not-binder (es ez) d′
   stop (in-⇒-r ())     d′
 
 ChainScoped-CΔ⁺ : ChainScoped CΔ⁺ CΘ 0
@@ -468,7 +469,7 @@ ChainScoped-CV r with chain-CΔ⁺′ r
   ... | refl = ⊥-elim (stop i d)
     where
     stop : ∀ {Y B} → Y ∈ᵗ (` 1 ⇒ `ℕ) → CΔ⁺′ ∋ Y := B → ⊥
-    stop (in-⇒-l in-var) d′ = abst-not-owner (es ez) d′
+    stop (in-⇒-l in-var) d′ = abst-not-binder (es ez) d′
     stop (in-⇒-r ())     d′
 ... | refl = wf-⇒ (wf-var (abst , es ez , nameable-a)) wf-ℕ
 
@@ -578,7 +579,7 @@ idPush-inner cs = cs
 --                                       at OTHER wrappers, by retagging
 --   Peel crossing                  yes  the crossing conversion's
 --                                       SOURCE is a `shiftBy`, so its
---                                       target names no owner of the
+--                                       target names no binder of the
 --                                       crossed boundary
 --   TyPeelR                        n/a  same retag defect as TyBeta
 --

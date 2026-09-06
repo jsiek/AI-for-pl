@@ -19,7 +19,7 @@ module strong.Conversion where
 -- rather than only at a reveal one (proof/Preserve.preserve-TyPeelR).
 --
 -- Conversions are REP-FREE by construction: `seal` and `unseal` carry a
--- NAME, never a spelling, and the rep is read by an OWNER LOOKUP on the
+-- NAME, never a spelling, and the rep is read by a BINDER LOOKUP on the
 -- type context (`Δ ∋ X := A`).  That is what makes Q4's cancel type
 -- equation definitional (proof/MoveScope.agda) and what makes both transports
 -- below hypothesis-free.
@@ -51,8 +51,8 @@ private
 -- structural (`mkId` below).
 data Conv : Set where
   id     : Ty → Conv          -- ACTIVE at a base type, INERT at a variable
-  seal   : ℕ → Conv           -- seal   at the owner named        INERT
-  unseal : ℕ → Conv           -- unseal at the owner named        ACTIVE
+  seal   : ℕ → Conv           -- seal   at the binder named       INERT
+  unseal : ℕ → Conv           -- unseal at the binder named       ACTIVE
   _↦_    : Conv → Conv → Conv -- s ↦ t, contravariant domain      INERT
   `∀     : Conv → Conv        -- ∀ s                              INERT
 
@@ -71,7 +71,7 @@ renᶜ ρ (`∀ s)      = `∀ (renᶜ (extᵗ ρ) s)
 
 -- Δ ⊢ c ∶ A ⇝ B   —   c converts the SOURCE type A to the TARGET type
 -- B, both read on the type context Δ (the CONVERSION CONTEXT: the type
--- context at which the boundary's owners are live).  Every rep is read by
+-- context at which the boundary's binders are live).  Every rep is read by
 -- NAME from Δ.  `conv-fun` is CONTRAVARIANT in its domain — that is the
 -- only trace the retired polarity index leaves.
 infix 4 _⊢_∶_⇝_
@@ -91,7 +91,7 @@ data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
     → Δ ⊢ unseal X ∶ ` X ⇝ A
 
   -- CONCEAL: the interior sees the rep, the exterior the abstract name.
-  -- THE SOUNDNESS GATE: a seal must cite a LIVE OWNER on its type context.
+  -- THE SOUNDNESS GATE: a seal must cite a LIVE BINDER on its type context.
   conv-seal : Δ ∋ X := A
       --------------------------------
     → Δ ⊢ seal X ∶ A ⇝ ` X
@@ -165,7 +165,7 @@ conv-⊑ ls (conv-all s)     = conv-all (conv-⊑ (le∷ le-aa ls) s)
 -- 6.  Conversion inversions
 ------------------------------------------------------------------------
 
--- Every rep a conversion mentions IS the owner's rep — there is no second
+-- Every rep a conversion mentions IS the binder's rep — there is no second
 -- spelling, which is why the §9m ≡/≈ gap cannot arise.
 seal-source-is-rep :
   Δ ⊢ seal X ∶ A ⇝ B → Δ ∋ X := A
@@ -209,7 +209,7 @@ conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 ------------------------------------------------------------------------
 
 -- A conversion determines BOTH its types: `id` carries its own, a
--- `seal`/`unseal` reads its rep by the owner lookup (`∋:=-det`), and
+-- `seal`/`unseal` reads its rep by the binder lookup (`∋:=-det`), and
 -- `↦`/`` `∀ `` are structural.  This is what makes TyPeelR deterministic even
 -- though its pushed-in annotation is premise-determined rather than
 -- syntactic (strong.Reduction, `det`).

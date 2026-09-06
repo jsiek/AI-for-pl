@@ -55,7 +55,7 @@ type-checking it type-checks the whole development.
 |------|----------|
 | `Types.agda` | System F types in de Bruijn form; renaming and parallel substitution; `_[_]ᵗ` and the at-a-slot substitution `_[_:=_]ᵗ` |
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
-| `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the owner prefix `pushBinds` with `shiftBy` |
+| `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the bind prefix `pushBinds` with `shiftBy` |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, and `conv-types-unique` |
 | `Terms.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`, `scope`, `unlockedScope`, `interior`, `convCtx`), `_⊢ᵐ_`, terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` |
 | `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |
@@ -78,8 +78,8 @@ type-checking it type-checks the whole development.
 | `Canonical.agda` | canonical forms: `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` |
 | `Canonicity.agda` | the canonical conversion family (`reveal`/`conceal`/`mkId` subtrees) and its closure under the rules |
 | `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing forces `X ≡ numBinds Θ₁ + Y` (`idpush-name`, `cancel-name`), and `unseal` is the only active conversion those left-hand sides meet |
-| `MaskFacts.agda` | no boundary operation can take an owner away (masking retains, unlocking recovers); the old cancel residue is not well formed |
-| `Adversary.agda` | the soundness gate: a conceal must cite a live owner, and v1's adversaries refuted by that one inversion |
+| `MaskFacts.agda` | no boundary operation can take a binder away (masking retains, unlocking recovers); the old cancel residue is not well formed |
+| `Adversary.agda` | the soundness gate: a conceal must cite a live binder, and v1's adversaries refuted by that one inversion |
 | `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
@@ -93,7 +93,7 @@ each is a machine-checked refutation of a candidate design.
 
 | file | the candidate it kills |
 |------|------------------------|
-| `WallReach.agda` | `RepWf` ("no lock blocks a slot a nameable owner's rep names") as a global term invariant — refuted on a reachable run |
+| `WallReach.agda` | `RepWf` ("no lock blocks a slot a nameable binder's rep names") as a global term invariant — refuted on a reachable run |
 | `WallGrounding.agda` | folding `RepWf` into `_⊢ᵐ_`'s lock clause — impossible: the unsound and the reachable witness share the same `(Δ, Θ)` |
 | `ChainScoped.agda` | the rep **chain** as the invariant — preserved by the rules but not `⊑`-stable |
 | `IdPushReach.agda` | the reachability verdict for the old `IdPush` configuration, and `maskOnly` |

@@ -4,7 +4,7 @@ module strong.TermSubst where
 --
 -- Term substitution is ordinary: boundaries are term-closed, so a wrapper is
 -- never descended into.  The interesting content is the pair of TYPE-LEVEL
--- transports the ownership design has to pay for, and both come out cheap:
+-- transports the binder design has to pay for, and both come out cheap:
 --
 --   ⊢rename : a type context renaming moves a whole typing derivation, with the ONE
 --             structural hypothesis `Inj ρ` (positional masking; no

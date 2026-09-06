@@ -204,14 +204,14 @@ wall-vs-preserve-TyBeta h tb =
 ------------------------------------------------------------------------
 
 -- TyBeta's own refinement (`preserve-TyBeta`'s `refine`): the slot the Λ
--- bound abstractly BECOMES an owner, under whatever locks the body
+-- bound abstractly BECOMES a binder, under whatever locks the body
 -- already contains.
 refineᴸ : (abst ∷ QΔ₁) ⊑ LΔ
 refineᴸ = le∷ le-ao (⊑-refl QΔ₁)
 
 -- … and the wall does not survive it.  This is `le-ao`, the one `_⊑ᵉ_`
 -- clause that INVENTS a rep: before the refinement the locked slot is
--- named by nothing, after it the fresh owner's rep names it.
+-- named by nothing, after it the fresh binder's rep names it.
 wall-not-⊑-stable :
   ¬ (∀ {Δ Δ′} (Θ : CtxMorph) → Δ ⊑ Δ′
        → RepWf (interior Θ Δ) → RepWf (interior Θ Δ′))
@@ -250,7 +250,7 @@ Scoped-⊑ Θ ls w = ⊑-wf (⊑-scope Θ ls) w
 -- ── §4b  IT DELIVERS THE MISSING PREMISE ──────────────────────────────
 --
 -- `wf-shiftBy-pushBinds` (proof/WallReach §2) is the simultaneity step: a
--- rep is read in the PLAIN exterior and lifted past the owners bound inside.
+-- rep is read in the PLAIN exterior and lifted past the binders inside.
 Scoped→scoped : ∀ {Δ Bₑ} (Θ : CtxMorph)
   → Scoped Δ Θ Bₑ → interior Θ Δ ⊢ᵗ shiftBy (numBinds Θ) Bₑ
 Scoped→scoped Θ w = wf-shiftBy-pushBinds (repsOf Θ) w
@@ -275,8 +275,8 @@ Scoped-bind w = w
 -- ── §4e  IT MUST NOT BE ASKED OF EVERY BOUNDARY ───────────────────────
 --
 -- PEEL'S OWN CROSSING WRAPPER VIOLATES IT.  Examples' `⊢Wd-crossed` is
--- typed at frame `dual Θ2` — which LOCKS Θ2's owners — with exterior type
--- V's domain `` ` 0 ⇒ ` 0 ``, a type that NAMES one of those owners.  So
+-- typed at frame `dual Θ2` — which LOCKS Θ2's binders — with exterior type
+-- V's domain `` ` 0 ⇒ ` 0 ``, a type that NAMES one of those binders.  So
 -- `Scoped` cannot be a premise of EVERY `env` node; asking it universally
 -- refutes the Peel case, which is PROVEN today (proof/PeelDual).
 _ : scope (dual Θ2) (interior Θ2 Δd) ≡ masked (bind (` 0)) ∷ Δd

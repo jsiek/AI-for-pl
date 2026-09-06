@@ -83,8 +83,8 @@ convCtx-lock Θ Δ = refl
 ------------------------------------------------------------------------
 
 -- `V ⟪ Θ , id A ⟫ -→ V` is unsound because V is typed on `interior Θ Δ`, not on
--- Δ.  A concrete failing instance: the boundary binds an owner, and V's
--- licence cites a slot Δ does not even have.
+-- Δ.  A concrete failing instance: the boundary introduces a binder, and
+-- V's licence cites a slot Δ does not even have.
 
 Δₑ : Ctxᵗ
 Δₑ = bind `ℕ ∷ []

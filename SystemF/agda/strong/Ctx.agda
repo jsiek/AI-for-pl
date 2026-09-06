@@ -6,7 +6,7 @@ module strong.Ctx where
 --
 --   abst      a Λ-bound variable — no representation, and none can be
 --             invented.
---   bind A    THE OWNER of an instantiation event.  A is the
+--   bind A    THE BINDER of an instantiation event.  A is the
 --             representation, stored ONCE, as a type over this entry's
 --             bind tail.  Every inner boundary that talks about this
 --             variable carries only its NAME.
@@ -15,8 +15,8 @@ module strong.Ctx where
 --             is still on the type context for a later re-exposure
 --             (`unlock`) to point back at.
 --
--- Under Jeremy's Q1 ruling (OWNER-SYNTACTIC, 2026-09-05) a variable's
--- representation lives ONLY at its owner; every conversion and every
+-- Under Jeremy's Q1 ruling (BINDER-SYNTACTIC, 2026-09-05) a variable's
+-- representation lives ONLY at its binder; every conversion and every
 -- licence resolves the rep by LOOKING THE NAME UP along the enclosing
 -- type context.  There is no store and no copy, so knowledge transport
 -- (`ren-kn`, `⊑-kn`) is definitional and the old design's demotion is
@@ -24,7 +24,7 @@ module strong.Ctx where
 --
 -- This module also carries the POSITIONAL machinery the boundary needs:
 -- injective renamings (`Inj`), one-slot entry update
--- (`updateAt`/`mask`/`unmask`) with its transports, and the owner prefix
+-- (`updateAt`/`mask`/`unmask`) with its transports, and the bind prefix
 -- `pushBinds` (with `shiftBy`).
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -58,7 +58,7 @@ map-length f []       = refl
 map-length f (x ∷ xs) = cong suc (map-length f xs)
 
 ------------------------------------------------------------------------
--- 1.  The type context:  type contexts with OWNER entries and BLOCKED entries
+-- 1.  The type context:  type contexts with BINDER entries and BLOCKED entries
 ------------------------------------------------------------------------
 
 data Ent : Set where
@@ -92,7 +92,7 @@ renᵉ-⇑-comm ρ (bind A)   = cong bind (ren-⇑-comm ρ A)
 renᵉ-⇑-comm ρ (masked E) = cong masked (renᵉ-⇑-comm ρ E)
 
 -- Entry lookup.  The entry is returned SHIFTED into the ambient context, so
--- `Δ ∋e X , bind A` means "slot X is an owner whose rep, read in Δ, is A".
+-- `Δ ∋e X , bind A` means "slot X is a binder whose rep, read in Δ, is A".
 -- One relation serves every purpose: knowledge, nameability, and masking.
 infix 4 _∋e_,_
 data _∋e_,_ : Ctxᵗ → ℕ → Ent → Set where
@@ -113,7 +113,7 @@ infix 4 _∋tv_
 _∋tv_ : Ctxᵗ → ℕ → Set
 Δ ∋tv X = ∃[ E ] ((Δ ∋e X , E) × Nameable E)
 
--- OWNER-SYNTACTIC LOOKUP.  This is the only way any rep is ever read.
+-- BINDER-SYNTACTIC LOOKUP.  This is the only way any rep is ever read.
 infix 4 _∋_:=_
 _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
 Δ ∋ X := A = Δ ∋e X , bind A
@@ -163,7 +163,7 @@ base-ren base-𝔹 = refl
 
 -- A renaming of type contexts.  ONE field: it moves the ENTRY at every slot,
 -- blocked entries included.  Knowledge transport (`ren-kn` below) is then
--- DEFINITIONAL — which is the whole bet of the ownership design: a name is
+-- DEFINITIONAL — which is the whole bet of the binder design: a name is
 -- moved by ρ, a spelling would have had to be re-derived.
 record Ren (ρ : Renameᵗ) (Δ Δ′ : Ctxᵗ) : Set where
   constructor mkRen
@@ -197,10 +197,10 @@ wf-ren r (wf-∀ wA)    = wf-∀ (wf-ren (ren-ext r) wA)
 ------------------------------------------------------------------------
 
 -- E ⊑ᵉ E′ : E′ knows at least what E knows.
---   le-ao : a Λ-bound slot may become an owner              (TyBeta)
+--   le-ao : a Λ-bound slot may become a binder              (TyBeta)
 --   le-bu : a concealed slot may be re-exposed              (Cancel)
 --   le-bb : concealment is monotone in what it hides
--- There is NO clause in the other direction: an owner never loses its rep.
+-- There is NO clause in the other direction: a binder never loses its rep.
 data _⊑ᵉ_ : Ent → Ent → Set where
   le-aa : abst ⊑ᵉ abst
   le-ao : abst ⊑ᵉ bind A
@@ -245,7 +245,7 @@ nameable-mono (le-bu _ _)  ()
 ⊑-tv ls (E , d , v) with ⊑-∋e ls d
 ... | E′ , d′ , l′ = E′ , d′ , nameable-mono l′ v
 
--- An owner is never lost and never re-spelled: the ONLY ⊑ᵉ clause whose
+-- A binder is never lost and never re-spelled: the ONLY ⊑ᵉ clause whose
 -- source is `bind A` is `le-oo`.  This is the deleted demotion, as a theorem.
 ⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A
 ⊑-kn ls d with ⊑-∋e ls d
@@ -312,7 +312,7 @@ shiftBy-ren (suc n) ρ A =
 
 -- The SAME lifting, read UNDER one binder: `shiftBy n` on a `` `∀ `` body.
 -- TyPeelR needs it, because a ∀ conversion's TARGET body is the
--- exterior type's body lifted past the boundary's owners.
+-- exterior type's body lifted past the boundary's binders.
 shiftBodyBy : ℕ → Ty → Ty
 shiftBodyBy zero    B = B
 shiftBodyBy (suc n) B = renameᵗ (extᵗ suc) (shiftBodyBy n B)
@@ -474,20 +474,20 @@ unmask-⊑ zero    (E ∷ Δ) = le∷ (⊑ᵉ-unmaskEnt E) (⊑-refl Δ)
 unmask-⊑ (suc Y) (E ∷ Δ) = le∷ (⊑ᵉ-refl E) (unmask-⊑ Y Δ)
 
 ------------------------------------------------------------------------
--- 7.  The owner prefix
+-- 7.  The bind prefix
 ------------------------------------------------------------------------
 
--- The owners of a boundary, pushed on as ordinary de Bruijn binders.  The
--- head of the list is interior slot 0; a rep is a type over the PLAIN
--- exterior, so it is lifted past the owners bound INSIDE it and past nothing
--- else (SIMULTANEITY: boundary entries never interfere).
+-- The `bind` entries of a boundary, pushed on as ordinary de Bruijn
+-- binders.  The head of the list is interior slot 0; a rep is a type over
+-- the PLAIN exterior, so it is lifted past the binders INSIDE it and past
+-- nothing else (SIMULTANEITY: boundary entries never interfere).
 pushBinds : List Ty → Ctxᵗ → Ctxᵗ
 pushBinds []       Δ = Δ
 pushBinds (A ∷ As) Δ = bind (shiftBy (length As) A) ∷ pushBinds As Δ
 
 -- SIMULTANEITY, as a well-formedness fact: a type over the plain exterior
--- is a type inside the owner prefix, lifted past exactly the owners bound
--- there.
+-- is a type inside the bind prefix, lifted past exactly the binders in
+-- that prefix.
 wf-shiftBy-pushBinds : (As : List Ty) → Δ ⊢ᵗ A
   → pushBinds As Δ ⊢ᵗ shiftBy (length As) A
 wf-shiftBy-pushBinds []       w = w
@@ -497,7 +497,7 @@ wf-shiftBy-pushBinds (C ∷ As) w =
   Ren-wk-pushBinds : ∀ {E Δ″} → Ren suc Δ″ (E ∷ Δ″)
   Ren-wk-pushBinds = mkRen es
 
--- A one-slot update PAST the owner prefix is the update on the tail: the
+-- A one-slot update PAST the bind prefix is the update on the tail: the
 -- prefix has `length As` entries and neither of them is touched.  This is
 -- what lets a boundary's own masking be re-indexed INTO an inner frame
 -- (strong.Reduction, `scopeOf`).

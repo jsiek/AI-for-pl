@@ -3,36 +3,48 @@ module strong.proof.MoveScope where
 -- THE SCOPE MOVE — its frame algebra, and the TWO preservation cases it
 -- settles (CancelR and IdPush), UNCONDITIONALLY.
 --
--- THE MOVE (strong.Reduction §2b, Jeremy 2026-09-06).  Both rules SWAP
--- the two conversions of a two-layer wrapper, so the INNER boundary
--- stops presenting the abstract name `` ` Y `` and starts presenting
--- Y's REP.  A rep is a type over the PLAIN exterior; inside Θ₂'s
--- LOCKS it need not be nameable at all, and `env`'s last premise then
--- fails — that was the wall (the old proof/PreserveObstruct §4
--- refutation, and the invariant hunt recorded in notes/DECISIONS.md,
--- 2026-09-06).
+-- THE MOVE (strong.Reduction §2b).  Both rules SWAP the two conversions
+-- of a two-layer wrapper, so the INNER boundary stops presenting the
+-- abstract name `` ` Y `` and starts presenting Y's REP.  A rep is a type
+-- over the exterior; inside Θ₂'s LOCKS it need not be nameable at all,
+-- and `env`'s last premise then fails — that was the wall (the old
+-- proof/PreserveObstruct §4 refutation).
 --
 -- So the frames move with the conversions:
 --
 --   (V ⟪ Θ₁ , c ⟫) ⟪ Θ₂ , unseal Y ⟫
---     -→ (V ⟪ Θ₁ ⋉ Θ₂ , c′ ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫
+--     -→ (V ⟪ Θ₁ ⋉ Θ₂ , c′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
 --
--- `dropLocks Θ₂` keeps Θ₂'s binds and unmasks; `Θ₁ ⋉ Θ₂` appends Θ₂'s
--- whole SCOPE (locks AND unlocks, in order, lifted past Θ₂'s binders) at
--- Θ₁'s TAIL, where `scope` applies it FIRST.
+-- `Θ₁ ⋉ Θ₂` appends Θ₂'s whole SCOPE (locks AND unlocks, in order,
+-- lifted past Θ₂'s binders) at Θ₁'s TAIL, where `scope` applies it
+-- FIRST; and `rewind Θ₂` is Θ₂ with its own scope UNDONE, so what is
+-- left of the outer frame is the BIND PREFIX, in net effect:
 --
--- WHY IT WORKS, in one line: `interior (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ`
--- (§3), and the rep the outer `unseal Y` hands back IS the redex's own exterior
--- type lifted, `A ≡ shiftBy (numBinds Θ₂) C` with `Δ ⊢ᵗ C` — so
--- `wf-shiftBy-pushBinds` gives the premise the wall used to deny (§6).
+--   scope    (rewind Θ₂) Δ ≡ Δ                          (given Δ ⊢ᵐ Θ₂)
+--   interior (rewind Θ₂) Δ ≡ pushBinds (repsOf Θ₂) Δ
 --
---   §1  the two lookup transports (`unlockedScope-∋bind`, `pushBinds-∋`,
---       and the two entry-level companions the moved scope's `⊢ᵐ`
---       needs)
---   §2  the list algebra of `scopeOf`/`dropLocks`/`_⋉_`
---   §3  the two type-context identities
---   §4  the FRAME LEMMAS: the value's frame and its conversion context
---       are REFINED by the move, unconditionally
+-- WHY `rewind` AND NOT `bindsOnly` / `dropLocks`.  All three have the
+-- same net effect on the type context, and only `rewind` keeps its own
+-- `⊢ᵐ`:
+--   `dropLocks Θ₂` KEEPS Θ₂'s unlocks, so the moved copy of the same
+--     unlock is then VACUOUS and `mw-u` refuses it;
+--   `bindsOnly Θ₂` DELETES them, and then Θ₂'s own bind reps — read on
+--     `unlockedScope Θ₂′ Δ` (`mw-b`) — lose the unlock they depend on;
+--   `rewind Θ₂` keeps every entry and rewinds it, so every premise is
+--     read exactly where the redex read it.
+--
+-- WHY IT WORKS, in one line: the moved scope re-creates Θ₂'s scope one
+-- bind prefix in (`scope-scopeOf`), so the value's frame is preserved ON
+-- THE NOSE — the two frame lemmas are EQUALITIES, and no `⊢retag`
+-- appears in either case — while the rep the swapped conversion presents
+-- is read OUTSIDE Θ₂'s locks, where `wf-shiftBy-pushBinds` supplies the
+-- premise the wall used to deny.
+--
+--   §1  the lookup transports
+--   §2  the list algebra of `scopeOf`/`rewind`/`_⋉_`
+--   §3  the type-context identities
+--   §4  the FRAME LEMMAS, as EQUALITIES
+--   §4b why the unlocks travel too — the lock-only move, REFUTED
 --   §5  `_⊢ᵐ_` for the two new frames
 --   §6  the two cases
 
@@ -47,9 +59,11 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
-open import strong.TermSubst using (⊢retag)
-open import strong.Reduction using (scopeOf; dropLocks; _⋉_)
+open import strong.Reduction using (scopeOf; rewind; dualScope; _⋉_)
 open import strong.proof.Preserve using (CancelRCase; IdPushCase)
+open import strong.proof.PeelDual
+  using (⊢ᵐ-++; scope-++; unlockedScope-++; scope-dualScope; ⊢ᵐ-dualScope;
+         repsOf-++; repsOf-dualScope)
 
 ------------------------------------------------------------------------
 -- §1  Lookup transports
@@ -75,21 +89,6 @@ pushBinds-∋ : ∀ (As : List Ty) {Δ Y A}
 pushBinds-∋ []       d = d
 pushBinds-∋ (C ∷ As) d = es (pushBinds-∋ As d)
 
--- … and the two ENTRY-level companions, which is all a moved `lock` or
--- `unlock` needs: a lock names a VISIBLE slot, an unlock names a slot
--- that merely EXISTS.
-pushBinds-∋tv : ∀ (As : List Ty) {Δ Y}
-  → Δ ∋tv Y → pushBinds As Δ ∋tv (length As + Y)
-pushBinds-∋tv []       tv           = tv
-pushBinds-∋tv (C ∷ As) tv with pushBinds-∋tv As tv
-... | E , d , v = _ , es d , renᵉ-Nameable v
-
-pushBinds-∋e : ∀ (As : List Ty) {Δ Y E} → Δ ∋e Y , E
-        → ∃[ E′ ] (pushBinds As Δ ∋e (length As + Y) , E′)
-pushBinds-∋e []       d = _ , d
-pushBinds-∋e (C ∷ As) d with pushBinds-∋e As d
-... | E′ , d′ = _ , es d′
-
 ------------------------------------------------------------------------
 -- §2  The list algebra of the move
 ------------------------------------------------------------------------
@@ -110,30 +109,13 @@ repsOf-⋉ (lock X ∷ Θ₁)  Θ₂  = repsOf-⋉ Θ₁ Θ₂
 numBinds-⋉ : (Θ₁ Θ₂ : CtxMorph) → numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁
 numBinds-⋉ Θ₁ Θ₂ = cong length (repsOf-⋉ Θ₁ Θ₂)
 
+-- REWINDING KEEPS THE BINDERS: the inverse scope carries none.
+repsOf-rewind : (Θ : CtxMorph) → repsOf (rewind Θ) ≡ repsOf Θ
+repsOf-rewind Θ rewrite repsOf-++ (dualScope 0 Θ) Θ
+                      | repsOf-dualScope 0 Θ = refl
 
--- DROPPING THE LOCKS KEEPS THE BINDERS.
-repsOf-dropLocks : (Θ : CtxMorph) → repsOf (dropLocks Θ) ≡ repsOf Θ
-repsOf-dropLocks []             = refl
-repsOf-dropLocks (bind A ∷ Θ)   = cong (A ∷_) (repsOf-dropLocks Θ)
-repsOf-dropLocks (unlock X ∷ Θ) = repsOf-dropLocks Θ
-repsOf-dropLocks (lock X ∷ Θ)   = repsOf-dropLocks Θ
-
-numBinds-dropLocks : (Θ : CtxMorph) → numBinds (dropLocks Θ) ≡ numBinds Θ
-numBinds-dropLocks Θ = cong length (repsOf-dropLocks Θ)
-
--- `scope`/`unlockedScope` of an append: the tail applies FIRST.
-scope-++ : (Θ Ψ : CtxMorph) (Δ : Ctxᵗ) → scope (Θ ++ Ψ) Δ ≡ scope Θ (scope Ψ Δ)
-scope-++ []             Ψ Δ = refl
-scope-++ (bind A ∷ Θ)   Ψ Δ = scope-++ Θ Ψ Δ
-scope-++ (unlock X ∷ Θ) Ψ Δ = cong (unmask X) (scope-++ Θ Ψ Δ)
-scope-++ (lock X ∷ Θ)   Ψ Δ = cong (mask X) (scope-++ Θ Ψ Δ)
-
-unlockedScope-++ : (Θ Ψ : CtxMorph) (Δ : Ctxᵗ)
-  → unlockedScope (Θ ++ Ψ) Δ ≡ unlockedScope Θ (unlockedScope Ψ Δ)
-unlockedScope-++ []             Ψ Δ = refl
-unlockedScope-++ (bind A ∷ Θ)   Ψ Δ = unlockedScope-++ Θ Ψ Δ
-unlockedScope-++ (unlock X ∷ Θ) Ψ Δ = cong (unmask X) (unlockedScope-++ Θ Ψ Δ)
-unlockedScope-++ (lock X ∷ Θ)   Ψ Δ = unlockedScope-++ Θ Ψ Δ
+numBinds-rewind : (Θ : CtxMorph) → numBinds (rewind Θ) ≡ numBinds Θ
+numBinds-rewind Θ = cong length (repsOf-rewind Θ)
 
 -- THE MOVED SCOPE, APPLIED PAST THE BIND PREFIX, IS THE ORIGINAL SCOPE
 -- APPLIED UNDER IT.  This is the whole point of the index lift `n + X`,
@@ -149,37 +131,31 @@ scope-scopeOf As (lock X ∷ Θ)   Δ =
   trans (cong (mask (length As + X)) (scope-scopeOf As Θ Δ))
         (updateAt-pushBinds masked As X (scope Θ Δ))
 
+unlockedScope-scopeOf : (As : List Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → unlockedScope (scopeOf (length As) Θ) (pushBinds As Δ)
+      ≡ pushBinds As (unlockedScope Θ Δ)
+unlockedScope-scopeOf As []             Δ = refl
+unlockedScope-scopeOf As (bind A ∷ Θ)   Δ = unlockedScope-scopeOf As Θ Δ
+unlockedScope-scopeOf As (lock X ∷ Θ)   Δ = unlockedScope-scopeOf As Θ Δ
+unlockedScope-scopeOf As (unlock X ∷ Θ) Δ =
+  trans (cong (unmask (length As + X)) (unlockedScope-scopeOf As Θ Δ))
+        (updateAt-pushBinds unmaskEnt As X (unlockedScope Θ Δ))
+
 ------------------------------------------------------------------------
--- §3  The two type-context identities
+-- §3  The type-context identities
 ------------------------------------------------------------------------
 
-scope-dropLocks : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → scope (dropLocks Θ) Δ ≡ unlockedScope Θ Δ
-scope-dropLocks []             Δ = refl
-scope-dropLocks (bind A ∷ Θ)   Δ = scope-dropLocks Θ Δ
-scope-dropLocks (unlock X ∷ Θ) Δ = cong (unmask X) (scope-dropLocks Θ Δ)
-scope-dropLocks (lock X ∷ Θ)   Δ = scope-dropLocks Θ Δ
+-- THE HEADLINE IDENTITY.  A rewound frame's SCOPE IS THE IDENTITY — this
+-- is `scope-dualScope` (proof/PeelDual) at an empty bind prefix, and it
+-- is where the whole design is paid for: the inverse is exact only
+-- because `mw-u` refuses a vacuous unlock.
+scope-rewind : (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ → scope (rewind Θ) Δ ≡ Δ
+scope-rewind Θ {Δ = Δ} mw =
+  trans (scope-++ (dualScope 0 Θ) Θ Δ) (scope-dualScope [] Θ mw)
 
-unlockedScope-dropLocks : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → unlockedScope (dropLocks Θ) Δ ≡ unlockedScope Θ Δ
-unlockedScope-dropLocks []             Δ = refl
-unlockedScope-dropLocks (bind A ∷ Θ)   Δ = unlockedScope-dropLocks Θ Δ
-unlockedScope-dropLocks (unlock X ∷ Θ) Δ =
-  cong (unmask X) (unlockedScope-dropLocks Θ Δ)
-unlockedScope-dropLocks (lock X ∷ Θ)   Δ = unlockedScope-dropLocks Θ Δ
-
--- THE HEADLINE IDENTITY.  Once the locks are gone the frame's INTERIOR
--- IS ITS CONVERSION CONTEXT — so a rep the conversion reads is nameable
--- inside, and nothing has to be assumed about the world.
-interior-dropLocks : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → interior (dropLocks Θ) Δ ≡ convCtx Θ Δ
-interior-dropLocks Θ Δ
-  rewrite repsOf-dropLocks Θ | scope-dropLocks Θ Δ = refl
-
-convCtx-dropLocks : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → convCtx (dropLocks Θ) Δ ≡ convCtx Θ Δ
-convCtx-dropLocks Θ Δ
-  rewrite repsOf-dropLocks Θ | unlockedScope-dropLocks Θ Δ = refl
+interior-rewind : (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ
+  → interior (rewind Θ) Δ ≡ pushBinds (repsOf Θ) Δ
+interior-rewind Θ mw rewrite repsOf-rewind Θ | scope-rewind Θ mw = refl
 
 -- The two frames of the contractum, unfolded.
 interior-⋉ : (Θ₁ Θ₂ : CtxMorph) (Ξ : Ctxᵗ)
@@ -197,12 +173,11 @@ convCtx-⋉ Θ₁ Θ₂ Ξ rewrite repsOf-⋉ Θ₁ Θ₂ =
        (unlockedScope-++ Θ₁ (scopeOf (numBinds Θ₂) Θ₂) Ξ)
 
 ------------------------------------------------------------------------
--- §4  THE FRAME LEMMAS
+-- §4  THE FRAME LEMMAS — EQUALITIES
 ------------------------------------------------------------------------
 
--- A rep survives `unlockedScope` and the bind prefix (this is
--- `wf-unlockedScope`'s reason for existing: `scope` would not do —
--- masking is what the wall was about).
+-- A rep survives `unlockedScope` and the bind prefix (`scope` would not
+-- do — masking is what the wall was about).
 wf-unlockedScope : ∀ {Δ A} (Θ : CtxMorph) → Δ ⊢ᵗ A → unlockedScope Θ Δ ⊢ᵗ A
 wf-unlockedScope Θ w = ⊑-wf (Δ⊑unlockedScope Θ _) w
 
@@ -210,51 +185,69 @@ wf-convCtx : ∀ {Δ A} (Θ : CtxMorph)
   → Δ ⊢ᵗ A → convCtx Θ Δ ⊢ᵗ shiftBy (numBinds Θ) A
 wf-convCtx Θ w = wf-shiftBy-pushBinds (repsOf Θ) (wf-unlockedScope Θ w)
 
--- THE VALUE'S FRAME IS REFINED BY THE MOVE.  Everything Θ₂ masked, the
--- moved scope masks again — at the same slots, in the same order, one
--- prefix further in (`scope-scopeOf`) — and the RETAINED unmasks only add
--- nameability (`Δ⊑unlockedScope`).  So `⊢retag` carries the value across.
---
--- THIS IS THE LEMMA THAT DECIDES THE DESIGN.  Moving only the LOCKS
--- would need `scope (locks Θ₂) (unlockedScope Θ₂ Δ) ⊒ scope Θ₂ Δ`, which
--- is FALSE at a same-slot `unlock`/`lock` pair
--- (`Θ₂ = unlock 0 ∷ lock 0 ∷ []` over an already-blocked slot).  Moving
--- the WHOLE scope keeps the order, and then the refinement is
--- unconditional.
-frame-move : (Θ₁ Θ₂ : CtxMorph) (Δ : Ctxᵗ)
-  → interior Θ₁ (interior Θ₂ Δ) ⊑ interior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
-frame-move Θ₁ Θ₂ Δ =
-  subst (λ Ξ → interior Θ₁ (interior Θ₂ Δ) ⊑ Ξ) (sym eq)
-        (⊑-interior Θ₁ (⊑-pushBinds (repsOf Θ₂)
-                          (⊑-scope Θ₂ (Δ⊑unlockedScope Θ₂ Δ))))
-  where
-  eq : interior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
-         ≡ interior Θ₁ (pushBinds (repsOf Θ₂) (scope Θ₂ (unlockedScope Θ₂ Δ)))
-  eq = trans (interior-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ))
-             (cong (λ Ξ → pushBinds (repsOf Θ₁) (scope Θ₁ Ξ))
-                   (trans (cong (scope (scopeOf (numBinds Θ₂) Θ₂))
-                                (interior-dropLocks Θ₂ Δ))
-                          (scope-scopeOf (repsOf Θ₂) Θ₂ (unlockedScope Θ₂ Δ))))
+-- … and the same at a REWOUND frame, whose bind count is Θ's own.
+wf-convCtx-rewind : ∀ {Δ C} (Θ : CtxMorph) → Δ ⊢ᵗ C
+  → convCtx (rewind Θ) Δ ⊢ᵗ shiftBy (numBinds Θ) C
+wf-convCtx-rewind {Δ = Δ} {C = C} Θ w =
+  subst (λ n → convCtx (rewind Θ) Δ ⊢ᵗ shiftBy n C)
+        (numBinds-rewind Θ) (wf-convCtx (rewind Θ) w)
 
--- … and so is its CONVERSION CONTEXT, for the same reason plus the one
--- the move exists for: the inner conversion is now read where Θ₂'s
--- locks are not applied at all.
-convCtx-move : (Θ₁ Θ₂ : CtxMorph) (Δ : Ctxᵗ)
-  → convCtx Θ₁ (interior Θ₂ Δ) ⊑ convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
-convCtx-move Θ₁ Θ₂ Δ =
-  subst (λ Ξ → convCtx Θ₁ (interior Θ₂ Δ) ⊑ Ξ) (sym eq)
-        (⊑-convCtx Θ₁ (⊑-trans (interior⊑convCtx Θ₂ Δ)
-                          (Δ⊑unlockedScope (scopeOf (numBinds Θ₂) Θ₂)
-                                           (convCtx Θ₂ Δ))))
-  where
-  eq : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
-         ≡ convCtx Θ₁ (unlockedScope (scopeOf (numBinds Θ₂) Θ₂)
-                                     (convCtx Θ₂ Δ))
-  eq = trans (convCtx-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ))
-             (cong (λ Ξ → pushBinds (repsOf Θ₁)
-                            (unlockedScope Θ₁
-                              (unlockedScope (scopeOf (numBinds Θ₂) Θ₂) Ξ)))
-                   (interior-dropLocks Θ₂ Δ))
+-- THE VALUE'S FRAME IS PRESERVED ON THE NOSE.  Everything Θ₂ masked the
+-- moved scope masks again, at the same slots, in the same order, one
+-- prefix further in (`scope-scopeOf`); and the outer frame contributes
+-- nothing but its binders (`interior-rewind`).  So the value crosses by
+-- `subst` — with `dropLocks` this was a ⊑ and needed `⊢retag` along a
+-- `le-mu` step, which `mw-u` no longer tolerates.
+interior-⋉-rewind : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ₂
+  → interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)
+interior-⋉-rewind Θ₁ Θ₂ {Δ = Δ} mw
+  rewrite interior-rewind Θ₂ mw =
+  trans (interior-⋉ Θ₁ Θ₂ (pushBinds (repsOf Θ₂) Δ))
+        (cong (λ Ξ → pushBinds (repsOf Θ₁) (scope Θ₁ Ξ))
+              (scope-scopeOf (repsOf Θ₂) Θ₂ Δ))
+
+-- … and the CONVERSION CONTEXT of the moved frame is the redex's inner
+-- conversion context with Θ₂'s LOCKS lifted off — which is the whole
+-- point of the move (the rep the swapped conversion presents is read
+-- OUTSIDE those locks).
+convCtx-⋉-rewind : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ₂
+  → convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ convCtx Θ₁ (convCtx Θ₂ Δ)
+convCtx-⋉-rewind Θ₁ Θ₂ {Δ = Δ} mw
+  rewrite interior-rewind Θ₂ mw =
+  trans (convCtx-⋉ Θ₁ Θ₂ (pushBinds (repsOf Θ₂) Δ))
+        (cong (λ Ξ → pushBinds (repsOf Θ₁) (unlockedScope Θ₁ Ξ))
+              (unlockedScope-scopeOf (repsOf Θ₂) Θ₂ Δ))
+
+-- The one place a ⊑ survives, and it carries a TYPE, not a term: the
+-- inner conversion is read where Θ₂'s locks are not applied at all.
+convCtx-move : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ₂
+  → convCtx Θ₁ (interior Θ₂ Δ) ⊑ convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
+convCtx-move Θ₁ Θ₂ {Δ = Δ} mw =
+  subst (λ Ξ → convCtx Θ₁ (interior Θ₂ Δ) ⊑ Ξ)
+        (sym (convCtx-⋉-rewind Θ₁ Θ₂ mw))
+        (⊑-convCtx Θ₁ (interior⊑convCtx Θ₂ Δ))
+
+-- THE BINDER, ON THE CONTRACTUM'S INNER CONVERSION CONTEXT.  The outer
+-- reveal's own lookup — read on `convCtx Θ₂ Δ` — transported past the
+-- moved scope, past Θ₁'s unmasks, and past Θ₁'s binders.
+move-∋ : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {Y : ℕ} {A : Ty} → Δ ⊢ᵐ Θ₂
+  → convCtx Θ₂ Δ ∋ Y := A
+  → convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
+      ∋ (numBinds Θ₁ + Y) := shiftBy (numBinds Θ₁) A
+move-∋ Θ₁ Θ₂ {Δ = Δ} {Y = Y} {A = A} mw d =
+  subst (λ Ξ → Ξ ∋ (numBinds Θ₁ + Y) := shiftBy (numBinds Θ₁) A)
+        (sym (convCtx-⋉-rewind Θ₁ Θ₂ mw))
+        (pushBinds-∋ (repsOf Θ₁) (unlockedScope-∋bind Θ₁ d))
+
+-- The conversion context of the moved inner frame carries every rep its
+-- own exterior carries — it only ADDS unmasks and the bind prefix.
+wf-convCtx-move : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {A : Ty} → Δ ⊢ᵐ Θ₂
+  → convCtx Θ₂ Δ ⊢ᵗ A
+  → convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ⊢ᵗ shiftBy (numBinds Θ₁) A
+wf-convCtx-move Θ₁ Θ₂ {Δ = Δ} {A = A} mw w =
+  subst (λ Ξ → Ξ ⊢ᵗ shiftBy (numBinds Θ₁) A)
+        (sym (convCtx-⋉-rewind Θ₁ Θ₂ mw))
+        (wf-shiftBy-pushBinds (repsOf Θ₁) (wf-unlockedScope Θ₁ w))
 
 ------------------------------------------------------------------------
 -- §4b  WHY THE UNLOCKS TRAVEL TOO — the lock-only move, REFUTED
@@ -270,9 +263,9 @@ locksOnly n (bind A ∷ Θ)   = locksOnly n Θ
 locksOnly n (unlock X ∷ Θ) = locksOnly n Θ
 locksOnly n (lock X ∷ Θ)   = lock (n + X) ∷ locksOnly n Θ
 
--- THE WITNESS.  `Θ✗` masks slot 0 and then re-exposes it — both entries
--- are legal at `Δ✗` (a lock names a VISIBLE slot, an unlock a slot
--- that EXISTS) — so the redex's interior leaves slot 0 nameable.
+-- THE WITNESS.  `Θ✗` masks slot 0 and then re-exposes it — and BOTH
+-- entries are legal under the SEQUENTIAL judgement: the lock names a slot
+-- visible at Δ✗, the unlock names the slot the lock itself just locked.
 Θ✗ : CtxMorph
 Θ✗ = unlock 0 ∷ lock 0 ∷ []
 
@@ -280,122 +273,98 @@ locksOnly n (lock X ∷ Θ)   = lock (n + X) ∷ locksOnly n Θ
 Δ✗ = bind `ℕ ∷ []
 
 ⊢ᵐ-Θ✗ : Δ✗ ⊢ᵐ Θ✗
-⊢ᵐ-Θ✗ = mw-u ez (mw-l (bind `ℕ , ez , nameable-b) mw[])
+⊢ᵐ-Θ✗ = mw-u (masked (bind `ℕ) , ez , locked nameable-b)
+             (mw-l (bind `ℕ , ez , nameable-b) mw[])
 
 _ : interior Θ✗ Δ✗ ≡ bind `ℕ ∷ []
 _ = refl
 
+_ : interior (rewind Θ✗) Δ✗ ≡ bind `ℕ ∷ []
+_ = refl
+
 -- … but the lock-only contractum's interior BLOCKS it.
-_ : scope (locksOnly (numBinds Θ✗) Θ✗) (interior (dropLocks Θ✗) Δ✗)
+_ : scope (locksOnly (numBinds Θ✗) Θ✗) (interior (rewind Θ✗) Δ✗)
       ≡ masked (bind `ℕ) ∷ []
 _ = refl
 
 ¬frame-locksOnly :
   ¬ (interior [] (interior Θ✗ Δ✗)
-       ⊑ interior ([] ++ locksOnly (numBinds Θ✗) Θ✗)
-                  (interior (dropLocks Θ✗) Δ✗))
-¬frame-locksOnly (le∷ () ls)
-
--- THE BINDER, ON THE CONTRACTUM'S INNER CONVERSION CONTEXT.  The outer
--- reveal's own lookup — read on `convCtx Θ₂ Δ`, which the move makes
--- the inner boundary's exterior — transported past the moved scope,
--- past Θ₁'s unmasks, and past Θ₁'s binders.  NO `maskOnly` step: the old
--- proof had to push the lookup INSIDE Θ₂'s locks, and this one never
--- does.
-move-∋ : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {Y : ℕ} {A : Ty}
-  → convCtx Θ₂ Δ ∋ Y := A
-  → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
-      ∋ (numBinds Θ₁ + Y) := shiftBy (numBinds Θ₁) A
-move-∋ Θ₁ Θ₂ {Δ = Δ} {Y = Y} {A = A} d =
-  subst (λ Ξ → Ξ ∋ (numBinds Θ₁ + Y) := shiftBy (numBinds Θ₁) A)
-        (sym (convCtx-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ)))
-        (pushBinds-∋ (repsOf Θ₁)
-          (unlockedScope-∋bind Θ₁
-            (unlockedScope-∋bind (scopeOf (numBinds Θ₂) Θ₂)
-              (subst (λ Ξ → Ξ ∋ Y := A) (sym (interior-dropLocks Θ₂ Δ)) d))))
-
--- The conversion context of the moved inner frame also carries every
--- rep its own exterior carries — it only ADDS unmasks and the bind
--- prefix.
-wf-convCtx-move : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} {A : Ty}
-  → interior (dropLocks Θ₂) Δ ⊢ᵗ A
-  → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ) ⊢ᵗ shiftBy (numBinds Θ₁) A
-wf-convCtx-move Θ₁ Θ₂ {Δ = Δ} {A = A} w =
-  subst (λ Ξ → Ξ ⊢ᵗ shiftBy (numBinds Θ₁) A)
-        (sym (convCtx-⋉ Θ₁ Θ₂ (interior (dropLocks Θ₂) Δ)))
-        (wf-shiftBy-pushBinds (repsOf Θ₁)
-          (wf-unlockedScope Θ₁ (wf-unlockedScope (scopeOf (numBinds Θ₂) Θ₂) w)))
+       ≡ interior ([] ++ locksOnly (numBinds Θ✗) Θ✗)
+                  (interior (rewind Θ✗) Δ✗))
+¬frame-locksOnly ()
 
 ------------------------------------------------------------------------
 -- §5  `_⊢ᵐ_` for the two new frames
 ------------------------------------------------------------------------
 
--- Every `Δ ⊢ᵐ Θ` premise is read on the PLAIN exterior (simultaneity),
--- so an append is just a pair …
-⊢ᵐ-++ : ∀ {Δ} (Θ Ψ : CtxMorph) → Δ ⊢ᵐ Θ → Δ ⊢ᵐ Ψ
-  → Δ ⊢ᵐ (Θ ++ Ψ)
-⊢ᵐ-++ []             Ψ mw[]        bΨ = bΨ
-⊢ᵐ-++ (bind A ∷ Θ)   Ψ (mw-b w b)  bΨ = mw-b w (⊢ᵐ-++ Θ Ψ b bΨ)
-⊢ᵐ-++ (lock X ∷ Θ)   Ψ (mw-l tv b) bΨ = mw-l tv (⊢ᵐ-++ Θ Ψ b bΨ)
-⊢ᵐ-++ (unlock X ∷ Θ) Ψ (mw-u d b)  bΨ = mw-u d (⊢ᵐ-++ Θ Ψ b bΨ)
+-- THE REWOUND FRAME.  Θ's own entries are read exactly where they were
+-- (they sit at the TAIL of the append), and the inverse scope on top is
+-- `⊢ᵐ-dualScope` at an empty bind prefix.
+⊢ᵐ-rewind : ∀ (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ → Δ ⊢ᵐ rewind Θ
+⊢ᵐ-rewind Θ mw = ⊢ᵐ-++ (dualScope 0 Θ) Θ (⊢ᵐ-dualScope [] Θ mw) mw
 
--- … and dropping entries is free.
-⊢ᵐ-dropLocks : ∀ {Δ} (Θ : CtxMorph) → Δ ⊢ᵐ Θ → Δ ⊢ᵐ dropLocks Θ
-⊢ᵐ-dropLocks []             mw[]        = mw[]
-⊢ᵐ-dropLocks (bind A ∷ Θ)   (mw-b w b)  = mw-b w (⊢ᵐ-dropLocks Θ b)
-⊢ᵐ-dropLocks (lock X ∷ Θ)   (mw-l tv b) = ⊢ᵐ-dropLocks Θ b
-⊢ᵐ-dropLocks (unlock X ∷ Θ) (mw-u d b)  = mw-u d (⊢ᵐ-dropLocks Θ b)
+-- THE MOVED SCOPE IS WELL FORMED WHERE IT LANDS.  Θ₂'s entries are read
+-- one bind prefix in, over `pushBinds As (scope Θ₂ᵢ Δ)` — which is where
+-- Θ₂'s own premises live, lifted (`scope-scopeOf`).  No refinement step,
+-- and no `le-mu`.
+⊢ᵐ-scopeOf : ∀ (As : List Ty) (Θ : CtxMorph) {Δ : Ctxᵗ}
+  → Δ ⊢ᵐ Θ → pushBinds As Δ ⊢ᵐ scopeOf (length As) Θ
+⊢ᵐ-scopeOf As []             mw[]       = mw[]
+⊢ᵐ-scopeOf As (bind A ∷ Θ)   (mw-b _ b) = ⊢ᵐ-scopeOf As Θ b
+⊢ᵐ-scopeOf As (lock X ∷ Θ)   {Δ = Δ} (mw-l tv b) =
+  mw-l (subst (λ Ξ → Ξ ∋tv (length As + X))
+              (sym (scope-scopeOf As Θ Δ)) (pushBinds-∋tv As tv))
+       (⊢ᵐ-scopeOf As Θ b)
+⊢ᵐ-scopeOf As (unlock X ∷ Θ) {Δ = Δ} (mw-u lk b) =
+  mw-u (subst (λ Ξ → Ξ ∋lk (length As + X))
+              (sym (scope-scopeOf As Θ Δ)) (pushBinds-∋lk As lk))
+       (⊢ᵐ-scopeOf As Θ b)
 
--- THE MOVED SCOPE IS WELL FORMED WHERE IT LANDS.  A `lock X` of Θ₂ named
--- a VISIBLE slot of Δ; the move reads it at `numBinds Θ₂ + X` on
--- `convCtx Θ₂ Δ`, where Θ₂'s own locks are NOT applied — so the slot is
--- still visible, which is precisely the nameability the move buys.
-⊢ᵐ-scopeOf : ∀ (As : List Ty) (Θ : CtxMorph) {Δ Ξ : Ctxᵗ}
-  → Δ ⊑ Ξ → Δ ⊢ᵐ Θ → pushBinds As Ξ ⊢ᵐ scopeOf (length As) Θ
-⊢ᵐ-scopeOf As []             ls mw[]        = mw[]
-⊢ᵐ-scopeOf As (bind A ∷ Θ)   ls (mw-b w b)  = ⊢ᵐ-scopeOf As Θ ls b
-⊢ᵐ-scopeOf As (lock X ∷ Θ)   ls (mw-l tv b) =
-  mw-l (pushBinds-∋tv As (⊑-tv ls tv)) (⊢ᵐ-scopeOf As Θ ls b)
-⊢ᵐ-scopeOf As (unlock X ∷ Θ) ls (mw-u d b)  with ⊑-∋e ls d
-... | E′ , d′ , _ with pushBinds-∋e As d′
-...   | E″ , d″ = mw-u d″ (⊢ᵐ-scopeOf As Θ ls b)
-
+-- THE MERGED FRAME.  `⊢ᵐ-++` splits it at the move: Θ₂'s scope is read
+-- over `pushBinds (repsOf Θ₂) Δ`, and Θ₁ is then read over exactly
+-- `interior Θ₂ Δ` — its own exterior in the redex.  THIS is what the
+-- sequential judgement buys: under a SIMULTANEOUS `mw-b`, Θ₁'s reps
+-- would have to be well formed on the plain `pushBinds (repsOf Θ₂) Δ`,
+-- and a rep naming a slot Θ₂ UNLOCKED is not.
 ⊢ᵐ-⋉ : ∀ (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ}
-  → interior Θ₂ Δ ⊢ᵐ Θ₁ → Δ ⊢ᵐ Θ₂
-  → interior (dropLocks Θ₂) Δ ⊢ᵐ (Θ₁ ⋉ Θ₂)
-⊢ᵐ-⋉ Θ₁ Θ₂ {Δ = Δ} b₁ b₂ =
-  subst (λ Ξ → Ξ ⊢ᵐ (Θ₁ ⋉ Θ₂)) (sym (interior-dropLocks Θ₂ Δ))
+  → Δ ⊢ᵐ Θ₂ → interior Θ₂ Δ ⊢ᵐ Θ₁
+  → interior (rewind Θ₂) Δ ⊢ᵐ (Θ₁ ⋉ Θ₂)
+⊢ᵐ-⋉ Θ₁ Θ₂ {Δ = Δ} b₂ b₁ =
+  subst (λ Ξ → Ξ ⊢ᵐ (Θ₁ ⋉ Θ₂)) (sym (interior-rewind Θ₂ b₂))
         (⊢ᵐ-++ Θ₁ (scopeOf (numBinds Θ₂) Θ₂)
-                (⊢ᵐ-⊑ (interior⊑convCtx Θ₂ Δ) b₁)
-                (⊢ᵐ-scopeOf (repsOf Θ₂) Θ₂ (Δ⊑unlockedScope Θ₂ Δ) b₂))
+                (subst (λ Ξ → Ξ ⊢ᵐ Θ₁)
+                       (sym (scope-scopeOf (repsOf Θ₂) Θ₂ Δ)) b₁)
+                (⊢ᵐ-scopeOf (repsOf Θ₂) Θ₂ b₂))
 
 ------------------------------------------------------------------------
 -- §6  THE TWO CASES
 ------------------------------------------------------------------------
 
 -- What both share: the outer boundary of the contractum.  Its frame is
--- `dropLocks Θ₂`, its conversion the identity at the rep, and its two
+-- `rewind Θ₂`, its conversion the identity at the rep, and its two
 -- well-formedness obligations are the redex's own exterior type lifted.
 module _ {Δ : Ctxᵗ} (Θ₂ : CtxMorph) {A C : Ty}
-         (wE : Δ ⊢ᵗ C) (eqAC : A ≡ shiftBy (numBinds Θ₂) C) where
+         (mw₂ : Δ ⊢ᵐ Θ₂) (wE : Δ ⊢ᵗ C)
+         (eqAC : A ≡ shiftBy (numBinds Θ₂) C) where
 
-  -- THE PREMISE THE WALL USED TO DENY.  `interior (dropLocks Θ₂) Δ` IS
-  -- `convCtx Θ₂ Δ` (§3), and A is C lifted past Θ₂'s binders — so this is
-  -- `wf-shiftBy-pushBinds` at Θ₂'s reps, and nothing else.
-  moved-scoped : interior (dropLocks Θ₂) Δ ⊢ᵗ A
-  moved-scoped rewrite eqAC | interior-dropLocks Θ₂ Δ = wf-convCtx Θ₂ wE
+  -- THE PREMISE THE WALL USED TO DENY.  `interior (rewind Θ₂) Δ` IS the
+  -- bind prefix over the plain exterior (§3), and A is C lifted past
+  -- Θ₂'s binders — so this is `wf-shiftBy-pushBinds`, and nothing else.
+  moved-scoped : interior (rewind Θ₂) Δ ⊢ᵗ A
+  moved-scoped rewrite eqAC | interior-rewind Θ₂ mw₂ =
+    wf-shiftBy-pushBinds (repsOf Θ₂) wE
 
-  moved-conv : convCtx (dropLocks Θ₂) Δ
-                 ⊢ mkId A ∶ A ⇝ shiftBy (numBinds (dropLocks Θ₂)) C
-  moved-conv rewrite numBinds-dropLocks Θ₂ | convCtx-dropLocks Θ₂ Δ | eqAC =
-    mkId-⊢ (wf-convCtx Θ₂ wE)
+  moved-conv : convCtx (rewind Θ₂) Δ
+                 ⊢ mkId A ∶ A ⇝ shiftBy (numBinds (rewind Θ₂)) C
+  moved-conv rewrite numBinds-rewind Θ₂ | eqAC =
+    mkId-⊢ (wf-convCtx-rewind Θ₂ wE)
 
 -- ── IDPUSH ─────────────────────────────────────────────────────────────
 -- The conversions swap and the scope moves.  Four moves, one per
 -- premise of the contractum's inner `env`:
 --
 --   FRAME       `Θ₁ ⋉ Θ₂`, well formed by §5.
---   INTERIOR    `V`, retagged along `frame-move` (§4).
+--   INTERIOR    `V`, transported by `subst` along the EQUALITY of §4.
 --   CONVERSION  `unseal X` at the binder `move-∋` transports (§4); the
 --               two names are forced equal by the inner identity
 --               conversion's own TARGET type, `X ≡ numBinds Θ₁ + Y`
@@ -405,9 +374,9 @@ preserve-IdPush : IdPushCase
 preserve-IdPush {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
                 {A = A} {C = C} v d
                 (env mw₂ (env mw₁ ⊢V ⊢cᵢ wE′) (conv-unseal dₒ) wE) =
-  env (⊢ᵐ-dropLocks Θ₂ mw₂)
-      (env (⊢ᵐ-⋉ Θ₁ Θ₂ mw₁ mw₂) ⊢V′ convᵢ (moved-scoped Θ₂ wE eqAC))
-      (moved-conv Θ₂ wE eqAC)
+  env (⊢ᵐ-rewind Θ₂ mw₂)
+      (env (⊢ᵐ-⋉ Θ₁ Θ₂ mw₂ mw₁) ⊢V′ convᵢ (moved-scoped Θ₂ mw₂ wE eqAC))
+      (moved-conv Θ₂ mw₂ wE eqAC)
       wE
   where
   -- The outer `unseal Y`'s rep is `shiftBy (numBinds Θ₂) C`; it IS A.
@@ -419,18 +388,19 @@ preserve-IdPush {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y
   eqX : numBinds Θ₁ + Y ≡ X
   eqX = tvar-inj (trans (sym (shiftBy-var (numBinds Θ₁) Y)) (conv-idv-tgt ⊢cᵢ))
 
-  ⊢V′ : interior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ) ∣ [] ⊢ V ⦂ ` X
-  ⊢V′ = ⊢retag (frame-move Θ₁ Θ₂ Δ)
-          (subst (λ T → interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ T)
-                 (conv-idv-src ⊢cᵢ) ⊢V)
+  ⊢V′ : interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ∣ [] ⊢ V ⦂ ` X
+  ⊢V′ = subst (λ Ξ → Ξ ∣ [] ⊢ V ⦂ ` X)
+              (sym (interior-⋉-rewind Θ₁ Θ₂ mw₂))
+              (subst (λ T → interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ T)
+                     (conv-idv-src ⊢cᵢ) ⊢V)
 
-  dX : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX : convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
          ∋ X := shiftBy (numBinds Θ₁) A
-  dX = subst (λ Z → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX = subst (λ Z → convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
                       ∋ Z := shiftBy (numBinds Θ₁) A)
-             eqX (move-∋ Θ₁ Θ₂ d)
+             eqX (move-∋ Θ₁ Θ₂ mw₂ d)
 
-  convᵢ : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  convᵢ : convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
             ⊢ unseal X ∶ ` X ⇝ shiftBy (numBinds (Θ₁ ⋉ Θ₂)) A
   convᵢ rewrite numBinds-⋉ Θ₁ Θ₂ = conv-unseal dX
 
@@ -439,16 +409,14 @@ preserve-IdPush {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y
 -- swapped.  THE TYPE EQUATION — `V`'s interior type IS the new inner
 -- conversion's SOURCE — is the one piece of content: `seal X`'s source
 -- is X's rep, and X's rep on the contractum's inner CONVERSION CONTEXT
--- is `shiftBy (numBinds Θ₁) A`, so `∋:=-det` closes it.  The old proof
--- had to run that lookup INSIDE Θ₂'s locks (whence `ScopedAtUnseal`);
--- this one runs it on the conversion context.
+-- is `shiftBy (numBinds Θ₁) A`, so `∋:=-det` closes it.
 preserve-CancelR : CancelRCase
 preserve-CancelR {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
                  {A = A} {C = C} v d
                  (env mw₂ (env mw₁ ⊢V ⊢c₁ wE′) (conv-unseal dₒ) wE) =
-  env (⊢ᵐ-dropLocks Θ₂ mw₂)
-      (env (⊢ᵐ-⋉ Θ₁ Θ₂ mw₁ mw₂) ⊢V′ convᵢ (moved-scoped Θ₂ wE eqAC))
-      (moved-conv Θ₂ wE eqAC)
+  env (⊢ᵐ-rewind Θ₂ mw₂)
+      (env (⊢ᵐ-⋉ Θ₁ Θ₂ mw₂ mw₁) ⊢V′ convᵢ (moved-scoped Θ₂ mw₂ wE eqAC))
+      (moved-conv Θ₂ mw₂ wE eqAC)
       wE
   where
   eqAC : A ≡ shiftBy (numBinds Θ₂) C
@@ -457,25 +425,27 @@ preserve-CancelR {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = 
   eqX : numBinds Θ₁ + Y ≡ X
   eqX = tvar-inj (trans (sym (shiftBy-var (numBinds Θ₁) Y)) (conv-seal-tgt ⊢c₁))
 
-  dX : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX : convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
          ∋ X := shiftBy (numBinds Θ₁) A
-  dX = subst (λ Z → convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  dX = subst (λ Z → convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
                       ∋ Z := shiftBy (numBinds Θ₁) A)
-             eqX (move-∋ Θ₁ Θ₂ d)
+             eqX (move-∋ Θ₁ Θ₂ mw₂ d)
 
   -- `seal X`'s source, read where the move puts it.
   eqV : _ ≡ shiftBy (numBinds Θ₁) A
-  eqV = ∋:=-det (⊑-kn (convCtx-move Θ₁ Θ₂ Δ)
+  eqV = ∋:=-det (⊑-kn (convCtx-move Θ₁ Θ₂ mw₂)
                       (seal-source-is-rep ⊢c₁))
                 dX
 
-  ⊢V′ : interior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ) ∣ []
+  ⊢V′ : interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ∣ []
           ⊢ V ⦂ shiftBy (numBinds Θ₁) A
-  ⊢V′ = ⊢retag (frame-move Θ₁ Θ₂ Δ)
-          (subst (λ T → interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ T) eqV ⊢V)
+  ⊢V′ = subst (λ Ξ → Ξ ∣ [] ⊢ V ⦂ shiftBy (numBinds Θ₁) A)
+              (sym (interior-⋉-rewind Θ₁ Θ₂ mw₂))
+              (subst (λ T → interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ T) eqV ⊢V)
 
-  convᵢ : convCtx (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)
+  convᵢ : convCtx (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
             ⊢ mkId (shiftBy (numBinds Θ₁) A)
             ∶ shiftBy (numBinds Θ₁) A ⇝ shiftBy (numBinds (Θ₁ ⋉ Θ₂)) A
   convᵢ rewrite numBinds-⋉ Θ₁ Θ₂ =
-    mkId-⊢ (wf-convCtx-move Θ₁ Θ₂ (moved-scoped Θ₂ wE eqAC))
+    mkId-⊢ (wf-convCtx-move Θ₁ Θ₂ mw₂
+              (subst (λ T → convCtx Θ₂ Δ ⊢ᵗ T) (sym eqAC) (wf-convCtx Θ₂ wE)))

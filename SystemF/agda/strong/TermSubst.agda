@@ -119,11 +119,17 @@ ren-convCtx : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
 ren-convCtx Θ ρ r i rewrite repsOf-ren ρ Θ =
   ren-pushBinds (repsOf Θ) ρ (ren-unlockedScope Θ r i)
 
+-- Under the SEQUENTIAL judgement each premise is read on the frame the
+-- entry acts on, so each transports by the matching type-context
+-- transport: `ren-unlockedScope` for a rep, `ren-scope` for a name.
 ⊢ᵐ-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → Δ ⊢ᵐ Θ → Δ′ ⊢ᵐ renᴮ ρ Θ
-⊢ᵐ-ren r i mw[]        = mw[]
-⊢ᵐ-ren r i (mw-b w b)  = mw-b (wf-ren r w) (⊢ᵐ-ren r i b)
-⊢ᵐ-ren r i (mw-l tv b) = mw-l (ren-tv r tv) (⊢ᵐ-ren r i b)
-⊢ᵐ-ren r i (mw-u d b)  = mw-u (ren∋ r d) (⊢ᵐ-ren r i b)
+⊢ᵐ-ren                     r i mw[]        = mw[]
+⊢ᵐ-ren {Θ = bind A ∷ Θ}    r i (mw-b w b)  =
+  mw-b (wf-ren (ren-unlockedScope Θ r i) w) (⊢ᵐ-ren r i b)
+⊢ᵐ-ren {Θ = lock X ∷ Θ}    r i (mw-l tv b) =
+  mw-l (ren-tv (ren-scope Θ r i) tv) (⊢ᵐ-ren r i b)
+⊢ᵐ-ren {Θ = unlock X ∷ Θ}  r i (mw-u lk b) =
+  mw-u (ren-∋lk (ren-scope Θ r i) lk) (⊢ᵐ-ren r i b)
 
 ------------------------------------------------------------------------
 -- 3.  THE RENAMING TRANSPORT
@@ -179,22 +185,27 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
 -- 4.  THE RETAGGING TRANSPORT
 ------------------------------------------------------------------------
 
+-- THE REFINEMENT A TERM TRAVELS ALONG IS `_⊑ᵃ_` (strong.Ctx §4b), NOT
+-- `_⊑_`: a boundary's `unlock X` claims that X is LOCKED, and `le-mu` —
+-- the clause that re-exposes a concealed slot — destroys the claim
+-- (`⊢ᵐ-⊑ᵃ`, strong.Terms).  TYPES and CONVERSIONS still travel along the
+-- full `_⊑_`: `⊑-wf` and `conv-⊑` are applied at `⊑ᵃ→⊑ ls`.
 ⊢retag : ∀ {Δ Δ′ Γ M A}
-  → Δ ⊑ Δ′
+  → Δ ⊑ᵃ Δ′
   → Δ  ∣ Γ ⊢ M ⦂ A
     ---------------
   → Δ′ ∣ Γ ⊢ M ⦂ A
 ⊢retag ls (⊢` d)       = ⊢` d
 ⊢retag ls ⊢$           = ⊢$
-⊢retag ls (⊢ƛ w ⊢N)    = ⊢ƛ (⊑-wf ls w) (⊢retag ls ⊢N)
+⊢retag ls (⊢ƛ w ⊢N)    = ⊢ƛ (⊑-wf (⊑ᵃ→⊑ ls) w) (⊢retag ls ⊢N)
 ⊢retag ls (⊢· ⊢L ⊢M)   = ⊢· (⊢retag ls ⊢L) (⊢retag ls ⊢M)
-⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (le∷ le-aa ls) ⊢N)
-⊢retag ls (⊢·[] ⊢L w)  = ⊢·[] (⊢retag ls ⊢L) (⊑-wf ls w)
+⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (la∷ la-aa ls) ⊢N)
+⊢retag ls (⊢·[] ⊢L w)  = ⊢·[] (⊢retag ls ⊢L) (⊑-wf (⊑ᵃ→⊑ ls) w)
 ⊢retag ls (env {Θ = Θ} mw ⊢M ⊢c wE) =
-  env (⊢ᵐ-⊑ ls mw)
-      (⊢retag (⊑-interior Θ ls) ⊢M)
-      (conv-⊑ (⊑-convCtx Θ ls) ⊢c)
-      (⊑-wf ls wE)
+  env (⊢ᵐ-⊑ᵃ ls mw)
+      (⊢retag (⊑ᵃ-interior Θ ls) ⊢M)
+      (conv-⊑ (⊑-convCtx Θ (⊑ᵃ→⊑ ls)) ⊢c)
+      (⊑-wf (⊑ᵃ→⊑ ls) wE)
 
 ------------------------------------------------------------------------
 -- 5.  Term substitution

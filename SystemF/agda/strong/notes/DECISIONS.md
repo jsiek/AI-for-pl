@@ -2453,3 +2453,71 @@ The `_⊑ᵉ_` constructors lose their owner/blocked initials: le-ao → le-ab
 (abst ⊑ bind), le-oo → le-bb (bind ⊑ bind), and the masked pair le-bb →
 le-mm, le-bu → le-mu; le-aa stays.  Then the PR is marked ready for
 review.
+
+### Peel's dual is NOT tight for `unlock` entries (Jeremy's test, 2026-09-06)
+
+Jeremy: "I don't fully understand the definition of dual and not sure I
+trust it … create an example program that takes a Peel step, and the
+program should have an ill-formed type in the argument W, and after the
+reduction step, W wrapped in the dual boundary should still be
+ill-formed."  RESULT (proof/DualTightness.agda): bind entries are tight
+(wkᴹ shifts W's indices past them) but `dualScope` DROPS unlocks, so with
+exterior ⌷[X := ℕ], Θ = ↥X, W = λx:ℕ. (ΛY. 3)[X] (names the masked X;
+ill-typed), the redex `(V ⟪ ↥X , c ⟫) · W` is ill-typed and its Peel
+contractum is WELL-TYPED (W's frame inside is bind ℕ: X visible).  Scope
+is gained through the boundary — design law 2 fails for the RELATION
+(not a preservation failure: the redex is ill-typed).
+
+PROBED FIX, REFUTED (proof/MwUObstruct.agda): (1) mw-u requires a masked
+slot, (2) dualScope maps unlock ↦ lock, (3) the scope move's outer frame
+becomes bindsOnly.  (3) alone is GOOD: interior-⋉-bindsOnly and
+convCtx-⋉-bindsOnly are EQUALITIES (frame-move's ⊑ was an artifact of the
+retained unlocks).  But (2) forces (1) (a vacuous unlock, legal today,
+makes preserve-Peel false under dual′), and (1) kills ⊢ᵐ-⊑ hence ⊢retag
+(le-mu: Cancel's own refinement unmasks a slot an unlock cites) and kills
+⊢ᵐ-⋉ (⋉ builds lists that lock AND unlock one slot; under (1) mw-l and
+mw-u are exact complements so no SIMULTANEOUS ⊢ᵐ can hold — §3/§4 mirror
+witnesses).  Structural reason: `_⊢ᵐ_` is simultaneous (law 4), `scope`
+is sequential.  Sequential ⊢ᵐ (§5/§6) would force dualScope to reverse
+and mw-b's rep to be read sequentially — colliding with simultaneity.
+NEXT CANDIDATE (δ), to probe: leave ⊢ᵐ alone and make the dual read the
+EXTERIOR: `dual Δ Θ` maps `unlock X ↦ lock X` only when X is masked in Δ
+(reduction is Δ-indexed, so Peel may inspect Δ; simultaneity respected —
+one read on the plain Δ).  Then vacuous unlocks add nothing (preserve-Peel
+survives), non-vacuous ones are re-locked (the leak closes), and
+`interior (dual Δ Θ) (interior Θ Δ) ≡ masked binds ++ Δ` should be exact
+with no change to the scope move.
+
+### RULING: vacuous unlocks are wrong and unreachable (Jeremy, 2026-09-06)
+
+Jeremy: "why do we allow ↥X over X := ℕ visible?  That feels wrong … and
+unreachable."  RULED: the judgment must refuse them (mw-u's slot must be
+masked).  Hint for the probe: "my feeling is you're missing a few
+premises … look for places where information is dropped."  Two probes
+run in parallel, both non-landing: (δ) branch dual-relock — a Δ-dependent
+dual that re-locks only non-vacuous unlocks, leaving `_⊢ᵐ_` alone; and
+the PRINCIPLED package, branch dual-principled — audit of dropped
+information (mw-u's maskedness, dualScope dropping unlocks, the scope
+move's dropped entries, `_⊢ᵐ_` reading scope premises on the plain Δ and
+so dropping order, le-mu forgetting maskedness, Peel's crossing retype,
+mw-b's rep independence from the same morphism's unlocks), then:
+masked-only mw-u with SEQUENTIAL scope premises (reps stay on the plain
+Δ — simultaneity), dualScope restoring unlock ↦ lock, ⊢retag over the
+non-unmasking refinement only, scope move with bindsOnly outer frame
+(frame lemmas as equalities).  Expected sticking point: Θ₁'s bind reps
+under the move (MwUObstruct §6) — the missing premise, if any, is there.
+
+### RATIFIED: representations read past the tail's unlocks; PR #193 merged (Jeremy, 2026-09-06)
+
+Jeremy ratified item 2 of the tight-boundary package (mw-b reads a
+bind's representation on `unlockedScope Θ′ Δ`, the frame the conversion
+is read on; names in lock/unlock entries are read on `scope Θ′ Δ`) and
+ordered PR #193 merged: "That particular law was not valuable on its own,
+it was just a design idea to try."  Design law 4 ("Simultaneity") is
+thereby reduced to its surviving half — a representation is never blocked
+by its own frame's locks, and `pushBinds` lifts it past exactly the
+binders inside it — and the "every premise on the plain exterior" half is
+retired.  Landed with it: sequential `Δ ⊢ᵐ Θ` (no vacuous unlocks, no
+double locks), the exact dual (†), `rewind Θ₂` as the scope move's outer
+frame, `⊢retag` over `⊑ᵃ`.  Branch dual-relock (Δ-dependent dual) is the
+superseded alternative; PR #192 is contained in #193.

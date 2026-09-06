@@ -2487,3 +2487,22 @@ one read on the plain Δ).  Then vacuous unlocks add nothing (preserve-Peel
 survives), non-vacuous ones are re-locked (the leak closes), and
 `interior (dual Δ Θ) (interior Θ Δ) ≡ masked binds ++ Δ` should be exact
 with no change to the scope move.
+
+### RULING: vacuous unlocks are wrong and unreachable (Jeremy, 2026-09-06)
+
+Jeremy: "why do we allow ↥X over X := ℕ visible?  That feels wrong … and
+unreachable."  RULED: the judgment must refuse them (mw-u's slot must be
+masked).  Hint for the probe: "my feeling is you're missing a few
+premises … look for places where information is dropped."  Two probes
+run in parallel, both non-landing: (δ) branch dual-relock — a Δ-dependent
+dual that re-locks only non-vacuous unlocks, leaving `_⊢ᵐ_` alone; and
+the PRINCIPLED package, branch dual-principled — audit of dropped
+information (mw-u's maskedness, dualScope dropping unlocks, the scope
+move's dropped entries, `_⊢ᵐ_` reading scope premises on the plain Δ and
+so dropping order, le-mu forgetting maskedness, Peel's crossing retype,
+mw-b's rep independence from the same morphism's unlocks), then:
+masked-only mw-u with SEQUENTIAL scope premises (reps stay on the plain
+Δ — simultaneity), dualScope restoring unlock ↦ lock, ⊢retag over the
+non-unmasking refinement only, scope move with bindsOnly outer frame
+(frame lemmas as equalities).  Expected sticking point: Θ₁'s bind reps
+under the move (MwUObstruct §6) — the missing premise, if any, is there.

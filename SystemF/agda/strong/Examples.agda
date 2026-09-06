@@ -131,8 +131,8 @@ T₆-2 = ((($ 7) ⟪ morph [] [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id 
 cancel-T₆ : Δ₆ ⊢ T₆-1 -→ T₆-2
 cancel-T₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 
-⊢T₆-2-in : S₆₁ ∣ [] ⊢ ($ 7) ⟪ morph [] [] , id `ℕ ⟫ ⟪ morph (`ℕ ∷ []) [] , id `ℕ
-  ⟫ ⦂ `ℕ
+⊢T₆-2-in : S₆₁ ∣ []
+         ⊢ ($ 7) ⟪ morph [] [] , id `ℕ ⟫ ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫ ⦂ `ℕ
 ⊢T₆-2-in = env (mw (rw-b wf-ℕ rw[]) sw[])
                 (env (mw rw[] sw[]) ⊢$ (conv-id base-ℕ) wf-ℕ)
                 (conv-id base-ℕ) wf-ℕ
@@ -353,8 +353,8 @@ _ : interior Θᵣ₁ (interior Θᵣ₂ []) ≡ Sᵣ
 _ = refl
 
 ⊢Vᵣ : Sᵣ ∣ [] ⊢ Vᵣ ⦂ ` 1
-⊢Vᵣ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez ,
-  nameable-b))
+⊢Vᵣ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez))
+          (wf-var (bind `ℕ , es ez , nameable-b))
 
 ⊢Tᵣ : [] ∣ [] ⊢ Tᵣ ⦂ `ℕ
 ⊢Tᵣ = env (mw (rw-b wf-ℕ rw[]) sw[])
@@ -404,8 +404,8 @@ _ : interior Θₘ₂ Δₘ ≡ Mₘ
 _ = refl
 
 ⊢Vₘ : Δₘ ∣ [] ⊢ Vₘ ⦂ ` 1
-⊢Vₘ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez ,
-  nameable-b))
+⊢Vₘ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez))
+          (wf-var (bind `ℕ , es ez , nameable-b))
 
 ⊢Tₘ : Δₘ ∣ [] ⊢ Tₘ ⦂ `ℕ
 ⊢Tₘ = env (mw rw[] (sw-u (_ , ez , locked nameable-b) sw[]))
@@ -438,9 +438,9 @@ _ : interior Θₘ₁′ (interior (rewind Θₘ₂) Δₘ) ≡ interior Θₘ�
 _ = refl
 
 ⊢ᵐΘₘ₁′ : Δₘ ⊢ᵐ Θₘ₁′
-⊢ᵐΘₘ₁′ = (mw rw[]
-             (sw-l (bind `𝔹 , ez , nameable-b) (sw-u (_ , ez , locked
-               nameable-b) sw[])))
+⊢ᵐΘₘ₁′ = mw rw[]
+            (sw-l (bind `𝔹 , ez , nameable-b)
+                  (sw-u (_ , ez , locked nameable-b) sw[]))
 
 push-Tₘ : Δₘ ⊢ Tₘ -→ (Vₘ ⟪ Θₘ₁′ , unseal 1 ⟫) ⟪ rewind Θₘ₂ , id `ℕ ⟫
 push-Tₘ = IdPush (V-⟪⟫ V-$ I-seal) (es ez)
@@ -514,8 +514,8 @@ Wd = (ƛ (` 1) ∙ (` 0)) ⟪ morph [] (lock 0 ∷ []) , unseal 0 ↦ seal 0 ⟫
 
 -- THE CROSSING VALUE.  Its bind boundary masks W and seals at it: the licence
 -- `seal 0` cites the binder at slot 0 of Δd, whose rep is X = ` 1.
-_ : interior (morph [] (lock 0 ∷ [])) Δd ≡ masked (bind (` 0)) ∷ abst ∷ bind `ℕ
-  ∷ []
+_ : interior (morph [] (lock 0 ∷ [])) Δd
+      ≡ masked (bind (` 0)) ∷ abst ∷ bind `ℕ ∷ []
 _ = refl
 
 ⊢Wd : Δd ∣ [] ⊢ Wd ⦂ (` 0 ⇒ ` 0)
@@ -572,8 +572,8 @@ _ = refl
                   ⦂ (` 0 ⇒ ` 0)
   ⊢Wd-crossed =
     env (mw rw[]
-            (sw-l (_ , ez , nameable-b) (sw-u (_ , es (es (es ez)) , locked
-              nameable-b) sw[])))
+            (sw-l (_ , ez , nameable-b)
+                  (sw-u (_ , es (es (es ez)) , locked nameable-b) sw[])))
         ⊢Wd-in
         (conv-fun (conv-unseal ez) (conv-seal ez))
         (wf-⇒ (wf-var (_ , ez , nameable-b))
@@ -655,8 +655,8 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
                    ⦂ (` 0 ⇒ ` 0)
   ⊢W1b-crossed =
     env (mw rw[]
-            (sw-l (_ , ez , nameable-b) (sw-u (_ , es (es ez) , locked
-              nameable-a) sw[])))
+            (sw-l (_ , ez , nameable-b)
+                  (sw-u (_ , es (es ez) , locked nameable-a) sw[])))
         ⊢W1b-in
         (conv-fun (conv-unseal ez) (conv-seal ez))
         (wf-⇒ (wf-var (_ , ez , nameable-b)) (wf-var (_ , ez , nameable-b)))
@@ -788,8 +788,8 @@ step₂ = Peel V-ƛ V-$
 -- i.e. ⊢subst applied to the interior redex.
 
 P₃ : Term
-P₃ = (($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0
-  ⟫
+P₃ = (($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫)
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 _ : (` 0) [ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ]ᵐ
       ≡ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫
@@ -1308,8 +1308,8 @@ D₆  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph (`ℕ ∷ 
 D₇  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph (`ℕ ∷ []) [] ,
   unseal 2 ⟫)
           ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
-D₈  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ
-  ⟫)
+D₈  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , id `ℕ ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
           ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 D₉  = ((($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
         ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
@@ -1493,8 +1493,8 @@ R₇  = ((RS↑ ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫) ⟪ morph ((` 0) ∷ 
 R₈  = ((RS↑ ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫) ⟪ morph ((` 0) ∷ []) [] , id (`
   1) ⟫)
         ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
-R₉  = (RW ⟪ morph ((` 0) ∷ []) [] , id (` 1) ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0
-  ⟫
+R₉  = (RW ⟪ morph ((` 0) ∷ []) [] , id (` 1) ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 rstep₁ : [] ⊢ R₀ -→ R₁
 rstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1712,8 +1712,8 @@ _ = refl
 
 K₀ K₁ : Term
 K₀ = ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
-        ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0
-          ⟫
+        ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 K₁ = ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
         ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , unseal 2 ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
@@ -1804,8 +1804,8 @@ L₄ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph ((` 0) ∷ [
 L₅ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph ((` 0) ∷ []) [] ,
   unseal 1 ⟫)
        ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
-L₆ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫) ⟪ morph ((` 0) ∷ []) [] , id `ℕ
-  ⟫)
+L₆ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫)
+       ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫)
        ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 L₇ = (($ 7) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 L₈ = ($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
@@ -2405,8 +2405,8 @@ Cu = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ morph (binds Θt) (unlock 0 ∷ changes �
 
 ⊢Cu : Δt ∣ [] ⊢ Cu ⦂ (` 0 ⇒ ` 0)
 ⊢Cu = env (mw rw[]
-              (sw-u (_ , ez , locked nameable-b) (sw-l (bind `ℕ , ez ,
-                nameable-b) sw[])))
+              (sw-u (_ , ez , locked nameable-b)
+                    (sw-l (bind `ℕ , ez , nameable-b) sw[])))
           (⊢·[] ⊢Wt (wf-var (bind `ℕ , ez , nameable-b)))
           (conv-fun (conv-idv (bind `ℕ , ez , nameable-b)) (conv-seal ez))
           (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b))

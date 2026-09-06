@@ -301,8 +301,23 @@ whatever it is" (Jeremy, 2026-09-06).  With `Δ ⊑ Δ′` pointwise.  There is 
 `bind A` other than reflexivity: a binder never loses its representation.
 That is the deleted v1 demotion, stated as the theorem
 `⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A`.  Masking only loses
-nameability (`mask-⊑`), unmasking only adds it (`unmask-⊑`), and typing
-transports along `⊑` with the types unchanged (`⊢retag`, `conv-⊑`).
+nameability (`mask-⊑`), unmasking only adds it (`unmask-⊑`), and a TYPE
+or a CONVERSION transports along `⊑` unchanged (`⊑-wf`, `conv-⊑`).
+
+**A TERM does not.**  A boundary's `unlock X` *claims* that `X` is locked
+(§4.2), and `le-mu` is precisely the clause that unmasks — so `⊢retag`
+runs along the `le-mu`-free refinement
+
+    abst ⊑ᵃᵉ abst    abst ⊑ᵃᵉ bind A    bind A ⊑ᵃᵉ bind A
+      la-aa              la-ab               la-bb
+    E ⊑ᵃᵉ E′ ⇒ masked E ⊑ᵃᵉ masked E′                     la-mm
+
+with `Δ ⊑ᵃ Δ′` pointwise and `⊑ᵃ→⊑` the embedding.  Its one content is
+`⊑ᵃᵉ-Locked : E ⊑ᵃᵉ E′ → Locked E → Locked E′` — *a locked slot stays
+locked* — which is what `⊢ᵐ-⊑ᵃ` needs at `mw-u`.  Every call site is
+covered: `preserve-TyBeta` refines an `abst` to a `bind` (`la-ab`), and
+the two former `le-mu` sites — the Peel crossing and the scope move — are
+now exact identities and use no retagging at all (§6.3, §6.7).
 
 ### The three operations a boundary uses
 
@@ -368,10 +383,12 @@ So the conversion needs the binders **and** the locked slots: binds
 pushed, locks lifted.  That is `convCtx Θ Δ`, the smallest context in
 which both leaves resolve.  It is not a third *construction*:
 
-    interior (dropLocks Θ) Δ ≡ convCtx Θ Δ    (proof/MoveScope)
+    scope (dropLocks Θ) Δ ≡ unlockedScope Θ Δ
 
 where `dropLocks Θ` is `Θ` with its locks removed — **the conversion
 context is the interior of the same boundary with its locks removed**.
+(As an *operation* on frames `dropLocks` is retired: it cannot be the
+outer frame of the scope move, §6.7.)
 
 The three contexts are ordered by refinement, in one direction only:
 
@@ -446,36 +463,58 @@ masked slot is unnameable, and a `∀` pushes `abst`, never a `bind`.
 ### 4.2 Well-formed context morphisms — `Δ ⊢ᵐ Θ`
 
 Read "the context morphism `Θ` is well formed over `Δ`"; an infix
-judgement in the family of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`.  Every premise
-is read on the **exterior** `Δ` (simultaneity), never on the context the
-earlier entries build:
+judgement in the family of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`.  The judgement
+is **sequential**: every premise is read on the frame the entry acts on,
+i.e. on the context the entries to its right (which `scope` applies
+first) have already built.
 
     mw[] : Δ ⊢ᵐ []
-    mw-b : Δ ⊢ᵗ A     → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (bind A ∷ Θ)
-    mw-l : Δ ∋tv X    → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (lock X ∷ Θ)
-    mw-u : Δ ∋e X , E → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (unlock X ∷ Θ)
+    mw-b : unlockedScope Θ Δ ⊢ᵗ A → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (bind A ∷ Θ)
+    mw-l : scope Θ Δ ∋tv X        → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (lock X ∷ Θ)
+    mw-u : scope Θ Δ ∋lk X        → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (unlock X ∷ Θ)
 
-A `bind` checks its representation in the exterior.  A `lock` names
-a **visible** slot.  An `unlock` asks only that the slot **exist** — it
-cannot ask that the slot be masked and stay masked under refinement (a
-cancel may already have unmasked it), and it need not: `unmask` is total
-and an unlock at an unmasked slot is a no-op.  An `unlock` claims nothing
-and a `lock` claims nothing either; the claim lives in the conversion,
-where `seal X` must cite a live binder.
+A `lock` names a slot that is **still visible** where it acts — so a slot
+is never masked twice, and `Locked` is one mask deep.  An `unlock` names
+a slot that is **LOCKED** there: `Δ ∋lk X` is `∃E. (Δ ∋e X , E) ×
+Locked E`, with `Locked (masked E)` for a *nameable* `E`.  It is the
+mirror of `Δ ∋tv X`, and it mentions no representation at all — an
+`unlock` still claims no knowledge; the knowledge claim lives in the
+conversion, where `seal X` must cite a live binder.
 
-**The cost of `mw-u`'s permissiveness, and why it cannot simply be
-raised** (2026-09-06).  Because an `unlock` claims nothing, a *vacuous*
-unlock — one at an already-unmasked slot — is well formed, and `dual`
-therefore cannot restore it (§6.3: the tightness defect).  Strengthening
-the premise to `Δ ∋e X , masked E` is **refuted** in
-`proof/MwUObstruct.agda`.  The reason is structural: `_⊢ᵐ_` is
-**simultaneous** (design law 4) while `scope` is **sequential** (the list
-is applied head-last).  Under the strengthened premise `mw-l` and `mw-u`
-become exact complements — a lock names a *nameable* slot, an unlock a
-*masked* one — so no simultaneous `_⊢ᵐ_` can hold of a list that both
-locks and unlocks one slot.  The scope move `_⋉_` (§6.7) builds exactly
-such lists, and `⊢retag` (which carries `_⊢ᵐ_` along `⊑`, whose `le-mu`
-clause *unmasks*) loses its `env` case as well.
+**A VACUOUS UNLOCK IS REFUSED** (Jeremy's ruling, 2026-09-06;
+`proof/DualTightness` §5).  `↥X` over a slot the frame leaves visible is
+not merely useless, it is *wrong*: it is the case on which `dual`'s
+restoring `lock` would mask what the exterior left nameable.  The
+judgement refuses it, and that refusal is exactly what makes
+`mask ∘ unmask` the identity where the dual needs it
+(`mask-unmask`, `Locked`).
+
+**A rep is read on `unlockedScope Θ Δ`, not on `scope Θ Δ` and not on the
+plain `Δ`.**  This is the surviving half of simultaneity, and it is
+forced from both sides:
+
+* not on `scope Θ Δ` — a rep must never be blocked by the frame's *own*
+  locks, or `TyPeelR`'s new frame `bind A ∷ Θ` would be ill formed
+  whenever `Θ` locks a slot the type argument `A` names;
+* not on the plain `Δ` — the scope move `_⋉_` (§6.7) merges an inner
+  frame's binds with an enclosing frame's scope, and the inner frame's
+  reps were read past that enclosing frame's *unlocks*.  With a
+  plain-`Δ` `mw-b` the merged frame has no derivation
+  (`proof/MwUObstruct` §4, at `Θ₁ ⋉ Θ₂ = bind (` 0) ∷ unlock 0 ∷ []`
+  over an exterior that masks slot 0).
+
+**What the strengthened `mw-u` costs, and how it is paid.**  Under it
+`mw-l` and `mw-u` are exact complements — a lock names a *nameable* slot,
+an unlock a *locked* one — so no *simultaneous* `_⊢ᵐ_` could hold of a
+list that both locks and unlocks one slot, and the scope move builds
+exactly such lists.  The sequential reading above is what admits them.
+Two further consequences:
+
+* `⊢retag` no longer runs along `⊑`: `le-mu` *unmasks*, which destroys an
+  `unlock`'s claim.  Terms travel along `_⊑ᵃ_`, the `le-mu`-free
+  refinement (§3); types and conversions keep the full `⊑`.
+* the outer frame of `CancelR`/`IdPush` is `rewind Θ₂`, not
+  `dropLocks Θ₂` (§6.7).
 
 ### 4.3 Terms
 
@@ -632,20 +671,31 @@ they agree: `instReveal X (mkId B) ≡ reveal X B`.
 **The dual of a crossed boundary**:
 
     hideBinds n = lock (n-1) , … , lock 0
-    dualScope n []           = []
-    dualScope n (bind A , Θ) = dualScope n Θ
-    dualScope n (unlock X , Θ) = dualScope n Θ
-    dualScope n (lock X , Θ) = unlock (n + X) , dualScope n Θ
+    dualScope n []             = []
+    dualScope n (bind A , Θ)   = dualScope n Θ
+    dualScope n (unlock X , Θ) = dualScope n Θ ++ [ lock   (n + X) ]
+    dualScope n (lock X , Θ)   = dualScope n Θ ++ [ unlock (n + X) ]
 
     dual Θ = hideBinds (numBinds Θ) ++ dualScope (numBinds Θ) Θ
 
 so the dual **locks** each of the crossed boundary's own new binders (the
-crossing argument may not see them) and **unlocks** each of its locks
-(the argument came from outside, where those were nameable).  The
-`unlock` case of `dualScope` is deliberately dropped: mapping
-`unlock X ↦ lock (n+X)` would re-block a no-op unlock and would make a
-same-slot mask/unmask pair fail to cancel.  With it dropped,
-`interior-dual` and `convCtx-dual` hold in general (`proof/PeelDual.agda`).
+crossing argument may not see them), **unlocks** each of its locks (the
+argument came from outside, where those were nameable) and **re-locks**
+each of its unlocks (the argument came from outside, where those were
+*not* nameable).  Two points of care:
+
+* **it must restore the unlocks.**  Dropping the `unlock` case is the
+  tightness defect of §6.3: the crossing argument then gets a frame
+  strictly more nameable than the exterior.  Restoring is sound because
+  `mw-u` refuses a vacuous unlock, so `mask ∘ unmask` really is the
+  identity at the slot;
+* **it must run backwards.**  `scope` applies its list head-last, so an
+  inverse must undo the entries in reverse order — hence the append at
+  the end of each clause.  A same-order dual is not an inverse at a frame
+  that toggles one slot twice (`↥X , ↓X`, which the judgement admits).
+
+With both, `interior-dual` is an EXACT identity and `convCtx-dual` holds
+unconditionally (`proof/PeelDual.agda`).
 
 **The scope move** (§6.7):
 
@@ -654,14 +704,12 @@ same-slot mask/unmask pair fail to cancel.  With it dropped,
     scopeOf n (unlock X , Θ) = unlock (n+X) , scopeOf n Θ
     scopeOf n (lock X , Θ)   = lock   (n+X) , scopeOf n Θ
 
-    dropLocks []           = []          -- Θ with its LOCKS removed
-    dropLocks (bind A , Θ) = bind A , dropLocks Θ
-    dropLocks (unlock X , Θ) = unlock X , dropLocks Θ
-    dropLocks (lock X , Θ)   = dropLocks Θ
+    rewind Θ = dualScope 0 Θ ++ Θ        -- Θ with its own SCOPE undone
 
     Θ₁ ⋉ Θ₂ = Θ₁ ++ scopeOf (numBinds Θ₂) Θ₂
 
-Note `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`: the move carries no binder.
+Note `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁` and
+`numBinds (rewind Θ) ≡ numBinds Θ`: neither operation carries a binder.
 
 
 ### 6.1 `TyBeta` — the boundary is born
@@ -736,26 +784,30 @@ The `7` has crossed inward and is now sealed at the new binder, so the
 interior sees it at the abstract name `X` — which is exactly what
 `λx:X. x` demands.
 
-**OPEN: `Peel` is not tight** (Jeremy's test, 2026-09-06;
-`proof/DualTightness.agda`).  `dualScope` **drops** `Θ`'s `unlock`
-entries, so a boundary that unmasks an exterior slot hands its crossing
-argument a frame in which that slot is *still* unmasked:
-`interior (dual Θ) (interior Θ Δ)` is the masked bind prefix over
-`unlockedScope Θ Δ`, which is strictly more nameable than `Δ`.  The
+**TIGHTNESS OF THE CROSSING** (Jeremy's test, 2026-09-06;
+`proof/DualTightness.agda`).  The mini-core's `dualScope` **dropped**
+`Θ`'s `unlock` entries, so a boundary that unmasks an exterior slot
+handed its crossing argument a frame in which that slot was *still*
+unmasked: `interior (dual Θ) (interior Θ Δ)` was the masked bind prefix
+over `unlockedScope Θ Δ`, strictly more nameable than `Δ`.  The
 machine-checked witness — `Δᵤ = ↓U`, `Θᵤ = ↥U`, `W = λy:ℕ. (ΛZ. 3)[U]` —
-takes an **ill-typed** redex to a **well-typed** contractum: scope is
-gained through the boundary.  This is not a preservation failure (the
-redex is not well typed, and `preserve-Peel` is a theorem); it is a
-failure of design law 2 for the *reduction relation*.
+took an **ill-typed** redex to a **well-typed** contractum: scope was
+gained through the boundary.  That is a failure of design law 2 for the
+*reduction relation* (not of preservation: the redex is not well typed).
 
-The repair — restore what `Θ` unlocked, `dualScope n (unlock X ∷ Θ) =
-lock (n + X) ∷ dualScope n Θ`, with an `mw-u` that forbids vacuous
-unlocks — is **refuted** in `proof/MwUObstruct.agda` (see §4.2): the
-restored lock is only correct when the slot really was masked, so the
-two changes are coupled, and the strengthened `mw-u` is incompatible with
-both the scope move and `⊢retag`.  The two readings of `_⊢ᵐ_` that
-survive §3/§4 (sequential premises, or a cancelling merge) are design
-decisions, not repairs; §5/§6 of that module price the sequential one.
+It is repaired, in two coupled halves — the restoring, reversed
+`dualScope` above and the `mw-u` that refuses a vacuous unlock (§4.2).
+The frame identity is then **exact**:
+
+    (†)  interior (dual Θ) (interior Θ Δ)
+           ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ      given Δ ⊢ᵐ Θ
+
+*the crossing argument's frame IS the exterior*, one (masked) bind prefix
+in — so the argument crosses by `⊢rename (wkN (numBinds Θ))` alone, with
+no `⊢retag` and no `le-mu` anywhere.  On the witness above the contractum
+is now REFUSED (`¬⊢Contractum`), and the positive control still passes:
+at a Θ-**locked** slot the dual unlocks it again and the argument keeps
+its frame.
 
 ### 6.4 `TyPeelR` — a `∀` conversion meets a type application
 
@@ -855,7 +907,7 @@ Two `Drop$` steps then finish the run to `7`.
 
     IdPush : Value V → convCtx Θ₂ Δ ∋ Y := A
       → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
-          -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫
+          -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ rewind Θ₂ , mkId A ⟫
 
 **Bookkeeping.**  A value under a transparent `` id (` X) `` layer, under an
 active conversion, is not a value and no other rule fires.  Rather than
@@ -880,12 +932,34 @@ the record is in `notes/DECISIONS.md` (2026-09-06 entries), and its two
 surviving artifacts are `proof/MaskFacts.mask-only` and `Examples` §12/§12b.
 
 The repair is not a side condition but a **frame move** (Jeremy,
-2026-09-06).  The outer frame keeps only what binds and what unmasks
-(`dropLocks Θ₂`); its whole **scope** — locks *and* unlocks, in order,
-lifted past its own binders — travels into the inner frame's tail
+2026-09-06).  The outer frame's whole **scope** — locks *and* unlocks, in
+order, lifted past its own binders — travels into the inner frame's tail
 (`Θ₁ ⋉ Θ₂`), where `scope` applies it **first**, exactly where it applied
-before.  The representation is then presented outside the locks, where it
-is nameable, and the locks still stand between the value and the world.
+before; and what stays outside is the frame with its own scope **rewound**
+(`rewind Θ₂ = dualScope 0 Θ₂ ++ Θ₂`), whose net effect on the exterior is
+its bind prefix alone:
+
+    scope    (rewind Θ₂) Δ ≡ Δ                      given Δ ⊢ᵐ Θ₂
+    interior (rewind Θ₂) Δ ≡ pushBinds (repsOf Θ₂) Δ
+
+The representation is then presented outside the locks, where it is
+nameable, and the locks still stand between the value and the world.
+
+**Why `rewind`, and not the two cheaper frames.**  All three of
+`rewind Θ₂`, `dropLocks Θ₂` and `bindsOnly Θ₂` (delete the scope
+outright) leave the same type context.  Only `rewind` keeps its own
+`_⊢ᵐ_`, and both alternatives are refuted on ONE configuration
+(`proof/MwUObstruct`): `Δ₆ = ↓U`, `Θ₂ = ↥U`, `Θ₁ = ↑V:=U`, so that
+`Θ₁ ⋉ Θ₂ = ↑V:=U , ↥U`.
+
+* `dropLocks Θ₂` KEEPS `Θ₂`'s unlocks, so the *moved copy* of the same
+  unlock lands where the slot is already nameable — a vacuous unlock,
+  which `mw-u` refuses (`¬⊢ᵐ-dropLocks`);
+* `bindsOnly Θ₂` DELETES them, and then `Θ₂`'s *own* bind representation
+  — read on `unlockedScope Θ₂′ Δ`, i.e. past that very unlock — is
+  stranded on the plain exterior (`¬⊢ᵐ-bindsOnly`);
+* `rewind Θ₂` keeps every entry and rewinds it, so every premise is read
+  exactly where the redex read it (`⊢ᵐ-rewind`).
 
 Example — the wall witness itself (`Examples` §12b, over
 `Δi = X := Y , Y := ℕ`, so `X`'s representation *names* `Y` and the outer
@@ -895,22 +969,26 @@ Diagram:
 
     R₀   ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , seal X ⟫) ⟪ id X ⟫) ⟪ ↓Y , unseal X ⟫)
       |
-      |  IdPush   (Θ₁ = [] , Θ₂ = ↓Y ;  Θ₁ ⋉ Θ₂ = ↓Y , dropLocks Θ₂ = [])
+      |  IdPush  (Θ₁ = [] , Θ₂ = ↓Y ; Θ₁ ⋉ Θ₂ = ↓Y , rewind Θ₂ = ↥Y , ↓Y)
       v
-    R₁′  ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , seal X ⟫) ⟪ ↓Y , unseal X ⟫) ⟪ id Y ⟫)
+    R₁′  ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , seal X ⟫) ⟪ ↓Y , unseal X ⟫)
+                                                        ⟪ ↥Y , ↓Y , id Y ⟫)
       |
       |  CancelR  lifted through the outer boundary (ξ-⟪⟫)
       v
-    R₂   ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , ↓Y , id Y ⟫) ⟪ id Y ⟫) ⟪ id Y ⟫)
+    R₂   ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , ↓Y , id Y ⟫) ⟪ ↥Y , ↓Y , id Y ⟫)
+                                                        ⟪ ↥Y , ↓Y , id Y ⟫)
 
 Read `R₀` and `R₁′` side by side: `↓Y` has moved from the outer boundary
 to the inner one, and the reveal `unseal X` went with it.  The
 representation `Y` that the reveal hands back is now presented on the
 outer boundary's own type context, where `Y` is live, instead of inside
 the lock, which is what `env`'s last premise refused.  The value's frame
-is unchanged (`interior ([] ⋉ Θi) (interior (dropLocks Θi) Δi)
-≡ interior [] (interior Θi Δi)` is `refl`), so `V` retypes where it was,
-and `R₂` is a **value**.  Under
+is unchanged (`interior ([] ⋉ Θi) (interior (rewind Θi) Δi)
+≡ interior [] (interior Θi Δi)` is `refl`), so `V` retypes where it was —
+by `subst`, not by `⊢retag` — and `R₂` is a **value**.  The `↥Y , ↓Y`
+riding on the outer frames is the rewind: inert on the type context, and
+carrying the premises its own reps were read under.  Under
 the old rule `R₀`'s contractum was untypeable — that refutation was the
 content of `proof/PreserveObstruct` §4, which now records the positive
 fact on the same witness.
@@ -923,11 +1001,15 @@ contractum.  The refutation is in tree
 (`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `_⊢ᵐ_`-legal witness
 `Θ✗ = unlock 0 ∷ lock 0 ∷ []` over `Δ✗ = bind ℕ ∷ []`, where
 `interior Θ✗ Δ✗ ≡ bind ℕ ∷ []` but the lock-only contractum's interior is
-`masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and the
-retained unmasks are harmless: unmasking only *adds* nameability, so the
-value's frame is **refined** and `⊢retag` carries it.  With that, the
-frame lemma is unconditional — no premise about `Θ₂`'s shape, and no side
-condition for `Progress` to supply.
+`masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and then
+the value's frame is preserved **on the nose**: with `rewind` outside,
+both frame lemmas are equalities,
+
+    interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)
+    convCtx  (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ convCtx  Θ₁ (convCtx  Θ₂ Δ)
+
+(both given `Δ ⊢ᵐ Θ₂`), so neither case uses `⊢retag` at all — no premise
+about `Θ₂`'s shape, and no side condition for `Progress` to supply.
 
 A second example, from closed plain source (`Examples` §11,
 `Q = ((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [ℕ]) · 7`, nine steps to `7`).  The
@@ -1036,14 +1118,14 @@ Induction on the step, with the rule cases distributed:
   definitional.
 * **`Beta`** — `⊢subst` (`strong.TermSubst`).
 * **`Peel`** (`proof/PeelDual.preserve-Peel`) — the two context
-  identities are what carries it:
+  identities are what carries it: (†)
   `interior (dual Θ) (interior Θ Δ)
-  ≡ map masked (pushBinds (repsOf Θ) []) ++ unlockedScope Θ Δ`
+  ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ` (given `Δ ⊢ᵐ Θ`)
   and `convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ`.  The crossing
   argument, typed in `Δ`, retypes one bind frame deeper by
-  `⊢rename (wkN (numBinds Θ))` and then `⊢retag` (the tail relaxes along
-  `Δ ⊑ unlockedScope Θ Δ`), and the conversion `s` transplants verbatim
-  through the second identity.
+  `⊢rename (wkN (numBinds Θ))` and **nothing else** — the tail is `Δ`
+  itself, so no `⊢retag` and no `le-mu` — and the conversion `s`
+  transplants verbatim through the second identity.
 * **`TyPeelR`** (`proof/Preserve.preserve-TyPeelR`) — at **every**
   `∀`-conversion, once polarity is gone.  The interior instantiation
   lands at the fresh binder's name, `ren-suc-[0]` undoes the annotation
@@ -1054,22 +1136,23 @@ Induction on the step, with the rule cases distributed:
 * **`CancelR`, `IdPush`** (`proof/MoveScope`) — the scope move, §6.7.
   Four moves each, one per premise of the contractum's inner `env`:
   the frame is `Θ₁ ⋉ Θ₂`, well formed by `⊢ᵐ-⋉`; the interior is `V`,
-  retagged along `frame-move`; the conversion cites the binder that
-  `move-∋` transports; and the exterior premise is `moved-scoped`, the
-  one the wall used to deny — which is now just `wf-shiftBy-pushBinds` on
-  the redex's own exterior type, because
-  `interior (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ`
+  moved by `subst` along the frame **equality**; the conversion cites the
+  binder that `move-∋` transports; and the exterior premise is
+  `moved-scoped`, the one the wall used to deny — which is now just
+  `wf-shiftBy-pushBinds` on the redex's own exterior type, because
+  `interior (rewind Θ₂) Δ ≡ pushBinds (repsOf Θ₂) Δ`
   and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's `C`.
-  The two frame lemmas are **refinements**, not equalities —
-  `interior Θ₁ (interior Θ₂ Δ)
-  ⊑ interior (Θ₁ ⋉ Θ₂) (interior (dropLocks Θ₂) Δ)` and the
-  same for `convCtx` — because the retained unmasks apply twice; `⊢retag`
-  and `conv-⊑` carry that.
+  The two frame lemmas are **equalities** (§6.7), so neither case uses
+  `⊢retag`.  `⊢ᵐ-⋉` is where the sequential judgement pays for itself:
+  `⊢ᵐ-++` splits the merged list at the move, `⊢ᵐ-scopeOf` re-reads `Θ₂`'s
+  entries one bind prefix in, and `Θ₁` is then read over exactly
+  `interior Θ₂ Δ` — its own exterior in the redex.
 * the five `ξ` rules — structural, using the same `env` node.
 
 The three transports the induction rests on are `⊢rename` (along a
-context renaming, with `Inj ρ`), `⊢retag` (along `⊑`, types unchanged),
-and `⊢subst`.
+context renaming, with `Inj ρ`), `⊢retag` (along `⊑ᵃ`, types unchanged),
+and `⊢subst`.  After the repairs `⊢retag` has exactly one call site in
+the whole preservation proof — `TyBeta`'s `abst ⊑ᵃᵉ bind A`.
 
 ### `det` and `value-¬step`
 
@@ -1153,22 +1236,33 @@ machine-checked consequence in tree.
    of grounding `interior Θ₂ Δ ⊢ᵗ A` with a side condition, the rule was
    changed so that the fact follows from `env`'s own last premise.
 2. **Tightness, for terms and for scope.**  A masked slot may not be
-   named in any type; `Nameable` and `wf-var` are the whole enforcement.  But
-   *mentioning* a masked index in a morphism entry (`↓X`, `↥X`) is not a
-   use, and `_⊢ᵐ_` permits it.  **The law is currently broken for the
-   reduction relation**: `Peel`'s `dual` drops `unlock` entries, so the
-   crossing frame can be *more* nameable than the exterior
-   (`proof/DualTightness.agda`; the repair is refuted in
-   `proof/MwUObstruct.agda`, and §4.2/§6.3 say why).
+   named in any type; `Nameable` and `wf-var` are the whole enforcement.
+   *Mentioning* a masked index in a morphism entry (`↓X`, `↥X`) is not a
+   use, and `_⊢ᵐ_` permits it — but it must be TRUE: `↓X` needs `X`
+   nameable and `↥X` needs `X` LOCKED, where the entry acts.  The law
+   held for typing all along and was **broken for the reduction
+   relation** by a `dual` that dropped `unlock` entries; it is repaired
+   (§4.2, §6.3) and the witness that broke it is now refused
+   (`proof/DualTightness.¬⊢Contractum`).  The frame identity (†) is the
+   law in one line: *the crossing frame IS the exterior*.
 3. **No term type-shifts.**  Shift types, not terms.  The only index
    arithmetic in the design is ordinary de Bruijn binder offsets:
    `numBinds Θ`, `shiftBy`, and the `n + X` lift in `scopeOf` and `dualScope`.
    `cmax`, `dropN`, `swapᵇ`, `shiftReps` have no analogue.
-4. **Simultaneity.**  A boundary's entries never interfere: every `_⊢ᵐ_`
-   premise, and every representation, is read in the **exterior**,
-   and `pushBinds` lifts a representation past exactly the binders inside
-   it.  The telescopic variant was landed and reverted
-   (`notes/DECISIONS.md`, "RULING … telescopic (mwf-↑) REVERTED").
+4. **Simultaneity, as far as it goes.**  `pushBinds` lifts a
+   representation past exactly the binders inside it and past nothing
+   else — that half is untouched, and the telescopic variant stays
+   reverted (`notes/DECISIONS.md`, "RULING … telescopic (mwf-↑)
+   REVERTED").  The other half — *every* premise read on the plain
+   exterior — did not survive the tightness repair, and could not: with
+   an `mw-u` that refuses a vacuous unlock, `mw-l` and `mw-u` are exact
+   complements, so a simultaneous judgement cannot hold of a list that
+   both locks and unlocks one slot, and the scope move builds exactly
+   such lists (§4.2).  What replaces it is precise rather than weaker:
+   a REP is read on `unlockedScope Θ′ Δ` — never blocked by the frame's
+   OWN locks (that is the part of simultaneity that mattered: no
+   interference from the entries the frame itself installs) — while a
+   NAME is read on `scope Θ′ Δ`, the frame it actually acts on.
 5. **Determinism.**  Reduction is a partial function.  This is what forces
    `Value` premises on `V-Λ`, `TyBeta` and `Beta`, and what forces every
    rule that mints an identity at a looked-up representation to carry the
@@ -1251,11 +1345,15 @@ the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
 | `instReveal X s` | the same mint, on a conversion |
 | `instConceal X s` | its contravariant partner |
 | `dual Θ` | the frame a crossing argument acquires |
-| `dualScope n Θ` | its scope half |
+| `dualScope n Θ` | its scope half: `Θ`'s scope inverted and reversed |
 | `hideBinds n` | lock the crossed boundary's own binders |
 | `scopeOf n Θ` | `Θ`'s scope, indices lifted by `n` |
 | `dropLocks Θ` | `Θ` with its locks removed |
+| `rewind Θ` | `Θ` with its own scope undone: `dualScope 0 Θ ++ Θ` |
 | `Θ₁ ⋉ Θ₂` | `Θ₁` with `Θ₂`'s scope moved into its tail |
+| `Locked E` | the entry is masked over a nameable one |
+| `Δ ∋lk X` | slot `X` is LOCKED at `Δ` — what an `unlock` cites |
+| `Δ ⊑ᵃ Δ′` | refinement WITHOUT `le-mu`: the transport a TERM travels |
 | `Inj ρ` | the renaming does not confuse two slots |
 
 The `_⊑ᵉ_` constructors were relettered on the same ruling so that each
@@ -1263,13 +1361,15 @@ name spells the two entries it relates (§3, *Refinement*):
 `le-ao` → `le-ab`, `le-oo` → `le-bb`, `le-bb` → `le-mm`,
 `le-bu` → `le-mu`; `le-aa` unchanged.
 
-Two identities worth stating, because they are what the names are meant to
-make obvious:
+Three identities worth stating, because they are what the names are meant
+to make obvious:
 
     scope (dropLocks Θ) Δ ≡ unlockedScope Θ Δ
-    interior (dropLocks Θ) Δ ≡ convCtx Θ Δ
+    interior (rewind Θ) Δ ≡ pushBinds (repsOf Θ) Δ      given Δ ⊢ᵐ Θ
+    interior (dual Θ) (interior Θ Δ)
+      ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ       given Δ ⊢ᵐ Θ
 
-The second is `proof/MoveScope.interior-dropLocks` — *the conversion
-context is the interior of the dropLocks boundary* — and it is the
-identity that retired
-the wall.
+The second is `proof/MoveScope.interior-rewind` — *a rewound frame leaves
+its bind prefix and nothing else* — and it is the identity that retired
+the wall.  The third is (†), `proof/PeelDual.interior-dual`: *the
+crossing frame is the exterior*, which is tightness for `Peel`.

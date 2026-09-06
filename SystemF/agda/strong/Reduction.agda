@@ -166,24 +166,23 @@ dual Θ = hideBinds (numBinds Θ) ++ dualScope (numBinds Θ) Θ
 -- CONTEXT and NOT, in general, inside the outer boundary's own locks — that
 -- was the wall (the old proof/PreserveObstruct §4).
 --
--- The repair is not a side condition but a FRAME MOVE: the outer frame
--- keeps only what BINDS and what UNMASKS, and its whole SCOPE part
--- travels into the inner frame's TAIL, where `scope` applies it FIRST —
--- exactly where it applied before.  The rep is then presented OUTSIDE the
--- locks, where it is nameable, and the locks still stand between the
--- value and the world.
+-- The repair is not a side condition but a FRAME MOVE: the outer frame's
+-- whole SCOPE travels into the inner frame's TAIL, where `scope` applies
+-- it FIRST — exactly where it applied before — and what stays outside is
+-- the frame with its own scope REWOUND (`rewind Θ₂`), whose net effect on
+-- the exterior is its BIND PREFIX alone.  The rep is then presented
+-- OUTSIDE the locks, where it is nameable, and the locks still stand
+-- between the value and the world.
 --
--- WHY THE UNLOCKS TRAVEL TOO, AND ARE ALSO RETAINED.  `scope` applies its
--- list HEAD-LAST, so moving only the LOCKS past a same-slot `unlock`
--- reorders a mask/unmask pair, and the value's frame is then not refined
--- but CORRUPTED — a slot it may name is masked in the contractum and was
--- not in the redex (`¬frame-locksOnly`, proof/MoveScope §4b, at the
--- ⊢ᵐ-legal `Θ₂ = unlock 0 ∷ lock 0 ∷ []`).  Moving the WHOLE scope keeps
--- the order, and the retained unmasks are harmless: unmasking only ADDS
--- nameability, so the value's frame is REFINED and `⊢retag` carries it
--- (`frame-move`).  With that the frame lemma is UNCONDITIONAL — no
--- premise about Θ₂'s shape, and no side condition for Progress to
--- supply.
+-- WHY THE UNLOCKS TRAVEL TOO.  `scope` applies its list HEAD-LAST, so
+-- moving only the LOCKS past a same-slot `unlock` reorders a mask/unmask
+-- pair, and the value's frame is then not refined but CORRUPTED — a slot
+-- it may name is masked in the contractum and was not in the redex
+-- (`¬frame-locksOnly`, proof/MoveScope §4b, at the ⊢ᵐ-legal
+-- `Θ₂ = unlock 0 ∷ lock 0 ∷ []`).  Moving the WHOLE scope keeps the
+-- order, and then the value's frame is preserved ON THE NOSE: the two
+-- frame lemmas are EQUALITIES, no `⊢retag` appears in either case, and
+-- there is no premise about Θ₂'s shape for Progress to supply.
 
 -- The outer frame's scope entries, lifted past its own binders.
 scopeOf : ℕ → CtxMorph → CtxMorph

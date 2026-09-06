@@ -2409,3 +2409,18 @@ conversion names the boundary's own binds (absent from Δ) and cites
 owners by lookup, including locked ones (masked in the interior), so it
 types in neither; convCtx = interior (dropLocks Θ) Δ is the smallest
 context where both resolve (Design.md §3).
+
+### RULING: "face" retired from the development (Jeremy, 2026-09-06)
+
+The word "face" (for a boundary's conversion and its two types) is
+retired from identifiers, comments and notes of strong/ (v1 memos,
+notes/old and this log keep their vocabulary).  Speak of the boundary's
+CONVERSION `c`, its SOURCE type (the interior type) and TARGET type (the
+exterior type shifted by numBinds), the boundary's INTERIOR and EXTERIOR,
+and the CONVERSION CONTEXT `convCtx Θ Δ`.  Consistency rule: "exterior"
+means the plain Δ and nothing else.  Identifier map: conv-faces-unique →
+conv-types-unique, unseal-face-is-the-owners-rep → unseal-target-is-rep,
+seal-face-is-the-owners-rep → seal-source-is-rep, inert-*-face →
+inert-*-conv, J-face-ctx/t-face-ctx → J-convCtx/t-convCtx, ⊢Hface/⊢Gface/
+⊢Pk-face → ⊢Hconv/⊢Gconv/⊢Pk-conv, face-move → convCtx-move,
+∀-face-premise → ∀-conv-premise, ¬ChainFaced → ¬ChainConv.

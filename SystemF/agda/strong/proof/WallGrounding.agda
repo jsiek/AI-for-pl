@@ -2,6 +2,15 @@ module strong.proof.WallGrounding where
 
 -- WHERE THE WALL CAN BE GROUNDED — AND WHERE IT CANNOT.
 --
+-- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
+-- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
+-- contracta present the rep on Θ₂'s FACE type context — `intC (unlocked
+-- Θ₂) Δ ≡ fceC Θ₂ Δ` — where `wf-liftN-prep` supplies it outright
+-- (proof/MoveScope).  So no invariant has to be grounded at all.  What
+-- follows is still TRUE, and is the machine-checked record of the
+-- candidates that were tried; nothing in the main development uses it.
+--
+--
 -- proof/WallReach turns the wall into the type-context invariant
 --
 --     RepWf Ξ  =  ∀ {Y A} → Ξ ∋ Y := A → Ξ ⊢ᵗ A

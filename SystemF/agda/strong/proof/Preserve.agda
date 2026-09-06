@@ -20,9 +20,10 @@ module strong.proof.Preserve where
 -- §3  the per-rule cases that hold, one lemma each — TyBeta, TyPeelR at
 --     ANY ∀-face, and Drop$.
 --
--- §4  `preserve`, over a module parameterized by the cases whose proofs
---     live downstream (Peel, CancelR) and by IdPush, which is still
---     REFUTED (proof/PreserveObstruct §4).
+-- §4  `preserve`, over a module parameterized by the three cases whose
+--     proofs live downstream: Peel (proof/PeelDual) and CancelR/IdPush
+--     (proof/MoveScope).  All three are theorems, so `strong.Preservation`
+--     instantiates the module once and states preservation outright.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (_≟_)
@@ -503,14 +504,13 @@ preserve-Drop$ {C = C} bA (env {Θ = Θ} bw ⊢$ ⊢c wE)
   rewrite liftN-ℕ⁻ {A = C} (nbind Θ) (sym (conv-id-refl ⊢c)) = ⊢$
 
 ------------------------------------------------------------------------
--- §4  The cases carried as parameters, and `preserve` over them
+-- §4  The three downstream cases, and `preserve` over them
 ------------------------------------------------------------------------
 
 -- Each statement below is the preservation obligation of ONE reduction
--- rule, verbatim.  `PeelCase` is PROVEN (proof/PeelDual) and `CancelRCase`
--- is DISCHARGED over one scoping interface (proof/CancelFaces); both are
--- stated here because their proofs live downstream of this module.
--- `IdPushCase` is REFUTED as it stands (proof/PreserveObstruct §4).
+-- rule, verbatim.  All three are PROVEN — `PeelCase` in proof/PeelDual,
+-- `CancelRCase` and `IdPushCase` in proof/MoveScope — and are stated
+-- here only because their proofs live downstream of this module.
 
 PeelCase : Set
 PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
@@ -520,16 +520,19 @@ PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
 -- (`TyPeelRCase` is stated and PROVEN in §3.)
 
 -- CANCELR, at the repaired rule (both frames kept, both faces
--- neutralised).  Discharged over ONE interface in proof/CancelFaces.
+-- neutralised, Θ₂'s scope MOVED IN).  PROVEN in proof/MoveScope.
 CancelRCase : Set
 CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → fceC Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ◃ Θ₂ , idc (liftN (nbind Θ₁) A) ⟫)
+               ⟪ unlocked Θ₂ , idc A ⟫ ⦂ C
 
+-- IDPUSH, at the moved scope.  PROVEN in proof/MoveScope — the wall the
+-- old contractum ran into is gone with the frame move.
 IdPushCase : Set
 IdPushCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → fceC Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ◃ Θ₂ , unseal X ⟫) ⟪ unlocked Θ₂ , idc A ⟫ ⦂ C
 
 -- THE TERM CONTEXT IS EMPTY, and it has to be.  Reduction carries no term
 -- context (`_⊢_-→_` indexes on the TYPE context alone) and TyBeta's

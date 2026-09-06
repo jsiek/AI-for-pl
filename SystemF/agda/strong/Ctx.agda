@@ -67,7 +67,7 @@ Ctxᵗ = List Ent
 private
   variable
     Δ Δ′ Δ″ : Ctxᵗ
-    E E′ F : Ent
+    E E′ E″ F : Ent
     A A′ B B′ C : Ty
     X Y Z : ℕ
     ρ ρ′ : Renameᵗ
@@ -245,6 +245,21 @@ vis-mono (le-bu _ _)  ()
 ⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A
 ⊑-kn ls d with ⊑-∋e ls d
 ... | bind A , d′ , le-oo = d′
+
+-- Refinement composes.  (The only clause that has to think is `le-bu`:
+-- an entry that stops being blocked stays unblocked, and `vis-mono`
+-- carries its visibility along the second step.)
+⊑ᵉ-trans : E ⊑ᵉ E′ → E′ ⊑ᵉ E″ → E ⊑ᵉ E″
+⊑ᵉ-trans le-aa       l′           = l′
+⊑ᵉ-trans le-ao       le-oo        = le-ao
+⊑ᵉ-trans le-oo       le-oo        = le-oo
+⊑ᵉ-trans (le-bb l)   (le-bb l′)   = le-bb (⊑ᵉ-trans l l′)
+⊑ᵉ-trans (le-bb l)   (le-bu l′ v) = le-bu (⊑ᵉ-trans l l′) v
+⊑ᵉ-trans (le-bu l v) l′           = le-bu (⊑ᵉ-trans l l′) (vis-mono l′ v)
+
+⊑-trans : Δ ⊑ Δ′ → Δ′ ⊑ Δ″ → Δ ⊑ Δ″
+⊑-trans le[]       le[]         = le[]
+⊑-trans (le∷ l ls) (le∷ l′ ls′) = le∷ (⊑ᵉ-trans l l′) (⊑-trans ls ls′)
 
 ⊑-wf : Δ ⊑ Δ′ → Δ ⊢ᵗ A → Δ′ ⊢ᵗ A
 ⊑-wf ls (wf-var tv)  = wf-var (⊑-tv ls tv)
@@ -470,6 +485,16 @@ wf-liftN-prep (C ∷ As) w = wf-ren Ren-wk-prep (wf-liftN-prep As w)
   where
   Ren-wk-prep : ∀ {E Δ″} → Ren suc Δ″ (E ∷ Δ″)
   Ren-wk-prep = mkRen es
+
+-- A one-slot update PAST the owner prefix is the update on the tail: the
+-- prefix has `length As` entries and neither of them is touched.  This is
+-- what lets a boundary's own masking be re-indexed INTO an inner frame
+-- (strong.Reduction, `moveS`).
+upd-prep : (f : Ent → Ent) (As : List Ty) (X : ℕ) (Δ : Ctxᵗ)
+  → upd f (length As + X) (prep As Δ) ≡ prep As (upd f X Δ)
+upd-prep f []       X Δ = refl
+upd-prep f (C ∷ As) X Δ =
+  cong (bind (liftN (length As) C) ∷_) (upd-prep f As X Δ)
 
 -- A well-formed variable type IS a visible slot.
 wf-var⁻ : Δ ⊢ᵗ ` X → Δ ∋tv X

@@ -2323,3 +2323,49 @@ Consequence: TyPeelR as landed is THE rule; Conditional shrinks to
 (scoped : ScopedAtUnseal) (idpush : IdPushCase) — the two are one fact.
 Regularity (typed terms have well-formed types) is the lemma that makes
 the per-variable invariant a theorem; to be stated if wanted.
+
+### PRESERVATION PROVEN, PARAMETER-FREE — Jeremy's lock-moving contractum (2026-09-06)
+
+Jeremy: "Regarding IdPush, I'm contemplating whether part of Θ₂ should
+sometimes be moved to the inner boundary in the contractum.  For example,
+in R₁, the ↓X could be moved to the left of the unseal Y, into the inner
+boundary."  Machine-checked first on the wall witness (R₁′ types: the
+value's frame is unchanged, the rep is presented OUTSIDE the lock), then
+generalised (proof/MoveScope.agda, artifact "The Wall"):
+
+    moveS n Θ      -- Θ's locks AND unlocks (binds dropped), indices lifted by n
+    unlocked Θ     -- Θ with its locks removed (binds and unlocks stay)
+    Θ₁ ◃ Θ₂ = Θ₁ ++ moveS (nbind Θ₂) Θ₂
+
+    IdPush  : (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+              -→ (V ⟪ Θ₁ ◃ Θ₂ , unseal X ⟫) ⟪ unlocked Θ₂ , idc A ⟫
+    CancelR : (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+              -→ (V ⟪ Θ₁ ◃ Θ₂ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ unlocked Θ₂ , idc A ⟫
+
+The whole scope (locks and unlocks, order kept) moves; the unlocks are
+also retained in Θ₂′.  Moving ONLY the locks is REFUTED in-tree (MoveScope
+§4b: Θ✗ = unlock 0 ∷ lock 0, Bwf-legal; scp applies head-last, so a lock
+moved past a same-slot unlock flips the mask).  Frame lemmas, all
+unconditional: intC-unlocked (intC (unlocked Θ) Δ ≡ fceC Θ Δ — the outer
+frame IS the face frame), scp-moveS, frame-move / face-move (REFINEMENTS
+⊑, not equalities — the retained unmasks apply twice; ⊢retag carries
+them), move-∋, Bwf-◃, nbind-◃.  The premise the wall asked for,
+intC Θ₂ Δ ⊢ᵗ A, becomes intC (unlocked Θ₂) Δ ⊢ᵗ A = fceC Θ₂ Δ ⊢ᵗ A, which
+follows from the redex typing (A ≡ liftN (nbind Θ₂) C, Δ ⊢ᵗ C,
+wf-liftN-prep).  Both cases typed on the first attempt.
+
+RESULT: strong.Preservation has top-level `preservation : Preservation`
+and `preservation* : Preservation*` — no Conditional module, no
+ScopedAtUnseal, no RepWf, no MaskOnly.  det re-proven, value-¬step and
+Progress unchanged.  Deleted: proof/CancelFaces, proof/ScopedAtUnsealDef,
+preservation-fails/¬preservation, ¬IdPushCase (PreserveObstruct §4 now
+records the POSITIVE fact: the old wall witness steps to a typed term and
+on to a value, Examples §12b R₀ → R₁′ → R₂).  Example ripple: one pinned
+trace (§4 Tₘ, Θ₂ = unlock 0) changed shape; Q/D/R/L/K/J unchanged (binds-
+only Θ₂: Θ₁ ◃ Θ₂ ≡ Θ₁ computes).  KEPT AS RECORDS (compiling, banners):
+proof/WallReach, WallGrounding, ChainScoped, IdPushReach — the invariant
+hunt for a premise that no longer exists; recommended for deletion
+(Jeremy's call; closed-world repo).  The design lesson: the wall was
+never a missing invariant — the rule put the rep on the wrong side of
+the lock.  NEXT: TypeSafety.agda (progress + preservation, top-level
+wrappers), README/Design, PR #190 body.

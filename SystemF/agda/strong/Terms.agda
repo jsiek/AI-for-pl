@@ -100,6 +100,15 @@ scp⊑fscp (lock X ∷ Θ) Δ = mask-⊑ X (scp⊑fscp Θ Δ)
 intC⊑fceC : (Θ : CtxMorph) (Δ : Ctxᵗ) → intC Θ Δ ⊑ fceC Θ Δ
 intC⊑fceC Θ Δ = ⊑-prep (reps Θ) (scp⊑fscp Θ Δ)
 
+-- The FACE type context only ever ADDS nameability to the plain
+-- exterior: `fscp` skips the binds and the locks, and an `unlock` merely
+-- restores.  (`scp` would not do — masking is what a lock is for.)
+Δ⊑fscp : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊑ fscp Θ Δ
+Δ⊑fscp []             Δ = ⊑-refl Δ
+Δ⊑fscp (bind A ∷ Θ)   Δ = Δ⊑fscp Θ Δ
+Δ⊑fscp (unlock X ∷ Θ) Δ = ⊑-trans (Δ⊑fscp Θ Δ) (unmask-⊑ X (fscp Θ Δ))
+Δ⊑fscp (lock X ∷ Θ)   Δ = Δ⊑fscp Θ Δ
+
 ⊑-scp : (Θ : CtxMorph) → Δ ⊑ Δ′ → scp Θ Δ ⊑ scp Θ Δ′
 ⊑-scp []          ls = ls
 ⊑-scp (bind A ∷ Θ) ls = ⊑-scp Θ ls

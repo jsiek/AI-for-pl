@@ -2,6 +2,15 @@ module strong.proof.WallReach where
 
 -- THE COMMON WALL, AND THE GROUNDED INVARIANT THAT CLEARS IT.
 --
+-- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
+-- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
+-- contracta present the rep on Θ₂'s FACE type context — `intC (unlocked
+-- Θ₂) Δ ≡ fceC Θ₂ Δ` — where `wf-liftN-prep` supplies it outright
+-- (proof/MoveScope).  So no invariant has to be grounded at all.  What
+-- follows is still TRUE, and is the machine-checked record of the
+-- candidates that were tried; nothing in the main development uses it.
+--
+--
 -- IdPush, CancelR and TyPeelR share ONE obstruction (notes/DECISIONS.md,
 -- "Peel FIXED and PROVEN"): a contractum's inner wrapper must PRESENT the
 -- owner's rep `A` inside `Θ₂`'s interior, and `env`'s last premise then

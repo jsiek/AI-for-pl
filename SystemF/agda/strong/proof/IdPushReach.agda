@@ -2,6 +2,15 @@ module strong.proof.IdPushReach where
 
 -- IDPUSH — THE REACHABILITY VERDICT, and the soundness fix it points to.
 --
+-- RETIRED, AND KEPT AS A RECORD (2026-09-06).  The SCOPE MOVE
+-- (strong.Reduction §2b) replaced the contractum this file is about:
+-- IdPush now moves Θ₂'s scope into the inner frame, and its preservation
+-- case needs NO scoping side-condition (proof/MoveScope.preserve-IdPush).
+-- `idPush⁺` below is still a true lemma about the OLD contractum, and
+-- `maskOnly` is still used by proof/WallReach; both are kept for that
+-- record.  What follows describes the question as it stood.
+--
+--
 -- proof/PreserveObstruct §4 refutes IdPush's preservation case with a
 -- HAND-BUILT redex whose Θ₂ = `lock 1 ∷ []` blocks exactly the slot the
 -- id-face's owner rep (` 1) names — the v1 c10/c11 chained-rep shape.  The
@@ -56,26 +65,10 @@ open import strong.Reduction using ()
 open import strong.proof.Preserve using (IdPushCase)
 
 ------------------------------------------------------------------------
--- §1  TWO LOOKUP TRANSPORTS
+-- §1  TWO LOOKUP TRANSPORTS  (they live in proof/MoveScope now)
 ------------------------------------------------------------------------
 
--- An owner survives `fscp`: it only unmasks (`unblk`, which fixes `bind`)
--- and skips locks, so a `bind` lookup is preserved unchanged.
-fscp-∋bind : ∀ (Θ : CtxMorph) {D Y A}
-  → D ∋ Y := A → fscp Θ D ∋ Y := A
-fscp-∋bind []              d = d
-fscp-∋bind (bind C ∷ Θ)    d = fscp-∋bind Θ d
-fscp-∋bind (lock Z ∷ Θ)    d = fscp-∋bind Θ d
-fscp-∋bind (unlock Z ∷ Θ) {Y = Y} d with Z ≟ℕ Y
-... | yes refl = upd-hit  unblk unblk-comm    (fscp-∋bind Θ d)
-... | no  ne   = upd-miss unblk unblk-comm ne (fscp-∋bind Θ d)
-
--- The owner prefix lifts an owner: slot Y in the tail becomes slot
--- `length As + Y` at the rep lifted past the `length As` prefix owners.
-prep-∋ : ∀ (As : List Ty) {D Y A}
-  → D ∋ Y := A → prep As D ∋ (length As + Y) := liftN (length As) A
-prep-∋ []       d = d
-prep-∋ (C ∷ As) d = es (prep-∋ As d)
+open import strong.proof.MoveScope using (fscp-∋bind; prep-∋)
 
 ------------------------------------------------------------------------
 -- §2  THE MASK-ONLY FACT — PROVEN (2026-09-05)

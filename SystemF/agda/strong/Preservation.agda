@@ -21,14 +21,13 @@ module strong.Preservation where
 --   is a value at Γ = `ℕ ∷ [], TyBeta fires, and the contractum's interior
 --   would have to mention a term variable that a wrapper body may not have.
 --
--- THE STATUS (2026-09-06, after the polarity index was retired).
+-- THE STATUS (2026-09-06, after the SCOPE MOVE).  PRESERVATION HOLDS,
+-- with no parameters and no invariant.
 --
+--   TYBETA    PROVEN (proof/Preserve.preserve-TyBeta) — the mint.
+--   BETA      PROVEN (strong.TermSubst.preserve-Beta).
 --   PEEL      PROVEN (proof/PeelDual.preserve-Peel), since `dualS` drops
 --             the `unlock` case.
---   CANCELR   REPAIRED — both frames kept, both faces neutralised — and
---             DISCHARGED over ONE interface, `ScopedAtUnseal`
---             (proof/CancelFaces.preserve-CancelR).  Its old
---             counterexample now TYPES (proof/PreserveObstruct §1).
 --   TYPEELR   REPAIRED and PROVEN, at EVERY ∀-face
 --             (proof/Preserve.preserve-TyPeelR).  The rule pushes in the
 --             premise-determined interior ∀-body, keeps the frame plain,
@@ -38,29 +37,29 @@ module strong.Preservation where
 --             per variable each leaf cites its own owner, and `env`'s
 --             frame checks are what keep the two apart.  Examples §13
 --             runs both faces from closed plain source.
---   IDPUSH    the one case still open; it needs the grounded scoping fact
---             (proof/WallReach.idPush-RepWf).
+--   DROP$     PROVEN (proof/Preserve.preserve-Drop$).
+--   CANCELR   PROVEN (proof/MoveScope.preserve-CancelR).
+--   IDPUSH    PROVEN (proof/MoveScope.preserve-IdPush).
 --
--- What IS proven, unconditionally: TyBeta (the mint), Beta, Drop$, PEEL,
--- TYPEELR, and all five congruences — and preservation itself, over the
--- remaining open cases as premises (`module Conditional`).
+-- WHAT CLOSED THE LAST TWO: THE SCOPE MOVE (Jeremy, 2026-09-06;
+-- strong.Reduction §2b).  Both rules swap the two faces, so the inner
+-- boundary stops presenting the abstract name and starts presenting the
+-- OWNER'S REP — and `env`'s last premise then asks for that rep to be
+-- well formed INSIDE the outer frame, where its own `lock`s may have
+-- blocked the slot the rep names.  That was the wall (the old
+-- proof/PreserveObstruct §4 refutation, and the whole search for an
+-- invariant to ground it: proof/WallReach, proof/WallGrounding,
+-- proof/ChainScoped, and the retired `ScopedAtUnseal` interface).
 --
--- WHERE IDPUSH'S MISSING PREMISE CAN LIVE.  proof/WallReach shows the
--- missing premise is `RepWf (intC Θ₂ Δ)` and proof/IdPushReach proves the
--- case from it (`idPush⁺`, with the mask-only step `maskOnly` now PROVEN).
--- proof/WallGrounding settles where that premise can be GROUNDED: NOT in
--- `Bwf`, because the `¬IdPushCase` witness and a REACHABLE wrapper of
--- Examples §12 have the SAME `Δ` and the SAME `Θ` and differ only in
--- their FACE — so a `Bwf`-level wall would make `preserve-TyBeta` false.
--- The candidate that followed — a FACE-CONDITIONED `env` premise, asked
--- at reveal faces only — switched on the polarity index and is retired
--- with it; its witness survives as `Ξ★`/`Θ★₁` (proof/ChainScoped §3),
--- which shows the obstruction MOVES to the inner, id-faced layer.
--- proof/ChainScoped runs the next two: POINTWISE `RepWf` at every
--- name-faced boundary, killed by a closed program (`¬NameFacedRepWf`),
--- and the REP CHAIN of the face's own name, which gets IdPush and
--- CancelR right but is broken by TyBeta's retag (`¬ChainFaced`) — a
--- chain STOPS at a Λ-bound slot, and TyBeta gives that slot a rep.
+-- The repair is a FRAME MOVE, not a side condition: the outer frame keeps
+-- only its binds and unmasks (`unlocked Θ₂`) and its whole SCOPE travels
+-- into the inner frame's tail (`Θ₁ ◃ Θ₂`), where `scp` applies it first —
+-- exactly where it applied before.  Then
+-- `intC (unlocked Θ₂) Δ ≡ fceC Θ₂ Δ`, the rep is presented OUTSIDE the
+-- locks, and the missing premise is `wf-liftN-prep` on the redex's own
+-- exterior type: the reveal's target IS that type, lifted.  Nothing is
+-- assumed about the world, and the old counterexample now REDUCES to a
+-- TYPED term (proof/PreserveObstruct §4, `⊢i-contractum`).
 
 open import Data.Nat using (ℕ; suc)
 open import Data.List using (List; []; _∷_)
@@ -77,14 +76,13 @@ open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
 open import strong.Reduction
   using (_⊢_-→_; _⊢_-→*_; unsealAt; unsealAtᶜ)
 
+open import strong.Reduction using (_◃_; unlocked)
 open import strong.proof.Preserve
-  using (IdPushCase; preserve-TyBeta; preserve-Drop$; preserve-TyPeelR;
+  using (preserve-TyBeta; preserve-Drop$; preserve-TyPeelR;
          ⊢ᵗ-of; CtxWf-[])
 import strong.proof.Preserve as P
 open import strong.proof.PeelDual using (preserve-Peel)
-open import strong.proof.CancelFaces using (preserve-CancelR)
-open import strong.proof.ScopedAtUnsealDef using (ScopedAtUnseal)
-open import strong.proof.PreserveObstruct using (¬preservation)
+open import strong.proof.MoveScope using (preserve-CancelR; preserve-IdPush)
 
 private
   variable
@@ -111,35 +109,21 @@ Preservation* = ∀ {Δ M M′ A}
   → Δ ∣ [] ⊢ M′ ⦂ A
 
 ------------------------------------------------------------------------
--- 2.  The status: FALSE for the rule set as it stands
+-- 2.  THE THEOREMS
 ------------------------------------------------------------------------
 
-preservation-fails : ¬ Preservation
-preservation-fails = ¬preservation
+-- No parameters, no invariant, no side condition: every case of every
+-- rule is discharged.  `P.Impl` is the induction, and its three
+-- arguments are the three cases whose proofs live downstream of
+-- proof/Preserve.
+private
+  module I = P.Impl preserve-Peel preserve-CancelR preserve-IdPush
 
-------------------------------------------------------------------------
--- 3.  CONDITIONAL preservation
-------------------------------------------------------------------------
+preservation : Preservation
+preservation = I.preserve
 
--- Every case is discharged except the ones still open, which are the
--- module's TWO parameters (TyPeelR left the list when the polarity index
--- did).  Note what CancelR's parameter is: NOT its preservation case, but
--- the SCOPING FACT `ScopedAtUnseal` — the rule's case is derived from it
--- (`preserve-CancelR`).  That is the whole of CancelR's remaining debt,
--- and it is the common wall, stated once.
-module Conditional
-  (scoped : ScopedAtUnseal)
-  (idpush : IdPushCase)
-  where
-
-  private
-    module I = P.Impl preserve-Peel (preserve-CancelR scoped) idpush
-
-  preservation : Preservation
-  preservation = I.preserve
-
-  preservation* : Preservation*
-  preservation* = I.preserve*
+preservation* : Preservation*
+preservation* = I.preserve*
 
 ------------------------------------------------------------------------
 -- 4.  The rule cases that hold unconditionally
@@ -180,14 +164,22 @@ preservation-TyPeelR : ∀ {V Θ s B Bᵢ Bₑ}
                ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
 preservation-TyPeelR = preserve-TyPeelR
 
--- CANCELR — over the ONE scoping interface.
+-- CANCELR — at the moved scope, unconditionally.
 preservation-CancelR : ∀ {V Θ₁ Θ₂ X Y}
-  → ScopedAtUnseal
   → Value V → fceC Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     ---------------------------------------------------------------
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫ ⦂ C
-preservation-CancelR sc = preserve-CancelR sc
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ◃ Θ₂ , idc (liftN (nbind Θ₁) A) ⟫)
+               ⟪ unlocked Θ₂ , idc A ⟫ ⦂ C
+preservation-CancelR = preserve-CancelR
+
+-- IDPUSH — the case the wall used to block, likewise unconditional.
+preservation-IdPush : ∀ {V Θ₁ Θ₂ X Y}
+  → Value V → fceC Θ₂ Δ ∋ Y := A
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
+    ---------------------------------------------------------------
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ◃ Θ₂ , unseal X ⟫) ⟪ unlocked Θ₂ , idc A ⟫ ⦂ C
+preservation-IdPush = preserve-IdPush
 
 ------------------------------------------------------------------------
 -- 5.  A by-product worth naming: typed terms have well-formed types

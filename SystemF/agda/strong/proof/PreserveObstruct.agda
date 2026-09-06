@@ -18,12 +18,15 @@ module strong.proof.PreserveObstruct where
 --               counterexample's witness and records the POSITIVE fact on
 --               it; Examples §13 reaches it from closed plain source.
 --   §3 Peel     REPAIRED and PROVEN (proof/PeelDual); refutation removed.
---   §4 IdPush   PUSHES A REP ACROSS A LOCK.  The inner wrapper's new
---               exterior type is the owner's rep `A`, which `env`'s last
---               premise then demands be well formed on the INTERIOR type
---               context — where Θ₂'s `lock` may have blocked the slot the
---               rep names (the chained-rep configuration of §5's c10/c11).
---               proof/WallReach answers it over the `RepWf` invariant.
+--   §4 IdPush   REPAIRED by the SCOPE MOVE (Jeremy, 2026-09-06).  The
+--               inner wrapper's new exterior type is the owner's rep `A`,
+--               which `env`'s last premise demands be well formed where
+--               the contractum puts it.  The old contractum put it INSIDE
+--               Θ₂'s `lock` — §4's witness, and the refutation that stood
+--               here.  The repaired rule MOVES Θ₂'s scope into the inner
+--               frame, so the rep is presented on Θ₂'s FACE type context,
+--               where it is nameable; §4 now records the POSITIVE fact on
+--               the very same witness (`⊢i-contractum`).
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -38,8 +41,8 @@ open import strong.Conversion
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
-open import strong.proof.Preserve
-  using (IdPushCase; preserve-TyPeelR)
+open import strong.proof.Preserve using (preserve-TyPeelR)
+open import strong.proof.MoveScope using (preserve-IdPush)
 
 ------------------------------------------------------------------------
 -- §1  CancelR drops Θ₁'s frame
@@ -274,29 +277,46 @@ Ri = (Vi ⟪ [] , id (` 0) ⟫) ⟪ Θi , unseal 0 ⟫
           (conv-unseal ez)
           (wf-var (bind `ℕ , es ez , vis-b))
 
-step-i : Δi ⊢ Ri -→ (Vi ⟪ [] , unseal 0 ⟫) ⟪ Θi , idc (` 1) ⟫
+-- THE STEP, AT THE MOVED SCOPE.  `Θ₂ = lock 1 ∷ []` is binder-free, so
+-- the move is `[] ◃ Θi ≡ lock 1 ∷ []` and `unlocked Θi ≡ []`: the lock
+-- goes INTO the inner boundary and the outer one keeps nothing.
+step-i : Δi ⊢ Ri -→ (Vi ⟪ [] ◃ Θi , unseal 0 ⟫) ⟪ unlocked Θi , idc (` 1) ⟫
 step-i = IdPush val-Vi ez
+
+_ : _≡_ {A = CtxMorph} ([] ◃ Θi) (lock 1 ∷ [])
+_ = refl
+
+_ : _≡_ {A = CtxMorph} (unlocked Θi) []
+_ = refl
 
 _ : idc (` 1) ≡ id (` 1)
 _ = refl
 
--- inside, the rep ` 1 is not even a well-formed type
+-- The rep ` 1 is STILL not well formed inside the lock …
 ¬wf-i : ¬ (Ξi ⊢ᵗ ` 1)
 ¬wf-i (wf-var (_ , es ez , ()))
 
-¬⊢i-contractum :
+-- … and that is exactly why the OLD contractum, which presented it
+-- there, was untypeable.  This is the refutation that used to stand
+-- here; it is kept because it is what the rule change answers.
+¬⊢i-old-contractum :
   ¬ (Δi ∣ [] ⊢ (Vi ⟪ [] , unseal 0 ⟫) ⟪ Θi , id (` 1) ⟫ ⦂ ` 1)
-¬⊢i-contractum (env _ (env _ _ (conv-unseal ez) w) (conv-idv _) _) = ¬wf-i w
+¬⊢i-old-contractum (env _ (env _ _ (conv-unseal ez) w) (conv-idv _) _) =
+  ¬wf-i w
 
-¬IdPushCase : ¬ IdPushCase
-¬IdPushCase ic = ¬⊢i-contractum (ic val-Vi ez ⊢Ri)
+-- THE POSITIVE FACT.  With the lock moved into the inner boundary the
+-- rep is presented on the FACE type context `fceC Θi Δi ≡ Δi`, where
+-- slot 1 is live — and the contractum TYPES.  (`ProbeMove.agda` in the
+-- main tree checked this derivation by hand; here it is the theorem.)
+⊢i-contractum :
+  Δi ∣ [] ⊢ (Vi ⟪ lock 1 ∷ [] , unseal 0 ⟫) ⟪ [] , id (` 1) ⟫ ⦂ ` 1
+⊢i-contractum = preserve-IdPush val-Vi ez ⊢Ri
 
 ------------------------------------------------------------------------
--- §5  THE HEADLINE, and the verdict on `intC-dual`
+-- §5  THE HEADLINE
 ------------------------------------------------------------------------
 
--- Preservation, as targeted, is still FALSE while IdPush stands: §4 is
--- the ONLY surviving witness, Peel and TyPeelR being repaired and proven.
-¬preservation :
-  ¬ (∀ {Δ M M′ A} → Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A)
-¬preservation pr = ¬⊢i-contractum (pr ⊢Ri step-i)
+-- Every §-witness above now TYPES: §1's (the repaired CancelR residue),
+-- §2's (the repaired TyPeelR contractum) and §4's (the moved scope).
+-- There is no surviving refutation, and `strong.Preservation` states the
+-- theorem outright.

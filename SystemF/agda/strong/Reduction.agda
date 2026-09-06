@@ -145,6 +145,58 @@ dual Θ = lockBinds (nbind Θ) ++ dualS (nbind Θ) Θ
 -- CancelR keeps both frames and mints none.)
 
 ------------------------------------------------------------------------
+-- 2b.  THE SCOPE MOVE — the outer frame's locks go INTO the inner one
+------------------------------------------------------------------------
+
+-- JEREMY'S MOVE (2026-09-06).  CancelR and IdPush both SWAP the two
+-- faces: the inner boundary stops presenting the abstract name `` ` Y ``
+-- and starts presenting Y's REP.  A rep is a type over the PLAIN
+-- exterior, so it is nameable on the outer boundary's FACE type context
+-- and NOT, in general, inside the outer boundary's own locks — that was
+-- the wall (the old proof/PreserveObstruct §4).
+--
+-- The repair is not a side condition but a FRAME MOVE: the outer frame
+-- keeps only what BINDS and what UNMASKS, and its whole SCOPE part
+-- travels into the inner frame's TAIL, where `scp` applies it FIRST —
+-- exactly where it applied before.  The rep is then presented OUTSIDE the
+-- locks, where it is nameable, and the locks still stand between the
+-- value and the world.
+--
+-- WHY THE UNLOCKS TRAVEL TOO, AND ARE ALSO RETAINED.  `scp` applies its
+-- list HEAD-LAST, so moving only the LOCKS past a same-slot `unlock`
+-- reorders a mask/unmask pair, and the value's frame is then not refined
+-- but CORRUPTED — a slot it may name is masked in the contractum and was
+-- not in the redex (`¬frame-locksOnly`, proof/MoveScope §4b, at the
+-- Bwf-legal `Θ₂ = unlock 0 ∷ lock 0 ∷ []`).  Moving the WHOLE scope keeps
+-- the order, and the retained unmasks are harmless: unmasking only ADDS
+-- nameability, so the value's frame is REFINED and `⊢retag` carries it
+-- (`frame-move`).  With that the frame lemma is UNCONDITIONAL — no
+-- premise about Θ₂'s shape, and no side condition for Progress to
+-- supply.
+
+-- The outer frame's scope entries, lifted past its own owners.
+moveS : ℕ → CtxMorph → CtxMorph
+moveS n []             = []
+moveS n (bind A ∷ Θ)   = moveS n Θ
+moveS n (unlock X ∷ Θ) = unlock (n + X) ∷ moveS n Θ
+moveS n (lock X ∷ Θ)   = lock (n + X) ∷ moveS n Θ
+
+-- What is LEFT of the outer frame: its binds and its unlocks.  Its
+-- interior IS its face type context (`intC-unlocked`, proof/MoveScope) —
+-- which is exactly why the rep it now presents is well formed there.
+unlocked : CtxMorph → CtxMorph
+unlocked []             = []
+unlocked (bind A ∷ Θ)   = bind A ∷ unlocked Θ
+unlocked (unlock X ∷ Θ) = unlock X ∷ unlocked Θ
+unlocked (lock X ∷ Θ)   = unlocked Θ
+
+-- The inner frame, with the outer frame's scope moved in at its TAIL.
+-- `nbind (Θ₁ ◃ Θ₂) ≡ nbind Θ₁`: the move carries no binder.
+infixl 5 _◃_
+_◃_ : CtxMorph → CtxMorph → CtxMorph
+Θ₁ ◃ Θ₂ = Θ₁ ++ moveS (nbind Θ₂) Θ₂
+
+------------------------------------------------------------------------
 -- 3.  The rules
 ------------------------------------------------------------------------
 
@@ -228,9 +280,16 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE LOOKUP PREMISE (3c).  `idc A` is an identity face minted at a
   -- looked-up rep, so the rule carries the owner lookup; determinism for it
   -- is `∋:=-det`.
+  --
+  -- THE SCOPE MOVE (3d, 2026-09-06).  The residue's INNER boundary now
+  -- presents the rep `liftN (nbind Θ₁) A` where it presented the abstract
+  -- name, so Θ₂'s LOCKS travel into the inner frame (§2b) — otherwise
+  -- `env`'s last premise reads that rep INSIDE Θ₂'s masking.  The lift is
+  -- unchanged, because `nbind (Θ₁ ◃ Θ₂) ≡ nbind Θ₁`.
   CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → fceC Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫
+        -→ (V ⟪ Θ₁ ◃ Θ₂ , idc (liftN (nbind Θ₁) A) ⟫)
+             ⟪ unlocked Θ₂ , idc A ⟫
 
   -- DROP$ — a base-faced boundary over a numeral (`⊢$` types it anywhere).
   Drop$ : ∀ {Δ n Θ A} → Base A
@@ -244,9 +303,17 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- FRAMES ARE UNTOUCHED.  `unseal` is the only active face this LHS can
   -- meet (proof/IdLayer.agda, `outer-id-base-untypeable`), and the pushed
   -- name is already written in the id-face (`idpush-name`).
+  --
+  -- THE SCOPE MOVE (2026-09-06).  The swap makes the INNER boundary the
+  -- revealing one, so its exterior type becomes Y's rep `A`.  Θ₂'s LOCKS
+  -- travel into the inner frame (§2b) so that the rep is presented
+  -- OUTSIDE them, where it is nameable: `intC (unlocked Θ₂) Δ` IS
+  -- `fceC Θ₂ Δ`, and `A ≡ liftN (nbind Θ₂) C` for the redex's own
+  -- exterior type C.  That is what retires the wall — the case needs no
+  -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
   IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → fceC Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫
+        -→ (V ⟪ Θ₁ ◃ Θ₂ , unseal X ⟫) ⟪ unlocked Θ₂ , idc A ⟫
 
   ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
   ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V · M -→ V · M′
@@ -310,7 +377,8 @@ det (ξ-·[] st)     (TyPeelR v ⊢s) = ⊥-elim (value-¬step (V-⟪⟫ v I-all
 
 -- CancelR — the two contracta agree because the lookup is a function.
 det (CancelR {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} v d) (CancelR v′ d′) =
-  cong (λ T → (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) T) ⟫) ⟪ Θ₂ , idc T ⟫)
+  cong (λ T → (V ⟪ Θ₁ ◃ Θ₂ , idc (liftN (nbind Θ₁) T) ⟫)
+                ⟪ unlocked Θ₂ , idc T ⟫)
        (∋:=-det d d′)
 det (CancelR v d) (ξ-⟪⟫ st) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 det (ξ-⟪⟫ st) (CancelR v d) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)

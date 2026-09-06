@@ -2,6 +2,15 @@ module strong.proof.ChainScoped where
 
 -- THE REP CHAIN AS THE INVARIANT — PROBE.
 --
+-- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
+-- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
+-- contracta present the rep on Θ₂'s FACE type context — `intC (unlocked
+-- Θ₂) Δ ≡ fceC Θ₂ Δ` — where `wf-liftN-prep` supplies it outright
+-- (proof/MoveScope).  So no invariant has to be grounded at all.  What
+-- follows is still TRUE, and is the machine-checked record of the
+-- candidates that were tried; nothing in the main development uses it.
+--
+--
 -- Three premises have now been run at the `env` node and each has died:
 --
 --   * in `Bwf` (a condition on Δ and Θ alone) — proof/WallGrounding: the

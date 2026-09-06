@@ -21,7 +21,7 @@ module strong.Conversion where
 -- Conversions are REP-FREE by construction: `seal` and `unseal` carry a
 -- NAME, never a spelling, and the rep is read by an OWNER LOOKUP on the
 -- type context (`Δ ∋ X := A`).  That is what makes Q4's cancel face-equation
--- definitional (proof/CancelFaces.agda) and what makes both transports
+-- definitional (proof/MoveScope.agda) and what makes both transports
 -- below hypothesis-free.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)

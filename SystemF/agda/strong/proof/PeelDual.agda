@@ -246,36 +246,8 @@ renᵗ-wkN (suc m) A =
         (cong ⇑ᵗ (renᵗ-wkN m A))
 
 ------------------------------------------------------------------------
--- ⊑ facts: Δ ⊑ fscp Θ Δ, and ⊑ under a common prefix
+-- ⊑ under a common prefix  (`Δ⊑fscp` itself lives in strong.Terms)
 ------------------------------------------------------------------------
-
-ent⊑unblk : (E : Ent) → E ⊑ᵉ unblk E
-ent⊑unblk abst     = le-aa
-ent⊑unblk (bind A) = le-oo
-ent⊑unblk (blk E)  = blk-le (⊑ᵉ-refl E)
-
-⊑-unmask : (X : ℕ) (Ξ : Ctxᵗ) → Ξ ⊑ unmask X Ξ
-⊑-unmask X       []      = le[]
-⊑-unmask zero    (E ∷ Ξ) = le∷ (ent⊑unblk E) (⊑-refl Ξ)
-⊑-unmask (suc X) (E ∷ Ξ) = le∷ (⊑ᵉ-refl E) (⊑-unmask X Ξ)
-
-Δ⊑fscp : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊑ fscp Θ Δ
-Δ⊑fscp []             Δ = ⊑-refl Δ
-Δ⊑fscp (bind A ∷ Θ)   Δ = Δ⊑fscp Θ Δ
-Δ⊑fscp (unlock X ∷ Θ) Δ = ⊑-trans (Δ⊑fscp Θ Δ) (⊑-unmask X (fscp Θ Δ))
-  where
-  ⊑-trans : ∀ {Δ₁ Δ₂ Δ₃} → Δ₁ ⊑ Δ₂ → Δ₂ ⊑ Δ₃ → Δ₁ ⊑ Δ₃
-  ⊑-trans le[]        le[]        = le[]
-  ⊑-trans (le∷ l ls)  (le∷ m ms)  = le∷ (⊑ᵉ-trans l m) (⊑-trans ls ms)
-    where
-    ⊑ᵉ-trans : ∀ {E₁ E₂ E₃} → E₁ ⊑ᵉ E₂ → E₂ ⊑ᵉ E₃ → E₁ ⊑ᵉ E₃
-    ⊑ᵉ-trans le-aa        m           = m
-    ⊑ᵉ-trans le-ao        le-oo       = le-ao
-    ⊑ᵉ-trans le-oo        le-oo       = le-oo
-    ⊑ᵉ-trans (le-bb l)    (le-bb m)   = le-bb (⊑ᵉ-trans l m)
-    ⊑ᵉ-trans (le-bb l)    (le-bu m v) = le-bu (⊑ᵉ-trans l m) v
-    ⊑ᵉ-trans (le-bu l vE) m           = le-bu (⊑ᵉ-trans l m) (vis-mono m vE)
-Δ⊑fscp (lock X ∷ Θ)   Δ = Δ⊑fscp Θ Δ
 
 ⊑-app : (Ξ : Ctxᵗ) {Δ Δ′ : Ctxᵗ} → Δ ⊑ Δ′ → (Ξ ++ Δ) ⊑ (Ξ ++ Δ′)
 ⊑-app []       ls = ls

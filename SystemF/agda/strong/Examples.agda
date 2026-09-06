@@ -383,12 +383,31 @@ _ = refl
                (wf-var (bind `ℕ , es ez , vis-b)))
           (conv-unseal (es ez)) wf-ℕ
 
-push-Tₘ : Δₘ ⊢ Tₘ -→ (Vₘ ⟪ Θₘ₁ , unseal 1 ⟫) ⟪ Θₘ₂ , id `ℕ ⟫
+-- THE SCOPE MOVE IS VISIBLE HERE, and this is the one run on which it
+-- is: `Θₘ₂` is not binds-only (it carries the re-exposing `unlock 0`), so
+-- the contractum's inner frame gains it at the tail — where `scp`
+-- applies it FIRST, exactly where `Θₘ₂` applied it.  The outer frame
+-- keeps it too (`unlocked Θₘ₂ ≡ Θₘ₂`): unmasking twice is unmasking.
+Θₘ₁′ : CtxMorph
+Θₘ₁′ = lock 0 ∷ unlock 0 ∷ []
+
+_ : _≡_ {A = CtxMorph} (Θₘ₁ ◃ Θₘ₂) Θₘ₁′
+_ = refl
+
+_ : _≡_ {A = CtxMorph} (unlocked Θₘ₂) Θₘ₂
+_ = refl
+
+-- … and the value's own frame is unchanged: the moved `unlock 0` is
+-- undone by the `lock 0` that already stood in front of it.
+_ : intC Θₘ₁′ (intC Θₘ₂ Δₘ) ≡ intC Θₘ₁ (intC Θₘ₂ Δₘ)
+_ = refl
+
+push-Tₘ : Δₘ ⊢ Tₘ -→ (Vₘ ⟪ Θₘ₁′ , unseal 1 ⟫) ⟪ Θₘ₂ , id `ℕ ⟫
 push-Tₘ = IdPush (V-⟪⟫ V-$ I-seal) (es ez)
 
-⊢push-Tₘ : Δₘ ∣ [] ⊢ (Vₘ ⟪ Θₘ₁ , unseal 1 ⟫) ⟪ Θₘ₂ , id `ℕ ⟫ ⦂ `ℕ
+⊢push-Tₘ : Δₘ ∣ [] ⊢ (Vₘ ⟪ Θₘ₁′ , unseal 1 ⟫) ⟪ Θₘ₂ , id `ℕ ⟫ ⦂ `ℕ
 ⊢push-Tₘ = env (bw-u ez bw[])
-               (env (bw-l (bind `𝔹 , ez , vis-b) bw[]) ⊢Vₘ
+               (env (bw-l (bind `𝔹 , ez , vis-b) (bw-u ez bw[])) ⊢Vₘ
                     (conv-unseal (es ez)) wf-ℕ)
                (conv-id base-ℕ) wf-ℕ
 
@@ -877,20 +896,20 @@ progress-end | inj₁ v        = v
 progress-end | inj₂ (_ , st) = ⊥-elim (value-¬step V-$ st)
 
 open import strong.Preservation
-  using (preservation-TyBeta; preservation-Beta; preservation-Drop$)
+  using (preservation-TyBeta; preservation-Beta; preservation-Drop$;
+         preservation; preservation*)
 
 ------------------------------------------------------------------------
 -- §9  PRESERVATION ALONG run-P₀
 ------------------------------------------------------------------------
 
--- Each ⊢Pᵢ₊₁ from ⊢Pᵢ, by the preservation case of the rule that fired.
--- THREE of the five steps go by the UNCONDITIONAL cases of
--- strong.Preservation (TyBeta, Beta, Drop$).  The other two — step 2
--- (Peel) and step 4 (CancelR) — are the rules whose GENERAL case is
--- REFUTED (proof/PreserveObstruct §3 and §1); ⊢P₂ and ⊢P₄ above are their
--- instances, typed by hand.  Once those two rules are repaired,
--- instantiating strong.Preservation's `Conditional` module gives the
--- whole run in one line:  preservation* ⊢P₀ run-P₀.
+-- Each ⊢Pᵢ₊₁ from ⊢Pᵢ, by the preservation case of the rule that fired
+-- — TyBeta, Beta and Drop$ below, one per step, as they were written
+-- while Peel and CancelR were still open.
+--
+-- BOTH ARE NOW THEOREMS, so the whole run also goes in ONE LINE.
+run-P₀-pres : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
+run-P₀-pres = preservation* ⊢P₀ run-P₀
 
 -- STEP 1 — TyBeta, under ξ-·-l.
 ⊢P₁-pres : [] ∣ [] ⊢ P₁ ⦂ `ℕ
@@ -910,11 +929,16 @@ open import strong.Preservation
 -- §10  IDPUSH — THE REACHABILITY VERDICT (soundness, not a break)
 ------------------------------------------------------------------------
 
--- proof/PreserveObstruct §4 refutes IdPush's preservation case on a
+-- SUPERSEDED BY THE SCOPE MOVE (2026-09-06), and kept as the record of
+-- the question it answered.  The old IdPush contractum was refuted on a
 -- HAND-BUILT redex whose Θ₂ = `lock 1 ∷ []` blocks the very slot the
--- id-face's owner rep (` 1) names.  IS THAT CONFIGURATION REACHABLE from a
--- closed, plain source?  VERDICT: NO — once the separately-diagnosed
--- Peel/`dual` bug (§3 of PreserveObstruct) is fixed.
+-- id-face's owner rep (` 1) names, and this section asked whether that
+-- configuration was REACHABLE.  The repaired rule MOVES Θ₂'s scope into
+-- the inner frame, so the configuration is no longer a problem whether
+-- it is reachable or not (§12b runs the witness), and the scoping
+-- side-condition below is no longer asked of anything.  The verdict as
+-- it stood:  NO — once the separately-diagnosed Peel/`dual` bug (§3 of
+-- PreserveObstruct) is fixed.
 --
 --   * TyBeta, the ONLY rule that mints a boundary from a plain redex, mints
 --     a LOCK-FREE `bind A ∷ []`; so a lock reaches an ACTIVE outer face only
@@ -1786,6 +1810,72 @@ run-L₀ = lstep₁ then lstep₂ then lstep₃ then lstep₄ then lstep₅
 -- is `bind ℕ ∷ []`, which locks nothing.  proof/WallReach turns "a Θ₂
 -- never locks a slot a visible owner's rep names" into a theorem about
 -- the only rule that mints locks at all (Peel's `dual`).
+
+------------------------------------------------------------------------
+-- §12b  THE WALL WITNESS, AFTER THE SCOPE MOVE
+------------------------------------------------------------------------
+
+-- §12 asked whether the wall CONFIGURATION is reachable.  The scope move
+-- (strong.Reduction §2b, 2026-09-06) makes the question moot: the
+-- configuration is fine.  Here is the hand-built witness itself
+-- (proof/PreserveObstruct §4) — `Δi = X := Y , Y := ℕ`, where X's rep
+-- NAMES Y, under an outer boundary that LOCKS Y — taking its step.
+--
+--   R₀  = ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , seal X ⟫) ⟪ id X ⟫) ⟪ ↓Y , unseal X ⟫)
+--   R₁′ = ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , seal X ⟫) ⟪ ↓Y , unseal X ⟫) ⟪ id Y ⟫)
+--
+-- (rendered by scripts/render_term.sh at `Δi`; `↓Y` is `lock 1`, `↥Y` is
+-- `unlock 1`.)  READ THE TWO LINES SIDE BY SIDE: `↓Y` has moved from the
+-- OUTER boundary to the INNER one, and the reveal `unseal X` went with
+-- it.  The rep `Y` the reveal hands back is therefore presented on the
+-- outer boundary's own type context — where Y is live — instead of
+-- inside the lock, which is exactly what `env`'s last premise refused.
+-- The value's frame is unchanged, so `V` retypes where it was.
+
+open import strong.proof.PreserveObstruct
+  using (Δi; Θi; Vi; Ri; ⊢Ri; step-i)
+
+wallR₁ : Term
+wallR₁ = (Vi ⟪ [] ◃ Θi , unseal 0 ⟫) ⟪ unlocked Θi , idc (` 1) ⟫
+
+_ : wallR₁ ≡ (Vi ⟪ lock 1 ∷ [] , unseal 0 ⟫) ⟪ [] , id (` 1) ⟫
+_ = refl
+
+-- THE STEP THE OLD RULE COULD NOT TAKE SOUNDLY …
+wallstep₁ : Δi ⊢ Ri -→ wallR₁
+wallstep₁ = step-i
+
+-- … AND THE CONTRACTUM TYPES, by the theorem.
+⊢wallR₁ : Δi ∣ [] ⊢ wallR₁ ⦂ ` 1
+⊢wallR₁ = preservation ⊢Ri wallstep₁
+
+-- the value's own frame is untouched by the move
+_ : intC ([] ◃ Θi) (intC (unlocked Θi) Δi) ≡ intC [] (intC Θi Δi)
+_ = refl
+
+-- AND THE RUN FINISHES.  The move brought the `seal X` of `Vi`'s own
+-- outer layer directly under the pushed `unseal X`, so CancelR fires and
+-- the result is a VALUE (at the abstract type Y — `7` is still sealed):
+--
+--   R₂ = ((((7 ⟪ seal Y ⟫) ⟪ ↥Y , ↓Y , id Y ⟫) ⟪ id Y ⟫) ⟪ id Y ⟫)
+--
+-- the mask/unmask pair sitting inertly on the frame it was moved into.
+wallR₂ : Term
+wallR₂ = (((($ 7) ⟪ [] , seal 1 ⟫)
+             ⟪ unlock 1 ∷ lock 1 ∷ [] , id (` 1) ⟫)
+             ⟪ [] , id (` 1) ⟫) ⟪ [] , id (` 1) ⟫
+
+wallstep₂ : Δi ⊢ wallR₁ -→ wallR₂
+wallstep₂ = ξ-⟪⟫ (CancelR (V-⟪⟫ V-$ I-seal) ez)
+
+run-wall : Δi ⊢ Ri -→* wallR₂
+run-wall = wallstep₁ then wallstep₂ then done
+
+val-wallR₂ : Value wallR₂
+val-wallR₂ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) I-idv) I-idv
+
+⊢wallR₂ : Δi ∣ [] ⊢ wallR₂ ⦂ ` 1
+⊢wallR₂ = preservation* ⊢Ri run-wall
 
 ------------------------------------------------------------------------
 -- §13  TYPEELR FROM CLOSED, PLAIN SOURCE — THE TWO FACES

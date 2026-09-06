@@ -21,8 +21,7 @@ open import strong.proof.MaskFacts
 open import strong.proof.IdLayer
 open import strong.proof.Preserve
 open import strong.proof.PeelDual
-open import strong.proof.ScopedAtUnsealDef
-open import strong.proof.CancelFaces
+open import strong.proof.MoveScope
 open import strong.proof.PreserveObstruct
 open import strong.proof.IdPushReach
 
@@ -35,10 +34,14 @@ open import strong.proof.Canonicity
 open import strong.proof.Canonical
 open import strong.Progress
 
--- the wall: the RepWf invariant, the dual's locks, and the scoping fact
+-- THE WALL, AS A HISTORICAL RECORD.  These three modules searched for an
+-- INVARIANT that would ground the premise `intC Θ₂ Δ ⊢ᵗ A` — the one the
+-- old CancelR/IdPush contracta needed.  The SCOPE MOVE (strong.Reduction
+-- §2b) removes the need: the contractum presents the rep on Θ₂'s FACE
+-- type context, where `wf-liftN-prep` supplies it.  They are kept because
+-- each is a machine-checked refutation of a candidate design, and each
+-- still says something true about `Δ`, `Θ` and `RepWf`; nothing in the
+-- main development depends on them.
 open import strong.proof.WallReach
-
--- where the wall can (and cannot) be grounded in the typing rules
 open import strong.proof.WallGrounding
-open import strong.proof.ScopedAtUnsealDef
 open import strong.proof.ChainScoped

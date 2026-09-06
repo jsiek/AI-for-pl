@@ -74,6 +74,7 @@ subgraph Dv2["D. v2 — conversion boundaries — 2026-09-05/06"]
   D48["D48 masked-only mw-u, unconditional relock, bindsOnly"]
   D49["D49 Δ-dependent dual: relock on scope Θ′ Δ"]
   D50["D50 sequential ⊢ᵐ, exact dual, rewind, reps on unlockedScope"]
+  D51["D51 the morphism is a pair: parallel binds, sequential changes"]
 end
 
 D01 -->|"Example 6: revealing Y:=X⇒X injects X into Γ₂, so L2 fails"| D02
@@ -152,6 +153,8 @@ D13 -.->|"retired: towers, not merges — Q5a, F8/F9"| D35
 D26 -.->|"reinstated as CancelR"| D43
 D47 -.->|"design law 2 restated for the RELATION, then tested rule by rule — Examples §15"| D50
 D18 -.->|"law 4 reduced to its surviving half: a rep is never blocked by its own frame's locks"| D50
+D50 -->|"Jeremy, reading dual: binds are a hidden block, changes are sequential — make the type say so"| D51
+D18 -.->|"what survived of simultaneity — a PARALLEL block of binders — is now a record field"| D51
 
 classDef current fill:#d8f3e0,stroke:#137333,stroke-width:2px,color:#0b3d1a;
 classDef refuted fill:#fdecea,stroke:#b3261e,stroke-width:1.5px,stroke-dasharray:5 3,color:#5f1512;
@@ -161,7 +164,7 @@ classDef ruling fill:#e5eeff,stroke:#1a56b8,stroke-width:2px,color:#0f2f66;
 class D01,D02,D03,D04,D05,D06,D07,D08,D09,D10,D11,D12,D14,D15,D16,D17,D19,D20,D22,D23,D24,D28,D29,D30,D38,D41,D44,D47,D48 refuted;
 class D13,D18,D21,D26,D36,D37,D42,D49 reverted;
 class D25,D27,D31,D32,D33 ruling;
-class D34,D35,D39,D40,D43,D45,D46,D50 current;
+class D34,D35,D39,D40,D43,D45,D46,D50,D51 current;
 ```
 
 ---

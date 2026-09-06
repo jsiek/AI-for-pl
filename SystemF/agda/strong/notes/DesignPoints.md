@@ -603,3 +603,19 @@ tests that came out of the episode are `proof/DualTightness` (the
 `unlock` half of `Peel`) and `Examples` §15 (every other rule that moves
 a subterm into a new frame, with the five frame identities collected in
 §15f and tabulated in `Design.md` §7).
+
+**D51 — the morphism is a pair: parallel binds, sequential changes.**
+Jeremy, reading `dual`, asked whether treating binds specially
+(`hideBinds` at the front, reps read outside all of them) while
+lock/unlock are sequential was essential, and whether the binds should
+then live in their own list.  The special treatment is essential — it is
+the half of simultaneity that survived `D18`, and the fully sequential
+composition was the first design (`D02`) — but the interleaving was not:
+only `mw-b`'s tail-dependent rep frame ever looked at bind-vs-change
+order.  `CtxMorph` became `record morph { binds : List Ty ; changes :
+List Change }` with `Δ ⊢ᵐ Θ` a record of `unlockedScope Θ Δ ⊢ʳ binds Θ`
+and `Δ ⊢ˢ changes Θ`; a rep is now read past all of the morphism's
+unlocks, which no example needed and no theorem felt, and `repsOf`,
+eight filtering lemmas and `⊢ᵐ-++` vanished.  Rendering unchanged.  PR
+#195 (`3f080fdb`); `notes/DECISIONS.md` "The context morphism becomes a
+PAIR".

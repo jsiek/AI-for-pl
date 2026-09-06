@@ -12,9 +12,9 @@ module strong.Conversion where
 -- global index `p` that fixed `unseal` to a REVEAL position and `seal` to
 -- a CONCEAL one, flipping on `conv-fun`'s domain.  It is REDUNDANT: the
 -- discipline it enforced is PER TYPE VARIABLE, and `env` already enforces
--- it with the FRAMES — a LOCKED X is masked in `intC`, so it cannot sit
+-- it with the FRAMES — a LOCKED X is masked in `interior`, so it cannot sit
 -- on the interior side of a leaf, and a BOUND X is not in the image of
--- `liftN`, so it cannot sit on the exterior side.  Dropping `p` is what
+-- `shiftBy`, so it cannot sit on the exterior side.  Dropping `p` is what
 -- makes TyPeelR's preservation case a theorem at every ∀-face rather
 -- than only at a reveal one (proof/Preserve.preserve-TyPeelR).
 --
@@ -48,7 +48,7 @@ private
 -- `id A` is restricted to BASE TYPES AND VARIABLES by the typing judgment
 -- (conv-id / conv-idv) and by the classification in strong.Terms (A-idb
 -- needs Base A, I-idv needs a variable payload); compound identities stay
--- structural (`idc` below).
+-- structural (`mkId` below).
 data Conv : Set where
   id     : Ty → Conv          -- ACTIVE at a base type, INERT at a variable
   seal   : ℕ → Conv           -- seal   at the owner named        INERT
@@ -109,19 +109,19 @@ data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
 -- 3.  The identity conversion at an arbitrary type
 ------------------------------------------------------------------------
 
-idc : Ty → Conv
-idc (` X)   = id (` X)
-idc `ℕ      = id `ℕ
-idc `𝔹      = id `𝔹
-idc (A ⇒ B) = idc A ↦ idc B
-idc (`∀ A)  = `∀ (idc A)
+mkId : Ty → Conv
+mkId (` X)   = id (` X)
+mkId `ℕ      = id `ℕ
+mkId `𝔹      = id `𝔹
+mkId (A ⇒ B) = mkId A ↦ mkId B
+mkId (`∀ A)  = `∀ (mkId A)
 
-idc-⊢ : Δ ⊢ᵗ A → Δ ⊢ idc A ∶ A ⇝ A
-idc-⊢ (wf-var tv)  = conv-idv tv
-idc-⊢ wf-ℕ         = conv-id base-ℕ
-idc-⊢ wf-𝔹         = conv-id base-𝔹
-idc-⊢ (wf-⇒ wA wB) = conv-fun (idc-⊢ wA) (idc-⊢ wB)
-idc-⊢ (wf-∀ wA)    = conv-all (idc-⊢ wA)
+mkId-⊢ : Δ ⊢ᵗ A → Δ ⊢ mkId A ∶ A ⇝ A
+mkId-⊢ (wf-var tv)  = conv-idv tv
+mkId-⊢ wf-ℕ         = conv-id base-ℕ
+mkId-⊢ wf-𝔹         = conv-id base-𝔹
+mkId-⊢ (wf-⇒ wA wB) = conv-fun (mkId-⊢ wA) (mkId-⊢ wB)
+mkId-⊢ (wf-∀ wA)    = conv-all (mkId-⊢ wA)
 
 ------------------------------------------------------------------------
 -- 4.  TRANSPORT I — type context renaming (the ⊢renameᵗ analogue)
@@ -196,8 +196,8 @@ conv-id-refl (conv-id _)  = refl
 conv-id-refl (conv-idv _) = refl
 
 -- The ∀-face's body, as an inversion that does NOT have to see through
--- `liftN`: `env` pins the exterior face to `liftN (nbind Θ) Bₑ`, which is
--- a stuck term, so TyPeelR's premise is recovered by this lemma rather
+-- `shiftBy`: `env` pins the exterior face to `shiftBy (numBinds Θ) Bₑ`,
+-- which is a stuck term, so TyPeelR's premise is recovered by this lemma rather
 -- than by matching `conv-all` directly.
 conv-all-inv : ∀ {s A B} → Δ ⊢ `∀ s ∶ A ⇝ B
   → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]

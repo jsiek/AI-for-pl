@@ -4,8 +4,8 @@ module strong.proof.ChainScoped where
 --
 -- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
 -- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
--- contracta present the rep on Θ₂'s FACE type context — `intC (unlocked
--- Θ₂) Δ ≡ fceC Θ₂ Δ` — where `wf-liftN-prep` supplies it outright
+-- contracta present the rep on Θ₂'s FACE type context — `interior (dropLocks
+-- Θ₂) Δ ≡ exterior Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
 -- (proof/MoveScope).  So no invariant has to be grounded at all.  What
 -- follows is still TRUE, and is the machine-checked record of the
 -- candidates that were tried; nothing in the main development uses it.
@@ -13,7 +13,7 @@ module strong.proof.ChainScoped where
 --
 -- Three premises have now been run at the `env` node and each has died:
 --
---   * in `Bwf` (a condition on Δ and Θ alone) — proof/WallGrounding: the
+--   * in `MorphWf` (a condition on Δ and Θ alone) — proof/WallGrounding: the
 --     `¬IdPushCase` witness and a REACHABLE wrapper have the same Δ and
 --     the same Θ and differ only in their FACE.
 --   * the EXTERIOR TYPE at a reveal face — the FACE-CONDITIONED
@@ -71,16 +71,16 @@ Pfun1  = ƛ (` 0) ∙ Pbody                       -- λx′:X′. …
 P₀     = ((Λ Pfun1) ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 
 ⊢Pinner : (abst ∷ abst ∷ []) ∣ (` 1 ∷ ` 1 ∷ []) ⊢ Pinner ⦂ ` 1
-⊢Pinner = ⊢·[] (⊢Λ (⊢` here)) (wf-var (abst , ez , vis-a))
+⊢Pinner = ⊢·[] (⊢Λ (⊢` here)) (wf-var (abst , ez , nameable-a))
 
 ⊢Pfun2 : (abst ∷ abst ∷ []) ∣ (` 1 ∷ []) ⊢ Pfun2 ⦂ (` 1 ⇒ ` 1)
-⊢Pfun2 = ⊢ƛ (wf-var (abst , es ez , vis-a)) ⊢Pinner
+⊢Pfun2 = ⊢ƛ (wf-var (abst , es ez , nameable-a)) ⊢Pinner
 
 ⊢Pbody : (abst ∷ []) ∣ (` 0 ∷ []) ⊢ Pbody ⦂ ` 0
 ⊢Pbody = ⊢· (⊢·[] (⊢Λ ⊢Pfun2) wf-ℕ) (⊢` here)
 
 ⊢P₀ : [] ∣ [] ⊢ P₀ ⦂ `ℕ
-⊢P₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a)) ⊢Pbody)) wf-ℕ) ⊢$
+⊢P₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (abst , ez , nameable-a)) ⊢Pbody)) wf-ℕ) ⊢$
 
 -- ── THE RUN, every state rendered ─────────────────────────────────────
 
@@ -146,17 +146,17 @@ KΔ₁ KΞ₂ Ξᴷ Ξᴷ′ Δᴷ Δᴷ′ : Ctxᵗ
 KΔ₁ = bind `ℕ ∷ []                              -- X′ := ℕ
 KΞ₂ = bind `ℕ ∷ bind `ℕ ∷ []                    -- Z := ℕ , X′ := ℕ
 Ξᴷ  = abst ∷ KΞ₂                                -- under ΛY (redex)
-Ξᴷ′ = abst ∷ blk (bind `ℕ) ∷ bind `ℕ ∷ []       -- … behind `lock 1`
+Ξᴷ′ = abst ∷ masked (bind `ℕ) ∷ bind `ℕ ∷ []       -- … behind `lock 1`
 Δᴷ  = bind (` 0) ∷ KΞ₂                          -- Y := Z (contractum)
-Δᴷ′ = bind (` 0) ∷ blk (bind `ℕ) ∷ bind `ℕ ∷ [] -- … behind `lock 1`
+Δᴷ′ = bind (` 0) ∷ masked (bind `ℕ) ∷ bind `ℕ ∷ [] -- … behind `lock 1`
 
-_ : intC (lock 1 ∷ []) Ξᴷ ≡ Ξᴷ′
+_ : interior (lock 1 ∷ []) Ξᴷ ≡ Ξᴷ′
 _ = refl
 
-_ : intC (bind (` 0) ∷ []) KΞ₂ ≡ Δᴷ
+_ : interior (bind (` 0) ∷ []) KΞ₂ ≡ Δᴷ
 _ = refl
 
-_ : intC (lock 1 ∷ []) Δᴷ ≡ Δᴷ′
+_ : interior (lock 1 ∷ []) Δᴷ ≡ Δᴷ′
 _ = refl
 
 -- BEFORE the step the locked slot is named by nothing: slot 0 is Λ-bound.
@@ -175,57 +175,57 @@ RepWf-Ξᴷ′ (es (es (es ())))
 
 ⊢⇑xK-redex : Ξᴷ ∣ [] ⊢ ⇑xK ⦂ ` 2
 ⊢⇑xK-redex =
-  env (bw-l (bind `ℕ , es ez , vis-b) bw[])
-      (env (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢$
+  env (mw-l (bind `ℕ , es ez , nameable-b) mw[])
+      (env (mw-l (bind `ℕ , es (es ez) , nameable-b) mw[]) ⊢$
            (conv-seal (es (es ez)))
-           (wf-var (bind `ℕ , es (es ez) , vis-b)))
-      (conv-idv (bind `ℕ , es (es ez) , vis-b))
-      (wf-var (bind `ℕ , es (es ez) , vis-b))
+           (wf-var (bind `ℕ , es (es ez) , nameable-b)))
+      (conv-idv (bind `ℕ , es (es ez) , nameable-b))
+      (wf-var (bind `ℕ , es (es ez) , nameable-b))
 
 ⊢P₆-in : KΞ₂ ∣ [] ⊢ (Λ ⇑xK) ·[ ` 2 , ` 0 ] ⦂ ` 1
-⊢P₆-in = ⊢·[] (⊢Λ ⊢⇑xK-redex) (wf-var (bind `ℕ , ez , vis-b))
+⊢P₆-in = ⊢·[] (⊢Λ ⊢⇑xK-redex) (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢P₆-mid : KΔ₁ ∣ [] ⊢ ((Λ ⇑xK) ·[ ` 2 , ` 0 ])
                        ⟪ bind `ℕ ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢P₆-mid = env (bw-b wf-ℕ bw[]) ⊢P₆-in
-               (conv-idv (bind `ℕ , es ez , vis-b))
-               (wf-var (bind `ℕ , ez , vis-b))
+⊢P₆-mid = env (mw-b wf-ℕ mw[]) ⊢P₆-in
+               (conv-idv (bind `ℕ , es ez , nameable-b))
+               (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢P₆ : [] ∣ [] ⊢ P₆ ⦂ `ℕ
-⊢P₆ = env (bw-b wf-ℕ bw[]) ⊢P₆-mid (conv-unseal ez) wf-ℕ
+⊢P₆ = env (mw-b wf-ℕ mw[]) ⊢P₆-mid (conv-unseal ez) wf-ℕ
 
 ⊢⇑xK-contractum : Δᴷ ∣ [] ⊢ ⇑xK ⦂ ` 2
 ⊢⇑xK-contractum =
-  env (bw-l (bind `ℕ , es ez , vis-b) bw[])
-      (env (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢$
+  env (mw-l (bind `ℕ , es ez , nameable-b) mw[])
+      (env (mw-l (bind `ℕ , es (es ez) , nameable-b) mw[]) ⊢$
            (conv-seal (es (es ez)))
-           (wf-var (bind `ℕ , es (es ez) , vis-b)))
-      (conv-idv (bind `ℕ , es (es ez) , vis-b))
-      (wf-var (bind `ℕ , es (es ez) , vis-b))
+           (wf-var (bind `ℕ , es (es ez) , nameable-b)))
+      (conv-idv (bind `ℕ , es (es ez) , nameable-b))
+      (wf-var (bind `ℕ , es (es ez) , nameable-b))
 
 ⊢P₇-in : KΞ₂ ∣ [] ⊢ ⇑xK ⟪ bind (` 0) ∷ [] , id (` 2) ⟫ ⦂ ` 1
-⊢P₇-in = env (bw-b (wf-var (bind `ℕ , ez , vis-b)) bw[])
+⊢P₇-in = env (mw-b (wf-var (bind `ℕ , ez , nameable-b)) mw[])
               ⊢⇑xK-contractum
-              (conv-idv (bind `ℕ , es (es ez) , vis-b))
-              (wf-var (bind `ℕ , es ez , vis-b))
+              (conv-idv (bind `ℕ , es (es ez) , nameable-b))
+              (wf-var (bind `ℕ , es ez , nameable-b))
 
 ⊢P₇-mid : KΔ₁ ∣ [] ⊢ (⇑xK ⟪ bind (` 0) ∷ [] , id (` 2) ⟫)
                        ⟪ bind `ℕ ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢P₇-mid = env (bw-b wf-ℕ bw[]) ⊢P₇-in
-               (conv-idv (bind `ℕ , es ez , vis-b))
-               (wf-var (bind `ℕ , ez , vis-b))
+⊢P₇-mid = env (mw-b wf-ℕ mw[]) ⊢P₇-in
+               (conv-idv (bind `ℕ , es ez , nameable-b))
+               (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢P₇ : [] ∣ [] ⊢ P₇ ⦂ `ℕ
-⊢P₇ = env (bw-b wf-ℕ bw[]) ⊢P₇-mid (conv-unseal ez) wf-ℕ
+⊢P₇ = env (mw-b wf-ℕ mw[]) ⊢P₇-mid (conv-unseal ez) wf-ℕ
 
 -- ── THE VERDICT ───────────────────────────────────────────────────────
 
--- The variant: pointwise `RepWf (intC Θ Δ)` at every boundary whose face
+-- The variant: pointwise `RepWf (interior Θ Δ)` at every boundary whose face
 -- NAMES a slot (`id (` X)`, `unseal X`, `seal X`).  `P₇`'s middle-inner
 -- wrapper is id-faced, so the variant applies to it.
 NameFacedRepWf : Set
 NameFacedRepWf = ∀ {Δ Γ M Θ X A} → Δ ∣ Γ ⊢ M ⟪ Θ , id (` X) ⟫ ⦂ A
-               → RepWf (intC Θ Δ)
+               → RepWf (interior Θ Δ)
 
 -- EVERY typing of `P₇` contains that wrapper, so the variant does not
 -- merely refuse one derivation: it refuses the state.
@@ -258,17 +258,17 @@ data Reach (Δ : Ctxᵗ) : ℕ → Ty → Set where
   rs : ∀ {X A Y B} → Reach Δ X A → Y ∈ᵗ A → Δ ∋ Y := B → Reach Δ X B
 
 -- THE PREMISE, VERBATIM.  The face's name and the interior live in the
--- SAME index space (`intC Θ Δ` and `fceC Θ Δ` differ only by masking —
+-- SAME index space (`interior Θ Δ` and `exterior Θ Δ` differ only by masking —
 -- `maskOnly`), so there is no lifting to insert: the chain is read on the
 -- FACE type context, and every member of it must be readable INSIDE.
 ChainScoped : Ctxᵗ → CtxMorph → ℕ → Set
-ChainScoped Δ Θ X = ∀ {A} → Reach (fceC Θ Δ) X A → intC Θ Δ ⊢ᵗ A
+ChainScoped Δ Θ X = ∀ {A} → Reach (exterior Θ Δ) X A → interior Θ Δ ⊢ᵗ A
 
 -- WHAT IT DELIVERS.  The `rz` member is exactly the premise `idPush⁺`
 -- takes as `scoped` and `unseal-scoped` concludes — no lifting, on the
 -- nose.
 chain-rep : ∀ {Δ Θ X A}
-  → ChainScoped Δ Θ X → fceC Θ Δ ∋ X := A → intC Θ Δ ⊢ᵗ A
+  → ChainScoped Δ Θ X → exterior Θ Δ ∋ X := A → interior Θ Δ ⊢ᵗ A
 chain-rep cs d = cs (rz d)
 
 -- WHAT THE COMPOSITE FACES NEED.  A face is attached at its LEAVES: the
@@ -279,7 +279,7 @@ chain-rep cs d = cs (rz d)
 --            `unseal`); the contractum's are the SAME two, swapped — so
 --            the premise is preserved iff `ChainScoped Δ Θ₁ X` survives
 --            the swap, which is what §4 tests.
---   CancelR  the residue's face is `idc A` for the looked-up rep `A`, so
+--   CancelR  the residue's face is `mkId A` for the looked-up rep `A`, so
 --            its leaves are exactly the variables of `A` — every one of
 --            which is on Y's chain (`rs … in-… …`).  `ChainScoped` at Y
 --            therefore covers the whole residue: that is the one place
@@ -375,23 +375,23 @@ ChainScoped-killtest-redex r with chain-Ξᴷ r
 CΔ CΔ⁺ CΔ⁺′ CΔ′ CΔ′′ : Ctxᵗ
 CΔ   = bind `ℕ ∷ []
 CΔ⁺  = bind (` 0 ⇒ `ℕ) ∷ abst ∷ bind `ℕ ∷ []
-CΔ⁺′ = bind (` 0 ⇒ `ℕ) ∷ abst ∷ blk (bind `ℕ) ∷ []
+CΔ⁺′ = bind (` 0 ⇒ `ℕ) ∷ abst ∷ masked (bind `ℕ) ∷ []
 CΔ′  = bind (` 0 ⇒ `ℕ) ∷ bind (` 0) ∷ bind `ℕ ∷ []
-CΔ′′ = bind (` 0 ⇒ `ℕ) ∷ bind (` 0) ∷ blk (bind `ℕ) ∷ []
+CΔ′′ = bind (` 0 ⇒ `ℕ) ∷ bind (` 0) ∷ masked (bind `ℕ) ∷ []
 
 CΘ : CtxMorph
 CΘ = lock 2 ∷ []
 
-_ : intC (bind (` 0 ⇒ `ℕ) ∷ []) (abst ∷ CΔ) ≡ CΔ⁺
+_ : interior (bind (` 0 ⇒ `ℕ) ∷ []) (abst ∷ CΔ) ≡ CΔ⁺
 _ = refl
 
-_ : intC CΘ CΔ⁺ ≡ CΔ⁺′
+_ : interior CΘ CΔ⁺ ≡ CΔ⁺′
 _ = refl
 
-_ : intC (bind (` 0 ⇒ `ℕ) ∷ []) (bind (` 0) ∷ CΔ) ≡ CΔ′
+_ : interior (bind (` 0 ⇒ `ℕ) ∷ []) (bind (` 0) ∷ CΔ) ≡ CΔ′
 _ = refl
 
-_ : intC CΘ CΔ′ ≡ CΔ′′
+_ : interior CΘ CΔ′ ≡ CΔ′′
 _ = refl
 
 CV CW CM CN CR CC : Term
@@ -402,30 +402,30 @@ CN = ƛ `ℕ ∙ CM
 CR = (Λ CN) ·[ `ℕ ⇒ (` 0 ⇒ `ℕ) , ` 0 ]
 CC = CN ⟪ bind (` 0) ∷ [] , id `ℕ ↦ (seal 0 ↦ id `ℕ) ⟫
 
-_ : unsealAt 0 (`ℕ ⇒ (` 0 ⇒ `ℕ)) ≡ id `ℕ ↦ (seal 0 ↦ id `ℕ)
+_ : reveal 0 (`ℕ ⇒ (` 0 ⇒ `ℕ)) ≡ id `ℕ ↦ (seal 0 ↦ id `ℕ)
 _ = refl
 
 ⊢CV : CΔ⁺′ ∣ [] ⊢ CV ⦂ ` 0
-⊢CV = env bw[]
-           (⊢ƛ (wf-var (abst , es ez , vis-a)) ⊢$)
+⊢CV = env mw[]
+           (⊢ƛ (wf-var (abst , es ez , nameable-a)) ⊢$)
            (conv-seal ez)
-           (wf-var (bind (` 1 ⇒ `ℕ) , ez , vis-b))
+           (wf-var (bind (` 1 ⇒ `ℕ) , ez , nameable-b))
 
 ⊢CW : CΔ⁺ ∣ [] ⊢ CW ⦂ ` 0
-⊢CW = env (bw-l (bind `ℕ , es (es ez) , vis-b) bw[]) ⊢CV
-           (conv-idv (bind (` 1 ⇒ `ℕ) , ez , vis-b))
-           (wf-var (bind (` 1 ⇒ `ℕ) , ez , vis-b))
+⊢CW = env (mw-l (bind `ℕ , es (es ez) , nameable-b) mw[]) ⊢CV
+           (conv-idv (bind (` 1 ⇒ `ℕ) , ez , nameable-b))
+           (wf-var (bind (` 1 ⇒ `ℕ) , ez , nameable-b))
 
 ⊢CM : ∀ {Γ} → (abst ∷ CΔ) ∣ Γ ⊢ CM ⦂ (` 0 ⇒ `ℕ)
-⊢CM = env (bw-b (wf-⇒ (wf-var (abst , ez , vis-a)) wf-ℕ) bw[]) ⊢CW
+⊢CM = env (mw-b (wf-⇒ (wf-var (abst , ez , nameable-a)) wf-ℕ) mw[]) ⊢CW
            (conv-unseal ez)
-           (wf-⇒ (wf-var (abst , ez , vis-a)) wf-ℕ)
+           (wf-⇒ (wf-var (abst , ez , nameable-a)) wf-ℕ)
 
 ⊢CN : (abst ∷ CΔ) ∣ [] ⊢ CN ⦂ (`ℕ ⇒ (` 0 ⇒ `ℕ))
 ⊢CN = ⊢ƛ wf-ℕ ⊢CM
 
 ⊢CR : CΔ ∣ [] ⊢ CR ⦂ (`ℕ ⇒ (` 0 ⇒ `ℕ))
-⊢CR = ⊢·[] (⊢Λ ⊢CN) (wf-var (bind `ℕ , ez , vis-b))
+⊢CR = ⊢·[] (⊢Λ ⊢CN) (wf-var (bind `ℕ , ez , nameable-b))
 
 cstep : CΔ ⊢ CR -→ CC
 cstep = TyBeta V-ƛ
@@ -448,7 +448,7 @@ chain-CΔ⁺ (rs r i d) with chain-CΔ⁺ r
 
 ChainScoped-CΔ⁺ : ChainScoped CΔ⁺ CΘ 0
 ChainScoped-CΔ⁺ r with chain-CΔ⁺ r
-... | refl = wf-⇒ (wf-var (abst , es ez , vis-a)) wf-ℕ
+... | refl = wf-⇒ (wf-var (abst , es ez , nameable-a)) wf-ℕ
 
 -- the redex's other two wrappers owe nothing new: both frames are
 -- lock-free, and the same chain stops at the same `abst`
@@ -463,7 +463,7 @@ ChainScoped-CV r with chain-CΔ⁺′ r
     stop : ∀ {Y B} → Y ∈ᵗ (` 1 ⇒ `ℕ) → CΔ⁺′ ∋ Y := B → ⊥
     stop (in-⇒-l in-var) d′ = abst-not-owner (es ez) d′
     stop (in-⇒-r ())     d′
-... | refl = wf-⇒ (wf-var (abst , es ez , vis-a)) wf-ℕ
+... | refl = wf-⇒ (wf-var (abst , es ez , nameable-a)) wf-ℕ
 
 -- ── AFTER: TyBeta gives the Λ-bound slot a rep, and the chain runs on ─
 
@@ -535,20 +535,20 @@ chain-mono : ∀ {F Y Z A B}
 chain-mono r i (rz d)       = rs r i d
 chain-mono r i (rs r′ i′ d) = rs (chain-mono r i r′) i′ d
 
--- CANCELR, DECIDED.  The residue's face is `idc A` for the looked-up rep
+-- CANCELR, DECIDED.  The residue's face is `mkId A` for the looked-up rep
 -- `A`, so its leaves are exactly `A`'s variables — every one of them ON
 -- Y's CHAIN.  The premise at Y therefore covers the whole residue, with
 -- no lifting into Θ₁ and no extra hypothesis.  This is precisely what
 -- following the chain buys over stopping at the rep.
 cancelR-leaves : ∀ {Δ Θ Y Z A}
-  → ChainScoped Δ Θ Y → Reach (fceC Θ Δ) Y A → Z ∈ᵗ A
+  → ChainScoped Δ Θ Y → Reach (exterior Θ Δ) Y A → Z ∈ᵗ A
     ----------------------------------------------------
   → ChainScoped Δ Θ Z
 cancelR-leaves cs r i r′ = cs (chain-mono r i r′)
 
 -- IDPUSH, DECIDED.  It keeps BOTH frames and BOTH names and swaps only
 -- the faces: the inner `id (` X)` becomes `unseal X` at the SAME Θ₁, and
--- the outer `unseal Y` becomes `idc A` at the SAME Θ₂ (whose leaves are
+-- the outer `unseal Y` becomes `mkId A` at the SAME Θ₂ (whose leaves are
 -- covered by `cancelR-leaves`).  So the premise transports on the nose —
 -- the gap the face-conditioned candidate had (the exterior type says
 -- nothing about Θ₁) does NOT recur, and its witness `R★` is refused
@@ -569,7 +569,7 @@ idPush-inner cs = cs
 --                                       shows TyBeta breaks the premise
 --                                       at OTHER wrappers, by retagging
 --   Peel crossing                  yes  the crossing face's SOURCE is a
---                                       `liftN`, so its target names no
+--                                       `shiftBy`, so its target names no
 --                                       owner of the crossed boundary
 --   TyPeelR                        n/a  same retag defect as TyBeta
 --

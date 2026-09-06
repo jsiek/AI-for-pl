@@ -10,7 +10,7 @@ conversion `c` says leaf by leaf which side of the boundary may see the
 representation.  A variable's representation is stored exactly once, at
 the entry that binds it, and every other mention resolves it by looking
 the **name** up along the enclosing type context.  A masked slot is never
-dropped or re-spelled — its entry is retained (`blk`), so weakening with
+dropped or re-spelled — its entry is retained (`masked`), so weakening with
 respect to type variables is never used; that is what "strong" means.
 This is **v2**, the conversion-boundary design.  **v1** — one combined
 boundary `M ⟪ Θ , B₀ ⟫` carrying a list of reveals and conceals together
@@ -55,11 +55,11 @@ type-checking it type-checks the whole development.
 |------|----------|
 | `Types.agda` | System F types in de Bruijn form; renaming and parallel substitution; `_[_]ᵗ` and the at-a-slot substitution `_[_:=_]ᵗ` |
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
-| `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `blk E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the owner prefix `prep` with `liftN` |
-| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `idc`, both transports, the inversions, and `conv-faces-unique` |
-| `Terms.agda` | the context morphism (`bind`/`lock`/`unlock`, `reps`, `nbind`, `scp`, `fscp`, `intC`, `fceC`), `Bwf`, terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` |
+| `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the owner prefix `pushBinds` with `shiftBy` |
+| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, and `conv-faces-unique` |
+| `Terms.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`, `scope`, `unlockedScope`, `interior`, `exterior`), `MorphWf`, terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` |
 | `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |
-| `Reduction.agda` | `unsealAt`/`sealAt` and their conversion analogues, `dual`, the scope move (`moveS`, `unlocked`, `_◃_`), the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
+| `Reduction.agda` | `reveal`/`conceal` and their conversion analogues, `dual`, the scope move (`scopeOf`, `dropLocks`, `_⋉_`), the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
 | `Progress.agda` | `progress`, with the boundary case split out as `progress-env` and `TyPeelR`'s premise read off the redex (`∀-face-premise`) |
 | `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full |
@@ -72,20 +72,20 @@ type-checking it type-checks the whole development.
 
 | file | one line |
 |------|----------|
-| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢unsealAt`/`⊢sealAt`/`⊢unsealAtᶜ`/`⊢sealAtᶜ`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR`, the three case statements, and `module Impl` |
-| `PeelDual.agda` | the `Peel` case: `intC-dual` and `fceC-dual` in general, and `preserve-Peel` |
-| `MoveScope.agda` | **the scope move**: the list algebra of `moveS`/`unlocked`/`_◃_`, `intC-unlocked`, the unconditional frame lemmas `frame-move`/`face-move`, `move-∋`, `Bwf-◃`, the lock-only refutation, and `preserve-CancelR` / `preserve-IdPush` |
+| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢reveal`/`⊢conceal`/`⊢instReveal`/`⊢instConceal`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR`, the three case statements, and `module Impl` |
+| `PeelDual.agda` | the `Peel` case: `interior-dual` and `exterior-dual` in general, and `preserve-Peel` |
+| `MoveScope.agda` | **the scope move**: the list algebra of `scopeOf`/`dropLocks`/`_⋉_`, `interior-dropLocks`, the unconditional frame lemmas `frame-move`/`face-move`, `move-∋`, `MorphWf-⋉`, the lock-only refutation, and `preserve-CancelR` / `preserve-IdPush` |
 | `Canonical.agda` | canonical forms: `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` |
-| `Canonicity.agda` | the canonical conversion family (`unsealAt`/`sealAt`/`idc` subtrees) and its closure under the rules |
-| `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing forces `X ≡ nbind Θ₁ + Y` (`idpush-name`, `cancel-name`), and `unseal` is the only active conversion those left-hand sides meet |
-| `MaskFacts.agda` | no boundary operation can take an owner away (masking retains, unlocking recovers); the old cancel residue is not `Bwf` |
+| `Canonicity.agda` | the canonical conversion family (`reveal`/`conceal`/`mkId` subtrees) and its closure under the rules |
+| `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing forces `X ≡ numBinds Θ₁ + Y` (`idpush-name`, `cancel-name`), and `unseal` is the only active conversion those left-hand sides meet |
+| `MaskFacts.agda` | no boundary operation can take an owner away (masking retains, unlocking recovers); the old cancel residue is not `MorphWf` |
 | `Adversary.agda` | the soundness gate: a conceal must cite a live owner, and v1's adversaries refuted by that one inversion |
 | `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 Four modules are **historical records of the invariant hunt** — the
 search for a side condition that would ground the premise
-`intC Θ₂ Δ ⊢ᵗ A` for the old `CancelR`/`IdPush` contracta.  The scope
+`interior Θ₂ Δ ⊢ᵗ A` for the old `CancelR`/`IdPush` contracta.  The scope
 move removed the need for it entirely.  They compile, they carry
 `RETIRED` banners, nothing in the main development depends on them, and
 each is a machine-checked refutation of a candidate design.
@@ -94,7 +94,7 @@ each is a machine-checked refutation of a candidate design.
 | file | the candidate it kills |
 |------|------------------------|
 | `WallReach.agda` | `RepWf` ("no lock blocks a slot a nameable owner's rep names") as a global term invariant — refuted on a reachable run |
-| `WallGrounding.agda` | folding `RepWf` into `Bwf`'s lock clause — impossible: the unsound and the reachable witness share the same `(Δ, Θ)` |
+| `WallGrounding.agda` | folding `RepWf` into `MorphWf`'s lock clause — impossible: the unsound and the reachable witness share the same `(Δ, Θ)` |
 | `ChainScoped.agda` | the rep **chain** as the invariant — preserved by the rules but not `⊑`-stable |
 | `IdPushReach.agda` | the reachability verdict for the old `IdPush` configuration, and `maskOnly` |
 
@@ -122,7 +122,7 @@ for value metavariables and never generated.  Type binder names are
 **globally unique across one rendered term** — two sibling `Λ`s never
 both print as `ΛX` — and binds are named oldest-first so an older bind
 keeps its name when `TyPeelR` prepends a newer one.  Morphism entries
-print as `↑X:=A` (`bind`), `↓X` (`lock`), `↥X` (`unlock`); a `blk` entry
+print as `↑X:=A` (`bind`), `↓X` (`lock`), `↥X` (`unlock`); a `masked` entry
 prints as `⌷[…]`.
 
 **Never hand-transcribe de Bruijn** into a note or a report — render it.
@@ -153,6 +153,6 @@ Three PDFs sit at the top level for the digests above:
 * **`Design.md`** — the calculus: syntax, the two type contexts a
   boundary induces, all typing rules with `env` explained premise by
   premise, all reduction rules with a rendered example each, the
-  metatheory's proof shape, the design laws, and a naming proposal for
-  the terse helpers.
+  metatheory's proof shape, the design laws, and (Appendix A) the full
+  list of helper names.
 * **`notes/DECISIONS.md`** — why it is that calculus and not another.

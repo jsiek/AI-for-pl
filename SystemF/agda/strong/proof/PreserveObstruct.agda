@@ -12,7 +12,7 @@ module strong.proof.PreserveObstruct where
 --               (`⊢c-contractum`) — the refutation is gone.
 --   §2 TyPeelR  REPAIRED and PROVEN.  The pushed-in annotation is now the
 --               premise-determined interior ∀-body, the frame is plain
---               `Θ`, and the minted face `unsealAtᶜ 0 s` types at EVERY
+--               `Θ`, and the minted face `instReveal 0 s` types at EVERY
 --               ∀-face once the polarity index is gone
 --               (proof/Preserve.preserve-TyPeelR).  §2 keeps the old
 --               counterexample's witness and records the POSITIVE fact on
@@ -49,7 +49,7 @@ open import strong.proof.MoveScope using (preserve-IdPush)
 ------------------------------------------------------------------------
 
 -- Θ₁ binds ONE owner, so the cancelled value V lives two binders deep;
--- the residue `reps→bind (reps Θ₂)` rebinds only Θ₂'s one owner, and V's
+-- the residue `repsOf→bind (repsOf Θ₂)` rebinds only Θ₂'s one owner, and V's
 -- `lock 1` — perfectly well formed inside — names a slot that no longer
 -- exists.
 
@@ -64,12 +64,12 @@ Vc = ƛ `ℕ ∙ (($ 5) ⟪ lock 1 ∷ [] , id `ℕ ⟫)
 Ξc : Ctxᵗ
 Ξc = bind `𝔹 ∷ bind (`ℕ ⇒ `ℕ) ∷ []
 
-_ : intC Θc₁ (intC Θc₂ []) ≡ Ξc
+_ : interior Θc₁ (interior Θc₂ []) ≡ Ξc
 _ = refl
 
 ⊢Vc : Ξc ∣ [] ⊢ Vc ⦂ (`ℕ ⇒ `ℕ)
 ⊢Vc = ⊢ƛ wf-ℕ
-        (env (bw-l (bind (`ℕ ⇒ `ℕ) , es ez , vis-b) bw[])
+        (env (mw-l (bind (`ℕ ⇒ `ℕ) , es ez , nameable-b) mw[])
              ⊢$ (conv-id base-ℕ) wf-ℕ)
 
 val-Vc : Value Vc
@@ -79,24 +79,25 @@ Rc : Term
 Rc = (Vc ⟪ Θc₁ , seal 1 ⟫) ⟪ Θc₂ , unseal 0 ⟫
 
 ⊢Rc : [] ∣ [] ⊢ Rc ⦂ (`ℕ ⇒ `ℕ)
-⊢Rc = env (bw-b (wf-⇒ wf-ℕ wf-ℕ) bw[])
-          (env (bw-b wf-𝔹 bw[]) ⊢Vc
+⊢Rc = env (mw-b (wf-⇒ wf-ℕ wf-ℕ) mw[])
+          (env (mw-b wf-𝔹 mw[]) ⊢Vc
                (conv-seal (es ez))
-               (wf-var (bind (`ℕ ⇒ `ℕ) , ez , vis-b)))
+               (wf-var (bind (`ℕ ⇒ `ℕ) , ez , nameable-b)))
           (conv-unseal ez) (wf-⇒ wf-ℕ wf-ℕ)
 
 step-c : [] ⊢ Rc
-       -→ (Vc ⟪ Θc₁ , idc (liftN (nbind Θc₁) (`ℕ ⇒ `ℕ)) ⟫)
-            ⟪ Θc₂ , idc (`ℕ ⇒ `ℕ) ⟫
+       -→ (Vc ⟪ Θc₁ , mkId (shiftBy (numBinds Θc₁) (`ℕ ⇒ `ℕ)) ⟫)
+            ⟪ Θc₂ , mkId (`ℕ ⇒ `ℕ) ⟫
 step-c = CancelR val-Vc ez
 
 -- the contractum, with both identity faces computed out
-_ : (Vc ⟪ Θc₁ , idc (liftN (nbind Θc₁) (`ℕ ⇒ `ℕ)) ⟫) ⟪ Θc₂ , idc (`ℕ ⇒ `ℕ) ⟫
+_ : (Vc ⟪ Θc₁ , mkId (shiftBy (numBinds Θc₁) (`ℕ ⇒ `ℕ)) ⟫)
+      ⟪ Θc₂ , mkId (`ℕ ⇒ `ℕ) ⟫
       ≡ (Vc ⟪ bind `𝔹 ∷ [] , id `ℕ ↦ id `ℕ ⟫)
           ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫
 _ = refl
 
--- AND IT TYPES.  The old contractum `V ⟪ reps→bind (reps Θ₂) , idc A ⟫`
+-- AND IT TYPES.  The old contractum `V ⟪ repsOf→bind (repsOf Θ₂) , mkId A ⟫`
 -- dropped Θ₁'s frame, so `Vc`'s `lock 1` named a slot that no longer
 -- existed; the repaired one KEEPS BOTH FRAMES, and `Vc` retypes exactly
 -- where it was — `⊢Vc` is reused verbatim.
@@ -104,8 +105,8 @@ _ = refl
   [] ∣ [] ⊢ (Vc ⟪ bind `𝔹 ∷ [] , id `ℕ ↦ id `ℕ ⟫)
               ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫ ⦂ (`ℕ ⇒ `ℕ)
 ⊢c-contractum =
-  env (bw-b (wf-⇒ wf-ℕ wf-ℕ) bw[])
-      (env (bw-b wf-𝔹 bw[]) ⊢Vc
+  env (mw-b (wf-⇒ wf-ℕ wf-ℕ) mw[])
+      (env (mw-b wf-𝔹 mw[]) ⊢Vc
            (conv-fun (conv-id base-ℕ) (conv-id base-ℕ))
            (wf-⇒ wf-ℕ wf-ℕ))
       (conv-fun (conv-id base-ℕ) (conv-id base-ℕ))
@@ -117,7 +118,7 @@ _ = refl
 
 -- The two old defects (exterior annotation, double shift) are REPAIRED in
 -- strong.Reduction: the pushed-in annotation is the premise-determined
--- interior body, the frame is plain `Θ`, and the face is `unsealAtᶜ 0 s`
+-- interior body, the frame is plain `Θ`, and the face is `instReveal 0 s`
 -- — the leaf-wise mint that turns the face's now-OWNED slot 0 into its
 -- instantiation.
 --
@@ -147,44 +148,44 @@ val-Wt : Value Wt
 val-Wt = V-Λ V-ƛ
 
 ⊢Wt : ∀ {Δ Γ} → Δ ∣ Γ ⊢ Wt ⦂ `∀ (` 0 ⇒ `ℕ)
-⊢Wt = ⊢Λ (⊢ƛ (wf-var (abst , ez , vis-a)) ⊢$)
+⊢Wt = ⊢Λ (⊢ƛ (wf-var (abst , ez , nameable-a)) ⊢$)
 
--- the CONCEAL ∀-face a Peel hands it: `sealAt 0 (∀Y. Y ⇒ X)`
+-- the CONCEAL ∀-face a Peel hands it: `conceal 0 (∀Y. Y ⇒ X)`
 Θt : CtxMorph
 Θt = lock 0 ∷ []
 
 st : Conv
 st = id (` 0) ↦ seal 1
 
-_ : sealAt 0 (`∀ (` 0 ⇒ ` 1)) ≡ `∀ st
+_ : conceal 0 (`∀ (` 0 ⇒ ` 1)) ≡ `∀ st
 _ = refl
 
 -- the premise TyPeelR carries, at THIS redex.
-⊢st : (abst ∷ fceC Θt Δt) ⊢ st ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1)
-⊢st = conv-fun (conv-idv (abst , ez , vis-a)) (conv-seal (es ez))
+⊢st : (abst ∷ exterior Θt Δt) ⊢ st ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1)
+⊢st = conv-fun (conv-idv (abst , ez , nameable-a)) (conv-seal (es ez))
 
 Wft : Term
 Wft = Wt ⟪ Θt , `∀ st ⟫
 
 ⊢Wft : Δt ∣ [] ⊢ Wft ⦂ `∀ (` 0 ⇒ ` 1)
-⊢Wft = env (bw-l (bind `ℕ , ez , vis-b) bw[]) ⊢Wt
+⊢Wft = env (mw-l (bind `ℕ , ez , nameable-b) mw[]) ⊢Wt
            (conv-all ⊢st)
-           (wf-∀ (wf-⇒ (wf-var (abst , ez , vis-a))
-                       (wf-var (bind `ℕ , es ez , vis-b))))
+           (wf-∀ (wf-⇒ (wf-var (abst , ez , nameable-a))
+                       (wf-var (bind `ℕ , es ez , nameable-b))))
 
 Rt : Term
 Rt = Wft ·[ ` 0 ⇒ ` 1 , ` 0 ]
 
 ⊢Rt : Δt ∣ [] ⊢ Rt ⦂ (` 0 ⇒ ` 0)
-⊢Rt = ⊢·[] ⊢Wft (wf-var (bind `ℕ , ez , vis-b))
+⊢Rt = ⊢·[] ⊢Wft (wf-var (bind `ℕ , ez , nameable-b))
 
 step-t : Δt ⊢ Rt
        -→ (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
-            ⟪ bind (` 0) ∷ Θt , unsealAtᶜ 0 st ⟫
+            ⟪ bind (` 0) ∷ Θt , instReveal 0 st ⟫
 step-t = TyPeelR val-Wt ⊢st
 
 -- THE MINTED FACE, computed: the inserted leaf is the DOMAIN `seal 0`.
-_ : unsealAtᶜ 0 st ≡ seal 0 ↦ seal 1
+_ : instReveal 0 st ≡ seal 0 ↦ seal 1
 _ = refl
 
 -- BOTH LEAVES, on the contractum's face type context: the INSERTED one
@@ -192,7 +193,7 @@ _ = refl
 -- one conceals ℕ at the crossed boundary's owner.  Per variable each is
 -- exactly the conceal its owner licenses.
 t-face-ctx : Ctxᵗ
-t-face-ctx = fceC (bind (` 0) ∷ Θt) Δt
+t-face-ctx = exterior (bind (` 0) ∷ Θt) Δt
 
 _ : t-face-ctx ≡ bind (` 0) ∷ bind `ℕ ∷ []
 _ = refl
@@ -219,10 +220,10 @@ t-cod = conv-seal (es ez)
 
 -- The old §3 refuted the OLD `dual` (`unlock X ↦ lock (n+X)`), which
 -- re-blocked a no-op `unlock` (`Θ = unlock 0` at an unmasked slot) and
--- failed same-slot cancellation.  strong.Reduction's repaired `dualS`
+-- failed same-slot cancellation.  strong.Reduction's repaired `dualScope`
 -- DROPS the `unlock` case, so `dual (unlock 0 ∷ []) ≡ []` and the
 -- crossing no longer masks the owner.  `PeelCase` is now PROVEN
--- (strong.proof.PeelDual.preserve-Peel), with `intC-dual`/`fceC-dual`
+-- (strong.proof.PeelDual.preserve-Peel), with `interior-dual`/`exterior-dual`
 -- true in general — so this refutation is gone.
 
 ------------------------------------------------------------------------
@@ -241,12 +242,12 @@ t-cod = conv-seal (es ez)
 Θi = lock 1 ∷ []
 
 Ξi : Ctxᵗ
-Ξi = bind (` 0) ∷ blk (bind `ℕ) ∷ []
+Ξi = bind (` 0) ∷ masked (bind `ℕ) ∷ []
 
-_ : intC Θi Δi ≡ Ξi
+_ : interior Θi Δi ≡ Ξi
 _ = refl
 
-_ : fceC Θi Δi ≡ Δi
+_ : exterior Θi Δi ≡ Δi
 _ = refl
 
 -- slot 0's rep, read on the face type context, is slot 1
@@ -257,11 +258,11 @@ Vi : Term
 Vi = (($ 7) ⟪ [] , seal 1 ⟫) ⟪ unlock 1 ∷ [] , seal 0 ⟫
 
 ⊢Vi : Ξi ∣ [] ⊢ Vi ⦂ ` 0
-⊢Vi = env (bw-u (es ez) bw[])
-          (env bw[] ⊢$ (conv-seal (es ez))
-               (wf-var (bind `ℕ , es ez , vis-b)))
+⊢Vi = env (mw-u (es ez) mw[])
+          (env mw[] ⊢$ (conv-seal (es ez))
+               (wf-var (bind `ℕ , es ez , nameable-b)))
           (conv-seal ez)
-          (wf-var (_ , ez , vis-b))
+          (wf-var (_ , ez , nameable-b))
 
 val-Vi : Value Vi
 val-Vi = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal
@@ -270,26 +271,26 @@ Ri : Term
 Ri = (Vi ⟪ [] , id (` 0) ⟫) ⟪ Θi , unseal 0 ⟫
 
 ⊢Ri : Δi ∣ [] ⊢ Ri ⦂ ` 1
-⊢Ri = env (bw-l (bind `ℕ , es ez , vis-b) bw[])
-          (env bw[] ⊢Vi
-               (conv-idv (_ , ez , vis-b))
-               (wf-var (_ , ez , vis-b)))
+⊢Ri = env (mw-l (bind `ℕ , es ez , nameable-b) mw[])
+          (env mw[] ⊢Vi
+               (conv-idv (_ , ez , nameable-b))
+               (wf-var (_ , ez , nameable-b)))
           (conv-unseal ez)
-          (wf-var (bind `ℕ , es ez , vis-b))
+          (wf-var (bind `ℕ , es ez , nameable-b))
 
 -- THE STEP, AT THE MOVED SCOPE.  `Θ₂ = lock 1 ∷ []` is binder-free, so
--- the move is `[] ◃ Θi ≡ lock 1 ∷ []` and `unlocked Θi ≡ []`: the lock
+-- the move is `[] ⋉ Θi ≡ lock 1 ∷ []` and `dropLocks Θi ≡ []`: the lock
 -- goes INTO the inner boundary and the outer one keeps nothing.
-step-i : Δi ⊢ Ri -→ (Vi ⟪ [] ◃ Θi , unseal 0 ⟫) ⟪ unlocked Θi , idc (` 1) ⟫
+step-i : Δi ⊢ Ri -→ (Vi ⟪ [] ⋉ Θi , unseal 0 ⟫) ⟪ dropLocks Θi , mkId (` 1) ⟫
 step-i = IdPush val-Vi ez
 
-_ : _≡_ {A = CtxMorph} ([] ◃ Θi) (lock 1 ∷ [])
+_ : _≡_ {A = CtxMorph} ([] ⋉ Θi) (lock 1 ∷ [])
 _ = refl
 
-_ : _≡_ {A = CtxMorph} (unlocked Θi) []
+_ : _≡_ {A = CtxMorph} (dropLocks Θi) []
 _ = refl
 
-_ : idc (` 1) ≡ id (` 1)
+_ : mkId (` 1) ≡ id (` 1)
 _ = refl
 
 -- The rep ` 1 is STILL not well formed inside the lock …
@@ -305,7 +306,7 @@ _ = refl
   ¬wf-i w
 
 -- THE POSITIVE FACT.  With the lock moved into the inner boundary the
--- rep is presented on the FACE type context `fceC Θi Δi ≡ Δi`, where
+-- rep is presented on the FACE type context `exterior Θi Δi ≡ Δi`, where
 -- slot 1 is live — and the contractum TYPES.  (`ProbeMove.agda` in the
 -- main tree checked this derivation by hand; here it is the theorem.)
 ⊢i-contractum :

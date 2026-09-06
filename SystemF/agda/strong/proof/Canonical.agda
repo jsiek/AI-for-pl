@@ -5,7 +5,7 @@ module strong.proof.Canonical where
 -- A closed value is one of five shapes, and its EXTERIOR TYPE decides
 -- which.  The whole suite is driven by ONE observation: for a wrapper
 -- value `V ⟪ Θ , c ⟫` the `env` rule pins the exterior face of `c` to
--- `liftN (nbind Θ) Bₑ`, and an INERT `c` determines that face's head
+-- `shiftBy (numBinds Θ) Bₑ`, and an INERT `c` determines that face's head
 -- constructor outright:
 --
 --   id (` X)  ⇝  ` X          I-idv
@@ -47,18 +47,18 @@ private
 -- §1  The exterior face is the term's type, LIFTED past the owners
 ------------------------------------------------------------------------
 
--- `env` reads the exterior face at `liftN (nbind Θ) Bₑ`, so every face
--- inversion below has to see through `liftN`.  Lifting preserves the head
--- constructor; that is all we need.  (`liftN-base` and `liftN-var` are
+-- `env` reads the exterior face at `shiftBy (numBinds Θ) Bₑ`, so every face
+-- inversion below has to see through `shiftBy`.  Lifting preserves the head
+-- constructor; that is all we need.  (`shiftBy-base` and `shiftBy-var` are
 -- already in strong.Ctx.)
 
-liftN-⇒ : (n : ℕ) (A B : Ty) → liftN n (A ⇒ B) ≡ liftN n A ⇒ liftN n B
-liftN-⇒ zero    A B = refl
-liftN-⇒ (suc n) A B = cong ⇑ᵗ (liftN-⇒ n A B)
+shiftBy-⇒ : (n : ℕ) (A B : Ty) → shiftBy n (A ⇒ B) ≡ shiftBy n A ⇒ shiftBy n B
+shiftBy-⇒ zero    A B = refl
+shiftBy-⇒ (suc n) A B = cong ⇑ᵗ (shiftBy-⇒ n A B)
 
-liftN-∀ : (n : ℕ) (C : Ty) → Σ[ C′ ∈ Ty ] (liftN n (`∀ C) ≡ `∀ C′)
-liftN-∀ zero    C = C , refl
-liftN-∀ (suc n) C with liftN-∀ n C
+shiftBy-∀ : (n : ℕ) (C : Ty) → Σ[ C′ ∈ Ty ] (shiftBy n (`∀ C) ≡ `∀ C′)
+shiftBy-∀ zero    C = C , refl
+shiftBy-∀ (suc n) C with shiftBy-∀ n C
 ... | C′ , eq = renameᵗ (extᵗ suc) C′ , cong ⇑ᵗ eq
 
 -- Retype a conversion along an equality of its exterior face.
@@ -121,7 +121,7 @@ canon-base V-$        b  ⊢$            = _ , refl
 canon-base V-ƛ        () (⊢ƛ _ _)
 canon-base (V-Λ _)    () (⊢Λ _)
 canon-base (V-⟪⟫ v ic) b (env {Θ = Θ} _ _ ⊢c _) =
-  ⊥-elim (inert-¬base ic (conv-tgt≡ (liftN-base (nbind Θ) b) ⊢c) b)
+  ⊥-elim (inert-¬base ic (conv-tgt≡ (shiftBy-base (numBinds Θ) b) ⊢c) b)
 
 canon-ℕ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `ℕ → Σ[ n ∈ ℕ ] (V ≡ $ n)
 canon-ℕ v ⊢V = canon-base v base-ℕ ⊢V
@@ -138,7 +138,7 @@ canon-⇒ V-ƛ     (⊢ƛ _ _) = inj₁ (_ , refl)
 canon-⇒ (V-Λ _) ()
 canon-⇒ {A = A} {B = B} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
   with inert-fun-face ic
-         (conv-tgt≡ (liftN-⇒ (nbind Θ) A B) ⊢c)
+         (conv-tgt≡ (shiftBy-⇒ (numBinds Θ) A B) ⊢c)
 canon-⇒ (V-⟪⟫ v ic) (env _ _ ⊢c _) | s , t , refl =
   inj₂ (_ , _ , s , t , v , refl)
 
@@ -152,7 +152,7 @@ canon-∀ V-$      ()
 canon-∀ V-ƛ      ()
 canon-∀ (V-Λ vN) (⊢Λ _) = inj₁ (_ , vN , refl)
 canon-∀ {C = C} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with liftN-∀ (nbind Θ) C
+  with shiftBy-∀ (numBinds Θ) C
 canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq
   with inert-all-face ic (conv-tgt≡ eq ⊢c)
 canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq | s , refl =
@@ -172,7 +172,7 @@ canon-var V-ƛ     ()
 canon-var (V-Λ _) ()
 canon-var {X = X} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
   with inert-var-face ic
-         (conv-tgt≡ (liftN-var (nbind Θ) X) ⊢c)
+         (conv-tgt≡ (shiftBy-var (numBinds Θ) X) ⊢c)
 canon-var (V-⟪⟫ v ic) (env _ _ ⊢c _) | inj₁ refl =
   _ , _ , _ , v , inj₁ refl
 canon-var (V-⟪⟫ v ic) (env _ _ ⊢c _) | inj₂ refl =

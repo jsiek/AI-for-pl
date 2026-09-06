@@ -40,24 +40,24 @@ All six, with **no module parameters, no postulates, no holes**, under
    `Δ ∋ X := A` resolves them.  Lookup is a function (`∋:=-det`), so the
    cancel equation is definitional instead of a relation up to
    unfolding.
-3. **Mask, do not drop.**  A concealed slot's entry is retained (`blk`)
-   and merely made unnameable (`Vis`).  Nothing is re-spelled, so
+3. **Mask, do not drop.**  A concealed slot's entry is retained (`masked`)
+   and merely made unnameable (`Nameable`).  Nothing is re-spelled, so
    knowledge transport is definitional (`ren-kn`) and demotion is not
    expressible (`⊑-kn`).
-4. **Two type contexts per boundary.**  `intC Θ Δ` (interior: masks
-   applied, owners pushed on) types the interior; `fceC Θ Δ` (the
+4. **Two type contexts per boundary.**  `interior Θ Δ` (interior: masks
+   applied, owners pushed on) types the interior; `exterior Θ Δ` (the
    interior with `Θ`'s locks lifted) is where the conversion is checked,
    so a `seal X` at a locked `X` can still cite its owner.
-   `intC (unlocked Θ) Δ ≡ fceC Θ Δ`.
-5. **Simultaneity.**  Every `Bwf` premise and every representation is
-   read in the plain exterior; `prep` lifts a representation past exactly
+   `interior (dropLocks Θ) Δ ≡ exterior Θ Δ`.
+5. **Simultaneity.**  Every `MorphWf` premise and every representation is
+   read in the plain exterior; `pushBinds` lifts a representation past exactly
    the owners bound inside it.  Sibling entries never interfere.
 6. **Conversions are GTSF's.**  `id` / `seal` / `unseal` / `_↦_` / `∀`,
    with `id` restricted to base types and variables and compound
-   identities built by `idc`.
+   identities built by `mkId`.
 7. **No polarity index.**  The discipline is per type *variable*, and
    `env`'s two contexts already enforce it: a locked `X` is masked in the
-   interior, a bound `X` is not in the image of `liftN`.  Dropping the
+   interior, a bound `X` is not in the image of `shiftBy`.  Dropping the
    index is what makes `TyPeelR` a theorem at every `∀`-conversion.
 8. **Active/inert, after Siek & Chen** (`notes/ParameterizedCastCalculi.md`).
    Classification is by conversion constructor alone; `act-or-inert` is
@@ -69,8 +69,8 @@ All six, with **no module parameters, no postulates, no holes**, under
    conversion inward (`IdPush`) until it meets its seal (`CancelR`) or a
    numeral (`Drop$`).
 10. **The scope move.**  When a rule swaps two conversions, the outer
-    frame keeps only its binds and unmasks (`unlocked Θ₂`) and its whole
-    scope travels into the inner frame's tail (`Θ₁ ◃ Θ₂`), so the
+    frame keeps only its binds and unmasks (`dropLocks Θ₂`) and its whole
+    scope travels into the inner frame's tail (`Θ₁ ⋉ Θ₂`), so the
     representation is presented **outside** the locks, where it is
     nameable.
 
@@ -93,11 +93,11 @@ All six, with **no module parameters, no postulates, no holes**, under
 * **The restructure.**  `4c4c44c6` (v2 layout, v1 deleted, `det` and
   values-don't-step proven), `8e933017` / `85171c82` / `eb1deb47`
   (Jeremy's vocabulary: context morphism, `bind`/`lock`/`unlock`,
-  `nbind`), `13836d87` + `c2a39c02` (`⊢subst`, first end-to-end v2 run),
+  `numBinds`), `13836d87` + `c2a39c02` (`⊢subst`, first end-to-end v2 run),
   `1caf9b27` (**progress proven, zero parameters**).
 * **Rule repairs.**  `5554c6b2` + `b167f622` (v2 preservation verdict:
   four rules to repair), `6ac9a33c` (`IdPush` reachability), `7e9c4109`
-  (**`Peel` fixed and proven**; `intC-dual`/`fceC-dual` general),
+  (**`Peel` fixed and proven**; `interior-dual`/`exterior-dual` general),
   `97c94967` (first closed-source `IdPush` traces; the wall's
   reachability split), `4defe7b5` + `5d69c0d7` (`CancelR`/`TyPeelR`
   landed), `e4c9fe88` (the invariant hunt, all candidates refuted by
@@ -122,18 +122,25 @@ All six, with **no module parameters, no postulates, no holes**, under
   index.)
 * **The Wall** —
   https://claude.ai/code/artifact/a0dbab1e-9c07-4857-a5c4-42ca95f89b2e
-  (the `IdPush` premise `intC Θ₂ Δ ⊢ᵗ A`, the invariant hunt, and
+  (the `IdPush` premise `interior Θ₂ Δ ⊢ᵗ A`, the invariant hunt, and
   Jeremy's lock-moving contractum: `R₀ → R₁′ → R₂`, the old refutation
   witness running to a value.)
 
 ## Open items
 
-* **Naming.**  `Design.md` Appendix A proposes plain-English names for
-  the terse helpers (`intC` → `interior`, `fceC` → `convCtx`, `scp` →
-  `scope`, `fscp` → `scopeUnlocked`, `prep` → `pushBinds`, `nbind` →
-  `numBinds`, `liftN` → `shiftBy`, `unsealAt` → `revealAt`, `moveS` →
-  `scopeOf`, `unlocked` → `dropLocks`, …).  **Nothing is renamed in the
-  Agda** — Jeremy chooses.
+* **Naming — RULED AND LANDED (2026-09-06).**  The terse helpers now
+  carry plain-English names throughout the Agda, `Design.md` and this
+  note: `intC` → `interior`, `fceC` → `exterior`, `scp` → `scope`,
+  `fscp` → `unlockedScope`, `prep` → `pushBinds`, `reps` → `repsOf`,
+  `nbind` → `numBinds`, `liftN` → `shiftBy`, `liftᵇ` → `shiftBodyBy`,
+  `upd` → `updateAt`, `blk` → `masked`, `unblk` → `unmaskEnt`,
+  `Vis` → `Nameable`, `Bwf` → `MorphWf` (`bw*` → `mw*`), `idc` → `mkId`,
+  `unsealAt`/`sealAt` → `reveal`/`conceal`,
+  `unsealAtᶜ`/`sealAtᶜ` → `instReveal`/`instConceal`, `dualS` →
+  `dualScope`, `lockBinds` → `hideBinds`, `moveS` → `scopeOf`,
+  `unlocked` → `dropLocks`, `_◃_` → `_⋉_`.  `dual`, `Inj`, `Θ`, `bind`,
+  `lock`, `unlock`, `abst`, `mask`, `unmask`, `Ent`, `Ctxᵗ`, `CtxMorph`
+  and `MorphEnt` are unchanged.  Appendix A of `Design.md` is the list.
 * **Deletion of four record files.**  `proof/WallReach`,
   `proof/WallGrounding`, `proof/ChainScoped`, `proof/IdPushReach` are the
   invariant hunt for a premise that no longer exists.  They compile,

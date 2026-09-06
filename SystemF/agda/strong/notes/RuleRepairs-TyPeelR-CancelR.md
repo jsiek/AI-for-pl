@@ -17,7 +17,7 @@ TyPeelR : ∀ {Δ V Θ s B A} → Value V
       -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) B , ` 0 ])   -- (a) B is the EXTERIOR ∀-body;
                                                       --     the inner ·[] is typed INSIDE
            ⟪ bind A ∷ renᴮ suc Θ , s ⟫                -- (b) renᴮ suc double-counts:
-                                                      --     prep already lifts past bind A
+                                                      --     pushBinds already lifts past bind A
 ```
 
 ### Defect (b) — mechanical fix, refuted from closed source
@@ -34,7 +34,8 @@ an identity, so the annotation defect (a) is NOT what fires: the
 double-count alone kills it.  The frame identity that makes plain `Θ`
 right is definitional:
 
-    intC (bind A ∷ Θ) Δ ≡ bind (liftN (nbind Θ) A) ∷ intC Θ Δ     (= Ren-wk)
+    interior (bind A ∷ Θ) Δ                                  (= Ren-wk)
+      ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
 
 and `K₀ -→ K₁` (Examples §11c) shows the multi-bind frame TYPES once the
 shift is removed.
@@ -48,11 +49,11 @@ interior's own `⊢·[]` demands — not the exterior body `B`.  For `↑ˢ`
 ARGUMENT that crossed a Peel, reachable — a `seal`'s source is an owner's
 REP, which the rep-free conversion does not carry.  It is, however,
 DETERMINED by the conversion typing.  Proposal — the same move already
-ruled for the `idc` faces (owner-lookup premises):
+ruled for the `mkId` faces (owner-lookup premises):
 
 ```agda
 TyPeelR : ∀ {Δ V Θ s A Bᵢ Bₑ p} → Value V
-  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p            -- NEW: the face typing, read at the
+  → (abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p            -- NEW: the face typing, read at the
                                                     --   ∀-body (under one abst) — gives
                                                     --   the INTERIOR body Bᵢ
   → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ ⟨exterior body⟩ , A ]
@@ -74,11 +75,12 @@ becomes a corollary, not a restriction.
 ### Current, with the defect marked
 
 ```agda
-CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → fceC Θ₂ Δ ∋ Y := A
+CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → exterior Θ₂ Δ ∋ Y := A
   → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-      -→ V ⟪ reps→bind (reps Θ₂) , idc A ⟫          -- drops Θ₁'s ENTIRE frame and
-                                                    --   Θ₂'s unlocks; V was typed in
-                                                    --   intC Θ₁ (intC Θ₂ Δ)
+      -→ V ⟪ repsOf→bind (repsOf Θ₂) , mkId A ⟫   -- drops Θ₁'s ENTIRE frame
+                                             --   and Θ₂'s unlocks; V was
+                                             --   typed in
+                                             --   interior Θ₁ (interior Θ₂ Δ)
 ```
 
 ### Proposal — keep both frames, neutralize both faces
@@ -88,18 +90,18 @@ algebra we already trust; the context morphisms stay put, so no `⊕`
 returns:
 
 ```agda
-CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → fceC Θ₂ Δ ∋ Y := A
+CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → exterior Θ₂ Δ ∋ Y := A
   → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-      -→ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫
+      -→ (V ⟪ Θ₁ , mkId (shiftBy (numBinds Θ₁) A) ⟫) ⟪ Θ₂ , mkId A ⟫
 ```
 
 On Q's cancel step (Examples §11, `Q₅ → Q₆`; Θ₁ = `↓X`, Θ₂ = `↑Y:=ℕ`):
 today `7 ⟪ ↑Y:=ℕ , id ℕ ⟫`; proposed `(7 ⟪ ↓X , id ℕ ⟫) ⟪ ↑Y:=ℕ , id ℕ ⟫`
 — one extra `Drop$` to reach `7`, and nothing dropped that `V` might
-need.  On the §1 obstruction witness (`nbind Θ₁ = 1`, `V` naming Θ₁'s own
+need.  On the §1 obstruction witness (`numBinds Θ₁ = 1`, `V` naming Θ₁'s own
 binder; proof/PreserveObstruct.agda) the old residue is untypeable and
 the new one types — `V` retypes exactly where it was.  The active/inert
-story is intact: `idc A` at a base type is ACTIVE (`Drop$` finishes it),
+story is intact: `mkId A` at a base type is ACTIVE (`Drop$` finishes it),
 at a variable INERT (a legitimate transparent layer).
 
 ## The shared caveat, and why it is already covered
@@ -108,7 +110,7 @@ Both new contracta make an inner wrapper PRESENT A REP (`A`, resp. `Bᵢ`)
 inside Θ₂'s interior — the common wall (DECISIONS "Peel FIXED and
 PROVEN; CancelR/TyPeelR/IdPush share ONE wall").  proof/WallReach.agda
 covers it: `unseal-scoped`/`cancelR-scoped` derive the needed
-`intC Θ₂ Δ ⊢ᵗ A` from `RepWf` + `MaskOnly`, and `RepWf-dual` shows every
+`interior Θ₂ Δ ⊢ᵗ A` from `RepWf` + `MaskOnly`, and `RepWf-dual` shows every
 reachable Θ₂ satisfies `RepWf` (a Peel's locks never block a rep, no
 side condition).  So these cases discharge OVER THE INVARIANT — not over
 a rule premise Progress would have to supply — and the remaining debt

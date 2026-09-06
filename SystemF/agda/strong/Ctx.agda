@@ -4,13 +4,16 @@ module strong.Ctx where
 --
 -- A type context entry is one of
 --
---   abst    a Λ-bound variable — no representation, and none can be invented.
---   bind A   THE OWNER of an instantiation event.  A is the representation,
---           stored ONCE, as a type over this entry's bind tail.  Every inner
---           boundary that talks about this variable carries only its NAME.
---   blk E   the slot is CONCEALED here: it may not be NAMED (tightness), but
---           its entry E is RETAINED, so the knowledge is still on the type context
---           for a later re-exposure (`unlock`) to point back at.
+--   abst      a Λ-bound variable — no representation, and none can be
+--             invented.
+--   bind A    THE OWNER of an instantiation event.  A is the
+--             representation, stored ONCE, as a type over this entry's
+--             bind tail.  Every inner boundary that talks about this
+--             variable carries only its NAME.
+--   masked E  the slot is CONCEALED here: it may not be NAMED
+--             (tightness), but its entry E is RETAINED, so the knowledge
+--             is still on the type context for a later re-exposure
+--             (`unlock`) to point back at.
 --
 -- Under Jeremy's Q1 ruling (OWNER-SYNTACTIC, 2026-09-05) a variable's
 -- representation lives ONLY at its owner; every face and every licence
@@ -19,8 +22,9 @@ module strong.Ctx where
 -- definitional and the old design's demotion is not expressible.
 --
 -- This module also carries the POSITIONAL machinery the boundary needs:
--- injective renamings (`Inj`), one-slot entry update (`upd`/`mask`/`unmask`)
--- with its transports, and the owner prefix `prep` (with `liftN`).
+-- injective renamings (`Inj`), one-slot entry update
+-- (`updateAt`/`mask`/`unmask`) with its transports, and the owner prefix
+-- `pushBinds` (with `shiftBy`).
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (suc-injective)
@@ -57,9 +61,9 @@ map-length f (x ∷ xs) = cong suc (map-length f xs)
 ------------------------------------------------------------------------
 
 data Ent : Set where
-  abst : Ent
-  bind  : Ty → Ent
-  blk  : Ent → Ent
+  abst   : Ent
+  bind   : Ty → Ent
+  masked : Ent → Ent
 
 Ctxᵗ : Set
 Ctxᵗ = List Ent
@@ -73,40 +77,40 @@ private
     ρ ρ′ : Renameᵗ
 
 renᵉ : Renameᵗ → Ent → Ent
-renᵉ ρ abst    = abst
-renᵉ ρ (bind A) = bind (renameᵗ ρ A)
-renᵉ ρ (blk E) = blk (renᵉ ρ E)
+renᵉ ρ abst       = abst
+renᵉ ρ (bind A)   = bind (renameᵗ ρ A)
+renᵉ ρ (masked E) = masked (renᵉ ρ E)
 
 ⇑ᵉ : Ent → Ent
 ⇑ᵉ = renᵉ suc
 
 renᵉ-⇑-comm : (ρ : Renameᵗ) (E : Ent)
   → renᵉ (extᵗ ρ) (⇑ᵉ E) ≡ ⇑ᵉ (renᵉ ρ E)
-renᵉ-⇑-comm ρ abst    = refl
-renᵉ-⇑-comm ρ (bind A) = cong bind (ren-⇑-comm ρ A)
-renᵉ-⇑-comm ρ (blk E) = cong blk (renᵉ-⇑-comm ρ E)
+renᵉ-⇑-comm ρ abst       = refl
+renᵉ-⇑-comm ρ (bind A)   = cong bind (ren-⇑-comm ρ A)
+renᵉ-⇑-comm ρ (masked E) = cong masked (renᵉ-⇑-comm ρ E)
 
 -- Entry lookup.  The entry is returned SHIFTED into the ambient context, so
 -- `Δ ∋e X , bind A` means "slot X is an owner whose rep, read in Δ, is A".
--- One relation serves every purpose: knowledge, visibility, and blocking.
+-- One relation serves every purpose: knowledge, nameability, and masking.
 infix 4 _∋e_,_
 data _∋e_,_ : Ctxᵗ → ℕ → Ent → Set where
   ez : (E ∷ Δ) ∋e zero , ⇑ᵉ E
   es : Δ ∋e X , E → (F ∷ Δ) ∋e suc X , ⇑ᵉ E
 
--- A slot may be NAMED iff its entry is not blocked.  This is the whole of
--- the tightness discipline: `blk` is invisible to types and to terms.
-data Vis : Ent → Set where
-  vis-a : Vis abst
-  vis-b : Vis (bind A)
+-- A slot may be NAMED iff its entry is not masked.  This is the whole of
+-- the tightness discipline: `masked` is unnameable in types and in terms.
+data Nameable : Ent → Set where
+  nameable-a : Nameable abst
+  nameable-b : Nameable (bind A)
 
-renᵉ-Vis : Vis E → Vis (renᵉ ρ E)
-renᵉ-Vis vis-a = vis-a
-renᵉ-Vis vis-b = vis-b
+renᵉ-Nameable : Nameable E → Nameable (renᵉ ρ E)
+renᵉ-Nameable nameable-a = nameable-a
+renᵉ-Nameable nameable-b = nameable-b
 
 infix 4 _∋tv_
 _∋tv_ : Ctxᵗ → ℕ → Set
-Δ ∋tv X = ∃[ E ] ((Δ ∋e X , E) × Vis E)
+Δ ∋tv X = ∃[ E ] ((Δ ∋e X , E) × Nameable E)
 
 -- OWNER-SYNTACTIC LOOKUP.  This is the only way any rep is ever read.
 infix 4 _∋_:=_
@@ -114,7 +118,7 @@ _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
 Δ ∋ X := A = Δ ∋e X , bind A
 
 ∋:=→∋tv : Δ ∋ X := A → Δ ∋tv X
-∋:=→∋tv d = bind _ , d , vis-b
+∋:=→∋tv d = bind _ , d , nameable-b
 
 -- Lookup is a partial FUNCTION, which is what makes every rule that mints an
 -- identity face at a looked-up rep deterministic.
@@ -170,7 +174,7 @@ ren-kn : Ren ρ Δ Δ′ → Δ ∋ X := A → Δ′ ∋ ρ X := renameᵗ ρ A
 ren-kn r d = ren∋ r d
 
 ren-tv : Ren ρ Δ Δ′ → Δ ∋tv X → Δ′ ∋tv ρ X
-ren-tv r (E , d , v) = renᵉ _ E , ren∋ r d , renᵉ-Vis v
+ren-tv r (E , d , v) = renᵉ _ E , ren∋ r d , renᵉ-Nameable v
 
 ren-ext : Ren ρ Δ Δ′ → Ren (extᵗ ρ) (F ∷ Δ) (renᵉ ρ F ∷ Δ′)
 ren-ext {ρ = ρ} {Δ = Δ} {Δ′ = Δ′} {F = F} r = mkRen go
@@ -200,8 +204,8 @@ data _⊑ᵉ_ : Ent → Ent → Set where
   le-aa : abst ⊑ᵉ abst
   le-ao : abst ⊑ᵉ bind A
   le-oo : bind A ⊑ᵉ bind A
-  le-bb : E ⊑ᵉ E′ → blk E ⊑ᵉ blk E′
-  le-bu : E ⊑ᵉ E′ → Vis E′ → blk E ⊑ᵉ E′
+  le-bb : E ⊑ᵉ E′ → masked E ⊑ᵉ masked E′
+  le-bu : E ⊑ᵉ E′ → Nameable E′ → masked E ⊑ᵉ E′
 
 infix 4 _⊑_
 data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
@@ -211,7 +215,7 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 ⊑ᵉ-refl : (E : Ent) → E ⊑ᵉ E
 ⊑ᵉ-refl abst    = le-aa
 ⊑ᵉ-refl (bind A) = le-oo
-⊑ᵉ-refl (blk E) = le-bb (⊑ᵉ-refl E)
+⊑ᵉ-refl (masked E) = le-bb (⊑ᵉ-refl E)
 
 ⊑-refl : (Δ : Ctxᵗ) → Δ ⊑ Δ
 ⊑-refl []      = le[]
@@ -222,23 +226,23 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 ⊑ᵉ-⇑ le-ao        = le-ao
 ⊑ᵉ-⇑ le-oo        = le-oo
 ⊑ᵉ-⇑ (le-bb l)    = le-bb (⊑ᵉ-⇑ l)
-⊑ᵉ-⇑ (le-bu l v)  = le-bu (⊑ᵉ-⇑ l) (renᵉ-Vis v)
+⊑ᵉ-⇑ (le-bu l v)  = le-bu (⊑ᵉ-⇑ l) (renᵉ-Nameable v)
 
 ⊑-∋e : Δ ⊑ Δ′ → Δ ∋e X , E → ∃[ E′ ] ((Δ′ ∋e X , E′) × E ⊑ᵉ E′)
 ⊑-∋e (le∷ l ls) ez     = _ , ez , ⊑ᵉ-⇑ l
 ⊑-∋e (le∷ l ls) (es d) with ⊑-∋e ls d
 ... | E′ , d′ , l′ = _ , es d′ , ⊑ᵉ-⇑ l′
 
-vis-mono : E ⊑ᵉ E′ → Vis E → Vis E′
-vis-mono le-aa        vis-a = vis-a
-vis-mono le-ao        vis-a = vis-b
-vis-mono le-oo        vis-b = vis-b
-vis-mono (le-bb _)    ()
-vis-mono (le-bu _ _)  ()
+nameable-mono : E ⊑ᵉ E′ → Nameable E → Nameable E′
+nameable-mono le-aa        nameable-a = nameable-a
+nameable-mono le-ao        nameable-a = nameable-b
+nameable-mono le-oo        nameable-b = nameable-b
+nameable-mono (le-bb _)    ()
+nameable-mono (le-bu _ _)  ()
 
 ⊑-tv : Δ ⊑ Δ′ → Δ ∋tv X → Δ′ ∋tv X
 ⊑-tv ls (E , d , v) with ⊑-∋e ls d
-... | E′ , d′ , l′ = E′ , d′ , vis-mono l′ v
+... | E′ , d′ , l′ = E′ , d′ , nameable-mono l′ v
 
 -- An owner is never lost and never re-spelled: the ONLY ⊑ᵉ clause whose
 -- source is `bind A` is `le-oo`.  This is the deleted demotion, as a theorem.
@@ -247,7 +251,7 @@ vis-mono (le-bu _ _)  ()
 ... | bind A , d′ , le-oo = d′
 
 -- Refinement composes.  (The only clause that has to think is `le-bu`:
--- an entry that stops being blocked stays unblocked, and `vis-mono`
+-- an entry that stops being blocked stays unblocked, and `nameable-mono`
 -- carries its visibility along the second step.)
 ⊑ᵉ-trans : E ⊑ᵉ E′ → E′ ⊑ᵉ E″ → E ⊑ᵉ E″
 ⊑ᵉ-trans le-aa       l′           = l′
@@ -255,7 +259,7 @@ vis-mono (le-bu _ _)  ()
 ⊑ᵉ-trans le-oo       le-oo        = le-oo
 ⊑ᵉ-trans (le-bb l)   (le-bb l′)   = le-bb (⊑ᵉ-trans l l′)
 ⊑ᵉ-trans (le-bb l)   (le-bu l′ v) = le-bu (⊑ᵉ-trans l l′) v
-⊑ᵉ-trans (le-bu l v) l′           = le-bu (⊑ᵉ-trans l l′) (vis-mono l′ v)
+⊑ᵉ-trans (le-bu l v) l′           = le-bu (⊑ᵉ-trans l l′) (nameable-mono l′ v)
 
 ⊑-trans : Δ ⊑ Δ′ → Δ′ ⊑ Δ″ → Δ ⊑ Δ″
 ⊑-trans le[]       le[]         = le[]
@@ -294,73 +298,75 @@ Inj-extN : (n : ℕ) → Inj ρ → Inj (extN n ρ)
 Inj-extN zero    i = i
 Inj-extN (suc n) i = Inj-ext (Inj-extN n i)
 
-liftN : ℕ → Ty → Ty
-liftN zero    A = A
-liftN (suc n) A = ⇑ᵗ (liftN n A)
+shiftBy : ℕ → Ty → Ty
+shiftBy zero    A = A
+shiftBy (suc n) A = ⇑ᵗ (shiftBy n A)
 
-liftN-ren : (n : ℕ) (ρ : Renameᵗ) (A : Ty)
-  → renameᵗ (extN n ρ) (liftN n A) ≡ liftN n (renameᵗ ρ A)
-liftN-ren zero    ρ A = refl
-liftN-ren (suc n) ρ A =
-  trans (ren-⇑-comm (extN n ρ) (liftN n A))
-        (cong ⇑ᵗ (liftN-ren n ρ A))
+shiftBy-ren : (n : ℕ) (ρ : Renameᵗ) (A : Ty)
+  → renameᵗ (extN n ρ) (shiftBy n A) ≡ shiftBy n (renameᵗ ρ A)
+shiftBy-ren zero    ρ A = refl
+shiftBy-ren (suc n) ρ A =
+  trans (ren-⇑-comm (extN n ρ) (shiftBy n A))
+        (cong ⇑ᵗ (shiftBy-ren n ρ A))
 
--- The SAME lifting, read UNDER one binder: `liftN n` on a `` `∀ `` body.
+-- The SAME lifting, read UNDER one binder: `shiftBy n` on a `` `∀ `` body.
 -- TyPeelR needs it, because the ∀-face's exterior body is the exterior
 -- type's body lifted past the boundary's owners.
-liftᵇ : ℕ → Ty → Ty
-liftᵇ zero    B = B
-liftᵇ (suc n) B = renameᵗ (extᵗ suc) (liftᵇ n B)
+shiftBodyBy : ℕ → Ty → Ty
+shiftBodyBy zero    B = B
+shiftBodyBy (suc n) B = renameᵗ (extᵗ suc) (shiftBodyBy n B)
 
-liftN-liftᵇ : (n : ℕ) (B : Ty) → liftN n (`∀ B) ≡ `∀ (liftᵇ n B)
-liftN-liftᵇ zero    B = refl
-liftN-liftᵇ (suc n) B rewrite liftN-liftᵇ n B = refl
+shiftBy-shiftBodyBy : (n : ℕ) (B : Ty) → shiftBy n (`∀ B) ≡ `∀ (shiftBodyBy n B)
+shiftBy-shiftBodyBy zero    B = refl
+shiftBy-shiftBodyBy (suc n) B rewrite shiftBy-shiftBodyBy n B = refl
 
-liftN-base : (n : ℕ) → Base A → liftN n A ≡ A
-liftN-base zero    b = refl
-liftN-base (suc n) b rewrite liftN-base n b = base-ren b
+shiftBy-base : (n : ℕ) → Base A → shiftBy n A ≡ A
+shiftBy-base zero    b = refl
+shiftBy-base (suc n) b rewrite shiftBy-base n b = base-ren b
 
-liftN-var : (n Y : ℕ) → liftN n (` Y) ≡ ` (n + Y)
-liftN-var zero    Y = refl
-liftN-var (suc n) Y rewrite liftN-var n Y = refl
+shiftBy-var : (n Y : ℕ) → shiftBy n (` Y) ≡ ` (n + Y)
+shiftBy-var zero    Y = refl
+shiftBy-var (suc n) Y rewrite shiftBy-var n Y = refl
 
 tvar-inj : _≡_ {A = Ty} (` X) (` Y) → X ≡ Y
 tvar-inj refl = refl
 
 -- A base type is never a variable, at any lifting.
-base≢var : (n : ℕ) → Base A → liftN n A ≡ ` X → ⊥
-base≢var n base-ℕ eq with trans (sym (liftN-base n base-ℕ)) eq
+base≢var : (n : ℕ) → Base A → shiftBy n A ≡ ` X → ⊥
+base≢var n base-ℕ eq with trans (sym (shiftBy-base n base-ℕ)) eq
 ... | ()
-base≢var n base-𝔹 eq with trans (sym (liftN-base n base-𝔹)) eq
+base≢var n base-𝔹 eq with trans (sym (shiftBy-base n base-𝔹)) eq
 ... | ()
 
 ------------------------------------------------------------------------
 -- 6.  Masking a slot in place  (the conceal/alias mechanism)
 ------------------------------------------------------------------------
 
--- One entry update at one slot.  `mask = upd blk`, `unmask = upd unblk`.
-upd : (Ent → Ent) → ℕ → Ctxᵗ → Ctxᵗ
-upd f X       []      = []
-upd f zero    (E ∷ Δ) = f E ∷ Δ
-upd f (suc X) (E ∷ Δ) = E ∷ upd f X Δ
+-- One entry update at one slot: `mask = updateAt masked` and
+-- `unmask = updateAt unmaskEnt`.
+updateAt : (Ent → Ent) → ℕ → Ctxᵗ → Ctxᵗ
+updateAt f X       []      = []
+updateAt f zero    (E ∷ Δ) = f E ∷ Δ
+updateAt f (suc X) (E ∷ Δ) = E ∷ updateAt f X Δ
 
-unblk : Ent → Ent
-unblk abst    = abst
-unblk (bind A) = bind A
-unblk (blk E) = E
+unmaskEnt : Ent → Ent
+unmaskEnt abst       = abst
+unmaskEnt (bind A)   = bind A
+unmaskEnt (masked E) = E
 
 mask unmask : ℕ → Ctxᵗ → Ctxᵗ
-mask   = upd blk
-unmask = upd unblk
+mask   = updateAt masked
+unmask = updateAt unmaskEnt
 
 -- Both update functions commute with renaming — they touch no spelling.
-blk-comm : (ρ : Renameᵗ) (E : Ent) → renᵉ ρ (blk E) ≡ blk (renᵉ ρ E)
-blk-comm ρ E = refl
+masked-comm : (ρ : Renameᵗ) (E : Ent) → renᵉ ρ (masked E) ≡ masked (renᵉ ρ E)
+masked-comm ρ E = refl
 
-unblk-comm : (ρ : Renameᵗ) (E : Ent) → renᵉ ρ (unblk E) ≡ unblk (renᵉ ρ E)
-unblk-comm ρ abst    = refl
-unblk-comm ρ (bind A) = refl
-unblk-comm ρ (blk E) = refl
+unmaskEnt-comm : (ρ : Renameᵗ) (E : Ent)
+  → renᵉ ρ (unmaskEnt E) ≡ unmaskEnt (renᵉ ρ E)
+unmaskEnt-comm ρ abst       = refl
+unmaskEnt-comm ρ (bind A)   = refl
+unmaskEnt-comm ρ (masked E) = refl
 
 _≟ℕ_ : (X Y : ℕ) → Dec (X ≡ Y)
 zero  ≟ℕ zero  = yes refl
@@ -373,95 +379,97 @@ suc X ≟ℕ suc Y with X ≟ℕ Y
 module _ (f : Ent → Ent)
          (fc : ∀ ρ E → renᵉ ρ (f E) ≡ f (renᵉ ρ E)) where
 
-  upd-hit : ∀ {Δ X E} → Δ ∋e X , E → upd f X Δ ∋e X , f E
-  upd-hit (ez {E = E₁})   rewrite sym (fc suc E₁) = ez
-  upd-hit (es {E = E₀} d) rewrite sym (fc suc E₀) = es (upd-hit d)
+  updateAt-hit : ∀ {Δ X E} → Δ ∋e X , E → updateAt f X Δ ∋e X , f E
+  updateAt-hit (ez {E = E₁})   rewrite sym (fc suc E₁) = ez
+  updateAt-hit (es {E = E₀} d) rewrite sym (fc suc E₀) = es (updateAt-hit d)
 
-  upd-hit⁻ : ∀ {Δ X E} → upd f X Δ ∋e X , E
+  updateAt-hit⁻ : ∀ {Δ X E} → updateAt f X Δ ∋e X , E
            → ∃[ E₀ ] ((Δ ∋e X , E₀) × (E ≡ f E₀))
-  upd-hit⁻ {E₁ ∷ Δ} {zero}  ez     = _ , ez , fc suc E₁
-  upd-hit⁻ {E₁ ∷ Δ} {suc X} (es d) with upd-hit⁻ d
+  updateAt-hit⁻ {E₁ ∷ Δ} {zero}  ez     = _ , ez , fc suc E₁
+  updateAt-hit⁻ {E₁ ∷ Δ} {suc X} (es d) with updateAt-hit⁻ d
   ... | E₀ , d₀ , eq = _ , es d₀ , trans (cong ⇑ᵉ eq) (fc suc E₀)
 
-  upd-miss : ∀ {Δ X Y E} → X ≢ Y → Δ ∋e Y , E → upd f X Δ ∋e Y , E
-  upd-miss {X = zero}  ne ez     = ⊥-elim (ne refl)
-  upd-miss {X = suc X} ne ez     = ez
-  upd-miss {X = zero}  ne (es d) = es d
-  upd-miss {X = suc X} ne (es d) = es (upd-miss (λ eq → ne (cong suc eq)) d)
+  updateAt-miss : ∀ {Δ X Y E} → X ≢ Y → Δ ∋e Y , E → updateAt f X Δ ∋e Y , E
+  updateAt-miss {X = zero}  ne ez     = ⊥-elim (ne refl)
+  updateAt-miss {X = suc X} ne ez     = ez
+  updateAt-miss {X = zero}  ne (es d) = es d
+  updateAt-miss {X = suc X} ne (es d) =
+    es (updateAt-miss (λ eq → ne (cong suc eq)) d)
 
-  upd-miss⁻ : ∀ {Δ X Y E} → X ≢ Y → upd f X Δ ∋e Y , E → Δ ∋e Y , E
-  upd-miss⁻ {Δ = E₁ ∷ Δ} {zero}  ne ez     = ⊥-elim (ne refl)
-  upd-miss⁻ {Δ = E₁ ∷ Δ} {suc X} ne ez     = ez
-  upd-miss⁻ {Δ = E₁ ∷ Δ} {zero}  ne (es d) = es d
-  upd-miss⁻ {Δ = E₁ ∷ Δ} {suc X} ne (es d) =
-    es (upd-miss⁻ (λ eq → ne (cong suc eq)) d)
+  updateAt-miss⁻ : ∀ {Δ X Y E} → X ≢ Y → updateAt f X Δ ∋e Y , E → Δ ∋e Y , E
+  updateAt-miss⁻ {Δ = E₁ ∷ Δ} {zero}  ne ez     = ⊥-elim (ne refl)
+  updateAt-miss⁻ {Δ = E₁ ∷ Δ} {suc X} ne ez     = ez
+  updateAt-miss⁻ {Δ = E₁ ∷ Δ} {zero}  ne (es d) = es d
+  updateAt-miss⁻ {Δ = E₁ ∷ Δ} {suc X} ne (es d) =
+    es (updateAt-miss⁻ (λ eq → ne (cong suc eq)) d)
 
   -- TRANSPORT of one mask/unmask across a type context renaming.
-  ren-upd : ∀ {Δ Δ′ ρ X} → Ren ρ Δ Δ′ → Inj ρ
-          → Ren ρ (upd f X Δ) (upd f (ρ X) Δ′)
-  ren-upd {ρ = ρ} {X = X} r i = mkRen go
+  ren-updateAt : ∀ {Δ Δ′ ρ X} → Ren ρ Δ Δ′ → Inj ρ
+          → Ren ρ (updateAt f X Δ) (updateAt f (ρ X) Δ′)
+  ren-updateAt {ρ = ρ} {X = X} r i = mkRen go
     where
-    go : ∀ {Y E} → upd f X _ ∋e Y , E → upd f (ρ X) _ ∋e ρ Y , renᵉ ρ E
+    go : ∀ {Y E} → updateAt f X _ ∋e Y , E
+       → updateAt f (ρ X) _ ∋e ρ Y , renᵉ ρ E
     go {Y} d with X ≟ℕ Y
-    ... | yes refl with upd-hit⁻ d
+    ... | yes refl with updateAt-hit⁻ d
     ...   | E₀ , d₀ , refl =
-            subst (λ e → upd f (ρ X) _ ∋e ρ X , e) (sym (fc ρ E₀))
-                  (upd-hit (ren∋ r d₀))
+            subst (λ e → updateAt f (ρ X) _ ∋e ρ X , e) (sym (fc ρ E₀))
+                  (updateAt-hit (ren∋ r d₀))
     go {Y} d | no ne =
-      upd-miss (λ eq → ne (i eq)) (ren∋ r (upd-miss⁻ ne d))
+      updateAt-miss (λ eq → ne (i eq)) (ren∋ r (updateAt-miss⁻ ne d))
 
   -- TRANSPORT of one mask/unmask across knowledge refinement.
-  ⊑-upd : ∀ {X Δ Δ′} → (∀ {E E′} → E ⊑ᵉ E′ → f E ⊑ᵉ f E′)
-        → Δ ⊑ Δ′ → upd f X Δ ⊑ upd f X Δ′
-  ⊑-upd {zero}  fm (le∷ l ls) = le∷ (fm l) ls
-  ⊑-upd {suc X} fm (le∷ l ls) = le∷ l (⊑-upd fm ls)
-  ⊑-upd         fm le[]       = le[]
+  ⊑-updateAt : ∀ {X Δ Δ′} → (∀ {E E′} → E ⊑ᵉ E′ → f E ⊑ᵉ f E′)
+        → Δ ⊑ Δ′ → updateAt f X Δ ⊑ updateAt f X Δ′
+  ⊑-updateAt {zero}  fm (le∷ l ls) = le∷ (fm l) ls
+  ⊑-updateAt {suc X} fm (le∷ l ls) = le∷ l (⊑-updateAt fm ls)
+  ⊑-updateAt         fm le[]       = le[]
 
-blk-mono : E ⊑ᵉ E′ → blk E ⊑ᵉ blk E′
-blk-mono = le-bb
+masked-mono : E ⊑ᵉ E′ → masked E ⊑ᵉ masked E′
+masked-mono = le-bb
 
 -- Masking a slot only LOSES nameability, so a masked type context refines to the
 -- unmasked one.  (There is no converse: that is the deleted demotion.)
-blk-le : E ⊑ᵉ E′ → blk E ⊑ᵉ E′
-blk-le le-aa       = le-bu le-aa vis-a
-blk-le le-ao       = le-bu le-ao vis-b
-blk-le le-oo       = le-bu le-oo vis-b
-blk-le (le-bb l)   = le-bb (blk-le l)
-blk-le (le-bu l v) = le-bu (le-bu l v) v
+masked-le : E ⊑ᵉ E′ → masked E ⊑ᵉ E′
+masked-le le-aa       = le-bu le-aa nameable-a
+masked-le le-ao       = le-bu le-ao nameable-b
+masked-le le-oo       = le-bu le-oo nameable-b
+masked-le (le-bb l)   = le-bb (masked-le l)
+masked-le (le-bu l v) = le-bu (le-bu l v) v
 
-unblk-vis : E ⊑ᵉ E′ → Vis E′ → E ⊑ᵉ unblk E′
-unblk-vis l vis-a = l
-unblk-vis l vis-b = l
+unmaskEnt-nameable : E ⊑ᵉ E′ → Nameable E′ → E ⊑ᵉ unmaskEnt E′
+unmaskEnt-nameable l nameable-a = l
+unmaskEnt-nameable l nameable-b = l
 
-unblk-mono : E ⊑ᵉ E′ → unblk E ⊑ᵉ unblk E′
-unblk-mono le-aa       = le-aa
-unblk-mono le-ao       = le-ao
-unblk-mono le-oo       = le-oo
-unblk-mono (le-bb l)   = l
-unblk-mono (le-bu l v) = unblk-vis l v
+unmaskEnt-mono : E ⊑ᵉ E′ → unmaskEnt E ⊑ᵉ unmaskEnt E′
+unmaskEnt-mono le-aa       = le-aa
+unmaskEnt-mono le-ao       = le-ao
+unmaskEnt-mono le-oo       = le-oo
+unmaskEnt-mono (le-bb l)   = l
+unmaskEnt-mono (le-bu l v) = unmaskEnt-nameable l v
 
 ren-mask : Ren ρ Δ Δ′ → Inj ρ → Ren ρ (mask X Δ) (mask (ρ X) Δ′)
-ren-mask = ren-upd blk blk-comm
+ren-mask = ren-updateAt masked masked-comm
 
 ren-unmask : Ren ρ Δ Δ′ → Inj ρ → Ren ρ (unmask X Δ) (unmask (ρ X) Δ′)
-ren-unmask = ren-upd unblk unblk-comm
+ren-unmask = ren-updateAt unmaskEnt unmaskEnt-comm
 
 mask-⊑ : (Y : ℕ) → Δ ⊑ Δ′ → mask Y Δ ⊑ Δ′
 mask-⊑ Y       le[]        = le[]
-mask-⊑ zero    (le∷ l ls)  = le∷ (blk-le l) ls
+mask-⊑ zero    (le∷ l ls)  = le∷ (masked-le l) ls
 mask-⊑ (suc Y) (le∷ l ls)  = le∷ l (mask-⊑ Y ls)
 
 -- Unmasking only ADDS nameability, so the type context refines to its own
--- unmasking.  (The `blk` clause is `blk-le` at reflexivity: peeling one
--- `blk` is the ⊑ᵉ step `le-bu`.)
-⊑ᵉ-unblk : (E : Ent) → E ⊑ᵉ unblk E
-⊑ᵉ-unblk abst     = le-aa
-⊑ᵉ-unblk (bind A) = le-oo
-⊑ᵉ-unblk (blk E)  = blk-le (⊑ᵉ-refl E)
+-- unmasking.  (The `masked` clause is `masked-le` at reflexivity: peeling one
+-- `masked` is the ⊑ᵉ step `le-bu`.)
+⊑ᵉ-unmaskEnt : (E : Ent) → E ⊑ᵉ unmaskEnt E
+⊑ᵉ-unmaskEnt abst        = le-aa
+⊑ᵉ-unmaskEnt (bind A)    = le-oo
+⊑ᵉ-unmaskEnt (masked E)  = masked-le (⊑ᵉ-refl E)
 
 unmask-⊑ : (Y : ℕ) (Δ : Ctxᵗ) → Δ ⊑ unmask Y Δ
 unmask-⊑ Y       []      = le[]
-unmask-⊑ zero    (E ∷ Δ) = le∷ (⊑ᵉ-unblk E) (⊑-refl Δ)
+unmask-⊑ zero    (E ∷ Δ) = le∷ (⊑ᵉ-unmaskEnt E) (⊑-refl Δ)
 unmask-⊑ (suc Y) (E ∷ Δ) = le∷ (⊑ᵉ-refl E) (unmask-⊑ Y Δ)
 
 ------------------------------------------------------------------------
@@ -472,45 +480,48 @@ unmask-⊑ (suc Y) (E ∷ Δ) = le∷ (⊑ᵉ-refl E) (unmask-⊑ Y Δ)
 -- head of the list is interior slot 0; a rep is a type over the PLAIN
 -- exterior, so it is lifted past the owners bound INSIDE it and past nothing
 -- else (SIMULTANEITY: boundary entries never interfere).
-prep : List Ty → Ctxᵗ → Ctxᵗ
-prep []       Δ = Δ
-prep (A ∷ As) Δ = bind (liftN (length As) A) ∷ prep As Δ
+pushBinds : List Ty → Ctxᵗ → Ctxᵗ
+pushBinds []       Δ = Δ
+pushBinds (A ∷ As) Δ = bind (shiftBy (length As) A) ∷ pushBinds As Δ
 
 -- SIMULTANEITY, as a well-formedness fact: a type over the plain exterior
 -- is a type inside the owner prefix, lifted past exactly the owners bound
 -- there.
-wf-liftN-prep : (As : List Ty) → Δ ⊢ᵗ A → prep As Δ ⊢ᵗ liftN (length As) A
-wf-liftN-prep []       w = w
-wf-liftN-prep (C ∷ As) w = wf-ren Ren-wk-prep (wf-liftN-prep As w)
+wf-shiftBy-pushBinds : (As : List Ty) → Δ ⊢ᵗ A
+  → pushBinds As Δ ⊢ᵗ shiftBy (length As) A
+wf-shiftBy-pushBinds []       w = w
+wf-shiftBy-pushBinds (C ∷ As) w =
+  wf-ren Ren-wk-pushBinds (wf-shiftBy-pushBinds As w)
   where
-  Ren-wk-prep : ∀ {E Δ″} → Ren suc Δ″ (E ∷ Δ″)
-  Ren-wk-prep = mkRen es
+  Ren-wk-pushBinds : ∀ {E Δ″} → Ren suc Δ″ (E ∷ Δ″)
+  Ren-wk-pushBinds = mkRen es
 
 -- A one-slot update PAST the owner prefix is the update on the tail: the
 -- prefix has `length As` entries and neither of them is touched.  This is
 -- what lets a boundary's own masking be re-indexed INTO an inner frame
--- (strong.Reduction, `moveS`).
-upd-prep : (f : Ent → Ent) (As : List Ty) (X : ℕ) (Δ : Ctxᵗ)
-  → upd f (length As + X) (prep As Δ) ≡ prep As (upd f X Δ)
-upd-prep f []       X Δ = refl
-upd-prep f (C ∷ As) X Δ =
-  cong (bind (liftN (length As) C) ∷_) (upd-prep f As X Δ)
+-- (strong.Reduction, `scopeOf`).
+updateAt-pushBinds : (f : Ent → Ent) (As : List Ty) (X : ℕ) (Δ : Ctxᵗ)
+  → updateAt f (length As + X) (pushBinds As Δ) ≡ pushBinds As (updateAt f X Δ)
+updateAt-pushBinds f []       X Δ = refl
+updateAt-pushBinds f (C ∷ As) X Δ =
+  cong (bind (shiftBy (length As) C) ∷_) (updateAt-pushBinds f As X Δ)
 
 -- A well-formed variable type IS a visible slot.
 wf-var⁻ : Δ ⊢ᵗ ` X → Δ ∋tv X
 wf-var⁻ (wf-var tv) = tv
 
-⊑-prep : (As : List Ty) → Δ ⊑ Δ′ → prep As Δ ⊑ prep As Δ′
-⊑-prep []       ls = ls
-⊑-prep (A ∷ As) ls = le∷ le-oo (⊑-prep As ls)
+⊑-pushBinds : (As : List Ty) → Δ ⊑ Δ′ → pushBinds As Δ ⊑ pushBinds As Δ′
+⊑-pushBinds []       ls = ls
+⊑-pushBinds (A ∷ As) ls = le∷ le-oo (⊑-pushBinds As ls)
 
-ren-prep : (As : List Ty) (ρ : Renameᵗ) → Ren ρ Δ Δ′
-         → Ren (extN (length As) ρ) (prep As Δ) (prep (map (renameᵗ ρ) As) Δ′)
-ren-prep []       ρ r = r
-ren-prep (A ∷ As) ρ r
+ren-pushBinds : (As : List Ty) (ρ : Renameᵗ) → Ren ρ Δ Δ′
+         → Ren (extN (length As) ρ) (pushBinds As Δ)
+               (pushBinds (map (renameᵗ ρ) As) Δ′)
+ren-pushBinds []       ρ r = r
+ren-pushBinds (A ∷ As) ρ r
   rewrite map-length (renameᵗ ρ) As
-        | sym (liftN-ren (length As) ρ A) =
-  ren-ext (ren-prep As ρ r)
+        | sym (shiftBy-ren (length As) ρ A) =
+  ren-ext (ren-pushBinds As ρ r)
 
-Inj-prep : (As : List Ty) → Inj ρ → Inj (extN (length As) ρ)
-Inj-prep As i = Inj-extN (length As) i
+Inj-pushBinds : (As : List Ty) → Inj ρ → Inj (extN (length As) ρ)
+Inj-pushBinds As i = Inj-extN (length As) i

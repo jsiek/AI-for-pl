@@ -3,8 +3,8 @@ module strong.proof.Canonicity where
 -- THE CANONICITY INVARIANT — the OWNER-NAME reading.
 --
 -- Every conversion that reduction ever writes on a wrapper is a member of
--- the CANONICAL FAMILY: it is (a subtree of) `unsealAt X B`, `sealAt X B`,
--- or `idc A`.  This file states that family as an inductive predicate,
+-- the CANONICAL FAMILY: it is (a subtree of) `reveal X B`, `conceal X B`,
+-- or `mkId A`.  This file states that family as an inductive predicate,
 -- proves the three closure facts the rules need (MINT / DECOMPOSE /
 -- RENAME), lifts it to terms, and proves it PRESERVED BY REDUCTION
 -- (`canon-step`).
@@ -13,7 +13,7 @@ module strong.proof.Canonicity where
 -- say two things at once: a POLARITY SHAPE (`unseal` leaves covariant,
 -- `seal` leaves contravariant) and a NAME (every non-identity leaf cites
 -- the SAME owner X, shifted under each `` `∀ `` exactly as
--- `unsealAt`/`sealAt` shift it).  The first half was a restatement of
+-- `reveal`/`conceal` shift it).  The first half was a restatement of
 -- what the indexed typing judgment already forced, and it went with the
 -- index (Jeremy's ruling, strong.Conversion): a mixed tree like
 -- `seal 0 ↦ seal 1` is now perfectly typeable, and TyPeelR's contractum
@@ -57,7 +57,7 @@ private
 
 -- `CanonAt X c` — every non-identity leaf of c cites the owner X.  A
 -- `` `∀ `` pushes a binder in front of the leaves, so the name it tracks
--- is `suc X`, which is precisely the shift `unsealAt`/`sealAt` perform on
+-- is `suc X`, which is precisely the shift `reveal`/`conceal` perform on
 -- the `` `∀ `` case.
 data CanonAt : ℕ → Conv → Set where
   ca-id     : CanonAt X (id A)
@@ -68,7 +68,7 @@ data CanonAt : ℕ → Conv → Set where
 
 -- The term-level reading: a wrapper's conversion cites SOME single owner.
 -- It has to be existential and it has to be single-name: TyPeelR's minted
--- face `unsealAtᶜ 0 s` reads TWO owners in one wrapper — the face's own,
+-- face `instReveal 0 s` reads TWO owners in one wrapper — the face's own,
 -- and the one the instantiation just bound at slot 0 — which is exactly
 -- what `¬CanonTyPeelR` (§8) records.
 CanonC : Conv → Set
@@ -79,46 +79,46 @@ CanonC c = ∃[ X ] CanonAt X c
 ------------------------------------------------------------------------
 
 -- (a) TyBeta's face and its dual, by mutual induction on the face type —
--- the same recursion `unsealAt`/`sealAt` are defined by.
+-- the same recursion `reveal`/`conceal` are defined by.
 mutual
-  canonAt-unsealAt : (X : ℕ) (B : Ty) → CanonAt X (unsealAt X B)
-  canonAt-unsealAt X (` Y) with X ≟ℕ Y
+  canonAt-reveal : (X : ℕ) (B : Ty) → CanonAt X (reveal X B)
+  canonAt-reveal X (` Y) with X ≟ℕ Y
   ... | yes refl = ca-unseal
   ... | no  _    = ca-id
-  canonAt-unsealAt X `ℕ      = ca-id
-  canonAt-unsealAt X `𝔹      = ca-id
-  canonAt-unsealAt X (A ⇒ B) =
-    ca-fun (canonAt-sealAt X A) (canonAt-unsealAt X B)
-  canonAt-unsealAt X (`∀ A)  = ca-all (canonAt-unsealAt (suc X) A)
+  canonAt-reveal X `ℕ      = ca-id
+  canonAt-reveal X `𝔹      = ca-id
+  canonAt-reveal X (A ⇒ B) =
+    ca-fun (canonAt-conceal X A) (canonAt-reveal X B)
+  canonAt-reveal X (`∀ A)  = ca-all (canonAt-reveal (suc X) A)
 
-  canonAt-sealAt : (X : ℕ) (B : Ty) → CanonAt X (sealAt X B)
-  canonAt-sealAt X (` Y) with X ≟ℕ Y
+  canonAt-conceal : (X : ℕ) (B : Ty) → CanonAt X (conceal X B)
+  canonAt-conceal X (` Y) with X ≟ℕ Y
   ... | yes refl = ca-seal
   ... | no  _    = ca-id
-  canonAt-sealAt X `ℕ      = ca-id
-  canonAt-sealAt X `𝔹      = ca-id
-  canonAt-sealAt X (A ⇒ B) =
-    ca-fun (canonAt-unsealAt X A) (canonAt-sealAt X B)
-  canonAt-sealAt X (`∀ A)  = ca-all (canonAt-sealAt (suc X) A)
+  canonAt-conceal X `ℕ      = ca-id
+  canonAt-conceal X `𝔹      = ca-id
+  canonAt-conceal X (A ⇒ B) =
+    ca-fun (canonAt-reveal X A) (canonAt-conceal X B)
+  canonAt-conceal X (`∀ A)  = ca-all (canonAt-conceal (suc X) A)
 
 -- (b) The identity at an arbitrary type — CancelR's and IdPush's residue.
--- It is canonical at EVERY name: the leaves of `idc` are all `id`, which
+-- It is canonical at EVERY name: the leaves of `mkId` are all `id`, which
 -- is the family's name-free leaf.
-canonAt-idc : (X : ℕ) (A : Ty) → CanonAt X (idc A)
-canonAt-idc X (` Y)   = ca-id
-canonAt-idc X `ℕ      = ca-id
-canonAt-idc X `𝔹      = ca-id
-canonAt-idc X (A ⇒ B) = ca-fun (canonAt-idc X A) (canonAt-idc X B)
-canonAt-idc X (`∀ A)  = ca-all (canonAt-idc (suc X) A)
+canonAt-mkId : (X : ℕ) (A : Ty) → CanonAt X (mkId A)
+canonAt-mkId X (` Y)   = ca-id
+canonAt-mkId X `ℕ      = ca-id
+canonAt-mkId X `𝔹      = ca-id
+canonAt-mkId X (A ⇒ B) = ca-fun (canonAt-mkId X A) (canonAt-mkId X B)
+canonAt-mkId X (`∀ A)  = ca-all (canonAt-mkId (suc X) A)
 
-canonC-unsealAt : (X : ℕ) (B : Ty) → CanonC (unsealAt X B)
-canonC-unsealAt X B = X , canonAt-unsealAt X B
+canonC-reveal : (X : ℕ) (B : Ty) → CanonC (reveal X B)
+canonC-reveal X B = X , canonAt-reveal X B
 
-canonC-sealAt : (X : ℕ) (B : Ty) → CanonC (sealAt X B)
-canonC-sealAt X B = X , canonAt-sealAt X B
+canonC-conceal : (X : ℕ) (B : Ty) → CanonC (conceal X B)
+canonC-conceal X B = X , canonAt-conceal X B
 
-canonC-idc : (A : Ty) → CanonC (idc A)
-canonC-idc A = 0 , canonAt-idc 0 A
+canonC-mkId : (A : Ty) → CanonC (mkId A)
+canonC-mkId A = 0 , canonAt-mkId 0 A
 
 -- IdPush's other mint: the pushed `unseal` at the name the id-face wrote.
 canonC-unseal : (X : ℕ) → CanonC (unseal X)
@@ -136,7 +136,7 @@ canonC-fun-dom (X , ca-fun cs ct) = X , cs
 canonC-fun-cod : CanonC (s ↦ t) → CanonC t
 canonC-fun-cod (X , ca-fun cs ct) = X , ct
 
--- TyPeelR reads `∀ s` apart — and then MINTS on the body (`unsealAtᶜ 0`):
+-- TyPeelR reads `∀ s` apart — and then MINTS on the body (`instReveal 0`):
 -- the slot the `` `∀ `` left abstract is now the owner the rule binds, so
 -- the face's identity leaves at that slot become the instantiation.  The
 -- decomposition itself only walks the name past the binder.
@@ -185,8 +185,8 @@ canon-renᴹ ρ (ct-· cL cM)     = ct-· (canon-renᴹ ρ cL) (canon-renᴹ ρ 
 canon-renᴹ ρ (ct-Λ cN)        = ct-Λ (canon-renᴹ (extᵗ ρ) cN)
 canon-renᴹ ρ (ct-·[] cL)      = ct-·[] (canon-renᴹ ρ cL)
 canon-renᴹ ρ (ct-⟪⟫ {Θ = Θ} cM cc) =
-  ct-⟪⟫ (canon-renᴹ (extN (nbind Θ) ρ) cM)
-        (canonC-ren (extN (nbind Θ) ρ) cc)
+  ct-⟪⟫ (canon-renᴹ (extN (numBinds Θ) ρ) cM)
+        (canonC-ren (extN (numBinds Θ) ρ) cc)
 
 canon-wkᴹ : (n : ℕ) → CanonTm M → CanonTm (wkᴹ n M)
 canon-wkᴹ n cM = canon-renᴹ (wkN n) cM
@@ -241,21 +241,21 @@ canon-subst cN cW =
 
 -- One case per rule.  The story:
 --
---   TyBeta   MINTS `unsealAt 0 B` at the owner it just bound (name 0).
+--   TyBeta   MINTS `reveal 0 B` at the owner it just bound (name 0).
 --   Beta     substitutes — §7, wrappers are opaque to `substᵐ`.
 --   Peel     DECOMPOSES `s ↦ t`; the argument is `wkᴹ`-renamed (§4) and
 --            takes the domain `s` at the SAME owner.
 --   TyPeelR  DECOMPOSES `∀ s`, RENAMES the moved value (`wkᴹ 1`), and
---            MINTS `unsealAtᶜ 0 s` on the body — the ONE case that is not
+--            MINTS `instReveal 0 s` on the body — the ONE case that is not
 --            unconditional, because the mint puts leaves at slot 0
 --            ALONGSIDE the face's own, so the result cites TWO owners;
 --            hence the hypothesis `CanonTyPeelR` below, which is REFUTED.
 --            (This is NOT a leftover of the polarity index: it survives
 --            the index's retirement, for the two-owner reason.)
---   CancelR  MINTS `idc A` at the looked-up rep — a LEAF of the family
---            (`canonAt-idc`), canonical at every name.
+--   CancelR  MINTS `mkId A` at the looked-up rep — a LEAF of the family
+--            (`canonAt-mkId`), canonical at every name.
 --   IdPush   MINTS BOTH faces: the pushed `unseal X` (owner X) and the
---            residue `idc A`.  The old inner face was `id (` X)`, a leaf
+--            residue `mkId A`.  The old inner face was `id (` X)`, a leaf
 --            that carries no owner, so the name comes from the face's own
 --            payload — which typing shows is the right one
 --            (proof/IdLayer.agda, `idpush-name`).
@@ -263,10 +263,10 @@ canon-subst cN cW =
 --   ξ-*      structural.
 -- WHAT TYPEELR'S MINT OWES THE FAMILY, as a statement.
 CanonTyPeelR : Set
-CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (unsealAtᶜ 0 s)
+CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (instReveal 0 s)
 
 -- IT FAILS on the ∀-face `∀ (id (` 0) ↦ seal 1)` — a polymorphic
--- ARGUMENT that crossed a Peel, `sealAt 0 (∀Y. Y ⇒ X)`.  That face cites
+-- ARGUMENT that crossed a Peel, `conceal 0 (∀Y. Y ⇒ X)`.  That face cites
 -- the ONE owner X (slot 1 under the `` `∀ ``), but its mint
 -- `seal 0 ↦ seal 1` cites TWO: the owner TyPeelR just bound at slot 0 and
 -- the crossed boundary's at slot 1.  The mint TYPES (proof/Preserve.
@@ -275,7 +275,7 @@ CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (unsealAtᶜ 0 s)
 canonC-∀face : CanonC (`∀ (id (` 0) ↦ seal 1))
 canonC-∀face = 0 , ca-all (ca-fun ca-id ca-seal)
 
-_ : unsealAtᶜ 0 (id (` 0) ↦ seal 1) ≡ seal 0 ↦ seal 1
+_ : instReveal 0 (id (` 0) ↦ seal 1) ≡ seal 0 ↦ seal 1
 _ = refl
 
 ¬canonC-seal↦seal : ¬ CanonC (seal 0 ↦ seal 1)
@@ -286,18 +286,18 @@ _ = refl
 
 canon-step : ∀ {Δ} → CanonTyPeelR → CanonTm M → Δ ⊢ M -→ M′ → CanonTm M′
 canon-step tp (ct-·[] (ct-Λ cN)) (TyBeta {B = B} _) =
-  ct-⟪⟫ cN (canonC-unsealAt 0 B)
+  ct-⟪⟫ cN (canonC-reveal 0 B)
 canon-step tp (ct-· (ct-ƛ cN) cW) (Beta _) = canon-subst cN cW
 canon-step tp (ct-· (ct-⟪⟫ cV cst) cW) (Peel {Θ = Θ} _ _) =
-  ct-⟪⟫ (ct-· cV (ct-⟪⟫ (canon-wkᴹ (nbind Θ) cW) (canonC-fun-dom cst)))
+  ct-⟪⟫ (ct-· cV (ct-⟪⟫ (canon-wkᴹ (numBinds Θ) cW) (canonC-fun-dom cst)))
         (canonC-fun-cod cst)
 canon-step tp (ct-·[] (ct-⟪⟫ cV cs)) (TyPeelR _ _) =
   ct-⟪⟫ (ct-·[] (canon-wkᴹ 1 cV)) (tp cs)
 canon-step tp (ct-⟪⟫ (ct-⟪⟫ cV _) _) (CancelR {Θ₁ = Θ₁} {A = A} _ _) =
-  ct-⟪⟫ (ct-⟪⟫ cV (canonC-idc (liftN (nbind Θ₁) A))) (canonC-idc A)
+  ct-⟪⟫ (ct-⟪⟫ cV (canonC-mkId (shiftBy (numBinds Θ₁) A))) (canonC-mkId A)
 canon-step tp (ct-⟪⟫ _ _) (Drop$ _) = ct-lit
 canon-step tp (ct-⟪⟫ (ct-⟪⟫ cV _) _) (IdPush {X = X} {A = A} _ _) =
-  ct-⟪⟫ (ct-⟪⟫ cV (canonC-unseal X)) (canonC-idc A)
+  ct-⟪⟫ (ct-⟪⟫ cV (canonC-unseal X)) (canonC-mkId A)
 canon-step tp (ct-· cL cM)  (ξ-·-l st)   = ct-· (canon-step tp cL st) cM
 canon-step tp (ct-· cV cM)  (ξ-·-r _ st) = ct-· cV (canon-step tp cM st)
 canon-step tp (ct-·[] cL)   (ξ-·[] st)   = ct-·[] (canon-step tp cL st)
@@ -359,11 +359,11 @@ canonTm-cancelTm-run tp = canon-steps tp canonTm-cancelTm run-cancelTm
 
 -- The mint lemmas, on the ground: TyBeta's face at a function type is the
 -- ↦-tree whose domain is the DUAL family.
-_ : unsealAt 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
+_ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl
 
-_ : CanonC (unsealAt 0 (` 0 ⇒ ` 0))
-_ = canonC-unsealAt 0 (` 0 ⇒ ` 0)
+_ : CanonC (reveal 0 (` 0 ⇒ ` 0))
+_ = canonC-reveal 0 (` 0 ⇒ ` 0)
 
 -- A TWO-OWNER tree — `seal` leaves at two different names — is outside
 -- the family, though (unlike under the retired polarity index) it is

@@ -16,7 +16,7 @@ module strong.Show where
 --     [fresh names for the owners] then ext SHIFTED past them.  Nothing is
 --     dropped any more (conceal masks in place), so there is exactly ONE
 --     inner supply — the old `cmax` correction has no analogue, and the
---     interior supply and the FACE supply coincide (`intC` and `fceC`
+--     interior supply and the FACE supply coincide (`interior` and `exterior`
 --     differ in blocking, not in slot layout).
 --   * an OWNER's rep is shown under `ext` — a rep is a type over the PLAIN
 --     exterior (simultaneity);
@@ -39,11 +39,11 @@ open import Data.String using (String; _++_)
 open import Data.Product using (_×_; _,_; proj₁)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
-open import strong.Ctx using (Ent; abst; bind; blk; Ctxᵗ)
+open import strong.Ctx using (Ent; abst; bind; masked; Ctxᵗ)
 open import strong.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
 open import strong.Terms
   using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
-         CtxMorph; MorphEnt; bind; unlock; lock; nbind)
+         CtxMorph; MorphEnt; bind; unlock; lock; numBinds)
 
 Supply : Set
 Supply = ℕ → String
@@ -115,10 +115,10 @@ showConv d sup (`∀ s)     =
 
 -- one fresh name per OWNER, newest first (owner 0 is interior slot 0)
 bindNames : ℕ → CtxMorph → List String
-bindNames d []            = []
-bindNames d (bind A ∷ Θ)   = tyBinder d ∷ bindNames (suc d) Θ
+bindNames d []               = []
+bindNames d (bind A ∷ Θ)     = tyBinder d ∷ bindNames (suc d) Θ
 bindNames d (unlock X ∷ Θ)   = bindNames d Θ
-bindNames d (lock X ∷ Θ)   = bindNames d Θ
+bindNames d (lock X ∷ Θ)     = bindNames d Θ
 
 nth : List String → ℕ → String
 nth []       k       = "?"
@@ -129,7 +129,7 @@ nth (s ∷ ss) (suc k) = nth ss k
 -- No `cmax` correction: conceal masks in place, so no slot is dropped.
 intSup : CtxMorph → List String → Supply → Supply
 intSup Θ on ext k =
-  if k <ᵇ nbind Θ then nth on k else ext (k ∸ nbind Θ)
+  if k <ᵇ numBinds Θ then nth on k else ext (k ∸ numBinds Θ)
 
 ------------------------------------------------------------------------
 -- boundary context morphisms
@@ -161,7 +161,7 @@ showBnd d ext [] c =
   "⟪ " ++ showConv d ext c ++ " ⟫"
 showBnd d ext Θ@(_ ∷ _) c =
   "⟪ " ++ showEnts d on ext Θ ++ " , "
-       ++ showConv (d + nbind Θ) (intSup Θ on ext) c ++ " ⟫"
+       ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
   where on = bindNames d Θ
 
 ------------------------------------------------------------------------
@@ -186,17 +186,17 @@ open St
 -- NAMED oldest first, so an older bind keeps its name when a newer one is
 -- prepended (TyPeelR's `bind A ∷ Θ`): the last bind gets tyBinder f.
 bindNamesF : ℕ → CtxMorph → List String
-bindNamesF f []            = []
-bindNamesF f (bind A ∷ Θ)  = tyBinder (f + nbind Θ) ∷ bindNamesF f Θ
+bindNamesF f []             = []
+bindNamesF f (bind A ∷ Θ)   = tyBinder (f + numBinds Θ) ∷ bindNamesF f Θ
 bindNamesF f (unlock X ∷ Θ) = bindNamesF f Θ
-bindNamesF f (lock X ∷ Θ)  = bindNamesF f Θ
+bindNamesF f (lock X ∷ Θ)   = bindNamesF f Θ
 
 showBndF : ℕ → ℕ → Supply → CtxMorph → Conv → String
 showBndF d f ext [] c =
   "⟪ " ++ showConv d ext c ++ " ⟫"
 showBndF d f ext Θ@(_ ∷ _) c =
   "⟪ " ++ showEnts d on ext Θ ++ " , "
-       ++ showConv (d + nbind Θ) (intSup Θ on ext) c ++ " ⟫"
+       ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
   where on = bindNamesF f Θ
 
 showTmF : ℕ → Supply → Supply → St → Term → String × St
@@ -215,8 +215,8 @@ showTmF td tys tms σ (Λ N) with showTmF (suc td) (extS tys (tyBinder (tf σ)))
 showTmF td tys tms σ (L ·[ B , A ]) with showTmF td tys tms σ L
 ... | l , σ′ = l ++ " [" ++ showTy td tys A ++ "]" , σ′
 showTmF td tys tms σ (M ⟪ Θ , c ⟫)
-  with showTmF (td + nbind Θ) (intSup Θ (bindNamesF (tf σ) Θ) tys) tms
-               (mkSt (tf σ + nbind Θ) (xf σ)) M
+  with showTmF (td + numBinds Θ) (intSup Θ (bindNamesF (tf σ) Θ) tys) tms
+               (mkSt (tf σ + numBinds Θ) (xf σ)) M
 ... | body , σ′ =
   "(" ++ body ++ " " ++ showBndF td (tf σ) tys Θ c ++ ")" , σ′
 
@@ -228,9 +228,9 @@ showTm td xd tys tms M = proj₁ (showTmF td tys tms (mkSt td xd) M)
 ------------------------------------------------------------------------
 
 showEntry : ℕ → Supply → String → Ent → String
-showEntry d sup nm abst    = nm ++ " Λ-bound"
-showEntry d sup nm (bind A) = nm ++ " := " ++ showTy d sup A
-showEntry d sup nm (blk E) = "⌷[" ++ showEntry d sup nm E ++ "]"
+showEntry d sup nm abst       = nm ++ " Λ-bound"
+showEntry d sup nm (bind A)   = nm ++ " := " ++ showTy d sup A
+showEntry d sup nm (masked E) = "⌷[" ++ showEntry d sup nm E ++ "]"
 
 showTCtxAt : ℕ → ℕ → Supply → Ctxᵗ → String
 showTCtxAt d i sup [] = "·"

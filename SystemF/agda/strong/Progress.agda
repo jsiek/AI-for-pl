@@ -8,7 +8,7 @@ module strong.Progress where
 -- usual ones, decided by strong.proof.Canonical.  The boundary case is
 -- the whole content of the theorem, and it is a two-step argument:
 --
---   1. run the induction hypothesis on the INTERIOR, at `intC Θ Δ`
+--   1. run the induction hypothesis on the INTERIOR, at `interior Θ Δ`
 --      (`env`'s second premise types it there).  An interior step lifts by
 --      ξ-⟪⟫; an interior VALUE moves to step 2.
 --
@@ -24,7 +24,7 @@ module strong.Progress where
 --          conv-unseal d — the interior value has the VARIABLE type ` Y,
 --                        so it is a seal-faced or id-variable-faced
 --                        wrapper (canon-var) and CancelR / IdPush fires.
---                        Both rules ask for `fceC Θ Δ ∋ Y := A`, which IS
+--                        Both rules ask for `exterior Θ Δ ∋ Y := A`, which IS
 --                        `conv-unseal`'s own premise `d` — the lookup is
 --                        FREE, never re-derived.
 --
@@ -55,7 +55,7 @@ open import strong.proof.Canonical
 
 -- Split off so that the face classification is a flat, named case
 -- analysis.  The interior has already been run: `v` is the interior
--- value, `⊢M` its typing at `intC Θ Δ`, `⊢c` the face.
+-- value, `⊢M` its typing at `interior Θ Δ`, `⊢c` the face.
 --
 -- The split is `act-or-inert` — the classification is total over TYPED
 -- conversions — and the ACTIVE branches recover their premises from `⊢c`
@@ -66,11 +66,11 @@ open import strong.proof.Canonical
 --               conv-id-base-src pins the interior face to the base type.
 --   A-unseal  : conv-unseal-src pins the interior face to ` Y, and
 --               unseal-face-is-the-owners-rep IS CancelR's / IdPush's
---               `fceC Θ Δ ∋ Y := A` premise.
+--               `exterior Θ Δ ∋ Y := A` premise.
 progress-env : ∀ {Δ Θ c M Bᵢ Bₑ}
   → Value M
-  → intC Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-  → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nbind Θ) Bₑ
+  → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
+  → exterior Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
     ------------------------------------------------------------
   → Value (M ⟪ Θ , c ⟫)
   ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′))
@@ -102,12 +102,12 @@ progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
 -- carries as a conversion-typing premise (strong.Reduction, repair 2a).
 -- Progress supplies it for FREE: it is the redex's own `env` conversion,
 -- one `` `∀ `` inside.  `conv-all-inv` (strong.Conversion) does the
--- inversion without having to see through `env`'s `liftN`.
+-- inversion without having to see through `env`'s `shiftBy`.
 ∀-face-premise : ∀ {Δ W Θ s B} → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ B
   → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ]
-      ((abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
-∀-face-premise (env bw ⊢W ⊢c wE) with conv-all-inv ⊢c
-∀-face-premise (env bw ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
+      ((abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
+∀-face-premise (env mw ⊢W ⊢c wE) with conv-all-inv ⊢c
+∀-face-premise (env mw ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
   Bᵢ , Bₑ , ⊢s
 
 ------------------------------------------------------------------------
@@ -153,9 +153,9 @@ progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
 progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
   | Bᵢ , Bₑ , ⊢s = inj₂ (_ , TyPeelR vW ⊢s)
 
--- M ⟪ Θ , c ⟫ — the boundary.  The interior is typed at `intC Θ Δ`; an
+-- M ⟪ Θ , c ⟫ — the boundary.  The interior is typed at `interior Θ Δ`; an
 -- interior step lifts by ξ-⟪⟫, an interior value goes to `progress-env`.
-progress (env bw ⊢M ⊢c wE) with progress ⊢M
-progress (env bw ⊢M ⊢c wE) | inj₂ (M′ , st) =
+progress (env mw ⊢M ⊢c wE) with progress ⊢M
+progress (env mw ⊢M ⊢c wE) | inj₂ (M′ , st) =
   inj₂ (M′ ⟪ _ , _ ⟫ , ξ-⟪⟫ st)
-progress (env bw ⊢M ⊢c wE) | inj₁ vM = progress-env vM ⊢M ⊢c
+progress (env mw ⊢M ⊢c wE) | inj₁ vM = progress-env vM ⊢M ⊢c

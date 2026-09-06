@@ -4,7 +4,7 @@ module strong.proof.Adversary where
 --
 -- A CONCEAL MUST CITE A LIVE OWNER.  That is the whole gate, and it is a
 -- one-line inversion: `conv-seal` has no other premise.  Under the previous
--- design the same fact needed bwf↓ + Reversal≈, or bwf↓x + starOnly +
+-- design the same fact needed mwf↓ + Reversal≈, or mwf↓x + starOnly +
 -- SkelEq, and the adversary passed ≡, ≈Δ̄ and SkelEq (only `starOnly`
 -- refused it).
 
@@ -29,10 +29,11 @@ seal-cites-owner : ∀ {Δ X A B c}
 seal-cites-owner (conv-seal d) refl = d
 
 -- `unlock` claims nothing: it is a NAME with no rep, so it cannot assert
--- knowledge.  The boundary context morphism carries no type at an alias, and Bwf's
--- alias premise is `Δ ∋e X , E` — pure existence.
-unlock-claims-nothing : ∀ {Δ X E Θ} → Δ ∋e X , E → Bwf Δ Θ → Bwf Δ (unlock X ∷ Θ)
-unlock-claims-nothing = bw-u
+-- knowledge.  The boundary context morphism carries no type at an alias,
+-- and MorphWf's alias premise is `Δ ∋e X , E` — pure existence.
+unlock-claims-nothing : ∀ {Δ X E Θ} → Δ ∋e X , E → MorphWf Δ Θ
+  → MorphWf Δ (unlock X ∷ Θ)
+unlock-claims-nothing = mw-u
 
 ------------------------------------------------------------------------
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
@@ -53,7 +54,7 @@ unlock-claims-nothing = bw-u
 ¬seal-adv (conv-seal d) = ¬know-adv d
 
 ¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
-¬⊢adv (env bw ⊢M ⊢c wE) = ¬seal-adv ⊢c
+¬⊢adv (env mw ⊢M ⊢c wE) = ¬seal-adv ⊢c
 
 ------------------------------------------------------------------------
 -- 3.  `bad`: two spellings of one fact — inexpressible
@@ -73,7 +74,7 @@ seal-bad-face : ∀ {A B} → Δbad ⊢ seal 0 ∶ A ⇝ B → A ≡ ⇑ᵗ ∀Z
 seal-bad-face (conv-seal ez) = refl
 
 ¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
-¬⊢bad (env bw ⊢$ ⊢c wE) with seal-bad-face ⊢c
+¬⊢bad (env mw ⊢$ ⊢c wE) with seal-bad-face ⊢c
 ... | ()
 
 ------------------------------------------------------------------------

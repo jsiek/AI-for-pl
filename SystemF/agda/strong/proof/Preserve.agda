@@ -6,14 +6,14 @@ module strong.proof.Preserve where
 --     well-formedness judgment (`⊢ᶜ Δ`, the store-typing pattern) is
 --     needed: every rep a rule reads back out of the type context arrives
 --     with its well-formedness already on the derivation — `env`'s last
---     premise `Δ ⊢ᵗ Bₑ` — and `unsealAt`'s minted face reads its rep from
+--     premise `Δ ⊢ᵗ Bₑ` — and `reveal`'s minted face reads its rep from
 --     the OWNER THE RULE ITSELF JUST BOUND, whose rep is `⊢·[]`'s premise.
 --
--- §2  THE MINTED FACE (`⊢unsealAt`/`⊢sealAt`), TyBeta's contractum face,
+-- §2  THE MINTED FACE (`⊢reveal`/`⊢conceal`), TyBeta's contractum face,
 --     proven mutually over the face type exactly as the two functions are
 --     defined.
 --
--- §2b THE MINTED FACE TYPEELR WRITES (`⊢unsealAtᶜ`/`⊢sealAtᶜ`), the
+-- §2b THE MINTED FACE TYPEELR WRITES (`⊢instReveal`/`⊢instConceal`), the
 --     conversion-level analogue of §2.  Since the polarity index was
 --     retired (strong.Conversion) both directions are TOTAL.
 --
@@ -55,15 +55,16 @@ private
 -- §1  Well-formedness of the type a derivation concludes
 ------------------------------------------------------------------------
 
--- Visibility is reflected by renaming: a renamed entry is visible only if
--- the entry was.  (`blk` is the only invisible shape, and `renᵉ` keeps it.)
-Vis-ren⁻ : ∀ {E} → Vis (renᵉ ρ E) → Vis E
-Vis-ren⁻ {E = abst}   v  = vis-a
-Vis-ren⁻ {E = bind A} v  = vis-b
-Vis-ren⁻ {E = blk E}  ()
+-- Nameability is reflected by renaming: a renamed entry is nameable only
+-- if the entry was.  (`masked` is the only unnameable shape, and `renᵉ`
+-- keeps it.)
+Nameable-ren⁻ : ∀ {E} → Nameable (renᵉ ρ E) → Nameable E
+Nameable-ren⁻ {E = abst}   v  = nameable-a
+Nameable-ren⁻ {E = bind A} v  = nameable-b
+Nameable-ren⁻ {E = masked E}  ()
 
 ∋tv-tail : ∀ {E} → (E ∷ Δ) ∋tv suc X → Δ ∋tv X
-∋tv-tail (_ , es d , v) = _ , d , Vis-ren⁻ v
+∋tv-tail (_ , es d , v) = _ , d , Nameable-ren⁻ v
 
 -- A type substitution is well formed when it sends every NAMEABLE slot to
 -- a well-formed type.
@@ -71,7 +72,7 @@ SubWf : Ctxᵗ → Ctxᵗ → Substᵗ → Set
 SubWf Δ Δ′ σ = ∀ {X} → Δ ∋tv X → Δ′ ⊢ᵗ σ X
 
 SubWf-ext : ∀ {σ} → SubWf Δ Δ′ σ → SubWf (abst ∷ Δ) (abst ∷ Δ′) (extsᵗ σ)
-SubWf-ext h {zero}  tv = wf-var (abst , ez , vis-a)
+SubWf-ext h {zero}  tv = wf-var (abst , ez , nameable-a)
 SubWf-ext h {suc X} tv = wf-ren Ren-wk (h (∋tv-tail tv))
 
 wf-substᵗ : ∀ {σ} → SubWf Δ Δ′ σ → Δ ⊢ᵗ A → Δ′ ⊢ᵗ substᵗ σ A
@@ -121,7 +122,7 @@ CtxWf-⤊ h d with ∋⦂-map⁻ d
 -- §2  The face TyBeta mints
 ------------------------------------------------------------------------
 
--- `unsealAt X B` reveals X inside B; the exterior face is B with X
+-- `reveal X B` reveals X inside B; the exterior face is B with X
 -- replaced by the OWNER'S REP — `_[_:=_]ᵗ`, the in-place substitution
 -- (the concealed variable stays on the type context, so nothing shifts).
 
@@ -138,7 +139,7 @@ single-at-miss X Y A ne with X ≟ Y
 ... | no  _  = refl
 
 -- Pushing the in-place substitution under a `∀ shifts BOTH the slot and
--- the rep — exactly `unsealAt`'s / `sealAt`'s own `∀ clause.
+-- the rep — exactly `reveal`'s / `conceal`'s own `∀ clause.
 single-at-ext : (X : ℕ) (A : Ty) (Y : ℕ)
   → extsᵗ (single-at X A) Y ≡ single-at (suc X) (⇑ᵗ A) Y
 single-at-ext X A zero    = refl
@@ -171,30 +172,30 @@ subst-at-0 A B =
 
 -- THE MINTED FACE, both directions, mutually.
 mutual
-  ⊢unsealAt : Δ ∋ X := A → Δ ⊢ᵗ B
-    → Δ ⊢ unsealAt X B ∶ B ⇝ B [ X := A ]ᵗ
-  ⊢unsealAt {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
+  ⊢reveal : Δ ∋ X := A → Δ ⊢ᵗ B
+    → Δ ⊢ reveal X B ∶ B ⇝ B [ X := A ]ᵗ
+  ⊢reveal {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
   ... | yes refl rewrite single-at-hit X A       = conv-unseal d
   ... | no  ne   rewrite single-at-miss X Y A ne = conv-idv tv
-  ⊢unsealAt d wf-ℕ = conv-id base-ℕ
-  ⊢unsealAt d wf-𝔹 = conv-id base-𝔹
-  ⊢unsealAt d (wf-⇒ wA wB) = conv-fun (⊢sealAt d wA) (⊢unsealAt d wB)
-  ⊢unsealAt {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
-    rewrite subst-at-∀ X A B = conv-all (⊢unsealAt (es d) wB)
+  ⊢reveal d wf-ℕ = conv-id base-ℕ
+  ⊢reveal d wf-𝔹 = conv-id base-𝔹
+  ⊢reveal d (wf-⇒ wA wB) = conv-fun (⊢conceal d wA) (⊢reveal d wB)
+  ⊢reveal {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
+    rewrite subst-at-∀ X A B = conv-all (⊢reveal (es d) wB)
 
-  ⊢sealAt : Δ ∋ X := A → Δ ⊢ᵗ B
-    → Δ ⊢ sealAt X B ∶ B [ X := A ]ᵗ ⇝ B
-  ⊢sealAt {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
+  ⊢conceal : Δ ∋ X := A → Δ ⊢ᵗ B
+    → Δ ⊢ conceal X B ∶ B [ X := A ]ᵗ ⇝ B
+  ⊢conceal {X = X} {A = A} {B = ` Y} d (wf-var tv) with X ≟ℕ Y
   ... | yes refl rewrite single-at-hit X A       = conv-seal d
   ... | no  ne   rewrite single-at-miss X Y A ne = conv-idv tv
-  ⊢sealAt d wf-ℕ = conv-id base-ℕ
-  ⊢sealAt d wf-𝔹 = conv-id base-𝔹
-  ⊢sealAt d (wf-⇒ wA wB) = conv-fun (⊢unsealAt d wA) (⊢sealAt d wB)
-  ⊢sealAt {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
-    rewrite subst-at-∀ X A B = conv-all (⊢sealAt (es d) wB)
+  ⊢conceal d wf-ℕ = conv-id base-ℕ
+  ⊢conceal d wf-𝔹 = conv-id base-𝔹
+  ⊢conceal d (wf-⇒ wA wB) = conv-fun (⊢reveal d wA) (⊢conceal d wB)
+  ⊢conceal {X = X} {A = A} {B = `∀ B} d (wf-∀ wB)
+    rewrite subst-at-∀ X A B = conv-all (⊢conceal (es d) wB)
 
 ------------------------------------------------------------------------
--- §2b  The face TYPEELR mints — `unsealAtᶜ` at the new owner
+-- §2b  The face TYPEELR mints — `instReveal` at the new owner
 ------------------------------------------------------------------------
 
 -- Four substitution facts about `single-at`, all shift arithmetic.
@@ -250,7 +251,7 @@ abstN : ℕ → Ctxᵗ → Ctxᵗ
 abstN zero    Ξ = Ξ
 abstN (suc n) Ξ = abst ∷ abstN n Ξ
 
-abstN-owner : ∀ {Ψ A} (n : ℕ) → abstN n (bind A ∷ Ψ) ∋ n := liftN (suc n) A
+abstN-owner : ∀ {Ψ A} (n : ℕ) → abstN n (bind A ∷ Ψ) ∋ n := shiftBy (suc n) A
 abstN-owner zero    = ez
 abstN-owner (suc n) = es (abstN-owner n)
 
@@ -261,20 +262,20 @@ abstN-⊑ (suc n)      = le∷ le-aa (abstN-⊑ n)
 -- The mint, applied to a whole ENTRY (the form the lookup transport
 -- needs, since `∋e` returns entries and only `bind` carries a rep).
 substᵉ : ℕ → Ty → Ent → Ent
-substᵉ n R abst     = abst
-substᵉ n R (bind A) = bind (A [ n := R ]ᵗ)
-substᵉ n R (blk E)  = blk (substᵉ n R E)
+substᵉ n R abst        = abst
+substᵉ n R (bind A)    = bind (A [ n := R ]ᵗ)
+substᵉ n R (masked E)  = masked (substᵉ n R E)
 
 substᵉ-0-⇑ : (R : Ty) (E : Ent) → substᵉ 0 R (⇑ᵉ E) ≡ ⇑ᵉ E
-substᵉ-0-⇑ R abst     = refl
-substᵉ-0-⇑ R (bind A) = cong bind (subst-at-0-⇑ R A)
-substᵉ-0-⇑ R (blk E)  = cong blk (substᵉ-0-⇑ R E)
+substᵉ-0-⇑ R abst        = refl
+substᵉ-0-⇑ R (bind A)    = cong bind (subst-at-0-⇑ R A)
+substᵉ-0-⇑ R (masked E)  = cong masked (substᵉ-0-⇑ R E)
 
 substᵉ-⇑ : (n : ℕ) (R : Ty) (E : Ent)
   → substᵉ (suc n) (⇑ᵗ R) (⇑ᵉ E) ≡ ⇑ᵉ (substᵉ n R E)
-substᵉ-⇑ n R abst     = refl
-substᵉ-⇑ n R (bind A) = cong bind (subst-at-⇑ n R A)
-substᵉ-⇑ n R (blk E)  = cong blk (substᵉ-⇑ n R E)
+substᵉ-⇑ n R abst        = refl
+substᵉ-⇑ n R (bind A)    = cong bind (subst-at-⇑ n R A)
+substᵉ-⇑ n R (masked E)  = cong masked (substᵉ-⇑ n R E)
 
 -- WHAT THE OTHER SLOTS OWE.  Every entry of `abstN n (abst ∷ Ψ)` is
 -- either ABSTRACT (the prefix, and slot n itself) or an entry of Ψ read
@@ -286,7 +287,7 @@ abstN-ent : ∀ {Ψ A} (n : ℕ) {Y E}
     ------------------------------------------------------------
   → (E ≡ abst)
   ⊎ ((abstN n (bind A ∷ Ψ) ∋e Y , E)
-     × (substᵉ n (liftN (suc n) A) E ≡ E))
+     × (substᵉ n (shiftBy (suc n) A) E ≡ E))
 abstN-ent zero ez                = inj₁ refl
 abstN-ent {A = A} zero (es {E = E} d) =
   inj₂ (es d , substᵉ-0-⇑ (⇑ᵗ A) E)
@@ -294,21 +295,21 @@ abstN-ent (suc n) ez             = inj₁ refl
 abstN-ent {A = A} (suc n) (es {E = E} d) with abstN-ent {A = A} n d
 ... | inj₁ refl        = inj₁ refl
 ... | inj₂ (d′ , eq) =
-  inj₂ (es d′ , trans (substᵉ-⇑ n (liftN (suc n) A) E) (cong ⇑ᵉ eq))
+  inj₂ (es d′ , trans (substᵉ-⇑ n (shiftBy (suc n) A) E) (cong ⇑ᵉ eq))
 
 abstN-kn : ∀ {Ψ A} (n : ℕ) {Y B}
   → abstN n (abst ∷ Ψ) ∋ Y := B
     -------------------------------------------------------
   → (abstN n (bind A ∷ Ψ) ∋ Y := B)
-    × (B [ n := liftN (suc n) A ]ᵗ ≡ B)
+    × (B [ n := shiftBy (suc n) A ]ᵗ ≡ B)
 abstN-kn {A = A} n d with abstN-ent {A = A} n d
 ... | inj₁ ()
 ... | inj₂ (d′ , eq) = d′ , bind-inj eq
 
 -- SLOT n IS ABSTRACT, so no face leaf the premise already carries can
 -- name it.  This is what closes the two leaf cases the polarity index
--- used to rule out (a `seal` under `unsealAtᶜ`, an `unseal` under
--- `sealAtᶜ`): such a leaf cites an OWNER, and slot n has none.
+-- used to rule out (a `seal` under `instReveal`, an `unseal` under
+-- `instConceal`): such a leaf cites an OWNER, and slot n has none.
 abstN-abst : ∀ {Ψ E} (n : ℕ) → abstN n (abst ∷ Ψ) ∋e n , E → E ≡ abst
 abstN-abst zero    ez     = refl
 abstN-abst (suc n) (es d) = cong ⇑ᵉ (abstN-abst n d)
@@ -318,8 +319,8 @@ abstN-≢ n d refl with abstN-abst n d
 ... | ()
 
 -- THE MINTED FACE, both directions, mutually — the conversion analogue of
--- `⊢unsealAt`/`⊢sealAt` (§2), and equal to them on an identity face
--- (`unsealAtᶜ-idc`, strong.Reduction).
+-- `⊢reveal`/`⊢conceal` (§2), and equal to them on an identity face
+-- (`instReveal-mkId`, strong.Reduction).
 --
 -- WITHOUT THE POLARITY INDEX BOTH DIRECTIONS ARE TOTAL.  The mint inserts
 -- `unseal n` where the face runs covariantly and `seal n` where it runs
@@ -328,49 +329,51 @@ abstN-≢ n d refl with abstN-abst n d
 -- substitution at slot n leaves its face alone.  That is the whole of the
 -- old CONCEAL-face obstruction: it was the index, not the terms.
 mutual
-  ⊢unsealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
+  ⊢instReveal : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
     → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       ------------------------------------------------------------
-    → abstN n (bind A ∷ Ψ) ⊢ unsealAtᶜ n s
-        ∶ Bᵢ ⇝ Bₑ [ n := liftN (suc n) A ]ᵗ
-  ⊢unsealAtᶜ n (conv-id base-ℕ) = conv-id base-ℕ
-  ⊢unsealAtᶜ n (conv-id base-𝔹) = conv-id base-𝔹
-  ⊢unsealAtᶜ {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
-  ... | yes refl rewrite single-at-hit n (liftN (suc n) A) =
+    → abstN n (bind A ∷ Ψ) ⊢ instReveal n s
+        ∶ Bᵢ ⇝ Bₑ [ n := shiftBy (suc n) A ]ᵗ
+  ⊢instReveal n (conv-id base-ℕ) = conv-id base-ℕ
+  ⊢instReveal n (conv-id base-𝔹) = conv-id base-𝔹
+  ⊢instReveal {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
+  ... | yes refl rewrite single-at-hit n (shiftBy (suc n) A) =
     conv-unseal (abstN-owner n)
-  ... | no ne rewrite single-at-miss n Y (liftN (suc n) A) ne =
+  ... | no ne rewrite single-at-miss n Y (shiftBy (suc n) A) ne =
     conv-idv (⊑-tv (abstN-⊑ n) tv)
-  ⊢unsealAtᶜ {A = A} n (conv-unseal d) with abstN-kn {A = A} n d
+  ⊢instReveal {A = A} n (conv-unseal d) with abstN-kn {A = A} n d
   ... | d′ , eq rewrite eq = conv-unseal d′
-  ⊢unsealAtᶜ {A = A} n (conv-seal {X = Y} d)
-    rewrite single-at-miss n Y (liftN (suc n) A) (abstN-≢ n d) =
+  ⊢instReveal {A = A} n (conv-seal {X = Y} d)
+    rewrite single-at-miss n Y (shiftBy (suc n) A) (abstN-≢ n d) =
     conv-seal (proj₁ (abstN-kn {A = A} n d))
-  ⊢unsealAtᶜ n (conv-fun ⊢s ⊢t) =
-    conv-fun (⊢sealAtᶜ n ⊢s) (⊢unsealAtᶜ n ⊢t)
-  ⊢unsealAtᶜ {A = A} {Bₑ = `∀ Bₑ} n (conv-all ⊢s)
-    rewrite subst-at-∀ n (liftN (suc n) A) Bₑ = conv-all (⊢unsealAtᶜ (suc n) ⊢s)
+  ⊢instReveal n (conv-fun ⊢s ⊢t) =
+    conv-fun (⊢instConceal n ⊢s) (⊢instReveal n ⊢t)
+  ⊢instReveal {A = A} {Bₑ = `∀ Bₑ} n (conv-all ⊢s)
+    rewrite subst-at-∀ n (shiftBy (suc n) A) Bₑ =
+      conv-all (⊢instReveal (suc n) ⊢s)
 
-  ⊢sealAtᶜ : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
+  ⊢instConceal : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
     → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       ------------------------------------------------------------
-    → abstN n (bind A ∷ Ψ) ⊢ sealAtᶜ n s
-        ∶ Bᵢ [ n := liftN (suc n) A ]ᵗ ⇝ Bₑ
-  ⊢sealAtᶜ n (conv-id base-ℕ) = conv-id base-ℕ
-  ⊢sealAtᶜ n (conv-id base-𝔹) = conv-id base-𝔹
-  ⊢sealAtᶜ {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
-  ... | yes refl rewrite single-at-hit n (liftN (suc n) A) =
+    → abstN n (bind A ∷ Ψ) ⊢ instConceal n s
+        ∶ Bᵢ [ n := shiftBy (suc n) A ]ᵗ ⇝ Bₑ
+  ⊢instConceal n (conv-id base-ℕ) = conv-id base-ℕ
+  ⊢instConceal n (conv-id base-𝔹) = conv-id base-𝔹
+  ⊢instConceal {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
+  ... | yes refl rewrite single-at-hit n (shiftBy (suc n) A) =
     conv-seal (abstN-owner n)
-  ... | no ne rewrite single-at-miss n Y (liftN (suc n) A) ne =
+  ... | no ne rewrite single-at-miss n Y (shiftBy (suc n) A) ne =
     conv-idv (⊑-tv (abstN-⊑ n) tv)
-  ⊢sealAtᶜ {A = A} n (conv-seal d) with abstN-kn {A = A} n d
+  ⊢instConceal {A = A} n (conv-seal d) with abstN-kn {A = A} n d
   ... | d′ , eq rewrite eq = conv-seal d′
-  ⊢sealAtᶜ {A = A} n (conv-unseal {X = Y} d)
-    rewrite single-at-miss n Y (liftN (suc n) A) (abstN-≢ n d) =
+  ⊢instConceal {A = A} n (conv-unseal {X = Y} d)
+    rewrite single-at-miss n Y (shiftBy (suc n) A) (abstN-≢ n d) =
     conv-unseal (proj₁ (abstN-kn {A = A} n d))
-  ⊢sealAtᶜ n (conv-fun ⊢s ⊢t) =
-    conv-fun (⊢unsealAtᶜ n ⊢s) (⊢sealAtᶜ n ⊢t)
-  ⊢sealAtᶜ {A = A} {Bᵢ = `∀ Bᵢ} n (conv-all ⊢s)
-    rewrite subst-at-∀ n (liftN (suc n) A) Bᵢ = conv-all (⊢sealAtᶜ (suc n) ⊢s)
+  ⊢instConceal n (conv-fun ⊢s ⊢t) =
+    conv-fun (⊢instReveal n ⊢s) (⊢instConceal n ⊢t)
+  ⊢instConceal {A = A} {Bᵢ = `∀ Bᵢ} n (conv-all ⊢s)
+    rewrite subst-at-∀ n (shiftBy (suc n) A) Bᵢ =
+      conv-all (⊢instConceal (suc n) ⊢s)
 
 ------------------------------------------------------------------------
 -- §3  The rule cases that hold
@@ -384,23 +387,23 @@ ren-ℕ⁻ {A = `𝔹}    ()
 ren-ℕ⁻ {A = A ⇒ B} ()
 ren-ℕ⁻ {A = `∀ A}  ()
 
-liftN-ℕ⁻ : (n : ℕ) → liftN n A ≡ `ℕ → A ≡ `ℕ
-liftN-ℕ⁻ zero    eq = eq
-liftN-ℕ⁻ (suc n) eq = liftN-ℕ⁻ n (ren-ℕ⁻ eq)
+shiftBy-ℕ⁻ : (n : ℕ) → shiftBy n A ≡ `ℕ → A ≡ `ℕ
+shiftBy-ℕ⁻ zero    eq = eq
+shiftBy-ℕ⁻ (suc n) eq = shiftBy-ℕ⁻ n (ren-ℕ⁻ eq)
 
 -- ── TYBETA ─────────────────────────────────────────────────────────────
 -- The boundary is BORN.  Three moves: the interior is RETAGGED (the slot
 -- the Λ bound abstractly is now the OWNER — `le-ao`, the one ⊑ᵉ clause
--- that refines an `abst`), the face is MINTED by `⊢unsealAt` at the rep
+-- that refines an `abst`), the face is MINTED by `⊢reveal` at the rep
 -- the owner was just given, and the exterior face equation is `subst-at-0`.
 preserve-TyBeta : ∀ {N B A}
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
     ------------------------------------------------------
-  → Δ ∣ [] ⊢ N ⟪ bind A ∷ [] , unsealAt 0 B ⟫ ⦂ C
+  → Δ ∣ [] ⊢ N ⟪ bind A ∷ [] , reveal 0 B ⟫ ⦂ C
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
   with ⊢ᵗ-of CtxWf-[] (⊢Λ ⊢N)
 ... | wf-∀ wB =
-  env (bw-b wA bw[])
+  env (mw-b wA mw[])
       (⊢retag refine ⊢N)
       face
       (wf-[]ᵗ wB wA)
@@ -408,19 +411,19 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
   refine : (abst ∷ Δ) ⊑ (bind A ∷ Δ)
   refine = le∷ le-ao (⊑-refl Δ)
 
-  face : (bind A ∷ Δ) ⊢ unsealAt 0 B ∶ B ⇝ liftN 1 (B [ A ]ᵗ)
-  face rewrite sym (subst-at-0 A B) = ⊢unsealAt ez (⊑-wf refine wB)
+  face : (bind A ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
+  face rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf refine wB)
 
 -- ── TYPEELR, AT ANY ∀-FACE ─────────────────────────────────────────────
 -- Four moves, one per premise of the contractum's `env`:
 --
---   FRAME     `bind A ∷ Θ`, whose interior is `bind (liftN (nbind Θ) A) ∷
---             intC Θ Δ` DEFINITIONALLY — the shift `renᴮ suc Θ` used to
---             add is the one `prep` already performs.
+--   FRAME     `bind A ∷ Θ`, whose interior is `bind (shiftBy (numBinds Θ) A) ∷
+--             interior Θ Δ` DEFINITIONALLY — the shift `renᴮ suc Θ` used to
+--             add is the one `pushBinds` already performs.
 --   INTERIOR  `wkᴹ 1 V` (⊢rename at `Ren-wk`) instantiated at the new
 --             owner's own name; the annotation is the INTERIOR ∀-body,
 --             shifted, and `ren-suc-[0]` returns it unchanged.
---   FACE      `unsealAtᶜ 0 s` (§2b), whose exterior face is the interior
+--   FACE      `instReveal 0 s` (§2b), whose exterior face is the interior
 --             one with slot 0 replaced by the owner's rep — which is the
 --             instantiated exterior body, by `subst-at-0`.
 --   EXTERIOR  `wf-[]ᵗ`, i.e. `⊢·[]`'s own two premises.
@@ -433,13 +436,13 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- only at a REVEAL ∀-face, because the mint inserts `seal 0`
 -- contravariantly and `unseal 0` covariantly and one of the two always
 -- sat where the index refused it.  With the index retired the mint's
--- typing (`⊢unsealAtᶜ`, §2b) is total, and so is this case.
+-- typing (`⊢instReveal`, §2b) is total, and so is this case.
 TyPeelRCase : Set
 TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
-  → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → (abst ∷ exterior Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫ ⦂ C
+               ⟪ bind A ∷ Θ , instReveal 0 s ⟫ ⦂ C
 
 ∀-inj : ∀ {A B} → _≡_ {A = Ty} (`∀ A) (`∀ B) → A ≡ B
 ∀-inj refl = refl
@@ -447,50 +450,50 @@ TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
 wf-∀⁻ : Δ ⊢ᵗ `∀ A → (abst ∷ Δ) ⊢ᵗ A
 wf-∀⁻ (wf-∀ w) = w
 
--- The exterior body, lifted: `liftᵇ` and the instantiation commute.
-liftN-[]ᵗ : (n : ℕ) (B A : Ty)
-  → liftN n (B [ A ]ᵗ) ≡ (liftᵇ n B) [ liftN n A ]ᵗ
-liftN-[]ᵗ zero    B A = refl
-liftN-[]ᵗ (suc n) B A =
-  trans (cong ⇑ᵗ (liftN-[]ᵗ n B A))
-        (rename-[]ᵗ-commute suc (liftᵇ n B) (liftN n A))
+-- The exterior body, lifted: `shiftBodyBy` and the instantiation commute.
+shiftBy-[]ᵗ : (n : ℕ) (B A : Ty)
+  → shiftBy n (B [ A ]ᵗ) ≡ (shiftBodyBy n B) [ shiftBy n A ]ᵗ
+shiftBy-[]ᵗ zero    B A = refl
+shiftBy-[]ᵗ (suc n) B A =
+  trans (cong ⇑ᵗ (shiftBy-[]ᵗ n B A))
+        (rename-[]ᵗ-commute suc (shiftBodyBy n B) (shiftBy n A))
 
 preserve-TyPeelR : TyPeelRCase
 preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
-                 {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env bw ⊢V ⊢c wE) wA)
+                 {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env mw ⊢V ⊢c wE) wA)
   with conv-all-inv ⊢c
 ... | A₀ , B₀ , refl , eqE , ⊢s₀
   with conv-faces-unique ⊢s ⊢s₀
 ... | refl , refl =
-  env (bw-b wA bw) interior face (wf-[]ᵗ (wf-∀⁻ wE) wA)
+  env (mw-b wA mw) int face (wf-[]ᵗ (wf-∀⁻ wE) wA)
   where
   A′ : Ty
-  A′ = liftN (nbind Θ) A
+  A′ = shiftBy (numBinds Θ) A
 
   -- the exterior ∀-body, read on the boundary's face type context
-  eqB : Bₑ ≡ liftᵇ (nbind Θ) B
-  eqB = sym (∀-inj (trans (sym (liftN-liftᵇ (nbind Θ) B)) eqE))
+  eqB : Bₑ ≡ shiftBodyBy (numBinds Θ) B
+  eqB = sym (∀-inj (trans (sym (shiftBy-shiftBodyBy (numBinds Θ) B)) eqE))
 
-  ⊢wkV : (bind A′ ∷ intC Θ Δ) ∣ [] ⊢ wkᴹ 1 V ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
+  ⊢wkV : (bind A′ ∷ interior Θ Δ) ∣ [] ⊢ wkᴹ 1 V ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
   ⊢wkV = ⊢rename Ren-wk Inj-suc ⊢V
 
-  interior : intC (bind A ∷ Θ) Δ ∣ []
-               ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ Bᵢ
-  interior =
-    subst (λ T → intC (bind A ∷ Θ) Δ ∣ []
+  int : interior (bind A ∷ Θ) Δ ∣ []
+          ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ Bᵢ
+  int =
+    subst (λ T → interior (bind A ∷ Θ) Δ ∣ []
                    ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ T)
           (ren-suc-[0] Bᵢ)
-          (⊢·[] ⊢wkV (wf-var (bind (⇑ᵗ A′) , ez , vis-b)))
+          (⊢·[] ⊢wkV (wf-var (bind (⇑ᵗ A′) , ez , nameable-b)))
 
-  eqT : Bₑ [ 0 := ⇑ᵗ A′ ]ᵗ ≡ liftN (suc (nbind Θ)) (B [ A ]ᵗ)
+  eqT : Bₑ [ 0 := ⇑ᵗ A′ ]ᵗ ≡ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
   eqT = trans (cong (λ T → T [ 0 := ⇑ᵗ A′ ]ᵗ) eqB)
-              (trans (subst-at-0 A′ (liftᵇ (nbind Θ) B))
-                     (cong ⇑ᵗ (sym (liftN-[]ᵗ (nbind Θ) B A))))
+              (trans (subst-at-0 A′ (shiftBodyBy (numBinds Θ) B))
+                     (cong ⇑ᵗ (sym (shiftBy-[]ᵗ (numBinds Θ) B A))))
 
-  face : fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s
-           ∶ Bᵢ ⇝ liftN (suc (nbind Θ)) (B [ A ]ᵗ)
-  face = subst (λ T → fceC (bind A ∷ Θ) Δ ⊢ unsealAtᶜ 0 s ∶ Bᵢ ⇝ T)
-               eqT (⊢unsealAtᶜ {A = A′} 0 ⊢s)
+  face : exterior (bind A ∷ Θ) Δ ⊢ instReveal 0 s
+           ∶ Bᵢ ⇝ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
+  face = subst (λ T → exterior (bind A ∷ Θ) Δ ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
+               eqT (⊢instReveal {A = A′} 0 ⊢s)
 
 -- ── DROP$ ──────────────────────────────────────────────────────────────
 -- `⊢$` types a numeral anywhere; the only content is that the boundary's
@@ -500,8 +503,8 @@ preserve-Drop$ : ∀ {n Θ}
   → Δ ∣ [] ⊢ ($ n) ⟪ Θ , id A ⟫ ⦂ C
     -------------------------------
   → Δ ∣ [] ⊢ $ n ⦂ C
-preserve-Drop$ {C = C} bA (env {Θ = Θ} bw ⊢$ ⊢c wE)
-  rewrite liftN-ℕ⁻ {A = C} (nbind Θ) (sym (conv-id-refl ⊢c)) = ⊢$
+preserve-Drop$ {C = C} bA (env {Θ = Θ} mw ⊢$ ⊢c wE)
+  rewrite shiftBy-ℕ⁻ {A = C} (numBinds Θ) (sym (conv-id-refl ⊢c)) = ⊢$
 
 ------------------------------------------------------------------------
 -- §4  The three downstream cases, and `preserve` over them
@@ -515,24 +518,24 @@ preserve-Drop$ {C = C} bA (env {Θ = Θ} bw ⊢$ ⊢c wE)
 PeelCase : Set
 PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
   → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
-  → Δ ∣ [] ⊢ (V · (wkᴹ (nbind Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V · (wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 -- (`TyPeelRCase` is stated and PROVEN in §3.)
 
 -- CANCELR, at the repaired rule (both frames kept, both faces
 -- neutralised, Θ₂'s scope MOVED IN).  PROVEN in proof/MoveScope.
 CancelRCase : Set
-CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → fceC Θ₂ Δ ∋ Y := A
+CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → exterior Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ◃ Θ₂ , idc (liftN (nbind Θ₁) A) ⟫)
-               ⟪ unlocked Θ₂ , idc A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
+               ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
 
 -- IDPUSH, at the moved scope.  PROVEN in proof/MoveScope — the wall the
 -- old contractum ran into is gone with the frame move.
 IdPushCase : Set
-IdPushCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → fceC Θ₂ Δ ∋ Y := A
+IdPushCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → exterior Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ◃ Θ₂ , unseal X ⟫) ⟪ unlocked Θ₂ , idc A ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ dropLocks Θ₂ , mkId A ⟫ ⦂ C
 
 -- THE TERM CONTEXT IS EMPTY, and it has to be.  Reduction carries no term
 -- context (`_⊢_-→_` indexes on the TYPE context alone) and TyBeta's
@@ -562,8 +565,8 @@ module Impl
   preserve (⊢· ⊢L ⊢M)   (ξ-·-r v st) = ⊢· ⊢L (preserve ⊢M st)
   preserve (⊢·[] ⊢L w)  (ξ-·[] st)   = ⊢·[] (preserve ⊢L st) w
   preserve (⊢Λ ⊢N)      (ξ-Λ st)     = ⊢Λ (preserve ⊢N st)
-  preserve (env bw ⊢M ⊢c wE) (ξ-⟪⟫ st) =
-    env bw (preserve ⊢M st) ⊢c wE
+  preserve (env mw ⊢M ⊢c wE) (ξ-⟪⟫ st) =
+    env mw (preserve ⊢M st) ⊢c wE
 
   preserve* : ∀ {Δ M M′ A}
     → Δ ∣ [] ⊢ M ⦂ A

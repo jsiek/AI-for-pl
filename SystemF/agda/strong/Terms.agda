@@ -18,7 +18,7 @@ module strong.Terms where
 --                interior type context with Θ's bind masks lifted), where a
 --                `seal X` can still resolve X at its owner.
 --
--- Frames change ONLY at binders: `intC Θ Δ` is `Δ` with the masks applied
+-- Frames change ONLY at binders: `interior Θ Δ` is `Δ` with the masks applied
 -- and Θ's owners pushed on.  There is no dropN, no cmax, no swapᵇ.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -53,79 +53,90 @@ data MorphEnt : Set where
 CtxMorph : Set
 CtxMorph = List MorphEnt
 
-reps : CtxMorph → List Ty
-reps []          = []
-reps (bind A ∷ Θ) = A ∷ reps Θ
-reps (unlock X ∷ Θ) = reps Θ
-reps (lock X ∷ Θ) = reps Θ
+repsOf : CtxMorph → List Ty
+repsOf []             = []
+repsOf (bind A ∷ Θ)   = A ∷ repsOf Θ
+repsOf (unlock X ∷ Θ) = repsOf Θ
+repsOf (lock X ∷ Θ)   = repsOf Θ
 
--- `nbind` is the boundary's FRAME EXTENSION: the number of binders it adds.
--- It is the only surviving list arithmetic; cmax/dropN have no analogue,
--- because conceal masks in place.
-nbind : CtxMorph → ℕ
-nbind Θ = length (reps Θ)
+-- `numBinds` is the boundary's FRAME EXTENSION: the number of binders it
+-- adds.  It is the only surviving list arithmetic; cmax/dropN have no
+-- analogue, because conceal masks in place.
+numBinds : CtxMorph → ℕ
+numBinds Θ = length (repsOf Θ)
 
 -- The masks (`lock`) and unmasks (`unlock`), applied in place.
-scp : CtxMorph → Ctxᵗ → Ctxᵗ
-scp []          Δ = Δ
-scp (bind A ∷ Θ) Δ = scp Θ Δ
-scp (unlock X ∷ Θ) Δ = unmask X (scp Θ Δ)
-scp (lock X ∷ Θ) Δ = mask X (scp Θ Δ)
+scope : CtxMorph → Ctxᵗ → Ctxᵗ
+scope []             Δ = Δ
+scope (bind A ∷ Θ)   Δ = scope Θ Δ
+scope (unlock X ∷ Θ) Δ = unmask X (scope Θ Δ)
+scope (lock X ∷ Θ)   Δ = mask X (scope Θ Δ)
 
--- The FACE type context: like `scp` but WITHOUT the conceal masks, so a `seal X`
--- can resolve X at its owner.  This is owner-syntactic lookup: the licence
--- is read on the type context that encloses the boundary, never inside it.
-fscp : CtxMorph → Ctxᵗ → Ctxᵗ
-fscp []          Δ = Δ
-fscp (bind A ∷ Θ) Δ = fscp Θ Δ
-fscp (unlock X ∷ Θ) Δ = unmask X (fscp Θ Δ)
-fscp (lock X ∷ Θ) Δ = fscp Θ Δ
+-- The FACE type context: like `scope` but WITHOUT the conceal masks, so a
+-- `seal X` can resolve X at its owner.  This is owner-syntactic lookup:
+-- the licence is read on the type context that encloses the boundary,
+-- never inside it.
+unlockedScope : CtxMorph → Ctxᵗ → Ctxᵗ
+unlockedScope []             Δ = Δ
+unlockedScope (bind A ∷ Θ)   Δ = unlockedScope Θ Δ
+unlockedScope (unlock X ∷ Θ) Δ = unmask X (unlockedScope Θ Δ)
+unlockedScope (lock X ∷ Θ)   Δ = unlockedScope Θ Δ
 
 -- What replaces `intOf`: the same slot list, the interior mask, and the
 -- owner extension.  Nothing is dropped and no rep is recomputed.
-intC : CtxMorph → Ctxᵗ → Ctxᵗ
-intC Θ Δ = prep (reps Θ) (scp Θ Δ)
+interior : CtxMorph → Ctxᵗ → Ctxᵗ
+interior Θ Δ = pushBinds (repsOf Θ) (scope Θ Δ)
 
-fceC : CtxMorph → Ctxᵗ → Ctxᵗ
-fceC Θ Δ = prep (reps Θ) (fscp Θ Δ)
+exterior : CtxMorph → Ctxᵗ → Ctxᵗ
+exterior Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ)
 
--- The interior type context is the face type context with Θ's bind masks on, so anything
--- well formed inside is well formed on the face type context.
-scp⊑fscp : (Θ : CtxMorph) (Δ : Ctxᵗ) → scp Θ Δ ⊑ fscp Θ Δ
-scp⊑fscp []          Δ = ⊑-refl Δ
-scp⊑fscp (bind A ∷ Θ) Δ = scp⊑fscp Θ Δ
-scp⊑fscp (unlock X ∷ Θ) Δ = ⊑-upd unblk unblk-comm unblk-mono (scp⊑fscp Θ Δ)
-scp⊑fscp (lock X ∷ Θ) Δ = mask-⊑ X (scp⊑fscp Θ Δ)
+-- The interior type context is the face type context with Θ's bind masks
+-- on, so anything well formed inside is well formed on the face type
+-- context.
+scope⊑unlockedScope : (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → scope Θ Δ ⊑ unlockedScope Θ Δ
+scope⊑unlockedScope []             Δ = ⊑-refl Δ
+scope⊑unlockedScope (bind A ∷ Θ)   Δ = scope⊑unlockedScope Θ Δ
+scope⊑unlockedScope (unlock X ∷ Θ) Δ =
+  ⊑-updateAt unmaskEnt unmaskEnt-comm unmaskEnt-mono
+    (scope⊑unlockedScope Θ Δ)
+scope⊑unlockedScope (lock X ∷ Θ)   Δ = mask-⊑ X (scope⊑unlockedScope Θ Δ)
 
-intC⊑fceC : (Θ : CtxMorph) (Δ : Ctxᵗ) → intC Θ Δ ⊑ fceC Θ Δ
-intC⊑fceC Θ Δ = ⊑-prep (reps Θ) (scp⊑fscp Θ Δ)
+interior⊑exterior : (Θ : CtxMorph) (Δ : Ctxᵗ) → interior Θ Δ ⊑ exterior Θ Δ
+interior⊑exterior Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ Δ)
 
 -- The FACE type context only ever ADDS nameability to the plain
--- exterior: `fscp` skips the binds and the locks, and an `unlock` merely
--- restores.  (`scp` would not do — masking is what a lock is for.)
-Δ⊑fscp : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊑ fscp Θ Δ
-Δ⊑fscp []             Δ = ⊑-refl Δ
-Δ⊑fscp (bind A ∷ Θ)   Δ = Δ⊑fscp Θ Δ
-Δ⊑fscp (unlock X ∷ Θ) Δ = ⊑-trans (Δ⊑fscp Θ Δ) (unmask-⊑ X (fscp Θ Δ))
-Δ⊑fscp (lock X ∷ Θ)   Δ = Δ⊑fscp Θ Δ
+-- exterior: `unlockedScope` skips the binds and the locks, and an
+-- `unlock` merely restores.  (`scope` would not do — masking is what a
+-- lock is for.)
+Δ⊑unlockedScope : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊑ unlockedScope Θ Δ
+Δ⊑unlockedScope []             Δ = ⊑-refl Δ
+Δ⊑unlockedScope (bind A ∷ Θ)   Δ = Δ⊑unlockedScope Θ Δ
+Δ⊑unlockedScope (unlock X ∷ Θ) Δ =
+  ⊑-trans (Δ⊑unlockedScope Θ Δ) (unmask-⊑ X (unlockedScope Θ Δ))
+Δ⊑unlockedScope (lock X ∷ Θ)   Δ = Δ⊑unlockedScope Θ Δ
 
-⊑-scp : (Θ : CtxMorph) → Δ ⊑ Δ′ → scp Θ Δ ⊑ scp Θ Δ′
-⊑-scp []          ls = ls
-⊑-scp (bind A ∷ Θ) ls = ⊑-scp Θ ls
-⊑-scp (unlock X ∷ Θ) ls = ⊑-upd unblk unblk-comm unblk-mono (⊑-scp Θ ls)
-⊑-scp (lock X ∷ Θ) ls = ⊑-upd blk blk-comm blk-mono (⊑-scp Θ ls)
+⊑-scope : (Θ : CtxMorph) → Δ ⊑ Δ′ → scope Θ Δ ⊑ scope Θ Δ′
+⊑-scope []             ls = ls
+⊑-scope (bind A ∷ Θ)   ls = ⊑-scope Θ ls
+⊑-scope (unlock X ∷ Θ) ls =
+  ⊑-updateAt unmaskEnt unmaskEnt-comm unmaskEnt-mono (⊑-scope Θ ls)
+⊑-scope (lock X ∷ Θ)   ls =
+  ⊑-updateAt masked masked-comm masked-mono (⊑-scope Θ ls)
 
-⊑-fscp : (Θ : CtxMorph) → Δ ⊑ Δ′ → fscp Θ Δ ⊑ fscp Θ Δ′
-⊑-fscp []          ls = ls
-⊑-fscp (bind A ∷ Θ) ls = ⊑-fscp Θ ls
-⊑-fscp (unlock X ∷ Θ) ls = ⊑-upd unblk unblk-comm unblk-mono (⊑-fscp Θ ls)
-⊑-fscp (lock X ∷ Θ) ls = ⊑-fscp Θ ls
+⊑-unlockedScope : (Θ : CtxMorph) → Δ ⊑ Δ′
+  → unlockedScope Θ Δ ⊑ unlockedScope Θ Δ′
+⊑-unlockedScope []             ls = ls
+⊑-unlockedScope (bind A ∷ Θ)   ls = ⊑-unlockedScope Θ ls
+⊑-unlockedScope (unlock X ∷ Θ) ls =
+  ⊑-updateAt unmaskEnt unmaskEnt-comm unmaskEnt-mono (⊑-unlockedScope Θ ls)
+⊑-unlockedScope (lock X ∷ Θ)   ls = ⊑-unlockedScope Θ ls
 
-⊑-intC : (Θ : CtxMorph) → Δ ⊑ Δ′ → intC Θ Δ ⊑ intC Θ Δ′
-⊑-intC Θ ls = ⊑-prep (reps Θ) (⊑-scp Θ ls)
+⊑-interior : (Θ : CtxMorph) → Δ ⊑ Δ′ → interior Θ Δ ⊑ interior Θ Δ′
+⊑-interior Θ ls = ⊑-pushBinds (repsOf Θ) (⊑-scope Θ ls)
 
-⊑-fceC : (Θ : CtxMorph) → Δ ⊑ Δ′ → fceC Θ Δ ⊑ fceC Θ Δ′
-⊑-fceC Θ ls = ⊑-prep (reps Θ) (⊑-fscp Θ ls)
+⊑-exterior : (Θ : CtxMorph) → Δ ⊑ Δ′ → exterior Θ Δ ⊑ exterior Θ Δ′
+⊑-exterior Θ ls = ⊑-pushBinds (repsOf Θ) (⊑-unlockedScope Θ ls)
 
 ------------------------------------------------------------------------
 -- 2.  Boundary well-formedness
@@ -143,18 +154,18 @@ intC⊑fceC Θ Δ = ⊑-prep (reps Θ) (scp⊑fscp Θ Δ)
 -- forces: `unlock X`/`lock X` NAME a masked index — that is an ENTRY, not a type
 -- — while `Δ ⊢ᵗ ` X` at a masked slot is refused.  Tightness is about USE in
 -- a type, not about mentioning the index in the context morphism.
-data Bwf (Δ : Ctxᵗ) : CtxMorph → Set where
-  bw[] : Bwf Δ []
-  bw-b : ∀ {A Θ} → Δ ⊢ᵗ A → Bwf Δ Θ → Bwf Δ (bind A ∷ Θ)
-  bw-l : ∀ {X Θ} → Δ ∋tv X → Bwf Δ Θ → Bwf Δ (lock X ∷ Θ)
-  bw-u : ∀ {X E Θ} → Δ ∋e X , E → Bwf Δ Θ → Bwf Δ (unlock X ∷ Θ)
+data MorphWf (Δ : Ctxᵗ) : CtxMorph → Set where
+  mw[] : MorphWf Δ []
+  mw-b : ∀ {A Θ} → Δ ⊢ᵗ A → MorphWf Δ Θ → MorphWf Δ (bind A ∷ Θ)
+  mw-l : ∀ {X Θ} → Δ ∋tv X → MorphWf Δ Θ → MorphWf Δ (lock X ∷ Θ)
+  mw-u : ∀ {X E Θ} → Δ ∋e X , E → MorphWf Δ Θ → MorphWf Δ (unlock X ∷ Θ)
 
-Bwf-⊑ : ∀ {Θ} → Δ ⊑ Δ′ → Bwf Δ Θ → Bwf Δ′ Θ
-Bwf-⊑ ls bw[]        = bw[]
-Bwf-⊑ ls (bw-b w b)  = bw-b (⊑-wf ls w) (Bwf-⊑ ls b)
-Bwf-⊑ ls (bw-l tv b) = bw-l (⊑-tv ls tv) (Bwf-⊑ ls b)
-Bwf-⊑ ls (bw-u d b)  with ⊑-∋e ls d
-... | E′ , d′ , _ = bw-u d′ (Bwf-⊑ ls b)
+MorphWf-⊑ : ∀ {Θ} → Δ ⊑ Δ′ → MorphWf Δ Θ → MorphWf Δ′ Θ
+MorphWf-⊑ ls mw[]        = mw[]
+MorphWf-⊑ ls (mw-b w b)  = mw-b (⊑-wf ls w) (MorphWf-⊑ ls b)
+MorphWf-⊑ ls (mw-l tv b) = mw-l (⊑-tv ls tv) (MorphWf-⊑ ls b)
+MorphWf-⊑ ls (mw-u d b)  with ⊑-∋e ls d
+... | E′ , d′ , _ = mw-u d′ (MorphWf-⊑ ls b)
 
 ------------------------------------------------------------------------
 -- 3.  Terms
@@ -213,9 +224,9 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   -- the boundary's owners and the slots it masks are both live; the exterior
   -- face is a type over the plain exterior.  Both faces are on the wrapper.
   env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
-      → Bwf Δ Θ
-      → intC Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-      → fceC Θ Δ ⊢ c ∶ Bᵢ ⇝ liftN (nbind Θ) Bₑ
+      → MorphWf Δ Θ
+      → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
+      → exterior Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ

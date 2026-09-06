@@ -57,16 +57,16 @@ renᴮ ρ (bind A ∷ Θ) = bind (renameᵗ ρ A) ∷ renᴮ ρ Θ
 renᴮ ρ (unlock X ∷ Θ) = unlock (ρ X) ∷ renᴮ ρ Θ
 renᴮ ρ (lock X ∷ Θ) = lock (ρ X) ∷ renᴮ ρ Θ
 
-reps-ren : (ρ : Renameᵗ) (Θ : CtxMorph)
-  → reps (renᴮ ρ Θ) ≡ map (renameᵗ ρ) (reps Θ)
-reps-ren ρ []          = refl
-reps-ren ρ (bind A ∷ Θ) = cong (renameᵗ ρ A ∷_) (reps-ren ρ Θ)
-reps-ren ρ (unlock X ∷ Θ) = reps-ren ρ Θ
-reps-ren ρ (lock X ∷ Θ) = reps-ren ρ Θ
+repsOf-ren : (ρ : Renameᵗ) (Θ : CtxMorph)
+  → repsOf (renᴮ ρ Θ) ≡ map (renameᵗ ρ) (repsOf Θ)
+repsOf-ren ρ []             = refl
+repsOf-ren ρ (bind A ∷ Θ)   = cong (renameᵗ ρ A ∷_) (repsOf-ren ρ Θ)
+repsOf-ren ρ (unlock X ∷ Θ) = repsOf-ren ρ Θ
+repsOf-ren ρ (lock X ∷ Θ)   = repsOf-ren ρ Θ
 
-nbind-ren : (ρ : Renameᵗ) (Θ : CtxMorph) → nbind (renᴮ ρ Θ) ≡ nbind Θ
-nbind-ren ρ Θ =
-  trans (cong length (reps-ren ρ Θ)) (map-length (renameᵗ ρ) (reps Θ))
+numBinds-ren : (ρ : Renameᵗ) (Θ : CtxMorph) → numBinds (renᴮ ρ Θ) ≡ numBinds Θ
+numBinds-ren ρ Θ =
+  trans (cong length (repsOf-ren ρ Θ)) (map-length (renameᵗ ρ) (repsOf Θ))
 
 renᴹ : Renameᵗ → Term → Term
 renᴹ ρ (` x)          = ` x
@@ -76,11 +76,11 @@ renᴹ ρ (L · M)        = renᴹ ρ L · renᴹ ρ M
 renᴹ ρ (Λ N)          = Λ (renᴹ (extᵗ ρ) N)
 renᴹ ρ (L ·[ B , A ]) = renᴹ ρ L ·[ renameᵗ (extᵗ ρ) B , renameᵗ ρ A ]
 renᴹ ρ (M ⟪ Θ , c ⟫)  =
-  renᴹ (extN (nbind Θ) ρ) M ⟪ renᴮ ρ Θ , renᶜ (extN (nbind Θ) ρ) c ⟫
+  renᴹ (extN (numBinds Θ) ρ) M ⟪ renᴮ ρ Θ , renᶜ (extN (numBinds Θ) ρ) c ⟫
 
 -- The weakening a crossing argument undergoes: the boundary's frame grew by
--- `nbind Θ` binders, so the argument's ANNOTATIONS shift.  Ordinary de Bruijn
--- weakening, not a re-spelling.
+-- `numBinds Θ` binders, so the argument's ANNOTATIONS shift.  Ordinary de
+-- Bruijn weakening, not a re-spelling.
 wkN : ℕ → Renameᵗ
 wkN n X = n + X
 
@@ -95,33 +95,35 @@ Inj-wkN (suc n) eq = Inj-wkN n (Inj-suc eq)
 -- 2.  The type context operations transport (the structural half)
 ------------------------------------------------------------------------
 
-ren-scp : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
-        → Ren ρ (scp Θ Δ) (scp (renᴮ ρ Θ) Δ′)
-ren-scp []          r i = r
-ren-scp (bind A ∷ Θ) r i = ren-scp Θ r i
-ren-scp (unlock X ∷ Θ) r i = ren-unmask (ren-scp Θ r i) i
-ren-scp (lock X ∷ Θ) r i = ren-mask (ren-scp Θ r i) i
+ren-scope : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
+        → Ren ρ (scope Θ Δ) (scope (renᴮ ρ Θ) Δ′)
+ren-scope []          r i    = r
+ren-scope (bind A ∷ Θ) r i   = ren-scope Θ r i
+ren-scope (unlock X ∷ Θ) r i = ren-unmask (ren-scope Θ r i) i
+ren-scope (lock X ∷ Θ) r i   = ren-mask (ren-scope Θ r i) i
 
-ren-fscp : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
-         → Ren ρ (fscp Θ Δ) (fscp (renᴮ ρ Θ) Δ′)
-ren-fscp []          r i = r
-ren-fscp (bind A ∷ Θ) r i = ren-fscp Θ r i
-ren-fscp (unlock X ∷ Θ) r i = ren-unmask (ren-fscp Θ r i) i
-ren-fscp (lock X ∷ Θ) r i = ren-fscp Θ r i
+ren-unlockedScope : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
+         → Ren ρ (unlockedScope Θ Δ) (unlockedScope (renᴮ ρ Θ) Δ′)
+ren-unlockedScope []          r i    = r
+ren-unlockedScope (bind A ∷ Θ) r i   = ren-unlockedScope Θ r i
+ren-unlockedScope (unlock X ∷ Θ) r i = ren-unmask (ren-unlockedScope Θ r i) i
+ren-unlockedScope (lock X ∷ Θ) r i   = ren-unlockedScope Θ r i
 
-ren-intC : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
-  → Ren (extN (nbind Θ) ρ) (intC Θ Δ) (intC (renᴮ ρ Θ) Δ′)
-ren-intC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-scp Θ r i)
+ren-interior : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
+  → Ren (extN (numBinds Θ) ρ) (interior Θ Δ) (interior (renᴮ ρ Θ) Δ′)
+ren-interior Θ ρ r i rewrite repsOf-ren ρ Θ =
+  ren-pushBinds (repsOf Θ) ρ (ren-scope Θ r i)
 
-ren-fceC : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
-  → Ren (extN (nbind Θ) ρ) (fceC Θ Δ) (fceC (renᴮ ρ Θ) Δ′)
-ren-fceC Θ ρ r i rewrite reps-ren ρ Θ = ren-prep (reps Θ) ρ (ren-fscp Θ r i)
+ren-exterior : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
+  → Ren (extN (numBinds Θ) ρ) (exterior Θ Δ) (exterior (renᴮ ρ Θ) Δ′)
+ren-exterior Θ ρ r i rewrite repsOf-ren ρ Θ =
+  ren-pushBinds (repsOf Θ) ρ (ren-unlockedScope Θ r i)
 
-Bwf-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → Bwf Δ Θ → Bwf Δ′ (renᴮ ρ Θ)
-Bwf-ren r i bw[]        = bw[]
-Bwf-ren r i (bw-b w b)  = bw-b (wf-ren r w) (Bwf-ren r i b)
-Bwf-ren r i (bw-l tv b) = bw-l (ren-tv r tv) (Bwf-ren r i b)
-Bwf-ren r i (bw-u d b)  = bw-u (ren∋ r d) (Bwf-ren r i b)
+MorphWf-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → MorphWf Δ Θ → MorphWf Δ′ (renᴮ ρ Θ)
+MorphWf-ren r i mw[]        = mw[]
+MorphWf-ren r i (mw-b w b)  = mw-b (wf-ren r w) (MorphWf-ren r i b)
+MorphWf-ren r i (mw-l tv b) = mw-l (ren-tv r tv) (MorphWf-ren r i b)
+MorphWf-ren r i (mw-u d b)  = mw-u (ren∋ r d) (MorphWf-ren r i b)
 
 ------------------------------------------------------------------------
 -- 3.  THE RENAMING TRANSPORT
@@ -154,23 +156,24 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
   rewrite rename-[]ᵗ-commute ρ B A =
   ⊢·[] (⊢rename r i ⊢L) (wf-ren r w)
 ⊢rename {Δ′ = Δ′} {ρ = ρ} r i
-        (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} bw ⊢M ⊢c wE) =
-  env (Bwf-ren r i bw)
-      (⊢rename (ren-intC Θ ρ r i) (Inj-extN (nbind Θ) i) ⊢M)
+        (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} mw ⊢M ⊢c wE) =
+  env (MorphWf-ren r i mw)
+      (⊢rename (ren-interior Θ ρ r i) (Inj-extN (numBinds Θ) i) ⊢M)
       cprem
       (wf-ren r wE)
   where
-  cprem : fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
-            ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ
-            ⇝ liftN (nbind (renᴮ ρ Θ)) (renameᵗ ρ Bₑ)
-  cprem = subst (λ n → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
-                         ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ
-                         ⇝ liftN n (renameᵗ ρ Bₑ))
-                (sym (nbind-ren ρ Θ))
-                (subst (λ t → fceC (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (nbind Θ) ρ) c
-                                ∶ renameᵗ (extN (nbind Θ) ρ) Bᵢ ⇝ t)
-                       (liftN-ren (nbind Θ) ρ Bₑ)
-                       (conv-ren (ren-fceC Θ ρ r i) ⊢c))
+  cprem : exterior (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (numBinds Θ) ρ) c
+            ∶ renameᵗ (extN (numBinds Θ) ρ) Bᵢ
+            ⇝ shiftBy (numBinds (renᴮ ρ Θ)) (renameᵗ ρ Bₑ)
+  cprem = subst (λ n → exterior (renᴮ ρ Θ) Δ′ ⊢ renᶜ (extN (numBinds Θ) ρ) c
+                         ∶ renameᵗ (extN (numBinds Θ) ρ) Bᵢ
+                         ⇝ shiftBy n (renameᵗ ρ Bₑ))
+                (sym (numBinds-ren ρ Θ))
+                (subst (λ t → exterior (renᴮ ρ Θ) Δ′
+                                ⊢ renᶜ (extN (numBinds Θ) ρ) c
+                                ∶ renameᵗ (extN (numBinds Θ) ρ) Bᵢ ⇝ t)
+                       (shiftBy-ren (numBinds Θ) ρ Bₑ)
+                       (conv-ren (ren-exterior Θ ρ r i) ⊢c))
 
 ------------------------------------------------------------------------
 -- 4.  THE RETAGGING TRANSPORT
@@ -187,10 +190,10 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
 ⊢retag ls (⊢· ⊢L ⊢M)   = ⊢· (⊢retag ls ⊢L) (⊢retag ls ⊢M)
 ⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (le∷ le-aa ls) ⊢N)
 ⊢retag ls (⊢·[] ⊢L w)  = ⊢·[] (⊢retag ls ⊢L) (⊑-wf ls w)
-⊢retag ls (env {Θ = Θ} bw ⊢M ⊢c wE) =
-  env (Bwf-⊑ ls bw)
-      (⊢retag (⊑-intC Θ ls) ⊢M)
-      (conv-⊑ (⊑-fceC Θ ls) ⊢c)
+⊢retag ls (env {Θ = Θ} mw ⊢M ⊢c wE) =
+  env (MorphWf-⊑ ls mw)
+      (⊢retag (⊑-interior Θ ls) ⊢M)
+      (conv-⊑ (⊑-exterior Θ ls) ⊢c)
       (⊑-wf ls wE)
 
 ------------------------------------------------------------------------
@@ -297,7 +300,7 @@ extⁿ-∋ h (there d) = there (h d)
 ⊢renⁿ h (⊢· ⊢L ⊢M)        = ⊢· (⊢renⁿ h ⊢L) (⊢renⁿ h ⊢M)
 ⊢renⁿ h (⊢Λ ⊢N)           = ⊢Λ (⊢renⁿ (⤊-∋ⁿ h) ⊢N)
 ⊢renⁿ h (⊢·[] ⊢L w)       = ⊢·[] (⊢renⁿ h ⊢L) w
-⊢renⁿ h (env bw ⊢M ⊢c wE) = env bw ⊢M ⊢c wE
+⊢renⁿ h (env mw ⊢M ⊢c wE) = env mw ⊢M ⊢c wE
 
 -- The one type-context renaming the substitution lemma needs: pushing a
 -- fresh Λ-bound slot on the front.
@@ -336,7 +339,7 @@ extᵐ-⊢ h (there d) = ⊢renⁿ there (h d)
 ⊢substᵐ h (⊢· ⊢L ⊢M)        = ⊢· (⊢substᵐ h ⊢L) (⊢substᵐ h ⊢M)
 ⊢substᵐ h (⊢Λ ⊢N)           = ⊢Λ (⊢substᵐ (⇑ᴹ-⊢ h) ⊢N)
 ⊢substᵐ h (⊢·[] ⊢L w)       = ⊢·[] (⊢substᵐ h ⊢L) w
-⊢substᵐ h (env bw ⊢M ⊢c wE) = env bw ⊢M ⊢c wE
+⊢substᵐ h (env mw ⊢M ⊢c wE) = env mw ⊢M ⊢c wE
 
 -- THE SUBSTITUTION TYPING LEMMA — what Beta's preservation case consumes.
 ⊢subst : ∀ {Δ Γ A B N W}

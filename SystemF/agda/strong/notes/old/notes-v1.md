@@ -1,6 +1,10 @@
 HISTORICAL — this describes the REFUTED v1 design (one combined boundary
 `M ⟪ Θ , B₀ ⟫` carrying reveal/conceal entries and a single boundary type);
 subject reduction is false for it.  The live design is `strong/Design.md`.
+The v1 Agda probes that accompanied these notes live on `main` (commit
+c5db9f59, `SystemF/agda/strong/notes/old/`); they import v1 modules
+(`strong.Context`, `strong.Boundary`, `strong.BReduction`, …) and were
+removed from this branch.
 
 Strong System F
 

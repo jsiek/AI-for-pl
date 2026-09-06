@@ -44,8 +44,9 @@ The gate, run **cold**, from `SystemF/agda`:
 which is `agda --safe -v0 All.agda` plus a hygiene grep for
 `postulate` / `{!` / `TERMINATING` / `NON_TERMINATING` /
 `NO_POSITIVITY_CHECK` / `NO_UNIVERSE_CHECK` in every `.agda` under
-`strong/` (including `notes/old/`).  `All.agda` is the aggregate driver:
-type-checking it type-checks the whole development.
+`strong/` — which, since the v1 probes were deleted, is exactly the
+development (`notes/` is `.md` only).  `All.agda` is the aggregate
+driver: type-checking it type-checks the whole thing.
 
 ## Module map
 
@@ -60,11 +61,12 @@ type-checking it type-checks the whole development.
 | `Terms.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`, `scope`, `unlockedScope`, `interior`, `convCtx`), `_⊢ᵐ_`, terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` |
 | `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |
 | `Reduction.agda` | `reveal`/`conceal` and their conversion analogues, `dual`, the scope move (`scopeOf`, `dropLocks`, `_⋉_`), the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
-| `Progress.agda` | `progress`, with the boundary case split out as `progress-env` and `TyPeelR`'s premise read off the redex (`∀-conv-premise`) |
+| `Progress.agda` | the statement `Progress` and `progress`, a one-line wrapper around `proof.Progress.progress` |
 | `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full |
+| `Eval.agda` | the evaluator: `step` **is** `progress`, `eval` iterates it with fuel under `preservation`, `Trace` stores the step derivations, `trace-sound` / `traceFinal` / `trace-unique`, `evalTerms`, and `showTrace` / `ruleName` |
 | `All.agda` | aggregate driver |
-| `Examples.agda` | the regression corpus: §§1–9 and §§11–14 of runs and refutations, most from closed plain System F source, §14 being the pre-boundary counterexample run in v2 (§10 was deleted with the invariant hunt; later numbers are unchanged).  See `Design.md` for which example illustrates which rule |
+| `Examples.agda` | the regression corpus: §§1–9 and §§11–14 of runs and refutations, most from closed plain System F source, §14 being the pre-boundary counterexample run in v2 (§10 was deleted with the invariant hunt; later numbers are unchanged).  Seven of the runs are additionally pinned against the **generated** trace, `evalTerms n ⊢X₀ ≡ …` by `refl`.  See `Design.md` for which example illustrates which rule |
 | `Show.agda` | de Bruijn → named renderer (see **Tools**) |
 
 ### The proofs (`proof/`)
@@ -74,6 +76,7 @@ type-checking it type-checks the whole development.
 | `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢reveal`/`⊢conceal`/`⊢instReveal`/`⊢instConceal`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR`, the three case statements, and `module Impl` |
 | `PeelDual.agda` | the `Peel` case: `interior-dual` and `convCtx-dual` in general, and `preserve-Peel` |
 | `MoveScope.agda` | **the scope move**: the list algebra of `scopeOf`/`dropLocks`/`_⋉_`, `interior-dropLocks`, the unconditional frame lemmas `frame-move`/`convCtx-move`, `move-∋`, `⊢ᵐ-⋉`, the lock-only refutation, and `preserve-CancelR` / `preserve-IdPush` |
+| `Progress.agda` | the progress induction: the boundary case split out as `progress-env`, `TyPeelR`'s premise read off the redex (`∀-conv-premise`), and `progress` itself |
 | `Canonical.agda` | canonical forms: `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` |
 | `Canonicity.agda` | the canonical conversion family (`reveal`/`conceal`/`mkId` subtrees) and its closure under the rules |
 | `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing forces `X ≡ numBinds Θ₁ + Y` (`idpush-name`, `cancel-name`), and `unseal` is the only active conversion those left-hand sides meet |
@@ -112,6 +115,17 @@ lines.  Entry points: `showTmIn n M`, `showTyIn n A`, `showConvIn n c`,
 to supply your own names for the free slots.  `n` is the ambient type
 context's length; slot 0 is named `X`.
 
+To render a whole **run** rather than a state, evaluate it first
+(`Eval.agda`) and print the trace — one state per line, each arrow
+labelled by the redex rule that fired:
+
+    scripts/render_term.sh 'showTrace 0 (eval 6 ⊢P₀)' \
+        'open import strong.Examples' 'open import strong.Eval' \
+      | sed 's/\\n/\n/g'
+
+(the script reads the string out of an Agda type error, so the newlines
+arrive escaped — hence the `sed`).
+
 Conventions: type variables cycle `X`, `Y`, `Z`, `X′`, …; term binders
 cycle `x`, `y`, `z`, `f`, `g`, `h`, then primes; `V` and `W` are reserved
 for value metavariables and never generated.  Type binder names are
@@ -138,7 +152,16 @@ prints as `⌷[…]`.
 | `Zdancewic-embeddings.md` | digest of Zdancewic, Grossman & Morrisett, *Principals in Programming Languages* (ICFP'99) |
 | `SyntacticTypeAbstraction.md` | digest of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) |
 | `old/notes-v1.md` | the **refuted** v1 design note |
-| `old/*.agda` | the v1 probe files and the retired v1 `Reduction`/`Terms`/`Typing` |
+| `old/PLAN-v1.md` | the v1 plan, retired with the invariant hunt |
+
+`notes/` now holds **`.md` only**.  The v1 Agda probes that accompanied
+`old/notes-v1.md` (the retired v1 `Reduction`/`Terms`/`Typing` and fifteen
+probe and scratch files) imported v1 modules — `strong.Context`,
+`strong.Boundary`, `strong.BReduction`, `strong.Weakening`,
+`strong.Unfold` — and so could not type-check on this branch at all.  They
+were **deleted** (2026-09-06); they are preserved on `main`, the v1 tree,
+at commit `c5db9f59` under `SystemF/agda/strong/notes/old/`, where they
+compile.
 
 Three PDFs sit at the top level for the digests above:
 `parameterized-cast-calculi-…pdf`, `p197-zdancewic.pdf`,

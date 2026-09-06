@@ -31,9 +31,14 @@ open import strong.Examples
 open import strong.Show
 open import strong.proof.Canonicity
 
--- progress (the canonical-forms suite and the theorem)
+-- progress (the canonical-forms suite, the proof script, the theorem)
 open import strong.proof.Canonical
+open import strong.proof.Progress
 open import strong.Progress
+
+-- the evaluator: `step` IS progress, `eval` iterates it under
+-- preservation, and a Trace stores the step derivations it took
+open import strong.Eval
 
 -- THE WALL.  The search for an INVARIANT grounding the premise
 -- `interior Θ₂ Δ ⊢ᵗ A` — the one the old CancelR/IdPush contracta needed —

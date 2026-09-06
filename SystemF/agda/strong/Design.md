@@ -961,6 +961,9 @@ well-formedness of any typed term's type from the derivation alone.
 
 ### `progress`
 
+Stated in `strong.Progress` (and again in `strong.TypeSafety`), proven in
+`proof/Progress` — the same public/proof split the other theorems have.
+
 Induction on the typing derivation.  The three ordinary cases are decided
 by the canonical-forms suite (`proof/Canonical`): `canon-⇒` gives `λ` or
 a `↦`-converted boundary, `canon-∀` gives `Λ` (with its body a value, so
@@ -1051,6 +1054,57 @@ overlapping `ξ`.
 
 `progress ∘ preservation*` (`proof/TypeSafety`): a well-typed closed term
 never gets stuck along a run.
+
+### The evaluator (`strong.Eval`)
+
+**The step function is progress.**  There is no second, type-blind
+transcription of the rule table (v1 needed one, because progress was
+false for v1 as it stood):
+
+    step ⊢M  =  progress ⊢M
+      : Value M ⊎ ∃ M′. (Δ ⊢ M -→ M′)
+
+decides "value or redex" and, in the redex case, returns the contractum
+*together with its derivation*.  `eval k ⊢M` iterates it with fuel `k`,
+retyping each contractum by `preservation` so the next step has a
+derivation to run on, and returns a `Trace`: the steps taken, each with
+its `_⊢_-→_` derivation, ending in the status of the state they arrive
+at (`value v`, or `out-of-fuel`).  So
+
+    trace-sound  : (tr : Trace Δ M) → Δ ⊢ M -→* traceEnd tr
+    traceFinal   : (tr : Trace Δ M) → Final (traceEnd tr)
+    trace-unique : (tr₁ tr₂ : Trace Δ M) → traceLen tr₁ ≡ traceLen tr₂
+                 → traceTerms tr₁ ≡ traceTerms tr₂
+
+are, in order: soundness *by construction* — the steps are literally
+stored, so the run is assembled by `done`/`_then_` and nothing is
+re-checked; the status is a status of the *last* state; and, by `det`,
+two runs of the same length from the same term have the same states.
+`eval-⦂` closes the loop: the endpoint still has the type it started
+with.
+
+Two uses.  `evalTerms k ⊢M` (the states, as a list) regenerates the
+hand-composed `-→*` chains of `Examples.agda`, and seven of them — §6
+`P₀`, §11 `Q₀`, §12 `L₀`, §12b `Ri`, §13a `J₀`, §13b `H₀`, §14 `E₀` — are
+pinned against it by `refl`.  And `showTrace n tr` renders a whole run
+through `Show.agda`, one state per line, each arrow labelled by
+`ruleName` — the *redex* rule, found by descending through the
+congruences of the stored derivation.  §6's run, rendered:
+
+    ((ΛX. (λx:X. x)) [ℕ] · 7)
+      --[TyBeta]-->
+    (((λx:X. x) ⟪ ↑X:=ℕ , (seal X ↦ unseal X) ⟫) · 7)
+      --[Peel]-->
+    (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
+      --[Beta]-->
+    ((7 ⟪ ↓X , seal X ⟫) ⟪ ↑X:=ℕ , unseal X ⟫)
+      --[CancelR]-->
+    ((7 ⟪ ↓X , id ℕ ⟫) ⟪ ↑X:=ℕ , id ℕ ⟫)
+      --[Drop$]-->
+    (7 ⟪ ↑X:=ℕ , id ℕ ⟫)
+      --[Drop$]-->
+    7
+      -- VALUE
 
 
 ## 8. Design laws

@@ -1,0 +1,164 @@
+% Purpose: Slides for the talk "Exploring Polymorphic Gradual Types with
+% Phil and Peter".  This initial deck presents the reduction semantics from
+% strong/Reduction.agda in a named-variable presentation, using the visual and
+% notational style of old-slides.tex.
+
+\documentclass[12pt]{beamer}
+\usecolortheme{dove}
+\usepackage[T1]{fontenc}
+\usepackage{garamond}
+\usefonttheme{serif}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{semantic}
+\usepackage{color}
+
+\definecolor{darkgray}{gray}{0.6}
+\newcommand{\gray}[1]{{\color{darkgray} #1}}
+\newcommand{\kw}[1]{\mathtt{#1}}
+\newcommand{\dotspace}{.\,}
+\newcommand{\lam}[1]{\lambda #1 \dotspace}
+\newcommand{\Lam}[1]{\Lambda #1 \dotspace}
+\newcommand{\of}{{:}}
+\newcommand{\by}{\mapsto}
+\newcommand{\reduce}{\longrightarrow}
+\newcommand{\boundary}[3]{#1\,\left\langle\begin{array}{c} #2 \\  #3\end{array}\right\rangle}
+\newcommand{\tyapp}[2]{#1\,#2}
+\newcommand{\app}[2]{#1\,#2}
+\newcommand{\seal}[1]{\kw{seal}\,#1}
+\newcommand{\unseal}[1]{\kw{unseal}\,#1}
+\newcommand{\unsealat}[3]{#2 \Rightarrow #2[#1\mapsto#3]}
+\newcommand{\bind}[2]{#1{:=}#2}
+\newcommand{\dual}[1]{-#1}
+\newcommand{\owners}[1]{\mathit{owners}(#1)}
+\newcommand{\idc}[1]{\mathit{idc}(#1)}
+\newcommand{\Value}[1]{\mathit{Value}(#1)}
+\newcommand{\Base}[1]{\mathit{Base}(#1)}
+\newcommand{\fce}[2]{\mathit{exterior}(#1,#2)}
+\newcommand{\intc}[2]{\mathit{interior}(#1,#2)}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamercolor{footnote mark}{fg=white}
+
+\garamond
+
+\title[Exploring Polymorphic Gradual Types]{
+  Exploring Polymorphic Gradual Types\\
+  with Phil and Peter}
+\author{Jeremy G. Siek}
+\institute{Indiana University, Bloomington}
+\date{}
+
+\begin{document}
+
+%===============================================================================
+\frame{
+\titlepage
+
+\vspace{-30pt}
+\begin{center}
+\includegraphics[height=1.7in]{iu-tulips}
+\end{center}
+}
+%===============================================================================
+\frame{
+  \frametitle{Terms}
+\[
+\begin{array}{lcl}
+ A,B,C,D &::=& \iota \mid A \to B \mid X \mid \forall X.A \\
+ L,M,N&::=& k \mid x \mid \lam{x\of A}N \mid \app{L}{M} \mid 
+       \Lambda X. N \mid \tyapp{L}{A}
+\end{array}
+\]
+  
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction: $\beta$ rules}
+
+\hfill\fbox{$\Delta \vdash M \reduce N$}
+
+\vspace{20pt}
+\begin{align*}
+  \Delta \vdash (\lam{x\of A}N)\,W
+    & \reduce N[x\by W] \\[2ex]
+  \Delta \vdash \tyapp{(\Lam{X}V_B)}{A}
+    &\reduce  \boundary{V}{\bind{X}{A}}{\unsealat{X}{B}{A}}
+\end{align*}
+
+
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction: elimination crosses a boundary}
+
+\hfill\fbox{$\Delta \vdash M \reduce N$}
+
+\begin{align*}
+ \Delta \vdash \left(\boundary{V}{\Theta}{s \mapsto t}\right)\,W
+    &\reduce \boundary{V\,\left(\boundary{W}{\dual{\Theta}}{s}\right)}{\Theta}{t} \\[2ex]
+ \Delta \vdash
+         \tyapp{\left(\boundary{V}{\Theta}{\forall X.\,s}\right)}{A}
+       &\reduce \boundary{\tyapp{V}{X}}{\bind{X}{A},\Theta}{s}
+\end{align*}
+
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction: cancellation and identity}
+
+\hfill\fbox{$\Delta \vdash M \reduce N$}
+{\small
+\begin{align*}
+ \Delta \vdash \boundary{\boundary{V}{\Theta_1}{\seal{X}}}{\Theta_2}{\unseal{X}}
+       &\reduce \boundary{V}{\owners{\Theta_2}}{\idc{A}} \\[2ex]
+       \quad\text{where }\fce{\Theta_2}{\Delta} \ni X := A \\[2ex]
+ \Delta \vdash \boundary{k}{\Theta}{\kw{id}\,\iota}
+       &\reduce k \\[2ex]
+ \Delta \vdash \boundary{\boundary{V}{\Theta_1}{\kw{id}\,X}}
+                  {\Theta_2}{\unseal{X}}
+       &\reduce \boundary{\boundary{V}{\Theta_1 + \Theta_2}{\unseal{X}}}
+                 {\emptyset}{\idc{A}} \\[2ex]
+       \quad\text{where }\fce{\Theta_2}{\Delta} \ni X := A
+\end{align*}
+}
+\vfill
+{\small $\owners{\Theta}$ retains the $X{:=}A$ entries of
+$\Theta$ and drops its $\kw{lock}$ and $\kw{unlock}$ entries.}
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction: congruence}
+
+\hfill\fbox{$\Delta \vdash M \reduce N$}
+
+\begin{gather*}
+  \inference
+    {\Delta \vdash L \reduce L'}
+    {\Delta \vdash L\,M \reduce L'\,M}
+  \quad
+  \inference
+    {\Delta \vdash M \reduce M'}
+    {\Delta \vdash V\,M \reduce V\,M'}
+  \\[2ex]
+  \inference
+    {\Delta \vdash L \reduce L'}
+    {\Delta \vdash \tyapp{L}{A}
+      \reduce \tyapp{L'}{A}}
+  \quad      
+  \inference
+    {\Delta,X \vdash N \reduce N'}
+    {\Delta \vdash \Lam{X}N \reduce \Lam{X}N'}
+  \\[2ex]
+  \inference
+    {\intc{\Theta}{\Delta} \vdash M \reduce M'}
+    {\Delta \vdash
+       \boundary{M}{\Theta}{c}
+       \reduce
+       \boundary{M'}{\Theta}{c}}
+\end{gather*}
+}
+
+\end{document}

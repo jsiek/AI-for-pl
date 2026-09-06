@@ -75,7 +75,7 @@ open import strong.Terms
 open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
 open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 
-open import strong.CtxMorph using (_⋉_; rewind)
+open import strong.CtxMorph
 open import strong.proof.Preserve
   using (preserve-TyBeta; preserve-Drop$; preserve-TyPeelR;
          ⊢ᵗ-of; CtxWf-[])

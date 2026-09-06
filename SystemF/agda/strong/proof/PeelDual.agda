@@ -43,7 +43,7 @@ open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
 open import strong.TermSubst
-open import strong.CtxMorph using (hideBinds; dualScope; dual)
+open import strong.CtxMorph
 open import strong.proof.Preserve using (PeelCase; ⊢ᵗ-of; CtxWf-[])
 open import strong.proof.Canonical using (shiftBy-⇒; conv-tgt≡)
 

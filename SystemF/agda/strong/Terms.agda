@@ -29,7 +29,7 @@ open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ)
 open import strong.Ctx
 open import strong.Conversion
-open import strong.CtxMorph public
+open import strong.CtxMorph
 
 private
   variable

@@ -59,7 +59,7 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
-open import strong.CtxMorph using (scopeOf; rewind; dualScope; _⋉_)
+open import strong.CtxMorph
 open import strong.proof.Preserve using (CancelRCase; IdPushCase)
 open import strong.proof.PeelDual
   using (⊢ᵐ-++; scope-++; unlockedScope-++; scope-dualScope; ⊢ᵐ-dualScope;

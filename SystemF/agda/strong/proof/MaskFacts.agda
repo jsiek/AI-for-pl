@@ -22,6 +22,7 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹; Renameᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
+open import strong.CtxMorph
 
 mask-retains : ∀ {Δ X Y A} → Δ ∋ X := A
   → (mask Y Δ ∋ X := A) ⊎ (mask Y Δ ∋e X , masked (bind A))

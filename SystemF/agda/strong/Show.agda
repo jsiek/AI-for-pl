@@ -42,9 +42,8 @@ open import Data.Product using (_×_; _,_; proj₁)
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx using (Ent; abst; bind; masked; Ctxᵗ)
 open import strong.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
-open import strong.Terms
-  using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
-         CtxMorph; MorphEnt; bind; unlock; lock; numBinds)
+open import strong.Terms using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫)
+open import strong.CtxMorph
 
 Supply : Set
 Supply = ℕ → String

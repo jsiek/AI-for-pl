@@ -41,6 +41,7 @@ open import strong.TypeSubst
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
+open import strong.CtxMorph
 open import strong.TermSubst
 open import strong.Reduction
 

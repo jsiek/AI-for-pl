@@ -52,22 +52,19 @@ private
 -- 1.  Renaming boundaries and terms
 ------------------------------------------------------------------------
 
-renᴮ : Renameᵗ → CtxMorph → CtxMorph
-renᴮ ρ []          = []
-renᴮ ρ (bind A ∷ Θ) = bind (renameᵗ ρ A) ∷ renᴮ ρ Θ
-renᴮ ρ (unlock X ∷ Θ) = unlock (ρ X) ∷ renᴮ ρ Θ
-renᴮ ρ (lock X ∷ Θ) = lock (ρ X) ∷ renᴮ ρ Θ
+-- Renaming a CHANGE moves the exterior name it carries and nothing else.
+renᶠ : Renameᵗ → Change → Change
+renᶠ ρ (unlock X) = unlock (ρ X)
+renᶠ ρ (lock X)   = lock (ρ X)
 
-repsOf-ren : (ρ : Renameᵗ) (Θ : CtxMorph)
-  → repsOf (renᴮ ρ Θ) ≡ map (renameᵗ ρ) (repsOf Θ)
-repsOf-ren ρ []             = refl
-repsOf-ren ρ (bind A ∷ Θ)   = cong (renameᵗ ρ A ∷_) (repsOf-ren ρ Θ)
-repsOf-ren ρ (unlock X ∷ Θ) = repsOf-ren ρ Θ
-repsOf-ren ρ (lock X ∷ Θ)   = repsOf-ren ρ Θ
+-- THE PAIR RENAMES COMPONENTWISE.  `binds (renᴮ ρ Θ) ≡ map (renameᵗ ρ)
+-- (binds Θ)` is now DEFINITIONAL — the old `repsOf-ren` was the filtering
+-- lemma that said it, and it is gone.
+renᴮ : Renameᵗ → CtxMorph → CtxMorph
+renᴮ ρ Θ = morph (map (renameᵗ ρ) (binds Θ)) (map (renᶠ ρ) (changes Θ))
 
 numBinds-ren : (ρ : Renameᵗ) (Θ : CtxMorph) → numBinds (renᴮ ρ Θ) ≡ numBinds Θ
-numBinds-ren ρ Θ =
-  trans (cong length (repsOf-ren ρ Θ)) (map-length (renameᵗ ρ) (repsOf Θ))
+numBinds-ren ρ Θ = map-length (renameᵗ ρ) (binds Θ)
 
 renᴹ : Renameᵗ → Term → Term
 renᴹ ρ (` x)          = ` x
@@ -96,41 +93,51 @@ Inj-wkN (suc n) eq = Inj-wkN n (Inj-suc eq)
 -- 2.  The type context operations transport (the structural half)
 ------------------------------------------------------------------------
 
+ren-applyChanges : (S : List Change) → Ren ρ Δ Δ′ → Inj ρ
+        → Ren ρ (applyChanges S Δ) (applyChanges (map (renᶠ ρ) S) Δ′)
+ren-applyChanges []             r i = r
+ren-applyChanges (unlock X ∷ S) r i = ren-unmask (ren-applyChanges S r i) i
+ren-applyChanges (lock X ∷ S)   r i = ren-mask (ren-applyChanges S r i) i
+
+ren-applyUnlocks : (S : List Change) → Ren ρ Δ Δ′ → Inj ρ
+         → Ren ρ (applyUnlocks S Δ) (applyUnlocks (map (renᶠ ρ) S) Δ′)
+ren-applyUnlocks []             r i = r
+ren-applyUnlocks (unlock X ∷ S) r i = ren-unmask (ren-applyUnlocks S r i) i
+ren-applyUnlocks (lock X ∷ S)   r i = ren-applyUnlocks S r i
+
 ren-scope : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
         → Ren ρ (scope Θ Δ) (scope (renᴮ ρ Θ) Δ′)
-ren-scope []          r i    = r
-ren-scope (bind A ∷ Θ) r i   = ren-scope Θ r i
-ren-scope (unlock X ∷ Θ) r i = ren-unmask (ren-scope Θ r i) i
-ren-scope (lock X ∷ Θ) r i   = ren-mask (ren-scope Θ r i) i
+ren-scope Θ r i = ren-applyChanges (changes Θ) r i
 
 ren-unlockedScope : (Θ : CtxMorph) → Ren ρ Δ Δ′ → Inj ρ
          → Ren ρ (unlockedScope Θ Δ) (unlockedScope (renᴮ ρ Θ) Δ′)
-ren-unlockedScope []          r i    = r
-ren-unlockedScope (bind A ∷ Θ) r i   = ren-unlockedScope Θ r i
-ren-unlockedScope (unlock X ∷ Θ) r i = ren-unmask (ren-unlockedScope Θ r i) i
-ren-unlockedScope (lock X ∷ Θ) r i   = ren-unlockedScope Θ r i
+ren-unlockedScope Θ r i = ren-applyUnlocks (changes Θ) r i
 
 ren-interior : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
   → Ren (extN (numBinds Θ) ρ) (interior Θ Δ) (interior (renᴮ ρ Θ) Δ′)
-ren-interior Θ ρ r i rewrite repsOf-ren ρ Θ =
-  ren-pushBinds (repsOf Θ) ρ (ren-scope Θ r i)
+ren-interior Θ ρ r i = ren-pushBinds (binds Θ) ρ (ren-scope Θ r i)
 
 ren-convCtx : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
   → Ren (extN (numBinds Θ) ρ) (convCtx Θ Δ) (convCtx (renᴮ ρ Θ) Δ′)
-ren-convCtx Θ ρ r i rewrite repsOf-ren ρ Θ =
-  ren-pushBinds (repsOf Θ) ρ (ren-unlockedScope Θ r i)
+ren-convCtx Θ ρ r i = ren-pushBinds (binds Θ) ρ (ren-unlockedScope Θ r i)
 
--- Under the SEQUENTIAL judgement each premise is read on the frame the
--- entry acts on, so each transports by the matching type-context
--- transport: `ren-unlockedScope` for a rep, `ren-scope` for a name.
+-- THE PAIR TRANSPORTS BY HALVES: the parallel reps all move by
+-- `ren-unlockedScope`, and each sequential change by `ren-applyChanges`
+-- at its own tail.
+⊢ʳ-ren : ∀ {Bs} → Ren ρ Δ Δ′ → Δ ⊢ʳ Bs → Δ′ ⊢ʳ map (renameᵗ ρ) Bs
+⊢ʳ-ren r rw[]        = rw[]
+⊢ʳ-ren r (rw-b w ws) = rw-b (wf-ren r w) (⊢ʳ-ren r ws)
+
+⊢ˢ-ren : ∀ {S} → Ren ρ Δ Δ′ → Inj ρ → Δ ⊢ˢ S → Δ′ ⊢ˢ map (renᶠ ρ) S
+⊢ˢ-ren r i sw[] = sw[]
+⊢ˢ-ren {S = lock X ∷ S}   r i (sw-l tv b) =
+  sw-l (ren-tv (ren-applyChanges S r i) tv) (⊢ˢ-ren r i b)
+⊢ˢ-ren {S = unlock X ∷ S} r i (sw-u lk b) =
+  sw-u (ren-∋lk (ren-applyChanges S r i) lk) (⊢ˢ-ren r i b)
+
 ⊢ᵐ-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → Δ ⊢ᵐ Θ → Δ′ ⊢ᵐ renᴮ ρ Θ
-⊢ᵐ-ren                     r i mw[]        = mw[]
-⊢ᵐ-ren {Θ = bind A ∷ Θ}    r i (mw-b w b)  =
-  mw-b (wf-ren (ren-unlockedScope Θ r i) w) (⊢ᵐ-ren r i b)
-⊢ᵐ-ren {Θ = lock X ∷ Θ}    r i (mw-l tv b) =
-  mw-l (ren-tv (ren-scope Θ r i) tv) (⊢ᵐ-ren r i b)
-⊢ᵐ-ren {Θ = unlock X ∷ Θ}  r i (mw-u lk b) =
-  mw-u (ren-∋lk (ren-scope Θ r i) lk) (⊢ᵐ-ren r i b)
+⊢ᵐ-ren {Θ = Θ} r i (mw ws bs) =
+  mw (⊢ʳ-ren (ren-unlockedScope Θ r i) ws) (⊢ˢ-ren r i bs)
 
 ------------------------------------------------------------------------
 -- 3.  THE RENAMING TRANSPORT
@@ -163,8 +170,8 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
   rewrite rename-[]ᵗ-commute ρ B A =
   ⊢·[] (⊢rename r i ⊢L) (wf-ren r w)
 ⊢rename {Δ′ = Δ′} {ρ = ρ} r i
-        (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} mw ⊢M ⊢c wE) =
-  env (⊢ᵐ-ren r i mw)
+        (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} mwᵥ ⊢M ⊢c wE) =
+  env (⊢ᵐ-ren r i mwᵥ)
       (⊢rename (ren-interior Θ ρ r i) (Inj-extN (numBinds Θ) i) ⊢M)
       cprem
       (wf-ren r wE)
@@ -202,8 +209,8 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
 ⊢retag ls (⊢· ⊢L ⊢M)   = ⊢· (⊢retag ls ⊢L) (⊢retag ls ⊢M)
 ⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (la∷ la-aa ls) ⊢N)
 ⊢retag ls (⊢·[] ⊢L w)  = ⊢·[] (⊢retag ls ⊢L) (⊑-wf (⊑ᵃ→⊑ ls) w)
-⊢retag ls (env {Θ = Θ} mw ⊢M ⊢c wE) =
-  env (⊢ᵐ-⊑ᵃ ls mw)
+⊢retag ls (env {Θ = Θ} mwᵥ ⊢M ⊢c wE) =
+  env (⊢ᵐ-⊑ᵃ ls mwᵥ)
       (⊢retag (⊑ᵃ-interior Θ ls) ⊢M)
       (conv-⊑ (⊑-convCtx Θ (⊑ᵃ→⊑ ls)) ⊢c)
       (⊑-wf (⊑ᵃ→⊑ ls) wE)
@@ -312,7 +319,7 @@ extⁿ-∋ h (there d) = there (h d)
 ⊢renⁿ h (⊢· ⊢L ⊢M)        = ⊢· (⊢renⁿ h ⊢L) (⊢renⁿ h ⊢M)
 ⊢renⁿ h (⊢Λ ⊢N)           = ⊢Λ (⊢renⁿ (⤊-∋ⁿ h) ⊢N)
 ⊢renⁿ h (⊢·[] ⊢L w)       = ⊢·[] (⊢renⁿ h ⊢L) w
-⊢renⁿ h (env mw ⊢M ⊢c wE) = env mw ⊢M ⊢c wE
+⊢renⁿ h (env mwᵥ ⊢M ⊢c wE) = env mwᵥ ⊢M ⊢c wE
 
 -- The one type-context renaming the substitution lemma needs: pushing a
 -- fresh Λ-bound slot on the front.
@@ -351,7 +358,7 @@ extᵐ-⊢ h (there d) = ⊢renⁿ there (h d)
 ⊢substᵐ h (⊢· ⊢L ⊢M)        = ⊢· (⊢substᵐ h ⊢L) (⊢substᵐ h ⊢M)
 ⊢substᵐ h (⊢Λ ⊢N)           = ⊢Λ (⊢substᵐ (⇑ᴹ-⊢ h) ⊢N)
 ⊢substᵐ h (⊢·[] ⊢L w)       = ⊢·[] (⊢substᵐ h ⊢L) w
-⊢substᵐ h (env mw ⊢M ⊢c wE) = env mw ⊢M ⊢c wE
+⊢substᵐ h (env mwᵥ ⊢M ⊢c wE) = env mwᵥ ⊢M ⊢c wE
 
 -- THE SUBSTITUTION TYPING LEMMA — what Beta's preservation case consumes.
 ⊢subst : ∀ {Δ Γ A B N W}

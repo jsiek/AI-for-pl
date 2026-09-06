@@ -55,11 +55,11 @@ open import strong.proof.MoveScope using (preserve-IdPush)
 -- exists.
 
 Θc₁ Θc₂ : CtxMorph
-Θc₁ = bind `𝔹 ∷ []
-Θc₂ = bind (`ℕ ⇒ `ℕ) ∷ []
+Θc₁ = morph (`𝔹 ∷ []) []
+Θc₂ = morph ((`ℕ ⇒ `ℕ) ∷ []) []
 
 Vc : Term
-Vc = ƛ `ℕ ∙ (($ 5) ⟪ lock 1 ∷ [] , id `ℕ ⟫)
+Vc = ƛ `ℕ ∙ (($ 5) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫)
 
 -- V's home: Θ₁'s binder over Θ₂'s binder over the empty type context.
 Ξc : Ctxᵗ
@@ -70,7 +70,7 @@ _ = refl
 
 ⊢Vc : Ξc ∣ [] ⊢ Vc ⦂ (`ℕ ⇒ `ℕ)
 ⊢Vc = ⊢ƛ wf-ℕ
-        (env (mw-l (bind (`ℕ ⇒ `ℕ) , es ez , nameable-b) mw[])
+        (env (mw rw[] (sw-l (bind (`ℕ ⇒ `ℕ) , es ez , nameable-b) sw[]))
              ⊢$ (conv-id base-ℕ) wf-ℕ)
 
 val-Vc : Value Vc
@@ -80,8 +80,8 @@ Rc : Term
 Rc = (Vc ⟪ Θc₁ , seal 1 ⟫) ⟪ Θc₂ , unseal 0 ⟫
 
 ⊢Rc : [] ∣ [] ⊢ Rc ⦂ (`ℕ ⇒ `ℕ)
-⊢Rc = env (mw-b (wf-⇒ wf-ℕ wf-ℕ) mw[])
-          (env (mw-b wf-𝔹 mw[]) ⊢Vc
+⊢Rc = env (mw (rw-b (wf-⇒ wf-ℕ wf-ℕ) rw[]) sw[])
+          (env (mw (rw-b wf-𝔹 rw[]) sw[]) ⊢Vc
                (conv-seal (es ez))
                (wf-var (bind (`ℕ ⇒ `ℕ) , ez , nameable-b)))
           (conv-unseal ez) (wf-⇒ wf-ℕ wf-ℕ)
@@ -94,8 +94,8 @@ step-c = CancelR val-Vc ez
 -- the contractum, with both identity conversions computed out
 _ : (Vc ⟪ Θc₁ , mkId (shiftBy (numBinds Θc₁) (`ℕ ⇒ `ℕ)) ⟫)
       ⟪ Θc₂ , mkId (`ℕ ⇒ `ℕ) ⟫
-      ≡ (Vc ⟪ bind `𝔹 ∷ [] , id `ℕ ↦ id `ℕ ⟫)
-          ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫
+      ≡ (Vc ⟪ morph (`𝔹 ∷ []) [] , id `ℕ ↦ id `ℕ ⟫)
+          ⟪ morph ((`ℕ ⇒ `ℕ) ∷ []) [] , id `ℕ ↦ id `ℕ ⟫
 _ = refl
 
 -- AND IT TYPES.  The old contractum `V ⟪ repsOf→bind (repsOf Θ₂) , mkId A ⟫`
@@ -103,11 +103,11 @@ _ = refl
 -- existed; the repaired one KEEPS BOTH FRAMES, and `Vc` retypes exactly
 -- where it was — `⊢Vc` is reused verbatim.
 ⊢c-contractum :
-  [] ∣ [] ⊢ (Vc ⟪ bind `𝔹 ∷ [] , id `ℕ ↦ id `ℕ ⟫)
-              ⟪ bind (`ℕ ⇒ `ℕ) ∷ [] , id `ℕ ↦ id `ℕ ⟫ ⦂ (`ℕ ⇒ `ℕ)
+  [] ∣ [] ⊢ (Vc ⟪ morph (`𝔹 ∷ []) [] , id `ℕ ↦ id `ℕ ⟫)
+              ⟪ morph ((`ℕ ⇒ `ℕ) ∷ []) [] , id `ℕ ↦ id `ℕ ⟫ ⦂ (`ℕ ⇒ `ℕ)
 ⊢c-contractum =
-  env (mw-b (wf-⇒ wf-ℕ wf-ℕ) mw[])
-      (env (mw-b wf-𝔹 mw[]) ⊢Vc
+  env (mw (rw-b (wf-⇒ wf-ℕ wf-ℕ) rw[]) sw[])
+      (env (mw (rw-b wf-𝔹 rw[]) sw[]) ⊢Vc
            (conv-fun (conv-id base-ℕ) (conv-id base-ℕ))
            (wf-⇒ wf-ℕ wf-ℕ))
       (conv-fun (conv-id base-ℕ) (conv-id base-ℕ))
@@ -153,7 +153,7 @@ val-Wt = V-Λ V-ƛ
 
 -- the CONCEALING ∀ conversion a Peel hands it: `conceal 0 (∀Y. Y ⇒ X)`
 Θt : CtxMorph
-Θt = lock 0 ∷ []
+Θt = morph [] (lock 0 ∷ [])
 
 st : Conv
 st = id (` 0) ↦ seal 1
@@ -169,7 +169,7 @@ Wft : Term
 Wft = Wt ⟪ Θt , `∀ st ⟫
 
 ⊢Wft : Δt ∣ [] ⊢ Wft ⦂ `∀ (` 0 ⇒ ` 1)
-⊢Wft = env (mw-l (bind `ℕ , ez , nameable-b) mw[]) ⊢Wt
+⊢Wft = env (mw rw[] (sw-l (bind `ℕ , ez , nameable-b) sw[])) ⊢Wt
            (conv-all ⊢st)
            (wf-∀ (wf-⇒ (wf-var (abst , ez , nameable-a))
                        (wf-var (bind `ℕ , es ez , nameable-b))))
@@ -182,7 +182,7 @@ Rt = Wft ·[ ` 0 ⇒ ` 1 , ` 0 ]
 
 step-t : Δt ⊢ Rt
        -→ (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
-            ⟪ bind (` 0) ∷ Θt , instReveal 0 st ⟫
+            ⟪ morph (` 0 ∷ binds Θt) (changes Θt) , instReveal 0 st ⟫
 step-t = TyPeelR val-Wt ⊢st
 
 -- THE MINTED CONVERSION, computed: the inserted leaf is the DOMAIN
@@ -195,7 +195,7 @@ _ = refl
 -- OWN one conceals ℕ at the crossed boundary's binder.  Per variable each is
 -- exactly the conceal its binder licenses.
 t-convCtx : Ctxᵗ
-t-convCtx = convCtx (bind (` 0) ∷ Θt) Δt
+t-convCtx = convCtx (morph (` 0 ∷ binds Θt) (changes Θt)) Δt
 
 _ : t-convCtx ≡ bind (` 0) ∷ bind `ℕ ∷ []
 _ = refl
@@ -213,7 +213,8 @@ t-cod = conv-seal (es ez)
 -- THE CONTRACTUM TYPES, by the theorem — no hand-built derivation.
 ⊢t-contractum :
   Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
-              ⟪ bind (` 0) ∷ Θt , seal 0 ↦ seal 1 ⟫ ⦂ (` 0 ⇒ ` 0)
+              ⟪ morph (` 0 ∷ binds Θt) (changes Θt) , seal 0 ↦ seal 1 ⟫
+              ⦂ (` 0 ⇒ ` 0)
 ⊢t-contractum = preserve-TyPeelR val-Wt ⊢st ⊢Rt
 
 ------------------------------------------------------------------------
@@ -240,7 +241,7 @@ t-cod = conv-seal (es ez)
 Δi = bind (` 0) ∷ bind `ℕ ∷ []
 
 Θi : CtxMorph
-Θi = lock 1 ∷ []
+Θi = morph [] (lock 1 ∷ [])
 
 Ξi : Ctxᵗ
 Ξi = bind (` 0) ∷ masked (bind `ℕ) ∷ []
@@ -256,11 +257,11 @@ _ : Δi ∋ 0 := ` 1
 _ = ez
 
 Vi : Term
-Vi = (($ 7) ⟪ [] , seal 1 ⟫) ⟪ unlock 1 ∷ [] , seal 0 ⟫
+Vi = (($ 7) ⟪ morph [] [] , seal 1 ⟫) ⟪ morph [] (unlock 1 ∷ []) , seal 0 ⟫
 
 ⊢Vi : Ξi ∣ [] ⊢ Vi ⦂ ` 0
-⊢Vi = env (mw-u (_ , es ez , locked nameable-b) mw[])
-          (env mw[] ⊢$ (conv-seal (es ez))
+⊢Vi = env (mw rw[] (sw-u (_ , es ez , locked nameable-b) sw[]))
+          (env (mw rw[] sw[]) ⊢$ (conv-seal (es ez))
                (wf-var (bind `ℕ , es ez , nameable-b)))
           (conv-seal ez)
           (wf-var (_ , ez , nameable-b))
@@ -269,27 +270,29 @@ val-Vi : Value Vi
 val-Vi = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal
 
 Ri : Term
-Ri = (Vi ⟪ [] , id (` 0) ⟫) ⟪ Θi , unseal 0 ⟫
+Ri = (Vi ⟪ morph [] [] , id (` 0) ⟫) ⟪ Θi , unseal 0 ⟫
 
 ⊢Ri : Δi ∣ [] ⊢ Ri ⦂ ` 1
-⊢Ri = env (mw-l (bind `ℕ , es ez , nameable-b) mw[])
-          (env mw[] ⊢Vi
+⊢Ri = env (mw rw[] (sw-l (bind `ℕ , es ez , nameable-b) sw[]))
+          (env (mw rw[] sw[]) ⊢Vi
                (conv-idv (_ , ez , nameable-b))
                (wf-var (_ , ez , nameable-b)))
           (conv-unseal ez)
           (wf-var (bind `ℕ , es ez , nameable-b))
 
 -- THE STEP, AT THE MOVED SCOPE.  `Θ₂ = lock 1 ∷ []` is binder-free, so
--- the move is `[] ⋉ Θi ≡ lock 1 ∷ []`, and the outer frame is Θi with
--- its own lock REWOUND — `rewind Θi ≡ unlock 1 ∷ lock 1 ∷ []`, whose net
+-- the move is `morph [] [] ⋉ Θi ≡ morph [] (lock 1 ∷ [])`, and the outer
+-- frame is Θi with its own lock REWOUND —
+-- `rewind Θi ≡ morph [] (unlock 1 ∷ lock 1 ∷ [])`, whose net
 -- effect on Δi is nothing at all.
-step-i : Δi ⊢ Ri -→ (Vi ⟪ [] ⋉ Θi , unseal 0 ⟫) ⟪ rewind Θi , mkId (` 1) ⟫
+step-i : Δi ⊢ Ri -→ (Vi ⟪ morph [] [] ⋉ Θi , unseal 0 ⟫)
+                      ⟪ rewind Θi , mkId (` 1) ⟫
 step-i = IdPush val-Vi ez
 
-_ : _≡_ {A = CtxMorph} ([] ⋉ Θi) (lock 1 ∷ [])
+_ : _≡_ {A = CtxMorph} (morph [] [] ⋉ Θi) (morph [] (lock 1 ∷ []))
 _ = refl
 
-_ : _≡_ {A = CtxMorph} (rewind Θi) (unlock 1 ∷ lock 1 ∷ [])
+_ : _≡_ {A = CtxMorph} (rewind Θi) (morph [] (unlock 1 ∷ lock 1 ∷ []))
 _ = refl
 
 _ : interior (rewind Θi) Δi ≡ Δi
@@ -306,7 +309,7 @@ _ = refl
 -- there, was untypeable.  This is the refutation that used to stand
 -- here; it is kept because it is what the rule change answers.
 ¬⊢i-old-contractum :
-  ¬ (Δi ∣ [] ⊢ (Vi ⟪ [] , unseal 0 ⟫) ⟪ Θi , id (` 1) ⟫ ⦂ ` 1)
+  ¬ (Δi ∣ [] ⊢ (Vi ⟪ morph [] [] , unseal 0 ⟫) ⟪ Θi , id (` 1) ⟫ ⦂ ` 1)
 ¬⊢i-old-contractum (env _ (env _ _ (conv-unseal ez) w) (conv-idv _) _) =
   ¬wf-i w
 
@@ -315,8 +318,8 @@ _ = refl
 -- slot 1 is live — and the contractum TYPES.  (`ProbeMove.agda` in the
 -- main tree checked this derivation by hand; here it is the theorem.)
 ⊢i-contractum :
-  Δi ∣ [] ⊢ (Vi ⟪ lock 1 ∷ [] , unseal 0 ⟫)
-              ⟪ unlock 1 ∷ lock 1 ∷ [] , id (` 1) ⟫ ⦂ ` 1
+  Δi ∣ [] ⊢ (Vi ⟪ morph [] (lock 1 ∷ []) , unseal 0 ⟫)
+              ⟪ morph [] (unlock 1 ∷ lock 1 ∷ []) , id (` 1) ⟫ ⦂ ` 1
 ⊢i-contractum = preserve-IdPush val-Vi ez ⊢Ri
 
 ------------------------------------------------------------------------

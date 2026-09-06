@@ -85,21 +85,21 @@ S₆₁ = bind `ℕ ∷ Δ₆
 S₆₂ = bind `ℕ ∷ S₆₁
 
 W₆₀ W₆₁ T₆ : Term
-W₆₀ = ($ 7) ⟪ [] , seal 1 ⟫
-W₆₁ = W₆₀ ⟪ bind `ℕ ∷ [] , id (` 1) ⟫
-T₆  = W₆₁ ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+W₆₀ = ($ 7) ⟪ morph [] [] , seal 1 ⟫
+W₆₁ = W₆₀ ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫
+T₆  = W₆₁ ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 ⊢W₆₀ : S₆₂ ∣ [] ⊢ W₆₀ ⦂ ` 1
-⊢W₆₀ = env mw[] ⊢$ (conv-seal (es ez))
+⊢W₆₀ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez))
            (wf-var (bind `ℕ , es ez , nameable-b))
 
 ⊢W₆₁ : S₆₁ ∣ [] ⊢ W₆₁ ⦂ ` 0
-⊢W₆₁ = env (mw-b wf-ℕ mw[]) ⊢W₆₀
+⊢W₆₁ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢W₆₀
            (conv-idv (bind `ℕ , es ez , nameable-b))
            (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢T₆ : Δ₆ ∣ [] ⊢ T₆ ⦂ `ℕ
-⊢T₆ = env (mw-b wf-ℕ mw[]) ⊢W₆₁ (conv-unseal ez) wf-ℕ
+⊢T₆ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢W₆₁ (conv-unseal ez) wf-ℕ
 
 ¬val-T₆ : ¬ Value T₆
 ¬val-T₆ (V-⟪⟫ _ ())
@@ -109,35 +109,35 @@ T₆  = W₆₁ ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 -- (proof/IdLayer.agda, `idpush-name`), and the residue conversion is the
 -- identity at the LOOKED-UP rep — the lookup premise, exactly as ruled.
 T₆-1 : Term
-T₆-1 = (W₆₀ ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+T₆-1 = (W₆₀ ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 push-T₆ : Δ₆ ⊢ T₆ -→ T₆-1
 push-T₆ = IdPush (V-⟪⟫ V-$ I-seal) ez
 
-⊢T₆-1-in : S₆₁ ∣ [] ⊢ W₆₀ ⟪ bind `ℕ ∷ [] , unseal 1 ⟫ ⦂ `ℕ
-⊢T₆-1-in = env (mw-b wf-ℕ mw[]) ⊢W₆₀ (conv-unseal (es ez)) wf-ℕ
+⊢T₆-1-in : S₆₁ ∣ [] ⊢ W₆₀ ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫ ⦂ `ℕ
+⊢T₆-1-in = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢W₆₀ (conv-unseal (es ez)) wf-ℕ
 
 ⊢T₆-1 : Δ₆ ∣ [] ⊢ T₆-1 ⦂ `ℕ
-⊢T₆-1 = env (mw-b wf-ℕ mw[]) ⊢T₆-1-in (conv-id base-ℕ) wf-ℕ
+⊢T₆-1 = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢T₆-1-in (conv-id base-ℕ) wf-ℕ
 
 -- STEP 2 — the seal/unseal pair is now ADJACENT: the ordinary cancel
 -- fires.  BOTH FRAMES STAY (the repaired rule) and both conversions
 -- become the identity at the looked-up rep, so the seal's own (here
 -- empty) frame survives as one more transparent layer.
 T₆-2 : Term
-T₆-2 = ((($ 7) ⟪ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
-         ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+T₆-2 = ((($ 7) ⟪ morph [] [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
+         ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 cancel-T₆ : Δ₆ ⊢ T₆-1 -→ T₆-2
 cancel-T₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 
-⊢T₆-2-in : S₆₁ ∣ [] ⊢ ($ 7) ⟪ [] , id `ℕ ⟫ ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢T₆-2-in = env (mw-b wf-ℕ mw[])
-                (env mw[] ⊢$ (conv-id base-ℕ) wf-ℕ)
+⊢T₆-2-in : S₆₁ ∣ [] ⊢ ($ 7) ⟪ morph [] [] , id `ℕ ⟫ ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫ ⦂ `ℕ
+⊢T₆-2-in = env (mw (rw-b wf-ℕ rw[]) sw[])
+                (env (mw rw[] sw[]) ⊢$ (conv-id base-ℕ) wf-ℕ)
                 (conv-id base-ℕ) wf-ℕ
 
 ⊢T₆-2 : Δ₆ ∣ [] ⊢ T₆-2 ⦂ `ℕ
-⊢T₆-2 = env (mw-b wf-ℕ mw[]) ⊢T₆-2-in (conv-id base-ℕ) wf-ℕ
+⊢T₆-2 = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢T₆-2-in (conv-id base-ℕ) wf-ℕ
 
 -- STEPS 3, 4, 5 — base conversions over a numeral, innermost first.
 run-T₆ : Δ₆ ⊢ T₆ -→* $ 7
@@ -156,16 +156,16 @@ run-T₆ = push-T₆
 -- inner INERT, read straight off the conversion constructors.
 
 Θ↑ Θ↓ : CtxMorph
-Θ↑ = bind `ℕ ∷ []
-Θ↓ = lock 0 ∷ []
+Θ↑ = morph (`ℕ ∷ []) []
+Θ↓ = morph [] (lock 0 ∷ [])
 
 cancelTm : Term
 cancelTm = (($ 7) ⟪ Θ↓ , seal 0 ⟫) ⟪ Θ↑ , unseal 0 ⟫
 
 ⊢cancelTm : [] ∣ [] ⊢ cancelTm ⦂ `ℕ
 ⊢cancelTm =
-  env (mw-b wf-ℕ mw[])
-      (env (mw-l (_ , ez , nameable-b) mw[]) ⊢$
+  env (mw (rw-b wf-ℕ rw[]) sw[])
+      (env (mw rw[] (sw-l (_ , ez , nameable-b) sw[])) ⊢$
            (conv-seal ez) (wf-var (_ , ez , nameable-b)))
       (conv-unseal ez)
       wf-ℕ
@@ -198,29 +198,29 @@ _ = refl
 ------------------------------------------------------------------------
 
 LA LB T₈ : Term
-LA = (($ 7) ⟪ [] , seal 2 ⟫) ⟪ bind (` 0) ∷ [] , id (` 2) ⟫
-LB = LA ⟪ bind `ℕ ∷ [] , id (` 1) ⟫
-T₈ = LB ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+LA = (($ 7) ⟪ morph [] [] , seal 2 ⟫) ⟪ morph ((` 0) ∷ []) [] , id (` 2) ⟫
+LB = LA ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫
+T₈ = LB ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 SA : Ctxᵗ
 SA = bind (` 0) ∷ S₆₂            -- the interior type context of LA
 
-⊢LA-in : SA ∣ [] ⊢ ($ 7) ⟪ [] , seal 2 ⟫ ⦂ ` 2
-⊢LA-in = env mw[] ⊢$ (conv-seal (es (es ez)))
+⊢LA-in : SA ∣ [] ⊢ ($ 7) ⟪ morph [] [] , seal 2 ⟫ ⦂ ` 2
+⊢LA-in = env (mw rw[] sw[]) ⊢$ (conv-seal (es (es ez)))
              (wf-var (bind `ℕ , es (es ez) , nameable-b))
 
 ⊢LA : S₆₂ ∣ [] ⊢ LA ⦂ ` 1
-⊢LA = env (mw-b (wf-var (bind `ℕ , ez , nameable-b)) mw[]) ⊢LA-in
+⊢LA = env (mw (rw-b (wf-var (bind `ℕ , ez , nameable-b)) rw[]) sw[]) ⊢LA-in
           (conv-idv (bind `ℕ , es (es ez) , nameable-b))
           (wf-var (bind `ℕ , es ez , nameable-b))
 
 ⊢LB : S₆₁ ∣ [] ⊢ LB ⦂ ` 0
-⊢LB = env (mw-b wf-ℕ mw[]) ⊢LA
+⊢LB = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢LA
           (conv-idv (bind `ℕ , es ez , nameable-b))
           (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢T₈ : Δ₆ ∣ [] ⊢ T₈ ⦂ `ℕ
-⊢T₈ = env (mw-b wf-ℕ mw[]) ⊢LB (conv-unseal ez) wf-ℕ
+⊢T₈ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢LB (conv-unseal ez) wf-ℕ
 
 -- The stack resolves ONE LAYER PER STEP, outermost first: each IdPush moves
 -- the active conversion one layer inward toward the seal, so any depth
@@ -228,11 +228,11 @@ SA = bind (` 0) ∷ S₆₂            -- the interior type context of LA
 -- this one — the inner layer's context morphism `bind (` 0)` names the next layer's
 -- binder, IdLayerProbe §4c.  IdPush touches no frame.)
 T₈-1 T₈-2 T₈-3 : Term
-T₈-1 = (LA ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-T₈-2 = (((($ 7) ⟪ [] , seal 2 ⟫) ⟪ bind (` 0) ∷ [] , unseal 2 ⟫)
-          ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-T₈-3 = (((($ 7) ⟪ [] , id `ℕ ⟫) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫)
-          ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+T₈-1 = (LA ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+T₈-2 = (((($ 7) ⟪ morph [] [] , seal 2 ⟫) ⟪ morph ((` 0) ∷ []) [] , unseal 2 ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+T₈-3 = (((($ 7) ⟪ morph [] [] , id `ℕ ⟫) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 push-T₈  : Δ₆ ⊢ T₈ -→ T₈-1
 push-T₈  = IdPush (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) ez
@@ -261,22 +261,22 @@ _ : reveal 0 (` 1) ≡ id (` 1)
 _ = refl
 
 ⊢W₆₀Λ : (abst ∷ S₆₁) ∣ [] ⊢ W₆₀ ⦂ ` 1
-⊢W₆₀Λ = env mw[] ⊢$ (conv-seal (es ez))
+⊢W₆₀Λ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez))
             (wf-var (bind `ℕ , es ez , nameable-b))
 
 Pkg : Term
-Pkg = (Λ W₆₀) ⟪ [] , `∀ (id (` 1)) ⟫
+Pkg = (Λ W₆₀) ⟪ morph [] [] , `∀ (id (` 1)) ⟫
 
 ⊢Pkg : S₆₁ ∣ [] ⊢ Pkg ⦂ `∀ (` 1)
-⊢Pkg = env mw[] (⊢Λ ⊢W₆₀Λ)
+⊢Pkg = env (mw rw[] sw[]) (⊢Λ ⊢W₆₀Λ)
            (conv-all (conv-idv (bind `ℕ , es ez , nameable-b)))
            (wf-∀ (wf-var (bind `ℕ , es ez , nameable-b)))
 
 T₉ : Term
-T₉ = (Pkg ·[ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+T₉ = (Pkg ·[ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 ⊢T₉ : Δ₆ ∣ [] ⊢ T₉ ⦂ `ℕ
-⊢T₉ = env (mw-b wf-ℕ mw[]) (⊢·[] ⊢Pkg wf-ℕ) (conv-unseal ez) wf-ℕ
+⊢T₉ = env (mw (rw-b wf-ℕ rw[]) sw[]) (⊢·[] ⊢Pkg wf-ℕ) (conv-unseal ez) wf-ℕ
 
 -- TyPeelR mints the id-layer no matter what TyBeta does.  On an IDENTITY
 -- ∀ conversion the mint is the conversion itself
@@ -284,13 +284,13 @@ T₉ = (Pkg ·[ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 -- binder) and the pushed-in annotation is the interior ∀-body, SHIFTED
 -- past the binder the rule introduces: `` ` 2 `` rather than `` ` 1 ``.
 Pk-1 : Term
-Pk-1 = ((Λ (($ 7) ⟪ [] , seal 2 ⟫)) ·[ ` 2 , ` 0 ])
-         ⟪ bind `ℕ ∷ [] , id (` 1) ⟫
+Pk-1 = ((Λ (($ 7) ⟪ morph [] [] , seal 2 ⟫)) ·[ ` 2 , ` 0 ])
+         ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫
 
-⊢Pk-conv : (abst ∷ convCtx [] S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1
+⊢Pk-conv : (abst ∷ convCtx (morph [] []) S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1
 ⊢Pk-conv = conv-idv (bind `ℕ , es ez , nameable-b)
 
-typeel-T₉ : Δ₆ ⊢ T₉ -→ Pk-1 ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+typeel-T₉ : Δ₆ ⊢ T₉ -→ Pk-1 ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 typeel-T₉ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Pk-conv)
 
 -- and TyBeta then mints exactly T₈'s inner layer.
@@ -322,7 +322,7 @@ body-first = ξ-·[] (ξ-Λ (Beta V-$))
 
 -- … and only then is the (now valuable) package instantiated.
 then-tybeta : [] ⊢ (Λ ($ 1)) ·[ `ℕ , `ℕ ]
-                -→ ($ 1) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+                -→ ($ 1) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 then-tybeta = TyBeta V-$
 
 run-Ωt : [] ⊢ Ωt ·[ `ℕ , `ℕ ] -→* $ 1
@@ -338,25 +338,25 @@ run-Ωt = body-first then then-tybeta then Drop$ base-ℕ then done
 -- IdPush touches no frame, so the instance is ordinary.
 
 Θᵣ₁ Θᵣ₂ : CtxMorph
-Θᵣ₁ = bind (` 0) ∷ []
-Θᵣ₂ = bind `ℕ ∷ []
+Θᵣ₁ = morph ((` 0) ∷ []) []
+Θᵣ₂ = morph (`ℕ ∷ []) []
 
 Sᵣ : Ctxᵗ
 Sᵣ = bind (` 0) ∷ bind `ℕ ∷ []
 
 Vᵣ Tᵣ : Term
-Vᵣ = ($ 7) ⟪ [] , seal 1 ⟫
+Vᵣ = ($ 7) ⟪ morph [] [] , seal 1 ⟫
 Tᵣ = (Vᵣ ⟪ Θᵣ₁ , id (` 1) ⟫) ⟪ Θᵣ₂ , unseal 0 ⟫
 
 _ : interior Θᵣ₁ (interior Θᵣ₂ []) ≡ Sᵣ
 _ = refl
 
 ⊢Vᵣ : Sᵣ ∣ [] ⊢ Vᵣ ⦂ ` 1
-⊢Vᵣ = env mw[] ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , nameable-b))
+⊢Vᵣ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , nameable-b))
 
 ⊢Tᵣ : [] ∣ [] ⊢ Tᵣ ⦂ `ℕ
-⊢Tᵣ = env (mw-b wf-ℕ mw[])
-          (env (mw-b (wf-var (bind `ℕ , ez , nameable-b)) mw[]) ⊢Vᵣ
+⊢Tᵣ = env (mw (rw-b wf-ℕ rw[]) sw[])
+          (env (mw (rw-b (wf-var (bind `ℕ , ez , nameable-b)) rw[]) sw[]) ⊢Vᵣ
                (conv-idv (bind `ℕ , es ez , nameable-b))
                (wf-var (bind `ℕ , ez , nameable-b)))
           (conv-unseal ez) wf-ℕ
@@ -365,8 +365,8 @@ push-Tᵣ : [] ⊢ Tᵣ -→ (Vᵣ ⟪ Θᵣ₁ , unseal 1 ⟫) ⟪ Θᵣ₂ , i
 push-Tᵣ = IdPush (V-⟪⟫ V-$ I-seal) ez
 
 ⊢push-Tᵣ : [] ∣ [] ⊢ (Vᵣ ⟪ Θᵣ₁ , unseal 1 ⟫) ⟪ Θᵣ₂ , id `ℕ ⟫ ⦂ `ℕ
-⊢push-Tᵣ = env (mw-b wf-ℕ mw[])
-               (env (mw-b (wf-var (bind `ℕ , ez , nameable-b)) mw[]) ⊢Vᵣ
+⊢push-Tᵣ = env (mw (rw-b wf-ℕ rw[]) sw[])
+               (env (mw (rw-b (wf-var (bind `ℕ , ez , nameable-b)) rw[]) sw[]) ⊢Vᵣ
                     (conv-unseal (es ez)) wf-ℕ)
                (conv-id base-ℕ) wf-ℕ
 
@@ -390,22 +390,22 @@ run-Tᵣ = push-Tᵣ
 Mₘ = bind `𝔹 ∷ bind `ℕ ∷ []
 
 Θₘ₁ Θₘ₂ : CtxMorph
-Θₘ₁ = lock 0 ∷ []
-Θₘ₂ = unlock 0 ∷ []
+Θₘ₁ = morph [] (lock 0 ∷ [])
+Θₘ₂ = morph [] (unlock 0 ∷ [])
 
 Vₘ Tₘ : Term
-Vₘ = ($ 7) ⟪ [] , seal 1 ⟫
+Vₘ = ($ 7) ⟪ morph [] [] , seal 1 ⟫
 Tₘ = (Vₘ ⟪ Θₘ₁ , id (` 1) ⟫) ⟪ Θₘ₂ , unseal 1 ⟫
 
 _ : interior Θₘ₂ Δₘ ≡ Mₘ
 _ = refl
 
 ⊢Vₘ : Δₘ ∣ [] ⊢ Vₘ ⦂ ` 1
-⊢Vₘ = env mw[] ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , nameable-b))
+⊢Vₘ = env (mw rw[] sw[]) ⊢$ (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , nameable-b))
 
 ⊢Tₘ : Δₘ ∣ [] ⊢ Tₘ ⦂ `ℕ
-⊢Tₘ = env (mw-u (_ , ez , locked nameable-b) mw[])
-          (env (mw-l (bind `𝔹 , ez , nameable-b) mw[]) ⊢Vₘ
+⊢Tₘ = env (mw rw[] (sw-u (_ , ez , locked nameable-b) sw[]))
+          (env (mw rw[] (sw-l (bind `𝔹 , ez , nameable-b) sw[])) ⊢Vₘ
                (conv-idv (bind `ℕ , es ez , nameable-b))
                (wf-var (bind `ℕ , es ez , nameable-b)))
           (conv-unseal (es ez)) wf-ℕ
@@ -417,7 +417,7 @@ _ = refl
 -- REWINDS it (`rewind Θₘ₂ ≡ lock 0 ∷ unlock 0 ∷ []`), which on this run
 -- is literally the same list as the merged inner frame.
 Θₘ₁′ : CtxMorph
-Θₘ₁′ = lock 0 ∷ unlock 0 ∷ []
+Θₘ₁′ = morph [] (lock 0 ∷ unlock 0 ∷ [])
 
 _ : _≡_ {A = CtxMorph} (Θₘ₁ ⋉ Θₘ₂) Θₘ₁′
 _ = refl
@@ -434,8 +434,8 @@ _ : interior Θₘ₁′ (interior (rewind Θₘ₂) Δₘ) ≡ interior Θₘ�
 _ = refl
 
 ⊢ᵐΘₘ₁′ : Δₘ ⊢ᵐ Θₘ₁′
-⊢ᵐΘₘ₁′ = mw-l (bind `𝔹 , ez , nameable-b)
-              (mw-u (_ , ez , locked nameable-b) mw[])
+⊢ᵐΘₘ₁′ = (mw rw[]
+             (sw-l (bind `𝔹 , ez , nameable-b) (sw-u (_ , ez , locked nameable-b) sw[])))
 
 push-Tₘ : Δₘ ⊢ Tₘ -→ (Vₘ ⟪ Θₘ₁′ , unseal 1 ⟫) ⟪ rewind Θₘ₂ , id `ℕ ⟫
 push-Tₘ = IdPush (V-⟪⟫ V-$ I-seal) (es ez)
@@ -476,7 +476,7 @@ _ : Δd ∋ 0 := ` 1
 _ = ez
 
 Θ2 : CtxMorph                       -- bind(W) , conceal V
-Θ2 = bind (` 0) ∷ lock 2 ∷ []
+Θ2 = morph ((` 0) ∷ []) (lock 2 ∷ [])
 
 -- ONE frame change: the binder is pushed on, V is MASKED IN PLACE (the entry
 -- `bind `ℕ` survives as `masked (bind `ℕ)`), nothing is dropped.
@@ -493,14 +493,14 @@ cΘ2 = (unseal 0 ↦ seal 0) ↦ id `ℕ
 
 Vd Wd : Term
 Vd = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
-Wd = (ƛ (` 1) ∙ (` 0)) ⟪ lock 0 ∷ [] , unseal 0 ↦ seal 0 ⟫
+Wd = (ƛ (` 1) ∙ (` 0)) ⟪ morph [] (lock 0 ∷ []) , unseal 0 ↦ seal 0 ⟫
 
 ⊢cΘ2 : convCtx Θ2 Δd ⊢ cΘ2 ∶ ((` 0 ⇒ ` 0) ⇒ `ℕ) ⇝ ((` 1 ⇒ ` 1) ⇒ `ℕ)
 ⊢cΘ2 = conv-fun (conv-fun (conv-unseal ez) (conv-seal ez)) (conv-id base-ℕ)
 
 ⊢Fnd : Δd ∣ [] ⊢ Vd ⟪ Θ2 , cΘ2 ⟫ ⦂ ((` 0 ⇒ ` 0) ⇒ `ℕ)
-⊢Fnd = env (mw-b (wf-var (_ , ez , nameable-b))
-                 (mw-l (_ , es (es ez) , nameable-b) mw[]))
+⊢Fnd = env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[])
+               (sw-l (_ , es (es ez) , nameable-b) sw[]))
            (⊢ƛ (wf-⇒ (wf-var (_ , ez , nameable-b))
                      (wf-var (_ , ez , nameable-b))) ⊢$)
            ⊢cΘ2
@@ -509,11 +509,11 @@ Wd = (ƛ (` 1) ∙ (` 0)) ⟪ lock 0 ∷ [] , unseal 0 ↦ seal 0 ⟫
 
 -- THE CROSSING VALUE.  Its bind boundary masks W and seals at it: the licence
 -- `seal 0` cites the binder at slot 0 of Δd, whose rep is X = ` 1.
-_ : interior (lock 0 ∷ []) Δd ≡ masked (bind (` 0)) ∷ abst ∷ bind `ℕ ∷ []
+_ : interior (morph [] (lock 0 ∷ [])) Δd ≡ masked (bind (` 0)) ∷ abst ∷ bind `ℕ ∷ []
 _ = refl
 
 ⊢Wd : Δd ∣ [] ⊢ Wd ⦂ (` 0 ⇒ ` 0)
-⊢Wd = env (mw-l (_ , ez , nameable-b) mw[])
+⊢Wd = env (mw rw[] (sw-l (_ , ez , nameable-b) sw[]))
           (⊢ƛ (wf-var (_ , es ez , nameable-a)) (⊢` here))
           (conv-fun (conv-unseal ez) (conv-seal ez))
           (wf-⇒ (wf-var (_ , ez , nameable-b))
@@ -531,7 +531,7 @@ peel-d : Δd ⊢ (Vd ⟪ Θ2 , cΘ2 ⟫) · Wd
 peel-d = Peel V-ƛ Wd-value
 
 -- THE DUAL is two names and nothing else: mask the binder, re-expose V.
-_ : dual Θ2 ≡ lock 0 ∷ unlock 3 ∷ []
+_ : dual Θ2 ≡ morph [] (lock 0 ∷ unlock 3 ∷ [])
 _ = refl
 
 -- THE REPOINTING.  The dual's interior is Δd with ONE masked slot in front:
@@ -550,8 +550,8 @@ _ = refl
   Δd ∣ [] ⊢ (Vd · (wkᴹ 1 Wd ⟪ dual Θ2 , unseal 0 ↦ seal 0 ⟫))
               ⟪ Θ2 , id `ℕ ⟫ ⦂ `ℕ
 ⊢contractumd =
-  env (mw-b (wf-var (_ , ez , nameable-b))
-            (mw-l (_ , es (es ez) , nameable-b) mw[]))
+  env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[])
+          (sw-l (_ , es (es ez) , nameable-b) sw[]))
       (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , nameable-b))
                     (wf-var (_ , ez , nameable-b))) ⊢$)
           ⊢Wd-crossed)
@@ -565,8 +565,8 @@ _ = refl
                   ⊢ wkᴹ 1 Wd ⟪ dual Θ2 , unseal 0 ↦ seal 0 ⟫
                   ⦂ (` 0 ⇒ ` 0)
   ⊢Wd-crossed =
-    env (mw-l (_ , ez , nameable-b)
-              (mw-u (_ , es (es (es ez)) , locked nameable-b) mw[]))
+    env (mw rw[]
+            (sw-l (_ , ez , nameable-b) (sw-u (_ , es (es (es ez)) , locked nameable-b) sw[])))
         ⊢Wd-in
         (conv-fun (conv-unseal ez) (conv-seal ez))
         (wf-⇒ (wf-var (_ , ez , nameable-b))
@@ -580,28 +580,28 @@ _ = refl
 Δ1b = bind (` 0) ∷ abst ∷ []
 
 Θ1b : CtxMorph
-Θ1b = bind (` 0) ∷ lock 1 ∷ []
+Θ1b = morph ((` 0) ∷ []) (lock 1 ∷ [])
 
 _ : interior Θ1b Δ1b ≡ bind (` 0) ∷ bind (` 0) ∷ masked abst ∷ []
 _ = refl
 
 V1b W1b : Term
 V1b = ƛ (` 0 ⇒ ` 0) ∙ ($ 5)
-W1b = (ƛ (` 1) ∙ (` 0)) ⟪ lock 0 ∷ [] , unseal 0 ↦ seal 0 ⟫
+W1b = (ƛ (` 1) ∙ (` 0)) ⟪ morph [] (lock 0 ∷ []) , unseal 0 ↦ seal 0 ⟫
 
 cΘ1b : Conv
 cΘ1b = (unseal 0 ↦ seal 0) ↦ id `ℕ
 
 ⊢W1b : Δ1b ∣ [] ⊢ W1b ⦂ (` 0 ⇒ ` 0)
-⊢W1b = env (mw-l (_ , ez , nameable-b) mw[])
+⊢W1b = env (mw rw[] (sw-l (_ , ez , nameable-b) sw[]))
            (⊢ƛ (wf-var (_ , es ez , nameable-a)) (⊢` here))
            (conv-fun (conv-unseal ez) (conv-seal ez))
            (wf-⇒ (wf-var (_ , ez , nameable-b))
                  (wf-var (_ , ez , nameable-b)))
 
 ⊢Fn1b : Δ1b ∣ [] ⊢ V1b ⟪ Θ1b , cΘ1b ⟫ ⦂ ((` 0 ⇒ ` 0) ⇒ `ℕ)
-⊢Fn1b = env (mw-b (wf-var (_ , ez , nameable-b))
-                  (mw-l (_ , es ez , nameable-a) mw[]))
+⊢Fn1b = env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[])
+                (sw-l (_ , es ez , nameable-a) sw[]))
             (⊢ƛ (wf-⇒ (wf-var (_ , ez , nameable-b))
                       (wf-var (_ , ez , nameable-b))) ⊢$)
             (conv-fun (conv-fun (conv-unseal ez) (conv-seal ez))
@@ -612,7 +612,7 @@ cΘ1b = (unseal 0 ↦ seal 0) ↦ id `ℕ
 ⊢Redex1b : Δ1b ∣ [] ⊢ (V1b ⟪ Θ1b , cΘ1b ⟫) · W1b ⦂ `ℕ
 ⊢Redex1b = ⊢· ⊢Fn1b ⊢W1b
 
-_ : dual Θ1b ≡ lock 0 ∷ unlock 2 ∷ []
+_ : dual Θ1b ≡ morph [] (lock 0 ∷ unlock 2 ∷ [])
 _ = refl
 
 -- the repointing again: nothing dropped, nothing demoted …
@@ -633,7 +633,8 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
   Δ1b ∣ [] ⊢ (V1b · (wkᴹ 1 W1b ⟪ dual Θ1b , unseal 0 ↦ seal 0 ⟫))
                ⟪ Θ1b , id `ℕ ⟫ ⦂ `ℕ
 ⊢contractum1b =
-  env (mw-b (wf-var (_ , ez , nameable-b)) (mw-l (_ , es ez , nameable-a) mw[]))
+  env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[])
+          (sw-l (_ , es ez , nameable-a) sw[]))
       (⊢· (⊢ƛ (wf-⇒ (wf-var (_ , ez , nameable-b))
                     (wf-var (_ , ez , nameable-b))) ⊢$)
           ⊢W1b-crossed)
@@ -646,8 +647,8 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
                    ⊢ wkᴹ 1 W1b ⟪ dual Θ1b , unseal 0 ↦ seal 0 ⟫
                    ⦂ (` 0 ⇒ ` 0)
   ⊢W1b-crossed =
-    env (mw-l (_ , ez , nameable-b)
-              (mw-u (_ , es (es ez) , locked nameable-a) mw[]))
+    env (mw rw[]
+            (sw-l (_ , ez , nameable-b) (sw-u (_ , es (es ez) , locked nameable-a) sw[])))
         ⊢W1b-in
         (conv-fun (conv-unseal ez) (conv-seal ez))
         (wf-⇒ (wf-var (_ , ez , nameable-b)) (wf-var (_ , ez , nameable-b)))
@@ -661,7 +662,7 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
 Δ4 = masked (bind `ℕ) ∷ []          -- a slot masked by an enclosing boundary
 
 Θ4 : CtxMorph                        -- re-expose it
-Θ4 = unlock 0 ∷ []
+Θ4 = morph [] (unlock 0 ∷ [])
 
 _ : interior Θ4 Δ4 ≡ bind `ℕ ∷ []
 _ = refl
@@ -678,12 +679,12 @@ _ = ez
 Γ★ = abst ∷ bind `ℕ ∷ []
 
 Θ★ : CtxMorph
-Θ★ = bind (` 0) ∷ lock 1 ∷ []
+Θ★ = morph ((` 0) ∷ []) (lock 1 ∷ [])
 
 _ : interior Θ★ Γ★ ≡ bind (` 0) ∷ abst ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
-_ : dual Θ★ ≡ lock 0 ∷ unlock 2 ∷ []
+_ : dual Θ★ ≡ morph [] (lock 0 ∷ unlock 2 ∷ [])
 _ = refl
 
 _ : interior (dual Θ★) (interior Θ★ Γ★) ≡ masked (bind (` 0)) ∷ Γ★
@@ -728,14 +729,14 @@ _ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl
 
 P₁ : Term
-P₁ = ((ƛ (` 0) ∙ (` 0)) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
+P₁ = ((ƛ (` 0) ∙ (` 0)) ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
 
 step₁ : [] ⊢ P₀ -→ P₁
 step₁ = ξ-·-l (TyBeta V-ƛ)
 
-⊢fn₁ : [] ∣ [] ⊢ (ƛ (` 0) ∙ (` 0)) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫
+⊢fn₁ : [] ∣ [] ⊢ (ƛ (` 0) ∙ (` 0)) ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ unseal 0 ⟫
          ⦂ (`ℕ ⇒ `ℕ)
-⊢fn₁ = env (mw-b wf-ℕ mw[])
+⊢fn₁ = env (mw (rw-b wf-ℕ rw[]) sw[])
            (⊢ƛ (wf-var (bind `ℕ , ez , nameable-b)) (⊢` here))
            (conv-fun (conv-seal ez) (conv-unseal ez))
            (wf-⇒ wf-ℕ wf-ℕ)
@@ -749,28 +750,28 @@ step₁ = ξ-·-l (TyBeta V-ƛ)
 -- transplanted VERBATIM — the dual's CONVERSION CONTEXT IS the crossed
 -- boundary's.
 
-_ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
+_ : dual (morph (`ℕ ∷ []) []) ≡ morph [] (lock 0 ∷ [])
 _ = refl
 
-_ : convCtx (dual (bind `ℕ ∷ [])) (interior (bind `ℕ ∷ []) [])
-      ≡ convCtx (bind `ℕ ∷ []) []
+_ : convCtx (dual (morph (`ℕ ∷ []) [])) (interior (morph (`ℕ ∷ []) []) [])
+      ≡ convCtx (morph (`ℕ ∷ []) []) []
 _ = refl
 
 P₂ : Term
-P₂ = ((ƛ (` 0) ∙ (` 0)) · (($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫))
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+P₂ = ((ƛ (` 0) ∙ (` 0)) · (($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫))
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 step₂ : [] ⊢ P₁ -→ P₂
 step₂ = Peel V-ƛ V-$
 
 -- the crossing argument, typed INSIDE: 7 is sealed at the new binder, so the
 -- interior sees it at the abstract name X.
-⊢arg₂ : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0
-⊢arg₂ = env (mw-l (bind `ℕ , ez , nameable-b) mw[]) ⊢$
+⊢arg₂ : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0
+⊢arg₂ = env (mw rw[] (sw-l (bind `ℕ , ez , nameable-b) sw[])) ⊢$
             (conv-seal ez) (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢P₂ : [] ∣ [] ⊢ P₂ ⦂ `ℕ
-⊢P₂ = env (mw-b wf-ℕ mw[])
+⊢P₂ = env (mw (rw-b wf-ℕ rw[]) sw[])
           (⊢· (⊢ƛ (wf-var (bind `ℕ , ez , nameable-b)) (⊢` here)) ⊢arg₂)
           (conv-unseal ez) wf-ℕ
 
@@ -779,21 +780,21 @@ step₂ = Peel V-ƛ V-$
 -- i.e. ⊢subst applied to the interior redex.
 
 P₃ : Term
-P₃ = (($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+P₃ = (($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
-_ : (` 0) [ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ]ᵐ
-      ≡ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫
+_ : (` 0) [ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ]ᵐ
+      ≡ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫
 _ = refl
 
 step₃ : [] ⊢ P₂ -→ P₃
 step₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
-⊢P₃-in : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0
+⊢P₃-in : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0
 ⊢P₃-in = preserve-Beta
            (⊢· (⊢ƛ (wf-var (bind `ℕ , ez , nameable-b)) (⊢` here)) ⊢arg₂)
 
 ⊢P₃ : [] ∣ [] ⊢ P₃ ⦂ `ℕ
-⊢P₃ = env (mw-b wf-ℕ mw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
+⊢P₃ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
 
 -- ── STEP 4 — CANCEL.  The seal minted by Peel and the unseal minted by
 -- TyBeta are now adjacent and cite THE SAME ENTRY, so the type match is
@@ -803,28 +804,28 @@ step₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 -- right.
 
 P₄ : Term
-P₄ = (($ 7) ⟪ lock 0 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+P₄ = (($ 7) ⟪ morph [] (lock 0 ∷ []) , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 step₄ : [] ⊢ P₃ -→ P₄
 step₄ = CancelR V-$ ez
 
-⊢P₄-in : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ lock 0 ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢P₄-in = env (mw-l (bind `ℕ , ez , nameable-b) mw[])
+⊢P₄-in : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , id `ℕ ⟫ ⦂ `ℕ
+⊢P₄-in = env (mw rw[] (sw-l (bind `ℕ , ez , nameable-b) sw[]))
               ⊢$ (conv-id base-ℕ) wf-ℕ
 
 ⊢P₄ : [] ∣ [] ⊢ P₄ ⦂ `ℕ
-⊢P₄ = env (mw-b wf-ℕ mw[]) ⊢P₄-in (conv-id base-ℕ) wf-ℕ
+⊢P₄ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢P₄-in (conv-id base-ℕ) wf-ℕ
 
 -- ── STEPS 5, 6 — the two base conversions over the numeral, and the run.
 
 P₅ : Term
-P₅ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+P₅ = ($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 step₅ : [] ⊢ P₄ -→ P₅
 step₅ = ξ-⟪⟫ (Drop$ base-ℕ)
 
 ⊢P₅ : [] ∣ [] ⊢ P₅ ⦂ `ℕ
-⊢P₅ = env (mw-b wf-ℕ mw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+⊢P₅ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
 
 step₆ : [] ⊢ P₅ -→ $ 7
 step₆ = Drop$ base-ℕ
@@ -879,16 +880,16 @@ _ = refl
 Δₛ = bind `ℕ ∷ []
 
 Wₛ Nₛ : Term
-Wₛ = ($ 7) ⟪ [] , seal 0 ⟫
+Wₛ = ($ 7) ⟪ morph [] [] , seal 0 ⟫
 Nₛ = Λ (` 0)
 
 ⊢Wₛ : Δₛ ∣ [] ⊢ Wₛ ⦂ ` 0
-⊢Wₛ = env mw[] ⊢$ (conv-seal ez) (wf-var (bind `ℕ , ez , nameable-b))
+⊢Wₛ = env (mw rw[] sw[]) ⊢$ (conv-seal ez) (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢Nₛ : Δₛ ∣ (` 0 ∷ []) ⊢ Nₛ ⦂ `∀ (` 1)
 ⊢Nₛ = ⊢Λ (⊢` here)
 
-_ : Nₛ [ Wₛ ]ᵐ ≡ Λ (($ 7) ⟪ [] , seal 1 ⟫)
+_ : Nₛ [ Wₛ ]ᵐ ≡ Λ (($ 7) ⟪ morph [] [] , seal 1 ⟫)
 _ = refl
 
 ⊢Nₛ[Wₛ] : Δₛ ∣ [] ⊢ Nₛ [ Wₛ ]ᵐ ⦂ `∀ (` 1)
@@ -988,7 +989,7 @@ run-P₀-pres = preservation* ⊢P₀ run-P₀
 -- the stepped interior, and that interior is `preservation-Beta`
 -- (⊢P₃-in above).
 ⊢P₃-pres : [] ∣ [] ⊢ P₃ ⦂ `ℕ
-⊢P₃-pres = env (mw-b wf-ℕ mw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
+⊢P₃-pres = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
 
 -- STEP 6 — Drop$ (step 5 is the same rule, under ξ-⟪⟫).
 ⊢P₆-pres : [] ∣ [] ⊢ $ 7 ⦂ `ℕ
@@ -1020,7 +1021,7 @@ run-P₀-pres = preservation* ⊢P₀ run-P₀
 -- layer around x's value, sitting inside the OUTER package's revealing
 -- wrapper.  That two-wrapper stack IS the IdPush redex.
 
-open import strong.proof.PeelDual using (preserve-Peel; repsOf-dual)
+open import strong.proof.PeelDual using (preserve-Peel)
 
 -- ── the source ─────────────────────────────────────────────────────────
 
@@ -1045,10 +1046,10 @@ QΔ₁ QΞ₂ : Ctxᵗ
 QΔ₁ = bind `ℕ ∷ []
 QΞ₂ = bind `ℕ ∷ bind `ℕ ∷ []
 
-_ : interior (bind `ℕ ∷ []) [] ≡ QΔ₁
+_ : interior (morph (`ℕ ∷ []) []) [] ≡ QΔ₁
 _ = refl
 
-_ : interior (bind `ℕ ∷ []) QΔ₁ ≡ QΞ₂
+_ : interior (morph (`ℕ ∷ []) []) QΔ₁ ≡ QΞ₂
 _ = refl
 
 -- ── STEP 1 — TYBETA (outer).  The binder Y := ℕ is minted.
@@ -1057,7 +1058,7 @@ _ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl
 
 Q₁ : Term
-Q₁ = ((ƛ (` 0) ∙ Qbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
+Q₁ = ((ƛ (` 0) ∙ Qbody) ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
 
 qstep₁ : [] ⊢ Q₀ -→ Q₁
 qstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1071,20 +1072,20 @@ qstep₁ = ξ-·-l (TyBeta V-ƛ)
 -- ── STEP 2 — PEEL.  7 crosses; `dual (bind ℕ ∷ []) = lock 0 ∷ []`, so
 -- the argument acquires a concealing wrapper that hides the new binder.
 
-_ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
+_ : dual (morph (`ℕ ∷ []) []) ≡ morph [] (lock 0 ∷ [])
 _ = refl
 
 QS₇ : Term
-QS₇ = ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫
+QS₇ = ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫
 
 Q₂ : Term
-Q₂ = ((ƛ (` 0) ∙ Qbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+Q₂ = ((ƛ (` 0) ∙ Qbody) · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 qstep₂ : [] ⊢ Q₁ -→ Q₂
 qstep₂ = Peel V-ƛ V-$
 
 ⊢QS₇ : QΔ₁ ∣ [] ⊢ QS₇ ⦂ ` 0
-⊢QS₇ = env (mw-l (bind `ℕ , ez , nameable-b) mw[]) ⊢$
+⊢QS₇ = env (mw rw[] (sw-l (bind `ℕ , ez , nameable-b) sw[])) ⊢$
             (conv-seal ez) (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢Q₂ : [] ∣ [] ⊢ Q₂ ⦂ `ℕ
@@ -1093,25 +1094,25 @@ qstep₂ = Peel V-ƛ V-$
 -- ── STEP 3 — BETA, under ξ-⟪⟫.  substᵐ's Λ clause ⇑ᴹ-shifts the sealed 7
 -- past ΛZ: the seal NAME moves (seal 0 ↦ seal 1) and so does the lock.
 
-_ : ⇑ᴹ QS₇ ≡ ($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫
+_ : ⇑ᴹ QS₇ ≡ ($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫
 _ = refl
 
-_ : Qbody [ QS₇ ]ᵐ ≡ (Λ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)) ·[ ` 1 , `ℕ ]
+_ : Qbody [ QS₇ ]ᵐ ≡ (Λ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)) ·[ ` 1 , `ℕ ]
 _ = refl
 
 Q₃ : Term
-Q₃ = ((Λ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)) ·[ ` 1 , `ℕ ])
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+Q₃ = ((Λ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)) ·[ ` 1 , `ℕ ])
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 qstep₃ : [] ⊢ Q₂ -→ Q₃
 qstep₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
-⊢Q₃-in : QΔ₁ ∣ [] ⊢ (Λ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)) ·[ ` 1 , `ℕ ] ⦂ ` 0
+⊢Q₃-in : QΔ₁ ∣ [] ⊢ (Λ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)) ·[ ` 1 , `ℕ ] ⦂ ` 0
 ⊢Q₃-in = preservation-Beta (⊢· (⊢ƛ (wf-var (bind `ℕ , ez , nameable-b)) ⊢Qbody₁)
                               ⊢QS₇)
 
 ⊢Q₃ : [] ∣ [] ⊢ Q₃ ⦂ `ℕ
-⊢Q₃ = env (mw-b wf-ℕ mw[]) ⊢Q₃-in (conv-unseal ez) wf-ℕ
+⊢Q₃ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Q₃-in (conv-unseal ez) wf-ℕ
 
 -- ── STEP 4 — TYBETA (inner), under ξ-⟪⟫.  THE ID-LAYER IS BORN: the body
 -- type is the OUTER variable, so the minted conversion is an identity.
@@ -1120,41 +1121,41 @@ _ : reveal 0 (` 1) ≡ id (` 1)
 _ = refl
 
 Q₄ : Term
-Q₄ = ((($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ bind `ℕ ∷ [] , id (` 1) ⟫)
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+Q₄ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫)
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 qstep₄ : [] ⊢ Q₃ -→ Q₄
 qstep₄ = ξ-⟪⟫ (TyBeta (V-⟪⟫ V-$ I-seal))
 
-⊢Qseal₇ : QΞ₂ ∣ [] ⊢ ($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫ ⦂ ` 1
-⊢Qseal₇ = env (mw-l (bind `ℕ , es ez , nameable-b) mw[]) ⊢$
+⊢Qseal₇ : QΞ₂ ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫ ⦂ ` 1
+⊢Qseal₇ = env (mw rw[] (sw-l (bind `ℕ , es ez , nameable-b) sw[])) ⊢$
                (conv-seal (es ez)) (wf-var (bind `ℕ , es ez , nameable-b))
 
-⊢Q₄-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)
-                      ⟪ bind `ℕ ∷ [] , id (` 1) ⟫ ⦂ ` 0
+⊢Q₄-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)
+                      ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫ ⦂ ` 0
 ⊢Q₄-in = preservation-TyBeta ⊢Q₃-in
 
 ⊢Q₄ : [] ∣ [] ⊢ Q₄ ⦂ `ℕ
-⊢Q₄ = env (mw-b wf-ℕ mw[]) ⊢Q₄-in (conv-unseal ez) wf-ℕ
+⊢Q₄ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Q₄-in (conv-unseal ez) wf-ℕ
 
 -- ── STEP 5 — THE IDPUSH REDEX, AND IDPUSH.  Θ₁ = Θ₂ = `bind ℕ ∷ []`,
 -- X = 1, Y = 0, A = ℕ (the looked-up rep).  Both frames are untouched;
 -- only the two conversions swap.
 
 Q₅ : Term
-Q₅ = ((($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ bind `ℕ ∷ [] , unseal 1 ⟫)
-       ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+Q₅ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫)
+       ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 qstep₅ : [] ⊢ Q₄ -→ Q₅
 qstep₅ = IdPush (V-⟪⟫ V-$ I-seal) ez
 
 -- the contractum TYPES: the rep ℕ is well formed inside Θ₂'s interior.
-⊢Q₅-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)
-                      ⟪ bind `ℕ ∷ [] , unseal 1 ⟫ ⦂ `ℕ
-⊢Q₅-in = env (mw-b wf-ℕ mw[]) ⊢Qseal₇ (conv-unseal (es ez)) wf-ℕ
+⊢Q₅-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)
+                      ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫ ⦂ `ℕ
+⊢Q₅-in = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Qseal₇ (conv-unseal (es ez)) wf-ℕ
 
 ⊢Q₅ : [] ∣ [] ⊢ Q₅ ⦂ `ℕ
-⊢Q₅ = env (mw-b wf-ℕ mw[]) ⊢Q₅-in (conv-id base-ℕ) wf-ℕ
+⊢Q₅ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Q₅-in (conv-id base-ℕ) wf-ℕ
 
 -- ── STEP 6 — CANCEL, under ξ-⟪⟫.  The seal minted by Peel and the unseal
 -- IdPush just moved inwards are now adjacent.  BOTH FRAMES STAY: the
@@ -1162,43 +1163,43 @@ qstep₅ = IdPush (V-⟪⟫ V-$ I-seal) ez
 -- more transparent layer for Drop$ to finish.
 
 Q₆ : Term
-Q₆ = ((($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
-       ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+Q₆ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
+       ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 qstep₆ : [] ⊢ Q₅ -→ Q₆
 qstep₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 
-⊢Q₆-in2 : QΞ₂ ∣ [] ⊢ ($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢Q₆-in2 = env (mw-l (bind `ℕ , es ez , nameable-b) mw[])
+⊢Q₆-in2 : QΞ₂ ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫ ⦂ `ℕ
+⊢Q₆-in2 = env (mw rw[] (sw-l (bind `ℕ , es ez , nameable-b) sw[]))
                ⊢$ (conv-id base-ℕ) wf-ℕ
 
-⊢Q₆-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫)
-                      ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢Q₆-in = env (mw-b wf-ℕ mw[]) ⊢Q₆-in2 (conv-id base-ℕ) wf-ℕ
+⊢Q₆-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫)
+                      ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫ ⦂ `ℕ
+⊢Q₆-in = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Q₆-in2 (conv-id base-ℕ) wf-ℕ
 
 ⊢Q₆ : [] ∣ [] ⊢ Q₆ ⦂ `ℕ
-⊢Q₆ = env (mw-b wf-ℕ mw[]) ⊢Q₆-in (conv-id base-ℕ) wf-ℕ
+⊢Q₆ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Q₆-in (conv-id base-ℕ) wf-ℕ
 
 -- ── STEPS 7, 8, 9 — the three base conversions over the numeral.
 
 Q₇ Q₈ : Term
-Q₇ = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-Q₈ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+Q₇ = (($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+Q₈ = ($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 qstep₇ : [] ⊢ Q₆ -→ Q₇
 qstep₇ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
 
-⊢Q₇-in : QΔ₁ ∣ [] ⊢ ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢Q₇-in = env (mw-b wf-ℕ mw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+⊢Q₇-in : QΔ₁ ∣ [] ⊢ ($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫ ⦂ `ℕ
+⊢Q₇-in = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
 
 ⊢Q₇ : [] ∣ [] ⊢ Q₇ ⦂ `ℕ
-⊢Q₇ = env (mw-b wf-ℕ mw[]) ⊢Q₇-in (conv-id base-ℕ) wf-ℕ
+⊢Q₇ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Q₇-in (conv-id base-ℕ) wf-ℕ
 
 qstep₈ : [] ⊢ Q₇ -→ Q₈
 qstep₈ = ξ-⟪⟫ (Drop$ base-ℕ)
 
 ⊢Q₈ : [] ∣ [] ⊢ Q₈ ⦂ `ℕ
-⊢Q₈ = env (mw-b wf-ℕ mw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
+⊢Q₈ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢$ (conv-id base-ℕ) wf-ℕ
 
 qstep₉ : [] ⊢ Q₈ -→ $ 7
 qstep₉ = Drop$ base-ℕ
@@ -1278,25 +1279,25 @@ QΞ₃ : Ctxᵗ
 QΞ₃ = bind `ℕ ∷ QΞ₂
 
 D₁ D₂ D₃ D₄ D₅ D₆ D₇ D₈ D₉ D₁₀ D₁₁ : Term
-D₁  = ((ƛ (` 0) ∙ Dbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
-D₂  = ((ƛ (` 0) ∙ Dbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-D₃  = ((Λ ((Λ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)) ·[ ` 2 , `ℕ ]))
-         ·[ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-D₄  = ((Λ ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-              ⟪ bind `ℕ ∷ [] , id (` 2) ⟫)) ·[ ` 1 , `ℕ ])
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-D₅  = (((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ bind `ℕ ∷ [] , id (` 2) ⟫)
-          ⟪ bind `ℕ ∷ [] , id (` 1) ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-D₆  = (((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ bind `ℕ ∷ [] , id (` 2) ⟫)
-          ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₇  = (((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ bind `ℕ ∷ [] , unseal 2 ⟫)
-          ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₈  = (((($ 7) ⟪ lock 2 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
-          ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₉  = ((($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
-        ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₁₀ = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-D₁₁ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+D₁  = ((ƛ (` 0) ∙ Dbody) ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
+D₂  = ((ƛ (` 0) ∙ Dbody) · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+D₃  = ((Λ ((Λ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)) ·[ ` 2 , `ℕ ]))
+         ·[ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+D₄  = ((Λ ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+              ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫)) ·[ ` 1 , `ℕ ])
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+D₅  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+D₆  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+D₇  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 2 ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+D₈  = (((($ 7) ⟪ morph [] (lock 2 ∷ []) , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+D₉  = ((($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+D₁₀ = (($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+D₁₁ = ($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 dstep₁ : [] ⊢ D₀ -→ D₁
 dstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1345,47 +1346,47 @@ run-D₀ = dstep₁ then dstep₂ then dstep₃ then dstep₄ then dstep₅
 
 -- ── BOTH IDPUSH CONTRACTA TYPE ─────────────────────────────────────────
 
-⊢Dseal₇ : QΞ₃ ∣ [] ⊢ ($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫ ⦂ ` 2
-⊢Dseal₇ = env (mw-l (bind `ℕ , es (es ez) , nameable-b) mw[]) ⊢$
+⊢Dseal₇ : QΞ₃ ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫ ⦂ ` 2
+⊢Dseal₇ = env (mw rw[] (sw-l (bind `ℕ , es (es ez) , nameable-b) sw[])) ⊢$
                (conv-seal (es (es ez)))
                (wf-var (bind `ℕ , es (es ez) , nameable-b))
 
-⊢Did₂ : QΞ₂ ∣ [] ⊢ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-                     ⟪ bind `ℕ ∷ [] , id (` 2) ⟫ ⦂ ` 1
-⊢Did₂ = env (mw-b wf-ℕ mw[]) ⊢Dseal₇
+⊢Did₂ : QΞ₂ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+                     ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫ ⦂ ` 1
+⊢Did₂ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Dseal₇
              (conv-idv (bind `ℕ , es (es ez) , nameable-b))
              (wf-var (bind `ℕ , es ez , nameable-b))
 
-⊢D₅-in : QΔ₁ ∣ [] ⊢ ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-                        ⟪ bind `ℕ ∷ [] , id (` 2) ⟫)
-                       ⟪ bind `ℕ ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢D₅-in = env (mw-b wf-ℕ mw[]) ⊢Did₂
+⊢D₅-in : QΔ₁ ∣ [] ⊢ ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+                        ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫)
+                       ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫ ⦂ ` 0
+⊢D₅-in = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Did₂
               (conv-idv (bind `ℕ , es ez , nameable-b))
               (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢D₅ : [] ∣ [] ⊢ D₅ ⦂ `ℕ
-⊢D₅ = env (mw-b wf-ℕ mw[]) ⊢D₅-in (conv-unseal ez) wf-ℕ
+⊢D₅ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢D₅-in (conv-unseal ez) wf-ℕ
 
-⊢D₆-in : QΔ₁ ∣ [] ⊢ ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-                        ⟪ bind `ℕ ∷ [] , id (` 2) ⟫)
-                       ⟪ bind `ℕ ∷ [] , unseal 1 ⟫ ⦂ `ℕ
-⊢D₆-in = env (mw-b wf-ℕ mw[]) ⊢Did₂ (conv-unseal (es ez)) wf-ℕ
+⊢D₆-in : QΔ₁ ∣ [] ⊢ ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+                        ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫)
+                       ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫ ⦂ `ℕ
+⊢D₆-in = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Did₂ (conv-unseal (es ez)) wf-ℕ
 
 ⊢D₆ : [] ∣ [] ⊢ D₆ ⦂ `ℕ
-⊢D₆ = env (mw-b wf-ℕ mw[]) ⊢D₆-in (conv-id base-ℕ) wf-ℕ
+⊢D₆ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢D₆-in (conv-id base-ℕ) wf-ℕ
 
-⊢D₇-in2 : QΞ₂ ∣ [] ⊢ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-                        ⟪ bind `ℕ ∷ [] , unseal 2 ⟫ ⦂ `ℕ
-⊢D₇-in2 = env (mw-b wf-ℕ mw[]) ⊢Dseal₇
+⊢D₇-in2 : QΞ₂ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+                        ⟪ morph (`ℕ ∷ []) [] , unseal 2 ⟫ ⦂ `ℕ
+⊢D₇-in2 = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Dseal₇
                (conv-unseal (es (es ez))) wf-ℕ
 
-⊢D₇-in : QΔ₁ ∣ [] ⊢ ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-                        ⟪ bind `ℕ ∷ [] , unseal 2 ⟫)
-                       ⟪ bind `ℕ ∷ [] , id `ℕ ⟫ ⦂ `ℕ
-⊢D₇-in = env (mw-b wf-ℕ mw[]) ⊢D₇-in2 (conv-id base-ℕ) wf-ℕ
+⊢D₇-in : QΔ₁ ∣ [] ⊢ ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+                        ⟪ morph (`ℕ ∷ []) [] , unseal 2 ⟫)
+                       ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫ ⦂ `ℕ
+⊢D₇-in = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢D₇-in2 (conv-id base-ℕ) wf-ℕ
 
 ⊢D₇ : [] ∣ [] ⊢ D₇ ⦂ `ℕ
-⊢D₇ = env (mw-b wf-ℕ mw[]) ⊢D₇-in (conv-id base-ℕ) wf-ℕ
+⊢D₇ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢D₇-in (conv-id base-ℕ) wf-ℕ
 
 ------------------------------------------------------------------------
 -- §11b  VARIANT (ii) — AN ID-LAYER WHOSE CONVERSION REP IS CHAINED
@@ -1425,52 +1426,52 @@ RΞ  = bind (` 0) ∷ bind `ℕ ∷ []
 RΞ′ = bind `ℕ ∷ RΞ
 RΞ″ = bind `ℕ ∷ masked (bind (` 0)) ∷ bind `ℕ ∷ []
 
-_ : interior (bind (` 0) ∷ []) QΔ₁ ≡ RΞ
+_ : interior (morph ((` 0) ∷ []) []) QΔ₁ ≡ RΞ
 _ = refl
 
-_ : interior (bind `ℕ ∷ []) RΞ ≡ RΞ′
+_ : interior (morph (`ℕ ∷ []) []) RΞ ≡ RΞ′
 _ = refl
 
-_ : interior (lock 1 ∷ []) RΞ′ ≡ RΞ″
+_ : interior (morph [] (lock 1 ∷ [])) RΞ′ ≡ RΞ″
 _ = refl
 
 -- THE CHAINED REP, as a lookup: Θ₂'s binder 0 has rep ` 1, which NAMES
 -- the outer binder — and that slot is VISIBLE inside Θ₂ (nothing locks it).
-Rchain : convCtx (bind (` 0) ∷ []) QΔ₁ ∋ 0 := ` 1
+Rchain : convCtx (morph ((` 0) ∷ []) []) QΔ₁ ∋ 0 := ` 1
 Rchain = ez
 
-Rchain-scoped : interior (bind (` 0) ∷ []) QΔ₁ ⊢ᵗ ` 1
+Rchain-scoped : interior (morph ((` 0) ∷ []) []) QΔ₁ ⊢ᵗ ` 1
 Rchain-scoped = wf-var (_ , es ez , nameable-b)
 
 -- ── the states ─────────────────────────────────────────────────────────
 
 RS RS↑ RW : Term
-RS  = (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ lock 0 ∷ [] , seal 0 ⟫
-RS↑ = (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ lock 1 ∷ [] , seal 1 ⟫
-RW  = ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ lock 1 ∷ [] , id (` 2) ⟫)
-        ⟪ bind `ℕ ∷ [] , id (` 2) ⟫
+RS  = (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫
+RS↑ = (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫
+RW  = ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph [] (lock 1 ∷ []) , id (` 2) ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫
 
-_ : wkᴹ 1 QS₇ ≡ ($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫
+_ : wkᴹ 1 QS₇ ≡ ($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫
 _ = refl
 
 _ : ⇑ᴹ RS ≡ RS↑
 _ = refl
 
 R₁ R₂ R₃ R₄ R₅ R₆ R₇ R₈ R₉ : Term
-R₁  = ((ƛ (` 0) ∙ Rbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
-R₂  = ((ƛ (` 0) ∙ Rbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₃  = ((Qfun ·[ ` 0 ⇒ ` 0 , ` 0 ]) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₄  = (((ƛ (` 0) ∙ Qbody) ⟪ bind (` 0) ∷ [] , seal 0 ↦ unseal 0 ⟫) · QS₇)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₅  = (((ƛ (` 0) ∙ Qbody) · RS) ⟪ bind (` 0) ∷ [] , unseal 0 ⟫)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₆  = (((Λ RS↑) ·[ ` 1 , `ℕ ]) ⟪ bind (` 0) ∷ [] , unseal 0 ⟫)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₇  = ((RS↑ ⟪ bind `ℕ ∷ [] , id (` 1) ⟫) ⟪ bind (` 0) ∷ [] , unseal 0 ⟫)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₈  = ((RS↑ ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind (` 0) ∷ [] , id (` 1) ⟫)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-R₉  = (RW ⟪ bind (` 0) ∷ [] , id (` 1) ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+R₁  = ((ƛ (` 0) ∙ Rbody) ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
+R₂  = ((ƛ (` 0) ∙ Rbody) · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+R₃  = ((Qfun ·[ ` 0 ⇒ ` 0 , ` 0 ]) · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+R₄  = (((ƛ (` 0) ∙ Qbody) ⟪ morph ((` 0) ∷ []) [] , seal 0 ↦ unseal 0 ⟫) · QS₇)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+R₅  = (((ƛ (` 0) ∙ Qbody) · RS) ⟪ morph ((` 0) ∷ []) [] , unseal 0 ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+R₆  = (((Λ RS↑) ·[ ` 1 , `ℕ ]) ⟪ morph ((` 0) ∷ []) [] , unseal 0 ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+R₇  = ((RS↑ ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫) ⟪ morph ((` 0) ∷ []) [] , unseal 0 ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+R₈  = ((RS↑ ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫) ⟪ morph ((` 0) ∷ []) [] , id (` 1) ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+R₉  = (RW ⟪ morph ((` 0) ∷ []) [] , id (` 1) ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 rstep₁ : [] ⊢ R₀ -→ R₁
 rstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1523,40 +1524,40 @@ run-R₀ = rstep₁ then rstep₂ then rstep₃ then rstep₄ then rstep₅
 
 -- ── THE CHAINED IDPUSH REDEX AND ITS CONTRACTUM BOTH TYPE ──────────────
 
-⊢RV₂ : RΞ″ ∣ [] ⊢ ($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫ ⦂ ` 2
-⊢RV₂ = env (mw-l (_ , es (es ez) , nameable-b) mw[]) ⊢$
+⊢RV₂ : RΞ″ ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫ ⦂ ` 2
+⊢RV₂ = env (mw rw[] (sw-l (_ , es (es ez) , nameable-b) sw[])) ⊢$
             (conv-seal (es (es ez))) (wf-var (_ , es (es ez) , nameable-b))
 
 ⊢RS↑ : RΞ′ ∣ [] ⊢ RS↑ ⦂ ` 1
-⊢RS↑ = env (mw-l (_ , es ez , nameable-b) mw[]) ⊢RV₂
+⊢RS↑ = env (mw rw[] (sw-l (_ , es ez , nameable-b) sw[])) ⊢RV₂
             (conv-seal (es ez)) (wf-var (_ , es ez , nameable-b))
 
-⊢Rlayer : RΞ ∣ [] ⊢ RS↑ ⟪ bind `ℕ ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢Rlayer = env (mw-b wf-ℕ mw[]) ⊢RS↑
+⊢Rlayer : RΞ ∣ [] ⊢ RS↑ ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫ ⦂ ` 0
+⊢Rlayer = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢RS↑
                (conv-idv (_ , es ez , nameable-b))
                (wf-var (_ , ez , nameable-b))
 
-⊢R₇-in : QΔ₁ ∣ [] ⊢ (RS↑ ⟪ bind `ℕ ∷ [] , id (` 1) ⟫)
-                       ⟪ bind (` 0) ∷ [] , unseal 0 ⟫ ⦂ ` 0
-⊢R₇-in = env (mw-b (wf-var (_ , ez , nameable-b)) mw[]) ⊢Rlayer
+⊢R₇-in : QΔ₁ ∣ [] ⊢ (RS↑ ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫)
+                       ⟪ morph ((` 0) ∷ []) [] , unseal 0 ⟫ ⦂ ` 0
+⊢R₇-in = env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[]) sw[]) ⊢Rlayer
               (conv-unseal ez) (wf-var (_ , ez , nameable-b))
 
 ⊢R₇ : [] ∣ [] ⊢ R₇ ⦂ `ℕ
-⊢R₇ = env (mw-b wf-ℕ mw[]) ⊢R₇-in (conv-unseal ez) wf-ℕ
+⊢R₇ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢R₇-in (conv-unseal ez) wf-ℕ
 
 -- the contractum: the inner wrapper now EXPORTS the chained rep ` 1, and
 -- `env`'s last premise `RΞ ⊢ᵗ ` 1` is exactly `Rchain-scoped`.
-⊢R₈-mid : RΞ ∣ [] ⊢ RS↑ ⟪ bind `ℕ ∷ [] , unseal 1 ⟫ ⦂ ` 1
-⊢R₈-mid = env (mw-b wf-ℕ mw[]) ⊢RS↑
+⊢R₈-mid : RΞ ∣ [] ⊢ RS↑ ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫ ⦂ ` 1
+⊢R₈-mid = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢RS↑
                (conv-unseal (es ez)) Rchain-scoped
 
-⊢R₈-in : QΔ₁ ∣ [] ⊢ (RS↑ ⟪ bind `ℕ ∷ [] , unseal 1 ⟫)
-                       ⟪ bind (` 0) ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢R₈-in = env (mw-b (wf-var (_ , ez , nameable-b)) mw[]) ⊢R₈-mid
+⊢R₈-in : QΔ₁ ∣ [] ⊢ (RS↑ ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫)
+                       ⟪ morph ((` 0) ∷ []) [] , id (` 1) ⟫ ⦂ ` 0
+⊢R₈-in = env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[]) sw[]) ⊢R₈-mid
               (conv-idv (_ , es ez , nameable-b)) (wf-var (_ , ez , nameable-b))
 
 ⊢R₈ : [] ∣ [] ⊢ R₈ ⦂ `ℕ
-⊢R₈ = env (mw-b wf-ℕ mw[]) ⊢R₈-in (conv-unseal ez) wf-ℕ
+⊢R₈ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢R₈-in (conv-unseal ez) wf-ℕ
 
 ------------------------------------------------------------------------
 -- §11c  VARIANT (i) — AN ID-LAYER WITH A NON-TRIVIAL Θ₁
@@ -1569,19 +1570,19 @@ run-R₀ = rstep₁ then rstep₂ then rstep₃ then rstep₄ then rstep₅
 --   Peel     mints `dual Θ`, which is ALL locks/unlocks numBinds 0
 --   CancelR  mints NO frame (both are carried over)
 --   IdPush   mints NO frame (both are carried over)
---   TyPeelR  mints `bind A ∷ Θ`               numBinds = 1 + numBinds Θ
+--   TyPeelR  prepends one bind          numBinds = 1 + numBinds Θ
 --
 -- so `numBinds Θ ≥ 2` is reachable ONLY through TyPeelR.  Those facts,
 -- machine-checked:
 
-numBinds-TyBeta : (A : Ty) → numBinds (bind A ∷ []) ≡ 1
+numBinds-TyBeta : (A : Ty) → numBinds (morph (A ∷ []) []) ≡ 1
 numBinds-TyBeta A = refl
 
 numBinds-dual : (Θ : CtxMorph) → numBinds (dual Θ) ≡ 0
-numBinds-dual Θ = cong length (repsOf-dual Θ)
+numBinds-dual Θ = refl
 
 numBinds-TyPeelR : (A : Ty) (Θ : CtxMorph)
-  → numBinds (bind A ∷ Θ) ≡ suc (numBinds Θ)
+  → numBinds (morph (A ∷ binds Θ) (changes Θ)) ≡ suc (numBinds Θ)
 numBinds-TyPeelR A Θ = refl
 
 -- ── A CLOSED SOURCE THAT REACHES TYPEELR ───────────────────────────────
@@ -1610,16 +1611,16 @@ _ : reveal 0 (`∀ (` 2)) ≡ `∀ (id (` 2))
 _ = refl
 
 GV G₁ G₂ G₃ G₄ G₅ : Term
-GV = Λ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-G₁ = ((ƛ (` 0) ∙ Gbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
-G₂ = ((ƛ (` 0) ∙ Gbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+GV = Λ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+G₁ = ((ƛ (` 0) ∙ Gbody) ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
+G₂ = ((ƛ (` 0) ∙ Gbody) · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 G₃ = (((Λ GV) ·[ `∀ (` 2) , `ℕ ]) ·[ ` 1 , `ℕ ])
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-G₄ = ((GV ⟪ bind `ℕ ∷ [] , `∀ (id (` 2)) ⟫) ·[ ` 1 , `ℕ ])
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-G₅ = ((Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫)) ·[ ` 3 , ` 0 ])
-       ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , id (` 2) ⟫
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+G₄ = ((GV ⟪ morph (`ℕ ∷ []) [] , `∀ (id (` 2)) ⟫) ·[ ` 1 , `ℕ ])
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+G₅ = ((Λ (($ 7) ⟪ morph [] (lock 3 ∷ []) , seal 3 ⟫)) ·[ ` 3 , ` 0 ])
+       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 gstep₁ : [] ⊢ G₀ -→ G₁
 gstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1636,47 +1637,47 @@ gstep₄ = ξ-⟪⟫ (ξ-·[] (TyBeta (V-Λ (V-⟪⟫ V-$ I-seal))))
 -- the TyPeelR step, whose contractum is the wanted `numBinds Θ₁ ≡ 2` layer.
 -- Its conversion premise is the redex's own, one `` `∀ `` inside —
 -- here the identity at the OUTER binder, read under the ∀-binder.
-⊢Gconv : (abst ∷ convCtx (bind `ℕ ∷ []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
+⊢Gconv : (abst ∷ convCtx (morph (`ℕ ∷ []) []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
 ⊢Gconv = conv-idv (bind `ℕ , es (es ez) , nameable-b)
 
 gstep₅ : [] ⊢ G₄ -→ G₅
 gstep₅ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Gconv)
 
-_ : numBinds (bind `ℕ ∷ bind `ℕ ∷ []) ≡ 2
+_ : numBinds (morph (`ℕ ∷ `ℕ ∷ []) []) ≡ 2
 _ = refl
 
 -- G₄ IS WELL TYPED …
 ⊢GV : QΞ₂ ∣ [] ⊢ GV ⦂ `∀ (` 2)
-⊢GV = ⊢Λ (env (mw-l (_ , es (es ez) , nameable-b) mw[]) ⊢$
+⊢GV = ⊢Λ (env (mw rw[] (sw-l (_ , es (es ez) , nameable-b) sw[])) ⊢$
                (conv-seal (es (es ez))) (wf-var (_ , es (es ez) , nameable-b)))
 
-⊢Gpkg : QΔ₁ ∣ [] ⊢ GV ⟪ bind `ℕ ∷ [] , `∀ (id (` 2)) ⟫ ⦂ `∀ (` 1)
-⊢Gpkg = env (mw-b wf-ℕ mw[]) ⊢GV
+⊢Gpkg : QΔ₁ ∣ [] ⊢ GV ⟪ morph (`ℕ ∷ []) [] , `∀ (id (` 2)) ⟫ ⦂ `∀ (` 1)
+⊢Gpkg = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢GV
              (conv-all (conv-idv (_ , es (es ez) , nameable-b)))
              (wf-∀ (wf-var (_ , es ez , nameable-b)))
 
 ⊢G₄ : [] ∣ [] ⊢ G₄ ⦂ `ℕ
-⊢G₄ = env (mw-b wf-ℕ mw[]) (⊢·[] ⊢Gpkg wf-ℕ) (conv-unseal ez) wf-ℕ
+⊢G₄ = env (mw (rw-b wf-ℕ rw[]) sw[]) (⊢·[] ⊢Gpkg wf-ℕ) (conv-unseal ez) wf-ℕ
 
 -- … AND SO IS ITS TYPEELR CONTRACTUM, with the repaired rule.  The
 -- pushed-in annotation is the INTERIOR ∀-body shifted past the new binder
 -- (`` ` 3 ``, matching `wkᴹ 1 GV : `∀ (` 3)`), and the frame is plain `Θ`
 -- — the `renᴮ suc Θ` double-shift that made `¬⊢G₅` true is gone.  So
 -- variant (i) now HAS a well-typed closed-source instance.
-⊢G₅-Λ : QΞ₃ ∣ [] ⊢ Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫) ⦂ `∀ (` 3)
-⊢G₅-Λ = ⊢Λ (env (mw-l (bind `ℕ , es (es (es ez)) , nameable-b) mw[]) ⊢$
+⊢G₅-Λ : QΞ₃ ∣ [] ⊢ Λ (($ 7) ⟪ morph [] (lock 3 ∷ []) , seal 3 ⟫) ⦂ `∀ (` 3)
+⊢G₅-Λ = ⊢Λ (env (mw rw[] (sw-l (bind `ℕ , es (es (es ez)) , nameable-b) sw[])) ⊢$
                 (conv-seal (es (es (es ez))))
                 (wf-var (bind `ℕ , es (es (es ez)) , nameable-b)))
 
-⊢G₅-in : QΔ₁ ∣ [] ⊢ ((Λ (($ 7) ⟪ lock 3 ∷ [] , seal 3 ⟫)) ·[ ` 3 , ` 0 ])
-                      ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , id (` 2) ⟫ ⦂ ` 0
-⊢G₅-in = env (mw-b wf-ℕ (mw-b wf-ℕ mw[]))
+⊢G₅-in : QΔ₁ ∣ [] ⊢ ((Λ (($ 7) ⟪ morph [] (lock 3 ∷ []) , seal 3 ⟫)) ·[ ` 3 , ` 0 ])
+                      ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫ ⦂ ` 0
+⊢G₅-in = env (mw (rw-b wf-ℕ (rw-b wf-ℕ rw[])) sw[])
               (⊢·[] ⊢G₅-Λ (wf-var (bind `ℕ , ez , nameable-b)))
               (conv-idv (bind `ℕ , es (es ez) , nameable-b))
               (wf-var (bind `ℕ , ez , nameable-b))
 
 ⊢G₅ : [] ∣ [] ⊢ G₅ ⦂ `ℕ
-⊢G₅ = env (mw-b wf-ℕ mw[]) ⊢G₅-in (conv-unseal ez) wf-ℕ
+⊢G₅ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢G₅-in (conv-unseal ez) wf-ℕ
 
 -- ── AND THE MULTI-BIND ID-LAYER IT DELIVERS ────────────────────────────
 -- The same shape, hand-built at the frame the repaired rule produces
@@ -1685,33 +1686,33 @@ _ = refl
 -- — the lifting `shiftBy 2` is exactly absorbed by `pushBinds`.
 
 K₀ K₁ : Term
-K₀ = ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-        ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , id (` 2) ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-K₁ = ((($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-        ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , unseal 2 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+K₀ = ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+        ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+K₁ = ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+        ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , unseal 2 ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
-_ : interior (bind `ℕ ∷ bind `ℕ ∷ []) QΔ₁ ≡ QΞ₃
+_ : interior (morph (`ℕ ∷ `ℕ ∷ []) []) QΔ₁ ≡ QΞ₃
 _ = refl
 
-⊢K₀-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-                       ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , id (` 2) ⟫ ⦂ ` 0
-⊢K₀-in = env (mw-b wf-ℕ (mw-b wf-ℕ mw[])) ⊢Dseal₇
+⊢K₀-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+                       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫ ⦂ ` 0
+⊢K₀-in = env (mw (rw-b wf-ℕ (rw-b wf-ℕ rw[])) sw[]) ⊢Dseal₇
               (conv-idv (_ , es (es ez) , nameable-b))
               (wf-var (_ , ez , nameable-b))
 
 ⊢K₀ : [] ∣ [] ⊢ K₀ ⦂ `ℕ
-⊢K₀ = env (mw-b wf-ℕ mw[]) ⊢K₀-in (conv-unseal ez) wf-ℕ
+⊢K₀ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢K₀-in (conv-unseal ez) wf-ℕ
 
 kstep : [] ⊢ K₀ -→ K₁
 kstep = IdPush (V-⟪⟫ V-$ I-seal) ez
 
-⊢K₁-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫)
-                       ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , unseal 2 ⟫ ⦂ `ℕ
-⊢K₁-in = env (mw-b wf-ℕ (mw-b wf-ℕ mw[])) ⊢Dseal₇
+⊢K₁-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
+                       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , unseal 2 ⟫ ⦂ `ℕ
+⊢K₁-in = env (mw (rw-b wf-ℕ (rw-b wf-ℕ rw[])) sw[]) ⊢Dseal₇
               (conv-unseal (es (es ez))) wf-ℕ
 
 ⊢K₁ : [] ∣ [] ⊢ K₁ ⦂ `ℕ
-⊢K₁ = env (mw-b wf-ℕ mw[]) ⊢K₁-in (conv-id base-ℕ) wf-ℕ
+⊢K₁ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢K₁-in (conv-id base-ℕ) wf-ℕ
 
 ------------------------------------------------------------------------
 -- §12  THE WALL, PROBED FOR REACHABILITY POST-REPAIR
@@ -1760,25 +1761,25 @@ LΔ LΞ : Ctxᵗ
 LΔ = bind (` 0) ∷ bind `ℕ ∷ []
 LΞ = bind (` 0) ∷ masked (bind `ℕ) ∷ []
 
-_ : interior (bind (` 0) ∷ []) QΔ₁ ≡ LΔ
+_ : interior (morph ((` 0) ∷ []) []) QΔ₁ ≡ LΔ
 _ = refl
 
-_ : interior (lock 1 ∷ []) LΔ ≡ LΞ
+_ : interior (morph [] (lock 1 ∷ [])) LΔ ≡ LΞ
 _ = refl
 
 L₁ L₂ L₃ L₄ L₅ L₆ L₇ L₈ : Term
-L₁ = ((ƛ (` 0) ∙ Lbody) ⟪ bind `ℕ ∷ [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
-L₂ = ((ƛ (` 0) ∙ Lbody) · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-L₃ = ((Λ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)) ·[ ` 1 , ` 0 ])
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-L₄ = ((($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ bind (` 0) ∷ [] , id (` 1) ⟫)
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-L₅ = ((($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ bind (` 0) ∷ [] , unseal 1 ⟫)
-       ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-L₆ = ((($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫)
-       ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-L₇ = (($ 7) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-L₈ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+L₁ = ((ƛ (` 0) ∙ Lbody) ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ unseal 0 ⟫) · ($ 7)
+L₂ = ((ƛ (` 0) ∙ Lbody) · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+L₃ = ((Λ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)) ·[ ` 1 , ` 0 ])
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+L₄ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph ((` 0) ∷ []) [] , id (` 1) ⟫)
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+L₅ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph ((` 0) ∷ []) [] , unseal 1 ⟫)
+       ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+L₆ = ((($ 7) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫)
+       ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+L₇ = (($ 7) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+L₈ = ($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 lstep₁ : [] ⊢ L₀ -→ L₁
 lstep₁ = ξ-·-l (TyBeta V-ƛ)
@@ -1822,25 +1823,25 @@ _ = refl
 
 -- ── every state on the run TYPES, including the two the wall touches ───
 
-⊢Lseal₇ : LΔ ∣ [] ⊢ ($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫ ⦂ ` 1
-⊢Lseal₇ = env (mw-l (_ , es ez , nameable-b) mw[]) ⊢$
+⊢Lseal₇ : LΔ ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫ ⦂ ` 1
+⊢Lseal₇ = env (mw rw[] (sw-l (_ , es ez , nameable-b) sw[])) ⊢$
                (conv-seal (es ez)) (wf-var (_ , es ez , nameable-b))
 
-⊢L₄-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)
-                       ⟪ bind (` 0) ∷ [] , id (` 1) ⟫ ⦂ ` 0
-⊢L₄-in = env (mw-b (wf-var (_ , ez , nameable-b)) mw[]) ⊢Lseal₇
+⊢L₄-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)
+                       ⟪ morph ((` 0) ∷ []) [] , id (` 1) ⟫ ⦂ ` 0
+⊢L₄-in = env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[]) sw[]) ⊢Lseal₇
               (conv-idv (_ , es ez , nameable-b)) (wf-var (_ , ez , nameable-b))
 
 ⊢L₄ : [] ∣ [] ⊢ L₄ ⦂ `ℕ
-⊢L₄ = env (mw-b wf-ℕ mw[]) ⊢L₄-in (conv-unseal ez) wf-ℕ
+⊢L₄ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢L₄-in (conv-unseal ez) wf-ℕ
 
-⊢L₅-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫)
-                       ⟪ bind (` 0) ∷ [] , unseal 1 ⟫ ⦂ `ℕ
-⊢L₅-in = env (mw-b (wf-var (_ , ez , nameable-b)) mw[]) ⊢Lseal₇
+⊢L₅-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)
+                       ⟪ morph ((` 0) ∷ []) [] , unseal 1 ⟫ ⦂ `ℕ
+⊢L₅-in = env (mw (rw-b (wf-var (_ , ez , nameable-b)) rw[]) sw[]) ⊢Lseal₇
               (conv-unseal (es ez)) wf-ℕ
 
 ⊢L₅ : [] ∣ [] ⊢ L₅ ⦂ `ℕ
-⊢L₅ = env (mw-b wf-ℕ mw[]) ⊢L₅-in (conv-id base-ℕ) wf-ℕ
+⊢L₅ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢L₅-in (conv-id base-ℕ) wf-ℕ
 
 -- THE PRECISE READING.  On this run the blocked slot lives inside a
 -- wrapper that is a `Θ₁` (an INERT `seal` conversion, the CancelR
@@ -1877,10 +1878,10 @@ open import strong.proof.PreserveObstruct
   using (Δi; Θi; Vi; Ri; ⊢Ri; step-i)
 
 wallR₁ : Term
-wallR₁ = (Vi ⟪ [] ⋉ Θi , unseal 0 ⟫) ⟪ rewind Θi , mkId (` 1) ⟫
+wallR₁ = (Vi ⟪ morph [] [] ⋉ Θi , unseal 0 ⟫) ⟪ rewind Θi , mkId (` 1) ⟫
 
-_ : wallR₁ ≡ (Vi ⟪ lock 1 ∷ [] , unseal 0 ⟫)
-               ⟪ unlock 1 ∷ lock 1 ∷ [] , id (` 1) ⟫
+_ : wallR₁ ≡ (Vi ⟪ morph [] (lock 1 ∷ []) , unseal 0 ⟫)
+               ⟪ morph [] (unlock 1 ∷ lock 1 ∷ []) , id (` 1) ⟫
 _ = refl
 
 -- THE STEP THE OLD RULE COULD NOT TAKE SOUNDLY …
@@ -1892,8 +1893,8 @@ wallstep₁ = step-i
 ⊢wallR₁ = preservation ⊢Ri wallstep₁
 
 -- the value's own frame is untouched by the move
-_ : interior ([] ⋉ Θi) (interior (rewind Θi) Δi)
-      ≡ interior [] (interior Θi Δi)
+_ : interior (morph [] [] ⋉ Θi) (interior (rewind Θi) Δi)
+      ≡ interior (morph [] []) (interior Θi Δi)
 _ = refl
 
 -- AND THE RUN FINISHES.  The move brought the `seal X` of `Vi`'s own
@@ -1904,10 +1905,10 @@ _ = refl
 --
 -- the mask/unmask pair sitting inertly on the frame it was moved into.
 wallR₂ : Term
-wallR₂ = (((($ 7) ⟪ [] , seal 1 ⟫)
-             ⟪ unlock 1 ∷ lock 1 ∷ [] , id (` 1) ⟫)
-             ⟪ unlock 1 ∷ lock 1 ∷ [] , id (` 1) ⟫)
-             ⟪ unlock 1 ∷ lock 1 ∷ [] , id (` 1) ⟫
+wallR₂ = (((($ 7) ⟪ morph [] [] , seal 1 ⟫)
+             ⟪ morph [] (unlock 1 ∷ lock 1 ∷ []) , id (` 1) ⟫)
+             ⟪ morph [] (unlock 1 ∷ lock 1 ∷ []) , id (` 1) ⟫)
+             ⟪ morph [] (unlock 1 ∷ lock 1 ∷ []) , id (` 1) ⟫
 
 wallstep₂ : Δi ⊢ wallR₁ -→ wallR₂
 wallstep₂ = ξ-⟪⟫ (CancelR (V-⟪⟫ V-$ I-seal) ez)
@@ -2003,14 +2004,14 @@ _ = refl
 
 J₁ J₂ J₃ J₄ J₅ : Term
 J₁ = (((ƛ (` 0) ∙ Jbody)
-         ⟪ bind `ℕ ∷ [] , seal 0 ↦ ((`∀ st) ↦ unseal 0) ⟫) · ($ 7)) · Wt
+         ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ ((`∀ st) ↦ unseal 0) ⟫) · ($ 7)) · Wt
 J₂ = (((ƛ (` 0) ∙ Jbody) · QS₇)
-        ⟪ bind `ℕ ∷ [] , (`∀ st) ↦ unseal 0 ⟫) · Wt
+        ⟪ morph (`ℕ ∷ []) [] , (`∀ st) ↦ unseal 0 ⟫) · Wt
 J₃ = ((ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · QS₇))
-        ⟪ bind `ℕ ∷ [] , (`∀ st) ↦ unseal 0 ⟫) · Wt
+        ⟪ morph (`ℕ ∷ []) [] , (`∀ st) ↦ unseal 0 ⟫) · Wt
 J₄ = ((ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · QS₇)) · Wft)
-       ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-J₅ = (Rt · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+       ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+J₅ = (Rt · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 jstep₁ : [] ⊢ J₀ -→ J₁
 jstep₁ = ξ-·-l (ξ-·-l (TyBeta V-ƛ))
@@ -2034,7 +2035,7 @@ run-J₀ = jstep₁ then jstep₂ then jstep₃ then jstep₄ then jstep₅ then
 
 -- J₅'s head IS proof/PreserveObstruct §2's redex, and it is TYPED there.
 _ : J₅ ≡ (((Wt ⟪ Θt , `∀ st ⟫) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · QS₇)
-           ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+           ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 _ = refl
 
 ⊢J₅-head : Δt ∣ [] ⊢ Rt ⦂ (` 0 ⇒ ` 0)
@@ -2042,8 +2043,8 @@ _ = refl
 
 J₆head J₆ : Term
 J₆head = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
-           ⟪ bind (` 0) ∷ Θt , instReveal 0 st ⟫
-J₆     = (J₆head · QS₇) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
+           ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , instReveal 0 st ⟫
+J₆     = (J₆head · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 -- … and TyPeelR fires on it, from this closed source.  (Fact (ii) below
 -- types both `J₆head` and `J₆`.)
@@ -2058,7 +2059,7 @@ jstep₆ = ξ-⟪⟫ (ξ-·-l step-t)
 -- identity converts a type to ITSELF (`conv-id-refl`).
 ¬⊢J-plain :
   ¬ (Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
-                 ⟪ bind (` 0) ∷ Θt , st ⟫ ⦂ (` 0 ⇒ ` 0))
+                 ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , st ⟫ ⦂ (` 0 ⇒ ` 0))
 ¬⊢J-plain (env _ (⊢·[] _ _) (conv-fun ⊢s ⊢t) _) with conv-id-refl ⊢s
 ... | ()
 
@@ -2069,7 +2070,7 @@ _ : instReveal 0 st ≡ seal 0 ↦ seal 1
 _ = refl
 
 J-convCtx : Ctxᵗ
-J-convCtx = convCtx (bind (` 0) ∷ Θt) Δt
+J-convCtx = convCtx (morph ((` 0) ∷ binds Θt) (changes Θt)) Δt
 
 _ : J-convCtx ≡ bind (` 0) ∷ bind `ℕ ∷ []
 _ = refl
@@ -2100,7 +2101,7 @@ _ = refl
 
 -- … and so does the whole state, one `env` out.
 ⊢J₆ : [] ∣ [] ⊢ J₆ ⦂ `ℕ
-⊢J₆ = env (mw-b wf-ℕ mw[]) (⊢· ⊢J₆head ⊢QS₇) (conv-unseal ez) wf-ℕ
+⊢J₆ = env (mw (rw-b wf-ℕ rw[]) sw[]) (⊢· ⊢J₆head ⊢QS₇) (conv-unseal ez) wf-ℕ
 
 -- ── THE RUN CONTINUES, TO A VALUE ──────────────────────────────────────
 --
@@ -2140,23 +2141,23 @@ _ : reveal 0 (` 0 ⇒ `ℕ) ≡ seal 0 ↦ id `ℕ
 _ = refl
 
 JV : Term                      -- λy. 3, behind the freshly born boundary
-JV = (ƛ (` 0) ∙ ($ 3)) ⟪ bind (` 0) ∷ [] , seal 0 ↦ id `ℕ ⟫
+JV = (ƛ (` 0) ∙ ($ 3)) ⟪ morph ((` 0) ∷ []) [] , seal 0 ↦ id `ℕ ⟫
 
 val-JV : Value JV
 val-JV = V-⟪⟫ V-ƛ I-fun
 
 -- the two duals the two Peels mint
-_ : dual (bind (` 0) ∷ Θt) ≡ lock 0 ∷ unlock 1 ∷ []
+_ : dual (morph ((` 0) ∷ binds Θt) (changes Θt)) ≡ morph [] (lock 0 ∷ unlock 1 ∷ [])
 _ = refl
 
-_ : dual (bind (` 0) ∷ []) ≡ lock 0 ∷ []
+_ : dual (morph ((` 0) ∷ []) []) ≡ morph [] (lock 0 ∷ [])
 _ = refl
 
 JW JW′ : Term                  -- `7` after the first / the second crossing
-JW  = wkᴹ 1 QS₇ ⟪ dual (bind (` 0) ∷ Θt) , seal 0 ⟫
-JW′ = wkᴹ 1 JW ⟪ dual (bind (` 0) ∷ []) , seal 0 ⟫
+JW  = wkᴹ 1 QS₇ ⟪ dual (morph ((` 0) ∷ binds Θt) (changes Θt)) , seal 0 ⟫
+JW′ = wkᴹ 1 JW ⟪ dual (morph ((` 0) ∷ []) []) , seal 0 ⟫
 
-_ : JW ≡ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ lock 0 ∷ unlock 1 ∷ [] , seal 0 ⟫
+_ : JW ≡ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph [] (lock 0 ∷ unlock 1 ∷ []) , seal 0 ⟫
 _ = refl
 
 val-JW : Value JW
@@ -2166,17 +2167,17 @@ val-JW′ : Value JW′
 val-JW′ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal) I-seal
 
 J₇ J₈ J₉ J₁₀ J₁₁ J₁₂ J₁₃ : Term
-J₇  = ((JV ⟪ bind (` 0) ∷ Θt , seal 0 ↦ seal 1 ⟫) · QS₇)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-J₈  = ((JV · JW) ⟪ bind (` 0) ∷ Θt , seal 1 ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-J₉  = ((((ƛ (` 0) ∙ ($ 3)) · JW′) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫)
-         ⟪ bind (` 0) ∷ Θt , seal 1 ⟫)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-J₁₀ = ((($ 3) ⟪ bind (` 0) ∷ [] , id `ℕ ⟫) ⟪ bind (` 0) ∷ Θt , seal 1 ⟫)
-        ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-J₁₁ = (($ 3) ⟪ bind (` 0) ∷ Θt , seal 1 ⟫) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-J₁₂ = (($ 3) ⟪ bind (` 0) ∷ Θt , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
-J₁₃ = ($ 3) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
+J₇  = ((JV ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 0 ↦ seal 1 ⟫) · QS₇)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+J₈  = ((JV · JW) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+J₉  = ((((ƛ (` 0) ∙ ($ 3)) · JW′) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫)
+         ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+J₁₀ = ((($ 3) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+J₁₁ = (($ 3) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+J₁₂ = (($ 3) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+J₁₃ = ($ 3) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 jstep₇ : [] ⊢ J₆ -→ J₇
 jstep₇ = ξ-⟪⟫ (ξ-·-l (ξ-⟪⟫ (TyBeta V-ƛ)))
@@ -2252,15 +2253,15 @@ _ : reveal 0 HB ≡ seal 0 ↦ (`∀ (id (` 0) ↦ unseal 1))
 _ = refl
 
 HV H₁ H₂ H₃ H₄ : Term
-HV = Λ (ƛ (` 0) ∙ (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫))
+HV = Λ (ƛ (` 0) ∙ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫))
 H₁ = (((ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1))))
-         ⟪ bind `ℕ ∷ [] , seal 0 ↦ (`∀ (id (` 0) ↦ unseal 1)) ⟫) · ($ 7))
+         ⟪ morph (`ℕ ∷ []) [] , seal 0 ↦ (`∀ (id (` 0) ↦ unseal 1)) ⟫) · ($ 7))
        ·[ ` 0 ⇒ `ℕ , `ℕ ]
 H₂ = (((ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1)))) · QS₇)
-        ⟪ bind `ℕ ∷ [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
-H₃ = (HV ⟪ bind `ℕ ∷ [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
-H₄ = ((Λ (ƛ (` 0) ∙ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫))) ·[ ` 0 ⇒ ` 2 , ` 0 ])
-       ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , seal 0 ↦ unseal 1 ⟫
+        ⟪ morph (`ℕ ∷ []) [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
+H₃ = (HV ⟪ morph (`ℕ ∷ []) [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
+H₄ = ((Λ (ƛ (` 0) ∙ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫))) ·[ ` 0 ⇒ ` 2 , ` 0 ])
+       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , seal 0 ↦ unseal 1 ⟫
 
 hstep₁ : [] ⊢ H₀ -→ H₁
 hstep₁ = ξ-·[] (ξ-·-l (TyBeta V-ƛ))
@@ -2273,7 +2274,7 @@ hstep₃ = ξ-·[] (ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal)))
 
 -- THE CONVERSION PREMISE, read off the redex's own `env`, one
 -- `` `∀ `` inside.
-⊢Hconv : (abst ∷ convCtx (bind `ℕ ∷ []) []) ⊢ id (` 0) ↦ unseal 1
+⊢Hconv : (abst ∷ convCtx (morph (`ℕ ∷ []) []) []) ⊢ id (` 0) ↦ unseal 1
            ∶ (` 0 ⇒ ` 1) ⇝ (` 0 ⇒ `ℕ)
 ⊢Hconv = conv-fun (conv-idv (abst , ez , nameable-a)) (conv-unseal (es ez))
 
@@ -2298,12 +2299,12 @@ _ = refl
 
 ⊢HV : (bind `ℕ ∷ []) ∣ [] ⊢ HV ⦂ `∀ (` 0 ⇒ ` 1)
 ⊢HV = ⊢Λ (⊢ƛ (wf-var (abst , ez , nameable-a))
-             (env (mw-l (bind `ℕ , es ez , nameable-b) mw[]) ⊢$
+             (env (mw rw[] (sw-l (bind `ℕ , es ez , nameable-b) sw[])) ⊢$
                   (conv-seal (es ez))
                   (wf-var (bind `ℕ , es ez , nameable-b))))
 
 ⊢H₃ : [] ∣ [] ⊢ H₃ ⦂ (`ℕ ⇒ `ℕ)
-⊢H₃ = ⊢·[] (env (mw-b wf-ℕ mw[]) ⊢HV
+⊢H₃ = ⊢·[] (env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢HV
                 (conv-all ⊢Hconv)
                 (wf-∀ (wf-⇒ (wf-var (abst , ez , nameable-a)) wf-ℕ)))
            wf-ℕ
@@ -2314,14 +2315,14 @@ _ = refl
 -- and H₄ is ONE TyBeta from a value, so the repaired rule does not
 -- strand the run either.
 hstep₅ : [] ⊢ H₄
-       -→ ((ƛ (` 0) ∙ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫))
-             ⟪ bind (` 0) ∷ [] , reveal 0 (` 0 ⇒ ` 2) ⟫)
-            ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , seal 0 ↦ unseal 1 ⟫
+       -→ ((ƛ (` 0) ∙ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫))
+             ⟪ morph ((` 0) ∷ []) [] , reveal 0 (` 0 ⇒ ` 2) ⟫)
+            ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , seal 0 ↦ unseal 1 ⟫
 hstep₅ = ξ-⟪⟫ (TyBeta V-ƛ)
 
-val-H₅ : Value (((ƛ (` 0) ∙ (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫))
-                   ⟪ bind (` 0) ∷ [] , reveal 0 (` 0 ⇒ ` 2) ⟫)
-                  ⟪ bind `ℕ ∷ bind `ℕ ∷ [] , seal 0 ↦ unseal 1 ⟫)
+val-H₅ : Value (((ƛ (` 0) ∙ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫))
+                   ⟪ morph ((` 0) ∷ []) [] , reveal 0 (` 0 ⇒ ` 2) ⟫)
+                  ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , seal 0 ↦ unseal 1 ⟫)
 val-H₅ = V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun
 
 ------------------------------------------------------------------------
@@ -2342,7 +2343,7 @@ val-H₅ = V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun
 --     Y, and an identity converts a type to ITSELF.
 Cj1 : Term
 Cj1 = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
-        ⟪ bind (` 0) ∷ Θt , id (` 1) ↦ seal 1 ⟫
+        ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , id (` 1) ↦ seal 1 ⟫
 
 ¬⊢Cj1 : ¬ (Δt ∣ [] ⊢ Cj1 ⦂ (` 0 ⇒ ` 0))
 ¬⊢Cj1 (env _ (⊢·[] _ _) (conv-fun ⊢s ⊢t) _) with conv-id-refl ⊢s
@@ -2353,7 +2354,7 @@ Cj1 = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
 --      well-formed type there.
 Cj2 : Term
 Cj2 = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 1 ])
-        ⟪ bind (` 0) ∷ Θt , id (` 1) ↦ seal 1 ⟫
+        ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , id (` 1) ↦ seal 1 ⟫
 
 ¬⊢Cj2 : ∀ {B} → ¬ (Δt ∣ [] ⊢ Cj2 ⦂ B)
 ¬⊢Cj2 (env _ (⊢·[] _ (wf-var (_ , es ez , ()))) _ _)
@@ -2363,11 +2364,11 @@ Cj2 = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 1 ])
 --       X visible inside).  TYPES — but it un-masks what the crossing
 --       masked.
 Cu : Term
-Cu = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ unlock 0 ∷ Θt , id (` 0) ↦ seal 0 ⟫
+Cu = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ morph (binds Θt) (unlock 0 ∷ changes Θt) , id (` 0) ↦ seal 0 ⟫
 
 ⊢Cu : Δt ∣ [] ⊢ Cu ⦂ (` 0 ⇒ ` 0)
-⊢Cu = env (mw-u (_ , ez , locked nameable-b)
-                (mw-l (bind `ℕ , ez , nameable-b) mw[]))
+⊢Cu = env (mw rw[]
+              (sw-u (_ , ez , locked nameable-b) (sw-l (bind `ℕ , ez , nameable-b) sw[])))
           (⊢·[] ⊢Wt (wf-var (bind `ℕ , ez , nameable-b)))
           (conv-fun (conv-idv (bind `ℕ , ez , nameable-b)) (conv-seal ez))
           (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b))
@@ -2376,10 +2377,10 @@ Cu = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ unlock 0 ∷ Θt , id (` 0) ↦ seal 0 �
 -- (iv) or the lock simply REMOVED (a lock binds nothing, so dropping it
 --      is shift-free).  TYPES — but it discards the crossing's mask.
 Cr : Term
-Cr = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ [] , id (` 0) ↦ seal 0 ⟫
+Cr = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ morph [] [] , id (` 0) ↦ seal 0 ⟫
 
 ⊢Cr : Δt ∣ [] ⊢ Cr ⦂ (` 0 ⇒ ` 0)
-⊢Cr = env mw[]
+⊢Cr = env (mw rw[] sw[])
           (⊢·[] ⊢Wt (wf-var (bind `ℕ , ez , nameable-b)))
           (conv-fun (conv-idv (bind `ℕ , ez , nameable-b)) (conv-seal ez))
           (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b))
@@ -2396,7 +2397,7 @@ _ : conceal 0 (` 0 ⇒ ` 0) ≡ unseal 0 ↦ seal 0
 _ = refl
 
 ⊢Cb : Δt ∣ [] ⊢ Cb ⦂ (` 0 ⇒ ` 0)
-⊢Cb = env (mw-l (bind `ℕ , ez , nameable-b) mw[])
+⊢Cb = env (mw rw[] (sw-l (bind `ℕ , ez , nameable-b) sw[]))
           (⊢·[] ⊢Wt wf-ℕ)
           (conv-fun (conv-unseal ez) (conv-seal ez))
           (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b))
@@ -2405,10 +2406,10 @@ _ = refl
 -- (vi) Option B's REVEAL mirror, on §13b's H: no lock is in the way, so
 --      the resolve variant lands on the same shape the theorem gives.
 CbH : Term
-CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , id `ℕ ↦ unseal 0 ⟫
+CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ↦ unseal 0 ⟫
 
 ⊢CbH : [] ∣ [] ⊢ CbH ⦂ (`ℕ ⇒ `ℕ)
-⊢CbH = env (mw-b wf-ℕ mw[]) (⊢·[] ⊢HV wf-ℕ)
+⊢CbH = env (mw (rw-b wf-ℕ rw[]) sw[]) (⊢·[] ⊢HV wf-ℕ)
            (conv-fun (conv-id base-ℕ) (conv-unseal ez)) (wf-⇒ wf-ℕ wf-ℕ)
 
 -- THE VERDICT.  (i) and (ii) are untypeable outright; (iii)–(vi) type,
@@ -2512,27 +2513,27 @@ _ = refl
 -- ── STEP 1 — TYBETA.  The binder X := ℕ is minted.
 
 E₁ : Term
-E₁ = ((ƛ EID ∙ Ebody) ⟪ bind `ℕ ∷ [] , Eid∀ ↦ Eid∀ ⟫) · Earg
+E₁ = ((ƛ EID ∙ Ebody) ⟪ morph (`ℕ ∷ []) [] , Eid∀ ↦ Eid∀ ⟫) · Earg
 
 estep₁ : [] ⊢ E₀ -→ E₁
 estep₁ = ξ-·-l (TyBeta V-ƛ)
 
 -- ── STEP 2 — PEEL.  `ΛZ. λz:Z. z` crosses; the dual masks the new binder.
 
-_ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
+_ : dual (morph (`ℕ ∷ []) []) ≡ morph [] (lock 0 ∷ [])
 _ = refl
 
 _ : wkᴹ 1 Earg ≡ Earg
 _ = refl
 
 EW : Term                        -- the argument, behind the crossing
-EW = Earg ⟪ lock 0 ∷ [] , Eid∀ ⟫
+EW = Earg ⟪ morph [] (lock 0 ∷ []) , Eid∀ ⟫
 
 val-EW : Value EW
 val-EW = V-⟪⟫ (V-Λ V-ƛ) I-all
 
 E₂ : Term
-E₂ = ((ƛ EID ∙ Ebody) · EW) ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+E₂ = ((ƛ EID ∙ Ebody) · EW) ⟪ morph (`ℕ ∷ []) [] , Eid∀ ⟫
 
 estep₂ : [] ⊢ E₁ -→ E₂
 estep₂ = Peel V-ƛ (V-Λ V-ƛ)
@@ -2542,7 +2543,7 @@ estep₂ = Peel V-ƛ (V-Λ V-ƛ)
 -- else does — a name, not a spelling.
 
 EW↑ : Term
-EW↑ = Earg ⟪ lock 1 ∷ [] , Eid∀ ⟫
+EW↑ = Earg ⟪ morph [] (lock 1 ∷ []) , Eid∀ ⟫
 
 _ : ⇑ᴹ EW ≡ EW↑
 _ = refl
@@ -2551,7 +2552,7 @@ _ : Ebody [ EW ]ᵐ ≡ Λ (EW↑ ·[ ` 0 ⇒ ` 0 , ` 0 ])
 _ = refl
 
 E₃ : Term
-E₃ = (Λ (EW↑ ·[ ` 0 ⇒ ` 0 , ` 0 ])) ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+E₃ = (Λ (EW↑ ·[ ` 0 ⇒ ` 0 , ` 0 ])) ⟪ morph (`ℕ ∷ []) [] , Eid∀ ⟫
 
 estep₃ : [] ⊢ E₂ -→ E₃
 estep₃ = ξ-⟪⟫ (Beta val-EW)
@@ -2565,12 +2566,12 @@ estep₃ = ξ-⟪⟫ (Beta val-EW)
 EΔ₃ : Ctxᵗ                       -- the ambient: Y abstract, X := ℕ
 EΔ₃ = abst ∷ bind `ℕ ∷ []
 
-_ : interior (bind `ℕ ∷ []) [] ≡ bind `ℕ ∷ []
+_ : interior (morph (`ℕ ∷ []) []) [] ≡ bind `ℕ ∷ []
 _ = refl
 
 E-int E-ext : Ctxᵗ
-E-int = interior (lock 1 ∷ []) EΔ₃
-E-ext = convCtx (lock 1 ∷ []) EΔ₃
+E-int = interior (morph [] (lock 1 ∷ [])) EΔ₃
+E-ext = convCtx (morph [] (lock 1 ∷ [])) EΔ₃
 
 -- THE INTERIOR IS THE EXTERIOR WITH X MASKED — NOT TRUNCATED.  The old
 -- design's interior at this point was Γ↓X = ∅.  RENDERED
@@ -2601,7 +2602,7 @@ E-X-hidden (wf-var (_ , es ez , ()))
 -- the instantiation step.
 
 E-convCtx : Ctxᵗ
-E-convCtx = abst ∷ convCtx (lock 1 ∷ []) EΔ₃
+E-convCtx = abst ∷ convCtx (morph [] (lock 1 ∷ [])) EΔ₃
 
 ⊢Es : E-convCtx ⊢ id (` 0) ↦ id (` 0) ∶ (` 0 ⇒ ` 0) ⇝ (` 0 ⇒ ` 0)
 ⊢Es = conv-fun (conv-idv (abst , ez , nameable-a))
@@ -2612,8 +2613,8 @@ _ = refl
 
 E₄ : Term
 E₄ = (Λ ((Earg ·[ ` 0 ⇒ ` 0 , ` 0 ])
-           ⟪ bind (` 0) ∷ lock 1 ∷ [] , seal 0 ↦ unseal 0 ⟫))
-       ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+           ⟪ morph ((` 0) ∷ []) (lock 1 ∷ []) , seal 0 ↦ unseal 0 ⟫))
+       ⟪ morph (`ℕ ∷ []) [] , Eid∀ ⟫
 
 estep₄ : [] ⊢ E₃ -→ E₄
 estep₄ = ξ-⟪⟫ (ξ-Λ (TyPeelR (V-Λ V-ƛ) ⊢Es))
@@ -2625,9 +2626,9 @@ _ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl
 
 E₅ : Term
-E₅ = (Λ (((ƛ (` 0) ∙ (` 0)) ⟪ bind (` 0) ∷ [] , seal 0 ↦ unseal 0 ⟫)
-           ⟪ bind (` 0) ∷ lock 1 ∷ [] , seal 0 ↦ unseal 0 ⟫))
-       ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+E₅ = (Λ (((ƛ (` 0) ∙ (` 0)) ⟪ morph ((` 0) ∷ []) [] , seal 0 ↦ unseal 0 ⟫)
+           ⟪ morph ((` 0) ∷ []) (lock 1 ∷ []) , seal 0 ↦ unseal 0 ⟫))
+       ⟪ morph (`ℕ ∷ []) [] , Eid∀ ⟫
 
 estep₅ : [] ⊢ E₄ -→ E₅
 estep₅ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (TyBeta V-ƛ)))
@@ -2708,15 +2709,15 @@ val-prb = V-ƛ
 Δ✦ = masked (bind `ℕ) ∷ []
 
 -- THE TWO FRAME IDENTITIES THAT HAD NO NAME (§15f collects all five).
--- Both are `refl`: `interior Θ Δ` is `pushBinds (repsOf Θ) (scope Θ Δ)`
--- and a `bind` entry contributes to `repsOf` alone, leaving `scope`
+-- Both are `refl`: `interior Θ Δ` is `pushBinds (binds Θ) (scope Θ Δ)`
+-- and a bind contributes to the BIND half alone, leaving `scope`
 -- untouched.
 interior-TyBeta : (A : Ty) (Δ : Ctxᵗ)
-  → interior (bind A ∷ []) Δ ≡ bind A ∷ Δ
+  → interior (morph (A ∷ []) []) Δ ≡ bind A ∷ Δ
 interior-TyBeta A Δ = refl
 
 interior-TyPeelR : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → interior (bind A ∷ Θ) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
+  → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
 interior-TyPeelR A Θ Δ = refl
 
 ------------------------------------------------------------------------
@@ -2753,13 +2754,13 @@ Rᵃ = (Λ Nᵃ) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]
 -- showTmIn 1 Cᵃ  =
 --   ((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↑Y:=ℕ , (id ℕ ↦ id ℕ) ⟫)
 Cᵃ : Term
-Cᵃ = Nᵃ ⟪ bind `ℕ ∷ [] , reveal 0 (`ℕ ⇒ `ℕ) ⟫
+Cᵃ = Nᵃ ⟪ morph (`ℕ ∷ []) [] , reveal 0 (`ℕ ⇒ `ℕ) ⟫
 
 stepᵃ : Δ✦ ⊢ Rᵃ -→ Cᵃ
 stepᵃ = TyBeta val-prb
 
 -- THE FRAME IDENTITY, at this Δ.
-_ : interior (bind `ℕ ∷ []) Δ✦ ≡ bind `ℕ ∷ Δ✦
+_ : interior (morph (`ℕ ∷ []) []) Δ✦ ≡ bind `ℕ ∷ Δ✦
 _ = interior-TyBeta `ℕ Δ✦
 
 -- … and X is masked there too.
@@ -2789,7 +2790,7 @@ Nᵃ∅ = prb 2
 ¬⊢Nᵃ∅-bind (⊢ƛ _ (⊢·[] _ (wf-var (_ , es (es ()) , _))))
 
 stepᵃ∅ : Δ✦ ⊢ (Λ Nᵃ∅) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]
-           -→ Nᵃ∅ ⟪ bind `ℕ ∷ [] , reveal 0 (`ℕ ⇒ `ℕ) ⟫
+           -→ Nᵃ∅ ⟪ morph (`ℕ ∷ []) [] , reveal 0 (`ℕ ⇒ `ℕ) ⟫
 stepᵃ∅ = TyBeta val-prb
 
 ------------------------------------------------------------------------
@@ -2810,7 +2811,7 @@ stepᵃ∅ = TyBeta val-prb
 Δᵇ = bind `ℕ ∷ []
 
 Θᵇ : CtxMorph
-Θᵇ = lock 0 ∷ []
+Θᵇ = morph [] (lock 0 ∷ [])
 
 _ : interior Θᵇ Δᵇ ≡ masked (bind `ℕ) ∷ []
 _ = refl
@@ -2840,7 +2841,7 @@ Rᵇ = (Vᵇ ⟪ Θᵇ , `∀ (id `ℕ) ⟫) ·[ `ℕ , `ℕ ]
 --   ((λx:ℕ. (ΛZ. 3) [X]) [Y] ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
 Cᵇ : Term
 Cᵇ = (wkᴹ 1 Vᵇ ·[ renameᵗ (extᵗ suc) `ℕ , ` 0 ])
-       ⟪ bind `ℕ ∷ Θᵇ , instReveal 0 (id `ℕ) ⟫
+       ⟪ morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ) , instReveal 0 (id `ℕ) ⟫
 
 stepᵇ : Δᵇ ⊢ Rᵇ -→ Cᵇ
 stepᵇ = TyPeelR val-prb ⊢sᵇ
@@ -2850,10 +2851,10 @@ stepᵇ = TyPeelR val-prb ⊢sᵇ
 _ : wkᴹ 1 Vᵇ ≡ prb 1
 _ = refl
 
-_ : interior (bind `ℕ ∷ Θᵇ) Δᵇ ≡ bind `ℕ ∷ interior Θᵇ Δᵇ
+_ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ ≡ bind `ℕ ∷ interior Θᵇ Δᵇ
 _ = interior-TyPeelR `ℕ Θᵇ Δᵇ
 
-_ : interior (bind `ℕ ∷ Θᵇ) Δᵇ ≡ bind `ℕ ∷ masked (bind `ℕ) ∷ []
+_ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ ≡ bind `ℕ ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
 ¬⊢wkVᵇ : ∀ {Γ A} → ¬ ((bind `ℕ ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
@@ -2883,19 +2884,20 @@ _ = refl
 Δᶜ = bind `ℕ ∷ bind `ℕ ∷ []
 
 Θᶜ₂ : CtxMorph
-Θᶜ₂ = lock 1 ∷ []
+Θᶜ₂ = morph [] (lock 1 ∷ [])
 
 Θᶜ₁ : CtxMorph
-Θᶜ₁ = bind `ℕ ∷ []
+Θᶜ₁ = morph (`ℕ ∷ []) []
 
 ⊢ᵐΘᶜ₂ : Δᶜ ⊢ᵐ Θᶜ₂
-⊢ᵐΘᶜ₂ = mw-l (bind `ℕ , es ez , nameable-b) mw[]
+⊢ᵐΘᶜ₂ = (mw rw[] (sw-l (bind `ℕ , es ez , nameable-b) sw[]))
 
 -- the move, spelled out at this configuration
-_ : _≡_ {A = CtxMorph} (Θᶜ₁ ⋉ Θᶜ₂) (bind `ℕ ∷ lock 1 ∷ [])
+_ : _≡_ {A = CtxMorph} (Θᶜ₁ ⋉ Θᶜ₂) (morph (`ℕ ∷ []) (lock 1 ∷ []))
 _ = refl
 
-_ : _≡_ {A = CtxMorph} (rewind Θᶜ₂) (unlock 1 ∷ lock 1 ∷ [])
+_ : _≡_ {A = CtxMorph} (rewind Θᶜ₂)
+        (morph [] (unlock 1 ∷ lock 1 ∷ []))
 _ = refl
 
 _ : interior (rewind Θᶜ₂) Δᶜ ≡ Δᶜ
@@ -3047,10 +3049,10 @@ stepᵈ′ = Beta val-prb
 --   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξe  =  ⌷[Y := ℕ] , ⌷[X := ℕ]
 
 Θᵉ : CtxMorph
-Θᵉ = bind `ℕ ∷ []
+Θᵉ = morph (`ℕ ∷ []) []
 
 ⊢ᵐΘᵉ : Δ✦ ⊢ᵐ Θᵉ
-⊢ᵐΘᵉ = mw-b wf-ℕ mw[]
+⊢ᵐΘᵉ = (mw (rw-b wf-ℕ rw[]) sw[])
 
 Vᵉ : Term
 Vᵉ = ƛ `ℕ ∙ (` 0)
@@ -3076,13 +3078,13 @@ stepᵉ : Δ✦ ⊢ Rᵉ -→ Cᵉ
 stepᵉ = Peel V-ƛ val-prb
 
 -- THE DUAL LOCKS THE BOUNDARY'S OWN BINDER …
-_ : _≡_ {A = CtxMorph} (dual Θᵉ) (lock 0 ∷ [])
+_ : _≡_ {A = CtxMorph} (dual Θᵉ) (morph [] (lock 0 ∷ []))
 _ = refl
 
 -- … so (†) reads, at this Θ: the crossing frame is Δ✦ under one MASKED
 -- bind.
 _ : interior (dual Θᵉ) (interior Θᵉ Δ✦)
-      ≡ map masked (pushBinds (repsOf Θᵉ) []) ++ Δ✦
+      ≡ map masked (pushBinds (binds Θᵉ) []) ++ Δ✦
 _ = interior-dual Θᵉ Δ✦ ⊢ᵐΘᵉ
 
 _ : interior (dual Θᵉ) (interior Θᵉ Δ✦)
@@ -3140,7 +3142,7 @@ _ = refl
 --              ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
 --              — the redex's frame, one binder in; `wkᴹ 1` matches it
 --   Peel     interior (dual Θ) (interior Θ Δ)
---              ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ   (Δ ⊢ᵐ Θ)
+--              ≡ map masked (pushBinds (binds Θ) []) ++ Δ   (Δ ⊢ᵐ Θ)
 --              — (†), proof/PeelDual.interior-dual: THE CROSSING FRAME
 --                IS THE EXTERIOR, under a MASKED bind prefix
 --   CancelR  interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
@@ -3155,7 +3157,7 @@ _ = refl
 --
 -- The two identities that had no name are `interior-TyBeta` and
 -- `interior-TyPeelR` at the head of this section; both are `refl`,
--- because `interior` is `pushBinds ∘ repsOf` over `scope` and a `bind`
+-- because `interior` is `pushBinds ∘ binds` over `scope` and a bind
 -- entry touches `scope` not at all.  The other two are theorems with
 -- a `Δ ⊢ᵐ Θ` premise, and that premise is exactly where the sequential
 -- judgement pays: (†) needs `mw-u`'s LOCKED slot for the dual's

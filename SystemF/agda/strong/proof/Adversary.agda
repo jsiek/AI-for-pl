@@ -31,13 +31,13 @@ seal-cites-binder (conv-seal d) refl = d
 
 -- `unlock` claims NO KNOWLEDGE: it is a NAME with no rep, so it cannot
 -- assert what a slot stands for.  What it now does claim is that the
--- slot is LOCKED (`scope Θ Δ ∋lk X`) — a statement about MASKING, in
+-- slot is LOCKED (`applyChanges S Δ ∋lk X`) — a statement about MASKING, in
 -- which no type occurs, and which is what makes the dual's restoring
 -- `lock` sound (proof/DualTightness).  A VACUOUS unlock, at a slot the
 -- frame leaves nameable, is REFUSED.
-unlock-claims-a-lock : ∀ {Δ X Θ} → scope Θ Δ ∋lk X → Δ ⊢ᵐ Θ
-  → Δ ⊢ᵐ (unlock X ∷ Θ)
-unlock-claims-a-lock = mw-u
+unlock-claims-a-lock : ∀ {Δ X S} → applyChanges S Δ ∋lk X → Δ ⊢ˢ S
+  → Δ ⊢ˢ (unlock X ∷ S)
+unlock-claims-a-lock = sw-u
 
 -- The claim mentions no representation: all it hands back is a
 -- NAMEABLE entry under one mask, and `Nameable` is `abst` or `bind`
@@ -64,8 +64,8 @@ unlock-mentions-no-rep (masked E , _ , locked v) = E , v
 ¬seal-adv : ∀ {A B} → Δadv ⊢ seal 0 ∶ A ⇝ B → ⊥
 ¬seal-adv (conv-seal d) = ¬know-adv d
 
-¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
-¬⊢adv (env mw ⊢M ⊢c wE) = ¬seal-adv ⊢c
+¬⊢adv : ∀ {Γ} → Δadv ∣ Γ ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0 → ⊥
+¬⊢adv (env mwᵥ ⊢M ⊢c wE) = ¬seal-adv ⊢c
 
 ------------------------------------------------------------------------
 -- 3.  `bad`: two spellings of one fact — inexpressible
@@ -84,8 +84,8 @@ unlock-mentions-no-rep (masked E , _ , locked v) = E , v
 seal-bad-conv : ∀ {A B} → Δbad ⊢ seal 0 ∶ A ⇝ B → A ≡ ⇑ᵗ ∀ZZ
 seal-bad-conv (conv-seal ez) = refl
 
-¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0 → ⊥
-¬⊢bad (env mw ⊢$ ⊢c wE) with seal-bad-conv ⊢c
+¬⊢bad : ∀ {Γ} → Δbad ∣ Γ ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0 → ⊥
+¬⊢bad (env mwᵥ ⊢$ ⊢c wE) with seal-bad-conv ⊢c
 ... | ()
 
 ------------------------------------------------------------------------

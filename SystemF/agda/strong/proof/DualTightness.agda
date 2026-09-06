@@ -14,10 +14,10 @@ module strong.proof.DualTightness where
 --
 -- THE REPAIR, in two coupled halves (strong.CtxMorph §3, `_⊢ᵐ_` in §2):
 --
---   (1) `mw-u` demands `scope Θ Δ ∋lk X` — the slot must be LOCKED.  A
+--   (1) `sw-u` demands `applyChanges S Δ ∋lk X` — the slot must be LOCKED.  A
 --       VACUOUS unlock is REFUSED (§5 below); it is the premise the
 --       judgement used to drop.
---   (2) `dualScope n (unlock X ∷ Θ) = dualScope n Θ ++ lock (n + X) ∷ []`
+--   (2) `dualScope n (unlock X ∷ S) = dualScope n S ++ lock (n + X) ∷ []`
 --       — the dual RESTORES what Θ unlocked, and the list is REVERSED,
 --       because `scope` applies it HEAD-LAST.
 --
@@ -59,7 +59,7 @@ open import strong.Reduction
 -- crossing-of-crossing shape: an inner region re-exposes what an outer
 -- one concealed).
 Θᵤ : CtxMorph
-Θᵤ = unlock 0 ∷ []
+Θᵤ = morph [] (unlock 0 ∷ [])
 
 _ : interior Θᵤ Δᵤ ≡ bind `ℕ ∷ []
 _ = refl
@@ -88,7 +88,7 @@ W = ƛ `ℕ ∙ ((Λ ($ 3)) ·[ `ℕ , ` 0 ])
 
 -- The boundary ALONE is well typed at Δᵤ …
 ⊢Vb : Δᵤ ∣ [] ⊢ V ⟪ Θᵤ , cᵤ ⟫ ⦂ ((`ℕ ⇒ `ℕ) ⇒ (`ℕ ⇒ `ℕ))
-⊢Vb = env (mw-u ∋lk-Δᵤ mw[])
+⊢Vb = env (mw rw[] (sw-u ∋lk-Δᵤ sw[]))
           (⊢ƛ (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b)) wf-ℕ) (⊢` here))
           (conv-fun (conv-fun (conv-unseal ez) (conv-id base-ℕ))
                     (conv-fun (conv-seal ez) (conv-id base-ℕ)))
@@ -109,7 +109,7 @@ Redex = (V ⟪ Θᵤ , cᵤ ⟫) · W
 ------------------------------------------------------------------------
 
 -- THE DUAL RESTORES THE LOCK.
-_ : dual Θᵤ ≡ lock 0 ∷ []
+_ : dual Θᵤ ≡ morph [] (lock 0 ∷ [])
 _ = refl
 
 --   scripts/render_term.sh 'showTmIn 1 Contractum'  =
@@ -144,12 +144,12 @@ _ = refl
 Δˡ = bind `ℕ ∷ []
 
 Θˡ : CtxMorph
-Θˡ = lock 0 ∷ []
+Θˡ = morph [] (lock 0 ∷ [])
 
 _ : interior Θˡ Δˡ ≡ masked (bind `ℕ) ∷ []
 _ = refl
 
-_ : dual Θˡ ≡ unlock 0 ∷ []
+_ : dual Θˡ ≡ morph [] (unlock 0 ∷ [])
 _ = refl
 
 -- the crossing frame is Δˡ back: Z is nameable, exactly as at the exterior
@@ -170,15 +170,15 @@ _ = refl
 Δᵥ = bind `ℕ ∷ []
 
 Θᵥ : CtxMorph
-Θᵥ = unlock 0 ∷ []
+Θᵥ = morph [] (unlock 0 ∷ [])
 
 _ : interior Θᵥ Δᵥ ≡ Δᵥ            -- the unlock does nothing …
 _ = refl
 
 ¬⊢ᵐΘᵥ : ¬ (Δᵥ ⊢ᵐ Θᵥ)              -- … and is REFUSED
-¬⊢ᵐΘᵥ (mw-u (_ , ez , ()) _)
+¬⊢ᵐΘᵥ (mw _ (sw-u (_ , ez , ()) _))
 
 -- A DOUBLE LOCK IS REFUSED TOO — which is what keeps `Locked` one mask
 -- deep, and hence `unmaskEnt` an exact inverse of `masked`.
-¬⊢ᵐ-double-lock : ¬ (Δᵥ ⊢ᵐ (lock 0 ∷ lock 0 ∷ []))
-¬⊢ᵐ-double-lock (mw-l (_ , ez , ()) _)
+¬⊢ᵐ-double-lock : ¬ (Δᵥ ⊢ᵐ morph [] (lock 0 ∷ lock 0 ∷ []))
+¬⊢ᵐ-double-lock (mw _ (sw-l (_ , ez , ()) _))

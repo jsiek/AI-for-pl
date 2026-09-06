@@ -53,7 +53,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `(Λ N) ·[ B , A ]` with N a redex has TWO distinct steps — this one and
   -- ξ-·[] ⨟ ξ-Λ — and determinism fails.  The premise mirrors Beta's.
   TyBeta : ∀ {Δ B A N} → Value N
-    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ bind A ∷ [] , reveal 0 B ⟫
+    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫
 
   Beta : ∀ {Δ A N W} → Value W
     → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ]ᵐ
@@ -82,9 +82,11 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- rules.
   --
   -- THE SHIFT REPAIR (2b).  `renᴮ suc Θ` double-counts: `interior` already
-  -- lifts Θ's reps past the binder `bind A` prepended here
-  -- (`interior (bind A ∷ Θ) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷
-  -- interior Θ Δ`), so the frame is plain `Θ`.
+  -- lifts Θ's reps past the binder A prepended here
+  -- (`interior (morph (A ∷ binds Θ) (changes Θ)) Δ
+  --   ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`), so the CHANGES are
+  -- plain `changes Θ` — a change names an EXTERIOR slot and is unshifted
+  -- by the morphism's own binds.
   --
   -- THE CONVERSION (2c).  Slot 0 of the conversion's body was ABSTRACT
   -- and is now the BINDER this rule introduces, so every leaf of `s` that
@@ -96,7 +98,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-             ⟪ bind A ∷ Θ , instReveal 0 s ⟫
+             ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
   -- CANCEL — a conceal directly under the binder it names.  The
   -- conversion match is DEFINITIONAL: `seal X` and `unseal Y` cite the
@@ -220,7 +222,7 @@ det (ξ-·-r u st) (Peel v w)   = ⊥-elim (value-¬step w st)
 -- annotation.
 det (TyPeelR {V = V} {Θ = Θ} {s = s} {A = A} v ⊢s) (TyPeelR v′ ⊢s′) =
   cong (λ T → (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) T , ` 0 ])
-                ⟪ bind A ∷ Θ , instReveal 0 s ⟫)
+                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫)
        (conv-src-unique ⊢s ⊢s′)
 det (TyPeelR v ⊢s) (ξ-·[] st)     = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
 det (ξ-·[] st)     (TyPeelR v ⊢s) = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)

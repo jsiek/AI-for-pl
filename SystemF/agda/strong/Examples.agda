@@ -34,6 +34,15 @@ module strong.Examples where
 --     refuted the per-variable design (v1's historical Example 8), run
 --     in v2 to a VALUE — the step that used to produce an ill-typed
 --     term is `estep₄`, and `E-int`/`E-ext` are its two type contexts.
+-- §15 TIGHTNESS, RULE BY RULE — Jeremy's test (proof/DualTightness)
+--     applied to EVERY rule that moves a subterm into a new frame:
+--     `TyBeta` (§15a), `TyPeelR` (§15b), `IdPush`/`CancelR` (§15c),
+--     `Beta` (§15d, with the one expected exception — ERASURE),
+--     `Peel`'s `bind` half and `hideBinds` (§15e; the `unlock` half is
+--     proof/DualTightness).  Every redex below is ILL TYPED and every
+--     contractum is REFUSED for the same localized reason.  §15f
+--     collects the five frame identities that make the section a
+--     theorem rather than five anecdotes.
 --
 -- Every `_ : … ≡ …` in this file is a machine-checked frame computation.
 --
@@ -45,7 +54,7 @@ module strong.Examples where
 -- carry an `evalTerms n ⊢X₀ ≡ …` line that Agda checks by `refl`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; _++_; length)
+open import Data.List using (List; []; _∷_; _++_; length; map)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (¬_)
@@ -1945,6 +1954,9 @@ open import strong.proof.PreserveObstruct
   using (Δt; Wt; val-Wt; ⊢Wt; Θt; st; ⊢st; Wft; ⊢Wft; Rt; ⊢Rt; step-t;
          ⊢t-contractum)
 
+open import strong.proof.PeelDual using (interior-dual)
+open import strong.proof.MoveScope using (interior-⋉-rewind)
+
 ------------------------------------------------------------------------
 -- §13a  A CONCEAL ∀ CONVERSION: the polymorphic argument
 ------------------------------------------------------------------------
@@ -2649,3 +2661,502 @@ edet₄ st = det st estep₄
 
 edet₅ : ∀ {M′} → [] ⊢ E₄ -→ M′ → M′ ≡ E₅
 edet₅ st = det st estep₅
+
+------------------------------------------------------------------------
+-- §15  TIGHTNESS, RULE BY RULE — JEREMY'S TEST APPLIED TO EVERY RULE
+--      THAT MOVES A SUBTERM
+------------------------------------------------------------------------
+
+-- THE METHOD (Jeremy, 2026-09-06; proof/DualTightness for `Peel`).  Take
+-- a redex that is ILL TYPED, and ill typed for exactly one localized
+-- reason: a subterm NAMES a type variable that the frame at its position
+-- does not offer — the entry is `masked`, or there is no entry at all.
+-- The fault is always the SAME premise, `wf-var` in `⊢·[]`'s
+-- `Δ ⊢ᵗ A`.  Take the step.  The rule MOVES that subterm into a NEW
+-- frame.  If the contractum types, the reduction relation has GAINED
+-- SCOPE: it relates a term the exterior refuses to one it accepts, and
+-- design law 2 is false for the relation (`Design.md` §8).  If the
+-- contractum is refused for the same reason, the rule is TIGHT.
+--
+-- This is a theorem rather than an anecdote because each rule's new
+-- frame is a KNOWN FUNCTION of the old one — the frame identities
+-- collected at the end of the section.  The example only exhibits the
+-- identity at one point; the identity is what makes the verdict general.
+--
+-- ONE PROBE serves every rule:
+--
+--   scripts/render_term.sh 'showTmIn 1 (prb 0)'  =  (λx:ℕ. (ΛY. 3) [X])
+--
+-- a VALUE (`V-ƛ`) whose only free type name is the type argument of its
+-- vacuous `ΛY`.  `prb k` names slot k; nothing else in it can fail.
+--
+-- THE ONE EXPECTED EXCEPTION IS `Beta` AT AN ERASING BODY — §15d.
+--
+-- The masked exterior every test but §15b and §15c uses:
+--
+--   scripts/render_term.sh 'showTCtx Δ✦'  =  ⌷[X := ℕ]
+
+prb : ℕ → Term
+prb k = ƛ `ℕ ∙ ((Λ ($ 3)) ·[ `ℕ , ` k ])
+
+val-prb : ∀ {k} → Value (prb k)
+val-prb = V-ƛ
+
+Δ✦ : Ctxᵗ
+Δ✦ = masked (bind `ℕ) ∷ []
+
+-- THE TWO FRAME IDENTITIES THAT HAD NO NAME (§15f collects all five).
+-- Both are `refl`: `interior Θ Δ` is `pushBinds (repsOf Θ) (scope Θ Δ)`
+-- and a `bind` entry contributes to `repsOf` alone, leaving `scope`
+-- untouched.
+interior-TyBeta : (A : Ty) (Δ : Ctxᵗ)
+  → interior (bind A ∷ []) Δ ≡ bind A ∷ Δ
+interior-TyBeta A Δ = refl
+
+interior-TyPeelR : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → interior (bind A ∷ Θ) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
+interior-TyPeelR A Θ Δ = refl
+
+------------------------------------------------------------------------
+-- §15a  TYBETA — the mint.  `abst` REFINES to `bind`, and nothing else
+--       moves
+------------------------------------------------------------------------
+
+-- `TyBeta` types its body `N` at `abst ∷ Δ` (that is `⊢Λ`) and the
+-- contractum types it at `interior (bind A ∷ []) Δ`.  Those two type
+-- contexts differ AT SLOT 0 ONLY, and there the change is a REFINEMENT
+-- (`abst ⊑ᵃᵉ bind A`, `la-ab`) — which is intended: TyBeta REVEALS, it
+-- is the rule that installs a representation.  Every OTHER slot is `Δ`
+-- itself, on the nose.  So a body that names a slot Δ masks is refused
+-- on both sides.
+--
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξa₀  =  Y Λ-bound , ⌷[X := ℕ]
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξa   =  Y := ℕ , ⌷[X := ℕ]
+
+Nᵃ : Term
+Nᵃ = prb 1
+
+-- showTmIn 1 Rᵃ  =  (ΛY. (λx:ℕ. (ΛZ. 3) [X])) [ℕ]
+Rᵃ : Term
+Rᵃ = (Λ Nᵃ) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]
+
+-- THE FAULT, LOCALIZED: `⊢·[]`'s `Δ ⊢ᵗ A` at `` ` 1 `` = X, which
+-- `abst ∷ Δ✦` masks.
+¬⊢Nᵃ-abst : ∀ {Γ A} → ¬ ((abst ∷ Δ✦) ∣ Γ ⊢ Nᵃ ⦂ A)
+¬⊢Nᵃ-abst (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
+
+¬⊢Rᵃ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Rᵃ ⦂ A)
+¬⊢Rᵃ (⊢·[] (⊢Λ ⊢N) _) = ¬⊢Nᵃ-abst ⊢N
+
+-- showTmIn 1 Cᵃ  =
+--   ((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↑Y:=ℕ , (id ℕ ↦ id ℕ) ⟫)
+Cᵃ : Term
+Cᵃ = Nᵃ ⟪ bind `ℕ ∷ [] , reveal 0 (`ℕ ⇒ `ℕ) ⟫
+
+stepᵃ : Δ✦ ⊢ Rᵃ -→ Cᵃ
+stepᵃ = TyBeta val-prb
+
+-- THE FRAME IDENTITY, at this Δ.
+_ : interior (bind `ℕ ∷ []) Δ✦ ≡ bind `ℕ ∷ Δ✦
+_ = interior-TyBeta `ℕ Δ✦
+
+-- … and X is masked there too.
+¬⊢Nᵃ-bind : ∀ {Γ A} → ¬ ((bind `ℕ ∷ Δ✦) ∣ Γ ⊢ Nᵃ ⦂ A)
+¬⊢Nᵃ-bind (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
+
+¬⊢Cᵃ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Cᵃ ⦂ A)
+¬⊢Cᵃ (env _ ⊢N _ _) = ¬⊢Nᵃ-bind ⊢N
+
+-- THE REFINEMENT THE RULE DOES MAKE, and its exact extent: slot 0 gains
+-- a representation, slot 1 keeps its mask.  This is preservation's ONE
+-- `⊢retag` call site (`Design.md` §7).
+_ : (abst ∷ Δ✦) ⊑ᵃ (bind `ℕ ∷ Δ✦)
+_ = la∷ la-ab (la∷ (la-mm la-bb) la[])
+
+-- THE ABSENT COMPANION.  A slot that exists in NEITHER type context
+-- still exists in neither.  (Not rendered: `Show` names a free slot from
+-- its supply whether or not the type context has one, so an out-of-range
+-- index would print as a name that means something else.)
+Nᵃ∅ : Term
+Nᵃ∅ = prb 2
+
+¬⊢Nᵃ∅-abst : ∀ {Γ A} → ¬ ((abst ∷ Δ✦) ∣ Γ ⊢ Nᵃ∅ ⦂ A)
+¬⊢Nᵃ∅-abst (⊢ƛ _ (⊢·[] _ (wf-var (_ , es (es ()) , _))))
+
+¬⊢Nᵃ∅-bind : ∀ {Γ A} → ¬ ((bind `ℕ ∷ Δ✦) ∣ Γ ⊢ Nᵃ∅ ⦂ A)
+¬⊢Nᵃ∅-bind (⊢ƛ _ (⊢·[] _ (wf-var (_ , es (es ()) , _))))
+
+stepᵃ∅ : Δ✦ ⊢ (Λ Nᵃ∅) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]
+           -→ Nᵃ∅ ⟪ bind `ℕ ∷ [] , reveal 0 (`ℕ ⇒ `ℕ) ⟫
+stepᵃ∅ = TyBeta val-prb
+
+------------------------------------------------------------------------
+-- §15b  TYPEELR — the value moves one bind deeper, and its `wkᴹ` shift
+--       tracks it
+------------------------------------------------------------------------
+
+-- `V` moves from `interior Θ Δ` into `interior (bind A ∷ Θ) Δ`, which is
+-- that type context with ONE binder prepended — and the rule shifts `V`
+-- by `wkᴹ 1` to match.  A slot Θ MASKS is therefore masked on both
+-- sides, one index apart.
+--
+--   showTCtx Δᵇ                                   =  X := ℕ
+--   showTCtxAt 9 0 (λ _ → "X") Ξb                 =  ⌷[X := ℕ]
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξb′  =  Y := ℕ , ⌷[X := ℕ]
+
+Δᵇ : Ctxᵗ
+Δᵇ = bind `ℕ ∷ []
+
+Θᵇ : CtxMorph
+Θᵇ = lock 0 ∷ []
+
+_ : interior Θᵇ Δᵇ ≡ masked (bind `ℕ) ∷ []
+_ = refl
+
+_ : convCtx Θᵇ Δᵇ ≡ bind `ℕ ∷ []
+_ = refl
+
+Vᵇ : Term
+Vᵇ = prb 0
+
+-- showTmIn 1 Rᵇ  =
+--   ((λx:ℕ. (ΛY. 3) [X]) ⟪ ↓X , (∀Y. id ℕ) ⟫) [ℕ]
+Rᵇ : Term
+Rᵇ = (Vᵇ ⟪ Θᵇ , `∀ (id `ℕ) ⟫) ·[ `ℕ , `ℕ ]
+
+¬⊢Vᵇ-int : ∀ {Γ A} → ¬ ((masked (bind `ℕ) ∷ []) ∣ Γ ⊢ Vᵇ ⦂ A)
+¬⊢Vᵇ-int (⊢ƛ _ (⊢·[] _ (wf-var (_ , ez , ()))))
+
+¬⊢Rᵇ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Rᵇ ⦂ A)
+¬⊢Rᵇ (⊢·[] (env _ ⊢V _ _) _) = ¬⊢Vᵇ-int ⊢V
+
+-- the rule's conversion-typing premise, read under one `abst`
+⊢sᵇ : (abst ∷ convCtx Θᵇ Δᵇ) ⊢ id `ℕ ∶ `ℕ ⇝ `ℕ
+⊢sᵇ = conv-id base-ℕ
+
+-- showTmIn 1 Cᵇ  =
+--   ((λx:ℕ. (ΛZ. 3) [X]) [Y] ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
+Cᵇ : Term
+Cᵇ = (wkᴹ 1 Vᵇ ·[ renameᵗ (extᵗ suc) `ℕ , ` 0 ])
+       ⟪ bind `ℕ ∷ Θᵇ , instReveal 0 (id `ℕ) ⟫
+
+stepᵇ : Δᵇ ⊢ Rᵇ -→ Cᵇ
+stepᵇ = TyPeelR val-prb ⊢sᵇ
+
+-- THE SHIFT AND THE FRAME MOVE TOGETHER: `wkᴹ 1` sends the fault from
+-- slot 0 to slot 1, and `interior` puts the new binder at slot 0.
+_ : wkᴹ 1 Vᵇ ≡ prb 1
+_ = refl
+
+_ : interior (bind `ℕ ∷ Θᵇ) Δᵇ ≡ bind `ℕ ∷ interior Θᵇ Δᵇ
+_ = interior-TyPeelR `ℕ Θᵇ Δᵇ
+
+_ : interior (bind `ℕ ∷ Θᵇ) Δᵇ ≡ bind `ℕ ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+¬⊢wkVᵇ : ∀ {Γ A} → ¬ ((bind `ℕ ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
+¬⊢wkVᵇ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
+
+¬⊢Cᵇ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Cᵇ ⦂ A)
+¬⊢Cᵇ (env _ (⊢·[] ⊢V _) _ _) = ¬⊢wkVᵇ ⊢V
+
+------------------------------------------------------------------------
+-- §15c  IDPUSH and CANCELR — the scope move preserves the frame ON THE
+--       NOSE
+------------------------------------------------------------------------
+
+-- Both rules move `V` from `interior Θ₁ (interior Θ₂ Δ)` to
+-- `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)`, and those two type
+-- contexts are EQUAL (`interior-⋉-rewind`, proof/MoveScope) — so the
+-- test is immediate, and it is immediate for EVERY `Θ₁`, `Θ₂` and `Δ`
+-- with `Δ ⊢ᵐ Θ₂`, not just for the configuration below.  That is what
+-- "the value's frame is preserved on the nose" means, and it is why
+-- neither case uses `⊢retag`.
+--
+--   showTCtxAt 9 0 (λ { 0 → "X" ; _ → "Y" }) Δᶜ  =  X := ℕ , Y := ℕ
+--   showTCtxAt 9 0 (λ { 0 → "Z" ; 1 → "X" ; _ → "Y" }) Ξc
+--     =  Z := ℕ , X := ℕ , ⌷[Y := ℕ]
+
+Δᶜ : Ctxᵗ
+Δᶜ = bind `ℕ ∷ bind `ℕ ∷ []
+
+Θᶜ₂ : CtxMorph
+Θᶜ₂ = lock 1 ∷ []
+
+Θᶜ₁ : CtxMorph
+Θᶜ₁ = bind `ℕ ∷ []
+
+⊢ᵐΘᶜ₂ : Δᶜ ⊢ᵐ Θᶜ₂
+⊢ᵐΘᶜ₂ = mw-l (bind `ℕ , es ez , nameable-b) mw[]
+
+-- the move, spelled out at this configuration
+_ : _≡_ {A = CtxMorph} (Θᶜ₁ ⋉ Θᶜ₂) (bind `ℕ ∷ lock 1 ∷ [])
+_ = refl
+
+_ : _≡_ {A = CtxMorph} (rewind Θᶜ₂) (unlock 1 ∷ lock 1 ∷ [])
+_ = refl
+
+_ : interior (rewind Θᶜ₂) Δᶜ ≡ Δᶜ
+_ = refl
+
+-- THE FRAME IDENTITY — an EQUALITY, so the test needs no example at all.
+_ : interior (Θᶜ₁ ⋉ Θᶜ₂) (interior (rewind Θᶜ₂) Δᶜ)
+      ≡ interior Θᶜ₁ (interior Θᶜ₂ Δᶜ)
+_ = interior-⋉-rewind Θᶜ₁ Θᶜ₂ ⊢ᵐΘᶜ₂
+
+Vᶜ : Term
+Vᶜ = prb 2
+
+_ : interior Θᶜ₁ (interior Θᶜ₂ Δᶜ)
+      ≡ bind `ℕ ∷ bind `ℕ ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+-- V NAMES THE SLOT Θ₂ LOCKS (Y, exterior slot 1; interior slot 2 past
+-- Θ₁'s binder Z).
+¬⊢Vᶜ : ∀ {Γ A}
+  → ¬ ((bind `ℕ ∷ bind `ℕ ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ Vᶜ ⦂ A)
+¬⊢Vᶜ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es (es ez) , ()))))
+
+-- the lookup premise both rules carry
+lkᶜ : convCtx Θᶜ₂ Δᶜ ∋ 0 := `ℕ
+lkᶜ = ez
+
+-- ── IDPUSH.  The name relation `X ≡ numBinds Θ₁ + Y` (`idpush-name`,
+-- proof/IdLayer) forces `X = 1` here, so the redex below is the shape
+-- the rule actually meets.
+--
+-- showTmIn 2 Rᶜ  =
+--   (((λx:ℕ. (ΛX′. 3) [Y]) ⟪ ↑Z:=ℕ , id X ⟫) ⟪ ↓Y , unseal X ⟫)
+Rᶜ : Term
+Rᶜ = (Vᶜ ⟪ Θᶜ₁ , id (` 1) ⟫) ⟪ Θᶜ₂ , unseal 0 ⟫
+
+¬⊢Rᶜ : ∀ {A} → ¬ (Δᶜ ∣ [] ⊢ Rᶜ ⦂ A)
+¬⊢Rᶜ (env _ (env _ ⊢V _ _) _ _) = ¬⊢Vᶜ ⊢V
+
+-- showTmIn 2 Cᶜ  =
+--   (((λx:ℕ. (ΛX′. 3) [Y]) ⟪ ↑Z:=ℕ , ↓Y , unseal X ⟫)
+--      ⟪ ↥Y , ↓Y , id ℕ ⟫)
+Cᶜ : Term
+Cᶜ = (Vᶜ ⟪ Θᶜ₁ ⋉ Θᶜ₂ , unseal 1 ⟫) ⟪ rewind Θᶜ₂ , mkId `ℕ ⟫
+
+stepᶜ : Δᶜ ⊢ Rᶜ -→ Cᶜ
+stepᶜ = IdPush val-prb lkᶜ
+
+¬⊢Cᶜ : ∀ {A} → ¬ (Δᶜ ∣ [] ⊢ Cᶜ ⦂ A)
+¬⊢Cᶜ (env _ (env _ ⊢V _ _) _ _) = ¬⊢Vᶜ ⊢V
+
+-- ── CANCELR, at the same configuration (`cancel-name` forces the same
+-- `X`).
+--
+-- showTmIn 2 Rᶜ′  =
+--   (((λx:ℕ. (ΛX′. 3) [Y]) ⟪ ↑Z:=ℕ , seal X ⟫) ⟪ ↓Y , unseal X ⟫)
+Rᶜ′ : Term
+Rᶜ′ = (Vᶜ ⟪ Θᶜ₁ , seal 1 ⟫) ⟪ Θᶜ₂ , unseal 0 ⟫
+
+¬⊢Rᶜ′ : ∀ {A} → ¬ (Δᶜ ∣ [] ⊢ Rᶜ′ ⦂ A)
+¬⊢Rᶜ′ (env _ (env _ ⊢V _ _) _ _) = ¬⊢Vᶜ ⊢V
+
+-- showTmIn 2 Cᶜ′  =
+--   (((λx:ℕ. (ΛX′. 3) [Y]) ⟪ ↑Z:=ℕ , ↓Y , id ℕ ⟫) ⟪ ↥Y , ↓Y , id ℕ ⟫)
+Cᶜ′ : Term
+Cᶜ′ = (Vᶜ ⟪ Θᶜ₁ ⋉ Θᶜ₂ , mkId (shiftBy (numBinds Θᶜ₁) `ℕ) ⟫)
+        ⟪ rewind Θᶜ₂ , mkId `ℕ ⟫
+
+stepᶜ′ : Δᶜ ⊢ Rᶜ′ -→ Cᶜ′
+stepᶜ′ = CancelR val-prb lkᶜ
+
+¬⊢Cᶜ′ : ∀ {A} → ¬ (Δᶜ ∣ [] ⊢ Cᶜ′ ⦂ A)
+¬⊢Cᶜ′ (env _ (env _ ⊢V _ _) _ _) = ¬⊢Vᶜ ⊢V
+
+------------------------------------------------------------------------
+-- §15d  BETA — and the ONE EXPECTED EXCEPTION
+------------------------------------------------------------------------
+
+-- `Beta` changes no frame at all: `N [ W ]ᵐ` is read at the redex's own
+-- `Δ`, so an argument the exterior refuses is refused wherever it lands.
+-- The frame identity is the identity function.
+
+Wᵈ : Term
+Wᵈ = prb 0
+
+¬⊢Wᵈ : ∀ {Γ A} → ¬ (Δ✦ ∣ Γ ⊢ Wᵈ ⦂ A)
+¬⊢Wᵈ (⊢ƛ _ (⊢·[] _ (wf-var (_ , ez , ()))))
+
+-- showTmIn 1 Rᵈ  =
+--   ((λx:(ℕ⇒ℕ). x) · (λx:ℕ. (ΛY. 3) [X]))
+Rᵈ : Term
+Rᵈ = (ƛ (`ℕ ⇒ `ℕ) ∙ (` 0)) · Wᵈ
+
+¬⊢Rᵈ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Rᵈ ⦂ A)
+¬⊢Rᵈ (⊢· _ ⊢W) = ¬⊢Wᵈ ⊢W
+
+-- showTmIn 1 Cᵈ  =  (λx:ℕ. (ΛY. 3) [X])
+Cᵈ : Term
+Cᵈ = (` 0) [ Wᵈ ]ᵐ
+
+_ : Cᵈ ≡ Wᵈ
+_ = refl
+
+stepᵈ : Δ✦ ⊢ Rᵈ -→ Cᵈ
+stepᵈ = Beta val-prb
+
+¬⊢Cᵈ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Cᵈ ⦂ A)
+¬⊢Cᵈ = ¬⊢Wᵈ
+
+-- ── THE ERASURE EXCEPTION, RECORDED.  Substitution may DROP its
+-- argument, and then an ill-typed redex has a WELL-TYPED contractum.
+-- This is NOT a scope gain: nothing MOVED into a new frame — the
+-- offending subterm was DELETED, and what remains was already typed
+-- inside the redex.  The test is about what happens to a subterm that
+-- CROSSES into another frame, and an erased subterm crosses nowhere.
+-- (Every other rule in the table moves its subterm; `Beta` is the only
+-- one that can discard one.)
+--
+-- showTmIn 1 Rᵈ′  =  ((λx:(ℕ⇒ℕ). 3) · (λx:ℕ. (ΛY. 3) [X]))
+Rᵈ′ : Term
+Rᵈ′ = (ƛ (`ℕ ⇒ `ℕ) ∙ ($ 3)) · Wᵈ
+
+¬⊢Rᵈ′ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Rᵈ′ ⦂ A)
+¬⊢Rᵈ′ (⊢· _ ⊢W) = ¬⊢Wᵈ ⊢W
+
+stepᵈ′ : Δ✦ ⊢ Rᵈ′ -→ ($ 3)
+stepᵈ′ = Beta val-prb
+
+⊢Cᵈ′ : Δ✦ ∣ [] ⊢ ($ 3) ⦂ `ℕ
+⊢Cᵈ′ = ⊢$
+
+------------------------------------------------------------------------
+-- §15e  PEEL — the `bind` half, and `hideBinds`
+------------------------------------------------------------------------
+
+-- The `unlock` half is proof/DualTightness: the exterior masks X, `Θ`
+-- UNLOCKS it, and the contractum used to type.  It is closed there by
+-- the restoring, reversed `dualScope`, and `¬⊢Contractum` is the
+-- machine-checked verdict.
+--
+-- HERE IS THE OTHER HALF.  `Θ` carries a BIND, so the crossing frame is
+-- the exterior under a MASKED bind prefix — (†) `interior-dual`,
+-- proof/PeelDual — and the rule shifts the argument by
+-- `wkᴹ (numBinds Θ)` to land past it.  Two facts have to hold at once,
+-- and both do: a slot the EXTERIOR masks stays masked one index in, and
+-- the boundary's OWN binder, which did not exist at the exterior, is
+-- MASKED by `hideBinds` rather than handed to the argument.
+--
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξe  =  ⌷[Y := ℕ] , ⌷[X := ℕ]
+
+Θᵉ : CtxMorph
+Θᵉ = bind `ℕ ∷ []
+
+⊢ᵐΘᵉ : Δ✦ ⊢ᵐ Θᵉ
+⊢ᵐΘᵉ = mw-b wf-ℕ mw[]
+
+Vᵉ : Term
+Vᵉ = ƛ `ℕ ∙ (` 0)
+
+Wᵉ : Term
+Wᵉ = prb 0
+
+-- showTmIn 1 Rᵉ  =
+--   (((λx:ℕ. x) ⟪ ↑Y:=ℕ , (id ℕ ↦ id ℕ) ⟫) · (λx:ℕ. (ΛZ. 3) [X]))
+Rᵉ : Term
+Rᵉ = (Vᵉ ⟪ Θᵉ , id `ℕ ↦ id `ℕ ⟫) · Wᵉ
+
+¬⊢Rᵉ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Rᵉ ⦂ A)
+¬⊢Rᵉ (⊢· _ ⊢W) = ¬⊢Wᵈ ⊢W
+
+-- showTmIn 1 Cᵉ  =
+--   (((λx:ℕ. x) · ((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↓Y , id ℕ ⟫))
+--      ⟪ ↑Y:=ℕ , id ℕ ⟫)
+Cᵉ : Term
+Cᵉ = (Vᵉ · (wkᴹ (numBinds Θᵉ) Wᵉ ⟪ dual Θᵉ , id `ℕ ⟫)) ⟪ Θᵉ , id `ℕ ⟫
+
+stepᵉ : Δ✦ ⊢ Rᵉ -→ Cᵉ
+stepᵉ = Peel V-ƛ val-prb
+
+-- THE DUAL LOCKS THE BOUNDARY'S OWN BINDER …
+_ : _≡_ {A = CtxMorph} (dual Θᵉ) (lock 0 ∷ [])
+_ = refl
+
+-- … so (†) reads, at this Θ: the crossing frame is Δ✦ under one MASKED
+-- bind.
+_ : interior (dual Θᵉ) (interior Θᵉ Δ✦)
+      ≡ map masked (pushBinds (repsOf Θᵉ) []) ++ Δ✦
+_ = interior-dual Θᵉ Δ✦ ⊢ᵐΘᵉ
+
+_ : interior (dual Θᵉ) (interior Θᵉ Δ✦)
+      ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+_ : wkᴹ (numBinds Θᵉ) Wᵉ ≡ prb 1
+_ = refl
+
+¬⊢wkWᵉ : ∀ {Γ A}
+  → ¬ ((masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
+¬⊢wkWᵉ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
+
+¬⊢Cᵉ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Cᵉ ⦂ A)
+¬⊢Cᵉ (env _ (⊢· _ (env _ ⊢W _ _)) _ _) = ¬⊢wkWᵉ ⊢W
+
+-- THE `hideBinds` HALF, in two pieces.  First: the boundary's own
+-- binder sits at slot 0 of the crossing frame and is NOT nameable there.
+¬∋tv-hideBinds : ¬ (interior (dual Θᵉ) (interior Θᵉ Δ✦) ∋tv 0)
+¬∋tv-hideBinds (_ , ez , ())
+
+-- Second: an argument naming a slot that does NOT EXIST at the exterior
+-- is shifted by `wkᴹ` and still names no slot — the bind prefix is
+-- masked, so it is not a landing place.  (Not rendered, for the reason
+-- given in §15a.)
+Wᵉ∅ : Term
+Wᵉ∅ = prb 1
+
+¬⊢Wᵉ∅ : ∀ {Γ A} → ¬ (Δ✦ ∣ Γ ⊢ Wᵉ∅ ⦂ A)
+¬⊢Wᵉ∅ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es () , _))))
+
+stepᵉ∅ : Δ✦ ⊢ (Vᵉ ⟪ Θᵉ , id `ℕ ↦ id `ℕ ⟫) · Wᵉ∅
+           -→ (Vᵉ · (wkᴹ (numBinds Θᵉ) Wᵉ∅ ⟪ dual Θᵉ , id `ℕ ⟫))
+                ⟪ Θᵉ , id `ℕ ⟫
+stepᵉ∅ = Peel V-ƛ val-prb
+
+_ : wkᴹ (numBinds Θᵉ) Wᵉ∅ ≡ prb 2
+_ = refl
+
+¬⊢wkWᵉ∅ : ∀ {Γ A}
+  → ¬ ((masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 2 ⦂ A)
+¬⊢wkWᵉ∅ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es (es ()) , _))))
+
+------------------------------------------------------------------------
+-- §15f  THE FRAMES ARE PRESERVED — what makes §15 a theorem
+------------------------------------------------------------------------
+
+-- Each example above exhibits, at one point, an identity that holds
+-- everywhere.  Collected, with the rule each one serves:
+--
+--   TyBeta   interior (bind A ∷ []) Δ ≡ bind A ∷ Δ
+--              — `Δ` on the nose, one REFINEMENT (abst → bind) at the
+--                slot the rule is there to reveal
+--   TyPeelR  interior (bind A ∷ Θ) Δ
+--              ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
+--              — the redex's frame, one binder in; `wkᴹ 1` matches it
+--   Peel     interior (dual Θ) (interior Θ Δ)
+--              ≡ map masked (pushBinds (repsOf Θ) []) ++ Δ   (Δ ⊢ᵐ Θ)
+--              — (†), proof/PeelDual.interior-dual: THE CROSSING FRAME
+--                IS THE EXTERIOR, under a MASKED bind prefix
+--   CancelR  interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)
+--   IdPush     ≡ interior Θ₁ (interior Θ₂ Δ)                 (Δ ⊢ᵐ Θ₂)
+--              — proof/MoveScope.interior-⋉-rewind: preserved ON THE
+--                NOSE, which is why neither case uses `⊢retag`
+--   Beta     Δ ≡ Δ — no frame changes; the exception is ERASURE (§15d)
+--
+-- `Drop$` and the five congruences move nothing into a new frame:
+-- `Drop$`'s contractum is a numeral, and each `ξ` rule reduces a
+-- subterm IN PLACE, at the frame the rule's own premise reads it on.
+--
+-- The two identities that had no name are `interior-TyBeta` and
+-- `interior-TyPeelR` at the head of this section; both are `refl`,
+-- because `interior` is `pushBinds ∘ repsOf` over `scope` and a `bind`
+-- entry touches `scope` not at all.  The other two are theorems with
+-- a `Δ ⊢ᵐ Θ` premise, and that premise is exactly where the sequential
+-- judgement pays: (†) needs `mw-u`'s LOCKED slot for the dual's
+-- restoring `lock` to be `mask ∘ unmask` at that slot (`mask-unmask`,
+-- strong.Ctx §6b), and the scope move needs `mw-b`'s rep read past the
+-- tail's unlocks (proof/MwUObstruct §4).

@@ -2294,3 +2294,32 @@ to land next):
  the order condition refuses a reachable state, or that state is the
  wall itself and TyPeelR must be restricted/reformulated.  NOT probed;
  Jeremy to rule on direction before more invariant hunting.
+
+### RULING: polarity dropped from the conversion judgment (Jeremy, 2026-09-06)
+
+Trace artifact "Two Polarities, One Rule" (Examples §13, every state
+machine-rendered; renderer now gives globally unique type-binder names,
+cc97298c).  J₆ (b), the landed TyPeelR contractum
+  ((ΛZ. λx:Z. 3) [Y]) ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫
+is untypeable ONLY because the two seals demand opposite values of the
+single index p (domain seal Y wants flip p = ↓ˢ, codomain seal X wants
+p = ↓ˢ).  Jeremy: "I'm wondering if the invariant is really one polarity
+per type variable, not one polarity for all type variables.  However, do
+we really need polarity at all?"  Analysis: per variable the face IS
+consistent — each variable's name sits on the side where it is a name
+(Y: bind, interior side; X: lock, exterior side) — and that per-variable
+fact is already enforced by env's frames (a locked X is masked in intC,
+a bound X is not in the image of liftN), so `p` is a redundant summary
+that is uniform only for single-kind morphisms and breaks the first time
+a mint mixes kinds (TyPeelR's `bind A ∷ Θ`).  Nothing uses p for work
+(det/progress/canonical forms go by face shape; the relaxation experiment
+showed only Canonicity §5 dies, whose content was p).  Considered and
+recorded (Examples §13c): Jeremy's candidate ⟪ ↑Y:=X , ↓X , id X ↦ seal X ⟫
+is untypeable as written (id X vs interior domain Y; instantiating at X
+is masked) but types with the lock lifted/removed (Cu/Cr); the
+resolve-through-locks variant (Cb/CbH) also types.  None needed once p
+is gone.  RULED: "go ahead and drop polarity, then finish TyPeelR".
+Consequence: TyPeelR as landed is THE rule; Conditional shrinks to
+(scoped : ScopedAtUnseal) (idpush : IdPushCase) — the two are one fact.
+Regularity (typed terms have well-formed types) is the lemma that makes
+the per-variable invariant a theorem; to be stated if wanted.

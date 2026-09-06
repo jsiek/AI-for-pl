@@ -2369,3 +2369,28 @@ hunt for a premise that no longer exists; recommended for deletion
 never a missing invariant — the rule put the rep on the wrong side of
 the lock.  NEXT: TypeSafety.agda (progress + preservation, top-level
 wrappers), README/Design, PR #190 body.
+
+### RULING: helper names (Jeremy, 2026-09-06)
+
+The v2 helpers were over-abbreviated ("scp (secure copy?), fscp, intC,
+fceC") and "face" is retired in favour of a boundary's INTERIOR and
+EXTERIOR (Jeremy's slides already use interior(Θ,Δ)/exterior(Θ,Δ)).
+Final map, applied as one mechanical pass (lemma names follow):
+
+    intC → interior        fceC → exterior
+    scp → scope            fscp → unlockedScope
+    prep → pushBinds       reps → repsOf          nbind → numBinds
+    liftN → shiftBy        liftᵇ → shiftBodyBy    upd → updateAt
+    blk → masked           unblk → unmaskEnt      Vis → Nameable
+    Bwf → MorphWf (bw[]/bw-b/bw-l/bw-u → mw[]/mw-b/mw-l/mw-u)
+    idc → mkId
+    unsealAt/sealAt → revealAt/concealAt
+    unsealAtᶜ/sealAtᶜ → instRevealAt/instConcealAt
+    dual KEPT              dualS → dualScope      lockBinds → hideBinds
+    moveS → scopeOf        unlocked → dropLocks   _◃_ → _⋉_
+    kept: Θ, bind/lock/unlock, abst, mask/unmask, Inj.
+
+Reading: `exterior Θ Δ` is not the plain Δ the whole term is typed in
+but Δ as seen from the boundary (binds pushed, unlocks applied); the
+identity `interior (dropLocks Θ) Δ ≡ exterior Θ Δ` is the one that
+retired the wall.  Earlier entries of this log use the old names.

@@ -463,6 +463,20 @@ and an unlock at an unmasked slot is a no-op.  An `unlock` claims nothing
 and a `lock` claims nothing either; the claim lives in the conversion,
 where `seal X` must cite a live binder.
 
+**The cost of `mw-u`'s permissiveness, and why it cannot simply be
+raised** (2026-09-06).  Because an `unlock` claims nothing, a *vacuous*
+unlock — one at an already-unmasked slot — is well formed, and `dual`
+therefore cannot restore it (§6.3: the tightness defect).  Strengthening
+the premise to `Δ ∋e X , masked E` is **refuted** in
+`proof/MwUObstruct.agda`.  The reason is structural: `_⊢ᵐ_` is
+**simultaneous** (design law 4) while `scope` is **sequential** (the list
+is applied head-last).  Under the strengthened premise `mw-l` and `mw-u`
+become exact complements — a lock names a *nameable* slot, an unlock a
+*masked* one — so no simultaneous `_⊢ᵐ_` can hold of a list that both
+locks and unlocks one slot.  The scope move `_⋉_` (§6.7) builds exactly
+such lists, and `⊢retag` (which carries `_⊢ᵐ_` along `⊑`, whose `le-mu`
+clause *unmasks*) loses its `env` case as well.
+
 ### 4.3 Terms
 
     ⊢`  : Γ ∋ x ⦂ A → Δ ∣ Γ ⊢ x ⦂ A
@@ -721,6 +735,27 @@ Example (`Examples` §6, `P₁ → P₂`), with
 The `7` has crossed inward and is now sealed at the new binder, so the
 interior sees it at the abstract name `X` — which is exactly what
 `λx:X. x` demands.
+
+**OPEN: `Peel` is not tight** (Jeremy's test, 2026-09-06;
+`proof/DualTightness.agda`).  `dualScope` **drops** `Θ`'s `unlock`
+entries, so a boundary that unmasks an exterior slot hands its crossing
+argument a frame in which that slot is *still* unmasked:
+`interior (dual Θ) (interior Θ Δ)` is the masked bind prefix over
+`unlockedScope Θ Δ`, which is strictly more nameable than `Δ`.  The
+machine-checked witness — `Δᵤ = ↓U`, `Θᵤ = ↥U`, `W = λy:ℕ. (ΛZ. 3)[U]` —
+takes an **ill-typed** redex to a **well-typed** contractum: scope is
+gained through the boundary.  This is not a preservation failure (the
+redex is not well typed, and `preserve-Peel` is a theorem); it is a
+failure of design law 2 for the *reduction relation*.
+
+The repair — restore what `Θ` unlocked, `dualScope n (unlock X ∷ Θ) =
+lock (n + X) ∷ dualScope n Θ`, with an `mw-u` that forbids vacuous
+unlocks — is **refuted** in `proof/MwUObstruct.agda` (see §4.2): the
+restored lock is only correct when the slot really was masked, so the
+two changes are coupled, and the strengthened `mw-u` is incompatible with
+both the scope move and `⊢retag`.  The two readings of `_⊢ᵐ_` that
+survive §3/§4 (sequential premises, or a cancelling merge) are design
+decisions, not repairs; §5/§6 of that module price the sequential one.
 
 ### 6.4 `TyPeelR` — a `∀` conversion meets a type application
 
@@ -1120,7 +1155,11 @@ machine-checked consequence in tree.
 2. **Tightness, for terms and for scope.**  A masked slot may not be
    named in any type; `Nameable` and `wf-var` are the whole enforcement.  But
    *mentioning* a masked index in a morphism entry (`↓X`, `↥X`) is not a
-   use, and `_⊢ᵐ_` permits it.
+   use, and `_⊢ᵐ_` permits it.  **The law is currently broken for the
+   reduction relation**: `Peel`'s `dual` drops `unlock` entries, so the
+   crossing frame can be *more* nameable than the exterior
+   (`proof/DualTightness.agda`; the repair is refuted in
+   `proof/MwUObstruct.agda`, and §4.2/§6.3 say why).
 3. **No term type-shifts.**  Shift types, not terms.  The only index
    arithmetic in the design is ordinary de Bruijn binder offsets:
    `numBinds Θ`, `shiftBy`, and the `n + X` lift in `scopeOf` and `dualScope`.

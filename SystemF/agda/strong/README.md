@@ -83,6 +83,8 @@ driver: type-checking it type-checks the whole thing.
 | `MaskFacts.agda` | no boundary operation can take a binder away (masking retains, unlocking recovers); the old cancel residue is not well formed |
 | `Adversary.agda` | the soundness gate: a conceal must cite a live binder, and v1's adversaries refuted by that one inversion |
 | `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
+| `DualTightness.agda` | **the tightness defect**: `dual` drops `unlock` entries, so `Peel` takes an **ill-typed** redex to a **well-typed** contractum — scope is gained through the boundary (Jeremy's test, 2026-09-06), plus the positive control at a `lock` |
+| `MwUObstruct.agda` | the three-part repair for it (masked-only `mw-u`, `unlock ↦ lock` in `dualScope`, a binds-only outer frame), **refuted**: §1 why (2) forces (1), §2 (1) kills `⊢retag`, §3/§4 (1) kills the scope move `_⋉_` at a well-typed `IdPush` redex, §5/§6 what a sequential `_⊢ᵐ_` would additionally cost |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 **The invariant hunt** — the search for a side condition that would

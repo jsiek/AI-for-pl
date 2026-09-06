@@ -19,11 +19,13 @@ module strong.Show where
 --     interior supply and the CONVERSION-CONTEXT supply coincide
 --     (`interior` and `convCtx` differ in blocking, not in slot layout).
 --   * a BINDER's rep is shown under `ext` — a rep uses the exterior's
---     slots (the judgement reads it on `unlockedScope Θ′ Δ`, which has the
+--     slots (the judgement reads it on `unlockedScope Θ Δ`, which has the
 --     same slot layout as Δ);
 --   * a `lock X` / `unlock X` names an EXTERIOR slot, so it is shown under
 --     `ext`; neither carries a rep, which is the whole point of the
---     redesign;
+--     redesign.  THE PAIR IS RENDERED IN ITS OWN ORDER: all the binds,
+--     then all the changes, then the conversion —
+--     `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`;
 --   * the CONVERSION `c` is shown under that same supply, and its
 --     `seal`/`unseal` names are read there — by their type context, not by a
 --     stored spelling.
@@ -196,7 +198,7 @@ open St
 
 -- one fresh name per BINDER (bind), listed newest first (slot 0 first) but
 -- NAMED oldest first, so an older bind keeps its name when a newer one is
--- prepended (TyPeelR's `bind A ∷ Θ`): the last bind gets tyBinder f.
+-- prepended (TyPeelR prepends one): the last bind gets tyBinder f.
 bindNamesF : ℕ → List Ty → List String
 bindNamesF f []       = []
 bindNamesF f (A ∷ Bs) = tyBinder (f + length Bs) ∷ bindNamesF f Bs

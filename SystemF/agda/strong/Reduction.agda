@@ -108,7 +108,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE RESIDUE REPAIR (3a), AS RE-RULED (2026-09-05).  The mini-core
   -- appended `hideBinds (numBinds Θ₂)`, which masks EXTERIOR slots that need
   -- not exist (proof/MaskFacts.agda, `¬⊢ᵐ-cancel-residue`); dropping the
-  -- residue was not enough either, because `repsOf→bind (repsOf Θ₂)` DISCARDS
+  -- residue was not enough either, because `repsOf→bind (binds Θ₂)` DISCARDS
   -- Θ₁'s whole frame, and a `V` that names one of Θ₁'s own binders loses
   -- it (the old proof/PreserveObstruct §1 witness).  The honest form keeps
   -- BOTH FRAMES and neutralises BOTH CONVERSIONS: composition happens
@@ -159,7 +159,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- revealing one, so its exterior type becomes Y's rep `A`.  Θ₂'s LOCKS
   -- travel into the inner frame (§2b) so that the rep is presented
   -- OUTSIDE them, where it is nameable: `interior (rewind Θ₂) Δ` IS
-  -- `pushBinds (repsOf Θ₂) Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
+  -- `pushBinds (binds Θ₂) Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
   -- exterior type C.  That is what retires the wall — the case needs no
   -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
   IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A

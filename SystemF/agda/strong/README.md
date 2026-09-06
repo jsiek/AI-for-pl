@@ -68,7 +68,7 @@ driver: type-checking it type-checks the whole thing.
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
 | `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the bind prefix `pushBinds` with `shiftBy` |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
-| `CtxMorph.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`), the type contexts it induces (`scope`, `unlockedScope`, `interior`, `convCtx`) with their refinement transports, and the well-formedness judgement `Δ ⊢ᵐ Θ`, and the derived morphisms `dual` (Peel) and `rewind`/`_⋉_` (the scope move) |
+| `CtxMorph.agda` | the context morphism as a **pair** — `record CtxMorph = morph (binds : List Ty) (changes : List Change)`, the binds a PARALLEL block and the changes a SEQUENTIAL `lock`/`unlock` list — with `numBinds`, the type contexts it induces (`applyChanges`/`applyUnlocks` at the list, `scope`/`unlockedScope`/`interior`/`convCtx` at the morphism) and their refinement transports, the well-formedness judgement `Δ ⊢ᵐ Θ` as a pair of halves (`_⊢ʳ_` reps, `_⊢ˢ_` changes), and the derived morphisms `dual` (Peel) and `rewind`/`_⋉_` (the scope move) |
 | `Terms.agda` | terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` (re-exports `CtxMorph`) |
 | `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |
 | `Reduction.agda` | the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
@@ -86,7 +86,7 @@ driver: type-checking it type-checks the whole thing.
 |------|----------|
 | `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢reveal`/`⊢conceal`/`⊢instReveal`/`⊢instConceal`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR`, the three case statements, and `module Impl` |
 | `PeelDual.agda` | the `Peel` case: `interior-dual` and `convCtx-dual` in general, and `preserve-Peel` |
-| `MoveScope.agda` | **the scope move**: the list algebra of `scopeOf`/`rewind`/`_⋉_`, `interior-rewind`, the frame **equalities** `interior-⋉-rewind`/`convCtx-⋉-rewind` (with `convCtx-move` the one surviving `⊑`), `move-∋`, `⊢ᵐ-rewind`, `⊢ᵐ-⋉`, the lock-only refutation `¬frame-locksOnly`, and `preserve-CancelR` / `preserve-IdPush` |
+| `MoveScope.agda` | **the scope move**: the list algebra of `shiftScope`/`rewind`/`_⋉_`, `interior-rewind`, the frame **equalities** `interior-⋉-rewind`/`convCtx-⋉-rewind` (with `convCtx-move` the one surviving `⊑`), `move-∋`, `⊢ᵐ-rewind`, `⊢ᵐ-⋉`, the lock-only refutation `¬frame-locksOnly`, and `preserve-CancelR` / `preserve-IdPush` |
 | `Progress.agda` | the progress induction: the boundary case split out as `progress-env`, `TyPeelR`'s premise read off the redex (`∀-conv-premise`), and `progress` itself |
 | `Canonical.agda` | canonical forms: `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` |
 | `Canonicity.agda` | the canonical conversion family (`reveal`/`conceal`/`mkId` subtrees) and its closure under the rules |
@@ -95,7 +95,7 @@ driver: type-checking it type-checks the whole thing.
 | `Adversary.agda` | the soundness gate: a conceal must cite a live binder, and v1's adversaries refuted by that one inversion |
 | `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
 | `DualTightness.agda` | **tightness of the crossing**, Jeremy's test (2026-09-06) and its repair: the redex that is ill typed at the exterior now has an ill-typed contractum too (`¬⊢Contractum`), (†) `interior (dual Θᵤ) (interior Θᵤ Δᵤ) ≡ Δᵤ`, the positive control at a `lock`, and the VACUOUS UNLOCK refused (`¬⊢ᵐΘᵥ`).  The same test at every other rule that moves a subterm is `Examples` §15 |
-| `MwUObstruct.agda` | which outer frame the scope move may use, on one configuration: `dropLocks Θ₂` **refuted** (the moved unlock goes vacuous), `bindsOnly Θ₂` **refuted** (the frame's own rep loses its unlock), `rewind Θ₂` does both jobs — and why `mw-b` reads its rep on `unlockedScope Θ Δ` rather than on the plain exterior |
+| `MwUObstruct.agda` | which outer frame the scope move may use, on one configuration: `dropLocks Θ₂` **refuted** (the moved unlock goes vacuous), `bindsOnly Θ₂` **refuted** (the frame's own rep loses its unlock), `rewind Θ₂` does both jobs — and why the rep half reads its reps on `unlockedScope Θ Δ` rather than on the plain exterior |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 **The invariant hunt** — the search for a side condition that would

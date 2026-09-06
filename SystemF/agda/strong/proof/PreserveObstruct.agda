@@ -50,7 +50,7 @@ open import strong.proof.MoveScope using (preserve-IdPush)
 ------------------------------------------------------------------------
 
 -- Θ₁ has ONE `bind`, so the cancelled value V lives two binders deep;
--- the residue `repsOf→bind (repsOf Θ₂)` rebinds only Θ₂'s one binder, and V's
+-- the residue `repsOf→bind (binds Θ₂)` rebinds only Θ₂'s one binder, and V's
 -- `lock 1` — perfectly well formed inside — names a slot that no longer
 -- exists.
 
@@ -222,9 +222,9 @@ t-cod = conv-seal (es ez)
 ------------------------------------------------------------------------
 
 -- The old §3 refuted a `dual` that mapped `unlock X ↦ lock (n+X)` while
--- `mw-u` still admitted a VACUOUS unlock: the restored lock then masked a
+-- `sw-u` still admitted a VACUOUS unlock: the restored lock then masked a
 -- slot the exterior left nameable.  Both halves are now repaired
--- TOGETHER — `mw-u` demands `scope Θ Δ ∋lk X` and `dualScope` restores AND
+-- TOGETHER — `sw-u` demands `applyChanges S Δ ∋lk X` and `dualScope` restores AND
 -- reverses — so `interior-dual` is an EXACT identity and `PeelCase` is
 -- PROVEN (strong.proof.PeelDual.preserve-Peel).  Refutation gone.
 

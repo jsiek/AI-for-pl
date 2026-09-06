@@ -422,7 +422,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- ── TYPEELR, AT ANY ∀ CONVERSION ───────────────────────────────────────
 -- Four moves, one per premise of the contractum's `env`:
 --
---   FRAME       `bind A ∷ Θ`, whose interior is
+--   FRAME       one bind prepended to Θ, whose interior is
 --               `bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`
 --               DEFINITIONALLY — the shift `renᴮ suc Θ` used to add is
 --               the one `pushBinds` already performs.

@@ -2268,3 +2268,29 @@ to land next):
      flight.
  Candidate under probe: CHAIN-scoped — at faces naming X, every rep
  reachable from X by owner lookup is wf in the interior.
+ UPDATE (same day): (3) CONFIRMED by machine (proof/ChainScoped
+ ¬NameFacedRepWf: the program above runs 7 steps; the TyBeta at Z mints
+ Y := Z around the id-faced lock-Z wrapper, both states type, RepWf
+ fails after).  CHAIN-scoped (Reach/ChainScoped, VERBATIM in the file):
+ refuses Ri and R★, admits L₄ and the kill test, is PRESERVED by IdPush
+ (both frames and names kept, only faces swap) and by CancelR's residue
+ (chain-mono: the idc leaves' chains are Y's), needs NO lifting — but is
+ NOT ⊑-stable (¬ChainFaced): a chain STOPS at a Λ-bound abst slot and
+ TyBeta gives that slot a rep, so the chain runs on into whatever the
+ instantiating type names (hand-built typed redex CR; le-ao a third
+ time).  My reachability reading of CR: NOT reachable — a crossing
+ wrapper's face variable is visible at the exterior of the boundary it
+ is dual to, so its owner (and its whole chain, reps being read at the
+ owner's exterior) is OLDER than every lock the wrapper carries, and a
+ chain never enters a younger Λ.  That suggests the STABLE form is an
+ ORDER condition: every variable on the chain of the face's name is
+ older than every lock in Θ (the face's own name may be the locked one
+ — the seal-crossing case).  It refuses R★ (X younger than the lock) and
+ CR (chain hits the abst at slot 1, lock at 2) and admits L₄/Q/kill
+ test; ⊑-stability: a refinement of a chain slot Y reads its rep at Y's
+ exterior, hence older than Y, hence older than the locks.  OPEN RISK:
+ TyPeelR's mint `bind A ∷ Θ` where A names a slot Θ locks (Examples §13:
+ bind X ∷ lock X) puts a locked slot on the new bind's chain — either
+ the order condition refuses a reachable state, or that state is the
+ wall itself and TyPeelR must be restricted/reformulated.  NOT probed;
+ Jeremy to rule on direction before more invariant hunting.

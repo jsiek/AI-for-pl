@@ -60,7 +60,7 @@ open import strong.TermSubst
 open import strong.Reduction
 open import strong.proof.Preserve using (⊢ᵗ-of; CtxWf-[])
 open import strong.proof.PeelDual using (intC-dual)
-open import strong.proof.IdPushReach using (MaskOnly; idPush⁺)
+open import strong.proof.IdPushReach using (maskOnly; idPush⁺)
 
 private
   variable
@@ -230,38 +230,38 @@ RepWf-dual′ Θ Δ nu rw =
 
 -- The companion owner lookup, from the redex alone: an `unseal Y`-faced
 -- wrapper types its body at `` ` Y ``, so Y is VISIBLE inside, and
--- `MaskOnly` (intC differs from fceC only by masking) turns the exterior
+-- `maskOnly` (intC differs from fceC only by masking) turns the exterior
 -- owner fact into an interior one.  No assumption about the world.
-unseal-owner : ∀ {Δ Γ M Θ Y A C} → MaskOnly
+unseal-owner : ∀ {Δ Γ M Θ Y A C}
   → fceC Θ Δ ∋ Y := A
   → Δ ∣ Γ ⊢ M ⟪ Θ , unseal Y ⟫ ⦂ C
     ------------------------------
   → intC Θ Δ ∋ Y := A
-unseal-owner {Δ = Δ} {Θ = Θ} mo d (env _ ⊢M (conv-unseal _) _) =
-  mo Θ Δ (⊢ᵗ→∋tv (⊢ᵗ-of CtxWf-[] ⊢M)) d
+unseal-owner {Δ = Δ} {Θ = Θ} d (env _ ⊢M (conv-unseal _) _) =
+  maskOnly Θ Δ (⊢ᵗ→∋tv (⊢ᵗ-of CtxWf-[] ⊢M)) d
 
 -- THE SCOPING FACT.  `intC Θ Δ ⊢ᵗ A` — the premise CancelR's honest
 -- contractum demands and `idPush⁺` takes as `scoped` — is a CONSEQUENCE
 -- of `RepWf (intC Θ Δ)`, for EVERY unseal-faced wrapper.
-unseal-scoped : ∀ {Δ Γ M Θ Y A C} → MaskOnly → RepWf (intC Θ Δ)
+unseal-scoped : ∀ {Δ Γ M Θ Y A C} → RepWf (intC Θ Δ)
   → fceC Θ Δ ∋ Y := A
   → Δ ∣ Γ ⊢ M ⟪ Θ , unseal Y ⟫ ⦂ C
     ------------------------------
   → intC Θ Δ ⊢ᵗ A
-unseal-scoped mo rw d ⊢R = rw (unseal-owner mo d ⊢R)
+unseal-scoped rw d ⊢R = rw (unseal-owner d ⊢R)
 
 -- JEREMY'S QUESTION, ANSWERED FOR THE ONLY LOCK-MINTING RULE.  A Peel
 -- hands its crossing argument the frame `dual Θ`; if that frame is later
 -- the Θ₂ of an IdPush/CancelR redex, the rep it hands back IS well formed
 -- in its own interior.  No premise about Θ, no premise about Y, no
 -- premise the rule would have to carry: `RepWf-dual` plus `unseal-scoped`.
-peel-Θ₂-scoped : ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Γ M Y A C} → MaskOnly
+peel-Θ₂-scoped : ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Γ M Y A C}
   → RepWf (fscp Θ Δ)
   → fceC (dual Θ) (intC Θ Δ) ∋ Y := A
   → intC Θ Δ ∣ Γ ⊢ M ⟪ dual Θ , unseal Y ⟫ ⦂ C
     ---------------------------------------------
   → intC (dual Θ) (intC Θ Δ) ⊢ᵗ A
-peel-Θ₂-scoped Θ Δ mo rw d ⊢R = unseal-scoped mo (RepWf-dual Θ Δ rw) d ⊢R
+peel-Θ₂-scoped Θ Δ rw d ⊢R = unseal-scoped (RepWf-dual Θ Δ rw) d ⊢R
 
 -- IDPUSH'S PRESERVATION CASE, over the invariant instead of over an
 -- added rule premise: `RepWf (intC Θ₂ Δ)` is a fact about the type
@@ -273,19 +273,33 @@ IdPushCase-RepWf = ∀ {Δ V Θ₁ Θ₂ X Y A C}
     ---------------------------------------------------
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫ ⦂ C
 
-idPush-RepWf : MaskOnly → IdPushCase-RepWf
-idPush-RepWf mo rw v d ⊢R =
-  idPush⁺ v d (rw (unseal-owner mo d ⊢R)) (unseal-owner mo d ⊢R) ⊢R
+idPush-RepWf : IdPushCase-RepWf
+idPush-RepWf rw v d ⊢R =
+  idPush⁺ v d (rw (unseal-owner d ⊢R)) (unseal-owner d ⊢R) ⊢R
+
+-- THE SUPPLIER PHASE TWO WILL CONSUME.  CancelR's repair needs the rep
+-- its own `unseal Y` hands back to be well formed INSIDE the frame that
+-- hands it back — read off the redex, given only the invariant at the
+-- ACTIVE boundary's interior.  (`RepWf (intC Θ₂ Δ)` cannot be grounded in
+-- `Bwf`: proof/WallGrounding refutes that, so it stays a hypothesis until
+-- the condition is attached to the `unseal`-faced `env` node itself.)
+scoped-at-unseal : ∀ {Δ V Θ₁ Θ₂ c₁ Y A C}
+  → RepWf (intC Θ₂ Δ)
+  → fceC Θ₂ Δ ∋ Y := A
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , c₁ ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
+    ---------------------------------------------
+  → intC Θ₂ Δ ⊢ᵗ A
+scoped-at-unseal rw d ⊢R = unseal-scoped rw d ⊢R
 
 -- CANCELR's honest contractum (keep both frames, neutralise both faces)
 -- needs the SAME fact, at the SAME redex shape.
 cancelR-scoped : ∀ {Δ V Θ₁ Θ₂ X Y A C}
-  → MaskOnly → RepWf (intC Θ₂ Δ)
+  → RepWf (intC Θ₂ Δ)
   → fceC Θ₂ Δ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     -------------------------------------------------
   → intC Θ₂ Δ ⊢ᵗ A
-cancelR-scoped mo rw d ⊢R = unseal-scoped mo rw d ⊢R
+cancelR-scoped rw d ⊢R = unseal-scoped rw d ⊢R
 
 ------------------------------------------------------------------------
 -- §6  THE TERM-LEVEL READING, AND ITS LIMIT
@@ -380,3 +394,11 @@ mint-binds {Δ = Δ} Θ bo bw rw rewrite scp-BindsOnly Θ Δ bo =
 -- Progress would have to supply.  What remains open is only the term-level
 -- induction for the NARROWED (Θ₂-only) reading — its two content-carrying
 -- cases are exactly the two lemmas above.
+--
+-- AND WHERE THAT INDUCTION CANNOT BE PUT.  Minting is not the only way a
+-- type context changes: TyBeta REFINES a Λ-bound slot into an OWNER under
+-- whatever locks the body already carries (`preserve-TyBeta`'s `refine`,
+-- the `le-ao` clause), and `RepWf (intC Θ ·)` does not survive that.  So
+-- the narrowed reading cannot be grounded in `Bwf`, whose every premise
+-- must be ⊑-stable for `Bwf-⊑`/`⊢retag`.  proof/WallGrounding is the
+-- machine-checked verdict, with the alternative home for the condition.

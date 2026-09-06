@@ -37,3 +37,9 @@ open import strong.Progress
 
 -- the wall: the RepWf invariant, the dual's locks, and the scoping fact
 open import strong.proof.WallReach
+
+-- where the wall can (and cannot) be grounded in the typing rules
+open import strong.proof.WallGrounding
+open import strong.proof.ScopedFace
+open import strong.proof.ScopedAtUnsealDef
+open import strong.proof.ChainScoped

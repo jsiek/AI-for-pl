@@ -33,8 +33,8 @@ module strong.proof.IdPushReach where
 -- visible in `intC Θ₂ Δ` and `d` gives Y an owner in `fceC Θ₂ Δ`, and
 -- `intC` differs from `fceC` only by masking (never abst↔bind), so a
 -- visible interior slot that is an owner outside is that same owner inside.
--- (That "mask-only" step is stated as `MaskOnly` below and left as the one
--- structural lemma this file does not re-derive; every other step is here.)
+-- (That "mask-only" step is `MaskOnly` below; it is now PROVEN — `maskOnly`,
+-- §2 — so this file assumes nothing.)
 --
 -- With both in hand the swapped-face contractum type-checks: the reconstruction
 -- is the whole of §3.
@@ -78,18 +78,108 @@ prep-∋ []       d = d
 prep-∋ (C ∷ As) d = es (prep-∋ As d)
 
 ------------------------------------------------------------------------
--- §2  THE MASK-ONLY FACT (the one structural lemma left as an interface)
+-- §2  THE MASK-ONLY FACT — PROVEN (2026-09-05)
 ------------------------------------------------------------------------
 
 -- `intC Θ Δ` differs from `fceC Θ Δ` ONLY by masking (`scp` applies the
 -- `lock` masks, `fscp` skips them; both do the same binds and unmasks).
 -- Masking never turns an `abst` into a `bind`, so a slot that is VISIBLE in
 -- `intC Θ Δ` and an OWNER in `fceC Θ Δ` is that same owner in `intC Θ Δ`.
--- (Its full derivation is the scp/fscp entry-refinement induction; it is
--- the sole step `idPush⁺` consumes without re-proving.)
 MaskOnly : Set
 MaskOnly = ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
   → intC Θ Δ ∋tv Y → fceC Θ Δ ∋ Y := A → intC Θ Δ ∋ Y := A
+
+-- THE REFINEMENT THAT ONLY MASKS.  This is `Ctx._⊑ᵉ_` MINUS the one
+-- clause that invents knowledge (`le-ao : abst ⊑ᵉ bind A`).  `scp` and
+-- `fscp` differ only by `lock`s, and a `lock` masks — it never turns a
+-- Λ-bound slot into an owner — so the two type contexts are related by
+-- THIS relation, not merely by `⊑`.  That is the whole content of the
+-- lemma: `⊑` alone would permit `abst` outside to be `bind A` inside.
+infix 4 _⊑ᵐᵉ_
+data _⊑ᵐᵉ_ : Ent → Ent → Set where
+  lm-aa : abst ⊑ᵐᵉ abst
+  lm-oo : ∀ {A} → bind A ⊑ᵐᵉ bind A
+  lm-bb : ∀ {E E′} → E ⊑ᵐᵉ E′ → blk E ⊑ᵐᵉ blk E′
+  lm-bu : ∀ {E E′} → E ⊑ᵐᵉ E′ → Vis E′ → blk E ⊑ᵐᵉ E′
+
+infix 4 _⊑ᵐ_
+data _⊑ᵐ_ : Ctxᵗ → Ctxᵗ → Set where
+  lm[] : [] ⊑ᵐ []
+  lm∷  : ∀ {E E′ Δ Δ′} → E ⊑ᵐᵉ E′ → Δ ⊑ᵐ Δ′ → (E ∷ Δ) ⊑ᵐ (E′ ∷ Δ′)
+
+⊑ᵐᵉ-refl : (E : Ent) → E ⊑ᵐᵉ E
+⊑ᵐᵉ-refl abst     = lm-aa
+⊑ᵐᵉ-refl (bind A) = lm-oo
+⊑ᵐᵉ-refl (blk E)  = lm-bb (⊑ᵐᵉ-refl E)
+
+⊑ᵐ-refl : (Δ : Ctxᵗ) → Δ ⊑ᵐ Δ
+⊑ᵐ-refl []      = lm[]
+⊑ᵐ-refl (E ∷ Δ) = lm∷ (⊑ᵐᵉ-refl E) (⊑ᵐ-refl Δ)
+
+⊑ᵐᵉ-ren : ∀ {ρ E E′} → E ⊑ᵐᵉ E′ → renᵉ ρ E ⊑ᵐᵉ renᵉ ρ E′
+⊑ᵐᵉ-ren lm-aa       = lm-aa
+⊑ᵐᵉ-ren lm-oo       = lm-oo
+⊑ᵐᵉ-ren (lm-bb l)   = lm-bb (⊑ᵐᵉ-ren l)
+⊑ᵐᵉ-ren (lm-bu l v) = lm-bu (⊑ᵐᵉ-ren l) (renᵉ-Vis v)
+
+⊑ᵐ-∋e : ∀ {Δ Δ′ X E} → Δ ⊑ᵐ Δ′ → Δ ∋e X , E
+      → ∃[ E′ ] ((Δ′ ∋e X , E′) × (E ⊑ᵐᵉ E′))
+⊑ᵐ-∋e (lm∷ l ls) ez     = _ , ez , ⊑ᵐᵉ-ren l
+⊑ᵐ-∋e (lm∷ l ls) (es d) with ⊑ᵐ-∋e ls d
+... | E′ , d′ , l′ = _ , es d′ , ⊑ᵐᵉ-ren l′
+
+-- THE POINT.  A masking refinement never invents an owner: an entry that
+-- is VISIBLE and refines to `bind A` IS `bind A`.
+⊑ᵐᵉ-bind : ∀ {E A} → E ⊑ᵐᵉ bind A → Vis E → E ≡ bind A
+⊑ᵐᵉ-bind lm-oo       v  = refl
+⊑ᵐᵉ-bind (lm-bu l w) ()
+
+-- masking loses nameability, so it refines the OTHER way
+blk-⊑ᵐᵉ : ∀ {E E′} → E ⊑ᵐᵉ E′ → blk E ⊑ᵐᵉ E′
+blk-⊑ᵐᵉ lm-aa       = lm-bu lm-aa vis-a
+blk-⊑ᵐᵉ lm-oo       = lm-bu lm-oo vis-b
+blk-⊑ᵐᵉ (lm-bb l)   = lm-bb (blk-⊑ᵐᵉ l)
+blk-⊑ᵐᵉ (lm-bu l v) = lm-bu (lm-bu l v) v
+
+mask-⊑ᵐ : ∀ {Δ Δ′} (Y : ℕ) → Δ ⊑ᵐ Δ′ → mask Y Δ ⊑ᵐ Δ′
+mask-⊑ᵐ Y       lm[]       = lm[]
+mask-⊑ᵐ zero    (lm∷ l ls) = lm∷ (blk-⊑ᵐᵉ l) ls
+mask-⊑ᵐ (suc Y) (lm∷ l ls) = lm∷ l (mask-⊑ᵐ Y ls)
+
+unblk-⊑ᵐᵉ-vis : ∀ {E E′} → E ⊑ᵐᵉ E′ → Vis E′ → E ⊑ᵐᵉ unblk E′
+unblk-⊑ᵐᵉ-vis l vis-a = l
+unblk-⊑ᵐᵉ-vis l vis-b = l
+
+unblk-⊑ᵐᵉ : ∀ {E E′} → E ⊑ᵐᵉ E′ → unblk E ⊑ᵐᵉ unblk E′
+unblk-⊑ᵐᵉ lm-aa       = lm-aa
+unblk-⊑ᵐᵉ lm-oo       = lm-oo
+unblk-⊑ᵐᵉ (lm-bb l)   = l
+unblk-⊑ᵐᵉ (lm-bu l v) = unblk-⊑ᵐᵉ-vis l v
+
+unmask-⊑ᵐ : ∀ {Δ Δ′} (Y : ℕ) → Δ ⊑ᵐ Δ′ → unmask Y Δ ⊑ᵐ unmask Y Δ′
+unmask-⊑ᵐ Y       lm[]       = lm[]
+unmask-⊑ᵐ zero    (lm∷ l ls) = lm∷ (unblk-⊑ᵐᵉ l) ls
+unmask-⊑ᵐ (suc Y) (lm∷ l ls) = lm∷ l (unmask-⊑ᵐ Y ls)
+
+⊑ᵐ-prep : ∀ {Δ Δ′} (As : List Ty) → Δ ⊑ᵐ Δ′ → prep As Δ ⊑ᵐ prep As Δ′
+⊑ᵐ-prep []       ls = ls
+⊑ᵐ-prep (A ∷ As) ls = lm∷ lm-oo (⊑ᵐ-prep As ls)
+
+-- `scp` is `fscp` with the locks applied — and nothing else.
+scp⊑ᵐfscp : (Θ : CtxMorph) (Δ : Ctxᵗ) → scp Θ Δ ⊑ᵐ fscp Θ Δ
+scp⊑ᵐfscp []             Δ = ⊑ᵐ-refl Δ
+scp⊑ᵐfscp (bind A ∷ Θ)   Δ = scp⊑ᵐfscp Θ Δ
+scp⊑ᵐfscp (unlock X ∷ Θ) Δ = unmask-⊑ᵐ X (scp⊑ᵐfscp Θ Δ)
+scp⊑ᵐfscp (lock X ∷ Θ)   Δ = mask-⊑ᵐ X (scp⊑ᵐfscp Θ Δ)
+
+intC⊑ᵐfceC : (Θ : CtxMorph) (Δ : Ctxᵗ) → intC Θ Δ ⊑ᵐ fceC Θ Δ
+intC⊑ᵐfceC Θ Δ = ⊑ᵐ-prep (reps Θ) (scp⊑ᵐfscp Θ Δ)
+
+-- THE LEMMA, no longer an interface.
+maskOnly : MaskOnly
+maskOnly Θ Δ (E , d , v) d′ with ⊑ᵐ-∋e (intC⊑ᵐfceC Θ Δ) d
+... | E′ , d″ , l with ∋e-det d″ d′
+...   | refl = subst (λ e → intC Θ Δ ∋e _ , e) (⊑ᵐᵉ-bind l v) d
 
 ------------------------------------------------------------------------
 -- §3  THE SOUNDNESS OF IDPUSH UNDER THE SCOPING SIDE-CONDITION
@@ -141,17 +231,17 @@ idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A =
   dX = subst (λ Z → fceC Θ₁ (intC Θ₂ Δ) ∋ Z := liftN (nbind Θ₁) A) eqX
              (prep-∋ (reps Θ₁) (fscp-∋bind Θ₁ owner))
 
--- With `MaskOnly` in hand, `owner` is derived from the redex, so the SINGLE
+-- With `maskOnly` PROVEN, `owner` is derived from the redex, so the SINGLE
 -- genuinely-added premise is the scoping side-condition `intC Θ₂ Δ ⊢ᵗ A`.
-idPushCase-scoped : MaskOnly
-  → (∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → fceC Θ₂ Δ ∋ Y := A
-     → intC Θ₂ Δ ⊢ᵗ A
-     → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
-     → Δ ∣ [] ⊢ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫ ⦂ C)
-idPushCase-scoped mo {Δ = Δ} {Θ₂ = Θ₂} v d scoped ⊢R
+idPushCase-scoped :
+  ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → fceC Θ₂ Δ ∋ Y := A
+  → intC Θ₂ Δ ⊢ᵗ A
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫ ⦂ C
+idPushCase-scoped {Δ = Δ} {Θ₂ = Θ₂} v d scoped ⊢R
   with ⊢R
 ... | env bw₂ (env bw₁ ⊢V ⊢cᵢ wE′) (conv-unseal dₒ) wE =
-  idPush⁺ v d scoped (mo Θ₂ Δ (⊢ᵗ→∋tv wE′) d) ⊢R
+  idPush⁺ v d scoped (maskOnly Θ₂ Δ (⊢ᵗ→∋tv wE′) d) ⊢R
   where
   -- With the outer face matched to `conv-unseal`, `wE′ : intC Θ₂ Δ ⊢ᵗ ` Y`
   -- reflects Y visible inside.

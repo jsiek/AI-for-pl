@@ -43,6 +43,26 @@ module strong.Preservation where
 -- What IS proven, unconditionally: TyBeta (the mint), Beta, Drop$, PEEL,
 -- and all five congruences — and preservation itself, over the remaining
 -- open cases as premises (`module Conditional`).
+--
+-- WHERE IDPUSH'S MISSING PREMISE CAN LIVE.  proof/WallReach shows the
+-- missing premise is `RepWf (intC Θ₂ Δ)` and proof/IdPushReach proves the
+-- case from it (`idPush⁺`, with the mask-only step `maskOnly` now PROVEN).
+-- proof/WallGrounding settles where that premise can be GROUNDED: NOT in
+-- `Bwf`, because the `¬IdPushCase` witness and a REACHABLE wrapper of
+-- Examples §12 have the SAME `Δ` and the SAME `Θ` and differ only in
+-- their FACE — so a `Bwf`-level wall would make `preserve-TyBeta` false.
+-- The candidate that follows — a face-conditioned `env` premise
+-- (`ScopedAt ↑ˢ Δ Θ Bₑ = scp Θ Δ ⊢ᵗ Bₑ`) — is run on the examples in
+-- proof/ScopedFace: it is ⊑-stable, it refuses the `¬IdPushCase` witness,
+-- and its one open Peel obligation is discharged
+-- (`peel-crossing-scoped`) — but it does NOT make IdPush a theorem, since
+-- IdPush turns the INNER, id-faced layer into an `unseal`-faced one and
+-- the premise says nothing about that layer's REP (`contractum-owes`).
+-- proof/ChainScoped runs the next two: POINTWISE `RepWf` at every
+-- name-faced boundary, killed by a closed program (`¬NameFacedRepWf`),
+-- and the REP CHAIN of the face's own name, which gets IdPush and
+-- CancelR right but is broken by TyBeta's retag (`¬ChainFaced`) — a
+-- chain STOPS at a Λ-bound slot, and TyBeta gives that slot a rep.
 
 open import Data.Nat using (ℕ; suc)
 open import Data.List using (List; []; _∷_)

@@ -1846,7 +1846,7 @@ _ = refl
 ------------------------------------------------------------------------
 
 -- §12 asked whether the wall CONFIGURATION is reachable.  The scope move
--- (strong.Reduction §2b, 2026-09-06) makes the question moot: the
+-- (strong.CtxMorph §4, 2026-09-06) makes the question moot: the
 -- configuration is fine.  Here is the hand-built witness itself
 -- (proof/PreserveObstruct §4) — `Δi = X := Y , Y := ℕ`, where X's rep
 -- NAMES Y, under an outer boundary that LOCKS Y — taking its step.

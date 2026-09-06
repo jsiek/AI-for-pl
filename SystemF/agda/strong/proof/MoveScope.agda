@@ -3,7 +3,7 @@ module strong.proof.MoveScope where
 -- THE SCOPE MOVE — its frame algebra, and the TWO preservation cases it
 -- settles (CancelR and IdPush), UNCONDITIONALLY.
 --
--- THE MOVE (strong.Reduction §2b).  Both rules SWAP the two conversions
+-- THE MOVE (strong.CtxMorph §4).  Both rules SWAP the two conversions
 -- of a two-layer wrapper, so the INNER boundary stops presenting the
 -- abstract name `` ` Y `` and starts presenting Y's REP.  A rep is a type
 -- over the exterior; inside Θ₂'s LOCKS it need not be nameable at all,
@@ -59,7 +59,7 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
-open import strong.Reduction using (scopeOf; rewind; dualScope; _⋉_)
+open import strong.CtxMorph using (scopeOf; rewind; dualScope; _⋉_)
 open import strong.proof.Preserve using (CancelRCase; IdPushCase)
 open import strong.proof.PeelDual
   using (⊢ᵐ-++; scope-++; unlockedScope-++; scope-dualScope; ⊢ᵐ-dualScope;

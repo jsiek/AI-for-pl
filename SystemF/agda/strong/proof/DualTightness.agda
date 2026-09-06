@@ -12,7 +12,7 @@ module strong.proof.DualTightness where
 -- THROUGH THE BOUNDARY: the redex below is ILL TYPED at Δᵤ (its argument
 -- W names a slot MASKED at Δᵤ) and its `Peel` contractum was WELL TYPED.
 --
--- THE REPAIR, in two coupled halves (strong.Reduction §2, strong.Terms):
+-- THE REPAIR, in two coupled halves (strong.CtxMorph §3, `_⊢ᵐ_` in §2):
 --
 --   (1) `mw-u` demands `scope Θ Δ ∋lk X` — the slot must be LOCKED.  A
 --       VACUOUS unlock is REFUSED (§5 below); it is the premise the

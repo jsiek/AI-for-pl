@@ -15,7 +15,7 @@ module strong.proof.PeelDual where
 -- whenever Θ unlocked a slot Δ masked, and `Peel` related a term the
 -- exterior REFUSES to one it accepts (proof/DualTightness).
 --
--- The two repairs (strong.Reduction §2) that buy it:
+-- The two repairs (strong.CtxMorph §3) that buy it:
 --   `unlock X ↦ lock (n + X)`  the dual RESTORES what Θ unlocked, sound
 --                              because `mw-u` refuses a vacuous unlock
 --                              (`mask-unmask`, strong.Ctx §6b);
@@ -43,7 +43,7 @@ open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
 open import strong.TermSubst
-open import strong.Reduction using (hideBinds; dualScope; dual)
+open import strong.CtxMorph using (hideBinds; dualScope; dual)
 open import strong.proof.Preserve using (PeelCase; ⊢ᵗ-of; CtxWf-[])
 open import strong.proof.Canonical using (shiftBy-⇒; conv-tgt≡)
 

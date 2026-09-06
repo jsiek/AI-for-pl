@@ -49,6 +49,6 @@ open import strong.Eval
 -- THE WALL.  The search for an INVARIANT grounding the premise
 -- `interior Θ₂ Δ ⊢ᵗ A` — the one the old CancelR/IdPush contracta needed —
 -- is recorded in notes/DECISIONS.md (2026-09-06 entries).  The SCOPE MOVE
--- (strong.Reduction §2b) removes the need, so the development carries no
+-- (strong.CtxMorph §4) removes the need, so the development carries no
 -- module for it; the two surviving artifacts are proof/MaskFacts.mask-only
 -- and Examples §12/§12b.

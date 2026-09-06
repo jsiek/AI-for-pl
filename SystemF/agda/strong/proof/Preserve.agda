@@ -41,6 +41,7 @@ open import strong.TypeSubst
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
+open import strong.CtxMorph
 open import strong.TermSubst
 open import strong.Reduction
 
@@ -281,8 +282,8 @@ substᵉ-⇑ n R (masked E)  = cong masked (substᵉ-⇑ n R E)
 -- WHAT THE OTHER SLOTS OWE.  Every entry of `abstN n (abst ∷ Ψ)` is
 -- either ABSTRACT (the prefix, and slot n itself) or an entry of Ψ read
 -- past `n+1` binders — and such an entry names no slot ≤ n, so the mint
--- at slot n leaves it alone.  This is SIMULTANEITY again: a rep is a type
--- over the plain exterior, lifted past the binders inside it.
+-- at slot n leaves it alone: a rep is lifted past exactly the binders
+-- inside it, so it never names a slot of the bind prefix.
 abstN-ent : ∀ {Ψ A} (n : ℕ) {Y E}
   → abstN n (abst ∷ Ψ) ∋e Y , E
     ------------------------------------------------------------

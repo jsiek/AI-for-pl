@@ -48,6 +48,7 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
+open import strong.CtxMorph
 open import strong.TermSubst
 open import strong.Reduction
 open import strong.proof.Canonical

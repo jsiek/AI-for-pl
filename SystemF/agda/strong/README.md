@@ -67,10 +67,11 @@ driver: type-checking it type-checks the whole thing.
 | `Types.agda` | System F types in de Bruijn form; renaming and parallel substitution; `_[_]ᵗ` and the at-a-slot substitution `_[_:=_]ᵗ` |
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
 | `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the bind prefix `pushBinds` with `shiftBy` |
-| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, and `conv-types-unique` |
-| `Terms.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`, `scope`, `unlockedScope`, `interior`, `convCtx`), `_⊢ᵐ_`, terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` |
+| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
+| `CtxMorph.agda` | the context morphism (`bind`/`lock`/`unlock`, `repsOf`, `numBinds`), the type contexts it induces (`scope`, `unlockedScope`, `interior`, `convCtx`) with their refinement transports, and the well-formedness judgement `Δ ⊢ᵐ Θ`, and the derived morphisms `dual` (Peel) and `rewind`/`_⋉_` (the scope move) |
+| `Terms.agda` | terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` (re-exports `CtxMorph`) |
 | `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |
-| `Reduction.agda` | `reveal`/`conceal` and their conversion analogues, the dual (`hideBinds`, `dualScope`, `dual`), the scope move (`scopeOf`, `rewind`, `_⋉_`), the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
+| `Reduction.agda` | the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
 | `Progress.agda` | the statement `Progress` and `progress`, a one-line wrapper around `proof.Progress.progress` |
 | `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full |

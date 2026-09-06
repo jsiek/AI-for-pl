@@ -2440,3 +2440,16 @@ abst-not-owner → abst-not-binder, ¬canonC-two-owners →
 is the binder lookup.  Where "binder" would be ambiguous with Λ/∀/λ
 binders, prose says "the `bind` entry for X" / "Λ-bound X".  Historical
 memos and this log keep the old word.
+
+### RULINGS before PR #190 leaves draft (Jeremy, 2026-09-06)
+
+(1) DELETE the four invariant-hunt record files proof/WallReach,
+WallGrounding, ChainScoped, IdPushReach — the refutations they carried
+are recorded in this log (2026-09-06 entries "the invariant hunt" and
+its UPDATE) and in the artifacts "The Wall" and "Two Polarities, One
+Rule"; nothing in the development depends on them.  (2) MOVE PLAN.md
+(the superseded PR #189 handoff for v1) to notes/old/PLAN-v1.md.  (3)
+The `_⊑ᵉ_` constructors lose their owner/blocked initials: le-ao → le-ab
+(abst ⊑ bind), le-oo → le-bb (bind ⊑ bind), and the masked pair le-bb →
+le-mm, le-bu → le-mu; le-aa stays.  Then the PR is marked ready for
+review.

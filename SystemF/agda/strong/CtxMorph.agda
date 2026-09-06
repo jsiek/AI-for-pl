@@ -163,11 +163,10 @@ interior⊑convCtx Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ �
 --             `lock` needs (`mask-unmask`, strong.Ctx).
 --   bind A    A is a type over `unlockedScope Θ′ Δ` — the tail's UNMASKS
 --             applied and its LOCKS lifted.  A rep is never blocked by
---             the frame's own locks (that is the simultaneity law: a rep
---             is read where the CONVERSION is read, outside the masking
---             the boundary itself performs), and it may name what the
---             tail unlocked — which is what makes the scope move
---             (`_⋉_`, strong.Reduction) well formed.
+--             the frame's own locks — it is read where the CONVERSION is
+--             read, outside the masking the boundary itself performs —
+--             and it may name what the tail unlocked, which is what makes
+--             the scope move (`_⋉_`, strong.Reduction) well formed.
 --
 -- Note the distinction the mask discipline forces: `unlock X`/`lock X`
 -- NAME a masked index — that is an ENTRY, not a type — while `Δ ⊢ᵗ ` X`

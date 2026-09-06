@@ -161,9 +161,9 @@ dual Θ = hideBinds (numBinds Θ) ++ dualScope (numBinds Θ) Θ
 
 -- JEREMY'S MOVE (2026-09-06).  CancelR and IdPush both SWAP the two
 -- conversions: the inner boundary stops presenting the abstract name
--- `` ` Y `` and starts presenting Y's REP.  A rep is a type over the
--- PLAIN exterior, so it is nameable on the outer boundary's CONVERSION
--- CONTEXT and NOT, in general, inside the outer boundary's own locks — that
+-- `` ` Y `` and starts presenting Y's REP.  A rep is read on the outer
+-- boundary's CONVERSION CONTEXT (its locks lifted), so it is nameable
+-- there and NOT, in general, inside the outer boundary's own locks — that
 -- was the wall (the old proof/PreserveObstruct §4).
 --
 -- The repair is not a side condition but a FRAME MOVE: the outer frame's

@@ -18,8 +18,9 @@ module strong.Show where
 --     inner supply — the old `cmax` correction has no analogue, and the
 --     interior supply and the CONVERSION-CONTEXT supply coincide
 --     (`interior` and `convCtx` differ in blocking, not in slot layout).
---   * a BINDER's rep is shown under `ext` — a rep is a type over the PLAIN
---     exterior (simultaneity);
+--   * a BINDER's rep is shown under `ext` — a rep uses the exterior's
+--     slots (the judgement reads it on `unlockedScope Θ′ Δ`, which has the
+--     same slot layout as Δ);
 --   * a `lock X` / `unlock X` names an EXTERIOR slot, so it is shown under
 --     `ext`; neither carries a rep, which is the whole point of the
 --     redesign;
@@ -145,7 +146,7 @@ tl []       = []
 tl (s ∷ ss) = ss
 
 -- `on` is the binder-name list still to be consumed; `ext` names exterior
--- slots.  A binder's rep is read in the PLAIN exterior; `lock`/`unlock` carry
+-- slots.  A binder's rep uses the exterior's slots; `lock`/`unlock` carry
 -- a name only.
 showEnts : ℕ → List String → Supply → CtxMorph → String
 showEnts d on ext [] = ""

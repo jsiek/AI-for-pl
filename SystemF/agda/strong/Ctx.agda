@@ -622,16 +622,16 @@ mask-∋lk (E , d , v) =
 ------------------------------------------------------------------------
 
 -- The `bind` entries of a boundary, pushed on as ordinary de Bruijn
--- binders.  The head of the list is interior slot 0; a rep is a type over
--- the PLAIN exterior, so it is lifted past the binders INSIDE it and past
--- nothing else (SIMULTANEITY: boundary entries never interfere).
+-- binders.  The head of the list is interior slot 0; a rep uses the
+-- exterior's slots, so it is lifted past the binders INSIDE it and past
+-- nothing else — a bind is never blocked by its own frame's locks, and
+-- sibling binds never interfere.
 pushBinds : List Ty → Ctxᵗ → Ctxᵗ
 pushBinds []       Δ = Δ
 pushBinds (A ∷ As) Δ = bind (shiftBy (length As) A) ∷ pushBinds As Δ
 
--- SIMULTANEITY, as a well-formedness fact: a type over the plain exterior
--- is a type inside the bind prefix, lifted past exactly the binders in
--- that prefix.
+-- As a well-formedness fact: a type over the exterior is a type inside
+-- the bind prefix, lifted past exactly the binders in that prefix.
 wf-shiftBy-pushBinds : (As : List Ty) → Δ ⊢ᵗ A
   → pushBinds As Δ ⊢ᵗ shiftBy (length As) A
 wf-shiftBy-pushBinds []       w = w

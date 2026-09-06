@@ -46,6 +46,116 @@ Two consequences shape everything else:
   moves its names coherently, and knowledge transport is *definitional*:
   `ren-kn r d = ren∋ r d` in `strong.Ctx`.
 
+### The pre-boundary counterexample (why boundaries carry a context morphism)
+
+Before either v1 or v2 there was a **pre-boundary** design: one wrapper
+per revealed or concealed variable, `M ↑[X:=A]` and `M ↓[X:=A]`, with the
+rules
+
+    (TyBeta)      (ΛX. V) @B[A]          → V ↑[X:=A]@B
+    (WrapReveal)  F ↑[X:=A]@(B₁→B₂) · W  → (F · W↓[X:=A]@B₁) ↑[X:=A]@B₂
+    (TyWrapCncl)  F ↓[X:=A]@∀Y.B [C]     → F [C[X:=A]] ↓[X:=A]@B
+
+(the full set is `notes/old/notes-v1.md`, "Old per-variable design").  One
+closed program refutes it — Jeremy's trace, verbatim:
+
+    (ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] · (ΛZ. λz:Z. z)              : ∀Y. Y→Y
+    → TyBeta      (λf:(∀Z.Z→Z). ΛY. f [Y]) ↑[X:=ℕ] · (ΛZ. λz:Z. z)
+    → WrapReveal  ((λf. ΛY. f [Y]) · (ΛZ. λz:Z. z)↓[X:=ℕ]) ↑[X:=ℕ]
+    → Beta        (ΛY. (ΛZ. λz:Z. z)↓[X:=ℕ] [Y]) ↑[X:=ℕ]
+    → TyWrapCncl  (ΛY. ((ΛZ. λz:Z. z) [Y]) ↓[X:=ℕ]) ↑[X:=ℕ]              ← ILL-TYPED
+
+**The diagnosis.**  A conceal's interior context was the exterior with `X`
+*and every variable bound after `X`* dropped — `X`'s existential scope,
+written `Γ ↓ X`.  On the third line the conceal `↓[X:=ℕ]` has come to sit
+under the *later* binder `ΛY`, so its exterior is `Γ = Y , X:=ℕ` and its
+interior is
+
+    Γ ↓ X  =  (Y , X:=ℕ) ↓ X  =  ∅
+
+because `Y` is shallower than `X` and the prefix drops it.  That is
+survivable only while the concealed body never mentions `Y` — and
+`TyWrapCncl` is exactly the rule that makes it mention `Y`: it pushes the
+type argument **into** the concealed body as a spelled type, so
+`(ΛZ. λz:Z. z) [Y]` must type at `∅ ⊢ Y`, which fails.  The last term is
+not typeable at any type.
+
+**Two lessons, and together they are what a boundary is.**
+
+1. **Mask, don't drop.**  A `lock X` masks `X` *in place* (`mask`,
+   `strong.Ctx`) and retains every other entry, so a variable bound
+   between the boundary's creation and its current position stays
+   nameable inside.  And the interior is *computed* from the exterior at
+   the boundary's **current** position — `interior Θ Δ` is a function of
+   the ambient `Δ` — never remembered from the boundary's birth.
+2. **A type argument is never pushed into a concealed body.**  `TyPeelR`
+   records it as a **new bind** on the boundary, `bind A ∷ Θ`, and
+   instantiates the interior at the fresh *name* `` ` 0 `` (§6.4).  So a
+   boundary has to carry a bind and a lock at the same time: it is a
+   **list** — a context morphism — and not a single reveal-or-conceal.
+
+**The same program today.**  `Examples` §14 runs it, machine-rendered;
+`run-E` is the run, `⊢E₅` types the answer by `preservation*`, and
+`edet₁ … edet₅` pin every state as the only successor of its predecessor.
+
+Diagram:
+
+    E₀  ((ΛX. (λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))) [ℕ] · (ΛZ. (λx:Z. x)))
+        |
+        |  TyBeta: the owner ↑X:=ℕ is minted
+        v
+    E₁  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
+           ⟪ ↑X:=ℕ , ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id Y ↦ id Y))) ⟫)
+          · (ΛZ. (λx:Z. x)))
+        |
+        |  Peel: the argument crosses and acquires the dual's lock ↓X
+        v
+    E₂  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
+           · ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫))
+          ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+        |
+        |  Beta, lifted through ⟪ ↑X:=ℕ , … ⟫
+        v
+    E₃  ((ΛY. ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Z. (id Z ↦ id Z)) ⟫) [Y])
+          ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+        |
+        |  TyPeelR, lifted through ⟪ ↑X:=ℕ , … ⟫ and ΛY —
+        |  the line the pre-boundary design died on
+        v
+    E₄  ((ΛY. ((ΛX′. (λx:X′. x)) [Z]
+                 ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
+          ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+        |
+        |  TyBeta, inside the boundary TyPeelR just grew
+        v
+    E₅  ((ΛY. (((λx:X′. x) ⟪ ↑X′:=Z , (seal X′ ↦ unseal X′) ⟫)
+                 ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
+          ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)                    a VALUE
+
+`E₃` *is* the counterexample's third line, and `E₃ → E₄` is where the two
+designs part.  The crossed value's frame is the single lock `↓X`, and its
+two type contexts at that redex are (`Examples` §14, `E-int` / `E-ext`,
+rendered at the trace's own names):
+
+    interior (↓X) Δ    Y Λ-bound , ⌷[X := ℕ]
+    exterior (↓X) Δ    Y Λ-bound ,   X := ℕ
+
+where the old design had `∅`.  `Y` is still nameable inside
+(`E-Y-inside`) and `X` still is not (`E-X-hidden`): lesson 1.  And the
+argument `Y` is not written into the sealed body — `↑Z:=Y` binds a fresh
+`Z` at the representation `Y`, read in the plain exterior, and the
+interior instantiates at `Z`: lesson 2.  The contractum types by
+`preservation-TyPeelR`.
+
+v1 took lesson 2 only — one combined boundary and a `TyWrap` that recorded
+the argument as a reveal representation; that is the "Example 8" entry of
+`notes/old/notes-v1.md`, whose `↑Z:=Y , ↓X` residue is `E₄`'s inner frame
+here, and it is v1's *copied* representations, not that shape, that
+subject reduction later refuted.  The scope move (§6.7) is the same
+principle one level up: when a rule would leave a representation outside
+the locks that hide it, the locks **move** into the inner frame rather
+than being dropped, so nothing that was nameable stops being nameable.
+
 
 ## 2. Syntax
 
@@ -959,6 +1069,12 @@ machine-checked consequence in tree.
 The design log is `notes/DECISIONS.md`, in order; this is only a map.
 Do not read the sections below for content — read them there.
 
+* **The pre-boundary design refuted.**  One wrapper per variable, with an
+  interior that *dropped* the shallower context and a rule that pushed
+  the type argument inward.  The counterexample, the diagnosis and the
+  same program run in v2 are in §1, "The pre-boundary counterexample";
+  the historical record is `notes/old/notes-v1.md`, "Old per-variable
+  design" and "Example 8, historical".
 * **v1 refuted.**  "THE PRESERVATION VERDICT (2026-09-05) — SUBJECT
   REDUCTION IS FALSE".  Every failure was a failed representation *copy*.
 * **The survey.**  "REDESIGN SURVEY ORDERED (Jeremy, 2026-09-05)" and

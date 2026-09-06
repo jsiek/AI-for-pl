@@ -64,7 +64,7 @@ type-checking it type-checks the whole development.
 | `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full |
 | `All.agda` | aggregate driver |
-| `Examples.agda` | the regression corpus: 13 sections of runs and refutations, most from closed plain System F source (see `Design.md` for which example illustrates which rule) |
+| `Examples.agda` | the regression corpus: 14 sections of runs and refutations, most from closed plain System F source, §14 being the pre-boundary counterexample run in v2 (see `Design.md` for which example illustrates which rule) |
 | `Show.agda` | de Bruijn → named renderer (see **Tools**) |
 | `PLAN.md` | **historical**: the v1 handoff plan (PR #189); superseded by `Design.md` + `notes/DECISIONS.md` |
 

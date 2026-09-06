@@ -26,6 +26,10 @@ module strong.Examples where
 --     TyPeelR contractum the retired polarity index used to refuse, `H`
 --     is the REVEAL mirror, and §13c records the contracta weighed
 --     against the landed rule.
+-- §14 THE PRE-BOUNDARY COUNTEREXAMPLE: `E`, the closed program that
+--     refuted the per-variable design (v1's historical Example 8), run
+--     in v2 to a VALUE — the step that used to produce an ill-typed
+--     term is `estep₄`, and `E-int`/`E-ext` are its two type contexts.
 --
 -- Every `_ : … ≡ …` in this file is a machine-checked frame computation.
 
@@ -2346,3 +2350,244 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , id `ℕ ↦ unseal 0 
 -- the mask the crossing installed, (v)/(vi) resolve the owner inside.
 -- The landed rule keeps the frame and the mask and mints
 -- `instReveal 0 s`, which types by `preservation-TyPeelR` (§13a).
+
+------------------------------------------------------------------------
+-- §14  THE PRE-BOUNDARY COUNTEREXAMPLE, RUN IN v2
+------------------------------------------------------------------------
+
+-- THE PROGRAM THAT KILLED THE PER-VARIABLE DESIGN (notes/old/notes-v1.md,
+-- "Example 8, historical").  With one wrapper per revealed/concealed
+-- variable — `M ↑[X:=A]` / `M ↓[X:=A]` — the run
+--
+--   (ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] · (ΛZ. λz:Z. z)              : ∀Y. Y→Y
+--   → TyBeta      (λf:(∀Z.Z→Z). ΛY. f [Y]) ↑[X:=ℕ] · (ΛZ. λz:Z. z)
+--   → WrapReveal  ((λf. ΛY. f [Y]) · (ΛZ. λz:Z. z)↓[X:=ℕ]) ↑[X:=ℕ]
+--   → Beta        (ΛY. (ΛZ. λz:Z. z)↓[X:=ℕ] [Y]) ↑[X:=ℕ]
+--   → TyWrapCncl  (ΛY. ((ΛZ. λz:Z. z) [Y]) ↓[X:=ℕ]) ↑[X:=ℕ]        ← ILL-TYPED
+--
+-- left the calculus.  Two things went wrong at once, and v2's boundary
+-- fixes both:
+--
+--  (1) MASK, DON'T DROP.  A conceal's interior was the exterior with X
+--      and everything bound AFTER X removed, so at Γ = Y , X:=ℕ the
+--      interior was Γ↓X = ∅ and Y — bound after the boundary was born —
+--      was gone.  v2's `lock` MASKS in place: `interior (lock 1 ∷ []) Δ`
+--      keeps every entry of Δ and only makes slot 1 un-nameable (E-int
+--      below).  Y stays.
+--
+--  (2) A TYPE ARGUMENT IS NEVER PUSHED IN.  TyWrapCncl wrote the spelled
+--      argument into the sealed body.  `TyPeelR` records it as a NEW
+--      BIND on the boundary (`bind A ∷ Θ`) and instantiates the interior
+--      at the fresh NAME `` ` 0 ``; that is why the boundary is a LIST —
+--      a context morphism — and not a single reveal-or-conceal.
+--
+-- Below: the SAME closed program, in v2, run to a VALUE in five steps,
+-- with every step pinned by `det`.  Step 4 is the one that used to die.
+--
+-- RENDERED (scripts/render_term.sh, `showTmIn 0`):
+--
+--  E₀  ((ΛX. (λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))) [ℕ] · (ΛZ. (λx:Z. x)))
+--  E₁  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
+--         ⟪ ↑X:=ℕ , ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id Y ↦ id Y))) ⟫)
+--        · (ΛZ. (λx:Z. x)))
+--  E₂  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
+--         · ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫))
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--  E₃  ((ΛY. ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Z. (id Z ↦ id Z)) ⟫) [Y])
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--  E₄  ((ΛY. ((ΛX′. (λx:X′. x)) [Z] ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--  E₅  ((ΛY. (((λx:X′. x) ⟪ ↑X′:=Z , (seal X′ ↦ unseal X′) ⟫)
+--               ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)                      -- a VALUE
+--
+-- E₃ is the old design's fourth line, and E₄ is where the two designs
+-- part: `↑Z:=Y , ↓X` is a boundary that MASKS X and BINDS a fresh Z at
+-- the rep Y — no type is pushed into the sealed body, and Y is read in
+-- the plain exterior, where it is in scope.
+
+-- ── the source ─────────────────────────────────────────────────────────
+
+EID EBod : Ty
+EID  = `∀ (` 0 ⇒ ` 0)                    -- ∀Z. Z ⇒ Z   (= ∀Y. Y ⇒ Y)
+EBod = EID ⇒ EID                         -- the ΛX body type
+
+Earg Ebody Efun E₀ : Term
+Earg  = Λ (ƛ (` 0) ∙ (` 0))              -- ΛZ. λz:Z. z
+Ebody = Λ ((` 0) ·[ ` 0 ⇒ ` 0 , ` 0 ])   -- ΛY. f [Y]
+Efun  = Λ (ƛ EID ∙ Ebody)                -- ΛX. λf:(∀Z.Z⇒Z). ΛY. f [Y]
+E₀    = (Efun ·[ EBod , `ℕ ]) · Earg
+
+⊢EID : ∀ {Δ} → (abst ∷ Δ) ⊢ᵗ EID
+⊢EID = wf-∀ (wf-⇒ (wf-var (abst , ez , nameable-a))
+                  (wf-var (abst , ez , nameable-a)))
+
+⊢Earg : ∀ {Δ Γ} → Δ ∣ Γ ⊢ Earg ⦂ EID
+⊢Earg = ⊢Λ (⊢ƛ (wf-var (abst , ez , nameable-a)) (⊢` here))
+
+⊢Efun : [] ∣ [] ⊢ Efun ⦂ `∀ EBod
+⊢Efun = ⊢Λ (⊢ƛ ⊢EID
+               (⊢Λ (⊢·[] (⊢` here) (wf-var (abst , ez , nameable-a)))))
+
+⊢E₀ : [] ∣ [] ⊢ E₀ ⦂ EID
+⊢E₀ = ⊢· (⊢·[] ⊢Efun wf-ℕ) ⊢Earg
+
+-- ── the two faces the run uses ─────────────────────────────────────────
+
+-- X does not occur in EBod, so TyBeta's mint is TRANSPARENT on both
+-- halves: the crossing hands the argument an all-identity ∀-face.
+Eid∀ : Conv
+Eid∀ = `∀ (id (` 0) ↦ id (` 0))
+
+_ : reveal 0 EBod ≡ Eid∀ ↦ Eid∀
+_ = refl
+
+-- ── STEP 1 — TYBETA.  The owner X := ℕ is minted.
+
+E₁ : Term
+E₁ = ((ƛ EID ∙ Ebody) ⟪ bind `ℕ ∷ [] , Eid∀ ↦ Eid∀ ⟫) · Earg
+
+estep₁ : [] ⊢ E₀ -→ E₁
+estep₁ = ξ-·-l (TyBeta V-ƛ)
+
+-- ── STEP 2 — PEEL.  `ΛZ. λz:Z. z` crosses; the dual masks the new owner.
+
+_ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
+_ = refl
+
+_ : wkᴹ 1 Earg ≡ Earg
+_ = refl
+
+EW : Term                        -- the argument, behind the crossing
+EW = Earg ⟪ lock 0 ∷ [] , Eid∀ ⟫
+
+val-EW : Value EW
+val-EW = V-⟪⟫ (V-Λ V-ƛ) I-all
+
+E₂ : Term
+E₂ = ((ƛ EID ∙ Ebody) · EW) ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+
+estep₂ : [] ⊢ E₁ -→ E₂
+estep₂ = Peel V-ƛ (V-Λ V-ƛ)
+
+-- ── STEP 3 — BETA, under ξ-⟪⟫.  `substᵐ`'s Λ clause shifts the crossed
+-- value past ΛY: the LOCK's name moves (lock 0 ↦ lock 1) and nothing
+-- else does — a name, not a spelling.
+
+EW↑ : Term
+EW↑ = Earg ⟪ lock 1 ∷ [] , Eid∀ ⟫
+
+_ : ⇑ᴹ EW ≡ EW↑
+_ = refl
+
+_ : Ebody [ EW ]ᵐ ≡ Λ (EW↑ ·[ ` 0 ⇒ ` 0 , ` 0 ])
+_ = refl
+
+E₃ : Term
+E₃ = (Λ (EW↑ ·[ ` 0 ⇒ ` 0 , ` 0 ])) ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+
+estep₃ : [] ⊢ E₂ -→ E₃
+estep₃ = ξ-⟪⟫ (Beta val-EW)
+
+-- ── THE STEP THE OLD DESIGN DIED ON ────────────────────────────────────
+--
+-- E₃'s inner redex is `EW↑ ·[ ` 0 ⇒ ` 0 , ` 0 ]`: the crossed value,
+-- type-applied to the Λ-bound Y — a variable bound AFTER the boundary
+-- was born.  Here are the two type contexts, at that redex.
+
+EΔ₃ : Ctxᵗ                       -- the ambient: Y abstract, X := ℕ
+EΔ₃ = abst ∷ bind `ℕ ∷ []
+
+_ : interior (bind `ℕ ∷ []) [] ≡ bind `ℕ ∷ []
+_ = refl
+
+E-int E-ext : Ctxᵗ
+E-int = interior (lock 1 ∷ []) EΔ₃
+E-ext = exterior (lock 1 ∷ []) EΔ₃
+
+-- THE INTERIOR IS THE EXTERIOR WITH X MASKED — NOT TRUNCATED.  The old
+-- design's interior at this point was Γ↓X = ∅.  RENDERED
+-- (`showTCtxAt 99 0 (λ { 0 → "Y" ; _ → "X" })`, so that the names agree
+-- with the trace above):
+--
+--   E-int   Y Λ-bound , ⌷[X := ℕ]
+--   E-ext   Y Λ-bound , X := ℕ
+--
+_ : E-int ≡ abst ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+_ : E-ext ≡ EΔ₃
+_ = refl
+
+-- Y is still nameable inside …
+E-Y-inside : E-int ⊢ᵗ ` 0
+E-Y-inside = wf-var (abst , ez , nameable-a)
+
+-- … and X still is not: the mask does its job.
+E-X-hidden : ¬ (E-int ⊢ᵗ ` 1)
+E-X-hidden (wf-var (_ , es ez , ()))
+
+-- ── STEP 4 — TYPEELR, under ξ-Λ.  The type argument Y is NOT pushed into
+-- the crossed body; it is recorded as a NEW BIND, `bind (` 0)`, and the
+-- interior is instantiated at that bind's own name.  The face's abstract
+-- slot becomes the fresh owner, so each identity leaf becomes the
+-- instantiation step.
+
+E-face-ctx : Ctxᵗ
+E-face-ctx = abst ∷ exterior (lock 1 ∷ []) EΔ₃
+
+⊢Es : E-face-ctx ⊢ id (` 0) ↦ id (` 0) ∶ (` 0 ⇒ ` 0) ⇝ (` 0 ⇒ ` 0)
+⊢Es = conv-fun (conv-idv (abst , ez , nameable-a))
+               (conv-idv (abst , ez , nameable-a))
+
+_ : instReveal 0 (id (` 0) ↦ id (` 0)) ≡ seal 0 ↦ unseal 0
+_ = refl
+
+E₄ : Term
+E₄ = (Λ ((Earg ·[ ` 0 ⇒ ` 0 , ` 0 ])
+           ⟪ bind (` 0) ∷ lock 1 ∷ [] , seal 0 ↦ unseal 0 ⟫))
+       ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+
+estep₄ : [] ⊢ E₃ -→ E₄
+estep₄ = ξ-⟪⟫ (ξ-Λ (TyPeelR (V-Λ V-ƛ) ⊢Es))
+
+-- ── STEP 5 — TYBETA, inside.  The ΛZ is consumed against the bind
+-- TyPeelR just made, and the result is a VALUE.
+
+_ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
+_ = refl
+
+E₅ : Term
+E₅ = (Λ (((ƛ (` 0) ∙ (` 0)) ⟪ bind (` 0) ∷ [] , seal 0 ↦ unseal 0 ⟫)
+           ⟪ bind (` 0) ∷ lock 1 ∷ [] , seal 0 ↦ unseal 0 ⟫))
+       ⟪ bind `ℕ ∷ [] , Eid∀ ⟫
+
+estep₅ : [] ⊢ E₄ -→ E₅
+estep₅ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (TyBeta V-ƛ)))
+
+val-E₅ : Value E₅
+val-E₅ = V-⟪⟫ (V-Λ (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun)) I-all
+
+run-E : [] ⊢ E₀ -→* E₅
+run-E = estep₁ then estep₂ then estep₃ then estep₄ then estep₅ then done
+
+-- THE ANSWER TYPES, at the source's own type ∀Y. Y ⇒ Y.
+⊢E₅ : [] ∣ [] ⊢ E₅ ⦂ EID
+⊢E₅ = preservation* ⊢E₀ run-E
+
+-- ── DETERMINISM PINS: the run above is THE run.
+
+edet₁ : ∀ {M′} → [] ⊢ E₀ -→ M′ → M′ ≡ E₁
+edet₁ st = det st estep₁
+
+edet₂ : ∀ {M′} → [] ⊢ E₁ -→ M′ → M′ ≡ E₂
+edet₂ st = det st estep₂
+
+edet₃ : ∀ {M′} → [] ⊢ E₂ -→ M′ → M′ ≡ E₃
+edet₃ st = det st estep₃
+
+edet₄ : ∀ {M′} → [] ⊢ E₃ -→ M′ → M′ ≡ E₄
+edet₄ st = det st estep₄
+
+edet₅ : ∀ {M′} → [] ⊢ E₄ -→ M′ → M′ ≡ E₅
+edet₅ st = det st estep₅

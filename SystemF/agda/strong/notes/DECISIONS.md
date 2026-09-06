@@ -2384,8 +2384,8 @@ Final map, applied as one mechanical pass (lemma names follow):
     blk → masked           unblk → unmaskEnt      Vis → Nameable
     Bwf → MorphWf (bw[]/bw-b/bw-l/bw-u → mw[]/mw-b/mw-l/mw-u)
     idc → mkId
-    unsealAt/sealAt → revealAt/concealAt
-    unsealAtᶜ/sealAtᶜ → instRevealAt/instConcealAt
+    unsealAt/sealAt → reveal/conceal        (amended from revealAt/concealAt)
+    unsealAtᶜ/sealAtᶜ → instReveal/instConceal
     dual KEPT              dualS → dualScope      lockBinds → hideBinds
     moveS → scopeOf        unlocked → dropLocks   _◃_ → _⋉_
     kept: Θ, bind/lock/unlock, abst, mask/unmask, Inj.

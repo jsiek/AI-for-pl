@@ -133,7 +133,7 @@ preservation* = I.preserve*
 preservation-TyBeta : ∀ {A}
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
     ---------------------------------------------
-  → Δ ∣ [] ⊢ N ⟪ bind A ∷ [] , reveal 0 B ⟫ ⦂ C
+  → Δ ∣ [] ⊢ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫ ⦂ C
 preservation-TyBeta = preserve-TyBeta
 
 -- BETA — the ordinary β step, i.e. the substitution lemma.
@@ -160,7 +160,7 @@ preservation-TyPeelR : ∀ {V Θ s B Bᵢ Bₑ}
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
     -----------------------------------------------------
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ bind A ∷ Θ , instReveal 0 s ⟫ ⦂ C
+               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
 preservation-TyPeelR = preserve-TyPeelR
 
 -- CANCELR — at the moved scope, unconditionally.

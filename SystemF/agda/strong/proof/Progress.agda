@@ -110,8 +110,8 @@ progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
 ∀-conv-premise : ∀ {Δ W Θ s B} → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ B
   → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ]
       ((abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
-∀-conv-premise (env mw ⊢W ⊢c wE) with conv-all-inv ⊢c
-∀-conv-premise (env mw ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
+∀-conv-premise (env mwᵥ ⊢W ⊢c wE) with conv-all-inv ⊢c
+∀-conv-premise (env mwᵥ ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
   Bᵢ , Bₑ , ⊢s
 
 ------------------------------------------------------------------------
@@ -160,7 +160,7 @@ progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
 
 -- M ⟪ Θ , c ⟫ — the boundary.  The interior is typed at `interior Θ Δ`; an
 -- interior step lifts by ξ-⟪⟫, an interior value goes to `progress-env`.
-progress (env mw ⊢M ⊢c wE) with progress ⊢M
-progress (env mw ⊢M ⊢c wE) | inj₂ (M′ , st) =
+progress (env mwᵥ ⊢M ⊢c wE) with progress ⊢M
+progress (env mwᵥ ⊢M ⊢c wE) | inj₂ (M′ , st) =
   inj₂ (M′ ⟪ _ , _ ⟫ , ξ-⟪⟫ st)
-progress (env mw ⊢M ⊢c wE) | inj₁ vM = progress-env vM ⊢M ⊢c
+progress (env mwᵥ ⊢M ⊢c wE) | inj₁ vM = progress-env vM ⊢M ⊢c

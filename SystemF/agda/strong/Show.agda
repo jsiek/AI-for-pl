@@ -19,11 +19,13 @@ module strong.Show where
 --     interior supply and the CONVERSION-CONTEXT supply coincide
 --     (`interior` and `convCtx` differ in blocking, not in slot layout).
 --   * a BINDER's rep is shown under `ext` — a rep uses the exterior's
---     slots (the judgement reads it on `unlockedScope Θ′ Δ`, which has the
+--     slots (the judgement reads it on `unlockedScope Θ Δ`, which has the
 --     same slot layout as Δ);
 --   * a `lock X` / `unlock X` names an EXTERIOR slot, so it is shown under
 --     `ext`; neither carries a rep, which is the whole point of the
---     redesign;
+--     redesign.  THE PAIR IS RENDERED IN ITS OWN ORDER: all the binds,
+--     then all the changes, then the conversion —
+--     `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`;
 --   * the CONVERSION `c` is shown under that same supply, and its
 --     `seal`/`unseal` names are read there — by their type context, not by a
 --     stored spelling.
@@ -35,7 +37,8 @@ module strong.Show where
 open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _<ᵇ_)
 open import Data.Nat.Show using (show)
 open import Data.Bool using (Bool; true; false; if_then_else_)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; length)
+open import Data.List using () renaming (_++_ to _l++_)
 open import Data.String using (String; _++_)
 open import Data.Product using (_×_; _,_; proj₁)
 
@@ -114,11 +117,9 @@ showConv d sup (`∀ s)     =
 ------------------------------------------------------------------------
 
 -- one fresh name per BINDER, newest first (binder 0 is interior slot 0)
-bindNames : ℕ → CtxMorph → List String
-bindNames d []               = []
-bindNames d (bind A ∷ Θ)     = tyBinder d ∷ bindNames (suc d) Θ
-bindNames d (unlock X ∷ Θ)   = bindNames d Θ
-bindNames d (lock X ∷ Θ)     = bindNames d Θ
+bindNames : ℕ → List Ty → List String
+bindNames d []       = []
+bindNames d (A ∷ Bs) = tyBinder d ∷ bindNames (suc d) Bs
 
 nth : List String → ℕ → String
 nth []       k       = "?"
@@ -136,34 +137,46 @@ intSup Θ on ext k =
 -- boundary context morphisms
 ------------------------------------------------------------------------
 
-sep : CtxMorph → String
-sep [] = ""
-sep (_ ∷ _) = " , "
-
 tl : List String → List String
 tl []       = []
 tl (s ∷ ss) = ss
 
+-- THE PAIR IS RENDERED IN ITS OWN ORDER: the BINDS first (`↑X:=A`), then
+-- the CHANGES (`↓Y`, `↥Z`), then the conversion — `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`.
 -- `on` is the binder-name list still to be consumed; `ext` names exterior
 -- slots.  A binder's rep uses the exterior's slots; `lock`/`unlock` carry
 -- a name only.
+bindPieces : ℕ → List String → Supply → List Ty → List String
+bindPieces d on ext []       = []
+bindPieces d on ext (A ∷ Bs) =
+  ("↑" ++ nth on 0 ++ ":=" ++ showTy d ext A) ∷ bindPieces d (tl on) ext Bs
+
+changePieces : Supply → List Change → List String
+changePieces ext []             = []
+changePieces ext (lock X ∷ S)   = ("↓" ++ ext X) ∷ changePieces ext S
+changePieces ext (unlock X ∷ S) = ("↥" ++ ext X) ∷ changePieces ext S
+
+joinC : List String → String
+joinC []                 = ""
+joinC (s ∷ [])           = s
+joinC (s ∷ ss@(_ ∷ _))   = s ++ " , " ++ joinC ss
+
 showEnts : ℕ → List String → Supply → CtxMorph → String
-showEnts d on ext [] = ""
-showEnts d on ext (bind A ∷ Θ) =
-  "↑" ++ nth on 0 ++ ":=" ++ showTy d ext A ++ sep Θ
-      ++ showEnts d (tl on) ext Θ
-showEnts d on ext (lock X ∷ Θ) =
-  "↓" ++ ext X ++ sep Θ ++ showEnts d on ext Θ
-showEnts d on ext (unlock X ∷ Θ) =
-  "↥" ++ ext X ++ sep Θ ++ showEnts d on ext Θ
+showEnts d on ext Θ =
+  joinC (bindPieces d on ext (binds Θ) l++ changePieces ext (changes Θ))
+
+-- the entry block, with its trailing separator — empty for an empty
+-- morphism, so `⟪ c ⟫` still renders with no leading comma
+entBlock : List String → String
+entBlock []             = ""
+entBlock ps@(_ ∷ _)     = joinC ps ++ " , "
 
 showBnd : ℕ → Supply → CtxMorph → Conv → String
-showBnd d ext [] c =
-  "⟪ " ++ showConv d ext c ++ " ⟫"
-showBnd d ext Θ@(_ ∷ _) c =
-  "⟪ " ++ showEnts d on ext Θ ++ " , "
+showBnd d ext Θ c =
+  "⟪ " ++ entBlock (bindPieces d on ext (binds Θ)
+                      l++ changePieces ext (changes Θ))
        ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
-  where on = bindNames d Θ
+  where on = bindNames d (binds Θ)
 
 ------------------------------------------------------------------------
 -- terms
@@ -185,20 +198,17 @@ open St
 
 -- one fresh name per BINDER (bind), listed newest first (slot 0 first) but
 -- NAMED oldest first, so an older bind keeps its name when a newer one is
--- prepended (TyPeelR's `bind A ∷ Θ`): the last bind gets tyBinder f.
-bindNamesF : ℕ → CtxMorph → List String
-bindNamesF f []             = []
-bindNamesF f (bind A ∷ Θ)   = tyBinder (f + numBinds Θ) ∷ bindNamesF f Θ
-bindNamesF f (unlock X ∷ Θ) = bindNamesF f Θ
-bindNamesF f (lock X ∷ Θ)   = bindNamesF f Θ
+-- prepended (TyPeelR prepends one): the last bind gets tyBinder f.
+bindNamesF : ℕ → List Ty → List String
+bindNamesF f []       = []
+bindNamesF f (A ∷ Bs) = tyBinder (f + length Bs) ∷ bindNamesF f Bs
 
 showBndF : ℕ → ℕ → Supply → CtxMorph → Conv → String
-showBndF d f ext [] c =
-  "⟪ " ++ showConv d ext c ++ " ⟫"
-showBndF d f ext Θ@(_ ∷ _) c =
-  "⟪ " ++ showEnts d on ext Θ ++ " , "
+showBndF d f ext Θ c =
+  "⟪ " ++ entBlock (bindPieces d on ext (binds Θ)
+                      l++ changePieces ext (changes Θ))
        ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
-  where on = bindNamesF f Θ
+  where on = bindNamesF f (binds Θ)
 
 showTmF : ℕ → Supply → Supply → St → Term → String × St
 showTmF td tys tms σ (` x)      = tms x , σ
@@ -216,7 +226,7 @@ showTmF td tys tms σ (Λ N) with showTmF (suc td) (extS tys (tyBinder (tf σ)))
 showTmF td tys tms σ (L ·[ B , A ]) with showTmF td tys tms σ L
 ... | l , σ′ = l ++ " [" ++ showTy td tys A ++ "]" , σ′
 showTmF td tys tms σ (M ⟪ Θ , c ⟫)
-  with showTmF (td + numBinds Θ) (intSup Θ (bindNamesF (tf σ) Θ) tys) tms
+  with showTmF (td + numBinds Θ) (intSup Θ (bindNamesF (tf σ) (binds Θ)) tys) tms
                (mkSt (tf σ + numBinds Θ) (xf σ)) M
 ... | body , σ′ =
   "(" ++ body ++ " " ++ showBndF td (tf σ) tys Θ c ++ ")" , σ′

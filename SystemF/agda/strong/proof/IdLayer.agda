@@ -70,7 +70,7 @@ outer-id-base-untypeable {Θ₁ = Θ₁} bA (env _ (env _ _ ⊢cᵢ _) ⊢cₒ _
 -- the conversion context: `unlockedScope` skips `lock`, so a conversion
 -- never lands on a slot the layer masks.
 convCtx-lock : ∀ {X} (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → convCtx (lock X ∷ Θ) Δ ≡ convCtx Θ Δ
+  → convCtx (morph (binds Θ) (lock X ∷ changes Θ)) Δ ≡ convCtx Θ Δ
 convCtx-lock Θ Δ = refl
 
 -- (2) And a boundary can never conceal the slot its OWN conversion
@@ -93,14 +93,14 @@ convCtx-lock Θ Δ = refl
 Δₑ-no-1 : ∀ {E} → Δₑ ∋e 1 , E → ⊥
 Δₑ-no-1 (es ())
 
-naked-drop-trap : ∀ {C} → ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ [] , seal 1 ⟫ ⦂ C)
+naked-drop-trap : ∀ {C} → ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ morph [] [] , seal 1 ⟫ ⦂ C)
 naked-drop-trap (env _ _ (conv-seal d) _) = Δₑ-no-1 d
 
 -- THE SOUND SIDE CONDITION: the drop is sound exactly when the boundary
--- changes NO FRAME.  Then `interior [] Δ ≡ Δ` and the identity
+-- changes NO FRAME.  Then `interior (morph [] []) Δ ≡ Δ` and the identity
 -- conversion fixes the type, so the interior derivation is already the
 -- exterior one.
-drop-empty-frame : ∀ {Δ Γ V A B} → Δ ∣ Γ ⊢ V ⟪ [] , id A ⟫ ⦂ B
+drop-empty-frame : ∀ {Δ Γ V A B} → Δ ∣ Γ ⊢ V ⟪ morph [] [] , id A ⟫ ⦂ B
                  → Δ ∣ [] ⊢ V ⦂ B
 drop-empty-frame {Δ = Δ} {V = V} (env _ ⊢V ⊢c _) =
   subst (λ T → Δ ∣ [] ⊢ V ⦂ T) (conv-id-refl ⊢c) ⊢V

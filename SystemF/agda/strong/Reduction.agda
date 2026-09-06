@@ -53,7 +53,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `(Λ N) ·[ B , A ]` with N a redex has TWO distinct steps — this one and
   -- ξ-·[] ⨟ ξ-Λ — and determinism fails.  The premise mirrors Beta's.
   TyBeta : ∀ {Δ B A N} → Value N
-    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ bind A ∷ [] , reveal 0 B ⟫
+    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫
 
   Beta : ∀ {Δ A N W} → Value W
     → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ]ᵐ
@@ -82,9 +82,11 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- rules.
   --
   -- THE SHIFT REPAIR (2b).  `renᴮ suc Θ` double-counts: `interior` already
-  -- lifts Θ's reps past the binder `bind A` prepended here
-  -- (`interior (bind A ∷ Θ) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷
-  -- interior Θ Δ`), so the frame is plain `Θ`.
+  -- lifts Θ's reps past the binder A prepended here
+  -- (`interior (morph (A ∷ binds Θ) (changes Θ)) Δ
+  --   ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`), so the CHANGES are
+  -- plain `changes Θ` — a change names an EXTERIOR slot and is unshifted
+  -- by the morphism's own binds.
   --
   -- THE CONVERSION (2c).  Slot 0 of the conversion's body was ABSTRACT
   -- and is now the BINDER this rule introduces, so every leaf of `s` that
@@ -96,7 +98,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-             ⟪ bind A ∷ Θ , instReveal 0 s ⟫
+             ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
   -- CANCEL — a conceal directly under the binder it names.  The
   -- conversion match is DEFINITIONAL: `seal X` and `unseal Y` cite the
@@ -106,7 +108,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE RESIDUE REPAIR (3a), AS RE-RULED (2026-09-05).  The mini-core
   -- appended `hideBinds (numBinds Θ₂)`, which masks EXTERIOR slots that need
   -- not exist (proof/MaskFacts.agda, `¬⊢ᵐ-cancel-residue`); dropping the
-  -- residue was not enough either, because `repsOf→bind (repsOf Θ₂)` DISCARDS
+  -- residue was not enough either, because `repsOf→bind (binds Θ₂)` DISCARDS
   -- Θ₁'s whole frame, and a `V` that names one of Θ₁'s own binders loses
   -- it (the old proof/PreserveObstruct §1 witness).  The honest form keeps
   -- BOTH FRAMES and neutralises BOTH CONVERSIONS: composition happens
@@ -157,7 +159,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- revealing one, so its exterior type becomes Y's rep `A`.  Θ₂'s LOCKS
   -- travel into the inner frame (§2b) so that the rep is presented
   -- OUTSIDE them, where it is nameable: `interior (rewind Θ₂) Δ` IS
-  -- `pushBinds (repsOf Θ₂) Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
+  -- `pushBinds (binds Θ₂) Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
   -- exterior type C.  That is what retires the wall — the case needs no
   -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
   IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
@@ -220,7 +222,7 @@ det (ξ-·-r u st) (Peel v w)   = ⊥-elim (value-¬step w st)
 -- annotation.
 det (TyPeelR {V = V} {Θ = Θ} {s = s} {A = A} v ⊢s) (TyPeelR v′ ⊢s′) =
   cong (λ T → (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) T , ` 0 ])
-                ⟪ bind A ∷ Θ , instReveal 0 s ⟫)
+                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫)
        (conv-src-unique ⊢s ⊢s′)
 det (TyPeelR v ⊢s) (ξ-·[] st)     = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
 det (ξ-·[] st)     (TyPeelR v ⊢s) = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)

@@ -115,10 +115,10 @@ _∋tv_ : Ctxᵗ → ℕ → Set
 
 -- THE COMPLEMENT OF `Nameable`, and the whole of what an `unlock` may
 -- restore: an entry masked ONCE over a nameable one.  `Locked` is what
--- `mw-u` (strong.Terms) demands and what makes `mask ∘ unmask` the
+-- `sw-u` (strong.CtxMorph) demands and what makes `mask ∘ unmask` the
 -- identity at the slot (`mask-unmask`) — the fact the dual's restoring
 -- `lock` needs.  A doubly masked entry is NOT `Locked`, and no
--- `Δ ⊢ᵐ Θ` ever produces one (`mw-l` masks only a nameable slot).
+-- `Δ ⊢ᵐ Θ` ever produces one (`sw-l` masks only a nameable slot).
 data Locked : Ent → Set where
   locked : Nameable E → Locked (masked E)
 
@@ -311,7 +311,7 @@ nameable-mono (le-mu _ _)  ()
 -- abstract slot, but it may NOT un-mask a slot.  This is the transport a
 -- TERM may travel along (`⊢retag`, strong.TermSubst), and it has to be,
 -- because an `unlock X` in a boundary CLAIMS that X is locked
--- (`mw-u`, strong.Terms) and `le-mu` destroys the claim.  Types and
+-- (`sw-u`, strong.CtxMorph) and `le-mu` destroys the claim.  Types and
 -- conversions keep the full `_⊑_` (`⊑-wf`, `conv-⊑`): a TYPE claims
 -- nameability, which only grows.
 data _⊑ᵃᵉ_ : Ent → Ent → Set where
@@ -596,7 +596,7 @@ unmask-mask zero    (E ∷ Δ) = refl
 unmask-mask (suc X) (E ∷ Δ) = cong (E ∷_) (unmask-mask X Δ)
 
 -- Masking undoes unmasking ONLY at a LOCKED slot — which is exactly what
--- `mw-u` (strong.Terms) demands of every `unlock`, and exactly why a
+-- `sw-u` (strong.CtxMorph) demands of every `unlock`, and exactly why a
 -- vacuous unlock had to be refused: at an already-nameable slot the
 -- restoring `lock` of the dual would mask what the exterior left visible.
 maskEnt-unmask : Locked E → masked (unmaskEnt E) ≡ E
@@ -644,7 +644,7 @@ wf-shiftBy-pushBinds (C ∷ As) w =
 -- A one-slot update PAST the bind prefix is the update on the tail: the
 -- prefix has `length As` entries and neither of them is touched.  This is
 -- what lets a boundary's own masking be re-indexed INTO an inner frame
--- (strong.Reduction, `scopeOf`).
+-- (strong.CtxMorph, `shiftScope`).
 updateAt-pushBinds : (f : Ent → Ent) (As : List Ty) (X : ℕ) (Δ : Ctxᵗ)
   → updateAt f (length As + X) (pushBinds As Δ) ≡ pushBinds As (updateAt f X Δ)
 updateAt-pushBinds f []       X Δ = refl

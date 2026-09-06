@@ -36,7 +36,8 @@ unlock-recovers d = updateAt-hit unmaskEnt unmaskEnt-comm d
 -- The round trip is the identity on the type context: a program that hides from
 -- itself and then looks again is harmless and typeable.
 lock-then-unlock :
-  interior (unlock 0 ∷ []) (interior (lock 0 ∷ []) (bind `ℕ ∷ []))
+  interior (morph [] (unlock 0 ∷ []))
+    (interior (morph [] (lock 0 ∷ [])) (bind `ℕ ∷ []))
     ≡ bind `ℕ ∷ []
 lock-then-unlock = refl
 
@@ -49,8 +50,8 @@ lock-then-unlock = refl
 -- so on
 -- the mini-core's OWN cancel example the residue is not well formed.  This
 -- is why strong.Reduction's CancelR drops it.
-¬⊢ᵐ-cancel-residue : ¬ ([] ⊢ᵐ (bind `ℕ ∷ lock 0 ∷ []))
-¬⊢ᵐ-cancel-residue (mw-b _ (mw-l (_ , () , _) _))
+¬⊢ᵐ-cancel-residue : ¬ ([] ⊢ᵐ morph (`ℕ ∷ []) (lock 0 ∷ []))
+¬⊢ᵐ-cancel-residue (mw _ (sw-l (_ , () , _) _))
 
 ------------------------------------------------------------------------
 -- THE MASK-ONLY FACT, PROVEN
@@ -120,14 +121,18 @@ module _ (f : Ent → Ent)
   CoreEq-updateAt {X = X} ce d d′ | no ne =
     ce (updateAt-miss⁻ f fc ne d) (updateAt-miss⁻ f fc ne d′)
 
+CoreEq-applyChanges : (S : List Change) (Δ : Ctxᵗ)
+  → CoreEq (applyChanges S Δ) (applyUnlocks S Δ)
+CoreEq-applyChanges []             Δ = CoreEq-refl Δ
+CoreEq-applyChanges (lock X ∷ S)   Δ =
+  CoreEq-updateAtˡ masked masked-comm core-masked (CoreEq-applyChanges S Δ)
+CoreEq-applyChanges (unlock X ∷ S) Δ =
+  CoreEq-updateAt unmaskEnt unmaskEnt-comm core-unmaskEnt
+    (CoreEq-applyChanges S Δ)
+
 CoreEq-scope : (Θ : CtxMorph) (Δ : Ctxᵗ)
   → CoreEq (scope Θ Δ) (unlockedScope Θ Δ)
-CoreEq-scope []             Δ = CoreEq-refl Δ
-CoreEq-scope (bind A ∷ Θ)   Δ = CoreEq-scope Θ Δ
-CoreEq-scope (lock X ∷ Θ)   Δ =
-  CoreEq-updateAtˡ masked masked-comm core-masked (CoreEq-scope Θ Δ)
-CoreEq-scope (unlock X ∷ Θ) Δ =
-  CoreEq-updateAt unmaskEnt unmaskEnt-comm core-unmaskEnt (CoreEq-scope Θ Δ)
+CoreEq-scope Θ Δ = CoreEq-applyChanges (changes Θ) Δ
 
 CoreEq-pushBinds : ∀ {Δ Δ′} (As : List Ty)
   → CoreEq Δ Δ′ → CoreEq (pushBinds As Δ) (pushBinds As Δ′)
@@ -144,5 +149,5 @@ mask-only : ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
 mask-only Θ Δ (E , d , v) df =
   subst (λ F → interior Θ Δ ∋e _ , F)
         (trans (sym (core-nameable v))
-               (CoreEq-pushBinds (repsOf Θ) (CoreEq-scope Θ Δ) d df))
+               (CoreEq-pushBinds (binds Θ) (CoreEq-scope Θ Δ) d df))
         d

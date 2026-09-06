@@ -5,12 +5,13 @@ module strong.Terms where
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --
 --   Θ : CtxMorph   the context morphism (strong.CtxMorph, re-exported
---                here): `bind A` binds a fresh interior slot with
---                representation A, `lock X` masks exterior slot X,
---                `unlock X` unmasks it.  `interior Θ Δ` is the type
---                context the interior is typed in, `convCtx Θ Δ` the one
---                the conversion is checked in, `Δ ⊢ᵐ Θ` its well-
---                formedness.
+--                here), a PAIR `morph B S`: each entry of the PARALLEL
+--                block B binds a fresh interior slot at that
+--                representation, and the SEQUENTIAL change list S masks
+--                (`lock X`) and unmasks (`unlock X`) exterior slots.
+--                `interior Θ Δ` is the type context the interior is
+--                typed in, `convCtx Θ Δ` the one the conversion is
+--                checked in, `Δ ⊢ᵐ Θ` its well-formedness.
 --   c : Conv     the CONVERSION (strong.Conversion), from the interior
 --                type to the exterior type shifted past Θ's binders.
 --

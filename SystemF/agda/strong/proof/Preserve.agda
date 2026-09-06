@@ -404,11 +404,11 @@ shiftBy-ℕ⁻ (suc n) eq = shiftBy-ℕ⁻ n (ren-ℕ⁻ eq)
 preserve-TyBeta : ∀ {N B A}
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
     ------------------------------------------------------
-  → Δ ∣ [] ⊢ N ⟪ bind A ∷ [] , reveal 0 B ⟫ ⦂ C
+  → Δ ∣ [] ⊢ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫ ⦂ C
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
   with ⊢ᵗ-of CtxWf-[] (⊢Λ ⊢N)
 ... | wf-∀ wB =
-  env (mw-b wA mw[])
+  env (mw (rw-b wA rw[]) sw[])
       (⊢retag refine ⊢N)
       conv
       (wf-[]ᵗ wB wA)
@@ -422,7 +422,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- ── TYPEELR, AT ANY ∀ CONVERSION ───────────────────────────────────────
 -- Four moves, one per premise of the contractum's `env`:
 --
---   FRAME       `bind A ∷ Θ`, whose interior is
+--   FRAME       one bind prepended to Θ, whose interior is
 --               `bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`
 --               DEFINITIONALLY — the shift `renᴮ suc Θ` used to add is
 --               the one `pushBinds` already performs.
@@ -448,7 +448,7 @@ TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
   → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ bind A ∷ Θ , instReveal 0 s ⟫ ⦂ C
+               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
 
 ∀-inj : ∀ {A B} → _≡_ {A = Ty} (`∀ A) (`∀ B) → A ≡ B
 ∀-inj refl = refl
@@ -466,12 +466,13 @@ shiftBy-[]ᵗ (suc n) B A =
 
 preserve-TyPeelR : TyPeelRCase
 preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
-                 {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env mw ⊢V ⊢c wE) wA)
+                 {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
   with conv-all-inv ⊢c
 ... | A₀ , B₀ , refl , eqE , ⊢s₀
   with conv-types-unique ⊢s ⊢s₀
 ... | refl , refl =
-  env (mw-b (⊑-wf (Δ⊑unlockedScope Θ Δ) wA) mw) int conv
+  env (mw (rw-b (⊑-wf (Δ⊑unlockedScope Θ Δ) wA) (mw-reps mwᵥ))
+          (mw-changes mwᵥ)) int conv
       (wf-[]ᵗ (wf-∀⁻ wE) wA)
   where
   A′ : Ty
@@ -484,10 +485,10 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
   ⊢wkV : (bind A′ ∷ interior Θ Δ) ∣ [] ⊢ wkᴹ 1 V ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
   ⊢wkV = ⊢rename Ren-wk Inj-suc ⊢V
 
-  int : interior (bind A ∷ Θ) Δ ∣ []
+  int : interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
           ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ Bᵢ
   int =
-    subst (λ T → interior (bind A ∷ Θ) Δ ∣ []
+    subst (λ T → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
                    ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ T)
           (ren-suc-[0] Bᵢ)
           (⊢·[] ⊢wkV (wf-var (bind (⇑ᵗ A′) , ez , nameable-b)))
@@ -497,9 +498,10 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
               (trans (subst-at-0 A′ (shiftBodyBy (numBinds Θ) B))
                      (cong ⇑ᵗ (sym (shiftBy-[]ᵗ (numBinds Θ) B A))))
 
-  conv : convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s
+  conv : convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ ⊢ instReveal 0 s
            ∶ Bᵢ ⇝ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
-  conv = subst (λ T → convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
+  conv = subst (λ T → convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ
+                        ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
                eqT (⊢instReveal {A = A′} 0 ⊢s)
 
 -- ── DROP$ ──────────────────────────────────────────────────────────────
@@ -510,7 +512,7 @@ preserve-Drop$ : ∀ {n Θ}
   → Δ ∣ [] ⊢ ($ n) ⟪ Θ , id A ⟫ ⦂ C
     -------------------------------
   → Δ ∣ [] ⊢ $ n ⦂ C
-preserve-Drop$ {C = C} bA (env {Θ = Θ} mw ⊢$ ⊢c wE)
+preserve-Drop$ {C = C} bA (env {Θ = Θ} mwᵥ ⊢$ ⊢c wE)
   rewrite shiftBy-ℕ⁻ {A = C} (numBinds Θ) (sym (conv-id-refl ⊢c)) = ⊢$
 
 ------------------------------------------------------------------------
@@ -572,8 +574,8 @@ module Impl
   preserve (⊢· ⊢L ⊢M)   (ξ-·-r v st) = ⊢· ⊢L (preserve ⊢M st)
   preserve (⊢·[] ⊢L w)  (ξ-·[] st)   = ⊢·[] (preserve ⊢L st) w
   preserve (⊢Λ ⊢N)      (ξ-Λ st)     = ⊢Λ (preserve ⊢N st)
-  preserve (env mw ⊢M ⊢c wE) (ξ-⟪⟫ st) =
-    env mw (preserve ⊢M st) ⊢c wE
+  preserve (env mwᵥ ⊢M ⊢c wE) (ξ-⟪⟫ st) =
+    env mwᵥ (preserve ⊢M st) ⊢c wE
 
   preserve* : ∀ {Δ M M′ A}
     → Δ ∣ [] ⊢ M ⦂ A

@@ -36,6 +36,7 @@ open import Data.Nat.Show using (show)
 open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.List using (List; []; _∷_)
 open import Data.String using (String; _++_)
+open import Data.Product using (_×_; _,_; proj₁)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx using (Ent; abst; bind; blk; Ctxᵗ)
@@ -167,24 +168,60 @@ showBnd d ext Θ@(_ ∷ _) c =
 -- terms
 ------------------------------------------------------------------------
 
+-- Binder names are GLOBALLY UNIQUE across one rendered term (Jeremy,
+-- 2026-09-06: two sibling Λs must not both print as ΛX).  Two counters
+-- are threaded left to right through the term: `tf` for type binders (Λ
+-- and boundary binds) is a global counter; `xf` for term binders is the
+-- λ-depth (restored after each body: term names are stable across steps
+-- and sibling λs may share a name).  Type-level ∀ binders inside type
+-- annotations stay depth-named: they are local to their type.
+-- The ambient supply names the free slots 0..n-1, so `tf` starts at n.
+
+record St : Set where
+  constructor mkSt
+  field tf xf : ℕ
+open St
+
+-- one fresh name per OWNER (bind), listed newest first (slot 0 first) but
+-- NAMED oldest first, so an older bind keeps its name when a newer one is
+-- prepended (TyPeelR's `bind A ∷ Θ`): the last bind gets tyBinder f.
+bindNamesF : ℕ → CtxMorph → List String
+bindNamesF f []            = []
+bindNamesF f (bind A ∷ Θ)  = tyBinder (f + nbind Θ) ∷ bindNamesF f Θ
+bindNamesF f (unlock X ∷ Θ) = bindNamesF f Θ
+bindNamesF f (lock X ∷ Θ)  = bindNamesF f Θ
+
+showBndF : ℕ → ℕ → Supply → CtxMorph → Conv → String
+showBndF d f ext [] c =
+  "⟪ " ++ showConv d ext c ++ " ⟫"
+showBndF d f ext Θ@(_ ∷ _) c =
+  "⟪ " ++ showEnts d on ext Θ ++ " , "
+       ++ showConv (d + nbind Θ) (intSup Θ on ext) c ++ " ⟫"
+  where on = bindNamesF f Θ
+
+showTmF : ℕ → Supply → Supply → St → Term → String × St
+showTmF td tys tms σ (` x)      = tms x , σ
+showTmF td tys tms σ ($ n)      = show n , σ
+showTmF td tys tms σ (ƛ A ∙ N)
+  with showTmF td tys (extS tms (tmBinder (xf σ))) (mkSt (tf σ) (suc (xf σ))) N
+... | body , σ′ =
+  "(λ" ++ tmBinder (xf σ) ++ ":" ++ showTy td tys A ++ ". " ++ body ++ ")"
+    , mkSt (tf σ′) (xf σ)          -- term binders stay depth-named
+showTmF td tys tms σ (L · M) with showTmF td tys tms σ L
+... | l , σ₁ with showTmF td tys tms σ₁ M
+... | m , σ₂ = "(" ++ l ++ " · " ++ m ++ ")" , σ₂
+showTmF td tys tms σ (Λ N) with showTmF (suc td) (extS tys (tyBinder (tf σ))) tms (mkSt (suc (tf σ)) (xf σ)) N
+... | body , σ′ = "(Λ" ++ tyBinder (tf σ) ++ ". " ++ body ++ ")" , σ′
+showTmF td tys tms σ (L ·[ B , A ]) with showTmF td tys tms σ L
+... | l , σ′ = l ++ " [" ++ showTy td tys A ++ "]" , σ′
+showTmF td tys tms σ (M ⟪ Θ , c ⟫)
+  with showTmF (td + nbind Θ) (intSup Θ (bindNamesF (tf σ) Θ) tys) tms
+               (mkSt (tf σ + nbind Θ) (xf σ)) M
+... | body , σ′ =
+  "(" ++ body ++ " " ++ showBndF td (tf σ) tys Θ c ++ ")" , σ′
+
 showTm : ℕ → ℕ → Supply → Supply → Term → String
-showTm td xd tys tms (` x)      = tms x
-showTm td xd tys tms ($ n)      = show n
-showTm td xd tys tms (ƛ A ∙ N)  =
-  "(λ" ++ tmBinder xd ++ ":" ++ showTy td tys A ++ ". "
-    ++ showTm td (suc xd) tys (extS tms (tmBinder xd)) N ++ ")"
-showTm td xd tys tms (L · M)    =
-  "(" ++ showTm td xd tys tms L ++ " · "
-      ++ showTm td xd tys tms M ++ ")"
-showTm td xd tys tms (Λ N)      =
-  "(Λ" ++ tyBinder td ++ ". "
-    ++ showTm (suc td) xd (extS tys (tyBinder td)) tms N ++ ")"
-showTm td xd tys tms (L ·[ B , A ]) =
-  showTm td xd tys tms L ++ " [" ++ showTy td tys A ++ "]"
-showTm td xd tys tms (M ⟪ Θ , c ⟫) =
-  "(" ++ showTm (td + nbind Θ) xd (intSup Θ on tys) tms M
-      ++ " " ++ showBnd td tys Θ c ++ ")"
-  where on = bindNames td Θ
+showTm td xd tys tms M = proj₁ (showTmF td tys tms (mkSt td xd) M)
 
 ------------------------------------------------------------------------
 -- type contexts (entries named newest-first: slot 0 = X)

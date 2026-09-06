@@ -14,6 +14,7 @@ open import strong.Reduction
 
 -- the main theorems
 open import strong.Preservation
+open import strong.TypeSafety
 
 -- the proof scripts
 open import strong.proof.Adversary
@@ -22,6 +23,7 @@ open import strong.proof.IdLayer
 open import strong.proof.Preserve
 open import strong.proof.PeelDual
 open import strong.proof.MoveScope
+open import strong.proof.TypeSafety
 open import strong.proof.PreserveObstruct
 open import strong.proof.IdPushReach
 

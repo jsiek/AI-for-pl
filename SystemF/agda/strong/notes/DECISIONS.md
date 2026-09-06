@@ -1924,3 +1924,532 @@ Simultaneity note: nesting single-purpose constructors is sequential,
 but the keep-simultaneity ruling concerned SIBLING REP interference in
 one multi-entry boundary — with at most one rep per constructor there
 are no siblings; the probe reports if any interference reappears.
+
+## THE REDESIGN PROBE VERDICT (notes/probes/ConvBoundary{Core,Terms,Probe}.agda,
+## 2026-09-05) — GREEN; one ruling ask (POLARITY); the redesign branch is cut
+
+TRANSPORT (the make-or-break): PASSES.  `conv-ren` needs NOTHING beyond
+the spine renaming (knowledge transport is DEFINITIONAL: `Δ ∋ X := A` is
+an entry lookup, so the rep comes back out of the renamed spine already
+renamed — the inverse of D1); `⊢rename` needs one structural hypothesis
+`Inj ρ` (positional masking, not reps; stable under all binder
+extensions); `⊢retag` has NO residue (the ⊑ ordering has no clause that
+loses an owner — the demotion is not expressible).  Jeremy's mask-not-
+drop prediction confirmed: one frame per spine is what makes it go.
+
+THE MINI-CORE (verbatim in the probe): spine entries abst / own A /
+blk E (mask retains the entry); conversions c-b/c-v/c-u(unseal at
+owner)/c-s(seal at owner)/c-f(⇛, contravariant)/c-a(∀ᶜ), polarity-
+indexed; one boundary form M ⟪ Θ , c ⟫ with own/ali/cnc entries and
+(env) checking the conversion between the faces over a face spine;
+rules TyBeta/Beta/Peel/TyPeel/Cancel/Drop$/ξ; dual Θ = maskOwns ++
+name-flips (cnc↔ali) — NAMES ONLY; Inert = {cv, csl, ⇛, ∀ᶜ}, Active =
+{cb, cus} — constructor totality, no arithmetic.
+
+VERDICTS: the three breaks (c10/c11, n1b; n4 structurally) TYPE, CROSS,
+and their contracta are TYPED (⊢contractumd directly contradicts
+DI.¬⊢contractum; mask-retains + ali-recovers prove no operation can
+take an owner away); ⊢3n-adv UNMINTABLE by one inversion
+(seal-cites-owner); bad/bad₂ dead (a seal's interior face IS the
+owner's rep); §9m CANNOT ARISE (cancel-faces-agree = ∋:=-det twice —
+one lemma replacing cancel-agree/Reversal≈/SkelEq/xrep-stored/MergeOK's
+faces); the cancel pair runs (Cancel + Drop$); shape-IV obligations all
+typeable, Rows B/C now SURVIVE their crossings.
+
+DELETED (no analog): ⊕/mrgB/MergeOK, the x-machinery, ≈/Unfold/
+Reversal≈, entᴳ/copy guards/second chance/rvl⋆/demotion, cmax/dropN/
+Δ↓X/swapᵇ/shiftReps, baseS/Scoped as a separate stack (the mask IS the
+entry), DualDef's three parameters, ≼≈.  SURVIVES: simultaneity (own
+reps read in the plain exterior), active/inert + values, inward-only,
+nrev as the only index arithmetic (ordinary binder offsets).
+
+FOUR NEW OBLIGATIONS the advice memo missed:
+1. **POLARITY — NEEDS JEREMY'S RULING.**  Conversions are polarized
+   (⇛ flips on domains), so one boundary unseals OR seals at positive
+   face positions; a boundary revealing X and concealing Y with BOTH
+   positive in the face is inexpressible.  The corpus never needs it —
+   every corpus conceal is PURE SCOPE (absent from the face).  Ruling:
+   accept single-polarity boundaries (+ prove source-reachable
+   boundaries are single-polarity), or add a mixed conversion form.
+2. Mask-not-drop is FORCED, not stylistic: the split-constructor +
+   dropping variant was built far enough to fail — a dropping conceal's
+   dual must reintroduce a telescope of rep COPIES (D1's disease one
+   level out).  Masking also lets mask/unmask be FUNCTIONS (the
+   split form needed relations, blocking inversion).
+3. A context-wellformedness premise (⊢ Δ, the store-typing pattern
+   DualRepProof already built) is needed for "a conversion's faces are
+   well-formed" — preservation will carry it.
+4. Inj ρ (structural, positional-masking-only).
+
+HONEST LIMITS: the two general Peel context identities are refl on
+every corpus instance but the general induction (nrev index bookkeeping)
+is NOT done; ⊢subst not done (sources not run end-to-end); n4/E★′
+checked structurally.  These are the first work items of the build-out,
+not design risks.
+
+## Redesign — the id-layer rule (Jeremy, 2026-09-05): IdAbsorb, ACTIVE-guarded
+
+Jeremy's question "can a value wrapped at an id (` X) face be eliminated?"
+exposed the mini-core's first progress hole (ConvBoundaryProbe §6: T₆ is
+stuck-well-typed — the β2/transparent-layer family landing in the
+redesign; Cancel covers only β1).  RULED: a new reduction rule of the
+absorption shape, WITH THE ACTIVE/INERT METHODOLOGY EXPLICIT — the outer
+conversion must be ACTIVE:
+
+    IdAbsorb : Value V → Active c
+      → Δ ⊢ (V ⟪ Θ₁ , id A ⟫) ⟪ Θ₂ , c ⟫ -→ V ⟪ Θ₁ ⊳ Θ₂ , c⁺ ⟫
+
+The Active premise is load-bearing: with c inert the LHS is a VALUE
+(V-⟪⟫), so the premise is exactly what preserves values-don't-step and
+det.  `id` is composition's unit, so no conversion is composed — ⊳ must
+be owners+names-only (the no-⊕ test).  Probe in flight: T₆ runs to 7;
+stacked id-layers; the mask-jam analysis for ⊳; whether R1 (vacuous
+instantiation) earns a place as companion; the door-closing on naked
+id-drop (the context conjunct).
+
+## THE ID-LAYER PROBE VERDICT (notes/probes/IdLayerProbe.agda, 2026-09-05)
+
+IdAbsorb's SHAPE (Active c premise) is right; its operator ⊳ is not.
+Machine-checked: T₆ runs to 7 under IdAbsorb, and the id-base branch of
+Active is vacuous (outer-id-base-untypeable — unseal is the only active
+face the rule meets; the inner face must be spelled id (` X)).  BUT ⊳
+has two failure modes: Jam #2 (Tᵣ, typed and stuck) — an id-layer whose
+skeleton carries a rep naming Θ₂'s owner: the merge equations fail and
+the only repair is substituting reps into reps — REP ARITHMETIC, i.e.
+⊕ REGROWN.  Fails the no-⊕ test.  Jam #1 (Tₘ) — ⊳ computes both spines
+correctly yet Bwf refuses: Bwf is not compositional (entries checked
+against the plain exterior, not the spine the earlier entries build).
+
+THE RECOMMENDED ALTERNATIVE — IdPush, IdAbsorb's degenerate form with
+⊳ deleted (same LHS, same methodology, both frames untouched):
+
+    IdPush : Value V → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+                     -→ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫
+
+No merge equations ever arise; idpush-name proves typing FORCES
+X ≡ nrev Θ₁ + Y (the pushed name is already written in the id face); it
+runs T₆ AND both of ⊳'s adversaries (run-Tᵣ-push, push-Tₘ); each step
+moves the active face one layer inward toward the seal, so it
+terminates.  R1 (vacuous TyBeta) = optional hygiene only (TyPeel mints
+the same layers regardless); R2 (deep Cancel) dead; naked drop sound
+only at Θ ≡ [] (drop-empty-frame).  AWAITING JEREMY: IdPush vs
+pay-for-⊳ (compositional Bwf + an owners-exterior-readable discipline).
+
+THREE MINI-CORE BUGS the probing surfaced (repairs for the restructure):
+1. Cancel's residue maskOwns (nrev Θ₂) masks exterior slots that need
+   not exist (¬Bwf-cancelTm-residue); CancelR (drop maskOwns) types on
+   every instance.  Also Cancel's single name X presumes nrev Θ₁ ≡ 0.
+2. TyPeel does not shift its type annotation: repair
+   ·[ renameᵗ (extᵗ suc) B , ` 0 ] (TyPeelR).
+3. V-Λ lacks the Value premise (v1's G-Λ had it): Λ N is a value for
+   EVERY N while ξ-Λ reduces under Λ — value-that-steps and
+   det-already-broken are machine-checked.  REPAIR (restores Jeremy's
+   determinism law): V-Λ : Value N → Value (Λ N).  With that fix and
+   either new rule, no new overlaps (IdAbsorb≢Cancel etc.).
+
+### Id-layer RULING (Jeremy, 2026-09-05): IdPush + the lookup premise + all repairs
+
+"Go ahead with IdPush and the lookup premise and the other repairs."
+The rule as ruled:
+
+    IdPush : Value V → fceC Θ₂ Δ ∋ Y := A
+      → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+          -→ (V ⟪ Θ₁ , unseal X ⟫) ⟪ Θ₂ , idc A ⟫
+
+with the principle made explicit: EVERY rule minting an identity face at
+a looked-up rep carries the owner-lookup premise (Cancel's idc B too) —
+determinism via ∋:=-determinacy; the premise is the rule-level twin of
+conv-unseal's typing premise.  The repair set for the restructure:
+V-Λ gains the Value premise (restores det/values-don't-step), CancelR
+(residue fixed, lookup premise, single-name presumption generalized),
+TyPeelR (shifted annotation), lookup-determined idc faces.  R1 (vacuous
+TyBeta) deferred as optional hygiene.  ⊳/IdAbsorb retired (fails the
+no-⊕ test — IdLayerProbe Tᵣ).
+
+### v2 vocabulary + repair (5) CONFIRMED (Jeremy, 2026-09-05)
+
+Names ruled and landed: "boundary skeleton" → "boundary CONTEXT
+MORPHISM"; BCtx → CtxMorph, BEnt → MorphEnt; own → bind (both the
+morphism entry and the type-context entry it creates), ali → unlock,
+cnc → lock; derived: bw-b/bw-l/bw-u, bindNames, lockBinds, reps→bind,
+nrev → nbind, vis-o → vis-b.  Prose: "spine" → "type context"
+(standard terminology), "slot lookup" → "entry lookup".
+
+REPAIR (5) CONFIRMED: TyBeta carries `Value N` — the fifth determinism
+repair (TyBeta vs ξ-·[]⨟ξ-Λ was a genuine overlap; mirrors Beta;
+positive witness run-Ωt).  With it, det and values-don't-step are
+theorems of the landed v2 rule set.
+
+## v2 PRESERVATION VERDICT (2026-09-05) — FALSE as the rules stand; four rules to repair
+
+Committed 5554c6b2 (Preservation.agda + proof/Preserve.agda +
+proof/PreserveObstruct.agda).  det, values-don't-step, and PROGRESS are
+parameter-free theorems.  Preservation:
+- preservation-fails : ¬ Preservation PROVEN; the positive theorem lives
+  in `Conditional` over four refuted rule obligations.
+- PROVEN outright: TyBeta (⊢unsealAt/⊢sealAt; abst→bind retag; intC
+  (bind A ∷ []) Δ definitional), Beta, Drop$, all five ξ.  NO ⊢ᶜ Δ
+  premise needed — ⊢ᵗ-of recovers face wf from the derivation.
+- REFUTED, each with a diagnosed cause (a RULE bug, not a proof gap):
+  * Peel — `dual` is wrong: dualS maps a no-op `unlock X` to a real
+    `lock`, and it replays Θ's ops in Θ-order so a same-slot mask/unmask
+    pair fails to cancel; intC-dual is FALSE (¬intC-dual).  fceC-dual is
+    fine (refl).
+  * TyPeelR — the pushed `·[ B , ` 0 ]` must carry the INTERIOR ∀-body,
+    not the exterior B; and `renᴮ suc Θ` double-counts the new binder.
+  * CancelR — residue `reps→bind (reps Θ₂)` discards Θ₁'s whole frame
+    (and any `unlock` in Θ₂).
+  * IdPush — swapping the faces demands the owner's rep well-formed in
+    Θ₂'s interior, which a `lock` there has blocked: the c10/c11
+    chained-rep shape, resurfacing at the rule level.
+
+READ: three of the four are LOCAL rule-definition bugs (dual's flip
+logic + non-reversal; TyPeelR's annotation + shift; CancelR's residue) —
+fixable in the rules with the frames already computed by the proven
+cases.  IdPush is the one that may be a genuine DESIGN question (its
+swapped-face typing obligation is the old chained-rep shape) — probe
+whether the c10/c11 configuration is even reachable under v2's rules, or
+whether IdPush needs a scoping premise / a different contractum.  NEXT:
+repair the three local bugs, then settle IdPush by reachability probe;
+each repair is validated by instantiating `Conditional`.
+
+### IdPush reachability probe (proof/IdPushReach.agda, 2026-09-05)
+
+VERDICT: the refuting configuration (a lock in Θ₂ blocking the slot the
+id-face's owner-rep names) is reachable ONLY through the Peel/dual bug
+(dualS's `unlock X ↦ lock (n+X)` defect); under the repaired dual the
+only locks a Peel ever mints are lockBinds of the crossed boundary's OWN
+new binders, and by SIMULTANEITY (an owner's rep is a type over the
+plain exterior, lifted past the owners bound inside it) those never
+block a face's rep.  The exact fact the swapped-face contractum needs
+and the redex does not provide: `intC Θ₂ Δ ⊢ᵗ A` (scoped-fails on the
+witness; owner-holds still true).  Machine-checked: adding that premise
+to IdPush makes its preservation case PROVABLE (idPush⁺ : IdPushCase⁺;
+idPushCase-scoped shows the companion owner-lookup follows from the
+redex typing via MaskOnly — the one interface lemma left un-rederived).
+
+SUPERVISOR'S CAUTION (the v1 lesson): the premise route trades the
+preservation break for a PROGRESS hole unless typing excludes the bad
+configuration — the ¬IdPushCase witness is WELL-TYPED (Bwf's bw-l asks
+only that the locked slot exist), so with the premise IdPush would not
+fire on it and progress would lose a well-typed non-value.  Grounded
+resolution options: (α) Bwf strengthening so a lock may not block a
+slot that a visible owner's rep names (makes the witness ill-formed;
+non-local — needs a formulation), or (β) Jeremy's hunch — a
+CONTRACTUM that never presents A inside Θ₂'s locks (the swapped face
+forces the inner wrapper to EXPORT the rep into a region that cannot
+name it).  The trace Jeremy asked for was NOT built (the agent judged it
+redundant post-repair); to be built if wanted.  Open for ruling after
+the three-bug fix lands.
+
+### Peel FIXED and PROVEN; CancelR/TyPeelR/IdPush share ONE wall (2026-09-05)
+
+Peel/dual repair landed: `dualS` drops the `unlock` case (a no-op unlock
+must dualize to nothing — fixes both the no-op→lock defect and the
+same-slot cancellation), `intC-dual : intC (dual Θ) (intC Θ Δ) ≡
+map blk (prep (reps Θ) []) ++ fscp Θ Δ` and `fceC-dual` PROVEN in general
+(proof/PeelDual.agda); `PeelCase` discharged; Conditional now over
+(typeel, cancel, idpush).  det/value-¬step/examples unchanged.
+
+THE FINDING: CancelR and TyPeelR are NOT local bugs — they hit the SAME
+wall as IdPush.  CancelR's honest contractum (keep both frames,
+neutralize the faces: `(V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc
+A ⟫`) fixes the frame-drop but demands `intC Θ₂ Δ ⊢ᵗ A` — failing
+exactly when Θ₂ locks a slot A names while Θ₁ re-exposes it (the IdPush
+§4 witness with seal for id).  TyPeelR's annotation must be the
+INTERIOR ∀-body, i.e. the SOURCE of the face `s`, which is not
+syntactically recoverable for `↓ˢ` conceal faces (a seal's source is a
+rep, absent from the rep-free conversion) — closable for `↑ˢ` reveal
+faces via a `srcOf : Conv → Ty` reconstruction, not in full generality.
+Common denominator: a contractum's inner wrapper must PRESENT A REP
+inside Θ₂'s interior; rep-free conversions + masks make that either
+non-syntactic (TyPeelR) or ill-scoped (CancelR/IdPush).  DESIGN
+QUESTION for Jeremy, informed by the re-probe: is the wall REACHABLE
+post-repair (simultaneity says no for IdPush); if not, a grounded
+Bwf/typing invariant makes the offending configurations ill-formed and
+the `intC Θ₂ Δ ⊢ᵗ A` facts derivable; if yes, contracta must be
+reformulated so no inner wrapper presents a rep under a lock.
+
+### First closed-source IdPush traces + the wall's reachability (2026-09-05)
+
+Examples §11: Q = ((ΛY. λx:Y. ((ΛZ. x)·[Y,ℕ]))·[Y⇒Y,ℕ])·7 — the FIRST
+IdPush ever reached from plain System F (8 live steps to 7; TyBeta,
+Peel, Beta, TyBeta minting id (` 1), IDPUSH, CancelR, Drop$, Drop$; all
+states typed; IdPush's contractum TYPES).  Variants: D (IdPush twice —
+stacked vacuous Λs; both contracta type), R (chained face rep, three
+IdPush firings; types — the exported rep lands where it is nameable).
+Variant (i) nontrivial Θ₁ REQUIRES TyPeelR (nbind arithmetic:
+TyBeta≡1, dual≡0, CancelR preserves, TyPeelR≡suc) and G₀ =
+((ΛX. λx:X. ((ΛY. ΛZ. x)·[ℕ])·[ℕ])·[ℕ])·7 gives ¬⊢G₅ — THE FIRST
+CLOSED-SOURCE REFUTATION OF TyPeelR, from the `renᴮ suc Θ` double-shift
+alone (the face is an identity, so the annotation defect is not what
+fires); K shows the multi-bind frame types once the shift is fixed.
+
+Examples §12 + proof/WallReach.agda — THE WALL: reachable? SPLIT.  L₀
+(instantiate the vacuous ΛZ at Y instead of ℕ) reaches the c10/c11
+blocked-context shape from closed source — but only at a Θ₁ (inert
+seal-faced) position; every Θ₂ on the run is lock-free and IdPush's
+contractum types.  INVARIANT RepWf Ξ ("no lock blocks a slot a NAMEABLE
+owner's rep names"): closure under abst/bind/blk/prep proven
+(RepWf-prep = simultaneity: prep stores reps lifted past inner owners);
+the wall itself is a theorem (mask-breaks-RepWf); THE ANSWER RepWf-dual:
+a Peel's locks can never block a rep, no side condition on Θ (one line
+off intC-dual); PAYOFF: unseal-scoped gives `intC Θ Δ ⊢ᵗ A` at every
+unseal-faced wrapper from RepWf + MaskOnly, idPush-RepWf DISCHARGES
+IdPush's case over the invariant (no rule premise), cancelR-scoped the
+same for CancelR's honest contractum.  LIMIT: the global term invariant
+WallFree is REFUTED on reachable L (¬wall-step) — the carried invariant
+must be "RepWf at every Θ₂"; its mint obligations (TyBeta/Peel/CancelR/
+binds-only frames) are all discharged; REMAINING = the term-level
+induction's ⊑/renaming/substitution transports for the Θ₂-only predicate
+(stated, not faked).
+
+READ: IdPush is RIGHT as formulated — it needs only the grounded fact
+RepWf supplies.  Remaining design items for Jeremy: (1) TyPeelR — fix
+the double-shift (mechanical) and rule on the annotation: srcOf closes
+↑ˢ faces; ↓ˢ ∀-faces (a polymorphic ARGUMENT crossing) need either a
+stored source type or a different elimination; (2) CancelR's honest
+contractum (keep both frames, faces idc) is a rule change to approve;
+(3) finish the Θ₂-RepWf induction → IdPush + CancelR discharge with
+zero rule premises.
+
+### Rule repairs LANDED; the invariant hunt; polarity is the TyPeelR blocker (2026-09-06)
+
+Jeremy ordered (2026-09-05): "land both repairs and proceed to finish
+the preservation proof".  LANDED (Reduction.agda):
+
+    CancelR : Value V → fceC Θ₂ Δ ∋ Y := A
+      → (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+        -→ (V ⟪ Θ₁ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ Θ₂ , idc A ⟫
+    TyPeelR : Value V → (abst ∷ fceC Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ ∙ p
+      → (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+        -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ]) ⟪ bind A ∷ Θ , unsealAtᶜ 0 s ⟫
+
+The RuleRepairs note MISSED one defect: the pushed face `s` still names
+the bound variable in its target while env demands liftN (n+1) (Bₑ[A]);
+the new bind slot needs the instantiation leaves — `unsealAtᶜ`, the Conv
+analogue of TyBeta's unsealAt (unsealAtᶜ X (idc B) ≡ unsealAt X B).
+det/value-¬step re-proven (conv-faces-unique: faces are a function of
+conversion + context).  CancelRCase DISCHARGED (proof/CancelFaces) over
+one interface, ScopedAtUnseal (proof/ScopedAtUnsealDef): "at a
+well-typed (V ⟪Θ₁,c₁⟫) ⟪Θ₂, unseal Y⟫ with Y := A, intC Θ₂ Δ ⊢ᵗ A".
+TyPeelRCase↑ (↑ˢ face) PROVEN (Preservation.preservation-TyPeelR-↑);
+Examples §13b H runs it.  MaskOnly is a theorem (MaskFacts.mask-only).
+Conditional = (typeel : TyPeelRCase) (scoped : ScopedAtUnseal) (idpush).
+
+POLARITY VERDICT (Examples §13, machine-checked): closed source
+  (((ΛX. λx:X. λy:(∀Y. Y⇒X). y[X]·x)[ℕ]·7) · (ΛX. λx:X. 3))
+reaches the TyPeelR redex ((ΛY. λx:Y. 3) ⟪ ↓X , ∀Y. (id Y ↦ seal X) ⟫)[X]
+— a ↓ˢ ∀-face (a polymorphic ARGUMENT that crossed a Peel).  Keeping `s`
+is untypeable (¬⊢J-plain); unsealAtᶜ 0 s = seal 0 ↦ seal 1, whose
+leaves each type alone but whose tree types at NEITHER polarity
+(¬seal↦seal: the inserted domain seal needs flip p = ↓ˢ, the covariant
+seal needs p = ↓ˢ).  So ¬TyPeelRCase is now a fact about the POLARITY
+DISCIPLINE, not the rule.  notes/polarity-relaxation.patch (NOT applied)
+frees conv-seal/conv-unseal from their fixed polarity: with it the full
+TyPeelRCase discharges; collateral = Canonicity §5 (typed→canon,
+canon-pol, pol-unique) becomes FALSE, i.e. `p` is vacuous and the honest
+form is to DROP Pol; nothing else breaks.  RULING NEEDED (Jeremy).
+
+THE INVARIANT HUNT (IdPush/CancelR need intC Θ₂ Δ ⊢ᵗ A), all refuted
+by machine, proof/WallGrounding + proof/ScopedFace (phase-one worktree,
+to land next):
+ (1) RepWf folded into Bwf's lock clause — IMPOSSIBLE: the unsound
+     IdPush witness Ri and the reachable L₄ have the SAME (Δ, Θ); and
+     RepWf of the interior is not ⊑-stable at le-ao (TyBeta refines
+     abst→bind under existing locks): BwfWall → ¬TyBetaCase.
+ (2) Scoped = exterior type wf in scp Θ Δ, on reveal faces — ⊑-stable,
+     refuses Ri, admits L₄, and the ↓ˢ-Peel crossing is dischargeable
+     (peel-crossing-scoped) — but TOO WEAK: IdPush's swapped inner face
+     owes X's REP (R★: ¬ScopedAt ↑ˢ Ξ★ Θ★₁ (` 2) while the redex passes).
+ (3) pointwise RepWf at name-faced boundaries — hand-refuted by
+     (ΛX′. λx′:X′. ((ΛZ. λx:X′. (ΛY. x)[Z])[ℕ] · x′))[ℕ] · 7 (TyBeta
+     mints Y := Z under the lock Z of an id-faced wrapper); kill test in
+     flight.
+ Candidate under probe: CHAIN-scoped — at faces naming X, every rep
+ reachable from X by owner lookup is wf in the interior.
+ UPDATE (same day): (3) CONFIRMED by machine (proof/ChainScoped
+ ¬NameFacedRepWf: the program above runs 7 steps; the TyBeta at Z mints
+ Y := Z around the id-faced lock-Z wrapper, both states type, RepWf
+ fails after).  CHAIN-scoped (Reach/ChainScoped, VERBATIM in the file):
+ refuses Ri and R★, admits L₄ and the kill test, is PRESERVED by IdPush
+ (both frames and names kept, only faces swap) and by CancelR's residue
+ (chain-mono: the idc leaves' chains are Y's), needs NO lifting — but is
+ NOT ⊑-stable (¬ChainFaced): a chain STOPS at a Λ-bound abst slot and
+ TyBeta gives that slot a rep, so the chain runs on into whatever the
+ instantiating type names (hand-built typed redex CR; le-ao a third
+ time).  My reachability reading of CR: NOT reachable — a crossing
+ wrapper's face variable is visible at the exterior of the boundary it
+ is dual to, so its owner (and its whole chain, reps being read at the
+ owner's exterior) is OLDER than every lock the wrapper carries, and a
+ chain never enters a younger Λ.  That suggests the STABLE form is an
+ ORDER condition: every variable on the chain of the face's name is
+ older than every lock in Θ (the face's own name may be the locked one
+ — the seal-crossing case).  It refuses R★ (X younger than the lock) and
+ CR (chain hits the abst at slot 1, lock at 2) and admits L₄/Q/kill
+ test; ⊑-stability: a refinement of a chain slot Y reads its rep at Y's
+ exterior, hence older than Y, hence older than the locks.  OPEN RISK:
+ TyPeelR's mint `bind A ∷ Θ` where A names a slot Θ locks (Examples §13:
+ bind X ∷ lock X) puts a locked slot on the new bind's chain — either
+ the order condition refuses a reachable state, or that state is the
+ wall itself and TyPeelR must be restricted/reformulated.  NOT probed;
+ Jeremy to rule on direction before more invariant hunting.
+
+### RULING: polarity dropped from the conversion judgment (Jeremy, 2026-09-06)
+
+Trace artifact "Two Polarities, One Rule" (Examples §13, every state
+machine-rendered; renderer now gives globally unique type-binder names,
+cc97298c).  J₆ (b), the landed TyPeelR contractum
+  ((ΛZ. λx:Z. 3) [Y]) ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫
+is untypeable ONLY because the two seals demand opposite values of the
+single index p (domain seal Y wants flip p = ↓ˢ, codomain seal X wants
+p = ↓ˢ).  Jeremy: "I'm wondering if the invariant is really one polarity
+per type variable, not one polarity for all type variables.  However, do
+we really need polarity at all?"  Analysis: per variable the face IS
+consistent — each variable's name sits on the side where it is a name
+(Y: bind, interior side; X: lock, exterior side) — and that per-variable
+fact is already enforced by env's frames (a locked X is masked in intC,
+a bound X is not in the image of liftN), so `p` is a redundant summary
+that is uniform only for single-kind morphisms and breaks the first time
+a mint mixes kinds (TyPeelR's `bind A ∷ Θ`).  Nothing uses p for work
+(det/progress/canonical forms go by face shape; the relaxation experiment
+showed only Canonicity §5 dies, whose content was p).  Considered and
+recorded (Examples §13c): Jeremy's candidate ⟪ ↑Y:=X , ↓X , id X ↦ seal X ⟫
+is untypeable as written (id X vs interior domain Y; instantiating at X
+is masked) but types with the lock lifted/removed (Cu/Cr); the
+resolve-through-locks variant (Cb/CbH) also types.  None needed once p
+is gone.  RULED: "go ahead and drop polarity, then finish TyPeelR".
+Consequence: TyPeelR as landed is THE rule; Conditional shrinks to
+(scoped : ScopedAtUnseal) (idpush : IdPushCase) — the two are one fact.
+Regularity (typed terms have well-formed types) is the lemma that makes
+the per-variable invariant a theorem; to be stated if wanted.
+
+### PRESERVATION PROVEN, PARAMETER-FREE — Jeremy's lock-moving contractum (2026-09-06)
+
+Jeremy: "Regarding IdPush, I'm contemplating whether part of Θ₂ should
+sometimes be moved to the inner boundary in the contractum.  For example,
+in R₁, the ↓X could be moved to the left of the unseal Y, into the inner
+boundary."  Machine-checked first on the wall witness (R₁′ types: the
+value's frame is unchanged, the rep is presented OUTSIDE the lock), then
+generalised (proof/MoveScope.agda, artifact "The Wall"):
+
+    moveS n Θ      -- Θ's locks AND unlocks (binds dropped), indices lifted by n
+    unlocked Θ     -- Θ with its locks removed (binds and unlocks stay)
+    Θ₁ ◃ Θ₂ = Θ₁ ++ moveS (nbind Θ₂) Θ₂
+
+    IdPush  : (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+              -→ (V ⟪ Θ₁ ◃ Θ₂ , unseal X ⟫) ⟪ unlocked Θ₂ , idc A ⟫
+    CancelR : (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+              -→ (V ⟪ Θ₁ ◃ Θ₂ , idc (liftN (nbind Θ₁) A) ⟫) ⟪ unlocked Θ₂ , idc A ⟫
+
+The whole scope (locks and unlocks, order kept) moves; the unlocks are
+also retained in Θ₂′.  Moving ONLY the locks is REFUTED in-tree (MoveScope
+§4b: Θ✗ = unlock 0 ∷ lock 0, Bwf-legal; scp applies head-last, so a lock
+moved past a same-slot unlock flips the mask).  Frame lemmas, all
+unconditional: intC-unlocked (intC (unlocked Θ) Δ ≡ fceC Θ Δ — the outer
+frame IS the face frame), scp-moveS, frame-move / face-move (REFINEMENTS
+⊑, not equalities — the retained unmasks apply twice; ⊢retag carries
+them), move-∋, Bwf-◃, nbind-◃.  The premise the wall asked for,
+intC Θ₂ Δ ⊢ᵗ A, becomes intC (unlocked Θ₂) Δ ⊢ᵗ A = fceC Θ₂ Δ ⊢ᵗ A, which
+follows from the redex typing (A ≡ liftN (nbind Θ₂) C, Δ ⊢ᵗ C,
+wf-liftN-prep).  Both cases typed on the first attempt.
+
+RESULT: strong.Preservation has top-level `preservation : Preservation`
+and `preservation* : Preservation*` — no Conditional module, no
+ScopedAtUnseal, no RepWf, no MaskOnly.  det re-proven, value-¬step and
+Progress unchanged.  Deleted: proof/CancelFaces, proof/ScopedAtUnsealDef,
+preservation-fails/¬preservation, ¬IdPushCase (PreserveObstruct §4 now
+records the POSITIVE fact: the old wall witness steps to a typed term and
+on to a value, Examples §12b R₀ → R₁′ → R₂).  Example ripple: one pinned
+trace (§4 Tₘ, Θ₂ = unlock 0) changed shape; Q/D/R/L/K/J unchanged (binds-
+only Θ₂: Θ₁ ◃ Θ₂ ≡ Θ₁ computes).  KEPT AS RECORDS (compiling, banners):
+proof/WallReach, WallGrounding, ChainScoped, IdPushReach — the invariant
+hunt for a premise that no longer exists; recommended for deletion
+(Jeremy's call; closed-world repo).  The design lesson: the wall was
+never a missing invariant — the rule put the rep on the wrong side of
+the lock.  NEXT: TypeSafety.agda (progress + preservation, top-level
+wrappers), README/Design, PR #190 body.
+
+### RULING: helper names (Jeremy, 2026-09-06)
+
+The v2 helpers were over-abbreviated ("scp (secure copy?), fscp, intC,
+fceC") and "face" is retired in favour of a boundary's INTERIOR and
+EXTERIOR (Jeremy's slides already use interior(Θ,Δ)/exterior(Θ,Δ)).
+Final map, applied as one mechanical pass (lemma names follow):
+
+    intC → interior        fceC → exterior
+    scp → scope            fscp → unlockedScope
+    prep → pushBinds       reps → repsOf          nbind → numBinds
+    liftN → shiftBy        liftᵇ → shiftBodyBy    upd → updateAt
+    blk → masked           unblk → unmaskEnt      Vis → Nameable
+    Bwf → MorphWf (bw[]/bw-b/bw-l/bw-u → mw[]/mw-b/mw-l/mw-u)
+    idc → mkId
+    unsealAt/sealAt → reveal/conceal        (amended from revealAt/concealAt)
+    unsealAtᶜ/sealAtᶜ → instReveal/instConceal
+    dual KEPT              dualS → dualScope      lockBinds → hideBinds
+    moveS → scopeOf        unlocked → dropLocks   _◃_ → _⋉_
+    kept: Θ, bind/lock/unlock, abst, mask/unmask, Inj.
+
+Reading: `exterior Θ Δ` is not the plain Δ the whole term is typed in
+but Δ as seen from the boundary (binds pushed, unlocks applied); the
+identity `interior (dropLocks Θ) Δ ≡ exterior Θ Δ` is the one that
+retired the wall.  Earlier entries of this log use the old names.
+
+### Naming correction: `exterior` → `convCtx` (Jeremy, 2026-09-06)
+
+The helper fceC had been renamed `exterior` after Jeremy's slides, but it
+is NOT the type context at the boundary's exterior (that is the plain Δ):
+fceC Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ) — Δ with the
+boundary's binds pushed and its locks lifted.  Jeremy: "fce is not the
+same as the context at the exterior of the boundary … 'conversion
+context' is a phrase you use.  Then we can use 'exterior' to mean 'plain
+exterior'."  RULED: the function is `convCtx Θ Δ` (conversion context);
+"exterior" means the plain Δ everywhere.  Why a separate context: the
+conversion names the boundary's own binds (absent from Δ) and cites
+owners by lookup, including locked ones (masked in the interior), so it
+types in neither; convCtx = interior (dropLocks Θ) Δ is the smallest
+context where both resolve (Design.md §3).
+
+### RULING: "face" retired from the development (Jeremy, 2026-09-06)
+
+The word "face" (for a boundary's conversion and its two types) is
+retired from identifiers, comments and notes of strong/ (v1 memos,
+notes/old and this log keep their vocabulary).  Speak of the boundary's
+CONVERSION `c`, its SOURCE type (the interior type) and TARGET type (the
+exterior type shifted by numBinds), the boundary's INTERIOR and EXTERIOR,
+and the CONVERSION CONTEXT `convCtx Θ Δ`.  Consistency rule: "exterior"
+means the plain Δ and nothing else.  Identifier map: conv-faces-unique →
+conv-types-unique, unseal-face-is-the-owners-rep → unseal-target-is-rep,
+seal-face-is-the-owners-rep → seal-source-is-rep, inert-*-face →
+inert-*-conv, J-face-ctx/t-face-ctx → J-convCtx/t-convCtx, ⊢Hface/⊢Gface/
+⊢Pk-face → ⊢Hconv/⊢Gconv/⊢Pk-conv, face-move → convCtx-move,
+∀-face-premise → ∀-conv-premise, ¬ChainFaced → ¬ChainConv.
+ ADDENDUM (Jeremy, same day): `MorphWf Δ Θ` becomes the infix judgment
+ `Δ ⊢ᵐ Θ` (the context morphism Θ is well formed over Δ), in the family
+ of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`; constructors mw[]/mw-b/mw-l/mw-u stay;
+ lemma names follow (⊢ᵐ-⊑, ⊢ᵐ-⋉, …).
+
+### RULING: "binder" instead of "owner" (Jeremy, 2026-09-06)
+
+The bind entry ↑X:=A of a boundary is X's BINDER (it binds X and carries
+its representation A); "owner"/"ownership"/"owner lookup" are retired
+from Design.md, README, comments and identifiers (abstN-owner →
+abstN-binder, unseal-owner → unseal-binder, owner-holds → binder-holds,
+abst-not-owner → abst-not-binder, ¬canonC-two-owners →
+¬canonC-two-binders, seal-cites-owner → seal-cites-binder).  `Δ ∋ X := A`
+is the binder lookup.  Where "binder" would be ambiguous with Λ/∀/λ
+binders, prose says "the `bind` entry for X" / "Λ-bound X".  Historical
+memos and this log keep the old word.
+
+### RULINGS before PR #190 leaves draft (Jeremy, 2026-09-06)
+
+(1) DELETE the four invariant-hunt record files proof/WallReach,
+WallGrounding, ChainScoped, IdPushReach — the refutations they carried
+are recorded in this log (2026-09-06 entries "the invariant hunt" and
+its UPDATE) and in the artifacts "The Wall" and "Two Polarities, One
+Rule"; nothing in the development depends on them.  (2) MOVE PLAN.md
+(the superseded PR #189 handoff for v1) to notes/old/PLAN-v1.md.  (3)
+The `_⊑ᵉ_` constructors lose their owner/blocked initials: le-ao → le-ab
+(abst ⊑ bind), le-oo → le-bb (bind ⊑ bind), and the masked pair le-bb →
+le-mm, le-bu → le-mu; le-aa stays.  Then the PR is marked ready for
+review.

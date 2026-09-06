@@ -1,306 +1,209 @@
 module strong.Eval where
 
--- Strong System F — A LIGHTWEIGHT EVALUATOR.
+-- Strong System F — THE EVALUATOR.
 --
---   step : TCtx → Term → Maybe Term
+-- *** THE STEP FUNCTION IS PROGRESS. ***  v1's evaluator was a second,
+-- TYPE-BLIND transcription of the rule table (`step : TCtx → Term →
+-- Maybe Term`, with a `step-sound` theorem tying it back to the
+-- relation) because progress was FALSE for v1 as it stood, so there was
+-- nothing to iterate.  In v2 progress is a theorem, so
 --
--- a STEP FUNCTION for the reduction relation _⊢_-→_ (strong.BReduction),
--- INDEPENDENT OF THE TYPING JUDGEMENT: it inspects the term's shape, not
--- a derivation, and returns `nothing` on anything stuck or ill-formed.
--- It is canonical because the relation is DETERMINISTIC — `det`, proved
--- in strong.BReduction — so there is nothing to choose.
+--     step ⊢M  =  progress ⊢M
+--       : Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
 --
--- SOUNDNESS IS THE POINT (step-sound, below): whenever `step Δ M` answers
--- `just M′`, the relation really does step, and the WITNESS is built
--- alongside the contractum — `step` is the first projection of `stepΣ`,
--- which returns the pair (M′ , Δ ⊢ M -→ M′).  So no rule can be
--- mis-transcribed here without Agda noticing.  COMPLETENESS is progress,
--- and progress is FALSE in this calculus as it stands (gauntlet §9m,
--- notes/probes/DualIntProbe §5), so it is deliberately out of scope.
+-- IS the step function: it decides "value or redex" and, in the redex
+-- case, hands back the contractum TOGETHER WITH its derivation.  There
+-- is no second rule table to get wrong, no `Maybe`, no decision
+-- procedure for values or for inertness, and no soundness theorem to
+-- prove — soundness is the type.
 --
--- THE AMBIENT Δ.  The relation is knowledge-indexed: Peel builds the
--- AMBIENT DUAL `dualᴳ Δ Θ`, which copies Δ's own entry at every slot the
--- boundary drops without concealing, and TyWrap / TyPeel mint a reveal
--- on a boundary whose interior is read against Δ.  So `step` takes the
--- ambient type context, and the two frames that change it — ξ-Λ, at
--- (abst ∷ Δ), and ξ-⟪⟫, at (intOf Δ Θ) — pass the right one inward,
--- exactly as the rules say.
+-- `eval k ⊢M` iterates it with fuel `k`, retyping each contractum by
+-- PRESERVATION so that the next step has a derivation to run on, and
+-- returns a TRACE: a cons list of the steps taken, ending in the final
+-- STATUS (a value, or out of fuel).  Because a `Trace` stores the
+-- `_⊢_-→_` derivations themselves:
 --
--- *** EVAL IS TYPE-BLIND, AND THAT IS A FEATURE. ***  Preservation is
--- FALSE for this calculus at a Peel whose dual demotes a slot the
--- crossing argument's own boundary conceals (strong/notes/probes/
--- DualIntProbe.agda §5: ⊢Redex is well typed at ℕ, `peel-step` fires,
--- and ¬⊢contractum shows the contractum has no typing at all).  Because
--- `step` never consults a typing derivation, it STEPS STRAIGHT THROUGH
--- that Peel and keeps running on the ill-typed contractum — which is
--- precisely what makes the evaluator usable as an INSTRUMENT on the
--- counterexample: strong/notes/probes/EvalProbe.agda §4 prints the run
--- and marks the state at which typability is lost.  A type-directed
--- evaluator could not show that trace at all.
+--   trace-sound   — the states really are a run, `Δ ⊢ M -→* traceEnd tr`
+--                   (it is `done`/`_then_` over the stored steps);
+--   traceFinal    — the status is a status OF THE LAST STATE;
+--   trace-unique  — two traces of the same length from the same term
+--                   have the same states (`det`).
 --
--- The rule dispatch, in the order `step` tries it:
+-- So `evalTerms k ⊢M` is a machine-generated version of the
+-- hand-composed `-→*` chains in strong.Examples, and each pinned run
+-- there is checked against it by `refl` (Examples §§6, 11, 12, 12b, 13,
+-- 13b, 14).
 --
---   ` x , $ n , ƛ           no rule                      (stuck / value)
---   Λ N                     ξ-Λ            at (abst ∷ Δ)
---   L · M                   ξ-·-l ; then Beta / Peel at a value function
---                           and value argument ; then ξ-·-r
---   L ·[ B , A ]            ξ-·[] ; then TyBeta / TyWrap / TyPeel
---   M ⟪ Θ , B₀ ⟫            ξ-⟪⟫ at (intOf Δ Θ) ; then Drop$ / Merge
+-- `showTrace n tr` renders the run with strong.Show's `showTmIn`, one
+-- state per line, each arrow labelled by `ruleName` — the name of the
+-- REDEX rule that fired, found by descending through the congruences of
+-- the stored derivation.  Driven non-interactively by
+-- scripts/render_term.sh:
 --
--- Trying the congruence FIRST is what implements the value premises for
--- free: a redex rule's own premises force its subterm to be a value, and
--- `step` returns `nothing` on values, so the congruence never pre-empts
--- a redex it should not.  The Value premises that are still needed —
--- Beta's argument, Peel's two, the ty-rules' bodies, Merge's — are
--- decided by strong.EvalDec's `value?` and consumed as the rule's own
--- premise.
+--   scripts/render_term.sh 'showTrace 0 (eval 6 ⊢P₀)' \
+--     'open import strong.Examples' 'open import strong.Eval'
+--
+-- (the script reads the string out of an Agda type error, so the
+-- newlines arrive escaped; pipe through  sed 's/\\n/\n/g' ).
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Product using (Σ; _,_; proj₁)
-open import Data.List using (List; []; _∷_; length)
+open import Data.Nat.Properties using (suc-injective)
+open import Data.List using (List; []; _∷_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.Product using (Σ; Σ-syntax; _,_)
 open import Data.String using (String; _++_)
-open import Relation.Nullary using (Dec; yes; no)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
-open import strong.Types
-open import strong.Context using (TCtx; TyEntry; abst; rvld; xrvld)
-open import strong.Boundary
-open import strong.BReduction
-open import strong.EvalDec
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+
+open import strong.Types using (Ty)
+open import strong.Ctx using (Ctxᵗ)
+open import strong.Terms using (Term; Value; _∣_⊢_⦂_)
+open import strong.Reduction
+  using (_⊢_-→_; _⊢_-→*_; done; _then_; det;
+         TyBeta; Beta; Peel; TyPeelR; CancelR; Drop$; IdPush;
+         ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫)
+open import strong.Progress using (progress)
+open import strong.Preservation using (preservation; preservation*)
 open import strong.Show using (showTmIn)
 
 ------------------------------------------------------------------------
--- A step, WITH its derivation.  `step` is this function's first
--- projection, which is what makes step-sound a three-line theorem
--- instead of a second transcription of the whole rule table.
+-- 1.  THE STEP FUNCTION — it is progress
 ------------------------------------------------------------------------
 
-Step : TCtx → Term → Set
-Step Δ M = Σ Term λ M′ → Δ ⊢ M -→ M′
+step : ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+  → Δ ∣ [] ⊢ M ⦂ A
+    ---------------------------------------------
+  → Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
+step = progress
 
 ------------------------------------------------------------------------
--- Peel — the ⇒ face.  The argument crosses inward through the AMBIENT
--- DUAL dualᴳ Δ Θ, and B₁ is transported to the dual's frame by the block
--- permutation swapᵇ.  Every other face shape has no rule here.
+-- 2.  TRACES
 ------------------------------------------------------------------------
 
-peelAt : (Δ : TCtx) (V : Term) (Θ : BCtx) (B₀ : Ty) (W : Term)
-       → Value V → Value W → Maybe (Step Δ ((V ⟪ Θ , B₀ ⟫) · W))
-peelAt Δ V Θ (` X)     W v w = nothing
-peelAt Δ V Θ `ℕ        W v w = nothing
-peelAt Δ V Θ `𝔹        W v w = nothing
-peelAt Δ V Θ (`∀ B)    W v w = nothing
-peelAt Δ V Θ (B₁ ⇒ B₂) W v w =
-  just ( (V · (W ⟪ dualᴳ Δ Θ , renameᵗ (swapᵇ Θ) B₁ ⟫)) ⟪ Θ , B₂ ⟫
-       , Peel v w )
+-- why the run stopped, said of the state it stopped at
+data Final (M : Term) : Set where
+  value       : Value M → Final M
+  out-of-fuel : Final M
+
+-- a run from M: the steps taken, each with its derivation, then the
+-- status of the state they arrive at.  A trace always has a first state
+-- (the index M), so the state list below is never empty.
+infixr 5 _◅_
+data Trace (Δ : Ctxᵗ) : Term → Set where
+  stop : ∀ {M} → Final M → Trace Δ M
+  _◅_  : ∀ {M M′} → Δ ⊢ M -→ M′ → Trace Δ M′ → Trace Δ M
 
 ------------------------------------------------------------------------
--- The two application redexes, at a VALUE function and a VALUE argument:
--- Beta on a bare ƛ, Peel on a wrapper.  Both premises are already in
--- hand, so no rule is fired without its own evidence.
+-- 3.  THE EVALUATOR
 ------------------------------------------------------------------------
 
-appRedex : (Δ : TCtx) (L W : Term) → Value L → Value W
-         → Maybe (Step Δ (L · W))
-appRedex Δ (` x)          W vL vW = nothing
-appRedex Δ ($ n)          W vL vW = nothing
-appRedex Δ (ƛ A ∙ N)      W vL vW = just (N [ W ]ᵐ , Beta vW)
-appRedex Δ (L · M)        W vL vW = nothing
-appRedex Δ (Λ N)          W vL vW = nothing
-appRedex Δ (L ·[ B , A ]) W vL vW = nothing
-appRedex Δ (V ⟪ Θ , B₀ ⟫) W vL vW =
-  peelAt Δ V Θ B₀ W (V-⟪⟫⁻ᵥ vL) vW
+-- Each contractum is retyped by PRESERVATION, which is what lets the
+-- next `step` run at all: the iteration is (progress ⨟ preservation)ᵏ.
+eval : ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+  → ℕ → Δ ∣ [] ⊢ M ⦂ A → Trace Δ M
+eval zero ⊢M with step ⊢M
+eval zero ⊢M | inj₁ v = stop (value v)
+eval zero ⊢M | inj₂ _ = stop out-of-fuel
+eval (suc k) ⊢M with step ⊢M
+eval (suc k) ⊢M | inj₁ v        = stop (value v)
+eval (suc k) ⊢M | inj₂ (M′ , r) = r ◅ eval k (preservation ⊢M r)
 
 ------------------------------------------------------------------------
--- The type-application redexes at a WRAPPED function, i.e. at a ∀ face.
--- A Λ body is TyWrap's (the binder's slot IS the new reveal's, so
--- nothing moves); a WRAPPER body is TyPeel's (the elimination is pushed
--- inside, and the body is weakened by ⇑ᵀ for the new interior slot).
--- TyPeel's INERT premise is the value restriction — without it the body
--- could be an active wrapper, which steps by Merge under ξ-⟪⟫.
+-- 4.  READING A TRACE
 ------------------------------------------------------------------------
 
-tyPeelAt : (Δ : TCtx) (M : Term) (Θ : BCtx) (B₀ B A : Ty)
-         → Maybe (Step Δ ((M ⟪ Θ , `∀ B₀ ⟫) ·[ B , A ]))
-tyPeelAt Δ (` x)          Θ B₀ B A = nothing
-tyPeelAt Δ ($ n)          Θ B₀ B A = nothing
-tyPeelAt Δ (ƛ C ∙ N)      Θ B₀ B A = nothing
-tyPeelAt Δ (L · M)        Θ B₀ B A = nothing
-tyPeelAt Δ (L ·[ C , D ]) Θ B₀ B A = nothing
-tyPeelAt Δ (Λ N)          Θ B₀ B A with value? N
-tyPeelAt Δ (Λ N)          Θ B₀ B A | no  ¬v = nothing
-tyPeelAt Δ (Λ N)          Θ B₀ B A | yes v  =
-  just (N ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫ , TyWrap v)
-tyPeelAt Δ (V ⟪ Θ₁ , B₁ ⟫) Θ B₀ B A with value? V
-tyPeelAt Δ (V ⟪ Θ₁ , B₁ ⟫) Θ B₀ B A | no ¬v = nothing
-tyPeelAt Δ (V ⟪ Θ₁ , B₁ ⟫) Θ B₀ B A | yes v with inert? Θ₁ B₁
-tyPeelAt Δ (V ⟪ Θ₁ , B₁ ⟫) Θ B₀ B A | yes v | no ¬i = nothing
-tyPeelAt Δ (V ⟪ Θ₁ , B₁ ⟫) Θ B₀ B A | yes v | yes i =
-  just ( (⇑ᵀ (V ⟪ Θ₁ , B₁ ⟫) ·[ peelB Θ B₀ , ` 0 ])
-           ⟪ rvl A ∷ shiftReps Θ , B₀ ⟫
-       , TyPeel v i )
+-- the states, first one included — v1's `trace`
+traceTerms : ∀ {Δ M} → Trace Δ M → List Term
+traceTerms {M = M} (stop f) = M ∷ []
+traceTerms {M = M} (r ◅ tr) = M ∷ traceTerms tr
 
-tyWrapAt : (Δ : TCtx) (M : Term) (Θ : BCtx) (B₀ B A : Ty)
-         → Maybe (Step Δ ((M ⟪ Θ , B₀ ⟫) ·[ B , A ]))
-tyWrapAt Δ M Θ (` X)     B A = nothing
-tyWrapAt Δ M Θ `ℕ        B A = nothing
-tyWrapAt Δ M Θ `𝔹        B A = nothing
-tyWrapAt Δ M Θ (C ⇒ D)   B A = nothing
-tyWrapAt Δ M Θ (`∀ B₀)   B A = tyPeelAt Δ M Θ B₀ B A
+traceEnd : ∀ {Δ M} → Trace Δ M → Term
+traceEnd {M = M} (stop f) = M
+traceEnd         (r ◅ tr) = traceEnd tr
 
--- TyBeta: a boundary is BORN, its single reveal recording the type
--- argument as stored, and the ∀-body annotation becoming the face.
-tyRedex : (Δ : TCtx) (L : Term) (B A : Ty)
-        → Maybe (Step Δ (L ·[ B , A ]))
-tyRedex Δ (` x)          B A = nothing
-tyRedex Δ ($ n)          B A = nothing
-tyRedex Δ (ƛ C ∙ N)      B A = nothing
-tyRedex Δ (L · M)        B A = nothing
-tyRedex Δ (L ·[ C , D ]) B A = nothing
-tyRedex Δ (Λ N)          B A with value? N
-tyRedex Δ (Λ N)          B A | no  ¬v = nothing
-tyRedex Δ (Λ N)          B A | yes v  =
-  just (N ⟪ rvl A ∷ [] , B ⟫ , TyBeta v)
-tyRedex Δ (M ⟪ Θ , B₀ ⟫) B A = tyWrapAt Δ M Θ B₀ B A
+traceLen : ∀ {Δ M} → Trace Δ M → ℕ
+traceLen (stop f) = zero
+traceLen (r ◅ tr) = suc (traceLen tr)
+
+-- the status is a status OF THE LAST STATE
+traceFinal : ∀ {Δ M} (tr : Trace Δ M) → Final (traceEnd tr)
+traceFinal (stop f) = f
+traceFinal (r ◅ tr) = traceFinal tr
+
+evalTerms : ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+  → ℕ → Δ ∣ [] ⊢ M ⦂ A → List Term
+evalTerms k ⊢M = traceTerms (eval k ⊢M)
 
 ------------------------------------------------------------------------
--- The boundary redexes.  Drop$ is the whole base-face action set (the
--- body must be a NUMERAL — a face-only drop is unsound, CancelProbe's
--- lesson), and Merge is the collapse at an ACTIVE face over an INERT
--- one, guarded by strong.EvalDec's `mergeOK?`.
+-- 5.  SOUNDNESS — by construction
 ------------------------------------------------------------------------
 
-dropAt : (Δ : TCtx) (n : ℕ) (Θ : BCtx) (B₀ : Ty)
-       → Maybe (Step Δ (($ n) ⟪ Θ , B₀ ⟫))
-dropAt Δ n Θ (` X)   = nothing
-dropAt Δ n Θ `𝔹      = nothing
-dropAt Δ n Θ (C ⇒ D) = nothing
-dropAt Δ n Θ (`∀ C)  = nothing
-dropAt Δ n Θ `ℕ      = just ($ n , Drop$)
+-- Every recorded step IS a `_⊢_-→_` derivation: it is literally stored
+-- in the trace, so the run is assembled by `_then_` and nothing is
+-- re-checked.
+trace-sound : ∀ {Δ M} (tr : Trace Δ M) → Δ ⊢ M -→* traceEnd tr
+trace-sound (stop f) = done
+trace-sound (r ◅ tr) = r then trace-sound tr
 
-mergeAt : (Δ : TCtx) (V : Term) (Θ₁ : BCtx) (B₁ : Ty)
-          (Θ₂ : BCtx) (B₂ : Ty)
-        → Maybe (Step Δ ((V ⟪ Θ₁ , B₁ ⟫) ⟪ Θ₂ , B₂ ⟫))
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ with value? V
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | no  ¬v = nothing
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | yes v  with inert? Θ₁ B₁
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | yes v | no  ¬i = nothing
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | yes v | yes i  with active? Θ₂ B₂
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | yes v | yes i | no  ¬a = nothing
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | yes v | yes i | yes a
-  with mergeOK? Δ Θ₁ Θ₂ B₁ B₂
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | yes v | yes i | yes a | no  ¬mok = nothing
-mergeAt Δ V Θ₁ B₁ Θ₂ B₂ | yes v | yes i | yes a | yes mok =
-  just (V ⟪ Θ₁ ⊕ Θ₂ , mrgB Θ₁ Θ₂ B₁ ⟫ , Merge v i a mok)
+eval-sound : ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+  → (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
+    ---------------------------------
+  → Δ ⊢ M -→* traceEnd (eval k ⊢M)
+eval-sound k ⊢M = trace-sound (eval k ⊢M)
 
-wrapRedex : (Δ : TCtx) (M : Term) (Θ : BCtx) (B₀ : Ty)
-          → Maybe (Step Δ (M ⟪ Θ , B₀ ⟫))
-wrapRedex Δ (` x)          Θ B₀ = nothing
-wrapRedex Δ (ƛ A ∙ N)      Θ B₀ = nothing
-wrapRedex Δ (L · M)        Θ B₀ = nothing
-wrapRedex Δ (Λ N)          Θ B₀ = nothing
-wrapRedex Δ (L ·[ B , A ]) Θ B₀ = nothing
-wrapRedex Δ ($ n)          Θ B₀ = dropAt Δ n Θ B₀
-wrapRedex Δ (V ⟪ Θ₁ , B₁ ⟫) Θ B₀ = mergeAt Δ V Θ₁ B₁ Θ B₀
+-- and the endpoint still has the type it started with
+eval-⦂ : ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+  → (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
+    ---------------------------------------
+  → Δ ∣ [] ⊢ traceEnd (eval k ⊢M) ⦂ A
+eval-⦂ k ⊢M = preservation* ⊢M (eval-sound k ⊢M)
 
 ------------------------------------------------------------------------
--- THE STEP FUNCTION
+-- 6.  UNIQUENESS — by determinism
 ------------------------------------------------------------------------
 
-stepΣ : (Δ : TCtx) (M : Term) → Maybe (Step Δ M)
-stepΣ Δ (` x)     = nothing
-stepΣ Δ ($ n)     = nothing
-stepΣ Δ (ƛ A ∙ N) = nothing
-
-stepΣ Δ (Λ N) with stepΣ (abst ∷ Δ) N
-stepΣ Δ (Λ N) | nothing        = nothing
-stepΣ Δ (Λ N) | just (N′ , st) = just (Λ N′ , ξ-Λ st)
-
-stepΣ Δ (L · M) with stepΣ Δ L
-stepΣ Δ (L · M) | just (L′ , st) = just (L′ · M , ξ-·-l st)
-stepΣ Δ (L · M) | nothing with value? L
-stepΣ Δ (L · M) | nothing | no  ¬v = nothing
-stepΣ Δ (L · M) | nothing | yes vL with value? M
-stepΣ Δ (L · M) | nothing | yes vL | yes vM = appRedex Δ L M vL vM
-stepΣ Δ (L · M) | nothing | yes vL | no ¬vM with stepΣ Δ M
-stepΣ Δ (L · M) | nothing | yes vL | no ¬vM | nothing = nothing
-stepΣ Δ (L · M) | nothing | yes vL | no ¬vM | just (M′ , st) =
-  just (L · M′ , ξ-·-r vL st)
-
-stepΣ Δ (L ·[ B , A ]) with stepΣ Δ L
-stepΣ Δ (L ·[ B , A ]) | nothing        = tyRedex Δ L B A
-stepΣ Δ (L ·[ B , A ]) | just (L′ , st) =
-  just (L′ ·[ B , A ] , ξ-·[] st)
-
-stepΣ Δ (M ⟪ Θ , B₀ ⟫) with stepΣ (intOf Δ Θ) M
-stepΣ Δ (M ⟪ Θ , B₀ ⟫) | nothing        = wrapRedex Δ M Θ B₀
-stepΣ Δ (M ⟪ Θ , B₀ ⟫) | just (M′ , st) =
-  just (M′ ⟪ Θ , B₀ ⟫ , ξ-⟪⟫ st)
-
-fstStep : ∀ {Δ M} → Maybe (Step Δ M) → Maybe Term
-fstStep nothing         = nothing
-fstStep (just (M′ , _)) = just M′
-
-step : (Δ : TCtx) (M : Term) → Maybe Term
-step Δ M = fstStep (stepΣ Δ M)
+-- Reduction is deterministic, so a run of a given length from a given
+-- term is THE run: any two traces of equal length agree state by state.
+-- (Nothing is said about unequal lengths: one trace may stop for fuel
+-- where the other keeps going.)
+trace-unique : ∀ {Δ M} (tr₁ tr₂ : Trace Δ M)
+  → traceLen tr₁ ≡ traceLen tr₂
+    -----------------------------------
+  → traceTerms tr₁ ≡ traceTerms tr₂
+trace-unique (stop f)   (stop g)   eq = refl
+trace-unique (stop f)   (r₂ ◅ tr₂) ()
+trace-unique (r₁ ◅ tr₁) (stop g)   ()
+trace-unique (r₁ ◅ tr₁) (r₂ ◅ tr₂) eq with det r₁ r₂
+trace-unique (r₁ ◅ tr₁) (r₂ ◅ tr₂) eq | refl =
+  cong (_ ∷_) (trace-unique tr₁ tr₂ (suc-injective eq))
 
 ------------------------------------------------------------------------
--- *** SOUNDNESS ***  the answer is always a real step of the relation.
+-- 7.  RENDERING
 ------------------------------------------------------------------------
 
-fstStep-sound : ∀ {Δ M M′} (r : Maybe (Step Δ M))
-              → fstStep r ≡ just M′ → Δ ⊢ M -→ M′
-fstStep-sound (just (N , st)) refl = st
-fstStep-sound nothing         ()
+-- WHICH RULE FIRED, read off the stored derivation: the congruences are
+-- transparent, so what is named is the REDEX rule at the bottom.
+ruleName : ∀ {Δ M M′} → Δ ⊢ M -→ M′ → String
+ruleName (TyBeta v)     = "TyBeta"
+ruleName (Beta w)       = "Beta"
+ruleName (Peel v w)     = "Peel"
+ruleName (TyPeelR v ⊢s) = "TyPeelR"
+ruleName (CancelR v d)  = "CancelR"
+ruleName (Drop$ b)      = "Drop$"
+ruleName (IdPush v d)   = "IdPush"
+ruleName (ξ-·-l r)      = ruleName r
+ruleName (ξ-·-r v r)    = ruleName r
+ruleName (ξ-·[] r)      = ruleName r
+ruleName (ξ-Λ r)        = ruleName r
+ruleName (ξ-⟪⟫ r)       = ruleName r
 
-step-sound : ∀ {Δ M M′} → step Δ M ≡ just M′ → Δ ⊢ M -→ M′
-step-sound {Δ} {M} e = fstStep-sound (stepΣ Δ M) e
+showFinal : ∀ {M} → Final M → String
+showFinal (value v)   = "\n  -- VALUE"
+showFinal out-of-fuel = "\n  -- OUT OF FUEL"
 
-------------------------------------------------------------------------
--- TRACES.  `trace k Δ M` is the sequence of states M, M₁, …, stopping
--- when `step` returns nothing (stuck, or a value) or when the fuel runs
--- out.  The list always contains M itself, so it is never empty.
-------------------------------------------------------------------------
-
-trace : ℕ → TCtx → Term → List Term
-trace zero    Δ M = M ∷ []
-trace (suc k) Δ M with step Δ M
-trace (suc k) Δ M | nothing = M ∷ []
-trace (suc k) Δ M | just M′ = M ∷ trace k Δ M′
-
-------------------------------------------------------------------------
--- RENDERING A WHOLE TRACE in one call, so that scripts/render_term.sh
--- can print a run rather than a state (usage in strong/Show.agda's
--- header).  Each state goes through strong.Show's showTmIn at the
--- ambient's own length, and the states are joined by a step arrow.
---
---   scripts/render_term.sh 'showTrace 20 0 cxP₀' \
---     'open import strong.notes.InstallGauntlet'
---
--- The script reads the string out of an Agda type-error, so the newline
--- in the separator arrives ESCAPED; pipe through  sed 's/\\n/\n/g'  to
--- get one state per line.
-------------------------------------------------------------------------
-
-stepSep : String
-stepSep = "
-  —→  "
-
-showStates : ℕ → List Term → String
-showStates n []             = "·"
-showStates n (M ∷ [])       = showTmIn n M
-showStates n (M ∷ N ∷ Ms) =
-  showTmIn n M ++ stepSep ++ showStates n (N ∷ Ms)
-
--- the general form: the REAL ambient context, whose entries Peel's dual
--- copies, with its own length used for the naming supply
-showTraceIn : ℕ → TCtx → Term → String
-showTraceIn k Δ M = showStates (length Δ) (trace k Δ M)
-
--- fuel + AMBIENT LENGTH.  The ambient is taken to be n Λ-bound
--- variables (prepAbst n []) — the right reading for a run under a
--- sequence of type abstractions, and exactly [] at n = 0.  Where the
--- ambient carries KNOWLEDGE (a `rvld` entry), Peel's dual copies it, so
--- use showTraceIn with the real context instead.
-showTrace : ℕ → ℕ → Term → String
-showTrace k n M = showStates n (trace k (prepAbst n []) M)
+-- `n` is the ambient type context's length, as everywhere in
+-- strong.Show: it is the naming supply for the free slots, so slot 0 is
+-- named X.  One state per line, each arrow labelled by its rule.
+showTrace : ∀ {Δ M} → ℕ → Trace Δ M → String
+showTrace {M = M} n (stop f) = showTmIn n M ++ showFinal f
+showTrace {M = M} n (r ◅ tr) =
+  showTmIn n M ++ "\n  --[" ++ ruleName r ++ "]-->\n" ++ showTrace n tr

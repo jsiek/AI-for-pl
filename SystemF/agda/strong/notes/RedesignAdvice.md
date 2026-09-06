@@ -28,10 +28,10 @@ owner lookup.  Two realizations:
       the renaming/extension transport lemmas — the exact lemmas whose
       absence killed strong/'s ambient-dependent readings.
   (ii) OWNER-SYNTACTIC: the outermost reveal wrapper IS the store entry;
-      lookup walks the enclosing spine.  Store-free (grounded), but
+      lookup walks the enclosing type context.  Store-free (grounded), but
       faces become context-dependent — the transport risk is real and
       must be probed FIRST (the mitigation: lookup is by slot identity
-      along the enclosing spine, which renamings move coherently —
+      along the enclosing type context, which renamings move coherently —
       unlike spelled copies, which is exactly what D1 refuted).
 Key structural fact favoring both: the owner's wrapper syntactically
 ENCLOSES every inner user (a variable's scope is inside its reveal), so

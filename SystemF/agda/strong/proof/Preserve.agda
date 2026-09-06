@@ -6,19 +6,20 @@ module strong.proof.Preserve where
 --     well-formedness judgment (`⊢ᶜ Δ`, the store-typing pattern) is
 --     needed: every rep a rule reads back out of the type context arrives
 --     with its well-formedness already on the derivation — `env`'s last
---     premise `Δ ⊢ᵗ Bₑ` — and `reveal`'s minted face reads its rep from
---     the OWNER THE RULE ITSELF JUST BOUND, whose rep is `⊢·[]`'s premise.
+--     premise `Δ ⊢ᵗ Bₑ` — and `reveal`'s minted conversion reads its
+--     rep from the BINDER THE RULE ITSELF JUST BOUND, whose rep is
+--     `⊢·[]`'s premise.
 --
--- §2  THE MINTED FACE (`⊢reveal`/`⊢conceal`), TyBeta's contractum face,
---     proven mutually over the face type exactly as the two functions are
---     defined.
+-- §2  THE MINTED CONVERSION (`⊢reveal`/`⊢conceal`), TyBeta's contractum
+--     conversion, proven mutually over the SOURCE type exactly as the
+--     two functions are defined.
 --
--- §2b THE MINTED FACE TYPEELR WRITES (`⊢instReveal`/`⊢instConceal`), the
+-- §2b THE CONVERSION TYPEELR MINTS (`⊢instReveal`/`⊢instConceal`), the
 --     conversion-level analogue of §2.  Since the polarity index was
 --     retired (strong.Conversion) both directions are TOTAL.
 --
 -- §3  the per-rule cases that hold, one lemma each — TyBeta, TyPeelR at
---     ANY ∀-face, and Drop$.
+--     ANY ∀ conversion, and Drop$.
 --
 -- §4  `preserve`, over a module parameterized by the three cases whose
 --     proofs live downstream: Peel (proof/PeelDual) and CancelR/IdPush
@@ -119,11 +120,11 @@ CtxWf-⤊ h d with ∋⦂-map⁻ d
 ⊢ᵗ-of h (env _ _ _ wE)     = wE
 
 ------------------------------------------------------------------------
--- §2  The face TyBeta mints
+-- §2  The conversion TyBeta mints
 ------------------------------------------------------------------------
 
--- `reveal X B` reveals X inside B; the exterior face is B with X
--- replaced by the OWNER'S REP — `_[_:=_]ᵗ`, the in-place substitution
+-- `reveal X B` reveals X inside B; the target type is B with X
+-- replaced by the BINDER'S REP — `_[_:=_]ᵗ`, the in-place substitution
 -- (the concealed variable stays on the type context, so nothing shifts).
 
 -- The two reduction facts about `single-at`.  They are stated against
@@ -160,7 +161,7 @@ subst-at-∀ : (X : ℕ) (A B : Ty)
 subst-at-∀ X A B = cong `∀ (subst-cong (single-at-ext X A) B)
 
 -- Substituting the SHIFTED rep at slot 0 is the shift of the ordinary
--- single substitution — the equation TyBeta's face has to satisfy.
+-- single substitution — the equation TyBeta's conversion must satisfy.
 subst-at-0 : (A B : Ty) → B [ 0 := ⇑ᵗ A ]ᵗ ≡ ⇑ᵗ (B [ A ]ᵗ)
 subst-at-0 A B =
   trans (subst-cong env-eq B)
@@ -170,7 +171,7 @@ subst-at-0 A B =
   env-eq zero    = refl
   env-eq (suc Y) = refl
 
--- THE MINTED FACE, both directions, mutually.
+-- THE MINTED CONVERSION, both directions, mutually.
 mutual
   ⊢reveal : Δ ∋ X := A → Δ ⊢ᵗ B
     → Δ ⊢ reveal X B ∶ B ⇝ B [ X := A ]ᵗ
@@ -195,7 +196,7 @@ mutual
     rewrite subst-at-∀ X A B = conv-all (⊢conceal (es d) wB)
 
 ------------------------------------------------------------------------
--- §2b  The face TYPEELR mints — `instReveal` at the new owner
+-- §2b  The conversion TYPEELR mints — `instReveal` at the new binder
 ------------------------------------------------------------------------
 
 -- Four substitution facts about `single-at`, all shift arithmetic.
@@ -243,17 +244,17 @@ ren-suc-[0] T =
   h zero    = refl
   h (suc X) = refl
 
--- THE TYPE CONTEXT THE ∀-FACE IS READ ON.  A face's `` `∀ `` pushes one
--- ABSTRACT slot; TyPeelR turns the outermost such slot into the OWNER it
--- binds, so the two type contexts differ at exactly one entry, `n` binders
--- in.
+-- THE TYPE CONTEXT A ∀ CONVERSION IS READ ON.  A conversion's `` `∀ ``
+-- pushes one ABSTRACT slot; TyPeelR turns the outermost such slot into
+-- the BINDER it introduces, so the two type contexts differ at exactly
+-- one entry, `n` binders in.
 abstN : ℕ → Ctxᵗ → Ctxᵗ
 abstN zero    Ξ = Ξ
 abstN (suc n) Ξ = abst ∷ abstN n Ξ
 
-abstN-owner : ∀ {Ψ A} (n : ℕ) → abstN n (bind A ∷ Ψ) ∋ n := shiftBy (suc n) A
-abstN-owner zero    = ez
-abstN-owner (suc n) = es (abstN-owner n)
+abstN-binder : ∀ {Ψ A} (n : ℕ) → abstN n (bind A ∷ Ψ) ∋ n := shiftBy (suc n) A
+abstN-binder zero    = ez
+abstN-binder (suc n) = es (abstN-binder n)
 
 abstN-⊑ : ∀ {Ψ A} (n : ℕ) → abstN n (abst ∷ Ψ) ⊑ abstN n (bind A ∷ Ψ)
 abstN-⊑ {Ψ = Ψ} zero = le∷ le-ao (⊑-refl Ψ)
@@ -281,7 +282,7 @@ substᵉ-⇑ n R (masked E)  = cong masked (substᵉ-⇑ n R E)
 -- either ABSTRACT (the prefix, and slot n itself) or an entry of Ψ read
 -- past `n+1` binders — and such an entry names no slot ≤ n, so the mint
 -- at slot n leaves it alone.  This is SIMULTANEITY again: a rep is a type
--- over the plain exterior, lifted past the owners bound inside it.
+-- over the plain exterior, lifted past the binders inside it.
 abstN-ent : ∀ {Ψ A} (n : ℕ) {Y E}
   → abstN n (abst ∷ Ψ) ∋e Y , E
     ------------------------------------------------------------
@@ -306,10 +307,11 @@ abstN-kn {A = A} n d with abstN-ent {A = A} n d
 ... | inj₁ ()
 ... | inj₂ (d′ , eq) = d′ , bind-inj eq
 
--- SLOT n IS ABSTRACT, so no face leaf the premise already carries can
--- name it.  This is what closes the two leaf cases the polarity index
--- used to rule out (a `seal` under `instReveal`, an `unseal` under
--- `instConceal`): such a leaf cites an OWNER, and slot n has none.
+-- SLOT n IS ABSTRACT, so no conversion leaf the premise already carries
+-- can name it.  This is what closes the two leaf cases the polarity
+-- index used to rule out (a `seal` under `instReveal`, an `unseal`
+-- under `instConceal`): such a leaf cites a BINDER, and slot n has
+-- none.
 abstN-abst : ∀ {Ψ E} (n : ℕ) → abstN n (abst ∷ Ψ) ∋e n , E → E ≡ abst
 abstN-abst zero    ez     = refl
 abstN-abst (suc n) (es d) = cong ⇑ᵉ (abstN-abst n d)
@@ -318,16 +320,17 @@ abstN-≢ : ∀ {Ψ B Y} (n : ℕ) → abstN n (abst ∷ Ψ) ∋ Y := B → ¬ (
 abstN-≢ n d refl with abstN-abst n d
 ... | ()
 
--- THE MINTED FACE, both directions, mutually — the conversion analogue of
--- `⊢reveal`/`⊢conceal` (§2), and equal to them on an identity face
--- (`instReveal-mkId`, strong.Reduction).
+-- THE MINTED CONVERSION, both directions, mutually — the
+-- conversion-level analogue of `⊢reveal`/`⊢conceal` (§2), and equal to
+-- them on an identity conversion (`instReveal-mkId`, strong.Reduction).
 --
--- WITHOUT THE POLARITY INDEX BOTH DIRECTIONS ARE TOTAL.  The mint inserts
--- `unseal n` where the face runs covariantly and `seal n` where it runs
--- contravariantly; the leaves the face ALREADY carries are copied
--- unchanged, and each of them names an owner ≠ n (`abstN-≢`), so the
--- substitution at slot n leaves its face alone.  That is the whole of the
--- old CONCEAL-face obstruction: it was the index, not the terms.
+-- WITHOUT THE POLARITY INDEX BOTH DIRECTIONS ARE TOTAL.  The mint
+-- inserts `unseal n` where the conversion runs covariantly and `seal n`
+-- where it runs contravariantly; the leaves the conversion ALREADY
+-- carries are copied unchanged, and each of them names a binder ≠ n
+-- (`abstN-≢`), so the substitution at slot n leaves those leaves alone.
+-- That is the whole of the old CONCEAL obstruction: it was the index,
+-- not the terms.
 mutual
   ⊢instReveal : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
     → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
@@ -338,7 +341,7 @@ mutual
   ⊢instReveal n (conv-id base-𝔹) = conv-id base-𝔹
   ⊢instReveal {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
   ... | yes refl rewrite single-at-hit n (shiftBy (suc n) A) =
-    conv-unseal (abstN-owner n)
+    conv-unseal (abstN-binder n)
   ... | no ne rewrite single-at-miss n Y (shiftBy (suc n) A) ne =
     conv-idv (⊑-tv (abstN-⊑ n) tv)
   ⊢instReveal {A = A} n (conv-unseal d) with abstN-kn {A = A} n d
@@ -361,7 +364,7 @@ mutual
   ⊢instConceal n (conv-id base-𝔹) = conv-id base-𝔹
   ⊢instConceal {A = A} n (conv-idv {X = Y} tv) with n ≟ℕ Y
   ... | yes refl rewrite single-at-hit n (shiftBy (suc n) A) =
-    conv-seal (abstN-owner n)
+    conv-seal (abstN-binder n)
   ... | no ne rewrite single-at-miss n Y (shiftBy (suc n) A) ne =
     conv-idv (⊑-tv (abstN-⊑ n) tv)
   ⊢instConceal {A = A} n (conv-seal d) with abstN-kn {A = A} n d
@@ -393,9 +396,10 @@ shiftBy-ℕ⁻ (suc n) eq = shiftBy-ℕ⁻ n (ren-ℕ⁻ eq)
 
 -- ── TYBETA ─────────────────────────────────────────────────────────────
 -- The boundary is BORN.  Three moves: the interior is RETAGGED (the slot
--- the Λ bound abstractly is now the OWNER — `le-ao`, the one ⊑ᵉ clause
--- that refines an `abst`), the face is MINTED by `⊢reveal` at the rep
--- the owner was just given, and the exterior face equation is `subst-at-0`.
+-- the Λ bound abstractly is now the BINDER — `le-ao`, the one ⊑ᵉ clause
+-- that refines an `abst`), the conversion is MINTED by `⊢reveal` at the
+-- rep the binder was just given, and the target-type equation is
+-- `subst-at-0`.
 preserve-TyBeta : ∀ {N B A}
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
     ------------------------------------------------------
@@ -405,35 +409,36 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 ... | wf-∀ wB =
   env (mw-b wA mw[])
       (⊢retag refine ⊢N)
-      face
+      conv
       (wf-[]ᵗ wB wA)
   where
   refine : (abst ∷ Δ) ⊑ (bind A ∷ Δ)
   refine = le∷ le-ao (⊑-refl Δ)
 
-  face : (bind A ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
-  face rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf refine wB)
+  conv : (bind A ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
+  conv rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf refine wB)
 
--- ── TYPEELR, AT ANY ∀-FACE ─────────────────────────────────────────────
+-- ── TYPEELR, AT ANY ∀ CONVERSION ───────────────────────────────────────
 -- Four moves, one per premise of the contractum's `env`:
 --
---   FRAME     `bind A ∷ Θ`, whose interior is `bind (shiftBy (numBinds Θ) A) ∷
---             interior Θ Δ` DEFINITIONALLY — the shift `renᴮ suc Θ` used to
---             add is the one `pushBinds` already performs.
---   INTERIOR  `wkᴹ 1 V` (⊢rename at `Ren-wk`) instantiated at the new
---             owner's own name; the annotation is the INTERIOR ∀-body,
---             shifted, and `ren-suc-[0]` returns it unchanged.
---   FACE      `instReveal 0 s` (§2b), whose exterior face is the interior
---             one with slot 0 replaced by the owner's rep — which is the
---             instantiated exterior body, by `subst-at-0`.
---   EXTERIOR  `wf-[]ᵗ`, i.e. `⊢·[]`'s own two premises.
+--   FRAME       `bind A ∷ Θ`, whose interior is
+--               `bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`
+--               DEFINITIONALLY — the shift `renᴮ suc Θ` used to add is
+--               the one `pushBinds` already performs.
+--   INTERIOR    `wkᴹ 1 V` (⊢rename at `Ren-wk`) instantiated at the new
+--               binder's own name; the annotation is the INTERIOR
+--               ∀-body, shifted, and `ren-suc-[0]` returns it unchanged.
+--   CONVERSION  `instReveal 0 s` (§2b), whose TARGET type is its SOURCE
+--               with slot 0 replaced by the binder's rep — which is the
+--               instantiated exterior body, by `subst-at-0`.
+--   EXTERIOR    `wf-[]ᵗ`, i.e. `⊢·[]`'s own two premises.
 --
--- The premise `⊢s` and the redex's own face derivation agree, by
--- `conv-faces-unique`: that is what makes the pushed-in annotation a
+-- The premise `⊢s` and the redex's own conversion derivation agree, by
+-- `conv-types-unique`: that is what makes the pushed-in annotation a
 -- function of the redex (and hence `det` true).
 --
 -- THE CASE IS NOW GENERAL.  Under the polarity index this was a theorem
--- only at a REVEAL ∀-face, because the mint inserts `seal 0`
+-- only at a REVEAL ∀ conversion, because the mint inserts `seal 0`
 -- contravariantly and `unseal 0` covariantly and one of the two always
 -- sat where the index refused it.  With the index retired the mint's
 -- typing (`⊢instReveal`, §2b) is total, and so is this case.
@@ -463,14 +468,14 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
                  {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env mw ⊢V ⊢c wE) wA)
   with conv-all-inv ⊢c
 ... | A₀ , B₀ , refl , eqE , ⊢s₀
-  with conv-faces-unique ⊢s ⊢s₀
+  with conv-types-unique ⊢s ⊢s₀
 ... | refl , refl =
-  env (mw-b wA mw) int face (wf-[]ᵗ (wf-∀⁻ wE) wA)
+  env (mw-b wA mw) int conv (wf-[]ᵗ (wf-∀⁻ wE) wA)
   where
   A′ : Ty
   A′ = shiftBy (numBinds Θ) A
 
-  -- the exterior ∀-body, read on the boundary's face type context
+  -- the exterior ∀-body, read on the boundary's conversion context
   eqB : Bₑ ≡ shiftBodyBy (numBinds Θ) B
   eqB = sym (∀-inj (trans (sym (shiftBy-shiftBodyBy (numBinds Θ) B)) eqE))
 
@@ -490,14 +495,14 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
               (trans (subst-at-0 A′ (shiftBodyBy (numBinds Θ) B))
                      (cong ⇑ᵗ (sym (shiftBy-[]ᵗ (numBinds Θ) B A))))
 
-  face : convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s
+  conv : convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s
            ∶ Bᵢ ⇝ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
-  face = subst (λ T → convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
+  conv = subst (λ T → convCtx (bind A ∷ Θ) Δ ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
                eqT (⊢instReveal {A = A′} 0 ⊢s)
 
 -- ── DROP$ ──────────────────────────────────────────────────────────────
 -- `⊢$` types a numeral anywhere; the only content is that the boundary's
--- exterior type really is `ℕ, which the identity face forces.
+-- exterior type really is `ℕ, which the identity conversion forces.
 preserve-Drop$ : ∀ {n Θ}
   → Base A
   → Δ ∣ [] ⊢ ($ n) ⟪ Θ , id A ⟫ ⦂ C
@@ -522,7 +527,7 @@ PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
 
 -- (`TyPeelRCase` is stated and PROVEN in §3.)
 
--- CANCELR, at the repaired rule (both frames kept, both faces
+-- CANCELR, at the repaired rule (both frames kept, both conversions
 -- neutralised, Θ₂'s scope MOVED IN).  PROVEN in proof/MoveScope.
 CancelRCase : Set
 CancelRCase = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A

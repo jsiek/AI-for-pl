@@ -12,21 +12,21 @@ module strong.proof.PreserveObstruct where
 --               (`⊢c-contractum`) — the refutation is gone.
 --   §2 TyPeelR  REPAIRED and PROVEN.  The pushed-in annotation is now the
 --               premise-determined interior ∀-body, the frame is plain
---               `Θ`, and the minted face `instReveal 0 s` types at EVERY
---               ∀-face once the polarity index is gone
+--               `Θ`, and the minted conversion `instReveal 0 s` types at
+--               EVERY ∀ conversion once the polarity index is gone
 --               (proof/Preserve.preserve-TyPeelR).  §2 keeps the old
 --               counterexample's witness and records the POSITIVE fact on
 --               it; Examples §13 reaches it from closed plain source.
 --   §3 Peel     REPAIRED and PROVEN (proof/PeelDual); refutation removed.
 --   §4 IdPush   REPAIRED by the SCOPE MOVE (Jeremy, 2026-09-06).  The
---               inner wrapper's new exterior type is the owner's rep `A`,
+--               inner wrapper's new exterior type is the binder's rep `A`,
 --               which `env`'s last premise demands be well formed where
 --               the contractum puts it.  The old contractum put it INSIDE
 --               Θ₂'s `lock` — §4's witness, and the refutation that stood
 --               here.  The repaired rule MOVES Θ₂'s scope into the inner
---               frame, so the rep is presented on Θ₂'s FACE type context,
---               where it is nameable; §4 now records the POSITIVE fact on
---               the very same witness (`⊢i-contractum`).
+--               frame, so the rep is presented on Θ₂'s CONVERSION
+--               CONTEXT, where it is nameable; §4 now records the POSITIVE
+--               fact on the very same witness (`⊢i-contractum`).
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -48,8 +48,8 @@ open import strong.proof.MoveScope using (preserve-IdPush)
 -- §1  CancelR drops Θ₁'s frame
 ------------------------------------------------------------------------
 
--- Θ₁ binds ONE owner, so the cancelled value V lives two binders deep;
--- the residue `repsOf→bind (repsOf Θ₂)` rebinds only Θ₂'s one owner, and V's
+-- Θ₁ has ONE `bind`, so the cancelled value V lives two binders deep;
+-- the residue `repsOf→bind (repsOf Θ₂)` rebinds only Θ₂'s one binder, and V's
 -- `lock 1` — perfectly well formed inside — names a slot that no longer
 -- exists.
 
@@ -60,7 +60,7 @@ open import strong.proof.MoveScope using (preserve-IdPush)
 Vc : Term
 Vc = ƛ `ℕ ∙ (($ 5) ⟪ lock 1 ∷ [] , id `ℕ ⟫)
 
--- V's home: Θ₁'s owner over Θ₂'s owner over the empty type context.
+-- V's home: Θ₁'s binder over Θ₂'s binder over the empty type context.
 Ξc : Ctxᵗ
 Ξc = bind `𝔹 ∷ bind (`ℕ ⇒ `ℕ) ∷ []
 
@@ -90,7 +90,7 @@ step-c : [] ⊢ Rc
             ⟪ Θc₂ , mkId (`ℕ ⇒ `ℕ) ⟫
 step-c = CancelR val-Vc ez
 
--- the contractum, with both identity faces computed out
+-- the contractum, with both identity conversions computed out
 _ : (Vc ⟪ Θc₁ , mkId (shiftBy (numBinds Θc₁) (`ℕ ⇒ `ℕ)) ⟫)
       ⟪ Θc₂ , mkId (`ℕ ⇒ `ℕ) ⟫
       ≡ (Vc ⟪ bind `𝔹 ∷ [] , id `ℕ ↦ id `ℕ ⟫)
@@ -113,30 +113,30 @@ _ = refl
       (wf-⇒ wf-ℕ wf-ℕ)
 
 ------------------------------------------------------------------------
--- §2  TyPeelR under a CONCEAL ∀-face — SETTLED, AND POSITIVELY
+-- §2  TyPeelR under a CONCEALING ∀ conversion — SETTLED, AND POSITIVELY
 ------------------------------------------------------------------------
 
 -- The two old defects (exterior annotation, double shift) are REPAIRED in
 -- strong.Reduction: the pushed-in annotation is the premise-determined
--- interior body, the frame is plain `Θ`, and the face is `instReveal 0 s`
--- — the leaf-wise mint that turns the face's now-OWNED slot 0 into its
--- instantiation.
+-- interior body, the frame is plain `Θ`, and the conversion is
+-- `instReveal 0 s` — the leaf-wise mint that turns the conversion's
+-- now-OWNED slot 0 into its instantiation.
 --
 -- WHAT USED TO STAND HERE was a refutation, and it was a statement about
--- the POLARITY INDEX, not about the rule.  Under a CONCEAL ∀-face — a
--- POLYMORPHIC ARGUMENT that crossed a Peel — the mint inserts `seal 0`
--- CONTRAVARIANTLY under the face's own covariant `seal`, so the tree was
--- MIXED-POLARITY and the indexed judgment refused it at both `p`.  With
--- the index retired (Jeremy's ruling, strong.Conversion) the tree types:
--- each leaf cites its own owner, `seal 0` the owner this very rule bound
--- and `seal 1` the crossed boundary's, and no global index has to
--- reconcile them.
+-- the POLARITY INDEX, not about the rule.  Under a CONCEALING ∀
+-- conversion — a POLYMORPHIC ARGUMENT that crossed a Peel — the mint
+-- inserts `seal 0` CONTRAVARIANTLY under that conversion's own covariant
+-- `seal`, so the tree was MIXED-POLARITY and the indexed judgment refused
+-- it at both `p`.  With the index retired (Jeremy's ruling,
+-- strong.Conversion) the tree types: each leaf cites its own binder, `seal
+-- 0` the binder this very rule bound and `seal 1` the crossed boundary's,
+-- and no global index has to reconcile them.
 --
 -- So the section now records the POSITIVE fact, on the same witness —
 -- the shape Examples §13 reaches from closed plain source, `f : ∀Y. Y ⇒ X`
 -- crossing a Peel and then instantiated.
 
--- the crossed boundary's interior — the owner X := ℕ
+-- the crossed boundary's interior — the binder X := ℕ
 Δt : Ctxᵗ
 Δt = bind `ℕ ∷ []
 
@@ -150,7 +150,7 @@ val-Wt = V-Λ V-ƛ
 ⊢Wt : ∀ {Δ Γ} → Δ ∣ Γ ⊢ Wt ⦂ `∀ (` 0 ⇒ `ℕ)
 ⊢Wt = ⊢Λ (⊢ƛ (wf-var (abst , ez , nameable-a)) ⊢$)
 
--- the CONCEAL ∀-face a Peel hands it: `conceal 0 (∀Y. Y ⇒ X)`
+-- the CONCEALING ∀ conversion a Peel hands it: `conceal 0 (∀Y. Y ⇒ X)`
 Θt : CtxMorph
 Θt = lock 0 ∷ []
 
@@ -184,29 +184,30 @@ step-t : Δt ⊢ Rt
             ⟪ bind (` 0) ∷ Θt , instReveal 0 st ⟫
 step-t = TyPeelR val-Wt ⊢st
 
--- THE MINTED FACE, computed: the inserted leaf is the DOMAIN `seal 0`.
+-- THE MINTED CONVERSION, computed: the inserted leaf is the DOMAIN
+-- `seal 0`.
 _ : instReveal 0 st ≡ seal 0 ↦ seal 1
 _ = refl
 
--- BOTH LEAVES, on the contractum's face type context: the INSERTED one
--- conceals the new owner's rep at the new owner's name, the face's OWN
--- one conceals ℕ at the crossed boundary's owner.  Per variable each is
--- exactly the conceal its owner licenses.
-t-face-ctx : Ctxᵗ
-t-face-ctx = convCtx (bind (` 0) ∷ Θt) Δt
+-- BOTH LEAVES, on the contractum's conversion context: the INSERTED one
+-- conceals the new binder's rep at the new binder's name, the conversion's
+-- OWN one conceals ℕ at the crossed boundary's binder.  Per variable each is
+-- exactly the conceal its binder licenses.
+t-convCtx : Ctxᵗ
+t-convCtx = convCtx (bind (` 0) ∷ Θt) Δt
 
-_ : t-face-ctx ≡ bind (` 0) ∷ bind `ℕ ∷ []
+_ : t-convCtx ≡ bind (` 0) ∷ bind `ℕ ∷ []
 _ = refl
 
-t-dom : t-face-ctx ⊢ seal 0 ∶ ` 1 ⇝ ` 0
+t-dom : t-convCtx ⊢ seal 0 ∶ ` 1 ⇝ ` 0
 t-dom = conv-seal ez
 
-t-cod : t-face-ctx ⊢ seal 1 ∶ `ℕ ⇝ ` 1
+t-cod : t-convCtx ⊢ seal 1 ∶ `ℕ ⇝ ` 1
 t-cod = conv-seal (es ez)
 
 -- … and so does the TREE, which is what the polarity index refused.
-⊢t-face : t-face-ctx ⊢ seal 0 ↦ seal 1 ∶ (` 0 ⇒ `ℕ) ⇝ (` 1 ⇒ ` 1)
-⊢t-face = conv-fun t-dom t-cod
+⊢t-conv : t-convCtx ⊢ seal 0 ↦ seal 1 ∶ (` 0 ⇒ `ℕ) ⇝ (` 1 ⇒ ` 1)
+⊢t-conv = conv-fun t-dom t-cod
 
 -- THE CONTRACTUM TYPES, by the theorem — no hand-built derivation.
 ⊢t-contractum :
@@ -222,7 +223,7 @@ t-cod = conv-seal (es ez)
 -- re-blocked a no-op `unlock` (`Θ = unlock 0` at an unmasked slot) and
 -- failed same-slot cancellation.  strong.Reduction's repaired `dualScope`
 -- DROPS the `unlock` case, so `dual (unlock 0 ∷ []) ≡ []` and the
--- crossing no longer masks the owner.  `PeelCase` is now PROVEN
+-- crossing no longer masks the binder.  `PeelCase` is now PROVEN
 -- (strong.proof.PeelDual.preserve-Peel), with `interior-dual`/`convCtx-dual`
 -- true in general — so this refutation is gone.
 
@@ -231,9 +232,9 @@ t-cod = conv-seal (es ez)
 ------------------------------------------------------------------------
 
 -- The CHAINED configuration: slot 0's rep NAMES slot 1, and the outer
--- boundary locks slot 1.  IdPush swaps the faces, so the inner wrapper's
--- exterior type becomes that rep — and `env`'s last premise demands it be
--- well formed INSIDE, where slot 1 is blocked.
+-- boundary locks slot 1.  IdPush swaps the conversions, so the inner
+-- wrapper's exterior type becomes that rep — and `env`'s last premise
+-- demands it be well formed INSIDE, where slot 1 is blocked.
 
 Δi : Ctxᵗ
 Δi = bind (` 0) ∷ bind `ℕ ∷ []
@@ -250,7 +251,7 @@ _ = refl
 _ : convCtx Θi Δi ≡ Δi
 _ = refl
 
--- slot 0's rep, read on the face type context, is slot 1
+-- slot 0's rep, read on the conversion context, is slot 1
 _ : Δi ∋ 0 := ` 1
 _ = ez
 
@@ -306,7 +307,7 @@ _ = refl
   ¬wf-i w
 
 -- THE POSITIVE FACT.  With the lock moved into the inner boundary the
--- rep is presented on the FACE type context `convCtx Θi Δi ≡ Δi`, where
+-- rep is presented on the CONVERSION CONTEXT `convCtx Θi Δi ≡ Δi`, where
 -- slot 1 is live — and the contractum TYPES.  (`ProbeMove.agda` in the
 -- main tree checked this derivation by hand; here it is the theorem.)
 ⊢i-contractum :

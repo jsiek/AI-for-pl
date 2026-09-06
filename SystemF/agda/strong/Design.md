@@ -37,10 +37,10 @@ mentioned it and the copies drifted apart.
 Two consequences shape everything else:
 
 * A variable's representation is stored **exactly once**, at the entry
-  that binds it (its *owner*).  Every other mention of that variable —
+  that binds it (its *binder*).  Every other mention of that variable —
   in a conversion, in another boundary — carries only the **name**, and
   resolves the representation by looking the name up along the enclosing
-  type context (`Δ ∋ X := A`).  This is the *owner-syntactic* ruling
+  type context (`Δ ∋ X := A`).  This is the *binder-syntactic* ruling
   (`notes/DECISIONS.md`, "Redesign — Q1 realization RULED").
 * Because lookup is by slot identity, moving a term across a renaming
   moves its names coherently, and knowledge transport is *definitional*:
@@ -102,7 +102,7 @@ Diagram:
 
     E₀  ((ΛX. (λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))) [ℕ] · (ΛZ. (λx:Z. x)))
         |
-        |  TyBeta: the owner ↑X:=ℕ is minted
+        |  TyBeta: the binder ↑X:=ℕ is minted
         v
     E₁  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
            ⟪ ↑X:=ℕ , ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id Y ↦ id Y))) ⟫)
@@ -226,7 +226,7 @@ GTSF's two mutually defined directions merged into one family:
 * `∀X. s` — under one abstract binder.
 
 Conversions are **representation-free**: `seal` and `unseal` carry a
-name, never a spelling, and the representation is recovered by an owner
+name, never a spelling, and the representation is recovered by a binder
 lookup on the type context.  That is why the cancel type equation is
 definitional (`∋:=-det`) rather than a relation up to unfolding, and why
 both conversion transports (`conv-ren`, `conv-⊑`) need no hypotheses.
@@ -247,7 +247,7 @@ image of `shiftBy`, so it cannot appear on the exterior side.  A single
 global `p` is uniform only for single-kind morphisms, and it breaks the
 first time a rule mints a mixed one: `TyPeelR`'s frame `bind A ∷ Θ` at
 `Θ = lock 0 ∷ []` produces the conversion `seal 0 ↦ seal 1`, whose two
-leaves cite *different* owners and demand opposite values of one `p`
+leaves cite *different* binders and demand opposite values of one `p`
 (`Examples` §13a, `¬seal↦seal` in the record).  Dropping `p` is what
 makes `TyPeelR` preservation a theorem at every `∀`-conversion rather
 than only at a reveal one (`proof/Preserve.preserve-TyPeelR`).
@@ -263,7 +263,7 @@ than only at a reveal one (`proof/Preserve.preserve-TyPeelR`).
 
 * `abst` — a `Λ`-bound slot.  No representation, and none can be
   invented.
-* `bind A` — the **owner** of an instantiation event; `A` is the
+* `bind A` — the **binder** of an instantiation event; `A` is the
   representation, stored once, as a type over this entry's tail.
 * `masked E` — the slot is **masked** here: it may not be *named*, but its
   entry `E` is **retained**, so a later `unlock` has something to point
@@ -295,7 +295,7 @@ type*, not about mentioning the index in a context morphism.
     E ⊑ᵉ E′ and Nameable E′ ⇒ masked E ⊑ᵉ E′
 
 with `Δ ⊑ Δ′` pointwise.  There is **no** clause whose source is
-`bind A` other than reflexivity: an owner never loses its representation.
+`bind A` other than reflexivity: a binder never loses its representation.
 That is the deleted v1 demotion, stated as the theorem
 `⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A`.  Masking only loses
 nameability (`mask-⊑`), unmasking only adds it (`unmask-⊑`), and typing
@@ -318,9 +318,9 @@ no representation at all.
     pushBinds (A ∷ As) Δ = bind (shiftBy (length As) A) ∷ pushBinds As Δ
 
 The head of the list is interior slot 0.  A representation is a type over
-the *exterior*, so it is lifted past exactly the owners bound **inside**
-it and past nothing else — sibling entries of the same boundary never
-interfere.  As a well-formedness fact:
+the *exterior*, so it is lifted past exactly the binders **inside** it and
+past nothing else — sibling entries of the same boundary never interfere.
+As a well-formedness fact:
 
     wf-shiftBy-pushBinds : Δ ⊢ᵗ A → pushBinds As Δ ⊢ᵗ shiftBy (length As) A
 
@@ -338,10 +338,9 @@ term `M ⟪ Θ , c ⟫` is typed.  A boundary induces two more:
                                         -- THE CONVERSION context
 
 `interior Θ Δ` is where `M` is typed: `Θ`'s masks are applied and `Θ`'s
-owners are pushed on as fresh binders.  Why the conversion needs a
-context of its *own* — why `c : Bᵢ ⇝ Bₑ` can be checked neither inside
-nor outside — is the question this section answers, on `Examples` §13a's
-inner boundary
+`bind` entries are pushed on.  Why the conversion needs a context of its
+*own* — why `c : Bᵢ ⇝ Bₑ` can be checked neither inside nor outside — is
+the question this section answers, on `Examples` §13a's inner boundary
 
     ((ΛZ. λx:Z. 3) [Y]) ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫
 
@@ -351,18 +350,18 @@ representation `X` and locks `X`; the conversion is `seal Y ↦ seal X`.
 **The exterior cannot check it.**  `seal Y` names `Y` — a slot the
 boundary *itself* binds.  `Y` does not exist in `Δ = X := ℕ` at all, so
 no judgment over `Δ` can even state the conversion: its leaves live
-inside the owner prefix, `numBinds Θ` slots deeper than everything in
+inside the bind prefix, `numBinds Θ` slots deeper than everything in
 `Δ`.
 
-**The interior cannot check it either.**  Every leaf cites its owner by
+**The interior cannot check it either.**  Every leaf cites its binder by
 *lookup*: `conv-seal` and `conv-unseal` need `Δ ∋ X := A`, which does not
-hold of a `masked` entry.  Here `seal X : ℕ ⇝ X` must cite `X`'s owner —
+hold of a `masked` entry.  Here `seal X : ℕ ⇝ X` must cite `X`'s binder —
 and `X` is exactly the slot `↓X` masks, so in `interior Θ Δ` that lookup
 fails.  This is not a defect to repair: masking `X` *is* the type
 abstraction the boundary enforces, and the interior is supposed not to
 name it.
 
-So the conversion needs the owners **and** the locked slots: binds
+So the conversion needs the binders **and** the locked slots: binds
 pushed, locks lifted.  That is `convCtx Θ Δ`, the smallest context in
 which both leaves resolve.  It is not a third *construction*:
 
@@ -404,19 +403,19 @@ Diagram:
 `⌷[…]` is the renderer's mark for `masked`.  Read the two bottom rows: the
 interior may name `Y` but **not** `X` — that is the type abstraction the
 lock enforces — while the conversion is checked one row down, where `X`
-is live, so `seal X` can cite `X`'s owner.  The conversion typed there is
+is live, so `seal X` can cite `X`'s binder.  The conversion typed there is
 
     Y := X , X := ℕ  ⊢  seal Y ↦ seal X  ∶  (Y ⇒ ℕ)  ⇝  (X ⇒ X)
 
-with `seal Y : X ⇝ Y` (the fresh owner's rep, concealed at its own name)
-and `seal X : ℕ ⇝ X` (the crossed boundary's owner).  Each leaf conceals
-at *its own* owner: that is the whole content, and it is why no single
+with `seal Y : X ⇝ Y` (the fresh binder's rep, concealed at its own name)
+and `seal X : ℕ ⇝ X` (the crossed boundary's binder).  Each leaf conceals
+at *its own* binder: that is the whole content, and it is why no single
 polarity index could type the tree.
 
 Indices: everything inside the boundary is `numBinds Θ` slots deeper than
 outside, so an exterior type `Bₑ` is read inside as `shiftBy (numBinds Θ) Bₑ`.
 `lock X` / `unlock X` name **exterior** slots, and the rules that move a
-morphism inward lift those names by the owner count (`scopeOf`, §6.7).
+morphism inward lift those names by the bind count (`scopeOf`, §6.7).
 
 ### Vocabulary
 
@@ -425,7 +424,7 @@ and Appendix A lists them all.  The ones used most here:
 `interior` = *interior type context*, `convCtx` = *conversion context,
 the one the conversion is checked in*, `scope` = *scope*,
 `unlockedScope` = *scope with the locks lifted*, `pushBinds` = *push the
-owners on as binders*, `numBinds` = *number of binds*, `shiftBy` =
+representations on as binders*, `numBinds` = *number of binds*, `shiftBy` =
 *shift past n binders*.
 
 
@@ -441,15 +440,17 @@ owners on as binders*, `numBinds` = *number of binds*, `shiftBy` =
 The only interesting clause is `wf-var`: it asks for **visibility**, so a
 masked slot is unnameable, and a `∀` pushes `abst`, never a `bind`.
 
-### 4.2 Well-formed context morphisms — `MorphWf Δ Θ`
+### 4.2 Well-formed context morphisms — `Δ ⊢ᵐ Θ`
 
-Every premise is read on the **exterior** `Δ` (simultaneity),
-never on the context the earlier entries build:
+Read "the context morphism `Θ` is well formed over `Δ`"; an infix
+judgement in the family of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`.  Every premise
+is read on the **exterior** `Δ` (simultaneity), never on the context the
+earlier entries build:
 
-    mw[] : MorphWf Δ []
-    mw-b : Δ ⊢ᵗ A     → MorphWf Δ Θ → MorphWf Δ (bind A ∷ Θ)
-    mw-l : Δ ∋tv X    → MorphWf Δ Θ → MorphWf Δ (lock X ∷ Θ)
-    mw-u : Δ ∋e X , E → MorphWf Δ Θ → MorphWf Δ (unlock X ∷ Θ)
+    mw[] : Δ ⊢ᵐ []
+    mw-b : Δ ⊢ᵗ A     → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (bind A ∷ Θ)
+    mw-l : Δ ∋tv X    → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (lock X ∷ Θ)
+    mw-u : Δ ∋e X , E → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (unlock X ∷ Θ)
 
 A `bind` checks its representation in the exterior.  A `lock` names
 a **visible** slot.  An `unlock` asks only that the slot **exist** — it
@@ -457,7 +458,7 @@ cannot ask that the slot be masked and stay masked under refinement (a
 cancel may already have unmasked it), and it need not: `unmask` is total
 and an unlock at an unmasked slot is a no-op.  An `unlock` claims nothing
 and a `lock` claims nothing either; the claim lives in the conversion,
-where `seal X` must cite a live owner.
+where `seal X` must cite a live binder.
 
 ### 4.3 Terms
 
@@ -470,7 +471,7 @@ where `seal X` must cite a live owner.
 
 and the boundary rule, in full:
 
-    env : MorphWf Δ Θ
+    env : Δ ⊢ᵐ Θ
         → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
         → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
         → Δ ⊢ᵗ Bₑ
@@ -479,7 +480,7 @@ and the boundary rule, in full:
 
 Premise by premise:
 
-1. **`MorphWf Δ Θ`** — the morphism is well formed in the exterior
+1. **`Δ ⊢ᵐ Θ`** — the morphism is well formed over the exterior
    (§4.2).  This is the only place the morphism's own entries are
    checked, and they are all checked *simultaneously*, against `Δ`.
 2. **`interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ`** — the interior is typed in the interior
@@ -523,7 +524,7 @@ read in `Δ`*.  In full:
 
     conv-all    : (abst , Δ) ⊢ s ∶ A ⇝ B  → Δ ⊢ ∀X. s ∶ ∀X. A ⇝ ∀X. B
 
-`conv-seal` is **the soundness gate**: a conceal must cite a *live owner*
+`conv-seal` is **the soundness gate**: a conceal must cite a *live binder*
 on its type context.  There is no second premise and no side condition;
 `proof/Adversary.agda` shows that this one inversion refutes the
 adversaries that v1 needed `Reversal≈ + starOnly + SkelEq` to exclude.
@@ -540,12 +541,12 @@ Two derived facts used pervasively:
 
 and, the one the determinism proof needs:
 
-    conv-faces-unique :
+    conv-types-unique :
       if Δ ⊢ c ∶ A ⇝ B and Δ ⊢ c ∶ A′ ⇝ B′ then A ≡ A′ and B ≡ B′
 
 i.e. a conversion **determines both of its types**, given the context:
 `id` carries its own, a `seal`/`unseal` reads its representation by the
-owner lookup (`∋:=-det`), and `↦` / `∀` are structural.
+binder lookup (`∋:=-det`), and `↦` / `∀` are structural.
 
 
 ## 5. Values, and the active/inert split (`strong.Terms`)
@@ -584,7 +585,7 @@ all.  `act-not-inert` rules out overlap.
 Reading the split: an **inert** conversion is a claim the value keeps
 carrying (a conceal, a function or `∀` conversion waiting for its
 elimination, a transparent variable layer); an **active** one is a
-question the value can answer now (reveal an owner's representation, or
+question the value can answer now (reveal a binder's representation, or
 drop a base identity over a numeral).
 
 
@@ -655,7 +656,7 @@ Named:  `(ΛX. N) [B, A]  →  N ⟪ ↑X:=A , reveal X B ⟫`, `N` a value.
 
 **Bookkeeping.** This is the only rule that mints a representation.  It
 does *not* substitute: `N` keeps running at the abstract `X`, the new
-`bind` becomes `X`'s owner, and the conversion is derived from the body
+`bind` becomes `X`'s binder, and the conversion is derived from the body
 type `B` by `reveal` — reveal `X` on the way out, conceal it on the way
 in.  The `Value N` premise is a determinism repair: this calculus reduces
 under `Λ`, so `(Λ N) ·[ B , A ]` with `N` a redex would otherwise have
@@ -704,9 +705,9 @@ crossing argument's own conversion, transplanted **verbatim**.  That is
 sound because `convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ`: the dual's
 conversion context *is* the crossed boundary's.  The argument's frame is
 the dual: a `↓` for each of `Θ`'s binds (the argument may not name the
-new owners) and a `↥` for each of `Θ`'s locks (the argument came from
+new binders) and a `↥` for each of `Θ`'s locks (the argument came from
 outside, where they were nameable).  `wkᴹ (numBinds Θ)` re-indexes the
-argument one owner-frame deeper.
+argument one bind frame deeper.
 
 Example (`Examples` §6, `P₁ → P₂`), with
 `dual (bind ℕ ∷ []) ≡ lock 0 ∷ []`:
@@ -714,7 +715,7 @@ Example (`Examples` §6, `P₁ → P₂`), with
     (((λx:X. x) ⟪ ↑X:=ℕ , (seal X ↦ unseal X) ⟫) · 7)
       →  (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
 
-The `7` has crossed inward and is now sealed at the new owner, so the
+The `7` has crossed inward and is now sealed at the new binder, so the
 interior sees it at the abstract name `X` — which is exactly what
 `λx:X. x` demands.
 
@@ -731,22 +732,22 @@ where `Bᵢ` is the interior `∀`-body determined by the premise.
 
 **Bookkeeping**, three moves:
 
-1. **A new owner is prepended.**  The frame becomes `bind A ∷ Θ` — plain
+1. **A new binder is prepended.**  The frame becomes `bind A ∷ Θ` — plain
    `Θ`, not shifted, because `interior` already lifts `Θ`'s representations
-   past the prepended owner:
+   past the prepended binder:
    `interior (bind A ∷ Θ) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`.
-2. **The interior is instantiated at the new owner's name**, `` ` 0 ``,
+2. **The interior is instantiated at the new binder's name**, `` ` 0 ``,
    not at `A`.  The pushed-in body annotation must be the **interior**
    `∀`-body `Bᵢ`, which is what the interior's own `⊢·[]` demands and
    which differs from the exterior body at every non-identity leaf.  `Bᵢ`
    is not syntactically recoverable from a representation-free conversion
-   (a `seal`'s source is an owner's representation), so the rule carries
+   (a `seal`'s source is a binder's representation), so the rule carries
    the conversion typing as a **premise**.  `Progress` supplies it for
    free by inverting the redex's own `env` (`conv-all-inv`), and
-   determinism is `conv-faces-unique`.
+   determinism is `conv-types-unique`.
 3. **The conversion is re-minted at the new slot.**  Slot 0 of `s`'s body
-   was `abst` and is now the owner this rule binds, so every leaf that
-   reads it must become the instantiation step: `unseal 0` where the
+   was `abst` and is now the binder this rule introduces, so every leaf
+   that reads it must become the instantiation step: `unseal 0` where the
    conversion runs covariantly, `seal 0` where it runs contravariantly —
    that is `instReveal 0 s`.  Keeping `s` is ill-typed: its exterior body
    still mentions `` ` 0 `` where `env` demands the instantiated
@@ -760,7 +761,7 @@ Example, the **reveal** side (`Examples` §13b, `H₃ → H₄`):
             ⟪ ↑Y:=ℕ , ↑X:=ℕ , (seal Y ↦ unseal X) ⟫)
 
 with `` instReveal 0 (id (` 0) ↦ unseal 1) ≡ seal 0 ↦ unseal 1 ``: the
-inserted `seal Y` conceals the owner this rule bound, under an
+inserted `seal Y` conceals the binder this rule introduced, under an
 `unseal X` that reveals the crossed boundary's.  The **conceal** side is
 `Examples` §13a, `J₅ → J₆`:
 
@@ -793,7 +794,7 @@ Example (`Examples` §6, `P₅ → 7`):  `(7 ⟪ ↑X:=ℕ , id ℕ ⟫)  →  7
 
 **Bookkeeping.**  The two conversions cite the *same entry*, so the match
 is definitional — there is no second spelling to disagree with the first,
-which is the `∋:=-det` fact the whole ownership design was chosen for.
+which is the `∋:=-det` fact the whole binder design was chosen for.
 Both **frames are kept** and both conversions are **neutralised** to
 identities at the looked-up representation; composition happens only on
 the conversions, where `unseal ∘ seal = id` is algebra we already trust,
@@ -842,7 +843,7 @@ slot `A` names.  That was **the wall**, and the whole invariant hunt
 The repair is not a side condition but a **frame move** (Jeremy,
 2026-09-06).  The outer frame keeps only what binds and what unmasks
 (`dropLocks Θ₂`); its whole **scope** — locks *and* unlocks, in order,
-lifted past its own owners — travels into the inner frame's tail
+lifted past its own binders — travels into the inner frame's tail
 (`Θ₁ ⋉ Θ₂`), where `scope` applies it **first**, exactly where it applied
 before.  The representation is then presented outside the locks, where it
 is nameable, and the locks still stand between the value and the world.
@@ -880,7 +881,7 @@ list head-last, so moving only the *locks* past a same-slot `unlock`
 reorders a mask/unmask pair, and the value's frame is then not refined
 but **corrupted** — a slot it may name in the redex is masked in the
 contractum.  The refutation is in tree
-(`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `MorphWf`-legal witness
+(`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `_⊢ᵐ_`-legal witness
 `Θ✗ = unlock 0 ∷ lock 0 ∷ []` over `Δ✗ = bind ℕ ∷ []`, where
 `interior Θ✗ Δ✗ ≡ bind ℕ ∷ []` but the lock-only contractum's interior is
 `masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and the
@@ -985,7 +986,7 @@ exactly the two that the id-layer rules consume.
 Induction on the step, with the rule cases distributed:
 
 * **`TyBeta`** (`proof/Preserve.preserve-TyBeta`) — the mint.  The new
-  owner is the `abst ⊑ᵉ bind A` refinement of the `Λ`'s own slot
+  binder is the `abst ⊑ᵉ bind A` refinement of the `Λ`'s own slot
   (`le-ao`), so the interior retypes by `⊢retag`; the minted conversion
   types by `⊢reveal`/`⊢conceal`, and its exterior type is the
   instantiated body by `subst-at-0`.  The exterior premise is `⊢·[]`'s
@@ -997,21 +998,21 @@ Induction on the step, with the rule cases distributed:
   `interior (dual Θ) (interior Θ Δ)
   ≡ map masked (pushBinds (repsOf Θ) []) ++ unlockedScope Θ Δ`
   and `convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ`.  The crossing
-  argument, typed in `Δ`, retypes one owner-frame deeper by
+  argument, typed in `Δ`, retypes one bind frame deeper by
   `⊢rename (wkN (numBinds Θ))` and then `⊢retag` (the tail relaxes along
   `Δ ⊑ unlockedScope Θ Δ`), and the conversion `s` transplants verbatim
   through the second identity.
 * **`TyPeelR`** (`proof/Preserve.preserve-TyPeelR`) — at **every**
   `∀`-conversion, once polarity is gone.  The interior instantiation
-  lands at the fresh owner's name, `ren-suc-[0]` undoes the annotation
+  lands at the fresh binder's name, `ren-suc-[0]` undoes the annotation
   shift, and the minted `instReveal 0 s` types leaf by leaf, each leaf
-  citing its own owner.
+  citing its own binder.
 * **`Drop$`** — one inversion: `conv-id-refl` plus `shiftBy-ℕ⁻` force the
   exterior type to be the base type.
 * **`CancelR`, `IdPush`** (`proof/MoveScope`) — the scope move, §6.7.
   Four moves each, one per premise of the contractum's inner `env`:
-  the frame is `Θ₁ ⋉ Θ₂`, well formed by `MorphWf-⋉`; the interior is `V`,
-  retagged along `frame-move`; the conversion cites the owner that
+  the frame is `Θ₁ ⋉ Θ₂`, well formed by `⊢ᵐ-⋉`; the interior is `V`,
+  retagged along `frame-move`; the conversion cites the binder that
   `move-∋` transports; and the exterior premise is `moved-scoped`, the
   one the wall used to deny — which is now just `wf-shiftBy-pushBinds` on
   the redex's own exterior type, because
@@ -1035,7 +1036,7 @@ case analysis on the two steps; the interesting entries are the rules
 whose contracta are not syntactically determined by the redex:
 
 * `TyPeelR`'s pushed-in annotation is premise-determined, and the two
-  premises give the same annotation by `conv-faces-unique` (§4.4);
+  premises give the same annotation by `conv-types-unique` (§4.4);
 * `CancelR` and `IdPush` mint identity conversions at a looked-up
   representation, and the two lookups agree by `∋:=-det`.
 
@@ -1061,14 +1062,14 @@ machine-checked consequence in tree.
 2. **Tightness, for terms and for scope.**  A masked slot may not be
    named in any type; `Nameable` and `wf-var` are the whole enforcement.  But
    *mentioning* a masked index in a morphism entry (`↓X`, `↥X`) is not a
-   use, and `MorphWf` permits it.
+   use, and `_⊢ᵐ_` permits it.
 3. **No term type-shifts.**  Shift types, not terms.  The only index
    arithmetic in the design is ordinary de Bruijn binder offsets:
    `numBinds Θ`, `shiftBy`, and the `n + X` lift in `scopeOf` and `dualScope`.
    `cmax`, `dropN`, `swapᵇ`, `shiftReps` have no analogue.
-4. **Simultaneity.**  A boundary's entries never interfere: every `MorphWf`
+4. **Simultaneity.**  A boundary's entries never interfere: every `_⊢ᵐ_`
    premise, and every representation, is read in the **exterior**,
-   and `pushBinds` lifts a representation past exactly the owners bound inside
+   and `pushBinds` lifts a representation past exactly the binders inside
    it.  The telescopic variant was landed and reverted
    (`notes/DECISIONS.md`, "RULING … telescopic (mwf-↑) REVERTED").
 5. **Determinism.**  Reduction is a partial function.  This is what forces
@@ -1107,7 +1108,7 @@ Do not read the sections below for content — read them there.
   `notes/RedesignAdvice.md`: central representation storage (yes),
   simultaneity (keep), Conversion as the conversion half of a split
   boundary (yes), the cancel match becomes definitional (yes).  Then
-  "Redesign — Q1 realization RULED": *owner-syntactic*.
+  "Redesign — Q1 realization RULED": *binder-syntactic*.
 * **The probe and the restructure.**  "THE REDESIGN PROBE VERDICT
   (2026-09-05) — GREEN", then the rule repairs:
   "THE ID-LAYER PROBE VERDICT", "Id-layer RULING", "v2 vocabulary +
@@ -1143,7 +1144,7 @@ the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
 | `masked E` | the retained, unnameable entry |
 | `unmaskEnt E` | peel one mask |
 | `Nameable E` | the entry may be named in a type |
-| `MorphWf Δ Θ` | the morphism is well formed |
+| `Δ ⊢ᵐ Θ` | the morphism is well formed over Δ |
 | `mkId A` | the identity conversion at any type |
 | `reveal X A` | mint: reveal `X` through `A` |
 | `conceal X A` | mint: conceal `X` through `A` |
@@ -1151,7 +1152,7 @@ the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
 | `instConceal X s` | its contravariant partner |
 | `dual Θ` | the frame a crossing argument acquires |
 | `dualScope n Θ` | its scope half |
-| `hideBinds n` | lock the crossed boundary's own owners |
+| `hideBinds n` | lock the crossed boundary's own binders |
 | `scopeOf n Θ` | `Θ`'s scope, indices lifted by `n` |
 | `dropLocks Θ` | `Θ` with its locks removed |
 | `Θ₁ ⋉ Θ₂` | `Θ₁` with `Θ₂`'s scope moved into its tail |

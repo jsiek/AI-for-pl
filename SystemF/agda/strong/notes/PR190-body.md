@@ -1,8 +1,9 @@
-# Strong System F v2: mask-based boundaries with conversions and owner-bound representations
+# Strong System F v2: mask-based boundaries with conversions and binder-bound representations
 
-*(proposed title — the current one says "conversion faces"; the note and
-the Agda now speak of a boundary's **interior** and **exterior** instead,
-so "faces" should go.)*
+*(proposed title — the current one uses the vocabulary Jeremy retired on
+2026-09-06; the note and the Agda now speak of a boundary's
+**conversion** `c`, its **source** and **target** types, and its
+**interior** and **exterior**.)*
 
 ## Summary
 
@@ -12,7 +13,7 @@ morphism** `Θ` binds `X` to the representation `A`, masks in place
 whatever the interior may not name, and whose **conversion** `c` converts
 the interior type to the exterior type, leaf by leaf.  A representation
 is stored exactly once, at the entry that binds it; every other mention
-carries only the name and resolves it by an owner lookup along the
+carries only the name and resolves it by a binder lookup along the
 enclosing type context.  This branch replaces v1 (one combined boundary
 carrying copied representations), for which subject reduction is false.
 
@@ -35,7 +36,7 @@ All six, with **no module parameters, no postulates, no holes**, under
 1. **One boundary form, one frame change.**  `M ⟪ Θ , c ⟫`, with `Θ` a
    list of `bind A` / `lock X` / `unlock X` (rendered `↑X:=A` / `↓X` /
    `↥X`) and `c` a conversion.  The interior is term-closed.
-2. **Owner-syntactic representations.**  A representation lives only at
+2. **Binder-syntactic representations.**  A representation lives only at
    its `bind` entry; conversions carry names (`seal X`, `unseal X`), and
    `Δ ∋ X := A` resolves them.  Lookup is a function (`∋:=-det`), so the
    cancel equation is definitional instead of a relation up to
@@ -45,13 +46,13 @@ All six, with **no module parameters, no postulates, no holes**, under
    knowledge transport is definitional (`ren-kn`) and demotion is not
    expressible (`⊑-kn`).
 4. **Two type contexts per boundary.**  `interior Θ Δ` (interior: masks
-   applied, owners pushed on) types the interior; the **conversion
+   applied, binders pushed on) types the interior; the **conversion
    context** `convCtx Θ Δ` (the interior with `Θ`'s locks lifted) is
    where the conversion is checked, so a `seal X` at a locked `X` can
-   still cite its owner.  `interior (dropLocks Θ) Δ ≡ convCtx Θ Δ`.
-5. **Simultaneity.**  Every `MorphWf` premise and every representation is
+   still cite its binder.  `interior (dropLocks Θ) Δ ≡ convCtx Θ Δ`.
+5. **Simultaneity.**  Every `Δ ⊢ᵐ Θ` premise and every representation is
    read in the exterior; `pushBinds` lifts a representation past exactly
-   the owners bound inside it.  Sibling entries never interfere.
+   the binders inside it.  Sibling entries never interfere.
 6. **Conversions are GTSF's.**  `id` / `seal` / `unseal` / `_↦_` / `∀`,
    with `id` restricted to base types and variables and compound
    identities built by `mkId`.
@@ -83,7 +84,7 @@ All six, with **no module parameters, no postulates, no holes**, under
   bookkeeping-independent requirements extractor, `831591b3` lands
   `EvalLog` + `Oblig` + a 16-program corpus + `notes/BoundarySurvey.md`.
 * **Redesign advice, and the ruling.**  `e3cc7cc5` (advice memo),
-  `93d37333` (Q1 realization ruled: owner-syntactic), `e179e23e` (split
+  `93d37333` (Q1 realization ruled: binder-syntactic), `e179e23e` (split
   per-purpose constructors folded in).
 * **The probe.**  `c843cfbd` — transport passes, the three v1 breaks'
   contracta type, the conceal gate is one inversion.  `f0141d3e` renames
@@ -108,7 +109,8 @@ All six, with **no module parameters, no postulates, no holes**, under
   §5 retired).
 * **The scope move, and the theorem.**  `cdb24a41` — **preservation
   proven, parameter-free**; `Conditional`, `ScopedAtUnseal`,
-  `CancelFaces` and `¬IdPushCase` all retired, the old wall witness now
+  the cancel type-equation module and `¬IdPushCase` all retired, the old
+  wall witness now
   runs to a value.  `9005914c` (stdlib 2.0 deprecation), `5f67634f`
   (`TypeSafety.agda`, the public surface).
 
@@ -134,7 +136,7 @@ All six, with **no module parameters, no postulates, no holes**, under
   `fscp` → `unlockedScope`, `prep` → `pushBinds`, `reps` → `repsOf`,
   `nbind` → `numBinds`, `liftN` → `shiftBy`, `liftᵇ` → `shiftBodyBy`,
   `upd` → `updateAt`, `blk` → `masked`, `unblk` → `unmaskEnt`,
-  `Vis` → `Nameable`, `Bwf` → `MorphWf` (`bw*` → `mw*`), `idc` → `mkId`,
+  `Vis` → `Nameable`, `Bwf` → `_⊢ᵐ_` (`bw*` → `mw*`), `idc` → `mkId`,
   `unsealAt`/`sealAt` → `reveal`/`conceal`,
   `unsealAtᶜ`/`sealAtᶜ` → `instReveal`/`instConceal`, `dualS` →
   `dualScope`, `lockBinds` → `hideBinds`, `moveS` → `scopeOf`,

@@ -4,27 +4,29 @@ module strong.proof.ChainScoped where
 --
 -- RETIRED, AND KEPT AS A RECORD (2026-09-06).  THE WALL IS GONE: the
 -- SCOPE MOVE (strong.Reduction §2b) makes CancelR's and IdPush's
--- contracta present the rep on Θ₂'s FACE type context — `interior (dropLocks
--- Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds` supplies it outright
--- (proof/MoveScope).  So no invariant has to be grounded at all.  What
--- follows is still TRUE, and is the machine-checked record of the
--- candidates that were tried; nothing in the main development uses it.
+-- contracta present the rep on Θ₂'s CONVERSION CONTEXT — `interior
+-- (dropLocks Θ₂) Δ ≡ convCtx Θ₂ Δ` — where `wf-shiftBy-pushBinds`
+-- supplies it outright (proof/MoveScope).  So no invariant has to be
+-- grounded at all.  What follows is still TRUE, and is the machine-checked
+-- record of the candidates that were tried; nothing in the main development
+-- uses it.
 --
 --
 -- Three premises have now been run at the `env` node and each has died:
 --
---   * in `MorphWf` (a condition on Δ and Θ alone) — proof/WallGrounding: the
+--   * in `_⊢ᵐ_` (a condition on Δ and Θ alone) — proof/WallGrounding: the
 --     `¬IdPushCase` witness and a REACHABLE wrapper have the same Δ and
---     the same Θ and differ only in their FACE.
---   * the EXTERIOR TYPE at a reveal face — the FACE-CONDITIONED
---     candidate, which switched on the retired POLARITY index: IdPush
---     swaps the faces, so the obstruction moves to Θ₁, about which the
---     premise says nothing (its witness `R★` is rebuilt in §3 below).
---   * POINTWISE `RepWf` at every name-faced boundary — §1 below, killed
---     by a closed program.
+--     the same Θ and differ only in their CONVERSION.
+--   * the EXTERIOR TYPE at a reveal conversion — the
+--     CONVERSION-CONDITIONED candidate, which switched on the retired
+--     POLARITY index: IdPush swaps the conversions, so the obstruction
+--     moves to Θ₁, about which the premise says nothing (its witness
+--     `R★` is rebuilt in §3 below).
+--   * POINTWISE `RepWf` at every name-citing boundary — §1 below,
+--     killed by a closed program.
 --
 -- This file defines and tests the fourth: follow the REP CHAIN of the
--- variable the face names, and nothing else.  §2 defines it, §3 runs it
+-- variable the conversion names, and nothing else.  §2 defines it, §3 runs it
 -- on every witness in the development, §4 KILLS IT — with a hand-built
 -- typed TyBeta redex — and §5 says what the counter-model demands.
 
@@ -48,7 +50,7 @@ open import strong.proof.PreserveObstruct using (Δi; Θi)
 open import strong.Examples using (LΔ)
 
 ------------------------------------------------------------------------
--- §1  KILL TEST — POINTWISE `RepWf` AT NAME-FACED BOUNDARIES
+-- §1  KILL TEST — POINTWISE `RepWf` AT NAME-CITING BOUNDARIES
 ------------------------------------------------------------------------
 
 -- THE PROGRAM (closed, plain System F):
@@ -56,11 +58,12 @@ open import strong.Examples using (LΔ)
 --   (ΛX′. λx′:X′. ((ΛZ. λx:X′. (ΛY. x) [Z]) [ℕ] · x′)) [ℕ] · 7
 --
 -- Two nested crossings put the argument `7` behind TWO wrappers, the
--- outer of which is ID-FACED at X′ and carries the Peel-minted lock of
--- the ΛZ boundary's owner.  The innermost TyBeta then instantiates Y at
--- Z — minting the owner `Y := Z` — INSIDE that wrapper's scope.  So the
--- id-faced wrapper's interior blocks the slot the fresh owner's rep
--- names, and pointwise `RepWf` there is false while the contractum types.
+-- outer of which is an IDENTITY BOUNDARY at X′ and carries the
+-- Peel-minted lock of the ΛZ boundary's binder.  The innermost TyBeta
+-- then instantiates Y at Z — minting the binder `Y := Z` — INSIDE that
+-- wrapper's scope.  So the identity boundary's interior blocks the slot
+-- the fresh binder's rep names, and pointwise `RepWf` there is false
+-- while the contractum types.
 
 Pinner Pfun2 PZ Pbody Pfun1 P₀ : Term
 Pinner = (Λ (` 0)) ·[ ` 2 , ` 0 ]              -- (ΛY. x) [Z]
@@ -88,7 +91,7 @@ KS₇ : Term
 KS₇ = ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫
 
 -- the crossing argument the SECOND Peel builds: `7` behind a seal at X′
--- and then behind an ID FACE at X′, under the lock of Z's owner slot
+-- and then behind an ID CONVERSION at X′, under the lock of Z's binder slot
 xK ⇑xK : Term
 xK  = (($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ lock 0 ∷ [] , id (` 1) ⟫
 ⇑xK = (($ 7) ⟪ lock 2 ∷ [] , seal 2 ⟫) ⟪ lock 1 ∷ [] , id (` 2) ⟫
@@ -118,13 +121,13 @@ kstep₂ = Peel V-ƛ V-$
 kstep₃ : [] ⊢ P₂ -→ P₃
 kstep₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
--- the ΛZ instantiation: Z := ℕ, and the minted face is an ID LAYER
+-- the ΛZ instantiation: Z := ℕ, and the minted conversion is an ID LAYER
 -- (the body type `X′` is an OUTER variable)
 kstep₄ : [] ⊢ P₃ -→ P₄
 kstep₄ = ξ-⟪⟫ (ξ-·-l (TyBeta V-ƛ))
 
 -- the SECOND Peel: `dual (bind ℕ ∷ []) = lock 0 ∷ []`, so the crossing
--- argument acquires the lock of Z's own owner slot, under an ID face
+-- argument acquires the lock of Z's own binder slot, under an ID conversion
 kstep₅ : [] ⊢ P₄ -→ P₅
 kstep₅ = ξ-⟪⟫ (Peel V-ƛ (V-⟪⟫ V-$ I-seal))
 
@@ -166,7 +169,7 @@ RepWf-Ξᴷ′ (es ez)          = tt
 RepWf-Ξᴷ′ (es (es ez))     = wf-ℕ
 RepWf-Ξᴷ′ (es (es (es ())))
 
--- AFTER it, the fresh owner `Y := Z` names the blocked slot.
+-- AFTER it, the fresh binder `Y := Z` names the blocked slot.
 ¬RepWf-Δᴷ′ : ¬ RepWf Δᴷ′
 ¬RepWf-Δᴷ′ rw with rw (ez {E = bind (` 0)})
 ... | wf-var (_ , es ez , ())
@@ -220,11 +223,12 @@ RepWf-Ξᴷ′ (es (es (es ())))
 
 -- ── THE VERDICT ───────────────────────────────────────────────────────
 
--- The variant: pointwise `RepWf (interior Θ Δ)` at every boundary whose face
--- NAMES a slot (`id (` X)`, `unseal X`, `seal X`).  `P₇`'s middle-inner
--- wrapper is id-faced, so the variant applies to it.
-NameFacedRepWf : Set
-NameFacedRepWf = ∀ {Δ Γ M Θ X A} → Δ ∣ Γ ⊢ M ⟪ Θ , id (` X) ⟫ ⦂ A
+-- The variant: pointwise `RepWf (interior Θ Δ)` at every boundary whose
+-- CONVERSION NAMES a slot (`id (` X)`, `unseal X`, `seal X`).  `P₇`'s
+-- middle-inner wrapper is an identity boundary, so the variant applies
+-- to it.
+NameCitingRepWf : Set
+NameCitingRepWf = ∀ {Δ Γ M Θ X A} → Δ ∣ Γ ⊢ M ⟪ Θ , id (` X) ⟫ ⦂ A
                → RepWf (interior Θ Δ)
 
 -- EVERY typing of `P₇` contains that wrapper, so the variant does not
@@ -233,8 +237,8 @@ P₇-lock : [] ∣ [] ⊢ P₇ ⦂ `ℕ → ∃[ B ] (Δᴷ ∣ [] ⊢ ⇑xK ⦂
 P₇-lock (env _ (env _ (env _ ⊢w _ _) _ _) _ _) = _ , ⊢w
 
 -- KILLED: the variant contradicts a state REACHED from closed source.
-¬NameFacedRepWf : ¬ NameFacedRepWf
-¬NameFacedRepWf h with P₇-lock ⊢P₇
+¬NameCitingRepWf : ¬ NameCitingRepWf
+¬NameCitingRepWf h with P₇-lock ⊢P₇
 ... | B , ⊢w = ¬RepWf-Δᴷ′ (h ⊢w)
 
 ------------------------------------------------------------------------
@@ -257,10 +261,11 @@ data Reach (Δ : Ctxᵗ) : ℕ → Ty → Set where
   rz : ∀ {X A}     → Δ ∋ X := A → Reach Δ X A
   rs : ∀ {X A Y B} → Reach Δ X A → Y ∈ᵗ A → Δ ∋ Y := B → Reach Δ X B
 
--- THE PREMISE, VERBATIM.  The face's name and the interior live in the
--- SAME index space (`interior Θ Δ` and `convCtx Θ Δ` differ only by masking —
--- `maskOnly`), so there is no lifting to insert: the chain is read on the
--- FACE type context, and every member of it must be readable INSIDE.
+-- THE PREMISE, VERBATIM.  The conversion's name and the interior live
+-- in the SAME index space (`interior Θ Δ` and `convCtx Θ Δ` differ only
+-- by masking — `maskOnly`), so there is no lifting to insert: the chain
+-- is read on the CONVERSION CONTEXT, and every member of it must be
+-- readable INSIDE.
 ChainScoped : Ctxᵗ → CtxMorph → ℕ → Set
 ChainScoped Δ Θ X = ∀ {A} → Reach (convCtx Θ Δ) X A → interior Θ Δ ⊢ᵗ A
 
@@ -271,20 +276,21 @@ chain-rep : ∀ {Δ Θ X A}
   → ChainScoped Δ Θ X → convCtx Θ Δ ∋ X := A → interior Θ Δ ⊢ᵗ A
 chain-rep cs d = cs (rz d)
 
--- WHAT THE COMPOSITE FACES NEED.  A face is attached at its LEAVES: the
--- `id (` X)` / `seal X` / `unseal X` occurrences inside `↦` and `∀ .  For
--- `Preserve`'s cases that means:
+-- WHAT THE COMPOSITE CONVERSIONS NEED.  A conversion is attached at its
+-- LEAVES: the `id (` X)` / `seal X` / `unseal X` occurrences inside `↦`
+-- and `∀ .  For `Preserve`'s cases that means:
 --
 --   IdPush   the redex's leaves are `X` (inner `id`) and `Y` (outer
 --            `unseal`); the contractum's are the SAME two, swapped — so
 --            the premise is preserved iff `ChainScoped Δ Θ₁ X` survives
 --            the swap, which is what §4 tests.
---   CancelR  the residue's face is `mkId A` for the looked-up rep `A`, so
---            its leaves are exactly the variables of `A` — every one of
---            which is on Y's chain (`rs … in-… …`).  `ChainScoped` at Y
---            therefore covers the whole residue: that is the one place
---            where following the chain, rather than stopping at the rep,
---            is what makes the premise closed.
+--   CancelR  the residue's conversion is `mkId A` for the looked-up rep
+--            `A`, so its leaves are exactly the variables of `A` —
+--            every one of which is on Y's chain (`rs … in-… …`).
+--            `ChainScoped` at Y therefore covers the whole residue:
+--            that is the one place where following the chain, rather
+--            than stopping at the rep, is what makes the premise
+--            closed.
 --
 -- Base leaves (`id `ℕ`) name nothing and owe nothing.
 
@@ -293,8 +299,8 @@ chain-rep cs d = cs (rz d)
 ------------------------------------------------------------------------
 
 -- an `abst` slot has no rep, so a chain STOPS there
-abst-not-owner : ∀ {Δ X B} → Δ ∋e X , abst → Δ ∋ X := B → ⊥
-abst-not-owner d d′ with ∋e-det d d′
+abst-not-binder : ∀ {Δ X B} → Δ ∋e X , abst → Δ ∋ X := B → ⊥
+abst-not-binder d d′ with ∋e-det d d′
 ... | ()
 
 -- ── REFUSES the `¬IdPushCase` witness (proof/PreserveObstruct §4) ─────
@@ -305,10 +311,11 @@ abst-not-owner d d′ with ∋e-det d d′
 
 -- ── REFUSES the Θ₁-lock witness ───────────────────────────────────────
 --
--- `Ξ★` is the CHAINED-REP face type context (slot 1's rep is slot 2) and
--- `Θ★₁` locks slot 2 — the REP of the slot its own id-face names.  This
--- is the configuration that refuted the face-conditioned candidate: the
--- exterior type `` ` 1 `` is nameable inside, its rep `` ` 2 `` is not.
+-- `Ξ★` is the CHAINED-REP EXTERIOR (slot 1's rep is slot 2) and `Θ★₁`
+-- locks slot 2 — the REP of the slot its own identity conversion names.
+-- This is the configuration that refuted the conversion-conditioned
+-- candidate: the exterior type `` ` 1 `` is nameable inside, its rep
+-- `` ` 2 `` is not.
 
 Ξ★ : Ctxᵗ
 Ξ★ = bind `ℕ ∷ bind (` 0) ∷ bind `ℕ ∷ []
@@ -322,8 +329,8 @@ abst-not-owner d d′ with ∋e-det d d′
 
 -- ── ADMITS the REACHABLE wall wrapper of Examples §12 ─────────────────
 --
--- `L₄`'s locked slot IS on no chain the face touches: the face names
--- slot 1, whose rep is `ℕ, and `ℕ names nothing.
+-- `L₄`'s locked slot IS on no chain the conversion touches: the
+-- conversion names slot 1, whose rep is `ℕ, and `ℕ names nothing.
 chain-LΔ : ∀ {A} → Reach LΔ 1 A → A ≡ `ℕ
 chain-LΔ (rz d) = ∋:=-det d (es ez)
 chain-LΔ (rs r i d) with chain-LΔ r
@@ -335,10 +342,10 @@ ChainScoped-L₄ r with chain-LΔ r
 
 -- ── ADMITS the §1 kill test, on both sides of its TyBeta ──────────────
 --
--- The id-faced wrapper names X′ (slot 2), whose rep is `ℕ; the lock is on
--- Z (slot 1), which X′'s chain never reaches.  Pointwise `RepWf` fails
--- here (§1) precisely because it also looks at Y — a slot the face never
--- names.
+-- The identity boundary names X′ (slot 2), whose rep is `ℕ; the lock is
+-- on Z (slot 1), which X′'s chain never reaches.  Pointwise `RepWf`
+-- fails here (§1) precisely because it also looks at Y — a slot the
+-- conversion never names.
 chain-Δᴷ : ∀ {A} → Reach Δᴷ 2 A → A ≡ `ℕ
 chain-Δᴷ (rz d) = ∋:=-det d (es (es ez))
 chain-Δᴷ (rs r i d) with chain-Δᴷ r
@@ -367,10 +374,11 @@ ChainScoped-killtest-redex r with chain-Ξᴷ r
 -- short of it) becomes fatal, and `⊢retag` cannot carry the premise
 -- across.  This is `le-ao` again (proof/WallGrounding §3), one level down.
 --
--- THE WITNESS.  `Λ` binds a slot; inside it a boundary binds an owner
--- whose rep NAMES that slot; inside THAT, a wrapper locks an older slot
--- and its id-face names the owner.  Instantiating the Λ at a type that
--- names the locked slot closes the circuit.
+-- THE WITNESS.  `Λ` binds a slot; inside it a boundary introduces a
+-- binder whose rep NAMES that slot; inside THAT, a wrapper locks an
+-- older slot and its identity conversion names the binder.
+-- Instantiating the Λ at a type that names the locked slot closes the
+-- circuit.
 
 CΔ CΔ⁺ CΔ⁺′ CΔ′ CΔ′′ : Ctxᵗ
 CΔ   = bind `ℕ ∷ []
@@ -443,7 +451,7 @@ chain-CΔ⁺ (rs r i d) with chain-CΔ⁺ r
 ... | refl = ⊥-elim (stop i d)
   where
   stop : ∀ {Y B} → Y ∈ᵗ (` 1 ⇒ `ℕ) → CΔ⁺ ∋ Y := B → ⊥
-  stop (in-⇒-l in-var) d′ = abst-not-owner (es ez) d′
+  stop (in-⇒-l in-var) d′ = abst-not-binder (es ez) d′
   stop (in-⇒-r ())     d′
 
 ChainScoped-CΔ⁺ : ChainScoped CΔ⁺ CΘ 0
@@ -461,7 +469,7 @@ ChainScoped-CV r with chain-CΔ⁺′ r
   ... | refl = ⊥-elim (stop i d)
     where
     stop : ∀ {Y B} → Y ∈ᵗ (` 1 ⇒ `ℕ) → CΔ⁺′ ∋ Y := B → ⊥
-    stop (in-⇒-l in-var) d′ = abst-not-owner (es ez) d′
+    stop (in-⇒-l in-var) d′ = abst-not-binder (es ez) d′
     stop (in-⇒-r ())     d′
 ... | refl = wf-⇒ (wf-var (abst , es ez , nameable-a)) wf-ℕ
 
@@ -477,9 +485,9 @@ _ = es ez
 
 -- ── THE VERDICT ───────────────────────────────────────────────────────
 
--- the candidate rule, at the id-faced boundary
-ChainFaced : Set
-ChainFaced = ∀ {Δ Γ M Θ X A}
+-- the candidate rule, at the identity boundary
+ChainConv : Set
+ChainConv = ∀ {Δ Γ M Θ X A}
   → Δ ∣ Γ ⊢ M ⟪ Θ , id (` X) ⟫ ⦂ A → ChainScoped Δ Θ X
 
 -- every typing of the contractum contains the offending wrapper
@@ -487,10 +495,10 @@ CC-W : ∀ {B} → CΔ ∣ [] ⊢ CC ⦂ B → ∃[ B′ ] (CΔ′ ∣ [] ⊢ CW
 CC-W (env _ (⊢ƛ _ (env _ ⊢w _ _)) _ _) = _ , ⊢w
 
 -- KILLED.  The redex satisfies the premise at every wrapper
--- (`ChainScoped-CΔ⁺`, `ChainScoped-CV`, and the `unseal`-faced one is
+-- (`ChainScoped-CΔ⁺`, `ChainScoped-CV`, and the revealing one is
 -- lock-free); the contractum does not.
-¬ChainFaced : ¬ ChainFaced
-¬ChainFaced h with CC-W ⊢CC
+¬ChainConv : ¬ ChainConv
+¬ChainConv h with CC-W ⊢CC
 ... | B′ , ⊢w = ¬ChainScoped-CΔ′ (h ⊢w)
 
 ------------------------------------------------------------------------
@@ -504,8 +512,8 @@ CC-W (env _ (⊢ƛ _ (env _ ⊢w _ _)) _ _) = _ , ⊢w
 -- the slot could ever have.  Since the instantiating type may name any
 -- slot older than the Λ, that is:
 --
---   a `lock` at slot m is safe for a face naming X only if NO `abst`
---   slot reachable from X is YOUNGER than m
+--   a `lock` at slot m is safe for a conversion naming X only if NO
+--   `abst` slot reachable from X is YOUNGER than m
 --
 -- — a condition on the ORDER of slots, not on the reps.  In this
 -- counter-model the chain from slot 0 reaches the `abst` at slot 1 and
@@ -535,30 +543,31 @@ chain-mono : ∀ {F Y Z A B}
 chain-mono r i (rz d)       = rs r i d
 chain-mono r i (rs r′ i′ d) = rs (chain-mono r i r′) i′ d
 
--- CANCELR, DECIDED.  The residue's face is `mkId A` for the looked-up rep
--- `A`, so its leaves are exactly `A`'s variables — every one of them ON
--- Y's CHAIN.  The premise at Y therefore covers the whole residue, with
--- no lifting into Θ₁ and no extra hypothesis.  This is precisely what
--- following the chain buys over stopping at the rep.
+-- CANCELR, DECIDED.  The residue's conversion is `mkId A` for the
+-- looked-up rep `A`, so its leaves are exactly `A`'s variables — every
+-- one of them ON Y's CHAIN.  The premise at Y therefore covers the
+-- whole residue, with no lifting into Θ₁ and no extra hypothesis.  This
+-- is precisely what following the chain buys over stopping at the rep.
 cancelR-leaves : ∀ {Δ Θ Y Z A}
   → ChainScoped Δ Θ Y → Reach (convCtx Θ Δ) Y A → Z ∈ᵗ A
     ----------------------------------------------------
   → ChainScoped Δ Θ Z
 cancelR-leaves cs r i r′ = cs (chain-mono r i r′)
 
--- IDPUSH, DECIDED.  It keeps BOTH frames and BOTH names and swaps only
--- the faces: the inner `id (` X)` becomes `unseal X` at the SAME Θ₁, and
--- the outer `unseal Y` becomes `mkId A` at the SAME Θ₂ (whose leaves are
--- covered by `cancelR-leaves`).  So the premise transports on the nose —
--- the gap the face-conditioned candidate had (the exterior type says
--- nothing about Θ₁) does NOT recur, and its witness `R★` is refused
--- (`¬ChainScoped-R★`) rather than stepping to something untypeable.
+-- IDPUSH, DECIDED.  It keeps BOTH frames and BOTH names, and the
+-- conversions swap: the inner `id (` X)` becomes `unseal X` at the SAME
+-- Θ₁, and the outer `unseal Y` becomes `mkId A` at the SAME Θ₂ (whose
+-- leaves are covered by `cancelR-leaves`).  So the premise transports
+-- on the nose — the gap the conversion-conditioned candidate had (the
+-- exterior type says nothing about Θ₁) does NOT recur, and its witness
+-- `R★` is refused (`¬ChainScoped-R★`) rather than stepping to something
+-- untypeable.
 idPush-inner : ∀ {Ξ Θ₁ X} → ChainScoped Ξ Θ₁ X → ChainScoped Ξ Θ₁ X
 idPush-inner cs = cs
 
 -- SO THE SCORE, on the premise as stated:
 --
---   ⊑-stable                       NO   §4 (`¬ChainFaced`) — the kill
+--   ⊑-stable                       NO   §4 (`¬ChainConv`) — the kill
 --   refuses `¬IdPushCase`'s Ri     yes  `¬ChainScoped-Ri`
 --   refuses the Θ₁-lock witness R★ yes  `¬ChainScoped-R★`
 --   admits Examples §12's L₄       yes  `ChainScoped-L₄`
@@ -568,9 +577,10 @@ idPush-inner cs = cs
 --   mintable at TyBeta             n/a  the mint is lock-free, but §4
 --                                       shows TyBeta breaks the premise
 --                                       at OTHER wrappers, by retagging
---   Peel crossing                  yes  the crossing face's SOURCE is a
---                                       `shiftBy`, so its target names no
---                                       owner of the crossed boundary
+--   Peel crossing                  yes  the crossing conversion's
+--                                       SOURCE is a `shiftBy`, so its
+--                                       target names no binder of the
+--                                       crossed boundary
 --   TyPeelR                        n/a  same retag defect as TyBeta
 --
 -- Every entry but the first is green.  The first is the whole game.

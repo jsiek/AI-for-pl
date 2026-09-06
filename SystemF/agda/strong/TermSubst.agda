@@ -4,7 +4,7 @@ module strong.TermSubst where
 --
 -- Term substitution is ordinary: boundaries are term-closed, so a wrapper is
 -- never descended into.  The interesting content is the pair of TYPE-LEVEL
--- transports the ownership design has to pay for, and both come out cheap:
+-- transports the binder design has to pay for, and both come out cheap:
 --
 --   ⊢rename : a type context renaming moves a whole typing derivation, with the ONE
 --             structural hypothesis `Inj ρ` (positional masking; no
@@ -119,11 +119,11 @@ ren-convCtx : (Θ : CtxMorph) (ρ : Renameᵗ) → Ren ρ Δ Δ′ → Inj ρ
 ren-convCtx Θ ρ r i rewrite repsOf-ren ρ Θ =
   ren-pushBinds (repsOf Θ) ρ (ren-unlockedScope Θ r i)
 
-MorphWf-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → MorphWf Δ Θ → MorphWf Δ′ (renᴮ ρ Θ)
-MorphWf-ren r i mw[]        = mw[]
-MorphWf-ren r i (mw-b w b)  = mw-b (wf-ren r w) (MorphWf-ren r i b)
-MorphWf-ren r i (mw-l tv b) = mw-l (ren-tv r tv) (MorphWf-ren r i b)
-MorphWf-ren r i (mw-u d b)  = mw-u (ren∋ r d) (MorphWf-ren r i b)
+⊢ᵐ-ren : ∀ {Θ} → Ren ρ Δ Δ′ → Inj ρ → Δ ⊢ᵐ Θ → Δ′ ⊢ᵐ renᴮ ρ Θ
+⊢ᵐ-ren r i mw[]        = mw[]
+⊢ᵐ-ren r i (mw-b w b)  = mw-b (wf-ren r w) (⊢ᵐ-ren r i b)
+⊢ᵐ-ren r i (mw-l tv b) = mw-l (ren-tv r tv) (⊢ᵐ-ren r i b)
+⊢ᵐ-ren r i (mw-u d b)  = mw-u (ren∋ r d) (⊢ᵐ-ren r i b)
 
 ------------------------------------------------------------------------
 -- 3.  THE RENAMING TRANSPORT
@@ -157,7 +157,7 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
   ⊢·[] (⊢rename r i ⊢L) (wf-ren r w)
 ⊢rename {Δ′ = Δ′} {ρ = ρ} r i
         (env {Θ = Θ} {c = c} {Bᵢ = Bᵢ} {Bₑ = Bₑ} mw ⊢M ⊢c wE) =
-  env (MorphWf-ren r i mw)
+  env (⊢ᵐ-ren r i mw)
       (⊢rename (ren-interior Θ ρ r i) (Inj-extN (numBinds Θ) i) ⊢M)
       cprem
       (wf-ren r wE)
@@ -191,7 +191,7 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
 ⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (le∷ le-aa ls) ⊢N)
 ⊢retag ls (⊢·[] ⊢L w)  = ⊢·[] (⊢retag ls ⊢L) (⊑-wf ls w)
 ⊢retag ls (env {Θ = Θ} mw ⊢M ⊢c wE) =
-  env (MorphWf-⊑ ls mw)
+  env (⊢ᵐ-⊑ ls mw)
       (⊢retag (⊑-interior Θ ls) ⊢M)
       (conv-⊑ (⊑-convCtx Θ ls) ⊢c)
       (⊑-wf ls wE)
@@ -233,11 +233,11 @@ extᵐ : (ℕ → Term) → (ℕ → Term)
 extᵐ σ zero    = ` zero
 extᵐ σ (suc x) = shiftᵐ (σ x)
 
--- THE Λ CLAUSE.  `⊢Λ` types its body at the SHIFTED term context ⤊ Γ, so an
--- image of σ — a term whose annotations, boundary reps and face names are
--- written over the EXTERIOR type context — must be shifted past the new
--- Λ-bound slot before it may be planted inside.  (Same clause as v1's
--- `substᵀᵐ`; v2's ⊢Λ shifts Γ exactly as v1's did.)
+-- THE Λ CLAUSE.  `⊢Λ` types its body at the SHIFTED term context ⤊ Γ, so
+-- an image of σ — a term whose annotations, boundary reps and conversion
+-- names are written over the EXTERIOR type context — must be shifted
+-- past the new Λ-bound slot before it may be planted inside.  (Same
+-- clause as v1's `substᵀᵐ`; v2's ⊢Λ shifts Γ exactly as v1's did.)
 substᵐ : (ℕ → Term) → Term → Term
 substᵐ σ (` x)          = σ x
 substᵐ σ ($ n)          = $ n

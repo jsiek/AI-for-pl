@@ -2428,3 +2428,28 @@ inert-*-conv, J-face-ctx/t-face-ctx → J-convCtx/t-convCtx, ⊢Hface/⊢Gface/
  `Δ ⊢ᵐ Θ` (the context morphism Θ is well formed over Δ), in the family
  of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`; constructors mw[]/mw-b/mw-l/mw-u stay;
  lemma names follow (⊢ᵐ-⊑, ⊢ᵐ-⋉, …).
+
+### RULING: "binder" instead of "owner" (Jeremy, 2026-09-06)
+
+The bind entry ↑X:=A of a boundary is X's BINDER (it binds X and carries
+its representation A); "owner"/"ownership"/"owner lookup" are retired
+from Design.md, README, comments and identifiers (abstN-owner →
+abstN-binder, unseal-owner → unseal-binder, owner-holds → binder-holds,
+abst-not-owner → abst-not-binder, ¬canonC-two-owners →
+¬canonC-two-binders, seal-cites-owner → seal-cites-binder).  `Δ ∋ X := A`
+is the binder lookup.  Where "binder" would be ambiguous with Λ/∀/λ
+binders, prose says "the `bind` entry for X" / "Λ-bound X".  Historical
+memos and this log keep the old word.
+
+### RULINGS before PR #190 leaves draft (Jeremy, 2026-09-06)
+
+(1) DELETE the four invariant-hunt record files proof/WallReach,
+WallGrounding, ChainScoped, IdPushReach — the refutations they carried
+are recorded in this log (2026-09-06 entries "the invariant hunt" and
+its UPDATE) and in the artifacts "The Wall" and "Two Polarities, One
+Rule"; nothing in the development depends on them.  (2) MOVE PLAN.md
+(the superseded PR #189 handoff for v1) to notes/old/PLAN-v1.md.  (3)
+The `_⊑ᵉ_` constructors lose their owner/blocked initials: le-ao → le-ab
+(abst ⊑ bind), le-oo → le-bb (bind ⊑ bind), and the masked pair le-bb →
+le-mm, le-bu → le-mu; le-aa stays.  Then the PR is marked ready for
+review.

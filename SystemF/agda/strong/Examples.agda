@@ -14,18 +14,18 @@ module strong.Examples where
 -- §7  two regressions on substᵐ; §8 progress on §6; §9 preservation on §6.
 -- §10 IdPush — the reachability verdict of proof/IdPushReach.
 -- §11 IDPUSH FROM CLOSED, PLAIN SOURCE — the run `Q` Jeremy asked for,
---     plus the three variants: (ii) a CHAINED face rep (`R`), (iii)
---     IdPush firing TWICE (`D`), and (i) a multi-bind Θ₁, which turns out
---     to be reachable only through TyPeelR — whose contractum is here
---     refuted from closed source for the first time (`G`).
+--     plus the three variants: (ii) a CHAINED conversion rep (`R`),
+--     (iii) IdPush firing TWICE (`D`), and (i) a multi-bind Θ₁, which
+--     turns out to be reachable only through TyPeelR — whose contractum
+--     is here refuted from closed source for the first time (`G`).
 -- §12 the WALL, probed for reachability post-Peel-repair (`L`): the
 --     c10/c11 blocked type context IS reached from closed source, but in
 --     a Θ₁ position, never as the Θ₂ a rule reads a rep out of.
--- §13 TYPEELR FROM CLOSED, PLAIN SOURCE, at both faces: `J` (a CONCEAL
---     ∀-face, the polymorphic argument) runs to its answer 3 through the
---     TyPeelR contractum the retired polarity index used to refuse, `H`
---     is the REVEAL mirror, and §13c records the contracta weighed
---     against the landed rule.
+-- §13 TYPEELR FROM CLOSED, PLAIN SOURCE, at a CONCEAL and a REVEAL
+--     conversion: `J` (a CONCEAL ∀ conversion, the polymorphic
+--     argument) runs to its answer 3 through the TyPeelR contractum the
+--     retired polarity index used to refuse, `H` is the REVEAL mirror,
+--     and §13c records the contracta weighed against the landed rule.
 -- §14 THE PRE-BOUNDARY COUNTEREXAMPLE: `E`, the closed program that
 --     refuted the per-variable design (v1's historical Example 8), run
 --     in v2 to a VALUE — the step that used to produce an ill-typed
@@ -55,8 +55,8 @@ open import strong.Reduction
 
 -- T₆ = ((7 ⟪ [] , seal 1 ⟫) ⟪ bind ℕ , id (` 1) ⟫) ⟪ bind ℕ , unseal 0 ⟫
 -- typed at ℕ, not a value, and — before IdPush — no rule fired: Cancel
--- wanted a seal-topped interior, Drop$ a base face, ξ-⟪⟫ a stepping
--- interior.  The middle wrapper is the "transparent layer".
+-- wanted a seal-topped interior, Drop$ a base conversion, ξ-⟪⟫ a
+-- stepping interior.  The middle wrapper is the "transparent layer".
 
 Δ₆ S₆₁ S₆₂ : Ctxᵗ
 Δ₆  = bind `ℕ ∷ []
@@ -83,10 +83,10 @@ T₆  = W₆₁ ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 ¬val-T₆ : ¬ Value T₆
 ¬val-T₆ (V-⟪⟫ _ ())
 
--- STEP 1 — IDPUSH.  The two FACES are swapped; both frames are untouched.
--- The pushed name `1` is the id-face's bind variable (proof/IdLayer.agda,
--- `idpush-name`), and the residue face is the identity at the LOOKED-UP
--- rep — the lookup premise, exactly as ruled.
+-- STEP 1 — IDPUSH.  The two CONVERSIONS swap; both frames are untouched.
+-- The pushed name `1` is the identity conversion's bind variable
+-- (proof/IdLayer.agda, `idpush-name`), and the residue conversion is the
+-- identity at the LOOKED-UP rep — the lookup premise, exactly as ruled.
 T₆-1 : Term
 T₆-1 = (W₆₀ ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 
@@ -100,9 +100,9 @@ push-T₆ = IdPush (V-⟪⟫ V-$ I-seal) ez
 ⊢T₆-1 = env (mw-b wf-ℕ mw[]) ⊢T₆-1-in (conv-id base-ℕ) wf-ℕ
 
 -- STEP 2 — the seal/unseal pair is now ADJACENT: the ordinary cancel
--- fires.  BOTH FRAMES STAY (the repaired rule) and both faces become the
--- identity at the looked-up rep, so the seal's own (here empty) frame
--- survives as one more transparent layer.
+-- fires.  BOTH FRAMES STAY (the repaired rule) and both conversions
+-- become the identity at the looked-up rep, so the seal's own (here
+-- empty) frame survives as one more transparent layer.
 T₆-2 : Term
 T₆-2 = ((($ 7) ⟪ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
          ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
@@ -118,7 +118,7 @@ cancel-T₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 ⊢T₆-2 : Δ₆ ∣ [] ⊢ T₆-2 ⦂ `ℕ
 ⊢T₆-2 = env (mw-b wf-ℕ mw[]) ⊢T₆-2-in (conv-id base-ℕ) wf-ℕ
 
--- STEPS 3, 4, 5 — base faces over a numeral, innermost first.
+-- STEPS 3, 4, 5 — base conversions over a numeral, innermost first.
 run-T₆ : Δ₆ ⊢ T₆ -→* $ 7
 run-T₆ = push-T₆
     then cancel-T₆
@@ -131,8 +131,8 @@ run-T₆ = push-T₆
 -- §2  The cancel pair
 ------------------------------------------------------------------------
 
--- (7 ⟪ ↓X , seal 0 ⟫) ⟪ ↑X:=ℕ , unseal 0 ⟫ — outer face ACTIVE, inner face
--- INERT, read straight off the conversion constructors.
+-- (7 ⟪ ↓X , seal 0 ⟫) ⟪ ↑X:=ℕ , unseal 0 ⟫ — outer conversion ACTIVE,
+-- inner INERT, read straight off the conversion constructors.
 
 Θ↑ Θ↓ : CtxMorph
 Θ↑ = bind `ℕ ∷ []
@@ -149,12 +149,12 @@ cancelTm = (($ 7) ⟪ Θ↓ , seal 0 ⟫) ⟪ Θ↑ , unseal 0 ⟫
       (conv-unseal ez)
       wf-ℕ
 
--- the pair is NOT a value (the outer face is active) and the cancel
--- fires.  BOTH FRAMES STAY and both faces become the identity at the
--- looked-up rep (the repaired rule): nothing that `V` might name is
--- dropped, and the mini-core's extra `hideBinds` — which masked an
--- exterior slot that does not exist (proof/MaskFacts `¬MorphWf-cancel-residue`)
--- — is gone for good.
+-- the pair is NOT a value (the outer conversion is active) and the
+-- cancel fires.  BOTH FRAMES STAY and both conversions become the
+-- identity at the looked-up rep (the repaired rule): nothing that `V`
+-- might name is dropped, and the mini-core's extra `hideBinds` — which
+-- masked an exterior slot that does not exist (proof/MaskFacts
+-- `¬⊢ᵐ-cancel-residue`) — is gone for good.
 cancel-step : [] ⊢ cancelTm
             -→ (($ 7) ⟪ Θ↓ , id `ℕ ⟫) ⟪ Θ↑ , id `ℕ ⟫
 cancel-step = CancelR V-$ ez
@@ -202,10 +202,10 @@ SA = bind (` 0) ∷ S₆₂            -- the interior type context of LA
 ⊢T₈ = env (mw-b wf-ℕ mw[]) ⊢LB (conv-unseal ez) wf-ℕ
 
 -- The stack resolves ONE LAYER PER STEP, outermost first: each IdPush moves
--- the active face one layer inward toward the seal, so any depth
+-- the active conversion one layer inward toward the seal, so any depth
 -- terminates.  (IdAbsorb needed `⊳` to merge the frames and could not do
 -- this one — the inner layer's context morphism `bind (` 0)` names the next layer's
--- owner, IdLayerProbe §4c.  IdPush touches no frame.)
+-- binder, IdLayerProbe §4c.  IdPush touches no frame.)
 T₈-1 T₈-2 T₈-3 : Term
 T₈-1 = (LA ⟪ bind `ℕ ∷ [] , unseal 1 ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
 T₈-2 = (((($ 7) ⟪ [] , seal 2 ⟫) ⟪ bind (` 0) ∷ [] , unseal 2 ⟫)
@@ -234,8 +234,8 @@ run-T₈ = push-T₈
 
 -- ── the birth story ────────────────────────────────────────────────────
 -- An id-layer is minted by an ordinary TyBeta whose body type is an OUTER
--- variable: `reveal 0 (` 1)` is the identity face, and the owner it binds
--- is never read.
+-- variable: `reveal 0 (` 1)` is the identity conversion, and the binder
+-- it binds is never read.
 _ : reveal 0 (` 1) ≡ id (` 1)
 _ = refl
 
@@ -258,19 +258,19 @@ T₉ = (Pkg ·[ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
 ⊢T₉ = env (mw-b wf-ℕ mw[]) (⊢·[] ⊢Pkg wf-ℕ) (conv-unseal ez) wf-ℕ
 
 -- TyPeelR mints the id-layer no matter what TyBeta does.  On an IDENTITY
--- ∀-face the minted face is the face itself (`instReveal 0 (id (` 1)) =
--- id (` 1)`, since slot 1 is not the new owner) and the pushed-in
--- annotation is the interior ∀-body, SHIFTED past the owner the rule
--- binds: `` ` 2 `` rather than `` ` 1 ``.
+-- ∀ conversion the mint is the conversion itself
+-- (`instReveal 0 (id (` 1)) = id (` 1)`, since slot 1 is not the new
+-- binder) and the pushed-in annotation is the interior ∀-body, SHIFTED
+-- past the binder the rule introduces: `` ` 2 `` rather than `` ` 1 ``.
 Pk-1 : Term
 Pk-1 = ((Λ (($ 7) ⟪ [] , seal 2 ⟫)) ·[ ` 2 , ` 0 ])
          ⟪ bind `ℕ ∷ [] , id (` 1) ⟫
 
-⊢Pk-face : (abst ∷ convCtx [] S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1
-⊢Pk-face = conv-idv (bind `ℕ , es ez , nameable-b)
+⊢Pk-conv : (abst ∷ convCtx [] S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1
+⊢Pk-conv = conv-idv (bind `ℕ , es ez , nameable-b)
 
 typeel-T₉ : Δ₆ ⊢ T₉ -→ Pk-1 ⟪ bind `ℕ ∷ [] , unseal 0 ⟫
-typeel-T₉ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Pk-face)
+typeel-T₉ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Pk-conv)
 
 -- and TyBeta then mints exactly T₈'s inner layer.
 reaches-T₈ : Δ₆ ⊢ T₉ -→* T₈
@@ -312,7 +312,7 @@ run-Ωt = body-first then then-tybeta then Drop$ base-ℕ then done
 ------------------------------------------------------------------------
 
 -- ── Tᵣ (IdLayerProbe §4c): the id-layer's context morphism carries a rep that
--- NAMES the outer boundary's owner.  Merging the frames would have to
+-- NAMES the outer boundary's binder.  Merging the frames would have to
 -- SUBSTITUTE reps into reps — rep arithmetic, i.e. the retired `⊕`.
 -- IdPush touches no frame, so the instance is ordinary.
 
@@ -359,7 +359,7 @@ run-Tᵣ = push-Tᵣ
 
 -- ── Tₘ (IdLayerProbe §4b): Θ₂ re-exposes a masked slot (`unlock 0`) and the
 -- id-layer masks it again (`lock 0`).  The merged context morphism computed both
--- type contexts correctly and yet `MorphWf` refused it, because `MorphWf`
+-- type contexts correctly and yet `_⊢ᵐ_` refused it, because `_⊢ᵐ_`
 -- checks every entry against the PLAIN exterior.  Again: IdPush merges nothing.
 
 Δₘ Mₘ : Ctxᵗ
@@ -448,12 +448,13 @@ _ = ez
 Θ2 : CtxMorph                       -- bind(W) , conceal V
 Θ2 = bind (` 0) ∷ lock 2 ∷ []
 
--- ONE frame change: the owner is pushed on, V is MASKED IN PLACE (the entry
+-- ONE frame change: the binder is pushed on, V is MASKED IN PLACE (the entry
 -- `bind `ℕ` survives as `masked (bind `ℕ)`), nothing is dropped.
 _ : interior Θ2 Δd ≡ bind (` 0) ∷ bind (` 0) ∷ abst ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
--- the FACE type context keeps every slot live, so a conceal's licence resolves.
+-- the CONVERSION CONTEXT keeps every slot live, so a conceal's licence
+-- resolves.
 _ : convCtx Θ2 Δd ≡ bind (` 0) ∷ bind (` 0) ∷ abst ∷ bind `ℕ ∷ []
 _ = refl
 
@@ -477,7 +478,7 @@ Wd = (ƛ (` 1) ∙ (` 0)) ⟪ lock 0 ∷ [] , unseal 0 ↦ seal 0 ⟫
                        (wf-var (_ , ez , nameable-b))) wf-ℕ)
 
 -- THE CROSSING VALUE.  Its bind boundary masks W and seals at it: the licence
--- `seal 0` cites the owner at slot 0 of Δd, whose rep is X = ` 1.
+-- `seal 0` cites the binder at slot 0 of Δd, whose rep is X = ` 1.
 _ : interior (lock 0 ∷ []) Δd ≡ masked (bind (` 0)) ∷ abst ∷ bind `ℕ ∷ []
 _ = refl
 
@@ -499,7 +500,7 @@ peel-d : Δd ⊢ (Vd ⟪ Θ2 , cΘ2 ⟫) · Wd
                 ⟪ Θ2 , id `ℕ ⟫
 peel-d = Peel V-ƛ Wd-value
 
--- THE DUAL is two names and nothing else: mask the owner, re-expose V.
+-- THE DUAL is two names and nothing else: mask the binder, re-expose V.
 _ : dual Θ2 ≡ lock 0 ∷ unlock 3 ∷ []
 _ = refl
 
@@ -509,8 +510,8 @@ _ = refl
 _ : interior (dual Θ2) (interior Θ2 Δd) ≡ masked (bind (` 0)) ∷ Δd
 _ = refl
 
--- and the dual's FACE type context is IDENTICAL to the crossed boundary's, so `s`
--- transplants verbatim (no swapᵇ, no re-derivation).
+-- and the dual's CONVERSION CONTEXT is IDENTICAL to the crossed
+-- boundary's, so `s` transplants verbatim (no swapᵇ, no re-derivation).
 _ : convCtx (dual Θ2) (interior Θ2 Δd) ≡ convCtx Θ2 Δd
 _ = refl
 
@@ -589,7 +590,7 @@ _ : interior (dual Θ1b) (interior Θ1b Δ1b) ≡ masked (bind (` 0)) ∷ Δ1b
 _ = refl
 
 -- … and the crossing value's licence, re-based one slot out, is STILL A
--- LIVE OWNER.
+-- LIVE BINDER.
 _ : (masked (bind (` 0)) ∷ Δ1b) ∋ 1 := ` 2
 _ = es ez
 
@@ -621,8 +622,9 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
         (wf-⇒ (wf-var (_ , ez , nameable-b)) (wf-var (_ , ez , nameable-b)))
 
 -- ── n4 (the x-alias break) ─────────────────────────────────────────────
--- There is no x-entry and no rep-less reveal to alias: a conceal cites an
--- owner, full stop.  The n4 configuration becomes an ordinary owner + alias.
+-- There is no x-entry and no rep-less reveal to alias: a conceal cites a
+-- binder, full stop.  The n4 configuration becomes an ordinary binder +
+-- alias.
 
 Δ4 : Ctxᵗ
 Δ4 = masked (bind `ℕ) ∷ []          -- a slot masked by an enclosing boundary
@@ -633,7 +635,7 @@ peel-1b = Peel V-ƛ (V-⟪⟫ V-ƛ I-fun)
 _ : interior Θ4 Δ4 ≡ bind `ℕ ∷ []
 _ = refl
 
--- the alias RESTORES NAMEABILITY, and with it the owner's knowledge — the
+-- the alias RESTORES NAMEABILITY, and with it the binder's knowledge — the
 -- fact `demote-x-always` denied.  It invents nothing: the rep `ℕ` was
 -- already sitting in the masked entry.
 _ : interior Θ4 Δ4 ∋ 0 := `ℕ
@@ -669,11 +671,11 @@ _ = refl
 --   P₀ = (ΛX. λx:X. x) [ℕ] · 7   ↦*   7
 --
 -- The five rules it exercises, in order:
---   TyBeta  — the boundary is BORN, at the owner X := ℕ
+--   TyBeta  — the boundary is BORN, at the binder X := ℕ
 --   Peel    — the crossing: the argument 7 acquires the DUAL
 --   Beta    — the ordinary β step, i.e. ⊢subst (strong.TermSubst)
 --   CancelR — the seal/unseal pair, minted by TyBeta and Peel, annihilates
---   Drop$   — the surviving base face over a numeral is dropped
+--   Drop$   — the surviving base conversion over a numeral is dropped
 
 polyid : Term
 polyid = Λ (ƛ (` 0) ∙ (` 0))
@@ -687,9 +689,9 @@ P₀ = (polyid ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 ⊢P₀ : [] ∣ [] ⊢ P₀ ⦂ `ℕ
 ⊢P₀ = ⊢· (⊢·[] ⊢polyid wf-ℕ) ⊢$
 
--- ── STEP 1 — TYBETA.  The ∀-elimination mints THE OWNER of the event and
--- derives its face from the body type: `reveal 0 (X⇒X)` is the ↦-pair
--- that seals on the domain and unseals on the codomain.
+-- ── STEP 1 — TYBETA.  The ∀-elimination mints THE BINDER of the event and
+-- derives its conversion from the body type: `reveal 0 (X⇒X)` is the
+-- ↦-pair that seals on the domain and unseals on the codomain.
 
 _ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl
@@ -711,9 +713,10 @@ step₁ = ξ-·-l (TyBeta V-ƛ)
 ⊢P₁ = ⊢· ⊢fn₁ ⊢$
 
 -- ── STEP 2 — PEEL.  The application is pushed one layer in and the argument
--- acquires the DUAL: one `lock` per owner of the crossed boundary and
--- nothing else.  Its face is `s`, the ↦'s domain component, transplanted
--- VERBATIM — the dual's face type context IS the crossed boundary's.
+-- acquires the DUAL: one `lock` per binder of the crossed boundary and
+-- nothing else.  Its conversion is `s`, the ↦'s domain component,
+-- transplanted VERBATIM — the dual's CONVERSION CONTEXT IS the crossed
+-- boundary's.
 
 _ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
 _ = refl
@@ -729,7 +732,7 @@ P₂ = ((ƛ (` 0) ∙ (` 0)) · (($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫))
 step₂ : [] ⊢ P₁ -→ P₂
 step₂ = Peel V-ƛ V-$
 
--- the crossing argument, typed INSIDE: 7 is sealed at the new owner, so the
+-- the crossing argument, typed INSIDE: 7 is sealed at the new binder, so the
 -- interior sees it at the abstract name X.
 ⊢arg₂ : (bind `ℕ ∷ []) ∣ [] ⊢ ($ 7) ⟪ lock 0 ∷ [] , seal 0 ⟫ ⦂ ` 0
 ⊢arg₂ = env (mw-l (bind `ℕ , ez , nameable-b) mw[]) ⊢$
@@ -762,10 +765,11 @@ step₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 ⊢P₃ = env (mw-b wf-ℕ mw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
 
 -- ── STEP 4 — CANCEL.  The seal minted by Peel and the unseal minted by
--- TyBeta are now adjacent and cite THE SAME ENTRY, so the face match is
--- definitional; each face becomes the identity at the LOOKED-UP rep, and
--- BOTH FRAMES STAY (the repaired rule) — so the crossing's own `lock 0`
--- survives as a transparent layer, to be dropped in its own right.
+-- TyBeta are now adjacent and cite THE SAME ENTRY, so the type match is
+-- definitional; each conversion becomes the identity at the LOOKED-UP
+-- rep, and BOTH FRAMES STAY (the repaired rule) — so the crossing's own
+-- `lock 0` survives as a transparent layer, to be dropped in its own
+-- right.
 
 P₄ : Term
 P₄ = (($ 7) ⟪ lock 0 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
@@ -780,7 +784,7 @@ step₄ = CancelR V-$ ez
 ⊢P₄ : [] ∣ [] ⊢ P₄ ⦂ `ℕ
 ⊢P₄ = env (mw-b wf-ℕ mw[]) ⊢P₄-in (conv-id base-ℕ) wf-ℕ
 
--- ── STEPS 5, 6 — the two base faces over the numeral, and the whole run.
+-- ── STEPS 5, 6 — the two base conversions over the numeral, and the run.
 
 P₅ : Term
 P₅ = ($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
@@ -809,7 +813,7 @@ val-P₀ = V-$
 -- Under a Λ the term context is ⤊ Γ, so a term written over Δ must have its
 -- boundary NAMES shifted before it is planted inside.  Here `seal 0` becomes
 -- `seal 1` — and it must, since slot 0 inside the Λ is `abst`, where
--- `conv-seal` has no owner to cite.
+-- `conv-seal` has no binder to cite.
 
 Δₛ : Ctxᵗ
 Δₛ = bind `ℕ ∷ []
@@ -872,8 +876,9 @@ progress-P₂ with progress ⊢P₂
 progress-P₂ | inj₁ (V-⟪⟫ () _)
 progress-P₂ | inj₂ (M′ , st) = M′ , st , det st step₃
 
--- P₃ is the CANCEL state: the interior is a value, the face is the ACTIVE
--- `unseal 0`, and canon-var picks out the seal-faced layer under it.
+-- P₃ is the CANCEL state: the interior is a value, the conversion is the
+-- ACTIVE `unseal 0`, and canon-var picks out the concealing layer under
+-- it.
 progress-P₃ : Σ[ M′ ∈ Term ] (([] ⊢ P₃ -→ M′) × (M′ ≡ P₄))
 progress-P₃ with progress ⊢P₃
 progress-P₃ | inj₁ (V-⟪⟫ _ ())
@@ -886,7 +891,7 @@ progress-P₄ with progress ⊢P₄
 progress-P₄ | inj₁ (V-⟪⟫ _ ())
 progress-P₄ | inj₂ (M′ , st) = M′ , st , det st step₅
 
--- P₅ is the last DROP$ state: the face is the ACTIVE `id `ℕ` and
+-- P₅ is the last DROP$ state: the conversion is the ACTIVE `id `ℕ` and
 -- canon-base says the interior value is a numeral.
 progress-P₅ : Σ[ M′ ∈ Term ] (([] ⊢ P₅ -→ M′) × (M′ ≡ $ 7))
 progress-P₅ with progress ⊢P₅
@@ -936,23 +941,23 @@ run-P₀-pres = preservation* ⊢P₀ run-P₀
 -- SUPERSEDED BY THE SCOPE MOVE (2026-09-06), and kept as the record of
 -- the question it answered.  The old IdPush contractum was refuted on a
 -- HAND-BUILT redex whose Θ₂ = `lock 1 ∷ []` blocks the very slot the
--- id-face's owner rep (` 1) names, and this section asked whether that
--- configuration was REACHABLE.  The repaired rule MOVES Θ₂'s scope into
--- the inner frame, so the configuration is no longer a problem whether
--- it is reachable or not (§12b runs the witness), and the scoping
--- side-condition below is no longer asked of anything.  The verdict as
--- it stood:  NO — once the separately-diagnosed Peel/`dual` bug (§3 of
--- PreserveObstruct) is fixed.
+-- identity conversion's binder rep (` 1) names, and this section asked
+-- whether that configuration was REACHABLE.  The repaired rule MOVES
+-- Θ₂'s scope into the inner frame, so the configuration is no longer a
+-- problem whether it is reachable or not (§12b runs the witness), and
+-- the scoping side-condition below is no longer asked of anything.  The
+-- verdict as it stood:  NO — once the separately-diagnosed Peel/`dual`
+-- bug (§3 of PreserveObstruct) is fixed.
 --
---   * TyBeta, the ONLY rule that mints a boundary from a plain redex, mints
---     a LOCK-FREE `bind A ∷ []`; so a lock reaches an ACTIVE outer face only
---     via a Peel's `dual Θ`.
---   * A REPAIRED dual installs only the owner locks `hideBinds (numBinds Θ)`,
---     which block Θ's own new owner slots.  By SIMULTANEITY (`pushBinds` lifts
---     each rep past the owners bound inside it — a rep is a type over the
---     PLAIN exterior) NO owner's rep names another owner slot, so those
---     owner locks never block a face's rep.
---   * The `¬IdPushCase` witness has its lock on a NON-owner slot the rep
+--   * TyBeta, the ONLY rule that mints a boundary from a plain redex,
+--     mints a LOCK-FREE `bind A ∷ []`; so a lock reaches an ACTIVE outer
+--     conversion only via a Peel's `dual Θ`.
+--   * A REPAIRED dual installs only the binder locks `hideBinds (numBinds Θ)`,
+--     which block Θ's own new binder slots.  By SIMULTANEITY (`pushBinds` lifts
+--     each rep past the binders inside it — a rep is a type over the
+--     PLAIN exterior) NO binder's rep names another binder slot, so those
+--     binder locks never block a conversion's rep.
+--   * The `¬IdPushCase` witness has its lock on a NON-binder slot the rep
 --     names; that shape is producible ONLY by the current dual's
 --     `unlock X ↦ lock (n+X)` defect — the §3 Peel refutation — not by
 --     IdPush.
@@ -960,21 +965,21 @@ run-P₀-pres = preservation* ⊢P₀ run-P₀
 -- THE SOUNDNESS FIX (machine-checked in proof/IdPushReach).  `idPush⁺`
 -- discharges the IdPush case under the single added scoping side-condition
 -- `interior Θ₂ Δ ⊢ᵗ A` (Q3(a)); the companion
--- `owner : interior Θ₂ Δ ∋ Y := A` is a CONSEQUENCE of the redex typing
+-- `binder : interior Θ₂ Δ ∋ Y := A` is a CONSEQUENCE of the redex typing
 -- (mask-only), not an assumption.
 
 open import strong.proof.IdPushReach
-  using (idPush⁺; idPushCase-scoped; owner-holds; scoped-fails)
+  using (idPush⁺; idPushCase-scoped; binder-holds; scoped-fails)
 
 -- The interior of the counterexample: slot 1 blocked under the lock.
 §10-Ξi : Ctxᵗ
 §10-Ξi = bind (` 0) ∷ masked (bind `ℕ) ∷ []
 
 -- The scoping premise is EXACTLY what the counterexample denies: on the
--- witness the owner fact still holds, but the rep ` 1 is not well formed
+-- witness the binder fact still holds, but the rep ` 1 is not well formed
 -- inside the locked interior.
 §10-verdict : (§10-Ξi ∋ 0 := ` 1) × ¬ (§10-Ξi ⊢ᵗ ` 1)
-§10-verdict = owner-holds , scoped-fails
+§10-verdict = binder-holds , scoped-fails
 
 ------------------------------------------------------------------------
 -- §11  IDPUSH FROM A CLOSED, PLAIN SOURCE
@@ -988,7 +993,7 @@ open import strong.proof.IdPushReach
 -- wrapper, no context morphism, no conversion, empty type context, empty
 -- term context — and LAND ON IDPUSH.
 --
--- THE SHAPE THAT MAKES AN ID-LAYER.  TyBeta's minted face is
+-- THE SHAPE THAT MAKES AN ID-LAYER.  TyBeta's minted conversion is
 -- `reveal 0 B`, and `reveal 0 (` k)` is `id (` k)` for every k ≠ 0.
 -- So an id-layer is born exactly when a type abstraction is instantiated
 -- at a body type that is an OUTER type variable — a VACUOUS `Λ`, whose
@@ -998,9 +1003,9 @@ open import strong.proof.IdPushReach
 --   Q = ((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [ℕ]) · 7
 --
 -- de Bruijn: under Z the outer Y is slot 1, so `ΛZ. x` has type `∀ (` 1)
--- and the inner TyBeta mints `reveal 0 (` 1) = id (` 1)` — an id-faced
--- layer around x's value, sitting inside the OUTER package's
--- unseal-faced wrapper.  That two-wrapper stack IS the IdPush redex.
+-- and the inner TyBeta mints `reveal 0 (` 1) = id (` 1)` — an identity
+-- layer around x's value, sitting inside the OUTER package's revealing
+-- wrapper.  That two-wrapper stack IS the IdPush redex.
 
 open import strong.proof.PeelDual using (preserve-Peel; repsOf-dual)
 
@@ -1033,7 +1038,7 @@ _ = refl
 _ : interior (bind `ℕ ∷ []) QΔ₁ ≡ QΞ₂
 _ = refl
 
--- ── STEP 1 — TYBETA (outer).  The owner Y := ℕ is minted.
+-- ── STEP 1 — TYBETA (outer).  The binder Y := ℕ is minted.
 
 _ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl
@@ -1051,7 +1056,7 @@ qstep₁ = ξ-·-l (TyBeta V-ƛ)
 ⊢Q₁ = ⊢· (preservation-TyBeta (⊢·[] ⊢Qfun wf-ℕ)) ⊢$
 
 -- ── STEP 2 — PEEL.  7 crosses; `dual (bind ℕ ∷ []) = lock 0 ∷ []`, so
--- the argument acquires a seal-faced wrapper that hides the new owner.
+-- the argument acquires a concealing wrapper that hides the new binder.
 
 _ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
 _ = refl
@@ -1096,7 +1101,7 @@ qstep₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 ⊢Q₃ = env (mw-b wf-ℕ mw[]) ⊢Q₃-in (conv-unseal ez) wf-ℕ
 
 -- ── STEP 4 — TYBETA (inner), under ξ-⟪⟫.  THE ID-LAYER IS BORN: the body
--- type is the OUTER variable, so the minted face is an identity.
+-- type is the OUTER variable, so the minted conversion is an identity.
 
 _ : reveal 0 (` 1) ≡ id (` 1)
 _ = refl
@@ -1121,7 +1126,7 @@ qstep₄ = ξ-⟪⟫ (TyBeta (V-⟪⟫ V-$ I-seal))
 
 -- ── STEP 5 — THE IDPUSH REDEX, AND IDPUSH.  Θ₁ = Θ₂ = `bind ℕ ∷ []`,
 -- X = 1, Y = 0, A = ℕ (the looked-up rep).  Both frames are untouched;
--- only the two faces swap.
+-- only the two conversions swap.
 
 Q₅ : Term
 Q₅ = ((($ 7) ⟪ lock 1 ∷ [] , seal 1 ⟫) ⟪ bind `ℕ ∷ [] , unseal 1 ⟫)
@@ -1140,8 +1145,8 @@ qstep₅ = IdPush (V-⟪⟫ V-$ I-seal) ez
 
 -- ── STEP 6 — CANCEL, under ξ-⟪⟫.  The seal minted by Peel and the unseal
 -- IdPush just moved inwards are now adjacent.  BOTH FRAMES STAY: the
--- crossing's own `lock 1` survives under an identity face, one more
--- transparent layer for Drop$ to finish.
+-- crossing's own `lock 1` survives under an identity conversion, one
+-- more transparent layer for Drop$ to finish.
 
 Q₆ : Term
 Q₆ = ((($ 7) ⟪ lock 1 ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫)
@@ -1161,7 +1166,7 @@ qstep₆ = ξ-⟪⟫ (CancelR V-$ (es ez))
 ⊢Q₆ : [] ∣ [] ⊢ Q₆ ⦂ `ℕ
 ⊢Q₆ = env (mw-b wf-ℕ mw[]) ⊢Q₆-in (conv-id base-ℕ) wf-ℕ
 
--- ── STEPS 7, 8, 9 — the three base faces over the numeral.
+-- ── STEPS 7, 8, 9 — the three base conversions over the numeral.
 
 Q₇ Q₈ : Term
 Q₇ = (($ 7) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫) ⟪ bind `ℕ ∷ [] , id `ℕ ⟫
@@ -1365,20 +1370,20 @@ run-D₀ = dstep₁ then dstep₂ then dstep₃ then dstep₄ then dstep₅
 ⊢D₇ = env (mw-b wf-ℕ mw[]) ⊢D₇-in (conv-id base-ℕ) wf-ℕ
 
 ------------------------------------------------------------------------
--- §11b  VARIANT (ii) — AN ID-LAYER WHOSE FACE REP IS CHAINED
+-- §11b  VARIANT (ii) — AN ID-LAYER WHOSE CONVERSION REP IS CHAINED
 ------------------------------------------------------------------------
 
 -- The Θ₂ of §11's IdPush redex is `bind ℕ ∷ []`: the rep it hands back is
 -- the BASE TYPE ℕ, which names nothing.  This variant makes the rep a
--- VARIABLE that names ANOTHER OWNER — the "chained rep" shape that is the
+-- VARIABLE that names ANOTHER BINDER — the "chained rep" shape that is the
 -- whole content of the c10/c11 obstruction (proof/PreserveObstruct §4).
 -- It is obtained by running Q's own program INSIDE one more package, at
 -- the OUTER package's type variable:
 --
 --   R = ((ΛX. λy:X. ((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [X]) · y) [ℕ]) · 7
 --
--- The inner instantiation `[X]` mints an owner whose rep is `X`, so at
--- the IdPush redex `convCtx Θ₂ Δ ∋ 0 := ` 1` — Y's rep NAMES the outer owner
+-- The inner instantiation `[X]` mints a binder whose rep is `X`, so at
+-- the IdPush redex `convCtx Θ₂ Δ ∋ 0 := ` 1` — Y's rep NAMES the outer binder
 -- X.  IDPUSH FIRES AND THE CONTRACTUM TYPES: nothing in Θ₂ is locked, so
 -- the scoping fact `interior Θ₂ Δ ⊢ᵗ ` 1` holds.
 
@@ -1411,8 +1416,8 @@ _ = refl
 _ : interior (lock 1 ∷ []) RΞ′ ≡ RΞ″
 _ = refl
 
--- THE CHAINED REP, as a lookup: Θ₂'s owner 0 has rep ` 1, which NAMES
--- the outer owner — and that slot is VISIBLE inside Θ₂ (nothing locks it).
+-- THE CHAINED REP, as a lookup: Θ₂'s binder 0 has rep ` 1, which NAMES
+-- the outer binder — and that slot is VISIBLE inside Θ₂ (nothing locks it).
 Rchain : convCtx (bind (` 0) ∷ []) QΔ₁ ∋ 0 := ` 1
 Rchain = ez
 
@@ -1458,7 +1463,7 @@ rstep₂ = Peel V-ƛ V-$
 rstep₃ : [] ⊢ R₂ -→ R₃
 rstep₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
--- the INNER package is instantiated at the OUTER owner: rep ` 0.
+-- the INNER package is instantiated at the OUTER binder: rep ` 0.
 rstep₄ : [] ⊢ R₃ -→ R₄
 rstep₄ = ξ-⟪⟫ (ξ-·-l (TyBeta V-ƛ))
 
@@ -1481,7 +1486,7 @@ rstep₈ = ξ-⟪⟫ (IdPush (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal) ez)
 rstep₉ : [] ⊢ R₈ -→ R₉
 rstep₉ = ξ-⟪⟫ (ξ-⟪⟫ (CancelR (V-⟪⟫ V-$ I-seal) (es ez)))
 
--- The tail: three more IdPushes (each residue face is ITSELF an
+-- The tail: three more IdPushes (each residue conversion is ITSELF an
 -- id-layer), the last seal/unseal pair, and five transparent layers over
 -- the numeral.  The states are the ones the rules compute.
 run-R₀ : [] ⊢ R₀ -→* $ 7
@@ -1540,7 +1545,7 @@ run-R₀ = rstep₁ then rstep₂ then rstep₃ then rstep₄ then rstep₅
 ------------------------------------------------------------------------
 
 -- Variant (i) asks for an IdPush redex whose INNER frame Θ₁ binds more
--- than one owner.  WHICH RULE COULD EVER MINT ONE?  Exactly one:
+-- than one binder.  WHICH RULE COULD EVER MINT ONE?  Exactly one:
 --
 --   TyBeta   mints `bind A ∷ []`                       numBinds 1
 --   Peel     mints `dual Θ`, which is ALL locks/unlocks numBinds 0
@@ -1566,9 +1571,10 @@ numBinds-TyPeelR A Θ = refl
 --   G = ((ΛX. λx:X. ((ΛY. ΛZ. x) [ℕ]) [ℕ]) [ℕ]) · 7
 --
 -- `ΛY. ΛZ. x` has type ∀Y.∀Z.X, so the FIRST inner instantiation mints
--- the face `reveal 0 (`∀ (` 2)) = `∀ (id (` 2))` — an INERT ∀-face on a
--- one-owner frame — and the SECOND instantiation is a TyPeelR redex.  Its
--- contractum would be the wanted `numBinds 2` id-layer …
+-- the conversion `reveal 0 (`∀ (` 2)) = `∀ (id (` 2))` — an INERT ∀
+-- conversion on a one-binder frame — and the SECOND instantiation is a
+-- TyPeelR redex.  Its contractum would be the wanted `numBinds 2`
+-- id-layer …
 
 Gpoly Gbody Gfun G₀ : Term
 Gpoly = Λ (Λ (` 0))                         -- ΛY. ΛZ. x
@@ -1610,13 +1616,13 @@ gstep₄ : [] ⊢ G₃ -→ G₄
 gstep₄ = ξ-⟪⟫ (ξ-·[] (TyBeta (V-Λ (V-⟪⟫ V-$ I-seal))))
 
 -- the TyPeelR step, whose contractum is the wanted `numBinds Θ₁ ≡ 2` layer.
--- Its face premise is the redex's own conversion, one `` `∀ `` inside —
--- here the identity at the OUTER owner, read under the ∀-binder.
-⊢Gface : (abst ∷ convCtx (bind `ℕ ∷ []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
-⊢Gface = conv-idv (bind `ℕ , es (es ez) , nameable-b)
+-- Its conversion premise is the redex's own, one `` `∀ `` inside —
+-- here the identity at the OUTER binder, read under the ∀-binder.
+⊢Gconv : (abst ∷ convCtx (bind `ℕ ∷ []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
+⊢Gconv = conv-idv (bind `ℕ , es (es ez) , nameable-b)
 
 gstep₅ : [] ⊢ G₄ -→ G₅
-gstep₅ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Gface)
+gstep₅ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Gconv)
 
 _ : numBinds (bind `ℕ ∷ bind `ℕ ∷ []) ≡ 2
 _ = refl
@@ -1635,7 +1641,7 @@ _ = refl
 ⊢G₄ = env (mw-b wf-ℕ mw[]) (⊢·[] ⊢Gpkg wf-ℕ) (conv-unseal ez) wf-ℕ
 
 -- … AND SO IS ITS TYPEELR CONTRACTUM, with the repaired rule.  The
--- pushed-in annotation is the INTERIOR ∀-body shifted past the new owner
+-- pushed-in annotation is the INTERIOR ∀-body shifted past the new binder
 -- (`` ` 3 ``, matching `wkᴹ 1 GV : `∀ (` 3)`), and the frame is plain `Θ`
 -- — the `renᴮ suc Θ` double-shift that made `¬⊢G₅` true is gone.  So
 -- variant (i) now HAS a well-typed closed-source instance.
@@ -1698,7 +1704,7 @@ kstep = IdPush (V-⟪⟫ V-$ I-seal) ez
 -- REP `A` inside `Θ₂`'s interior, which fails when `Θ₂` LOCKS a slot that
 -- `A` names.  The `¬IdPushCase` witness (proof/PreserveObstruct §4) is
 -- exactly that: `Δi = bind (` 0) ∷ bind ℕ ∷ []`, `Θ₂ = lock 1 ∷ []`, so
--- `interior Θ₂ Δi = bind (` 0) ∷ masked (bind ℕ) ∷ []` — the owner at slot
+-- `interior Θ₂ Δi = bind (` 0) ∷ masked (bind ℕ) ∷ []` — the binder at slot
 -- 0 has rep ` 1, and slot 1 is blocked.
 --
 -- §10 recorded the verdict "NOT reachable".  THIS SECTION SHARPENS IT.
@@ -1708,11 +1714,11 @@ kstep = IdPush (V-⟪⟫ V-$ I-seal) ez
 --   L = ((ΛY. λx:Y. ((ΛZ. x) [Y])) [ℕ]) · 7
 --
 -- and the witness type context IS REACHED, from closed plain source:
--- after the inner TyBeta the owner's rep is the chained `` ` 0 ``, and the
+-- after the inner TyBeta the binder's rep is the chained `` ` 0 ``, and the
 -- Peel-minted `lock 1` inside blocks the very slot that rep names.
 --
 -- BUT NOT WHERE IT HURTS.  The blocked context appears as the interior of
--- the SEAL-faced (inert) wrapper, i.e. in a `Θ₁` position; the `Θ₂` of
+-- the CONCEALING (inert) wrapper, i.e. in a `Θ₁` position; the `Θ₂` of
 -- every IdPush/CancelR redex on this run is lock-free, and both
 -- contracta type.  The run reaches a VALUE.  So: THE WALL CONTEXT IS
 -- REACHABLE, THE WALL CONFIGURATION IS NOT — which is precisely what
@@ -1763,7 +1769,7 @@ lstep₂ = Peel V-ƛ V-$
 lstep₃ : [] ⊢ L₂ -→ L₃
 lstep₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
--- THE STEP THAT BUILDS THE WALL CONTEXT: the owner minted here has the
+-- THE STEP THAT BUILDS THE WALL CONTEXT: the binder minted here has the
 -- CHAINED rep ` 0, and the Peel-minted `lock 1` sits inside it.
 lstep₄ : [] ⊢ L₃ -→ L₄
 lstep₄ = ξ-⟪⟫ (TyBeta (V-⟪⟫ V-$ I-seal))
@@ -1811,11 +1817,12 @@ run-L₀ = lstep₁ then lstep₂ then lstep₃ then lstep₄ then lstep₅
 ⊢L₅ = env (mw-b wf-ℕ mw[]) ⊢L₅-in (conv-id base-ℕ) wf-ℕ
 
 -- THE PRECISE READING.  On this run the blocked slot lives inside a
--- wrapper that is a `Θ₁` (an INERT `seal` face, the CancelR pattern's
--- inner layer); the `Θ₂` of `lstep₅`'s IdPush and of `lstep₆`'s CancelR
--- is `bind ℕ ∷ []`, which locks nothing.  proof/WallReach turns "a Θ₂
--- never locks a slot a visible owner's rep names" into a theorem about
--- the only rule that mints locks at all (Peel's `dual`).
+-- wrapper that is a `Θ₁` (an INERT `seal` conversion, the CancelR
+-- pattern's inner layer); the `Θ₂` of `lstep₅`'s IdPush and of
+-- `lstep₆`'s CancelR is `bind ℕ ∷ []`, which locks nothing.
+-- proof/WallReach turns "a Θ₂ never locks a slot a visible binder's rep
+-- names" into a theorem about the only rule that mints locks at all
+-- (Peel's `dual`).
 
 ------------------------------------------------------------------------
 -- §12b  THE WALL WITNESS, AFTER THE SCOPE MOVE
@@ -1885,18 +1892,19 @@ val-wallR₂ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) I-idv) 
 ⊢wallR₂ = preservation* ⊢Ri run-wall
 
 ------------------------------------------------------------------------
--- §13  TYPEELR FROM CLOSED, PLAIN SOURCE — THE TWO FACES
+-- §13  TYPEELR FROM CLOSED, PLAIN SOURCE — THE TWO CONVERSIONS
 ------------------------------------------------------------------------
 
--- §11c's G reaches TyPeelR at an IDENTITY ∀-face, where the annotation
--- repair cannot fire.  This section reaches it at the two faces that DO
--- exercise the minted face `instReveal 0 s`, from ordinary System F:
+-- §11c's G reaches TyPeelR at an IDENTITY ∀ conversion, where the
+-- annotation repair cannot fire.  This section reaches it at the two
+-- conversions that DO exercise the mint `instReveal 0 s`, from ordinary
+-- System F:
 --
---   §13a  a CONCEAL ∀-face — a POLYMORPHIC ARGUMENT that crossed a Peel.
---         Two machine-checked facts: (i) keeping `s` is untypeable, and
---         (ii) the mint `instReveal 0 s` TYPES, by the theorem — the case
---         the retired polarity index used to refuse.  The run then
---         continues to a value.
+--   §13a  a CONCEAL ∀ conversion — a POLYMORPHIC ARGUMENT that crossed
+--         a Peel.  Two machine-checked facts: (i) keeping `s` is
+--         untypeable, and (ii) the mint `instReveal 0 s` TYPES, by the
+--         theorem — the case the retired polarity index used to refuse.
+--         The run then continues to a value.
 --   §13b  the REVEAL mirror image, likewise by the theorem.
 --   §13c  the RECORD of the other contracta weighed for §13a's redex —
 --         Jeremy's candidate and its neighbours — and why each was not
@@ -1905,7 +1913,7 @@ val-wallR₂ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) I-idv) 
 -- The two sources differ by ONE thing — whether the ∀ crosses the
 -- boundary INWARD (as an argument, §13a) or OUTWARD (as a result, §13b).
 -- Under the polarity index that difference decided TYPEABILITY; now it
--- decides only which owner each minted leaf cites.
+-- decides only which binder each minted leaf cites.
 
 open import strong.Preservation using (preservation-TyPeelR)
 open import strong.proof.PreserveObstruct
@@ -1913,15 +1921,15 @@ open import strong.proof.PreserveObstruct
          ⊢t-contractum)
 
 ------------------------------------------------------------------------
--- §13a  A CONCEAL ∀-FACE: the polymorphic argument
+-- §13a  A CONCEAL ∀ CONVERSION: the polymorphic argument
 ------------------------------------------------------------------------
 
 --   J = ((ΛX. λx:X. λf:(∀Y. Y ⇒ X). (f [X]) · x) [ℕ]) · 7 · (ΛY. λy:Y. 3)
 --
--- `f`'s type mentions X, so TyBeta's minted face CONCEALS X on f's
--- domain: `conceal 0 (∀Y. Y ⇒ X) = ∀ (id Y ↦ seal X)`, a CONCEAL ∀-face.
--- The Peel hands it to the crossing argument verbatim, and the body's
--- `f [X]` is then a TyPeelR redex at that face.
+-- `f`'s type mentions X, so TyBeta's minted conversion CONCEALS X on
+-- f's domain: `conceal 0 (∀Y. Y ⇒ X) = ∀ (id Y ↦ seal X)`, a CONCEAL ∀
+-- conversion.  The Peel hands it to the crossing argument verbatim, and
+-- the body's `f [X]` is then a TyPeelR redex at that conversion.
 
 JT : Ty                                  -- ∀Y. Y ⇒ X, read under X
 JT = `∀ (` 0 ⇒ ` 1)
@@ -1975,7 +1983,8 @@ jstep₂ = ξ-·-l (Peel V-ƛ V-$)
 jstep₃ : [] ⊢ J₂ -→ J₃
 jstep₃ = ξ-·-l (ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal)))
 
--- THE CROSSING: the polymorphic argument acquires the CONCEAL ∀-face.
+-- THE CROSSING: the polymorphic argument acquires the CONCEAL ∀
+-- conversion.
 jstep₄ : [] ⊢ J₃ -→ J₄
 jstep₄ = Peel V-ƛ (V-Λ V-ƛ)
 
@@ -2004,10 +2013,10 @@ jstep₆ : [] ⊢ J₅ -→ J₆
 jstep₆ = ξ-⟪⟫ (ξ-·-l step-t)
 
 -- ── FACT (i): KEEPING `s` IS UNTYPEABLE ────────────────────────────────
--- The note's contractum keeps the face `s`, whose exterior body still
--- mentions the ∀-bound `` ` 0 `` where `env` now demands the
+-- The note's contractum keeps the conversion `s`, whose TARGET body
+-- still mentions the ∀-bound `` ` 0 `` where `env` now demands the
 -- INSTANTIATED body: the domain leaf `id (` 0)` would have to convert
--- `` ` 1 `` (the new owner's rep, read inside) to `` ` 0 ``, and an
+-- `` ` 1 `` (the new binder's rep, read inside) to `` ` 0 ``, and an
 -- identity converts a type to ITSELF (`conv-id-refl`).
 ¬⊢J-plain :
   ¬ (Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
@@ -2021,19 +2030,19 @@ jstep₆ = ξ-⟪⟫ (ξ-·-l step-t)
 _ : instReveal 0 st ≡ seal 0 ↦ seal 1
 _ = refl
 
-J-face-ctx : Ctxᵗ
-J-face-ctx = convCtx (bind (` 0) ∷ Θt) Δt
+J-convCtx : Ctxᵗ
+J-convCtx = convCtx (bind (` 0) ∷ Θt) Δt
 
-_ : J-face-ctx ≡ bind (` 0) ∷ bind `ℕ ∷ []
+_ : J-convCtx ≡ bind (` 0) ∷ bind `ℕ ∷ []
 _ = refl
 
--- EACH LEAF CONCEALS AT ITS OWN OWNER, and that is the whole content …
--- the INSERTED leaf: the new owner's rep ` 1, concealed at its own name
-J-dom : J-face-ctx ⊢ seal 0 ∶ ` 1 ⇝ ` 0
+-- EACH LEAF CONCEALS AT ITS OWN BINDER, and that is the whole content …
+-- the INSERTED leaf: the new binder's rep ` 1, concealed at its own name
+J-dom : J-convCtx ⊢ seal 0 ∶ ` 1 ⇝ ` 0
 J-dom = conv-seal ez
 
--- the face's OWN leaf: ℕ concealed at the crossed boundary's owner
-J-cod : J-face-ctx ⊢ seal 1 ∶ `ℕ ⇝ ` 1
+-- the conversion's OWN leaf: ℕ concealed at the crossed boundary's binder
+J-cod : J-convCtx ⊢ seal 1 ∶ `ℕ ⇝ ` 1
 J-cod = conv-seal (es ez)
 
 -- … and so does the TREE.  Under the retired polarity index this was the
@@ -2041,8 +2050,8 @@ J-cod = conv-seal (es ez)
 -- no single `p` typed both.  Per variable there is nothing to reconcile —
 -- Y's name is on the interior side (the `bind` this rule just pushed),
 -- X's on the exterior side (behind Θt's `lock`).
-⊢J-face : J-face-ctx ⊢ seal 0 ↦ seal 1 ∶ (` 0 ⇒ `ℕ) ⇝ (` 1 ⇒ ` 1)
-⊢J-face = conv-fun J-dom J-cod
+⊢J-conv : J-convCtx ⊢ seal 0 ↦ seal 1 ∶ (` 0 ⇒ `ℕ) ⇝ (` 1 ⇒ ` 1)
+⊢J-conv = conv-fun J-dom J-cod
 
 -- HENCE THE LANDED CONTRACTUM TYPES, by the theorem — the head of J₆.
 ⊢J₆head : Δt ∣ [] ⊢ J₆head ⦂ (` 0 ⇒ ` 0)
@@ -2058,7 +2067,7 @@ _ = refl
 -- ── THE RUN CONTINUES, TO A VALUE ──────────────────────────────────────
 --
 -- Eight more steps: the TyBeta the peel exposed (the interior ∀ is now
--- instantiated at the owner TyPeelR bound), TWO Peels — the argument `7`
+-- instantiated at the binder TyPeelR bound), TWO Peels — the argument `7`
 -- crosses both of the boundaries the run has stacked — a Beta, and then
 -- the four transparent layers unwinding, Drop$ ⨟ CancelR ⨟ Drop$ ⨟ Drop$.
 -- The answer is 3: `ΛY. λy:Y. 3` ignores its argument.
@@ -2087,7 +2096,7 @@ _ = refl
 _ : wkᴹ 1 Wt ≡ Wt
 _ = refl
 
--- TyBeta's mint at the new owner: a conceal on the domain, a transparent
+-- TyBeta's mint at the new binder: a conceal on the domain, a transparent
 -- base identity on the codomain.
 _ : reveal 0 (` 0 ⇒ `ℕ) ≡ seal 0 ↦ id `ℕ
 _ = refl
@@ -2146,7 +2155,7 @@ jstep₁₀ = ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (Beta val-JW′)))
 jstep₁₁ : [] ⊢ J₁₀ -→ J₁₁
 jstep₁₁ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
 
--- the CANCEL: the inner conceal at the owner the TyPeelR-born frame
+-- the CANCEL: the inner conceal at the binder the TyPeelR-born frame
 -- carries, directly under the reveal that owns it (X ≡ numBinds Θ₁ + Y).
 jstep₁₂ : [] ⊢ J₁₁ -→ J₁₂
 jstep₁₂ = CancelR V-$ ez
@@ -2191,7 +2200,8 @@ H₀   = ((Hfun ·[ HB , `ℕ ]) · ($ 7)) ·[ ` 0 ⇒ `ℕ , `ℕ ]
 ⊢H₀ : [] ∣ [] ⊢ H₀ ⦂ (`ℕ ⇒ `ℕ)
 ⊢H₀ = ⊢·[] (⊢· (⊢·[] ⊢Hfun wf-ℕ) ⊢$) wf-ℕ
 
--- the REVEAL ∀-face, minted by the same rule that minted §13a's conceal
+-- the REVEAL ∀ conversion, minted by the same rule that minted §13a's
+-- CONCEAL one
 _ : reveal 0 HB ≡ seal 0 ↦ (`∀ (id (` 0) ↦ unseal 1))
 _ = refl
 
@@ -2215,18 +2225,19 @@ hstep₂ = ξ-·[] (Peel V-ƛ V-$)
 hstep₃ : [] ⊢ H₂ -→ H₃
 hstep₃ = ξ-·[] (ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal)))
 
--- THE FACE PREMISE, read off the redex's own `env`, one `` `∀ `` inside.
-⊢Hface : (abst ∷ convCtx (bind `ℕ ∷ []) []) ⊢ id (` 0) ↦ unseal 1
+-- THE CONVERSION PREMISE, read off the redex's own `env`, one
+-- `` `∀ `` inside.
+⊢Hconv : (abst ∷ convCtx (bind `ℕ ∷ []) []) ⊢ id (` 0) ↦ unseal 1
            ∶ (` 0 ⇒ ` 1) ⇝ (` 0 ⇒ `ℕ)
-⊢Hface = conv-fun (conv-idv (abst , ez , nameable-a)) (conv-unseal (es ez))
+⊢Hconv = conv-fun (conv-idv (abst , ez , nameable-a)) (conv-unseal (es ez))
 
--- the mint: the inserted `seal 0` conceals the owner this rule binds,
--- under an `unseal 1` that reveals the crossed boundary's.
+-- the mint: the inserted `seal 0` conceals the binder this rule
+-- introduces, under an `unseal 1` that reveals the crossed boundary's.
 _ : instReveal 0 (id (` 0) ↦ unseal 1) ≡ seal 0 ↦ unseal 1
 _ = refl
 
 hstep₄ : [] ⊢ H₃ -→ H₄
-hstep₄ = TyPeelR (V-Λ V-ƛ) ⊢Hface
+hstep₄ = TyPeelR (V-Λ V-ƛ) ⊢Hconv
 
 run-H₀ : [] ⊢ H₀ -→* H₄
 run-H₀ = hstep₁ then hstep₂ then hstep₃ then hstep₄ then done
@@ -2241,12 +2252,12 @@ run-H₀ = hstep₁ then hstep₂ then hstep₃ then hstep₄ then done
 
 ⊢H₃ : [] ∣ [] ⊢ H₃ ⦂ (`ℕ ⇒ `ℕ)
 ⊢H₃ = ⊢·[] (env (mw-b wf-ℕ mw[]) ⊢HV
-                (conv-all ⊢Hface)
+                (conv-all ⊢Hconv)
                 (wf-∀ (wf-⇒ (wf-var (abst , ez , nameable-a)) wf-ℕ)))
            wf-ℕ
 
 ⊢H₄ : [] ∣ [] ⊢ H₄ ⦂ (`ℕ ⇒ `ℕ)
-⊢H₄ = preservation-TyPeelR (V-Λ V-ƛ) ⊢Hface ⊢H₃
+⊢H₄ = preservation-TyPeelR (V-Λ V-ƛ) ⊢Hconv ⊢H₃
 
 -- and H₄ is ONE TyBeta from a value, so the repaired rule does not
 -- strand the run either.
@@ -2273,10 +2284,10 @@ val-H₅ = V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun
 -- contracted a different way; the landed rule is the one §13a runs, and
 -- these are kept because they say WHY the others were not taken.
 
--- (i) JEREMY'S CANDIDATE, first form: keep the face `id X ↦ seal X` and
---     instantiate the interior at the FRESH owner Y.  The id leaf's
---     source is then X while the interior's domain is Y, and an identity
---     converts a type to ITSELF.
+-- (i) JEREMY'S CANDIDATE, first form: keep the conversion
+--     `id X ↦ seal X` and instantiate the interior at the FRESH binder
+--     Y.  The id leaf's source is then X while the interior's domain is
+--     Y, and an identity converts a type to ITSELF.
 Cj1 : Term
 Cj1 = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
         ⟪ bind (` 0) ∷ Θt , id (` 1) ↦ seal 1 ⟫
@@ -2295,9 +2306,10 @@ Cj2 = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 1 ])
 ¬⊢Cj2 : ∀ {B} → ¬ (Δt ∣ [] ⊢ Cj2 ⦂ B)
 ¬⊢Cj2 (env _ (⊢·[] _ (wf-var (_ , es ez , ()))) _ _)
 
--- (iii) the same face with the lock LIFTED for the instantiation (`scope`
---       applies the head last, so an `unlock X` in front makes X visible
---       inside).  TYPES — but it un-masks what the crossing masked.
+-- (iii) the same conversion with the lock LIFTED for the instantiation
+--       (`scope` applies the head last, so an `unlock X` in front makes
+--       X visible inside).  TYPES — but it un-masks what the crossing
+--       masked.
 Cu : Term
 Cu = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ unlock 0 ∷ Θt , id (` 0) ↦ seal 0 ⟫
 
@@ -2321,8 +2333,9 @@ Cr = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ [] , id (` 0) ↦ seal 0 ⟫
                 (wf-var (bind `ℕ , ez , nameable-b)))
 
 -- (v) OPTION B: instantiate the interior at the RESOLVED argument (X's
---     own rep ℕ), keep Θ, and mint the face by `conceal` on the type.
---     TYPES — but it RESOLVES the owner, which the interior may not see.
+--     own rep ℕ), keep Θ, and mint the conversion by `conceal` on the
+--     type.  TYPES — but it RESOLVES the binder, which the interior may
+--     not see.
 Cb : Term
 Cb = (Wt ·[ ` 0 ⇒ `ℕ , `ℕ ]) ⟪ Θt , unseal 0 ↦ seal 0 ⟫
 
@@ -2347,7 +2360,7 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ bind `ℕ ∷ [] , id `ℕ ↦ unseal 0 
 
 -- THE VERDICT.  (i) and (ii) are untypeable outright; (iii)–(vi) type,
 -- but each pays with the boundary's own discipline — (iii)/(iv) weaken
--- the mask the crossing installed, (v)/(vi) resolve the owner inside.
+-- the mask the crossing installed, (v)/(vi) resolve the binder inside.
 -- The landed rule keeps the frame and the mask and mints
 -- `instReveal 0 s`, which types by `preservation-TyPeelR` (§13a).
 
@@ -2432,17 +2445,17 @@ E₀    = (Efun ·[ EBod , `ℕ ]) · Earg
 ⊢E₀ : [] ∣ [] ⊢ E₀ ⦂ EID
 ⊢E₀ = ⊢· (⊢·[] ⊢Efun wf-ℕ) ⊢Earg
 
--- ── the two faces the run uses ─────────────────────────────────────────
+-- ── the two conversions the run uses ───────────────────────────────
 
 -- X does not occur in EBod, so TyBeta's mint is TRANSPARENT on both
--- halves: the crossing hands the argument an all-identity ∀-face.
+-- halves: the crossing hands the argument an all-identity ∀ conversion.
 Eid∀ : Conv
 Eid∀ = `∀ (id (` 0) ↦ id (` 0))
 
 _ : reveal 0 EBod ≡ Eid∀ ↦ Eid∀
 _ = refl
 
--- ── STEP 1 — TYBETA.  The owner X := ℕ is minted.
+-- ── STEP 1 — TYBETA.  The binder X := ℕ is minted.
 
 E₁ : Term
 E₁ = ((ƛ EID ∙ Ebody) ⟪ bind `ℕ ∷ [] , Eid∀ ↦ Eid∀ ⟫) · Earg
@@ -2450,7 +2463,7 @@ E₁ = ((ƛ EID ∙ Ebody) ⟪ bind `ℕ ∷ [] , Eid∀ ↦ Eid∀ ⟫) · Earg
 estep₁ : [] ⊢ E₀ -→ E₁
 estep₁ = ξ-·-l (TyBeta V-ƛ)
 
--- ── STEP 2 — PEEL.  `ΛZ. λz:Z. z` crosses; the dual masks the new owner.
+-- ── STEP 2 — PEEL.  `ΛZ. λz:Z. z` crosses; the dual masks the new binder.
 
 _ : dual (bind `ℕ ∷ []) ≡ lock 0 ∷ []
 _ = refl
@@ -2529,14 +2542,14 @@ E-X-hidden (wf-var (_ , es ez , ()))
 
 -- ── STEP 4 — TYPEELR, under ξ-Λ.  The type argument Y is NOT pushed into
 -- the crossed body; it is recorded as a NEW BIND, `bind (` 0)`, and the
--- interior is instantiated at that bind's own name.  The face's abstract
--- slot becomes the fresh owner, so each identity leaf becomes the
--- instantiation step.
+-- interior is instantiated at that bind's own name.  The conversion's
+-- abstract slot becomes the fresh binder, so each identity leaf becomes
+-- the instantiation step.
 
-E-face-ctx : Ctxᵗ
-E-face-ctx = abst ∷ convCtx (lock 1 ∷ []) EΔ₃
+E-convCtx : Ctxᵗ
+E-convCtx = abst ∷ convCtx (lock 1 ∷ []) EΔ₃
 
-⊢Es : E-face-ctx ⊢ id (` 0) ↦ id (` 0) ∶ (` 0 ⇒ ` 0) ⇝ (` 0 ⇒ ` 0)
+⊢Es : E-convCtx ⊢ id (` 0) ↦ id (` 0) ∶ (` 0 ⇒ ` 0) ⇝ (` 0 ⇒ ` 0)
 ⊢Es = conv-fun (conv-idv (abst , ez , nameable-a))
                (conv-idv (abst , ez , nameable-a))
 

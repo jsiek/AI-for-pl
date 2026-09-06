@@ -1,8 +1,8 @@
 module strong.proof.MaskFacts where
 
--- NO BOUNDARY OPERATION CAN TAKE AN OWNER AWAY.
+-- NO BOUNDARY OPERATION CAN TAKE A BINDER AWAY.
 --
--- Masking RETAINS the owner's entry, and an alias RECOVERS it.  In the
+-- Masking RETAINS the binder's entry, and an alias RECOVERS it.  In the
 -- previous design this is exactly what failed: `entᴳ` wrote `rvl⋆` at the
 -- slot (demote-x-always, demote-count-break/n1b/n4), the rebuild carried
 -- `abst`, and the crossing value's licence died (¬⊢W-rebuild).
@@ -44,11 +44,12 @@ lock-then-unlock = refl
 ------------------------------------------------------------------------
 
 -- The mini-core's Cancel appended `hideBinds (numBinds Θ₂)` to the residue.
--- `scope` applies those masks to Δ, not to the boundary's bind owners, so on
+-- `scope` applies those masks to Δ, not to the boundary's `bind` entries,
+-- so on
 -- the mini-core's OWN cancel example the residue is not well formed.  This
 -- is why strong.Reduction's CancelR drops it.
-¬MorphWf-cancel-residue : ¬ MorphWf [] (bind `ℕ ∷ lock 0 ∷ [])
-¬MorphWf-cancel-residue (mw-b _ (mw-l (_ , () , _) _))
+¬⊢ᵐ-cancel-residue : ¬ ([] ⊢ᵐ (bind `ℕ ∷ lock 0 ∷ []))
+¬⊢ᵐ-cancel-residue (mw-b _ (mw-l (_ , () , _) _))
 
 ------------------------------------------------------------------------
 -- THE MASK-ONLY FACT, PROVEN
@@ -57,8 +58,8 @@ lock-then-unlock = refl
 -- `interior Θ Δ` and `convCtx Θ Δ` differ ONLY by masking: `scope` applies the
 -- `lock` masks, `unlockedScope` skips them, and both do the same binds and the
 -- same unmasks.  Masking never turns an `abst` into a `bind` — it only
--- wraps and unwraps `masked` — so a slot that is VISIBLE inside and an OWNER
--- outside is that same owner inside.  This is the one structural step
+-- wraps and unwraps `masked` — so a slot that is VISIBLE inside and a BINDER
+-- outside is that same binder inside.  This is the one structural step
 -- `idPush⁺` (proof/IdPushReach, `MaskOnly`) and CancelR's preservation
 -- case consume; here it is a theorem, not an interface.
 --

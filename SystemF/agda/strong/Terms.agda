@@ -4,7 +4,7 @@ module strong.Terms where
 --
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --
---   Θ : CtxMorph   the SCOPE SKELETON, rep-free except for owners
+--   Θ : CtxMorph   the SCOPE SKELETON, rep-free except for binders
 --        bind A   BINDS a fresh interior slot; A is its representation, read
 --                in the PLAIN EXTERIOR (simultaneity: never through Θ's
 --                other entries).  The only rep-carrying form; born once,
@@ -14,12 +14,12 @@ module strong.Terms where
 --                nothing is re-spelled, so there is no demotion to perform.
 --        unlock X   UNMASKS exterior slot X; it claims nothing, it merely
 --                restores nameability.
---   c : Conv     the FACE, a conversion checked on the FACE TYPE CONTEXT (the
+--   c : Conv     the CONVERSION, checked on the CONVERSION CONTEXT (the
 --                interior type context with Θ's bind masks lifted), where a
---                `seal X` can still resolve X at its owner.
+--                `seal X` can still resolve X at its binder.
 --
 -- Frames change ONLY at binders: `interior Θ Δ` is `Δ` with the masks applied
--- and Θ's owners pushed on.  There is no dropN, no cmax, no swapᵇ.
+-- and Θ's binders pushed on.  There is no dropN, no cmax, no swapᵇ.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -72,10 +72,10 @@ scope (bind A ∷ Θ)   Δ = scope Θ Δ
 scope (unlock X ∷ Θ) Δ = unmask X (scope Θ Δ)
 scope (lock X ∷ Θ)   Δ = mask X (scope Θ Δ)
 
--- The FACE type context: like `scope` but WITHOUT the conceal masks, so a
--- `seal X` can resolve X at its owner.  This is owner-syntactic lookup:
--- the licence is read on the type context that encloses the boundary,
--- never inside it.
+-- The CONVERSION CONTEXT's slots: like `scope` but WITHOUT the conceal
+-- masks, so a `seal X` can resolve X at its binder.  This is
+-- binder-syntactic lookup: the licence is read on the type context that
+-- encloses the boundary, never inside it.
 unlockedScope : CtxMorph → Ctxᵗ → Ctxᵗ
 unlockedScope []             Δ = Δ
 unlockedScope (bind A ∷ Θ)   Δ = unlockedScope Θ Δ
@@ -83,16 +83,16 @@ unlockedScope (unlock X ∷ Θ) Δ = unmask X (unlockedScope Θ Δ)
 unlockedScope (lock X ∷ Θ)   Δ = unlockedScope Θ Δ
 
 -- What replaces `intOf`: the same slot list, the interior mask, and the
--- owner extension.  Nothing is dropped and no rep is recomputed.
+-- binder extension.  Nothing is dropped and no rep is recomputed.
 interior : CtxMorph → Ctxᵗ → Ctxᵗ
 interior Θ Δ = pushBinds (repsOf Θ) (scope Θ Δ)
 
 convCtx : CtxMorph → Ctxᵗ → Ctxᵗ
 convCtx Θ Δ = pushBinds (repsOf Θ) (unlockedScope Θ Δ)
 
--- The interior type context is the face type context with Θ's bind masks
--- on, so anything well formed inside is well formed on the face type
--- context.
+-- The interior type context is the conversion context with Θ's bind
+-- masks on, so anything well formed inside is well formed on the
+-- conversion context.
 scope⊑unlockedScope : (Θ : CtxMorph) (Δ : Ctxᵗ)
   → scope Θ Δ ⊑ unlockedScope Θ Δ
 scope⊑unlockedScope []             Δ = ⊑-refl Δ
@@ -105,7 +105,7 @@ scope⊑unlockedScope (lock X ∷ Θ)   Δ = mask-⊑ X (scope⊑unlockedScope �
 interior⊑convCtx : (Θ : CtxMorph) (Δ : Ctxᵗ) → interior Θ Δ ⊑ convCtx Θ Δ
 interior⊑convCtx Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ Δ)
 
--- The FACE type context only ever ADDS nameability to the plain
+-- The CONVERSION CONTEXT only ever ADDS nameability to the plain
 -- exterior: `unlockedScope` skips the binds and the locks, and an
 -- `unlock` merely restores.  (`scope` would not do — masking is what a
 -- lock is for.)
@@ -145,7 +145,7 @@ interior⊑convCtx Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ �
 -- Every premise names a slot or checks a rep in the PLAIN exterior.  There
 -- is no Reversal≈, no starOnly, no SkelEq, no x-lookup: an `unlock` claims
 -- nothing at all, and a `lock` claims nothing either — the claim lives in the
--- FACE (`seal X`, which must cite a live owner).
+-- CONVERSION (`seal X`, which must cite a live binder).
 --
 -- An `unlock X` premise asks only that the slot EXISTS.  It cannot ask that the
 -- slot be masked and stay stable under refinement (a Cancel may already have
@@ -154,18 +154,22 @@ interior⊑convCtx Θ Δ = ⊑-pushBinds (repsOf Θ) (scope⊑unlockedScope Θ �
 -- forces: `unlock X`/`lock X` NAME a masked index — that is an ENTRY, not a type
 -- — while `Δ ⊢ᵗ ` X` at a masked slot is refused.  Tightness is about USE in
 -- a type, not about mentioning the index in the context morphism.
-data MorphWf (Δ : Ctxᵗ) : CtxMorph → Set where
-  mw[] : MorphWf Δ []
-  mw-b : ∀ {A Θ} → Δ ⊢ᵗ A → MorphWf Δ Θ → MorphWf Δ (bind A ∷ Θ)
-  mw-l : ∀ {X Θ} → Δ ∋tv X → MorphWf Δ Θ → MorphWf Δ (lock X ∷ Θ)
-  mw-u : ∀ {X E Θ} → Δ ∋e X , E → MorphWf Δ Θ → MorphWf Δ (unlock X ∷ Θ)
+-- `Δ ⊢ᵐ Θ` — the context morphism Θ is WELL FORMED over Δ.  An infix
+-- judgement in the family of `Δ ⊢ᵗ A` (strong.Ctx) and `Δ ⊢ c ∶ A ⇝ B`
+-- (strong.Conversion).
+infix 4 _⊢ᵐ_
+data _⊢ᵐ_ : Ctxᵗ → CtxMorph → Set where
+  mw[] : Δ ⊢ᵐ []
+  mw-b : ∀ {A Θ} → Δ ⊢ᵗ A → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (bind A ∷ Θ)
+  mw-l : ∀ {X Θ} → Δ ∋tv X → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (lock X ∷ Θ)
+  mw-u : ∀ {X E Θ} → Δ ∋e X , E → Δ ⊢ᵐ Θ → Δ ⊢ᵐ (unlock X ∷ Θ)
 
-MorphWf-⊑ : ∀ {Θ} → Δ ⊑ Δ′ → MorphWf Δ Θ → MorphWf Δ′ Θ
-MorphWf-⊑ ls mw[]        = mw[]
-MorphWf-⊑ ls (mw-b w b)  = mw-b (⊑-wf ls w) (MorphWf-⊑ ls b)
-MorphWf-⊑ ls (mw-l tv b) = mw-l (⊑-tv ls tv) (MorphWf-⊑ ls b)
-MorphWf-⊑ ls (mw-u d b)  with ⊑-∋e ls d
-... | E′ , d′ , _ = mw-u d′ (MorphWf-⊑ ls b)
+⊢ᵐ-⊑ : ∀ {Θ} → Δ ⊑ Δ′ → Δ ⊢ᵐ Θ → Δ′ ⊢ᵐ Θ
+⊢ᵐ-⊑ ls mw[]        = mw[]
+⊢ᵐ-⊑ ls (mw-b w b)  = mw-b (⊑-wf ls w) (⊢ᵐ-⊑ ls b)
+⊢ᵐ-⊑ ls (mw-l tv b) = mw-l (⊑-tv ls tv) (⊢ᵐ-⊑ ls b)
+⊢ᵐ-⊑ ls (mw-u d b)  with ⊑-∋e ls d
+... | E′ , d′ , _ = mw-u d′ (⊢ᵐ-⊑ ls b)
 
 ------------------------------------------------------------------------
 -- 3.  Terms
@@ -220,11 +224,12 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
        → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
 
   -- (env).  ONE frame change.  The interior is term-closed and typed on the
-  -- interior type context; the face conversion is checked on the FACE type context, where
-  -- the boundary's owners and the slots it masks are both live; the exterior
-  -- face is a type over the plain exterior.  Both faces are on the wrapper.
+  -- interior type context; the conversion is checked on the CONVERSION
+  -- CONTEXT, where the boundary's binders and the slots it masks are both
+  -- live; and its target type is the exterior type shifted past the
+  -- boundary's binders.  Interior and conversion are both on the wrapper.
   env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
-      → MorphWf Δ Θ
+      → Δ ⊢ᵐ Θ
       → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
       → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
       → Δ ⊢ᵗ Bₑ
@@ -237,7 +242,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 
 -- Inert  = { s ↦ t , ∀ s , seal X , id-at-a-variable }
 -- Active = { unseal X , id-at-base }
--- No face type is inspected and no slot arithmetic occurs.
+-- No source or target type is inspected and no slot arithmetic occurs.
 data Inert : Conv → Set where
   I-idv  : ∀ {X}   → Inert (id (` X))
   I-seal : ∀ {X}   → Inert (seal X)
@@ -279,6 +284,6 @@ data Value : Term → Set where
 
 -- A value's variable type is VISIBLE on the value's bind type context, because
 -- `env`'s last conjunct checks it there.  So a boundary can never conceal
--- the slot its bind face names.
+-- the slot its bind conversion names.
 value-var-visible : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
 value-var-visible (V-⟪⟫ _ _) (env _ _ _ (wf-var tv)) = tv

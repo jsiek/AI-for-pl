@@ -7,10 +7,10 @@ module strong.proof.PeelDual where
 --     ≡ map masked (pushBinds (repsOf Θ) []) ++ unlockedScope Θ Δ
 --   convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ
 --
--- The crossing argument (typed in Δ) retypes one owner-frame deeper by
+-- The crossing argument (typed in Δ) retypes one bind frame deeper by
 -- `⊢rename (wkN (numBinds Θ))` + `⊢retag` (the tail relaxes
--- Δ ⊑ unlockedScope Θ Δ), and the face `s` transplants verbatim through
--- `convCtx-dual`.
+-- Δ ⊑ unlockedScope Θ Δ), and the conversion `s` transplants verbatim
+-- through `convCtx-dual`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; s≤s; z≤n)
 open import Data.Nat.Properties using (≤-refl; m≤n⇒m≤1+n)
@@ -116,7 +116,7 @@ stepA Ow (lock X ∷ Θ)   Δ
         | stepA Ow Θ Δ = refl
 
 ------------------------------------------------------------------------
--- STEP B: hideBinds masks the whole owner prefix.
+-- STEP B: hideBinds masks the whole bind prefix.
 ------------------------------------------------------------------------
 
 hideBinds-cons : (k : ℕ) (E : Ent) (Ξ : Ctxᵗ)
@@ -180,7 +180,7 @@ interior-dual Θ Δ
            | stepB Ow (unlockedScope Θ Δ) = refl
 
 ------------------------------------------------------------------------
--- convCtx-dual : the face context is UNCHANGED by the dual
+-- convCtx-dual : the conversion context is UNCHANGED by the dual
 ------------------------------------------------------------------------
 
 -- On an all-unlock morphism (like dualScope), unlockedScope = scope.
@@ -192,7 +192,8 @@ unlockedScope-dualScope n (unlock X ∷ Θ) Ξ = unlockedScope-dualScope n Θ Ξ
 unlockedScope-dualScope n (lock X ∷ Θ)   Ξ =
   cong (unmask (n + X)) (unlockedScope-dualScope n Θ Ξ)
 
--- unlockedScope skips locks, so hideBinds is invisible to the face context.
+-- unlockedScope skips locks, so hideBinds is invisible to the
+-- conversion context.
 unlockedScope-hideBinds : (k : ℕ) (Ξ : Ctxᵗ) → unlockedScope (hideBinds k) Ξ ≡ Ξ
 unlockedScope-hideBinds zero    Ξ = refl
 unlockedScope-hideBinds (suc k) Ξ = unlockedScope-hideBinds k Ξ
@@ -279,27 +280,27 @@ Ren-wkN : (Ξ : Ctxᵗ) {Δ : Ctxᵗ} → Ren (wkN (length Ξ)) Δ (Ξ ++ Δ)
 Ren-wkN Ξ = mkRen (ren∋-wkN Ξ)
 
 ------------------------------------------------------------------------
--- MorphWf (interior Θ Δ) (dual Θ)
+-- interior Θ Δ ⊢ᵐ dual Θ
 ------------------------------------------------------------------------
 
-MorphWf-++ : ∀ {Δ Θ₁ Θ₂} → MorphWf Δ Θ₁ → MorphWf Δ Θ₂ → MorphWf Δ (Θ₁ ++ Θ₂)
-MorphWf-++ mw[]        b₂ = b₂
-MorphWf-++ (mw-b w b)  b₂ = mw-b w (MorphWf-++ b b₂)
-MorphWf-++ (mw-l tv b) b₂ = mw-l tv (MorphWf-++ b b₂)
-MorphWf-++ (mw-u d b)  b₂ = mw-u d (MorphWf-++ b b₂)
+⊢ᵐ-++ : ∀ {Δ Θ₁ Θ₂} → Δ ⊢ᵐ Θ₁ → Δ ⊢ᵐ Θ₂ → Δ ⊢ᵐ (Θ₁ ++ Θ₂)
+⊢ᵐ-++ mw[]        b₂ = b₂
+⊢ᵐ-++ (mw-b w b)  b₂ = mw-b w (⊢ᵐ-++ b b₂)
+⊢ᵐ-++ (mw-l tv b) b₂ = mw-l tv (⊢ᵐ-++ b b₂)
+⊢ᵐ-++ (mw-u d b)  b₂ = mw-u d (⊢ᵐ-++ b b₂)
 
--- owner slots of a pushBinds are visible
+-- binder slots of a pushBinds are visible
 pushBinds-∋tv : (As : List Ty) (Ξ : Ctxᵗ) (j : ℕ)
   → j < length As → pushBinds As Ξ ∋tv j
 pushBinds-∋tv (A ∷ As) Ξ zero    (s≤s _)  = bind _ , ez , nameable-b
 pushBinds-∋tv (A ∷ As) Ξ (suc j) (s≤s lt) with pushBinds-∋tv As Ξ j lt
 ... | E , d , v = _ , es d , renᵉ-Nameable v
 
-MorphWf-hideBinds : (k : ℕ) (Ξ : Ctxᵗ)
-  → ((j : ℕ) → j < k → Ξ ∋tv j) → MorphWf Ξ (hideBinds k)
-MorphWf-hideBinds zero    Ξ h = mw[]
-MorphWf-hideBinds (suc k) Ξ h =
-  mw-l (h k ≤-refl) (MorphWf-hideBinds k Ξ (λ j lt → h j (m≤n⇒m≤1+n lt)))
+⊢ᵐ-hideBinds : (k : ℕ) (Ξ : Ctxᵗ)
+  → ((j : ℕ) → j < k → Ξ ∋tv j) → Ξ ⊢ᵐ hideBinds k
+⊢ᵐ-hideBinds zero    Ξ h = mw[]
+⊢ᵐ-hideBinds (suc k) Ξ h =
+  mw-l (h k ≤-refl) (⊢ᵐ-hideBinds k Ξ (λ j lt → h j (m≤n⇒m≤1+n lt)))
 
 -- existence of a slot survives an in-place update
 updateAt-∋e-ex : (f : Ent → Ent) (Y : ℕ) {Δ : Ctxᵗ} {X : ℕ} {E : Ent}
@@ -319,7 +320,7 @@ scope-∋e-ex (unlock Y ∷ Θ) d with scope-∋e-ex Θ d
 scope-∋e-ex (lock Y ∷ Θ)   d with scope-∋e-ex Θ d
 ... | E′ , d′ = updateAt-∋e-ex masked Y d′
 
--- a slot of pushBinds(As)Ξ past the owners
+-- a slot of pushBinds(As)Ξ past the binders
 pushBinds-∋e-tail : (As : List Ty) {Ξ : Ctxᵗ} {X : ℕ} {E : Ent}
   → Ξ ∋e X , E → ∃[ E′ ] (pushBinds As Ξ ∋e (length As + X) , E′)
 pushBinds-∋e-tail As {Ξ} {X} d
@@ -327,12 +328,12 @@ pushBinds-∋e-tail As {Ξ} {X} d
         | sym (length-pushBinds As) =
   _ , ren∋-wkN (pushBinds As []) d
 
-MorphWf-dualScope-self : (Θ : CtxMorph) (Δ : Ctxᵗ) → MorphWf Δ Θ
-  → MorphWf (interior Θ Δ) (dualScope (numBinds Θ) Θ)
-MorphWf-dualScope-self Θ Δ mwΘ = go Θ mwΘ
+⊢ᵐ-dualScope-self : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊢ᵐ Θ
+  → interior Θ Δ ⊢ᵐ dualScope (numBinds Θ) Θ
+⊢ᵐ-dualScope-self Θ Δ mwΘ = go Θ mwΘ
   where
-  go : (Ξ : CtxMorph) → MorphWf Δ Ξ
-     → MorphWf (interior Θ Δ) (dualScope (numBinds Θ) Ξ)
+  go : (Ξ : CtxMorph) → Δ ⊢ᵐ Ξ
+     → interior Θ Δ ⊢ᵐ dualScope (numBinds Θ) Ξ
   go []             _            = mw[]
   go (bind A ∷ Ξ)   (mw-b _ b)   = go Ξ b
   go (unlock X ∷ Ξ) (mw-u _ b)   = go Ξ b
@@ -341,12 +342,12 @@ MorphWf-dualScope-self Θ Δ mwΘ = go Θ mwΘ
   ... | E′ , d′ with pushBinds-∋e-tail (repsOf Θ) d′
   ...   | E″ , d″ = mw-u d″ (go Ξ b)
 
-MorphWf-dual : (Θ : CtxMorph) (Δ : Ctxᵗ) → MorphWf Δ Θ
-  → MorphWf (interior Θ Δ) (dual Θ)
-MorphWf-dual Θ Δ mwΘ =
-  MorphWf-++ (MorphWf-hideBinds (numBinds Θ) (interior Θ Δ)
+⊢ᵐ-dual : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊢ᵐ Θ
+  → interior Θ Δ ⊢ᵐ dual Θ
+⊢ᵐ-dual Θ Δ mwΘ =
+  ⊢ᵐ-++ (⊢ᵐ-hideBinds (numBinds Θ) (interior Θ Δ)
             (λ j lt → pushBinds-∋tv (repsOf Θ) (scope Θ Δ) j lt))
-         (MorphWf-dualScope-self Θ Δ mwΘ)
+         (⊢ᵐ-dualScope-self Θ Δ mwΘ)
 
 ------------------------------------------------------------------------
 -- The crossing argument retypes inside the dual
@@ -402,5 +403,5 @@ preserve-Peel {Δ} {V} {W} {Θ} {s} {t} {C} vV vW
     subst (λ Ct → Ct ⊢ s ∶ shiftBy (numBinds Θ) _ ⇝ _)
           (sym (convCtx-dual Θ Δ)) ⊢s
   ⊢argcross : interior Θ Δ ∣ [] ⊢ wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫ ⦂ _
-  ⊢argcross = env (MorphWf-dual Θ Δ mw)
+  ⊢argcross = env (⊢ᵐ-dual Θ Δ mw)
                   (crossing Θ ⊢W) ⊢s-tr wAᵈ

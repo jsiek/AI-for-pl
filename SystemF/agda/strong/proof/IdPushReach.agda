@@ -13,40 +13,41 @@ module strong.proof.IdPushReach where
 --
 -- proof/PreserveObstruct §4 refutes IdPush's preservation case with a
 -- HAND-BUILT redex whose Θ₂ = `lock 1 ∷ []` blocks exactly the slot the
--- id-face's owner rep (` 1) names — the v1 c10/c11 chained-rep shape.  The
--- mission: is that configuration REACHABLE by v2 reductions from a closed,
--- plain System F source?
+-- inner identity conversion's binder rep (` 1) names — the v1 c10/c11
+-- chained-rep shape.  The mission: is that configuration REACHABLE by v2
+-- reductions from a closed, plain System F source?
 --
 -- THE VERDICT (worked out in the report and recorded in Examples §10):
 --
 --   NOT reachable, once the SEPARATELY-DIAGNOSED Peel/`dual` bug is fixed.
 --   The obstruction is `interior Θ₂ Δ ⊬ᵗ A`, where A is Y's rep.  For a lock in
---   Θ₂ to reach an ACTIVE outer face at all, Θ₂ must come from a Peel's
---   `dual Θ` (TyBeta only ever mints a lock-free `bind A ∷ []`).  A repaired
---   dual installs ONLY the owner locks `hideBinds (numBinds Θ)`, which block
---   Θ's own new owner slots — and by SIMULTANEITY (Ctx.pushBinds lifts each rep
---   past the owners bound INSIDE it, so a rep is a type over the PLAIN
---   exterior) no owner's rep ever names another owner slot.  So the owner
---   locks never block a face's rep, and the `¬IdPushCase` witness — whose
---   `Θ₂`'s lock lands on a NON-owner slot the rep names — is producible only
---   by the CURRENT `dual`'s `unlock X ↦ lock (n+X)` defect (the §3 Peel
---   refutation), not by IdPush itself.
+--   Θ₂ to reach an ACTIVE outer conversion at all, Θ₂ must come from a
+--   Peel's `dual Θ` (TyBeta only ever mints a lock-free `bind A ∷ []`).  A
+--   repaired dual installs ONLY the binder locks `hideBinds (numBinds Θ)`,
+--   which block Θ's own new binder slots — and by SIMULTANEITY
+--   (Ctx.pushBinds lifts each rep past the binders INSIDE it, so a rep
+--   is a type over the PLAIN exterior) no binder's rep ever names another
+--   binder slot.  So the binder locks never block a conversion's rep, and the
+--   `¬IdPushCase` witness — whose `Θ₂`'s lock lands on a NON-binder slot
+--   the rep names — is producible only by the CURRENT `dual`'s
+--   `unlock X ↦ lock (n+X)` defect (the §3 Peel refutation), not by
+--   IdPush itself.
 --
 -- THE SOUNDNESS FIX (this file, machine-checked).  `idPush⁺` proves the
 -- IdPush preservation case under ONE genuinely-added scoping side-condition
 --
 --     scoped : interior Θ₂ Δ ⊢ᵗ A                       (Q3(a)'s premise)
 --
--- together with `owner : interior Θ₂ Δ ∋ Y := A`, which is NOT an assumption
+-- together with `binder : interior Θ₂ Δ ∋ Y := A`, which is NOT an assumption
 -- about the world but a CONSEQUENCE of the redex being typed: `wE′` gives Y
--- visible in `interior Θ₂ Δ` and `d` gives Y an owner in `convCtx Θ₂ Δ`, and
+-- visible in `interior Θ₂ Δ` and `d` gives Y a binder in `convCtx Θ₂ Δ`, and
 -- `interior` differs from `convCtx` only by masking (never abst↔bind), so a
--- visible interior slot that is an owner outside is that same owner inside.
+-- visible interior slot that is a binder outside is that same binder inside.
 -- (That "mask-only" step is `MaskOnly` below; it is now PROVEN — `maskOnly`,
 -- §2 — so this file assumes nothing.)
 --
--- With both in hand the swapped-face contractum type-checks: the reconstruction
--- is the whole of §3.
+-- With both in hand the conversion-swapped contractum type-checks: the
+-- reconstruction is the whole of §3.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; length)
@@ -77,8 +78,8 @@ open import strong.proof.MoveScope using (unlockedScope-∋bind; pushBinds-∋)
 -- `interior Θ Δ` differs from `convCtx Θ Δ` ONLY by masking (`scope`
 -- applies the `lock` masks, `unlockedScope` skips them; both do the same
 -- binds and unmasks).  Masking never turns an `abst` into a `bind`, so a
--- slot that is NAMEABLE in `interior Θ Δ` and an OWNER in `convCtx Θ Δ`
--- is that same owner in `interior Θ Δ`.
+-- slot that is NAMEABLE in `interior Θ Δ` and a BINDER in `convCtx Θ Δ`
+-- is that same binder in `interior Θ Δ`.
 MaskOnly : Set
 MaskOnly = ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
   → interior Θ Δ ∋tv Y → convCtx Θ Δ ∋ Y := A → interior Θ Δ ∋ Y := A
@@ -86,7 +87,7 @@ MaskOnly = ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
 -- THE REFINEMENT THAT ONLY MASKS.  This is `Ctx._⊑ᵉ_` MINUS the one
 -- clause that invents knowledge (`le-ao : abst ⊑ᵉ bind A`).  `scope` and
 -- `unlockedScope` differ only by `lock`s, and a `lock` masks — it never turns a
--- Λ-bound slot into an owner — so the two type contexts are related by
+-- Λ-bound slot into a binder — so the two type contexts are related by
 -- THIS relation, not merely by `⊑`.  That is the whole content of the
 -- lemma: `⊑` alone would permit `abst` outside to be `bind A` inside.
 infix 4 _⊑ᵐᵉ_
@@ -122,7 +123,7 @@ data _⊑ᵐ_ : Ctxᵗ → Ctxᵗ → Set where
 ⊑ᵐ-∋e (lm∷ l ls) (es d) with ⊑ᵐ-∋e ls d
 ... | E′ , d′ , l′ = _ , es d′ , ⊑ᵐᵉ-ren l′
 
--- THE POINT.  A masking refinement never invents an owner: an entry that
+-- THE POINT.  A masking refinement never invents a binder: an entry that
 -- is VISIBLE and refines to `bind A` IS `bind A`.
 ⊑ᵐᵉ-bind : ∀ {E A} → E ⊑ᵐᵉ bind A → Nameable E → E ≡ bind A
 ⊑ᵐᵉ-bind lm-oo       v  = refl
@@ -183,8 +184,8 @@ maskOnly Θ Δ (E , d , v) d′ with ⊑ᵐ-∋e (interior⊑ᵐconvCtx Θ Δ) d
 
 -- The preservation obligation of IdPush, EXACTLY as `IdPushCase`, but with
 -- the added scoping premise `interior Θ₂ Δ ⊢ᵗ A` (Q3(a)) and the mask-only
--- owner fact fed in as a hypothesis.  This is a PROOF, not a parameter: the
--- swapped-face contractum types.
+-- binder fact fed in as a hypothesis.  This is a PROOF, not a parameter: the
+-- conversion-swapped contractum types.
 IdPushCase⁺ : Set
 IdPushCase⁺ = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
   → interior Θ₂ Δ ⊢ᵗ A
@@ -194,7 +195,7 @@ IdPushCase⁺ = ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ 
 
 idPush⁺ : IdPushCase⁺
 idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A = A} {C = C}
-        v d scoped owner
+        v d scoped binder
         (env mw₂ (env mw₁ ⊢V ⊢cᵢ wE′) ⊢cₒ wE)
   with ⊢cₒ
 ... | conv-unseal dₒ =
@@ -208,8 +209,9 @@ idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A =
   eqAC : A ≡ shiftBy (numBinds Θ₂) C
   eqAC = ∋:=-det d dₒ
 
-  -- The inner `id (` X)` face: its interior is ` X, and its exterior
-  -- `shiftBy (numBinds Θ₁) (` Y)` equals ` X, so X = numBinds Θ₁ + Y.
+  -- The inner `id (` X)` conversion: its source type is ` X, and its
+  -- target `shiftBy (numBinds Θ₁) (` Y)` equals ` X, so
+  -- X = numBinds Θ₁ + Y.
   srcX : _ ≡ ` X
   srcX = conv-idv-src ⊢cᵢ
 
@@ -220,15 +222,16 @@ idPush⁺ {Δ = Δ} {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y} {A =
   ⊢V′ : interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ ` X
   ⊢V′ = subst (λ T → interior Θ₁ (interior Θ₂ Δ) ∣ [] ⊢ V ⦂ T) srcX ⊢V
 
-  -- The inner unseal's owner lookup: Y is a live owner inside (owner), so
+  -- The inner unseal's binder lookup: Y is a live binder inside
+  -- (`binder`), so
   -- it is one in `unlockedScope Θ₁ (interior Θ₂ Δ)`, and the prefix lifts
   -- it to slot `numBinds Θ₁ + Y = X` at rep `shiftBy (numBinds Θ₁) A`.
   dX : convCtx Θ₁ (interior Θ₂ Δ) ∋ X := shiftBy (numBinds Θ₁) A
   dX = subst (λ Z → convCtx Θ₁ (interior Θ₂ Δ)
                       ∋ Z := shiftBy (numBinds Θ₁) A) eqX
-             (pushBinds-∋ (repsOf Θ₁) (unlockedScope-∋bind Θ₁ owner))
+             (pushBinds-∋ (repsOf Θ₁) (unlockedScope-∋bind Θ₁ binder))
 
--- With `maskOnly` PROVEN, `owner` is derived from the redex, so the SINGLE
+-- With `maskOnly` PROVEN, `binder` is derived from the redex, so the SINGLE
 -- genuinely-added premise is the scoping side-condition `interior Θ₂ Δ ⊢ᵗ A`.
 idPushCase-scoped :
   ∀ {Δ V Θ₁ Θ₂ X Y A C} → Value V → convCtx Θ₂ Δ ∋ Y := A
@@ -240,8 +243,8 @@ idPushCase-scoped {Δ = Δ} {Θ₂ = Θ₂} v d scoped ⊢R
 ... | env mw₂ (env mw₁ ⊢V ⊢cᵢ wE′) (conv-unseal dₒ) wE =
   idPush⁺ v d scoped (maskOnly Θ₂ Δ (⊢ᵗ→∋tv wE′) d) ⊢R
   where
-  -- With the outer face matched to `conv-unseal`, `wE′ : interior Θ₂ Δ ⊢ᵗ ` Y`
-  -- reflects Y visible inside.
+  -- With the outer conversion matched to `conv-unseal`,
+  -- `wE′ : interior Θ₂ Δ ⊢ᵗ ` Y` reflects Y visible inside.
   ⊢ᵗ→∋tv : ∀ {Δ′ Z} → Δ′ ⊢ᵗ ` Z → Δ′ ∋tv Z
   ⊢ᵗ→∋tv (wf-var tv) = tv
 
@@ -252,16 +255,16 @@ idPushCase-scoped {Δ = Δ} {Θ₂ = Θ₂} v d scoped ⊢R
 -- proof/PreserveObstruct §4's witness has Δ = `bind (` 0) ∷ bind `ℕ ∷ []`,
 -- Θ₂ = `lock 1 ∷ []`, so `interior Θ₂ Δ = bind (` 0) ∷ masked (bind `ℕ)
 -- ∷ []` and A = ` 1.  The scoping premise `interior Θ₂ Δ ⊢ᵗ ` 1` is FALSE
--- (slot 1 is blocked) — that failure IS the obstruction, and `owner` still
+-- (slot 1 is blocked) — that failure IS the obstruction, and `binder` still
 -- HOLDS there
--- (slot 0 is a live owner with rep ` 1), so it is `scoped` alone that the
+-- (slot 0 is a live binder with rep ` 1), so it is `scoped` alone that the
 -- counterexample denies.
 Ξi : Ctxᵗ
 Ξi = bind (` 0) ∷ masked (bind `ℕ) ∷ []
 
--- `owner` holds at the witness …
-owner-holds : Ξi ∋ 0 := ` 1
-owner-holds = ez
+-- `binder` holds at the witness …
+binder-holds : Ξi ∋ 0 := ` 1
+binder-holds = ez
 
 -- … but `scoped` fails: the rep ` 1 is not well formed inside.
 scoped-fails : ¬ (Ξi ⊢ᵗ ` 1)

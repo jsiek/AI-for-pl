@@ -7,8 +7,8 @@ module strong.Preservation where
 --   preservation : Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
 --
 -- * NO CONTEXT WELL-FORMEDNESS PREMISE (`⊢ᶜ Δ`).  The v1 endgame note
---   expected the store-typing pattern, because `conv-unseal` hands back an
---   owner's rep with no `Δ ⊢ᵗ A` attached.  It is not needed here: every
+--   expected the store-typing pattern, because `conv-unseal` hands back a
+--   binder's rep with no `Δ ⊢ᵗ A` attached.  It is not needed here: every
 --   site that reads a rep back also has the `env` node that put it there,
 --   whose LAST PREMISE is `Δ ⊢ᵗ Bₑ`, and `⊢ᵗ-of` (proof/Preserve §1)
 --   recovers the well-formedness of any typed term's type from the
@@ -28,23 +28,24 @@ module strong.Preservation where
 --   BETA      PROVEN (strong.TermSubst.preserve-Beta).
 --   PEEL      PROVEN (proof/PeelDual.preserve-Peel), since `dualScope` drops
 --             the `unlock` case.
---   TYPEELR   REPAIRED and PROVEN, at EVERY ∀-face
+--   TYPEELR   REPAIRED and PROVEN, at EVERY ∀ CONVERSION
 --             (proof/Preserve.preserve-TyPeelR).  The rule pushes in the
 --             premise-determined interior ∀-body, keeps the frame plain,
---             and mints the face `instReveal 0 s`.  Under the retired
---             POLARITY index this held only at a reveal face, because the
---             mint's inserted `seal 0` sat where a global `p` refused it;
---             per variable each leaf cites its own owner, and `env`'s
---             frame checks are what keep the two apart.  Examples §13
---             runs both faces from closed plain source.
+--             and mints the conversion `instReveal 0 s`.  Under the
+--             retired POLARITY index this held only at a REVEALING
+--             conversion, because the mint's inserted `seal 0` sat where
+--             a global `p` refused it; per variable each leaf cites its
+--             own binder, and `env`'s frame checks are what keep the two
+--             apart.  Examples §13 runs both directions from closed
+--             plain source.
 --   DROP$     PROVEN (proof/Preserve.preserve-Drop$).
 --   CANCELR   PROVEN (proof/MoveScope.preserve-CancelR).
 --   IDPUSH    PROVEN (proof/MoveScope.preserve-IdPush).
 --
 -- WHAT CLOSED THE LAST TWO: THE SCOPE MOVE (Jeremy, 2026-09-06;
--- strong.Reduction §2b).  Both rules swap the two faces, so the inner
--- boundary stops presenting the abstract name and starts presenting the
--- OWNER'S REP — and `env`'s last premise then asks for that rep to be
+-- strong.Reduction §2b).  Both rules swap the two conversions, so the
+-- inner boundary stops presenting the abstract name and starts presenting
+-- the BINDER'S REP — and `env`'s last premise then asks for that rep to be
 -- well formed INSIDE the outer frame, where its own `lock`s may have
 -- blocked the slot the rep names.  That was the wall (the old
 -- proof/PreserveObstruct §4 refutation, and the whole search for an
@@ -129,8 +130,8 @@ preservation* = I.preserve*
 -- 4.  The rule cases that hold unconditionally
 ------------------------------------------------------------------------
 
--- TYBETA — the boundary is born, and its face is minted at the owner the
--- rule itself binds.
+-- TYBETA — the boundary is born, and its conversion is minted at the
+-- binder the rule itself introduces.
 preservation-TyBeta : ∀ {A}
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
     ---------------------------------------------
@@ -144,7 +145,7 @@ preservation-Beta : ∀ {W}
   → Δ ∣ [] ⊢ N [ W ]ᵐ ⦂ C
 preservation-Beta = preserve-Beta
 
--- DROP$ — a base-faced boundary over a numeral.
+-- DROP$ — an identity boundary at a base type, over a numeral.
 preservation-Drop$ : ∀ {n Θ}
   → Base A
   → Δ ∣ [] ⊢ ($ n) ⟪ Θ , id A ⟫ ⦂ C
@@ -152,9 +153,9 @@ preservation-Drop$ : ∀ {n Θ}
   → Δ ∣ [] ⊢ $ n ⦂ C
 preservation-Drop$ = preserve-Drop$
 
--- TYPEELR AT ANY ∀-FACE — the repaired rule, unconditionally.  The
+-- TYPEELR AT ANY ∀ CONVERSION — the repaired rule, unconditionally.  The
 -- pushed-in annotation is the interior ∀-body the premise determines, and
--- the face is the mint at the owner the rule binds.
+-- the conversion is the mint at the binder the rule introduces.
 preservation-TyPeelR : ∀ {V Θ s B Bᵢ Bₑ}
   → Value V
   → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ

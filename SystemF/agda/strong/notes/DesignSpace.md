@@ -70,6 +70,10 @@ subgraph Dv2["D. v2 — conversion boundaries — 2026-09-05/06"]
   D44["D44 the wall: four candidate invariants"]
   D45["D45 the scope move Θ₁ ⋉ Θ₂"]
   D46["D46 TypeSafety and the naming rulings"]
+  D47["D47 dual drops unlocks — the scope leak"]
+  D48["D48 masked-only mw-u, unconditional relock, bindsOnly"]
+  D49["D49 Δ-dependent dual: relock on scope Θ′ Δ"]
+  D50["D50 sequential ⊢ᵐ, exact dual, rewind, reps on unlockedScope"]
 end
 
 D01 -->|"Example 6: revealing Y:=X⇒X injects X into Γ₂, so L2 fails"| D02
@@ -132,22 +136,32 @@ D43 -->|"the honest contracta owe interior Θ₂ Δ ⊢ᵗ A — one wall, three
 D44 -->|"all four invariants refuted; Jeremy: move part of Θ₂ into the inner boundary"| D45
 D45 -->|"PRESERVATION PROVEN, parameter-free"| D46
 
+D42 -->|"an unlock claims nothing, so the dual may drop it — the reading that leaked"| D47
+D46 -->|"Jeremy's test: at Δᵤ = ⌷U with Θᵤ = ↥U, an ILL-TYPED redex has a WELL-TYPED Peel contractum — proof/DualTightness"| D47
+D47 -->|"proposed as one package: masked-only mw-u, unlock ↦ lock, bindsOnly outer frame"| D48
+D45 -->|"the outer frame of CancelR and IdPush is the package's third part"| D48
+D48 -->|"under a SIMULTANEOUS ⊢ᵐ: ⊢retag dies on le-mu, and Θ₁ ⋉ Θ₂ = ↑V:=U , ↥U has no derivation — proof/MwUObstruct"| D49
+D48 -->|"the same audit carried through: make ⊢ᵐ SEQUENTIAL, and both refutations dissolve"| D50
+D49 -->|"superseded: it leaves the vacuous unlock legal and would need mw-l weakened"| D50
+
 D16 -.->|"kept: tightness, no term type-shifts"| D34
 D18 -.->|"kept: simultaneity"| D35
 D25 -.->|"kept: inward-only crossings — F10, 23 of 23 Peels"| D35
 D27 -.->|"kept: active/inert and determinism"| D40
 D13 -.->|"retired: towers, not merges — Q5a, F8/F9"| D35
 D26 -.->|"reinstated as CancelR"| D43
+D47 -.->|"design law 2 restated for the RELATION, then tested rule by rule — Examples §15"| D50
+D18 -.->|"law 4 reduced to its surviving half: a rep is never blocked by its own frame's locks"| D50
 
 classDef current fill:#d8f3e0,stroke:#137333,stroke-width:2px,color:#0b3d1a;
 classDef refuted fill:#fdecea,stroke:#b3261e,stroke-width:1.5px,stroke-dasharray:5 3,color:#5f1512;
 classDef reverted fill:#fff3df,stroke:#b26a00,stroke-width:1.5px,color:#5c3600;
 classDef ruling fill:#e5eeff,stroke:#1a56b8,stroke-width:2px,color:#0f2f66;
 
-class D01,D02,D03,D04,D05,D06,D07,D08,D09,D10,D11,D12,D14,D15,D16,D17,D19,D20,D22,D23,D24,D28,D29,D30,D38,D41,D44 refuted;
-class D13,D18,D21,D26,D36,D37 reverted;
+class D01,D02,D03,D04,D05,D06,D07,D08,D09,D10,D11,D12,D14,D15,D16,D17,D19,D20,D22,D23,D24,D28,D29,D30,D38,D41,D44,D47,D48 refuted;
+class D13,D18,D21,D26,D36,D37,D42,D49 reverted;
 class D25,D27,D31,D32,D33 ruling;
-class D34,D35,D39,D40,D42,D43,D45,D46 current;
+class D34,D35,D39,D40,D43,D45,D46,D50 current;
 ```
 
 ---
@@ -158,7 +172,7 @@ class D34,D35,D39,D40,D42,D43,D45,D46 current;
 |---|---|
 | green, solid | part of the design as it stands today (`Design.md`) |
 | red, dashed border | refuted or abandoned — the calculus does not contain it |
-| amber | landed then reverted, proposed then withdrawn, or reverted then reinstated.  `D26` is the round trip: `Cancel` was an era-A rule, dropped when the boundary was combined, revived on Jeremy's direction at Decision 6, refuted there as a standalone rule, and reinstated in v2 as `CancelR` |
+| amber | landed then reverted, proposed then withdrawn, or reverted then reinstated.  `D26` is the round trip: `Cancel` was an era-A rule, dropped when the boundary was combined, revived on Jeremy's direction at Decision 6, refuted there as a standalone rule, and reinstated in v2 as `CancelR`.  `D42` is the near miss: the repaired `dual` was right about the ORDER and wrong about the `unlock`s, and `D47` is where that half came back.  `D49` is the alternative that would have worked and was not taken |
 | blue | a ruling or survey finding that was confirmed and still governs v2, even where the object it ruled on is gone |
 | solid arrow | the design moved here next |
 | dashed arrow | a principle or artifact carried across, not a successor |
@@ -171,10 +185,13 @@ were live at once.  Each edge label is the **evidence**, not a summary:
 `D24 → D25` is the machine-checked impossibility of flattening on the
 double coincidence (`DECISIONS.md`, gauntlet §9g), `D28 → D29` is the
 pair `¬progress` + `¬⊢contractum` that made both halves of type safety
-false in the same hour.  A node with several incoming solid edges was
-forced by more than one line of evidence (`D11`, `D17`, `D43`); a node
-with several outgoing solid edges is a fork whose branches were explored
-in parallel (`D35`).  The dashed arrows at the foot of the graph are the
+false in the same hour, and `D46 → D47` is Jeremy's tightness test, the
+one step of the whole map that starts from an **ill-typed** program.  A
+node with several incoming solid edges was forced by more than one line
+of evidence (`D11`, `D17`, `D43`, `D47`, `D50`); a node with several
+outgoing solid edges is a fork whose branches were explored in parallel
+(`D35`, and `D48`, whose two branches — `D49` and `D50` — ran at the same
+time on `dual-relock` and `dual-principled`).  The dashed arrows at the foot of the graph are the
 through line — they say which era-B commitments survived the v1
 refutation, and which two era-A lessons were separated by four days.
 Every node id is defined, in this order, in `notes/DesignPoints.md`.
@@ -218,3 +235,28 @@ obstruction was the mirror image of the original mistake — a repaired
 rule left a representation on the wrong side of a lock — and the fix was
 the same principle one level up: **move the locks, do not drop them**
 (`D45`).
+
+And then, once all six theorems held, the same disease turned up one
+level further out.  Every step so far had been driven by a **well-typed**
+program that lost its typing; Jeremy asked instead for an **ill-typed**
+one that gained it, and got it on the first try (`D47`): `dual` had
+*dropped* the crossed boundary's `unlock` entries, on the reading that an
+unlock "claims nothing", and so handed a crossing argument a frame
+strictly more nameable than the exterior.  Dropping again — the third
+time, after era A's truncated interior and era B's dropped slots.  The
+repair had to restore what was dropped in four places at once, and the
+first attempt (`D48`) failed for a reason worth keeping: `_⊢ᵐ_` was
+**simultaneous**, reading every premise on the plain exterior, while
+`scope` applies its list in order, so the judgement could not even state
+that a lock and a later unlock of one slot are both true.  Reading each
+premise on the frame its entry acts on (`D50`) dissolved both
+refutations, and made `dual` an exact inverse — restoring *and* reversed
+— and both scope-move frame lemmas equalities.  The cost was half of
+design law 4, which Jeremy retired on the spot: what a representation
+must not be blocked by is its **own** frame's locks, not every entry of
+every frame.  The half that survives is `pushBinds`, unchanged since era
+B.  The through line, then, is one sentence in three registers: *nothing
+may be dropped* — not a context, not a representation, not a lock, not an
+unlock — and the calculus is finished when every rule can be shown to
+move a subterm into a frame that is the old one, exactly, one prefix in
+(`Examples` §15).

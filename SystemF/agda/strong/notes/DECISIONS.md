@@ -2506,3 +2506,18 @@ masked-only mw-u with SEQUENTIAL scope premises (reps stay on the plain
 non-unmasking refinement only, scope move with bindsOnly outer frame
 (frame lemmas as equalities).  Expected sticking point: Θ₁'s bind reps
 under the move (MwUObstruct §6) — the missing premise, if any, is there.
+
+### RATIFIED: representations read past the tail's unlocks; PR #193 merged (Jeremy, 2026-09-06)
+
+Jeremy ratified item 2 of the tight-boundary package (mw-b reads a
+bind's representation on `unlockedScope Θ′ Δ`, the frame the conversion
+is read on; names in lock/unlock entries are read on `scope Θ′ Δ`) and
+ordered PR #193 merged: "That particular law was not valuable on its own,
+it was just a design idea to try."  Design law 4 ("Simultaneity") is
+thereby reduced to its surviving half — a representation is never blocked
+by its own frame's locks, and `pushBinds` lifts it past exactly the
+binders inside it — and the "every premise on the plain exterior" half is
+retired.  Landed with it: sequential `Δ ⊢ᵐ Θ` (no vacuous unlocks, no
+double locks), the exact dual (†), `rewind Θ₂` as the scope move's outer
+frame, `⊢retag` over `⊑ᵃ`.  Branch dual-relock (Δ-dependent dual) is the
+superseded alternative; PR #192 is contained in #193.

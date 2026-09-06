@@ -1,3 +1,7 @@
+HISTORICAL — this describes the REFUTED v1 design (one combined boundary
+`M ⟪ Θ , B₀ ⟫` carrying reveal/conceal entries and a single boundary type);
+subject reduction is false for it.  The live design is `strong/Design.md`.
+
 Strong System F
 
 This version of System F keeps tight control over where type variables

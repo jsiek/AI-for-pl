@@ -167,12 +167,16 @@ cite in `convCtx Θ Δ`.  STA has no move of that kind.
 other way.  In the two-agent calculus (Fig. 7, p.1043) the host-function
 rule is
 
-    Γ[xₕ:τ] ⊢ H : τ′
+    Γ[xₕ:τ′] ⊢ H : τ
     ─────────────────────────  [Hfn]        (t ∉ τ′)
-    Γ ⊢ λxₕ:τ. H : τ → τ′
+    Γ ⊢ λxₕ:τ′. H : τ′ → τ
 
 so the **host** — the agent that *knows* `t = τₕ` — may not write `t` in
-a function-argument annotation.  The paper's justification is
+a function-argument annotation.  The paper states the restriction in
+prose as "`t` is not allowed to appear in the annotation for the
+argument to a function" (p.1043), which is what fixes it to the domain.
+
+The paper's justification is
 presentational: "Because the host knows that `t = τₕ`, this restriction
 does not limit expressiveness.  The convenient effect of this side
 condition and rule `[CinH]` is that types of host terms never contain
@@ -840,6 +844,11 @@ semantics never poses.
   of `[7]`, `[8]`, `[9]`, `[∀1]`, `[∀2]`, `[∀intro]`, `[∀elim]`,
   `[embed]`, `[eq]`, `[trans]`, `[Hfn]`, `[Ttypeabs]` and `[Ttypeapp]`
   are the ones I rely on.
+* **Fig. 7's metavariables** (p.1043) came out of the extraction with
+  `[Cfn]` and `[Hfn]` interleaved; I fixed the domain/codomain naming
+  from the paper's prose sentence about the argument annotation, quoted
+  in §2.  The side condition itself, `t ∉ τ′`, is unambiguous in the
+  extraction; only which type `τ′` names was reconstructed.
 * **Fig. 15's `Ψ` relation** (p.1057) renders in the extraction as a
   blank; I read it as an auxiliary relation named alongside `φ` from the
   prose ("Figure 15 presents two relations, `φ(e)` and `Ψ(e)`").  Its

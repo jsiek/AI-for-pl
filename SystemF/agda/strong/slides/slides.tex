@@ -33,9 +33,9 @@
 \newcommand{\unseal}[1]{+#1}
 \newcommand{\unsealat}[2]{\mathsf{reveal}(#1, #2)}
 \newcommand{\unsealatc}[2]{\mathsf{reveal}(#1,#2)}
-\newcommand{\idconv}[1]{\kw{id}\,#1}
+\newcommand{\idconv}[1]{\kw{id}_{#1}}
 \newcommand{\bind}[2]{#1{:=}#2}
-\newcommand{\maskentry}[1]{\mathsf{mask}(#1)}
+\newcommand{\maskentry}[1]{\mathsf{locked}(#1)}
 \newcommand{\morph}[2]{\left\langle #1\mathbin{;}#2\right\rangle}
 \newcommand{\lockX}[1]{-#1}
 \newcommand{\unlockX}[1]{+#1}
@@ -43,8 +43,8 @@
 \newcommand{\changes}[1]{\mathsf{changes}(#1)}
 \newcommand{\unlocked}[1]{#1^{+}}
 \newcommand{\scopemove}{\mathbin{\triangleleft}}
-\newcommand{\mask}[2]{\mathsf{mask}_{#1}(#2)}
-\newcommand{\unmask}[2]{\mathsf{unmask}_{#1}(#2)}
+\newcommand{\mask}[2]{\mathsf{lock}_{#1}(#2)}
+\newcommand{\unmask}[2]{\mathsf{unlock}_{#1}(#2)}
 \newcommand{\pushbinds}[2]{\mathsf{pushBinds}(#1,#2)}
 \newcommand{\hide}[1]{\mathsf{hide}(#1)}
 \newcommand{\dualscope}[1]{\mathsf{dual}(#1)}
@@ -57,6 +57,19 @@
 \newcommand{\Locked}[1]{\mathsf{Locked}(#1)}
 \newcommand{\fce}[2]{\mathsf{convCtx}(#1,#2)}
 \newcommand{\intc}[2]{#1(#2)}
+
+% ---- preamble additions (colours are scope sets; \HI stays for highlights) ----
+\definecolor{scopeX}{rgb}{0.84,0.90,0.98}   % {X}   pale blue
+\definecolor{scopeZ}{rgb}{0.98,0.90,0.76}   % {Z}   pale orange
+\definecolor{scopeY}{rgb}{0.85,0.95,0.84}   % {Y}   pale green
+\newcommand{\region}[2]{\colorbox{#1}{\color{black}\ensuremath{#2}}}
+\newcommand{\rX}[1]{\region{scopeX}{#1}}    % nodes where X is in scope
+\newcommand{\rZ}[1]{\region{scopeZ}{#1}}    % nodes where Z is in scope
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\idZ}{\Lam{Z} \lam{z\of Z} z}
+\newcommand{\rY}[1]{\region{scopeY}{#1}}
+\newcommand{\cid}{\forall Z.\, (\idconv{Z} \func \idconv{Z})}   % the ∀ identity conversion
+
 
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
@@ -84,17 +97,120 @@
 }
 %===============================================================================
 \frame{
-  \frametitle{Terms, Conversions, and Context Morphisms}
+\frametitle{System F programs in color}
+\[
+\app{\app{\tyapp{(\rX{\Lam{X}
+      \lam{f \of (\forall Z.\, Z \to Z)}
+      \lam{x \of X}
+      \app{\tyapp{f}{X}}{x}})}{\Nat}}
+    {(\rZ{\idZ})}}{42}
+\]
+\vspace{-10pt}
+\begin{itemize}
+\item Uncoloured terms have no type variable in scope;
+\item \rX{\;} terms have $X$ in scope; 
+\item \rZ{\;} terms have $Z$ in scope.
+\end{itemize}
+
+\vspace{10pt}
+
+\textbf{Reduction wipes out the colors, so sad!}
+\begin{align*}
+  &\app{\app{\tyapp{(\rX{\Lam{X} \lam{f \of (\forall Z.\, Z \to Z)}\lam{x \of X}
+    \app{\tyapp{f}{X}}{x}})}{\Nat}}{(\rZ{\idZ})}}{42}\\
+  \reduce\;&\app{\app{(\lam{f \of (\forall Z.\, Z \to Z)} \app{\tyapp{f}{\Nat}}{x})}{(\rZ{\idZ})}}{42} \\
+  \reduce\;&\app{\tyapp{(\rZ{\idZ})}{\Nat}}{42}\\
+  \reduce\;&\app{(\lam{z\of \Nat} z)}{42}\\
+  \reduce\;& 42
+\end{align*}
+}
+%===============================================================================
+\frame{
+  \frametitle{What if terms could stay the same color?}
+
+  What if the type variables in scope for each subterm were invariant
+  under reduction?
+  \begin{align*}
+    &\app{\tyapp{(\rX{\Lam{X} \lam{f \of (\forall Z.\, Z \to Z)}
+  \tyapp{f}{X}})}{\Nat}}{(\rZ{\idZ})}\\
+    \reduce\;&\app{(\rX{\lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X}})}{(\rZ{\idZ})}
+       &\gray{X \mapsto \Nat}\\
+    \reduce\;&\rX{\tyapp{(\rZ{\idZ})}{X}}\\
+    \reduce\;&\rX{\rZ{\lam{z\of Z} z}}
+       &\gray{Z \mapsto X \mapsto \Nat}
+  \end{align*}
+
+  But but... we lose type preservation. 
+
+}
+
+%===============================================================================
+\frame{
+\frametitle{Syntactic Type Abstraction (Grossman et al.)}
+
+\begin{itemize}
+\item Define a multi-agent calculus that supports the \emph{embedding}
+  of an agent within another agent.
+
+\item The agents have differing knowledge about type equalities
+  that link abstract types to their representations.
+
+\item System F is modeled by the body of each $\Lambda$ spawning a new
+  agent. Type application gives the knowledge (e.g. $X = A$) to the
+  surrounding agent, not the spawned one.
+
+\item The typing of embedding says the inner and outer types must
+  match using the knowledge of the agents involved.
+
+\item Their type system does not include well-formedness conditions to
+  check type variable scoping.
+
+\item Type variables are added but never removed from the typing context.
+\end{itemize}
+
+}
+
+%===============================================================================
+\frame{
+\frametitle{System F with Abstraction Boundaries}
+\footnotesize
+\begin{align*}
+  &\app{\tyapp{(\rX{\Lam{X} \lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X}})}{\Nat}}{(\rZ{\idZ})}\\[2pt]
+  \reduce\;&\app{\boundary{\rX{\lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X}}}
+                          {\morph{\bind{X}{\Nat}}{\emptyset}}
+                          {\cid \func (\seal{X} \func \unseal{X})}}
+           {(\rZ{\idZ})}
+           \\[2pt]
+  \reduce\;&\boundary{\rX{\app{(\lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X})}
+                            {\boundary{\rZ{\idZ}}{\morph{\emptyset}{\lockX{X}}}{\cid}}}}
+           {\morph{\bind{X}{\Nat}}{\emptyset}}{\seal{X} \func \unseal{X}}
+           \\[2pt]
+  \reduce\;&\boundary{\rX{\tyapp{\boundary{\rZ{\idZ}}{\morph{\emptyset}{\lockX{X}}}{\cid}}{X}}}
+                     {\morph{\bind{X}{\Nat}}{\emptyset}}{\seal{X} \func \unseal{X}}
+     \\[2pt]
+  \reduce\;&\boundary{\rX{\boundary{\rY{\tyapp{(\rZ{\idZ})}{Y}}}
+                                    {\morph{\bind{Y}{X}}{\lockX{X}}}{\seal{Y} \func \unseal{Y}}}}
+                     {\morph{\bind{X}{\Nat}}{\emptyset}}{\seal{X} \func \unseal{X}}
+     \\[2pt]
+  \reduce\;&\boundary{\rX{\boundary{\rY{\boundary{\rZ{\lam{z\of Z} z}}
+                                                  {\morph{\bind{Z}{Y}}{\emptyset}}{\seal{Z} \func \unseal{Z}}}}
+                                    {\morph{\bind{Y}{X}}{\lockX{X}}}{\seal{Y} \func \unseal{Y}}}}
+                     {\morph{\bind{X}{\Nat}}{\emptyset}}{\seal{X} \func \unseal{X}}
+\end{align*}
+}
+%===============================================================================
+\frame{
+  \frametitle{Terms, Conversions, and Context Adjustments}
 \begingroup\small
 \[
 \begin{array}{lcl}
  A,B,C,D &::=& \iota \mid A \to B \mid X \mid \forall X.A \\
- L,M,N&::=& k \mid x \mid \lam{x\of A}N \mid \app{L}{M} \\
-      && \mid \Lambda X. N \mid \tyapp{L}{A} \mid \HI{\boundary{M}{\Delta}{c}} \\
+ L,M,N&::=& k \mid x \mid \lam{x\of A}N \mid \app{L}{M} 
+       \mid \Lambda X. N \mid \tyapp{L}{A} \mid \HI{\boundary{M}{\Delta}{c}} \\
  \HI{c,d} &::=& \HI{\idconv{A} \mid \seal{X} \mid \unseal{X}
           \mid c \func d \mid \forall X.\,c} \\
- \HI{\delta} &::=& \HI{\emptyset \mid \lockX{X},\delta \mid \unlockX{X},\delta} \\
  \HI{\Theta} &::=& \HI{\emptyset \mid \bind{X}{A},\Theta} \\
+ \HI{\delta} &::=& \HI{\emptyset \mid \lockX{X},\delta \mid \unlockX{X},\delta} \\
  \HI{\Delta} &::=& \HI{\morph{\Theta}{\delta}}
 \end{array}
 \]
@@ -104,80 +220,52 @@
 \frame{
   \frametitle{Contexts and type-variable lookup}
 
-
-\[
-\begin{array}{lcl}
- \psi &::=& X \mid \bind{X}{A} \mid \maskentry{\psi} \\
- \Psi &::=& \emptyset \mid \Psi,\psi
-\end{array}
-\]
-
-\[
-\entryname{X}=X
-\qquad
-\entryname{\bind{X}{A}}=X
-\qquad
-\entryname{\maskentry{\psi}}=\entryname{\psi}
-\]
-
-\begin{center}
-\fbox{$\Psi\ni_{\!e}X,\psi$}
-\end{center}
-
-\vspace{-8pt}
-
-{\small
 \begin{columns}[T]
 \begin{column}{0.48\textwidth}
 \[
-\begin{gathered}
-\inference{}{\Psi,\psi\ni_{\!e}X,\psi} \\
-\text{if }\entryname{\psi}=X
-\end{gathered}
+\begin{array}{lcl}
+ \beta &::=& X \mid \bind{X}{A} \\
+ \psi &::=& \beta \mid \maskentry{\beta} \\
+ \Psi &::=& \emptyset \mid \Psi,\psi
+\end{array}
 \]
 \end{column}
 \begin{column}{0.48\textwidth}
-\[
-\begin{gathered}
-\inference{\Psi\ni_{\!e}X,\psi}{\Psi,\psi'\ni_{\!e}X,\psi} \\
-\text{if }X\neq\entryname{\psi'}
-\end{gathered}
-\]
+{ \small
+\begin{align*}
+\entryname{X}&=X \\
+\entryname{\bind{X}{A}}&=X \\
+\entryname{\maskentry{\beta}}&=\entryname{\beta}
+\end{align*}
+}
 \end{column}
 \end{columns}
+
+\vspace{5pt}
+
+\hfill \fbox{$\Psi\ni X\mapsto\psi$}
+{\small
+\begin{gather*}
+  \inference{\entryname{\psi}=X}
+            {\Psi,\psi\ni X \mapsto \psi}
+  \quad
+  \inference{\entryname{\psi'}\neq X & \Psi\ni X\mapsto\psi}
+            {\Psi,\psi'\ni X\mapsto\psi} 
+\end{gather*}
 }
-
-\vspace{-2pt}
-
 \hfill\fbox{$\Psi\ni X$}
-
 \[
-\inference{\Psi\ni_{\!e}X,\psi\qquad\Nameable{\psi}}
+\inference{\Psi\ni X\mapsto X}
           {\Psi\ni X}
 \qquad
-\begin{array}{c}
-\Nameable{X} \\
-\Nameable{\bind{X}{A}}
-\end{array}
+\inference{\Psi\ni X \mapsto \bind{X}{A}}
+          {\Psi\ni X}
 \]
-}
-%===============================================================================
-\frame{
-  \frametitle{Locked type-variable lookup}
-
-\[
-\fbox{$\Psi\ni_{\mathrm{lk}}X$}
-\]
-
-\[
-\inference{\Psi\ni_{\!e}X,\psi\qquad\Locked{\psi}}
-          {\Psi\ni_{\mathrm{lk}}X}
-\]
-
-\[
-\inference{\Nameable{\psi}}
-          {\Locked{\maskentry{\psi}}}
-\]
+\hfill \fbox{$\Psi\ni_{\mathrm{lock}}X$}
+\begin{gather*}
+\inference{\Psi\ni X \mapsto \maskentry{\beta}}
+          {\Psi\ni_{\mathrm{lock}}X}
+\end{gather*}
 }
 %===============================================================================
 \frame{
@@ -187,16 +275,16 @@
 \[
 \begin{aligned}
 \mask{X}{\emptyset} &= \emptyset \\
-\mask{X}{\Psi,\psi} &= \Psi,\maskentry{\psi}
-&&\text{if }\entryname{\psi}=X \\
-\mask{X}{\Psi,\psi} &= \mask{X}{\Psi},\psi
-&&\text{if }X\neq\entryname{\psi}
-\\[1.5ex]
+\mask{X}{\Psi,\beta} &=
+\begin{cases}
+\Psi,\maskentry{\beta} &\text{if }\entryname{\beta}=X \\
+\mask{X}{\Psi},\beta &\text{otherwise}
+\end{cases} \\
+\mask{X}{\Psi,\maskentry{\beta}} &= \mask{X}{\Psi},\maskentry{\beta} 
+\\[2ex]
 \unmask{X}{\emptyset} &= \emptyset \\
-\unmask{X}{\Psi,\maskentry{\psi}} &= \Psi,\psi
-&&\text{if }\entryname{\psi}=X \\
-\unmask{X}{\Psi,\psi} &= \Psi,\psi
-&&\text{if }\entryname{\psi}=X\text{ and }\Nameable{\psi} \\
+\unmask{X}{\Psi,\maskentry{\beta}} &= \Psi,\beta
+&&\text{if }\entryname{\beta}=X \\
 \unmask{X}{\Psi,\psi} &= \unmask{X}{\Psi},\psi
 &&\text{if }X\neq\entryname{\psi}
 \end{aligned}
@@ -214,7 +302,7 @@
 }
 %===============================================================================
 \frame{
-  \frametitle{Context morphisms acting on type contexts}
+  \frametitle{Context adjustments acting on type contexts}
 
 {\scriptsize
 \begin{columns}[T]
@@ -313,7 +401,7 @@
 }
 %===============================================================================
 \frame{
-  \frametitle{Well-formed types and context morphisms}
+  \frametitle{Well-formed types and context adjustments}
 
 \begin{columns}[T]
 \begin{column}{0.45\textwidth}
@@ -358,7 +446,7 @@
 \inference{\delta(\Psi)\ni X\qquad\Psi\vdash^{\mathrm s}\delta}
           {\Psi\vdash^{\mathrm s}\lockX{X},\delta}
 \\[2ex]
-\inference{\delta(\Psi)\ni_{\mathrm{lk}} X\qquad\Psi\vdash^{\mathrm s}\delta}
+\inference{\delta(\Psi)\ni_{\mathrm{lock}} X\qquad\Psi\vdash^{\mathrm s}\delta}
           {\Psi\vdash^{\mathrm s}\unlockX{X},\delta}
 \end{gather*}
 }

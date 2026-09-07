@@ -166,6 +166,7 @@ prints as `⌷[…]`.
 | `ParameterizedCastCalculi.md` | digest of Siek & Chen, *Parameterized Cast Calculi and Reusable Meta-theory for Gradually Typed Lambda Calculi* (JFP 31(e30), 2021) — the source of the active/inert methodology |
 | `Zdancewic-embeddings.md` | digest of Zdancewic, Grossman & Morrisett, *Principals in Programming Languages* (ICFP'99) |
 | `SyntacticTypeAbstraction.md` | digest of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) |
+| `TypeAbstractionComparison.md` | the FINAL design set against the polymorphism of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) — centred on **tightness**: they have no out-of-scope type variable, and §8 shows why — their type variables are global allocated names in a monotone knowledge base, not lexically scoped binders (the `D33` fork we did not take), so tightness is vacuous there whatever the evaluation order |
 | `old/notes-v1.md` | the **refuted** v1 design note |
 | `old/PLAN-v1.md` | the v1 plan, retired with the invariant hunt |
 

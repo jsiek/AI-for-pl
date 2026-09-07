@@ -17,7 +17,7 @@
 \definecolor{darkgray}{gray}{0.6}
 \definecolor{brightyellow}{rgb}{1,0.94,0}
 \newcommand{\gray}[1]{{\color{darkgray} #1}}
-\newcommand{\hilight}[1]{\colorbox{brightyellow}{\color{black}\ensuremath{#1}}}
+\newcommand{\HI}[1]{\colorbox{brightyellow}{\color{black}\ensuremath{#1}}}
 \newcommand{\kw}[1]{\mathtt{#1}}
 \newcommand{\dotspace}{.\,}
 \newcommand{\lam}[1]{\lambda #1 \dotspace}
@@ -33,22 +33,28 @@
 \newcommand{\unseal}[1]{+#1}
 \newcommand{\unsealat}[2]{\mathsf{reveal}(#1, #2)}
 \newcommand{\unsealatc}[2]{\mathsf{reveal}(#1,#2)}
+\newcommand{\idconv}[1]{\kw{id}\,#1}
 \newcommand{\bind}[2]{#1{:=}#2}
+\newcommand{\maskentry}[1]{\mathsf{mask}(#1)}
+\newcommand{\morph}[2]{\left\langle #1\mathbin{;}#2\right\rangle}
 \newcommand{\lockX}[1]{-#1}
 \newcommand{\unlockX}[1]{+#1}
 \newcommand{\dual}[1]{#1^{\mathrm{op}}}
-\newcommand{\owners}[1]{\mathsf{binds}(#1)}
+\newcommand{\changes}[1]{\mathsf{changes}(#1)}
 \newcommand{\unlocked}[1]{#1^{+}}
 \newcommand{\scopemove}{\mathbin{\triangleleft}}
 \newcommand{\mask}[2]{\mathsf{mask}_{#1}(#2)}
 \newcommand{\unmask}[2]{\mathsf{unmask}_{#1}(#2)}
 \newcommand{\pushbinds}[2]{\mathsf{pushBinds}(#1,#2)}
 \newcommand{\hide}[1]{\mathsf{hide}(#1)}
-\newcommand{\dualscope}[1]{\mathsf{dualScope}(#1)}
-\newcommand{\scopepart}[1]{\mathsf{scopeOf}(#1)}
+\newcommand{\dualscope}[1]{\mathsf{dual}(#1)}
 \newcommand{\rewind}[1]{\mathsf{rewind}(#1)}
+\newcommand{\append}{\mathbin{+\!+}}
 \newcommand{\idc}[1]{\mathsf{Id}(#1)}
 \newcommand{\Value}[1]{\mathsf{Value}(#1)}
+\newcommand{\entryname}[1]{\mathsf{name}(#1)}
+\newcommand{\Nameable}[1]{\mathsf{Nameable}(#1)}
+\newcommand{\Locked}[1]{\mathsf{Locked}(#1)}
 \newcommand{\fce}[2]{\mathsf{convCtx}(#1,#2)}
 \newcommand{\intc}[2]{#1(#2)}
 
@@ -84,77 +90,163 @@
 \begin{array}{lcl}
  A,B,C,D &::=& \iota \mid A \to B \mid X \mid \forall X.A \\
  L,M,N&::=& k \mid x \mid \lam{x\of A}N \mid \app{L}{M} \\
-      && \mid \Lambda X. N \mid \tyapp{L}{A} \mid \hilight{\boundary{M}{\Delta}{c}} \\
- c,d &::=& \kw{id}\,A \mid \seal{X} \mid \unseal{X}
-          \mid c \func d \mid \forall X.\,c \\
- \Psi &::=& \emptyset \mid \Psi,X \\
- \hilight{\Delta} &::=& \hilight{\emptyset \mid \bind{X}{A},\Delta
-          \mid \lockX{X},\Delta \mid \unlockX{X},\Delta}
+      && \mid \Lambda X. N \mid \tyapp{L}{A} \mid \HI{\boundary{M}{\Delta}{c}} \\
+ \HI{c,d} &::=& \HI{\idconv{A} \mid \seal{X} \mid \unseal{X}
+          \mid c \func d \mid \forall X.\,c} \\
+ \HI{\delta} &::=& \HI{\emptyset \mid \lockX{X},\delta \mid \unlockX{X},\delta} \\
+ \HI{\Theta} &::=& \HI{\emptyset \mid \bind{X}{A},\Theta} \\
+ \HI{\Delta} &::=& \HI{\morph{\Theta}{\delta}}
 \end{array}
 \]
 \endgroup
 }
 %===============================================================================
 \frame{
-  \frametitle{Type-variable lookup}
+  \frametitle{Contexts and type-variable lookup}
+
+
+\[
+\begin{array}{lcl}
+ \psi &::=& X \mid \bind{X}{A} \mid \maskentry{\psi} \\
+ \Psi &::=& \emptyset \mid \Psi,\psi
+\end{array}
+\]
+
+\[
+\entryname{X}=X
+\qquad
+\entryname{\bind{X}{A}}=X
+\qquad
+\entryname{\maskentry{\psi}}=\entryname{\psi}
+\]
+
+\begin{center}
+\fbox{$\Psi\ni_{\!e}X,\psi$}
+\end{center}
+
+\vspace{-8pt}
+
+{\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\[
+\begin{gathered}
+\inference{}{\Psi,\psi\ni_{\!e}X,\psi} \\
+\text{if }\entryname{\psi}=X
+\end{gathered}
+\]
+\end{column}
+\begin{column}{0.48\textwidth}
+\[
+\begin{gathered}
+\inference{\Psi\ni_{\!e}X,\psi}{\Psi,\psi'\ni_{\!e}X,\psi} \\
+\text{if }X\neq\entryname{\psi'}
+\end{gathered}
+\]
+\end{column}
+\end{columns}
+}
+
+\vspace{-2pt}
 
 \hfill\fbox{$\Psi\ni X$}
 
-\vspace{16pt}
-
 \[
-\inference{}
-          {\Psi,X\ni X}
+\inference{\Psi\ni_{\!e}X,\psi\qquad\Nameable{\psi}}
+          {\Psi\ni X}
 \qquad
-\inference{\Psi\ni X\qquad X\neq Y}
-          {\Psi,Y\ni X}
+\begin{array}{c}
+\Nameable{X} \\
+\Nameable{\bind{X}{A}}
+\end{array}
 \]
-
-\vspace{28pt}
-
-\begin{center}
-The only visible type variables are those introduced by the type context.
-\end{center}
 }
 %===============================================================================
 \frame{
-  \frametitle{Frames acting on type contexts}
+  \frametitle{Locked type-variable lookup}
+
+\[
+\fbox{$\Psi\ni_{\mathrm{lk}}X$}
+\]
+
+\[
+\inference{\Psi\ni_{\!e}X,\psi\qquad\Locked{\psi}}
+          {\Psi\ni_{\mathrm{lk}}X}
+\]
+
+\[
+\inference{\Nameable{\psi}}
+          {\Locked{\maskentry{\psi}}}
+\]
+}
+%===============================================================================
+\frame{
+  \frametitle{Operations on type contexts}
+
+{\fontsize{8}{9}\selectfont
+\[
+\begin{aligned}
+\mask{X}{\emptyset} &= \emptyset \\
+\mask{X}{\Psi,\psi} &= \Psi,\maskentry{\psi}
+&&\text{if }\entryname{\psi}=X \\
+\mask{X}{\Psi,\psi} &= \mask{X}{\Psi},\psi
+&&\text{if }X\neq\entryname{\psi}
+\\[1.5ex]
+\unmask{X}{\emptyset} &= \emptyset \\
+\unmask{X}{\Psi,\maskentry{\psi}} &= \Psi,\psi
+&&\text{if }\entryname{\psi}=X \\
+\unmask{X}{\Psi,\psi} &= \Psi,\psi
+&&\text{if }\entryname{\psi}=X\text{ and }\Nameable{\psi} \\
+\unmask{X}{\Psi,\psi} &= \unmask{X}{\Psi},\psi
+&&\text{if }X\neq\entryname{\psi}
+\end{aligned}
+\]
+\vspace{-4pt}
+\[
+\begin{aligned}
+\pushbinds{\emptyset}{\Psi}
+  &= \Psi \\
+\pushbinds{\bind{X}{A},\Theta}{\Psi}
+  &= \pushbinds{\Theta}{\Psi},\bind{X}{A}
+\end{aligned}
+\]
+}
+}
+%===============================================================================
+\frame{
+  \frametitle{Context morphisms acting on type contexts}
 
 {\scriptsize
 \begin{columns}[T]
 \begin{column}{0.5\textwidth}
-\[
+  \hfill\fbox{$\delta(\Psi) = \Psi'$}
+  \[
 \begin{aligned}
 \emptyset(\Psi) &= \Psi \\
-(\bind{X}{A},\Delta)(\Psi) &= \Delta(\Psi) \\
-(\lockX{X},\Delta)(\Psi) &= \mask{X}{\Delta(\Psi)} \\
-(\unlockX{X},\Delta)(\Psi) &= \unmask{X}{\Delta(\Psi)}
+(\lockX{X},\delta)(\Psi) &= \mask{X}{\delta(\Psi)} \\
+(\unlockX{X},\delta)(\Psi) &= \unmask{X}{\delta(\Psi)}
 \end{aligned}
 \]
 \end{column}
 \begin{column}{0.5\textwidth}
+  \hfill\fbox{$\delta^{+}(\Psi) = \Psi'$}
 \[
 \begin{aligned}
 \emptyset^{+}(\Psi) &= \Psi \\
-(\bind{X}{A},\Delta)^{+}(\Psi) &= \Delta^{+}(\Psi) \\
-(\lockX{X},\Delta)^{+}(\Psi) &= \Delta^{+}(\Psi) \\
-(\unlockX{X},\Delta)^{+}(\Psi) &= \unmask{X}{\Delta^{+}(\Psi)}
+(\lockX{X},\delta)^{+}(\Psi) &= \delta^{+}(\Psi) \\
+(\unlockX{X},\delta)^{+}(\Psi) &= \unmask{X}{\delta^{+}(\Psi)}
 \end{aligned}
 \]
 \end{column}
 \end{columns}
-
+\vspace{10pt}
+ \hfill\fbox{$\Delta(\Psi) = \Psi'$}
 \[
 \begin{aligned}
-\owners{\emptyset} &= \emptyset
-& \owners{\bind{X}{A},\Delta} &= A,\owners{\Delta} \\
-\owners{\pm X,\Delta} &= \owners{\Delta}
-\end{aligned}
-\]
-\[
-\begin{aligned}
-\intc{\Delta}{\Psi} &= \pushbinds{\owners{\Delta}}{\Delta(\Psi)} \\
-\fce{\Delta}{\Psi} &= \pushbinds{\owners{\Delta}}{\unlocked{\Delta}(\Psi)}
+\intc{\morph{\Theta}{\delta}}{\Psi}
+  &= \pushbinds{\Theta}{\delta(\Psi)} \\
+\fce{\morph{\Theta}{\delta}}{\Psi}
+  &= \pushbinds{\Theta}{\delta^{+}(\Psi)}
 \end{aligned}
 \]
 }
@@ -169,25 +261,22 @@ The only visible type variables are those introduced by the type context.
 \[
 \begin{aligned}
 \hide{\emptyset} &= \emptyset \\
-\hide{\bind{X}{A},\Delta} &= \lockX{X},\hide{\Delta} \\
-\hide{\pm X,\Delta} &= \hide{\Delta} \\
+\hide{\bind{X}{A},\Theta} &= \lockX{X},\hide{\Theta} \\
 \dualscope{\emptyset} &= \emptyset \\
-\dualscope{\bind{X}{A},\Delta} &= \dualscope{\Delta} \\
-\dualscope{\unlockX{X},\Delta} &= \dualscope{\Delta},\lockX{X} \\
-\dualscope{\lockX{X},\Delta} &= \dualscope{\Delta},\unlockX{X} \\
-\dual{\Delta} &= \hide{\Delta},\dualscope{\Delta}
+\dualscope{\unlockX{X},\delta} &= \dualscope{\delta},\lockX{X} \\
+\dualscope{\lockX{X},\delta} &= \dualscope{\delta},\unlockX{X} \\
+\dual{\morph{\Theta}{\delta}}
+  &= \morph{\emptyset}{\hide{\Theta}\append\dualscope{\delta}}
 \end{aligned}
 \]
 \end{column}
 \begin{column}{0.45\textwidth}
 \[
 \begin{aligned}
-\scopepart{\emptyset} &= \emptyset \\
-\scopepart{\bind{X}{A},\Delta} &= \scopepart{\Delta} \\
-\scopepart{\pm X,\Delta} &= \pm X,\scopepart{\Delta} \\
-\rewind{\Delta} &= \dualscope{\Delta},\Delta \\
-\Delta_1\scopemove\Delta_2
-  &= \Delta_1,\scopepart{\Delta_2}
+\rewind{\morph{\Theta}{\delta}}
+  &= \morph{\Theta}{\dualscope{\delta}\append\delta} \\
+\morph{\Theta_1}{\delta_1}\scopemove\morph{\Theta_2}{\delta_2}
+  &= \morph{\Theta_1}{\delta_1\append\delta_2}
 \end{aligned}
 \]
 \end{column}
@@ -202,10 +291,10 @@ The only visible type variables are those introduced by the type context.
 
 \begin{gather*}
 \inference{}
-          {\Psi\vdash\kw{id}\,\iota:\iota\Rightarrow\iota}
+          {\Psi\vdash\idconv{\iota}:\iota\Rightarrow\iota}
 \quad
 \inference{\Psi\ni X}
-          {\Psi\vdash\kw{id}\,X:X\Rightarrow X}
+          {\Psi\vdash\idconv{X}:X\Rightarrow X}
 \\[2ex]
 \inference{\Psi\ni X:=A}
           {\Psi\vdash\unseal{X}:X\Rightarrow A}
@@ -247,20 +336,30 @@ The only visible type variables are those introduced by the type context.
 \end{column}
 \begin{column}{0.55\textwidth}
 \centering
-\fbox{$\Psi\vdash\Delta$}
+\fbox{$\Psi\vdash\morph{\Theta}{\delta}$}
 
 {\scriptsize
+\[
+\inference{\delta^{+}(\Psi)\vdash^{\mathrm r}\Theta
+           \qquad \Psi\vdash^{\mathrm s}\delta}
+          {\Psi\vdash\morph{\Theta}{\delta}}
+\]
+\fbox{$\Xi\vdash^{\mathrm r} \Theta$}
 \begin{gather*}
-\inference{}{\Psi\vdash\emptyset}
+\inference{}{\Xi\vdash^{\mathrm r}\emptyset}
+\quad
+\inference{\Xi\vdash A\qquad\Xi\vdash^{\mathrm r}\Theta}
+          {\Xi\vdash^{\mathrm r}\bind{X}{A},\Theta}
+\end{gather*}
+\fbox{$\Psi\vdash^{\mathrm s} \delta$}
+\begin{gather*}
+\inference{}{\Psi\vdash^{\mathrm s}\emptyset}
+\quad
+\inference{\delta(\Psi)\ni X\qquad\Psi\vdash^{\mathrm s}\delta}
+          {\Psi\vdash^{\mathrm s}\lockX{X},\delta}
 \\[2ex]
-\inference{\unlocked{\Delta}(\Psi)\vdash A\qquad\Psi\vdash\Delta}
-          {\Psi\vdash\bind{X}{A},\Delta}
-\\[2ex]
-\inference{\intc{\Delta}{\Psi}\ni X\qquad\Psi\vdash\Delta}
-          {\Psi\vdash\lockX{X},\Delta}
-\\[2ex]
-\inference{\intc{\Delta}{\Psi}\ni\lockX{X}\qquad\Psi\vdash\Delta}
-          {\Psi\vdash\unlockX{X},\Delta}
+\inference{\delta(\Psi)\ni_{\mathrm{lk}} X\qquad\Psi\vdash^{\mathrm s}\delta}
+          {\Psi\vdash^{\mathrm s}\unlockX{X},\delta}
 \end{gather*}
 }
 \end{column}
@@ -300,14 +399,14 @@ The only visible type variables are those introduced by the type context.
   \begin{gathered}
   \Psi \vdash \Delta
   \qquad
-  \intc{\Delta}{\Psi}\mid\emptyset\vdash M:B_i
+  \intc{\Delta}{\Psi}\mid\emptyset\vdash M:A
   \\[1ex]
-  \fce{\Delta}{\Psi}\vdash c:B_i\Rightarrow B_e
+  \fce{\Delta}{\Psi}\vdash c:A\Rightarrow B
   \qquad
-  \Psi\vdash B_e
+  \Psi\vdash B
   \end{gathered}
 }{
-  \Psi\mid\Gamma\vdash\boundary{M}{\Delta}{c}:B_e
+  \Psi\mid\Gamma\vdash\boundary{M}{\Delta}{c}:B
 }
 \]
 
@@ -321,9 +420,9 @@ The only visible type variables are those introduced by the type context.
 \begin{array}{llcl}
 \text{values} & V,W &::=& k \mid \lam{x\of A}N \mid \Lambda X.\,V
        \mid \boundary{V}{\Delta}{c^i} \\[1ex]
-\text{inert}& c^i &::=& \kw{id}\,X \mid \seal{X}
+\text{inert}& c^i &::=& \idconv{X} \mid \seal{X}
               \mid c\func d \mid \forall X.\,c \\[1ex]
-\text{active}& c^a &::=& \kw{id}\,\iota \mid \unseal{X}
+\text{active}& c^a &::=& \idconv{\iota} \mid \unseal{X}
 \end{array}
 \]
 
@@ -350,10 +449,11 @@ and its conversion face has inert form $c^i$.
                     {\Delta}{d}
 \\[2ex]
 \Psi \vdash \tyapp{(\Lam{X}V_B)}{A}
-  &\reduce \boundary{V}{\bind{X}{A}}{\unsealat{X}{B}}
+  &\reduce \boundary{V}{\morph{\bind{X}{A}}{\emptyset}}{\unsealat{X}{B}}
 \\[2ex]
-\Psi \vdash \tyapp{\boundary{V}{\Delta}{\forall X.\,c}}{A}
-&\reduce \boundary{\tyapp{V}{X}}{\bind{X}{A},\Delta}{\unsealatc{X}{c}}
+\Psi \vdash \tyapp{\boundary{V}{\morph{\Theta}{\delta}}{\forall X.\,c}}{A}
+&\reduce \boundary{\tyapp{V}{X}}{\morph{\bind{X}{A},\Theta}{\delta}}
+                  {\unsealatc{X}{c}}
 \end{align*}
 
 }
@@ -364,7 +464,7 @@ and its conversion face has inert form $c^i$.
 \hfill\fbox{$\Psi \vdash M \reduce N$}
 
 \begin{align*}
-\Psi \vdash \boundary{k}{\Delta}{\kw{id}\,\iota}
+\Psi \vdash \boundary{k}{\Delta}{\idconv{\iota}}
   &\reduce k
 \\[2ex]
 \Psi \vdash
@@ -372,16 +472,16 @@ and its conversion face has inert form $c^i$.
           {\Delta_2}{\unseal{X}}
 &\reduce
 \boundary{\boundary{V}{\Delta_1\scopemove\Delta_2}{\idc{A}}}
-          {\unlocked{\Delta_2}}{\idc{A}}
-&&\text{if }\fce{\Delta_2}{\Psi}\ni X:=A
+          {\rewind{\Delta_2}}{\idc{A}}
+&& \text{if } \Psi \ni X:=A
 \\[2ex]
 \Psi \vdash
-\boundary{\boundary{V}{\Delta_1}{\kw{id}\,X}}
+\boundary{\boundary{V}{\Delta_1}{\idconv{X}}}
           {\Delta_2}{\unseal{X}}
 &\reduce
 \boundary{\boundary{V}{\Delta_1\scopemove\Delta_2}{\unseal{X}}}
-          {\unlocked{\Delta_2}}{\idc{A}}
-&&\text{if }\fce{\Delta_2}{\Psi}\ni X:=A
+          {\rewind{\Delta_2}}{\idc{A}}
+&&\text{if }\Psi\ni X:=A
 \end{align*}
 
 {\footnotesize

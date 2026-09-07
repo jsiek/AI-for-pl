@@ -32,6 +32,16 @@ the old rules", and no rule anywhere has a premise of the form
 variable an agent cannot *refine* — never by **unnameability**.  Ours is
 both, and the second is what "tight" means.
 
+The structural reason is the one §8 ends on.  STA's type variables are
+**global allocated names** in a monotone knowledge base `{Δ}` —
+freshness is meta-level α-conversion, and `{Δ}` is only ever extended
+(Def. 5.4, p.1073) — so there is no *position* at which a name stops
+being nameable and "out of scope" has nothing to mean.  Ours are
+lexically scoped binders in a type context.  That is the `D33` fork
+(`notes/DesignSpace.md`, edge `D33→D34`), and it is what makes
+tightness vacuous for them; it is **not** bought by their evaluation
+order.
+
 
 ## 0. The two vocabularies, side by side
 
@@ -319,9 +329,16 @@ difference and it explains all the others.
 So: **STA's `⟨{Δ}, e⟩` configuration is a store, and our type context is
 a lexical scope.**  `notes/DesignSpace.md` records that the global-store
 realization was considered and *not* taken (edge `D33→D34`: "a global
-Σ-store, **NOT taken** — lexical scope is needed for lock blocking").
-This note supplies the missing citation for that edge: STA is the design
-that took it, and §5.2 is what it looks like.
+Σ-store, **NOT taken** — lexical scope is needed for lock blocking"),
+and `notes/DesignPoints.md` `D33` has Jeremy's ruling in full: "once
+type variables are in a global store, it becomes more difficult to talk
+about their lexical scope relationships, which we are currently using in
+conceal blocking" (see also `Design.md` §9 and `notes/RedesignAdvice.md`
+Q1, which sets out realizations (i) store-passing and (ii)
+owner-syntactic).  This note supplies the missing citation for that
+edge: STA is the design that took (i), and §5.2 is what it looks like.
+§8 draws the consequence — the fork, not the evaluation order, is why
+tightness has nothing to say there.
 
 **The type argument.**  Jeremy's lesson from the pre-boundary
 counterexample is *never push a type argument into a concealed body*
@@ -383,10 +400,16 @@ nothing about scope is tracked.  §8 runs the program.
 **A note on where STA *does* impose a scope-like condition.**  For
 recursive types (§5.1) the paper writes: "To avoid problems with
 capture, we prohibit free occurrences of `α` in the range of `δᵢ`"
-(p.1069) — a restriction on what the knowledge base may *name*.  No
-such restriction is imposed on `∀`-bound variables in §5.2; there the
-freshness discipline is global α-conversion.  This asymmetry is the
-hinge of §8.
+(p.1069) — a restriction on what the knowledge base may *name*.  It is
+not an oversight that §5.2 imposes no such restriction on `∀`-bound
+variables.  §5.1's `μ`-bound variables are a **separate syntactic
+class**: "because the `μ`-bound type variables are syntactically
+distinct from the abstraction type variables, it makes no sense for `α`
+to be in the domain of `δᵢ`" (p.1069).  §5.2 by contrast has "only one
+form of type variable" (p.1071), and its `∀`-bound variables are
+exactly the ones the registry exists to define — so there the freshness
+discipline is global α-conversion **by design**, and the two sections
+are consistent.  That design choice is what §8 turns on.
 
 
 ## 5. (4) Merge `[8]`, the three-agent counterexample, and towers
@@ -472,17 +495,34 @@ for us at all.  §9 runs their counterexample on these rules.
 
 ## 6. (5) The `Value` judgement
 
-STA's is **dynamic**, and the paper flags it (p.1073–1074):
+STA's is **dynamic**, and the paper flags it (the sentence starts at the
+foot of p.1073; the definition is on **p.1074**):
 
 > Because the `{Δ}` context changes during evaluation, and the
-> definition of when `⌈v̂ⱼ⌉^t_ℓ` is an `i`-value depends on whether
-> `Δᵢ(t) = t`, the notion of value is also dynamic.  We write
+> definition of when `⌈v̂ⱼ⌉^t_{jℓ}` is an `i`-value depends on whether
+> `Δ̄ᵢ(t) = t`, the notion of value is also dynamic.  We write
 > `{Δ} ⊢ eᵢ : Value` when either `eᵢ` is an `i`-primval or
 > `eᵢ = ⌈v̂ⱼ⌉^t_ℓ` and `t ∉ Dom{Δ}`.
 
-So value-hood is a *knowledge-relative* predicate, and Progress
-(Lemma 5.6, p.1074) is stated against it.  Ours is syntactic
-(`Terms.agda`):
+**The condition must be read per observing agent**, i.e. the rule is
+
+    {Δ} ⊢ eᵢ : Value   iff   eᵢ is an i-primval, or
+                             eᵢ = ⌈v̂ⱼ⌉^t_ℓ  and  t ∉ Dom(δᵢ)
+
+equivalently `Δ̄ᵢ(t) = t` — which is what the same sentence's prose says
+and what Fig. 9's `i`-value grammar says (`t ∉ Dom(δᵢ)`, p.1046, §1).
+`Dom{Δ}` as printed is the **union** `⋃ᵢ Dom(δᵢ)` (§4), and the union
+form cannot be meant, because it makes Lemma 5.6 (Progress) false: once
+`[∀1]` has fired for agent `1`, `α ∈ Dom{Δ}` while `α ∉ Dom(δ₂)`, so a
+`2`-term `⌈v̂ⱼ⌉^α_ℓ` would be neither a value nor a redex — `[6]` wants
+a base type, `[7]` wants `α ≠ Δ̄₂(α)`, `[8]` wants a nested embedding,
+`[9]` wants an arrow, and none applies.  The union would strand agent
+`2`'s value on knowledge only agent `1` has.  (The quote is faithful to
+the page; the per-agent reading is mine — §12.)
+
+So value-hood is a *knowledge-relative* predicate — relative to the
+observer's `δᵢ` inside the ambient `{Δ}` — and Progress (Lemma 5.6,
+p.1074) is stated against it.  Ours is syntactic (`Terms.agda`):
 
     V-$  : Value ($ n)
     V-ƛ  : Value (ƛ A ∙ N)
@@ -497,7 +537,8 @@ type is inspected and no slot arithmetic occurs" (`Design.md` §5).  The
 split is Siek and Chen's (`notes/ParameterizedCastCalculi.md`), and its
 whole point is to buy back exactly the staticness STA gives up:
 `Inert (seal X)` is a claim the value keeps carrying, whereas STA has to
-consult `{Δ}` to decide whether the same embedding is a value.
+consult the observer's `δᵢ` in the ambient `{Δ}` to decide whether the
+same embedding is a value.
 
 Two knock-on differences.
 
@@ -652,24 +693,62 @@ nothing goes wrong for two independent reasons.**
    counterpart because STA has nothing to drop.
 2. Evaluation is **weak**, so the rule that killed the pre-boundary
    design — the one that eliminates a *concealed polymorphic value* —
-   is unreachable.
+   is unreachable.  That is a statement about *reachability* only; it
+   is (1), and the fork below, that make the drift harmless.
 
 **A hypothetical, flagged as mine.**  Suppose one made STA strong, i.e.
 allowed reduction under `Λ`, and ran `S₄` further.  The inner
-`⌈W⌉^{ID}_1` is an embedding at a `∀` type, so `[∀2]` fires again and
-eventually `[∀1]` fires at `(…)[Y]`, giving `{Δ} ⊎ᵢ {Z = Y}`.  The
-registry then records `δᵢ(Z) = Y` where `Y` is bound by an enclosing
-`Λ` — and `{Δ}` is global, not under that binder.  Def. 5.4 says `{Δ}`
-only grows, so `Z = Y` outlives `Y`'s binder.  For `μ`-bound variables
-the paper does forbid this ("we prohibit free occurrences of `α` in the
-range of `δᵢ`", p.1069); for `∀`-bound variables §5.2 imposes no such
-condition, relying on global α-conversion instead.  **The paper is
-silent here, and rightly so: the configuration is unreachable under its
-own weak semantics.**  I could not confirm from the text that the
-authors considered it.  What it shows is that STA's freedom from
-tightness is *bought* by weak reduction, not by a better invariant —
-which is precisely why the property Jeremy calls tightness is a
-`Strong` System F concern and not a Grossman–Morrisett–Zdancewic one.
+`⌈W⌉^{ID}_1` is an embedding at a `∀` type, so `[∀2]` fires again —
+twice, once per layer — and then `[∀1]` fires at `(ΛZ. …)[Y]`, a
+`3`-coloured type application, giving `{Δ} ⊎₃ {Z = Y}`, i.e.
+`δ₃(Z) = Y`, while the enclosing `ΛY` is still there.
+
+**And nothing dangles.**  `Y` is not a name that can go out of scope in
+STA.  It is a **globally allocated name**, and the knowledge base is
+**monotone**: Def. 5.4 (p.1073) makes `{Δ} ≤ {Δ′}` a single extension
+`{Δ} ⊎ᵢ {α = τ}`, and Lemma 5.5 (Preservation, p.1073) carries the
+extra conclusion "`{Δ′}` is compatible and **refines** `{Δ}`".  If a
+later step eliminates the enclosing `ΛY`, it does so by `[∀1]` at some
+`(ΛY. …)[T]` of some colour `k`, and *that step records* `Y = T` in the
+same registry **before** the binder is gone.  Either way `Y` remains a
+legal type — STA has no type well-formedness judgement that could
+refuse it (§2) — and it remains a legal *view*: `Δ̄₃(Z) = Y` if
+`k ≠ 3`, and `Δ̄₃(Z) = T` if `k = 3`, compatibility's total order being
+`FTV(T) ≺ Y ≺ Z` in the second case.  The registry resolves `Z`
+through `Y` exactly as it was built to.  (An earlier draft of this note
+claimed `δ₃(Z) = Y` would be left dangling; that was wrong, and the
+trace above does not show it.  `[∀1]` records before it removes.)
+
+**What the trace does show is the fork.**  STA's freshness is entirely
+meta-level — "we can always satisfy this condition by suitable alpha
+conversion" (p.1072), "always possible via alpha-conversion of `∀α.τ`"
+(p.1071) — and the paper names the discipline itself: the semantics is
+"similar to the allocation-based, explicit type-passing semantics for
+polymorphism found in the dissertation of Morrisett [1995]" (p.1071),
+its preservation is proved "as usual for an allocation-style semantics"
+(p.1073), and the conclusions liken the arrangement to "the restriction
+operator, `ν`, of the pi calculus to generate a 'fresh' type variable at
+runtime" (p.1078).  Under allocation there is no *position* at which a
+name stops being nameable, so "out of scope" cannot arise and
+tightness is **vacuous — independently of whether evaluation is weak or
+strong** (§11).  Making STA strong would not create a scope problem; it
+would only make more of the same registry reachable.
+
+The real contrast with Strong System F is therefore **lexical scope
+versus a global registry**.  Our binders live *in contexts*; `lock X`
+masks a slot **in place** (`D34`); a boundary's two contexts are
+*computed at its current position*, `interior Θ Δ` and `convCtx Θ Δ`;
+and those frames are preserved by reduction under `Λ`, because `ξ-Λ`
+pushes `abst` onto `Δ` and every rule re-derives the frame at the new
+position.  That is precisely the `D33` fork, and we took the other
+branch on purpose: "realization (i), a global `Σ`-store, **NOT taken** —
+lexical scope is needed for lock blocking"
+(`notes/DesignSpace.md`, edge `D33→D34`; `Design.md` §9;
+`notes/RedesignAdvice.md` Q1, realizations (i) and (ii)).  **STA is the
+design that took (i).**  So STA's theorems being *silent* on tightness
+(§11) follows from the fork, not from weak evaluation; and `E₃ → E₄`
+being a step STA cannot take is a separate fact, about which
+configurations its evaluation order makes reachable.
 
 
 ## 9. Program (b): STA's three-agent counterexample, run in ours
@@ -771,7 +850,7 @@ knowledge base cannot have the wall, and cannot have tightness either.**
 | nested boundaries | merged by `[8]`; ordered list `ℓ` is the residue | towers; eliminated at the use (law 6) |
 | why order matters | three-agent counterexample, p.1048 | `¬frame-locksOnly`, `proof/MoveScope` §4b |
 | cancel | `[8]` + `[6]` (multiagent), `[H4]` (two-agent) | `CancelR` — both frames kept, both conversions neutralised |
-| `Value` | dynamic: depends on `{Δ}` (p.1074) | syntactic; `Inert`/`Active` by conversion constructor |
+| `Value` | dynamic: depends on the observer's `δᵢ` in the ambient `{Δ}` (p.1074) | syntactic; `Inert`/`Active` by conversion constructor |
 | reduction under `Λ` | no — `Λα. eᵢ` is an `i`-primval | yes — `ξ-Λ`, and `V-Λ` carries `Value N` |
 | determinism | a convenience (p.1042) | design law 5, theorem `det` |
 | principals | `n` agents, compatible knowledge (Def. 3.1) | two sides per boundary |
@@ -796,10 +875,13 @@ subterm name a type variable it could not name in the redex.*  In STA
 that predicate is **vacuously true and vacuously empty**, because
 "could name" is total: every type variable is a legal type for every
 agent everywhere, there is no type well-formedness judgement, and `Θ`
-is consulted by no rule.  There is no ill-typed-for-a-scope-reason redex
+is consulted by no rule — type variables are **allocated names**, not
+scoped binders (§8).  There is no ill-typed-for-a-scope-reason redex
 to build, so the test cannot even be run.  The paper's theorems
 therefore neither imply nor contradict tightness; they are **silent**,
-and silent for a structural reason rather than an oversight.
+and silent for a structural reason rather than an oversight — the
+reason being the `D33` fork of §8, allocated names versus lexical
+binders, and not the paper's evaluation order.
 
 The non-vacuous shadow of tightness in STA is its **abstraction**
 theorems, and they are a different kind of statement:
@@ -822,14 +904,23 @@ which our design law 1 forbids.  And their `[9]`'s `rev(ℓ)` argument
 
 So the honest summary is: **STA and Strong System F agree on the
 list-order fact and on the "interior keeps the abstract name" fact, and
-diverge on scope entirely.**  STA does not need tightness because it
-never reduces under a `Λ`; the moment one asks for a *strong*
-polymorphic calculus, the drifted boundary of §8 becomes reachable, a
+diverge on scope entirely.**  STA does not need tightness because its
+type variables are **global allocated names in a monotone knowledge
+base** — freshness by meta-level α-conversion, `{Δ}` only ever extended
+(Def. 5.4, p.1073) — and *not* because it never reduces under a `Λ`: a
+name that is never scoped cannot leave a scope, whatever the evaluation
+order (§8).  That is the `D33` fork, and STA is the design that took
+the global-store branch we did not
+(`notes/DesignSpace.md`, edge `D33→D34`).
+
+Strong reduction is a **second, independent** difference, and it is the
+one that decides how much a boundary must carry *once lexical scope has
+been chosen*: it makes the drifted boundary of §8 reachable, so a
 boundary must carry a context, and every question this development spent
 a week on — mask vs. drop, push vs. bind, merge vs. tower, drop vs. move
 the locks — appears at once.  The through line of `DesignSpace.md`,
-*nothing may be dropped*, is the answer to a question STA's weak
-semantics never poses.
+*nothing may be dropped*, is the answer to a question that arises only
+on the lexical branch.
 
 
 ## 12. Flags — what I could not confirm
@@ -863,7 +954,27 @@ semantics never poses.
   about a 44-page paper.
 * §8's strong-reduction hypothetical is **my analysis, not the paper's**.
   STA never considers reduction under `Λ`, and nothing in it is wrong
-  because of this.
+  because of this.  Its verdict — that nothing dangles, because `{Δ}`
+  is monotone and `[∀1]` records `Y = T` *before* the binder is removed
+  — rests on Def. 5.4 and Lemma 5.5 (p.1073), which I read directly.
+  The paper never runs the configuration, so it neither confirms nor
+  denies the reading.  (Review round 1 withdrew an earlier draft's
+  opposite claim, that the registry entry would be left dangling and
+  that weak evaluation is therefore what buys STA its freedom from
+  tightness.  Both are retracted; §8 and §11 now say what the trace
+  actually shows.)
+* **The `Value` rule of §5.2 as printed reads `t ∉ Dom{Δ}`** — the
+  union.  The quote in §6 is faithful: I verified the glyphs, `Dom` in
+  CMTI10 then CMSY10 `{`, CMR10 `0x01` = `Δ`, CMSY10 `}`, the same byte
+  pattern as the `{Δ}` of `{Δ} ⊢ eᵢ : Value` two lines earlier.  The
+  **per-agent reading** `t ∉ Dom(δᵢ)` given in §6 is therefore *mine*;
+  the paper states no correction.  My grounds are the same sentence's
+  own prose (`Δ̄ᵢ(t) = t`), Fig. 9's `i`-value grammar (`t ∉ Dom(δᵢ)`,
+  p.1046) and the Progress counterexample in §6.  The other five
+  occurrences of `Dom{Δ}` in the paper — the definition
+  `Dom{Δ} = ⋃ᵢ Dom(δᵢ)` and the side conditions of `[∀intro]`,
+  `[∀elim]`, `[∀1]` and Def. 5.4 (all p.1071–1073) — are the union and
+  are transcribed as such.
 * The three-agent counterexample's term is given in the paper as
   `⌈⌈v̂ᵢ⌉^t_i⌉^s_j` with the value written `3ᵢ` in the following
   sentence's collapsed forms; I have used `3ᵢ` throughout for

@@ -32,6 +32,10 @@ open import strong.proof.PreserveObstruct
 open import strong.proof.DualTightness
 open import strong.proof.MwUObstruct
 
+-- NORMALISING THE CHANGE LISTS: the two redundancy tests that landed
+-- (strong.CtxMorph §4) and the contractions that are REFUSED
+open import strong.proof.RewindNorm
+
 -- the regression corpus and the renderer
 open import strong.Examples
 open import strong.Show

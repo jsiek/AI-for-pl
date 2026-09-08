@@ -79,6 +79,22 @@ updateAt-app-tail f []       X Δ = refl
 updateAt-app-tail f (E ∷ Ow) X Δ = cong (E ∷_) (updateAt-app-tail f Ow X Δ)
 
 ------------------------------------------------------------------------
+-- §1  `⊢ˢ-suffix` — the sequential judgement of a TAIL
+------------------------------------------------------------------------
+
+-- `applyChanges` applies its list HEAD-LAST, so in `S ++ T` it is T that
+-- runs FIRST: its own premises are already read over Δ and nothing has to
+-- be transported.  (There is no such lemma for the HEAD: S's premises are
+-- read over `applyChanges T Δ`, not Δ.  The append lemma `⊢ˢ-++` lives in
+-- strong.CtxMorph §2.)  This is what lets a frame whose change list IS a
+-- replay reuse the replayed half's judgement — `rewindChanges`'s `yes`
+-- branch, proof/MoveScope §3.
+⊢ˢ-suffix : (S T : List Change) {Δ : Ctxᵗ} → Δ ⊢ˢ (S ++ T) → Δ ⊢ˢ T
+⊢ˢ-suffix []             T b            = b
+⊢ˢ-suffix (lock X ∷ S)   T (sw-l tv b)  = ⊢ˢ-suffix S T b
+⊢ˢ-suffix (unlock X ∷ S) T (sw-u lk b)  = ⊢ˢ-suffix S T b
+
+------------------------------------------------------------------------
 -- §2  The dual's change list
 ------------------------------------------------------------------------
 

@@ -83,9 +83,7 @@ unmaskEnt-maskEnt-core : (E : Ent) → unmaskEnt (maskEnt E) ≡ unmaskEnt E
 unmaskEnt-maskEnt-core (unmasked b) = refl
 unmaskEnt-maskEnt-core (masked b)   = refl
 
-unmaskEnt-idem : (E : Ent) → unmaskEnt (unmaskEnt E) ≡ unmaskEnt E
-unmaskEnt-idem (unmasked b) = refl
-unmaskEnt-idem (masked b)   = refl
+-- (`unmaskEnt-idem` is strong.Ctx §6c, where the unmask ALGEBRA lives.)
 
 -- Two type contexts agree UP TO CONCEALMENT at every slot.
 CoreEq : Ctxᵗ → Ctxᵗ → Set

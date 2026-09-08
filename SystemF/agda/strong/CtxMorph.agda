@@ -38,8 +38,11 @@ module strong.CtxMorph where
 -- this module.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; _++_; map; length)
+open import Data.List using (List; []; _∷_; _++_; map; length; drop)
+open import Data.List.Properties using (≡-dec)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
+open import Relation.Nullary using (Dec; yes; no)
+open import Relation.Binary.Definitions using (DecidableEquality)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
@@ -408,18 +411,144 @@ applyChanges-shiftScope1 (lock X ∷ S)   E Δ =
 -- frame's own `⊢ᵐ`: Θ's bind reps are read on `unlockedScope Θ Δ` and a
 -- rep naming a slot Θ UNLOCKED is not well formed on the plain Δ.
 -- Keeping the entries and rewinding them keeps every rep exactly where it
--- was read.
+-- was read.  (`unlocksOf` alone — replaying only the unmasks the reps
+-- need — loses both halves: `applyChanges` is then NOT the identity, and
+-- the surviving unlock is VACUOUS wherever its own licensing lock was
+-- dropped.  Both refuted in proof/RewindNorm §3.)
+--
+-- REWINDING IS IDEMPOTENT, AND IT HAD BETTER BE (2026-09-08).  The
+-- replay `dualScope 0 S ++ S` DOUBLES the list, and the outer frame of a
+-- scope move is rewound again on the next pass, so over a run the change
+-- lists grow as `S , S ++ S , (S ++ S) ++ (S ++ S) , …` — the
+-- `↥X , ↓X , ↥X , ↓X , …` blowup Examples §16 measures.  The doubling is
+-- pure waste: `dualScope 0 S ++ S` is ALREADY a rewound list, and a
+-- rewound list is already the identity on the frame
+-- (`applyChanges-dualScope`) with the unmasks its reps need already on
+-- it.  So `rewind` REPLAYS ONLY WHAT IS NOT ALREADY A REPLAY.
+--
+-- A list IS a replay when it is its own second half's dual replay.  The
+-- test is decidable and the two branches are both trivial to discharge:
+-- on `yes` the frame lemmas are the ORIGINAL frame's (`scope` is the
+-- identity by `applyChanges-dualScope` at the second half, `⊢ᵐ` is Θ's
+-- own — the reps are read on EXACTLY the same type context, so not even
+-- a `⊢ʳ-⊑` step appears); on `no` they are the replay's, as before.
+
+-- The SECOND HALF of a change list: the candidate Q in
+-- `S ≡ dualScope 0 Q ++ Q`.
+half : ℕ → ℕ
+half zero          = zero
+half (suc zero)    = zero
+half (suc (suc n)) = suc (half n)
+
+secondHalf : List Change → List Change
+secondHalf S = drop (half (length S)) S
+
+-- `S` IS A REPLAY: its first half rewinds its second.
+Rewound : List Change → Set
+Rewound S = dualScope 0 (secondHalf S) ++ secondHalf S ≡ S
+
+_≟ᶜ_ : DecidableEquality Change
+lock X   ≟ᶜ lock Y   with X ≟ℕ Y
+... | yes refl = yes refl
+... | no  ne   = no λ { refl → ne refl }
+lock X   ≟ᶜ unlock Y = no λ()
+unlock X ≟ᶜ lock Y   = no λ()
+unlock X ≟ᶜ unlock Y with X ≟ℕ Y
+... | yes refl = yes refl
+... | no  ne   = no λ { refl → ne refl }
+
+rewound? : (S : List Change) → Dec (Rewound S)
+rewound? S = ≡-dec _≟ᶜ_ (dualScope 0 (secondHalf S) ++ secondHalf S) S
+
+-- The decision is an EXPLICIT ARGUMENT, so that every lemma about the
+-- rewound frame splits on it by ordinary pattern matching (no `with`
+-- abstraction has to find the scrutinee under `rewind`).
+rewindChanges : (S : List Change) → Dec (Rewound S) → List Change
+rewindChanges S (yes _) = S
+rewindChanges S (no  _) = dualScope 0 S ++ S
+
 rewind : CtxMorph → CtxMorph
-rewind Θ = morph (binds Θ) (dualScope 0 (changes Θ) ++ changes Θ)
+rewind Θ =
+  morph (binds Θ) (rewindChanges (changes Θ) (rewound? (changes Θ)))
 
 -- The inner frame, with the outer frame's changes moved in at its TAIL.
 -- `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁` DEFINITIONALLY: the move carries no
 -- binder, and with the pair that is a fact about the constructor, not a
 -- lemma about a filtered list.
+--
+-- … EXCEPT THAT THE MOVED COPY IS SOMETIMES ALREADY THERE (2026-09-08).
+-- Over a run of scope moves the SAME change list is moved in again and
+-- again — `changes Θ₁` already ends in the very copy the next move
+-- appends — and THAT is the exponential: the inner list roughly doubles
+-- at every pass (Examples §16 measures it).  A moved copy is REDUNDANT
+-- when
+--
+--   (a) `Rewound (changes Θ₂)`: the outer changes are a replay, so
+--       moving them is the IDENTITY on the interior — nothing about
+--       `interior` needs the copy;
+--   (b) every slot the copy UNLOCKS the inner list already unlocks:
+--       `applyUnlocks` is a SET of unmasks (strong.Ctx §6c), and the
+--       inner list runs LAST, so its unmasks subsume the copy's —
+--       nothing about `convCtx` needs the copy either.
+--
+-- Both are decidable, and under them the two frame lemmas stay
+-- EQUALITIES (proof/MoveScope §4) — the copy is dropped, not weakened.
+
+-- The slots a change list UNLOCKS.  (Its locks are irrelevant here: they
+-- are exactly what `applyUnlocks` skips.)
+unlockSlots : List Change → List ℕ
+unlockSlots []             = []
+unlockSlots (lock X ∷ S)   = unlockSlots S
+unlockSlots (unlock X ∷ S) = X ∷ unlockSlots S
+
+infix 4 _∈ᴺ_ _⊆ᴺ_
+data _∈ᴺ_ : ℕ → List ℕ → Set where
+  hereᴺ  : ∀ {X Xs} → X ∈ᴺ (X ∷ Xs)
+  thereᴺ : ∀ {X Y Xs} → X ∈ᴺ Xs → X ∈ᴺ (Y ∷ Xs)
+
+data _⊆ᴺ_ : List ℕ → List ℕ → Set where
+  sub[] : ∀ {Ys} → [] ⊆ᴺ Ys
+  sub∷  : ∀ {X Xs Ys} → X ∈ᴺ Ys → Xs ⊆ᴺ Ys → (X ∷ Xs) ⊆ᴺ Ys
+
+_∈ᴺ?_ : (X : ℕ) (Xs : List ℕ) → Dec (X ∈ᴺ Xs)
+X ∈ᴺ? []       = no λ()
+X ∈ᴺ? (Y ∷ Xs) with X ≟ℕ Y
+... | yes refl = yes hereᴺ
+... | no  ne   with X ∈ᴺ? Xs
+...   | yes i  = yes (thereᴺ i)
+...   | no  ni = no λ { hereᴺ → ne refl ; (thereᴺ i) → ni i }
+
+_⊆ᴺ?_ : (Xs Ys : List ℕ) → Dec (Xs ⊆ᴺ Ys)
+[]       ⊆ᴺ? Ys = yes sub[]
+(X ∷ Xs) ⊆ᴺ? Ys with X ∈ᴺ? Ys
+... | no  ni = no λ { (sub∷ i s) → ni i }
+... | yes i  with Xs ⊆ᴺ? Ys
+...   | yes s = yes (sub∷ i s)
+...   | no  ns = no λ { (sub∷ _ s) → ns s }
+
+-- THE MOVED COPY IS REDUNDANT.
+Redundant : CtxMorph → CtxMorph → Set
+Redundant Θ₁ Θ₂ =
+  Rewound (changes Θ₂)
+    × (unlockSlots (shiftScope (numBinds Θ₂) (changes Θ₂))
+         ⊆ᴺ unlockSlots (changes Θ₁))
+
+redundant? : (Θ₁ Θ₂ : CtxMorph) → Dec (Redundant Θ₁ Θ₂)
+redundant? Θ₁ Θ₂ with rewound? (changes Θ₂)
+... | no ¬r = no λ { (r , _) → ¬r r }
+... | yes r with unlockSlots (shiftScope (numBinds Θ₂) (changes Θ₂))
+                   ⊆ᴺ? unlockSlots (changes Θ₁)
+...   | yes s  = yes (r , s)
+...   | no  ns = no λ { (_ , s) → ns s }
+
+mergeChanges : (Θ₁ Θ₂ : CtxMorph) → Dec (Redundant Θ₁ Θ₂) → List Change
+mergeChanges Θ₁ Θ₂ (yes _) = changes Θ₁
+mergeChanges Θ₁ Θ₂ (no  _) =
+  changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂)
+
 infixl 5 _⋉_
 _⋉_ : CtxMorph → CtxMorph → CtxMorph
-Θ₁ ⋉ Θ₂ =
-  morph (binds Θ₁) (changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂))
+Θ₁ ⋉ Θ₂ = morph (binds Θ₁) (mergeChanges Θ₁ Θ₂ (redundant? Θ₁ Θ₂))
 
 ------------------------------------------------------------------------
 -- 5.  THE APPENDED LOCK — a boundary value moved under a NEW BIND

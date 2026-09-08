@@ -64,6 +64,12 @@ module strong.Preservation where
 -- exterior type: the reveal's target IS that type, lifted.  Nothing is
 -- assumed about the world, and the old counterexample now REDUCES to a
 -- TYPED term (proof/PreserveObstruct §4, `⊢i-contractum`).
+--
+-- Both frames carry a REDUNDANCY TEST (strong.CtxMorph §4) so that a run
+-- of scope moves does not double its change lists at every pass; the
+-- drops are EXACT, so the two cases below are unchanged by them
+-- (Examples §16 measures the difference, proof/RewindNorm says what
+-- cannot be dropped).
 
 open import Data.Nat using (ℕ; suc)
 open import Data.List using (List; []; _∷_)

@@ -678,6 +678,36 @@ mask-∋lk (unmasked b , d , nameable) =
   _ , updateAt-hit maskEnt maskEnt-comm d , locked
 
 ------------------------------------------------------------------------
+-- 6c.  UNMASKING IS IDEMPOTENT AND COMMUTES WITH ITSELF
+------------------------------------------------------------------------
+
+-- `unmaskEnt` CLEARS the lock, so it does not care what it found there:
+-- clearing twice is clearing once, and clearing two slots is
+-- order-independent (AT ANY TWO SLOTS, the same one included — no `X ≢ Y`
+-- premise, because both moves write the same value).
+--
+-- These are what make a change list's UNMASKS a SET: what
+-- `applyUnlocks L` has already exposed, `applyUnlocks M` cannot expose
+-- again (proof/MoveScope, `applyUnlocks-absorb`) — the fact that lets the
+-- scope move DROP a moved copy whose unmasks are already on.
+unmaskEnt-idem : (E : Ent) → unmaskEnt (unmaskEnt E) ≡ unmaskEnt E
+unmaskEnt-idem (unmasked b) = refl
+unmaskEnt-idem (masked b)   = refl
+
+unmask-idem : (X : ℕ) (Δ : Ctxᵗ) → unmask X (unmask X Δ) ≡ unmask X Δ
+unmask-idem X       []      = refl
+unmask-idem zero    (E ∷ Δ) = cong (_∷ Δ) (unmaskEnt-idem E)
+unmask-idem (suc X) (E ∷ Δ) = cong (E ∷_) (unmask-idem X Δ)
+
+unmask-comm : (X Y : ℕ) (Δ : Ctxᵗ)
+  → unmask X (unmask Y Δ) ≡ unmask Y (unmask X Δ)
+unmask-comm X       Y       []      = refl
+unmask-comm zero    zero    (E ∷ Δ) = refl
+unmask-comm zero    (suc Y) (E ∷ Δ) = refl
+unmask-comm (suc X) zero    (E ∷ Δ) = refl
+unmask-comm (suc X) (suc Y) (E ∷ Δ) = cong (E ∷_) (unmask-comm X Y Δ)
+
+------------------------------------------------------------------------
 -- 7.  The bind prefix
 ------------------------------------------------------------------------
 

@@ -14,7 +14,7 @@ module strong.TermSubst where
 --             because nothing on the type context is ever destroyed.
 --
 -- §5 defines term-variable renaming (`renⁿ`) and substitution (`substᵐ`,
--- `_[_]ᵐ`); §6 proves them sound (`⊢renⁿ`, `⊢substᵐ`, `⊢subst`), which is
+-- `_[_∶_]ᵐ`); §6 proves them sound (`⊢renⁿ`, `⊢substᵐ`, `⊢subst`), which is
 -- what Beta's preservation case consumes (`preserve-Beta`).  TWO CASES carry
 -- the whole story:
 --
@@ -24,10 +24,16 @@ module strong.TermSubst where
 --          and the case is literally the premises handed back.
 --
 --   ⊢Λ     is the only real work — it types its body at the SHIFTED term
---          context ⤊ Γ, so every image of σ must be shifted past the new
---          Λ-bound slot by ⇑ᴹ = renᴹ suc.  That is `⊢rename` at suc, with
---          `Ren-wk` and `Inj-suc`; no knowledge premise appears, because a
---          boundary carries NAMES, never spellings.
+--          context ⤊ Γ, so every image of σ must cross the new Λ-bound
+--          slot.  SHIFTING BY ⇑ᴹ = renᴹ suc IS NOT ENOUGH: it is sound but
+--          not FRAME-EXACT (the image's frame gains the Λ's slot).  §5b
+--          repairs it — a value image is WRAPPED IN THE BINDER'S DUAL
+--          `⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫`, whose frame
+--          identity `interior … (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` is
+--          DEFINITIONAL — and the case is then `⊢rename` at suc with
+--          `Ren-wk`/`Inj-suc` plus `mkId-⊢` (`⊢crossΛ`, §6).  No knowledge
+--          premise appears, because a boundary carries NAMES, never
+--          spellings.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -248,27 +254,92 @@ renⁿ ρ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 shiftᵐ : Term → Term
 shiftᵐ = renⁿ suc
 
-extᵐ : (ℕ → Term) → (ℕ → Term)
-extᵐ σ zero    = ` zero
-extᵐ σ (suc x) = shiftᵐ (σ x)
+------------------------------------------------------------------------
+-- 5b.  THE IMAGES OF A SUBSTITUTION — FRAME-EXACT AT EVERY BINDER
+------------------------------------------------------------------------
 
--- THE Λ CLAUSE.  `⊢Λ` types its body at the SHIFTED term context ⤊ Γ, so
--- an image of σ — a term whose annotations, boundary reps and conversion
--- names are written over the EXTERIOR type context — must be shifted
--- past the new Λ-bound slot before it may be planted inside.  (Same
--- clause as v1's `substᵀᵐ`; v2's ⊢Λ shifts Γ exactly as v1's did.)
-substᵐ : (ℕ → Term) → Term → Term
-substᵐ σ (` x)          = σ x
+-- FRAME-EXACT SUBSTITUTION (Jeremy, 2026-09-08).  THE GAP THIS CLOSES.
+--
+-- The old Λ clause was `substᵐ (λ x → ⇑ᴹ (σ x))`: an image was SHIFTED
+-- past the new Λ-bound slot and nothing else.  Shifting is enough for
+-- SOUNDNESS — the image's shifted indices cannot reach slot 0 — but it is
+-- not FRAME-EXACT: the image's frame silently GAINS the Λ's slot, so at
+-- Examples §14's E₃ the crossing wrapper `(ΛZ. λz:Z. z) ⟪ ↓X , … ⟫`,
+-- planted under `ΛY`, was read at `Y Λ-bound , ⌷[X := ℕ]` — one entry
+-- MORE than its birth frame.  Every other rule is exact (`interior-dual`
+-- for Peel, `interior-⋉-rewind` for CancelR/IdPush, TyBeta/TyPeelR by
+-- construction); Beta was the one inexact rule.
+--
+-- THE REPAIR: what crosses a binder is WRAPPED IN THE BINDER'S DUAL.
+-- Crossing a `Λ` is crossing an abst binder that occupies slot 0 inside,
+-- so the dual of the crossing is `morph [] (lock 0 ∷ [])` — no binds, one
+-- lock, exactly what `dual (morph (A ∷ []) [])` is (Examples §11) — and
+-- the conversion is the IDENTITY at the value's own type, shifted past the
+-- binder.  The frame identity is then DEFINITIONAL:
+--
+--   interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ
+--
+-- i.e. the image's frame IS ITS BIRTH FRAME Δ, with the crossed binder
+-- masked: nothing gained, nothing lost.  It is the same shape `Peel`
+-- mints for its crossing argument, so it is proved by the same two
+-- moves — `⊢rename` at `suc` for the interior, `mkId-⊢` for the
+-- conversion.
+--
+-- SUBSTITUTION MUST THEREFORE CARRY THE VALUE'S TYPE (`mkId` needs it),
+-- and it may only wrap a TERM-CLOSED image ((env) types its interior at
+-- Γ = []).  Both facts live in the IMAGE:
+--
+--   ivar x    a term VARIABLE — the identity part of the substitution.
+--             It crosses a Λ untouched (a type binder does not move a
+--             term index) and is never wrapped: a variable is not
+--             term-closed, so `env` would refuse it.
+--   ival W A  the substituted VALUE, at its type.  It is term-CLOSED
+--             (`⊢ival`), which is what makes both the wrapper and the
+--             weakening below legal.
+data Img : Set where
+  ivar : ℕ → Img
+  ival : Term → Ty → Img
+
+imgTm : Img → Term
+imgTm (ivar x)   = ` x
+imgTm (ival W A) = W
+
+-- Weakening an image by one TERM variable.  A value image is CLOSED, so
+-- `shiftᵐ` would be the identity on it and is not applied — which is
+-- exactly why `shiftᴵ-⊢` (§6) has no premise to discharge.
+shiftᴵ : Img → Img
+shiftᴵ (ivar x)   = ivar (suc x)
+shiftᴵ (ival W A) = ival W A
+
+-- THE Λ CROSSING, AS A TERM: the shifted value under the DUAL of the
+-- binder it crossed, with an identity conversion at its own type.
+crossΛ : Term → Ty → Term
+crossΛ W A = ⇑ᴹ W ⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+
+-- THE Λ CLAUSE, frame-exact.  A variable image is untouched; a value
+-- image is shifted AND WRAPPED, and its annotation shifts with it.
+⇑ᴵ : Img → Img
+⇑ᴵ (ivar x)   = ivar x
+⇑ᴵ (ival W A) = ival (crossΛ W A) (⇑ᵗ A)
+
+extᴵ : (ℕ → Img) → (ℕ → Img)
+extᴵ σ zero    = ivar zero
+extᴵ σ (suc x) = shiftᴵ (σ x)
+
+substᵐ : (ℕ → Img) → Term → Term
+substᵐ σ (` x)          = imgTm (σ x)
 substᵐ σ ($ n)          = $ n
-substᵐ σ (ƛ A ∙ N)      = ƛ A ∙ substᵐ (extᵐ σ) N
+substᵐ σ (ƛ A ∙ N)      = ƛ A ∙ substᵐ (extᴵ σ) N
 substᵐ σ (L · M)        = substᵐ σ L · substᵐ σ M
-substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴹ (σ x)) N)
+substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
 substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
 substᵐ σ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 
-infix 8 _[_]ᵐ
-_[_]ᵐ : Term → Term → Term
-N [ W ]ᵐ = substᵐ (λ { zero → W ; (suc x) → ` x }) N
+-- BETA'S SUBSTITUTION.  The type is the ƛ's own annotation, so the rule
+-- reads it off the redex (strong.Reduction, `Beta`).
+infix 8 _[_∶_]ᵐ
+_[_∶_]ᵐ : Term → Term → Ty → Term
+N [ W ∶ A ]ᵐ = substᵐ (λ { zero → ival W A ; (suc x) → ivar x }) N
 
 ------------------------------------------------------------------------
 -- 6.  THE SUBSTITUTION TYPING LEMMA
@@ -326,53 +397,134 @@ extⁿ-∋ h (there d) = there (h d)
 Ren-wk : ∀ {Δ E} → Ren suc Δ (E ∷ Δ)
 Ren-wk = mkRen es
 
--- Pushing a term substitution under a Λ.  Every image is shifted by ⇑ᴹ,
--- which is `⊢rename` at ρ = suc — `Ren-wk` for the entry transport and
--- `Inj-suc` for the ONE structural hypothesis (positional masking).  No
--- knowledge premise is needed: a name is carried, never a spelling.
-⇑ᴹ-⊢ : ∀ {σ : ℕ → Term} {Δ Γ Γ′}
-  → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∣ Γ′ ⊢ σ x ⦂ B)
-    --------------------------------------------------------------------
-  → (∀ {x B} → ⤊ Γ ∋ x ⦂ B → (unmasked abst ∷ Δ) ∣ ⤊ Γ′ ⊢ ⇑ᴹ (σ x) ⦂ B)
-⇑ᴹ-⊢ h d with ∋⦂-map⁻ d
-... | A , refl , q = ⊢rename Ren-wk Inj-suc (h q)
+-- Term-variable renaming AT THE IDENTITY renaming is the identity.  This
+-- is what makes the CLOSED-TERM weakening below a corollary of `⊢renⁿ`
+-- rather than a second induction.
+renⁿ-id : (ρ : ℕ → ℕ) → (∀ x → ρ x ≡ x) → (M : Term) → renⁿ ρ M ≡ M
+renⁿ-id ρ h (` x)          = cong `_ (h x)
+renⁿ-id ρ h ($ n)          = refl
+renⁿ-id ρ h (ƛ A ∙ N)      = cong (ƛ A ∙_) (renⁿ-id (extⁿ ρ) hext N)
+  where
+  hext : (x : ℕ) → extⁿ ρ x ≡ x
+  hext zero    = refl
+  hext (suc x) = cong suc (h x)
+renⁿ-id ρ h (L · M)        = cong₂ _·_ (renⁿ-id ρ h L) (renⁿ-id ρ h M)
+renⁿ-id ρ h (Λ N)          = cong Λ_ (renⁿ-id ρ h N)
+renⁿ-id ρ h (L ·[ B , A ]) = cong (λ L′ → L′ ·[ B , A ]) (renⁿ-id ρ h L)
+renⁿ-id ρ h (M ⟪ Θ , c ⟫)  = refl
 
-extᵐ-⊢ : ∀ {σ : ℕ → Term} {Δ Γ Γ′ A}
-  → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∣ Γ′ ⊢ σ x ⦂ B)
+-- A TERM-CLOSED term types at ANY term context.  The hypothesis of
+-- `⊢renⁿ` is vacuous at Γ = [] — there is no lookup to move — so the
+-- lemma is `⊢renⁿ` at the identity renaming.
+⊢weakenⁿ : ∀ {Δ Γ M A} → Δ ∣ [] ⊢ M ⦂ A → Δ ∣ Γ ⊢ M ⦂ A
+⊢weakenⁿ {Γ = Γ} {M = M} {A = A} ⊢M =
+  subst (λ N → _ ∣ Γ ⊢ N ⦂ A) (renⁿ-id (λ x → x) (λ x → refl) M)
+        (⊢renⁿ (λ ()) ⊢M)
+
+-- THE IMAGE TYPING JUDGEMENT.  `⊢ival` is where the two things frame-exact
+-- substitution needs are recorded: the value's TYPE (which `mkId` reads)
+-- and its TERM-CLOSEDNESS (which `env` demands of an interior).  Its
+-- conclusion holds at an ARBITRARY term context, exactly as (env)'s does.
+infix 3 _∣_⊢ⁱ_⦂_
+data _∣_⊢ⁱ_⦂_ : Ctxᵗ → Ctx → Img → Ty → Set where
+
+  ⊢ivar : ∀ {Δ Γ x A} → Γ ∋ x ⦂ A → Δ ∣ Γ ⊢ⁱ ivar x ⦂ A
+
+  ⊢ival : ∀ {Δ Γ W A} → Δ ⊢ᵗ A → Δ ∣ [] ⊢ W ⦂ A → Δ ∣ Γ ⊢ⁱ ival W A ⦂ A
+
+⊢imgTm : ∀ {Δ Γ i A} → Δ ∣ Γ ⊢ⁱ i ⦂ A → Δ ∣ Γ ⊢ imgTm i ⦂ A
+⊢imgTm (⊢ivar d)    = ⊢` d
+⊢imgTm (⊢ival w ⊢W) = ⊢weakenⁿ ⊢W
+
+-- (‡) THE Λ CROSSING, TYPED — the Beta analogue of PeelDual's `crossing`.
+-- EVERY PREMISE IS DEFINITIONAL AT THE DUAL:
+--
+--   interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ
+--   convCtx  (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ unmasked abst ∷ Δ
+--   numBinds (morph [] (lock 0 ∷ [])) ≡ 0
+--
+-- so the interior is `⊢rename` at `suc` ALONE (`Ren-wk`, `Inj-suc`) —
+-- W is typed inside at its birth frame, one masked binder in — the
+-- conversion is `mkId-⊢` on the shifted type, and the `lock 0` is well
+-- formed because the Λ's own slot is nameable (`sw-l`).
+⊢crossΛ : ∀ {Δ W A}
+  → Δ ⊢ᵗ A
+  → Δ ∣ [] ⊢ W ⦂ A
+    -----------------------------------------------
+  → (unmasked abst ∷ Δ) ∣ [] ⊢ crossΛ W A ⦂ ⇑ᵗ A
+⊢crossΛ w ⊢W =
+  env (mw rw[] (sw-l (unmasked abst , ez , nameable) sw[]))
+      (⊢rename Ren-wk Inj-suc ⊢W)
+      (mkId-⊢ (wf-ren Ren-wk w))
+      (wf-ren Ren-wk w)
+
+-- Weakening an image: a variable image moves by `there`, a value image is
+-- CLOSED and moves by nothing at all.
+shiftᴵ-⊢ : ∀ {Δ Γ i A B} → Δ ∣ Γ ⊢ⁱ i ⦂ B → Δ ∣ (A ∷ Γ) ⊢ⁱ shiftᴵ i ⦂ B
+shiftᴵ-⊢ (⊢ivar d)    = ⊢ivar (there d)
+shiftᴵ-⊢ (⊢ival w ⊢W) = ⊢ival w ⊢W
+
+extᴵ-⊢ : ∀ {σ : ℕ → Img} {Δ Γ Γ′ A}
+  → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∣ Γ′ ⊢ⁱ σ x ⦂ B)
     ------------------------------------------------------------------
-  → (∀ {x B} → (A ∷ Γ) ∋ x ⦂ B → Δ ∣ (A ∷ Γ′) ⊢ extᵐ σ x ⦂ B)
-extᵐ-⊢ h here      = ⊢` here
-extᵐ-⊢ h (there d) = ⊢renⁿ there (h d)
+  → (∀ {x B} → (A ∷ Γ) ∋ x ⦂ B → Δ ∣ (A ∷ Γ′) ⊢ⁱ extᴵ σ x ⦂ B)
+extᴵ-⊢ h here      = ⊢ivar here
+extᴵ-⊢ h (there d) = shiftᴵ-⊢ (h d)
+
+-- ONE image across one Λ.  A variable's type shifts with the context
+-- (`∋⦂-⤊`); a value acquires the DUAL WRAPPER (‡) and its annotation
+-- shifts.  No knowledge premise appears: a boundary carries NAMES.
+⇑ᴵ-⊢1 : ∀ {Δ Γ i A}
+  → Δ ∣ Γ ⊢ⁱ i ⦂ A
+    ----------------------------------------------------
+  → (unmasked abst ∷ Δ) ∣ ⤊ Γ ⊢ⁱ ⇑ᴵ i ⦂ ⇑ᵗ A
+⇑ᴵ-⊢1 (⊢ivar d)    = ⊢ivar (∋⦂-⤊ d)
+⇑ᴵ-⊢1 (⊢ival w ⊢W) = ⊢ival (wf-ren Ren-wk w) (⊢crossΛ w ⊢W)
+
+-- Pushing a term substitution under a Λ.
+⇑ᴵ-⊢ : ∀ {σ : ℕ → Img} {Δ Γ Γ′}
+  → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∣ Γ′ ⊢ⁱ σ x ⦂ B)
+    ---------------------------------------------------------------------
+  → (∀ {x B} → ⤊ Γ ∋ x ⦂ B → (unmasked abst ∷ Δ) ∣ ⤊ Γ′ ⊢ⁱ ⇑ᴵ (σ x) ⦂ B)
+⇑ᴵ-⊢ h d with ∋⦂-map⁻ d
+... | A , refl , q = ⇑ᴵ-⊢1 (h q)
 
 -- THE SIMULTANEOUS SUBSTITUTION LEMMA.  Two cases carry the whole story:
--- (env) is trivial because a wrapper is term-closed, and ⊢Λ is `⇑ᴹ-⊢`,
--- i.e. `⊢rename` at suc.
-⊢substᵐ : ∀ {σ : ℕ → Term} {Δ Γ Γ′ N B}
-  → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∣ Γ′ ⊢ σ x ⦂ A)
+-- (env) is trivial because a wrapper is term-closed, and ⊢Λ is `⇑ᴵ-⊢`,
+-- i.e. `⊢rename` at suc PLUS THE DUAL WRAPPER (‡).
+⊢substᵐ : ∀ {σ : ℕ → Img} {Δ Γ Γ′ N B}
+  → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∣ Γ′ ⊢ⁱ σ x ⦂ A)
   → Δ ∣ Γ  ⊢ N ⦂ B
     ----------------------------
   → Δ ∣ Γ′ ⊢ substᵐ σ N ⦂ B
-⊢substᵐ h (⊢` d)            = h d
+⊢substᵐ h (⊢` d)            = ⊢imgTm (h d)
 ⊢substᵐ h ⊢$                = ⊢$
-⊢substᵐ h (⊢ƛ w ⊢N)         = ⊢ƛ w (⊢substᵐ (extᵐ-⊢ h) ⊢N)
+⊢substᵐ h (⊢ƛ w ⊢N)         = ⊢ƛ w (⊢substᵐ (extᴵ-⊢ h) ⊢N)
 ⊢substᵐ h (⊢· ⊢L ⊢M)        = ⊢· (⊢substᵐ h ⊢L) (⊢substᵐ h ⊢M)
-⊢substᵐ h (⊢Λ ⊢N)           = ⊢Λ (⊢substᵐ (⇑ᴹ-⊢ h) ⊢N)
+⊢substᵐ h (⊢Λ ⊢N)           = ⊢Λ (⊢substᵐ (⇑ᴵ-⊢ h) ⊢N)
 ⊢substᵐ h (⊢·[] ⊢L w)       = ⊢·[] (⊢substᵐ h ⊢L) w
 ⊢substᵐ h (env mwᵥ ⊢M ⊢c wE) = env mwᵥ ⊢M ⊢c wE
 
 -- THE SUBSTITUTION TYPING LEMMA — what Beta's preservation case consumes.
+-- THE VALUE IS TERM-CLOSED AND ITS TYPE IS CARRIED: both are what the
+-- wrapper minted at a crossed Λ needs, and both are on Beta's redex (the
+-- rule reduces closed terms, and the type is the ƛ's annotation).
 ⊢subst : ∀ {Δ Γ A B N W}
+  → Δ ⊢ᵗ A
   → Δ ∣ (A ∷ Γ) ⊢ N ⦂ B
-  → Δ ∣ Γ ⊢ W ⦂ A
+  → Δ ∣ [] ⊢ W ⦂ A
     -----------------------------
-  → Δ ∣ Γ ⊢ N [ W ]ᵐ ⦂ B
-⊢subst ⊢N ⊢W = ⊢substᵐ (λ { here → ⊢W ; (there d) → ⊢` d }) ⊢N
+  → Δ ∣ Γ ⊢ N [ W ∶ A ]ᵐ ⦂ B
+⊢subst w ⊢N ⊢W =
+  ⊢substᵐ (λ { here → ⊢ival w ⊢W ; (there d) → ⊢ivar d }) ⊢N
 
 -- Beta preservation, ready to be wired into the preservation theorem.
 -- (⊢·) is the only rule that can conclude an application — (env) concludes a
--- wrapper — so the inversion is a single clause.
-preserve-Beta : ∀ {Δ Γ A B N W}
-  → Δ ∣ Γ ⊢ (ƛ A ∙ N) · W ⦂ B
-    ---------------------------
-  → Δ ∣ Γ ⊢ N [ W ]ᵐ ⦂ B
-preserve-Beta (⊢· (⊢ƛ _ ⊢N) ⊢W) = ⊢subst ⊢N ⊢W
+-- wrapper — so the inversion is a single clause, and it hands over BOTH
+-- things `⊢subst` now asks for: the ƛ's `Δ ⊢ᵗ A` and the argument's typing
+-- at Γ = [].
+preserve-Beta : ∀ {Δ A B N W}
+  → Δ ∣ [] ⊢ (ƛ A ∙ N) · W ⦂ B
+    ------------------------------
+  → Δ ∣ [] ⊢ N [ W ∶ A ]ᵐ ⦂ B
+preserve-Beta (⊢· (⊢ƛ w ⊢N) ⊢W) = ⊢subst w ⊢N ⊢W

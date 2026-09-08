@@ -33,7 +33,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
@@ -50,7 +50,8 @@ private
     X : ℕ
     c s t : Conv
     L M M′ N W : Term
-    σ : ℕ → Term
+    i : Img
+    σ : ℕ → Img
 
 ------------------------------------------------------------------------
 -- 1.  The canonical family
@@ -202,9 +203,14 @@ canon-wkᴹ n cM = canon-renᴹ (wkN n) cM
 -- Boundaries are TERM-CLOSED: `shiftᵐ` and `substᵐ` return a wrapper
 -- untouched (strong.TermSubst).  So no conversion is ever renamed by term
 -- substitution, and canonicity is preserved for free — the only wrappers
--- in the result are those already in N or those carried in by σ.
-CanonSub : (ℕ → Term) → Set
-CanonSub σ = ∀ x → CanonTm (σ x)
+-- in the result are those already in N, those carried in by σ, and THE
+-- DUAL WRAPPER FRAME-EXACT BETA MINTS AT EACH CROSSED Λ, whose conversion
+-- is `mkId` — a LEAF of the family at every name (`canonC-mkId`).
+CanonImg : Img → Set
+CanonImg i = CanonTm (imgTm i)
+
+CanonSub : (ℕ → Img) → Set
+CanonSub σ = ∀ x → CanonImg (σ x)
 
 -- Term-variable renaming touches no conversion (a wrapper is
 -- term-closed), so canonicity passes through renⁿ unconditionally.
@@ -220,22 +226,36 @@ canon-renⁿ ρ (ct-⟪⟫ cM cc) = ct-⟪⟫ cM cc
 canon-shiftᵐ : CanonTm M → CanonTm (shiftᵐ M)
 canon-shiftᵐ = canon-renⁿ suc
 
-canon-extᵐ : CanonSub σ → CanonSub (extᵐ σ)
-canon-extᵐ cσ zero    = ct-var
-canon-extᵐ cσ (suc x) = canon-shiftᵐ (cσ x)
+-- A variable image is canonical outright; a VALUE image is closed, so the
+-- term-variable weakening leaves it alone.
+canon-shiftᴵ : (i : Img) → CanonImg i → CanonImg (shiftᴵ i)
+canon-shiftᴵ (ivar x)   ci = ct-var
+canon-shiftᴵ (ival W A) ci = ci
+
+-- THE Λ CROSSING.  A value image acquires the DUAL WRAPPER, whose
+-- conversion is `mkId (⇑ᵗ A)` — canonical at every name — over the
+-- ⇑ᴹ-renamed value (§6).
+canon-⇑ᴵ : (i : Img) → CanonImg i → CanonImg (⇑ᴵ i)
+canon-⇑ᴵ (ivar x)   ci = ct-var
+canon-⇑ᴵ (ival W A) ci = ct-⟪⟫ (canon-renᴹ suc ci) (canonC-mkId (⇑ᵗ A))
+
+canon-extᴵ : (σ : ℕ → Img) → CanonSub σ → CanonSub (extᴵ σ)
+canon-extᴵ σ cσ zero    = ct-var
+canon-extᴵ σ cσ (suc x) = canon-shiftᴵ (σ x) (cσ x)
 
 canon-substᵐ : CanonSub σ → CanonTm M → CanonTm (substᵐ σ M)
-canon-substᵐ cσ (ct-var {x = x}) = cσ x
-canon-substᵐ cσ ct-lit           = ct-lit
-canon-substᵐ cσ (ct-ƛ cN)        = ct-ƛ (canon-substᵐ (canon-extᵐ cσ) cN)
-canon-substᵐ cσ (ct-· cL cM)     =
+canon-substᵐ cσ (ct-var {x = x})          = cσ x
+canon-substᵐ cσ ct-lit                    = ct-lit
+canon-substᵐ {σ = σ} cσ (ct-ƛ cN)         =
+  ct-ƛ (canon-substᵐ (canon-extᴵ σ cσ) cN)
+canon-substᵐ cσ (ct-· cL cM)              =
   ct-· (canon-substᵐ cσ cL) (canon-substᵐ cσ cM)
-canon-substᵐ cσ (ct-Λ cN)        =
-  ct-Λ (canon-substᵐ (λ x → canon-renᴹ suc (cσ x)) cN)
-canon-substᵐ cσ (ct-·[] cL)      = ct-·[] (canon-substᵐ cσ cL)
-canon-substᵐ cσ (ct-⟪⟫ cM cc)    = ct-⟪⟫ cM cc
+canon-substᵐ {σ = σ} cσ (ct-Λ cN)         =
+  ct-Λ (canon-substᵐ (λ x → canon-⇑ᴵ (σ x) (cσ x)) cN)
+canon-substᵐ cσ (ct-·[] cL)               = ct-·[] (canon-substᵐ cσ cL)
+canon-substᵐ cσ (ct-⟪⟫ cM cc)             = ct-⟪⟫ cM cc
 
-canon-subst : CanonTm N → CanonTm W → CanonTm (N [ W ]ᵐ)
+canon-subst : CanonTm N → CanonTm W → CanonTm (N [ W ∶ A ]ᵐ)
 canon-subst cN cW =
   canon-substᵐ (λ { zero → cW ; (suc x) → ct-var }) cN
 

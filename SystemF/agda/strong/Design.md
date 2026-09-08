@@ -1417,6 +1417,7 @@ is a known function of the old one:
 | `CancelR`, `IdPush` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)`, given `Δ ⊢ᵐ Θ₂` (`proof/MoveScope.interior-⋉-rewind`) |
 | `Beta` | `Δ` where no binder is crossed — no frame changes |
 | `Beta`, under a `Λ` | `interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` — the image's BIRTH frame with the crossed `Λ`'s slot masked (`Examples.interior-Beta-Λ`) |
+| **`TyPeelR` (V's frame)** — **OPEN** | the identity above holds, but the new slot 0 arrives **UNMASKED**: `V` could not name it before and the frame offers it after.  A **LEAK** by the criterion, machine-checked in `proof/ShiftAudit` §3 (`TyPeelR-slot0-nameable` — the frame has it; `TyPeelR-V-tight` — `V`'s own `⊢rename` goes through at the MASKED entry; `TyPeelR-node-needs-slot0` — the pushed-in `·[ … , ` 0 ]` is what needs it, and it shares `V`'s frame; `TyPeelR-leak-¬⊑ᵃ` — the difference is one `le-mu`, the step a TERM may not travel).  It is not a scope gain (`wkᴹ 1` sends the fault one slot up, `Examples` §15b) — the frame simply does not say the truth.  Verdict, candidate fixes and the recommendation: `notes/ShiftAudit.md`.  **A PROVEN REPAIR EXISTS ON THE PROBE BRANCH** — `proof/ShiftAudit` §5/§5b/§5c: the prototype relation `_⊢_-→ᵇ_` splits `TyPeelR` on the interior (`canon-∀`), the `Λ` case instantiating at once (no shift at all, the frame move is `TyBeta`'s own refinement) and the wrapper case appending `lock 0` to the moved boundary's **own** change list, so its new slot is MASKED (`TyPeelR-⟪⟫-frame`, `TyPeelR-⟪⟫-slot-locked`).  Preservation (`preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫`), determinism (`detᵇ`), progress (`progressᵇ-·[]`, total over canonical `∀`-values, so the pair REPLACES the live rule), termination on a strictly decreasing tower measure (`TyPeelR-⟪⟫-height`) and a closed two-deep run are all machine-checked, with no premise added.  **STILL OPEN until installed** in `Reduction.agda`. |
 
 The `Beta` row used to read `Δ` and nothing else, and it was the one
 INEXACT row: `substᵐ` shifted the image under the `Λ` without recording
@@ -1436,6 +1437,21 @@ gain**: `Beta` at an erasing body — `(λx:ℕ⇒ℕ. 3) · W` with `W` ill typ
 steps to `3`, which types.  Substitution may *drop* its argument, and a
 dropped subterm crosses nowhere; what is left was already typed inside
 the redex (`Examples` §15d).
+
+**The shift audit (2026-09-08)** re-read the table against the stronger
+question Jeremy asked after #199 — not "does the relation gain scope?"
+but "**does the frame say the truth about what the moved subterm may
+name?**" — and found **one open item**, the `TyPeelR` row above.  It is
+the only rule that puts a moved subterm under an **unmasked** new binder:
+`Peel` masks its whole bind prefix ((†)), frame-exact `Beta` masks the
+crossed `Λ`, and `TyBeta` introduces no new slot at all.  `Drop$` moves a
+numeral into a strictly *more* nameable frame, which is vacuous because a
+numeral names no type variable and no other term can take the step
+(`proof/ShiftAudit` §9).  The full site-by-site table, the witness, the
+candidate fixes with their hazards (the wrap repair **loops**; the resolve
+variant trades a scope leak for a **knowledge** leak), the repair that
+works — the `canon-∀` split, proven for both halves on the probe relation
+— and the recommendation are in `notes/ShiftAudit.md`.
 
 ### `type-safety`
 

@@ -46,6 +46,13 @@ open import strong.Progress
 -- preservation, and a Trace stores the step derivations it took
 open import strong.Eval
 
+-- THE SHIFT AUDIT (2026-09-08).  Every rule that MOVES a subterm,
+-- checked against frame exactness: the frame identity per site, the ONE
+-- LEAK (TyPeelR's moved value gains the new binder's slot, UNMASKED),
+-- the refutation of the wrap repair (it loops), and the prototype of the
+-- repair that works — a TyBeta-like Λ case, PROVEN exact.
+open import strong.proof.ShiftAudit
+
 -- THE WALL.  The search for an INVARIANT grounding the premise
 -- `interior Θ₂ Δ ⊢ᵗ A` — the one the old CancelR/IdPush contracta needed —
 -- is recorded in notes/DECISIONS.md (2026-09-06 entries).  The SCOPE MOVE

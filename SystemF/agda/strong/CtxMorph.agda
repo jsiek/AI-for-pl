@@ -424,7 +424,77 @@ rewind Θ =
 -- `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁` DEFINITIONALLY: the move carries no
 -- binder, and with the pair that is a fact about the constructor, not a
 -- lemma about a filtered list.
+--
+-- … EXCEPT THAT THE MOVED COPY IS SOMETIMES ALREADY THERE (2026-09-08).
+-- Over a run of scope moves the SAME change list is moved in again and
+-- again — `changes Θ₁` already ends in the very copy the next move
+-- appends — and THAT is the exponential: the inner list roughly doubles
+-- at every pass (Examples §16 measures it).  A moved copy is REDUNDANT
+-- when
+--
+--   (a) `Rewound (changes Θ₂)`: the outer changes are a replay, so
+--       moving them is the IDENTITY on the interior — nothing about
+--       `interior` needs the copy;
+--   (b) every slot the copy UNLOCKS the inner list already unlocks:
+--       `applyUnlocks` is a SET of unmasks (strong.Ctx §6c), and the
+--       inner list runs LAST, so its unmasks subsume the copy's —
+--       nothing about `convCtx` needs the copy either.
+--
+-- Both are decidable, and under them the two frame lemmas stay
+-- EQUALITIES (proof/MoveScope §4) — the copy is dropped, not weakened.
+
+-- The slots a change list UNLOCKS.  (Its locks are irrelevant here: they
+-- are exactly what `applyUnlocks` skips.)
+unlockSlots : List Change → List ℕ
+unlockSlots []             = []
+unlockSlots (lock X ∷ S)   = unlockSlots S
+unlockSlots (unlock X ∷ S) = X ∷ unlockSlots S
+
+infix 4 _∈ᴺ_ _⊆ᴺ_
+data _∈ᴺ_ : ℕ → List ℕ → Set where
+  hereᴺ  : ∀ {X Xs} → X ∈ᴺ (X ∷ Xs)
+  thereᴺ : ∀ {X Y Xs} → X ∈ᴺ Xs → X ∈ᴺ (Y ∷ Xs)
+
+data _⊆ᴺ_ : List ℕ → List ℕ → Set where
+  sub[] : ∀ {Ys} → [] ⊆ᴺ Ys
+  sub∷  : ∀ {X Xs Ys} → X ∈ᴺ Ys → Xs ⊆ᴺ Ys → (X ∷ Xs) ⊆ᴺ Ys
+
+_∈ᴺ?_ : (X : ℕ) (Xs : List ℕ) → Dec (X ∈ᴺ Xs)
+X ∈ᴺ? []       = no λ()
+X ∈ᴺ? (Y ∷ Xs) with X ≟ℕ Y
+... | yes refl = yes hereᴺ
+... | no  ne   with X ∈ᴺ? Xs
+...   | yes i  = yes (thereᴺ i)
+...   | no  ni = no λ { hereᴺ → ne refl ; (thereᴺ i) → ni i }
+
+_⊆ᴺ?_ : (Xs Ys : List ℕ) → Dec (Xs ⊆ᴺ Ys)
+[]       ⊆ᴺ? Ys = yes sub[]
+(X ∷ Xs) ⊆ᴺ? Ys with X ∈ᴺ? Ys
+... | no  ni = no λ { (sub∷ i s) → ni i }
+... | yes i  with Xs ⊆ᴺ? Ys
+...   | yes s = yes (sub∷ i s)
+...   | no  ns = no λ { (sub∷ _ s) → ns s }
+
+-- THE MOVED COPY IS REDUNDANT.
+Redundant : CtxMorph → CtxMorph → Set
+Redundant Θ₁ Θ₂ =
+  Rewound (changes Θ₂)
+    × (unlockSlots (shiftScope (numBinds Θ₂) (changes Θ₂))
+         ⊆ᴺ unlockSlots (changes Θ₁))
+
+redundant? : (Θ₁ Θ₂ : CtxMorph) → Dec (Redundant Θ₁ Θ₂)
+redundant? Θ₁ Θ₂ with rewound? (changes Θ₂)
+... | no ¬r = no λ { (r , _) → ¬r r }
+... | yes r with unlockSlots (shiftScope (numBinds Θ₂) (changes Θ₂))
+                   ⊆ᴺ? unlockSlots (changes Θ₁)
+...   | yes s  = yes (r , s)
+...   | no  ns = no λ { (_ , s) → ns s }
+
+mergeChanges : (Θ₁ Θ₂ : CtxMorph) → Dec (Redundant Θ₁ Θ₂) → List Change
+mergeChanges Θ₁ Θ₂ (yes _) = changes Θ₁
+mergeChanges Θ₁ Θ₂ (no  _) =
+  changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂)
+
 infixl 5 _⋉_
 _⋉_ : CtxMorph → CtxMorph → CtxMorph
-Θ₁ ⋉ Θ₂ =
-  morph (binds Θ₁) (changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂))
+Θ₁ ⋉ Θ₂ = morph (binds Θ₁) (mergeChanges Θ₁ Θ₂ (redundant? Θ₁ Θ₂))

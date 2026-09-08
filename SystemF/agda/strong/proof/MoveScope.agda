@@ -239,16 +239,100 @@ interior-rewind : (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ
   → interior (rewind Θ) Δ ≡ pushBinds (binds Θ) Δ
 interior-rewind Θ mwᵥ = cong (pushBinds (binds Θ)) (scope-rewind Θ mwᵥ)
 
--- The two frames of the contractum, unfolded.
-interior-⋉ : (Θ₁ Θ₂ : CtxMorph) (Ξ : Ctxᵗ)
-  → interior (Θ₁ ⋉ Θ₂) Ξ
+-- ── THE MERGED LIST DOES WHAT THE FULL APPEND DOES ────────────────────
+--
+-- On `no` it IS the append.  On `yes` it is the inner list ALONE, and the
+-- two halves of `Redundant` (strong.CtxMorph §4) are exactly the two
+-- facts that make dropping the copy EXACT:
+--
+--   `applyChanges` — the dropped copy is the IDENTITY where it would have
+--     acted, because the outer changes are a replay
+--     (`applyChanges-rewindChanges` at its `yes`);
+--   `applyUnlocks` — its unmasks are ALREADY ON, because the inner list
+--     runs LAST and unlocks every slot the copy does
+--     (`applyUnlocks-absorb`).
+--
+-- Neither is a refinement step: both are EQUALITIES, so every lemma below
+-- keeps the shape it had.
+
+-- Every operation `applyUnlocks` performs is an `unmask`, and unmasks
+-- COMMUTE (strong.Ctx §6c) — at any two slots, the same one included.
+applyUnlocks-unmask-comm : (S : List Change) (X : ℕ) (Δ : Ctxᵗ)
+  → applyUnlocks S (unmask X Δ) ≡ unmask X (applyUnlocks S Δ)
+applyUnlocks-unmask-comm []             X Δ = refl
+applyUnlocks-unmask-comm (lock Y ∷ S)   X Δ =
+  applyUnlocks-unmask-comm S X Δ
+applyUnlocks-unmask-comm (unlock Y ∷ S) X Δ =
+  trans (cong (unmask Y) (applyUnlocks-unmask-comm S X Δ))
+        (unmask-comm Y X (applyUnlocks S Δ))
+
+-- … so what a list has already unmasked cannot be unmasked again.
+applyUnlocks-∈-idem : (S : List Change) (X : ℕ) (Δ : Ctxᵗ)
+  → X ∈ᴺ unlockSlots S → unmask X (applyUnlocks S Δ) ≡ applyUnlocks S Δ
+applyUnlocks-∈-idem (lock Y ∷ S)   X Δ i = applyUnlocks-∈-idem S X Δ i
+applyUnlocks-∈-idem (unlock Y ∷ S) X Δ hereᴺ = unmask-idem X (applyUnlocks S Δ)
+applyUnlocks-∈-idem (unlock Y ∷ S) X Δ (thereᴺ i) =
+  trans (unmask-comm X Y (applyUnlocks S Δ))
+        (cong (unmask Y) (applyUnlocks-∈-idem S X Δ i))
+
+-- THE ABSORPTION.  `L` runs LAST, so if it unlocks every slot `M`
+-- unlocks then `M`'s unmasks are invisible: `applyUnlocks` is a SET.
+applyUnlocks-absorb : (L M : List Change) (Δ : Ctxᵗ)
+  → unlockSlots M ⊆ᴺ unlockSlots L
+  → applyUnlocks L (applyUnlocks M Δ) ≡ applyUnlocks L Δ
+applyUnlocks-absorb L []             Δ s          = refl
+applyUnlocks-absorb L (lock X ∷ M)   Δ s          =
+  applyUnlocks-absorb L M Δ s
+applyUnlocks-absorb L (unlock X ∷ M) Δ (sub∷ i s) =
+  trans (applyUnlocks-unmask-comm L X (applyUnlocks M Δ))
+        (trans (cong (unmask X) (applyUnlocks-absorb L M Δ s))
+               (applyUnlocks-∈-idem L X Δ i))
+
+merge-applyChanges : (Θ₁ Θ₂ : CtxMorph) (d : Dec (Redundant Θ₁ Θ₂))
+  {Δ : Ctxᵗ} → Δ ⊢ˢ changes Θ₂
+  → applyChanges (mergeChanges Θ₁ Θ₂ d) (pushBinds (binds Θ₂) Δ)
+      ≡ applyChanges (changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂))
+                     (pushBinds (binds Θ₂) Δ)
+merge-applyChanges Θ₁ Θ₂ (no _)        b = refl
+merge-applyChanges Θ₁ Θ₂ (yes (r , _)) {Δ = Δ} b =
+  sym (trans (applyChanges-++ (changes Θ₁)
+                              (shiftScope (numBinds Θ₂) (changes Θ₂))
+                              (pushBinds (binds Θ₂) Δ))
+             (cong (applyChanges (changes Θ₁)) copy-id))
+  where
+  copy-id : applyChanges (shiftScope (numBinds Θ₂) (changes Θ₂))
+              (pushBinds (binds Θ₂) Δ) ≡ pushBinds (binds Θ₂) Δ
+  copy-id =
+    trans (applyChanges-shiftScope (binds Θ₂) (changes Θ₂) Δ)
+          (cong (pushBinds (binds Θ₂))
+                (applyChanges-rewindChanges (changes Θ₂) (yes r) b))
+
+merge-applyUnlocks : (Θ₁ Θ₂ : CtxMorph) (d : Dec (Redundant Θ₁ Θ₂))
+  (Ξ : Ctxᵗ)
+  → applyUnlocks (mergeChanges Θ₁ Θ₂ d) Ξ
+      ≡ applyUnlocks (changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ
+merge-applyUnlocks Θ₁ Θ₂ (no _)        Ξ = refl
+merge-applyUnlocks Θ₁ Θ₂ (yes (_ , s)) Ξ =
+  sym (trans (applyUnlocks-++ (changes Θ₁)
+                              (shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ)
+             (applyUnlocks-absorb (changes Θ₁)
+               (shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ s))
+
+-- The two frames of the contractum, unfolded.  (The interior one is read
+-- at the type context the move puts it over — the rewound frame's
+-- interior — because that is where the dropped copy is the identity.)
+interior-⋉ : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ˢ changes Θ₂
+  → interior (Θ₁ ⋉ Θ₂) (pushBinds (binds Θ₂) Δ)
       ≡ pushBinds (binds Θ₁)
           (applyChanges (changes Θ₁)
-            (applyChanges (shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ))
-interior-⋉ Θ₁ Θ₂ Ξ =
+            (applyChanges (shiftScope (numBinds Θ₂) (changes Θ₂))
+                          (pushBinds (binds Θ₂) Δ)))
+interior-⋉ Θ₁ Θ₂ {Δ = Δ} b =
   cong (pushBinds (binds Θ₁))
-       (applyChanges-++ (changes Θ₁)
-                        (shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ)
+       (trans (merge-applyChanges Θ₁ Θ₂ (redundant? Θ₁ Θ₂) b)
+              (applyChanges-++ (changes Θ₁)
+                               (shiftScope (numBinds Θ₂) (changes Θ₂))
+                               (pushBinds (binds Θ₂) Δ)))
 
 convCtx-⋉ : (Θ₁ Θ₂ : CtxMorph) (Ξ : Ctxᵗ)
   → convCtx (Θ₁ ⋉ Θ₂) Ξ
@@ -257,8 +341,9 @@ convCtx-⋉ : (Θ₁ Θ₂ : CtxMorph) (Ξ : Ctxᵗ)
             (applyUnlocks (shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ))
 convCtx-⋉ Θ₁ Θ₂ Ξ =
   cong (pushBinds (binds Θ₁))
-       (applyUnlocks-++ (changes Θ₁)
-                        (shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ)
+       (trans (merge-applyUnlocks Θ₁ Θ₂ (redundant? Θ₁ Θ₂) Ξ)
+              (applyUnlocks-++ (changes Θ₁)
+                               (shiftScope (numBinds Θ₂) (changes Θ₂)) Ξ))
 
 ------------------------------------------------------------------------
 -- §4  THE FRAME LEMMAS — EQUALITIES
@@ -289,7 +374,7 @@ interior-⋉-rewind : (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ₂
   → interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)
 interior-⋉-rewind Θ₁ Θ₂ {Δ = Δ} mwᵥ
   rewrite interior-rewind Θ₂ mwᵥ =
-  trans (interior-⋉ Θ₁ Θ₂ (pushBinds (binds Θ₂) Δ))
+  trans (interior-⋉ Θ₁ Θ₂ (mw-changes mwᵥ))
         (cong (λ Ξ → pushBinds (binds Θ₁) (applyChanges (changes Θ₁) Ξ))
               (applyChanges-shiftScope (binds Θ₂) (changes Θ₂) Δ))
 
@@ -438,11 +523,25 @@ _ = refl
 -- nameable than where the redex read them, so `⊢ʳ-⊑` carries them and
 -- nothing has to be re-derived — under a SIMULTANEOUS reading on the
 -- PLAIN exterior neither half would survive.
-⊢ᵐ-⋉ : ∀ (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ}
+-- WHEN THE MOVED COPY IS DROPPED, THE MERGED FRAME IS Θ₁ ITSELF, and its
+-- `⊢ᵐ` is Θ₁'s own: the rewound frame's interior IS Θ₂'s interior,
+-- because Θ₂'s changes are a replay.  Both halves travel by `subst`
+-- along that ONE equality — no `⊢ˢ-++`, no `⊢ʳ-⊑`, nothing re-derived.
+⊢ᵐ-⋉ᴰ : ∀ (Θ₁ Θ₂ : CtxMorph) (d : Dec (Redundant Θ₁ Θ₂)) {Δ : Ctxᵗ}
   → Δ ⊢ᵐ Θ₂ → interior Θ₂ Δ ⊢ᵐ Θ₁
-  → interior (rewind Θ₂) Δ ⊢ᵐ (Θ₁ ⋉ Θ₂)
-⊢ᵐ-⋉ Θ₁ Θ₂ {Δ = Δ} b₂ b₁ =
-  subst (λ Ξ → Ξ ⊢ᵐ (Θ₁ ⋉ Θ₂)) (sym (interior-rewind Θ₂ b₂))
+  → interior (rewind Θ₂) Δ ⊢ᵐ morph (binds Θ₁) (mergeChanges Θ₁ Θ₂ d)
+⊢ᵐ-⋉ᴰ Θ₁ Θ₂ (yes (r , _)) {Δ = Δ} b₂ b₁ =
+  subst (λ Ξ → Ξ ⊢ᵐ Θ₁) (sym rewound-interior) b₁
+  where
+  rewound-interior : interior (rewind Θ₂) Δ ≡ interior Θ₂ Δ
+  rewound-interior =
+    trans (interior-rewind Θ₂ b₂)
+          (cong (pushBinds (binds Θ₂))
+                (sym (applyChanges-rewindChanges (changes Θ₂) (yes r)
+                                                 (mw-changes b₂))))
+⊢ᵐ-⋉ᴰ Θ₁ Θ₂ (no _) {Δ = Δ} b₂ b₁ =
+  subst (λ Ξ → Ξ ⊢ᵐ morph (binds Θ₁) (changes Θ₁ ++ S₂))
+        (sym (interior-rewind Θ₂ b₂))
         (mw reps chgs)
   where
   S₂ : List Change
@@ -469,6 +568,11 @@ _ = refl
                  (sym (applyChanges-shiftScope (binds Θ₂) (changes Θ₂) Δ))
                  (mw-changes b₁))
           (⊢ˢ-shiftScope (binds Θ₂) (changes Θ₂) (mw-changes b₂))
+
+⊢ᵐ-⋉ : ∀ (Θ₁ Θ₂ : CtxMorph) {Δ : Ctxᵗ}
+  → Δ ⊢ᵐ Θ₂ → interior Θ₂ Δ ⊢ᵐ Θ₁
+  → interior (rewind Θ₂) Δ ⊢ᵐ (Θ₁ ⋉ Θ₂)
+⊢ᵐ-⋉ Θ₁ Θ₂ b₂ b₁ = ⊢ᵐ-⋉ᴰ Θ₁ Θ₂ (redundant? Θ₁ Θ₂) b₂ b₁
 
 ------------------------------------------------------------------------
 -- §6  THE TWO CASES

@@ -383,7 +383,8 @@ shiftScope n (lock X ∷ S)   = lock (n + X) ∷ shiftScope n S
 -- own — the reps are read on EXACTLY the same type context, so not even
 -- a `⊢ʳ-⊑` step appears); on `no` they are the replay's, as before.
 
--- The SECOND HALF of a change list: the candidate Q in `S ≡ dualScope 0 Q ++ Q`.
+-- The SECOND HALF of a change list: the candidate Q in
+-- `S ≡ dualScope 0 Q ++ Q`.
 half : ℕ → ℕ
 half zero          = zero
 half (suc zero)    = zero

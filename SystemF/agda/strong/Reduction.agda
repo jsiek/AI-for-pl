@@ -162,6 +162,13 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `pushBinds (binds Θ₂) Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
   -- exterior type C.  That is what retires the wall — the case needs no
   -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
+  --
+  -- NEITHER FRAME COPIES WHAT IS ALREADY THERE (2026-09-08).  `rewind`
+  -- does not replay a list that IS a replay and `_⋉_` drops a moved copy
+  -- whose unmasks the inner list already performs (strong.CtxMorph §4);
+  -- both drops are EXACT, so determinism below is untouched — `rewind`
+  -- and `_⋉_` are still functions of the two frames alone.  Without them
+  -- a run's change lists DOUBLE at every pass (Examples §16).
   IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
         -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ rewind Θ₂ , mkId A ⟫

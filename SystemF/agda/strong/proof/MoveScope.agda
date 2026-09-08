@@ -17,8 +17,9 @@ module strong.proof.MoveScope where
 --
 -- `Θ₁ ⋉ Θ₂` appends Θ₂'s whole CHANGE LIST (locks AND unlocks, in order,
 -- lifted past Θ₂'s binders) at Θ₁'s TAIL, where `applyChanges` applies it
--- FIRST; and `rewind Θ₂` is Θ₂ with its own changes UNDONE, so what is
--- left of the outer frame is the BIND BLOCK, in net effect:
+-- FIRST — unless that copy is redundant, see below; and `rewind Θ₂` is Θ₂
+-- with its own changes UNDONE, so what is left of the outer frame is the
+-- BIND BLOCK, in net effect:
 --
 --   scope    (rewind Θ₂) Δ ≡ Δ                          (given Δ ⊢ᵐ Θ₂)
 --   interior (rewind Θ₂) Δ ≡ pushBinds (binds Θ₂) Δ
@@ -40,9 +41,22 @@ module strong.proof.MoveScope where
 -- conversion presents is read OUTSIDE Θ₂'s locks, where
 -- `wf-shiftBy-pushBinds` supplies the premise the wall used to deny.
 --
+-- AND NEITHER FRAME COPIES WHAT IS ALREADY THERE (2026-09-08).  Both
+-- `rewind` and `_⋉_` carry a REDUNDANCY TEST (strong.CtxMorph §4): a
+-- replay is not replayed again, and a moved copy whose unmasks the inner
+-- list already performs — the outer changes being a replay, so the copy
+-- is the identity on the interior — is DROPPED.  Every lemma below keeps
+-- the statement it had, because both drops are EXACT; what changes is
+-- that each has two branches, and on the redundant one the obligation is
+-- the ORIGINAL frame's, on the nose.  Without the tests the change lists
+-- double at every pass (Examples §16), and what no exact rewriting can
+-- shrink is catalogued in proof/RewindNorm.
+--
 --   §1  the lookup transports
---   §2  the list algebra of `shiftScope`/`rewind`/`_⋉_`
---   §3  the type-context identities
+--   §2  the list algebra of `shiftScope`/`rewind`/`_⋉_`, and
+--       `rewind-idem`
+--   §3  the type-context identities, the unmask SET algebra
+--       (`applyUnlocks-absorb`) and the two merge bridges
 --   §4  the FRAME LEMMAS, as EQUALITIES
 --   §4b why the unlocks travel too — the lock-only move, REFUTED
 --   §5  `_⊢ᵐ_` for the two new frames

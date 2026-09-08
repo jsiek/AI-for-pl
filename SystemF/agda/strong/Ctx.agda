@@ -486,10 +486,11 @@ updateAt f (suc X) (E ∷ Δ) = E ∷ updateAt f X Δ
 
 -- SETTING THE LOCK, AND CLEARING IT.  Both are TOTAL and IDEMPOTENT:
 -- there is only one lock to set or clear.  `maskEnt` is never applied to
--- an already-masked slot in a well-formed term — `sw-l` (strong.CtxMorph)
--- and `mw-l` demand that the slot be NAMEABLE — but the function does not
--- have to know that, and that is the point: nothing has to rule out a
--- second mask, because a second mask is not expressible.
+-- an already-masked slot in a well-formed term — `sw-l`
+-- (strong.CtxMorph), the change half of `Δ ⊢ᵐ Θ`, admits `lock X` only at
+-- a NAMEABLE slot — but the function does not have to know that, and that
+-- is the point: nothing has to rule out a second mask, because a second
+-- mask is not expressible.
 maskEnt : Ent → Ent
 maskEnt (unmasked b) = masked b
 maskEnt (masked b)   = masked b

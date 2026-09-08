@@ -3708,17 +3708,23 @@ sumChanges (M ⟪ Θ , c ⟫)  = length (changes Θ) + sumChanges M
 peak : (Term → ℕ) → List Term → ℕ
 peak f Ms = foldr (λ M n → f M ⊔ n) 0 Ms
 
--- 36 STEPS TO 42.
-_ : traceLen (eval 40 ⊢F₀) ≡ 36
+-- 49 STEPS TO 42 (36 before frame-exact Beta, PR #199: the values that
+-- Beta pushes under ΛY now carry a `↓Y` wrapper, which the later
+-- IdPush/CancelR passes must push through and whose change lists the
+-- scope move duplicates).
+_ : traceLen (eval 60 ⊢F₀) ≡ 49
 _ = refl
 
-_ : traceEnd (eval 40 ⊢F₀) ≡ $ 42
+_ : traceEnd (eval 60 ⊢F₀) ≡ $ 42
 _ = refl
 
--- THE TWO MEASUREMENTS.  Before the redundancy tests these were 130 and
--- 389.
-_ : peak maxChanges (traceTerms (eval 40 ⊢F₀)) ≡ 50
+-- THE TWO MEASUREMENTS, with the redundancy tests of strong.CtxMorph §4.
+-- Before frame-exact Beta they were 50 / 101 (and 130 / 389 without the
+-- redundancy tests); the extra `↓Y` layers compound with the scope move,
+-- so the residue (merges of lists unlocking DIFFERENT slots) now
+-- dominates.  See notes/DECISIONS.md, "Change-list growth".
+_ : peak maxChanges (traceTerms (eval 60 ⊢F₀)) ≡ 248
 _ = refl
 
-_ : peak sumChanges (traceTerms (eval 40 ⊢F₀)) ≡ 101
+_ : peak sumChanges (traceTerms (eval 60 ⊢F₀)) ≡ 518
 _ = refl

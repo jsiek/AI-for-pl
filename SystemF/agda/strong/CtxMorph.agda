@@ -145,7 +145,7 @@ interior⊑convCtx Θ Δ =
 ⊑-applyChanges (unlock X ∷ S) ls =
   ⊑-updateAt unmaskEnt unmaskEnt-comm unmaskEnt-mono (⊑-applyChanges S ls)
 ⊑-applyChanges (lock X ∷ S)   ls =
-  ⊑-updateAt masked masked-comm masked-mono (⊑-applyChanges S ls)
+  ⊑-updateAt maskEnt maskEnt-comm maskEnt-mono (⊑-applyChanges S ls)
 
 ⊑-applyUnlocks : (S : List Change) → Δ ⊑ Δ′
   → applyUnlocks S Δ ⊑ applyUnlocks S Δ′
@@ -172,7 +172,7 @@ interior⊑convCtx Θ Δ =
 ⊑ᵃ-applyChanges (unlock X ∷ S) ls =
   ⊑ᵃ-updateAt unmaskEnt unmaskEnt-monoᵃ (⊑ᵃ-applyChanges S ls)
 ⊑ᵃ-applyChanges (lock X ∷ S)   ls =
-  ⊑ᵃ-updateAt masked masked-monoᵃ (⊑ᵃ-applyChanges S ls)
+  ⊑ᵃ-updateAt maskEnt maskEnt-monoᵃ (⊑ᵃ-applyChanges S ls)
 
 ⊑ᵃ-scope : (Θ : CtxMorph) → Δ ⊑ᵃ Δ′ → scope Θ Δ ⊑ᵃ scope Θ Δ′
 ⊑ᵃ-scope Θ ls = ⊑ᵃ-applyChanges (changes Θ) ls

@@ -43,7 +43,8 @@ open import Data.String using (String; _++_)
 open import Data.Product using (_×_; _,_; proj₁)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
-open import strong.Ctx using (Ent; abst; bind; masked; Ctxᵗ)
+open import strong.Ctx
+  using (Ent; Binding; unmasked; masked; abst; bind; Ctxᵗ)
 open import strong.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
 open import strong.Terms using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫)
 open import strong.CtxMorph
@@ -238,10 +239,16 @@ showTm td xd tys tms M = proj₁ (showTmF td tys tms (mkSt td xd) M)
 -- type contexts (entries named newest-first: slot 0 = X)
 ------------------------------------------------------------------------
 
+-- The binding layer renders the slot; the lock layer wraps it in `⌷[…]`.
+-- The rendered strings are exactly as before — `X := A`, `X Λ-bound`,
+-- `⌷[…]` — but the recursion is gone: one lock, one wrap.
+showBinding : ℕ → Supply → String → Binding → String
+showBinding d sup nm abst     = nm ++ " Λ-bound"
+showBinding d sup nm (bind A) = nm ++ " := " ++ showTy d sup A
+
 showEntry : ℕ → Supply → String → Ent → String
-showEntry d sup nm abst       = nm ++ " Λ-bound"
-showEntry d sup nm (bind A)   = nm ++ " := " ++ showTy d sup A
-showEntry d sup nm (masked E) = "⌷[" ++ showEntry d sup nm E ++ "]"
+showEntry d sup nm (unmasked b) = showBinding d sup nm b
+showEntry d sup nm (masked b)   = "⌷[" ++ showBinding d sup nm b ++ "]"
 
 showTCtxAt : ℕ → ℕ → Supply → Ctxᵗ → String
 showTCtxAt d i sup [] = "·"

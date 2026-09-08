@@ -102,7 +102,7 @@ data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
       ----------------------------------------------
     → Δ ⊢ s ↦ t ∶ (A ⇒ B) ⇝ (A′ ⇒ B′)
 
-  conv-all : ∀ {s} → (abst ∷ Δ) ⊢ s ∶ A ⇝ B
+  conv-all : ∀ {s} → (unmasked abst ∷ Δ) ⊢ s ∶ A ⇝ B
       --------------------------------------
     → Δ ⊢ `∀ s ∶ `∀ A ⇝ `∀ B
 
@@ -233,7 +233,8 @@ conv-⊑ ls (conv-idv tv)    = conv-idv (⊑-tv ls tv)
 conv-⊑ ls (conv-unseal d)  = conv-unseal (⊑-kn ls d)
 conv-⊑ ls (conv-seal d)    = conv-seal (⊑-kn ls d)
 conv-⊑ ls (conv-fun s t)   = conv-fun (conv-⊑ ls s) (conv-⊑ ls t)
-conv-⊑ ls (conv-all s)     = conv-all (conv-⊑ (le∷ le-aa ls) s)
+conv-⊑ ls (conv-all s)     =
+  conv-all (conv-⊑ (le∷ (le-uu le-aa) ls) s)
 
 ------------------------------------------------------------------------
 -- 7.  Conversion inversions
@@ -275,7 +276,7 @@ conv-id-refl (conv-idv _) = refl
 -- than by matching `conv-all` directly.
 conv-all-inv : ∀ {s A B} → Δ ⊢ `∀ s ∶ A ⇝ B
   → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]
-      ((A ≡ `∀ A₀) × (B ≡ `∀ B₀) × ((abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B₀))
+      ((A ≡ `∀ A₀) × (B ≡ `∀ B₀) × ((unmasked abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B₀))
 conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 
 ------------------------------------------------------------------------

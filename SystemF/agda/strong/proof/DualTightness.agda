@@ -53,7 +53,7 @@ open import strong.Reduction
 
 -- … but it IS locked, so an `unlock` may cite it.
 ∋lk-Δᵤ : Δᵤ ∋lk 0
-∋lk-Δᵤ = masked (bind `ℕ) , ez , locked nameable-b
+∋lk-Δᵤ = masked (bind `ℕ) , ez , locked
 
 -- The boundary's morphism UNMASKS U for its interior (the
 -- crossing-of-crossing shape: an inner region re-exposes what an outer
@@ -61,7 +61,7 @@ open import strong.Reduction
 Θᵤ : CtxMorph
 Θᵤ = morph [] (unlock 0 ∷ [])
 
-_ : interior Θᵤ Δᵤ ≡ bind `ℕ ∷ []
+_ : interior Θᵤ Δᵤ ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
 ------------------------------------------------------------------------
@@ -89,7 +89,7 @@ W = ƛ `ℕ ∙ ((Λ ($ 3)) ·[ `ℕ , ` 0 ])
 -- The boundary ALONE is well typed at Δᵤ …
 ⊢Vb : Δᵤ ∣ [] ⊢ V ⟪ Θᵤ , cᵤ ⟫ ⦂ ((`ℕ ⇒ `ℕ) ⇒ (`ℕ ⇒ `ℕ))
 ⊢Vb = env (mw rw[] (sw-u ∋lk-Δᵤ sw[]))
-          (⊢ƛ (wf-⇒ (wf-var (bind `ℕ , ez , nameable-b)) wf-ℕ) (⊢` here))
+          (⊢ƛ (wf-⇒ (wf-var (unmasked (bind `ℕ) , ez , nameable)) wf-ℕ) (⊢` here))
           (conv-fun (conv-fun (conv-unseal ez) (conv-id base-ℕ))
                     (conv-fun (conv-seal ez) (conv-id base-ℕ)))
           (wf-⇒ (wf-⇒ wf-ℕ wf-ℕ) (wf-⇒ wf-ℕ wf-ℕ))
@@ -141,7 +141,7 @@ _ = refl
 -- Θˡ locks it; the dual unlocks it again, and the argument's frame inside
 -- is Δ with the bind prefix masked — Z still nameable.
 Δˡ : Ctxᵗ
-Δˡ = bind `ℕ ∷ []
+Δˡ = unmasked (bind `ℕ) ∷ []
 
 Θˡ : CtxMorph
 Θˡ = morph [] (lock 0 ∷ [])
@@ -153,7 +153,7 @@ _ : dual Θˡ ≡ morph [] (unlock 0 ∷ [])
 _ = refl
 
 -- the crossing frame is Δˡ back: Z is nameable, exactly as at the exterior
-_ : interior (dual Θˡ) (interior Θˡ Δˡ) ≡ bind `ℕ ∷ []
+_ : interior (dual Θˡ) (interior Θˡ Δˡ) ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
 ------------------------------------------------------------------------
@@ -167,7 +167,7 @@ _ = refl
 -- what the exterior left visible — so the judgement must refuse it, and
 -- does.
 Δᵥ : Ctxᵗ
-Δᵥ = bind `ℕ ∷ []
+Δᵥ = unmasked (bind `ℕ) ∷ []
 
 Θᵥ : CtxMorph
 Θᵥ = morph [] (unlock 0 ∷ [])

@@ -39,11 +39,11 @@ unlock-claims-a-lock : ∀ {Δ X S} → applyChanges S Δ ∋lk X → Δ ⊢ˢ S
   → Δ ⊢ˢ (unlock X ∷ S)
 unlock-claims-a-lock = sw-u
 
--- The claim mentions no representation: all it hands back is a
--- NAMEABLE entry under one mask, and `Nameable` is `abst` or `bind`
--- without reading the bind's type.
+-- The claim mentions no representation: all it hands back is the entry
+-- with its ONE lock cleared, and `Nameable` reads only the lock layer —
+-- it never looks at the `Binding`, let alone a bind's type.
 unlock-mentions-no-rep : ∀ {Δ X} → Δ ∋lk X → ∃[ E ] Nameable E
-unlock-mentions-no-rep (masked E , _ , locked v) = E , v
+unlock-mentions-no-rep (masked b , _ , locked) = unmasked b , nameable
 
 ------------------------------------------------------------------------
 -- 2.  THE ADVERSARY (the old ⊢3n-adv): a conceal asserting false knowledge
@@ -56,7 +56,7 @@ unlock-mentions-no-rep (masked E , _ , locked v) = E , v
 -- (`unlock-claims-a-lock`).
 
 Δadv : Ctxᵗ
-Δadv = abst ∷ []
+Δadv = unmasked abst ∷ []
 
 ¬know-adv : ∀ {A} → Δadv ∋ 0 := A → ⊥
 ¬know-adv ()
@@ -79,7 +79,7 @@ unlock-mentions-no-rep (masked E , _ , locked v) = E , v
 ∀ZZ = `∀ (` 0 ⇒ ` 0)
 
 Δbad : Ctxᵗ
-Δbad = bind ∀ZZ ∷ []
+Δbad = unmasked (bind ∀ZZ) ∷ []
 
 seal-bad-conv : ∀ {A B} → Δbad ⊢ seal 0 ∶ A ⇝ B → A ≡ ⇑ᵗ ∀ZZ
 seal-bad-conv (conv-seal ez) = refl

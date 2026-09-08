@@ -88,7 +88,7 @@ convCtx-lock Θ Δ = refl
 -- V's licence cites a slot Δ does not even have.
 
 Δₑ : Ctxᵗ
-Δₑ = bind `ℕ ∷ []
+Δₑ = unmasked (bind `ℕ) ∷ []
 
 Δₑ-no-1 : ∀ {E} → Δₑ ∋e 1 , E → ⊥
 Δₑ-no-1 (es ())

@@ -27,6 +27,7 @@
 \newcommand{\func}{\to}
 \newcommand{\reduce}{\longrightarrow}
 \newcommand{\boundary}[4]{{\,}^{#3}_{\nu #2}\!\left[#1\right]_{#4}}
+\newcommand{\tsubst}[4]{#1[#2\by#3:#4]}
 \newcommand{\tyapp}[2]{#1\,#2}
 \newcommand{\app}[2]{#1\,#2}
 \newcommand{\seal}[1]{-#1}
@@ -60,7 +61,13 @@
 \newcommand{\Nat}{\mathbb{N}}
 \newcommand{\idZ}{\Lam{Z} \lam{z\of Z} z}
 \newcommand{\rY}[1]{\region{scopeY}{#1}}
+\newcommand{\rXY}[1]{\region{scopeY}{#1}} % nodes where X and Y are in scope
 \newcommand{\cid}{\forall Z.\, (\idconv{Z} \func \idconv{Z})}   % the ∀ identity conversion
+\newcommand{\Bool}{\mathbb{B}}
+\newcommand{\cidZ}{\forall Z.\,(\idconv{Z} \func \idconv{Z})}
+\newcommand{\cidY}{\forall Y.\,(\idconv{Y} \func \idconv{Y})}
+\newcommand{\rev}[2]{#1\,{\uparrow}[#2]}   % the old per-variable wrappers
+\newcommand{\cnc}[2]{#1\,{\downarrow}[#2]}
 
 
 \setbeamertemplate{navigation symbols}{}
@@ -161,7 +168,98 @@
 \end{itemize}
 
 }
+%===============================================================================
+\frame{
+  \frametitle{An example that breaks Fitch-style locking}
+  \small
+  The term $\rev{M}{\bind{X}{A}}$ reveals $X$ outward,
+  $\cnc{M}{\bind{X}{A}}$ conceals it; the interior of a conceal was typed at
+  $\Gamma\!\downarrow\!X$, the context with $X$ \emph{and everything bound
+  after it} dropped.
+  \begin{align*}
+    &\app{\tyapp{\big(\app{\tyapp{(\rX{\Lam{X} \lam{f\of(\forall Z.\,Z\func Z)} \Lam{Y}
+  \tyapp{f}{Y}})}{\Nat}}{(\rZ{\idZ})}\big)}{\Bool}}{\kw{true}}\\
+    \reduce\;&\app{\tyapp{\big(\app{\rev{(\rX{\lam{f\of(\forall Z.\,Z\func Z)} \Lam{Y}
+  \tyapp{f}{Y}})}{\bind{X}{\Nat}}}{(\rZ{\idZ})}\big)}{\Bool}}{\kw{true}}
+       \\
+    \reduce\;&\app{\tyapp{\big(\rev{(\rX{\app{(\lam{f}\Lam{Y}\tyapp{f}{Y})}{\cnc{(\rZ{\idZ})}{\bind{X}{\Nat}}}})}{\bind{X}{\Nat}}
+  \big)}{\Bool}}{\kw{true}}
+       \\
+    \reduce\;&\app{\tyapp{\big(\rev{(\rX{\Lam{Y}
+  \tyapp{\cnc{(\rZ{\idZ})}{\bind{X}{\Nat}}}{Y}})}{\bind{X}{\Nat}}\big)}{\Bool}}{\kw{true}}
+       \\
+    \reduce\;&\app{\tyapp{\big(\rev{(\rX{\Lam{Y}
+  \cnc{(\tyapp{(\rZ{\idZ})}{Y})}{\bind{X}{\Nat}}})}{\bind{X}{\Nat}}\big)}{\Bool}}{\kw{true}}
+  \end{align*}
 
+  The last term is ill-typed because $\tyapp{(\idZ)}{Y}$ refers to $Y$
+  which is blocked by the $\downarrow \bind{X}{\Nat}$.
+
+  
+  %% The rule that fired:
+  %% \[
+  %%   \tyapp{\cnc{F}{\bind{X}{A}}}{C} \;\reduce\; \cnc{(\tyapp{F}{C[X{:=}A]})}{\bind{X}{A}}
+  %% \]
+  %% It pushes the type argument $Y$ \emph{into} the concealed body, whose
+  %% context is $(Y,\,X{:=}\Nat)\!\downarrow\!X = \emptyset$: the conceal was born
+  %% before $\Lambda Y$ and drifted under it.  $\tyapp{(\idZ)}{Y}$ names a
+  %% variable its context does not have.
+}
+
+%===============================================================================
+%% \frame{
+%%   \frametitle{Why $\nu[F]$ does not have this problem}
+%%   \begin{itemize}
+%%   \item \textbf{Mask, do not drop.}  A conceal is an anti-binding $\lockX{X}$
+%%     that \emph{masks} $X$ in place; every other entry of the context stays.
+%%     The interior of the drifted boundary is computed from its exterior
+%%     \emph{at its current position}:
+%%     \[
+%%       \text{under } \Lambda Y:\quad
+%%       \text{interior} = Y\ \Lambda\text{-bound},\ \maskentry{\bind{X}{\Nat}}
+%%       \qquad\gray{\text{(machine-checked, Examples §14)}}
+%%     \]
+%%     so $Y$ is nameable inside and $X$ is not — exactly the colours.
+%%   \item \textbf{Never push a type argument into a concealed body.}
+%%     \textsc{TyPeelR} records it as a new binding on the boundary and
+%%     instantiates at the fresh name:
+%%     \[
+%%       \tyapp{\boundary{V}{\Theta}{\delta}{\forall Z.\,c}}{A}
+%%       \;\reduce\;
+%%       \boundary{\tyapp{V}{Z}}{\bind{Z}{A},\Theta}{\delta}{\unsealatc{Z}{c}}
+%%     \]
+%%     The interior sees $Z$; the boundary remembers $Z := Y$.  This is why a
+%%     boundary carries a \emph{list} of bindings and anti-bindings.
+%%   \item Both are theorems, not hopes: preservation is unconditional, and
+%%     Examples §15 shows no rule ever lets a subterm gain a variable.
+%%   \end{itemize}
+%% }
+
+%===============================================================================
+\frame{
+  \frametitle{The same program in $\nu[F]$}
+  \scriptsize
+  \resizebox{\textwidth}{!}{$
+  \begin{aligned}
+    &\app{\tyapp{\left(\app{\tyapp{\left(\rX{\Lam{X} \lam{f\of(\forall Z.\,Z\func Z)} \rXY{\Lam{Y}
+  \tyapp{f}{Y}}}\right)}{\Nat}}{(\rZ{\idZ})}\right)}{\Bool}}{\kw{true}}\\
+    \reduce\;&\app{\tyapp{\left(\app{\boundary{\rX{\lam{f\of(\forall Z.\,Z\func Z)}\rXY{\Lam{Y}\tyapp{f}{Y}}}}{\bind{X}{\Nat}}{\emptyset}{\cidZ
+  \func \cidY}}{(\rZ{\idZ})}\right)}{\Bool}}{\kw{true}}\\
+    \reduce\;&\app{\tyapp{\left(\boundary{\rX{\app{(\lam{f}\rXY{\Lam{Y}\tyapp{f}{Y}})}{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cidZ}}}}{\bind{X}{\Nat}}{\emptyset}{\cidY}\right)}{\Bool}}{\kw{true}}\\
+    \reduce\;&\app{\tyapp{\left(\boundary{\rX{\rXY{\Lam{Y}\tyapp{\boundary{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cidZ}}{\emptyset}{\lockX{Y}}{\cidZ}}{Y}}}}{\bind{X}{\Nat}}{\emptyset}{\cidY
+  }\right)}{\Bool}}{\kw{true}}\\
+    \reduce\;&\app{\tyapp{\left(\boundary{
+      \rX{\rXY{\Lam{Y}\boundary{\tyapp{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cidZ}}{Z}}
+        {\bind{Z}{Y}}{\lockX{Y}}{\seal{Z}\func\unseal{Z}}}}
+    }{\bind{X}{\Nat}}{\emptyset}{\cidY}\right)}{\Bool}}{\kw{true}}\\
+    \reduce\;&\app{\tyapp{\left(\boundary{
+      \rX{\rXY{\Lam{Y}\boundary{
+        \boundary{\rZ{\lam{z\of Z'}z}}{\bind{Z'}{Z}}{\lockX{X}}{\seal{Z'}\func\unseal{Z'}}
+      }{\bind{Z}{Y}}{\lockX{Y}}{\seal{Z}\func\unseal{Z}}}}
+    }{\bind{X}{\Nat}}{\emptyset}{\cidY}\right)}{\Bool}}{\kw{true}}\\
+    \reduce^{*}\;&\kw{true}
+  \end{aligned}$}
+  }
 %===============================================================================
 \frame{
 \frametitle{$\nu[F]$, a colorful System F}
@@ -206,6 +304,10 @@
 \end{array}
 \]
 \endgroup
+
+\footnote{Conversions are inspired by Henglein's Coercion Calculus
+(1994) and provide an alternative representation of the static casts
+of Ahmed et al. (2011)}
 }
 %===============================================================================
 \frame{
@@ -471,13 +573,34 @@ and its conversion has inert form $c^i$.
 }
 %===============================================================================
 \frame{
+  \frametitle{Term substitution}
+  \small
+  \[
+  \begin{aligned}
+  \tsubst{x}{x}{W}{A} &= W \\
+  \tsubst{y}{x}{W}{A} &= y
+    && \text{if }y\neq x \\
+  \tsubst{(\lam{y\of B)}N}{x}{W}{A}
+    &= \lam{y\of B}\tsubst{N}{x}{W}{A} \\
+  \tsubst{(L\,M)}{x}{W}{A}
+    &= \tsubst{L}{x}{W}{A}\,\tsubst{M}{x}{W}{A} \\
+  \HI{\tsubst{\boundary{M}{\Theta}{\delta}{c}}{x}{W}{A}}
+    &= \HI{\boundary{M}{\Theta}{\delta}{c}} \\
+  \HI{\tsubst{(\Lambda Y.\,N)}{x}{W}{A}}
+    &= \HI{\Lambda Y.\,
+      \tsubst{N}{x}{\boundary{W}{\emptyset}{\lockX{Y}}{\idconv{A}}}{A}}
+  \end{aligned}
+  \]
+}
+%===============================================================================
+\frame{
 \frametitle{Reduction: elimination rules}
 
 \hfill\fbox{$\Delta \vdash M \reduce N$}
 
 \begin{align*}
 \Delta \vdash (\lam{x\of A}N)\,W
-  &\reduce N[x\by W]
+  &\reduce \tsubst{N}{x}{W}{A}
 \\[2ex]
 \Delta \vdash \boundary{V}{\Theta}{\delta}{c\func d}\,W
   &\reduce \boundary{V\,\boundary{W}{\hide{\Theta}}
@@ -487,10 +610,24 @@ and its conversion has inert form $c^i$.
 \Delta \vdash \tyapp{(\Lam{X}V_B)}{A}
   &\reduce \boundary{V}{\bind{X}{A}}{\emptyset}{\unsealat{X}{B}}
 \\[2ex]
-\Delta \vdash \tyapp{\boundary{V}{\Theta}{\delta}{\forall X.\,c}}{A}
-&\reduce \boundary{\tyapp{V}{X}}{\bind{X}{A},\Theta}{\delta}
-                  {\unsealatc{X}{c}}
+\Delta \vdash \tyapp{\boundary{\Lambda X.\,V}{\Theta}{\delta}{\forall X.\,c}}{A}
+&\reduce \boundary{V}{\bind{X}{A},\Theta}{\delta}{\unsealatc{X}{c}}
+\\[2ex]
+\Delta \vdash
+\tyapp{\boundary{\boundary{W}{\Theta'}{\delta'}{\forall X.\,d}}
+                   {\Theta}{\delta}{\forall Y.\,c}}{A}
+&\reduce
+\boundary{\tyapp{\boundary{W}{\Theta'}
+                              {\delta'\append\lockX{Y}}{\forall X.\,d}}{Y}}
+          {\bind{Y}{A},\Theta}{\delta}{\unsealatc{Y}{c}}
 \end{align*}
+TODO: merge the two rules
+\[
+\Delta \vdash \tyapp{\boundary{V}{\Theta}{\delta}{\forall X.\,c}}{A}
+\reduce
+\boundary{\tyapp{ \boundary{V}{\Theta}{-X,\delta}{}  }{X}}{\bind{X}{A}}{\emptyset}{\unsealatc{X}{c}}
+\]
+
 
 }
 %===============================================================================
@@ -604,8 +741,8 @@ Every term has at most one immediate reduct.
 \frame{
 \frametitle{Other Properties?}
 
-Subject expansion is false, but I want something like subject
-expansion.
+TODO: The set of type variables in scope at every subterm (not include
+boundaries) is invariant under reduction.
 
 }
 

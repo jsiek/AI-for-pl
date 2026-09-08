@@ -364,7 +364,7 @@ shiftScope n (lock X ∷ S)   = lock (n + X) ∷ shiftScope n S
 -- was read.  (`unlocksOf` alone — replaying only the unmasks the reps
 -- need — loses both halves: `applyChanges` is then NOT the identity, and
 -- the surviving unlock is VACUOUS wherever its own licensing lock was
--- dropped.  Both refuted in proof/RewindNorm §5.)
+-- dropped.  Both refuted in proof/RewindNorm §3.)
 --
 -- REWINDING IS IDEMPOTENT, AND IT HAD BETTER BE (2026-09-08).  The
 -- replay `dualScope 0 S ++ S` DOUBLES the list, and the outer frame of a

@@ -43,6 +43,12 @@ module strong.Examples where
 --     contractum is REFUSED for the same localized reason.  §15f
 --     collects the five frame identities that make the section a
 --     theorem rather than five anecdotes.
+-- §16 THE CHANGE LISTS, MEASURED — §14's `E₀` instantiated once more and
+--     APPLIED (`F₀`, 36 steps to 42).  This is the run on which the
+--     scope move's replayed and re-moved change lists used to DOUBLE at
+--     every pass; the peak list length and the peak entry count are
+--     pinned by `refl`, before (130 / 389) and after (50 / 101) the two
+--     redundancy tests of strong.CtxMorph §4.
 --
 -- Every `_ : … ≡ …` in this file is a machine-checked frame computation.
 --
@@ -3243,3 +3249,96 @@ _ = refl
 -- restoring `lock` to be `mask ∘ unmask` at that slot (`mask-unmask`,
 -- strong.Ctx §6b), and the scope move needs the rep half read past the
 -- tail's unlocks (proof/MwUObstruct §4).
+
+------------------------------------------------------------------------
+-- §16  THE CHANGE LISTS, MEASURED — `E₀` INSTANTIATED AND APPLIED
+------------------------------------------------------------------------
+
+-- THE PROGRAM (Jeremy, 2026-09-08).  §14's `E₀` runs to a VALUE of type
+-- `∀Y. Y ⇒ Y` in five steps; instantiate it once more and APPLY it, and
+-- the run continues through the whole scope-move machinery — four
+-- crossings (`Peel`), a `CancelR`/`IdPush` cascade, and eight `Drop$`
+-- layers — to the numeral 42, in 36 steps:
+--
+--   F₀ = (E₀ ·[ ` 0 ⇒ ` 0 , `ℕ ]) · $ 42                          : ℕ
+--
+--   TyBeta Peel Beta TyPeelR TyBeta TyPeelR TyBeta
+--   Peel Peel Peel Peel Beta
+--   CancelR IdPush IdPush CancelR IdPush IdPush IdPush IdPush
+--   CancelR IdPush IdPush IdPush IdPush IdPush IdPush CancelR
+--   Drop$ Drop$ Drop$ Drop$ Drop$ Drop$ Drop$ Drop$
+--
+-- THIS IS THE RUN THAT MEASURES THE CHANGE-LIST BLOWUP.  Every
+-- `CancelR`/`IdPush` replays the outer frame's changes (`rewind Θ₂`) and
+-- moves them into the inner frame (`Θ₁ ⋉ Θ₂`), and BOTH used to copy a
+-- list that already carried the same entries, so the lists roughly
+-- DOUBLED at every pass.  The peak state carried, at one boundary,
+--
+--   ↥4 ↧4 ↥4 ↧4 ↥4 ↧4 ↥4 ↧4 ↥4 ↥0 ↧0 ↧4 ↥4 ↥0 ↧0 ↧4 …
+--
+-- 130 entries of it, and 389 change entries across the whole state.
+--
+-- WITH THE TWO REDUNDANCY TESTS (strong.CtxMorph §4) the peak is 50 and
+-- 101, and neither the step count nor the answer moves:
+--
+--   longest change list at one boundary   130 → 50
+--   change entries in one state           389 → 101
+--   steps                                  36 = 36
+--   answer                                  42 = 42
+--
+-- The residue is NOT a replay and NOT a duplicate: it is the merge of two
+-- lists that unlock DIFFERENT slots, which no exact rewriting can shrink
+-- (proof/RewindNorm §2).  Bounding it needs the CANONICAL per-slot form —
+-- at most three entries per slot mentioned, so at most 15 on this run,
+-- where at most five slots are ever named — and the two facts that form
+-- still lacks are stated in proof/RewindNorm §4.
+--
+-- The measurements below are `refl`, so they are pinned: a frame redesign
+-- that changes them fails this section.
+
+F₀ : Term
+F₀ = (E₀ ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 42)
+
+⊢F₀ : [] ∣ [] ⊢ F₀ ⦂ `ℕ
+⊢F₀ = ⊢· (⊢·[] ⊢E₀ wf-ℕ) ⊢$
+
+open import strong.Eval using (eval; traceTerms; traceLen; traceEnd)
+open import Data.Nat using (_⊔_)
+open import Data.List using (foldr)
+
+-- The longest change list at any one boundary of a term, and the total
+-- number of change entries in it.
+maxChanges sumChanges : Term → ℕ
+maxChanges (` x)          = 0
+maxChanges ($ n)          = 0
+maxChanges (ƛ A ∙ N)      = maxChanges N
+maxChanges (L · M)        = maxChanges L ⊔ maxChanges M
+maxChanges (Λ N)          = maxChanges N
+maxChanges (L ·[ B , A ]) = maxChanges L
+maxChanges (M ⟪ Θ , c ⟫)  = length (changes Θ) ⊔ maxChanges M
+
+sumChanges (` x)          = 0
+sumChanges ($ n)          = 0
+sumChanges (ƛ A ∙ N)      = sumChanges N
+sumChanges (L · M)        = sumChanges L + sumChanges M
+sumChanges (Λ N)          = sumChanges N
+sumChanges (L ·[ B , A ]) = sumChanges L
+sumChanges (M ⟪ Θ , c ⟫)  = length (changes Θ) + sumChanges M
+
+peak : (Term → ℕ) → List Term → ℕ
+peak f Ms = foldr (λ M n → f M ⊔ n) 0 Ms
+
+-- 36 STEPS TO 42.
+_ : traceLen (eval 40 ⊢F₀) ≡ 36
+_ = refl
+
+_ : traceEnd (eval 40 ⊢F₀) ≡ $ 42
+_ = refl
+
+-- THE TWO MEASUREMENTS.  Before the redundancy tests these were 130 and
+-- 389.
+_ : peak maxChanges (traceTerms (eval 40 ⊢F₀)) ≡ 50
+_ = refl
+
+_ : peak sumChanges (traceTerms (eval 40 ⊢F₀)) ≡ 101
+_ = refl

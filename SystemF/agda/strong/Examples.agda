@@ -11,7 +11,9 @@ module strong.Examples where
 --     n4) and the shape-IV survivor E★′: they type, they CROSS, and their
 --     contracta are TYPED.
 -- §6  the first end-to-end run from a CLOSED, PLAIN source program.
--- §7  two regressions on substᵐ; §8 progress on §6; §9 preservation on §6.
+-- §7  three regressions on substᵐ (the Λ clause, the ƛ clause, and what
+--     the Λ-crossing wrapper costs at a base type); §8 progress on §6;
+--     §9 preservation on §6.
 -- (§10 is GONE.  It held the reachability verdict for the old IdPush
 --     contractum's scoping side-condition; the scope move (strong.Reduction
 --     §2b) removed the side-condition, and the invariant hunt behind it is
@@ -911,7 +913,7 @@ _ : evalTerms 6 ⊢P₀ ≡ P₀ ∷ P₁ ∷ P₂ ∷ P₃ ∷ P₄ ∷ P₅ �
 _ = refl
 
 ------------------------------------------------------------------------
--- §7  Two regressions on substᵐ itself
+-- §7  Three regressions on substᵐ itself
 ------------------------------------------------------------------------
 
 -- ── the Λ clause: an image crossing a Λ is SHIFTED AND WRAPPED ─────────
@@ -970,6 +972,40 @@ _ = refl
 _ : [] ∣ [] ⊢ (ƛ `ℕ ∙ (` 1)) [ ƛ `ℕ ∙ (` 0) ∶ `ℕ ⇒ `ℕ ]ᵐ
       ⦂ (`ℕ ⇒ (`ℕ ⇒ `ℕ))
 _ = ⊢subst (wf-⇒ wf-ℕ wf-ℕ) (⊢ƛ wf-ℕ (⊢` (there here))) (⊢ƛ wf-ℕ (⊢` here))
+
+-- ── WHAT THE WRAPPER COSTS AT A BASE TYPE ──────────────────────────────
+-- `mkId` is INERT at a variable, a function type and a `` `∀ `` — there
+-- the wrapper is a VALUE (`V-⟪⟫ … I-idv` / `I-fun` / `I-all`).  At a BASE
+-- type it is `id ℕ`, which is ACTIVE, so the wrapper is NOT a value and
+-- `Drop$` finishes it in one step.  That is the whole price of
+-- frame-exactness at a base-typed argument, and progress is not disturbed
+-- by it: a closed value at `ℕ` is a numeral (no inert conversion targets a
+-- base type), so `Drop$` always applies.
+
+Bᵍ Cᵍ : Term
+Bᵍ = (ƛ `ℕ ∙ (Λ (` 0))) · ($ 7)
+Cᵍ = (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
+
+_ : Cᵍ ≡ Λ (($ 7) ⟪ morph [] (lock 0 ∷ []) , id `ℕ ⟫)
+_ = refl
+
+⊢Bᵍ : [] ∣ [] ⊢ Bᵍ ⦂ `∀ `ℕ
+⊢Bᵍ = ⊢· (⊢ƛ wf-ℕ (⊢Λ (⊢` here))) ⊢$
+
+-- neither the redex's contractum nor `Λ ($ 7)` is reached by one step:
+-- the run is Beta then Drop$, and `Λ ($ 7)` is the value.
+_ : evalTerms 2 ⊢Bᵍ ≡ Bᵍ ∷ Cᵍ ∷ Λ ($ 7) ∷ []
+_ = refl
+
+val-Λ$ : Value (Λ ($ 7))
+val-Λ$ = V-Λ V-$
+
+-- the wrapper itself is NOT a value, and this is the step it takes
+¬val-Cᵍ-in : ¬ Value (($ 7) ⟪ morph [] (lock 0 ∷ []) , id `ℕ ⟫)
+¬val-Cᵍ-in (V-⟪⟫ _ ())
+
+stepᵍ : [] ⊢ Cᵍ -→ Λ ($ 7)
+stepᵍ = ξ-Λ (Drop$ base-ℕ)
 
 ------------------------------------------------------------------------
 -- §8  PROGRESS, on the run of §6

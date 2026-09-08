@@ -283,6 +283,6 @@ shows up where the extra layers are actually in the way.
 | `Reduction.agda` | `Beta`'s statement and its note |
 | `Preservation.agda` | `preservation-Beta`'s statement |
 | `proof/Canonicity.agda` | `CanonImg`, `canon-shiftᴵ`, `canon-⇑ᴵ`, `canon-extᴵ`, `canon-substᵐ`, `canon-subst` |
-| `Examples.agda` | §7 both regressions; §11 `Q`, §11a `D`, §11b `R`, §11c `G`, §12 `L`, §13b `H`, §14 `E` re-pinned; §15 `interior-Beta-Λ` and the new §15d₂; header step-count table |
+| `Examples.agda` | §7 three regressions (the `Λ` clause, the `ƛ` clause, and the base-type cost `Bᵍ`/`Cᵍ`); §11 `Q`, §11a `D`, §11b `R`, §11c `G`, §12 `L`, §13b `H`, §14 `E` re-pinned; §15 `interior-Beta-Λ` and the new §15d₂; header step-count table |
 | `Design.md` | §1's `E` diagram, §6.2 rewritten, §7's frame-identity table, §8 law 3 |
 | `README.md` | the tightness paragraph and the `TermSubst.agda` row |

@@ -33,16 +33,18 @@ module strong.Examples where
 -- §14 THE PRE-BOUNDARY COUNTEREXAMPLE: `E`, the closed program that
 --     refuted the per-variable design (v1's historical Example 8), run
 --     in v2 to a VALUE — the step that used to produce an ill-typed
---     term is `estep₄`, and `E-int`/`E-ext` are its two type contexts.
+--     term is `estep₅`, `E-dual-int`/`E-dual-ext` are the frame
+--     FRAME-EXACT BETA gives the crossed value, and `E-int`/`E-ext` the
+--     two type contexts inside its own Peel-minted wrapper.
 -- §15 TIGHTNESS, RULE BY RULE — Jeremy's test (proof/DualTightness)
 --     applied to EVERY rule that moves a subterm into a new frame:
 --     `TyBeta` (§15a), `TyPeelR` (§15b), `IdPush`/`CancelR` (§15c),
---     `Beta` (§15d, with the one expected exception — ERASURE),
---     `Peel`'s `bind` half and `hideBinds` (§15e; the `unlock` half is
---     proof/DualTightness).  Every redex below is ILL TYPED and every
---     contractum is REFUSED for the same localized reason.  §15f
---     collects the five frame identities that make the section a
---     theorem rather than five anecdotes.
+--     `Beta` (§15d, with the one expected exception — ERASURE; §15d₂ is
+--     the UNDER-Λ case frame-exact Beta added), `Peel`'s `bind` half and
+--     `hideBinds` (§15e; the `unlock` half is proof/DualTightness).
+--     Every redex below is ILL TYPED and every contractum is REFUSED for
+--     the same localized reason.  §15f collects the six frame identities
+--     that make the section a theorem rather than six anecdotes.
 --
 -- Every `_ : … ≡ …` in this file is a machine-checked frame computation.
 --
@@ -52,6 +54,21 @@ module strong.Examples where
 -- and the seven runs from closed or hand-built sources (§6 `P₀`,
 -- §11 `Q₀`, §12 `L₀`, §12b `Ri`, §13a `J₀`, §13b `H₀`, §14 `E₀`) each
 -- carry an `evalTerms n ⊢X₀ ≡ …` line that Agda checks by `refl`.
+--
+-- STEP COUNTS AFTER FRAME-EXACT BETA (2026-09-08).  A run changes length
+-- exactly where a `Beta` substitutes under a `Λ`, and then only because
+-- the minted transparent layer has to be walked through:
+--
+--   P₀  6 → 6    (the body is a bare variable: no Λ crossed)
+--   Q₀  9 → 11   (+1 IdPush, +1 Drop$)
+--   D₀  12 → 16  (two Λs crossed: +2 IdPush, +2 Drop$)
+--   R₀  18 → 21  (+1 IdPush, +1 CancelR, +1 Drop$)
+--   L₀  9 → 11   (+1 IdPush, +1 Drop$)
+--   Ri  2 → 2    (hand-built; no Beta)
+--   J₀  14 → 14  (the substituted variable sits under no Λ)
+--   H₀  4 → 4    (the layer lands inside a ƛ body, unevaluated)
+--   E₀  5 → 6    (+1 TyPeelR — §14's `estep₅`)
+--   G   5 → 5    (the layers land under the Λs, unevaluated)
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; length; map)
@@ -1678,10 +1695,10 @@ _ : evalTerms 6 ⊢R₀ ≡ R₀ ∷ R₁ ∷ R₂ ∷ R₃ ∷ R₄ ∷ R₅ �
 _ = refl
 
 -- The tail is a cascade of IdPushes (each residue conversion is ITSELF an
--- id-layer), two Cancels and six transparent layers over the numeral.  It
--- was 15 steps; with the extra layer frame-exact Beta interposes it is 15
--- from R₆ too — the wrapper is consumed by one of the IdPushes already in
--- the cascade — for 21 steps in all, against 20 before.  RENDERED
+-- id-layer), two Cancels and six transparent layers over the numeral —
+-- 15 steps from R₆, for 21 in all, against 18 before frame-exact Beta
+-- (the extra layer buys one more IdPush, one more CancelR and one more
+-- Drop$).  RENDERED
 -- (scripts/render_term.sh 'showTrace 0 (eval 21 ⊢R₀)'), the rule sequence
 -- is
 --
@@ -2682,10 +2699,10 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ↦ uns
 --      at the fresh NAME `` ` 0 ``; that is why the boundary is a LIST —
 --      a context morphism — and not a single reveal-or-conceal.
 --
--- Below: the SAME closed program, in v2, run to a VALUE in five steps,
--- with every step pinned by `det`.  Step 4 is the one that used to die.
+-- Below: the SAME closed program, in v2, run to a VALUE in SIX steps,
+-- with every step pinned by `det`.  Step 5 is the one that used to die.
 --
--- RENDERED (scripts/render_term.sh, `showTmIn 0`):
+-- RENDERED (scripts/render_term.sh 'showTrace 0 (eval 6 ⊢E₀)'):
 --
 --  E₀  ((ΛX. (λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))) [ℕ] · (ΛZ. (λx:Z. x)))
 --  E₁  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
@@ -2694,19 +2711,39 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ↦ uns
 --  E₂  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
 --         · ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫))
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--  E₃  ((ΛY. (((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Z. (id Z ↦ id Z)) ⟫)
+--               ⟪ ↓Y , (∀Z. (id Z ↦ id Z)) ⟫) [Y])
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--  E₄  ((ΛY. (((ΛX′. (λx:X′. x)) ⟪ ↓X , (∀X′. (id X′ ↦ id X′)) ⟫) [Z]
+--               ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--  E₅  ((ΛY. (((ΛY′. (λx:Y′. x)) [X′]
+--                 ⟪ ↑X′:=Z , ↓X , (seal X′ ↦ unseal X′) ⟫)
+--               ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--  E₆  ((ΛY. ((((λx:Y′. x) ⟪ ↑Y′:=X′ , (seal Y′ ↦ unseal Y′) ⟫)
+--                 ⟪ ↑X′:=Z , ↓X , (seal X′ ↦ unseal X′) ⟫)
+--               ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
+--        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)                      -- a VALUE
+--
+-- THE `↓Y` IS FRAME-EXACT BETA'S (2026-09-08).  Before it, E₃ and E₄ read
+--
 --  E₃  ((ΛY. ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Z. (id Z ↦ id Z)) ⟫) [Y])
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
 --  E₄  ((ΛY. ((ΛX′. (λx:X′. x)) [Z] ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
---  E₅  ((ΛY. (((λx:X′. x) ⟪ ↑X′:=Z , (seal X′ ↦ unseal X′) ⟫)
---               ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
---        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)                      -- a VALUE
 --
--- E₃ is the old design's fourth line, and E₄ is where the two designs
--- part: `↑Z:=Y , ↓X` is a boundary that MASKS X and BINDS a fresh Z at
--- the rep Y — no type is pushed into the sealed body, and Y is read at
--- the boundary's exterior (there are no unlocks, so that is
--- `unlockedScope Θ Δ`), where it is in scope.
+-- — the crossed value planted under ΛY with NOTHING saying that ΛY's slot
+-- is not in its frame.  Now it carries ΛY's dual `↓Y`, the run peels the
+-- two wrappers in turn (steps 4 and 5), and it is six steps rather than
+-- five.
+--
+-- E₃ is the old design's fourth line, and E₄/E₅ are where the two designs
+-- part: `↑Z:=Y , ↓Y` and `↑X′:=Z , ↓X` are boundaries that MASK the outer
+-- name and BIND a fresh one at the rep the exterior offers — no type is
+-- pushed into the sealed body, and the rep is read at the boundary's
+-- exterior (there are no unlocks, so that is `unlockedScope Θ Δ`), where
+-- it is in scope.
 
 -- ── the source ─────────────────────────────────────────────────────────
 
@@ -3020,10 +3057,10 @@ val-prb = V-ƛ
 Δ✦ : Ctxᵗ
 Δ✦ = masked (bind `ℕ) ∷ []
 
--- THE TWO FRAME IDENTITIES THAT HAD NO NAME (§15f collects all five).
--- Both are `refl`: `interior Θ Δ` is `pushBinds (binds Θ) (scope Θ Δ)`
--- and a bind contributes to the BIND half alone, leaving `scope`
--- untouched.
+-- THE THREE FRAME IDENTITIES THAT HAD NO NAME (§15f collects all six).
+-- All three are `refl`: `interior Θ Δ` is `pushBinds (binds Θ) (scope Θ Δ)`,
+-- a bind contributes to the BIND half alone (leaving `scope` untouched),
+-- and a lone `lock 0` is one `maskEnt` at the head.
 interior-TyBeta : (A : Ty) (Δ : Ctxᵗ)
   → interior (morph (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ
 interior-TyBeta A Δ = refl
@@ -3032,6 +3069,14 @@ interior-TyPeelR : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
   → interior (morph (A ∷ binds Θ) (changes Θ)) Δ
       ≡ unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ
 interior-TyPeelR A Θ Δ = refl
+
+-- FRAME-EXACT BETA'S OWN (2026-09-08, strong.TermSubst §5b): the wrapper
+-- an image acquires when it crosses a `Λ` is that binder's DUAL, and its
+-- interior is the image's BIRTH frame with the crossed slot masked.
+interior-Beta-Λ : (Δ : Ctxᵗ)
+  → interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ)
+      ≡ masked abst ∷ Δ
+interior-Beta-Λ Δ = refl
 
 ------------------------------------------------------------------------
 -- §15a  TYBETA — the mint.  `abst` REFINES to `bind`, and nothing else
@@ -3295,9 +3340,12 @@ stepᶜ′ = CancelR val-prb lkᶜ
 -- §15d  BETA — and the ONE EXPECTED EXCEPTION
 ------------------------------------------------------------------------
 
--- `Beta` changes no frame at all: `N [ W ]ᵐ` is read at the redex's own
--- `Δ`, so an argument the exterior refuses is refused wherever it lands.
--- The frame identity is the identity function.
+-- `Beta` changes no frame WHERE NO BINDER IS CROSSED: `N [ W ∶ A ]ᵐ` is
+-- read at the redex's own `Δ`, so an argument the exterior refuses is
+-- refused wherever it lands, and the frame identity is the identity
+-- function.  WHERE A `Λ` IS CROSSED the frame is not Δ but `masked abst ∷
+-- Δ` — `interior-Beta-Λ` above — which is EXACT rather than trivial, and
+-- is the case §15d₂ below runs.
 
 Wᵈ : Term
 Wᵈ = prb 0
@@ -3347,6 +3395,53 @@ stepᵈ′ = Beta val-prb
 
 ⊢Cᵈ′ : Δ✦ ∣ [] ⊢ ($ 3) ⦂ `ℕ
 ⊢Cᵈ′ = ⊢$
+
+------------------------------------------------------------------------
+-- §15d₂  BETA UNDER A Λ — THE FRAME-EXACT CASE
+------------------------------------------------------------------------
+
+-- THE CASE THE TEST HAD NO INSTANCE OF, because before 2026-09-08 there
+-- was nothing to test: the argument was SHIFTED under the Λ and read at
+-- the Λ's own frame, one entry WIDER than its birth frame.  Now it is
+-- wrapped in the crossed binder's DUAL, and the frame it is read at is
+-- `interior-Beta-Λ Δ✦` — Δ✦ with the crossed slot masked, i.e. exactly
+-- its birth frame.  The verdict is the one the test wants: the argument
+-- names a slot Δ✦ MASKS, and it is refused inside for that same reason.
+
+Nᵈ Rᵈ↑ Cᵈ↑ : Term
+Nᵈ  = Λ (` 0)                    -- ΛY. x — the body that crosses a Λ
+Rᵈ↑ = (ƛ (`ℕ ⇒ `ℕ) ∙ Nᵈ) · Wᵈ
+Cᵈ↑ = Nᵈ [ Wᵈ ∶ `ℕ ⇒ `ℕ ]ᵐ
+
+-- the contractum: the shifted probe under ΛY's dual, at the identity
+-- conversion its type gives (`mkId (`ℕ ⇒ `ℕ)`).
+_ : Cᵈ↑ ≡ Λ (prb 1 ⟪ morph [] (lock 0 ∷ []) , id `ℕ ↦ id `ℕ ⟫)
+_ = refl
+
+¬⊢Rᵈ↑ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Rᵈ↑ ⦂ A)
+¬⊢Rᵈ↑ (⊢· _ ⊢W) = ¬⊢Wᵈ ⊢W
+
+stepᵈ↑ : Δ✦ ⊢ Rᵈ↑ -→ Cᵈ↑
+stepᵈ↑ = Beta val-prb
+
+-- THE FRAME IDENTITY, at this Δ — W's BIRTH FRAME, SHIFTED, EXACT.
+_ : interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ✦)
+      ≡ masked abst ∷ Δ✦
+_ = interior-Beta-Λ Δ✦
+
+-- … so the shifted argument is refused inside, and for the SAME
+-- localized reason: slot 1 is the masked binder it names.
+¬⊢shiftWᵈ : ∀ {Γ A} → ¬ ((masked abst ∷ Δ✦) ∣ Γ ⊢ prb 1 ⦂ A)
+¬⊢shiftWᵈ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
+
+¬⊢Cᵈ↑ : ∀ {A} → ¬ (Δ✦ ∣ [] ⊢ Cᵈ↑ ⦂ A)
+¬⊢Cᵈ↑ (⊢Λ (env _ ⊢W _ _)) = ¬⊢shiftWᵈ ⊢W
+
+-- AND THE CROSSED Λ'S OWN SLOT IS NOT NAMEABLE INSIDE EITHER — which is
+-- what "the frame gained nothing" means, stated as a refusal.
+¬∋tv-crossΛ : ¬ (interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ✦)
+                   ∋tv 0)
+¬∋tv-crossΛ (_ , ez , ())
 
 ------------------------------------------------------------------------
 -- §15e  PEEL — the `bind` half, and `hideBinds`
@@ -3468,14 +3563,25 @@ _ = refl
 --   IdPush     ≡ interior Θ₁ (interior Θ₂ Δ)                 (Δ ⊢ᵐ Θ₂)
 --              — proof/MoveScope.interior-⋉-rewind: preserved ON THE
 --                NOSE, which is why neither case uses `⊢retag`
---   Beta     Δ ≡ Δ — no frame changes; the exception is ERASURE (§15d)
+--   Beta     Δ ≡ Δ where no binder is crossed; the exception is ERASURE
+--              (§15d)
+--   Beta,    interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ)
+--   under Λ    ≡ masked abst ∷ Δ
+--              — `interior-Beta-Λ`: the image's BIRTH frame with the
+--                crossed Λ's slot masked.  This is the identity
+--                frame-exact Beta buys (2026-09-08); before it the image
+--                was read at `unmasked abst ∷ Δ`, one entry WIDER than
+--                the frame it was born in — sound, because its shifted
+--                indices cannot reach slot 0, but not exact.  §15d₂ runs
+--                the test on it.
 --
 -- `Drop$` and the five congruences move nothing into a new frame:
 -- `Drop$`'s contractum is a numeral, and each `ξ` rule reduces a
 -- subterm IN PLACE, at the frame the rule's own premise reads it on.
 --
--- The two identities that had no name are `interior-TyBeta` and
--- `interior-TyPeelR` at the head of this section; both are `refl`,
+-- The three identities that had no name are `interior-TyBeta`,
+-- `interior-TyPeelR` and `interior-Beta-Λ` at the head of this section;
+-- all three are `refl`,
 -- because `interior` is `pushBinds ∘ binds` over `scope` and a bind
 -- entry touches `scope` not at all.  The other two are theorems with
 -- a `Δ ⊢ᵐ Θ` premise, and that premise is exactly where the sequential

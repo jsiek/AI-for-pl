@@ -55,8 +55,16 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   TyBeta : ∀ {Δ B A N} → Value N
     → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫
 
+  -- BETA, FRAME-EXACT (2026-09-08).  The substitution CARRIES THE
+  -- ARGUMENT'S TYPE — the ƛ's own annotation A — because every image that
+  -- crosses a `Λ` in the body is wrapped in that binder's DUAL with an
+  -- IDENTITY conversion at the argument's type (strong.TermSubst §5b).
+  -- Shifting alone (the old `N [ W ]ᵐ`) was sound but not frame-exact: the
+  -- argument's frame silently gained the Λ's slot.  Determinism is
+  -- unaffected — A is read off the redex, so the contractum is still a
+  -- function of the redex alone.
   Beta : ∀ {Δ A N W} → Value W
-    → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ]ᵐ
+    → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ
 
   -- PEEL — the crossing.  The application is pushed in one layer and the
   -- argument acquires the DUAL.  `s`/`t` are literally ↦'s components: the

@@ -2562,6 +2562,31 @@ always has; threaded into applyUnlocks-dualScope and convCtx-dual.  The
 two mask inverses are now symmetric (`mask-unmask : Δ ∋lk X → …`,
 `unmask-mask : Δ ∋tv X → …`).  Rendering unchanged.
 
+### Frame-exact Beta: substitution wraps values crossing a Λ (probe, 2026-09-08)
+
+Jeremy, reading the slide trace of `(ΛX. λf:(∀Z.Z→Z). ΛY. f [Y]) [ℕ] ·
+(ΛZ. λz:Z. z)`: "On the fourth step, is there a missing −Y in the
+boundary around the ΛZ?"  Yes: Beta's substitution moved the crossing
+wrapper under ΛY and its interior became `Y Λ-bound , ⌷[X := ℕ]` — the
+value's frame GAINED Y (harmless via indices, but not frame-exact; every
+other rule is exact).  PROBED and LANDED on branch exact-beta:
+substitution carries the value's type and wraps every value image that
+crosses a Λ in the binder's dual with an identity conversion,
+`crossΛ W A = ⇑ᴹ W ⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫`; Beta is
+`(ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ`.  Images are a two-constructor type
+(variable / closed value with its type), since env types a boundary's
+interior at Γ = [].  The boundary-interior half of the gap is VACUOUS:
+substitution never descends into a wrapper (term-closed), and Peel's
+crossing is already exact by (†).  Frame identity `interior (morph []
+(lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` by refl; Examples
+§15 gains the under-Λ Beta case (still refused) and §14 shows the ↓Y
+Jeremy expected at E₃/E₄.  Value/progress/det/canonical forms unchanged;
+at a base type the minted `id ℕ` is active, so a numeral crossing a Λ
+costs one extra Drop$.  Step-count deltas: Q 9→11, D 12→16, R 18→21,
+L 9→11, E 5→6; P₀, G, J, H, Ri unchanged.  Alternatives costed in
+notes/PR-exact-beta.md (extend an existing wrapper's changes; one
+composed dual per substitution path).  Awaiting Jeremy's ruling.
+
 ### Change-list growth under IdPush/CancelR (probe, 2026-09-08)
 
 Observed by Jeremy and me on `(E₀ [ℕ]) · 42` (Examples §16, 36 steps to

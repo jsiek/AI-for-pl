@@ -471,22 +471,6 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- contravariantly and `unseal 0` covariantly and one of the two always
 -- sat where the index refused it.  With the index retired the mint's
 -- typing (`⊢instReveal`, §2b) is total, and so are both cases.
-TyPeelRΛCase : Set
-TyPeelRΛCase = ∀ {Δ N Θ s B A C Bᵢ Bₑ} → Value N
-  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → Δ ∣ [] ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
-
-TyPeelR⟪⟫Case : Set
-TyPeelR⟪⟫Case = ∀ {Δ W Θ′ s′ Θ s B A C Bᵢ Bₑ} → Value W
-  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → Δ ∣ [] ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
-                 ⟪ addLock0 (renᴮ suc Θ′)
-                 , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-                ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
-
 ∀-inj : ∀ {A B} → _≡_ {A = Ty} (`∀ A) (`∀ B) → A ≡ B
 ∀-inj refl = refl
 
@@ -504,7 +488,10 @@ shiftBy-[]ᵗ (suc n) B A =
 -- THE Λ CLAUSE.  The interior is not moved at all — it is RETAGGED along
 -- the one refinement the `Λ`'s own slot undergoes.  Every other premise
 -- is the single rule's, verbatim: the repair costs nothing.
-preserve-TyPeelR-Λ : TyPeelRΛCase
+preserve-TyPeelR-Λ : ∀ {Δ N Θ s B A C Bᵢ Bₑ} → Value N
+  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → Δ ∣ [] ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+  → Δ ∣ [] ⊢ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
 preserve-TyPeelR-Λ {Δ = Δ} {N = N} {Θ = Θ} {s = s} {B = B} {A = A}
                    {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s
                    (⊢·[] (env mwᵥ (⊢Λ ⊢N) ⊢c wE) wA)
@@ -547,7 +534,14 @@ preserve-TyPeelR-Λ {Δ = Δ} {N = N} {Θ = Θ} {s = s} {B = B} {A = A}
 -- moved boundary masks the new bind slot in ITS OWN change list, so it
 -- crosses by `⊢rename` alone and its frame is its birth frame with the
 -- new binder inserted MASKED.  The outer `env` is verbatim.
-preserve-TyPeelR-⟪⟫ : TyPeelR⟪⟫Case
+preserve-TyPeelR-⟪⟫ : ∀ {Δ W Θ′ s′ Θ s B A C Bᵢ Bₑ} → Value W
+  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → Δ ∣ [] ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+  → Δ ∣ [] ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
+                 ⟪ addLock0 (renᴮ suc Θ′)
+                 , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+                ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
 preserve-TyPeelR-⟪⟫ {Δ = Δ} {W = W} {Θ′ = Θ′} {s′ = s′} {Θ = Θ} {s = s}
                     {B = B} {A = A} {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s
                     (⊢·[] (env mwᵥ (env mw′ ⊢W ⊢c′ wE′) ⊢c wE) wA)
@@ -627,7 +621,7 @@ PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
   → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
   → Δ ∣ [] ⊢ (V · (wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
--- (`TyPeelRΛCase` and `TyPeelR⟪⟫Case` are stated and PROVEN in §3.)
+-- (`preserve-TyPeelR-Λ` and `preserve-TyPeelR-⟪⟫` are PROVEN in §3.)
 
 -- CANCELR, at the repaired rule (both frames kept, both conversions
 -- neutralised, Θ₂'s scope MOVED IN).  PROVEN in proof/MoveScope.

@@ -179,7 +179,8 @@ _ = refl
 -- entry is a `lock`, which `applyUnlocks` skips, so the context is
 -- literally the same.)
 ⊢ᵐ-rewind-Θ₂ : Δ₆ ⊢ᵐ rewind Θ₂
-⊢ᵐ-rewind-Θ₂ = mw rw[] (sw-l (unmasked (bind `ℕ) , ez , nameable) (mw-changes ⊢ᵐΘ₂))
+⊢ᵐ-rewind-Θ₂ = mw rw[] (sw-l (unmasked (bind `ℕ) , ez , nameable)
+                            (mw-changes ⊢ᵐΘ₂))
 
 ⊢ᵐ-rewind-Θ₆ : Δ₆ ⊢ᵐ rewind Θ₆
 ⊢ᵐ-rewind-Θ₆ = mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[])

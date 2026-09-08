@@ -211,7 +211,8 @@ SA = unmasked (bind (` 0)) ∷ S₆₂            -- the interior type context o
              (wf-var (unmasked (bind `ℕ) , es (es ez) , nameable))
 
 ⊢LA : S₆₂ ∣ [] ⊢ LA ⦂ ` 1
-⊢LA = env (mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[]) sw[]) ⊢LA-in
+⊢LA = env (mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[]) sw[])
+          ⊢LA-in
           (conv-idv (unmasked (bind `ℕ) , es (es ez) , nameable))
           (wf-var (unmasked (bind `ℕ) , es ez , nameable))
 
@@ -358,7 +359,9 @@ _ = refl
 
 ⊢Tᵣ : [] ∣ [] ⊢ Tᵣ ⦂ `ℕ
 ⊢Tᵣ = env (mw (rw-b wf-ℕ rw[]) sw[])
-          (env (mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[]) sw[]) ⊢Vᵣ
+          (env (mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[])
+                   sw[])
+               ⊢Vᵣ
                (conv-idv (unmasked (bind `ℕ) , es ez , nameable))
                (wf-var (unmasked (bind `ℕ) , ez , nameable)))
           (conv-unseal ez) wf-ℕ
@@ -368,9 +371,9 @@ push-Tᵣ = IdPush (V-⟪⟫ V-$ I-seal) ez
 
 ⊢push-Tᵣ : [] ∣ [] ⊢ (Vᵣ ⟪ Θᵣ₁ , unseal 1 ⟫) ⟪ Θᵣ₂ , id `ℕ ⟫ ⦂ `ℕ
 ⊢push-Tᵣ = env (mw (rw-b wf-ℕ rw[]) sw[])
-               (env (mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[]) sw[])
-                 ⊢Vᵣ
-                    (conv-unseal (es ez)) wf-ℕ)
+               (env (mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable))
+                              rw[]) sw[])
+                    ⊢Vᵣ (conv-unseal (es ez)) wf-ℕ)
                (conv-id base-ℕ) wf-ℕ
 
 run-Tᵣ : [] ⊢ Tᵣ -→* $ 7
@@ -484,13 +487,18 @@ _ = ez
 Θ2 = morph ((` 0) ∷ []) (lock 2 ∷ [])
 
 -- ONE frame change: the binder is pushed on, V is MASKED IN PLACE (the entry
--- `bind `ℕ` survives as `masked (bind `ℕ)`), nothing is dropped.
-_ : interior Θ2 Δd ≡ unmasked (bind (` 0)) ∷ unmasked (bind (` 0)) ∷ unmasked abst ∷ masked (bind `ℕ) ∷ []
+-- `unmasked (bind `ℕ)` survives as `masked (bind `ℕ)`), nothing is
+-- dropped.
+_ : interior Θ2 Δd
+      ≡ unmasked (bind (` 0)) ∷ unmasked (bind (` 0))
+      ∷ unmasked abst ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
 -- the CONVERSION CONTEXT keeps every slot live, so a conceal's licence
 -- resolves.
-_ : convCtx Θ2 Δd ≡ unmasked (bind (` 0)) ∷ unmasked (bind (` 0)) ∷ unmasked abst ∷ unmasked (bind `ℕ) ∷ []
+_ : convCtx Θ2 Δd
+      ≡ unmasked (bind (` 0)) ∷ unmasked (bind (` 0))
+      ∷ unmasked abst ∷ unmasked (bind `ℕ) ∷ []
 _ = refl
 
 cΘ2 : Conv                      -- (X⇒X)⇒ℕ  ⇝  (W⇒W)⇒ℕ
@@ -589,7 +597,8 @@ _ = refl
 Θ1b : CtxMorph
 Θ1b = morph ((` 0) ∷ []) (lock 1 ∷ [])
 
-_ : interior Θ1b Δ1b ≡ unmasked (bind (` 0)) ∷ unmasked (bind (` 0)) ∷ masked abst ∷ []
+_ : interior Θ1b Δ1b
+      ≡ unmasked (bind (` 0)) ∷ unmasked (bind (` 0)) ∷ masked abst ∷ []
 _ = refl
 
 V1b W1b : Term
@@ -689,7 +698,8 @@ _ = ez
 Θ★ : CtxMorph
 Θ★ = morph ((` 0) ∷ []) (lock 1 ∷ [])
 
-_ : interior Θ★ Γ★ ≡ unmasked (bind (` 0)) ∷ unmasked abst ∷ masked (bind `ℕ) ∷ []
+_ : interior Θ★ Γ★
+      ≡ unmasked (bind (` 0)) ∷ unmasked abst ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
 _ : dual Θ★ ≡ morph [] (lock 0 ∷ unlock 2 ∷ [])
@@ -774,13 +784,15 @@ step₂ = Peel V-ƛ V-$
 
 -- the crossing argument, typed INSIDE: 7 is sealed at the new binder, so the
 -- interior sees it at the abstract name X.
-⊢arg₂ : (unmasked (bind `ℕ) ∷ []) ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0
+⊢arg₂ : (unmasked (bind `ℕ) ∷ []) ∣ []
+          ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0
 ⊢arg₂ = env (mw rw[] (sw-l (unmasked (bind `ℕ) , ez , nameable) sw[])) ⊢$
             (conv-seal ez) (wf-var (unmasked (bind `ℕ) , ez , nameable))
 
 ⊢P₂ : [] ∣ [] ⊢ P₂ ⦂ `ℕ
 ⊢P₂ = env (mw (rw-b wf-ℕ rw[]) sw[])
-          (⊢· (⊢ƛ (wf-var (unmasked (bind `ℕ) , ez , nameable)) (⊢` here)) ⊢arg₂)
+          (⊢· (⊢ƛ (wf-var (unmasked (bind `ℕ) , ez , nameable)) (⊢` here))
+               ⊢arg₂)
           (conv-unseal ez) wf-ℕ
 
 -- ── STEP 3 — BETA, under the boundary.  This is the step ⊢subst pays for:
@@ -798,9 +810,11 @@ _ = refl
 step₃ : [] ⊢ P₂ -→ P₃
 step₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
-⊢P₃-in : (unmasked (bind `ℕ) ∷ []) ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0
+⊢P₃-in : (unmasked (bind `ℕ) ∷ []) ∣ []
+           ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , seal 0 ⟫ ⦂ ` 0
 ⊢P₃-in = preserve-Beta
-           (⊢· (⊢ƛ (wf-var (unmasked (bind `ℕ) , ez , nameable)) (⊢` here)) ⊢arg₂)
+           (⊢· (⊢ƛ (wf-var (unmasked (bind `ℕ) , ez , nameable)) (⊢` here))
+                ⊢arg₂)
 
 ⊢P₃ : [] ∣ [] ⊢ P₃ ⦂ `ℕ
 ⊢P₃ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢P₃-in (conv-unseal ez) wf-ℕ
@@ -818,7 +832,8 @@ P₄ = (($ 7) ⟪ morph [] (lock 0 ∷ []) , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []
 step₄ : [] ⊢ P₃ -→ P₄
 step₄ = CancelR V-$ ez
 
-⊢P₄-in : (unmasked (bind `ℕ) ∷ []) ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , id `ℕ ⟫ ⦂ `ℕ
+⊢P₄-in : (unmasked (bind `ℕ) ∷ []) ∣ []
+           ⊢ ($ 7) ⟪ morph [] (lock 0 ∷ []) , id `ℕ ⟫ ⦂ `ℕ
 ⊢P₄-in = env (mw rw[] (sw-l (unmasked (bind `ℕ) , ez , nameable) sw[]))
               ⊢$ (conv-id base-ℕ) wf-ℕ
 
@@ -893,7 +908,8 @@ Wₛ = ($ 7) ⟪ morph [] [] , seal 0 ⟫
 Nₛ = Λ (` 0)
 
 ⊢Wₛ : Δₛ ∣ [] ⊢ Wₛ ⦂ ` 0
-⊢Wₛ = env (mw rw[] sw[]) ⊢$ (conv-seal ez) (wf-var (unmasked (bind `ℕ) , ez , nameable))
+⊢Wₛ = env (mw rw[] sw[]) ⊢$ (conv-seal ez)
+          (wf-var (unmasked (bind `ℕ) , ez , nameable))
 
 ⊢Nₛ : Δₛ ∣ (` 0 ∷ []) ⊢ Nₛ ⦂ `∀ (` 1)
 ⊢Nₛ = ⊢Λ (⊢` here)
@@ -1119,8 +1135,9 @@ qstep₃ = ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal))
 
 ⊢Q₃-in : QΔ₁ ∣ [] ⊢ (Λ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)) ·[ ` 1 , `ℕ
   ] ⦂ ` 0
-⊢Q₃-in = preservation-Beta (⊢· (⊢ƛ (wf-var (unmasked (bind `ℕ) , ez , nameable)) ⊢Qbody₁)
-                              ⊢QS₇)
+⊢Q₃-in = preservation-Beta
+           (⊢· (⊢ƛ (wf-var (unmasked (bind `ℕ) , ez , nameable)) ⊢Qbody₁)
+                ⊢QS₇)
 
 ⊢Q₃ : [] ∣ [] ⊢ Q₃ ⦂ `ℕ
 ⊢Q₃ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢Q₃-in (conv-unseal ez) wf-ℕ
@@ -1141,7 +1158,8 @@ qstep₄ = ξ-⟪⟫ (TyBeta (V-⟪⟫ V-$ I-seal))
 
 ⊢Qseal₇ : QΞ₂ ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫ ⦂ ` 1
 ⊢Qseal₇ = env (mw rw[] (sw-l (unmasked (bind `ℕ) , es ez , nameable) sw[])) ⊢$
-               (conv-seal (es ez)) (wf-var (unmasked (bind `ℕ) , es ez , nameable))
+               (conv-seal (es ez))
+               (wf-var (unmasked (bind `ℕ) , es ez , nameable))
 
 ⊢Q₄-in : QΔ₁ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)
                       ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫ ⦂ ` 0
@@ -1364,8 +1382,9 @@ run-D₀ = dstep₁ then dstep₂ then dstep₃ then dstep₄ then dstep₅
 -- ── BOTH IDPUSH CONTRACTA TYPE ─────────────────────────────────────────
 
 ⊢Dseal₇ : QΞ₃ ∣ [] ⊢ ($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫ ⦂ ` 2
-⊢Dseal₇ = env (mw rw[] (sw-l (unmasked (bind `ℕ) , es (es ez) , nameable) sw[])) ⊢$
-               (conv-seal (es (es ez)))
+⊢Dseal₇ = env (mw rw[]
+                 (sw-l (unmasked (bind `ℕ) , es (es ez) , nameable) sw[]))
+               ⊢$ (conv-seal (es (es ez)))
                (wf-var (unmasked (bind `ℕ) , es (es ez) , nameable))
 
 ⊢Did₂ : QΞ₂ ∣ [] ⊢ (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
@@ -1429,13 +1448,16 @@ Rfun  = Λ (ƛ (` 0) ∙ Rbody)
 R₀    = (Rfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 
 ⊢Qfun-any : ∀ {Δ Γ} → Δ ∣ Γ ⊢ Qfun ⦂ `∀ (` 0 ⇒ ` 0)
-⊢Qfun-any = ⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) (⊢·[] (⊢Λ (⊢` here)) wf-ℕ))
+⊢Qfun-any =
+  ⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable))
+         (⊢·[] (⊢Λ (⊢` here)) wf-ℕ))
 
 ⊢Rbody : (unmasked abst ∷ []) ∣ (` 0 ∷ []) ⊢ Rbody ⦂ ` 0
 ⊢Rbody = ⊢· (⊢·[] ⊢Qfun-any (wf-var (unmasked abst , ez , nameable))) (⊢` here)
 
 ⊢R₀ : [] ∣ [] ⊢ R₀ ⦂ `ℕ
-⊢R₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) ⊢Rbody)) wf-ℕ) ⊢$
+⊢R₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) ⊢Rbody))
+               wf-ℕ) ⊢$
 
 -- the three type contexts the chained run works in
 RΞ RΞ′ RΞ″ : Ctxᵗ
@@ -1628,7 +1650,8 @@ G₀    = (Gfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 ⊢Gbody = ⊢·[] (⊢·[] (⊢Λ (⊢Λ (⊢` here))) wf-ℕ) wf-ℕ
 
 ⊢G₀ : [] ∣ [] ⊢ G₀ ⦂ `ℕ
-⊢G₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) ⊢Gbody)) wf-ℕ) ⊢$
+⊢G₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) ⊢Gbody))
+               wf-ℕ) ⊢$
 
 _ : reveal 0 (`∀ (` 2)) ≡ `∀ (id (` 2))
 _ = refl
@@ -1660,7 +1683,8 @@ gstep₄ = ξ-⟪⟫ (ξ-·[] (TyBeta (V-Λ (V-⟪⟫ V-$ I-seal))))
 -- the TyPeelR step, whose contractum is the wanted `numBinds Θ₁ ≡ 2` layer.
 -- Its conversion premise is the redex's own, one `` `∀ `` inside —
 -- here the identity at the OUTER binder, read under the ∀-binder.
-⊢Gconv : (unmasked abst ∷ convCtx (morph (`ℕ ∷ []) []) QΔ₁) ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
+⊢Gconv : (unmasked abst ∷ convCtx (morph (`ℕ ∷ []) []) QΔ₁)
+           ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
 ⊢Gconv = conv-idv (unmasked (bind `ℕ) , es (es ez) , nameable)
 
 gstep₅ : [] ⊢ G₄ -→ G₅
@@ -1688,10 +1712,11 @@ _ = refl
 -- — the `renᴮ suc Θ` double-shift that made `¬⊢G₅` true is gone.  So
 -- variant (i) now HAS a well-typed closed-source instance.
 ⊢G₅-Λ : QΞ₃ ∣ [] ⊢ Λ (($ 7) ⟪ morph [] (lock 3 ∷ []) , seal 3 ⟫) ⦂ `∀ (` 3)
-⊢G₅-Λ = ⊢Λ (env (mw rw[] (sw-l (unmasked (bind `ℕ) , es (es (es ez)) , nameable) sw[]))
-  ⊢$
-                (conv-seal (es (es (es ez))))
-                (wf-var (unmasked (bind `ℕ) , es (es (es ez)) , nameable)))
+⊢G₅-Λ =
+  ⊢Λ (env (mw rw[]
+             (sw-l (unmasked (bind `ℕ) , es (es (es ez)) , nameable) sw[]))
+           ⊢$ (conv-seal (es (es (es ez))))
+           (wf-var (unmasked (bind `ℕ) , es (es (es ez)) , nameable)))
 
 ⊢G₅-in : QΔ₁ ∣ [] ⊢ ((Λ (($ 7) ⟪ morph [] (lock 3 ∷ []) , seal 3 ⟫)) ·[ ` 3 , `
   0 ])
@@ -1750,8 +1775,8 @@ kstep = IdPush (V-⟪⟫ V-$ I-seal) ez
 -- REP `A` inside `Θ₂`'s interior, which fails when `Θ₂` LOCKS a slot that
 -- `A` names.  The `¬IdPushCase` witness (proof/PreserveObstruct §4) is
 -- exactly that: `Δi = bind (` 0) ∷ bind ℕ ∷ []`, `Θ₂ = lock 1 ∷ []`, so
--- `interior Θ₂ Δi = bind (` 0) ∷ masked (bind ℕ) ∷ []` — the binder at slot
--- 0 has rep ` 1, and slot 1 is blocked.
+-- `interior Θ₂ Δi = unmasked (bind (` 0)) ∷ masked (bind ℕ) ∷ []` — the
+-- binder at slot 0 has rep ` 1, and slot 1 is blocked.
 --
 -- The retired §10 recorded the verdict "NOT reachable" (the hunt itself is
 -- in notes/DECISIONS.md, 2026-09-06).  THIS SECTION SHARPENS IT.
@@ -1781,7 +1806,8 @@ L₀    = (Lfun ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
 ⊢Lbody = ⊢·[] (⊢Λ (⊢` here)) (wf-var (unmasked abst , ez , nameable))
 
 ⊢L₀ : [] ∣ [] ⊢ L₀ ⦂ `ℕ
-⊢L₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) ⊢Lbody)) wf-ℕ) ⊢$
+⊢L₀ = ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) ⊢Lbody))
+               wf-ℕ) ⊢$
 
 -- THE WITNESS CONTEXTS, verbatim from proof/PreserveObstruct §4.
 LΔ LΞ : Ctxᵗ
@@ -2018,8 +2044,9 @@ J₀    = ((Jfun ·[ JB , `ℕ ]) · ($ 7)) · Wt
 
 ⊢Jfun : [] ∣ [] ⊢ Jfun ⦂ `∀ JB
 ⊢Jfun = ⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable))
-               (⊢ƛ ⊢JT (⊢· (⊢·[] (⊢` here) (wf-var (unmasked abst , ez , nameable)))
-                           (⊢` (there here)))))
+               (⊢ƛ ⊢JT (⊢· (⊢·[] (⊢` here)
+                                 (wf-var (unmasked abst , ez , nameable)))
+                            (⊢` (there here)))))
 
 ⊢J₀ : [] ∣ [] ⊢ J₀ ⦂ `ℕ
 ⊢J₀ = ⊢· (⊢· (⊢·[] ⊢Jfun wf-ℕ) ⊢$) ⊢Wt
@@ -2279,7 +2306,8 @@ H₀   = ((Hfun ·[ HB , `ℕ ]) · ($ 7)) ·[ ` 0 ⇒ `ℕ , `ℕ ]
 
 ⊢Hfun : [] ∣ [] ⊢ Hfun ⦂ `∀ HB
 ⊢Hfun = ⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable))
-               (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) (⊢` (there here)))))
+               (⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable))
+                       (⊢` (there here)))))
 
 ⊢H₀ : [] ∣ [] ⊢ H₀ ⦂ (`ℕ ⇒ `ℕ)
 ⊢H₀ = ⊢·[] (⊢· (⊢·[] ⊢Hfun wf-ℕ) ⊢$) wf-ℕ
@@ -2314,7 +2342,8 @@ hstep₃ = ξ-·[] (ξ-⟪⟫ (Beta (V-⟪⟫ V-$ I-seal)))
 -- `` `∀ `` inside.
 ⊢Hconv : (unmasked abst ∷ convCtx (morph (`ℕ ∷ []) []) []) ⊢ id (` 0) ↦ unseal 1
            ∶ (` 0 ⇒ ` 1) ⇝ (` 0 ⇒ `ℕ)
-⊢Hconv = conv-fun (conv-idv (unmasked abst , ez , nameable)) (conv-unseal (es ez))
+⊢Hconv = conv-fun (conv-idv (unmasked abst , ez , nameable))
+                  (conv-unseal (es ez))
 
 -- the mint: the inserted `seal 0` conceals the binder this rule
 -- introduces, under an `unseal 1` that reveals the crossed boundary's.
@@ -2337,7 +2366,8 @@ _ = refl
 
 ⊢HV : (unmasked (bind `ℕ) ∷ []) ∣ [] ⊢ HV ⦂ `∀ (` 0 ⇒ ` 1)
 ⊢HV = ⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable))
-             (env (mw rw[] (sw-l (unmasked (bind `ℕ) , es ez , nameable) sw[])) ⊢$
+             (env (mw rw[] (sw-l (unmasked (bind `ℕ) , es ez , nameable) sw[]))
+               ⊢$
                   (conv-seal (es ez))
                   (wf-var (unmasked (bind `ℕ) , es ez , nameable))))
 
@@ -2410,7 +2440,8 @@ Cu = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ morph (binds Θt) (unlock 0 ∷ changes �
               (sw-u (_ , ez , locked)
                     (sw-l (unmasked (bind `ℕ) , ez , nameable) sw[])))
           (⊢·[] ⊢Wt (wf-var (unmasked (bind `ℕ) , ez , nameable)))
-          (conv-fun (conv-idv (unmasked (bind `ℕ) , ez , nameable)) (conv-seal ez))
+          (conv-fun (conv-idv (unmasked (bind `ℕ) , ez , nameable))
+            (conv-seal ez))
           (wf-⇒ (wf-var (unmasked (bind `ℕ) , ez , nameable))
                 (wf-var (unmasked (bind `ℕ) , ez , nameable)))
 
@@ -2422,7 +2453,8 @@ Cr = (Wt ·[ ` 0 ⇒ `ℕ , ` 0 ]) ⟪ morph [] [] , id (` 0) ↦ seal 0 ⟫
 ⊢Cr : Δt ∣ [] ⊢ Cr ⦂ (` 0 ⇒ ` 0)
 ⊢Cr = env (mw rw[] sw[])
           (⊢·[] ⊢Wt (wf-var (unmasked (bind `ℕ) , ez , nameable)))
-          (conv-fun (conv-idv (unmasked (bind `ℕ) , ez , nameable)) (conv-seal ez))
+          (conv-fun (conv-idv (unmasked (bind `ℕ) , ez , nameable))
+            (conv-seal ez))
           (wf-⇒ (wf-var (unmasked (bind `ℕ) , ez , nameable))
                 (wf-var (unmasked (bind `ℕ) , ez , nameable)))
 
@@ -2757,8 +2789,8 @@ interior-TyBeta : (A : Ty) (Δ : Ctxᵗ)
 interior-TyBeta A Δ = refl
 
 interior-TyPeelR : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ≡ unmasked (bind (shiftBy (numBinds Θ) A))
-    ∷ interior Θ Δ
+  → interior (morph (A ∷ binds Θ) (changes Θ)) Δ
+      ≡ unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ
 interior-TyPeelR A Θ Δ = refl
 
 ------------------------------------------------------------------------
@@ -2766,10 +2798,11 @@ interior-TyPeelR A Θ Δ = refl
 --       moves
 ------------------------------------------------------------------------
 
--- `TyBeta` types its body `N` at `abst ∷ Δ` (that is `⊢Λ`) and the
--- contractum types it at `interior (morph (A ∷ []) []) Δ`.  Those two type
--- contexts differ AT SLOT 0 ONLY, and there the change is a REFINEMENT
--- (`abst ⊑ᵃᵉ bind A`, `la-ab`) — which is intended: TyBeta REVEALS, it
+-- `TyBeta` types its body `N` at `unmasked abst ∷ Δ` (that is `⊢Λ`) and
+-- the contractum types it at `interior (morph (A ∷ []) []) Δ`.  Those two
+-- type contexts differ AT SLOT 0 ONLY, and there the change is a
+-- REFINEMENT (`abst ⊑ᵇ bind A` under `la-uu`) — intended: TyBeta REVEALS,
+-- it
 -- is the rule that installs a representation.  Every OTHER slot is `Δ`
 -- itself, on the nose.  So a body that names a slot Δ masks is refused
 -- on both sides.
@@ -2785,7 +2818,7 @@ Rᵃ : Term
 Rᵃ = (Λ Nᵃ) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]
 
 -- THE FAULT, LOCALIZED: `⊢·[]`'s `Δ ⊢ᵗ A` at `` ` 1 `` = X, which
--- `abst ∷ Δ✦` masks.
+-- `unmasked abst ∷ Δ✦` masks.
 ¬⊢Nᵃ-abst : ∀ {Γ A} → ¬ ((unmasked abst ∷ Δ✦) ∣ Γ ⊢ Nᵃ ⦂ A)
 ¬⊢Nᵃ-abst (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
 
@@ -2893,14 +2926,16 @@ stepᵇ = TyPeelR val-prb ⊢sᵇ
 _ : wkᴹ 1 Vᵇ ≡ prb 1
 _ = refl
 
-_ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ ≡ unmasked (bind `ℕ) ∷ interior Θᵇ Δᵇ
+_ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ
+      ≡ unmasked (bind `ℕ) ∷ interior Θᵇ Δᵇ
 _ = interior-TyPeelR `ℕ Θᵇ Δᵇ
 
-_ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ ≡ unmasked (bind `ℕ) ∷ masked (bind
-  `ℕ) ∷ []
+_ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ
+      ≡ unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
-¬⊢wkVᵇ : ∀ {Γ A} → ¬ ((unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
+¬⊢wkVᵇ : ∀ {Γ A}
+  → ¬ ((unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
 ¬⊢wkVᵇ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
 
 ¬⊢Cᵇ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Cᵇ ⦂ A)
@@ -2961,7 +2996,8 @@ _ = refl
 -- V NAMES THE SLOT Θ₂ LOCKS (Y, exterior slot 1; interior slot 2 past
 -- Θ₁'s binder Z).
 ¬⊢Vᶜ : ∀ {Γ A}
-  → ¬ ((unmasked (bind `ℕ) ∷ unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ Vᶜ ⦂ A)
+  → ¬ ((unmasked (bind `ℕ) ∷ unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ [])
+         ∣ Γ ⊢ Vᶜ ⦂ A)
 ¬⊢Vᶜ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es (es ez) , ()))))
 
 -- the lookup premise both rules carry

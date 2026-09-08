@@ -294,7 +294,7 @@ substᵉ-⇑ : (n : ℕ) (R : Ty) (E : Ent)
 substᵉ-⇑ n R (unmasked b) = cong unmasked (substᵇ-⇑ n R b)
 substᵉ-⇑ n R (masked b)   = cong masked (substᵇ-⇑ n R b)
 
--- WHAT THE OTHER SLOTS OWE.  Every entry of `abstN n (abst ∷ Ψ)` is
+-- WHAT THE OTHER SLOTS OWE.  Every entry of `abstN n (unmasked abst ∷ Ψ)` is
 -- either ABSTRACT (the prefix, and slot n itself) or an entry of Ψ read
 -- past `n+1` binders — and such an entry names no slot ≤ n, so the mint
 -- at slot n leaves it alone: a rep is lifted past exactly the binders
@@ -440,7 +440,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- Four moves, one per premise of the contractum's `env`:
 --
 --   FRAME       one bind prepended to Θ, whose interior is
---               `bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`
+--               `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ`
 --               DEFINITIONALLY — the shift `renᴮ suc Θ` used to add is
 --               the one `pushBinds` already performs.
 --   INTERIOR    `wkᴹ 1 V` (⊢rename at `Ren-wk`) instantiated at the new

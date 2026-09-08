@@ -59,8 +59,8 @@ lock-then-unlock = refl
 
 -- `interior Θ Δ` and `convCtx Θ Δ` differ ONLY by masking: `scope` applies the
 -- `lock` masks, `unlockedScope` skips them, and both do the same binds and the
--- same unmasks.  Masking never turns an `abst` into a `bind` — it only
--- wraps and unwraps `masked` — so a slot that is VISIBLE inside and a BINDER
+-- same unmasks.  Masking never touches the BINDING layer — it only sets
+-- and clears the lock — so a slot that is VISIBLE inside and a BINDER
 -- outside is that same binder inside.  This is the one structural step
 -- the old IdPush side-condition proof and CancelR's preservation case
 -- consume; here it is a theorem, not an interface.

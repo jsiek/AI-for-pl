@@ -7,7 +7,7 @@ module strong.proof.DualTightness where
 -- `unlock` entries, so a boundary whose morphism UNMASKS an exterior slot
 -- handed its crossing argument a frame in which that slot was STILL
 -- unmasked: `interior (dual Θ) (interior Θ Δ)` was
--- `map masked (bind prefix) ++ unlockedScope Θ Δ`, STRICTLY MORE
+-- `map maskEnt (bind prefix) ++ unlockedScope Θ Δ`, STRICTLY MORE
 -- NAMEABLE than Δ whenever Θ unlocked a slot Δ masked.  SCOPE WAS GAINED
 -- THROUGH THE BOUNDARY: the redex below is ILL TYPED at Δᵤ (its argument
 -- W names a slot MASKED at Δᵤ) and its `Peel` contractum was WELL TYPED.
@@ -21,7 +21,7 @@ module strong.proof.DualTightness where
 --       — the dual RESTORES what Θ unlocked, and the list is REVERSED,
 --       because `scope` applies it HEAD-LAST.
 --
--- With both, `interior (dual Θ) (interior Θ Δ) ≡ map masked (bind prefix)
+-- With both, `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (bind prefix)
 -- ++ Δ` EXACTLY (proof/PeelDual, `interior-dual`), the crossing is
 -- `⊢rename` alone, and the contractum below is REFUSED — §3.
 
@@ -89,7 +89,8 @@ W = ƛ `ℕ ∙ ((Λ ($ 3)) ·[ `ℕ , ` 0 ])
 -- The boundary ALONE is well typed at Δᵤ …
 ⊢Vb : Δᵤ ∣ [] ⊢ V ⟪ Θᵤ , cᵤ ⟫ ⦂ ((`ℕ ⇒ `ℕ) ⇒ (`ℕ ⇒ `ℕ))
 ⊢Vb = env (mw rw[] (sw-u ∋lk-Δᵤ sw[]))
-          (⊢ƛ (wf-⇒ (wf-var (unmasked (bind `ℕ) , ez , nameable)) wf-ℕ) (⊢` here))
+          (⊢ƛ (wf-⇒ (wf-var (unmasked (bind `ℕ) , ez , nameable)) wf-ℕ)
+              (⊢` here))
           (conv-fun (conv-fun (conv-unseal ez) (conv-id base-ℕ))
                     (conv-fun (conv-seal ez) (conv-id base-ℕ)))
           (wf-⇒ (wf-⇒ wf-ℕ wf-ℕ) (wf-⇒ wf-ℕ wf-ℕ))
@@ -178,7 +179,11 @@ _ = refl
 ¬⊢ᵐΘᵥ : ¬ (Δᵥ ⊢ᵐ Θᵥ)              -- … and is REFUSED
 ¬⊢ᵐΘᵥ (mw _ (sw-u (_ , ez , ()) _))
 
--- A DOUBLE LOCK IS REFUSED TOO — which is what keeps `Locked` one mask
--- deep, and hence `unmaskEnt` an exact inverse of `masked`.
+-- A DOUBLE LOCK IS REFUSED TOO.  With the two-layer entry (strong.Ctx
+-- §1) it is no longer the fact that keeps `Locked` one mask deep — that
+-- is by construction — but it is still what makes `unmaskEnt` an exact
+-- inverse of `maskEnt` where it is applied: `mask` is idempotent, so
+-- `unmask ∘ mask` is the identity only at a NAMEABLE slot
+-- (`unmask-mask`), and `sw-l` never masks any other kind.
 ¬⊢ᵐ-double-lock : ¬ (Δᵥ ⊢ᵐ morph [] (lock 0 ∷ lock 0 ∷ []))
 ¬⊢ᵐ-double-lock (mw _ (sw-l (_ , ez , ()) _))

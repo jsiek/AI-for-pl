@@ -232,10 +232,6 @@ ren-kn r d = ren∋ r d
 ren-tv : Ren ρ Δ Δ′ → Δ ∋tv X → Δ′ ∋tv ρ X
 ren-tv r (E , d , v) = renᵉ _ E , ren∋ r d , renᵉ-Nameable v
 
--- Which entry is at a nameable slot: the lock layer is `unmasked`.
-∋tv-unmasked : Δ ∋tv X → ∃[ b ] (Δ ∋e X , unmasked b)
-∋tv-unmasked (unmasked b , d , nameable) = b , d
-
 ren-ext : Ren ρ Δ Δ′ → Ren (extᵗ ρ) (F ∷ Δ) (renᵉ ρ F ∷ Δ′)
 ren-ext {ρ = ρ} {Δ = Δ} {Δ′ = Δ′} {F = F} r = mkRen go
   where
@@ -579,8 +575,9 @@ maskEnt-mono (le-uu l) = le-mm l
 maskEnt-mono (le-mm l) = le-mm l
 maskEnt-mono (le-mu l) = le-mm l
 
--- Masking a slot only LOSES nameability, so a masked type context refines to the
--- unmasked one.  (There is no converse: that is the deleted demotion.)
+-- Masking a slot only LOSES nameability, so a masked type context refines
+-- to the unmasked one.  (There is no converse: that is the deleted
+-- demotion.)
 -- Every clause is now ONE lock step, with no recursion and no `Nameable`
 -- witness to invent — the target's lock is read off its constructor.
 maskEnt-le : E ⊑ᵉ E′ → maskEnt E ⊑ᵉ E′

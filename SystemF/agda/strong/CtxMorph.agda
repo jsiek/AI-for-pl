@@ -194,8 +194,10 @@ interior⊑convCtx Θ Δ =
 -- For the tail S′ of the entry:
 --
 --   lock X    X is NAMEABLE in `applyChanges S′ Δ`  (you may only mask
---             what is visible: no double masking, so `Locked` is one mask
---             deep)
+--             what is visible; `Locked` is one mask deep BY
+--             CONSTRUCTION now — strong.Ctx §1 — but the premise still
+--             earns its keep: it is what makes `unmask ∘ mask` the
+--             identity at the slot, `unmask-mask`, strong.Ctx §6b)
 --   unlock X  X is LOCKED   in `applyChanges S′ Δ`  (`∋lk`: masked over a
 --             nameable entry).  A VACUOUS UNLOCK — `↥X` at a slot the
 --             frame leaves visible — IS REFUSED; it is the premise the

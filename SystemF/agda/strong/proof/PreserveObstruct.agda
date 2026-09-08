@@ -70,7 +70,8 @@ _ = refl
 
 ⊢Vc : Ξc ∣ [] ⊢ Vc ⦂ (`ℕ ⇒ `ℕ)
 ⊢Vc = ⊢ƛ wf-ℕ
-        (env (mw rw[] (sw-l (unmasked (bind (`ℕ ⇒ `ℕ)) , es ez , nameable) sw[]))
+        (env (mw rw[]
+               (sw-l (unmasked (bind (`ℕ ⇒ `ℕ)) , es ez , nameable) sw[]))
              ⊢$ (conv-id base-ℕ) wf-ℕ)
 
 val-Vc : Value Vc

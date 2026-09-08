@@ -12,7 +12,7 @@ module strong.Progress where
 --   redex, so the theorem is false outright.
 --
 -- * THE TYPE CONTEXT IS ARBITRARY.  Reduction goes UNDER Λ and under a
---   boundary, so the theorem is used at `abst ∷ Δ` and at
+--   boundary, so the theorem is used at `unmasked abst ∷ Δ` and at
 --   `interior Θ Δ`; nothing about Δ is assumed, and in particular there
 --   is no context well-formedness premise.
 --

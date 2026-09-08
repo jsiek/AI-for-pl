@@ -114,6 +114,17 @@ updateAt-app-tail f (E ∷ Ow) X Δ = cong (E ∷_) (updateAt-app-tail f Ow X Δ
   sw-u (subst (λ Ξ → Ξ ∋lk X) (sym (applyChanges-++ S T Δ)) lk)
        (⊢ˢ-++ S T b bT)
 
+-- … and its converse on the TAIL, which is all the sequential reading
+-- gives for free: T runs FIRST, so its own premises are already read
+-- over Δ and nothing has to be transported.  (There is no such lemma for
+-- the HEAD: S's premises are read over `applyChanges T Δ`, not Δ.)  This
+-- is what lets a frame whose change list IS a replay reuse the replayed
+-- half's judgement — `rewindChanges`'s `yes` branch, proof/MoveScope §3.
+⊢ˢ-suffix : (S T : List Change) {Δ : Ctxᵗ} → Δ ⊢ˢ (S ++ T) → Δ ⊢ˢ T
+⊢ˢ-suffix []             T b            = b
+⊢ˢ-suffix (lock X ∷ S)   T (sw-l tv b)  = ⊢ˢ-suffix S T b
+⊢ˢ-suffix (unlock X ∷ S) T (sw-u lk b)  = ⊢ˢ-suffix S T b
+
 ------------------------------------------------------------------------
 -- §2  The dual's change list
 ------------------------------------------------------------------------

@@ -49,9 +49,12 @@ module strong.proof.MoveScope where
 --   §6  the two cases
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; _++_; length)
+open import Data.Nat.Properties using (+-comm; +-suc)
+open import Data.List using (List; []; _∷_; _++_; length; drop)
+open import Data.List.Properties using (length-++)
+open import Data.Empty using (⊥-elim)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
-open import Relation.Nullary using (¬_; yes; no)
+open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans; subst)
 
@@ -62,7 +65,7 @@ open import strong.Terms
 open import strong.CtxMorph
 open import strong.proof.Preserve using (CancelRCase; IdPushCase)
 open import strong.proof.PeelDual
-  using (⊢ˢ-++; applyChanges-++; applyUnlocks-++;
+  using (⊢ˢ-++; ⊢ˢ-suffix; applyChanges-++; applyUnlocks-++;
          applyChanges-dualScope; ⊢ˢ-dualScope)
 
 ------------------------------------------------------------------------
@@ -109,6 +112,70 @@ numBinds-⋉ Θ₁ Θ₂ = refl
 numBinds-rewind : (Θ : CtxMorph) → numBinds (rewind Θ) ≡ numBinds Θ
 numBinds-rewind Θ = refl
 
+-- REWINDING IS IDEMPOTENT (2026-09-08) — the fact that bounds the change
+-- lists.  It is two list facts and one arithmetic fact:
+--
+--   the dual replay has the SAME LENGTH as what it replays;
+--   `half (n + n) ≡ n`;
+--   `drop (length A) (A ++ B) ≡ B`.
+--
+-- Together they say that `dualScope 0 S ++ S` IS a replay
+-- (`Rewound-replay`), so `rewindChanges` returns it unchanged the next
+-- time round.  Without this, the outer frame of a scope move is replayed
+-- again on every pass and the lists DOUBLE — Examples §16.
+length-dualScope : (n : ℕ) (S : List Change)
+  → length (dualScope n S) ≡ length S
+length-dualScope n []             = refl
+length-dualScope n (lock X ∷ S)   =
+  trans (length-++ (dualScope n S) {unlock (n + X) ∷ []})
+        (trans (+-comm (length (dualScope n S)) 1)
+               (cong suc (length-dualScope n S)))
+length-dualScope n (unlock X ∷ S) =
+  trans (length-++ (dualScope n S) {lock (n + X) ∷ []})
+        (trans (+-comm (length (dualScope n S)) 1)
+               (cong suc (length-dualScope n S)))
+
+half-+ : (n : ℕ) → half (n + n) ≡ n
+half-+ zero    = refl
+half-+ (suc n) =
+  trans (cong (λ m → half (suc m)) (+-suc n n)) (cong suc (half-+ n))
+
+drop-length-++ : (S T : List Change) → drop (length S) (S ++ T) ≡ T
+drop-length-++ []      T = refl
+drop-length-++ (c ∷ S) T = drop-length-++ S T
+
+secondHalf-replay : (S : List Change)
+  → secondHalf (dualScope 0 S ++ S) ≡ S
+secondHalf-replay S =
+  trans (cong (λ n → drop (half n) (dualScope 0 S ++ S))
+              (trans (length-++ (dualScope 0 S) {S})
+                     (cong (_+ length S) (length-dualScope 0 S))))
+        (trans (cong (λ n → drop n (dualScope 0 S ++ S))
+                     (trans (half-+ (length S))
+                            (sym (length-dualScope 0 S))))
+               (drop-length-++ (dualScope 0 S) S))
+
+Rewound-replay : (S : List Change) → Rewound (dualScope 0 S ++ S)
+Rewound-replay S =
+  cong (λ T → dualScope 0 T ++ T) (secondHalf-replay S)
+
+-- A list that IS a replay is left alone, whichever way the test goes.
+rewindChanges-fix : (S : List Change) (d : Dec (Rewound S))
+  → Rewound S → rewindChanges S d ≡ S
+rewindChanges-fix S (yes _) r = refl
+rewindChanges-fix S (no ¬r) r = ⊥-elim (¬r r)
+
+rewind-idem : (Θ : CtxMorph) → rewind (rewind Θ) ≡ rewind Θ
+rewind-idem Θ with rewound? (changes Θ)
+rewind-idem Θ | yes eq =
+  cong (morph (binds Θ))
+       (rewindChanges-fix (changes Θ) (rewound? (changes Θ)) eq)
+rewind-idem Θ | no ¬eq =
+  cong (morph (binds Θ))
+       (rewindChanges-fix (dualScope 0 (changes Θ) ++ changes Θ)
+                          (rewound? (dualScope 0 (changes Θ) ++ changes Θ))
+                          (Rewound-replay (changes Θ)))
+
 -- THE MOVED CHANGES, APPLIED PAST THE BIND PREFIX, ARE THE ORIGINAL
 -- CHANGES APPLIED UNDER IT.  This is the whole point of the index lift
 -- `n + X`, and it is `updateAt-pushBinds` (strong.Ctx) once per entry.
@@ -140,10 +207,33 @@ applyUnlocks-shiftScope As (unlock X ∷ S) Δ =
 -- this is `applyChanges-dualScope` (proof/PeelDual) at an empty bind
 -- prefix, and it is where the whole design is paid for: the inverse is
 -- exact only because `sw-u` refuses a vacuous unlock.
+--
+-- IT HOLDS OF A LIST THAT IS ALREADY A REPLAY, TOO, AND THAT IS WHY
+-- `rewindChanges` MAY LEAVE ONE ALONE (strong.CtxMorph §4): `Rewound S`
+-- says `S ≡ dualScope 0 Q ++ Q` for S's second half Q, `⊢ˢ-suffix` reads
+-- Q's own sequential judgement out of S's, and then it is the SAME lemma
+-- at Q.  So the identity is proved ONCE, of `rewindChanges` in both
+-- branches.
+applyChanges-rewindChanges : (S : List Change) (d : Dec (Rewound S))
+  {Δ : Ctxᵗ} → Δ ⊢ˢ S → applyChanges (rewindChanges S d) Δ ≡ Δ
+applyChanges-rewindChanges S (yes eq) {Δ = Δ} b =
+  trans (cong (λ T → applyChanges T Δ) (sym eq))
+        (trans (applyChanges-++ (dualScope 0 Q) Q Δ)
+               (applyChanges-dualScope [] Q bQ))
+  where
+  Q : List Change
+  Q = secondHalf S
+
+  bQ : Δ ⊢ˢ Q
+  bQ = ⊢ˢ-suffix (dualScope 0 Q) Q (subst (λ T → Δ ⊢ˢ T) (sym eq) b)
+applyChanges-rewindChanges S (no _) {Δ = Δ} b =
+  trans (applyChanges-++ (dualScope 0 S) S Δ)
+        (applyChanges-dualScope [] S b)
+
 scope-rewind : (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ → scope (rewind Θ) Δ ≡ Δ
-scope-rewind Θ {Δ = Δ} mwᵥ =
-  trans (applyChanges-++ (dualScope 0 (changes Θ)) (changes Θ) Δ)
-        (applyChanges-dualScope [] (changes Θ) (mw-changes mwᵥ))
+scope-rewind Θ mwᵥ =
+  applyChanges-rewindChanges (changes Θ) (rewound? (changes Θ))
+                             (mw-changes mwᵥ)
 
 interior-rewind : (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ
   → interior (rewind Θ) Δ ≡ pushBinds (binds Θ) Δ
@@ -301,8 +391,17 @@ _ = refl
 -- read past the extra unmasks the inverse list adds — MORE nameable, so
 -- `⊢ʳ-⊑` carries them.  (Under the interleaved list the reps sat inside
 -- the appended tail, where they were read unchanged.)
-⊢ᵐ-rewind : ∀ (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ → Δ ⊢ᵐ rewind Θ
-⊢ᵐ-rewind Θ {Δ = Δ} mwᵥ =
+--
+-- WHEN THE LIST IS ALREADY A REPLAY THERE IS NOTHING TO DO: the frame IS
+-- Θ, so both halves are Θ's own judgement, ON THE NOSE — not even a
+-- `⊢ʳ-⊑` step, because the reps are read on exactly the type context
+-- they were read on.  That is what makes `rewind` IDEMPOTENT
+-- (`rewind-idem` below) and the change lists BOUNDED (Examples §16).
+⊢ᵐ-rewindChanges : ∀ (Θ : CtxMorph) (d : Dec (Rewound (changes Θ)))
+  {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ
+  → Δ ⊢ᵐ morph (binds Θ) (rewindChanges (changes Θ) d)
+⊢ᵐ-rewindChanges Θ (yes eq) mwᵥ = mw (mw-reps mwᵥ) (mw-changes mwᵥ)
+⊢ᵐ-rewindChanges Θ (no _) {Δ = Δ} mwᵥ =
   mw (subst (λ Ξ → Ξ ⊢ʳ binds Θ)
             (sym (applyUnlocks-++ (dualScope 0 (changes Θ)) (changes Θ) Δ))
             (⊢ʳ-⊑ (Δ⊑applyUnlocks (dualScope 0 (changes Θ))
@@ -311,6 +410,9 @@ _ = refl
      (⊢ˢ-++ (dualScope 0 (changes Θ)) (changes Θ)
             (⊢ˢ-dualScope [] (changes Θ) (mw-changes mwᵥ))
             (mw-changes mwᵥ))
+
+⊢ᵐ-rewind : ∀ (Θ : CtxMorph) {Δ : Ctxᵗ} → Δ ⊢ᵐ Θ → Δ ⊢ᵐ rewind Θ
+⊢ᵐ-rewind Θ mwᵥ = ⊢ᵐ-rewindChanges Θ (rewound? (changes Θ)) mwᵥ
 
 -- THE MOVED CHANGES ARE WELL FORMED WHERE THEY LAND.  Θ₂'s entries are
 -- read one bind prefix in, over `pushBinds As (applyChanges S′ Δ)` —

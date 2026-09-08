@@ -37,8 +37,11 @@ module strong.CtxMorph where
 -- re-exports this module.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; _++_; map; length)
+open import Data.List using (List; []; _∷_; _++_; map; length; drop)
+open import Data.List.Properties using (≡-dec)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
+open import Relation.Nullary using (Dec; yes; no)
+open import Relation.Binary.Definitions using (DecidableEquality)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
@@ -358,9 +361,64 @@ shiftScope n (lock X ∷ S)   = lock (n + X) ∷ shiftScope n S
 -- frame's own `⊢ᵐ`: Θ's bind reps are read on `unlockedScope Θ Δ` and a
 -- rep naming a slot Θ UNLOCKED is not well formed on the plain Δ.
 -- Keeping the entries and rewinding them keeps every rep exactly where it
--- was read.
+-- was read.  (`unlocksOf` alone — replaying only the unmasks the reps
+-- need — loses both halves: `applyChanges` is then NOT the identity, and
+-- the surviving unlock is VACUOUS wherever its own licensing lock was
+-- dropped.  Both refuted in proof/RewindNorm §5.)
+--
+-- REWINDING IS IDEMPOTENT, AND IT HAD BETTER BE (2026-09-08).  The
+-- replay `dualScope 0 S ++ S` DOUBLES the list, and the outer frame of a
+-- scope move is rewound again on the next pass, so over a run the change
+-- lists grow as `S , S ++ S , (S ++ S) ++ (S ++ S) , …` — the
+-- `↥X , ↓X , ↥X , ↓X , …` blowup Examples §16 measures.  The doubling is
+-- pure waste: `dualScope 0 S ++ S` is ALREADY a rewound list, and a
+-- rewound list is already the identity on the frame
+-- (`applyChanges-dualScope`) with the unmasks its reps need already on
+-- it.  So `rewind` REPLAYS ONLY WHAT IS NOT ALREADY A REPLAY.
+--
+-- A list IS a replay when it is its own second half's dual replay.  The
+-- test is decidable and the two branches are both trivial to discharge:
+-- on `yes` the frame lemmas are the ORIGINAL frame's (`scope` is the
+-- identity by `applyChanges-dualScope` at the second half, `⊢ᵐ` is Θ's
+-- own — the reps are read on EXACTLY the same type context, so not even
+-- a `⊢ʳ-⊑` step appears); on `no` they are the replay's, as before.
+
+-- The SECOND HALF of a change list: the candidate Q in `S ≡ dualScope 0 Q ++ Q`.
+half : ℕ → ℕ
+half zero          = zero
+half (suc zero)    = zero
+half (suc (suc n)) = suc (half n)
+
+secondHalf : List Change → List Change
+secondHalf S = drop (half (length S)) S
+
+-- `S` IS A REPLAY: its first half rewinds its second.
+Rewound : List Change → Set
+Rewound S = dualScope 0 (secondHalf S) ++ secondHalf S ≡ S
+
+_≟ᶜ_ : DecidableEquality Change
+lock X   ≟ᶜ lock Y   with X ≟ℕ Y
+... | yes refl = yes refl
+... | no  ne   = no λ { refl → ne refl }
+lock X   ≟ᶜ unlock Y = no λ()
+unlock X ≟ᶜ lock Y   = no λ()
+unlock X ≟ᶜ unlock Y with X ≟ℕ Y
+... | yes refl = yes refl
+... | no  ne   = no λ { refl → ne refl }
+
+rewound? : (S : List Change) → Dec (Rewound S)
+rewound? S = ≡-dec _≟ᶜ_ (dualScope 0 (secondHalf S) ++ secondHalf S) S
+
+-- The decision is an EXPLICIT ARGUMENT, so that every lemma about the
+-- rewound frame splits on it by ordinary pattern matching (no `with`
+-- abstraction has to find the scrutinee under `rewind`).
+rewindChanges : (S : List Change) → Dec (Rewound S) → List Change
+rewindChanges S (yes _) = S
+rewindChanges S (no  _) = dualScope 0 S ++ S
+
 rewind : CtxMorph → CtxMorph
-rewind Θ = morph (binds Θ) (dualScope 0 (changes Θ) ++ changes Θ)
+rewind Θ =
+  morph (binds Θ) (rewindChanges (changes Θ) (rewound? (changes Θ)))
 
 -- The inner frame, with the outer frame's changes moved in at its TAIL.
 -- `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁` DEFINITIONALLY: the move carries no

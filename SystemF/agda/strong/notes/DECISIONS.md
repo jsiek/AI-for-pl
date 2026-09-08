@@ -2561,3 +2561,32 @@ needs `Δ ∋tv X` (witness: Δ = masked abst ∷ [], X = 0) — the premise `sw
 always has; threaded into applyUnlocks-dualScope and convCtx-dual.  The
 two mask inverses are now symmetric (`mask-unmask : Δ ∋lk X → …`,
 `unmask-mask : Δ ∋tv X → …`).  Rendering unchanged.
+
+### Change-list growth under IdPush/CancelR (probe, 2026-09-08)
+
+Observed by Jeremy and me on `(E₀ [ℕ]) · 42` (Examples §16, 36 steps to
+42): rewind/⋉ duplicated change lists per pass — peak list 130 entries,
+389 in one state.  Jeremy: "replace rewind with empty?" — refuted in-tree
+(MwUObstruct §3 ¬⊢ᵐ-bindsOnly).  PROBED: (A) cancel adjacent inverse
+pairs — REFUTED by `_⊢ˢ_` in both orientations (proof/RewindNorm §1–2):
+the contractions are exact on the contexts but ↥X ↧X → ↥X leaves a
+vacuous unlock and ↧X ↥X → ↧X leaves a lock on a masked slot; in a
+well-formed list the entries at one slot strictly alternate, so these
+are the only adjacent patterns.  (B) LANDED on branch normalize-changes:
+two REDUNDANCY tests, exact on applyChanges AND applyUnlocks —
+`rewind` replays only if the list is not already a replay
+(`Rewound S = dualScope 0 (secondHalf S) ++ secondHalf S ≡ S`, decided
+by `rewound?`), and `⋉` drops the moved copy when Θ₂'s changes are a
+replay whose unlock slots are already among Θ₁'s (`redundant?`).  All
+theorem statements unchanged (frame lemmas stay equalities; det/
+value-¬step/preservation untouched); every pinned run unchanged (the
+tests never fire on short lists).  §16: peak list 130 → 50, entries per
+state 389 → 101, still 36 steps.  The exponential was mostly in ⋉ (rewind
+alone: 130 → 118).  (C) RESIDUE: merging lists that unlock DIFFERENT
+slots is genuinely new information; bounding it needs the canonical
+per-slot form (≤ 3 entries per slot, table in RewindNorm §4 — stated,
+not proven; needs updateAt commutation at distinct slots).  `unlocksOf`
+alone as the outer frame is refuted twice (frame not restored; vacuous
+unlock).  Design note for Jeremy: the rules now carry decidable tests
+(`rewound?`, `redundant?`) — deterministic and computable, but a
+judgement call whether tests belong in rules.  Awaiting ruling.

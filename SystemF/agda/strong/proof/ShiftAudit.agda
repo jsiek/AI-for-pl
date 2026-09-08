@@ -822,6 +822,318 @@ preserveᵇ (env mwᵥ ⊢M ⊢c wE) (ξᵇ-⟪⟫ st) =
   env mwᵥ (preserveᵇ ⊢M st) ⊢c wE
 
 ------------------------------------------------------------------------
+-- §5c₁  FRAME EXACTNESS OF THE NEW CLAUSE
+------------------------------------------------------------------------
+
+-- (iii) THE MOVED BOUNDARY'S INTERIOR IS ITS BIRTH FRAME WITH THE NEW
+-- SLOT INSERTED MASKED, BELOW THE INNER BINDS.  `interior-addLock0`
+-- (§5b), instantiated at the rule's own two contexts: the redex reads
+-- the moved boundary at `interior Θ Δ` and the contractum at
+-- `interior (morph (A ∷ binds Θ) (changes Θ)) Δ`, which IS
+-- `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ`
+-- (`interior-TyPeelR`, `refl`).
+TyPeelR-⟪⟫-frame : (A : Ty) (Θ Θ′ : CtxMorph) (Δ : Ctxᵗ)
+  → interior (addLock0 (renᴮ suc Θ′))
+             (interior (morph (A ∷ binds Θ) (changes Θ)) Δ)
+      ≡ pushBinds (map ⇑ᵗ (binds Θ′))
+          (masked (bind (shiftBy (numBinds Θ) A))
+             ∷ scope Θ′ (interior Θ Δ))
+TyPeelR-⟪⟫-frame A Θ Θ′ Δ =
+  interior-addLock0 Θ′ (shiftBy (numBinds Θ) A) (interior Θ Δ)
+
+-- … and the BIRTH frame, for comparison: the same `pushBinds` over the
+-- same `scope`, with the binds UNLIFTED and no new slot.  So the move is
+-- criterion (i) — the index shift past ONE crossed binder, which
+-- `map ⇑ᵗ` performs on the reps and `renᴹ (extN (numBinds Θ′) suc)`
+-- performs on the interior — AND NOTHING ELSE.
+TyPeelR-⟪⟫-birth : (Θ′ : CtxMorph) (Ξ : Ctxᵗ)
+  → interior Θ′ Ξ ≡ pushBinds (binds Θ′) (scope Θ′ Ξ)
+TyPeelR-⟪⟫-birth Θ′ Ξ = refl
+
+-- THE NEW SLOT IS UNNAMEABLE THERE — the leak, closed.  (Contrast §3's
+-- `TyPeelR-slot0-nameable`, which is the leak itself; the slot is still
+-- nameable at the OUTER position, which is what authorizes the lock and
+-- what the instantiation node needs.)
+Locked-¬Nameable : ∀ {E} → Locked E → ¬ Nameable E
+Locked-¬Nameable locked ()
+
+∋lk-¬∋tv : ∀ {Δ X} → Δ ∋lk X → ¬ (Δ ∋tv X)
+∋lk-¬∋tv (E , d , lk) (E′ , d′ , nm) with ∋e-det d d′
+... | refl = Locked-¬Nameable lk nm
+
+pushBinds-∋lk0 : (As : List Ty) (E : Ent) (Δ : Ctxᵗ) → Locked E
+  → pushBinds As (E ∷ Δ) ∋lk length As
+pushBinds-∋lk0 []       E Δ lk = _ , ez , renᵉ-Locked lk
+pushBinds-∋lk0 (A ∷ As) E Δ lk with pushBinds-∋lk0 As E Δ lk
+... | _ , d , l = _ , es d , renᵉ-Locked l
+
+TyPeelR-⟪⟫-slot-locked : (Θ′ : CtxMorph) (C : Ty) (Δ : Ctxᵗ)
+  → ¬ (interior (addLock0 (renᴮ suc Θ′)) (unmasked (bind C) ∷ Δ)
+         ∋tv numBinds (renᴮ suc Θ′))
+TyPeelR-⟪⟫-slot-locked Θ′ C Δ =
+  ∋lk-¬∋tv (subst (λ Ξ → Ξ ∋lk numBinds (renᴮ suc Θ′))
+                  (sym (interior-addLock0 Θ′ C Δ))
+                  (pushBinds-∋lk0 (map ⇑ᵗ (binds Θ′)) (masked (bind C))
+                                  (scope Θ′ Δ) locked))
+
+-- THE OUTER BOUNDARY IS THE LIVE RULE'S, UNTOUCHED.  Sharpest form: the
+-- (b′) contractum is the LIVE contractum with `addLock0ᵛ` applied to the
+-- moved value and NOTHING ELSE CHANGED — same outer frame
+-- `morph (A ∷ binds Θ) (changes Θ)`, same minted conversion
+-- `instReveal 0 s`, same pushed-in annotation `renameᵗ (extᵗ suc) Bᵢ`,
+-- same type argument `` ` 0 ``.
+TyPeelR-⟪⟫-outer-unchanged : (W : Term) (Θ′ Θ : CtxMorph) (s′ s : Conv)
+    (A Bᵢ : Ty)
+  → (addLock0ᵛ (wkᴹ 1 (W ⟪ Θ′ , `∀ s′ ⟫))
+       ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+      ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+      ≡ ((renᴹ (extN (numBinds Θ′) suc) W
+            ⟪ addLock0 (renᴮ suc Θ′)
+            , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+           ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+          ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+TyPeelR-⟪⟫-outer-unchanged W Θ′ Θ s′ s A Bᵢ = refl
+
+------------------------------------------------------------------------
+-- §5c₂  TERMINATION — THE TOWER MEASURE, AND WHY THIS IS NOT FIX (a)
+------------------------------------------------------------------------
+
+-- (iv) The contractum's inner `(… ⟪ addLock0 … , `∀ s″ ⟫) ·[ … , ` 0 ]`
+-- IS AGAIN A `-→ᵇ` REDEX.  It is NOT fix (a)'s regress, and the measure
+-- says why: the number of nested boundaries above the `Λ`.
+towerHeight : Term → ℕ
+towerHeight (` x)          = 0
+towerHeight ($ n)          = 0
+towerHeight (ƛ A ∙ N)      = 0
+towerHeight (L · M)        = 0
+towerHeight (Λ N)          = 0
+towerHeight (L ·[ B , A ]) = 0
+towerHeight (M ⟪ Θ , c ⟫)  = suc (towerHeight M)
+
+-- The shift does not change it — which is what makes the measure usable
+-- at all, since both candidate repairs shift the moved value.
+towerHeight-renᴹ : (ρ : Renameᵗ) (M : Term)
+  → towerHeight (renᴹ ρ M) ≡ towerHeight M
+towerHeight-renᴹ ρ (` x)          = refl
+towerHeight-renᴹ ρ ($ n)          = refl
+towerHeight-renᴹ ρ (ƛ A ∙ N)      = refl
+towerHeight-renᴹ ρ (L · M)        = refl
+towerHeight-renᴹ ρ (Λ N)          = refl
+towerHeight-renᴹ ρ (L ·[ B , A ]) = refl
+towerHeight-renᴹ ρ (M ⟪ Θ , c ⟫)  =
+  cong suc (towerHeight-renᴹ (extN (numBinds Θ) ρ) M)
+
+-- THE MEASURE STRICTLY DECREASES.  The ∀-value the contractum's inner
+-- `·[]` instantiates is ONE BOUNDARY SHORTER than the one the redex's
+-- `·[]` instantiated.
+TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : CtxMorph) (s′ s : Conv)
+  → towerHeight (renᴹ (extN (numBinds Θ′) suc) W
+                   ⟪ addLock0 (renᴮ suc Θ′)
+                   , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+      ≡ towerHeight ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ∸ 1
+TyPeelR-⟪⟫-height W Θ′ Θ s′ s =
+  cong suc (towerHeight-renᴹ (extN (numBinds Θ′) suc) W)
+
+-- FIX (a) STALLS AT THE SAME MEASURE.  Its contractum's inner ∀-value is
+-- `wkᴹ 1 V` under a FRESH boundary, so the height is the redex's height
+-- again: nothing is consumed, and §4a's `T₀ -→ᵃ T₁ -→ᵃ T₂` is that
+-- stall, twice.  THIS is the difference between (a) and (b′): (b′)
+-- CONSUMES a boundary that was already there, (a) MINTS a new one.
+fixA-height-stalls : (V : Term) (Θ : CtxMorph) (s : Conv) (Bᵢ : Ty)
+  → towerHeight (wkᴹ 1 V ⟪ morph [] (lock 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
+      ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
+fixA-height-stalls V Θ s Bᵢ = cong suc (towerHeight-renᴹ (wkN 1) V)
+
+-- WHERE THE DESCENT STOPS.  A `∀`-value of tower height 0 is a `Λ`
+-- (`canon-∀` has no third shape), so once `TyPeelR-⟪⟫` has consumed the
+-- tower it is `TyPeelR-Λ` that fires — and `TyPeelR-Λ` neither shifts nor
+-- locks anything (§5).  So the run is `height` wrapper steps then one Λ
+-- step, and never more.
+canon-∀-height : ∀ {Δ V C} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
+  → towerHeight V ≡ 0
+  → Σ[ N ∈ Term ] (Value N × (V ≡ Λ N))
+canon-∀-height v ⊢V eq with canon-∀ v ⊢V
+... | inj₁ p                          = p
+canon-∀-height v ⊢V ()
+    | inj₂ (W , Θ′ , s′ , vW , refl)
+
+-- … stated as the progress clause it decides.  At tower height 0 the
+-- step is `TyPeelR-Λ`, with the contractum named.
+progressᵇ-Λ-at-0 : ∀ {Δ V Θ s B A C} → Value V
+  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+  → towerHeight V ≡ 0
+    ----------------------------------------------------------------
+  → Σ[ N ∈ Term ]
+      ((V ≡ Λ N)
+       × (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+            -→ᵇ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫))
+progressᵇ-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) eq with conv-all-inv ⊢c
+... | A₀ , B₀ , refl , eqₑ , ⊢s with canon-∀-height v ⊢V eq
+... | N , vN , refl = N , refl , TyPeelR-Λ vN ⊢s
+
+------------------------------------------------------------------------
+-- §5c₃  THE RULE ON A CLOSED TWO-DEEP TOWER
+------------------------------------------------------------------------
+
+-- (v) A CLOSED redex whose ∀-value is a two-boundary tower over a `Λ`.
+-- The inner frame LOCKS the outer frame's binder, so the moved boundary
+-- really does carry a change list for the appended lock to join.
+--
+--   Θᵈ  = morph (`ℕ ∷ []) []          the OUTER frame: binds X := ℕ
+--   Θᵈ′ = morph [] (lock 0 ∷ [])      the INNER frame: locks X
+Θᵈ Θᵈ′ : CtxMorph
+Θᵈ  = morph (`ℕ ∷ []) []
+Θᵈ′ = morph [] (lock 0 ∷ [])
+
+Wᵈ innerᵈ outerᵈ U₀ : Term
+Wᵈ     = Λ ($ 3)
+innerᵈ = Wᵈ ⟪ Θᵈ′ , `∀ (id `ℕ) ⟫
+outerᵈ = innerᵈ ⟪ Θᵈ , `∀ (id `ℕ) ⟫
+U₀     = outerᵈ ·[ `ℕ , `ℕ ]
+
+valᵈ : Value outerᵈ
+valᵈ = V-⟪⟫ (V-⟪⟫ (V-Λ V-$) I-all) I-all
+
+-- the frames, spelled out
+_ : interior Θᵈ [] ≡ unmasked (bind `ℕ) ∷ []
+_ = refl
+
+_ : interior Θᵈ′ (interior Θᵈ []) ≡ masked (bind `ℕ) ∷ []
+_ = refl
+
+⊢innerᵈ : interior Θᵈ [] ∣ [] ⊢ innerᵈ ⦂ `∀ `ℕ
+⊢innerᵈ = env (mw rw[] (sw-l (unmasked (bind `ℕ) , ez , nameable) sw[]))
+               (⊢Λ ⊢$) (conv-all (conv-id base-ℕ)) (wf-∀ wf-ℕ)
+
+⊢outerᵈ : [] ∣ [] ⊢ outerᵈ ⦂ `∀ `ℕ
+⊢outerᵈ = env (mw (rw-b wf-ℕ rw[]) sw[]) ⊢innerᵈ
+               (conv-all (conv-id base-ℕ)) (wf-∀ wf-ℕ)
+
+⊢U₀ : [] ∣ [] ⊢ U₀ ⦂ `ℕ
+⊢U₀ = ⊢·[] ⊢outerᵈ wf-ℕ
+
+-- STEP 1 — `TyPeelR-⟪⟫`.  The moved boundary's own change list grows by
+-- `lock 0` at the TAIL: `lock 0 ∷ []` becomes `lock 1 ∷ lock 0 ∷ []` —
+-- the SHIFTED original lock (X, now one slot out) and the NEW lock (the
+-- binder this step introduces).  No wrapper is minted.
+U₁ : Term
+U₁ = (((Λ ($ 3)) ⟪ morph [] (lock 1 ∷ lock 0 ∷ []) , `∀ (id `ℕ) ⟫)
+        ·[ `ℕ , ` 0 ])
+       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id `ℕ ⟫
+
+stepᵈ₁ : [] ⊢ U₀ -→ᵇ U₁
+stepᵈ₁ = TyPeelR-⟪⟫ (V-Λ V-$) (conv-id base-ℕ)
+
+⊢U₁ : [] ∣ [] ⊢ U₁ ⦂ `ℕ
+⊢U₁ = preserveᵇ ⊢U₀ stepᵈ₁
+
+-- THE FRAME, AT THIS STEP.  The moved boundary's interior has BOTH slots
+-- masked: X (shifted to slot 1) as it was in the redex, and the new
+-- binder (slot 0) by the appended lock.  Nothing gained.
+_ : interior (morph (`ℕ ∷ `ℕ ∷ [])  []) []
+      ≡ unmasked (bind `ℕ) ∷ unmasked (bind `ℕ) ∷ []
+_ = refl
+
+_ : interior (morph [] (lock 1 ∷ lock 0 ∷ []))
+             (interior (morph (`ℕ ∷ `ℕ ∷ []) []) [])
+      ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+-- … and it is the frame identity `interior-addLock0` at this instance
+-- (the birth frame `masked (bind `ℕ) ∷ []`, with the new slot inserted
+-- MASKED below the — empty — bind prefix).
+_ : interior (addLock0 (renᴮ suc Θᵈ′))
+             (interior (morph (`ℕ ∷ binds Θᵈ) (changes Θᵈ)) [])
+      ≡ pushBinds (map ⇑ᵗ (binds Θᵈ′))
+          (masked (bind `ℕ) ∷ scope Θᵈ′ (interior Θᵈ []))
+_ = TyPeelR-⟪⟫-frame `ℕ Θᵈ Θᵈ′ []
+
+-- STEP 2 — the tower is exhausted, so `TyPeelR-Λ` fires, INSIDE the
+-- boundary step 1 built.  No shift, no lock: TyBeta's own step.
+U₂ : Term
+U₂ = (($ 3) ⟪ morph ((` 0) ∷ []) (lock 1 ∷ lock 0 ∷ []) , id `ℕ ⟫)
+       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id `ℕ ⟫
+
+stepᵈ₂ : [] ⊢ U₁ -→ᵇ U₂
+stepᵈ₂ = ξᵇ-⟪⟫ (TyPeelR-Λ V-$ (conv-id base-ℕ))
+
+⊢U₂ : [] ∣ [] ⊢ U₂ ⦂ `ℕ
+⊢U₂ = preserveᵇ ⊢U₁ stepᵈ₂
+
+-- THE MEASURE, ON THIS RUN: 2 → 1, and at 1 the interior is a `Λ`.
+_ : towerHeight outerᵈ ≡ 2
+_ = refl
+
+_ : towerHeight ((Λ ($ 3)) ⟪ morph [] (lock 1 ∷ lock 0 ∷ []) , `∀ (id `ℕ) ⟫)
+      ≡ 1
+_ = refl
+
+_ : towerHeight ((Λ ($ 3)) ⟪ morph [] (lock 1 ∷ lock 0 ∷ []) , `∀ (id `ℕ) ⟫)
+      ≡ towerHeight outerᵈ ∸ 1
+_ = TyPeelR-⟪⟫-height Wᵈ Θᵈ′ Θᵈ (id `ℕ) (id `ℕ)
+
+------------------------------------------------------------------------
+-- §5c₄  TIGHTNESS OF THE NEW CLAUSE (Examples §15b, for the wrapper)
+------------------------------------------------------------------------
+
+-- Jeremy's test, on the repaired clause.  An ILL-TYPED `W` — ill typed
+-- for exactly one localized reason, `wf-var` at a masked slot — must stay
+-- ill typed in the contractum.  Here the OUTER frame locks X and the
+-- INNER frame does nothing, so `prb 0` names the locked slot.
+Δᵛ Θᵛ-ext : Ctxᵗ
+Δᵛ      = unmasked (bind `ℕ) ∷ []
+Θᵛ-ext  = masked (bind `ℕ) ∷ []
+
+Θᵛ Θᵛ′ : CtxMorph
+Θᵛ  = morph [] (lock 0 ∷ [])          -- the OUTER frame: locks X
+Θᵛ′ = morph [] []                     -- the INNER frame: nothing
+
+_ : interior Θᵛ Δᵛ ≡ Θᵛ-ext
+_ = refl
+
+_ : interior Θᵛ′ (interior Θᵛ Δᵛ) ≡ Θᵛ-ext
+_ = refl
+
+Rᵛ Cᵛ : Term
+Rᵛ = ((prb 0 ⟪ Θᵛ′ , `∀ (id `ℕ) ⟫) ⟪ Θᵛ , `∀ (id `ℕ) ⟫) ·[ `ℕ , `ℕ ]
+Cᵛ = ((prb 1 ⟪ morph [] (lock 0 ∷ []) , `∀ (id `ℕ) ⟫) ·[ `ℕ , ` 0 ])
+       ⟪ morph (`ℕ ∷ []) (lock 0 ∷ []) , id `ℕ ⟫
+
+stepᵛ : Δᵛ ⊢ Rᵛ -→ᵇ Cᵛ
+stepᵛ = TyPeelR-⟪⟫ val-prb (conv-id base-ℕ)
+
+-- THE FAULT, in the redex: `⊢·[]`'s `Δ ⊢ᵗ A` at slot 0, which the outer
+-- frame masks.
+¬⊢prb0 : ∀ {Γ A} → ¬ ((masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 0 ⦂ A)
+¬⊢prb0 (⊢ƛ _ (⊢·[] _ (wf-var (_ , ez , ()))))
+
+¬⊢Rᵛ : ∀ {A} → ¬ (Δᵛ ∣ [] ⊢ Rᵛ ⦂ A)
+¬⊢Rᵛ (⊢·[] (env _ (env _ ⊢W _ _) _ _) _) = ¬⊢prb0 ⊢W
+
+-- THE CONTRACTUM'S FRAME.  The new slot is at 0 and it is MASKED (the
+-- appended lock); the old fault has moved to slot 1 with the shift and is
+-- masked there as it was.  BOTH masks are visible in one context.
+_ : interior (morph [] (lock 0 ∷ []))
+             (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵛ)
+      ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+-- the frame-exact point, as the general lemma at this instance: slot 0 —
+-- the slot the live rule offered UNMASKED (§3) — is unnameable
+_ : ¬ (interior (addLock0 (renᴮ suc Θᵛ′))
+                (unmasked (bind `ℕ) ∷ interior Θᵛ Δᵛ)
+         ∋tv 0)
+_ = TyPeelR-⟪⟫-slot-locked Θᵛ′ `ℕ (interior Θᵛ Δᵛ)
+
+-- … so the contractum is REFUSED, for the same localized reason.
+¬⊢prb1 : ∀ {Γ A}
+  → ¬ ((masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
+¬⊢prb1 (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
+
+¬⊢Cᵛ : ∀ {A} → ¬ (Δᵛ ∣ [] ⊢ Cᵛ ⦂ A)
+¬⊢Cᵛ (env _ (⊢·[] (env _ ⊢W _ _) _) _ _) = ¬⊢prb1 ⊢W
+
+------------------------------------------------------------------------
 -- §6  TYBETA — exact up to refinement
 ------------------------------------------------------------------------
 

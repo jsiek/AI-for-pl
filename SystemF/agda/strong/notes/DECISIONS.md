@@ -2546,3 +2546,18 @@ morphism has all binds before all changes); the one lemma that pays is
 lemmas deleted, 3 numBinds lemmas became refl, ⊢ᵐ-++ vanished (⊢ˢ-++ is
 rep-free), 26 change-list inductions lost their bind case.  Rendering
 unchanged.  Branch morph-pair, PR to follow.
+
+### Entries are a binding plus at most one lock (Jeremy, 2026-09-08)
+
+Jeremy: "Split it into two types so that masked is no longer recursive.
+I don't want to allow more than one masked."  LANDED (branch ent-binding):
+`data Binding = abst | bind A` and `data Ent = unmasked Binding | masked
+Binding`.  One-mask-deep is now BY CONSTRUCTION: `Locked (masked b)` has
+no Nameable premise, `_⊑ᵉ_`/`_⊑ᵃᵉ_` are lifts of one `_⊑ᵇ_` on bindings
+(la-aa/la-ab/la-bb subsumed), `unmaskEnt-nameable` and MaskFacts' `core`
+family vanished, a dozen recursive entry lemmas became two-clause lifts.
+The one honest cost: `maskEnt` is idempotent, so `unmask X (mask X Δ) ≡ Δ`
+needs `Δ ∋tv X` (witness: Δ = masked abst ∷ [], X = 0) — the premise `sw-l`
+always has; threaded into applyUnlocks-dualScope and convCtx-dual.  The
+two mask inverses are now symmetric (`mask-unmask : Δ ∋lk X → …`,
+`unmask-mask : Δ ∋tv X → …`).  Rendering unchanged.

@@ -2715,7 +2715,22 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ↦ uns
 -- but each pays with the boundary's own discipline — (iii)/(iv) weaken
 -- the mask the crossing installed, (v)/(vi) resolve the binder inside.
 -- The landed rule keeps the frame and the mask and mints
--- `instReveal 0 s`, which types by `preservation-TyPeelR` (§13a).
+-- `instReveal 0 s`, which types by `preservation-TyPeelR-Λ` (§13a).
+--
+-- (v)/(vi) ARE the "resolve variant" the 2026-09-08 shift audit weighed
+-- again as a fix for the frame leak (notes/ShiftAudit.md, candidate (c)),
+-- and they were refused for the reason recorded here: they trade a SCOPE
+-- leak for a KNOWLEDGE leak, and knowledge is what the binder-syntactic
+-- design exists to keep out.  The split (`TyPeelR-Λ`, `TyPeelR-⟪⟫`)
+-- resolves nothing.
+--
+-- Note that the shapes above are written with the SINGLE rule's
+-- contractum in mind — `wkᴹ 1 Wt` type-applied to the fresh name — which
+-- is what the alternatives were compared against at the time.  With the
+-- split, `Wt` is a `Λ` and the Λ clause instantiates it on the spot, so
+-- §13a's landed contractum has no `·[ ]` in it at all; the refutations
+-- (i)/(ii) are unaffected, since they are statements about the
+-- conversion each candidate carries.
 
 ------------------------------------------------------------------------
 -- §14  THE PRE-BOUNDARY COUNTEREXAMPLE, RUN IN v2

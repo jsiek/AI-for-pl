@@ -18,8 +18,8 @@ module strong.proof.Preserve where
 --     conversion-level analogue of §2.  Since the polarity index was
 --     retired (strong.Conversion) both directions are TOTAL.
 --
--- §3  the per-rule cases that hold, one lemma each — TyBeta, TyPeelR at
---     ANY ∀ conversion, and Drop$.
+-- §3  the per-rule cases that hold, one lemma each — TyBeta, the TWO
+--     TyPeelR clauses at ANY ∀ conversion, and Drop$.
 --
 -- §4  `preserve`, over a module parameterized by the three cases whose
 --     proofs live downstream: Peel (proof/PeelDual) and CancelR/IdPush
@@ -436,37 +436,41 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
   conv : (unmasked (bind A) ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
   conv rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf (⊑ᵃ→⊑ refine) wB)
 
--- ── TYPEELR, AT ANY ∀ CONVERSION ───────────────────────────────────────
--- Four moves, one per premise of the contractum's `env`:
+-- ── TYPEELR, AT ANY ∀ CONVERSION — THE TWO CLAUSES ────────────────────
+-- Both clauses share three of the four moves, one per premise of the
+-- contractum's `env`:
 --
 --   FRAME       one bind prepended to Θ, whose interior is
 --               `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ`
 --               DEFINITIONALLY — the shift `renᴮ suc Θ` used to add is
 --               the one `pushBinds` already performs.
---   INTERIOR    `wkᴹ 1 V` (⊢rename at `Ren-wk`) instantiated at the new
---               binder's own name; the annotation is the INTERIOR
---               ∀-body, shifted, and `ren-suc-[0]` returns it unchanged.
 --   CONVERSION  `instReveal 0 s` (§2b), whose TARGET type is its SOURCE
 --               with slot 0 replaced by the binder's rep — which is the
 --               instantiated exterior body, by `subst-at-0`.
 --   EXTERIOR    `wf-[]ᵗ`, i.e. `⊢·[]`'s own two premises.
 --
+-- The INTERIOR is where they differ, and it is the whole content of the
+-- 2026-09-08 split (notes/ShiftAudit.md):
+--
+--   TyPeelR-Λ    `⊢retag` along `la∷ (la-uu le-ab) (⊑ᵃ-refl _)` — the
+--                `Λ`'s abst slot BECOMES the boundary's bind slot, which
+--                is TyBeta's own refinement.  No `⊢rename`, no `wkᴹ`, no
+--                `ren-suc-[0]`.
+--   TyPeelR-⟪⟫   `⊢addLock0-cross` (strong.TermSubst §6) in place of the
+--                single rule's `⊢rename Ren-wk Inj-suc`, then `⊢·[]` at
+--                the new binder's own name; the annotation is the
+--                INTERIOR ∀-body, shifted, and `ren-suc-[0]` returns it
+--                unchanged.
+--
 -- The premise `⊢s` and the redex's own conversion derivation agree, by
 -- `conv-types-unique`: that is what makes the pushed-in annotation a
 -- function of the redex (and hence `det` true).
 --
--- THE CASE IS NOW GENERAL.  Under the polarity index this was a theorem
+-- THE CASES ARE GENERAL.  Under the polarity index this was a theorem
 -- only at a REVEAL ∀ conversion, because the mint inserts `seal 0`
 -- contravariantly and `unseal 0` covariantly and one of the two always
 -- sat where the index refused it.  With the index retired the mint's
--- typing (`⊢instReveal`, §2b) is total, and so is this case.
-TyPeelRCase : Set
-TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
-  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
-
+-- typing (`⊢instReveal`, §2b) is total, and so are both cases.
 ∀-inj : ∀ {A B} → _≡_ {A = Ty} (`∀ A) (`∀ B) → A ≡ B
 ∀-inj refl = refl
 
@@ -481,35 +485,105 @@ shiftBy-[]ᵗ (suc n) B A =
   trans (cong ⇑ᵗ (shiftBy-[]ᵗ n B A))
         (rename-[]ᵗ-commute suc (shiftBodyBy n B) (shiftBy n A))
 
-preserve-TyPeelR : TyPeelRCase
-preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
-                 {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
+-- THE Λ CLAUSE.  The interior is not moved at all — it is RETAGGED along
+-- the one refinement the `Λ`'s own slot undergoes.  Every other premise
+-- is the single rule's, verbatim: the repair costs nothing.
+preserve-TyPeelR-Λ : ∀ {Δ N Θ s B A C Bᵢ Bₑ} → Value N
+  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → Δ ∣ [] ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+  → Δ ∣ [] ⊢ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
+preserve-TyPeelR-Λ {Δ = Δ} {N = N} {Θ = Θ} {s = s} {B = B} {A = A}
+                   {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s
+                   (⊢·[] (env mwᵥ (⊢Λ ⊢N) ⊢c wE) wA)
   with conv-all-inv ⊢c
 ... | A₀ , B₀ , refl , eqE , ⊢s₀
   with conv-types-unique ⊢s ⊢s₀
 ... | refl , refl =
   env (mw (rw-b (⊑-wf (Δ⊑unlockedScope Θ Δ) wA) (mw-reps mwᵥ))
-          (mw-changes mwᵥ)) int conv
+          (mw-changes mwᵥ))
+      (⊢retag refine ⊢N)
+      conv
       (wf-[]ᵗ (wf-∀⁻ wE) wA)
   where
   A′ : Ty
   A′ = shiftBy (numBinds Θ) A
 
-  -- the exterior ∀-body, read on the boundary's conversion context
+  -- THE `Λ`'S ABST SLOT BECOMES THE BOUNDARY'S BIND SLOT.  `la-uu le-ab`
+  -- at a slot N COULD ALREADY NAME — `⊑ᵃ`-legal, in flat contrast to the
+  -- single rule's `le-mu` (proof/ShiftAudit §3).
+  refine : (unmasked abst ∷ interior Θ Δ)
+             ⊑ᵃ interior (morph (A ∷ binds Θ) (changes Θ)) Δ
+  refine = la∷ (la-uu le-ab) (⊑ᵃ-refl (interior Θ Δ))
+
   eqB : Bₑ ≡ shiftBodyBy (numBinds Θ) B
   eqB = sym (∀-inj (trans (sym (shiftBy-shiftBodyBy (numBinds Θ) B)) eqE))
 
-  ⊢wkV : (unmasked (bind A′) ∷ interior Θ Δ) ∣ []
-           ⊢ wkᴹ 1 V ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
-  ⊢wkV = ⊢rename Ren-wk Inj-suc ⊢V
+  eqT : Bₑ [ 0 := ⇑ᵗ A′ ]ᵗ ≡ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
+  eqT = trans (cong (λ T → T [ 0 := ⇑ᵗ A′ ]ᵗ) eqB)
+              (trans (subst-at-0 A′ (shiftBodyBy (numBinds Θ) B))
+                     (cong ⇑ᵗ (sym (shiftBy-[]ᵗ (numBinds Θ) B A))))
+
+  conv : convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ ⊢ instReveal 0 s
+           ∶ Bᵢ ⇝ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
+  conv = subst (λ T → convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ
+                        ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
+               eqT (⊢instReveal {A = A′} 0 ⊢s)
+
+-- THE WRAPPER CLAUSE.  The single rule's proof with
+-- `⊢wkV = ⊢rename Ren-wk Inj-suc` replaced by `⊢addLock0-cross`: the
+-- moved boundary masks the new bind slot in ITS OWN change list, so it
+-- crosses by `⊢rename` alone and its frame is its birth frame with the
+-- new binder inserted MASKED.  The outer `env` is verbatim.
+preserve-TyPeelR-⟪⟫ : ∀ {Δ W Θ′ s′ Θ s B A C Bᵢ Bₑ} → Value W
+  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → Δ ∣ [] ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+  → Δ ∣ [] ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
+                 ⟪ addLock0 (renᴮ suc Θ′)
+                 , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+                ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
+preserve-TyPeelR-⟪⟫ {Δ = Δ} {W = W} {Θ′ = Θ′} {s′ = s′} {Θ = Θ} {s = s}
+                    {B = B} {A = A} {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s
+                    (⊢·[] (env mwᵥ (env mw′ ⊢W ⊢c′ wE′) ⊢c wE) wA)
+  with conv-all-inv ⊢c
+... | A₀ , B₀ , refl , eqE , ⊢s₀
+  with conv-types-unique ⊢s ⊢s₀
+... | refl , refl =
+  env (mw (rw-b (⊑-wf (Δ⊑unlockedScope Θ Δ) wA) (mw-reps mwᵥ))
+          (mw-changes mwᵥ))
+      int
+      conv
+      (wf-[]ᵗ (wf-∀⁻ wE) wA)
+  where
+  A′ : Ty
+  A′ = shiftBy (numBinds Θ) A
+
+  ⊢INNER : (unmasked (bind A′) ∷ interior Θ Δ) ∣ []
+             ⊢ (renᴹ (extN (numBinds Θ′) suc) W
+                  ⟪ addLock0 (renᴮ suc Θ′)
+                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+             ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
+  ⊢INNER = ⊢addLock0-cross mw′ ⊢W ⊢c′ wE′
 
   int : interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
-          ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ Bᵢ
+          ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
+                ⟪ addLock0 (renᴮ suc Θ′)
+                , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+               ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+          ⦂ Bᵢ
   int =
     subst (λ T → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
-                   ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ T)
+                   ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
+                         ⟪ addLock0 (renᴮ suc Θ′)
+                         , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+                        ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+                   ⦂ T)
           (ren-suc-[0] Bᵢ)
-          (⊢·[] ⊢wkV (wf-var (unmasked (bind (⇑ᵗ A′)) , ez , nameable)))
+          (⊢·[] ⊢INNER
+                (wf-var (unmasked (bind (⇑ᵗ A′)) , ez , nameable)))
+
+  eqB : Bₑ ≡ shiftBodyBy (numBinds Θ) B
+  eqB = sym (∀-inj (trans (sym (shiftBy-shiftBodyBy (numBinds Θ) B)) eqE))
 
   eqT : Bₑ [ 0 := ⇑ᵗ A′ ]ᵗ ≡ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
   eqT = trans (cong (λ T → T [ 0 := ⇑ᵗ A′ ]ᵗ) eqB)
@@ -547,7 +621,7 @@ PeelCase = ∀ {Δ V W Θ s t C} → Value V → Value W
   → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
   → Δ ∣ [] ⊢ (V · (wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
--- (`TyPeelRCase` is stated and PROVEN in §3.)
+-- (`preserve-TyPeelR-Λ` and `preserve-TyPeelR-⟪⟫` are PROVEN in §3.)
 
 -- CANCELR, at the repaired rule (both frames kept, both conversions
 -- neutralised, Θ₂'s scope MOVED IN).  PROVEN in proof/MoveScope.
@@ -584,7 +658,8 @@ module Impl
   preserve ⊢M (TyBeta v)             = preserve-TyBeta ⊢M
   preserve ⊢M (Beta w)               = preserve-Beta ⊢M
   preserve ⊢M (Peel v w)             = peel v w ⊢M
-  preserve ⊢M (TyPeelR v ⊢s)         = preserve-TyPeelR v ⊢s ⊢M
+  preserve ⊢M (TyPeelR-Λ v ⊢s)       = preserve-TyPeelR-Λ v ⊢s ⊢M
+  preserve ⊢M (TyPeelR-⟪⟫ v ⊢s)      = preserve-TyPeelR-⟪⟫ v ⊢s ⊢M
   preserve ⊢M (CancelR v d)          = cancel v d ⊢M
   preserve ⊢M (Drop$ b)              = preserve-Drop$ b ⊢M
   preserve ⊢M (IdPush v d)           = idpush v d ⊢M

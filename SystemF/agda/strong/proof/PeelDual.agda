@@ -26,8 +26,6 @@ module strong.proof.PeelDual where
 -- REFLEXIVITY and the four `repsOf-…` filtering lemmas this module used
 -- to need are gone.
 --
---   §1  `⊢ˢ-++` — the SEQUENTIAL judgement of an append (also used by
---       proof/MoveScope)
 --   §2  the dual's change list: the frame identity, its `⊢ˢ`, and the
 --       conversion-context identity
 --   §3  (†) and `convCtx-dual`
@@ -56,21 +54,6 @@ open import strong.proof.Canonical using (shiftBy-⇒; conv-tgt≡)
 -- Structural helpers
 ------------------------------------------------------------------------
 
-applyChanges-++ : (S₁ S₂ : List Change) (Δ : Ctxᵗ)
-  → applyChanges (S₁ ++ S₂) Δ ≡ applyChanges S₁ (applyChanges S₂ Δ)
-applyChanges-++ []              S₂ Δ = refl
-applyChanges-++ (unlock X ∷ S₁) S₂ Δ =
-  cong (unmask X) (applyChanges-++ S₁ S₂ Δ)
-applyChanges-++ (lock X ∷ S₁)   S₂ Δ =
-  cong (mask X) (applyChanges-++ S₁ S₂ Δ)
-
-applyUnlocks-++ : (S₁ S₂ : List Change) (Δ : Ctxᵗ)
-  → applyUnlocks (S₁ ++ S₂) Δ ≡ applyUnlocks S₁ (applyUnlocks S₂ Δ)
-applyUnlocks-++ []              S₂ Δ = refl
-applyUnlocks-++ (unlock X ∷ S₁) S₂ Δ =
-  cong (unmask X) (applyUnlocks-++ S₁ S₂ Δ)
-applyUnlocks-++ (lock X ∷ S₁)   S₂ Δ = applyUnlocks-++ S₁ S₂ Δ
-
 pushBinds-++ : (As : List Ty) (Δ : Ctxᵗ) → pushBinds As Δ ≡ pushBinds As [] ++ Δ
 pushBinds-++ []       Δ = refl
 pushBinds-++ (A ∷ As) Δ rewrite pushBinds-++ As Δ | pushBinds-++ As [] = refl
@@ -96,30 +79,16 @@ updateAt-app-tail f []       X Δ = refl
 updateAt-app-tail f (E ∷ Ow) X Δ = cong (E ∷_) (updateAt-app-tail f Ow X Δ)
 
 ------------------------------------------------------------------------
--- §1  `⊢ˢ-++` — the sequential judgement of an APPEND
+-- §1  `⊢ˢ-suffix` — the sequential judgement of a TAIL
 ------------------------------------------------------------------------
 
 -- `applyChanges` applies its list HEAD-LAST, so in `S ++ T` it is T that
--- runs FIRST: S is judged over `applyChanges T Δ`, T over Δ.  Both
--- premises land ON THE NOSE.  Under the interleaved list this lemma also
--- had to move a REP from `scope Ψ Δ` to `unlockedScope Ψ Δ` along
--- `⊑-wf`; with the pair there is no rep in it at all.
-⊢ˢ-++ : (S T : List Change) {Δ : Ctxᵗ}
-  → applyChanges T Δ ⊢ˢ S → Δ ⊢ˢ T → Δ ⊢ˢ (S ++ T)
-⊢ˢ-++ []             T sw[]        bT = bT
-⊢ˢ-++ (lock X ∷ S)   T {Δ = Δ} (sw-l tv b) bT =
-  sw-l (subst (λ Ξ → Ξ ∋tv X) (sym (applyChanges-++ S T Δ)) tv)
-       (⊢ˢ-++ S T b bT)
-⊢ˢ-++ (unlock X ∷ S) T {Δ = Δ} (sw-u lk b) bT =
-  sw-u (subst (λ Ξ → Ξ ∋lk X) (sym (applyChanges-++ S T Δ)) lk)
-       (⊢ˢ-++ S T b bT)
-
--- … and its converse on the TAIL, which is all the sequential reading
--- gives for free: T runs FIRST, so its own premises are already read
--- over Δ and nothing has to be transported.  (There is no such lemma for
--- the HEAD: S's premises are read over `applyChanges T Δ`, not Δ.)  This
--- is what lets a frame whose change list IS a replay reuse the replayed
--- half's judgement — `rewindChanges`'s `yes` branch, proof/MoveScope §3.
+-- runs FIRST: its own premises are already read over Δ and nothing has to
+-- be transported.  (There is no such lemma for the HEAD: S's premises are
+-- read over `applyChanges T Δ`, not Δ.  The append lemma `⊢ˢ-++` lives in
+-- strong.CtxMorph §2.)  This is what lets a frame whose change list IS a
+-- replay reuse the replayed half's judgement — `rewindChanges`'s `yes`
+-- branch, proof/MoveScope §3.
 ⊢ˢ-suffix : (S T : List Change) {Δ : Ctxᵗ} → Δ ⊢ˢ (S ++ T) → Δ ⊢ˢ T
 ⊢ˢ-suffix []             T b            = b
 ⊢ˢ-suffix (lock X ∷ S)   T (sw-l tv b)  = ⊢ˢ-suffix S T b

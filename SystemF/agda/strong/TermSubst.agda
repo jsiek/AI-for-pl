@@ -34,6 +34,12 @@ module strong.TermSubst where
 --          `Ren-wk`/`Inj-suc` plus `mkId-⊢` (`⊢crossΛ`, §6).  No knowledge
 --          premise appears, because a boundary carries NAMES, never
 --          spellings.
+--
+-- §6 also carries the OTHER crossing of one new bind slot,
+-- `⊢addLock0-cross`, which `TyPeelR-⟪⟫` consumes: there the moved subterm
+-- is itself a BOUNDARY, so the new slot is masked in its OWN change list
+-- (`addLock0`, strong.CtxMorph §5) instead of under a minted wrapper —
+-- and the crossing is again `⊢rename` alone, at `Ren-addLock0`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -71,6 +77,16 @@ renᴮ ρ Θ = morph (map (renameᵗ ρ) (binds Θ)) (map (renᶠ ρ) (changes �
 
 numBinds-ren : (ρ : Renameᵗ) (Θ : CtxMorph) → numBinds (renᴮ ρ Θ) ≡ numBinds Θ
 numBinds-ren ρ Θ = map-length (renameᵗ ρ) (binds Θ)
+
+-- Renaming a change list at `suc` IS lifting it by one: `renᶠ` moves the
+-- one exterior name a change carries, which is all `shiftScope 1` does.
+map-renᶠ-shiftScope : (S : List Change)
+  → map (renᶠ suc) S ≡ shiftScope 1 S
+map-renᶠ-shiftScope []             = refl
+map-renᶠ-shiftScope (unlock X ∷ S) =
+  cong (unlock (suc X) ∷_) (map-renᶠ-shiftScope S)
+map-renᶠ-shiftScope (lock X ∷ S)   =
+  cong (lock (suc X) ∷_) (map-renᶠ-shiftScope S)
 
 renᴹ : Renameᵗ → Term → Term
 renᴹ ρ (` x)          = ` x
@@ -397,6 +413,36 @@ extⁿ-∋ h (there d) = there (h d)
 Ren-wk : ∀ {Δ E} → Ren suc Δ (E ∷ Δ)
 Ren-wk = mkRen es
 
+-- THE SAME RENAMING, THROUGH A BOUNDARY.  `wkᴹ 1` on a boundary renames
+-- its interior at `extN (numBinds Θ′) suc` (`renᴹ`'s wrapper clause), and
+-- that is exactly the renaming from the moved boundary's BIRTH frame
+-- `interior Θ′ Δ` into the frame one entry out.  It holds for EVERY entry
+-- E — the masked one included, which is what `addLock0` puts there, and
+-- what makes the crossing `⊢rename` ALONE, with no `⊢retag`.
+Ren-addLock0 : ∀ {Δ} (Θ′ : CtxMorph) (E : Ent)
+  → Ren (extN (numBinds Θ′) suc) (interior Θ′ Δ)
+        (pushBinds (map ⇑ᵗ (binds Θ′)) (E ∷ scope Θ′ Δ))
+Ren-addLock0 Θ′ E = ren-pushBinds (binds Θ′) suc (mkRen es)
+
+-- THE FRAME IDENTITY AT THAT CROSSING.  `interior-addLock0`
+-- (strong.CtxMorph §5) says the appended lock is `mask 0`; here the
+-- masked slot is the NEW BIND the crossing introduces, and the shifted
+-- change list steps over it (`applyChanges-shiftScope1`).  So the moved
+-- boundary's interior is its BIRTH frame with the new binder inserted
+-- BELOW the bind prefix and MASKED — the shape (†) gives Peel's crossing
+-- argument (proof/PeelDual, `interior-dual`) and `interior-Beta-Λ` gives
+-- Beta's.  Nothing gained, nothing lost.
+interior-addLock0-cross : (Θ′ : CtxMorph) (C : Ty) (Δ : Ctxᵗ)
+  → interior (addLock0 (renᴮ suc Θ′)) (unmasked (bind C) ∷ Δ)
+      ≡ pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind C) ∷ scope Θ′ Δ)
+interior-addLock0-cross Θ′ C Δ =
+  trans (interior-addLock0 (renᴮ suc Θ′) (unmasked (bind C) ∷ Δ))
+        (cong (pushBinds (map ⇑ᵗ (binds Θ′)))
+              (trans (cong (λ S → applyChanges S (masked (bind C) ∷ Δ))
+                           (map-renᶠ-shiftScope (changes Θ′)))
+                     (applyChanges-shiftScope1 (changes Θ′)
+                                               (masked (bind C)) Δ)))
+
 -- Term-variable renaming AT THE IDENTITY renaming is the identity.  This
 -- is what makes the CLOSED-TERM weakening below a corollary of `⊢renⁿ`
 -- rather than a second induction.
@@ -457,6 +503,83 @@ data _∣_⊢ⁱ_⦂_ : Ctxᵗ → Ctx → Img → Ty → Set where
       (⊢rename Ren-wk Inj-suc ⊢W)
       (mkId-⊢ (wf-ren Ren-wk w))
       (wf-ren Ren-wk w)
+
+-- (‡‡) THE OTHER CROSSING OF ONE NEW BIND SLOT — the (b′) analogue of
+-- (‡) above and of PeelDual's `crossing`, for a subterm that is ITSELF A
+-- BOUNDARY.  `TyPeelR-⟪⟫` (strong.Reduction) moves the inner boundary of
+-- a ∀-value tower under the binder it introduces; the new slot is masked
+-- in the moved boundary's OWN change list (`addLock0`), so no second
+-- wrapper is minted.  Every premise is one move `⊢rename`'s (env) case
+-- already makes:
+--
+--   FRAME     reps by `⊢ʳ-ren` at `ren-unlockedScope` — the appended lock
+--             is LIFTED (`unlockedScope-addLock0`); changes by `⊢ˢ-++`,
+--             i.e. `⊢ˢ-ren` for the shifted list over the frame the
+--             appended lock leaves, and `sw-l` for the lock itself, whose
+--             slot IS nameable at the outer position.
+--   INTERIOR  `⊢rename` at `Ren-addLock0` ALONE — no `⊢retag`, no
+--             `le-mu`.
+--   CONV      `conv-ren` at `ren-convCtx`, plus `shiftBy-ren` and
+--             `numBinds-ren` arithmetic; the conversion context is the
+--             plainly renamed one (`convCtx-addLock0`).
+--   EXTERIOR  `wf-ren Ren-wk`.
+--
+-- NO EXTRA PREMISE: everything comes off the redex's own derivation.
+⊢addLock0-cross : ∀ {Δ Γ C W Θ′ c Bᵥ Bₑ}
+  → Δ ⊢ᵐ Θ′
+  → interior Θ′ Δ ∣ [] ⊢ W ⦂ Bᵥ
+  → convCtx Θ′ Δ ⊢ c ∶ Bᵥ ⇝ shiftBy (numBinds Θ′) Bₑ
+  → Δ ⊢ᵗ Bₑ
+    -------------------------------------------------------------------
+  → (unmasked (bind C) ∷ Δ) ∣ Γ
+      ⊢ renᴹ (extN (numBinds Θ′) suc) W
+          ⟪ addLock0 (renᴮ suc Θ′) , renᶜ (extN (numBinds Θ′) suc) c ⟫
+      ⦂ ⇑ᵗ Bₑ
+⊢addLock0-cross {Δ = Δ} {C = C} {W = W} {Θ′ = Θ′} {c = c} {Bᵥ = Bᵥ}
+                {Bₑ = Bₑ} mw′ ⊢W ⊢c wE =
+  env (mw reps chs) intW convW (wf-ren Ren-wk wE)
+  where
+  n′ : ℕ
+  n′ = numBinds Θ′
+
+  Δ⁺ : Ctxᵗ
+  Δ⁺ = unmasked (bind C) ∷ Δ
+
+  Θ″ : CtxMorph
+  Θ″ = addLock0 (renᴮ suc Θ′)
+
+  reps : unlockedScope Θ″ Δ⁺ ⊢ʳ binds Θ″
+  reps = subst (λ Ξ → Ξ ⊢ʳ map (renameᵗ suc) (binds Θ′))
+               (sym (unlockedScope-addLock0 (renᴮ suc Θ′) Δ⁺))
+               (⊢ʳ-ren (ren-unlockedScope Θ′ Ren-wk Inj-suc)
+                       (mw-reps mw′))
+
+  chs : Δ⁺ ⊢ˢ changes Θ″
+  chs = ⊢ˢ-++ (map (renᶠ suc) (changes Θ′)) (lock 0 ∷ [])
+              (⊢ˢ-ren Ren-wk Inj-suc (mw-changes mw′))
+              (sw-l (unmasked (bind (⇑ᵗ C)) , ez , nameable) sw[])
+
+  intW : interior Θ″ Δ⁺ ∣ [] ⊢ renᴹ (extN n′ suc) W
+           ⦂ renameᵗ (extN n′ suc) Bᵥ
+  intW = subst (λ Ξ → Ξ ∣ [] ⊢ renᴹ (extN n′ suc) W
+                        ⦂ renameᵗ (extN n′ suc) Bᵥ)
+               (sym (interior-addLock0-cross Θ′ C Δ))
+               (⊢rename (Ren-addLock0 Θ′ (masked (bind C)))
+                        (Inj-extN n′ Inj-suc) ⊢W)
+
+  convW : convCtx Θ″ Δ⁺ ⊢ renᶜ (extN n′ suc) c
+            ∶ renameᵗ (extN n′ suc) Bᵥ ⇝ shiftBy (numBinds Θ″) (⇑ᵗ Bₑ)
+  convW =
+    subst (λ Ξ → Ξ ⊢ renᶜ (extN n′ suc) c ∶ renameᵗ (extN n′ suc) Bᵥ
+                   ⇝ shiftBy (numBinds Θ″) (⇑ᵗ Bₑ))
+          (sym (convCtx-addLock0 (renᴮ suc Θ′) Δ⁺))
+      (subst (λ n → convCtx (renᴮ suc Θ′) Δ⁺ ⊢ renᶜ (extN n′ suc) c
+                      ∶ renameᵗ (extN n′ suc) Bᵥ ⇝ shiftBy n (⇑ᵗ Bₑ))
+             (sym (numBinds-ren suc Θ′))
+        (subst (λ T → convCtx (renᴮ suc Θ′) Δ⁺ ⊢ renᶜ (extN n′ suc) c
+                        ∶ renameᵗ (extN n′ suc) Bᵥ ⇝ T)
+               (shiftBy-ren n′ suc Bₑ)
+               (conv-ren (ren-convCtx Θ′ suc Ren-wk Inj-suc) ⊢c)))
 
 -- Weakening an image: a variable image moves by `there`, a value image is
 -- CLOSED and moves by nothing at all.

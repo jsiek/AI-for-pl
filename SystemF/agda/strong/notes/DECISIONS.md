@@ -2631,3 +2631,52 @@ IdPush/CancelR passes push through, and their change lists compound in
 the scope move; the residue (merges of lists unlocking different slots)
 now dominates, so the canonical per-slot form (RewindNorm §4) is the
 remaining lever.
+### RULING: TyPeelR split into TyPeelR-Λ / TyPeelR-⟪⟫ (Jeremy, 2026-09-08)
+
+THE PROBLEM (shift audit after #199, PR #201).  The live TyPeelR shifted
+its value `V` by `wkᴹ 1` under the new bind slot `X := A`, which is
+UNMASKED in V's frame although V was authored where it did not exist.
+The §15b index test cannot see this — the shift makes the slot
+unreachable from V — but the frame does not tell the truth: the live
+frame and the tight frame differ by exactly one `le-mu`, the
+re-exposure step `⊑ᵃ` refuses (ShiftAudit `TyPeelR-leak-⊑`).  Jeremy
+first read the "V" as another subterm and called it not a tightness
+problem, then confirmed: "I see the problem now".  Every other shift
+site (Peel, TyBeta, Beta with crossΛ, CancelR/IdPush, Drop$, ξ) is
+frame-exact by a machine-checked identity.
+
+THE CANDIDATES, on the §15b example, machine-checked in
+proof/ShiftAudit.agda:
+  (a) wrap V in the binder's dual `⟪ ↓X , ∀ id ⟫` — REFUTED: the only
+      identity at a ∀ type is `∀ (mkId …)`, inert, so the wrapper is a
+      TyPeelR redex again; `fixA-loop-step` proves the regress, a closed
+      run adds one boundary per step and TyBeta never fires.
+  (b) split on the canonical form of V.  For `Λ N` the contractum is
+      `N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫`: NO
+      shift, the Λ's abst slot becomes the boundary's bind slot
+      (TyBeta's own refinement).
+  (b′) for a nested `W ⟪ Θ′ , ∀ s′ ⟫`: the moved inner boundary gets
+      `lock 0` appended at the TAIL of its own shifted change list
+      (`addLock0`), no wrapper minted; contractum = the live one with
+      `addLock0ᵛ` on the moved value (`TyPeelR-⟪⟫-wkᴹ`, refl).  Inner
+      interior ≡ birth frame with the new slot inserted MASKED.
+      Terminates: tower height drops by one per step, height 0 is a Λ.
+  (c) resolve A inside the interior — exact for V but writes the
+      exterior's representation into the interior: a KNOWLEDGE leak.
+      Rejected.
+
+RULING.  Install (b)+(b′), replacing TyPeelR by the pair (canon-∀ makes
+the pair total, so progress's single TyPeelR case becomes a two-way
+split).  Jeremy asked "do we have Progress?" — answered: the probe
+proved only the `·[]` case; the full theorems are re-checked by the
+install gate.
+INSTALLED on branch typeelr-split (PR "TyPeelR split").  Side effect
+measured in Examples: the Λ clause performs the instantiation itself,
+so one type instantiation mints ONE binder where TyPeelR ⨟ TyBeta minted
+two — J₀ 14 → 11 steps, E₀ 6 → 5 (ends in a value), T₉'s birth story
+2 → 1 step; P₀ Q₀ R₀ L₀ Ri G unchanged.
+
+MEASURED AGAIN after the TyPeelR split (PR #202) merged into main and
+main into normalize-changes: F₀ runs in 25 steps (was 49), peak change
+list 64 (was 248), entries per state 130 (was 518).  One boundary fewer
+per type instantiation is worth more than the redundancy tests alone.

@@ -59,7 +59,7 @@ open import strong.Ctx using (Ctxᵗ)
 open import strong.Terms using (Term; Value; _∣_⊢_⦂_)
 open import strong.Reduction
   using (_⊢_-→_; _⊢_-→*_; done; _then_; det;
-         TyBeta; Beta; Peel; TyPeelR; CancelR; Drop$; IdPush;
+         TyBeta; Beta; Peel; TyPeelR-Λ; TyPeelR-⟪⟫; CancelR; Drop$; IdPush;
          ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫)
 open import strong.Progress using (progress)
 open import strong.Preservation using (preservation; preservation*)
@@ -186,7 +186,8 @@ ruleName : ∀ {Δ M M′} → Δ ⊢ M -→ M′ → String
 ruleName (TyBeta v)     = "TyBeta"
 ruleName (Beta w)       = "Beta"
 ruleName (Peel v w)     = "Peel"
-ruleName (TyPeelR v ⊢s) = "TyPeelR"
+ruleName (TyPeelR-Λ v ⊢s)  = "TyPeelR-Λ"
+ruleName (TyPeelR-⟪⟫ v ⊢s) = "TyPeelR-⟪⟫"
 ruleName (CancelR v d)  = "CancelR"
 ruleName (Drop$ b)      = "Drop$"
 ruleName (IdPush v d)   = "IdPush"

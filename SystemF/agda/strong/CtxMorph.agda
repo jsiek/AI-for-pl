@@ -32,9 +32,10 @@ module strong.CtxMorph where
 -- (`scope`, `unlockedScope`, `interior`, `convCtx`), their refinement
 -- transports, the well-formedness judgement `Δ ⊢ᵐ Θ`, and the two
 -- derived morphisms the reduction rules use: the DUAL of a crossed
--- boundary (`dual`, for Peel) and the SCOPE MOVE (`rewind`, `_⋉_`, for
--- IdPush and CancelR).  Terms and typing are in strong.Terms, which
--- re-exports this module.
+-- boundary (`dual`, for Peel), the SCOPE MOVE (`rewind`, `_⋉_`, for
+-- IdPush and CancelR) and the APPENDED LOCK (`addLock0`, for
+-- TyPeelR-⟪⟫).  Terms and typing are in strong.Terms, which re-exports
+-- this module.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; map; length; drop)
@@ -93,6 +94,26 @@ applyUnlocks : List Change → Ctxᵗ → Ctxᵗ
 applyUnlocks []             Δ = Δ
 applyUnlocks (unlock X ∷ S) Δ = unmask X (applyUnlocks S Δ)
 applyUnlocks (lock X ∷ S)   Δ = applyUnlocks S Δ
+
+-- APPENDING A CHANGE LIST.  Both functions apply their list HEAD-LAST, so
+-- in `S₁ ++ S₂` it is S₂ that runs FIRST.  This is the fact behind every
+-- rule that appends to a change list — the dual's two blocks
+-- (strong.CtxMorph §3), the scope move's travelling list (§4) and the
+-- appended lock of §5.
+applyChanges-++ : (S₁ S₂ : List Change) (Δ : Ctxᵗ)
+  → applyChanges (S₁ ++ S₂) Δ ≡ applyChanges S₁ (applyChanges S₂ Δ)
+applyChanges-++ []              S₂ Δ = refl
+applyChanges-++ (unlock X ∷ S₁) S₂ Δ =
+  cong (unmask X) (applyChanges-++ S₁ S₂ Δ)
+applyChanges-++ (lock X ∷ S₁)   S₂ Δ =
+  cong (mask X) (applyChanges-++ S₁ S₂ Δ)
+
+applyUnlocks-++ : (S₁ S₂ : List Change) (Δ : Ctxᵗ)
+  → applyUnlocks (S₁ ++ S₂) Δ ≡ applyUnlocks S₁ (applyUnlocks S₂ Δ)
+applyUnlocks-++ []              S₂ Δ = refl
+applyUnlocks-++ (unlock X ∷ S₁) S₂ Δ =
+  cong (unmask X) (applyUnlocks-++ S₁ S₂ Δ)
+applyUnlocks-++ (lock X ∷ S₁)   S₂ Δ = applyUnlocks-++ S₁ S₂ Δ
 
 -- THE TWO INDUCED CONTEXTS, at the morphism.
 scope : CtxMorph → Ctxᵗ → Ctxᵗ
@@ -234,6 +255,22 @@ data _⊢ˢ_ : Ctxᵗ → List Change → Set where
   sw-l : ∀ {S} → applyChanges S Δ ∋tv X → Δ ⊢ˢ S → Δ ⊢ˢ (lock X ∷ S)
   sw-u : ∀ {S} → applyChanges S Δ ∋lk X → Δ ⊢ˢ S → Δ ⊢ˢ (unlock X ∷ S)
 
+-- THE SEQUENTIAL JUDGEMENT OF AN APPEND.  `applyChanges` applies its
+-- list HEAD-LAST, so in `S ++ T` it is T that runs FIRST: S is judged
+-- over `applyChanges T Δ`, T over Δ.  Both premises land ON THE NOSE.
+-- Consumed by the dual (proof/PeelDual), the scope move
+-- (proof/MoveScope) and the appended lock (`⊢addLock0-cross`,
+-- strong.TermSubst).
+⊢ˢ-++ : (S T : List Change) {Δ : Ctxᵗ}
+  → applyChanges T Δ ⊢ˢ S → Δ ⊢ˢ T → Δ ⊢ˢ (S ++ T)
+⊢ˢ-++ []             T sw[]        bT = bT
+⊢ˢ-++ (lock X ∷ S)   T {Δ = Δ} (sw-l tv b) bT =
+  sw-l (subst (λ Ξ → Ξ ∋tv X) (sym (applyChanges-++ S T Δ)) tv)
+       (⊢ˢ-++ S T b bT)
+⊢ˢ-++ (unlock X ∷ S) T {Δ = Δ} (sw-u lk b) bT =
+  sw-u (subst (λ Ξ → Ξ ∋lk X) (sym (applyChanges-++ S T Δ)) lk)
+       (⊢ˢ-++ S T b bT)
+
 -- `Δ ⊢ᵐ Θ` — the context morphism Θ is WELL FORMED over Δ.  An infix
 -- judgement in the family of `Δ ⊢ᵗ A` (strong.Ctx) and `Δ ⊢ c ∶ A ⇝ B`
 -- (strong.Conversion).
@@ -342,6 +379,19 @@ shiftScope : ℕ → List Change → List Change
 shiftScope n []             = []
 shiftScope n (unlock X ∷ S) = unlock (n + X) ∷ shiftScope n S
 shiftScope n (lock X ∷ S)   = lock (n + X) ∷ shiftScope n S
+
+-- A change list LIFTED BY ONE steps PAST ONE ENTRY: the entry is
+-- untouched — MASKED entries included — and the list acts on the tail.
+-- (`applyChanges-shiftScope`, proof/MoveScope, is this past a whole
+-- `pushBinds` prefix; here the prefix is one arbitrary entry, which is
+-- what a boundary crossing ONE new bind slot needs.)
+applyChanges-shiftScope1 : (S : List Change) (E : Ent) (Δ : Ctxᵗ)
+  → applyChanges (shiftScope 1 S) (E ∷ Δ) ≡ E ∷ applyChanges S Δ
+applyChanges-shiftScope1 []             E Δ = refl
+applyChanges-shiftScope1 (unlock X ∷ S) E Δ =
+  cong (unmask (suc X)) (applyChanges-shiftScope1 S E Δ)
+applyChanges-shiftScope1 (lock X ∷ S)   E Δ =
+  cong (mask (suc X)) (applyChanges-shiftScope1 S E Δ)
 
 -- WHAT IS LEFT OF THE OUTER FRAME: the frame with its OWN CHANGES
 -- REWOUND.
@@ -499,3 +549,58 @@ mergeChanges Θ₁ Θ₂ (no  _) =
 infixl 5 _⋉_
 _⋉_ : CtxMorph → CtxMorph → CtxMorph
 Θ₁ ⋉ Θ₂ = morph (binds Θ₁) (mergeChanges Θ₁ Θ₂ (redundant? Θ₁ Θ₂))
+
+------------------------------------------------------------------------
+-- 5.  THE APPENDED LOCK — a boundary value moved under a NEW BIND
+------------------------------------------------------------------------
+
+-- WHAT IT IS.  `addLock0 Θ` is Θ with ONE `lock 0` appended to its own
+-- change list, at the TAIL — where `applyChanges` runs it FIRST, exactly
+-- the position the scope move `_⋉_` (§4) puts its travelling changes in.
+-- No bind is added and no rep is touched: `numBinds (addLock0 Θ)` is
+-- `numBinds Θ` by REFLEXIVITY.
+--
+-- WHY IT EXISTS.  FRAME EXACTNESS for a BOUNDARY VALUE MOVED UNDER A NEW
+-- BIND — `TyPeelR-⟪⟫` (strong.Reduction).  That rule pushes a type
+-- application inward past the binder it introduces, and the moved
+-- subterm is itself a boundary; without the appended lock the moved
+-- boundary's interior is offered the new slot UNMASKED, a slot it could
+-- not name before and cannot use after (notes/ShiftAudit.md §3).  A
+-- boundary carries its OWN change list, so the new binder can be masked
+-- for it with no second wrapper minted — which is what separates this
+-- repair from the one that loops (proof/ShiftAudit §4).
+--
+-- The frame it produces is the shape the other crossings produce: the
+-- moved subterm's BIRTH frame with the crossed binder MASKED — (†) for
+-- Peel (`interior-dual`) and `interior-Beta-Λ` for Beta.  The identity
+-- below says it in general; `interior-addLock0-cross` (strong.TermSubst)
+-- says it at the shift the rule performs.
+addLock0 : CtxMorph → CtxMorph
+addLock0 Θ = morph (binds Θ) (changes Θ ++ (lock 0 ∷ []))
+
+numBinds-addLock0 : (Θ : CtxMorph) → numBinds (addLock0 Θ) ≡ numBinds Θ
+numBinds-addLock0 Θ = refl
+
+-- THE INDUCED CONTEXTS.  On the INTERIOR the appended lock acts FIRST, so
+-- it is exactly `mask 0` of the exterior — nothing else about the frame
+-- changes.
+scope-addLock0 : (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → scope (addLock0 Θ) Δ ≡ scope Θ (mask 0 Δ)
+scope-addLock0 Θ Δ = applyChanges-++ (changes Θ) (lock 0 ∷ []) Δ
+
+interior-addLock0 : (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → interior (addLock0 Θ) Δ ≡ interior Θ (mask 0 Δ)
+interior-addLock0 Θ Δ = cong (pushBinds (binds Θ)) (scope-addLock0 Θ Δ)
+
+-- … and on the CONVERSION CONTEXT it acts NOT AT ALL: `applyUnlocks`
+-- skips locks, so the appended lock is LIFTED and the conversion is read
+-- exactly where it was.  This is what makes the repair free — the moved
+-- boundary's conversion re-types by `conv-ren` alone.
+unlockedScope-addLock0 : (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → unlockedScope (addLock0 Θ) Δ ≡ unlockedScope Θ Δ
+unlockedScope-addLock0 Θ Δ = applyUnlocks-++ (changes Θ) (lock 0 ∷ []) Δ
+
+convCtx-addLock0 : (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → convCtx (addLock0 Θ) Δ ≡ convCtx Θ Δ
+convCtx-addLock0 Θ Δ =
+  cong (pushBinds (binds Θ)) (unlockedScope-addLock0 Θ Δ)

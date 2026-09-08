@@ -79,8 +79,7 @@ open import strong.Terms
 open import strong.CtxMorph
 open import strong.proof.Preserve using (CancelRCase; IdPushCase)
 open import strong.proof.PeelDual
-  using (⊢ˢ-++; ⊢ˢ-suffix; applyChanges-++; applyUnlocks-++;
-         applyChanges-dualScope; ⊢ˢ-dualScope)
+  using (⊢ˢ-suffix; applyChanges-dualScope; ⊢ˢ-dualScope)
 
 ------------------------------------------------------------------------
 -- §1  Lookup transports

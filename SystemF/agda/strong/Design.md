@@ -95,8 +95,8 @@ not typeable at any type.
    **list** — a context morphism — and not a single reveal-or-conceal.
 
 **The same program today.**  `Examples` §14 runs it, machine-rendered;
-`run-E` is the run, `⊢E₅` types the answer by `preservation*`, and
-`edet₁ … edet₅` pin every state as the only successor of its predecessor.
+`run-E` is the run, `⊢E₆` types the answer by `preservation*`, and
+`edet₁ … edet₆` pin every state as the only successor of its predecessor.
 
 Diagram:
 
@@ -114,42 +114,63 @@ Diagram:
            · ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫))
           ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
         |
-        |  Beta, lifted through ⟪ ↑X:=ℕ , … ⟫
+        |  Beta, lifted through ⟪ ↑X:=ℕ , … ⟫ — FRAME-EXACT (§6.2), so
+        |  the crossed value acquires ΛY's dual ↓Y as it is planted
         v
-    E₃  ((ΛY. ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Z. (id Z ↦ id Z)) ⟫) [Y])
+    E₃  ((ΛY. (((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Z. (id Z ↦ id Z)) ⟫)
+                 ⟪ ↓Y , (∀Z. (id Z ↦ id Z)) ⟫) [Y])
           ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
         |
-        |  TyPeelR, lifted through ⟪ ↑X:=ℕ , … ⟫ and ΛY —
+        |  TyPeelR on the Beta-minted wrapper, lifted through
+        |  ⟪ ↑X:=ℕ , … ⟫ and ΛY
+        v
+    E₄  ((ΛY. (((ΛX′. (λx:X′. x)) ⟪ ↓X , (∀X′. (id X′ ↦ id X′)) ⟫) [Z]
+                 ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
+          ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+        |
+        |  TyPeelR again, on the value's OWN Peel-minted wrapper —
         |  the line the pre-boundary design died on
         v
-    E₄  ((ΛY. ((ΛX′. (λx:X′. x)) [Z]
-                 ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
+    E₅  ((ΛY. (((ΛY′. (λx:Y′. x)) [X′]
+                   ⟪ ↑X′:=Z , ↓X , (seal X′ ↦ unseal X′) ⟫)
+                 ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
           ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
         |
         |  TyBeta, inside the boundary TyPeelR just grew
         v
-    E₅  ((ΛY. (((λx:X′. x) ⟪ ↑X′:=Z , (seal X′ ↦ unseal X′) ⟫)
-                 ⟪ ↑Z:=Y , ↓X , (seal Z ↦ unseal Z) ⟫))
+    E₆  ((ΛY. ((((λx:Y′. x) ⟪ ↑Y′:=X′ , (seal Y′ ↦ unseal Y′) ⟫)
+                   ⟪ ↑X′:=Z , ↓X , (seal X′ ↦ unseal X′) ⟫)
+                 ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
           ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)                    a VALUE
 
-`E₃` *is* the counterexample's third line, and `E₃ → E₄` is where the two
-designs part.  The crossed value's frame is the single lock `↓X`, and its
-two type contexts at that redex are (`Examples` §14, `E-int` / `E-ext`,
-rendered at the trace's own names):
+`E₃` *is* the counterexample's third line, and `E₄ → E₅` is where the two
+designs part.  Read `E₃` first for the FRAMES.  The planted value sits
+inside `↓Y`, whose two type contexts are (`Examples` §14,
+`E-dual-int` / `E-dual-ext`, rendered at the trace's own names):
 
-    interior (↓X) Δ    Y Λ-bound , ⌷[X := ℕ]
-    convCtx (↓X) Δ     Y Λ-bound ,   X := ℕ
+    interior (↓Y) Δ    ⌷[Y Λ-bound] ,   X := ℕ
+    convCtx (↓Y) Δ       Y Λ-bound ,    X := ℕ
 
-where the old design had `∅`.  `Y` is still nameable inside
-(`E-Y-inside`) and `X` still is not (`E-X-hidden`): lesson 1.  And the
+so the value is read at *its birth frame* `X := ℕ`, one masked entry in:
+`Y` is NOT nameable inside it (`E-Y-not-inside`), because the value was
+born before `ΛY` existed.  That is frame-exact `Beta` (§6.2); before
+2026-09-08 there was no `↓Y` and the value was read at `Y Λ-bound ,
+X := ℕ`, one entry wider than its birth frame.  Inside the value's own
+Peel-minted wrapper the frames are
+
+    interior (↓X) (interior (↓Y) Δ)   ⌷[Y Λ-bound] , ⌷[X := ℕ]
+    convCtx (↓X) (interior (↓Y) Δ)    ⌷[Y Λ-bound] ,   X := ℕ
+
+(`E-int` / `E-ext`), where the old design had `∅`: `X` still is not
+nameable (`E-X-hidden`) and nothing was TRUNCATED — lesson 1.  And the
 argument `Y` is not written into the sealed body — `↑Z:=Y` binds a fresh
-`Z` at the representation `Y`, read in the exterior, and the
-interior instantiates at `Z`: lesson 2.  The contractum types by
-`preservation-TyPeelR`.
+`Z` at the representation `Y`, read in the *exterior* `E-dual-ext` where
+it is nameable, and the interior instantiates at `Z`: lesson 2.  Both
+contracta type by `preservation-TyPeelR`.
 
 v1 took lesson 2 only — one combined boundary and a `TyWrap` that recorded
 the argument as a reveal representation; that is the "Example 8" entry of
-`notes/old/notes-v1.md`, whose `↑Z:=Y , ↓X` residue is `E₄`'s inner frame
+`notes/old/notes-v1.md`, whose `↑Z:=Y , ↓X` residue is `E₅`'s inner frame
 here, and it is v1's *copied* representations, not that shape, that
 subject reduction later refuted.  The scope move (§6.7) is the same
 principle one level up: when a rule would leave a representation outside
@@ -882,26 +903,80 @@ Example (`Examples` §6, `P₀ → P₁`, under `ξ-·-l`):
 
 with `reveal 0 (X ⇒ X) ≡ seal 0 ↦ unseal 0`.
 
-### 6.2 `Beta`
+### 6.2 `Beta` — and why the substitution carries a type
 
-    Beta : Value W → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ]ᵐ
+    Beta : Value W → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ
 
 Named: `(λx:A. N) · W → N[x:=W]`.  The ordinary β step; its preservation
 case *is* the substitution lemma (`strong.TermSubst.⊢subst`).  Term
 substitution is the identity on boundaries, since a boundary body is
 term-closed.
 
-**Bookkeeping.** None at the boundary level, but `substᵐ`'s `Λ` clause
-shifts the substituted value past the new type binder, and that moves the
+**THE SUBSTITUTION IS FRAME-EXACT** (Jeremy, 2026-09-08).  The old rule
+was `N [ W ]ᵐ`, and `substᵐ`'s `Λ` clause moved the substituted value
+under the binder by *shifting* it (`⇑ᴹ = renᴹ suc`), which moves the
 *names* in its boundaries: in `Examples` §11 the sealed argument
-`(7 ⟪ ↓X , seal X ⟫)` becomes, one binder in, `(7 ⟪ ↓Y , seal Y ⟫)` —
-the lock name and the conversion name move together, and nothing else
-changes.
+`(7 ⟪ ↓X , seal X ⟫)` becomes, one binder in, `(7 ⟪ ↓X , seal X ⟫)` with
+`X` one slot further out.  That is SOUND — the shifted indices cannot
+reach slot 0 — but it is not EXACT: the value's frame silently GAINS the
+`Λ`'s slot, so at `Examples` §14's `E₃` the crossing wrapper was read at
+`Y Λ-bound , ⌷[X := ℕ]`, one entry more than the frame it was born in.
+Every other rule in the table is exact (see the frame identities in §7);
+`Beta` was the one inexact rule.
 
-Example (`Examples` §6, `P₂ → P₃`, under `ξ-⟪⟫`):
+**The repair: what crosses a binder is wrapped in the binder's dual.**  A
+`Λ` is an `abst` binder occupying slot 0 inside, so its dual is
+`morph [] (lock 0 ∷ [])` — no binds, one lock, exactly what
+`dual (morph (A ∷ []) [])` is — and the conversion is the identity at the
+value's own type, shifted past the binder:
+
+    crossΛ W A = ⇑ᴹ W ⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+
+The frame identity is then DEFINITIONAL:
+
+    interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ
+
+— the image's BIRTH frame `Δ` with the crossed binder masked: nothing
+gained, nothing lost (`Examples.interior-Beta-Λ`).  It is the same shape
+`Peel` mints for its crossing argument, so `⊢crossΛ`
+(`strong.TermSubst` §6) is proved by the same two moves: `⊢rename` at
+`suc` (`Ren-wk`, `Inj-suc`) for the interior, `mkId-⊢` for the
+conversion.  A `ƛ` needs no wrapper — a term binder changes no type
+frame — and reduction under binders is by the frame-indexed relation
+already, so `ξ-Λ`/`ξ-⟪⟫` are untouched.
+
+**Which is why the rule carries `A`.**  `mkId` needs the value's type, and
+`env` needs the value TERM-CLOSED (it types an interior at `Γ = []`).
+Both live in the substitution's IMAGES (`strong.TermSubst` §5b):
+
+    data Img : Set where
+      ivar : ℕ → Img          -- a term variable: never wrapped
+      ival : Term → Ty → Img  -- the substituted value, at its type
+
+and `⊢ival : Δ ⊢ᵗ A → Δ ∣ [] ⊢ W ⦂ A → Δ ∣ Γ ⊢ⁱ ival W A ⦂ A` records the
+two facts.  `A` is read off the redex (the `ƛ`'s own annotation), so the
+contractum is still a function of the redex alone and `det` is unchanged.
+
+**The cost is one step, sometimes.**  `mkId` is INERT at a variable, a
+function type and a `∀`, so the wrapper is a value; at a BASE type it is
+`id ℕ`, which is ACTIVE, and `7 ⟪ ↓Y , id ℕ ⟫` takes one `Drop$`.  More
+generally the layer is walked through by the `IdPush`/`CancelR`/`Drop$`
+cascade already in the calculus, which is where the step-count deltas in
+`Examples`' header come from (`Q₀` 9 → 11, `D₀` 12 → 16, `E₀` 5 → 6; `P₀`,
+`J₀`, `H₀` unchanged).
+
+Example (`Examples` §6, `P₂ → P₃`, under `ξ-⟪⟫`) — no `Λ` is crossed
+here, so no wrapper is minted:
 
     (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
       →  ((7 ⟪ ↓X , seal X ⟫) ⟪ ↑X:=ℕ , unseal X ⟫)
+
+Example (`Examples` §11, `Q₂ → Q₃`, under `ξ-⟪⟫`) — one `Λ` is crossed,
+and the argument acquires `↓Z`:
+
+    (((λx:X. (ΛZ. x) [ℕ]) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
+      →  ((ΛZ. ((7 ⟪ ↓X , seal X ⟫) ⟪ ↓Z , id X ⟫)) [ℕ])
+             ⟪ ↑X:=ℕ , unseal X ⟫
 
 ### 6.3 `Peel` — the crossing
 
@@ -1340,12 +1415,21 @@ is a known function of the old one:
 | `TyPeelR` | `interior (morph (A ∷ binds Θ) (changes Θ)) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ` — the redex's frame, one binder in, which `wkᴹ 1` matches |
 | `Peel` | (†) `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ`, given `Δ ⊢ᵐ Θ` (`proof/PeelDual.interior-dual`) |
 | `CancelR`, `IdPush` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)`, given `Δ ⊢ᵐ Θ₂` (`proof/MoveScope.interior-⋉-rewind`) |
-| `Beta` | `Δ` — no frame changes |
+| `Beta` | `Δ` where no binder is crossed — no frame changes |
+| `Beta`, under a `Λ` | `interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` — the image's BIRTH frame with the crossed `Λ`'s slot masked (`Examples.interior-Beta-Λ`) |
 
-The first two are `refl` (`Examples.interior-TyBeta`,
-`interior-TyPeelR`); the last two are the theorems whose `Δ ⊢ᵐ Θ`
-premise is where the sequential judgement pays for itself (§4.2).
-`Drop$` and the five congruences move nothing into a new frame.
+The `Beta` row used to read `Δ` and nothing else, and it was the one
+INEXACT row: `substᵐ` shifted the image under the `Λ` without recording
+that the new slot is not the image's, so the image's frame was
+`unmasked abst ∷ Δ` — one entry wider than its birth frame, sound but not
+exact.  The dual wrapper of §6.2 closes it, and `Examples` §15d₂ runs the
+test on the closed case.
+
+The first two rows and the last are `refl` (`Examples.interior-TyBeta`,
+`interior-TyPeelR`, `interior-Beta-Λ`); the `Peel` and scope-move rows are
+the theorems whose `Δ ⊢ᵐ Θ` premise is where the sequential judgement pays
+for itself (§4.2).  `Drop$` and the five congruences move nothing into a
+new frame.
 
 Every rule passes.  **The one exception is recorded and is not a scope
 gain**: `Beta` at an erasing body — `(λx:ℕ⇒ℕ. 3) · W` with `W` ill typed
@@ -1434,11 +1518,21 @@ machine-checked consequence in tree.
    (`Examples` §15, and the frame-identity table in §7), with one
    recorded exception that is not a scope gain — `Beta` may *erase* its
    argument.
-3. **No term type-shifts.**  Shift types, not terms.  The only index
-   arithmetic in the design is ordinary de Bruijn binder offsets:
-   `numBinds Θ`, `shiftBy`, and the `n + X` lift in `shiftScope` and
-   `dualScope`.
-   `cmax`, `dropN`, `swapᵇ`, `shiftReps` have no analogue.
+3. **No term type-shifts, and the shifts that remain are AT BINDERS.**
+   Shift types, not terms.  The only index arithmetic in the design is
+   ordinary de Bruijn binder offsets: `numBinds Θ`, `shiftBy`, and the
+   `n + X` lift in `shiftScope` and `dualScope`.  `cmax`, `dropN`,
+   `swapᵇ`, `shiftReps` have no analogue.
+
+   Frame-exact `Beta` (§6.2) does not change this: the shift a substituted
+   image undergoes when it crosses a `Λ` is still `⇑ᴹ = renᴹ suc`, one
+   binder, applied AT that binder — what the repair adds is a WRAPPER
+   beside the shift, not more arithmetic.  The wrapper's morphism
+   `morph [] (lock 0 ∷ [])` names slot 0 and carries no representation,
+   and its conversion `mkId (⇑ᵗ A)` is derived from the type the redex
+   already carries.  The rule of thumb survives: every shift in the
+   development sits at a binder, and no shift is ever applied to a
+   representation twice.
 4. **Simultaneity, as far as it goes — and the pair says which far.**
    `pushBinds` lifts a representation past exactly the binders inside it
    and past nothing else — that half is untouched, and the telescopic

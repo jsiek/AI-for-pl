@@ -73,7 +73,7 @@ open import strong.Ctx
 open import strong.Conversion
   using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_; reveal; instReveal)
 open import strong.Terms
-open import strong.TermSubst using (_[_]ᵐ; wkᴹ; preserve-Beta)
+open import strong.TermSubst using (_[_∶_]ᵐ; wkᴹ; preserve-Beta)
 open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 
 open import strong.CtxMorph
@@ -137,11 +137,14 @@ preservation-TyBeta : ∀ {A}
   → Δ ∣ [] ⊢ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫ ⦂ C
 preservation-TyBeta = preserve-TyBeta
 
--- BETA — the ordinary β step, i.e. the substitution lemma.
+-- BETA — the ordinary β step, i.e. the substitution lemma, now
+-- FRAME-EXACT: the substitution carries the argument's type, and every
+-- image that crosses a `Λ` in the body is wrapped in that binder's dual
+-- (strong.TermSubst §5b, `⊢crossΛ`).
 preservation-Beta : ∀ {W}
   → Δ ∣ [] ⊢ (ƛ A ∙ N) · W ⦂ C
     --------------------------
-  → Δ ∣ [] ⊢ N [ W ]ᵐ ⦂ C
+  → Δ ∣ [] ⊢ N [ W ∶ A ]ᵐ ⦂ C
 preservation-Beta = preserve-Beta
 
 -- DROP$ — an identity boundary at a base type, over a numeral.

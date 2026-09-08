@@ -2615,3 +2615,19 @@ alone as the outer frame is refuted twice (frame not restored; vacuous
 unlock).  Design note for Jeremy: the rules now carry decidable tests
 (`rewound?`, `redundant?`) — deterministic and computable, but a
 judgement call whether tests belong in rules.  Awaiting ruling.
+
+### RULING: frame exactness is the main point (Jeremy, 2026-09-08); PR #199 merged
+
+"Frame exactness is the main point of strong system F!"  PR #199 (Beta
+wraps every value crossing a Λ in the binder's dual, `crossΛ`) MERGED as
+19a4268a.  Jeremy then asked for an audit of every place that shifts a
+term, to find other unmasked variables (branch shift-audit; the known
+candidate is TyPeelR, whose `wkᴹ 1 V` lands under the new bind slot).
+MEASURED INTERACTION with the change-list growth (PR #200's §16, after
+merging #199): 49 steps to 42 (was 36); peak change list 248 and 518
+entries per state (was 50 / 101 with the redundancy tests, 130 / 389
+without) — the ↓Y layers Beta now mints are extra boundaries the
+IdPush/CancelR passes push through, and their change lists compound in
+the scope move; the residue (merges of lists unlocking different slots)
+now dominates, so the canonical per-slot form (RewindNorm §4) is the
+remaining lever.

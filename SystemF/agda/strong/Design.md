@@ -948,7 +948,7 @@ It is repaired, in two coupled halves — the restoring, reversed
 The frame identity is then **exact**:
 
     (†)  interior (dual Θ) (interior Θ Δ)
-           ≡ map masked (pushBinds (binds Θ) []) ++ Δ       given Δ ⊢ᵐ Θ
+           ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ      given Δ ⊢ᵐ Θ
 
 *the crossing argument's frame IS the exterior*, one (masked) bind prefix
 in — so the argument crosses by `⊢rename (wkN (numBinds Θ))` alone, with
@@ -960,7 +960,7 @@ its frame.
 ### 6.4 `TyPeelR` — a `∀` conversion meets a type application
 
     TyPeelR : Value V
-      → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+      → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
           -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
@@ -1149,9 +1149,9 @@ reorders a mask/unmask pair, and the value's frame is then not refined
 but **corrupted** — a slot it may name in the redex is masked in the
 contractum.  The refutation is in tree
 (`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `_⊢ᵐ_`-legal witness
-`Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])` over `Δ✗ = bind ℕ ∷ []`, where
-`interior Θ✗ Δ✗ ≡ bind ℕ ∷ []` but the lock-only contractum's interior is
-`masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and then
+`Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])` over `Δ✗ = unmasked (bind ℕ) ∷ []`,
+where `interior Θ✗ Δ✗ ≡ unmasked (bind ℕ) ∷ []` but the lock-only
+contractum's interior is `masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and then
 the value's frame is preserved **on the nose**: with `rewind` outside,
 both frame lemmas are equalities,
 
@@ -1182,12 +1182,12 @@ and three `Drop$` steps finish.
     ξ-·-l : Δ ⊢ L -→ L′            → Δ ⊢ L · M -→ L′ · M
     ξ-·-r : Value V → Δ ⊢ M -→ M′  → Δ ⊢ V · M -→ V · M′
     ξ-·[] : Δ ⊢ L -→ L′            → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]
-    ξ-Λ   : (abst ∷ Δ) ⊢ N -→ N′   → Δ ⊢ Λ N -→ Λ N′
+    ξ-Λ   : (unmasked abst ∷ Δ) ⊢ N -→ N′   → Δ ⊢ Λ N -→ Λ N′
     ξ-⟪⟫  : interior Θ Δ ⊢ M -→ M′     → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ Θ , c ⟫
 
 Left-to-right, call-by-value, and **under `Λ`** — which is why `V-Λ` and
 `TyBeta` both carry `Value N`.  Note the two index changes: `ξ-Λ` steps
-in `abst ∷ Δ`, and `ξ-⟪⟫` steps in the *interior* type context
+in `unmasked abst ∷ Δ`, and `ξ-⟪⟫` steps in the *interior* type context
 `interior Θ Δ`.  A boundary is not a barrier to reduction; it is a barrier to
 *naming*.
 
@@ -1260,8 +1260,8 @@ exactly the two that the id-layer rules consume.
 Induction on the step, with the rule cases distributed:
 
 * **`TyBeta`** (`proof/Preserve.preserve-TyBeta`) — the mint.  The new
-  binder is the `abst ⊑ᵉ bind A` refinement of the `Λ`'s own slot
-  (`le-ab`), so the interior retypes by `⊢retag`; the minted conversion
+  binder is the `unmasked abst ⊑ᵃᵉ unmasked (bind A)` refinement of the
+  `Λ`'s own slot (`la-uu le-ab`), so the interior retypes by `⊢retag`; the minted conversion
   types by `⊢reveal`/`⊢conceal`, and its exterior type is the
   instantiated body by `subst-at-0`.  The exterior premise is `⊢·[]`'s
   own two premises through `wf-[]ᵗ`, and `interior (morph (A ∷ []) []) Δ` is
@@ -1270,7 +1270,7 @@ Induction on the step, with the rule cases distributed:
 * **`Peel`** (`proof/PeelDual.preserve-Peel`) — the two context
   identities are what carries it: (†)
   `interior (dual Θ) (interior Θ Δ)
-  ≡ map masked (pushBinds (binds Θ) []) ++ Δ` (given `Δ ⊢ᵐ Θ`)
+  ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ` (given `Δ ⊢ᵐ Θ`)
   and `convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ`.  The crossing
   argument, typed in `Δ`, retypes one bind frame deeper by
   `⊢rename (wkN (numBinds Θ))` and **nothing else** — the tail is `Δ`
@@ -1336,9 +1336,9 @@ is a known function of the old one:
 
 | rule | the moved subterm's new frame |
 |------|-------------------------------|
-| `TyBeta` | `interior (morph (A ∷ []) []) Δ ≡ bind A ∷ Δ` — `Δ` on the nose, one refinement (`abst ⊑ᵃᵉ bind A`) at the slot the rule reveals |
+| `TyBeta` | `interior (morph (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` — `Δ` on the nose, one refinement (`unmasked abst ⊑ᵃᵉ unmasked (bind A)`, i.e. `la-uu le-ab`) at the slot the rule reveals |
 | `TyPeelR` | `interior (morph (A ∷ binds Θ) (changes Θ)) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ` — the redex's frame, one binder in, which `wkᴹ 1` matches |
-| `Peel` | (†) `interior (dual Θ) (interior Θ Δ) ≡ map masked (pushBinds (binds Θ) []) ++ Δ`, given `Δ ⊢ᵐ Θ` (`proof/PeelDual.interior-dual`) |
+| `Peel` | (†) `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ`, given `Δ ⊢ᵐ Θ` (`proof/PeelDual.interior-dual`) |
 | `CancelR`, `IdPush` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)`, given `Δ ⊢ᵐ Θ₂` (`proof/MoveScope.interior-⋉-rewind`) |
 | `Beta` | `Δ` — no frame changes |
 

@@ -53,11 +53,13 @@
 
 % ---- preamble additions (colours are scope sets; \HI stays for highlights) ----
 \definecolor{scopeX}{rgb}{0.84,0.90,0.98}   % {X}   pale blue
-\definecolor{scopeZ}{rgb}{0.98,0.90,0.76}   % {Z}   pale orange
+\definecolor{scopeZ}{rgb}{1,0.78,0.78}       % {Z}   light red
+\definecolor{scopeZp}{rgb}{0.87,0.80,0.96}   % {Z'}  pale purple
 \definecolor{scopeY}{rgb}{0.85,0.95,0.84}   % {Y}   pale green
 \newcommand{\region}[2]{\colorbox{#1}{\color{black}\ensuremath{#2}}}
 \newcommand{\rX}[1]{\region{scopeX}{#1}}    % nodes where X is in scope
 \newcommand{\rZ}[1]{\region{scopeZ}{#1}}    % nodes where Z is in scope
+\newcommand{\rZp}[1]{\region{scopeZp}{#1}}  % nodes where Z' is in scope
 \newcommand{\Nat}{\mathbb{N}}
 \newcommand{\idZ}{\Lam{Z} \lam{z\of Z} z}
 \newcommand{\rY}[1]{\region{scopeY}{#1}}
@@ -170,6 +172,30 @@
 }
 %===============================================================================
 \frame{
+\frametitle{$\nu[F]$, a colorful System F}
+\scriptsize
+\begin{align*}
+  &\app{\tyapp{(\rX{\Lam{X} \lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X}})}{\Nat}}{(\rZ{\idZ})}\\[2pt]
+  \reduce\;&\app{\boundary{\rX{\lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X}}}
+                          {\bind{X}{\Nat}}{\emptyset}
+                          {\cid \func (\seal{X} \func \unseal{X})}}
+           {(\rZ{\idZ})}
+           \\[2pt]
+  \reduce\;&\boundary{\rX{\app{(\lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X})}
+                            {\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cid}}}}
+           {\bind{X}{\Nat}}{\emptyset}{\seal{X} \func \unseal{X}}
+           \\[2pt]
+  \reduce\;&\boundary{\rX{\tyapp{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cid}}{X}}}
+                     {\bind{X}{\Nat}}{\emptyset}{\seal{X} \func \unseal{X}}
+     \\[2pt]
+  \reduce\;&\boundary{
+    \rX{\boundary{\rZ{\lam{z\of Z} z}}
+      {\bind{Z}{X}}{\lockX{X}}{\seal{Z} \func \unseal{Z}}}
+  }{\bind{X}{\Nat}}{\emptyset}{\seal{X} \func \unseal{X}}
+\end{align*}
+}
+%===============================================================================
+\frame{
   \frametitle{An example that breaks Fitch-style locking}
   \small
   The term $\rev{M}{\bind{X}{A}}$ reveals $X$ outward,
@@ -246,48 +272,21 @@
     \reduce\;&\app{\tyapp{\left(\app{\boundary{\rX{\lam{f\of(\forall Z.\,Z\func Z)}\rXY{\Lam{Y}\tyapp{f}{Y}}}}{\bind{X}{\Nat}}{\emptyset}{\cidZ
   \func \cidY}}{(\rZ{\idZ})}\right)}{\Bool}}{\kw{true}}\\
     \reduce\;&\app{\tyapp{\left(\boundary{\rX{\app{(\lam{f}\rXY{\Lam{Y}\tyapp{f}{Y}})}{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cidZ}}}}{\bind{X}{\Nat}}{\emptyset}{\cidY}\right)}{\Bool}}{\kw{true}}\\
-    \reduce\;&\app{\tyapp{\left(\boundary{\rX{\rXY{\Lam{Y}\tyapp{\boundary{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cidZ}}{\emptyset}{\lockX{Y}}{\cidZ}}{Y}}}}{\bind{X}{\Nat}}{\emptyset}{\cidY
+    \reduce\;&\app{\tyapp{\left(\boundary{\rX{\rXY{\Lam{Y}\tyapp{\boundary{\rX{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cidZ}}}{\emptyset}{\lockX{Y}}{\cidZ}}{Y}}}}{\bind{X}{\Nat}}{\emptyset}{\cidY
   }\right)}{\Bool}}{\kw{true}}\\
     \reduce\;&\app{\tyapp{\left(\boundary{
-      \rX{\rXY{\Lam{Y}\boundary{\tyapp{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cidZ}}{Z}}
-        {\bind{Z}{Y}}{\lockX{Y}}{\seal{Z}\func\unseal{Z}}}}
+      \rX{\rXY{\Lam{Y}\boundary{
+        \rX{\rZp{\tyapp{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X},\lockX{Z'}}{\cidZ}}{Z'}}}
+      }{\bind{Z'}{Y}}{\lockX{Y}}{\seal{Z'}\func\unseal{Z'}}}}
     }{\bind{X}{\Nat}}{\emptyset}{\cidY}\right)}{\Bool}}{\kw{true}}\\
     \reduce\;&\app{\tyapp{\left(\boundary{
       \rX{\rXY{\Lam{Y}\boundary{
-        \boundary{\rZ{\lam{z\of Z'}z}}{\bind{Z'}{Z}}{\lockX{X}}{\seal{Z'}\func\unseal{Z'}}
-      }{\bind{Z}{Y}}{\lockX{Y}}{\seal{Z}\func\unseal{Z}}}}
+        \rX{\rZp{\rZ{\boundary{\lam{z\of Z}z}{\bind{Z}{Z'}}{\lockX{X},\lockX{Z'}}{\seal{Z}\func\unseal{Z}}}}}
+      }{\bind{Z'}{Y}}{\lockX{Y}}{\seal{Z'}\func\unseal{Z'}}}}
     }{\bind{X}{\Nat}}{\emptyset}{\cidY}\right)}{\Bool}}{\kw{true}}\\
     \reduce^{*}\;&\kw{true}
   \end{aligned}$}
   }
-%===============================================================================
-\frame{
-\frametitle{$\nu[F]$, a colorful System F}
-\scriptsize
-\begin{align*}
-  &\app{\tyapp{(\rX{\Lam{X} \lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X}})}{\Nat}}{(\rZ{\idZ})}\\[2pt]
-  \reduce\;&\app{\boundary{\rX{\lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X}}}
-                          {\bind{X}{\Nat}}{\emptyset}
-                          {\cid \func (\seal{X} \func \unseal{X})}}
-           {(\rZ{\idZ})}
-           \\[2pt]
-  \reduce\;&\boundary{\rX{\app{(\lam{f \of (\forall Z.\, Z \to Z)} \tyapp{f}{X})}
-                            {\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cid}}}}
-           {\bind{X}{\Nat}}{\emptyset}{\seal{X} \func \unseal{X}}
-           \\[2pt]
-  \reduce\;&\boundary{\rX{\tyapp{\boundary{\rZ{\idZ}}{\emptyset}{\lockX{X}}{\cid}}{X}}}
-                     {\bind{X}{\Nat}}{\emptyset}{\seal{X} \func \unseal{X}}
-     \\[2pt]
-  \reduce\;&\boundary{\rX{\boundary{\rY{\tyapp{(\rZ{\idZ})}{Y}}}
-                                    {\bind{Y}{X}}{\lockX{X}}{\seal{Y} \func \unseal{Y}}}}
-                     {\bind{X}{\Nat}}{\emptyset}{\seal{X} \func \unseal{X}}
-     \\[2pt]
-  \reduce\;&\boundary{\rX{\boundary{\rY{\boundary{\rZ{\lam{z\of Z} z}}
-                                                  {\bind{Z}{Y}}{\emptyset}{\seal{Z} \func \unseal{Z}}}}
-                                    {\bind{Y}{X}}{\lockX{X}}{\seal{Y} \func \unseal{Y}}}}
-                     {\bind{X}{\Nat}}{\emptyset}{\seal{X} \func \unseal{X}}
-\end{align*}
-}
 %===============================================================================
 \frame{
   \frametitle{Terms: Binding, Anti-Binding, and Conversion}
@@ -306,8 +305,7 @@
 \endgroup
 
 \footnote{Conversions are inspired by Henglein's Coercion Calculus
-(1994) and provide an alternative representation of the static casts
-of Ahmed et al. (2011)}
+(1994). They represent the static casts of Ahmed et al. (2011)}
 }
 %===============================================================================
 \frame{
@@ -452,7 +450,7 @@ of Ahmed et al. (2011)}
 }
 %===============================================================================
 \frame{
-  \frametitle{Operations on bindings and anti-bindings}
+  \frametitle{Bindings are dual to anti-bindings}
 
 {
 \hfill\fbox{$\hide{\Theta} = \delta$}
@@ -575,20 +573,21 @@ and its conversion has inert form $c^i$.
 \frame{
   \frametitle{Term substitution}
   \small
+  \hfill\fbox{$\tsubst{M}{x}{V}{A}$}
   \[
   \begin{aligned}
-  \tsubst{x}{x}{W}{A} &= W \\
-  \tsubst{y}{x}{W}{A} &= y
+  \tsubst{x}{x}{V}{A} &= V \\
+  \tsubst{y}{x}{V}{A} &= y
     && \text{if }y\neq x \\
-  \tsubst{(\lam{y\of B)}N}{x}{W}{A}
-    &= \lam{y\of B}\tsubst{N}{x}{W}{A} \\
-  \tsubst{(L\,M)}{x}{W}{A}
-    &= \tsubst{L}{x}{W}{A}\,\tsubst{M}{x}{W}{A} \\
-  \HI{\tsubst{\boundary{M}{\Theta}{\delta}{c}}{x}{W}{A}}
+  \tsubst{(\lam{y\of B}N)}{x}{V}{A}
+    &= \lam{y\of B}\tsubst{N}{x}{V}{A} \\
+  \tsubst{(L\,M)}{x}{V}{A}
+    &= \tsubst{L}{x}{V}{A}\,\tsubst{M}{x}{V}{A} \\
+  \HI{\tsubst{\boundary{M}{\Theta}{\delta}{c}}{x}{V}{A}}
     &= \HI{\boundary{M}{\Theta}{\delta}{c}} \\
-  \HI{\tsubst{(\Lambda Y.\,N)}{x}{W}{A}}
+  \HI{\tsubst{(\Lambda Y.\,N)}{x}{V}{A}}
     &= \HI{\Lambda Y.\,
-      \tsubst{N}{x}{\boundary{W}{\emptyset}{\lockX{Y}}{\idconv{A}}}{A}}
+      \tsubst{N}{x}{\boundary{V}{\emptyset}{\lockX{Y}}{\idc{A}}}{A}}
   \end{aligned}
   \]
 }
@@ -599,12 +598,11 @@ and its conversion has inert form $c^i$.
 \hfill\fbox{$\Delta \vdash M \reduce N$}
 
 \begin{align*}
-\Delta \vdash (\lam{x\of A}N)\,W
-  &\reduce \tsubst{N}{x}{W}{A}
+\Delta \vdash (\lam{x\of A}N)\,W &\reduce \tsubst{N}{x}{W}{A}
 \\[2ex]
 \Delta \vdash \boundary{V}{\Theta}{\delta}{c\func d}\,W
-  &\reduce \boundary{V\,\boundary{W}{\hide{\Theta}}
-                    {\dual{\delta}}{c}}
+  &\reduce \boundary{V\,\boundary{W}{\emptyset}
+                    {\dual{\delta},\hide{\Theta}}{c}}
                     {\Theta}{\delta}{d}
 \\[2ex]
 \Delta \vdash \tyapp{(\Lam{X}V_B)}{A}
@@ -621,19 +619,14 @@ and its conversion has inert form $c^i$.
                               {\delta'\append\lockX{Y}}{\forall X.\,d}}{Y}}
           {\bind{Y}{A},\Theta}{\delta}{\unsealatc{Y}{c}}
 \end{align*}
-TODO: merge the two rules
-\[
-\Delta \vdash \tyapp{\boundary{V}{\Theta}{\delta}{\forall X.\,c}}{A}
-\reduce
-\boundary{\tyapp{ \boundary{V}{\Theta}{-X,\delta}{}  }{X}}{\bind{X}{A}}{\emptyset}{\unsealatc{X}{c}}
-\]
-
+\footnote{The straightforward alternative to the last two rules does
+not work because it creates an infinite loop.}
 
 }
 %===============================================================================
 \frame{
 \frametitle{Reduction: active conversions and congruence}
-
+\vspace{5pt}
 \hfill\fbox{$\Delta \vdash M \reduce N$}
 
 \begin{align*}
@@ -646,7 +639,7 @@ TODO: merge the two rules
 &\reduce
 \boundary{\boundary{V}{\Theta_1}{\delta_1\append\delta_2}{\idc{A}}}
           {\Theta_2}{\dual{\delta_2}\append\delta_2}{\idc{A}}
-&& \text{if } \Delta \ni X:=A
+&& {\small\text{if } \Delta \ni X:=A}
 \\[2ex]
 \Delta \vdash
 \boundary{\boundary{V}{\Theta_1}{\delta_1}{\idconv{X}}}
@@ -654,7 +647,7 @@ TODO: merge the two rules
 &\reduce
 \boundary{\boundary{V}{\Theta_1}{\delta_1\append\delta_2}{\unseal{X}}}
           {\Theta_2}{\dual{\delta_2}\append\delta_2}{\idc{A}}
-&&\text{if }\Delta\ni X:=A
+&&{\small\text{if }\Delta\ni X:=A}
 \end{align*}
 
 {\footnotesize
@@ -741,10 +734,16 @@ Every term has at most one immediate reduct.
 \frame{
 \frametitle{Other Properties?}
 
-TODO: The set of type variables in scope at every subterm (not include
+The set of type variables in scope at every subterm (not include
 boundaries) is invariant under reduction.
 
 }
-
+%===============================================================================
+\frame{
+  \frametitle{Retrospective}
+\begin{itemize}  
+\item ...
+\end{itemize}
+}
 
 \end{document}

@@ -68,7 +68,8 @@ module strong.Examples where
 --   J₀  14 → 14  (the substituted variable sits under no Λ)
 --   H₀  4 → 4    (the layer lands inside a ƛ body, unevaluated)
 --   E₀  5 → 6    (+1 TyPeelR — §14's `estep₅`)
---   G   5 → 5    (the layers land under the Λs, unevaluated)
+--   G   5 → 5    (`gstep₁ … gstep₅`; the layers land under the Λs,
+--                 unevaluated)
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; length; map)
@@ -1637,14 +1638,11 @@ Rchain-scoped = wf-var (_ , es ez , nameable)
 
 -- ── the states ─────────────────────────────────────────────────────────
 
-RS RS↑ RW : Term
+RS RS↑ : Term
 RS  = (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph [] (lock 0 ∷ []) ,
   seal 0 ⟫
 RS↑ = (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph [] (lock 1 ∷ []) ,
   seal 1 ⟫
-RW  = ((($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫) ⟪ morph [] (lock 1 ∷ []) , id
-  (` 2) ⟫)
-        ⟪ morph (`ℕ ∷ []) [] , id (` 2) ⟫
 
 _ : wkᴹ 1 QS₇ ≡ ($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫
 _ = refl

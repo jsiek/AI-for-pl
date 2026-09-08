@@ -40,12 +40,21 @@ no holes**, under `agda --safe`:
 Beyond the six, the development carries a **tightness** result about the
 reduction relation itself — reduction never takes a term the exterior
 refuses to one it accepts (design law 2, `Design.md` §8).  It is not a
-theorem statement but a rule-by-rule check backed by five frame
+theorem statement but a rule-by-rule check backed by six frame
 identities: `proof/DualTightness` for `Peel`'s `unlock` half, `Examples`
 §15 for every other rule that moves a subterm into a new frame, and the
 frame-identity table in `Design.md` §7.  Every rule passes; the one
 recorded exception, `Beta` at an *erasing* body, is a dropped argument
 rather than a scope gain.
+
+Since 2026-09-08 the identities are also **exact**, not merely sound:
+`Beta` used to plant its argument under a `Λ` by shifting it, which left
+the argument's frame one entry wider than the frame it was born in.  It
+now wraps every image that crosses a `Λ` in that binder's DUAL —
+`⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫`, the same shape `Peel` mints —
+so the substitution carries the argument's type (`N [ W ∶ A ]ᵐ`) and the
+frame identity `interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡
+masked abst ∷ Δ` holds by `refl` (`Design.md` §6.2, `Examples` §15d₂).
 
 The gate, run **cold**, from `SystemF/agda`:
 
@@ -70,7 +79,7 @@ driver: type-checking it type-checks the whole thing.
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
 | `CtxMorph.agda` | the context morphism as a **pair** — `record CtxMorph = morph (binds : List Ty) (changes : List Change)`, the binds a PARALLEL block and the changes a SEQUENTIAL `lock`/`unlock` list — with `numBinds`, the type contexts it induces (`applyChanges`/`applyUnlocks` at the list, `scope`/`unlockedScope`/`interior`/`convCtx` at the morphism) and their refinement transports, the well-formedness judgement `Δ ⊢ᵐ Θ` as a pair of halves (`_⊢ʳ_` reps, `_⊢ˢ_` changes), and the derived morphisms `dual` (Peel) and `rewind`/`_⋉_` (the scope move) |
 | `Terms.agda` | terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` (re-exports `CtxMorph`) |
-| `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), term substitution, `⊢subst`, `preserve-Beta` |
+| `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), FRAME-EXACT term substitution (`Img`, `crossΛ`, `substᵐ`, `_[_∶_]ᵐ`), `⊢weakenⁿ`, `⊢crossΛ`, `⊢substᵐ`, `⊢subst`, `preserve-Beta` |
 | `Reduction.agda` | the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
 | `Progress.agda` | the statement `Progress` and `progress`, a one-line wrapper around `proof.Progress.progress` |
 | `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |

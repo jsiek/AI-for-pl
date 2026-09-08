@@ -7,7 +7,10 @@ module strong.proof.Progress where
 --     a closed, well-typed term is a VALUE or it STEPS.
 --
 -- The three ordinary cases (application, type application, Λ) are the
--- usual ones, decided by strong.proof.Canonical.  The boundary case is
+-- usual ones, decided by strong.proof.Canonical — type application at a
+-- ∀-conversion wrapper takes ONE MORE `canon-∀`, on the boundary's
+-- interior, because TyPeelR is split on it (`progress-·[]-∀conv`).  The
+-- boundary case is
 -- the whole content of the theorem, and it is a two-step argument:
 --
 --   1. run the induction hypothesis on the INTERIOR, at `interior Θ Δ`
@@ -99,20 +102,34 @@ progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
   inj₂ (_ , IdPush vW (unseal-target-is-rep ⊢c))
 
 ------------------------------------------------------------------------
--- TYPEELR'S CONVERSION PREMISE, READ OFF THE REDEX
+-- THE TYPEELR SPLIT, DECIDED BY `canon-∀`
 ------------------------------------------------------------------------
 
--- TyPeelR's pushed-in annotation is the INTERIOR ∀-body, which the rule
--- carries as a conversion-typing premise (strong.Reduction, repair 2a).
--- Progress supplies it for FREE: it is the redex's own `env` conversion,
--- one `` `∀ `` inside.  `conv-all-inv` (strong.Conversion) does the
--- inversion without having to see through `env`'s `shiftBy`.
-∀-conv-premise : ∀ {Δ W Θ s B} → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ B
-  → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ]
-      ((unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
-∀-conv-premise (env mwᵥ ⊢W ⊢c wE) with conv-all-inv ⊢c
-∀-conv-premise (env mwᵥ ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
-  Bᵢ , Bₑ , ⊢s
+-- TyPeelR is TWO CLAUSES (strong.Reduction, 2026-09-08), split on the
+-- crossed boundary's INTERIOR, and `canon-∀` hands the split EXACTLY its
+-- two patterns — a `Λ` over a value, or a wrapper with a `∀` conversion.
+-- So the pair is TOTAL over canonical `∀`-values: it REPLACES the single
+-- rule rather than supplementing it.
+--
+-- Both clauses' premises come off the redex's own derivation, and ONE
+-- inversion supplies both: `conv-all-inv` gives the conversion typing
+-- `⊢s` (TyPeelR's pushed-in annotation is the INTERIOR ∀-body, which the
+-- rule carries as a premise — strong.Reduction, repair 2a) and pins the
+-- interior's type to `` `∀ A₀ ``, which is what lets `canon-∀` run on the
+-- interior at all.
+progress-·[]-∀conv : ∀ {Δ V Θ s B A C} → Value V
+  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+    -----------------------------------------------------------
+  → Σ[ M ∈ Term ] (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M)
+progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) with conv-all-inv ⊢c
+progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
+  | A₀ , B₀ , refl , eqₑ , ⊢s with canon-∀ v ⊢V
+progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
+  | A₀ , B₀ , refl , eqₑ , ⊢s | inj₁ (N , vN , refl) =
+  _ , TyPeelR-Λ vN ⊢s
+progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
+  | A₀ , B₀ , refl , eqₑ , ⊢s | inj₂ (W , Θ′ , s′ , vW , refl) =
+  _ , TyPeelR-⟪⟫ vW ⊢s
 
 ------------------------------------------------------------------------
 -- THE THEOREM
@@ -147,16 +164,16 @@ progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM
   | inj₂ (W , Θ , s , t , vW , refl) = inj₂ (_ , Peel vW vM)
 
 -- L ·[ B , A ] — TyBeta at a Λ (whose body is a value: V-Λ's premise IS
--- TyBeta's premise), TyPeelR at a ∀-conversion wrapper.
+-- TyBeta's premise), and at a ∀-conversion wrapper the TyPeelR SPLIT,
+-- which `progress-·[]-∀conv` decides by a second `canon-∀`, on the
+-- boundary's interior.
 progress (⊢·[] ⊢L wA) with progress ⊢L
 progress (⊢·[] ⊢L wA) | inj₂ (L′ , st) = inj₂ (L′ ·[ _ , _ ] , ξ-·[] st)
 progress (⊢·[] ⊢L wA) | inj₁ vL with canon-∀ vL ⊢L
 progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl) =
   inj₂ (_ , TyBeta vN)
-progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
-  with ∀-conv-premise ⊢L
-progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl)
-  | Bᵢ , Bₑ , ⊢s = inj₂ (_ , TyPeelR vW ⊢s)
+progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl) =
+  inj₂ (progress-·[]-∀conv vW (⊢·[] ⊢L wA))
 
 -- M ⟪ Θ , c ⟫ — the boundary.  The interior is typed at `interior Θ Δ`; an
 -- interior step lifts by ξ-⟪⟫, an interior value goes to `progress-env`.

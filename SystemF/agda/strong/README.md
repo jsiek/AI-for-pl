@@ -40,14 +40,14 @@ no holes**, under `agda --safe`:
 Beyond the six, the development carries a **tightness** result about the
 reduction relation itself — reduction never takes a term the exterior
 refuses to one it accepts (design law 2, `Design.md` §8).  It is not a
-theorem statement but a rule-by-rule check backed by six frame
+theorem statement but a rule-by-rule check backed by seven frame
 identities: `proof/DualTightness` for `Peel`'s `unlock` half, `Examples`
 §15 for every other rule that moves a subterm into a new frame, and the
 frame-identity table in `Design.md` §7.  Every rule passes; the one
 recorded exception, `Beta` at an *erasing* body, is a dropped argument
 rather than a scope gain.
 
-Since 2026-09-08 the identities are also **exact**, not merely sound:
+Since 2026-09-08 the identities are also **exact**, not merely sound.
 `Beta` used to plant its argument under a `Λ` by shifting it, which left
 the argument's frame one entry wider than the frame it was born in.  It
 now wraps every image that crosses a `Λ` in that binder's DUAL —
@@ -55,6 +55,17 @@ now wraps every image that crosses a `Λ` in that binder's DUAL —
 so the substitution carries the argument's type (`N [ W ∶ A ]ᵐ`) and the
 frame identity `interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡
 masked abst ∷ Δ` holds by `refl` (`Design.md` §6.2, `Examples` §15d₂).
+
+The **shift audit** that followed (`notes/ShiftAudit.md`,
+`proof/ShiftAudit`) re-read every site against the sharper question —
+does the frame say the truth about what the moved subterm may *name*? —
+and found one leak, which is now closed: `TyPeelR` is **two clauses**,
+`TyPeelR-Λ` (a `Λ` interior is instantiated on the spot, with no shift at
+all) and `TyPeelR-⟪⟫` (a boundary interior is pushed inward one layer,
+with the new binder masked in the moved boundary's own change list,
+`addLock0`).  Every rule that moves a subterm now masks what it
+introduces, and the §7 table has no exceptions (`Design.md` §6.4,
+`Examples` §15b).
 
 The gate, run **cold**, from `SystemF/agda`:
 
@@ -77,10 +88,10 @@ driver: type-checking it type-checks the whole thing.
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
 | `Ctx.agda` | **the type context**: entries in two layers — a `Binding` (`abst` / `bind A`) under at most one lock (`unmasked b` / `masked b`), so `Nameable`/`Locked` are one-clause discriminations and double masking is unrepresentable — lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑` over `⊑ᵇ`), injective renamings, in-place `mask`/`unmask` (`maskEnt`/`unmaskEnt`, total and idempotent), and the bind prefix `pushBinds` with `shiftBy` |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
-| `CtxMorph.agda` | the context morphism as a **pair** — `record CtxMorph = morph (binds : List Ty) (changes : List Change)`, the binds a PARALLEL block and the changes a SEQUENTIAL `lock`/`unlock` list — with `numBinds`, the type contexts it induces (`applyChanges`/`applyUnlocks` at the list, `scope`/`unlockedScope`/`interior`/`convCtx` at the morphism) and their refinement transports, the well-formedness judgement `Δ ⊢ᵐ Θ` as a pair of halves (`_⊢ʳ_` reps, `_⊢ˢ_` changes), and the derived morphisms `dual` (Peel) and `rewind`/`_⋉_` (the scope move) |
+| `CtxMorph.agda` | the context morphism as a **pair** — `record CtxMorph = morph (binds : List Ty) (changes : List Change)`, the binds a PARALLEL block and the changes a SEQUENTIAL `lock`/`unlock` list — with `numBinds`, the type contexts it induces (`applyChanges`/`applyUnlocks` at the list, with their append lemmas and `⊢ˢ-++`; `scope`/`unlockedScope`/`interior`/`convCtx` at the morphism) and their refinement transports, the well-formedness judgement `Δ ⊢ᵐ Θ` as a pair of halves (`_⊢ʳ_` reps, `_⊢ˢ_` changes), and the derived morphisms `dual` (Peel), `rewind`/`_⋉_` (the scope move) and `addLock0` (`TyPeelR-⟪⟫`) |
 | `Terms.agda` | terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` (re-exports `CtxMorph`) |
-| `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), FRAME-EXACT term substitution (`Img`, `crossΛ`, `substᵐ`, `_[_∶_]ᵐ`), `⊢weakenⁿ`, `⊢crossΛ`, `⊢substᵐ`, `⊢subst`, `preserve-Beta` |
-| `Reduction.agda` | the seven rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
+| `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), FRAME-EXACT term substitution (`Img`, `crossΛ`, `substᵐ`, `_[_∶_]ᵐ`), `⊢weakenⁿ`, the two crossings of one new bind slot — `⊢crossΛ` (a value under the binder's dual) and `⊢addLock0-cross` (a boundary masking the binder in its own frame, at `Ren-addLock0` / `interior-addLock0-cross`) — `⊢substᵐ`, `⊢subst`, `preserve-Beta` |
+| `Reduction.agda` | the eight rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
 | `Progress.agda` | the statement `Progress` and `progress`, a one-line wrapper around `proof.Progress.progress` |
 | `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full |
@@ -93,10 +104,10 @@ driver: type-checking it type-checks the whole thing.
 
 | file | one line |
 |------|----------|
-| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢reveal`/`⊢conceal`/`⊢instReveal`/`⊢instConceal`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR`, the three case statements, and `module Impl` |
+| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢reveal`/`⊢conceal`/`⊢instReveal`/`⊢instConceal`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫`, the three case statements, and `module Impl` |
 | `PeelDual.agda` | the `Peel` case: `interior-dual` and `convCtx-dual` in general, and `preserve-Peel` |
 | `MoveScope.agda` | **the scope move**: the list algebra of `shiftScope`/`rewind`/`_⋉_`, `interior-rewind`, the frame **equalities** `interior-⋉-rewind`/`convCtx-⋉-rewind` (with `convCtx-move` the one surviving `⊑`), `move-∋`, `⊢ᵐ-rewind`, `⊢ᵐ-⋉`, the lock-only refutation `¬frame-locksOnly`, and `preserve-CancelR` / `preserve-IdPush` |
-| `Progress.agda` | the progress induction: the boundary case split out as `progress-env`, `TyPeelR`'s premise read off the redex (`∀-conv-premise`), and `progress` itself |
+| `Progress.agda` | the progress induction: the boundary case split out as `progress-env`, the TyPeelR split decided by a second `canon-∀` on the boundary's interior (`progress-·[]-∀conv`, which also reads the clauses' conversion premise off the redex), and `progress` itself |
 | `Canonical.agda` | canonical forms: `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` |
 | `Canonicity.agda` | the canonical conversion family (`reveal`/`conceal`/`mkId` subtrees) and its closure under the rules |
 | `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing forces `X ≡ numBinds Θ₁ + Y` (`idpush-name`, `cancel-name`), and `unseal` is the only active conversion those left-hand sides meet |
@@ -105,6 +116,7 @@ driver: type-checking it type-checks the whole thing.
 | `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
 | `DualTightness.agda` | **tightness of the crossing**, Jeremy's test (2026-09-06) and its repair: the redex that is ill typed at the exterior now has an ill-typed contractum too (`¬⊢Contractum`), (†) `interior (dual Θᵤ) (interior Θᵤ Δᵤ) ≡ Δᵤ`, the positive control at a `lock`, and the VACUOUS UNLOCK refused (`¬⊢ᵐΘᵥ`).  The same test at every other rule that moves a subterm is `Examples` §15 |
 | `MwUObstruct.agda` | which outer frame the scope move may use, on one configuration: `dropLocks Θ₂` **refuted** (the moved unlock goes vacuous), `bindsOnly Θ₂` **refuted** (the frame's own rep loses its unlock), `rewind Θ₂` does both jobs — and why the rep half reads its reps on `unlockedScope Θ Δ` rather than on the plain exterior |
+| `ShiftAudit.agda` | **the shift audit** (2026-09-08): every rule that moves a subterm, checked against frame exactness — the frame identity per site, the witness of the ONE leak the audit found (the old single `TyPeelR`), the machine refutation of the wrap repair (it **loops**, `-→ᵃ` and the run `T₀ -→ᵃ T₁ -→ᵃ T₂`), and, for the two clauses that replaced it, `TyPeelR-Λ-refinement`, `TyPeelR-⟪⟫-frame`/`-slot-locked`, the tower measure `towerHeight` with `TyPeelR-⟪⟫-height` against `fixA-height-stalls`, and a closed two-deep run with every state typed |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 **The invariant hunt** — the search for a side condition that would
@@ -153,7 +165,7 @@ cycle `x`, `y`, `z`, `f`, `g`, `h`, then primes; `V` and `W` are reserved
 for value metavariables and never generated.  Type binder names are
 **globally unique across one rendered term** — two sibling `Λ`s never
 both print as `ΛX` — and binds are named oldest-first so an older bind
-keeps its name when `TyPeelR` prepends a newer one.  Morphism entries
+keeps its name when a `TyPeelR` clause prepends a newer one.  Morphism entries
 print as `↑X:=A` (`bind`), `↓X` (`lock`), `↥X` (`unlock`); a `masked` entry
 prints as `⌷[…]`.
 
@@ -169,6 +181,7 @@ prints as `⌷[…]`.
 | `BoundarySurvey.md` | the empirical record of v1's boundary bookkeeping: the master table plus the bookkeeping-independent requirements the redesign had to meet |
 | `RedesignAdvice.md` | survey data → design advice; the four answers (central rep storage, keep simultaneity, use Conversion, definitional cancel) |
 | `RuleRepairs-TyPeelR-CancelR.md` | the proposed repairs to those two rules, before/after, run on the breaking examples |
+| `ShiftAudit.md` | **the shift audit** (Jeremy, 2026-09-08): the criterion, the site-by-site verdict table, the one leak in detail with its witness, the four candidate fixes with their hazards, and the verdict — the `canon-∀` split, now INSTALLED as `TyPeelR-Λ` / `TyPeelR-⟪⟫` |
 | `BoundaryRules.md` | the earlier decision memo on boundary-manipulation rules (v1-era) |
 | `DualLicenseDesign.md` | the v1 dual-conceal licence, fully ruled (v1-era) |
 | `PreservationEndgame.md` | the v1 preservation endgame plan (v1-era) |

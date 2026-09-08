@@ -22,8 +22,10 @@ module strong.Progress where
 -- — the whole content — split out there as `progress-env`, which runs
 -- the induction hypothesis on the interior and then classifies the
 -- conversion by `act-or-inert`, keeping the active branches' own
--- premises.  TyPeelR's conversion-typing premise is read off the redex's
--- own `env` by `∀-conv-premise`.
+-- premises.  The TyPeelR SPLIT (`TyPeelR-Λ` / `TyPeelR-⟪⟫`) is decided
+-- there by a second `canon-∀`, on the crossed boundary's interior, and
+-- the same inversion reads the clauses' conversion-typing premise off
+-- the redex's own `env` (`progress-·[]-∀conv`).
 --
 -- No parameters, no postulates, no holes (--safe).
 

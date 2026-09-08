@@ -269,14 +269,18 @@ canon-subst cN cW =
 --   Beta     substitutes — §7, wrappers are opaque to `substᵐ`.
 --   Peel     DECOMPOSES `s ↦ t`; the argument is `wkᴹ`-renamed (§4) and
 --            takes the domain `s` at the SAME binder.
---   TyPeelR  DECOMPOSES `∀ s`, RENAMES the moved value (`wkᴹ 1`), and
---            MINTS `instReveal 0 s` on the body — the ONE case that is not
---            unconditional, because the mint puts leaves at slot 0
---            ALONGSIDE the conversion's own, so the result cites TWO
---            binders; hence the hypothesis `CanonTyPeelR` below, which
---            is REFUTED.  (This is NOT a leftover of the polarity
---            index: it survives the index's retirement, for the
---            two-binder reason.)
+--   TyPeelR-Λ / TyPeelR-⟪⟫
+--            both DECOMPOSE `∀ s` and MINT `instReveal 0 s` on the body —
+--            the ONE case that is not unconditional, because the mint
+--            puts leaves at slot 0 ALONGSIDE the conversion's own, so the
+--            result cites TWO binders; hence the hypothesis
+--            `CanonTyPeelR` below, which is REFUTED.  (This is NOT a
+--            leftover of the polarity index: it survives the index's
+--            retirement, for the two-binder reason.)  The Λ clause moves
+--            nothing; the wrapper clause RENAMES the moved boundary
+--            (`renᴹ (extN (numBinds Θ′) suc)`, i.e. `wkᴹ 1` on a
+--            boundary) and appends a lock to its frame, which touches no
+--            conversion at all.
 --   CancelR  MINTS `mkId A` at the looked-up rep — a LEAF of the family
 --            (`canonAt-mkId`), canonical at every name.
 --   IdPush   MINTS BOTH conversions: the pushed `unseal X` (binder X) and
@@ -295,7 +299,7 @@ CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (instReveal 0 s)
 -- conversion cites the ONE binder X (slot 1 under the `` `∀ ``), but its
 -- mint `seal 0 ↦ seal 1` cites TWO: the binder TyPeelR just bound at slot 0
 -- and the crossed boundary's at slot 1.  The mint TYPES (proof/Preserve.
--- preserve-TyPeelR; the tree was untypeable only under the retired polarity
+-- preserve-TyPeelR-Λ; the tree was untypeable only under the retired
 -- index) — it is the SINGLE-BINDER reading that it leaves.
 canonC-∀conv : CanonC (`∀ (id (` 0) ↦ seal 1))
 canonC-∀conv = 0 , ca-all (ca-fun ca-id ca-seal)
@@ -316,8 +320,13 @@ canon-step tp (ct-· (ct-ƛ cN) cW) (Beta _) = canon-subst cN cW
 canon-step tp (ct-· (ct-⟪⟫ cV cst) cW) (Peel {Θ = Θ} _ _) =
   ct-⟪⟫ (ct-· cV (ct-⟪⟫ (canon-wkᴹ (numBinds Θ) cW) (canonC-fun-dom cst)))
         (canonC-fun-cod cst)
-canon-step tp (ct-·[] (ct-⟪⟫ cV cs)) (TyPeelR _ _) =
-  ct-⟪⟫ (ct-·[] (canon-wkᴹ 1 cV)) (tp cs)
+canon-step tp (ct-·[] (ct-⟪⟫ (ct-Λ cN) cs)) (TyPeelR-Λ _ _) =
+  ct-⟪⟫ cN (tp cs)
+canon-step tp (ct-·[] (ct-⟪⟫ (ct-⟪⟫ cW cs′) cs))
+              (TyPeelR-⟪⟫ {Θ′ = Θ′} _ _) =
+  ct-⟪⟫ (ct-·[] (ct-⟪⟫ (canon-renᴹ (extN (numBinds Θ′) suc) cW)
+                       (canonC-ren (extN (numBinds Θ′) suc) cs′)))
+        (tp cs)
 canon-step tp (ct-⟪⟫ (ct-⟪⟫ cV _) _) (CancelR {Θ₁ = Θ₁} {A = A} _ _) =
   ct-⟪⟫ (ct-⟪⟫ cV (canonC-mkId (shiftBy (numBinds Θ₁) A))) (canonC-mkId A)
 canon-step tp (ct-⟪⟫ _ _) (Drop$ _) = ct-lit

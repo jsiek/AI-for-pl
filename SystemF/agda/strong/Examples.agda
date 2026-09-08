@@ -4,7 +4,9 @@ module strong.Examples where
 --
 -- §1  T₆ — the transparent-layer (β2) family — RUNS TO 7 under IdPush.
 -- §2  the cancel pair (Cancel + Drop$).
--- §3  T₈ — stacked id-layers — and its birth story (TyPeelR ⨟ TyBeta).
+-- §3  T₈ — stacked id-layers — and its birth story (`TyPeelR-Λ`, which
+--     since the 2026-09-08 split IS the fused TyPeelR ⨟ TyBeta, so the
+--     story is one step and lands on `T₈′`).
 -- §4  Tᵣ and Tₘ — the two adversaries the retired `⊳` could NOT clear —
 --     both run to 7 under IdPush.
 -- §5  the three preservation BREAKS of the previous design (c10/c11, n1b,
@@ -40,13 +42,14 @@ module strong.Examples where
 --     two type contexts inside its own Peel-minted wrapper.
 -- §15 TIGHTNESS, RULE BY RULE — Jeremy's test (proof/DualTightness)
 --     applied to EVERY rule that moves a subterm into a new frame:
---     `TyBeta` (§15a), `TyPeelR` (§15b), `IdPush`/`CancelR` (§15c),
+--     `TyBeta` (§15a), `TyPeelR-Λ` and `TyPeelR-⟪⟫` (§15b),
+--     `IdPush`/`CancelR` (§15c),
 --     `Beta` (§15d, with the one expected exception — ERASURE; §15d₂ is
 --     the UNDER-Λ case frame-exact Beta added), `Peel`'s `bind` half and
 --     `hideBinds` (§15e; the `unlock` half is proof/DualTightness).
 --     Every redex below is ILL TYPED and every contractum is REFUSED for
---     the same localized reason.  §15f collects the six frame identities
---     that make the section a theorem rather than six anecdotes.
+--     the same localized reason.  §15f collects the seven frame identities
+--     that make the section a theorem rather than seven anecdotes.
 --
 -- Every `_ : … ≡ …` in this file is a machine-checked frame computation.
 --
@@ -72,6 +75,28 @@ module strong.Examples where
 --   E₀  5 → 6    (+1 TyPeelR — §14's `estep₅`)
 --   G   5 → 5    (`gstep₁ … gstep₅`; the layers land under the Λs,
 --                 unevaluated)
+--
+-- STEP COUNTS AFTER THE TYPEELR SPLIT (2026-09-08).  A run gets SHORTER
+-- wherever a `TyPeelR` step used to be followed by the `TyBeta` on the
+-- `(Λ …) ·[ … , ` 0 ]` it left behind: `TyPeelR-Λ` does that
+-- instantiation itself, so one type instantiation now mints ONE boundary
+-- instead of two, and the Peel/Drop$ that walked the second boundary
+-- never happen either.
+--
+--   P₀  6 → 6    (no TyPeelR step)
+--   Q₀  11 → 11  (no TyPeelR step)
+--   R₀  6 → 6    (§11's variant (ii); no TyPeelR step)
+--   L₀  11 → 11  (no TyPeelR step)
+--   Ri  2 → 2    (hand-built)
+--   J₀  14 → 11  (−1 TyBeta, −1 Peel, −1 Drop$ — the boundary the fused
+--                 TyBeta used to mint is gone, and so is its unwinding)
+--   H₀  4 → 4    (the length is unchanged, but H₄ is now a VALUE: the
+--                 fifth step, a TyBeta, is fused into `hstep₄`)
+--   E₀  6 → 5    (−1 TyBeta — §14's old step 6)
+--   G   5 → 5    (`gstep₅` is now `TyPeelR-Λ`; its contractum is one
+--                 boundary shallower, and the run ends there either way)
+--   T₉  2 → 1    (§3's birth story: one step, and it reaches `T₈′`, T₈
+--                 with the fused layer gone)
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; length; map)
@@ -302,24 +327,51 @@ T₉ = (Pkg ·[ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 -- TyPeelR mints the id-layer no matter what TyBeta does.  On an IDENTITY
 -- ∀ conversion the mint is the conversion itself
--- (`instReveal 0 (id (` 1)) = id (` 1)`, since slot 1 is not the new
--- binder) and the pushed-in annotation is the interior ∀-body, SHIFTED
--- past the binder the rule introduces: `` ` 2 `` rather than `` ` 1 ``.
-Pk-1 : Term
-Pk-1 = ((Λ (($ 7) ⟪ morph [] [] , seal 2 ⟫)) ·[ ` 2 , ` 0 ])
-         ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫
+-- (`instReveal 0 (id (` 1)) = reveal 0 (` 1) = id (` 1)`, since slot 1 is
+-- not the new binder).
+--
+-- AFTER THE 2026-09-08 SPLIT the interior is a `Λ`, so it is `TyPeelR-Λ`
+-- that fires and the story is ONE STEP, not two: the `Λ`'s abst slot
+-- BECOMES the boundary's bind slot, so the body is instantiated on the
+-- spot and no `(Λ …) ·[ … , ` 0 ]` is left behind for TyBeta to consume.
+-- One type instantiation therefore mints ONE binder, where the old rule
+-- pair minted two — which is why the story now reaches `T₈′`, T₈'s stack
+-- with the fused layer gone, instead of T₈ itself.  (T₈ is still a typed
+-- term with the run above; only its provenance is one layer shallower.)
+T₈′ : Term
+T₈′ = (W₆₀ ⟪ morph (`ℕ ∷ []) [] , id (` 1) ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 ⊢Pk-conv : (unmasked abst ∷ convCtx (morph [] []) S₆₁) ⊢ id (` 1) ∶ ` 1 ⇝ ` 1
 ⊢Pk-conv = conv-idv (unmasked (bind `ℕ) , es ez , nameable)
 
-typeel-T₉ : Δ₆ ⊢ T₉ -→ Pk-1 ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
-typeel-T₉ = ξ-⟪⟫ (TyPeelR (V-Λ (V-⟪⟫ V-$ I-seal)) ⊢Pk-conv)
+typeel-T₉ : Δ₆ ⊢ T₉ -→ T₈′
+typeel-T₉ = ξ-⟪⟫ (TyPeelR-Λ (V-⟪⟫ V-$ I-seal) ⊢Pk-conv)
 
--- and TyBeta then mints exactly T₈'s inner layer.
-reaches-T₈ : Δ₆ ⊢ T₉ -→* T₈
-reaches-T₈ = typeel-T₉
-        then ξ-⟪⟫ (ξ-⟪⟫ (TyBeta (V-⟪⟫ V-$ I-seal)))
-        then done
+reaches-T₈′ : Δ₆ ⊢ T₉ -→* T₈′
+reaches-T₈′ = typeel-T₉ then done
+
+-- … and the id-layer really is stacked over the seal, so the same
+-- IdPush ⨟ CancelR ⨟ Drop$ resolution runs on it, to the answer.
+T₈′-1 T₈′-2 : Term
+T₈′-1 = ((($ 7) ⟪ morph [] [] , seal 1 ⟫) ⟪ morph (`ℕ ∷ []) [] , unseal 1 ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+T₈′-2 = ((($ 7) ⟪ morph [] [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
+          ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+
+push-T₈′-1 : Δ₆ ⊢ T₈′ -→ T₈′-1
+push-T₈′-1 = IdPush (V-⟪⟫ V-$ I-seal) ez
+
+cancel-T₈′ : Δ₆ ⊢ T₈′-1 -→ T₈′-2
+cancel-T₈′ = ξ-⟪⟫ (CancelR V-$ (es ez))
+
+run-T₈′ : Δ₆ ⊢ T₈′ -→* $ 7
+run-T₈′ = push-T₈′-1
+     then cancel-T₈′
+     then ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
+     then ξ-⟪⟫ (Drop$ base-ℕ)
+     then Drop$ base-ℕ
+     then done
 
 -- ── why TyBeta needs its Value premise (repair 5) ──────────────────────
 -- This calculus reduces UNDER Λ, so a Λ-body can be a redex and `Λ N` is
@@ -1797,14 +1849,18 @@ rstep-chained = IdPush (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal) Rchain
 -- Variant (i) asks for an IdPush redex whose INNER frame Θ₁ binds more
 -- than one binder.  WHICH RULE COULD EVER MINT ONE?  Exactly one:
 --
---   TyBeta   mints `morph (A ∷ []) []`                       numBinds 1
---   Peel     mints `dual Θ`, which is ALL locks/unlocks numBinds 0
---   CancelR  mints NO frame (both are carried over)
---   IdPush   mints NO frame (both are carried over)
---   TyPeelR  prepends one bind          numBinds = 1 + numBinds Θ
+--   TyBeta       mints `morph (A ∷ []) []`                   numBinds 1
+--   Peel         mints `dual Θ`, all locks/unlocks           numBinds 0
+--   CancelR      mints NO frame (both are carried over)
+--   IdPush       mints NO frame (both are carried over)
+--   TyPeelR-Λ    prepends one bind        numBinds = 1 + numBinds Θ
+--   TyPeelR-⟪⟫   prepends one bind        numBinds = 1 + numBinds Θ
+--                and appends one LOCK to the MOVED boundary's frame,
+--                which adds no bind at all (`numBinds-addLock0`)
 --
--- so `numBinds Θ ≥ 2` is reachable ONLY through TyPeelR.  Those facts,
--- machine-checked:
+-- so `numBinds Θ ≥ 2` is reachable ONLY through the TyPeelR clauses —
+-- which mint the SAME frame, the split being about the moved subterm and
+-- not about the boundary that is born.  Those facts, machine-checked:
 
 numBinds-TyBeta : (A : Ty) → numBinds (morph (A ∷ []) []) ≡ 1
 numBinds-TyBeta A = refl
@@ -1812,9 +1868,14 @@ numBinds-TyBeta A = refl
 numBinds-dual : (Θ : CtxMorph) → numBinds (dual Θ) ≡ 0
 numBinds-dual Θ = refl
 
-numBinds-TyPeelR : (A : Ty) (Θ : CtxMorph)
+numBinds-TyPeelR-Λ : (A : Ty) (Θ : CtxMorph)
   → numBinds (morph (A ∷ binds Θ) (changes Θ)) ≡ suc (numBinds Θ)
-numBinds-TyPeelR A Θ = refl
+numBinds-TyPeelR-Λ A Θ = refl
+
+numBinds-TyPeelR-⟪⟫ : (A : Ty) (Θ Θ′ : CtxMorph)
+  → (numBinds (morph (A ∷ binds Θ) (changes Θ)) ≡ suc (numBinds Θ))
+    × (numBinds (addLock0 (renᴮ suc Θ′)) ≡ numBinds Θ′)
+numBinds-TyPeelR-⟪⟫ A Θ Θ′ = refl , numBinds-ren suc Θ′
 
 -- ── A CLOSED SOURCE THAT REACHES TYPEELR ───────────────────────────────
 --
@@ -1853,8 +1914,7 @@ G₃ = (((Λ GV) ·[ `∀ (` 2) , `ℕ ]) ·[ ` 1 , `ℕ ])
        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 G₄ = ((GV ⟪ morph (`ℕ ∷ []) [] , `∀ (id (` 2)) ⟫) ·[ ` 1 , `ℕ ])
        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
-G₅ = ((wkᴹ 1 GV) ·[ ` 3 , ` 0 ])
-       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫
+G₅ = (DS₇ ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id (` 2) ⟫)
        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
 -- the moved value, spelled out: every NAME shifts, the innermost `lock 0`
@@ -1879,13 +1939,17 @@ gstep₄ = ξ-⟪⟫ (ξ-·[] (TyBeta (V-Λ val-DS₇)))
 
 -- the TyPeelR step, whose contractum is the wanted `numBinds Θ₁ ≡ 2` layer.
 -- Its conversion premise is the redex's own, one `` `∀ `` inside —
--- here the identity at the OUTER binder, read under the ∀-binder.
+-- here the identity at the OUTER binder, read under the ∀-binder.  The
+-- interior is `Λ DS₇`, so it is the Λ CLAUSE that fires (2026-09-08): the
+-- planted value is instantiated ON THE SPOT, with NO `wkᴹ 1` and no
+-- pushed-in `·[ ]` — and the frame the boundary is born with is
+-- unchanged, which is what §11c is about.
 ⊢Gconv : (unmasked abst ∷ convCtx (morph (`ℕ ∷ []) []) QΔ₁)
            ⊢ id (` 2) ∶ ` 2 ⇝ ` 2
 ⊢Gconv = conv-idv (unmasked (bind `ℕ) , es (es ez) , nameable)
 
 gstep₅ : [] ⊢ G₄ -→ G₅
-gstep₅ = ξ-⟪⟫ (TyPeelR (V-Λ val-DS₇) ⊢Gconv)
+gstep₅ = ξ-⟪⟫ (TyPeelR-Λ val-DS₇ ⊢Gconv)
 
 _ : numBinds (morph (`ℕ ∷ `ℕ ∷ []) []) ≡ 2
 _ = refl
@@ -2205,7 +2269,7 @@ val-wallR₂ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv) I-idv) 
 -- Under the polarity index that difference decided TYPEABILITY; now it
 -- decides only which binder each minted leaf cites.
 
-open import strong.Preservation using (preservation-TyPeelR)
+open import strong.Preservation using (preservation-TyPeelR-Λ)
 open import strong.proof.PreserveObstruct
   using (Δt; Wt; val-Wt; ⊢Wt; Θt; st; ⊢st; Wft; ⊢Wft; Rt; ⊢Rt; step-t;
          ⊢t-contractum)
@@ -2297,7 +2361,7 @@ _ = refl
 ⊢J₅-head = ⊢Rt
 
 J₆head J₆ : Term
-J₆head = (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
+J₆head = (ƛ (` 0) ∙ ($ 3))
            ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , instReveal 0 st ⟫
 J₆     = (J₆head · QS₇) ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
 
@@ -2313,9 +2377,9 @@ jstep₆ = ξ-⟪⟫ (ξ-·-l step-t)
 -- `` ` 1 `` (the new binder's rep, read inside) to `` ` 0 ``, and an
 -- identity converts a type to ITSELF (`conv-id-refl`).
 ¬⊢J-plain :
-  ¬ (Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
+  ¬ (Δt ∣ [] ⊢ (ƛ (` 0) ∙ ($ 3))
                  ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , st ⟫ ⦂ (` 0 ⇒ ` 0))
-¬⊢J-plain (env _ (⊢·[] _ _) (conv-fun ⊢s ⊢t) _) with conv-id-refl ⊢s
+¬⊢J-plain (env _ (⊢ƛ _ _) (conv-fun ⊢s ⊢t) _) with conv-id-refl ⊢s
 ... | ()
 
 -- ── FACT (ii): THE MINT TYPES ──────────────────────────────────────────
@@ -2349,7 +2413,7 @@ J-cod = conv-seal (es ez)
 
 -- HENCE THE LANDED CONTRACTUM TYPES, by the theorem — the head of J₆.
 ⊢J₆head : Δt ∣ [] ⊢ J₆head ⦂ (` 0 ⇒ ` 0)
-⊢J₆head = preservation-TyPeelR val-Wt ⊢st ⊢Rt
+⊢J₆head = preservation-TyPeelR-Λ V-ƛ ⊢st ⊢Rt
 
 _ : ⊢J₆head ≡ ⊢t-contractum
 _ = refl
@@ -2360,127 +2424,88 @@ _ = refl
 
 -- ── THE RUN CONTINUES, TO A VALUE ──────────────────────────────────────
 --
--- Eight more steps: the TyBeta the peel exposed (the interior ∀ is now
--- instantiated at the binder TyPeelR bound), TWO Peels — the argument `7`
--- crosses both of the boundaries the run has stacked — a Beta, and then
--- the four transparent layers unwinding, Drop$ ⨟ CancelR ⨟ Drop$ ⨟ Drop$.
--- The answer is 3: `ΛY. λy:Y. 3` ignores its argument.
+-- Five more steps: ONE Peel — the argument `7` crosses the boundary the
+-- TyPeelR step was born as — a Beta, and then the transparent layers
+-- unwinding, CancelR ⨟ Drop$ ⨟ Drop$.  The answer is 3: `ΛY. λy:Y. 3`
+-- ignores its argument.
 --
--- RENDERED (scripts/render_term.sh, `showTmIn 0`):
+-- Before the 2026-09-08 split this tail was EIGHT steps: the single rule
+-- left a `(ΛZ. …) ·[ … , ` 0 ]` behind, so a TyBeta had to fire, and the
+-- boundary that TyBeta minted then needed a Peel and a Drop$ of its own.
+-- The Λ clause does the instantiation itself, so that whole layer never
+-- exists.
 --
---  J₆  ((((ΛZ. (λx:Z. 3)) [Y] ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫)
+-- RENDERED (scripts/render_term.sh 'showTrace 0 (eval 12 ⊢J₀)'):
+--
+--  J₆  ((((λx:Y. 3) ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫)
 --         · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
---  J₇  (((((λx:Z. 3) ⟪ ↑Z:=Y , (seal Z ↦ id ℕ) ⟫)
---          ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫)
---         · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
---  J₈  (((((λx:Z. 3) ⟪ ↑Z:=Y , (seal Z ↦ id ℕ) ⟫)
---          · ((7 ⟪ ↓X , seal X ⟫) ⟪ ↓Y , ↥X , seal Y ⟫))
+--        --[Peel]-->
+--  J₇  ((((λx:Y. 3) · ((7 ⟪ ↓X , seal X ⟫) ⟪ ↓Y , ↥X , seal Y ⟫))
 --         ⟪ ↑Y:=X , ↓X , seal X ⟫) ⟪ ↑X:=ℕ , unseal X ⟫)
---  J₉  (((((λx:Z. 3)
---          · (((7 ⟪ ↓X , seal X ⟫) ⟪ ↓Y , ↥X , seal Y ⟫) ⟪ ↓Z , seal Z ⟫))
---          ⟪ ↑Z:=Y , id ℕ ⟫) ⟪ ↑Y:=X , ↓X , seal X ⟫)
---         ⟪ ↑X:=ℕ , unseal X ⟫)
---  J₁₀ (((3 ⟪ ↑Z:=Y , id ℕ ⟫) ⟪ ↑Y:=X , ↓X , seal X ⟫)
---         ⟪ ↑X:=ℕ , unseal X ⟫)
---  J₁₁ ((3 ⟪ ↑Y:=X , ↓X , seal X ⟫) ⟪ ↑X:=ℕ , unseal X ⟫)
---  J₁₂ ((3 ⟪ ↑Y:=X , ↓X , id ℕ ⟫) ⟪ ↑X:=ℕ , id ℕ ⟫)
---  J₁₃ (3 ⟪ ↑X:=ℕ , id ℕ ⟫)
+--        --[Beta]-->
+--  J₈  ((3 ⟪ ↑Y:=X , ↓X , seal X ⟫) ⟪ ↑X:=ℕ , unseal X ⟫)
+--        --[CancelR]-->
+--  J₉  ((3 ⟪ ↑Y:=X , ↓X , id ℕ ⟫) ⟪ ↑X:=ℕ , id ℕ ⟫)
+--        --[Drop$]-->
+--  J₁₀ (3 ⟪ ↑X:=ℕ , id ℕ ⟫)
+--        --[Drop$]-->
 --   →  3
 
-_ : wkᴹ 1 Wt ≡ Wt
+-- the dual the ONE remaining Peel mints
+_ : dual (morph ((` 0) ∷ binds Θt) (changes Θt))
+      ≡ morph [] (lock 0 ∷ unlock 1 ∷ [])
 _ = refl
 
--- TyBeta's mint at the new binder: a conceal on the domain, a transparent
--- base identity on the codomain.
-_ : reveal 0 (` 0 ⇒ `ℕ) ≡ seal 0 ↦ id `ℕ
-_ = refl
+JW : Term                      -- `7` after the crossing
+JW = wkᴹ 1 QS₇ ⟪ dual (morph ((` 0) ∷ binds Θt) (changes Θt)) , seal 0 ⟫
 
-JV : Term                      -- λy. 3, behind the freshly born boundary
-JV = (ƛ (` 0) ∙ ($ 3)) ⟪ morph ((` 0) ∷ []) [] , seal 0 ↦ id `ℕ ⟫
-
-val-JV : Value JV
-val-JV = V-⟪⟫ V-ƛ I-fun
-
--- the two duals the two Peels mint
-_ : dual (morph ((` 0) ∷ binds Θt) (changes Θt)) ≡ morph [] (lock 0 ∷ unlock 1 ∷
-  [])
-_ = refl
-
-_ : dual (morph ((` 0) ∷ []) []) ≡ morph [] (lock 0 ∷ [])
-_ = refl
-
-JW JW′ : Term                  -- `7` after the first / the second crossing
-JW  = wkᴹ 1 QS₇ ⟪ dual (morph ((` 0) ∷ binds Θt) (changes Θt)) , seal 0 ⟫
-JW′ = wkᴹ 1 JW ⟪ dual (morph ((` 0) ∷ []) []) , seal 0 ⟫
-
-_ : JW ≡ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫) ⟪ morph [] (lock 0 ∷ unlock
-  1 ∷ []) , seal 0 ⟫
+_ : JW ≡ (($ 7) ⟪ morph [] (lock 1 ∷ []) , seal 1 ⟫)
+           ⟪ morph [] (lock 0 ∷ unlock 1 ∷ []) , seal 0 ⟫
 _ = refl
 
 val-JW : Value JW
 val-JW = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal
 
-val-JW′ : Value JW′
-val-JW′ = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal) I-seal
-
-J₇ J₈ J₉ J₁₀ J₁₁ J₁₂ J₁₃ : Term
-J₇  = ((JV ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 0 ↦ seal 1 ⟫) · QS₇)
-        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
-J₈  = ((JV · JW) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫) ⟪ morph (`ℕ
-  ∷ []) [] , unseal 0 ⟫
-J₉  = ((((ƛ (` 0) ∙ ($ 3)) · JW′) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫)
+J₇ J₈ J₉ J₁₀ : Term
+J₇  = (((ƛ (` 0) ∙ ($ 3)) · JW)
          ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫)
         ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
-J₁₀ = ((($ 3) ⟪ morph ((` 0) ∷ []) [] , id `ℕ ⟫) ⟪ morph ((` 0) ∷ binds Θt)
-  (changes Θt) , seal 1 ⟫)
+J₈  = (($ 3) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫)
         ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
-J₁₁ = (($ 3) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , seal 1 ⟫) ⟪ morph (`ℕ ∷
-  []) [] , unseal 0 ⟫
-J₁₂ = (($ 3) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , id `ℕ ⟫) ⟪ morph (`ℕ ∷
-  []) [] , id `ℕ ⟫
-J₁₃ = ($ 3) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+J₉  = (($ 3) ⟪ morph ((` 0) ∷ binds Θt) (changes Θt) , id `ℕ ⟫)
+        ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
+J₁₀ = ($ 3) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫
 
 jstep₇ : [] ⊢ J₆ -→ J₇
-jstep₇ = ξ-⟪⟫ (ξ-·-l (ξ-⟪⟫ (TyBeta V-ƛ)))
+jstep₇ = ξ-⟪⟫ (Peel V-ƛ (V-⟪⟫ V-$ I-seal))
 
 jstep₈ : [] ⊢ J₇ -→ J₈
-jstep₈ = ξ-⟪⟫ (Peel val-JV (V-⟪⟫ V-$ I-seal))
-
-jstep₉ : [] ⊢ J₈ -→ J₉
-jstep₉ = ξ-⟪⟫ (ξ-⟪⟫ (Peel V-ƛ val-JW))
-
-jstep₁₀ : [] ⊢ J₉ -→ J₁₀
-jstep₁₀ = ξ-⟪⟫ (ξ-⟪⟫ (ξ-⟪⟫ (Beta val-JW′)))
-
-jstep₁₁ : [] ⊢ J₁₀ -→ J₁₁
-jstep₁₁ = ξ-⟪⟫ (ξ-⟪⟫ (Drop$ base-ℕ))
+jstep₈ = ξ-⟪⟫ (ξ-⟪⟫ (Beta val-JW))
 
 -- the CANCEL: the inner conceal at the binder the TyPeelR-born frame
 -- carries, directly under the reveal that owns it (X ≡ numBinds Θ₁ + Y).
-jstep₁₂ : [] ⊢ J₁₁ -→ J₁₂
-jstep₁₂ = CancelR V-$ ez
+jstep₉ : [] ⊢ J₈ -→ J₉
+jstep₉ = CancelR V-$ ez
 
-jstep₁₃ : [] ⊢ J₁₂ -→ J₁₃
-jstep₁₃ = ξ-⟪⟫ (Drop$ base-ℕ)
+jstep₁₀ : [] ⊢ J₉ -→ J₁₀
+jstep₁₀ = ξ-⟪⟫ (Drop$ base-ℕ)
 
-jstep₁₄ : [] ⊢ J₁₃ -→ $ 3
-jstep₁₄ = Drop$ base-ℕ
+jstep₁₁ : [] ⊢ J₁₀ -→ $ 3
+jstep₁₁ = Drop$ base-ℕ
 
 run-J₆ : [] ⊢ J₆ -→* $ 3
-run-J₆ = jstep₇ then jstep₈ then jstep₉ then jstep₁₀ then jstep₁₁
-    then jstep₁₂ then jstep₁₃ then jstep₁₄ then done
+run-J₆ = jstep₇ then jstep₈ then jstep₉ then jstep₁₀ then jstep₁₁ then done
 
 -- THE WHOLE RUN, from closed plain source to the answer.
 run-J : [] ⊢ J₀ -→* $ 3
 run-J = jstep₁ then jstep₂ then jstep₃ then jstep₄ then jstep₅
    then jstep₆ then run-J₆
 
--- … and the generated run agrees on all fourteen steps, TyPeelR (J₅ → J₆)
+-- … and the generated run agrees on all eleven steps, TyPeelR-Λ (J₅ → J₆)
 -- included: the rule the retired polarity index refused is the step the
 -- machine takes.
-_ : evalTerms 14 ⊢J₀
-      ≡ J₀ ∷ J₁ ∷ J₂ ∷ J₃ ∷ J₄ ∷ J₅ ∷ J₆ ∷ J₇ ∷ J₈ ∷ J₉ ∷ J₁₀ ∷ J₁₁
-      ∷ J₁₂ ∷ J₁₃ ∷ ($ 3) ∷ []
+_ : evalTerms 11 ⊢J₀
+      ≡ J₀ ∷ J₁ ∷ J₂ ∷ J₃ ∷ J₄ ∷ J₅ ∷ J₆ ∷ J₇ ∷ J₈ ∷ J₉ ∷ J₁₀ ∷ ($ 3) ∷ []
 _ = refl
 
 ------------------------------------------------------------------------
@@ -2517,12 +2542,9 @@ _ = refl
 -- FRAME-EXACT BETA (2026-09-08): the crossed 7 is planted under ΛY (and
 -- then under a ƛ, which changes no frame), so it carries ΛY's dual.  The
 -- RUN LENGTH IS UNCHANGED — the layer sits inside a ƛ body, where nothing
--- evaluates it — only the states' spelling changes.  `QS₇↑′` is the same
--- value again, moved past the binder TyPeelR introduces.
-QS₇↑′ : Term
-QS₇↑′ = (($ 7) ⟪ morph [] (lock 2 ∷ []) , seal 2 ⟫)
-          ⟪ morph [] (lock 0 ∷ []) , id (` 2) ⟫
-
+-- evaluates it — only the states' spelling changes.  And after the
+-- TyPeelR SPLIT the planted value is not even respelled: the Λ clause
+-- performs NO SHIFT, so `QS₇↑` crosses into H₄ verbatim.
 HV H₁ H₂ H₃ H₄ : Term
 HV = Λ (ƛ (` 0) ∙ QS₇↑)
 H₁ = (((ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1))))
@@ -2531,11 +2553,8 @@ H₁ = (((ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1))))
 H₂ = (((ƛ (` 0) ∙ (Λ (ƛ (` 0) ∙ (` 1)))) · QS₇)
         ⟪ morph (`ℕ ∷ []) [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
 H₃ = (HV ⟪ morph (`ℕ ∷ []) [] , `∀ (id (` 0) ↦ unseal 1) ⟫) ·[ ` 0 ⇒ `ℕ , `ℕ ]
-H₄ = ((Λ (ƛ (` 0) ∙ QS₇↑′)) ·[ ` 0 ⇒ ` 2 , ` 0 ])
+H₄ = (ƛ (` 0) ∙ QS₇↑)
        ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , seal 0 ↦ unseal 1 ⟫
-
-_ : wkᴹ 1 HV ≡ Λ (ƛ (` 0) ∙ QS₇↑′)
-_ = refl
 
 hstep₁ : [] ⊢ H₀ -→ H₁
 hstep₁ = ξ-·[] (ξ-·-l (TyBeta V-ƛ))
@@ -2559,14 +2578,14 @@ _ : instReveal 0 (id (` 0) ↦ unseal 1) ≡ seal 0 ↦ unseal 1
 _ = refl
 
 hstep₄ : [] ⊢ H₃ -→ H₄
-hstep₄ = TyPeelR (V-Λ V-ƛ) ⊢Hconv
+hstep₄ = TyPeelR-Λ V-ƛ ⊢Hconv
 
 run-H₀ : [] ⊢ H₀ -→* H₄
 run-H₀ = hstep₁ then hstep₂ then hstep₃ then hstep₄ then done
 
--- … and the generated run agrees.  Four steps is exactly `run-H₀`'s
--- length, so the trace stops OUT OF FUEL at H₄ — which is right: H₄ is
--- not a value, and `hstep₅` below is its next step.
+-- … and the generated run agrees.  H₄ IS A VALUE (the Λ clause instantiates
+-- on the spot, so the TyBeta that used to follow is fused into it), and the
+-- run is four steps.
 _ : evalTerms 4 ⊢H₀ ≡ H₀ ∷ H₁ ∷ H₂ ∷ H₃ ∷ H₄ ∷ []
 _ = refl
 
@@ -2592,19 +2611,14 @@ _ = refl
            wf-ℕ
 
 ⊢H₄ : [] ∣ [] ⊢ H₄ ⦂ (`ℕ ⇒ `ℕ)
-⊢H₄ = preservation-TyPeelR (V-Λ V-ƛ) ⊢Hconv ⊢H₃
+⊢H₄ = preservation-TyPeelR-Λ V-ƛ ⊢Hconv ⊢H₃
 
--- and H₄ is ONE TyBeta from a value, so the repaired rule does not
--- strand the run either.
-H₅ : Term
-H₅ = ((ƛ (` 0) ∙ QS₇↑′) ⟪ morph ((` 0) ∷ []) [] , reveal 0 (` 0 ⇒ ` 2) ⟫)
-       ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , seal 0 ↦ unseal 1 ⟫
-
-hstep₅ : [] ⊢ H₄ -→ H₅
-hstep₅ = ξ-⟪⟫ (TyBeta V-ƛ)
-
-val-H₅ : Value H₅
-val-H₅ = V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun
+-- and H₄ IS a value, so the repaired rule does not strand the run either.
+-- (Before the split the run needed one more step, a TyBeta on the
+-- `(Λ …) ·[ … , ` 0 ]` the single rule left behind; the Λ clause does that
+-- work itself.)
+val-H₄ : Value H₄
+val-H₄ = V-⟪⟫ V-ƛ I-fun
 
 ------------------------------------------------------------------------
 -- §13c  JEREMY'S CANDIDATE AND ITS NEIGHBOURS
@@ -2701,7 +2715,22 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ↦ uns
 -- but each pays with the boundary's own discipline — (iii)/(iv) weaken
 -- the mask the crossing installed, (v)/(vi) resolve the binder inside.
 -- The landed rule keeps the frame and the mask and mints
--- `instReveal 0 s`, which types by `preservation-TyPeelR` (§13a).
+-- `instReveal 0 s`, which types by `preservation-TyPeelR-Λ` (§13a).
+--
+-- (v)/(vi) ARE the "resolve variant" the 2026-09-08 shift audit weighed
+-- again as a fix for the frame leak (notes/ShiftAudit.md, candidate (c)),
+-- and they were refused for the reason recorded here: they trade a SCOPE
+-- leak for a KNOWLEDGE leak, and knowledge is what the binder-syntactic
+-- design exists to keep out.  The split (`TyPeelR-Λ`, `TyPeelR-⟪⟫`)
+-- resolves nothing.
+--
+-- Note that the shapes above are written with the SINGLE rule's
+-- contractum in mind — `wkᴹ 1 Wt` type-applied to the fresh name — which
+-- is what the alternatives were compared against at the time.  With the
+-- split, `Wt` is a `Λ` and the Λ clause instantiates it on the spot, so
+-- §13a's landed contractum has no `·[ ]` in it at all; the refutations
+-- (i)/(ii) are unaffected, since they are statements about the
+-- conversion each candidate carries.
 
 ------------------------------------------------------------------------
 -- §14  THE PRE-BOUNDARY COUNTEREXAMPLE, RUN IN v2
@@ -2733,30 +2762,30 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ↦ uns
 --      at the fresh NAME `` ` 0 ``; that is why the boundary is a LIST —
 --      a context morphism — and not a single reveal-or-conceal.
 --
--- Below: the SAME closed program, in v2, run to a VALUE in SIX steps,
+-- Below: the SAME closed program, in v2, run to a VALUE in FIVE steps,
 -- with every step pinned by `det`.  Step 5 is the one that used to die.
 --
 -- RENDERED (scripts/render_term.sh 'showTrace 0 (eval 6 ⊢E₀)'):
 --
 --  E₀  ((ΛX. (λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))) [ℕ] · (ΛZ. (λx:Z. x)))
+--        --[TyBeta]-->
 --  E₁  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
 --         ⟪ ↑X:=ℕ , ((∀Y. (id Y ↦ id Y)) ↦ (∀Y. (id Y ↦ id Y))) ⟫)
 --        · (ΛZ. (λx:Z. x)))
+--        --[Peel]-->
 --  E₂  (((λx:(∀Y. (Y⇒Y)). (ΛY. x [Y]))
 --         · ((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Y. (id Y ↦ id Y)) ⟫))
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
+--        --[Beta]-->
 --  E₃  ((ΛY. (((ΛZ. (λx:Z. x)) ⟪ ↓X , (∀Z. (id Z ↦ id Z)) ⟫)
 --               ⟪ ↓Y , (∀Z. (id Z ↦ id Z)) ⟫) [Y])
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
---  E₄  ((ΛY. (((ΛX′. (λx:X′. x)) ⟪ ↓X , (∀X′. (id X′ ↦ id X′)) ⟫) [Z]
---               ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
+--        --[TyPeelR-⟪⟫]-->
+--  E₄  ((ΛY. (((ΛX′. (λx:X′. x)) ⟪ ↓X , ↓Z , (∀X′. (id X′ ↦ id X′)) ⟫)
+--                [Z] ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
---  E₅  ((ΛY. (((ΛY′. (λx:Y′. x)) [X′]
---                 ⟪ ↑X′:=Z , ↓X , (seal X′ ↦ unseal X′) ⟫)
---               ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
---        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
---  E₆  ((ΛY. ((((λx:Y′. x) ⟪ ↑Y′:=X′ , (seal Y′ ↦ unseal Y′) ⟫)
---                 ⟪ ↑X′:=Z , ↓X , (seal X′ ↦ unseal X′) ⟫)
+--        --[TyPeelR-Λ]-->
+--  E₅  ((ΛY. (((λx:X′. x) ⟪ ↑X′:=Z , ↓X , ↓Z , (seal X′ ↦ unseal X′) ⟫)
 --               ⟪ ↑Z:=Y , ↓Y , (seal Z ↦ unseal Z) ⟫))
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)                      -- a VALUE
 --
@@ -2768,9 +2797,17 @@ CbH = (HV ·[ ` 0 ⇒ ` 1 , `ℕ ]) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ↦ uns
 --        ⟪ ↑X:=ℕ , (∀Y. (id Y ↦ id Y)) ⟫)
 --
 -- — the crossed value planted under ΛY with NOTHING saying that ΛY's slot
--- is not in its frame.  Now it carries ΛY's dual `↓Y`, the run peels the
--- two wrappers in turn (steps 4 and 5), and it is six steps rather than
--- five.
+-- is not in its frame.  Now it carries ΛY's dual `↓Y`, and the run peels
+-- the two wrappers in turn (steps 4 and 5).
+--
+-- AND THE `↓Z` IN E₄ IS THE TYPEELR SPLIT'S (2026-09-08).  Step 4 moves
+-- the value's OWN Peel-minted boundary under the binder `Z` it
+-- introduces, so `TyPeelR-⟪⟫` appends that binder's lock to the moved
+-- boundary's change list: `↓X` becomes `↓X , ↓Z`.  Step 5 then finds a
+-- `Λ` interior, so `TyPeelR-Λ` instantiates it on the spot — which is why
+-- E₅ is a VALUE and the run is FIVE steps.  Before the split the single
+-- rule left a `(ΛY′. …) ·[ … , ` 0 ]` behind and a sixth step, a TyBeta,
+-- was needed.
 --
 -- E₃ is the old design's fourth line, and E₄/E₅ are where the two designs
 -- part: `↑Z:=Y , ↓Y` and `↑X′:=Z , ↓X` are boundaries that MASK the outer
@@ -2968,10 +3005,21 @@ _ = ⊢Es
 _ : instReveal 0 (id (` 0) ↦ id (` 0)) ≡ seal 0 ↦ unseal 0
 _ = refl
 
-EW↑₂ : Term                      -- the value, moved past TyPeelR's binder
-EW↑₂ = Earg ⟪ morph [] (lock 2 ∷ []) , Eid∀ ⟫
+-- The moved subterm here is the value's OWN Peel-minted BOUNDARY, so it
+-- is the WRAPPER CLAUSE that fires, and the new binder is masked in that
+-- boundary's own change list: `lock 1` becomes `lock 2 , lock 0` — the
+-- SHIFTED original lock (X, now one slot out) and the NEW lock (the
+-- binder this step introduces), appended at the tail where
+-- `applyChanges` runs it first.  Without it the moved boundary's interior
+-- would be offered the new slot UNMASKED (notes/ShiftAudit.md §3).
+EW↑₂ : Term            -- the value, moved past TyPeelR-⟪⟫'s binder
+EW↑₂ = Earg ⟪ morph [] (lock 2 ∷ lock 0 ∷ []) , Eid∀ ⟫
 
-_ : wkᴹ 1 EW↑ ≡ EW↑₂
+-- … and it IS `wkᴹ 1` plus that one lock, on the nose.
+_ : EW↑₂ ≡ renᴹ (extN (numBinds (morph [] (lock 1 ∷ []))) suc) Earg
+             ⟪ addLock0 (renᴮ suc (morph [] (lock 1 ∷ [])))
+             , `∀ (renᶜ (extᵗ (extN (numBinds (morph [] (lock 1 ∷ []))) suc))
+                        (id (` 0) ↦ id (` 0))) ⟫
 _ = refl
 
 E₄ : Term
@@ -2980,53 +3028,45 @@ E₄ = (Λ ((EW↑₂ ·[ ` 0 ⇒ ` 0 , ` 0 ])
        ⟪ morph (`ℕ ∷ []) [] , Eid∀ ⟫
 
 estep₄ : [] ⊢ E₃ -→ E₄
-estep₄ = ξ-⟪⟫ (ξ-Λ (TyPeelR (V-⟪⟫ (V-Λ V-ƛ) I-all) ⊢Es))
+estep₄ = ξ-⟪⟫ (ξ-Λ (TyPeelR-⟪⟫ (V-Λ V-ƛ) ⊢Es))
 
--- ── STEP 5 — TYPEELR AGAIN, one layer in: the value's OWN Peel-minted
--- wrapper.  THIS IS THE STEP FRAME-EXACT BETA ADDS, and it is the step
--- the old design died on: the crossed value type-applied to a variable
--- bound after the boundary was born.
-
-E₅ : Term
-E₅ = (Λ (((Earg ·[ ` 0 ⇒ ` 0 , ` 0 ])
-            ⟪ morph ((` 0) ∷ []) (lock 2 ∷ []) , seal 0 ↦ unseal 0 ⟫)
-           ⟪ morph ((` 0) ∷ []) (lock 0 ∷ []) , seal 0 ↦ unseal 0 ⟫))
-       ⟪ morph (`ℕ ∷ []) [] , Eid∀ ⟫
-
-estep₅ : [] ⊢ E₄ -→ E₅
-estep₅ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (TyPeelR (V-Λ V-ƛ) ⊢Es)))
-
--- ── STEP 6 — TYBETA, inside.  The ΛZ is consumed against the bind
--- TyPeelR just made, and the result is a VALUE.
+-- ── STEP 5 — TYPEELR AGAIN, one layer in: now the interior IS the `ΛZ`,
+-- so it is the Λ CLAUSE that fires.  THIS IS THE STEP FRAME-EXACT BETA
+-- ADDS, and it is the step the old design died on: the crossed value
+-- type-applied to a variable bound after the boundary was born.
+--
+-- The tower is exhausted here (`towerHeight` 1 → 0, proof/ShiftAudit
+-- §5c₂), and the Λ clause neither shifts nor locks anything: the `ΛZ`'s
+-- abst slot simply becomes the boundary's bind slot.  So E₅ is a VALUE —
+-- the TyBeta that used to be step 6 is fused into this step.
 
 _ : reveal 0 (` 0 ⇒ ` 0) ≡ seal 0 ↦ unseal 0
 _ = refl
 
-E₆ : Term
-E₆ = (Λ ((((ƛ (` 0) ∙ (` 0)) ⟪ morph ((` 0) ∷ []) [] , seal 0 ↦ unseal 0 ⟫)
-             ⟪ morph ((` 0) ∷ []) (lock 2 ∷ []) , seal 0 ↦ unseal 0 ⟫)
-            ⟪ morph ((` 0) ∷ []) (lock 0 ∷ []) , seal 0 ↦ unseal 0 ⟫))
+E₅ : Term
+E₅ = (Λ (((ƛ (` 0) ∙ (` 0))
+             ⟪ morph ((` 0) ∷ []) (lock 2 ∷ lock 0 ∷ [])
+             , seal 0 ↦ unseal 0 ⟫)
+           ⟪ morph ((` 0) ∷ []) (lock 0 ∷ []) , seal 0 ↦ unseal 0 ⟫))
        ⟪ morph (`ℕ ∷ []) [] , Eid∀ ⟫
 
-estep₆ : [] ⊢ E₅ -→ E₆
-estep₆ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (ξ-⟪⟫ (TyBeta V-ƛ))))
+estep₅ : [] ⊢ E₄ -→ E₅
+estep₅ = ξ-⟪⟫ (ξ-Λ (ξ-⟪⟫ (TyPeelR-Λ V-ƛ ⊢Es)))
 
-val-E₆ : Value E₆
-val-E₆ =
-  V-⟪⟫ (V-Λ (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun) I-fun)) I-all
+val-E₅ : Value E₅
+val-E₅ = V-⟪⟫ (V-Λ (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun)) I-all
 
-run-E : [] ⊢ E₀ -→* E₆
-run-E = estep₁ then estep₂ then estep₃ then estep₄ then estep₅
-    then estep₆ then done
+run-E : [] ⊢ E₀ -→* E₅
+run-E = estep₁ then estep₂ then estep₃ then estep₄ then estep₅ then done
 
 -- … and the generated run agrees, the step the OLD design died on (now
 -- step 5) included.
-_ : evalTerms 6 ⊢E₀ ≡ E₀ ∷ E₁ ∷ E₂ ∷ E₃ ∷ E₄ ∷ E₅ ∷ E₆ ∷ []
+_ : evalTerms 5 ⊢E₀ ≡ E₀ ∷ E₁ ∷ E₂ ∷ E₃ ∷ E₄ ∷ E₅ ∷ []
 _ = refl
 
 -- THE ANSWER TYPES, at the source's own type ∀Y. Y ⇒ Y.
-⊢E₆ : [] ∣ [] ⊢ E₆ ⦂ EID
-⊢E₆ = preservation* ⊢E₀ run-E
+⊢E₅ : [] ∣ [] ⊢ E₅ ⦂ EID
+⊢E₅ = preservation* ⊢E₀ run-E
 
 -- ── DETERMINISM PINS: the run above is THE run.
 
@@ -3045,8 +3085,9 @@ edet₄ st = det st estep₄
 edet₅ : ∀ {M′} → [] ⊢ E₄ -→ M′ → M′ ≡ E₅
 edet₅ st = det st estep₅
 
-edet₆ : ∀ {M′} → [] ⊢ E₅ -→ M′ → M′ ≡ E₆
-edet₆ st = det st estep₆
+-- … and E₅ is a value, so nothing follows it.
+edet-E₅ : ∀ {M′} → [] ⊢ E₅ -→ M′ → ⊥
+edet-E₅ st = value-¬step val-E₅ st
 
 ------------------------------------------------------------------------
 -- §15  TIGHTNESS, RULE BY RULE — JEREMY'S TEST APPLIED TO EVERY RULE
@@ -3091,7 +3132,7 @@ val-prb = V-ƛ
 Δ✦ : Ctxᵗ
 Δ✦ = masked (bind `ℕ) ∷ []
 
--- THE THREE FRAME IDENTITIES THAT HAD NO NAME (§15f collects all six).
+-- THE THREE FRAME IDENTITIES THAT HAD NO NAME (§15f collects all seven).
 -- All three are `refl`: `interior Θ Δ` is `pushBinds (binds Θ) (scope Θ Δ)`,
 -- a bind contributes to the BIND half alone (leaving `scope` untouched),
 -- and a lone `lock 0` is one `maskEnt` at the head.
@@ -3187,19 +3228,27 @@ stepᵃ∅ : Δ✦ ⊢ (Λ Nᵃ∅) ·[ (`ℕ ⇒ `ℕ) , `ℕ ]
 stepᵃ∅ = TyBeta val-prb
 
 ------------------------------------------------------------------------
--- §15b  TYPEELR — the value moves one bind deeper, and its `wkᴹ` shift
---       tracks it
+-- §15b  TYPEELR, BOTH CLAUSES — the moved subterm's frame gains a slot,
+--       and the slot is MASKED
 ------------------------------------------------------------------------
 
--- `V` moves from `interior Θ Δ` into
--- `interior (morph (A ∷ binds Θ) (changes Θ)) Δ`, which is
--- that type context with ONE binder prepended — and the rule shifts `V`
--- by `wkᴹ 1` to match.  A slot Θ MASKS is therefore masked on both
--- sides, one index apart.
+-- The boundary that is BORN is the same in both clauses: its frame is
+-- `morph (A ∷ binds Θ) (changes Θ)`, whose interior is `interior Θ Δ`
+-- with ONE binder prepended.  What differs is what the moved subterm
+-- gets:
+--
+--   TyPeelR-Λ    the body is NOT MOVED — its slot 0 was `abst` and is now
+--                the boundary's `bind`, a REFINEMENT (`⊑ᵃ`), so a name it
+--                could not use it still cannot use, at the SAME index.
+--   TyPeelR-⟪⟫   the moved BOUNDARY is shifted by `wkᴹ 1`, which sends the
+--                fault one index out, AND the new slot is MASKED in its
+--                own change list (`addLock0`) — so the frame gains the
+--                slot without offering it.
+--
+-- The frames, machine-rendered:
 --
 --   showTCtx Δᵇ                                   =  X := ℕ
---   showTCtxAt 9 0 (λ _ → "X") Ξb                 =  ⌷[X := ℕ]
---   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξb′  =  Y := ℕ , ⌷[X := ℕ]
+--   showTCtxAt 9 0 (λ _ → "X") (interior Θᵇ Δᵇ)   =  ⌷[X := ℕ]
 
 Δᵇ : Ctxᵗ
 Δᵇ = unmasked (bind `ℕ) ∷ []
@@ -3213,38 +3262,36 @@ _ = refl
 _ : convCtx Θᵇ Δᵇ ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
-Vᵇ : Term
-Vᵇ = prb 0
-
--- showTmIn 1 Rᵇ  =
---   ((λx:ℕ. (ΛY. 3) [X]) ⟪ ↓X , (∀Y. id ℕ) ⟫) [ℕ]
-Rᵇ : Term
-Rᵇ = (Vᵇ ⟪ Θᵇ , `∀ (id `ℕ) ⟫) ·[ `ℕ , `ℕ ]
-
-¬⊢Vᵇ-int : ∀ {Γ A} → ¬ ((masked (bind `ℕ) ∷ []) ∣ Γ ⊢ Vᵇ ⦂ A)
-¬⊢Vᵇ-int (⊢ƛ _ (⊢·[] _ (wf-var (_ , ez , ()))))
-
-¬⊢Rᵇ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Rᵇ ⦂ A)
-¬⊢Rᵇ (⊢·[] (env _ ⊢V _ _) _) = ¬⊢Vᵇ-int ⊢V
-
--- the rule's conversion-typing premise, read under one `abst`
+-- the conversion-typing premise both clauses carry, read under one `abst`
 ⊢sᵇ : (unmasked abst ∷ convCtx Θᵇ Δᵇ) ⊢ id `ℕ ∶ `ℕ ⇝ `ℕ
 ⊢sᵇ = conv-id base-ℕ
 
--- showTmIn 1 Cᵇ  =
---   ((λx:ℕ. (ΛZ. 3) [X]) [Y] ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
-Cᵇ : Term
-Cᵇ = (wkᴹ 1 Vᵇ ·[ renameᵗ (extᵗ suc) `ℕ , ` 0 ])
-       ⟪ morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ) , instReveal 0 (id `ℕ) ⟫
+-- ── THE Λ CLAUSE ───────────────────────────────────────────────────────
+-- The probe sits under the `Λ`, naming the slot the boundary MASKS
+-- (X, at index 1 from inside the Λ).
+--
+--   showTmIn 1 Rᵇ
+--     = ((ΛY. (λx:ℕ. (ΛZ. 3) [X])) ⟪ ↓X , (∀Y. id ℕ) ⟫) [ℕ]
+--   showTmIn 1 Cᵇ
+--     = ((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
+
+Rᵇ Cᵇ : Term
+Rᵇ = ((Λ (prb 1)) ⟪ Θᵇ , `∀ (id `ℕ) ⟫) ·[ `ℕ , `ℕ ]
+Cᵇ = prb 1 ⟪ morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ) , instReveal 0 (id `ℕ) ⟫
 
 stepᵇ : Δᵇ ⊢ Rᵇ -→ Cᵇ
-stepᵇ = TyPeelR val-prb ⊢sᵇ
+stepᵇ = TyPeelR-Λ val-prb ⊢sᵇ
 
--- THE SHIFT AND THE FRAME MOVE TOGETHER: `wkᴹ 1` sends the fault from
--- slot 0 to slot 1, and `interior` puts the new binder at slot 0.
-_ : wkᴹ 1 Vᵇ ≡ prb 1
-_ = refl
+-- the fault, in the redex: the body reads X one `abst` in, and Θᵇ masks it
+¬⊢prb1-abst : ∀ {Γ A}
+  → ¬ ((unmasked abst ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
+¬⊢prb1-abst (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
 
+¬⊢Rᵇ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Rᵇ ⦂ A)
+¬⊢Rᵇ (⊢·[] (env _ (⊢Λ ⊢N) _ _) _) = ¬⊢prb1-abst ⊢N
+
+-- THE FRAME MOVE IS THE REFINEMENT AND NOTHING ELSE: slot 0 goes from
+-- `abst` to `bind ℕ`, and X stays masked at slot 1.  No index moves.
 _ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ
       ≡ unmasked (bind `ℕ) ∷ interior Θᵇ Δᵇ
 _ = interior-TyPeelR `ℕ Θᵇ Δᵇ
@@ -3253,12 +3300,87 @@ _ : interior (morph (`ℕ ∷ binds Θᵇ) (changes Θᵇ)) Δᵇ
       ≡ unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
-¬⊢wkVᵇ : ∀ {Γ A}
+¬⊢prb1-bind : ∀ {Γ A}
   → ¬ ((unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
-¬⊢wkVᵇ (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
+¬⊢prb1-bind (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
 
 ¬⊢Cᵇ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Cᵇ ⦂ A)
-¬⊢Cᵇ (env _ (⊢·[] ⊢V _) _ _) = ¬⊢wkVᵇ ⊢V
+¬⊢Cᵇ (env _ ⊢N _ _) = ¬⊢prb1-bind ⊢N
+
+-- ── THE WRAPPER CLAUSE (proof/ShiftAudit §5c₄) ─────────────────────────
+-- Now the probe sits inside a SECOND boundary, so it is the moved
+-- boundary's own frame that has to mask the new binder.  The outer frame
+-- locks X and the inner frame does nothing, so `prb 0` names the locked
+-- slot.
+--
+--   showTmIn 1 Rᵇ′
+--     = (((λx:ℕ. (ΛY. 3) [X]) ⟪ (∀Y. id ℕ) ⟫) ⟪ ↓X , (∀Y. id ℕ) ⟫) [ℕ]
+--   showTmIn 1 Cᵇ′
+--     = (((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↓Y , (∀Z. id ℕ) ⟫) [Y] ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
+--
+-- The `↓Y` on the moved boundary is the whole repair, and it is the
+-- difference between a frame that lies and one that does not:
+--
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵇ-single
+--     =  Y := ℕ , ⌷[X := ℕ]        ← the LEAK the single rule had
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵇ-split
+--     =  ⌷[Y := ℕ] , ⌷[X := ℕ]     ← TyPeelR-⟪⟫: Y is masked
+
+Θᵇ′ : CtxMorph
+Θᵇ′ = morph [] []                     -- the INNER frame: nothing
+
+_ : interior Θᵇ′ (interior Θᵇ Δᵇ) ≡ masked (bind `ℕ) ∷ []
+_ = refl
+
+Rᵇ′ Cᵇ′ : Term
+Rᵇ′ = ((prb 0 ⟪ Θᵇ′ , `∀ (id `ℕ) ⟫) ⟪ Θᵇ , `∀ (id `ℕ) ⟫) ·[ `ℕ , `ℕ ]
+Cᵇ′ = ((prb 1 ⟪ morph [] (lock 0 ∷ []) , `∀ (id `ℕ) ⟫) ·[ `ℕ , ` 0 ])
+        ⟪ morph (`ℕ ∷ []) (lock 0 ∷ []) , id `ℕ ⟫
+
+stepᵇ′ : Δᵇ ⊢ Rᵇ′ -→ Cᵇ′
+stepᵇ′ = TyPeelR-⟪⟫ val-prb ⊢sᵇ
+
+-- the fault, in the redex: `⊢·[]`'s `Δ ⊢ᵗ A` at slot 0, which the outer
+-- frame masks
+¬⊢prb0 : ∀ {Δ′ Γ A b} → ¬ ((masked b ∷ Δ′) ∣ Γ ⊢ prb 0 ⦂ A)
+¬⊢prb0 (⊢ƛ _ (⊢·[] _ (wf-var (_ , ez , ()))))
+
+¬⊢Rᵇ′ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Rᵇ′ ⦂ A)
+¬⊢Rᵇ′ (⊢·[] (env _ (env _ ⊢W _ _) _ _) _) = ¬⊢prb0 ⊢W
+
+-- THE TWO FRAMES FOR THE MOVED BOUNDARY, side by side.  The single rule
+-- left the moved boundary's change list alone, so the new binder (slot 0)
+-- was UNMASKED; `addLock0` appends the lock, so it is MASKED.  The old
+-- fault (X) has moved to slot 1 with the shift and is masked in both.
+Ξᵇ-single Ξᵇ-split : Ctxᵗ
+Ξᵇ-single = interior Θᵇ′ (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵇ)
+Ξᵇ-split  = interior (addLock0 (renᴮ suc Θᵇ′))
+                     (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵇ)
+
+_ : Ξᵇ-single ≡ unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+_ : Ξᵇ-split ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+-- A VALUE THAT NAMES THE NEW SLOT types at the single rule's frame and is
+-- REFUSED at the split's — the leak, and the leak closed, on this
+-- example.
+⊢prb0-single : Ξᵇ-single ∣ [] ⊢ prb 0 ⦂ (`ℕ ⇒ `ℕ)
+⊢prb0-single =
+  ⊢ƛ wf-ℕ (⊢·[] (⊢Λ ⊢$) (wf-var (unmasked (bind `ℕ) , ez , nameable)))
+
+¬⊢prb0-split : ∀ {Γ A} → ¬ (Ξᵇ-split ∣ Γ ⊢ prb 0 ⦂ A)
+¬⊢prb0-split = ¬⊢prb0
+
+-- … and the tightness test itself: the ILL-TYPED value stays ill typed,
+-- for the same localized reason, one index further out.
+¬⊢Cᵇ′ : ∀ {A} → ¬ (Δᵇ ∣ [] ⊢ Cᵇ′ ⦂ A)
+¬⊢Cᵇ′ (env _ (⊢·[] (env _ ⊢W _ _) _) _ _) = ¬⊢prb1-int ⊢W
+  where
+  ¬⊢prb1-int : ∀ {Δ′ Γ A E b}
+    → ¬ ((E ∷ masked b ∷ Δ′) ∣ Γ ⊢ prb 1 ⦂ A)
+  ¬⊢prb1-int (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
 
 ------------------------------------------------------------------------
 -- §15c  IDPUSH and CANCELR — the scope move preserves the frame ON THE
@@ -3586,9 +3708,25 @@ _ = refl
 --   TyBeta   interior (morph (A ∷ []) []) Δ ≡ bind A ∷ Δ
 --              — `Δ` on the nose, one REFINEMENT (abst → bind) at the
 --                slot the rule is there to reveal
---   TyPeelR  interior (morph (A ∷ binds Θ) (changes Θ)) Δ
---              ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
---              — the redex's frame, one binder in; `wkᴹ 1` matches it
+--   TyPeelR- interior (morph (A ∷ binds Θ) (changes Θ)) Δ
+--   Λ          ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ
+--              — the redex's frame, one binder in, and the body is NOT
+--                MOVED: its slot 0 was `unmasked abst` and is now
+--                `unmasked (bind …)`, a REFINEMENT (`⊑ᵃ`) at a slot it
+--                could already name.  No shift at all.
+--   TyPeelR- interior (addLock0 (renᴮ suc Θ′))
+--   ⟪⟫         (interior (morph (A ∷ binds Θ) (changes Θ)) Δ)
+--              ≡ pushBinds (map ⇑ᵗ (binds Θ′))
+--                  (masked (bind (shiftBy (numBinds Θ) A))
+--                     ∷ scope Θ′ (interior Θ Δ))
+--              — proof/ShiftAudit.TyPeelR-⟪⟫-frame, from
+--                strong.TermSubst.interior-addLock0-cross: the moved
+--                boundary's BIRTH frame with the new binder inserted
+--                MASKED below the bind prefix.  This is the identity the
+--                2026-09-08 split buys; the single rule left the moved
+--                boundary's change list alone, so the new slot was
+--                offered UNMASKED — the audit's one leak
+--                (notes/ShiftAudit.md §3).  §15b runs the test on it.
 --   Peel     interior (dual Θ) (interior Θ Δ)
 --              ≡ map masked (pushBinds (binds Θ) []) ++ Δ   (Δ ⊢ᵐ Θ)
 --              — (†), proof/PeelDual.interior-dual: THE CROSSING FRAME

@@ -48,9 +48,11 @@ open import strong.Eval
 
 -- THE SHIFT AUDIT (2026-09-08).  Every rule that MOVES a subterm,
 -- checked against frame exactness: the frame identity per site, the ONE
--- LEAK (TyPeelR's moved value gains the new binder's slot, UNMASKED),
--- the refutation of the wrap repair (it loops), and the prototype of the
--- repair that works — a TyBeta-like Λ case, PROVEN exact.
+-- LEAK it found (the single TyPeelR's moved value gained the new
+-- binder's slot, UNMASKED) with its witness, the refutation of the wrap
+-- repair (it LOOPS), and — for the two clauses that replaced the rule —
+-- their frame exactness and the tower measure that makes the wrapper
+-- clause terminate.  The repair is INSTALLED (strong.Reduction).
 open import strong.proof.ShiftAudit
 
 -- THE WALL.  The search for an INVARIANT grounding the premise

@@ -981,6 +981,40 @@ progressᵇ-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) eq with conv-all-inv
 --
 --   Θᵈ  = morph (`ℕ ∷ []) []          the OUTER frame: binds X := ℕ
 --   Θᵈ′ = morph [] (lock 0 ∷ [])      the INNER frame: locks X
+--
+-- THE RUN, MACHINE-RENDERED (scripts/render_term.sh, importing this
+-- module).  Every line below is the renderer's output, not a
+-- transcription.
+--
+--   showTmIn 0 U₀
+--     = (((ΛY. 3) ⟪ ↓X , (∀Y. id ℕ) ⟫) ⟪ ↑X:=ℕ , (∀Y. id ℕ) ⟫) [ℕ]
+--
+--                     │  TyPeelR-⟪⟫   (tower height 2 → 1)
+--                     ▼
+--   showTmIn 0 U₁
+--     = (((ΛZ. 3) ⟪ ↓X , ↓Y , (∀Z. id ℕ) ⟫) [Y]
+--          ⟪ ↑Y:=ℕ , ↑X:=ℕ , id ℕ ⟫)
+--
+--                     │  ξᵇ-⟪⟫ (TyPeelR-Λ)   (tower exhausted)
+--                     ▼
+--   showTmIn 0 U₂
+--     = ((3 ⟪ ↑Z:=Y , ↓X , ↓Y , id ℕ ⟫) ⟪ ↑Y:=ℕ , ↑X:=ℕ , id ℕ ⟫)
+--
+-- READ THE MOVED BOUNDARY'S CHANGE LIST ACROSS STEP 1: `↓X` becomes
+-- `↓X , ↓Y` — the SHIFTED original lock and the NEW lock, appended at the
+-- tail.  Nothing else about the boundary changes, and no wrapper appears.
+--
+-- THE FRAMES:
+--
+--   showTCtxAt 9 0 (λ _ → "X") Ξᵈ₀                  =  X := ℕ
+--   showTCtxAt 9 0 (λ _ → "X") Ξᵈ₁                  =  ⌷[X := ℕ]
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵈ₂
+--     =  Y := ℕ , X := ℕ
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵈ₃
+--     =  ⌷[Y := ℕ] , ⌷[X := ℕ]
+--
+-- `Ξᵈ₁` is W's BIRTH frame and `Ξᵈ₃` is its frame in the contractum: the
+-- same frame with the new binder Y inserted MASKED.  Exact.
 Θᵈ Θᵈ′ : CtxMorph
 Θᵈ  = morph (`ℕ ∷ []) []
 Θᵈ′ = morph [] (lock 0 ∷ [])
@@ -994,11 +1028,17 @@ U₀     = outerᵈ ·[ `ℕ , `ℕ ]
 valᵈ : Value outerᵈ
 valᵈ = V-⟪⟫ (V-⟪⟫ (V-Λ V-$) I-all) I-all
 
--- the frames, spelled out
-_ : interior Θᵈ [] ≡ unmasked (bind `ℕ) ∷ []
+-- the frames, spelled out and named so the renderer can print them
+Ξᵈ₀ Ξᵈ₁ Ξᵈ₂ Ξᵈ₃ : Ctxᵗ
+Ξᵈ₀ = interior Θᵈ []                                  -- the outer bind
+Ξᵈ₁ = interior Θᵈ′ Ξᵈ₀                                -- W's BIRTH frame
+Ξᵈ₂ = interior (morph (`ℕ ∷ `ℕ ∷ []) []) []           -- after step 1
+Ξᵈ₃ = interior (morph [] (lock 1 ∷ lock 0 ∷ [])) Ξᵈ₂  -- W's NEW frame
+
+_ : Ξᵈ₀ ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
-_ : interior Θᵈ′ (interior Θᵈ []) ≡ masked (bind `ℕ) ∷ []
+_ : Ξᵈ₁ ≡ masked (bind `ℕ) ∷ []
 _ = refl
 
 ⊢innerᵈ : interior Θᵈ [] ∣ [] ⊢ innerᵈ ⦂ `∀ `ℕ
@@ -1030,13 +1070,10 @@ stepᵈ₁ = TyPeelR-⟪⟫ (V-Λ V-$) (conv-id base-ℕ)
 -- THE FRAME, AT THIS STEP.  The moved boundary's interior has BOTH slots
 -- masked: X (shifted to slot 1) as it was in the redex, and the new
 -- binder (slot 0) by the appended lock.  Nothing gained.
-_ : interior (morph (`ℕ ∷ `ℕ ∷ [])  []) []
-      ≡ unmasked (bind `ℕ) ∷ unmasked (bind `ℕ) ∷ []
+_ : Ξᵈ₂ ≡ unmasked (bind `ℕ) ∷ unmasked (bind `ℕ) ∷ []
 _ = refl
 
-_ : interior (morph [] (lock 1 ∷ lock 0 ∷ []))
-             (interior (morph (`ℕ ∷ `ℕ ∷ []) []) [])
-      ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+_ : Ξᵈ₃ ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
 -- … and it is the frame identity `interior-addLock0` at this instance
@@ -1080,18 +1117,38 @@ _ = TyPeelR-⟪⟫-height Wᵈ Θᵈ′ Θᵈ (id `ℕ) (id `ℕ)
 -- for exactly one localized reason, `wf-var` at a masked slot — must stay
 -- ill typed in the contractum.  Here the OUTER frame locks X and the
 -- INNER frame does nothing, so `prb 0` names the locked slot.
-Δᵛ Θᵛ-ext : Ctxᵗ
-Δᵛ      = unmasked (bind `ℕ) ∷ []
-Θᵛ-ext  = masked (bind `ℕ) ∷ []
+--
+--   showTmIn 1 Rᵛ
+--     = (((λx:ℕ. (ΛY. 3) [X]) ⟪ (∀Y. id ℕ) ⟫)
+--          ⟪ ↓X , (∀Y. id ℕ) ⟫) [ℕ]
+--
+-- the LIVE rule's contractum and (b′)'s, at that redex:
+--
+--   showTmIn 1 Cᵛ-live
+--     = (((λx:ℕ. (ΛZ. 3) [X]) ⟪ (∀Z. id ℕ) ⟫) [Y]
+--          ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
+--   showTmIn 1 Cᵛ
+--     = (((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↓Y , (∀Z. id ℕ) ⟫) [Y]
+--          ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
+--
+-- ONE CHARACTER PAIR OF DIFFERENCE — `↓Y` — and it is the whole repair:
+--
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵛ-live
+--     =  Y := ℕ , ⌷[X := ℕ]          ← the LEAK: Y is offered
+--   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵛ-new
+--     =  ⌷[Y := ℕ] , ⌷[X := ℕ]       ← (b′): Y is masked
+Δᵛ Ξᵛ₀ : Ctxᵗ
+Δᵛ  = unmasked (bind `ℕ) ∷ []
+Ξᵛ₀ = masked (bind `ℕ) ∷ []       -- W's BIRTH frame: X is locked
 
 Θᵛ Θᵛ′ : CtxMorph
 Θᵛ  = morph [] (lock 0 ∷ [])          -- the OUTER frame: locks X
 Θᵛ′ = morph [] []                     -- the INNER frame: nothing
 
-_ : interior Θᵛ Δᵛ ≡ Θᵛ-ext
+_ : interior Θᵛ Δᵛ ≡ Ξᵛ₀
 _ = refl
 
-_ : interior Θᵛ′ (interior Θᵛ Δᵛ) ≡ Θᵛ-ext
+_ : interior Θᵛ′ (interior Θᵛ Δᵛ) ≡ Ξᵛ₀
 _ = refl
 
 Rᵛ Cᵛ : Term
@@ -1104,34 +1161,61 @@ stepᵛ = TyPeelR-⟪⟫ val-prb (conv-id base-ℕ)
 
 -- THE FAULT, in the redex: `⊢·[]`'s `Δ ⊢ᵗ A` at slot 0, which the outer
 -- frame masks.
-¬⊢prb0 : ∀ {Γ A} → ¬ ((masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 0 ⦂ A)
+¬⊢prb0 : ∀ {Δ Γ A b} → ¬ ((masked b ∷ Δ) ∣ Γ ⊢ prb 0 ⦂ A)
 ¬⊢prb0 (⊢ƛ _ (⊢·[] _ (wf-var (_ , ez , ()))))
 
 ¬⊢Rᵛ : ∀ {A} → ¬ (Δᵛ ∣ [] ⊢ Rᵛ ⦂ A)
 ¬⊢Rᵛ (⊢·[] (env _ (env _ ⊢W _ _) _ _) _) = ¬⊢prb0 ⊢W
 
--- THE CONTRACTUM'S FRAME.  The new slot is at 0 and it is MASKED (the
--- appended lock); the old fault has moved to slot 1 with the shift and is
--- masked there as it was.  BOTH masks are visible in one context.
-_ : interior (morph [] (lock 0 ∷ []))
-             (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵛ)
-      ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+-- THE TWO CONTRACTA'S FRAMES FOR THE MOVED BOUNDARY, side by side.  The
+-- LIVE rule leaves the moved boundary's change list alone, so the new
+-- binder (slot 0) is UNMASKED — §3's leak, on this example.  (b′) appends
+-- the lock, so it is MASKED.  The old fault (X) has moved to slot 1 with
+-- the shift and is masked in both.
+Ξᵛ-live Ξᵛ-new : Ctxᵗ
+Ξᵛ-live = interior Θᵛ′ (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵛ)
+Ξᵛ-new  = interior (addLock0 (renᴮ suc Θᵛ′))
+                   (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵛ)
+
+_ : Ξᵛ-live ≡ unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
+_ = refl
+
+_ : Ξᵛ-new ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
 -- the frame-exact point, as the general lemma at this instance: slot 0 —
 -- the slot the live rule offered UNMASKED (§3) — is unnameable
-_ : ¬ (interior (addLock0 (renᴮ suc Θᵛ′))
-                (unmasked (bind `ℕ) ∷ interior Θᵛ Δᵛ)
-         ∋tv 0)
+_ : ¬ (Ξᵛ-new ∋tv 0)
 _ = TyPeelR-⟪⟫-slot-locked Θᵛ′ `ℕ (interior Θᵛ Δᵛ)
 
--- … so the contractum is REFUSED, for the same localized reason.
-¬⊢prb1 : ∀ {Γ A}
-  → ¬ ((masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []) ∣ Γ ⊢ prb 1 ⦂ A)
+-- THE LEAK, CLOSED, ON THIS EXAMPLE.  A value that NAMES THE NEW SLOT
+-- types at the live rule's frame and is REFUSED at (b′)'s — and this is
+-- §3a's `nmᵃ` test, now run at the position a moved boundary's interior
+-- actually occupies.
+⊢prb0-live : Ξᵛ-live ∣ [] ⊢ prb 0 ⦂ (`ℕ ⇒ `ℕ)
+⊢prb0-live =
+  ⊢ƛ wf-ℕ (⊢·[] (⊢Λ ⊢$) (wf-var (unmasked (bind `ℕ) , ez , nameable)))
+
+¬⊢prb0-new : ∀ {Γ A} → ¬ (Ξᵛ-new ∣ Γ ⊢ prb 0 ⦂ A)
+¬⊢prb0-new = ¬⊢prb0
+
+-- … and the tightness test itself: the ILL-TYPED value stays ill typed,
+-- for the same localized reason, one index further out.
+¬⊢prb1 : ∀ {Δ Γ A E b} → ¬ ((E ∷ masked b ∷ Δ) ∣ Γ ⊢ prb 1 ⦂ A)
 ¬⊢prb1 (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
 
 ¬⊢Cᵛ : ∀ {A} → ¬ (Δᵛ ∣ [] ⊢ Cᵛ ⦂ A)
 ¬⊢Cᵛ (env _ (⊢·[] (env _ ⊢W _ _) _) _ _) = ¬⊢prb1 ⊢W
+
+-- THE LIVE RULE AT THE SAME REDEX, for the diff.  Same outer boundary,
+-- same pushed-in annotation, same type argument; the ONE difference is
+-- the moved boundary's change list.
+Cᵛ-live : Term
+Cᵛ-live = ((prb 1 ⟪ morph [] [] , `∀ (id `ℕ) ⟫) ·[ `ℕ , ` 0 ])
+            ⟪ morph (`ℕ ∷ []) (lock 0 ∷ []) , id `ℕ ⟫
+
+stepᵛ-live : Δᵛ ⊢ Rᵛ -→ Cᵛ-live
+stepᵛ-live = TyPeelR (V-⟪⟫ val-prb I-all) (conv-id base-ℕ)
 
 ------------------------------------------------------------------------
 -- §6  TYBETA — exact up to refinement

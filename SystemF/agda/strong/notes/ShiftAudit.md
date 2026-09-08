@@ -30,7 +30,7 @@ The frame must *say the truth* about what the subterm may name.
 |------|-------------|--------------|-------------|---------|
 | **Peel** | `wkᴹ (numBinds Θ) W` under `dual Θ` | `Δ` | `map maskEnt (pushBinds (binds Θ) []) ++ Δ` — (†) `proof/PeelDual.interior-dual` | **exact**.  Every new slot is `masked` (`Peel-slot0-locked`), and `wkᴹ (numBinds Θ)` lands past exactly them.  Criterion 1 alone. |
 | **Peel** (`V`) | nothing | `interior Θ Δ` | `interior Θ Δ` | **exact** — identical context, no shift. |
-| **TyPeelR** (`V`) | `wkᴹ 1 V` | `interior Θ Δ` | `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ` — `interior-TyPeelR` | ****LEAK****.  The new slot 0 is offered **unmasked**; `V` neither had it nor uses it. |
+| **TyPeelR** (`V`) | `wkᴹ 1 V` | `interior Θ Δ` | `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ` — `interior-TyPeelR` | ****LEAK****.  The new slot 0 is offered **unmasked**; `V` neither had it nor uses it.  *Repaired on the probe branch — (b)+(b′) below, `proof/ShiftAudit` §5c.* |
 | **TyBeta** | nothing (`N` stays) | `unmasked abst ∷ Δ` (`⊢Λ`) | `unmasked (bind A) ∷ Δ` — `interior-TyBeta` | **exact up to refinement**.  `la-uu le-ab` at a slot `N` could already name: criterion 2, `⊑ᵃ`-legal. |
 | **TyBeta** (the type `B`) | nothing | `unmasked abst ∷ Δ` | `convCtx (morph (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` | **exact up to refinement** — same step. |
 | **Beta**, no binder crossed | `substᵐ` | `Δ` | `Δ` | **exact**.  (The one recorded exception is **erasure** — a dropped argument crosses nowhere; `Examples` §15d.) |
@@ -183,13 +183,14 @@ already lives one `abst` binder in (`⊢Λ`), so the new `bind` slot is a slot
   `Value N`, and the rule carries `Value N` — the same guard the live rule
   and `TyBeta` carry.
 
-**But (b) alone is partial.**  In the wrapper case the moved subterm is the
-boundary `W ⟪ Θ′ , `∀ s′ ⟫`, and §3 applies to it verbatim: it too is put
-under the unmasked new bind.  The tower is finite and bottoms out at the
-`Λ`, so the leak recurs at most `height` times — it does not grow, but it
-is still there.
+**(b) alone would be partial.**  In the wrapper case the moved subterm is
+the boundary `W ⟪ Θ′ , `∀ s′ ⟫`, and §3 applies to it verbatim: it too is
+put under the unmasked new bind.  The tower is finite and bottoms out at
+the `Λ`, so the leak would recur at most `height` times — it would not
+grow, but it would still be there.  (b′) below closes that half, so the
+pair is a complete repair.
 
-### (b′) The wrapper half, closed the same way — **frame identity exact, machine-checked**
+### (b′) The wrapper half, closed the same way — **PROVEN, and it WORKS**
 
 `canon-∀` says the thing being moved in the wrapper case **is a boundary**,
 and a boundary carries its own change list.  So mask the new binder in the
@@ -218,12 +219,155 @@ which is exactly the renaming `wkᴹ 1` performs on a boundary
 because slot 0 of the new frame is nameable (`addLock0-sw-l`) — *the
 leak's own slot is what authorizes the lock that closes it*.
 
-What remains to land (b′) as a rule: `Δ ⊢ᵐ addLock0 (renᴮ suc Θ′)` (reps by
-`⊢ʳ-ren`, changes by `⊢ˢ-ren` + `addLock0-sw-l` + `⊢ˢ-++`) and the moved
-boundary's conversion re-typed at `convCtx (addLock0 (renᴮ suc Θ′)) …`,
-where the appended lock is **lifted** (`applyUnlocks` skips locks), so
-`conv-ren` suffices.  Neither is new machinery: both are moves
-`⊢rename`'s own (env) case already makes.
+#### The rule, as it type-checked (`proof/ShiftAudit` §5, `_⊢_-→ᵇ_`)
+
+    TyPeelR-⟪⟫ : Value W
+      → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+      → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+          -→ᵇ ((renᴹ (extN (numBinds Θ′) suc) W
+                  ⟪ addLock0 (renᴮ suc Θ′)
+                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+                 ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+
+**No extra premise.**  `Value W` and the conversion typing are the live
+rule's own two premises, and `Value W` is what `canon-∀` hands progress.
+
+**It is `wkᴹ 1` plus one lock, on the nose.**  With `addLock0ᵛ` the
+change-list append lifted to a term (`addLock0ᵛ (M ⟪ Θ , c ⟫) = M ⟪ addLock0 Θ , c ⟫`),
+
+    TyPeelR-⟪⟫-wkᴹ : addLock0ᵛ (wkᴹ 1 (W ⟪ Θ′ , `∀ s′ ⟫))
+                       ≡ renᴹ (extN (numBinds Θ′) suc) W
+                           ⟪ addLock0 (renᴮ suc Θ′)
+                           , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫
+
+is `refl`, and
+
+    TyPeelR-⟪⟫-outer-unchanged
+
+says the whole contractum is the **live** contractum with `addLock0ᵛ`
+applied to the moved value: same outer frame `morph (A ∷ binds Θ) (changes Θ)`,
+same minted conversion `instReveal 0 s`, same pushed-in annotation
+`renameᵗ (extᵗ suc) Bᵢ`, same type argument `` ` 0 ``.
+
+#### The rule on an example
+
+The tightness redex of §5c₄ (`Δᵛ = X := ℕ`; the outer frame locks `X`, the
+inner frame is trivial), machine-rendered:
+
+    showTmIn 1 Rᵛ
+      = (((λx:ℕ. (ΛY. 3) [X]) ⟪ (∀Y. id ℕ) ⟫) ⟪ ↓X , (∀Y. id ℕ) ⟫) [ℕ]
+
+    showTmIn 1 Cᵛ-live                              -- the LIVE rule
+      = (((λx:ℕ. (ΛZ. 3) [X]) ⟪ (∀Z. id ℕ) ⟫) [Y] ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
+
+    showTmIn 1 Cᵛ                                   -- fix (b′)
+      = (((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↓Y , (∀Z. id ℕ) ⟫) [Y] ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
+
+The entire repair is the `↓Y` on the moved boundary, and it is the
+difference between a frame that lies and one that does not:
+
+    showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵛ-live
+      =  Y := ℕ , ⌷[X := ℕ]           ← the LEAK: Y is offered
+    showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵛ-new
+      =  ⌷[Y := ℕ] , ⌷[X := ℕ]        ← (b′): Y is masked
+
+`⊢prb0-live` types a value that **names** the new slot `Y` at the live
+frame; `¬⊢prb0-new` refuses the same value at (b′)'s.  That is §3a's
+`nmᵃ` test, run at the position the moved boundary's interior actually
+occupies.  And the §15b test itself passes: `¬⊢Rᵛ` and `¬⊢Cᵛ` refuse the
+redex and the contractum for the **same** localized reason (`wf-var` at a
+masked slot), one index apart.
+
+#### What is proven
+
+| lemma | claim |
+|-------|-------|
+| `TyPeelR-⟪⟫-wkᴹ` | the contractum's inner value is `addLock0ᵛ (wkᴹ 1 …)`, `refl` |
+| `applyUnlocks-++`, `unlockedScope-addLock0`, `convCtx-addLock0` | the appended lock is **lifted**: the conversion context is the plainly renamed one |
+| `⊢addLock0-cross` | **the crossing lemma** — a boundary crosses one new bind slot, masking it in its own frame.  Reps by `⊢ʳ-ren`, changes by `⊢ˢ-++` (`⊢ˢ-ren` over the frame the lock leaves, `sw-l` for the lock), interior by `⊢rename` at `Ren-addLock0` **alone**, conversion by `conv-ren` at `ren-convCtx`.  The (b′) analogue of `⊢crossΛ` |
+| `preserve-TyPeelR-⟪⟫` | **preservation** — the live proof with `⊢wkV = ⊢rename Ren-wk Inj-suc` replaced by `⊢addLock0-cross`; the outer `env` is verbatim |
+| `preserveᵇ` | preservation for the whole prototype, both clauses and `ξᵇ-⟪⟫` |
+| `detᵇ` | **determinism** over all three clauses.  The two `TyPeelR` patterns are disjoint (a `Λ` is not a boundary); the wrapper case needs `conv-src-unique`, exactly as the live rule does |
+| `progressᵇ-·[]` | **progress** — `canon-∀` hands the split exactly its two patterns, so the pair is TOTAL over canonical `∀`-values: the live rule is **replaced**, not supplemented |
+| `TyPeelR-⟪⟫-frame`, `TyPeelR-⟪⟫-birth` | **frame exactness** — the moved boundary's interior is its birth frame `pushBinds (binds Θ′) (scope Θ′ (interior Θ Δ))` with the reps lifted (`map ⇑ᵗ`) and the new slot inserted **masked** below the bind prefix |
+| `TyPeelR-⟪⟫-slot-locked` | the new slot is **unnameable** there (`∋lk-¬∋tv`, `pushBinds-∋lk0`) |
+| `TyPeelR-⟪⟫-outer-unchanged` | the outer boundary is the live rule's, untouched |
+| `towerHeight`, `towerHeight-renᴹ`, `TyPeelR-⟪⟫-height` | **termination** (below) |
+| `canon-∀-height`, `progressᵇ-Λ-at-0` | at tower height 0 the interior is a `Λ`, so `TyPeelR-Λ` fires |
+| `U₀ -→ᵇ U₁ -→ᵇ U₂`, `⊢U₀`/`⊢U₁`/`⊢U₂` | the closed two-deep run, every state typed |
+
+#### Termination — it is not (a)'s regress
+
+The contractum's inner application
+
+    (… ⟪ addLock0 … , `∀ s″ ⟫) ·[ … , ` 0 ]
+
+*is* again a `-→ᵇ` redex.  The measure that separates it from fix (a) is
+the `∀`-value's **tower height** — the number of nested boundaries above
+the `Λ`:
+
+    towerHeight (M ⟪ Θ , c ⟫) = suc (towerHeight M)      towerHeight _ = 0
+
+`towerHeight-renᴹ` says the shift does not change it (both candidates
+shift), and then
+
+    TyPeelR-⟪⟫-height : towerHeight (contractum's inner ∀-value)
+                          ≡ towerHeight (redex's ∀-value) ∸ 1
+    fixA-height-stalls : towerHeight (fix (a)'s inner ∀-value)
+                          ≡ towerHeight (redex's ∀-value)
+
+(b′) **consumes** a boundary that was already there; (a) **mints** a new
+one, so its measure stalls — and §4a's `T₀ -→ᵃ T₁ -→ᵃ T₂` is that stall,
+twice.  So a redex of tower height `h` takes `h − 1` `TyPeelR-⟪⟫` steps
+and then exactly one `TyPeelR-Λ` step (`canon-∀-height`: a `∀`-value of
+height 0 is a `Λ`, `canon-∀` has no third shape), and `TyPeelR-Λ` neither
+shifts nor locks anything.
+
+#### The closed run (§5c₃)
+
+The outer frame binds `X := ℕ` and the inner frame locks it, so the moved
+boundary really does carry a change list for the appended lock to join:
+
+    Θᵈ  = morph (`ℕ ∷ []) []        the OUTER frame
+    Θᵈ′ = morph [] (lock 0 ∷ [])    the INNER frame
+
+Machine-rendered:
+
+    showTmIn 0 U₀
+      = (((ΛY. 3) ⟪ ↓X , (∀Y. id ℕ) ⟫) ⟪ ↑X:=ℕ , (∀Y. id ℕ) ⟫) [ℕ]
+                      │ TyPeelR-⟪⟫          tower height 2 → 1
+                      ▼
+    showTmIn 0 U₁
+      = (((ΛZ. 3) ⟪ ↓X , ↓Y , (∀Z. id ℕ) ⟫) [Y] ⟪ ↑Y:=ℕ , ↑X:=ℕ , id ℕ ⟫)
+                      │ ξᵇ-⟪⟫ (TyPeelR-Λ)   tower exhausted
+                      ▼
+    showTmIn 0 U₂
+      = ((3 ⟪ ↑Z:=Y , ↓X , ↓Y , id ℕ ⟫) ⟪ ↑Y:=ℕ , ↑X:=ℕ , id ℕ ⟫)
+
+Read the moved boundary's change list across step 1: `↓X` becomes
+`↓X , ↓Y` — the **shifted** original lock and the **new** lock, appended
+at the tail.  Nothing else about the boundary changes and no wrapper
+appears.  The frames:
+
+    showTCtxAt 9 0 (λ _ → "X") Ξᵈ₁                    =  ⌷[X := ℕ]
+    showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵈ₃
+      =  ⌷[Y := ℕ] , ⌷[X := ℕ]
+
+`Ξᵈ₁` is `W`'s birth frame and `Ξᵈ₃` its frame in the contractum: the same
+frame with the new binder `Y` inserted **masked**.  Exact.
+
+#### Verdict
+
+**(b) + (b′) WORKS.**  Preservation, determinism and progress all hold for
+the pair; the two clauses are total over canonical `∀`-values, so the live
+`TyPeelR` is *replaced*, not supplemented; both new frames are exact (the
+`Λ` case up to `TyBeta`'s own refinement, the wrapper case up to the index
+shift alone); the descent terminates on a strictly decreasing measure that
+fix (a) leaves fixed; and tightness holds for both clauses.  No premise
+had to be added, and nothing in `Reduction.agda`, `Preservation.agda`,
+`Progress.agda` or `TypeSafety.agda` was touched — the probe lives
+entirely in `proof/ShiftAudit.agda` §5/§5b/§5c.
 
 ### (c) The resolve variant — exact for V, but it spells a representation inside
 
@@ -251,9 +395,11 @@ grounded-invariants law says representations live only at their binder;
    same step as TyBeta* — which is what §6.4's own commentary says it
    morally is ("TyPeelR's reveal case really is TyBeta's mint, one `∀`
    inside").
-2. **Then land (b′) — the wrapper split.**  The frame identity and the
-   crossing renaming are machine-checked (`§5b`); what is left is the `⊢ᵐ`
-   for `addLock0` and one `conv-ren`.  With (b) and (b′) together,
+2. **Then land (b′) — the wrapper split.  It is now PROVEN too** (`§5c`):
+   `preserve-TyPeelR-⟪⟫`, `detᵇ`, `progressᵇ-·[]`, the frame identity
+   (`TyPeelR-⟪⟫-frame`, `TyPeelR-⟪⟫-slot-locked`), the terminating measure
+   (`TyPeelR-⟪⟫-height` against `fixA-height-stalls`) and a closed
+   two-deep run with every state typed.  With (b) and (b′) together,
    **every rule that moves a subterm masks what it introduces**, and the
    §7 table has no exceptions.
 3. **Do not take (a)** — machine-refuted, it loops — and **do not take
@@ -261,5 +407,6 @@ grounded-invariants law says representations live only at their binder;
    design forbids.
 4. Optionally delete `shiftᵐ`/`canon-shiftᵐ` (dead after #199).
 
-Until (b)/(b′) land, `Design.md` §7 carries the **TyPeelR (V's frame)** row
-as the open item.
+Until (b)/(b′) land in `Reduction.agda`, `Design.md` §7 carries the
+**TyPeelR (V's frame)** row as the open item — the repair is proven on the
+probe relation `_⊢_-→ᵇ_`, not installed in the live rules.

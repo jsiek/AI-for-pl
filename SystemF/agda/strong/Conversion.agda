@@ -16,7 +16,7 @@ module strong.Conversion where
 -- on the interior side of a leaf, and a BOUND X is not in the image of
 -- `shiftBy`, so it cannot sit on the exterior side.  Dropping `p` is what
 -- makes TyPeelR's preservation case a theorem at every ∀ conversion
--- rather than only at a reveal one (proof/Preserve.preserve-TyPeelR).
+-- rather than only at a reveal one (proof/Preserve.preserve-TyPeelR-Λ).
 --
 -- Conversions are REP-FREE by construction: `seal` and `unseal` carry a
 -- NAME, never a spelling, and the rep is read by a BINDER LOOKUP on the
@@ -179,7 +179,10 @@ mutual
 
 -- TyBeta's minted conversion IS this operation at an identity
 -- conversion: the type version is the conversion version on `mkId`.  (So
--- TyPeelR's reveal case really is TyBeta's mint, one ∀ inside.)
+-- TyPeelR's reveal case really is TyBeta's mint, one ∀ inside — and
+-- since the 2026-09-08 split that is literal: `TyPeelR-Λ` moves nothing
+-- and refines the `Λ`'s own slot into the boundary's binder, exactly as
+-- TyBeta does.)
 mutual
   instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ reveal X B
   instReveal-mkId X (` Y)   = refl

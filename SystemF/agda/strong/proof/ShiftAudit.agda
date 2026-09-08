@@ -481,14 +481,11 @@ addLock0-sw-l : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
   → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ⊢ˢ (lock 0 ∷ [])
 addLock0-sw-l A Θ Δ = sw-l (TyPeelR-slot0-nameable A Θ Δ) sw[]
 
--- THE FRAME IDENTITY.  The moved boundary's interior frame is its BIRTH
--- frame with the new binder inserted BELOW the bind prefix and MASKED —
--- the very shape (†) gives Peel's crossing argument and
--- `interior-Beta-Λ` gives Beta's.  Nothing gained, nothing lost.
-interior-addLock0-shift : (Θ′ : CtxMorph) (C : Ty) (Δ : Ctxᵗ)
-  → interior (addLock0 (renᴮ suc Θ′)) (unmasked (bind C) ∷ Δ)
-      ≡ pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind C) ∷ scope Θ′ Δ)
-interior-addLock0-shift = interior-addLock0-cross
+-- THE FRAME IDENTITY is `interior-addLock0-cross`: the moved boundary's
+-- interior frame is its BIRTH frame with the new binder inserted BELOW
+-- the bind prefix and MASKED — the very shape (†) gives Peel's crossing
+-- argument and `interior-Beta-Λ` gives Beta's.  Nothing gained, nothing
+-- lost.  §5c₁ instantiates it at the rule's own two contexts.
 
 ------------------------------------------------------------------------
 -- §5c  IT IS `wkᴹ 1` PLUS ONE LOCK, ON THE NOSE

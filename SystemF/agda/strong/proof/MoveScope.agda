@@ -121,7 +121,7 @@ applyChanges-shiftScope As (unlock X ∷ S) Δ =
         (updateAt-pushBinds unmaskEnt As X (applyChanges S Δ))
 applyChanges-shiftScope As (lock X ∷ S)   Δ =
   trans (cong (mask (length As + X)) (applyChanges-shiftScope As S Δ))
-        (updateAt-pushBinds masked As X (applyChanges S Δ))
+        (updateAt-pushBinds maskEnt As X (applyChanges S Δ))
 
 applyUnlocks-shiftScope : (As : List Ty) (S : List Change) (Δ : Ctxᵗ)
   → applyUnlocks (shiftScope (length As) S) (pushBinds As Δ)
@@ -267,17 +267,17 @@ locksOnly n (lock X ∷ S)   = lock (n + X) ∷ locksOnly n S
 Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])
 
 Δ✗ : Ctxᵗ
-Δ✗ = bind `ℕ ∷ []
+Δ✗ = unmasked (bind `ℕ) ∷ []
 
 ⊢ᵐ-Θ✗ : Δ✗ ⊢ᵐ Θ✗
 ⊢ᵐ-Θ✗ = mw rw[]
-           (sw-u (masked (bind `ℕ) , ez , locked nameable-b)
-                 (sw-l (bind `ℕ , ez , nameable-b) sw[]))
+           (sw-u (masked (bind `ℕ) , ez , locked)
+                 (sw-l (unmasked (bind `ℕ) , ez , nameable) sw[]))
 
-_ : interior Θ✗ Δ✗ ≡ bind `ℕ ∷ []
+_ : interior Θ✗ Δ✗ ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
-_ : interior (rewind Θ✗) Δ✗ ≡ bind `ℕ ∷ []
+_ : interior (rewind Θ✗) Δ✗ ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
 -- … but the lock-only contractum's interior BLOCKS it.

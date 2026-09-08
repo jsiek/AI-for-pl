@@ -109,7 +109,7 @@ progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
 -- inversion without having to see through `env`'s `shiftBy`.
 ∀-conv-premise : ∀ {Δ W Θ s B} → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ B
   → Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ]
-      ((abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
+      ((unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ)
 ∀-conv-premise (env mwᵥ ⊢W ⊢c wE) with conv-all-inv ⊢c
 ∀-conv-premise (env mwᵥ ⊢W ⊢c wE) | Bᵢ , Bₑ , eqᵢ , eqₑ , ⊢s =
   Bᵢ , Bₑ , ⊢s

@@ -27,8 +27,8 @@ open import strong.CtxMorph
 mask-retains : ∀ {Δ X Y A} → Δ ∋ X := A
   → (mask Y Δ ∋ X := A) ⊎ (mask Y Δ ∋e X , masked (bind A))
 mask-retains {X = X} {Y = Y} d with Y ≟ℕ X
-... | yes refl = inj₂ (updateAt-hit masked masked-comm d)
-... | no ne    = inj₁ (updateAt-miss masked masked-comm ne d)
+... | yes refl = inj₂ (updateAt-hit maskEnt maskEnt-comm d)
+... | no ne    = inj₁ (updateAt-miss maskEnt maskEnt-comm ne d)
 
 unlock-recovers : ∀ {Δ X A} → Δ ∋e X , masked (bind A) → unmask X Δ ∋ X := A
 unlock-recovers d = updateAt-hit unmaskEnt unmaskEnt-comm d
@@ -37,8 +37,8 @@ unlock-recovers d = updateAt-hit unmaskEnt unmaskEnt-comm d
 -- itself and then looks again is harmless and typeable.
 lock-then-unlock :
   interior (morph [] (unlock 0 ∷ []))
-    (interior (morph [] (lock 0 ∷ [])) (bind `ℕ ∷ []))
-    ≡ bind `ℕ ∷ []
+    (interior (morph [] (lock 0 ∷ [])) (unmasked (bind `ℕ) ∷ []))
+    ≡ unmasked (bind `ℕ) ∷ []
 lock-then-unlock = refl
 
 ------------------------------------------------------------------------
@@ -59,47 +59,45 @@ lock-then-unlock = refl
 
 -- `interior Θ Δ` and `convCtx Θ Δ` differ ONLY by masking: `scope` applies the
 -- `lock` masks, `unlockedScope` skips them, and both do the same binds and the
--- same unmasks.  Masking never turns an `abst` into a `bind` — it only
--- wraps and unwraps `masked` — so a slot that is VISIBLE inside and a BINDER
+-- same unmasks.  Masking never touches the BINDING layer — it only sets
+-- and clears the lock — so a slot that is VISIBLE inside and a BINDER
 -- outside is that same binder inside.  This is the one structural step
 -- the old IdPush side-condition proof and CancelR's preservation case
 -- consume; here it is a theorem, not an interface.
 --
 -- The invariant that carries it: the CORE of an entry — what it is once
--- every conceal is peeled — is untouched by `masked` and by `unmaskEnt` alike.
+-- every conceal is peeled — is untouched by `maskEnt` and by `unmaskEnt`
+-- alike.
+--
+-- WITH ONE LOCK PER ENTRY THE CORE IS `unmaskEnt` ITSELF.  The old design
+-- needed a separate recursive `core` (with `core-ren`, `core-masked` and
+-- `core-unmaskEnt` proved by induction over the mask stack) precisely
+-- because `unmaskEnt` peeled ONE mask and a core had to peel all of them.
+-- There is only ever one, so `core ≡ unmaskEnt` and the three inductive
+-- lemmas below are one-line case splits.
 
-core : Ent → Ent
-core abst        = abst
-core (bind A)    = bind A
-core (masked E)  = core E
+unmaskEnt-nameable : ∀ {E} → Nameable E → unmaskEnt E ≡ E
+unmaskEnt-nameable nameable = refl
 
-core-ren : (ρ : Renameᵗ) (E : Ent) → core (renᵉ ρ E) ≡ renᵉ ρ (core E)
-core-ren ρ abst        = refl
-core-ren ρ (bind A)    = refl
-core-ren ρ (masked E)  = core-ren ρ E
+unmaskEnt-maskEnt-core : (E : Ent) → unmaskEnt (maskEnt E) ≡ unmaskEnt E
+unmaskEnt-maskEnt-core (unmasked b) = refl
+unmaskEnt-maskEnt-core (masked b)   = refl
 
-core-nameable : ∀ {E} → Nameable E → core E ≡ E
-core-nameable nameable-a = refl
-core-nameable nameable-b = refl
-
-core-masked : (E : Ent) → core (masked E) ≡ core E
-core-masked E = refl
-
-core-unmaskEnt : (E : Ent) → core (unmaskEnt E) ≡ core E
-core-unmaskEnt abst        = refl
-core-unmaskEnt (bind A)    = refl
-core-unmaskEnt (masked E)  = refl
+unmaskEnt-idem : (E : Ent) → unmaskEnt (unmaskEnt E) ≡ unmaskEnt E
+unmaskEnt-idem (unmasked b) = refl
+unmaskEnt-idem (masked b)   = refl
 
 -- Two type contexts agree UP TO CONCEALMENT at every slot.
 CoreEq : Ctxᵗ → Ctxᵗ → Set
-CoreEq Δ Δ′ = ∀ {Y E E′} → Δ ∋e Y , E → Δ′ ∋e Y , E′ → core E ≡ core E′
+CoreEq Δ Δ′ =
+  ∀ {Y E E′} → Δ ∋e Y , E → Δ′ ∋e Y , E′ → unmaskEnt E ≡ unmaskEnt E′
 
 CoreEq-refl : (Δ : Ctxᵗ) → CoreEq Δ Δ
-CoreEq-refl Δ d d′ = cong core (∋e-det d d′)
+CoreEq-refl Δ d d′ = cong unmaskEnt (∋e-det d d′)
 
 module _ (f : Ent → Ent)
          (fc : ∀ ρ E → renᵉ ρ (f E) ≡ f (renᵉ ρ E))
-         (fcore : ∀ E → core (f E) ≡ core E) where
+         (fcore : ∀ E → unmaskEnt (f E) ≡ unmaskEnt E) where
 
   -- one update on the LEFT only (the `lock` case: `scope` masks,
   -- `unlockedScope` skips)
@@ -125,9 +123,10 @@ CoreEq-applyChanges : (S : List Change) (Δ : Ctxᵗ)
   → CoreEq (applyChanges S Δ) (applyUnlocks S Δ)
 CoreEq-applyChanges []             Δ = CoreEq-refl Δ
 CoreEq-applyChanges (lock X ∷ S)   Δ =
-  CoreEq-updateAtˡ masked masked-comm core-masked (CoreEq-applyChanges S Δ)
+  CoreEq-updateAtˡ maskEnt maskEnt-comm unmaskEnt-maskEnt-core
+    (CoreEq-applyChanges S Δ)
 CoreEq-applyChanges (unlock X ∷ S) Δ =
-  CoreEq-updateAt unmaskEnt unmaskEnt-comm core-unmaskEnt
+  CoreEq-updateAt unmaskEnt unmaskEnt-comm unmaskEnt-idem
     (CoreEq-applyChanges S Δ)
 
 CoreEq-scope : (Θ : CtxMorph) (Δ : Ctxᵗ)
@@ -139,15 +138,15 @@ CoreEq-pushBinds : ∀ {Δ Δ′} (As : List Ty)
 CoreEq-pushBinds []       ce d      d′       = ce d d′
 CoreEq-pushBinds (A ∷ As) ce ez     ez       = refl
 CoreEq-pushBinds (A ∷ As) ce (es {E = E} d) (es {E = E′} d′) =
-  trans (core-ren suc E)
+  trans (sym (unmaskEnt-comm suc E))
         (trans (cong ⇑ᵉ (CoreEq-pushBinds As ce d d′))
-               (sym (core-ren suc E′)))
+               (unmaskEnt-comm suc E′))
 
 -- THE FACT.
 mask-only : ∀ (Θ : CtxMorph) (Δ : Ctxᵗ) {Y A}
   → interior Θ Δ ∋tv Y → convCtx Θ Δ ∋ Y := A → interior Θ Δ ∋ Y := A
 mask-only Θ Δ (E , d , v) df =
   subst (λ F → interior Θ Δ ∋e _ , F)
-        (trans (sym (core-nameable v))
+        (trans (sym (unmaskEnt-nameable v))
                (CoreEq-pushBinds (binds Θ) (CoreEq-scope Θ Δ) d df))
         d

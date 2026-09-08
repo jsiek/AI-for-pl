@@ -207,7 +207,7 @@ renΓ ρ Γ = map (renameᵗ ρ) Γ
 ⊢retag ls ⊢$           = ⊢$
 ⊢retag ls (⊢ƛ w ⊢N)    = ⊢ƛ (⊑-wf (⊑ᵃ→⊑ ls) w) (⊢retag ls ⊢N)
 ⊢retag ls (⊢· ⊢L ⊢M)   = ⊢· (⊢retag ls ⊢L) (⊢retag ls ⊢M)
-⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (la∷ la-aa ls) ⊢N)
+⊢retag ls (⊢Λ ⊢N)      = ⊢Λ (⊢retag (la∷ (la-uu le-aa) ls) ⊢N)
 ⊢retag ls (⊢·[] ⊢L w)  = ⊢·[] (⊢retag ls ⊢L) (⊑-wf (⊑ᵃ→⊑ ls) w)
 ⊢retag ls (env {Θ = Θ} mwᵥ ⊢M ⊢c wE) =
   env (⊢ᵐ-⊑ᵃ ls mwᵥ)
@@ -333,7 +333,7 @@ Ren-wk = mkRen es
 ⇑ᴹ-⊢ : ∀ {σ : ℕ → Term} {Δ Γ Γ′}
   → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∣ Γ′ ⊢ σ x ⦂ B)
     --------------------------------------------------------------------
-  → (∀ {x B} → ⤊ Γ ∋ x ⦂ B → (abst ∷ Δ) ∣ ⤊ Γ′ ⊢ ⇑ᴹ (σ x) ⦂ B)
+  → (∀ {x B} → ⤊ Γ ∋ x ⦂ B → (unmasked abst ∷ Δ) ∣ ⤊ Γ′ ⊢ ⇑ᴹ (σ x) ⦂ B)
 ⇑ᴹ-⊢ h d with ∋⦂-map⁻ d
 ... | A , refl , q = ⊢rename Ren-wk Inj-suc (h q)
 

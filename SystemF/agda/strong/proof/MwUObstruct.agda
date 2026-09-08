@@ -94,9 +94,9 @@ bindsOnly Θ = morph (binds Θ) []
 Θ₂ = morph [] (unlock 0 ∷ [])
 
 ⊢ᵐΘ₂ : Δ₆ ⊢ᵐ Θ₂
-⊢ᵐΘ₂ = mw rw[] (sw-u (masked (bind `ℕ) , ez , locked nameable-b) sw[])
+⊢ᵐΘ₂ = mw rw[] (sw-u (masked (bind `ℕ) , ez , locked) sw[])
 
-_ : interior Θ₂ Δ₆ ≡ bind `ℕ ∷ []
+_ : interior Θ₂ Δ₆ ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
 -- An inner frame that BINDS a rep naming that slot — legal at Θ₂'s
@@ -105,7 +105,7 @@ _ = refl
 Θ₁ = morph (` 0 ∷ []) []
 
 ⊢ᵐΘ₁ : interior Θ₂ Δ₆ ⊢ᵐ Θ₁
-⊢ᵐΘ₁ = mw (rw-b (wf-var (bind `ℕ , ez , nameable-b)) rw[]) sw[]
+⊢ᵐΘ₁ = mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[]) sw[]
 
 -- THE MERGED FRAME the scope move builds.  Θ₂ carries no binder, so the
 -- moved change keeps its index.
@@ -118,8 +118,8 @@ _ = refl
 -- It is well formed over Δ₆ — its rep is read past its OWN change list,
 -- i.e. past the unlock, which is where the redex read it.
 ⊢ᵐΘ₆ : Δ₆ ⊢ᵐ Θ₆
-⊢ᵐΘ₆ = mw (rw-b (wf-var (bind `ℕ , ez , nameable-b)) rw[])
-          (sw-u (masked (bind `ℕ) , ez , locked nameable-b) sw[])
+⊢ᵐΘ₆ = mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[])
+          (sw-u (masked (bind `ℕ) , ez , locked) sw[])
 
 ------------------------------------------------------------------------
 -- §2  `dropLocks` REFUTED — the moved unlock goes vacuous
@@ -131,7 +131,7 @@ _ = refl
 _ : _≡_ {A = CtxMorph} (dropLocks Θ₂) Θ₂
 _ = refl
 
-_ : interior (dropLocks Θ₂) Δ₆ ≡ bind `ℕ ∷ []
+_ : interior (dropLocks Θ₂) Δ₆ ≡ unmasked (bind `ℕ) ∷ []
 _ = refl
 
 -- The merged frame is read there, and its `unlock 0` has no premise.
@@ -179,11 +179,12 @@ _ = refl
 -- entry is a `lock`, which `applyUnlocks` skips, so the context is
 -- literally the same.)
 ⊢ᵐ-rewind-Θ₂ : Δ₆ ⊢ᵐ rewind Θ₂
-⊢ᵐ-rewind-Θ₂ = mw rw[] (sw-l (bind `ℕ , ez , nameable-b) (mw-changes ⊢ᵐΘ₂))
+⊢ᵐ-rewind-Θ₂ = mw rw[] (sw-l (unmasked (bind `ℕ) , ez , nameable)
+                            (mw-changes ⊢ᵐΘ₂))
 
 ⊢ᵐ-rewind-Θ₆ : Δ₆ ⊢ᵐ rewind Θ₆
-⊢ᵐ-rewind-Θ₆ = mw (rw-b (wf-var (bind `ℕ , ez , nameable-b)) rw[])
-                  (sw-l (bind `ℕ , ez , nameable-b) (mw-changes ⊢ᵐΘ₆))
+⊢ᵐ-rewind-Θ₆ = mw (rw-b (wf-var (unmasked (bind `ℕ) , ez , nameable)) rw[])
+                  (sw-l (unmasked (bind `ℕ) , ez , nameable) (mw-changes ⊢ᵐΘ₆))
 
 -- THE MERGED FRAME IS WELL FORMED OVER IT.
 ⊢ᵐ-merged : interior (rewind Θ₂) Δ₆ ⊢ᵐ (Θ₁ ⋉ Θ₂)
@@ -197,4 +198,4 @@ _ = refl
 -- locks — `applyUnlocks`, not `applyChanges`) is what makes both the move
 -- and TyPeelR's prepended bind well formed at once.
 ⊢ᵗ-rep-past-changes : applyUnlocks (unlock 0 ∷ []) Δ₆ ⊢ᵗ ` 0
-⊢ᵗ-rep-past-changes = wf-var (bind `ℕ , ez , nameable-b)
+⊢ᵗ-rep-past-changes = wf-var (unmasked (bind `ℕ) , ez , nameable)

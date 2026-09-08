@@ -2,7 +2,9 @@ module strong.Ctx where
 
 -- Strong System F — THE TYPE CONTEXT (type contexts) and its transports.
 --
--- A type context entry is one of
+-- AN ENTRY IS TWO LAYERS: WHAT THE SLOT BINDS, AND WHETHER IT IS HIDDEN.
+--
+-- The inner layer is a `Binding` — the knowledge at the slot:
 --
 --   abst      a Λ-bound variable — no representation, and none can be
 --             invented.
@@ -10,10 +12,22 @@ module strong.Ctx where
 --             representation, stored ONCE, as a type over this entry's
 --             bind tail.  Every inner boundary that talks about this
 --             variable carries only its NAME.
---   masked E  the slot is CONCEALED here: it may not be NAMED
---             (tightness), but its entry E is RETAINED, so the knowledge
---             is still on the type context for a later re-exposure
---             (`unlock`) to point back at.
+--
+-- The outer layer is the LOCK, and there is AT MOST ONE OF IT:
+--
+--   unmasked b  the slot may be NAMED.
+--   masked b    the slot is CONCEALED here: it may not be NAMED
+--               (tightness), but its binding b is RETAINED, so the
+--               knowledge is still on the type context for a later
+--               re-exposure (`unlock`) to point back at.
+--
+-- SPLITTING THE ENTRY THIS WAY MAKES "AT MOST ONE MASK" TRUE BY
+-- CONSTRUCTION.  `masked` no longer takes an entry, so `masked (masked …)`
+-- is not a term; `Nameable`/`Locked` are then the two constructors' own
+-- discriminations, each with ONE clause and NO premise, and every lemma
+-- that used to reason about a stack of masks (`Locked`'s `Nameable`
+-- premise, `mask-unmask`'s side condition, `⊑ᵉ-trans`'s le-mu/le-mm
+-- interplay, `unmaskEnt-nameable`) either shrinks or disappears.
 --
 -- Under Jeremy's Q1 ruling (BINDER-SYNTACTIC, 2026-09-05) a variable's
 -- representation lives ONLY at its binder; every conversion and every
@@ -61,10 +75,15 @@ map-length f (x ∷ xs) = cong suc (map-length f xs)
 -- 1.  The type context:  type contexts with BINDER entries and BLOCKED entries
 ------------------------------------------------------------------------
 
+-- WHAT A SLOT BINDS.  No lock lives here.
+data Binding : Set where
+  abst : Binding
+  bind : Ty → Binding
+
+-- A TYPE-CONTEXT ENTRY: a binding, plus AT MOST ONE lock.
 data Ent : Set where
-  abst   : Ent
-  bind   : Ty → Ent
-  masked : Ent → Ent
+  unmasked : Binding → Ent
+  masked   : Binding → Ent
 
 Ctxᵗ : Set
 Ctxᵗ = List Ent
@@ -73,23 +92,33 @@ private
   variable
     Δ Δ′ Δ″ : Ctxᵗ
     E E′ E″ F : Ent
+    b b′ b″ : Binding
     A A′ B B′ C : Ty
     X Y Z : ℕ
     ρ ρ′ : Renameᵗ
 
+-- Renaming acts on the BINDING — the lock carries no spelling — and
+-- `renᵉ` is that action lifted through the lock layer.
+renᵇ : Renameᵗ → Binding → Binding
+renᵇ ρ abst     = abst
+renᵇ ρ (bind A) = bind (renameᵗ ρ A)
+
 renᵉ : Renameᵗ → Ent → Ent
-renᵉ ρ abst       = abst
-renᵉ ρ (bind A)   = bind (renameᵗ ρ A)
-renᵉ ρ (masked E) = masked (renᵉ ρ E)
+renᵉ ρ (unmasked b) = unmasked (renᵇ ρ b)
+renᵉ ρ (masked b)   = masked (renᵇ ρ b)
 
 ⇑ᵉ : Ent → Ent
 ⇑ᵉ = renᵉ suc
 
+renᵇ-⇑-comm : (ρ : Renameᵗ) (b : Binding)
+  → renᵇ (extᵗ ρ) (renᵇ suc b) ≡ renᵇ suc (renᵇ ρ b)
+renᵇ-⇑-comm ρ abst     = refl
+renᵇ-⇑-comm ρ (bind A) = cong bind (ren-⇑-comm ρ A)
+
 renᵉ-⇑-comm : (ρ : Renameᵗ) (E : Ent)
   → renᵉ (extᵗ ρ) (⇑ᵉ E) ≡ ⇑ᵉ (renᵉ ρ E)
-renᵉ-⇑-comm ρ abst       = refl
-renᵉ-⇑-comm ρ (bind A)   = cong bind (ren-⇑-comm ρ A)
-renᵉ-⇑-comm ρ (masked E) = cong masked (renᵉ-⇑-comm ρ E)
+renᵉ-⇑-comm ρ (unmasked b) = cong unmasked (renᵇ-⇑-comm ρ b)
+renᵉ-⇑-comm ρ (masked b)   = cong masked (renᵇ-⇑-comm ρ b)
 
 -- Entry lookup.  The entry is returned SHIFTED into the ambient context, so
 -- `Δ ∋e X , bind A` means "slot X is a binder whose rep, read in Δ, is A".
@@ -99,41 +128,41 @@ data _∋e_,_ : Ctxᵗ → ℕ → Ent → Set where
   ez : (E ∷ Δ) ∋e zero , ⇑ᵉ E
   es : Δ ∋e X , E → (F ∷ Δ) ∋e suc X , ⇑ᵉ E
 
--- A slot may be NAMED iff its entry is not masked.  This is the whole of
+-- A slot may be NAMED iff its entry is UNMASKED.  This is the whole of
 -- the tightness discipline: `masked` is unnameable in types and in terms.
+-- The predicate is now a pure discrimination on the lock layer — it says
+-- NOTHING about the binding, so there is one constructor and no premise.
 data Nameable : Ent → Set where
-  nameable-a : Nameable abst
-  nameable-b : Nameable (bind A)
+  nameable : Nameable (unmasked b)
 
 renᵉ-Nameable : Nameable E → Nameable (renᵉ ρ E)
-renᵉ-Nameable nameable-a = nameable-a
-renᵉ-Nameable nameable-b = nameable-b
+renᵉ-Nameable nameable = nameable
 
 infix 4 _∋tv_
 _∋tv_ : Ctxᵗ → ℕ → Set
 Δ ∋tv X = ∃[ E ] ((Δ ∋e X , E) × Nameable E)
 
 -- THE COMPLEMENT OF `Nameable`, and the whole of what an `unlock` may
--- restore: an entry masked ONCE over a nameable one.  `Locked` is what
--- `sw-u` (strong.CtxMorph) demands and what makes `mask ∘ unmask` the
--- identity at the slot (`mask-unmask`) — the fact the dual's restoring
--- `lock` needs.  A doubly masked entry is NOT `Locked`, and no
--- `Δ ⊢ᵐ Θ` ever produces one (`sw-l` masks only a nameable slot).
+-- restore.  `Locked` is what `sw-u` (strong.CtxMorph) demands and what
+-- makes `mask ∘ unmask` the identity at the slot (`mask-unmask`) — the
+-- fact the dual's restoring `lock` needs.  IT NEEDS NO `Nameable`
+-- PREMISE ANY MORE: "masked over a nameable entry" is the only shape a
+-- masked entry HAS, because `masked` takes a `Binding`.  The
+-- one-mask-deep property that the premise used to enforce is now BY
+-- CONSTRUCTION, so `Locked` is exactly the complement of `Nameable`.
 data Locked : Ent → Set where
-  locked : Nameable E → Locked (masked E)
+  locked : Locked (masked b)
 
 renᵉ-Locked : Locked E → Locked (renᵉ ρ E)
-renᵉ-Locked (locked v) = locked (renᵉ-Nameable v)
+renᵉ-Locked locked = locked
 
 renᵉ-Nameable⁻ : Nameable (renᵉ ρ E) → Nameable E
-renᵉ-Nameable⁻ {E = abst}     v = nameable-a
-renᵉ-Nameable⁻ {E = bind A}   v = nameable-b
-renᵉ-Nameable⁻ {E = masked E} ()
+renᵉ-Nameable⁻ {E = unmasked b} v = nameable
+renᵉ-Nameable⁻ {E = masked b}   ()
 
 Locked-ren⁻ : Locked (renᵉ ρ E) → Locked E
-Locked-ren⁻ {E = abst}     ()
-Locked-ren⁻ {E = bind A}   ()
-Locked-ren⁻ {E = masked E} (locked v) = locked (renᵉ-Nameable⁻ v)
+Locked-ren⁻ {E = unmasked b} ()
+Locked-ren⁻ {E = masked b}   locked = locked
 
 infix 4 _∋lk_
 _∋lk_ : Ctxᵗ → ℕ → Set
@@ -142,10 +171,10 @@ _∋lk_ : Ctxᵗ → ℕ → Set
 -- BINDER-SYNTACTIC LOOKUP.  This is the only way any rep is ever read.
 infix 4 _∋_:=_
 _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
-Δ ∋ X := A = Δ ∋e X , bind A
+Δ ∋ X := A = Δ ∋e X , unmasked (bind A)
 
 ∋:=→∋tv : Δ ∋ X := A → Δ ∋tv X
-∋:=→∋tv d = bind _ , d , nameable-b
+∋:=→∋tv d = unmasked (bind _) , d , nameable
 
 -- Lookup is a partial FUNCTION, which is what makes every rule that mints an
 -- identity conversion at a looked-up rep deterministic.
@@ -153,7 +182,7 @@ _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
 ∋e-det ez     ez      = refl
 ∋e-det (es d) (es d′) = cong ⇑ᵉ (∋e-det d d′)
 
-bind-inj : _≡_ {A = Ent} (bind A) (bind B) → A ≡ B
+bind-inj : _≡_ {A = Ent} (unmasked (bind A)) (unmasked (bind B)) → A ≡ B
 bind-inj refl = refl
 
 ∋:=-det : Δ ∋ X := A → Δ ∋ X := B → A ≡ B
@@ -169,7 +198,7 @@ data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
   wf-ℕ   : Δ ⊢ᵗ `ℕ
   wf-𝔹   : Δ ⊢ᵗ `𝔹
   wf-⇒   : Δ ⊢ᵗ A → Δ ⊢ᵗ B → Δ ⊢ᵗ (A ⇒ B)
-  wf-∀   : (abst ∷ Δ) ⊢ᵗ A → Δ ⊢ᵗ (`∀ A)
+  wf-∀   : (unmasked abst ∷ Δ) ⊢ᵗ A → Δ ⊢ᵗ (`∀ A)
 
 data Base : Ty → Set where
   base-ℕ : Base `ℕ
@@ -222,42 +251,55 @@ wf-ren r (wf-∀ wA)    = wf-∀ (wf-ren (ren-ext r) wA)
 -- 4.  TRANSPORT II — type context growth / knowledge refinement
 ------------------------------------------------------------------------
 
--- E ⊑ᵉ E′ : E′ knows at least what E knows.  Each constructor's two
--- letters are the two entries it relates — `a` = abst, `b` = bind,
--- `m` = masked — with `u` for "unmasked, whatever it is".
+-- b ⊑ᵇ b′ : b′ knows at least what b knows, AT THE BINDING LAYER.  Each
+-- constructor's two letters are the two bindings it relates — `a` = abst,
+-- `b` = bind.
 --   le-aa : abst stays abst
 --   le-ab : a Λ-bound slot may become a binder              (TyBeta)
 --   le-bb : a binder keeps its rep
+-- There is NO clause in the other direction: a binder never loses its rep.
+data _⊑ᵇ_ : Binding → Binding → Set where
+  le-aa : abst ⊑ᵇ abst
+  le-ab : abst ⊑ᵇ bind A
+  le-bb : bind A ⊑ᵇ bind A
+
+-- … and E ⊑ᵉ E′ lifts it through the LOCK LAYER.  `u` = unmasked,
+-- `m` = masked; the pair of letters is the pair of locks.
+--   le-uu : a nameable slot stays nameable
 --   le-mm : concealment is monotone in what it hides
 --   le-mu : a concealed slot may be re-exposed              (Cancel)
--- There is NO clause in the other direction: a binder never loses its rep.
+-- There is no `le-um`: refinement never hides.
 data _⊑ᵉ_ : Ent → Ent → Set where
-  le-aa : abst ⊑ᵉ abst
-  le-ab : abst ⊑ᵉ bind A
-  le-bb : bind A ⊑ᵉ bind A
-  le-mm : E ⊑ᵉ E′ → masked E ⊑ᵉ masked E′
-  le-mu : E ⊑ᵉ E′ → Nameable E′ → masked E ⊑ᵉ E′
+  le-uu : b ⊑ᵇ b′ → unmasked b ⊑ᵉ unmasked b′
+  le-mm : b ⊑ᵇ b′ → masked b   ⊑ᵉ masked b′
+  le-mu : b ⊑ᵇ b′ → masked b   ⊑ᵉ unmasked b′
 
 infix 4 _⊑_
 data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
   le[] : [] ⊑ []
   le∷  : E ⊑ᵉ E′ → Δ ⊑ Δ′ → (E ∷ Δ) ⊑ (E′ ∷ Δ′)
 
+⊑ᵇ-refl : (b : Binding) → b ⊑ᵇ b
+⊑ᵇ-refl abst     = le-aa
+⊑ᵇ-refl (bind A) = le-bb
+
 ⊑ᵉ-refl : (E : Ent) → E ⊑ᵉ E
-⊑ᵉ-refl abst    = le-aa
-⊑ᵉ-refl (bind A) = le-bb
-⊑ᵉ-refl (masked E) = le-mm (⊑ᵉ-refl E)
+⊑ᵉ-refl (unmasked b) = le-uu (⊑ᵇ-refl b)
+⊑ᵉ-refl (masked b)   = le-mm (⊑ᵇ-refl b)
 
 ⊑-refl : (Δ : Ctxᵗ) → Δ ⊑ Δ
 ⊑-refl []      = le[]
 ⊑-refl (E ∷ Δ) = le∷ (⊑ᵉ-refl E) (⊑-refl Δ)
 
+⊑ᵇ-⇑ : b ⊑ᵇ b′ → renᵇ ρ b ⊑ᵇ renᵇ ρ b′
+⊑ᵇ-⇑ le-aa = le-aa
+⊑ᵇ-⇑ le-ab = le-ab
+⊑ᵇ-⇑ le-bb = le-bb
+
 ⊑ᵉ-⇑ : E ⊑ᵉ E′ → ⇑ᵉ E ⊑ᵉ ⇑ᵉ E′
-⊑ᵉ-⇑ le-aa        = le-aa
-⊑ᵉ-⇑ le-ab        = le-ab
-⊑ᵉ-⇑ le-bb        = le-bb
-⊑ᵉ-⇑ (le-mm l)    = le-mm (⊑ᵉ-⇑ l)
-⊑ᵉ-⇑ (le-mu l v)  = le-mu (⊑ᵉ-⇑ l) (renᵉ-Nameable v)
+⊑ᵉ-⇑ (le-uu l) = le-uu (⊑ᵇ-⇑ l)
+⊑ᵉ-⇑ (le-mm l) = le-mm (⊑ᵇ-⇑ l)
+⊑ᵉ-⇑ (le-mu l) = le-mu (⊑ᵇ-⇑ l)
 
 ⊑-∋e : Δ ⊑ Δ′ → Δ ∋e X , E → ∃[ E′ ] ((Δ′ ∋e X , E′) × E ⊑ᵉ E′)
 ⊑-∋e (le∷ l ls) ez     = _ , ez , ⊑ᵉ-⇑ l
@@ -265,11 +307,9 @@ data _⊑_ : Ctxᵗ → Ctxᵗ → Set where
 ... | E′ , d′ , l′ = _ , es d′ , ⊑ᵉ-⇑ l′
 
 nameable-mono : E ⊑ᵉ E′ → Nameable E → Nameable E′
-nameable-mono le-aa        nameable-a = nameable-a
-nameable-mono le-ab        nameable-a = nameable-b
-nameable-mono le-bb        nameable-b = nameable-b
-nameable-mono (le-mm _)    ()
-nameable-mono (le-mu _ _)  ()
+nameable-mono (le-uu _) nameable = nameable
+nameable-mono (le-mm _) ()
+nameable-mono (le-mu _) ()
 
 ⊑-tv : Δ ⊑ Δ′ → Δ ∋tv X → Δ′ ∋tv X
 ⊑-tv ls (E , d , v) with ⊑-∋e ls d
@@ -279,18 +319,21 @@ nameable-mono (le-mu _ _)  ()
 -- source is `bind A` is `le-bb`.  This is the deleted demotion, as a theorem.
 ⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A
 ⊑-kn ls d with ⊑-∋e ls d
-... | bind A , d′ , le-bb = d′
+... | unmasked (bind A) , d′ , le-uu le-bb = d′
 
--- Refinement composes.  (The only clause that has to think is `le-mu`:
--- an entry that stops being blocked stays unblocked, and `nameable-mono`
--- carries its visibility along the second step.)
+-- Refinement composes.  Transitivity is now the LOCK LAYER's four legal
+-- compositions over `⊑ᵇ-trans`, and no clause has to carry a `Nameable`
+-- witness: the second step's lock is read off its constructor.
+⊑ᵇ-trans : b ⊑ᵇ b′ → b′ ⊑ᵇ b″ → b ⊑ᵇ b″
+⊑ᵇ-trans le-aa l′    = l′
+⊑ᵇ-trans le-ab le-bb = le-ab
+⊑ᵇ-trans le-bb le-bb = le-bb
+
 ⊑ᵉ-trans : E ⊑ᵉ E′ → E′ ⊑ᵉ E″ → E ⊑ᵉ E″
-⊑ᵉ-trans le-aa       l′           = l′
-⊑ᵉ-trans le-ab       le-bb        = le-ab
-⊑ᵉ-trans le-bb       le-bb        = le-bb
-⊑ᵉ-trans (le-mm l)   (le-mm l′)   = le-mm (⊑ᵉ-trans l l′)
-⊑ᵉ-trans (le-mm l)   (le-mu l′ v) = le-mu (⊑ᵉ-trans l l′) v
-⊑ᵉ-trans (le-mu l v) l′           = le-mu (⊑ᵉ-trans l l′) (nameable-mono l′ v)
+⊑ᵉ-trans (le-uu l) (le-uu l′) = le-uu (⊑ᵇ-trans l l′)
+⊑ᵉ-trans (le-mm l) (le-mm l′) = le-mm (⊑ᵇ-trans l l′)
+⊑ᵉ-trans (le-mm l) (le-mu l′) = le-mu (⊑ᵇ-trans l l′)
+⊑ᵉ-trans (le-mu l) (le-uu l′) = le-mu (⊑ᵇ-trans l l′)
 
 ⊑-trans : Δ ⊑ Δ′ → Δ′ ⊑ Δ″ → Δ ⊑ Δ″
 ⊑-trans le[]       le[]         = le[]
@@ -301,7 +344,7 @@ nameable-mono (le-mu _ _)  ()
 ⊑-wf ls wf-ℕ         = wf-ℕ
 ⊑-wf ls wf-𝔹         = wf-𝔹
 ⊑-wf ls (wf-⇒ wA wB) = wf-⇒ (⊑-wf ls wA) (⊑-wf ls wB)
-⊑-wf ls (wf-∀ wA)    = wf-∀ (⊑-wf (le∷ le-aa ls) wA)
+⊑-wf ls (wf-∀ wA)    = wf-∀ (⊑-wf (le∷ (le-uu le-aa) ls) wA)
 
 ------------------------------------------------------------------------
 -- 4b.  TRANSPORT IIa — refinement THAT DOES NOT RE-EXPOSE
@@ -314,11 +357,12 @@ nameable-mono (le-mu _ _)  ()
 -- (`sw-u`, strong.CtxMorph) and `le-mu` destroys the claim.  Types and
 -- conversions keep the full `_⊑_` (`⊑-wf`, `conv-⊑`): a TYPE claims
 -- nameability, which only grows.
+-- The BINDING layer is shared with `_⊑ᵉ_` — learning a rep at an
+-- abstract slot is legal for both.  Only the LOCK layer differs: the two
+-- locks must AGREE.
 data _⊑ᵃᵉ_ : Ent → Ent → Set where
-  la-aa : abst ⊑ᵃᵉ abst
-  la-ab : abst ⊑ᵃᵉ bind A
-  la-bb : bind A ⊑ᵃᵉ bind A
-  la-mm : E ⊑ᵃᵉ E′ → masked E ⊑ᵃᵉ masked E′
+  la-uu : b ⊑ᵇ b′ → unmasked b ⊑ᵃᵉ unmasked b′
+  la-mm : b ⊑ᵇ b′ → masked b   ⊑ᵃᵉ masked b′
 
 infix 4 _⊑ᵃ_
 data _⊑ᵃ_ : Ctxᵗ → Ctxᵗ → Set where
@@ -326,29 +370,24 @@ data _⊑ᵃ_ : Ctxᵗ → Ctxᵗ → Set where
   la∷  : E ⊑ᵃᵉ E′ → Δ ⊑ᵃ Δ′ → (E ∷ Δ) ⊑ᵃ (E′ ∷ Δ′)
 
 ⊑ᵃᵉ→⊑ᵉ : E ⊑ᵃᵉ E′ → E ⊑ᵉ E′
-⊑ᵃᵉ→⊑ᵉ la-aa     = le-aa
-⊑ᵃᵉ→⊑ᵉ la-ab     = le-ab
-⊑ᵃᵉ→⊑ᵉ la-bb     = le-bb
-⊑ᵃᵉ→⊑ᵉ (la-mm l) = le-mm (⊑ᵃᵉ→⊑ᵉ l)
+⊑ᵃᵉ→⊑ᵉ (la-uu l) = le-uu l
+⊑ᵃᵉ→⊑ᵉ (la-mm l) = le-mm l
 
 ⊑ᵃ→⊑ : Δ ⊑ᵃ Δ′ → Δ ⊑ Δ′
 ⊑ᵃ→⊑ la[]        = le[]
 ⊑ᵃ→⊑ (la∷ l ls)  = le∷ (⊑ᵃᵉ→⊑ᵉ l) (⊑ᵃ→⊑ ls)
 
 ⊑ᵃᵉ-refl : (E : Ent) → E ⊑ᵃᵉ E
-⊑ᵃᵉ-refl abst       = la-aa
-⊑ᵃᵉ-refl (bind A)   = la-bb
-⊑ᵃᵉ-refl (masked E) = la-mm (⊑ᵃᵉ-refl E)
+⊑ᵃᵉ-refl (unmasked b) = la-uu (⊑ᵇ-refl b)
+⊑ᵃᵉ-refl (masked b)   = la-mm (⊑ᵇ-refl b)
 
 ⊑ᵃ-refl : (Δ : Ctxᵗ) → Δ ⊑ᵃ Δ
 ⊑ᵃ-refl []      = la[]
 ⊑ᵃ-refl (E ∷ Δ) = la∷ (⊑ᵃᵉ-refl E) (⊑ᵃ-refl Δ)
 
 ⊑ᵃᵉ-⇑ : E ⊑ᵃᵉ E′ → ⇑ᵉ E ⊑ᵃᵉ ⇑ᵉ E′
-⊑ᵃᵉ-⇑ la-aa     = la-aa
-⊑ᵃᵉ-⇑ la-ab     = la-ab
-⊑ᵃᵉ-⇑ la-bb     = la-bb
-⊑ᵃᵉ-⇑ (la-mm l) = la-mm (⊑ᵃᵉ-⇑ l)
+⊑ᵃᵉ-⇑ (la-uu l) = la-uu (⊑ᵇ-⇑ l)
+⊑ᵃᵉ-⇑ (la-mm l) = la-mm (⊑ᵇ-⇑ l)
 
 ⊑ᵃ-∋e : Δ ⊑ᵃ Δ′ → Δ ∋e X , E → ∃[ E′ ] ((Δ′ ∋e X , E′) × E ⊑ᵃᵉ E′)
 ⊑ᵃ-∋e (la∷ l ls) ez     = _ , ez , ⊑ᵃᵉ-⇑ l
@@ -358,7 +397,8 @@ data _⊑ᵃ_ : Ctxᵗ → Ctxᵗ → Set where
 -- THE CLAUSE THAT MAKES `⊑ᵃ` THE RIGHT TRANSPORT FOR A BOUNDARY: a
 -- LOCKED slot stays locked.  (Under `_⊑_` it need not — that is `le-mu`.)
 ⊑ᵃᵉ-Locked : E ⊑ᵃᵉ E′ → Locked E → Locked E′
-⊑ᵃᵉ-Locked (la-mm l) (locked v) = locked (nameable-mono (⊑ᵃᵉ→⊑ᵉ l) v)
+⊑ᵃᵉ-Locked (la-uu l) ()
+⊑ᵃᵉ-Locked (la-mm l) locked = locked
 
 ⊑ᵃ-tv : Δ ⊑ᵃ Δ′ → Δ ∋tv X → Δ′ ∋tv X
 ⊑ᵃ-tv ls tv = ⊑-tv (⊑ᵃ→⊑ ls) tv
@@ -437,31 +477,42 @@ base≢var n base-𝔹 eq with trans (sym (shiftBy-base n base-𝔹)) eq
 -- 6.  Masking a slot in place  (the conceal/alias mechanism)
 ------------------------------------------------------------------------
 
--- One entry update at one slot: `mask = updateAt masked` and
+-- One entry update at one slot: `mask = updateAt maskEnt` and
 -- `unmask = updateAt unmaskEnt`.
 updateAt : (Ent → Ent) → ℕ → Ctxᵗ → Ctxᵗ
 updateAt f X       []      = []
 updateAt f zero    (E ∷ Δ) = f E ∷ Δ
 updateAt f (suc X) (E ∷ Δ) = E ∷ updateAt f X Δ
 
+-- SETTING THE LOCK, AND CLEARING IT.  Both are TOTAL and IDEMPOTENT:
+-- there is only one lock to set or clear.  `maskEnt` is never applied to
+-- an already-masked slot in a well-formed term — `sw-l`
+-- (strong.CtxMorph), the change half of `Δ ⊢ᵐ Θ`, admits `lock X` only at
+-- a NAMEABLE slot — but the function does not have to know that, and that
+-- is the point: nothing has to rule out a second mask, because a second
+-- mask is not expressible.
+maskEnt : Ent → Ent
+maskEnt (unmasked b) = masked b
+maskEnt (masked b)   = masked b
+
 unmaskEnt : Ent → Ent
-unmaskEnt abst       = abst
-unmaskEnt (bind A)   = bind A
-unmaskEnt (masked E) = E
+unmaskEnt (unmasked b) = unmasked b
+unmaskEnt (masked b)   = unmasked b
 
 mask unmask : ℕ → Ctxᵗ → Ctxᵗ
-mask   = updateAt masked
+mask   = updateAt maskEnt
 unmask = updateAt unmaskEnt
 
 -- Both update functions commute with renaming — they touch no spelling.
-masked-comm : (ρ : Renameᵗ) (E : Ent) → renᵉ ρ (masked E) ≡ masked (renᵉ ρ E)
-masked-comm ρ E = refl
+maskEnt-comm : (ρ : Renameᵗ) (E : Ent)
+  → renᵉ ρ (maskEnt E) ≡ maskEnt (renᵉ ρ E)
+maskEnt-comm ρ (unmasked b) = refl
+maskEnt-comm ρ (masked b)   = refl
 
 unmaskEnt-comm : (ρ : Renameᵗ) (E : Ent)
   → renᵉ ρ (unmaskEnt E) ≡ unmaskEnt (renᵉ ρ E)
-unmaskEnt-comm ρ abst       = refl
-unmaskEnt-comm ρ (bind A)   = refl
-unmaskEnt-comm ρ (masked E) = refl
+unmaskEnt-comm ρ (unmasked b) = refl
+unmaskEnt-comm ρ (masked b)   = refl
 
 _≟ℕ_ : (X Y : ℕ) → Dec (X ≡ Y)
 zero  ≟ℕ zero  = yes refl
@@ -520,64 +571,59 @@ module _ (f : Ent → Ent)
   ⊑-updateAt {suc X} fm (le∷ l ls) = le∷ l (⊑-updateAt fm ls)
   ⊑-updateAt         fm le[]       = le[]
 
-masked-mono : E ⊑ᵉ E′ → masked E ⊑ᵉ masked E′
-masked-mono = le-mm
+maskEnt-mono : E ⊑ᵉ E′ → maskEnt E ⊑ᵉ maskEnt E′
+maskEnt-mono (le-uu l) = le-mm l
+maskEnt-mono (le-mm l) = le-mm l
+maskEnt-mono (le-mu l) = le-mm l
 
--- Masking a slot only LOSES nameability, so a masked type context refines to the
--- unmasked one.  (There is no converse: that is the deleted demotion.)
-masked-le : E ⊑ᵉ E′ → masked E ⊑ᵉ E′
-masked-le le-aa       = le-mu le-aa nameable-a
-masked-le le-ab       = le-mu le-ab nameable-b
-masked-le le-bb       = le-mu le-bb nameable-b
-masked-le (le-mm l)   = le-mm (masked-le l)
-masked-le (le-mu l v) = le-mu (le-mu l v) v
-
-unmaskEnt-nameable : E ⊑ᵉ E′ → Nameable E′ → E ⊑ᵉ unmaskEnt E′
-unmaskEnt-nameable l nameable-a = l
-unmaskEnt-nameable l nameable-b = l
+-- Masking a slot only LOSES nameability, so a masked type context refines
+-- to the unmasked one.  (There is no converse: that is the deleted
+-- demotion.)
+-- Every clause is now ONE lock step, with no recursion and no `Nameable`
+-- witness to invent — the target's lock is read off its constructor.
+maskEnt-le : E ⊑ᵉ E′ → maskEnt E ⊑ᵉ E′
+maskEnt-le (le-uu l) = le-mu l
+maskEnt-le (le-mm l) = le-mm l
+maskEnt-le (le-mu l) = le-mu l
 
 unmaskEnt-mono : E ⊑ᵉ E′ → unmaskEnt E ⊑ᵉ unmaskEnt E′
-unmaskEnt-mono le-aa       = le-aa
-unmaskEnt-mono le-ab       = le-ab
-unmaskEnt-mono le-bb       = le-bb
-unmaskEnt-mono (le-mm l)   = l
-unmaskEnt-mono (le-mu l v) = unmaskEnt-nameable l v
+unmaskEnt-mono (le-uu l) = le-uu l
+unmaskEnt-mono (le-mm l) = le-uu l
+unmaskEnt-mono (le-mu l) = le-uu l
 
 ren-mask : Ren ρ Δ Δ′ → Inj ρ → Ren ρ (mask X Δ) (mask (ρ X) Δ′)
-ren-mask = ren-updateAt masked masked-comm
+ren-mask = ren-updateAt maskEnt maskEnt-comm
 
 ren-unmask : Ren ρ Δ Δ′ → Inj ρ → Ren ρ (unmask X Δ) (unmask (ρ X) Δ′)
 ren-unmask = ren-updateAt unmaskEnt unmaskEnt-comm
 
 mask-⊑ : (Y : ℕ) → Δ ⊑ Δ′ → mask Y Δ ⊑ Δ′
 mask-⊑ Y       le[]        = le[]
-mask-⊑ zero    (le∷ l ls)  = le∷ (masked-le l) ls
+mask-⊑ zero    (le∷ l ls)  = le∷ (maskEnt-le l) ls
 mask-⊑ (suc Y) (le∷ l ls)  = le∷ l (mask-⊑ Y ls)
 
 -- Unmasking only ADDS nameability, so the type context refines to its own
--- unmasking.  (The `masked` clause is `masked-le` at reflexivity: peeling one
--- `masked` is the ⊑ᵉ step `le-mu`.)
+-- unmasking.  (The `masked` clause is the ⊑ᵉ step `le-mu` itself: there
+-- is exactly one lock to clear.)
 ⊑ᵉ-unmaskEnt : (E : Ent) → E ⊑ᵉ unmaskEnt E
-⊑ᵉ-unmaskEnt abst        = le-aa
-⊑ᵉ-unmaskEnt (bind A)    = le-bb
-⊑ᵉ-unmaskEnt (masked E)  = masked-le (⊑ᵉ-refl E)
+⊑ᵉ-unmaskEnt (unmasked b) = le-uu (⊑ᵇ-refl b)
+⊑ᵉ-unmaskEnt (masked b)   = le-mu (⊑ᵇ-refl b)
 
 unmask-⊑ : (Y : ℕ) (Δ : Ctxᵗ) → Δ ⊑ unmask Y Δ
 unmask-⊑ Y       []      = le[]
 unmask-⊑ zero    (E ∷ Δ) = le∷ (⊑ᵉ-unmaskEnt E) (⊑-refl Δ)
 unmask-⊑ (suc Y) (E ∷ Δ) = le∷ (⊑ᵉ-refl E) (unmask-⊑ Y Δ)
 
--- The `_⊑ᵃ_` transport of a one-slot update.  Both `masked` and
--- `unmaskEnt` are monotone for it — and `unmaskEnt` is TOTAL here only
--- because `_⊑ᵃᵉ_` has no `le-mu` clause to think about.
-masked-monoᵃ : E ⊑ᵃᵉ E′ → masked E ⊑ᵃᵉ masked E′
-masked-monoᵃ = la-mm
+-- The `_⊑ᵃ_` transport of a one-slot update.  Both `maskEnt` and
+-- `unmaskEnt` are monotone for it: each simply rewrites the LOCK layER
+-- and passes the binding step through.
+maskEnt-monoᵃ : E ⊑ᵃᵉ E′ → maskEnt E ⊑ᵃᵉ maskEnt E′
+maskEnt-monoᵃ (la-uu l) = la-mm l
+maskEnt-monoᵃ (la-mm l) = la-mm l
 
 unmaskEnt-monoᵃ : E ⊑ᵃᵉ E′ → unmaskEnt E ⊑ᵃᵉ unmaskEnt E′
-unmaskEnt-monoᵃ la-aa     = la-aa
-unmaskEnt-monoᵃ la-ab     = la-ab
-unmaskEnt-monoᵃ la-bb     = la-bb
-unmaskEnt-monoᵃ (la-mm l) = l
+unmaskEnt-monoᵃ (la-uu l) = la-uu l
+unmaskEnt-monoᵃ (la-mm l) = la-uu l
 
 ⊑ᵃ-updateAt : (f : Ent → Ent) → (∀ {E E′} → E ⊑ᵃᵉ E′ → f E ⊑ᵃᵉ f E′)
   → ∀ {X Δ Δ′} → Δ ⊑ᵃ Δ′ → updateAt f X Δ ⊑ᵃ updateAt f X Δ′
@@ -589,18 +635,32 @@ unmaskEnt-monoᵃ (la-mm l) = l
 -- 6b.  Locking and unlocking are EXACT INVERSES at a LOCKED slot
 ------------------------------------------------------------------------
 
--- Unmasking undoes masking, always: `masked` is injective.
-unmask-mask : (X : ℕ) (Δ : Ctxᵗ) → unmask X (mask X Δ) ≡ Δ
-unmask-mask X       []      = refl
-unmask-mask zero    (E ∷ Δ) = refl
-unmask-mask (suc X) (E ∷ Δ) = cong (E ∷_) (unmask-mask X Δ)
+-- THE TWO INVERSES ARE NOW SYMMETRIC, and each carries the one-clause
+-- premise its own direction needs.
+--
+-- Unmasking undoes masking ONLY AT A NAMEABLE SLOT.  This is the ONE
+-- place the two-layer entry costs something: with a stack of masks,
+-- `unmask ∘ mask` was the identity everywhere (`masked` was injective and
+-- the extra lock was simply popped); with one lock, `maskEnt` is
+-- IDEMPOTENT, so at an already-masked slot `unmask (mask X Δ)` exposes
+-- what Δ had hidden.  The premise is always at hand: `sw-l`
+-- (strong.CtxMorph) admits `lock X` only at a `∋tv` slot, which is
+-- exactly the discipline that made double masking unreachable before.
+unmaskEnt-maskEnt : Nameable E → unmaskEnt (maskEnt E) ≡ E
+unmaskEnt-maskEnt nameable = refl
+
+unmask-mask : ∀ {Δ X} → Δ ∋tv X → unmask X (mask X Δ) ≡ Δ
+unmask-mask (_ , ez   , v) =
+  cong (_∷ _) (unmaskEnt-maskEnt (renᵉ-Nameable⁻ v))
+unmask-mask (_ , es d , v) =
+  cong (_ ∷_) (unmask-mask (_ , d , renᵉ-Nameable⁻ v))
 
 -- Masking undoes unmasking ONLY at a LOCKED slot — which is exactly what
 -- `sw-u` (strong.CtxMorph) demands of every `unlock`, and exactly why a
 -- vacuous unlock had to be refused: at an already-nameable slot the
 -- restoring `lock` of the dual would mask what the exterior left visible.
-maskEnt-unmask : Locked E → masked (unmaskEnt E) ≡ E
-maskEnt-unmask (locked v) = refl
+maskEnt-unmask : Locked E → maskEnt (unmaskEnt E) ≡ E
+maskEnt-unmask locked = refl
 
 mask-unmask : ∀ {Δ X} → Δ ∋lk X → mask X (unmask X Δ) ≡ Δ
 mask-unmask (_ , ez     , lk) =
@@ -610,12 +670,12 @@ mask-unmask (_ , es d   , lk) =
 
 -- The two entry-level moves the dual performs, as lookup facts.
 unmask-∋tv : ∀ {Δ X} → Δ ∋lk X → unmask X Δ ∋tv X
-unmask-∋tv (E , d , locked v) =
-  _ , updateAt-hit unmaskEnt unmaskEnt-comm d , v
+unmask-∋tv (masked b , d , locked) =
+  _ , updateAt-hit unmaskEnt unmaskEnt-comm d , nameable
 
 mask-∋lk : ∀ {Δ X} → Δ ∋tv X → mask X Δ ∋lk X
-mask-∋lk (E , d , v) =
-  _ , updateAt-hit masked masked-comm d , locked v
+mask-∋lk (unmasked b , d , nameable) =
+  _ , updateAt-hit maskEnt maskEnt-comm d , locked
 
 ------------------------------------------------------------------------
 -- 7.  The bind prefix
@@ -628,7 +688,8 @@ mask-∋lk (E , d , v) =
 -- sibling binds never interfere.
 pushBinds : List Ty → Ctxᵗ → Ctxᵗ
 pushBinds []       Δ = Δ
-pushBinds (A ∷ As) Δ = bind (shiftBy (length As) A) ∷ pushBinds As Δ
+pushBinds (A ∷ As) Δ =
+  unmasked (bind (shiftBy (length As) A)) ∷ pushBinds As Δ
 
 -- As a well-formedness fact: a type over the exterior is a type inside
 -- the bind prefix, lifted past exactly the binders in that prefix.
@@ -649,7 +710,8 @@ updateAt-pushBinds : (f : Ent → Ent) (As : List Ty) (X : ℕ) (Δ : Ctxᵗ)
   → updateAt f (length As + X) (pushBinds As Δ) ≡ pushBinds As (updateAt f X Δ)
 updateAt-pushBinds f []       X Δ = refl
 updateAt-pushBinds f (C ∷ As) X Δ =
-  cong (bind (shiftBy (length As) C) ∷_) (updateAt-pushBinds f As X Δ)
+  cong (unmasked (bind (shiftBy (length As) C)) ∷_)
+       (updateAt-pushBinds f As X Δ)
 
 -- A well-formed variable type IS a visible slot.
 wf-var⁻ : Δ ⊢ᵗ ` X → Δ ∋tv X
@@ -657,11 +719,11 @@ wf-var⁻ (wf-var tv) = tv
 
 ⊑-pushBinds : (As : List Ty) → Δ ⊑ Δ′ → pushBinds As Δ ⊑ pushBinds As Δ′
 ⊑-pushBinds []       ls = ls
-⊑-pushBinds (A ∷ As) ls = le∷ le-bb (⊑-pushBinds As ls)
+⊑-pushBinds (A ∷ As) ls = le∷ (le-uu le-bb) (⊑-pushBinds As ls)
 
 ⊑ᵃ-pushBinds : (As : List Ty) → Δ ⊑ᵃ Δ′ → pushBinds As Δ ⊑ᵃ pushBinds As Δ′
 ⊑ᵃ-pushBinds []       ls = ls
-⊑ᵃ-pushBinds (A ∷ As) ls = la∷ la-bb (⊑ᵃ-pushBinds As ls)
+⊑ᵃ-pushBinds (A ∷ As) ls = la∷ (la-uu le-bb) (⊑ᵃ-pushBinds As ls)
 
 -- The bind prefix transports the three entry-level lookups the boundary
 -- judgement reads: a rep, a nameable slot, and a LOCKED slot.

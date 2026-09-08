@@ -68,7 +68,8 @@ open import Relation.Nullary using (¬_)
 open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; _[_]ᵗ; renameᵗ; extᵗ)
 open import strong.Ctx
-  using (Ctxᵗ; Ent; abst; bind; masked; Base; _⊢ᵗ_; _∋_:=_; shiftBy)
+  using (Ctxᵗ; Ent; Binding; unmasked; masked; abst; bind; Base; _⊢ᵗ_;
+         _∋_:=_; shiftBy)
 open import strong.Conversion
   using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_; reveal; instReveal)
 open import strong.Terms
@@ -156,7 +157,7 @@ preservation-Drop$ = preserve-Drop$
 -- the conversion is the mint at the binder the rule introduces.
 preservation-TyPeelR : ∀ {V Θ s B Bᵢ Bₑ}
   → Value V
-  → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
     -----------------------------------------------------
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])

@@ -61,9 +61,8 @@ private
 -- if the entry was.  (`masked` is the only unnameable shape, and `renᵉ`
 -- keeps it.)
 Nameable-ren⁻ : ∀ {E} → Nameable (renᵉ ρ E) → Nameable E
-Nameable-ren⁻ {E = abst}   v  = nameable-a
-Nameable-ren⁻ {E = bind A} v  = nameable-b
-Nameable-ren⁻ {E = masked E}  ()
+Nameable-ren⁻ {E = unmasked b} v = nameable
+Nameable-ren⁻ {E = masked b}   ()
 
 ∋tv-tail : ∀ {E} → (E ∷ Δ) ∋tv suc X → Δ ∋tv X
 ∋tv-tail (_ , es d , v) = _ , d , Nameable-ren⁻ v
@@ -73,8 +72,9 @@ Nameable-ren⁻ {E = masked E}  ()
 SubWf : Ctxᵗ → Ctxᵗ → Substᵗ → Set
 SubWf Δ Δ′ σ = ∀ {X} → Δ ∋tv X → Δ′ ⊢ᵗ σ X
 
-SubWf-ext : ∀ {σ} → SubWf Δ Δ′ σ → SubWf (abst ∷ Δ) (abst ∷ Δ′) (extsᵗ σ)
-SubWf-ext h {zero}  tv = wf-var (abst , ez , nameable-a)
+SubWf-ext : ∀ {σ} → SubWf Δ Δ′ σ
+  → SubWf (unmasked abst ∷ Δ) (unmasked abst ∷ Δ′) (extsᵗ σ)
+SubWf-ext h {zero}  tv = wf-var (unmasked abst , ez , nameable)
 SubWf-ext h {suc X} tv = wf-ren Ren-wk (h (∋tv-tail tv))
 
 wf-substᵗ : ∀ {σ} → SubWf Δ Δ′ σ → Δ ⊢ᵗ A → Δ′ ⊢ᵗ substᵗ σ A
@@ -84,7 +84,7 @@ wf-substᵗ h wf-𝔹         = wf-𝔹
 wf-substᵗ h (wf-⇒ wA wB) = wf-⇒ (wf-substᵗ h wA) (wf-substᵗ h wB)
 wf-substᵗ h (wf-∀ wA)    = wf-∀ (wf-substᵗ (SubWf-ext h) wA)
 
-wf-[]ᵗ : (abst ∷ Δ) ⊢ᵗ B → Δ ⊢ᵗ A → Δ ⊢ᵗ B [ A ]ᵗ
+wf-[]ᵗ : (unmasked abst ∷ Δ) ⊢ᵗ B → Δ ⊢ᵗ A → Δ ⊢ᵗ B [ A ]ᵗ
 wf-[]ᵗ {A = A} wB wA = wf-substᵗ h wB
   where
   h : SubWf _ _ (singleTyEnv A)
@@ -102,7 +102,7 @@ CtxWf-∷ : Δ ⊢ᵗ A → CtxWf Δ Γ → CtxWf Δ (A ∷ Γ)
 CtxWf-∷ w h here      = w
 CtxWf-∷ w h (there d) = h d
 
-CtxWf-⤊ : CtxWf Δ Γ → CtxWf (abst ∷ Δ) (⤊ Γ)
+CtxWf-⤊ : CtxWf Δ Γ → CtxWf (unmasked abst ∷ Δ) (⤊ Γ)
 CtxWf-⤊ h d with ∋⦂-map⁻ d
 ... | A , refl , q = wf-ren Ren-wk (h q)
 
@@ -251,44 +251,59 @@ ren-suc-[0] T =
 -- one entry, `n` binders in.
 abstN : ℕ → Ctxᵗ → Ctxᵗ
 abstN zero    Ξ = Ξ
-abstN (suc n) Ξ = abst ∷ abstN n Ξ
+abstN (suc n) Ξ = unmasked abst ∷ abstN n Ξ
 
-abstN-binder : ∀ {Ψ A} (n : ℕ) → abstN n (bind A ∷ Ψ) ∋ n := shiftBy (suc n) A
+abstN-binder : ∀ {Ψ A} (n : ℕ)
+  → abstN n (unmasked (bind A) ∷ Ψ) ∋ n := shiftBy (suc n) A
 abstN-binder zero    = ez
 abstN-binder (suc n) = es (abstN-binder n)
 
-abstN-⊑ : ∀ {Ψ A} (n : ℕ) → abstN n (abst ∷ Ψ) ⊑ abstN n (bind A ∷ Ψ)
-abstN-⊑ {Ψ = Ψ} zero = le∷ le-ab (⊑-refl Ψ)
-abstN-⊑ (suc n)      = le∷ le-aa (abstN-⊑ n)
+abstN-⊑ : ∀ {Ψ A} (n : ℕ)
+  → abstN n (unmasked abst ∷ Ψ) ⊑ abstN n (unmasked (bind A) ∷ Ψ)
+abstN-⊑ {Ψ = Ψ} zero = le∷ (le-uu le-ab) (⊑-refl Ψ)
+abstN-⊑ (suc n)      = le∷ (le-uu le-aa) (abstN-⊑ n)
 
 -- The mint, applied to a whole ENTRY (the form the lookup transport
--- needs, since `∋e` returns entries and only `bind` carries a rep).
+-- needs, since `∋e` returns entries and only `bind` carries a rep).  It
+-- is a BINDING operation lifted through the lock layer: the mint never
+-- touches a lock, and with one lock per entry that is one clause each,
+-- no recursion.
+substᵇ : ℕ → Ty → Binding → Binding
+substᵇ n R abst     = abst
+substᵇ n R (bind A) = bind (A [ n := R ]ᵗ)
+
 substᵉ : ℕ → Ty → Ent → Ent
-substᵉ n R abst        = abst
-substᵉ n R (bind A)    = bind (A [ n := R ]ᵗ)
-substᵉ n R (masked E)  = masked (substᵉ n R E)
+substᵉ n R (unmasked b) = unmasked (substᵇ n R b)
+substᵉ n R (masked b)   = masked (substᵇ n R b)
+
+substᵇ-0-⇑ : (R : Ty) (b : Binding) → substᵇ 0 R (renᵇ suc b) ≡ renᵇ suc b
+substᵇ-0-⇑ R abst     = refl
+substᵇ-0-⇑ R (bind A) = cong bind (subst-at-0-⇑ R A)
 
 substᵉ-0-⇑ : (R : Ty) (E : Ent) → substᵉ 0 R (⇑ᵉ E) ≡ ⇑ᵉ E
-substᵉ-0-⇑ R abst        = refl
-substᵉ-0-⇑ R (bind A)    = cong bind (subst-at-0-⇑ R A)
-substᵉ-0-⇑ R (masked E)  = cong masked (substᵉ-0-⇑ R E)
+substᵉ-0-⇑ R (unmasked b) = cong unmasked (substᵇ-0-⇑ R b)
+substᵉ-0-⇑ R (masked b)   = cong masked (substᵇ-0-⇑ R b)
+
+substᵇ-⇑ : (n : ℕ) (R : Ty) (b : Binding)
+  → substᵇ (suc n) (⇑ᵗ R) (renᵇ suc b) ≡ renᵇ suc (substᵇ n R b)
+substᵇ-⇑ n R abst     = refl
+substᵇ-⇑ n R (bind A) = cong bind (subst-at-⇑ n R A)
 
 substᵉ-⇑ : (n : ℕ) (R : Ty) (E : Ent)
   → substᵉ (suc n) (⇑ᵗ R) (⇑ᵉ E) ≡ ⇑ᵉ (substᵉ n R E)
-substᵉ-⇑ n R abst        = refl
-substᵉ-⇑ n R (bind A)    = cong bind (subst-at-⇑ n R A)
-substᵉ-⇑ n R (masked E)  = cong masked (substᵉ-⇑ n R E)
+substᵉ-⇑ n R (unmasked b) = cong unmasked (substᵇ-⇑ n R b)
+substᵉ-⇑ n R (masked b)   = cong masked (substᵇ-⇑ n R b)
 
--- WHAT THE OTHER SLOTS OWE.  Every entry of `abstN n (abst ∷ Ψ)` is
+-- WHAT THE OTHER SLOTS OWE.  Every entry of `abstN n (unmasked abst ∷ Ψ)` is
 -- either ABSTRACT (the prefix, and slot n itself) or an entry of Ψ read
 -- past `n+1` binders — and such an entry names no slot ≤ n, so the mint
 -- at slot n leaves it alone: a rep is lifted past exactly the binders
 -- inside it, so it never names a slot of the bind prefix.
 abstN-ent : ∀ {Ψ A} (n : ℕ) {Y E}
-  → abstN n (abst ∷ Ψ) ∋e Y , E
+  → abstN n (unmasked abst ∷ Ψ) ∋e Y , E
     ------------------------------------------------------------
-  → (E ≡ abst)
-  ⊎ ((abstN n (bind A ∷ Ψ) ∋e Y , E)
+  → (E ≡ unmasked abst)
+  ⊎ ((abstN n (unmasked (bind A) ∷ Ψ) ∋e Y , E)
      × (substᵉ n (shiftBy (suc n) A) E ≡ E))
 abstN-ent zero ez                = inj₁ refl
 abstN-ent {A = A} zero (es {E = E} d) =
@@ -300,9 +315,9 @@ abstN-ent {A = A} (suc n) (es {E = E} d) with abstN-ent {A = A} n d
   inj₂ (es d′ , trans (substᵉ-⇑ n (shiftBy (suc n) A) E) (cong ⇑ᵉ eq))
 
 abstN-kn : ∀ {Ψ A} (n : ℕ) {Y B}
-  → abstN n (abst ∷ Ψ) ∋ Y := B
+  → abstN n (unmasked abst ∷ Ψ) ∋ Y := B
     -------------------------------------------------------
-  → (abstN n (bind A ∷ Ψ) ∋ Y := B)
+  → (abstN n (unmasked (bind A) ∷ Ψ) ∋ Y := B)
     × (B [ n := shiftBy (suc n) A ]ᵗ ≡ B)
 abstN-kn {A = A} n d with abstN-ent {A = A} n d
 ... | inj₁ ()
@@ -313,11 +328,13 @@ abstN-kn {A = A} n d with abstN-ent {A = A} n d
 -- index used to rule out (a `seal` under `instReveal`, an `unseal`
 -- under `instConceal`): such a leaf cites a BINDER, and slot n has
 -- none.
-abstN-abst : ∀ {Ψ E} (n : ℕ) → abstN n (abst ∷ Ψ) ∋e n , E → E ≡ abst
+abstN-abst : ∀ {Ψ E} (n : ℕ)
+  → abstN n (unmasked abst ∷ Ψ) ∋e n , E → E ≡ unmasked abst
 abstN-abst zero    ez     = refl
 abstN-abst (suc n) (es d) = cong ⇑ᵉ (abstN-abst n d)
 
-abstN-≢ : ∀ {Ψ B Y} (n : ℕ) → abstN n (abst ∷ Ψ) ∋ Y := B → ¬ (n ≡ Y)
+abstN-≢ : ∀ {Ψ B Y} (n : ℕ)
+  → abstN n (unmasked abst ∷ Ψ) ∋ Y := B → ¬ (n ≡ Y)
 abstN-≢ n d refl with abstN-abst n d
 ... | ()
 
@@ -334,9 +351,9 @@ abstN-≢ n d refl with abstN-abst n d
 -- not the terms.
 mutual
   ⊢instReveal : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
-    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+    → abstN n (unmasked abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       ------------------------------------------------------------
-    → abstN n (bind A ∷ Ψ) ⊢ instReveal n s
+    → abstN n (unmasked (bind A) ∷ Ψ) ⊢ instReveal n s
         ∶ Bᵢ ⇝ Bₑ [ n := shiftBy (suc n) A ]ᵗ
   ⊢instReveal n (conv-id base-ℕ) = conv-id base-ℕ
   ⊢instReveal n (conv-id base-𝔹) = conv-id base-𝔹
@@ -357,9 +374,9 @@ mutual
       conv-all (⊢instReveal (suc n) ⊢s)
 
   ⊢instConceal : ∀ {Ψ A s Bᵢ Bₑ} (n : ℕ)
-    → abstN n (abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+    → abstN n (unmasked abst ∷ Ψ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       ------------------------------------------------------------
-    → abstN n (bind A ∷ Ψ) ⊢ instConceal n s
+    → abstN n (unmasked (bind A) ∷ Ψ) ⊢ instConceal n s
         ∶ Bᵢ [ n := shiftBy (suc n) A ]ᵗ ⇝ Bₑ
   ⊢instConceal n (conv-id base-ℕ) = conv-id base-ℕ
   ⊢instConceal n (conv-id base-𝔹) = conv-id base-𝔹
@@ -413,17 +430,17 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
       conv
       (wf-[]ᵗ wB wA)
   where
-  refine : (abst ∷ Δ) ⊑ᵃ (bind A ∷ Δ)
-  refine = la∷ la-ab (⊑ᵃ-refl Δ)
+  refine : (unmasked abst ∷ Δ) ⊑ᵃ (unmasked (bind A) ∷ Δ)
+  refine = la∷ (la-uu le-ab) (⊑ᵃ-refl Δ)
 
-  conv : (bind A ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
+  conv : (unmasked (bind A) ∷ Δ) ⊢ reveal 0 B ∶ B ⇝ shiftBy 1 (B [ A ]ᵗ)
   conv rewrite sym (subst-at-0 A B) = ⊢reveal ez (⊑-wf (⊑ᵃ→⊑ refine) wB)
 
 -- ── TYPEELR, AT ANY ∀ CONVERSION ───────────────────────────────────────
 -- Four moves, one per premise of the contractum's `env`:
 --
 --   FRAME       one bind prepended to Θ, whose interior is
---               `bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`
+--               `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ`
 --               DEFINITIONALLY — the shift `renᴮ suc Θ` used to add is
 --               the one `pushBinds` already performs.
 --   INTERIOR    `wkᴹ 1 V` (⊢rename at `Ren-wk`) instantiated at the new
@@ -445,7 +462,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} (⊢·[] (⊢Λ ⊢N) wA)
 -- typing (`⊢instReveal`, §2b) is total, and so is this case.
 TyPeelRCase : Set
 TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
-  → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
@@ -453,7 +470,7 @@ TyPeelRCase = ∀ {Δ V Θ s B A C Bᵢ Bₑ} → Value V
 ∀-inj : ∀ {A B} → _≡_ {A = Ty} (`∀ A) (`∀ B) → A ≡ B
 ∀-inj refl = refl
 
-wf-∀⁻ : Δ ⊢ᵗ `∀ A → (abst ∷ Δ) ⊢ᵗ A
+wf-∀⁻ : Δ ⊢ᵗ `∀ A → (unmasked abst ∷ Δ) ⊢ᵗ A
 wf-∀⁻ (wf-∀ w) = w
 
 -- The exterior body, lifted: `shiftBodyBy` and the instantiation commute.
@@ -482,7 +499,8 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
   eqB : Bₑ ≡ shiftBodyBy (numBinds Θ) B
   eqB = sym (∀-inj (trans (sym (shiftBy-shiftBodyBy (numBinds Θ) B)) eqE))
 
-  ⊢wkV : (bind A′ ∷ interior Θ Δ) ∣ [] ⊢ wkᴹ 1 V ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
+  ⊢wkV : (unmasked (bind A′) ∷ interior Θ Δ) ∣ []
+           ⊢ wkᴹ 1 V ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
   ⊢wkV = ⊢rename Ren-wk Inj-suc ⊢V
 
   int : interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
@@ -491,7 +509,7 @@ preserve-TyPeelR {Δ = Δ} {V = V} {Θ = Θ} {s = s} {B = B} {A = A}
     subst (λ T → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
                    ⊢ wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ] ⦂ T)
           (ren-suc-[0] Bᵢ)
-          (⊢·[] ⊢wkV (wf-var (bind (⇑ᵗ A′) , ez , nameable-b)))
+          (⊢·[] ⊢wkV (wf-var (unmasked (bind (⇑ᵗ A′)) , ez , nameable)))
 
   eqT : Bₑ [ 0 := ⇑ᵗ A′ ]ᵗ ≡ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
   eqT = trans (cong (λ T → T [ 0 := ⇑ᵗ A′ ]ᵗ) eqB)

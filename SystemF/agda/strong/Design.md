@@ -282,7 +282,12 @@ than only at a reveal one (`proof/Preserve.preserve-TyPeelR`).
 
 ### Entries
 
-    E ::= abst | bind A | masked E
+An entry is **two layers**: what the slot *binds*, and whether the slot
+is *hidden*.  The inner layer carries every type; the outer layer is the
+lock, and there is **at most one of it** (Jeremy, 2026-09-08).
+
+    b ::= abst | bind A                       -- Binding
+    E ::= unmasked b | masked b               -- Ent
 
     Δ ::= · | E , Δ            -- Ctxᵗ = List Ent
 
@@ -290,21 +295,46 @@ than only at a reveal one (`proof/Preserve.preserve-TyPeelR`).
   invented.
 * `bind A` — the **binder** of an instantiation event; `A` is the
   representation, stored once, as a type over this entry's tail.
-* `masked E` — the slot is **masked** here: it may not be *named*, but its
-  entry `E` is **retained**, so a later `unlock` has something to point
+* `unmasked b` — the slot may be **named**.
+* `masked b` — the slot is **masked** here: it may not be *named*, but its
+  binding `b` is **retained**, so a later `unlock` has something to point
   back at.
+
+Splitting the entry this way makes *at most one mask* true **by
+construction**: `masked` takes a `Binding`, so `masked (masked …)` is not
+a term.  Nothing in the development has to rule a second lock out any
+more — see the lemma deltas at the end of this section.
 
 Lookup returns the entry shifted into the ambient context:
 
     Δ ∋e X , E                   -- slot X has entry E
     Δ ∋tv X    = ∃ E. (Δ ∋e X , E) × Nameable E
-    Δ ∋ X := A = Δ ∋e X , bind A
+    Δ ∋ X := A = Δ ∋e X , unmasked (bind A)
 
-`Nameable` holds of `abst` and of `bind A`, and never of `masked E`.  That
-is the whole of the tightness discipline: `` wf-var : Δ ∋tv X → Δ ⊢ᵗ ` X ``, so
-a masked slot has no well-formed variable type.  Lookup is a partial
-*function* (`∋e-det`, `∋:=-det`), which is what makes every rule that
-mints an identity conversion at a looked-up representation deterministic.
+`Nameable` and `Locked` are now the two constructors' own
+discriminations — one clause each, **no premise**:
+
+    nameable : Nameable (unmasked b)
+    locked   : Locked   (masked b)
+
+so `Locked` is exactly the complement of `Nameable`, and "masked over a
+nameable entry" is the only shape a masked entry *has*.  `Nameable` reads
+only the lock layer; it never looks at the `Binding`, let alone a bind's
+type (`unlock-mentions-no-rep`, `proof/Adversary`).  That is the whole of
+the tightness discipline: `` wf-var : Δ ∋tv X → Δ ⊢ᵗ ` X ``, so a masked
+slot has no well-formed variable type.  Lookup is a partial *function*
+(`∋e-det`, `∋:=-det`), which is what makes every rule that mints an
+identity conversion at a looked-up representation deterministic.
+
+Renaming and the instantiation mint both act on the **binding** and are
+lifted through the lock layer — a lock carries no spelling:
+
+    renᵇ ρ abst     = abst              renᵉ ρ (unmasked b) = unmasked (renᵇ ρ b)
+    renᵇ ρ (bind A) = bind (renameᵗ ρ A)   renᵉ ρ (masked b) = masked (renᵇ ρ b)
+
+(and the same shape for `substᵇ`/`substᵉ` in `proof/Preserve` §2a, and
+for `showBinding`/`showEntry` in `strong.Show`, whose rendered strings
+are unchanged: `X := A`, `X Λ-bound`, `⌷[…]`).
 
 Note the distinction the mask discipline forces: `↓X` and `↥X` **name**
 a possibly masked index — that is an entry, not a type — whereas
@@ -313,16 +343,22 @@ type*, not about mentioning the index in a context morphism.
 
 ### Refinement
 
-`E ⊑ᵉ E′` says `E′` knows at least what `E` knows:
+Refinement splits along the same two layers.  `b ⊑ᵇ b′` says `b′` knows
+at least what `b` knows:
 
-    abst ⊑ᵉ abst          abst ⊑ᵉ bind A          bind A ⊑ᵉ bind A
+    abst ⊑ᵇ abst          abst ⊑ᵇ bind A          bind A ⊑ᵇ bind A
       le-aa                  le-ab                   le-bb
-    E ⊑ᵉ E′ ⇒ masked E ⊑ᵉ masked E′                            le-mm
-    E ⊑ᵉ E′ and Nameable E′ ⇒ masked E ⊑ᵉ E′                   le-mu
 
-Each constructor's two letters are the two entries it relates —
-`a` = `abst`, `b` = `bind`, `m` = `masked`, with `u` for "unmasked,
-whatever it is" (Jeremy, 2026-09-06).  With `Δ ⊑ Δ′` pointwise.  There is **no** clause whose source is
+and `E ⊑ᵉ E′` lifts it through the lock layer:
+
+    b ⊑ᵇ b′ ⇒ unmasked b ⊑ᵉ unmasked b′                        le-uu
+    b ⊑ᵇ b′ ⇒ masked b   ⊑ᵉ masked b′                          le-mm
+    b ⊑ᵇ b′ ⇒ masked b   ⊑ᵉ unmasked b′                        le-mu
+
+Each constructor's two letters are the two things it relates —
+`a` = `abst`, `b` = `bind` at the binding layer; `u` = `unmasked`,
+`m` = `masked` at the lock layer (Jeremy, 2026-09-06/08).  There is no
+`le-um`: refinement never hides.  With `Δ ⊑ Δ′` pointwise.  There is **no** clause whose source is
 `bind A` other than reflexivity: a binder never loses its representation.
 That is the deleted v1 demotion, stated as the theorem
 `⊑-kn : Δ ⊑ Δ′ → Δ ∋ X := A → Δ′ ∋ X := A`.  Masking only loses
@@ -333,22 +369,32 @@ or a CONVERSION transports along `⊑` unchanged (`⊑-wf`, `conv-⊑`).
 (§4.2), and `le-mu` is precisely the clause that unmasks — so `⊢retag`
 runs along the `le-mu`-free refinement
 
-    abst ⊑ᵃᵉ abst    abst ⊑ᵃᵉ bind A    bind A ⊑ᵃᵉ bind A
-      la-aa              la-ab               la-bb
-    E ⊑ᵃᵉ E′ ⇒ masked E ⊑ᵃᵉ masked E′                     la-mm
+    b ⊑ᵇ b′ ⇒ unmasked b ⊑ᵃᵉ unmasked b′                  la-uu
+    b ⊑ᵇ b′ ⇒ masked b   ⊑ᵃᵉ masked b′                    la-mm
 
-with `Δ ⊑ᵃ Δ′` pointwise and `⊑ᵃ→⊑` the embedding.  Its one content is
-`⊑ᵃᵉ-Locked : E ⊑ᵃᵉ E′ → Locked E → Locked E′` — *a locked slot stays
-locked* — which is what `⊢ˢ-⊑ᵃ` needs at `sw-u`.  Every call site is
-covered: `preserve-TyBeta` refines an `abst` to a `bind` (`la-ab`), and
+— the *same* `⊑ᵇ` on the binding layer, with the two locks forced to
+agree.  With `Δ ⊑ᵃ Δ′` pointwise and `⊑ᵃ→⊑` the embedding.  Its one
+content is `⊑ᵃᵉ-Locked : E ⊑ᵃᵉ E′ → Locked E → Locked E′` — *a locked
+slot stays locked* — which is what `⊢ˢ-⊑ᵃ` needs at `sw-u`.  Every call
+site is covered: `preserve-TyBeta` refines an `abst` to a `bind`
+(`la-uu le-ab`), and
 the two former `le-mu` sites — the Peel crossing and the scope move — are
 now exact identities and use no retagging at all (§6.3, §6.7).
 
 ### The three operations a boundary uses
 
-    mask X Δ    = updateAt masked X Δ         -- masks slot X in place
-    unmask X Δ  = updateAt unmaskEnt X Δ       -- peels one masked at slot X
+    mask X Δ    = updateAt maskEnt X Δ        -- sets the lock at slot X
+    unmask X Δ  = updateAt unmaskEnt X Δ      -- clears the lock at slot X
     pushBinds As Δ                    -- pushes the reps As as binders
+
+    maskEnt (unmasked b) = masked b      unmaskEnt (unmasked b) = unmasked b
+    maskEnt (masked b)   = masked b      unmaskEnt (masked b)   = unmasked b
+
+Both are **total** and **idempotent**: there is only one lock to set or
+clear.  `maskEnt` is never applied to an already-masked slot in a
+well-formed term — `sw-l` (§4.2) admits `lock X` only at a nameable
+slot — but the function does not have to know that, and that is the
+point.
 
 `updateAt f X` replaces the entry at slot `X` and leaves the rest alone, so
 masking is *positional* — which is why the renaming transports carry
@@ -358,7 +404,8 @@ no representation at all.
 `pushBinds` deserves its own line, because it is where **simultaneity** lives:
 
     pushBinds []       Δ = Δ
-    pushBinds (A ∷ As) Δ = bind (shiftBy (length As) A) ∷ pushBinds As Δ
+    pushBinds (A ∷ As) Δ =
+      unmasked (bind (shiftBy (length As) A)) ∷ pushBinds As Δ
 
 The head of the list is interior slot 0.  A representation is a type over
 the *exterior*, so it is lifted past exactly the binders **inside** it and
@@ -447,7 +494,7 @@ Diagram:
                                                  |  the lock, lifted
     conversion      convCtx Θ Δ             Y := X ,   X := ℕ
 
-`⌷[…]` is the renderer's mark for `masked`.  Read the two bottom rows: the
+`⌷[…]` is the renderer's mark for the lock.  Read the two bottom rows: the
 interior may name `Y` but **not** `X` — that is the type abstraction the
 lock enforces — while the conversion is checked one row down, where `X`
 is live, so `seal X` can cite `X`'s binder.  The conversion typed there is
@@ -463,6 +510,46 @@ Indices: everything inside the boundary is `numBinds Θ` slots deeper than
 outside, so an exterior type `Bₑ` is read inside as `shiftBy (numBinds Θ) Bₑ`.
 `lock X` / `unlock X` name **exterior** slots, and the rules that move a
 morphism inward lift those names by the bind count (`shiftScope`, §6.7).
+
+### What the one-mask entry costs, and what it buys
+
+*Bought* (each of these used to be an induction over the mask stack, or a
+premise carried only to keep the stack one deep):
+
+| before | after |
+|--------|-------|
+| `locked : Nameable E → Locked (masked E)` | `locked : Locked (masked b)` — no premise |
+| `nameable-a`, `nameable-b` | one `nameable` |
+| `⊑ᵉ-trans`, 6 clauses, `le-mu` calling `nameable-mono` | `⊑ᵇ-trans` 3 + `⊑ᵉ-trans` 4, no witness threading |
+| `le-mu : E ⊑ᵉ E′ → Nameable E′ → masked E ⊑ᵉ E′` | `le-mu : b ⊑ᵇ b′ → masked b ⊑ᵉ unmasked b′` |
+| `unmaskEnt-nameable` (a lemma, only to feed `le-mu`) | **gone** |
+| `masked-le`, recursive on the mask stack | `maskEnt-le`, 3 non-recursive clauses |
+| `⊑ᵃᵉ-Locked` via `nameable-mono` | `⊑ᵃᵉ-Locked (la-mm l) locked = locked` |
+| `maskEnt-unmask (locked v) = refl` | `maskEnt-unmask locked = refl` |
+| `core`, `core-ren`, `core-nameable`, `core-masked`, `core-unmaskEnt` (`proof/MaskFacts`) | `core` **is** `unmaskEnt`; the five collapse to three one-line case splits |
+| `renᵉ-id`, `renᵉ-comp`, `substᵉ`, `substᵉ-0-⇑`, `substᵉ-⇑`, `showEntry` — all recursive | each is a `Binding` function plus a two-clause lift |
+| `renᵉ-Nameable⁻`, `Locked-ren⁻` — 3 clauses each | 2 clauses each |
+
+*Cost* — exactly one place.  `maskEnt` is **idempotent**, so
+
+    unmask-mask : Δ ∋tv X → unmask X (mask X Δ) ≡ Δ
+
+now carries a nameability premise; with a stack of masks the identity
+held unconditionally, because a second lock was simply popped.  The
+premise is always at hand — `sw-l` admits `lock X` only at a `∋tv` slot
+(§4.2), which is the discipline that made double masking unreachable in
+the first place — and it is threaded through exactly two lemmas:
+`proof/PeelDual.applyUnlocks-dualScope` and
+`proof/PeelDual.convCtx-dual`, each of which gains a `Δ ⊢ˢ S` /
+`Δ ⊢ˢ changes Θ` argument that its one call site already has (`mwᵥ` in
+`preserve-Peel`).  `mask-unmask : Δ ∋lk X → mask X (unmask X Δ) ≡ Δ` is
+unchanged, so the two inverses are now symmetric: each holds at the slots
+its own direction is applied to, and nowhere else.
+
+`proof/DualTightness.¬⊢ᵐ-double-lock` survives, with a different job: it
+is no longer the fact that keeps `Locked` one mask deep — that is by
+construction — but the fact that the judgement still refuses a vacuous
+re-lock, which is what keeps `unmask-mask`'s premise available.
 
 ### Vocabulary
 
@@ -519,9 +606,11 @@ the change acts on, i.e. on the context the changes to its right (which
 whole change list's unmasks applied, all of its locks lifted.
 
 A `lock` names a slot that is **still visible** where it acts — so a slot
-is never masked twice, and `Locked` is one mask deep.  An `unlock` names
-a slot that is **LOCKED** there: `Δ ∋lk X` is `∃E. (Δ ∋e X , E) ×
-Locked E`, with `Locked (masked E)` for a *nameable* `E`.  It is the
+is never masked twice.  (`Locked` is one mask deep by *construction*
+now, §3, but the premise still earns its keep: it is what makes
+`unmask ∘ mask` the identity at the slot, `unmask-mask`.)  An `unlock`
+names a slot that is **LOCKED** there: `Δ ∋lk X` is `∃E. (Δ ∋e X , E) ×
+Locked E`, with `Locked (masked b)` for any binding `b`.  It is the
 mirror of `Δ ∋tv X`, and it mentions no representation at all — an
 `unlock` still claims no knowledge; the knowledge claim lives in the
 conversion, where `seal X` must cite a live binder.
@@ -859,7 +948,7 @@ It is repaired, in two coupled halves — the restoring, reversed
 The frame identity is then **exact**:
 
     (†)  interior (dual Θ) (interior Θ Δ)
-           ≡ map masked (pushBinds (binds Θ) []) ++ Δ       given Δ ⊢ᵐ Θ
+           ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ      given Δ ⊢ᵐ Θ
 
 *the crossing argument's frame IS the exterior*, one (masked) bind prefix
 in — so the argument crosses by `⊢rename (wkN (numBinds Θ))` alone, with
@@ -871,7 +960,7 @@ its frame.
 ### 6.4 `TyPeelR` — a `∀` conversion meets a type application
 
     TyPeelR : Value V
-      → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+      → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
           -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
@@ -1060,9 +1149,9 @@ reorders a mask/unmask pair, and the value's frame is then not refined
 but **corrupted** — a slot it may name in the redex is masked in the
 contractum.  The refutation is in tree
 (`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `_⊢ᵐ_`-legal witness
-`Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])` over `Δ✗ = bind ℕ ∷ []`, where
-`interior Θ✗ Δ✗ ≡ bind ℕ ∷ []` but the lock-only contractum's interior is
-`masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and then
+`Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])` over `Δ✗ = unmasked (bind ℕ) ∷ []`,
+where `interior Θ✗ Δ✗ ≡ unmasked (bind ℕ) ∷ []` but the lock-only
+contractum's interior is `masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and then
 the value's frame is preserved **on the nose**: with `rewind` outside,
 both frame lemmas are equalities,
 
@@ -1093,12 +1182,12 @@ and three `Drop$` steps finish.
     ξ-·-l : Δ ⊢ L -→ L′            → Δ ⊢ L · M -→ L′ · M
     ξ-·-r : Value V → Δ ⊢ M -→ M′  → Δ ⊢ V · M -→ V · M′
     ξ-·[] : Δ ⊢ L -→ L′            → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]
-    ξ-Λ   : (abst ∷ Δ) ⊢ N -→ N′   → Δ ⊢ Λ N -→ Λ N′
+    ξ-Λ   : (unmasked abst ∷ Δ) ⊢ N -→ N′   → Δ ⊢ Λ N -→ Λ N′
     ξ-⟪⟫  : interior Θ Δ ⊢ M -→ M′     → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ Θ , c ⟫
 
 Left-to-right, call-by-value, and **under `Λ`** — which is why `V-Λ` and
 `TyBeta` both carry `Value N`.  Note the two index changes: `ξ-Λ` steps
-in `abst ∷ Δ`, and `ξ-⟪⟫` steps in the *interior* type context
+in `unmasked abst ∷ Δ`, and `ξ-⟪⟫` steps in the *interior* type context
 `interior Θ Δ`.  A boundary is not a barrier to reduction; it is a barrier to
 *naming*.
 
@@ -1171,8 +1260,8 @@ exactly the two that the id-layer rules consume.
 Induction on the step, with the rule cases distributed:
 
 * **`TyBeta`** (`proof/Preserve.preserve-TyBeta`) — the mint.  The new
-  binder is the `abst ⊑ᵉ bind A` refinement of the `Λ`'s own slot
-  (`le-ab`), so the interior retypes by `⊢retag`; the minted conversion
+  binder is the `unmasked abst ⊑ᵃᵉ unmasked (bind A)` refinement of the
+  `Λ`'s own slot (`la-uu le-ab`), so the interior retypes by `⊢retag`; the minted conversion
   types by `⊢reveal`/`⊢conceal`, and its exterior type is the
   instantiated body by `subst-at-0`.  The exterior premise is `⊢·[]`'s
   own two premises through `wf-[]ᵗ`, and `interior (morph (A ∷ []) []) Δ` is
@@ -1181,7 +1270,7 @@ Induction on the step, with the rule cases distributed:
 * **`Peel`** (`proof/PeelDual.preserve-Peel`) — the two context
   identities are what carries it: (†)
   `interior (dual Θ) (interior Θ Δ)
-  ≡ map masked (pushBinds (binds Θ) []) ++ Δ` (given `Δ ⊢ᵐ Θ`)
+  ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ` (given `Δ ⊢ᵐ Θ`)
   and `convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ`.  The crossing
   argument, typed in `Δ`, retypes one bind frame deeper by
   `⊢rename (wkN (numBinds Θ))` and **nothing else** — the tail is `Δ`
@@ -1247,9 +1336,9 @@ is a known function of the old one:
 
 | rule | the moved subterm's new frame |
 |------|-------------------------------|
-| `TyBeta` | `interior (morph (A ∷ []) []) Δ ≡ bind A ∷ Δ` — `Δ` on the nose, one refinement (`abst ⊑ᵃᵉ bind A`) at the slot the rule reveals |
+| `TyBeta` | `interior (morph (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` — `Δ` on the nose, one refinement (`unmasked abst ⊑ᵃᵉ unmasked (bind A)`, i.e. `la-uu le-ab`) at the slot the rule reveals |
 | `TyPeelR` | `interior (morph (A ∷ binds Θ) (changes Θ)) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ` — the redex's frame, one binder in, which `wkᴹ 1` matches |
-| `Peel` | (†) `interior (dual Θ) (interior Θ Δ) ≡ map masked (pushBinds (binds Θ) []) ++ Δ`, given `Δ ⊢ᵐ Θ` (`proof/PeelDual.interior-dual`) |
+| `Peel` | (†) `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ`, given `Δ ⊢ᵐ Θ` (`proof/PeelDual.interior-dual`) |
 | `CancelR`, `IdPush` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)`, given `Δ ⊢ᵐ Θ₂` (`proof/MoveScope.interior-⋉-rewind`) |
 | `Beta` | `Δ` — no frame changes |
 
@@ -1489,9 +1578,14 @@ The morphism's `bind` entry became the `binds` field on 2026-09-06.
 | `shiftBy n A` | shift a type past `n` binders |
 | `shiftBodyBy n B` | the same, read under one binder |
 | `updateAt f X Δ` | one-slot entry update |
-| `masked E` | the retained, unnameable entry |
-| `unmaskEnt E` | peel one mask |
-| `Nameable E` | the entry may be named in a type |
+| `Binding` | what a slot binds: `abst` or `bind A` — no lock |
+| `unmasked b` | the nameable entry at binding `b` |
+| `masked b` | the retained, unnameable entry at binding `b` |
+| `renᵇ ρ b` | rename inside a binding (the lock carries no spelling) |
+| `maskEnt E` | set the lock (total, idempotent) |
+| `unmaskEnt E` | clear the lock (total, idempotent) |
+| `Nameable E` | the entry is `unmasked` — may be named in a type |
+| `b ⊑ᵇ b′` | refinement at the BINDING layer (`le-aa`/`le-ab`/`le-bb`) |
 | `Δ ⊢ᵐ Θ` | the morphism is well formed over Δ — a PAIR of halves |
 | `Δ ⊢ʳ Bs` | the parallel rep half: every rep well formed on ONE Δ |
 | `Δ ⊢ˢ S` | the sequential change half |
@@ -1508,7 +1602,7 @@ The morphism's `bind` entry became the `binds` field on 2026-09-06.
 | `applyUnlocks S Δ` | `Δ` with only `S`'s unlocks applied |
 | `rewind Θ` | `Θ` with its own changes undone |
 | `Θ₁ ⋉ Θ₂` | `Θ₁` with `Θ₂`'s changes moved into its tail |
-| `Locked E` | the entry is masked over a nameable one |
+| `Locked E` | the entry is `masked` — the complement of `Nameable` |
 | `Δ ∋lk X` | slot `X` is LOCKED at `Δ` — what an `unlock` cites |
 | `Δ ⊑ᵃ Δ′` | refinement WITHOUT `le-mu`: the transport a TERM travels |
 | `Inj ρ` | the renaming does not confuse two slots |
@@ -1516,14 +1610,18 @@ The morphism's `bind` entry became the `binds` field on 2026-09-06.
 The `_⊑ᵉ_` constructors were relettered on the same ruling so that each
 name spells the two entries it relates (§3, *Refinement*):
 `le-ao` → `le-ab`, `le-oo` → `le-bb`, `le-bb` → `le-mm`,
-`le-bu` → `le-mu`; `le-aa` unchanged.
+`le-bu` → `le-mu`; `le-aa` unchanged.  With the two-layer entry
+(2026-09-08) the letters split by layer: `le-aa`/`le-ab`/`le-bb` are the
+`_⊑ᵇ_` constructors, and `le-uu`/`le-mm`/`le-mu` (and `la-uu`/`la-mm`)
+lift them through the lock; `la-aa`/`la-ab`/`la-bb` are gone, subsumed by
+`la-uu` over `_⊑ᵇ_`.
 
 Two identities worth stating, because they are what the names are meant
 to make obvious:
 
     interior (rewind Θ) Δ ≡ pushBinds (binds Θ) Δ       given Δ ⊢ᵐ Θ
     interior (dual Θ) (interior Θ Δ)
-      ≡ map masked (pushBinds (binds Θ) []) ++ Δ        given Δ ⊢ᵐ Θ
+      ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ       given Δ ⊢ᵐ Θ
 
 The first is `proof/MoveScope.interior-rewind` — *a rewound frame leaves
 its bind prefix and nothing else* — and it is the identity that retired

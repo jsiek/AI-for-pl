@@ -63,14 +63,15 @@ Vc = ƛ `ℕ ∙ (($ 5) ⟪ morph [] (lock 1 ∷ []) , id `ℕ ⟫)
 
 -- V's home: Θ₁'s binder over Θ₂'s binder over the empty type context.
 Ξc : Ctxᵗ
-Ξc = bind `𝔹 ∷ bind (`ℕ ⇒ `ℕ) ∷ []
+Ξc = unmasked (bind `𝔹) ∷ unmasked (bind (`ℕ ⇒ `ℕ)) ∷ []
 
 _ : interior Θc₁ (interior Θc₂ []) ≡ Ξc
 _ = refl
 
 ⊢Vc : Ξc ∣ [] ⊢ Vc ⦂ (`ℕ ⇒ `ℕ)
 ⊢Vc = ⊢ƛ wf-ℕ
-        (env (mw rw[] (sw-l (bind (`ℕ ⇒ `ℕ) , es ez , nameable-b) sw[]))
+        (env (mw rw[]
+               (sw-l (unmasked (bind (`ℕ ⇒ `ℕ)) , es ez , nameable) sw[]))
              ⊢$ (conv-id base-ℕ) wf-ℕ)
 
 val-Vc : Value Vc
@@ -83,7 +84,7 @@ Rc = (Vc ⟪ Θc₁ , seal 1 ⟫) ⟪ Θc₂ , unseal 0 ⟫
 ⊢Rc = env (mw (rw-b (wf-⇒ wf-ℕ wf-ℕ) rw[]) sw[])
           (env (mw (rw-b wf-𝔹 rw[]) sw[]) ⊢Vc
                (conv-seal (es ez))
-               (wf-var (bind (`ℕ ⇒ `ℕ) , ez , nameable-b)))
+               (wf-var (unmasked (bind (`ℕ ⇒ `ℕ)) , ez , nameable)))
           (conv-unseal ez) (wf-⇒ wf-ℕ wf-ℕ)
 
 step-c : [] ⊢ Rc
@@ -139,7 +140,7 @@ _ = refl
 
 -- the crossed boundary's interior — the binder X := ℕ
 Δt : Ctxᵗ
-Δt = bind `ℕ ∷ []
+Δt = unmasked (bind `ℕ) ∷ []
 
 -- the polymorphic ARGUMENT, closed and plain: ΛY. λy:Y. 3
 Wt : Term
@@ -149,7 +150,7 @@ val-Wt : Value Wt
 val-Wt = V-Λ V-ƛ
 
 ⊢Wt : ∀ {Δ Γ} → Δ ∣ Γ ⊢ Wt ⦂ `∀ (` 0 ⇒ `ℕ)
-⊢Wt = ⊢Λ (⊢ƛ (wf-var (abst , ez , nameable-a)) ⊢$)
+⊢Wt = ⊢Λ (⊢ƛ (wf-var (unmasked abst , ez , nameable)) ⊢$)
 
 -- the CONCEALING ∀ conversion a Peel hands it: `conceal 0 (∀Y. Y ⇒ X)`
 Θt : CtxMorph
@@ -162,23 +163,23 @@ _ : conceal 0 (`∀ (` 0 ⇒ ` 1)) ≡ `∀ st
 _ = refl
 
 -- the premise TyPeelR carries, at THIS redex.
-⊢st : (abst ∷ convCtx Θt Δt) ⊢ st ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1)
-⊢st = conv-fun (conv-idv (abst , ez , nameable-a)) (conv-seal (es ez))
+⊢st : (unmasked abst ∷ convCtx Θt Δt) ⊢ st ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1)
+⊢st = conv-fun (conv-idv (unmasked abst , ez , nameable)) (conv-seal (es ez))
 
 Wft : Term
 Wft = Wt ⟪ Θt , `∀ st ⟫
 
 ⊢Wft : Δt ∣ [] ⊢ Wft ⦂ `∀ (` 0 ⇒ ` 1)
-⊢Wft = env (mw rw[] (sw-l (bind `ℕ , ez , nameable-b) sw[])) ⊢Wt
+⊢Wft = env (mw rw[] (sw-l (unmasked (bind `ℕ) , ez , nameable) sw[])) ⊢Wt
            (conv-all ⊢st)
-           (wf-∀ (wf-⇒ (wf-var (abst , ez , nameable-a))
-                       (wf-var (bind `ℕ , es ez , nameable-b))))
+           (wf-∀ (wf-⇒ (wf-var (unmasked abst , ez , nameable))
+                       (wf-var (unmasked (bind `ℕ) , es ez , nameable))))
 
 Rt : Term
 Rt = Wft ·[ ` 0 ⇒ ` 1 , ` 0 ]
 
 ⊢Rt : Δt ∣ [] ⊢ Rt ⦂ (` 0 ⇒ ` 0)
-⊢Rt = ⊢·[] ⊢Wft (wf-var (bind `ℕ , ez , nameable-b))
+⊢Rt = ⊢·[] ⊢Wft (wf-var (unmasked (bind `ℕ) , ez , nameable))
 
 step-t : Δt ⊢ Rt
        -→ (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
@@ -197,7 +198,7 @@ _ = refl
 t-convCtx : Ctxᵗ
 t-convCtx = convCtx (morph (` 0 ∷ binds Θt) (changes Θt)) Δt
 
-_ : t-convCtx ≡ bind (` 0) ∷ bind `ℕ ∷ []
+_ : t-convCtx ≡ unmasked (bind (` 0)) ∷ unmasked (bind `ℕ) ∷ []
 _ = refl
 
 t-dom : t-convCtx ⊢ seal 0 ∶ ` 1 ⇝ ` 0
@@ -239,13 +240,13 @@ t-cod = conv-seal (es ez)
 -- demands it be well formed INSIDE, where slot 1 is blocked.
 
 Δi : Ctxᵗ
-Δi = bind (` 0) ∷ bind `ℕ ∷ []
+Δi = unmasked (bind (` 0)) ∷ unmasked (bind `ℕ) ∷ []
 
 Θi : CtxMorph
 Θi = morph [] (lock 1 ∷ [])
 
 Ξi : Ctxᵗ
-Ξi = bind (` 0) ∷ masked (bind `ℕ) ∷ []
+Ξi = unmasked (bind (` 0)) ∷ masked (bind `ℕ) ∷ []
 
 _ : interior Θi Δi ≡ Ξi
 _ = refl
@@ -261,11 +262,11 @@ Vi : Term
 Vi = (($ 7) ⟪ morph [] [] , seal 1 ⟫) ⟪ morph [] (unlock 1 ∷ []) , seal 0 ⟫
 
 ⊢Vi : Ξi ∣ [] ⊢ Vi ⦂ ` 0
-⊢Vi = env (mw rw[] (sw-u (_ , es ez , locked nameable-b) sw[]))
+⊢Vi = env (mw rw[] (sw-u (_ , es ez , locked) sw[]))
           (env (mw rw[] sw[]) ⊢$ (conv-seal (es ez))
-               (wf-var (bind `ℕ , es ez , nameable-b)))
+               (wf-var (unmasked (bind `ℕ) , es ez , nameable)))
           (conv-seal ez)
-          (wf-var (_ , ez , nameable-b))
+          (wf-var (_ , ez , nameable))
 
 val-Vi : Value Vi
 val-Vi = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal
@@ -274,12 +275,12 @@ Ri : Term
 Ri = (Vi ⟪ morph [] [] , id (` 0) ⟫) ⟪ Θi , unseal 0 ⟫
 
 ⊢Ri : Δi ∣ [] ⊢ Ri ⦂ ` 1
-⊢Ri = env (mw rw[] (sw-l (bind `ℕ , es ez , nameable-b) sw[]))
+⊢Ri = env (mw rw[] (sw-l (unmasked (bind `ℕ) , es ez , nameable) sw[]))
           (env (mw rw[] sw[]) ⊢Vi
-               (conv-idv (_ , ez , nameable-b))
-               (wf-var (_ , ez , nameable-b)))
+               (conv-idv (_ , ez , nameable))
+               (wf-var (_ , ez , nameable)))
           (conv-unseal ez)
-          (wf-var (bind `ℕ , es ez , nameable-b))
+          (wf-var (unmasked (bind `ℕ) , es ez , nameable))
 
 -- THE STEP, AT THE MOVED SCOPE.  `Θ₂ = lock 1 ∷ []` is binder-free, so
 -- the move is `morph [] [] ⋉ Θi ≡ morph [] (lock 1 ∷ [])`, and the outer

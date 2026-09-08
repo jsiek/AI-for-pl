@@ -10,7 +10,7 @@ conversion `c` says leaf by leaf which side of the boundary may see the
 representation.  A variable's representation is stored exactly once, at
 the entry that binds it, and every other mention resolves it by looking
 the **name** up along the enclosing type context.  A masked slot is never
-dropped or re-spelled — its entry is retained (`masked`), so weakening with
+dropped or re-spelled — its binding is retained (`masked b`), so weakening with
 respect to type variables is never used; that is what "strong" means.
 This is **v2**, the conversion-boundary design.  **v1** — one combined
 boundary `M ⟪ Θ , B₀ ⟫` carrying a list of reveals and conceals together
@@ -66,7 +66,7 @@ driver: type-checking it type-checks the whole thing.
 |------|----------|
 | `Types.agda` | System F types in de Bruijn form; renaming and parallel substitution; `_[_]ᵗ` and the at-a-slot substitution `_[_:=_]ᵗ` |
 | `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
-| `Ctx.agda` | **the type context**: entries `abst` / `bind A` / `masked E`, lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑`), injective renamings, in-place `mask`/`unmask`, and the bind prefix `pushBinds` with `shiftBy` |
+| `Ctx.agda` | **the type context**: entries in two layers — a `Binding` (`abst` / `bind A`) under at most one lock (`unmasked b` / `masked b`), so `Nameable`/`Locked` are one-clause discriminations and double masking is unrepresentable — lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑` over `⊑ᵇ`), injective renamings, in-place `mask`/`unmask` (`maskEnt`/`unmaskEnt`, total and idempotent), and the bind prefix `pushBinds` with `shiftBy` |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
 | `CtxMorph.agda` | the context morphism as a **pair** — `record CtxMorph = morph (binds : List Ty) (changes : List Change)`, the binds a PARALLEL block and the changes a SEQUENTIAL `lock`/`unlock` list — with `numBinds`, the type contexts it induces (`applyChanges`/`applyUnlocks` at the list, `scope`/`unlockedScope`/`interior`/`convCtx` at the morphism) and their refinement transports, the well-formedness judgement `Δ ⊢ᵐ Θ` as a pair of halves (`_⊢ʳ_` reps, `_⊢ˢ_` changes), and the derived morphisms `dual` (Peel) and `rewind`/`_⋉_` (the scope move) |
 | `Terms.agda` | terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` (re-exports `CtxMorph`) |

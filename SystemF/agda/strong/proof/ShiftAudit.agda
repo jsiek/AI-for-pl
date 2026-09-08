@@ -21,6 +21,7 @@ module strong.proof.ShiftAudit where
 --   §3  TyPeelR (V's frame)   — ****  LEAK  ****
 --   §4  fix (a), "wrap V in the new binder's dual" — LOOPS
 --   §5  fix (b), "split on the interior" — the Λ half, PROVEN EXACT
+--   §5b fix (b′), the wrapper half — the frame identity, EXACT
 --   §6  TyBeta                — exact up to refinement
 --   §7  Beta                  — exact (crossΛ), and the `ƛ` clause
 --   §8  CancelR / IdPush      — exact, inner AND outer
@@ -53,7 +54,7 @@ open import strong.Reduction
 open import strong.proof.Preserve
   using (⊢instReveal; wf-[]ᵗ; wf-∀⁻; ∀-inj; subst-at-0; shiftBy-[]ᵗ
         ; ren-suc-[0])
-open import strong.proof.PeelDual using (interior-dual)
+open import strong.proof.PeelDual using (interior-dual; applyChanges-++)
 open import strong.proof.MoveScope using (interior-rewind; interior-⋉-rewind)
 open import strong.proof.Canonical using (canon-∀)
 open import strong.Examples
@@ -511,6 +512,82 @@ TyPeelR-Λ-no-shift = interior-TyPeelR
 TyPeelR-Λ-slot0-old : (Θ : CtxMorph) (Δ : Ctxᵗ)
   → (unmasked abst ∷ interior Θ Δ) ∋tv 0
 TyPeelR-Λ-slot0-old Θ Δ = _ , ez , nameable
+
+------------------------------------------------------------------------
+-- §5b  FIX (b′) — CLOSING THE WRAPPER CASE TOO: THE NEW BINDER IS
+--      MASKED IN THE MOVED BOUNDARY'S OWN FRAME
+------------------------------------------------------------------------
+
+-- `canon-∀` says the thing TyPeelR moves in the non-Λ case is A BOUNDARY.
+-- A boundary carries its own change list — so the new binder can be
+-- masked for it WITHOUT a second wrapper (which is what loops, §4) and
+-- WITHOUT resolving anything (which is what fix (c) pays, §13c of
+-- Examples): append `lock 0` to the moved boundary's OWN changes, at the
+-- TAIL, where `applyChanges` runs it FIRST — exactly the position the
+-- SCOPE MOVE `_⋉_` puts the travelling changes in.
+addLock0 : CtxMorph → CtxMorph
+addLock0 Θ = morph (binds Θ) (changes Θ ++ (lock 0 ∷ []))
+
+-- the two list facts the frame identity needs
+map-renᶠ-shiftScope : (S : List Change)
+  → map (renᶠ suc) S ≡ shiftScope 1 S
+map-renᶠ-shiftScope []             = refl
+map-renᶠ-shiftScope (unlock X ∷ S) =
+  cong (unlock (suc X) ∷_) (map-renᶠ-shiftScope S)
+map-renᶠ-shiftScope (lock X ∷ S)   =
+  cong (lock (suc X) ∷_) (map-renᶠ-shiftScope S)
+
+-- `shiftScope 1` steps a change list PAST ONE ENTRY: the entry is
+-- untouched and the list acts on the tail.  (`applyChanges-shiftScope`,
+-- proof/MoveScope, is this past a whole `pushBinds` prefix; here the
+-- prefix is one arbitrary entry, MASKED included.)
+applyChanges-shift1 : (S : List Change) (E : Ent) (Δ : Ctxᵗ)
+  → applyChanges (shiftScope 1 S) (E ∷ Δ) ≡ E ∷ applyChanges S Δ
+applyChanges-shift1 []             E Δ = refl
+applyChanges-shift1 (unlock X ∷ S) E Δ =
+  cong (unmask (suc X)) (applyChanges-shift1 S E Δ)
+applyChanges-shift1 (lock X ∷ S)   E Δ =
+  cong (mask (suc X)) (applyChanges-shift1 S E Δ)
+
+-- THE FRAME IDENTITY.  The moved boundary's interior frame is its BIRTH
+-- frame with the new binder inserted BELOW the bind prefix and MASKED —
+-- the very shape (†) gives Peel's crossing argument and `interior-Beta-Λ`
+-- gives Beta's.  Nothing gained, nothing lost.
+interior-addLock0 : (Θ′ : CtxMorph) (C : Ty) (Δ : Ctxᵗ)
+  → interior (addLock0 (renᴮ suc Θ′)) (unmasked (bind C) ∷ Δ)
+      ≡ pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind C) ∷ scope Θ′ Δ)
+interior-addLock0 Θ′ C Δ =
+  cong (pushBinds (map ⇑ᵗ (binds Θ′)))
+       (trans (applyChanges-++ (map (renᶠ suc) (changes Θ′)) (lock 0 ∷ [])
+                               (unmasked (bind C) ∷ Δ))
+              (trans (cong (λ S → applyChanges S (masked (bind C) ∷ Δ))
+                           (map-renᶠ-shiftScope (changes Θ′)))
+                     (applyChanges-shift1 (changes Θ′) (masked (bind C)) Δ)))
+
+-- … AND THE MOVED BOUNDARY CROSSES BY `⊢rename` ALONE.  `wkᴹ 1` on a
+-- boundary renames its interior at `extN (numBinds Θ′) suc`
+-- (strong.TermSubst, `renᴹ`'s wrapper clause), and that is exactly the
+-- renaming from the birth frame into the frame above — no `⊢retag`, no
+-- `le-mu`.  This is what makes (b′) exact.
+Ren-addLock0 : (Θ′ : CtxMorph) (E : Ent) (Δ : Ctxᵗ)
+  → Ren (extN (numBinds Θ′) suc) (interior Θ′ Δ)
+        (pushBinds (map ⇑ᵗ (binds Θ′)) (E ∷ scope Θ′ Δ))
+Ren-addLock0 Θ′ E Δ = ren-pushBinds (binds Θ′) suc (mkRen es)
+
+-- The `lock 0` is LEGAL where it acts: slot 0 of the new frame is
+-- nameable (§3's `TyPeelR-slot0-nameable` — the leak's own slot is
+-- exactly what authorizes the lock that closes it), so `sw-l` applies.
+addLock0-sw-l : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
+  → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ⊢ˢ (lock 0 ∷ [])
+addLock0-sw-l A Θ Δ = sw-l (TyPeelR-slot0-nameable A Θ Δ) sw[]
+
+-- WHAT REMAINS for (b′) to land as a rule: `Δ ⊢ᵐ addLock0 (renᴮ suc Θ′)`
+-- (the reps by `⊢ʳ-ren`, the changes by `⊢ˢ-ren` plus `addLock0-sw-l`
+-- and `⊢ˢ-++`), and the moved boundary's CONVERSION re-typed at
+-- `convCtx (addLock0 (renᴮ suc Θ′)) …` — where the appended lock is
+-- LIFTED (`applyUnlocks` skips locks), so the conversion context is the
+-- renamed one and `conv-ren` suffices.  Neither is new machinery; both
+-- are the moves `⊢rename`'s own (env) case already makes.
 
 ------------------------------------------------------------------------
 -- §6  TYBETA — exact up to refinement

@@ -28,8 +28,9 @@ module strong.Preservation where
 --   BETA      PROVEN (strong.TermSubst.preserve-Beta).
 --   PEEL      PROVEN (proof/PeelDual.preserve-Peel), since `dualScope` drops
 --             the `unlock` case.
---   TYPEELR   REPAIRED and PROVEN, at EVERY ∀ CONVERSION
---             (proof/Preserve.preserve-TyPeelR).  The rule pushes in the
+--   TYPEELR   REPAIRED and PROVEN, at EVERY ∀ CONVERSION, in BOTH
+--             CLAUSES (proof/Preserve.preserve-TyPeelR-Λ and
+--             .preserve-TyPeelR-⟪⟫).  The rule pushes in the
 --             premise-determined interior ∀-body, keeps the frame plain,
 --             and mints the conversion `instReveal 0 s`.  Under the
 --             retired POLARITY index this held only at a REVEALING
@@ -37,7 +38,10 @@ module strong.Preservation where
 --             a global `p` refused it; per variable each leaf cites its
 --             own binder, and `env`'s frame checks are what keep the two
 --             apart.  Examples §13 runs both directions from closed
---             plain source.
+--             plain source.  The SPLIT (2026-09-08, notes/ShiftAudit.md)
+--             is what makes both clauses FRAME-EXACT: the Λ clause moves
+--             nothing at all, and the wrapper clause masks the new bind
+--             slot in the moved boundary's own change list.
 --   DROP$     PROVEN (proof/Preserve.preserve-Drop$).
 --   CANCELR   PROVEN (proof/MoveScope.preserve-CancelR).
 --   IDPUSH    PROVEN (proof/MoveScope.preserve-IdPush).
@@ -69,16 +73,19 @@ open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; _[_]ᵗ; renameᵗ; extᵗ)
 open import strong.Ctx
   using (Ctxᵗ; Ent; Binding; unmasked; masked; abst; bind; Base; _⊢ᵗ_;
-         _∋_:=_; shiftBy)
+         _∋_:=_; shiftBy; extN)
 open import strong.Conversion
-  using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_; reveal; instReveal)
+  using (Conv; id; seal; unseal; _↦_; `∀; mkId; _⊢_∶_⇝_; reveal;
+         instReveal; renᶜ)
 open import strong.Terms
-open import strong.TermSubst using (_[_∶_]ᵐ; wkᴹ; preserve-Beta)
+open import strong.TermSubst
+  using (_[_∶_]ᵐ; wkᴹ; renᴹ; renᴮ; preserve-Beta)
 open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 
 open import strong.CtxMorph
 open import strong.proof.Preserve
-  using (preserve-TyBeta; preserve-Drop$; preserve-TyPeelR;
+  using (preserve-TyBeta; preserve-Drop$;
+         preserve-TyPeelR-Λ; preserve-TyPeelR-⟪⟫;
          ⊢ᵗ-of; CtxWf-[])
 import strong.proof.Preserve as P
 open import strong.proof.PeelDual using (preserve-Peel)
@@ -155,17 +162,36 @@ preservation-Drop$ : ∀ {n Θ}
   → Δ ∣ [] ⊢ $ n ⦂ C
 preservation-Drop$ = preserve-Drop$
 
--- TYPEELR AT ANY ∀ CONVERSION — the repaired rule, unconditionally.  The
+-- TYPEELR AT ANY ∀ CONVERSION, BOTH CLAUSES, unconditionally.  The
 -- pushed-in annotation is the interior ∀-body the premise determines, and
 -- the conversion is the mint at the binder the rule introduces.
-preservation-TyPeelR : ∀ {V Θ s B Bᵢ Bₑ}
-  → Value V
+--
+-- THE Λ CLAUSE — the boundary is born on the spot, with NO SHIFT: the
+-- `Λ`'s abst slot becomes the boundary's bind slot, TyBeta's own
+-- refinement one `∀` inside.
+preservation-TyPeelR-Λ : ∀ {N Θ s B Bᵢ Bₑ}
+  → Value N
   → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-    -----------------------------------------------------
-  → Δ ∣ [] ⊢ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+  → Δ ∣ [] ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+    ---------------------------------------------------------------
+  → Δ ∣ [] ⊢ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
+preservation-TyPeelR-Λ = preserve-TyPeelR-Λ
+
+-- THE WRAPPER CLAUSE — the type application is pushed inward one layer,
+-- and the new binder is MASKED in the moved boundary's own change list
+-- (`addLock0`), so the moved boundary crosses by `⊢rename` alone
+-- (strong.TermSubst, `⊢addLock0-cross`).
+preservation-TyPeelR-⟪⟫ : ∀ {W Θ′ s′ Θ s B Bᵢ Bₑ}
+  → Value W
+  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  → Δ ∣ [] ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
+    -------------------------------------------------------------------
+  → Δ ∣ [] ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
+                 ⟪ addLock0 (renᴮ suc Θ′)
+                 , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+                ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
-preservation-TyPeelR = preserve-TyPeelR
+preservation-TyPeelR-⟪⟫ = preserve-TyPeelR-⟪⟫
 
 -- CANCELR — at the moved scope, unconditionally.
 preservation-CancelR : ∀ {V Θ₁ Θ₂ X Y}

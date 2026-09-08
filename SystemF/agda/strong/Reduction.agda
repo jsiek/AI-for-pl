@@ -6,7 +6,10 @@ module strong.Reduction where
 -- notes/DECISIONS.md ("Id-layer RULING", 2026-09-05) applied:
 --
 --   (1) V-Λ carries `Value N` (in strong.Terms) — reduction goes under Λ.
---   (2) TyPeelR shifts its type annotation.
+--   (2) TyPeelR shifts its type annotation.  It is also SPLIT IN TWO —
+--       `TyPeelR-Λ` and `TyPeelR-⟪⟫` — by the shift audit
+--       (notes/ShiftAudit.md, 2026-09-08), so that no moved subterm is
+--       offered a slot it could not name before.
 --   (3) CancelR drops the `hideBinds` residue, carries the BINDER-LOOKUP
 --       premise that determines its `mkId` conversion, and names its two
 --       conversions separately (the single-name presumption, examined
@@ -74,22 +77,72 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
         -→ (V · (wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫
 
   -- TYPEEL — the ∀-conversion analogue; the new binder is prepended and the
-  -- elimination instantiates at the new binder's bind name.
+  -- elimination instantiates at the new binder's bind name.  IT IS TWO
+  -- CLAUSES, split on the crossed boundary's INTERIOR (2026-09-08, the
+  -- shift audit; notes/ShiftAudit.md).
   --
-  -- THE ANNOTATION REPAIR (2a).  The pushed-in `·[ _ , ` 0 ]` must carry
+  -- WHAT EACH CLAUSE DOES.  `canon-∀` (proof/Canonical) says a closed
+  -- value at a `∀` type is a `Λ` over a value or a WRAPPER with a `∀`
+  -- conversion, and nothing else.  So:
+  --
+  --   TyPeelR-Λ    the interior is `Λ N`: INSTANTIATE AT ONCE.  N moves
+  --                nowhere, gains no shift, and the boundary is born on
+  --                the spot.
+  --   TyPeelR-⟪⟫   the interior is a boundary: PUSH THE TYPE APPLICATION
+  --                INWARD one layer, exactly as the single rule did, and
+  --                mask the new binder in the MOVED BOUNDARY'S OWN change
+  --                list (`addLock0`, strong.CtxMorph §5).
+  --
+  -- Together they are TOTAL over canonical `∀`-values, so the split
+  -- REPLACES the single rule (`progress`, proof/Progress) rather than
+  -- supplementing it.
+  --
+  -- WHY V'S FRAME MUST NOT GAIN THE UNMASKED BIND SLOT.  The single rule
+  -- moved its value V by `wkᴹ 1` into
+  -- `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ` — V's old
+  -- frame with ONE NEW SLOT, offered UNMASKED.  V neither had that slot
+  -- nor could use it (`wkᴹ 1` sends every index to ≥ 1), so the frame
+  -- said more than the truth: the tight frame and the live one differed
+  -- by exactly one `le-mu`, the RE-EXPOSURE clause — the one step `_⊑ᵃ_`,
+  -- the refinement a TERM may travel along, REFUSES (proof/ShiftAudit §3,
+  -- `TyPeelR-leak-⊑` / `TyPeelR-leak-¬⊑ᵃ`).  Every other rule masks what
+  -- it introduces (Peel by (†), Beta by `crossΛ`), so this was the one
+  -- exception, and the audit closed it.
+  --
+  -- WHY THE Λ CLAUSE NEEDS NO SHIFT.  The `Λ`'s abst slot BECOMES the
+  -- boundary's bind slot: N already lives one `abst` binder in (`⊢Λ`), so
+  -- the frame move is `unmasked abst → unmasked (bind …)` at a slot N
+  -- COULD ALREADY NAME — `la-uu le-ab`, `⊑ᵃ`-legal, which is TyBeta's own
+  -- refinement, one `∀` inside.  Hence no `wkᴹ`, no `⊢rename`, and the
+  -- contractum does not mention `Bᵢ` at all.
+  --
+  -- WHY THE WRAPPER CLAUSE TERMINATES.  Its contractum's inner
+  -- application is again a redex, but the `∀`-value's TOWER HEIGHT — the
+  -- number of nested boundaries above the `Λ` — strictly DECREASES
+  -- (`TyPeelR-⟪⟫-height`, proof/ShiftAudit §5c₂), because the clause
+  -- CONSUMES a boundary that was already there.  The rejected repair
+  -- (wrap the moved value in the new binder's dual) MINTS one instead, so
+  -- its measure stalls and it loops: an identity conversion at a `∀` is
+  -- necessarily a `` `∀ `` conversion, hence inert, hence the wrapped
+  -- value under `·[ … ]` is itself a redex (`fixA-height-stalls` and the
+  -- run `T₀ -→ᵃ T₁ -→ᵃ T₂`, proof/ShiftAudit §4/§4a).  A tower of height
+  -- `h` therefore takes `h − 1` `TyPeelR-⟪⟫` steps and then exactly one
+  -- `TyPeelR-Λ` step.
+  --
+  -- THE ANNOTATION PREMISE (2a).  The pushed-in `·[ _ , ` 0 ]` must carry
   -- the INTERIOR ∀-body — what the interior's own `⊢·[]` demands — not the
   -- exterior body `B`, from which it differs at every non-identity leaf.
   -- The interior body is not syntactic (a `seal`'s source is a binder's
   -- rep, which the rep-free conversion does not carry) but it IS
-  -- DETERMINED by the conversion typing, so the rule carries that typing
-  -- as a PREMISE — the same move already ruled for the `mkId`
+  -- DETERMINED by the conversion typing, so both clauses carry that
+  -- typing as a PREMISE — the same move already ruled for the `mkId`
   -- conversions.  It is read at the ∀-body, i.e. under one `abst`, and
   -- Progress derives it for free by inverting the redex's own `env`
-  -- (`conv-all-inv`).  Determinism is `conv-types-unique`
-  -- (strong.Conversion), exactly as it is `∋:=-det` for the lookup-carrying
-  -- rules.
+  -- (`conv-all-inv`).  Determinism is `conv-src-unique`
+  -- (strong.Conversion) for the wrapper clause, exactly as it is `∋:=-det`
+  -- for the lookup-carrying rules; the Λ clause needs neither.
   --
-  -- THE SHIFT REPAIR (2b).  `renᴮ suc Θ` double-counts: `interior` already
+  -- THE SHIFT (2b).  `renᴮ suc Θ` would double-count: `interior` already
   -- lifts Θ's reps past the binder A prepended here
   -- (`interior (morph (A ∷ binds Θ) (changes Θ)) Δ
   --   ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`), so the CHANGES are
@@ -102,10 +155,28 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- Keeping `s` itself is ill-typed — its TARGET body still mentions
   -- `` ` 0 `` where `env` demands the instantiated
   -- `shiftBy (numBinds Θ + 1) (Bₑ [ A ])`.
-  TyPeelR : ∀ {Δ V Θ s B A Bᵢ Bₑ} → Value V
+  TyPeelR-Λ : ∀ {Δ N Θ s B A Bᵢ Bₑ} → Value N
     → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-    → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+    → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+        -→ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+
+  -- The moved boundary is SHIFTED exactly as the single rule shifted it —
+  -- `wkᴹ 1` on a boundary is `renᴹ (extN (numBinds Θ′) suc)` on its
+  -- interior, `renᴮ suc` on its frame and
+  -- `renᶜ (extᵗ (extN (numBinds Θ′) suc))` on its `∀`-conversion body —
+  -- and then `lock 0` is APPENDED to its own (shifted) change list.  So
+  -- the contractum is the single rule's, with `addLock0` on the moved
+  -- boundary and nothing else changed: same outer frame, same minted
+  -- conversion `instReveal 0 s`, same pushed-in annotation, same type
+  -- argument `` ` 0 `` (`TyPeelR-⟪⟫-wkᴹ`,
+  -- `TyPeelR-⟪⟫-outer-unchanged`, proof/ShiftAudit §5c).
+  TyPeelR-⟪⟫ : ∀ {Δ W Θ′ s′ Θ s B A Bᵢ Bₑ} → Value W
+    → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+    → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+        -→ ((renᴹ (extN (numBinds Θ′) suc) W
+               ⟪ addLock0 (renᴮ suc Θ′)
+               , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+              ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
              ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
   -- CANCEL — a conceal directly under the binder it names.  The
@@ -224,16 +295,32 @@ det (Peel v w)   (ξ-·-r u st) = ⊥-elim (value-¬step w st)
 det (ξ-·-l st)   (Peel v w)   = ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
 det (ξ-·-r u st) (Peel v w)   = ⊥-elim (value-¬step w st)
 
--- TyPeelR — the two contracta agree because the SOURCE AND TARGET TYPES
--- are a function of the conversion and the type context
--- (`conv-types-unique`), so the two premises determine the SAME pushed-in
--- annotation.
-det (TyPeelR {V = V} {Θ = Θ} {s = s} {A = A} v ⊢s) (TyPeelR v′ ⊢s′) =
-  cong (λ T → (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) T , ` 0 ])
+-- TyPeelR — the two clauses' patterns are DISJOINT (a `Λ` is not a
+-- boundary), so no cross case arises.
+--
+-- The Λ clause is determined by the redex OUTRIGHT: its contractum does
+-- not mention `Bᵢ`, so `conv-src-unique` is not needed at all.
+det (TyPeelR-Λ v ⊢s) (TyPeelR-Λ v′ ⊢s′) = refl
+det (TyPeelR-Λ v ⊢s) (ξ-·[] st) =
+  ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
+det (ξ-·[] st) (TyPeelR-Λ v ⊢s) =
+  ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
+
+-- The wrapper clause's two contracta agree because the SOURCE type is a
+-- function of the conversion and the type context (`conv-src-unique`), so
+-- the two premises determine the SAME pushed-in annotation.
+det (TyPeelR-⟪⟫ {W = W} {Θ′ = Θ′} {s′ = s′} {Θ = Θ} {s = s} {A = A} v ⊢s)
+    (TyPeelR-⟪⟫ v′ ⊢s′) =
+  cong (λ T → ((renᴹ (extN (numBinds Θ′) suc) W
+                  ⟪ addLock0 (renᴮ suc Θ′)
+                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
+                 ·[ renameᵗ (extᵗ suc) T , ` 0 ])
                 ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫)
        (conv-src-unique ⊢s ⊢s′)
-det (TyPeelR v ⊢s) (ξ-·[] st)     = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
-det (ξ-·[] st)     (TyPeelR v ⊢s) = ⊥-elim (value-¬step (V-⟪⟫ v I-all) st)
+det (TyPeelR-⟪⟫ v ⊢s) (ξ-·[] st) =
+  ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
+det (ξ-·[] st) (TyPeelR-⟪⟫ v ⊢s) =
+  ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
 -- CancelR — the two contracta agree because the lookup is a function.
 det (CancelR {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} v d) (CancelR v′ d′) =

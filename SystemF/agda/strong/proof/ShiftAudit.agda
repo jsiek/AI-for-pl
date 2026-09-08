@@ -16,14 +16,22 @@ module strong.proof.ShiftAudit where
 -- FRAME LEAK, even when the subterm's shifted indices cannot reach it:
 -- the frame must SAY THE TRUTH about what the subterm may name.
 --
+-- THE REPAIR IS INSTALLED (2026-09-08).  The one leak the audit found —
+-- TyPeelR's moved value gained the new binder's slot UNMASKED — is closed
+-- in the LIVE rules: `TyPeelR` is now the two clauses `TyPeelR-Λ` and
+-- `TyPeelR-⟪⟫` (strong.Reduction).  So this module records the audit's
+-- FINDINGS against the live rule set: the per-site frame identities, the
+-- witness of what the leak was, the machine refutation of the repair that
+-- LOOPS, and the tower measure that makes the installed one terminate.
+--
 --   §1  the site table (comment)
 --   §2  Peel                  — EXACT, by (†)
---   §3  TyPeelR (V's frame)   — ****  LEAK  ****
---   §4  fix (a), "wrap V in the new binder's dual" — LOOPS
---   §5  fix (b), "split on the interior" — the Λ half, PROVEN EXACT
---   §5b fix (b′), the wrapper half — the frame identity, EXACT
---   §5c fix (b′) AS A RULE — preservation, determinism, progress, frame
---       exactness, the tower measure, and a closed two-deep run
+--   §3  TyPeelR (V's frame)   — the LEAK, as it stood, and its witness
+--   §4  fix (a), "wrap V in the new binder's dual" — REFUTED, it LOOPS
+--   §5  TyPeelR-Λ             — the live clause: EXACT, no shift at all
+--   §5b TyPeelR-⟪⟫            — the live clause: `wkᴹ 1` plus one lock
+--   §5c the frame exactness of the two clauses, the tower measure, and a
+--       closed two-deep run with every state typed
 --   §6  TyBeta                — exact up to refinement
 --   §7  Beta                  — exact (crossΛ), and the `ƛ` clause
 --   §8  CancelR / IdPush      — exact, inner AND outer
@@ -31,8 +39,9 @@ module strong.proof.ShiftAudit where
 --   §10 the ξ rules           — nothing moves
 --   §11 dead shift machinery
 --
--- The verdict table with the fix candidates and their hazards is
+-- The verdict table, with the fix candidates and their hazards, is
 -- notes/ShiftAudit.md; the frame-identity table it feeds is Design.md §7.
+-- The tightness tests for the two clauses are Examples §15b.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
 open import Data.List using (List; []; _∷_; _++_; map; length)
@@ -56,12 +65,12 @@ open import strong.Reduction
 open import strong.proof.Preserve
   using (⊢instReveal; wf-[]ᵗ; wf-∀⁻; ∀-inj; subst-at-0; shiftBy-[]ᵗ
         ; ren-suc-[0])
-open import strong.proof.PeelDual
-  using (interior-dual; applyChanges-++; ⊢ˢ-++)
+open import strong.Preservation using (preservation)
+open import strong.proof.PeelDual using (interior-dual)
 open import strong.proof.MoveScope using (interior-rewind; interior-⋉-rewind)
 open import strong.proof.Canonical using (canon-∀)
 open import strong.Examples
-  using (interior-TyBeta; interior-TyPeelR; interior-Beta-Λ; prb; val-prb)
+  using (interior-TyBeta; interior-TyPeelR; interior-Beta-Λ)
 
 private
   variable
@@ -79,14 +88,18 @@ private
 -- substituted (`grep wkᴹ ⇑ᴹ renᴹ renⁿ shiftᵐ crossΛ substᵐ`):
 --
 --   RULES that move a subterm
---     Peel      `wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫`          §2  EXACT
---     TyPeelR   `wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ]`   §3  LEAK
---     TyBeta    `N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫`       §6  refinement
---     Beta      `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛ`       §7  EXACT
---     CancelR   `V ⟪ Θ₁ ⋉ Θ₂ , … ⟫ ⟪ rewind Θ₂ , … ⟫`        §8  EXACT
---     IdPush    (same two frames)                            §8  EXACT
---     Drop$     `($ n) ⟪ Θ , id A ⟫ → $ n`                   §9  vacuous
---     ξ-*       nothing moves                                §10 —
+--     Peel        `wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫`        §2  EXACT
+--     TyPeelR     `wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ]`
+--                 the SINGLE rule, now REPLACED                §3  LEAK
+--     TyPeelR-Λ   `N ⟪ morph (A ∷ binds Θ) (changes Θ) , … ⟫` §5  EXACT
+--     TyPeelR-⟪⟫  `wkᴹ 1` on the moved boundary, plus
+--                 `addLock0` on its own change list           §5b EXACT
+--     TyBeta      `N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫`      §6  refinement
+--     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛ`      §7  EXACT
+--     CancelR     `V ⟪ Θ₁ ⋉ Θ₂ , … ⟫ ⟪ rewind Θ₂ , … ⟫`       §8  EXACT
+--     IdPush      (same two frames)                           §8  EXACT
+--     Drop$       `($ n) ⟪ Θ , id A ⟫ → $ n`                  §9  vacuous
+--     ξ-*         nothing moves                               §10 —
 --
 --   TRANSPORTS, not rules (no term is moved by a reduction; these are the
 --   lemmas the cases above are PROVED with, and each one's `Ren`/`⊑ᵃ`
@@ -119,10 +132,16 @@ Peel-slot0-locked : (As : List Ty) (Δ : Ctxᵗ)
 Peel-slot0-locked As Δ (_ , ez , ())
 
 ------------------------------------------------------------------------
--- §3  TYPEELR — THE LEAK
+-- §3  TYPEELR — THE LEAK, AS IT STOOD BEFORE THE SPLIT
 ------------------------------------------------------------------------
 
--- THE MOVE.  `V`, the interior of the crossed boundary, is typed at
+-- The single rule is GONE (strong.Reduction carries `TyPeelR-Λ` and
+-- `TyPeelR-⟪⟫` instead), so this section is the RECORD of what the leak
+-- was and of what closing it required.  Everything below is a statement
+-- about FRAMES, and every frame here is still a frame the live clauses
+-- produce, so nothing in it is stale.
+
+-- THE MOVE.  `V`, the interior of the crossed boundary, was typed at
 -- `interior Θ Δ` in the redex and at
 --
 --   interior (morph (A ∷ binds Θ) (changes Θ)) Δ
@@ -392,146 +411,39 @@ _ : T₂ ≡ (((Λ ($ 3)) ⟪ morph [] (lock 0 ∷ []) , `∀ (id `ℕ) ⟫) ·[
 _ = refl
 
 ------------------------------------------------------------------------
--- §5  FIX (b) — SPLIT ON THE INTERIOR.  THE Λ HALF IS EXACT, AND PROVEN.
+-- §5  TYPEELR-Λ — THE LIVE CLAUSE.  EXACT, AND THERE IS NO SHIFT.
 ------------------------------------------------------------------------
 
 -- CANONICAL FORMS AT `∀` (proof/Canonical.canon-∀) say the interior of a
 -- `∀`-conversion boundary is a `Λ` over a value or a WRAPPER with a `∀`
--- conversion — nothing else.  So TyPeelR can SPLIT:
+-- conversion — nothing else.  That is what lets TyPeelR SPLIT, and the
+-- split is what closes §3's leak:
 --
---   Λ case      instantiate IMMEDIATELY.  The body N already lives one
---               `abst` binder in (`⊢Λ`), so the new `bind` slot is a slot
---               N COULD ALREADY NAME: the frame move is a REFINEMENT
---               `abst → bind`, exactly TyBeta's, and THERE IS NO SHIFT.
---   wrapper     push the type application inward, as the live rule does.
---               The tower is finite and bottoms out at a `Λ`.
+--   TyPeelR-Λ    instantiate IMMEDIATELY.  The body N already lives one
+--                `abst` binder in (`⊢Λ`), so the new `bind` slot is a
+--                slot N COULD ALREADY NAME: the frame move is a
+--                REFINEMENT `abst → bind`, exactly TyBeta's, and THERE
+--                IS NO SHIFT AT ALL.
+--   TyPeelR-⟪⟫   push the type application inward, as the single rule
+--                did, and mask the new binder in the MOVED BOUNDARY's
+--                own change list (§5b).  The tower is finite and bottoms
+--                out at the `Λ`, so the descent terminates (§5c₂).
 --
--- The Λ case is the one that matters — it is where the instantiation
--- actually happens — and it is EXACT.  Below: the prototype rule, its
--- frame identity, and its PRESERVATION.
+-- Preservation, determinism and progress for the pair live where they
+-- belong: proof/Preserve (`preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫`),
+-- strong.Reduction (`det`) and proof/Progress (`progress-·[]-∀conv`).
+-- What this module keeps is the FRAME arithmetic behind them.
 
--- THE FRAME MOVE IS TyBeta's.  `⊑ᵃ`, not just `⊑`: the term transport
--- accepts it (contrast §3's `TyPeelR-leak-¬⊑ᵃ`).
+-- THE Λ CLAUSE'S FRAME MOVE IS TyBeta's.  `⊑ᵃ`, not just `⊑`: the term
+-- transport accepts it, in flat contrast to §3's `TyPeelR-leak-¬⊑ᵃ`.
+-- This is `preserve-TyPeelR-Λ`'s own `refine`, stated on its own.
 TyPeelR-Λ-refinement : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
   → (unmasked abst ∷ interior Θ Δ)
       ⊑ᵃ interior (morph (A ∷ binds Θ) (changes Θ)) Δ
 TyPeelR-Λ-refinement A Θ Δ = la∷ (la-uu le-ab) (⊑ᵃ-refl (interior Θ Δ))
 
--- THE MOVED BOUNDARY'S OWN LOCK (fix (b′), §5b).  `lock 0` is appended
--- at the TAIL of the boundary's own change list, where `applyChanges`
--- runs it FIRST — the position the scope move `_⋉_` puts its travelling
--- changes in.  The definition sits here because the rule below mentions
--- it; §5b is where the choice is justified and the frame identity proved.
-addLock0 : CtxMorph → CtxMorph
-addLock0 Θ = morph (binds Θ) (changes Θ ++ (lock 0 ∷ []))
-
--- THE PROTOTYPE RULE SET (fix (b) + fix (b′)), NOT the live rule.
-infix 2 _⊢_-→ᵇ_
-data _⊢_-→ᵇ_ : Ctxᵗ → Term → Term → Set where
-
-  -- the Λ interior: instantiate at once, frame REFINED not extended
-  TyPeelR-Λ : ∀ {Δ N Θ s B A Bᵢ Bₑ} → Value N
-    → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-    → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ᵇ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
-
-  -- THE WRAPPER INTERIOR, REPAIRED (fix (b′)).  The moved boundary is
-  -- SHIFTED exactly as the live rule shifts it — `wkᴹ 1` on a boundary is
-  -- `renᴹ (extN (numBinds Θ′) suc)` on its interior, `renᴮ suc` on its
-  -- frame and `renᶜ (extN (numBinds Θ′) suc)` on its conversion — and
-  -- then `lock 0` is APPENDED to its own (shifted) change list.  NO NEW
-  -- WRAPPER IS MINTED, which is what makes this not fix (a) (§4).
-  -- `TyPeelR-⟪⟫-wkᴹ` (§5c) is the equation relating the contractum's
-  -- inner value to `wkᴹ 1 (W ⟪ Θ′ , `∀ s′ ⟫)`.
-  TyPeelR-⟪⟫ : ∀ {Δ W Θ′ s′ Θ s B A Bᵢ Bₑ} → Value W
-    → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-    → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ᵇ ((renᴹ (extN (numBinds Θ′) suc) W
-                ⟪ addLock0 (renᴮ suc Θ′)
-                , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-               ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-              ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
-
-  -- the ONE congruence the tower run needs: the next redex sits inside
-  -- the boundary the previous step built
-  ξᵇ-⟪⟫ : ∀ {Δ M M′ Θ c} → interior Θ Δ ⊢ M -→ᵇ M′
-        → Δ ⊢ M ⟪ Θ , c ⟫ -→ᵇ M′ ⟪ Θ , c ⟫
-
--- THE Λ CASE PRESERVES TYPES.  The live proof, with `int` replaced by
--- `⊢retag` along the refinement above — no `⊢rename`, no `wkᴹ`, no
--- `ren-suc-[0]`.  Every other premise is the live proof verbatim, which
--- is the point: the repair costs nothing.
-preserve-TyPeelR-Λ : ∀ {Δ N Θ s B A C Bᵢ Bₑ} → Value N
-  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → Δ ∣ [] ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-    ---------------------------------------------------------------------
-  → Δ ∣ [] ⊢ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
-preserve-TyPeelR-Λ {Δ = Δ} {N = N} {Θ = Θ} {s = s} {B = B} {A = A}
-                   {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s
-                   (⊢·[] (env mwᵥ (⊢Λ ⊢N) ⊢c wE) wA)
-  with conv-all-inv ⊢c
-... | A₀ , B₀ , refl , eqE , ⊢s₀
-  with conv-types-unique ⊢s ⊢s₀
-... | refl , refl =
-  env (mw (rw-b (⊑-wf (Δ⊑unlockedScope Θ Δ) wA) (mw-reps mwᵥ))
-          (mw-changes mwᵥ))
-      (⊢retag (TyPeelR-Λ-refinement A Θ Δ) ⊢N)
-      conv
-      (wf-[]ᵗ (wf-∀⁻ wE) wA)
-  where
-  A′ : Ty
-  A′ = shiftBy (numBinds Θ) A
-
-  eqB : Bₑ ≡ shiftBodyBy (numBinds Θ) B
-  eqB = sym (∀-inj (trans (sym (shiftBy-shiftBodyBy (numBinds Θ) B)) eqE))
-
-  eqT : Bₑ [ 0 := ⇑ᵗ A′ ]ᵗ ≡ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
-  eqT = trans (cong (λ T → T [ 0 := ⇑ᵗ A′ ]ᵗ) eqB)
-              (trans (subst-at-0 A′ (shiftBodyBy (numBinds Θ) B))
-                     (cong ⇑ᵗ (sym (shiftBy-[]ᵗ (numBinds Θ) B A))))
-
-  conv : convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ ⊢ instReveal 0 s
-           ∶ Bᵢ ⇝ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
-  conv = subst (λ T → convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ
-                        ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
-               eqT (⊢instReveal {A = A′} 0 ⊢s)
-
--- DETERMINISM.  The three patterns are DISJOINT — a `Λ` is not a
--- boundary, and neither TyPeelR pattern is a boundary at the top — and
--- each contractum is a function of the redex.  Note what the Λ case
--- buys: its contractum does not mention `Bᵢ` at all, so it is determined
--- by the redex WITHOUT `conv-src-unique`.  (The live rule needs it,
--- because the pushed-in annotation is premise-determined; so does the
--- repaired wrapper case, for exactly the same reason.)
-detᵇ : ∀ {Δ M M₁ M₂} → Δ ⊢ M -→ᵇ M₁ → Δ ⊢ M -→ᵇ M₂ → M₁ ≡ M₂
-detᵇ (TyPeelR-Λ v ⊢s)  (TyPeelR-Λ v′ ⊢s′)  = refl
-detᵇ (TyPeelR-⟪⟫ {W = W} {Θ′ = Θ′} {s′ = s′} {Θ = Θ} {s = s} {A = A} v ⊢s)
-     (TyPeelR-⟪⟫ v′ ⊢s′) =
-  cong (λ T → ((renᴹ (extN (numBinds Θ′) suc) W
-                  ⟪ addLock0 (renᴮ suc Θ′)
-                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-                 ·[ renameᵗ (extᵗ suc) T , ` 0 ])
-                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫)
-       (conv-src-unique ⊢s ⊢s′)
-detᵇ (ξᵇ-⟪⟫ st) (ξᵇ-⟪⟫ st′) = cong (λ M → M ⟪ _ , _ ⟫) (detᵇ st st′)
-
--- PROGRESS.  `canon-∀` (proof/Canonical) hands the prototype EXACTLY its
--- two patterns — a `Λ` over a value, or a wrapper with a `∀` conversion —
--- so the split is total on a typed redex, and each rule's premises come
--- off the redex's own derivation (the value from `canon-∀`, the
--- conversion typing from `conv-all-inv`, as proof/Progress already does
--- for the live rule).
-progressᵇ-·[] : ∀ {Δ V Θ s B A C} → Value V
-  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-    ----------------------------------------------------------
-  → Σ[ M ∈ Term ] (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ᵇ M)
-progressᵇ-·[] v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) with conv-all-inv ⊢c
-... | A₀ , B₀ , refl , eqₑ , ⊢s with canon-∀ v ⊢V
-... | inj₁ (N , vN , refl)          = _ , TyPeelR-Λ vN ⊢s
-... | inj₂ (W , Θ′ , s′ , vW , refl) = _ , TyPeelR-⟪⟫ vW ⊢s
-
--- THE Λ CASE IS FRAME-EXACT.  Two facts, side by side: the body is NOT
--- SHIFTED (it stays where `⊢Λ` put it), and the slot it gains was
+-- … AND THE BODY IS NOT SHIFTED.  Two facts side by side: the frame it
+-- lands in is its old frame with ONE entry in front, and that entry was
 -- ALREADY THERE as `abst` — criterion (ii) alone, with (i) vacuous.
 TyPeelR-Λ-no-shift : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
   → interior (morph (A ∷ binds Θ) (changes Θ)) Δ
@@ -544,97 +456,50 @@ TyPeelR-Λ-slot0-old : (Θ : CtxMorph) (Δ : Ctxᵗ)
 TyPeelR-Λ-slot0-old Θ Δ = _ , ez , nameable
 
 ------------------------------------------------------------------------
--- §5b  FIX (b′) — CLOSING THE WRAPPER CASE TOO: THE NEW BINDER IS
---      MASKED IN THE MOVED BOUNDARY'S OWN FRAME
+-- §5b  TYPEELR-⟪⟫ — THE LIVE CLAUSE.  THE NEW BINDER IS MASKED IN THE
+--      MOVED BOUNDARY'S OWN FRAME.
 ------------------------------------------------------------------------
 
 -- `canon-∀` says the thing TyPeelR moves in the non-Λ case is A BOUNDARY.
 -- A boundary carries its own change list — so the new binder can be
 -- masked for it WITHOUT a second wrapper (which is what loops, §4) and
--- WITHOUT resolving anything (which is what fix (c) pays, §13c of
--- Examples): append `lock 0` to the moved boundary's OWN changes, at the
--- TAIL, where `applyChanges` runs it FIRST — exactly the position the
--- SCOPE MOVE `_⋉_` puts the travelling changes in.  (`addLock0` itself is
--- defined in §5 above, where the rule that uses it is stated.)
+-- WITHOUT resolving anything (which is what fix (c) pays; Design.md §9
+-- and Examples §13c): append `lock 0` to the moved boundary's OWN
+-- changes, at the TAIL, where `applyChanges` runs it FIRST — exactly the
+-- position the SCOPE MOVE `_⋉_` puts the travelling changes in.
+--
+-- `addLock0` and its induced-context identities are strong.CtxMorph §5;
+-- the crossing itself is `⊢addLock0-cross` at `Ren-addLock0`
+-- (strong.TermSubst §6), and the frame identity at the shift the rule
+-- performs is `interior-addLock0-cross`.  Restated here at the rule's own
+-- two contexts:
 
--- the two list facts the frame identity needs
-map-renᶠ-shiftScope : (S : List Change)
-  → map (renᶠ suc) S ≡ shiftScope 1 S
-map-renᶠ-shiftScope []             = refl
-map-renᶠ-shiftScope (unlock X ∷ S) =
-  cong (unlock (suc X) ∷_) (map-renᶠ-shiftScope S)
-map-renᶠ-shiftScope (lock X ∷ S)   =
-  cong (lock (suc X) ∷_) (map-renᶠ-shiftScope S)
-
--- `shiftScope 1` steps a change list PAST ONE ENTRY: the entry is
--- untouched and the list acts on the tail.  (`applyChanges-shiftScope`,
--- proof/MoveScope, is this past a whole `pushBinds` prefix; here the
--- prefix is one arbitrary entry, MASKED included.)
-applyChanges-shift1 : (S : List Change) (E : Ent) (Δ : Ctxᵗ)
-  → applyChanges (shiftScope 1 S) (E ∷ Δ) ≡ E ∷ applyChanges S Δ
-applyChanges-shift1 []             E Δ = refl
-applyChanges-shift1 (unlock X ∷ S) E Δ =
-  cong (unmask (suc X)) (applyChanges-shift1 S E Δ)
-applyChanges-shift1 (lock X ∷ S)   E Δ =
-  cong (mask (suc X)) (applyChanges-shift1 S E Δ)
-
--- THE FRAME IDENTITY.  The moved boundary's interior frame is its BIRTH
--- frame with the new binder inserted BELOW the bind prefix and MASKED —
--- the very shape (†) gives Peel's crossing argument and `interior-Beta-Λ`
--- gives Beta's.  Nothing gained, nothing lost.
-interior-addLock0 : (Θ′ : CtxMorph) (C : Ty) (Δ : Ctxᵗ)
-  → interior (addLock0 (renᴮ suc Θ′)) (unmasked (bind C) ∷ Δ)
-      ≡ pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind C) ∷ scope Θ′ Δ)
-interior-addLock0 Θ′ C Δ =
-  cong (pushBinds (map ⇑ᵗ (binds Θ′)))
-       (trans (applyChanges-++ (map (renᶠ suc) (changes Θ′)) (lock 0 ∷ [])
-                               (unmasked (bind C) ∷ Δ))
-              (trans (cong (λ S → applyChanges S (masked (bind C) ∷ Δ))
-                           (map-renᶠ-shiftScope (changes Θ′)))
-                     (applyChanges-shift1 (changes Θ′) (masked (bind C)) Δ)))
-
--- … AND THE MOVED BOUNDARY CROSSES BY `⊢rename` ALONE.  `wkᴹ 1` on a
--- boundary renames its interior at `extN (numBinds Θ′) suc`
--- (strong.TermSubst, `renᴹ`'s wrapper clause), and that is exactly the
--- renaming from the birth frame into the frame above — no `⊢retag`, no
--- `le-mu`.  This is what makes (b′) exact.
-Ren-addLock0 : (Θ′ : CtxMorph) (E : Ent) (Δ : Ctxᵗ)
-  → Ren (extN (numBinds Θ′) suc) (interior Θ′ Δ)
-        (pushBinds (map ⇑ᵗ (binds Θ′)) (E ∷ scope Θ′ Δ))
-Ren-addLock0 Θ′ E Δ = ren-pushBinds (binds Θ′) suc (mkRen es)
-
--- The `lock 0` is LEGAL where it acts: slot 0 of the new frame is
--- nameable (§3's `TyPeelR-slot0-nameable` — the leak's own slot is
--- exactly what authorizes the lock that closes it), so `sw-l` applies.
+-- The appended `lock 0` is LEGAL where it acts: slot 0 of the new frame
+-- is nameable (§3's `TyPeelR-slot0-nameable` — THE LEAK'S OWN SLOT IS
+-- EXACTLY WHAT AUTHORIZES THE LOCK THAT CLOSES IT), so `sw-l` applies.
 addLock0-sw-l : (A : Ty) (Θ : CtxMorph) (Δ : Ctxᵗ)
   → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ⊢ˢ (lock 0 ∷ [])
 addLock0-sw-l A Θ Δ = sw-l (TyPeelR-slot0-nameable A Θ Δ) sw[]
 
--- WHAT THAT LEAVES: `Δ ⊢ᵐ addLock0 (renᴮ suc Θ′)` (the reps by `⊢ʳ-ren`,
--- the changes by `⊢ˢ-ren` plus `addLock0-sw-l` and `⊢ˢ-++`), and the
--- moved boundary's CONVERSION re-typed at
--- `convCtx (addLock0 (renᴮ suc Θ′)) …` — where the appended lock is
--- LIFTED (`applyUnlocks` skips locks), so the conversion context is the
--- renamed one and `conv-ren` suffices.  Neither is new machinery; both
--- are the moves `⊢rename`'s own (env) case already makes.  BOTH ARE NOW
--- DONE: §5c assembles them into `⊢addLock0-cross` and lands (b′) as a
--- rule.
+-- THE FRAME IDENTITY.  The moved boundary's interior frame is its BIRTH
+-- frame with the new binder inserted BELOW the bind prefix and MASKED —
+-- the very shape (†) gives Peel's crossing argument and
+-- `interior-Beta-Λ` gives Beta's.  Nothing gained, nothing lost.
+interior-addLock0-shift : (Θ′ : CtxMorph) (C : Ty) (Δ : Ctxᵗ)
+  → interior (addLock0 (renᴮ suc Θ′)) (unmasked (bind C) ∷ Δ)
+      ≡ pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind C) ∷ scope Θ′ Δ)
+interior-addLock0-shift = interior-addLock0-cross
 
 ------------------------------------------------------------------------
--- §5c  FIX (b′) AS A RULE — the shift is `wkᴹ 1`'s own, plus one lock
+-- §5c  IT IS `wkᴹ 1` PLUS ONE LOCK, ON THE NOSE
 ------------------------------------------------------------------------
 
--- THE RULE IS `TyPeelR-⟪⟫` IN §5.  This section (i) relates its
--- contractum to `wkᴹ 1`, (ii) proves its PRESERVATION, (iii) records its
--- FRAME EXACTNESS, (iv) gives the TOWER MEASURE that separates it from
--- fix (a)'s regress, and (v) runs it on a closed two-deep tower.
-
--- (i) THE EQUATION.  The contractum's inner value IS `wkᴹ 1` of the
--- redex's inner value, with `lock 0` appended to the moved boundary's own
--- change list — nothing else.  `wkᴹ 1` on a boundary renames the interior
--- at `extN (numBinds Θ′) suc`, the frame by `renᴮ suc` and the conversion
--- at `extN (numBinds Θ′) suc` (`renᴹ`'s wrapper clause), and that is
--- exactly what the rule writes.
+-- The contractum's inner value IS `wkᴹ 1` of the redex's inner value,
+-- with `lock 0` appended to the moved boundary's own change list —
+-- nothing else.  `wkᴹ 1` on a boundary renames the interior at
+-- `extN (numBinds Θ′) suc`, the frame by `renᴮ suc` and the conversion at
+-- `extN (numBinds Θ′) suc` (`renᴹ`'s wrapper clause), and that is exactly
+-- what the rule writes.
 addLock0ᵛ : Term → Term
 addLock0ᵛ (` x)          = ` x
 addLock0ᵛ ($ n)          = $ n
@@ -651,184 +516,14 @@ TyPeelR-⟪⟫-wkᴹ : (W : Term) (Θ′ : CtxMorph) (s′ : Conv)
            , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
 TyPeelR-⟪⟫-wkᴹ W Θ′ s′ = refl
 
--- (ii) PRESERVATION.  Two facts about `applyUnlocks` first: the appended
--- lock is LIFTED, so the CONVERSION CONTEXT is the plainly renamed one
--- and `conv-ren` suffices.  This is what makes the repair free.
-applyUnlocks-++ : (S T : List Change) (Δ : Ctxᵗ)
-  → applyUnlocks (S ++ T) Δ ≡ applyUnlocks S (applyUnlocks T Δ)
-applyUnlocks-++ []             T Δ = refl
-applyUnlocks-++ (unlock X ∷ S) T Δ =
-  cong (unmask X) (applyUnlocks-++ S T Δ)
-applyUnlocks-++ (lock X ∷ S)   T Δ = applyUnlocks-++ S T Δ
-
-unlockedScope-addLock0 : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → unlockedScope (addLock0 Θ) Δ ≡ unlockedScope Θ Δ
-unlockedScope-addLock0 Θ Δ = applyUnlocks-++ (changes Θ) (lock 0 ∷ []) Δ
-
-convCtx-addLock0 : (Θ : CtxMorph) (Δ : Ctxᵗ)
-  → convCtx (addLock0 Θ) Δ ≡ convCtx Θ Δ
-convCtx-addLock0 Θ Δ =
-  cong (pushBinds (binds Θ)) (unlockedScope-addLock0 Θ Δ)
-
--- THE CROSSING LEMMA — the (b′) analogue of `⊢crossΛ` (strong.TermSubst)
--- and of PeelDual's `crossing`.  A boundary crosses ONE NEW BIND SLOT,
--- masking it in its own frame.  Every premise is one move `⊢rename`'s
--- (env) case already makes:
---
---   FRAME     reps by `⊢ʳ-ren` at `ren-unlockedScope` (the appended lock
---             is lifted); changes by `⊢ˢ-++` — `⊢ˢ-ren` for the shifted
---             list, over the frame the appended lock leaves, and `sw-l`
---             for the lock itself, whose slot IS nameable.
---   INTERIOR  `⊢rename` at `Ren-addLock0` (§5b) ALONE — no `⊢retag`.
---   CONV      `conv-ren` at `ren-convCtx`, plus `shiftBy-ren` and
---             `numBinds-ren` arithmetic.
---   EXTERIOR  `wf-ren Ren-wk`.
---
--- NO EXTRA PREMISE.  Everything comes off the redex's own derivation.
-⊢addLock0-cross : ∀ {Δ Γ C W Θ′ c Bᵥ Bₑ}
-  → Δ ⊢ᵐ Θ′
-  → interior Θ′ Δ ∣ [] ⊢ W ⦂ Bᵥ
-  → convCtx Θ′ Δ ⊢ c ∶ Bᵥ ⇝ shiftBy (numBinds Θ′) Bₑ
-  → Δ ⊢ᵗ Bₑ
-    -------------------------------------------------------------------
-  → (unmasked (bind C) ∷ Δ) ∣ Γ
-      ⊢ renᴹ (extN (numBinds Θ′) suc) W
-          ⟪ addLock0 (renᴮ suc Θ′) , renᶜ (extN (numBinds Θ′) suc) c ⟫
-      ⦂ ⇑ᵗ Bₑ
-⊢addLock0-cross {Δ = Δ} {C = C} {W = W} {Θ′ = Θ′} {c = c} {Bᵥ = Bᵥ}
-                {Bₑ = Bₑ} mw′ ⊢W ⊢c wE =
-  env (mw reps chs) intW convW (wf-ren Ren-wk wE)
-  where
-  n′ : ℕ
-  n′ = numBinds Θ′
-
-  Δ⁺ : Ctxᵗ
-  Δ⁺ = unmasked (bind C) ∷ Δ
-
-  Θ″ : CtxMorph
-  Θ″ = addLock0 (renᴮ suc Θ′)
-
-  reps : unlockedScope Θ″ Δ⁺ ⊢ʳ binds Θ″
-  reps = subst (λ Ξ → Ξ ⊢ʳ map (renameᵗ suc) (binds Θ′))
-               (sym (unlockedScope-addLock0 (renᴮ suc Θ′) Δ⁺))
-               (⊢ʳ-ren (ren-unlockedScope Θ′ Ren-wk Inj-suc)
-                       (mw-reps mw′))
-
-  chs : Δ⁺ ⊢ˢ changes Θ″
-  chs = ⊢ˢ-++ (map (renᶠ suc) (changes Θ′)) (lock 0 ∷ [])
-              (⊢ˢ-ren Ren-wk Inj-suc (mw-changes mw′))
-              (sw-l (unmasked (bind (⇑ᵗ C)) , ez , nameable) sw[])
-
-  intW : interior Θ″ Δ⁺ ∣ [] ⊢ renᴹ (extN n′ suc) W
-           ⦂ renameᵗ (extN n′ suc) Bᵥ
-  intW = subst (λ Ξ → Ξ ∣ [] ⊢ renᴹ (extN n′ suc) W
-                        ⦂ renameᵗ (extN n′ suc) Bᵥ)
-               (sym (interior-addLock0 Θ′ C Δ))
-               (⊢rename (Ren-addLock0 Θ′ (masked (bind C)) Δ)
-                        (Inj-extN n′ Inj-suc) ⊢W)
-
-  convW : convCtx Θ″ Δ⁺ ⊢ renᶜ (extN n′ suc) c
-            ∶ renameᵗ (extN n′ suc) Bᵥ ⇝ shiftBy (numBinds Θ″) (⇑ᵗ Bₑ)
-  convW =
-    subst (λ Ξ → Ξ ⊢ renᶜ (extN n′ suc) c ∶ renameᵗ (extN n′ suc) Bᵥ
-                   ⇝ shiftBy (numBinds Θ″) (⇑ᵗ Bₑ))
-          (sym (convCtx-addLock0 (renᴮ suc Θ′) Δ⁺))
-      (subst (λ n → convCtx (renᴮ suc Θ′) Δ⁺ ⊢ renᶜ (extN n′ suc) c
-                      ∶ renameᵗ (extN n′ suc) Bᵥ ⇝ shiftBy n (⇑ᵗ Bₑ))
-             (sym (numBinds-ren suc Θ′))
-        (subst (λ T → convCtx (renᴮ suc Θ′) Δ⁺ ⊢ renᶜ (extN n′ suc) c
-                        ∶ renameᵗ (extN n′ suc) Bᵥ ⇝ T)
-               (shiftBy-ren n′ suc Bₑ)
-               (conv-ren (ren-convCtx Θ′ suc Ren-wk Inj-suc) ⊢c)))
-
--- THE WRAPPER CASE PRESERVES TYPES.  It is the live proof
--- (proof/Preserve.preserve-TyPeelR) with `⊢wkV = ⊢rename Ren-wk Inj-suc`
--- replaced by `⊢addLock0-cross` — the OUTER `env` (frame, conversion,
--- exterior) is the live proof VERBATIM, exactly as in the Λ case.
-preserve-TyPeelR-⟪⟫ : ∀ {Δ W Θ′ s′ Θ s B A C Bᵢ Bₑ} → Value W
-  → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → Δ ∣ [] ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-    ---------------------------------------------------------------------
-  → Δ ∣ [] ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
-                 ⟪ addLock0 (renᴮ suc Θ′)
-                 , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-                ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫ ⦂ C
-preserve-TyPeelR-⟪⟫ {Δ = Δ} {W = W} {Θ′ = Θ′} {s′ = s′} {Θ = Θ} {s = s}
-                    {B = B} {A = A} {Bᵢ = Bᵢ} {Bₑ = Bₑ} v ⊢s
-                    (⊢·[] (env mwᵥ (env mw′ ⊢W ⊢c′ wE′) ⊢c wE) wA)
-  with conv-all-inv ⊢c
-... | A₀ , B₀ , refl , eqE , ⊢s₀
-  with conv-types-unique ⊢s ⊢s₀
-... | refl , refl =
-  env (mw (rw-b (⊑-wf (Δ⊑unlockedScope Θ Δ) wA) (mw-reps mwᵥ))
-          (mw-changes mwᵥ))
-      int
-      conv
-      (wf-[]ᵗ (wf-∀⁻ wE) wA)
-  where
-  A′ : Ty
-  A′ = shiftBy (numBinds Θ) A
-
-  ⊢INNER : (unmasked (bind A′) ∷ interior Θ Δ) ∣ []
-             ⊢ (renᴹ (extN (numBinds Θ′) suc) W
-                  ⟪ addLock0 (renᴮ suc Θ′)
-                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-             ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ)
-  ⊢INNER = ⊢addLock0-cross mw′ ⊢W ⊢c′ wE′
-
-  int : interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
-          ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
-                ⟪ addLock0 (renᴮ suc Θ′)
-                , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-               ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-          ⦂ Bᵢ
-  int =
-    subst (λ T → interior (morph (A ∷ binds Θ) (changes Θ)) Δ ∣ []
-                   ⊢ ((renᴹ (extN (numBinds Θ′) suc) W
-                         ⟪ addLock0 (renᴮ suc Θ′)
-                         , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-                        ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-                   ⦂ T)
-          (ren-suc-[0] Bᵢ)
-          (⊢·[] ⊢INNER
-                (wf-var (unmasked (bind (⇑ᵗ A′)) , ez , nameable)))
-
-  eqB : Bₑ ≡ shiftBodyBy (numBinds Θ) B
-  eqB = sym (∀-inj (trans (sym (shiftBy-shiftBodyBy (numBinds Θ) B)) eqE))
-
-  eqT : Bₑ [ 0 := ⇑ᵗ A′ ]ᵗ ≡ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
-  eqT = trans (cong (λ T → T [ 0 := ⇑ᵗ A′ ]ᵗ) eqB)
-              (trans (subst-at-0 A′ (shiftBodyBy (numBinds Θ) B))
-                     (cong ⇑ᵗ (sym (shiftBy-[]ᵗ (numBinds Θ) B A))))
-
-  conv : convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ ⊢ instReveal 0 s
-           ∶ Bᵢ ⇝ shiftBy (suc (numBinds Θ)) (B [ A ]ᵗ)
-  conv = subst (λ T → convCtx (morph (A ∷ binds Θ) (changes Θ)) Δ
-                        ⊢ instReveal 0 s ∶ Bᵢ ⇝ T)
-               eqT (⊢instReveal {A = A′} 0 ⊢s)
-
--- PRESERVATION FOR THE WHOLE PROTOTYPE.  With both clauses proven the
--- relation `_⊢_-→ᵇ_` preserves types outright, which is what lets the
--- run in §5c₃ type every state.
-preserveᵇ : ∀ {Δ M M′ C}
-  → Δ ∣ [] ⊢ M ⦂ C
-  → Δ ⊢ M -→ᵇ M′
-    ---------------
-  → Δ ∣ [] ⊢ M′ ⦂ C
-preserveᵇ ⊢M (TyPeelR-Λ v ⊢s)  = preserve-TyPeelR-Λ v ⊢s ⊢M
-preserveᵇ ⊢M (TyPeelR-⟪⟫ v ⊢s) = preserve-TyPeelR-⟪⟫ v ⊢s ⊢M
-preserveᵇ (env mwᵥ ⊢M ⊢c wE) (ξᵇ-⟪⟫ st) =
-  env mwᵥ (preserveᵇ ⊢M st) ⊢c wE
-
 ------------------------------------------------------------------------
--- §5c₁  FRAME EXACTNESS OF THE NEW CLAUSE
+-- §5c₁  FRAME EXACTNESS OF THE TWO CLAUSES
 ------------------------------------------------------------------------
 
--- (iii) THE MOVED BOUNDARY'S INTERIOR IS ITS BIRTH FRAME WITH THE NEW
--- SLOT INSERTED MASKED, BELOW THE INNER BINDS.  `interior-addLock0`
--- (§5b), instantiated at the rule's own two contexts: the redex reads
--- the moved boundary at `interior Θ Δ` and the contractum at
+-- THE MOVED BOUNDARY'S INTERIOR IS ITS BIRTH FRAME WITH THE NEW SLOT
+-- INSERTED MASKED, BELOW THE INNER BINDS.  `interior-addLock0-cross`
+-- (strong.TermSubst), instantiated at the rule's own two contexts: the
+-- redex reads the moved boundary at `interior Θ Δ` and the contractum at
 -- `interior (morph (A ∷ binds Θ) (changes Θ)) Δ`, which IS
 -- `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ`
 -- (`interior-TyPeelR`, `refl`).
@@ -839,7 +534,7 @@ TyPeelR-⟪⟫-frame : (A : Ty) (Θ Θ′ : CtxMorph) (Δ : Ctxᵗ)
           (masked (bind (shiftBy (numBinds Θ) A))
              ∷ scope Θ′ (interior Θ Δ))
 TyPeelR-⟪⟫-frame A Θ Θ′ Δ =
-  interior-addLock0 Θ′ (shiftBy (numBinds Θ) A) (interior Θ Δ)
+  interior-addLock0-cross Θ′ (shiftBy (numBinds Θ) A) (interior Θ Δ)
 
 -- … and the BIRTH frame, for comparison: the same `pushBinds` over the
 -- same `scope`, with the binds UNLIFTED and no new slot.  So the move is
@@ -872,14 +567,14 @@ TyPeelR-⟪⟫-slot-locked : (Θ′ : CtxMorph) (C : Ty) (Δ : Ctxᵗ)
          ∋tv numBinds (renᴮ suc Θ′))
 TyPeelR-⟪⟫-slot-locked Θ′ C Δ =
   ∋lk-¬∋tv (subst (λ Ξ → Ξ ∋lk numBinds (renᴮ suc Θ′))
-                  (sym (interior-addLock0 Θ′ C Δ))
+                  (sym (interior-addLock0-cross Θ′ C Δ))
                   (pushBinds-∋lk0 (map ⇑ᵗ (binds Θ′)) (masked (bind C))
                                   (scope Θ′ Δ) locked))
 
--- THE OUTER BOUNDARY IS THE LIVE RULE'S, UNTOUCHED.  Sharpest form: the
--- (b′) contractum is the LIVE contractum with `addLock0ᵛ` applied to the
--- moved value and NOTHING ELSE CHANGED — same outer frame
--- `morph (A ∷ binds Θ) (changes Θ)`, same minted conversion
+-- THE OUTER BOUNDARY IS THE SINGLE RULE'S, UNTOUCHED.  Sharpest form: the
+-- wrapper clause's contractum is the single rule's contractum with
+-- `addLock0ᵛ` applied to the moved value and NOTHING ELSE CHANGED — same
+-- outer frame `morph (A ∷ binds Θ) (changes Θ)`, same minted conversion
 -- `instReveal 0 s`, same pushed-in annotation `renameᵗ (extᵗ suc) Bᵢ`,
 -- same type argument `` ` 0 ``.
 TyPeelR-⟪⟫-outer-unchanged : (W : Term) (Θ′ Θ : CtxMorph) (s′ s : Conv)
@@ -898,8 +593,11 @@ TyPeelR-⟪⟫-outer-unchanged W Θ′ Θ s′ s A Bᵢ = refl
 -- §5c₂  TERMINATION — THE TOWER MEASURE, AND WHY THIS IS NOT FIX (a)
 ------------------------------------------------------------------------
 
--- (iv) The contractum's inner `(… ⟪ addLock0 … , `∀ s″ ⟫) ·[ … , ` 0 ]`
--- IS AGAIN A `-→ᵇ` REDEX.  It is NOT fix (a)'s regress, and the measure
+-- The wrapper clause's contractum contains
+--
+--    (… ⟪ addLock0 … , `∀ s″ ⟫) ·[ … , ` 0 ]
+--
+-- which IS again a redex.  It is NOT fix (a)'s regress, and the measure
 -- says why: the number of nested boundaries above the `Λ`.
 towerHeight : Term → ℕ
 towerHeight (` x)          = 0
@@ -937,8 +635,9 @@ TyPeelR-⟪⟫-height W Θ′ Θ s′ s =
 -- FIX (a) STALLS AT THE SAME MEASURE.  Its contractum's inner ∀-value is
 -- `wkᴹ 1 V` under a FRESH boundary, so the height is the redex's height
 -- again: nothing is consumed, and §4a's `T₀ -→ᵃ T₁ -→ᵃ T₂` is that
--- stall, twice.  THIS is the difference between (a) and (b′): (b′)
--- CONSUMES a boundary that was already there, (a) MINTS a new one.
+-- stall, twice.  THIS is the difference between (a) and the installed
+-- clause: `TyPeelR-⟪⟫` CONSUMES a boundary that was already there, (a)
+-- MINTS a new one.
 fixA-height-stalls : (V : Term) (Θ : CtxMorph) (s : Conv) (Bᵢ : Ty)
   → towerHeight (wkᴹ 1 V ⟪ morph [] (lock 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
       ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
@@ -947,8 +646,8 @@ fixA-height-stalls V Θ s Bᵢ = cong suc (towerHeight-renᴹ (wkN 1) V)
 -- WHERE THE DESCENT STOPS.  A `∀`-value of tower height 0 is a `Λ`
 -- (`canon-∀` has no third shape), so once `TyPeelR-⟪⟫` has consumed the
 -- tower it is `TyPeelR-Λ` that fires — and `TyPeelR-Λ` neither shifts nor
--- locks anything (§5).  So the run is `height` wrapper steps then one Λ
--- step, and never more.
+-- locks anything (§5).  So the run is `height − 1` wrapper steps then one
+-- Λ step, and never more.
 canon-∀-height : ∀ {Δ V C} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → towerHeight V ≡ 0
   → Σ[ N ∈ Term ] (Value N × (V ≡ Λ N))
@@ -957,26 +656,26 @@ canon-∀-height v ⊢V eq with canon-∀ v ⊢V
 canon-∀-height v ⊢V ()
     | inj₂ (W , Θ′ , s′ , vW , refl)
 
--- … stated as the progress clause it decides.  At tower height 0 the
--- step is `TyPeelR-Λ`, with the contractum named.
-progressᵇ-Λ-at-0 : ∀ {Δ V Θ s B A C} → Value V
+-- … stated as the progress clause it decides, against the LIVE relation.
+-- At tower height 0 the step is `TyPeelR-Λ`, with the contractum named.
+progress-Λ-at-0 : ∀ {Δ V Θ s B A C} → Value V
   → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
   → towerHeight V ≡ 0
     ----------------------------------------------------------------
   → Σ[ N ∈ Term ]
       ((V ≡ Λ N)
        × (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-            -→ᵇ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫))
-progressᵇ-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) eq with conv-all-inv ⊢c
+            -→ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫))
+progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) eq with conv-all-inv ⊢c
 ... | A₀ , B₀ , refl , eqₑ , ⊢s with canon-∀-height v ⊢V eq
 ... | N , vN , refl = N , refl , TyPeelR-Λ vN ⊢s
 
 ------------------------------------------------------------------------
--- §5c₃  THE RULE ON A CLOSED TWO-DEEP TOWER
+-- §5c₃  THE TWO CLAUSES ON A CLOSED TWO-DEEP TOWER
 ------------------------------------------------------------------------
 
--- (v) A CLOSED redex whose ∀-value is a two-boundary tower over a `Λ`.
--- The inner frame LOCKS the outer frame's binder, so the moved boundary
+-- A CLOSED redex whose ∀-value is a two-boundary tower over a `Λ`.  The
+-- inner frame LOCKS the outer frame's binder, so the moved boundary
 -- really does carry a change list for the appended lock to join.
 --
 --   Θᵈ  = morph (`ℕ ∷ []) []          the OUTER frame: binds X := ℕ
@@ -995,7 +694,7 @@ progressᵇ-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) eq with conv-all-inv
 --     = (((ΛZ. 3) ⟪ ↓X , ↓Y , (∀Z. id ℕ) ⟫) [Y]
 --          ⟪ ↑Y:=ℕ , ↑X:=ℕ , id ℕ ⟫)
 --
---                     │  ξᵇ-⟪⟫ (TyPeelR-Λ)   (tower exhausted)
+--                     │  ξ-⟪⟫ (TyPeelR-Λ)   (tower exhausted)
 --                     ▼
 --   showTmIn 0 U₂
 --     = ((3 ⟪ ↑Z:=Y , ↓X , ↓Y , id ℕ ⟫) ⟪ ↑Y:=ℕ , ↑X:=ℕ , id ℕ ⟫)
@@ -1061,11 +760,11 @@ U₁ = (((Λ ($ 3)) ⟪ morph [] (lock 1 ∷ lock 0 ∷ []) , `∀ (id `ℕ) ⟫
         ·[ `ℕ , ` 0 ])
        ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id `ℕ ⟫
 
-stepᵈ₁ : [] ⊢ U₀ -→ᵇ U₁
+stepᵈ₁ : [] ⊢ U₀ -→ U₁
 stepᵈ₁ = TyPeelR-⟪⟫ (V-Λ V-$) (conv-id base-ℕ)
 
 ⊢U₁ : [] ∣ [] ⊢ U₁ ⦂ `ℕ
-⊢U₁ = preserveᵇ ⊢U₀ stepᵈ₁
+⊢U₁ = preservation ⊢U₀ stepᵈ₁
 
 -- THE FRAME, AT THIS STEP.  The moved boundary's interior has BOTH slots
 -- masked: X (shifted to slot 1) as it was in the redex, and the new
@@ -1076,9 +775,9 @@ _ = refl
 _ : Ξᵈ₃ ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
 _ = refl
 
--- … and it is the frame identity `interior-addLock0` at this instance
--- (the birth frame `masked (bind `ℕ) ∷ []`, with the new slot inserted
--- MASKED below the — empty — bind prefix).
+-- … and it is the frame identity `interior-addLock0-cross` at this
+-- instance (the birth frame `masked (bind `ℕ) ∷ []`, with the new slot
+-- inserted MASKED below the — empty — bind prefix).
 _ : interior (addLock0 (renᴮ suc Θᵈ′))
              (interior (morph (`ℕ ∷ binds Θᵈ) (changes Θᵈ)) [])
       ≡ pushBinds (map ⇑ᵗ (binds Θᵈ′))
@@ -1091,11 +790,11 @@ U₂ : Term
 U₂ = (($ 3) ⟪ morph ((` 0) ∷ []) (lock 1 ∷ lock 0 ∷ []) , id `ℕ ⟫)
        ⟪ morph (`ℕ ∷ `ℕ ∷ []) [] , id `ℕ ⟫
 
-stepᵈ₂ : [] ⊢ U₁ -→ᵇ U₂
-stepᵈ₂ = ξᵇ-⟪⟫ (TyPeelR-Λ V-$ (conv-id base-ℕ))
+stepᵈ₂ : [] ⊢ U₁ -→ U₂
+stepᵈ₂ = ξ-⟪⟫ (TyPeelR-Λ V-$ (conv-id base-ℕ))
 
 ⊢U₂ : [] ∣ [] ⊢ U₂ ⦂ `ℕ
-⊢U₂ = preserveᵇ ⊢U₁ stepᵈ₂
+⊢U₂ = preservation ⊢U₁ stepᵈ₂
 
 -- THE MEASURE, ON THIS RUN: 2 → 1, and at 1 the interior is a `Λ`.
 _ : towerHeight outerᵈ ≡ 2
@@ -1109,113 +808,13 @@ _ : towerHeight ((Λ ($ 3)) ⟪ morph [] (lock 1 ∷ lock 0 ∷ []) , `∀ (id `
       ≡ towerHeight outerᵈ ∸ 1
 _ = TyPeelR-⟪⟫-height Wᵈ Θᵈ′ Θᵈ (id `ℕ) (id `ℕ)
 
-------------------------------------------------------------------------
--- §5c₄  TIGHTNESS OF THE NEW CLAUSE (Examples §15b, for the wrapper)
-------------------------------------------------------------------------
+-- TIGHTNESS OF THE TWO CLAUSES is Examples §15b: an ILL-TYPED subterm —
+-- ill typed for exactly one localized reason, `wf-var` at a masked slot —
+-- stays ill typed in each contractum, and the wrapper clause's frame
+-- REFUSES the value that the single rule's frame accepted (`⊢prb0-single`
+-- against `¬⊢prb0-split`).  That is §3a's `nmᵃ` test, run at the position
+-- a moved boundary's interior actually occupies.
 
--- Jeremy's test, on the repaired clause.  An ILL-TYPED `W` — ill typed
--- for exactly one localized reason, `wf-var` at a masked slot — must stay
--- ill typed in the contractum.  Here the OUTER frame locks X and the
--- INNER frame does nothing, so `prb 0` names the locked slot.
---
---   showTmIn 1 Rᵛ
---     = (((λx:ℕ. (ΛY. 3) [X]) ⟪ (∀Y. id ℕ) ⟫)
---          ⟪ ↓X , (∀Y. id ℕ) ⟫) [ℕ]
---
--- the LIVE rule's contractum and (b′)'s, at that redex:
---
---   showTmIn 1 Cᵛ-live
---     = (((λx:ℕ. (ΛZ. 3) [X]) ⟪ (∀Z. id ℕ) ⟫) [Y]
---          ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
---   showTmIn 1 Cᵛ
---     = (((λx:ℕ. (ΛZ. 3) [X]) ⟪ ↓Y , (∀Z. id ℕ) ⟫) [Y]
---          ⟪ ↑Y:=ℕ , ↓X , id ℕ ⟫)
---
--- ONE CHARACTER PAIR OF DIFFERENCE — `↓Y` — and it is the whole repair:
---
---   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵛ-live
---     =  Y := ℕ , ⌷[X := ℕ]          ← the LEAK: Y is offered
---   showTCtxAt 9 0 (λ { 0 → "Y" ; _ → "X" }) Ξᵛ-new
---     =  ⌷[Y := ℕ] , ⌷[X := ℕ]       ← (b′): Y is masked
-Δᵛ Ξᵛ₀ : Ctxᵗ
-Δᵛ  = unmasked (bind `ℕ) ∷ []
-Ξᵛ₀ = masked (bind `ℕ) ∷ []       -- W's BIRTH frame: X is locked
-
-Θᵛ Θᵛ′ : CtxMorph
-Θᵛ  = morph [] (lock 0 ∷ [])          -- the OUTER frame: locks X
-Θᵛ′ = morph [] []                     -- the INNER frame: nothing
-
-_ : interior Θᵛ Δᵛ ≡ Ξᵛ₀
-_ = refl
-
-_ : interior Θᵛ′ (interior Θᵛ Δᵛ) ≡ Ξᵛ₀
-_ = refl
-
-Rᵛ Cᵛ : Term
-Rᵛ = ((prb 0 ⟪ Θᵛ′ , `∀ (id `ℕ) ⟫) ⟪ Θᵛ , `∀ (id `ℕ) ⟫) ·[ `ℕ , `ℕ ]
-Cᵛ = ((prb 1 ⟪ morph [] (lock 0 ∷ []) , `∀ (id `ℕ) ⟫) ·[ `ℕ , ` 0 ])
-       ⟪ morph (`ℕ ∷ []) (lock 0 ∷ []) , id `ℕ ⟫
-
-stepᵛ : Δᵛ ⊢ Rᵛ -→ᵇ Cᵛ
-stepᵛ = TyPeelR-⟪⟫ val-prb (conv-id base-ℕ)
-
--- THE FAULT, in the redex: `⊢·[]`'s `Δ ⊢ᵗ A` at slot 0, which the outer
--- frame masks.
-¬⊢prb0 : ∀ {Δ Γ A b} → ¬ ((masked b ∷ Δ) ∣ Γ ⊢ prb 0 ⦂ A)
-¬⊢prb0 (⊢ƛ _ (⊢·[] _ (wf-var (_ , ez , ()))))
-
-¬⊢Rᵛ : ∀ {A} → ¬ (Δᵛ ∣ [] ⊢ Rᵛ ⦂ A)
-¬⊢Rᵛ (⊢·[] (env _ (env _ ⊢W _ _) _ _) _) = ¬⊢prb0 ⊢W
-
--- THE TWO CONTRACTA'S FRAMES FOR THE MOVED BOUNDARY, side by side.  The
--- LIVE rule leaves the moved boundary's change list alone, so the new
--- binder (slot 0) is UNMASKED — §3's leak, on this example.  (b′) appends
--- the lock, so it is MASKED.  The old fault (X) has moved to slot 1 with
--- the shift and is masked in both.
-Ξᵛ-live Ξᵛ-new : Ctxᵗ
-Ξᵛ-live = interior Θᵛ′ (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵛ)
-Ξᵛ-new  = interior (addLock0 (renᴮ suc Θᵛ′))
-                   (interior (morph (`ℕ ∷ []) (lock 0 ∷ [])) Δᵛ)
-
-_ : Ξᵛ-live ≡ unmasked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
-_ = refl
-
-_ : Ξᵛ-new ≡ masked (bind `ℕ) ∷ masked (bind `ℕ) ∷ []
-_ = refl
-
--- the frame-exact point, as the general lemma at this instance: slot 0 —
--- the slot the live rule offered UNMASKED (§3) — is unnameable
-_ : ¬ (Ξᵛ-new ∋tv 0)
-_ = TyPeelR-⟪⟫-slot-locked Θᵛ′ `ℕ (interior Θᵛ Δᵛ)
-
--- THE LEAK, CLOSED, ON THIS EXAMPLE.  A value that NAMES THE NEW SLOT
--- types at the live rule's frame and is REFUSED at (b′)'s — and this is
--- §3a's `nmᵃ` test, now run at the position a moved boundary's interior
--- actually occupies.
-⊢prb0-live : Ξᵛ-live ∣ [] ⊢ prb 0 ⦂ (`ℕ ⇒ `ℕ)
-⊢prb0-live =
-  ⊢ƛ wf-ℕ (⊢·[] (⊢Λ ⊢$) (wf-var (unmasked (bind `ℕ) , ez , nameable)))
-
-¬⊢prb0-new : ∀ {Γ A} → ¬ (Ξᵛ-new ∣ Γ ⊢ prb 0 ⦂ A)
-¬⊢prb0-new = ¬⊢prb0
-
--- … and the tightness test itself: the ILL-TYPED value stays ill typed,
--- for the same localized reason, one index further out.
-¬⊢prb1 : ∀ {Δ Γ A E b} → ¬ ((E ∷ masked b ∷ Δ) ∣ Γ ⊢ prb 1 ⦂ A)
-¬⊢prb1 (⊢ƛ _ (⊢·[] _ (wf-var (_ , es ez , ()))))
-
-¬⊢Cᵛ : ∀ {A} → ¬ (Δᵛ ∣ [] ⊢ Cᵛ ⦂ A)
-¬⊢Cᵛ (env _ (⊢·[] (env _ ⊢W _ _) _) _ _) = ¬⊢prb1 ⊢W
-
--- THE LIVE RULE AT THE SAME REDEX, for the diff.  Same outer boundary,
--- same pushed-in annotation, same type argument; the ONE difference is
--- the moved boundary's change list.
-Cᵛ-live : Term
-Cᵛ-live = ((prb 1 ⟪ morph [] [] , `∀ (id `ℕ) ⟫) ·[ `ℕ , ` 0 ])
-            ⟪ morph (`ℕ ∷ []) (lock 0 ∷ []) , id `ℕ ⟫
-
-stepᵛ-live : Δᵛ ⊢ Rᵛ -→ Cᵛ-live
-stepᵛ-live = TyPeelR (V-⟪⟫ val-prb I-all) (conv-id base-ℕ)
 
 ------------------------------------------------------------------------
 -- §6  TYBETA — exact up to refinement
@@ -1341,7 +940,8 @@ Drop$-only-numerals : ∀ {Δ M M′} → Δ ⊢ M -→ M′
 Drop$-only-numerals (TyBeta v)  ()
 Drop$-only-numerals (Beta w)    ()
 Drop$-only-numerals (Peel v w)  ()
-Drop$-only-numerals (TyPeelR v ⊢s) ()
+Drop$-only-numerals (TyPeelR-Λ v ⊢s)  ()
+Drop$-only-numerals (TyPeelR-⟪⟫ v ⊢s) ()
 Drop$-only-numerals (CancelR v d)  ()
 Drop$-only-numerals (Drop$ b)      refl = refl
 Drop$-only-numerals (IdPush v d)   ()

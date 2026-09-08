@@ -14,7 +14,7 @@ module strong.proof.PreserveObstruct where
 --               premise-determined interior ∀-body, the frame is plain
 --               `Θ`, and the minted conversion `instReveal 0 s` types at
 --               EVERY ∀ conversion once the polarity index is gone
---               (proof/Preserve.preserve-TyPeelR).  §2 keeps the old
+--               (proof/Preserve.preserve-TyPeelR-Λ / -⟪⟫).  §2 keeps the old
 --               counterexample's witness and records the POSITIVE fact on
 --               it; Examples §13 reaches it from closed plain source.
 --   §3 Peel     REPAIRED and PROVEN (proof/PeelDual); refutation removed.
@@ -42,7 +42,7 @@ open import strong.Terms
 open import strong.CtxMorph
 open import strong.TermSubst
 open import strong.Reduction
-open import strong.proof.Preserve using (preserve-TyPeelR)
+open import strong.proof.Preserve using (preserve-TyPeelR-Λ)
 open import strong.proof.MoveScope using (preserve-IdPush)
 
 ------------------------------------------------------------------------
@@ -181,10 +181,13 @@ Rt = Wft ·[ ` 0 ⇒ ` 1 , ` 0 ]
 ⊢Rt : Δt ∣ [] ⊢ Rt ⦂ (` 0 ⇒ ` 0)
 ⊢Rt = ⊢·[] ⊢Wft (wf-var (unmasked (bind `ℕ) , ez , nameable))
 
+-- The interior is a `Λ`, so it is the Λ CLAUSE that fires (the 2026-09-08
+-- split, strong.Reduction): the body is instantiated ON THE SPOT, with no
+-- shift and no pushed-in annotation.
 step-t : Δt ⊢ Rt
-       -→ (wkᴹ 1 Wt ·[ renameᵗ (extᵗ suc) (` 0 ⇒ `ℕ) , ` 0 ])
+       -→ (ƛ (` 0) ∙ ($ 3))
             ⟪ morph (` 0 ∷ binds Θt) (changes Θt) , instReveal 0 st ⟫
-step-t = TyPeelR val-Wt ⊢st
+step-t = TyPeelR-Λ V-ƛ ⊢st
 
 -- THE MINTED CONVERSION, computed: the inserted leaf is the DOMAIN
 -- `seal 0`.
@@ -213,10 +216,10 @@ t-cod = conv-seal (es ez)
 
 -- THE CONTRACTUM TYPES, by the theorem — no hand-built derivation.
 ⊢t-contractum :
-  Δt ∣ [] ⊢ (wkᴹ 1 Wt ·[ ` 0 ⇒ `ℕ , ` 0 ])
+  Δt ∣ [] ⊢ (ƛ (` 0) ∙ ($ 3))
               ⟪ morph (` 0 ∷ binds Θt) (changes Θt) , seal 0 ↦ seal 1 ⟫
               ⦂ (` 0 ⇒ ` 0)
-⊢t-contractum = preserve-TyPeelR val-Wt ⊢st ⊢Rt
+⊢t-contractum = preserve-TyPeelR-Λ V-ƛ ⊢st ⊢Rt
 
 ------------------------------------------------------------------------
 -- §3  Peel — REPAIRED (refutation removed)

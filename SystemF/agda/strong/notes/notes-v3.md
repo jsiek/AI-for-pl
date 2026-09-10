@@ -96,19 +96,21 @@ Determinism: Every term has at most one immediate reduct.
   unlock(L, (Γ,locked(β))) = { unlock(L,Γ),β            if name(β) ∈ L
                              { unlock(L,Γ),locked(β)    otherwise
 
+# Binding applied to Context
+
+  -------------
+  | b(Γ) = Γ′ |
+  -------------
+  
+  +X=A(Γ) = Γ,X=A
+  +L(Γ)   = unlock(L, Γ)
+  -L(Γ)   = lock(L, Γ)
+
 # Term Typing 
 
-  Γ,X=A ⊢ M : B   X ∉ FV(B)
-  --------------------------
-  Γ ⊢ ⁺ˣ⁼ᴬ[M] : B
-
-  unlock(L,Γ) ⊢ M : B   L ∉ FV(B)
+  b(Γ) ⊢ M : B   names(b) ∉ FV(B)
   -------------------------------
-  Γ ⊢ ⁺ᴸ[M] : B
-
-  lock(L,Γ) ⊢ M : B   L ∉ FV(B)
-  -----------------------------
-  Γ ⊢ ⁻ᴸ[M] : B
+  Γ ⊢ ᵇ[M] : B
 
   Γ ⊢ M : A    Γ ⊢ c : A ↝ B
   --------------------------
@@ -165,6 +167,11 @@ Determinism: Every term has at most one immediate reduct.
   Δ ⊢ ᵇ[k]         -→ k
   Δ ⊢ n₁ ⊕ n₂      -→ n₁ ⟦⊕⟧ n₂
 
+  Δ ⊢ L · M        -→ L' · M      if Δ ⊢ L -→ L'
+  Δ ⊢ V · M        -→ V · M'      if Δ ⊢ M -→ M'
+  Δ ⊢ L @B[A]      -→ L' @B[A]    if Δ ⊢ L -→ L'
+  Δ ⊢ ΛX. N        -→ ΛX. N'      if Δ,X ⊢ N -→ N'
+  Δ ⊢ ᵇ[M]         -→ ᵇ[M']       if b(Δ) ⊢ M -→ M'
 
   example: 
      ⁻ˣᶻ[⁺ˣʸ[V]]    -→ ⁺ʸ[⁻ᶻ[V]]

@@ -27,15 +27,17 @@ Determinism: Every term has at most one immediate reduct.
 
 # Conversions
 
-  c,d ::= id ι | id X | c → d | ∀X.c | +X | -X
+  c,d   ::= id | c → d | ∀X.c | +X | -X
+  cⁱ,dⁱ ::= c → d | ∀X.c | -X     (inert conversions)
+  cᵃ,dᵃ ::= id | +X               (active conversions)
 
   -------------
   | +X(A) = c | (reveal X in A)
   -------------
   
   +X(X) = +X
-  +X(Y) = id Y                 (X ≠ Y)
-  +X(ι) = id ι
+  +X(Y) = id                   (X ≠ Y)
+  +X(ι) = id
   +X(A → B) = +X(A) → +X(B)
   +X(∀Y.A) = ∀Y.+X(A)          (X ≠ Y)
 
@@ -115,31 +117,53 @@ Determinism: Every term has at most one immediate reduct.
 # Values
 
   Vˢ,Wˢ ::= λx:A. N | ΛX.N 
-  V⁻,W⁻ ::= Vˢ | ⁻ᴸ[Vˢ]
+  V⁻,W⁻ ::= Vˢ | ⁻ᴸ[Vˢ]     (L ≠ ∅)
   Vᶜ,Wᶜ ::= V⁻ | Vᶜ⟨c→d⟩ | Vᶜ⟨∀X.c⟩ | Vᶜ⟨-X⟩ 
-  V⁺,W⁺ ::= Vᶜ | [V⁺]⁺ᵖ
+  V⁺,W⁺ ::= Vᶜ | [V⁺]⁺ˣ⁼ᴬ | [V⁺]⁺ᴸ (L ≠ ∅)
   V,W   ::= k | V⁺
+
+# Substitution
+
+  ---------------
+  | M[x:=V : A] |
+  ---------------
+
+  x[x:=V : A]         = V
+  y[x:=V : A]         = y    (if x ≠ y)
+  k[x:=V : A]         = k
+  (M ⊕ N)[x:=V : A]   = M[x:=V : A] ⊕ N[x:=V : A]
+  (λy:A. N)[x:=V : A] = { (λy:A. N[x:=V : A])   if x ≠ y
+                        { (λy:A. N)             otherwise
+  (L · M)[x:=V : A]   = L[x:=V : A] · M[x:=V : A]
+  (ΛX. N)[x:=V : A]   = ΛX. N[x:=V : A]
+  (L @B[C])[x:=V : A] = L[x:=V : A] @B[C]
+  (M ⟨c⟩)[x:=V : A]   = M[x:=V : A] ⟨c⟩
+  ᵇ[M] [x:=V : A]     = ᵇ[M]
 
 # Reduction Rules
 
   Δ ⊢ (λx:A. N) V   -→ N[x:=V : A]
   Δ ⊢ V⟨c → d⟩ W    -→ (V (W⟨c⟩))⟨d⟩
-  Δ ⊢ ⁺ᵖ[V] W       -→ ⁺ᵖ[V ⁻ᵖ[W]]        // positives need to be in list because negatives are
+  Δ ⊢ ᵇ[V] W        -→ ᵇ[V ⁻ᵇ[W]]
+                                      // pos. are a list because neg. are
 
   Δ ⊢ (ΛX.V) @B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
   Δ ⊢ V⟨∀X.c⟩ @B[A] -→ (V A)⟨c⟩
-  Δ ⊢ ⁺ᵖ[V⁺] @B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] Y]]  (Y fresh)
-  Δ ⊢ ⁻ᴸ[ΛY.V] @B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        // negatives need to be in list for this rule
-
+  Δ ⊢ ⁺ᵖ[V⁺] @B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] @B[Y]]] (Y fresh)
+  Δ ⊢ ⁻ᴸ[ΛY.V] @B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (Y fresh)
+                                      // neg. a list for this rule
   
-  Δ ⊢ ⁻ᴸ[Vᶜ⟨c⟩]    -→ ⁻ᴸ[Vᶜ]⟨c⟩
+  Δ ⊢ ⁻ᴸ[Vᶜ⟨cⁱ⟩]   -→ ⁻ᴸ[Vᶜ]⟨cⁱ⟩
   Δ ⊢ ⁺⁰[V⁺]       -→ V⁺
   Δ ⊢ ⁻⁰[Vˢ]       -→ Vˢ
   Δ ⊢ ⁻ᴸ²[⁺ᴸ¹[V⁺]] -→ ⁺ᴸ⁴[⁻ᴸ³[V⁺]]       (L3 = L2 \ L1, L4 = L1 \ L2)
-  Δ ⊢ ⁻ᴸ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ᴸ[V⁺]]       (X ≠ Y)
+  Δ ⊢ ⁻ᴸ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ᴸ[V⁺]]       (Y ∉ L)
   Δ ⊢ ⁻ᴸ²[⁻ᴸ¹[Vˢ]] -→ ⁻ᴸ¹ᴸ²[Vˢ]
 
+  Δ ⊢ V⟨-X⟩⟨+X⟩    -→ V
+  Δ ⊢ V⟨id⟩        -→ V
   Δ ⊢ ᵇ[k]         -→ k
+  Δ ⊢ n₁ ⊕ n₂      -→ n₁ ⟦⊕⟧ n₂
 
 
   example: 

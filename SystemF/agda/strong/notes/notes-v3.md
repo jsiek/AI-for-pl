@@ -59,7 +59,7 @@ Determinism: Every term has at most one immediate reduct.
 
 # Contexts
 
-  Γ ::= ∅ | Γ,β | Γ,lock(β)
+  Γ ::= ∅ | Γ,β | Γ,locked(β)
   β ::= X | X=A
 
 # Conversion Typing 
@@ -73,6 +73,26 @@ Determinism: Every term has at most one immediate reduct.
   Γ ⊢ +X : X ⇒ A
 
   ...
+
+# Locking and Unlocking
+
+  ------------------
+  | lock(L,Γ) = Γ′ |
+  ------------------
+
+  lock(L, ∅) = ∅
+  lock(L, (Γ,β)) = { lock(L,Γ),locked(β) if name(β) ∈ L
+                   { lock(L,Γ),β         otherwise
+  lock(L, (Γ,locked(β))) = lock(L, Γ), locked(β)
+
+  --------------------
+  | unlock(L,Γ) = Γ′ |
+  --------------------
+
+  unlock(L, ∅) = ∅
+  unlock(L, (Γ,β)) = unlock(L, Γ), β
+  unlock(L, (Γ,locked(β))) = { unlock(L,Γ),β            if name(β) ∈ L
+                             { unlock(L,Γ),locked(β)    otherwise
 
 # Term Typing 
 

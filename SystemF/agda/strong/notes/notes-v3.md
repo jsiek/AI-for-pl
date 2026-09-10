@@ -1,3 +1,15 @@
+# Criteria
+
+Color Preservation: The set of type variables in scope at every
+subterm from the source program (not including the runtime terms:
+conversions and scope boundaries) is invariant under reduction.
+
+Progress: Every closed, well-typed term is a value or can take a reduction step.
+
+Presrevation: A reduction step preserves the type of a closed term.
+
+Determinism: Every term has at most one immediate reduct.
+
 # Types
 
   X,Y,Z ∈ TyVar
@@ -17,7 +29,6 @@
 
   c,d ::= id ι | id X | c → d | ∀X.c | +X | -X
 
-
   -------------
   | +X(A) = c | (reveal X in A)
   -------------
@@ -28,12 +39,15 @@
   +X(A → B) = +X(A) → +X(B)
   +X(∀Y.A) = ∀Y.+X(A)          (X ≠ Y)
 
-# Runtime Terms (with variables as names)
+# Runtime Terms
 
   L ::= ∅ | L,X
   p ::= X=A | L
   b ::= +p | -L
   L,M,N ::= ... | ᵇ[M] | M⟨c⟩ 
+
+  We call ᵇ[M] a scope boundary.
+  The form M⟨c⟩ applies conversion c to term M.
 
   ----------
   | -b = b |

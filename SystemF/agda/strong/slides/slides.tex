@@ -32,8 +32,8 @@
 \newcommand{\app}[2]{#1\,#2}
 \newcommand{\seal}[1]{-#1}
 \newcommand{\unseal}[1]{+#1}
-\newcommand{\unsealat}[2]{\mathsf{reveal}(#1, #2)}
-\newcommand{\unsealatc}[2]{\mathsf{reveal}(#1,#2)}
+\newcommand{\unsealat}[2]{#1\uparrow #2}
+\newcommand{\unsealatc}[2]{#1\uparrow #2}
 \newcommand{\idconv}[1]{\kw{id}_{#1}}
 \newcommand{\bind}[2]{#1{:=}#2}
 \newcommand{\maskentry}[1]{\mathsf{locked}(#1)}
@@ -93,7 +93,7 @@
 
 \vspace{-30pt}
 \begin{center}
-\includegraphics[height=1.7in]{iu-tulips}
+  \includegraphics[height=1.7in]{genoa}
 \end{center}
 }
 %===============================================================================
@@ -141,8 +141,11 @@
        &\gray{Z \mapsto X \mapsto \Nat}
   \end{align*}
 
-  But but... we lose type preservation. 
-
+  \begin{itemize}
+    \item But what happens at the boundaries?
+    \item What happens to the types?
+    \item What happens to the scope?
+  \end{itemize}
 }
 
 %===============================================================================
@@ -597,30 +600,29 @@ and its conversion has inert form $c^i$.
 
 \hfill\fbox{$\Delta \vdash M \reduce N$}
 
+\footnotesize
 \begin{align*}
-\Delta \vdash (\lam{x\of A}N)\,W &\reduce \tsubst{N}{x}{W}{A}
+\Delta \vdash \rX{(\lam{x\of A}N)\,W} &\reduce \rX{\tsubst{N}{x}{W}{A}}
 \\[2ex]
-\Delta \vdash \boundary{V}{\Theta}{\delta}{c\func d}\,W
-  &\reduce \boundary{V\,\boundary{W}{\emptyset}
-                    {\dual{\delta},\hide{\Theta}}{c}}
-                    {\Theta}{\delta}{d}
+\Delta \vdash \rX{\boundary{\rZ{V}}{\Theta}{\delta}{c\func d}\,W}
+  &\reduce \rX{\boundary{\rZ{V\,\boundary{\rX{W}}{\emptyset}
+                    {\dual{\delta},\hide{\Theta}}{c}}}
+                    {\Theta}{\delta}{d}}
 \\[2ex]
-\Delta \vdash \tyapp{(\Lam{X}V_B)}{A}
-  &\reduce \boundary{V}{\bind{X}{A}}{\emptyset}{\unsealat{X}{B}}
+\Delta \vdash \rX{\tyapp{(\rZ{\Lam{X}V_B})}{A}}
+  &\reduce \rX{\boundary{\rZ{V}}{\bind{X}{A}}{\emptyset}{\unsealat{X}{B}}}
 \\[2ex]
-\Delta \vdash \tyapp{\boundary{\Lambda X.\,V}{\Theta}{\delta}{\forall X.\,c}}{A}
-&\reduce \boundary{V}{\bind{X}{A},\Theta}{\delta}{\unsealatc{X}{c}}
+\Delta \vdash \rX{\tyapp{\boundary{\rZ{\Lambda X.\,V}}{\Theta}{\delta}{\forall X.\,c}}{A}}
+&\reduce \rX{\boundary{\rZ{V}}{\bind{X}{A},\Theta}{\delta}{\unsealatc{X}{c}}}
 \\[2ex]
 \Delta \vdash
-\tyapp{\boundary{\boundary{W}{\Theta'}{\delta'}{\forall X.\,d}}
-                   {\Theta}{\delta}{\forall Y.\,c}}{A}
+\rX{\tyapp{\boundary{\rZ{\boundary{\rY{W}}{\Theta'}{\delta'}{\forall X.\,d}}}
+                   {\Theta}{\delta}{\forall Y.\,c}}{A}}
 &\reduce
-\boundary{\tyapp{\boundary{W}{\Theta'}
-                              {\delta'\append\lockX{Y}}{\forall X.\,d}}{Y}}
-          {\bind{Y}{A},\Theta}{\delta}{\unsealatc{Y}{c}}
+\rX{\boundary{\rZ{\tyapp{\boundary{\rY{W}}{\Theta'}
+                              {\delta'\append\lockX{Y}}{\forall X.\,d}}{Y}}}
+          {\bind{Y}{A},\Theta}{\delta}{\unsealatc{Y}{c}}}
 \end{align*}
-\footnote{The straightforward alternative to the last two rules does
-not work because it creates an infinite loop.}
 
 }
 %===============================================================================
@@ -630,27 +632,35 @@ not work because it creates an infinite loop.}
 \hfill\fbox{$\Delta \vdash M \reduce N$}
 
 \begin{align*}
-\Delta \vdash \boundary{k}{\Theta}{\delta}{\idconv{\iota}}
-  &\reduce k
+\Delta \vdash \rX{\boundary{\rZ{k}}{\Theta}{\delta}{\idconv{\iota}}}
+  &\reduce \rX{k}
 \\[2ex]
 \Delta \vdash
-\boundary{\boundary{V}{\Theta_1}{\delta_1}{\seal{X}}}
-          {\Theta_2}{\delta_2}{\unseal{X}}
+\rX{\boundary{\rZ{\boundary{\rY{V}}{\Theta_1}{\delta_1}{\seal{X}}}}
+          {\Theta_2}{\delta_2}{\unseal{X}}}
 &\reduce
-\boundary{\boundary{V}{\Theta_1}{\delta_1\append\delta_2}{\idc{A}}}
-          {\Theta_2}{\dual{\delta_2}\append\delta_2}{\idc{A}}
-&& {\small\text{if } \Delta \ni X:=A}
+\rX{\boundary{\rZ{\boundary{\rY{V}}{\Theta_1}{\delta_1\append\delta_2}{\idc{A}}}}
+          {\Theta_2}{\dual{\delta_2}\append\delta_2}{\idc{A}}}
+\\
+  & {\small\text{if } \Delta \ni X:=A}
 \\[2ex]
 \Delta \vdash
-\boundary{\boundary{V}{\Theta_1}{\delta_1}{\idconv{X}}}
-          {\Theta_2}{\delta_2}{\unseal{X}}
+\rX{\boundary{\rZ{\boundary{\rY{V}}{\Theta_1}{\delta_1}{\idconv{X}}}}
+          {\Theta_2}{\delta_2}{\unseal{X}}}
 &\reduce
-\boundary{\boundary{V}{\Theta_1}{\delta_1\append\delta_2}{\unseal{X}}}
-          {\Theta_2}{\dual{\delta_2}\append\delta_2}{\idc{A}}
-&&{\small\text{if }\Delta\ni X:=A}
+\rX{\boundary{\rZ{\boundary{\rY{V}}{\Theta_1}{\delta_1\append\delta_2}{\unseal{X}}}}
+          {\Theta_2}{\dual{\delta_2}\append\delta_2}{\idc{A}}}\\
+&{\small\text{if }\Delta\ni X:=A}
 \end{align*}
 
-{\footnotesize
+
+}
+%===============================================================================
+\frame{
+\frametitle{Reduction: congruence rules}
+\vspace{5pt}
+\hfill\fbox{$\Delta \vdash M \reduce N$}
+
 \begin{align*}
 \Delta \vdash L\,M
   &\reduce L'\,M
@@ -672,7 +682,6 @@ not work because it creates an infinite loop.}
   &\reduce \boundary{M'}{\Theta}{\delta}{c}
   &&\text{if }\pushbinds{\Theta}{\delta(\Delta)}\vdash M\reduce M'
 \end{align*}
-}
 }
 %===============================================================================
 \frame{
@@ -734,16 +743,25 @@ Every term has at most one immediate reduct.
 \frame{
 \frametitle{Other Properties?}
 
+What about the thing I promised at the beginning! \\[2ex]
+
 The set of type variables in scope at every subterm (not include
-boundaries) is invariant under reduction.
+boundaries) is invariant under reduction.  \\[2ex]
+
+(Sorry, forgot to prove that! Will do next week.)
 
 }
 %===============================================================================
 \frame{
-  \frametitle{Retrospective}
-\begin{itemize}  
-\item ...
-\end{itemize}
+  \frametitle{Collaborating with Phil, Peter, and Claude}
+
+  \includegraphics[height=1.25in]{peter}
+  \includegraphics[height=1.5in]{phil}
+  \includegraphics[height=1.25in]{jsiek} \\
+  \begin{center}
+    \includegraphics[height=1.00in]{claude}
+  \end{center}
+  
 }
 
 \end{document}

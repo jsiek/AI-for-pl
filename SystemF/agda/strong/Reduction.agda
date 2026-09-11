@@ -17,7 +17,7 @@ module strong.Reduction where
 -- DEFERRED to the proof phase (this file defines the RELATION only):
 --   value-¬step, det (determinism), and the ξ/preservation metatheory.
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
 open import Data.List using (List; []; _∷_; _++_; map; length)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
@@ -72,6 +72,11 @@ data Positive : Bnd → Set where
   pos-intro  : ∀ {A} → Positive (intro A)
   pos-reveal : ∀ {χ} → Positive (reveal χ)
 
+-- The meaning of a primitive operator  ⟦⊕⟧.
+⟦_⟧ᵖ : Prim → ℕ → ℕ → ℕ
+⟦ p+ ⟧ᵖ m n = m + n
+⟦ p× ⟧ᵖ m n = m * n
+
 ------------------------------------------------------------------------
 -- 1.  The reduction relation
 ------------------------------------------------------------------------
@@ -87,8 +92,12 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   ConvFun : ∀ {Δ V W s t} → Value V → Value W
     → Δ ⊢ (V ⟨ s ↦ t ⟩) · W -→ (V · (W ⟨ s ⟩)) ⟨ t ⟩
 
-  -- ᵇ[Vˢ]·W -→ ᵇ[Vˢ · ⁻ᵇ[W]]   (if ᵇ[Vˢ] is a value; Vˢ simple)
-  AppBnd : ∀ {Δ M b W} → Simple M → Value (M ⟦ b ⟧) → Value W
+  -- ᵇ[V⁺]·W -→ ᵇ[V⁺ · ⁻ᵇ[W]]   (if ᵇ[V⁺] is a value).  Generalised past the
+  -- notes' `Vˢ` to ANY value under the boundary — closing the Progress gap
+  -- for a positive boundary around a non-simple value (audit item).  The
+  -- `Value (M ⟦ b ⟧)` premise still pins the operator to a value, so it
+  -- cannot overlap ξ-·-l.
+  AppBnd : ∀ {Δ M b W} → Value (M ⟦ b ⟧) → Value W
     → Δ ⊢ (M ⟦ b ⟧) · W -→ (M · crossArg b W) ⟦ b ⟧
 
   -- V⟨-X⟩⟨+X⟩ -→ V              (-X = seal, +X = unseal, same X)
@@ -99,9 +108,13 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   DropId : ∀ {Δ V A} → Value V
     → Δ ⊢ V ⟨ id A ⟩ -→ V
 
-  -- ᵇ[k] -→ k                    (k a numeral)
-  DropNum : ∀ {Δ n b}
-    → Δ ⊢ ($ n) ⟦ b ⟧ -→ $ n
+  -- ᵇ[k] -→ k                    (k a constant: numeral or boolean)
+  DropConst : ∀ {Δ k b} → Const k
+    → Δ ⊢ k ⟦ b ⟧ -→ k
+
+  -- n₁ ⊕ n₂ -→ n₁ ⟦⊕⟧ n₂
+  PrimBeta : ∀ {Δ p m n}
+    → Δ ⊢ ($ m) ⊕[ p ] ($ n) -→ $ (⟦ p ⟧ᵖ m n)
 
   -- (ΛX.V)@B[A] -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
   TyBeta : ∀ {Δ V B A} → Value V
@@ -151,6 +164,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ (M ⟦ conceal χ₂ ⟧) ⟦ conceal χ₁ ⟧ -→ M ⟦ conceal (χ₁ ∪ χ₂) ⟧
 
   -- congruences
+  ξ-⊕-l : ∀ {Δ L L′ M p} → Δ ⊢ L -→ L′ → Δ ⊢ L ⊕[ p ] M -→ L′ ⊕[ p ] M
+  ξ-⊕-r : ∀ {Δ V M M′ p} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V ⊕[ p ] M -→ V ⊕[ p ] M′
   ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
   ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V · M -→ V · M′
   ξ-·[] : ∀ {Δ L L′ B A} → Δ ⊢ L -→ L′ → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]

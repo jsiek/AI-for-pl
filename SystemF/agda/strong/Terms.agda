@@ -20,7 +20,8 @@ module strong.Terms where
 -- (notes §"Conversions"): `id` is ACTIVE in v3 (at a variable too), so it
 -- is never pushed out of a boundary — it is eliminated by `V⟨id⟩ -→ V`.
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
+open import Data.Bool using (Bool)
 open import Data.List using (List; []; _∷_; map; length)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
@@ -46,16 +47,25 @@ private
 -- 1.  Terms
 ------------------------------------------------------------------------
 
+-- Primitive binary operators ⊕ ::= + | × (notes §"Source Terms").
+data Prim : Set where
+  p+ : Prim
+  p× : Prim
+
 infix  9 `_
 infix  9 $_
+infix  9 #_
 infixl 7 _·_
+infixl 6 _⊕[_]_
 infix  6 ƛ_∙_
 infix  5 _⟦_⟧
 infix  5 _⟨_⟩
 
 data Term : Set where
   `_      : ℕ → Term              -- x
-  $_      : ℕ → Term              -- k (numeral, type ℕ)
+  $_      : ℕ → Term              -- k = n  (numeral, type ℕ)
+  #_      : Bool → Term           -- k = b  (boolean, type 𝔹)
+  _⊕[_]_  : Term → Prim → Term → Term -- M ⊕ N
   ƛ_∙_    : Ty → Term → Term      -- λx:A. N
   _·_     : Term → Term → Term    -- L · M
   Λ_      : Term → Term           -- ΛX. N
@@ -84,6 +94,11 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   ⊢` : ∀ {Δ Γ x A} → Γ ∋ x ⦂ A → Δ ∣ Γ ⊢ ` x ⦂ A
 
   ⊢$ : ∀ {Δ Γ n} → Δ ∣ Γ ⊢ $ n ⦂ `ℕ
+
+  ⊢# : ∀ {Δ Γ v} → Δ ∣ Γ ⊢ # v ⦂ `𝔹
+
+  ⊢⊕ : ∀ {Δ Γ M N p} → Δ ∣ Γ ⊢ M ⦂ `ℕ → Δ ∣ Γ ⊢ N ⦂ `ℕ
+     → Δ ∣ Γ ⊢ M ⊕[ p ] N ⦂ `ℕ
 
   ⊢ƛ : ∀ {Δ Γ A B N} → Δ ⊢ᵗ A → Δ ∣ A ∷ Γ ⊢ N ⦂ B
      → Δ ∣ Γ ⊢ ƛ A ∙ N ⦂ (A ⇒ B)
@@ -156,11 +171,16 @@ act-not-inert A-unseal ()
 -- 4.  Values  (the stratified grammar of notes §"Values")
 ------------------------------------------------------------------------
 
+-- The constants k ::= n | b.
+data Const : Term → Set where
+  const-$ : ∀ {n} → Const ($ n)
+  const-# : ∀ {v} → Const (# v)
+
 -- Vˢ ::= λx:A.N | ΛX.N
 -- V⁻ ::= Vˢ | ⁻χ[Vˢ]                       (χ ≠ ∅)
 -- Vᶜ ::= V⁻ | Vᶜ⟨c→d⟩ | Vᶜ⟨∀X.c⟩ | Vᶜ⟨-X⟩
 -- V⁺ ::= Vᶜ | [V⁺]⁺ˣ⁼ᴬ | [V⁺]⁺χ            (χ ≠ ∅)
--- V  ::= k | V⁺
+-- V  ::= k | V⁺                            (k = numeral or boolean)
 --
 -- DEVIATION FROM THE NOTES, DELIBERATE.  `SΛ` carries `Value N` — reduction
 -- goes UNDER Λ (ξ-Λ, strong.Reduction), so without it `Λ N` would be a
@@ -187,7 +207,7 @@ mutual
     Preveal : ∀ {χ M} → NonEmpty χ → Pos M → Pos (M ⟦ reveal χ ⟧)
 
   data Value : Term → Set where           -- V
-    V$ : ∀ {n} → Value ($ n)
+    Vk : ∀ {k} → Const k → Value k
     Vp : ∀ {M} → Pos M → Value M
 
 -- Convenience injections up the tower.

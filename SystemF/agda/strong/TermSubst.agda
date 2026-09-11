@@ -53,6 +53,8 @@ numBindsᵇ-ren ρ (conceal χ) = refl
 renᴹ : Renameᵗ → Term → Term
 renᴹ ρ (` x)          = ` x
 renᴹ ρ ($ n)          = $ n
+renᴹ ρ (# v)          = # v
+renᴹ ρ (M ⊕[ p ] N)   = renᴹ ρ M ⊕[ p ] renᴹ ρ N
 renᴹ ρ (ƛ A ∙ N)      = ƛ renameᵗ ρ A ∙ renᴹ ρ N
 renᴹ ρ (L · M)        = renᴹ ρ L · renᴹ ρ M
 renᴹ ρ (Λ N)          = Λ (renᴹ (extᵗ ρ) N)
@@ -86,6 +88,8 @@ extⁿ ρ (suc x) = suc (ρ x)
 renⁿ : (ℕ → ℕ) → Term → Term
 renⁿ ρ (` x)          = ` (ρ x)
 renⁿ ρ ($ n)          = $ n
+renⁿ ρ (# v)          = # v
+renⁿ ρ (M ⊕[ p ] N)   = renⁿ ρ M ⊕[ p ] renⁿ ρ N
 renⁿ ρ (ƛ A ∙ N)      = ƛ A ∙ renⁿ (extⁿ ρ) N
 renⁿ ρ (L · M)        = renⁿ ρ L · renⁿ ρ M
 renⁿ ρ (Λ N)          = Λ (renⁿ ρ N)
@@ -127,6 +131,8 @@ extᴵ σ (suc x) = shiftᴵ (σ x)
 substᵐ : (ℕ → Img) → Term → Term
 substᵐ σ (` x)          = imgTm (σ x)
 substᵐ σ ($ n)          = $ n
+substᵐ σ (# v)          = # v
+substᵐ σ (M ⊕[ p ] N)   = substᵐ σ M ⊕[ p ] substᵐ σ N
 substᵐ σ (ƛ A ∙ N)      = ƛ A ∙ substᵐ (extᴵ σ) N
 substᵐ σ (L · M)        = substᵐ σ L · substᵐ σ M
 substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)

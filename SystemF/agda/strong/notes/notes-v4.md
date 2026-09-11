@@ -162,7 +162,9 @@ is descended into.  Crossing a Λ wraps a value image:
 
   (TyBeta)     Δ ⊢ ⁻ᵟ[ΛY.V] •B[A] -→ ν new Y:β:=⌊A⌋ [ (⁻ᵟ′[V])⟨+Y(B)⟩ ]
                                       δ possibly EMPTY; subsumes v3's
-                                      TyConceal            [C8] [C11] [C15]
+                                      TyConceal      [C8] [C11] [C15] [C16]
+                                      Y is OUTSIDE the spine — forced by
+                                      the conversion                 [C16]
                                       δ′ re-indexed: the new slot Y is
                                       inserted OUTSIDE the spine     [O4]
 
@@ -210,21 +212,28 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
      whole job is instantiating at whatever the exterior supplies.
        (v1 had rep-less entries for a related reason: `↑X:⋆`, `↓Y:⋆`.)
 
-[C3] WHY REPRESENTATIONS MAY NAME ANCHORS.  Forced by TyBeta at a nonempty
-     conceal stack:
-
-       ⁻ᵟ[ΛY.V] •B[A] -→ ν new β:=⌊A⌋ [ (⁻ᵟ[V])⟨+β(B)⟩ ]
-
-     ⌊A⌋ is computed at the REDEX's context, where A is well formed, but
-     it is STORED against an anchor that outlives every conceal.  Take the
-     instance A = Z where Z is the concealed variable: ⌊A⌋ = α, and no
-     term type of the interior denotes it.  Nor can β alias a
-     representation of α's own — α is Λ-bound, hence rep-less.  "Whatever
-     α stands for" is the only thing to say.  Not special to a bare
+[C3] WHY REPRESENTATIONS MAY NAME ANCHORS.  Forced TWICE over.
+       (i) Σ IS PERMANENT, so its entries cannot be scoped at a TRANSIENT
+     Δ.  A term-type rep would be scoped at the Δ holding at allocation
+     time, and any later conceal of a variable it mentions would leave the
+     Σ entry ill-formed — while Σ outlives every conceal by construction.
+     This forcing is independent of where any node sits.
+       (ii) AT THE TERM LEVEL, crossΛ and AppBnd wrap an ARBITRARY value
+     in a conceal, and that value may itself be `ν new Y:α:=R [·]`; a
+     term-type field naming the concealed variable would be ill-formed
+     there.  PushPos hoists it back out, but the term must be well formed
+     in between.
+       Nor can an anchor alias a representation of another's own: a
+     Λ-bound anchor is REP-LESS, so "whatever α stands for" is the only
+     thing to say, and saying it names the anchor.  Not special to a bare
      variable: A may be `ℕ → Z`, so anchors sit INSIDE compound reps.
        REJECTED: keep reps as term types scoped at the ENCLOSING conceal's
      exterior.  That scopes a node's field at a context determined by
      another node, and breaks under ξ.
+       CORRECTED 2026-09-11: earlier drafts cited "TyConceal plants an
+     intro INSIDE a conceal" as the forced case.  Since the
+     TyBeta/TyConceal unification the intro is always OUTSIDE the spine
+     [C16], so that illustration was stale.  The conclusion is not.
 
 [C4] READ-BACK IS PARTIAL, AND THAT IS THE TIGHTNESS DISCIPLINE.  A
      representation may always be LOOKED UP — the anchor is always there —
@@ -386,6 +395,25 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
       form, and §Runtime Terms is where it is introduced.  Note the
       contractum re-indexes it: TyBeta inserts the new slot Y OUTSIDE the
       spine, so δ′ is δ shifted past one insertion — another [O4] site.
+
+[C16] WHY TyBeta'S NEW Y IS OUTSIDE THE CONCEAL SPINE.  Forced by the
+      CONVERSION, not chosen for tidiness.  `+Y(B)` types only where β's
+      representation is READABLE — `⌈R⌉` defined, i.e. every variable of A
+      still in scope — and inside the spine that can fail, in exactly the
+      motivating case (A = Z, δ concealing Z).  So the conversion must sit
+      OUTSIDE the spine; and it needs Y in scope, so the intro must
+      ENCLOSE it.  The three candidates:
+
+        intro + conversion inside ⁻ᵟ   ⌈⌊A⌋⌉ undefined
+        intro inside, conversion out   conversion at Δ, where Y is absent
+        BOTH OUTSIDE                   types
+
+      It also agrees with the layering (positives outside conceals), so
+      PushPos has nothing to do — but agreement is not the reason; the
+      placement would be forced without the layering.
+        NOTE this is the SAME placement v3's TyConceal uses.  What v4
+      changed here was never the placement [C7]: it is that the resulting
+      frame `(Δ ⊕ Y) ∖ δ` needs no mask.
 
                         ========================
                         PART III — OPEN

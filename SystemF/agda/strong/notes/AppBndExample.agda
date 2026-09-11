@@ -71,9 +71,13 @@ app-before = refl
 -- 3.  STEP 2 — AppBnd.  THE ONE NODE THAT MOVES.
 ------------------------------------------------------------------------
 
--- crossArg sends the argument across the DUAL tag: conceal {0} ↦ reveal {0}.
-crossArg-is : crossArg (conceal (0 ∷ [])) ($ 5) ≡ ν reveal (0 ∷ []) [ $ 5 ]
-crossArg-is = refl
+-- The argument enters under the DUAL tag — conceal {0} ↦ reveal {0} — and
+-- is NOT shifted, because a conceal binds nothing.
+dual-is : dualᵇ (conceal (0 ∷ [])) ≡ reveal (0 ∷ [])
+dual-is = refl
+
+shiftIn-is : shiftIn (conceal (0 ∷ [])) ($ 5) ≡ $ 5
+shiftIn-is = refl
 
 after₂ : Term
 after₂ = Λ (ν conceal (0 ∷ [])

@@ -2718,28 +2718,30 @@ reading of the criterion (the node is reconstructed by the rule, so no
 SURVIVING source node changes colour) or whether those two rules should
 instead be read as violating it, is Jeremy's call at the next check-in.
 
-#### Addendum (2026-09-11): crossArg split, and the colour catalogue
+#### Addendum (2026-09-11): crossArg INLINED, and the colour catalogue
 
-SIMPLIFICATION (Jeremy's call).  `crossArg` re-derived `dualᵇ` inline and
-tangled it with the intro shift.  It is now the two independent
-ingredients, `strong.Reduction` §0:
+SIMPLIFICATION (Jeremy's call).  `crossArg` re-derived `dualᵇ` inline,
+tangled it with the intro shift, and hid what the rule actually does.  It
+is GONE.  AppBnd now writes the crossing out in full, and the one piece
+worth naming keeps a name (`strong.Reduction` §0):
 
   shiftIn : Bnd → Term → Term        -- ONLY intro shifts; it alone binds
   shiftIn (intro A)   W = ⇑ᴹ W
   shiftIn (reveal χ)  W = W
   shiftIn (conceal χ) W = W
 
-  crossArg b W = ν dualᵇ b [ shiftIn b W ]
+  AppBnd : Value (ν b [ M ]) → Value W
+    → Δ ⊢ (ν b [ M ]) · W ⟪ κ ⟫
+        -→ ν b [ M · (ν dualᵇ b [ shiftIn b W ]) ⟪ scopeᵇ b κ ⟫ ]
 
-Definitionally the same function (notes/AppBndExample.agda `crossArg-is`
-is still `refl`).  The point of the split is that the criterion now reads
-straight off the definition: the crossing moves the argument's type
-variables by `shiftIn` AND BY NOTHING ELSE, because the dual tag restores
-the argument's frame exactly (`lock-unlock` / `unlock-lock`).
+The criterion now reads straight off the rule: the crossing moves the
+argument's type variables by `shiftIn` AND BY NOTHING ELSE, because the
+dual tag restores the argument's frame exactly (`lock-unlock` /
+`unlock-lock`).
 
-CROSSARG AND scopeᵇ DO UNRELATED JOBS.  crossArg protects the ARGUMENT,
-and protects it perfectly.  scopeᵇ exists only for the ELIMINATOR NODE
-itself, the one thing AppBnd moves into the interior.
+THE CROSSING AND scopeᵇ DO UNRELATED JOBS.  The crossing protects the
+ARGUMENT, and protects it perfectly.  scopeᵇ exists only for the
+ELIMINATOR NODE itself, the one thing AppBnd moves into the interior.
 
 THE CATALOGUE, against Jeremy's criterion ("a shift from an intro is
 fine, nothing else"):

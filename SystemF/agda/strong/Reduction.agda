@@ -7,9 +7,10 @@ module strong.Reduction where
 -- M⟨c⟩ = `M ⟨ c ⟩`.
 --
 -- Supporting operations defined here:
---   crossArg b W   the argument crossing `⁻ᵇ[W]` of the application rule —
---                  the dual boundary (strong.CtxMorph `dualᵇ`) applied to
---                  W, with W weakened past the fresh binder when b = intro.
+--   shiftIn b W    the shift the interior of b forces on an entering term:
+--                  `⇑ᴹ W` for an `intro` (it binds), W itself otherwise.
+--                  The application rule writes its argument crossing
+--                  `⁻ᵇ[W]` out in full as `ν dualᵇ b [ shiftIn b W ]`.
 --   c [ A ]ᶜ       conversion instantiation — substitute the type A for the
 --                  outermost binder of a conversion, used by
 --                  `V⟨∀X.c⟩@B[A] -→ (V A)⟨c⟩`.
@@ -44,26 +45,13 @@ open import strong.TermSubst
 -- 0.  Supporting operations
 ------------------------------------------------------------------------
 
--- The argument crossing  ⁻ᵇ[W]  (notes' application rule), as its TWO
--- INDEPENDENT INGREDIENTS.
---
---   dualᵇ b    the tag the argument enters under (strong.CtxMorph) — it is
---              `-b` of the notes, and nothing else here re-derives it.
---   shiftIn b  the de Bruijn shift the interior forces on an entering
---              term.  ONLY `intro` causes one, because only `intro` adds a
---              binder; `reveal`/`conceal` rename nothing.
---
--- Keeping them apart is what makes the colour story readable: the crossing
--- moves the argument's type variables by `shiftIn` AND BY NOTHING ELSE —
--- the dual tag restores the argument's frame exactly (CtxMorph
--- `lock-unlock` / `unlock-lock`).
+-- The de Bruijn shift the interior of a boundary forces on a term
+-- ENTERING it.  ONLY `intro` causes one, because only `intro` adds a
+-- binder; `reveal`/`conceal` rename nothing.
 shiftIn : Bnd → Term → Term
 shiftIn (intro A)   W = ⇑ᴹ W
 shiftIn (reveal χ)  W = W
 shiftIn (conceal χ) W = W
-
-crossArg : Bnd → Term → Term
-crossArg b W = ν dualᵇ b [ shiftIn b W ]
 
 -- The de Bruijn variable underlying a type (junk 0 if not a variable — a
 -- seal/unseal is never instantiated at its own bound slot, so the junk
@@ -119,14 +107,18 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `Value (ν b [ M ])` premise still pins the operator to a value, so it
   -- cannot overlap ξ-·-l.
   --
+  -- The argument enters under the DUAL tag `dualᵇ b` (CtxMorph), shifted
+  -- only if b binds.  That crossing restores W's frame EXACTLY —
+  -- `lock-unlock` / `unlock-lock` — so every annotation W carries is
+  -- still right on the inside, and so is every annotation in M.
+  --
   -- COLOUR.  This is ONE OF THE TWO rules that move a node ACROSS a
-  -- boundary: the application node lands at the INTERIOR frame
+  -- boundary: the application node itself lands at the INTERIOR frame
   -- `applyᵇ b Δ`, so it is REBUILT with the interior colour set
-  -- `scopeᵇ b κ`.  Everything else — all of M, all of W — keeps the
-  -- annotations it had, W's because the dual crossing restores Δ exactly
-  -- (CtxMorph `lock-unlock` / `unlock-lock`).
+  -- `scopeᵇ b κ`.  It is the ONLY thing here whose colours change.
   AppBnd : ∀ {Δ M b W κ} → Value (ν b [ M ]) → Value W
-    → Δ ⊢ (ν b [ M ]) · W ⟪ κ ⟫ -→ ν b [ M · crossArg b W ⟪ scopeᵇ b κ ⟫ ]
+    → Δ ⊢ (ν b [ M ]) · W ⟪ κ ⟫
+        -→ ν b [ M · (ν dualᵇ b [ shiftIn b W ]) ⟪ scopeᵇ b κ ⟫ ]
 
   -- V⟨-X⟩⟨+X⟩ -→ V              (-X = seal, +X = unseal, same X)
   Cancel : ∀ {Δ V X} → Value V

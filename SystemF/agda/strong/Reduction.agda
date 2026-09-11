@@ -44,13 +44,26 @@ open import strong.TermSubst
 -- 0.  Supporting operations
 ------------------------------------------------------------------------
 
--- The argument crossing  ⁻ᵇ[W]  (notes' application rule).  The dual tag
--- `dualᵇ b` (strong.CtxMorph) wraps W; when b introduces a binder, W is
--- also weakened past it.
+-- The argument crossing  ⁻ᵇ[W]  (notes' application rule), as its TWO
+-- INDEPENDENT INGREDIENTS.
+--
+--   dualᵇ b    the tag the argument enters under (strong.CtxMorph) — it is
+--              `-b` of the notes, and nothing else here re-derives it.
+--   shiftIn b  the de Bruijn shift the interior forces on an entering
+--              term.  ONLY `intro` causes one, because only `intro` adds a
+--              binder; `reveal`/`conceal` rename nothing.
+--
+-- Keeping them apart is what makes the colour story readable: the crossing
+-- moves the argument's type variables by `shiftIn` AND BY NOTHING ELSE —
+-- the dual tag restores the argument's frame exactly (CtxMorph
+-- `lock-unlock` / `unlock-lock`).
+shiftIn : Bnd → Term → Term
+shiftIn (intro A)   W = ⇑ᴹ W
+shiftIn (reveal χ)  W = W
+shiftIn (conceal χ) W = W
+
 crossArg : Bnd → Term → Term
-crossArg (intro A)   W = ν conceal (0 ∷ []) [ ⇑ᴹ W ]
-crossArg (reveal χ)  W = ν conceal χ [ W ]
-crossArg (conceal χ) W = ν reveal χ [ W ]
+crossArg b W = ν dualᵇ b [ shiftIn b W ]
 
 -- The de Bruijn variable underlying a type (junk 0 if not a variable — a
 -- seal/unseal is never instantiated at its own bound slot, so the junk

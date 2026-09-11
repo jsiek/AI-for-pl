@@ -2717,3 +2717,53 @@ OPEN.  Whether rebuilding AppBnd's and TyPos's annotations is the right
 reading of the criterion (the node is reconstructed by the rule, so no
 SURVIVING source node changes colour) or whether those two rules should
 instead be read as violating it, is Jeremy's call at the next check-in.
+
+#### Addendum (2026-09-11): crossArg split, and the colour catalogue
+
+SIMPLIFICATION (Jeremy's call).  `crossArg` re-derived `dualᵇ` inline and
+tangled it with the intro shift.  It is now the two independent
+ingredients, `strong.Reduction` §0:
+
+  shiftIn : Bnd → Term → Term        -- ONLY intro shifts; it alone binds
+  shiftIn (intro A)   W = ⇑ᴹ W
+  shiftIn (reveal χ)  W = W
+  shiftIn (conceal χ) W = W
+
+  crossArg b W = ν dualᵇ b [ shiftIn b W ]
+
+Definitionally the same function (notes/AppBndExample.agda `crossArg-is`
+is still `refl`).  The point of the split is that the criterion now reads
+straight off the definition: the crossing moves the argument's type
+variables by `shiftIn` AND BY NOTHING ELSE, because the dual tag restores
+the argument's frame exactly (`lock-unlock` / `unlock-lock`).
+
+CROSSARG AND scopeᵇ DO UNRELATED JOBS.  crossArg protects the ARGUMENT,
+and protects it perfectly.  scopeᵇ exists only for the ELIMINATOR NODE
+itself, the one thing AppBnd moves into the interior.
+
+THE CATALOGUE, against Jeremy's criterion ("a shift from an intro is
+fine, nothing else"):
+
+  AppBnd  intro A    κ ↦ 0 ∷ map suc κ   shift + the fresh colour   OK
+  AppBnd  reveal χ   κ ↦ κ ⊎ χ           ADDED  (χ ∩ κ = ∅ by ⊢reveal)   ✗
+  AppBnd  conceal χ  κ ↦ κ ∖ χ           REMOVED (χ ⊆ κ by ⊢conceal)     ✗
+  TyPos   intro A′   two shifts                                      OK
+  TyPos   reveal χ   shift, then ADDED                                ✗
+  (the other 17 rules: unchanged)
+
+Three violating configurations, ONE SHAPE: an elimination node whose
+operator is a boundary is pushed inside that boundary.  reveal/conceal are
+exactly the tags that move the SET rather than reindex it, and AppBnd's
+`Value (ν b [ M ])` premise forces χ ≠ ∅ (empty tags are not values — they
+are DropReveal/DropConceal redexes), so no instance is benign.
+
+notes/AppBndExample.agda is the smallest complete run that reaches one:
+`(λg:ℕ→ℕ. ΛX. g · 5) · (λz:ℕ. z)` in five steps, with the application
+node's colour set going {X} → ∅ at the AppBnd and the argument's frame
+restored exactly by `unlock-lock`.
+
+STILL OPEN (Jeremy is thinking): whether `·` and `⊕` should carry colour
+annotations at all.  They are the only source forms that mention no type;
+dropping their annotation makes AppBnd transport everything unchanged and
+removes scopeᵇ from it entirely, leaving TyPos, where the `•` node is
+arguably genuinely NEW (its type argument changed from A to the fresh Y).

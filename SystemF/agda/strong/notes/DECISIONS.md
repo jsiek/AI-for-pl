@@ -3149,3 +3149,43 @@ notes-v4 [C3] rewritten to say so.
 REMAINING RISK is now [O2], Θ composition for Cancel across adjacent
 boundaries — the last place v2's ≼≈ might live.  Next measurement: what
 composition actually cost in v2's Boundary.agda.
+
+#### Corrected (2026-09-11): Θ is a PAIR OF BLOCKS, and the dual is free
+
+Jeremy: the "at most one conceal in Θ" restriction is incompatible with
+the dual.  Correct — and fixing it makes the dual strictly better.
+
+THE INCOMPATIBILITY.  With Θ a flat list and Θᵈ = reverse(flip Θ), a Θ
+with r reveals dualises to one with r conceals, so the restriction is
+violated by any boundary that reveals more than once.  And `reverse` was
+wrong too: it permutes the re-appended block.
+
+THE FIX.  Θ = ( C ; R ), two blocks, each deepest-first:
+
+  Γ ⇈ ( C ; R ) = (Γ ↓ first C) , R
+  ( C ; R )ᵈ    = ( Rᵈ ; Cᵈ )        each entry flipped, ORDER PRESERVED
+
+with a BLOCK CONDITION replacing the old restriction: C names EXACTLY the
+dropped block — a contiguous suffix of Γ, deepest first.  There is still
+ONE truncation, at `first C`; the remaining C entries are not further
+truncations but carriers of representations for what that truncation
+removed.  This is v1's design read correctly ("one restriction at the
+deepest conceal", other entries carrying knowledge) — not "one conceal
+entry", which is what I had written.
+
+THE DUAL IS THEN A BLOCK SWAP, and both costs I had accepted vanish:
+
+  Θᵈ is a function of Θ ALONE             (no Γ-dependence)
+  |Θᵈ| = |Θ|                              (no O(collateral) re-append)
+  Γ ⇈ Θ ⇈ Θᵈ = Γ exactly, in order        (no ≼≈)
+  Θᵈᵈ = Θ                                 (involution)
+
+Both costs came from letting C name only the truncation point, leaving the
+rest of the dropped block unnamed; the block condition removes them
+together.  The endpoint convention is preserved by the swap exactly as
+before — Rᵈ becomes conceals needing their reps over the new interior
+(= old exterior, where they were written), Cᵈ becomes reveals needing
+theirs over the new exterior (= old interior, where they were written).
+
+SO THE DUAL COSTS NOTHING AT ALL, and [O2] — Θ composition for Cancel
+across adjacent boundaries — is the only place v2's ≼≈ could still live.

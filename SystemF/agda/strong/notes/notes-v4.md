@@ -71,19 +71,42 @@ four-way split for a related reason: `Θ ::= … | ↑X:⋆ | ↓Y:⋆ | …`.)
 
 # Types
 
-  A,B,C ::= X | α | ℕ | 𝔹 | A → B | ∀X.A
+TWO SUBLANGUAGES.  **No type that any term has ever mentions an anchor.**
 
-One type language, two kinds of free variable.  Two sublanguages matter:
+  TERM TYPES        A,B,C ::= X | ℕ | 𝔹 | A → B | ∀X.A
+  REPRESENTATIONS   R,S   ::= α | X | ℕ | 𝔹 | R → S | ∀X.R
+                              with every FREE variable an anchor
+                              (a bound X, as in ∀X. X → α, is ordinary)
 
-  SOURCE types mention only scoped variables X.
-  REPRESENTATION types are ANCHOR-CLOSED: every free variable is an anchor.
+Term types are v3's types, unchanged.  Only an ANCHOR'S STORED
+REPRESENTATION may name anchors, and it MUST be able to:
 
-  ------------------------
-  | ⌊A⌋ = R   (read out) |
-  ------------------------
+  THE FORCED CASE.  TyConceal's contractum puts an intro INSIDE a conceal:
+
+      ν dn Z:αZ [ΛY.V] •B[Z] -→ ν dn Z:αZ [ ν new β:=R [ V⟨+β(B)⟩ ] ]
+
+  R must denote the type Z, but inside the conceal Z's slot is GONE, so R
+  cannot be a term type of that interior.  Nor can β alias some
+  representation of αZ's own: αZ is Λ-bound, hence REP-LESS.  "Whatever αZ
+  stands for" is the only thing there is to say, and saying it names the
+  anchor.  It is not special to a bare variable either — the rep here is
+  the type argument A, which may be `ℕ → Z`, so anchors must sit INSIDE
+  compound representations.
+
+  REJECTED ALTERNATIVE: keep representations as term types, scoped at the
+  ENCLOSING conceal's exterior (where Z is still in scope).  Then a node's
+  rep field is scoped at a context determined by some OTHER node, which
+  breaks as soon as ξ moves either of them — and it puts the intro back
+  outside the conceal, which is the thing v4 exists to avoid.
+
+Anchors therefore appear in exactly four places: reveal/conceal tags,
+conversions (+α / -α), context entries (X@α), and representations.
+
+  ----------------------------------------------
+  | ⌊A⌋ = R   term type  ⟶  representation     |
+  ----------------------------------------------
 
   ⌊X⌋ = α        where X is anchored at α
-  ⌊α⌋ = α
   ⌊ι⌋ = ι
   ⌊A → B⌋ = ⌊A⌋ → ⌊B⌋
   ⌊∀X.A⌋ = ∀X.⌊A⌋            (X is bound inside; it stays a scoped variable)
@@ -93,9 +116,9 @@ is the reason Λ must allocate an anchor.  (Contrast the GTSFImp alt, whose
 `Transport` has no clause for a `∀-bound` entry — there, allocating at a
 Λ-bound variable is not expressible.)
 
-  --------------------------
-  | ⌈R⌉ = A   (read back)  |
-  --------------------------
+  ----------------------------------------------
+  | ⌈R⌉ = A   representation  ⟶  term type     |
+  ----------------------------------------------
 
   ⌈α⌉ = X        where X is THE scoped variable anchored at α, IF ONE IS IN
                  SCOPE; otherwise ⌈R⌉ is UNDEFINED

@@ -2769,3 +2769,54 @@ annotations at all.  They are the only source forms that mention no type;
 dropping their annotation makes AppBnd transport everything unchanged and
 removes scopeᵇ from it entirely, leaving TyPos, where the `•` node is
 arguably genuinely NEW (its type argument changed from A to the fresh Y).
+
+#### Bug (2026-09-11): TyPos concealed the wrong slot
+
+FOUND by reading the renaming against its partner, CONFIRMED by the colour
+annotations.  TyPos wedges the fresh binder Y BELOW b's own binders:
+
+  ᵇ[M] •B[A]  -→  ⁺ʸ⁼ᴬ[ ᵇ′[ ⁻ʸ[M′] •B′[Y] ] ]
+
+which is exactly what `renᴹ (extN (numBindsᵇ b) suc) M` does — it holds M's
+OWN binders (indices 0 … numBindsᵇ b − 1) fixed and shifts M's references
+to Δ up by one.  THE RENAMING WAS RIGHT.  Its partner was not: the rule
+wrapped M in `ν conceal (0 ∷ [])` and instantiated at `[ ` 0 ]`.
+
+Y's index inside `ν renBnd suc b` is `numBindsᵇ b`: 0 for a `reveal`
+(binds nothing) but 1 for an `intro`.  So at an intro tag the rule
+concealed M'S OWN BINDER and left Y visible — the exact opposite of the
+notes' `⁻ʸ[V⁺] •B[Y]` — and instantiated at M's binder instead of Y.
+
+THE COLOUR ANNOTATION CAUGHT IT.  At Δ = [Z], b = intro ℕ, A = 𝔹:
+
+  M's colours at its old frame          0 ∷ 1 ∷ []
+  after renᴹ (extN 1 suc)               0 ∷ 2 ∷ []
+  the frame it landed in, conceal 0     1 ∷ 2 ∷ []     ✗
+  the frame it lands in, conceal 1      0 ∷ 2 ∷ []     ✓
+
+FIXED: `conceal (numBindsᵇ b ∷ [])` and `[ ` (numBindsᵇ b) ]`.  The reveal
+case is unchanged, since numBindsᵇ (reveal χ) = 0.  Regression:
+notes/TyPosExample.agda, including the counterfactual.
+
+TWO ITEMS IN THE SAME RULE REMAIN OPEN (Jeremy is ruling on them):
+
+(i) NO CONVERSION.  TyBeta mints `V ⟨ revTy 0 B ⟩` to reconcile the
+    interior's view (which names the fresh binder) with the exterior's
+    (which names its rep).  TyPos mints none, so its interior type
+    mentions Y where ⊢intro demands A.  With B = ` 0 and A = ℕ:
+    the • node's type is ` 0, ⊢intro wants ⇑ᵗ (` 0 [ ℕ ]ᵗ) = ℕ.  The notes
+    have the same gap read literally: `⁺ʸ⁼ᴬ[…•B[Y]]` gives body type B[Y],
+    but the +Y=A boundary's own rule demands Y ∉ FV of its type.
+
+(ii) B'S SHIFT.  `renameᵗ (extᵗ suc) B` is ONE shift.  Right for a reveal
+     (⊢reveal gives the interior the exterior's type unchanged); for an
+     intro, ⊢intro ALREADY shifted M's type by ⇑ᵗ, so M′'s ∀-body carries
+     two shifts and the rule names only one.
+
+AND THE GENERAL FRAME LAW the rule now owes (notes/TyPosExample.agda §1
+and §3 are instances; not refl in general — needs map-fusion and, on the
+reveal side, the ⊢reveal premise):
+
+  map (extN (numBindsᵇ b) suc) (scopeᵗ (applyᵇ b Δ))
+    ≡ scopeᵗ (lockχ (numBindsᵇ b ∷ [])
+                    (applyᵇ (renBnd suc b) (unmasked (bind A) ∷ Δ)))

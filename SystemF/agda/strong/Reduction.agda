@@ -156,11 +156,20 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- through the fresh binder and then through the (shifted) tag b.  M's
   -- own annotations are SHIFTED by the same `renᴹ` that shifts its type
   -- variables — that shift is the frame-exactness tripwire.
+  -- Y'S INDEX IS `numBindsᵇ b`, NOT 0.  The rule wedges the fresh binder Y
+  -- BELOW b's own binders, which is exactly what the renaming
+  -- `extN (numBindsᵇ b) suc` does to M: it holds M's own binders (indices
+  -- 0 … numBindsᵇ b − 1) fixed and shifts M's references to Δ up by one.
+  -- So inside `ν renBnd suc b`, Y sits at `numBindsᵇ b` — at 0 for a
+  -- `reveal` (which binds nothing) but at 1 for an `intro`.  Concealing 0
+  -- there would hide M'S OWN BINDER and leave Y visible, the exact
+  -- opposite of the notes' `⁻ʸ[V⁺] •B[Y]`; the colour annotations catch it
+  -- (M's renamed set starts `0 ∷ …`, the frame's starts `1 ∷ …`).
   TyPos : ∀ {Δ M b B A κ} → Positive b → Value (ν b [ M ])
     → Δ ⊢ (ν b [ M ]) • B [ A ]⟪ κ ⟫
         -→ ν intro A [ ν renBnd suc b
-             [ (ν conceal (0 ∷ []) [ renᴹ (extN (numBindsᵇ b) suc) M ])
-                 • renameᵗ (extᵗ suc) B [ ` 0 ]⟪
+             [ (ν conceal (numBindsᵇ b ∷ []) [ renᴹ (extN (numBindsᵇ b) suc) M ])
+                 • renameᵗ (extᵗ suc) B [ ` (numBindsᵇ b) ]⟪
                      scopeᵇ (renBnd suc b) (scopeᵇ (intro A) κ) ⟫ ] ]
 
   -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]   (Y fresh; V moves out, χ shifts past Y)

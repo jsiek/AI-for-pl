@@ -3042,3 +3042,59 @@ THE COMPARISON TO SETTLE: v3 buys a cheap interior (masks) with NO
 morphism algebra; v6 buys a cheap interior and PAYS one.  Re-reading v2's
 Boundary.agda for what the dual and composition actually cost is probably
 worth more than further design.
+
+#### Settled (2026-09-11): what anchors are actually for
+
+Jeremy: with two-context conversions, perhaps the representation R is well
+formed in the exterior (for a reveal) or the interior (for a conceal), so
+the anchor-closed R,S sublanguage could go.
+
+BOTH IMMEDIATE CASES DO WORK.
+  REVEAL   `+X : X ⇒ R` needs R in the EXTERIOR; the boundary's own field
+           supplies it as a type over the exterior.
+  CONCEAL  `-Y : R ⇒ Y` needs R in the INTERIOR, which is `Γ↓Y` — EXACTLY
+           the context Y's telescope entry was written over.  The prefix
+           truncation is what makes this automatic: it is Y's existential
+           scope.
+
+AND THE RESIDUE IS REAL, AND REACHED BY A CLOSED PROGRAM.  A boundary that
+BOTH truncates at Z AND appends Y:=A with A mentioning Z cannot store Y's
+representation in its interior telescope (Y's prefix there is Γ↓Z, which
+lacks Z).  An ABSTRACT entry would do unless something INSIDE needs the
+representation — and AppBnd's DUAL does: it sends the argument back out
+through a conceal of Y carrying `-Y`, whose interior side needs it.
+
+notes/DeeperConcealProbe.agda reaches the shape in THREE steps from
+
+  (λg:(∀Y. ℕ→ℕ). ΛZ. (g •(ℕ→ℕ)[Z]) · 5) · (ΛY. λw:ℕ. w)
+
+Beta sends g across the ΛZ (crossΛ conceals Z); TyConceal instantiates AT
+the concealed Z, so the minted intro's representation IS Z; AppBnd then
+drags a conceal of that fresh Y down INSIDE the intro.  Checked in the
+live v3 calculus.  v3 survives it ONLY because masking RETAINS the binding
+(`v3-retains`); a prefix interior does not retain.
+
+THE FORCING, FINALLY ARGUED (notes-v4 [C3], twice retracted before this).
+It is not about where a node sits and not about Σ's existence.  It is:
+
+    a conceal that REMOVES an entry (delete, or truncate) means a later
+    reveal must RESTORE it with its representation, so the representation
+    must live somewhere PERMANENT — and a permanent store cannot hold a
+    type scoped at a transient context, hence anchor-closed.
+
+v3 ESCAPES THIS ENTIRELY, and that is the whole point of masking: `masked
+b` retains b, so the representation never leaves the context.  v4's
+deletion and v6's truncation both need the store.
+
+TWO EARLIER ARGUMENTS RETRACTED, kept in [C3] because they were believed:
+"TyConceal plants an intro inside a conceal" (superseded — the intro is
+always outside since the TyBeta/TyConceal unification), and the pair
+"Σ is permanent" (circular) / "crossΛ may wrap a value containing an intro
+naming the concealed variable" (refuted by the premises: crossΛ conceals
+the Λ's FRESH slot, and AppBnd at a reveal conceals slots ⊢reveal requires
+be LOCKED, neither of which the wrapped value can name).
+
+SO: ANCHORS ARE FOR (1) surviving a conceal that REMOVES an entry, and
+(2) IDENTITY — Cancel across a crossing, position-independence.  NOT
+representations in general.  Which also says something about the whole
+line of exploration: masking is not a cost v3 pays, it is what v3 buys.

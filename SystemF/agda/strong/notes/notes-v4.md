@@ -212,28 +212,39 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
      whole job is instantiating at whatever the exterior supplies.
        (v1 had rep-less entries for a related reason: `↑X:⋆`, `↓Y:⋆`.)
 
-[C3] WHY REPRESENTATIONS MAY NAME ANCHORS.  Forced TWICE over.
-       (i) Σ IS PERMANENT, so its entries cannot be scoped at a TRANSIENT
-     Δ.  A term-type rep would be scoped at the Δ holding at allocation
-     time, and any later conceal of a variable it mentions would leave the
-     Σ entry ill-formed — while Σ outlives every conceal by construction.
-     This forcing is independent of where any node sits.
-       (ii) AT THE TERM LEVEL, crossΛ and AppBnd wrap an ARBITRARY value
-     in a conceal, and that value may itself be `ν new Y:α:=R [·]`; a
-     term-type field naming the concealed variable would be ill-formed
-     there.  PushPos hoists it back out, but the term must be well formed
-     in between.
-       Nor can an anchor alias a representation of another's own: a
-     Λ-bound anchor is REP-LESS, so "whatever α stands for" is the only
-     thing to say, and saying it names the anchor.  Not special to a bare
-     variable: A may be `ℕ → Z`, so anchors sit INSIDE compound reps.
-       REJECTED: keep reps as term types scoped at the ENCLOSING conceal's
-     exterior.  That scopes a node's field at a context determined by
-     another node, and breaks under ξ.
-       CORRECTED 2026-09-11: earlier drafts cited "TyConceal plants an
-     intro INSIDE a conceal" as the forced case.  Since the
-     TyBeta/TyConceal unification the intro is always OUTSIDE the spine
-     [C16], so that illustration was stale.  The conclusion is not.
+[C3] WHY REPRESENTATIONS MAY NAME ANCHORS.  TWICE RETRACTED AND FINALLY
+     ARGUED (2026-09-11).  The forcing is NOT about where a node sits, and
+     not about Σ's existence; it is about what a CONCEAL DOES TO THE ENTRY.
+
+       THE ARGUMENT.  A v4 conceal DELETES X's entry from the interior.  A
+     later reveal must RESTORE it — with its representation.  So the
+     representation must live somewhere the deletion did not touch, i.e.
+     somewhere PERMANENT; and a permanent store cannot hold a type scoped
+     at a transient context, so its entries must be context-independent,
+     i.e. anchor-closed.
+       v3 ESCAPES THIS ENTIRELY, and that is the whole point of masking:
+     `masked b` RETAINS b, so the rep never leaves the context and v3 can
+     keep it as an ordinary telescope type.  v6's prefix truncation does
+     NOT escape it — see notes-v6 §"Do representations still need
+     anchors?" and notes/DeeperConcealProbe.agda.
+
+       TWO EARLIER ARGUMENTS, BOTH WRONG, kept because they were believed:
+       (a) "TyConceal plants an intro INSIDE a conceal."  Superseded: since
+           the TyBeta/TyConceal unification the intro is always OUTSIDE
+           [C16], where its field is a type over the node's own exterior.
+       (b) "Σ is permanent, so its entries cannot be scoped at a transient
+           Δ" — circular, since Σ exists only to hold representations; and
+           "crossΛ/AppBnd wrap a value that may contain an intro naming the
+           concealed variable" — REFUTED by the premises: crossΛ conceals
+           the Λ's FRESH slot, which the wrapped value predates and cannot
+           name, and AppBnd at a reveal conceals slots that ⊢reveal
+           requires be LOCKED in Δ, which the argument therefore cannot
+           name either.
+
+       WHAT ANCHORS ARE ACTUALLY FOR, then: (1) surviving a conceal that
+     REMOVES an entry, above; (2) IDENTITY — Cancel matching across a
+     crossing, and [O6]-style position-independence.  Not representations
+     in general.
 
 [C4] READ-BACK IS PARTIAL, AND THAT IS THE TIGHTNESS DISCIPLINE.  A
      representation may always be LOOKED UP — the anchor is always there —

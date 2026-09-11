@@ -234,6 +234,42 @@ not sketched further here.
      interior with no algebra at all.
 
 
+[C8] DO REPRESENTATIONS STILL NEED ANCHORS?  Jeremy: with two contexts,
+     perhaps R is well formed in the exterior (for a reveal) or the
+     interior (for a conceal), so the R,S sublanguage could go.  BOTH
+     IMMEDIATE CASES WORK:
+       REVEAL  `+X : X ⇒ R` needs R in the EXTERIOR, and the boundary's
+               own field supplies it as a type over the exterior.
+       CONCEAL `-Y : R ⇒ Y` needs R in the INTERIOR, which is `Γ↓Y` —
+               EXACTLY the context Y's telescope entry was written over.
+               The prefix truncation is what makes this automatic; it is
+               Y's existential scope [C3].
+     So a plain term type suffices AT THE BOUNDARY ITSELF.
+
+     BUT THE RESIDUE IS REAL AND REACHED.  A boundary that BOTH truncates
+     at Z AND appends Y:=A with A mentioning Z cannot store Y's
+     representation in its interior telescope: Y's prefix there is Γ↓Z,
+     which lacks Z.  An ABSTRACT entry would do unless something INSIDE
+     needs Y's representation — and something does.  AppBnd's DUAL sends
+     the argument back out through a conceal of Y, carrying `-Y`, whose
+     INTERIOR side needs exactly that representation.
+
+     notes/DeeperConcealProbe.agda REACHES THE SHAPE in three steps from
+
+       (λg:(∀Y. ℕ→ℕ). ΛZ. (g •(ℕ→ℕ)[Z]) · 5) · (ΛY. λw:ℕ. w)
+
+     — Beta sends g across the ΛZ (crossΛ conceals Z), TyConceal
+     instantiates AT the concealed Z so the minted intro's representation
+     IS Z, and AppBnd then drags a conceal of that fresh Y down INSIDE the
+     intro.  Checked in the live v3 calculus, where the node is
+     `ν conceal (0 ∷ []) [ … ]` inside `ν intro (` 0) [ … ]`; v3 survives
+     it only because masking RETAINS the binding (`v3-retains`).
+     A prefix interior does not retain.
+
+     SO v6 KEEPS ANCHORED ENTRIES.  The R,S sublanguage could go if the
+     entries were anchored some other way, but the entries themselves
+     cannot be plain telescope types.
+
                         ================
                         PART III — OPEN
                         ================
@@ -257,11 +293,18 @@ not sketched further here.
      truncation dominates, and the appends must be merged and re-indexed.
      v2's composition held only up to `≼≈`.  NOT WORKED HERE.
 
-[O3] `Σ ⊢ Θ ok` is stated loosely.  In particular whether an appended
+[O3] Could Θ be RESTRICTED so that no single boundary both truncates and
+     appends a variable whose representation mentions the truncated block?
+     That would remove [C8]'s residue by construction.  TyBeta as written
+     violates it in exactly the motivating case, so the restriction would
+     have to be bought with a different TyBeta — two boundaries instead of
+     one, which is the split design again.  NOT WORKED.
+
+[O4] `Σ ⊢ Θ ok` is stated loosely.  In particular whether an appended
      `X@α` may name an anchor that ALREADY has a scoped variable in Γ
      (v4's [O1]) — if it may, `⌈α⌉` is not deterministic.
 
-[O4] VALUES AND PROGRESS.  Fusion may delete the whole layering and its
+[O5] VALUES AND PROGRESS.  Fusion may delete the whole layering and its
      administrative rules, since there is nothing left to order.  But the
      layering was carrying the termination argument for the
      boundary-elimination family (v4 [C7]): the administrative rules push
@@ -269,14 +312,14 @@ not sketched further here.
      With one boundary form that argument has no obvious analogue.  THIS
      IS THE SECOND-BIGGEST RISK after [O1].
 
-[O5] COLOUR PRESERVATION.  The annotation would be "the scoped context",
+[O6] COLOUR PRESERVATION.  The annotation would be "the scoped context",
      and a fused boundary changes it in one step, so the per-node
      bookkeeping should be simpler than v3's.  But a prefix interior
      REORDERS on the way back through the dual [O1], and an annotation
      that is a list of indices does not survive reordering.  This may be
      a third place identity-by-anchor is load-bearing.
 
-[O6] THE COMPARISON THAT MATTERS.  v3 buys a cheap interior (masks) with
+[O7] THE COMPARISON THAT MATTERS.  v3 buys a cheap interior (masks) with
      no morphism algebra.  v6 buys a cheap interior (prefix + anchors)
      and pays a morphism algebra.  v4/v5 buy a cheap interior (deletion /
      names) with no algebra but a renumbering discipline.  The three are

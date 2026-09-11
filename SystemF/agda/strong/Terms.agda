@@ -5,7 +5,7 @@ module strong.Terms where
 -- v3 (notes/notes-v3.md) has TWO runtime forms where v2 had one combined
 -- boundary `M ⟪ Θ , c ⟫`:
 --
---   M ⟦ b ⟧   a SCOPE BOUNDARY  ᵇ[M]  — M under a boundary tag b
+--   ν b [ M ]  a SCOPE BOUNDARY  ᵇ[M]  — M under a boundary tag b
 --             (strong.CtxMorph): intro / reveal / conceal.  A boundary is
 --             TERM-CLOSED (its body types at Γ = []).
 --   M ⟨ c ⟩   a CONVERSION  M⟨c⟩ — c applied to M (strong.Conversion).
@@ -55,10 +55,11 @@ data Prim : Set where
 infix  9 `_
 infix  9 $_
 infix  9 #_
+infixl 8 _•_[_]
 infixl 7 _·_
 infixl 6 _⊕[_]_
 infix  6 ƛ_∙_
-infix  5 _⟦_⟧
+infix  5 ν_[_]
 infix  5 _⟨_⟩
 
 data Term : Set where
@@ -69,8 +70,8 @@ data Term : Set where
   ƛ_∙_    : Ty → Term → Term      -- λx:A. N
   _·_     : Term → Term → Term    -- L · M
   Λ_      : Term → Term           -- ΛX. N
-  _·[_,_] : Term → Ty → Ty → Term -- L @B[A]   (B the ∀-body, A the argument)
-  _⟦_⟧    : Term → Bnd → Term     -- ᵇ[M]      scope boundary
+  _•_[_]  : Term → Ty → Ty → Term -- L •B[A]   (B the ∀-body, A the argument)
+  ν_[_]   : Bnd → Term → Term     -- ᵇ[M]      scope boundary (binding first)
   _⟨_⟩    : Term → Conv → Term    -- M⟨c⟩      conversion
 
 Ctx : Set
@@ -108,8 +109,8 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 
   ⊢Λ : ∀ {Δ Γ C N} → (unmasked abst ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
 
-  ⊢·[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
-       → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
+  ⊢•[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
+       → Δ ∣ Γ ⊢ L • B [ A ] ⦂ B [ A ]ᵗ
 
   -- CONVERSION.  c relates the interior type A to the exterior type B; the
   -- term context Γ is unchanged (M⟨c⟩ is not term-closed).
@@ -125,21 +126,21 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
       → Δ ⊢ᵗ A → Δ ⊢ᵗ B
       → (unmasked (bind A) ∷ Δ) ∣ [] ⊢ M ⦂ ⇑ᵗ B
         ---------------------------------------------
-      → Δ ∣ Γ ⊢ M ⟦ intro A ⟧ ⦂ B
+      → Δ ∣ Γ ⊢ ν intro A [ M ] ⦂ B
 
   -- REVEAL  ⁺χ[M].  χ is unlocked for the interior; χ ∩ FV(B) = ∅.
   ⊢reveal : ∀ {Δ Γ M χ B}
       → χ ∉FVs B → Δ ⊢ᵗ B
       → unlockχ χ Δ ∣ [] ⊢ M ⦂ B
         ------------------------------
-      → Δ ∣ Γ ⊢ M ⟦ reveal χ ⟧ ⦂ B
+      → Δ ∣ Γ ⊢ ν reveal χ [ M ] ⦂ B
 
   -- CONCEAL  ⁻χ[M].  χ is locked for the interior; χ ∩ FV(B) = ∅.
   ⊢conceal : ∀ {Δ Γ M χ B}
       → χ ∉FVs B → Δ ⊢ᵗ B
       → lockχ χ Δ ∣ [] ⊢ M ⦂ B
         ------------------------------
-      → Δ ∣ Γ ⊢ M ⟦ conceal χ ⟧ ⦂ B
+      → Δ ∣ Γ ⊢ ν conceal χ [ M ] ⦂ B
 
 ------------------------------------------------------------------------
 -- 3.  ACTIVE / INERT conversions  (v3 §"Conversions")
@@ -193,7 +194,7 @@ mutual
 
   data Neg : Term → Set where             -- V⁻
     Ns : ∀ {M}   → Simple M → Neg M
-    Nc : ∀ {χ M} → NonEmpty χ → Simple M → Neg (M ⟦ conceal χ ⟧)
+    Nc : ∀ {χ M} → NonEmpty χ → Simple M → Neg (ν conceal χ [ M ])
 
   data Cnv : Term → Set where             -- Vᶜ
     Cn    : ∀ {M}     → Neg M → Cnv M
@@ -203,8 +204,8 @@ mutual
 
   data Pos : Term → Set where             -- V⁺
     Pc      : ∀ {M}   → Cnv M → Pos M
-    Pintro  : ∀ {M A} → Pos M → Pos (M ⟦ intro A ⟧)
-    Preveal : ∀ {χ M} → NonEmpty χ → Pos M → Pos (M ⟦ reveal χ ⟧)
+    Pintro  : ∀ {M A} → Pos M → Pos (ν intro A [ M ])
+    Preveal : ∀ {χ M} → NonEmpty χ → Pos M → Pos (ν reveal χ [ M ])
 
   data Value : Term → Set where           -- V
     Vk : ∀ {k} → Const k → Value k

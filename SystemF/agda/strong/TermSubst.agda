@@ -12,7 +12,7 @@ module strong.TermSubst where
 -- FRAME-EXACT SUBSTITUTION (as in v2).  Crossing a `Λ` shifts an image
 -- past the new type binder; a value image is additionally WRAPPED so the
 -- new binder is CONCEALED from it — in v3 that wrapper is just a conceal
--- boundary `⟦ conceal (0 ∷ []) ⟧` (no conversion, since v3 keeps scope and
+-- boundary `ν conceal (0 ∷ []) [ _ ]` (no conversion, since v3 keeps scope and
 -- conversion separate).  Its frame identity is definitional:
 --
 --   lockχ (0 ∷ []) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ
@@ -58,8 +58,8 @@ renᴹ ρ (M ⊕[ p ] N)   = renᴹ ρ M ⊕[ p ] renᴹ ρ N
 renᴹ ρ (ƛ A ∙ N)      = ƛ renameᵗ ρ A ∙ renᴹ ρ N
 renᴹ ρ (L · M)        = renᴹ ρ L · renᴹ ρ M
 renᴹ ρ (Λ N)          = Λ (renᴹ (extᵗ ρ) N)
-renᴹ ρ (L ·[ B , A ]) = renᴹ ρ L ·[ renameᵗ (extᵗ ρ) B , renameᵗ ρ A ]
-renᴹ ρ (M ⟦ b ⟧)      = renᴹ (extN (numBindsᵇ b) ρ) M ⟦ renBnd ρ b ⟧
+renᴹ ρ (L • B [ A ])  = renᴹ ρ L • renameᵗ (extᵗ ρ) B [ renameᵗ ρ A ]
+renᴹ ρ (ν b [ M ])    = ν renBnd ρ b [ renᴹ (extN (numBindsᵇ b) ρ) M ]
 renᴹ ρ (M ⟨ c ⟩)      = renᴹ ρ M ⟨ renᶜ ρ c ⟩
 
 -- Ordinary de Bruijn weakening (a crossing argument's annotations shift).
@@ -93,8 +93,8 @@ renⁿ ρ (M ⊕[ p ] N)   = renⁿ ρ M ⊕[ p ] renⁿ ρ N
 renⁿ ρ (ƛ A ∙ N)      = ƛ A ∙ renⁿ (extⁿ ρ) N
 renⁿ ρ (L · M)        = renⁿ ρ L · renⁿ ρ M
 renⁿ ρ (Λ N)          = Λ (renⁿ ρ N)
-renⁿ ρ (L ·[ B , A ]) = renⁿ ρ L ·[ B , A ]
-renⁿ ρ (M ⟦ b ⟧)      = M ⟦ b ⟧
+renⁿ ρ (L • B [ A ])  = renⁿ ρ L • B [ A ]
+renⁿ ρ (ν b [ M ])    = ν b [ M ]
 renⁿ ρ (M ⟨ c ⟩)      = renⁿ ρ M ⟨ c ⟩
 
 shiftᵐ : Term → Term
@@ -118,7 +118,7 @@ shiftᴵ (ival W A) = ival W A
 -- the new binder (v3's dual of a type binder).  No conversion is needed —
 -- v3 separates scope from conversion.
 crossΛ : Term → Term
-crossΛ W = ⇑ᴹ W ⟦ conceal (0 ∷ []) ⟧
+crossΛ W = ν conceal (0 ∷ []) [ ⇑ᴹ W ]
 
 ⇑ᴵ : Img → Img
 ⇑ᴵ (ivar x)   = ivar x
@@ -136,8 +136,8 @@ substᵐ σ (M ⊕[ p ] N)   = substᵐ σ M ⊕[ p ] substᵐ σ N
 substᵐ σ (ƛ A ∙ N)      = ƛ A ∙ substᵐ (extᴵ σ) N
 substᵐ σ (L · M)        = substᵐ σ L · substᵐ σ M
 substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
-substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
-substᵐ σ (M ⟦ b ⟧)      = M ⟦ b ⟧
+substᵐ σ (L • B [ A ])  = substᵐ σ L • B [ A ]
+substᵐ σ (ν b [ M ])    = ν b [ M ]
 substᵐ σ (M ⟨ c ⟩)      = substᵐ σ M ⟨ c ⟩
 
 -- Beta's substitution: N[x:=W : A], the ƛ's annotation A carried so the

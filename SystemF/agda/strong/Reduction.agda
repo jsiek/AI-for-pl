@@ -3,7 +3,7 @@ module strong.Reduction where
 -- Strong System F — v3 REDUCTION (notes/notes-v3.md §"Reduction Rules").
 --
 -- The v3 rules, in de Bruijn form.  Two families of runtime forms drive
--- them: the SCOPE BOUNDARY ᵇ[M] = `M ⟦ b ⟧` and the CONVERSION
+-- them: the SCOPE BOUNDARY ᵇ[M] = `ν b [ M ]` and the CONVERSION
 -- M⟨c⟩ = `M ⟨ c ⟩`.
 --
 -- Supporting operations defined here:
@@ -40,9 +40,9 @@ open import strong.TermSubst
 -- `dualᵇ b` (strong.CtxMorph) wraps W; when b introduces a binder, W is
 -- also weakened past it.
 crossArg : Bnd → Term → Term
-crossArg (intro A)   W = (⇑ᴹ W) ⟦ conceal (0 ∷ []) ⟧
-crossArg (reveal χ)  W = W ⟦ conceal χ ⟧
-crossArg (conceal χ) W = W ⟦ reveal χ ⟧
+crossArg (intro A)   W = ν conceal (0 ∷ []) [ ⇑ᴹ W ]
+crossArg (reveal χ)  W = ν conceal χ [ W ]
+crossArg (conceal χ) W = ν reveal χ [ W ]
 
 -- The de Bruijn variable underlying a type (junk 0 if not a variable — a
 -- seal/unseal is never instantiated at its own bound slot, so the junk
@@ -95,10 +95,10 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- ᵇ[V⁺]·W -→ ᵇ[V⁺ · ⁻ᵇ[W]]   (if ᵇ[V⁺] is a value).  Generalised past the
   -- notes' `Vˢ` to ANY value under the boundary — closing the Progress gap
   -- for a positive boundary around a non-simple value (audit item).  The
-  -- `Value (M ⟦ b ⟧)` premise still pins the operator to a value, so it
+  -- `Value (ν b [ M ])` premise still pins the operator to a value, so it
   -- cannot overlap ξ-·-l.
-  AppBnd : ∀ {Δ M b W} → Value (M ⟦ b ⟧) → Value W
-    → Δ ⊢ (M ⟦ b ⟧) · W -→ (M · crossArg b W) ⟦ b ⟧
+  AppBnd : ∀ {Δ M b W} → Value (ν b [ M ]) → Value W
+    → Δ ⊢ (ν b [ M ]) · W -→ ν b [ M · crossArg b W ]
 
   -- V⟨-X⟩⟨+X⟩ -→ V              (-X = seal, +X = unseal, same X)
   Cancel : ∀ {Δ V X} → Value V
@@ -110,7 +110,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
 
   -- ᵇ[k] -→ k                    (k a constant: numeral or boolean)
   DropConst : ∀ {Δ k b} → Const k
-    → Δ ⊢ k ⟦ b ⟧ -→ k
+    → Δ ⊢ ν b [ k ] -→ k
 
   -- n₁ ⊕ n₂ -→ n₁ ⟦⊕⟧ n₂
   PrimBeta : ∀ {Δ p m n}
@@ -118,60 +118,61 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
 
   -- (ΛX.V)@B[A] -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
   TyBeta : ∀ {Δ V B A} → Value V
-    → Δ ⊢ (Λ V) ·[ B , A ] -→ (V ⟨ revTy 0 B ⟩) ⟦ intro A ⟧
+    → Δ ⊢ (Λ V) • B [ A ] -→ ν intro A [ V ⟨ revTy 0 B ⟩ ]
 
   -- V⟨∀X.c⟩@B[A] -→ (V A)⟨c[A]⟩.  The source ∀-body A₀ is premise-
   -- determined (conv-src-unique), exactly as v2's TyPeelR did.
   TyConv : ∀ {Δ V s A₀ B A} → Value V
     → (unmasked abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B
-    → Δ ⊢ (V ⟨ `∀ s ⟩) ·[ B , A ] -→ (V ·[ A₀ , A ]) ⟨ s [ A ]ᶜ ⟩
+    → Δ ⊢ (V ⟨ `∀ s ⟩) • B [ A ] -→ (V • A₀ [ A ]) ⟨ s [ A ]ᶜ ⟩
 
   -- ⁺ᵖ[V⁺]@B[A] -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺]@B[Y]]]   (Y fresh = new binder 0)
-  TyPos : ∀ {Δ M b B A} → Positive b → Value (M ⟦ b ⟧)
-    → Δ ⊢ (M ⟦ b ⟧) ·[ B , A ]
-        -→ ((((renᴹ (extN (numBindsᵇ b) suc) M) ⟦ conceal (0 ∷ []) ⟧)
-               ·[ renameᵗ (extᵗ suc) B , ` 0 ]) ⟦ renBnd suc b ⟧) ⟦ intro A ⟧
+  TyPos : ∀ {Δ M b B A} → Positive b → Value (ν b [ M ])
+    → Δ ⊢ (ν b [ M ]) • B [ A ]
+        -→ ν intro A [ ν renBnd suc b
+             [ (ν conceal (0 ∷ []) [ renᴹ (extN (numBindsᵇ b) suc) M ])
+                 • renameᵗ (extᵗ suc) B [ ` 0 ] ] ]
 
   -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]   (Y fresh; V moves out, χ shifts past Y)
   TyConceal : ∀ {Δ χ V B A} → NonEmpty χ → Value V
-    → Δ ⊢ ((Λ V) ⟦ conceal χ ⟧) ·[ B , A ]
-        -→ (V ⟦ conceal (map suc χ) ⟧) ⟦ intro A ⟧
+    → Δ ⊢ (ν conceal χ [ Λ V ]) • B [ A ]
+        -→ ν intro A [ ν conceal (map suc χ) [ V ] ]
 
   -- ⁻χ[Vᶜ⟨cⁱ⟩] -→ ⁻χ[Vᶜ]⟨cⁱ⟩       (cⁱ inert)
   PushConv : ∀ {Δ M c χ} → Cnv M → Inert c
-    → Δ ⊢ (M ⟨ c ⟩) ⟦ conceal χ ⟧ -→ (M ⟦ conceal χ ⟧) ⟨ c ⟩
+    → Δ ⊢ ν conceal χ [ M ⟨ c ⟩ ] -→ (ν conceal χ [ M ]) ⟨ c ⟩
 
   -- ⁺⁰[V⁺] -→ V⁺
   DropReveal : ∀ {Δ M} → Pos M
-    → Δ ⊢ M ⟦ reveal [] ⟧ -→ M
+    → Δ ⊢ ν reveal [] [ M ] -→ M
 
   -- ⁻⁰[Vˢ] -→ Vˢ
   DropConceal : ∀ {Δ M} → Simple M
-    → Δ ⊢ M ⟦ conceal [] ⟧ -→ M
+    → Δ ⊢ ν conceal [] [ M ] -→ M
 
   -- ⁻χ¹[⁺χ²[V⁺]] -→ ⁺χ³[⁻χ⁴[V⁺]]   (χ3 = χ2 ∖ χ1, χ4 = χ1 ∖ χ2)
   Commute : ∀ {Δ M χ₁ χ₂} → Pos M → NonEmpty χ₁ → NonEmpty χ₂
-    → Δ ⊢ (M ⟦ reveal χ₂ ⟧) ⟦ conceal χ₁ ⟧
-        -→ (M ⟦ conceal (χ₁ ∖ χ₂) ⟧) ⟦ reveal (χ₂ ∖ χ₁) ⟧
+    → Δ ⊢ ν conceal χ₁ [ ν reveal χ₂ [ M ] ]
+        -→ ν reveal (χ₂ ∖ χ₁) [ ν conceal (χ₁ ∖ χ₂) [ M ] ]
 
   -- ⁻χ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻χ[V⁺]]   (conceal past intro; χ shifts past Y)
   PushIntro : ∀ {Δ M A χ} → Pos M → NonEmpty χ
-    → Δ ⊢ (M ⟦ intro A ⟧) ⟦ conceal χ ⟧
-        -→ (M ⟦ conceal (map suc χ) ⟧) ⟦ intro A ⟧
+    → Δ ⊢ ν conceal χ [ ν intro A [ M ] ]
+        -→ ν intro A [ ν conceal (map suc χ) [ M ] ]
 
   -- ⁻χ¹[⁻χ²[Vˢ]] -→ ⁻χ¹χ²[Vˢ]
   MergeConceal : ∀ {Δ M χ₁ χ₂} → Simple M → NonEmpty χ₁ → NonEmpty χ₂
-    → Δ ⊢ (M ⟦ conceal χ₂ ⟧) ⟦ conceal χ₁ ⟧ -→ M ⟦ conceal (χ₁ ∪ χ₂) ⟧
+    → Δ ⊢ ν conceal χ₁ [ ν conceal χ₂ [ M ] ] -→ ν conceal (χ₁ ∪ χ₂) [ M ]
 
   -- congruences
   ξ-⊕-l : ∀ {Δ L L′ M p} → Δ ⊢ L -→ L′ → Δ ⊢ L ⊕[ p ] M -→ L′ ⊕[ p ] M
   ξ-⊕-r : ∀ {Δ V M M′ p} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V ⊕[ p ] M -→ V ⊕[ p ] M′
   ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
   ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V · M -→ V · M′
-  ξ-·[] : ∀ {Δ L L′ B A} → Δ ⊢ L -→ L′ → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]
+  ξ-•[] : ∀ {Δ L L′ B A} → Δ ⊢ L -→ L′ → Δ ⊢ L • B [ A ] -→ L′ • B [ A ]
   ξ-Λ   : ∀ {Δ N N′} → (unmasked abst ∷ Δ) ⊢ N -→ N′ → Δ ⊢ Λ N -→ Λ N′
   ξ-⟨⟩  : ∀ {Δ M M′ c} → Δ ⊢ M -→ M′ → Δ ⊢ M ⟨ c ⟩ -→ M′ ⟨ c ⟩
-  ξ-⟦⟧  : ∀ {Δ M M′ b} → applyᵇ b Δ ⊢ M -→ M′ → Δ ⊢ M ⟦ b ⟧ -→ M′ ⟦ b ⟧
+  ξ-ν   : ∀ {Δ M M′ b} → applyᵇ b Δ ⊢ M -→ M′ → Δ ⊢ ν b [ M ] -→ ν b [ M′ ]
 
 infix 2 _⊢_-→*_
 data _⊢_-→*_ : Ctxᵗ → Term → Term → Set where

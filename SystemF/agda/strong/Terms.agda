@@ -1,21 +1,24 @@
 module strong.Terms where
 
--- Strong System F — the TERMS, the typing judgement, and values.
+-- Strong System F — v3 TERMS, TYPING, and the STRATIFIED VALUES.
 --
--- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
+-- v3 (notes/notes-v3.md) has TWO runtime forms where v2 had one combined
+-- boundary `M ⟪ Θ , c ⟫`:
 --
---   Θ : CtxMorph   the context morphism (strong.CtxMorph, re-exported
---                here), a PAIR `morph B S`: each entry of the PARALLEL
---                block B binds a fresh interior slot at that
---                representation, and the SEQUENTIAL change list S masks
---                (`lock X`) and unmasks (`unlock X`) exterior slots.
---                `interior Θ Δ` is the type context the interior is
---                typed in, `convCtx Θ Δ` the one the conversion is
---                checked in, `Δ ⊢ᵐ Θ` its well-formedness.
---   c : Conv     the CONVERSION (strong.Conversion), from the interior
---                type to the exterior type shifted past Θ's binders.
+--   M ⟦ b ⟧   a SCOPE BOUNDARY  ᵇ[M]  — M under a boundary tag b
+--             (strong.CtxMorph): intro / reveal / conceal.  A boundary is
+--             TERM-CLOSED (its body types at Γ = []).
+--   M ⟨ c ⟩   a CONVERSION  M⟨c⟩ — c applied to M (strong.Conversion).
+--             NOT term-closed: substitution descends into M.
 --
--- Frames change ONLY at binders: there is no dropN, no cmax, no swapᵇ.
+-- The type context Δ (strong.Ctx) is unchanged from v2 and already IS v3's
+-- Γ: `unmasked abst`/`unmasked (bind A)`/`masked …` are v3's
+-- `X`/`X=A`/`locked …`.  Conversions are unchanged too; v3's `+X`/`-X` are
+-- v2's `unseal`/`seal`.
+--
+-- The one place v3 differs on conversions is the ACTIVE/INERT cut
+-- (notes §"Conversions"): `id` is ACTIVE in v3 (at a variable too), so it
+-- is never pushed out of a boundary — it is eliminated by `V⟨id⟩ -→ V`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -37,6 +40,7 @@ private
     Δ Δ′ : Ctxᵗ
     A B : Ty
     X Y : ℕ
+    χ : VarSet
 
 ------------------------------------------------------------------------
 -- 1.  Terms
@@ -46,16 +50,18 @@ infix  9 `_
 infix  9 $_
 infixl 7 _·_
 infix  6 ƛ_∙_
-infix  5 _⟪_,_⟫
+infix  5 _⟦_⟧
+infix  5 _⟨_⟩
 
 data Term : Set where
-  `_      : ℕ → Term
-  $_      : ℕ → Term
-  ƛ_∙_    : Ty → Term → Term
-  _·_     : Term → Term → Term
-  Λ_      : Term → Term
-  _·[_,_] : Term → Ty → Ty → Term
-  _⟪_,_⟫  : Term → CtxMorph → Conv → Term
+  `_      : ℕ → Term              -- x
+  $_      : ℕ → Term              -- k (numeral, type ℕ)
+  ƛ_∙_    : Ty → Term → Term      -- λx:A. N
+  _·_     : Term → Term → Term    -- L · M
+  Λ_      : Term → Term           -- ΛX. N
+  _·[_,_] : Term → Ty → Ty → Term -- L @B[A]   (B the ∀-body, A the argument)
+  _⟦_⟧    : Term → Bnd → Term     -- ᵇ[M]      scope boundary
+  _⟨_⟩    : Term → Conv → Term    -- M⟨c⟩      conversion
 
 Ctx : Set
 Ctx = List Ty
@@ -90,67 +96,106 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   ⊢·[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
        → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
 
-  -- (env).  ONE frame change.  The interior is term-closed and typed on the
-  -- interior type context; the conversion is checked on the CONVERSION
-  -- CONTEXT, where the boundary's binders and the slots it masks are both
-  -- live; and its target type is the exterior type shifted past the
-  -- boundary's binders.  Interior and conversion are both on the wrapper.
-  env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
-      → Δ ⊢ᵐ Θ
-      → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-      → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
-      → Δ ⊢ᵗ Bₑ
-        --------------------------------------------
-      → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
+  -- CONVERSION.  c relates the interior type A to the exterior type B; the
+  -- term context Γ is unchanged (M⟨c⟩ is not term-closed).
+  ⊢⟨⟩ : ∀ {Δ Γ M c A B}
+      → Δ ∣ Γ ⊢ M ⦂ A → Δ ⊢ c ∶ A ⇝ B
+        --------------------------------
+      → Δ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B
+
+  -- INTRO  ⁺ˣ⁼ᴬ[M].  A fresh binder X=A is added; the interior sees B
+  -- shifted past it (⇑ᵗ B), so names(b) = {0} ∉ FV of the interior type by
+  -- construction.  The body is term-closed.
+  ⊢intro : ∀ {Δ Γ M A B}
+      → Δ ⊢ᵗ A → Δ ⊢ᵗ B
+      → (unmasked (bind A) ∷ Δ) ∣ [] ⊢ M ⦂ ⇑ᵗ B
+        ---------------------------------------------
+      → Δ ∣ Γ ⊢ M ⟦ intro A ⟧ ⦂ B
+
+  -- REVEAL  ⁺χ[M].  χ is unlocked for the interior; χ ∩ FV(B) = ∅.
+  ⊢reveal : ∀ {Δ Γ M χ B}
+      → χ ∉FVs B → Δ ⊢ᵗ B
+      → unlockχ χ Δ ∣ [] ⊢ M ⦂ B
+        ------------------------------
+      → Δ ∣ Γ ⊢ M ⟦ reveal χ ⟧ ⦂ B
+
+  -- CONCEAL  ⁻χ[M].  χ is locked for the interior; χ ∩ FV(B) = ∅.
+  ⊢conceal : ∀ {Δ Γ M χ B}
+      → χ ∉FVs B → Δ ⊢ᵗ B
+      → lockχ χ Δ ∣ [] ⊢ M ⦂ B
+        ------------------------------
+      → Δ ∣ Γ ⊢ M ⟦ conceal χ ⟧ ⦂ B
 
 ------------------------------------------------------------------------
--- 3.  Classification — ACTIVE / INERT, by the CONVERSION constructor
+-- 3.  ACTIVE / INERT conversions  (v3 §"Conversions")
 ------------------------------------------------------------------------
 
--- Inert  = { s ↦ t , ∀ s , seal X , id-at-a-variable }
--- Active = { unseal X , id-at-base }
--- No source or target type is inspected and no slot arithmetic occurs.
+-- Inert  = { c ↦ d , ∀ c , -X (seal) }   — pushed out of a conceal boundary
+-- Active = { id (any payload) , +X (unseal) } — eliminated in place
 data Inert : Conv → Set where
-  I-idv  : ∀ {X}   → Inert (id (` X))
   I-seal : ∀ {X}   → Inert (seal X)
   I-fun  : ∀ {s t} → Inert (s ↦ t)
   I-all  : ∀ {s}   → Inert (`∀ s)
 
 data Active : Conv → Set where
-  A-idb    : ∀ {A} → Base A → Active (id A)
+  A-id     : ∀ {A} → Active (id A)
   A-unseal : ∀ {X} → Active (unseal X)
 
--- Totality over TYPED conversions: the payload restriction on `id` makes
--- classification a match on the TYPING derivation (the untypeable compound
--- identities are never classified at all).
-act-or-inert : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → Active c ⊎ Inert c
-act-or-inert (conv-id b)      = inj₁ (A-idb b)
-act-or-inert (conv-idv tv)    = inj₂ I-idv
-act-or-inert (conv-seal o)    = inj₂ I-seal
-act-or-inert (conv-unseal o)  = inj₁ A-unseal
-act-or-inert (conv-fun s t)   = inj₂ I-fun
-act-or-inert (conv-all s)     = inj₂ I-all
+act-or-inert : (c : Conv) → Active c ⊎ Inert c
+act-or-inert (id A)     = inj₁ A-id
+act-or-inert (seal X)   = inj₂ I-seal
+act-or-inert (unseal X) = inj₁ A-unseal
+act-or-inert (s ↦ t)    = inj₂ I-fun
+act-or-inert (`∀ s)     = inj₂ I-all
 
 act-not-inert : ∀ {c} → Active c → Inert c → ⊥
-act-not-inert (A-idb ()) I-idv
+act-not-inert A-id ()
 act-not-inert A-unseal ()
 
 ------------------------------------------------------------------------
--- 4.  Values
+-- 4.  Values  (the stratified grammar of notes §"Values")
 ------------------------------------------------------------------------
 
--- V-Λ carries `Value N`.  Reduction goes UNDER Λ (ξ-Λ in strong.Reduction),
--- so without this premise `Λ N` would be a value for every N and both
--- "values don't step" and determinism would be false — the defect the
--- IdLayerProbe machine-checked (notes/DECISIONS.md, repair 3).
-data Value : Term → Set where
-  V-$  : ∀ {n} → Value ($ n)
-  V-ƛ  : ∀ {A N} → Value (ƛ A ∙ N)
-  V-Λ  : ∀ {N} → Value N → Value (Λ N)
-  V-⟪⟫ : ∀ {M Θ c} → Value M → Inert c → Value (M ⟪ Θ , c ⟫)
+-- Vˢ ::= λx:A.N | ΛX.N
+-- V⁻ ::= Vˢ | ⁻χ[Vˢ]                       (χ ≠ ∅)
+-- Vᶜ ::= V⁻ | Vᶜ⟨c→d⟩ | Vᶜ⟨∀X.c⟩ | Vᶜ⟨-X⟩
+-- V⁺ ::= Vᶜ | [V⁺]⁺ˣ⁼ᴬ | [V⁺]⁺χ            (χ ≠ ∅)
+-- V  ::= k | V⁺
+--
+-- DEVIATION FROM THE NOTES, DELIBERATE.  `SΛ` carries `Value N` — reduction
+-- goes UNDER Λ (ξ-Λ, strong.Reduction), so without it `Λ N` would be a
+-- value for every N and both "values don't step" and determinism would be
+-- false (the same defect v2 fixed; notes v2's V-Λ).
+mutual
+  data Simple : Term → Set where          -- Vˢ
+    Sƛ : ∀ {A N} → Simple (ƛ A ∙ N)
+    SΛ : ∀ {N}   → Value N → Simple (Λ N)
 
--- A value's variable type is VISIBLE on the value's bind type context, because
--- `env`'s last conjunct checks it there.  So a boundary can never conceal
--- the slot its bind conversion names.
-value-var-visible : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
-value-var-visible (V-⟪⟫ _ _) (env _ _ _ (wf-var tv)) = tv
+  data Neg : Term → Set where             -- V⁻
+    Ns : ∀ {M}   → Simple M → Neg M
+    Nc : ∀ {χ M} → NonEmpty χ → Simple M → Neg (M ⟦ conceal χ ⟧)
+
+  data Cnv : Term → Set where             -- Vᶜ
+    Cn    : ∀ {M}     → Neg M → Cnv M
+    Cfun  : ∀ {M s t} → Cnv M → Cnv (M ⟨ s ↦ t ⟩)
+    Call  : ∀ {M s}   → Cnv M → Cnv (M ⟨ `∀ s ⟩)
+    Cseal : ∀ {M X}   → Cnv M → Cnv (M ⟨ seal X ⟩)
+
+  data Pos : Term → Set where             -- V⁺
+    Pc      : ∀ {M}   → Cnv M → Pos M
+    Pintro  : ∀ {M A} → Pos M → Pos (M ⟦ intro A ⟧)
+    Preveal : ∀ {χ M} → NonEmpty χ → Pos M → Pos (M ⟦ reveal χ ⟧)
+
+  data Value : Term → Set where           -- V
+    V$ : ∀ {n} → Value ($ n)
+    Vp : ∀ {M} → Pos M → Value M
+
+-- Convenience injections up the tower.
+simple→value : ∀ {M} → Simple M → Value M
+simple→value s = Vp (Pc (Cn (Ns s)))
+
+neg→value : ∀ {M} → Neg M → Value M
+neg→value n = Vp (Pc (Cn n))
+
+cnv→value : ∀ {M} → Cnv M → Value M
+cnv→value c = Vp (Pc c)

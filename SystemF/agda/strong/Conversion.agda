@@ -132,24 +132,27 @@ mkId-⊢ (wf-∀ wA)    = conv-all (mkId-⊢ wA)
 -- seal it back where it runs contravariantly.  These are what the
 -- boundary rules mint at a fresh binder; they are DERIVED FROM THE TYPE,
 -- not from stored knowledge, and they carry only the NAME X.
+-- `revTy X A` = notes' `+X(A)` (reveal X in the type A); `concTy X A` is
+-- its contravariant partner.  (Renamed from v2's `reveal`/`conceal` to
+-- free those names for the v3 boundary tags in strong.CtxMorph.)
 mutual
-  reveal : ℕ → Ty → Conv
-  reveal X (` Y) with X ≟ℕ Y
+  revTy : ℕ → Ty → Conv
+  revTy X (` Y) with X ≟ℕ Y
   ... | yes _ = unseal X
   ... | no  _ = id (` Y)
-  reveal X `ℕ      = id `ℕ
-  reveal X `𝔹      = id `𝔹
-  reveal X (A ⇒ B) = conceal X A ↦ reveal X B
-  reveal X (`∀ A)  = `∀ (reveal (suc X) A)
+  revTy X `ℕ      = id `ℕ
+  revTy X `𝔹      = id `𝔹
+  revTy X (A ⇒ B) = concTy X A ↦ revTy X B
+  revTy X (`∀ A)  = `∀ (revTy (suc X) A)
 
-  conceal : ℕ → Ty → Conv
-  conceal X (` Y) with X ≟ℕ Y
+  concTy : ℕ → Ty → Conv
+  concTy X (` Y) with X ≟ℕ Y
   ... | yes _ = seal X
   ... | no  _ = id (` Y)
-  conceal X `ℕ      = id `ℕ
-  conceal X `𝔹      = id `𝔹
-  conceal X (A ⇒ B) = reveal X A ↦ conceal X B
-  conceal X (`∀ A)  = `∀ (conceal (suc X) A)
+  concTy X `ℕ      = id `ℕ
+  concTy X `𝔹      = id `𝔹
+  concTy X (A ⇒ B) = revTy X A ↦ concTy X B
+  concTy X (`∀ A)  = `∀ (concTy (suc X) A)
 
 -- THE SAME MINT, APPLIED TO A CONVERSION (the TyPeelR repair,
 -- notes/RuleRepairs-TyPeelR-CancelR.md §1).  When a boundary whose
@@ -164,14 +167,14 @@ mutual
 -- conversion the two agree (`instReveal-mkId` below).
 mutual
   instReveal : ℕ → Conv → Conv
-  instReveal X (id A)     = reveal X A
+  instReveal X (id A)     = revTy X A
   instReveal X (seal Y)   = seal Y
   instReveal X (unseal Y) = unseal Y
   instReveal X (s ↦ t)    = instConceal X s ↦ instReveal X t
   instReveal X (`∀ s)     = `∀ (instReveal (suc X) s)
 
   instConceal : ℕ → Conv → Conv
-  instConceal X (id A)     = conceal X A
+  instConceal X (id A)     = concTy X A
   instConceal X (seal Y)   = seal Y
   instConceal X (unseal Y) = unseal Y
   instConceal X (s ↦ t)    = instReveal X s ↦ instConceal X t
@@ -184,7 +187,7 @@ mutual
 -- and refines the `Λ`'s own slot into the boundary's binder, exactly as
 -- TyBeta does.)
 mutual
-  instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ reveal X B
+  instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ revTy X B
   instReveal-mkId X (` Y)   = refl
   instReveal-mkId X `ℕ      = refl
   instReveal-mkId X `𝔹      = refl
@@ -192,7 +195,7 @@ mutual
     cong₂ _↦_ (instConceal-mkId X A) (instReveal-mkId X B)
   instReveal-mkId X (`∀ A)  = cong `∀ (instReveal-mkId (suc X) A)
 
-  instConceal-mkId : (X : ℕ) (B : Ty) → instConceal X (mkId B) ≡ conceal X B
+  instConceal-mkId : (X : ℕ) (B : Ty) → instConceal X (mkId B) ≡ concTy X B
   instConceal-mkId X (` Y)   = refl
   instConceal-mkId X `ℕ      = refl
   instConceal-mkId X `𝔹      = refl

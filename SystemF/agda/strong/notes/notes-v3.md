@@ -43,9 +43,9 @@ Determinism: Every term has at most one immediate reduct.
 
 # Runtime Terms
 
-  L ::= ∅ | L,X
-  p ::= X=A | L
-  b ::= +p | -L
+  χ ::= ∅ | χ,X
+  p ::= X=A | χ
+  b ::= +p | -χ
   L,M,N ::= ... | ᵇ[M] | M⟨c⟩ 
 
   We call ᵇ[M] a scope boundary.
@@ -56,8 +56,8 @@ Determinism: Every term has at most one immediate reduct.
   ----------
   
   -(+X=A) = -X
-  -(+L)    = -L
-  -(-L)    = +L
+  -(+χ)    = -χ
+  -(-χ)    = +χ
 
 # Contexts
 
@@ -92,22 +92,22 @@ Determinism: Every term has at most one immediate reduct.
 # Locking and Unlocking
 
   ------------------
-  | lock(L,Γ) = Γ′ |
+  | lock(χ,Γ) = Γ′ |
   ------------------
 
-  lock(L, ∅) = ∅
-  lock(L, (Γ,β)) = { lock(L,Γ),locked(β) if name(β) ∈ L
-                   { lock(L,Γ),β         otherwise
-  lock(L, (Γ,locked(β))) = lock(L, Γ), locked(β)
+  lock(χ, ∅) = ∅
+  lock(χ, (Γ,β)) = { lock(χ,Γ),locked(β) if name(β) ∈ χ
+                   { lock(χ,Γ),β         otherwise
+  lock(χ, (Γ,locked(β))) = lock(χ, Γ), locked(β)
 
   --------------------
-  | unlock(L,Γ) = Γ′ |
+  | unlock(χ,Γ) = Γ′ |
   --------------------
 
-  unlock(L, ∅) = ∅
-  unlock(L, (Γ,β)) = unlock(L, Γ), β
-  unlock(L, (Γ,locked(β))) = { unlock(L,Γ),β            if name(β) ∈ L
-                             { unlock(L,Γ),locked(β)    otherwise
+  unlock(χ, ∅) = ∅
+  unlock(χ, (Γ,β)) = unlock(χ, Γ), β
+  unlock(χ, (Γ,locked(β))) = { unlock(χ,Γ),β            if name(β) ∈ χ
+                             { unlock(χ,Γ),locked(β)    otherwise
 
 # Binding applied to Context
 
@@ -116,8 +116,8 @@ Determinism: Every term has at most one immediate reduct.
   -------------
   
   +X=A(Γ) = Γ,X=A
-  +L(Γ)   = unlock(L, Γ)
-  -L(Γ)   = lock(L, Γ)
+  +χ(Γ)   = unlock(χ, Γ)
+  -χ(Γ)   = lock(χ, Γ)
 
 # Term Typing 
 
@@ -132,9 +132,9 @@ Determinism: Every term has at most one immediate reduct.
 # Values
 
   Vˢ,Wˢ ::= λx:A. N | ΛX.N 
-  V⁻,W⁻ ::= Vˢ | ⁻ᴸ[Vˢ]     (L ≠ ∅)
+  V⁻,W⁻ ::= Vˢ | ⁻ᴸ[Vˢ]     (χ ≠ ∅)
   Vᶜ,Wᶜ ::= V⁻ | Vᶜ⟨c→d⟩ | Vᶜ⟨∀X.c⟩ | Vᶜ⟨-X⟩ 
-  V⁺,W⁺ ::= Vᶜ | [V⁺]⁺ˣ⁼ᴬ | [V⁺]⁺ᴸ (L ≠ ∅)
+  V⁺,W⁺ ::= Vᶜ | [V⁺]⁺ˣ⁼ᴬ | [V⁺]⁺ᴸ (χ ≠ ∅)
   V,W   ::= k | V⁺
 
 # Substitution
@@ -170,18 +170,18 @@ Determinism: Every term has at most one immediate reduct.
   Δ ⊢ V⟨∀X.c⟩ @B[A] -→ (V A)⟨c⟩
   Δ ⊢ ⁺ᵖ[V⁺] @B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] @B[Y]]] (if Y fresh, ⁺ᵖ[V⁺] is a value)
   Δ ⊢ ⁻ᴸ[ΛY.V] @B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
-                                      // neg. a list L for this rule
+                                      // neg. a list χ for this rule
   
-  Δ ⊢ ⁻ᴸ[Vᶜ⟨cⁱ⟩]   -→ ⁻ᴸ[Vᶜ]⟨cⁱ⟩
+  Δ ⊢ ⁻ˣ[Vᶜ⟨cⁱ⟩]   -→ ⁻ˣ[Vᶜ]⟨cⁱ⟩
   Δ ⊢ ⁺⁰[V⁺]       -→ V⁺
   Δ ⊢ ⁻⁰[Vˢ]       -→ Vˢ
-  Δ ⊢ ⁻ᴸ¹[⁺ᴸ²[V⁺]] -→ ⁺ᴸ³[⁻ᴸ⁴[V⁺]]  (L3 = L2 \ L1, L4 = L1 \ L2, L1 ≠ ∅, L2 ≠ ∅)
+  Δ ⊢ ⁻ˣ¹[⁺ˣ²[V⁺]] -→ ⁺ˣ³[⁻ˣ⁴[V⁺]]  (χ3 = χ2 \ χ1, χ4 = χ1 \ χ2, χ1 ≠ ∅, χ2 ≠ ∅)
   
   example: ⁻ˣᶻ[⁺ˣʸ[V]] -→ ⁺ʸ[⁻ᶻ[V]]
   
-  Δ ⊢ ⁻ᴸ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ᴸ[V⁺]]  (if L ≠ ∅)
-  Δ ⊢ ⁻ᴸ¹[⁻ᴸ²[Vˢ]] -→ ⁻ᴸ¹ᴸ²[Vˢ]     (if L1 ≠ ∅, L2 ≠ ∅)
-
+  Δ ⊢ ⁻ˣ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ˣ[V⁺]]  (if χ ≠ ∅)
+  Δ ⊢ ⁻ˣ¹[⁻ˣ²[Vˢ]] -→ ⁻ˣ¹ˣ²[Vˢ]     (if χ1 ≠ ∅, χ2 ≠ ∅)
+  
   Δ ⊢ L · M        -→ L′ · M      if Δ ⊢ L -→ L′
   Δ ⊢ V · M        -→ V · M′      if Δ ⊢ M -→ M′
   Δ ⊢ L ⊕ M        -→ L′ ⊕ M      if Δ ⊢ L -→ L′

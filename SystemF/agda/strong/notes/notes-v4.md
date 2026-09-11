@@ -42,9 +42,9 @@ Three consequences, in decreasing order of confidence:
   2. An intro's two halves may straddle a boundary.  In v3 `⁺ʸ⁼ᶻ` must sit
      OUTSIDE `⁻{Z}`, because Z must be visible when the rep is recorded;
      that is exactly what strands a newer visible slot above an older
-     hidden one (notes/TyConcealExample.agda).  In v4 the rep is `αZ`, an
-     anchor, which the conceal does not touch — so the intro can sit
-     INSIDE.  See §"What this buys".
+     hidden one (notes/TyConcealExample.agda).  In v4 the rep is `⌊A⌋`,
+     anchor-closed, which the conceal does not touch — so the intro can
+     sit INSIDE.  See §"What this buys".
   3. **OPEN** Identity may become the anchor rather than the slot.  If a
      revealed variable is "the variable of α" rather than "slot n", then
      re-inserting it at a different position is harmless, and v1's
@@ -83,15 +83,17 @@ REPRESENTATION may name anchors, and it MUST be able to:
 
   THE FORCED CASE.  TyConceal's contractum puts an intro INSIDE a conceal:
 
-      ν dn Z:αZ [ΛY.V] •B[Z] -→ ν dn Z:αZ [ ν new β:=R [ V⟨+β(B)⟩ ] ]
+      ν dn Z:α [ΛY.V] •B[A] -→ ν dn Z:α [ ν new β:=⌊A⌋ [ V⟨+β(B)⟩ ] ]
 
-  R must denote the type Z, but inside the conceal Z's slot is GONE, so R
-  cannot be a term type of that interior.  Nor can β alias some
-  representation of αZ's own: αZ is Λ-bound, hence REP-LESS.  "Whatever αZ
-  stands for" is the only thing there is to say, and saying it names the
-  anchor.  It is not special to a bare variable either — the rep here is
-  the type argument A, which may be `ℕ → Z`, so anchors must sit INSIDE
-  compound representations.
+  ⌊A⌋ is computed at the REDEX's context, where A is well formed — but it
+  is PLANTED inside the conceal, where A's own variables need not be.  Take
+  the instance A = Z, the concealed variable itself: ⌊A⌋ = α, and inside
+  the conceal Z's slot is GONE, so the field could not have been a term
+  type.  Nor can β alias some representation of α's own: α is Λ-bound,
+  hence REP-LESS.  "Whatever α stands for" is the only thing there is to
+  say, and saying it names the anchor.  It is not special to a bare
+  variable either — A may be `ℕ → Z`, so anchors must sit INSIDE compound
+  representations.
 
   REJECTED ALTERNATIVE: keep representations as term types, scoped at the
   ENCLOSING conceal's exterior (where Z is still in scope).  Then a node's
@@ -195,13 +197,21 @@ false.  v4 closes that by construction.)
 
 # Runtime Terms
 
-  b ::= new α:=A | up X:α | dn X:α
+  b ::= new α:=R | up X:α | dn X:α          (R a REPRESENTATION)
   L,M,N ::= ... | ν b [ M ] | M⟨c⟩
 
-  ν new α:=A [ M ]   INTRO.  Allocates the anchor α with representation
-                     ⌊A⌋, and brings a scoped variable for it into the
+  ν new α:=R [ M ]   INTRO.  Allocates the anchor α with representation R,
+                     and brings a scoped variable for it into the
                      interior.  Both at once — this is the only form that
                      extends Σ.
+                     THE FIELD IS A REPRESENTATION, NOT A TERM TYPE.  That
+                     is what lets an intro be PLANTED anywhere: R is
+                     anchor-closed, so it needs nothing of Δ in scope.  A
+                     term-type field would be scoped at the node's own
+                     exterior, and every rule that moves an intro inward
+                     (TyConceal, TyPos) would then have to re-scope it —
+                     which for TyConceal is impossible, since the type
+                     argument may name the very variable being concealed.
   ν up X:α [ M ]     REVEAL, A BINDER.  The interior has a slot X@α that
                      the exterior does not.
   ν dn X:α [ M ]     CONCEAL, AN ANTI-BINDER.  The exterior has a slot X@α
@@ -211,7 +221,7 @@ false.  v4 closes that by construction.)
   | -b = b′ |
   -----------
 
-  -(new α:=A) = dn X:α       (X the slot the intro introduced)
+  -(new α:=R) = dn X:α       (X the slot the intro introduced)
   -(up X:α)   = dn X:α
   -(dn X:α)   = up X:α
 
@@ -220,10 +230,13 @@ the slot it introduced — the same story as v3, one line shorter.
 
 # Term Typing
 
-  Σ;Δ ⊢ A          α ∉ Σ
-  Σ,α:=⌊A⌋ ; Δ,X@α ⊢ M : C          X ∉ FV(C)
+  Σ ⊢ R            α ∉ Σ
+  Σ,α:=R ; Δ,X@α ⊢ M : C            X ∉ FV(C)
   --------------------------------------------------  (intro)
-  Σ;Δ ⊢ ν new α:=A [ M ] : C
+  Σ;Δ ⊢ ν new α:=R [ M ] : C
+
+  NOTE `Σ ⊢ R` mentions NO Δ.  An intro's field is independent of the
+  scoped context, which is exactly why it may be planted inside a conceal.
 
   Σ ; Δ ⊕ (X@α) ⊢ M : C             X ∉ FV(C)
   --------------------------------------------------  (reveal)
@@ -253,7 +266,7 @@ Unchanged in shape from v3, with the tags renamed:
   Vˢ,Wˢ ::= λx:A. N | ΛX.V
   V⁻,W⁻ ::= Vˢ | ν dn X:α [ Vˢ ]
   Vᶜ,Wᶜ ::= V⁻ | Vᶜ⟨c→d⟩ | Vᶜ⟨∀X.c⟩ | Vᶜ⟨-α⟩
-  V⁺,W⁺ ::= Vᶜ | ν new α:=A [ V⁺ ] | ν up X:α [ V⁺ ]
+  V⁺,W⁺ ::= Vᶜ | ν new α:=R [ V⁺ ] | ν up X:α [ V⁺ ]
   V,W   ::= k | V⁺
 
 **OPEN** v3's `χ ≠ ∅` side conditions were there because a tag carried a
@@ -285,21 +298,32 @@ renumbers; if deletion is positional then W's indices above X do move.
   (DropConst) Δ ⊢ ᵇ[k]          -→ k
   (PrimBeta)  Δ ⊢ n₁ ⊕ n₂       -→ n₁ ⟦⊕⟧ n₂
 
-  (TyBeta)    Δ ⊢ (ΛX.V) •B[A]  -→ ν new α:=A [ V⟨+α(B)⟩ ]
+  (TyBeta)    Δ ⊢ (ΛX.V) •B[A]  -→ ν new α:=⌊A⌋ [ V⟨+α(B)⟩ ]
 
   (TyConv)    Δ ⊢ V⟨∀X.c⟩ •B[A] -→ (V A)⟨c⟩
 
-  (TyPos)     Δ ⊢ ᵖ[V⁺] •B[A]   -→ ᵖ[ ν new β:=A [ (ν dn Y:β [V⁺]) •B[Y]
-                                                     ⟨+β(B[Y])⟩ ] ]
+  (TyPos)     Δ ⊢ ᵖ[V⁺] •B[A]   -→ ᵖ[ ν new β:=⌊A⌋ [ (ν dn Y:β [V⁺]) •B[Y]
+                                                       ⟨+β(B[Y])⟩ ] ]
                                     for ᵖ ∈ { new, up }
 
-  (TyConceal) Δ ⊢ (ν dn Z:αZ [ΛY.V]) •B[Z]
-                -→ ν dn Z:αZ [ ν new β:=αZ [ V⟨+β(B)⟩ ] ]
+              ← NOTE ⌊A⌋ IS NOT SHIFTED.  v3's TyPos had to lift A into
+                b's interior (`shiftBy (numBindsᵇ b) A`) because the rep
+                was a term type and the interior had more binders.  An
+                anchor-closed rep is position-independent, so it is
+                planted verbatim, at any depth.
 
-              ← THE POINT OF v4.  β's representation is the ANCHOR αZ, not
-                the scoped variable Z, so recording it does NOT require Z
-                to be in scope.  The intro therefore sits INSIDE the
-                conceal, where in v3 it was forced outside.
+  (TyConceal) Δ ⊢ (ν dn Z:α [ΛY.V]) •B[A]
+                -→ ν dn Z:α [ ν new β:=⌊A⌋ [ V⟨+β(B)⟩ ] ]
+
+              ← THE POINT OF v4, FOR ARBITRARY A.  ⌊A⌋ is computed at the
+                REDEX's context, where A is well formed; it is
+                anchor-closed, so planting it inside the conceal requires
+                NOTHING of A's own variables to be in scope there.  The
+                intro therefore sits INSIDE the conceal, where v3 forced
+                it outside.  The motivating case A = Z is just the
+                instance where ⌊A⌋ = α, the conceal's own anchor — and it
+                is the instance that shows a term-type field could not
+                work, since Z is precisely what the conceal removes.
 
   (PushConv)    Δ ⊢ ν dn X:α [Vᶜ⟨cⁱ⟩]  -→ (ν dn X:α [Vᶜ])⟨cⁱ⟩
   (CancelBnd)   Δ ⊢ ν up X:α [ν dn X:α [M]] -→ M
@@ -332,11 +356,13 @@ with the conceal's body at `Γ, locked(Z), Y=Z` — Y newer and visible, Z
 older and hidden, which no prefix truncation denotes
 (notes/TyConcealExample.agda).  v4:
 
-  ν dn Z:αZ [ΛY.V] •(Y→Y)[Z]  -→  ν dn Z:αZ [ ν new β:=αZ [ V⟨+β(Y→Y)⟩ ] ]
+  ν dn Z:α [ΛY.V] •(Y→Y)[Z]  -→  ν dn Z:α [ ν new β:=⌊Z⌋ [ V⟨+β(Y→Y)⟩ ] ]
+
+(the instance A = Z, so ⌊A⌋ = α; the rule itself is general in A)
 
 and the body's context is `(Δ ∖ Z), Y@β` — a DELETION followed by a PUSH.
 Y is the newest scoped variable; Z is simply not there.  The body may name
-Y; it may not read β's representation, because `⌈αZ⌉` is undefined once
+Y; it may not read β's representation, because `⌈α⌉` is undefined once
 Z's slot is gone — tightness, as a scope condition rather than a mask.
 
 CHECKS, IN THE ORDER I WOULD DO THEM:

@@ -162,18 +162,18 @@ Determinism: Every term has at most one immediate reduct.
 
 # Reduction Rules
 
-  Δ ⊢ (λx:A. N) · W -→ N[x:=W : A]
-  Δ ⊢ V⟨c → d⟩ · W  -→ (V (W⟨c⟩))⟨d⟩
-  Δ ⊢ ᵇ[Vˢ] · W     -→ ᵇ[Vˢ ⁻ᵇ[W]]    if ᵇ[Vˢ] is a value
+  (Beta)      Δ ⊢ (λx:A. N) · W  -→ N[x:=W : A]
+  (AppConv)   Δ ⊢ V⟨c → d⟩ · W   -→ (V (W⟨c⟩))⟨d⟩
+  (AppBnd)    Δ ⊢ ᵇ[Vˢ] · W      -→ ᵇ[Vˢ ⁻ᵇ[W]]    if ᵇ[Vˢ] is a value
                                       // pos. are a list because neg. are
-  Δ ⊢ V⟨-X⟩⟨+X⟩    -→ V
-  Δ ⊢ V⟨id⟩        -→ V
-  Δ ⊢ ᵇ[k]         -→ k
-  Δ ⊢ n₁ ⊕ n₂      -→ n₁ ⟦⊕⟧ n₂
+  (Cancel)    Δ ⊢ V⟨-X⟩⟨+X⟩     -→ V
+  (DropId)    Δ ⊢ V⟨id⟩         -→ V
+  (DropConst) Δ ⊢ ᵇ[k]          -→ k
+  (PrimBeta)  Δ ⊢ n₁ ⊕ n₂       -→ n₁ ⟦⊕⟧ n₂
 
-  Δ ⊢ (ΛX.V) •B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
-  Δ ⊢ V⟨∀X.c⟩ •B[A] -→ (V A)⟨c⟩
-  Δ ⊢ ⁺ᵖ[V⁺] •B[A]  -→ ⁺ʸ⁼ᴬ[(⁺ᵖ[⁻ʸ[V⁺] •B[Y]])⟨+Y(B[Y])⟩]
+  (TyBeta)    Δ ⊢ (ΛX.V) •B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
+  (TyConv)    Δ ⊢ V⟨∀X.c⟩ •B[A] -→ (V A)⟨c⟩
+  (TyPos)     Δ ⊢ ⁺ᵖ[V⁺] •B[A]  -→ ⁺ʸ⁼ᴬ[(⁺ᵖ[⁻ʸ[V⁺] •B[Y]])⟨+Y(B[Y])⟩]
                                       (if Y fresh, ⁺ᵖ[V⁺] is a value)
 
      The conversion is NOT optional, and it is the same device TyBeta uses.
@@ -181,7 +181,7 @@ Determinism: Every term has at most one immediate reduct.
      condition `names(b) ∩ FV(B) = ∅` fails (Y IS free in B[Y]) and the
      reduct has type B[Y] where the redex had B[A].  `+Y(B[Y])` strips Y
      back to its representation A, restoring both.
-  Δ ⊢ ⁻ᴸ[ΛY.V] •B[A]-→ ⁺ʸ⁼ᴬ[(⁻ᴸ[V])⟨+Y(B)⟩] (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
+  (TyConceal) Δ ⊢ ⁻ᴸ[ΛY.V] •B[A]-→ ⁺ʸ⁼ᴬ[(⁻ᴸ[V])⟨+Y(B)⟩] (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
                                       // neg. a list χ for this rule
 
      Same conversion as TyBeta's, for the same reason: without it the body
@@ -194,15 +194,15 @@ Determinism: Every term has at most one immediate reduct.
      exactly the redex's own χ ∩ FV(∀Y.B) = ∅ plus Y ∉ χ.
 
   
-  Δ ⊢ ⁻ˣ[Vᶜ⟨cⁱ⟩]   -→ ⁻ˣ[Vᶜ]⟨cⁱ⟩
-  Δ ⊢ ⁺⁰[V⁺]       -→ V⁺
-  Δ ⊢ ⁻⁰[Vˢ]       -→ Vˢ
-  Δ ⊢ ⁻ˣ¹[⁺ˣ²[V⁺]] -→ ⁺ˣ³[⁻ˣ⁴[V⁺]]  (χ3 = χ2 \ χ1, χ4 = χ1 \ χ2, χ1 ≠ ∅, χ2 ≠ ∅)
+  (PushConv)    Δ ⊢ ⁻ˣ[Vᶜ⟨cⁱ⟩]   -→ ⁻ˣ[Vᶜ]⟨cⁱ⟩
+  (DropReveal)  Δ ⊢ ⁺⁰[V⁺]       -→ V⁺
+  (DropConceal) Δ ⊢ ⁻⁰[Vˢ]       -→ Vˢ
+  (Commute)     Δ ⊢ ⁻ˣ¹[⁺ˣ²[V⁺]] -→ ⁺ˣ³[⁻ˣ⁴[V⁺]]  (χ3 = χ2 \ χ1, χ4 = χ1 \ χ2, χ1 ≠ ∅, χ2 ≠ ∅)
   
   example: ⁻ˣᶻ[⁺ˣʸ[V]] -→ ⁺ʸ[⁻ᶻ[V]]
   
-  Δ ⊢ ⁻ˣ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ˣ[V⁺]]  (if χ ≠ ∅)
-  Δ ⊢ ⁻ˣ¹[⁻ˣ²[Vˢ]] -→ ⁻ˣ¹ˣ²[Vˢ]     (if χ1 ≠ ∅, χ2 ≠ ∅)
+  (PushIntro)    Δ ⊢ ⁻ˣ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ˣ[V⁺]]  (if χ ≠ ∅)
+  (MergeConceal) Δ ⊢ ⁻ˣ¹[⁻ˣ²[Vˢ]] -→ ⁻ˣ¹ˣ²[Vˢ]     (if χ1 ≠ ∅, χ2 ≠ ∅)
   
   Δ ⊢ L · M        -→ L′ · M      if Δ ⊢ L -→ L′
   Δ ⊢ V · M        -→ V · M′      if Δ ⊢ M -→ M′

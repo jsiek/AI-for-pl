@@ -1,3 +1,5 @@
+{-# OPTIONS --safe #-}
+
 module proof.DGG.SimPairedCastValuesDef where
 
 -- File Charter:
@@ -8,47 +10,51 @@ module proof.DGG.SimPairedCastValuesDef where
 
 open import Data.List using ([])
 open import Data.Product using (_×_; Σ-syntax)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import Types using (Ty; TyCtx)
+open import TyStore using (TyStore)
 open import Consistency using (Env∼; _⊢_∼_)
-open import CastTerms using (Term; Value; _⟨_⟩)
+open import CastTerms using (Term; Value; ⟨_,_,_⟩; _⟨_⟩)
 open import Reduction using
   ( StoreChange
   ; StoreChanges
+  ; applyStore
   ; applyTy
   ; applyTys
   ; _—→[_]_
   ; _—↠[_]_
   ) renaming ([] to []ˢ; _∷_ to _∷ˢ_)
-import proof.DGG.CastTermImprecision as CTI2
-import proof.DGG.CtxImp as CTX
-open import proof.DGG.Parked.ParkedWorldDef
-  using (ParkedWorld; ParkedEvolve)
-open CTX using
-  (World;
-   _⊑ᵂ⟨_⟩_)
-open CTI2 using (_∣_⊢²_⊑_∶_)
+open import proof.DGG.CastTermImprecision using (_⊢²_⊑_∶_)
+open import proof.DGG.World
+open import proof.DGG.WorldEvolutionSequence using (MultiWorldEvolution)
 
 
 SimPairedCastValuesᵀ : Set
-SimPairedCastValuesᵀ =
-  ∀ {Δᴸ Δᴿ Δ Δᴸ′} {world : World Δᴸ Δᴿ Δ}
+SimPairedCastValuesᵀ = ∀ {Δᴸ Δᴿ Δᴸ′ : TyCtx}
+    {Σᴸ : TyStore Δᴸ} {Σᴿ : TyStore Δᴿ}
+    {γ : ⟨ Δᴸ , Σᴸ , [] ⟩ ⊑ᶜ ⟨ Δᴿ , Σᴿ , [] ⟩}
     {χᴸ : StoreChange Δᴸ Δᴸ′}
     {V : Term Δᴸ} {V′ : Term Δᴿ} {N : Term Δᴸ′}
     {A B : Ty Δᴸ} {A′ B′ : Ty Δᴿ}
     {μ : Env∼ Δᴸ} {μ′ : Env∼ Δᴿ}
     {c : μ ⊢ A ∼ B} {c′ : μ′ ⊢ A′ ∼ B′}
-    {p : A ⊑ᵂ⟨ world ⟩ A′}
-  → ParkedWorld world
-  → world ∣ [] ⊢² V ⊑ V′ ∶ p
-  → (q : B ⊑ᵂ⟨ world ⟩ B′)
+    {p : A ⊑ᵀ⟨ γ ⟩ A′}
+  → openFramesᶜ γ ≡ []
+  → γ ⊢² V ⊑ V′ ∶ p
+  → (q : B ⊑ᵀ⟨ γ ⟩ B′)
   → Value V
   → Value V′
   → V ⟨ c ⟩ —→[ χᴸ ] N
-  → Σ[ Δᴿ′ ∈ TyCtx ] Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
-    Σ[ N′ ∈ Term Δᴿ′ ] Σ[ Δ′ ∈ TyCtx ]
-    Σ[ world′ ∈ World Δᴸ′ Δᴿ′ Δ′ ]
-    Σ[ r ∈ applyTy χᴸ B ⊑ᵂ⟨ world′ ⟩ applyTys χsᴿ B′ ]
-      (V′ ⟨ c′ ⟩ —↠[ χsᴿ ] N′) ×
-      ParkedEvolve (χᴸ ∷ˢ []ˢ) χsᴿ world world′ ×
-      (world′ ∣ [] ⊢² N ⊑ N′ ∶ r)
+  → Σ[ Δᴿ′ ∈ TyCtx ]
+    Σ[ Σᴿ′ ∈ TyStore Δᴿ′ ]
+    Σ[ χsᴿ ∈ StoreChanges Δᴿ Δᴿ′ ]
+    Σ[ N′ ∈ Term Δᴿ′ ]
+    Σ[ γ′ ∈
+      ⟨ Δᴸ′ , applyStore χᴸ Σᴸ , [] ⟩ ⊑ᶜ
+      ⟨ Δᴿ′ , Σᴿ′ , [] ⟩ ]
+    Σ[ r ∈ applyTy χᴸ B ⊑ᵀ⟨ γ′ ⟩ applyTys χsᴿ B′ ]
+      (V′ ⟨ c′ ⟩ —↠[ χsᴿ ] N′)
+      × MultiWorldEvolution
+          {W = γ} {W′ = γ′} (χᴸ ∷ˢ []ˢ) χsᴿ
+      × (γ′ ⊢² N ⊑ N′ ∶ r)

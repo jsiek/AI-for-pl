@@ -18,7 +18,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Types
 open import TyStore using (store-empty; Z∋)
 open import TermCtx using (Z)
-open import Conversion using (Conv↑; replaceTy; 〖_,_↑_〗; _⊢↑_)
+open import Conversion using (Conv↑; replaceTy; 〖_,_↑_〗; _⊢↑[_⦂_]_)
 open import Primitives using (κℕ)
 import CastTerms as Live
 import Reduction as LiveReduction
@@ -65,8 +65,8 @@ data _⊢_⦂_ (Γ : Live.Ctx) : Term (Live.Δᵉ Γ) →
     → Γ ⊢ M ⦂ (`∀ B)
     → Γ ⊢ M ⦂∀ B [ A ] ⦂ B [ A ]ᵗ
 
-  ⊢reveal : ∀ {M A B} {c : Conv↑ (Live.Δᵉ Γ) A B}
-    → Live.Σᵉ Γ ⊢↑ c
+  ⊢reveal : ∀ {M A B X R} {c : Conv↑ (Live.Δᵉ Γ) A B}
+    → Live.Σᵉ Γ ⊢↑[ X ⦂ R ] c
     → Γ ⊢ M ⦂ A
     → Γ ⊢ M ↑ c ⦂ B
 

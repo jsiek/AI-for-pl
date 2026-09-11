@@ -3098,3 +3098,54 @@ SO: ANCHORS ARE FOR (1) surviving a conceal that REMOVES an entry, and
 (2) IDENTITY — Cancel across a crossing, position-independence.  NOT
 representations in general.  Which also says something about the whole
 line of exploration: masking is not a cost v3 pays, it is what v3 buys.
+
+#### Retracted (2026-09-11): "anchors are forced"
+
+The entry above concludes that anchors are needed to survive a conceal
+that removes an entry.  THAT IS CONDITIONAL ON REPRESENTATIONS LIVING IN
+CONTEXTS, which I did not say, and it is false in general.
+
+Jeremy asked what option (c) — conversions reading representations from Θ,
+with v1's four entry forms — actually looks like.  Written out
+(notes-v6.md, rewritten), it needs no anchors at all:
+
+  * CONTEXTS ARE BARE.  `Γ ::= ∅ | Γ, X`.  No representations, no marks.
+    All knowledge lives on Θ.
+  * Θ's WELL-FORMEDNESS checks representations AT THE TWO ENDPOINTS:
+    a REVEAL's rep is a type over the EXTERIOR, a CONCEAL's over the
+    INTERIOR.  Simultaneity, in v1's sense — and checking it at
+    INTERMEDIATE stages instead genuinely fails (notes-v6 [C4], [C8]).
+  * CONVERSIONS take three places, `Γₛ ; Γₜ ; Θ ⊢ c : A ⇒ B`, with four
+    leaf rules — each Θ entry gives one per direction.  `+` is always
+    name → representation, `-` always representation → name.
+
+AND THE DUAL COMES OUT FREE, which is the result worth keeping:
+
+  (↑X:=A)ᵈ = ↓X:=A      (↓Y:=B)ᵈ = ↑Y:=B      reps carried VERBATIM
+  (θ₁,…,θₙ)ᵈ = θₙᵈ,…,θ₁ᵈ                       Θᵈᵈ = Θ on the nose
+
+Dualising swaps exterior and interior, and the endpoint convention swaps
+with it — so "a reveal's rep is over the exterior" BECOMES "a conceal's
+rep is over the interior", and no re-scoping, reading or fallback is
+needed.  The asymmetry that looked arbitrary when written down is exactly
+what makes the dual free.
+
+ALSO CORRECTS THE EARLIER [O1].  I predicted the round trip would return Γ
+only UP TO REORDERING (v2's ≼≈).  It is EXACT, in order, provided Θᵈ is
+taken relative to Γ so it can re-append the COLLATERAL — the variables
+`Γ↓Y` drops after Y, which Θ does not name.  They are re-appended
+ABSTRACTLY, losing nothing, because contexts are bare.  What remains of
+the cost is that Θᵈ depends on Γ as well as Θ and is O(|collateral|) where
+v3 restores in O(1).
+
+SO THE THREE DESIGNS DIFFER ONLY IN WHERE THE REPRESENTATION SITS:
+  v3  in the CONTEXT, retained through a mask
+  v4  in a permanent STORE, because deletion loses it
+  v6  on the BOUNDARY MORPHISM, because that is where both endpoints are
+      visible at once
+and the anchor was v4's answer to v4's own choice, not a law.
+notes-v4 [C3] rewritten to say so.
+
+REMAINING RISK is now [O2], Θ composition for Cancel across adjacent
+boundaries — the last place v2's ≼≈ might live.  Next measurement: what
+composition actually cost in v2's Boundary.agda.

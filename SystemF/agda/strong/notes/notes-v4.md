@@ -212,39 +212,45 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
      whole job is instantiating at whatever the exterior supplies.
        (v1 had rep-less entries for a related reason: `↑X:⋆`, `↓Y:⋆`.)
 
-[C3] WHY REPRESENTATIONS MAY NAME ANCHORS.  TWICE RETRACTED AND FINALLY
-     ARGUED (2026-09-11).  The forcing is NOT about where a node sits, and
-     not about Σ's existence; it is about what a CONCEAL DOES TO THE ENTRY.
+[C3] WHY REPRESENTATIONS MAY NAME ANCHORS.  RETRACTED 2026-09-11 — the
+     claim is CONDITIONAL, and the condition is v4's own, not a law.
 
-       THE ARGUMENT.  A v4 conceal DELETES X's entry from the interior.  A
-     later reveal must RESTORE it — with its representation.  So the
-     representation must live somewhere the deletion did not touch, i.e.
-     somewhere PERMANENT; and a permanent store cannot hold a type scoped
-     at a transient context, so its entries must be context-independent,
-     i.e. anchor-closed.
-       v3 ESCAPES THIS ENTIRELY, and that is the whole point of masking:
-     `masked b` RETAINS b, so the rep never leaves the context and v3 can
-     keep it as an ordinary telescope type.  v6's prefix truncation does
-     NOT escape it — see notes-v6 §"Do representations still need
-     anchors?" and notes/DeeperConcealProbe.agda.
+       THE ARGUMENT AS IT STOOD.  A v4 conceal DELETES X's entry from the
+     interior; a later reveal must RESTORE it with its representation; so
+     the representation must live somewhere PERMANENT; and a permanent
+     store cannot hold a type scoped at a transient context, hence
+     anchor-closed.
 
-       TWO EARLIER ARGUMENTS, BOTH WRONG, kept because they were believed:
-       (a) "TyConceal plants an intro INSIDE a conceal."  Superseded: since
-           the TyBeta/TyConceal unification the intro is always OUTSIDE
-           [C16], where its field is a type over the node's own exterior.
-       (b) "Σ is permanent, so its entries cannot be scoped at a transient
-           Δ" — circular, since Σ exists only to hold representations; and
-           "crossΛ/AppBnd wrap a value that may contain an intro naming the
-           concealed variable" — REFUTED by the premises: crossΛ conceals
+       THE CONDITION.  That forces anchors only IF REPRESENTATIONS LIVE IN
+     CONTEXTS.  Put them on the BOUNDARY TAGS instead — `+X:=A` rather
+     than `+X:α` — and nothing permanent is needed: the tag that removes a
+     variable and the tag that restores it each carry the representation,
+     over the side where it is well formed.  notes-v6 does exactly this
+     and has no anchors at all (notes-v6 [C6]).
+       v3 ESCAPES BY A THIRD ROUTE, and that is the point of masking:
+     `masked b` RETAINS b, so the representation never leaves the context
+     and v3 can keep it as an ordinary telescope entry.
+
+       SO ALL THREE WORK, and they differ only in where the representation
+     sits: v3 in the context (retained through a mask), v4 in a permanent
+     store (because deletion loses it), v6 on the boundary morphism
+     (because the morphism is where both endpoints are visible at once).
+
+       TWO EARLIER ARGUMENTS, ALSO WRONG, kept because they were believed:
+       (a) "TyConceal plants an intro INSIDE a conceal" — superseded by the
+           TyBeta/TyConceal unification, after which the intro is always
+           OUTSIDE [C16].
+       (b) "crossΛ/AppBnd wrap a value that may contain an intro naming the
+           concealed variable" — refuted by the premises: crossΛ conceals
            the Λ's FRESH slot, which the wrapped value predates and cannot
-           name, and AppBnd at a reveal conceals slots that ⊢reveal
-           requires be LOCKED in Δ, which the argument therefore cannot
-           name either.
+           name, and AppBnd at a reveal conceals slots ⊢reveal requires be
+           LOCKED in Δ, which the argument cannot name either.
 
-       WHAT ANCHORS ARE ACTUALLY FOR, then: (1) surviving a conceal that
-     REMOVES an entry, above; (2) IDENTITY — Cancel matching across a
-     crossing, and [O6]-style position-independence.  Not representations
-     in general.
+       WHAT ANCHORS ARE ACTUALLY FOR, in v4 specifically: surviving v4's
+     OWN choice to delete the entry, plus IDENTITY (Cancel across a
+     crossing, [O6]-style position-independence).  Not representations in
+     general, and not in any design that keeps representations on the
+     boundary.
 
 [C4] READ-BACK IS PARTIAL, AND THAT IS THE TIGHTNESS DISCIPLINE.  A
      representation may always be LOOKED UP — the anchor is always there —

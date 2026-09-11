@@ -1,153 +1,169 @@
-# Strong System F — v6: FUSED BOUNDARIES, PREFIX INTERIORS, ANCHORED ENTRIES
+# Strong System F — v6: FUSED BOUNDARIES, PREFIX INTERIORS
 
-STATUS: design draft, 2026-09-11.  Nothing mechanized.  More tentative
-than v4 or v5 — the two places v2 actually bled (THE DUAL and BOUNDARY
-COMPOSITION) are worked below rather than waved at, and both come out
-costly.  Read [O1] and [O2] before believing the rest.
+STATUS: design draft, 2026-09-11.  Nothing mechanized.  Supersedes the
+earlier v6 sketch: representations live on Θ, contexts are BARE, and
+ANCHORS ARE GONE — see [C6] for the retraction.
 
-v6 combines three of Jeremy's ideas, each of which covers a DIFFERENT one
-of the three historical failures:
+v6 combines two of Jeremy's ideas, which turn out to be one [C2]:
 
-  FUSED BOUNDARY        makes the interior "truncate then append", so the
-                        prefix design works                          [C1]
-  TWO-CONTEXT CONVERSION  is what fusion IS, formally                 [C2]
-  ANCHORED ENTRIES      remove the rep copy that killed v1's fused+prefix
-                        design                                       [C3]
-
-That they line up this well is either a good sign or a reason to be
-suspicious; [C7] says which parts I would actually bet on.
+  FUSED BOUNDARY         one node carries the scope change AND the
+                         conversion, so the interior is TRUNCATE-then-
+                         APPEND and the prefix design works         [C1]
+  TWO-CONTEXT CONVERSION is what fusion IS, formally                [C2]
 
 
                         =====================
                         PART I — THE CALCULUS
                         =====================
 
-# Anchors and contexts
+# Criteria, source terms, types
 
-  Σ ::= ∅ | Σ, α | Σ, α:=R      PERMANENT, append-only.  R anchor-closed.
-  Γ ::= ∅ | Γ, X@α              scoped variables; NEWEST on the right
+As v3, unchanged.
 
-  Γ ↓ X     the part of Γ strictly DEEPER than X — dropping X and
-            everything bound after it.  X's EXISTENTIAL SCOPE.
+  A,B,C ::= X | ℕ | 𝔹 | A → B | ∀X.A
 
-No masks, no locks, no deletion-at-a-position.  The only context surgery
-is TRUNCATE and APPEND.                                              [C1]
+# Contexts                                                           [C3]
 
-# Types
+  Γ ::= ∅ | Γ, X              a list of DISTINCT variables.  NO
+                              representations, no marks, no locks.
+  Γ ↓ X                       the part of Γ strictly BEFORE X
+  Γ ⊢ A                       every free variable of A is in Γ
 
-  A,B,C ::= X | ℕ | 𝔹 | A → B | ∀X.A        term types, over some Γ
-  R,S   ::= α | X | ℕ | 𝔹 | R → S | ∀X.R    representations; every FREE
-                                            variable an ANCHOR
+ALL KNOWLEDGE LIVES ON Θ.  A context says only what is in scope.
 
-  ⌊A⌋Γ = R    read out — total, every scoped variable is anchored
-  ⌈R⌉Γ = A    read back — PARTIAL, defined when every anchor of R has a
-              scoped variable in Γ                                   [C3]
+# Boundary morphisms
 
-As v4.  No type that any term has ever mentions an anchor.
-
-# The boundary
-
-ONE runtime form does all four jobs.
-
-  e ::= X@α           APPEND a scoped variable for an existing anchor
-      | X@(α:=R)      ALLOCATE α with representation R, and append X for it
-  ρ ::= ∅ | ρ , e     appended entries, shallowest last
-  Θ ::= ↓Y ; ρ        TRUNCATE at Y, then append ρ
-      |      ρ        append only
+  θ ::= ↑X:=A | ↑X:⋆ | ↓Y:=B | ↓Y:⋆
+  Θ ::= ∅ | θ, Θ              AT MOST ONE conceal, and it comes FIRST
+                              (v1's "one restriction at the deepest
+                              conceal")                             [C5]
 
   L,M,N ::= ... | M ⟪ Θ , c ⟫
 
   ------------------------------
-  | Γ ⇈ Θ  = Γ′   the INTERIOR |
+  | Γ ⇈ Θ = Γ′   the INTERIOR  |
   ------------------------------
 
-  Γ ⇈ (↓Y ; ρ) = (Γ ↓ Y) , ρ
-  Γ ⇈ ρ        = Γ , ρ
+  Γ ⇈ ∅        = Γ
+  Γ ⇈ (↓Y, Θ)  = (Γ ↓ Y) ⇈ Θ
+  Γ ⇈ (↑X, Θ)  = (Γ , X) ⇈ Θ
 
-ONE truncation, then append.  The truncation is a PREFIX by construction,
-and the appended entries record ANCHORS — never a type read into the
-interior, which is what killed v1 [C3].
+  ------------------------------------
+  | Γ ⊢ Θ ⊣ Γ′   WELL-FORMED MORPHISM |
+  ------------------------------------
 
-  Σ ⊕ Θ    Σ extended by Θ's allocations (the `X@(α:=R)` entries)
+                        Γ ⊢ Θ ⊣ Γ′    Y ∈ Γ    Γ′ ⊢ B
+  ------------------    -------------------------------
+  Γ ⊢ ∅ ⊣ Γ             Γ ⊢ (↓Y:=B), Θ ⊣ Γ′
 
-# Conversions, in TWO contexts                                       [C2]
+  Γ ⊢ Θ ⊣ Γ′    Y ∈ Γ               Γ ⊢ Θ ⊣ Γ′    X ∉ Γ    Γ ⊢ A
+  -----------------------           --------------------------------
+  Γ ⊢ (↓Y:⋆), Θ ⊣ Γ′                Γ ⊢ (↑X:=A), Θ ⊣ Γ′
 
-  c,d ::= id | c → d | ∀X.c | +X | -X
+  Γ ⊢ Θ ⊣ Γ′    X ∉ Γ
+  -----------------------
+  Γ ⊢ (↑X:⋆), Θ ⊣ Γ′
 
-  Σ ; Γᵢ ; Γₑ ⊢ c : A ⇒ B        A over Γᵢ (INTERIOR), B over Γₑ (EXTERIOR)
+THE REPRESENTATION CONDITIONS ARE CHECKED AT THE TWO ENDPOINTS, NOT AT
+INTERMEDIATE STAGES — simultaneity, in v1's sense:                   [C4]
 
-  REVEAL — interior sees the name, exterior sees the representation:
+    A REVEAL's representation is a type over the EXTERIOR.
+    A CONCEAL's representation is a type over the INTERIOR.
 
-    Γᵢ ∋ X@α     Σ ∋ α:=R     ⌈R⌉Γₑ defined
-    ----------------------------------------
-    Σ ; Γᵢ ; Γₑ ⊢ +X : X ⇒ ⌈R⌉Γₑ
+# The dual                                                       [C7] [C8]
 
-  CONCEAL — interior sees the representation, exterior sees the name:
+  ------------------
+  | Θᵈ_Γ  the DUAL |
+  ------------------
 
-    Γₑ ∋ Y@α     Σ ∋ α:=R     ⌈R⌉Γᵢ defined
-    ----------------------------------------
-    Σ ; Γᵢ ; Γₑ ⊢ -Y : ⌈R⌉Γᵢ ⇒ Y
+  (↑X:=A)ᵈ = ↓X:=A            (↓Y:=B)ᵈ = ↑Y:=B
+  (↑X:⋆)ᵈ  = ↓X:⋆             (↓Y:⋆)ᵈ  = ↑Y:⋆
 
-  THE ARROW RULE SWAPS THE CONTEXTS in its domain — contravariance
-  becomes literal:                                                   [C2]
+  (θ₁,…,θₙ)ᵈ = θₙᵈ, …, θ₁ᵈ
 
-    Σ ; Γₑ ; Γᵢ ⊢ c : C ⇒ A       Σ ; Γᵢ ; Γₑ ⊢ d : B ⇒ D
-    ------------------------------------------------------
-    Σ ; Γᵢ ; Γₑ ⊢ c → d : (A → B) ⇒ (C → D)
+  Θᵈ_Γ = (Θ)ᵈ ++ [ ↑W:⋆ | W ∈ Γ₁, in Γ's order ]
+         where Γ = Γ₀ , Y , Γ₁  and Y is Θ's truncation point
+         (Γ₁ = ∅, and the second component empty, if Θ does not truncate)
 
-    Σ ; Γᵢ,X@α ; Γₑ,X@α ⊢ c : A ⇒ B          Σ;Γᵢ ⊢ A   Σ;Γₑ ⊢ A
-    -----------------------------------      --------------------
-    Σ ; Γᵢ ; Γₑ ⊢ ∀X.c : ∀X.A ⇒ ∀X.B         Σ;Γᵢ;Γₑ ⊢ id : A ⇒ A
+REPRESENTATIONS ARE CARRIED ACROSS VERBATIM — no re-scoping, no reading,
+no fallback.  Dualising swaps exterior and interior, and the endpoint
+convention above swaps with it.                                      [C7]
 
-`id` is available only for a type well formed on BOTH sides — i.e. one
-that SURVIVES the crossing.  In v3 that is a side condition; here it is
-the rule.                                                            [C4]
+  Γ ⇈ Θ ⇈ Θᵈ_Γ = Γ            EXACTLY, in order                      [C8]
+
+# Conversions
+
+  c,d ::= id | c ↦ d | ∀X.c | +X | -X
+
+  Γₛ ; Γₜ ; Θ ⊢ c : A ⇒ B          A over Γₛ,  B over Γₜ
+
+`+` always goes NAME → REPRESENTATION; `-` always REPRESENTATION → NAME.
+A reveal's name lives inside and its representation outside; a conceal's
+name lives outside and its representation inside.  The four leaf rules are
+that sentence:
+
+  (↑X:=A) ∈ Θ                        (↑X:=A) ∈ Θ
+  ---------------------------------  ---------------------------------
+  Γ⇈Θ ; Γ ; Θ ⊢ +X : X ⇒ A           Γ ; Γ⇈Θ ; Θ ⊢ -X : A ⇒ X
+
+  (↓Y:=B) ∈ Θ                        (↓Y:=B) ∈ Θ
+  ---------------------------------  ---------------------------------
+  Γ⇈Θ ; Γ ; Θ ⊢ -Y : B ⇒ Y           Γ ; Γ⇈Θ ; Θ ⊢ +Y : Y ⇒ B
+
+  Γₛ ⊢ A    Γₜ ⊢ A                   Γₜ ; Γₛ ; Θ ⊢ c : C ⇒ A
+  ------------------------           Γₛ ; Γₜ ; Θ ⊢ d : B ⇒ D
+  Γₛ ; Γₜ ; Θ ⊢ id : A ⇒ A           ----------------------------------
+                                     Γₛ ; Γₜ ; Θ ⊢ c ↦ d : (A→B)⇒(C→D)
+
+  Γₛ,X ; Γₜ,X ; Θ ⊢ c : A ⇒ B
+  ---------------------------------------
+  Γₛ ; Γₜ ; Θ ⊢ ∀X.c : ∀X.A ⇒ ∀X.B
+
+THE ARROW RULE SWAPS the two contexts; `∀` extends both.  `id` is
+available exactly for a type that SURVIVES the crossing.        [C2] [C9]
 
 # Term Typing
 
-  Σ ⊢ Θ ok      Σ⊕Θ ; Γ⇈Θ ⊢ M : A
-  Σ⊕Θ ; Γ⇈Θ ; Γ ⊢ c : A ⇒ B       Σ;Γ ⊢ B
-  ----------------------------------------- (bnd)
-  Σ ; Γ ⊢ M ⟪ Θ , c ⟫ : B
+  Γ ⊢ Θ ⊣ Γ′    Γ′ ⊢ M : A    Γ′ ; Γ ; Θ ⊢ c : A ⇒ B    Γ ⊢ B
+  -------------------------------------------------------------
+  Γ ⊢ M ⟪ Θ , c ⟫ : B
 
-NO `names(b) ∩ FV(B) = ∅` SIDE CONDITION.  B is a type over Γ, and the
-interior-only variables are simply not in Γ.  (Same win as v4 [v4 C6];
-here it is even cleaner, since there is only one rule.)
+NO `names(Θ) ∩ FV(B) = ∅` SIDE CONDITION: B is a type over Γ, and the
+interior-only variables are simply not in Γ.
 
-  Σ ⊢ Θ ok    the truncation point is in Γ; every `X@α` names an
-              α ∈ dom Σ; every `X@(α:=R)` has α ∉ dom Σ and Σ ⊢ R;
-              the X's are distinct                                   [O3]
+Source rules (`⊢λ`, `⊢·`, `⊢Λ`, `⊢•[]`, constants, `⊕`) as v3.
 
-Λ, λ, application, ⊕, constants: as v3.
-
-# Values                                                             [O4]
+# Values                                                          [v4 C7]
 
   Vˢ,Wˢ ::= λx:A. N | ΛX.V
-  V,W   ::= k | Vˢ | V ⟪ Θ , c ⟫                               SKETCH
+  V,W   ::= k | Vˢ | V ⟪ Θ , c ⟫                                     [O3]
 
-v3/v4's four-layer stratification existed because conceals, conversions
-and positives were SEPARATE nodes that had to be ordered.  Fused, there is
-nothing to order, so the layering — and PushConv, PushPos, MergeConceal,
-the two Drops — may all go.  BUT the Progress argument that the layering
-was carrying [v4 C7] then needs a replacement.  This is [O4], and it is
-not sketched further here.
+# Substitution
 
-# Reduction Rules                                                    SKETCH
+  crossΛ W = W ⟪ ↓Z:⋆ , id ⟫        Z the Λ's own variable            [C10]
 
-  (Beta, AppConv, DropId, DropConst, PrimBeta, ξ)   as v3.
+No shift: the interior is `(Γ,Z)↓Z = Γ`, exactly where W was typed.
 
-  (TyBeta)   Γ ⊢ (Λ V) ⟪ Θ , c ⟫ • B[A]
-               -→ V ⟪ Θ ⊹ (Y@(β:=⌊A⌋Γ)) , c ⨟ +Y(B) ⟫                [C5]
+# Reduction Rules
 
-             ONE boundary.  Θ's truncation is unchanged; Y is APPENDED,
-             so it lands SHALLOWEST and the truncation stays a prefix.
-             This is the rule the whole design exists for.
+  (Beta, DropId, DropConst, PrimBeta, ξ)   as v3.
 
-  (AppBnd)   Γ ⊢ (V ⟪ Θ , c ⟫) · W  -→ (V · (W ⟪ Θᵈ , cᵈ ⟫)) ⟪ Θ , c′ ⟫
-                                                                [O1] [C6]
+  (TyBeta)   Γ ⊢ ((Λ V) ⟪ Θ , c ⟫) • B [ A ]
+               -→ V ⟪ Θ , (↑Y:=A) , c′ ⟫
+             Y is the Λ's OWN variable — the binder's slot IS the reveal's
+             slot.  A is a type over Γ, which is EXACTLY the reveal
+             convention, so it is stored verbatim.  c′ = c ⨟ +Y(B). [O1]
 
-  (Cancel)   a matched -X/+X pair spanning TWO adjacent boundaries
-             requires Θ COMPOSITION                              [O2] [C6]
+  (AppBnd)   Γ ⊢ (V ⟪ Θ , c₁ ↦ c₂ ⟫) · W
+               -→ (V · (W ⟪ Θᵈ_Γ , c₁ ⟫)) ⟪ Θ , c₂ ⟫
+
+             THE CONVERSION SPLITS: the domain half c₁ rides the
+             argument's crossing, the codomain half c₂ stays on the
+             result.  And c₁'s contexts — `Γ ; Γ⇈Θ` by the arrow rule's
+             swap — are EXACTLY the dual boundary's.                [C9]
+
+  (Cancel)   a matched pair spanning two adjacent boundaries needs Θ
+             COMPOSITION                                             [O2]
 
 
                         ======================
@@ -155,175 +171,106 @@ not sketched further here.
                         ======================
 
 [C1] WHY FUSION RESCUES THE PREFIX DESIGN.  The obstruction (notes-v4
-     [C16], notes/PrefixDesignProbe.agda) was that a freshly introduced Y
-     ends up in scope while OLDER variables are concealed — a shape `Γ↓X`
-     cannot denote, since it drops a SUFFIX.  That shape arose ONLY
+     [C16]) was that a freshly introduced Y ends up in scope while OLDER
+     variables are concealed — a shape `Γ↓X` cannot denote.  It arose ONLY
      because the intro and the conceal were SEPARATE NODES that had to be
-     ordered.  Fused, `Γ ⇈ (↓Y ; ρ) = (Γ↓Y) , ρ` truncates and THEN
-     appends: the new entries land shallowest, so the truncation is a
-     prefix by construction and there is no ordering question.
-       MY EARLIER CLAIM that the prefix design is dead for a
-     representation-independent reason was WRONG in its strong form.  It
-     is independent of how CONTEXTS are represented, but not of the
-     boundary being SPLIT.  notes-v4 [C16] and PrefixDesignProbe overclaim
-     and should be corrected.
+     ordered.  Fused, `Γ ⇈ (↓Y, ρ) = (Γ↓Y), ρ` truncates and THEN appends:
+     the new entries land shallowest, so the truncation is a prefix by
+     construction and there is no ordering question.
 
-[C2] A TWO-CONTEXT CONVERSION IS A FUSED BOUNDARY.  `Γᵢ ; Γₑ ⊢ c : A ⇒ B`
-     says something only if the node CHANGES the context — otherwise
-     Γᵢ = Γₑ.  So the two ideas coincide: Θ supplies the two contexts and
-     c mediates.
-       THE TEST THAT IT IS THE RIGHT READING: contravariance becomes
-     LITERAL CONTEXT SWAPPING.  `c → d` types its domain conversion with
-     Γᵢ and Γₑ exchanged, because the domain crosses the boundary the
-     other way.  In v3 that is an unexplained asymmetry in conv-fun ("the
+[C2] A TWO-CONTEXT CONVERSION IS A FUSED BOUNDARY.  `Γₛ ; Γₜ ⊢ c : A ⇒ B`
+     says something only if the node CHANGES the context.  THE TEST that
+     it is the right reading: contravariance becomes LITERAL CONTEXT
+     SWAPPING.  In v3 that asymmetry in `conv-fun` is unexplained ("the
      only trace the retired polarity index leaves"); here it falls out.
 
-[C3] ANCHORS REMOVE WHAT KILLED v1's FUSED+PREFIX DESIGN.  v1 had exactly
-     this shape — `Γ ⇈ Θ = (Γ↓Y★) , X₁:=⟦A₁⟧ , …` (notes/old/notes-v1.md
-     §"The interior context") — and paid for it with `⟦A⟧`, the INTERIOR
-     READING of an exterior representation, and its three-case fallback
-     chain (knowledge / exterior-read / abstract).  The 2026-09-05 survey
-     verdict was "every failure is a failed rep copy" (DECISIONS.md:1878).
-       With anchors there is nothing to re-express.  An appended entry is
-     `X@α`; the representation lives at α in Σ, which no truncation
-     touches.  No reading, no fallback, no copy.
-       AND THE PREFIX IS EXACTLY THE RIGHT SCOPE.  A conceal at Y types
-     its interior at `Γ↓Y` — Y's existential scope — and Y's
-     representation was recorded over the context BEFORE Y, i.e. over
-     `Γ↓Y`.  So `⌈R⌉` on the interior side of a `-Y` is automatically
-     defined.  v1 needed the fallback because the reading could reach a
-     BLOCKED variable; anchored entries cannot.
+[C3] CONTEXTS ARE BARE.  v3 carries `bind A` in the context; v1 carried
+     `X:=⟦A⟧` in the interior and needed the READING.  v6 carries nothing:
+     every representation sits on a Θ.  This is what makes [C7] a verbatim
+     copy and [C6] a retraction.
 
-[C4] `id` STOPS BEING A SIDE CONDITION.  Two-context typing makes
-     `id : A ⇒ A` require A well formed on BOTH sides, i.e. a type that
-     SURVIVES the crossing.  v3 has to say this separately (the boundary's
-     `names(b) ∩ FV(B) = ∅`); here the conversion rule says it.
+[C4] SIMULTANEITY IS LOAD-BEARING.  Checking a conceal's representation at
+     the INTERMEDIATE context fails — see [C8]'s worked dual, where
+     `↓Y:=Z` would need Z at `Y↓Y = ∅`.  Checked at the ENDPOINT it holds.
+     This is v1's Q2 ruling ("simultaneity KEEP") arriving for a reason
+     v1 did not state.
 
-[C5] TyBeta, THE RULE THE DESIGN EXISTS FOR.  Split-boundary designs must
-     put the new Y OUTSIDE the conceal, because the conversion needs the
-     representation readable and must sit under Y's binder (notes-v4
-     [C16]).  Fused, the conversion is the boundary's own payload, so
-     "under" is not a question: Y is APPENDED to the same Θ, the
-     truncation is untouched, and the interior stays `(Γ↓Y★) , ρ , Y@β`.
-     `⌊A⌋Γ` is computed at the redex's context and stored at β, which is
-     permanent [C3].
+[C5] AT MOST ONE CONCEAL.  A prefix truncation at the deepest concealed
+     variable subsumes any shallower one, and two conceal entries would
+     make the dual re-append the same block twice.  v1's "one restriction
+     at the deepest conceal", now forced by the dual rather than chosen.
 
-[C6] WHERE v2 BLED, AND WHETHER ANCHORS HELP.  Two places, and they are
-     the honest risk of this design; see [O1] and [O2].  Anchors help with
-     one and not obviously with the other:
-       THE DUAL ([O1]) needs Θᵈ to RESTORE a truncated block — and the
-     block is gone, so Θᵈ must re-append an entry for every dropped
-     variable.  Anchors make each entry cheap (`X@α`, no rep to
-     re-derive), and identity-by-anchor would make the resulting REORDERING
-     immaterial.  But Θᵈ's size is the size of the dropped block, where
-     v3/v4 restore in place at O(1).
-       COMPOSITION ([O2]) is needed because Cancel matches a -X/+X pair
-     that may span two adjacent boundaries.  Anchors give the pair a
-     stable identity, which is the matching half; they say nothing about
-     composing two truncate-then-append morphisms, which is the hard half
-     and is where v2's `≼≈` came from.
+[C6] ANCHORS ARE RETRACTED.  Earlier drafts (notes-v4 [C3], notes-v6 v1)
+     argued representations must be ANCHOR-CLOSED, on the grounds that a
+     conceal REMOVES an entry and a later reveal must restore it, so the
+     representation must live somewhere permanent.  THAT IS CONDITIONAL ON
+     REPRESENTATIONS LIVING IN CONTEXTS.  They do not here: they live on
+     Θ, the dual carries them verbatim [C7], and contexts are bare [C3].
+     No anchor appears anywhere in Part I.
+       What the anchor idea DID contribute is the diagnosis — that the
+     rep-copy is the disease (2026-09-05, "every failure is a failed rep
+     copy") — and v6 cures it a different way: not by making the rep
+     context-independent, but by never moving it between contexts.
 
-[C7] WHAT I WOULD BET ON.  [C1]–[C5] I believe: they are short arguments
-     about scope, and [C2]'s contravariance test is the kind of
-     coincidence that indicates a right reading.  [C6] I do not: the dual
-     and composition are exactly what made v2 expensive, and v6 does not
-     obviously make them cheaper — it makes the INTERIOR cheaper and
-     leaves the MORPHISM ALGEBRA where it was.  The question v6 has to
-     answer is whether a prefix interior plus anchored entries is worth
-     paying the morphism algebra for, when v3's masks buy the same
-     interior with no algebra at all.
+[C7] THE DUAL CARRIES REPRESENTATIONS VERBATIM, and the endpoint
+     convention [C4] is why.  Dualising swaps exterior and interior; "a
+     reveal's rep is over the exterior" therefore BECOMES "a conceal's rep
+     is over the interior", which is exactly the other rule.  So
+     `(↑X:=A)ᵈ = ↓X:=A` with A untouched, and `Θᵈᵈ = Θ` on the nose.
+       That asymmetry looked arbitrary when it was written down.  It is
+     the reason the dual is free.
 
+[C8] THE ROUND TRIP IS EXACT — a correction to the earlier [O1], which
+     predicted `Γ` only UP TO REORDERING (v2's ≼≈).  It is exact, in
+     order, PROVIDED Θᵈ is taken relative to Γ: prefix truncation has
+     COLLATERAL (`Γ↓Y` drops Y AND everything after), which Θ does not
+     name, so the dual must re-append it.  Re-appended ABSTRACTLY, losing
+     nothing, since contexts are bare [C3].  Worked: Γ = Z,W with
+     Θ = ↓Z:⋆, ↑Y:=Z gives interior Y, Θᵈ = ↓Y:=Z, ↑Z:⋆, ↑W:⋆, and the
+     round trip is ∅,Z,W = Γ.
+       WHAT REMAINS OF THE COST: Θᵈ is a function of Θ AND Γ, not of Θ
+     alone, and its size is O(|Γ₁|) where v3 restores in O(1).  A rule can
+     just compute it.  The `≼≈` half of the risk is gone.
 
-[C8] DO REPRESENTATIONS STILL NEED ANCHORS?  Jeremy: with two contexts,
-     perhaps R is well formed in the exterior (for a reveal) or the
-     interior (for a conceal), so the R,S sublanguage could go.  BOTH
-     IMMEDIATE CASES WORK:
-       REVEAL  `+X : X ⇒ R` needs R in the EXTERIOR, and the boundary's
-               own field supplies it as a type over the exterior.
-       CONCEAL `-Y : R ⇒ Y` needs R in the INTERIOR, which is `Γ↓Y` —
-               EXACTLY the context Y's telescope entry was written over.
-               The prefix truncation is what makes this automatic; it is
-               Y's existential scope [C3].
-     So a plain term type suffices AT THE BOUNDARY ITSELF.
+[C9] AppBnd SPLITS THE CONVERSION, and the split is forced.  With
+     `c = c₁ ↦ c₂`, the arrow rule types c₁ at the SWAPPED contexts
+     `Γ ; Γ⇈Θ` — which are precisely the dual boundary's own.  So c₁ is
+     the argument's crossing conversion and c₂ the result's, with no
+     re-typing.  (Minor: `id` at an arrow must expand to `id ↦ id`, as
+     v3's `mkId` does.)
 
-     BUT THE RESIDUE IS REAL AND REACHED.  A boundary that BOTH truncates
-     at Z AND appends Y:=A with A mentioning Z cannot store Y's
-     representation in its interior telescope: Y's prefix there is Γ↓Z,
-     which lacks Z.  An ABSTRACT entry would do unless something INSIDE
-     needs Y's representation — and something does.  AppBnd's DUAL sends
-     the argument back out through a conceal of Y, carrying `-Y`, whose
-     INTERIOR side needs exactly that representation.
+[C10] crossΛ LOSES ITS SHIFT AND ITS CONVERSION.  v3 has
+     `ν conceal (0∷[]) [ ⇑ᴹ W ]`, shifted because the Λ's slot is
+     present-but-masked.  Here the interior is `(Γ,Z)↓Z = Γ`, exactly
+     where W was typed, so nothing shifts and the conversion is `id` —
+     available by [C2]'s rule precisely because W's type survives.
 
-     notes/DeeperConcealProbe.agda REACHES THE SHAPE in three steps from
-
-       (λg:(∀Y. ℕ→ℕ). ΛZ. (g •(ℕ→ℕ)[Z]) · 5) · (ΛY. λw:ℕ. w)
-
-     — Beta sends g across the ΛZ (crossΛ conceals Z), TyConceal
-     instantiates AT the concealed Z so the minted intro's representation
-     IS Z, and AppBnd then drags a conceal of that fresh Y down INSIDE the
-     intro.  Checked in the live v3 calculus, where the node is
-     `ν conceal (0 ∷ []) [ … ]` inside `ν intro (` 0) [ … ]`; v3 survives
-     it only because masking RETAINS the binding (`v3-retains`).
-     A prefix interior does not retain.
-
-     SO v6 KEEPS ANCHORED ENTRIES.  The R,S sublanguage could go if the
-     entries were anchored some other way, but the entries themselves
-     cannot be plain telescope types.
 
                         ================
                         PART III — OPEN
                         ================
 
-[O1] THE DUAL, and the headline risk.  AppBnd sends the argument across
-     `Θᵈ`, which must undo `Γ ⇈ Θ`.  Undoing an APPEND is a truncation;
-     undoing a TRUNCATION is an append of the whole dropped block, in some
-     order.  So:
-       * Θᵈ's size is the size of the dropped block, not O(1);
-       * the restored context is Γ UP TO REORDERING, not on the nose —
-         v2's `≼≈` (notes/old/notes-v1.md:845) in a new place;
-       * v3 and v4 do this in O(1) (unmask, or insert at a position) and
-         land on Γ exactly.
-     Identity-by-anchor would make the reordering immaterial.  Whether it
-     makes the SIZE immaterial is a separate question and I do not think
-     it does.
+[O1] CONVERSION COMPOSITION `c ⨟ d`, needed by TyBeta.  Two conversions in
+     sequence cross two boundaries; composing them into one requires the
+     middle context to disappear.  NOT WORKED.
 
-[O2] Θ COMPOSITION.  Cancel matches a -X/+X pair that may span two
-     adjacent boundaries, so `Θ₁ ⊕ Θ₂` is needed.  With prefix interiors
-     that is composing two truncate-then-append morphisms; the deeper
-     truncation dominates, and the appends must be merged and re-indexed.
-     v2's composition held only up to `≼≈`.  NOT WORKED HERE.
+[O2] Θ COMPOSITION, needed by Cancel across adjacent boundaries.  This is
+     the last place v2's `≼≈` might still live, now that [C8] has removed
+     it from the dual.  NOT WORKED, and it is the headline risk.
 
-[O3] Could Θ be RESTRICTED so that no single boundary both truncates and
-     appends a variable whose representation mentions the truncated block?
-     That would remove [C8]'s residue by construction.  TyBeta as written
-     violates it in exactly the motivating case, so the restriction would
-     have to be bought with a different TyBeta — two boundaries instead of
-     one, which is the split design again.  NOT WORKED.
+[O3] VALUES AND PROGRESS.  With one boundary form there is nothing to
+     order, so v3/v4's layering and its administrative rules may all go —
+     but the layering was carrying the termination argument for the
+     boundary-elimination family (v4 [C7]).  What replaces it is not
+     sketched.
 
-[O4] `Σ ⊢ Θ ok` is stated loosely.  In particular whether an appended
-     `X@α` may name an anchor that ALREADY has a scoped variable in Γ
-     (v4's [O1]) — if it may, `⌈α⌉` is not deterministic.
+[O4] COLOUR PRESERVATION.  The annotation is "the scoped context", and a
+     fused boundary changes it in one step.  [C8] means the dual no longer
+     reorders, which removes the worry that an index-list annotation could
+     not survive the round trip.
 
-[O5] VALUES AND PROGRESS.  Fusion may delete the whole layering and its
-     administrative rules, since there is nothing left to order.  But the
-     layering was carrying the termination argument for the
-     boundary-elimination family (v4 [C7]): the administrative rules push
-     positives out of a freshly minted conceal, exposing a tag to peel.
-     With one boundary form that argument has no obvious analogue.  THIS
-     IS THE SECOND-BIGGEST RISK after [O1].
-
-[O6] COLOUR PRESERVATION.  The annotation would be "the scoped context",
-     and a fused boundary changes it in one step, so the per-node
-     bookkeeping should be simpler than v3's.  But a prefix interior
-     REORDERS on the way back through the dual [O1], and an annotation
-     that is a list of indices does not survive reordering.  This may be
-     a third place identity-by-anchor is load-bearing.
-
-[O7] THE COMPARISON THAT MATTERS.  v3 buys a cheap interior (masks) with
-     no morphism algebra.  v6 buys a cheap interior (prefix + anchors)
-     and pays a morphism algebra.  v4/v5 buy a cheap interior (deletion /
-     names) with no algebra but a renumbering discipline.  The three are
-     not obviously ordered, and the deciding measurements are [O1]'s dual
-     and [O2]'s composition — both of which are v2 questions we already
-     have data on.  Re-reading v2's Boundary.agda for what those actually
-     cost is probably worth more than more design.
+[O5] THE COMPARISON THAT MATTERS.  v3 buys a cheap interior (masks) with
+     no morphism algebra.  v6 buys a cheap interior (prefix) and pays one
+     — but the algebra is now smaller than v2's: the dual is free [C7] and
+     exact [C8], leaving only [O2].  Re-reading v2's Boundary.agda for
+     what composition actually cost is the next measurement.

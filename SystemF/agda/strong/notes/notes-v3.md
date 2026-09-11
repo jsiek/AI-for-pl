@@ -22,7 +22,7 @@ Determinism: Every term has at most one immediate reduct.
   x ∈ Var
   k ::= n | b
   ⊕ ::= + | ×
-  L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | ΛX.N | L @B[A]
+  L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | ΛX.N | L •B[A]
 
 
 # Conversions
@@ -131,7 +131,7 @@ Determinism: Every term has at most one immediate reduct.
 
 # Values
 
-  Vˢ,Wˢ ::= λx:A. N | ΛX.N 
+  Vˢ,Wˢ ::= λx:A. N | ΛX.V
   V⁻,W⁻ ::= Vˢ | ⁻ᴸ[Vˢ]     (χ ≠ ∅)
   Vᶜ,Wᶜ ::= V⁻ | Vᶜ⟨c→d⟩ | Vᶜ⟨∀X.c⟩ | Vᶜ⟨-X⟩ 
   V⁺,W⁺ ::= Vᶜ | [V⁺]⁺ˣ⁼ᴬ | [V⁺]⁺ᴸ (χ ≠ ∅)
@@ -151,7 +151,7 @@ Determinism: Every term has at most one immediate reduct.
                         { (λy:A. N)             otherwise
   (L · M)[x:=V : A]   = L[x:=V : A] · M[x:=V : A]
   (ΛX. N)[x:=V : A]   = ΛX. N[x:=V : A]
-  (L @B[C])[x:=V : A] = L[x:=V : A] @B[C]
+  (L •B[C])[x:=V : A] = L[x:=V : A] •B[C]
   (M ⟨c⟩)[x:=V : A]   = M[x:=V : A] ⟨c⟩
   ᵇ[M] [x:=V : A]     = ᵇ[M]
 
@@ -166,10 +166,10 @@ Determinism: Every term has at most one immediate reduct.
   Δ ⊢ ᵇ[k]         -→ k
   Δ ⊢ n₁ ⊕ n₂      -→ n₁ ⟦⊕⟧ n₂
 
-  Δ ⊢ (ΛX.V) @B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
-  Δ ⊢ V⟨∀X.c⟩ @B[A] -→ (V A)⟨c⟩
-  Δ ⊢ ⁺ᵖ[V⁺] @B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] @B[Y]]] (if Y fresh, ⁺ᵖ[V⁺] is a value)
-  Δ ⊢ ⁻ᴸ[ΛY.V] @B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
+  Δ ⊢ (ΛX.V) •B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
+  Δ ⊢ V⟨∀X.c⟩ •B[A] -→ (V A)⟨c⟩
+  Δ ⊢ ⁺ᵖ[V⁺] •B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] •B[Y]]] (if Y fresh, ⁺ᵖ[V⁺] is a value)
+  Δ ⊢ ⁻ᴸ[ΛY.V] •B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
                                       // neg. a list χ for this rule
   
   Δ ⊢ ⁻ˣ[Vᶜ⟨cⁱ⟩]   -→ ⁻ˣ[Vᶜ]⟨cⁱ⟩
@@ -186,7 +186,7 @@ Determinism: Every term has at most one immediate reduct.
   Δ ⊢ V · M        -→ V · M′      if Δ ⊢ M -→ M′
   Δ ⊢ L ⊕ M        -→ L′ ⊕ M      if Δ ⊢ L -→ L′
   Δ ⊢ V ⊕ M        -→ V ⊕ M′      if Δ ⊢ M -→ M′
-  Δ ⊢ L @B[A]      -→ L′ @B[A]    if Δ ⊢ L -→ L′
+  Δ ⊢ L •B[A]      -→ L′ •B[A]    if Δ ⊢ L -→ L′
   Δ ⊢ ΛX. N        -→ ΛX. N′      if Δ,X ⊢ N -→ N′
   Δ ⊢ M ⟨c⟩        -→ M′ ⟨c⟩      if Δ ⊢ M -→ M′
   Δ ⊢ ᵇ[M]         -→ ᵇ[M′]       if b(Δ) ⊢ M -→ M′

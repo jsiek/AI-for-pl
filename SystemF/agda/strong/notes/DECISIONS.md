@@ -2872,3 +2872,40 @@ Jeremy approved both.  The two OPEN items of the previous entry are closed.
       spelled out.  It is visible in the example: the installed conversion
       is `seal 0 ↦ unseal 0` — conceal on the domain, reveal on the
       codomain.
+
+#### Fixed (2026-09-11): TyConceal had the same missing conversion
+
+Jeremy asked whether `⁻χ[ΛY.V] •B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]` was OK.  It was not:
+it is TyBeta with a conceal boundary wedged in, and it dropped TyBeta's
+conversion on the way.  `lock(χ,Γ) ⊢ ΛY.V : ∀Y.B` gives
+`lock(χ,Γ),Y ⊢ V : B`, so the contractum's `⁻χ[V]` has type B — which
+NAMES Y — and the ⁺ʸ⁼ᴬ boundary's side condition `Y ∉ FV(B)` fails, with
+the reduct typed B where the redex had B[A].
+
+INSTALLED in notes-v3 and strong.Reduction:
+
+  Δ ⊢ ⁻χ[ΛY.V] •B[A] -→ ⁺ʸ⁼ᴬ[(⁻χ[V])⟨+Y(B)⟩]
+
+In de Bruijn, `revTy 0 B` — the third use of the very same conversion.
+
+THE PLACEMENT IS FORCED HERE, not merely preferred as in TyPos.  OUTSIDE
+the conceal, its body keeps type B and needs `map suc χ ∉FVs B`, which is
+exactly the redex's own `χ ∉FVs (`∀ B)` (`∉FVs-∀`, proved in
+notes/TyPosExample.agda §6).  INSIDE, the body's type would be B[Y:=A] and
+⊢conceal would need `χ ∉FVs A` — and NOTHING provides that: its premise is
+`Δ ∋tvs χ`, i.e. every slot of χ is NAMEABLE in Δ, and A is a type over Δ,
+so A may name them.  §6 exhibits such an A (`A-names-χ`).
+
+THE AUDIT of every rule that mints an `intro` is now closed:
+
+  TyBeta     ✓ always had `revTy 0 B`
+  TyPos      ✓ installed
+  TyConceal  ✓ installed
+  PushIntro  ✓ none needed — it mints NO binder.  The intro already
+             existed, and `lockχ (map suc χ) (unmasked (bind A) ∷ Δ)` IS
+             `unmasked (bind A) ∷ lockχ χ Δ`, so both sides type M at the
+             same frame (`PushIntro-same-frame`, §6).
+
+THE RULE OF THUMB, for the proof phase: every rule that turns a Λ-bound or
+freshly-introduced variable INTO an `intro` binder owes a `revTy` at that
+binder.  PushIntro is exempt precisely because it mints none.

@@ -16,8 +16,10 @@ module strong.notes.TyPosExample where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; map)
+open import Data.Empty using (⊥)
+open import Data.Product using (_,_)
 open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 open import strong.Types
 open import strong.Ctx
@@ -171,3 +173,49 @@ shifts-differ ()
 --   map (extN (numBindsᵇ b) suc) (scopeᵗ (applyᵇ b Δ))
 --     ≡ scopeᵗ (lockχ (numBindsᵇ b ∷ [])
 --                     (applyᵇ (renBnd suc b) (unmasked (bind A) ∷ Δ)))
+
+------------------------------------------------------------------------
+-- 6.  TyConceal HAD THE SAME GAP — and there the placement is FORCED
+------------------------------------------------------------------------
+
+-- `⁻χ[ΛY.V] •B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]` is TyBeta with a conceal boundary
+-- wedged in, and it dropped TyBeta's conversion on the way: V : B at
+-- `abst ∷ lockχ χ Δ`, so `ν conceal (map suc χ) [ V ] : B` — which NAMES
+-- the new binder — where ⊢intro demands ⇑ᵗ of the exterior type.  Same B
+-- and A as §4, so the same numbers:  B ≢ ℕ⇒ℕ  (`without-conversion`),
+-- and `revTy 0 B` closes it (`conversion-types`).
+--
+-- WHAT IS DIFFERENT HERE: the placement is not merely preferred, it is
+-- FORCED.  Outside the conceal, the conceal's body keeps type B and needs
+-- `map suc χ ∉FVs B` — which is EXACTLY the redex's own `χ ∉FVs (`∀ B)`:
+∉FVs-∀ : ∀ {χ′ B′} → χ′ ∉FVs (`∀ B′) → map suc χ′ ∉FVs B′
+∉FVs-∀ ∉[]               = ∉[]
+∉FVs-∀ (∉∷ (∉-∀ x) rest) = ∉∷ x (∉FVs-∀ rest)
+
+-- INSIDE the conceal, the body's type would be B[Y:=A] and ⊢conceal would
+-- need `χ ∉FVs A`.  Nothing provides it: ⊢conceal's premise is `Δ ∋tvs χ`
+-- — every slot of χ is NAMEABLE in Δ — and A is a type over Δ, so A may
+-- name them.  Here is such an A: at Δ = [Z], the slot 0 of χ = {0} is
+-- nameable, and A = ` 0 names it.
+Δ𝒜 : Ctxᵗ
+Δ𝒜 = unmasked abst ∷ []
+
+χ-nameable : Δ𝒜 ∋tvs (0 ∷ [])
+χ-nameable = tvs∷ (unmasked abst , ez , nameable) tvs[]
+
+A-names-χ : (0 ∷ []) ∉FVs (` 0) → ⊥
+A-names-χ (∉∷ (∉-var X≢X) _) = X≢X refl
+
+-- AUDIT of every rule that mints an `intro`:
+--   TyBeta     ✓ always had `revTy 0 B`
+--   TyPos      ✓ installed 2026-09-11
+--   TyConceal  ✓ installed 2026-09-11
+--   PushIntro  ✓ none needed — it mints no binder; the intro already
+--              existed, and `lockχ (map suc χ) (unmasked (bind A) ∷ Δ)`
+--              IS `unmasked (bind A) ∷ lockχ χ Δ`, so both sides type M at
+--              the same frame:
+PushIntro-same-frame : ∀ {A χ′ Δ′}
+  → lockχ (map suc χ′) (unmasked (bind A) ∷ Δ′)
+  ≡ unmasked (bind A) ∷ lockχ χ′ Δ′
+PushIntro-same-frame {χ′ = []}     = refl
+PushIntro-same-frame {χ′ = X ∷ χ′} = cong (mask (suc X)) (PushIntro-same-frame {χ′ = χ′})

@@ -190,12 +190,23 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
                          scopeᵇ (renBnd suc b) (scopeᵇ (intro A) κ) ⟫ ])
                ⟨ revTy 0 B ⟩ ]
 
-  -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]   (Y fresh; V moves out, χ shifts past Y)
+  -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[(⁻χ[V])⟨+Y(B)⟩]  (Y fresh; V moves out, χ shifts)
+  --
   -- COLOUR: none changes.  V's frame goes from `unmasked abst ∷ lockχ χ Δ`
   -- to `lockχ (map suc χ) (unmasked (bind A) ∷ Δ)` — the SAME context.
+  --
+  -- THE CONVERSION is TyBeta's, for TyBeta's reason: this rule too turns a
+  -- Λ-bound variable into an `intro` binder, so without it the body has
+  -- type B — which NAMES that binder — and ⊢intro's `⇑ᵗ` demands a
+  -- binder-free type.  IT MUST SIT OUTSIDE THE CONCEAL.  Inside, the
+  -- body's type would be B[Y:=A] and ⊢conceal would need `χ ∉FVs A`, which
+  -- nothing provides: its premise is `Δ ∋tvs χ` — every slot of χ is
+  -- NAMEABLE in Δ — and A is a type over Δ, so A may name them.  Outside,
+  -- the conceal keeps body type B and needs `map suc χ ∉FVs B`, which is
+  -- exactly the redex's own `χ ∉FVs (`∀ B)`.
   TyConceal : ∀ {Δ χ V B A κ₁ κ₂} → NonEmpty χ → Value V
     → Δ ⊢ (ν conceal χ [ Λ V ⟪ κ₁ ⟫ ]) • B [ A ]⟪ κ₂ ⟫
-        -→ ν intro A [ ν conceal (map suc χ) [ V ] ]
+        -→ ν intro A [ (ν conceal (map suc χ) [ V ]) ⟨ revTy 0 B ⟩ ]
 
   -- ⁻χ[Vᶜ⟨cⁱ⟩] -→ ⁻χ[Vᶜ]⟨cⁱ⟩       (cⁱ inert)
   PushConv : ∀ {Δ M c χ} → Cnv M → Inert c

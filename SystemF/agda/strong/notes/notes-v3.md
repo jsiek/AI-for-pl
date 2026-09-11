@@ -181,8 +181,18 @@ Determinism: Every term has at most one immediate reduct.
      condition `names(b) ∩ FV(B) = ∅` fails (Y IS free in B[Y]) and the
      reduct has type B[Y] where the redex had B[A].  `+Y(B[Y])` strips Y
      back to its representation A, restoring both.
-  Δ ⊢ ⁻ᴸ[ΛY.V] •B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
+  Δ ⊢ ⁻ᴸ[ΛY.V] •B[A]-→ ⁺ʸ⁼ᴬ[(⁻ᴸ[V])⟨+Y(B)⟩] (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
                                       // neg. a list χ for this rule
+
+     Same conversion as TyBeta's, for the same reason: without it the body
+     has type B, which NAMES Y, so the ⁺ʸ⁼ᴬ side condition fails and the
+     reduct has type B where the redex had B[A].  The conversion must sit
+     OUTSIDE the ⁻ᴸ boundary — inside, the body's type becomes B[A] and the
+     conceal would need χ ∩ FV(A) = ∅, which nothing provides (A is a type
+     over the exterior, and χ's slots are nameable there).  Outside, the
+     conceal keeps body type B and needs only χ ∩ FV(B) = ∅, which is
+     exactly the redex's own χ ∩ FV(∀Y.B) = ∅ plus Y ∉ χ.
+
   
   Δ ⊢ ⁻ˣ[Vᶜ⟨cⁱ⟩]   -→ ⁻ˣ[Vᶜ]⟨cⁱ⟩
   Δ ⊢ ⁺⁰[V⁺]       -→ V⁺

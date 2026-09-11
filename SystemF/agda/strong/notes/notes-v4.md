@@ -102,6 +102,15 @@ SYNTACTIC — a pure function of the type, no Δ:                       [C13]
 
   ᵖ ::= new X:α:=R | +X:α               the POSITIVE tags               [C14]
 
+  DERIVED FORM — THE CONCEAL SPINE.  A tag conceals ONE slot, so a run of
+  conceals is ITERATION of the single form, not a new one:
+
+    δ ::= ∅ | -X:α , δ
+    ⁻∅[M]        = M
+    ⁻(-X:α,δ)[M] = ν -X:α [ ⁻ᵟ[M] ]
+
+  §Values and TyBeta both match a whole spine; nothing else does.    [C15]
+
   -----------
   | -b = b′ |
   -----------
@@ -126,10 +135,8 @@ SYNTACTIC — a pure function of the type, no Δ:                       [C13]
 
 # Values                                                        [C7] [C8]
 
-  δ ::= ∅ | -X:α , δ         a CONCEAL STACK;  ⁻ᵟ[M] = M under δ
-
   Vˢ,Wˢ ::= λx:A. N | ΛX.V
-  V⁻,W⁻ ::= ⁻ᵟ[Vˢ]
+  V⁻,W⁻ ::= ⁻ᵟ[Vˢ]                             (the spine, §Runtime Terms)
   Vᶜ,Wᶜ ::= V⁻ | Vᶜ⟨cⁱ⟩
   V⁺,W⁺ ::= Vᶜ | ᵖ[ V⁺ ]                       (ᵖ a POSITIVE tag)
   V,W   ::= k | V⁺
@@ -153,9 +160,11 @@ is descended into.  Crossing a Λ wraps a value image:
   (DropConst)  Δ ⊢ ᵇ[k]           -→ k
   (PrimBeta)   Δ ⊢ n₁ ⊕ n₂        -→ n₁ ⟦⊕⟧ n₂
 
-  (TyBeta)     Δ ⊢ ⁻ᵟ[ΛY.V] •B[A] -→ ν new Y:β:=⌊A⌋ [ (⁻ᵟ[V])⟨+Y(B)⟩ ]
+  (TyBeta)     Δ ⊢ ⁻ᵟ[ΛY.V] •B[A] -→ ν new Y:β:=⌊A⌋ [ (⁻ᵟ′[V])⟨+Y(B)⟩ ]
                                       δ possibly EMPTY; subsumes v3's
-                                      TyConceal                  [C8] [C11]
+                                      TyConceal            [C8] [C11] [C15]
+                                      δ′ re-indexed: the new slot Y is
+                                      inserted OUTSIDE the spine     [O4]
 
   (TyConv)     Δ ⊢ V⟨∀X.c⟩ •B[A]  -→ (V A)⟨c⟩
 
@@ -354,6 +363,30 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
           CancelBnd) is vacuous in the intro case, since an intro
           allocates a FRESH anchor.
 
+[C15] WHY A SPINE RATHER THAN A LIST-CARRYING TAG.  v3's conceal layer is
+      ONE node carrying a SET, which is why v3's TyConceal can match it
+      with a single pattern.  v4's tags carry one slot, so the layer is a
+      RUN of nodes, and anything matching the layer — §Values' V⁻ and
+      TyBeta — must match a SPINE.  The two options:
+
+        (a) TAGS CARRY A LIST, `-χ` with χ a list of (X:α).  The layer is
+            one node again and no spine notation is needed.  But
+            MergeConceal returns (two adjacent tags must fuse), so does
+            DropConceal (the empty list), and Cancel/PushPos need
+            MEMBERSHIP in χ — i.e. v3's VarSet machinery, which [C12]
+            counts as deleted.
+        (b) TAGS STAY SINGLE-SLOT, and the spine is a DERIVED FORM
+            (§Runtime Terms).  No MergeConceal, no set machinery, no
+            non-empty side conditions.  Cost: TyBeta matches an unbounded
+            spine, so mechanically it is a pattern over a derived function
+            plus a canonical-forms lemma ("a value at a ∀ type is
+            `⁻ᵟ[ΛY.V]` for some δ") — which Progress needs anyway.
+
+      TAKEN (b).  The spine is notation over the single form, not a second
+      form, and §Runtime Terms is where it is introduced.  Note the
+      contractum re-indexes it: TyBeta inserts the new slot Y OUTSIDE the
+      spine, so δ′ is δ shifted past one insertion — another [O4] site.
+
                         ========================
                         PART III — OPEN
                         ========================
@@ -370,12 +403,15 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
      X move, and [C9]'s claim that crossΛ loses its shift is wrong.  Free
      if identity is by anchor rather than position [O6].
 
-[O4] RENUMBERING, the one obligation v4 adds.  Three sites, all the same
-     kind: PushPos's X′ and ᵖ′ (the swap reaches the same interior only if
-     both are adjusted for whether the other operation happened first),
-     PushConv's cⁱ′ [C13], and crossΛ [C9]/[O3].  This is the v4 analogue
-     of v3's set difference (χ₂∖χ₁, χ₁∖χ₂) — simpler, but not free.  ALL
-     THREE go away under [O6].
+[O4] RENUMBERING, the one obligation v4 adds.  FOUR sites, all the same
+     kind:
+       * PushPos's X′ and ᵖ′ — the swap reaches the same interior only if
+         both are adjusted for whether the other happened first;
+       * PushConv's cⁱ′                                            [C13]
+       * TyBeta's δ′ — the new slot Y is inserted outside the spine [C15]
+       * crossΛ                                              [C9] [O3]
+     This is the v4 analogue of v3's set difference (χ₂∖χ₁, χ₁∖χ₂) —
+     simpler, but not free.  ALL FOUR go away under [O6].
 
 [O5] The intro is spelled `new` where v3 wrote it `+X=A`, a positive tag
      alongside the reveal.  Naming, not design.
@@ -396,8 +432,8 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
                         ========================
 
  1. [O3] and [O4] together: does deletion renumber, and if so what do
-    crossΛ and Commute actually cost?  These gate the claim that v4 is
-    cheaper than masking.
+    the four renumbering sites actually cost?  These gate the claim that
+    v4 is cheaper than masking.
  2. Does AppBnd at a `+` tag stay well behaved?  v3 needed `lock-unlock`
     for the dual round trip; here it should be a DELETE-then-INSERT
     identity, which is either free or false depending on [O3].

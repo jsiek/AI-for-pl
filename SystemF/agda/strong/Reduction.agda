@@ -156,39 +156,39 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- through the fresh binder and then through the (shifted) tag b.  M's
   -- own annotations are SHIFTED by the same `renᴹ` that shifts its type
   -- variables — that shift is the frame-exactness tripwire.
-  -- Y'S INDEX IS `numBindsᵇ b`, NOT 0.  The rule wedges the fresh binder Y
-  -- BELOW b's own binders, which is exactly what the renaming
-  -- `extN (numBindsᵇ b) suc` does to M: it holds M's own binders (indices
-  -- 0 … numBindsᵇ b − 1) fixed and shifts M's references to Δ up by one.
-  -- So inside `ν renBnd suc b`, Y sits at `numBindsᵇ b` — at 0 for a
-  -- `reveal` (which binds nothing) but at 1 for an `intro`.  Concealing 0
-  -- there would hide M'S OWN BINDER and leave Y visible, the exact
-  -- opposite of the notes' `⁻ʸ[V⁺] •B[Y]`; the colour annotations catch it
-  -- (M's renamed set starts `0 ∷ …`, the frame's starts `1 ∷ …`).
+  -- THE FRESH BINDER Y GOES INSIDE b, NOT OUTSIDE IT (Jeremy, 2026-09-11).
+  -- The contractum's binder stack is `Δ, b, Y=A`, so Y is the INNERMOST
+  -- slot and `ν conceal (0 ∷ [])` hides exactly it, leaving whatever b
+  -- gave M visible.  With Y outside b the conceal had to name slot
+  -- `numBindsᵇ b` with M's own binders UNMASKED below it — correct under
+  -- lock/unlock, but a mask that is not a PREFIX of the context, which is
+  -- what rules out the old `Γ↓X` prefix design (notes/TyPosExample.agda
+  -- §7).  Inside, the mask is a prefix again.
   --
-  -- THE CONVERSION IS NOT OPTIONAL, and it is the SAME ONE TyBeta mints.
-  -- Without it the body's type is B[Z:=Y], so ⊢intro's own side condition
-  -- (the interior type must be ⇑ᵗ of the exterior one, hence Y-free)
-  -- fails, and the reduct has type B[Z:=Y] where the redex had B[Z:=A].
-  -- Placed JUST INSIDE `ν intro A`, where Y is slot 0 and the body's type
-  -- is literally `B` — the lift-then-substitute composite is the identity
-  -- — so `revTy 0 B` serves BOTH tags, binding or not.
+  -- Three things simplify with the reordering: the tag stays `b` (no
+  -- `renBnd suc`), M's renaming collapses to plain `renᴹ suc` (one new
+  -- slot, at the bottom), and the conceal returns to slot 0.  Two become
+  -- tag-dependent: Y's representation is A lifted into b's interior, and
+  -- the conversion's type carries b's own shifts.
   --
-  -- B'S SHIFT IS TAG-DEPENDENT.  M's type already carries `numBindsᵇ b`
-  -- shifts (⊢intro hands its body ⇑ᵗ of the exterior type; ⊢reveal hands
-  -- it the type unchanged), and the rule adds one more for Y — hence
-  -- `wkN (suc (numBindsᵇ b))`.  At a `reveal` that is definitionally the
-  -- old `extᵗ suc`, since `wkN 1 X = suc X`.
+  -- THE CONVERSION IS NOT OPTIONAL, and it is the one TyBeta mints.
+  -- Without it the body's type is B[Z:=Y], so ⊢intro's side condition (the
+  -- interior type is ⇑ᵗ of the exterior one, hence Y-free) fails and the
+  -- reduct has type B[Z:=Y] where the redex had B[Z:=A].  It sits directly
+  -- under Y's binder, wrapping the type application.
+  --
+  -- B'S SHIFTS.  M's type already carries `numBindsᵇ b` of them (⊢intro
+  -- hands its body ⇑ᵗ of the exterior type; ⊢reveal hands it the type
+  -- unchanged); `renᴹ suc` adds one more for Y.  At a `reveal` both
+  -- `wkN` expressions collapse to the untagged form.
   TyPos : ∀ {Δ M b B A κ} → Positive b → Value (ν b [ M ])
     → Δ ⊢ (ν b [ M ]) • B [ A ]⟪ κ ⟫
-        -→ ν intro A
-             [ (ν renBnd suc b
-                 [ (ν conceal (numBindsᵇ b ∷ [])
-                      [ renᴹ (extN (numBindsᵇ b) suc) M ])
-                     • renameᵗ (extᵗ (wkN (suc (numBindsᵇ b)))) B
-                       [ ` (numBindsᵇ b) ]⟪
-                         scopeᵇ (renBnd suc b) (scopeᵇ (intro A) κ) ⟫ ])
-               ⟨ revTy 0 B ⟩ ]
+        -→ ν b
+             [ ν intro (shiftBy (numBindsᵇ b) A)
+                 [ ((ν conceal (0 ∷ []) [ renᴹ suc M ])
+                      • renameᵗ (extᵗ (wkN (suc (numBindsᵇ b)))) B
+                        [ ` 0 ]⟪ scopeᵇ (intro A) (scopeᵇ b κ) ⟫)
+                   ⟨ revTy 0 (renameᵗ (extᵗ (wkN (numBindsᵇ b))) B) ⟩ ] ]
 
   -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[(⁻χ[V])⟨+Y(B)⟩]  (Y fresh; V moves out, χ shifts)
   --

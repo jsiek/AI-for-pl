@@ -120,3 +120,19 @@ V = ƛ (` 0) ∙ (` 0 ⟪ 0 ∷ [] ⟫) ⟪ 0 ∷ [] ⟫
 -- AN-INTRO family — PushIntro and TyConceal — where the intro necessarily
 -- ends up visible beneath a conceal.  That shape is what `Γ↓X` cannot
 -- denote, and it is forced by those rules rather than incidental to them.
+--
+-- STRENGTHENED (2026-09-11, notes-v4 [C16]).  The framing above — "two
+-- rules force non-prefix MASKS" — reads as a fact about masks.  It is a
+-- fact about CONVERSIONS, and the sharper form is representation-
+-- independent:
+--
+--     the REPRESENTATION must be READABLE where the conversion is,
+--     and the CONVERSION must sit UNDER the binder it converts;
+--     together these force the binder OUTSIDE the concealment of
+--     whatever the representation mentions.
+--
+-- Neither premise mentions masks, deletion, positions or names.  So the
+-- ordering is forced under v3's masks, under v4's slot deletion, and
+-- under v5's names alike — and `Γ↓X`, which drops a SUFFIX, cannot denote
+-- it in any of them.  The prefix design does not become reachable by
+-- changing how contexts are represented.

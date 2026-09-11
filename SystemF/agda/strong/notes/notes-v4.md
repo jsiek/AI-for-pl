@@ -414,6 +414,18 @@ PushIntro and Commute have MERGED into PushPos — see [C14].
         NOTE this is the SAME placement v3's TyConceal uses.  What v4
       changed here was never the placement [C7]: it is that the resulting
       frame `(Δ ⊕ Y) ∖ δ` needs no mask.
+        AND THIS IS WHY THE Γ↓X PREFIX DESIGN IS DEAD, for a reason that
+      SURVIVES EVERY REPRESENTATION CHANGE.  The contractum has Y (newest)
+      in scope while δ's slots (older) are gone — the non-prefix shape.
+      But read the forcing again: the representation must be READABLE
+      where the conversion is, and the conversion must sit UNDER the
+      binder it converts.  Neither step mentions masks, deletion,
+      positions or names.  So the ordering is forced under v3's masks,
+      under v4's deletion, and under v5's names alike, and `Γ↓X` — which
+      drops a SUFFIX — cannot express it in any of them.
+        notes/PrefixDesignProbe.agda reached the same verdict but framed
+      it as "two rules force non-prefix MASKS", which reads as a fact
+      about masks.  It is a fact about CONVERSIONS.
 
                         ========================
                         PART III — OPEN

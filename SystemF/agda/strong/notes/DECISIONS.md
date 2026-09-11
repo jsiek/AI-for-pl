@@ -2956,3 +2956,41 @@ over Δ, so A may name them (notes/TyPosExample.agda §7).
 VERDICT: the prefix design stays retired.  Not for Example 8's reason, and
 not because of AppBnd, but because two rules force an intro to be visible
 beneath a conceal — a shape `Γ↓X` cannot denote.
+
+#### Strengthened (2026-09-11): why the prefix design is dead, properly
+
+Jeremy, on notes-v4's TyBeta: "doesn't this ordering ruin the prefix
+approach to contexts?"  Yes — and following it gives a much better
+argument than the one in notes/PrefixDesignProbe.agda.
+
+THE ORDERING.  TyBeta's contractum is
+`ν new Y:β:=⌊A⌋ [ (⁻ᵟ′[V])⟨+Y(B)⟩ ]`, which puts Y (newest) in scope while
+δ's slots (older) are gone — the non-prefix shape.
+
+WHY Y IS OUTSIDE THE SPINE (notes-v4 [C16]): the conversion `+Y(B)` types
+only where β's representation is READABLE, and inside the spine that fails
+in exactly the motivating case (A = Z, δ concealing Z); the conversion
+must therefore sit outside the spine, and it needs Y in scope, so the
+intro must enclose it.
+
+THE POINT.  Read that forcing again:
+
+    the REPRESENTATION must be READABLE where the conversion is,
+    and the CONVERSION must sit UNDER the binder it converts;
+    together these force the binder OUTSIDE the concealment of whatever
+    the representation mentions.
+
+NEITHER PREMISE MENTIONS MASKS, DELETION, POSITIONS OR NAMES.  So the
+ordering is forced under v3's masks, under v4's slot deletion, and under
+v5's names alike — and `Γ↓X`, which drops a SUFFIX, cannot denote it in
+any of them.
+
+SO THE PREFIX DESIGN DOES NOT BECOME REACHABLE BY CHANGING HOW CONTEXTS
+ARE REPRESENTED.  The earlier probe's verdict ("two rules force non-prefix
+MASKS") was right but under-argued — it reads as a fact about masks, and
+it is a fact about conversions.  This is also the same principle as the
+TyConceal discussion's "an alias must be minted where its representation
+is visible", seen from the conversion's side rather than the binder's.
+
+Recorded in notes-v4 [C16] and at the foot of
+notes/PrefixDesignProbe.agda §4 (which still checks).

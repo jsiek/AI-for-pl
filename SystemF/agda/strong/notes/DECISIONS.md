@@ -2909,3 +2909,50 @@ THE AUDIT of every rule that mints an `intro` is now closed:
 THE RULE OF THUMB, for the proof phase: every rule that turns a Λ-bound or
 freshly-introduced variable INTO an `intro` binder owes a `revTy` at that
 binder.  PushIntro is exempt precisely because it mints none.
+
+#### Investigated (2026-09-11): can the `Γ↓X` prefix design come back?
+
+CONTEXT.  Jeremy asked whether Example 8 — which killed the prefix design
+in v1 — is still a counterexample now that substitution inserts a conceal
+when it crosses a Λ.  It is NOT: Example 8 failed because TyWrapCncl
+pushed a TYPE ARGUMENT into a sealed body, and no v3 rule does that
+(TyConceal records A as the intro's representation instead).  crossΛ's
+insertion actively HELPS — it conceals slot 0, the shallowest, and shifts
+the body past it, so the body names only deeper slots.
+
+THE QUESTION, restated for v3: the prefix design types a conceal body at
+`Γ↓X`, so it is expressible exactly when NO conceal body ever needs to
+name a slot SHALLOWER than what its boundary conceals.  Rule by rule
+(notes/PrefixDesignProbe.agda):
+
+  crossΛ       CLEAN  conceals slot 0, body shifted past it
+  AppBnd/intro CLEAN  same shape (`ν conceal {0} [ ⇑ᴹ W ]`)
+  AppBnd/reveal CLEAN the dual crossing lands W back at its OWN frame
+                      EXACTLY — `lock-unlock` is the reason — so AppBnd
+                      hides nothing from W that Δ did not already hide
+  AppBnd/conceal CLEAN the dual is a REVEAL; no conceal is created
+  TyPos        CLEAN  since Y moved inside b, it conceals slot 0 with the
+                      body shifted by plain `suc`
+  PushIntro    NOT CLEAN
+  TyConceal    NOT CLEAN
+
+I HAD FLAGGED AppBnd AT A REVEAL TAG AS SUSPECT.  It is not: `lock-unlock`
+settles it.  The obstruction is elsewhere.
+
+THE REAL OBSTRUCTION is the CONCEAL-COMMUTES-PAST-AN-INTRO family.  Both
+PushIntro and TyConceal have the shape `⁺ʸ⁼ᴬ[⁻^(map suc χ)[M]]`: the intro
+moves OUT past the conceal, so inside, Y is slot 0 and UNMASKED while the
+concealed slots are all ≥ 1.  The body sits under a conceal yet may name a
+slot shallower than everything that conceal hides — and for TyConceal it
+DOES by construction, since its redex is `⁻χ[ΛY.V] •B[A]` and V is the Λ's
+own body (probe §3 types V = λw:Y.w at exactly that frame).
+
+AND TyConceal CANNOT BE REPAIRED THE WAY TyPos WAS.  Moving its fresh
+binder inside the tag gives `⁻χ[⁺ʸ⁼ᴬ[…]]`, whose conceal body then has
+type B[Y:=A], so ⊢conceal would need `χ ∉FVs A` — and nothing provides it:
+its premise is `Δ ∋tvs χ` (every slot of χ NAMEABLE in Δ) and A is a type
+over Δ, so A may name them (notes/TyPosExample.agda §7).
+
+VERDICT: the prefix design stays retired.  Not for Example 8's reason, and
+not because of AppBnd, but because two rules force an intro to be visible
+beneath a conceal — a shape `Γ↓X` cannot denote.

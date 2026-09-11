@@ -165,12 +165,30 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- there would hide M'S OWN BINDER and leave Y visible, the exact
   -- opposite of the notes' `⁻ʸ[V⁺] •B[Y]`; the colour annotations catch it
   -- (M's renamed set starts `0 ∷ …`, the frame's starts `1 ∷ …`).
+  --
+  -- THE CONVERSION IS NOT OPTIONAL, and it is the SAME ONE TyBeta mints.
+  -- Without it the body's type is B[Z:=Y], so ⊢intro's own side condition
+  -- (the interior type must be ⇑ᵗ of the exterior one, hence Y-free)
+  -- fails, and the reduct has type B[Z:=Y] where the redex had B[Z:=A].
+  -- Placed JUST INSIDE `ν intro A`, where Y is slot 0 and the body's type
+  -- is literally `B` — the lift-then-substitute composite is the identity
+  -- — so `revTy 0 B` serves BOTH tags, binding or not.
+  --
+  -- B'S SHIFT IS TAG-DEPENDENT.  M's type already carries `numBindsᵇ b`
+  -- shifts (⊢intro hands its body ⇑ᵗ of the exterior type; ⊢reveal hands
+  -- it the type unchanged), and the rule adds one more for Y — hence
+  -- `wkN (suc (numBindsᵇ b))`.  At a `reveal` that is definitionally the
+  -- old `extᵗ suc`, since `wkN 1 X = suc X`.
   TyPos : ∀ {Δ M b B A κ} → Positive b → Value (ν b [ M ])
     → Δ ⊢ (ν b [ M ]) • B [ A ]⟪ κ ⟫
-        -→ ν intro A [ ν renBnd suc b
-             [ (ν conceal (numBindsᵇ b ∷ []) [ renᴹ (extN (numBindsᵇ b) suc) M ])
-                 • renameᵗ (extᵗ suc) B [ ` (numBindsᵇ b) ]⟪
-                     scopeᵇ (renBnd suc b) (scopeᵇ (intro A) κ) ⟫ ] ]
+        -→ ν intro A
+             [ (ν renBnd suc b
+                 [ (ν conceal (numBindsᵇ b ∷ [])
+                      [ renᴹ (extN (numBindsᵇ b) suc) M ])
+                     • renameᵗ (extᵗ (wkN (suc (numBindsᵇ b)))) B
+                       [ ` (numBindsᵇ b) ]⟪
+                         scopeᵇ (renBnd suc b) (scopeᵇ (intro A) κ) ⟫ ])
+               ⟨ revTy 0 B ⟩ ]
 
   -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]   (Y fresh; V moves out, χ shifts past Y)
   -- COLOUR: none changes.  V's frame goes from `unmasked abst ∷ lockχ χ Δ`

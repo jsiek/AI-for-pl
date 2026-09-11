@@ -2820,3 +2820,55 @@ reveal side, the ⊢reveal premise):
   map (extN (numBindsᵇ b) suc) (scopeᵗ (applyᵇ b Δ))
     ≡ scopeᵗ (lockχ (numBindsᵇ b ∷ [])
                     (applyᵇ (renBnd suc b) (unmasked (bind A) ∷ Δ)))
+
+#### Fixed (2026-09-11): TyPos's missing conversion, and the notes' +X on arrows
+
+Jeremy approved both.  The two OPEN items of the previous entry are closed.
+
+(i) THE MISSING CONVERSION.  Typed by hand on `V : ∀Z. Z→Z` instantiated
+    at ℕ (so B = Z→Z, A = ℕ), the notes' rule
+    `⁺ᵖ[V⁺]•B[A] -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺]•B[Y]]]` gives
+
+      ⁻ʸ[V] : ∀Z.Z→Z ,  ⁻ʸ[V]•(Z→Z)[Y] : Y→Y ,  ⁺ᵖ[…] : Y→Y
+
+    and then the ⁺ʸ⁼ᴬ boundary's own side condition `names(b) ∩ FV(B) = ∅`
+    demands Y ∉ FV(Y→Y), which is FALSE — and the type delivered is Y→Y
+    where the redex had ℕ→ℕ.  Two symptoms, one cause: nothing converts Y
+    back to its representation.  TyBeta does exactly that with `+Z(B)`;
+    TyPos minted nothing.
+
+    INSTALLED, both in notes-v3 and in strong.Reduction:
+
+      Δ ⊢ ⁺ᵖ[V⁺] •B[A] -→ ⁺ʸ⁼ᴬ[(⁺ᵖ[⁻ʸ[V⁺] •B[Y]])⟨+Y(B[Y])⟩]
+
+    In de Bruijn the conversion is LITERALLY `revTy 0 B` — the very one
+    TyBeta mints — because the lift-then-substitute composite is the
+    identity (`produced : (renameᵗ (extᵗ suc) B) [ ` 0 ]ᵗ ≡ B`, refl).
+    PLACEMENT: just inside `ν intro A`, OUTSIDE `ν renBnd suc b`.  There Y
+    is slot 0 and the body's type is literally B whether or not b binds,
+    so one expression serves both tags; innermost would need
+    `revTy (numBindsᵇ b)` at a shifted type.  The ⁺ᵖ side condition stays
+    easy at that placement: it needs names(p) ∩ FV(B[Y]) = ∅, which holds
+    because Y is fresh and names(p) ∩ FV(∀Z.B) = ∅ came with the redex.
+    Machine-checked in notes/TyPosExample.agda §4:
+
+      conversion-types : Δ₁ ⊢ revTy 0 B ∶ B ⇝ (B [ A ]ᵗ)
+      conversion-types = conv-fun (conv-seal Y∋ℕ) (conv-unseal Y∋ℕ)
+
+(ii) B'S SHIFT.  M's type already carries `numBindsᵇ b` shifts (⊢intro
+     hands its body ⇑ᵗ of the exterior type; ⊢reveal hands it the type
+     unchanged), and the rule adds one more for Y.  So the ∀-body the `•`
+     node names is `renameᵗ (extᵗ (wkN (suc (numBindsᵇ b)))) B`.  At a
+     reveal that is DEFINITIONALLY the old `extᵗ suc` (wkN 1 X = suc X),
+     so nothing that worked before moved; at an intro it is genuinely two
+     shifts (§5 of the example).
+
+(iii) THE NOTES' `+X` WAS WRONG ON ARROWS.  notes-v3 said
+      `+X(A → B) = +X(A) → +X(B)` and defined no `-X(A)` at all.  A
+      conversion `c → d : (A→B) ⇒ (C→D)` requires `c : C ⇒ A`, so
+      revealing X in an arrow must CONCEAL it in the domain.  The Agda had
+      it right all along (`revTy X (A ⇒ B) = concTy X A ↦ revTy X B`); the
+      notes now carry both mints, mutually recursive, with the flip
+      spelled out.  It is visible in the example: the installed conversion
+      is `seal 0 ↦ unseal 0` — conceal on the domain, reveal on the
+      codomain.

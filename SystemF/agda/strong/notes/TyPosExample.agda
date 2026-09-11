@@ -21,6 +21,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong.Types
 open import strong.Ctx
+open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst
@@ -94,29 +95,76 @@ reveal-frame-exact :
 reveal-frame-exact = refl
 
 ------------------------------------------------------------------------
--- 4.  STILL OPEN — the missing conversion
+-- 4.  THE MISSING CONVERSION — the gap, and the fix
 ------------------------------------------------------------------------
 
--- TyBeta mints `V ⟨ revTy 0 B ⟩` to reconcile the interior's view (which
--- names the fresh binder) with the exterior's (which names its rep).
--- TyPos mints nothing, so its interior type mentions Y where ⊢intro
--- demands A.  With the ∀-body B = ` 0 (i.e. ∀Z. Z) and A = ℕ:
-produced : (renameᵗ (extᵗ suc) (` 0)) [ ` 0 ]ᵗ ≡ ` 0      -- the • node's type
+-- THE EXAMPLE.  V : ∀Z. Z→Z behind a positive boundary, instantiated at
+-- ℕ.  So the ∀-body is B = ` 0 ⇒ ` 0 and A = ℕ, and the answer must have
+-- the type the redex had.
+B A : Ty
+B = ` 0 ⇒ ` 0
+A = `ℕ
+
+redex-type : B [ A ]ᵗ ≡ (`ℕ ⇒ `ℕ)
+redex-type = refl
+
+-- Δ₁ is the intro's interior: Y at slot 0, with representation ℕ.
+Δ₁ : Ctxᵗ
+Δ₁ = unmasked (bind `ℕ) ∷ []
+
+-- WHAT THE REBUILT `•` NODE PRODUCES: B with Z := Y.  In de Bruijn the
+-- lift-then-substitute-slot-0 composite is the IDENTITY, so it is
+-- literally B again — read at Δ₁, where slot 0 is Y.
+produced : (renameᵗ (extᵗ suc) B) [ ` 0 ]ᵗ ≡ B
 produced = refl
 
-demanded : ⇑ᵗ ((` 0) [ `ℕ ]ᵗ) ≡ `ℕ                        -- what ⊢intro wants
+-- WITHOUT A CONVERSION that is what the ⁺ʸ⁼ᴬ boundary would have to
+-- accept, and ⊢intro demands ⇑ᵗ of the exterior type instead.
+demanded : ⇑ᵗ (B [ A ]ᵗ) ≡ (`ℕ ⇒ `ℕ)
 demanded = refl
 
-type-mismatch : ¬ (_≡_ {A = Ty} (` 0) `ℕ)
-type-mismatch ()
+without-conversion : ¬ (B ≡ (`ℕ ⇒ `ℕ))
+without-conversion ()
 
--- A SECOND ITEM IN THE SAME FAMILY.  `renameᵗ (extᵗ suc) B` is ONE shift.
--- For b = reveal that is right (⊢reveal gives the interior the exterior's
--- type unchanged).  For b = intro, ⊢intro ALREADY shifted M's type by ⇑ᵗ,
--- so M′'s ∀-body carries two shifts and the rule names only one.  Both
--- belong with the conversion decision, which is Jeremy's.
+-- THE FIX, INSTALLED.  `revTy 0 B` is exactly TyBeta's conversion, and it
+-- has precisely the type the gap needs:  B[Z:=Y] ⇝ B[Z:=ℕ].
+Y∋ℕ : Δ₁ ∋ 0 := `ℕ
+Y∋ℕ = ez
 
--- AND THE GENERAL FRAME LAW the rule now owes, of which §1 and §3 are
+the-conversion : revTy 0 B ≡ (seal 0 ↦ unseal 0)
+the-conversion = refl
+
+conversion-types : Δ₁ ⊢ revTy 0 B ∶ B ⇝ (B [ A ]ᵗ)
+conversion-types = conv-fun (conv-seal Y∋ℕ) (conv-unseal Y∋ℕ)
+
+-- NOTE THE CONTRAVARIANT FLIP: the DOMAIN gets a seal (conceal), the
+-- CODOMAIN an unseal (reveal).  The Agda's revTy does this; notes-v3 said
+--   +X(A → B) = +X(A) → +X(B)
+-- and defined no -X(A) at all.  Corrected there on 2026-09-11.
+
+------------------------------------------------------------------------
+-- 5.  B'S SHIFT IS TAG-DEPENDENT
+------------------------------------------------------------------------
+
+-- M's type already carries `numBindsᵇ b` shifts (⊢intro hands its body
+-- ⇑ᵗ of the exterior type; ⊢reveal hands it the type unchanged), and the
+-- rule adds ONE more for Y.  Hence `wkN (suc (numBindsᵇ b))`.
+
+-- At a reveal that is DEFINITIONALLY the old one-shift form, since
+-- wkN 1 X = suc X — so nothing that worked before moved.
+reveal-shift-unchanged : ∀ {χ}
+  → renameᵗ (extᵗ (wkN (suc (numBindsᵇ (reveal χ))))) B ≡ renameᵗ (extᵗ suc) B
+reveal-shift-unchanged = refl
+
+-- At an intro it is genuinely two shifts, and they differ.
+intro-shift : renameᵗ (extᵗ (wkN (suc (numBindsᵇ (intro `ℕ))))) (` 0 ⇒ ` 1)
+  ≡ (` 0 ⇒ ` 3)
+intro-shift = refl
+
+shifts-differ : ¬ (_≡_ {A = Ty} (` 0 ⇒ ` 3) (` 0 ⇒ ` 2))
+shifts-differ ()
+
+-- AND THE GENERAL FRAME LAW the rule owes, of which §1 and §3 are
 -- instances (not refl in general — it needs map-fusion and, on the reveal
 -- side, the ⊢reveal premise):
 --

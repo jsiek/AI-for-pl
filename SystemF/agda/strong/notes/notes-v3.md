@@ -33,13 +33,18 @@ Determinism: Every term has at most one immediate reduct.
 
   -------------
   | +X(A) = c | (reveal X in A)
+  | -X(A) = c | (conceal X in A)
   -------------
-  
-  +X(X) = +X
-  +X(Y) = id                   (X ≠ Y)
-  +X(ι) = id
-  +X(A → B) = +X(A) → +X(B)
-  +X(∀Y.A) = ∀Y.+X(A)          (X ≠ Y)
+
+  The two are MUTUALLY RECURSIVE, because a conversion on an arrow is
+  CONTRAVARIANT in its domain: `c → d : (A → B) ⇒ (C → D)` requires
+  `c : C ⇒ A`, so revealing X in A → B must CONCEAL it in the domain.
+
+  +X(X) = +X                   -X(X) = -X
+  +X(Y) = id       (X ≠ Y)     -X(Y) = id       (X ≠ Y)
+  +X(ι) = id                   -X(ι) = id
+  +X(A → B) = -X(A) → +X(B)    -X(A → B) = +X(A) → -X(B)
+  +X(∀Y.A) = ∀Y.+X(A)  (X≠Y)   -X(∀Y.A) = ∀Y.-X(A)  (X ≠ Y)
 
 # Runtime Terms
 
@@ -168,7 +173,14 @@ Determinism: Every term has at most one immediate reduct.
 
   Δ ⊢ (ΛX.V) •B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
   Δ ⊢ V⟨∀X.c⟩ •B[A] -→ (V A)⟨c⟩
-  Δ ⊢ ⁺ᵖ[V⁺] •B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] •B[Y]]] (if Y fresh, ⁺ᵖ[V⁺] is a value)
+  Δ ⊢ ⁺ᵖ[V⁺] •B[A]  -→ ⁺ʸ⁼ᴬ[(⁺ᵖ[⁻ʸ[V⁺] •B[Y]])⟨+Y(B[Y])⟩]
+                                      (if Y fresh, ⁺ᵖ[V⁺] is a value)
+
+     The conversion is NOT optional, and it is the same device TyBeta uses.
+     Without it the body's type is B[Y], so the ⁺ʸ⁼ᴬ boundary's own side
+     condition `names(b) ∩ FV(B) = ∅` fails (Y IS free in B[Y]) and the
+     reduct has type B[Y] where the redex had B[A].  `+Y(B[Y])` strips Y
+     back to its representation A, restoring both.
   Δ ⊢ ⁻ᴸ[ΛY.V] •B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
                                       // neg. a list χ for this rule
   

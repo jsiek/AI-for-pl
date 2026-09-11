@@ -60,15 +60,16 @@ No type that any term has ever mentions an anchor.
 
 # Conversions
 
-  c,d   ::= id | c → d | ∀X.c | +α | -α
-  cⁱ,dⁱ ::= c → d | ∀X.c | -α           (inert)
-  cᵃ,dᵃ ::= id | +α                     (active)
+  c,d   ::= id | c → d | ∀X.c | +X | -X
+  cⁱ,dⁱ ::= c → d | ∀X.c | -X           (inert)
+  cᵃ,dᵃ ::= id | +X                     (active)
 
-Conversions name ANCHORS, not scoped variables.
+Conversions name SCOPED VARIABLES, as in v3; the anchor is reached by
+LOOKUP.                                                             [C13]
 
   Δ ∋ X@α   Σ ∋ α:=R   ⌈R⌉ defined      Δ ∋ X@α   Σ ∋ α:=R   ⌈R⌉ defined
   --------------------------------      --------------------------------
-  Σ;Δ ⊢ +α : X ⇒ ⌈R⌉          [C4]      Σ;Δ ⊢ -α : ⌈R⌉ ⇒ X
+  Σ;Δ ⊢ +X : X ⇒ ⌈R⌉          [C4]      Σ;Δ ⊢ -X : ⌈R⌉ ⇒ X
 
   ------------------  ------------------
   Σ;Δ ⊢ id : ι ⇒ ι    Σ;Δ ⊢ id : X ⇒ X
@@ -77,39 +78,47 @@ Conversions name ANCHORS, not scoped variables.
   ----------------------------------        ----------------------  rep-less)
   Σ;Δ ⊢ c → d : (A → B) ⇒ (C → D)           Σ;Δ ⊢ ∀X.c : ∀X.A ⇒ ∀X.B
 
-  +α(X) = +α if X@α, else id       -α(X) = -α if X@α, else id
-  +α(ι) = id                       -α(ι) = id
-  +α(A → B) = -α(A) → +α(B)        -α(A → B) = +α(A) → -α(B)
-  +α(∀X.A) = ∀X.+α(A)              -α(∀X.A) = ∀X.-α(A)
+SYNTACTIC — a pure function of the type, no Δ:                       [C13]
+
+  +X(X) = +X                       -X(X) = -X
+  +X(Y) = id        (X ≠ Y)        -X(Y) = id        (X ≠ Y)
+  +X(ι) = id                       -X(ι) = id
+  +X(A → B) = -X(A) → +X(B)        -X(A → B) = +X(A) → -X(B)
+  +X(∀Y.A) = ∀Y.+X(A)              -X(∀Y.A) = ∀Y.-X(A)
 
 # Runtime Terms
 
-  b ::= new α:=R | +X:α | -X:α          (R a REPRESENTATION)      [C5] [O5]
+  b ::= new X:α:=R | +X:α | -X:α        (R a REPRESENTATION)      [C5] [O5]
   L,M,N ::= ... | ν b [ M ] | M⟨c⟩
 
-  ν new α:=R [ M ]   INTRO.  Allocates α with representation R and brings a
-                     scoped variable for it into the interior.  The only
-                     form that extends Σ.
+  ν new X:α:=R [ M ] INTRO.  Allocates the anchor α with representation R,
+                     AND binds the slot X@α over the interior.  The only
+                     form that extends Σ.  Its scoped half is exactly a
+                     reveal: `Δ ⊕ (X@α)`.                           [C14]
   ν +X:α [ M ]       REVEAL, A BINDER.  The interior has a slot X@α that
                      the exterior does not.
   ν -X:α [ M ]       CONCEAL, AN ANTI-BINDER.  The exterior has a slot X@α
                      that the interior does not.
 
+  ᵖ ::= new X:α:=R | +X:α               the POSITIVE tags               [C14]
+
   -----------
   | -b = b′ |
   -----------
 
-  -(new α:=R) = -X:α       (X the slot the intro introduced)
-  -(+X:α)     = -X:α
-  -(-X:α)     = +X:α
+  -(new X:α:=R) = -X:α
+  -(+X:α)       = -X:α
+  -(-X:α)       = +X:α
 
 # Term Typing                                                        [C6]
 
-  Σ ⊢ R      α ∉ Σ                     Σ ; Δ ⊕ (X@α) ⊢ M : C
-  Σ,α:=R ; Δ,X@α ⊢ M : C               X ∉ FV(C)                    [O2]
-  X ∉ FV(C)                            --------------------------
-  ------------------------- (intro)    Σ;Δ ⊢ ν +X:α [ M ] : C  (reveal)
-  Σ;Δ ⊢ ν new α:=R [ M ] : C
+  Σ ⊢ R      α ∉ Σ                       Σ ; Δ ⊕ (X@α) ⊢ M : C
+  Σ,α:=R ; Δ ⊕ (X@α) ⊢ M : C             X ∉ FV(C)                  [O2]
+  X ∉ FV(C)                              --------------------------
+  -------------------------- (intro)     Σ;Δ ⊢ ν +X:α [ M ] : C  (reveal)
+  Σ;Δ ⊢ ν new X:α:=R [ M ] : C
+
+  (intro) IS (reveal) PLUS THE Σ EXTENSION — same scoped premise.    [C14]
 
   Σ ; Δ ∖ X ⊢ M : C                    Σ;Δ ⊢ M : A   Σ;Δ ⊢ c : A ↝ B
   ------------------------- (conceal)  ----------------------------- (conv)
@@ -122,7 +131,7 @@ Conversions name ANCHORS, not scoped variables.
   Vˢ,Wˢ ::= λx:A. N | ΛX.V
   V⁻,W⁻ ::= ⁻ᵟ[Vˢ]
   Vᶜ,Wᶜ ::= V⁻ | Vᶜ⟨cⁱ⟩
-  V⁺,W⁺ ::= Vᶜ | ν new α:=R [ V⁺ ] | ν +X:α [ V⁺ ]
+  V⁺,W⁺ ::= Vᶜ | ᵖ[ V⁺ ]                       (ᵖ a POSITIVE tag)
   V,W   ::= k | V⁺
 
 LAYERED, inside out: simple, conceals, conversions, positives — as v3.
@@ -139,31 +148,31 @@ is descended into.  Crossing a Λ wraps a value image:
   (Beta)       Δ ⊢ (λx:A. N) · W   -→ N[x:=W : A]
   (AppConv)    Δ ⊢ V⟨c → d⟩ · W    -→ (V (W⟨c⟩))⟨d⟩
   (AppBnd)     Δ ⊢ ᵇ[V⁺] · W       -→ ᵇ[V⁺ ⁻ᵇ[W]]   if ᵇ[V⁺] is a value
-  (Cancel)     Δ ⊢ V⟨-α⟩⟨+α⟩      -→ V              ← ANCHOR IDENTITY
+  (Cancel)     Δ ⊢ V⟨-X⟩⟨+X⟩      -→ V
   (DropId)     Δ ⊢ V⟨id⟩          -→ V
   (DropConst)  Δ ⊢ ᵇ[k]           -→ k
   (PrimBeta)   Δ ⊢ n₁ ⊕ n₂        -→ n₁ ⟦⊕⟧ n₂
 
-  (TyBeta)     Δ ⊢ ⁻ᵟ[ΛY.V] •B[A] -→ ν new β:=⌊A⌋ [ (⁻ᵟ[V])⟨+β(B)⟩ ]
+  (TyBeta)     Δ ⊢ ⁻ᵟ[ΛY.V] •B[A] -→ ν new Y:β:=⌊A⌋ [ (⁻ᵟ[V])⟨+Y(B)⟩ ]
                                       δ possibly EMPTY; subsumes v3's
                                       TyConceal                  [C8] [C11]
 
   (TyConv)     Δ ⊢ V⟨∀X.c⟩ •B[A]  -→ (V A)⟨c⟩
 
-  (TyPos)      Δ ⊢ ᵖ[V⁺] •B[A]    -→ ᵖ[ ν new β:=⌊A⌋ [ (ν -Y:β [V⁺]) •B[Y]
-                                                        ⟨+β(B[Y])⟩ ] ]
-                                      for ᵖ ∈ { new, + }             [C10]
+  (TyPos)      Δ ⊢ ᵖ[V⁺] •B[A]    -→ ᵖ[ ν new Y:β:=⌊A⌋ [ (ν -Y:β [V⁺]) •B[Y]
+                                                          ⟨+Y(B[Y])⟩ ] ]
+                                                                     [C10]
 
-  (PushConv)   Δ ⊢ ν -X:α [Vᶜ⟨cⁱ⟩]           -→ (ν -X:α [Vᶜ])⟨cⁱ⟩
-  (PushIntro)  Δ ⊢ ν -X:α [ν new β:=R [V⁺]]  -→ ν new β:=R [ν -X:α [V⁺]]
-  (Commute)    Δ ⊢ ν -X:α [ν +Y:β [V⁺]]      -→ ν +Y′:β [ν -X′:α [V⁺]]
-                                      if not a matched pair          [O4]
-  (CancelBnd)  Δ ⊢ ν -X:α [ν +X:α [M]]       -→ M   ← ANCHOR IDENTITY
-               Δ ⊢ ν +X:α [ν -X:α [M]]       -→ M
+  (PushConv)   Δ ⊢ ν -X:α [Vᶜ⟨cⁱ⟩]  -→ (ν -X:α [Vᶜ])⟨cⁱ′⟩            [C13]
+  (PushPos)    Δ ⊢ ν -X:α [ᵖ[V⁺]]   -→ ᵖ′[ν -X′:α [V⁺]]
+                                      if not a matched pair    [C14] [O4]
+  (CancelBnd)  Δ ⊢ ν -X:α [ν +X:α [M]] -→ M   ← ANCHOR IDENTITY
+               Δ ⊢ ν +X:α [ν -X:α [M]] -→ M
 
   (ξ)          as v3, with `ᵇ[M]` stepping at the interior context.
 
 NO MergeConceal, NO DropReveal, NO DropConceal — see [C8].
+PushIntro and Commute have MERGED into PushPos — see [C14].
 
 
                         ======================
@@ -303,9 +312,47 @@ NO MergeConceal, NO DropReveal, NO DropConceal — see [C8].
       layer, `∋lks`/`∋tvs` and their round-trip lemmas, the VarSet
       machinery (`lockχ`, `unlockχ`, `_∖_`, `_∪_`, `scopeᵇ`, `mergeᵒ`),
       `MergeConceal`, `DropReveal`, `DropConceal`, the non-empty-set side
-      conditions, `shiftBy` on representations, and one of v3's two
-      type-application-at-a-Λ rules.
+      conditions, `shiftBy` on representations, one of v3's two
+      type-application-at-a-Λ rules, and one of PushIntro/Commute [C14].
 
+
+[C13] WHY CONVERSIONS NAME SCOPED VARIABLES, NOT ANCHORS  (RULED, Jeremy,
+      2026-09-11).  Both work — `+α`'s typing rule already demands
+      `Δ ∋ X@α`, so the two are inter-derivable given Δ.  The deciding
+      difference is the MINT: `+α(A)` needs Δ to decide whether X is
+      anchored at α, whereas `+X(A)` is a pure function of the type.  v3's
+      revTy/concTy port over unchanged, and anchors stay confined to
+      boundaries, context entries and representations.
+        THE COST is one renumbering, in one rule.  PushConv is the ONLY
+      rule that moves a conversion between contexts — out of a conceal,
+      from `Δ ∖ X` to `Δ` — so `cⁱ` needs a single-insertion renaming on
+      the way (`cⁱ′` above).  Everywhere else is free: AppBnd sends W
+      across the DUAL, and `(Δ ⊕ X) ∖ X`, `(Δ ∖ X) ⊕ X` and
+      `(Δ, X@α) ∖ X` all return Δ — v4's analogue of v3's
+      `lock-unlock`/`unlock-lock` — so conversions inside a crossed
+      argument never change context at all.
+        THE RISK, stated plainly: Cancel matches `V⟨-X⟩⟨+X⟩` BY NAME, so
+      two conversions separated by a crossing and reunited by PushConv
+      match only if that renumbering is exactly right.  That is the class
+      of bug TyPos had (a renaming and its partner conceal disagreeing by
+      one, 2026-09-11).  Anchor naming would make it unfalsifiable; this
+      makes it a proof obligation — for which the colour annotations are
+      exactly the tripwire.  Free if [O6].
+
+[C14] THE INTRO NAMES ITS SLOT  (Jeremy, 2026-09-11): `new X:α:=R`, not
+      `new α:=R`.  Three things follow.
+        * (intro) IS (reveal) PLUS THE Σ EXTENSION.  Both have the scoped
+          premise `Σ ; Δ ⊕ (X@α) ⊢ M : C` with `X ∉ FV(C)`; the intro adds
+          `Σ ⊢ R`, `α ∉ Σ`, and the Σ entry.  The two-jobs split [C1] is
+          now visible in the syntax: `new` does the anchor job AND the
+          scoped job, `+`/`-` do only the scoped one.
+        * THE POSITIVE TAGS BECOME A CLASS, `ᵖ ::= new X:α:=R | +X:α`,
+          which is what §Values' top layer and TyPos both range over.
+        * PushIntro AND Commute MERGE.  Both were "swap a conceal past a
+          slot-introducing tag"; with the intro's slot explicit they are
+          one rule, PushPos.  The side condition (not a matched pair, vs
+          CancelBnd) is vacuous in the intro case, since an intro
+          allocates a FRESH anchor.
 
                         ========================
                         PART III — OPEN
@@ -323,11 +370,12 @@ NO MergeConceal, NO DropReveal, NO DropConceal — see [C8].
      X move, and [C9]'s claim that crossΛ loses its shift is wrong.  Free
      if identity is by anchor rather than position [O6].
 
-[O4] Commute's index bookkeeping.  `ν -X:α [ν +Y:β [V⁺]]` and
-     `ν +Y′:β [ν -X′:α [V⁺]]` reach the same interior only with X′, Y′
-     adjusted for whether the other operation happened first.  This is the
-     v4 analogue of v3's set difference (χ₂∖χ₁, χ₁∖χ₂) — simpler, but not
-     free.  Free if [O6].
+[O4] RENUMBERING, the one obligation v4 adds.  Three sites, all the same
+     kind: PushPos's X′ and ᵖ′ (the swap reaches the same interior only if
+     both are adjusted for whether the other operation happened first),
+     PushConv's cⁱ′ [C13], and crossΛ [C9]/[O3].  This is the v4 analogue
+     of v3's set difference (χ₂∖χ₁, χ₁∖χ₂) — simpler, but not free.  ALL
+     THREE go away under [O6].
 
 [O5] The intro is spelled `new` where v3 wrote it `+X=A`, a positive tag
      alongside the reveal.  Naming, not design.
@@ -355,6 +403,6 @@ NO MergeConceal, NO DropReveal, NO DropConceal — see [C8].
     identity, which is either free or false depending on [O3].
  3. [O1]: does any rule produce two scoped variables at one anchor?
  4. Determinism, pairwise, over the restored administrative rules —
-    Commute against CancelBnd in particular, which is why Commute carries
+    PushPos against CancelBnd in particular, which is why PushPos carries
     its side condition.
  5. [O7].

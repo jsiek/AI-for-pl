@@ -2994,3 +2994,51 @@ is visible", seen from the conversion's side rather than the binder's.
 
 Recorded in notes-v4 [C16] and at the foot of
 notes/PrefixDesignProbe.agda §4 (which still checks).
+
+#### Corrected (2026-09-11): the prefix verdict is not boundary-shape-independent
+
+The entry above claims the Γ↓X design is dead for a reason surviving every
+representation change.  Jeremy: what about v2-style FUSED boundaries
+(intro, reveal, conceal and conversion in one node) with prefix contexts —
+and, separately, typing a conversion in TWO contexts, one per endpoint?
+
+THE TWO ARE ONE IDEA.  `Γᵢ ; Γₑ ⊢ c : A ⇒ B` says something only if the
+node CHANGES the context; otherwise Γᵢ = Γₑ.  So a two-context conversion
+IS a fused boundary — Θ supplies the two contexts, c mediates.
+
+AND IT DISSOLVES THE FORCING.  My second premise — "the conversion must
+sit UNDER the binder it converts" — assumes the boundary and the
+conversion are SEPARATE NODES.  Fused, "under" is not a question: the
+interior is `Γ ⇈ (↓Y ; ρ) = (Γ↓Y) , ρ`, truncate THEN append, so a freshly
+introduced variable lands SHALLOWEST and the truncation stays a prefix by
+construction.  The claim is representation-independent but NOT
+boundary-shape-independent.  notes-v4 [C16] and PrefixDesignProbe.agda
+corrected to say "for SPLIT boundaries".
+
+notes-v6.md drafts the combination — fused boundaries, prefix interiors,
+ANCHORED entries.  The three cover three different historical failures:
+fusion makes the interior truncate-then-append; two-context conversions
+are what fusion formally is (and contravariance becomes literal CONTEXT
+SWAPPING in the arrow rule, which is the test that it is the right
+reading); anchors remove the `⟦A⟧` interior reading and its three-case
+fallback chain that killed v1's fused+prefix design ("every failure is a
+failed rep copy", 2026-09-05).
+
+WHAT v6 DOES NOT FIX, and why I would not bet on it yet.  v2 bled in two
+places and v6 makes the INTERIOR cheaper while leaving the MORPHISM
+ALGEBRA where it was:
+  * THE DUAL.  Undoing an append is a truncation; undoing a TRUNCATION is
+    an append of the whole dropped block.  So Θᵈ's size is the size of
+    that block (v3/v4 restore in O(1)) and the restored context is Γ only
+    UP TO REORDERING — v2's ≼≈ in a new place.  Anchors make each entry
+    cheap and identity-by-anchor would make the reordering immaterial;
+    neither makes the size immaterial.
+  * Θ COMPOSITION, needed because Cancel may match a pair spanning two
+    adjacent boundaries.  Anchors give the pair a stable identity, which
+    is the matching half; they say nothing about composing two
+    truncate-then-append morphisms, which is the half v2's ≼≈ came from.
+
+THE COMPARISON TO SETTLE: v3 buys a cheap interior (masks) with NO
+morphism algebra; v6 buys a cheap interior and PAYS one.  Re-reading v2's
+Boundary.agda for what the dual and composition actually cost is probably
+worth more than further design.

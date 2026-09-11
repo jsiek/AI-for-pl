@@ -135,4 +135,13 @@ V = ƛ (` 0) ∙ (` 0 ⟪ 0 ∷ [] ⟫) ⟪ 0 ∷ [] ⟫
 -- ordering is forced under v3's masks, under v4's slot deletion, and
 -- under v5's names alike — and `Γ↓X`, which drops a SUFFIX, cannot denote
 -- it in any of them.  The prefix design does not become reachable by
--- changing how contexts are represented.
+-- changing how CONTEXTS are represented.
+--
+-- BUT IT IS NOT BOUNDARY-SHAPE-INDEPENDENT (corrected same day).  The
+-- second premise — "the conversion must sit UNDER the binder it converts"
+-- — assumes the boundary and the conversion are SEPARATE NODES, which is
+-- v3's choice and v4's and v5's inheritance.  FUSE them, as v2 did, and
+-- the interior becomes `(Γ↓Y) , ρ`: truncate THEN append, so a freshly
+-- introduced variable lands SHALLOWEST and the truncation stays a prefix.
+-- The verdict below therefore holds for SPLIT boundaries only.  See
+-- notes-v6.md.

@@ -74,7 +74,20 @@ Determinism: Every term has at most one immediate reduct.
   --------------
   Γ ⊢ +X : X ⇒ A
 
-  ...
+  --------------
+  Γ ⊢ id : ι ⇒ ι
+
+  --------------
+  Γ ⊢ id : X ⇒ X
+  
+  Γ ⊢ c : C ⇒ A    Γ ⊢ d : B ⇒ D
+  ------------------------------
+  Γ ⊢ c → d : (A → B) ⇒ (C → D)
+
+  Γ,X ⊢ c : A ⇒ B
+  ----------------------
+  Γ ⊢ ∀X.c : ∀X.A ⇒ ∀X.B
+
 
 # Locking and Unlocking
 
@@ -108,8 +121,8 @@ Determinism: Every term has at most one immediate reduct.
 
 # Term Typing 
 
-  b(Γ) ⊢ M : B   names(b) ∉ FV(B)
-  -------------------------------
+  b(Γ) ⊢ M : B   names(b) ∩ FV(B) = ∅
+  -----------------------------------
   Γ ⊢ ᵇ[M] : B
 
   Γ ⊢ M : A    Γ ⊢ c : A ↝ B
@@ -144,34 +157,37 @@ Determinism: Every term has at most one immediate reduct.
 
 # Reduction Rules
 
-  Δ ⊢ (λx:A. N) V   -→ N[x:=V : A]
-  Δ ⊢ V⟨c → d⟩ W    -→ (V (W⟨c⟩))⟨d⟩
-  Δ ⊢ ᵇ[V] W        -→ ᵇ[V ⁻ᵇ[W]]
+  Δ ⊢ (λx:A. N) · W -→ N[x:=W : A]
+  Δ ⊢ V⟨c → d⟩ · W  -→ (V (W⟨c⟩))⟨d⟩
+  Δ ⊢ ᵇ[Vˢ] · W     -→ ᵇ[Vˢ ⁻ᵇ[W]]    if ᵇ[Vˢ] is a value
                                       // pos. are a list because neg. are
-
-  Δ ⊢ (ΛX.V) @B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
-  Δ ⊢ V⟨∀X.c⟩ @B[A] -→ (V A)⟨c⟩
-  Δ ⊢ ⁺ᵖ[V⁺] @B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] @B[Y]]] (Y fresh)
-  Δ ⊢ ⁻ᴸ[ΛY.V] @B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (Y fresh)
-                                      // neg. a list for this rule
-  
-  Δ ⊢ ⁻ᴸ[Vᶜ⟨cⁱ⟩]   -→ ⁻ᴸ[Vᶜ]⟨cⁱ⟩
-  Δ ⊢ ⁺⁰[V⁺]       -→ V⁺
-  Δ ⊢ ⁻⁰[Vˢ]       -→ Vˢ
-  Δ ⊢ ⁻ᴸ²[⁺ᴸ¹[V⁺]] -→ ⁺ᴸ⁴[⁻ᴸ³[V⁺]]       (L3 = L2 \ L1, L4 = L1 \ L2)
-  Δ ⊢ ⁻ᴸ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ᴸ[V⁺]]       (Y ∉ L)
-  Δ ⊢ ⁻ᴸ²[⁻ᴸ¹[Vˢ]] -→ ⁻ᴸ¹ᴸ²[Vˢ]
-
   Δ ⊢ V⟨-X⟩⟨+X⟩    -→ V
   Δ ⊢ V⟨id⟩        -→ V
   Δ ⊢ ᵇ[k]         -→ k
   Δ ⊢ n₁ ⊕ n₂      -→ n₁ ⟦⊕⟧ n₂
 
-  Δ ⊢ L · M        -→ L' · M      if Δ ⊢ L -→ L'
-  Δ ⊢ V · M        -→ V · M'      if Δ ⊢ M -→ M'
-  Δ ⊢ L @B[A]      -→ L' @B[A]    if Δ ⊢ L -→ L'
-  Δ ⊢ ΛX. N        -→ ΛX. N'      if Δ,X ⊢ N -→ N'
-  Δ ⊢ ᵇ[M]         -→ ᵇ[M']       if b(Δ) ⊢ M -→ M'
+  Δ ⊢ (ΛX.V) @B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
+  Δ ⊢ V⟨∀X.c⟩ @B[A] -→ (V A)⟨c⟩
+  Δ ⊢ ⁺ᵖ[V⁺] @B[A]  -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺] @B[Y]]] (if Y fresh, ⁺ᵖ[V⁺] is a value)
+  Δ ⊢ ⁻ᴸ[ΛY.V] @B[A]-→ ⁺ʸ⁼ᴬ[⁻ᴸ[V]]        (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
+                                      // neg. a list L for this rule
+  
+  Δ ⊢ ⁻ᴸ[Vᶜ⟨cⁱ⟩]   -→ ⁻ᴸ[Vᶜ]⟨cⁱ⟩
+  Δ ⊢ ⁺⁰[V⁺]       -→ V⁺
+  Δ ⊢ ⁻⁰[Vˢ]       -→ Vˢ
+  Δ ⊢ ⁻ᴸ¹[⁺ᴸ²[V⁺]] -→ ⁺ᴸ³[⁻ᴸ⁴[V⁺]]  (L3 = L2 \ L1, L4 = L1 \ L2, L1 ≠ ∅, L2 ≠ ∅)
+  
+  example: ⁻ˣᶻ[⁺ˣʸ[V]] -→ ⁺ʸ[⁻ᶻ[V]]
+  
+  Δ ⊢ ⁻ᴸ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻ᴸ[V⁺]]  (if L ≠ ∅)
+  Δ ⊢ ⁻ᴸ¹[⁻ᴸ²[Vˢ]] -→ ⁻ᴸ¹ᴸ²[Vˢ]     (if L1 ≠ ∅, L2 ≠ ∅)
 
-  example: 
-     ⁻ˣᶻ[⁺ˣʸ[V]]    -→ ⁺ʸ[⁻ᶻ[V]]
+  Δ ⊢ L · M        -→ L′ · M      if Δ ⊢ L -→ L′
+  Δ ⊢ V · M        -→ V · M′      if Δ ⊢ M -→ M′
+  Δ ⊢ L ⊕ M        -→ L′ ⊕ M      if Δ ⊢ L -→ L′
+  Δ ⊢ V ⊕ M        -→ V ⊕ M′      if Δ ⊢ M -→ M′
+  Δ ⊢ L @B[A]      -→ L′ @B[A]    if Δ ⊢ L -→ L′
+  Δ ⊢ ΛX. N        -→ ΛX. N′      if Δ,X ⊢ N -→ N′
+  Δ ⊢ M ⟨c⟩        -→ M′ ⟨c⟩      if Δ ⊢ M -→ M′
+  Δ ⊢ ᵇ[M]         -→ ᵇ[M′]       if b(Δ) ⊢ M -→ M′
+

@@ -83,7 +83,7 @@ REPRESENTATION may name anchors, and it MUST be able to:
 
   THE FORCED CASE.  TyConceal's contractum puts an intro INSIDE a conceal:
 
-      ν dn Z:α [ΛY.V] •B[A] -→ ν dn Z:α [ ν new β:=⌊A⌋ [ V⟨+β(B)⟩ ] ]
+      ν -Z:α [ΛY.V] •B[A] -→ ν -Z:α [ ν new β:=⌊A⌋ [ V⟨+β(B)⟩ ] ]
 
   ⌊A⌋ is computed at the REDEX's context, where A is well formed — but it
   is PLANTED inside the conceal, where A's own variables need not be.  Take
@@ -197,7 +197,11 @@ false.  v4 closes that by construction.)
 
 # Runtime Terms
 
-  b ::= new α:=R | up X:α | dn X:α          (R a REPRESENTATION)
+  b ::= new α:=R | +X:α | -X:α          (R a REPRESENTATION)
+
+  **OPEN** the intro is still spelled `new`.  v3 wrote it `+X=A`, i.e. as
+  a positive tag alongside the reveal.  Whether v4 should follow suit
+  (`+X:α:=R`?) is a naming call, not a design one.
   L,M,N ::= ... | ν b [ M ] | M⟨c⟩
 
   ν new α:=R [ M ]   INTRO.  Allocates the anchor α with representation R,
@@ -212,20 +216,20 @@ false.  v4 closes that by construction.)
                      (TyConceal, TyPos) would then have to re-scope it —
                      which for TyConceal is impossible, since the type
                      argument may name the very variable being concealed.
-  ν up X:α [ M ]     REVEAL, A BINDER.  The interior has a slot X@α that
+  ν +X:α [ M ]     REVEAL, A BINDER.  The interior has a slot X@α that
                      the exterior does not.
-  ν dn X:α [ M ]     CONCEAL, AN ANTI-BINDER.  The exterior has a slot X@α
+  ν -X:α [ M ]     CONCEAL, AN ANTI-BINDER.  The exterior has a slot X@α
                      that the interior does not.
 
   -----------
   | -b = b′ |
   -----------
 
-  -(new α:=R) = dn X:α       (X the slot the intro introduced)
-  -(up X:α)   = dn X:α
-  -(dn X:α)   = up X:α
+  -(new α:=R) = -X:α       (X the slot the intro introduced)
+  -(+X:α)     = -X:α
+  -(-X:α)     = +X:α
 
-The dual is now an involution on (up, dn), with intro's dual the conceal of
+The dual is now an involution on (+, -), with intro's dual the conceal of
 the slot it introduced — the same story as v3, one line shorter.
 
 # Term Typing
@@ -240,11 +244,11 @@ the slot it introduced — the same story as v3, one line shorter.
 
   Σ ; Δ ⊕ (X@α) ⊢ M : C             X ∉ FV(C)
   --------------------------------------------------  (reveal)
-  Σ;Δ ⊢ ν up X:α [ M ] : C
+  Σ;Δ ⊢ ν +X:α [ M ] : C
 
   Σ ; Δ ∖ X ⊢ M : C
   --------------------------------------------------  (conceal)
-  Σ ; Δ ⊢ ν dn X:α [ M ] : C
+  Σ ; Δ ⊢ ν -X:α [ M ] : C
 
   Σ;Δ ⊢ M : A     Σ;Δ ⊢ c : A ↝ B
   --------------------------------
@@ -264,9 +268,9 @@ no scoped variable for α is already in Δ (see the OPEN in §Types).
 Unchanged in shape from v3, with the tags renamed:
 
   Vˢ,Wˢ ::= λx:A. N | ΛX.V
-  V⁻,W⁻ ::= Vˢ | ν dn X:α [ Vˢ ]
+  V⁻,W⁻ ::= Vˢ | ν -X:α [ Vˢ ]
   Vᶜ,Wᶜ ::= V⁻ | Vᶜ⟨c→d⟩ | Vᶜ⟨∀X.c⟩ | Vᶜ⟨-α⟩
-  V⁺,W⁺ ::= Vᶜ | ν new α:=R [ V⁺ ] | ν up X:α [ V⁺ ]
+  V⁺,W⁺ ::= Vᶜ | ν new α:=R [ V⁺ ] | ν +X:α [ V⁺ ]
   V,W   ::= k | V⁺
 
 **OPEN** v3's `χ ≠ ∅` side conditions were there because a tag carried a
@@ -279,7 +283,7 @@ value grammar.  What plays that role here needs deciding; see §Reduction.
 As v3.  A boundary is TERM-CLOSED, so substitution stops at it; a
 conversion is descended into.  Crossing a Λ still wraps a value image:
 
-  crossΛ W  =  ν dn X:α [ W ]        (X, α the Λ's own slot and anchor)
+  crossΛ W  =  ν -X:α [ W ]        (X, α the Λ's own slot and anchor)
 
 NOTE the shift disappears.  In v3 `crossΛ W = ν conceal (0∷[]) [ ⇑ᴹ W ]` —
 the `⇑ᴹ` is there because the Λ's slot is present-but-masked in the
@@ -302,9 +306,9 @@ renumbers; if deletion is positional then W's indices above X do move.
 
   (TyConv)    Δ ⊢ V⟨∀X.c⟩ •B[A] -→ (V A)⟨c⟩
 
-  (TyPos)     Δ ⊢ ᵖ[V⁺] •B[A]   -→ ᵖ[ ν new β:=⌊A⌋ [ (ν dn Y:β [V⁺]) •B[Y]
+  (TyPos)     Δ ⊢ ᵖ[V⁺] •B[A]   -→ ᵖ[ ν new β:=⌊A⌋ [ (ν -Y:β [V⁺]) •B[Y]
                                                        ⟨+β(B[Y])⟩ ] ]
-                                    for ᵖ ∈ { new, up }
+                                    for ᵖ ∈ { new, + }
 
               ← NOTE ⌊A⌋ IS NOT SHIFTED.  v3's TyPos had to lift A into
                 b's interior (`shiftBy (numBindsᵇ b) A`) because the rep
@@ -312,8 +316,8 @@ renumbers; if deletion is positional then W's indices above X do move.
                 anchor-closed rep is position-independent, so it is
                 planted verbatim, at any depth.
 
-  (TyConceal) Δ ⊢ (ν dn Z:α [ΛY.V]) •B[A]
-                -→ ν dn Z:α [ ν new β:=⌊A⌋ [ V⟨+β(B)⟩ ] ]
+  (TyConceal) Δ ⊢ (ν -Z:α [ΛY.V]) •B[A]
+                -→ ν -Z:α [ ν new β:=⌊A⌋ [ V⟨+β(B)⟩ ] ]
 
               ← THE POINT OF v4, FOR ARBITRARY A.  ⌊A⌋ is computed at the
                 REDEX's context, where A is well formed; it is
@@ -325,10 +329,10 @@ renumbers; if deletion is positional then W's indices above X do move.
                 is the instance that shows a term-type field could not
                 work, since Z is precisely what the conceal removes.
 
-  (PushConv)    Δ ⊢ ν dn X:α [Vᶜ⟨cⁱ⟩]  -→ (ν dn X:α [Vᶜ])⟨cⁱ⟩
-  (CancelBnd)   Δ ⊢ ν up X:α [ν dn X:α [M]] -→ M
-                Δ ⊢ ν dn X:α [ν up X:α [M]] -→ M     ← MATCHED BY ANCHOR
-  (PushIntro)   Δ ⊢ ν dn X:α [ν new β:=A [V⁺]] -→ ν new β:=A [ν dn X:α [V⁺]]
+  (PushConv)    Δ ⊢ ν -X:α [Vᶜ⟨cⁱ⟩]  -→ (ν -X:α [Vᶜ])⟨cⁱ⟩
+  (CancelBnd)   Δ ⊢ ν +X:α [ν -X:α [M]] -→ M
+                Δ ⊢ ν -X:α [ν +X:α [M]] -→ M     ← MATCHED BY ANCHOR
+  (PushIntro)   Δ ⊢ ν -X:α [ν new β:=R [V⁺]] -→ ν new β:=R [ν -X:α [V⁺]]
                                     **OPEN** — see below
 
   (ξ)          as v3, with `ᵇ[M]` stepping at the interior context.
@@ -356,7 +360,7 @@ with the conceal's body at `Γ, locked(Z), Y=Z` — Y newer and visible, Z
 older and hidden, which no prefix truncation denotes
 (notes/TyConcealExample.agda).  v4:
 
-  ν dn Z:α [ΛY.V] •(Y→Y)[Z]  -→  ν dn Z:α [ ν new β:=⌊Z⌋ [ V⟨+β(Y→Y)⟩ ] ]
+  ν -Z:α [ΛY.V] •(Y→Y)[Z]  -→  ν -Z:α [ ν new β:=⌊Z⌋ [ V⟨+β(Y→Y)⟩ ] ]
 
 (the instance A = Z, so ⌊A⌋ = α; the rule itself is general in A)
 
@@ -368,7 +372,7 @@ Z's slot is gone — tightness, as a scope condition rather than a mask.
 CHECKS, IN THE ORDER I WOULD DO THEM:
 
  1. Is `PushIntro` still needed?  (If not, the prefix question reopens.)
- 2. Does `AppBnd` at an `up` tag stay well behaved?  The dual round trip
+ 2. Does `AppBnd` at a `+` tag stay well behaved?  The dual round trip
     that v3 needed `lock-unlock` for should become a DELETE-then-INSERT
     identity, which is either free or false depending on how positions
     are renumbered.

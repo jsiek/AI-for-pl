@@ -173,7 +173,7 @@ Determinism: Every term has at most one immediate reduct.
 
   Δ ⊢ (ΛX.V) •B[A]  -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
   Δ ⊢ V⟨∀X.c⟩ •B[A] -→ (V A)⟨c⟩
-  Δ ⊢ ⁺ᵖ[V⁺] •B[A]  -→ ⁺ʸ⁼ᴬ[(⁺ᵖ[⁻ʸ[V⁺] •B[Y]])⟨+Y(B[Y])⟩]
+  Δ ⊢ ⁺ᵖ[V⁺] •B[A]  -→ ⁺ᵖ[⁺ʸ⁼ᴬ[(⁻ʸ[V⁺] •B[Y])⟨+Y(B[Y])⟩]]
                                       (if Y fresh, ⁺ᵖ[V⁺] is a value)
 
      The conversion is NOT optional, and it is the same device TyBeta uses.
@@ -181,6 +181,16 @@ Determinism: Every term has at most one immediate reduct.
      condition `names(b) ∩ FV(B) = ∅` fails (Y IS free in B[Y]) and the
      reduct has type B[Y] where the redex had B[A].  `+Y(B[Y])` strips Y
      back to its representation A, restoring both.
+
+     Y IS INTRODUCED INSIDE ᵖ, NOT OUTSIDE IT.  The binder stack is then
+     Γ, p, Y=A, so Y is the INNERMOST binder and ⁻ʸ hides exactly it while
+     whatever p gave V⁺ stays visible.  With Y outside p the stack is
+     Γ, Y=A, p, and at an intro tag p = +X=A′ the conceal must hide Y while
+     keeping X — which is bound AFTER Y.  That is well typed here, but the
+     hidden set is then not a PREFIX of the context, so it is exactly what
+     the old Γ↓X prefix design could not express: Γ↓Y would drop X too.
+     Concretely, with V₀ = ΛX. ΛZ. λw:X. w, instantiating X at ℕ and then
+     Z at 𝔹 puts ⁻ʸ[Vᶜ] at Γ, Y=𝔹, X=ℕ with Vᶜ naming X.
   Δ ⊢ ⁻ᴸ[ΛY.V] •B[A]-→ ⁺ʸ⁼ᴬ[(⁻ᴸ[V])⟨+Y(B)⟩] (if Y fresh, ⁻ᴸ[ΛY.V] is a value)
                                       // neg. a list χ for this rule
 

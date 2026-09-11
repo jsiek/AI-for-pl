@@ -52,27 +52,36 @@ data Prim : Set where
   p+ : Prim
   p× : Prim
 
-infix  9 `_
+-- THE COLOUR ANNOTATION ⟪ χ ⟫.  Every SOURCE form (notes-v3 §"Source
+-- Terms") carries the set of type variables in scope at that node; the
+-- literals `$ n` / `# v` do not (they mention no type variable), and
+-- neither do the two RUNTIME forms `ν b [ M ]` / `M ⟨ c ⟩`.  The typing
+-- rules below demand `χ ≡ scopeᵗ Δ` at every annotated node, and reduction
+-- only ever TRANSPORTS an annotation (`renᴹ` maps it, strong.TermSubst) —
+-- never recomputes it.  Preservation then forces the colour set at each
+-- source node to be the one it was born with.
+infix  9 `_⟪_⟫
 infix  9 $_
 infix  9 #_
-infixl 8 _•_[_]
-infixl 7 _·_
-infixl 6 _⊕[_]_
-infix  6 ƛ_∙_
+infixl 8 _•_[_]⟪_⟫
+infixl 7 _·_⟪_⟫
+infixl 6 _⊕[_]_⟪_⟫
+infix  6 ƛ_∙_⟪_⟫
+infix  6 Λ_⟪_⟫
 infix  5 ν_[_]
 infix  5 _⟨_⟩
 
 data Term : Set where
-  `_      : ℕ → Term              -- x
-  $_      : ℕ → Term              -- k = n  (numeral, type ℕ)
-  #_      : Bool → Term           -- k = b  (boolean, type 𝔹)
-  _⊕[_]_  : Term → Prim → Term → Term -- M ⊕ N
-  ƛ_∙_    : Ty → Term → Term      -- λx:A. N
-  _·_     : Term → Term → Term    -- L · M
-  Λ_      : Term → Term           -- ΛX. N
-  _•_[_]  : Term → Ty → Ty → Term -- L •B[A]   (B the ∀-body, A the argument)
-  ν_[_]   : Bnd → Term → Term     -- ᵇ[M]      scope boundary (binding first)
-  _⟨_⟩    : Term → Conv → Term    -- M⟨c⟩      conversion
+  `_⟪_⟫     : ℕ → VarSet → Term           -- x
+  $_        : ℕ → Term                    -- k = n  (numeral, type ℕ)
+  #_        : Bool → Term                 -- k = b  (boolean, type 𝔹)
+  _⊕[_]_⟪_⟫ : Term → Prim → Term → VarSet → Term  -- M ⊕ N
+  ƛ_∙_⟪_⟫   : Ty → Term → VarSet → Term   -- λx:A. N
+  _·_⟪_⟫    : Term → Term → VarSet → Term -- L · M
+  Λ_⟪_⟫     : Term → VarSet → Term        -- ΛX. N
+  _•_[_]⟪_⟫ : Term → Ty → Ty → VarSet → Term -- L •B[A]  (writes ]⟪χ⟫)
+  ν_[_]     : Bnd → Term → Term           -- ᵇ[M]  scope boundary
+  _⟨_⟩      : Term → Conv → Term          -- M⟨c⟩  conversion
 
 Ctx : Set
 Ctx = List Ty
@@ -92,25 +101,34 @@ data _∋_⦂_ : Ctx → ℕ → Ty → Set where
 infix 3 _∣_⊢_⦂_
 data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 
-  ⊢` : ∀ {Δ Γ x A} → Γ ∋ x ⦂ A → Δ ∣ Γ ⊢ ` x ⦂ A
+  -- EVERY SOURCE RULE CARRIES `χ ≡ scopeᵗ Δ`: the annotation lists exactly
+  -- the type variables nameable at this node.  This is the whole of the
+  -- colour discipline; nothing else in the judgment changes.
+
+  ⊢` : ∀ {Δ Γ x A χ} → Γ ∋ x ⦂ A → χ ≡ scopeᵗ Δ
+     → Δ ∣ Γ ⊢ ` x ⟪ χ ⟫ ⦂ A
 
   ⊢$ : ∀ {Δ Γ n} → Δ ∣ Γ ⊢ $ n ⦂ `ℕ
 
   ⊢# : ∀ {Δ Γ v} → Δ ∣ Γ ⊢ # v ⦂ `𝔹
 
-  ⊢⊕ : ∀ {Δ Γ M N p} → Δ ∣ Γ ⊢ M ⦂ `ℕ → Δ ∣ Γ ⊢ N ⦂ `ℕ
-     → Δ ∣ Γ ⊢ M ⊕[ p ] N ⦂ `ℕ
+  ⊢⊕ : ∀ {Δ Γ M N p χ} → Δ ∣ Γ ⊢ M ⦂ `ℕ → Δ ∣ Γ ⊢ N ⦂ `ℕ → χ ≡ scopeᵗ Δ
+     → Δ ∣ Γ ⊢ M ⊕[ p ] N ⟪ χ ⟫ ⦂ `ℕ
 
-  ⊢ƛ : ∀ {Δ Γ A B N} → Δ ⊢ᵗ A → Δ ∣ A ∷ Γ ⊢ N ⦂ B
-     → Δ ∣ Γ ⊢ ƛ A ∙ N ⦂ (A ⇒ B)
+  ⊢ƛ : ∀ {Δ Γ A B N χ} → Δ ⊢ᵗ A → Δ ∣ A ∷ Γ ⊢ N ⦂ B → χ ≡ scopeᵗ Δ
+     → Δ ∣ Γ ⊢ ƛ A ∙ N ⟪ χ ⟫ ⦂ (A ⇒ B)
 
-  ⊢· : ∀ {Δ Γ A B L M} → Δ ∣ Γ ⊢ L ⦂ (A ⇒ B) → Δ ∣ Γ ⊢ M ⦂ A
-     → Δ ∣ Γ ⊢ L · M ⦂ B
+  ⊢· : ∀ {Δ Γ A B L M χ} → Δ ∣ Γ ⊢ L ⦂ (A ⇒ B) → Δ ∣ Γ ⊢ M ⦂ A → χ ≡ scopeᵗ Δ
+     → Δ ∣ Γ ⊢ L · M ⟪ χ ⟫ ⦂ B
 
-  ⊢Λ : ∀ {Δ Γ C N} → (unmasked abst ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
+  -- The Λ node's own annotation is the EXTERIOR scope; the body's nodes
+  -- carry `scopeᵗ (unmasked abst ∷ Δ) = 0 ∷ map suc (scopeᵗ Δ)` — the new
+  -- colour, plus the old ones shifted.
+  ⊢Λ : ∀ {Δ Γ C N χ} → (unmasked abst ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ C → χ ≡ scopeᵗ Δ
+     → Δ ∣ Γ ⊢ Λ N ⟪ χ ⟫ ⦂ `∀ C
 
-  ⊢•[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
-       → Δ ∣ Γ ⊢ L • B [ A ] ⦂ B [ A ]ᵗ
+  ⊢•[] : ∀ {Δ Γ A B L χ} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A → χ ≡ scopeᵗ Δ
+       → Δ ∣ Γ ⊢ L • B [ A ]⟪ χ ⟫ ⦂ B [ A ]ᵗ
 
   -- CONVERSION.  c relates the interior type A to the exterior type B; the
   -- term context Γ is unchanged (M⟨c⟩ is not term-closed).
@@ -129,15 +147,20 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
       → Δ ∣ Γ ⊢ ν intro A [ M ] ⦂ B
 
   -- REVEAL  ⁺χ[M].  χ is unlocked for the interior; χ ∩ FV(B) = ∅.
+  -- The premise `Δ ∋lks χ` says the tag tells the truth: every slot it
+  -- unlocks WAS locked.  Without it the dual crossing of AppBnd re-locks
+  -- the argument's own variables and Preservation fails (CtxMorph §2b).
   ⊢reveal : ∀ {Δ Γ M χ B}
-      → χ ∉FVs B → Δ ⊢ᵗ B
+      → χ ∉FVs B → Δ ⊢ᵗ B → Δ ∋lks χ
       → unlockχ χ Δ ∣ [] ⊢ M ⦂ B
         ------------------------------
       → Δ ∣ Γ ⊢ ν reveal χ [ M ] ⦂ B
 
   -- CONCEAL  ⁻χ[M].  χ is locked for the interior; χ ∩ FV(B) = ∅.
+  -- Dually to ⊢reveal, `Δ ∋tvs χ` says every slot the tag locks WAS
+  -- nameable (CtxMorph §2b).
   ⊢conceal : ∀ {Δ Γ M χ B}
-      → χ ∉FVs B → Δ ⊢ᵗ B
+      → χ ∉FVs B → Δ ⊢ᵗ B → Δ ∋tvs χ
       → lockχ χ Δ ∣ [] ⊢ M ⦂ B
         ------------------------------
       → Δ ∣ Γ ⊢ ν conceal χ [ M ] ⦂ B
@@ -189,8 +212,8 @@ data Const : Term → Set where
 -- false (the same defect v2 fixed; notes v2's V-Λ).
 mutual
   data Simple : Term → Set where          -- Vˢ
-    Sƛ : ∀ {A N} → Simple (ƛ A ∙ N)
-    SΛ : ∀ {N}   → Value N → Simple (Λ N)
+    Sƛ : ∀ {A N χ} → Simple (ƛ A ∙ N ⟪ χ ⟫)
+    SΛ : ∀ {N χ}   → Value N → Simple (Λ N ⟪ χ ⟫)
 
   data Neg : Term → Set where             -- V⁻
     Ns : ∀ {M}   → Simple M → Neg M

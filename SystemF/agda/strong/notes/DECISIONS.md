@@ -2631,3 +2631,89 @@ measured in Examples: the Λ clause performs the instantiation itself,
 so one type instantiation mints ONE binder where TyPeelR ⨟ TyBeta minted
 two — J₀ 14 → 11 steps, E₀ 6 → 5 (ends in a value), T₉'s birth story
 2 → 1 step; P₀ Q₀ R₀ L₀ Ri G unchanged.
+
+### RULING: colour annotations on source terms (Jeremy, 2026-09-11)
+
+THE GOAL.  Colour Preservation (notes-v3 §Criteria): the set of type
+variables in scope at every subterm from the SOURCE program is invariant
+under reduction.  Jeremy's plan: annotate every source term node with a
+set of type variables, make the typing rules demand "in scope iff in the
+annotation", and get colour preservation as a COROLLARY of ordinary type
+preservation — the annotation is fixed data that reduction transports but
+never recomputes, so Preservation has to discharge the scope equation at
+every source node.
+
+THE THREE RULINGS.
+
+(1) REPRESENTATION: de Bruijn INDICES, transported by the existing `renᴹ`
+    (an annotation is just more type-variable data in the term).  Every
+    renaming reduction applies (`suc`, `extN k suc`, `extᵗ ρ`) is a
+    monotone injection, so ascending order survives and no new machinery
+    is needed.  Rejected: stable nominal "colour names" (a name supply and
+    freshness side conditions on every binder-minting rule).
+
+(2) THE "IFF": `χ ≡ scopeᵗ Δ`, where
+
+      scopeᵗ : Ctxᵗ → VarSet                      (strong.CtxMorph §1b)
+      scopeᵗ []               = []
+      scopeᵗ (unmasked b ∷ Δ) = 0 ∷ map suc (scopeᵗ Δ)
+      scopeᵗ (masked   b ∷ Δ) =     map suc (scopeᵗ Δ)
+
+    is the ascending, duplicate-free list of NAMEABLE slots.  Adequacy
+    (`scopeᵗ-sound` / `scopeᵗ-complete`): `X ∈χ scopeᵗ Δ ⟺ Δ ∋tv X`.
+    Propositional equality is the cheap choice — the ⊢Λ / ⊢intro / crossΛ
+    cases discharge by `refl` — at the price of an ordered insert
+    (`insertᵒ` / `mergeᵒ`) for the unlocking side, since `_∪_` is `_++_`
+    and is right only for boundary TAGS.  Rejected: pointwise `↔`.
+
+(3) THE ⊢reveal / ⊢conceal HOLE, FIXED FIRST.  Found while planning:
+    Preservation was ALREADY FALSE, with no annotations involved.
+    `crossArg (reveal χ) W = ν conceal χ [ W ]` lands W at
+    `lockχ χ (unlockχ χ Δ)`, which is Δ only if every X ∈ χ was already
+    LOCKED — and ⊢reveal did not require it.  Witness: at
+    Δ = unmasked (bind ℕ) ∷ [] with b = reveal (0 ∷ []) (a vacuous
+    unlock) and W = ƛ ` 0 ∙ ` 0, the AppBnd reduct types W at
+    masked (bind ℕ) ∷ [], where its body's ` 0 is no longer nameable.
+    REPAIR: ⊢reveal gains `Δ ∋lks χ` (every slot locked), ⊢conceal gains
+    `Δ ∋tvs χ` (every slot nameable), with the round trips proved:
+
+      lock-unlock : Δ ∋lks χ → lockχ χ (unlockχ χ Δ) ≡ Δ
+      unlock-lock : Δ ∋tvs χ → unlockχ χ (lockχ χ Δ) ≡ Δ
+
+    (strong.CtxMorph §2c, on the `updateAt` algebra added to strong.Ctx
+    §6: `updateAt-comm`, `updateAt-∘`, `mask-absorb`, `unmask-absorb`,
+    `mask-locked`, `unmask-nameable`).  Both hold for ANY χ, duplicates
+    included.  Every rule that mints a reveal/conceal tag can establish
+    the new premises: crossArg is self-establishing at both polarities,
+    and Commute, MergeConceal, PushIntro, TyConceal, TyPos, PushConv
+    inherit theirs.
+
+WHAT THE ANNOTATION COSTS THE RULES.  Rule by rule, EXACTLY TWO of the
+nineteen move a node across a boundary frame and so must REBUILD its
+annotation — `AppBnd` (the application node lands at `applyᵇ b Δ`) and
+`TyPos` (the type-application node is rebuilt two boundaries deeper).
+Both compute the new set from the node's OWN old set and the tag, with no
+reference to Δ:
+
+  scopeᵇ : Bnd → VarSet → VarSet                  (strong.CtxMorph §5)
+  scopeᵇ (intro A)   χ = 0 ∷ map suc χ
+  scopeᵇ (reveal ψ)  χ = mergeᵒ ψ χ
+  scopeᵇ (conceal ψ) χ = χ ∖ ψ
+
+  LAW (proof phase):  scopeᵇ b (scopeᵗ Δ) ≡ scopeᵗ (applyᵇ b Δ)
+
+Every other rule transports annotations UNCHANGED.  Two that might have
+been expected to change and do not, by a context identity:
+  TyBeta     V's frame goes `unmasked abst ∷ Δ` → `unmasked (bind A) ∷ Δ`
+             — both UNMASKED, same scopeᵗ.  The Λ-bound colour simply
+             BECOMES the intro'd one.
+  TyConceal  `unmasked abst ∷ lockχ χ Δ` = `lockχ (map suc χ)
+             (unmasked (bind A) ∷ Δ)` — literally the same context.
+And crossΛ is colour-exact by `refl`: its interior frame `masked abst ∷ Δ`
+has scopeᵗ `map suc (scopeᵗ Δ)`, exactly what its `renᴹ suc` does to the
+annotations it carries.
+
+OPEN.  Whether rebuilding AppBnd's and TyPos's annotations is the right
+reading of the criterion (the node is reconstructed by the rule, so no
+SURVIVING source node changes colour) or whether those two rules should
+instead be read as violating it, is Jeremy's call at the next check-in.

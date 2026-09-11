@@ -50,17 +50,24 @@ numBindsᵇ-ren ρ (intro A)   = refl
 numBindsᵇ-ren ρ (reveal χ)  = refl
 numBindsᵇ-ren ρ (conceal χ) = refl
 
+-- THE COLOUR ANNOTATIONS MOVE WITH THE TYPE VARIABLES.  An annotation is
+-- a set of de Bruijn indices into the ambient type context, so `renᴹ ρ`
+-- maps ρ over it exactly as it renames every other type-variable
+-- occurrence.  This is what makes the annotation a TRIPWIRE: a rule that
+-- shifts a term but not its type context (or the reverse) breaks
+-- `χ ≡ scopeᵗ Δ` and Preservation catches it.
 renᴹ : Renameᵗ → Term → Term
-renᴹ ρ (` x)          = ` x
-renᴹ ρ ($ n)          = $ n
-renᴹ ρ (# v)          = # v
-renᴹ ρ (M ⊕[ p ] N)   = renᴹ ρ M ⊕[ p ] renᴹ ρ N
-renᴹ ρ (ƛ A ∙ N)      = ƛ renameᵗ ρ A ∙ renᴹ ρ N
-renᴹ ρ (L · M)        = renᴹ ρ L · renᴹ ρ M
-renᴹ ρ (Λ N)          = Λ (renᴹ (extᵗ ρ) N)
-renᴹ ρ (L • B [ A ])  = renᴹ ρ L • renameᵗ (extᵗ ρ) B [ renameᵗ ρ A ]
-renᴹ ρ (ν b [ M ])    = ν renBnd ρ b [ renᴹ (extN (numBindsᵇ b) ρ) M ]
-renᴹ ρ (M ⟨ c ⟩)      = renᴹ ρ M ⟨ renᶜ ρ c ⟩
+renᴹ ρ (` x ⟪ χ ⟫)          = ` x ⟪ map ρ χ ⟫
+renᴹ ρ ($ n)                = $ n
+renᴹ ρ (# v)                = # v
+renᴹ ρ (M ⊕[ p ] N ⟪ χ ⟫)   = renᴹ ρ M ⊕[ p ] renᴹ ρ N ⟪ map ρ χ ⟫
+renᴹ ρ (ƛ A ∙ N ⟪ χ ⟫)      = ƛ renameᵗ ρ A ∙ renᴹ ρ N ⟪ map ρ χ ⟫
+renᴹ ρ (L · M ⟪ χ ⟫)        = renᴹ ρ L · renᴹ ρ M ⟪ map ρ χ ⟫
+renᴹ ρ (Λ N ⟪ χ ⟫)          = Λ (renᴹ (extᵗ ρ) N) ⟪ map ρ χ ⟫
+renᴹ ρ (L • B [ A ]⟪ χ ⟫)   =
+  renᴹ ρ L • renameᵗ (extᵗ ρ) B [ renameᵗ ρ A ]⟪ map ρ χ ⟫
+renᴹ ρ (ν b [ M ])          = ν renBnd ρ b [ renᴹ (extN (numBindsᵇ b) ρ) M ]
+renᴹ ρ (M ⟨ c ⟩)            = renᴹ ρ M ⟨ renᶜ ρ c ⟩
 
 -- Ordinary de Bruijn weakening (a crossing argument's annotations shift).
 wkN : ℕ → Renameᵗ
@@ -85,17 +92,19 @@ extⁿ ρ zero    = zero
 extⁿ ρ (suc x) = suc (ρ x)
 
 -- A boundary is TERM-CLOSED (identity here); a conversion descends.
+-- A TERM renaming touches no type variable, so it leaves every colour
+-- annotation alone.
 renⁿ : (ℕ → ℕ) → Term → Term
-renⁿ ρ (` x)          = ` (ρ x)
-renⁿ ρ ($ n)          = $ n
-renⁿ ρ (# v)          = # v
-renⁿ ρ (M ⊕[ p ] N)   = renⁿ ρ M ⊕[ p ] renⁿ ρ N
-renⁿ ρ (ƛ A ∙ N)      = ƛ A ∙ renⁿ (extⁿ ρ) N
-renⁿ ρ (L · M)        = renⁿ ρ L · renⁿ ρ M
-renⁿ ρ (Λ N)          = Λ (renⁿ ρ N)
-renⁿ ρ (L • B [ A ])  = renⁿ ρ L • B [ A ]
-renⁿ ρ (ν b [ M ])    = ν b [ M ]
-renⁿ ρ (M ⟨ c ⟩)      = renⁿ ρ M ⟨ c ⟩
+renⁿ ρ (` x ⟪ χ ⟫)          = ` (ρ x) ⟪ χ ⟫
+renⁿ ρ ($ n)                = $ n
+renⁿ ρ (# v)                = # v
+renⁿ ρ (M ⊕[ p ] N ⟪ χ ⟫)   = renⁿ ρ M ⊕[ p ] renⁿ ρ N ⟪ χ ⟫
+renⁿ ρ (ƛ A ∙ N ⟪ χ ⟫)      = ƛ A ∙ renⁿ (extⁿ ρ) N ⟪ χ ⟫
+renⁿ ρ (L · M ⟪ χ ⟫)        = renⁿ ρ L · renⁿ ρ M ⟪ χ ⟫
+renⁿ ρ (Λ N ⟪ χ ⟫)          = Λ (renⁿ ρ N) ⟪ χ ⟫
+renⁿ ρ (L • B [ A ]⟪ χ ⟫)   = renⁿ ρ L • B [ A ]⟪ χ ⟫
+renⁿ ρ (ν b [ M ])          = ν b [ M ]
+renⁿ ρ (M ⟨ c ⟩)            = renⁿ ρ M ⟨ c ⟩
 
 shiftᵐ : Term → Term
 shiftᵐ = renⁿ suc
@@ -106,9 +115,13 @@ data Img : Set where
   ivar : ℕ → Img
   ival : Term → Ty → Img
 
-imgTm : Img → Term
-imgTm (ivar x)   = ` x
-imgTm (ival W A) = W
+-- An image replaces a VARIABLE OCCURRENCE, so it is handed the
+-- occurrence's colour annotation: a VARIABLE image inherits it (same
+-- node, same frame), while a VALUE image is term-closed and already
+-- carries its own frame-exact annotations.
+imgTm : Img → VarSet → Term
+imgTm (ivar y)   χ = ` y ⟪ χ ⟫
+imgTm (ival W A) χ = W
 
 shiftᴵ : Img → Img
 shiftᴵ (ivar x)   = ivar (suc x)
@@ -128,17 +141,22 @@ extᴵ : (ℕ → Img) → (ℕ → Img)
 extᴵ σ zero    = ivar zero
 extᴵ σ (suc x) = shiftᴵ (σ x)
 
+-- Likewise for substitution: the annotations of the HOST term are
+-- untouched, and an IMAGE brings its own annotations with it — already
+-- shifted by `⇑ᴵ` when it crosses a Λ (`crossΛ`, whose `renᴹ suc` maps
+-- every annotation it carries, matching the interior frame
+-- `masked abst ∷ Δ` whose scopeᵗ is `map suc (scopeᵗ Δ)`).
 substᵐ : (ℕ → Img) → Term → Term
-substᵐ σ (` x)          = imgTm (σ x)
-substᵐ σ ($ n)          = $ n
-substᵐ σ (# v)          = # v
-substᵐ σ (M ⊕[ p ] N)   = substᵐ σ M ⊕[ p ] substᵐ σ N
-substᵐ σ (ƛ A ∙ N)      = ƛ A ∙ substᵐ (extᴵ σ) N
-substᵐ σ (L · M)        = substᵐ σ L · substᵐ σ M
-substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
-substᵐ σ (L • B [ A ])  = substᵐ σ L • B [ A ]
-substᵐ σ (ν b [ M ])    = ν b [ M ]
-substᵐ σ (M ⟨ c ⟩)      = substᵐ σ M ⟨ c ⟩
+substᵐ σ (` x ⟪ χ ⟫)        = imgTm (σ x) χ
+substᵐ σ ($ n)              = $ n
+substᵐ σ (# v)              = # v
+substᵐ σ (M ⊕[ p ] N ⟪ χ ⟫) = substᵐ σ M ⊕[ p ] substᵐ σ N ⟪ χ ⟫
+substᵐ σ (ƛ A ∙ N ⟪ χ ⟫)    = ƛ A ∙ substᵐ (extᴵ σ) N ⟪ χ ⟫
+substᵐ σ (L · M ⟪ χ ⟫)      = substᵐ σ L · substᵐ σ M ⟪ χ ⟫
+substᵐ σ (Λ N ⟪ χ ⟫)        = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N) ⟪ χ ⟫
+substᵐ σ (L • B [ A ]⟪ χ ⟫) = substᵐ σ L • B [ A ]⟪ χ ⟫
+substᵐ σ (ν b [ M ])        = ν b [ M ]
+substᵐ σ (M ⟨ c ⟩)          = substᵐ σ M ⟨ c ⟩
 
 -- Beta's substitution: N[x:=W : A], the ƛ's annotation A carried so the
 -- crossed-Λ wrapper's type is available (strong.Reduction, `Beta`).

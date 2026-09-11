@@ -677,6 +677,60 @@ mask-∋lk : ∀ {Δ X} → Δ ∋tv X → mask X Δ ∋lk X
 mask-∋lk (unmasked b , d , nameable) =
   _ , updateAt-hit maskEnt maskEnt-comm d , locked
 
+-- THE ALGEBRA OF ONE-SLOT UPDATES.  The SET-level (un)locking of
+-- strong.CtxMorph is a FOLD of these, so its round-trip laws
+-- (`lock-unlock`, `unlock-lock`) need exactly two facts: updates at
+-- DISTINCT slots COMMUTE, and two updates at the SAME slot COMPOSE.
+updateAt-comm : (f g : Ent → Ent) {X Y : ℕ} (Δ : Ctxᵗ) → X ≢ Y
+  → updateAt f X (updateAt g Y Δ) ≡ updateAt g Y (updateAt f X Δ)
+updateAt-comm f g              []      X≢Y = refl
+updateAt-comm f g {zero}  {zero}  (E ∷ Δ) X≢Y = ⊥-elim (X≢Y refl)
+updateAt-comm f g {zero}  {suc Y} (E ∷ Δ) X≢Y = refl
+updateAt-comm f g {suc X} {zero}  (E ∷ Δ) X≢Y = refl
+updateAt-comm f g {suc X} {suc Y} (E ∷ Δ) X≢Y =
+  cong (E ∷_) (updateAt-comm f g Δ (λ eq → X≢Y (cong suc eq)))
+
+updateAt-∘ : (f g h : Ent → Ent) → (∀ E → f (g E) ≡ h E) → (X : ℕ) (Δ : Ctxᵗ)
+  → updateAt f X (updateAt g X Δ) ≡ updateAt h X Δ
+updateAt-∘ f g h fg X       []      = refl
+updateAt-∘ f g h fg zero    (E ∷ Δ) = cong (_∷ Δ) (fg E)
+updateAt-∘ f g h fg (suc X) (E ∷ Δ) = cong (E ∷_) (updateAt-∘ f g h fg X Δ)
+
+-- The lock layer is ABSORBING: a mask swallows a preceding unmask at the
+-- same slot, and dually.  (Compare `unmaskEnt-maskEnt` / `maskEnt-unmask`
+-- above, which are the INVERSE laws and carry a premise; these two are
+-- unconditional.)
+maskEnt-unmaskEnt : (E : Ent) → maskEnt (unmaskEnt E) ≡ maskEnt E
+maskEnt-unmaskEnt (unmasked b) = refl
+maskEnt-unmaskEnt (masked b)   = refl
+
+unmaskEnt-maskEnt′ : (E : Ent) → unmaskEnt (maskEnt E) ≡ unmaskEnt E
+unmaskEnt-maskEnt′ (unmasked b) = refl
+unmaskEnt-maskEnt′ (masked b)   = refl
+
+mask-absorb : (X : ℕ) (Δ : Ctxᵗ) → mask X (unmask X Δ) ≡ mask X Δ
+mask-absorb = updateAt-∘ maskEnt unmaskEnt maskEnt maskEnt-unmaskEnt
+
+unmask-absorb : (X : ℕ) (Δ : Ctxᵗ) → unmask X (mask X Δ) ≡ unmask X Δ
+unmask-absorb = updateAt-∘ unmaskEnt maskEnt unmaskEnt unmaskEnt-maskEnt′
+
+-- A VACUOUS update: masking an already-locked slot, unmasking a nameable
+-- one.  These are what make the round trip land back exactly on Δ when the
+-- tag's slots were in the state the tag claims to change.
+maskEnt-locked : Locked E → maskEnt E ≡ E
+maskEnt-locked locked = refl
+
+unmaskEnt-nameable : Nameable E → unmaskEnt E ≡ E
+unmaskEnt-nameable nameable = refl
+
+mask-locked : ∀ {Δ X} → Δ ∋lk X → mask X Δ ≡ Δ
+mask-locked (_ , ez     , lk) = cong (_∷ _) (maskEnt-locked (Locked-ren⁻ lk))
+mask-locked (_ , es d   , lk) = cong (_ ∷_) (mask-locked (_ , d , Locked-ren⁻ lk))
+
+unmask-nameable : ∀ {Δ X} → Δ ∋tv X → unmask X Δ ≡ Δ
+unmask-nameable (_ , ez   , v) = cong (_∷ _) (unmaskEnt-nameable (renᵉ-Nameable⁻ v))
+unmask-nameable (_ , es d , v) = cong (_ ∷_) (unmask-nameable (_ , d , renᵉ-Nameable⁻ v))
+
 ------------------------------------------------------------------------
 -- 7.  The bind prefix
 ------------------------------------------------------------------------

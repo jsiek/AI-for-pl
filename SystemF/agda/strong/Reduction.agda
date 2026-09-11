@@ -14,6 +14,14 @@ module strong.Reduction where
 --                  outermost binder of a conversion, used by
 --                  `V⟨∀X.c⟩@B[A] -→ (V A)⟨c⟩`.
 --
+-- COLOUR ANNOTATIONS.  `κ` ranges over the colour sets that source nodes
+-- carry (strong.Terms `⟪ κ ⟫`); `χ` still ranges over boundary TAG sets.
+-- EXACTLY TWO rules recompute a κ — `AppBnd` and `TyPos`, the two that
+-- move a node across a boundary — and both compute it from the node's own
+-- old κ and the tag, via `scopeᵇ` (strong.CtxMorph §5).  Every other rule
+-- transports annotations unchanged, which is what makes Preservation
+-- imply colour preservation.
+--
 -- DEFERRED to the proof phase (this file defines the RELATION only):
 --   value-¬step, det (determinism), and the ξ/preservation metatheory.
 
@@ -85,20 +93,27 @@ infix 2 _⊢_-→_
 data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
 
   -- (λx:A.N)·W -→ N[x:=W : A]
-  Beta : ∀ {Δ A N W} → Value W
-    → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ
+  Beta : ∀ {Δ A N W κ₁ κ₂} → Value W
+    → Δ ⊢ (ƛ A ∙ N ⟪ κ₁ ⟫) · W ⟪ κ₂ ⟫ -→ N [ W ∶ A ]ᵐ
 
   -- V⟨c→d⟩·W -→ (V (W⟨c⟩))⟨d⟩       (c = s domain, d = t codomain)
-  ConvFun : ∀ {Δ V W s t} → Value V → Value W
-    → Δ ⊢ (V ⟨ s ↦ t ⟩) · W -→ (V · (W ⟨ s ⟩)) ⟨ t ⟩
+  ConvFun : ∀ {Δ V W s t κ} → Value V → Value W
+    → Δ ⊢ (V ⟨ s ↦ t ⟩) · W ⟪ κ ⟫ -→ (V · (W ⟨ s ⟩) ⟪ κ ⟫) ⟨ t ⟩
 
   -- ᵇ[V⁺]·W -→ ᵇ[V⁺ · ⁻ᵇ[W]]   (if ᵇ[V⁺] is a value).  Generalised past the
   -- notes' `Vˢ` to ANY value under the boundary — closing the Progress gap
   -- for a positive boundary around a non-simple value (audit item).  The
   -- `Value (ν b [ M ])` premise still pins the operator to a value, so it
   -- cannot overlap ξ-·-l.
-  AppBnd : ∀ {Δ M b W} → Value (ν b [ M ]) → Value W
-    → Δ ⊢ (ν b [ M ]) · W -→ ν b [ M · crossArg b W ]
+  --
+  -- COLOUR.  This is ONE OF THE TWO rules that move a node ACROSS a
+  -- boundary: the application node lands at the INTERIOR frame
+  -- `applyᵇ b Δ`, so it is REBUILT with the interior colour set
+  -- `scopeᵇ b κ`.  Everything else — all of M, all of W — keeps the
+  -- annotations it had, W's because the dual crossing restores Δ exactly
+  -- (CtxMorph `lock-unlock` / `unlock-lock`).
+  AppBnd : ∀ {Δ M b W κ} → Value (ν b [ M ]) → Value W
+    → Δ ⊢ (ν b [ M ]) · W ⟪ κ ⟫ -→ ν b [ M · crossArg b W ⟪ scopeᵇ b κ ⟫ ]
 
   -- V⟨-X⟩⟨+X⟩ -→ V              (-X = seal, +X = unseal, same X)
   Cancel : ∀ {Δ V X} → Value V
@@ -113,29 +128,41 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ ν b [ k ] -→ k
 
   -- n₁ ⊕ n₂ -→ n₁ ⟦⊕⟧ n₂
-  PrimBeta : ∀ {Δ p m n}
-    → Δ ⊢ ($ m) ⊕[ p ] ($ n) -→ $ (⟦ p ⟧ᵖ m n)
+  PrimBeta : ∀ {Δ p m n κ}
+    → Δ ⊢ ($ m) ⊕[ p ] ($ n) ⟪ κ ⟫ -→ $ (⟦ p ⟧ᵖ m n)
 
   -- (ΛX.V)@B[A] -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
-  TyBeta : ∀ {Δ V B A} → Value V
-    → Δ ⊢ (Λ V) • B [ A ] -→ ν intro A [ V ⟨ revTy 0 B ⟩ ]
+  -- COLOUR: none changes.  V's frame goes from `unmasked abst ∷ Δ` to
+  -- `unmasked (bind A) ∷ Δ` — both UNMASKED, so scopeᵗ is the same list.
+  -- The Λ-bound colour simply becomes the intro'd one.
+  TyBeta : ∀ {Δ V B A κ₁ κ₂} → Value V
+    → Δ ⊢ (Λ V ⟪ κ₁ ⟫) • B [ A ]⟪ κ₂ ⟫ -→ ν intro A [ V ⟨ revTy 0 B ⟩ ]
 
   -- V⟨∀X.c⟩@B[A] -→ (V A)⟨c[A]⟩.  The source ∀-body A₀ is premise-
   -- determined (conv-src-unique), exactly as v2's TyPeelR did.
-  TyConv : ∀ {Δ V s A₀ B A} → Value V
+  TyConv : ∀ {Δ V s A₀ B A κ} → Value V
     → (unmasked abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B
-    → Δ ⊢ (V ⟨ `∀ s ⟩) • B [ A ] -→ (V • A₀ [ A ]) ⟨ s [ A ]ᶜ ⟩
+    → Δ ⊢ (V ⟨ `∀ s ⟩) • B [ A ]⟪ κ ⟫ -→ (V • A₀ [ A ]⟪ κ ⟫) ⟨ s [ A ]ᶜ ⟩
 
   -- ⁺ᵖ[V⁺]@B[A] -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺]@B[Y]]]   (Y fresh = new binder 0)
-  TyPos : ∀ {Δ M b B A} → Positive b → Value (ν b [ M ])
-    → Δ ⊢ (ν b [ M ]) • B [ A ]
+  --
+  -- COLOUR.  The OTHER boundary-crossing rule: the type-application node
+  -- is rebuilt two boundaries deeper, so its colour set is `κ` pushed
+  -- through the fresh binder and then through the (shifted) tag b.  M's
+  -- own annotations are SHIFTED by the same `renᴹ` that shifts its type
+  -- variables — that shift is the frame-exactness tripwire.
+  TyPos : ∀ {Δ M b B A κ} → Positive b → Value (ν b [ M ])
+    → Δ ⊢ (ν b [ M ]) • B [ A ]⟪ κ ⟫
         -→ ν intro A [ ν renBnd suc b
              [ (ν conceal (0 ∷ []) [ renᴹ (extN (numBindsᵇ b) suc) M ])
-                 • renameᵗ (extᵗ suc) B [ ` 0 ] ] ]
+                 • renameᵗ (extᵗ suc) B [ ` 0 ]⟪
+                     scopeᵇ (renBnd suc b) (scopeᵇ (intro A) κ) ⟫ ] ]
 
   -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]   (Y fresh; V moves out, χ shifts past Y)
-  TyConceal : ∀ {Δ χ V B A} → NonEmpty χ → Value V
-    → Δ ⊢ (ν conceal χ [ Λ V ]) • B [ A ]
+  -- COLOUR: none changes.  V's frame goes from `unmasked abst ∷ lockχ χ Δ`
+  -- to `lockχ (map suc χ) (unmasked (bind A) ∷ Δ)` — the SAME context.
+  TyConceal : ∀ {Δ χ V B A κ₁ κ₂} → NonEmpty χ → Value V
+    → Δ ⊢ (ν conceal χ [ Λ V ⟪ κ₁ ⟫ ]) • B [ A ]⟪ κ₂ ⟫
         -→ ν intro A [ ν conceal (map suc χ) [ V ] ]
 
   -- ⁻χ[Vᶜ⟨cⁱ⟩] -→ ⁻χ[Vᶜ]⟨cⁱ⟩       (cⁱ inert)
@@ -165,12 +192,19 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ ν conceal χ₁ [ ν conceal χ₂ [ M ] ] -→ ν conceal (χ₁ ∪ χ₂) [ M ]
 
   -- congruences
-  ξ-⊕-l : ∀ {Δ L L′ M p} → Δ ⊢ L -→ L′ → Δ ⊢ L ⊕[ p ] M -→ L′ ⊕[ p ] M
-  ξ-⊕-r : ∀ {Δ V M M′ p} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V ⊕[ p ] M -→ V ⊕[ p ] M′
-  ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
-  ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V · M -→ V · M′
-  ξ-•[] : ∀ {Δ L L′ B A} → Δ ⊢ L -→ L′ → Δ ⊢ L • B [ A ] -→ L′ • B [ A ]
-  ξ-Λ   : ∀ {Δ N N′} → (unmasked abst ∷ Δ) ⊢ N -→ N′ → Δ ⊢ Λ N -→ Λ N′
+  -- The congruences keep every annotation, their own included: a
+  -- congruence changes no frame.
+  ξ-⊕-l : ∀ {Δ L L′ M p κ} → Δ ⊢ L -→ L′
+        → Δ ⊢ L ⊕[ p ] M ⟪ κ ⟫ -→ L′ ⊕[ p ] M ⟪ κ ⟫
+  ξ-⊕-r : ∀ {Δ V M M′ p κ} → Value V → Δ ⊢ M -→ M′
+        → Δ ⊢ V ⊕[ p ] M ⟪ κ ⟫ -→ V ⊕[ p ] M′ ⟪ κ ⟫
+  ξ-·-l : ∀ {Δ L L′ M κ} → Δ ⊢ L -→ L′ → Δ ⊢ L · M ⟪ κ ⟫ -→ L′ · M ⟪ κ ⟫
+  ξ-·-r : ∀ {Δ V M M′ κ} → Value V → Δ ⊢ M -→ M′
+        → Δ ⊢ V · M ⟪ κ ⟫ -→ V · M′ ⟪ κ ⟫
+  ξ-•[] : ∀ {Δ L L′ B A κ} → Δ ⊢ L -→ L′
+        → Δ ⊢ L • B [ A ]⟪ κ ⟫ -→ L′ • B [ A ]⟪ κ ⟫
+  ξ-Λ   : ∀ {Δ N N′ κ} → (unmasked abst ∷ Δ) ⊢ N -→ N′
+        → Δ ⊢ Λ N ⟪ κ ⟫ -→ Λ N′ ⟪ κ ⟫
   ξ-⟨⟩  : ∀ {Δ M M′ c} → Δ ⊢ M -→ M′ → Δ ⊢ M ⟨ c ⟩ -→ M′ ⟨ c ⟩
   ξ-ν   : ∀ {Δ M M′ b} → applyᵇ b Δ ⊢ M -→ M′ → Δ ⊢ ν b [ M ] -→ ν b [ M′ ]
 

@@ -125,3 +125,43 @@ step₅ = ξ-Λ (DropConst const-$)
 
 run : Δ₀ ⊢ prog -→* after₅
 run = step₁ then step₂ then step₃ then step₄ then step₅ then done
+
+------------------------------------------------------------------------
+-- 5.  THE cross\Λ WRAPPER, NESTED — one conceal per Λ crossed
+------------------------------------------------------------------------
+
+-- v2's crossΛ was `⇑ᴹ W ⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫`; v3's is
+-- `ν conceal (0 ∷ []) [ ⇑ᴹ W ]`.  Same mechanism, same insertion point
+-- (`⇑ᴵ`, applied by substᵐ's Λ clause).  The only thing v3 dropped is the
+-- identity conversion, because a v3 SCOPE boundary carries no conversion:
+-- ⊢conceal gives the body the same type as the exterior, so there is
+-- nothing for one to mediate.
+
+Δ₂ : Ctxᵗ                      -- Y at slot 0, X at slot 1
+Δ₂ = unmasked abst ∷ unmasked abst ∷ []
+
+-- Crossing TWO Λs wraps twice, each conceal naming its own slot.
+crossΛ-twice : ⇑ᴵ (⇑ᴵ (ival idℕ (`ℕ ⇒ `ℕ)))
+  ≡ ival (ν conceal (0 ∷ []) [ ν conceal (1 ∷ []) [ idℕ ] ]) (`ℕ ⇒ `ℕ)
+crossΛ-twice = refl
+
+-- The innermost frame masks BOTH binders, so the colour set there is ∅ —
+-- exactly what `renᴹ suc` twice does to idℕ's (empty) annotations.
+nested-frame : lockχ (1 ∷ []) (lockχ (0 ∷ []) Δ₂)
+  ≡ masked abst ∷ masked abst ∷ []
+nested-frame = refl
+
+nested-colours : scopeᵗ (lockχ (1 ∷ []) (lockχ (0 ∷ []) Δ₂)) ≡ []
+nested-colours = refl
+
+-- CAUTION FOR THE PROOF PHASE.  The nest is NOT a value — `Nc` demands a
+-- SIMPLE body — so "substituting a value into a value yields a value" is
+-- FALSE in v3.  The image is an ADMINISTRATIVE REDEX, cleared here by
+-- MergeConceal (and in general by PushConv / PushIntro / Commute /
+-- DropConst, one per shape `W` can have).
+nested-merges : Δ₂ ⊢ ν conceal (0 ∷ []) [ ν conceal (1 ∷ []) [ idℕ ] ]
+  -→ ν conceal ((0 ∷ []) ∪ (1 ∷ [])) [ idℕ ]
+nested-merges = MergeConceal Sƛ ne ne
+
+merged-is-value : Value (ν conceal (0 ∷ 1 ∷ []) [ idℕ ])
+merged-is-value = neg→value (Nc ne Sƛ)

@@ -1,259 +1,97 @@
 module strong.Reduction where
 
--- Strong System F — v3 REDUCTION (notes/notes-v3.md §"Reduction Rules").
---
--- The v3 rules, in de Bruijn form.  Two families of runtime forms drive
--- them: the SCOPE BOUNDARY ᵇ[M] = `ν b [ M ]` and the CONVERSION
--- M⟨c⟩ = `M ⟨ c ⟩`.
---
--- Supporting operations defined here:
---   shiftIn b W    the shift the interior of b forces on an entering term:
---                  `⇑ᴹ W` for an `intro` (it binds), W itself otherwise.
---                  The application rule writes its argument crossing
---                  `⁻ᵇ[W]` out in full as `ν dualᵇ b [ shiftIn b W ]`.
---   c [ A ]ᶜ       conversion instantiation — substitute the type A for the
---                  outermost binder of a conversion, used by
---                  `V⟨∀X.c⟩@B[A] -→ (V A)⟨c⟩`.
---
--- COLOUR ANNOTATIONS.  `κ` ranges over the colour sets that source nodes
--- carry (strong.Terms `⟪ κ ⟫`); `χ` still ranges over boundary TAG sets.
--- EXACTLY TWO rules recompute a κ — `AppBnd` and `TyPos`, the two that
--- move a node across a boundary — and both compute it from the node's own
--- old κ and the tag, via `scopeᵇ` (strong.CtxMorph §5).  Every other rule
--- transports annotations unchanged, which is what makes Preservation
--- imply colour preservation.
---
--- DEFERRED to the proof phase (this file defines the RELATION only):
---   value-¬step, det (determinism), and the ξ/preservation metatheory.
+-- Strong System F v7 — small-step reduction for combined boundaries.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
-open import Data.List using (List; []; _∷_; _++_; map; length)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; cong₂; trans; subst)
+open import Data.List using ([]; _∷_; _++_; length)
+open import Data.Maybe using (just)
+open import Data.Product using (_,_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
-open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ
-        ; Substᵗ; substᵗ; extsᵗ; singleTyEnv)
+open import strong.Types using (Ty; `_; `ℕ; `𝔹)
+open import strong.RepresentationTypes using (RepTy; shiftByᴿ)
 open import strong.Ctx
 open import strong.Conversion
-open import strong.Terms
 open import strong.CtxMorph
+open import strong.Terms
 open import strong.TermSubst
 
-------------------------------------------------------------------------
--- 0.  Supporting operations
-------------------------------------------------------------------------
-
--- The de Bruijn shift the interior of a boundary forces on a term
--- ENTERING it.  ONLY `intro` causes one, because only `intro` adds a
--- binder; `reveal`/`conceal` rename nothing.
-shiftIn : Bnd → Term → Term
-shiftIn (intro A)   W = ⇑ᴹ W
-shiftIn (reveal χ)  W = W
-shiftIn (conceal χ) W = W
-
--- The de Bruijn variable underlying a type (junk 0 if not a variable — a
--- seal/unseal is never instantiated at its own bound slot, so the junk
--- branch is dead on well-typed conversions).
-tyVar : Ty → ℕ
-tyVar (` X) = X
-tyVar _     = 0
-
--- Conversion instantiation under a type substitution: id-payloads move by
--- `substᵗ`, seal/unseal names by the variable action of σ, structural on
--- the rest.
-instConvσ : Substᵗ → Conv → Conv
-instConvσ σ (id A)     = id (substᵗ σ A)
-instConvσ σ (seal X)   = seal (tyVar (σ X))
-instConvσ σ (unseal X) = unseal (tyVar (σ X))
-instConvσ σ (s ↦ t)    = instConvσ σ s ↦ instConvσ σ t
-instConvσ σ (`∀ s)     = `∀ (instConvσ (extsᵗ σ) s)
-
--- c [ A ]ᶜ : substitute A for the outermost conversion binder.
-infix 8 _[_]ᶜ
-_[_]ᶜ : Conv → Ty → Conv
-c [ A ]ᶜ = instConvσ (singleTyEnv A) c
-
--- The positive boundary tags (intro / reveal), for the positive
--- type-application rule.
-data Positive : Bnd → Set where
-  pos-intro  : ∀ {A} → Positive (intro A)
-  pos-reveal : ∀ {χ} → Positive (reveal χ)
-
--- The meaning of a primitive operator  ⟦⊕⟧.
 ⟦_⟧ᵖ : Prim → ℕ → ℕ → ℕ
 ⟦ p+ ⟧ᵖ m n = m + n
 ⟦ p× ⟧ᵖ m n = m * n
 
-------------------------------------------------------------------------
--- 1.  The reduction relation
-------------------------------------------------------------------------
-
 infix 2 _⊢_-→_
 data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
+  Beta : ∀ {Δ A N W}
+    → Value W
+    → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ
 
-  -- (λx:A.N)·W -→ N[x:=W : A]
-  Beta : ∀ {Δ A N W κ₁ κ₂} → Value W
-    → Δ ⊢ (ƛ A ∙ N ⟪ κ₁ ⟫) · W ⟪ κ₂ ⟫ -→ N [ W ∶ A ]ᵐ
+  PrimBeta : ∀ {Δ p m n}
+    → Δ ⊢ ($ m) ⊕[ p ] ($ n) -→ $ (⟦ p ⟧ᵖ m n)
 
-  -- V⟨c→d⟩·W -→ (V (W⟨c⟩))⟨d⟩       (c = s domain, d = t codomain)
-  ConvFun : ∀ {Δ V W s t κ} → Value V → Value W
-    → Δ ⊢ (V ⟨ s ↦ t ⟩) · W ⟪ κ ⟫ -→ (V · (W ⟨ s ⟩) ⟪ κ ⟫) ⟨ t ⟩
+  TyBeta : ∀ {Δ V B A R}
+    → Value V → Δ ⊢⌊ A ⌋ R
+    → Δ ⊢ (Λ V) • B [ A ]
+        -→ ν repBind R ∷ [] , reveal zero ∷ []
+              [ V ∣ revTy zero zero A B ]
 
-  -- ᵇ[V⁺]·W -→ ᵇ[V⁺ · ⁻ᵇ[W]]   (if ᵇ[V⁺] is a value).  Generalised past the
-  -- notes' `Vˢ` to ANY value under the boundary — closing the Progress gap
-  -- for a positive boundary around a non-simple value (audit item).  The
-  -- `Value (ν b [ M ])` premise still pins the operator to a value, so it
-  -- cannot overlap ξ-·-l.
-  --
-  -- The argument enters under the DUAL tag `dualᵇ b` (CtxMorph), shifted
-  -- only if b binds.  That crossing restores W's frame EXACTLY —
-  -- `lock-unlock` / `unlock-lock` — so every annotation W carries is
-  -- still right on the inside, and so is every annotation in M.
-  --
-  -- COLOUR.  This is ONE OF THE TWO rules that move a node ACROSS a
-  -- boundary: the application node itself lands at the INTERIOR frame
-  -- `applyᵇ b Δ`, so it is REBUILT with the interior colour set
-  -- `scopeᵇ b κ`.  It is the ONLY thing here whose colours change.
-  AppBnd : ∀ {Δ M b W κ} → Value (ν b [ M ]) → Value W
-    → Δ ⊢ (ν b [ M ]) · W ⟪ κ ⟫
-        -→ ν b [ M · (ν dualᵇ b [ shiftIn b W ]) ⟪ scopeᵇ b κ ⟫ ]
+  Wrap : ∀ {Δ Θ χ V c W c₁ c₂}
+    → Value (ν Θ , χ [ V ∣ c ]) → Value W
+    → arr c ≡ just (c₁ , c₂)
+    → Δ ⊢ (ν Θ , χ [ V ∣ c ]) · W
+        -→ ν Θ , χ
+              [ V ·
+                  (ν [] , dual χ
+                    [ renAnchᴹ (shiftAnchor (length Θ)) W ∣ c₁ ])
+              ∣ c₂ ]
 
-  -- V⟨-X⟩⟨+X⟩ -→ V              (-X = seal, +X = unseal, same X)
-  Cancel : ∀ {Δ V X} → Value V
-    → Δ ⊢ (V ⟨ seal X ⟩) ⟨ unseal X ⟩ -→ V
+  TyWrap : ∀ {Δ ΔΘ Δₕ Θ χ V c B A d R S}
+    → Value V → allView c ≡ just d → Δ ⊢⌊ A ⌋ R
+    → Δ ⊢ˢ (Θ ++ (repBind (shiftByᴿ (length Θ) R) ∷ [])) ⇒ ΔΘ
+    → ΔΘ ⊢χ shiftScope 1 χ ⇒ Δₕ
+    → Δₕ ⊢ shiftByᴿ (suc (length Θ)) R ⇓ S
+    → Δ ⊢ (ν Θ , χ [ Λ V ∣ c ]) • B [ A ]
+        -→ ν (Θ ++ (repBind (shiftByᴿ (length Θ) R) ∷ []))
+              , (shiftScope 1 χ ++ (reveal zero ∷ []))
+              [ V ∣ instReveal zero zero S d ]
 
-  -- V⟨id⟩ -→ V
-  DropId : ∀ {Δ V A} → Value V
-    → Δ ⊢ V ⟨ id A ⟩ -→ V
+  Merge : ∀ {Δ Θ₁ Θ₂ χ₁ χ₂ V c d}
+    → Value (ν Θ₂ , χ₂ [ V ∣ c ])
+    → Δ ⊢ ν Θ₁ , χ₁ [ ν Θ₂ , χ₂ [ V ∣ c ] ∣ d ]
+        -→ ν (Θ₁ ++ Θ₂)
+              , (shiftScope (length Θ₂) χ₁ ++ χ₂)
+              [ V ∣ c ⨟ renConv (λ X → X) (shiftAnchor (length Θ₂)) d ]
 
-  -- ᵇ[k] -→ k                    (k a constant: numeral or boolean)
-  DropConst : ∀ {Δ k b} → Const k
-    → Δ ⊢ ν b [ k ] -→ k
+  Const : ∀ {Δ Θ χ k A}
+    → Literal k → Base A
+    → Δ ⊢ ν Θ , χ [ k ∣ id A ] -→ k
 
-  -- n₁ ⊕ n₂ -→ n₁ ⟦⊕⟧ n₂
-  PrimBeta : ∀ {Δ p m n κ}
-    → Δ ⊢ ($ m) ⊕[ p ] ($ n) ⟪ κ ⟫ -→ $ (⟦ p ⟧ᵖ m n)
-
-  -- (ΛX.V)@B[A] -→ ⁺ˣ⁼ᴬ[V⟨+X(B)⟩]
-  -- COLOUR: none changes.  V's frame goes from `unmasked abst ∷ Δ` to
-  -- `unmasked (bind A) ∷ Δ` — both UNMASKED, so scopeᵗ is the same list.
-  -- The Λ-bound colour simply becomes the intro'd one.
-  TyBeta : ∀ {Δ V B A κ₁ κ₂} → Value V
-    → Δ ⊢ (Λ V ⟪ κ₁ ⟫) • B [ A ]⟪ κ₂ ⟫ -→ ν intro A [ V ⟨ revTy 0 B ⟩ ]
-
-  -- V⟨∀X.c⟩@B[A] -→ (V A)⟨c[A]⟩.  The source ∀-body A₀ is premise-
-  -- determined (conv-src-unique), exactly as v2's TyPeelR did.
-  TyConv : ∀ {Δ V s A₀ B A κ} → Value V
-    → (unmasked abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B
-    → Δ ⊢ (V ⟨ `∀ s ⟩) • B [ A ]⟪ κ ⟫ -→ (V • A₀ [ A ]⟪ κ ⟫) ⟨ s [ A ]ᶜ ⟩
-
-  -- ⁺ᵖ[V⁺]@B[A] -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺]@B[Y]]]   (Y fresh = new binder 0)
-  --
-  -- COLOUR.  The OTHER boundary-crossing rule: the type-application node
-  -- is rebuilt two boundaries deeper, so its colour set is `κ` pushed
-  -- through the fresh binder and then through the (shifted) tag b.  M's
-  -- own annotations are SHIFTED by the same `renᴹ` that shifts its type
-  -- variables — that shift is the frame-exactness tripwire.
-  -- THE FRESH BINDER Y GOES INSIDE b, NOT OUTSIDE IT (Jeremy, 2026-09-11).
-  -- The contractum's binder stack is `Δ, b, Y=A`, so Y is the INNERMOST
-  -- slot and `ν conceal (0 ∷ [])` hides exactly it, leaving whatever b
-  -- gave M visible.  With Y outside b the conceal had to name slot
-  -- `numBindsᵇ b` with M's own binders UNMASKED below it — correct under
-  -- lock/unlock, but a mask that is not a PREFIX of the context, which is
-  -- what rules out the old `Γ↓X` prefix design (notes/TyPosExample.agda
-  -- §7).  Inside, the mask is a prefix again.
-  --
-  -- Three things simplify with the reordering: the tag stays `b` (no
-  -- `renBnd suc`), M's renaming collapses to plain `renᴹ suc` (one new
-  -- slot, at the bottom), and the conceal returns to slot 0.  Two become
-  -- tag-dependent: Y's representation is A lifted into b's interior, and
-  -- the conversion's type carries b's own shifts.
-  --
-  -- THE CONVERSION IS NOT OPTIONAL, and it is the one TyBeta mints.
-  -- Without it the body's type is B[Z:=Y], so ⊢intro's side condition (the
-  -- interior type is ⇑ᵗ of the exterior one, hence Y-free) fails and the
-  -- reduct has type B[Z:=Y] where the redex had B[Z:=A].  It sits directly
-  -- under Y's binder, wrapping the type application.
-  --
-  -- B'S SHIFTS.  M's type already carries `numBindsᵇ b` of them (⊢intro
-  -- hands its body ⇑ᵗ of the exterior type; ⊢reveal hands it the type
-  -- unchanged); `renᴹ suc` adds one more for Y.  At a `reveal` both
-  -- `wkN` expressions collapse to the untagged form.
-  TyPos : ∀ {Δ M b B A κ} → Positive b → Value (ν b [ M ])
-    → Δ ⊢ (ν b [ M ]) • B [ A ]⟪ κ ⟫
-        -→ ν b
-             [ ν intro (shiftBy (numBindsᵇ b) A)
-                 [ ((ν conceal (0 ∷ []) [ renᴹ suc M ])
-                      • renameᵗ (extᵗ (wkN (suc (numBindsᵇ b)))) B
-                        [ ` 0 ]⟪ scopeᵇ (intro A) (scopeᵇ b κ) ⟫)
-                   ⟨ revTy 0 (renameᵗ (extᵗ (wkN (numBindsᵇ b))) B) ⟩ ] ]
-
-  -- ⁻χ[ΛY.V]@B[A] -→ ⁺ʸ⁼ᴬ[(⁻χ[V])⟨+Y(B)⟩]  (Y fresh; V moves out, χ shifts)
-  --
-  -- COLOUR: none changes.  V's frame goes from `unmasked abst ∷ lockχ χ Δ`
-  -- to `lockχ (map suc χ) (unmasked (bind A) ∷ Δ)` — the SAME context.
-  --
-  -- THE CONVERSION is TyBeta's, for TyBeta's reason: this rule too turns a
-  -- Λ-bound variable into an `intro` binder, so without it the body has
-  -- type B — which NAMES that binder — and ⊢intro's `⇑ᵗ` demands a
-  -- binder-free type.  IT MUST SIT OUTSIDE THE CONCEAL.  Inside, the
-  -- body's type would be B[Y:=A] and ⊢conceal would need `χ ∉FVs A`, which
-  -- nothing provides: its premise is `Δ ∋tvs χ` — every slot of χ is
-  -- NAMEABLE in Δ — and A is a type over Δ, so A may name them.  Outside,
-  -- the conceal keeps body type B and needs `map suc χ ∉FVs B`, which is
-  -- exactly the redex's own `χ ∉FVs (`∀ B)`.
-  TyConceal : ∀ {Δ χ V B A κ₁ κ₂} → NonEmpty χ → Value V
-    → Δ ⊢ (ν conceal χ [ Λ V ⟪ κ₁ ⟫ ]) • B [ A ]⟪ κ₂ ⟫
-        -→ ν intro A [ (ν conceal (map suc χ) [ V ]) ⟨ revTy 0 B ⟩ ]
-
-  -- ⁻χ[Vᶜ⟨cⁱ⟩] -→ ⁻χ[Vᶜ]⟨cⁱ⟩       (cⁱ inert)
-  PushConv : ∀ {Δ M c χ} → Cnv M → Inert c
-    → Δ ⊢ ν conceal χ [ M ⟨ c ⟩ ] -→ (ν conceal χ [ M ]) ⟨ c ⟩
-
-  -- ⁺⁰[V⁺] -→ V⁺
-  DropReveal : ∀ {Δ M} → Pos M
-    → Δ ⊢ ν reveal [] [ M ] -→ M
-
-  -- ⁻⁰[Vˢ] -→ Vˢ
-  DropConceal : ∀ {Δ M} → Simple M
-    → Δ ⊢ ν conceal [] [ M ] -→ M
-
-  -- ⁻χ¹[⁺χ²[V⁺]] -→ ⁺χ³[⁻χ⁴[V⁺]]   (χ3 = χ2 ∖ χ1, χ4 = χ1 ∖ χ2)
-  Commute : ∀ {Δ M χ₁ χ₂} → Pos M → NonEmpty χ₁ → NonEmpty χ₂
-    → Δ ⊢ ν conceal χ₁ [ ν reveal χ₂ [ M ] ]
-        -→ ν reveal (χ₂ ∖ χ₁) [ ν conceal (χ₁ ∖ χ₂) [ M ] ]
-
-  -- ⁻χ[⁺ʸ⁼ᴬ[V⁺]] -→ ⁺ʸ⁼ᴬ[⁻χ[V⁺]]   (conceal past intro; χ shifts past Y)
-  PushIntro : ∀ {Δ M A χ} → Pos M → NonEmpty χ
-    → Δ ⊢ ν conceal χ [ ν intro A [ M ] ]
-        -→ ν intro A [ ν conceal (map suc χ) [ M ] ]
-
-  -- ⁻χ¹[⁻χ²[Vˢ]] -→ ⁻χ¹χ²[Vˢ]
-  MergeConceal : ∀ {Δ M χ₁ χ₂} → Simple M → NonEmpty χ₁ → NonEmpty χ₂
-    → Δ ⊢ ν conceal χ₁ [ ν conceal χ₂ [ M ] ] -→ ν conceal (χ₁ ∪ χ₂) [ M ]
-
-  -- congruences
-  -- The congruences keep every annotation, their own included: a
-  -- congruence changes no frame.
-  ξ-⊕-l : ∀ {Δ L L′ M p κ} → Δ ⊢ L -→ L′
-        → Δ ⊢ L ⊕[ p ] M ⟪ κ ⟫ -→ L′ ⊕[ p ] M ⟪ κ ⟫
-  ξ-⊕-r : ∀ {Δ V M M′ p κ} → Value V → Δ ⊢ M -→ M′
-        → Δ ⊢ V ⊕[ p ] M ⟪ κ ⟫ -→ V ⊕[ p ] M′ ⟪ κ ⟫
-  ξ-·-l : ∀ {Δ L L′ M κ} → Δ ⊢ L -→ L′ → Δ ⊢ L · M ⟪ κ ⟫ -→ L′ · M ⟪ κ ⟫
-  ξ-·-r : ∀ {Δ V M M′ κ} → Value V → Δ ⊢ M -→ M′
-        → Δ ⊢ V · M ⟪ κ ⟫ -→ V · M′ ⟪ κ ⟫
-  ξ-•[] : ∀ {Δ L L′ B A κ} → Δ ⊢ L -→ L′
-        → Δ ⊢ L • B [ A ]⟪ κ ⟫ -→ L′ • B [ A ]⟪ κ ⟫
-  ξ-Λ   : ∀ {Δ N N′ κ} → (unmasked abst ∷ Δ) ⊢ N -→ N′
-        → Δ ⊢ Λ N ⟪ κ ⟫ -→ Λ N′ ⟪ κ ⟫
-  ξ-⟨⟩  : ∀ {Δ M M′ c} → Δ ⊢ M -→ M′ → Δ ⊢ M ⟨ c ⟩ -→ M′ ⟨ c ⟩
-  ξ-ν   : ∀ {Δ M M′ b} → applyᵇ b Δ ⊢ M -→ M′ → Δ ⊢ ν b [ M ] -→ ν b [ M′ ]
+  ξ-⊕-l : ∀ {Δ L L′ M p}
+    → Δ ⊢ L -→ L′
+    → Δ ⊢ L ⊕[ p ] M -→ L′ ⊕[ p ] M
+  ξ-⊕-r : ∀ {Δ V M M′ p}
+    → Value V → Δ ⊢ M -→ M′
+    → Δ ⊢ V ⊕[ p ] M -→ V ⊕[ p ] M′
+  ξ-·-l : ∀ {Δ L L′ M}
+    → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
+  ξ-·-r : ∀ {Δ V M M′}
+    → Value V → Δ ⊢ M -→ M′
+    → Δ ⊢ V · M -→ V · M′
+  ξ-•[] : ∀ {Δ L L′ B A}
+    → Δ ⊢ L -→ L′
+    → Δ ⊢ L • B [ A ] -→ L′ • B [ A ]
+  ξ-Λ : ∀ {Δ N N′}
+    → (name zero ∷ abst ∷ Δ) ⊢ N -→ N′
+    → Δ ⊢ Λ N -→ Λ N′
+  ξ-ν : ∀ {Δ ΔΘ Δᵢ Θ χ M M′ c}
+    → Δ ⊢ˢ Θ ⇒ ΔΘ → ΔΘ ⊢χ χ ⇒ Δᵢ
+    → Δᵢ ⊢ M -→ M′
+    → Δ ⊢ ν Θ , χ [ M ∣ c ] -→ ν Θ , χ [ M′ ∣ c ]
 
 infix 2 _⊢_-→*_
 data _⊢_-→*_ : Ctxᵗ → Term → Term → Set where
   done   : ∀ {Δ M} → Δ ⊢ M -→* M
-  _then_ : ∀ {Δ L M N} → Δ ⊢ L -→ M → Δ ⊢ M -→* N → Δ ⊢ L -→* N
+  _then_ : ∀ {Δ L M N}
+    → Δ ⊢ L -→ M → Δ ⊢ M -→* N → Δ ⊢ L -→* N
 
 infixr 2 _then_

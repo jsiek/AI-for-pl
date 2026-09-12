@@ -6,6 +6,7 @@ module strong.All where
 -- the core
 open import strong.Types
 open import strong.TypeSubst
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph

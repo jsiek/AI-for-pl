@@ -112,6 +112,14 @@ its target identity.
 
   Γ ::= ∅ | Γ,α | Γ,α:=R | Γ,X:=α | Γ,x:A
 
+Write `ty(Γ)` for the type-only projection of a context:
+
+  ty(∅)       = ∅
+  ty(Γ,α)     = ty(Γ),α
+  ty(Γ,α:=R)  = ty(Γ),α:=R
+  ty(Γ,X:=α)  = ty(Γ),X:=α
+  ty(Γ,x:A)   = ty(Γ).
+
   ------------
   | Γ ∋ X:=α |
   ------------
@@ -562,11 +570,13 @@ visible source name:
             --------------------
             Γ ⊢ L@B[A] : B[X:=A]
             
-  (Bndry)   Γ ⊢ Θ   Γ++Θ ⊢ χ ⇒ Γᵢ   NF(c)
+  (Bndry)   ty(Γ) ⊢ Θ   ty(Γ)++Θ ⊢ χ ⇒ Γᵢ   NF(c)
             Γᵢ ⊢ M : A
-            Γᵢ ⊢ c : A ⇒ B ⊣ Γ
+            Γᵢ ⊢ c : A ⇒ B ⊣ ty(Γ)
             ----------------------
             Γ ⊢ νΘ,χ[M|c] : B
+
+Thus a boundary body contains no free term variables from its exterior.
 
 # Values
 
@@ -586,6 +596,9 @@ visible source name:
   (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν∅,-X:=α[V|id(A)] ]
   (L @B[C])[x:=V:A]     = L[x:=V:A] @B[C]
   νΘ,χ[M|c] [x:=V]      = νΘ,χ[M|c]                     (skip M)
+
+The last equation is sound because `(Bndry)` types `M` under the
+type-only context `Γᵢ`.
 
 # Reduction Rules
 
@@ -615,7 +628,7 @@ store `⌊A⌋Γ`.  Write `Γ ⊢ M -→ N`, omitting `Γ ⊢` when it is clear.
   (ξ-Λ)     Γ ⊢ Λα,X.N -→ Λα,X.N′
               if Γ,α,X:=α ⊢ N -→ N′
   (ξ-ν)     Γ ⊢ νΘ,χ[M|c] -→ νΘ,χ[M′|c]
-              if χ(Γ++Θ) ⊢ M -→ M′
+              if χ(ty(Γ)++Θ) ⊢ M -→ M′
 
 # Theorem Statements
 
@@ -634,6 +647,7 @@ or there exists an `N` such that
 If
 
   Γ ok
+  ty(Γ) = Γ
   Γ ⊢ M : A
   Γ ⊢ M -→ N
 
@@ -680,7 +694,7 @@ context `Γ`.  Its important clauses are
   -------------------
   Γ ⊢ Λα,X.C ⊣ Γ′
 
-  χ(Γ++Θ) ⊢ C ⊣ Γ′
+  χ(ty(Γ)++Θ) ⊢ C ⊣ Γ′
   ---------------------
   Γ ⊢ νΘ,χ[C | c] ⊣ Γ′
 

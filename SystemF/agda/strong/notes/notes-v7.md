@@ -14,7 +14,8 @@ Determinism: Every term has at most one immediate reduct.
 # Types
 
   X,Y,Z ∈ TyVar
-  A,B,C ::= X | ℕ | 𝔹 | A → B | ∀X.A
+  a,b ::= X | ℕ | 𝔹            (atomic types)
+  A,B,C ::= a | A → B | ∀X.A
 
 # Representation Types
 
@@ -33,32 +34,61 @@ Representation types mention stable anchors, not source type variables.
 
 # Conversions
 
-  c,d   ::= id(X) | id(ι) | c → d | ∀X.c | +X | -X
+  ĉ,ḓ ::= +X | -X | c → d | ∀X.c
+  c,d ::= id(A) | ĉ ∷ c
+
+The builders are indexed by a visible context `Γᵥ` and a concealed context
+`Γₕ`.  If an equation reaches a free occurrence of `X`, its represented
+type is obtained by
+
+  Γᵥ ∋ X:=α   Γᵥ ∋ α:=R   Γₕ ⊢ R ⇓ S
+  ------------------------------------
+  Γᵥ ; Γₕ ⊢ repr(X) = S.
+
+No representation is needed if `X` does not occur.  The context indices
+and `S` are suppressed in the equations below:
 
   -------------
   | +X(A) = c | (reveal X in A)
   | -X(A) = c | (conceal X in A)
   -------------
 
-  +X(X) = +X                   -X(X) = -X
-  +X(Y) = id       (X ≠ Y)     -X(Y) = id       (X ≠ Y)
-  +X(ι) = id                   -X(ι) = id
-  +X(A → B) = -X(A) → +X(B)    -X(A → B) = +X(A) → -X(B)
-  +X(∀Y.A) = ∀Y.+X(A)  (X≠Y)   -X(∀Y.A) = ∀Y.-X(A)  (X ≠ Y)
+Both operations return a conversion in normal form.
 
-  --------------
+  +X(X) = +X ∷ id(S)              -X(X) = -X ∷ id(X)
+  +X(Y) = id(Y)       (X ≠ Y)     -X(Y) = id(Y)       (X ≠ Y)
+  +X(ι) = id(ι)                   -X(ι) = id(ι)
+  +X(A → B) = (-X(A) → +X(B)) ∷ id((A → B)[X:=S])
+  -X(A → B) = (+X(A) → -X(B)) ∷ id(A → B)
+  +X(∀Y.A) = (∀Y.+X(A)) ∷ id((∀Y.A)[X:=S])  (X ≠ Y)
+  -X(∀Y.A) = (∀Y.-X(A)) ∷ id(∀Y.A)          (X ≠ Y)
+  +X(∀X.A) = id(∀X.A)             -X(∀X.A) = id(∀X.A)
+
+  -----------------
   | +X(c) = c′ | (reveal X in c)
   | -X(c) = c′ | (conceal X in c)
-  --------------
+  -----------------
 
-  +X(+Y) = +Y                 -X(+Y) = +Y
-  +X(-Y) = -Y                 -X(-Y) = -Y
-  +X(id(ι)) = id(ι)           -X(id(ι)) = id(ι)
-  +X(id(X)) = +X              -X(id(X)) = -X
-  +X(id(Y)) = id(Y)           -X(id(Y)) = id(Y)       if X ≠ Y
-  +X(c → d) = -X(c) → +X(d)   -X(c → d) = +X(c) → -X(d)
-  +X(∀Y.c) = ∀Y.+X(c)         -X(∀Y.c) = ∀Y.-X(c)     if X ≠ Y
-  +X(∀X.c) = ∀X.c             -X(∀X.c) = ∀X.c
+These operations require `NF(c)` and return a conversion in normal form.
+
+  +X(id(A)) = +X(A)             -X(id(A)) = -X(A)
+  +X(ĉ ∷ c) = +X(ĉ) ⨟ +X(c)
+  -X(ĉ ∷ c) = -X(ĉ) ⨟ -X(c)
+
+On heads, the operations are
+
+  +X(+Y) = +Y ∷ id(B)             -X(+Y) = +Y ∷ id(B)
+  +X(-Y) = -Y ∷ id(B)             -X(-Y) = -Y ∷ id(B)
+  +X(c → d) = (-X(c) → +X(d)) ∷ id(B)
+  -X(c → d) = (+X(c) → -X(d)) ∷ id(B)
+  +X(∀Y.c) = (∀Y.+X(c)) ∷ id(B)  (X ≠ Y)
+  -X(∀Y.c) = (∀Y.-X(c)) ∷ id(B)  (X ≠ Y)
+  +X(∀X.c) = (∀X.c) ∷ id(B)
+  -X(∀X.c) = (∀X.c) ∷ id(B)
+
+Here `B` is the target supplied by the typing derivation of the transformed
+head.  If `X=Y` under `∀Y`, then the head is unchanged and terminated by
+its target identity.
 
 # Runtime Terms
 
@@ -283,53 +313,177 @@ at one endpoint.
   -----------
   Γ,x:A
 
-# Conversion Typing 
+# Conversion-head Typing
 
   Γₑ ∋ X:=α   Γₑ ∋ α:=R   Γᵢ ⊢ R ⇓ A
   ------------------------------------
-  Γᵢ ⊢ -X : A ⇒ X ⊣ Γₑ
+  Γᵢ ⊢̂ -X : A ⇒ X ⊣ Γₑ
 
   Γᵢ ∋ X:=α   Γᵢ ∋ α:=R   Γₑ ⊢ R ⇓ A
   ------------------------------------
-  Γᵢ ⊢ +X : X ⇒ A ⊣ Γₑ
-
-  -----------------------
-  Γᵢ ⊢ id(ι) : ι ⇒ ι ⊣ Γₑ
-
-  Γᵢ ∋ X   Γₑ ∋ X
-  -----------------------
-  Γᵢ ⊢ id(X) : X ⇒ X ⊣ Γₑ
+  Γᵢ ⊢̂ +X : X ⇒ A ⊣ Γₑ
   
   Γₑ ⊢ c : C ⇒ A ⊣ Γᵢ    Γᵢ ⊢ d : B ⇒ D ⊣ Γₑ
   ------------------------------------------
-  Γᵢ ⊢ c → d : (A → B) ⇒ (C → D) ⊣ Γₑ
+  Γᵢ ⊢̂ c → d : (A → B) ⇒ (C → D) ⊣ Γₑ
 
   Γᵢ,α,X:=α ⊢ c : A ⇒ B ⊣ Γₑ,α,X:=α
   ------------------------------------ (α fresh)
-  Γᵢ ⊢ ∀X.c : ∀X.A ⇒ ∀X.B ⊣ Γₑ
+  Γᵢ ⊢̂ ∀X.c : ∀X.A ⇒ ∀X.B ⊣ Γₑ
 
-# Conversion Identity    Id(A)
+# Conversion Typing
 
-  Id(X) = id(X)
-  Id(ℕ) = id(ℕ)
-  Id(𝔹) = id(𝔹)
-  Id(A → B) = Id(A) → Id(B)
-  Id(∀X.A) = ∀X.Id(A)
+  Γᵢ ⊢ A   Γₑ ⊢ A
+  ---------------------
+  Γᵢ ⊢ id(A) : A ⇒ A ⊣ Γₑ
+
+  Γ₁ ⊢̂ ĉ : A ⇒ B ⊣ Γ₂   Γ₂ ⊢ c : B ⇒ C ⊣ Γ₃
+  ---------------------------------------------
+  Γ₁ ⊢ ĉ ∷ c : A ⇒ C ⊣ Γ₃
 
 # Conversion Composition
 
   Suppose:
     Γ₁ ⊢ c : A ⇒ B ⊣ Γ₂
     Γ₂ ⊢ d : B ⇒ C ⊣ Γ₃
+    NF(c)
+    NF(d).
 
-  Γ ⊢ id(X) ⨟ d = d
-  Γ ⊢ c ⨟ id(X) = c
-  Γ ⊢ (c₁ → d₁) ⨟ (c₂ → d₂) = (Γ ⊢ c₂ ⨟ c₁) → (Γ ⊢ d₁ ⨟ d₂)
-  Γ ⊢ (∀X.c) ⨟ (∀X.d) = ∀X.(Γ,X ⊢ c ⨟ d)
-  Γ ⊢ -X ⨟ +X = Id(A)
-    if Γ ∋ X:=α and Γ ∋ α:=R and Γ ⊢ R ⇓ A
-  Γ ⊢ +X ⨟ -X = id(X)
-  
+## Conversion normal forms
+
+Adjacent heads fuse as follows:
+
+  fuseΓ(-X,+X)             = []
+  fuseΓ(+X,-X)             = []
+  fuseΓ(c₁→d₁,c₂→d₂)       = [(c₂ ⨟ c₁) → (d₁ ⨟ d₂)]
+  fuseΓ(∀X.c,∀X.d)         = [∀X.(c ⨟ d)]
+  fuseΓ(ĉ,ḓ)               undefined otherwise.
+
+The cancellation clauses use the conversion-typing derivations at that
+position.  In particular, `-X,+X` has equal non-`X` endpoints and
+`+X,-X` has equal `X` endpoints.
+
+A conversion is in normal form if every conversion inside a `→` or `∀`
+head is normal and `fuseΓ` is undefined on every adjacent pair of heads:
+
+  NF(id(A))
+
+  NF(c)   NF-head(ĉ)   no head ḓ of c makes fuseΓ(ĉ,ḓ) defined
+  ------------------------------------------------------------
+  NF(ĉ ∷ c).
+
+Here `NF-head(c→d)` means `NF(c)` and `NF(d)`;
+`NF-head(∀X.c)` means `NF(c)`; and `NF-head(+X)` and `NF-head(-X)`
+always hold.
+
+## `reduce`
+
+Strip and rebuild the list terminator by
+
+  heads(id(A)) = []                 target(id(A)) = A
+  heads(ĉ ∷ c) = ĉ :: heads(c)      target(ĉ ∷ c) = target(c)
+
+  attach([],A)      = id(A)
+  attach(ĉ::w,A)    = ĉ ∷ attach(w,A).
+
+`contractΓ(w) = scanΓ([],w)`, where the first argument of `scanΓ` is a
+reversed, reduced prefix:
+
+  scanΓ(s,[]) = reverse(s)
+
+  scanΓ([],ĉ::w) = scanΓ([ĉ],w)
+
+  scanΓ(ĉ::s,ḓ::w) = scanΓ(ḓ::ĉ::s,w)
+    if fuseΓ(ĉ,ḓ) is undefined
+
+  scanΓ(ĉ::s,ḓ::w) = scanΓ(s,w)
+    if fuseΓ(ĉ,ḓ) = []
+
+  scanΓ(ĉ::s,ḓ::w) = scanΓ(s,r::w)
+    if fuseΓ(ĉ,ḓ) = [r].
+
+Then composition of two normal conversions is
+
+  reduceΓ(c,d)
+    = attach(contractΓ(heads(c) ++ heads(d)),target(d))
+
+  Γ ⊢ c ⨟ d = reduceΓ(c,d).
+
+Because `c` and `d` are normal, the first contraction, if any, is at
+their seam.  The last clause checks a fused head against its new left
+neighbor.  For example,
+
+  contractΓ([+X,+Y,-Y,-X])
+    = scanΓ([],[+X,+Y,-Y,-X])
+    = scanΓ([+X],[+Y,-Y,-X])
+    = scanΓ([+Y,+X],[-Y,-X])
+    = scanΓ([+X],[-X])
+    = scanΓ([],[])
+    = [].
+
+The recursive calls inside `fuseΓ` are on proper structural children;
+every successful fusion shortens the unprocessed conversion path.
+
+## Normal-form builders
+
+The conversion-building operations have the following contracts:
+
+  if +X(A) = c, then NF(c)
+  if -X(A) = c, then NF(c)
+  NF(id(A))
+  if NF(c) and +X(c) = d, then NF(d)
+  if NF(c) and -X(c) = d, then NF(d)
+  if NF(c), NF(d), and c ⨟ d = e, then NF(e).
+
+The conversion-directed builders use `⨟` at each list seam, so
+cancellation is restored immediately.
+
+## Associativity
+
+The head-list seam lemma is
+
+  contractΓ(contractΓ(w₁ ++ w₂) ++ w₃)
+    = contractΓ(w₁ ++ contractΓ(w₂ ++ w₃)).
+
+Therefore both associations of `⨟` normalize the same word:
+
+  Γ ⊢ (c ⨟ d) ⨟ e = c ⨟ (d ⨟ e).
+
+For example,
+
+  (-Y ∷ id(Y)) ⨟ (+Y ∷ -X ∷ id(X))
+    = -X ∷ id(X).
+
+Thus associativity is computation, not an additional term equivalence.
+
+## Conversion views
+
+For normal, well-typed conversions at function and universal types:
+
+  arr(id(A → B)) = (id(A),id(B))
+  arr((c → d) ∷ id(C → D)) = (c,d)
+
+  all(id(∀X.A)) = id(A)
+  all((∀X.c) ∷ id(∀X.B)) = c.
+
+Typing and normality ensure that these are the only cases.  Thus `arr` and
+`all` are total on their respective typed inputs.
+
+## Composition totality
+
+If
+
+  Γ₁ ⊢ c : A ⇒ B ⊣ Γ₂
+  Γ₂ ⊢ d : B ⇒ C ⊣ Γ₃
+  NF(c)
+  NF(d)
+
+then there is a unique `e` such that
+
+  Γ₁ ⊢ c ⨟ d = e
+  NF(e)
+  Γ₁ ⊢ e : A ⇒ C ⊣ Γ₃.
+
 # Scope-change transition   Γ ⊢ χ ⇒ Γ′
 
   ---------
@@ -401,7 +555,7 @@ visible source name:
             --------------------
             Γ ⊢ L@B[A] : B[X:=A]
             
-  (Bndry)   Γ ⊢ Θ   Γ++Θ ⊢ χ ⇒ Γᵢ
+  (Bndry)   Γ ⊢ Θ   Γ++Θ ⊢ χ ⇒ Γᵢ   NF(c)
             Γᵢ ⊢ M : A
             Γᵢ ⊢ c : A ⇒ B ⊣ Γ
             ----------------------
@@ -410,7 +564,8 @@ visible source name:
 # Values
 
   Vˢ,Wˢ ::= k | λx:A.N | Λα,X.V
-  V,W ::= Vˢ | νθ,χ[Vˢ|c→d] | νθ,χ[Vˢ|∀X.c] | νθ,χ[Vˢ|-X] | νθ,χ[Vˢ|id(X)]
+  V,W ::= Vˢ | νθ,χ[Vˢ|c]
+    where NF(c) and arr(c), all(c), or a type-variable target applies
 
 # Term-variable substitution   N[x := M : A]
 
@@ -421,7 +576,7 @@ visible source name:
   (L · M)[x:=V:A]       = L[x:=V:A] · M[x:=V:A]
   (λx:B. N)[x:=V:A]     = λx:B. N                       (shadow)
   (λy:B. N)[x:=V:A]     = λy:B. N[x:=V:A]               (y ≠ x)
-  (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν∅,-X:=α[V|Id(A)] ]
+  (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν∅,-X:=α[V|id(A)] ]
   (L @B[C])[x:=V:A]     = L[x:=V:A] @B[C]
   νΘ,χ[M|c] [x:=V]      = νΘ,χ[M|c]                     (skip M)
 
@@ -434,10 +589,12 @@ store `⌊A⌋Γ`.  Write `Γ ⊢ M -→ N`, omitting `Γ ⊢` when it is clear.
   (PrimBeta)  Γ ⊢ n₁ ⊕ n₂        -→ n₁ ⟦⊕⟧ n₂
   (TyBeta)    Γ ⊢ (Λα,X.V) •B[A]
               -→ να:=⌊A⌋Γ,+X:=α[ V | +X(B)]
-  (Wrap)      Γ ⊢ νΘ,χ[ V |c→d] · W
-              -→ νΘ,χ[ V · ν∅,-χ[W|c] |d]
-  (TyWrap)    Γ ⊢ νΘ,χ[ Λα,X.V |∀X.c] •B[A]
-              -→ ν(Θ,α:=⌊A⌋Γ),(χ ; (+X:=α))[ V |+X(c)]
+  (Wrap)      Γ ⊢ νΘ,χ[ V |c] · W
+              -→ νΘ,χ[ V · ν∅,-χ[W|c₁] |c₂]
+              if arr(c) = (c₁,c₂)
+  (TyWrap)    Γ ⊢ νΘ,χ[ Λα,X.V |c] •B[A]
+              -→ ν(Θ,α:=⌊A⌋Γ),(χ ; (+X:=α))[ V |+X(d)]
+              if all(c) = d
   (Merge)     Γ ⊢ νΘ₁,χ₁[ νΘ₂,χ₂[ V |c] |d]
               -→ ν(Θ₁++Θ₂),(χ₁;χ₂)[ V |c⨟d]
               if νΘ₂,χ₂[ V |c] is a value
@@ -549,21 +706,24 @@ node in `W`, then
     ⇝[Beta]
   D[M]
 
-  Γ ⊢ ((νΘ,χ[C[M] | c₁→c₂]) · W)
+  Γ ⊢ ((νΘ,χ[C[M] | c]) · W)
     ⇝[Wrap]
   νΘ,χ[C[M] · ν∅,-χ[W | c₁] | c₂]
+    if arr(c) = (c₁,c₂)
 
-  Γ ⊢ ((νΘ,χ[V | c₁→c₂]) · C[M])
+  Γ ⊢ ((νΘ,χ[V | c]) · C[M])
     ⇝[Wrap]
   νΘ,χ[V · ν∅,-χ[C[M] | c₁] | c₂]
+    if arr(c) = (c₁,c₂)
 
   Γ ⊢ ((Λα,X. C[M]) •B[A])
     ⇝[TyBeta]
   να:=⌊A⌋Γ,+X:=α[C[M] | +X(B)]
 
-  Γ ⊢ ((νΘ,χ[Λα,X. C[M] | ∀X.c]) •B[A])
+  Γ ⊢ ((νΘ,χ[Λα,X. C[M] | c]) •B[A])
     ⇝[TyWrap]
-  ν(Θ,α:=⌊A⌋Γ),(χ ; (+X:=α))[C[M] | +X(c)]
+  ν(Θ,α:=⌊A⌋Γ),(χ ; (+X:=α))[C[M] | +X(d)]
+    if all(c) = d
 
   Γ ⊢ νΘ₁,χ₁[νΘ₂,χ₂[C[M] | c] | d]
     ⇝[Merge]
@@ -613,16 +773,18 @@ and
 
   ((Λα,X. λx:X.x) •(X→X)[ℕ]) · 7
   -→⟨ ξ-·-l TyBeta ⟩
-  (να:=ℕ,+X:=α[λx:X.x | -X → +X]) · 7
+  (να:=ℕ,+X:=α[
+     λx:X.x
+   | ((-X ∷ id(X)) → (+X ∷ id(ℕ))) ∷ id(ℕ→ℕ)]) · 7
   -→⟨ Wrap ⟩
   να:=ℕ,+X:=α[
-    (λx:X.x) · ν∅,-X:=α[7 | -X]
-  | +X]
+    (λx:X.x) · ν∅,-X:=α[7 | -X ∷ id(X)]
+  | +X ∷ id(ℕ)]
   -→⟨ ξ-ν Beta ⟩
   να:=ℕ,+X:=α[
-    ν∅,-X:=α[7 | -X]
-  | +X]
-  -→⟨ Merge;  -X ⨟ +X = id(ℕ) ⟩
+    ν∅,-X:=α[7 | -X ∷ id(X)]
+  | +X ∷ id(ℕ)]
+  -→⟨ Merge; (-X ∷ id(X)) ⨟ (+X ∷ id(ℕ)) = id(ℕ) ⟩
   να:=ℕ,((+X:=α) ; (-X:=α))[7 | id(ℕ)]
   -→⟨ Const ⟩
   7.
@@ -673,32 +835,33 @@ required.
   -→⟨ ξ-·-l TyBeta ⟩
   (να:=ℕ,+X:=α[
      λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y]
-   | Id(∀Z.Z→Z) → Id(∀Y.Y→Y)])
+   | id((∀Z.Z→Z) → (∀Y.Y→Y))])
   · (Λγ,Z. λz:Z.z)
   -→⟨ Wrap ⟩
   να:=ℕ,+X:=α[
     (λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y])
-      · ν∅,-X:=α[Λγ,Z. λz:Z.z | Id(∀Z.Z→Z)]
-  | Id(∀Y.Y→Y)]
+      · ν∅,-X:=α[Λγ,Z. λz:Z.z | id(∀Z.Z→Z)]
+  | id(∀Y.Y→Y)]
   -→⟨ ξ-ν Beta ⟩
   να:=ℕ,+X:=α[
     Λβ,Y.
       (ν∅,-Y:=β[
-         ν∅,-X:=α[Λγ,Z. λz:Z.z | Id(∀Z.Z→Z)]
-       | Id(∀Z.Z→Z)]) •(Z→Z)[Y]
-  | Id(∀Y.Y→Y)]
+         ν∅,-X:=α[Λγ,Z. λz:Z.z | id(∀Z.Z→Z)]
+       | id(∀Z.Z→Z)]) •(Z→Z)[Y]
+  | id(∀Y.Y→Y)]
   -→⟨ ξ-ν (ξ-Λ (ξ-• Merge)) ⟩
   να:=ℕ,+X:=α[
     Λβ,Y.
       (ν∅,((-Y:=β) ; (-X:=α))[
-         Λγ,Z. λz:Z.z | Id(∀Z.Z→Z)]) •(Z→Z)[Y]
-  | Id(∀Y.Y→Y)]
+         Λγ,Z. λz:Z.z | id(∀Z.Z→Z)]) •(Z→Z)[Y]
+  | id(∀Y.Y→Y)]
   -→⟨ ξ-ν (ξ-Λ TyWrap) ⟩
   να:=ℕ,+X:=α[
     Λβ,Y.
       νγ:=β,(((-Y:=β) ; (-X:=α)) ; (+Z:=γ))[
-        λz:Z.z | -Z → +Z]
-  | Id(∀Y.Y→Y)].
+        λz:Z.z
+      | ((-Z ∷ id(Z)) → (+Z ∷ id(Y))) ∷ id(Y→Y)]
+  | id(∀Y.Y→Y)].
 
 Before `Merge`, the crossed argument follows
 
@@ -742,3 +905,180 @@ Tracked colors:
   TyWrap     λz and z: {Z}→{Z}; ΛZ and its type application consumed.
 
 Thus every step preserves the type and all tracked colors.
+
+## Cross-name composition and cancellation
+
+Write
+
+  χ  = (-Y:=α) ; (+X:=β)
+  χ̄  = (-X:=β) ; (+Y:=α) = -χ
+  p  = +X ∷ -Y ∷ id(Y)
+  q  = +Y ∷ -X ∷ id(X)
+  p⇒ = (p → id(ℕ)) ∷ id(X→ℕ)
+  q⇒ = (q → id(ℕ)) ∷ id(Y→ℕ)
+  m  = (p⇒ → q⇒) ∷ id((Y→ℕ)→(Y→ℕ))
+  r  = ((-Y ∷ id(Y)) → id(ℕ)) ∷ id(ℕ→ℕ)
+  s  = (
+         (((+X ∷ id(ℕ)) → id(ℕ)) ∷ id(X→ℕ))
+         →
+         (((-X ∷ id(X)) → id(ℕ)) ∷ id(ℕ→ℕ))
+       ) ∷ id((ℕ→ℕ)→(ℕ→ℕ))
+  t  = (
+         (((-Y ∷ id(Y)) → id(ℕ)) ∷ id(ℕ→ℕ))
+         →
+         (((+Y ∷ id(ℕ)) → id(ℕ)) ∷ id(Y→ℕ))
+       ) ∷ id((Y→ℕ)→(Y→ℕ))
+  o  = (t → r) ∷ id(((ℕ→ℕ)→(ℕ→ℕ))→(ℕ→ℕ)).
+
+The source term is closed and has type `ℕ`:
+
+  (
+    ((Λα,Y.
+        λk:((Y→ℕ)→(Y→ℕ)).
+          k · (λy:Y. 0))
+      •(((Y→ℕ)→(Y→ℕ))→(Y→ℕ))[ℕ])
+    ·
+    ((Λβ,X.
+        λf:X→ℕ. λx:X. f · x)
+      •((X→ℕ)→(X→ℕ))[ℕ])
+  )
+  · 5
+  -→⟨ ξ-·-l (ξ-·-l TyBeta) ⟩
+  (
+    (να:=ℕ,+Y:=α[
+       λk:((Y→ℕ)→(Y→ℕ)). k · (λy:Y. 0)
+     | o])
+    ·
+    ((Λβ,X. λf:X→ℕ. λx:X. f · x)
+      •((X→ℕ)→(X→ℕ))[ℕ])
+  )
+  · 5
+  -→⟨ ξ-·-l (ξ-·-r TyBeta) ⟩
+  (
+    (να:=ℕ,+Y:=α[
+       λk:((Y→ℕ)→(Y→ℕ)). k · (λy:Y. 0)
+     | o])
+    ·
+    νβ:=ℕ,+X:=β[
+      λf:X→ℕ. λx:X. f · x
+    | s]
+  )
+  · 5
+  -→⟨ ξ-·-l Wrap ⟩
+  να:=ℕ,+Y:=α[
+    (λk:((Y→ℕ)→(Y→ℕ)). k · (λy:Y. 0))
+    ·
+    ν∅,-Y:=α[
+      νβ:=ℕ,+X:=β[
+        λf:X→ℕ. λx:X. f · x
+      | s]
+    | t]
+  | r]
+  · 5
+  -→⟨ ξ-·-l (ξ-ν (ξ-·-r Merge)) ⟩
+  να:=ℕ,+Y:=α[
+    (λk:((Y→ℕ)→(Y→ℕ)). k · (λy:Y. 0))
+    ·
+    νβ:=ℕ,χ[
+      λf:X→ℕ. λx:X. f · x
+    | m]
+  | r]
+  · 5
+  -→⟨ ξ-·-l (ξ-ν Beta) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      λf:X→ℕ. λx:X. f · x
+    | m]
+    · (λy:Y. 0)
+  | r]
+  · 5
+  -→⟨ ξ-·-l (ξ-ν Wrap) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      (λf:X→ℕ. λx:X. f · x)
+      · ν∅,χ̄[λy:Y. 0 | p⇒]
+    | q⇒]
+  | r]
+  · 5
+  -→⟨ ξ-·-l (ξ-ν (ξ-ν Beta)) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      λx:X. (ν∅,χ̄[λy:Y. 0 | p⇒]) · x
+    | q⇒]
+  | r]
+  · 5
+  -→⟨ Wrap ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      λx:X. (ν∅,χ̄[λy:Y. 0 | p⇒]) · x
+    | q⇒]
+    · ν∅,-Y:=α[5 | -Y ∷ id(Y)]
+  | id(ℕ)]
+  -→⟨ ξ-ν Wrap ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      (λx:X. (ν∅,χ̄[λy:Y. 0 | p⇒]) · x)
+      · ν∅,χ̄[ν∅,-Y:=α[5 | -Y ∷ id(Y)] | q]
+    | id(ℕ)]
+  | id(ℕ)]
+  -→⟨ ξ-ν (ξ-ν (ξ-·-r Merge)) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      (λx:X. (ν∅,χ̄[λy:Y. 0 | p⇒]) · x)
+      · ν∅,(χ̄ ; (-Y:=α))[5 | -X ∷ id(X)]
+    | id(ℕ)]
+  | id(ℕ)]
+  -→⟨ ξ-ν (ξ-ν Beta) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      (ν∅,χ̄[λy:Y. 0 | p⇒])
+      · ν∅,(χ̄ ; (-Y:=α))[5 | -X ∷ id(X)]
+    | id(ℕ)]
+  | id(ℕ)]
+  -→⟨ ξ-ν (ξ-ν Wrap) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      ν∅,χ̄[
+        (λy:Y. 0)
+        · ν∅,χ[ν∅,(χ̄ ; (-Y:=α))[5 | -X ∷ id(X)] | p]
+      | id(ℕ)]
+    | id(ℕ)]
+  | id(ℕ)]
+  -→⟨ ξ-ν (ξ-ν (ξ-ν (ξ-·-r Merge))) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      ν∅,χ̄[
+        (λy:Y. 0)
+        · ν∅,(χ ; χ̄ ; (-Y:=α))[5 | -Y ∷ id(Y)]
+      | id(ℕ)]
+    | id(ℕ)]
+  | id(ℕ)]
+  -→⟨ ξ-ν (ξ-ν (ξ-ν Beta)) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[
+      ν∅,χ̄[0 | id(ℕ)]
+    | id(ℕ)]
+  | id(ℕ)]
+  -→⟨ ξ-ν (ξ-ν Const) ⟩
+  να:=ℕ,+Y:=α[
+    νβ:=ℕ,χ[0 | id(ℕ)]
+  | id(ℕ)]
+  -→⟨ ξ-ν Const ⟩
+  να:=ℕ,+Y:=α[0 | id(ℕ)]
+  -→⟨ Const ⟩
+  0.
+
+The two later merges normalize by associativity and cancellation:
+
+  (-Y ∷ id(Y)) ⨟ q = -X ∷ id(X)
+  (-X ∷ id(X)) ⨟ p = -Y ∷ id(Y).
+
+Preservation and color preservation:
+
+  nodes          color while retained       consumed by
+  -------------------------------------------------------
+  λk, k·(λy.0)   {Y}                        Beta, Wrap
+  λf, λx, f·x    {X}                        Beta, Beta, Wrap
+  λy             {Y}                        Beta
+
+Every term in the trace has type `ℕ`.  Constant colors are untracked.

@@ -241,7 +241,7 @@ at one endpoint.
   ------------------ (α and X fresh)
   Γ ⊢ ∀α.R ⇓ ∀X.A
 
-# Apply Scope Change to Context
+# Scope Change Action on a Context
 
   -------------
   | χ(Γ) = Γ′ |
@@ -253,10 +253,17 @@ at one endpoint.
   (-X:=α)(Γ,β)            = (-X:=α)(Γ),β     (β ≠ α)
   (-X:=α)(Γ,α:=R)         = Γ,α:=R
   (-X:=α)(Γ,β:=R)         = (-X:=α)(Γ),β:=R  (β ≠ α)
-  (-X:=α)(Γ,Y:=α)         = (-X:=α)(Γ)
-  (-X:=α)(Γ,Y:=β)         = (-X:=α)(Γ),Y:=β  (β ≠ α)
+  (-X:=α)(Γ,X:=α)         = Γ
   (-X:=α)(Γ,x:A)          = (-X:=α)(Γ)
   (χ₁ ; χ₂)(Γ)             = χ₂(χ₁(Γ))
+
+There is no equation that carries `-X:=α` through a source-name binding.
+The transition premise `Γ ▷ X:=α` ensures that the rightmost such binding
+is already `X:=α`.  For example,
+
+  α,X:=α,β,Y:=β ⋫ X:=α,
+
+so `-X:=α` cannot be applied until `-Y:=β` has removed `Y:=β`.
 
 # Well-formed Types   Γ ⊢ A
 

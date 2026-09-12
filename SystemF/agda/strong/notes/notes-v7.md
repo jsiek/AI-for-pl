@@ -3,7 +3,7 @@
 Color Preservation: The set of type variables in scope (the "color")
 at every subterm from the source program is invariant under reduction
 (not including the runtime terms: conversions and scope boundaries,
-and not including runtime created terms).
+runtime-created terms, or constant literals).
 
 Progress: Every closed, well-typed term is a value or can take a reduction step.
 
@@ -62,8 +62,9 @@ Representation types mention stable anchors, not source type variables.
 
 # Runtime Terms
 
-  χ ::= ∅ | χ,+X:=α | χ,-X:=α       (scope changes)
-  Θ ::= ∅ | Θ,α:=R | Θ,α            (representation bindings)
+  δ ::= +X:=α | -X:=α                    (atomic scope changes)
+  χ ::= ∅ | δ | χ ; χ                    (scope changes)
+  Θ ::= ∅ | Θ,α:=R | Θ,α                (representation bindings)
   L,M,N ::= ... | νΘ,χ[M|c]
 
   We call νΘ,χ[M|c] a boundary
@@ -73,8 +74,9 @@ Representation types mention stable anchors, not source type variables.
   -----------
 
   -∅                 = ∅
-  -(χ,+X:=α)          = (∅,-X:=α) ++ -χ
-  -(χ,-X:=α)          = (∅,+X:=α) ++ -χ
+  -(+X:=α)            = -X:=α
+  -(-X:=α)            = +X:=α
+  -(χ₁ ; χ₂)           = -χ₂ ; -χ₁
 
 # Contexts and variable lookup
 
@@ -102,6 +104,31 @@ Representation types mention stable anchors, not source type variables.
   Γ ∋ X:=α
   ------------
   (Γ,x:A) ∋ X:=α
+
+# Rightmost visible source name
+
+The judgment `Γ ▷ X:=α` says that `X:=α` is the rightmost visible
+source-name binding in `Γ`.
+
+  -----------------
+  (Γ,X:=α) ▷ X:=α
+
+  Γ ▷ X:=α
+  ---------------
+  (Γ,β) ▷ X:=α
+
+  Γ ▷ X:=α
+  -------------------
+  (Γ,β:=R) ▷ X:=α
+
+  Γ ▷ X:=α
+  -----------------
+  (Γ,x:A) ▷ X:=α
+
+There is no rule through `Y:=β`.  For example,
+
+  α,X:=α,β,Y:=β ▷ Y:=β
+  α,X:=α,β,Y:=β ⋫ X:=α.
 
 
   ---------
@@ -190,15 +217,16 @@ at one endpoint.
   | χ(Γ) = Γ′ |
   -------------
 
-  ∅(Γ) = Γ
-  (χ,+X:=α)(Γ)       = χ(Γ),X:=α
-  (χ,-X:=α)(Γ,α)     = χ(Γ,α)
-  (χ,-X:=α)(Γ,β)     = (χ,-X:=α)(Γ),β     (β ≠ α)
-  (χ,-X:=α)(Γ,α:=R)  = χ(Γ,α:=R)
-  (χ,-X:=α)(Γ,β:=R)  = (χ,-X:=α)(Γ),β:=R  (β ≠ α)
-  (χ,-X:=α)(Γ,Y:=α)  = (χ,-X:=α)(Γ)
-  (χ,-X:=α)(Γ,Y:=β)  = (χ,-X:=α)(Γ),Y:=β  (β ≠ α)
-  (χ,-X:=α)(Γ,x:A)   = (χ,-X:=α)(Γ)
+  ∅(Γ)                    = Γ
+  (+X:=α)(Γ)              = Γ,X:=α
+  (-X:=α)(Γ,α)            = Γ,α
+  (-X:=α)(Γ,β)            = (-X:=α)(Γ),β     (β ≠ α)
+  (-X:=α)(Γ,α:=R)         = Γ,α:=R
+  (-X:=α)(Γ,β:=R)         = (-X:=α)(Γ),β:=R  (β ≠ α)
+  (-X:=α)(Γ,Y:=α)         = (-X:=α)(Γ)
+  (-X:=α)(Γ,Y:=β)         = (-X:=α)(Γ),Y:=β  (β ≠ α)
+  (-X:=α)(Γ,x:A)          = (-X:=α)(Γ)
+  (χ₁ ; χ₂)(Γ)             = χ₂(χ₁(Γ))
 
 # Well-formed Types   Γ ⊢ A
 
@@ -302,18 +330,30 @@ at one endpoint.
     if Γ ∋ X:=α and Γ ∋ α:=R and Γ ⊢ R ⇓ A
   Γ ⊢ +X ⨟ -X = id(X)
   
-# Well-formed χ   Γ ⊢ χ
+# Scope-change transition   Γ ⊢ χ ⇒ Γ′
 
-  -----
-  Γ ⊢ ∅
+  ---------
+  Γ ⊢ ∅ ⇒ Γ
 
-  Γ ⊢ χ   χ(Γ) ∌ X   χ(Γ) ∋ α   χ(Γ) ∌ _:=α
-  ------------------------------------------------
-  Γ ⊢ χ,+X:=α
+  Γ ∌ X   Γ ∋ α   Γ ∌ _:=α
+  -----------------------------------
+  Γ ⊢ +X:=α ⇒ Γ,X:=α
 
-  Γ ⊢ χ   χ(Γ) ∋ X:=α
-  -------------------
-  Γ ⊢ χ,-X:=α
+  Γ ▷ X:=α
+  -----------------------------------
+  Γ ⊢ -X:=α ⇒ (-X:=α)(Γ)
+
+  Γ ⊢ χ₁ ⇒ Γ₁   Γ₁ ⊢ χ₂ ⇒ Γ₂
+  ------------------------------
+  Γ ⊢ χ₁ ; χ₂ ⇒ Γ₂
+
+Thus unmatched reveals are allowed, but every conceal removes the latest
+visible source name:
+
+  α ⊢ +X:=α ⇒ α,X:=α
+
+  α,X:=α,β,Y:=β
+    ⊢ (-Y:=β) ; (-X:=α) ⇒ α,β.
 
 # Well-formed Θ   Γ ⊢ Θ
 
@@ -361,10 +401,10 @@ at one endpoint.
             --------------------
             Γ ⊢ L@B[A] : B[X:=A]
             
-  (Bndry)   Γ ⊢ Θ   Γ++Θ ⊢ χ
-            χ(Γ++Θ) ⊢ M : A
-            χ(Γ++Θ) ⊢ c : A ⇒ B ⊣ Γ
-            -----------------------
+  (Bndry)   Γ ⊢ Θ   Γ++Θ ⊢ χ ⇒ Γᵢ
+            Γᵢ ⊢ M : A
+            Γᵢ ⊢ c : A ⇒ B ⊣ Γ
+            ----------------------
             Γ ⊢ νΘ,χ[M|c] : B
 
 # Values
@@ -381,7 +421,7 @@ at one endpoint.
   (L · M)[x:=V:A]       = L[x:=V:A] · M[x:=V:A]
   (λx:B. N)[x:=V:A]     = λx:B. N                       (shadow)
   (λy:B. N)[x:=V:A]     = λy:B. N[x:=V:A]               (y ≠ x)
-  (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν-X:=α[V|Id(A)] ]
+  (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν∅,-X:=α[V|Id(A)] ]
   (L @B[C])[x:=V:A]     = L[x:=V:A] @B[C]
   νΘ,χ[M|c] [x:=V]      = νΘ,χ[M|c]                     (skip M)
 
@@ -397,9 +437,9 @@ store `⌊A⌋Γ`.  Write `Γ ⊢ M -→ N`, omitting `Γ ⊢` when it is clear.
   (Wrap)      Γ ⊢ νΘ,χ[ V |c→d] · W
               -→ νΘ,χ[ V · ν∅,-χ[W|c] |d]
   (TyWrap)    Γ ⊢ νΘ,χ[ Λα,X.V |∀X.c] •B[A]
-              -→ ν(Θ,α:=⌊A⌋Γ),(χ,+X:=α)[ V |+X(c)]
+              -→ ν(Θ,α:=⌊A⌋Γ),(χ ; (+X:=α))[ V |+X(c)]
   (Merge)     Γ ⊢ νΘ₁,χ₁[ νΘ₂,χ₂[ V |c] |d]
-              -→ ν(Θ₁,Θ₂),(χ₁++χ₂)[ V |c⨟d]
+              -→ ν(Θ₁++Θ₂),(χ₁;χ₂)[ V |c⨟d]
               if νΘ₂,χ₂[ V |c] is a value
   (Const)     Γ ⊢ νΘ,χ[ k |id(ι)] -→ k
 
@@ -491,8 +531,9 @@ if the focused source node `M` has descendant `N`.  Nodes copied by a rule
 retain the focus.  Substitution relates each node of the substituted value
 to every copy of that node.  Nodes created by a reduction rule, including
 new application and type-application nodes, cannot receive the focus.
-Consumed nodes have no descendant.  Write `Γ ⊢ C[M] ⇝[rs]* D[N]` for
-the reflexive, transitive closure along `rs`.
+Constant literals cannot receive the focus.  Consumed nodes have no
+descendant.  Write `Γ ⊢ C[M] ⇝[rs]* D[N]` for the reflexive, transitive
+closure along `rs`.
 
 Some representative clauses follow.  In the first `Beta` clause,
 substitution acts on a one-hole context without filling its hole.
@@ -522,11 +563,11 @@ node in `W`, then
 
   Γ ⊢ ((νΘ,χ[Λα,X. C[M] | ∀X.c]) •B[A])
     ⇝[TyWrap]
-  ν(Θ,α:=⌊A⌋Γ),(χ,+X:=α)[C[M] | +X(c)]
+  ν(Θ,α:=⌊A⌋Γ),(χ ; (+X:=α))[C[M] | +X(c)]
 
   Γ ⊢ νΘ₁,χ₁[νΘ₂,χ₂[C[M] | c] | d]
     ⇝[Merge]
-  ν(Θ₁,Θ₂),(χ₁++χ₂)[C[M] | c⨟d]
+  ν(Θ₁++Θ₂),(χ₁ ; χ₂)[C[M] | c⨟d]
 
 Residuals lift through an unchanged surrounding context:
 
@@ -540,7 +581,7 @@ other source-shaped node introduced by reduction.
 
 Color preservation states that if
 
-  C[M] is a source term
+  M is a non-literal source node
   ∅ ⊢ C[M] : A
   ∅ ⊢ C[M] -→* D[N]               by rs
   ∅ ⊢ C[M] ⇝[rs]* D[N]
@@ -553,7 +594,7 @@ then
 
 ## Scope-change preservation
 
-If `Γ ok`, `Γ ⊢ χ`, and `χ(Γ) = Γ′`, then `Γ′ ok`.
+If `Γ ok` and `Γ ⊢ χ ⇒ Γ′`, then `Γ′ ok`.
 
 ## Representation soundness
 
@@ -568,24 +609,136 @@ and
 
 # Examples
 
-## `Beta` followed by `TyWrap`
+## `Examples.agda` §6: polymorphic identity
 
-  (λg:∀Y.Y→Y. Λζ,Z. g •(Y→Y)[Z]) · (Λη,Y. λy:Y.y)
-  -→⟨ Beta ⟩
-  Λζ,Z. (ν∅,-Z:=ζ[Λη,Y. λy:Y.y | Id(∀Y.Y→Y)]) •(Y→Y)[Z]
-  -→⟨ TyWrap ⟩
-  Λζ,Z. νη:=ζ,(-Z:=ζ,+Y:=η)[ λy:Y.y | -Y → +Y ]
+  ((Λα,X. λx:X.x) •(X→X)[ℕ]) · 7
+  -→⟨ ξ-·-l TyBeta ⟩
+  (να:=ℕ,+X:=α[λx:X.x | -X → +X]) · 7
+  -→⟨ Wrap ⟩
+  να:=ℕ,+X:=α[
+    (λx:X.x) · ν∅,-X:=α[7 | -X]
+  | +X]
+  -→⟨ ξ-ν Beta ⟩
+  να:=ℕ,+X:=α[
+    ν∅,-X:=α[7 | -X]
+  | +X]
+  -→⟨ Merge;  -X ⨟ +X = id(ℕ) ⟩
+  να:=ℕ,((+X:=α) ; (-X:=α))[7 | id(ℕ)]
+  -→⟨ Const ⟩
+  7.
 
-At the `TyWrap` step, the exterior context is
+The merged scope change is admitted by
 
-  ΓZ = Γ,ζ,Z:=ζ
+  α:=ℕ ⊢ +X:=α ⇒ α:=ℕ,X:=α
+  α:=ℕ,X:=α ⊢ -X:=α ⇒ α:=ℕ
 
-Thus
+and hence
 
-  ⌊Z⌋ΓZ = ζ.
+  α:=ℕ ⊢ (+X:=α) ; (-X:=α) ⇒ α:=ℕ.
 
-The interior context is
+Preservation:
 
-  (-Z:=ζ,+Y:=η)(ΓZ,η:=ζ)
-    = (+Y:=η)(Γ,ζ,η:=ζ)
-    = Γ,ζ,η:=ζ,Y:=η.
+  step       redex type   reduct type
+  -----------------------------------
+  TyBeta     ℕ             ℕ
+  Wrap       ℕ             ℕ
+  Beta       ℕ             ℕ
+  Merge      ℕ             ℕ
+  Const      ℕ             ℕ
+
+Color preservation for non-literal source nodes:
+
+  step       descendants
+  --------------------------------------------------
+  TyBeta     application: ∅→∅;  λ and x: {X}→{X}
+  Wrap       λ and x: {X}→{X};  application consumed
+  Beta       λ and x consumed
+  Merge      none
+  Const      none
+
+The application introduced by `Wrap` and the literal `7` are untracked.
+The literal's colors are
+
+  ∅ → ∅ → ∅ → ∅ → ∅ → ∅.
+
+Thus the example also preserves its literal's color, though this is not
+required.
+
+## `Examples.agda` §14: polymorphic argument under `Λ`
+
+  ((Λα,X.
+      λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y])
+    •((∀Z.Z→Z)→(∀Y.Y→Y))[ℕ])
+  · (Λγ,Z. λz:Z.z)
+  -→⟨ ξ-·-l TyBeta ⟩
+  (να:=ℕ,+X:=α[
+     λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y]
+   | Id(∀Z.Z→Z) → Id(∀Y.Y→Y)])
+  · (Λγ,Z. λz:Z.z)
+  -→⟨ Wrap ⟩
+  να:=ℕ,+X:=α[
+    (λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y])
+      · ν∅,-X:=α[Λγ,Z. λz:Z.z | Id(∀Z.Z→Z)]
+  | Id(∀Y.Y→Y)]
+  -→⟨ ξ-ν Beta ⟩
+  να:=ℕ,+X:=α[
+    Λβ,Y.
+      (ν∅,-Y:=β[
+         ν∅,-X:=α[Λγ,Z. λz:Z.z | Id(∀Z.Z→Z)]
+       | Id(∀Z.Z→Z)]) •(Z→Z)[Y]
+  | Id(∀Y.Y→Y)]
+  -→⟨ ξ-ν (ξ-Λ (ξ-• Merge)) ⟩
+  να:=ℕ,+X:=α[
+    Λβ,Y.
+      (ν∅,((-Y:=β) ; (-X:=α))[
+         Λγ,Z. λz:Z.z | Id(∀Z.Z→Z)]) •(Z→Z)[Y]
+  | Id(∀Y.Y→Y)]
+  -→⟨ ξ-ν (ξ-Λ TyWrap) ⟩
+  να:=ℕ,+X:=α[
+    Λβ,Y.
+      νγ:=β,(((-Y:=β) ; (-X:=α)) ; (+Z:=γ))[
+        λz:Z.z | -Z → +Z]
+  | Id(∀Y.Y→Y)].
+
+Before `Merge`, the crossed argument follows
+
+  α:=ℕ,X:=α,β,Y:=β ⊢ -Y:=β ⇒ α:=ℕ,X:=α,β
+  α:=ℕ,X:=α,β ⊢ -X:=α ⇒ α:=ℕ,β.
+
+Hence the composed boundary is admitted:
+
+  α:=ℕ,X:=α,β,Y:=β
+    ⊢ (-Y:=β) ; (-X:=α) ⇒ α:=ℕ,β.
+
+At `TyWrap`,
+
+  ⌊Y⌋(α:=ℕ,X:=α,β,Y:=β) = β.
+
+Its scope transition is
+
+  α:=ℕ,X:=α,β,Y:=β,γ:=β
+    ⊢ ((-Y:=β) ; (-X:=α)) ; (+Z:=γ)
+    ⇒ α:=ℕ,β,γ:=β,Z:=γ.
+
+Checks:
+
+  step       redex type   reduct type
+  ---------------------------------------
+  TyBeta     ∀Y.Y→Y        ∀Y.Y→Y
+  Wrap       ∀Y.Y→Y        ∀Y.Y→Y
+  Beta       ∀Y.Y→Y        ∀Y.Y→Y
+  Merge      ∀Y.Y→Y        ∀Y.Y→Y
+  TyWrap     ∀Y.Y→Y        ∀Y.Y→Y
+
+Tracked colors:
+
+  step       descendants
+  ---------------------------------------------------------------------
+  TyBeta     λf and ΛY: {X}→{X}; f and its type application: {X,Y}→{X,Y}
+  Wrap       λf: {X}→{X}; ΛZ: ∅→∅; λz and z: {Z}→{Z}
+  Beta       ΛY: {X}→{X}; f's type application: {X,Y}→{X,Y};
+             ΛZ: ∅→∅; λz and z: {Z}→{Z}
+  Merge      ΛZ: ∅→∅; λz and z: {Z}→{Z}
+  TyWrap     λz and z: {Z}→{Z}; ΛZ and its type application consumed.
+
+Thus every step preserves the type and all tracked colors.

@@ -23,7 +23,7 @@ module strong.proof.AnchorWeaken where
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; _<_; _∸_; s≤s; z≤n)
 open import Data.Nat.Properties using
   (_<?_; +-suc; ≤-refl; ≤-trans; n≤1+n; <-irrefl; ≤∧≢⇒<; <⇒≱; +-cancelˡ-≡)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; length)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
@@ -36,7 +36,9 @@ open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms
+open import strong.TermSubst using (renAnchᴹ; idᵗ-ren)
 open import strong.proof.RenameAlgebra
+open import strong.proof.NormalFormRename using (Injᴿ; NF-ren)
 
 private
   variable
@@ -408,3 +410,94 @@ mutual
     with wk-exists f₁ Δmid (sym (head-count hd))
   wk-conv hid f₁ f₃ (conv-cons hd tl) | Δmid′ , f₂ =
     conv-cons (wk-head hid f₁ f₂ hd) (wk-conv hid f₂ f₃ tl)
+
+------------------------------------------------------------------------
+-- Stores and scope changes
+------------------------------------------------------------------------
+
+-- `renStore` lifts its renaming as it descends into Θ; `extendAnchor`
+-- lifts |Θ| times at the outside.  The two agree, structurally.
+extendAnchor-extᴿ : ∀ n (ρ : Renameᴿ)
+  → extendAnchor n (extᴿ ρ) ≡ extᴿ (extendAnchor n ρ)
+extendAnchor-extᴿ zero ρ = refl
+extendAnchor-extᴿ (suc n) ρ = cong extᴿ (extendAnchor-extᴿ n ρ)
+
+pop-count : ∀ {Δ Δ₂ α} → Δ ▷ α ↘ Δ₂ → anchorCount Δ ≡ anchorCount Δ₂
+pop-count pop-here = refl
+pop-count (pop-abst q) = cong suc (pop-count q)
+pop-count (pop-bind q) = cong suc (pop-count q)
+
+blk-pop : ∀ {k Δ Δ′ Δ₂ α} → Block k Δ Δ′ → Δ ▷ α ↘ Δ₂
+  → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ▷ (k + α) ↘ Δ₂′) × Block k Δ₂ Δ₂′)
+blk-pop blk[] q = _ , q , blk[]
+blk-pop (blk-abst b) q with blk-pop b q
+blk-pop (blk-abst b) q | Δ₂′ , q′ , b′ = _ , pop-abst q′ , blk-abst b′
+blk-pop (blk-bind b) q with blk-pop b q
+blk-pop (blk-bind b) q | Δ₂′ , q′ , b′ = _ , pop-bind q′ , blk-bind b′
+
+wk-pop : ∀ {k p ρ Δ Δ′ Δ₂ α} → Wk k p ρ Δ Δ′ → Δ ▷ α ↘ Δ₂
+  → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ▷ ρ α ↘ Δ₂′) × Wk k p ρ Δ₂ Δ₂′)
+wk-pop {k = k} {Δ₂ = Δ₂} (wk-base b) q with blk-pop b q
+wk-pop {k = k} {Δ₂ = Δ₂} (wk-base b) q | Δ₂′ , q′ , b′ =
+  Δ₂′ , q′ ,
+  subst (λ n → Wk k n (shiftAnchor k) Δ₂ Δ₂′)
+    (sym (pop-count q)) (wk-base b′)
+wk-pop (wk-abst f) (pop-abst q) with wk-pop f q
+wk-pop (wk-abst f) (pop-abst q) | Δ₂′ , q′ , g = _ , pop-abst q′ , wk-abst g
+wk-pop (wk-bind f) (pop-bind q) with wk-pop f q
+wk-pop (wk-bind f) (pop-bind q) | Δ₂′ , q′ , g = _ , pop-bind q′ , wk-bind g
+wk-pop (wk-name f) pop-here = _ , pop-here , f
+
+wk-change : ∀ {k p ρ Δ Δ′ Δ₂ δ} → Wk k p ρ Δ Δ′ → Δ ⊢δ δ ⇒ Δ₂
+  → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ⊢δ renChange ρ δ ⇒ Δ₂′) × Wk k p ρ Δ₂ Δ₂′)
+wk-change f (step-reveal a u) =
+  _ , step-reveal (wk-a f a) (wk-unoccupied f u) , wk-name f
+wk-change f (step-conceal q) with wk-pop f q
+wk-change f (step-conceal q) | Δ₂′ , q′ , g = Δ₂′ , step-conceal q′ , g
+
+wk-scope : ∀ {k p ρ Δ Δ′ Δ₂ χ} → Wk k p ρ Δ Δ′ → Δ ⊢χ χ ⇒ Δ₂
+  → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ⊢χ renScope ρ χ ⇒ Δ₂′) × Wk k p ρ Δ₂ Δ₂′)
+wk-scope f scope[] = _ , scope[] , f
+wk-scope f (scope∷ d s) with wk-change f d
+wk-scope f (scope∷ d s) | Δ₁′ , d′ , g with wk-scope g s
+wk-scope f (scope∷ d s) | Δ₁′ , d′ , g | Δ₂′ , s′ , g′ =
+  Δ₂′ , scope∷ d′ s′ , g′
+
+wk-store : ∀ {k p ρ Δ Δ′ Δ₂ Θ} → Wk k p ρ Δ Δ′ → Δ ⊢ˢ Θ ⇒ Δ₂
+  → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ⊢ˢ renStore ρ Θ ⇒ Δ₂′)
+      × Wk k p (extendAnchor (length Θ) ρ) Δ₂ Δ₂′)
+wk-store f store[] = _ , store[] , f
+wk-store {k = k} {p = p} {ρ = ρ} {Δ₂ = Δ₂} f (store-abst {Θ = Θ} s)
+  with wk-store (wk-abst f) s
+wk-store {k = k} {p = p} {ρ = ρ} {Δ₂ = Δ₂} f (store-abst {Θ = Θ} s)
+  | Δ₂′ , s′ , g =
+  Δ₂′ , store-abst s′ ,
+  subst (λ σ → Wk k p σ Δ₂ Δ₂′) (extendAnchor-extᴿ (length Θ) ρ) g
+wk-store {k = k} {p = p} {ρ = ρ} {Δ₂ = Δ₂} f (store-bind {Θ = Θ} wf s)
+  with wk-store (wk-bind f) s
+wk-store {k = k} {p = p} {ρ = ρ} {Δ₂ = Δ₂} f (store-bind {Θ = Θ} wf s)
+  | Δ₂′ , s′ , g =
+  Δ₂′ , store-bind (wk-wfᴿ f wf) s′ ,
+  subst (λ σ → Wk k p σ Δ₂ Δ₂′) (extendAnchor-extᴿ (length Θ) ρ) g
+
+------------------------------------------------------------------------
+-- Terms
+------------------------------------------------------------------------
+
+wk-⊢ : ∀ {k p ρ Δ Δ′ Γ M A} → Wk k p ρ Δ Δ′
+  → Δ ∣ Γ ⊢ M ⦂ A → Δ′ ∣ Γ ⊢ renAnchᴹ ρ M ⦂ A
+wk-⊢ f (⊢` x) = ⊢` x
+wk-⊢ f ⊢$ = ⊢$
+wk-⊢ f ⊢# = ⊢#
+wk-⊢ f (⊢⊕ l r) = ⊢⊕ (wk-⊢ f l) (wk-⊢ f r)
+wk-⊢ f (⊢ƛ wf body) = ⊢ƛ (wk-wf f wf) (wk-⊢ f body)
+wk-⊢ f (⊢· l r) = ⊢· (wk-⊢ f l) (wk-⊢ f r)
+wk-⊢ f (⊢Λ body) = ⊢Λ (wk-⊢ (wk-Λ f) body)
+wk-⊢ f (⊢•[] l wf) = ⊢•[] (wk-⊢ f l) (wk-wf f wf)
+wk-⊢ f (⊢ν store scope nf body conv) with wk-store f store
+wk-⊢ f (⊢ν store scope nf body conv) | ΔΘ′ , store′ , g
+  with wk-scope g scope
+wk-⊢ f (⊢ν store scope nf body conv) | ΔΘ′ , store′ , g
+  | Δᵢ′ , scope′ , g′ =
+  ⊢ν store′ scope′ (NF-ren (wk-inj g) nf)
+     (wk-⊢ g′ body) (wk-conv (λ X → refl) g′ g conv)

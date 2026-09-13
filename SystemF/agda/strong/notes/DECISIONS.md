@@ -3369,3 +3369,70 @@ typing, terms — and the store (Θ's entries would push on as
 `anch concealed b`, which is the natural reading).  TyBeta's `abst ↦ bind`
 transport survives as a flip of the BINDING field with the visibility left
 alone.
+
+#### Open (2026-09-13): `arr` reads the syntax, but the re-indexing is in the TYPING
+
+`preserve-Wrap` is FALSE as the rule stands.  `notes/probes/V7ArrViewProbe.agda`
+checks under --safe.
+
+    νΘ,χ[V|c] · W  -→  νΘ,χ[ V · ν∅,-χ[W|c₁] | c₂ ]      arr c = (c₁,c₂)
+
+The contractum's boundary carries `c₂`, so by `⊢ν` its type is
+`target c₂`; the redex's type is the CODOMAIN of `c`'s target.  `arr`
+cannot make those agree, because it reads the syntax alone.
+
+WHY.  A conversion is a list of heads terminated by `id T`, and `conv-id`
+BRIDGES: its source and target are related by `SameTy`, not equal, because
+a source variable's index counts the REVEALED entries and a boundary's
+interior reveals one more than its exterior.  When the bridging sits in
+the TERMINATOR, `arr` throws it away — it returns the head's two
+components, whose types are stated at the seam.  The probe exhibits a
+well-typed NORMAL
+
+    Δᵢ ⊢ (id (` 1) ↦ id (` 1)) ∷ᶜ id (` 0 ⇒ ` 0)
+       ∶ (` 1 ⇒ ` 1) ⇝ (` 0 ⇒ ` 0) ⊣ ΔΘ
+
+whose `arr` gives `c₂ = id (` 1)`, target `` ` 1 ``, where the boundary's
+exterior says `` ` 0 ``.  The contravariant side fails in a sharper form:
+`arr (id (A ⇒ B)) = (id A , id B)` takes BOTH halves from the target,
+while `c₁` must end at the SOURCE's domain — a type `arr` never sees.
+
+THREE REPAIRS.
+
+  (1) TYPE-FREE `id`.  `Conv ::= id | ĉ ∷ c`, endpoints supplied by
+      typing.  Fixes the bare-`id` case outright (`c₁` retypes as
+      `conv-id (sameTy-sym sa)`) and makes `conv-retarget` available for
+      `c₂`, since the terminator's syntax no longer names its type.  The
+      CONTRAVARIANT side still needs a re-source lemma, which fails at a
+      `seal` head: its source type comes from a read at the source
+      context.
+
+  (2) FORCE THE TERMINATOR REFLEXIVE — all bridging in a bare `id`, never
+      in a cons's terminator.  Then `arr` is exactly right.  Every
+      conversion the calculus BUILDS already satisfies this
+      (`revTy`/`concTy` terminate at `Δₑ ⊣ Δₑ` with `sameTy-refl`); the
+      typing relation merely permits more.  Needs a way to say it.
+
+  (3) REMOVE THE RE-INDEXING.  Index source type variables BY THEIR
+      ANCHOR: with merged entries a type variable IS a revealed anchor, so
+      `` ` α `` with α revealed.  Then a reveal or a conceal shifts NO
+      index, `SameTy` collapses to syntactic equality, `conv-id` becomes
+      the notes' own rule
+
+          Γᵢ ⊢ A    Γₑ ⊢ A
+          ---------------------
+          Γᵢ ⊢ id(A) : A ⇒ A ⊣ Γₑ
+
+      and `arr` is correct on the nose.  `revTy` loses a parameter (X and
+      α coincide) and `closeAt` becomes `single-at`, substituting at an
+      index without shifting — which `strong.Types` already defines.
+      Further: `Ty` and `RepTy` become the SAME syntax under different
+      well-formedness (`⊢ᴿ` asks the anchor to be in scope, `⊢ᵗ` asks it
+      to be REVEALED), so `⌊_⌋` and `_⊢_⇓_` become checks rather than
+      translations, and `SameAnchor`, `CloseTy` and much of
+      `RevealTyping` go with them.
+
+(3) is the continuation of the merge and is where I would go; it is also
+the largest change, touching `Types`, `RepresentationTypes` and everything
+that reads them.  (2) is the smallest repair that makes `Wrap` provable as
+written.  Not taken pending sign-off.

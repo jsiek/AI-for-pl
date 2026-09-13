@@ -76,10 +76,10 @@ conversion-all-source : ∀ {Δ₁ Δ₂ c A B d}
   → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂
   → allView c ≡ just d
   → AllShape A
-conversion-all-source (conv-id {B = `∀ B} same) refl =
+conversion-all-source (conv-id {B = `∀ B} same _) refl =
   same-all-left same
 conversion-all-source
-  (conv-cons (conv-all s) (conv-id {B = `∀ B} same)) refl = all-shape _
+  (conv-cons (conv-all s) (conv-id {B = `∀ B} same _)) refl = all-shape _
 
 simple-all : ∀ {Δ V A}
   → Simple V

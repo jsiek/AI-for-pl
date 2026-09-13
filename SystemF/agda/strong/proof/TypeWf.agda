@@ -131,25 +131,25 @@ sameTy-wf-left same kp = sameTy-wf-right (sameTy-sym same) kp
 
 mutual
   head-wf-source : Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₁ ⊢ᵗ A
-  head-wf-source (conv-seal x r rd) = read-wf rd
-  head-wf-source (conv-unseal x r rd) = wf-var (tv-of-name x)
+  head-wf-source (conv-seal x r rd _) = read-wf rd
+  head-wf-source (conv-unseal x r rd _) = wf-var (tv-of-name x)
   head-wf-source (conv-fun s t) =
     wf-⇒ (conv-wf-target s) (conv-wf-source t)
   head-wf-source (conv-all s) = wf-∀ (conv-wf-source s)
 
   head-wf-target : Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊢ᵗ B
-  head-wf-target (conv-seal x r rd) = wf-var (tv-of-name x)
-  head-wf-target (conv-unseal x r rd) = read-wf rd
+  head-wf-target (conv-seal x r rd _) = wf-var (tv-of-name x)
+  head-wf-target (conv-unseal x r rd _) = read-wf rd
   head-wf-target (conv-fun s t) =
     wf-⇒ (conv-wf-source s) (conv-wf-target t)
   head-wf-target (conv-all s) = wf-∀ (conv-wf-target s)
 
   conv-wf-source : Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂ → Δ₁ ⊢ᵗ A
-  conv-wf-source (conv-id same) = sameTy-wf-left same kp-zero
+  conv-wf-source (conv-id same _) = sameTy-wf-left same kp-zero
   conv-wf-source (conv-cons hd tl) = head-wf-source hd
 
   conv-wf-target : Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊢ᵗ B
-  conv-wf-target (conv-id same) = sameTy-wf-right same kp-zero
+  conv-wf-target (conv-id same _) = sameTy-wf-right same kp-zero
   conv-wf-target (conv-cons hd tl) = conv-wf-target tl
 
 ------------------------------------------------------------------------

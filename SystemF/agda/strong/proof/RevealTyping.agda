@@ -204,28 +204,29 @@ mutual
     go : Dec (X ≡ Y)
        → _ ⊢ revTy X α S (` Y) ∶ ` Y ⇝ closeAt X S (` Y) ⊣ _
     go (yes refl) rewrite revTy-hit X α S | closeAt-hit X S =
-      conv-cons (conv-unseal (reveals-name rev) rep rd)
-                (conv-id (sameTy-refl oke (read-wf rd)))
+      conv-cons (conv-unseal (reveals-name rev) rep rd (reveals-count rev))
+                (conv-id (sameTy-refl oke (read-wf rd)) refl)
     go (no ne) rewrite revTy-miss X α S Y ne | closeAt-miss X S Y ne
       with name-of-tv tv
     go (no ne) | β , n with reveals-other rev oke ne n
-    go (no ne) | β , n | γ , m , sa = conv-id (same-free n m sa)
-  revTy-typing rev oki oke rep rd wf-ℕ = conv-id same-ℕ
-  revTy-typing rev oki oke rep rd wf-𝔹 = conv-id same-𝔹
+    go (no ne) | β , n | γ , m , sa =
+      conv-id (same-free n m sa) (reveals-count rev)
+  revTy-typing rev oki oke rep rd wf-ℕ = conv-id same-ℕ (reveals-count rev)
+  revTy-typing rev oki oke rep rd wf-𝔹 = conv-id same-𝔹 (reveals-count rev)
   revTy-typing rev oki oke rep rd (wf-⇒ a b) =
     conv-cons
       (conv-fun (concTy-typing rev oki oke rep rd a)
                 (revTy-typing rev oki oke rep rd b))
       (conv-id (sameTy-refl oke
         (wf-⇒ (closeAt-wf rev (read-wf rd) a)
-              (closeAt-wf rev (read-wf rd) b))))
+              (closeAt-wf rev (read-wf rd) b))) refl)
   revTy-typing {X = X} {S = S} rev oki oke rep rd (wf-∀ {A = A} a)
     rewrite closeAt-∀ X S A =
     conv-cons
       (conv-all (revTy-typing (rev-under rev) (ok-Λ oki) (ok-Λ oke)
                   (rep-Λ rep) (read-Λ rd) a))
       (conv-id (sameTy-refl oke
-        (wf-∀ (closeAt-wf (rev-under rev) (wf-Λ (read-wf rd)) a))))
+        (wf-∀ (closeAt-wf (rev-under rev) (wf-Λ (read-wf rd)) a))) refl)
 
   concTy-typing : Reveals X α Δᵢ Δₑ → Δᵢ ok → Δₑ ok
     → Δᵢ ∋r α := R → Δₑ ⊢ R ⇓ S → Δᵢ ⊢ᵗ A
@@ -236,27 +237,30 @@ mutual
     go : Dec (X ≡ Y)
        → _ ⊢ concTy X α S (` Y) ∶ closeAt X S (` Y) ⇝ ` Y ⊣ _
     go (yes refl) rewrite concTy-hit X α S | closeAt-hit X S =
-      conv-cons (conv-seal (reveals-name rev) rep rd)
+      conv-cons (conv-seal (reveals-name rev) rep rd
+                  (sym (reveals-count rev)))
                 (conv-id (sameTy-refl oki
-                  (wf-var (tv-of-name (reveals-name rev)))))
+                  (wf-var (tv-of-name (reveals-name rev)))) refl)
     go (no ne) rewrite concTy-miss X α S Y ne | closeAt-miss X S Y ne
       with name-of-tv tv
     go (no ne) | β , n with reveals-other rev oke ne n
     go (no ne) | β , n | γ , m , sa =
-      conv-id (sameTy-sym (same-free n m sa))
-  concTy-typing rev oki oke rep rd wf-ℕ = conv-id same-ℕ
-  concTy-typing rev oki oke rep rd wf-𝔹 = conv-id same-𝔹
+      conv-id (sameTy-sym (same-free n m sa)) (sym (reveals-count rev))
+  concTy-typing rev oki oke rep rd wf-ℕ =
+    conv-id same-ℕ (sym (reveals-count rev))
+  concTy-typing rev oki oke rep rd wf-𝔹 =
+    conv-id same-𝔹 (sym (reveals-count rev))
   concTy-typing rev oki oke rep rd (wf-⇒ a b) =
     conv-cons
       (conv-fun (revTy-typing rev oki oke rep rd a)
                 (concTy-typing rev oki oke rep rd b))
-      (conv-id (sameTy-refl oki (wf-⇒ a b)))
+      (conv-id (sameTy-refl oki (wf-⇒ a b)) refl)
   concTy-typing {X = X} {S = S} rev oki oke rep rd (wf-∀ {A = A} a)
     rewrite closeAt-∀ X S A =
     conv-cons
       (conv-all (concTy-typing (rev-under rev) (ok-Λ oki) (ok-Λ oke)
                   (rep-Λ rep) (read-Λ rd) a))
-      (conv-id (sameTy-refl oki (wf-∀ a)))
+      (conv-id (sameTy-refl oki (wf-∀ a)) refl)
 
 ------------------------------------------------------------------------
 -- Normal forms

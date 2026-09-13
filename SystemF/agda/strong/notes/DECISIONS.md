@@ -3231,7 +3231,7 @@ the whole conversion, so every context along the chain must admit the SAME
 insertion.  Where the counts disagree, no single insertion works, and the
 level maps of the two sides disagree exactly on the range between them.
 
-PROPOSED REPAIR (awaiting sign-off).  Say what is morally intended: the
+REPAIR (option A, signed off 2026-09-13).  Say what is morally intended: the
 contexts along a conversion all bind the SAME ANCHORS and differ only in
 which source names are visible.  It suffices to add that to the three
 rules that do not already inherit it —
@@ -3244,3 +3244,24 @@ and likewise on `+X` and `-X`; `→`, `∀` and `∷` then inherit it.  In the
 Agda the condition is `anchorCount Δ₁ ≡ anchorCount Δ₂`.  Both probes are
 rejected under it, and `revTy-typing` already has it in hand —
 `reveals-count` proves a reveal pair has equal anchor counts.
+
+INSTALLED.  `conv-id`, `conv-seal` and `conv-unseal` carry the premise;
+`conv-fun`, `conv-all` and `conv-cons` inherit it.  Every module is green
+under the change, and `notes/probes/V7ConvIntermediateProbe.agda` is now a
+REGRESSION RECORD: both derivations are commented out with the premise
+that rejects them, and what still checks is the anchor-LEVEL coincidence
+that made the second one dangerous.
+
+WHY THE COUNT AND NOT THE ANCHOR PART.  `anchorsOf Δ₁ ≡ anchorsOf Δ₂` —
+the same anchors, with the same representations, in the same order — is
+the true invariant, and `notes/probes/V7AnchorPartProbe.agda` proves a
+scope change preserves it (`scope-anchors`).  The COUNT is its shadow, and
+is exactly what the metatheory consumes: weakening inserts k anchors at a
+context's top, leaving every original anchor's LEVEL alone and shifting
+each `∀`-descent anchor's level by +k, and the split between the two cases
+is at `anchorCount`.  The count is also the premise STABLE UNDER THE
+TyBeta TRANSPORT: `fill-conv` fills the two ends and leaves `conv-cons`'s
+existential seam alone (`fill-id`), which preserves the count but not the
+anchor part.  Adopting `anchorsOf` would force the transport to fill seams
+too — the positional construction the `SameAnchor` decision removed.  It
+is recorded as the available tightening, not taken.

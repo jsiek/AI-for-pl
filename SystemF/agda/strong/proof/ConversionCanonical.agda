@@ -41,22 +41,22 @@ after-seal : ∀ {Δ₁ Δ₂ Δ₃ α X A B c}
   → NF c
   → IrreducibleAfter (seal α) c
   → EndsVar c
-after-seal seal-ty (conv-id same) nf-id irr-id with same-var-right same
-after-seal seal-ty (conv-id same) nf-id irr-id | var-shape Y =
+after-seal seal-ty (conv-id same cnt) nf-id irr-id with same-var-right same
+after-seal seal-ty (conv-id same cnt) nf-id irr-id | var-shape Y =
   ends-var Y refl
-after-seal (conv-seal n₁ rep read) (conv-cons (conv-seal n₂ rep₂ read₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-seal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-seal nft irr₂) (irr-cons outer)
-  with after-seal (conv-seal n₂ rep₂ read₂) t nft irr₂
-after-seal (conv-seal n₁ rep read) (conv-cons (conv-seal n₂ rep₂ read₂) t)
+  with after-seal (conv-seal n₂ rep₂ read₂ cnt₂) t nft irr₂
+after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-seal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-seal nft irr₂) (irr-cons outer) | ends-var Y eq =
   ends-var Y eq
-after-seal (conv-seal n₁ rep read) (conv-cons (conv-unseal n₂ rep₂ read₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-unseal nft irr₂) (irr-cons outer)
   with name-unique n₁ n₂
-after-seal (conv-seal n₁ rep read) (conv-cons (conv-unseal n₂ rep₂ read₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-unseal nft irr₂) (irr-cons outer) | refl
   with trans (sym outer) (fuse-seal-unseal _)
-after-seal (conv-seal n₁ rep read) (conv-cons (conv-unseal n₂ rep₂ read₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-unseal nft irr₂) (irr-cons outer) | refl | ()
 
 data GroundReady (c : Conv) : Set where
@@ -68,12 +68,12 @@ canonical-ℕ-conv : ∀ {Δ₁ Δ₂ c B}
   → Δ₁ ⊢ c ∶ `ℕ ⇝ B ⊣ Δ₂
   → NF c
   → GroundReady c
-canonical-ℕ-conv (conv-id same) nf-id rewrite same-ℕ-right same =
+canonical-ℕ-conv (conv-id same cnt) nf-id rewrite same-ℕ-right same =
   ready-ℕ refl
-canonical-ℕ-conv (conv-cons (conv-seal n rep read) t)
+canonical-ℕ-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr)
-  with after-seal (conv-seal n rep read) t nft irr
-canonical-ℕ-conv (conv-cons (conv-seal n rep read) t)
+  with after-seal (conv-seal n rep read cnt) t nft irr
+canonical-ℕ-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr)
   | ends-var X eq = ready-applicable (applies-var eq)
 
@@ -81,12 +81,12 @@ canonical-𝔹-conv : ∀ {Δ₁ Δ₂ c B}
   → Δ₁ ⊢ c ∶ `𝔹 ⇝ B ⊣ Δ₂
   → NF c
   → GroundReady c
-canonical-𝔹-conv (conv-id same) nf-id rewrite same-𝔹-right same =
+canonical-𝔹-conv (conv-id same cnt) nf-id rewrite same-𝔹-right same =
   ready-𝔹 refl
-canonical-𝔹-conv (conv-cons (conv-seal n rep read) t)
+canonical-𝔹-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr)
-  with after-seal (conv-seal n rep read) t nft irr
-canonical-𝔹-conv (conv-cons (conv-seal n rep read) t)
+  with after-seal (conv-seal n rep read cnt) t nft irr
+canonical-𝔹-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr)
   | ends-var X eq = ready-applicable (applies-var eq)
 
@@ -94,31 +94,31 @@ canonical-⇒-conv : ∀ {Δ₁ Δ₂ c A B C}
   → Δ₁ ⊢ c ∶ A ⇒ B ⇝ C ⊣ Δ₂
   → NF c
   → Applicable c
-canonical-⇒-conv (conv-id same) nf-id with same-fun-right same
-canonical-⇒-conv (conv-id same) nf-id | fun-shape A B =
+canonical-⇒-conv (conv-id same cnt) nf-id with same-fun-right same
+canonical-⇒-conv (conv-id same cnt) nf-id | fun-shape A B =
   applies-arr refl
-canonical-⇒-conv (conv-cons (conv-seal n rep read) t)
+canonical-⇒-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr)
-  with after-seal (conv-seal n rep read) t nft irr
-canonical-⇒-conv (conv-cons (conv-seal n rep read) t)
+  with after-seal (conv-seal n rep read cnt) t nft irr
+canonical-⇒-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr) | ends-var X eq = applies-var eq
 canonical-⇒-conv
-  (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (conv-id same))
+  (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (conv-id same cnt))
   (nf-cons (nf-fun nfs nfd) nf-id irr-id)
   with same-fun-right same
 canonical-⇒-conv
-  (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (conv-id same))
+  (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (conv-id same cnt))
   (nf-cons (nf-fun nfs nfd) nf-id irr-id) | fun-shape A B =
   applies-arr refl
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
-    (conv-cons (conv-seal n rep read) t))
+    (conv-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-fun nfs nfd) (nf-cons nf-seal nft irr₂)
     (irr-cons outer))
-  with after-seal (conv-seal n rep read) t nft irr₂
+  with after-seal (conv-seal n rep read cnt) t nft irr₂
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
-    (conv-cons (conv-seal n rep read) t))
+    (conv-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-fun nfs nfd) (nf-cons nf-seal nft irr₂)
     (irr-cons outer)) | ends-var X eq = applies-var eq
 canonical-⇒-conv
@@ -143,28 +143,28 @@ canonical-∀-conv : ∀ {Δ₁ Δ₂ c A B}
   → Δ₁ ⊢ c ∶ `∀ A ⇝ B ⊣ Δ₂
   → NF c
   → Applicable c
-canonical-∀-conv (conv-id same) nf-id with same-all-right same
-canonical-∀-conv (conv-id same) nf-id | all-shape A =
+canonical-∀-conv (conv-id same cnt) nf-id with same-all-right same
+canonical-∀-conv (conv-id same cnt) nf-id | all-shape A =
   applies-all refl
-canonical-∀-conv (conv-cons (conv-seal n rep read) t)
+canonical-∀-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr)
-  with after-seal (conv-seal n rep read) t nft irr
-canonical-∀-conv (conv-cons (conv-seal n rep read) t)
+  with after-seal (conv-seal n rep read cnt) t nft irr
+canonical-∀-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr) | ends-var X eq = applies-var eq
 canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-id same))
+  (conv-cons (conv-all {s = c₁} s) (conv-id same cnt))
   (nf-cons (nf-all nfs) nf-id irr-id)
   with same-all-right same
 canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-id same))
+  (conv-cons (conv-all {s = c₁} s) (conv-id same cnt))
   (nf-cons (nf-all nfs) nf-id irr-id) | all-shape A =
   applies-all refl
 canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-cons (conv-seal n rep read) t))
+  (conv-cons (conv-all {s = c₁} s) (conv-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-all nfs) (nf-cons nf-seal nft irr₂) (irr-cons outer))
-  with after-seal (conv-seal n rep read) t nft irr₂
+  with after-seal (conv-seal n rep read cnt) t nft irr₂
 canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-cons (conv-seal n rep read) t))
+  (conv-cons (conv-all {s = c₁} s) (conv-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-all nfs) (nf-cons nf-seal nft irr₂) (irr-cons outer))
   | ends-var X eq = applies-var eq
 canonical-∀-conv

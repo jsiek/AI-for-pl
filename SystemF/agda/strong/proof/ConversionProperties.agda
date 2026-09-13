@@ -13,7 +13,7 @@ open import strong.Conversion
 conv-target : ∀ {Δ₁ Δ₂ c A B}
   → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂
   → target c ≡ B
-conv-target (conv-id same) = refl
+conv-target (conv-id same _) = refl
 conv-target (conv-cons head tail) = conv-target tail
 
 data VarShape : Ty → Set where

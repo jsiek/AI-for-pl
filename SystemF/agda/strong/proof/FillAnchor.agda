@@ -127,6 +127,12 @@ fill-SameAnchor {Δ₁ = Δ₁} {Δ₁′ = Δ₁′} {Δ₂ = Δ₂} {Δ₂′ 
   lvl : anchorLevel Δ₁′ α ≡ anchorLevel Δ₂′ β
   lvl rewrite sym (fill-count f₁) | sym (fill-count f₂) = eq
 
+-- A fill preserves `anchorCount`, so the conversion seam condition
+-- transports even when the two sides are filled independently.
+fill-cnt : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
+  → anchorCount Δ₁ ≡ anchorCount Δ₂ → anchorCount Δ₁′ ≡ anchorCount Δ₂′
+fill-cnt f₁ f₂ eq = trans (sym (fill-count f₁)) (trans eq (fill-count f₂))
+
 fill-SameTy : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
   → SameTy k Δ₁ A Δ₂ B → SameTy k Δ₁′ A Δ₂′ B
 fill-SameTy f₁ f₂ (same-bound p) = same-bound p
@@ -174,10 +180,12 @@ fill-quote f (quote-∀ q) = quote-∀ (fill-quote (fill-Λ f) q)
 mutual
   fill-head : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
     → Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₁′ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂′
-  fill-head f₁ f₂ (conv-seal x r rd) =
+  fill-head f₁ f₂ (conv-seal x r rd cnt) =
     conv-seal (fill-n f₂ x) (fill-r f₂ r) (fill-read f₁ rd)
-  fill-head f₁ f₂ (conv-unseal x r rd) =
+      (fill-cnt f₁ f₂ cnt)
+  fill-head f₁ f₂ (conv-unseal x r rd cnt) =
     conv-unseal (fill-n f₁ x) (fill-r f₁ r) (fill-read f₂ rd)
+      (fill-cnt f₁ f₂ cnt)
   fill-head f₁ f₂ (conv-fun s t) =
     conv-fun (fill-conv f₂ f₁ s) (fill-conv f₁ f₂ t)
   fill-head f₁ f₂ (conv-all s) =
@@ -185,7 +193,8 @@ mutual
 
   fill-conv : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
     → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂ → Δ₁′ ⊢ c ∶ A ⇝ B ⊣ Δ₂′
-  fill-conv f₁ f₂ (conv-id same) = conv-id (fill-SameTy f₁ f₂ same)
+  fill-conv f₁ f₂ (conv-id same cnt) =
+    conv-id (fill-SameTy f₁ f₂ same) (fill-cnt f₁ f₂ cnt)
   fill-conv f₁ f₃ (conv-cons hd tl) =
     conv-cons (fill-head f₁ fill-id hd) (fill-conv fill-id f₃ tl)
 

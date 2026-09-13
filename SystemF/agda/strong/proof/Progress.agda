@@ -79,7 +79,7 @@ progress ctx-ok (⊢ν store scope nf body conv)
 progress ctx-ok (⊢ν store scope nf body conv)
   | inj₁ (Vs S$) | ⊢$ | ready-𝔹 refl with conv
 progress ctx-ok (⊢ν store scope nf body conv)
-  | inj₁ (Vs S$) | ⊢$ | ready-𝔹 refl | conv-id ()
+  | inj₁ (Vs S$) | ⊢$ | ready-𝔹 refl | conv-id () _
 progress ctx-ok (⊢ν store scope nf body conv)
   | inj₁ (Vs S#) with body
 progress ctx-ok (⊢ν store scope nf body conv)
@@ -91,7 +91,7 @@ progress ctx-ok (⊢ν store scope nf body conv)
 progress ctx-ok (⊢ν store scope nf body conv)
   | inj₁ (Vs S#) | ⊢# | ready-ℕ refl with conv
 progress ctx-ok (⊢ν store scope nf body conv)
-  | inj₁ (Vs S#) | ⊢# | ready-ℕ refl | conv-id ()
+  | inj₁ (Vs S#) | ⊢# | ready-ℕ refl | conv-id () _
 progress ctx-ok (⊢ν store scope nf body conv)
   | inj₁ (Vs Sƛ) with body
 progress ctx-ok (⊢ν store scope nf body conv)

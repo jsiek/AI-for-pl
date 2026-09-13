@@ -78,9 +78,9 @@ module Impl
   preserve ctx-ok typing (TyWrap value all-eq q) =
     preserve-TyWrap ctx-ok value all-eq q typing
   preserve ctx-ok typing (Merge inner) = preserve-Merge ctx-ok inner typing
-  preserve ctx-ok (⊢ν store scope nf ⊢$ (conv-id same-ℕ))
+  preserve ctx-ok (⊢ν store scope nf ⊢$ (conv-id same-ℕ _))
     (Const literal-$ base-ℕ) = ⊢$
-  preserve ctx-ok (⊢ν store scope nf ⊢# (conv-id same-𝔹))
+  preserve ctx-ok (⊢ν store scope nf ⊢# (conv-id same-𝔹 _))
     (Const literal-# base-𝔹) = ⊢#
   preserve ctx-ok (⊢⊕ left right) (ξ-⊕-l step) =
     ⊢⊕ (preserve ctx-ok left step) right

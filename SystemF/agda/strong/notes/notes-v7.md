@@ -620,6 +620,10 @@ store `⌊A⌋Γ`.  Write `Γ ⊢ M -→ N`, omitting `Γ ⊢` when it is clear.
               if νΘ₂,χ₂[ V |c] is a value
   (Const)     Γ ⊢ νΘ,χ[ k |id(ι)] -→ k
 
+In `TyWrap`, `+X(d)` substitutes the freshly revealed `X`; it does not
+read `⌊A⌋Γ` through `χ`.  For example, if `χ = -Y`, then `Y` need not be
+visible after `χ` for `A = Y`.
+
   (ξ-·-l)   Γ ⊢ L · M -→ L′ · M       if Γ ⊢ L -→ L′
   (ξ-·-r)   Γ ⊢ V · M -→ V · M′       if Γ ⊢ M -→ M′
   (ξ-⊕-l)   Γ ⊢ L ⊕ M -→ L′ ⊕ M       if Γ ⊢ L -→ L′

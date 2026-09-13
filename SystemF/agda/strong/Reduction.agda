@@ -45,15 +45,12 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
                     [ renAnchᴹ (shiftAnchor (length Θ)) W ∣ c₁ ])
               ∣ c₂ ]
 
-  TyWrap : ∀ {Δ ΔΘ Δₕ Θ χ V c B A d R S}
+  TyWrap : ∀ {Δ Θ χ V c B A d R}
     → Value V → allView c ≡ just d → Δ ⊢⌊ A ⌋ R
-    → Δ ⊢ˢ (Θ ++ (repBind (shiftByᴿ (length Θ) R) ∷ [])) ⇒ ΔΘ
-    → ΔΘ ⊢χ shiftScope 1 χ ⇒ Δₕ
-    → Δₕ ⊢ shiftByᴿ (suc (length Θ)) R ⇓ S
     → Δ ⊢ (ν Θ , χ [ Λ V ∣ c ]) • B [ A ]
         -→ ν (Θ ++ (repBind (shiftByᴿ (length Θ) R) ∷ []))
               , (shiftScope 1 χ ++ (reveal zero ∷ []))
-              [ V ∣ instReveal zero zero S d ]
+              [ V ∣ instReveal zero zero (` zero) d ]
 
   Merge : ∀ {Δ Θ₁ Θ₂ χ₁ χ₂ V c d}
     → Value (ν Θ₂ , χ₂ [ V ∣ c ])

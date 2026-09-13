@@ -85,5 +85,9 @@ substᵐ σ (L • B [ A ]) = substᵐ σ L • B [ A ]
 substᵐ σ (ν Θ , χ [ M ∣ c ]) = ν Θ , χ [ M ∣ c ]
 
 infix 8 _[_∶_]ᵐ
+singleImgEnv : Term → Ty → ℕ → Img
+singleImgEnv V A zero    = ival V A
+singleImgEnv V A (suc x) = ivar x
+
 _[_∶_]ᵐ : Term → Term → Ty → Term
-N [ V ∶ A ]ᵐ = substᵐ (λ { zero → ival V A ; (suc x) → ivar x }) N
+N [ V ∶ A ]ᵐ = substᵐ (singleImgEnv V A) N

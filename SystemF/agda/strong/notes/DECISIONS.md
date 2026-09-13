@@ -3265,3 +3265,59 @@ existential seam alone (`fill-id`), which preserves the count but not the
 anchor part.  Adopting `anchorsOf` would force the transport to fill seams
 too — the positional construction the `SameAnchor` decision removed.  It
 is recorded as the available tightening, not taken.
+
+#### Open (2026-09-13): `dual χ` returns the context only UP TO REORDERING
+
+`Wrap` sends the argument back out through the boundary's dual scope:
+
+    νΘ,χ[V|c] · W  -→  νΘ,χ[ V · ν∅,-χ[W|c₁] | c₂ ]
+
+For the inner boundary to type, `-χ` must lead from the interior Γᵢ back to
+`ty(Γ)++Θ` — that is where `c₁` lives, and where the weakened argument
+lands.  It does not.  A CONCEAL removes a name IN PLACE, passing through
+whatever anchors sit above it; its dual REVEAL puts the name back ON TOP.
+
+`notes/probes/V7DualScopeProbe.agda` (checks under --safe) exhibits it at
+the shape of §14, where `χ = (-Y:=β) ; (-X:=α)` passes `-X` through the rep
+binding `β`:
+
+    ΔΘ     = β:=ℕ , X:=α , α          (α abstract, named X; β from Θ)
+    χ      = -X:=α
+    Δᵢ     = β:=ℕ , α                 (name removed under β)
+    -χ     = +X:=α
+    Δ-back = X:=α , β:=ℕ , α          (name restored on top) ≠ ΔΘ
+
+The two are OBSERVATIONALLY IDENTICAL — same anchor count (so levels
+agree), same `scopeᵗ` (so colours agree), X is source variable 0 naming
+anchor 1 in both, and the store's representation reads the same in both —
+but they are different lists, and `⊢ν` demands the literal context its
+scope judgment produces.  This is v2's `≼≈` in a new place.
+
+THREE WAYS OUT, none taken pending sign-off:
+
+  (a) PROOF SIDE, calculus untouched.  Define `Δ ≈ᶜ Δ′` — commuting a
+      `name` past an anchor entry, adjusting the name's anchor index —
+      prove every judgment transports along it, and prove `dual χ` always
+      lands in a context `≈ᶜ` the one χ left.  Roughly the size of
+      proof/FillAnchor plus the round-trip induction.
+
+  (b) MAKE REVEAL INSERT IN PLACE, just above the anchor it names, rather
+      than on top.  Then `dual` is exact and (a) is unnecessary.  Changes
+      `_⊢δ_⇒_` and the notes' scope-change action.
+
+  (c) CHANGE `Wrap` so the inner boundary's scope is one that provably
+      lands on `ty(Γ)++Θ`.
+
+#### Noted (2026-09-13): TyWrap and Merge both need composition totality
+
+`Merge` contracts `c ⨟ renConv … d`, and `TyWrap`'s `instReveal` calls
+`contract` at every list seam, so both cases need
+
+    NF c → NF d → typed → NF (c ⨟ d) and typed
+
+— the notes' "composition totality".  In the Agda `fuseFuel`, `scanFuel`
+and `composeFuel` are FUEL-recursive, which makes that proof considerably
+harder than the informal argument (which reasons by "every successful
+fusion shortens the unprocessed conversion path").  Re-founding them on
+well-founded recursion over `weightHeads` would let the proof follow the
+notes' own measure.  Worth deciding before the case is attempted.

@@ -152,19 +152,16 @@ fuse (all c) (c′ ↦ d′) = nothing
 -- Typing
 ------------------------------------------------------------------------
 --
--- THE SEAM CONDITION.  Every context along a conversion binds the same
--- ANCHORS, and differs only in which of them are revealed: a scope change
--- flips visibility bits and adds no entry.  The rules record the shadow of
--- that which the metatheory consumes — `anchorCount Δ₁ ≡ anchorCount Δ₂`
--- on the three rules that do not already inherit it (`conv-fun` inherits
--- from its swapped pair, `conv-all` by injectivity, `conv-cons` by
--- transitivity through its seam).
---
--- With merged entries this no longer guards `SameTy`, which now matches
--- free variables by anchor INDEX; it is what ANCHOR WEAKENING consumes,
--- since `renConv` applies ONE renaming to a whole conversion and every
--- context in its chain must therefore admit the same insertion.  See
--- notes/DECISIONS.md (2026-09-13).
+-- THE SPINE DISCIPLINE.  Every context along a conversion binds the same
+-- ANCHORS with the same REPRESENTATIONS, and differs only in which of
+-- them are revealed: a scope change flips visibility bits and adds no
+-- entry.  `conv-id` carries `SameBindings`; `conv-seal`/`conv-unseal`
+-- carry the exact form, `FlipAt α` — one head crosses one bit — which is
+-- what reconnects the outer contexts of a cancelled pair in composition,
+-- and what lets a conversion be re-typed at a SameTy-related endpoint.
+-- The other rules inherit the discipline: `conv-fun` from its swapped
+-- pair, `conv-all` by pushing one entry on both sides, `conv-cons` by
+-- transitivity through its seam.  See notes/DECISIONS.md (2026-09-13).
 
 private
   variable
@@ -181,13 +178,15 @@ infix 4 _⊢_∶_⇝_⊣_
 infix 4 _⊩_∶_⇝_⊣_
 mutual
   data _⊢̂_∶_⇝_⊣_ : Ctxᵗ → Head → Ty → Ty → Ctxᵗ → Set where
+    -- A seal or unseal head crosses EXACTLY its own anchor's visibility
+    -- bit: `FlipAt α` relates its two contexts, off-side to on-side.
     conv-seal : ∀ {S}
       → Δ₂ ∋n X := α → Δ₂ ∋r α := R → Δ₁ ⊢ R ⇓ S
-      → anchorCount Δ₁ ≡ anchorCount Δ₂
+      → FlipAt α Δ₁ Δ₂
       → Δ₁ ⊢̂ seal α ∶ S ⇝ ` X ⊣ Δ₂
     conv-unseal : ∀ {S}
       → Δ₁ ∋n X := α → Δ₁ ∋r α := R → Δ₂ ⊢ R ⇓ S
-      → anchorCount Δ₁ ≡ anchorCount Δ₂
+      → FlipAt α Δ₂ Δ₁
       → Δ₁ ⊢̂ unseal α ∶ ` X ⇝ S ⊣ Δ₂
     conv-fun : ∀ {s t A′ B′}
       → Δ₂ ⊢ s ∶ A′ ⇝ A ⊣ Δ₁ → Δ₁ ⊢ t ∶ B ⇝ B′ ⊣ Δ₂
@@ -198,8 +197,8 @@ mutual
       → Δ₁ ⊢̂ all s ∶ `∀ A ⇝ `∀ B ⊣ Δ₂
 
   data _⊢_∶_⇝_⊣_ : Ctxᵗ → Conv → Ty → Ty → Ctxᵗ → Set where
-    conv-id : SameTy zero Δ₁ A Δ₂ B
-      → anchorCount Δ₁ ≡ anchorCount Δ₂
+    -- A bare `id` bridges two VIEWS of one spine.
+    conv-id : SameTy zero Δ₁ A Δ₂ B → SameBindings Δ₁ Δ₂
       → Δ₁ ⊢ id B ∶ A ⇝ B ⊣ Δ₂
     conv-cons : Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊩ c ∶ B ⇝ C ⊣ Δ₃
       → Δ₁ ⊢ h ∷ᶜ c ∶ A ⇝ C ⊣ Δ₃

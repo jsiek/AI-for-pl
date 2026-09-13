@@ -36,20 +36,8 @@ private
 -- Same anchor spine, different visibility
 ------------------------------------------------------------------------
 
-data SameBindings : Ctxᵗ → Ctxᵗ → Set where
-  sb[] : SameBindings [] []
-  sb-∷ : SameBindings Δ Δ′
-       → SameBindings (anch v b ∷ Δ) (anch w b ∷ Δ′)
-
-sb-refl : ∀ {Δ} → SameBindings Δ Δ
-sb-refl {Δ = []} = sb[]
-sb-refl {Δ = anch v b ∷ Δ} = sb-∷ sb-refl
-
-sb-a : SameBindings Δ Δ′ → Δ ∋a α → Δ′ ∋a α
-sb-a (sb-∷ s) a-here = a-here
-sb-a (sb-∷ s) (a-there t) = a-there (sb-a s t)
-
--- Representation types mention anchors only, so they are blind to it.
+-- `SameBindings` itself now lives in strong.Ctx; here are its transports
+-- for the judgments that are blind to visibility.
 sb-wfᴿ : SameBindings Δ Δ′ → Δ ⊢ᴿ R → Δ′ ⊢ᴿ R
 sb-wfᴿ s (wfᴿ-var a) = wfᴿ-var (sb-a s a)
 sb-wfᴿ s wfᴿ-ℕ = wfᴿ-ℕ

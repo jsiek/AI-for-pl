@@ -29,7 +29,7 @@ open import strong.TermSubst
 open import strong.proof.CtxProperties using (name-of-tv; named-anchor; ok-Λ)
 open import strong.proof.TypeWf using (abst-weaken-wf)
 open import strong.proof.AnchorWeaken using
-  (Wk; wk-base; Block; blk[]; blk-∷; wk-⊢)
+  (Wk; wk-base; Hidden; hid[]; hid-∷; wk-⊢)
 open import strong.proof.TermSubstitution using
   (typePrefix; liftInsert; module WithCross)
 
@@ -84,11 +84,11 @@ cross-typing : ∀ {Δ V A}
 cross-typing {Δ = Δ} ctx-ok wfA typing =
   ⊢ν store[] (scope∷ con-here scope[]) nf-id
      (wk-⊢ one typing)
-     (conv-id (crossSame zero (abst-weaken-wf wfA)) refl)
+     (conv-id (crossSame zero (abst-weaken-wf wfA)) (sb-∷ sb-refl))
   where
   -- One fresh abstract anchor at the base: `shiftAnchor 1` is `suc`, the
   -- renaming `crossΛ` applies.
-  one : Wk 1 (shiftAnchor 1) Δ (anch concealed abstA ∷ Δ)
-  one = wk-base (blk-∷ blk[])
+  one : Wk (anch concealed abstA ∷ []) zero Δ (anch concealed abstA ∷ Δ)
+  one = wk-base (hid-∷ hid[])
 
 open WithCross cross-typing public using (subst-typing; preserve-Beta)

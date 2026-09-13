@@ -59,8 +59,8 @@ arr-typing : ∀ {Δᵢ ΔΘ c A₁ B₁ A′ B′ c₁ c₂}
   → arr A₁ c ≡ just (c₁ , c₂)
   → (ΔΘ ⊢ c₁ ∶ A′ ⇝ A₁ ⊣ Δᵢ) × (Δᵢ ⊢ c₂ ∶ B₁ ⇝ B′ ⊣ ΔΘ)
     × NF c₁ × NF c₂
-arr-typing (conv-id (same-⇒ sa sb) cnt) nf refl =
-  conv-id (sameTy-sym sa) (sym cnt) , conv-id sb cnt , nf-id , nf-id
+arr-typing (conv-id (same-⇒ sa sb) spine) nf refl =
+  conv-id (sameTy-sym sa) (sb-sym spine) , conv-id sb spine , nf-id , nf-id
 arr-typing (conv-cons (conv-fun s-ty t-ty) (tail-id wf))
   (nf-cons (nf-fun nfs nft) _ _) refl =
   s-ty , t-ty , nfs , nft

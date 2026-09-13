@@ -3540,3 +3540,44 @@ stand: Beta, TyBeta, Wrap.
 The notes' Wrap rule and `arr` equations need this folded in — together
 with the merged entries, the seam condition and the reflexive terminator,
 notes-v7.md is now materially behind the Agda.
+
+## 2026-09-13: the spine discipline is INSTALLED — every context along a conversion shares one binding spine
+
+Jeremy approved BOTH refinements to the conversion rules ("Adopt both"),
+replacing the blunt `anchorCount Δ₁ ≡ anchorCount Δ₂` seam premise:
+
+  * `conv-id` now carries `SameBindings Δ₁ Δ₂` (`Ctx.agda`): the two
+    contexts list the SAME anchors with the SAME representations, and only
+    visibility may differ.  A bare `id` therefore relates contexts that
+    agree on every resource.
+  * `conv-seal` carries `FlipAt α Δ₁ Δ₂` and `conv-unseal` carries
+    `FlipAt α Δ₂ Δ₁` (`Ctx.agda`): the two contexts differ in EXACTLY the
+    one visibility bit at α — a seal is one reveal-crossing, pointed at
+    its own anchor.
+
+`FlipAt` is deterministic on either side (`flip-off-unique`,
+`flip-on-unique`), which is what `preserve-step`'s cancel case needs: a
+`seal α` out of Δ₁ and the `unseal α` back land in Δ₁ ON THE NOSE.
+`proof/ConversionProperties.agda` extracts the spine of any derivation
+(`head-sb`/`conv-sb`/`tail-sb`), so every context a typed conversion
+threads through is `SameBindings`-related — the invariant the composition
+campaign types `_⧺_` against.
+
+The transport modules were rebuilt against the discipline:
+
+  * `proof/FillAnchor.agda`: `Fill R n Δ Δ′` is now POSITIONAL
+    (`fill-here`/`fill-there`), hence deterministic (`fill-unique`);
+    a fill crosses a flip by `fill-flip`, and seam contexts inside a tail
+    derive their fills from `sb-fill` on the head's spine.
+  * `proof/AnchorWeaken.agda`: `Wk P d Δ Δ′` inserts the HIDDEN block P at
+    depth d; the renaming it performs is the FUNCTION `wkRen P d`, not an
+    index (the unifier cannot invert `extᴿ`, so a ρ-indexed relation loses
+    `wk-unique`).  `sb-wk`/`wk-sb` weaken the spine in lockstep, `wk-flip`
+    carries the flip to `wkRen P d α`, and `store-wk`/`store-split` replace
+    `store-block`: a store IS a hidden block, absorbed entry by entry with
+    a snoc.
+  * `proof/RevealTyping.agda` bridges `Reveals` to the new premises with
+    `reveals-flip` and `reveals-sb`.
+
+All thirty-two live v7 modules pass `agda --safe` with no postulates and
+no holes; Beta, TyBeta and Wrap stand unchanged on top.

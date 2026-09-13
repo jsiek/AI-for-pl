@@ -96,7 +96,8 @@ preserve-TyBeta {Δ = Δ} {V = V} {B = B} {A = A} {R = R}
 
   -- The Λ's anchor, abstract in the body's context, is represented here —
   -- the same entry, the same name, a different BINDING.
-  give : Fill R (anch revealed abstA ∷ Δ) (anch revealed (bindA R) ∷ Δ)
+  give : Fill R zero (anch revealed abstA ∷ Δ)
+           (anch revealed (bindA R) ∷ Δ)
   give = fill-here
 
   body′ : (anch revealed (bindA R) ∷ Δ) ∣ [] ⊢ V ⦂ B

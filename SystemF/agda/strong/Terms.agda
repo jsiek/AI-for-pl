@@ -74,7 +74,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
     → Δ ∣ Γ ⊢ L • B [ A ] ⦂ B [ A ]ᵗ
   ⊢ν : ∀ {Δ ΔΘ Δᵢ Γ Θ χ M c A B}
     → Δ ⊢ˢ Θ ⇒ ΔΘ → ΔΘ ⊢χ χ ⇒ Δᵢ → NF c
-    → Δᵢ ∣ [] ⊢ M ⦂ A → Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
+    → Δᵢ ∣ [] ⊢ M ⦂ A → Δᵢ ⊢ c ∶ A ⇝ B ⊣ ΔΘ
     → Δ ∣ Γ ⊢ ν Θ , χ [ M ∣ c ] ⦂ B
 
 data Literal : Term → Set where

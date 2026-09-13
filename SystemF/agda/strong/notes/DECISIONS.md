@@ -3189,3 +3189,58 @@ theirs over the new exterior (= old interior, where they were written).
 
 SO THE DUAL COSTS NOTHING AT ALL, and [O2] — Θ composition for Cancel
 across adjacent boundaries — is the only place v2's ≼≈ could still live.
+
+#### Open (2026-09-13): a conversion's SEAM contexts are unconstrained
+
+Working on v7 preservation.  `conv-cons`'s middle context `Γ₂` is tied to
+nothing, and `conv-unseal`/`conv-seal` only ask the FAR side to READ the
+representation.  A GROUND representation reads in every context, so the
+seam can be any context at all — including `∅` between two ends that carry
+anchors.  `notes/probes/V7ConvIntermediateProbe.agda` derives, under
+--safe, with `Γ = α:=ℕ, X:=α`:
+
+    Γ ∋ X:=α   Γ ∋ α:=ℕ   ∅ ⊢ ℕ ⇓ ℕ          ∅ ⊢ ℕ   Γ ⊢ ℕ
+    -------------------------------          ---------------------
+    Γ ⊢̂ +X : X ⇒ ℕ ⊣ ∅                       ∅ ⊢ id(ℕ) : ℕ ⇒ ℕ ⊣ Γ
+    ------------------------------------------------------------
+    Γ ⊢ +X ∷ id(ℕ) : X ⇒ ℕ ⊣ Γ            and NF(+X ∷ id(ℕ)).
+
+`+X ∷ id(ℕ)` is not exotic: it is `+X(X)` with `repr(X) = ℕ`, the right
+component of §6's own boundary conversion.  Only the SEAM is degenerate.
+
+THE HARM.  `SameTy` matches free variables by anchor LEVEL, counted from
+the bottom of the context.  Two contexts with different anchor counts give
+the same level to different anchors, and `id` then identifies them.  The
+same probe derives
+
+    id(∀Y.Y) : (∀Y.X) ⇒ (∀Y.Y)
+
+between `α:=ℕ, X:=α` and `∅` — under one structural `∀`, the left's
+ambient `X` and the right's freshly bound `Y` both sit at anchor level 0.
+It equates an ambient type variable with a `∀`-bound one.
+
+WHY IT BLOCKS PRESERVATION.  In these notes anchors are GLOBAL NAMES, so
+nothing is ever re-indexed and the seam's looseness is invisible.  In the
+Agda they are de Bruijn indices, so every rule that carries a term or a
+conversion under new anchors must shift them: `Merge` applies
+`renConv … (shiftAnchor (length Θ₂)) d`, `TyWrap` applies
+`shiftByᴿ (length Θ)`, `Wrap` and `Beta`'s `crossΛ` apply `renAnchᴹ`.
+Proving that a shifted conversion is still well typed means re-deriving
+every head's premises at the shifted contexts — and ONE renaming serves
+the whole conversion, so every context along the chain must admit the SAME
+insertion.  Where the counts disagree, no single insertion works, and the
+level maps of the two sides disagree exactly on the range between them.
+
+PROPOSED REPAIR (awaiting sign-off).  Say what is morally intended: the
+contexts along a conversion all bind the SAME ANCHORS and differ only in
+which source names are visible.  It suffices to add that to the three
+rules that do not already inherit it —
+
+    Γᵢ ⊢ A   Γₑ ⊢ A   anchors(Γᵢ) = anchors(Γₑ)
+    ------------------------------------------
+    Γᵢ ⊢ id(A) : A ⇒ A ⊣ Γₑ
+
+and likewise on `+X` and `-X`; `→`, `∀` and `∷` then inherit it.  In the
+Agda the condition is `anchorCount Δ₁ ≡ anchorCount Δ₂`.  Both probes are
+rejected under it, and `revTy-typing` already has it in hand —
+`reveals-count` proves a reveal pair has equal anchor counts.

@@ -1,183 +1,144 @@
 module strong.proof.Canonical where
 
--- CANONICAL FORMS for the conversion-boundary calculus.
---
--- A closed value is one of five shapes, and its EXTERIOR TYPE decides
--- which.  The whole suite is driven by ONE observation: for a wrapper
--- value `V ⟪ Θ , c ⟫` the `env` rule pins the TARGET TYPE of `c` to
--- `shiftBy (numBinds Θ) Bₑ`, and an INERT `c` determines that type's head
--- constructor outright:
---
---   id (` X)  ⇝  ` X          I-idv
---   seal X    ⇝  ` X          I-seal
---   s ↦ t     ⇝  A′ ⇒ B′      I-fun
---   `∀ s      ⇝  `∀ B         I-all
---
--- Neither ACTIVE conversion can occur under `V-⟪⟫`, so no inert
--- conversion has a BASE target at all — which is why `canon-base` returns
--- a numeral OUTRIGHT (§3), with no wrapper escape hatch.  Dually, the two
--- conversions with a VARIABLE target are exactly `seal` and the
--- id-at-a-variable — the two left-hand sides of CancelR and IdPush (§3,
--- canon-var).  This is the v1 "canon-var nightmare", dissolved: it is a
--- two-way case split on a conversion constructor, with no rep comparison
--- anywhere.
+-- Strong System F v7 — canonical forms used by progress.
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_)
+open import Data.Nat using (ℕ)
+open import Data.List using ([])
+open import Data.Maybe using (just)
+open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
-open import Data.Empty using (⊥; ⊥-elim)
-open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; trans; subst)
+open import Data.Empty using (⊥)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; renameᵗ; extᵗ; ⇑ᵗ)
 open import strong.Ctx
 open import strong.Conversion
+open import strong.CtxMorph using (Store; Scope)
 open import strong.Terms
-open import strong.CtxMorph
+open import strong.proof.ConversionProperties
+  using (conv-target; AllShape; all-shape; same-all-left)
 
-private
-  variable
-    Δ : Ctxᵗ
-    A B C : Ty
-    X Y : ℕ
-    c : Conv
+allView-target : ∀ {c d}
+  → allView c ≡ just d
+  → Σ[ A ∈ Ty ] (target c ≡ `∀ A)
+allView-target {c = id (`∀ A)} refl = A , refl
+allView-target {c = all c ∷ᶜ id (`∀ A)} refl = A , refl
 
-------------------------------------------------------------------------
--- §1  The TARGET type is the exterior type, LIFTED past the binders
-------------------------------------------------------------------------
+arr-target : ∀ {c c₁ c₂}
+  → arr c ≡ just (c₁ , c₂)
+  → Σ[ A ∈ Ty ] Σ[ B ∈ Ty ] (target c ≡ A ⇒ B)
+arr-target {c = id (A ⇒ B)} refl = A , B , refl
+arr-target {c = (c₁ ↦ c₂) ∷ᶜ id (A ⇒ B)} refl = A , B , refl
 
--- `env` reads the target type at `shiftBy (numBinds Θ) Bₑ`, so every
--- conversion inversion below has to see through `shiftBy`.  Lifting
--- preserves the head constructor; that is all we need.  (`shiftBy-base`
--- and `shiftBy-var` are already in strong.Ctx.)
+applicable-arr : ∀ {c A B}
+  → Applicable c
+  → target c ≡ A ⇒ B
+  → Σ[ c₁ ∈ Conv ] Σ[ c₂ ∈ Conv ] (arr c ≡ just (c₁ , c₂))
+applicable-arr (applies-arr eq) target-eq = _ , _ , eq
+applicable-arr (applies-all eq) target-eq with allView-target eq
+applicable-arr (applies-all eq) target-eq | C , all-eq
+  with trans (sym target-eq) all-eq
+applicable-arr (applies-all eq) target-eq | C , all-eq | ()
+applicable-arr (applies-var var-eq) target-eq
+  with trans (sym target-eq) var-eq
+applicable-arr (applies-var var-eq) target-eq | ()
 
-shiftBy-⇒ : (n : ℕ) (A B : Ty) → shiftBy n (A ⇒ B) ≡ shiftBy n A ⇒ shiftBy n B
-shiftBy-⇒ zero    A B = refl
-shiftBy-⇒ (suc n) A B = cong ⇑ᵗ (shiftBy-⇒ n A B)
+applicable-all : ∀ {c A}
+  → Applicable c
+  → target c ≡ `∀ A
+  → Σ[ d ∈ Conv ] (allView c ≡ just d)
+applicable-all (applies-arr eq) target-eq with arr-target eq
+applicable-all (applies-arr eq) target-eq | A , B , arr-eq
+  with trans (sym target-eq) arr-eq
+applicable-all (applies-arr eq) target-eq | A , B , arr-eq | ()
+applicable-all (applies-all eq) target-eq = _ , eq
+applicable-all (applies-var var-eq) target-eq
+  with trans (sym target-eq) var-eq
+applicable-all (applies-var var-eq) target-eq | ()
 
-shiftBy-∀ : (n : ℕ) (C : Ty) → Σ[ C′ ∈ Ty ] (shiftBy n (`∀ C) ≡ `∀ C′)
-shiftBy-∀ zero    C = C , refl
-shiftBy-∀ (suc n) C with shiftBy-∀ n C
-... | C′ , eq = renameᵗ (extᵗ suc) C′ , cong ⇑ᵗ eq
+applicable-ℕ-impossible : ∀ {c}
+  → Applicable c
+  → target c ≡ `ℕ
+  → ⊥
+applicable-ℕ-impossible (applies-arr eq) target-eq with arr-target eq
+applicable-ℕ-impossible (applies-arr eq) target-eq | A , B , arr-eq
+  with trans (sym target-eq) arr-eq
+applicable-ℕ-impossible (applies-arr eq) target-eq | A , B , arr-eq | ()
+applicable-ℕ-impossible (applies-all eq) target-eq with allView-target eq
+applicable-ℕ-impossible (applies-all eq) target-eq | A , all-eq
+  with trans (sym target-eq) all-eq
+applicable-ℕ-impossible (applies-all eq) target-eq | A , all-eq | ()
+applicable-ℕ-impossible (applies-var var-eq) target-eq
+  with trans (sym target-eq) var-eq
+applicable-ℕ-impossible (applies-var var-eq) target-eq | ()
 
--- Retype a conversion along an equality of its target type.
-conv-tgt≡ : ∀ {B′} → B ≡ B′
-  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A ⇝ B′
-conv-tgt≡ refl ⊢c = ⊢c
+conversion-all-source : ∀ {Δ₁ Δ₂ c A B d}
+  → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂
+  → allView c ≡ just d
+  → AllShape A
+conversion-all-source (conv-id {B = `∀ B} same) refl =
+  same-all-left same
+conversion-all-source
+  (conv-cons (conv-all s) (conv-id {B = `∀ B} same)) refl = all-shape _
 
--- Retype a term along an equality of its type.  Used to move an interior
--- derivation along the conversion inversions of strong.Conversion (which
--- name the SOURCE type of an `id`/`unseal`), so that the canonical-forms
--- lemmas can be applied to it.
-⊢ty≡ : ∀ {Γ M} → A ≡ B → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ ⊢ M ⦂ B
-⊢ty≡ refl ⊢M = ⊢M
+simple-all : ∀ {Δ V A}
+  → Simple V
+  → Δ ∣ [] ⊢ V ⦂ A
+  → AllShape A
+  → Σ[ N ∈ Term ] (Value N × (V ≡ Λ N))
+simple-all S$ ⊢$ ()
+simple-all S# ⊢# ()
+simple-all Sƛ (⊢ƛ wf body) ()
+simple-all (SΛ v) (⊢Λ body) (all-shape A) = _ , v , refl
 
-------------------------------------------------------------------------
--- §2  What an INERT conversion can look like, read off its TARGET type
-------------------------------------------------------------------------
-
--- No inert conversion has a base target.  `id A` at a base type is the
--- one conversion with a base target, and it is ACTIVE (A-idb), so `V-⟪⟫`
--- can never build a value at a base type.
-inert-¬base : Inert c → Δ ⊢ c ∶ A ⇝ B → ¬ Base B
-inert-¬base I-idv  (conv-id ())
-inert-¬base I-idv  (conv-idv _)   ()
-inert-¬base I-seal (conv-seal _)  ()
-inert-¬base I-fun  (conv-fun _ _) ()
-inert-¬base I-all  (conv-all _)   ()
-
--- An ARROW target forces a function conversion: `id`/`seal` have
--- variable targets and `` `∀ `` has a ∀ target.
-inert-fun-conv : Inert c → Δ ⊢ c ∶ A ⇝ (B ⇒ C)
-  → Σ[ s ∈ Conv ] Σ[ t ∈ Conv ] (c ≡ s ↦ t)
-inert-fun-conv I-fun (conv-fun ⊢s ⊢t) = _ , _ , refl
-
--- A ∀ target forces a ∀ conversion.
-inert-all-conv : Inert c → Δ ⊢ c ∶ A ⇝ `∀ B
-  → Σ[ s ∈ Conv ] (c ≡ `∀ s)
-inert-all-conv I-all (conv-all ⊢s) = _ , refl
-
--- A VARIABLE target admits exactly TWO conversions, and the variable is
--- literally the name they carry — there is no second spelling to compare.
--- These two are the left-hand sides of CancelR and IdPush.
-inert-var-conv : Inert c → Δ ⊢ c ∶ A ⇝ ` X
-  → (c ≡ seal X) ⊎ (c ≡ id (` X))
-inert-var-conv I-idv  (conv-id ())
-inert-var-conv I-idv  (conv-idv _)  = inj₂ refl
-inert-var-conv I-seal (conv-seal _) = inj₁ refl
-
-------------------------------------------------------------------------
--- §3  CANONICAL FORMS
-------------------------------------------------------------------------
-
--- BASE.  A closed value at a base type is a NUMERAL, outright — no
--- wrapper survives (§2, inert-¬base).  Note the `𝔹 instance is vacuous:
--- the calculus has no boolean literal, so there is simply no closed value
--- at `𝔹, and this statement absorbs that fact.
-canon-base : ∀ {V} → Value V → Base A → Δ ∣ [] ⊢ V ⦂ A
+canonical-ℕ : ∀ {Δ V}
+  → Value V
+  → Δ ∣ [] ⊢ V ⦂ `ℕ
   → Σ[ n ∈ ℕ ] (V ≡ $ n)
-canon-base V-$        b  ⊢$            = _ , refl
-canon-base V-ƛ        () (⊢ƛ _ _)
-canon-base (V-Λ _)    () (⊢Λ _)
-canon-base (V-⟪⟫ v ic) b (env {Θ = Θ} _ _ ⊢c _) =
-  ⊥-elim (inert-¬base ic (conv-tgt≡ (shiftBy-base (numBinds Θ) b) ⊢c) b)
+canonical-ℕ (Vs S$) ⊢$ = _ , refl
+canonical-ℕ (Vs S#) ()
+canonical-ℕ (Vs Sƛ) ()
+canonical-ℕ (Vs (SΛ v)) ()
+canonical-ℕ (Vν simple nf app) (⊢ν store scope nfc body conv)
+  with applicable-ℕ-impossible app (conv-target conv)
+canonical-ℕ (Vν simple nf app) (⊢ν store scope nfc body conv) | ()
 
-canon-ℕ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `ℕ → Σ[ n ∈ ℕ ] (V ≡ $ n)
-canon-ℕ v ⊢V = canon-base v base-ℕ ⊢V
-
--- ARROW.  A closed value at an arrow type is a λ or a wrapper with a
--- FUNCTION CONVERSION — the two left-hand sides of Beta and Peel.  The
--- wrapper's interior is itself a value, which is exactly Peel's first
--- premise.
-canon-⇒ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ (A ⇒ B)
+canonical-⇒ : ∀ {Δ V A B}
+  → Value V
+  → Δ ∣ [] ⊢ V ⦂ A ⇒ B
   → (Σ[ N ∈ Term ] (V ≡ ƛ A ∙ N))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
-       (Value W × (V ≡ W ⟪ Θ , s ↦ t ⟫)))
-canon-⇒ V-$     ()
-canon-⇒ V-ƛ     (⊢ƛ _ _) = inj₁ (_ , refl)
-canon-⇒ (V-Λ _) ()
-canon-⇒ {A = A} {B = B} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with inert-fun-conv ic
-         (conv-tgt≡ (shiftBy-⇒ (numBinds Θ) A B) ⊢c)
-canon-⇒ (V-⟪⟫ v ic) (env _ _ ⊢c _) | s , t , refl =
-  inj₂ (_ , _ , s , t , v , refl)
+    ⊎ (Σ[ Θ ∈ Store ] Σ[ χ ∈ Scope ] Σ[ W ∈ Term ] Σ[ c ∈ Conv ]
+       Σ[ c₁ ∈ Conv ] Σ[ c₂ ∈ Conv ]
+       (V ≡ ν Θ , χ [ W ∣ c ]) ×
+       (arr c ≡ just (c₁ , c₂)))
+canonical-⇒ (Vs S$) ()
+canonical-⇒ (Vs S#) ()
+canonical-⇒ (Vs Sƛ) (⊢ƛ wf body) = inj₁ (_ , refl)
+canonical-⇒ (Vs (SΛ v)) ()
+canonical-⇒ (Vν simple nf app) (⊢ν store scope nfc body conv)
+  with applicable-arr app (conv-target conv)
+canonical-⇒ (Vν simple nf app) (⊢ν store scope nfc body conv)
+  | c₁ , c₂ , arr-eq =
+  inj₂ (_ , _ , _ , _ , c₁ , c₂ , refl , arr-eq)
 
--- ∀.  A closed value at a ∀ type is a Λ over a VALUE (V-Λ's premise, and
--- exactly TyBeta's premise) or a wrapper with a ∀ CONVERSION (TyPeelR's).
-canon-∀ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
+canonical-∀ : ∀ {Δ V A}
+  → Value V
+  → Δ ∣ [] ⊢ V ⦂ `∀ A
   → (Σ[ N ∈ Term ] (Value N × (V ≡ Λ N)))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ]
-       (Value W × (V ≡ W ⟪ Θ , `∀ s ⟫)))
-canon-∀ V-$      ()
-canon-∀ V-ƛ      ()
-canon-∀ (V-Λ vN) (⊢Λ _) = inj₁ (_ , vN , refl)
-canon-∀ {C = C} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with shiftBy-∀ (numBinds Θ) C
-canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq
-  with inert-all-conv ic (conv-tgt≡ eq ⊢c)
-canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq | s , refl =
-  inj₂ (_ , _ , s , v , refl)
-
--- VARIABLE — the v2 canon-var.  A closed value at an abstract type is a
--- wrapper whose conversion is `seal Y` or `id (` Y)`, nothing else: the
--- two left-hand sides of CancelR and IdPush.  (`value-var-visible` is NOT
--- needed here — the conversion inversion already decides the shape;
--- visibility of the named slot is a separate, and independently available,
--- fact.)
-canon-var : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
-  → Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ Y ∈ ℕ ]
-      (Value W
-       × ((V ≡ W ⟪ Θ , seal Y ⟫) ⊎ (V ≡ W ⟪ Θ , id (` Y) ⟫)))
-canon-var V-$     ()
-canon-var V-ƛ     ()
-canon-var (V-Λ _) ()
-canon-var {X = X} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with inert-var-conv ic
-         (conv-tgt≡ (shiftBy-var (numBinds Θ) X) ⊢c)
-canon-var (V-⟪⟫ v ic) (env _ _ ⊢c _) | inj₁ refl =
-  _ , _ , _ , v , inj₁ refl
-canon-var (V-⟪⟫ v ic) (env _ _ ⊢c _) | inj₂ refl =
-  _ , _ , _ , v , inj₂ refl
+    ⊎ (Σ[ Θ ∈ Store ] Σ[ χ ∈ Scope ] Σ[ W ∈ Term ] Σ[ c ∈ Conv ]
+       Σ[ N ∈ Term ] Σ[ d ∈ Conv ]
+       (W ≡ Λ N) × Value N ×
+       (V ≡ ν Θ , χ [ W ∣ c ]) ×
+       (allView c ≡ just d))
+canonical-∀ (Vs S$) ()
+canonical-∀ (Vs S#) ()
+canonical-∀ (Vs Sƛ) ()
+canonical-∀ (Vs (SΛ v)) (⊢Λ body) = inj₁ (_ , v , refl)
+canonical-∀ (Vν simple nf app) (⊢ν store scope nfc body conv)
+  with applicable-all app (conv-target conv)
+canonical-∀ (Vν simple nf app) (⊢ν store scope nfc body conv)
+  | d , all-eq
+  with simple-all simple body (conversion-all-source conv all-eq)
+canonical-∀ (Vν simple nf app) (⊢ν store scope nfc body conv)
+  | d , all-eq | N , v , refl =
+  inj₂ (_ , _ , _ , _ , _ , d , refl , v , refl , all-eq)

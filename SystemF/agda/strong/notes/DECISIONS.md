@@ -2631,3 +2631,561 @@ measured in Examples: the Λ clause performs the instantiation itself,
 so one type instantiation mints ONE binder where TyPeelR ⨟ TyBeta minted
 two — J₀ 14 → 11 steps, E₀ 6 → 5 (ends in a value), T₉'s birth story
 2 → 1 step; P₀ Q₀ R₀ L₀ Ri G unchanged.
+
+### RULING: colour annotations on source terms (Jeremy, 2026-09-11)
+
+THE GOAL.  Colour Preservation (notes-v3 §Criteria): the set of type
+variables in scope at every subterm from the SOURCE program is invariant
+under reduction.  Jeremy's plan: annotate every source term node with a
+set of type variables, make the typing rules demand "in scope iff in the
+annotation", and get colour preservation as a COROLLARY of ordinary type
+preservation — the annotation is fixed data that reduction transports but
+never recomputes, so Preservation has to discharge the scope equation at
+every source node.
+
+THE THREE RULINGS.
+
+(1) REPRESENTATION: de Bruijn INDICES, transported by the existing `renᴹ`
+    (an annotation is just more type-variable data in the term).  Every
+    renaming reduction applies (`suc`, `extN k suc`, `extᵗ ρ`) is a
+    monotone injection, so ascending order survives and no new machinery
+    is needed.  Rejected: stable nominal "colour names" (a name supply and
+    freshness side conditions on every binder-minting rule).
+
+(2) THE "IFF": `χ ≡ scopeᵗ Δ`, where
+
+      scopeᵗ : Ctxᵗ → VarSet                      (strong.CtxMorph §1b)
+      scopeᵗ []               = []
+      scopeᵗ (unmasked b ∷ Δ) = 0 ∷ map suc (scopeᵗ Δ)
+      scopeᵗ (masked   b ∷ Δ) =     map suc (scopeᵗ Δ)
+
+    is the ascending, duplicate-free list of NAMEABLE slots.  Adequacy
+    (`scopeᵗ-sound` / `scopeᵗ-complete`): `X ∈χ scopeᵗ Δ ⟺ Δ ∋tv X`.
+    Propositional equality is the cheap choice — the ⊢Λ / ⊢intro / crossΛ
+    cases discharge by `refl` — at the price of an ordered insert
+    (`insertᵒ` / `mergeᵒ`) for the unlocking side, since `_∪_` is `_++_`
+    and is right only for boundary TAGS.  Rejected: pointwise `↔`.
+
+(3) THE ⊢reveal / ⊢conceal HOLE, FIXED FIRST.  Found while planning:
+    Preservation was ALREADY FALSE, with no annotations involved.
+    `crossArg (reveal χ) W = ν conceal χ [ W ]` lands W at
+    `lockχ χ (unlockχ χ Δ)`, which is Δ only if every X ∈ χ was already
+    LOCKED — and ⊢reveal did not require it.  Witness: at
+    Δ = unmasked (bind ℕ) ∷ [] with b = reveal (0 ∷ []) (a vacuous
+    unlock) and W = ƛ ` 0 ∙ ` 0, the AppBnd reduct types W at
+    masked (bind ℕ) ∷ [], where its body's ` 0 is no longer nameable.
+    REPAIR: ⊢reveal gains `Δ ∋lks χ` (every slot locked), ⊢conceal gains
+    `Δ ∋tvs χ` (every slot nameable), with the round trips proved:
+
+      lock-unlock : Δ ∋lks χ → lockχ χ (unlockχ χ Δ) ≡ Δ
+      unlock-lock : Δ ∋tvs χ → unlockχ χ (lockχ χ Δ) ≡ Δ
+
+    (strong.CtxMorph §2c, on the `updateAt` algebra added to strong.Ctx
+    §6: `updateAt-comm`, `updateAt-∘`, `mask-absorb`, `unmask-absorb`,
+    `mask-locked`, `unmask-nameable`).  Both hold for ANY χ, duplicates
+    included.  Every rule that mints a reveal/conceal tag can establish
+    the new premises: crossArg is self-establishing at both polarities,
+    and Commute, MergeConceal, PushIntro, TyConceal, TyPos, PushConv
+    inherit theirs.
+
+WHAT THE ANNOTATION COSTS THE RULES.  Rule by rule, EXACTLY TWO of the
+nineteen move a node across a boundary frame and so must REBUILD its
+annotation — `AppBnd` (the application node lands at `applyᵇ b Δ`) and
+`TyPos` (the type-application node is rebuilt two boundaries deeper).
+Both compute the new set from the node's OWN old set and the tag, with no
+reference to Δ:
+
+  scopeᵇ : Bnd → VarSet → VarSet                  (strong.CtxMorph §5)
+  scopeᵇ (intro A)   χ = 0 ∷ map suc χ
+  scopeᵇ (reveal ψ)  χ = mergeᵒ ψ χ
+  scopeᵇ (conceal ψ) χ = χ ∖ ψ
+
+  LAW (proof phase):  scopeᵇ b (scopeᵗ Δ) ≡ scopeᵗ (applyᵇ b Δ)
+
+Every other rule transports annotations UNCHANGED.  Two that might have
+been expected to change and do not, by a context identity:
+  TyBeta     V's frame goes `unmasked abst ∷ Δ` → `unmasked (bind A) ∷ Δ`
+             — both UNMASKED, same scopeᵗ.  The Λ-bound colour simply
+             BECOMES the intro'd one.
+  TyConceal  `unmasked abst ∷ lockχ χ Δ` = `lockχ (map suc χ)
+             (unmasked (bind A) ∷ Δ)` — literally the same context.
+And crossΛ is colour-exact by `refl`: its interior frame `masked abst ∷ Δ`
+has scopeᵗ `map suc (scopeᵗ Δ)`, exactly what its `renᴹ suc` does to the
+annotations it carries.
+
+OPEN.  Whether rebuilding AppBnd's and TyPos's annotations is the right
+reading of the criterion (the node is reconstructed by the rule, so no
+SURVIVING source node changes colour) or whether those two rules should
+instead be read as violating it, is Jeremy's call at the next check-in.
+
+#### Addendum (2026-09-11): crossArg INLINED, and the colour catalogue
+
+SIMPLIFICATION (Jeremy's call).  `crossArg` re-derived `dualᵇ` inline,
+tangled it with the intro shift, and hid what the rule actually does.  It
+is GONE.  AppBnd now writes the crossing out in full, and the one piece
+worth naming keeps a name (`strong.Reduction` §0):
+
+  shiftIn : Bnd → Term → Term        -- ONLY intro shifts; it alone binds
+  shiftIn (intro A)   W = ⇑ᴹ W
+  shiftIn (reveal χ)  W = W
+  shiftIn (conceal χ) W = W
+
+  AppBnd : Value (ν b [ M ]) → Value W
+    → Δ ⊢ (ν b [ M ]) · W ⟪ κ ⟫
+        -→ ν b [ M · (ν dualᵇ b [ shiftIn b W ]) ⟪ scopeᵇ b κ ⟫ ]
+
+The criterion now reads straight off the rule: the crossing moves the
+argument's type variables by `shiftIn` AND BY NOTHING ELSE, because the
+dual tag restores the argument's frame exactly (`lock-unlock` /
+`unlock-lock`).
+
+THE CROSSING AND scopeᵇ DO UNRELATED JOBS.  The crossing protects the
+ARGUMENT, and protects it perfectly.  scopeᵇ exists only for the
+ELIMINATOR NODE itself, the one thing AppBnd moves into the interior.
+
+THE CATALOGUE, against Jeremy's criterion ("a shift from an intro is
+fine, nothing else"):
+
+  AppBnd  intro A    κ ↦ 0 ∷ map suc κ   shift + the fresh colour   OK
+  AppBnd  reveal χ   κ ↦ κ ⊎ χ           ADDED  (χ ∩ κ = ∅ by ⊢reveal)   ✗
+  AppBnd  conceal χ  κ ↦ κ ∖ χ           REMOVED (χ ⊆ κ by ⊢conceal)     ✗
+  TyPos   intro A′   two shifts                                      OK
+  TyPos   reveal χ   shift, then ADDED                                ✗
+  (the other 17 rules: unchanged)
+
+Three violating configurations, ONE SHAPE: an elimination node whose
+operator is a boundary is pushed inside that boundary.  reveal/conceal are
+exactly the tags that move the SET rather than reindex it, and AppBnd's
+`Value (ν b [ M ])` premise forces χ ≠ ∅ (empty tags are not values — they
+are DropReveal/DropConceal redexes), so no instance is benign.
+
+notes/AppBndExample.agda is the smallest complete run that reaches one:
+`(λg:ℕ→ℕ. ΛX. g · 5) · (λz:ℕ. z)` in five steps, with the application
+node's colour set going {X} → ∅ at the AppBnd and the argument's frame
+restored exactly by `unlock-lock`.
+
+STILL OPEN (Jeremy is thinking): whether `·` and `⊕` should carry colour
+annotations at all.  They are the only source forms that mention no type;
+dropping their annotation makes AppBnd transport everything unchanged and
+removes scopeᵇ from it entirely, leaving TyPos, where the `•` node is
+arguably genuinely NEW (its type argument changed from A to the fresh Y).
+
+#### Bug (2026-09-11): TyPos concealed the wrong slot
+
+FOUND by reading the renaming against its partner, CONFIRMED by the colour
+annotations.  TyPos wedges the fresh binder Y BELOW b's own binders:
+
+  ᵇ[M] •B[A]  -→  ⁺ʸ⁼ᴬ[ ᵇ′[ ⁻ʸ[M′] •B′[Y] ] ]
+
+which is exactly what `renᴹ (extN (numBindsᵇ b) suc) M` does — it holds M's
+OWN binders (indices 0 … numBindsᵇ b − 1) fixed and shifts M's references
+to Δ up by one.  THE RENAMING WAS RIGHT.  Its partner was not: the rule
+wrapped M in `ν conceal (0 ∷ [])` and instantiated at `[ ` 0 ]`.
+
+Y's index inside `ν renBnd suc b` is `numBindsᵇ b`: 0 for a `reveal`
+(binds nothing) but 1 for an `intro`.  So at an intro tag the rule
+concealed M'S OWN BINDER and left Y visible — the exact opposite of the
+notes' `⁻ʸ[V⁺] •B[Y]` — and instantiated at M's binder instead of Y.
+
+THE COLOUR ANNOTATION CAUGHT IT.  At Δ = [Z], b = intro ℕ, A = 𝔹:
+
+  M's colours at its old frame          0 ∷ 1 ∷ []
+  after renᴹ (extN 1 suc)               0 ∷ 2 ∷ []
+  the frame it landed in, conceal 0     1 ∷ 2 ∷ []     ✗
+  the frame it lands in, conceal 1      0 ∷ 2 ∷ []     ✓
+
+FIXED: `conceal (numBindsᵇ b ∷ [])` and `[ ` (numBindsᵇ b) ]`.  The reveal
+case is unchanged, since numBindsᵇ (reveal χ) = 0.  Regression:
+notes/TyPosExample.agda, including the counterfactual.
+
+TWO ITEMS IN THE SAME RULE REMAIN OPEN (Jeremy is ruling on them):
+
+(i) NO CONVERSION.  TyBeta mints `V ⟨ revTy 0 B ⟩` to reconcile the
+    interior's view (which names the fresh binder) with the exterior's
+    (which names its rep).  TyPos mints none, so its interior type
+    mentions Y where ⊢intro demands A.  With B = ` 0 and A = ℕ:
+    the • node's type is ` 0, ⊢intro wants ⇑ᵗ (` 0 [ ℕ ]ᵗ) = ℕ.  The notes
+    have the same gap read literally: `⁺ʸ⁼ᴬ[…•B[Y]]` gives body type B[Y],
+    but the +Y=A boundary's own rule demands Y ∉ FV of its type.
+
+(ii) B'S SHIFT.  `renameᵗ (extᵗ suc) B` is ONE shift.  Right for a reveal
+     (⊢reveal gives the interior the exterior's type unchanged); for an
+     intro, ⊢intro ALREADY shifted M's type by ⇑ᵗ, so M′'s ∀-body carries
+     two shifts and the rule names only one.
+
+AND THE GENERAL FRAME LAW the rule now owes (notes/TyPosExample.agda §1
+and §3 are instances; not refl in general — needs map-fusion and, on the
+reveal side, the ⊢reveal premise):
+
+  map (extN (numBindsᵇ b) suc) (scopeᵗ (applyᵇ b Δ))
+    ≡ scopeᵗ (lockχ (numBindsᵇ b ∷ [])
+                    (applyᵇ (renBnd suc b) (unmasked (bind A) ∷ Δ)))
+
+#### Fixed (2026-09-11): TyPos's missing conversion, and the notes' +X on arrows
+
+Jeremy approved both.  The two OPEN items of the previous entry are closed.
+
+(i) THE MISSING CONVERSION.  Typed by hand on `V : ∀Z. Z→Z` instantiated
+    at ℕ (so B = Z→Z, A = ℕ), the notes' rule
+    `⁺ᵖ[V⁺]•B[A] -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺]•B[Y]]]` gives
+
+      ⁻ʸ[V] : ∀Z.Z→Z ,  ⁻ʸ[V]•(Z→Z)[Y] : Y→Y ,  ⁺ᵖ[…] : Y→Y
+
+    and then the ⁺ʸ⁼ᴬ boundary's own side condition `names(b) ∩ FV(B) = ∅`
+    demands Y ∉ FV(Y→Y), which is FALSE — and the type delivered is Y→Y
+    where the redex had ℕ→ℕ.  Two symptoms, one cause: nothing converts Y
+    back to its representation.  TyBeta does exactly that with `+Z(B)`;
+    TyPos minted nothing.
+
+    INSTALLED, both in notes-v3 and in strong.Reduction:
+
+      Δ ⊢ ⁺ᵖ[V⁺] •B[A] -→ ⁺ʸ⁼ᴬ[(⁺ᵖ[⁻ʸ[V⁺] •B[Y]])⟨+Y(B[Y])⟩]
+
+    In de Bruijn the conversion is LITERALLY `revTy 0 B` — the very one
+    TyBeta mints — because the lift-then-substitute composite is the
+    identity (`produced : (renameᵗ (extᵗ suc) B) [ ` 0 ]ᵗ ≡ B`, refl).
+    PLACEMENT: just inside `ν intro A`, OUTSIDE `ν renBnd suc b`.  There Y
+    is slot 0 and the body's type is literally B whether or not b binds,
+    so one expression serves both tags; innermost would need
+    `revTy (numBindsᵇ b)` at a shifted type.  The ⁺ᵖ side condition stays
+    easy at that placement: it needs names(p) ∩ FV(B[Y]) = ∅, which holds
+    because Y is fresh and names(p) ∩ FV(∀Z.B) = ∅ came with the redex.
+    Machine-checked in notes/TyPosExample.agda §4:
+
+      conversion-types : Δ₁ ⊢ revTy 0 B ∶ B ⇝ (B [ A ]ᵗ)
+      conversion-types = conv-fun (conv-seal Y∋ℕ) (conv-unseal Y∋ℕ)
+
+(ii) B'S SHIFT.  M's type already carries `numBindsᵇ b` shifts (⊢intro
+     hands its body ⇑ᵗ of the exterior type; ⊢reveal hands it the type
+     unchanged), and the rule adds one more for Y.  So the ∀-body the `•`
+     node names is `renameᵗ (extᵗ (wkN (suc (numBindsᵇ b)))) B`.  At a
+     reveal that is DEFINITIONALLY the old `extᵗ suc` (wkN 1 X = suc X),
+     so nothing that worked before moved; at an intro it is genuinely two
+     shifts (§5 of the example).
+
+(iii) THE NOTES' `+X` WAS WRONG ON ARROWS.  notes-v3 said
+      `+X(A → B) = +X(A) → +X(B)` and defined no `-X(A)` at all.  A
+      conversion `c → d : (A→B) ⇒ (C→D)` requires `c : C ⇒ A`, so
+      revealing X in an arrow must CONCEAL it in the domain.  The Agda had
+      it right all along (`revTy X (A ⇒ B) = concTy X A ↦ revTy X B`); the
+      notes now carry both mints, mutually recursive, with the flip
+      spelled out.  It is visible in the example: the installed conversion
+      is `seal 0 ↦ unseal 0` — conceal on the domain, reveal on the
+      codomain.
+
+#### Fixed (2026-09-11): TyConceal had the same missing conversion
+
+Jeremy asked whether `⁻χ[ΛY.V] •B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]` was OK.  It was not:
+it is TyBeta with a conceal boundary wedged in, and it dropped TyBeta's
+conversion on the way.  `lock(χ,Γ) ⊢ ΛY.V : ∀Y.B` gives
+`lock(χ,Γ),Y ⊢ V : B`, so the contractum's `⁻χ[V]` has type B — which
+NAMES Y — and the ⁺ʸ⁼ᴬ boundary's side condition `Y ∉ FV(B)` fails, with
+the reduct typed B where the redex had B[A].
+
+INSTALLED in notes-v3 and strong.Reduction:
+
+  Δ ⊢ ⁻χ[ΛY.V] •B[A] -→ ⁺ʸ⁼ᴬ[(⁻χ[V])⟨+Y(B)⟩]
+
+In de Bruijn, `revTy 0 B` — the third use of the very same conversion.
+
+THE PLACEMENT IS FORCED HERE, not merely preferred as in TyPos.  OUTSIDE
+the conceal, its body keeps type B and needs `map suc χ ∉FVs B`, which is
+exactly the redex's own `χ ∉FVs (`∀ B)` (`∉FVs-∀`, proved in
+notes/TyPosExample.agda §6).  INSIDE, the body's type would be B[Y:=A] and
+⊢conceal would need `χ ∉FVs A` — and NOTHING provides that: its premise is
+`Δ ∋tvs χ`, i.e. every slot of χ is NAMEABLE in Δ, and A is a type over Δ,
+so A may name them.  §6 exhibits such an A (`A-names-χ`).
+
+THE AUDIT of every rule that mints an `intro` is now closed:
+
+  TyBeta     ✓ always had `revTy 0 B`
+  TyPos      ✓ installed
+  TyConceal  ✓ installed
+  PushIntro  ✓ none needed — it mints NO binder.  The intro already
+             existed, and `lockχ (map suc χ) (unmasked (bind A) ∷ Δ)` IS
+             `unmasked (bind A) ∷ lockχ χ Δ`, so both sides type M at the
+             same frame (`PushIntro-same-frame`, §6).
+
+THE RULE OF THUMB, for the proof phase: every rule that turns a Λ-bound or
+freshly-introduced variable INTO an `intro` binder owes a `revTy` at that
+binder.  PushIntro is exempt precisely because it mints none.
+
+#### Investigated (2026-09-11): can the `Γ↓X` prefix design come back?
+
+CONTEXT.  Jeremy asked whether Example 8 — which killed the prefix design
+in v1 — is still a counterexample now that substitution inserts a conceal
+when it crosses a Λ.  It is NOT: Example 8 failed because TyWrapCncl
+pushed a TYPE ARGUMENT into a sealed body, and no v3 rule does that
+(TyConceal records A as the intro's representation instead).  crossΛ's
+insertion actively HELPS — it conceals slot 0, the shallowest, and shifts
+the body past it, so the body names only deeper slots.
+
+THE QUESTION, restated for v3: the prefix design types a conceal body at
+`Γ↓X`, so it is expressible exactly when NO conceal body ever needs to
+name a slot SHALLOWER than what its boundary conceals.  Rule by rule
+(notes/PrefixDesignProbe.agda):
+
+  crossΛ       CLEAN  conceals slot 0, body shifted past it
+  AppBnd/intro CLEAN  same shape (`ν conceal {0} [ ⇑ᴹ W ]`)
+  AppBnd/reveal CLEAN the dual crossing lands W back at its OWN frame
+                      EXACTLY — `lock-unlock` is the reason — so AppBnd
+                      hides nothing from W that Δ did not already hide
+  AppBnd/conceal CLEAN the dual is a REVEAL; no conceal is created
+  TyPos        CLEAN  since Y moved inside b, it conceals slot 0 with the
+                      body shifted by plain `suc`
+  PushIntro    NOT CLEAN
+  TyConceal    NOT CLEAN
+
+I HAD FLAGGED AppBnd AT A REVEAL TAG AS SUSPECT.  It is not: `lock-unlock`
+settles it.  The obstruction is elsewhere.
+
+THE REAL OBSTRUCTION is the CONCEAL-COMMUTES-PAST-AN-INTRO family.  Both
+PushIntro and TyConceal have the shape `⁺ʸ⁼ᴬ[⁻^(map suc χ)[M]]`: the intro
+moves OUT past the conceal, so inside, Y is slot 0 and UNMASKED while the
+concealed slots are all ≥ 1.  The body sits under a conceal yet may name a
+slot shallower than everything that conceal hides — and for TyConceal it
+DOES by construction, since its redex is `⁻χ[ΛY.V] •B[A]` and V is the Λ's
+own body (probe §3 types V = λw:Y.w at exactly that frame).
+
+AND TyConceal CANNOT BE REPAIRED THE WAY TyPos WAS.  Moving its fresh
+binder inside the tag gives `⁻χ[⁺ʸ⁼ᴬ[…]]`, whose conceal body then has
+type B[Y:=A], so ⊢conceal would need `χ ∉FVs A` — and nothing provides it:
+its premise is `Δ ∋tvs χ` (every slot of χ NAMEABLE in Δ) and A is a type
+over Δ, so A may name them (notes/TyPosExample.agda §7).
+
+VERDICT: the prefix design stays retired.  Not for Example 8's reason, and
+not because of AppBnd, but because two rules force an intro to be visible
+beneath a conceal — a shape `Γ↓X` cannot denote.
+
+#### Strengthened (2026-09-11): why the prefix design is dead, properly
+
+Jeremy, on notes-v4's TyBeta: "doesn't this ordering ruin the prefix
+approach to contexts?"  Yes — and following it gives a much better
+argument than the one in notes/PrefixDesignProbe.agda.
+
+THE ORDERING.  TyBeta's contractum is
+`ν new Y:β:=⌊A⌋ [ (⁻ᵟ′[V])⟨+Y(B)⟩ ]`, which puts Y (newest) in scope while
+δ's slots (older) are gone — the non-prefix shape.
+
+WHY Y IS OUTSIDE THE SPINE (notes-v4 [C16]): the conversion `+Y(B)` types
+only where β's representation is READABLE, and inside the spine that fails
+in exactly the motivating case (A = Z, δ concealing Z); the conversion
+must therefore sit outside the spine, and it needs Y in scope, so the
+intro must enclose it.
+
+THE POINT.  Read that forcing again:
+
+    the REPRESENTATION must be READABLE where the conversion is,
+    and the CONVERSION must sit UNDER the binder it converts;
+    together these force the binder OUTSIDE the concealment of whatever
+    the representation mentions.
+
+NEITHER PREMISE MENTIONS MASKS, DELETION, POSITIONS OR NAMES.  So the
+ordering is forced under v3's masks, under v4's slot deletion, and under
+v5's names alike — and `Γ↓X`, which drops a SUFFIX, cannot denote it in
+any of them.
+
+SO THE PREFIX DESIGN DOES NOT BECOME REACHABLE BY CHANGING HOW CONTEXTS
+ARE REPRESENTED.  The earlier probe's verdict ("two rules force non-prefix
+MASKS") was right but under-argued — it reads as a fact about masks, and
+it is a fact about conversions.  This is also the same principle as the
+TyConceal discussion's "an alias must be minted where its representation
+is visible", seen from the conversion's side rather than the binder's.
+
+Recorded in notes-v4 [C16] and at the foot of
+notes/PrefixDesignProbe.agda §4 (which still checks).
+
+#### Corrected (2026-09-11): the prefix verdict is not boundary-shape-independent
+
+The entry above claims the Γ↓X design is dead for a reason surviving every
+representation change.  Jeremy: what about v2-style FUSED boundaries
+(intro, reveal, conceal and conversion in one node) with prefix contexts —
+and, separately, typing a conversion in TWO contexts, one per endpoint?
+
+THE TWO ARE ONE IDEA.  `Γᵢ ; Γₑ ⊢ c : A ⇒ B` says something only if the
+node CHANGES the context; otherwise Γᵢ = Γₑ.  So a two-context conversion
+IS a fused boundary — Θ supplies the two contexts, c mediates.
+
+AND IT DISSOLVES THE FORCING.  My second premise — "the conversion must
+sit UNDER the binder it converts" — assumes the boundary and the
+conversion are SEPARATE NODES.  Fused, "under" is not a question: the
+interior is `Γ ⇈ (↓Y ; ρ) = (Γ↓Y) , ρ`, truncate THEN append, so a freshly
+introduced variable lands SHALLOWEST and the truncation stays a prefix by
+construction.  The claim is representation-independent but NOT
+boundary-shape-independent.  notes-v4 [C16] and PrefixDesignProbe.agda
+corrected to say "for SPLIT boundaries".
+
+notes-v6.md drafts the combination — fused boundaries, prefix interiors,
+ANCHORED entries.  The three cover three different historical failures:
+fusion makes the interior truncate-then-append; two-context conversions
+are what fusion formally is (and contravariance becomes literal CONTEXT
+SWAPPING in the arrow rule, which is the test that it is the right
+reading); anchors remove the `⟦A⟧` interior reading and its three-case
+fallback chain that killed v1's fused+prefix design ("every failure is a
+failed rep copy", 2026-09-05).
+
+WHAT v6 DOES NOT FIX, and why I would not bet on it yet.  v2 bled in two
+places and v6 makes the INTERIOR cheaper while leaving the MORPHISM
+ALGEBRA where it was:
+  * THE DUAL.  Undoing an append is a truncation; undoing a TRUNCATION is
+    an append of the whole dropped block.  So Θᵈ's size is the size of
+    that block (v3/v4 restore in O(1)) and the restored context is Γ only
+    UP TO REORDERING — v2's ≼≈ in a new place.  Anchors make each entry
+    cheap and identity-by-anchor would make the reordering immaterial;
+    neither makes the size immaterial.
+  * Θ COMPOSITION, needed because Cancel may match a pair spanning two
+    adjacent boundaries.  Anchors give the pair a stable identity, which
+    is the matching half; they say nothing about composing two
+    truncate-then-append morphisms, which is the half v2's ≼≈ came from.
+
+THE COMPARISON TO SETTLE: v3 buys a cheap interior (masks) with NO
+morphism algebra; v6 buys a cheap interior and PAYS one.  Re-reading v2's
+Boundary.agda for what the dual and composition actually cost is probably
+worth more than further design.
+
+#### Settled (2026-09-11): what anchors are actually for
+
+Jeremy: with two-context conversions, perhaps the representation R is well
+formed in the exterior (for a reveal) or the interior (for a conceal), so
+the anchor-closed R,S sublanguage could go.
+
+BOTH IMMEDIATE CASES DO WORK.
+  REVEAL   `+X : X ⇒ R` needs R in the EXTERIOR; the boundary's own field
+           supplies it as a type over the exterior.
+  CONCEAL  `-Y : R ⇒ Y` needs R in the INTERIOR, which is `Γ↓Y` — EXACTLY
+           the context Y's telescope entry was written over.  The prefix
+           truncation is what makes this automatic: it is Y's existential
+           scope.
+
+AND THE RESIDUE IS REAL, AND REACHED BY A CLOSED PROGRAM.  A boundary that
+BOTH truncates at Z AND appends Y:=A with A mentioning Z cannot store Y's
+representation in its interior telescope (Y's prefix there is Γ↓Z, which
+lacks Z).  An ABSTRACT entry would do unless something INSIDE needs the
+representation — and AppBnd's DUAL does: it sends the argument back out
+through a conceal of Y carrying `-Y`, whose interior side needs it.
+
+notes/DeeperConcealProbe.agda reaches the shape in THREE steps from
+
+  (λg:(∀Y. ℕ→ℕ). ΛZ. (g •(ℕ→ℕ)[Z]) · 5) · (ΛY. λw:ℕ. w)
+
+Beta sends g across the ΛZ (crossΛ conceals Z); TyConceal instantiates AT
+the concealed Z, so the minted intro's representation IS Z; AppBnd then
+drags a conceal of that fresh Y down INSIDE the intro.  Checked in the
+live v3 calculus.  v3 survives it ONLY because masking RETAINS the binding
+(`v3-retains`); a prefix interior does not retain.
+
+THE FORCING, FINALLY ARGUED (notes-v4 [C3], twice retracted before this).
+It is not about where a node sits and not about Σ's existence.  It is:
+
+    a conceal that REMOVES an entry (delete, or truncate) means a later
+    reveal must RESTORE it with its representation, so the representation
+    must live somewhere PERMANENT — and a permanent store cannot hold a
+    type scoped at a transient context, hence anchor-closed.
+
+v3 ESCAPES THIS ENTIRELY, and that is the whole point of masking: `masked
+b` retains b, so the representation never leaves the context.  v4's
+deletion and v6's truncation both need the store.
+
+TWO EARLIER ARGUMENTS RETRACTED, kept in [C3] because they were believed:
+"TyConceal plants an intro inside a conceal" (superseded — the intro is
+always outside since the TyBeta/TyConceal unification), and the pair
+"Σ is permanent" (circular) / "crossΛ may wrap a value containing an intro
+naming the concealed variable" (refuted by the premises: crossΛ conceals
+the Λ's FRESH slot, and AppBnd at a reveal conceals slots ⊢reveal requires
+be LOCKED, neither of which the wrapped value can name).
+
+SO: ANCHORS ARE FOR (1) surviving a conceal that REMOVES an entry, and
+(2) IDENTITY — Cancel across a crossing, position-independence.  NOT
+representations in general.  Which also says something about the whole
+line of exploration: masking is not a cost v3 pays, it is what v3 buys.
+
+#### Retracted (2026-09-11): "anchors are forced"
+
+The entry above concludes that anchors are needed to survive a conceal
+that removes an entry.  THAT IS CONDITIONAL ON REPRESENTATIONS LIVING IN
+CONTEXTS, which I did not say, and it is false in general.
+
+Jeremy asked what option (c) — conversions reading representations from Θ,
+with v1's four entry forms — actually looks like.  Written out
+(notes-v6.md, rewritten), it needs no anchors at all:
+
+  * CONTEXTS ARE BARE.  `Γ ::= ∅ | Γ, X`.  No representations, no marks.
+    All knowledge lives on Θ.
+  * Θ's WELL-FORMEDNESS checks representations AT THE TWO ENDPOINTS:
+    a REVEAL's rep is a type over the EXTERIOR, a CONCEAL's over the
+    INTERIOR.  Simultaneity, in v1's sense — and checking it at
+    INTERMEDIATE stages instead genuinely fails (notes-v6 [C4], [C8]).
+  * CONVERSIONS take three places, `Γₛ ; Γₜ ; Θ ⊢ c : A ⇒ B`, with four
+    leaf rules — each Θ entry gives one per direction.  `+` is always
+    name → representation, `-` always representation → name.
+
+AND THE DUAL COMES OUT FREE, which is the result worth keeping:
+
+  (↑X:=A)ᵈ = ↓X:=A      (↓Y:=B)ᵈ = ↑Y:=B      reps carried VERBATIM
+  (θ₁,…,θₙ)ᵈ = θₙᵈ,…,θ₁ᵈ                       Θᵈᵈ = Θ on the nose
+
+Dualising swaps exterior and interior, and the endpoint convention swaps
+with it — so "a reveal's rep is over the exterior" BECOMES "a conceal's
+rep is over the interior", and no re-scoping, reading or fallback is
+needed.  The asymmetry that looked arbitrary when written down is exactly
+what makes the dual free.
+
+ALSO CORRECTS THE EARLIER [O1].  I predicted the round trip would return Γ
+only UP TO REORDERING (v2's ≼≈).  It is EXACT, in order, provided Θᵈ is
+taken relative to Γ so it can re-append the COLLATERAL — the variables
+`Γ↓Y` drops after Y, which Θ does not name.  They are re-appended
+ABSTRACTLY, losing nothing, because contexts are bare.  What remains of
+the cost is that Θᵈ depends on Γ as well as Θ and is O(|collateral|) where
+v3 restores in O(1).
+
+SO THE THREE DESIGNS DIFFER ONLY IN WHERE THE REPRESENTATION SITS:
+  v3  in the CONTEXT, retained through a mask
+  v4  in a permanent STORE, because deletion loses it
+  v6  on the BOUNDARY MORPHISM, because that is where both endpoints are
+      visible at once
+and the anchor was v4's answer to v4's own choice, not a law.
+notes-v4 [C3] rewritten to say so.
+
+REMAINING RISK is now [O2], Θ composition for Cancel across adjacent
+boundaries — the last place v2's ≼≈ might live.  Next measurement: what
+composition actually cost in v2's Boundary.agda.
+
+#### Corrected (2026-09-11): Θ is a PAIR OF BLOCKS, and the dual is free
+
+Jeremy: the "at most one conceal in Θ" restriction is incompatible with
+the dual.  Correct — and fixing it makes the dual strictly better.
+
+THE INCOMPATIBILITY.  With Θ a flat list and Θᵈ = reverse(flip Θ), a Θ
+with r reveals dualises to one with r conceals, so the restriction is
+violated by any boundary that reveals more than once.  And `reverse` was
+wrong too: it permutes the re-appended block.
+
+THE FIX.  Θ = ( C ; R ), two blocks, each deepest-first:
+
+  Γ ⇈ ( C ; R ) = (Γ ↓ first C) , R
+  ( C ; R )ᵈ    = ( Rᵈ ; Cᵈ )        each entry flipped, ORDER PRESERVED
+
+with a BLOCK CONDITION replacing the old restriction: C names EXACTLY the
+dropped block — a contiguous suffix of Γ, deepest first.  There is still
+ONE truncation, at `first C`; the remaining C entries are not further
+truncations but carriers of representations for what that truncation
+removed.  This is v1's design read correctly ("one restriction at the
+deepest conceal", other entries carrying knowledge) — not "one conceal
+entry", which is what I had written.
+
+THE DUAL IS THEN A BLOCK SWAP, and both costs I had accepted vanish:
+
+  Θᵈ is a function of Θ ALONE             (no Γ-dependence)
+  |Θᵈ| = |Θ|                              (no O(collateral) re-append)
+  Γ ⇈ Θ ⇈ Θᵈ = Γ exactly, in order        (no ≼≈)
+  Θᵈᵈ = Θ                                 (involution)
+
+Both costs came from letting C name only the truncation point, leaving the
+rest of the dropped block unnamed; the block condition removes them
+together.  The endpoint convention is preserved by the swap exactly as
+before — Rᵈ becomes conceals needing their reps over the new interior
+(= old exterior, where they were written), Cᵈ becomes reveals needing
+theirs over the new exterior (= old interior, where they were written).
+
+SO THE DUAL COSTS NOTHING AT ALL, and [O2] — Θ composition for Cancel
+across adjacent boundaries — is the only place v2's ≼≈ could still live.

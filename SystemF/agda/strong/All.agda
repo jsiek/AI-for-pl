@@ -6,16 +6,19 @@ module strong.All where
 -- the core
 open import strong.Types
 open import strong.TypeSubst
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
+open import strong.Residual
 
 -- the main theorems
 open import strong.Preservation
 open import strong.TypeSafety
+open import strong.ColorPreservation
 
 -- the proof scripts
 open import strong.proof.Adversary
@@ -26,6 +29,7 @@ open import strong.proof.PeelDual
 open import strong.proof.MoveScope
 open import strong.proof.TypeSafety
 open import strong.proof.PreserveObstruct
+open import strong.proof.ColorPreservation
 
 -- the TIGHTNESS OF THE DUAL: the defect (`Peel` gained scope), its
 -- repair, and the frame choice the repair forced

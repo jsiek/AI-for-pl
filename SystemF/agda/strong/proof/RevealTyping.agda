@@ -133,10 +133,9 @@ reveals-other : Reveals X α Δᵢ Δₑ → Δₑ ok → X ≢ᴺ Y → Δᵢ �
   → Σ[ γ ∈ Anchor ]
       ((Δₑ ∋n closeIdx X Y := γ) × SameAnchor Δᵢ β Δₑ γ)
 reveals-other rev-here oke ne n-here = ⊥-elim (ne refl)
-reveals-other {β = β} rev-here oke ne (n-over-name h)
-  with anchor-binding (named-anchor oke h)
-reveals-other {β = β} rev-here oke ne (n-over-name h) | b , ab =
-  β , h , same-anchor (ab-over-name ab) ab refl
+reveals-other {β = β} rev-here oke ne (n-over-name h) =
+  β , h , same-anchor (a-over-name (named-anchor oke h))
+                      (named-anchor oke h) refl
 reveals-other (rev-under rev) oke ne n-here =
   zero , n-here , sameAnchor-Λ-zero (reveals-count rev)
 reveals-other (rev-under rev) (ok-name (ok-abst oke) _ _) ne
@@ -150,21 +149,21 @@ reveals-other (rev-under rev) (ok-name (ok-abst oke) _ _) ne
 -- Well-formedness of the closed type
 ------------------------------------------------------------------------
 
-closeAt-wf : Reveals X α Δᵢ Δₑ → Δₑ ok → Δₑ ⊢ᵗ S → Δᵢ ⊢ᵗ A
+closeAt-wf : Reveals X α Δᵢ Δₑ → Δₑ ⊢ᵗ S → Δᵢ ⊢ᵗ A
   → Δₑ ⊢ᵗ closeAt X S A
-closeAt-wf {X = X} {S = S} rev oke wfS (wf-var {X = Y} tv) = go (X ≟ Y)
+closeAt-wf {X = X} {S = S} rev wfS (wf-var {X = Y} tv) = go (X ≟ Y)
   where
   go : Dec (X ≡ Y) → _ ⊢ᵗ closeAt X S (` Y)
   go (yes refl) rewrite closeAt-hit X S = wfS
   go (no ne) rewrite closeAt-miss X S Y ne =
     wf-var (reveals-tv rev ne tv)
-closeAt-wf rev oke wfS wf-ℕ = wf-ℕ
-closeAt-wf rev oke wfS wf-𝔹 = wf-𝔹
-closeAt-wf rev oke wfS (wf-⇒ a b) =
-  wf-⇒ (closeAt-wf rev oke wfS a) (closeAt-wf rev oke wfS b)
-closeAt-wf {X = X} {S = S} rev oke wfS (wf-∀ {A = A} a)
+closeAt-wf rev wfS wf-ℕ = wf-ℕ
+closeAt-wf rev wfS wf-𝔹 = wf-𝔹
+closeAt-wf rev wfS (wf-⇒ a b) =
+  wf-⇒ (closeAt-wf rev wfS a) (closeAt-wf rev wfS b)
+closeAt-wf {X = X} {S = S} rev wfS (wf-∀ {A = A} a)
   rewrite closeAt-∀ X S A =
-  wf-∀ (closeAt-wf (rev-under rev) (ok-Λ oke) (wf-Λ wfS) a)
+  wf-∀ (closeAt-wf (rev-under rev) (wf-Λ wfS) a)
 
 ------------------------------------------------------------------------
 -- The builders at a variable, without exposing their `with`
@@ -218,16 +217,15 @@ mutual
       (conv-fun (concTy-typing rev oki oke rep rd a)
                 (revTy-typing rev oki oke rep rd b))
       (conv-id (sameTy-refl oke
-        (wf-⇒ (closeAt-wf rev oke (read-wf rd) a)
-              (closeAt-wf rev oke (read-wf rd) b))))
+        (wf-⇒ (closeAt-wf rev (read-wf rd) a)
+              (closeAt-wf rev (read-wf rd) b))))
   revTy-typing {X = X} {S = S} rev oki oke rep rd (wf-∀ {A = A} a)
     rewrite closeAt-∀ X S A =
     conv-cons
       (conv-all (revTy-typing (rev-under rev) (ok-Λ oki) (ok-Λ oke)
                   (rep-Λ rep) (read-Λ rd) a))
       (conv-id (sameTy-refl oke
-        (wf-∀ (closeAt-wf (rev-under rev) (ok-Λ oke)
-                (wf-Λ (read-wf rd)) a))))
+        (wf-∀ (closeAt-wf (rev-under rev) (wf-Λ (read-wf rd)) a))))
 
   concTy-typing : Reveals X α Δᵢ Δₑ → Δᵢ ok → Δₑ ok
     → Δᵢ ∋r α := R → Δₑ ⊢ R ⇓ S → Δᵢ ⊢ᵗ A

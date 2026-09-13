@@ -147,9 +147,13 @@ anchorCount (name α ∷ Δ) = anchorCount Δ
 anchorLevel : Ctxᵗ → Anchor → ℕ
 anchorLevel Δ α = anchorCount Δ ∸ suc α
 
+-- Two anchors are the SAME anchor when they sit at the same de Bruijn
+-- LEVEL.  The level is what survives the two indexings a boundary relates;
+-- the entry's binding is not compared, because one context may have given
+-- an abstract anchor its representation (TyBeta) while the other has not.
 data SameAnchor (Δ₁ : Ctxᵗ) (α : Anchor)
                 (Δ₂ : Ctxᵗ) (β : Anchor) : Set where
-  same-anchor : ∀ {b} → Δ₁ ∋ab α := b → Δ₂ ∋ab β := b
+  same-anchor : Δ₁ ∋a α → Δ₂ ∋a β
               → anchorLevel Δ₁ α ≡ anchorLevel Δ₂ β
               → SameAnchor Δ₁ α Δ₂ β
 

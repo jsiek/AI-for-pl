@@ -16,8 +16,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; trans
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
-open import strong.proof.CtxProperties using
-  (name-of-tv; named-anchor; anchor-binding-unique)
+open import strong.proof.CtxProperties using (name-of-tv; named-anchor)
 
 private
   variable
@@ -32,38 +31,25 @@ private
 -- Anchors
 ------------------------------------------------------------------------
 
-anchor-binding : Δ ∋a α → Σ[ b ∈ AnchorBinding ] (Δ ∋ab α := b)
-anchor-binding a-here-abst = abstA , ab-here-abst
-anchor-binding (a-here-bind {R = R}) = bindA R , ab-here-bind
-anchor-binding (a-over-abst a) with anchor-binding a
-anchor-binding (a-over-abst a) | b , ab = b , ab-over-abst ab
-anchor-binding (a-over-bind a) with anchor-binding a
-anchor-binding (a-over-bind a) | b , ab = b , ab-over-bind ab
-anchor-binding (a-over-name a) with anchor-binding a
-anchor-binding (a-over-name a) | b , ab = b , ab-over-name ab
-
 sameAnchor-refl : Δ ∋a α → SameAnchor Δ α Δ α
-sameAnchor-refl a with anchor-binding a
-sameAnchor-refl a | b , ab = same-anchor ab ab refl
+sameAnchor-refl a = same-anchor a a refl
 
 sameAnchor-sym : SameAnchor Δ₁ α Δ₂ β → SameAnchor Δ₂ β Δ₁ α
-sameAnchor-sym (same-anchor ab₁ ab₂ eq) = same-anchor ab₂ ab₁ (sym eq)
+sameAnchor-sym (same-anchor a₁ a₂ eq) = same-anchor a₂ a₁ (sym eq)
 
 sameAnchor-trans : SameAnchor Δ₁ α Δ₂ β → SameAnchor Δ₂ β Δ₃ γ
                  → SameAnchor Δ₁ α Δ₃ γ
-sameAnchor-trans (same-anchor ab₁ ab₂ eq₁) (same-anchor ab₂′ ab₃ eq₂)
-  with anchor-binding-unique ab₂ ab₂′
-sameAnchor-trans (same-anchor ab₁ ab₂ eq₁) (same-anchor ab₂′ ab₃ eq₂)
-  | refl = same-anchor ab₁ ab₃ (trans eq₁ eq₂)
+sameAnchor-trans (same-anchor a₁ a₂ eq₁) (same-anchor a₂′ a₃ eq₂) =
+  same-anchor a₁ a₃ (trans eq₁ eq₂)
 
 -- Pushing one `name`/`abst` pair onto both sides preserves an anchor match,
 -- because the pair adds exactly one anchor to each context.
 sameAnchor-Λ : SameAnchor Δ₁ α Δ₂ β
              → SameAnchor (name zero ∷ abst ∷ Δ₁) (suc α)
                           (name zero ∷ abst ∷ Δ₂) (suc β)
-sameAnchor-Λ (same-anchor ab₁ ab₂ eq) =
-  same-anchor (ab-over-name (ab-over-abst ab₁))
-              (ab-over-name (ab-over-abst ab₂))
+sameAnchor-Λ (same-anchor a₁ a₂ eq) =
+  same-anchor (a-over-name (a-over-abst a₁))
+              (a-over-name (a-over-abst a₂))
               eq
 
 -- The freshly pushed anchor matches itself, PROVIDED the two contexts carry
@@ -72,7 +58,7 @@ sameAnchor-Λ-zero : anchorCount Δ₁ ≡ anchorCount Δ₂
                   → SameAnchor (name zero ∷ abst ∷ Δ₁) zero
                                (name zero ∷ abst ∷ Δ₂) zero
 sameAnchor-Λ-zero eq =
-  same-anchor (ab-over-name ab-here-abst) (ab-over-name ab-here-abst)
+  same-anchor (a-over-name a-here-abst) (a-over-name a-here-abst)
               (cong (λ n → suc n ∸ 1) eq)
 
 ------------------------------------------------------------------------

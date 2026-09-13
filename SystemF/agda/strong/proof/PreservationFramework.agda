@@ -13,6 +13,7 @@ open import strong.Types
 open import strong.Ctx
 open import strong.RepresentationTypes using (shiftByᴿ)
 open import strong.Conversion
+open import strong.ConversionReduction using (_⨟_; instReveal)
 open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst

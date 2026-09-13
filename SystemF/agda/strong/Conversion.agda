@@ -113,76 +113,40 @@ weightHeads : List Head → ℕ
 weightHeads []       = zero
 weightHeads (h ∷ hs) = weightHead h + weightHeads hs
 
-mutual
-  fuseFuel : ℕ → Head → Head → Maybe (List Head)
-  fuseFuel zero h k = nothing
-  fuseFuel (suc n) (seal α) (unseal β) with α ≟ β
-  fuseFuel (suc n) (seal α) (unseal β) | yes _ = just []
-  fuseFuel (suc n) (seal α) (unseal β) | no  _ = nothing
-  fuseFuel (suc n) (unseal α) (seal β) with α ≟ β
-  fuseFuel (suc n) (unseal α) (seal β) | yes _ = just []
-  fuseFuel (suc n) (unseal α) (seal β) | no  _ = nothing
-  fuseFuel (suc n) (s₁ ↦ t₁) (s₂ ↦ t₂) =
-    just ((composeFuel n s₂ s₁ ↦ composeFuel n t₁ t₂) ∷ [])
-  fuseFuel (suc n) (all s) (all t) =
-    just (all (composeFuel n s t) ∷ [])
-  fuseFuel (suc n) _ _ = nothing
+-- Appending two conversions: the first one's terminator gives way to the
+-- second.  This is the RAW composition; the normalizing one is
+-- `strong.ConversionReduction._⨟_`, which appends and then reduces the
+-- adjacent-pair redexes to a normal form.
+infixl 5 _⧺_
+_⧺_ : Conv → Conv → Conv
+id A ⧺ d      = d
+(h ∷ᶜ c) ⧺ d = h ∷ᶜ (c ⧺ d)
 
-  scanFuel : ℕ → List Head → List Head → List Head
-  scanFuel zero s hs = reverse s ++ hs
-  scanFuel (suc n) s [] = reverse s
-  scanFuel (suc n) [] (h ∷ hs) = scanFuel n (h ∷ []) hs
-  scanFuel (suc n) (h ∷ s) (k ∷ hs) with fuseFuel n h k
-  scanFuel (suc n) (h ∷ s) (k ∷ hs) | nothing =
-    scanFuel n (k ∷ h ∷ s) hs
-  scanFuel (suc n) (h ∷ s) (k ∷ hs) | just [] = scanFuel n s hs
-  scanFuel (suc n) (h ∷ s) (k ∷ hs) | just (r ∷ rs) =
-    scanFuel n s (r ∷ rs ++ hs)
-
-  composeFuel : ℕ → Conv → Conv → Conv
-  composeFuel zero c d = attach (heads c ++ heads d) (target d)
-  composeFuel (suc n) c d =
-    attach (scanFuel n [] (heads c ++ heads d)) (target d)
-
+-- One adjacent pair of heads fuses — or does not, and `nothing` here is
+-- what the normal form `NF` forbids.  A `↦` or `all` fusion defers its
+-- component compositions as plain APPENDS; the reduction system's
+-- congruence steps finish them.  No fuel: every clause is structural.
 fuse : Head → Head → Maybe (List Head)
-fuse h k = fuseFuel (suc (2 * (weightHead h + weightHead k))) h k
-
-contract : List Head → List Head
-contract hs = scanFuel (suc (2 * weightHeads hs)) [] hs
-
-_⨟_ : Conv → Conv → Conv
-c ⨟ d = attach (contract (heads c ++ heads d)) (target d)
-
-infixl 5 _⨟_
-
-mutual
-  instReveal : ℕ → Anchor → Ty → Conv → Conv
-  instReveal X α S (id A) = revTy X α S A
-  instReveal X α S (h ∷ᶜ c) =
-    attach (contract (instRevealHead X α S h ∷ heads (instReveal X α S c)))
-           (target (instReveal X α S c))
-
-  instConceal : ℕ → Anchor → Ty → Conv → Conv
-  instConceal X α S (id A) = concTy X α S A
-  instConceal X α S (h ∷ᶜ c) =
-    attach (contract (instConcealHead X α S h ∷ heads (instConceal X α S c)))
-           (target (instConceal X α S c))
-
-  instRevealHead : ℕ → Anchor → Ty → Head → Head
-  instRevealHead X α S (seal β)   = seal β
-  instRevealHead X α S (unseal β) = unseal β
-  instRevealHead X α S (c ↦ d) =
-    instConceal X α S c ↦ instReveal X α S d
-  instRevealHead X α S (all c) =
-    all (instReveal (suc X) (suc α) (renameᵗ suc S) c)
-
-  instConcealHead : ℕ → Anchor → Ty → Head → Head
-  instConcealHead X α S (seal β)   = seal β
-  instConcealHead X α S (unseal β) = unseal β
-  instConcealHead X α S (c ↦ d) =
-    instReveal X α S c ↦ instConceal X α S d
-  instConcealHead X α S (all c) =
-    all (instConceal (suc X) (suc α) (renameᵗ suc S) c)
+fuse (seal α) (unseal β) with α ≟ β
+fuse (seal α) (unseal β) | yes _ = just []
+fuse (seal α) (unseal β) | no  _ = nothing
+fuse (unseal α) (seal β) with α ≟ β
+fuse (unseal α) (seal β) | yes _ = just []
+fuse (unseal α) (seal β) | no  _ = nothing
+fuse (s₁ ↦ t₁) (s₂ ↦ t₂) = just (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
+fuse (all s) (all t) = just (all (s ⧺ t) ∷ [])
+fuse (seal α) (seal β) = nothing
+fuse (seal α) (c ↦ d) = nothing
+fuse (seal α) (all c) = nothing
+fuse (unseal α) (unseal β) = nothing
+fuse (unseal α) (c ↦ d) = nothing
+fuse (unseal α) (all c) = nothing
+fuse (c ↦ d) (seal β) = nothing
+fuse (c ↦ d) (unseal β) = nothing
+fuse (c ↦ d) (all e) = nothing
+fuse (all c) (seal β) = nothing
+fuse (all c) (unseal β) = nothing
+fuse (all c) (c′ ↦ d′) = nothing
 
 ------------------------------------------------------------------------
 -- Typing
@@ -288,22 +252,3 @@ allView : Conv → Maybe Conv
 allView (id (`∀ A))         = just (id A)
 allView (all c ∷ᶜ id (`∀ A)) = just c
 allView _                    = nothing
-
-private
-  nested-cancel :
-    contract (unseal 0 ∷ unseal 1 ∷ seal 1 ∷ seal 0 ∷ []) ≡ []
-  nested-cancel = Relation.Binary.PropositionalEquality.refl
-
-  arrow-fuse :
-    contract
-      ((id `ℕ ↦ id `ℕ) ∷ (id `ℕ ↦ id `ℕ) ∷ [])
-      ≡ ((id `ℕ ↦ id `ℕ) ∷ [])
-  arrow-fuse = Relation.Binary.PropositionalEquality.refl
-
-  composition-assoc :
-    (((unseal 0 ∷ᶜ unseal 1 ∷ᶜ id `ℕ)
-       ⨟ (seal 1 ∷ᶜ id `ℕ))
-       ⨟ (seal 0 ∷ᶜ id `ℕ))
-      ≡ ((unseal 0 ∷ᶜ unseal 1 ∷ᶜ id `ℕ)
-         ⨟ ((seal 1 ∷ᶜ id `ℕ) ⨟ (seal 0 ∷ᶜ id `ℕ)))
-  composition-assoc = Relation.Binary.PropositionalEquality.refl

@@ -12,8 +12,7 @@ module strong.proof.AnchorWeaken where
 -- makes the relation DETERMINISTIC (`wk-unique`), which is what lets two
 -- contexts related by the conversion rules' spine discipline be weakened
 -- in lockstep: `sb-wk` derives the weakening of a `SameBindings`-related
--- context, and `wk-flip` shows a `FlipAt` — one seal/unseal head's
--- crossing — survives, at the renamed anchor.
+-- context, and `wk-sb` weakens a spine relation in lockstep.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (+-suc; +-comm)
@@ -105,19 +104,6 @@ wk-sb : Wk P d Δ₁ Δ₁′ → Wk P d Δ₂ Δ₂′
   → SameBindings Δ₁ Δ₂ → SameBindings Δ₁′ Δ₂′
 wk-sb {P = P} (wk-base _) (wk-base _) s = sb-++ s P
 wk-sb (wk-under f) (wk-under g) (sb-∷ s) = sb-∷ (wk-sb f g s)
-
-flip-++ : ∀ {α} P → FlipAt α Δoff Δon
-  → FlipAt (length P + α) (P ++ Δoff) (P ++ Δon)
-flip-++ [] fl = fl
-flip-++ (e ∷ P) fl = flip-there (flip-++ P fl)
-
-wk-flip : ∀ {α} → Wk P d Δoff Δoff′ → Wk P d Δon Δon′
-  → FlipAt α Δoff Δon → FlipAt (wkRen P d α) Δoff′ Δon′
-wk-flip {P = P} (wk-base _) (wk-base _) fl = flip-++ P fl
-wk-flip (wk-under f) (wk-under g) flip-here
-  rewrite wk-unique f g = flip-here
-wk-flip (wk-under f) (wk-under g) (flip-there fl) =
-  flip-there (wk-flip f g fl)
 
 ------------------------------------------------------------------------
 -- Lookups
@@ -269,12 +255,12 @@ mutual
     → Wk P d Δ₁ Δ₁′ → Wk P d Δ₂ Δ₂′
     → Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂
     → Δ₁′ ⊢̂ renHead ρᵗ (wkRen P d) h ∶ A ⇝ B ⊣ Δ₂′
-  wk-head hid f₁ f₂ (conv-seal x r rd flip) =
+  wk-head hid f₁ f₂ (conv-seal x r rd sb) =
     conv-seal (wk-n f₂ x) (wk-r f₂ r) (wk-read f₁ rd)
-      (wk-flip f₁ f₂ flip)
-  wk-head hid f₁ f₂ (conv-unseal x r rd flip) =
+      (wk-sb f₁ f₂ sb)
+  wk-head hid f₁ f₂ (conv-unseal x r rd sb) =
     conv-unseal (wk-n f₁ x) (wk-r f₁ r) (wk-read f₂ rd)
-      (wk-flip f₂ f₁ flip)
+      (wk-sb f₁ f₂ sb)
   wk-head hid f₁ f₂ (conv-fun s t) =
     conv-fun (wk-conv hid f₂ f₁ s) (wk-conv hid f₁ f₂ t)
   wk-head hid f₁ f₂ (conv-all s) =

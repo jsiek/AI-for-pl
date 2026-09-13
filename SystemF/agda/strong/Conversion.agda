@@ -153,15 +153,16 @@ fuse (all c) (c′ ↦ d′) = nothing
 ------------------------------------------------------------------------
 --
 -- THE SPINE DISCIPLINE.  Every context along a conversion binds the same
--- ANCHORS with the same REPRESENTATIONS, and differs only in which of
--- them are revealed: a scope change flips visibility bits and adds no
--- entry.  `conv-id` carries `SameBindings`; `conv-seal`/`conv-unseal`
--- carry the exact form, `FlipAt α` — one head crosses one bit — which is
--- what reconnects the outer contexts of a cancelled pair in composition,
--- and what lets a conversion be re-typed at a SameTy-related endpoint.
--- The other rules inherit the discipline: `conv-fun` from its swapped
--- pair, `conv-all` by pushing one entry on both sides, `conv-cons` by
--- transitivity through its seam.  See notes/DECISIONS.md (2026-09-13).
+-- ANCHORS with the same REPRESENTATIONS — `SameBindings` — and that is
+-- ALL a rule says about its pair of contexts.  Visibility is constrained
+-- only where a type forces it: a lookup `Δ ∋n X := α` needs α revealed
+-- THERE, and a read-back `Δ ⊢ R ⇓ S` needs R's anchors revealed THERE.
+-- Conversions talk about the reveals/conceals involved in the types they
+-- convert; whatever else the scope flips is none of their business, so
+-- appending conversions (`_⧺_`, `fuse`, `Merge`) can never strand a
+-- crossing.  An earlier, tighter discipline (`FlipAt`: each seal crosses
+-- exactly its own bit) broke exactly there — see notes/DECISIONS.md
+-- (2026-09-13) and notes/old/probes-pre-merge.
 
 private
   variable
@@ -178,15 +179,17 @@ infix 4 _⊢_∶_⇝_⊣_
 infix 4 _⊩_∶_⇝_⊣_
 mutual
   data _⊢̂_∶_⇝_⊣_ : Ctxᵗ → Head → Ty → Ty → Ctxᵗ → Set where
-    -- A seal or unseal head crosses EXACTLY its own anchor's visibility
-    -- bit: `FlipAt α` relates its two contexts, off-side to on-side.
+    -- A seal or unseal head converts between the NAMED view and the
+    -- read-back view of one anchor.  Its two contexts share the spine and
+    -- nothing more: the visibility of anchors the types do not involve is
+    -- the scope's business, not the conversion's.
     conv-seal : ∀ {S}
       → Δ₂ ∋n X := α → Δ₂ ∋r α := R → Δ₁ ⊢ R ⇓ S
-      → FlipAt α Δ₁ Δ₂
+      → SameBindings Δ₁ Δ₂
       → Δ₁ ⊢̂ seal α ∶ S ⇝ ` X ⊣ Δ₂
     conv-unseal : ∀ {S}
       → Δ₁ ∋n X := α → Δ₁ ∋r α := R → Δ₂ ⊢ R ⇓ S
-      → FlipAt α Δ₂ Δ₁
+      → SameBindings Δ₁ Δ₂
       → Δ₁ ⊢̂ unseal α ∶ ` X ⇝ S ⊣ Δ₂
     conv-fun : ∀ {s t A′ B′}
       → Δ₂ ⊢ s ∶ A′ ⇝ A ⊣ Δ₁ → Δ₁ ⊢ t ∶ B ⇝ B′ ⊣ Δ₂

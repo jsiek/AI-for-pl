@@ -79,8 +79,8 @@ sb-uncons (sb-∷ s) = s
 mutual
   head-sb : ∀ {Δ₁ Δ₂ h A B}
     → Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → SameBindings Δ₁ Δ₂
-  head-sb (conv-seal x r rd flip) = flip-sb flip
-  head-sb (conv-unseal x r rd flip) = sb-sym (flip-sb flip)
+  head-sb (conv-seal x r rd sb) = sb
+  head-sb (conv-unseal x r rd sb) = sb
   head-sb (conv-fun s t) = sb-sym (conv-sb s)
   head-sb (conv-all s) = sb-uncons (conv-sb s)
 

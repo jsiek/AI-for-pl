@@ -3636,3 +3636,38 @@ Candidate repairs (Jeremy's call; asked 2026-09-13):
       the concatenated scope against the appended conversion (cancel a
       dual scope pair against the id that bridged it).  The typing stays
       small; the reduction rule and its preservation proof grow.
+
+## 2026-09-13: the SPINE-ONLY conversion rules — visibility freed, `FlipAt` retired
+
+Jeremy diagnosed the tension behind the `Merge` failure: a conversion only
+talks about the reveals/conceals involved in the types it converts, while
+the scope flips plenty the types never mention.  The `FlipAt` premises
+made every seal/unseal account for a context crossing — a path
+obligation the syntax cannot honor once `_⧺_` or `fuse` deletes a
+bridging bare `id`.
+
+The reformulation, prototyped and green: `conv-seal` and `conv-unseal`
+now carry `SameBindings Δ₁ Δ₂`, nothing more.  Visibility is constrained
+only where a type forces a lookup — `Δ₂ ∋n X := α` needs α revealed
+THERE, `Δ ⊢ R ⇓ S` needs R's anchors revealed THERE.  `conv-id` keeps
+`SameTy` + `SameBindings` (unchanged); the reflexive terminator `_⊩_`
+stays (repair 2); the seam-looseness probe stays refuted, because
+`SameBindings` still pins the anchor structure that the `id(∀Y.Y)`
+derivation exploited.
+
+Consequences in the code: `FlipAt`, `flip-sb`, `flip-off-unique`,
+`flip-on-unique` are deleted from `Ctx.agda`; `fill-flip`, `wk-flip`,
+`flip-++`, `reveals-flip` die with them, and the transport modules got
+SIMPLER (`fill-sb`/`wk-sb` do the work).  `head-sb` now just projects the
+premise.  Both `Merge` counterexample configurations are now typable —
+`notes/probes/V7MergeScopeRepairedProbe.agda` types both contracta; the
+negative probe and the pre-repair-2 `V7ArrViewProbe` moved to
+`notes/old/probes-pre-merge/`.
+
+The debt this takes on: `preserve-step`'s cancellation case can no longer
+use flip determinism (a cancelled `seal α ; unseal α` no longer returns
+to the same context on the nose).  It needs instead: read-backs of one
+representation at `SameBindings`-related contexts are `SameTy`-related
+(`read-transport`), and the drift is absorbed at the next flexible
+position — a head's loose side or a bare id's bridge.  That grind is
+next, and it is the risk that decides whether this discipline holds.

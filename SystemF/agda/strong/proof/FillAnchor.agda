@@ -8,8 +8,8 @@ module strong.proof.FillAnchor where
 -- position n — positional, so that it is DETERMINISTIC (`fill-unique`)
 -- and so that two contexts related by the conversion rules' spine
 -- discipline can be filled in lockstep: `sb-fill` derives the fill of a
--- `SameBindings`-related context, and `fill-flip` shows a `FlipAt` — a
--- seal or unseal head's one-bit crossing — survives filling both sides.
+-- `SameBindings`-related context, and `fill-sb` fills a spine relation
+-- in lockstep.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (+-suc)
@@ -76,15 +76,6 @@ fill-sb : Fill R n Δ₁ Δ₁′ → Fill R n Δ₂ Δ₂′
   → SameBindings Δ₁ Δ₂ → SameBindings Δ₁′ Δ₂′
 fill-sb fill-here fill-here (sb-∷ s) = sb-∷ s
 fill-sb (fill-there f) (fill-there g) (sb-∷ s) = sb-∷ (fill-sb f g s)
-
-fill-flip : ∀ {α} → Fill R n Δoff Δoff′ → Fill R n Δon Δon′
-  → FlipAt α Δoff Δon → FlipAt α Δoff′ Δon′
-fill-flip fill-here fill-here flip-here = flip-here
-fill-flip fill-here fill-here (flip-there fl) = flip-there fl
-fill-flip (fill-there f) (fill-there g) flip-here
-  rewrite fill-unique f g = flip-here
-fill-flip (fill-there f) (fill-there g) (flip-there fl) =
-  flip-there (fill-flip f g fl)
 
 ------------------------------------------------------------------------
 -- Lookups
@@ -192,12 +183,12 @@ fill-quote f (quote-∀ q) = quote-∀ (fill-quote (fill-Λ f) q)
 mutual
   fill-head : Fill R n Δ₁ Δ₁′ → Fill R n Δ₂ Δ₂′
     → Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₁′ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂′
-  fill-head f₁ f₂ (conv-seal x r rd flip) =
+  fill-head f₁ f₂ (conv-seal x r rd sb) =
     conv-seal (fill-n f₂ x) (fill-r f₂ r) (fill-read f₁ rd)
-      (fill-flip f₁ f₂ flip)
-  fill-head f₁ f₂ (conv-unseal x r rd flip) =
+      (fill-sb f₁ f₂ sb)
+  fill-head f₁ f₂ (conv-unseal x r rd sb) =
     conv-unseal (fill-n f₁ x) (fill-r f₁ r) (fill-read f₂ rd)
-      (fill-flip f₂ f₁ flip)
+      (fill-sb f₁ f₂ sb)
   fill-head f₁ f₂ (conv-fun s t) =
     conv-fun (fill-conv f₂ f₁ s) (fill-conv f₁ f₂ t)
   fill-head f₁ f₂ (conv-all s) =

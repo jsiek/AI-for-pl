@@ -119,15 +119,13 @@ reveals-count rev-at = refl
 reveals-count (rev-over rev) = cong suc (reveals-count rev)
 reveals-count (rev-under rev) = cong suc (reveals-count rev)
 
--- A `Reveals` frame IS a one-bit flip, carried under the binders the
--- builders descend: exactly `conv-seal`/`conv-unseal`'s premise.
-reveals-flip : Reveals X α Δᵢ Δₑ → FlipAt α Δₑ Δᵢ
-reveals-flip rev-at = flip-here
-reveals-flip (rev-over rev) = flip-there (reveals-flip rev)
-reveals-flip (rev-under rev) = flip-there (reveals-flip rev)
-
+-- A `Reveals` frame shares the spine on both sides, carried under the
+-- binders the builders descend: exactly `conv-seal`/`conv-unseal`'s
+-- premise.
 reveals-sb : Reveals X α Δᵢ Δₑ → SameBindings Δᵢ Δₑ
-reveals-sb rev = sb-sym (flip-sb (reveals-flip rev))
+reveals-sb rev-at = sb-∷ sb-refl
+reveals-sb (rev-over rev) = sb-∷ (reveals-sb rev)
+reveals-sb (rev-under rev) = sb-∷ (reveals-sb rev)
 
 reveals-name : Reveals X α Δᵢ Δₑ → Δᵢ ∋n X := α
 reveals-name rev-at = n-here
@@ -215,7 +213,7 @@ mutual
     go : Dec (X ≡ Y)
        → _ ⊢ revTy X α S (` Y) ∶ ` Y ⇝ closeAt X S (` Y) ⊣ _
     go (yes refl) rewrite revTy-hit X α S | closeAt-hit X S =
-      conv-cons (conv-unseal (reveals-name rev) rep rd (reveals-flip rev))
+      conv-cons (conv-unseal (reveals-name rev) rep rd (reveals-sb rev))
                 (tail-id (read-wf rd))
     go (no ne) rewrite revTy-miss X α S Y ne | closeAt-miss X S Y ne
       with name-of-tv tv
@@ -245,7 +243,7 @@ mutual
        → _ ⊢ concTy X α S (` Y) ∶ closeAt X S (` Y) ⇝ ` Y ⊣ _
     go (yes refl) rewrite concTy-hit X α S | closeAt-hit X S =
       conv-cons (conv-seal (reveals-name rev) rep rd
-                  (reveals-flip rev))
+                  (sb-sym (reveals-sb rev)))
                 (tail-id (wf-var (tv-of-name (reveals-name rev))))
     go (no ne) rewrite concTy-miss X α S Y ne | closeAt-miss X S Y ne
       with name-of-tv tv

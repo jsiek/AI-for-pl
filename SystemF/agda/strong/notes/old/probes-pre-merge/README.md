@@ -24,3 +24,19 @@ exhibits something the merged representation makes unrepresentable.
 
 The live statement of the last one is `strong.proof.ScopeDual`; the design
 argument is in `notes/DECISIONS.md` (2026-09-13).
+
+`V7MergeScopeClashProbe.agda` (2026-09-13) — machine-checked, under the
+FlipAt discipline, that `Merge` broke preservation: two closed well-typed
+redexes stepped to untypable contracta.  The repair relaxed
+`conv-seal`/`conv-unseal` from `FlipAt` to `SameBindings` (conversions
+constrain visibility only where their types force a lookup), which
+removed `FlipAt` from `Ctx.agda`, so this probe no longer scope-checks.
+Its two configurations, now TYPABLE, live on as the positive probe
+`notes/probes/V7MergeScopeRepairedProbe.agda`.
+
+`V7ArrViewProbe.agda` (2026-09-13) — witnessed that `preserve-Wrap` was
+false when `arr` read only the conversion's target: a bridging component
+stated at the seam could not be re-typed at the exterior.  Superseded by
+repair (2) (the reflexive terminator `_⊩_`) together with `arr` taking
+the interior domain from the λ annotation; the probe's derivation is no
+longer even statable, since its tail was a bridging `conv-id`.

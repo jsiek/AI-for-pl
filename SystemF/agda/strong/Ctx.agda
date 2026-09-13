@@ -200,34 +200,6 @@ sb-r : ∀ {Δ Δ′} → SameBindings Δ Δ′ → Δ ∋r α := R → Δ′ �
 sb-r (sb-∷ s) r-here = r-here
 sb-r (sb-∷ s) (r-there t) = r-there (sb-r s t)
 
--- ONE visibility bit: `FlipAt α Δoff Δon` says Δon is Δoff with anchor
--- α's name revealed and nothing else changed.  This is what a single
--- `seal`/`unseal` head crosses.
-data FlipAt : Anchor → Ctxᵗ → Ctxᵗ → Set where
-  flip-here : ∀ {Δ b}
-    → FlipAt zero (anch concealed b ∷ Δ) (anch revealed b ∷ Δ)
-  flip-there : ∀ {Δoff Δon α e}
-    → FlipAt α Δoff Δon
-    → FlipAt (suc α) (e ∷ Δoff) (e ∷ Δon)
-
-flip-sb : ∀ {α Δoff Δon} → FlipAt α Δoff Δon → SameBindings Δoff Δon
-flip-sb flip-here = sb-∷ sb-refl
-flip-sb (flip-there {e = anch v b} f) = sb-∷ (flip-sb f)
-
--- The flip is a function of either side: this is what reconnects the two
--- outer contexts of a cancelled seal/unseal pair.
-flip-off-unique : ∀ {α Δ₁ Δ₂ Δon}
-  → FlipAt α Δ₁ Δon → FlipAt α Δ₂ Δon → Δ₁ ≡ Δ₂
-flip-off-unique flip-here flip-here = refl
-flip-off-unique (flip-there f₁) (flip-there f₂)
-  rewrite flip-off-unique f₁ f₂ = refl
-
-flip-on-unique : ∀ {α Δoff Δ₁ Δ₂}
-  → FlipAt α Δoff Δ₁ → FlipAt α Δoff Δ₂ → Δ₁ ≡ Δ₂
-flip-on-unique flip-here flip-here = refl
-flip-on-unique (flip-there f₁) (flip-there f₂)
-  rewrite flip-on-unique f₁ f₂ = refl
-
 -- The first k source variables are binders introduced in parallel while
 -- descending through structural `∀` conversions.
 data Paired : ℕ → ℕ → Set where

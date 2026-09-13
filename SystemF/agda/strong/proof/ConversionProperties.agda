@@ -52,6 +52,11 @@ same-all-left : ∀ {Δ₁ Δ₂ A B}
   → AllShape A
 same-all-left (same-∀ a) = all-shape _
 
+same-fun-left : ∀ {Δ₁ Δ₂ A B C}
+  → SameTy zero Δ₁ A Δ₂ (B ⇒ C)
+  → FunShape A
+same-fun-left (same-⇒ a b) = fun-shape _ _
+
 same-ℕ-right : ∀ {Δ₁ Δ₂ B}
   → SameTy zero Δ₁ `ℕ Δ₂ B
   → B ≡ `ℕ

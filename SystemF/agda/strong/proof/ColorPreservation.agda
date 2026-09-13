@@ -514,7 +514,7 @@ residual-balance (residual-β-arg v r) with copy-balance r
 residual-balance {C = C} {D = D} (residual-β-arg v r) | ih =
   trans ih (drop-zero (pushes D) (pops C))
 residual-balance (residual-TyBeta v q eq node) = refl
-residual-balance (residual-Wrap-body vb vw eq refl node) = refl
+residual-balance (residual-Wrap-body vb vw eq peq node) = refl
 residual-balance
   (residual-Wrap-arg {Θ = Θ} {χ = χ} {C = C} vb vw eq refl node)
   with push-dual χ | pop-dual χ

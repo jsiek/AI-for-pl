@@ -35,12 +35,15 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
         -→ ν repBind R ∷ [] , reveal zero ∷ []
               [ V ∣ revTy zero zero A B ]
 
-  Wrap : ∀ {Δ Θ χ V c W c₁ c₂}
-    → Value (ν Θ , χ [ V ∣ c ]) → Value W
-    → arr c ≡ just (c₁ , c₂)
-    → Δ ⊢ (ν Θ , χ [ V ∣ c ]) · W
+  -- The boundary's body is matched as a λ, exactly as TyWrap matches its
+  -- body as a Λ: the λ's annotation is the INTERIOR domain, which `arr`
+  -- needs for its contravariant component.
+  Wrap : ∀ {Δ Θ χ A N c W c₁ c₂}
+    → Value (ν Θ , χ [ ƛ A ∙ N ∣ c ]) → Value W
+    → arr A c ≡ just (c₁ , c₂)
+    → Δ ⊢ (ν Θ , χ [ ƛ A ∙ N ∣ c ]) · W
         -→ ν Θ , χ
-              [ V ·
+              [ (ƛ A ∙ N) ·
                   (ν [] , dual χ
                     [ renAnchᴹ (shiftAnchor (length Θ)) W ∣ c₁ ])
               ∣ c₂ ]

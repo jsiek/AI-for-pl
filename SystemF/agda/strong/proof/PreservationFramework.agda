@@ -35,14 +35,14 @@ module Impl
     → Δ ∣ [] ⊢ (Λ V) • B [ A ] ⦂ C
     → Δ ∣ [] ⊢ ν repBind R ∷ [] , reveal zero ∷ []
          [ V ∣ revTy zero zero A B ] ⦂ C)
-  (preserve-Wrap : ∀ {Δ Θ χ V c W c₁ c₂ B}
+  (preserve-Wrap : ∀ {Δ Θ χ A N c W c₁ c₂ B}
     → Δ ok
-    → Value (ν Θ , χ [ V ∣ c ])
+    → Value (ν Θ , χ [ ƛ A ∙ N ∣ c ])
     → Value W
-    → arr c ≡ just (c₁ , c₂)
-    → Δ ∣ [] ⊢ (ν Θ , χ [ V ∣ c ]) · W ⦂ B
+    → arr A c ≡ just (c₁ , c₂)
+    → Δ ∣ [] ⊢ (ν Θ , χ [ ƛ A ∙ N ∣ c ]) · W ⦂ B
     → Δ ∣ [] ⊢ ν Θ , χ
-         [ V · (ν [] , dual χ
+         [ (ƛ A ∙ N) · (ν [] , dual χ
            [ renAnchᴹ (shiftAnchor (length Θ)) W ∣ c₁ ])
          ∣ c₂ ] ⦂ B)
   (preserve-TyWrap : ∀ {Δ Θ χ V c B A d R C}

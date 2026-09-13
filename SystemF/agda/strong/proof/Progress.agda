@@ -46,7 +46,7 @@ progress ctx-ok (⊢· left right) | inj₁ vL | inj₁ vR
 progress ctx-ok (⊢· left right) | inj₁ vL | inj₁ vR
   | inj₁ (N , refl) = inj₂ (_ , Beta vR)
 progress ctx-ok (⊢· left right) | inj₁ vL | inj₁ vR
-  | inj₂ (Θ , χ , W , c , c₁ , c₂ , refl , arr-eq) =
+  | inj₂ (Θ , χ , A₁ , N , c , c₁ , c₂ , refl , arr-eq) =
   inj₂ (_ , Wrap vL vR arr-eq)
 progress ctx-ok (⊢Λ body) with progress (ok-Λ ctx-ok) body
 progress ctx-ok (⊢Λ body) | inj₁ v = inj₁ (Vs (SΛ v))

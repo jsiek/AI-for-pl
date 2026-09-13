@@ -92,9 +92,10 @@ canonical-⇒-conv : ∀ {Δ₁ Δ₂ c A B C}
   → Δ₁ ⊢ c ∶ A ⇒ B ⇝ C ⊣ Δ₂
   → NF c
   → Applicable c
-canonical-⇒-conv (conv-id same cnt) nf-id with same-fun-right same
-canonical-⇒-conv (conv-id same cnt) nf-id | fun-shape A B =
-  applies-arr refl
+canonical-⇒-conv {A = A₀} (conv-id same cnt) nf-id
+  with same-fun-right same
+canonical-⇒-conv {A = A₀} (conv-id same cnt) nf-id | fun-shape A B =
+  applies-arr A₀ refl
 canonical-⇒-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr)
   with after-seal (conv-seal n rep read cnt) t nft irr
@@ -102,9 +103,9 @@ canonical-⇒-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr) | ends-var X eq = applies-var eq
 -- The terminator is REFLEXIVE, so its type IS the head's target, which is
 -- an arrow — no inversion needed.
-canonical-⇒-conv
+canonical-⇒-conv {A = A₀}
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (tail-id wf))
-  (nf-cons (nf-fun nfs nfd) nf-id irr-id) = applies-arr refl
+  (nf-cons (nf-fun nfs nfd) nf-id irr-id) = applies-arr A₀ refl
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
     (tail-cons (conv-seal n rep read cnt) t))

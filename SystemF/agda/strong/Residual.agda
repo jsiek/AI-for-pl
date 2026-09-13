@@ -221,11 +221,11 @@ data Residual : ∀ {Δ L N} → Δ ⊢ L -→ N
         (νC repBind R ∷ [] , reveal zero ∷ []
           [ C ∣ revTy zero zero A B ]) M
 
-  residual-Wrap-body : ∀ {Δ Θ χ V c W c₁ c₂ C M}
-    (vB : Value (ν Θ , χ [ V ∣ c ])) (vW : Value W)
-    (eq : arr c ≡ just (c₁ , c₂))
-    → V ≡ plug C M → SourceNode M
-    → Residual (Wrap {Δ = Δ} {Θ = Θ} {χ = χ} {V = V} {c = c}
+  residual-Wrap-body : ∀ {Δ Θ χ A N c W c₁ c₂ C M}
+    (vB : Value (ν Θ , χ [ ƛ A ∙ N ∣ c ])) (vW : Value W)
+    (eq : arr A c ≡ just (c₁ , c₂))
+    → ƛ A ∙ N ≡ plug C M → SourceNode M
+    → Residual (Wrap {Δ = Δ} {Θ = Θ} {χ = χ} {A = A} {N = N} {c = c}
                   {W = W} {c₁ = c₁} {c₂ = c₂} vB vW eq)
         ((νC Θ , χ [ C ∣ c ]) ·L W) M
         (νC Θ , χ
@@ -233,15 +233,15 @@ data Residual : ∀ {Δ L N} → Δ ⊢ L -→ N
               [ renAnchᴹ (shiftAnchor (length Θ)) W ∣ c₁ ])
           ∣ c₂ ]) M
 
-  residual-Wrap-arg : ∀ {Δ Θ χ V c W c₁ c₂ C M}
-    (vB : Value (ν Θ , χ [ V ∣ c ])) (vW : Value W)
-    (eq : arr c ≡ just (c₁ , c₂))
+  residual-Wrap-arg : ∀ {Δ Θ χ A N c W c₁ c₂ C M}
+    (vB : Value (ν Θ , χ [ ƛ A ∙ N ∣ c ])) (vW : Value W)
+    (eq : arr A c ≡ just (c₁ , c₂))
     → W ≡ plug C M → SourceNode M
-    → Residual (Wrap {Δ = Δ} {Θ = Θ} {χ = χ} {V = V} {c = c}
+    → Residual (Wrap {Δ = Δ} {Θ = Θ} {χ = χ} {A = A} {N = N} {c = c}
                   {W = W} {c₁ = c₁} {c₂ = c₂} vB vW eq)
-        ((ν Θ , χ [ V ∣ c ]) ·R C) M
+        ((ν Θ , χ [ ƛ A ∙ N ∣ c ]) ·R C) M
         (νC Θ , χ
-          [ V ·R (νC [] , dual χ
+          [ (ƛ A ∙ N) ·R (νC [] , dual χ
               [ renAnchCtx (shiftAnchor (length Θ)) C ∣ c₁ ])
           ∣ c₂ ])
         (renAnchᴹ (shiftAnchor (length Θ)) M)

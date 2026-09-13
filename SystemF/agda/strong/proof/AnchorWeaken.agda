@@ -92,6 +92,19 @@ blk-r {S = S} blk[] t = r-cast (sym (renameᴿ-id (λ α → refl) S)) t
 blk-r {S = S} (blk-∷ {k = k} b) t =
   r-cast (renameᴿ-fuse suc (shiftAnchor k) S) (r-there (blk-r b t))
 
+-- A store IS a block: it pushes concealed anchors, one per entry.  The
+-- store recurses at the base while the block counts from the top, so the
+-- absorption lemma folds each pushed entry into the block.
+blk-absorb : ∀ {k Δ Δ′ b}
+  → Block k (anch concealed b ∷ Δ) Δ′ → Block (suc k) Δ Δ′
+blk-absorb blk[] = blk-∷ blk[]
+blk-absorb (blk-∷ bl) = blk-∷ (blk-absorb bl)
+
+store-block : ∀ {Δ Θ ΔΘ} → Δ ⊢ˢ Θ ⇒ ΔΘ → Block (length Θ) Δ ΔΘ
+store-block store[] = blk[]
+store-block (store-abst s) = blk-absorb (store-block s)
+store-block (store-bind wf s) = blk-absorb (store-block s)
+
 blk-copy : Block k Δ Δ′ → ∀ Δ₂ → Σ[ Δ₂′ ∈ Ctxᵗ ] Block k Δ₂ Δ₂′
 blk-copy blk[] Δ₂ = Δ₂ , blk[]
 blk-copy (blk-∷ {b = b} bl) Δ₂ with blk-copy bl Δ₂

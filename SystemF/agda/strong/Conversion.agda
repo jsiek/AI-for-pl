@@ -272,10 +272,17 @@ mutual
     nf-id   : ∀ {A} → NF (id A)
     nf-cons : NFHead h → NF c → IrreducibleAfter h c → NF (h ∷ᶜ c)
 
-arr : Conv → Maybe (Conv × Conv)
-arr (id (A ⇒ B))             = just (id A , id B)
-arr ((c ↦ d) ∷ᶜ id (A ⇒ B)) = just (c , d)
-arr _                         = nothing
+-- `arr` splits a conversion at an arrow type into its two components.
+-- The contravariant component must END at the INTERIOR's domain — a type
+-- the conversion's syntax does not carry when the conversion is a bare
+-- `id`, since `id` names its target.  In the notes' named setting the two
+-- domains are literally the same type, so `arr(id(A → B)) = (id A , id B)`
+-- is unambiguous there; here the interior domain is an ARGUMENT, supplied
+-- by the `ƛ` that canonical forms place inside every arrow-typed boundary.
+arr : Ty → Conv → Maybe (Conv × Conv)
+arr A₁ (id (A ⇒ B))             = just (id A₁ , id B)
+arr A₁ ((c ↦ d) ∷ᶜ id (A ⇒ B)) = just (c , d)
+arr A₁ _                         = nothing
 
 allView : Conv → Maybe Conv
 allView (id (`∀ A))         = just (id A)

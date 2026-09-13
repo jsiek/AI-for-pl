@@ -3495,3 +3495,48 @@ endpoints, whose terminator use is the reflexive `id A A`.  Then
 
 with the contravariant swap explicit.  `instReveal` on a bridging `id A B`
 then needs saying, which is the part to think about before adopting it.
+
+#### Settled (2026-09-13): the bare-`id` problem was `arr` reading the wrong side — Wrap is PROVEN
+
+Jeremy pushed back on `id : Ty → Ty → Conv`: "I wonder if the real problem
+is somewhere else."  It is.  The stuck component `c₁ : A′ ⇝ A₁` needs the
+INTERIOR domain A₁, and the conversion's syntax was never going to carry
+it, because it already sits on the λ that canonical forms place inside
+every arrow-typed boundary value: `Simple V` at an arrow type forces
+`V = λx:A₁.N`.  `TyWrap` reads its body as `Λα,X.V`; `Wrap` just never
+read its body as a λ.
+
+THE REPAIR, no new syntax anywhere:
+
+    arr : Ty → Conv → Maybe (Conv × Conv)
+    arr A₁ (id (A ⇒ B))            = just (id A₁ , id B)
+    arr A₁ ((c ↦ d) ∷ᶜ id (A ⇒ B)) = just (c , d)
+
+    (Wrap)  νΘ,χ[ λx:A₁.N | c ] · W
+            -→  νΘ,χ[ (λx:A₁.N) · ν∅,-χ[W′|c₁] | c₂ ]
+            if arr(A₁, c) = (c₁ , c₂)
+
+In the notes' named setting `arr(id(A→B)) = (id A , id B)` is unambiguous
+because the two endpoints are literally one type; the de Bruijn rendering
+took the TARGET's half where the interior's was meant, and the interior's
+half is the λ annotation.  `canonical-⇒` now exposes the λ exactly as
+`canonical-∀` exposes the Λ (new: `simple-fun`, `conversion-fun-source`,
+`same-fun-left`, `arr-any`).
+
+WITH THAT, `proof/ArrTyping.arr-typing` covers BOTH shapes —
+
+    arr-typing : Δᵢ ⊢ c ∶ (A₁ ⇒ B₁) ⇝ (A′ ⇒ B′) ⊣ ΔΘ → NF c
+               → arr A₁ c ≡ just (c₁ , c₂)
+               → (ΔΘ ⊢ c₁ ∶ A′ ⇝ A₁ ⊣ Δᵢ) × (Δᵢ ⊢ c₂ ∶ B₁ ⇝ B′ ⊣ ΔΘ)
+                 × NF c₁ × NF c₂
+
+(the bare-`id` case is `sameTy-sym` on the id's own comparison) — and
+`proof/PreserveWrap.preserve-Wrap` IS PROVEN.  The whole case is two `⊢ν`s:
+`χ-invert` sends the dual scope back to ΔΘ on the nose, `wk-⊢` over
+`store-block` carries the argument under the store, and `arr-typing`
+supplies both conversions.  Three of the five computational cases now
+stand: Beta, TyBeta, Wrap.
+
+The notes' Wrap rule and `arr` equations need this folded in — together
+with the merged entries, the seam condition and the reflexive terminator,
+notes-v7.md is now materially behind the Agda.

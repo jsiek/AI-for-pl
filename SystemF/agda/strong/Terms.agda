@@ -82,8 +82,8 @@ data Literal : Term → Set where
   literal-# : ∀ {b} → Literal (# b)
 
 data Applicable : Conv → Set where
-  applies-arr : ∀ {c c₁ c₂}
-    → arr c ≡ just (c₁ , c₂) → Applicable c
+  applies-arr : ∀ A₀ {c c₁ c₂}
+    → arr A₀ c ≡ just (c₁ , c₂) → Applicable c
   applies-all : ∀ {c d}
     → allView c ≡ just d → Applicable c
   applies-var : ∀ {c X}

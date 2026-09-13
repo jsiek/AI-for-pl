@@ -38,3 +38,29 @@ allView-typing-all : ∀ {Δᵢ ΔΘ s T A A′}
             ⊣ (anch revealed abstA ∷ ΔΘ)))
 allView-typing-all (conv-cons (conv-all s-ty) (tail-id wf)) =
   _ , refl , s-ty
+
+------------------------------------------------------------------------
+-- The full inversion, both shapes
+------------------------------------------------------------------------
+--
+-- The interior domain handed to `arr` is the λ annotation, which `⊢ƛ`
+-- makes the domain of the conversion's SOURCE — so in the bare-`id` case
+-- the contravariant component `id A₁` retypes by symmetry of the `id`'s
+-- comparison, and in the head case `conv-fun` already says everything.
+
+open import Data.Maybe using (just)
+open import strong.CtxMorph using ()
+open import strong.proof.SameTyProperties using (sameTy-sym)
+open import Relation.Binary.PropositionalEquality using (sym)
+
+arr-typing : ∀ {Δᵢ ΔΘ c A₁ B₁ A′ B′ c₁ c₂}
+  → Δᵢ ⊢ c ∶ (A₁ ⇒ B₁) ⇝ (A′ ⇒ B′) ⊣ ΔΘ
+  → NF c
+  → arr A₁ c ≡ just (c₁ , c₂)
+  → (ΔΘ ⊢ c₁ ∶ A′ ⇝ A₁ ⊣ Δᵢ) × (Δᵢ ⊢ c₂ ∶ B₁ ⇝ B′ ⊣ ΔΘ)
+    × NF c₁ × NF c₂
+arr-typing (conv-id (same-⇒ sa sb) cnt) nf refl =
+  conv-id (sameTy-sym sa) (sym cnt) , conv-id sb cnt , nf-id , nf-id
+arr-typing (conv-cons (conv-fun s-ty t-ty) (tail-id wf))
+  (nf-cons (nf-fun nfs nft) _ _) refl =
+  s-ty , t-ty , nfs , nft

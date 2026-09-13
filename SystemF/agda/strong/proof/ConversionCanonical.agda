@@ -37,26 +37,24 @@ data EndsVar (c : Conv) : Set where
 
 after-seal : ∀ {Δ₁ Δ₂ Δ₃ α X A B c}
   → Δ₁ ⊢̂ seal α ∶ A ⇝ ` X ⊣ Δ₂
-  → Δ₂ ⊢ c ∶ ` X ⇝ B ⊣ Δ₃
+  → Δ₂ ⊩ c ∶ ` X ⇝ B ⊣ Δ₃
   → NF c
   → IrreducibleAfter (seal α) c
   → EndsVar c
-after-seal seal-ty (conv-id same cnt) nf-id irr-id with same-var-right same
-after-seal seal-ty (conv-id same cnt) nf-id irr-id | var-shape Y =
-  ends-var Y refl
-after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-seal n₂ rep₂ read₂ cnt₂) t)
+after-seal seal-ty (tail-id wf) nf-id irr-id = ends-var _ refl
+after-seal (conv-seal n₁ rep read cnt₁) (tail-cons (conv-seal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-seal nft irr₂) (irr-cons outer)
   with after-seal (conv-seal n₂ rep₂ read₂ cnt₂) t nft irr₂
-after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-seal n₂ rep₂ read₂ cnt₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (tail-cons (conv-seal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-seal nft irr₂) (irr-cons outer) | ends-var Y eq =
   ends-var Y eq
-after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (tail-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-unseal nft irr₂) (irr-cons outer)
   with name-unique n₁ n₂
-after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (tail-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-unseal nft irr₂) (irr-cons outer) | refl
   with trans (sym outer) (fuse-seal-unseal _)
-after-seal (conv-seal n₁ rep read cnt₁) (conv-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
+after-seal (conv-seal n₁ rep read cnt₁) (tail-cons (conv-unseal n₂ rep₂ read₂ cnt₂) t)
   (nf-cons nf-unseal nft irr₂) (irr-cons outer) | refl | ()
 
 data GroundReady (c : Conv) : Set where
@@ -102,40 +100,37 @@ canonical-⇒-conv (conv-cons (conv-seal n rep read cnt) t)
   with after-seal (conv-seal n rep read cnt) t nft irr
 canonical-⇒-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr) | ends-var X eq = applies-var eq
+-- The terminator is REFLEXIVE, so its type IS the head's target, which is
+-- an arrow — no inversion needed.
 canonical-⇒-conv
-  (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (conv-id same cnt))
-  (nf-cons (nf-fun nfs nfd) nf-id irr-id)
-  with same-fun-right same
-canonical-⇒-conv
-  (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (conv-id same cnt))
-  (nf-cons (nf-fun nfs nfd) nf-id irr-id) | fun-shape A B =
-  applies-arr refl
+  (conv-cons (conv-fun {s = c₁} {t = c₂} s d) (tail-id wf))
+  (nf-cons (nf-fun nfs nfd) nf-id irr-id) = applies-arr refl
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
-    (conv-cons (conv-seal n rep read cnt) t))
+    (tail-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-fun nfs nfd) (nf-cons nf-seal nft irr₂)
     (irr-cons outer))
   with after-seal (conv-seal n rep read cnt) t nft irr₂
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
-    (conv-cons (conv-seal n rep read cnt) t))
+    (tail-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-fun nfs nfd) (nf-cons nf-seal nft irr₂)
     (irr-cons outer)) | ends-var X eq = applies-var eq
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
-    (conv-cons (conv-fun {s = c₃} {t = c₄} s₂ d₂) t))
+    (tail-cons (conv-fun {s = c₃} {t = c₄} s₂ d₂) t))
   (nf-cons (nf-fun nfs nfd) (nf-cons (nf-fun nfs₂ nfd₂) nft irr₂)
     (irr-cons outer))
   with fuse-fun-fun c₁ c₂ c₃ c₄
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
-    (conv-cons (conv-fun {s = c₃} {t = c₄} s₂ d₂) t))
+    (tail-cons (conv-fun {s = c₃} {t = c₄} s₂ d₂) t))
   (nf-cons (nf-fun nfs nfd) (nf-cons (nf-fun nfs₂ nfd₂) nft irr₂)
     (irr-cons outer)) | hs , fused
   with trans (sym outer) fused
 canonical-⇒-conv
   (conv-cons (conv-fun {s = c₁} {t = c₂} s d)
-    (conv-cons (conv-fun {s = c₃} {t = c₄} s₂ d₂) t))
+    (tail-cons (conv-fun {s = c₃} {t = c₄} s₂ d₂) t))
   (nf-cons (nf-fun nfs nfd) (nf-cons (nf-fun nfs₂ nfd₂) nft irr₂)
     (irr-cons outer)) | hs , fused | ()
 
@@ -152,35 +147,30 @@ canonical-∀-conv (conv-cons (conv-seal n rep read cnt) t)
 canonical-∀-conv (conv-cons (conv-seal n rep read cnt) t)
   (nf-cons nf-seal nft irr) | ends-var X eq = applies-var eq
 canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-id same cnt))
-  (nf-cons (nf-all nfs) nf-id irr-id)
-  with same-all-right same
+  (conv-cons (conv-all {s = c₁} s) (tail-id wf))
+  (nf-cons (nf-all nfs) nf-id irr-id) = applies-all refl
 canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-id same cnt))
-  (nf-cons (nf-all nfs) nf-id irr-id) | all-shape A =
-  applies-all refl
-canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-cons (conv-seal n rep read cnt) t))
+  (conv-cons (conv-all {s = c₁} s) (tail-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-all nfs) (nf-cons nf-seal nft irr₂) (irr-cons outer))
   with after-seal (conv-seal n rep read cnt) t nft irr₂
 canonical-∀-conv
-  (conv-cons (conv-all {s = c₁} s) (conv-cons (conv-seal n rep read cnt) t))
+  (conv-cons (conv-all {s = c₁} s) (tail-cons (conv-seal n rep read cnt) t))
   (nf-cons (nf-all nfs) (nf-cons nf-seal nft irr₂) (irr-cons outer))
   | ends-var X eq = applies-var eq
 canonical-∀-conv
   (conv-cons (conv-all {s = c₁} s)
-    (conv-cons (conv-all {s = c₂} s₂) t))
+    (tail-cons (conv-all {s = c₂} s₂) t))
   (nf-cons (nf-all nfs) (nf-cons (nf-all nfs₂) nft irr₂)
     (irr-cons outer))
   with fuse-all-all c₁ c₂
 canonical-∀-conv
   (conv-cons (conv-all {s = c₁} s)
-    (conv-cons (conv-all {s = c₂} s₂) t))
+    (tail-cons (conv-all {s = c₂} s₂) t))
   (nf-cons (nf-all nfs) (nf-cons (nf-all nfs₂) nft irr₂)
     (irr-cons outer)) | hs , fused
   with trans (sym outer) fused
 canonical-∀-conv
   (conv-cons (conv-all {s = c₁} s)
-    (conv-cons (conv-all {s = c₂} s₂) t))
+    (tail-cons (conv-all {s = c₂} s₂) t))
   (nf-cons (nf-all nfs) (nf-cons (nf-all nfs₂) nft irr₂)
     (irr-cons outer)) | hs , fused | ()

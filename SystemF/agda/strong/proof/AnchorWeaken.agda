@@ -252,7 +252,12 @@ mutual
   conv-count : ∀ {c Δ₁ Δ₂ A B}
     → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂ → anchorCount Δ₁ ≡ anchorCount Δ₂
   conv-count (conv-id same cnt) = cnt
-  conv-count (conv-cons hd tl) = trans (head-count hd) (conv-count tl)
+  conv-count (conv-cons hd tl) = trans (head-count hd) (tail-count tl)
+
+  tail-count : ∀ {c Δ₁ Δ₂ A B}
+    → Δ₁ ⊩ c ∶ A ⇝ B ⊣ Δ₂ → anchorCount Δ₁ ≡ anchorCount Δ₂
+  tail-count (tail-id wf) = refl
+  tail-count (tail-cons hd tl) = trans (head-count hd) (tail-count tl)
 
 wk-exists : ∀ {k ρ Δ₁ Δ₁′} → Wk k ρ Δ₁ Δ₁′
   → ∀ Δ₂ → anchorCount Δ₂ ≡ anchorCount Δ₁
@@ -298,10 +303,22 @@ mutual
   wk-conv {B = B} hid f₁ f₂ (conv-id same cnt)
     rewrite renameᵗ-id hid B =
     conv-id (wk-SameTy f₁ f₂ same) (wk-cnt f₁ f₂ cnt)
-  wk-conv hid f₁ f₃ (conv-cons {Δ₂ = Δmid} hd tl)
-    with wk-exists f₁ Δmid (sym (head-count hd))
-  wk-conv hid f₁ f₃ (conv-cons hd tl) | Δmid′ , f₂ =
-    conv-cons (wk-head hid f₁ f₂ hd) (wk-conv hid f₂ f₃ tl)
+  wk-conv hid f₁ f₃ (conv-cons hd tl) with wk-tail hid f₃ tl
+  wk-conv hid f₁ f₃ (conv-cons hd tl) | Δmid′ , f₂ , tl′ =
+    conv-cons (wk-head hid f₁ f₂ hd) tl′
+
+  -- A TAIL is weakened from its EXTERIOR inward, because `tail-id` ties
+  -- its two contexts together.
+  wk-tail : ∀ {ρᵗ c Δ₁ Δ₂ Δ₂′} → IsIdᵗ ρᵗ → Wk k ρ Δ₂ Δ₂′
+    → Δ₁ ⊩ c ∶ A ⇝ B ⊣ Δ₂
+    → Σ[ Δ₁′ ∈ Ctxᵗ ] (Wk k ρ Δ₁ Δ₁′ × (Δ₁′ ⊩ renConv ρᵗ ρ c ∶ A ⇝ B ⊣ Δ₂′))
+  wk-tail {A = A} hid f (tail-id wf)
+    rewrite renameᵗ-id hid A = _ , f , tail-id (wk-wf f wf)
+  wk-tail hid f (tail-cons {Δ₁ = Δ₁} hd tl) with wk-tail hid f tl
+  wk-tail hid f (tail-cons {Δ₁ = Δ₁} hd tl) | Δᵐ′ , g , tl′
+    with wk-exists g Δ₁ (head-count hd)
+  wk-tail hid f (tail-cons hd tl) | Δᵐ′ , g , tl′ | Δ₁′ , f₁ =
+    _ , f₁ , tail-cons (wk-head hid f₁ g hd) tl′
 
 ------------------------------------------------------------------------
 -- Stores and scope changes

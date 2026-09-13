@@ -142,7 +142,17 @@ mutual
 
   conv-wf-target : Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊢ᵗ B
   conv-wf-target (conv-id same _) = sameTy-wf-right same kp-zero
-  conv-wf-target (conv-cons hd tl) = conv-wf-target tl
+  conv-wf-target (conv-cons hd tl) = tail-wf-target tl
+
+  -- A tail's terminator is reflexive, so both its endpoint types are the
+  -- one type `tail-id` carries.
+  tail-wf-source : Δ₁ ⊩ c ∶ A ⇝ B ⊣ Δ₂ → Δ₁ ⊢ᵗ A
+  tail-wf-source (tail-id wf) = wf
+  tail-wf-source (tail-cons hd tl) = head-wf-source hd
+
+  tail-wf-target : Δ₁ ⊩ c ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊢ᵗ B
+  tail-wf-target (tail-id wf) = wf
+  tail-wf-target (tail-cons hd tl) = tail-wf-target tl
 
 ------------------------------------------------------------------------
 -- The theorem

@@ -214,6 +214,7 @@ private
 
 infix 4 _⊢̂_∶_⇝_⊣_
 infix 4 _⊢_∶_⇝_⊣_
+infix 4 _⊩_∶_⇝_⊣_
 mutual
   data _⊢̂_∶_⇝_⊣_ : Ctxᵗ → Head → Ty → Ty → Ctxᵗ → Set where
     conv-seal : ∀ {S}
@@ -236,8 +237,20 @@ mutual
     conv-id : SameTy zero Δ₁ A Δ₂ B
       → anchorCount Δ₁ ≡ anchorCount Δ₂
       → Δ₁ ⊢ id B ∶ A ⇝ B ⊣ Δ₂
-    conv-cons : Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊢ c ∶ B ⇝ C ⊣ Δ₃
+    conv-cons : Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊩ c ∶ B ⇝ C ⊣ Δ₃
       → Δ₁ ⊢ h ∷ᶜ c ∶ A ⇝ C ⊣ Δ₃
+
+  -- A conversion TAIL.  Its terminator is REFLEXIVE: same context, same
+  -- type, `sameTy-refl`.  All BRIDGING between two indexings therefore
+  -- happens in a BARE `id`, never in a terminator — which is what pins a
+  -- cons's last seam to the exterior, and so what lets `arr` and
+  -- `allView`, which read the syntax, return correctly typed components.
+  -- Every conversion the builders produce already satisfies this:
+  -- `revTy`/`concTy` terminate at `Δₑ ⊣ Δₑ`.
+  data _⊩_∶_⇝_⊣_ : Ctxᵗ → Conv → Ty → Ty → Ctxᵗ → Set where
+    tail-id : Δ₁ ⊢ᵗ A → Δ₁ ⊩ id A ∶ A ⇝ A ⊣ Δ₁
+    tail-cons : Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₂ ⊩ c ∶ B ⇝ C ⊣ Δ₃
+      → Δ₁ ⊩ h ∷ᶜ c ∶ A ⇝ C ⊣ Δ₃
 
 ------------------------------------------------------------------------
 -- Normal forms and views

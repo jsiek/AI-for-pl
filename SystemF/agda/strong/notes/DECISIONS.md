@@ -3436,3 +3436,62 @@ THREE REPAIRS.
 the largest change, touching `Types`, `RepresentationTypes` and everything
 that reads them.  (2) is the smallest repair that makes `Wrap` provable as
 written.  Not taken pending sign-off.
+
+#### Settled (2026-09-13): repair (2) INSTALLED; (3) tried and reverted; (1) is not viable
+
+REPAIR (2), the reflexive terminator, is in.  `strong.Conversion` gains a
+second judgment,
+
+    _⊩_∶_⇝_⊣_      tail-id   : Δ₁ ⊢ᵗ A → Δ₁ ⊩ id A ∶ A ⇝ A ⊣ Δ₁
+                   tail-cons : …
+
+and `conv-cons`'s tail is typed by it.  All BRIDGING between two indexings
+therefore happens in a BARE `id`, never in a terminator, so a cons's last
+seam IS the exterior.  `proof/ArrTyping` records what that buys:
+
+    arr-typing-fun     : Δᵢ ⊢ (s ↦ t) ∷ᶜ id T ∶ A ⇝ (A′ ⇒ B′) ⊣ ΔΘ
+                       → … × (ΔΘ ⊢ s ∶ A′ ⇝ A₁ ⊣ Δᵢ)
+                           × (Δᵢ ⊢ t ∶ B₁ ⇝ B′ ⊣ ΔΘ)
+    allView-typing-all : likewise for `all s ∷ᶜ id T`
+
+Both are one-line proofs — `conv-fun` already states its sub-conversions at
+exactly the contexts `Wrap` and `TyWrap` want, and `NF` is not needed
+because `arr`'s shape pins the derivation.  Every conversion the builders
+produce already satisfied the restriction, so `revTy-typing` and
+`concTy-typing` needed only `conv-id …` replaced by `tail-id …` at their
+terminators; `proof/ConversionCanonical` got SHORTER, since the terminator's
+type is now the head's target and needs no inversion.
+
+REPAIR (3), anchor-indexed type variables, was written (Types, Ctx and
+Conversion all checked) and REVERTED.  It removes the re-indexing, but it
+puts type variables and anchors in ONE index space, and a STORE adds
+anchors — so crossing one shifts every type variable.  `renAnchᴹ` would
+have to descend into `ƛ A ∙ N` and `L • B [ A ]`, `Wrap` and `Beta` would
+shift the annotations inside the term they move, `TyBeta` would mint
+`revTy zero (⇑ᵗ A) B`, and `⊢ν` would need an un-shift by |Θ| between its
+conversion's target and its own type.  Today the ONLY type shift is
+`crossΛ`'s `id (⇑ᵗ A)`, which is honest: crossing a `Λ` really does reveal
+one more type variable.  Jeremy's call: that property is worth more than
+the layer (3) deletes.
+
+REPAIR (1), a type-free `id`, is NOT VIABLE.  It breaks `instReveal`, and
+so `TyWrap`.  The terminator case is
+
+    instReveal X α S (id A) = revTy X α S A
+
+and `revTy` recurses on A's STRUCTURE to build its `↦` and `all` heads, so
+the terminator's type is needed, not incidental.  The notes say as much
+about their own `+X`: "Here `B` is the target supplied by the typing
+derivation of the transformed head."  In the Agda that information lives at
+the `id` leaves, and removing it removes `+X`.
+
+WHAT REMAINS.  Only the BARE-`id`-at-an-arrow case:
+`arr (id (A ⇒ B)) = (id A , id B)` takes both halves from the TARGET, while
+`c₁` must end at the SOURCE's domain.  The minimal fix is to carry the
+source type too — `id : Ty → Ty → Conv`, a bridging identity with both
+endpoints, whose terminator use is the reflexive `id A A`.  Then
+
+    arr (id (A₁ ⇒ B₁) (A′ ⇒ B′)) = just (id A′ A₁ , id B₁ B′)
+
+with the contravariant swap explicit.  `instReveal` on a bridging `id A B`
+then needs saying, which is the part to think about before adopting it.

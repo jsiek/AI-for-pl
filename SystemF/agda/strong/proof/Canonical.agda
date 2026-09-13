@@ -79,7 +79,7 @@ conversion-all-source : ∀ {Δ₁ Δ₂ c A B d}
 conversion-all-source (conv-id {B = `∀ B} same _) refl =
   same-all-left same
 conversion-all-source
-  (conv-cons (conv-all s) (conv-id {B = `∀ B} same _)) refl = all-shape _
+  (conv-cons (conv-all s) (tail-id {A = `∀ B} wf)) refl = all-shape _
 
 simple-all : ∀ {Δ V A}
   → Simple V

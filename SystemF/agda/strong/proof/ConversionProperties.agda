@@ -10,11 +10,18 @@ open import strong.Types
 open import strong.Ctx
 open import strong.Conversion
 
-conv-target : ∀ {Δ₁ Δ₂ c A B}
-  → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂
-  → target c ≡ B
-conv-target (conv-id same _) = refl
-conv-target (conv-cons head tail) = conv-target tail
+mutual
+  conv-target : ∀ {Δ₁ Δ₂ c A B}
+    → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂
+    → target c ≡ B
+  conv-target (conv-id same _) = refl
+  conv-target (conv-cons head tail) = tail-target tail
+
+  tail-target : ∀ {Δ₁ Δ₂ c A B}
+    → Δ₁ ⊩ c ∶ A ⇝ B ⊣ Δ₂
+    → target c ≡ B
+  tail-target (tail-id wf) = refl
+  tail-target (tail-cons head tail) = tail-target tail
 
 data VarShape : Ty → Set where
   var-shape : ∀ X → VarShape (` X)

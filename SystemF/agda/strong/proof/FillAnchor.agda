@@ -180,8 +180,20 @@ mutual
     → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂ → Δ₁′ ⊢ c ∶ A ⇝ B ⊣ Δ₂′
   fill-conv f₁ f₂ (conv-id same cnt) =
     conv-id (fill-SameTy f₁ f₂ same) (fill-cnt f₁ f₂ cnt)
-  fill-conv f₁ f₃ (conv-cons hd tl) =
-    conv-cons (fill-head f₁ fill-id hd) (fill-conv fill-id f₃ tl)
+  fill-conv f₁ f₃ (conv-cons hd tl) with fill-tail f₃ tl
+  fill-conv f₁ f₃ (conv-cons hd tl) | Δ₂′ , g , tl′ =
+    conv-cons (fill-head f₁ g hd) tl′
+
+  -- A TAIL is filled from its EXTERIOR inward: `tail-id` ties its two
+  -- contexts together, so the fill at the exterior is the fill at the
+  -- last seam as well.
+  fill-tail : ∀ {Δ₁ Δ₂ Δ₂′ c A B} → Fill R Δ₂ Δ₂′
+    → Δ₁ ⊩ c ∶ A ⇝ B ⊣ Δ₂
+    → Σ[ Δ₁′ ∈ Ctxᵗ ] (Fill R Δ₁ Δ₁′ × (Δ₁′ ⊩ c ∶ A ⇝ B ⊣ Δ₂′))
+  fill-tail f (tail-id wf) = _ , f , tail-id (fill-wf f wf)
+  fill-tail f (tail-cons hd tl) with fill-tail f tl
+  fill-tail f (tail-cons hd tl) | Δᵐ′ , g , tl′ =
+    _ , fill-id , tail-cons (fill-head fill-id g hd) tl′
 
 ------------------------------------------------------------------------
 -- Stores and scope changes

@@ -206,7 +206,7 @@ mutual
        → _ ⊢ revTy X α S (` Y) ∶ ` Y ⇝ closeAt X S (` Y) ⊣ _
     go (yes refl) rewrite revTy-hit X α S | closeAt-hit X S =
       conv-cons (conv-unseal (reveals-name rev) rep rd (reveals-count rev))
-                (conv-id (sameTy-refl (read-wf rd)) refl)
+                (tail-id (read-wf rd))
     go (no ne) rewrite revTy-miss X α S Y ne | closeAt-miss X S Y ne
       with name-of-tv tv
     go (no ne) | β , n =
@@ -217,15 +217,13 @@ mutual
     conv-cons
       (conv-fun (concTy-typing rev rep rd a)
                 (revTy-typing rev rep rd b))
-      (conv-id (sameTy-refl
-        (wf-⇒ (closeAt-wf rev (read-wf rd) a)
-              (closeAt-wf rev (read-wf rd) b))) refl)
+      (tail-id (wf-⇒ (closeAt-wf rev (read-wf rd) a)
+                     (closeAt-wf rev (read-wf rd) b)))
   revTy-typing {X = X} {S = S} rev rep rd (wf-∀ {A = A} a)
     rewrite closeAt-∀ X S A =
     conv-cons
       (conv-all (revTy-typing (rev-under rev) (rep-Λ rep) (read-Λ rd) a))
-      (conv-id (sameTy-refl
-        (wf-∀ (closeAt-wf (rev-under rev) (wf-Λ (read-wf rd)) a))) refl)
+      (tail-id (wf-∀ (closeAt-wf (rev-under rev) (wf-Λ (read-wf rd)) a)))
 
   concTy-typing : Reveals X α Δᵢ Δₑ
     → Δᵢ ∋r α := R → Δₑ ⊢ R ⇓ S → Δᵢ ⊢ᵗ A
@@ -238,8 +236,7 @@ mutual
     go (yes refl) rewrite concTy-hit X α S | closeAt-hit X S =
       conv-cons (conv-seal (reveals-name rev) rep rd
                   (sym (reveals-count rev)))
-                (conv-id (sameTy-refl
-                  (wf-var (tv-of-name (reveals-name rev)))) refl)
+                (tail-id (wf-var (tv-of-name (reveals-name rev))))
     go (no ne) rewrite concTy-miss X α S Y ne | closeAt-miss X S Y ne
       with name-of-tv tv
     go (no ne) | β , n =
@@ -250,12 +247,12 @@ mutual
     conv-cons
       (conv-fun (revTy-typing rev rep rd a)
                 (concTy-typing rev rep rd b))
-      (conv-id (sameTy-refl (wf-⇒ a b)) refl)
+      (tail-id (wf-⇒ a b))
   concTy-typing {X = X} {S = S} rev rep rd (wf-∀ {A = A} a)
     rewrite closeAt-∀ X S A =
     conv-cons
       (conv-all (concTy-typing (rev-under rev) (rep-Λ rep) (read-Λ rd) a))
-      (conv-id (sameTy-refl (wf-∀ a)) refl)
+      (tail-id (wf-∀ a))
 
 ------------------------------------------------------------------------
 -- Normal forms

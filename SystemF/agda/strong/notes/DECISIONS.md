@@ -3581,3 +3581,58 @@ The transport modules were rebuilt against the discipline:
 
 All thirty-two live v7 modules pass `agda --safe` with no postulates and
 no holes; Beta, TyBeta and Wrap stand unchanged on top.
+
+## 2026-09-13: FINDING — `preserve-Merge` is FALSE as the rules stand (machine-checked)
+
+`notes/probes/V7MergeScopeClashProbe.agda` proves, closed and under
+`--safe`, that a well-typed `Merge` redex steps to an untypable term.
+Two distinct classes fail, and they share one cause: a bare `conv-id`
+BRIDGES visibility flips (that is its job — `crossΛ` and `revTy` both
+rely on it), but `Merge`'s raw append `c ⨟ renConv … d` DELETES the inner
+boundary's bare id while the merged scope `shiftScope |Θ₂| χ₁ ++ χ₂`
+still demands the flips it bridged.  The appended conversion then
+performs fewer flips than the scope requires, and the derivation dies.
+
+Class 1 (`contractum-untyped`): the inner scope re-reveals the anchor the
+outer conversion seals.
+
+    ν ∅, conceal γ [ ν ∅, reveal γ [ λx:ℕ. x ∣ id (ℕ→ℕ) ] ∣ seal γ; id X ]
+      —→ᴹ  ν ∅, (conceal γ ; reveal γ) [ λx:ℕ. x ∣ seal γ; id X ]
+
+The merged interior has γ REVEALED, and `conv-seal`'s `FlipAt γ` premise
+demands it concealed.  A "stationary seal" variant (seal typable with no
+flip when the anchor is revealed on both sides) would repair THIS class.
+
+Class 2 (`contractum²-untyped`): the inner scope reveals an anchor δ the
+outer conversion never touches.  After the merge, the scope's net effect
+includes δ's flip, the conversion's heads do not perform it, and the
+reflexive `tail-id` lands one bit away from the store context `⊢ν` pins.
+No loosening of seal/unseal repairs this: the failure is net-flip
+arithmetic, not a rule corner.
+
+The old `anchorCount` premise typed both contracta — the looseness that
+`notes/old/probes-pre-merge` showed unsound elsewhere was silently
+absorbing this mismatch.  The spine discipline did not create the
+problem; it exposed it.
+
+Reachability: `crossΛ V A = ν ∅, conceal 0 [ V ∣ id … ]` is exactly the
+bridging-bare-id shape, so a `Beta`-crossed value sitting directly under
+another boundary drives `Merge` into the same arithmetic — these are not
+purely adversarial terms.
+
+Candidate repairs (Jeremy's call; asked 2026-09-13):
+
+  (A) Stationary `conv-seal`/`conv-unseal` variants at a revealed anchor.
+      This fixes class 1 only; class 2 stands.  Not sufficient alone.
+  (B) REIFY FLIPS AS HEADS.  Add a type-preserving head pair (say
+      `hide α` / `show α`) typed by `FlipAt α` with `SameTy`-related
+      endpoint types, and make `conv-id` strictly non-bridging.  Every
+      visibility crossing is then conversion SYNTAX, the append's flips
+      always match the concatenated scope, and both classes type.  Costs:
+      new `fuse` rows and weights in the normalizer; `crossΛ` gains a
+      `hide 0` head; `revTy`/`concTy` must emit the flip heads their
+      terminators currently bridge.
+  (C) SCOPE-AWARE MERGE.  Keep the typing rules; make `Merge` normalize
+      the concatenated scope against the appended conversion (cancel a
+      dual scope pair against the id that bridged it).  The typing stays
+      small; the reduction rule and its preservation proof grow.

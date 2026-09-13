@@ -3321,3 +3321,51 @@ harder than the informal argument (which reasons by "every successful
 fusion shortens the unprocessed conversion path").  Re-founding them on
 well-founded recursion over `weightHeads` would let the proof follow the
 notes' own measure.  Worth deciding before the case is attempted.
+
+#### Probed (2026-09-13): the MERGED-ENTRY context works
+
+`notes/probes/V7MergedEntryProbe.agda` (checks under --safe) builds the
+context layer with ONE entry form — an anchor carrying its binding and
+whether a source name currently stands for it —
+
+    Ent ::= anch concealed b | anch revealed b      b ::= abstA | bindA R
+
+and `reveal α` / `conceal α` FLIP THAT BIT in place.  Results:
+
+  * `χ-invert : Δ ⊢χ χ ⇒ Δ′ → Δ′ ⊢χ dual χ ⇒ Δ`.  EXACT — the same
+    context, not one up to reordering.  §14's `χ = (-Y:=β);(-X:=α)`,
+    where `-X` passes through the rep binding β, round-trips on the nose.
+
+  * THE TWO UNIVERSES KEEP THEIR ROLES, with cleaner coordinates.  An
+    anchor's index is its position; `δ-count` and `δ-anchor` show a change
+    preserves the count and leaves every anchor at its index — anchors
+    have the big, stable scope.  A type variable's index counts the
+    REVEALED entries; `n-revealed` raises both coordinates while
+    `n-concealed` raises only the anchor, which is exactly the difference
+    in scope.  `scopeᵗ` is the revealed entries, so colour is untouched.
+
+  * `reveal-newest` : a reveal makes its anchor the NEWEST type variable
+    (index zero) — the same semantics as `(+X:=α)(Γ) = Γ,X:=α` today.
+
+  * `conceal-newest` : a conceal removes the newest.  That is the notes'
+    "rightmost visible source name" condition, and it is now FORCED BY THE
+    RULE SHAPE (`con-under` passes only already-concealed entries) rather
+    than policed by the side judgment `Γ ▷ X:=α`.
+
+  * Hence the OUT-OF-ORDER state — revealing an old anchor while a newer
+    one is revealed — is UNREPRESENTABLE.  That was the one claim the
+    design rested on.
+
+WHAT RETIRES.  `Unoccupied` (an anchor carries at most one name by
+construction), `_▷_↘_`, `anchorLevel` and `SameAnchor`'s level comparison
+(reveal/conceal are length-preserving, so anchor indices are stable), and
+with it the conversion seam condition installed earlier today — whose two
+probes both turned on two contexts counting anchors differently.  Both of
+this session's `SameAnchor`/seam patches exist to manage the gap between
+an anchor and its name; merging closes the gap instead.
+
+NOT YET PROBED: the rest of the layer — `⊢ᵗ`, `⊢ᴿ`, `⇓`, `⌊_⌋`, conversion
+typing, terms — and the store (Θ's entries would push on as
+`anch concealed b`, which is the natural reading).  TyBeta's `abst ↦ bind`
+transport survives as a flip of the BINDING field with the visibility left
+alone.

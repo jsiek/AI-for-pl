@@ -3671,3 +3671,43 @@ representation at `SameBindings`-related contexts are `SameTy`-related
 (`read-transport`), and the drift is absorbed at the next flexible
 position — a head's loose side or a bare id's bridge.  That grind is
 next, and it is the risk that decides whether this discipline holds.
+
+## 2026-09-13: FINDING — the spine-only rules break the CANCELLATION case (machine-checked)
+
+`notes/probes/V7CancelDriftProbe.agda`: under the spine-only rules,
+`preserve-step` for `_—→ᶜ_` is false.  The rules let a `seal α ;
+unseal α` pair's flanks DRIFT (visibility of bystander anchors may
+differ across the pair), so the pair's two read-backs of α's
+representation spell different variable names.  While the pair stands,
+each read-back is stated at its own flank; when `ξ-pair` cancels the
+pair, the following `↦` head inherits the near flank's read-back as its
+source — and `conv-fun` pins that source domain to its component's
+terminator SYNTAX, which spells the far flank's name.  The probe's
+
+    c = seal α ∷ unseal α ∷ (id(`1) ↦ id(`1)) ∷ id(`1 ⇒ `1)
+
+types as `Δ₁ ⊢ c ∶ (`2 ⇒ `2) ⇝ (`1 ⇒ `1) ⊣ Δ₃` (γ revealed at Δ₁,
+concealed at Δ₃, so β is ` 2 on one flank and ` 1 on the other), steps
+by one `ξ-pair`, and the residue has no derivation at those endpoints.
+`Merge` composites contain exactly such drifted pairs (the class-2
+configuration), so the input is not adversarial-only.
+
+The pattern across every design tried so far: typed conversions mix
+SYNTAX-PINNED types (terminators, and component targets via `target`)
+with DERIVATION-INTERNAL context choices, and every rearranging
+operation (`_⧺_`, `fuse`, `Merge`) breaks at whichever interface mixes
+the two.  `anchorCount` (all loose): unsound seams.  `FlipAt` (heads
+exact, ids loose): `Merge` strands the ids' crossings.  Spine-only
+(heads loose): cancellation strands the flanks' drift.  The two STABLE
+designs are the poles:
+
+  P1 — every crossing is syntax: `show X:=α` / `hide X:=α` heads,
+       `conv-id` strictly reflexive, `⊩` merges into `⊢`.  Drift cannot
+       exist, so flip determinism gives the cancellation case, and
+       appends match scopes by construction.
+  P2 — every interface is up-to-view: `conv-cons`, `conv-fun`/`conv-all`
+       component interfaces, and `⊢ν`'s endpoints all carry
+       `SameTy`+`SameBindings` bridges.  Preservation glues bridges by
+       transitivity everywhere.
+
+Asked Jeremy (2026-09-13); recommendation is P1.

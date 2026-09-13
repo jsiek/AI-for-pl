@@ -28,9 +28,9 @@ open import strong.Reduction
 open import strong.proof.CtxProperties using (quote-wfᴿ)
 open import strong.proof.CloseTy using (closeAt-single)
 open import strong.proof.RevealTyping using
-  (Reveals; rev-here; revTy-typing; revTy-NF; read-rename; NameMap)
+  (Reveals; rev-at; revTy-typing; revTy-NF; read-rename; NameMap)
 open import strong.proof.FillAnchor using
-  (Fill; fill-here; fill-name; fill-wf; fill-⊢)
+  (Fill; fill-here; fill-wf; fill-⊢)
 open import strong.proof.TypeWf using (typing-wf-closed)
 
 ------------------------------------------------------------------------
@@ -58,10 +58,11 @@ quote-read quote-𝔹 = read-𝔹
 quote-read (quote-⇒ q r) = read-⇒ (quote-read q) (quote-read r)
 quote-read (quote-∀ q) = read-∀ (quote-read q)
 
-read-bind : ∀ {Δ R S A} → Δ ⊢ R ⇓ A → (bind S ∷ Δ) ⊢ ⇑ᴿ R ⇓ A
-read-bind {Δ = Δ} {S = S} {A = A} rd =
-  subst (λ T → (bind S ∷ Δ) ⊢ _ ⇓ T) (renameᵗ-id (λ X → refl) A)
-    (read-rename {ρᵗ = λ X → X} {ρᴿ = suc} n-over-bind rd)
+read-bind : ∀ {Δ R A b} → Δ ⊢ R ⇓ A
+  → (anch concealed b ∷ Δ) ⊢ ⇑ᴿ R ⇓ A
+read-bind {Δ = Δ} {A = A} {b = b} rd =
+  subst (λ T → (anch concealed b ∷ Δ) ⊢ _ ⇓ T) (renameᵗ-id (λ X → refl) A)
+    (read-rename {ρᵗ = λ X → X} {ρᴿ = suc} n-concealed rd)
 
 ------------------------------------------------------------------------
 -- The case
@@ -82,32 +83,27 @@ preserve-TyBeta {Δ = Δ} {V = V} {B = B} {A = A} {R = R}
     (⊢ν store scope (revTy-NF zero zero A B) body′ conv)
   where
   wfR : Δ ⊢ᴿ R
-  wfR = quote-wfᴿ ctx-ok q
+  wfR = quote-wfᴿ q
 
-  okΘ : (bind R ∷ Δ) ok
-  okΘ = ok-bind ctx-ok wfR
-
-  fresh : Unoccupied (bind R ∷ Δ) zero
-  fresh X (_ , n-over-bind _ , ())
-
-  okᵢ : (name zero ∷ bind R ∷ Δ) ok
-  okᵢ = ok-name okΘ a-here-bind fresh
-
-  store : Δ ⊢ˢ repBind R ∷ [] ⇒ bind R ∷ Δ
+  -- The store introduces the anchor CONCEALED; the scope change reveals
+  -- it, which is a flip of one bit.
+  store : Δ ⊢ˢ repBind R ∷ [] ⇒ anch concealed (bindA R) ∷ Δ
   store = store-bind wfR store[]
 
-  scope : (bind R ∷ Δ) ⊢χ reveal zero ∷ [] ⇒ name zero ∷ bind R ∷ Δ
-  scope = scope∷ (step-reveal a-here-bind fresh) scope[]
+  scope : (anch concealed (bindA R) ∷ Δ) ⊢χ reveal zero ∷ []
+        ⇒ (anch revealed (bindA R) ∷ Δ)
+  scope = scope∷ rev-here scope[]
 
-  -- The Λ's anchor, abstract in the body's context, is represented here.
-  give : Fill R (name zero ∷ abst ∷ Δ) (name zero ∷ bind R ∷ Δ)
-  give = fill-name fill-here
+  -- The Λ's anchor, abstract in the body's context, is represented here —
+  -- the same entry, the same name, a different BINDING.
+  give : Fill R (anch revealed abstA ∷ Δ) (anch revealed (bindA R) ∷ Δ)
+  give = fill-here
 
-  body′ : (name zero ∷ bind R ∷ Δ) ∣ [] ⊢ V ⦂ B
+  body′ : (anch revealed (bindA R) ∷ Δ) ∣ [] ⊢ V ⦂ B
   body′ = fill-⊢ give body
 
-  conv : (name zero ∷ bind R ∷ Δ)
-         ⊢ revTy zero zero A B ∶ B ⇝ closeAt zero A B ⊣ (bind R ∷ Δ)
-  conv = revTy-typing rev-here okᵢ okΘ (r-over-name r-here)
-           (read-bind (quote-read q))
+  conv : (anch revealed (bindA R) ∷ Δ)
+         ⊢ revTy zero zero A B ∶ B ⇝ closeAt zero A B
+         ⊣ (anch concealed (bindA R) ∷ Δ)
+  conv = revTy-typing rev-at r-here (read-bind (quote-read q))
            (fill-wf give (typing-wf-closed body))

@@ -42,24 +42,19 @@ sameAnchor-trans : SameAnchor Δ₁ α Δ₂ β → SameAnchor Δ₂ β Δ₃ γ
 sameAnchor-trans (same-anchor a₁ a₂ eq₁) (same-anchor a₂′ a₃ eq₂) =
   same-anchor a₁ a₃ (trans eq₁ eq₂)
 
--- Pushing one `name`/`abst` pair onto both sides preserves an anchor match,
--- because the pair adds exactly one anchor to each context.
+-- Going under a structural `∀` pushes ONE entry onto each side, so an
+-- anchor match survives by `cong suc` — no level bookkeeping.
 sameAnchor-Λ : SameAnchor Δ₁ α Δ₂ β
-             → SameAnchor (name zero ∷ abst ∷ Δ₁) (suc α)
-                          (name zero ∷ abst ∷ Δ₂) (suc β)
+             → SameAnchor (anch revealed abstA ∷ Δ₁) (suc α)
+                          (anch revealed abstA ∷ Δ₂) (suc β)
 sameAnchor-Λ (same-anchor a₁ a₂ eq) =
-  same-anchor (a-over-name (a-over-abst a₁))
-              (a-over-name (a-over-abst a₂))
-              eq
+  same-anchor (a-there a₁) (a-there a₂) (cong suc eq)
 
--- The freshly pushed anchor matches itself, PROVIDED the two contexts carry
--- the same number of anchors — the level of index 0 is `anchorCount ∸ 1`.
-sameAnchor-Λ-zero : anchorCount Δ₁ ≡ anchorCount Δ₂
-                  → SameAnchor (name zero ∷ abst ∷ Δ₁) zero
-                               (name zero ∷ abst ∷ Δ₂) zero
-sameAnchor-Λ-zero eq =
-  same-anchor (a-over-name a-here-abst) (a-over-name a-here-abst)
-              (cong (λ n → suc n ∸ 1) eq)
+-- And the freshly pushed anchor matches itself unconditionally: it is
+-- index zero on both sides.
+sameAnchor-Λ-zero : SameAnchor (anch revealed abstA ∷ Δ₁) zero
+                               (anch revealed abstA ∷ Δ₂) zero
+sameAnchor-Λ-zero = same-anchor a-here a-here refl
 
 ------------------------------------------------------------------------
 -- Types
@@ -73,18 +68,13 @@ sameTy-sym same-𝔹 = same-𝔹
 sameTy-sym (same-⇒ a b) = same-⇒ (sameTy-sym a) (sameTy-sym b)
 sameTy-sym (same-∀ a) = same-∀ (sameTy-sym a)
 
--- A well-formed type matches itself: every free variable names an anchor,
--- and an anchor matches itself at the same context.
-sameTy-refl : Δ ok → Δ ⊢ᵗ A → SameTy k Δ A Δ A
-sameTy-refl ctx-ok (wf-var x) with name-of-tv x
-sameTy-refl ctx-ok (wf-var x) | α , n =
-  same-free n n (sameAnchor-refl (named-anchor ctx-ok n))
-sameTy-refl ctx-ok wf-ℕ = same-ℕ
-sameTy-refl ctx-ok wf-𝔹 = same-𝔹
-sameTy-refl ctx-ok (wf-⇒ a b) =
-  same-⇒ (sameTy-refl ctx-ok a) (sameTy-refl ctx-ok b)
-sameTy-refl ctx-ok (wf-∀ a) =
-  same-∀ (sameTy-refl (ok-name (ok-abst ctx-ok) a-here-abst fresh) a)
-  where
-  fresh : Unoccupied (abst ∷ _) zero
-  fresh X (suc α , n-over-abst n , ())
+-- A well-formed type matches itself.  No well-formedness premise: an
+-- anchor is in scope as soon as a source variable names it, because the
+-- name is a bit on the anchor's own entry.
+sameTy-refl : Δ ⊢ᵗ A → SameTy k Δ A Δ A
+sameTy-refl (wf-var x) with name-of-tv x
+sameTy-refl (wf-var x) | α , n = same-free n n (sameAnchor-refl (named-anchor n))
+sameTy-refl wf-ℕ = same-ℕ
+sameTy-refl wf-𝔹 = same-𝔹
+sameTy-refl (wf-⇒ a b) = same-⇒ (sameTy-refl a) (sameTy-refl b)
+sameTy-refl (wf-∀ a) = same-∀ (sameTy-refl a)

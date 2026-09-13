@@ -67,7 +67,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
     → Δ ∣ Γ ⊢ L ⦂ A ⇒ B → Δ ∣ Γ ⊢ M ⦂ A
     → Δ ∣ Γ ⊢ L · M ⦂ B
   ⊢Λ : ∀ {Δ Γ A N}
-    → (name zero ∷ abst ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ A
+    → (anch revealed abstA ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ A
     → Δ ∣ Γ ⊢ Λ N ⦂ `∀ A
   ⊢•[] : ∀ {Δ Γ A B L}
     → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A

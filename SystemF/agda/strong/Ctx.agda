@@ -1,14 +1,28 @@
 module strong.Ctx where
 
--- Strong System F v7 — type/anchor contexts.
+-- Strong System F v7 — type/anchor contexts, merged entries.
 --
--- A context is ordered lexically, but its two variable classes use separate
--- de Bruijn coordinates: `name α` binds one source type variable and points
--- into the anchor universe; `abst` and `bind R` bind one anchor and no source
--- type variable.
+-- A context entry is an ANCHOR, carrying its binding and whether a source
+-- name currently stands for it.  The two variable classes keep their
+-- separate roles and get separate, clean coordinates:
+--
+--   an ANCHOR's index is its POSITION.  Anchors are introduced by a store
+--   or a `∀` and are never removed, so they have the big, stable scope.
+--
+--   a TYPE VARIABLE's index counts the REVEALED entries.  It enters scope
+--   at a reveal and leaves at a conceal, which is what colour preservation
+--   is about.
+--
+-- The `_∋n_:=_` rules below are where the difference lives: every step
+-- raises the anchor, and only a revealed step raises the type variable.
+--
+-- Because a reveal and a conceal FLIP A BIT rather than add or remove an
+-- entry, they are LENGTH-PRESERVING: anchor indices are stable across a
+-- boundary, so `SameAnchor` is plain index equality and no de Bruijn LEVEL
+-- is needed.  See notes/probes/V7MergedEntryProbe.agda.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
-open import Data.List using (List; []; _∷_; map)
+open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.List using (List; []; _∷_; map; length)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -16,14 +30,16 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.RepresentationTypes
 
-data Ent : Set where
-  abst : Ent
-  bind : RepTy → Ent
-  name : Anchor → Ent
-
 data AnchorBinding : Set where
   abstA : AnchorBinding
   bindA : RepTy → AnchorBinding
+
+data Vis : Set where
+  concealed : Vis
+  revealed  : Vis
+
+data Ent : Set where
+  anch : Vis → AnchorBinding → Ent
 
 Ctxᵗ : Set
 Ctxᵗ = List Ent
@@ -35,48 +51,44 @@ private
     α β : Anchor
     A B : Ty
     R S : RepTy
+    v w : Vis
+    b : AnchorBinding
+    e : Ent
+
+-- Anchors index the context directly.
+anchorCount : Ctxᵗ → ℕ
+anchorCount = length
 
 infix 4 _∋a_
 data _∋a_ : Ctxᵗ → Anchor → Set where
-  a-here-abst : (abst ∷ Δ) ∋a zero
-  a-here-bind : (bind R ∷ Δ) ∋a zero
-  a-over-abst : Δ ∋a α → (abst ∷ Δ) ∋a suc α
-  a-over-bind : Δ ∋a α → (bind R ∷ Δ) ∋a suc α
-  a-over-name : Δ ∋a α → (name β ∷ Δ) ∋a α
+  a-here  : (e ∷ Δ) ∋a zero
+  a-there : Δ ∋a α → (e ∷ Δ) ∋a suc α
 
 infix 4 _∋ab_:=_
 data _∋ab_:=_ : Ctxᵗ → Anchor → AnchorBinding → Set where
-  ab-here-abst : (abst ∷ Δ) ∋ab zero := abstA
-  ab-here-bind : (bind R ∷ Δ) ∋ab zero := bindA R
-  ab-over-abst : ∀ {b} → Δ ∋ab α := b → (abst ∷ Δ) ∋ab suc α := b
-  ab-over-bind : ∀ {b} → Δ ∋ab α := b → (bind R ∷ Δ) ∋ab suc α := b
-  ab-over-name : ∀ {b} → Δ ∋ab α := b → (name X ∷ Δ) ∋ab α := b
+  ab-here  : (anch v b ∷ Δ) ∋ab zero := b
+  ab-there : Δ ∋ab α := b → (e ∷ Δ) ∋ab suc α := b
 
+-- Type variables index the REVEALED entries.
 infix 4 _∋tv_
 data _∋tv_ : Ctxᵗ → ℕ → Set where
-  tv-here       : (name α ∷ Δ) ∋tv zero
-  tv-over-name  : Δ ∋tv X → (name α ∷ Δ) ∋tv suc X
-  tv-over-abst  : Δ ∋tv X → (abst ∷ Δ) ∋tv X
-  tv-over-bind  : Δ ∋tv X → (bind R ∷ Δ) ∋tv X
+  tv-here      : (anch revealed b ∷ Δ) ∋tv zero
+  tv-revealed  : Δ ∋tv X → (anch revealed b ∷ Δ) ∋tv suc X
+  tv-concealed : Δ ∋tv X → (anch concealed b ∷ Δ) ∋tv X
 
--- The anchor named by a source type variable.
+-- The anchor a source type variable names.  EVERY step raises the anchor;
+-- only a REVEALED step raises the type variable.
 infix 4 _∋n_:=_
 data _∋n_:=_ : Ctxᵗ → ℕ → Anchor → Set where
-  n-here       : (name α ∷ Δ) ∋n zero := α
-  n-over-name  : Δ ∋n X := α → (name β ∷ Δ) ∋n suc X := α
-  n-over-abst  : Δ ∋n X := α → (abst ∷ Δ) ∋n X := suc α
-  n-over-bind  : Δ ∋n X := α → (bind R ∷ Δ) ∋n X := suc α
+  n-here       : (anch revealed b ∷ Δ) ∋n zero := zero
+  n-revealed   : Δ ∋n X := α → (anch revealed b ∷ Δ) ∋n suc X := suc α
+  n-concealed  : Δ ∋n X := α → (anch concealed b ∷ Δ) ∋n X := suc α
 
 -- A represented anchor.  The result is shifted into the whole context.
 infix 4 _∋r_:=_
 data _∋r_:=_ : Ctxᵗ → Anchor → RepTy → Set where
-  r-here       : (bind R ∷ Δ) ∋r zero := ⇑ᴿ R
-  r-over-abst  : Δ ∋r α := R → (abst ∷ Δ) ∋r suc α := ⇑ᴿ R
-  r-over-bind  : Δ ∋r α := R → (bind S ∷ Δ) ∋r suc α := ⇑ᴿ R
-  r-over-name  : Δ ∋r α := R → (name β ∷ Δ) ∋r α := R
-
-Unoccupied : Ctxᵗ → Anchor → Set
-Unoccupied Δ α = ∀ X → ¬ (Σ[ β ∈ Anchor ] ((Δ ∋n X := β) × (β ≡ α)))
+  r-here  : (anch v (bindA R) ∷ Δ) ∋r zero := ⇑ᴿ R
+  r-there : Δ ∋r α := R → (e ∷ Δ) ∋r suc α := ⇑ᴿ R
 
 infix 4 _⊢ᵗ_
 data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
@@ -84,15 +96,17 @@ data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
   wf-ℕ   : Δ ⊢ᵗ `ℕ
   wf-𝔹   : Δ ⊢ᵗ `𝔹
   wf-⇒   : Δ ⊢ᵗ A → Δ ⊢ᵗ B → Δ ⊢ᵗ (A ⇒ B)
-  wf-∀   : (name zero ∷ abst ∷ Δ) ⊢ᵗ A → Δ ⊢ᵗ (`∀ A)
+  wf-∀   : (anch revealed abstA ∷ Δ) ⊢ᵗ A → Δ ⊢ᵗ (`∀ A)
 
+-- Representation types mention anchors only, so visibility is irrelevant
+-- to them; `∀ᴿ` binds an anchor with no source name.
 infix 4 _⊢ᴿ_
 data _⊢ᴿ_ : Ctxᵗ → RepTy → Set where
   wfᴿ-var : Δ ∋a α → Δ ⊢ᴿ `α α
   wfᴿ-ℕ   : Δ ⊢ᴿ `ℕᴿ
   wfᴿ-𝔹   : Δ ⊢ᴿ `𝔹ᴿ
   wfᴿ-⇒   : Δ ⊢ᴿ R → Δ ⊢ᴿ S → Δ ⊢ᴿ (R ⇒ᴿ S)
-  wfᴿ-∀   : (abst ∷ Δ) ⊢ᴿ R → Δ ⊢ᴿ (`∀ᴿ R)
+  wfᴿ-∀   : (anch concealed abstA ∷ Δ) ⊢ᴿ R → Δ ⊢ᴿ (`∀ᴿ R)
 
 data Base : Ty → Set where
   base-ℕ : Base `ℕ
@@ -109,7 +123,7 @@ data _⊢⌊_⌋_ : Ctxᵗ → Ty → RepTy → Set where
   quote-ℕ   : Δ ⊢⌊ `ℕ ⌋ `ℕᴿ
   quote-𝔹   : Δ ⊢⌊ `𝔹 ⌋ `𝔹ᴿ
   quote-⇒   : Δ ⊢⌊ A ⌋ R → Δ ⊢⌊ B ⌋ S → Δ ⊢⌊ A ⇒ B ⌋ R ⇒ᴿ S
-  quote-∀   : (name zero ∷ abst ∷ Δ) ⊢⌊ A ⌋ R
+  quote-∀   : (anch revealed abstA ∷ Δ) ⊢⌊ A ⌋ R
             → Δ ⊢⌊ `∀ A ⌋ `∀ᴿ R
 
 -- Reading anchors through the source names visible at an endpoint.
@@ -119,43 +133,32 @@ data _⊢_⇓_ : Ctxᵗ → RepTy → Ty → Set where
   read-ℕ   : Δ ⊢ `ℕᴿ ⇓ `ℕ
   read-𝔹   : Δ ⊢ `𝔹ᴿ ⇓ `𝔹
   read-⇒   : Δ ⊢ R ⇓ A → Δ ⊢ S ⇓ B → Δ ⊢ R ⇒ᴿ S ⇓ A ⇒ B
-  read-∀   : (name zero ∷ abst ∷ Δ) ⊢ R ⇓ A
+  read-∀   : (anch revealed abstA ∷ Δ) ⊢ R ⇓ A
            → Δ ⊢ `∀ᴿ R ⇓ `∀ A
 
+-- An anchor carries at most one name BY CONSTRUCTION, so there is nothing
+-- left for a freshness side condition to check.
 infix 4 _ok
 data _ok : Ctxᵗ → Set where
   ok[]    : [] ok
-  ok-abst : Δ ok → (abst ∷ Δ) ok
-  ok-bind : Δ ok → Δ ⊢ᴿ R → (bind R ∷ Δ) ok
-  ok-name : Δ ok → Δ ∋a α → Unoccupied Δ α → (name α ∷ Δ) ok
+  ok-abst : Δ ok → (anch v abstA ∷ Δ) ok
+  ok-bind : Δ ok → Δ ⊢ᴿ R → (anch v (bindA R) ∷ Δ) ok
 
 VarSet : Set
 VarSet = List ℕ
 
+-- The colour: exactly the revealed entries.
 scopeᵗ : Ctxᵗ → VarSet
-scopeᵗ []           = []
-scopeᵗ (abst ∷ Δ)   = scopeᵗ Δ
-scopeᵗ (bind R ∷ Δ) = scopeᵗ Δ
-scopeᵗ (name α ∷ Δ) = zero ∷ map suc (scopeᵗ Δ)
+scopeᵗ []                       = []
+scopeᵗ (anch revealed b ∷ Δ)    = zero ∷ map suc (scopeᵗ Δ)
+scopeᵗ (anch concealed b ∷ Δ)   = scopeᵗ Δ
 
-anchorCount : Ctxᵗ → ℕ
-anchorCount []           = zero
-anchorCount (abst ∷ Δ)   = suc (anchorCount Δ)
-anchorCount (bind R ∷ Δ) = suc (anchorCount Δ)
-anchorCount (name α ∷ Δ) = anchorCount Δ
-
-anchorLevel : Ctxᵗ → Anchor → ℕ
-anchorLevel Δ α = anchorCount Δ ∸ suc α
-
--- Two anchors are the SAME anchor when they sit at the same de Bruijn
--- LEVEL.  The level is what survives the two indexings a boundary relates;
--- the entry's binding is not compared, because one context may have given
--- an abstract anchor its representation (TyBeta) while the other has not.
+-- Two anchors are the same anchor when they have the same INDEX.  A reveal
+-- or a conceal flips a bit and adds no entry, so an index means the same
+-- anchor at a boundary's interior and its exterior alike.
 data SameAnchor (Δ₁ : Ctxᵗ) (α : Anchor)
                 (Δ₂ : Ctxᵗ) (β : Anchor) : Set where
-  same-anchor : Δ₁ ∋a α → Δ₂ ∋a β
-              → anchorLevel Δ₁ α ≡ anchorLevel Δ₂ β
-              → SameAnchor Δ₁ α Δ₂ β
+  same-anchor : Δ₁ ∋a α → Δ₂ ∋a β → α ≡ β → SameAnchor Δ₁ α Δ₂ β
 
 -- The first k source variables are binders introduced in parallel while
 -- descending through structural `∀` conversions.
@@ -176,6 +179,6 @@ data SameTy (k : ℕ) (Δ₁ : Ctxᵗ) : Ty → Ctxᵗ → Ty → Set where
              → SameTy k Δ₁ A Δ₂ C → SameTy k Δ₁ B Δ₂ D
              → SameTy k Δ₁ (A ⇒ B) Δ₂ (C ⇒ D)
   same-∀     : ∀ {A B Δ₂}
-             → SameTy (suc k) (name zero ∷ abst ∷ Δ₁) A
-                                (name zero ∷ abst ∷ Δ₂) B
+             → SameTy (suc k) (anch revealed abstA ∷ Δ₁) A
+                              (anch revealed abstA ∷ Δ₂) B
              → SameTy k Δ₁ (`∀ A) Δ₂ (`∀ B)

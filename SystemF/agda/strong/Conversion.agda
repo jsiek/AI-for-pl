@@ -189,18 +189,17 @@ mutual
 ------------------------------------------------------------------------
 --
 -- THE SEAM CONDITION.  Every context along a conversion binds the same
--- ANCHORS, and differs only in which source names are visible: a scope
--- change adds and removes `name` entries and never touches an anchor.  The
--- rules below record the shadow of that which the metatheory consumes —
--- `anchorCount Δ₁ ≡ anchorCount Δ₂` on the three rules that do not already
--- inherit it (`conv-fun` inherits from its swapped pair, `conv-all` by
--- injectivity, `conv-cons` by transitivity through its seam).
+-- ANCHORS, and differs only in which of them are revealed: a scope change
+-- flips visibility bits and adds no entry.  The rules record the shadow of
+-- that which the metatheory consumes — `anchorCount Δ₁ ≡ anchorCount Δ₂`
+-- on the three rules that do not already inherit it (`conv-fun` inherits
+-- from its swapped pair, `conv-all` by injectivity, `conv-cons` by
+-- transitivity through its seam).
 --
--- Without it `conv-cons`'s seam is tied to nothing — a GROUND
--- representation reads in every context, so the seam could be `∅` between
--- two ends carrying anchors, and `SameTy`, which matches free variables by
--- anchor LEVEL, would then equate an ambient type variable with a `∀`-bound
--- one.  See notes/probes/V7ConvIntermediateProbe.agda and
+-- With merged entries this no longer guards `SameTy`, which now matches
+-- free variables by anchor INDEX; it is what ANCHOR WEAKENING consumes,
+-- since `renConv` applies ONE renaming to a whole conversion and every
+-- context in its chain must therefore admit the same insertion.  See
 -- notes/DECISIONS.md (2026-09-13).
 
 private
@@ -229,8 +228,8 @@ mutual
       → Δ₂ ⊢ s ∶ A′ ⇝ A ⊣ Δ₁ → Δ₁ ⊢ t ∶ B ⇝ B′ ⊣ Δ₂
       → Δ₁ ⊢̂ s ↦ t ∶ A ⇒ B ⇝ A′ ⇒ B′ ⊣ Δ₂
     conv-all : ∀ {s}
-      → (name zero ∷ abst ∷ Δ₁) ⊢ s ∶ A ⇝ B
-          ⊣ (name zero ∷ abst ∷ Δ₂)
+      → (anch revealed abstA ∷ Δ₁) ⊢ s ∶ A ⇝ B
+          ⊣ (anch revealed abstA ∷ Δ₂)
       → Δ₁ ⊢̂ all s ∶ `∀ A ⇝ `∀ B ⊣ Δ₂
 
   data _⊢_∶_⇝_⊣_ : Ctxᵗ → Conv → Ty → Ty → Ctxᵗ → Set where

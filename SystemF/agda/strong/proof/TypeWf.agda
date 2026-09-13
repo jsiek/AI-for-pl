@@ -23,8 +23,9 @@ open import strong.CtxMorph
 open import strong.Terms
 open import strong.proof.SameTyProperties using (sameTy-sym)
 open import strong.proof.CloseTy using (closeAt-single)
+open import strong.proof.CtxProperties using (tv-of-name)
 open import strong.proof.RevealTyping using
-  (tv-of-name; read-wf; wf-Λ; Reveals; rev-here; closeAt-wf)
+  (read-wf; wf-Λ; Reveals; rev-at; closeAt-wf)
 open import strong.proof.TermSubstitution using (unmap-lookup)
 
 private
@@ -44,63 +45,55 @@ private
 -- Anchor entries are invisible to source type variables
 ------------------------------------------------------------------------
 
-data AnchorEnt : Ent → Set where
-  ae-abst : AnchorEnt abst
-  ae-bind : AnchorEnt (bind R)
+-- A CONCEALED entry is invisible to source type variables, whatever it
+-- binds — that is the whole content of the two universes being separate.
+ins-tv : ∀ {b} P {Δ X}
+  → (P ++ Δ) ∋tv X → (P ++ anch concealed b ∷ Δ) ∋tv X
+ins-tv [] t = tv-concealed t
+ins-tv (anch revealed b′ ∷ P) tv-here = tv-here
+ins-tv (anch revealed b′ ∷ P) (tv-revealed t) = tv-revealed (ins-tv P t)
+ins-tv (anch concealed b′ ∷ P) (tv-concealed t) = tv-concealed (ins-tv P t)
 
-ins-tv : ∀ {e} → AnchorEnt e → ∀ P {Δ X}
-  → (P ++ Δ) ∋tv X → (P ++ e ∷ Δ) ∋tv X
-ins-tv ae-abst [] t = tv-over-abst t
-ins-tv ae-bind [] t = tv-over-bind t
-ins-tv ae (abst ∷ P) (tv-over-abst t) = tv-over-abst (ins-tv ae P t)
-ins-tv ae (bind R ∷ P) (tv-over-bind t) = tv-over-bind (ins-tv ae P t)
-ins-tv ae (name α ∷ P) tv-here = tv-here
-ins-tv ae (name α ∷ P) (tv-over-name t) = tv-over-name (ins-tv ae P t)
+del-tv : ∀ {b} P {Δ X}
+  → (P ++ anch concealed b ∷ Δ) ∋tv X → (P ++ Δ) ∋tv X
+del-tv [] (tv-concealed t) = t
+del-tv (anch revealed b′ ∷ P) tv-here = tv-here
+del-tv (anch revealed b′ ∷ P) (tv-revealed t) = tv-revealed (del-tv P t)
+del-tv (anch concealed b′ ∷ P) (tv-concealed t) = tv-concealed (del-tv P t)
 
-del-tv : ∀ {e} → AnchorEnt e → ∀ P {Δ X}
-  → (P ++ e ∷ Δ) ∋tv X → (P ++ Δ) ∋tv X
-del-tv ae-abst [] (tv-over-abst t) = t
-del-tv ae-bind [] (tv-over-bind t) = t
-del-tv ae (abst ∷ P) (tv-over-abst t) = tv-over-abst (del-tv ae P t)
-del-tv ae (bind R ∷ P) (tv-over-bind t) = tv-over-bind (del-tv ae P t)
-del-tv ae (name α ∷ P) tv-here = tv-here
-del-tv ae (name α ∷ P) (tv-over-name t) = tv-over-name (del-tv ae P t)
+ins-wf : ∀ {b} P {Δ A}
+  → (P ++ Δ) ⊢ᵗ A → (P ++ anch concealed b ∷ Δ) ⊢ᵗ A
+ins-wf P (wf-var x) = wf-var (ins-tv P x)
+ins-wf P wf-ℕ = wf-ℕ
+ins-wf P wf-𝔹 = wf-𝔹
+ins-wf P (wf-⇒ a b) = wf-⇒ (ins-wf P a) (ins-wf P b)
+ins-wf P (wf-∀ a) = wf-∀ (ins-wf (anch revealed abstA ∷ P) a)
 
-ins-wf : ∀ {e} → AnchorEnt e → ∀ P {Δ A}
-  → (P ++ Δ) ⊢ᵗ A → (P ++ e ∷ Δ) ⊢ᵗ A
-ins-wf ae P (wf-var x) = wf-var (ins-tv ae P x)
-ins-wf ae P wf-ℕ = wf-ℕ
-ins-wf ae P wf-𝔹 = wf-𝔹
-ins-wf ae P (wf-⇒ a b) = wf-⇒ (ins-wf ae P a) (ins-wf ae P b)
-ins-wf ae P (wf-∀ a) = wf-∀ (ins-wf ae (name zero ∷ abst ∷ P) a)
+del-wf : ∀ {b} P {Δ A}
+  → (P ++ anch concealed b ∷ Δ) ⊢ᵗ A → (P ++ Δ) ⊢ᵗ A
+del-wf P (wf-var x) = wf-var (del-tv P x)
+del-wf P wf-ℕ = wf-ℕ
+del-wf P wf-𝔹 = wf-𝔹
+del-wf P (wf-⇒ a b) = wf-⇒ (del-wf P a) (del-wf P b)
+del-wf P (wf-∀ a) = wf-∀ (del-wf (anch revealed abstA ∷ P) a)
 
-del-wf : ∀ {e} → AnchorEnt e → ∀ P {Δ A}
-  → (P ++ e ∷ Δ) ⊢ᵗ A → (P ++ Δ) ⊢ᵗ A
-del-wf ae P (wf-var x) = wf-var (del-tv ae P x)
-del-wf ae P wf-ℕ = wf-ℕ
-del-wf ae P wf-𝔹 = wf-𝔹
-del-wf ae P (wf-⇒ a b) = wf-⇒ (del-wf ae P a) (del-wf ae P b)
-del-wf ae P (wf-∀ a) = wf-∀ (del-wf ae (name zero ∷ abst ∷ P) a)
+abst-weaken-wf : ∀ {b} → Δ ⊢ᵗ A → (anch concealed b ∷ Δ) ⊢ᵗ A
+abst-weaken-wf = ins-wf []
 
-abst-weaken-wf : Δ ⊢ᵗ A → (abst ∷ Δ) ⊢ᵗ A
-abst-weaken-wf = ins-wf ae-abst []
-
--- A store adds only anchor entries, so it changes no source index.
+-- A store introduces anchors CONCEALED, so it changes no source index.
 store-drop-wf : Δ ⊢ˢ Θ ⇒ ΔΘ → ΔΘ ⊢ᵗ A → Δ ⊢ᵗ A
 store-drop-wf store[] wf = wf
-store-drop-wf (store-abst s) wf =
-  del-wf ae-abst [] (store-drop-wf s wf)
-store-drop-wf (store-bind wfR s) wf =
-  del-wf ae-bind [] (store-drop-wf s wf)
+store-drop-wf (store-abst s) wf = del-wf [] (store-drop-wf s wf)
+store-drop-wf (store-bind wfR s) wf = del-wf [] (store-drop-wf s wf)
 
 ------------------------------------------------------------------------
 -- A type application's result
 ------------------------------------------------------------------------
 
-tyapp-wf : (name zero ∷ abst ∷ Δ) ⊢ᵗ B → Δ ⊢ᵗ A → Δ ⊢ᵗ B [ A ]ᵗ
+tyapp-wf : (anch revealed abstA ∷ Δ) ⊢ᵗ B → Δ ⊢ᵗ A → Δ ⊢ᵗ B [ A ]ᵗ
 tyapp-wf {Δ = Δ} {B = B} {A = A} wfB wfA =
   subst (Δ ⊢ᵗ_) (closeAt-single A B)
-    (del-wf ae-abst [] (closeAt-wf rev-here (abst-weaken-wf wfA) wfB))
+    (del-wf [] (closeAt-wf rev-at (abst-weaken-wf wfA) wfB))
 
 ------------------------------------------------------------------------
 -- Conversion endpoints
@@ -110,12 +103,11 @@ tyapp-wf {Δ = Δ} {B = B} {A = A} wfB wfA =
 -- so a context reached by k of those steps has them all in scope.
 data KPrefix : ℕ → Ctxᵗ → Set where
   kp-zero : KPrefix zero Δ
-  kp-suc  : KPrefix k Δ → KPrefix (suc k) (name zero ∷ abst ∷ Δ)
+  kp-suc  : KPrefix k Δ → KPrefix (suc k) (anch revealed abstA ∷ Δ)
 
 paired-tv : Paired k X → KPrefix k Δ → Δ ∋tv X
 paired-tv paired-zero (kp-suc kp) = tv-here
-paired-tv (paired-suc p) (kp-suc kp) =
-  tv-over-name (tv-over-abst (paired-tv p kp))
+paired-tv (paired-suc p) (kp-suc kp) = tv-revealed (paired-tv p kp)
 
 sameTy-wf-right : SameTy k Δ₁ A Δ₂ B → KPrefix k Δ₂ → Δ₂ ⊢ᵗ B
 sameTy-wf-right (same-bound p) kp = wf-var (paired-tv p kp)
@@ -166,7 +158,7 @@ wfCtx-∷ : Δ ⊢ᵗ A → WfCtx Δ Γ → WfCtx Δ (A ∷ Γ)
 wfCtx-∷ wf wfΓ here = wf
 wfCtx-∷ wf wfΓ (there x) = wfΓ x
 
-wfCtx-Λ : WfCtx Δ Γ → WfCtx (name zero ∷ abst ∷ Δ) (⤊ Γ)
+wfCtx-Λ : WfCtx Δ Γ → WfCtx (anch revealed abstA ∷ Δ) (⤊ Γ)
 wfCtx-Λ wfΓ x with unmap-lookup x
 wfCtx-Λ wfΓ x | A , refl , y = wf-Λ (wfΓ y)
 

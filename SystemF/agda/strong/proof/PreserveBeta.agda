@@ -29,7 +29,7 @@ open import strong.TermSubst
 open import strong.proof.CtxProperties using (name-of-tv; named-anchor; ok-Λ)
 open import strong.proof.TypeWf using (abst-weaken-wf)
 open import strong.proof.AnchorWeaken using
-  (Wk; wk-base; Block; blk[]; blk-abst; wk-⊢)
+  (Wk; wk-base; Block; blk[]; blk-∷; wk-⊢)
 open import strong.proof.TermSubstitution using
   (typePrefix; liftInsert; module WithCross)
 
@@ -37,50 +37,40 @@ open import strong.proof.TermSubstitution using
 -- Inserting one source NAME (and no anchor)
 ------------------------------------------------------------------------
 
-insName-n : ∀ d {Δ Y β}
-  → typePrefix d (abst ∷ Δ) ∋n Y := β
-  → typePrefix d (name zero ∷ abst ∷ Δ) ∋n liftInsert d Y := β
-insName-n zero (n-over-abst t) = n-over-name (n-over-abst t)
+-- Revealing an anchor does not move it: the source variable that appears
+-- names the SAME anchor index, and every older one keeps its own.  That is
+-- the whole content of `crossΛ`'s `id`.
+insName-n : ∀ d {Δ Y β b}
+  → typePrefix d (anch concealed b ∷ Δ) ∋n Y := β
+  → typePrefix d (anch revealed b ∷ Δ) ∋n liftInsert d Y := β
+insName-n zero (n-concealed t) = n-revealed t
 insName-n (suc d) n-here = n-here
-insName-n (suc d) (n-over-name (n-over-abst t)) =
-  n-over-name (n-over-abst (insName-n d t))
+insName-n (suc d) (n-revealed t) = n-revealed (insName-n d t)
 
-insName-a : ∀ d {Δ β}
-  → typePrefix d (abst ∷ Δ) ∋a β
-  → typePrefix d (name zero ∷ abst ∷ Δ) ∋a β
-insName-a zero t = a-over-name t
-insName-a (suc d) (a-over-name a-here-abst) = a-over-name a-here-abst
-insName-a (suc d) (a-over-name (a-over-abst t)) =
-  a-over-name (a-over-abst (insName-a d t))
-
--- A name is not an anchor, so the two contexts count anchors alike.
-insName-count : ∀ d Δ
-  → anchorCount (typePrefix d (abst ∷ Δ))
-  ≡ anchorCount (typePrefix d (name zero ∷ abst ∷ Δ))
-insName-count zero Δ = refl
-insName-count (suc d) Δ = cong suc (insName-count d Δ)
+insName-a : ∀ d {Δ β b}
+  → typePrefix d (anch concealed b ∷ Δ) ∋a β
+  → typePrefix d (anch revealed b ∷ Δ) ∋a β
+insName-a zero a-here = a-here
+insName-a zero (a-there t) = a-there t
+insName-a (suc d) a-here = a-here
+insName-a (suc d) (a-there t) = a-there (insName-a d t)
 
 ------------------------------------------------------------------------
 -- The boundary's `id` compares A with ⇑ᵗ A
 ------------------------------------------------------------------------
 
-crossSame : ∀ d {Δ A k}
-  → typePrefix d (abst ∷ Δ) ok
-  → typePrefix d (abst ∷ Δ) ⊢ᵗ A
-  → SameTy k (typePrefix d (abst ∷ Δ)) A
-             (typePrefix d (name zero ∷ abst ∷ Δ)) (renameᵗ (liftInsert d) A)
-crossSame d {Δ = Δ} ctx-ok (wf-var x) with name-of-tv x
-crossSame d {Δ = Δ} ctx-ok (wf-var x) | β , n =
+crossSame : ∀ d {Δ A k b}
+  → typePrefix d (anch concealed b ∷ Δ) ⊢ᵗ A
+  → SameTy k (typePrefix d (anch concealed b ∷ Δ)) A
+             (typePrefix d (anch revealed b ∷ Δ)) (renameᵗ (liftInsert d) A)
+crossSame d (wf-var x) with name-of-tv x
+crossSame d (wf-var x) | β , n =
   same-free n (insName-n d n)
-    (same-anchor a (insName-a d a)
-      (cong (λ c → c ∸ suc β) (insName-count d Δ)))
-  where
-  a = named-anchor ctx-ok n
-crossSame d ctx-ok wf-ℕ = same-ℕ
-crossSame d ctx-ok wf-𝔹 = same-𝔹
-crossSame d ctx-ok (wf-⇒ a b) =
-  same-⇒ (crossSame d ctx-ok a) (crossSame d ctx-ok b)
-crossSame d ctx-ok (wf-∀ a) = same-∀ (crossSame (suc d) (ok-Λ ctx-ok) a)
+    (same-anchor (named-anchor n) (insName-a d (named-anchor n)) refl)
+crossSame d wf-ℕ = same-ℕ
+crossSame d wf-𝔹 = same-𝔹
+crossSame d (wf-⇒ a b) = same-⇒ (crossSame d a) (crossSame d b)
+crossSame d (wf-∀ a) = same-∀ (crossSame (suc d) a)
 
 ------------------------------------------------------------------------
 -- Crossing a type abstraction
@@ -90,15 +80,15 @@ cross-typing : ∀ {Δ V A}
   → Δ ok
   → Δ ⊢ᵗ A
   → Δ ∣ [] ⊢ V ⦂ A
-  → (name zero ∷ abst ∷ Δ) ∣ [] ⊢ crossΛ V A ⦂ ⇑ᵗ A
+  → (anch revealed abstA ∷ Δ) ∣ [] ⊢ crossΛ V A ⦂ ⇑ᵗ A
 cross-typing {Δ = Δ} ctx-ok wfA typing =
-  ⊢ν store[] (scope∷ (step-conceal pop-here) scope[]) nf-id
+  ⊢ν store[] (scope∷ con-here scope[]) nf-id
      (wk-⊢ one typing)
-     (conv-id (crossSame zero (ok-abst ctx-ok) (abst-weaken-wf wfA)) refl)
+     (conv-id (crossSame zero (abst-weaken-wf wfA)) refl)
   where
-  -- One fresh abstract anchor, inserted at the base: `shiftAnchor 1` is
-  -- `suc`, which is the renaming `crossΛ` applies.
-  one : Wk 1 (anchorCount Δ) (shiftAnchor 1) Δ (abst ∷ Δ)
-  one = wk-base (blk-abst blk[])
+  -- One fresh abstract anchor at the base: `shiftAnchor 1` is `suc`, the
+  -- renaming `crossΛ` applies.
+  one : Wk 1 (shiftAnchor 1) Δ (anch concealed abstA ∷ Δ)
+  one = wk-base (blk-∷ blk[])
 
 open WithCross cross-typing public using (subst-typing; preserve-Beta)

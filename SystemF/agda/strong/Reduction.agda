@@ -78,7 +78,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ L -→ L′
     → Δ ⊢ L • B [ A ] -→ L′ • B [ A ]
   ξ-Λ : ∀ {Δ N N′}
-    → (name zero ∷ abst ∷ Δ) ⊢ N -→ N′
+    → (anch revealed abstA ∷ Δ) ⊢ N -→ N′
     → Δ ⊢ Λ N -→ Λ N′
   ξ-ν : ∀ {Δ ΔΘ Δᵢ Θ χ M M′ c}
     → Δ ⊢ˢ Θ ⇒ ΔΘ → ΔΘ ⊢χ χ ⇒ Δᵢ

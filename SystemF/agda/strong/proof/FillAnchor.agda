@@ -2,17 +2,13 @@ module strong.proof.FillAnchor where
 
 -- Strong System F v7 — giving an abstract anchor its representation.
 --
--- `⊢Λ` types its body under `name zero ∷ abst ∷ Δ`: the `∀`'s anchor is
+-- `⊢Λ` types its body under `anch revealed abstA ∷ Δ`: the `∀`'s anchor is
 -- ABSTRACT.  `TyBeta` mints a boundary whose interior is
--- `name zero ∷ bind ⌊A⌋Δ ∷ Δ`: the SAME anchor, now REPRESENTED.  Carrying
--- the body across is what `Fill` does.
---
--- Every judgment transports constructor-for-constructor: `abst` and
--- `bind R` occupy one anchor slot each and differ only in that `bind`
--- supplies `∋r`, which is never demanded of an abstract slot.  `SameAnchor`
--- compares anchor LEVELS, and a fill preserves `anchorCount`, so the two
--- sides of a comparison may be filled INDEPENDENTLY — which is what lets
--- `conv-cons`'s existential intermediate context be left alone (`fill-id`).
+-- `anch revealed (bindA ⌊A⌋Δ) ∷ Δ`: the SAME anchor and the SAME
+-- visibility, now REPRESENTED.  With merged entries the fill is a flip of
+-- the BINDING field alone, leaving the name where it is — so every
+-- judgment transports constructor-for-constructor and `SameAnchor`, which
+-- is index equality, is untouched.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -26,7 +22,6 @@ open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms
-open import strong.proof.CtxProperties using (pop-wfᴿ)
 
 private
   variable
@@ -36,6 +31,8 @@ private
     R S : RepTy
     k X : ℕ
     α : Anchor
+    v : Vis
+    b : AnchorBinding
     Θ : Store
     χ : Scope
     δ : Change
@@ -48,22 +45,18 @@ private
 ------------------------------------------------------------------------
 
 data Fill (R : RepTy) : Ctxᵗ → Ctxᵗ → Set where
-  fill-id   : Fill R Δ Δ
-  fill-here : Fill R (abst ∷ Δ) (bind R ∷ Δ)
-  fill-abst : Fill R Δ Δ′ → Fill R (abst ∷ Δ) (abst ∷ Δ′)
-  fill-bind : Fill R Δ Δ′ → Fill R (bind S ∷ Δ) (bind S ∷ Δ′)
-  fill-name : Fill R Δ Δ′ → Fill R (name α ∷ Δ) (name α ∷ Δ′)
+  fill-id    : Fill R Δ Δ
+  fill-here  : Fill R (anch v abstA ∷ Δ) (anch v (bindA R) ∷ Δ)
+  fill-under : Fill R Δ Δ′ → Fill R (anch v b ∷ Δ) (anch v b ∷ Δ′)
 
 fill-Λ : Fill R Δ Δ′
-  → Fill R (name zero ∷ abst ∷ Δ) (name zero ∷ abst ∷ Δ′)
-fill-Λ f = fill-name (fill-abst f)
+  → Fill R (anch revealed abstA ∷ Δ) (anch revealed abstA ∷ Δ′)
+fill-Λ = fill-under
 
 fill-count : Fill R Δ Δ′ → anchorCount Δ ≡ anchorCount Δ′
 fill-count fill-id = refl
 fill-count fill-here = refl
-fill-count (fill-abst f) = cong suc (fill-count f)
-fill-count (fill-bind f) = cong suc (fill-count f)
-fill-count (fill-name f) = fill-count f
+fill-count (fill-under f) = cong suc (fill-count f)
 
 ------------------------------------------------------------------------
 -- Lookups
@@ -71,67 +64,53 @@ fill-count (fill-name f) = fill-count f
 
 fill-a : Fill R Δ Δ′ → Δ ∋a α → Δ′ ∋a α
 fill-a fill-id t = t
-fill-a fill-here a-here-abst = a-here-bind
-fill-a fill-here (a-over-abst t) = a-over-bind t
-fill-a (fill-abst f) a-here-abst = a-here-abst
-fill-a (fill-abst f) (a-over-abst t) = a-over-abst (fill-a f t)
-fill-a (fill-bind f) a-here-bind = a-here-bind
-fill-a (fill-bind f) (a-over-bind t) = a-over-bind (fill-a f t)
-fill-a (fill-name f) (a-over-name t) = a-over-name (fill-a f t)
+fill-a fill-here a-here = a-here
+fill-a fill-here (a-there t) = a-there t
+fill-a (fill-under f) a-here = a-here
+fill-a (fill-under f) (a-there t) = a-there (fill-a f t)
 
 fill-tv : Fill R Δ Δ′ → Δ ∋tv X → Δ′ ∋tv X
 fill-tv fill-id t = t
-fill-tv fill-here (tv-over-abst t) = tv-over-bind t
-fill-tv (fill-abst f) (tv-over-abst t) = tv-over-abst (fill-tv f t)
-fill-tv (fill-bind f) (tv-over-bind t) = tv-over-bind (fill-tv f t)
-fill-tv (fill-name f) tv-here = tv-here
-fill-tv (fill-name f) (tv-over-name t) = tv-over-name (fill-tv f t)
+fill-tv fill-here tv-here = tv-here
+fill-tv fill-here (tv-revealed t) = tv-revealed t
+fill-tv fill-here (tv-concealed t) = tv-concealed t
+fill-tv (fill-under f) tv-here = tv-here
+fill-tv (fill-under f) (tv-revealed t) = tv-revealed (fill-tv f t)
+fill-tv (fill-under f) (tv-concealed t) = tv-concealed (fill-tv f t)
 
 fill-n : Fill R Δ Δ′ → Δ ∋n X := α → Δ′ ∋n X := α
 fill-n fill-id t = t
-fill-n fill-here (n-over-abst t) = n-over-bind t
-fill-n (fill-abst f) (n-over-abst t) = n-over-abst (fill-n f t)
-fill-n (fill-bind f) (n-over-bind t) = n-over-bind (fill-n f t)
-fill-n (fill-name f) n-here = n-here
-fill-n (fill-name f) (n-over-name t) = n-over-name (fill-n f t)
+fill-n fill-here n-here = n-here
+fill-n fill-here (n-revealed t) = n-revealed t
+fill-n fill-here (n-concealed t) = n-concealed t
+fill-n (fill-under f) n-here = n-here
+fill-n (fill-under f) (n-revealed t) = n-revealed (fill-n f t)
+fill-n (fill-under f) (n-concealed t) = n-concealed (fill-n f t)
 
 unfill-n : Fill R Δ Δ′ → Δ′ ∋n X := α → Δ ∋n X := α
 unfill-n fill-id t = t
-unfill-n fill-here (n-over-bind t) = n-over-abst t
-unfill-n (fill-abst f) (n-over-abst t) = n-over-abst (unfill-n f t)
-unfill-n (fill-bind f) (n-over-bind t) = n-over-bind (unfill-n f t)
-unfill-n (fill-name f) n-here = n-here
-unfill-n (fill-name f) (n-over-name t) = n-over-name (unfill-n f t)
+unfill-n fill-here n-here = n-here
+unfill-n fill-here (n-revealed t) = n-revealed t
+unfill-n fill-here (n-concealed t) = n-concealed t
+unfill-n (fill-under f) n-here = n-here
+unfill-n (fill-under f) (n-revealed t) = n-revealed (unfill-n f t)
+unfill-n (fill-under f) (n-concealed t) = n-concealed (unfill-n f t)
 
+-- A fill only ADDS `∋r` facts: an abstract slot is never asked for one.
 fill-r : Fill R Δ Δ′ → Δ ∋r α := S → Δ′ ∋r α := S
 fill-r fill-id t = t
-fill-r fill-here (r-over-abst t) = r-over-bind t
-fill-r (fill-abst f) (r-over-abst t) = r-over-abst (fill-r f t)
-fill-r (fill-bind f) r-here = r-here
-fill-r (fill-bind f) (r-over-bind t) = r-over-bind (fill-r f t)
-fill-r (fill-name f) (r-over-name t) = r-over-name (fill-r f t)
-
-fill-unoccupied : Fill R Δ Δ′ → Unoccupied Δ α → Unoccupied Δ′ α
-fill-unoccupied f u X (β , t , eq) = u X (β , unfill-n f t , eq)
+fill-r fill-here (r-there t) = r-there t
+fill-r (fill-under f) r-here = r-here
+fill-r (fill-under f) (r-there t) = r-there (fill-r f t)
 
 ------------------------------------------------------------------------
 -- Types, representations, readings, comparison
 ------------------------------------------------------------------------
 
-fill-SameAnchor : ∀ {R Δ₁ Δ₁′ Δ₂ Δ₂′ α β} → Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
-  → SameAnchor Δ₁ α Δ₂ β → SameAnchor Δ₁′ α Δ₂′ β
-fill-SameAnchor {Δ₁ = Δ₁} {Δ₁′ = Δ₁′} {Δ₂ = Δ₂} {Δ₂′ = Δ₂′} {α = α}
-  {β = β} f₁ f₂ (same-anchor a₁ a₂ eq) =
-  same-anchor (fill-a f₁ a₁) (fill-a f₂ a₂) lvl
-  where
-  lvl : anchorLevel Δ₁′ α ≡ anchorLevel Δ₂′ β
-  lvl rewrite sym (fill-count f₁) | sym (fill-count f₂) = eq
-
--- A fill preserves `anchorCount`, so the conversion seam condition
--- transports even when the two sides are filled independently.
-fill-cnt : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
-  → anchorCount Δ₁ ≡ anchorCount Δ₂ → anchorCount Δ₁′ ≡ anchorCount Δ₂′
-fill-cnt f₁ f₂ eq = trans (sym (fill-count f₁)) (trans eq (fill-count f₂))
+fill-SameAnchor : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
+  → ∀ {β} → SameAnchor Δ₁ α Δ₂ β → SameAnchor Δ₁′ α Δ₂′ β
+fill-SameAnchor f₁ f₂ (same-anchor a₁ a₂ eq) =
+  same-anchor (fill-a f₁ a₁) (fill-a f₂ a₂) eq
 
 fill-SameTy : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
   → SameTy k Δ₁ A Δ₂ B → SameTy k Δ₁′ A Δ₂′ B
@@ -157,7 +136,7 @@ fill-wfᴿ f (wfᴿ-var a) = wfᴿ-var (fill-a f a)
 fill-wfᴿ f wfᴿ-ℕ = wfᴿ-ℕ
 fill-wfᴿ f wfᴿ-𝔹 = wfᴿ-𝔹
 fill-wfᴿ f (wfᴿ-⇒ r s) = wfᴿ-⇒ (fill-wfᴿ f r) (fill-wfᴿ f s)
-fill-wfᴿ f (wfᴿ-∀ r) = wfᴿ-∀ (fill-wfᴿ (fill-abst f) r)
+fill-wfᴿ f (wfᴿ-∀ r) = wfᴿ-∀ (fill-wfᴿ (fill-under f) r)
 
 fill-read : Fill R Δ Δ′ → Δ ⊢ S ⇓ A → Δ′ ⊢ S ⇓ A
 fill-read f (read-var x) = read-var (fill-n f x)
@@ -177,6 +156,10 @@ fill-quote f (quote-∀ q) = quote-∀ (fill-quote (fill-Λ f) q)
 -- Conversions
 ------------------------------------------------------------------------
 
+fill-cnt : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
+  → anchorCount Δ₁ ≡ anchorCount Δ₂ → anchorCount Δ₁′ ≡ anchorCount Δ₂′
+fill-cnt f₁ f₂ eq = trans (sym (fill-count f₁)) (trans eq (fill-count f₂))
+
 mutual
   fill-head : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
     → Δ₁ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂ → Δ₁′ ⊢̂ h ∶ A ⇝ B ⊣ Δ₂′
@@ -191,6 +174,8 @@ mutual
   fill-head f₁ f₂ (conv-all s) =
     conv-all (fill-conv (fill-Λ f₁) (fill-Λ f₂) s)
 
+  -- The two sides may be filled INDEPENDENTLY, so `conv-cons`'s
+  -- existential seam is simply left alone.
   fill-conv : Fill R Δ₁ Δ₁′ → Fill R Δ₂ Δ₂′
     → Δ₁ ⊢ c ∶ A ⇝ B ⊣ Δ₂ → Δ₁′ ⊢ c ∶ A ⇝ B ⊣ Δ₂′
   fill-conv f₁ f₂ (conv-id same cnt) =
@@ -205,30 +190,27 @@ mutual
 fill-store : Fill R Δ Δ′ → Δ ⊢ˢ Θ ⇒ Δ₂
   → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ⊢ˢ Θ ⇒ Δ₂′) × Fill R Δ₂ Δ₂′)
 fill-store f store[] = _ , store[] , f
-fill-store f (store-abst s) with fill-store (fill-abst f) s
+fill-store f (store-abst s) with fill-store (fill-under f) s
 fill-store f (store-abst s) | Δ₂′ , s′ , g = Δ₂′ , store-abst s′ , g
-fill-store f (store-bind wf s) with fill-store (fill-bind f) s
+fill-store f (store-bind wf s) with fill-store (fill-under f) s
 fill-store f (store-bind wf s) | Δ₂′ , s′ , g =
   Δ₂′ , store-bind (fill-wfᴿ f wf) s′ , g
 
-fill-pop : Fill R Δ Δ′ → Δ ▷ α ↘ Δ₂
-  → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ▷ α ↘ Δ₂′) × Fill R Δ₂ Δ₂′)
-fill-pop fill-id p = _ , p , fill-id
-fill-pop fill-here (pop-abst p) = _ , pop-bind p , fill-here
-fill-pop (fill-abst f) (pop-abst p) with fill-pop f p
-fill-pop (fill-abst f) (pop-abst p) | Δ₂′ , q , g =
-  _ , pop-abst q , fill-abst g
-fill-pop (fill-bind f) (pop-bind p) with fill-pop f p
-fill-pop (fill-bind f) (pop-bind p) | Δ₂′ , q , g =
-  _ , pop-bind q , fill-bind g
-fill-pop (fill-name f) pop-here = _ , pop-here , f
-
 fill-change : Fill R Δ Δ′ → Δ ⊢δ δ ⇒ Δ₂
   → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ⊢δ δ ⇒ Δ₂′) × Fill R Δ₂ Δ₂′)
-fill-change f (step-reveal a u) =
-  _ , step-reveal (fill-a f a) (fill-unoccupied f u) , fill-name f
-fill-change f (step-conceal p) with fill-pop f p
-fill-change f (step-conceal p) | Δ₂′ , q , g = Δ₂′ , step-conceal q , g
+fill-change fill-id d = _ , d , fill-id
+fill-change fill-here rev-here = _ , rev-here , fill-here
+fill-change fill-here con-here = _ , con-here , fill-here
+fill-change fill-here (rev-under d) = _ , rev-under d , fill-here
+fill-change fill-here (con-under d) = _ , con-under d , fill-here
+fill-change (fill-under f) rev-here = _ , rev-here , fill-under f
+fill-change (fill-under f) con-here = _ , con-here , fill-under f
+fill-change (fill-under f) (rev-under d) with fill-change f d
+fill-change (fill-under f) (rev-under d) | Δ₂′ , d′ , g =
+  _ , rev-under d′ , fill-under g
+fill-change (fill-under f) (con-under d) with fill-change f d
+fill-change (fill-under f) (con-under d) | Δ₂′ , d′ , g =
+  _ , con-under d′ , fill-under g
 
 fill-scope : Fill R Δ Δ′ → Δ ⊢χ χ ⇒ Δ₂
   → Σ[ Δ₂′ ∈ Ctxᵗ ] ((Δ′ ⊢χ χ ⇒ Δ₂′) × Fill R Δ₂ Δ₂′)

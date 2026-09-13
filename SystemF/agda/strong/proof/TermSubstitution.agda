@@ -33,7 +33,7 @@ weaken-tail Γ′ (⊢ƛ wf body) = ⊢ƛ wf (weaken-tail Γ′ body)
 weaken-tail Γ′ (⊢· left right) =
   ⊢· (weaken-tail Γ′ left) (weaken-tail Γ′ right)
 weaken-tail {Δ = Δ} {Γ = Γ} {M = Λ N} {A = `∀ A} Γ′ (⊢Λ body) =
-  ⊢Λ (subst (λ Ξ → (name zero ∷ abst ∷ Δ) ∣ Ξ ⊢ N ⦂ A)
+  ⊢Λ (subst (λ Ξ → (anch revealed abstA ∷ Δ) ∣ Ξ ⊢ N ⦂ A)
     (sym (map-++ ⇑ᵗ Γ Γ′))
     (weaken-tail {Γ = map ⇑ᵗ Γ} (map ⇑ᵗ Γ′) body))
 weaken-tail Γ′ (⊢•[] left wf) = ⊢•[] (weaken-tail Γ′ left) wf
@@ -93,7 +93,7 @@ unmap-lookup {Γ = A ∷ Γ} (there x) | B , refl , y =
 
 typePrefix : ℕ → Ctxᵗ → Ctxᵗ
 typePrefix zero Δ = Δ
-typePrefix (suc n) Δ = name zero ∷ abst ∷ typePrefix n Δ
+typePrefix (suc n) Δ = anch revealed abstA ∷ typePrefix n Δ
 
 liftInsert : ℕ → ℕ → ℕ
 liftInsert zero = suc
@@ -101,15 +101,14 @@ liftInsert (suc n) = extᵗ (liftInsert n)
 
 insert-tv : ∀ k {Δ X}
   → typePrefix k Δ ∋tv X
-  → typePrefix k (name zero ∷ abst ∷ Δ) ∋tv liftInsert k X
-insert-tv zero x = tv-over-name (tv-over-abst x)
+  → typePrefix k (anch revealed abstA ∷ Δ) ∋tv liftInsert k X
+insert-tv zero x = tv-revealed x
 insert-tv (suc k) tv-here = tv-here
-insert-tv (suc k) (tv-over-name (tv-over-abst x)) =
-  tv-over-name (tv-over-abst (insert-tv k x))
+insert-tv (suc k) (tv-revealed x) = tv-revealed (insert-tv k x)
 
 insert-wf : ∀ k {Δ A}
   → typePrefix k Δ ⊢ᵗ A
-  → typePrefix k (name zero ∷ abst ∷ Δ) ⊢ᵗ renameᵗ (liftInsert k) A
+  → typePrefix k (anch revealed abstA ∷ Δ) ⊢ᵗ renameᵗ (liftInsert k) A
 insert-wf k (wf-var x) = wf-var (insert-tv k x)
 insert-wf k wf-ℕ = wf-ℕ
 insert-wf k wf-𝔹 = wf-𝔹
@@ -121,13 +120,13 @@ module WithCross
     → Δ ok
     → Δ ⊢ᵗ A
     → Δ ∣ [] ⊢ V ⦂ A
-    → (name zero ∷ abst ∷ Δ) ∣ [] ⊢ crossΛ V A ⦂ ⇑ᵗ A)
+    → (anch revealed abstA ∷ Δ) ∣ [] ⊢ crossΛ V A ⦂ ⇑ᵗ A)
   where
 
   underΛ-img : ∀ {Δ Γ i A}
     → Δ ok
     → Δ ∣ Γ ⊢ⁱ i ⦂ A
-    → (name zero ∷ abst ∷ Δ) ∣ map ⇑ᵗ Γ
+    → (anch revealed abstA ∷ Δ) ∣ map ⇑ᵗ Γ
         ⊢ⁱ underΛ i ⦂ ⇑ᵗ A
   underΛ-img ctx-ok (typed-var x) = typed-var (map-lookup x)
   underΛ-img ctx-ok (typed-val wf value) =
@@ -136,7 +135,7 @@ module WithCross
   underΛ-env : ∀ {Δ Γ Γ′ σ}
     → Δ ok
     → EnvTyping Δ Γ Γ′ σ
-    → EnvTyping (name zero ∷ abst ∷ Δ) (map ⇑ᵗ Γ) (map ⇑ᵗ Γ′)
+    → EnvTyping (anch revealed abstA ∷ Δ) (map ⇑ᵗ Γ) (map ⇑ᵗ Γ′)
         (λ x → underΛ (σ x))
   lookup (underΛ-env ctx-ok env) x with unmap-lookup x
   lookup (underΛ-env ctx-ok env) x | A , refl , y =

@@ -173,10 +173,9 @@ same-effect {a} {b} {c} {d} p q =
 ------------------------------------------------------------------------
 
 names : Ctxᵗ → ℕ
-names []           = zero
-names (abst ∷ Δ)   = names Δ
-names (bind R ∷ Δ) = names Δ
-names (name α ∷ Δ) = suc (names Δ)
+names []                     = zero
+names (anch concealed b ∷ Δ) = names Δ
+names (anch revealed b ∷ Δ)  = suc (names Δ)
 
 colors : ℕ → VarSet
 colors zero    = []
@@ -184,9 +183,8 @@ colors (suc n) = zero ∷ map suc (colors n)
 
 scope-colors : ∀ Δ → scopeᵗ Δ ≡ colors (names Δ)
 scope-colors [] = refl
-scope-colors (abst ∷ Δ) rewrite scope-colors Δ = refl
-scope-colors (bind R ∷ Δ) rewrite scope-colors Δ = refl
-scope-colors (name α ∷ Δ) rewrite scope-colors Δ = refl
+scope-colors (anch concealed b ∷ Δ) rewrite scope-colors Δ = refl
+scope-colors (anch revealed b ∷ Δ) rewrite scope-colors Δ = refl
 
 scope-names : ∀ {Δ₁ Δ₂}
   → names Δ₁ ≡ names Δ₂
@@ -238,22 +236,18 @@ store-names store[] = refl
 store-names (store-abst s) = store-names s
 store-names (store-bind q s) = store-names s
 
-pop-names : ∀ {Δ α Δ′}
-  → Δ ▷ α ↘ Δ′
-  → names Δ ≡ suc (names Δ′)
-pop-names pop-here = refl
-pop-names (pop-abst p) = pop-names p
-pop-names (pop-bind p) = pop-names p
-
+-- A reveal turns one concealed entry revealed and a conceal does the
+-- reverse, so the colour count moves by exactly one either way — and
+-- passing THROUGH a concealed entry moves nothing.
 change-balance : ∀ {Δ δ Δ′}
   → Δ ⊢δ δ ⇒ Δ′
   → names Δ + pushChange δ ≡ names Δ′ + popChange δ
-change-balance (step-reveal {Δ = Δ} a fresh) = solve 1
+change-balance (rev-here {Δ = Δ}) = solve 1
   (λ n → n :+ con 1 := (con 1 :+ n) :+ con 0) refl (names Δ)
-change-balance (step-conceal {Δ′ = Δ′} p) = trans
-  (cong (_+ 0) (pop-names p))
-  (solve 1 (λ n → (con 1 :+ n) :+ con 0 := n :+ con 1)
-    refl (names Δ′))
+change-balance (con-here {Δ = Δ}) = solve 1
+  (λ n → (con 1 :+ n) :+ con 0 := n :+ con 1) refl (names Δ)
+change-balance (rev-under d) = change-balance d
+change-balance (con-under d) = change-balance d
 
 scope-balance : ∀ {Δ χ Δ′}
   → Δ ⊢χ χ ⇒ Δ′

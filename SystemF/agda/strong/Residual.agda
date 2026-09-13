@@ -75,7 +75,7 @@ data _⊢C_⊣_ : Ctxᵗ → TermCtx → Ctxᵗ → Set where
   frame-·R : ∀ {Δ Δ′ L C}
     → Δ ⊢C C ⊣ Δ′ → Δ ⊢C L ·R C ⊣ Δ′
   frame-Λ : ∀ {Δ Δ′ C}
-    → (name zero ∷ abst ∷ Δ) ⊢C C ⊣ Δ′
+    → (anch revealed abstA ∷ Δ) ⊢C C ⊣ Δ′
     → Δ ⊢C ΛC C ⊣ Δ′
   frame-• : ∀ {Δ Δ′ C B A}
     → Δ ⊢C C ⊣ Δ′ → Δ ⊢C C •C B [ A ] ⊣ Δ′

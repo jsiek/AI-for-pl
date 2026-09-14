@@ -3711,3 +3711,30 @@ designs are the poles:
        transitivity everywhere.
 
 Asked Jeremy (2026-09-13); recommendation is P1.
+
+## 2026-09-14: v8 stage 2 — ConversionReduction, and the REALLMS bake-off
+
+`ConversionReduction.agda` lands: the small-step `_—→ᶜ_` with `fuse` at
+adjacent pairs, `progress`, the `weight` measure with `step-decreases`,
+well-founded `normalize`, `c ⨟ d = normalize (c ⧺ d)` with `⨟-↠`/`⨟-NF`,
+and the corrected instantiation `instReveal`/`instConceal` via the
+syntactic source reader `srcᶜ` (nothing at seal/unseal heads, where the
+identity-crossing fallback is justified by store scoping) and
+`substAnn`.  Regression checks: the K example's nested word cancels to
+`id(ℕ)` adjacently, and the overlapping word normalizes to itself —
+typing, not normalization, excludes it.
+
+Per Jeremy's protocol, the six ported/new lemmas ran as a MODEL
+BAKE-OFF, each dispatched to all four REALLMS models:
+
+  goal            qwen      glm-5.2   gpt-oss   gemma
+  fuse-hs-inv     ✓ 4       ✓ 3       ✓ 7       ✓ 6
+  fuse-sh-inv     ✓ 3       ✓ 3       ✓ 3       ✓ 5
+  weight-⧺        ✗,✗       ✓ 5       ✓ 9       ✗
+  ↦-arith         ✗         ✓ 5       ✗         ✗
+  all-arith       ✗         ✓ 4       ✗         ✗
+  fuse-decreases  ✗         gave up   ✓ 10      ✓ 6
+
+WINNER: glm-5.2 (5/6, fewest steps on every solve); its give-up on the
+30-clause case sweep is the one blemish — gemma's 6-step solution was
+adopted there.  glm-5.2 is the default grinder henceforth.

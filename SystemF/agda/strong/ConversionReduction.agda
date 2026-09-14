@@ -1,11 +1,11 @@
 module strong.ConversionReduction where
 
--- Strong System F v7 — conversion composition as NORMALIZATION.
+-- Strong System F v8 — conversion composition as NORMALIZATION.
 --
 -- Modelled on GTLC/agda/proof/CoercionReduction.agda.  Composition does
 -- not compute its normal form in one fuel-driven pass; instead there is a
 -- small-step reduction on conversions — one `fuse` of an adjacent pair of
--- heads, or a congruence step into a `↦` or `all` component — together
+-- elements, or a congruence step into a `↦` or `all` component — together
 -- with
 --
 --   * progress:  a conversion is `NF` or it steps, decidably and untyped;
@@ -35,30 +35,30 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong.Types
-open import strong.RepresentationTypes using (Anchor)
+open import strong.RepresentationTypes using (Addr; lvl; bnd; _≟ᵃ_; ⇑ᵃ)
 open import strong.Conversion
 
 private
   variable
     c c′ d d′ s s′ t t′ e : Conv
-    h k : Head
-    ks : List Head
-    α β : Anchor
+    ĉ ḓ : ConvElt
+    ks : List ConvElt
+    α β : Addr
     A : Ty
 
 ------------------------------------------------------------------------
 -- One step
 ------------------------------------------------------------------------
 
-consAll : List Head → Conv → Conv
+consAll : List ConvElt → Conv → Conv
 consAll []       c = c
-consAll (h ∷ hs) c = h ∷ᶜ consAll hs c
+consAll (ĉ ∷ ĉs) c = ĉ ∷ᶜ consAll ĉs c
 
 infix 4 _—→ᶜ_
 data _—→ᶜ_ : Conv → Conv → Set where
-  ξ-pair : fuse h k ≡ just ks
-    → (h ∷ᶜ k ∷ᶜ c) —→ᶜ consAll ks c
-  ξ-∷ : c —→ᶜ c′ → (h ∷ᶜ c) —→ᶜ (h ∷ᶜ c′)
+  ξ-pair : fuse ĉ ḓ ≡ just ks
+    → (ĉ ∷ᶜ ḓ ∷ᶜ c) —→ᶜ consAll ks c
+  ξ-∷ : c —→ᶜ c′ → (ĉ ∷ᶜ c) —→ᶜ (ĉ ∷ᶜ c′)
   ξ-↦₁ : s —→ᶜ s′ → ((s ↦ t) ∷ᶜ c) —→ᶜ ((s′ ↦ t) ∷ᶜ c)
   ξ-↦₂ : t —→ᶜ t′ → ((s ↦ t) ∷ᶜ c) —→ᶜ ((s ↦ t′) ∷ᶜ c)
   ξ-all : s —→ᶜ s′ → (all s ∷ᶜ c) —→ᶜ (all s′ ∷ᶜ c)
@@ -76,105 +76,155 @@ data _—↠ᶜ_ : Conv → Conv → Set where
 -- The measure
 ------------------------------------------------------------------------
 
+-- Appending discards one terminator.
 weight-⧺ : ∀ c d → suc (weight (c ⧺ d)) ≡ weight c + weight d
-weight-⧺ (id A) d = refl
-weight-⧺ (h ∷ᶜ c) d = cong suc
-  (trans (sym (+-suc (weightHead h) (weight (c ⧺ d))))
-    (trans (cong (weightHead h +_) (weight-⧺ c d))
-      (sym (+-assoc (weightHead h) (weight c) (weight d)))))
+weight-⧺ (id A)    d = refl
+weight-⧺ (ĉ ∷ᶜ c) d =
+  trans (cong suc (sym (+-suc (weightElt ĉ) (weight (c ⧺ d)))))
+        (trans (cong suc (cong (weightElt ĉ +_) (weight-⧺ c d)))
+               (cong suc (sym (+-assoc (weightElt ĉ) (weight c) (weight d)))))
 
-weightHeads⁺ : List Head → ℕ
-weightHeads⁺ []       = zero
-weightHeads⁺ (h ∷ hs) = suc (weightHead h + weightHeads⁺ hs)
+weightElts⁺ : List ConvElt → ℕ
+weightElts⁺ []       = zero
+weightElts⁺ (ĉ ∷ ĉs) = suc (weightElt ĉ + weightElts⁺ ĉs)
 
 weight-consAll : ∀ ks c
-  → weight (consAll ks c) ≡ weightHeads⁺ ks + weight c
+  → weight (consAll ks c) ≡ weightElts⁺ ks + weight c
 weight-consAll [] c = refl
-weight-consAll (h ∷ hs) c
-  rewrite weight-consAll hs c =
-  cong suc (sym (+-assoc (weightHead h) (weightHeads⁺ hs) (weight c)))
+weight-consAll (ĉ ∷ ĉs) c
+  rewrite weight-consAll ĉs c =
+  cong suc (sym (+-assoc (weightElt ĉ) (weightElts⁺ ĉs) (weight c)))
 
 less-by : ∀ m k n → suc m + k ≡ n → m < n
 less-by m k n eq = subst (suc m ≤_) eq (m≤m+n (suc m) k)
 
--- Reading `fuse` back out of a success at the two anchor pairs, where its
--- definition decides anchor equality.
+-- Reading `fuse` back out of a success at the four atomic cancellation
+-- pairs, where its definition decides address equality.
+
+fuse-hs-inv : ∀ α β ks → fuse (hide α) (show β) ≡ just ks → ks ≡ []
+fuse-hs-inv α β ks eq with α ≟ᵃ β | eq
+fuse-hs-inv α β ks eq | yes p | refl = refl
+fuse-hs-inv α β ks eq | no _ | ()
+
+fuse-sh-inv : ∀ α β ks → fuse (show α) (hide β) ≡ just ks → ks ≡ []
+fuse-sh-inv α β ks eq with α ≟ᵃ β | eq
+fuse-sh-inv α β ks eq | yes p | refl = refl
+fuse-sh-inv α β ks eq | no _ | ()
+
 fuse-su-inv : ∀ α β ks → fuse (seal α) (unseal β) ≡ just ks → ks ≡ []
-fuse-su-inv α β ks eq with α ≟ β | eq
+fuse-su-inv α β ks eq with α ≟ᵃ β | eq
 fuse-su-inv α β ks eq | yes p | refl = refl
 fuse-su-inv α β ks eq | no _ | ()
 
 fuse-us-inv : ∀ α β ks → fuse (unseal α) (seal β) ≡ just ks → ks ≡ []
-fuse-us-inv α β ks eq with α ≟ β | eq
+fuse-us-inv α β ks eq with α ≟ᵃ β | eq
 fuse-us-inv α β ks eq | yes p | refl = refl
 fuse-us-inv α β ks eq | no _ | ()
 
-private
-  open +-*-Solver using (solve; _:+_; con) renaming (_:=_ to _:=ˢ_)
+-- The exact bookkeeping of a `↦` fusion: one element constructor and two
+-- terminators disappear, everything else is kept — a decrease of exactly
+-- four in `weight`, of which one is the deleted cons.
 
-  -- The exact bookkeeping of a `↦` fusion: one head constructor and two
-  -- terminators disappear, everything else is kept — a decrease of
-  -- exactly four in `weight`, of which one is the deleted cons.
-  ↦-arith : ∀ a b w x y z → suc a ≡ y + w → suc b ≡ x + z
-    → suc (suc (suc (a + b) + 0)) + 3
-    ≡ suc (suc (w + x) + suc (suc (y + z)))
-  ↦-arith a b w x y z ea eb =
-    trans (solve 2 (λ a b → (con 1 :+ (con 1 :+ ((con 1 :+ (a :+ b))
-              :+ con 0)) :+ con 3)
-              :=ˢ (con 1 :+ a) :+ ((con 1 :+ b) :+ con 4)) refl a b)
-      (trans (cong₂ (λ u v → u + (v + 4)) ea eb)
-        (solve 4 (λ w x y z → (y :+ w) :+ ((x :+ z) :+ con 4)
-              :=ˢ con 1 :+ ((con 1 :+ (w :+ x))
-                  :+ (con 1 :+ (con 1 :+ (y :+ z))))) refl w x y z))
+↦-arith : ∀ a b w x y z → suc a ≡ y + w → suc b ≡ x + z
+  → suc (suc (suc (a + b) + 0)) + 3
+  ≡ suc (suc (w + x) + suc (suc (y + z)))
+↦-arith a b w x y z eq1 eq2 =
+  trans L≡sum (trans (cong (_+ 4) eq) (sym R≡sum))
+  where
+    open +-*-Solver using (solve; _:+_; con) renaming (_:=_ to _:=ˢ_)
+    L≡sum : suc (suc (suc (a + b) + 0)) + 3 ≡ (suc a + suc b) + 4
+    L≡sum = solve 2 (λ a b → (con 1 :+ (con 1 :+ ((con 1 :+ (a :+ b)) :+ con 0))) :+ con 3
+                        :=ˢ ((con 1 :+ a) :+ (con 1 :+ b)) :+ con 4)
+              refl a b
+    R≡sum : suc (suc (w + x) + suc (suc (y + z))) ≡ (w + x) + (y + z) + 4
+    R≡sum = solve 4 (λ w x y z → con 1 :+ ((con 1 :+ (w :+ x)) :+ (con 1 :+ (con 1 :+ (y :+ z))))
+                        :=ˢ ((w :+ x) :+ (y :+ z)) :+ con 4)
+              refl w x y z
+    eq : suc a + suc b ≡ (w + x) + (y + z)
+    eq = trans (cong₂ _+_ eq1 eq2)
+          (solve 4 (λ y w x z → (y :+ w) :+ (x :+ z) :=ˢ (w :+ x) :+ (y :+ z)) refl y w x z)
 
-  all-arith : ∀ a s t → suc a ≡ s + t
-    → suc (suc (suc a + 0)) + 2 ≡ suc (suc s + suc (suc t))
-  all-arith a s t ea =
-    trans (solve 1 (λ a → (con 1 :+ (con 1 :+ ((con 1 :+ a) :+ con 0))
-              :+ con 2) :=ˢ (con 1 :+ a) :+ con 4) refl a)
-      (trans (cong (_+ 4) ea)
-        (solve 2 (λ s t → (s :+ t) :+ con 4
-              :=ˢ con 1 :+ ((con 1 :+ s) :+ (con 1 :+ (con 1 :+ t))))
-          refl s t))
+all-arith : ∀ a s t → suc a ≡ s + t
+  → suc (suc (suc a + 0)) + 2 ≡ suc (suc s + suc (suc t))
+all-arith a s t hyp =
+  trans (solve 1 (λ x → (con 1 :+ (con 1 :+ ((con 1 :+ x) :+ con 0))) :+ con 2
+                    :=ˢ con 1 :+ (con 1 :+ (con 1 :+ (con 1 :+ (con 1 :+ x)))))
+          refl a)
+    (trans (cong (λ x → suc (suc (suc (suc x)))) hyp)
+      (sym (solve 2 (λ y z → con 1 :+ ((con 1 :+ y) :+ (con 1 :+ (con 1 :+ z)))
+                         :=ˢ con 1 :+ (con 1 :+ (con 1 :+ (con 1 :+ (y :+ z)))))
+            refl s t)))
+  where open +-*-Solver using (solve; _:+_; con) renaming (_:=_ to _:=ˢ_)
 
-fuse-decreases : ∀ h k ks → fuse h k ≡ just ks
-  → weightHeads⁺ ks < suc (weightHead h + suc (weightHead k))
-fuse-decreases (seal α) (unseal β) ks eq
-  rewrite fuse-su-inv α β ks eq = s≤s z≤n
-fuse-decreases (unseal α) (seal β) ks eq
-  rewrite fuse-us-inv α β ks eq = s≤s z≤n
-fuse-decreases (s₁ ↦ t₁) (s₂ ↦ t₂) _ refl =
-  less-by _ 3 _
-    (↦-arith (weight (s₂ ⧺ s₁)) (weight (t₁ ⧺ t₂))
-      (weight s₁) (weight t₁) (weight s₂) (weight t₂)
+fuse-decreases : ∀ ĉ ḓ ks → fuse ĉ ḓ ≡ just ks
+  → weightElts⁺ ks < suc (weightElt ĉ + suc (weightElt ḓ))
+fuse-decreases (seal α) (unseal β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (seal α) (unseal β) ks eq | yes _ | refl =
+  less-by zero 3 4 refl
+fuse-decreases (seal α) (unseal β) ks eq | no _ | ()
+fuse-decreases (unseal α) (seal β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (unseal α) (seal β) ks eq | yes _ | refl =
+  less-by zero 3 4 refl
+fuse-decreases (unseal α) (seal β) ks eq | no _ | ()
+fuse-decreases (hide α) (show β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (hide α) (show β) ks eq | yes _ | refl =
+  less-by zero 3 4 refl
+fuse-decreases (hide α) (show β) ks eq | no _ | ()
+fuse-decreases (show α) (hide β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (show α) (hide β) ks eq | yes _ | refl =
+  less-by zero 3 4 refl
+fuse-decreases (show α) (hide β) ks eq | no _ | ()
+fuse-decreases (s₁ ↦ t₁) (s₂ ↦ t₂) ks refl =
+  less-by (weightElts⁺ (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])) 3
+    (suc (weightElt (s₁ ↦ t₁) + suc (weightElt (s₂ ↦ t₂))))
+    (↦-arith (weight (s₂ ⧺ s₁)) (weight (t₁ ⧺ t₂)) (weight s₁) (weight t₁) (weight s₂) (weight t₂)
       (weight-⧺ s₂ s₁) (weight-⧺ t₁ t₂))
-fuse-decreases (all s) (all t) _ refl =
-  less-by _ 2 _
+fuse-decreases (all s) (all t) ks refl =
+  less-by (weightElts⁺ (all (s ⧺ t) ∷ [])) 2
+    (suc (weightElt (all s) + suc (weightElt (all t))))
     (all-arith (weight (s ⧺ t)) (weight s) (weight t) (weight-⧺ s t))
 fuse-decreases (seal α) (seal β) ks ()
-fuse-decreases (seal α) (c ↦ d) ks ()
-fuse-decreases (seal α) (all c) ks ()
+fuse-decreases (seal α) (hide β) ks ()
+fuse-decreases (seal α) (show β) ks ()
+fuse-decreases (seal α) (s ↦ t) ks ()
+fuse-decreases (seal α) (all s) ks ()
 fuse-decreases (unseal α) (unseal β) ks ()
-fuse-decreases (unseal α) (c ↦ d) ks ()
-fuse-decreases (unseal α) (all c) ks ()
-fuse-decreases (c ↦ d) (seal β) ks ()
-fuse-decreases (c ↦ d) (unseal β) ks ()
-fuse-decreases (c ↦ d) (all e) ks ()
-fuse-decreases (all c) (seal β) ks ()
-fuse-decreases (all c) (unseal β) ks ()
-fuse-decreases (all c) (s′ ↦ t′) ks ()
+fuse-decreases (unseal α) (hide β) ks ()
+fuse-decreases (unseal α) (show β) ks ()
+fuse-decreases (unseal α) (s ↦ t) ks ()
+fuse-decreases (unseal α) (all s) ks ()
+fuse-decreases (hide α) (seal β) ks ()
+fuse-decreases (hide α) (unseal β) ks ()
+fuse-decreases (hide α) (hide β) ks ()
+fuse-decreases (hide α) (s ↦ t) ks ()
+fuse-decreases (hide α) (all s) ks ()
+fuse-decreases (show α) (seal β) ks ()
+fuse-decreases (show α) (unseal β) ks ()
+fuse-decreases (show α) (show β) ks ()
+fuse-decreases (show α) (s ↦ t) ks ()
+fuse-decreases (show α) (all s) ks ()
+fuse-decreases (s₁ ↦ t₁) (seal β) ks ()
+fuse-decreases (s₁ ↦ t₁) (unseal β) ks ()
+fuse-decreases (s₁ ↦ t₁) (hide β) ks ()
+fuse-decreases (s₁ ↦ t₁) (show β) ks ()
+fuse-decreases (s₁ ↦ t₁) (all s) ks ()
+fuse-decreases (all s) (seal β) ks ()
+fuse-decreases (all s) (unseal β) ks ()
+fuse-decreases (all s) (hide β) ks ()
+fuse-decreases (all s) (show β) ks ()
+fuse-decreases (all s) (t ↦ u) ks ()
 
 step-decreases : c —→ᶜ c′ → weight c′ < weight c
-step-decreases (ξ-pair {h = h} {k = k} {ks = ks} {c = c} eq)
+step-decreases (ξ-pair {ĉ = ĉ} {ḓ = ḓ} {ks = ks} {c = c} eq)
   rewrite weight-consAll ks c =
-  subst (weightHeads⁺ ks + weight c <_)
+  subst (weightElts⁺ ks + weight c <_)
     (solve 3 (λ p q r → (con 1 :+ (p :+ (con 1 :+ q))) :+ r
           :=ˢ con 1 :+ (p :+ (con 1 :+ (q :+ r))))
-      refl (weightHead h) (weightHead k) (weight c))
-    (+-monoˡ-< (weight c) (fuse-decreases h k ks eq))
+      refl (weightElt ĉ) (weightElt ḓ) (weight c))
+    (+-monoˡ-< (weight c) (fuse-decreases ĉ ḓ ks eq))
   where open +-*-Solver using (solve; _:+_; con) renaming (_:=_ to _:=ˢ_)
-step-decreases (ξ-∷ {h = h} st) =
-  s≤s (+-monoʳ-< (weightHead h) (step-decreases st))
+step-decreases (ξ-∷ {ĉ = ĉ} st) =
+  s≤s (+-monoʳ-< (weightElt ĉ) (step-decreases st))
 step-decreases (ξ-↦₁ {t = t} {c = c} st) =
   s≤s (+-monoˡ-< (weight c)
     (s≤s (+-monoˡ-< (weight t) (step-decreases st))))
@@ -191,13 +241,13 @@ step-decreases (ξ-all {c = c} st) =
 Steps : Conv → Set
 Steps c = Σ[ c′ ∈ Conv ] (c —→ᶜ c′)
 
--- Once the head and the tail are normal, only the seam can fire.
-check-seam : ∀ h c → NFHead h → NF c → NF (h ∷ᶜ c) ⊎ Steps (h ∷ᶜ c)
-check-seam h (id A) nfh nfc = inj₁ (nf-cons nfh nf-id irr-id)
-check-seam h (k ∷ᶜ c) nfh nfc with fuse h k in eq
-check-seam h (k ∷ᶜ c) nfh nfc | just ks = inj₂ (_ , ξ-pair eq)
-check-seam h (k ∷ᶜ c) nfh nfc | nothing =
-  inj₁ (nf-cons nfh nfc (irr-cons eq))
+-- Once the element and the tail are normal, only the seam can fire.
+check-seam : ∀ ĉ c → NFElt ĉ → NF c → NF (ĉ ∷ᶜ c) ⊎ Steps (ĉ ∷ᶜ c)
+check-seam ĉ (id A) nfe nfc = inj₁ (nf-cons nfe nf-id irr-id)
+check-seam ĉ (ḓ ∷ᶜ c) nfe nfc with fuse ĉ ḓ in eq
+check-seam ĉ (ḓ ∷ᶜ c) nfe nfc | just ks = inj₂ (_ , ξ-pair eq)
+check-seam ĉ (ḓ ∷ᶜ c) nfe nfc | nothing =
+  inj₁ (nf-cons nfe nfc (irr-cons eq))
 
 progress : (c : Conv) → NF c ⊎ Steps c
 progress (id A) = inj₁ nf-id
@@ -207,6 +257,12 @@ progress (seal α ∷ᶜ c) | inj₁ nfc = check-seam (seal α) c nf-seal nfc
 progress (unseal α ∷ᶜ c) with progress c
 progress (unseal α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
 progress (unseal α ∷ᶜ c) | inj₁ nfc = check-seam (unseal α) c nf-unseal nfc
+progress (hide α ∷ᶜ c) with progress c
+progress (hide α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
+progress (hide α ∷ᶜ c) | inj₁ nfc = check-seam (hide α) c nf-hide nfc
+progress (show α ∷ᶜ c) with progress c
+progress (show α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
+progress (show α ∷ᶜ c) | inj₁ nfc = check-seam (show α) c nf-show nfc
 progress ((s ↦ t) ∷ᶜ c) with progress s
 progress ((s ↦ t) ∷ᶜ c) | inj₂ (s′ , st) = inj₂ (_ , ξ-↦₁ st)
 progress ((s ↦ t) ∷ᶜ c) | inj₁ nfs with progress t
@@ -261,45 +317,69 @@ c ⨟ d = normalize (c ⧺ d)
 ⨟-NF c d = normalize-NF (c ⧺ d)
 
 ------------------------------------------------------------------------
--- The conversion-directed builders
+-- Instantiating a conversion: +X(c) and -X(c)
 ------------------------------------------------------------------------
+-- Specified by composition with the type-level builders,
+--
+--   +X(c) ≡ +X(src c) ⨟ c[X:=S]        -X(c) ≡ c[X:=S] ⨟ -X(tgt c)
+--
+-- placing the single crossing at the stack-correct end of each path.
+-- `srcᶜ` reads the source off the syntax where the syntax determines
+-- it; on a seal- or unseal-headed conversion it is undefined, and there
+-- the head's source is fixed by an address other than the fresh one, so
+-- X occurs nowhere in c and a bare identity crossing is correct (the
+-- store cannot mention a bound address variable, and c predates the
+-- fresh binder).  In de Bruijn form the unseal case is undefined
+-- because its source is a NAME, which the syntax does not carry.
 
-mutual
-  instReveal : ℕ → Anchor → Ty → Conv → Conv
-  instReveal X α S (id A) = revTy X α S A
-  instReveal X α S (h ∷ᶜ c) =
-    normalize (instRevealHead X α S h ∷ᶜ instReveal X α S c)
+srcᶜ : Conv → Maybe Ty
+srcᶜ (id A) = just A
+srcᶜ (seal α ∷ᶜ c) = nothing
+srcᶜ (unseal α ∷ᶜ c) = nothing
+srcᶜ (hide α ∷ᶜ c) = srcᶜ c
+srcᶜ (show α ∷ᶜ c) = srcᶜ c
+srcᶜ ((s ↦ t) ∷ᶜ c) with srcᶜ t
+srcᶜ ((s ↦ t) ∷ᶜ c) | just B = just (target s ⇒ B)
+srcᶜ ((s ↦ t) ∷ᶜ c) | nothing = nothing
+srcᶜ (all s ∷ᶜ c) with srcᶜ s
+srcᶜ (all s ∷ᶜ c) | just A = just (`∀ A)
+srcᶜ (all s ∷ᶜ c) | nothing = nothing
 
-  instConceal : ℕ → Anchor → Ty → Conv → Conv
-  instConceal X α S (id A) = concTy X α S A
-  instConceal X α S (h ∷ᶜ c) =
-    normalize (instConcealHead X α S h ∷ᶜ instConceal X α S c)
+instReveal : ℕ → Addr → Ty → Conv → Conv
+instReveal X α S c with srcᶜ c
+instReveal X α S c | just A = revTy X α S A ⨟ substAnn X S c
+instReveal X α S c | nothing = show α ∷ᶜ c
 
-  instRevealHead : ℕ → Anchor → Ty → Head → Head
-  instRevealHead X α S (seal β)   = seal β
-  instRevealHead X α S (unseal β) = unseal β
-  instRevealHead X α S (c ↦ d) =
-    instConceal X α S c ↦ instReveal X α S d
-  instRevealHead X α S (all c) =
-    all (instReveal (suc X) (suc α) (renameᵗ suc S) c)
-
-  instConcealHead : ℕ → Anchor → Ty → Head → Head
-  instConcealHead X α S (seal β)   = seal β
-  instConcealHead X α S (unseal β) = unseal β
-  instConcealHead X α S (c ↦ d) =
-    instReveal X α S c ↦ instConceal X α S d
-  instConcealHead X α S (all c) =
-    all (instConceal (suc X) (suc α) (renameᵗ suc S) c)
+instConceal : ℕ → Addr → Ty → Conv → Conv
+instConceal X α S c = substAnn X S c ⨟ concTy X α S (target c)
 
 ------------------------------------------------------------------------
--- The regression checks from the fuel era, now against `normalize`
+-- Regression checks, against `normalize`
 ------------------------------------------------------------------------
 
 private
   nested-cancel :
-    normalize (unseal 0 ∷ᶜ unseal 1 ∷ᶜ seal 1 ∷ᶜ seal 0 ∷ᶜ id `ℕ)
+    normalize (unseal (lvl 0) ∷ᶜ unseal (lvl 1)
+                ∷ᶜ seal (lvl 1) ∷ᶜ seal (lvl 0) ∷ᶜ id `ℕ)
       ≡ id `ℕ
   nested-cancel = refl
+
+  -- The K example's merged word: nested crossings cancel adjacently.
+  k-example :
+    normalize (seal (lvl 0) ∷ᶜ hide (lvl 1)
+                ∷ᶜ show (lvl 1) ∷ᶜ unseal (lvl 0) ∷ᶜ id `ℕ)
+      ≡ id `ℕ
+  k-example = refl
+
+  -- The OVERLAPPING word is a normal form: normalization leaves it
+  -- alone, and the stack element rules leave it with no typing
+  -- derivation — typing, not normalization, excludes it.
+  overlap-stuck :
+    normalize (seal (lvl 0) ∷ᶜ hide (lvl 1)
+                ∷ᶜ unseal (lvl 0) ∷ᶜ show (lvl 1) ∷ᶜ id `ℕ)
+      ≡ (seal (lvl 0) ∷ᶜ hide (lvl 1)
+                ∷ᶜ unseal (lvl 0) ∷ᶜ show (lvl 1) ∷ᶜ id `ℕ)
+  overlap-stuck = refl
 
   arrow-fuse :
     ((id `ℕ ↦ id `ℕ) ∷ᶜ id (`ℕ ⇒ `ℕ)) ⨟ ((id `ℕ ↦ id `ℕ) ∷ᶜ id (`ℕ ⇒ `ℕ))
@@ -307,9 +387,9 @@ private
   arrow-fuse = refl
 
   composition-assoc :
-    (((unseal 0 ∷ᶜ unseal 1 ∷ᶜ id `ℕ)
-       ⨟ (seal 1 ∷ᶜ id `ℕ))
-       ⨟ (seal 0 ∷ᶜ id `ℕ))
-      ≡ ((unseal 0 ∷ᶜ unseal 1 ∷ᶜ id `ℕ)
-         ⨟ ((seal 1 ∷ᶜ id `ℕ) ⨟ (seal 0 ∷ᶜ id `ℕ)))
+    (((unseal (lvl 0) ∷ᶜ unseal (lvl 1) ∷ᶜ id `ℕ)
+       ⨟ (seal (lvl 1) ∷ᶜ id `ℕ))
+       ⨟ (seal (lvl 0) ∷ᶜ id `ℕ))
+      ≡ ((unseal (lvl 0) ∷ᶜ unseal (lvl 1) ∷ᶜ id `ℕ)
+         ⨟ ((seal (lvl 1) ∷ᶜ id `ℕ) ⨟ (seal (lvl 0) ∷ᶜ id `ℕ)))
   composition-assoc = refl

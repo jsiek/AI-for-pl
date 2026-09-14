@@ -463,38 +463,54 @@ and hence `(c ⨟ d) ⨟ e = c ⨟ (d ⨟ e)`, as computation.
 
 ## Conversion views
 
-Three views classify a normal boundary conversion by peeling its
-crossing prefix; κ ranges over the identity crossing elements, with
-`κ̄` the dual element (`id{+X:=α}` ↔ `id{-X:=α}`).
+Three views classify a normal boundary conversion.  Identity crossings
+and structural elements can be INTERLEAVED in a normal form — `fuse`
+has no row for a `→` element against a crossing, so for example
+`κ₁ ∷ (s₁→t₁) ∷ κ₂ ∷ (s₂→t₂) ∷ id(C→D)` is normal, and `Merge`
+produces exactly that shape when it appends two arrow conversions that
+each carry their own crossings.  The views therefore work ELEMENTWISE:
+an operator on single elements, applied to every element of the list.
+Below κ ranges over the identity crossing elements, `κ̄` is the dual
+element (`id{+X:=α}` ↔ `id{-X:=α}`), and `elts`/`attach`/`target` are
+the list operations of `reduce`.
 
-`arr` takes the INTERIOR domain from the λ annotation at its use site
-(the conversion's syntax does not carry it when the conversion is a
-bare `id` or begins with crossing elements):
+The element operators give each element's contravariant and covariant
+contributions; they are undefined on the renaming elements:
 
-  arr(A₀, id(A → B)) = (id(A), id(B))
-  arr(A₀, κ₁ ∷ … ∷ κₙ ∷ (c → d) ∷ id(C → D))
-    = (c ⧺ (κ̄ₙ ∷ … ∷ κ̄₁ ∷ id(A₀)), κ₁ ∷ … ∷ κₙ ∷ d)     (n ≥ 0)
+  arr⁻(c → d) = elts(c)         arr⁺(c → d) = elts(d)
+  arr⁻(κ)     = [κ̄]             arr⁺(κ)     = [κ]
 
-  all(id(∀X.A)) = id(A)
-  all(κ₁ ∷ … ∷ κₙ ∷ (∀X.c) ∷ id(∀X.B)) = κ₁ ∷ … ∷ κₙ ∷ c  (n ≥ 0)
+  all⁺(∀X.c)  = elts(c)         all⁺(κ)     = [κ]
 
-  base(id(ι)) = ι
-  base(κ ∷ c) = base(c)
+For `c` with `elts(c) = ĉ₁ ⋯ ĉₙ` (interior to exterior), `arr` takes
+the INTERIOR domain from the λ annotation at its use site (the
+conversion's syntax does not carry it):
 
-`arr` peels the crossing prefix in one pass: the contravariant
-component re-crosses it in reverse with the dual elements and
-terminates at the INTERIOR domain `A₀` — the λ's own annotation, in its
-own coordinates — so no renaming is involved; the covariant component
-keeps the prefix.  Here `_⧺_` is terminator-discarding append.  `base`
-is the view `Const` uses: a literal ignores identity crossings.
+  arr(A₀, c) = ( attach(arr⁻(ĉₙ) ++ ⋯ ++ arr⁻(ĉ₁), A₀)
+               , attach(arr⁺(ĉ₁) ++ ⋯ ++ arr⁺(ĉₙ), D) )
+      if target(c) = C → D and every arr±(ĉᵢ) is defined
+
+  all(c) = attach(all⁺(ĉ₁) ++ ⋯ ++ all⁺(ĉₙ), B)
+      if target(c) = ∀X.B and every all⁺(ĉᵢ) is defined
+
+  base(c) = ι
+      if target(c) = ι and every ĉᵢ is an identity crossing
+
+The covariant component keeps the element order; the contravariant
+component reverses it, dualizing each crossing, and terminates at the
+interior domain `A₀` — the λ's own annotation, in its own coordinates —
+so no renaming is involved.  On the prefix-only shapes these agree with
+the v7 views (`arr(A₀, (c→d) ∷ id(C→D)) = (c, d)` up to the
+terminator's type), and `base` is the view `Const` uses: a literal
+ignores identity crossings.
 
 OPEN (to be settled in the mechanization): whether every reachable
 normal boundary conversion at a function, universal, or ground target
-has one of these shapes.  Renaming elements can in principle stand
-between identity crossings in a normal form
-(`-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)` is normal); the claim to prove is
-that such conversions do not reach value boundaries, or else the views
-and the `Value` clause must treat them.
+is view-defined — that is, free of RENAMING elements.  A renaming pair
+can stand apart in a normal form (`-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)`
+is normal); the claim to prove is that such conversions do not reach
+value boundaries, or else the views and the `Value` clause must treat
+them.
 
 ## Composition totality
 
@@ -757,8 +773,8 @@ say `•(Y→Y)[𝔹]` and then `· true`, drives them:
   ⟨id{+X:=α} ∷ ((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id(𝔹→𝔹)⟩
   · true
 
-after which `Wrap` splits the conversion (the crossing prefix peels
-into both components), `Beta` substitutes the wrapped `true`, the inner
+after which `Wrap` splits the conversion elementwise into both
+components, `Beta` substitutes the wrapped `true`, the inner
 type application `Merge`s the two wraps on `W` into
 `(Λγ,Z. λz:Z.z)⟨id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z)⟩`, `TyWrap`
 allocates `γ:=β` (note `⌊Y⌋ = β`: a stored representation can point at
@@ -809,7 +825,9 @@ v8 changes land as:
     `Head`), with new constructors `show`/`hide` (the `id{±X:=α}`
     forms, carrying the crossed anchor), strict `conv-id`, exact
     crossing premises on all four atomic elements, new `fuse` rows and
-    weights, and the `base` view beside `arr`/`allView`.  The tail
+    weights, and the elementwise views: `arr⁻`/`arr⁺`/`all⁺` on
+    `ConvElt`, folded over the element list, with `base` beside
+    `arr`/`allView`.  The tail
     judgment `_⊩_∶_⇝_⊣_` merges into `_⊢_∶_⇝_⊣_`, since a strict `id`
     makes every seam reflexive.
   * `Terms.agda`/`Reduction.agda`: `_⟨_⟩` and `ν_:=_._` replace

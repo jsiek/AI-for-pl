@@ -3759,3 +3759,34 @@ the wrap: the identity-crossing rules relate a type to its
 depth X — "the same type" is a named-notation statement), and
 `all⁺` must `⇑ᵃ`-shift the crossings it hoists under the ∀ element's
 binder.  `revTy`'s miss terminators now uniformly use `closeAt`.
+
+## 2026-09-14: v8 stage 4 — Examples, and the elements must carry the NAME
+
+`Examples.agda` machine-checks the notes' traces.  §6 runs end to end
+(`TyBeta`, `Alloc`, `Wrap`, `ξ-⟨⟩ Beta`, `Merge`, `Const`) to `7` with
+`Σ = ℕ`; the K example runs to its VALUE (the point where the value
+restriction parks `Merge`/`TyWrap` until instantiation) and checks that
+value's `allView`.  Crucially, `builder-agrees` in both modules checks
+by `refl` that `revTy` computes exactly the conversions the notes
+write — `c_X` and `c_ZX` included — so the mechanized builders are
+validated against the design document.  The two v7 failure
+configurations are kept as regression checks: the nested word cancels
+to `id(ℕ)` by adjacent fusion, the overlapping word normalizes to
+itself.
+
+FINDING (this answers Jeremy's earlier question "do we need to carry
+the X?" in the AFFIRMATIVE, reversing my earlier answer): the atomic
+elements must carry the NAME as well as the address.  The K example
+exposed it.  `conv-all`'s premise is `(bind ∷ Γᵢ) ⊢ s ⊣ (bind ∷ Γₑ)`
+and the pop judgment skips binder assignments, so an element inside a
+`∀` component crosses an assignment lying BELOW those binders — while a
+push at the top of the walk inserts ABOVE them.  Nothing in the ADDRESS
+distinguishes the two depths (a level address carries no depth at all),
+so `⟨c⟩` is not a function of address-only syntax, and the K example's
+`cov` walked to `nothing`.  With the name carried, `pushAsgn X α` and
+`popAsgn X α` are the functional forms of the pop judgment, `⟨c⟩` is
+total and syntax-directed, and `srcᶜ` becomes total at an `unseal`
+(`src(unseal{+X:=α} ∷ c) = X`, exactly as notes-v8 writes it) — the
+second obligation I had flagged as a risk when deferring the question.
+The Agda now matches the notes' notation literally: `seal X α`,
+`unseal X α`, `hide X α`, `show X α`.

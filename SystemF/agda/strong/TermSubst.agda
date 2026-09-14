@@ -106,7 +106,7 @@ extImg σ (suc x) = shiftImgⁿ (σ x)
 -- below the crossing assignment), and the boundary's exterior type is
 -- the crossing's one-name shift.
 crossΛ : Term → Ty → Term
-crossΛ V A = (renAddrᴹ suc V) ⟨ hide (bnd zero) ∷ᶜ id (⇑ᵗ A) ⟩
+crossΛ V A = (renAddrᴹ suc V) ⟨ hide zero (bnd zero) ∷ᶜ id (⇑ᵗ A) ⟩
 
 underΛ : Img → Img
 underΛ (ivar x)   = ivar x

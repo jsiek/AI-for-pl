@@ -101,25 +101,25 @@ less-by m k n eq = subst (suc m ≤_) eq (m≤m+n (suc m) k)
 -- Reading `fuse` back out of a success at the four atomic cancellation
 -- pairs, where its definition decides address equality.
 
-fuse-hs-inv : ∀ α β ks → fuse (hide α) (show β) ≡ just ks → ks ≡ []
-fuse-hs-inv α β ks eq with α ≟ᵃ β | eq
-fuse-hs-inv α β ks eq | yes p | refl = refl
-fuse-hs-inv α β ks eq | no _ | ()
+fuse-hs-inv : ∀ X Y α β ks → fuse (hide X α) (show Y β) ≡ just ks → ks ≡ []
+fuse-hs-inv X Y α β ks eq with α ≟ᵃ β | eq
+fuse-hs-inv X Y α β ks eq | yes p | refl = refl
+fuse-hs-inv X Y α β ks eq | no _ | ()
 
-fuse-sh-inv : ∀ α β ks → fuse (show α) (hide β) ≡ just ks → ks ≡ []
-fuse-sh-inv α β ks eq with α ≟ᵃ β | eq
-fuse-sh-inv α β ks eq | yes p | refl = refl
-fuse-sh-inv α β ks eq | no _ | ()
+fuse-sh-inv : ∀ X Y α β ks → fuse (show X α) (hide Y β) ≡ just ks → ks ≡ []
+fuse-sh-inv X Y α β ks eq with α ≟ᵃ β | eq
+fuse-sh-inv X Y α β ks eq | yes p | refl = refl
+fuse-sh-inv X Y α β ks eq | no _ | ()
 
-fuse-su-inv : ∀ α β ks → fuse (seal α) (unseal β) ≡ just ks → ks ≡ []
-fuse-su-inv α β ks eq with α ≟ᵃ β | eq
-fuse-su-inv α β ks eq | yes p | refl = refl
-fuse-su-inv α β ks eq | no _ | ()
+fuse-su-inv : ∀ X Y α β ks → fuse (seal X α) (unseal Y β) ≡ just ks → ks ≡ []
+fuse-su-inv X Y α β ks eq with α ≟ᵃ β | eq
+fuse-su-inv X Y α β ks eq | yes p | refl = refl
+fuse-su-inv X Y α β ks eq | no _ | ()
 
-fuse-us-inv : ∀ α β ks → fuse (unseal α) (seal β) ≡ just ks → ks ≡ []
-fuse-us-inv α β ks eq with α ≟ᵃ β | eq
-fuse-us-inv α β ks eq | yes p | refl = refl
-fuse-us-inv α β ks eq | no _ | ()
+fuse-us-inv : ∀ X Y α β ks → fuse (unseal X α) (seal Y β) ≡ just ks → ks ≡ []
+fuse-us-inv X Y α β ks eq with α ≟ᵃ β | eq
+fuse-us-inv X Y α β ks eq | yes p | refl = refl
+fuse-us-inv X Y α β ks eq | no _ | ()
 
 -- The exact bookkeeping of a `↦` fusion: one element constructor and two
 -- terminators disappear, everything else is kept — a decrease of exactly
@@ -158,60 +158,61 @@ all-arith a s t hyp =
 
 fuse-decreases : ∀ ĉ ḓ ks → fuse ĉ ḓ ≡ just ks
   → weightElts⁺ ks < suc (weightElt ĉ + suc (weightElt ḓ))
-fuse-decreases (seal α) (unseal β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (seal α) (unseal β) ks eq | yes _ | refl =
+fuse-decreases (seal X α) (seal Y β) ks ()
+fuse-decreases (seal X α) (unseal Y β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (seal X α) (unseal Y β) ks eq | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (seal α) (unseal β) ks eq | no _ | ()
-fuse-decreases (unseal α) (seal β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (unseal α) (seal β) ks eq | yes _ | refl =
+fuse-decreases (seal X α) (unseal Y β) ks eq | no _ | ()
+fuse-decreases (seal X α) (hide Y β) ks ()
+fuse-decreases (seal X α) (show Y β) ks ()
+fuse-decreases (unseal X α) (seal Y β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (unseal X α) (seal Y β) ks eq | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (unseal α) (seal β) ks eq | no _ | ()
-fuse-decreases (hide α) (show β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (hide α) (show β) ks eq | yes _ | refl =
+fuse-decreases (unseal X α) (seal Y β) ks eq | no _ | ()
+fuse-decreases (unseal X α) (unseal Y β) ks ()
+fuse-decreases (unseal X α) (hide Y β) ks ()
+fuse-decreases (unseal X α) (show Y β) ks ()
+fuse-decreases (hide X α) (seal Y β) ks ()
+fuse-decreases (hide X α) (unseal Y β) ks ()
+fuse-decreases (hide X α) (hide Y β) ks ()
+fuse-decreases (hide X α) (show Y β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (hide X α) (show Y β) ks eq | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (hide α) (show β) ks eq | no _ | ()
-fuse-decreases (show α) (hide β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (show α) (hide β) ks eq | yes _ | refl =
+fuse-decreases (hide X α) (show Y β) ks eq | no _ | ()
+fuse-decreases (show X α) (seal Y β) ks ()
+fuse-decreases (show X α) (unseal Y β) ks ()
+fuse-decreases (show X α) (hide Y β) ks eq with α ≟ᵃ β | eq
+fuse-decreases (show X α) (hide Y β) ks eq | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (show α) (hide β) ks eq | no _ | ()
+fuse-decreases (show X α) (hide Y β) ks eq | no _ | ()
+fuse-decreases (show X α) (show Y β) ks ()
 fuse-decreases (s₁ ↦ t₁) (s₂ ↦ t₂) ks refl =
   less-by (weightElts⁺ (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])) 3
     (suc (weightElt (s₁ ↦ t₁) + suc (weightElt (s₂ ↦ t₂))))
-    (↦-arith (weight (s₂ ⧺ s₁)) (weight (t₁ ⧺ t₂)) (weight s₁) (weight t₁) (weight s₂) (weight t₂)
+    (↦-arith (weight (s₂ ⧺ s₁)) (weight (t₁ ⧺ t₂))
+      (weight s₁) (weight t₁) (weight s₂) (weight t₂)
       (weight-⧺ s₂ s₁) (weight-⧺ t₁ t₂))
 fuse-decreases (all s) (all t) ks refl =
   less-by (weightElts⁺ (all (s ⧺ t) ∷ [])) 2
     (suc (weightElt (all s) + suc (weightElt (all t))))
     (all-arith (weight (s ⧺ t)) (weight s) (weight t) (weight-⧺ s t))
-fuse-decreases (seal α) (seal β) ks ()
-fuse-decreases (seal α) (hide β) ks ()
-fuse-decreases (seal α) (show β) ks ()
-fuse-decreases (seal α) (s ↦ t) ks ()
-fuse-decreases (seal α) (all s) ks ()
-fuse-decreases (unseal α) (unseal β) ks ()
-fuse-decreases (unseal α) (hide β) ks ()
-fuse-decreases (unseal α) (show β) ks ()
-fuse-decreases (unseal α) (s ↦ t) ks ()
-fuse-decreases (unseal α) (all s) ks ()
-fuse-decreases (hide α) (seal β) ks ()
-fuse-decreases (hide α) (unseal β) ks ()
-fuse-decreases (hide α) (hide β) ks ()
-fuse-decreases (hide α) (s ↦ t) ks ()
-fuse-decreases (hide α) (all s) ks ()
-fuse-decreases (show α) (seal β) ks ()
-fuse-decreases (show α) (unseal β) ks ()
-fuse-decreases (show α) (show β) ks ()
-fuse-decreases (show α) (s ↦ t) ks ()
-fuse-decreases (show α) (all s) ks ()
-fuse-decreases (s₁ ↦ t₁) (seal β) ks ()
-fuse-decreases (s₁ ↦ t₁) (unseal β) ks ()
-fuse-decreases (s₁ ↦ t₁) (hide β) ks ()
-fuse-decreases (s₁ ↦ t₁) (show β) ks ()
-fuse-decreases (s₁ ↦ t₁) (all s) ks ()
-fuse-decreases (all s) (seal β) ks ()
-fuse-decreases (all s) (unseal β) ks ()
-fuse-decreases (all s) (hide β) ks ()
-fuse-decreases (all s) (show β) ks ()
+fuse-decreases (seal X α) (s ↦ t) ks ()
+fuse-decreases (seal X α) (all s) ks ()
+fuse-decreases (s ↦ t) (seal Y β) ks ()
+fuse-decreases (all s) (seal Y β) ks ()
+fuse-decreases (unseal X α) (s ↦ t) ks ()
+fuse-decreases (unseal X α) (all s) ks ()
+fuse-decreases (s ↦ t) (unseal Y β) ks ()
+fuse-decreases (all s) (unseal Y β) ks ()
+fuse-decreases (hide X α) (s ↦ t) ks ()
+fuse-decreases (hide X α) (all s) ks ()
+fuse-decreases (s ↦ t) (hide Y β) ks ()
+fuse-decreases (all s) (hide Y β) ks ()
+fuse-decreases (show X α) (s ↦ t) ks ()
+fuse-decreases (show X α) (all s) ks ()
+fuse-decreases (s ↦ t) (show Y β) ks ()
+fuse-decreases (all s) (show Y β) ks ()
+fuse-decreases (s ↦ t) (all u) ks ()
 fuse-decreases (all s) (t ↦ u) ks ()
 
 step-decreases : c —→ᶜ c′ → weight c′ < weight c
@@ -251,18 +252,18 @@ check-seam ĉ (ḓ ∷ᶜ c) nfe nfc | nothing =
 
 progress : (c : Conv) → NF c ⊎ Steps c
 progress (id A) = inj₁ nf-id
-progress (seal α ∷ᶜ c) with progress c
-progress (seal α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
-progress (seal α ∷ᶜ c) | inj₁ nfc = check-seam (seal α) c nf-seal nfc
-progress (unseal α ∷ᶜ c) with progress c
-progress (unseal α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
-progress (unseal α ∷ᶜ c) | inj₁ nfc = check-seam (unseal α) c nf-unseal nfc
-progress (hide α ∷ᶜ c) with progress c
-progress (hide α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
-progress (hide α ∷ᶜ c) | inj₁ nfc = check-seam (hide α) c nf-hide nfc
-progress (show α ∷ᶜ c) with progress c
-progress (show α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
-progress (show α ∷ᶜ c) | inj₁ nfc = check-seam (show α) c nf-show nfc
+progress (seal X α ∷ᶜ c) with progress c
+progress (seal X α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
+progress (seal X α ∷ᶜ c) | inj₁ nfc = check-seam (seal X α) c nf-seal nfc
+progress (unseal X α ∷ᶜ c) with progress c
+progress (unseal X α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
+progress (unseal X α ∷ᶜ c) | inj₁ nfc = check-seam (unseal X α) c nf-unseal nfc
+progress (hide X α ∷ᶜ c) with progress c
+progress (hide X α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
+progress (hide X α ∷ᶜ c) | inj₁ nfc = check-seam (hide X α) c nf-hide nfc
+progress (show X α ∷ᶜ c) with progress c
+progress (show X α ∷ᶜ c) | inj₂ (c′ , st) = inj₂ (_ , ξ-∷ st)
+progress (show X α ∷ᶜ c) | inj₁ nfc = check-seam (show X α) c nf-show nfc
 progress ((s ↦ t) ∷ᶜ c) with progress s
 progress ((s ↦ t) ∷ᶜ c) | inj₂ (s′ , st) = inj₂ (_ , ξ-↦₁ st)
 progress ((s ↦ t) ∷ᶜ c) | inj₁ nfs with progress t
@@ -334,10 +335,18 @@ c ⨟ d = normalize (c ⧺ d)
 
 srcᶜ : Conv → Maybe Ty
 srcᶜ (id A) = just A
-srcᶜ (seal α ∷ᶜ c) = nothing
-srcᶜ (unseal α ∷ᶜ c) = nothing
-srcᶜ (hide α ∷ᶜ c) = srcᶜ c
-srcᶜ (show α ∷ᶜ c) = srcᶜ c
+-- The unseal's source IS its name; a `show` shifts its target by the
+-- crossing it performs, and a `hide` unshifts it (X cannot occur in a
+-- hide's target); only a seal's source is a read-back that the syntax
+-- does not carry.
+srcᶜ (seal X α ∷ᶜ c) = nothing
+srcᶜ (unseal X α ∷ᶜ c) = just (` X)
+srcᶜ (hide X α ∷ᶜ c) with srcᶜ c
+srcᶜ (hide X α ∷ᶜ c) | just B = just (closeAt X `ℕ B)
+srcᶜ (hide X α ∷ᶜ c) | nothing = nothing
+srcᶜ (show X α ∷ᶜ c) with srcᶜ c
+srcᶜ (show X α ∷ᶜ c) | just B = just (renameᵗ (shiftAtᵗ X) B)
+srcᶜ (show X α ∷ᶜ c) | nothing = nothing
 srcᶜ ((s ↦ t) ∷ᶜ c) with srcᶜ t
 srcᶜ ((s ↦ t) ∷ᶜ c) | just B = just (target s ⇒ B)
 srcᶜ ((s ↦ t) ∷ᶜ c) | nothing = nothing
@@ -348,7 +357,7 @@ srcᶜ (all s ∷ᶜ c) | nothing = nothing
 instReveal : ℕ → Addr → Ty → Conv → Conv
 instReveal X α S c with srcᶜ c
 instReveal X α S c | just A = revTy X α S A ⨟ substAnn X S c
-instReveal X α S c | nothing = show α ∷ᶜ c
+instReveal X α S c | nothing = show X α ∷ᶜ c
 
 instConceal : ℕ → Addr → Ty → Conv → Conv
 instConceal X α S c = substAnn X S c ⨟ concTy X α S (target c)
@@ -359,15 +368,15 @@ instConceal X α S c = substAnn X S c ⨟ concTy X α S (target c)
 
 private
   nested-cancel :
-    normalize (unseal (lvl 0) ∷ᶜ unseal (lvl 1)
-                ∷ᶜ seal (lvl 1) ∷ᶜ seal (lvl 0) ∷ᶜ id `ℕ)
+    normalize (unseal 0 (lvl 0) ∷ᶜ unseal 0 (lvl 1)
+                ∷ᶜ seal 0 (lvl 1) ∷ᶜ seal 0 (lvl 0) ∷ᶜ id `ℕ)
       ≡ id `ℕ
   nested-cancel = refl
 
   -- The K example's merged word: nested crossings cancel adjacently.
   k-example :
-    normalize (seal (lvl 0) ∷ᶜ hide (lvl 1)
-                ∷ᶜ show (lvl 1) ∷ᶜ unseal (lvl 0) ∷ᶜ id `ℕ)
+    normalize (seal 0 (lvl 0) ∷ᶜ hide 0 (lvl 1)
+                ∷ᶜ show 0 (lvl 1) ∷ᶜ unseal 0 (lvl 0) ∷ᶜ id `ℕ)
       ≡ id `ℕ
   k-example = refl
 
@@ -375,10 +384,10 @@ private
   -- alone, and the stack element rules leave it with no typing
   -- derivation — typing, not normalization, excludes it.
   overlap-stuck :
-    normalize (seal (lvl 0) ∷ᶜ hide (lvl 1)
-                ∷ᶜ unseal (lvl 0) ∷ᶜ show (lvl 1) ∷ᶜ id `ℕ)
-      ≡ (seal (lvl 0) ∷ᶜ hide (lvl 1)
-                ∷ᶜ unseal (lvl 0) ∷ᶜ show (lvl 1) ∷ᶜ id `ℕ)
+    normalize (seal 0 (lvl 0) ∷ᶜ hide 0 (lvl 1)
+                ∷ᶜ unseal 0 (lvl 0) ∷ᶜ show 0 (lvl 1) ∷ᶜ id `ℕ)
+      ≡ (seal 0 (lvl 0) ∷ᶜ hide 0 (lvl 1)
+                ∷ᶜ unseal 0 (lvl 0) ∷ᶜ show 0 (lvl 1) ∷ᶜ id `ℕ)
   overlap-stuck = refl
 
   arrow-fuse :
@@ -387,9 +396,9 @@ private
   arrow-fuse = refl
 
   composition-assoc :
-    (((unseal (lvl 0) ∷ᶜ unseal (lvl 1) ∷ᶜ id `ℕ)
-       ⨟ (seal (lvl 1) ∷ᶜ id `ℕ))
-       ⨟ (seal (lvl 0) ∷ᶜ id `ℕ))
-      ≡ ((unseal (lvl 0) ∷ᶜ unseal (lvl 1) ∷ᶜ id `ℕ)
-         ⨟ ((seal (lvl 1) ∷ᶜ id `ℕ) ⨟ (seal (lvl 0) ∷ᶜ id `ℕ)))
+    (((unseal 0 (lvl 0) ∷ᶜ unseal 0 (lvl 1) ∷ᶜ id `ℕ)
+       ⨟ (seal 0 (lvl 1) ∷ᶜ id `ℕ))
+       ⨟ (seal 0 (lvl 0) ∷ᶜ id `ℕ))
+      ≡ ((unseal 0 (lvl 0) ∷ᶜ unseal 0 (lvl 1) ∷ᶜ id `ℕ)
+         ⨟ ((seal 0 (lvl 1) ∷ᶜ id `ℕ) ⨟ (seal 0 (lvl 0) ∷ᶜ id `ℕ)))
   composition-assoc = refl

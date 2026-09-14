@@ -5,10 +5,17 @@ module strong.Conversion where
 -- The four atomic elements each cross the introduction of one name
 -- assignment, and each carries its ADDRESS:
 --
---   seal α     seal{-X:=α}    : A ⇝ X    renames via α's representation
---   unseal α   unseal{+X:=α}  : X ⇝ A
---   hide α     id{-X:=α}      : A ⇝ A    identity conceal crossing
---   show α     id{+X:=α}      : A ⇝ A    identity reveal crossing
+--   seal X α     seal{-X:=α}    : A ⇝ X   renames via α's representation
+--   unseal X α   unseal{+X:=α}  : X ⇝ A
+--   hide X α     id{-X:=α}      : A ⇝ A    identity conceal crossing
+--   show X α     id{+X:=α}      : A ⇝ A    identity reveal crossing
+--
+-- Each carries BOTH the name and the address, exactly as the notes
+-- write it.  The address is what `fuse` cancels on; the NAME is what
+-- makes the crossing's context movement a function of the syntax — the
+-- pop judgment skips binder assignments, so an element under a
+-- ∀-component may cross an assignment lying below those binders, and
+-- only the name says how deep.
 --
 -- The structural elements delegate their crossing to their components.
 -- The terminator `id A` is STRICTLY REFLEXIVE — all context movement is
@@ -38,10 +45,10 @@ open import strong.Ctx
 
 mutual
   data ConvElt : Set where
-    seal   : Addr → ConvElt
-    unseal : Addr → ConvElt
-    hide   : Addr → ConvElt
-    show   : Addr → ConvElt
+    seal   : ℕ → Addr → ConvElt
+    unseal : ℕ → Addr → ConvElt
+    hide   : ℕ → Addr → ConvElt
+    show   : ℕ → Addr → ConvElt
     _↦_    : Conv → Conv → ConvElt
     all    : Conv → ConvElt
 
@@ -54,10 +61,10 @@ infixr 6 _∷ᶜ_
 
 mutual
   renElt : Renameᵗ → Renameᵇ → ConvElt → ConvElt
-  renElt ρ σ (seal α)   = seal (renᵃ σ α)
-  renElt ρ σ (unseal α) = unseal (renᵃ σ α)
-  renElt ρ σ (hide α)   = hide (renᵃ σ α)
-  renElt ρ σ (show α)   = show (renᵃ σ α)
+  renElt ρ σ (seal X α)   = seal (ρ X) (renᵃ σ α)
+  renElt ρ σ (unseal X α) = unseal (ρ X) (renᵃ σ α)
+  renElt ρ σ (hide X α)   = hide (ρ X) (renᵃ σ α)
+  renElt ρ σ (show X α)   = show (ρ X) (renᵃ σ α)
   renElt ρ σ (s ↦ t)    = renConv ρ σ s ↦ renConv ρ σ t
   renElt ρ σ (all s)    = all (renConv (extᵗ ρ) (extᵇ σ) s)
 
@@ -104,10 +111,10 @@ closeAt X S A = substᵗ (closeEnv X S) A
 -- untouched, so the crossings a conversion performs are unchanged.
 mutual
   substAnnElt : ℕ → Ty → ConvElt → ConvElt
-  substAnnElt X S (seal α)   = seal α
-  substAnnElt X S (unseal α) = unseal α
-  substAnnElt X S (hide α)   = hide α
-  substAnnElt X S (show α)   = show α
+  substAnnElt X S (seal Y α)   = seal Y α
+  substAnnElt X S (unseal Y α) = unseal Y α
+  substAnnElt X S (hide Y α)   = hide Y α
+  substAnnElt X S (show Y α)   = show Y α
   substAnnElt X S (s ↦ t)    = substAnn X S s ↦ substAnn X S t
   substAnnElt X S (all s)    = all (substAnn (suc X) (renameᵗ suc S) s)
 
@@ -128,31 +135,31 @@ mutual
 mutual
   revTy : ℕ → Addr → Ty → Ty → Conv
   revTy X α S (` Y) with X ≟ Y
-  revTy X α S (` Y) | yes _ = unseal α ∷ᶜ id S
-  revTy X α S (` Y) | no  _ = show α ∷ᶜ id (closeAt X S (` Y))
-  revTy X α S `ℕ = show α ∷ᶜ id `ℕ
-  revTy X α S `𝔹 = show α ∷ᶜ id `𝔹
+  revTy X α S (` Y) | yes _ = unseal X α ∷ᶜ id S
+  revTy X α S (` Y) | no  _ = show X α ∷ᶜ id (closeAt X S (` Y))
+  revTy X α S `ℕ = show X α ∷ᶜ id `ℕ
+  revTy X α S `𝔹 = show X α ∷ᶜ id `𝔹
   revTy X α S (A ⇒ B) with occursᵗ X (A ⇒ B)
-  revTy X α S (A ⇒ B) | false = show α ∷ᶜ id (closeAt X S (A ⇒ B))
+  revTy X α S (A ⇒ B) | false = show X α ∷ᶜ id (closeAt X S (A ⇒ B))
   revTy X α S (A ⇒ B) | true =
     (concTy X α S A ↦ revTy X α S B) ∷ᶜ id (closeAt X S (A ⇒ B))
   revTy X α S (`∀ A) with occursᵗ (suc X) A
-  revTy X α S (`∀ A) | false = show α ∷ᶜ id (closeAt X S (`∀ A))
+  revTy X α S (`∀ A) | false = show X α ∷ᶜ id (closeAt X S (`∀ A))
   revTy X α S (`∀ A) | true =
     all (revTy (suc X) (⇑ᵃ α) (renameᵗ suc S) A) ∷ᶜ id (closeAt X S (`∀ A))
 
   concTy : ℕ → Addr → Ty → Ty → Conv
   concTy X α S (` Y) with X ≟ Y
-  concTy X α S (` Y) | yes _ = seal α ∷ᶜ id (` X)
-  concTy X α S (` Y) | no  _ = hide α ∷ᶜ id (` Y)
-  concTy X α S `ℕ = hide α ∷ᶜ id `ℕ
-  concTy X α S `𝔹 = hide α ∷ᶜ id `𝔹
+  concTy X α S (` Y) | yes _ = seal X α ∷ᶜ id (` X)
+  concTy X α S (` Y) | no  _ = hide X α ∷ᶜ id (` Y)
+  concTy X α S `ℕ = hide X α ∷ᶜ id `ℕ
+  concTy X α S `𝔹 = hide X α ∷ᶜ id `𝔹
   concTy X α S (A ⇒ B) with occursᵗ X (A ⇒ B)
-  concTy X α S (A ⇒ B) | false = hide α ∷ᶜ id (A ⇒ B)
+  concTy X α S (A ⇒ B) | false = hide X α ∷ᶜ id (A ⇒ B)
   concTy X α S (A ⇒ B) | true =
     (revTy X α S A ↦ concTy X α S B) ∷ᶜ id (A ⇒ B)
   concTy X α S (`∀ A) with occursᵗ (suc X) A
-  concTy X α S (`∀ A) | false = hide α ∷ᶜ id (`∀ A)
+  concTy X α S (`∀ A) | false = hide X α ∷ᶜ id (`∀ A)
   concTy X α S (`∀ A) | true =
     all (concTy (suc X) (⇑ᵃ α) (renameᵗ suc S) A) ∷ᶜ id (`∀ A)
 
@@ -173,57 +180,57 @@ id A ⧺ d      = d
 -- A `↦` or `all` fusion defers its component compositions as plain
 -- appends; the reduction system's congruence steps finish them.
 fuse : ConvElt → ConvElt → Maybe (List ConvElt)
-fuse (seal α) (unseal β) with α ≟ᵃ β
-fuse (seal α) (unseal β) | yes _ = just []
-fuse (seal α) (unseal β) | no  _ = nothing
-fuse (unseal α) (seal β) with α ≟ᵃ β
-fuse (unseal α) (seal β) | yes _ = just []
-fuse (unseal α) (seal β) | no  _ = nothing
-fuse (hide α) (show β) with α ≟ᵃ β
-fuse (hide α) (show β) | yes _ = just []
-fuse (hide α) (show β) | no  _ = nothing
-fuse (show α) (hide β) with α ≟ᵃ β
-fuse (show α) (hide β) | yes _ = just []
-fuse (show α) (hide β) | no  _ = nothing
+fuse (seal X α) (unseal Y β) with α ≟ᵃ β
+fuse (seal X α) (unseal Y β) | yes _ = just []
+fuse (seal X α) (unseal Y β) | no  _ = nothing
+fuse (unseal X α) (seal Y β) with α ≟ᵃ β
+fuse (unseal X α) (seal Y β) | yes _ = just []
+fuse (unseal X α) (seal Y β) | no  _ = nothing
+fuse (hide X α) (show Y β) with α ≟ᵃ β
+fuse (hide X α) (show Y β) | yes _ = just []
+fuse (hide X α) (show Y β) | no  _ = nothing
+fuse (show X α) (hide Y β) with α ≟ᵃ β
+fuse (show X α) (hide Y β) | yes _ = just []
+fuse (show X α) (hide Y β) | no  _ = nothing
 fuse (s₁ ↦ t₁) (s₂ ↦ t₂) = just (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
 fuse (all s) (all t) = just (all (s ⧺ t) ∷ [])
-fuse (seal α) (seal β) = nothing
-fuse (seal α) (hide β) = nothing
-fuse (seal α) (show β) = nothing
-fuse (seal α) (s ↦ t) = nothing
-fuse (seal α) (all s) = nothing
-fuse (unseal α) (unseal β) = nothing
-fuse (unseal α) (hide β) = nothing
-fuse (unseal α) (show β) = nothing
-fuse (unseal α) (s ↦ t) = nothing
-fuse (unseal α) (all s) = nothing
-fuse (hide α) (seal β) = nothing
-fuse (hide α) (unseal β) = nothing
-fuse (hide α) (hide β) = nothing
-fuse (hide α) (s ↦ t) = nothing
-fuse (hide α) (all s) = nothing
-fuse (show α) (seal β) = nothing
-fuse (show α) (unseal β) = nothing
-fuse (show α) (show β) = nothing
-fuse (show α) (s ↦ t) = nothing
-fuse (show α) (all s) = nothing
-fuse (s ↦ t) (seal β) = nothing
-fuse (s ↦ t) (unseal β) = nothing
-fuse (s ↦ t) (hide β) = nothing
-fuse (s ↦ t) (show β) = nothing
+fuse (seal X α) (seal Y β) = nothing
+fuse (seal X α) (hide Y β) = nothing
+fuse (seal X α) (show Y β) = nothing
+fuse (seal X α) (s ↦ t) = nothing
+fuse (seal X α) (all s) = nothing
+fuse (unseal X α) (unseal Y β) = nothing
+fuse (unseal X α) (hide Y β) = nothing
+fuse (unseal X α) (show Y β) = nothing
+fuse (unseal X α) (s ↦ t) = nothing
+fuse (unseal X α) (all s) = nothing
+fuse (hide X α) (seal Y β) = nothing
+fuse (hide X α) (unseal Y β) = nothing
+fuse (hide X α) (hide Y β) = nothing
+fuse (hide X α) (s ↦ t) = nothing
+fuse (hide X α) (all s) = nothing
+fuse (show X α) (seal Y β) = nothing
+fuse (show X α) (unseal Y β) = nothing
+fuse (show X α) (show Y β) = nothing
+fuse (show X α) (s ↦ t) = nothing
+fuse (show X α) (all s) = nothing
+fuse (s ↦ t) (seal Y β) = nothing
+fuse (s ↦ t) (unseal Y β) = nothing
+fuse (s ↦ t) (hide Y β) = nothing
+fuse (s ↦ t) (show Y β) = nothing
 fuse (s ↦ t) (all u) = nothing
-fuse (all s) (seal β) = nothing
-fuse (all s) (unseal β) = nothing
-fuse (all s) (hide β) = nothing
-fuse (all s) (show β) = nothing
+fuse (all s) (seal Y β) = nothing
+fuse (all s) (unseal Y β) = nothing
+fuse (all s) (hide Y β) = nothing
+fuse (all s) (show Y β) = nothing
 fuse (all s) (t ↦ u) = nothing
 
 mutual
   weightElt : ConvElt → ℕ
-  weightElt (seal α)   = 1
-  weightElt (unseal α) = 1
-  weightElt (hide α)   = 1
-  weightElt (show α)   = 1
+  weightElt (seal X α)   = 1
+  weightElt (unseal X α) = 1
+  weightElt (hide X α)   = 1
+  weightElt (show X α)   = 1
   weightElt (s ↦ t)    = suc (weight s + weight t)
   weightElt (all s)    = suc (weight s)
 
@@ -257,19 +264,19 @@ mutual
     where
     conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Γᵢ ⊢ R ⇓ A
       → Γₑ ▷ X := α ⇒ Γᵢ
-      → Σ ∣ Γᵢ ⊢̂ seal α ∶ A ⇝ ` X ⊣ Γₑ
+      → Σ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X ⊣ Γₑ
     conv-unseal : Σ ∣ Γᵢ ∋r α := R → Σ ∣ Γₑ ⊢ R ⇓ A
       → Γᵢ ▷ X := α ⇒ Γₑ
-      → Σ ∣ Γᵢ ⊢̂ unseal α ∶ ` X ⇝ A ⊣ Γₑ
+      → Σ ∣ Γᵢ ⊢̂ unseal X α ∶ ` X ⇝ A ⊣ Γₑ
     -- An identity crossing is "the same type" in named notation; in de
     -- Bruijn form the crossed assignment inserts a name entry at depth
     -- X, so the assigned side reads the type through `shiftAtᵗ X`.
     conv-hide : Γᵢ ⊢ᵗ A → Σ ∣ Γᵢ ∋a α
       → Γₑ ▷ X := α ⇒ Γᵢ
-      → Σ ∣ Γᵢ ⊢̂ hide α ∶ A ⇝ renameᵗ (shiftAtᵗ X) A ⊣ Γₑ
+      → Σ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ renameᵗ (shiftAtᵗ X) A ⊣ Γₑ
     conv-show : Γₑ ⊢ᵗ A
       → Γᵢ ▷ X := α ⇒ Γₑ
-      → Σ ∣ Γᵢ ⊢̂ show α ∶ renameᵗ (shiftAtᵗ X) A ⇝ A ⊣ Γₑ
+      → Σ ∣ Γᵢ ⊢̂ show X α ∶ renameᵗ (shiftAtᵗ X) A ⇝ A ⊣ Γₑ
     conv-fun : Σ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ
       → Σ ∣ Γᵢ ⊢̂ (s ↦ t) ∶ A ⇒ B ⇝ C ⇒ D ⊣ Γₑ
     conv-all : Σ ∣ (bind ∷ Γᵢ) ⊢ s ∶ A ⇝ B ⊣ (bind ∷ Γₑ)
@@ -287,10 +294,10 @@ mutual
 
 mutual
   data NFElt : ConvElt → Set where
-    nf-seal   : ∀ {α} → NFElt (seal α)
-    nf-unseal : ∀ {α} → NFElt (unseal α)
-    nf-hide   : ∀ {α} → NFElt (hide α)
-    nf-show   : ∀ {α} → NFElt (show α)
+    nf-seal   : ∀ {X α} → NFElt (seal X α)
+    nf-unseal : ∀ {X α} → NFElt (unseal X α)
+    nf-hide   : ∀ {X α} → NFElt (hide X α)
+    nf-show   : ∀ {X α} → NFElt (show X α)
     nf-fun    : NF s → NF t → NFElt (s ↦ t)
     nf-all    : NF s → NFElt (all s)
 
@@ -309,30 +316,30 @@ mutual
 ------------------------------------------------------------------------
 
 arr⁻ : ConvElt → Maybe (List ConvElt)
-arr⁻ (seal α)   = nothing
-arr⁻ (unseal α) = nothing
-arr⁻ (hide α)   = just (show α ∷ [])
-arr⁻ (show α)   = just (hide α ∷ [])
-arr⁻ (s ↦ t)    = just (elts s)
-arr⁻ (all s)    = nothing
+arr⁻ (seal X α)   = nothing
+arr⁻ (unseal X α) = nothing
+arr⁻ (hide X α)   = just (show X α ∷ [])
+arr⁻ (show X α)   = just (hide X α ∷ [])
+arr⁻ (s ↦ t)      = just (elts s)
+arr⁻ (all s)      = nothing
 
 arr⁺ : ConvElt → Maybe (List ConvElt)
-arr⁺ (seal α)   = nothing
-arr⁺ (unseal α) = nothing
-arr⁺ (hide α)   = just (hide α ∷ [])
-arr⁺ (show α)   = just (show α ∷ [])
-arr⁺ (s ↦ t)    = just (elts t)
-arr⁺ (all s)    = nothing
+arr⁺ (seal X α)   = nothing
+arr⁺ (unseal X α) = nothing
+arr⁺ (hide X α)   = just (hide X α ∷ [])
+arr⁺ (show X α)   = just (show X α ∷ [])
+arr⁺ (s ↦ t)      = just (elts t)
+arr⁺ (all s)      = nothing
 
 -- A hoisted crossing moves under the ∀ element's binder, so its bound
 -- address shifts; `arr` introduces no binder, so `arr⁻`/`arr⁺` do not.
 all⁺ : ConvElt → Maybe (List ConvElt)
-all⁺ (seal α)   = nothing
-all⁺ (unseal α) = nothing
-all⁺ (hide α)   = just (hide (⇑ᵃ α) ∷ [])
-all⁺ (show α)   = just (show (⇑ᵃ α) ∷ [])
-all⁺ (s ↦ t)    = nothing
-all⁺ (all s)    = just (elts s)
+all⁺ (seal X α)   = nothing
+all⁺ (unseal X α) = nothing
+all⁺ (hide X α)   = just (hide (suc X) (⇑ᵃ α) ∷ [])
+all⁺ (show X α)   = just (show (suc X) (⇑ᵃ α) ∷ [])
+all⁺ (s ↦ t)      = nothing
+all⁺ (all s)      = just (elts s)
 
 -- Fold over the element list; the contravariant side reverses.
 arrElts : List ConvElt → Maybe (List ConvElt × List ConvElt)
@@ -380,10 +387,10 @@ base (id `𝔹) = just `𝔹
 base (id (` X)) = nothing
 base (id (A ⇒ B)) = nothing
 base (id (`∀ A)) = nothing
-base (hide α ∷ᶜ c) = base c
-base (show α ∷ᶜ c) = base c
-base (seal α ∷ᶜ c) = nothing
-base (unseal α ∷ᶜ c) = nothing
+base (hide X α ∷ᶜ c) = base c
+base (show X α ∷ᶜ c) = base c
+base (seal X α ∷ᶜ c) = nothing
+base (unseal X α ∷ᶜ c) = nothing
 base ((s ↦ t) ∷ᶜ c) = nothing
 base (all s ∷ᶜ c) = nothing
 
@@ -393,10 +400,10 @@ base (all s ∷ᶜ c) = nothing
 
 mutual
   substAddrElt : SubstAddr → ConvElt → ConvElt
-  substAddrElt σ (seal α)   = seal (substAddr σ α)
-  substAddrElt σ (unseal α) = unseal (substAddr σ α)
-  substAddrElt σ (hide α)   = hide (substAddr σ α)
-  substAddrElt σ (show α)   = show (substAddr σ α)
+  substAddrElt σ (seal X α)   = seal X (substAddr σ α)
+  substAddrElt σ (unseal X α) = unseal X (substAddr σ α)
+  substAddrElt σ (hide X α)   = hide X (substAddr σ α)
+  substAddrElt σ (show X α)   = show X (substAddr σ α)
   substAddrElt σ (s ↦ t)    = substAddrConv σ s ↦ substAddrConv σ t
   substAddrElt σ (all s)    = all (substAddrConv (extsᵃ σ) s)
 
@@ -409,47 +416,64 @@ mutual
 -- walking the elements from the terminator inward
 ------------------------------------------------------------------------
 
-popAt : Addr → Ctxᵗ → Maybe Ctxᵗ
-popAt α [] = nothing
-popAt α (asgn β ∷ Γ) with α ≟ᵃ β
-popAt α (asgn β ∷ Γ) | yes _ = just Γ
-popAt α (asgn β ∷ Γ) | no _ = nothing
-popAt (bnd zero) (bind ∷ Γ) = nothing
-popAt (bnd (suc i)) (bind ∷ Γ) with popAt (bnd i) Γ
-popAt (bnd (suc i)) (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
-popAt (bnd (suc i)) (bind ∷ Γ) | nothing = nothing
-popAt (lvl ℓ) (bind ∷ Γ) with popAt (lvl ℓ) Γ
-popAt (lvl ℓ) (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
-popAt (lvl ℓ) (bind ∷ Γ) | nothing = nothing
-popAt (bnd zero) (addr ∷ Γ) = nothing
-popAt (bnd (suc i)) (addr ∷ Γ) with popAt (bnd i) Γ
-popAt (bnd (suc i)) (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
-popAt (bnd (suc i)) (addr ∷ Γ) | nothing = nothing
-popAt (lvl ℓ) (addr ∷ Γ) with popAt (lvl ℓ) Γ
-popAt (lvl ℓ) (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
-popAt (lvl ℓ) (addr ∷ Γ) | nothing = nothing
-popAt (bnd zero) (nuBind R ∷ Γ) = nothing
-popAt (bnd (suc i)) (nuBind R ∷ Γ) with popAt (bnd i) Γ
-popAt (bnd (suc i)) (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
-popAt (bnd (suc i)) (nuBind R ∷ Γ) | nothing = nothing
-popAt (lvl ℓ) (nuBind R ∷ Γ) with popAt (lvl ℓ) Γ
-popAt (lvl ℓ) (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
-popAt (lvl ℓ) (nuBind R ∷ Γ) | nothing = nothing
+-- Pushing and popping the assignment NAMED X: the name says how many
+-- name entries stand above it, which is exactly what the pop judgment
+-- `_▷_:=_⇒_` counts.  Address entries are transparent and stay above.
+
+pushAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+pushAsgn zero α Γ = just (asgn α ∷ Γ)
+pushAsgn (suc X) α [] = nothing
+pushAsgn (suc X) α (asgn β ∷ Γ) with pushAsgn X α Γ
+pushAsgn (suc X) α (asgn β ∷ Γ) | just Γ′ = just (asgn β ∷ Γ′)
+pushAsgn (suc X) α (asgn β ∷ Γ) | nothing = nothing
+pushAsgn (suc X) α (bind ∷ Γ) with pushAsgn X α Γ
+pushAsgn (suc X) α (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
+pushAsgn (suc X) α (bind ∷ Γ) | nothing = nothing
+pushAsgn (suc X) α (addr ∷ Γ) with pushAsgn (suc X) α Γ
+pushAsgn (suc X) α (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
+pushAsgn (suc X) α (addr ∷ Γ) | nothing = nothing
+pushAsgn (suc X) α (nuBind R ∷ Γ) with pushAsgn (suc X) α Γ
+pushAsgn (suc X) α (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
+pushAsgn (suc X) α (nuBind R ∷ Γ) | nothing = nothing
+
+-- `popAsgn` is the functional form of the pop judgment: no rule passes
+-- through a crossing assignment, so a `suc X` step demands a binder.
+popAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+popAsgn X α [] = nothing
+popAsgn zero α (asgn β ∷ Γ) with α ≟ᵃ β
+popAsgn zero α (asgn β ∷ Γ) | yes _ = just Γ
+popAsgn zero α (asgn β ∷ Γ) | no _ = nothing
+popAsgn zero α (bind ∷ Γ) = nothing
+popAsgn (suc X) α (asgn β ∷ Γ) = nothing
+popAsgn (suc X) α (bind ∷ Γ) with popAsgn X α Γ
+popAsgn (suc X) α (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
+popAsgn (suc X) α (bind ∷ Γ) | nothing = nothing
+popAsgn X α (addr ∷ Γ) with popAsgn X α Γ
+popAsgn X α (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
+popAsgn X α (addr ∷ Γ) | nothing = nothing
+popAsgn X α (nuBind R ∷ Γ) with popAsgn X α Γ
+popAsgn X α (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
+popAsgn X α (nuBind R ∷ Γ) | nothing = nothing
+
+------------------------------------------------------------------------
+-- The interior context of a conversion: `⟨c⟩(Γ)`, walking the elements
+-- from the terminator inward
+------------------------------------------------------------------------
 
 mutual
   interiorElt : ConvElt → Ctxᵗ → Maybe Ctxᵗ
-  interiorElt (seal α)   Γ = popAt α Γ
-  interiorElt (hide α)   Γ = popAt α Γ
-  interiorElt (unseal α) Γ = just (asgn α ∷ Γ)
-  interiorElt (show α)   Γ = just (asgn α ∷ Γ)
-  interiorElt (s ↦ t)    Γ = interior t Γ
-  interiorElt (all s)    Γ with interior s (bind ∷ Γ)
-  interiorElt (all s)    Γ | just (bind ∷ Γ′) = just Γ′
-  interiorElt (all s)    Γ | just (addr ∷ Γ′) = nothing
-  interiorElt (all s)    Γ | just (nuBind R ∷ Γ′) = nothing
-  interiorElt (all s)    Γ | just (asgn β ∷ Γ′) = nothing
-  interiorElt (all s)    Γ | just [] = nothing
-  interiorElt (all s)    Γ | nothing = nothing
+  interiorElt (seal X α)   Γ = popAsgn X α Γ
+  interiorElt (hide X α)   Γ = popAsgn X α Γ
+  interiorElt (unseal X α) Γ = pushAsgn X α Γ
+  interiorElt (show X α)   Γ = pushAsgn X α Γ
+  interiorElt (s ↦ t)      Γ = interior t Γ
+  interiorElt (all s)      Γ with interior s (bind ∷ Γ)
+  interiorElt (all s)      Γ | just (bind ∷ Γ′) = just Γ′
+  interiorElt (all s)      Γ | just (addr ∷ Γ′) = nothing
+  interiorElt (all s)      Γ | just (nuBind R ∷ Γ′) = nothing
+  interiorElt (all s)      Γ | just (asgn β ∷ Γ′) = nothing
+  interiorElt (all s)      Γ | just [] = nothing
+  interiorElt (all s)      Γ | nothing = nothing
 
   interior : Conv → Ctxᵗ → Maybe Ctxᵗ
   interior (id A) Γ = just Γ

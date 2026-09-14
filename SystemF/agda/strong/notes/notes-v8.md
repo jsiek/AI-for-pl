@@ -310,16 +310,21 @@ type:
                    `unseal{+X:=α}` with the type unchanged (the type
                    must not mention `X`).
 
-The ADDRESS is the operative datum of every atomic element, and the
-syntax carries it: `fuse` decides cancellation by address equality (in
-the `unseal{+X:=α} ∷ seal{-Y:=β}` order the seam context has neither name in scope,
-and equal names at the two outer contexts need not mean equal
-addresses), the interior walk `⟨c⟩` identifies the assignment to add or
-remove by its address, and addresses never shift.  The identity
+Both components are operative, and the syntax carries BOTH.  The
+ADDRESS is what `fuse` cancels on: in the `unseal{+X:=α} ∷ seal{-Y:=β}`
+order the seam context has neither name in scope, and equal names at
+the two outer contexts need not mean equal addresses.  The NAME is what
+makes `⟨c⟩` a function of the syntax: the pop judgment skips binder
+assignments, so an element inside a `∀` element's component may cross
+an assignment lying BELOW those binders, and only the name says how
+deep — an address alone leaves the insertion depth ambiguous (a level
+address carries no depth at all).  The name is also what makes the
+source reader `src` total at an `unseal`.  Addresses never shift; a
+name is a de Bruijn index and shifts with its binders.  The identity
 crossings work for ABSTRACT addresses too — a Λ-bound α has no
-representation, and the
-substitution wrap needs exactly `id{-X:=α}` — while the renaming
-elements additionally demand `α:=R` for their read-back.
+representation, and the substitution wrap needs exactly `id{-X:=α}` —
+while the renaming elements additionally demand `α:=R` for their
+read-back.
 
 # Conversion-element Typing
 
@@ -934,8 +939,9 @@ renaming accompanies any reduction.  The type of addresses is `Addr`
 v8 changes land as:
 
   * `Conversion.agda`: the element type is `ConvElt` (renaming v7's
-    `Head`), with new constructors `show`/`hide` (the `id{±X:=α}`
-    forms, carrying the crossed address), strict `conv-id`, exact
+    `Head`), whose four atomic constructors carry the NAME and the
+    ADDRESS (`seal X α`, `unseal X α`, `hide X α`, `show X α` — the
+    last two being the `id{±X:=α}` forms), strict `conv-id`, exact
     crossing premises on all four atomic elements, new `fuse` rows and
     weights, the elementwise views (`arr⁻`/`arr⁺`/`all⁺` on `ConvElt`,
     folded over the element list, with `base` beside `arr`/`allView`),

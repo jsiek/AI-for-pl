@@ -98,6 +98,7 @@ data _∣_⊢_—→_⊣_ : Store → Ctxᵗ → Term → Term → Store → Set
     → Σ ∣ Δ ⊢ M ⟨ c ⟩ —→ M′ ⟨ c ⟩ ⊣ Σ′
 
 infix 2 _∣_⊢_—↠_⊣_
+infixr 3 _then_
 data _∣_⊢_—↠_⊣_ : Store → Ctxᵗ → Term → Term → Store → Set where
   done   : ∀ {Σ Δ M} → Σ ∣ Δ ⊢ M —↠ M ⊣ Σ
   _then_ : ∀ {Σ Σ₁ Σ₂ Δ L M N}

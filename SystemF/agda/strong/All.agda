@@ -17,6 +17,7 @@ open import strong.ConversionReduction
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
+open import strong.Examples
 -- open import strong.TypeSubst
 -- open import strong.Residual
 

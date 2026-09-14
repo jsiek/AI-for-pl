@@ -956,8 +956,9 @@ The v8 Agda development keeps the global store as an append-only
 context of anchor entries; the crossing stack and the binder
 assignments are the local name structure, with de Bruijn names as
 entry-counts and the stack top a fixed position (the `⋉`/`▷` rules are
-push/pop at the head, so no positional insertion device is needed).  Λ- and ν-bound anchors are ordinary de
-Bruijn binders substituted at `TyBeta`/`Alloc`; discharged anchors are
+push/pop at the head, so no positional insertion device is needed).
+Λ- and ν-bound anchors are ordinary de Bruijn binders substituted at
+`TyBeta`/`Alloc`; discharged anchors are
 stable levels, so no anchor renaming accompanies any reduction.  The
 v8 changes land as:
 

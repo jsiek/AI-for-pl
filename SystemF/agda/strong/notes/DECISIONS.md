@@ -3738,3 +3738,24 @@ BAKE-OFF, each dispatched to all four REALLMS models:
 WINNER: glm-5.2 (5/6, fewest steps on every solve); its give-up on the
 30-clause case sweep is the one blemish — gemma's 6-step solution was
 adopted there.  glm-5.2 is the default grinder henceforth.
+
+## 2026-09-14: v8 stage 3 — Terms, TermSubst, Reduction
+
+The term layer lands: `M ⟨ c ⟩` and `ν R ∙ M`; values with the Λ-body
+restriction (`SΛ : Value V → Simple (Λ V)`) and no variables-as-values;
+typing with `⊢Λ` pushing `asgn (bnd 0) ∷ addr ∷ Δ` over a `⤊`-shifted
+term context, `⊢ν` shifting nothing, and `⊢⟨⟩` letting the conversion
+derivation determine the interior; the color wrap
+`crossΛ V A = (renAddrᴹ suc V) ⟨ hide (bnd 0) ∷ᶜ id (⇑ᵗ A) ⟩` inside
+`substᵐ`'s Λ clause (and an address-shift-only `underν`); store-passing
+reduction with immediate `Alloc` discharge at `lvl (length Σ)` and no
+ξ-Λ or ξ-ν.  Both `TyBeta` and `TyWrap` build their conversion with
+`S = A` — uniform in v8, where the new boundary's exterior conceals the
+fresh address (v7's TyWrap used `` ` 0`` because its scope revealed it).
+
+Two de Bruijn corrections to the conversion layer fell out of writing
+the wrap: the identity-crossing rules relate a type to its
+`shiftAtᵗ X`-image (the crossed assignment inserts a name entry at
+depth X — "the same type" is a named-notation statement), and
+`all⁺` must `⇑ᵃ`-shift the crossings it hoists under the ∀ element's
+binder.  `revTy`'s miss terminators now uniformly use `closeAt`.

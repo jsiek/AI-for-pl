@@ -27,7 +27,8 @@ open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; substᵗ; extᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; substᵗ; extᵗ;
+         shiftAtᵗ)
 open import strong.RepresentationTypes
 open import strong.Ctx
 
@@ -132,11 +133,11 @@ mutual
   revTy X α S `ℕ = show α ∷ᶜ id `ℕ
   revTy X α S `𝔹 = show α ∷ᶜ id `𝔹
   revTy X α S (A ⇒ B) with occursᵗ X (A ⇒ B)
-  revTy X α S (A ⇒ B) | false = show α ∷ᶜ id (A ⇒ B)
+  revTy X α S (A ⇒ B) | false = show α ∷ᶜ id (closeAt X S (A ⇒ B))
   revTy X α S (A ⇒ B) | true =
     (concTy X α S A ↦ revTy X α S B) ∷ᶜ id (closeAt X S (A ⇒ B))
   revTy X α S (`∀ A) with occursᵗ (suc X) A
-  revTy X α S (`∀ A) | false = show α ∷ᶜ id (`∀ A)
+  revTy X α S (`∀ A) | false = show α ∷ᶜ id (closeAt X S (`∀ A))
   revTy X α S (`∀ A) | true =
     all (revTy (suc X) (⇑ᵃ α) (renameᵗ suc S) A) ∷ᶜ id (closeAt X S (`∀ A))
 
@@ -260,12 +261,15 @@ mutual
     conv-unseal : Σ ∣ Γᵢ ∋r α := R → Σ ∣ Γₑ ⊢ R ⇓ A
       → Γᵢ ▷ X := α ⇒ Γₑ
       → Σ ∣ Γᵢ ⊢̂ unseal α ∶ ` X ⇝ A ⊣ Γₑ
+    -- An identity crossing is "the same type" in named notation; in de
+    -- Bruijn form the crossed assignment inserts a name entry at depth
+    -- X, so the assigned side reads the type through `shiftAtᵗ X`.
     conv-hide : Γᵢ ⊢ᵗ A → Σ ∣ Γᵢ ∋a α
       → Γₑ ▷ X := α ⇒ Γᵢ
-      → Σ ∣ Γᵢ ⊢̂ hide α ∶ A ⇝ A ⊣ Γₑ
+      → Σ ∣ Γᵢ ⊢̂ hide α ∶ A ⇝ renameᵗ (shiftAtᵗ X) A ⊣ Γₑ
     conv-show : Γₑ ⊢ᵗ A
       → Γᵢ ▷ X := α ⇒ Γₑ
-      → Σ ∣ Γᵢ ⊢̂ show α ∶ A ⇝ A ⊣ Γₑ
+      → Σ ∣ Γᵢ ⊢̂ show α ∶ renameᵗ (shiftAtᵗ X) A ⇝ A ⊣ Γₑ
     conv-fun : Σ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ
       → Σ ∣ Γᵢ ⊢̂ (s ↦ t) ∶ A ⇒ B ⇝ C ⇒ D ⊣ Γₑ
     conv-all : Σ ∣ (bind ∷ Γᵢ) ⊢ s ∶ A ⇝ B ⊣ (bind ∷ Γₑ)
@@ -320,11 +324,13 @@ arr⁺ (show α)   = just (show α ∷ [])
 arr⁺ (s ↦ t)    = just (elts t)
 arr⁺ (all s)    = nothing
 
+-- A hoisted crossing moves under the ∀ element's binder, so its bound
+-- address shifts; `arr` introduces no binder, so `arr⁻`/`arr⁺` do not.
 all⁺ : ConvElt → Maybe (List ConvElt)
 all⁺ (seal α)   = nothing
 all⁺ (unseal α) = nothing
-all⁺ (hide α)   = just (hide α ∷ [])
-all⁺ (show α)   = just (show α ∷ [])
+all⁺ (hide α)   = just (hide (⇑ᵃ α) ∷ [])
+all⁺ (show α)   = just (show (⇑ᵃ α) ∷ [])
 all⁺ (s ↦ t)    = nothing
 all⁺ (all s)    = just (elts s)
 
@@ -380,6 +386,76 @@ base (seal α ∷ᶜ c) = nothing
 base (unseal α ∷ᶜ c) = nothing
 base ((s ↦ t) ∷ᶜ c) = nothing
 base (all s ∷ᶜ c) = nothing
+
+------------------------------------------------------------------------
+-- Address substitution over conversions (binder discharge at `Alloc`)
+------------------------------------------------------------------------
+
+mutual
+  substAddrElt : SubstAddr → ConvElt → ConvElt
+  substAddrElt σ (seal α)   = seal (substAddr σ α)
+  substAddrElt σ (unseal α) = unseal (substAddr σ α)
+  substAddrElt σ (hide α)   = hide (substAddr σ α)
+  substAddrElt σ (show α)   = show (substAddr σ α)
+  substAddrElt σ (s ↦ t)    = substAddrConv σ s ↦ substAddrConv σ t
+  substAddrElt σ (all s)    = all (substAddrConv (extsᵃ σ) s)
+
+  substAddrConv : SubstAddr → Conv → Conv
+  substAddrConv σ (id A)    = id A
+  substAddrConv σ (ĉ ∷ᶜ c) = substAddrElt σ ĉ ∷ᶜ substAddrConv σ c
+
+------------------------------------------------------------------------
+-- The interior context of a conversion: `⟨c⟩(Γ)` as a partial function,
+-- walking the elements from the terminator inward
+------------------------------------------------------------------------
+
+popAt : Addr → Ctxᵗ → Maybe Ctxᵗ
+popAt α [] = nothing
+popAt α (asgn β ∷ Γ) with α ≟ᵃ β
+popAt α (asgn β ∷ Γ) | yes _ = just Γ
+popAt α (asgn β ∷ Γ) | no _ = nothing
+popAt (bnd zero) (bind ∷ Γ) = nothing
+popAt (bnd (suc i)) (bind ∷ Γ) with popAt (bnd i) Γ
+popAt (bnd (suc i)) (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
+popAt (bnd (suc i)) (bind ∷ Γ) | nothing = nothing
+popAt (lvl ℓ) (bind ∷ Γ) with popAt (lvl ℓ) Γ
+popAt (lvl ℓ) (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
+popAt (lvl ℓ) (bind ∷ Γ) | nothing = nothing
+popAt (bnd zero) (addr ∷ Γ) = nothing
+popAt (bnd (suc i)) (addr ∷ Γ) with popAt (bnd i) Γ
+popAt (bnd (suc i)) (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
+popAt (bnd (suc i)) (addr ∷ Γ) | nothing = nothing
+popAt (lvl ℓ) (addr ∷ Γ) with popAt (lvl ℓ) Γ
+popAt (lvl ℓ) (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
+popAt (lvl ℓ) (addr ∷ Γ) | nothing = nothing
+popAt (bnd zero) (nuBind R ∷ Γ) = nothing
+popAt (bnd (suc i)) (nuBind R ∷ Γ) with popAt (bnd i) Γ
+popAt (bnd (suc i)) (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
+popAt (bnd (suc i)) (nuBind R ∷ Γ) | nothing = nothing
+popAt (lvl ℓ) (nuBind R ∷ Γ) with popAt (lvl ℓ) Γ
+popAt (lvl ℓ) (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
+popAt (lvl ℓ) (nuBind R ∷ Γ) | nothing = nothing
+
+mutual
+  interiorElt : ConvElt → Ctxᵗ → Maybe Ctxᵗ
+  interiorElt (seal α)   Γ = popAt α Γ
+  interiorElt (hide α)   Γ = popAt α Γ
+  interiorElt (unseal α) Γ = just (asgn α ∷ Γ)
+  interiorElt (show α)   Γ = just (asgn α ∷ Γ)
+  interiorElt (s ↦ t)    Γ = interior t Γ
+  interiorElt (all s)    Γ with interior s (bind ∷ Γ)
+  interiorElt (all s)    Γ | just (bind ∷ Γ′) = just Γ′
+  interiorElt (all s)    Γ | just (addr ∷ Γ′) = nothing
+  interiorElt (all s)    Γ | just (nuBind R ∷ Γ′) = nothing
+  interiorElt (all s)    Γ | just (asgn β ∷ Γ′) = nothing
+  interiorElt (all s)    Γ | just [] = nothing
+  interiorElt (all s)    Γ | nothing = nothing
+
+  interior : Conv → Ctxᵗ → Maybe Ctxᵗ
+  interior (id A) Γ = just Γ
+  interior (ĉ ∷ᶜ c) Γ with interior c Γ
+  interior (ĉ ∷ᶜ c) Γ | just Γ′ = interiorElt ĉ Γ′
+  interior (ĉ ∷ᶜ c) Γ | nothing = nothing
 
 -- The conversion-level instantiation +X(c)/-X(c) is specified by
 -- composition with the builders (+X(c) ≡ +X(src c) ⨟ c[X:=S]); it

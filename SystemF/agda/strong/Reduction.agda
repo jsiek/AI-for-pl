@@ -1,19 +1,28 @@
 module strong.Reduction where
 
--- Strong System F v7 — small-step reduction for combined boundaries.
+-- Strong System F v8 — store-passing small-step reduction.
+--
+-- `Σ ∣ Δ ⊢ M —→ N ⊣ Σ′`: only `Alloc` extends the store, and the
+-- ξ-rules propagate the extension, so an allocation discharges in one
+-- step from any evaluation position — no per-frame hoisting.  There is
+-- no ξ-Λ (Λ bodies are values) and no scope or store bookkeeping in any
+-- rule: `Merge` is a bare composition, `Wrap` needs no dual scope (the
+-- contravariant `arr` component carries the dual crossings), and
+-- `TyBeta`/`TyWrap` allocate through `ν` with the crossing inside the
+-- built conversion.  The Λ's bound address becomes the ν's binder, so
+-- the body `V` is untouched in both.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
-open import Data.List using ([]; _∷_; _++_; length)
+open import Data.List using (List; []; _∷_; _∷ʳ_; length)
 open import Data.Maybe using (just)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹)
-open import strong.RepresentationTypes using (RepTy; shiftByᴿ)
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
 open import strong.ConversionReduction using (_⨟_; instReveal)
-open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst
 
@@ -21,78 +30,77 @@ open import strong.TermSubst
 ⟦ p+ ⟧ᵖ m n = m + n
 ⟦ p× ⟧ᵖ m n = m * n
 
-infix 2 _⊢_-→_
-data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
-  Beta : ∀ {Δ A N W}
+infix 2 _∣_⊢_—→_⊣_
+data _∣_⊢_—→_⊣_ : Store → Ctxᵗ → Term → Term → Store → Set where
+
+  Beta : ∀ {Σ Δ A N W}
     → Value W
-    → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ
+    → Σ ∣ Δ ⊢ (ƛ A ∙ N) · W —→ N [ W ∶ A ]ᵐ ⊣ Σ
 
-  PrimBeta : ∀ {Δ p m n}
-    → Δ ⊢ ($ m) ⊕[ p ] ($ n) -→ $ (⟦ p ⟧ᵖ m n)
+  PrimBeta : ∀ {Σ Δ p m n}
+    → Σ ∣ Δ ⊢ ($ m) ⊕[ p ] ($ n) —→ $ (⟦ p ⟧ᵖ m n) ⊣ Σ
 
-  TyBeta : ∀ {Δ V B A R}
-    → Value V → Δ ⊢⌊ A ⌋ R
-    → Δ ⊢ (Λ V) • B [ A ]
-        -→ ν repBind R ∷ [] , reveal zero ∷ []
-              [ V ∣ revTy zero zero A B ]
+  -- The Λ's bound address becomes the ν's; the crossing is inside the
+  -- built conversion, whose S is A itself (the representation reads
+  -- back to A on the concealed exterior).
+  TyBeta : ∀ {Σ Δ V B A R}
+    → Value V → Σ ∣ Δ ⊢⌊ A ⌋ R
+    → Σ ∣ Δ ⊢ (Λ V) • B [ A ]
+        —→ ν R ∙ (V ⟨ revTy zero (bnd zero) A B ⟩) ⊣ Σ
 
-  -- The boundary's body is matched as a λ, exactly as TyWrap matches its
-  -- body as a Λ: the λ's annotation is the INTERIOR domain, which `arr`
-  -- needs for its contravariant component.
-  Wrap : ∀ {Δ Θ χ A N c W c₁ c₂}
-    → Value (ν Θ , χ [ ƛ A ∙ N ∣ c ]) → Value W
+  -- Immediate discharge: the fresh address is the next store level, and
+  -- the snoc disturbs no existing level.
+  Alloc : ∀ {Σ Δ R M}
+    → Σ ∣ Δ ⊢ ν R ∙ M —→ M [ lvl (length Σ) ]ᵃᴹ ⊣ (Σ ∷ʳ R)
+
+  -- The boundary's body is matched as a λ: its annotation is the
+  -- INTERIOR domain, which `arr` needs for its contravariant component.
+  Wrap : ∀ {Σ Δ A N c W c₁ c₂}
+    → Value ((ƛ A ∙ N) ⟨ c ⟩) → Value W
     → arr A c ≡ just (c₁ , c₂)
-    → Δ ⊢ (ν Θ , χ [ ƛ A ∙ N ∣ c ]) · W
-        -→ ν Θ , χ
-              [ (ƛ A ∙ N) ·
-                  (ν [] , dual χ
-                    [ renAnchᴹ (shiftAnchor (length Θ)) W ∣ c₁ ])
-              ∣ c₂ ]
+    → Σ ∣ Δ ⊢ ((ƛ A ∙ N) ⟨ c ⟩) · W
+        —→ ((ƛ A ∙ N) · (W ⟨ c₁ ⟩)) ⟨ c₂ ⟩ ⊣ Σ
 
-  TyWrap : ∀ {Δ Θ χ V c B A d R}
-    → Value V → allView c ≡ just d → Δ ⊢⌊ A ⌋ R
-    → Δ ⊢ (ν Θ , χ [ Λ V ∣ c ]) • B [ A ]
-        -→ ν (Θ ++ (repBind (shiftByᴿ (length Θ) R) ∷ []))
-              , (shiftScope 1 χ ++ (reveal zero ∷ []))
-              [ V ∣ instReveal zero zero (` zero) d ]
+  TyWrap : ∀ {Σ Δ V c B A d R}
+    → Value ((Λ V) ⟨ c ⟩)
+    → allView c ≡ just d → Σ ∣ Δ ⊢⌊ A ⌋ R
+    → Σ ∣ Δ ⊢ ((Λ V) ⟨ c ⟩) • B [ A ]
+        —→ ν R ∙ (V ⟨ instReveal zero (bnd zero) A d ⟩) ⊣ Σ
 
-  Merge : ∀ {Δ Θ₁ Θ₂ χ₁ χ₂ V c d}
-    → Value (ν Θ₂ , χ₂ [ V ∣ c ])
-    → Δ ⊢ ν Θ₁ , χ₁ [ ν Θ₂ , χ₂ [ V ∣ c ] ∣ d ]
-        -→ ν (Θ₁ ++ Θ₂)
-              , (shiftScope (length Θ₂) χ₁ ++ χ₂)
-              [ V ∣ c ⨟ renConv (λ X → X) (shiftAnchor (length Θ₂)) d ]
+  Merge : ∀ {Σ Δ M c d}
+    → Value (M ⟨ c ⟩)
+    → Σ ∣ Δ ⊢ (M ⟨ c ⟩) ⟨ d ⟩ —→ M ⟨ c ⨟ d ⟩ ⊣ Σ
 
-  Const : ∀ {Δ Θ χ k A}
-    → Literal k → Base A
-    → Δ ⊢ ν Θ , χ [ k ∣ id A ] -→ k
+  Const : ∀ {Σ Δ k c A}
+    → Literal k → base c ≡ just A
+    → Σ ∣ Δ ⊢ k ⟨ c ⟩ —→ k ⊣ Σ
 
-  ξ-⊕-l : ∀ {Δ L L′ M p}
-    → Δ ⊢ L -→ L′
-    → Δ ⊢ L ⊕[ p ] M -→ L′ ⊕[ p ] M
-  ξ-⊕-r : ∀ {Δ V M M′ p}
-    → Value V → Δ ⊢ M -→ M′
-    → Δ ⊢ V ⊕[ p ] M -→ V ⊕[ p ] M′
-  ξ-·-l : ∀ {Δ L L′ M}
-    → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
-  ξ-·-r : ∀ {Δ V M M′}
-    → Value V → Δ ⊢ M -→ M′
-    → Δ ⊢ V · M -→ V · M′
-  ξ-•[] : ∀ {Δ L L′ B A}
-    → Δ ⊢ L -→ L′
-    → Δ ⊢ L • B [ A ] -→ L′ • B [ A ]
-  ξ-Λ : ∀ {Δ N N′}
-    → (anch revealed abstA ∷ Δ) ⊢ N -→ N′
-    → Δ ⊢ Λ N -→ Λ N′
-  ξ-ν : ∀ {Δ ΔΘ Δᵢ Θ χ M M′ c}
-    → Δ ⊢ˢ Θ ⇒ ΔΘ → ΔΘ ⊢χ χ ⇒ Δᵢ
-    → Δᵢ ⊢ M -→ M′
-    → Δ ⊢ ν Θ , χ [ M ∣ c ] -→ ν Θ , χ [ M′ ∣ c ]
+  ξ-⊕-l : ∀ {Σ Σ′ Δ L L′ M p}
+    → Σ ∣ Δ ⊢ L —→ L′ ⊣ Σ′
+    → Σ ∣ Δ ⊢ L ⊕[ p ] M —→ L′ ⊕[ p ] M ⊣ Σ′
+  ξ-⊕-r : ∀ {Σ Σ′ Δ V M M′ p}
+    → Value V → Σ ∣ Δ ⊢ M —→ M′ ⊣ Σ′
+    → Σ ∣ Δ ⊢ V ⊕[ p ] M —→ V ⊕[ p ] M′ ⊣ Σ′
+  ξ-·-l : ∀ {Σ Σ′ Δ L L′ M}
+    → Σ ∣ Δ ⊢ L —→ L′ ⊣ Σ′
+    → Σ ∣ Δ ⊢ L · M —→ L′ · M ⊣ Σ′
+  ξ-·-r : ∀ {Σ Σ′ Δ V M M′}
+    → Value V → Σ ∣ Δ ⊢ M —→ M′ ⊣ Σ′
+    → Σ ∣ Δ ⊢ V · M —→ V · M′ ⊣ Σ′
+  ξ-•[] : ∀ {Σ Σ′ Δ L L′ B A}
+    → Σ ∣ Δ ⊢ L —→ L′ ⊣ Σ′
+    → Σ ∣ Δ ⊢ L • B [ A ] —→ L′ • B [ A ] ⊣ Σ′
+  -- No ξ-Λ: Λ bodies are values.  No ξ-ν: an allocation in evaluation
+  -- position discharges by `Alloc` before its body runs.
+  ξ-⟨⟩ : ∀ {Σ Σ′ Δ Δᵢ M M′ c}
+    → interior c Δ ≡ just Δᵢ
+    → Σ ∣ Δᵢ ⊢ M —→ M′ ⊣ Σ′
+    → Σ ∣ Δ ⊢ M ⟨ c ⟩ —→ M′ ⟨ c ⟩ ⊣ Σ′
 
-infix 2 _⊢_-→*_
-data _⊢_-→*_ : Ctxᵗ → Term → Term → Set where
-  done   : ∀ {Δ M} → Δ ⊢ M -→* M
-  _then_ : ∀ {Δ L M N}
-    → Δ ⊢ L -→ M → Δ ⊢ M -→* N → Δ ⊢ L -→* N
-
-infixr 2 _then_
+infix 2 _∣_⊢_—↠_⊣_
+data _∣_⊢_—↠_⊣_ : Store → Ctxᵗ → Term → Term → Store → Set where
+  done   : ∀ {Σ Δ M} → Σ ∣ Δ ⊢ M —↠ M ⊣ Σ
+  _then_ : ∀ {Σ Σ₁ Σ₂ Δ L M N}
+    → Σ ∣ Δ ⊢ L —→ M ⊣ Σ₁
+    → Σ₁ ∣ Δ ⊢ M —↠ N ⊣ Σ₂
+    → Σ ∣ Δ ⊢ L —↠ N ⊣ Σ₂

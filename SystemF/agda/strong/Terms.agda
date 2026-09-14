@@ -1,7 +1,13 @@
 module strong.Terms where
 
--- Strong System F v7 — terms, typing, and values.
--- Boundary bodies are term-closed; source nodes carry no explicit colours.
+-- Strong System F v8 — terms, values, and typing.
+--
+-- The boundary is conversion application `M ⟨ c ⟩`: no store, no scope.
+-- `ν R ∙ M` binds a local address with its representation, awaiting
+-- discharge into the global store.  `Λ V` binds an address and a name:
+-- its typing pushes the address binder and a CROSSING assignment for
+-- it, and restricts the body to a VALUE, so there is no reduction under
+-- `Λ`.  Boundary bodies are term-closed; ν bodies are not.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Bool using (Bool)
@@ -12,9 +18,9 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ; _[_]ᵗ)
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
-open import strong.CtxMorph
 
 data Prim : Set where
   p+ : Prim
@@ -24,62 +30,36 @@ infix  9 `_
 infix  9 $_
 infix  9 #_
 infixl 8 _•_[_]
+infixl 8 _⟨_⟩
 infixl 7 _·_
 infixl 6 _⊕[_]_
 infix  6 ƛ_∙_
 infix  6 Λ_
-infix  5 ν_,_[_∣_]
+infix  5 ν_∙_
 
 data Term : Set where
-  `_       : ℕ → Term
-  $_       : ℕ → Term
-  #_       : Bool → Term
-  _⊕[_]_   : Term → Prim → Term → Term
-  ƛ_∙_     : Ty → Term → Term
-  _·_      : Term → Term → Term
-  Λ_       : Term → Term
-  _•_[_]   : Term → Ty → Ty → Term
-  ν_,_[_∣_] : Store → Scope → Term → Conv → Term
-
-Ctx : Set
-Ctx = List Ty
-
-infix 4 _∋_⦂_
-data _∋_⦂_ : Ctx → ℕ → Ty → Set where
-  here  : ∀ {Γ A} → (A ∷ Γ) ∋ zero ⦂ A
-  there : ∀ {Γ x A B} → Γ ∋ x ⦂ A → (B ∷ Γ) ∋ suc x ⦂ A
-
-⤊ : Ctx → Ctx
-⤊ Γ = map ⇑ᵗ Γ
-
-infix 3 _∣_⊢_⦂_
-data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
-  ⊢` : ∀ {Δ Γ x A} → Γ ∋ x ⦂ A → Δ ∣ Γ ⊢ ` x ⦂ A
-  ⊢$ : ∀ {Δ Γ n} → Δ ∣ Γ ⊢ $ n ⦂ `ℕ
-  ⊢# : ∀ {Δ Γ b} → Δ ∣ Γ ⊢ # b ⦂ `𝔹
-  ⊢⊕ : ∀ {Δ Γ M N p}
-    → Δ ∣ Γ ⊢ M ⦂ `ℕ → Δ ∣ Γ ⊢ N ⦂ `ℕ
-    → Δ ∣ Γ ⊢ M ⊕[ p ] N ⦂ `ℕ
-  ⊢ƛ : ∀ {Δ Γ A B N}
-    → Δ ⊢ᵗ A → Δ ∣ A ∷ Γ ⊢ N ⦂ B
-    → Δ ∣ Γ ⊢ ƛ A ∙ N ⦂ A ⇒ B
-  ⊢· : ∀ {Δ Γ A B L M}
-    → Δ ∣ Γ ⊢ L ⦂ A ⇒ B → Δ ∣ Γ ⊢ M ⦂ A
-    → Δ ∣ Γ ⊢ L · M ⦂ B
-  ⊢Λ : ∀ {Δ Γ A N}
-    → (anch revealed abstA ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ A
-    → Δ ∣ Γ ⊢ Λ N ⦂ `∀ A
-  ⊢•[] : ∀ {Δ Γ A B L}
-    → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
-    → Δ ∣ Γ ⊢ L • B [ A ] ⦂ B [ A ]ᵗ
-  ⊢ν : ∀ {Δ ΔΘ Δᵢ Γ Θ χ M c A B}
-    → Δ ⊢ˢ Θ ⇒ ΔΘ → ΔΘ ⊢χ χ ⇒ Δᵢ → NF c
-    → Δᵢ ∣ [] ⊢ M ⦂ A → Δᵢ ⊢ c ∶ A ⇝ B ⊣ ΔΘ
-    → Δ ∣ Γ ⊢ ν Θ , χ [ M ∣ c ] ⦂ B
+  `_     : ℕ → Term
+  $_     : ℕ → Term
+  #_     : Bool → Term
+  _⊕[_]_ : Term → Prim → Term → Term
+  ƛ_∙_   : Ty → Term → Term
+  _·_    : Term → Term → Term
+  Λ_     : Term → Term
+  _•_[_] : Term → Ty → Ty → Term
+  ν_∙_   : RepTy → Term → Term
+  _⟨_⟩   : Term → Conv → Term
 
 data Literal : Term → Set where
   literal-$ : ∀ {n} → Literal ($ n)
   literal-# : ∀ {b} → Literal (# b)
+
+------------------------------------------------------------------------
+-- Values
+------------------------------------------------------------------------
+-- Term variables are NOT values; a `Λ` body is a value with, possibly,
+-- free term variables under an inner λ.  An allocation is never a
+-- value: in evaluation position it discharges.  A literal boundary with
+-- a `base`-defined conversion is not a value: it steps by `Const`.
 
 data Applicable : Conv → Set where
   applies-arr : ∀ A₀ {c c₁ c₂}
@@ -94,10 +74,65 @@ mutual
     S$ : ∀ {n} → Simple ($ n)
     S# : ∀ {b} → Simple (# b)
     Sƛ : ∀ {A N} → Simple (ƛ A ∙ N)
-    SΛ : ∀ {N} → Value N → Simple (Λ N)
+    SΛ : ∀ {V} → Value V → Simple (Λ V)
 
   data Value : Term → Set where
-    Vs : ∀ {V} → Simple V → Value V
-    Vν : ∀ {Θ χ V c}
+    Vs  : ∀ {V} → Simple V → Value V
+    V⟨⟩ : ∀ {V c}
       → Simple V → NF c → Applicable c
-      → Value (ν Θ , χ [ V ∣ c ])
+      → Value (V ⟨ c ⟩)
+
+------------------------------------------------------------------------
+-- Typing
+------------------------------------------------------------------------
+
+Ctx : Set
+Ctx = List Ty
+
+infix 4 _∋_⦂_
+data _∋_⦂_ : Ctx → ℕ → Ty → Set where
+  here  : ∀ {Γ A} → (A ∷ Γ) ∋ zero ⦂ A
+  there : ∀ {Γ x A B} → Γ ∋ x ⦂ A → (B ∷ Γ) ∋ suc x ⦂ A
+
+-- Crossing into a `Λ` adds one name entry (the crossing assignment), so
+-- the term context's types shift by one name.
+⤊ : Ctx → Ctx
+⤊ Γ = map ⇑ᵗ Γ
+
+infix 3 _∣_∣_⊢_⦂_
+data _∣_∣_⊢_⦂_ (Σ : Store) : Ctxᵗ → Ctx → Term → Ty → Set where
+  ⊢` : ∀ {Δ Γ x A} → Γ ∋ x ⦂ A → Σ ∣ Δ ∣ Γ ⊢ ` x ⦂ A
+  ⊢$ : ∀ {Δ Γ n} → Σ ∣ Δ ∣ Γ ⊢ $ n ⦂ `ℕ
+  ⊢# : ∀ {Δ Γ b} → Σ ∣ Δ ∣ Γ ⊢ # b ⦂ `𝔹
+  ⊢⊕ : ∀ {Δ Γ M N p}
+    → Σ ∣ Δ ∣ Γ ⊢ M ⦂ `ℕ → Σ ∣ Δ ∣ Γ ⊢ N ⦂ `ℕ
+    → Σ ∣ Δ ∣ Γ ⊢ M ⊕[ p ] N ⦂ `ℕ
+  ⊢ƛ : ∀ {Δ Γ A B N}
+    → Δ ⊢ᵗ A → Σ ∣ Δ ∣ (A ∷ Γ) ⊢ N ⦂ B
+    → Σ ∣ Δ ∣ Γ ⊢ ƛ A ∙ N ⦂ A ⇒ B
+  ⊢· : ∀ {Δ Γ A B L M}
+    → Σ ∣ Δ ∣ Γ ⊢ L ⦂ A ⇒ B → Σ ∣ Δ ∣ Γ ⊢ M ⦂ A
+    → Σ ∣ Δ ∣ Γ ⊢ L · M ⦂ B
+  -- `Λ` binds an address (its binder) and pushes the crossing
+  -- assignment naming it; the body is a VALUE.
+  ⊢Λ : ∀ {Δ Γ A V}
+    → Value V
+    → Σ ∣ (asgn (bnd zero) ∷ addr ∷ Δ) ∣ ⤊ Γ ⊢ V ⦂ A
+    → Σ ∣ Δ ∣ Γ ⊢ Λ V ⦂ `∀ A
+  ⊢•[] : ∀ {Δ Γ A B L}
+    → Σ ∣ Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
+    → Σ ∣ Δ ∣ Γ ⊢ L • B [ A ] ⦂ B [ A ]ᵗ
+  -- An allocation: the ν-bound entry adds no name, so neither the term
+  -- context nor the result type shifts; addresses never appear in
+  -- types, so A cannot leak the binder.
+  ⊢ν : ∀ {Δ Γ R M A}
+    → Σ ∣ Δ ⊢ᴿ R
+    → Σ ∣ (nuBind R ∷ Δ) ∣ Γ ⊢ M ⦂ A
+    → Σ ∣ Δ ∣ Γ ⊢ ν R ∙ M ⦂ A
+  -- The boundary: the conversion's typing determines the interior
+  -- context; the body is term-closed with respect to the exterior.
+  ⊢⟨⟩ : ∀ {Δ Δᵢ Γ M c A B}
+    → NF c
+    → Σ ∣ Δᵢ ∣ [] ⊢ M ⦂ A
+    → Σ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
+    → Σ ∣ Δ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B

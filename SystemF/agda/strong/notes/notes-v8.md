@@ -224,6 +224,16 @@ differ in whether the crossing renames the type:
   +X:=α   : crosses α's conceal outward, type unchanged (the type must
             not mention `X`).  Inward: v7's `+X:=α`.
 
+The ANCHOR is the formal content of every atomic element; the name is
+display.  In the mechanization the four constructors carry exactly the
+anchor (`seal α`, `unseal α`, `hide α`, `show α`): the name is read off
+the revealed side wherever a rule needs it, `fuse` decides cancellation
+by anchor equality (in the `+X ∷ -Y` order the seam context is the
+concealed side, where names do not exist, and equal names at the two
+outer contexts need not mean equal anchors), and anchors are the
+coordinate that weakening shifts uniformly.  The notation `±X` and
+`±X:=α` displays the name for readability.
+
 # Conversion-element Typing
 
 Each rule's two contexts share a spine and differ in EXACTLY the entry
@@ -430,13 +440,17 @@ and hence `(c ⨟ d) ⨟ e = c ⨟ (d ⨟ e)`, as computation.
 crossing elements, with `κ̄` the dual element (`+X:=α` ↔ `-X:=α`):
 
   arr(A₀, id(A → B)) = (id(A), id(B))
-  arr(A₀, (c → d) ∷ id(C → D)) = (c, d)
-  arr(A₀, κ ∷ c) = (c₁ ⨟ (κ̄ ∷ id(A₀)), κ ∷ c₂)
-    if arr(A₀, c) = (c₁, c₂)
+  arr(A₀, κ₁ ∷ … ∷ κₙ ∷ (c → d) ∷ id(C → D))
+    = (c ⧺ (κ̄ₙ ∷ … ∷ κ̄₁ ∷ id(A₀)), κ₁ ∷ … ∷ κₙ ∷ d)     (n ≥ 0)
 
   all(id(∀X.A)) = id(A)
-  all((∀X.c) ∷ id(∀X.B)) = c
-  all(κ ∷ c) = κ ∷ all(c)      if all(c) is defined
+  all(κ₁ ∷ … ∷ κₙ ∷ (∀X.c) ∷ id(∀X.B)) = κ₁ ∷ … ∷ κₙ ∷ c  (n ≥ 0)
+
+`arr` peels the crossing prefix in one pass: the contravariant component
+re-crosses it in reverse with the dual elements and terminates at the
+INTERIOR domain `A₀` — the λ's own annotation, in its own coordinates —
+so no renaming is involved; the covariant component keeps the prefix.
+Here `_⧺_` is terminator-discarding append.
 
 OPEN (to be settled in the mechanization): whether every reachable
 normal boundary conversion at a function or universal target has one of

@@ -145,9 +145,29 @@ discipline, moved from scope transitions into the element rules.
 Judgments are indexed by both, written `Σ;Γ ⊢ ⋯`; address lookups
 search Σ and Γ's address entries jointly, and we suppress Σ when it is
 fixed.
-Write `Γ ⋉ X:=α` for pushing a crossing assignment onto the stack and
-`Γ ▷ X:=α` for "X:=α is the newest crossing assignment in Γ" (v7's
-judgment, now transparent to binder assignments as well).
+
+The stack is expressed by v7's rightmost-visible judgment, upgraded to
+return the popped context.  `Γ ▷ X:=α ⊣ Γ′` says `X:=α` is the newest
+crossing assignment in Γ, and Γ′ is Γ without it:
+
+  ---------------------
+  (Γ,X:=α) ▷ X:=α ⊣ Γ
+
+  Γ ▷ X:=α ⊣ Γ′                Γ ▷ X:=α ⊣ Γ′
+  ------------------------     ------------------------
+  (Γ,Y:β) ▷ X:=α ⊣ Γ′,Y:β      (Γ,β) ▷ X:=α ⊣ Γ′,β
+
+  Γ ▷ X:=α ⊣ Γ′                Γ ▷ X:=α ⊣ Γ′
+  ------------------------     ------------------------
+  (Γ,β:=S) ▷ X:=α ⊣ Γ′,β:=S    (Γ,x:A) ▷ X:=α ⊣ Γ′,x:A
+
+There is no rule through a crossing assignment `Y:=β` — v7's "every
+conceal removes the latest visible source name" — with binder
+assignments now transparent alongside address and term entries.  The
+transparency is not vacuous: inside a `∀` element's component, an
+atomic element crosses an outer assignment underneath the component's
+binder `Y:β`.  When no transparent entry intervenes, `Γ ▷ X:=α ⊣ Γ′`
+simply says `Γ = Γ′,X:=α`.
 
 Write `ty(Γ)` for the type-only projection (drop the `x:A` entries).
 
@@ -307,26 +327,27 @@ An atomic element pushes or pops only the NEWEST crossing assignment:
 its two contexts differ in exactly a stack top.  This is the stack
 discipline as typing — ill-nested crossings have no derivation.
 
-  Σ;Γₑ ∋ α:=R   Σ;Γᵢ ⊢ R ⇓ A          (Γₑ = Γᵢ ⋉ X:=α)
-  --------------------------------
+  Σ;Γₑ ∋ α:=R   Σ;Γᵢ ⊢ R ⇓ A   Γₑ ▷ X:=α ⊣ Γᵢ
+  ---------------------------------------------
   Σ;Γᵢ ⊢̂ seal{-X:=α} : A ⇒ X ⊣ Γₑ
 
-  Σ;Γᵢ ∋ α:=R   Σ;Γₑ ⊢ R ⇓ A          (Γᵢ = Γₑ ⋉ X:=α)
-  --------------------------------
+  Σ;Γᵢ ∋ α:=R   Σ;Γₑ ⊢ R ⇓ A   Γᵢ ▷ X:=α ⊣ Γₑ
+  ---------------------------------------------
   Σ;Γᵢ ⊢̂ unseal{+X:=α} : X ⇒ A ⊣ Γₑ
 
-  Σ;Γᵢ ⊢ A   Σ;Γᵢ ∋ α   X ∉ Γᵢ        (Γₑ = Γᵢ ⋉ X:=α)
-  --------------------------------
+  Σ;Γᵢ ⊢ A   Σ;Γᵢ ∋ α   Γₑ ▷ X:=α ⊣ Γᵢ
+  ---------------------------------------------
   Σ;Γᵢ ⊢̂ id{-X:=α} : A ⇒ A ⊣ Γₑ
 
-  Σ;Γₑ ⊢ A                            (Γᵢ = Γₑ ⋉ X:=α)
-  --------------------------------
+  Σ;Γₑ ⊢ A   Γᵢ ▷ X:=α ⊣ Γₑ
+  ---------------------------------------------
   Σ;Γᵢ ⊢̂ id{+X:=α} : A ⇒ A ⊣ Γₑ
 
 Well-formedness of `A` on the unassigned side is what enforces `X ∉ A`
-for the identity crossings.  The identity crossings work for ABSTRACT
-addresses (the substitution wrap names a Λ-bound α with no
-representation); the renaming elements additionally demand `α:=R`.
+for the identity crossings, and `ok` of the assigned side gives the
+freshness of `X`.  The identity crossings work for ABSTRACT addresses
+(the substitution wrap names a Λ-bound α with no representation); the
+renaming elements additionally demand `α:=R`.
 
 The structural elements delegate their crossing to their components;
 the `∀` element pushes a BINDER assignment, which the stack skips:
@@ -370,8 +391,10 @@ terminator inward, undoing each element's crossing:
   ⟨id(A)⟩(Γ)     = Γ
   ⟨ĉ ∷ c⟩(Γ)     = ⟨ĉ⟩̂(⟨c⟩(Γ))
 
-  ⟨seal{-X:=α}⟩̂(Γ ⋉ X:=α)   = Γ           ⟨id{-X:=α}⟩̂(Γ ⋉ X:=α) = Γ
-  ⟨unseal{+X:=α}⟩̂(Γ)        = Γ ⋉ X:=α    ⟨id{+X:=α}⟩̂(Γ)        = Γ ⋉ X:=α
+  ⟨seal{-X:=α}⟩̂(Γ)   = Γ′ if Γ ▷ X:=α ⊣ Γ′
+  ⟨id{-X:=α}⟩̂(Γ)     = Γ′ if Γ ▷ X:=α ⊣ Γ′
+  ⟨unseal{+X:=α}⟩̂(Γ) = Γ,X:=α
+  ⟨id{+X:=α}⟩̂(Γ)     = Γ,X:=α
   ⟨c → d⟩̂(Γ)        = ⟨d⟩(Γ)
   ⟨∀X.c⟩̂(Γ)         = Γ′          if ⟨c⟩(Γ,X:α) = Γ′,X:α
 
@@ -407,8 +430,8 @@ The context indices and `S` are suppressed:
 The v7 miss equations (`+X(Y)`, `+X(ι)`, `+X(∀X.A)` and duals) are the
 instances of the first equation.  Contracts:
 
-  Γᵢ ⋉ X:=α ⊢ +X(A) : A ⇒ A[X:=S] ⊣ Γᵢ
-  Γᵢ        ⊢ -X(A) : A[X:=S] ⇒ A ⊣ Γᵢ ⋉ X:=α
+  Γᵢ,X:=α ⊢ +X(A) : A ⇒ A[X:=S] ⊣ Γᵢ
+  Γᵢ      ⊢ -X(A) : A[X:=S] ⇒ A ⊣ Γᵢ,X:=α
 
 # Instantiating a conversion   +X(c), -X(c)
 
@@ -902,8 +925,8 @@ hand-maintained here.
 The v8 Agda development keeps the global store as an append-only
 context of address entries; the crossing stack and the binder
 assignments are the local name structure, with de Bruijn names as
-entry-counts and the stack top a fixed position (the `⋉`/`▷` rules are
-push/pop at the head, so no positional insertion device is needed).
+entry-counts (the `▷` judgment is a skip-to-the-newest-crossing
+lookup, so no positional insertion device is needed).
 Λ- and ν-bound addresses are ordinary de Bruijn binders substituted at
 `TyBeta`/`Alloc`; discharged addresses are stable levels, so no address
 renaming accompanies any reduction.  The type of addresses is `Addr`

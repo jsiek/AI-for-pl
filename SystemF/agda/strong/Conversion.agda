@@ -107,14 +107,20 @@ closeEnv X S Y | no _ | no  _ = ` Y
 closeAt : ℕ → Ty → Ty → Ty
 closeAt X S A = substᵗ (closeEnv X S) A
 
--- c[X:=S]: substitution on the type annotations only; the elements are
--- untouched, so the crossings a conversion performs are unchanged.
+-- `c[X:=S]`: the crossings a conversion performs are unchanged, but
+-- removing the name slot X reindexes the names ABOVE it, so an
+-- element's name decrements exactly when it lies above the slot.
+nameSub : ℕ → ℕ → ℕ
+nameSub X Y with X <? Y
+nameSub X Y | yes _ = Y ∸ 1
+nameSub X Y | no _ = Y
+
 mutual
   substAnnElt : ℕ → Ty → ConvElt → ConvElt
-  substAnnElt X S (seal Y α)   = seal Y α
-  substAnnElt X S (unseal Y α) = unseal Y α
-  substAnnElt X S (hide Y α)   = hide Y α
-  substAnnElt X S (show Y α)   = show Y α
+  substAnnElt X S (seal Y α)   = seal (nameSub X Y) α
+  substAnnElt X S (unseal Y α) = unseal (nameSub X Y) α
+  substAnnElt X S (hide Y α)   = hide (nameSub X Y) α
+  substAnnElt X S (show Y α)   = show (nameSub X Y) α
   substAnnElt X S (s ↦ t)    = substAnn X S s ↦ substAnn X S t
   substAnnElt X S (all s)    = all (substAnn (suc X) (renameᵗ suc S) s)
 

@@ -17,7 +17,7 @@ open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
-open import strong.ConversionReduction using (_⨟_; normalize)
+open import strong.ConversionReduction using (_⨟_; normalize; instReveal)
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
@@ -236,3 +236,127 @@ module Regression where
 
   drift-cancels : normalize drifted ≡ id (`ℕ ⇒ `ℕ)
   drift-cancels = refl
+
+------------------------------------------------------------------------
+-- §14  Polymorphic argument under `Λ` (the value-restricted form)
+------------------------------------------------------------------------
+--   ((Λα,X. λf:∀Z.Z→Z. Λβ,Y. λy:Y. (f •(Z→Z)[Y]) · y)
+--     •((∀Z.Z→Z)→(∀Y.Y→Y))[ℕ])
+--   · (Λγ,Z. λz:Z.z)
+--
+-- Here `X ∉ B`, so `+X(B)` is the MISS case and the identity crossings
+-- appear.  The body is η-expanded (the notes' λ-insertion) so that the
+-- inner `Λ` body is a value.
+------------------------------------------------------------------------
+
+module §14 where
+
+  ∀ZZ→Z : Ty                  -- ∀Z. Z → Z
+  ∀ZZ→Z = `∀ (` 0 ⇒ ` 0)
+
+  B : Ty                      -- (∀Z.Z→Z) → (∀Y.Y→Y), under Λα,X
+  B = ∀ZZ→Z ⇒ ∀ZZ→Z
+
+  f-body : Term               -- Λβ,Y. λy:Y. (f •(Z→Z)[Y]) · y
+  f-body = Λ (ƛ ` 0 ∙ ((` 1 • (` 0 ⇒ ` 0) [ ` 0 ]) · ` 0))
+
+  F : Term
+  F = Λ (ƛ ∀ZZ→Z ∙ f-body)
+
+  idᶻ : Term                  -- Λγ,Z. λz:Z.z
+  idᶻ = Λ (ƛ ` 0 ∙ ` 0)
+
+  P : Term
+  P = (F • B [ `ℕ ]) · idᶻ
+
+  ⊢P : [] ∣ [] ∣ [] ⊢ P ⦂ ∀ZZ→Z
+  ⊢P = ⊢· (⊢•[] (⊢Λ (Vs Sƛ)
+                   (⊢ƛ (wf-∀ (wf-⇒ (wf-var n-here-bind) (wf-var n-here-bind)))
+                     (⊢Λ (Vs Sƛ)
+                       (⊢ƛ (wf-var n-here-asgn)
+                         (⊢· (⊢•[] (⊢` (there here)) (wf-var n-here-asgn))
+                             (⊢` here))))))
+                wf-ℕ)
+          (⊢Λ (Vs Sƛ) (⊢ƛ (wf-var n-here-asgn) (⊢` here)))
+
+  -- X ∉ B, so the builder takes the MISS equation: one identity
+  -- crossing, exactly as the notes write `+X(B) = id{+X:=α} ∷ id(B)`.
+  miss-agrees : revTy zero (bnd zero) `ℕ B ≡ show 0 (bnd 0) ∷ᶜ id B
+  miss-agrees = refl
+
+  cᴮ : Conv                   -- after Alloc
+  cᴮ = show 0 (lvl 0) ∷ᶜ id B
+
+  -- `arr` peels the crossing into BOTH components, dualizing the
+  -- contravariant one: (id{-X:=α} ∷ id(∀Z.Z→Z), id{+X:=α} ∷ id(∀Y.Y→Y))
+  arr-agrees :
+    arr ∀ZZ→Z cᴮ ≡ just (hide 0 (lvl 0) ∷ᶜ id ∀ZZ→Z
+                        , show 0 (lvl 0) ∷ᶜ id ∀ZZ→Z)
+  arr-agrees = refl
+
+  c₁ c₂ : Conv
+  c₁ = hide 0 (lvl 0) ∷ᶜ id ∀ZZ→Z
+  c₂ = show 0 (lvl 0) ∷ᶜ id ∀ZZ→Z
+
+  W : Term                    -- the crossed argument
+  W = idᶻ ⟨ c₁ ⟩
+
+  val-W : Value W
+  val-W = V⟨⟩ (SΛ (Vs Sƛ)) (nf-cons nf-hide nf-id irr-id) (applies-all refl)
+
+  val-F : Value ((ƛ ∀ZZ→Z ∙ f-body) ⟨ cᴮ ⟩)
+  val-F = V⟨⟩ Sƛ (nf-cons nf-show nf-id irr-id) (applies-arr ∀ZZ→Z refl)
+
+  -- Beta's color wrap sends W across the inner Λβ,Y.
+  after-beta : Term
+  after-beta =
+    (Λ (ƛ ` 0 ∙ (((crossΛ W ∀ZZ→Z) • (` 0 ⇒ ` 0) [ ` 0 ]) · ` 0))) ⟨ c₂ ⟩
+
+  trace₁ : [] ∣ [] ⊢ P —↠ after-beta ⊣ (`ℕᴿ ∷ [])
+  trace₁ =
+    ξ-·-l (TyBeta (Vs Sƛ) quote-ℕ) then
+    ξ-·-l Alloc then
+    Wrap val-F val-W′ refl then
+    ξ-⟨⟩ refl (Beta val-W) then
+    done
+    where val-W′ = Vs (SΛ (Vs Sƛ))
+
+  -- the crossed argument now carries BOTH crossings, nested: the outer
+  -- X-conceal from `arr`, the inner Y-conceal from the color wrap
+  wrap-shape :
+    crossΛ W ∀ZZ→Z ≡ (idᶻ ⟨ hide 0 (lvl 0) ∷ᶜ id ∀ZZ→Z ⟩)
+                       ⟨ hide 0 (bnd 0) ∷ᶜ id ∀ZZ→Z ⟩
+  wrap-shape = refl
+
+  -- The result is a VALUE: the value restriction parks the inner
+  -- Merge/TyWrap until this Λ is instantiated.
+  val-after-beta : Value after-beta
+  val-after-beta =
+    V⟨⟩ (SΛ (Vs Sƛ)) (nf-cons nf-show nf-id irr-id) (applies-all refl)
+
+  ------------------------------------------------------------------
+  -- Instantiating it: •(Y→Y)[𝔹] drives TyWrap
+  ------------------------------------------------------------------
+
+  d : Conv                    -- allView c₂, in post-instantiation form
+  d = show 1 (lvl 0) ∷ᶜ id (` 0 ⇒ ` 0)
+
+  all-agrees : allView c₂ ≡ just d
+  all-agrees = refl
+
+  -- THE §14 CHECK: `instReveal` reproduces the notes' conversion
+  --   ((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id{+X:=α} ∷ id(𝔹→𝔹)
+  -- with the fresh crossing FIRST and the hoisted one reindexed to the
+  -- slot the fresh name vacates.
+  inst-agrees :
+    instReveal zero (bnd zero) `𝔹 d
+      ≡ ((seal 0 (bnd 0) ∷ᶜ id (` 0)) ↦ (unseal 0 (bnd 0) ∷ᶜ id `𝔹))
+          ∷ᶜ show 0 (lvl 0) ∷ᶜ id (`𝔹 ⇒ `𝔹)
+  inst-agrees = refl
+
+  step-tywrap :
+    [] ∣ [] ⊢ after-beta • (` 0 ⇒ ` 0) [ `𝔹 ]
+      —→ ν `𝔹ᴿ ∙ ((ƛ ` 0 ∙ (((crossΛ W ∀ZZ→Z) • (` 0 ⇒ ` 0) [ ` 0 ]) · ` 0))
+                    ⟨ instReveal zero (bnd zero) `𝔹 d ⟩)
+      ⊣ []
+  step-tywrap = TyWrap val-after-beta refl quote-𝔹

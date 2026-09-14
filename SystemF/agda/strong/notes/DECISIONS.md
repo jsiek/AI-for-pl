@@ -3790,3 +3790,29 @@ total and syntax-directed, and `srcᶜ` becomes total at an `unseal`
 second obligation I had flagged as a risk when deferring the question.
 The Agda now matches the notes' notation literally: `seal X α`,
 `unseal X α`, `hide X α`, `show X α`.
+
+## 2026-09-14: §14 mechanized — `substAnn` must REINDEX element names
+
+`Examples.§14` machine-checks the notes' §14 example in its
+value-restricted (η-expanded) form: `⊢P`; the MISS equation
+(`+X(B) = id{+X:=α} ∷ id(B)`, since `X ∉ B`); `arr` peeling the single
+crossing into BOTH components with the contravariant one dualized;
+`Beta`'s color wrap nesting the two conceals on the argument; the
+result being a VALUE (the value restriction parks the inner
+`Merge`/`TyWrap` until instantiation); and then `TyWrap` at `𝔹`.
+
+The check that matters is `inst-agrees`: `instReveal` reproduces the
+notes' conversion
+
+  ((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id{+X:=α} ∷ id(𝔹→𝔹)
+
+on the nose.  Getting there needed one de Bruijn correction.  The notes
+say `c[X:=S]` leaves the elements untouched, which is true in named
+notation; in de Bruijn, removing the name slot X REINDEXES the names
+above it, so `substAnnElt` now decrements an element's name exactly
+when it lies above the slot (`nameSub`).  Without it the hoisted
+crossing kept the name `all⁺` gave it under the ∀ element's binder, and
+the composite named two different assignments identically.  The two
+shifts are now consistent: `all⁺` raises a hoisted crossing's name and
+address when it moves under the binder, and `substAnn` lowers the name
+again when the instantiation consumes that binder.

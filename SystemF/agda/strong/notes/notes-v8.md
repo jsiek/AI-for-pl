@@ -21,11 +21,9 @@ crossings, and makes anchor allocation a global effect.
    anchor with its representation; when it reaches evaluation position
    it discharges IMMEDIATELY into the store — one step, no per-frame
    hoisting.  Anchors in Σ are permanent and never shift.  The dual
-   `-χ`, the action `χ(Γ)`, the transition `Γ ⊢ χ ⇒ Γ′`, and the
-   rightmost-visible judgment `Γ ▷ X:=α` are all deleted; bracketing is
-   not enforced by typing (crossings under `∀`-descents need
-   arbitrary-depth conceals) and can return as a theorem about the
-   conversions the builders and reduction rules produce.
+   `-χ`, the action `χ(Γ)`, and the transition `Γ ⊢ χ ⇒ Γ′` are
+   deleted; the `▷` STACK discipline survives, transplanted from scope
+   transitions to the conversion-element rules (point 7).
 4. The source `Λα,X.V` keeps α as a BINDER — a local anchor variable,
    not an allocation — because the substitution wrap under an
    uninstantiated `Λ` must name the anchor its crossing will use.
@@ -42,6 +40,18 @@ crossings, and makes anchor allocation a global effect.
    elements folded over the list, since crossings and structural
    elements interleave in normal forms), and a third view `base` lets
    `Const` see a ground terminator through identity crossings.
+7. The STACK discipline is typing.  Name entries come in two forms —
+   binder assignments `X:α` (pushed by the `∀`-element and the
+   type-level `∀` rules; transparent to the stack, as `▷` was
+   transparent to anchor and term entries) and crossing assignments
+   `X:=α` (pushed by `Λ` and by the atomic elements) — and an atomic
+   element pushes or pops only the NEWEST crossing assignment.  v7's
+   "every conceal removes the latest visible source name" becomes a
+   premise of the element rules, ill-nested crossings are ill-typed,
+   and adjacent `fuse` cancellation suffices for the canonical forms
+   that `Progress` needs.  The conversion-level `+X(c)`/`-X(c)`
+   (instantiation) are redefined to place their single crossing at the
+   stack-correct end of each path.
 
 Motivation: under v7's rules the crossing information lived in two
 places, and the typed coherence between them could not survive the
@@ -72,7 +82,10 @@ to the choice of fresh anchor.
 Single source of crossings: every change of visibility between a
 boundary's interior and exterior is performed by exactly one conversion
 element, so the operations that rearrange conversions (`⨟`, `fuse`, the
-reduction rules) preserve the crossing structure by construction.
+reduction rules) preserve the crossing structure by construction; and
+the crossings obey the stack discipline — an atomic element pushes or
+pops only the newest crossing assignment — so brackets nest and
+adjacent fusion cancels them.
 
 # Types
 
@@ -107,16 +120,31 @@ discharge.
 # The global store and contexts
 
   Σ ::= ∅ | Σ,α:=R                       (global representation store)
-  Γ ::= ∅ | Γ,α | Γ,α:=R | Γ,X:=α | Γ,x:A
+  Γ ::= ∅ | Γ,α | Γ,α:=R | Γ,X:α | Γ,X:=α | Γ,x:A
 
 The store Σ is append-only: `ν` discharge adds a binding, and nothing
 removes or reorders one, so anchors are permanent addresses.  A context
 Γ holds the LOCAL structure: `α` is a Λ- or ∀-bound abstract anchor
-variable, `α:=R` a ν-bound one not yet discharged, `X:=α` assigns a
-source name to an anchor — "revealed" in v8 means exactly that a name
-assignment for the anchor is in scope — and `x:A` is a term variable.
+variable, `α:=R` a ν-bound one not yet discharged, and `x:A` is a term
+variable.  Name entries come in TWO FORMS, distinguished by who
+introduces them:
+
+  X:α    a BINDER assignment, pushed by the `∀`-conversion-element and
+         by the type-level rules (`wf-∀`, the `∀` clauses of `⌊·⌋` and
+         `⇓`).  Perfectly bracketed by its introducing rule.
+  X:=α   a CROSSING assignment, pushed by `Λ`/(TyLam) and pushed or
+         popped by the atomic conversion elements.
+
+"Revealed" in v8 means exactly that a name entry (of either form) for
+the anchor is in scope.  The crossing assignments form the STACK: an
+atomic element may push or pop only the newest one, with binder
+assignments, anchor entries, and term entries transparent — v7's `▷`
+discipline, moved from scope transitions into the element rules.
 Judgments are indexed by both, written `Σ;Γ ⊢ ⋯`; anchor lookups search
 Σ and Γ's anchor entries jointly, and we suppress Σ when it is fixed.
+Write `Γ ⋉ X:=α` for pushing a crossing assignment onto the stack and
+`Γ ▷ X:=α` for "X:=α is the newest crossing assignment in Γ" (v7's
+judgment, now transparent to binder assignments as well).
 
 Write `ty(Γ)` for the type-only projection (drop the `x:A` entries).
 
@@ -124,12 +152,15 @@ Write `ty(Γ)` for the type-only projection (drop the `x:A` entries).
   | Γ ∋ X:=α |
   ------------
 
-  ---------------
-  (Γ,X:=α) ∋ X:=α
+Both name-entry forms answer the lookup:
+
+  ---------------            ---------------
+  (Γ,X:=α) ∋ X:=α            (Γ,X:α) ∋ X:=α
 
   Γ ∋ X:=α                    Γ ∋ X:=α        Γ ∋ X:=α
   --------------- (X ≠ Y)     ------------    ---------------
   (Γ,Y:=β) ∋ X:=α             (Γ,β) ∋ X:=α    (Γ,β:=S) ∋ X:=α
+  (also through Y:β)
 
   Γ ∋ X:=α
   --------------
@@ -151,7 +182,7 @@ Write `⌊A⌋Γ` for the representation of `A` in `Σ;Γ`.
   ⌊X⌋Γ       = α                         if Γ ∋ X:=α
   ⌊ι⌋Γ       = ι
   ⌊A → B⌋Γ   = ⌊A⌋Γ → ⌊B⌋Γ
-  ⌊∀X.A⌋Γ    = ∀α.⌊A⌋(Γ,α,X:=α)          (α fresh)
+  ⌊∀X.A⌋Γ    = ∀α.⌊A⌋(Γ,X:α)             (α fresh)
 
 # Reading a representation type
 
@@ -169,7 +200,7 @@ in scope.
   ---------------------
   Γ ⊢ R → S ⇓ A → B
 
-  Γ,α,X:=α ⊢ R ⇓ A
+  Γ,X:α ⊢ R ⇓ A
   ------------------ (α and X fresh)
   Γ ⊢ ∀α.R ⇓ ∀X.A
 
@@ -187,8 +218,8 @@ in scope.
               --------------
               Γ ⊢ A → B
 
-  (wf-all)    X ∉ Γ  α ∉ Σ;Γ  Γ,α,X:=α ⊢ A
-              -----------------------------
+  (wf-all)    X ∉ Γ  α ∉ Σ;Γ  Γ,X:α ⊢ A
+              --------------------------
               Γ ⊢ ∀X.A
 
 # Well-formed Representation Types   Σ;Γ ⊢ᴿ R
@@ -227,6 +258,10 @@ in scope.
   ------------------------------------
   Σ; Γ,X:=α ok
 
+  Σ;Γ ok   α ∉ Σ;Γ   X ∉ Γ
+  --------------------------
+  Σ; Γ,X:α ok
+
   Σ;Γ ok  Σ;Γ ⊢ A
   ---------------
   Σ; Γ,x:A ok
@@ -264,39 +299,50 @@ elements additionally demand `α:=R` for their read-back.
 
 # Conversion-element Typing
 
-Each rule's two contexts differ in EXACTLY the assignment the element
-crosses.  Write `Γ+X:=α` for Γ with the assignment inserted at `X`'s
-position (in the mechanization the name is a de Bruijn index, which is
-the position).
+An atomic element pushes or pops only the NEWEST crossing assignment:
+its two contexts differ in exactly a stack top.  This is the stack
+discipline as typing — ill-nested crossings have no derivation.
 
-  Σ;Γₑ ∋ α:=R   Σ;Γᵢ ⊢ R ⇓ A          (Γₑ = Γᵢ+X:=α)
+  Σ;Γₑ ∋ α:=R   Σ;Γᵢ ⊢ R ⇓ A          (Γₑ = Γᵢ ⋉ X:=α)
   --------------------------------
   Σ;Γᵢ ⊢̂ -X:=α : A ⇒ X ⊣ Γₑ
 
-  Σ;Γᵢ ∋ α:=R   Σ;Γₑ ⊢ R ⇓ A          (Γᵢ = Γₑ+X:=α)
+  Σ;Γᵢ ∋ α:=R   Σ;Γₑ ⊢ R ⇓ A          (Γᵢ = Γₑ ⋉ X:=α)
   --------------------------------
   Σ;Γᵢ ⊢̂ +X:=α : X ⇒ A ⊣ Γₑ
 
-  Σ;Γᵢ ⊢ A   Σ;Γᵢ ∋ α   X ∉ Γᵢ        (Γₑ = Γᵢ+X:=α)
+  Σ;Γᵢ ⊢ A   Σ;Γᵢ ∋ α   X ∉ Γᵢ        (Γₑ = Γᵢ ⋉ X:=α)
   --------------------------------
   Σ;Γᵢ ⊢̂ id{-X:=α} : A ⇒ A ⊣ Γₑ
 
-  Σ;Γₑ ⊢ A                            (Γᵢ = Γₑ+X:=α)
+  Σ;Γₑ ⊢ A                            (Γᵢ = Γₑ ⋉ X:=α)
   --------------------------------
   Σ;Γᵢ ⊢̂ id{+X:=α} : A ⇒ A ⊣ Γₑ
 
 Well-formedness of `A` on the unassigned side is what enforces `X ∉ A`
-for the identity crossings.
+for the identity crossings.  The identity crossings work for ABSTRACT
+anchors (the substitution wrap names a Λ-bound α with no
+representation); the renaming elements additionally demand `α:=R`.
 
-The structural elements delegate their crossing to their components:
+The structural elements delegate their crossing to their components;
+the `∀` element pushes a BINDER assignment, which the stack skips:
 
   Γₑ ⊢ c : C ⇒ A ⊣ Γᵢ    Γᵢ ⊢ d : B ⇒ D ⊣ Γₑ
   ------------------------------------------
   Γᵢ ⊢̂ c → d : (A → B) ⇒ (C → D) ⊣ Γₑ
 
-  Γᵢ,α,X:=α ⊢ c : A ⇒ B ⊣ Γₑ,α,X:=α
+  Γᵢ,X:α ⊢ c : A ⇒ B ⊣ Γₑ,X:α
   ------------------------------------ (α fresh)
   Γᵢ ⊢̂ ∀X.c : ∀X.A ⇒ ∀X.B ⊣ Γₑ
+
+The binder assignment is exactly why the discipline holds under
+`∀`-descents: inside the component, a crossing of an OUTER assignment
+still pops the newest CROSSING assignment, because `X:α` is transparent
+to the stack.  `Λ`'s assignment, by contrast, is a crossing assignment:
+the color wrap pops it at the moment it is newest (`Beta` creates the
+wrap immediately under the binder), nested substitutions re-wrap so
+pops nest with the term binders, and `TyBeta` hands the entry over to
+the new boundary's crossing at the same stack position.
 
 # Conversion Typing
 
@@ -320,13 +366,13 @@ terminator inward, undoing each element's crossing:
   ⟨id(A)⟩(Γ)     = Γ
   ⟨ĉ ∷ c⟩(Γ)     = ⟨ĉ⟩̂(⟨c⟩(Γ))
 
-  ⟨-X:=α⟩̂(Γ+X:=α) = Γ           ⟨id{-X:=α}⟩̂(Γ+X:=α) = Γ
-  ⟨+X:=α⟩̂(Γ)      = Γ+X:=α      ⟨id{+X:=α}⟩̂(Γ)      = Γ+X:=α
-  ⟨c → d⟩̂(Γ)      = ⟨d⟩(Γ)
-  ⟨∀X.c⟩̂(Γ)       = Γ′          if ⟨c⟩(Γ,α,X:=α) = Γ′,α,X:=α
+  ⟨-X:=α⟩̂(Γ ⋉ X:=α) = Γ           ⟨id{-X:=α}⟩̂(Γ ⋉ X:=α) = Γ
+  ⟨+X:=α⟩̂(Γ)        = Γ ⋉ X:=α    ⟨id{+X:=α}⟩̂(Γ)        = Γ ⋉ X:=α
+  ⟨c → d⟩̂(Γ)        = ⟨d⟩(Γ)
+  ⟨∀X.c⟩̂(Γ)         = Γ′          if ⟨c⟩(Γ,X:α) = Γ′,X:α
 
-The walk is fully syntax-directed — each element carries its name and
-anchor — and on well-typed conversions it agrees with the typing:
+The walk is a stack walk — each element pushes or pops the top — and on
+well-typed conversions it agrees with the typing:
 
   if Γᵢ ⊢ c : A ⇒ B ⊣ Γₑ then ⟨c⟩(Γₑ) = Γᵢ.
 
@@ -357,32 +403,58 @@ The context indices and `S` are suppressed:
 The v7 miss equations (`+X(Y)`, `+X(ι)`, `+X(∀X.A)` and duals) are the
 instances of the first equation.  Contracts:
 
-  Γᵢ+X:=α ⊢ +X(A) : A ⇒ A[X:=S] ⊣ Γᵢ
-  Γᵢ      ⊢ -X(A) : A[X:=S] ⇒ A ⊣ Γᵢ+X:=α
+  Γᵢ ⋉ X:=α ⊢ +X(A) : A ⇒ A[X:=S] ⊣ Γᵢ
+  Γᵢ        ⊢ -X(A) : A[X:=S] ⇒ A ⊣ Γᵢ ⋉ X:=α
 
-  -----------------
-  | +X(c) = c′ | (reveal X in c)
-  | -X(c) = c′ | (conceal X in c)
-  -----------------
+# Instantiating a conversion   +X(c), -X(c)
 
-These operations require `NF(c)` and return a conversion in normal form.
+The conversion-level operations (v7's "reveal/conceal X in c"; `TyWrap`
+uses `+X(d)`) perform ONE crossing, placed at the stack-correct end of
+each path: `+X` pops the newest assignment, so its crossing structure
+goes FIRST; `-X` pushes, and is used contravariantly, so its crossing
+goes LAST.  They are specified by composition with the type-level
+builders,
 
-  +X(id(A)) = +X(A)             -X(id(A)) = -X(A)
-  +X(ĉ ∷ c) = +X(ĉ) ⨟ +X(c)
-  -X(ĉ ∷ c) = -X(ĉ) ⨟ -X(c)
+  +X(c) ≡ +X(src c) ⨟ c[X:=S]           : A ⇒ B[X:=S]
+  -X(c) ≡ c[X:=S] ⨟ -X(tgt c)           : A[X:=S] ⇒ B
+                                          (Γᵢ ⊢ c : A ⇒ B ⊣ Γₑ,
+                                           X:=α assigned along c)
 
-On elements, with `B` the target supplied by the typing derivation of
-the transformed element:
+and computed syntactically.  `tgt` is `target`; `src` reads the source
+off the syntax where the syntax determines it:
 
-  +X(+Y:=β) = +Y:=β ∷ id(B)             -X(+Y:=β) = +Y:=β ∷ id(B)
-  +X(-Y:=β) = -Y:=β ∷ id(B)             -X(-Y:=β) = -Y:=β ∷ id(B)
-  +X(id{±Y:=β}) = id{±Y:=β} ∷ id(B)     -X(id{±Y:=β}) = id{±Y:=β} ∷ id(B)
-  +X(c → d) = (-X(c) → +X(d)) ∷ id(B)
-  -X(c → d) = (+X(c) → -X(d)) ∷ id(B)
-  +X(∀Y.c) = (∀Y.+X(c)) ∷ id(B)  (X ≠ Y)
-  -X(∀Y.c) = (∀Y.-X(c)) ∷ id(B)  (X ≠ Y)
-  +X(∀X.c) = (∀X.c) ∷ id(B)
-  -X(∀X.c) = (∀X.c) ∷ id(B)
+  src(id(A))          = A
+  src((s → t) ∷ c)    = tgt(s) → src(t)
+  src((∀Y.s) ∷ c)     = ∀Y. src(s)
+  src(+Y:=β ∷ c)      = Y
+  src(id{±Y:=β} ∷ c)  = src(c)
+  src(-Y:=β ∷ c)      undefined
+
+  +X(c) = +X(src c) ⨟ c[X:=S]           (src c defined)
+  +X(c) = id{+X:=α} ∷ c                 (src c undefined)
+  -X(c) = c[X:=S] ⨟ -X(tgt c)
+
+A seal-headed conversion's source is the read-back of a stored
+representation, and a representation in Σ cannot mention a bound anchor
+variable — so in the undefined case `X` occurs nowhere in `c` and the
+bare identity crossing is correct.  `c[X:=S]` is type substitution on
+annotations, elements untouched:
+
+  id(A)[X:=S]     = id(A[X:=S])
+  (ĉ ∷ c)[X:=S]   = ĉ[X:=S] ∷ c[X:=S]
+  ĉ[X:=S]         = ĉ                      (atomic)
+  (s → t)[X:=S]   = s[X:=S] → t[X:=S]
+  (∀Y.s)[X:=S]    = ∀Y. s[X:=S]            (Y ≠ X; (∀X.s)[X:=S] = ∀X.s)
+
+The specification is closed under `⨟`'s fusion: when `c` begins with a
+`→` element, normalizing `+X(src c) ⨟ c[X:=S]` fuses the builder's
+element with `c`'s, giving
+
+  +X((s → t) ∷ c) = (-X(s) → +X(t)) ∷ c[X:=S]
+
+with the recursion re-emerging in the components — so the operations
+are structural in effect, with each path's crossing at its interior
+end.
 
 # Runtime Terms
 
@@ -505,13 +577,18 @@ the v7 views (`arr(A₀, (c→d) ∷ id(C→D)) = (c, d)` up to the
 terminator's type), and `base` is the view `Const` uses: a literal
 ignores identity crossings.
 
-OPEN (to be settled in the mechanization): whether every reachable
-normal boundary conversion at a function, universal, or ground target
-is view-defined — that is, free of RENAMING elements.  A renaming pair
-can stand apart in a normal form (`-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)`
-is normal); the claim to prove is that such conversions do not reach
-value boundaries, or else the views and the `Value` clause must treat
-them.
+Canonicity (the shape `Progress` needs): a TYPED normal boundary
+conversion at a function, universal, or ground target is view-defined —
+free of renaming elements.  The argument now has three legs.  Type
+shape forces renaming elements into LIFO brackets (a seal sets the
+running type to its variable, an unseal demands it, and no structural
+element inhabits a variable type).  The stack discipline in the element
+rules forces every crossing inside a bracket to nest strictly within it
+— the overlapping form `-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)` is
+syntactically normal but has NO typing derivation, since its `+X:=α`
+pops under a newer open assignment.  And adjacent `fuse` cancellation
+then empties and collapses every nested bracket, so none survives in a
+typed normal form at these targets.
 
 ## Composition totality
 
@@ -685,7 +762,7 @@ If `Σ;Γ ok`, `NF(c)`, and `Σ;Γᵢ ⊢ c : A ⇒ B ⊣ Γ`, then `Σ;Γᵢ ok
 
 Color is over TYPE VARIABLES:
 
-  color(Γ) = { X | Γ ∋ X:=α for some α }.
+  color(Γ) = { X | Γ ∋ X:=α for some α }     (either entry form).
 
 The one-hole-context judgment descends as in v7, with the `Λ` clause
 adding `α, X:=α` and the boundary clause computed by `⟨c⟩`:
@@ -693,6 +770,9 @@ adding `α, X:=α` and the boundary clause computed by `⟨c⟩`:
   Γ,α,X:=α ⊢ C ⊣ Γ′               ⟨c⟩(ty(Γ)) ⊢ C ⊣ Γ′
   ------------------              --------------------
   Γ ⊢ Λα,X.C ⊣ Γ′                 Γ ⊢ C⟨c⟩ ⊣ Γ′
+
+(`Λ` pushes a crossing assignment; the type-level `∀` rules push binder
+assignments — both count for color.)
 
   Γ,α:=R ⊢ C ⊣ Γ′
   ------------------
@@ -769,9 +849,11 @@ defined.  Under the value restriction the `Merge` and `TyWrap` that v7
 performed inside the `Λ` wait for instantiation.  Applying the value,
 say `•(Y→Y)[𝔹]` and then `· true`, drives them:
 
-  -→⟨ TyWrap; all as above; ⌊𝔹⌋ = 𝔹 ⟩  -→⟨ Alloc; Σ = α:=ℕ, β:=𝔹 ⟩
+  -→⟨ TyWrap; ⌊𝔹⌋ = 𝔹;
+      +Y(id{+X:=α} ∷ id(Y→Y)) = +Y(Y→Y) ⨟ (id{+X:=α} ∷ id(𝔹→𝔹)):
+      the fresh crossing goes FIRST ⟩  -→⟨ Alloc; Σ = α:=ℕ, β:=𝔹 ⟩
   (λy:Y. ((W⟨id{-Y:=β} ∷ id(∀Z.Z→Z)⟩) •(Z→Z)[Y]) · y)
-  ⟨id{+X:=α} ∷ ((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id(𝔹→𝔹)⟩
+  ⟨((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id{+X:=α} ∷ id(𝔹→𝔹)⟩
   · true
 
 after which `Wrap` splits the conversion elementwise into both
@@ -782,6 +864,64 @@ allocates `γ:=β` (note `⌊Y⌋ = β`: a stored representation can point at
 an earlier anchor), and the remaining `Wrap`/`Beta`/`Merge`/`Const`
 steps cancel every crossing and deliver `true` with
 `Σ = α:=ℕ, β:=𝔹, γ:=β`.  The full trace belongs in `Examples.agda`.
+
+## A sealed value crossing a Λ (bracket nesting)
+
+This example discriminates the crossing placements: a sealed var-typed
+value crosses an uninstantiated `Λ` behind the color wrap, and is later
+unsealed.  Let
+
+  g  =  Λα,X. λx:X. Λγ,Z. λz:Z. x        :  ∀X. X → (∀Z. Z → X)
+  P  =  (((g •(X → ∀Z.Z→X)[ℕ]) · 7) •(Z→ℕ)[𝔹]) · true    :  ℕ
+
+  c_ZX = ((id{-X:=α} ∷ id(Z)) → (+X:=α ∷ id(ℕ))) ∷ id(Z→ℕ)
+  c_X  = ((-X:=α ∷ id(X)) → ((∀Z. c_ZX) ∷ id(∀Z.Z→ℕ)))
+           ∷ id(ℕ → ∀Z.Z→ℕ)                             = +X(X → ∀Z.Z→X)
+  W₀   = 7⟨-X:=α ∷ id(X)⟩
+
+  P
+  -→⟨ ξ-·-l (ξ-• (ξ-·-l TyBeta)) ⟩
+  (((να:=ℕ. (λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩) · 7) •(Z→ℕ)[𝔹]) · true
+  -→⟨ ξ-·-l (ξ-• (ξ-·-l Alloc));  Σ = α:=ℕ ⟩
+  ((((λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩) · 7) •(Z→ℕ)[𝔹]) · true
+  -→⟨ ξ-·-l (ξ-• Wrap);
+      arr(X, c_X) = (-X:=α ∷ id(X), (∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) ⟩
+  ((((λx:X. Λγ,Z. λz:Z. x) · W₀)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩) •(Z→ℕ)[𝔹]) · true
+  -→⟨ ξ-·-l (ξ-• (ξ-⟨⟩ Beta));  W₀ is a value; x is under Λγ,Z, so the
+      color wrap fires: x := W₀⟨id{-Z:=γ} ∷ id(X)⟩ ⟩
+  (((Λγ,Z. λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩)
+    •(Z→ℕ)[𝔹]) · true
+  -→⟨ ξ-·-l TyWrap;  all((∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) = c_ZX;  ⌊𝔹⌋ = 𝔹;
+      e := +Z(c_ZX) = +Z(Z→X) ⨟ c_ZX[Z:=𝔹]
+         = ((id{-X:=α} ∷ -Z:=γ ∷ id(Z)) → (id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)))
+             ∷ id(𝔹→ℕ) ⟩
+  ((νγ:=𝔹. (λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩)) · true
+  -→⟨ ξ-·-l Alloc;  Σ = α:=ℕ, γ:=𝔹 ⟩
+  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩) · true
+  -→⟨ Wrap;  arr(Z, e) = (id{-X:=α} ∷ -Z:=γ ∷ id(Z),
+                          id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)) ⟩
+  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩) · true⟨id{-X:=α} ∷ -Z:=γ ∷ id(Z)⟩)
+    ⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+  -→⟨ ξ-⟨⟩ Beta;  the argument is a value (var target); z is discarded ⟩
+  (W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+  -→⟨ ξ-⟨⟩ Merge ⟩
+  (7⟨-X:=α ∷ id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+  -→⟨ Merge;
+      -X:=α ∷ id{-Z:=γ} ∷ id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)
+        ↝ -X:=α ∷ +X:=α ∷ id(ℕ)  ↝  id(ℕ) ⟩
+  7⟨id(ℕ)⟩
+  -→⟨ Const ⟩
+  7.
+
+The merged element list is a nested Dyck word — push X, push Z, pop Z,
+pop X — and adjacent fusion cancels it inside-out.  Had the
+instantiation placed its crossings at the exterior ends (the covariant
+component as `+X:=α ∷ id{+Z:=γ} ∷ id(ℕ)`), the merge would produce the
+overlapping word push X, push Z, pop X, pop Z: syntactically normal,
+stuck at a ground target — and, under the stack element rules,
+ill-typed.  The stack discipline is exactly what rules that state out,
+and the instantiation's placement is what keeps reachable states inside
+it.
 
 ## Cross-name composition and cancellation (v7 Examples, third)
 
@@ -812,13 +952,13 @@ hand-maintained here.
 
 # Mechanization notes (Agda, strong/)
 
-The v8 Agda development realizes the two-sorted contexts with the
-merged-entry representation already in `Ctx.agda`: the global store is
-an append-only context of anchor entries, a name assignment is a
-visibility mark on its anchor's entry (so name order equals anchor
-order and `Γ+X:=α`'s insertion position is determined by α), and de
-Bruijn names are reveal-counts.  Λ- and ν-bound anchors are ordinary de
-Bruijn binders substituted at `TyBeta`/`Alloc`; discharged anchors are
+The v8 Agda development keeps the global store as an append-only
+context of anchor entries; the crossing stack and the binder
+assignments are the local name structure, with de Bruijn names as
+entry-counts and the stack top a fixed position (the `⋉`/`▷` rules are
+push/pop at the head, so no positional insertion device is needed).
+Λ- and ν-bound anchors are ordinary de Bruijn binders substituted at
+`TyBeta`/`Alloc`; discharged anchors are
 stable levels, so no anchor renaming accompanies any reduction.  The
 v8 changes land as:
 
@@ -826,9 +966,13 @@ v8 changes land as:
     `Head`), with new constructors `show`/`hide` (the `id{±X:=α}`
     forms, carrying the crossed anchor), strict `conv-id`, exact
     crossing premises on all four atomic elements, new `fuse` rows and
-    weights, and the elementwise views: `arr⁻`/`arr⁺`/`all⁺` on
-    `ConvElt`, folded over the element list, with `base` beside
-    `arr`/`allView`.  The tail
+    weights, the elementwise views (`arr⁻`/`arr⁺`/`all⁺` on `ConvElt`,
+    folded over the element list, with `base` beside `arr`/`allView`),
+    and the instantiation operations via `src`/`tgt` and annotation
+    substitution.  The stack-form element rules carry the `▷`
+    discipline; preservation shows the builders, instantiation, views,
+    `⨟`, and the substitution wrap emit only stack-legal conversions.
+    The tail
     judgment `_⊩_∶_⇝_⊣_` merges into `_⊢_∶_⇝_⊣_`, since a strict `id`
     makes every seam reflexive.
   * `Terms.agda`/`Reduction.agda`: `_⟨_⟩` and `ν_:=_._` replace

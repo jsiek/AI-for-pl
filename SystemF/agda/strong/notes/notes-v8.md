@@ -4,10 +4,10 @@ Version 8 makes the conversion the single source of truth for scope
 crossings.
 
 1. The boundary loses its scope-change component: `νΘ,χ[M|c]` becomes
-   `νΘ[M|c]`.  The crossings that `χ` performed become conversion ELEMENTS,
-   written with the old scope-change syntax: `+X:=α` and `-X:=α` are now
-   elements that cross a reveal without renaming the type, alongside the
-   renaming elements `+X` and `-X`.
+   `νΘ[M|c]`.  The crossings that `χ` performed become conversion
+   ELEMENTS: `id{+X:=α}` and `id{-X:=α}` cross a reveal or a conceal
+   without changing the type, alongside the renaming elements, which now
+   also carry their anchor: `+X:=α` (unseal) and `-X:=α` (seal).
 2. Conversion typing is EXACT.  `id(A)` is strictly reflexive (one
    context, one type).  Each element connects two contexts that differ in
    exactly the crossing it performs; `→` and `∀` elements delegate their
@@ -29,11 +29,11 @@ crossings.
 5. The reduction rules stop doing scope bookkeeping: `Merge` appends
    conversions and nothing else; `Wrap` needs no dual scope, because the
    contravariant `arr` component carries the dual crossings; `TyBeta` and
-   `TyWrap` need no `+X:=α` component, because `+X(·)` emits the
+   `TyWrap` need no separate scope component, because `+X(·)` emits the
    crossing.
 6. `fuse` gains cancellation rows for the crossing elements, and the view
-   functions `arr`/`all` gain clauses that carry a crossing element into the
-   components.
+   functions `arr`/`all` gain clauses that carry an identity crossing
+   element into the components.
 
 Motivation: under v7's rules the crossing information lived in two
 places, and the typed coherence between them could not survive the
@@ -209,30 +209,31 @@ most one name because a name is part of its entry.
 
 # Conversions
 
-  ĉ,ḓ ::= +X | -X | +X:=α | -X:=α | c → d | ∀X.c
+  ĉ,ḓ ::= +X:=α | -X:=α | id{+X:=α} | id{-X:=α} | c → d | ∀X.c
   c,d ::= id(A) | ĉ ∷ c
 
 The four atomic elements all cross the visibility of one anchor; they
 differ in whether the crossing renames the type:
 
-  -X      : crosses α's reveal outward and SEALS: `A ⇒ X`, reading α's
-            representation on the concealed side.
-  +X      : crosses α's conceal outward and UNSEALS: `X ⇒ A`.
-  -X:=α   : crosses α's reveal outward, type unchanged.  As a boundary
-            element it conceals `X` inward — v7's scope change `-X:=α`,
-            relocated into the conversion.
-  +X:=α   : crosses α's conceal outward, type unchanged (the type must
-            not mention `X`).  Inward: v7's `+X:=α`.
+  -X:=α      : SEAL: crosses α's reveal outward, `A ⇒ X`, reading α's
+               representation on the concealed side.
+  +X:=α      : UNSEAL: crosses α's conceal outward, `X ⇒ A`.
+  id{-X:=α}  : identity conceal crossing: the same crossing as `-X:=α`
+               with the type unchanged.  As a boundary element it
+               conceals `X` inward — v7's scope change `-X:=α`,
+               relocated into the conversion.
+  id{+X:=α}  : identity reveal crossing: the same crossing as `+X:=α`
+               with the type unchanged (the type must not mention `X`).
 
-The ANCHOR is the formal content of every atomic element; the name is
-display.  In the mechanization the four constructors carry exactly the
-anchor (`seal α`, `unseal α`, `hide α`, `show α`): the name is read off
-the revealed side wherever a rule needs it, `fuse` decides cancellation
-by anchor equality (in the `+X ∷ -Y` order the seam context is the
-concealed side, where names do not exist, and equal names at the two
-outer contexts need not mean equal anchors), and anchors are the
-coordinate that weakening shifts uniformly.  The notation `±X` and
-`±X:=α` displays the name for readability.
+The ANCHOR is the operative datum of every atomic element, and the
+syntax carries it: `fuse` decides cancellation by anchor equality (in
+the `+X:=α ∷ -Y:=β` order the seam context is the concealed side, where
+names do not exist, and equal names at the two outer contexts need not
+mean equal anchors), the interior walk `⟨c⟩` identifies the entry to
+flip by its anchor, and anchors are the coordinate that weakening
+shifts uniformly.  In the mechanization the constructors carry ONLY the
+anchor (`seal α`, `unseal α`, `hide α`, `show α`); the de Bruijn name is
+recomputed as a reveal-count wherever a rule needs it.
 
 # Conversion-element Typing
 
@@ -243,22 +244,22 @@ two sides of a rule.
 
   Γₑ[X:α] ∋ α:=R   Γᵢ[α] ⊢ R ⇓ A
   ------------------------------------
-  Γᵢ[α] ⊢̂ -X : A ⇒ X ⊣ Γₑ[X:α]
+  Γᵢ[α] ⊢̂ -X:=α : A ⇒ X ⊣ Γₑ[X:α]
 
   Γᵢ[X:α] ∋ α:=R   Γₑ[α] ⊢ R ⇓ A
   ------------------------------------
-  Γᵢ[X:α] ⊢̂ +X : X ⇒ A ⊣ Γₑ[α]
+  Γᵢ[X:α] ⊢̂ +X:=α : X ⇒ A ⊣ Γₑ[α]
 
   Γᵢ[α] ⊢ A   (X fresh for Γᵢ[α])
   ------------------------------------
-  Γᵢ[α] ⊢̂ -X:=α : A ⇒ A ⊣ Γₑ[X:α]
+  Γᵢ[α] ⊢̂ id{-X:=α} : A ⇒ A ⊣ Γₑ[X:α]
 
   Γₑ[α] ⊢ A
   ------------------------------------
-  Γᵢ[X:α] ⊢̂ +X:=α : A ⇒ A ⊣ Γₑ[α]
+  Γᵢ[X:α] ⊢̂ id{+X:=α} : A ⇒ A ⊣ Γₑ[α]
 
 Well-formedness of `A` on the concealed side is what enforces `X ∉ A`
-for the type-preserving crossings.
+for the identity crossings.
 
 The structural elements delegate their crossing to their components:
 
@@ -292,14 +293,14 @@ terminator inward, undoing each element's crossing:
   ⟨id(A)⟩(Γ)     = Γ
   ⟨ĉ ∷ c⟩(Γ)     = ⟨ĉ⟩̂(⟨c⟩(Γ))
 
-  ⟨-X⟩̂(Γ[X:α])   = Γ[α]           ⟨-X:=α⟩̂(Γ[X:α]) = Γ[α]
-  ⟨+X⟩̂(Γ[α])     = Γ[X:α]         ⟨+X:=α⟩̂(Γ[α])   = Γ[X:α]
+  ⟨-X:=α⟩̂(Γ[X:α]) = Γ[α]         ⟨id{-X:=α}⟩̂(Γ[X:α]) = Γ[α]
+  ⟨+X:=α⟩̂(Γ[α])   = Γ[X:α]       ⟨id{+X:=α}⟩̂(Γ[α])   = Γ[X:α]
   ⟨c → d⟩̂(Γ)     = ⟨d⟩(Γ)
   ⟨∀X.c⟩̂(Γ)      = Γ′             if ⟨c⟩(Γ,X:α) = Γ′,X:α
 
-For `+X`/`+X:=α` the name `X` restored on the interior side is the one
-the typing derivation used; on well-typed conversations `⟨c⟩` and the
-typing agree:
+The `+` clauses restore the name the element carries, so the walk is
+fully syntax-directed; on well-typed conversions `⟨c⟩` and the typing
+agree:
 
   if Γᵢ ⊢ c : A ⇒ B ⊣ Γₑ then ⟨c⟩(Γₑ) = Γᵢ.
 
@@ -314,16 +315,16 @@ reaches a free occurrence of `X`, its represented type is obtained by
 
 Every equation's result crosses α's visibility exactly once at the top
 level: a hit crosses with the renaming element, a miss crosses with the
-type-preserving element, and a split delegates the crossing to its
+identity crossing element, and a split delegates the crossing to its
 components.  The context indices and `S` are suppressed:
 
-  +X(A) = +X:=α ∷ id(A)                            (X ∉ A)
-  +X(X) = +X ∷ id(S)
+  +X(A) = id{+X:=α} ∷ id(A)                        (X ∉ A)
+  +X(X) = +X:=α ∷ id(S)
   +X(A → B) = (-X(A) → +X(B)) ∷ id((A → B)[X:=S])  (X ∈ A → B)
   +X(∀Y.A) = (∀Y.+X(A)) ∷ id((∀Y.A)[X:=S])         (X ∈ ∀Y.A, X ≠ Y)
 
-  -X(A) = -X:=α ∷ id(A)                            (X ∉ A)
-  -X(X) = -X ∷ id(X)
+  -X(A) = id{-X:=α} ∷ id(A)                        (X ∉ A)
+  -X(X) = -X:=α ∷ id(X)
   -X(A → B) = (+X(A) → -X(B)) ∷ id(A → B)          (X ∈ A → B)
   -X(∀Y.A) = (∀Y.-X(A)) ∷ id(∀Y.A)                 (X ∈ ∀Y.A, X ≠ Y)
 
@@ -347,9 +348,9 @@ These operations require `NF(c)` and return a conversion in normal form.
 On elements, with `B` the target supplied by the typing derivation of the
 transformed element:
 
-  +X(+Y) = +Y ∷ id(B)             -X(+Y) = +Y ∷ id(B)
-  +X(-Y) = -Y ∷ id(B)             -X(-Y) = -Y ∷ id(B)
-  +X(±Y:=β) = ±Y:=β ∷ id(B)       -X(±Y:=β) = ±Y:=β ∷ id(B)
+  +X(+Y:=β) = +Y:=β ∷ id(B)             -X(+Y:=β) = +Y:=β ∷ id(B)
+  +X(-Y:=β) = -Y:=β ∷ id(B)             -X(-Y:=β) = -Y:=β ∷ id(B)
+  +X(id{±Y:=β}) = id{±Y:=β} ∷ id(B)     -X(id{±Y:=β}) = id{±Y:=β} ∷ id(B)
   +X(c → d) = (-X(c) → +X(d)) ∷ id(B)
   -X(c → d) = (+X(c) → -X(d)) ∷ id(B)
   +X(∀Y.c) = (∀Y.+X(c)) ∷ id(B)  (X ≠ Y)
@@ -378,19 +379,21 @@ conversion's elements carry the crossings, and the interior context is
 
 Adjacent elements fuse as follows:
 
-  fuse(-X,+X)               = []
-  fuse(+X,-X)               = []
-  fuse(-X:=α,+X:=α)         = []
-  fuse(+X:=α,-X:=α)         = []
+  fuse(-X:=α,+X:=α)                 = []
+  fuse(+X:=α,-X:=α)                 = []
+  fuse(id{-X:=α},id{+X:=α})         = []
+  fuse(id{+X:=α},id{-X:=α})         = []
   fuse(c₁→d₁,c₂→d₂)         = [(c₂ ⨟ c₁) → (d₁ ⨟ d₂)]
   fuse(∀X.c,∀X.d)           = [∀X.(c ⨟ d)]
   fuse(ĉ,ḓ)                 undefined otherwise.
 
-A renaming element against the OPPOSITE type-preserving element does not fuse:
-`+X ∷ -X:=α` performs a net-zero crossing while renaming `X ⇒ S ⇒ S`,
-and stays as it is in normal form.  Two crossing elements at different
-anchors do not fuse — commuting them past a seal is not type-preserving,
-because the seal's read-back can mention the crossed anchor.
+Cancellation compares the ANCHORS, which the syntax displays.  A
+renaming element against the opposite identity crossing does not fuse:
+`+X:=α ∷ id{-X:=α}` performs a net-zero crossing while renaming
+`X ⇒ S ⇒ S`, and stays as it is in normal form.  Identity crossings at
+different anchors do not fuse either — commuting one past a seal is not
+type-preserving, because the seal's read-back can mention the crossed
+anchor.
 
 A conversion is in normal form if every conversion inside a `→` or `∀`
 element is normal and `fuse` is undefined on every adjacent pair:
@@ -436,8 +439,9 @@ and hence `(c ⨟ d) ⨟ e = c ⨟ (d ⨟ e)`, as computation.
 
 `arr` takes the INTERIOR domain from the λ annotation at its use site
 (the conversion's syntax does not carry it when the conversion is a bare
-`id` or begins with crossing elements).  For κ ranging over the type-preserving
-crossing elements, with `κ̄` the dual element (`+X:=α` ↔ `-X:=α`):
+`id` or begins with crossing elements).  For κ ranging over the identity
+crossing elements, with `κ̄` the dual element
+(`id{+X:=α}` ↔ `id{-X:=α}`):
 
   arr(A₀, id(A → B)) = (id(A), id(B))
   arr(A₀, κ₁ ∷ … ∷ κₙ ∷ (c → d) ∷ id(C → D))
@@ -454,8 +458,9 @@ Here `_⧺_` is terminator-discarding append.
 
 OPEN (to be settled in the mechanization): whether every reachable
 normal boundary conversion at a function or universal target has one of
-these shapes.  Renaming elements can in principle stand between crossing
-elements in a normal form (`-X ∷ -Y:=β ∷ +X ∷ id(S)` is normal); the claim
+these shapes.  Renaming elements can in principle stand between identity
+crossings in a normal form (`-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)` is
+normal); the claim
 to prove is that such conversions do not reach value boundaries, or else
 `arr`/`all` and the `Value` clause must treat them.
 
@@ -553,14 +558,14 @@ exterior.
   (L · M)[x:=V:A]       = L[x:=V:A] · M[x:=V:A]
   (λx:B. N)[x:=V:A]     = λx:B. N                       (shadow)
   (λy:B. N)[x:=V:A]     = λy:B. N[x:=V:A]               (y ≠ x)
-  (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν∅[V | -X:=α ∷ id(A)] ]
+  (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν∅[V | id{-X:=α} ∷ id(A)] ]
   (L •B[C])[x:=V:A]     = L[x:=V:A] •B[C]
   νΘ[M|c] [x:=V]        = νΘ[M|c]                       (skip M)
 
 The `Λ` clause is v7's crossing boundary with the scope component
 relocated into the conversion: the value crosses `X`'s reveal with the
-type-preserving element, and `A` cannot mention `X` because `V` was typed
-outside the `Λ`.
+identity crossing element, and `A` cannot mention `X` because `V` was
+typed outside the `Λ`.
 
 # Reduction Rules
 
@@ -582,7 +587,7 @@ store `⌊A⌋Γ`.  Write `Γ ⊢ M -→ N`, omitting `Γ ⊢` when it is clear.
               if νΘ₂[ V |c] is a value
   (Const)     Γ ⊢ νΘ[ k |id(ι)] -→ k
 
-Compare v7: `TyBeta` and `TyWrap` lose their `+X:=α` scope components
+Compare v7: `TyBeta` and `TyWrap` lose their scope components
 (the crossing is inside `+X(·)`); `Wrap` loses the dual scope `-χ` (the
 contravariant component `c₁` carries the dual crossings); `Merge` loses
 the scope concatenation.  `Wrap` matches the body as a λ because `arr`
@@ -643,23 +648,23 @@ If `Γ ok` and `Γ ⊢ A`, then `Γ ⊢ᴿ ⌊A⌋Γ` and `Γ ⊢ ⌊A⌋Γ ⇓ 
   -→⟨ ξ-·-l TyBeta ⟩
   (να:=ℕ[
      λx:X.x
-   | ((-X ∷ id(X)) → (+X ∷ id(ℕ))) ∷ id(ℕ→ℕ)]) · 7
-  -→⟨ Wrap; arr(X, ·) = (-X ∷ id(X), +X ∷ id(ℕ)) ⟩
+   | ((-X:=α ∷ id(X)) → (+X:=α ∷ id(ℕ))) ∷ id(ℕ→ℕ)]) · 7
+  -→⟨ Wrap; arr(X, ·) = (-X:=α ∷ id(X), +X:=α ∷ id(ℕ)) ⟩
   να:=ℕ[
-    (λx:X.x) · ν∅[7 | -X ∷ id(X)]
-  | +X ∷ id(ℕ)]
+    (λx:X.x) · ν∅[7 | -X:=α ∷ id(X)]
+  | +X:=α ∷ id(ℕ)]
   -→⟨ ξ-ν Beta ⟩
   να:=ℕ[
-    ν∅[7 | -X ∷ id(X)]
-  | +X ∷ id(ℕ)]
-  -→⟨ Merge; (-X ∷ id(X)) ⨟ (+X ∷ id(ℕ)) = id(ℕ) ⟩
+    ν∅[7 | -X:=α ∷ id(X)]
+  | +X:=α ∷ id(ℕ)]
+  -→⟨ Merge; (-X:=α ∷ id(X)) ⨟ (+X:=α ∷ id(ℕ)) = id(ℕ) ⟩
   να:=ℕ[7 | id(ℕ)]
   -→⟨ Const ⟩
   7.
 
 The trace is v7's with every scope component erased.  `X` occurs in the
 instantiated type, so `+X(X→X)` is all renaming elements and no
-type-preserving crossing appears.  After the merge, the strict `id(ℕ)`
+identity crossing appears.  After the merge, the strict `id(ℕ)`
 types the boundary reflexively: interior and exterior are both `α:=ℕ`,
 concealed, exactly as the cancelled crossings require.  In v7 the merged
 scope `(+X:=α);(-X:=α)` had to be carried and separately admitted.
@@ -672,45 +677,48 @@ Here `X ∉ (∀Z.Z→Z)→(∀Y.Y→Y)`, so the type-preserving crossings appea
       λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y])
     •((∀Z.Z→Z)→(∀Y.Y→Y))[ℕ])
   · (Λγ,Z. λz:Z.z)
-  -→⟨ ξ-·-l TyBeta; X ∉ B so +X(B) = +X:=α ∷ id(B) ⟩
+  -→⟨ ξ-·-l TyBeta; X ∉ B so +X(B) = id{+X:=α} ∷ id(B) ⟩
   (να:=ℕ[
      λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y]
-   | +X:=α ∷ id((∀Z.Z→Z) → (∀Y.Y→Y))])
+   | id{+X:=α} ∷ id((∀Z.Z→Z) → (∀Y.Y→Y))])
   · (Λγ,Z. λz:Z.z)
-  -→⟨ Wrap; arr(∀Z.Z→Z, +X:=α ∷ id(B→C))
-          = (-X:=α ∷ id(∀Z.Z→Z), +X:=α ∷ id(∀Y.Y→Y)) ⟩
+  -→⟨ Wrap; arr(∀Z.Z→Z, id{+X:=α} ∷ id(B→C))
+          = (id{-X:=α} ∷ id(∀Z.Z→Z), id{+X:=α} ∷ id(∀Y.Y→Y)) ⟩
   να:=ℕ[
     (λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y])
-      · ν∅[Λγ,Z. λz:Z.z | -X:=α ∷ id(∀Z.Z→Z)]
-  | +X:=α ∷ id(∀Y.Y→Y)]
+      · ν∅[Λγ,Z. λz:Z.z | id{-X:=α} ∷ id(∀Z.Z→Z)]
+  | id{+X:=α} ∷ id(∀Y.Y→Y)]
   -→⟨ ξ-ν Beta; the substitution wraps f's value for the Λβ,Y crossing ⟩
   να:=ℕ[
     Λβ,Y.
       (ν∅[
-         ν∅[Λγ,Z. λz:Z.z | -X:=α ∷ id(∀Z.Z→Z)]
-       | -Y:=β ∷ id(∀Z.Z→Z)]) •(Z→Z)[Y]
-  | +X:=α ∷ id(∀Y.Y→Y)]
+         ν∅[Λγ,Z. λz:Z.z | id{-X:=α} ∷ id(∀Z.Z→Z)]
+       | id{-Y:=β} ∷ id(∀Z.Z→Z)]) •(Z→Z)[Y]
+  | id{+X:=α} ∷ id(∀Y.Y→Y)]
   -→⟨ ξ-ν (ξ-Λ (ξ-• Merge));
-      (-X:=α ∷ id(∀Z.Z→Z)) ⨟ (-Y:=β ∷ id(∀Z.Z→Z))
-        = -X:=α ∷ -Y:=β ∷ id(∀Z.Z→Z) ⟩
+      (id{-X:=α} ∷ id(∀Z.Z→Z)) ⨟ (id{-Y:=β} ∷ id(∀Z.Z→Z))
+        = id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z) ⟩
   να:=ℕ[
     Λβ,Y.
       (ν∅[
-         Λγ,Z. λz:Z.z | -X:=α ∷ -Y:=β ∷ id(∀Z.Z→Z)]) •(Z→Z)[Y]
-  | +X:=α ∷ id(∀Y.Y→Y)]
+         Λγ,Z. λz:Z.z | id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z)]) •(Z→Z)[Y]
+  | id{+X:=α} ∷ id(∀Y.Y→Y)]
   -→⟨ ξ-ν (ξ-Λ TyWrap);
-      all(-X:=α ∷ -Y:=β ∷ id(∀Z.Z→Z)) = -X:=α ∷ -Y:=β ∷ id(Z→Z);
+      all(id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z))
+        = id{-X:=α} ∷ id{-Y:=β} ∷ id(Z→Z);
       ⌊Y⌋ = β ⟩
   να:=ℕ[
     Λβ,Y.
       νγ:=β[
         λz:Z.z
-      | -X:=α ∷ -Y:=β ∷ ((-Z ∷ id(Z)) → (+Z ∷ id(Y))) ∷ id(Y→Y)]
-  | +X:=α ∷ id(∀Y.Y→Y)].
+      | id{-X:=α} ∷ id{-Y:=β}
+          ∷ ((-Z:=γ ∷ id(Z)) → (+Z:=γ ∷ id(Y))) ∷ id(Y→Y)]
+  | id{+X:=α} ∷ id(∀Y.Y→Y)].
 
 The inner boundary's crossings, read inward from its exterior
 `(α:=ℕ, X revealed; β, Y revealed; γ:=β)`: the `→` element reveals `Z:γ`
-through its components, `-Y:=β` conceals `Y`, `-X:=α` conceals `X` —
+through its components, `id{-Y:=β}` conceals `Y`, `id{-X:=α}`
+conceals `X` —
 interior `α:=ℕ, β, Z:γ:=β`, so `λz:Z.z : Z→Z` with color `{Z}`, matching
 v7.  What v7 wrote as the accumulated scope
 `((-Y:=β) ; (-X:=α)) ; (+Z:=γ)` is now the conversion's own element prefix,
@@ -723,22 +731,22 @@ different names.  In v8 the same program produces those cancellations
 inside `⨟` alone.  The key conversions become (with `α ≔ ℕ` revealed as
 `Y`, `β ≔ ℕ` revealed as `X` at their binding sites):
 
-  p  = +X ∷ -Y ∷ id(Y)                (unchanged: both names occur)
-  q  = +Y ∷ -X ∷ id(X)
-  v7's ℕ-typed component ids gain crossing elements, e.g. v7's
+  p  = +X:=β ∷ -Y:=α ∷ id(Y)          (both names occur: renaming only)
+  q  = +Y:=α ∷ -X:=β ∷ id(X)
+  v7's ℕ-typed component ids gain identity crossings, e.g. v7's
     s = (((+X ∷ id(ℕ)) → id(ℕ)) ∷ id(X→ℕ)) → (((-X ∷ id(X)) → id(ℕ)) ∷ id(ℕ→ℕ)) ...
   becomes
-    s = (((+X ∷ id(ℕ)) → (-X:=β ∷ id(ℕ))) ∷ id(X→ℕ))
-        → (((-X ∷ id(X)) → (+X:=β ∷ id(ℕ))) ∷ id(ℕ→ℕ)) ...
+    s = (((+X:=β ∷ id(ℕ)) → (id{-X:=β} ∷ id(ℕ))) ∷ id(X→ℕ))
+        → (((-X:=β ∷ id(X)) → (id{+X:=β} ∷ id(ℕ))) ∷ id(ℕ→ℕ)) ...
 
 and the merges that v7 justified through scope transitions
 
-  (-Y ∷ id(Y)) ⨟ q = -X ∷ id(X)
-  (-X ∷ id(X)) ⨟ p = -Y ∷ id(Y)
+  (-Y:=α ∷ id(Y)) ⨟ q = -X:=β ∷ id(X)
+  (-X:=β ∷ id(X)) ⨟ p = -Y:=α ∷ id(Y)
 
 go through unchanged, while the crossings that v7's `χ = (-Y:=α);(+X:=β)`
-and `χ̄` tracked ride along as `∓Y:=α`/`±X:=β` elements and cancel in `⨟` by
-the new `fuse` rows.  The full v8 trace should be machine-checked in
+and `χ̄` tracked ride along as `id{∓Y:=α}`/`id{±X:=β}` elements and
+cancel in `⨟` by the new `fuse` rows.  The full v8 trace should be machine-checked in
 `Examples.agda` rather than hand-maintained here.
 
 # Mechanization notes (Agda, strong/)
@@ -749,9 +757,10 @@ entry and source names are read off as reveal-counts.  The v8 changes
 land as:
 
   * `Conversion.agda`: the element type is `ConvElt` (renaming v7's
-    `Head`), with new constructors `show`/`hide` (the `±X:=α` forms,
-    carrying the crossed anchor), strict `conv-id`, exact crossing
-    premises on all four atomic elements, new `fuse` rows and weights.
+    `Head`), with new constructors `show`/`hide` (the `id{±X:=α}`
+    forms, carrying the crossed anchor), strict `conv-id`, exact
+    crossing premises on all four atomic elements, new `fuse` rows and
+    weights.
     The tail
     judgment `_⊩_∶_⇝_⊣_` merges into `_⊢_∶_⇝_⊣_`, since a strict `id`
     makes every seam reflexive.

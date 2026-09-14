@@ -40,3 +40,14 @@ stated at the seam could not be re-typed at the exterior.  Superseded by
 repair (2) (the reflexive terminator `_⊩_`) together with `arr` taking
 the interior domain from the λ annotation; the probe's derivation is no
 longer even statable, since its tail was a bridging `conv-id`.
+
+`V7CancelDriftProbe.agda` (2026-09-13) — machine-checked, under the
+spine-only rules, that a cancelled seal/unseal pair with drifted flanks
+leaves an untypable residue: the finding that ruled out the last middle
+discipline and forced v8's every-crossing-is-syntax design.
+
+`V7MergeScopeRepairedProbe.agda` (2026-09-13) — typed both `Merge`
+counterexample contracta under the spine-only rules, superseded along
+with those rules.  Both probes reference the v7 `Ctx`/`Conversion`
+surface and no longer compile; v8 regression probes replace them as the
+mechanization lands.

@@ -841,3 +841,42 @@ v8 changes land as:
   * Regression probes: the two v7 failure configurations
     (`V7MergeScopeClashProbe`, `V7CancelDriftProbe`) restated in v8
     syntax must be typable and step-preserving.
+
+# Example (variant of K combinator)
+
+  g  =  (Λα,X. λx:X. Λγ,Z. λz:Z. x)     :  ∀X. X → (∀Z. Z → X)
+  P  =  (((g •[ℕ]) · 7) •[𝔹]) · true    :  ℕ
+
+  c_X = ((-X:=α ∷ id(X)) → ((∀Z.c_ZX) ∷ id(∀Z.Z→ℕ))) ∷ id(ℕ → ∀Z.Z→ℕ)
+  c_ZX = ((id{-X:=α} ∷ id(Z)) → (+X:=α ∷ id(ℕ))) ∷ id(Z→ℕ)
+  W₀   = 7⟨-X:=α ∷ id(X)⟩
+
+  (((g •[ℕ]) · 7) •[𝔹]) · true
+  -→⟨ TyBeta; X ∈ B ⟩
+  (((να:=ℕ. (λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩) · 7) •[𝔹]) · true
+  
+  -→⟨ Alloc; Σ = α:=ℕ ⟩
+  (((λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩ · 7) •[𝔹]) · true
+  
+  -→⟨ Wrap; arr(X, c_X) = (-X:=α ∷ id(X), (∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) ⟩
+  (((λx:X. Λγ,Z. λz:Z. x) · 7⟨-X:=α ∷ id(X)⟩)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩ •[𝔹]) · true
+  
+  -→⟨ ξ-⟨⟩ Beta; x is under Λγ,Z, so the COLOR WRAP fires ⟩
+  ((Λγ,Z. λz:Z. (7⟨-X:=α ∷ id(X)⟩)⟨id{-Z:=γ} ∷ id(X)⟩)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩
+    ⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩ •[𝔹]) · true
+    
+  -→⟨ TyWrap; all-view = c_ZX ⟩
+  ((νγ:=𝔹. (λz:Z. 7⟨-X:=α ∷ id(X)⟩⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩)) · true
+      
+     e := +Z(c_ZX) = ((-Z:=γ ∷ id{-X:=α} ∷ id(Z)) 
+                      → (+X:=α ∷ id{+Z:=γ} ∷ id(ℕ))) ∷ id(𝔹→ℕ) ⟩
+  -→⟨ Alloc; Σ = α:=ℕ, γ:=𝔹 ⟩
+  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩) · true
+
+  -→⟨ Wrap ⟩
+  
+  -→⟨ Beta ⟩
+  -→⟨ Merge ⟩
+    7⟨-X:=α ∷ id{-Z:=γ} ∷ id(X)⟩            ← the crossing is inside the bracket
+  -→⟨ Merge with the covariant component of +Z(c_ZX), which unseals: +X:=α ∷ … ⟩
+    7⟨-X:=α ∷ id{-Z:=γ} ∷ +X:=α ∷ … ∷ id(ℕ)⟩    

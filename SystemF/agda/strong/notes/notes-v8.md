@@ -1,13 +1,13 @@
 # Changes from v7 (DRAFT)
 
 Version 8 makes the conversion the single source of truth for scope
-crossings, and makes anchor allocation a global effect.
+crossings, and makes address allocation a global effect.
 
 1. The boundary is conversion application, written `M⟨c⟩`.  It has no
    scope component and no store component.  The crossings that v7's `χ`
    performed are conversion ELEMENTS: `id{+X:=α}` and `id{-X:=α}` cross
    a reveal or a conceal without changing the type, alongside the
-   renaming elements, which also carry their anchor: `+X:=α` (unseal)
+   renaming elements, which also carry their address: `+X:=α` (unseal)
    and `-X:=α` (seal).
 2. Conversion typing is EXACT.  `id(A)` is strictly reflexive (one
    context, one type).  Each element connects two contexts that differ
@@ -18,15 +18,15 @@ crossings, and makes anchor allocation a global effect.
    and `(ξ-⟨⟩)` rules.
 3. Representation bindings live in a GLOBAL store Σ, in the style of
    `GTSF/cambridge26.lagda.md`.  The term `να:=R. M` binds a local
-   anchor with its representation; when it reaches evaluation position
-   it discharges IMMEDIATELY into the store — one step, no per-frame
-   hoisting.  Anchors in Σ are permanent and never shift.  The dual
+   address with its representation type; when it reaches evaluation
+   position it discharges IMMEDIATELY into the store — one step, no
+   per-frame hoisting.  Addresses in Σ are permanent and never shift.  The dual
    `-χ`, the action `χ(Γ)`, and the transition `Γ ⊢ χ ⇒ Γ′` are
    deleted; the `▷` STACK discipline survives, transplanted from scope
    transitions to the conversion-element rules (point 7).
-4. The source `Λα,X.V` keeps α as a BINDER — a local anchor variable,
+4. The source `Λα,X.V` keeps α as a BINDER — a local address variable,
    not an allocation — because the substitution wrap under an
-   uninstantiated `Λ` must name the anchor its crossing will use.
+   uninstantiated `Λ` must name the address its crossing will use.
    `TyBeta` turns the bound α into the `ν` term's α.  The body is
    restricted to a VALUE, so there is no reduction under `Λ` and no
    `ξ-Λ` rule; term variables are NOT values, and Λ-bodies with free
@@ -43,7 +43,7 @@ crossings, and makes anchor allocation a global effect.
 7. The STACK discipline is typing.  Name entries come in two forms —
    binder assignments `X:α` (pushed by the `∀`-element and the
    type-level `∀` rules; transparent to the stack, as `▷` was
-   transparent to anchor and term entries) and crossing assignments
+   transparent to address and term entries) and crossing assignments
    `X:=α` (pushed by `Λ` and by the atomic elements) — and an atomic
    element pushes or pops only the NEWEST crossing assignment.  v7's
    "every conceal removes the latest visible source name" becomes a
@@ -68,7 +68,8 @@ Color Preservation: The set of type variables (X's) in scope (the
 "color") at every subterm from the source program is invariant under
 reduction (not including the runtime terms: conversions and boundaries,
 runtime-created terms, or constant literals).  Color is about type
-variables, not anchors: anchors are runtime store addresses.
+variables, never addresses: an address is the runtime location of a
+representation type, not a name.
 
 Progress: Every closed, well-typed configuration is a value or can take
 a reduction step.
@@ -77,7 +78,7 @@ Preservation: A reduction step preserves the type of a closed term and
 extends the store conservatively.
 
 Determinism: Every configuration has at most one immediate reduct, up
-to the choice of fresh anchor.
+to the choice of fresh address.
 
 Single source of crossings: every change of visibility between a
 boundary's interior and exterior is performed by exactly one conversion
@@ -93,11 +94,12 @@ adjacent fusion cancels them.
   a,b ::= X | ℕ | 𝔹            (atomic types)
   A,B,C ::= a | A → B | ∀X.A
 
-Types mention type variables only; anchors never appear in types.
+Types mention type variables only; addresses never appear in types.
 
 # Representation Types
 
-Representation types mention stable anchors, not source type variables.
+Representation types mention stable ADDRESSES (α, the address of a
+representation type in the store), not source type variables.
 
   R,S ::= α | ℕ | 𝔹 | R → S | ∀α.R
 
@@ -111,7 +113,7 @@ Representation types mention stable anchors, not source type variables.
   L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | Λα,X.V | L •B[A]
 
 The body of a `Λ` is a VALUE (see the value grammar below).  The α in
-`Λα,X.V` is a binder for a local anchor variable: the body's
+`Λα,X.V` is a binder for a local address variable: the body's
 conversions — in particular the substitution wraps that `Beta` inserts
 — name their crossing with it before any allocation has happened.
 Binding is not allocating; the global store grows only at `ν`
@@ -123,8 +125,8 @@ discharge.
   Γ ::= ∅ | Γ,α | Γ,α:=R | Γ,X:α | Γ,X:=α | Γ,x:A
 
 The store Σ is append-only: `ν` discharge adds a binding, and nothing
-removes or reorders one, so anchors are permanent addresses.  A context
-Γ holds the LOCAL structure: `α` is a Λ- or ∀-bound abstract anchor
+removes or reorders one, so addresses are permanent.  A context
+Γ holds the LOCAL structure: `α` is a Λ- or ∀-bound abstract address
 variable, `α:=R` a ν-bound one not yet discharged, and `x:A` is a term
 variable.  Name entries come in TWO FORMS, distinguished by who
 introduces them:
@@ -136,12 +138,13 @@ introduces them:
          popped by the atomic conversion elements.
 
 "Revealed" in v8 means exactly that a name entry (of either form) for
-the anchor is in scope.  The crossing assignments form the STACK: an
+the address is in scope.  The crossing assignments form the STACK: an
 atomic element may push or pop only the newest one, with binder
-assignments, anchor entries, and term entries transparent — v7's `▷`
+assignments, address entries, and term entries transparent — v7's `▷`
 discipline, moved from scope transitions into the element rules.
-Judgments are indexed by both, written `Σ;Γ ⊢ ⋯`; anchor lookups search
-Σ and Γ's anchor entries jointly, and we suppress Σ when it is fixed.
+Judgments are indexed by both, written `Σ;Γ ⊢ ⋯`; address lookups
+search Σ and Γ's address entries jointly, and we suppress Σ when it is
+fixed.
 Write `Γ ⋉ X:=α` for pushing a crossing assignment onto the stack and
 `Γ ▷ X:=α` for "X:=α is the newest crossing assignment in Γ" (v7's
 judgment, now transparent to binder assignments as well).
@@ -172,10 +175,10 @@ Both name-entry forms answer the lookup:
 
 `Σ;Γ ∋ α:=R` finds α's representation in Σ or among Γ's `α:=R` entries;
 `Σ;Γ ∋ α` additionally accepts Γ's abstract `α` entries.  At most one
-name assignment per anchor is live (`ok` below), so `Γ ∋ X:=α` and
+name assignment per address is live (`ok` below), so `Γ ∋ X:=α` and
 `Γ ∋ Y:=α` force `X = Y`.
 
-# Anchor representation of a source type
+# Address representation of a source type
 
 Write `⌊A⌋Γ` for the representation of `A` in `Σ;Γ`.
 
@@ -186,7 +189,7 @@ Write `⌊A⌋Γ` for the representation of `A` in `Σ;Γ`.
 
 # Reading a representation type
 
-The judgment `Σ;Γ ⊢ R ⇓ A` reads anchors through the name assignments
+The judgment `Σ;Γ ⊢ R ⇓ A` reads addresses through the name assignments
 in scope.
 
   Γ ∋ X:=α
@@ -287,13 +290,14 @@ type:
   id{+X:=α}  : identity reveal crossing: the same crossing as `+X:=α`
                with the type unchanged (the type must not mention `X`).
 
-The ANCHOR is the operative datum of every atomic element, and the
-syntax carries it: `fuse` decides cancellation by anchor equality (in
+The ADDRESS is the operative datum of every atomic element, and the
+syntax carries it: `fuse` decides cancellation by address equality (in
 the `+X:=α ∷ -Y:=β` order the seam context has neither name in scope,
-and equal names at the two outer contexts need not mean equal anchors),
-the interior walk `⟨c⟩` identifies the assignment to add or remove by
-its anchor, and anchors never shift.  The identity crossings work for
-ABSTRACT anchors too — a Λ-bound α has no representation, and the
+and equal names at the two outer contexts need not mean equal
+addresses), the interior walk `⟨c⟩` identifies the assignment to add or
+remove by its address, and addresses never shift.  The identity
+crossings work for ABSTRACT addresses too — a Λ-bound α has no
+representation, and the
 substitution wrap needs exactly `id{-X:=α}` — while the renaming
 elements additionally demand `α:=R` for their read-back.
 
@@ -321,7 +325,7 @@ discipline as typing — ill-nested crossings have no derivation.
 
 Well-formedness of `A` on the unassigned side is what enforces `X ∉ A`
 for the identity crossings.  The identity crossings work for ABSTRACT
-anchors (the substitution wrap names a Λ-bound α with no
+addresses (the substitution wrap names a Λ-bound α with no
 representation); the renaming elements additionally demand `α:=R`.
 
 The structural elements delegate their crossing to their components;
@@ -435,8 +439,9 @@ off the syntax where the syntax determines it:
   -X(c) = c[X:=S] ⨟ -X(tgt c)
 
 A seal-headed conversion's source is the read-back of a stored
-representation, and a representation in Σ cannot mention a bound anchor
-variable — so in the undefined case `X` occurs nowhere in `c` and the
+representation, and a representation in Σ cannot mention a bound
+address variable — so in the undefined case `X` occurs nowhere in `c`
+and the
 bare identity crossing is correct.  `c[X:=S]` is type substitution on
 annotations, elements untouched:
 
@@ -463,7 +468,7 @@ end.
 `M⟨c⟩` is CONVERSION APPLICATION — the boundary.  It has no store and
 no scope: the conversion's elements carry the crossings, and the
 interior context is `⟨c⟩` of the exterior.  `να:=R. M` binds a local
-anchor with its representation; it is an allocation waiting to
+address with its representation type; it is an allocation waiting to
 discharge into Σ.
 
 # Conversion Composition
@@ -486,13 +491,13 @@ Adjacent elements fuse as follows:
   fuse(∀X.c,∀X.d)                   = [∀X.(c ⨟ d)]
   fuse(ĉ,ḓ)                         undefined otherwise.
 
-Cancellation compares the ANCHORS, which the syntax displays.  A
+Cancellation compares the ADDRESSES, which the syntax displays.  A
 renaming element against the opposite identity crossing does not fuse:
 `+X:=α ∷ id{-X:=α}` performs a net-zero crossing while renaming
 `X ⇒ S ⇒ S`, and stays as it is in normal form.  Identity crossings at
-different anchors do not fuse either — commuting one past a seal is not
-type-preserving, because the seal's read-back can mention the crossed
-anchor.
+different addresses do not fuse either — commuting one past a seal is
+not type-preserving, because the seal's read-back can mention the
+crossed address.
 
 A conversion is in normal form if every conversion inside a `→` or `∀`
 element is normal and `fuse` is undefined on every adjacent pair:
@@ -652,7 +657,7 @@ drifted flanks) cannot be stated.
             ------------------------
             Σ;Γ ⊢ M⟨c⟩ : B
 
-Anchors never appear in types, so `(Nu)` needs no side condition to
+Addresses never appear in types, so `(Nu)` needs no side condition to
 keep α from escaping.  The interior context of a boundary is not a
 component of the term; it is computed from the conversion, and it is
 unique because each element's crossing inverts uniquely.  A boundary
@@ -691,7 +696,7 @@ by `Const`.
 
 The `Λ` clause is the COLOR wrap: the substituend crosses into `X`'s
 scope behind an identity conceal, so its nodes' color does not gain
-`X`.  The element `id{-X:=α}` names the Λ-BOUND anchor — this is why
+`X`.  The element `id{-X:=α}` names the Λ-BOUND address — this is why
 `Λ` keeps its binder — and needs no representation, because identity
 crossings never read one.  `A` cannot mention `X` because `V` was typed
 outside the `Λ`.
@@ -717,7 +722,7 @@ and `Γ` when they are unchanged or clear.
 `Alloc` is immediate: the ξ-rules propagate the store extension, so an
 allocation discharges in one step from any evaluation position — there
 is no per-frame hoisting and `ν` never blocks a redex.  `TyBeta` and
-`TyWrap` turn the `Λ`'s bound anchor into the `ν`'s; the body `V` is
+`TyWrap` turn the `Λ`'s bound address into the `ν`'s; the body `V` is
 untouched, and its wraps' `id{-X:=α}` elements are captured by the same
 binder.  Compare v7: `TyBeta` and `TyWrap` lose their scope components
 (the crossing is inside `+X(·)`), `Wrap` loses the dual scope `-χ` (the
@@ -751,7 +756,7 @@ If `Σ;Γ ok`, `ty(Γ) = Γ`, `Σ;Γ ⊢ M : A`, and `Σ;Γ ⊢ M —→ N ⊣ �
 
 If `Σ;Γ ok`, `Σ;Γ ⊢ M : A`, `Σ;Γ ⊢ M —→ N₁ ⊣ Σ₁`, and
 `Σ;Γ ⊢ M —→ N₂ ⊣ Σ₂`, then `N₁ ≡α N₂` and `Σ₁ ≡α Σ₂`, identifying the
-choice of fresh anchor.
+choice of fresh address.
 
 ## Interior well-formedness
 
@@ -861,7 +866,7 @@ components, `Beta` substitutes the wrapped `true`, the inner
 type application `Merge`s the two wraps on `W` into
 `(Λγ,Z. λz:Z.z)⟨id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z)⟩`, `TyWrap`
 allocates `γ:=β` (note `⌊Y⌋ = β`: a stored representation can point at
-an earlier anchor), and the remaining `Wrap`/`Beta`/`Merge`/`Const`
+an earlier address), and the remaining `Wrap`/`Beta`/`Merge`/`Const`
 steps cancel every crossing and deliver `true` with
 `Σ = α:=ℕ, β:=𝔹, γ:=β`.  The full trace belongs in `Examples.agda`.
 
@@ -953,18 +958,19 @@ hand-maintained here.
 # Mechanization notes (Agda, strong/)
 
 The v8 Agda development keeps the global store as an append-only
-context of anchor entries; the crossing stack and the binder
+context of address entries; the crossing stack and the binder
 assignments are the local name structure, with de Bruijn names as
 entry-counts and the stack top a fixed position (the `⋉`/`▷` rules are
 push/pop at the head, so no positional insertion device is needed).
-Λ- and ν-bound anchors are ordinary de Bruijn binders substituted at
-`TyBeta`/`Alloc`; discharged anchors are
-stable levels, so no anchor renaming accompanies any reduction.  The
+Λ- and ν-bound addresses are ordinary de Bruijn binders substituted at
+`TyBeta`/`Alloc`; discharged addresses are stable levels, so no address
+renaming accompanies any reduction.  The type of addresses is `Addr`
+(renaming v7's `Anchor`).  The
 v8 changes land as:
 
   * `Conversion.agda`: the element type is `ConvElt` (renaming v7's
     `Head`), with new constructors `show`/`hide` (the `id{±X:=α}`
-    forms, carrying the crossed anchor), strict `conv-id`, exact
+    forms, carrying the crossed address), strict `conv-id`, exact
     crossing premises on all four atomic elements, new `fuse` rows and
     weights, the elementwise views (`arr⁻`/`arr⁺`/`all⁺` on `ConvElt`,
     folded over the element list, with `base` beside `arr`/`allView`),

@@ -7,8 +7,8 @@ crossings, and makes address allocation a global effect.
    scope component and no store component.  The crossings that v7's `χ`
    performed are conversion ELEMENTS: `id{+X:=α}` and `id{-X:=α}` cross
    a reveal or a conceal without changing the type, alongside the
-   renaming elements, which also carry their address: `+X:=α` (unseal)
-   and `-X:=α` (seal).
+   renaming elements, now written uniformly with their address:
+   `unseal{+X:=α}` and `seal{-X:=α}`.
 2. Conversion typing is EXACT.  `id(A)` is strictly reflexive (one
    context, one type).  Each element connects two contexts that differ
    in exactly the crossing it performs; `→` and `∀` elements delegate
@@ -271,28 +271,28 @@ in scope.
 
 # Conversions
 
-  ĉ,ḓ ::= +X:=α | -X:=α | id{+X:=α} | id{-X:=α} | c → d | ∀X.c
+  ĉ,ḓ ::= unseal{+X:=α} | seal{-X:=α} | id{+X:=α} | id{-X:=α} | c → d | ∀X.c
   c,d ::= id(A) | ĉ ∷ c
 
 The four atomic elements all cross the introduction of one name
 assignment `X:=α`; they differ in whether the crossing renames the
 type:
 
-  -X:=α      : SEAL: crosses the assignment's introduction outward,
-               `A ⇒ X`, reading α's representation on the unassigned
-               side.
-  +X:=α      : UNSEAL: crosses the assignment's removal outward,
-               `X ⇒ A`.
-  id{-X:=α}  : identity conceal crossing: the same crossing as `-X:=α`
-               with the type unchanged.  As a boundary element it
-               conceals `X` inward — v7's scope change `-X:=α`,
-               relocated into the conversion.
-  id{+X:=α}  : identity reveal crossing: the same crossing as `+X:=α`
-               with the type unchanged (the type must not mention `X`).
+  seal{-X:=α}    : crosses the assignment's introduction outward,
+                   `A ⇒ X`, reading α's representation on the
+                   unassigned side.
+  unseal{+X:=α}  : crosses the assignment's removal outward, `X ⇒ A`.
+  id{-X:=α}      : identity conceal crossing: the same crossing as
+                   `seal{-X:=α}` with the type unchanged.  As a
+                   boundary element it conceals `X` inward — v7's scope
+                   change `-X:=α`, relocated into the conversion.
+  id{+X:=α}      : identity reveal crossing: the same crossing as
+                   `unseal{+X:=α}` with the type unchanged (the type
+                   must not mention `X`).
 
 The ADDRESS is the operative datum of every atomic element, and the
 syntax carries it: `fuse` decides cancellation by address equality (in
-the `+X:=α ∷ -Y:=β` order the seam context has neither name in scope,
+the `unseal{+X:=α} ∷ seal{-Y:=β}` order the seam context has neither name in scope,
 and equal names at the two outer contexts need not mean equal
 addresses), the interior walk `⟨c⟩` identifies the assignment to add or
 remove by its address, and addresses never shift.  The identity
@@ -309,11 +309,11 @@ discipline as typing — ill-nested crossings have no derivation.
 
   Σ;Γₑ ∋ α:=R   Σ;Γᵢ ⊢ R ⇓ A          (Γₑ = Γᵢ ⋉ X:=α)
   --------------------------------
-  Σ;Γᵢ ⊢̂ -X:=α : A ⇒ X ⊣ Γₑ
+  Σ;Γᵢ ⊢̂ seal{-X:=α} : A ⇒ X ⊣ Γₑ
 
   Σ;Γᵢ ∋ α:=R   Σ;Γₑ ⊢ R ⇓ A          (Γᵢ = Γₑ ⋉ X:=α)
   --------------------------------
-  Σ;Γᵢ ⊢̂ +X:=α : X ⇒ A ⊣ Γₑ
+  Σ;Γᵢ ⊢̂ unseal{+X:=α} : X ⇒ A ⊣ Γₑ
 
   Σ;Γᵢ ⊢ A   Σ;Γᵢ ∋ α   X ∉ Γᵢ        (Γₑ = Γᵢ ⋉ X:=α)
   --------------------------------
@@ -370,8 +370,8 @@ terminator inward, undoing each element's crossing:
   ⟨id(A)⟩(Γ)     = Γ
   ⟨ĉ ∷ c⟩(Γ)     = ⟨ĉ⟩̂(⟨c⟩(Γ))
 
-  ⟨-X:=α⟩̂(Γ ⋉ X:=α) = Γ           ⟨id{-X:=α}⟩̂(Γ ⋉ X:=α) = Γ
-  ⟨+X:=α⟩̂(Γ)        = Γ ⋉ X:=α    ⟨id{+X:=α}⟩̂(Γ)        = Γ ⋉ X:=α
+  ⟨seal{-X:=α}⟩̂(Γ ⋉ X:=α)   = Γ           ⟨id{-X:=α}⟩̂(Γ ⋉ X:=α) = Γ
+  ⟨unseal{+X:=α}⟩̂(Γ)        = Γ ⋉ X:=α    ⟨id{+X:=α}⟩̂(Γ)        = Γ ⋉ X:=α
   ⟨c → d⟩̂(Γ)        = ⟨d⟩(Γ)
   ⟨∀X.c⟩̂(Γ)         = Γ′          if ⟨c⟩(Γ,X:α) = Γ′,X:α
 
@@ -395,12 +395,12 @@ crossing element, and a split delegates the crossing to its components.
 The context indices and `S` are suppressed:
 
   +X(A) = id{+X:=α} ∷ id(A)                        (X ∉ A)
-  +X(X) = +X:=α ∷ id(S)
+  +X(X) = unseal{+X:=α} ∷ id(S)
   +X(A → B) = (-X(A) → +X(B)) ∷ id((A → B)[X:=S])  (X ∈ A → B)
   +X(∀Y.A) = (∀Y.+X(A)) ∷ id((∀Y.A)[X:=S])         (X ∈ ∀Y.A, X ≠ Y)
 
   -X(A) = id{-X:=α} ∷ id(A)                        (X ∉ A)
-  -X(X) = -X:=α ∷ id(X)
+  -X(X) = seal{-X:=α} ∷ id(X)
   -X(A → B) = (+X(A) → -X(B)) ∷ id(A → B)          (X ∈ A → B)
   -X(∀Y.A) = (∀Y.-X(A)) ∷ id(∀Y.A)                 (X ∈ ∀Y.A, X ≠ Y)
 
@@ -430,9 +430,9 @@ off the syntax where the syntax determines it:
   src(id(A))          = A
   src((s → t) ∷ c)    = tgt(s) → src(t)
   src((∀Y.s) ∷ c)     = ∀Y. src(s)
-  src(+Y:=β ∷ c)      = Y
-  src(id{±Y:=β} ∷ c)  = src(c)
-  src(-Y:=β ∷ c)      undefined
+  src(unseal{+Y:=β} ∷ c)  = Y
+  src(id{±Y:=β} ∷ c)      = src(c)
+  src(seal{-Y:=β} ∷ c)    undefined
 
   +X(c) = +X(src c) ⨟ c[X:=S]           (src c defined)
   +X(c) = id{+X:=α} ∷ c                 (src c undefined)
@@ -483,8 +483,8 @@ discharge into Σ.
 
 Adjacent elements fuse as follows:
 
-  fuse(-X:=α,+X:=α)                 = []
-  fuse(+X:=α,-X:=α)                 = []
+  fuse(seal{-X:=α},unseal{+X:=α})                 = []
+  fuse(unseal{+X:=α},seal{-X:=α})                 = []
   fuse(id{-X:=α},id{+X:=α})         = []
   fuse(id{+X:=α},id{-X:=α})         = []
   fuse(c₁→d₁,c₂→d₂)                 = [(c₂ ⨟ c₁) → (d₁ ⨟ d₂)]
@@ -493,7 +493,7 @@ Adjacent elements fuse as follows:
 
 Cancellation compares the ADDRESSES, which the syntax displays.  A
 renaming element against the opposite identity crossing does not fuse:
-`+X:=α ∷ id{-X:=α}` performs a net-zero crossing while renaming
+`unseal{+X:=α} ∷ id{-X:=α}` performs a net-zero crossing while renaming
 `X ⇒ S ⇒ S`, and stays as it is in normal form.  Identity crossings at
 different addresses do not fuse either — commuting one past a seal is
 not type-preserving, because the seal's read-back can mention the
@@ -589,8 +589,8 @@ shape forces renaming elements into LIFO brackets (a seal sets the
 running type to its variable, an unseal demands it, and no structural
 element inhabits a variable type).  The stack discipline in the element
 rules forces every crossing inside a bracket to nest strictly within it
-— the overlapping form `-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)` is
-syntactically normal but has NO typing derivation, since its `+X:=α`
+— the overlapping form `seal{-X:=α} ∷ id{-Y:=β} ∷ unseal{+X:=α} ∷ id(S)` is
+syntactically normal but has NO typing derivation, since its `unseal{+X:=α}`
 pops under a newer open assignment.  And adjacent `fuse` cancellation
 then empties and collapses every nested bracket, so none survives in a
 typed normal form at these targets.
@@ -800,14 +800,14 @@ Store extensions are noted at each `Alloc` step.
 
   ((Λα,X. λx:X.x) •(X→X)[ℕ]) · 7
   -→⟨ ξ-·-l TyBeta ⟩
-  (να:=ℕ. (λx:X.x)⟨((-X:=α ∷ id(X)) → (+X:=α ∷ id(ℕ))) ∷ id(ℕ→ℕ)⟩) · 7
+  (να:=ℕ. (λx:X.x)⟨((seal{-X:=α} ∷ id(X)) → (unseal{+X:=α} ∷ id(ℕ))) ∷ id(ℕ→ℕ)⟩) · 7
   -→⟨ ξ-·-l Alloc;  Σ = α:=ℕ ⟩
-  ((λx:X.x)⟨((-X:=α ∷ id(X)) → (+X:=α ∷ id(ℕ))) ∷ id(ℕ→ℕ)⟩) · 7
-  -→⟨ Wrap; arr(X, ·) = (-X:=α ∷ id(X), +X:=α ∷ id(ℕ)) ⟩
-  ((λx:X.x) · 7⟨-X:=α ∷ id(X)⟩)⟨+X:=α ∷ id(ℕ)⟩
+  ((λx:X.x)⟨((seal{-X:=α} ∷ id(X)) → (unseal{+X:=α} ∷ id(ℕ))) ∷ id(ℕ→ℕ)⟩) · 7
+  -→⟨ Wrap; arr(X, ·) = (seal{-X:=α} ∷ id(X), unseal{+X:=α} ∷ id(ℕ)) ⟩
+  ((λx:X.x) · 7⟨seal{-X:=α} ∷ id(X)⟩)⟨unseal{+X:=α} ∷ id(ℕ)⟩
   -→⟨ ξ-⟨⟩ Beta ⟩
-  (7⟨-X:=α ∷ id(X)⟩)⟨+X:=α ∷ id(ℕ)⟩
-  -→⟨ Merge; (-X:=α ∷ id(X)) ⨟ (+X:=α ∷ id(ℕ)) = id(ℕ) ⟩
+  (7⟨seal{-X:=α} ∷ id(X)⟩)⟨unseal{+X:=α} ∷ id(ℕ)⟩
+  -→⟨ Merge; (seal{-X:=α} ∷ id(X)) ⨟ (unseal{+X:=α} ∷ id(ℕ)) = id(ℕ) ⟩
   7⟨id(ℕ)⟩
   -→⟨ Const; base(id(ℕ)) = ℕ ⟩
   7.
@@ -815,7 +815,7 @@ Store extensions are noted at each `Alloc` step.
 The λ's body types at the interior `Γ,X:=α`; after the merge the strict
 `id(ℕ)` has an empty interior walk, and `Const` reads the ground
 terminator directly.  Every piece of v7's scope bookkeeping — the
-boundary's `+X:=α` scope component, the dual `-χ` on the argument wrap,
+boundary's `unseal{+X:=α}` scope component, the dual `-χ` on the argument wrap,
 the merged scope and its separate admissibility check — is gone, and
 the store records `α:=ℕ` permanently.
 
@@ -858,7 +858,7 @@ say `•(Y→Y)[𝔹]` and then `· true`, drives them:
       +Y(id{+X:=α} ∷ id(Y→Y)) = +Y(Y→Y) ⨟ (id{+X:=α} ∷ id(𝔹→𝔹)):
       the fresh crossing goes FIRST ⟩  -→⟨ Alloc; Σ = α:=ℕ, β:=𝔹 ⟩
   (λy:Y. ((W⟨id{-Y:=β} ∷ id(∀Z.Z→Z)⟩) •(Z→Z)[Y]) · y)
-  ⟨((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id{+X:=α} ∷ id(𝔹→𝔹)⟩
+  ⟨((seal{-Y:=β} ∷ id(Y)) → (unseal{+Y:=β} ∷ id(𝔹))) ∷ id{+X:=α} ∷ id(𝔹→𝔹)⟩
   · true
 
 after which `Wrap` splits the conversion elementwise into both
@@ -877,18 +877,18 @@ different names.  In v8 the same program produces those cancellations
 inside `⨟` alone.  The key conversions become (with `α ≔ ℕ` revealed as
 `Y`, `β ≔ ℕ` revealed as `X` at their binding sites):
 
-  p  = +X:=β ∷ -Y:=α ∷ id(Y)          (both names occur: renaming only)
-  q  = +Y:=α ∷ -X:=β ∷ id(X)
+  p  = unseal{+X:=β} ∷ seal{-Y:=α} ∷ id(Y)          (both names occur: renaming only)
+  q  = unseal{+Y:=α} ∷ seal{-X:=β} ∷ id(X)
   v7's ℕ-typed component ids gain identity crossings, e.g. v7's
     s = (((+X ∷ id(ℕ)) → id(ℕ)) ∷ id(X→ℕ)) → (((-X ∷ id(X)) → id(ℕ)) ∷ id(ℕ→ℕ)) ...
   becomes
-    s = (((+X:=β ∷ id(ℕ)) → (id{-X:=β} ∷ id(ℕ))) ∷ id(X→ℕ))
-        → (((-X:=β ∷ id(X)) → (id{+X:=β} ∷ id(ℕ))) ∷ id(ℕ→ℕ)) ...
+    s = (((unseal{+X:=β} ∷ id(ℕ)) → (id{-X:=β} ∷ id(ℕ))) ∷ id(X→ℕ))
+        → (((seal{-X:=β} ∷ id(X)) → (id{+X:=β} ∷ id(ℕ))) ∷ id(ℕ→ℕ)) ...
 
 and the merges that v7 justified through scope transitions
 
-  (-Y:=α ∷ id(Y)) ⨟ q = -X:=β ∷ id(X)
-  (-X:=β ∷ id(X)) ⨟ p = -Y:=α ∷ id(Y)
+  (seal{-Y:=α} ∷ id(Y)) ⨟ q = seal{-X:=β} ∷ id(X)
+  (seal{-X:=β} ∷ id(X)) ⨟ p = seal{-Y:=α} ∷ id(Y)
 
 go through unchanged, while the crossings that v7's `χ = (-Y:=α);(+X:=β)`
 and `χ̄` tracked ride along as `id{∓Y:=α}`/`id{±X:=β}` elements and
@@ -944,9 +944,9 @@ adjacent fusion cancels them.
   g  =  (Λα,X. λx:X. Λγ,Z. λz:Z. x)     :  ∀X. X → (∀Z. Z → X)
   P  =  (((g •[ℕ]) · 7) •[𝔹]) · true    :  ℕ
 
-  c_ZX = ((id{-X:=α} ∷ id(Z)) → (+X:=α ∷ id(ℕ))) ∷ id(Z→ℕ)
-  c_X  = ((-X:=α ∷ id(X)) → ((∀Z.c_ZX) ∷ id(∀Z.Z→ℕ))) ∷ id(ℕ → ∀Z.Z→ℕ)
-  W₀   = 7⟨-X:=α ∷ id(X)⟩
+  c_ZX = ((id{-X:=α} ∷ id(Z)) → (unseal{+X:=α} ∷ id(ℕ))) ∷ id(Z→ℕ)
+  c_X  = ((seal{-X:=α} ∷ id(X)) → ((∀Z.c_ZX) ∷ id(∀Z.Z→ℕ))) ∷ id(ℕ → ∀Z.Z→ℕ)
+  W₀   = 7⟨seal{-X:=α} ∷ id(X)⟩
 
   (((g •[ℕ]) · 7) •[𝔹]) · true
   -→⟨ TyBeta; X ∈ B, c_X = +X(X → ∀Z.Z→X) ⟩
@@ -955,7 +955,7 @@ adjacent fusion cancels them.
   -→⟨ Alloc; Σ = α:=ℕ ⟩
   (((λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩ · 7) •[𝔹]) · true
 
-  -→⟨ Wrap; arr(X, c_X) = (-X:=α ∷ id(X), (∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) ⟩
+  -→⟨ Wrap; arr(X, c_X) = (seal{-X:=α} ∷ id(X), (∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) ⟩
   (((λx:X. Λγ,Z. λz:Z. x) · W₀)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩ •[𝔹]) · true
 
   -→⟨ ξ-⟨⟩ Beta; x is under Λγ,Z, so the COLOR WRAP fires ⟩
@@ -963,28 +963,28 @@ adjacent fusion cancels them.
 
   -→⟨ TyWrap; all-view = c_ZX; ⌊𝔹⌋ = 𝔹;
       e := +Z(c_ZX) = +Z(Z→X) ⨟ c_ZX[Z:=𝔹]
-         = ((id{-X:=α} ∷ -Z:=γ ∷ id(Z)) → (id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)))
+         = ((id{-X:=α} ∷ seal{-Z:=γ} ∷ id(Z)) → (id{+Z:=γ} ∷ unseal{+X:=α} ∷ id(ℕ)))
              ∷ id(𝔹→ℕ) ⟩
   (νγ:=𝔹. (λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩) · true
 
   -→⟨ Alloc; Σ = α:=ℕ, γ:=𝔹 ⟩
   ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩) · true
 
-  -→⟨ Wrap; arr(Z, e) = (id{-X:=α} ∷ -Z:=γ ∷ id(Z),
-                         id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)) ⟩
-  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩) · true⟨id{-X:=α} ∷ -Z:=γ ∷ id(Z)⟩)
-    ⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+  -→⟨ Wrap; arr(Z, e) = (id{-X:=α} ∷ seal{-Z:=γ} ∷ id(Z),
+                         id{+Z:=γ} ∷ unseal{+X:=α} ∷ id(ℕ)) ⟩
+  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩) · true⟨id{-X:=α} ∷ seal{-Z:=γ} ∷ id(Z)⟩)
+    ⟨id{+Z:=γ} ∷ unseal{+X:=α} ∷ id(ℕ)⟩
 
   -→⟨ ξ-⟨⟩ Beta; the argument is a value (var target); z is discarded ⟩
-  (W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+  (W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ unseal{+X:=α} ∷ id(ℕ)⟩
 
   -→⟨ ξ-⟨⟩ Merge;
-      (-X:=α ∷ id(X)) ⨟ (id{-Z:=γ} ∷ id(X)) = -X:=α ∷ id{-Z:=γ} ∷ id(X) ⟩
-  (7⟨-X:=α ∷ id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+      (seal{-X:=α} ∷ id(X)) ⨟ (id{-Z:=γ} ∷ id(X)) = seal{-X:=α} ∷ id{-Z:=γ} ∷ id(X) ⟩
+  (7⟨seal{-X:=α} ∷ id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ unseal{+X:=α} ∷ id(ℕ)⟩
 
   -→⟨ Merge;
-      -X:=α ∷ id{-Z:=γ} ∷ id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)
-        ↝ -X:=α ∷ +X:=α ∷ id(ℕ)  ↝  id(ℕ) ⟩
+      seal{-X:=α} ∷ id{-Z:=γ} ∷ id{+Z:=γ} ∷ unseal{+X:=α} ∷ id(ℕ)
+        ↝ seal{-X:=α} ∷ unseal{+X:=α} ∷ id(ℕ)  ↝  id(ℕ) ⟩
   7⟨id(ℕ)⟩
 
   -→⟨ Const ⟩
@@ -993,13 +993,13 @@ adjacent fusion cancels them.
 The merged element list is a nested Dyck word — push X, push Z, pop Z,
 pop X — and adjacent fusion cancels it inside-out.  Had the
 instantiation placed its crossings at the exterior ends of `e`'s
-components (`-Z:=γ ∷ id{-X:=α}` and `+X:=α ∷ id{+Z:=γ}`), the final
+components (`seal{-Z:=γ} ∷ id{-X:=α}` and `unseal{+X:=α} ∷ id{+Z:=γ}`), the final
 merge would instead produce the overlapping word
 
-  -X:=α ∷ id{-Z:=γ} ∷ +X:=α ∷ id{+Z:=γ} ∷ id(ℕ)
+  seal{-X:=α} ∷ id{-Z:=γ} ∷ unseal{+X:=α} ∷ id{+Z:=γ} ∷ id(ℕ)
 
 — push X, push Z, pop X, pop Z — which is syntactically normal and
 stuck at a ground target, and which the stack element rules leave with
-no typing derivation: its `+X:=α` pops under a newer open assignment.
+no typing derivation: its `unseal{+X:=α}` pops under a newer open assignment.
 The stack discipline rules that state out, and the instantiation's
 placement keeps reachable states inside it.

@@ -1,61 +1,72 @@
 # Changes from v7 (DRAFT)
 
 Version 8 makes the conversion the single source of truth for scope
-crossings.
+crossings, and makes anchor allocation a global effect.
 
-1. The boundary loses its scope-change component: `νΘ,χ[M|c]` becomes
-   `νΘ[M|c]`.  The crossings that `χ` performed become conversion
-   ELEMENTS: `id{+X:=α}` and `id{-X:=α}` cross a reveal or a conceal
-   without changing the type, alongside the renaming elements, which now
-   also carry their anchor: `+X:=α` (unseal) and `-X:=α` (seal).
+1. The boundary is conversion application, written `M⟨c⟩`.  It has no
+   scope component and no store component.  The crossings that v7's `χ`
+   performed are conversion ELEMENTS: `id{+X:=α}` and `id{-X:=α}` cross
+   a reveal or a conceal without changing the type, alongside the
+   renaming elements, which also carry their anchor: `+X:=α` (unseal)
+   and `-X:=α` (seal).
 2. Conversion typing is EXACT.  `id(A)` is strictly reflexive (one
-   context, one type).  Each element connects two contexts that differ in
-   exactly the crossing it performs; `→` and `∀` elements delegate their
-   crossing to their component conversions.  Consequently a conversion's
-   interior context is a function of its syntax and its exterior context
-   (`⟨c⟩(Γ)` below), which is what replaces `χ` in the `(Bndry)` and
-   `(ξ-ν)` rules.
-3. Contexts merge each anchor's data into ONE entry that is either
-   concealed (`α:=R`, `α`) or revealed with a source name (`X:α:=R`,
-   `X:α`).  A reveal or conceal flips an entry in place; it never adds or
-   removes one.  Anchor freshness and name uniqueness become structural.
-4. The dual operation `-χ`, the scope-change action `χ(Γ)`, the
-   transition `Γ ⊢ χ ⇒ Γ′`, and the rightmost-visible judgment `Γ ▷ X:=α`
-   are deleted.  With `▷` goes v7's bracketing discipline (a conceal
-   removes the latest visible name): crossings under `∀`-descents always
-   violated it, and it is no longer enforced by typing.  If bracketing is
-   wanted, it returns as a THEOREM about the conversions the builders and
-   the reduction rules produce, not as a typing restriction.
-5. The reduction rules stop doing scope bookkeeping: `Merge` appends
-   conversions and nothing else; `Wrap` needs no dual scope, because the
-   contravariant `arr` component carries the dual crossings; `TyBeta` and
-   `TyWrap` need no separate scope component, because `+X(·)` emits the
-   crossing.
-6. `fuse` gains cancellation rows for the crossing elements, and the view
-   functions `arr`/`all` gain clauses that carry an identity crossing
-   element into the components.
+   context, one type).  Each element connects two contexts that differ
+   in exactly the crossing it performs; `→` and `∀` elements delegate
+   their crossing to their component conversions.  A conversion's
+   interior context is therefore a function `⟨c⟩(Γ)` of its syntax and
+   its exterior context, which is what replaces `χ` in the `(Bndry)`
+   and `(ξ-⟨⟩)` rules.
+3. Representation bindings live in a GLOBAL store Σ, in the style of
+   `GTSF/cambridge26.lagda.md`.  The term `να:=R. M` binds a local
+   anchor with its representation; when it reaches evaluation position
+   it discharges IMMEDIATELY into the store — one step, no per-frame
+   hoisting.  Anchors in Σ are permanent and never shift.  The dual
+   `-χ`, the action `χ(Γ)`, the transition `Γ ⊢ χ ⇒ Γ′`, and the
+   rightmost-visible judgment `Γ ▷ X:=α` are all deleted; bracketing is
+   not enforced by typing (crossings under `∀`-descents need
+   arbitrary-depth conceals) and can return as a theorem about the
+   conversions the builders and reduction rules produce.
+4. The source `Λα,X.V` keeps α as a BINDER — a local anchor variable,
+   not an allocation — because the substitution wrap under an
+   uninstantiated `Λ` must name the anchor its crossing will use.
+   `TyBeta` turns the bound α into the `ν` term's α.  The body is
+   restricted to a VALUE, so there is no reduction under `Λ` and no
+   `ξ-Λ` rule; term variables are NOT values, and Λ-bodies with free
+   term variables are written with an inserted λ.
+5. The reduction rules do no scope or store bookkeeping: `Merge` is
+   `V⟨c⟩⟨d⟩ -→ V⟨c ⨟ d⟩`; `Wrap` needs no dual scope, because the
+   contravariant `arr` component carries the dual crossings; `TyBeta`
+   and `TyWrap` allocate through `ν` and let `+X(·)` emit the crossing.
+6. `fuse` gains cancellation rows for the identity crossing elements;
+   the views `arr` and `all` peel a crossing prefix, and a third view
+   `base` lets `Const` see a ground terminator through identity
+   crossings.
 
 Motivation: under v7's rules the crossing information lived in two
 places, and the typed coherence between them could not survive the
 operations that rearrange conversion syntax.  Machine-checked failures:
-`notes/old/probes-pre-merge/V7MergeScopeClashProbe.agda` (`Merge` strands
-the crossings a bridging `id` performed) and
+`notes/old/probes-pre-merge/V7MergeScopeClashProbe.agda` (`Merge`
+strands the crossings a bridging `id` performed) and
 `notes/probes/V7CancelDriftProbe.agda` (cancelling a `seal/unseal` pair
 strands the visibility drift its flanks absorbed).  Both configurations
 become regression tests for v8.
 
 # Design Criteria
 
-Color Preservation: The set of type variables in scope (the "color")
-at every subterm from the source program is invariant under reduction
-(not including the runtime terms: conversions and scope boundaries,
-runtime-created terms, or constant literals).
+Color Preservation: The set of type variables (X's) in scope (the
+"color") at every subterm from the source program is invariant under
+reduction (not including the runtime terms: conversions and boundaries,
+runtime-created terms, or constant literals).  Color is about type
+variables, not anchors: anchors are runtime store addresses.
 
-Progress: Every closed, well-typed term is a value or can take a reduction step.
+Progress: Every closed, well-typed configuration is a value or can take
+a reduction step.
 
-Preservation: A reduction step preserves the type of a closed term.
+Preservation: A reduction step preserves the type of a closed term and
+extends the store conservatively.
 
-Determinism: Every term has at most one immediate reduct.
+Determinism: Every configuration has at most one immediate reduct, up
+to the choice of fresh anchor.
 
 Single source of crossings: every change of visibility between a
 boundary's interior and exterior is performed by exactly one conversion
@@ -67,6 +78,8 @@ reduction rules) preserve the crossing structure by construction.
   X,Y,Z ∈ TyVar
   a,b ::= X | ℕ | 𝔹            (atomic types)
   A,B,C ::= a | A → B | ∀X.A
+
+Types mention type variables only; anchors never appear in types.
 
 # Representation Types
 
@@ -81,19 +94,28 @@ Representation types mention stable anchors, not source type variables.
   x ∈ Var
   k ::= n | b
   ⊕ ::= + | ×
-  L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | Λα,X.N | L •B[A]
+  L,M,N ::= x | k | M ⊕ N | λx:A. N | L · M | Λα,X.V | L •B[A]
 
-# Contexts and variable lookup
+The body of a `Λ` is a VALUE (see the value grammar below).  The α in
+`Λα,X.V` is a binder for a local anchor variable: the body's
+conversions — in particular the substitution wraps that `Beta` inserts
+— name their crossing with it before any allocation has happened.
+Binding is not allocating; the global store grows only at `ν`
+discharge.
 
-Each anchor owns ONE context entry, concealed or revealed:
+# The global store and contexts
 
-  Γ ::= ∅ | Γ,α | Γ,α:=R | Γ,X:α | Γ,X:α:=R | Γ,x:A
+  Σ ::= ∅ | Σ,α:=R                       (global representation store)
+  Γ ::= ∅ | Γ,α | Γ,α:=R | Γ,X:=α | Γ,x:A
 
-`α:=R` is a concealed represented anchor and `α` a concealed abstract
-one; `X:α:=R` and `X:α` are the same entries revealed, carrying the
-source name `X`.  A reveal or conceal FLIPS an entry in place.  The
-spine of a context is the entry list with visibility and names erased;
-every judgment below relates contexts only through equal spines.
+The store Σ is append-only: `ν` discharge adds a binding, and nothing
+removes or reorders one, so anchors are permanent addresses.  A context
+Γ holds the LOCAL structure: `α` is a Λ- or ∀-bound abstract anchor
+variable, `α:=R` a ν-bound one not yet discharged, `X:=α` assigns a
+source name to an anchor — "revealed" in v8 means exactly that a name
+assignment for the anchor is in scope — and `x:A` is a term variable.
+Judgments are indexed by both, written `Σ;Γ ⊢ ⋯`; anchor lookups search
+Σ and Γ's anchor entries jointly, and we suppress Σ when it is fixed.
 
 Write `ty(Γ)` for the type-only projection (drop the `x:A` entries).
 
@@ -101,42 +123,39 @@ Write `ty(Γ)` for the type-only projection (drop the `x:A` entries).
   | Γ ∋ X:=α |
   ------------
 
-Only a revealed entry has a name.
+  ---------------
+  (Γ,X:=α) ∋ X:=α
 
-  -------------------          -----------------
-  (Γ,X:α:=R) ∋ X:=α            (Γ,X:α) ∋ X:=α
+  Γ ∋ X:=α                    Γ ∋ X:=α        Γ ∋ X:=α
+  --------------- (X ≠ Y)     ------------    ---------------
+  (Γ,Y:=β) ∋ X:=α             (Γ,β) ∋ X:=α    (Γ,β:=S) ∋ X:=α
 
-  Γ ∋ X:=α                     Γ ∋ X:=α
-  ------------------- (X ≠ Y)  ----------------- (X ≠ Y)
-  (Γ,Y:β:=S) ∋ X:=α            (Γ,Y:β) ∋ X:=α
+  Γ ∋ X:=α
+  --------------
+  (Γ,x:A) ∋ X:=α
 
-  Γ ∋ X:=α                     Γ ∋ X:=α         Γ ∋ X:=α
-  ---------------              ------------     ------------
-  (Γ,β:=S) ∋ X:=α              (Γ,β) ∋ X:=α     (Γ,x:A) ∋ X:=α
+  --------------          -----------
+  | Σ;Γ ∋ α:=R |          | Σ;Γ ∋ α |
+  --------------          -----------
 
-  ---------
-  | Γ ∋ α |
-  ---------
-
-Every entry form containing `α` (concealed or revealed) matches; all
-other entries are skipped.  Similarly `Γ ∋ α:=R` looks up the
-representation regardless of visibility.
+`Σ;Γ ∋ α:=R` finds α's representation in Σ or among Γ's `α:=R` entries;
+`Σ;Γ ∋ α` additionally accepts Γ's abstract `α` entries.  At most one
+name assignment per anchor is live (`ok` below), so `Γ ∋ X:=α` and
+`Γ ∋ Y:=α` force `X = Y`.
 
 # Anchor representation of a source type
 
-Write `⌊A⌋Γ` for the representation of `A` in `Γ`.
+Write `⌊A⌋Γ` for the representation of `A` in `Σ;Γ`.
 
   ⌊X⌋Γ       = α                         if Γ ∋ X:=α
   ⌊ι⌋Γ       = ι
   ⌊A → B⌋Γ   = ⌊A⌋Γ → ⌊B⌋Γ
-  ⌊∀X.A⌋Γ    = ∀α.⌊A⌋(Γ,X:α)             (α fresh)
-
-The last equation is defined up to renaming its bound anchor.
+  ⌊∀X.A⌋Γ    = ∀α.⌊A⌋(Γ,α,X:=α)          (α fresh)
 
 # Reading a representation type
 
-The judgment `Γ ⊢ R ⇓ A` reads anchors through the source names visible
-in `Γ`.
+The judgment `Σ;Γ ⊢ R ⇓ A` reads anchors through the name assignments
+in scope.
 
   Γ ∋ X:=α
   ---------
@@ -149,11 +168,11 @@ in `Γ`.
   ---------------------
   Γ ⊢ R → S ⇓ A → B
 
-  Γ,X:α ⊢ R ⇓ A
+  Γ,α,X:=α ⊢ R ⇓ A
   ------------------ (α and X fresh)
   Γ ⊢ ∀α.R ⇓ ∀X.A
 
-# Well-formed Types   Γ ⊢ A
+# Well-formed Types   Σ;Γ ⊢ A
 
   (wf-ℕ)      Γ ⊢ ℕ
 
@@ -167,14 +186,14 @@ in `Γ`.
               --------------
               Γ ⊢ A → B
 
-  (wf-all)    X ∉ Γ  α ∉ Γ  Γ,X:α ⊢ A
-              -----------------------
+  (wf-all)    X ∉ Γ  α ∉ Σ;Γ  Γ,α,X:=α ⊢ A
+              -----------------------------
               Γ ⊢ ∀X.A
 
-# Well-formed Representation Types   Γ ⊢ᴿ R
+# Well-formed Representation Types   Σ;Γ ⊢ᴿ R
 
-  (wfᴿ-tvar)  Γ ∋ α
-              -----
+  (wfᴿ-tvar)  Σ;Γ ∋ α
+              -------
               Γ ⊢ᴿ α
 
   (wfᴿ-ι)     Γ ⊢ᴿ ι
@@ -183,41 +202,48 @@ in `Γ`.
               ----------------
               Γ ⊢ᴿ R → S
 
-  (wfᴿ-all)   α ∉ Γ   Γ,α ⊢ᴿ R
-              -----------------
+  (wfᴿ-all)   α ∉ Σ;Γ   Γ,α ⊢ᴿ R
+              -------------------
               Γ ⊢ᴿ ∀α.R
 
-# Well-formed Contexts   Γ ok
-
-Merged entries make name uniqueness structural: an anchor carries at
-most one name because a name is part of its entry.
+# Well-formed store and contexts
 
   ----
   ∅ ok
 
-  Γ ok   α ∉ Γ                Γ ok  Γ ⊢ᴿ R  α ∉ Γ
-  ------------                -------------------
-  Γ,α ok                      Γ,α:=R ok
+  Σ ok  Σ;∅ ⊢ᴿ R  α ∉ Σ
+  ----------------------
+  Σ,α:=R ok
 
-  Γ ok   α ∉ Γ   X ∉ Γ        Γ ok  Γ ⊢ᴿ R  α ∉ Γ  X ∉ Γ
-  --------------------        --------------------------
-  Γ,X:α ok                    Γ,X:α:=R ok
+  -------
+  Σ; ∅ ok
 
-  Γ ok  Γ ⊢ A
-  -----------
-  Γ,x:A ok
+  Σ;Γ ok   α ∉ Σ;Γ           Σ;Γ ok  Σ;Γ ⊢ᴿ R  α ∉ Σ;Γ
+  ----------------           -------------------------
+  Σ; Γ,α ok                  Σ; Γ,α:=R ok
+
+  Σ;Γ ok   Σ;Γ ∋ α   X ∉ Γ   Γ ∌ _:=α
+  ------------------------------------
+  Σ; Γ,X:=α ok
+
+  Σ;Γ ok  Σ;Γ ⊢ A
+  ---------------
+  Σ; Γ,x:A ok
 
 # Conversions
 
   ĉ,ḓ ::= +X:=α | -X:=α | id{+X:=α} | id{-X:=α} | c → d | ∀X.c
   c,d ::= id(A) | ĉ ∷ c
 
-The four atomic elements all cross the visibility of one anchor; they
-differ in whether the crossing renames the type:
+The four atomic elements all cross the introduction of one name
+assignment `X:=α`; they differ in whether the crossing renames the
+type:
 
-  -X:=α      : SEAL: crosses α's reveal outward, `A ⇒ X`, reading α's
-               representation on the concealed side.
-  +X:=α      : UNSEAL: crosses α's conceal outward, `X ⇒ A`.
+  -X:=α      : SEAL: crosses the assignment's introduction outward,
+               `A ⇒ X`, reading α's representation on the unassigned
+               side.
+  +X:=α      : UNSEAL: crosses the assignment's removal outward,
+               `X ⇒ A`.
   id{-X:=α}  : identity conceal crossing: the same crossing as `-X:=α`
                with the type unchanged.  As a boundary element it
                conceals `X` inward — v7's scope change `-X:=α`,
@@ -227,38 +253,38 @@ differ in whether the crossing renames the type:
 
 The ANCHOR is the operative datum of every atomic element, and the
 syntax carries it: `fuse` decides cancellation by anchor equality (in
-the `+X:=α ∷ -Y:=β` order the seam context is the concealed side, where
-names do not exist, and equal names at the two outer contexts need not
-mean equal anchors), the interior walk `⟨c⟩` identifies the entry to
-flip by its anchor, and anchors are the coordinate that weakening
-shifts uniformly.  In the mechanization the constructors carry ONLY the
-anchor (`seal α`, `unseal α`, `hide α`, `show α`); the de Bruijn name is
-recomputed as a reveal-count wherever a rule needs it.
+the `+X:=α ∷ -Y:=β` order the seam context has neither name in scope,
+and equal names at the two outer contexts need not mean equal anchors),
+the interior walk `⟨c⟩` identifies the assignment to add or remove by
+its anchor, and anchors never shift.  The identity crossings work for
+ABSTRACT anchors too — a Λ-bound α has no representation, and the
+substitution wrap needs exactly `id{-X:=α}` — while the renaming
+elements additionally demand `α:=R` for their read-back.
 
 # Conversion-element Typing
 
-Each rule's two contexts share a spine and differ in EXACTLY the entry
-the element crosses.  Below, `Γ[α]` and `Γ[X:α]` display α's entry
-concealed and revealed; the rest of the context is unchanged between the
-two sides of a rule.
+Each rule's two contexts differ in EXACTLY the assignment the element
+crosses.  Write `Γ+X:=α` for Γ with the assignment inserted at `X`'s
+position (in the mechanization the name is a de Bruijn index, which is
+the position).
 
-  Γₑ[X:α] ∋ α:=R   Γᵢ[α] ⊢ R ⇓ A
-  ------------------------------------
-  Γᵢ[α] ⊢̂ -X:=α : A ⇒ X ⊣ Γₑ[X:α]
+  Σ;Γₑ ∋ α:=R   Σ;Γᵢ ⊢ R ⇓ A          (Γₑ = Γᵢ+X:=α)
+  --------------------------------
+  Σ;Γᵢ ⊢̂ -X:=α : A ⇒ X ⊣ Γₑ
 
-  Γᵢ[X:α] ∋ α:=R   Γₑ[α] ⊢ R ⇓ A
-  ------------------------------------
-  Γᵢ[X:α] ⊢̂ +X:=α : X ⇒ A ⊣ Γₑ[α]
+  Σ;Γᵢ ∋ α:=R   Σ;Γₑ ⊢ R ⇓ A          (Γᵢ = Γₑ+X:=α)
+  --------------------------------
+  Σ;Γᵢ ⊢̂ +X:=α : X ⇒ A ⊣ Γₑ
 
-  Γᵢ[α] ⊢ A   (X fresh for Γᵢ[α])
-  ------------------------------------
-  Γᵢ[α] ⊢̂ id{-X:=α} : A ⇒ A ⊣ Γₑ[X:α]
+  Σ;Γᵢ ⊢ A   Σ;Γᵢ ∋ α   X ∉ Γᵢ        (Γₑ = Γᵢ+X:=α)
+  --------------------------------
+  Σ;Γᵢ ⊢̂ id{-X:=α} : A ⇒ A ⊣ Γₑ
 
-  Γₑ[α] ⊢ A
-  ------------------------------------
-  Γᵢ[X:α] ⊢̂ id{+X:=α} : A ⇒ A ⊣ Γₑ[α]
+  Σ;Γₑ ⊢ A                            (Γᵢ = Γₑ+X:=α)
+  --------------------------------
+  Σ;Γᵢ ⊢̂ id{+X:=α} : A ⇒ A ⊣ Γₑ
 
-Well-formedness of `A` on the concealed side is what enforces `X ∉ A`
+Well-formedness of `A` on the unassigned side is what enforces `X ∉ A`
 for the identity crossings.
 
 The structural elements delegate their crossing to their components:
@@ -267,7 +293,7 @@ The structural elements delegate their crossing to their components:
   ------------------------------------------
   Γᵢ ⊢̂ c → d : (A → B) ⇒ (C → D) ⊣ Γₑ
 
-  Γᵢ,X:α ⊢ c : A ⇒ B ⊣ Γₑ,X:α
+  Γᵢ,α,X:=α ⊢ c : A ⇒ B ⊣ Γₑ,α,X:=α
   ------------------------------------ (α fresh)
   Γᵢ ⊢̂ ∀X.c : ∀X.A ⇒ ∀X.B ⊣ Γₑ
 
@@ -287,20 +313,19 @@ elements.
 # Crossings of a conversion
 
 `⟨c⟩(Γ)` computes a conversion's interior context from its exterior
-context, replacing the deleted `χ(Γ)`.  It walks the elements from the
+context, replacing v7's `χ(Γ)`.  It walks the elements from the
 terminator inward, undoing each element's crossing:
 
   ⟨id(A)⟩(Γ)     = Γ
   ⟨ĉ ∷ c⟩(Γ)     = ⟨ĉ⟩̂(⟨c⟩(Γ))
 
-  ⟨-X:=α⟩̂(Γ[X:α]) = Γ[α]         ⟨id{-X:=α}⟩̂(Γ[X:α]) = Γ[α]
-  ⟨+X:=α⟩̂(Γ[α])   = Γ[X:α]       ⟨id{+X:=α}⟩̂(Γ[α])   = Γ[X:α]
-  ⟨c → d⟩̂(Γ)     = ⟨d⟩(Γ)
-  ⟨∀X.c⟩̂(Γ)      = Γ′             if ⟨c⟩(Γ,X:α) = Γ′,X:α
+  ⟨-X:=α⟩̂(Γ+X:=α) = Γ           ⟨id{-X:=α}⟩̂(Γ+X:=α) = Γ
+  ⟨+X:=α⟩̂(Γ)      = Γ+X:=α      ⟨id{+X:=α}⟩̂(Γ)      = Γ+X:=α
+  ⟨c → d⟩̂(Γ)      = ⟨d⟩(Γ)
+  ⟨∀X.c⟩̂(Γ)       = Γ′          if ⟨c⟩(Γ,α,X:=α) = Γ′,α,X:=α
 
-The `+` clauses restore the name the element carries, so the walk is
-fully syntax-directed; on well-typed conversions `⟨c⟩` and the typing
-agree:
+The walk is fully syntax-directed — each element carries its name and
+anchor — and on well-typed conversions it agrees with the typing:
 
   if Γᵢ ⊢ c : A ⇒ B ⊣ Γₑ then ⟨c⟩(Γₑ) = Γᵢ.
 
@@ -309,14 +334,14 @@ agree:
 The builders are indexed by the two endpoint contexts.  If an equation
 reaches a free occurrence of `X`, its represented type is obtained by
 
-  Γᵥ ∋ X:=α   Γᵥ ∋ α:=R   Γₕ ⊢ R ⇓ S
-  ------------------------------------
+  Γᵥ ∋ X:=α   Σ;Γᵥ ∋ α:=R   Γₕ ⊢ R ⇓ S
+  --------------------------------------
   Γᵥ ; Γₕ ⊢ repr(X) = S.
 
-Every equation's result crosses α's visibility exactly once at the top
-level: a hit crosses with the renaming element, a miss crosses with the
-identity crossing element, and a split delegates the crossing to its
-components.  The context indices and `S` are suppressed:
+Every equation's result crosses `X:=α` exactly once at the top level: a
+hit crosses with the renaming element, a miss crosses with the identity
+crossing element, and a split delegates the crossing to its components.
+The context indices and `S` are suppressed:
 
   +X(A) = id{+X:=α} ∷ id(A)                        (X ∉ A)
   +X(X) = +X:=α ∷ id(S)
@@ -331,8 +356,8 @@ components.  The context indices and `S` are suppressed:
 The v7 miss equations (`+X(Y)`, `+X(ι)`, `+X(∀X.A)` and duals) are the
 instances of the first equation.  Contracts:
 
-  Γᵢ[X:α] ⊢ +X(A) : A ⇒ A[X:=S] ⊣ Γₑ[α]
-  Γᵢ[α]   ⊢ -X(A) : A[X:=S] ⇒ A ⊣ Γₑ[X:α]
+  Γᵢ+X:=α ⊢ +X(A) : A ⇒ A[X:=S] ⊣ Γᵢ
+  Γᵢ      ⊢ -X(A) : A[X:=S] ⇒ A ⊣ Γᵢ+X:=α
 
   -----------------
   | +X(c) = c′ | (reveal X in c)
@@ -345,8 +370,8 @@ These operations require `NF(c)` and return a conversion in normal form.
   +X(ĉ ∷ c) = +X(ĉ) ⨟ +X(c)
   -X(ĉ ∷ c) = -X(ĉ) ⨟ -X(c)
 
-On elements, with `B` the target supplied by the typing derivation of the
-transformed element:
+On elements, with `B` the target supplied by the typing derivation of
+the transformed element:
 
   +X(+Y:=β) = +Y:=β ∷ id(B)             -X(+Y:=β) = +Y:=β ∷ id(B)
   +X(-Y:=β) = -Y:=β ∷ id(B)             -X(-Y:=β) = -Y:=β ∷ id(B)
@@ -360,12 +385,13 @@ transformed element:
 
 # Runtime Terms
 
-  Θ ::= ∅ | Θ,α:=R | Θ,α                (representation bindings)
-  L,M,N ::= ... | νΘ[M|c]
+  L,M,N ::= ... | να:=R. M | M⟨c⟩
 
-We call `νΘ[M|c]` a boundary.  There is no scope component: the
-conversion's elements carry the crossings, and the interior context is
-`⟨c⟩` of the exterior.
+`M⟨c⟩` is CONVERSION APPLICATION — the boundary.  It has no store and
+no scope: the conversion's elements carry the crossings, and the
+interior context is `⟨c⟩` of the exterior.  `να:=R. M` binds a local
+anchor with its representation; it is an allocation waiting to
+discharge into Σ.
 
 # Conversion Composition
 
@@ -383,9 +409,9 @@ Adjacent elements fuse as follows:
   fuse(+X:=α,-X:=α)                 = []
   fuse(id{-X:=α},id{+X:=α})         = []
   fuse(id{+X:=α},id{-X:=α})         = []
-  fuse(c₁→d₁,c₂→d₂)         = [(c₂ ⨟ c₁) → (d₁ ⨟ d₂)]
-  fuse(∀X.c,∀X.d)           = [∀X.(c ⨟ d)]
-  fuse(ĉ,ḓ)                 undefined otherwise.
+  fuse(c₁→d₁,c₂→d₂)                 = [(c₂ ⨟ c₁) → (d₁ ⨟ d₂)]
+  fuse(∀X.c,∀X.d)                   = [∀X.(c ⨟ d)]
+  fuse(ĉ,ḓ)                         undefined otherwise.
 
 Cancellation compares the ANCHORS, which the syntax displays.  A
 renaming element against the opposite identity crossing does not fuse:
@@ -415,8 +441,8 @@ pairs by `fuse` with rescanning, reattach the target terminator.
   Γ ⊢ c ⨟ d = reduce(c,d)
     = attach(contract(elts(c) ++ elts(d)), target(d)).
 
-Every successful fusion decreases the total weight of the element list, so
-`contract` terminates; the crossing elements have weight 1 like the
+Every successful fusion decreases the total weight of the element list,
+so `contract` terminates; the crossing elements have weight 1 like the
 renaming elements.
 
 ## Normal-form builders
@@ -437,11 +463,13 @@ and hence `(c ⨟ d) ⨟ e = c ⨟ (d ⨟ e)`, as computation.
 
 ## Conversion views
 
+Three views classify a normal boundary conversion by peeling its
+crossing prefix; κ ranges over the identity crossing elements, with
+`κ̄` the dual element (`id{+X:=α}` ↔ `id{-X:=α}`).
+
 `arr` takes the INTERIOR domain from the λ annotation at its use site
-(the conversion's syntax does not carry it when the conversion is a bare
-`id` or begins with crossing elements).  For κ ranging over the identity
-crossing elements, with `κ̄` the dual element
-(`id{+X:=α}` ↔ `id{-X:=α}`):
+(the conversion's syntax does not carry it when the conversion is a
+bare `id` or begins with crossing elements):
 
   arr(A₀, id(A → B)) = (id(A), id(B))
   arr(A₀, κ₁ ∷ … ∷ κₙ ∷ (c → d) ∷ id(C → D))
@@ -450,19 +478,23 @@ crossing elements, with `κ̄` the dual element
   all(id(∀X.A)) = id(A)
   all(κ₁ ∷ … ∷ κₙ ∷ (∀X.c) ∷ id(∀X.B)) = κ₁ ∷ … ∷ κₙ ∷ c  (n ≥ 0)
 
-`arr` peels the crossing prefix in one pass: the contravariant component
-re-crosses it in reverse with the dual elements and terminates at the
-INTERIOR domain `A₀` — the λ's own annotation, in its own coordinates —
-so no renaming is involved; the covariant component keeps the prefix.
-Here `_⧺_` is terminator-discarding append.
+  base(id(ι)) = ι
+  base(κ ∷ c) = base(c)
+
+`arr` peels the crossing prefix in one pass: the contravariant
+component re-crosses it in reverse with the dual elements and
+terminates at the INTERIOR domain `A₀` — the λ's own annotation, in its
+own coordinates — so no renaming is involved; the covariant component
+keeps the prefix.  Here `_⧺_` is terminator-discarding append.  `base`
+is the view `Const` uses: a literal ignores identity crossings.
 
 OPEN (to be settled in the mechanization): whether every reachable
-normal boundary conversion at a function or universal target has one of
-these shapes.  Renaming elements can in principle stand between identity
-crossings in a normal form (`-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)` is
-normal); the claim
-to prove is that such conversions do not reach value boundaries, or else
-`arr`/`all` and the `Value` clause must treat them.
+normal boundary conversion at a function, universal, or ground target
+has one of these shapes.  Renaming elements can in principle stand
+between identity crossings in a normal form
+(`-X:=α ∷ id{-Y:=β} ∷ +X:=α ∷ id(S)` is normal); the claim to prove is
+that such conversions do not reach value boundaries, or else the views
+and the `Value` clause must treat them.
 
 ## Composition totality
 
@@ -479,27 +511,12 @@ then there is a unique `e` such that
   NF(e)
   Γ₁ ⊢ e : A ⇒ C ⊣ Γ₃.
 
-Because every crossing is a element, the appended element list performs
-exactly the crossings of the two derivations in sequence; the v7
-counterexamples (a deleted bridging `id`, a cancelled pair with drifted
-flanks) cannot be stated.
+Because every crossing is an element, the appended element list
+performs exactly the crossings of the two derivations in sequence; the
+v7 counterexamples (a deleted bridging `id`, a cancelled pair with
+drifted flanks) cannot be stated.
 
-# Well-formed Θ   Γ ⊢ Θ
-
-  -----
-  Γ ⊢ ∅
-
-  Γ ⊢ Θ   Γ++Θ ⊢ᴿ R   α ∉ Γ++Θ
-  --------------------------------
-  Γ ⊢ Θ,α:=R
-
-  Γ ⊢ Θ   α ∉ Γ++Θ
-  -----------------
-  Γ ⊢ Θ,α
-
-Store entries enter the context concealed.
-
-# Term Typing
+# Term Typing   Σ;Γ ⊢ M : A
 
   (ConstNat)  ---------
               Γ ⊢ n : ℕ
@@ -523,31 +540,46 @@ Store entries enter the context concealed.
             -----------------------
             Γ ⊢ L · M : B
 
-  (TyLam)   Γ, X:α ⊢ N : A
-            -------------------- (α fresh)
-            Γ ⊢ Λα,X.N : ∀X.A
+  (TyLam)   Γ, α, X:=α ⊢ V : A   Value V
+            ------------------------------ (α fresh)
+            Γ ⊢ Λα,X.V : ∀X.A
 
   (TyApp)   Γ ⊢ L : ∀X.B   Γ ⊢ A
             --------------------
             Γ ⊢ L •B[A] : B[X:=A]
 
-  (Bndry)   ty(Γ) ⊢ Θ   NF(c)
-            ⟨c⟩(ty(Γ)++Θ) = Γᵢ
-            Γᵢ ⊢ M : A
-            Γᵢ ⊢ c : A ⇒ B ⊣ ty(Γ)++Θ
-            ----------------------
-            Γ ⊢ νΘ[M|c] : B
+  (Nu)      Σ;ty(Γ) ⊢ᴿ R   Σ; Γ,α:=R ⊢ M : A
+            --------------------------------- (α fresh)
+            Σ;Γ ⊢ να:=R. M : A
 
-The interior context is not a component of the term; it is computed from
-the conversion, and it is unique because each element's crossing inverts
-uniquely.  A boundary body contains no free term variables from its
-exterior.
+  (Bndry)   NF(c)   ⟨c⟩(ty(Γ)) = Γᵢ
+            Σ;Γᵢ ⊢ M : A
+            Σ;Γᵢ ⊢ c : A ⇒ B ⊣ ty(Γ)
+            ------------------------
+            Σ;Γ ⊢ M⟨c⟩ : B
+
+Anchors never appear in types, so `(Nu)` needs no side condition to
+keep α from escaping.  The interior context of a boundary is not a
+component of the term; it is computed from the conversion, and it is
+unique because each element's crossing inverts uniquely.  A boundary
+body contains no free term variables from its exterior.
 
 # Values
 
   Vˢ,Wˢ ::= k | λx:A.N | Λα,X.V
-  V,W ::= Vˢ | νΘ[Vˢ|c]
+  V,W ::= Vˢ | Vˢ⟨c⟩
     where NF(c) and arr(A₀,c), all(c), or a type-variable target applies
+
+Term variables are NOT values.  The value restriction on `Λ` bodies is
+compatible with free term variables under `Λ` because the value grammar
+is not closed under subterms: `λx:A.N` is a value for ARBITRARY `N`, so
+a body like `λy:Y. (f •(Z→Z)[Y]) · y` is a value with `f` free.
+Values are closed under substitution of values for term variables,
+which is what `Beta` needs to preserve the restriction.
+
+A `να:=R.V` is not a value: an allocation in evaluation position always
+discharges.  A `k⟨c⟩` with `base(c)` defined is not a value: it steps
+by `Const`.
 
 # Term-variable substitution   N[x := M : A]
 
@@ -558,171 +590,181 @@ exterior.
   (L · M)[x:=V:A]       = L[x:=V:A] · M[x:=V:A]
   (λx:B. N)[x:=V:A]     = λx:B. N                       (shadow)
   (λy:B. N)[x:=V:A]     = λy:B. N[x:=V:A]               (y ≠ x)
-  (Λα,X. N)[x:=V:A]     = Λα,X. N[x:= ν∅[V | id{-X:=α} ∷ id(A)] ]
+  (Λα,X. W)[x:=V:A]     = Λα,X. W[x:= V⟨id{-X:=α} ∷ id(A)⟩ ]
   (L •B[C])[x:=V:A]     = L[x:=V:A] •B[C]
-  νΘ[M|c] [x:=V]        = νΘ[M|c]                       (skip M)
+  (να:=R. M)[x:=V:A]    = να:=R. M[x:=V:A]
+  M⟨c⟩ [x:=V]           = M⟨c⟩                          (skip M)
 
-The `Λ` clause is v7's crossing boundary with the scope component
-relocated into the conversion: the value crosses `X`'s reveal with the
-identity crossing element, and `A` cannot mention `X` because `V` was
-typed outside the `Λ`.
+The `Λ` clause is the COLOR wrap: the substituend crosses into `X`'s
+scope behind an identity conceal, so its nodes' color does not gain
+`X`.  The element `id{-X:=α}` names the Λ-BOUND anchor — this is why
+`Λ` keeps its binder — and needs no representation, because identity
+crossings never read one.  `A` cannot mention `X` because `V` was typed
+outside the `Λ`.
 
 # Reduction Rules
 
-Reduction is indexed by the ambient context so that type application can
-store `⌊A⌋Γ`.  Write `Γ ⊢ M -→ N`, omitting `Γ ⊢` when it is clear.
+Reduction is store-passing and indexed by the ambient context: write
+`Σ;Γ ⊢ M —→ N ⊣ Σ′`, where only `Alloc` extends the store; we omit `Σ`
+and `Γ` when they are unchanged or clear.
 
-  (Beta)      Γ ⊢ (λx:A. N) · W  -→ N[x:=W:A]
-  (PrimBeta)  Γ ⊢ n₁ ⊕ n₂        -→ n₁ ⟦⊕⟧ n₂
-  (TyBeta)    Γ ⊢ (Λα,X.V) •B[A]
-              -→ να:=⌊A⌋Γ[ V | +X(B) ]
-  (Wrap)      Γ ⊢ νΘ[ λx:A₀.N |c] · W
-              -→ νΘ[ (λx:A₀.N) · ν∅[W|c₁] |c₂]
+  (Beta)      (λx:A. N) · W  -→  N[x:=W:A]
+  (PrimBeta)  n₁ ⊕ n₂        -→  n₁ ⟦⊕⟧ n₂
+  (TyBeta)    (Λα,X.V) •B[A]  -→  να:=⌊A⌋Γ. V⟨+X(B)⟩
+  (Alloc)     Σ;Γ ⊢ να:=R. M  —→  M ⊣ Σ,α:=R            (α fresh for Σ)
+  (Wrap)      (λx:A₀.N)⟨c⟩ · W  -→  ((λx:A₀.N) · W⟨c₁⟩)⟨c₂⟩
               if arr(A₀,c) = (c₁,c₂)
-  (TyWrap)    Γ ⊢ νΘ[ Λα,X.V |c] •B[A]
-              -→ ν(Θ,α:=⌊A⌋Γ)[ V |+X(d)]
+  (TyWrap)    (Λα,X.V)⟨c⟩ •B[A]  -→  να:=⌊A⌋Γ. V⟨+X(d)⟩
               if all(c) = d
-  (Merge)     Γ ⊢ νΘ₁[ νΘ₂[ V |c] |d]
-              -→ ν(Θ₁++Θ₂)[ V |c⨟d]
-              if νΘ₂[ V |c] is a value
-  (Const)     Γ ⊢ νΘ[ k |id(ι)] -→ k
+  (Merge)     V⟨c⟩⟨d⟩  -→  V⟨c ⨟ d⟩
+              if V⟨c⟩ is a value
+  (Const)     k⟨c⟩ -→ k       if base(c) = ι
 
-Compare v7: `TyBeta` and `TyWrap` lose their scope components
-(the crossing is inside `+X(·)`); `Wrap` loses the dual scope `-χ` (the
-contravariant component `c₁` carries the dual crossings); `Merge` loses
-the scope concatenation.  `Wrap` matches the body as a λ because `arr`
-needs the interior domain.
+`Alloc` is immediate: the ξ-rules propagate the store extension, so an
+allocation discharges in one step from any evaluation position — there
+is no per-frame hoisting and `ν` never blocks a redex.  `TyBeta` and
+`TyWrap` turn the `Λ`'s bound anchor into the `ν`'s; the body `V` is
+untouched, and its wraps' `id{-X:=α}` elements are captured by the same
+binder.  Compare v7: `TyBeta` and `TyWrap` lose their scope components
+(the crossing is inside `+X(·)`), `Wrap` loses the dual scope `-χ` (the
+contravariant component `c₁` carries the dual crossings), and `Merge`
+loses the store concatenation and scope composition.  `Wrap` matches
+the body as a λ because `arr` needs the interior domain.
 
-  (ξ-·-l)   Γ ⊢ L · M -→ L′ · M       if Γ ⊢ L -→ L′
-  (ξ-·-r)   Γ ⊢ V · M -→ V · M′       if Γ ⊢ M -→ M′
-  (ξ-⊕-l)   Γ ⊢ L ⊕ M -→ L′ ⊕ M       if Γ ⊢ L -→ L′
-  (ξ-⊕-r)   Γ ⊢ V ⊕ M -→ V ⊕ M′       if Γ ⊢ M -→ M′
-  (ξ-•)     Γ ⊢ L •B[A] -→ L′ •B[A]   if Γ ⊢ L -→ L′
-  (ξ-Λ)     Γ ⊢ Λα,X.N -→ Λα,X.N′
-              if Γ,X:α ⊢ N -→ N′
-  (ξ-ν)     Γ ⊢ νΘ[M|c] -→ νΘ[M′|c]
-              if ⟨c⟩(ty(Γ)++Θ) ⊢ M -→ M′
+  (ξ-·-l)   L · M -→ L′ · M       if L -→ L′
+  (ξ-·-r)   V · M -→ V · M′       if M -→ M′
+  (ξ-⊕-l)   L ⊕ M -→ L′ ⊕ M       if L -→ L′
+  (ξ-⊕-r)   V ⊕ M -→ V ⊕ M′       if M -→ M′
+  (ξ-•)     L •B[A] -→ L′ •B[A]   if L -→ L′
+  (ξ-⟨⟩)    M⟨c⟩ -→ M′⟨c⟩
+              if Σ; ⟨c⟩(ty(Γ)) ⊢ M -→ M′ ⊣ Σ′
+
+There is NO `ξ-Λ`: `Λ` bodies are values and never reduce in place.
 
 # Theorem Statements
 
 ## Progress
 
-If `∅ ⊢ M : A`, then either `Value M` or there exists an `N` such that
-`∅ ⊢ M -→ N`.
+If `Σ ok` and `Σ;∅ ⊢ M : A`, then either `Value M` or there exist `N`,
+`Σ′` such that `Σ;∅ ⊢ M —→ N ⊣ Σ′`.
 
 ## Preservation
 
-If `Γ ok`, `ty(Γ) = Γ`, `Γ ⊢ M : A`, and `Γ ⊢ M -→ N`, then `Γ ⊢ N : A`.
+If `Σ;Γ ok`, `ty(Γ) = Γ`, `Σ;Γ ⊢ M : A`, and `Σ;Γ ⊢ M —→ N ⊣ Σ′`, then
+`Σ′ ⊇ Σ` and `Σ′;Γ ⊢ N : A`.
 
 ## Determinism
 
-If `Γ ok`, `Γ ⊢ M : A`, `Γ ⊢ M -→ N₁`, and `Γ ⊢ M -→ N₂`, then
-`N₁ ≡α N₂`.
+If `Σ;Γ ok`, `Σ;Γ ⊢ M : A`, `Σ;Γ ⊢ M —→ N₁ ⊣ Σ₁`, and
+`Σ;Γ ⊢ M —→ N₂ ⊣ Σ₂`, then `N₁ ≡α N₂` and `Σ₁ ≡α Σ₂`, identifying the
+choice of fresh anchor.
 
 ## Interior well-formedness
 
-Replaces v7's scope-change preservation: if `Γ ok`, `NF(c)`, and
-`Γᵢ ⊢ c : A ⇒ B ⊣ Γ`, then `Γᵢ ok` and `⟨c⟩(Γ) = Γᵢ`.
+If `Σ;Γ ok`, `NF(c)`, and `Σ;Γᵢ ⊢ c : A ⇒ B ⊣ Γ`, then `Σ;Γᵢ ok` and
+`⟨c⟩(Γ) = Γᵢ`.
 
 ## Color Preservation
 
-As in v7, with the boundary clause of the one-hole-context judgment
-computed by `⟨c⟩` instead of `χ`:
+Color is over TYPE VARIABLES:
 
-  ⟨c⟩(ty(Γ)++Θ) ⊢ C ⊣ Γ′
-  ----------------------
-  Γ ⊢ νΘ[C | c] ⊣ Γ′
+  color(Γ) = { X | Γ ∋ X:=α for some α }.
 
-The descendant relation and the statement are otherwise unchanged from
-v7.
+The one-hole-context judgment descends as in v7, with the `Λ` clause
+adding `α, X:=α` and the boundary clause computed by `⟨c⟩`:
+
+  Γ,α,X:=α ⊢ C ⊣ Γ′               ⟨c⟩(ty(Γ)) ⊢ C ⊣ Γ′
+  ------------------              --------------------
+  Γ ⊢ Λα,X.C ⊣ Γ′                 Γ ⊢ C⟨c⟩ ⊣ Γ′
+
+  Γ,α:=R ⊢ C ⊣ Γ′
+  ------------------
+  Γ ⊢ να:=R.C ⊣ Γ′
+
+The `ν` clause adds no name assignment, so allocation never changes a
+color.  The descendant relation and the statement are otherwise as in
+v7; the substitution wrap in the `Λ` clause of substitution is what
+keeps a substituted value's color from gaining `X`.
 
 ## Representation soundness
 
-If `Γ ok` and `Γ ⊢ A`, then `Γ ⊢ᴿ ⌊A⌋Γ` and `Γ ⊢ ⌊A⌋Γ ⇓ A`.
+If `Σ;Γ ok` and `Σ;Γ ⊢ A`, then `Σ;Γ ⊢ᴿ ⌊A⌋Γ` and `Σ;Γ ⊢ ⌊A⌋Γ ⇓ A`.
 
 # Examples
+
+Store extensions are noted at each `Alloc` step.
 
 ## Polymorphic identity (v7 Examples §6)
 
   ((Λα,X. λx:X.x) •(X→X)[ℕ]) · 7
   -→⟨ ξ-·-l TyBeta ⟩
-  (να:=ℕ[
-     λx:X.x
-   | ((-X:=α ∷ id(X)) → (+X:=α ∷ id(ℕ))) ∷ id(ℕ→ℕ)]) · 7
+  (να:=ℕ. (λx:X.x)⟨((-X:=α ∷ id(X)) → (+X:=α ∷ id(ℕ))) ∷ id(ℕ→ℕ)⟩) · 7
+  -→⟨ ξ-·-l Alloc;  Σ = α:=ℕ ⟩
+  ((λx:X.x)⟨((-X:=α ∷ id(X)) → (+X:=α ∷ id(ℕ))) ∷ id(ℕ→ℕ)⟩) · 7
   -→⟨ Wrap; arr(X, ·) = (-X:=α ∷ id(X), +X:=α ∷ id(ℕ)) ⟩
-  να:=ℕ[
-    (λx:X.x) · ν∅[7 | -X:=α ∷ id(X)]
-  | +X:=α ∷ id(ℕ)]
-  -→⟨ ξ-ν Beta ⟩
-  να:=ℕ[
-    ν∅[7 | -X:=α ∷ id(X)]
-  | +X:=α ∷ id(ℕ)]
+  ((λx:X.x) · 7⟨-X:=α ∷ id(X)⟩)⟨+X:=α ∷ id(ℕ)⟩
+  -→⟨ ξ-⟨⟩ Beta ⟩
+  (7⟨-X:=α ∷ id(X)⟩)⟨+X:=α ∷ id(ℕ)⟩
   -→⟨ Merge; (-X:=α ∷ id(X)) ⨟ (+X:=α ∷ id(ℕ)) = id(ℕ) ⟩
-  να:=ℕ[7 | id(ℕ)]
-  -→⟨ Const ⟩
+  7⟨id(ℕ)⟩
+  -→⟨ Const; base(id(ℕ)) = ℕ ⟩
   7.
 
-The trace is v7's with every scope component erased.  `X` occurs in the
-instantiated type, so `+X(X→X)` is all renaming elements and no
-identity crossing appears.  After the merge, the strict `id(ℕ)`
-types the boundary reflexively: interior and exterior are both `α:=ℕ`,
-concealed, exactly as the cancelled crossings require.  In v7 the merged
-scope `(+X:=α);(-X:=α)` had to be carried and separately admitted.
+The λ's body types at the interior `Γ,X:=α`; after the merge the strict
+`id(ℕ)` has an empty interior walk, and `Const` reads the ground
+terminator directly.  Every piece of v7's scope bookkeeping — the
+boundary's `+X:=α` scope component, the dual `-χ` on the argument wrap,
+the merged scope and its separate admissibility check — is gone, and
+the store records `α:=ℕ` permanently.
 
-## Polymorphic argument under `Λ` (v7 Examples §14)
+## Polymorphic argument under `Λ` (v7 Examples §14, adapted)
 
-Here `X ∉ (∀Z.Z→Z)→(∀Y.Y→Y)`, so the type-preserving crossings appear.
+The value restriction requires a λ in the inner `Λ` body, so the source
+term η-expands `f •(Z→Z)[Y]`:
 
   ((Λα,X.
-      λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y])
+      λf:∀Z.Z→Z. Λβ,Y. λy:Y. (f •(Z→Z)[Y]) · y)
     •((∀Z.Z→Z)→(∀Y.Y→Y))[ℕ])
   · (Λγ,Z. λz:Z.z)
   -→⟨ ξ-·-l TyBeta; X ∉ B so +X(B) = id{+X:=α} ∷ id(B) ⟩
-  (να:=ℕ[
-     λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y]
-   | id{+X:=α} ∷ id((∀Z.Z→Z) → (∀Y.Y→Y))])
+  (να:=ℕ.
+    (λf:∀Z.Z→Z. Λβ,Y. λy:Y. (f •(Z→Z)[Y]) · y)
+      ⟨id{+X:=α} ∷ id((∀Z.Z→Z) → (∀Y.Y→Y))⟩)
+  · (Λγ,Z. λz:Z.z)
+  -→⟨ ξ-·-l Alloc;  Σ = α:=ℕ ⟩
+  ((λf:∀Z.Z→Z. Λβ,Y. λy:Y. (f •(Z→Z)[Y]) · y)
+     ⟨id{+X:=α} ∷ id((∀Z.Z→Z) → (∀Y.Y→Y))⟩)
   · (Λγ,Z. λz:Z.z)
   -→⟨ Wrap; arr(∀Z.Z→Z, id{+X:=α} ∷ id(B→C))
           = (id{-X:=α} ∷ id(∀Z.Z→Z), id{+X:=α} ∷ id(∀Y.Y→Y)) ⟩
-  να:=ℕ[
-    (λf:∀Z.Z→Z. Λβ,Y. f •(Z→Z)[Y])
-      · ν∅[Λγ,Z. λz:Z.z | id{-X:=α} ∷ id(∀Z.Z→Z)]
-  | id{+X:=α} ∷ id(∀Y.Y→Y)]
-  -→⟨ ξ-ν Beta; the substitution wraps f's value for the Λβ,Y crossing ⟩
-  να:=ℕ[
-    Λβ,Y.
-      (ν∅[
-         ν∅[Λγ,Z. λz:Z.z | id{-X:=α} ∷ id(∀Z.Z→Z)]
-       | id{-Y:=β} ∷ id(∀Z.Z→Z)]) •(Z→Z)[Y]
-  | id{+X:=α} ∷ id(∀Y.Y→Y)]
-  -→⟨ ξ-ν (ξ-Λ (ξ-• Merge));
-      (id{-X:=α} ∷ id(∀Z.Z→Z)) ⨟ (id{-Y:=β} ∷ id(∀Z.Z→Z))
-        = id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z) ⟩
-  να:=ℕ[
-    Λβ,Y.
-      (ν∅[
-         Λγ,Z. λz:Z.z | id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z)]) •(Z→Z)[Y]
-  | id{+X:=α} ∷ id(∀Y.Y→Y)]
-  -→⟨ ξ-ν (ξ-Λ TyWrap);
-      all(id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z))
-        = id{-X:=α} ∷ id{-Y:=β} ∷ id(Z→Z);
-      ⌊Y⌋ = β ⟩
-  να:=ℕ[
-    Λβ,Y.
-      νγ:=β[
-        λz:Z.z
-      | id{-X:=α} ∷ id{-Y:=β}
-          ∷ ((-Z:=γ ∷ id(Z)) → (+Z:=γ ∷ id(Y))) ∷ id(Y→Y)]
-  | id{+X:=α} ∷ id(∀Y.Y→Y)].
+  ((λf:∀Z.Z→Z. Λβ,Y. λy:Y. (f •(Z→Z)[Y]) · y)
+    · (Λγ,Z. λz:Z.z)⟨id{-X:=α} ∷ id(∀Z.Z→Z)⟩)
+  ⟨id{+X:=α} ∷ id(∀Y.Y→Y)⟩
+  -→⟨ ξ-⟨⟩ Beta; the substitution wraps W for the Λβ,Y crossing,
+      W = (Λγ,Z. λz:Z.z)⟨id{-X:=α} ∷ id(∀Z.Z→Z)⟩ ⟩
+  (Λβ,Y. λy:Y.
+     ((W⟨id{-Y:=β} ∷ id(∀Z.Z→Z)⟩) •(Z→Z)[Y]) · y)
+  ⟨id{+X:=α} ∷ id(∀Y.Y→Y)⟩
 
-The inner boundary's crossings, read inward from its exterior
-`(α:=ℕ, X revealed; β, Y revealed; γ:=β)`: the `→` element reveals `Z:γ`
-through its components, `id{-Y:=β}` conceals `Y`, `id{-X:=α}`
-conceals `X` —
-interior `α:=ℕ, β, Z:γ:=β`, so `λz:Z.z : Z→Z` with color `{Z}`, matching
-v7.  What v7 wrote as the accumulated scope
-`((-Y:=β) ; (-X:=α)) ; (+Z:=γ)` is now the conversion's own element prefix,
-produced by `⨟` and `+Z(·)` with no separate bookkeeping.
+and this is a VALUE: the `Λβ,Y` body is a λ, the boundary's conversion
+is normal, and `all(id{+X:=α} ∷ id(∀Y.Y→Y)) = id{+X:=α} ∷ id(Y→Y)` is
+defined.  Under the value restriction the `Merge` and `TyWrap` that v7
+performed inside the `Λ` wait for instantiation.  Applying the value,
+say `•(Y→Y)[𝔹]` and then `· true`, drives them:
+
+  -→⟨ TyWrap; all as above; ⌊𝔹⌋ = 𝔹 ⟩  -→⟨ Alloc; Σ = α:=ℕ, β:=𝔹 ⟩
+  (λy:Y. ((W⟨id{-Y:=β} ∷ id(∀Z.Z→Z)⟩) •(Z→Z)[Y]) · y)
+  ⟨id{+X:=α} ∷ ((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id(𝔹→𝔹)⟩
+  · true
+
+after which `Wrap` splits the conversion (the crossing prefix peels
+into both components), `Beta` substitutes the wrapped `true`, the inner
+type application `Merge`s the two wraps on `W` into
+`(Λγ,Z. λz:Z.z)⟨id{-X:=α} ∷ id{-Y:=β} ∷ id(∀Z.Z→Z)⟩`, `TyWrap`
+allocates `γ:=β` (note `⌊Y⌋ = β`: a stored representation can point at
+an earlier anchor), and the remaining `Wrap`/`Beta`/`Merge`/`Const`
+steps cancel every crossing and deliver `true` with
+`Σ = α:=ℕ, β:=𝔹, γ:=β`.  The full trace belongs in `Examples.agda`.
 
 ## Cross-name composition and cancellation (v7 Examples, third)
 
@@ -746,29 +788,37 @@ and the merges that v7 justified through scope transitions
 
 go through unchanged, while the crossings that v7's `χ = (-Y:=α);(+X:=β)`
 and `χ̄` tracked ride along as `id{∓Y:=α}`/`id{±X:=β}` elements and
-cancel in `⨟` by the new `fuse` rows.  The full v8 trace should be machine-checked in
-`Examples.agda` rather than hand-maintained here.
+cancel in `⨟` by the new `fuse` rows.  The λ-insertion applies to this
+example's `Λ` bodies as well (`λk:…` and `λf:…` are already λs).  The
+full v8 trace should be machine-checked in `Examples.agda` rather than
+hand-maintained here.
 
 # Mechanization notes (Agda, strong/)
 
-The v8 Agda development keeps the merged-entry de Bruijn contexts
-(`Ctx.agda`), where a revealed entry is a visibility bit on the anchor's
-entry and source names are read off as reveal-counts.  The v8 changes
-land as:
+The v8 Agda development realizes the two-sorted contexts with the
+merged-entry representation already in `Ctx.agda`: the global store is
+an append-only context of anchor entries, a name assignment is a
+visibility mark on its anchor's entry (so name order equals anchor
+order and `Γ+X:=α`'s insertion position is determined by α), and de
+Bruijn names are reveal-counts.  Λ- and ν-bound anchors are ordinary de
+Bruijn binders substituted at `TyBeta`/`Alloc`; discharged anchors are
+stable levels, so no anchor renaming accompanies any reduction.  The
+v8 changes land as:
 
   * `Conversion.agda`: the element type is `ConvElt` (renaming v7's
     `Head`), with new constructors `show`/`hide` (the `id{±X:=α}`
     forms, carrying the crossed anchor), strict `conv-id`, exact
     crossing premises on all four atomic elements, new `fuse` rows and
-    weights.
-    The tail
+    weights, and the `base` view beside `arr`/`allView`.  The tail
     judgment `_⊩_∶_⇝_⊣_` merges into `_⊢_∶_⇝_⊣_`, since a strict `id`
     makes every seam reflexive.
-  * `Terms.agda`/`Reduction.agda`: `ν_[_∣_]` without the scope
-    component; `⟨c⟩` as the interior computation; the reduction rules
-    above.
-  * `CtxMorph.agda` shrinks to stores; `ScopeDual.agda` and the
-    scope/store commutation obligations disappear.
+  * `Terms.agda`/`Reduction.agda`: `_⟨_⟩` and `ν_:=_._` replace
+    `ν_,_[_∣_]`; `⟨c⟩` as the interior computation; store-passing
+    reduction with `Alloc`; the value restriction on `Λ` bodies; no
+    `ξ-Λ`.
+  * `CtxMorph.agda` and `proof/ScopeDual.agda` disappear (no scopes, no
+    stores in terms); `proof/AnchorWeaken.agda` disappears (nothing
+    shifts).
   * Regression probes: the two v7 failure configurations
     (`V7MergeScopeClashProbe`, `V7CancelDriftProbe`) restated in v8
     syntax must be typable and step-preserving.

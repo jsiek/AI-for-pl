@@ -870,64 +870,6 @@ an earlier address), and the remaining `Wrap`/`Beta`/`Merge`/`Const`
 steps cancel every crossing and deliver `true` with
 `Σ = α:=ℕ, β:=𝔹, γ:=β`.  The full trace belongs in `Examples.agda`.
 
-## A sealed value crossing a Λ (bracket nesting)
-
-This example discriminates the crossing placements: a sealed var-typed
-value crosses an uninstantiated `Λ` behind the color wrap, and is later
-unsealed.  Let
-
-  g  =  Λα,X. λx:X. Λγ,Z. λz:Z. x        :  ∀X. X → (∀Z. Z → X)
-  P  =  (((g •(X → ∀Z.Z→X)[ℕ]) · 7) •(Z→ℕ)[𝔹]) · true    :  ℕ
-
-  c_ZX = ((id{-X:=α} ∷ id(Z)) → (+X:=α ∷ id(ℕ))) ∷ id(Z→ℕ)
-  c_X  = ((-X:=α ∷ id(X)) → ((∀Z. c_ZX) ∷ id(∀Z.Z→ℕ)))
-           ∷ id(ℕ → ∀Z.Z→ℕ)                             = +X(X → ∀Z.Z→X)
-  W₀   = 7⟨-X:=α ∷ id(X)⟩
-
-  P
-  -→⟨ ξ-·-l (ξ-• (ξ-·-l TyBeta)) ⟩
-  (((να:=ℕ. (λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩) · 7) •(Z→ℕ)[𝔹]) · true
-  -→⟨ ξ-·-l (ξ-• (ξ-·-l Alloc));  Σ = α:=ℕ ⟩
-  ((((λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩) · 7) •(Z→ℕ)[𝔹]) · true
-  -→⟨ ξ-·-l (ξ-• Wrap);
-      arr(X, c_X) = (-X:=α ∷ id(X), (∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) ⟩
-  ((((λx:X. Λγ,Z. λz:Z. x) · W₀)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩) •(Z→ℕ)[𝔹]) · true
-  -→⟨ ξ-·-l (ξ-• (ξ-⟨⟩ Beta));  W₀ is a value; x is under Λγ,Z, so the
-      color wrap fires: x := W₀⟨id{-Z:=γ} ∷ id(X)⟩ ⟩
-  (((Λγ,Z. λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩)
-    •(Z→ℕ)[𝔹]) · true
-  -→⟨ ξ-·-l TyWrap;  all((∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) = c_ZX;  ⌊𝔹⌋ = 𝔹;
-      e := +Z(c_ZX) = +Z(Z→X) ⨟ c_ZX[Z:=𝔹]
-         = ((id{-X:=α} ∷ -Z:=γ ∷ id(Z)) → (id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)))
-             ∷ id(𝔹→ℕ) ⟩
-  ((νγ:=𝔹. (λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩)) · true
-  -→⟨ ξ-·-l Alloc;  Σ = α:=ℕ, γ:=𝔹 ⟩
-  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩) · true
-  -→⟨ Wrap;  arr(Z, e) = (id{-X:=α} ∷ -Z:=γ ∷ id(Z),
-                          id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)) ⟩
-  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩) · true⟨id{-X:=α} ∷ -Z:=γ ∷ id(Z)⟩)
-    ⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
-  -→⟨ ξ-⟨⟩ Beta;  the argument is a value (var target); z is discarded ⟩
-  (W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
-  -→⟨ ξ-⟨⟩ Merge ⟩
-  (7⟨-X:=α ∷ id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
-  -→⟨ Merge;
-      -X:=α ∷ id{-Z:=γ} ∷ id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)
-        ↝ -X:=α ∷ +X:=α ∷ id(ℕ)  ↝  id(ℕ) ⟩
-  7⟨id(ℕ)⟩
-  -→⟨ Const ⟩
-  7.
-
-The merged element list is a nested Dyck word — push X, push Z, pop Z,
-pop X — and adjacent fusion cancels it inside-out.  Had the
-instantiation placed its crossings at the exterior ends (the covariant
-component as `+X:=α ∷ id{+Z:=γ} ∷ id(ℕ)`), the merge would produce the
-overlapping word push X, push Z, pop X, pop Z: syntactically normal,
-stuck at a ground target — and, under the stack element rules,
-ill-typed.  The stack discipline is exactly what rules that state out,
-and the instantiation's placement is what keeps reachable states inside
-it.
-
 ## Cross-name composition and cancellation (v7 Examples, third)
 
 The v7 example exercises compositions whose scopes cancel across
@@ -994,39 +936,70 @@ v8 changes land as:
 
 # Example (variant of K combinator)
 
+A sealed var-typed value crosses an uninstantiated `Λ` behind the color
+wrap, and is later unsealed.  This example discriminates the crossing
+placements: the corrected instantiation keeps the brackets nested, and
+adjacent fusion cancels them.
+
   g  =  (Λα,X. λx:X. Λγ,Z. λz:Z. x)     :  ∀X. X → (∀Z. Z → X)
   P  =  (((g •[ℕ]) · 7) •[𝔹]) · true    :  ℕ
 
-  c_X = ((-X:=α ∷ id(X)) → ((∀Z.c_ZX) ∷ id(∀Z.Z→ℕ))) ∷ id(ℕ → ∀Z.Z→ℕ)
   c_ZX = ((id{-X:=α} ∷ id(Z)) → (+X:=α ∷ id(ℕ))) ∷ id(Z→ℕ)
+  c_X  = ((-X:=α ∷ id(X)) → ((∀Z.c_ZX) ∷ id(∀Z.Z→ℕ))) ∷ id(ℕ → ∀Z.Z→ℕ)
   W₀   = 7⟨-X:=α ∷ id(X)⟩
 
   (((g •[ℕ]) · 7) •[𝔹]) · true
-  -→⟨ TyBeta; X ∈ B ⟩
+  -→⟨ TyBeta; X ∈ B, c_X = +X(X → ∀Z.Z→X) ⟩
   (((να:=ℕ. (λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩) · 7) •[𝔹]) · true
-  
+
   -→⟨ Alloc; Σ = α:=ℕ ⟩
   (((λx:X. Λγ,Z. λz:Z. x)⟨c_X⟩ · 7) •[𝔹]) · true
-  
+
   -→⟨ Wrap; arr(X, c_X) = (-X:=α ∷ id(X), (∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)) ⟩
-  (((λx:X. Λγ,Z. λz:Z. x) · 7⟨-X:=α ∷ id(X)⟩)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩ •[𝔹]) · true
-  
+  (((λx:X. Λγ,Z. λz:Z. x) · W₀)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩ •[𝔹]) · true
+
   -→⟨ ξ-⟨⟩ Beta; x is under Λγ,Z, so the COLOR WRAP fires ⟩
-  ((Λγ,Z. λz:Z. (7⟨-X:=α ∷ id(X)⟩)⟨id{-Z:=γ} ∷ id(X)⟩)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩
-    ⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩ •[𝔹]) · true
-    
-  -→⟨ TyWrap; all-view = c_ZX ⟩
-  ((νγ:=𝔹. (λz:Z. 7⟨-X:=α ∷ id(X)⟩⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩)) · true
-      
-     e := +Z(c_ZX) = ((-Z:=γ ∷ id{-X:=α} ∷ id(Z)) 
-                      → (+X:=α ∷ id{+Z:=γ} ∷ id(ℕ))) ∷ id(𝔹→ℕ) ⟩
+  ((Λγ,Z. λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨(∀Z.c_ZX) ∷ id(∀Z.Z→ℕ)⟩ •[𝔹]) · true
+
+  -→⟨ TyWrap; all-view = c_ZX; ⌊𝔹⌋ = 𝔹;
+      e := +Z(c_ZX) = +Z(Z→X) ⨟ c_ZX[Z:=𝔹]
+         = ((id{-X:=α} ∷ -Z:=γ ∷ id(Z)) → (id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)))
+             ∷ id(𝔹→ℕ) ⟩
+  (νγ:=𝔹. (λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩) · true
+
   -→⟨ Alloc; Σ = α:=ℕ, γ:=𝔹 ⟩
   ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨e⟩) · true
 
-  -→⟨ Wrap ⟩
-  
-  -→⟨ Beta ⟩
-  -→⟨ Merge ⟩
-    7⟨-X:=α ∷ id{-Z:=γ} ∷ id(X)⟩            ← the crossing is inside the bracket
-  -→⟨ Merge with the covariant component of +Z(c_ZX), which unseals: +X:=α ∷ … ⟩
-    7⟨-X:=α ∷ id{-Z:=γ} ∷ +X:=α ∷ … ∷ id(ℕ)⟩    
+  -→⟨ Wrap; arr(Z, e) = (id{-X:=α} ∷ -Z:=γ ∷ id(Z),
+                         id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)) ⟩
+  ((λz:Z. W₀⟨id{-Z:=γ} ∷ id(X)⟩) · true⟨id{-X:=α} ∷ -Z:=γ ∷ id(Z)⟩)
+    ⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+
+  -→⟨ ξ-⟨⟩ Beta; the argument is a value (var target); z is discarded ⟩
+  (W₀⟨id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+
+  -→⟨ ξ-⟨⟩ Merge;
+      (-X:=α ∷ id(X)) ⨟ (id{-Z:=γ} ∷ id(X)) = -X:=α ∷ id{-Z:=γ} ∷ id(X) ⟩
+  (7⟨-X:=α ∷ id{-Z:=γ} ∷ id(X)⟩)⟨id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)⟩
+
+  -→⟨ Merge;
+      -X:=α ∷ id{-Z:=γ} ∷ id{+Z:=γ} ∷ +X:=α ∷ id(ℕ)
+        ↝ -X:=α ∷ +X:=α ∷ id(ℕ)  ↝  id(ℕ) ⟩
+  7⟨id(ℕ)⟩
+
+  -→⟨ Const ⟩
+  7.
+
+The merged element list is a nested Dyck word — push X, push Z, pop Z,
+pop X — and adjacent fusion cancels it inside-out.  Had the
+instantiation placed its crossings at the exterior ends of `e`'s
+components (`-Z:=γ ∷ id{-X:=α}` and `+X:=α ∷ id{+Z:=γ}`), the final
+merge would instead produce the overlapping word
+
+  -X:=α ∷ id{-Z:=γ} ∷ +X:=α ∷ id{+Z:=γ} ∷ id(ℕ)
+
+— push X, push Z, pop X, pop Z — which is syntactically normal and
+stuck at a ground target, and which the stack element rules leave with
+no typing derivation: its `+X:=α` pops under a newer open assignment.
+The stack discipline rules that state out, and the instantiation's
+placement keeps reachable states inside it.

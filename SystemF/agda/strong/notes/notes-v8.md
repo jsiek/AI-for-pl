@@ -38,9 +38,10 @@ crossings, and makes anchor allocation a global effect.
    contravariant `arr` component carries the dual crossings; `TyBeta`
    and `TyWrap` allocate through `ν` and let `+X(·)` emit the crossing.
 6. `fuse` gains cancellation rows for the identity crossing elements;
-   the views `arr` and `all` peel a crossing prefix, and a third view
-   `base` lets `Const` see a ground terminator through identity
-   crossings.
+   the views `arr` and `all` become ELEMENTWISE (an operator on single
+   elements folded over the list, since crossings and structural
+   elements interleave in normal forms), and a third view `base` lets
+   `Const` see a ground terminator through identity crossings.
 
 Motivation: under v7's rules the crossing information lived in two
 places, and the typed coherence between them could not survive the

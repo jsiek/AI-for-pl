@@ -41,8 +41,9 @@ open import strong.proof.TypeWf
 open import strong.proof.PreserveAlloc
 open import strong.proof.SubstAnnTyping
 open import strong.proof.Scoped
-open import strong.proof.PreserveTy
 open import strong.proof.PreserveTyDef
+open import strong.proof.PreserveTy
+open import strong.proof.PreserveTyWrap
 open import strong.proof.Preservation
 
 -- the main theorems

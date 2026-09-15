@@ -4213,3 +4213,77 @@ crossing pushes or pops one `asgn`; `↦` and `all` do not change the
 context), and gives exactly what `Alloc` needs: over a flat context the
 only `⊢ᴿ` rules that can fire for an address are `a-lvl`, so `R`
 mentions levels alone and `Σ ∣ ([] ∥ []) ⊢ᴿ R` follows.
+
+------------------------------------------------------------------------
+2026-09-15 — PRESERVATION IS FALSE AS THE RULES STAND: `hide`/`show`
+DO NOT SCOPE THEIR ADDRESS
+------------------------------------------------------------------------
+
+REFUTED, with a machine-checked witness
+(`proof/PreserveAlloc.alloc-claim-refuted`).
+
+`conv-seal` and `conv-unseal` carry `Σ ∣ Γ ∋r α := R`, which ties the
+address to the store.  `conv-hide` and `conv-show` carry only `⊢ᵗ`, a
+pop, and `NotAssigned` — NOTHING ties their address to anything.  Two
+separate obligations break on exactly that hole.
+
+(1) `Alloc`.  Take `Σ = ∅`, the flat context `Δ₀ = X:=lvl 0`, and
+
+      M₀ = 7 ⟨ show 0 (bse 0) ∷ᶜ hide 0 (lvl 0) ∷ᶜ id ℕ ⟩
+
+`Δ₀` is flat, `M₀` is well typed, and the conversion is a NORMAL FORM
+because the two addresses differ, so the pair does not `fuse`.  Now
+`Alloc` discharges `bse 0` to the fresh level, which here is `lvl 0`:
+the pair becomes `show 0 (lvl 0) ∷ᶜ hide 0 (lvl 0)`, which CANCELS, so
+`NF` fails and `⊢⟨⟩` — the only rule for a boundary — cannot fire.  The
+substituted term is not typeable.
+
+The culprit is that `lvl 0` is not in `Σ = ∅`, which typing currently
+permits.  Discharge is injective on addresses that ARE in scope (its
+one collision is `bse 0 ↔ lvl (length Σ)`, and a level in scope is
+never `length Σ`) — see `fresh-of-∋a`, `fresh-of-∋r`, `∋ˡ-fresh`.
+
+(2) `TyBeta`/`TyWrap`.  Both produce a `ν R`, so both need `⊢ν`'s
+premise `Σ ∣ Δ ⊢ᴿ R`.  The reduction rule supplies `Σ ∣ Δ ⊢⌊ A ⌋ R`,
+and `⌊·⌋ → ⊢ᴿ` needs exactly "a named address is in scope": `quote-var`
+gives `Γ ∋n X := α`, and `wfᴿ-var` wants `Σ ∣ Γ ∋a α`.  That is the
+context invariant the notes call `Γ ok` and have not yet defined — and
+it cannot be maintained, because `conv-show` may introduce an
+assignment to an address nothing has bound.
+
+THE FIX (recommended, not yet applied).  Add to both rules the
+premise that the address is in scope in the context WITHOUT the
+assignment — dual to each other, exactly as the rest of the pair is,
+so `arr`'s dualization is unaffected:
+
+    conv-hide : Σ ∣ Γᵢ ∋a α → Γᵢ ⊢ᵗ A → Γₑ ▷ X := α ⇒ Γᵢ
+              → NotAssigned Γᵢ α → …
+    conv-show : Σ ∣ Γₑ ∋a α → Γₑ ⊢ᵗ A → Γᵢ ▷ X := α ⇒ Γₑ
+              → NotAssigned Γₑ α → …
+
+This is what Jeremy's own design law prescribes — the invariant in the
+relation, not in a companion predicate.  With it, `Fresh` becomes
+DERIVABLE from typing (`fresh-of-∋a`), both premises of
+`preserve-Alloc` discharge, and `quote-wfᴿ` goes through.
+
+WHAT IS PROVED IN THE MEANTIME.  `proof/PreserveAlloc` proves the
+weakened statement with the freshness spelled out as premises,
+
+    preserve-Alloc : StoreOk Σ → Flat Δ
+      → FreshStk (length Σ) (stk Δ) → FreshM (length Σ) M
+      → Σ ∣ Δ ∣ Γ ⊢ ν R ∙ M ⦂ A
+      → (Σ ∷ʳ R) ∣ Δ ∣ Γ ⊢ M [ lvl (length Σ) ]ᵃᴹ ⦂ A
+
+together with the whole base-SUBSTITUTION development mirroring
+`proof/AddrWeaken` (`Substsᵇ`, its closures, `sub-inst₀`, and the
+liftings up to `⊢-inst`), and `alloc-storeOk`.  `proof/BuilderTyping`
+likewise carries `Σ ∣ Δ ⊢ᴿ R` and `Δ ⊢ᵗ ∀B` as premises.  Applying the
+fix turns both sets of premises into derived facts; nothing else about
+those developments changes.
+
+ONE THING THE SUBSTITUTION NEEDED THAT THE RENAMING DID NOT.  A base
+SUBSTITUTION can turn a `bse` into a `lvl`, so every rule chosen by
+address FORM (`pop-bind-b/-l/-e`, `n-skip-bind-b/-l/-e`, and the
+`∋a`/`∋r` restackings) needs a view rather than a direct match.  The
+side condition is `NoBnd σ` — σ never yields a `bnd` — which holds of
+`instᵉ₀ (lvl ℓ)` and is preserved by `extsᵃᵉ`.

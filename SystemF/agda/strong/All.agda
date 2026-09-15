@@ -37,6 +37,7 @@ open import strong.proof.TermSubstitution
 open import strong.proof.AllTyping
 open import strong.proof.SrcTyping
 open import strong.proof.BuilderTyping
+open import strong.proof.PreserveAlloc
 open import strong.proof.PreserveTyDef
 open import strong.proof.Preservation
 

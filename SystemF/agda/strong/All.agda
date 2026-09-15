@@ -25,6 +25,7 @@ open import strong.proof.Canonical
 open import strong.proof.Progress
 open import strong.proof.ConvCanonicity
 open import strong.proof.CompositionTyping
+open import strong.proof.PreserveMerge
 
 -- the main theorems
 open import strong.Progress

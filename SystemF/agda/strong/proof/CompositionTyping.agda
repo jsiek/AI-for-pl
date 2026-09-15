@@ -10,6 +10,7 @@ module strong.proof.CompositionTyping where
 -- the whole difficulty of the composition campaign.
 
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat.Properties using (_≟_)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Empty using (⊥; ⊥-elim)
@@ -231,6 +232,7 @@ mutual
 -- agree; and `shiftAtᵗ-inj` undoes the crossing's shift.
 
 open import strong.proof.ConvCanonicity using (pop-unique)
+open import strong.proof.Interior using (push-sound)
 
 -- Inversions: the element is in constructor form, so these match where
 -- a direct pattern on the derivation would leave the unifier stuck on
@@ -283,3 +285,160 @@ cancel-hide {A = A} {C = C} {X = X} hd hd₂ | refl , p | teq , q
   with pop-unique q p
 cancel-hide {A = A} {C = C} {X = X} hd hd₂ | refl , p | teq , q
   | refl , refl , refl = refl , shiftAtᵗ-inj X A C teq
+
+-- The REMOVE-then-ADD orders.  Here both elements pop from DIFFERENT
+-- contexts, so `pop-unique` says nothing; what makes the endpoints meet
+-- is that `fuse` now checks the NAME too, and `pushAsgn X α` is a
+-- FUNCTION — so the two re-additions land in the same context.
+just-inj : ∀ {A : Set} {x y : A} → (just x) ≡ just y → x ≡ y
+just-inj refl = refl
+
+cancel-unseal : ∀ {Γ₁ Γ₂ Γ₃ A B C X α}
+  → Sg ∣ Γ₁ ⊢̂ unseal X α ∶ A ⇝ B ⊣ Γ₂
+  → Sg ∣ Γ₂ ⊢̂ seal X α ∶ B ⇝ C ⊣ Γ₃
+  → (Γ₁ ≡ Γ₃) × (A ≡ C)
+cancel-unseal hd hd₂ with inv-unseal hd | inv-seal hd₂
+cancel-unseal hd hd₂ | R , refl , rep , rd , p | R′ , refl , rep′ , rd′ , q =
+  just-inj (trans (sym (push-sound p)) (push-sound q)) , refl
+
+cancel-show : ∀ {Γ₁ Γ₂ Γ₃ A B C X α}
+  → Sg ∣ Γ₁ ⊢̂ show X α ∶ A ⇝ B ⊣ Γ₂
+  → Sg ∣ Γ₂ ⊢̂ hide X α ∶ B ⇝ C ⊣ Γ₃
+  → (Γ₁ ≡ Γ₃) × (A ≡ C)
+cancel-show hd hd₂ with inv-show hd | inv-hide hd₂
+cancel-show hd hd₂ | refl , p | refl , q =
+  just-inj (trans (sym (push-sound p)) (push-sound q)) , refl
+
+------------------------------------------------------------------------
+-- One normalization step preserves typing
+------------------------------------------------------------------------
+
+open import strong.ConversionReduction using
+  (_—→ᶜ_; ξ-pair; ξ-∷; ξ-↦₁; ξ-↦₂; ξ-all; consAll)
+
+-- Reading a cancellation back out of `fuse`: both the name and the
+-- address agreed, and nothing was produced.
+fuse-cancel-su : ∀ {X Y α β ks} → fuse (seal X α) (unseal Y β) ≡ just ks
+  → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
+fuse-cancel-su {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-cancel-su eq | yes refl | yes refl | refl = refl , refl , refl
+fuse-cancel-su eq | yes _ | no _ | ()
+fuse-cancel-su eq | no _ | _ | ()
+
+fuse-cancel-us : ∀ {X Y α β ks} → fuse (unseal X α) (seal Y β) ≡ just ks
+  → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
+fuse-cancel-us {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-cancel-us eq | yes refl | yes refl | refl = refl , refl , refl
+fuse-cancel-us eq | yes _ | no _ | ()
+fuse-cancel-us eq | no _ | _ | ()
+
+fuse-cancel-hs : ∀ {X Y α β ks} → fuse (hide X α) (show Y β) ≡ just ks
+  → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
+fuse-cancel-hs {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-cancel-hs eq | yes refl | yes refl | refl = refl , refl , refl
+fuse-cancel-hs eq | yes _ | no _ | ()
+fuse-cancel-hs eq | no _ | _ | ()
+
+fuse-cancel-sh : ∀ {X Y α β ks} → fuse (show X α) (hide Y β) ≡ just ks
+  → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
+fuse-cancel-sh {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-cancel-sh eq | yes refl | yes refl | refl = refl , refl , refl
+fuse-cancel-sh eq | yes _ | no _ | ()
+fuse-cancel-sh eq | no _ | _ | ()
+
+-- the two structural fusions
+fuse-fun-eq : ∀ {s₁ t₁ s₂ t₂ ks} → fuse (s₁ ↦ t₁) (s₂ ↦ t₂) ≡ just ks
+  → ks ≡ (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
+fuse-fun-eq refl = refl
+
+fuse-all-eq : ∀ {s₁ s₂ ks} → fuse (all s₁) (all s₂) ≡ just ks
+  → ks ≡ (all (s₁ ⧺ s₂) ∷ [])
+fuse-all-eq refl = refl
+
+preserve-step : ∀ {Γ₁ Δ} → NameFn Δ
+  → Sg ∣ Γ₁ ⊢ c ∶ A ⇝ B ⊣ Δ → c —→ᶜ c′
+  → Sg ∣ Γ₁ ⊢ c′ ∶ A ⇝ B ⊣ Δ
+
+-- the four cancelling pairs: the conversion on either side meets
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq)
+  with fuse-cancel-su eq
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq) | refl , refl , refl
+  with cancel-seal hd hd₂ (conv-namefn tl nf)
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq) | refl , refl , refl
+  | refl , refl = tl
+
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = unseal X α} {ḓ = seal Y β} eq)
+  with fuse-cancel-us eq
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = unseal X α} {ḓ = seal Y β} eq) | refl , refl , refl
+  with cancel-unseal hd hd₂
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = unseal X α} {ḓ = seal Y β} eq) | refl , refl , refl
+  | refl , refl = tl
+
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq)
+  with fuse-cancel-hs eq
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq) | refl , refl , refl
+  with cancel-hide hd hd₂
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq) | refl , refl , refl
+  | refl , refl = tl
+
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq)
+  with fuse-cancel-sh eq
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq) | refl , refl , refl
+  with cancel-show hd hd₂
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq) | refl , refl , refl
+  | refl , refl = tl
+
+-- the two structural fusions: `⧺-typing` on the components
+preserve-step nf
+  (conv-cons (conv-fun {s = s₁} {t = t₁} ⊢s₁ ⊢t₁)
+             (conv-cons (conv-fun {s = s₂} {t = t₂} ⊢s₂ ⊢t₂) tl))
+  (ξ-pair {ĉ = s₁ ↦ t₁} {ḓ = s₂ ↦ t₂} eq)
+  rewrite fuse-fun-eq {s₁ = s₁} {t₁ = t₁} {s₂ = s₂} {t₂ = t₂} eq =
+  conv-cons (conv-fun (⧺-typing ⊢s₂ ⊢s₁) (⧺-typing ⊢t₁ ⊢t₂)) tl
+preserve-step nf
+  (conv-cons (conv-all {s = s₁} ⊢s₁) (conv-cons (conv-all {s = s₂} ⊢s₂) tl))
+  (ξ-pair {ĉ = all s₁} {ḓ = all s₂} eq)
+  rewrite fuse-all-eq {s₁ = s₁} {s₂ = s₂} eq =
+  conv-cons (conv-all (⧺-typing ⊢s₁ ⊢s₂)) tl
+
+-- the congruences
+preserve-step nf (conv-cons hd tl) (ξ-∷ st) =
+  conv-cons hd (preserve-step nf tl st)
+preserve-step nf (conv-cons (conv-fun s₁ t₁) tl) (ξ-↦₁ st) =
+  conv-cons (conv-fun (preserve-step (conv-namefn t₁ (conv-namefn tl nf)) s₁ st) t₁) tl
+preserve-step nf (conv-cons (conv-fun s₁ t₁) tl) (ξ-↦₂ st) =
+  conv-cons (conv-fun s₁ (preserve-step (conv-namefn tl nf) t₁ st)) tl
+preserve-step nf (conv-cons (conv-all s₁) tl) (ξ-all st) =
+  conv-cons (conv-all (preserve-step (namefn-bind (conv-namefn tl nf)) s₁ st)) tl
+
+------------------------------------------------------------------------
+-- Composition preserves typing
+------------------------------------------------------------------------
+
+open import strong.ConversionReduction using
+  (_—↠ᶜ_; done; step; _⨟_; ⨟-↠; ⨟-NF)
+
+preserve-↠ : ∀ {Γ₁ Δ} → NameFn Δ
+  → Sg ∣ Γ₁ ⊢ c ∶ A ⇝ B ⊣ Δ → c —↠ᶜ c′
+  → Sg ∣ Γ₁ ⊢ c′ ∶ A ⇝ B ⊣ Δ
+preserve-↠ nf ⊢c done = ⊢c
+preserve-↠ nf ⊢c (step st tr) = preserve-↠ nf (preserve-step nf ⊢c st) tr
+
+-- `c ⨟ d = normalize (c ⧺ d)`: append, then normalize along the trace.
+⨟-typing : ∀ {Γ₁ Γ₂ Γ₃} → NameFn Γ₃
+  → Sg ∣ Γ₁ ⊢ c ∶ A ⇝ B ⊣ Γ₂ → Sg ∣ Γ₂ ⊢ d ∶ B ⇝ C ⊣ Γ₃
+  → Sg ∣ Γ₁ ⊢ (c ⨟ d) ∶ A ⇝ C ⊣ Γ₃
+⨟-typing {c = c} {d = d} nf ⊢c ⊢d =
+  preserve-↠ nf (⧺-typing ⊢c ⊢d) (⨟-↠ c d)

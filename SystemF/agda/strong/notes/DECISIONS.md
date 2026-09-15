@@ -3996,3 +3996,48 @@ then `⨟-typing` along the `—↠ᶜ` trace, then the five term cases —
 `Merge` (from `⨟-typing`), `Wrap` (`arr` typing), `TyBeta`/`TyWrap`
 (builder and instantiation typing), `Beta` (substitution with the color
 wrap), `Alloc` (store extension), and the ξ-rules.
+
+
+## 2026-09-15: preserve-step and ⨟-typing are PROVEN — and `fuse` needed the NAME
+
+`proof/CompositionTyping.agda` now carries the whole composition half:
+
+    preserve-step : NameFn Δ → ⊢ c ∶ A ⇝ B ⊣ Δ → c —→ᶜ c′
+                  → ⊢ c′ ∶ A ⇝ B ⊣ Δ
+    ⨟-typing      : NameFn Γ₃ → ⊢ c ∶ A ⇝ B ⊣ Γ₂ → ⊢ d ∶ B ⇝ C ⊣ Γ₃
+                  → ⊢ (c ⨟ d) ∶ A ⇝ C ⊣ Γ₃
+
+FINDING — `fuse` must compare the NAME as well as the address.  The two
+cancellation ORDERS are not symmetric:
+
+  * ADD-then-REMOVE (`seal ∷ unseal`, `hide ∷ show`).  Both elements pop
+    from the SAME context, so `pop-unique` forces the name, the address
+    AND the context to agree.  The address check alone suffices.
+  * REMOVE-then-ADD (`unseal ∷ seal`, `show ∷ hide`).  The elements pop
+    from DIFFERENT contexts and `pop-unique` says nothing.  With only
+    the address checked, an assignment removed at one depth could be
+    re-added at another: with `Γ₂ = bind ∷ []` and `α = lvl 0`,
+
+        Γ₁ = asgn (lvl 0) ∷ bind ∷ []   (X = 0, pop-here)
+        Γ₃ = bind ∷ asgn (lvl 0) ∷ []   (Y = 1, pop-bind-l)
+
+    both pop to `Γ₂`, so the pair types as `` ` 0 ⇝ ` 1 `` and
+    cancelling it does NOT preserve the endpoints.
+
+Checking the name repairs it: both re-additions are then `pushAsgn X α`
+of the same context, and that is a FUNCTION, so the contexts coincide
+(`cancel-unseal`, `cancel-show`, via `push-sound` and `just`
+injectivity).  In the add-then-remove order the check is free, since
+the names already agree.  This is also what the notes' own notation
+says — `+X:=α` and `-X:=α` cancel when BOTH parts match.
+
+The rest of `preserve-step` is routine: the two structural fusions are
+`⧺-typing` on the components (the contravariant one composes in the
+swapped order, which is exactly how `fuse` builds it), and the four
+congruences recurse, with `conv-namefn`/`namefn-bind` carrying name
+uniqueness to the sub-conversion's exterior.
+
+Next: the five term cases — `Merge` (now a corollary of `⨟-typing`),
+`Wrap` (`arr` typing), `TyBeta`/`TyWrap` (builder and instantiation
+typing), `Beta` (substitution with the color wrap), `Alloc` (store
+extension), and the term-level ξ-rules.

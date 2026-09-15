@@ -102,24 +102,28 @@ less-by m k n eq = subst (suc m ≤_) eq (m≤m+n (suc m) k)
 -- pairs, where its definition decides address equality.
 
 fuse-hs-inv : ∀ X Y α β ks → fuse (hide X α) (show Y β) ≡ just ks → ks ≡ []
-fuse-hs-inv X Y α β ks eq with α ≟ᵃ β | eq
-fuse-hs-inv X Y α β ks eq | yes p | refl = refl
-fuse-hs-inv X Y α β ks eq | no _ | ()
+fuse-hs-inv X Y α β ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-hs-inv X Y α β ks eq | yes _ | yes _ | refl = refl
+fuse-hs-inv X Y α β ks eq | yes _ | no _ | ()
+fuse-hs-inv X Y α β ks eq | no _ | _ | ()
 
 fuse-sh-inv : ∀ X Y α β ks → fuse (show X α) (hide Y β) ≡ just ks → ks ≡ []
-fuse-sh-inv X Y α β ks eq with α ≟ᵃ β | eq
-fuse-sh-inv X Y α β ks eq | yes p | refl = refl
-fuse-sh-inv X Y α β ks eq | no _ | ()
+fuse-sh-inv X Y α β ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-sh-inv X Y α β ks eq | yes _ | yes _ | refl = refl
+fuse-sh-inv X Y α β ks eq | yes _ | no _ | ()
+fuse-sh-inv X Y α β ks eq | no _ | _ | ()
 
 fuse-su-inv : ∀ X Y α β ks → fuse (seal X α) (unseal Y β) ≡ just ks → ks ≡ []
-fuse-su-inv X Y α β ks eq with α ≟ᵃ β | eq
-fuse-su-inv X Y α β ks eq | yes p | refl = refl
-fuse-su-inv X Y α β ks eq | no _ | ()
+fuse-su-inv X Y α β ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-su-inv X Y α β ks eq | yes _ | yes _ | refl = refl
+fuse-su-inv X Y α β ks eq | yes _ | no _ | ()
+fuse-su-inv X Y α β ks eq | no _ | _ | ()
 
 fuse-us-inv : ∀ X Y α β ks → fuse (unseal X α) (seal Y β) ≡ just ks → ks ≡ []
-fuse-us-inv X Y α β ks eq with α ≟ᵃ β | eq
-fuse-us-inv X Y α β ks eq | yes p | refl = refl
-fuse-us-inv X Y α β ks eq | no _ | ()
+fuse-us-inv X Y α β ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-us-inv X Y α β ks eq | yes _ | yes _ | refl = refl
+fuse-us-inv X Y α β ks eq | yes _ | no _ | ()
+fuse-us-inv X Y α β ks eq | no _ | _ | ()
 
 -- The exact bookkeeping of a `↦` fusion: one element constructor and two
 -- terminators disappear, everything else is kept — a decrease of exactly
@@ -159,32 +163,36 @@ all-arith a s t hyp =
 fuse-decreases : ∀ ĉ ḓ ks → fuse ĉ ḓ ≡ just ks
   → weightElts⁺ ks < suc (weightElt ĉ + suc (weightElt ḓ))
 fuse-decreases (seal X α) (seal Y β) ks ()
-fuse-decreases (seal X α) (unseal Y β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (seal X α) (unseal Y β) ks eq | yes _ | refl =
+fuse-decreases (seal X α) (unseal Y β) ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-decreases (seal X α) (unseal Y β) ks eq | yes _ | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (seal X α) (unseal Y β) ks eq | no _ | ()
+fuse-decreases (seal X α) (unseal Y β) ks eq | yes _ | no _ | ()
+fuse-decreases (seal X α) (unseal Y β) ks eq | no _ | _ | ()
 fuse-decreases (seal X α) (hide Y β) ks ()
 fuse-decreases (seal X α) (show Y β) ks ()
-fuse-decreases (unseal X α) (seal Y β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (unseal X α) (seal Y β) ks eq | yes _ | refl =
+fuse-decreases (unseal X α) (seal Y β) ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-decreases (unseal X α) (seal Y β) ks eq | yes _ | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (unseal X α) (seal Y β) ks eq | no _ | ()
+fuse-decreases (unseal X α) (seal Y β) ks eq | yes _ | no _ | ()
+fuse-decreases (unseal X α) (seal Y β) ks eq | no _ | _ | ()
 fuse-decreases (unseal X α) (unseal Y β) ks ()
 fuse-decreases (unseal X α) (hide Y β) ks ()
 fuse-decreases (unseal X α) (show Y β) ks ()
 fuse-decreases (hide X α) (seal Y β) ks ()
 fuse-decreases (hide X α) (unseal Y β) ks ()
 fuse-decreases (hide X α) (hide Y β) ks ()
-fuse-decreases (hide X α) (show Y β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (hide X α) (show Y β) ks eq | yes _ | refl =
+fuse-decreases (hide X α) (show Y β) ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-decreases (hide X α) (show Y β) ks eq | yes _ | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (hide X α) (show Y β) ks eq | no _ | ()
+fuse-decreases (hide X α) (show Y β) ks eq | yes _ | no _ | ()
+fuse-decreases (hide X α) (show Y β) ks eq | no _ | _ | ()
 fuse-decreases (show X α) (seal Y β) ks ()
 fuse-decreases (show X α) (unseal Y β) ks ()
-fuse-decreases (show X α) (hide Y β) ks eq with α ≟ᵃ β | eq
-fuse-decreases (show X α) (hide Y β) ks eq | yes _ | refl =
+fuse-decreases (show X α) (hide Y β) ks eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-decreases (show X α) (hide Y β) ks eq | yes _ | yes _ | refl =
   less-by zero 3 4 refl
-fuse-decreases (show X α) (hide Y β) ks eq | no _ | ()
+fuse-decreases (show X α) (hide Y β) ks eq | yes _ | no _ | ()
+fuse-decreases (show X α) (hide Y β) ks eq | no _ | _ | ()
 fuse-decreases (show X α) (show Y β) ks ()
 fuse-decreases (s₁ ↦ t₁) (s₂ ↦ t₂) ks refl =
   less-by (weightElts⁺ (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])) 3

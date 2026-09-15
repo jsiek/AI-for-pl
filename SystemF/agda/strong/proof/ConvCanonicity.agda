@@ -24,6 +24,7 @@ module strong.proof.ConvCanonicity where
 --    first half and yields `inert-var`.
 
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat.Properties using (_≟_)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _×_; _,_)
@@ -104,15 +105,18 @@ data AfterAdd (Γ : Ctxᵗ) (r : ℕ) : ConvElt → Set where
   aa-hide : ∀ {X α Γ′} → Γ ▷ X := α ⇒ Γ′ → r ≢ X → AfterAdd Γ r (hide X α)
 
 -- fusing a pair at one address
-fuse-su : ∀ X Y α → fuse (seal X α) (unseal Y α) ≡ nothing → ⊥
-fuse-su X Y α eq with α ≟ᵃ α
-fuse-su X Y α () | yes _
-fuse-su X Y α eq | no ne = ne refl
+-- At the SAME name and address the pair fuses, so `NF` forbids it.
+fuse-su : ∀ X α → fuse (seal X α) (unseal X α) ≡ nothing → ⊥
+fuse-su X α eq with X ≟ X | α ≟ᵃ α
+fuse-su X α () | yes _ | yes _
+fuse-su X α eq | yes _ | no ne = ne refl
+fuse-su X α eq | no ne | _ = ne refl
 
-fuse-hs : ∀ X Y α → fuse (hide X α) (show Y α) ≡ nothing → ⊥
-fuse-hs X Y α eq with α ≟ᵃ α
-fuse-hs X Y α () | yes _
-fuse-hs X Y α eq | no ne = ne refl
+fuse-hs : ∀ X α → fuse (hide X α) (show X α) ≡ nothing → ⊥
+fuse-hs X α eq with X ≟ X | α ≟ᵃ α
+fuse-hs X α () | yes _ | yes _
+fuse-hs X α eq | yes _ | no ne = ne refl
+fuse-hs X α eq | no ne | _ = ne refl
 
 -- The source is carried as an EQUATION rather than as an index: the
 -- crossing rules state their source as a rename, which the unifier
@@ -135,7 +139,7 @@ after-add (aa-seal {X = X₁} {α = α₁} p refl)
 after-add (aa-seal {X = X₁} {α = α₁} p refl)
   (conv-cons (conv-unseal {X = Y₁} rep rd q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
-  ⊥-elim (fuse-su X₁ Y₁ α₁ fq)
+  ⊥-elim (fuse-su X₁ α₁ fq)
 after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
 after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd q na) tl) refl
@@ -154,7 +158,7 @@ after-add (aa-hide {X = X₁} {α = α₁} p ne)
 after-add (aa-hide {X = X₁} {α = α₁} p ne)
   (conv-cons (conv-show {X = Y₁} wf q na) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
-  ⊥-elim (fuse-hs X₁ Y₁ α₁ fq)
+  ⊥-elim (fuse-hs X₁ α₁ fq)
 
 -- an ADDITION keeps us in the same situation
 after-add aa (conv-cons (conv-seal rep rd q) tl) eq

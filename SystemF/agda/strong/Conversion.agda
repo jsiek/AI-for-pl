@@ -185,19 +185,31 @@ id A ⧺ d      = d
 -- what the normal form `NF` forbids.  Cancellation compares ADDRESSES.
 -- A `↦` or `all` fusion defers its component compositions as plain
 -- appends; the reduction system's congruence steps finish them.
+-- Cancellation compares the NAME as well as the address.  The address
+-- alone is not enough in the REMOVE-then-ADD order (`unseal ∷ seal`,
+-- `show ∷ hide`): both elements then pop from different contexts, and
+-- an assignment removed at one depth could be re-added at another, so
+-- the pair's endpoints would not meet.  With the name checked, both
+-- pushes are `pushAsgn X α` of the same context — a function — so the
+-- two contexts coincide.  In the ADD-then-REMOVE order the names agree
+-- automatically (`pop-unique`), so the check is free.
 fuse : ConvElt → ConvElt → Maybe (List ConvElt)
-fuse (seal X α) (unseal Y β) with α ≟ᵃ β
-fuse (seal X α) (unseal Y β) | yes _ = just []
-fuse (seal X α) (unseal Y β) | no  _ = nothing
-fuse (unseal X α) (seal Y β) with α ≟ᵃ β
-fuse (unseal X α) (seal Y β) | yes _ = just []
-fuse (unseal X α) (seal Y β) | no  _ = nothing
-fuse (hide X α) (show Y β) with α ≟ᵃ β
-fuse (hide X α) (show Y β) | yes _ = just []
-fuse (hide X α) (show Y β) | no  _ = nothing
-fuse (show X α) (hide Y β) with α ≟ᵃ β
-fuse (show X α) (hide Y β) | yes _ = just []
-fuse (show X α) (hide Y β) | no  _ = nothing
+fuse (seal X α) (unseal Y β) with X ≟ Y | α ≟ᵃ β
+fuse (seal X α) (unseal Y β) | yes _ | yes _ = just []
+fuse (seal X α) (unseal Y β) | yes _ | no  _ = nothing
+fuse (seal X α) (unseal Y β) | no  _ | _ = nothing
+fuse (unseal X α) (seal Y β) with X ≟ Y | α ≟ᵃ β
+fuse (unseal X α) (seal Y β) | yes _ | yes _ = just []
+fuse (unseal X α) (seal Y β) | yes _ | no  _ = nothing
+fuse (unseal X α) (seal Y β) | no  _ | _ = nothing
+fuse (hide X α) (show Y β) with X ≟ Y | α ≟ᵃ β
+fuse (hide X α) (show Y β) | yes _ | yes _ = just []
+fuse (hide X α) (show Y β) | yes _ | no  _ = nothing
+fuse (hide X α) (show Y β) | no  _ | _ = nothing
+fuse (show X α) (hide Y β) with X ≟ Y | α ≟ᵃ β
+fuse (show X α) (hide Y β) | yes _ | yes _ = just []
+fuse (show X α) (hide Y β) | yes _ | no  _ = nothing
+fuse (show X α) (hide Y β) | no  _ | _ = nothing
 fuse (s₁ ↦ t₁) (s₂ ↦ t₂) = just (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
 fuse (all s) (all t) = just (all (s ⧺ t) ∷ [])
 fuse (seal X α) (seal Y β) = nothing

@@ -311,8 +311,8 @@ mutual
     → bas Γᵢ ≡ bas Γₑ
   convElt-base (conv-seal rep rd pop) = sym (pop-base pop)
   convElt-base (conv-unseal rep rd pop na) = pop-base pop
-  convElt-base (conv-hide wf pop na) = sym (pop-base pop)
-  convElt-base (conv-show wf pop na) = pop-base pop
+  convElt-base (conv-hide sc wf pop na) = sym (pop-base pop)
+  convElt-base (conv-show sc wf pop na) = pop-base pop
   convElt-base (conv-fun s t) = sym (conv-base s)
   convElt-base (conv-all s) = conv-base s
 
@@ -331,11 +331,11 @@ mutual
   convElt-ren r (conv-unseal rep rd pop na) =
     conv-unseal (ren-r (ren-stk r) rep) (read-ren (ren-stk r) rd)
                 (pop-ren pop) (notasgn-ren (ren-stk r) na)
-  convElt-ren r (conv-hide wf pop na) =
-    conv-hide (wfᵗ-ren (ren-stk r) wf) (pop-ren pop)
+  convElt-ren r (conv-hide sc wf pop na) =
+    conv-hide (ren-a (ren-stk r) sc) (wfᵗ-ren (ren-stk r) wf) (pop-ren pop)
               (notasgn-ren (ren-stk r) na)
-  convElt-ren r (conv-show wf pop na) =
-    conv-show (wfᵗ-ren (ren-stk r) wf) (pop-ren pop)
+  convElt-ren r (conv-show sc wf pop na) =
+    conv-show (ren-a (ren-stk r) sc) (wfᵗ-ren (ren-stk r) wf) (pop-ren pop)
               (notasgn-ren (ren-stk r) na)
   convElt-ren r (conv-fun s t) = conv-fun (conv-ren r s) (conv-ren r t)
   convElt-ren r (conv-all s) = conv-all (conv-ren r s)

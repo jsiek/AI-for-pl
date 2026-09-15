@@ -120,27 +120,27 @@ srcᶜ-sound (conv-cons (conv-seal rep rd p) tl) = inj₂ refl
 srcᶜ-sound (conv-cons (conv-unseal rep rd p na) tl) = inj₁ refl
 
 -- a `hide` shifts its target, so reading back closes over the slot
-srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   with srcᶜ c | srcᶜ-sound tl
-srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   | just B | inj₁ refl rewrite closeAt-shiftAt X (`ℕ) A = inj₁ refl
-srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide wf p na) tl)
+srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide sc wf p na) tl)
   | just B | inj₂ ()
-srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide wf p na) tl)
+srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide sc wf p na) tl)
   | nothing | inj₁ ()
-srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide wf p na) tl)
+srcᶜ-sound {c = hide X α ∷ᶜ c} (conv-cons (conv-hide sc wf p na) tl)
   | nothing | inj₂ refl = inj₂ refl
 
 -- a `show` shifts its source, which is exactly what `srcᶜ` re-applies
-srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   with srcᶜ c | srcᶜ-sound tl
-srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   | just B | inj₁ refl = inj₁ refl
-srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show wf p na) tl)
+srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl)
   | just B | inj₂ ()
-srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show wf p na) tl)
+srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl)
   | nothing | inj₁ ()
-srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show wf p na) tl)
+srcᶜ-sound {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl)
   | nothing | inj₂ refl = inj₂ refl
 
 -- a `↦` reads the covariant component's source; the contravariant

@@ -74,6 +74,19 @@ pop-⇑ : ∀ {Δₑ Δᵢ} → Δₑ ▷ X := α ⇒ Δᵢ → ⇑ᶜ Δₑ ▷
 pop-⇑ {Δₑ = Ss ∥ Bs} {Δᵢ = Ss′ ∥ Bs′} p with pop-base p
 pop-⇑ {Δₑ = Ss ∥ Bs} {Δᵢ = Ss′ ∥ .Bs} p | refl = popˢ-⇑ p
 
+-- the address travels too: a stack binder shifts a `bnd` and leaves
+-- a `lvl` or a `bse` alone
+∋a-⇑ : ∀ {Sg Ss Bs α} → Sg ∣ (Ss ∥ Bs) ∋a α
+  → Sg ∣ (bind ∷ Ss ∥ Bs) ∋a ⇑ᵃ α
+∋a-⇑ (a-lvl l) = a-lvl l
+∋a-⇑ a-here-bind = a-skip-bind a-here-bind
+∋a-⇑ (a-skip-bind p) = a-skip-bind (a-skip-bind p)
+∋a-⇑ (a-skip-asgn p) = a-skip-bind (a-skip-asgn p)
+∋a-⇑ a-here-addr = a-here-addr
+∋a-⇑ a-here-nu = a-here-nu
+∋a-⇑ (a-skip-addr p) = a-skip-addr (∋a-restk p)
+∋a-⇑ (a-skip-nu p) = a-skip-nu (∋a-restk p)
+
 notasgn-⇑ : NotAssigned Δ α → NotAssigned (⇑ᶜ Δ) (⇑ᵃ α)
 notasgn-⇑ {α = lvl ℓ} na (n-skip-bind-l q) = na q
 notasgn-⇑ {α = bnd i} na (n-skip-bind-b q) = na q
@@ -111,34 +124,34 @@ allElts-typing {A′ = A′} (conv-cons (conv-all {s = s} ⊢s) tl) refl eq
 
 -- a `hide`: itself, with its name and address moved past the `bind`
 allElts-typing {A′ = A′}
-  (conv-cons (conv-hide {A = A} {X = X} {α = α} wf p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
   with consAllE-inv eq
 allElts-typing {A′ = A′}
-  (conv-cons (conv-hide {A = A} {X = X} {α = α} wf p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
   | Es′ , eq′ , refl with allElts-typing tl refl eq′
 allElts-typing {A₀ = A₀} {A′ = A′}
-  (conv-cons (conv-hide {A = A} {X = X} {α = α} wf p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
   | Es′ , eq′ , refl | ih
   rewrite attach-++ (hide (suc X) (⇑ᵃ α) ∷ []) Es′
             (renameᵗ (shiftAtᵗ (suc X)) A₀) A′ =
-  conv-cons (conv-hide (wf-∀-inv wf) (pop-⇑ p) (notasgn-⇑ na)) ih
+  conv-cons (conv-hide (∋a-⇑ sc) (wf-∀-inv wf) (pop-⇑ p) (notasgn-⇑ na)) ih
 
 -- a `show`: the source is a SHIFT, so the `∀` is recovered by
 -- inversion
 allElts-typing {A′ = A′}
-  (conv-cons (conv-show {A = A} {X = X} {α = α} wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   with shift-∀-inv X A seq
 allElts-typing {A′ = A′}
-  (conv-cons (conv-show {A = A} {X = X} {α = α} wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   | A₁ , refl , refl with consAllE-inv eq
 allElts-typing {A′ = A′}
-  (conv-cons (conv-show {A = A} {X = X} {α = α} wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   | A₁ , refl , refl | Es′ , eq′ , refl with allElts-typing tl refl eq′
 allElts-typing {A′ = A′}
-  (conv-cons (conv-show {A = A} {X = X} {α = α} wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   | A₁ , refl , refl | Es′ , eq′ , refl | ih
   rewrite attach-++ (show (suc X) (⇑ᵃ α) ∷ []) Es′ A₁ A′ =
-  conv-cons (conv-show (wf-∀-inv wf) (pop-⇑ p) (notasgn-⇑ na)) ih
+  conv-cons (conv-show (∋a-⇑ sc) (wf-∀-inv wf) (pop-⇑ p) (notasgn-⇑ na)) ih
 
 -- the sealing elements and `↦` are not view-accepted
 allElts-typing (conv-cons (conv-seal rep rd p) tl) refl ()

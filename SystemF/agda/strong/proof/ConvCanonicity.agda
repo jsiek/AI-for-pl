@@ -159,16 +159,16 @@ after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd q na) tl) refl
 
 -- a show REMOVES: blocked by `fuse` after a hide, and by the shift
 -- arithmetic after a seal
-after-add (aa-seal p refl) (conv-cons (conv-show {A = A} wf q na) tl) eq
+after-add (aa-seal p refl) (conv-cons (conv-show {A = A} sc wf q na) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
-after-add (aa-seal p refl) (conv-cons (conv-show {A = A} wf q na) tl) eq
+after-add (aa-seal p refl) (conv-cons (conv-show {A = A} sc wf q na) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
   ⊥-elim (shiftAt-var-≢ _ A eq)
 after-add (aa-hide {X = X₁} {α = α₁} p ne)
-  (conv-cons (conv-show {X = Y₁} wf q na) tl) eq
+  (conv-cons (conv-show {X = Y₁} sc wf q na) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
 after-add (aa-hide {X = X₁} {α = α₁} p ne)
-  (conv-cons (conv-show {X = Y₁} wf q na) tl) eq
+  (conv-cons (conv-show {X = Y₁} sc wf q na) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
   ⊥-elim (fuse-hs X₁ α₁ fq)
 
@@ -176,7 +176,7 @@ after-add (aa-hide {X = X₁} {α = α₁} p ne)
 after-add aa (conv-cons (conv-seal rep rd q) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) =
   after-add (aa-seal q refl) tl refl nfc irr′
-after-add aa (conv-cons (conv-hide {A = A} wf q na) tl) refl
+after-add aa (conv-cons (conv-hide {A = A} sc wf q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) =
   after-add (aa-hide q (shiftAt-≢ _ _)) tl refl nfc irr′
 
@@ -235,24 +235,24 @@ canon-fun (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
 canon-fun (conv-cons (conv-unseal rep rd p na) tl) nf ()
 canon-fun (conv-cons (conv-all s′) tl) nf ()
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh with canon-fun tl nfc (fun-shift X A sh)
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-arr-hide {X = X} {α = α} (elts c) eqE
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh with canon-fun tl nfc (shift-fun X A sh)
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-arr-show {X = X} {α = α} (elts c) eqE
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
 canon-fun {c = (s′ ↦ t′) ∷ᶜ c} (conv-cons (conv-fun s″ t″) tl)
@@ -278,24 +278,24 @@ canon-all (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
 canon-all (conv-cons (conv-unseal rep rd p na) tl) nf ()
 canon-all (conv-cons (conv-fun s′ t′) tl) nf ()
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh with canon-all tl nfc (all-shift X A sh)
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-all-hide {X = X} {α = α} (elts c) eqE
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh with canon-all tl nfc (shift-all X A sh)
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-all-show {X = X} {α = α} (elts c) eqE
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
 canon-all {c = all s′ ∷ᶜ c} (conv-cons (conv-all s″) tl)
@@ -322,9 +322,9 @@ canon-ground (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
 canon-ground (conv-cons (conv-unseal rep rd p na) tl) nf ()
 canon-ground (conv-cons (conv-fun s′ t′) tl) nf ()
 canon-ground (conv-cons (conv-all s′) tl) nf ()
-canon-ground {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl)
+canon-ground {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh = canon-ground tl nfc (ground-shift X A sh)
-canon-ground {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl)
+canon-ground {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh = canon-ground tl nfc (shift-ground X A sh)
 
 ------------------------------------------------------------------------

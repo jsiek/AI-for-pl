@@ -154,8 +154,8 @@ mutual
   convElt-wf-src : ∀ {ĉ} → Sg ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δₑ → Δᵢ ⊢ᵗ A
   convElt-wf-src (conv-seal rep rd p) = read-wf rd
   convElt-wf-src (conv-unseal rep rd p na) = wf-var (pop-∋n p)
-  convElt-wf-src (conv-hide wf p na) = wf
-  convElt-wf-src (conv-show wf p na) = wf-shift p wf
+  convElt-wf-src (conv-hide sc wf p na) = wf
+  convElt-wf-src (conv-show sc wf p na) = wf-shift p wf
   convElt-wf-src (conv-fun ⊢s ⊢t) =
     wf-⇒ (conv-wf-tgt ⊢s) (conv-wf-src ⊢t)
   convElt-wf-src (conv-all ⊢s) = wf-∀ (conv-wf-src ⊢s)
@@ -163,8 +163,8 @@ mutual
   convElt-wf-tgt : ∀ {ĉ} → Sg ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δₑ → Δₑ ⊢ᵗ B
   convElt-wf-tgt (conv-seal rep rd p) = wf-var (pop-∋n p)
   convElt-wf-tgt (conv-unseal rep rd p na) = read-wf rd
-  convElt-wf-tgt (conv-hide wf p na) = wf-shift p wf
-  convElt-wf-tgt (conv-show wf p na) = wf
+  convElt-wf-tgt (conv-hide sc wf p na) = wf-shift p wf
+  convElt-wf-tgt (conv-show sc wf p na) = wf
   convElt-wf-tgt (conv-fun ⊢s ⊢t) =
     wf-⇒ (conv-wf-src ⊢s) (conv-wf-tgt ⊢t)
   convElt-wf-tgt (conv-all ⊢s) = wf-∀ (conv-wf-tgt ⊢s)

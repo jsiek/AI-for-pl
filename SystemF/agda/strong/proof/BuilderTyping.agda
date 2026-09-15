@@ -136,10 +136,12 @@ mutual
   convElt-grow bg (conv-unseal rep rd q na) =
     conv-unseal (∋r-grow bg rep) (read-rebase rd) (pop-rebase q)
                 (notasgn-rebase na)
-  convElt-grow bg (conv-hide wf q na) =
-    conv-hide (wf-rebase wf) (pop-rebase q) (notasgn-rebase na)
-  convElt-grow bg (conv-show wf q na) =
-    conv-show (wf-rebase wf) (pop-rebase q) (notasgn-rebase na)
+  convElt-grow bg (conv-hide sc wf q na) =
+    conv-hide (∋a-grow bg sc) (wf-rebase wf) (pop-rebase q)
+              (notasgn-rebase na)
+  convElt-grow bg (conv-show sc wf q na) =
+    conv-show (∋a-grow bg sc) (wf-rebase wf) (pop-rebase q)
+              (notasgn-rebase na)
   convElt-grow bg (conv-fun s t) = conv-fun (conv-grow bg s) (conv-grow bg t)
   convElt-grow bg (conv-all s) = conv-all (conv-grow bg s)
 
@@ -576,31 +578,33 @@ mutual
 -- from B that shift is B itself.
 
 revTy-miss-typing : ∀ {Sg Ssᵢ Ssₑ Bs X α} (S B : Ty)
+  → Sg ∣ (Ssₑ ∥ Bs) ∋a α
   → (Ssᵢ ∥ Bs) ▷ X := α ⇒ (Ssₑ ∥ Bs)
   → NotAssigned (Ssₑ ∥ Bs) α
   → occursᵗ X B ≡ false
   → (Ssₑ ∥ Bs) ⊢ᵗ closeAt X S B
   → Sg ∣ (Ssᵢ ∥ Bs) ⊢ show X α ∷ᶜ id (closeAt X S B) ∶ B ⇝ closeAt X S B
       ⊣ (Ssₑ ∥ Bs)
-revTy-miss-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} {X} {α} S B p na eq wfC =
+revTy-miss-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} {X} {α} S B sc p na eq wfC =
   subst (λ C → Sg ∣ (Ssᵢ ∥ Bs) ⊢ show X α ∷ᶜ id (closeAt X S B)
                   ∶ C ⇝ closeAt X S B ⊣ (Ssₑ ∥ Bs))
         (close-shift X S B eq)
-        (conv-cons (conv-show wfC p na) (conv-id wfC))
+        (conv-cons (conv-show sc wfC p na) (conv-id wfC))
 
 concTy-miss-typing : ∀ {Sg Ssᵢ Ssₑ Bs X α} (S B : Ty)
+  → Sg ∣ (Ssₑ ∥ Bs) ∋a α
   → (Ssᵢ ∥ Bs) ▷ X := α ⇒ (Ssₑ ∥ Bs)
   → NotAssigned (Ssₑ ∥ Bs) α
   → occursᵗ X B ≡ false
   → (Ssₑ ∥ Bs) ⊢ᵗ closeAt X S B
   → (Ssᵢ ∥ Bs) ⊢ᵗ B
   → Sg ∣ (Ssₑ ∥ Bs) ⊢ hide X α ∷ᶜ id B ∶ closeAt X S B ⇝ B ⊣ (Ssᵢ ∥ Bs)
-concTy-miss-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} {X} {α} S B p na eq wfC wfB =
+concTy-miss-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} {X} {α} S B sc p na eq wfC wfB =
   conv-cons
     (subst (λ C → Sg ∣ (Ssₑ ∥ Bs) ⊢̂ hide X α ∶ closeAt X S B ⇝ C
                      ⊣ (Ssᵢ ∥ Bs))
            (close-shift X S B eq)
-           (conv-hide wfC p na))
+           (conv-hide sc wfC p na))
     (conv-id wfB)
 
 -- THE STATEMENT.  `Δ⁺ = Ssᵢ ∥ Bs` is the context that HAS the
@@ -627,14 +631,14 @@ mutual
     go (yes refl) rewrite revTy-var-hit X α S | closeAt-hit X S =
       conv-cons (conv-unseal rep rd p na) (conv-id (read-wf rd))
     go (no ne) rewrite revTy-var-miss X α S Y ne =
-      revTy-miss-typing S (` Y) p na (occurs-var-no X Y ne)
+      revTy-miss-typing S (` Y) (∋a-pop p (∋r→∋a rep)) p na (occurs-var-no X Y ne)
         (closeAt-wf p (read-wf rd) wf)
 
   revTy-typing X α S `ℕ p na rep rd fix wf =
-    revTy-miss-typing S `ℕ p na refl wf-ℕ
+    revTy-miss-typing S `ℕ (∋a-pop p (∋r→∋a rep)) p na refl wf-ℕ
 
   revTy-typing X α S `𝔹 p na rep rd fix wf =
-    revTy-miss-typing S `𝔹 p na refl wf-𝔹
+    revTy-miss-typing S `𝔹 (∋a-pop p (∋r→∋a rep)) p na refl wf-𝔹
 
   revTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (A ⇒ B) p na rep rd fix wf =
     go (occursᵗ X (A ⇒ B)) refl
@@ -643,7 +647,7 @@ mutual
        → Sg ∣ (Ssᵢ ∥ Bs) ⊢ revTy X α S (A ⇒ B) ∶ (A ⇒ B)
            ⇝ closeAt X S (A ⇒ B) ⊣ (Ssₑ ∥ Bs)
     go false eq rewrite revTy-⇒-miss X α S A B eq =
-      revTy-miss-typing S (A ⇒ B) p na eq (closeAt-wf p (read-wf rd) wf)
+      revTy-miss-typing S (A ⇒ B) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf)
     go true eq rewrite revTy-⇒-hit X α S A B eq =
       conv-cons
         (conv-fun (concTy-typing X α S A p na rep rd fix (wf-domain wf))
@@ -657,7 +661,7 @@ mutual
        → Sg ∣ (Ssᵢ ∥ Bs) ⊢ revTy X α S (`∀ A) ∶ (`∀ A)
            ⇝ closeAt X S (`∀ A) ⊣ (Ssₑ ∥ Bs)
     go false eq rewrite revTy-∀-miss X α S A eq =
-      revTy-miss-typing S (`∀ A) p na eq (closeAt-wf p (read-wf rd) wf)
+      revTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf)
     go true eq rewrite revTy-∀-hit X α S A eq =
       subst (λ C → Sg ∣ (Ssᵢ ∥ Bs)
                       ⊢ all (revTy (suc X) (⇑ᵃ α) (⇑ᵗ S) A) ∷ᶜ id C
@@ -688,14 +692,14 @@ mutual
     go (yes refl) rewrite concTy-var-hit X α S | closeAt-hit X S =
       conv-cons (conv-seal rep rd p) (conv-id wf)
     go (no ne) rewrite concTy-var-miss X α S Y ne =
-      concTy-miss-typing S (` Y) p na (occurs-var-no X Y ne)
+      concTy-miss-typing S (` Y) (∋a-pop p (∋r→∋a rep)) p na (occurs-var-no X Y ne)
         (closeAt-wf p (read-wf rd) wf) wf
 
   concTy-typing X α S `ℕ p na rep rd fix wf =
-    concTy-miss-typing S `ℕ p na refl wf-ℕ wf-ℕ
+    concTy-miss-typing S `ℕ (∋a-pop p (∋r→∋a rep)) p na refl wf-ℕ wf-ℕ
 
   concTy-typing X α S `𝔹 p na rep rd fix wf =
-    concTy-miss-typing S `𝔹 p na refl wf-𝔹 wf-𝔹
+    concTy-miss-typing S `𝔹 (∋a-pop p (∋r→∋a rep)) p na refl wf-𝔹 wf-𝔹
 
   concTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (A ⇒ B) p na rep rd fix wf =
     go (occursᵗ X (A ⇒ B)) refl
@@ -704,7 +708,7 @@ mutual
        → Sg ∣ (Ssₑ ∥ Bs) ⊢ concTy X α S (A ⇒ B) ∶ closeAt X S (A ⇒ B)
            ⇝ (A ⇒ B) ⊣ (Ssᵢ ∥ Bs)
     go false eq rewrite concTy-⇒-miss X α S A B eq =
-      concTy-miss-typing S (A ⇒ B) p na eq
+      concTy-miss-typing S (A ⇒ B) (∋a-pop p (∋r→∋a rep)) p na eq
         (closeAt-wf p (read-wf rd) wf) wf
     go true eq rewrite concTy-⇒-hit X α S A B eq =
       conv-cons
@@ -719,7 +723,7 @@ mutual
        → Sg ∣ (Ssₑ ∥ Bs) ⊢ concTy X α S (`∀ A) ∶ closeAt X S (`∀ A)
            ⇝ (`∀ A) ⊣ (Ssᵢ ∥ Bs)
     go false eq rewrite concTy-∀-miss X α S A eq =
-      concTy-miss-typing S (`∀ A) p na eq (closeAt-wf p (read-wf rd) wf) wf
+      concTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf) wf
     go true eq rewrite concTy-∀-hit X α S A eq =
       subst (λ C → Sg ∣ (Ssₑ ∥ Bs)
                       ⊢ all (concTy (suc X) (⇑ᵃ α) (⇑ᵗ S) A) ∷ᶜ id (`∀ A)

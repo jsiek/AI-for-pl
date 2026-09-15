@@ -334,9 +334,9 @@ mutual
     proj₂ (pop-fresh pop fs)
   convElt-freshStk (conv-unseal rep rd pop na) (fe-unseal f) fs =
     push-fresh pop f fs
-  convElt-freshStk (conv-hide wf pop na) (fe-hide f) fs =
+  convElt-freshStk (conv-hide sc wf pop na) (fe-hide f) fs =
     proj₂ (pop-fresh pop fs)
-  convElt-freshStk (conv-show wf pop na) (fe-show f) fs =
+  convElt-freshStk (conv-show sc wf pop na) (fe-show f) fs =
     push-fresh pop f fs
   convElt-freshStk (conv-fun s t) (fe-fun fs′ ft) fs = conv-freshStk t ft fs
   convElt-freshStk (conv-all s) (fe-all f) fs
@@ -719,12 +719,13 @@ mutual
                 (read-inst (sub-stk r fs) rd)
                 (pop-inst (sub-nb r) pop)
                 (notasgn-inst (sub-stk r fs) f na)
-  convElt-inst r (fe-hide f) fs (conv-hide wf pop na) =
-    conv-hide (wfᵗ-inst (sub-stk r (proj₂ (pop-fresh pop fs))) wf)
+  convElt-inst r (fe-hide f) fs (conv-hide sc wf pop na) =
+    conv-hide (sub-a (sub-stk r (proj₂ (pop-fresh pop fs))) sc)
+              (wfᵗ-inst (sub-stk r (proj₂ (pop-fresh pop fs))) wf)
               (pop-inst (sub-nb r) pop)
               (notasgn-inst (sub-stk r (proj₂ (pop-fresh pop fs))) f na)
-  convElt-inst r (fe-show f) fs (conv-show wf pop na) =
-    conv-show (wfᵗ-inst (sub-stk r fs) wf)
+  convElt-inst r (fe-show f) fs (conv-show sc wf pop na) =
+    conv-show (sub-a (sub-stk r fs) sc) (wfᵗ-inst (sub-stk r fs) wf)
               (pop-inst (sub-nb r) pop)
               (notasgn-inst (sub-stk r fs) f na)
   convElt-inst r (fe-fun gs gt) fs (conv-fun s t) =
@@ -1092,66 +1093,30 @@ preserve-Alloc {Sg} sok fl fs fm (⊢ν {Ss = Ss} {Bs = Bs} wf ⊢M) | refl
      | inst-unshiftˢ (lvl (length Sg)) Ss
 preserve-Alloc {Sg} sok fl fs fm (⊢ν {Ss = Ss} {Bs = Bs} wf ⊢M) | refl
   | res | eq rewrite eq = res
-
 ------------------------------------------------------------------------
--- 21.  THE FRESHNESS PREMISES ARE NECESSARY
+-- 21.  THE REFUTATION THAT WAS HERE, AND WHY IT IS GONE
 ------------------------------------------------------------------------
--- Without them the statement is FALSE, and not marginally so: the
--- witness below is a one-crossing boundary over a numeral.
+-- This section held a machine-checked proof that the statement without
+-- the freshness premises is FALSE.  Its witness was, over the EMPTY
+-- store and the flat context `X := lvl 0`,
 --
--- The ambient context assigns the name 0 to the level 0, which the
--- EMPTY store does not contain — nothing in the system forbids that,
--- because `conv-hide`'s address comes from the CONTEXT (its premises
--- are `⊢ᵗ`, a pop, and `NotAssigned`) and never from the store.  The
--- body's conversion crosses `bse 0` (the ν's own address) inward and
--- `lvl 0` outward; the two addresses differ, so the pair does not
--- `fuse` and the conversion is a normal form.  `Alloc` then sends
--- `bse 0` to `lvl 0` — the two crossings become a cancelling pair, the
--- conversion is no longer normal, and `⊢⟨⟩` cannot fire.
+--     M₀ = 7 ⟨ show 0 (bse 0) ∷ᶜ hide 0 (lvl 0) ∷ᶜ id ℕ ⟩
+--
+-- whose conversion is a normal form because the two addresses differ,
+-- so the pair does not `fuse`.  `Alloc` sends `bse 0` to the fresh
+-- level, which over the empty store is `lvl 0`; the pair then cancels,
+-- the conversion is no longer normal, and `⊢⟨⟩` cannot fire.
+--
+-- The witness no longer typechecks.  `conv-hide` and `conv-show` now
+-- SCOPE their address (`Σ ∣ Γ ∋a α` on the side without the
+-- assignment), and `lvl 0` is not in the empty store — so the term was
+-- never well typed to begin with.  That is the whole content of the
+-- repair, recorded in notes/DECISIONS.md (2026-09-15).
+--
+-- What remains to be done here is to turn §20's `FreshStk`/`FreshM`
+-- premises into derived facts, which §22 shows how to do: `Fresh
+-- (length Sg)` IS `∋a`, read at a level.
 
-private
-  Δ₀ : Ctxᵗ
-  Δ₀ = asgn (lvl zero) ∷ [] ∥ []
-
-  flat-Δ₀ : Flat Δ₀
-  flat-Δ₀ = flat (fu-asgn fu-[]) refl
-
-  sok-[] : StoreOk []
-  sok-[] ()
-
-  Δ₁ Δ₃ : Ctxᵗ
-  Δ₁ = asgn (lvl zero) ∷ [] ∥ nuBind `ℕᴿ ∷ []
-  Δ₃ = asgn (bse zero) ∷ [] ∥ nuBind `ℕᴿ ∷ []
-
-  c₀ : Conv
-  c₀ = show zero (bse zero) ∷ᶜ hide zero (lvl zero) ∷ᶜ id `ℕ
-
-  ⊢c₀ : [] ∣ Δ₃ ⊢ c₀ ∶ `ℕ ⇝ `ℕ ⊣ Δ₁
-  ⊢c₀ = conv-cons (conv-show wf-ℕ pop-here (λ ()))
-          (conv-cons (conv-hide wf-ℕ pop-here (λ ())) (conv-id wf-ℕ))
-
-  nf-c₀ : NF c₀
-  nf-c₀ = nf-cons nf-show (nf-cons nf-hide nf-id irr-id) (irr-cons refl)
-
-  M₀ : Term
-  M₀ = ($ zero) ⟨ c₀ ⟩
-
-  ⊢νM₀ : [] ∣ Δ₀ ∣ [] ⊢ ν `ℕᴿ ∙ M₀ ⦂ `ℕ
-  ⊢νM₀ = ⊢ν wfᴿ-ℕ (⊢⟨⟩ nf-c₀ ⊢$ ⊢c₀)
-
-  -- after the substitution the two crossings FUSE
-  ¬⊢M₀ : ¬ (([] ∷ʳ `ℕᴿ) ∣ Δ₀ ∣ [] ⊢ M₀ [ lvl zero ]ᵃᴹ ⦂ `ℕ)
-  ¬⊢M₀ (⊢⟨⟩ (nf-cons hd tl (irr-cons ())) m c)
-
--- The statement WITHOUT the freshness premises.
-AllocClaim : Set
-AllocClaim = ∀ {Sg Δ Γ R M A}
-  → StoreOk Sg → Flat Δ
-  → Sg ∣ Δ ∣ Γ ⊢ ν R ∙ M ⦂ A
-  → (Sg ∷ʳ R) ∣ Δ ∣ Γ ⊢ M [ lvl (length Sg) ]ᵃᴹ ⦂ A
-
-alloc-claim-refuted : ¬ AllocClaim
-alloc-claim-refuted f = ¬⊢M₀ (f sok-[] flat-Δ₀ ⊢νM₀)
 
 ------------------------------------------------------------------------
 -- 22.  WHAT A GROUNDED RULE SET WOULD GIVE

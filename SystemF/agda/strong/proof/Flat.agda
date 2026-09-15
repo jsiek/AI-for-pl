@@ -140,8 +140,8 @@ mutual
   convElt-flat : ∀ {n ĉ} → Σ ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δₑ → Flatn n Δₑ → Flatn n Δᵢ
   convElt-flat (conv-seal rep rd pop) fl = pop-flat pop fl
   convElt-flat (conv-unseal rep rd pop na) fl = push-flat pop fl
-  convElt-flat (conv-hide wf pop na) fl = pop-flat pop fl
-  convElt-flat (conv-show wf pop na) fl = push-flat pop fl
+  convElt-flat (conv-hide sc wf pop na) fl = pop-flat pop fl
+  convElt-flat (conv-show sc wf pop na) fl = push-flat pop fl
   convElt-flat (conv-fun s t) fl = conv-flat t fl
   convElt-flat (conv-all s) (flat fu refl) with conv-flat s (flat (fu-bind fu) refl)
   convElt-flat (conv-all s) (flat fu refl) | flat (fu-bind fu′) refl =

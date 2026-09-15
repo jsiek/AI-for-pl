@@ -316,10 +316,16 @@ mutual
     -- freshness condition says the address is unassigned there.  The
     -- symmetry is what lets `arr` dualize a crossing into the
     -- contravariant component (see proof.ArrTyping).
-    conv-hide : Γᵢ ⊢ᵗ A
+    -- Each SCOPES its address in the context without the assignment,
+    -- as `conv-seal`/`conv-unseal` do with their `∋r`.  Without it a
+    -- crossing may name an address nothing has bound, and then `Alloc`
+    -- can discharge a fresh level onto it and turn a normal pair into
+    -- a cancelling one — see notes/DECISIONS.md (2026-09-15) and
+    -- `proof.PreserveAlloc.alloc-claim-refuted`.
+    conv-hide : Σ ∣ Γᵢ ∋a α → Γᵢ ⊢ᵗ A
       → Γₑ ▷ X := α ⇒ Γᵢ → NotAssigned Γᵢ α
       → Σ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ renameᵗ (shiftAtᵗ X) A ⊣ Γₑ
-    conv-show : Γₑ ⊢ᵗ A
+    conv-show : Σ ∣ Γₑ ∋a α → Γₑ ⊢ᵗ A
       → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
       → Σ ∣ Γᵢ ⊢̂ show X α ∶ renameᵗ (shiftAtᵗ X) A ⇝ A ⊣ Γₑ
     conv-fun : Σ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ

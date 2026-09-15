@@ -154,6 +154,15 @@ data _∣_∋r_:=_ (Σ : Store) : Ctxᵗ → Addr → RepTy → Set where
   r-skip-nu   : Σ ∣ (Ss ∥ Bs) ∋r bse j := R
               → Σ ∣ (Ss ∥ nuBind T ∷ Bs) ∋r bse (suc j) := ⇑ᴿᵉ R
 
+-- A represented address is in scope.
+∋r→∋a : ∀ {Σ Γ α R} → Σ ∣ Γ ∋r α := R → Σ ∣ Γ ∋a α
+∋r→∋a (r-lvl l) = a-lvl l
+∋r→∋a (r-skip-bind p) = a-skip-bind (∋r→∋a p)
+∋r→∋a (r-skip-asgn p) = a-skip-asgn (∋r→∋a p)
+∋r→∋a r-here = a-here-nu
+∋r→∋a (r-skip-addr p) = a-skip-addr (∋r→∋a p)
+∋r→∋a (r-skip-nu p) = a-skip-nu (∋r→∋a p)
+
 ------------------------------------------------------------------------
 -- The pop judgment: X:=α is the newest crossing assignment.  It is now
 -- a STACK operation — the base cannot get in the way, so there is no
@@ -225,6 +234,68 @@ wf-rebase wf-ℕ = wf-ℕ
 wf-rebase wf-𝔹 = wf-𝔹
 wf-rebase (wf-⇒ a b) = wf-⇒ (wf-rebase a) (wf-rebase b)
 wf-rebase (wf-∀ a) = wf-∀ (wf-rebase a)
+
+-- Popping a crossing assignment does not change which ADDRESSES are
+-- in scope: an `asgn` binds none, and a `bind` is kept by both sides.
+∋a-pop : ∀ {Σ Γ Γ′ X α β} → Γ ▷ X := α ⇒ Γ′ → Σ ∣ Γ ∋a β → Σ ∣ Γ′ ∋a β
+∋a-pop p (a-lvl l) = a-lvl l
+∋a-pop pop-here (a-skip-asgn q) = q
+∋a-pop pop-here a-here-addr = a-here-addr
+∋a-pop pop-here a-here-nu = a-here-nu
+∋a-pop pop-here (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-pop pop-here (a-skip-nu q) = a-skip-nu (∋a-restk q)
+∋a-pop (pop-bind-b p) a-here-bind = a-here-bind
+∋a-pop (pop-bind-b p) (a-skip-bind q) = a-skip-bind (∋a-pop p q)
+∋a-pop (pop-bind-b p) a-here-addr = a-here-addr
+∋a-pop (pop-bind-b p) a-here-nu = a-here-nu
+∋a-pop (pop-bind-b p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-pop (pop-bind-b p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
+∋a-pop (pop-bind-l p) a-here-bind = a-here-bind
+∋a-pop (pop-bind-l p) (a-skip-bind q) = a-skip-bind (∋a-pop p q)
+∋a-pop (pop-bind-l p) a-here-addr = a-here-addr
+∋a-pop (pop-bind-l p) a-here-nu = a-here-nu
+∋a-pop (pop-bind-l p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-pop (pop-bind-l p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
+∋a-pop (pop-bind-e p) a-here-bind = a-here-bind
+∋a-pop (pop-bind-e p) (a-skip-bind q) = a-skip-bind (∋a-pop p q)
+∋a-pop (pop-bind-e p) a-here-addr = a-here-addr
+∋a-pop (pop-bind-e p) a-here-nu = a-here-nu
+∋a-pop (pop-bind-e p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-pop (pop-bind-e p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
+
+∋a-push : ∀ {Σ Γ Γ′ X α β} → Γ ▷ X := α ⇒ Γ′ → Σ ∣ Γ′ ∋a β → Σ ∣ Γ ∋a β
+∋a-push p (a-lvl l) = a-lvl l
+∋a-push pop-here q = ∋a-skip q
+  where
+  ∋a-skip : ∀ {Σ Ss Bs β γ} → Σ ∣ (Ss ∥ Bs) ∋a β
+    → Σ ∣ (asgn γ ∷ Ss ∥ Bs) ∋a β
+  ∋a-skip (a-lvl l) = a-lvl l
+  ∋a-skip a-here-bind = a-skip-asgn a-here-bind
+  ∋a-skip (a-skip-bind r) = a-skip-asgn (a-skip-bind r)
+  ∋a-skip (a-skip-asgn r) = a-skip-asgn (a-skip-asgn r)
+  ∋a-skip a-here-addr = a-here-addr
+  ∋a-skip a-here-nu = a-here-nu
+  ∋a-skip (a-skip-addr r) = a-skip-addr (∋a-restk r)
+  ∋a-skip (a-skip-nu r) = a-skip-nu (∋a-restk r)
+∋a-push (pop-bind-b p) a-here-bind = a-here-bind
+∋a-push (pop-bind-b p) (a-skip-bind q) = a-skip-bind (∋a-push p q)
+∋a-push (pop-bind-b p) a-here-addr = a-here-addr
+∋a-push (pop-bind-b p) a-here-nu = a-here-nu
+∋a-push (pop-bind-b p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-push (pop-bind-b p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
+∋a-push (pop-bind-l p) a-here-bind = a-here-bind
+∋a-push (pop-bind-l p) (a-skip-bind q) = a-skip-bind (∋a-push p q)
+∋a-push (pop-bind-l p) a-here-addr = a-here-addr
+∋a-push (pop-bind-l p) a-here-nu = a-here-nu
+∋a-push (pop-bind-l p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-push (pop-bind-l p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
+∋a-push (pop-bind-e p) a-here-bind = a-here-bind
+∋a-push (pop-bind-e p) (a-skip-bind q) = a-skip-bind (∋a-push p q)
+∋a-push (pop-bind-e p) a-here-addr = a-here-addr
+∋a-push (pop-bind-e p) a-here-nu = a-here-nu
+∋a-push (pop-bind-e p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-push (pop-bind-e p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
+
 
 ------------------------------------------------------------------------
 -- Well-formed representation types; ∀ᴿ pushes a bare address binder

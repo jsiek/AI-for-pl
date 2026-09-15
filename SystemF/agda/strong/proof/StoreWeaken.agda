@@ -108,8 +108,8 @@ mutual
     conv-seal (∋r-snoc r) (read-snoc rd) pop
   convElt-snoc (conv-unseal r rd pop na) =
     conv-unseal (∋r-snoc r) (read-snoc rd) pop na
-  convElt-snoc (conv-hide wf pop na) = conv-hide wf pop na
-  convElt-snoc (conv-show wf pop na) = conv-show wf pop na
+  convElt-snoc (conv-hide sc wf pop na) = conv-hide (∋a-snoc sc) wf pop na
+  convElt-snoc (conv-show sc wf pop na) = conv-show (∋a-snoc sc) wf pop na
   convElt-snoc (conv-fun s t) = conv-fun (conv-snoc s) (conv-snoc t)
   convElt-snoc (conv-all s) = conv-all (conv-snoc s)
 

@@ -223,9 +223,9 @@ namefn-pop (pop-bind-e r) nf =
 mutual
   elt-namefn : Sg ∣ Γ₁ ⊢̂ ĉ ∶ A ⇝ B ⊣ Γ₂ → NameFn Γ₂ → NameFn Γ₁
   elt-namefn (conv-seal rep rd p) nf = namefn-pop p nf
-  elt-namefn (conv-hide wf p na) nf = namefn-pop p nf
+  elt-namefn (conv-hide sc wf p na) nf = namefn-pop p nf
   elt-namefn (conv-unseal rep rd p na) nf = namefn-push nf na p
-  elt-namefn (conv-show wf p na) nf = namefn-push nf na p
+  elt-namefn (conv-show sc wf p na) nf = namefn-push nf na p
   elt-namefn (conv-fun s′ t′) nf = conv-namefn t′ nf
   elt-namefn (conv-all s′) nf =
     namefn-unbind (conv-namefn s′ (namefn-bind nf))
@@ -255,12 +255,12 @@ open import strong.proof.Interior using (push-sound)
 inv-show : ∀ {Γ₁ Γ₂ A B Y β}
   → Sg ∣ Γ₁ ⊢̂ show Y β ∶ A ⇝ B ⊣ Γ₂
   → (A ≡ renameᵗ (shiftAtᵗ Y) B) × (Γ₁ ▷ Y := β ⇒ Γ₂)
-inv-show (conv-show wf p na) = refl , p
+inv-show (conv-show sc wf p na) = refl , p
 
 inv-hide : ∀ {Γ₁ Γ₂ A B X α}
   → Sg ∣ Γ₁ ⊢̂ hide X α ∶ A ⇝ B ⊣ Γ₂
   → (B ≡ renameᵗ (shiftAtᵗ X) A) × (Γ₂ ▷ X := α ⇒ Γ₁)
-inv-hide (conv-hide wf p na) = refl , p
+inv-hide (conv-hide sc wf p na) = refl , p
 
 inv-seal : ∀ {Γ₁ Γ₂ A B X α}
   → Sg ∣ Γ₁ ⊢̂ seal X α ∶ A ⇝ B ⊣ Γ₂

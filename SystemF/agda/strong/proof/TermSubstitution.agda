@@ -219,7 +219,7 @@ module Proof where
       wf-shift pop-here wfᵢ
     , ⊢⟨⟩ (nf-cons nf-hide nf-id irr-id)
           (nuWeaken sok ⊢V)
-          (conv-cons (conv-hide wfᵢ pop-here ⤒-fresh)
+          (conv-cons (conv-hide a-here-addr wfᵢ pop-here ⤒-fresh)
                      (conv-id (wf-shift pop-here wfᵢ)))
     where
     wfᵢ = wfᵗ-ren (ren-stk (ren-wk sok)) wf

@@ -439,6 +439,16 @@ slot-addrS (drop-there d) (n-skip-bind-e p) with slot-addrS d p
 slot-addrS (drop-there d) (n-skip-bind-e p) | ()
 
 -- hence a non-`bnd` address never carries the slot's name
+-- A non-`bnd` address does not depend on the stack at all, so
+-- dropping the slot leaves it in scope.
+∋a-drop : ∀ {Sg Ss Ss′ Bs α} → NotBnd α
+  → Sg ∣ (Ss ∥ Bs) ∋a α → Sg ∣ (Ss′ ∥ Bs) ∋a α
+∋a-drop nb (a-lvl l) = a-lvl l
+∋a-drop nb-bse a-here-addr = a-here-addr
+∋a-drop nb-bse a-here-nu = a-here-nu
+∋a-drop nb-bse (a-skip-addr q) = a-skip-addr (∋a-restk q)
+∋a-drop nb-bse (a-skip-nu q) = a-skip-nu (∋a-restk q)
+
 nb-≢ : DropBindS X Ss Ss′ → NotBnd α → (Ss ∥ Bs) ∋n Y := α → ¬ (X ≡ Y)
 nb-≢ d nb-lvl n refl with slot-addrS d n
 nb-≢ d nb-lvl n refl | ()
@@ -626,22 +636,24 @@ mutual
   -- a `hide`: its target is a `shiftAtᵗ` rename, and `closeAt-shift`
   -- slides the shift's cutoff down with the name
   substAnnElt-typing {X = X} {S = S} nbr cl (sf-hide {Y = Y} lt nb) d
-    (conv-hide {A = A} wf p na) with drop-pop d nb p
+    (conv-hide {A = A} sc wf p na) with drop-pop d nb p
   substAnnElt-typing {X = X} {S = S} nbr cl (sf-hide {Y = Y} lt nb) d
-    (conv-hide {A = A} wf p na) | Γᵢ′ , drop-ctx dᵢ , p′
+    (conv-hide {A = A} sc wf p na) | Γᵢ′ , drop-ctx dᵢ , p′
     rewrite closeAt-shift X Y S A lt cl =
     _ , drop-ctx dᵢ
-    , conv-hide (wf-drop dᵢ cl wf) p′ (notasgn-drop dᵢ nb na)
+    , conv-hide (∋a-drop nb sc) (wf-drop dᵢ cl wf) p′
+        (notasgn-drop dᵢ nb na)
 
   -- a `show`: the SOURCE is the rename, so the same equation is used
   -- in the other position
   substAnnElt-typing {X = X} {S = S} nbr cl (sf-show {Y = Y} lt nb) d
-    (conv-show {A = A} wf p na) with drop-push d nb lt p
+    (conv-show {A = A} sc wf p na) with drop-push d nb lt p
   substAnnElt-typing {X = X} {S = S} nbr cl (sf-show {Y = Y} lt nb) d
-    (conv-show {A = A} wf p na) | Γᵢ′ , drop-ctx dᵢ , p′
+    (conv-show {A = A} sc wf p na) | Γᵢ′ , drop-ctx dᵢ , p′
     rewrite closeAt-shift X Y S A lt cl =
     _ , drop-ctx dᵢ
-    , conv-show (wf-drop d cl wf) p′ (notasgn-drop d nb na)
+    , conv-show (∋a-drop nb sc) (wf-drop d cl wf) p′
+        (notasgn-drop d nb na)
 
   -- a `↦`: the components run in opposite directions, so the
   -- covariant one is substituted first and hands the contravariant one

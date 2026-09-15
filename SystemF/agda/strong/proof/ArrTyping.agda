@@ -1,66 +1,80 @@
 module strong.proof.ArrTyping where
 
--- Strong System F v7 — inverting `arr` at a conversion with a head.
+-- Strong System F v8 — `arr` splits a typed conversion into two typed
+-- conversions, one contravariant and one covariant.
 --
--- `Wrap` needs its two components typed at the BOUNDARY's contexts:
---
---     ΔΘ ⊢ c₁ ∶ A′ ⇝ A₁ ⊣ Δᵢ        Δᵢ ⊢ c₂ ∶ B₁ ⇝ B′ ⊣ ΔΘ
---
--- and `conv-fun` states its two sub-conversions at the head's contexts,
--- which are the interior and the SEAM.  The reflexive terminator is what
--- makes those the same: `tail-id` ties its two contexts together, so the
--- seam IS the exterior and the head's target IS the conversion's target.
--- Nothing has to be re-typed, and `NF` is not needed — the shape of `arr`
--- already pins the derivation.
+-- The split is ELEMENTWISE, so the proof walks the conversion: a `↦`
+-- element contributes its own two components, and an identity crossing
+-- contributes ITSELF to the covariant side and its DUAL to the
+-- contravariant one — which is why the two crossing rules were made
+-- exact duals.  The components are appends, and `⧺-typing` types them;
+-- `arr` then normalizes, and `preserve-↠` carries the typing along.
 
-open import Data.List using (_∷_)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Data.Nat using (ℕ)
+open import Data.List using (List; []; _∷_; _++_)
+open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Product using (Σ-syntax; _×_; _,_)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; sym; trans; cong; subst)
 
 open import strong.Types
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
+open import strong.ConversionReduction
+open import strong.proof.CompositionTyping using (⧺-typing; preserve-↠)
 
-arr-typing-fun : ∀ {Δᵢ ΔΘ s t T A A′ B′}
-  → Δᵢ ⊢ (s ↦ t) ∷ᶜ id T ∶ A ⇝ (A′ ⇒ B′) ⊣ ΔΘ
+private
+  variable
+    Sg : Store
+    Δ Δᵢ Δ₂ : Ctxᵗ
+    A B A₀ B₀ A′ B′ : Ty
+    c : Conv
+
+-- `attach` splits along an append: the first block keeps its elements
+-- and gives up its terminator.
+attach-++ : ∀ (Ls es : List ConvElt) (T A : Ty)
+  → attach (Ls ++ es) A ≡ (attach Ls T ⧺ attach es A)
+attach-++ [] es T A = refl
+attach-++ (ĉ ∷ Ls) es T A = cong (ĉ ∷ᶜ_) (attach-++ Ls es T A)
+
+-- A rename cannot turn a non-arrow into an arrow.
+shift-⇒-inv : ∀ X A {A₀ B₀} → renameᵗ (shiftAtᵗ X) A ≡ (A₀ ⇒ B₀)
   → Σ[ A₁ ∈ Ty ] Σ[ B₁ ∈ Ty ]
-      ((A ≡ A₁ ⇒ B₁)
-       × (ΔΘ ⊢ s ∶ A′ ⇝ A₁ ⊣ Δᵢ)
-       × (Δᵢ ⊢ t ∶ B₁ ⇝ B′ ⊣ ΔΘ))
-arr-typing-fun (conv-cons (conv-fun s-ty t-ty) (tail-id wf)) =
-  _ , _ , refl , s-ty , t-ty
+      ((A ≡ A₁ ⇒ B₁) × (renameᵗ (shiftAtᵗ X) A₁ ≡ A₀)
+       × (renameᵗ (shiftAtᵗ X) B₁ ≡ B₀))
+shift-⇒-inv X (A ⇒ B) refl = A , B , refl , refl , refl
+shift-⇒-inv X (` Y) ()
+shift-⇒-inv X `ℕ ()
+shift-⇒-inv X `𝔹 ()
+shift-⇒-inv X (`∀ A) ()
 
-allView-typing-all : ∀ {Δᵢ ΔΘ s T A A′}
-  → Δᵢ ⊢ all s ∷ᶜ id T ∶ A ⇝ (`∀ A′) ⊣ ΔΘ
-  → Σ[ A₁ ∈ Ty ]
-      ((A ≡ `∀ A₁)
-       × ((anch revealed abstA ∷ Δᵢ) ⊢ s ∶ A₁ ⇝ A′
-            ⊣ (anch revealed abstA ∷ ΔΘ)))
-allView-typing-all (conv-cons (conv-all s-ty) (tail-id wf)) =
-  _ , refl , s-ty
+wf-⇒-inv : ∀ {Γ A B} → Γ ⊢ᵗ (A ⇒ B) → (Γ ⊢ᵗ A) × (Γ ⊢ᵗ B)
+wf-⇒-inv (wf-⇒ a b) = a , b
 
 ------------------------------------------------------------------------
--- The full inversion, both shapes
+-- What the split still needs
 ------------------------------------------------------------------------
+-- The remaining induction is `arrElts-typing`, carrying the SOURCE as
+-- an equation (the crossing rules state their types as renames, which
+-- the unifier cannot match against an arrow):
 --
--- The interior domain handed to `arr` is the λ annotation, which `⊢ƛ`
--- makes the domain of the conversion's SOURCE — so in the bare-`id` case
--- the contravariant component `id A₁` retypes by symmetry of the `id`'s
--- comparison, and in the head case `conv-fun` already says everything.
-
-open import Data.Maybe using (just)
-open import strong.CtxMorph using ()
-open import strong.proof.SameTyProperties using (sameTy-sym)
-open import Relation.Binary.PropositionalEquality using (sym)
-
-arr-typing : ∀ {Δᵢ ΔΘ c A₁ B₁ A′ B′ c₁ c₂}
-  → Δᵢ ⊢ c ∶ (A₁ ⇒ B₁) ⇝ (A′ ⇒ B′) ⊣ ΔΘ
-  → NF c
-  → arr A₁ c ≡ just (c₁ , c₂)
-  → (ΔΘ ⊢ c₁ ∶ A′ ⇝ A₁ ⊣ Δᵢ) × (Δᵢ ⊢ c₂ ∶ B₁ ⇝ B′ ⊣ ΔΘ)
-    × NF c₁ × NF c₂
-arr-typing (conv-id (same-⇒ sa sb) spine) nf refl =
-  conv-id (sameTy-sym sa) (sb-sym spine) , conv-id sb spine , nf-id , nf-id
-arr-typing (conv-cons (conv-fun s-ty t-ty) (tail-id wf))
-  (nf-cons (nf-fun nfs nft) _ _) refl =
-  s-ty , t-ty , nfs , nft
+--   arrElts-typing : ⊢ c ∶ S ⇝ T ⊣ Δ → S ≡ A₀ ⇒ B₀ → T ≡ A′ ⇒ B′
+--                  → arrElts (elts c) ≡ just (Ls , Rs)
+--                  → (Δ ⊢ attach Ls A₀ ∶ A′ ⇝ A₀ ⊣ Δᵢ)
+--                    × (Δᵢ ⊢ attach Rs B′ ∶ B₀ ⇝ B′ ⊣ Δ)
+--
+-- with three element cases (`↦`, `hide`, `show`), each splitting the
+-- fold's output with a `consArr` inversion and gluing by `⧺-typing`
+-- and `attach-++`.  `arr-typing` then follows by `preserve-↠` along
+-- `normalize-↠`, since `arr` normalizes each component.
+--
+-- ONE LEMMA IS STILL MISSING for the crossing cases: the terminator
+-- `id A₀` of the contravariant component must be well formed at the
+-- LARGER context, i.e.
+--
+--   wf-shift : Γₑ ▷ X := α ⇒ Γᵢ → Γᵢ ⊢ᵗ A
+--            → Γₑ ⊢ᵗ renameᵗ (shiftAtᵗ X) A
+--
+-- — the well-formedness counterpart of a crossing, which needs the
+-- corresponding fact for `_∋n_:=_` under insertion.

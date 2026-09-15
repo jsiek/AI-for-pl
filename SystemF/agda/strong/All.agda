@@ -30,6 +30,7 @@ open import strong.proof.PreserveConst
 open import strong.proof.ArrTyping
 open import strong.proof.InertRenaming
 open import strong.proof.Flat
+open import strong.proof.StoreWeaken
 open import strong.proof.PreserveWrap
 open import strong.proof.AddrWeaken
 open import strong.proof.TermSubstitution

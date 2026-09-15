@@ -122,7 +122,33 @@ discharge.
 # The global store and contexts
 
   Σ ::= ∅ | Σ,α:=R                       (global representation store)
-  Γ ::= ∅ | Γ,α | Γ,α:=R | Γ,X:α | Γ,X:=α | Γ,x:A
+  Γ ::= Γˢ ∥ Γᵇ                          (a SPLIT context)
+  Γˢ ::= ∅ | Γˢ,X:α | Γˢ,X:=α            (the stack: NAMES)
+  Γᵇ ::= ∅ | Γᵇ,α | Γᵇ,α:=R              (the base: ADDRESSES)
+
+THE SPLIT (mechanized 2026-09-15; see DECISIONS.md).  A context has two
+independent halves.  Names live only in the stack, addresses only in
+the base.  Two things follow, and the whole metatheory rests on them:
+
+  * a name lookup and the well-formedness of a type cannot see the
+    base, and the pop judgment `▷ ⇒` is a pure stack operation;
+  * so extending the base — which is all that address weakening does,
+    at a `Λ` or a `ν` — cannot disturb a crossing or a pop.
+
+Addresses are split to match:
+
+  α ::= ℓ | bnd i | bse j
+
+`ℓ` is a permanent store level, `bnd i` indexes the STACK's binders
+(the `X:α` a `∀` pushes), `bse j` the BASE's (a `Λ`'s or a `ν`'s).
+Keeping them apart is what lets the color wrap NAME the `Λ`'s address:
+it is `bse 0` however many crossings and `∀`s stand above it.  The two
+renaming families are correspondingly independent — one extends under
+a conversion's `all`, the other under `Λ` and `ν`.
+
+Pushing a base binder does renumber `bse`, so `(TyLam)` and `(Nu)`
+carry the stack along by renaming the addresses its crossings name.
+That is structure-preserving, so pops are untouched.
 
 The store Σ is append-only: `ν` discharge adds a binding, and nothing
 removes or reorders one, so addresses are permanent.  A context
@@ -143,8 +169,15 @@ atomic element may push or pop only the newest one, with binder
 assignments, address entries, and term entries transparent — v7's `▷`
 discipline, moved from scope transitions into the element rules.
 Judgments are indexed by both, written `Σ;Γ ⊢ ⋯`; address lookups
-search Σ and Γ's address entries jointly, and we suppress Σ when it is
-fixed.
+search Σ and the BASE (a `bnd` never reaches the base, a `bse` never
+reaches the stack), and we suppress Σ when it is fixed.
+
+At a REDEX the context is always FLAT: no binder assignment `X:α` and
+an empty base.  Only conversion typing pushes a binder assignment, and
+it pushes it around the nested conversion of an `all`, not around the
+element; and there is no reduction under `Λ` or `ν`.  That is what lets
+`(Alloc)` store its representation — over a flat context a
+representation mentions only store levels.
 
 The stack is expressed by v7's rightmost-visible judgment, upgraded to
 return the popped context.  `Γ ▷ X:=α ⇒ Γ′` says `X:=α` is the newest

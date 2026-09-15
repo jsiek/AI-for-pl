@@ -31,16 +31,7 @@ open import strong.Conversion using
    conv-id; conv-cons; conv-seal; conv-unseal; conv-hide; conv-show;
    conv-fun; conv-all)
 open import strong.Terms using
-  (Term; Ctx; _∣_∣_⊢_⦂_; ⊢`; ⊢$; ⊢#; ⊢⊕; ⊢ƛ; ⊢·; ⊢Λ; ⊢•[]; ⊢ν; ⊢⟨⟩)
-
-private
-  variable
-    Σ : Store
-    Γ Δ Δᵢ : Ctxᵗ
-    A B : Ty
-    R S : RepTy
-    α : Addr
-    ℓ : ℕ
+  (_∣_∣_⊢_⦂_; ⊢`; ⊢$; ⊢#; ⊢⊕; ⊢ƛ; ⊢·; ⊢Λ; ⊢•[]; ⊢ν; ⊢⟨⟩)
 
 ------------------------------------------------------------------------
 -- Levels

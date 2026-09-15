@@ -29,6 +29,7 @@ open import strong.proof.PreserveMerge
 open import strong.proof.PreserveConst
 open import strong.proof.ArrTyping
 open import strong.proof.PreserveWrap
+open import strong.proof.AddrWeaken
 open import strong.proof.TermSubstitution
 
 -- the main theorems

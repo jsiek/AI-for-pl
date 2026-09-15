@@ -4083,3 +4083,43 @@ renaming as a FUNCTION of the index rather than an index itself (the
 unifier cannot invert `extᵇ`), and thread the depth through the pop
 judgment.  What is NOT needed this time is the block/store arithmetic:
 one entry, not a store block.
+
+
+## 2026-09-15: the conflict — address transparency in the pop judgment
+
+Writing the address weakening turned the earlier finding into a
+genuine conflict between two settled decisions.
+
+REQUIREMENT ONE (the interior walk, 2026-09-15).  Address entries must
+NOT be transparent to the pop judgment, or `pushAsgn`/`popAsgn` are not
+inverses — an assignment at a given name depth could sit above or below
+an address binder — and then `⟨c⟩` is not a function and `ξ-⟨⟩` cannot
+compute the context it reduces in.
+
+REQUIREMENT TWO (address weakening, today).  Address entries MUST be
+transparent, or a value containing a sealed literal cannot cross a `Λ`.
+Concretely, §6's `7 ⟨ seal 0 α ∷ᶜ id (` 0) ⟩` is a value at `Δ = X:=α`;
+weakening it by the `Λ`'s address binder asks for
+
+    (addr ∷ asgn α ∷ []) ▷ 0 := α ⇒ (addr ∷ [])
+
+which requirement one forbids.  Depth-indexing (v7's `Wk P d`) does not
+help: the binder is introduced OUTSIDE the boundary, so it sits at
+depth 0 in the boundary's exterior — exactly where the outermost
+crossing pops.
+
+A PROMISING RESOLUTION.  The two placements are OBSERVATIONALLY
+EQUIVALENT: `asgn α ∷ addr ∷ Δ` and `addr ∷ asgn α ∷ Δ` agree on every
+lookup — `∋n` yields the same name and address in both, and so do `∋a`
+and `∋r`.  So transparency could be restored while `⟨c⟩` keeps picking
+the canonical (highest) placement, sound up to that swap, with `⌊A⌋`
+unaffected because it reads only `∋n`.  The cost is a context-swap
+lemma threaded through the judgments that mention contexts.
+
+Alternatives worth weighing: (b) make `ξ-⟨⟩` take the interior as a
+RELATION (the pop judgment itself) rather than a computed context, so
+transparency costs nothing there — the price is that the step relation's
+context index is no longer unique, which determinism would have to
+handle; (c) keep contexts in a canonical form by construction, e.g. by
+having `Λ` push its address binder BELOW the crossing assignments it
+introduces.  Asked Jeremy.

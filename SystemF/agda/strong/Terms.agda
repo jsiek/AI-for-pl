@@ -130,7 +130,7 @@ data _∣_∣_⊢_⦂_ (Σ : Store) : Ctxᵗ → Ctx → Term → Ty → Set whe
   -- wrap write it.
   ⊢Λ : ∀ {Ss Bs Γ A V}
     → Value V
-    → Σ ∣ (asgn (bse zero) ∷ Ss ∥ addr ∷ Bs) ∣ ⤊ Γ ⊢ V ⦂ A
+    → Σ ∣ (asgn (bse zero) ∷ ⤒ Ss ∥ addr ∷ Bs) ∣ ⤊ Γ ⊢ V ⦂ A
     → Σ ∣ (Ss ∥ Bs) ∣ Γ ⊢ Λ V ⦂ `∀ A
   ⊢•[] : ∀ {Δ Γ A B L}
     → Σ ∣ Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
@@ -141,7 +141,7 @@ data _∣_∣_⊢_⦂_ (Σ : Store) : Ctxᵗ → Ctx → Term → Ty → Set whe
   -- `ν` binds an address and no name: the STACK is untouched.
   ⊢ν : ∀ {Ss Bs Γ R M A}
     → Σ ∣ (Ss ∥ Bs) ⊢ᴿ R
-    → Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∣ Γ ⊢ M ⦂ A
+    → Σ ∣ (⤒ Ss ∥ nuBind R ∷ Bs) ∣ Γ ⊢ M ⦂ A
     → Σ ∣ (Ss ∥ Bs) ∣ Γ ⊢ ν R ∙ M ⦂ A
   -- The boundary: the conversion's typing determines the interior
   -- context; the body is term-closed with respect to the exterior.

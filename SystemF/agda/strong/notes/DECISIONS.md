@@ -4123,3 +4123,61 @@ context index is no longer unique, which determinism would have to
 handle; (c) keep contexts in a canonical form by construction, e.g. by
 having `Λ` push its address binder BELOW the crossing assignments it
 introduces.  Asked Jeremy.
+
+------------------------------------------------------------------------
+2026-09-15 — THE SPLIT, TWICE: CONTEXTS, THEN ADDRESSES
+------------------------------------------------------------------------
+
+RESOLVED, by the structural option, carried through to its consequence.
+
+STEP ONE — SPLIT THE CONTEXT.  `Ctxᵗ` is now a record `stk ∥ bas`:
+
+    StackEnt = bind | asgn Addr          (names: a ∀'s binder, a crossing)
+    BaseEnt  = addr | nuBind RepTy       (addresses: a Λ's, a ν's)
+
+Names live ONLY in the stack.  So `_∋n_:=_` never mentions the base
+(five rules where there were nine), the pop judgment `▷ ⇒` is a pure
+stack operation, and `⊢ᵗ` cannot see the base at all (`∋n-rebase`,
+`wf-rebase`).  Address weakening extends the BASE, so it cannot disturb
+a crossing or a pop — which is exactly the tension recorded above, and
+it is gone.  No transparency, no context-swap lemma, and `⟨c⟩` stays a
+function.
+
+STEP TWO — SPLIT THE ADDRESSES TO MATCH.  The split immediately exposed
+that one `bnd i` cannot serve both halves.  A `Λ`'s own address, counted
+through the stack, is `bnd (binds Ss)` — a number that depends on how
+many `∀`s stand above it, which `crossΛ` (a syntactic function on terms)
+cannot know.  So:
+
+    Addr = lvl ℓ | bnd i | bse j
+
+`bnd` indexes the stack's binders, `bse` the base's.  Now a `Λ`'s
+address is `bse zero` no matter what stands above it, and the color wrap
+can write it:
+
+    crossΛ V A = renBseᴹ suc V ⟨ hide 0 (bse 0) ∷ᶜ id (⇑ᵗ A) ⟩
+
+The two renaming families are independent — `renAddrᴹ`/`renConv` extend
+under a conversion's `all`, `renBseᴹ`/`renConvᵉ` under `Λ` and `ν` — so
+pushing a base binder leaves every crossing's address alone.
+
+WHAT IT COST.  `⊢Λ` and `⊢ν` carry the stack along the base push,
+`⤒ Ss = renStk suc Ss`, because a crossing may name a base address.
+That is structure-preserving, so pops are untouched (`pop-ren`).  Also
+`wfᴿ-∀` was pushing a base `addr` while `renameᴿ`/`read-∀` treat a `∀ᴿ`
+binder as a stack one; the split made the mismatch visible and it now
+pushes a `bind`.
+
+WHAT IT BOUGHT.  `proof/AddrWeaken` is an ORDINARY renaming lemma —
+`Renamesᵇ` (transport `∋a`/`∋n`/`∋r`, reflect `∋n`), closed under
+`bind`/`asgn`/base binders, lifted to `⊢ᵗ`, `⊢ᴿ`, `⇓`, `▷`,
+`NotAssigned`, conversion typing, and `⊢`.  No depth index, no store
+arithmetic, no interaction with the boundary.  `proof/TermSubstitution`
+has no parameters left: `crossΛ-typing` is `⊢-ren` plus a `conv-hide`,
+and crossing a `ν` is `⊢-ren` outright.
+
+One new side condition surfaced and is discharged: `lvl-fixed`, that a
+STORED representation is base-closed (`StoreOk` gives it well-formedness
+over the empty base, and `∀ᴿ` binds on the stack, so no `bse` rule can
+have applied).  `StoreOk` is therefore threaded through `subst-⊢` and
+`preserve-Beta` — which Preservation assumes anyway.

@@ -74,14 +74,17 @@ record Ctxᵗ : Set where
     bas : List BaseEnt    -- newest first
 open Ctxᵗ
 
--- How many ADDRESS BINDERS the stack itself contributes.  Only a `bind`
--- (a ∀-element's binder assignment) binds an address; an `asgn` names
--- one already bound.  So the newest base entry's de Bruijn address
--- index, seen from inside a stack `Ss`, is `binds Ss`.
-binds : List StackEnt → ℕ
-binds [] = zero
-binds (bind ∷ Ss) = suc (binds Ss)
-binds (asgn α ∷ Ss) = binds Ss
+-- Pushing a BASE binder renumbers the base, and the stack's crossing
+-- assignments may name base addresses — so the stack is carried along
+-- by renaming those, which leaves its STRUCTURE, hence every pop,
+-- exactly as it was.
+renStk : Renameᵇ → List StackEnt → List StackEnt
+renStk ρ [] = []
+renStk ρ (bind ∷ Ss) = bind ∷ renStk ρ Ss
+renStk ρ (asgn α ∷ Ss) = asgn (renᵃᵉ ρ α) ∷ renStk ρ Ss
+
+⤒ : List StackEnt → List StackEnt
+⤒ = renStk suc
 
 private
   variable
@@ -190,6 +193,20 @@ data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
   wf-⇒   : Γ ⊢ᵗ A → Γ ⊢ᵗ B → Γ ⊢ᵗ A ⇒ B
   wf-∀   : ∀ {Ss Bs} → (bind ∷ Ss ∥ Bs) ⊢ᵗ A → (Ss ∥ Bs) ⊢ᵗ `∀ A
 
+-- Dually, a BASE address is read off the base alone, so the stack it
+-- is read under does not matter.
+∋a-restk : ∀ {Σ Ss Ss′ Bs j} → Σ ∣ (Ss ∥ Bs) ∋a bse j → Σ ∣ (Ss′ ∥ Bs) ∋a bse j
+∋a-restk a-here-addr = a-here-addr
+∋a-restk a-here-nu = a-here-nu
+∋a-restk (a-skip-addr p) = a-skip-addr (∋a-restk p)
+∋a-restk (a-skip-nu p) = a-skip-nu (∋a-restk p)
+
+∋r-restk : ∀ {Σ Ss Ss′ Bs j R} → Σ ∣ (Ss ∥ Bs) ∋r bse j := R
+  → Σ ∣ (Ss′ ∥ Bs) ∋r bse j := R
+∋r-restk r-here = r-here
+∋r-restk (r-skip-addr p) = r-skip-addr (∋r-restk p)
+∋r-restk (r-skip-nu p) = r-skip-nu (∋r-restk p)
+
 -- THE PAYOFF OF THE SPLIT.  Names live only in the stack, so neither
 -- a name lookup nor the well-formedness of a type can see the base:
 -- changing the base — which is all that address weakening does — is
@@ -219,7 +236,10 @@ data _∣_⊢ᴿ_ (Σ : Store) : Ctxᵗ → RepTy → Set where
   wfᴿ-ℕ   : Σ ∣ Γ ⊢ᴿ `ℕᴿ
   wfᴿ-𝔹   : Σ ∣ Γ ⊢ᴿ `𝔹ᴿ
   wfᴿ-⇒   : Σ ∣ Γ ⊢ᴿ R → Σ ∣ Γ ⊢ᴿ T → Σ ∣ Γ ⊢ᴿ R ⇒ᴿ T
-  wfᴿ-∀   : ∀ {Bs} → Σ ∣ ([] ∥ addr ∷ Bs) ⊢ᴿ R → Σ ∣ ([] ∥ Bs) ⊢ᴿ `∀ᴿ R
+  -- `∀ᴿ` binds a STACK address — that is what `renameᴿ`/`substᴿ`
+  -- extend under, and what `read-∀` names — so it pushes a `bind`,
+  -- whose name this judgment simply never reads.
+  wfᴿ-∀   : ∀ {Ss Bs} → Σ ∣ (bind ∷ Ss ∥ Bs) ⊢ᴿ R → Σ ∣ (Ss ∥ Bs) ⊢ᴿ `∀ᴿ R
 
 -- Store well-formedness: each representation is well-formed over the
 -- strictly earlier prefix, so a representation mentions only OLDER

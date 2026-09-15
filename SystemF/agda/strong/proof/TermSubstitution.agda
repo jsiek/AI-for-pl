@@ -42,9 +42,11 @@ open import strong.Terms
 open import strong.TermSubst
 open import strong.proof.ArrTyping using
   (Renamesᵗ; ext-renames; wf-ren; pop-renames; wf-shift)
+open import strong.proof.AddrWeaken using
+  (⊢-ren; ren-wk; ren-stk; wfᵗ-ren; suc-inj)
 
 ------------------------------------------------------------------------
--- The parameter: weakening by one ADDRESS entry
+-- The color wrap, and crossing a `ν`
 ------------------------------------------------------------------------
 
 -- Weakening by one BASE entry.  With the context split, this extends
@@ -58,23 +60,29 @@ shiftAtᵇ : ℕ → Renameᵇ
 shiftAtᵇ zero = suc
 shiftAtᵇ (suc k) = extᵇ (shiftAtᵇ k)
 
--- THE COLOR WRAP's typing, and the `ν` crossing's weakening.  Both are
--- blocked on the same question — see notes/DECISIONS.md (2026-09-15):
--- with the context split, a `Λ`'s address is no longer syntactically
--- `bnd zero`, because the stack's own binders sit above the base.
-ColorWrap : Set
-ColorWrap = ∀ {Sg Ss Bs Γ′ V A}
-  → (Ss ∥ Bs) ⊢ᵗ A → Sg ∣ (Ss ∥ Bs) ∣ [] ⊢ V ⦂ A
-  → ((asgn (bnd (binds Ss)) ∷ Ss ∥ addr ∷ Bs) ⊢ᵗ ⇑ᵗ A)
-    × (Sg ∣ (asgn (bnd (binds Ss)) ∷ Ss ∥ addr ∷ Bs) ∣ Γ′
-         ⊢ crossΛ V A ⦂ ⇑ᵗ A)
+-- The color wrap and the `ν` crossing both come down to ONE base
+-- weakening, `proof.AddrWeaken.⊢-ren`: the new binder goes on the base,
+-- the stack rides along by `⤒`, and the boundaries inside the value
+-- keep their crossings.
 
-NuWeaken : Set
-NuWeaken = ∀ {Sg Ss Bs Γ M A R}
-  → Sg ∣ (Ss ∥ Bs) ∣ Γ ⊢ M ⦂ A
-  → Sg ∣ (Ss ∥ nuBind R ∷ Bs) ∣ Γ ⊢ renAddrᴹ (shiftAtᵇ (binds Ss)) M ⦂ A
+module Proof where
 
-module Proof (wrap : ColorWrap) (nuWeaken : NuWeaken) where
+  -- The `⤒`'d stack assigns no name to the base's NEWEST address: every
+  -- assignment it carries was shifted, and a `bind` names a stack
+  -- address.
+  ⤒-fresh : ∀ {Ss Bs} → NotAssigned (⤒ Ss ∥ Bs) (bse zero)
+  ⤒-fresh {[]} ()
+  ⤒-fresh {bind ∷ Ss} (n-skip-bind-e p) = ⤒-fresh p
+  ⤒-fresh {asgn (lvl ℓ) ∷ Ss} (n-skip-asgn p) = ⤒-fresh p
+  ⤒-fresh {asgn (bnd i) ∷ Ss} (n-skip-asgn p) = ⤒-fresh p
+  ⤒-fresh {asgn (bse j) ∷ Ss} (n-skip-asgn p) = ⤒-fresh p
+
+  nuWeaken : ∀ {Sg Ss Bs Γ M A e} → StoreOk Sg
+    → Sg ∣ (Ss ∥ Bs) ∣ Γ ⊢ M ⦂ A
+    → Sg ∣ (⤒ Ss ∥ e ∷ Bs) ∣ Γ ⊢ renBseᴹ suc M ⦂ A
+  nuWeaken sok ⊢M = ⊢-ren suc-inj (ren-wk sok) ⊢M
+
+
 
   ----------------------------------------------------------------------
   -- Term-variable renaming
@@ -194,62 +202,49 @@ module Proof (wrap : ColorWrap) (nuWeaken : NuWeaken) where
   -- needs.  The boundary's interior is the context WITHOUT the
   -- assignment, which is where the address-weakened value lives.
 
-  -- Well-formedness of a TYPE only looks at which names are in scope,
-  -- never at the addresses they name — so it travels along any map of
-  -- name lookups, whatever it does to the addresses.
-  NamesInto : Ctxᵗ → Ctxᵗ → Set
-  NamesInto Δ Δ′ = ∀ {X α} → Δ ∋n X := α → Σ[ β ∈ Addr ] (Δ′ ∋n X := β)
-
-  bind-names : ∀ {Δ Δ′} → NamesInto Δ Δ′ → NamesInto (bind ∷ stk Δ ∥ bas Δ) (bind ∷ stk Δ′ ∥ bas Δ′)
-  bind-names f n-here-bind = _ , n-here-bind
-  bind-names f (n-skip-bind-b p) with f p
-  bind-names f (n-skip-bind-b p) | lvl ℓ , q = _ , n-skip-bind-l q
-  bind-names f (n-skip-bind-b p) | bnd i , q = _ , n-skip-bind-b q
-  bind-names f (n-skip-bind-l p) with f p
-  bind-names f (n-skip-bind-l p) | lvl ℓ , q = _ , n-skip-bind-l q
-  bind-names f (n-skip-bind-l p) | bnd i , q = _ , n-skip-bind-b q
-
-  wf-names : ∀ {Δ Δ′ A} → NamesInto Δ Δ′ → Δ ⊢ᵗ A → Δ′ ⊢ᵗ A
-  wf-names f (wf-var n) with f n
-  wf-names f (wf-var n) | _ , q = wf-var q
-  wf-names f wf-ℕ = wf-ℕ
-  wf-names f wf-𝔹 = wf-𝔹
-  wf-names f (wf-⇒ a b) = wf-⇒ (wf-names f a) (wf-names f b)
-  wf-names f (wf-∀ a) = wf-∀ (wf-names (bind-names f) a)
-
-  -- extending the BASE is invisible to names
-  addr-names : ∀ {Ss Bs e} → NamesInto (Ss ∥ Bs) (Ss ∥ e ∷ Bs)
-  addr-names p = _ , ∋n-rebase p
+  -- Well-formedness of a TYPE travels along any map of NAME lookups;
+  -- a base renaming is one (`proof.AddrWeaken.wfᵗ-ren`), since it
+  -- leaves names alone entirely.
 
   -- the `Λ` pushes to BOTH halves: its address onto the base, the
   -- crossing assignment naming it onto the stack.
   Λctx : Ctxᵗ → Ctxᵗ
-  Λctx (Ss ∥ Bs) = asgn (bnd (binds Ss)) ∷ Ss ∥ addr ∷ Bs
+  Λctx (Ss ∥ Bs) = asgn (bse zero) ∷ ⤒ Ss ∥ addr ∷ Bs
+
+  crossΛ-typing : ∀ {Sg Ss Bs Γ′ V A} → StoreOk Sg
+    → (Ss ∥ Bs) ⊢ᵗ A → Sg ∣ (Ss ∥ Bs) ∣ [] ⊢ V ⦂ A
+    → (Λctx (Ss ∥ Bs) ⊢ᵗ ⇑ᵗ A)
+      × (Sg ∣ Λctx (Ss ∥ Bs) ∣ Γ′ ⊢ crossΛ V A ⦂ ⇑ᵗ A)
+  crossΛ-typing sok wf ⊢V =
+      wf-shift pop-here wfᵢ
+    , ⊢⟨⟩ (nf-cons nf-hide nf-id irr-id)
+          (nuWeaken sok ⊢V)
+          (conv-cons (conv-hide wfᵢ pop-here ⤒-fresh)
+                     (conv-id (wf-shift pop-here wfᵢ)))
+    where
+    wfᵢ = wfᵗ-ren (ren-stk (ren-wk sok)) wf
 
   -- Crossing a `Λ`: the images cross behind the color wrap, and the
   -- term context's types shift by the one new name.
-  underΛ-ok : ∀ {Sg Δ Γ Γ′ σ} → Substⁿ Sg Δ Γ Γ′ σ
+  underΛ-ok : ∀ {Sg Δ Γ Γ′ σ} → StoreOk Sg → Substⁿ Sg Δ Γ Γ′ σ
     → Substⁿ Sg (Λctx Δ) (⤊ Γ) (⤊ Γ′) (λ x → underΛ (σ x))
-  underΛ-ok {σ = σ} s {x = x} p with ∋-⤊-inv p
-  underΛ-ok {σ = σ} s {x = x} p | B , q , refl with σ x | s q
-  underΛ-ok {σ = σ} s {x = x} p | B , q , refl | ivar y | img-var r =
+  underΛ-ok {σ = σ} sok s {x = x} p with ∋-⤊-inv p
+  underΛ-ok {σ = σ} sok s {x = x} p | B , q , refl with σ x | s q
+  underΛ-ok {σ = σ} sok s {x = x} p | B , q , refl | ivar y | img-var r =
     img-var (∋-⤊ r)
-  underΛ-ok {σ = σ} s {x = x} p | B , q , refl | ival V A | img-val wf ⊢V
-    with wrap wf ⊢V
-  underΛ-ok {σ = σ} s {x = x} p | B , q , refl | ival V A | img-val wf ⊢V
+  underΛ-ok {σ = σ} sok s {x = x} p | B , q , refl | ival V A | img-val wf ⊢V
+    with crossΛ-typing sok wf ⊢V
+  underΛ-ok {σ = σ} sok s {x = x} p | B , q , refl | ival V A | img-val wf ⊢V
     | wfΛ , ⊢wrap = img-val wfΛ ⊢wrap
 
   -- Crossing a `ν`: an address binder and no name, so the images only
   -- move under one address and the types do not shift.
-  underν-ok : ∀ {Sg Ss Bs Γ Γ′ σ R} → Substⁿ Sg (Ss ∥ Bs) Γ Γ′ σ
-    → Substⁿ Sg (Ss ∥ nuBind R ∷ Bs) Γ Γ′ (λ x → underν (σ x))
-  underν-ok {σ = σ} s {x = x} p with σ x | s p
-  underν-ok {σ = σ} s {x = x} p | ivar y | img-var r = img-var r
-  underν-ok {σ = σ} s {x = x} p | ival V A | img-val wf ⊢V =
-    img-val (wf-names nu-names wf) (nuWeaken ⊢V)
-    where
-    nu-names : ∀ {Ss Bs R} → NamesInto (Ss ∥ Bs) (Ss ∥ nuBind R ∷ Bs)
-    nu-names q = _ , ∋n-rebase q
+  underν-ok : ∀ {Sg Ss Bs Γ Γ′ σ R} → StoreOk Sg → Substⁿ Sg (Ss ∥ Bs) Γ Γ′ σ
+    → Substⁿ Sg (⤒ Ss ∥ nuBind R ∷ Bs) Γ Γ′ (λ x → underν (σ x))
+  underν-ok {σ = σ} sok s {x = x} p with σ x | s p
+  underν-ok {σ = σ} sok s {x = x} p | ivar y | img-var r = img-var r
+  underν-ok {σ = σ} sok s {x = x} p | ival V A | img-val wf ⊢V =
+    img-val (wfᵗ-ren (ren-stk (ren-wk sok)) wf) (nuWeaken sok ⊢V)
 
   ----------------------------------------------------------------------
   -- Substitution preserves typing
@@ -266,18 +261,19 @@ module Proof (wrap : ColorWrap) (nuWeaken : NuWeaken) where
     subst-value (Vs s) = Vs (subst-simple s)
     subst-value (V⟨⟩ s nf inert) = V⟨⟩ s nf inert
 
-  subst-⊢ : ∀ {Sg Δ Γ Γ′ σ M A} → Substⁿ Sg Δ Γ Γ′ σ
+  subst-⊢ : ∀ {Sg Δ Γ Γ′ σ M A} → StoreOk Sg → Substⁿ Sg Δ Γ Γ′ σ
     → Sg ∣ Δ ∣ Γ ⊢ M ⦂ A → Sg ∣ Δ ∣ Γ′ ⊢ substᵐ σ M ⦂ A
-  subst-⊢ s (⊢` x) = imgTm-typing (s x)
-  subst-⊢ s ⊢$ = ⊢$
-  subst-⊢ s ⊢# = ⊢#
-  subst-⊢ s (⊢⊕ l m) = ⊢⊕ (subst-⊢ s l) (subst-⊢ s m)
-  subst-⊢ s (⊢ƛ wf body) = ⊢ƛ wf (subst-⊢ (extImg-ok s) body)
-  subst-⊢ s (⊢· l m) = ⊢· (subst-⊢ s l) (subst-⊢ s m)
-  subst-⊢ s (⊢Λ v body) = ⊢Λ (subst-value v) (subst-⊢ (underΛ-ok s) body)
-  subst-⊢ s (⊢•[] l wf) = ⊢•[] (subst-⊢ s l) wf
-  subst-⊢ s (⊢ν wf body) = ⊢ν wf (subst-⊢ (underν-ok s) body)
-  subst-⊢ s (⊢⟨⟩ nf body conv) = ⊢⟨⟩ nf body conv
+  subst-⊢ sok s (⊢` x) = imgTm-typing (s x)
+  subst-⊢ sok s ⊢$ = ⊢$
+  subst-⊢ sok s ⊢# = ⊢#
+  subst-⊢ sok s (⊢⊕ l m) = ⊢⊕ (subst-⊢ sok s l) (subst-⊢ sok s m)
+  subst-⊢ sok s (⊢ƛ wf body) = ⊢ƛ wf (subst-⊢ sok (extImg-ok s) body)
+  subst-⊢ sok s (⊢· l m) = ⊢· (subst-⊢ sok s l) (subst-⊢ sok s m)
+  subst-⊢ sok s (⊢Λ v body) =
+    ⊢Λ (subst-value v) (subst-⊢ sok (underΛ-ok sok s) body)
+  subst-⊢ sok s (⊢•[] l wf) = ⊢•[] (subst-⊢ sok s l) wf
+  subst-⊢ sok s (⊢ν wf body) = ⊢ν wf (subst-⊢ sok (underν-ok sok s) body)
+  subst-⊢ sok s (⊢⟨⟩ nf body conv) = ⊢⟨⟩ nf body conv
 
   ----------------------------------------------------------------------
   -- Beta
@@ -288,7 +284,7 @@ module Proof (wrap : ColorWrap) (nuWeaken : NuWeaken) where
   single-ok wf ⊢V here = img-val wf ⊢V
   single-ok wf ⊢V (there p) = img-var p
 
-  preserve-Beta : ∀ {Sg Δ A N W B}
+  preserve-Beta : ∀ {Sg Δ A N W B} → StoreOk Sg
     → Sg ∣ Δ ∣ [] ⊢ (ƛ A ∙ N) · W ⦂ B
     → Sg ∣ Δ ∣ [] ⊢ N [ W ∶ A ]ᵐ ⦂ B
-  preserve-Beta (⊢· (⊢ƛ wfA ⊢N) ⊢W) = subst-⊢ (single-ok wfA ⊢W) ⊢N
+  preserve-Beta sok (⊢· (⊢ƛ wfA ⊢N) ⊢W) = subst-⊢ sok (single-ok wfA ⊢W) ⊢N

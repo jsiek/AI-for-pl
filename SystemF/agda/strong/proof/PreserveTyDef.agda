@@ -29,28 +29,29 @@ open import strong.ConversionReduction
 open import strong.Terms
 open import strong.TermSubst
 open import strong.proof.Flat using (Flat)
+open import strong.proof.Scoped using (Scoped)
 
 TyBetaOk : Set
 -- The result type is left FREE and read off the given derivation, as
 -- in `preserve-Wrap`: `B [ A ]ᵗ` is a stuck substitution, which the
 -- unifier cannot match against the goal's type.
-TyBetaOk = ∀ {Sg Δ Γ V A B R C}
-  → StoreOk Sg → Flat Δ → NameFn Δ
+TyBetaOk = ∀ {Sg Δ V A B R C}
+  → StoreOk Sg → Flat Δ → NameFn Δ → Scoped Sg Δ
   → Sg ∣ Δ ⊢⌊ A ⌋ R
-  → Sg ∣ Δ ∣ Γ ⊢ (Λ V) • B [ A ] ⦂ C
-  → Sg ∣ Δ ∣ Γ ⊢ ν R ∙ (V ⟨ revTy zero (bse zero) A B ⟩) ⦂ C
+  → Sg ∣ Δ ∣ [] ⊢ (Λ V) • B [ A ] ⦂ C
+  → Sg ∣ Δ ∣ [] ⊢ ν R ∙ (V ⟨ revTy zero (bse zero) A B ⟩) ⦂ C
 
 TyWrapOk : Set
-TyWrapOk = ∀ {Sg Δ Γ V c d A B R C}
-  → StoreOk Sg → Flat Δ → NameFn Δ
+TyWrapOk = ∀ {Sg Δ V c d A B R C}
+  → StoreOk Sg → Flat Δ → NameFn Δ → Scoped Sg Δ
   → allView c ≡ just d
   → Sg ∣ Δ ⊢⌊ A ⌋ R
-  → Sg ∣ Δ ∣ Γ ⊢ ((Λ V) ⟨ c ⟩) • B [ A ] ⦂ C
-  → Sg ∣ Δ ∣ Γ ⊢ ν R ∙ (V ⟨ instReveal zero (bse zero) A d ⟩) ⦂ C
+  → Sg ∣ Δ ∣ [] ⊢ ((Λ V) ⟨ c ⟩) • B [ A ] ⦂ C
+  → Sg ∣ Δ ∣ [] ⊢ ν R ∙ (V ⟨ instReveal zero (bse zero) A d ⟩) ⦂ C
 
 AllocOk : Set
 AllocOk = ∀ {Sg Δ Γ R M A}
-  → StoreOk Sg → Flat Δ
+  → StoreOk Sg → Flat Δ → Scoped Sg Δ
   → Sg ∣ Δ ∣ Γ ⊢ ν R ∙ M ⦂ A
   → (StoreOk (Sg ∷ʳ R))
     × ((Sg ∷ʳ R) ∣ Δ ∣ Γ ⊢ M [ lvl (length Sg) ]ᵃᴹ ⦂ A)

@@ -41,12 +41,13 @@ open import strong.TermSubst
 open import strong.Reduction
 
 open import strong.proof.Flat using (Flat; conv-flat)
+open import strong.proof.Scoped using (Scoped; conv-scoped)
 open import strong.proof.Interior using (conv-interior)
 open import strong.proof.CompositionTyping using (conv-namefn)
 open import strong.proof.PreserveMerge using (preserve-Merge)
 open import strong.proof.PreserveConst using (preserve-Const)
 open import strong.proof.PreserveWrap using (preserve-Wrap)
-open import strong.proof.StoreWeaken using (⊢-snoc; conv-snoc)
+open import strong.proof.StoreWeaken using (⊢-snoc; conv-snoc; ∋a-snoc)
 open import strong.proof.TermSubstitution using (module Proof)
 open Proof using (preserve-Beta)
 open import strong.proof.PreserveTyDef
@@ -69,6 +70,10 @@ conv-mono : ∀ {Sg Sg′ Δᵢ Δ c A B} → Sg ⊑ˢ Sg′
   → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → Sg′ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
 conv-mono ⊑-refl ⊢c = ⊢c
 conv-mono (⊑-snoc le) ⊢c = conv-snoc (conv-mono le ⊢c)
+
+scoped-mono : ∀ {Sg Sg′ Δ} → Sg ⊑ˢ Sg′ → Scoped Sg Δ → Scoped Sg′ Δ
+scoped-mono ⊑-refl sc = sc
+scoped-mono (⊑-snoc le) sc q = ∋a-snoc (scoped-mono le sc q)
 
 step-⊑ : ∀ {Sg Sg′ Δ M M′} → Sg ∣ Δ ⊢ M —→ M′ ⊣ Sg′ → Sg ⊑ˢ Sg′
 step-⊑ (Beta v) = ⊑-refl
@@ -94,54 +99,55 @@ module Main (tyBeta : TyBetaOk) (tyWrap : TyWrapOk) (alloc : AllocOk)
   where
 
   preserve : ∀ {Sg Sg′ Δ M M′ A}
-    → StoreOk Sg → Flat Δ → NameFn Δ
+    → StoreOk Sg → Flat Δ → NameFn Δ → Scoped Sg Δ
     → Sg ∣ Δ ∣ [] ⊢ M ⦂ A
     → Sg ∣ Δ ⊢ M —→ M′ ⊣ Sg′
     → StoreOk Sg′ × (Sg′ ∣ Δ ∣ [] ⊢ M′ ⦂ A)
 
   -- the redexes
-  preserve sok fl nf ⊢M (Beta v) = sok , preserve-Beta sok ⊢M
-  preserve sok fl nf (⊢⊕ m n) PrimBeta = sok , ⊢$
-  preserve sok fl nf ⊢M (TyBeta v q) = sok , tyBeta sok fl nf q ⊢M
-  preserve sok fl nf ⊢M Alloc = alloc sok fl ⊢M
-  preserve sok fl nf ⊢M (Wrap v w eq) = sok , preserve-Wrap nf eq ⊢M
-  preserve sok fl nf ⊢M (TyWrap v eq q) = sok , tyWrap sok fl nf eq q ⊢M
-  preserve sok fl nf ⊢M (Merge v) = sok , preserve-Merge nf ⊢M
-  preserve sok fl nf ⊢M (Const lit eq) = sok , preserve-Const lit eq ⊢M
+  preserve sok fl nf scp ⊢M (Beta v) = sok , preserve-Beta sok ⊢M
+  preserve sok fl nf scp (⊢⊕ m n) PrimBeta = sok , ⊢$
+  preserve sok fl nf scp ⊢M (TyBeta v q) = sok , tyBeta sok fl nf scp q ⊢M
+  preserve sok fl nf scp ⊢M Alloc = alloc sok fl scp ⊢M
+  preserve sok fl nf scp ⊢M (Wrap v w eq) = sok , preserve-Wrap nf eq ⊢M
+  preserve sok fl nf scp ⊢M (TyWrap v eq q) = sok , tyWrap sok fl nf scp eq q ⊢M
+  preserve sok fl nf scp ⊢M (Merge v) = sok , preserve-Merge nf ⊢M
+  preserve sok fl nf scp ⊢M (Const lit eq) = sok , preserve-Const lit eq ⊢M
 
   -- the congruences: the sibling is retyped over the extended store
-  preserve sok fl nf (⊢⊕ l m) (ξ-⊕-l st) with preserve sok fl nf l st
-  preserve sok fl nf (⊢⊕ l m) (ξ-⊕-l st) | sok′ , l′ =
+  preserve sok fl nf scp (⊢⊕ l m) (ξ-⊕-l st) with preserve sok fl nf scp l st
+  preserve sok fl nf scp (⊢⊕ l m) (ξ-⊕-l st) | sok′ , l′ =
     sok′ , ⊢⊕ l′ (⊢-mono (step-⊑ st) m)
-  preserve sok fl nf (⊢⊕ l m) (ξ-⊕-r v st) with preserve sok fl nf m st
-  preserve sok fl nf (⊢⊕ l m) (ξ-⊕-r v st) | sok′ , m′ =
+  preserve sok fl nf scp (⊢⊕ l m) (ξ-⊕-r v st) with preserve sok fl nf scp m st
+  preserve sok fl nf scp (⊢⊕ l m) (ξ-⊕-r v st) | sok′ , m′ =
     sok′ , ⊢⊕ (⊢-mono (step-⊑ st) l) m′
-  preserve sok fl nf (⊢· l m) (ξ-·-l st) with preserve sok fl nf l st
-  preserve sok fl nf (⊢· l m) (ξ-·-l st) | sok′ , l′ =
+  preserve sok fl nf scp (⊢· l m) (ξ-·-l st) with preserve sok fl nf scp l st
+  preserve sok fl nf scp (⊢· l m) (ξ-·-l st) | sok′ , l′ =
     sok′ , ⊢· l′ (⊢-mono (step-⊑ st) m)
-  preserve sok fl nf (⊢· l m) (ξ-·-r v st) with preserve sok fl nf m st
-  preserve sok fl nf (⊢· l m) (ξ-·-r v st) | sok′ , m′ =
+  preserve sok fl nf scp (⊢· l m) (ξ-·-r v st) with preserve sok fl nf scp m st
+  preserve sok fl nf scp (⊢· l m) (ξ-·-r v st) | sok′ , m′ =
     sok′ , ⊢· (⊢-mono (step-⊑ st) l) m′
-  preserve sok fl nf (⊢•[] l wf) (ξ-•[] st) with preserve sok fl nf l st
-  preserve sok fl nf (⊢•[] l wf) (ξ-•[] st) | sok′ , l′ =
+  preserve sok fl nf scp (⊢•[] l wf) (ξ-•[] st) with preserve sok fl nf scp l st
+  preserve sok fl nf scp (⊢•[] l wf) (ξ-•[] st) | sok′ , l′ =
     sok′ , ⊢•[] l′ wf
 
   -- the boundary: the conversion's typing names the interior, and the
   -- given equation pins it to the one the step walked into
-  preserve sok fl nf (⊢⟨⟩ nfc ⊢M conv) (ξ-⟨⟩ ieq st)
+  preserve sok fl nf scp (⊢⟨⟩ nfc ⊢M conv) (ξ-⟨⟩ ieq st)
     with trans (sym (conv-interior conv)) ieq
-  preserve sok fl nf (⊢⟨⟩ nfc ⊢M conv) (ξ-⟨⟩ ieq st) | refl
-    with preserve sok (conv-flat conv fl) (conv-namefn conv nf) ⊢M st
-  preserve sok fl nf (⊢⟨⟩ nfc ⊢M conv) (ξ-⟨⟩ ieq st) | refl | sok′ , ⊢M′ =
+  preserve sok fl nf scp (⊢⟨⟩ nfc ⊢M conv) (ξ-⟨⟩ ieq st) | refl
+    with preserve sok (conv-flat conv fl) (conv-namefn conv nf)
+                      (conv-scoped conv scp) ⊢M st
+  preserve sok fl nf scp (⊢⟨⟩ nfc ⊢M conv) (ξ-⟨⟩ ieq st) | refl | sok′ , ⊢M′ =
     sok′ , ⊢⟨⟩ nfc ⊢M′ (conv-mono (step-⊑ st) conv)
 
   -- and along a whole reduction sequence
   preserve-many : ∀ {Sg Sg′ Δ M M′ A}
-    → StoreOk Sg → Flat Δ → NameFn Δ
+    → StoreOk Sg → Flat Δ → NameFn Δ → Scoped Sg Δ
     → Sg ∣ Δ ∣ [] ⊢ M ⦂ A
     → Sg ∣ Δ ⊢ M —↠ M′ ⊣ Sg′
     → StoreOk Sg′ × (Sg′ ∣ Δ ∣ [] ⊢ M′ ⦂ A)
-  preserve-many sok fl nf ⊢M done = sok , ⊢M
-  preserve-many sok fl nf ⊢M (st then rest) with preserve sok fl nf ⊢M st
-  preserve-many sok fl nf ⊢M (st then rest) | sok′ , ⊢M′ =
-    preserve-many sok′ fl nf ⊢M′ rest
+  preserve-many sok fl nf scp ⊢M done = sok , ⊢M
+  preserve-many sok fl nf scp ⊢M (st then rest) with preserve sok fl nf scp ⊢M st
+  preserve-many sok fl nf scp ⊢M (st then rest) | sok′ , ⊢M′ =
+    preserve-many sok′ fl nf (scoped-mono (step-⊑ st) scp) ⊢M′ rest

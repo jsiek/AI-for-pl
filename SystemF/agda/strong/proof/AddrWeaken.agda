@@ -30,6 +30,7 @@ open import strong.Conversion
 open import strong.proof.Interior using (pop-base)
 open import strong.Terms
 open import strong.TermSubst
+open import strong.proof.InertRenaming using (value-renᵉ)
 
 private
   variable
@@ -520,8 +521,7 @@ ren-r (ren-ext {ρ = ρ} {e = nuBind T} inj r) (r-skip-nu {R = R} p)
   with ⊢-ren (extᵇ-inj inj) (ren-ext {e = addr} inj r) ⊢V
      | renStk-ext ρ Ss
 ⊢-ren {ρ = ρ} {Ss = Ss} inj r (⊢Λ v ⊢V) | ⊢V′ | eq
-  rewrite eq = ⊢Λ (renᵉ-value v) ⊢V′
-  where postulate renᵉ-value : ∀ {ρ V} → Value V → Value (renBseᴹ ρ V)
+  rewrite eq = ⊢Λ (value-renᵉ (ren-inj (ren-ext {e = addr} inj r)) v) ⊢V′
 ⊢-ren {ρ = ρ} {Ss = Ss} inj r (⊢ν {R = R} wf ⊢M)
   with ⊢-ren (extᵇ-inj inj) (ren-ext {e = nuBind R} inj r) ⊢M
      | renStk-ext ρ Ss

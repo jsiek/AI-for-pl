@@ -4181,3 +4181,35 @@ STORED representation is base-closed (`StoreOk` gives it well-formedness
 over the empty base, and `∀ᴿ` binds on the stack, so no `bse` rule can
 have applied).  `StoreOk` is therefore threaded through `subst-⊢` and
 `preserve-Beta` — which Preservation assumes anyway.
+
+------------------------------------------------------------------------
+2026-09-15 — WHY `Alloc` CAN STORE ITS REPRESENTATION: NO BINDS AT
+RUNTIME
+------------------------------------------------------------------------
+
+`Alloc` puts the `ν`'s representation into the global store, and
+`StoreOk` demands a stored representation be well formed over
+`[] ∥ []`.  `⊢ν`'s premise is much weaker — `Σ ∣ (Ss ∥ Bs) ⊢ᴿ R` — so
+at first sight a `ν` under an enclosing binder could hold an OPEN
+representation and be undischargeable, which would force cambridge26's
+floating-ν after all.
+
+It cannot, and the reason is structural: NO TERM CONTEXT EVER CONTAINS
+A `bind`.  Only conversion typing pushes one (`conv-all`, and the
+type-level `wf-∀`/`read-∀`/`wfᴿ-∀`), and `conv-all` pushes it around
+the NESTED conversion `s`, not around the element — the boundary's
+interior context gains no bind.  The term rules push only `asgn` (⊢Λ),
+`addr` (⊢Λ) and `nuBind` (⊢ν).  And the base is empty at every redex:
+there is no `ξ-Λ` (a `Λ` body is already a value) and no `ξ-ν` (a `ν`
+discharges on the spot), so the only entries a reduction context ever
+accumulates are the `asgn`s a boundary's crossings push.
+
+So the invariant to carry into Preservation is
+
+    FLAT Δ  =  `bas Δ ≡ []`  and  the stack holds only `asgn`s
+
+which is true of `[] ∥ []`, is preserved by the interior walk (a
+crossing pushes or pops one `asgn`; `↦` and `all` do not change the
+context), and gives exactly what `Alloc` needs: over a flat context the
+only `⊢ᴿ` rules that can fire for an address are `a-lvl`, so `R`
+mentions levels alone and `Σ ∣ ([] ∥ []) ⊢ᴿ R` follows.

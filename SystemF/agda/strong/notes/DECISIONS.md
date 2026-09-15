@@ -4353,3 +4353,63 @@ Note `all⁺` DOES shift addresses (`⇑ᵃ`), so `substAnn` is failing to
 undo exactly that shift.  FIX: map the address by
 `λ { (bnd i) → bnd (nameSub X i) ; α → α }`.  Reachable only with a
 `bnd`-addressed crossing, which the reduction rules never build today.
+
+------------------------------------------------------------------------
+2026-09-15 — `TyWrap`: WHAT IS FREE, AND FOUR THINGS THAT ARE NOT
+------------------------------------------------------------------------
+
+`proof/PreserveTyWrap` closes `tyWrapOk′` = `TyWrapOk` + three
+premises.  Everything structural went through; what is left is four
+gaps in the conversion machinery, three of them with machine-checked
+witnesses.  All four are Jeremy's to decide.
+
+FREE, and more cheaply than expected.  Every crossing's address is a
+non-`bnd` FROM TYPING ALONE — no flatness needed.  `∋r` can never
+reach a `bnd` (`r-skip-bind` is the only rule naming one, and it has no
+base case), which covers `seal`/`unseal`; and every `bnd` in scope
+already carries a name, which together with `NotAssigned` excludes it
+for `hide`/`show`.  Also `conv-fixᵉ`: over an empty base no `bse` is in
+scope, so the base weakening into the `ν`'s context leaves `d` alone.
+
+(1) `NoBndReps` IS REFUTABLE — `noBndReps-refuted`.  SubstAnnTyping's
+third side condition can never be met, so `substAnn-typing` as it
+stands could never be applied: `⌊ ∀X.X ⌋` is `` `∀ᴿ (`ᵃ bnd 0) ``, a
+perfectly legal stored representation, and `nbr-∀` forbids a `bnd`
+even UNDER the `∀ᴿ` that binds it.  The condition wanted is LOCAL
+closure: every `bnd` bound by the representation's own `∀ᴿ`s.
+`proof/PreserveTyWrap` carries the repair (`LCᴿ`, `wfᴿ-LC`,
+`storeOk-LCReps`, `substAnn-lc`), and `proof/SubstAnnTyping` should
+adopt it.
+
+(2) `Closedᵗ A` is spent TWICE.  Besides `substAnn` (gap (1) of the
+previous entry), the builder's read-back premise is demanded at the
+CONVERSION'S INTERIOR while `⊢⌊ A ⌋ R` is given at the exterior — two
+contexts with different name assignments.  `TyBeta` never sees this,
+its two contexts being equal.  Closedness makes them agree
+(`quote-read-anywhere`).  The exact mismatch, proved as a `≢`, is
+`closeAt-shift 0 1 S A` at `S = ` 0`, `A = ` 0`: `` ` 0 `` against
+`` ` 1 ``.
+
+(3) `X < Y` AT EVERY CROSSING IS NOT FREE.  I had expected it from
+`all⁺`, which shifts the names of the `hide`/`show` it lifts — but
+`all⁺ (all s) = just (elts s)` passes a NESTED conversion's elements
+through UNSHIFTED, keeping their own names, and `conv-all` only asks
+that s's two contexts begin with a `bind`, not that s's crossings stay
+above it.  The witness is a fully typed `TyWrap` redex (§9.2):
+
+    Σ = ℕᴿ ∷ ∅,  Δ = ∅ ∥ ∅  (flat, scoped, name-functional)
+    s = hide 0 (lvl 0) ∷ᶜ (id ℕ ↦ id ℕ) ∷ᶜ show 0 (lvl 0) ∷ᶜ id (ℕ→ℕ)
+    c = all s ∷ᶜ id (∀ (ℕ→ℕ))
+
+with `⊢c`, `NF c`, `Value ((Λ V) ⟨ c ⟩)`, the redex itself, and
+`allView c ≡ just s` by `refl`, against `¬ SlotFree zero s`.  The
+intervening `↦` is what stops the pair fusing, so normalization does
+not remove it.
+
+(4) `instReveal`'s `nothing` BRANCH IS ILL-TYPED at a `TyWrap` redex.
+`show X α ∷ᶜ d` crosses exactly one assignment, handing the tail a
+stack `⤒ Ssᵢ`, whereas `allView-typing` types `d` at `bind ∷ ⤒ Ssᵢ` —
+the `∀`'s binder slot must be REMOVED, and only `substAnn` does that.
+The branch is reachable: a `seal` inside an `all s` passes through
+`all⁺`, and a seal-headed conversion is exactly where `srcᶜ` is
+undefined.

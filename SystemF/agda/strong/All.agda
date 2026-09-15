@@ -24,6 +24,7 @@ open import strong.proof.Interior
 open import strong.proof.Canonical
 open import strong.proof.Progress
 open import strong.proof.ConvCanonicity
+open import strong.proof.CompositionTyping
 
 -- the main theorems
 open import strong.Progress

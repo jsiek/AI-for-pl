@@ -78,16 +78,18 @@ shiftAt-var-≢ X′ (`∀ A) ()
 ------------------------------------------------------------------------
 
 pop-unique : Γ ▷ X := α ⇒ Γ′ → Γ ▷ Y := β ⇒ Γ″
-  → (X ≡ Y) × (α ≡ β)
-pop-unique pop-here pop-here = refl , refl
+  → (X ≡ Y) × (α ≡ β) × (Γ′ ≡ Γ″)
+pop-unique pop-here pop-here = refl , refl , refl
 pop-unique (pop-bind-b p) (pop-bind-b q) with pop-unique p q
-pop-unique (pop-bind-b p) (pop-bind-b q) | refl , refl = refl , refl
+pop-unique (pop-bind-b p) (pop-bind-b q) | refl , refl , refl =
+  refl , refl , refl
 pop-unique (pop-bind-l p) (pop-bind-l q) with pop-unique p q
-pop-unique (pop-bind-l p) (pop-bind-l q) | refl , refl = refl , refl
+pop-unique (pop-bind-l p) (pop-bind-l q) | refl , refl , refl =
+  refl , refl , refl
 pop-unique (pop-bind-b p) (pop-bind-l q) with pop-unique p q
-pop-unique (pop-bind-b p) (pop-bind-l q) | refl , ()
+pop-unique (pop-bind-b p) (pop-bind-l q) | refl , () , _
 pop-unique (pop-bind-l p) (pop-bind-b q) with pop-unique p q
-pop-unique (pop-bind-l p) (pop-bind-b q) | refl , ()
+pop-unique (pop-bind-l p) (pop-bind-b q) | refl , () , _
 
 ------------------------------------------------------------------------
 -- After an addition: the running type is a variable, and stays one
@@ -132,26 +134,26 @@ after-add (aa-seal {X = X₁} {α = α₁} p refl)
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
 after-add (aa-seal {X = X₁} {α = α₁} p refl)
   (conv-cons (conv-unseal {X = Y₁} rep rd q) tl) refl
-  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl =
+  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
   ⊥-elim (fuse-su X₁ Y₁ α₁ fq)
 after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd q) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
 after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd q) tl) refl
-  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl = ⊥-elim (ne refl)
+  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl = ⊥-elim (ne refl)
 
 -- a show REMOVES: blocked by `fuse` after a hide, and by the shift
 -- arithmetic after a seal
 after-add (aa-seal p refl) (conv-cons (conv-show {A = A} wf q) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
 after-add (aa-seal p refl) (conv-cons (conv-show {A = A} wf q) tl) eq
-  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl =
+  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
   ⊥-elim (shiftAt-var-≢ _ A eq)
 after-add (aa-hide {X = X₁} {α = α₁} p ne)
   (conv-cons (conv-show {X = Y₁} wf q) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
 after-add (aa-hide {X = X₁} {α = α₁} p ne)
   (conv-cons (conv-show {X = Y₁} wf q) tl) eq
-  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl =
+  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
   ⊥-elim (fuse-hs X₁ Y₁ α₁ fq)
 
 -- an ADDITION keeps us in the same situation

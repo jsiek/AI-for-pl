@@ -3916,3 +3916,53 @@ provable for arbitrary typed normal conversions".  That was wrong, and
 the reason is the stack discipline — the shape I had in mind,
 `seal ∷ hide ∷ unseal ∷ id (C ⇒ D)`, is exactly what `after-add`'s
 cross-kind case refutes.
+
+## 2026-09-15: Preservation — composition's easy half, and a design question
+
+`proof/CompositionTyping.agda` starts the preservation campaign:
+
+  * `⧺-typing : ⊢ c ∶ A ⇝ B ⊣ Γ₂ → ⊢ d ∶ B ⇝ C ⊣ Γ₃ → ⊢ (c ⧺ d) ∶ A ⇝ C ⊣ Γ₃`
+    — two lines.  The `id` case IS the hypothesis, because v8's
+    terminator is strictly reflexive: equal endpoints, equal context.
+    This single case was the whole difficulty of the v7 campaign
+    (`conv-resource`, `conv-retarget`, `read-transport`, SameTy
+    transitivity — all of it existed to bridge a terminator that no
+    longer bridges).
+  * `∋r-unique` — an address's representation is unique, driven by the
+    address's own structure, no well-formedness needed.
+
+THE REMAINING GAP, and it is a design question.  `preserve-step`'s
+cancelling case reconnects exactly: `pop-unique` forces the remover to
+the address AND the context the adder created, and `∋r-unique` forces
+the representations to agree.  What is left is that the two READ-BACKS
+give the same type:
+
+    Sg ∣ Γ ⊢ R ⇓ A → Sg ∣ Γ ⊢ R ⇓ B → A ≡ B
+
+and that is FALSE for an arbitrary context —
+`notes/probes/V8ReadAmbiguityProbe.agda` exhibits
+`Γ = X:=α, Y:=α` reading one address as two names.  The notes' `ok`
+already forbids it (`Γ ∌ _:=α` on `Γ,X:=α`); the question is where v8
+enforces it, and the options differ in what they cost:
+
+  (A) A context well-formedness judgment `Ok Γ`, threaded through
+      preservation as a premise (v7 did this, and notes-v8's
+      Preservation already says `Σ;Γ ok`).  COST: `Ok` does not
+      propagate along a conversion — an `unseal`/`show` introduces an
+      assignment going inward, and nothing in its premises says that
+      address is unassigned — so every lemma that walks a conversion
+      would have to carry `Ok` at every intermediate context.
+  (B) Put the freshness where the assignment is CREATED: add the
+      notes' own `Γ ∌ _:=α` side condition to `conv-unseal` and
+      `conv-show`, the two elements that introduce an assignment on the
+      interior side.  Then `Ok` propagates along a conversion by
+      construction and (A)'s bookkeeping disappears.  COST: a premise
+      on two rules.
+  (C) Make the read-back a FUNCTION `readBack : Ctxᵗ → RepTy → Maybe Ty`
+      and have the rules use it.  Uniqueness becomes definitional.
+      COST: the judgment in the notes becomes a function in the Agda,
+      and the ambiguous contexts stay typable (harmless, but the
+      calculus no longer rejects them).
+
+Asked Jeremy (2026-09-15); (B) looks best — it is the notes' own
+condition, stated at the point of creation.

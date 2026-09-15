@@ -28,6 +28,8 @@ module strong.Ctx where
 -- source name".
 
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Empty using (⊥)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Data.List using (List; []; _∷_; _∷ʳ_; take)
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.RepresentationTypes
@@ -135,6 +137,17 @@ data _▷_:=_⇒_ : Ctxᵗ → ℕ → Addr → Ctxᵗ → Set where
 -- one from underneath.  Dropping those rules makes the judgment
 -- DETERMINISTIC in both directions, which is what makes the interior
 -- walk a function (see proof.Interior).
+
+-- An address with no name assigned to it.  This is the notes' `Γ ∌ _:=α`
+-- side condition on `Γ,X:=α`, and the conversion elements that
+-- INTRODUCE an assignment (`unseal`, `show`, going inward) carry it, so
+-- that name-uniqueness propagates along a conversion by construction.
+NotAssigned : Ctxᵗ → Addr → Set
+NotAssigned Γ α = ∀ {X} → Γ ∋n X := α → ⊥
+
+-- A context assigns at most one name per address.
+NameFn : Ctxᵗ → Set
+NameFn Γ = ∀ {X Y α} → Γ ∋n X := α → Γ ∋n Y := α → X ≡ Y
 
 ------------------------------------------------------------------------
 -- Well-formed types: every variable names an address (either entry

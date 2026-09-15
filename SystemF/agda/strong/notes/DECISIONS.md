@@ -3964,5 +3964,35 @@ enforces it, and the options differ in what they cost:
       and the ambiguous contexts stay typable (harmless, but the
       calculus no longer rejects them).
 
-Asked Jeremy (2026-09-15); (B) looks best — it is the notes' own
-condition, stated at the point of creation.
+Jeremy chose (B).  `conv-unseal` and `conv-show` now carry
+`NotAssigned Γₑ α`, and the payoff is immediate: `namefn-push` carries
+name-uniqueness inward across exactly those elements, `namefn-pop`
+carries it across the removers, `namefn-bind` across a `∀` element's
+binder, and so `conv-namefn` propagates it along a whole conversion
+from its exterior.  `read-unique` follows, and with it the two
+cancelling pairs:
+
+  * `cancel-seal` — a `seal α` followed by an `unseal α` reconnects
+    EXACTLY: `pop-unique` forces the unseal to the address and the
+    CONTEXT the seal created, `∋r-unique` forces the representations to
+    agree, and `read-unique` forces the read-backs to agree.  This is
+    the case that was in doubt through three design iterations
+    (anchorCount, FlipAt, spine-only); under the stack discipline it is
+    four lines.
+  * `cancel-hide` — a `hide α` followed by a `show α`, with
+    `shiftAtᵗ-inj` undoing the crossing's shift.
+
+Also proven here: `⧺-typing`, `∋r-unique`, `∋ˡ-unique`,
+`shiftAtᵗ-inj` (via a general `ren-inj` for injective type renamings),
+and the four element inversions (`inv-seal`/`inv-unseal`/`inv-hide`/
+`inv-show`), which are stated with the ELEMENT in constructor form
+because a direct pattern on the derivation leaves the unifier stuck on
+two renames — the crossing rules state their types as renames.
+
+STILL OPEN in the preservation campaign: assembling the cancelling
+lemmas and `⧺-typing` into `preserve-step` (the congruence cases are
+routine; the `↦`/`all` fusion cases are `⧺-typing` on the components),
+then `⨟-typing` along the `—↠ᶜ` trace, then the five term cases —
+`Merge` (from `⨟-typing`), `Wrap` (`arr` typing), `TyBeta`/`TyWrap`
+(builder and instantiation typing), `Beta` (substitution with the color
+wrap), `Alloc` (store extension), and the ξ-rules.

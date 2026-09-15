@@ -271,8 +271,13 @@ mutual
     conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Γᵢ ⊢ R ⇓ A
       → Γₑ ▷ X := α ⇒ Γᵢ
       → Σ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X ⊣ Γₑ
+    -- `unseal` and `show` INTRODUCE the assignment going inward, so
+    -- they carry the notes' freshness condition on the side that does
+    -- not have it yet.  This is what makes name-uniqueness — and hence
+    -- the single-valuedness of the read-back — propagate along a
+    -- conversion (see proof.CompositionTyping).
     conv-unseal : Σ ∣ Γᵢ ∋r α := R → Σ ∣ Γₑ ⊢ R ⇓ A
-      → Γᵢ ▷ X := α ⇒ Γₑ
+      → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
       → Σ ∣ Γᵢ ⊢̂ unseal X α ∶ ` X ⇝ A ⊣ Γₑ
     -- An identity crossing is "the same type" in named notation; in de
     -- Bruijn form the crossed assignment inserts a name entry at depth
@@ -281,7 +286,7 @@ mutual
       → Γₑ ▷ X := α ⇒ Γᵢ
       → Σ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ renameᵗ (shiftAtᵗ X) A ⊣ Γₑ
     conv-show : Γₑ ⊢ᵗ A
-      → Γᵢ ▷ X := α ⇒ Γₑ
+      → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
       → Σ ∣ Γᵢ ⊢̂ show X α ∶ renameᵗ (shiftAtᵗ X) A ⇝ A ⊣ Γₑ
     conv-fun : Σ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ
       → Σ ∣ Γᵢ ⊢̂ (s ↦ t) ∶ A ⇒ B ⇝ C ⇒ D ⊣ Γₑ

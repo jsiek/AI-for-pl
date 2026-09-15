@@ -123,22 +123,26 @@ data _∣_∣_⊢_⦂_ (Σ : Store) : Ctxᵗ → Ctx → Term → Ty → Set whe
   ⊢· : ∀ {Δ Γ A B L M}
     → Σ ∣ Δ ∣ Γ ⊢ L ⦂ A ⇒ B → Σ ∣ Δ ∣ Γ ⊢ M ⦂ A
     → Σ ∣ Δ ∣ Γ ⊢ L · M ⦂ B
-  -- `Λ` binds an address (its binder) and pushes the crossing
-  -- assignment naming it; the body is a VALUE.
-  ⊢Λ : ∀ {Δ Γ A V}
+  -- `Λ` binds an address (into the BASE) and pushes the crossing
+  -- assignment naming it (onto the STACK); the body is a VALUE.  The
+  -- address is `bse zero`, the base's newest entry — an index the
+  -- crossings above it cannot disturb, which is what lets the color
+  -- wrap write it.
+  ⊢Λ : ∀ {Ss Bs Γ A V}
     → Value V
-    → Σ ∣ (asgn (bnd zero) ∷ addr ∷ Δ) ∣ ⤊ Γ ⊢ V ⦂ A
-    → Σ ∣ Δ ∣ Γ ⊢ Λ V ⦂ `∀ A
+    → Σ ∣ (asgn (bse zero) ∷ Ss ∥ addr ∷ Bs) ∣ ⤊ Γ ⊢ V ⦂ A
+    → Σ ∣ (Ss ∥ Bs) ∣ Γ ⊢ Λ V ⦂ `∀ A
   ⊢•[] : ∀ {Δ Γ A B L}
     → Σ ∣ Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
     → Σ ∣ Δ ∣ Γ ⊢ L • B [ A ] ⦂ B [ A ]ᵗ
   -- An allocation: the ν-bound entry adds no name, so neither the term
   -- context nor the result type shifts; addresses never appear in
   -- types, so A cannot leak the binder.
-  ⊢ν : ∀ {Δ Γ R M A}
-    → Σ ∣ Δ ⊢ᴿ R
-    → Σ ∣ (nuBind R ∷ Δ) ∣ Γ ⊢ M ⦂ A
-    → Σ ∣ Δ ∣ Γ ⊢ ν R ∙ M ⦂ A
+  -- `ν` binds an address and no name: the STACK is untouched.
+  ⊢ν : ∀ {Ss Bs Γ R M A}
+    → Σ ∣ (Ss ∥ Bs) ⊢ᴿ R
+    → Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∣ Γ ⊢ M ⦂ A
+    → Σ ∣ (Ss ∥ Bs) ∣ Γ ⊢ ν R ∙ M ⦂ A
   -- The boundary: the conversion's typing determines the interior
   -- context; the body is term-closed with respect to the exterior.
   ⊢⟨⟩ : ∀ {Δ Δᵢ Γ M c A B}

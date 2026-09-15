@@ -37,7 +37,7 @@ module §6 where
   P : Term
   P = (idᴾ • (` 0 ⇒ ` 0) [ `ℕ ]) · ($ 7)
 
-  ⊢P : [] ∣ [] ∣ [] ⊢ P ⦂ `ℕ
+  ⊢P : [] ∣ ([] ∥ []) ∣ [] ⊢ P ⦂ `ℕ
   ⊢P = ⊢· (⊢•[] (⊢Λ (Vs Sƛ) (⊢ƛ (wf-var n-here-asgn) (⊢` here))) wf-ℕ) ⊢$
 
   -- TyBeta's conversion, as the notes write it:
@@ -77,7 +77,7 @@ module §6 where
   merge-cancels : c₁ ⨟ c₂ ≡ id `ℕ
   merge-cancels = refl
 
-  trace : [] ∣ [] ⊢ P —↠ $ 7 ⊣ (`ℕᴿ ∷ [])
+  trace : [] ∣ ([] ∥ []) ⊢ P —↠ $ 7 ⊣ (`ℕᴿ ∷ [])
   trace =
     -- TyBeta: the Λ's bound address becomes the ν's
     ξ-·-l (TyBeta (Vs Sƛ) quote-ℕ) then
@@ -113,7 +113,7 @@ module K where
   Bₓ : Ty                     -- X → (∀Z. Z → X), under Λα,X
   Bₓ = ` 0 ⇒ `∀ (` 0 ⇒ ` 1)
 
-  ⊢g : [] ∣ [] ∣ [] ⊢ g ⦂ `∀ Bₓ
+  ⊢g : [] ∣ ([] ∥ []) ∣ [] ⊢ g ⦂ `∀ Bₓ
   ⊢g = ⊢Λ (Vs Sƛ)
         (⊢ƛ (wf-var n-here-asgn)
           (⊢Λ (Vs Sƛ)
@@ -172,14 +172,14 @@ module K where
 
   wrap-shape :
     wrapped ≡ (($ 7) ⟨ seal 0 (lvl 0) ∷ᶜ id (` 0) ⟩)
-                ⟨ hide 0 (bnd 0) ∷ᶜ id (` 1) ⟩
+                ⟨ hide 0 (bse 0) ∷ᶜ id (` 1) ⟩
   wrap-shape = refl
 
   -- the value after the first application: a Λ under a boundary
   after-beta : Term
   after-beta = (Λ (ƛ ` 0 ∙ wrapped)) ⟨ cov ⟩
 
-  step₁ : [] ∣ [] ⊢ (g • Bₓ [ `ℕ ]) · ($ 7)
+  step₁ : [] ∣ ([] ∥ []) ⊢ (g • Bₓ [ `ℕ ]) · ($ 7)
             —↠ after-beta ⊣ (`ℕᴿ ∷ [])
   step₁ =
     ξ-·-l (TyBeta (Vs Sƛ) quote-ℕ) then
@@ -269,7 +269,7 @@ module §14 where
   P : Term
   P = (F • B [ `ℕ ]) · idᶻ
 
-  ⊢P : [] ∣ [] ∣ [] ⊢ P ⦂ ∀ZZ→Z
+  ⊢P : [] ∣ ([] ∥ []) ∣ [] ⊢ P ⦂ ∀ZZ→Z
   ⊢P = ⊢· (⊢•[] (⊢Λ (Vs Sƛ)
                    (⊢ƛ (wf-∀ (wf-⇒ (wf-var n-here-bind) (wf-var n-here-bind)))
                      (⊢Λ (Vs Sƛ)
@@ -312,7 +312,7 @@ module §14 where
   after-beta =
     (Λ (ƛ ` 0 ∙ (((crossΛ W ∀ZZ→Z) • (` 0 ⇒ ` 0) [ ` 0 ]) · ` 0))) ⟨ c₂ ⟩
 
-  trace₁ : [] ∣ [] ⊢ P —↠ after-beta ⊣ (`ℕᴿ ∷ [])
+  trace₁ : [] ∣ ([] ∥ []) ⊢ P —↠ after-beta ⊣ (`ℕᴿ ∷ [])
   trace₁ =
     ξ-·-l (TyBeta (Vs Sƛ) quote-ℕ) then
     ξ-·-l Alloc then
@@ -325,7 +325,7 @@ module §14 where
   -- X-conceal from `arr`, the inner Y-conceal from the color wrap
   wrap-shape :
     crossΛ W ∀ZZ→Z ≡ (idᶻ ⟨ hide 0 (lvl 0) ∷ᶜ id ∀ZZ→Z ⟩)
-                       ⟨ hide 0 (bnd 0) ∷ᶜ id ∀ZZ→Z ⟩
+                       ⟨ hide 0 (bse 0) ∷ᶜ id ∀ZZ→Z ⟩
   wrap-shape = refl
 
   -- The result is a VALUE: the value restriction parks the inner
@@ -355,7 +355,7 @@ module §14 where
   inst-agrees = refl
 
   step-tywrap :
-    [] ∣ [] ⊢ after-beta • (` 0 ⇒ ` 0) [ `𝔹 ]
+    [] ∣ ([] ∥ []) ⊢ after-beta • (` 0 ⇒ ` 0) [ `𝔹 ]
       —→ ν `𝔹ᴿ ∙ ((ƛ ` 0 ∙ (((crossΛ W ∀ZZ→Z) • (` 0 ⇒ ` 0) [ ` 0 ]) · ` 0))
                     ⟨ instReveal zero (bnd zero) `𝔹 d ⟩)
       ⊣ []

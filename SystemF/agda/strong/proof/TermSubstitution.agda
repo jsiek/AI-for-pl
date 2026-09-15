@@ -35,6 +35,7 @@ open import Relation.Binary.PropositionalEquality using
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
 open import strong.Conversion
 open import strong.ConversionReduction
 open import strong.Terms
@@ -46,15 +47,34 @@ open import strong.proof.ArrTyping using
 -- The parameter: weakening by one ADDRESS entry
 ------------------------------------------------------------------------
 
-data AddrEnt : Ent → Set where
-  is-addr : AddrEnt addr
-  is-nu   : ∀ {R} → AddrEnt (nuBind R)
+-- Weakening by one BASE entry.  With the context split, this extends
+-- the base and leaves the stack's STRUCTURE alone — so every name
+-- lookup and every pop is untouched, which is exactly what the old
+-- flat contexts could not deliver.  What still moves is the addresses
+-- the stack's `asgn` entries STORE, and the bound addresses in the
+-- term, both by the cutoff renaming at the stack's binder count.
 
-AddrWeaken : Set
-AddrWeaken = ∀ {Sg Δ Γ M A e} → AddrEnt e
-  → Sg ∣ Δ ∣ Γ ⊢ M ⦂ A → Sg ∣ (e ∷ Δ) ∣ Γ ⊢ renAddrᴹ suc M ⦂ A
+shiftAtᵇ : ℕ → Renameᵇ
+shiftAtᵇ zero = suc
+shiftAtᵇ (suc k) = extᵇ (shiftAtᵇ k)
 
-module Proof (weaken : AddrWeaken) where
+-- THE COLOR WRAP's typing, and the `ν` crossing's weakening.  Both are
+-- blocked on the same question — see notes/DECISIONS.md (2026-09-15):
+-- with the context split, a `Λ`'s address is no longer syntactically
+-- `bnd zero`, because the stack's own binders sit above the base.
+ColorWrap : Set
+ColorWrap = ∀ {Sg Ss Bs Γ′ V A}
+  → (Ss ∥ Bs) ⊢ᵗ A → Sg ∣ (Ss ∥ Bs) ∣ [] ⊢ V ⦂ A
+  → ((asgn (bnd (binds Ss)) ∷ Ss ∥ addr ∷ Bs) ⊢ᵗ ⇑ᵗ A)
+    × (Sg ∣ (asgn (bnd (binds Ss)) ∷ Ss ∥ addr ∷ Bs) ∣ Γ′
+         ⊢ crossΛ V A ⦂ ⇑ᵗ A)
+
+NuWeaken : Set
+NuWeaken = ∀ {Sg Ss Bs Γ M A R}
+  → Sg ∣ (Ss ∥ Bs) ∣ Γ ⊢ M ⦂ A
+  → Sg ∣ (Ss ∥ nuBind R ∷ Bs) ∣ Γ ⊢ renAddrᴹ (shiftAtᵇ (binds Ss)) M ⦂ A
+
+module Proof (wrap : ColorWrap) (nuWeaken : NuWeaken) where
 
   ----------------------------------------------------------------------
   -- Term-variable renaming
@@ -180,7 +200,7 @@ module Proof (weaken : AddrWeaken) where
   NamesInto : Ctxᵗ → Ctxᵗ → Set
   NamesInto Δ Δ′ = ∀ {X α} → Δ ∋n X := α → Σ[ β ∈ Addr ] (Δ′ ∋n X := β)
 
-  bind-names : ∀ {Δ Δ′} → NamesInto Δ Δ′ → NamesInto (bind ∷ Δ) (bind ∷ Δ′)
+  bind-names : ∀ {Δ Δ′} → NamesInto Δ Δ′ → NamesInto (bind ∷ stk Δ ∥ bas Δ) (bind ∷ stk Δ′ ∥ bas Δ′)
   bind-names f n-here-bind = _ , n-here-bind
   bind-names f (n-skip-bind-b p) with f p
   bind-names f (n-skip-bind-b p) | lvl ℓ , q = _ , n-skip-bind-l q
@@ -197,30 +217,14 @@ module Proof (weaken : AddrWeaken) where
   wf-names f (wf-⇒ a b) = wf-⇒ (wf-names f a) (wf-names f b)
   wf-names f (wf-∀ a) = wf-∀ (wf-names (bind-names f) a)
 
-  addr-names : ∀ {Δ} → NamesInto Δ (addr ∷ Δ)
-  addr-names {α = lvl ℓ} p = _ , n-skip-addr-l p
-  addr-names {α = bnd i} p = _ , n-skip-addr-b p
+  -- extending the BASE is invisible to names
+  addr-names : ∀ {Ss Bs e} → NamesInto (Ss ∥ Bs) (Ss ∥ e ∷ Bs)
+  addr-names p = _ , ∋n-rebase p
 
+  -- the `Λ` pushes to BOTH halves: its address onto the base, the
+  -- crossing assignment naming it onto the stack.
   Λctx : Ctxᵗ → Ctxᵗ
-  Λctx Δ = asgn (bnd zero) ∷ addr ∷ Δ
-
-  -- the Λ's own address has no name assigned below it
-  Λ-fresh : ∀ {Δ} → NotAssigned (addr ∷ Δ) (bnd zero)
-  Λ-fresh ()
-
-  Λ-pop : ∀ {Δ} → Λctx Δ ▷ zero := bnd zero ⇒ (addr ∷ Δ)
-  Λ-pop = pop-here
-
-  crossΛ-typing : ∀ {Sg Δ Γ′ V A} → Δ ⊢ᵗ A → Sg ∣ Δ ∣ [] ⊢ V ⦂ A
-    → Sg ∣ Λctx Δ ∣ Γ′ ⊢ crossΛ V A ⦂ ⇑ᵗ A
-  crossΛ-typing {A = A} wfA ⊢V =
-    ⊢⟨⟩ (nf-cons nf-hide nf-id irr-id)
-        (weaken is-addr ⊢V)
-        (conv-cons (conv-hide wfA′ Λ-pop Λ-fresh)
-                   (conv-id (wf-shift Λ-pop wfA′)))
-    where
-    wfA′ : (addr ∷ _) ⊢ᵗ A
-    wfA′ = wf-names addr-names wfA
+  Λctx (Ss ∥ Bs) = asgn (bnd (binds Ss)) ∷ Ss ∥ addr ∷ Bs
 
   -- Crossing a `Λ`: the images cross behind the color wrap, and the
   -- term context's types shift by the one new name.
@@ -230,22 +234,22 @@ module Proof (weaken : AddrWeaken) where
   underΛ-ok {σ = σ} s {x = x} p | B , q , refl with σ x | s q
   underΛ-ok {σ = σ} s {x = x} p | B , q , refl | ivar y | img-var r =
     img-var (∋-⤊ r)
-  underΛ-ok {σ = σ} s {x = x} p | B , q , refl | ival V A | img-val wf ⊢V =
-    img-val (wf-shift Λ-pop (wf-names addr-names wf))
-            (crossΛ-typing wf ⊢V)
+  underΛ-ok {σ = σ} s {x = x} p | B , q , refl | ival V A | img-val wf ⊢V
+    with wrap wf ⊢V
+  underΛ-ok {σ = σ} s {x = x} p | B , q , refl | ival V A | img-val wf ⊢V
+    | wfΛ , ⊢wrap = img-val wfΛ ⊢wrap
 
   -- Crossing a `ν`: an address binder and no name, so the images only
   -- move under one address and the types do not shift.
-  underν-ok : ∀ {Sg Δ Γ Γ′ σ R} → Substⁿ Sg Δ Γ Γ′ σ
-    → Substⁿ Sg (nuBind R ∷ Δ) Γ Γ′ (λ x → underν (σ x))
+  underν-ok : ∀ {Sg Ss Bs Γ Γ′ σ R} → Substⁿ Sg (Ss ∥ Bs) Γ Γ′ σ
+    → Substⁿ Sg (Ss ∥ nuBind R ∷ Bs) Γ Γ′ (λ x → underν (σ x))
   underν-ok {σ = σ} s {x = x} p with σ x | s p
   underν-ok {σ = σ} s {x = x} p | ivar y | img-var r = img-var r
   underν-ok {σ = σ} s {x = x} p | ival V A | img-val wf ⊢V =
-    img-val (wf-names nu-names wf) (weaken is-nu ⊢V)
+    img-val (wf-names nu-names wf) (nuWeaken ⊢V)
     where
-    nu-names : ∀ {Δ R} → NamesInto Δ (nuBind R ∷ Δ)
-    nu-names {α = lvl ℓ} q = _ , n-skip-nu-l q
-    nu-names {α = bnd i} q = _ , n-skip-nu-b q
+    nu-names : ∀ {Ss Bs R} → NamesInto (Ss ∥ Bs) (Ss ∥ nuBind R ∷ Bs)
+    nu-names q = _ , ∋n-rebase q
 
   ----------------------------------------------------------------------
   -- Substitution preserves typing

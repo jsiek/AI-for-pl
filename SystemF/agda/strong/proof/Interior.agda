@@ -15,6 +15,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
 open import strong.Conversion
 
 private
@@ -27,25 +28,43 @@ private
     c : Conv
     ĉ : ConvElt
 
+-- Both are STACK operations, so soundness is an induction on the
+-- stack and the base rides along untouched.
+pop-soundS : ∀ {Ss Ss′ Bs} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → popAsgnS X α Ss ≡ just Ss′
+pop-soundS (pop-here {α = α}) with α ≟ᵃ α
+pop-soundS (pop-here {α = α}) | yes _ = refl
+pop-soundS (pop-here {α = α}) | no ne = ⊥-elim (ne refl)
+pop-soundS (pop-bind-b p) rewrite pop-soundS p = refl
+pop-soundS (pop-bind-l p) rewrite pop-soundS p = refl
+pop-soundS (pop-bind-e p) rewrite pop-soundS p = refl
+
+pop-base : ∀ {Γ Γ′ X α} → Γ ▷ X := α ⇒ Γ′ → bas Γ ≡ bas Γ′
+pop-base pop-here = refl
+pop-base (pop-bind-b p) = refl
+pop-base (pop-bind-l p) = refl
+pop-base (pop-bind-e p) = refl
+
 pop-sound : Γ ▷ X := α ⇒ Γ′ → popAsgn X α Γ ≡ just Γ′
 pop-sound (pop-here {α = α}) with α ≟ᵃ α
 pop-sound (pop-here {α = α}) | yes _ = refl
 pop-sound (pop-here {α = α}) | no ne = ⊥-elim (ne refl)
-pop-sound (pop-bind-b p) rewrite pop-sound p = refl
-pop-sound (pop-bind-l p) rewrite pop-sound p = refl
+pop-sound (pop-bind-b p) rewrite pop-soundS p = refl
+pop-sound (pop-bind-l p) rewrite pop-soundS p = refl
+pop-sound (pop-bind-e p) rewrite pop-soundS p = refl
 
--- At name 0 the push is on top, whatever the context looks like.
-push-zero : ∀ α Γ → pushAsgn zero α Γ ≡ just (asgn α ∷ Γ)
-push-zero α [] = refl
-push-zero α (asgn β ∷ Γ) = refl
-push-zero α (bind ∷ Γ) = refl
-push-zero α (addr ∷ Γ) = refl
-push-zero α (nuBind R ∷ Γ) = refl
+push-soundS : ∀ {Ss Ss′ Bs} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → pushAsgnS X α Ss′ ≡ just Ss
+push-soundS pop-here = refl
+push-soundS (pop-bind-b p) rewrite push-soundS p = refl
+push-soundS (pop-bind-l p) rewrite push-soundS p = refl
+push-soundS (pop-bind-e p) rewrite push-soundS p = refl
 
 push-sound : Γ ▷ X := α ⇒ Γ′ → pushAsgn X α Γ′ ≡ just Γ
-push-sound (pop-here {α = α} {Γ = Γ}) = push-zero α Γ
-push-sound (pop-bind-b p) rewrite push-sound p = refl
-push-sound (pop-bind-l p) rewrite push-sound p = refl
+push-sound pop-here = refl
+push-sound (pop-bind-b p) rewrite push-soundS p = refl
+push-sound (pop-bind-l p) rewrite push-soundS p = refl
+push-sound (pop-bind-e p) rewrite push-soundS p = refl
 
 mutual
   elt-interior : Σ ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δ → interiorElt ĉ Δ ≡ just Δᵢ

@@ -37,10 +37,26 @@ renAddrᴹ ρ (# b)       = # b
 renAddrᴹ ρ (M ⊕[ p ] N) = renAddrᴹ ρ M ⊕[ p ] renAddrᴹ ρ N
 renAddrᴹ ρ (ƛ A ∙ N)   = ƛ A ∙ renAddrᴹ ρ N
 renAddrᴹ ρ (L · M)     = renAddrᴹ ρ L · renAddrᴹ ρ M
-renAddrᴹ ρ (Λ V)       = Λ (renAddrᴹ (extᵇ ρ) V)
+renAddrᴹ ρ (Λ V)       = Λ (renAddrᴹ ρ V)
 renAddrᴹ ρ (L • B [ A ]) = renAddrᴹ ρ L • B [ A ]
-renAddrᴹ ρ (ν R ∙ M)   = ν renameᴿ ρ R ∙ renAddrᴹ (extᵇ ρ) M
+renAddrᴹ ρ (ν R ∙ M)   = ν renameᴿ ρ R ∙ renAddrᴹ ρ M
 renAddrᴹ ρ (M ⟨ c ⟩)   = renAddrᴹ ρ M ⟨ renConv idᵗ-ren ρ c ⟩
+
+-- The BASE renaming of a term.  `Λ` and `ν` are the base's binders, so
+-- this is the family that extends under them — and, crucially, it is
+-- NOT extended by a conversion's crossings, so a boundary is renamed
+-- componentwise and its pops are untouched.
+renBseᴹ : Renameᵇ → Term → Term
+renBseᴹ ρ (` x)       = ` x
+renBseᴹ ρ ($ n)       = $ n
+renBseᴹ ρ (# b)       = # b
+renBseᴹ ρ (M ⊕[ p ] N) = renBseᴹ ρ M ⊕[ p ] renBseᴹ ρ N
+renBseᴹ ρ (ƛ A ∙ N)   = ƛ A ∙ renBseᴹ ρ N
+renBseᴹ ρ (L · M)     = renBseᴹ ρ L · renBseᴹ ρ M
+renBseᴹ ρ (Λ V)       = Λ (renBseᴹ (extᵇ ρ) V)
+renBseᴹ ρ (L • B [ A ]) = renBseᴹ ρ L • B [ A ]
+renBseᴹ ρ (ν R ∙ M)   = ν renameᴿᵉ ρ R ∙ renBseᴹ (extᵇ ρ) M
+renBseᴹ ρ (M ⟨ c ⟩)   = renBseᴹ ρ M ⟨ renConvᵉ ρ c ⟩
 
 substAddrᴹ : SubstAddr → Term → Term
 substAddrᴹ σ (` x)       = ` x
@@ -106,7 +122,7 @@ extImg σ (suc x) = shiftImgⁿ (σ x)
 -- below the crossing assignment), and the boundary's exterior type is
 -- the crossing's one-name shift.
 crossΛ : Term → Ty → Term
-crossΛ V A = (renAddrᴹ suc V) ⟨ hide zero (bnd zero) ∷ᶜ id (⇑ᵗ A) ⟩
+crossΛ V A = (renBseᴹ suc V) ⟨ hide zero (bse zero) ∷ᶜ id (⇑ᵗ A) ⟩
 
 underΛ : Img → Img
 underΛ (ivar x)   = ivar x
@@ -115,7 +131,7 @@ underΛ (ival V A) = ival (crossΛ V A) (⇑ᵗ A)
 -- Crossing a ν binder shifts the image's bound addresses only.
 underν : Img → Img
 underν (ivar x)   = ivar x
-underν (ival V A) = ival (renAddrᴹ suc V) A
+underν (ival V A) = ival (renBseᴹ suc V) A
 
 substᵐ : (ℕ → Img) → Term → Term
 substᵐ σ (` x)       = imgTm (σ x)

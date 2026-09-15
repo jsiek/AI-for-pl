@@ -72,6 +72,22 @@ mutual
   renConv ρ σ (id A)    = id (renameᵗ ρ A)
   renConv ρ σ (ĉ ∷ᶜ c) = renElt ρ σ ĉ ∷ᶜ renConv ρ σ c
 
+-- The BASE renaming of a conversion.  An `all` binds a STACK address,
+-- so the renaming passes through it unextended — and names are
+-- untouched, since a base push adds none.
+mutual
+  renEltᵉ : Renameᵇ → ConvElt → ConvElt
+  renEltᵉ σ (seal X α)   = seal X (renᵃᵉ σ α)
+  renEltᵉ σ (unseal X α) = unseal X (renᵃᵉ σ α)
+  renEltᵉ σ (hide X α)   = hide X (renᵃᵉ σ α)
+  renEltᵉ σ (show X α)   = show X (renᵃᵉ σ α)
+  renEltᵉ σ (s ↦ t)     = renConvᵉ σ s ↦ renConvᵉ σ t
+  renEltᵉ σ (all s)     = all (renConvᵉ σ s)
+
+  renConvᵉ : Renameᵇ → Conv → Conv
+  renConvᵉ σ (id A)    = id A
+  renConvᵉ σ (ĉ ∷ᶜ c) = renEltᵉ σ ĉ ∷ᶜ renConvᵉ σ c
+
 elts : Conv → List ConvElt
 elts (id A)   = []
 elts (ĉ ∷ᶜ c) = ĉ ∷ elts c
@@ -308,8 +324,9 @@ mutual
       → Σ ∣ Γᵢ ⊢̂ show X α ∶ renameᵗ (shiftAtᵗ X) A ⇝ A ⊣ Γₑ
     conv-fun : Σ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ
       → Σ ∣ Γᵢ ⊢̂ (s ↦ t) ∶ A ⇒ B ⇝ C ⇒ D ⊣ Γₑ
-    conv-all : Σ ∣ (bind ∷ Γᵢ) ⊢ s ∶ A ⇝ B ⊣ (bind ∷ Γₑ)
-      → Σ ∣ Γᵢ ⊢̂ all s ∶ `∀ A ⇝ `∀ B ⊣ Γₑ
+    conv-all : ∀ {Ssᵢ Bsᵢ Ssₑ Bsₑ}
+      → Σ ∣ (bind ∷ Ssᵢ ∥ Bsᵢ) ⊢ s ∶ A ⇝ B ⊣ (bind ∷ Ssₑ ∥ Bsₑ)
+      → Σ ∣ (Ssᵢ ∥ Bsᵢ) ⊢̂ all s ∶ `∀ A ⇝ `∀ B ⊣ (Ssₑ ∥ Bsₑ)
 
   data _∣_⊢_∶_⇝_⊣_ (Σ : Store) : Ctxᵗ → Conv → Ty → Ty → Ctxᵗ → Set
     where
@@ -415,65 +432,55 @@ mutual
   substAddrConv σ (id A)    = id A
   substAddrConv σ (ĉ ∷ᶜ c) = substAddrElt σ ĉ ∷ᶜ substAddrConv σ c
 
--- Pushing and popping the assignment NAMED X.  The name says how many
--- name entries stand above it — exactly what the pop judgment counts —
--- and descending past a `∀` element's binder takes the address out of
--- that binder's coordinates.  The clauses split on the CONTEXT first so
--- that both functions reduce with a variable name, which proof.Interior
--- needs.
+-- Pushing and popping the assignment NAMED X.  Both are STACK
+-- operations now: the base cannot get in the way, so there is no
+-- transparency question, and the two are inverses.
 
-underJust : (Ctxᵗ → Ctxᵗ) → Maybe Ctxᵗ → Maybe Ctxᵗ
-underJust f (just Γ) = just (f Γ)
-underJust f nothing  = nothing
+underJustS : (List StackEnt → List StackEnt)
+  → Maybe (List StackEnt) → Maybe (List StackEnt)
+underJustS f (just Ss) = just (f Ss)
+underJustS f nothing   = nothing
 
-pushNil : ℕ → Addr → Maybe Ctxᵗ
-pushNil zero α = just (asgn α ∷ [])
-pushNil (suc X) α = nothing
+-- Descending past a `bind` takes the address out of that binder's
+-- coordinates; the binder's OWN address names no assignment.
+pushAsgnS : ℕ → Addr → List StackEnt → Maybe (List StackEnt)
+pushAsgnS zero α Ss = just (asgn α ∷ Ss)
+pushAsgnS (suc X) α [] = nothing
+pushAsgnS (suc X) α (asgn β ∷ Ss) =
+  underJustS (asgn β ∷_) (pushAsgnS X α Ss)
+pushAsgnS (suc X) (lvl ℓ) (bind ∷ Ss) =
+  underJustS (bind ∷_) (pushAsgnS X (lvl ℓ) Ss)
+pushAsgnS (suc X) (bnd zero) (bind ∷ Ss) = nothing
+pushAsgnS (suc X) (bnd (suc i)) (bind ∷ Ss) =
+  underJustS (bind ∷_) (pushAsgnS X (bnd i) Ss)
+pushAsgnS (suc X) (bse j) (bind ∷ Ss) =
+  underJustS (bind ∷_) (pushAsgnS X (bse j) Ss)
 
-pushOnTop : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
-pushOnTop zero α Γ = just (asgn α ∷ Γ)
-pushOnTop (suc X) α Γ = nothing
+popAsgnS : ℕ → Addr → List StackEnt → Maybe (List StackEnt)
+popAsgnS X α [] = nothing
+popAsgnS zero α (asgn β ∷ Ss) with α ≟ᵃ β
+popAsgnS zero α (asgn β ∷ Ss) | yes _ = just Ss
+popAsgnS zero α (asgn β ∷ Ss) | no _ = nothing
+popAsgnS (suc X) α (asgn β ∷ Ss) = nothing
+popAsgnS zero α (bind ∷ Ss) = nothing
+popAsgnS (suc X) (lvl ℓ) (bind ∷ Ss) =
+  underJustS (bind ∷_) (popAsgnS X (lvl ℓ) Ss)
+popAsgnS (suc X) (bnd zero) (bind ∷ Ss) = nothing
+popAsgnS (suc X) (bnd (suc i)) (bind ∷ Ss) =
+  underJustS (bind ∷_) (popAsgnS X (bnd i) Ss)
+popAsgnS (suc X) (bse j) (bind ∷ Ss) =
+  underJustS (bind ∷_) (popAsgnS X (bse j) Ss)
 
-mutual
-  pushAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
-  pushAsgn X α [] = pushNil X α
-  pushAsgn X α (asgn β ∷ Γ) = pushOverAsgn X α β Γ
-  pushAsgn X α (bind ∷ Γ) = pushOverBind X α Γ
-  pushAsgn X α (addr ∷ Γ) = pushOnTop X α (addr ∷ Γ)
-  pushAsgn X α (nuBind R ∷ Γ) = pushOnTop X α (nuBind R ∷ Γ)
+underJust : (List StackEnt → List StackEnt)
+  → List BaseEnt → Maybe (List StackEnt) → Maybe Ctxᵗ
+underJust f Bs (just Ss) = just (f Ss ∥ Bs)
+underJust f Bs nothing   = nothing
 
-  pushOverAsgn : ℕ → Addr → Addr → Ctxᵗ → Maybe Ctxᵗ
-  pushOverAsgn zero α β Γ = just (asgn α ∷ asgn β ∷ Γ)
-  pushOverAsgn (suc X) α β Γ = underJust (asgn β ∷_) (pushAsgn X α Γ)
+pushAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+pushAsgn X α (Ss ∥ Bs) = underJust (λ z → z) Bs (pushAsgnS X α Ss)
 
-  pushOverBind : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
-  pushOverBind zero α Γ = just (asgn α ∷ bind ∷ Γ)
-  pushOverBind (suc X) (lvl ℓ) Γ = underJust (bind ∷_) (pushAsgn X (lvl ℓ) Γ)
-  pushOverBind (suc X) (bnd zero) Γ = nothing
-  pushOverBind (suc X) (bnd (suc i)) Γ =
-    underJust (bind ∷_) (pushAsgn X (bnd i) Γ)
-
-mutual
-  popAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
-  popAsgn X α [] = nothing
-  popAsgn X α (asgn β ∷ Γ) = popTop X α β Γ
-  popAsgn X α (bind ∷ Γ) = popUnderBind X α Γ
-  popAsgn X α (addr ∷ Γ) = nothing
-  popAsgn X α (nuBind R ∷ Γ) = nothing
-
-  popTop : ℕ → Addr → Addr → Ctxᵗ → Maybe Ctxᵗ
-  popTop zero α β Γ with α ≟ᵃ β
-  popTop zero α β Γ | yes _ = just Γ
-  popTop zero α β Γ | no _ = nothing
-  popTop (suc X) α β Γ = nothing
-
-  popUnderBind : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
-  popUnderBind zero α Γ = nothing
-  popUnderBind (suc X) (lvl ℓ) Γ = underJust (bind ∷_) (popAsgn X (lvl ℓ) Γ)
-  popUnderBind (suc X) (bnd zero) Γ = nothing
-  popUnderBind (suc X) (bnd (suc i)) Γ =
-    underJust (bind ∷_) (popAsgn X (bnd i) Γ)
-
+popAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+popAsgn X α (Ss ∥ Bs) = underJust (λ z → z) Bs (popAsgnS X α Ss)
 
 ------------------------------------------------------------------------
 -- The interior context of a conversion: `⟨c⟩(Γ)`, walking the elements
@@ -487,13 +494,11 @@ mutual
   interiorElt (unseal X α) Γ = pushAsgn X α Γ
   interiorElt (show X α)   Γ = pushAsgn X α Γ
   interiorElt (s ↦ t)      Γ = interior t Γ
-  interiorElt (all s)      Γ with interior s (bind ∷ Γ)
-  interiorElt (all s)      Γ | just (bind ∷ Γ′) = just Γ′
-  interiorElt (all s)      Γ | just (addr ∷ Γ′) = nothing
-  interiorElt (all s)      Γ | just (nuBind R ∷ Γ′) = nothing
-  interiorElt (all s)      Γ | just (asgn β ∷ Γ′) = nothing
-  interiorElt (all s)      Γ | just [] = nothing
-  interiorElt (all s)      Γ | nothing = nothing
+  interiorElt (all s) (Ss ∥ Bs) with interior s (bind ∷ Ss ∥ Bs)
+  interiorElt (all s) (Ss ∥ Bs) | just (bind ∷ Ss′ ∥ Bs′) = just (Ss′ ∥ Bs′)
+  interiorElt (all s) (Ss ∥ Bs) | just (asgn β ∷ Ss′ ∥ Bs′) = nothing
+  interiorElt (all s) (Ss ∥ Bs) | just ([] ∥ Bs′) = nothing
+  interiorElt (all s) (Ss ∥ Bs) | nothing = nothing
 
   interior : Conv → Ctxᵗ → Maybe Ctxᵗ
   interior (id A) Γ = just Γ

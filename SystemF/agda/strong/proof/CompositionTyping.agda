@@ -22,6 +22,7 @@ open import Relation.Binary.PropositionalEquality using
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
 open import strong.Conversion
 
 private
@@ -56,8 +57,8 @@ private
 ∋r-unique : Sg ∣ Γ ∋r α := R → Sg ∣ Γ ∋r α := S → R ≡ S
 ∋r-unique (r-lvl l) (r-lvl m) = ∋ˡ-unique l m
 ∋r-unique r-here r-here = refl
-∋r-unique (r-skip-addr p) (r-skip-addr q) = cong ⇑ᴿ (∋r-unique p q)
-∋r-unique (r-skip-nu p) (r-skip-nu q) = cong ⇑ᴿ (∋r-unique p q)
+∋r-unique (r-skip-addr p) (r-skip-addr q) = cong ⇑ᴿᵉ (∋r-unique p q)
+∋r-unique (r-skip-nu p) (r-skip-nu q) = cong ⇑ᴿᵉ (∋r-unique p q)
 ∋r-unique (r-skip-bind p) (r-skip-bind q) = cong ⇑ᴿ (∋r-unique p q)
 ∋r-unique (r-skip-asgn p) (r-skip-asgn q) = ∋r-unique p q
 
@@ -68,12 +69,13 @@ private
 -- carries `NameFn` inward across an element that introduces an
 -- assignment; `bind` carries it across a `∀` element's binder.
 
-namefn-bind : NameFn Γ → NameFn (bind ∷ Γ)
+namefn-bind : NameFn Γ → NameFn (bind ∷ stk Γ ∥ bas Γ)
 namefn-bind nf n-here-bind n-here-bind = refl
 namefn-bind nf (n-skip-bind-b p) (n-skip-bind-b q) = cong suc (nf p q)
 namefn-bind nf (n-skip-bind-l p) (n-skip-bind-l q) = cong suc (nf p q)
+namefn-bind nf (n-skip-bind-e p) (n-skip-bind-e q) = cong suc (nf p q)
 
-namefn-unbind : NameFn (bind ∷ Γ) → NameFn Γ
+namefn-unbind : NameFn (bind ∷ stk Γ ∥ bas Γ) → NameFn Γ
 namefn-unbind nf {α = lvl ℓ} p q =
   suc-inj (nf (n-skip-bind-l p) (n-skip-bind-l q))
   where
@@ -84,14 +86,23 @@ namefn-unbind nf {α = bnd i} p q =
   where
   suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
   suc-inj refl = refl
+namefn-unbind nf {α = bse j} p q =
+  suc-inj (nf (n-skip-bind-e p) (n-skip-bind-e q))
+  where
+  suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
+  suc-inj refl = refl
 
-notasgn-unbind : ∀ {Γ i} → NotAssigned (bind ∷ Γ) (bnd (suc i))
+notasgn-unbind : ∀ {Γ i} → NotAssigned (bind ∷ stk Γ ∥ bas Γ) (bnd (suc i))
   → NotAssigned Γ (bnd i)
 notasgn-unbind na p = na (n-skip-bind-b p)
 
-notasgn-unbind-l : ∀ {Γ ℓ} → NotAssigned (bind ∷ Γ) (lvl ℓ)
+notasgn-unbind-l : ∀ {Γ ℓ} → NotAssigned (bind ∷ stk Γ ∥ bas Γ) (lvl ℓ)
   → NotAssigned Γ (lvl ℓ)
 notasgn-unbind-l na p = na (n-skip-bind-l p)
+
+notasgn-unbind-e : ∀ {Γ j} → NotAssigned (bind ∷ stk Γ ∥ bas Γ) (bse j)
+  → NotAssigned Γ (bse j)
+notasgn-unbind-e na p = na (n-skip-bind-e p)
 
 -- Pushing the assignment an `unseal`/`show` introduces keeps names
 -- unique, PROVIDED the address was unassigned — which is the premise.
@@ -106,6 +117,8 @@ namefn-push nf na (pop-bind-b p) =
   namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind na) p)
 namefn-push nf na (pop-bind-l p) =
   namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind-l na) p)
+namefn-push nf na (pop-bind-e p) =
+  namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind-e na) p)
 
 read-unique : ∀ {Γ} → NameFn Γ
   → Sg ∣ Γ ⊢ R ⇓ A → Sg ∣ Γ ⊢ R ⇓ B → A ≡ B
@@ -199,6 +212,8 @@ namefn-pop pop-here nf p q = suc-inj (nf (n-skip-asgn p) (n-skip-asgn q))
 namefn-pop (pop-bind-b r) nf =
   namefn-bind (namefn-pop r (namefn-unbind nf))
 namefn-pop (pop-bind-l r) nf =
+  namefn-bind (namefn-pop r (namefn-unbind nf))
+namefn-pop (pop-bind-e r) nf =
   namefn-bind (namefn-pop r (namefn-unbind nf))
 
 -- `NameFn` holds at every context a typed conversion passes through,

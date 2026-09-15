@@ -20,6 +20,7 @@ open import Relation.Binary.PropositionalEquality using
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
 open import strong.Conversion
 open import strong.ConversionReduction
 open import strong.proof.CompositionTyping using
@@ -65,10 +66,11 @@ Renamesᵗ : Renameᵗ → Ctxᵗ → Ctxᵗ → Set
 Renamesᵗ ρ Γ Γ′ = ∀ {X α} → Γ ∋n X := α → Γ′ ∋n ρ X := α
 
 ext-renames : ∀ {ρ Γ Γ′} → Renamesᵗ ρ Γ Γ′
-  → Renamesᵗ (extᵗ ρ) (bind ∷ Γ) (bind ∷ Γ′)
+  → Renamesᵗ (extᵗ ρ) (bind ∷ stk Γ ∥ bas Γ) (bind ∷ stk Γ′ ∥ bas Γ′)
 ext-renames r n-here-bind = n-here-bind
 ext-renames r (n-skip-bind-b p) = n-skip-bind-b (r p)
 ext-renames r (n-skip-bind-l p) = n-skip-bind-l (r p)
+ext-renames r (n-skip-bind-e p) = n-skip-bind-e (r p)
 
 wf-ren : ∀ {ρ Γ Γ′ A} → Renamesᵗ ρ Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ renameᵗ ρ A
 wf-ren r (wf-var n) = wf-var (r n)
@@ -83,6 +85,7 @@ pop-renames : ∀ {Γₑ Γᵢ X α} → Γₑ ▷ X := α ⇒ Γᵢ
 pop-renames pop-here p = n-skip-asgn p
 pop-renames (pop-bind-b q) = ext-renames (pop-renames q)
 pop-renames (pop-bind-l q) = ext-renames (pop-renames q)
+pop-renames (pop-bind-e q) = ext-renames (pop-renames q)
 
 wf-shift : ∀ {Γₑ Γᵢ X α A} → Γₑ ▷ X := α ⇒ Γᵢ → Γᵢ ⊢ᵗ A
   → Γₑ ⊢ᵗ renameᵗ (shiftAtᵗ X) A

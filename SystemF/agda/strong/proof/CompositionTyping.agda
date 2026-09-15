@@ -208,7 +208,7 @@ namefn-pop (pop-bind-l r) nf =
 mutual
   elt-namefn : Sg ∣ Γ₁ ⊢̂ ĉ ∶ A ⇝ B ⊣ Γ₂ → NameFn Γ₂ → NameFn Γ₁
   elt-namefn (conv-seal rep rd p) nf = namefn-pop p nf
-  elt-namefn (conv-hide wf a p) nf = namefn-pop p nf
+  elt-namefn (conv-hide wf p na) nf = namefn-pop p nf
   elt-namefn (conv-unseal rep rd p na) nf = namefn-push nf na p
   elt-namefn (conv-show wf p na) nf = namefn-push nf na p
   elt-namefn (conv-fun s′ t′) nf = conv-namefn t′ nf
@@ -245,7 +245,7 @@ inv-show (conv-show wf p na) = refl , p
 inv-hide : ∀ {Γ₁ Γ₂ A B X α}
   → Sg ∣ Γ₁ ⊢̂ hide X α ∶ A ⇝ B ⊣ Γ₂
   → (B ≡ renameᵗ (shiftAtᵗ X) A) × (Γ₂ ▷ X := α ⇒ Γ₁)
-inv-hide (conv-hide wf a p) = refl , p
+inv-hide (conv-hide wf p na) = refl , p
 
 inv-seal : ∀ {Γ₁ Γ₂ A B X α}
   → Sg ∣ Γ₁ ⊢̂ seal X α ∶ A ⇝ B ⊣ Γ₂

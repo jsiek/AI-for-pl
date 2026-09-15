@@ -23,6 +23,7 @@ open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
+open import strong.ConversionReduction using (arr; allView; base)
 open import strong.Terms
 open import strong.Reduction
 open import strong.proof.Interior using (conv-interior)

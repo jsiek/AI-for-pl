@@ -20,6 +20,7 @@ open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
+open import strong.ConversionReduction
 open import strong.Terms
 open import strong.proof.Canonical using
   (GroundShape; ground-ℕ; ground-𝔹; shift-ground)
@@ -45,11 +46,11 @@ base-typing (conv-cons (conv-seal rep rd p) tl) ()
 base-typing (conv-cons (conv-unseal rep rd p na) tl) ()
 base-typing (conv-cons (conv-fun s t) tl) ()
 base-typing (conv-cons (conv-all s) tl) ()
-base-typing {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf a p) tl) eq
+base-typing {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl) eq
   with base-typing tl eq
-base-typing {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf a p) tl) eq
+base-typing {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl) eq
   | teq , sh with shift-ground X A sh
-base-typing {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf a p) tl) eq
+base-typing {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} wf p na) tl) eq
   | teq , sh | shA = trans (sym (ground-fixed X shA)) teq , shA
 base-typing {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} wf p na) tl) eq
   with base-typing tl eq

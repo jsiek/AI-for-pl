@@ -22,7 +22,7 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹)
 open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
-open import strong.ConversionReduction using (_⨟_; instReveal)
+open import strong.ConversionReduction
 open import strong.Terms
 open import strong.TermSubst
 

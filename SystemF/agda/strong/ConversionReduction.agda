@@ -410,3 +410,56 @@ private
       ≡ ((unseal 0 (lvl 0) ∷ᶜ unseal 0 (lvl 1) ∷ᶜ id `ℕ)
          ⨟ ((seal 0 (lvl 1) ∷ᶜ id `ℕ) ⨟ (seal 0 (lvl 0) ∷ᶜ id `ℕ)))
   composition-assoc = refl
+
+------------------------------------------------------------------------
+-- The views
+------------------------------------------------------------------------
+-- Assembled from the elementwise folds of `strong.Conversion`.  A
+-- component is an APPEND of the pieces the fold collects, and an append
+-- can leave a redex at its seam, so each component is NORMALIZED — the
+-- same discipline the builders follow, restoring cancellation
+-- immediately.  The scrutinees are passed to a plain function so that a
+-- proof which knows them can rewrite.
+
+arrFrom : Ty → Maybe (List ConvElt × List ConvElt) → Ty
+  → Maybe (Conv × Conv)
+arrFrom A₀ (just (Ls , Rs)) (C ⇒ D) =
+  just (normalize (attach Ls A₀) , normalize (attach Rs D))
+arrFrom A₀ (just p) (` X) = nothing
+arrFrom A₀ (just p) `ℕ = nothing
+arrFrom A₀ (just p) `𝔹 = nothing
+arrFrom A₀ (just p) (`∀ B) = nothing
+arrFrom A₀ nothing T = nothing
+
+-- `arr` takes the INTERIOR domain A₀ from the λ annotation at its use
+-- site: the contravariant component terminates there, in its own
+-- coordinates, so no renaming is involved.
+arr : Ty → Conv → Maybe (Conv × Conv)
+arr A₀ c = arrFrom A₀ (arrElts (elts c)) (target c)
+
+allFrom : Maybe (List ConvElt) → Ty → Maybe Conv
+allFrom (just Es) (`∀ B) = just (normalize (attach Es B))
+allFrom (just Es) (` X) = nothing
+allFrom (just Es) `ℕ = nothing
+allFrom (just Es) `𝔹 = nothing
+allFrom (just Es) (C ⇒ D) = nothing
+allFrom nothing T = nothing
+
+allView : Conv → Maybe Conv
+allView c = allFrom (allElts (elts c)) (target c)
+
+-- `base` is the view `Const` uses: a literal ignores identity
+-- crossings.  It reads the syntax directly — there is nothing to
+-- compose.
+base : Conv → Maybe Ty
+base (id `ℕ) = just `ℕ
+base (id `𝔹) = just `𝔹
+base (id (` X)) = nothing
+base (id (A ⇒ B)) = nothing
+base (id (`∀ A)) = nothing
+base (hide X α ∷ᶜ c) = base c
+base (show X α ∷ᶜ c) = base c
+base (seal X α ∷ᶜ c) = nothing
+base (unseal X α ∷ᶜ c) = nothing
+base ((s ↦ t) ∷ᶜ c) = nothing
+base (all s ∷ᶜ c) = nothing

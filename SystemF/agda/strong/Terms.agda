@@ -21,6 +21,7 @@ open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
+open import strong.ConversionReduction
 
 data Prim : Set where
   p+ : Prim

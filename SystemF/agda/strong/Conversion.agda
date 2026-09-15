@@ -294,8 +294,14 @@ mutual
     -- An identity crossing is "the same type" in named notation; in de
     -- Bruijn form the crossed assignment inserts a name entry at depth
     -- X, so the assigned side reads the type through `shiftAtᵗ X`.
-    conv-hide : Γᵢ ⊢ᵗ A → Σ ∣ Γᵢ ∋a α
-      → Γₑ ▷ X := α ⇒ Γᵢ
+    -- `hide` and `show` are exact duals, down to their premises: each
+    -- relates the SMALLER context (the one without the assignment) to
+    -- the larger, well-formedness is stated at the smaller, and the
+    -- freshness condition says the address is unassigned there.  The
+    -- symmetry is what lets `arr` dualize a crossing into the
+    -- contravariant component (see proof.ArrTyping).
+    conv-hide : Γᵢ ⊢ᵗ A
+      → Γₑ ▷ X := α ⇒ Γᵢ → NotAssigned Γᵢ α
       → Σ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ renameᵗ (shiftAtᵗ X) A ⊣ Γₑ
     conv-show : Γₑ ⊢ᵗ A
       → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
@@ -387,47 +393,10 @@ allElts : List ConvElt → Maybe (List ConvElt)
 allElts [] = just []
 allElts (ĉ ∷ ĉs) = consAllE (all⁺ ĉ) (allElts ĉs)
 
--- `arr` takes the INTERIOR domain A₀ from the λ annotation at its use
--- site: the contravariant component terminates at A₀, in its own
--- coordinates, so no renaming is involved.
--- Assembled from the two scrutinees by a plain function, so that a
--- proof that knows them can REWRITE (the `with` form is stuck).
-arrFrom : Ty → Maybe (List ConvElt × List ConvElt) → Ty → Maybe (Conv × Conv)
-arrFrom A₀ (just (Ls , Rs)) (C ⇒ D) = just (attach Ls A₀ , attach Rs D)
-arrFrom A₀ (just p) (` X) = nothing
-arrFrom A₀ (just p) `ℕ = nothing
-arrFrom A₀ (just p) `𝔹 = nothing
-arrFrom A₀ (just p) (`∀ B) = nothing
-arrFrom A₀ nothing T = nothing
-
-arr : Ty → Conv → Maybe (Conv × Conv)
-arr A₀ c = arrFrom A₀ (arrElts (elts c)) (target c)
-
-allFrom : Maybe (List ConvElt) → Ty → Maybe Conv
-allFrom (just Es) (`∀ B) = just (attach Es B)
-allFrom (just Es) (` X) = nothing
-allFrom (just Es) `ℕ = nothing
-allFrom (just Es) `𝔹 = nothing
-allFrom (just Es) (C ⇒ D) = nothing
-allFrom nothing T = nothing
-
-allView : Conv → Maybe Conv
-allView c = allFrom (allElts (elts c)) (target c)
-
--- `base` is the view `Const` uses: a literal ignores identity
--- crossings.
-base : Conv → Maybe Ty
-base (id `ℕ) = just `ℕ
-base (id `𝔹) = just `𝔹
-base (id (` X)) = nothing
-base (id (A ⇒ B)) = nothing
-base (id (`∀ A)) = nothing
-base (hide X α ∷ᶜ c) = base c
-base (show X α ∷ᶜ c) = base c
-base (seal X α ∷ᶜ c) = nothing
-base (unseal X α ∷ᶜ c) = nothing
-base ((s ↦ t) ∷ᶜ c) = nothing
-base (all s ∷ᶜ c) = nothing
+-- The views `arr`, `allView` and `base` are assembled from these
+-- folds in `strong.ConversionReduction`: their components are APPENDS,
+-- which can leave a redex at the seam, so they NORMALIZE — the same
+-- discipline the builders follow.
 
 ------------------------------------------------------------------------
 -- Address substitution over conversions (binder discharge at `Alloc`)

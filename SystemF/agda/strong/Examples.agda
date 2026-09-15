@@ -17,7 +17,7 @@ open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
-open import strong.ConversionReduction using (_⨟_; normalize; instReveal)
+open import strong.ConversionReduction
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction

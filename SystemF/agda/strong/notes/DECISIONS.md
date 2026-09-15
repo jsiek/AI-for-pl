@@ -4041,3 +4041,45 @@ Next: the five term cases — `Merge` (now a corollary of `⨟-typing`),
 `Wrap` (`arr` typing), `TyBeta`/`TyWrap` (builder and instantiation
 typing), `Beta` (substitution with the color wrap), `Alloc` (store
 extension), and the term-level ξ-rules.
+
+## 2026-09-15: address weakening must be DEPTH-INDEXED (v7's `Wk` shape)
+
+Discharging `proof/TermSubstitution`'s parameter — weakening a term by
+one address entry, which the color wrap needs — ran into a shape
+problem worth recording, because the naive statement is FALSE.
+
+The naive statement pushes the entry on top:
+
+    Sg ∣ Δ ∣ Γ ⊢ M ⦂ A → Sg ∣ (e ∷ Δ) ∣ Γ ⊢ renAddrᴹ suc M ⦂ A
+
+Inside a boundary `M ⟨ c ⟩` this asks the conversion to retype from
+`e ∷ Δᵢ` to `e ∷ Δ`.  But `Δᵢ` is `Δ` with the conversion's CROSSINGS
+above it, so `e ∷ Δᵢ` puts the new address binder ABOVE the crossings —
+i.e. inside the boundary — while the binder it models (the `Λ`'s) is
+OUTSIDE.  The pops then have to pass the entry, which the pop judgment
+forbids: transparency is restricted to binder assignments, deliberately,
+because address transparency is what made push/pop non-invertible
+(2026-09-15, `proof/Interior`).
+
+The correct statement inserts the entry at a DEPTH, and the depth grows
+as the weakening descends under crossings:
+
+    data AddrWk (e : Ent) : ℕ → Ctxᵗ → Ctxᵗ → Set where
+      wk-base : AddrWk e zero Δ (e ∷ Δ)
+      wk-under : AddrWk e d Δ Δ′ → AddrWk e (suc d) (f ∷ Δ) (f ∷ Δ′)
+
+so that a boundary's interior is `crossings ++ (e ∷ Δ)` — the entry
+below the crossings, where the pops never reach it.  This is exactly
+v7's `proof/AnchorWeaken.Wk P d` shape, which v8 retired on the grounds
+that "nothing shifts any more".  That was right about the STORE (levels
+are stable, and `Merge` no longer concatenates stores) but wrong about
+BINDERS: `Λ` and `ν` still bind addresses, so bound addresses still
+shift, and the depth-indexed weakening is still the way to carry a
+judgment under one.
+
+The v7 module's design notes apply verbatim — index by the entry and
+the depth so the relation is deterministic (`wk-unique`), derive the
+renaming as a FUNCTION of the index rather than an index itself (the
+unifier cannot invert `extᵇ`), and thread the depth through the pop
+judgment.  What is NOT needed this time is the block/store arithmetic:
+one entry, not a store block.

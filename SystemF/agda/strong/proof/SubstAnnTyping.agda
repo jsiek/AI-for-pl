@@ -48,7 +48,7 @@ open import Data.Nat.Properties using (_≟_; _<?_; ≤-refl; ≤-trans; ≰⇒>
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
-open import Relation.Nullary using (yes; no; ¬_)
+open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; sym; trans; cong; cong₂)
 
@@ -85,16 +85,13 @@ private
   s≤s (¬<-¬≡-> (λ lt → nlt (s≤s lt)) (λ eq → ne (cong suc eq)))
 
 <-irr : X < X → ⊥
-<-irr (s≤s le) = go le
-  where
-  go : ∀ {n} → suc n ≤ n → ⊥
-  go (s≤s q) = go q
+<-irr (s≤s lt) = <-irr lt
 
 <-asym : X < Z → Z < X → ⊥
-<-asym (s≤s p) (s≤s q) = go p q
-  where
-  go : ∀ {m n} → m ≤ n → suc n ≤ m → ⊥
-  go (s≤s p) (s≤s q) = go q p
+<-asym (s≤s p) (s≤s q) = <-asym q p
+
+<-≢ : X < Y → ¬ (X ≡ Y)
+<-≢ lt refl = <-irr lt
 
 pos-of : X < Z → zero < Z
 pos-of {Z = suc Z} lt = s≤s z≤n
@@ -134,10 +131,9 @@ nameSub-le X Y nlt | no _ = refl
 nameSub-suc : ∀ X Y → nameSub (suc X) (suc Y) ≡ suc (nameSub X Y)
 nameSub-suc X Y with X <? Y
 nameSub-suc X Y | yes lt
-  rewrite nameSub-gt (suc X) (suc Y) (s≤s lt)
-        | nameSub-gt X Y lt = sym (suc-pred (pos-of lt))
-nameSub-suc X Y | no nlt
-  rewrite nameSub-le X Y nlt =
+  rewrite nameSub-gt (suc X) (suc Y) (s≤s lt) =
+  sym (suc-pred (pos-of lt))
+nameSub-suc X Y | no nlt =
   nameSub-le (suc X) (suc Y) (λ lt → nlt (pred≤ lt))
 
 closeEnv-eq : ∀ X S → closeEnv X S X ≡ S
@@ -161,10 +157,8 @@ closeEnv-lt X S Z lt | no _ | no _ = refl
 
 closeEnv-≢ : ∀ X S Z → ¬ (X ≡ Z) → closeEnv X S Z ≡ ` (nameSub X Z)
 closeEnv-≢ X S Z ne with X <? Z
-closeEnv-≢ X S Z ne | yes lt
-  rewrite nameSub-gt X Z lt = closeEnv-gt X S Z lt
-closeEnv-≢ X S Z ne | no nlt
-  rewrite nameSub-le X Z nlt = closeEnv-lt X S Z (¬<-¬≡-> nlt ne)
+closeEnv-≢ X S Z ne | yes lt = closeEnv-gt X S Z lt
+closeEnv-≢ X S Z ne | no nlt = closeEnv-lt X S Z (¬<-¬≡-> nlt ne)
 
 ------------------------------------------------------------------------
 -- §2  Closed types: SIDE CONDITION (1) on S
@@ -292,16 +286,13 @@ extsᵗ-closeEnv X S zero = refl
 extsᵗ-closeEnv X S (suc Z) with X ≟ Z
 extsᵗ-closeEnv X S (suc Z) | yes eq
   rewrite eq
-        | closeEnv-eq Z S
         | closeEnv-eq (suc Z) (renameᵗ suc S) = refl
 extsᵗ-closeEnv X S (suc Z) | no ne with X <? Z
 extsᵗ-closeEnv X S (suc Z) | no ne | yes lt
-  rewrite closeEnv-gt X S Z lt
-        | closeEnv-gt (suc X) (renameᵗ suc S) (suc Z) (s≤s lt)
+  rewrite closeEnv-gt (suc X) (renameᵗ suc S) (suc Z) (s≤s lt)
         | suc-pred (pos-of lt) = refl
 extsᵗ-closeEnv X S (suc Z) | no ne | no nlt
-  rewrite closeEnv-lt X S Z (¬<-¬≡-> nlt ne)
-        | closeEnv-lt (suc X) (renameᵗ suc S) (suc Z)
+  rewrite closeEnv-lt (suc X) (renameᵗ suc S) (suc Z)
                       (s≤s (¬<-¬≡-> nlt ne)) = refl
 
 closeAt-∀ : ∀ X S A
@@ -508,12 +499,15 @@ notasgn-drop d nb na q = na (∋n-undropS d nb q)
 -- well-formedness: the substitution algebra instantiated at the drop
 drop-substs : DropBindS X Ss Ss′ → Closedᵗ S
   → SubstsᵗM (closeEnv X S) (Ss ∥ Bs) (Ss′ ∥ Bs)
-drop-substs {X = X} {S = S} d cl {Y = Y} n with X ≟ Y
-drop-substs {X = X} {S = S} d cl {Y = Y} n | yes eq
-  rewrite eq | closeEnv-eq Y S = wf-closed cl
-drop-substs {X = X} {S = S} d cl {Y = Y} n | no ne
-  rewrite closeEnv-≢ X S Y ne with ∋n-drop∃ d n ne
-drop-substs {X = X} {S = S} d cl {Y = Y} n | no ne | β , q = wf-var q
+-- the decision is taken in a helper: a `with X ≟ Y` at the top level
+-- would abstract the very `X ≟ Y` that `closeEnv X S Y` is waiting on,
+-- and no equation about `closeEnv` could then be applied to the goal
+drop-substs {X = X} {S = S} d cl {Y = Y} n = go (X ≟ Y)
+  where
+  go : Dec (X ≡ Y) → _ ⊢ᵗ closeEnv X S Y
+  go (yes eq) rewrite eq | closeEnv-eq Y S = wf-closed cl
+  go (no ne) rewrite closeEnv-≢ X S Y ne with ∋n-drop∃ d n ne
+  go (no ne) | β , q = wf-var q
 
 wf-drop : DropBindS X Ss Ss′ → Closedᵗ S → (Ss ∥ Bs) ⊢ᵗ A
   → (Ss′ ∥ Bs) ⊢ᵗ closeAt X S A
@@ -615,25 +609,19 @@ mutual
     (conv-seal rep rd p) with drop-pop d nb p
   substAnnElt-typing {X = X} {S = S} nbr cl (sf-seal {Y = Y} lt nb) d
     (conv-seal rep rd p) | Γᵢ′ , drop-ctx dᵢ , p′
-    rewrite closeEnv-≢ X S Y (λ eq → <-irr (subst-lt eq lt)) =
+    rewrite closeEnv-≢ X S Y (<-≢ lt) =
     Γᵢ′ , drop-ctx dᵢ
     , conv-seal (∋r-drop nb rep) (read-drop dᵢ (nbr nb rep) rd) p′
-    where
-    subst-lt : X ≡ Y → X < Y → X < X
-    subst-lt refl q = q
 
   -- an `unseal`: dual, and its freshness side condition comes back
   substAnnElt-typing {X = X} {S = S} nbr cl (sf-unseal {Y = Y} lt nb) d
     (conv-unseal rep rd p na) with drop-push d nb lt p
   substAnnElt-typing {X = X} {S = S} nbr cl (sf-unseal {Y = Y} lt nb) d
     (conv-unseal rep rd p na) | Γᵢ′ , drop-ctx dᵢ , p′
-    rewrite closeEnv-≢ X S Y (λ eq → <-irr (subst-lt eq lt)) =
+    rewrite closeEnv-≢ X S Y (<-≢ lt) =
     _ , drop-ctx dᵢ
     , conv-unseal (∋r-drop nb rep) (read-drop d (nbr nb rep) rd) p′
                   (notasgn-drop d nb na)
-    where
-    subst-lt : X ≡ Y → X < Y → X < X
-    subst-lt refl q = q
 
   -- a `hide`: its target is a `shiftAtᵗ` rename, and `closeAt-shift`
   -- slides the shift's cutoff down with the name
@@ -711,3 +699,27 @@ substAnn-typing′ nbr cl sf drᵢ (drop-ctx d) ⊢c
   with substAnn-typing nbr cl sf d ⊢c
 substAnn-typing′ nbr cl sf drᵢ (drop-ctx d) ⊢c | Δᵢ″ , drᵢ″ , ty
   rewrite drop-unique drᵢ drᵢ″ = ty
+
+------------------------------------------------------------------------
+-- §11  Sanity check against `Examples.§14`
+------------------------------------------------------------------------
+-- There `allView c₂` is `d = show 1 (lvl 0) ∷ᶜ id (` 0 ⇒ ` 0)`, typed
+-- under the ∀'s binder assignment — slot 0 — and `instReveal zero (bse
+-- zero) `𝔹 d` composes the builder with `substAnn zero `𝔹 d`.  The
+-- crossing's name (1) is strictly below the slot and its address is a
+-- store level, so `SlotFree` holds; the type argument is ground, so
+-- `Closedᵗ` holds; and the substituted conversion is the one
+-- `inst-agrees` checks.
+
+private
+  §14-d : Conv
+  §14-d = show 1 (lvl 0) ∷ᶜ id (` 0 ⇒ ` 0)
+
+  §14-subst : substAnn zero `𝔹 §14-d ≡ show 0 (lvl 0) ∷ᶜ id (`𝔹 ⇒ `𝔹)
+  §14-subst = refl
+
+  §14-slotfree : SlotFree zero §14-d
+  §14-slotfree = sf-cons (sf-show (s≤s z≤n) nb-lvl) sf-id
+
+  §14-closed : Closedᵗ `𝔹
+  §14-closed = nf-𝔹

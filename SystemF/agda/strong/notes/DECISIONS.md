@@ -4287,3 +4287,69 @@ address FORM (`pop-bind-b/-l/-e`, `n-skip-bind-b/-l/-e`, and the
 `∋a`/`∋r` restackings) needs a view rather than a direct match.  The
 side condition is `NoBnd σ` — σ never yields a `bnd` — which holds of
 `instᵉ₀ (lvl ℓ)` and is preserved by `extsᵃᵉ`.
+
+------------------------------------------------------------------------
+2026-09-15 — THE REPAIR, APPLIED; AND THREE GAPS IN `substAnn`
+------------------------------------------------------------------------
+
+APPLIED (Jeremy chose it over the two alternatives).  `conv-hide` gains
+`Σ ∣ Γᵢ ∋a α` and `conv-show` gains `Σ ∣ Γₑ ∋a α` — the address in
+scope in the context WITHOUT the assignment, exact duals, so `arr`'s
+dualization is unaffected.
+
+The evidence it is the right premise: the counterexample above no
+longer typechecks.  It needed a well-typed term naming `lvl 0` over the
+empty store, which the premise forbids.
+
+~110 sites, almost all mechanical.  The four that were not:
+`∋a-⇑` (carry the address past a `bind`), `∋a-pop`/`∋a-push` (across a
+crossing — popping an assignment changes no address's scope), `∋a-drop`
+(across a slot drop, free because `SlotFree` already forbids a `bnd`
+there), and `∋r→∋a` for the builders.  Every transport already moved
+`∋a`, so those cost one argument each.
+
+WHAT IT BOUGHT, immediately.  `proof/Scoped` is the invariant the notes
+called `Γ ok` — every assignment names an address in scope — now
+preservable (`conv-scoped`) because all four atomic elements scope
+their address.  From it:
+
+    quote-wfᴿ        `Σ ∣ Δ ⊢⌊ A ⌋ R → Σ ∣ Δ ⊢ᴿ R`
+    scoped-freshStk  the stack avoids the store's next level
+    typing-fresh     so does a well-typed term
+
+which discharge every premise `proof/PreserveAlloc` and
+`proof/BuilderTyping` had to assume.  `proof/PreserveTy` closes
+`AllocOk` and `TyBetaOk`; `TyWrapOk` is the last parameter of
+`proof/Preservation`.
+
+------------------------------------------------------------------------
+
+THREE GAPS IN `substAnn` (from mechanizing `substAnn-typing`).  Each is
+a place where the definition in `strong/Conversion.agda` is short, and
+each currently shows up as a side condition rather than a proof
+artefact.
+
+(1) `substAnn` carries `S` past every crossing WITHOUT shifting it — it
+shifts only under `all`.  But going inward a conversion PUSHES
+assignments, so an exterior type must be shifted to be read in the
+interior.  Concretely at `X = 0, Y = 1, A = ` 0`: `closeAt 0 S (` 0)`
+is `S`, but the interior context `asgn α ∷ Δ` demands `⇑S`.  The lemma
+therefore needs `Closedᵗ S`.  FIX: shift `S` at each crossing, as the
+`all` case already does.  This one BLOCKS `TyWrap` in general, since
+there `S` is the instantiating type, which need not be closed.
+
+(2) A crossing at a name `Y ≤ X` moves the slot, and `substAnn` goes on
+substituting at `X`.  `show 0 α` under a slot at 0 inserts its
+assignment ABOVE the slot, renaming the slot to 1.  Hence the side
+condition `X < Y` at every crossing.  At `TyWrap` this is free —
+`all⁺` shifts every name by `suc` when it builds `d`, so every name in
+`d` is at least 1.
+
+(3) `substAnnElt` leaves the ADDRESS alone: `substAnnElt X S (seal Y α)
+= seal (nameSub X Y) α`.  But a `bnd i` counts the stack's `bind`s and
+the slot IS one of them, so from the pop rules a `bnd`-addressed
+crossing at name `Y > X` has `i ≥ Y > X` and always needs decrementing.
+Note `all⁺` DOES shift addresses (`⇑ᵃ`), so `substAnn` is failing to
+undo exactly that shift.  FIX: map the address by
+`λ { (bnd i) → bnd (nameSub X i) ; α → α }`.  Reachable only with a
+`bnd`-addressed crossing, which the reduction rules never build today.

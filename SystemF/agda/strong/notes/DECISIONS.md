@@ -3816,3 +3816,55 @@ the composite named two different assignments identically.  The two
 shifts are now consistent: `all⁺` raises a hoisted crossing's name and
 address when it moves under the binder, and `substAnn` lowers the name
 again when the instantiation consumes that binder.
+
+## 2026-09-15: v8 stage 5 — PROGRESS, modulo one canonicity obligation
+
+`proof/Interior.agda`, `proof/Canonical.agda` and `proof/Progress.agda`
+land.  Every case of progress is discharged; the module takes ONE
+parameter, the canonicity obligation at a value boundary:
+
+    Canonicity = Simple V → ⊢ V ⦂ A → ⊢ c ∶ A ⇝ B → NF c
+               → Applicable c ⊎ (Literal V × base c defined)
+
+What is PROVEN along the way, and is the bulk of the work:
+
+  * `proof/Interior`: `pop-sound`/`push-sound` — `popAsgn`/`pushAsgn`
+    are the functional forms of the pop judgment — hence
+    `conv-interior : ⊢ c ∶ A ⇝ B ⊣ Δ → interior c Δ ≡ just Δᵢ`, which
+    is what `ξ-⟨⟩` consumes.
+  * `proof/Canonical`: the view-shape suite (`arr-target`,
+    `allView-target`, `arr-any`, `applicable-arr/all/ground`), the
+    SOURCE-shape lemmas `conv-fun-source`/`conv-all-source` (a
+    conversion the views accept has no renaming element, so it
+    preserves shape — the v7 lemma, now over the v8 elements), and the
+    canonical forms `canonical-⇒`/`canonical-∀` that hand `Wrap` and
+    `TyWrap` their λ and Λ.
+
+TWO corrections were forced by `proof/Interior`:
+
+  * `popAsgn`/`pushAsgn` must un-shift the ADDRESS when descending past
+    a `∀` element's binder, and must split on the CONTEXT before the
+    name, or they do not reduce with a variable name.
+  * The pop judgment's transparency is narrowed to BINDER ASSIGNMENTS.
+    Address entries (`addr`, `nuBind`) are no longer transparent: with
+    them the judgment is not invertible (an assignment at the same name
+    depth could sit above or below an address binder), and no
+    derivation needs them — a crossing assignment is always created
+    above the address binders in scope.  §14 still checks, which is the
+    evidence that the narrowing costs nothing.
+
+ON THE OBLIGATION.  My earlier worry that canonicity is FALSE was
+wrong, and the stack discipline is why.  The shape that would break it
+is a renaming element reached from a non-variable source, e.g.
+`seal ∷ hide ∷ unseal ∷ id (C ⇒ D)`.  It does not type: after
+`seal X α` the running type is `` ` X `` with α's assignment NEWEST, so
+a following `hide`/`show` inserts an assignment ABOVE it and SHIFTS the
+type's name, while an `unseal` must pop the newest assignment and so
+has source `` ` 0 `` — the names no longer agree.  And an `unseal`
+IMMEDIATELY after the seal is forced by pop-determinism to be at the
+same address, which `fuse` cancels, contradicting `NF`.  So from a
+variable source the target stays a variable (v7's `after-seal`), and
+canonicity should follow by: a value's type is never a variable, so a
+leading `unseal` is impossible; a leading `seal` sends the target to a
+variable (`applies-var`); everything else preserves shape.  The
+remaining work is `pop-unique` plus that `after-seal` induction.

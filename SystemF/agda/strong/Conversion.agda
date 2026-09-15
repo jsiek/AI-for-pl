@@ -368,22 +368,22 @@ allElts (ĉ ∷ ĉs) | just es | nothing = nothing
 -- site: the contravariant component terminates at A₀, in its own
 -- coordinates, so no renaming is involved.
 arr : Ty → Conv → Maybe (Conv × Conv)
-arr A₀ c with target c | arrElts (elts c)
-arr A₀ c | C ⇒ D | just (Ls , Rs) = just (attach Ls A₀ , attach Rs D)
-arr A₀ c | C ⇒ D | nothing = nothing
-arr A₀ c | ` X | _ = nothing
-arr A₀ c | `ℕ | _ = nothing
-arr A₀ c | `𝔹 | _ = nothing
-arr A₀ c | `∀ B | _ = nothing
+arr A₀ c with arrElts (elts c) | target c
+arr A₀ c | just (Ls , Rs) | C ⇒ D = just (attach Ls A₀ , attach Rs D)
+arr A₀ c | just p | ` X = nothing
+arr A₀ c | just p | `ℕ = nothing
+arr A₀ c | just p | `𝔹 = nothing
+arr A₀ c | just p | `∀ B = nothing
+arr A₀ c | nothing | _ = nothing
 
 allView : Conv → Maybe Conv
-allView c with target c | allElts (elts c)
-allView c | `∀ B | just Es = just (attach Es B)
-allView c | `∀ B | nothing = nothing
-allView c | ` X | _ = nothing
-allView c | `ℕ | _ = nothing
-allView c | `𝔹 | _ = nothing
-allView c | C ⇒ D | _ = nothing
+allView c with allElts (elts c) | target c
+allView c | just Es | `∀ B = just (attach Es B)
+allView c | just Es | ` X = nothing
+allView c | just Es | `ℕ = nothing
+allView c | just Es | `𝔹 = nothing
+allView c | just Es | C ⇒ D = nothing
+allView c | nothing | _ = nothing
 
 -- `base` is the view `Const` uses: a literal ignores identity
 -- crossings.
@@ -417,49 +417,65 @@ mutual
   substAddrConv σ (id A)    = id A
   substAddrConv σ (ĉ ∷ᶜ c) = substAddrElt σ ĉ ∷ᶜ substAddrConv σ c
 
-------------------------------------------------------------------------
--- The interior context of a conversion: `⟨c⟩(Γ)` as a partial function,
--- walking the elements from the terminator inward
-------------------------------------------------------------------------
+-- Pushing and popping the assignment NAMED X.  The name says how many
+-- name entries stand above it — exactly what the pop judgment counts —
+-- and descending past a `∀` element's binder takes the address out of
+-- that binder's coordinates.  The clauses split on the CONTEXT first so
+-- that both functions reduce with a variable name, which proof.Interior
+-- needs.
 
--- Pushing and popping the assignment NAMED X: the name says how many
--- name entries stand above it, which is exactly what the pop judgment
--- `_▷_:=_⇒_` counts.  Address entries are transparent and stay above.
+underJust : (Ctxᵗ → Ctxᵗ) → Maybe Ctxᵗ → Maybe Ctxᵗ
+underJust f (just Γ) = just (f Γ)
+underJust f nothing  = nothing
 
-pushAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
-pushAsgn zero α Γ = just (asgn α ∷ Γ)
-pushAsgn (suc X) α [] = nothing
-pushAsgn (suc X) α (asgn β ∷ Γ) with pushAsgn X α Γ
-pushAsgn (suc X) α (asgn β ∷ Γ) | just Γ′ = just (asgn β ∷ Γ′)
-pushAsgn (suc X) α (asgn β ∷ Γ) | nothing = nothing
-pushAsgn (suc X) α (bind ∷ Γ) with pushAsgn X α Γ
-pushAsgn (suc X) α (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
-pushAsgn (suc X) α (bind ∷ Γ) | nothing = nothing
-pushAsgn (suc X) α (addr ∷ Γ) with pushAsgn (suc X) α Γ
-pushAsgn (suc X) α (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
-pushAsgn (suc X) α (addr ∷ Γ) | nothing = nothing
-pushAsgn (suc X) α (nuBind R ∷ Γ) with pushAsgn (suc X) α Γ
-pushAsgn (suc X) α (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
-pushAsgn (suc X) α (nuBind R ∷ Γ) | nothing = nothing
+pushNil : ℕ → Addr → Maybe Ctxᵗ
+pushNil zero α = just (asgn α ∷ [])
+pushNil (suc X) α = nothing
 
--- `popAsgn` is the functional form of the pop judgment: no rule passes
--- through a crossing assignment, so a `suc X` step demands a binder.
-popAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
-popAsgn X α [] = nothing
-popAsgn zero α (asgn β ∷ Γ) with α ≟ᵃ β
-popAsgn zero α (asgn β ∷ Γ) | yes _ = just Γ
-popAsgn zero α (asgn β ∷ Γ) | no _ = nothing
-popAsgn zero α (bind ∷ Γ) = nothing
-popAsgn (suc X) α (asgn β ∷ Γ) = nothing
-popAsgn (suc X) α (bind ∷ Γ) with popAsgn X α Γ
-popAsgn (suc X) α (bind ∷ Γ) | just Γ′ = just (bind ∷ Γ′)
-popAsgn (suc X) α (bind ∷ Γ) | nothing = nothing
-popAsgn X α (addr ∷ Γ) with popAsgn X α Γ
-popAsgn X α (addr ∷ Γ) | just Γ′ = just (addr ∷ Γ′)
-popAsgn X α (addr ∷ Γ) | nothing = nothing
-popAsgn X α (nuBind R ∷ Γ) with popAsgn X α Γ
-popAsgn X α (nuBind R ∷ Γ) | just Γ′ = just (nuBind R ∷ Γ′)
-popAsgn X α (nuBind R ∷ Γ) | nothing = nothing
+pushOnTop : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+pushOnTop zero α Γ = just (asgn α ∷ Γ)
+pushOnTop (suc X) α Γ = nothing
+
+mutual
+  pushAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+  pushAsgn X α [] = pushNil X α
+  pushAsgn X α (asgn β ∷ Γ) = pushOverAsgn X α β Γ
+  pushAsgn X α (bind ∷ Γ) = pushOverBind X α Γ
+  pushAsgn X α (addr ∷ Γ) = pushOnTop X α (addr ∷ Γ)
+  pushAsgn X α (nuBind R ∷ Γ) = pushOnTop X α (nuBind R ∷ Γ)
+
+  pushOverAsgn : ℕ → Addr → Addr → Ctxᵗ → Maybe Ctxᵗ
+  pushOverAsgn zero α β Γ = just (asgn α ∷ asgn β ∷ Γ)
+  pushOverAsgn (suc X) α β Γ = underJust (asgn β ∷_) (pushAsgn X α Γ)
+
+  pushOverBind : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+  pushOverBind zero α Γ = just (asgn α ∷ bind ∷ Γ)
+  pushOverBind (suc X) (lvl ℓ) Γ = underJust (bind ∷_) (pushAsgn X (lvl ℓ) Γ)
+  pushOverBind (suc X) (bnd zero) Γ = nothing
+  pushOverBind (suc X) (bnd (suc i)) Γ =
+    underJust (bind ∷_) (pushAsgn X (bnd i) Γ)
+
+mutual
+  popAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+  popAsgn X α [] = nothing
+  popAsgn X α (asgn β ∷ Γ) = popTop X α β Γ
+  popAsgn X α (bind ∷ Γ) = popUnderBind X α Γ
+  popAsgn X α (addr ∷ Γ) = nothing
+  popAsgn X α (nuBind R ∷ Γ) = nothing
+
+  popTop : ℕ → Addr → Addr → Ctxᵗ → Maybe Ctxᵗ
+  popTop zero α β Γ with α ≟ᵃ β
+  popTop zero α β Γ | yes _ = just Γ
+  popTop zero α β Γ | no _ = nothing
+  popTop (suc X) α β Γ = nothing
+
+  popUnderBind : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+  popUnderBind zero α Γ = nothing
+  popUnderBind (suc X) (lvl ℓ) Γ = underJust (bind ∷_) (popAsgn X (lvl ℓ) Γ)
+  popUnderBind (suc X) (bnd zero) Γ = nothing
+  popUnderBind (suc X) (bnd (suc i)) Γ =
+    underJust (bind ∷_) (popAsgn X (bnd i) Γ)
+
 
 ------------------------------------------------------------------------
 -- The interior context of a conversion: `⟨c⟩(Γ)`, walking the elements

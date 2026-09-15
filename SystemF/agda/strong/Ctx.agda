@@ -127,14 +127,14 @@ data _▷_:=_⇒_ : Ctxᵗ → ℕ → Addr → Ctxᵗ → Set where
              → (bind ∷ Γ) ▷ suc X := bnd (suc i) ⇒ (bind ∷ Γ′)
   pop-bind-l : Γ ▷ X := lvl ℓ ⇒ Γ′
              → (bind ∷ Γ) ▷ suc X := lvl ℓ ⇒ (bind ∷ Γ′)
-  pop-addr-b : Γ ▷ X := bnd i ⇒ Γ′
-             → (addr ∷ Γ) ▷ X := bnd (suc i) ⇒ (addr ∷ Γ′)
-  pop-addr-l : Γ ▷ X := lvl ℓ ⇒ Γ′
-             → (addr ∷ Γ) ▷ X := lvl ℓ ⇒ (addr ∷ Γ′)
-  pop-nu-b   : Γ ▷ X := bnd i ⇒ Γ′
-             → (nuBind R ∷ Γ) ▷ X := bnd (suc i) ⇒ (nuBind R ∷ Γ′)
-  pop-nu-l   : Γ ▷ X := lvl ℓ ⇒ Γ′
-             → (nuBind R ∷ Γ) ▷ X := lvl ℓ ⇒ (nuBind R ∷ Γ′)
+-- Only BINDER ASSIGNMENTS are transparent.  Address entries need not
+-- be: a crossing assignment is always pushed above the address binders
+-- in scope when it is created (a `Λ` pushes `asgn` above its own
+-- `addr`; a `ν`'s entry is introduced at a boundary's EXTERIOR, with
+-- the conversion's crossings inside it), so no derivation needs to pop
+-- one from underneath.  Dropping those rules makes the judgment
+-- DETERMINISTIC in both directions, which is what makes the interior
+-- walk a function (see proof.Interior).
 
 ------------------------------------------------------------------------
 -- Well-formed types: every variable names an address (either entry

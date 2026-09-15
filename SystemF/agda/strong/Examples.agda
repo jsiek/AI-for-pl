@@ -42,11 +42,11 @@ module §6 where
 
   -- TyBeta's conversion, as the notes write it:
   --   ((seal{-X:=α} ∷ id(X)) → (unseal{+X:=α} ∷ id(ℕ))) ∷ id(ℕ→ℕ)
-  c-bnd : Conv
-  c-bnd = ((seal 0 (bnd 0) ∷ᶜ id (` 0)) ↦ (unseal 0 (bnd 0) ∷ᶜ id `ℕ))
+  c-bse : Conv
+  c-bse = ((seal 0 (bse 0) ∷ᶜ id (` 0)) ↦ (unseal 0 (bse 0) ∷ᶜ id `ℕ))
             ∷ᶜ id (`ℕ ⇒ `ℕ)
 
-  builder-agrees : revTy zero (bnd zero) `ℕ (` 0 ⇒ ` 0) ≡ c-bnd
+  builder-agrees : revTy zero (bse zero) `ℕ (` 0 ⇒ ` 0) ≡ c-bse
   builder-agrees = refl
 
   -- the same conversion after the allocation discharges α to level 0
@@ -121,14 +121,14 @@ module K where
 
   -- the notes' c_ZX and c_X, and the builder agrees with both
   c_ZX : Conv
-  c_ZX = ((hide 1 (bnd 1) ∷ᶜ id (` 0)) ↦ (unseal 1 (bnd 1) ∷ᶜ id `ℕ))
+  c_ZX = ((hide 1 (bse 0) ∷ᶜ id (` 0)) ↦ (unseal 1 (bse 0) ∷ᶜ id `ℕ))
            ∷ᶜ id (` 0 ⇒ `ℕ)
 
   c_X : Conv
-  c_X = ((seal 0 (bnd 0) ∷ᶜ id (` 0)) ↦ (all c_ZX ∷ᶜ id (`∀ (` 0 ⇒ `ℕ))))
+  c_X = ((seal 0 (bse 0) ∷ᶜ id (` 0)) ↦ (all c_ZX ∷ᶜ id (`∀ (` 0 ⇒ `ℕ))))
           ∷ᶜ id (`ℕ ⇒ `∀ (` 0 ⇒ `ℕ))
 
-  builder-agrees : revTy zero (bnd zero) `ℕ Bₓ ≡ c_X
+  builder-agrees : revTy zero (bse zero) `ℕ Bₓ ≡ c_X
   builder-agrees = refl
 
   -- after Alloc (α ≔ ℕ at level 0)
@@ -281,7 +281,7 @@ module §14 where
 
   -- X ∉ B, so the builder takes the MISS equation: one identity
   -- crossing, exactly as the notes write `+X(B) = id{+X:=α} ∷ id(B)`.
-  miss-agrees : revTy zero (bnd zero) `ℕ B ≡ show 0 (bnd 0) ∷ᶜ id B
+  miss-agrees : revTy zero (bse zero) `ℕ B ≡ show 0 (bse 0) ∷ᶜ id B
   miss-agrees = refl
 
   cᴮ : Conv                   -- after Alloc
@@ -349,14 +349,14 @@ module §14 where
   -- with the fresh crossing FIRST and the hoisted one reindexed to the
   -- slot the fresh name vacates.
   inst-agrees :
-    instReveal zero (bnd zero) `𝔹 d
-      ≡ ((seal 0 (bnd 0) ∷ᶜ id (` 0)) ↦ (unseal 0 (bnd 0) ∷ᶜ id `𝔹))
+    instReveal zero (bse zero) `𝔹 d
+      ≡ ((seal 0 (bse 0) ∷ᶜ id (` 0)) ↦ (unseal 0 (bse 0) ∷ᶜ id `𝔹))
           ∷ᶜ show 0 (lvl 0) ∷ᶜ id (`𝔹 ⇒ `𝔹)
   inst-agrees = refl
 
   step-tywrap :
     [] ∣ ([] ∥ []) ⊢ after-beta • (` 0 ⇒ ` 0) [ `𝔹 ]
       —→ ν `𝔹ᴿ ∙ ((ƛ ` 0 ∙ (((crossΛ W ∀ZZ→Z) • (` 0 ⇒ ` 0) [ ` 0 ]) · ` 0))
-                    ⟨ instReveal zero (bnd zero) `𝔹 d ⟩)
+                    ⟨ instReveal zero (bse zero) `𝔹 d ⟩)
       ⊣ []
   step-tywrap = TyWrap val-after-beta refl quote-𝔹

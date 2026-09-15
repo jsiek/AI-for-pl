@@ -65,14 +65,14 @@ substAddrᴹ σ (# b)       = # b
 substAddrᴹ σ (M ⊕[ p ] N) = substAddrᴹ σ M ⊕[ p ] substAddrᴹ σ N
 substAddrᴹ σ (ƛ A ∙ N)   = ƛ A ∙ substAddrᴹ σ N
 substAddrᴹ σ (L · M)     = substAddrᴹ σ L · substAddrᴹ σ M
-substAddrᴹ σ (Λ V)       = Λ (substAddrᴹ (extsᵃ σ) V)
+substAddrᴹ σ (Λ V)       = Λ (substAddrᴹ (extsᵃᵉ σ) V)
 substAddrᴹ σ (L • B [ A ]) = substAddrᴹ σ L • B [ A ]
-substAddrᴹ σ (ν R ∙ M)   = ν substᴿ σ R ∙ substAddrᴹ (extsᵃ σ) M
+substAddrᴹ σ (ν R ∙ M)   = ν substᴿᵉ σ R ∙ substAddrᴹ (extsᵃᵉ σ) M
 substAddrᴹ σ (M ⟨ c ⟩)   = substAddrᴹ σ M ⟨ substAddrConv σ c ⟩
 
 -- Discharge the innermost address binder to the address β.
 _[_]ᵃᴹ : Term → Addr → Term
-M [ β ]ᵃᴹ = substAddrᴹ (inst₀ β) M
+M [ β ]ᵃᴹ = substAddrᴹ (instᵉ₀ β) M
 
 ------------------------------------------------------------------------
 -- Term-variable renaming

@@ -46,7 +46,7 @@ data _∣_⊢_—→_⊣_ : Store → Ctxᵗ → Term → Term → Store → Set
   TyBeta : ∀ {Σ Δ V B A R}
     → Value V → Σ ∣ Δ ⊢⌊ A ⌋ R
     → Σ ∣ Δ ⊢ (Λ V) • B [ A ]
-        —→ ν R ∙ (V ⟨ revTy zero (bnd zero) A B ⟩) ⊣ Σ
+        —→ ν R ∙ (V ⟨ revTy zero (bse zero) A B ⟩) ⊣ Σ
 
   -- Immediate discharge: the fresh address is the next store level, and
   -- the snoc disturbs no existing level.
@@ -65,7 +65,7 @@ data _∣_⊢_—→_⊣_ : Store → Ctxᵗ → Term → Term → Store → Set
     → Value ((Λ V) ⟨ c ⟩)
     → allView c ≡ just d → Σ ∣ Δ ⊢⌊ A ⌋ R
     → Σ ∣ Δ ⊢ ((Λ V) ⟨ c ⟩) • B [ A ]
-        —→ ν R ∙ (V ⟨ instReveal zero (bnd zero) A d ⟩) ⊣ Σ
+        —→ ν R ∙ (V ⟨ instReveal zero (bse zero) A d ⟩) ⊣ Σ
 
   Merge : ∀ {Σ Δ M c d}
     → Value (M ⟨ c ⟩)

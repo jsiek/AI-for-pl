@@ -418,15 +418,18 @@ allElts (ĉ ∷ ĉs) = consAllE (all⁺ ĉ) (allElts ĉs)
 ------------------------------------------------------------------------
 -- Address substitution over conversions (binder discharge at `Alloc`)
 ------------------------------------------------------------------------
+-- `Alloc` discharges a BASE binder — the `ν`'s — into a store level, so
+-- this is the base family: it replaces `bse`, and `all`, which binds on
+-- the stack, does not extend it.
 
 mutual
   substAddrElt : SubstAddr → ConvElt → ConvElt
-  substAddrElt σ (seal X α)   = seal X (substAddr σ α)
-  substAddrElt σ (unseal X α) = unseal X (substAddr σ α)
-  substAddrElt σ (hide X α)   = hide X (substAddr σ α)
-  substAddrElt σ (show X α)   = show X (substAddr σ α)
+  substAddrElt σ (seal X α)   = seal X (substAddrᵉ σ α)
+  substAddrElt σ (unseal X α) = unseal X (substAddrᵉ σ α)
+  substAddrElt σ (hide X α)   = hide X (substAddrᵉ σ α)
+  substAddrElt σ (show X α)   = show X (substAddrᵉ σ α)
   substAddrElt σ (s ↦ t)    = substAddrConv σ s ↦ substAddrConv σ t
-  substAddrElt σ (all s)    = all (substAddrConv (extsᵃ σ) s)
+  substAddrElt σ (all s)    = all (substAddrConv σ s)
 
   substAddrConv : SubstAddr → Conv → Conv
   substAddrConv σ (id A)    = id A

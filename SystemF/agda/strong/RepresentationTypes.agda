@@ -88,6 +88,9 @@ renᵃᵉ ρ (bse j) = bse (ρ j)
 ⇑ᵃ : Addr → Addr
 ⇑ᵃ = renᵃ suc
 
+⇑ᵃᵉ : Addr → Addr
+⇑ᵃᵉ = renᵃᵉ suc
+
 extᵇ : Renameᵇ → Renameᵇ
 extᵇ ρ zero    = zero
 extᵇ ρ (suc i) = suc (ρ i)
@@ -163,6 +166,10 @@ substᴿᵉ σ `ℕᴿ      = `ℕᴿ
 substᴿᵉ σ `𝔹ᴿ      = `𝔹ᴿ
 substᴿᵉ σ (R ⇒ᴿ S) = substᴿᵉ σ R ⇒ᴿ substᴿᵉ σ S
 substᴿᵉ σ (`∀ᴿ R)  = `∀ᴿ (substᴿᵉ σ R)
+
+extsᵃᵉ : SubstAddr → SubstAddr
+extsᵃᵉ σ zero    = bse zero
+extsᵃᵉ σ (suc j) = ⇑ᵃᵉ (σ j)
 
 instᵉ₀ : Addr → SubstAddr
 instᵉ₀ β zero    = β

@@ -3868,3 +3868,51 @@ canonicity should follow by: a value's type is never a variable, so a
 leading `unseal` is impossible; a leading `seal` sends the target to a
 variable (`applies-var`); everything else preserves shape.  The
 remaining work is `pop-unique` plus that `after-seal` induction.
+
+## 2026-09-15: PROGRESS IS PROVEN — canonicity discharged
+
+`proof/ConvCanonicity.agda` closes the parameter, and
+`strong/Progress.agda` states progress unconditionally:
+
+    progress : Σ ∣ Δ ∣ [] ⊢ M ⦂ A
+             → Value M ⊎ Σ[ N ] Σ[ Σ′ ] (Σ ∣ Δ ⊢ M —→ N ⊣ Σ′)
+
+The argument, in two halves.
+
+AFTER AN ADDITION (`after-add`).  A `seal` or a `hide` ADDS the newest
+crossing assignment, leaving the running type a type VARIABLE.  From
+there the target stays a variable, because an element that REMOVES an
+assignment is forced by `pop-unique` to the very address the adder
+created, and then one of two things blocks it:
+
+  * same kind (seal/unseal, hide/show) — `fuse` cancels the pair, so
+    `NF` is contradicted;
+  * cross kind (seal/show, hide/unseal) — the NAMES disagree, because
+    `shiftAtᵗ X′ X` is never `X′` (`shiftAt-≢`), so a `show` cannot
+    follow a `seal` and an `unseal` cannot follow a `hide`.
+
+A `↦` or `all` cannot follow at all: their sources are arrows and
+universals, not variables.  The `AfterAdd` relation carries exactly the
+difference between the two adders — a seal makes the running name EQUAL
+to the new assignment's, a hide makes it DIFFERENT — which is what
+selects the blocking mechanism.
+
+SHAPE PRESERVATION (`canon-fun`, `canon-all`, `canon-ground`).  From a
+non-variable source the crossings and the structural elements preserve
+the type's shape, so `arrElts`/`allElts`/`base` stay defined; the only
+escape is a `seal`, which lands in the first half and yields
+`inert-var`.  A simple value's type is never a variable
+(`simple-kind`), which is what starts the induction — and, at a ground
+type, also supplies the `Literal` that `Const` needs.
+
+Two refactors made the assembly possible: `arr`/`allView` are now
+`arrFrom`/`allFrom` applied to their scrutinees, and `arrElts`/`allElts`
+fold with `consArr`/`consAllE`, so a proof that knows a scrutinee can
+REWRITE with it (a `with` is stuck).  This also simplified the
+inversion lemmas in `proof/Canonical`.
+
+Correcting the record: my 2026-09-14 note said canonicity "is NOT
+provable for arbitrary typed normal conversions".  That was wrong, and
+the reason is the stack discipline — the shape I had in mind,
+`seal ∷ hide ∷ unseal ∷ id (C ⇒ D)`, is exactly what `after-add`'s
+cross-kind case refutes.

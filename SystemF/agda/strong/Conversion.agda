@@ -348,42 +348,54 @@ all⁺ (s ↦ t)      = nothing
 all⁺ (all s)      = just (elts s)
 
 -- Fold over the element list; the contravariant side reverses.
+consArr : Maybe (List ConvElt) → Maybe (List ConvElt)
+  → Maybe (List ConvElt × List ConvElt)
+  → Maybe (List ConvElt × List ConvElt)
+consArr (just ls) (just rs) (just (Ls , Rs)) = just (Ls ++ ls , rs ++ Rs)
+consArr (just ls) (just rs) nothing = nothing
+consArr (just ls) nothing q = nothing
+consArr nothing r q = nothing
+
 arrElts : List ConvElt → Maybe (List ConvElt × List ConvElt)
 arrElts [] = just ([] , [])
-arrElts (ĉ ∷ ĉs) with arr⁻ ĉ | arr⁺ ĉ | arrElts ĉs
-arrElts (ĉ ∷ ĉs) | just ls | just rs | just (Ls , Rs) =
-  just (Ls ++ ls , rs ++ Rs)
-arrElts (ĉ ∷ ĉs) | nothing | _ | _ = nothing
-arrElts (ĉ ∷ ĉs) | just ls | nothing | _ = nothing
-arrElts (ĉ ∷ ĉs) | just ls | just rs | nothing = nothing
+arrElts (ĉ ∷ ĉs) = consArr (arr⁻ ĉ) (arr⁺ ĉ) (arrElts ĉs)
+
+consAllE : Maybe (List ConvElt) → Maybe (List ConvElt)
+  → Maybe (List ConvElt)
+consAllE (just es) (just Es) = just (es ++ Es)
+consAllE (just es) nothing = nothing
+consAllE nothing Es = nothing
 
 allElts : List ConvElt → Maybe (List ConvElt)
 allElts [] = just []
-allElts (ĉ ∷ ĉs) with all⁺ ĉ | allElts ĉs
-allElts (ĉ ∷ ĉs) | just es | just Es = just (es ++ Es)
-allElts (ĉ ∷ ĉs) | nothing | _ = nothing
-allElts (ĉ ∷ ĉs) | just es | nothing = nothing
+allElts (ĉ ∷ ĉs) = consAllE (all⁺ ĉ) (allElts ĉs)
 
 -- `arr` takes the INTERIOR domain A₀ from the λ annotation at its use
 -- site: the contravariant component terminates at A₀, in its own
 -- coordinates, so no renaming is involved.
+-- Assembled from the two scrutinees by a plain function, so that a
+-- proof that knows them can REWRITE (the `with` form is stuck).
+arrFrom : Ty → Maybe (List ConvElt × List ConvElt) → Ty → Maybe (Conv × Conv)
+arrFrom A₀ (just (Ls , Rs)) (C ⇒ D) = just (attach Ls A₀ , attach Rs D)
+arrFrom A₀ (just p) (` X) = nothing
+arrFrom A₀ (just p) `ℕ = nothing
+arrFrom A₀ (just p) `𝔹 = nothing
+arrFrom A₀ (just p) (`∀ B) = nothing
+arrFrom A₀ nothing T = nothing
+
 arr : Ty → Conv → Maybe (Conv × Conv)
-arr A₀ c with arrElts (elts c) | target c
-arr A₀ c | just (Ls , Rs) | C ⇒ D = just (attach Ls A₀ , attach Rs D)
-arr A₀ c | just p | ` X = nothing
-arr A₀ c | just p | `ℕ = nothing
-arr A₀ c | just p | `𝔹 = nothing
-arr A₀ c | just p | `∀ B = nothing
-arr A₀ c | nothing | _ = nothing
+arr A₀ c = arrFrom A₀ (arrElts (elts c)) (target c)
+
+allFrom : Maybe (List ConvElt) → Ty → Maybe Conv
+allFrom (just Es) (`∀ B) = just (attach Es B)
+allFrom (just Es) (` X) = nothing
+allFrom (just Es) `ℕ = nothing
+allFrom (just Es) `𝔹 = nothing
+allFrom (just Es) (C ⇒ D) = nothing
+allFrom nothing T = nothing
 
 allView : Conv → Maybe Conv
-allView c with allElts (elts c) | target c
-allView c | just Es | `∀ B = just (attach Es B)
-allView c | just Es | ` X = nothing
-allView c | just Es | `ℕ = nothing
-allView c | just Es | `𝔹 = nothing
-allView c | just Es | C ⇒ D = nothing
-allView c | nothing | _ = nothing
+allView c = allFrom (allElts (elts c)) (target c)
 
 -- `base` is the view `Const` uses: a literal ignores identity
 -- crossings.

@@ -4,11 +4,11 @@
 -- parameter: at a boundary over a SIMPLE value, the conversion is
 -- INERT (so the boundary is a value) or ACTIVE — the body is a literal
 -- the `base` view sees through, and `Const` fires.  That is the
--- canonicity obligation notes-v8.md flags under "Conversion views".  It
--- is NOT provable for arbitrary typed normal conversions — see
--- notes/probes/V8CanonicityProbe.agda for a typed normal conversion
--- with a renaming element at a ground source and an arrow target — so
--- it needs an invariant on the conversions reduction can REACH.
+-- canonicity obligation notes-v8.md flags under "Conversion views";
+-- `proof.ConvCanonicity.canonicity` PROVES it, and `strong.Progress`
+-- instantiates this module with it.  The parameter stays so that the
+-- case analysis here and the canonicity argument there remain
+-- separable.
 module strong.proof.Progress where
 
 open import Data.Nat using (ℕ; zero; suc)

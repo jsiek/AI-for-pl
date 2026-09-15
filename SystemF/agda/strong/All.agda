@@ -23,6 +23,10 @@ open import strong.Examples
 open import strong.proof.Interior
 open import strong.proof.Canonical
 open import strong.proof.Progress
+open import strong.proof.ConvCanonicity
+
+-- the main theorems
+open import strong.Progress
 -- open import strong.TypeSubst
 -- open import strong.Residual
 

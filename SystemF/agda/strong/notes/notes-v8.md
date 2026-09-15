@@ -810,8 +810,26 @@ If `Σ ok` and `Σ;∅ ⊢ M : A`, then either `Value M` or there exist `N`,
 
 ## Preservation
 
-If `Σ;Γ ok`, `ty(Γ) = Γ`, `Σ;Γ ⊢ M : A`, and `Σ;Γ ⊢ M —→ N ⊣ Σ′`, then
-`Σ′ ⊇ Σ` and `Σ′;Γ ⊢ N : A`.
+If `Σ ok`, `Γ` FLAT, `Γ` name-functional, `Σ;Γ ⊢ M : A`, and
+`Σ;Γ ⊢ M —→ N ⊣ Σ′`, then `Σ′ ok`, `Σ′ ⊇ Σ` and `Σ′;Γ ⊢ N : A`.
+
+Mechanized as `proof.Preservation.Main.preserve` (and `preserve-many`
+along a run).  Three hypotheses on the context, each preserved by the
+only rule that changes it, `ξ-⟨⟩`:
+
+  * `Σ ok` — `Beta`'s substitution needs a stored representation to be
+    base-closed; `Alloc` re-establishes it for the extended store.
+  * `Γ` FLAT — no binder assignment `X:α`, empty base.  True of every
+    reduction context, since only conversion typing pushes a binder
+    assignment (and `all` pushes it around its NESTED conversion) and
+    there is no reduction under `Λ` or `ν`.  This is what lets `Alloc`
+    store its representation.
+  * `Γ` name-functional — one name per address, which makes the
+    read-back single-valued (`Merge`, `Wrap`, `TyWrap`).
+
+`Σ′ ⊇ Σ` is `step-⊑`: every rule but `Alloc` keeps the store and
+`Alloc` snocs.  That is what lets a congruence rule retype the sibling
+it did not reduce.
 
 ## Determinism
 

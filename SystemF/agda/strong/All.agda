@@ -28,6 +28,7 @@ open import strong.proof.CompositionTyping
 open import strong.proof.PreserveMerge
 open import strong.proof.PreserveConst
 open import strong.proof.ArrTyping
+open import strong.proof.PreserveWrap
 
 -- the main theorems
 open import strong.Progress

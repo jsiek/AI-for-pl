@@ -1,57 +1,35 @@
 module strong.proof.PreserveWrap where
 
--- Strong System F v7 — preservation for `Wrap`.
+-- Strong System F v8 — preservation for `Wrap`.
 --
---   νΘ,χ[ƛA₁∙N | c] · W  -→  νΘ,χ[ (ƛA₁∙N) · ν∅,-χ[W′|c₁] | c₂ ]
+--   ((λx:A₀. N) ⟨ c ⟩) · W  -→  ((λx:A₀. N) · (W ⟨ c₁ ⟩)) ⟨ c₂ ⟩
+--                                       if arr A₀ c = (c₁ , c₂)
 --
--- with arr A₁ c = (c₁ , c₂) and W′ the argument weakened under the store.
--- The three pieces this was blocked on, in order of their repair:
---
---   * `χ-invert` (the merged-entry context): the dual scope leads from the
---     interior back to ΔΘ EXACTLY, which is where c₁ and W′ live.
---   * the reflexive terminator: `conv-fun` states its components at the
---     interior and the seam, and `tail-id` makes the seam the exterior.
---   * `arr` takes the interior domain FROM THE λ, so the bare-`id` case's
---     contravariant component is `id A₁`, which retypes by symmetry.
---
--- After those, the case is assembling `⊢ν` twice.
+-- `arr` splits the conversion; `arr-typing` types both halves, and the
+-- CONTRAVARIANT one ends at the λ's own annotation, which is exactly
+-- the type the argument's new boundary must deliver.  In v7 this case
+-- additionally needed the dual scope `-χ` and the argument weakened
+-- under the store.
 
-open import Data.List using ([]; _∷_; length)
+open import Data.List using (List; [])
 open import Data.Maybe using (just)
 open import Data.Product using (_×_; _,_)
-open import Relation.Binary.PropositionalEquality using (_≡_; sym)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong.Types
 open import strong.Ctx
 open import strong.Conversion
-open import strong.CtxMorph
+open import strong.ConversionReduction using (arr)
 open import strong.Terms
-open import strong.TermSubst
-open import strong.Reduction
-open import strong.proof.ScopeDual using (χ-invert)
-open import strong.proof.AnchorWeaken using (wk-⊢; store-wk)
 open import strong.proof.ArrTyping using (arr-typing)
 
-preserve-Wrap : ∀ {Δ Θ χ A N c W c₁ c₂ B}
-  → Δ ok
-  → Value (ν Θ , χ [ ƛ A ∙ N ∣ c ])
-  → Value W
-  → arr A c ≡ just (c₁ , c₂)
-  → Δ ∣ [] ⊢ (ν Θ , χ [ ƛ A ∙ N ∣ c ]) · W ⦂ B
-  → Δ ∣ [] ⊢ ν Θ , χ
-       [ (ƛ A ∙ N) · (ν [] , dual χ
-         [ renAnchᴹ (shiftAnchor (length Θ)) W ∣ c₁ ])
-       ∣ c₂ ] ⦂ B
-preserve-Wrap ctx-ok bval wval arr-eq
-  (⊢· (⊢ν store scope nf (⊢ƛ wfA ⊢N) conv) ⊢W)
-  with arr-typing conv nf arr-eq | store-wk store
-preserve-Wrap ctx-ok bval wval arr-eq
-  (⊢· (⊢ν {Θ = Θ} store scope nf (⊢ƛ wfA ⊢N) conv) ⊢W)
-  | c₁-ty , c₂-ty , nf₁ , nf₂ | P , wk , len-eq
-  rewrite sym len-eq =
-  ⊢ν store scope nf₂
-    (⊢· (⊢ƛ wfA ⊢N)
-        (⊢ν store[] (χ-invert scope) nf₁
-            (wk-⊢ wk ⊢W)
-            c₁-ty))
-    c₂-ty
+preserve-Wrap : ∀ {Sg Δ A₀ N c W c₁ c₂ B}
+  → NameFn Δ
+  → arr A₀ c ≡ just (c₁ , c₂)
+  → Sg ∣ Δ ∣ [] ⊢ ((ƛ A₀ ∙ N) ⟨ c ⟩) · W ⦂ B
+  → Sg ∣ Δ ∣ [] ⊢ ((ƛ A₀ ∙ N) · (W ⟨ c₁ ⟩)) ⟨ c₂ ⟩ ⦂ B
+preserve-Wrap nf arr-eq (⊢· (⊢⟨⟩ nf-c (⊢ƛ wfA ⊢N) conv) ⊢W)
+  with arr-typing nf conv arr-eq
+preserve-Wrap nf arr-eq (⊢· (⊢⟨⟩ nf-c (⊢ƛ wfA ⊢N) conv) ⊢W)
+  | ty₁ , ty₂ , nf₁ , nf₂ =
+  ⊢⟨⟩ nf₂ (⊢· (⊢ƛ wfA ⊢N) (⊢⟨⟩ nf₁ ⊢W ty₁)) ty₂

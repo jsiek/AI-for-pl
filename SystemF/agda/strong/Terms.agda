@@ -61,13 +61,22 @@ data Literal : Term → Set where
 -- value: in evaluation position it discharges.  A literal boundary with
 -- a `base`-defined conversion is not a value: it steps by `Const`.
 
-data Applicable : Conv → Set where
-  applies-arr : ∀ A₀ {c c₁ c₂}
-    → arr A₀ c ≡ just (c₁ , c₂) → Applicable c
-  applies-all : ∀ {c d}
-    → allView c ≡ just d → Applicable c
-  applies-var : ∀ {c X}
-    → target c ≡ ` X → Applicable c
+-- INERT conversions, in the sense of Siek and Chen's parameterized
+-- cast calculi (see the PDF in this directory): a conversion that is
+-- PART OF A VALUE.  It is inert exactly when an elimination can still
+-- consume it — `arr` splits it at an application, `allView` at a type
+-- application — or when its target is a type variable, the SEALED case
+-- where no elimination applies and the boundary is genuinely opaque
+-- until a later composition cancels the seal.  The complementary
+-- ACTIVE conversions are the ones a step consumes on the spot: `base`
+-- sees through a ground one and `Const` discards it.
+data Inert : Conv → Set where
+  inert-arr : ∀ A₀ {c c₁ c₂}
+    → arr A₀ c ≡ just (c₁ , c₂) → Inert c
+  inert-all : ∀ {c d}
+    → allView c ≡ just d → Inert c
+  inert-var : ∀ {c X}
+    → target c ≡ ` X → Inert c
 
 mutual
   data Simple : Term → Set where
@@ -79,7 +88,7 @@ mutual
   data Value : Term → Set where
     Vs  : ∀ {V} → Simple V → Value V
     V⟨⟩ : ∀ {V c}
-      → Simple V → NF c → Applicable c
+      → Simple V → NF c → Inert c
       → Value (V ⟨ c ⟩)
 
 ------------------------------------------------------------------------

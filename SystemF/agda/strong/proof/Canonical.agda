@@ -147,7 +147,7 @@ allView-headAll ((s ↦ t) ∷ᶜ c) ()
 allView-headAll (all s ∷ᶜ c) eq = tt
 
 ------------------------------------------------------------------------
--- Applicable at a given target shape
+-- Inert at a given target shape
 ------------------------------------------------------------------------
 
 -- Shapes are mutually exclusive.
@@ -169,28 +169,28 @@ var-not-all ()
 var-not-ground : ∀ {X} → GroundShape (` X) → ⊥
 var-not-ground ()
 
-applicable-arr : ∀ {c} → Applicable c → FunShape (target c)
+inert-arr-view : ∀ {c} → Inert c → FunShape (target c)
   → ∀ A₀ → Σ[ c₁ ∈ Conv ] Σ[ c₂ ∈ Conv ] (arr A₀ c ≡ just (c₁ , c₂))
-applicable-arr {c = c} (applies-arr A′ eq) sh A₀ = arr-any {c = c} A₀ eq
-applicable-arr {c = c} (applies-all eq) sh A₀ =
+inert-arr-view {c = c} (inert-arr A′ eq) sh A₀ = arr-any {c = c} A₀ eq
+inert-arr-view {c = c} (inert-all eq) sh A₀ =
   ⊥-elim (fun-not-all sh (allView-target {c = c} eq))
-applicable-arr {c = c} (applies-var veq) sh A₀ =
+inert-arr-view {c = c} (inert-var veq) sh A₀ =
   ⊥-elim (var-not-fun (subst FunShape veq sh))
 
-applicable-all : ∀ {c} → Applicable c → AllShape (target c)
+inert-all-view : ∀ {c} → Inert c → AllShape (target c)
   → Σ[ d ∈ Conv ] (allView c ≡ just d)
-applicable-all {c = c} (applies-arr A′ eq) sh =
+inert-all-view {c = c} (inert-arr A′ eq) sh =
   ⊥-elim (fun-not-all (arr-target {c = c} eq) sh)
-applicable-all (applies-all eq) sh = _ , eq
-applicable-all {c = c} (applies-var veq) sh =
+inert-all-view (inert-all eq) sh = _ , eq
+inert-all-view {c = c} (inert-var veq) sh =
   ⊥-elim (var-not-all (subst AllShape veq sh))
 
-applicable-ground : ∀ {c} → Applicable c → GroundShape (target c) → ⊥
-applicable-ground {c = c} (applies-arr A′ eq) sh =
+inert-ground : ∀ {c} → Inert c → GroundShape (target c) → ⊥
+inert-ground {c = c} (inert-arr A′ eq) sh =
   fun-not-ground (arr-target {c = c} eq) sh
-applicable-ground {c = c} (applies-all eq) sh =
+inert-ground {c = c} (inert-all eq) sh =
   all-not-ground (allView-target {c = c} eq) sh
-applicable-ground {c = c} (applies-var veq) sh =
+inert-ground {c = c} (inert-var veq) sh =
   var-not-ground (subst GroundShape veq sh)
 
 ------------------------------------------------------------------------
@@ -324,7 +324,7 @@ canonical-⇒ : ∀ {Sg Δ L A B} → Value L → Sg ∣ Δ ∣ [] ⊢ L ⦂ A �
        ((L ≡ (ƛ A₁ ∙ N) ⟨ c ⟩) × (arr A₁ c ≡ just (c₁ , c₂))))
 canonical-⇒ (Vs simple) ⊢L = inj₁ (simple-fun simple ⊢L (fun-shape _ _))
 canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
-  with applicable-arr {c = c} app
+  with inert-arr-view {c = c} app
          (subst FunShape (sym (conv-target conv)) (fun-shape A B)) `ℕ
 canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
   | _ , _ , probe with simple-fun simple ⊢W (conv-fun-source conv probe)
@@ -340,7 +340,7 @@ canonical-∀ : ∀ {Sg Δ L B} → Value L → Sg ∣ Δ ∣ [] ⊢ L ⦂ `∀ 
        ((L ≡ (Λ V) ⟨ c ⟩) × (allView c ≡ just d)))
 canonical-∀ (Vs simple) ⊢L = inj₁ (simple-all simple ⊢L (all-shape _))
 canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv)
-  with applicable-all {c = c} app
+  with inert-all-view {c = c} app
          (subst AllShape (sym (conv-target conv)) (all-shape B))
 canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv) | d , all-eq
   with simple-all simple ⊢V (conv-all-source conv all-eq)

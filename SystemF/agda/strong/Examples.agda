@@ -68,10 +68,10 @@ module §6 where
                      nf-id irr-id
 
   val-bndry : Value ((ƛ ` 0 ∙ ` 0) ⟨ c-lvl ⟩)
-  val-bndry = V⟨⟩ Sƛ nf-c-lvl (applies-arr (` 0) refl)
+  val-bndry = V⟨⟩ Sƛ nf-c-lvl (inert-arr (` 0) refl)
 
   val-sealed-7 : Value (($ 7) ⟨ c₁ ⟩)
-  val-sealed-7 = V⟨⟩ S$ (nf-cons nf-seal nf-id irr-id) (applies-var refl)
+  val-sealed-7 = V⟨⟩ S$ (nf-cons nf-seal nf-id irr-id) (inert-var refl)
 
   -- the merge cancels the pair
   merge-cancels : c₁ ⨟ c₂ ≡ id `ℕ
@@ -160,10 +160,10 @@ module K where
                     nf-id irr-id
 
   val-bndry : Value ((ƛ ` 0 ∙ Λ (ƛ ` 0 ∙ ` 1)) ⟨ c_X⁰ ⟩)
-  val-bndry = V⟨⟩ Sƛ nf-c_X⁰ (applies-arr (` 0) refl)
+  val-bndry = V⟨⟩ Sƛ nf-c_X⁰ (inert-arr (` 0) refl)
 
   val-W₀ : Value W₀
-  val-W₀ = V⟨⟩ S$ (nf-cons nf-seal nf-id irr-id) (applies-var refl)
+  val-W₀ = V⟨⟩ S$ (nf-cons nf-seal nf-id irr-id) (inert-var refl)
 
   -- Beta's COLOR WRAP: crossing into Z's scope behind an identity
   -- conceal of the Λ's own bound address.
@@ -196,7 +196,7 @@ module K where
   val-after-beta =
     V⟨⟩ (SΛ (Vs Sƛ))
         (nf-cons (nf-all nf-c_ZX⁰) nf-id irr-id)
-        (applies-all refl)
+        (inert-all refl)
 
 ------------------------------------------------------------------------
 -- The two v7 failure configurations, as v8 REGRESSION TESTS
@@ -302,10 +302,10 @@ module §14 where
   W = idᶻ ⟨ c₁ ⟩
 
   val-W : Value W
-  val-W = V⟨⟩ (SΛ (Vs Sƛ)) (nf-cons nf-hide nf-id irr-id) (applies-all refl)
+  val-W = V⟨⟩ (SΛ (Vs Sƛ)) (nf-cons nf-hide nf-id irr-id) (inert-all refl)
 
   val-F : Value ((ƛ ∀ZZ→Z ∙ f-body) ⟨ cᴮ ⟩)
-  val-F = V⟨⟩ Sƛ (nf-cons nf-show nf-id irr-id) (applies-arr ∀ZZ→Z refl)
+  val-F = V⟨⟩ Sƛ (nf-cons nf-show nf-id irr-id) (inert-arr ∀ZZ→Z refl)
 
   -- Beta's color wrap sends W across the inner Λβ,Y.
   after-beta : Term
@@ -332,7 +332,7 @@ module §14 where
   -- Merge/TyWrap until this Λ is instantiated.
   val-after-beta : Value after-beta
   val-after-beta =
-    V⟨⟩ (SΛ (Vs Sƛ)) (nf-cons nf-show nf-id irr-id) (applies-all refl)
+    V⟨⟩ (SΛ (Vs Sƛ)) (nf-cons nf-show nf-id irr-id) (inert-all refl)
 
   ------------------------------------------------------------------
   -- Instantiating it: •(Y→Y)[𝔹] drives TyWrap

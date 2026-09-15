@@ -2,8 +2,8 @@
 --
 -- Every case is discharged here except one, which the module takes as a
 -- parameter: at a boundary over a SIMPLE value, the conversion is
--- `Applicable` (so the boundary is a value) or the body is a literal
--- the `base` view sees through (so `Const` fires).  That is the
+-- INERT (so the boundary is a value) or ACTIVE — the body is a literal
+-- the `base` view sees through, and `Const` fires.  That is the
 -- canonicity obligation notes-v8.md flags under "Conversion views".  It
 -- is NOT provable for arbitrary typed normal conversions — see
 -- notes/probes/V8CanonicityProbe.agda for a typed normal conversion
@@ -49,7 +49,7 @@ value-ℕ : ∀ {Sg Δ V} → Value V → Sg ∣ Δ ∣ [] ⊢ V ⦂ `ℕ
   → Σ[ n ∈ ℕ ] (V ≡ $ n)
 value-ℕ (Vs simple) ⊢V = simple-ℕ simple ⊢V
 value-ℕ (V⟨⟩ simple nf app) (⊢⟨⟩ nf′ ⊢M conv) =
-  ⊥-elim (applicable-ground app
+  ⊥-elim (inert-ground app
            (subst GroundShape (sym (conv-target conv)) ground-ℕ))
 
 ------------------------------------------------------------------------
@@ -62,7 +62,7 @@ Canonicity = ∀ {Sg Δᵢ Δ V c A B}
   → Sg ∣ Δᵢ ∣ [] ⊢ V ⦂ A
   → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
   → NF c
-  → Applicable c ⊎ (Σ[ ι ∈ Ty ] (Literal V × (base c ≡ just ι)))
+  → Inert c ⊎ (Σ[ ι ∈ Ty ] (Literal V × (base c ≡ just ι)))
 
 module Proof (canon : Canonicity) where
 

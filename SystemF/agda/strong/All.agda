@@ -34,6 +34,9 @@ open import strong.proof.StoreWeaken
 open import strong.proof.PreserveWrap
 open import strong.proof.AddrWeaken
 open import strong.proof.TermSubstitution
+open import strong.proof.AllTyping
+open import strong.proof.PreserveTyDef
+open import strong.proof.Preservation
 
 -- the main theorems
 open import strong.Progress

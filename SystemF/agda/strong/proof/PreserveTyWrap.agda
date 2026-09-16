@@ -62,7 +62,7 @@ open import strong.proof.BuilderTyping using
   (BaseGrow; bg-here; ⊢-grow; revTy-typing; closeAt-single; notasgn-⤒)
 open import strong.proof.SubstAnnTyping using
   (NoFreeᵗ; nf-var; nf-ℕ; nf-𝔹; nf-⇒; nf-∀; Closedᵗ; closed-⇑;
-   RepsWf;
+   RepsWf; substAnn-typing′;
    SlotFree; sf-id; sf-cons; SlotFreeElt; sf-seal; sf-unseal; sf-hide;
    sf-show; sf-fun; sf-all;
    DropBindS; drop-here; drop-there; DropBind; drop-ctx; drop-unique;
@@ -80,28 +80,9 @@ open import strong.proof.TypeWf using (typing-wf; ctxOk-[])
 ------------------------------------------------------------------------
 -- `proof.SubstAnnTyping.substAnn-typing′` asks for
 --
---   RepsWf Sg = ∀ {Γ α R} → Sg ∣ Γ ∋r α := R → Sg ∣ Γ ⊢ᴿ R
---
--- and Γ is UNIVERSALLY QUANTIFIED there.  That is one quantifier too
--- many: a base entry `nuBind (`ᵛ 0)` is a perfectly well-formed
--- `BaseEnt`, `r-here` reaches it, and `⇑ᴿᵉ (`ᵛ 0) ≡ `ᵛ 0` is not
--- `⊢ᴿ[ 0 ]`-well-formed.  So `RepsWf Sg` holds for NO store and no
--- caller can supply it.
-
-repsWf-refuted : ∀ {Sg} → RepsWf Sg → ⊥
-repsWf-refuted rw
-  with rw {Γ = [] ∥ nuBind (`ᵛ zero) ∷ []} {α = bse zero} r-here
-repsWf-refuted rw | wfᴿ-bv ()
-
--- The condition itself is fine; what is wrong is that Γ ranges over
--- contexts whose base nothing has checked.  Fixing the BASE — which is
--- all `substAnn-typing` ever varies, since a typed conversion never
--- changes it (`conv-base`) — makes it true, and over the EMPTY base of
--- a reduction context it is `StoreOk` outright.
-
-RepsWf₀ : Store → List BaseEnt → Set
-RepsWf₀ Sg Bs =
-  ∀ {Ss α R} → Sg ∣ (Ss ∥ Bs) ∋r α := R → Sg ∣ (Ss ∥ Bs) ⊢ᴿ R
+-- `RepsWf` is indexed by the BASE at its source, and a conversion
+-- never changes the base, so one instance serves a whole spine; at the
+-- empty base it is just `StoreOk`.
 
 -- `StoreOk` grades each entry by the STRICTLY EARLIER prefix, so the
 -- representation it hands back is well formed over `take ℓ Sg`; the
@@ -126,120 +107,8 @@ wfᴿ-prefix (wfᴿ-⇒ a b) = wfᴿ-⇒ (wfᴿ-prefix a) (wfᴿ-prefix b)
 wfᴿ-prefix (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-prefix a)
 
 -- Over an EMPTY base only the store is reachable.
-storeOk-RepsWf₀ : ∀ {Sg} → StoreOk Sg → RepsWf₀ Sg []
-storeOk-RepsWf₀ sok (r-lvl l) = wfᴿ-prefix (sok l)
-
-------------------------------------------------------------------------
--- §2  `substAnn` TYPING AT A FIXED BASE
-------------------------------------------------------------------------
--- The mutual recursion is `proof.SubstAnnTyping` §9 verbatim except
--- that `RepsWf` is replaced by `RepsWf₀` at the base the conversion
--- already keeps fixed, and the `unseal` case reads that base off the
--- pop judgment (`pop-base`) before applying it.  Every lemma it uses —
--- `read-drop`, `drop-pop`, `drop-push`, `wf-drop`, `notasgn-drop`,
--- `∋r-drop`, `closeAt-∀`, `closeAt-shift` — is imported unchanged.
---
--- This duplication exists ONLY because `RepsWf`'s Γ is unrestricted
--- (§1).  Indexing `RepsWf` by the base in `proof.SubstAnnTyping` would
--- delete this section outright.
-
-mutual
-  substAnnElt-ty₀ : ∀ {Sg X S ĉ A B Ssₑ Ss′ Bs Γᵢ}
-    → RepsWf₀ Sg Bs → Closedᵗ S → SlotFreeElt X ĉ
-    → DropBindS X Ssₑ Ss′
-    → Sg ∣ Γᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
-    → Σ[ Γᵢ′ ∈ Ctxᵗ ]
-        (DropBind X Γᵢ Γᵢ′
-         × Sg ∣ Γᵢ′ ⊢̂ substAnnElt X S ĉ
-             ∶ closeAt X S A ⇝ closeAt X S B ⊣ (Ss′ ∥ Bs))
-
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-seal {Y = Y} lt) d
-    (conv-seal rep rd p) with drop-pop d p
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-seal {Y = Y} lt) d
-    (conv-seal rep rd p) | Γᵢ′ , drop-ctx dᵢ , p′
-    rewrite closeEnv-≢ X S Y (<-≢ lt) =
-    Γᵢ′ , drop-ctx dᵢ
-    , conv-seal (∋r-drop rep) (read-drop z≤n dᵢ (rw rep) rd) p′
-
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-unseal {Y = Y} lt) d
-    (conv-unseal rep rd p na) with pop-base p
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-unseal {Y = Y} lt) d
-    (conv-unseal rep rd p na) | refl with drop-push d lt p
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-unseal {Y = Y} lt) d
-    (conv-unseal rep rd p na) | refl | Γᵢ′ , drop-ctx dᵢ , p′
-    rewrite closeEnv-≢ X S Y (<-≢ lt) =
-    _ , drop-ctx dᵢ
-    , conv-unseal (∋r-drop rep) (read-drop z≤n d (rw rep) rd) p′
-                  (notasgn-drop d na)
-
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-hide {Y = Y} lt) d
-    (conv-hide {A = A} sc wf p na) with drop-pop d p
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-hide {Y = Y} lt) d
-    (conv-hide {A = A} sc wf p na) | Γᵢ′ , drop-ctx dᵢ , p′
-    rewrite closeAt-shift X Y S A lt cl =
-    _ , drop-ctx dᵢ
-    , conv-hide (∋a-restk sc) (wf-drop dᵢ cl wf) p′
-        (notasgn-drop dᵢ na)
-
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-show {Y = Y} lt) d
-    (conv-show {A = A} sc wf p na) with drop-push d lt p
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-show {Y = Y} lt) d
-    (conv-show {A = A} sc wf p na) | Γᵢ′ , drop-ctx dᵢ , p′
-    rewrite closeAt-shift X Y S A lt cl =
-    _ , drop-ctx dᵢ
-    , conv-show (∋a-restk sc) (wf-drop d cl wf) p′
-        (notasgn-drop d na)
-
-  substAnnElt-ty₀ rw cl (sf-fun sfs sft) d (conv-fun ⊢s ⊢t)
-    with conv-base ⊢t
-  substAnnElt-ty₀ rw cl (sf-fun sfs sft) d (conv-fun ⊢s ⊢t) | refl
-    with substAnn-ty₀ rw cl sft d ⊢t
-  substAnnElt-ty₀ rw cl (sf-fun sfs sft) d (conv-fun ⊢s ⊢t) | refl
-    | Γᵢ′ , drop-ctx dᵢ , ty-t with substAnn-ty₀ rw cl sfs dᵢ ⊢s
-  substAnnElt-ty₀ rw cl (sf-fun sfs sft) d (conv-fun ⊢s ⊢t) | refl
-    | Γᵢ′ , drop-ctx dᵢ , ty-t | Γₑ″ , drop-ctx dₑ″ , ty-s
-    rewrite drop-uniqueS d dₑ″ =
-    _ , drop-ctx dᵢ , conv-fun ty-s ty-t
-
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-all sfs) d
-    (conv-all {A = A} {B = B} ⊢s)
-    with substAnn-ty₀ rw (closed-⇑ cl) sfs (drop-there d) ⊢s
-  substAnnElt-ty₀ {X = X} {S = S} rw cl (sf-all sfs) d
-    (conv-all {A = A} {B = B} ⊢s) | Γ″ , drop-ctx (drop-there dᵢ) , ty
-    rewrite closeAt-∀ X S A | closeAt-∀ X S B =
-    _ , drop-ctx dᵢ , conv-all ty
-
-  substAnn-ty₀ : ∀ {Sg X S c A B Ssₑ Ss′ Bs Γᵢ}
-    → RepsWf₀ Sg Bs → Closedᵗ S → SlotFree X c
-    → DropBindS X Ssₑ Ss′
-    → Sg ∣ Γᵢ ⊢ c ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
-    → Σ[ Γᵢ′ ∈ Ctxᵗ ]
-        (DropBind X Γᵢ Γᵢ′
-         × Sg ∣ Γᵢ′ ⊢ substAnn X S c ∶ closeAt X S A ⇝ closeAt X S B
-             ⊣ (Ss′ ∥ Bs))
-
-  substAnn-ty₀ rw cl sf-id d (conv-id wf) =
-    _ , drop-ctx d , conv-id (wf-drop d cl wf)
-  substAnn-ty₀ rw cl (sf-cons sfĉ sfc) d
-    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) with conv-base tl
-  substAnn-ty₀ rw cl (sf-cons sfĉ sfc) d
-    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
-    with substAnn-ty₀ rw cl sfc d tl
-  substAnn-ty₀ rw cl (sf-cons sfĉ sfc) d
-    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl | Γ₂′ , drop-ctx d₂ , ty-tl
-    with substAnnElt-ty₀ rw cl sfĉ d₂ hd
-  substAnn-ty₀ rw cl (sf-cons sfĉ sfc) d
-    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl | Γ₂′ , drop-ctx d₂ , ty-tl
-    | Γ₁′ , dr₁ , ty-hd = _ , dr₁ , conv-cons ty-hd ty-tl
-
-substAnn-ty₀′ : ∀ {Sg X S c A B Δᵢ Δᵢ′ Ssₑ Ss′ Bs}
-  → RepsWf₀ Sg Bs → Closedᵗ S → SlotFree X c
-  → DropBind X Δᵢ Δᵢ′ → DropBindS X Ssₑ Ss′
-  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
-  → Sg ∣ Δᵢ′ ⊢ substAnn X S c ∶ closeAt X S A ⇝ closeAt X S B ⊣ (Ss′ ∥ Bs)
-substAnn-ty₀′ rw cl sf drᵢ d ⊢c with substAnn-ty₀ rw cl sf d ⊢c
-substAnn-ty₀′ rw cl sf drᵢ d ⊢c | Δᵢ″ , drᵢ″ , ty
-  rewrite drop-unique drᵢ drᵢ″ = ty
+storeOk-RepsWf : ∀ {Sg} → StoreOk Sg → RepsWf Sg []
+storeOk-RepsWf sok (r-lvl l) = wfᴿ-prefix (sok l)
 
 ------------------------------------------------------------------------
 -- §3  A CONVERSION OVER AN EMPTY BASE IS FIXED BY A BASE RENAMING
@@ -377,7 +246,7 @@ quote-read-anywhere cl q = quote-read-closed {n = zero} cl q
 --   * `srcᶜ d ≢ nothing` — `instReveal`'s OTHER branch, `show X α ∷ᶜ d`,
 --     is ill-typed at a `TyWrap` redex; see §9.3.
 --
--- The representation side condition `RepsWf₀` is NOT a premise: §1
+-- The representation side condition `RepsWf` is NOT a premise: §1
 -- derives it from `StoreOk Sg`, which the theorem already carries.
 
 tyWrapOk′ : ∀ {Sg Δ V c d A B R C}
@@ -442,8 +311,8 @@ tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA s
 
   ⊢sub₀ : Sg ∣ (Ssᵢ ∥ []) ⊢ substAnn zero A d
             ∶ closeAt zero A A₁ ⇝ closeAt zero A B ⊣ (Ssₑ ∥ [])
-  ⊢sub₀ = substAnn-ty₀′ (storeOk-RepsWf₀ sok) clA sf
-            (drop-ctx drop-here) drop-here ⊢d
+  ⊢sub₀ = substAnn-typing′ (storeOk-RepsWf sok) clA sf
+            (drop-ctx drop-here) (drop-ctx drop-here) ⊢d
 
   -- the `ν` pushes a base entry; §3 says it leaves the conversion alone
   ⊢subν : Sg ∣ (⤒ Ssᵢ ∥ nuBind R ∷ []) ⊢ substAnn zero A d
@@ -497,7 +366,7 @@ tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA s
 --
 -- Independently, `proof.SubstAnnTyping`'s `RepsWf` quantifies its
 -- context too widely and is refuted outright by §1's
--- `repsWf-refuted`; §1/§2's base-indexed `RepsWf₀` is the repair, and
+-- `repsWf-refuted`; §1/§2's base-indexed `RepsWf` is the repair, and
 -- it is what `tyWrapOk′` uses.
 
 ------------------------------------------------------------------------

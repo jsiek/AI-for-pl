@@ -73,6 +73,8 @@ open import strong.RepresentationTypes
 open import strong.Ctx
 open Ctxᵗ
 open import strong.Conversion
+open import strong.proof.Interior using (pop-base)
+open import strong.proof.AddrWeaken using (conv-base)
 open import strong.proof.SrcTyping using (shiftAt-below; shiftAt-above)
 
 private
@@ -387,8 +389,15 @@ drop-⇑ (drop-ctx d) = drop-ctx (drop-there d)
 -- `bnd` address masquerading as a free one, here it is a genuinely free
 -- `` `ᵛ ``, and `⊢ᴿ`'s index rules it out by construction.
 
-RepsWf : Store → Set
-RepsWf Sg = ∀ {Γ α R} → Sg ∣ Γ ∋r α := R → Sg ∣ Γ ⊢ᴿ R
+-- INDEXED BY THE BASE.  Quantifying over every context makes this
+-- REFUTABLE: `nuBind (`ᵛ 0)` is a legal base entry and `r-here`
+-- reaches it, but `⇑ᴿᵉ (`ᵛ 0)` is not `⊢ᴿ[ 0 ]`-well-formed.  A
+-- conversion never changes the base (`conv-base`), so one base serves
+-- the whole recursion, and at the empty base the condition is just
+-- `StoreOk`.
+RepsWf : Store → List BaseEnt → Set
+RepsWf Sg Bs =
+  ∀ {Ss α R} → Sg ∣ (Ss ∥ Bs) ∋r α := R → Sg ∣ (Ss ∥ Bs) ⊢ᴿ R
 
 -- (3) `SlotFree`, on the conversion, mirroring `substAnn`'s own
 -- recursion: every crossing names a slot strictly BELOW X.  For `seal`
@@ -567,7 +576,7 @@ drop-push (drop-there {X = X} d) (s≤s lt) (pop-bind {X = Y} p)
 
 mutual
   substAnnElt-typing : ∀ {Sg X S ĉ A B Ssₑ Ss′ Bs Γᵢ}
-    → RepsWf Sg → Closedᵗ S → SlotFreeElt X ĉ
+    → RepsWf Sg Bs → Closedᵗ S → SlotFreeElt X ĉ
     → DropBindS X Ssₑ Ss′
     → Sg ∣ Γᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
     → Σ[ Γᵢ′ ∈ Ctxᵗ ]
@@ -585,10 +594,16 @@ mutual
     , conv-seal (∋r-drop rep) (read-drop z≤n dᵢ (rw rep) rd) p′
 
   -- an `unseal`: dual, and its freshness side condition comes back
-  substAnnElt-typing {X = X} {S = S} rw cl (sf-unseal {Y = Y} lt) d
-    (conv-unseal rep rd p na) with drop-push d lt p
-  substAnnElt-typing {X = X} {S = S} rw cl (sf-unseal {Y = Y} lt) d
-    (conv-unseal rep rd p na) | Γᵢ′ , drop-ctx dᵢ , p′
+  -- the interior's base is the exterior's (`pop-base`), which is what
+  -- lets the base-indexed `RepsWf` read this `∋r`
+  substAnnElt-typing {X = X} {S = S} {Γᵢ = Ssᵢ ∥ Bsᵢ} rw cl
+    (sf-unseal {Y = Y} lt) d (conv-unseal rep rd p na) with pop-base p
+  substAnnElt-typing {X = X} {S = S} {Γᵢ = Ssᵢ ∥ Bsᵢ} rw cl
+    (sf-unseal {Y = Y} lt) d (conv-unseal rep rd p na) | refl
+    with drop-push d lt p
+  substAnnElt-typing {X = X} {S = S} {Γᵢ = Ssᵢ ∥ Bsᵢ} rw cl
+    (sf-unseal {Y = Y} lt) d (conv-unseal rep rd p na) | refl
+    | Γᵢ′ , drop-ctx dᵢ , p′
     rewrite closeEnv-≢ X S Y (<-≢ lt) =
     _ , drop-ctx dᵢ
     , conv-unseal (∋r-drop rep) (read-drop z≤n d (rw rep) rd) p′
@@ -619,12 +634,18 @@ mutual
   -- a `↦`: the components run in opposite directions, so the
   -- covariant one is substituted first and hands the contravariant one
   -- its context back
-  substAnnElt-typing rw cl (sf-fun sfs sft) d (conv-fun ⊢s ⊢t)
-    with substAnn-typing rw cl sft d ⊢t
-  substAnnElt-typing rw cl (sf-fun sfs sft) d (conv-fun ⊢s ⊢t)
-    | Γᵢ′ , drop-ctx dᵢ , ty-t with substAnn-typing rw cl sfs dᵢ ⊢s
-  substAnnElt-typing rw cl (sf-fun sfs sft) d (conv-fun ⊢s ⊢t)
-    | Γᵢ′ , drop-ctx dᵢ , ty-t | Γₑ″ , drop-ctx dₑ″ , ty-s
+  -- a conversion never changes the base (`conv-base`), which is what
+  -- keeps one `RepsWf` good for both components
+  substAnnElt-typing {Γᵢ = Ssᵢ ∥ Bsᵢ} rw cl (sf-fun sfs sft) d
+    (conv-fun ⊢s ⊢t) with conv-base ⊢t
+  substAnnElt-typing {Γᵢ = Ssᵢ ∥ Bsᵢ} rw cl (sf-fun sfs sft) d
+    (conv-fun ⊢s ⊢t) | refl with substAnn-typing rw cl sft d ⊢t
+  substAnnElt-typing {Γᵢ = Ssᵢ ∥ Bsᵢ} rw cl (sf-fun sfs sft) d
+    (conv-fun ⊢s ⊢t) | refl | Γᵢ′ , drop-ctx dᵢ , ty-t
+    with substAnn-typing rw cl sfs dᵢ ⊢s
+  substAnnElt-typing {Γᵢ = Ssᵢ ∥ Bsᵢ} rw cl (sf-fun sfs sft) d
+    (conv-fun ⊢s ⊢t) | refl | Γᵢ′ , drop-ctx dᵢ , ty-t
+    | Γₑ″ , drop-ctx dₑ″ , ty-s
     rewrite drop-uniqueS d dₑ″ =
     _ , drop-ctx dᵢ , conv-fun ty-s ty-t
 
@@ -640,7 +661,7 @@ mutual
     _ , drop-ctx dᵢ , conv-all ty
 
   substAnn-typing : ∀ {Sg X S c A B Ssₑ Ss′ Bs Γᵢ}
-    → RepsWf Sg → Closedᵗ S → SlotFree X c
+    → RepsWf Sg Bs → Closedᵗ S → SlotFree X c
     → DropBindS X Ssₑ Ss′
     → Sg ∣ Γᵢ ⊢ c ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
     → Σ[ Γᵢ′ ∈ Ctxᵗ ]
@@ -650,12 +671,17 @@ mutual
 
   substAnn-typing rw cl sf-id d (conv-id wf) =
     _ , drop-ctx d , conv-id (wf-drop d cl wf)
-  substAnn-typing rw cl (sf-cons sfĉ sfc) d (conv-cons hd tl)
+  substAnn-typing rw cl (sf-cons sfĉ sfc) d
+    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) with conv-base tl
+  substAnn-typing rw cl (sf-cons sfĉ sfc) d
+    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
     with substAnn-typing rw cl sfc d tl
-  substAnn-typing rw cl (sf-cons sfĉ sfc) d (conv-cons hd tl)
+  substAnn-typing rw cl (sf-cons sfĉ sfc) d
+    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
     | Γ₂′ , drop-ctx d₂ , ty-tl
     with substAnnElt-typing rw cl sfĉ d₂ hd
-  substAnn-typing rw cl (sf-cons sfĉ sfc) d (conv-cons hd tl)
+  substAnn-typing rw cl (sf-cons sfĉ sfc) d
+    (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
     | Γ₂′ , drop-ctx d₂ , ty-tl | Γ₁′ , dr₁ , ty-hd =
     _ , dr₁ , conv-cons ty-hd ty-tl
 
@@ -663,10 +689,10 @@ mutual
 -- §10  The form the statement was asked for: both drops given
 ------------------------------------------------------------------------
 
-substAnn-typing′ : ∀ {Sg X S c A B Δᵢ Δᵢ′ Δ Δ′}
-  → RepsWf Sg → Closedᵗ S → SlotFree X c
-  → DropBind X Δᵢ Δᵢ′ → DropBind X Δ Δ′
-  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
+substAnn-typing′ : ∀ {Sg X S c A B Δᵢ Δᵢ′ Ss Bs Δ′}
+  → RepsWf Sg Bs → Closedᵗ S → SlotFree X c
+  → DropBind X Δᵢ Δᵢ′ → DropBind X (Ss ∥ Bs) Δ′
+  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ (Ss ∥ Bs)
   → Sg ∣ Δᵢ′ ⊢ substAnn X S c ∶ closeAt X S A ⇝ closeAt X S B ⊣ Δ′
 substAnn-typing′ rw cl sf drᵢ (drop-ctx d) ⊢c
   with substAnn-typing rw cl sf d ⊢c

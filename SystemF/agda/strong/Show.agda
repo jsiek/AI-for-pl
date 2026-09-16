@@ -40,7 +40,7 @@ open import Data.Product using (_×_; _,_)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.RepresentationTypes using
-  (Addr; lvl; bnd; bse; RepTy; `ᵃ_; `ℕᴿ; `𝔹ᴿ; _⇒ᴿ_; `∀ᴿ)
+  (Addr; lvl; bse; RepTy; `ᵃ_; `ᵛ_; `ℕᴿ; `𝔹ᴿ; _⇒ᴿ_; `∀ᴿ)
 open import strong.Conversion using
   (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all; elts)
 open import strong.Terms using
@@ -124,14 +124,12 @@ delAt X sup Y = if Y <ᵇ X then sup Y else sup (suc Y)
 
 showAddr : Addr → String
 showAddr (lvl ℓ) = greek ℓ
-showAddr (bnd i) = "∀" ++ greek i
 showAddr (bse j) = "ν" ++ greek j
 
 -- THE NAME ASSIGNED TO AN ADDRESS, keyed to the address itself — this
 -- is what makes a variable print the same at every step of a trace.
 varOfAddr : Addr → String
 varOfAddr (lvl ℓ) = tyBinder ℓ
-varOfAddr (bnd i) = tyBinder i ++ "″"
 varOfAddr (bse j) = tyBinder j ++ "′"
 
 ------------------------------------------------------------------------
@@ -150,6 +148,7 @@ showTy d sup (`∀ A)  =
 
 showRep : RepTy → String
 showRep (`ᵃ α)   = showAddr α
+showRep (`ᵛ i)   = boundVar i
 showRep `ℕᴿ      = "ℕᴿ"
 showRep `𝔹ᴿ      = "𝔹ᴿ"
 showRep (R ⇒ᴿ S) = "(" ++ showRep R ++ "→" ++ showRep S ++ ")"

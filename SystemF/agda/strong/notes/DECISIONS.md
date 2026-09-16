@@ -4444,3 +4444,54 @@ its binder sits in the BASE (so pops cannot see it) is what costs the
 would reintroduce the context-dependent index that forced the address
 split in the first place — see 2026-09-15 — so any attack on that cost
 has to change what `crossΛ` writes, not whether the address exists.
+
+------------------------------------------------------------------------
+2026-09-16 — A `∀` BINDS A TYPE VARIABLE, NOT AN ADDRESS
+------------------------------------------------------------------------
+
+Jeremy's observation: a representation type's FREE variables are
+addresses, but its BOUND ones are not — they are regular type
+variables.  So `∀ᴿ` now binds `ᵛ, a de Bruijn type variable, and `ᵃ
+carries only free addresses.  `bnd` leaves `Addr` entirely:
+
+    Addr = lvl ℓ | bse j
+
+exactly the two things that really are addresses — a store level and a
+`Λ`'s or `ν`'s binder.  This answers the discomfort about the earlier
+lvl/bnd split: the split was right, but one of its three cases was not
+an address at all.
+
+THE PAYOFF, which is larger than the change.  Passing a `bind` no
+longer moves any address, so every rule that had to case-split on
+`bnd`/`lvl`/`bse` collapses:
+
+    ∋n    6 rules → 3, and NO address case analysis
+    ▷ ⇒   4 rules → 2
+    ∋a    6 rules → 5, and it no longer reads the stack AT ALL
+    ∋r    6 rules → 4, likewise
+
+`∋a-pop` and `∋a-push` — sixty lines of trichotomy — are now
+`∋a-restk q`.  The whole stack-address renaming family is deleted:
+`renᵃ`, `renameᴿ`, `⇑ᴿ`, `⇑ᵃ`, `substAddr`, `extsᵃ`, `inst₀`,
+`renAddrᴹ`, and the second argument of `renConv`.  `proof/AddrWeaken`'s
+commutation lemmas between the two families go with the family.
+`proof/Flat`'s `NoBinds`-prefix apparatus reduces to `∋a-restk`.
+`proof/ArrTyping`'s renaming algebra splits honestly into an
+assignment-carrying `Renamesᵗ` and a scope-only `Renamesˢ`, and `⊢ᵗ`
+uses the latter — no address anywhere.
+
+TWO SIDE CONDITIONS BECOME FREE.  `NotBnd` is trivially true of every
+address, since there is no `bnd`.  And `LCᴿ` — the local-closure
+condition `proof/PreserveTyWrap` had to invent after `NoBndReps` turned
+out REFUTABLE — is now structural: a `ᵛ cannot be confused with a free
+address, so what was a side condition is just `⊢ᴿ`'s bound-variable
+rule.  `⊢ᴿ` is accordingly indexed by the number of enclosing `∀ᴿ`
+binders and needs no context entry at all.
+
+A `∀`-bound variable is now looked up by `_∋b_at_` (which `bind` it
+names), and `∋ᵗ-view` splits a variable in scope into
+assigned-to-an-address or `∀`-bound — the same split the renderer's two
+name pools already drew.  `read`/`⌊·⌋` gained `read-bv`/`quote-bv`.
+
+CONSERVATIVE ON TERMS: `notes/ShowHide`'s trace renders identically
+before and after.

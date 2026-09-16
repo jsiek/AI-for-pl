@@ -13,48 +13,39 @@ module strong.proof.PreserveAlloc where
 -- else.  `substStk σ (⤒ Ss) ≡ Ss` is the pivot.
 --
 -- The development mirrors proof.AddrWeaken one-for-one: a record
--- `Substsᵇ` of closure properties over the three lookups, closed under
--- the stack binders (`sub-bind`, `sub-asgn`, `sub-stk`) and under a base
+-- `Substsᵇ` of closure properties over the lookups, closed under the
+-- stack binders (`sub-bind`, `sub-asgn`, `sub-stk`) and under a base
 -- binder (`sub-ext`), lifted to `⊢ᵗ`, `⊢ᴿ`, `⇓`, the pop judgment,
 -- `NotAssigned`, conversion typing, and finally to terms (`⊢-inst`).
 --
--- TWO THINGS ARE GENUINELY DIFFERENT FROM A RENAMING.
+-- ONE THING IS GENUINELY DIFFERENT FROM A RENAMING.  σ is NOT
+-- injective: it maps `bse 0` and `lvl (length Σ)` to the same address,
+-- so a conversion that was a NORMAL FORM can acquire a redex, and
+-- `⊢Λ`'s `Value V` premise then fails.  σ IS injective away from
+-- `lvl (length Σ)`, so everything goes through under a freshness
+-- hypothesis `Fresh L` (L = length Σ) on the addresses that actually
+-- occur — in the conversions of the term, and in the crossing
+-- assignments of the ambient context.
 --
--- (1) `substAddrᵉ σ` can turn a `bse` into a `lvl`.  So the judgments
---     that are indexed by the ADDRESS FORM need a view: the pop rules
---     `pop-bind`/`-l`/`-e`, the name rules `n-skip-bind`/`-l`/`-e`,
---     and `∋a`/`∋r` restacking.  The side condition is that σ never
---     produces a BOUND STACK address (`NoBnd`), which holds of
---     `instᵉ₀ (lvl ℓ)` and is preserved by `extsᵃᵉ`.
+-- WHAT THE ADDRESS SPLIT BOUGHT.  With `bnd` gone (a `∀` binds a type
+-- VARIABLE, `RepTy`'s `ᵛ, not an address) an address is a level or a
+-- base index and NOTHING ELSE.  So the v7 side condition "σ never
+-- produces a bound stack address" is vacuous and its whole plumbing —
+-- `NoBnd`, the `AddrOK` view on every lookup, the three-way `pop-bind`
+-- and `n-skip-bind` reconstructions, the commutation of a base
+-- substitution with a stack renaming — is gone.  What is left is the
+-- ordinary substitution lemma plus freshness.
 --
--- (2) σ is NOT injective: it maps `bse 0` and `lvl (length Σ)` to the
---     same address, so a conversion that was a NORMAL FORM can acquire
---     a redex, and `⊢Λ`'s `Value V` premise then fails.  σ IS injective
---     away from `lvl (length Σ)`, so everything goes through under a
---     freshness hypothesis `Fresh L` (L = length Σ) on the addresses
---     that actually occur — in the conversions of the term, and in the
---     crossing assignments of the ambient context.
---
--- WHY THE FRESHNESS HYPOTHESIS CANNOT BE DROPPED.  The task's plan was
--- to DERIVE it: "a well-typed term cannot mention lvl (length Σ),
--- because every address in it is in scope".  That is true of `seal` and
--- `unseal`, which carry `∋r` (§22), but FALSE of `hide` and `show`:
--- their premises are `⊢ᵗ`, a pop, and `NotAssigned`, none of which
--- constrains the address to the store — a `hide X (lvl ℓ)` is well
--- typed as soon as the context happens to assign X to `lvl ℓ`, and the
--- context is not required to be store-scoped either.  §21 exhibits a
--- store, a flat context, and a typed `ν` whose contractum is NOT
--- typable, refuting the unqualified statement outright.  The fix is a
--- design decision for the RULES (adding `Σ ∣ Γ ∋a α` to `conv-hide` and
--- `conv-show` would make `Fresh` derivable from typing — §22); until then
--- the hypothesis is stated explicitly.
+-- WHY THE FRESHNESS HYPOTHESIS IS STATED AND NOT DERIVED.  `Fresh
+-- (length Σ)` is exactly "in scope in Σ" for a level, so it is a
+-- reading of `∋a`, which every crossing now carries (§20).  Deriving it
+-- from typing is proof.Scoped's job; here it is a premise.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Nat.Properties using (_≟_; suc-injective)
+open import Data.Nat.Properties using (_≟_)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
+open import Data.Product using (Σ-syntax; _×_; _,_; proj₂)
 open import Data.List using (List; []; _∷_; _∷ʳ_; _++_; map; length)
 open import Data.List.Properties using (map-++)
 open import Relation.Nullary using (¬_; yes; no)
@@ -72,13 +63,15 @@ open import strong.TermSubst
 open import strong.proof.Flat
 open Flatn
 open import strong.proof.StoreWeaken using (⊢-snoc; storeOk-snoc)
-open import strong.proof.AddrWeaken using (convElt-base; conv-base; lvl-fixed)
+open import strong.proof.AddrWeaken using
+  (Renamesᵇ; ren-wk; convElt-base; conv-base)
+open Renamesᵇ using (ren-a; ren-r)
 open import strong.proof.InertRenaming using (suc-injᵉ)
 
 private
   variable
     Sg : Store
-    L : ℕ
+    L n : ℕ
     σ : SubstAddr
     Γ Γ′ : Ctxᵗ
     Ss Ss′ : List StackEnt
@@ -98,7 +91,7 @@ private
 ∋ˡ-last [] = l-here
 ∋ˡ-last (S ∷ Σ) = l-there (∋ˡ-last Σ)
 
--- The fresh level is not in the store yet — what §22 turns on.
+-- The fresh level is not in the store yet — what §20 turns on.
 ∋ˡ-fresh : ∀ {Σ : Store} {R} → Σ ∋ˡ length Σ := R → ⊥
 ∋ˡ-fresh {[]} ()
 ∋ˡ-fresh {S ∷ Σ} (l-there p) = ∋ˡ-fresh p
@@ -114,87 +107,32 @@ alloc-storeOk : ∀ {Sg Δ R} → StoreOk Sg → Flat Δ → Sg ∣ Δ ⊢ᴿ R
 alloc-storeOk sok fl wf = storeOk-snoc sok (flat-closed fl wf)
 
 ------------------------------------------------------------------------
--- 3.  Address disequalities, once and for all
+-- 3.  Address disequalities, and what a base shift cannot produce
 ------------------------------------------------------------------------
-
-lvl≢bnd : ∀ {ℓ i} → lvl ℓ ≡ bnd i → ⊥
-lvl≢bnd ()
+-- Two forms, so two disequalities; and `renᵃᵉ suc` fixes a level and
+-- never lands on `bse zero`, which is all §7 needs of it.
 
 lvl≢bse : ∀ {ℓ j} → lvl ℓ ≡ bse j → ⊥
 lvl≢bse ()
 
-bnd≢lvl : ∀ {i ℓ} → bnd i ≡ lvl ℓ → ⊥
-bnd≢lvl ()
-
-bnd≢bse : ∀ {i j} → bnd i ≡ bse j → ⊥
-bnd≢bse ()
-
 bse≢lvl : ∀ {j ℓ} → bse j ≡ lvl ℓ → ⊥
 bse≢lvl ()
 
-bse≢bnd : ∀ {j i} → bse j ≡ bnd i → ⊥
-bse≢bnd ()
+shift-lvl : ∀ {α ℓ} → renᵃᵉ suc α ≡ lvl ℓ → α ≡ lvl ℓ
+shift-lvl {lvl m} refl = refl
+shift-lvl {bse j} ()
 
-bse0≢bseS : ∀ {k} → bse zero ≡ bse (suc k) → ⊥
-bse0≢bseS ()
-
-bseS≢bse0 : ∀ {k} → bse (suc k) ≡ bse zero → ⊥
-bseS≢bse0 ()
-
-------------------------------------------------------------------------
--- 4.  σ never produces a bound STACK address
-------------------------------------------------------------------------
--- `instᵉ₀ (lvl ℓ)` produces levels and base addresses only, and
--- `extsᵃᵉ` preserves that.  Everything that is indexed by the address
--- FORM consults this view.
-
-NoBnd : SubstAddr → Set
-NoBnd σ = ∀ j → (Σ[ ℓ ∈ ℕ ] σ j ≡ lvl ℓ) ⊎ (Σ[ k ∈ ℕ ] σ j ≡ bse k)
-
-noBnd-inst₀ : ∀ ℓ → NoBnd (instᵉ₀ (lvl ℓ))
-noBnd-inst₀ ℓ zero = inj₁ (ℓ , refl)
-noBnd-inst₀ ℓ (suc j) = inj₂ (j , refl)
-
-noBnd-ext : NoBnd σ → NoBnd (extsᵃᵉ σ)
-noBnd-ext nb zero = inj₂ (zero , refl)
-noBnd-ext nb (suc j) with nb j
-noBnd-ext nb (suc j) | inj₁ (ℓ , e) = inj₁ (ℓ , cong (renᵃᵉ suc) e)
-noBnd-ext nb (suc j) | inj₂ (k , e) = inj₂ (suc k , cong (renᵃᵉ suc) e)
+shift-bse0 : ∀ {α} → renᵃᵉ suc α ≡ bse zero → ⊥
+shift-bse0 {lvl m} ()
+shift-bse0 {bse j} ()
 
 ------------------------------------------------------------------------
--- 5.  The commutations
+-- 4.  The commutations
 ------------------------------------------------------------------------
--- A base substitution commutes with a STACK renaming, because the two
--- act on disjoint address forms — PROVIDED σ produces no `bnd`.
-
-substAddrᵉ-renᵃ : NoBnd σ → ∀ η α
-  → substAddrᵉ σ (renᵃ η α) ≡ renᵃ η (substAddrᵉ σ α)
-substAddrᵉ-renᵃ nb η (lvl ℓ) = refl
-substAddrᵉ-renᵃ nb η (bse j) with nb j
-substAddrᵉ-renᵃ nb η (bse j) | inj₁ (ℓ , e) rewrite e = refl
-substAddrᵉ-renᵃ nb η (bse j) | inj₂ (k , e) rewrite e = refl
-
-substᴿᵉ-renameᴿ : NoBnd σ → ∀ η R
-  → substᴿᵉ σ (renameᴿ η R) ≡ renameᴿ η (substᴿᵉ σ R)
-substᴿᵉ-renameᴿ nb η (`ᵃ α) = cong `ᵃ_ (substAddrᵉ-renᵃ nb η α)
-substᴿᵉ-renameᴿ nb η `ℕᴿ = refl
-substᴿᵉ-renameᴿ nb η `𝔹ᴿ = refl
-substᴿᵉ-renameᴿ nb η (R ⇒ᴿ T) =
-  cong₂ _⇒ᴿ_ (substᴿᵉ-renameᴿ nb η R) (substᴿᵉ-renameᴿ nb η T)
-substᴿᵉ-renameᴿ nb η (`∀ᴿ R) = cong `∀ᴿ (substᴿᵉ-renameᴿ nb (extᵇ η) R)
-
-substᴿᵉ-⇑ᴿ : NoBnd σ → ∀ R → substᴿᵉ σ (⇑ᴿ R) ≡ ⇑ᴿ (substᴿᵉ σ R)
-substᴿᵉ-⇑ᴿ nb R = substᴿᵉ-renameᴿ nb suc R
-
--- a `bse` image is its own stack shift
-nobnd-: NoBnd σ → ∀ j
-  → (substAddrᵉ σ (bse j)) ≡ substAddrᵉ σ (bse j)
-nobnd-nb j with nb j
-nobnd-nb j | inj₁ (ℓ , e) rewrite e = refl
-nobnd-nb j | inj₂ (k , e) rewrite e = refl
-
 -- The ext/base-shift square: UNCONDITIONAL, since `extsᵃᵉ` is defined
--- by exactly this shift.
+-- by exactly this shift.  `∀ᴿ` binds a type variable, so a base
+-- substitution passes through it unextended.
+
 substAddrᵉ-ext : ∀ σ α
   → substAddrᵉ (extsᵃᵉ σ) (renᵃᵉ suc α) ≡ renᵃᵉ suc (substAddrᵉ σ α)
 substAddrᵉ-ext σ (lvl ℓ) = refl
@@ -202,6 +140,7 @@ substAddrᵉ-ext σ (bse j) = refl
 
 substᴿᵉ-ext : ∀ σ R → substᴿᵉ (extsᵃᵉ σ) (⇑ᴿᵉ R) ≡ ⇑ᴿᵉ (substᴿᵉ σ R)
 substᴿᵉ-ext σ (`ᵃ α) = cong `ᵃ_ (substAddrᵉ-ext σ α)
+substᴿᵉ-ext σ (`ᵛ i) = refl
 substᴿᵉ-ext σ `ℕᴿ = refl
 substᴿᵉ-ext σ `𝔹ᴿ = refl
 substᴿᵉ-ext σ (R ⇒ᴿ T) = cong₂ _⇒ᴿ_ (substᴿᵉ-ext σ R) (substᴿᵉ-ext σ T)
@@ -214,6 +153,7 @@ inst-unshiftᵃ β (bse j) = refl
 
 inst-unshiftᴿ : ∀ β R → substᴿᵉ (instᵉ₀ β) (⇑ᴿᵉ R) ≡ R
 inst-unshiftᴿ β (`ᵃ α) = cong `ᵃ_ (inst-unshiftᵃ β α)
+inst-unshiftᴿ β (`ᵛ i) = refl
 inst-unshiftᴿ β `ℕᴿ = refl
 inst-unshiftᴿ β `𝔹ᴿ = refl
 inst-unshiftᴿ β (R ⇒ᴿ T) =
@@ -221,7 +161,7 @@ inst-unshiftᴿ β (R ⇒ᴿ T) =
 inst-unshiftᴿ β (`∀ᴿ R) = cong `∀ᴿ (inst-unshiftᴿ β R)
 
 ------------------------------------------------------------------------
--- 6.  The stack travels
+-- 5.  The stack travels
 ------------------------------------------------------------------------
 
 substStk : SubstAddr → List StackEnt → List StackEnt
@@ -242,12 +182,11 @@ inst-unshiftˢ β (asgn α ∷ Ss)
   rewrite inst-unshiftᵃ β α | inst-unshiftˢ β Ss = refl
 
 ------------------------------------------------------------------------
--- 7.  Freshness: the level L occurs nowhere
+-- 6.  Freshness: the level L occurs nowhere
 ------------------------------------------------------------------------
 
 data Fresh (L : ℕ) : Addr → Set where
   fr-lvl : ∀ {ℓ} → ¬ (ℓ ≡ L) → Fresh L (lvl ℓ)
-  fr-bnd : ∀ {i} → Fresh L (bnd i)
   fr-bse : ∀ {j} → Fresh L (bse j)
 
 fresh-⇑ᵃᵉ : Fresh L α → Fresh L (renᵃᵉ suc α)
@@ -299,27 +238,61 @@ InjF L σ = ∀ {α β} → Fresh L α → Fresh L β
          → substAddrᵉ σ α ≡ substAddrᵉ σ β → α ≡ β
 
 ------------------------------------------------------------------------
+-- 7.  Injectivity away from the fresh level
+------------------------------------------------------------------------
+-- σ IS non-injective: `instᵉ₀ (lvl L)` sends `bse 0` and `lvl L` to the
+-- same address.  That is the ONLY collision, so on `Fresh L` addresses
+-- the map is injective, and `extsᵃᵉ` preserves the property.
+
+inj-inst₀ : ∀ L → InjF L (instᵉ₀ (lvl L))
+inj-inst₀ L {lvl ℓ} {lvl m} f g eq = eq
+inj-inst₀ L {lvl ℓ} {bse zero} (fr-lvl ne) g eq = ⊥-elim (ne (lvl-inj eq))
+inj-inst₀ L {lvl ℓ} {bse (suc j)} f g ()
+inj-inst₀ L {bse zero} {lvl m} f (fr-lvl ne) eq =
+  ⊥-elim (ne (sym (lvl-inj eq)))
+inj-inst₀ L {bse zero} {bse zero} f g eq = refl
+inj-inst₀ L {bse zero} {bse (suc j)} f g ()
+inj-inst₀ L {bse (suc i)} {lvl m} f g ()
+inj-inst₀ L {bse (suc i)} {bse zero} f g ()
+inj-inst₀ L {bse (suc i)} {bse (suc j)} f g eq =
+  cong (λ k → bse (suc k)) (bse-inj eq)
+
+-- `extsᵃᵉ σ` sends `bse (suc j)` to `renᵃᵉ suc (σ j)`, and a base
+-- shift is injective and form-preserving (§3), so the inner
+-- injectivity fires on the mixed rows.
+inj-ext : ∀ {L σ} → InjF L σ → InjF L (extsᵃᵉ σ)
+inj-ext inj {lvl ℓ} {lvl m} f g eq = eq
+inj-ext inj {lvl ℓ} {bse zero} f g ()
+inj-ext inj {lvl ℓ} {bse (suc j)} f g eq =
+  ⊥-elim (lvl≢bse (inj f fr-bse (sym (shift-lvl (sym eq)))))
+inj-ext inj {bse zero} {lvl m} f g ()
+inj-ext inj {bse zero} {bse zero} f g eq = refl
+inj-ext inj {bse zero} {bse (suc j)} f g eq =
+  ⊥-elim (shift-bse0 (sym eq))
+inj-ext inj {bse (suc i)} {lvl m} f g eq =
+  ⊥-elim (bse≢lvl (inj fr-bse g (shift-lvl eq)))
+inj-ext inj {bse (suc i)} {bse zero} f g eq = ⊥-elim (shift-bse0 eq)
+inj-ext inj {bse (suc i)} {bse (suc j)} f g eq =
+  cong (λ k → bse (suc k)) (bse-inj (inj fr-bse fr-bse (suc-injᵉ eq)))
+
+------------------------------------------------------------------------
 -- 8.  Freshness travels along a conversion
 ------------------------------------------------------------------------
 -- A crossing pops an assignment (whose address was already in the
 -- stack) or pushes one (whose address the ELEMENT carries), so the
--- stack's freshness is exactly the conversion's.
+-- stack's freshness is exactly the conversion's.  Passing a `bind`
+-- moves no address, so both directions are structural.
 
 pop-fresh : ∀ {L Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → FreshStk L Ss → Fresh L α × FreshStk L Ss′
 pop-fresh pop-here (fs-asgn f fs) = f , fs
-pop-fresh (pop-bind p) (fs-bind fs) =
-  fr-bnd , fs-bind (proj₂ (pop-fresh p fs))
 pop-fresh (pop-bind p) (fs-bind fs) with pop-fresh p fs
 pop-fresh (pop-bind p) (fs-bind fs) | f , fs′ = f , fs-bind fs′
-pop-fresh (pop-bind p) (fs-bind fs) =
-  fr-bse , fs-bind (proj₂ (pop-fresh p fs))
 
 push-fresh : ∀ {L Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → Fresh L α → FreshStk L Ss′ → FreshStk L Ss
 push-fresh pop-here f fs = fs-asgn f fs
 push-fresh (pop-bind p) f (fs-bind fs) = fs-bind (push-fresh p f fs)
-push-fresh (pop-bind p) f (fs-bind fs) = fs-bind (push-fresh p fr-bse fs)
 
 mutual
   convElt-freshStk : ∀ {L Sg Ssᵢ Ssₑ Bs ĉ A B}
@@ -348,123 +321,16 @@ mutual
     | refl = convElt-freshStk hd fe (conv-freshStk tl fc fs)
 
 ------------------------------------------------------------------------
--- 9.  Injectivity away from the fresh level
+-- 9.  A stored representation is untouched
 ------------------------------------------------------------------------
--- σ IS non-injective: `instᵉ₀ (lvl L)` sends `bse 0` and `lvl L` to the
--- same address.  That is the ONLY collision, so on `Fresh L` addresses
--- the map is injective, and `extsᵃᵉ` preserves the property.
+-- It is well formed over the EMPTY base, so no `bse` occurs in it and
+-- a base substitution leaves it alone — the `lvl-fixed` of
+-- proof.AddrWeaken, for substitutions.
 
-inj-inst₀ : ∀ L → InjF L (instᵉ₀ (lvl L))
-inj-inst₀ L {lvl ℓ} {lvl m} f g eq = eq
-inj-inst₀ L {lvl ℓ} {bse zero} (fr-lvl ne) g eq = ⊥-elim (ne (lvl-inj eq))
-inj-inst₀ L {bnd i} {bse zero} f g ()
-inj-inst₀ L {bnd i} {bse (suc j)} f g ()
-inj-inst₀ L {bse zero} {lvl m} f (fr-lvl ne) eq =
-  ⊥-elim (ne (sym (lvl-inj eq)))
-inj-inst₀ L {bse zero} {bse zero} f g eq = refl
-inj-inst₀ L {bse (suc i)} {bse (suc j)} f g eq =
-  cong (λ k → bse (suc k)) (bse-inj eq)
-
--- What `extsᵃᵉ σ` does to a shifted base index, in the two forms σ can
--- take; the `lvl` branch remembers σ's own value, which is what lets the
--- inner injectivity fire.
-ext-view : ∀ {σ} → NoBnd σ → ∀ j
-  → (Σ[ ℓ ∈ ℕ ] ((σ j ≡ lvl ℓ)
-      × (substAddrᵉ (extsᵃᵉ σ) (bse (suc j)) ≡ lvl ℓ)))
-  ⊎ (Σ[ k ∈ ℕ ] substAddrᵉ (extsᵃᵉ σ) (bse (suc j)) ≡ bse (suc k))
-ext-view nb j with nb j
-ext-view nb j | inj₁ (ℓ , e) = inj₁ (ℓ , e , cong (renᵃᵉ suc) e)
-ext-view nb j | inj₂ (k , e) = inj₂ (k , cong (renᵃᵉ suc) e)
-
-inj-ext : ∀ {L σ} → NoBnd σ → InjF L σ → InjF L (extsᵃᵉ σ)
-inj-ext nb inj {lvl ℓ} {lvl m} f g eq = eq
-inj-ext nb inj {bse zero} {bse zero} f g eq = refl
-inj-ext {σ = σ} nb inj {lvl ℓ} {bse (suc j)} f g eq with ext-view nb j
-inj-ext {σ = σ} nb inj {lvl ℓ} {bse (suc j)} f g eq | inj₁ (p , e1 , e2) =
-  ⊥-elim (lvl≢bse (inj f fr-bse (trans (trans eq e2) (sym e1))))
-inj-ext {σ = σ} nb inj {lvl ℓ} {bse (suc j)} f g eq | inj₂ (k , e2) =
-  ⊥-elim (lvl≢bse (trans eq e2))
-inj-ext {σ = σ} nb inj {bse (suc i)} {lvl m} f g eq with ext-view nb i
-inj-ext {σ = σ} nb inj {bse (suc i)} {lvl m} f g eq | inj₁ (p , e1 , e2) =
-  ⊥-elim (bse≢lvl (inj fr-bse g (trans e1 (trans (sym e2) eq))))
-inj-ext {σ = σ} nb inj {bse (suc i)} {lvl m} f g eq | inj₂ (k , e2) =
-  ⊥-elim (bse≢lvl (trans (sym e2) eq))
-  ⊥-elim (bnd≢lvl (trans eq e2))
-  ⊥-elim (bnd≢bse (trans eq e2))
-  ⊥-elim (lvl≢bnd (trans (sym e2) eq))
-  ⊥-elim (bse≢bnd (trans (sym e2) eq))
-inj-ext {σ = σ} nb inj {bse zero} {bse (suc j)} f g eq with ext-view nb j
-inj-ext {σ = σ} nb inj {bse zero} {bse (suc j)} f g eq | inj₁ (p , e1 , e2) =
-  ⊥-elim (bse≢lvl (trans eq e2))
-inj-ext {σ = σ} nb inj {bse zero} {bse (suc j)} f g eq | inj₂ (k , e2) =
-  ⊥-elim (bse0≢bseS (trans eq e2))
-inj-ext {σ = σ} nb inj {bse (suc i)} {bse zero} f g eq with ext-view nb i
-inj-ext {σ = σ} nb inj {bse (suc i)} {bse zero} f g eq | inj₁ (p , e1 , e2) =
-  ⊥-elim (lvl≢bse (trans (sym e2) eq))
-inj-ext {σ = σ} nb inj {bse (suc i)} {bse zero} f g eq | inj₂ (k , e2) =
-  ⊥-elim (bseS≢bse0 (trans (sym e2) eq))
-inj-ext {σ = σ} nb inj {bse (suc i)} {bse (suc j)} f g eq =
-  cong (λ k → bse (suc k)) (bse-inj (inj fr-bse fr-bse (suc-injᵉ eq)))
-
-------------------------------------------------------------------------
--- 10.  The lookups, re-indexed by the address FORM
-------------------------------------------------------------------------
--- A base substitution may turn a `bse` into a `lvl`, so every rule that
--- is chosen by the address form needs the view.
-
-AddrOK : Addr → Set
-AddrOK α = (Σ[ ℓ ∈ ℕ ] α ≡ lvl ℓ) ⊎ (Σ[ j ∈ ℕ ] α ≡ bse j)
-
-∋a-move : ∀ {Σ Ss Ss′ Bs α} → AddrOK α
-  → Σ ∣ (Ss ∥ Bs) ∋a α → Σ ∣ (Ss′ ∥ Bs) ∋a α
-∋a-move (inj₁ (ℓ , refl)) (a-lvl l) = a-lvl l
-∋a-move (inj₂ (j , refl)) p = ∋a-restk p
-
-∋r-move : ∀ {Σ Ss Ss′ Bs α R} → AddrOK α
-  → Σ ∣ (Ss ∥ Bs) ∋r α := R → Σ ∣ (Ss′ ∥ Bs) ∋r α := R
-∋r-move (inj₁ (ℓ , refl)) (r-lvl l) = r-lvl l
-∋r-move (inj₂ (j , refl)) p = ∋r-restk p
-
-∋a-wk : ∀ {Σ Ss Bs e α} → AddrOK α
-  → Σ ∣ (Ss ∥ Bs) ∋a α → Σ ∣ (Ss ∥ e ∷ Bs) ∋a renᵃᵉ suc α
-∋a-wk (inj₁ (ℓ , refl)) (a-lvl l) = a-lvl l
-∋a-wk {e = addr} (inj₂ (j , refl)) p = a-skip-addr p
-∋a-wk {e = nuBind T} (inj₂ (j , refl)) p = a-skip-nu p
-
-∋r-wk : ∀ {Σ Ss Bs e α R} → StoreOk Σ → AddrOK α
-  → Σ ∣ (Ss ∥ Bs) ∋r α := R → Σ ∣ (Ss ∥ e ∷ Bs) ∋r renᵃᵉ suc α := ⇑ᴿᵉ R
-∋r-wk sok (inj₁ (ℓ , refl)) (r-lvl l) rewrite lvl-fixed suc sok l = r-lvl l
-∋r-wk {e = addr} sok (inj₂ (j , refl)) p = r-skip-addr p
-∋r-wk {e = nuBind T} sok (inj₂ (j , refl)) p = r-skip-nu p
-
-n-skip-bind : ∀ {Ss Bs X α} → AddrOK α
-  → (Ss ∥ Bs) ∋n X := α → (bind ∷ Ss ∥ Bs) ∋n suc X := α
-n-skip-bind (inj₁ (ℓ , refl)) p = n-skip-bind p
-n-skip-bind (inj₂ (j , refl)) p = n-skip-bind p
-
--- The three `pop-bind-*` rules are one rule, up to the stack shift the
--- binder performs on the address.
-pop-bind′ : ∀ {Ss Ss′ Bs X α β} → α ≡ β
-  → (Ss ∥ Bs) ▷ X := β ⇒ (Ss′ ∥ Bs)
-  → (bind ∷ Ss ∥ Bs) ▷ suc X := α ⇒ (bind ∷ Ss′ ∥ Bs)
-pop-bind′ {β = lvl ℓ} refl p = pop-bind p
-pop-bind′ {β = bse j} refl p = pop-bind p
-
-pop-inst : ∀ {σ Ss Ss′ Bs Bs′ X α} → NoBnd σ
-  → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
-  → (substStk σ Ss ∥ Bs′) ▷ X := substAddrᵉ σ α ⇒ (substStk σ Ss′ ∥ Bs′)
-pop-inst nb pop-here = pop-here
-pop-inst nb (pop-bind p) = pop-bind′ refl (pop-inst nb p)
-pop-inst nb (pop-bind {j = j} p) =
-  pop-bind′ (sym (nobnd-nb j)) (pop-inst nb p)
-
-bnd≢sub : ∀ {σ i j} → NoBnd σ → bnd i ≡ substAddrᵉ σ (bse j) → ⊥
-
--- A STORED representation mentions no base address, so a base
--- substitution leaves it alone — the `lvl-fixed` of proof.AddrWeaken.
-wfᴿ-nobse-sub : ∀ {Sg Ss R} σ → Sg ∣ (Ss ∥ []) ⊢ᴿ R → substᴿᵉ σ R ≡ R
+wfᴿ-nobse-sub : ∀ {Sg Ss n R} σ → Sg ∣ (Ss ∥ []) ⊢ᴿ[ n ] R
+  → substᴿᵉ σ R ≡ R
 wfᴿ-nobse-sub σ (wfᴿ-var (a-lvl l)) = refl
-wfᴿ-nobse-sub σ (wfᴿ-var (a-skip-asgn p)) = refl
+wfᴿ-nobse-sub σ (wfᴿ-bv lt) = refl
 wfᴿ-nobse-sub σ wfᴿ-ℕ = refl
 wfᴿ-nobse-sub σ wfᴿ-𝔹 = refl
 wfᴿ-nobse-sub σ (wfᴿ-⇒ a b) =
@@ -476,22 +342,37 @@ lvl-fixed-sub : ∀ {Sg ℓ R} σ → StoreOk Sg → Sg ∋ˡ ℓ := R
 lvl-fixed-sub σ sok l = wfᴿ-nobse-sub σ (sok l)
 
 ------------------------------------------------------------------------
+-- 10.  The pop judgment travels
+------------------------------------------------------------------------
+-- Pure stack structure, with no address arithmetic: a substitution
+-- passes straight through it, exactly as a renaming does.
+
+pop-inst : ∀ {σ Ss Ss′ Bs Bs′ X α}
+  → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → (substStk σ Ss ∥ Bs′) ▷ X := substAddrᵉ σ α ⇒ (substStk σ Ss′ ∥ Bs′)
+pop-inst pop-here = pop-here
+pop-inst (pop-bind p) = pop-bind (pop-inst p)
+
+------------------------------------------------------------------------
 -- 11.  A base SUBSTITUTION between contexts
 ------------------------------------------------------------------------
--- The mirror of `Renamesᵇ` (proof.AddrWeaken): three closure properties,
--- one per lookup, plus the reflection `sub-n⁻` that the NEGATIVE
--- premises need.  `sub-n⁻` also reports that the reflected address is
--- FRESH — the context's crossing assignments are store-scoped — which is
--- exactly what `notasgn-inst` must feed to `sub-inj`.
+-- The mirror of `Renamesᵇ` (proof.AddrWeaken): one closure property per
+-- lookup, plus the reflection `sub-n⁻` that the NEGATIVE premises need.
+-- `sub-n⁻` also reports that the reflected address is FRESH — the
+-- context's crossing assignments are store-scoped — which is exactly
+-- what `notasgn-inst` must feed to `sub-inj`.
 
 record Substsᵇ (Sg : Store) (L : ℕ) (σ : SubstAddr) (Γ Γ′ : Ctxᵗ) : Set
   where
   field
     sub-ok  : StoreOk Sg
-    sub-nb  : NoBnd σ
     sub-inj : InjF L σ
     sub-a   : ∀ {α} → Sg ∣ Γ ∋a α → Sg ∣ Γ′ ∋a substAddrᵉ σ α
     sub-n   : ∀ {X α} → Γ ∋n X := α → Γ′ ∋n X := substAddrᵉ σ α
+    -- scope alone, which is all `⊢ᵗ` reads, and the `∀`-bound variables
+    -- a `ᵛ reads back through
+    sub-t   : ∀ {X} → stk Γ ∋ᵗ X → stk Γ′ ∋ᵗ X
+    sub-b   : ∀ {X i} → stk Γ ∋b X at i → stk Γ′ ∋b X at i
     sub-r   : ∀ {α R} → Sg ∣ Γ ∋r α := R
             → Sg ∣ Γ′ ∋r substAddrᵉ σ α := substᴿᵉ σ R
     sub-n⁻  : ∀ {X α} → Γ′ ∋n X := α
@@ -502,65 +383,35 @@ open Substsᵇ
 ------------------------------------------------------------------------
 -- 12.  Closure under the stack binders
 ------------------------------------------------------------------------
+-- Neither address lookup reads the stack, so a stack entry has only to
+-- be carried by the NAME components.
 
 sub-bind : Substsᵇ Sg L σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → Substsᵇ Sg L σ (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
 sub-ok (sub-bind r) = sub-ok r
-sub-nb (sub-bind r) = sub-nb r
 sub-inj (sub-bind r) = sub-inj r
-sub-a (sub-bind r) (a-lvl l) = a-lvl l
-sub-a (sub-bind r) a-here-addr = ∋a-move (sub-nb r zero) (sub-a r a-here-addr)
-sub-a (sub-bind r) a-here-nu = ∋a-move (sub-nb r zero) (sub-a r a-here-nu)
-sub-a (sub-bind r) (a-skip-addr {j = j} p) =
-  ∋a-move (sub-nb r (suc j)) (sub-a r (a-skip-addr (∋a-restk p)))
-sub-a (sub-bind r) (a-skip-nu {j = j} p) =
-  ∋a-move (sub-nb r (suc j)) (sub-a r (a-skip-nu (∋a-restk p)))
+sub-t (sub-bind r) t-here = t-here
+sub-t (sub-bind r) (t-there p) = t-there (sub-t r p)
+sub-b (sub-bind r) b-here = b-here
+sub-b (sub-bind r) (b-bind p) = b-bind (sub-b r p)
+sub-a (sub-bind r) p = ∋a-restk (sub-a r (∋a-restk p))
+sub-r (sub-bind r) p = ∋r-restk (sub-r r (∋r-restk p))
 sub-n (sub-bind r) (n-skip-bind p) = n-skip-bind (sub-n r p)
-sub-n (sub-bind r) (n-skip-bind {j = j} p) =
-  n-skip-bind (sub-nb r j) (sub-n r p)
-sub-r (sub-bind r) r-here = ∋r-move (sub-nb r zero) (sub-r r r-here)
-sub-r (sub-bind r) (r-skip-addr {j = j} p) =
-  ∋r-move (sub-nb r (suc j)) (sub-r r (r-skip-addr (∋r-restk p)))
-sub-r (sub-bind r) (r-skip-nu {j = j} p) =
-  ∋r-move (sub-nb r (suc j)) (sub-r r (r-skip-nu (∋r-restk p)))
-sub-r (sub-bind {σ = σ} r) (r-lvl l)
-  rewrite lvl-fixed-sub σ (sub-ok r) l = r-lvl l
 sub-n⁻ (sub-bind r) (n-skip-bind p) with sub-n⁻ r p
-  bnd (suc i) , n-skip-bind q , fr-bnd , refl
-sub-n⁻ (sub-bind r) (n-skip-bind p) | bse j , q , f , eq =
-  ⊥-elim (bnd≢sub (sub-nb r) eq)
-sub-n⁻ (sub-bind r) (n-skip-bind p) with sub-n⁻ r p
-sub-n⁻ (sub-bind r) (n-skip-bind p) | lvl m , q , f , eq =
-  lvl m , n-skip-bind q , f , eq
-sub-n⁻ (sub-bind r) (n-skip-bind p) | bse j , q , f , eq =
-  bse j , n-skip-bind q , fr-bse , eq
-sub-n⁻ (sub-bind r) (n-skip-bind p) with sub-n⁻ r p
-sub-n⁻ (sub-bind r) (n-skip-bind p) | bse k , q , f , eq =
-  bse k , n-skip-bind q , fr-bse , eq
+sub-n⁻ (sub-bind r) (n-skip-bind p) | β , q , f , eq =
+  β , n-skip-bind q , f , eq
 
 sub-asgn : Fresh L α → Substsᵇ Sg L σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → Substsᵇ Sg L σ (asgn α ∷ Ss ∥ Bs) (asgn (substAddrᵉ σ α) ∷ Ss′ ∥ Bs′)
 sub-ok (sub-asgn f r) = sub-ok r
-sub-nb (sub-asgn f r) = sub-nb r
 sub-inj (sub-asgn f r) = sub-inj r
-sub-a (sub-asgn f r) (a-skip-asgn p) = a-skip-asgn (sub-a r p)
-sub-a (sub-asgn f r) (a-lvl l) = a-lvl l
-sub-a (sub-asgn f r) a-here-addr =
-  ∋a-move (sub-nb r zero) (sub-a r a-here-addr)
-sub-a (sub-asgn f r) a-here-nu = ∋a-move (sub-nb r zero) (sub-a r a-here-nu)
-sub-a (sub-asgn f r) (a-skip-addr {j = j} p) =
-  ∋a-move (sub-nb r (suc j)) (sub-a r (a-skip-addr (∋a-restk p)))
-sub-a (sub-asgn f r) (a-skip-nu {j = j} p) =
-  ∋a-move (sub-nb r (suc j)) (sub-a r (a-skip-nu (∋a-restk p)))
+sub-t (sub-asgn f r) t-here = t-here
+sub-t (sub-asgn f r) (t-there p) = t-there (sub-t r p)
+sub-b (sub-asgn f r) (b-asgn p) = b-asgn (sub-b r p)
+sub-a (sub-asgn f r) p = ∋a-restk (sub-a r (∋a-restk p))
+sub-r (sub-asgn f r) p = ∋r-restk (sub-r r (∋r-restk p))
 sub-n (sub-asgn f r) n-here-asgn = n-here-asgn
 sub-n (sub-asgn f r) (n-skip-asgn p) = n-skip-asgn (sub-n r p)
-sub-r (sub-asgn f r) r-here = ∋r-move (sub-nb r zero) (sub-r r r-here)
-sub-r (sub-asgn f r) (r-skip-addr {j = j} p) =
-  ∋r-move (sub-nb r (suc j)) (sub-r r (r-skip-addr (∋r-restk p)))
-sub-r (sub-asgn f r) (r-skip-nu {j = j} p) =
-  ∋r-move (sub-nb r (suc j)) (sub-r r (r-skip-nu (∋r-restk p)))
-sub-r (sub-asgn {σ = σ} f r) (r-lvl l)
-  rewrite lvl-fixed-sub σ (sub-ok r) l = r-lvl l
 sub-n⁻ (sub-asgn {α = α} f r) n-here-asgn = α , n-here-asgn , f , refl
 sub-n⁻ (sub-asgn f r) (n-skip-asgn p) with sub-n⁻ r p
 sub-n⁻ (sub-asgn f r) (n-skip-asgn p) | β , q , g , eq =
@@ -579,7 +430,7 @@ sub-stk {Ss = asgn α ∷ Ss} r (fs-asgn f fs) = sub-asgn f (sub-stk r fs)
 -- 13.  Closure under a BASE binder, and the discharge instance
 ------------------------------------------------------------------------
 -- `Λ` and `ν` bind on the base, so they are where the substitution
--- extends; `∀` and `∀ᴿ` bind on the stack, so they do not.
+-- extends; `∀` and `∀ᴿ` bind no address, so they do not.
 
 substEnt : SubstAddr → BaseEnt → BaseEnt
 substEnt σ addr = addr
@@ -589,25 +440,26 @@ sub-ext : ∀ {Sg L σ Bs Bs′ e}
   → Substsᵇ Sg L σ ([] ∥ Bs) ([] ∥ Bs′)
   → Substsᵇ Sg L (extsᵃᵉ σ) ([] ∥ e ∷ Bs) ([] ∥ substEnt σ e ∷ Bs′)
 sub-ok (sub-ext r) = sub-ok r
-sub-nb (sub-ext r) = noBnd-ext (sub-nb r)
-sub-inj (sub-ext r) = inj-ext (sub-nb r) (sub-inj r)
+sub-inj (sub-ext r) = inj-ext (sub-inj r)
 sub-n (sub-ext r) ()
 sub-n⁻ (sub-ext r) ()
+sub-t (sub-ext r) ()
+sub-b (sub-ext r) ()
 sub-a (sub-ext r) (a-lvl l) = a-lvl l
 sub-a (sub-ext {e = addr} r) a-here-addr = a-here-addr
 sub-a (sub-ext {e = nuBind T} r) a-here-nu = a-here-nu
-sub-a (sub-ext {e = addr} r) (a-skip-addr {j = j} p) =
-  ∋a-wk (sub-nb r j) (sub-a r p)
-sub-a (sub-ext {e = nuBind T} r) (a-skip-nu {j = j} p) =
-  ∋a-wk (sub-nb r j) (sub-a r p)
+sub-a (sub-ext {e = addr} r) (a-skip-addr p) =
+  ren-a (ren-wk (sub-ok r)) (sub-a r p)
+sub-a (sub-ext {e = nuBind T} r) (a-skip-nu p) =
+  ren-a (ren-wk (sub-ok r)) (sub-a r p)
 sub-r (sub-ext {σ = σ} r) (r-lvl l)
   rewrite lvl-fixed-sub (extsᵃᵉ σ) (sub-ok r) l = r-lvl l
 sub-r (sub-ext {σ = σ} {e = nuBind T} r) r-here
   rewrite substᴿᵉ-ext σ T = r-here
-sub-r (sub-ext {σ = σ} {e = addr} r) (r-skip-addr {j = j} {R = R} p)
-  rewrite substᴿᵉ-ext σ R = ∋r-wk (sub-ok r) (sub-nb r j) (sub-r r p)
-sub-r (sub-ext {σ = σ} {e = nuBind T} r) (r-skip-nu {j = j} {R = R} p)
-  rewrite substᴿᵉ-ext σ R = ∋r-wk (sub-ok r) (sub-nb r j) (sub-r r p)
+sub-r (sub-ext {σ = σ} {e = addr} r) (r-skip-addr {R = R} p)
+  rewrite substᴿᵉ-ext σ R = ren-r (ren-wk (sub-ok r)) (sub-r r p)
+sub-r (sub-ext {σ = σ} {e = nuBind T} r) (r-skip-nu {R = R} p)
+  rewrite substᴿᵉ-ext σ R = ren-r (ren-wk (sub-ok r)) (sub-r r p)
 
 -- THE INSTANCE `Alloc` uses: the ν's entry is discharged to the fresh
 -- store level, and every older base address slides down one.
@@ -615,10 +467,11 @@ sub-inst₀ : ∀ Sg {Bs R} → StoreOk (Sg ∷ʳ R)
   → Substsᵇ (Sg ∷ʳ R) (length Sg) (instᵉ₀ (lvl (length Sg)))
       ([] ∥ nuBind R ∷ Bs) ([] ∥ Bs)
 sub-ok (sub-inst₀ Sg sok) = sok
-sub-nb (sub-inst₀ Sg sok) = noBnd-inst₀ (length Sg)
 sub-inj (sub-inst₀ Sg sok) = inj-inst₀ (length Sg)
 sub-n (sub-inst₀ Sg sok) ()
 sub-n⁻ (sub-inst₀ Sg sok) ()
+sub-t (sub-inst₀ Sg sok) ()
+sub-b (sub-inst₀ Sg sok) ()
 sub-a (sub-inst₀ Sg sok) (a-lvl l) = a-lvl l
 sub-a (sub-inst₀ Sg sok) a-here-nu = a-lvl (∋ˡ-last Sg)
 sub-a (sub-inst₀ Sg sok) (a-skip-nu p) = p
@@ -636,24 +489,25 @@ sub-r (sub-inst₀ Sg sok) (r-skip-nu {R = S} p)
 -- unchanged; only the representation types move.
 
 wfᵗ-inst : ∀ {Sg L σ Γ Γ′ A} → Substsᵇ Sg L σ Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ A
-wfᵗ-inst r (wf-var n) with ∋ᵗ→∋n n
-wfᵗ-inst r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (sub-n r m))
+wfᵗ-inst r (wf-var n) = wf-var (sub-t r n)
 wfᵗ-inst r wf-ℕ = wf-ℕ
 wfᵗ-inst r wf-𝔹 = wf-𝔹
 wfᵗ-inst r (wf-⇒ a b) = wf-⇒ (wfᵗ-inst r a) (wfᵗ-inst r b)
 wfᵗ-inst r (wf-∀ a) = wf-∀ (wfᵗ-inst (sub-bind r) a)
 
-wfᴿ-inst : ∀ {Sg L σ Γ Γ′ R} → Substsᵇ Sg L σ Γ Γ′
-  → Sg ∣ Γ ⊢ᴿ R → Sg ∣ Γ′ ⊢ᴿ substᴿᵉ σ R
+wfᴿ-inst : ∀ {Sg L σ Γ Γ′ n R} → Substsᵇ Sg L σ Γ Γ′
+  → Sg ∣ Γ ⊢ᴿ[ n ] R → Sg ∣ Γ′ ⊢ᴿ[ n ] substᴿᵉ σ R
 wfᴿ-inst r (wfᴿ-var a) = wfᴿ-var (sub-a r a)
+wfᴿ-inst r (wfᴿ-bv lt) = wfᴿ-bv lt
 wfᴿ-inst r wfᴿ-ℕ = wfᴿ-ℕ
 wfᴿ-inst r wfᴿ-𝔹 = wfᴿ-𝔹
 wfᴿ-inst r (wfᴿ-⇒ a b) = wfᴿ-⇒ (wfᴿ-inst r a) (wfᴿ-inst r b)
-wfᴿ-inst r (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-inst (sub-bind r) a)
+wfᴿ-inst r (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-inst r a)
 
 read-inst : ∀ {Sg L σ Γ Γ′ R A} → Substsᵇ Sg L σ Γ Γ′
   → Sg ∣ Γ ⊢ R ⇓ A → Sg ∣ Γ′ ⊢ substᴿᵉ σ R ⇓ A
 read-inst r (read-var n) = read-var (sub-n r n)
+read-inst r (read-bv n) = read-bv (sub-b r n)
 read-inst r read-ℕ = read-ℕ
 read-inst r read-𝔹 = read-𝔹
 read-inst r (read-⇒ a b) = read-⇒ (read-inst r a) (read-inst r b)
@@ -685,20 +539,20 @@ mutual
   convElt-inst r (fe-seal f) fs (conv-seal rep rd pop) =
     conv-seal (sub-r (sub-stk r fs) rep)
               (read-inst (sub-stk r (proj₂ (pop-fresh pop fs))) rd)
-              (pop-inst (sub-nb r) pop)
+              (pop-inst pop)
   convElt-inst r (fe-unseal f) fs (conv-unseal rep rd pop na) =
     conv-unseal (sub-r (sub-stk r (push-fresh pop f fs)) rep)
                 (read-inst (sub-stk r fs) rd)
-                (pop-inst (sub-nb r) pop)
+                (pop-inst pop)
                 (notasgn-inst (sub-stk r fs) f na)
   convElt-inst r (fe-hide f) fs (conv-hide sc wf pop na) =
     conv-hide (sub-a (sub-stk r (proj₂ (pop-fresh pop fs))) sc)
               (wfᵗ-inst (sub-stk r (proj₂ (pop-fresh pop fs))) wf)
-              (pop-inst (sub-nb r) pop)
+              (pop-inst pop)
               (notasgn-inst (sub-stk r (proj₂ (pop-fresh pop fs))) f na)
   convElt-inst r (fe-show f) fs (conv-show sc wf pop na) =
     conv-show (sub-a (sub-stk r fs) sc) (wfᵗ-inst (sub-stk r fs) wf)
-              (pop-inst (sub-nb r) pop)
+              (pop-inst pop)
               (notasgn-inst (sub-stk r fs) f na)
   convElt-inst r (fe-fun gs gt) fs (conv-fun s t) =
     conv-fun (conv-inst r gs (conv-freshStk t gt fs) s)
@@ -724,11 +578,11 @@ mutual
 ------------------------------------------------------------------------
 -- The mirror of proof.InertRenaming §1-§4.  `substAddrConv σ` leaves
 -- every NAME and every `Ty` alone, and passes through `all` unextended
--- (an `all` binds a STACK address), so everything the views decide by
--- looking at a type is literally unchanged and everything they decide by
--- looking at element shapes commutes.  The one place the substitution is
--- visible is `all⁺`, which hoists a crossing under the ∀ element's
--- binder — and that shift commutes because σ produces no `bnd`.
+-- (an `all` binds no address), so everything the views decide by
+-- looking at a type is literally unchanged and everything they decide
+-- by looking at element shapes commutes.  `all⁺` hoists a crossing
+-- under the ∀ element's binder, which used to shift its address; with
+-- a `∀` binding a type variable it does not, so even that row is refl.
 
 target-inst : ∀ σ c → target (substAddrConv σ c) ≡ target c
 target-inst σ (id A) = refl
@@ -737,9 +591,6 @@ target-inst σ (ĉ ∷ᶜ c) = target-inst σ c
 elts-inst : ∀ σ c → elts (substAddrConv σ c) ≡ map (substAddrElt σ) (elts c)
 elts-inst σ (id A) = refl
 elts-inst σ (ĉ ∷ᶜ c) = cong (substAddrElt σ ĉ ∷_) (elts-inst σ c)
-
-substAddrᵉ-: NoBnd σ → ∀ α → substAddrᵉ σ (α) ≡ (substAddrᵉ σ α)
-substAddrᵉ-nb α = substAddrᵉ-renᵃ nb suc α
 
 mapEls′ : SubstAddr → Maybe (List ConvElt) → Maybe (List ConvElt)
 mapEls′ σ (just es) = just (map (substAddrElt σ) es)
@@ -767,16 +618,13 @@ arr⁺-inst σ (show X α)   = refl
 arr⁺-inst σ (s ↦ t)      = cong just (elts-inst σ t)
 arr⁺-inst σ (all s)      = refl
 
-all⁺-inst : ∀ {σ} → NoBnd σ → ∀ ĉ
-  → all⁺ (substAddrElt σ ĉ) ≡ mapEls′ σ (all⁺ ĉ)
-all⁺-inst nb (seal X α)   = refl
-all⁺-inst nb (unseal X α) = refl
-all⁺-inst nb (hide X α) =
-  cong (λ β → just (hide (suc X) β ∷ [])) (sym (substAddrᵉ-nb α))
-all⁺-inst nb (show X α) =
-  cong (λ β → just (show (suc X) β ∷ [])) (sym (substAddrᵉ-nb α))
-all⁺-inst nb (s ↦ t)      = refl
-all⁺-inst {σ} nb (all s)  = cong just (elts-inst σ s)
+all⁺-inst : ∀ σ ĉ → all⁺ (substAddrElt σ ĉ) ≡ mapEls′ σ (all⁺ ĉ)
+all⁺-inst σ (seal X α)   = refl
+all⁺-inst σ (unseal X α) = refl
+all⁺-inst σ (hide X α)   = refl
+all⁺-inst σ (show X α)   = refl
+all⁺-inst σ (s ↦ t)      = refl
+all⁺-inst σ (all s)      = cong just (elts-inst σ s)
 
 consArr-inst : ∀ σ l r q
   → consArr (mapEls′ σ l) (mapEls′ σ r) (mapPr′ σ q)
@@ -803,11 +651,11 @@ consAllE-inst σ (just es) (just Es) =
 consAllE-inst σ (just es) nothing = refl
 consAllE-inst σ nothing E = refl
 
-allElts-inst : ∀ {σ} → NoBnd σ → ∀ Es
+allElts-inst : ∀ σ Es
   → allElts (map (substAddrElt σ) Es) ≡ mapEls′ σ (allElts Es)
-allElts-inst nb [] = refl
-allElts-inst {σ} nb (ĉ ∷ Es)
-  rewrite all⁺-inst nb ĉ | allElts-inst nb Es =
+allElts-inst σ [] = refl
+allElts-inst σ (ĉ ∷ Es)
+  rewrite all⁺-inst σ ĉ | allElts-inst σ Es =
   consAllE-inst σ (all⁺ ĉ) (allElts Es)
 
 arrFrom-inst : ∀ σ A₀ q T {c₁ c₂} → arrFrom A₀ q T ≡ just (c₁ , c₂)
@@ -847,26 +695,26 @@ allFrom-inst σ (just es) `𝔹 ()
 allFrom-inst σ (just es) (C ⇒ D) ()
 allFrom-inst σ nothing T ()
 
-allView-inst : ∀ {σ} → NoBnd σ → ∀ c {d} → allView c ≡ just d
+allView-inst : ∀ σ c {d} → allView c ≡ just d
   → Σ[ e ∈ Conv ] allView (substAddrConv σ c) ≡ just e
-allView-inst {σ} nb c eq
+allView-inst σ c eq
   with allFrom-inst σ (allElts (elts c)) (target c) eq
-allView-inst {σ} nb c eq | e , eq′ = e , unfolded
+allView-inst σ c eq | e , eq′ = e , unfolded
   where
   unfolded :
       allFrom (allElts (elts (substAddrConv σ c)))
               (target (substAddrConv σ c))
     ≡ just e
   unfolded
-    rewrite elts-inst σ c | allElts-inst nb (elts c) | target-inst σ c =
+    rewrite elts-inst σ c | allElts-inst σ (elts c) | target-inst σ c =
     eq′
 
-inert-inst : ∀ {σ c} → NoBnd σ → Inert c → Inert (substAddrConv σ c)
-inert-inst {σ} {c} nb (inert-arr A₀ eq) with arr-inst σ A₀ c eq
-inert-inst {σ} {c} nb (inert-arr A₀ eq) | d₁ , d₂ , eq′ = inert-arr A₀ eq′
-inert-inst {σ} {c} nb (inert-all eq) with allView-inst nb c eq
-inert-inst {σ} {c} nb (inert-all eq) | e , eq′ = inert-all eq′
-inert-inst {σ} {c} nb (inert-var eq) =
+inert-inst : ∀ {σ c} → Inert c → Inert (substAddrConv σ c)
+inert-inst {σ} {c} (inert-arr A₀ eq) with arr-inst σ A₀ c eq
+inert-inst {σ} {c} (inert-arr A₀ eq) | d₁ , d₂ , eq′ = inert-arr A₀ eq′
+inert-inst {σ} {c} (inert-all eq) with allView-inst σ c eq
+inert-inst {σ} {c} (inert-all eq) | e , eq′ = inert-all eq′
+inert-inst {σ} {c} (inert-var eq) =
   inert-var (trans (target-inst σ c) eq)
 
 ------------------------------------------------------------------------
@@ -874,7 +722,7 @@ inert-inst {σ} {c} nb (inert-var eq) =
 ------------------------------------------------------------------------
 -- `fuse` cancels on an address EQUALITY, so a substitution that
 -- identifies two addresses turns a normal form into a redex.  Away from
--- `lvl L` the substitution is injective (§9), so a pair that did not
+-- `lvl L` the substitution is injective (§7), so a pair that did not
 -- cancel still does not — and `Fresh` is what supplies the two sides.
 
 fuse-inst : ∀ {L σ} → InjF L σ → ∀ ĉ ḓ → FreshElt L ĉ → FreshElt L ḓ
@@ -982,22 +830,21 @@ mutual
 -- 18.  Valuehood survives
 ------------------------------------------------------------------------
 -- `Λ` is a base binder, so the substitution extends there — and
--- `extsᵃᵉ` preserves both `NoBnd` and the restricted injectivity.
+-- `extsᵃᵉ` preserves the restricted injectivity.
 
 mutual
-  simple-inst : ∀ {L σ V} → InjF L σ → NoBnd σ → FreshM L V → Simple V
+  simple-inst : ∀ {L σ V} → InjF L σ → FreshM L V → Simple V
     → Simple (substAddrᴹ σ V)
-  simple-inst inj nb f S$ = S$
-  simple-inst inj nb f S# = S#
-  simple-inst inj nb f Sƛ = Sƛ
-  simple-inst inj nb (fm-Λ f) (SΛ v) =
-    SΛ (value-inst (inj-ext nb inj) (noBnd-ext nb) f v)
+  simple-inst inj f S$ = S$
+  simple-inst inj f S# = S#
+  simple-inst inj f Sƛ = Sƛ
+  simple-inst inj (fm-Λ f) (SΛ v) = SΛ (value-inst (inj-ext inj) f v)
 
-  value-inst : ∀ {L σ V} → InjF L σ → NoBnd σ → FreshM L V → Value V
+  value-inst : ∀ {L σ V} → InjF L σ → FreshM L V → Value V
     → Value (substAddrᴹ σ V)
-  value-inst inj nb f (Vs s) = Vs (simple-inst inj nb f s)
-  value-inst inj nb (fm-⟨⟩ f g) (V⟨⟩ s nf inrt) =
-    V⟨⟩ (simple-inst inj nb f s) (nf-inst inj g nf) (inert-inst nb inrt)
+  value-inst inj f (Vs s) = Vs (simple-inst inj f s)
+  value-inst inj (fm-⟨⟩ f g) (V⟨⟩ s nf inrt) =
+    V⟨⟩ (simple-inst inj f s) (nf-inst inj g nf) (inert-inst inrt)
 
 ------------------------------------------------------------------------
 -- 19.  A term travels
@@ -1032,10 +879,7 @@ mutual
               (fs-asgn fr-bse (freshStk-⤒ fs)) f ⊢V
      | substStk-ext σ Ss
 ⊢-inst {σ = σ} {Ss = Ss} r fs (fm-Λ f) (⊢Λ v ⊢V) | ⊢V′ | eq
-  rewrite eq =
-  ⊢Λ (value-inst (inj-ext (sub-nb r) (sub-inj r)) (noBnd-ext (sub-nb r))
-                 f v)
-     ⊢V′
+  rewrite eq = ⊢Λ (value-inst (inj-ext (sub-inj r)) f v) ⊢V′
 ⊢-inst {σ = σ} {Ss = Ss} r fs (fm-ν f) (⊢ν {R = R} wf ⊢M)
   with ⊢-inst (sub-ext {e = nuBind R} r) (freshStk-⤒ fs) f ⊢M
      | substStk-ext σ Ss
@@ -1050,7 +894,12 @@ mutual
 --
 -- The two freshness premises say that the new level `length Sg` occurs
 -- nowhere yet: not in the ambient context's crossing assignments, and
--- not in the body's conversions.  §21 shows they cannot be dropped.
+-- not in the body's conversions.  They are not a new invariant in
+-- search of a home: `Fresh (length Sg)` is exactly "in scope in Sg"
+-- read at a level, which every crossing carries — through `∋r` on
+-- `conv-seal`/`conv-unseal` and through `∋a` on `conv-hide`/
+-- `conv-show` — and `fresh-of-∋a`/`fresh-of-∋r` below are that reading.
+-- proof.Scoped discharges them from typing.
 
 preserve-Alloc : ∀ {Sg Δ Γ R M A}
   → StoreOk Sg → Flat Δ
@@ -1065,46 +914,15 @@ preserve-Alloc {Sg} sok fl fs fm (⊢ν {Ss = Ss} {Bs = Bs} wf ⊢M) | refl
      | inst-unshiftˢ (lvl (length Sg)) Ss
 preserve-Alloc {Sg} sok fl fs fm (⊢ν {Ss = Ss} {Bs = Bs} wf ⊢M) | refl
   | res | eq rewrite eq = res
-------------------------------------------------------------------------
--- 21.  THE REFUTATION THAT WAS HERE, AND WHY IT IS GONE
-------------------------------------------------------------------------
--- This section held a machine-checked proof that the statement without
--- the freshness premises is FALSE.  Its witness was, over the EMPTY
--- store and the flat context `X := lvl 0`,
---
---     M₀ = 7 ⟨ show 0 (bse 0) ∷ᶜ hide 0 (lvl 0) ∷ᶜ id ℕ ⟩
---
--- whose conversion is a normal form because the two addresses differ,
--- so the pair does not `fuse`.  `Alloc` sends `bse 0` to the fresh
--- level, which over the empty store is `lvl 0`; the pair then cancels,
--- the conversion is no longer normal, and `⊢⟨⟩` cannot fire.
---
--- The witness no longer typechecks.  `conv-hide` and `conv-show` now
--- SCOPE their address (`Σ ∣ Γ ∋a α` on the side without the
--- assignment), and `lvl 0` is not in the empty store — so the term was
--- never well typed to begin with.  That is the whole content of the
--- repair, recorded in notes/DECISIONS.md (2026-09-15).
---
--- What remains to be done here is to turn §20's `FreshStk`/`FreshM`
--- premises into derived facts, which §22 shows how to do: `Fresh
--- (length Sg)` IS `∋a`, read at a level.
-
 
 ------------------------------------------------------------------------
--- 22.  WHAT A GROUNDED RULE SET WOULD GIVE
+-- 21.  FRESHNESS IS SCOPING, READ AT THE NEXT LEVEL
 ------------------------------------------------------------------------
--- `Fresh (length Sg)` is exactly "in scope in Sg" for a level, and THAT
--- is derivable from `∋a` — which `conv-seal` and `conv-unseal` already
--- carry (through `∋r`), and which `conv-hide` and `conv-show` do not.
--- So the premises of §20 are not a new invariant in search of a home:
--- they are the reading of `∋a` that the two identity crossings are
--- currently missing.
-
-∋a-fresh : ∀ {Sg Γ} → Sg ∣ Γ ∋a lvl (length Sg) → ⊥
-∋a-fresh (a-lvl l) = ∋ˡ-fresh l
-
-∋r-fresh : ∀ {Sg Γ R} → Sg ∣ Γ ∋r lvl (length Sg) := R → ⊥
-∋r-fresh (r-lvl l) = ∋ˡ-fresh l
+-- The refutation that used to stand here — a store, a flat context and
+-- a typed `ν` whose contractum was not typable — no longer typechecks:
+-- `conv-hide` and `conv-show` now SCOPE their address, and its witness
+-- named `lvl 0` over the empty store.  See notes/DECISIONS.md
+-- (2026-09-15).  What survives is the positive reading.
 
 fresh-of-∋a : ∀ {Sg Γ α} → Sg ∣ Γ ∋a α → Fresh (length Sg) α
 fresh-of-∋a (a-lvl l) = fr-lvl λ { refl → ∋ˡ-fresh l }

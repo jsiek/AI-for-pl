@@ -31,9 +31,10 @@ open import strong.ConversionReduction
 open import strong.Terms
 open import strong.TermSubst
 
-open import strong.proof.Flat using (Flat)
+open import strong.proof.Flat using (Flat; Flatn; fu-nobinds)
+open Flatn
 open import strong.proof.Scoped using
-  (Scoped; quote-wfᴿ; scoped-freshStk; typing-fresh)
+  (Scoped; quote-wfᴿ; scoped-freshStk; typing-fresh; flat-bindsBelow)
 open import strong.proof.TypeWf using (typing-wf; ctxOk-[])
 open import strong.proof.PreserveAlloc using
   (preserve-Alloc; alloc-storeOk)
@@ -62,5 +63,5 @@ allocOk {Sg} {Δ = Ss ∥ Bs} sok fl scp (⊢ν wf ⊢M) =
 
 tyBetaOk : TyBetaOk
 tyBetaOk {Δ = Ss ∥ Bs} sok fl nf scp q (⊢•[] ⊢Λ' wfA) =
-  preserve-TyBeta sok fl (quote-wfᴿ scp q) q
+  preserve-TyBeta sok fl (quote-wfᴿ scp (flat-bindsBelow (fu-nobinds (flat-stk fl))) q) q
     (typing-wf ctxOk-[] ⊢Λ') (⊢•[] ⊢Λ' wfA)

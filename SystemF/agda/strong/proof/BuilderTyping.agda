@@ -27,7 +27,9 @@ module strong.proof.BuilderTyping where
 --     where `Δ⁺` is the context that HAS the assignment.  The induction
 --     is on `B`: the `⇒` case dualises into `concTy`, so the two
 --     lemmas are mutual, and the `∀` case descends under a `bind`,
---     raising the name, the address and the reading `S` together.
+--     raising the name and the reading `S` together — the ADDRESS does
+--     not move, because in v8 a `∀` binds a type variable, not an
+--     address.
 --     The MISS equations are v8's novelty — v7 crossed with a bare
 --     `id`, v8 with the identity crossings `show`/`hide`, whose source
 --     and target differ by `shiftAtᵗ X`; `close-shift` is the equation
@@ -37,12 +39,11 @@ module strong.proof.BuilderTyping where
 --     At `X := 0` and `α := bse zero` the target is `closeAt 0 A B ≡
 --     B [ A ]ᵗ`, which is `⊢•[]`'s result type — that is `preserve-TyBeta`.
 
-open import Data.Nat using (ℕ; zero; suc; _<_; _∸_; s≤s; z≤n)
+open import Data.Nat using (ℕ; zero; suc; _<_; _∸_; s≤s)
 open import Data.Nat.Properties using (_≟_; _<?_; ≮⇒≥; ≤∧≢⇒<)
 open import Data.Bool using (Bool; true; false; _∨_)
-open import Data.List using (List; []; _∷_; map)
+open import Data.List using (List; []; _∷_)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Relation.Nullary using (Dec; yes; no; ¬_)
 open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; sym; trans; cong; cong₂; subst)
@@ -54,10 +55,8 @@ open Ctxᵗ
 open import strong.Conversion
 open import strong.Terms
 open import strong.proof.AddrWeaken using
-  (Renamesᵇ; ren-wk; ren-stk; read-ren; conv-base; convElt-base;
-   renᴿ-comm)
-open Renamesᵇ
-open import strong.proof.Flat using (Flat; flat-closed)
+  (ren-wk; ren-stk; read-ren; wfᴿ-ren; conv-base; convElt-base)
+open import strong.proof.Flat using (Flat; wfᴿ-restk)
 
 ------------------------------------------------------------------------
 -- 1.  A BASE ENTRY GAINING A REPRESENTATION
@@ -72,10 +71,11 @@ data BaseGrow : List BaseEnt → List BaseEnt → Set where
 
 -- An address in scope stays in scope: `addr` and `nuBind` are both
 -- address binders, so only the CONSTRUCTOR of the lookup changes.
+-- Neither address lookup reads the stack in v8, so there is no stack
+-- case at all.
 ∋a-grow : ∀ {Sg Ss Bs Bs′ α} → BaseGrow Bs Bs′
   → Sg ∣ (Ss ∥ Bs) ∋a α → Sg ∣ (Ss ∥ Bs′) ∋a α
 ∋a-grow bg (a-lvl l) = a-lvl l
-∋a-grow bg (a-skip-asgn q) = a-skip-asgn (∋a-grow bg q)
 ∋a-grow bg-here a-here-addr = a-here-nu
 ∋a-grow (bg-skip bg) a-here-addr = a-here-addr
 ∋a-grow (bg-skip bg) a-here-nu = a-here-nu
@@ -94,9 +94,10 @@ data BaseGrow : List BaseEnt → List BaseEnt → Set where
 ∋r-grow (bg-skip bg) (r-skip-addr q) = r-skip-addr (∋r-grow bg q)
 ∋r-grow (bg-skip bg) (r-skip-nu q) = r-skip-nu (∋r-grow bg q)
 
-wfᴿ-grow : ∀ {Sg Ss Bs Bs′ T} → BaseGrow Bs Bs′
-  → Sg ∣ (Ss ∥ Bs) ⊢ᴿ T → Sg ∣ (Ss ∥ Bs′) ⊢ᴿ T
+wfᴿ-grow : ∀ {Sg Ss Bs Bs′ n T} → BaseGrow Bs Bs′
+  → Sg ∣ (Ss ∥ Bs) ⊢ᴿ[ n ] T → Sg ∣ (Ss ∥ Bs′) ⊢ᴿ[ n ] T
 wfᴿ-grow bg (wfᴿ-var a) = wfᴿ-var (∋a-grow bg a)
+wfᴿ-grow bg (wfᴿ-bv lt) = wfᴿ-bv lt
 wfᴿ-grow bg wfᴿ-ℕ = wfᴿ-ℕ
 wfᴿ-grow bg wfᴿ-𝔹 = wfᴿ-𝔹
 wfᴿ-grow bg (wfᴿ-⇒ a b) = wfᴿ-⇒ (wfᴿ-grow bg a) (wfᴿ-grow bg b)
@@ -107,6 +108,7 @@ wfᴿ-grow bg (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-grow bg a)
 read-rebase : ∀ {Sg Ss Bs Bs′ T A}
   → Sg ∣ (Ss ∥ Bs) ⊢ T ⇓ A → Sg ∣ (Ss ∥ Bs′) ⊢ T ⇓ A
 read-rebase (read-var n) = read-var (∋n-rebase n)
+read-rebase (read-bv b) = read-bv b
 read-rebase read-ℕ = read-ℕ
 read-rebase read-𝔹 = read-𝔹
 read-rebase (read-⇒ a b) = read-⇒ (read-rebase a) (read-rebase b)
@@ -293,8 +295,9 @@ close-shift X S (`∀ A) eq =
 ------------------------------------------------------------------------
 -- Everything the builders need in order to descend under a `bind`: the
 -- pop, the freshness, the representation, the reading and the
--- well-formedness all rise together, the name by `suc` and the address
--- by `⇑ᵃ`.
+-- well-formedness all rise together — the NAME by `suc`, and nothing
+-- else.  In v8 a `bind` moves no address, so `∋r` is carried by
+-- `∋r-restk` and there is no case analysis on the address anywhere.
 
 pop-∋n : ∀ {Γ Γ′ X α} → Γ ▷ X := α ⇒ Γ′ → Γ ∋n X := α
 pop-∋n pop-here = n-here-asgn
@@ -302,68 +305,56 @@ pop-∋n (pop-bind q) = n-skip-bind (pop-∋n q)
 
 pop-⇑ : ∀ {Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → (bind ∷ Ss ∥ Bs) ▷ suc X := α ⇒ (bind ∷ Ss′ ∥ Bs)
-pop-⇑ {α = lvl ℓ} q = pop-bind q
-pop-⇑ {α = bse j} q = pop-bind q
+pop-⇑ q = pop-bind q
 
--- The name lookups rise by (suc , ⇑ᵃ): the binder is a name entry AND
--- an address binder, so both indices move.
 ∋n-⇑ : ∀ {Ss Bs X α} → (Ss ∥ Bs) ∋n X := α
   → (bind ∷ Ss ∥ Bs) ∋n suc X := α
-∋n-⇑ {α = lvl ℓ} q = n-skip-bind q
-∋n-⇑ {α = bse j} q = n-skip-bind q
+∋n-⇑ q = n-skip-bind q
 
 notasgn-⇑ : ∀ {Ss Bs α} → NotAssigned (Ss ∥ Bs) α
-  → NotAssigned (bind ∷ Ss ∥ Bs) (α)
-notasgn-⇑ {α = lvl ℓ} na (n-skip-bind q) = na q
-notasgn-⇑ {α = bse j} na (n-skip-bind q) = na q
+  → NotAssigned (bind ∷ Ss ∥ Bs) α
+notasgn-⇑ na (n-skip-bind q) = na q
 
--- The representation does NOT move, provided it is closed for the
--- stack — which is what `StoreOk` and `Flat` deliver at the redex.
-∋r-⇑ : ∀ {Sg Ss Bs α R} → (∀ η → renameᴿ η R ≡ R)
-  → Sg ∣ (Ss ∥ Bs) ∋r α := R → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r α := R
-∋r-⇑ fix (r-lvl l) = r-lvl l
-∋r-⇑ fix h@r-here = ∋r-restk h
-∋r-⇑ fix h@(r-skip-addr q) = ∋r-restk h
-∋r-⇑ fix h@(r-skip-nu q) = ∋r-restk h
-  subst (λ T → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r α := T) (fix suc)
-  subst (λ T → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r α := T) (fix suc)
+------------------------------------------------------------------------
+-- Well-formed types travel along a SCOPE map
+------------------------------------------------------------------------
+-- `⊢ᵗ` reads nothing but which names are in scope, so every transport
+-- it needs is a map of `∋ᵗ`.
 
--- The name-renaming algebra the read-back travels along: names by `ρ`,
--- addresses by the STACK renaming `η`, both extending under a `bind`.
-Ren∋ : Renameᵗ → Renameᵇ → Ctxᵗ → Ctxᵗ → Set
-Ren∋ ρ η Γ Γ′ = ∀ {X α} → Γ ∋n X := α → Γ′ ∋n ρ X := renᵃ η α
+extˢ : ∀ {Ss Ss′} → (∀ {X} → Ss ∋ᵗ X → Ss′ ∋ᵗ X)
+  → ∀ {X} → (bind ∷ Ss) ∋ᵗ X → (bind ∷ Ss′) ∋ᵗ X
+extˢ f t-here = t-here
+extˢ f (t-there p) = t-there (f p)
 
-ren∋-ext : ∀ {ρ η Γ Γ′} → Ren∋ ρ η Γ Γ′
-  → Ren∋ (extᵗ ρ) (extᵇ η) (bind ∷ stk Γ ∥ bas Γ) (bind ∷ stk Γ′ ∥ bas Γ′)
-ren∋-ext r (n-skip-bind q) = n-skip-bind (r q)
+-- an index-preserving change of stack (the `Λ`'s `asgn` for the `∀`'s
+-- `bind`, say) leaves a well-formed type well formed
+wf-stk : ∀ {Ss Ss′ Bs Bs′ A} → (∀ {X} → Ss ∋ᵗ X → Ss′ ∋ᵗ X)
+  → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ A
+wf-stk f (wf-var n) = wf-var (f n)
+wf-stk f wf-ℕ = wf-ℕ
+wf-stk f wf-𝔹 = wf-𝔹
+wf-stk f (wf-⇒ a b) = wf-⇒ (wf-stk f a) (wf-stk f b)
+wf-stk f (wf-∀ a) = wf-∀ (wf-stk (extˢ f) a)
 
-read-ren∋ : ∀ {Sg ρ η Γ Γ′ T A} → Ren∋ ρ η Γ Γ′
-  → Sg ∣ Γ ⊢ T ⇓ A → Sg ∣ Γ′ ⊢ renameᴿ η T ⇓ renameᵗ ρ A
-read-ren∋ r (read-var n) = read-var (r n)
-read-ren∋ r read-ℕ = read-ℕ
-read-ren∋ r read-𝔹 = read-𝔹
-read-ren∋ r (read-⇒ a b) = read-⇒ (read-ren∋ r a) (read-ren∋ r b)
-read-ren∋ r (read-∀ a) = read-∀ (read-ren∋ (ren∋-ext r) a)
+extᵘ : ∀ {ρ Ss Ss′} → (∀ {X} → Ss ∋ᵗ X → Ss′ ∋ᵗ ρ X)
+  → ∀ {X} → (bind ∷ Ss) ∋ᵗ X → (bind ∷ Ss′) ∋ᵗ extᵗ ρ X
+extᵘ f t-here = t-here
+extᵘ f (t-there p) = t-there (f p)
 
-wf-renN : ∀ {ρ η Γ Γ′ A} → Ren∋ ρ η Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ renameᵗ ρ A
-wf-renN r (wf-var n) with ∋ᵗ→∋n n
-wf-renN r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (r m))
-wf-renN r wf-ℕ = wf-ℕ
-wf-renN r wf-𝔹 = wf-𝔹
-wf-renN r (wf-⇒ a b) = wf-⇒ (wf-renN r a) (wf-renN r b)
-wf-renN r (wf-∀ a) = wf-∀ (wf-renN (ren∋-ext r) a)
+wf-renˢ : ∀ {ρ Ss Ss′ Bs Bs′ A} → (∀ {X} → Ss ∋ᵗ X → Ss′ ∋ᵗ ρ X)
+  → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ renameᵗ ρ A
+wf-renˢ f (wf-var n) = wf-var (f n)
+wf-renˢ f wf-ℕ = wf-ℕ
+wf-renˢ f wf-𝔹 = wf-𝔹
+wf-renˢ f (wf-⇒ a b) = wf-⇒ (wf-renˢ f a) (wf-renˢ f b)
+wf-renˢ f (wf-∀ a) = wf-∀ (wf-renˢ (extᵘ f) a)
 
 wf-⇑ : ∀ {Ss Bs A} → (Ss ∥ Bs) ⊢ᵗ A → (bind ∷ Ss ∥ Bs) ⊢ᵗ ⇑ᵗ A
-wf-⇑ = wf-renN ∋n-⇑
-
-rd-⇑ : ∀ {Sg Ss Bs R S} → (∀ η → renameᴿ η R ≡ R)
-  → Sg ∣ (Ss ∥ Bs) ⊢ R ⇓ S → Sg ∣ (bind ∷ Ss ∥ Bs) ⊢ R ⇓ ⇑ᵗ S
-rd-⇑ {Sg} {Ss} {Bs} {R} {S} fix rd =
-  subst (λ T → Sg ∣ (bind ∷ Ss ∥ Bs) ⊢ T ⇓ ⇑ᵗ S) (fix suc)
-        (read-ren∋ ∋n-⇑ rd)
+wf-⇑ = wf-renˢ t-there
 
 read-wf : ∀ {Sg Γ T A} → Sg ∣ Γ ⊢ T ⇓ A → Γ ⊢ᵗ A
 read-wf (read-var n) = wf-var (∋n→∋ᵗ n)
+read-wf (read-bv b) = wf-var (∋b→∋ᵗ b)
 read-wf read-ℕ = wf-ℕ
 read-wf read-𝔹 = wf-𝔹
 read-wf (read-⇒ a b) = wf-⇒ (read-wf a) (read-wf b)
@@ -379,44 +370,65 @@ wf-∀-inv : ∀ {Ss Bs A} → (Ss ∥ Bs) ⊢ᵗ `∀ A → (bind ∷ Ss ∥ Bs
 wf-∀-inv (wf-∀ a) = a
 
 ------------------------------------------------------------------------
+-- The read-back under an inserted `bind`
+------------------------------------------------------------------------
+-- This is what the `∀` case of the builder typing needs: α's
+-- representation does not change when the crossing descends under a
+-- binder (`∋r-restk`), so its READING has to shift instead.  A `bind`
+-- inserted after `n` enclosing `∀ᴿ` binders raises every name at or
+-- above `n` and leaves every `∀ᴿ`-bound index below `n` alone — which
+-- is why the transport is indexed by the SAME `n` that `⊢ᴿ[ n ]`
+-- counts.  At `n ≡ 0` (`⊢ᴿ`, no free `ᵛ`) the `read-bv` case cannot
+-- arise, and the shift is the plain `suc`.
+
+record BindIns (ρ : Renameᵗ) (n : ℕ) (Γ Γ′ : Ctxᵗ) : Set where
+  field
+    ins-n : ∀ {X α} → Γ ∋n X := α → Γ′ ∋n ρ X := α
+    ins-b : ∀ {X i} → i < n → stk Γ ∋b X at i → stk Γ′ ∋b ρ X at i
+open BindIns
+
+ins-ext : ∀ {ρ n Ss Ss′ Bs Bs′} → BindIns ρ n (Ss ∥ Bs) (Ss′ ∥ Bs′)
+  → BindIns (extᵗ ρ) (suc n) (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
+ins-n (ins-ext r) (n-skip-bind p) = n-skip-bind (ins-n r p)
+ins-b (ins-ext r) lt b-here = b-here
+ins-b (ins-ext r) (s≤s lt) (b-bind p) = b-bind (ins-b r lt p)
+
+ins-suc : ∀ {Ss Bs} → BindIns suc zero (Ss ∥ Bs) (bind ∷ Ss ∥ Bs)
+ins-n ins-suc p = n-skip-bind p
+ins-b ins-suc () p
+
+read-ins : ∀ {Sg ρ n Ss Ss′ Bs Bs′ R A} → BindIns ρ n (Ss ∥ Bs) (Ss′ ∥ Bs′)
+  → Sg ∣ (Ss ∥ Bs) ⊢ᴿ[ n ] R
+  → Sg ∣ (Ss ∥ Bs) ⊢ R ⇓ A
+  → Sg ∣ (Ss′ ∥ Bs′) ⊢ R ⇓ renameᵗ ρ A
+read-ins r w (read-var n) = read-var (ins-n r n)
+read-ins r (wfᴿ-bv lt) (read-bv b) = read-bv (ins-b r lt b)
+read-ins r w read-ℕ = read-ℕ
+read-ins r w read-𝔹 = read-𝔹
+read-ins r (wfᴿ-⇒ wa wb) (read-⇒ a b) =
+  read-⇒ (read-ins r wa a) (read-ins r wb b)
+read-ins r (wfᴿ-∀ wa) (read-∀ a) =
+  read-∀ (read-ins (ins-ext r) (wfᴿ-restk wa) a)
+
+-- the instance the builders use: no free `ᵛ`, one `bind` on top
+rd-⇑ : ∀ {Sg Ss Bs R S} → Sg ∣ (Ss ∥ Bs) ⊢ᴿ R
+  → Sg ∣ (Ss ∥ Bs) ⊢ R ⇓ S → Sg ∣ (bind ∷ Ss ∥ Bs) ⊢ R ⇓ ⇑ᵗ S
+rd-⇑ w rd = read-ins ins-suc w rd
+
+------------------------------------------------------------------------
 -- Closing a well-formed type across the crossing
 ------------------------------------------------------------------------
 -- Every name OTHER than the crossed one survives the pop, its index
--- closing up over the slot that leaves.  Only the EXISTENCE of the
--- surviving name matters, so the address it lands on is existential.
+-- closing up over the slot that leaves.  `⊢ᵗ` reads scope only, so the
+-- address the surviving name lands on never has to be produced.
 
-∋n-close : ∀ {Ss Ss′ Bs X α Y β} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
-  → X ≢ᴺ Y → (Ss ∥ Bs) ∋n Y := β
-  → Σ[ γ ∈ Addr ] ((Ss′ ∥ Bs) ∋n closeIdx X Y := γ)
-∋n-close pop-here ne n-here-asgn = ⊥-elim (ne refl)
-∋n-close pop-here ne (n-skip-asgn q) = _ , q
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind p) ne (n-skip-bind q)
-  with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋ᵗ-close : ∀ {Ss Ss′ Bs X α Y} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → X ≢ᴺ Y → Ss ∋ᵗ Y → Ss′ ∋ᵗ closeIdx X Y
+∋ᵗ-close pop-here ne t-here = ⊥-elim (ne refl)
+∋ᵗ-close pop-here ne (t-there q) = q
+∋ᵗ-close (pop-bind p) ne t-here = t-here
+∋ᵗ-close (pop-bind p) ne (t-there q) =
+  t-there (∋ᵗ-close p (λ e → ne (cong suc e)) q)
 
 closeAt-wf : ∀ {Ssᵢ Ssₑ Bs X α S B} → (Ssᵢ ∥ Bs) ▷ X := α ⇒ (Ssₑ ∥ Bs)
   → (Ssₑ ∥ Bs) ⊢ᵗ S → (Ssᵢ ∥ Bs) ⊢ᵗ B → (Ssₑ ∥ Bs) ⊢ᵗ closeAt X S B
@@ -424,10 +436,7 @@ closeAt-wf {Ssᵢ} {Ssₑ} {Bs} {X} {α} {S} p wfS (wf-var {X = Y} n) = go (X �
   where
   go : Dec (X ≡ Y) → (Ssₑ ∥ Bs) ⊢ᵗ closeAt X S (` Y)
   go (yes refl) rewrite closeAt-hit X S = wfS
-  go (no ne) with ∋ᵗ→∋n {Bs = Bs} n
-  go (no ne) | δ , m with ∋n-close p ne m
-  go (no ne) | δ , m | γ , q rewrite closeAt-miss X S Y ne =
-    wf-var (∋n→∋ᵗ q)
+  go (no ne) rewrite closeAt-miss X S Y ne = wf-var (∋ᵗ-close p ne n)
 closeAt-wf p wfS wf-ℕ = wf-ℕ
 closeAt-wf p wfS wf-𝔹 = wf-𝔹
 closeAt-wf p wfS (wf-⇒ a b) =
@@ -482,7 +491,7 @@ revTy-∀-miss X α S A eq rewrite eq = refl
 
 revTy-∀-hit : ∀ X α S A → occursᵗ (suc X) A ≡ true
   → revTy X α S (`∀ A)
-      ≡ all (revTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id (closeAt X S (`∀ A))
+      ≡ all (revTy (suc X) α (⇑ᵗ S) A) ∷ᶜ id (closeAt X S (`∀ A))
 revTy-∀-hit X α S A eq rewrite eq = refl
 
 concTy-var-hit : ∀ X α S → concTy X α S (` X) ≡ seal X α ∷ᶜ id (` X)
@@ -511,7 +520,7 @@ concTy-∀-miss X α S A eq rewrite eq = refl
 
 concTy-∀-hit : ∀ X α S A → occursᵗ (suc X) A ≡ true
   → concTy X α S (`∀ A)
-      ≡ all (concTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
+      ≡ all (concTy (suc X) α (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
 concTy-∀-hit X α S A eq rewrite eq = refl
 
 ------------------------------------------------------------------------
@@ -534,7 +543,7 @@ mutual
   revTy-NF X α S (`∀ A) with occursᵗ (suc X) A
   revTy-NF X α S (`∀ A) | false = nf-cons nf-show nf-id irr-id
   revTy-NF X α S (`∀ A) | true =
-    nf-cons (nf-all (revTy-NF (suc X) (α) (⇑ᵗ S) A)) nf-id irr-id
+    nf-cons (nf-all (revTy-NF (suc X) α (⇑ᵗ S) A)) nf-id irr-id
 
   concTy-NF : ∀ X α S B → NF (concTy X α S B)
   concTy-NF X α S (` Y) with X ≟ Y
@@ -549,7 +558,7 @@ mutual
   concTy-NF X α S (`∀ A) with occursᵗ (suc X) A
   concTy-NF X α S (`∀ A) | false = nf-cons nf-hide nf-id irr-id
   concTy-NF X α S (`∀ A) | true =
-    nf-cons (nf-all (concTy-NF (suc X) (α) (⇑ᵗ S) A)) nf-id irr-id
+    nf-cons (nf-all (concTy-NF (suc X) α (⇑ᵗ S) A)) nf-id irr-id
 
 ------------------------------------------------------------------------
 -- 6.  THE BUILDER TYPING
@@ -591,20 +600,21 @@ concTy-miss-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} {X} {α} S B sc p na eq wfC wfB =
 
 -- THE STATEMENT.  `Δ⁺ = Ssᵢ ∥ Bs` is the context that HAS the
 -- assignment `X := α`; `Δ⁻ = Ssₑ ∥ Bs` is the one without.  `R` is α's
--- representation, `S` its read-back on the unassigned side, and `fix`
--- says `R` mentions no bound STACK address — which is what lets the
--- `∀` case descend under a `bind` without shifting it.
+-- representation, `S` its read-back on the unassigned side, and `wfR`
+-- says `R` has no free `ᵛ` — v8's replacement for v7's "R mentions no
+-- bound stack address", and what lets the `∀` case shift the READING
+-- while the representation itself stays put.
 mutual
   revTy-typing : ∀ {Sg Ssᵢ Ssₑ Bs R} (X : ℕ) (α : Addr) (S B : Ty)
     → (Ssᵢ ∥ Bs) ▷ X := α ⇒ (Ssₑ ∥ Bs)
     → NotAssigned (Ssₑ ∥ Bs) α
     → Sg ∣ (Ssᵢ ∥ Bs) ∋r α := R
     → Sg ∣ (Ssₑ ∥ Bs) ⊢ R ⇓ S
-    → (∀ η → renameᴿ η R ≡ R)
+    → Sg ∣ (Ssₑ ∥ Bs) ⊢ᴿ R
     → (Ssᵢ ∥ Bs) ⊢ᵗ B
     → Sg ∣ (Ssᵢ ∥ Bs) ⊢ revTy X α S B ∶ B ⇝ closeAt X S B ⊣ (Ssₑ ∥ Bs)
 
-  revTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (` Y) p na rep rd fix wf =
+  revTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (` Y) p na rep rd wfR wf =
     go (X ≟ Y)
     where
     go : Dec (X ≡ Y)
@@ -613,46 +623,48 @@ mutual
     go (yes refl) rewrite revTy-var-hit X α S | closeAt-hit X S =
       conv-cons (conv-unseal rep rd p na) (conv-id (read-wf rd))
     go (no ne) rewrite revTy-var-miss X α S Y ne =
-      revTy-miss-typing S (` Y) (∋a-pop p (∋r→∋a rep)) p na (occurs-var-no X Y ne)
-        (closeAt-wf p (read-wf rd) wf)
+      revTy-miss-typing S (` Y) (∋a-pop p (∋r→∋a rep)) p na
+        (occurs-var-no X Y ne) (closeAt-wf p (read-wf rd) wf)
 
-  revTy-typing X α S `ℕ p na rep rd fix wf =
+  revTy-typing X α S `ℕ p na rep rd wfR wf =
     revTy-miss-typing S `ℕ (∋a-pop p (∋r→∋a rep)) p na refl wf-ℕ
 
-  revTy-typing X α S `𝔹 p na rep rd fix wf =
+  revTy-typing X α S `𝔹 p na rep rd wfR wf =
     revTy-miss-typing S `𝔹 (∋a-pop p (∋r→∋a rep)) p na refl wf-𝔹
 
-  revTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (A ⇒ B) p na rep rd fix wf =
+  revTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (A ⇒ B) p na rep rd wfR wf =
     go (occursᵗ X (A ⇒ B)) refl
     where
     go : (b : Bool) → occursᵗ X (A ⇒ B) ≡ b
        → Sg ∣ (Ssᵢ ∥ Bs) ⊢ revTy X α S (A ⇒ B) ∶ (A ⇒ B)
            ⇝ closeAt X S (A ⇒ B) ⊣ (Ssₑ ∥ Bs)
     go false eq rewrite revTy-⇒-miss X α S A B eq =
-      revTy-miss-typing S (A ⇒ B) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf)
+      revTy-miss-typing S (A ⇒ B) (∋a-pop p (∋r→∋a rep)) p na eq
+        (closeAt-wf p (read-wf rd) wf)
     go true eq rewrite revTy-⇒-hit X α S A B eq =
       conv-cons
-        (conv-fun (concTy-typing X α S A p na rep rd fix (wf-domain wf))
-                  (revTy-typing X α S B p na rep rd fix (wf-codomain wf)))
+        (conv-fun (concTy-typing X α S A p na rep rd wfR (wf-domain wf))
+                  (revTy-typing X α S B p na rep rd wfR (wf-codomain wf)))
         (conv-id (closeAt-wf p (read-wf rd) wf))
 
-  revTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (`∀ A) p na rep rd fix wf =
+  revTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (`∀ A) p na rep rd wfR wf =
     go (occursᵗ (suc X) A) refl
     where
     go : (b : Bool) → occursᵗ (suc X) A ≡ b
        → Sg ∣ (Ssᵢ ∥ Bs) ⊢ revTy X α S (`∀ A) ∶ (`∀ A)
            ⇝ closeAt X S (`∀ A) ⊣ (Ssₑ ∥ Bs)
     go false eq rewrite revTy-∀-miss X α S A eq =
-      revTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf)
+      revTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq
+        (closeAt-wf p (read-wf rd) wf)
     go true eq rewrite revTy-∀-hit X α S A eq =
       subst (λ C → Sg ∣ (Ssᵢ ∥ Bs)
-                      ⊢ all (revTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id C
+                      ⊢ all (revTy (suc X) α (⇑ᵗ S) A) ∷ᶜ id C
                       ∶ (`∀ A) ⇝ C ⊣ (Ssₑ ∥ Bs))
             (sym (closeAt-∀ X S A))
             (conv-cons
-              (conv-all (revTy-typing (suc X) (α) (⇑ᵗ S) A
-                          (pop-⇑ p) (notasgn-⇑ na) (∋r-⇑ fix rep)
-                          (rd-⇑ fix rd) fix (wf-∀-inv wf)))
+              (conv-all (revTy-typing (suc X) α (⇑ᵗ S) A
+                          (pop-⇑ p) (notasgn-⇑ na) (∋r-restk rep)
+                          (rd-⇑ wfR rd) (wfᴿ-restk wfR) (wf-∀-inv wf)))
               (conv-id (wf-∀ (closeAt-wf (pop-⇑ p) (wf-⇑ (read-wf rd))
                                          (wf-∀-inv wf)))))
 
@@ -661,11 +673,11 @@ mutual
     → NotAssigned (Ssₑ ∥ Bs) α
     → Sg ∣ (Ssᵢ ∥ Bs) ∋r α := R
     → Sg ∣ (Ssₑ ∥ Bs) ⊢ R ⇓ S
-    → (∀ η → renameᴿ η R ≡ R)
+    → Sg ∣ (Ssₑ ∥ Bs) ⊢ᴿ R
     → (Ssᵢ ∥ Bs) ⊢ᵗ B
     → Sg ∣ (Ssₑ ∥ Bs) ⊢ concTy X α S B ∶ closeAt X S B ⇝ B ⊣ (Ssᵢ ∥ Bs)
 
-  concTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (` Y) p na rep rd fix wf =
+  concTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (` Y) p na rep rd wfR wf =
     go (X ≟ Y)
     where
     go : Dec (X ≡ Y)
@@ -674,16 +686,16 @@ mutual
     go (yes refl) rewrite concTy-var-hit X α S | closeAt-hit X S =
       conv-cons (conv-seal rep rd p) (conv-id wf)
     go (no ne) rewrite concTy-var-miss X α S Y ne =
-      concTy-miss-typing S (` Y) (∋a-pop p (∋r→∋a rep)) p na (occurs-var-no X Y ne)
-        (closeAt-wf p (read-wf rd) wf) wf
+      concTy-miss-typing S (` Y) (∋a-pop p (∋r→∋a rep)) p na
+        (occurs-var-no X Y ne) (closeAt-wf p (read-wf rd) wf) wf
 
-  concTy-typing X α S `ℕ p na rep rd fix wf =
+  concTy-typing X α S `ℕ p na rep rd wfR wf =
     concTy-miss-typing S `ℕ (∋a-pop p (∋r→∋a rep)) p na refl wf-ℕ wf-ℕ
 
-  concTy-typing X α S `𝔹 p na rep rd fix wf =
+  concTy-typing X α S `𝔹 p na rep rd wfR wf =
     concTy-miss-typing S `𝔹 (∋a-pop p (∋r→∋a rep)) p na refl wf-𝔹 wf-𝔹
 
-  concTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (A ⇒ B) p na rep rd fix wf =
+  concTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (A ⇒ B) p na rep rd wfR wf =
     go (occursᵗ X (A ⇒ B)) refl
     where
     go : (b : Bool) → occursᵗ X (A ⇒ B) ≡ b
@@ -694,27 +706,28 @@ mutual
         (closeAt-wf p (read-wf rd) wf) wf
     go true eq rewrite concTy-⇒-hit X α S A B eq =
       conv-cons
-        (conv-fun (revTy-typing X α S A p na rep rd fix (wf-domain wf))
-                  (concTy-typing X α S B p na rep rd fix (wf-codomain wf)))
+        (conv-fun (revTy-typing X α S A p na rep rd wfR (wf-domain wf))
+                  (concTy-typing X α S B p na rep rd wfR (wf-codomain wf)))
         (conv-id wf)
 
-  concTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (`∀ A) p na rep rd fix wf =
+  concTy-typing {Sg} {Ssᵢ} {Ssₑ} {Bs} X α S (`∀ A) p na rep rd wfR wf =
     go (occursᵗ (suc X) A) refl
     where
     go : (b : Bool) → occursᵗ (suc X) A ≡ b
        → Sg ∣ (Ssₑ ∥ Bs) ⊢ concTy X α S (`∀ A) ∶ closeAt X S (`∀ A)
            ⇝ (`∀ A) ⊣ (Ssᵢ ∥ Bs)
     go false eq rewrite concTy-∀-miss X α S A eq =
-      concTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf) wf
+      concTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq
+        (closeAt-wf p (read-wf rd) wf) wf
     go true eq rewrite concTy-∀-hit X α S A eq =
       subst (λ C → Sg ∣ (Ssₑ ∥ Bs)
-                      ⊢ all (concTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
+                      ⊢ all (concTy (suc X) α (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
                       ∶ C ⇝ (`∀ A) ⊣ (Ssᵢ ∥ Bs))
             (sym (closeAt-∀ X S A))
             (conv-cons
-              (conv-all (concTy-typing (suc X) (α) (⇑ᵗ S) A
-                          (pop-⇑ p) (notasgn-⇑ na) (∋r-⇑ fix rep)
-                          (rd-⇑ fix rd) fix (wf-∀-inv wf)))
+              (conv-all (concTy-typing (suc X) α (⇑ᵗ S) A
+                          (pop-⇑ p) (notasgn-⇑ na) (∋r-restk rep)
+                          (rd-⇑ wfR rd) (wfᴿ-restk wfR) (wf-∀-inv wf)))
               (conv-id wf))
 
 ------------------------------------------------------------------------
@@ -724,27 +737,11 @@ mutual
 -- What `⌊_⌋` writes down, the same context reads back.
 quote-read : ∀ {Sg Γ A T} → Sg ∣ Γ ⊢⌊ A ⌋ T → Sg ∣ Γ ⊢ T ⇓ A
 quote-read (quote-var n) = read-var n
+quote-read (quote-bv b) = read-bv b
 quote-read quote-ℕ = read-ℕ
 quote-read quote-𝔹 = read-𝔹
 quote-read (quote-⇒ a b) = read-⇒ (quote-read a) (quote-read b)
 quote-read (quote-∀ a) = read-∀ (quote-read a)
-
--- A representation well-formed over an EMPTY stack mentions no free
--- bound address, so a stack renaming fixes it — the `fix` premise of
--- the builder lemma, discharged by `Flat` at a redex.
-wfᴿ-fixed : ∀ {Sg Ts Bs T} (η : Renameᵇ)
-  → (∀ {i} → Sg ∣ (Ts ∥ Bs) ∋a bnd i → η i ≡ i)
-  → Sg ∣ (Ts ∥ Bs) ⊢ᴿ T → renameᴿ η T ≡ T
-wfᴿ-fixed η h (wfᴿ-var {α = lvl ℓ} a) = refl
-wfᴿ-fixed η h (wfᴿ-var {α = bse j} a) = refl
-wfᴿ-fixed η h wfᴿ-ℕ = refl
-wfᴿ-fixed η h wfᴿ-𝔹 = refl
-wfᴿ-fixed η h (wfᴿ-⇒ a b) = cong₂ _⇒ᴿ_ (wfᴿ-fixed η h a) (wfᴿ-fixed η h b)
-wfᴿ-fixed η h (wfᴿ-∀ a) =
-  cong `∀ᴿ (wfᴿ-fixed (extᵇ η)
-
-repFixed : ∀ {Sg Bs T} → Sg ∣ ([] ∥ Bs) ⊢ᴿ T → ∀ η → renameᴿ η T ≡ T
-repFixed wf η = wfᴿ-fixed η (λ ()) wf
 
 -- `⤒ Ss` renames every base address by `suc`, so `bse zero` is the
 -- fresh one: the freshness premise of `unseal`/`show` at the redex.
@@ -755,37 +752,17 @@ notasgn-⤒ (asgn (lvl ℓ) ∷ Ss) (n-skip-asgn q) = notasgn-⤒ Ss q
 notasgn-⤒ (asgn (bse j) ∷ Ss) (n-skip-asgn q) = notasgn-⤒ Ss q
 
 -- Moving a type from the `∀`'s binder assignment to the `Λ`'s crossing
--- assignment: the NAME structure is the same, only the addresses move,
--- and `⊢ᵗ` never reads an address.
-NameExt : Ctxᵗ → Ctxᵗ → Set
-NameExt Γ Γ′ = ∀ {X α} → Γ ∋n X := α → Σ[ β ∈ Addr ] (Γ′ ∋n X := β)
+-- assignment.  Both are name entries, and `⊢ᵗ` reads nothing but which
+-- names are in scope, so this is an index-preserving change of stack.
+∋ᵗ-renStk : ∀ {ρ Ss X} → Ss ∋ᵗ X → renStk ρ Ss ∋ᵗ X
+∋ᵗ-renStk {Ss = bind ∷ Ss} t-here = t-here
+∋ᵗ-renStk {Ss = asgn α ∷ Ss} t-here = t-here
+∋ᵗ-renStk {Ss = bind ∷ Ss} (t-there p) = t-there (∋ᵗ-renStk p)
+∋ᵗ-renStk {Ss = asgn α ∷ Ss} (t-there p) = t-there (∋ᵗ-renStk p)
 
-ne-bind : ∀ {Ss Bs Ss′ Bs′} → NameExt (Ss ∥ Bs) (Ss′ ∥ Bs′)
-  → NameExt (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
-ne-bind f (n-skip-bind q) with f q
-ne-bind f (n-skip-bind q) | β , r = _ , ∋n-⇑ r
-ne-bind f (n-skip-bind q) with f q
-ne-bind f (n-skip-bind q) | β , r = _ , ∋n-⇑ r
-ne-bind f (n-skip-bind q) with f q
-ne-bind f (n-skip-bind q) | β , r = _ , ∋n-⇑ r
-
-wf-ext : ∀ {Γ Γ′ A} → NameExt Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ A
-wf-ext f (wf-var n) with ∋ᵗ→∋n n
-wf-ext f (wf-var n) | α , m with f m
-wf-ext f (wf-var n) | α , m | β , q = wf-var (∋n→∋ᵗ q)
-wf-ext f wf-ℕ = wf-ℕ
-wf-ext f wf-𝔹 = wf-𝔹
-wf-ext f (wf-⇒ a b) = wf-⇒ (wf-ext f a) (wf-ext f b)
-wf-ext f (wf-∀ a) = wf-∀ (wf-ext (ne-bind f) a)
-
-Λ-nameext : ∀ {Sg Ss Bs e} → StoreOk Sg
-  → NameExt (bind ∷ Ss ∥ Bs) (asgn (bse zero) ∷ ⤒ Ss ∥ e ∷ Bs)
-Λ-nameext sok (n-skip-bind q) =
-  _ , n-skip-asgn (ren-n (ren-stk (ren-wk sok)) q)
-Λ-nameext sok (n-skip-bind q) =
-  _ , n-skip-asgn (ren-n (ren-stk (ren-wk sok)) q)
-Λ-nameext sok (n-skip-bind q) =
-  _ , n-skip-asgn (ren-n (ren-stk (ren-wk sok)) q)
+∋ᵗ-Λ : ∀ {Ss X} → (bind ∷ Ss) ∋ᵗ X → (asgn (bse zero) ∷ ⤒ Ss) ∋ᵗ X
+∋ᵗ-Λ t-here = t-here
+∋ᵗ-Λ (t-there p) = t-there (∋ᵗ-renStk p)
 
 -- TYBETA.
 --
@@ -801,7 +778,8 @@ wf-ext f (wf-∀ a) = wf-∀ (wf-ext (ne-bind f) a)
 -- would discharge and neither of which exists in v8 yet:
 --   * `Sg ∣ Δ ⊢ᴿ R` — `⊢ν`'s own first premise.  It is NOT derivable
 --     from `⊢⌊ A ⌋ R` alone: `quote-var` names an address that no
---     judgment says is in scope.
+--     judgment says is in scope.  It is also what the builder's own
+--     `wfR` premise is built from.
 --   * `Δ ⊢ᵗ `∀ B` — the builder's source well-formedness.  Neither
 --     `⊢Λ` nor `⊢•[]` carries it.
 preserve-TyBeta : ∀ {Sg Ss Bs V A B R}
@@ -821,17 +799,16 @@ preserve-TyBeta {Sg} {Ss} {Bs} {V} {A} {B} {R} sok fl wfR q wf∀
                           ⊣ (⤒ Ss ∥ nuBind R ∷ Bs))
                 (closeAt-single A B)
                 (revTy-typing zero (bse zero) A B pop-here
-                  (notasgn-⤒ Ss) r-here rdA fixR wfB)))
+                  (notasgn-⤒ Ss) r-here rdA wfR′ wfB)))
   where
   rdA : Sg ∣ (⤒ Ss ∥ nuBind R ∷ Bs) ⊢ ⇑ᴿᵉ R ⇓ A
   rdA = read-ren (ren-stk (ren-wk {e = nuBind R} sok)) (quote-read q)
 
-  fixR : ∀ η → renameᴿ η (⇑ᴿᵉ R) ≡ ⇑ᴿᵉ R
-  fixR η = trans (sym (renᴿ-comm suc η R))
-                 (cong (renameᴿᵉ suc) (repFixed (flat-closed fl wfR) η))
+  wfR′ : Sg ∣ (⤒ Ss ∥ nuBind R ∷ Bs) ⊢ᴿ ⇑ᴿᵉ R
+  wfR′ = wfᴿ-ren (ren-stk (ren-wk {e = nuBind R} sok)) wfR
 
   wfB : (asgn (bse zero) ∷ ⤒ Ss ∥ nuBind R ∷ Bs) ⊢ᵗ B
-  wfB = wf-ext (Λ-nameext sok) (wf-∀-inv wf∀)
+  wfB = wf-stk ∋ᵗ-Λ (wf-∀-inv wf∀)
 
 ------------------------------------------------------------------------
 -- 8.  THE DESIGN DOCUMENT'S INSTANCES
@@ -857,7 +834,7 @@ private
       ∶ (` 0 ⇒ ` 0) ⇝ (`ℕ ⇒ `ℕ) ⊣ Δ⁻ℕ
   §6-builder =
     revTy-typing zero (bse zero) `ℕ (` 0 ⇒ ` 0) pop-here (notasgn-⤒ [])
-      r-here read-ℕ (λ η → refl)
+      r-here read-ℕ wfᴿ-ℕ
       (wf-⇒ (wf-var t-here) (wf-var t-here))
 
   -- K  g = Λα,X. λx:X. Λγ,Z. λz:Z. x : the crossing descends under a
@@ -872,7 +849,7 @@ private
       ∶ (` 0 ⇒ `∀ (` 0 ⇒ ` 1)) ⇝ (`ℕ ⇒ `∀ (` 0 ⇒ `ℕ)) ⊣ Δ⁻ℕ
   K-builder =
     revTy-typing zero (bse zero) `ℕ (` 0 ⇒ `∀ (` 0 ⇒ ` 1)) pop-here
-      (notasgn-⤒ []) r-here read-ℕ (λ η → refl)
+      (notasgn-⤒ []) r-here read-ℕ wfᴿ-ℕ
       (wf-⇒ (wf-var t-here)
             (wf-∀ (wf-⇒ (wf-var t-here)
                         (wf-var (t-there t-here)))))
@@ -884,6 +861,6 @@ private
       ⇝ (`∀ (` 0 ⇒ ` 0) ⇒ `∀ (` 0 ⇒ ` 0)) ⊣ Δ⁻ℕ
   §14-builder =
     revTy-typing zero (bse zero) `ℕ (`∀ (` 0 ⇒ ` 0) ⇒ `∀ (` 0 ⇒ ` 0))
-      pop-here (notasgn-⤒ []) r-here read-ℕ (λ η → refl)
+      pop-here (notasgn-⤒ []) r-here read-ℕ wfᴿ-ℕ
       (wf-⇒ (wf-∀ (wf-⇒ (wf-var t-here) (wf-var t-here)))
             (wf-∀ (wf-⇒ (wf-var t-here) (wf-var t-here))))

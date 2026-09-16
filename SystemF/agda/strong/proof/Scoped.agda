@@ -14,7 +14,7 @@ module strong.proof.Scoped where
 -- to build their `ν`; and freshness of the store's next level, which
 -- `Alloc` needs, since `Fresh (length Σ)` IS `∋a` read at a level.
 
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc; z≤n; s≤s) renaming (_<_ to _<ᵗ_)
 open import Data.List using (List; []; _∷_; length)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
@@ -27,10 +27,11 @@ open import strong.Ctx
 open Ctxᵗ
 open import strong.Conversion
 open import strong.proof.ArrTyping using (pop-renames)
-open import strong.proof.AllTyping using (∋a-⇑)
+open import strong.proof.Interior using (pop-base)
 open import strong.Terms
+open import strong.proof.Flat using (NoBinds; nb-[]; nb-asgn)
 open import strong.proof.PreserveAlloc using
-  (Fresh; fr-lvl; fr-bnd; fr-bse; FreshStk; fs-[]; fs-bind; fs-asgn;
+  (Fresh; fr-lvl; fr-bse; FreshStk; fs-[]; fs-bind; fs-asgn;
    FreshElt; fe-seal; fe-unseal; fe-hide; fe-show; fe-fun; fe-all;
    FreshConv; fc-id; fc-cons;
    FreshM; fm-`; fm-$; fm-#; fm-⊕; fm-ƛ; fm-·; fm-Λ; fm-•[]; fm-ν; fm-⟨⟩;
@@ -59,77 +60,96 @@ scoped-[] ()
 
 -- a `bind` names the address it binds, and every older name shifts
 -- with its address
+-- A `bind` adds a NAME and no address, so it neither creates nor
+-- disturbs an assignment — one clause where there were four.
 scoped-bind : ∀ {Sg Ss Bs} → Scoped Sg (Ss ∥ Bs)
   → Scoped Sg (bind ∷ Ss ∥ Bs)
-scoped-bind sc n-here-bind = a-here-bind
-scoped-bind sc (n-skip-bind p) = ∋a-⇑ (sc p)
+scoped-bind sc (n-skip-bind p) = ∋a-restk (sc p)
+
+scoped-unbind : ∀ {Sg Ss Bs} → Scoped Sg (bind ∷ Ss ∥ Bs)
+  → Scoped Sg (Ss ∥ Bs)
+scoped-unbind sc p = ∋a-restk (sc (n-skip-bind p))
 
 -- an `asgn` is scoped exactly when its own address is
 scoped-asgn : ∀ {Sg Ss Bs α} → Sg ∣ (Ss ∥ Bs) ∋a α → Scoped Sg (Ss ∥ Bs)
   → Scoped Sg (asgn α ∷ Ss ∥ Bs)
-scoped-asgn a sc n-here-asgn = ∋a-push pop-here a
-scoped-asgn a sc (n-skip-asgn p) = ∋a-push pop-here (sc p)
-
--- Going under a `bind` shifts a name AND its address, so both moves
--- are invertible — which is what lets the invariant come back out.
-∋n-⇑ : ∀ {Ss Bs Y β} → (Ss ∥ Bs) ∋n Y := β
-  → (bind ∷ Ss ∥ Bs) ∋n suc Y := ⇑ᵃ β
-∋n-⇑ {β = lvl ℓ} r = n-skip-bind r
-∋n-⇑ {β = bnd i} r = n-skip-bind r
-∋n-⇑ {β = bse j} r = n-skip-bind r
-
-∋a-unbind : ∀ {Sg Ss Bs β} → Sg ∣ (bind ∷ Ss ∥ Bs) ∋a ⇑ᵃ β
-  → Sg ∣ (Ss ∥ Bs) ∋a β
-∋a-unbind {β = lvl ℓ} (a-lvl l) = a-lvl l
-∋a-unbind {β = bnd i} (a-skip-bind r) = r
-∋a-unbind {β = bse j} r = ∋a-restk r
-
-scoped-unbind : ∀ {Sg Ss Bs} → Scoped Sg (bind ∷ Ss ∥ Bs)
-  → Scoped Sg (Ss ∥ Bs)
-scoped-unbind s q = ∋a-unbind (s (∋n-⇑ q))
+scoped-asgn a sc n-here-asgn = ∋a-restk a
+scoped-asgn a sc (n-skip-asgn p) = ∋a-restk (sc p)
 
 ------------------------------------------------------------------------
 -- A representation of a well-formed type is well formed
 ------------------------------------------------------------------------
 
-quote-wfᴿ : Scoped Sg Δ → Sg ∣ Δ ⊢⌊ A ⌋ R → Sg ∣ Δ ⊢ᴿ R
-quote-wfᴿ sc (quote-var n) = wfᴿ-var (sc n)
-quote-wfᴿ sc quote-ℕ = wfᴿ-ℕ
-quote-wfᴿ sc quote-𝔹 = wfᴿ-𝔹
-quote-wfᴿ sc (quote-⇒ a b) = wfᴿ-⇒ (quote-wfᴿ sc a) (quote-wfᴿ sc b)
-quote-wfᴿ sc (quote-∀ a) = wfᴿ-∀ (quote-wfᴿ (scoped-bind sc) a)
+-- Every `∀`-bound variable in the stack is bound by one of the `n`
+-- binders passed so far.  At a REDEX the ambient stack has no binds at
+-- all, so this starts at zero.
+BindsBelow : ℕ → List StackEnt → Set
+BindsBelow n Ss = ∀ {X i} → Ss ∋b X at i → i <ᵗ n
+
+bb-bind : ∀ {n Ss} → BindsBelow n Ss → BindsBelow (suc n) (bind ∷ Ss)
+bb-bind bb b-here = s≤s z≤n
+bb-bind bb (b-bind p) = s≤s (bb p)
+
+-- a FLAT context has no binds at all, so nothing is `∀`-bound in it
+flat-bindsBelow : ∀ {Ss} → NoBinds Ss → BindsBelow zero Ss
+flat-bindsBelow (nb-asgn nb) (b-asgn p) = flat-bindsBelow nb p
+
+quote-wfᴿ : ∀ {Sg Γ A R} → Scoped Sg Γ → BindsBelow zero (stk Γ)
+  → Sg ∣ Γ ⊢⌊ A ⌋ R → Sg ∣ Γ ⊢ᴿ R
+quote-wfᴿ sc bb q = go zero sc bb q
+  where
+  go : ∀ {Sg Ss Bs A R} n → Scoped Sg (Ss ∥ Bs) → BindsBelow n Ss
+     → Sg ∣ (Ss ∥ Bs) ⊢⌊ A ⌋ R → Sg ∣ (Ss ∥ Bs) ⊢ᴿ[ n ] R
+  go n sc′ bb′ (quote-var x) = wfᴿ-var (sc′ x)
+  go n sc′ bb′ (quote-bv x) = wfᴿ-bv (bb′ x)
+  go n sc′ bb′ quote-ℕ = wfᴿ-ℕ
+  go n sc′ bb′ quote-𝔹 = wfᴿ-𝔹
+  go n sc′ bb′ (quote-⇒ a b) = wfᴿ-⇒ (go n sc′ bb′ a) (go n sc′ bb′ b)
+  go n sc′ bb′ (quote-∀ a) =
+    wfᴿ-∀ (wfᴿ-restk′ (go (suc n) (scoped-bind sc′) (bb-bind bb′) a))
+    where
+    wfᴿ-restk′ : ∀ {Sg Ss Ss′ Bs m R} → Sg ∣ (Ss ∥ Bs) ⊢ᴿ[ m ] R
+      → Sg ∣ (Ss′ ∥ Bs) ⊢ᴿ[ m ] R
+    wfᴿ-restk′ (wfᴿ-var a) = wfᴿ-var (∋a-restk a)
+    wfᴿ-restk′ (wfᴿ-bv lt) = wfᴿ-bv lt
+    wfᴿ-restk′ wfᴿ-ℕ = wfᴿ-ℕ
+    wfᴿ-restk′ wfᴿ-𝔹 = wfᴿ-𝔹
+    wfᴿ-restk′ (wfᴿ-⇒ a b) = wfᴿ-⇒ (wfᴿ-restk′ a) (wfᴿ-restk′ b)
+    wfᴿ-restk′ (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-restk′ a)
 
 ------------------------------------------------------------------------
 -- The invariant travels along the interior walk
 ------------------------------------------------------------------------
--- Going inward, an element either REMOVES an assignment (`seal`,
--- `hide`), where every surviving name lifts back out by `pop-renames`
--- and its address comes along by `∋a-pop`; or ADDS one (`unseal`,
--- `show`), where the new name's address is scoped by the rule's own
--- premise — `∋r` for `unseal`, `∋a` for `show`.
 
-pop-scoped : ∀ {Sg Δₑ Δᵢ X α} → Δₑ ▷ X := α ⇒ Δᵢ
-  → Scoped Sg Δₑ → Scoped Sg Δᵢ
-pop-scoped p sc q = ∋a-pop p (sc (pop-renames p q))
+pop-scoped : ∀ {Sg Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → Scoped Sg (Ss ∥ Bs) → Scoped Sg (Ss′ ∥ Bs)
+pop-scoped p sc q = ∋a-restk (sc (pop-renames p q))
 
-push-scoped : ∀ {Sg Δₑ Δᵢ X α} → Δᵢ ▷ X := α ⇒ Δₑ
-  → Sg ∣ Δₑ ∋a α → Scoped Sg Δₑ → Scoped Sg Δᵢ
+push-scoped : ∀ {Sg Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → Sg ∣ (Ss′ ∥ Bs) ∋a α → Scoped Sg (Ss′ ∥ Bs) → Scoped Sg (Ss ∥ Bs)
 push-scoped pop-here a sc = scoped-asgn a sc
-push-scoped (pop-bind p) a sc =
-  scoped-bind (push-scoped p (∋a-unbind a) (scoped-unbind sc))
-push-scoped (pop-bind p) a sc =
-  scoped-bind (push-scoped p (∋a-unbind a) (scoped-unbind sc))
 push-scoped (pop-bind p) a sc =
   scoped-bind (push-scoped p (∋a-restk a) (scoped-unbind sc))
 
 mutual
   convElt-scoped : ∀ {Sg Δᵢ Δₑ ĉ A B} → Sg ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δₑ
     → Scoped Sg Δₑ → Scoped Sg Δᵢ
-  convElt-scoped (conv-seal rep rd p) sc = pop-scoped p sc
-  convElt-scoped (conv-unseal rep rd p na) sc =
-    push-scoped p (∋a-pop p (∋r→∋a rep)) sc
-  convElt-scoped (conv-hide a wf p na) sc = pop-scoped p sc
-  convElt-scoped (conv-show a wf p na) sc = push-scoped p a sc
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ Bsₑ} (conv-seal rep rd p) sc
+    with pop-base p
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ .Bsᵢ} (conv-seal rep rd p) sc
+    | refl = pop-scoped p sc
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ Bsₑ} (conv-unseal rep rd p na) sc
+    with pop-base p
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ .Bsᵢ} (conv-unseal rep rd p na) sc
+    | refl = push-scoped p (∋a-restk (∋r→∋a rep)) sc
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ Bsₑ} (conv-hide a wf p na) sc
+    with pop-base p
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ .Bsᵢ} (conv-hide a wf p na) sc
+    | refl = pop-scoped p sc
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ Bsₑ} (conv-show a wf p na) sc
+    with pop-base p
+  convElt-scoped {Δᵢ = Ssᵢ ∥ Bsᵢ} {Δₑ = Ssₑ ∥ .Bsᵢ} (conv-show a wf p na) sc
+    | refl = push-scoped p a sc
   convElt-scoped (conv-fun ⊢s ⊢t) sc = conv-scoped ⊢t sc
   convElt-scoped (conv-all ⊢s) sc =
     scoped-unbind (conv-scoped ⊢s (scoped-bind sc))
@@ -150,7 +170,7 @@ scoped-freshStk {Ss = bind ∷ Ss} sc =
   fs-bind (scoped-freshStk (scoped-unbind sc))
 scoped-freshStk {Ss = asgn α ∷ Ss} sc =
   fs-asgn (fresh-of-∋a (sc n-here-asgn))
-          (scoped-freshStk (λ q → ∋a-pop pop-here (sc (n-skip-asgn q))))
+          (scoped-freshStk (λ q → ∋a-restk (sc (n-skip-asgn q))))
 
 ------------------------------------------------------------------------
 -- And so does a well-typed term

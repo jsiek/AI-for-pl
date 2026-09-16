@@ -73,6 +73,7 @@ wf-len eq (wf-∀ a) = wf-∀ (wf-len (cong suc eq) a)
 
 read-wf : Sg ∣ Δ ⊢ R ⇓ A → Δ ⊢ᵗ A
 read-wf (read-var n) = wf-var (∋n→∋ᵗ n)
+read-wf (read-bv n) = wf-var (∋b→∋ᵗ n)
 read-wf read-ℕ = wf-ℕ
 read-wf read-𝔹 = wf-𝔹
 read-wf (read-⇒ a b) = wf-⇒ (read-wf a) (read-wf b)

@@ -175,10 +175,31 @@ d″ = all (seal 1 (lvl 0) ∷ᶜ id (` 1)) ∷ᶜ id (`∀ (` 1))
 doesMove : slotOut d″ 0 ≡ 1
 doesMove = refl
 
--- WHERE A NAME-0 CROSSING COMES FROM: the color wrap.  `crossΛ` emits
--- `hide 0 (bse 0)`, and `TyWrap`'s slot is also 0.  So the example that
--- would test the generalization combines the two families — a `Λ` value
--- that has been SUBSTITUTED UNDER A `Λ` (giving the name-0 crossing,
--- as in notes/ShowHide) and then passed to a function with a
--- POLYMORPHIC DOMAIN (giving the seal, as here), and only then type
--- applied.  Neither example alone reaches it.
+-- WHERE I EXPECTED A NAME-0 CROSSING, AND WHY THERE IS NONE.  I
+-- guessed the color wrap would supply one — `crossΛ` emits
+-- `hide 0 (bse 0)`, and `TyWrap`'s slot is also 0.  It does not:
+-- `all⁺` SHIFTS an ambient crossing when it lifts it past the `∀`,
+--
+--     all⁺ (hide 0 (bse 0)) ≡ just (hide 1 (bse 0) ∷ [])
+--
+-- so it lands strictly above the slot.  What DOES lower a name is
+-- `substAnn` itself (`nameSub 0 1 = 0`), so the repaired branch above
+-- emits `seal 0 …` — but a value sealed at the top has a type
+-- VARIABLE for its target, so it cannot be type-applied again, and
+-- `allView` fails on a `seal` anyway.
+--
+-- THE GENERAL STATEMENT IS ALREADY A THEOREM.  There is no combined
+-- example to find at this level, and not because none has been
+-- constructed: `proof.SubstAnnTyping.slotOut-bind` proves
+--
+--     Sg ∣ (bind ∷ Ssᵢ ∥ Bs) ⊢ c ∶ A ⇝ B ⊣ (bind ∷ Ssₑ ∥ Bs)
+--     → slotOut c zero ≡ zero
+--
+-- from the bind-rank invariant — no element touches the bind skeleton,
+-- so the slot keeps its rank among the binds.  A `TyWrap`'s spine runs
+-- between two bind-headed contexts, so its slot provably cannot move.
+--
+-- Where the threading does earn its keep is DEEPER in a spine, inside
+-- `↦` and `all`, where the corresponding theorem is `slotOut-round`.
+-- That is where `notes/SubstAnnTest`'s hand-written word lives, and it
+-- is why that word is hand-written rather than traced.

@@ -58,3 +58,41 @@ no-fuse = refl
 -- by contrast, at the SAME address the pair does cancel
 yes-fuse : fuse (show 0 (lvl 0)) (hide 0 (lvl 0)) ≡ just []
 yes-fuse = refl
+
+------------------------------------------------------------------------
+-- AND WHY `lvl` AND `bse` MUST STAY APART (2026-09-16)
+------------------------------------------------------------------------
+-- Asked whether `Addr` could collapse to a bare `ℕ`.  It cannot, and
+-- `notes/ShowHide`'s trace already holds the witness: at step t₃ the
+-- value's own seal is `show 0 (lvl 0)` and the color wrap the
+-- substitution inserted is `hide 0 (bse 0)` — the SAME name 0 and the
+-- SAME number 0, adjacent, kept apart only by the constructor.
+
+keptApart : fuse (show 0 (lvl 0)) (hide 0 (bse 0)) ≡ nothing
+keptApart = refl
+
+-- Merge them into one `ℕ` and this is what `fuse` does instead: the
+-- wrap cancels against the seal.
+wouldCancel : fuse (show 0 (lvl 0)) (hide 0 (lvl 0)) ≡ just []
+wouldCancel = refl
+
+-- THE REASON THEY CANNOT MERGE is that they are counted in opposite
+-- directions.  `lvl` is a de Bruijn LEVEL into an append-only store, so
+-- extending the store moves nothing; `bse` is a de Bruijn INDEX into
+-- the base, so pushing a binder moves everything.  `renᵃᵉ` is exactly
+-- that asymmetry —
+--
+--     renᵃᵉ ρ (lvl ℓ) = lvl ℓ        renᵃᵉ ρ (bse j) = bse (ρ j)
+--
+-- and `proof.AddrWeaken.lvl-fixed` is what it buys: a STORED
+-- representation is untouched by a base push.  A bare `ℕ` cannot record
+-- which convention applies, so a base push would renumber the addresses
+-- inside stored representations.
+--
+-- Each convention is forced.  The store must use levels because it is
+-- shared and permanent — with indices, every `Alloc` would renumber
+-- every stored address in every term.  The base must use indices
+-- because `crossΛ` has to WRITE the `Λ`'s address syntactically, and
+-- that is `bse 0`; as a level it would be `length Bs`, which depends on
+-- the enclosing telescope.  That is the same argument that forced the
+-- address split in the first place (DECISIONS.md, 2026-09-15).

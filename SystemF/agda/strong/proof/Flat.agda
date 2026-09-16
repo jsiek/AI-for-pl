@@ -77,27 +77,21 @@ flat-[] = flat fu-[] refl
 -- Stated with a prefix `Ts` of binders, which is what `∀ᴿ` accumulates
 -- as the induction descends.
 
-∋a-closed : NoBinds Ss → Σ ∣ (Ts ++ Ss ∥ []) ∋a α → Σ ∣ (Ts ∥ []) ∋a α
-∋a-closed nb (a-lvl l) = a-lvl l
-∋a-closed {Ts = []} (nb-asgn nb) (a-skip-asgn p) = ∋a-closed nb p
-∋a-closed {Ts = bind ∷ Ts} nb a-here-bind = a-here-bind
-∋a-closed {Ts = bind ∷ Ts} nb (a-skip-bind p) =
-  a-skip-bind (∋a-closed nb p)
-∋a-closed {Ts = asgn β ∷ Ts} nb (a-skip-asgn p) =
-  a-skip-asgn (∋a-closed nb p)
-
-wfᴿ-closed : NoBinds Ss → Σ ∣ (Ts ++ Ss ∥ []) ⊢ᴿ R → Σ ∣ (Ts ∥ []) ⊢ᴿ R
-wfᴿ-closed nb (wfᴿ-var a) = wfᴿ-var (∋a-closed nb a)
-wfᴿ-closed nb wfᴿ-ℕ = wfᴿ-ℕ
-wfᴿ-closed nb wfᴿ-𝔹 = wfᴿ-𝔹
-wfᴿ-closed nb (wfᴿ-⇒ a b) = wfᴿ-⇒ (wfᴿ-closed nb a) (wfᴿ-closed nb b)
-wfᴿ-closed {Ts = Ts} nb (wfᴿ-∀ a) =
-  wfᴿ-∀ (wfᴿ-closed {Ts = bind ∷ Ts} nb a)
+-- Neither `∋a` nor `⊢ᴿ` reads the stack any more, so a representation
+-- well formed anywhere is well formed over the empty stack — and over
+-- a flat context the base is empty too, which is what `Alloc` needs.
+wfᴿ-restk : ∀ {Σ Ss Ss′ Bs n R} → Σ ∣ (Ss ∥ Bs) ⊢ᴿ[ n ] R
+  → Σ ∣ (Ss′ ∥ Bs) ⊢ᴿ[ n ] R
+wfᴿ-restk (wfᴿ-var a) = wfᴿ-var (∋a-restk a)
+wfᴿ-restk (wfᴿ-bv lt) = wfᴿ-bv lt
+wfᴿ-restk wfᴿ-ℕ = wfᴿ-ℕ
+wfᴿ-restk wfᴿ-𝔹 = wfᴿ-𝔹
+wfᴿ-restk (wfᴿ-⇒ a b) = wfᴿ-⇒ (wfᴿ-restk a) (wfᴿ-restk b)
+wfᴿ-restk (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-restk a)
 
 -- what `Alloc` needs
 flat-closed : Flat Δ → Σ ∣ Δ ⊢ᴿ R → Σ ∣ ([] ∥ []) ⊢ᴿ R
-flat-closed {Δ = Ss ∥ .[]} (flat fu refl) wf =
-  wfᴿ-closed {Ts = []} (fu-nobinds fu) wf
+flat-closed {Δ = Ss ∥ .[]} (flat fu refl) wf = wfᴿ-restk wf
 
 ------------------------------------------------------------------------
 -- Flatness travels along the interior walk
@@ -108,32 +102,32 @@ flat-closed {Δ = Ss ∥ .[]} (flat fu refl) wf =
 
 pop-flat : ∀ {n} → Δₑ ▷ X := α ⇒ Δᵢ → Flatn n Δₑ → Flatn n Δᵢ
 pop-flat pop-here (flat (fu-asgn fu) refl) = flat fu refl
-pop-flat (pop-bind-b p) (flat (fu-bind fu) refl)
+pop-flat (pop-bind p) (flat (fu-bind fu) refl)
   with pop-flat p (flat fu refl)
-pop-flat (pop-bind-b p) (flat (fu-bind fu) refl) | flat fu′ refl =
+pop-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
   flat (fu-bind fu′) refl
-pop-flat (pop-bind-l p) (flat (fu-bind fu) refl)
+pop-flat (pop-bind p) (flat (fu-bind fu) refl)
   with pop-flat p (flat fu refl)
-pop-flat (pop-bind-l p) (flat (fu-bind fu) refl) | flat fu′ refl =
+pop-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
   flat (fu-bind fu′) refl
-pop-flat (pop-bind-e p) (flat (fu-bind fu) refl)
+pop-flat (pop-bind p) (flat (fu-bind fu) refl)
   with pop-flat p (flat fu refl)
-pop-flat (pop-bind-e p) (flat (fu-bind fu) refl) | flat fu′ refl =
+pop-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
   flat (fu-bind fu′) refl
 
 push-flat : ∀ {n} → Δᵢ ▷ X := α ⇒ Δₑ → Flatn n Δₑ → Flatn n Δᵢ
 push-flat pop-here (flat fu refl) = flat (fu-asgn fu) refl
-push-flat (pop-bind-b p) (flat (fu-bind fu) refl)
+push-flat (pop-bind p) (flat (fu-bind fu) refl)
   with push-flat p (flat fu refl)
-push-flat (pop-bind-b p) (flat (fu-bind fu) refl) | flat fu′ refl =
+push-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
   flat (fu-bind fu′) refl
-push-flat (pop-bind-l p) (flat (fu-bind fu) refl)
+push-flat (pop-bind p) (flat (fu-bind fu) refl)
   with push-flat p (flat fu refl)
-push-flat (pop-bind-l p) (flat (fu-bind fu) refl) | flat fu′ refl =
+push-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
   flat (fu-bind fu′) refl
-push-flat (pop-bind-e p) (flat (fu-bind fu) refl)
+push-flat (pop-bind p) (flat (fu-bind fu) refl)
   with push-flat p (flat fu refl)
-push-flat (pop-bind-e p) (flat (fu-bind fu) refl) | flat fu′ refl =
+push-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
   flat (fu-bind fu′) refl
 
 mutual

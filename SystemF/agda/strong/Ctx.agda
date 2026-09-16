@@ -186,11 +186,13 @@ data _∋ᵗ_ : List StackEnt → ℕ → Set where
 infix 4 _∣_∋r_:=_
 data _∣_∋r_:=_ (Σ : Store) : Ctxᵗ → Addr → RepTy → Set where
   r-lvl       : Σ ∋ˡ ℓ := R → Σ ∣ Γ ∋r lvl ℓ := R
-  r-here      : Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∋r bse zero := R
+  -- a `nuBind`'s representation lives OUTSIDE its own binder, so it
+  -- shifts when read inside
+  r-here      : Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∋r bse zero := ⇑ᴿᵉ R
   r-skip-addr : Σ ∣ (Ss ∥ Bs) ∋r bse j := R
-              → Σ ∣ (Ss ∥ addr ∷ Bs) ∋r bse (suc j) := R
+              → Σ ∣ (Ss ∥ addr ∷ Bs) ∋r bse (suc j) := ⇑ᴿᵉ R
   r-skip-nu   : Σ ∣ (Ss ∥ Bs) ∋r bse j := R
-              → Σ ∣ (Ss ∥ nuBind T ∷ Bs) ∋r bse (suc j) := R
+              → Σ ∣ (Ss ∥ nuBind T ∷ Bs) ∋r bse (suc j) := ⇑ᴿᵉ R
 
 ∋r-restk : ∀ {Σ Ss Ss′ Bs α R} → Σ ∣ (Ss ∥ Bs) ∋r α := R
   → Σ ∣ (Ss′ ∥ Bs) ∋r α := R

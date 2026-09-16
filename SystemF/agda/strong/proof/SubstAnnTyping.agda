@@ -23,7 +23,7 @@ module strong.proof.SubstAnnTyping where
 --   * `drop-there` steps past a `bind` ONLY.  The slot removed is
 --     always a `∀`'s binder assignment, and the pop judgment already
 --     insists that a crossing assignment has nothing but `bind`s above
---     it (`pop-bind-b`/`-l`/`-e` are its only non-base rules).  Making
+--     it (`pop-bind`/`-l`/`-e` are its only non-base rules).  Making
 --     `DropBind` agree with that discipline is what makes the crossing
 --     name Y and the slot X comparable at all: the slot sits at stack
 --     position X with X `bind`s above it, a crossing sits at position Y
@@ -209,22 +209,20 @@ closed-⇑ cl rewrite closed-ren cl suc = cl
 
 shift-names : (Ss ∥ Bs) ∋n Y := α
   → Σ[ β ∈ Addr ] (bind ∷ Ss ∥ Bs) ∋n suc Y := β
-shift-names {α = lvl ℓ} n = lvl ℓ , n-skip-bind-l n
-shift-names {α = bnd i} n = bnd (suc i) , n-skip-bind-b n
-shift-names {α = bse j} n = bse j , n-skip-bind-e n
+shift-names {α = lvl ℓ} n = lvl ℓ , n-skip-bind n
+shift-names {α = bse j} n = bse j , n-skip-bind n
 
 RenNames : Renameᵗ → Ctxᵗ → Ctxᵗ → Set
 RenNames ρ Γ Γ′ = ∀ {Y α} → Γ ∋n Y := α → Σ[ β ∈ Addr ] Γ′ ∋n ρ Y := β
 
 ext-rennames : ∀ {ρ} → RenNames ρ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → RenNames (extᵗ ρ) (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
-ext-rennames r n-here-bind = bnd zero , n-here-bind
-ext-rennames r (n-skip-bind-b p) with r p
-ext-rennames r (n-skip-bind-b p) | β , q = shift-names q
-ext-rennames r (n-skip-bind-l p) with r p
-ext-rennames r (n-skip-bind-l p) | β , q = shift-names q
-ext-rennames r (n-skip-bind-e p) with r p
-ext-rennames r (n-skip-bind-e p) | β , q = shift-names q
+ext-rennames r (n-skip-bind p) with r p
+ext-rennames r (n-skip-bind p) | β , q = shift-names q
+ext-rennames r (n-skip-bind p) with r p
+ext-rennames r (n-skip-bind p) | β , q = shift-names q
+ext-rennames r (n-skip-bind p) with r p
+ext-rennames r (n-skip-bind p) | β , q = shift-names q
 
 wf-rn : ∀ {ρ} → RenNames ρ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ renameᵗ ρ A
@@ -429,14 +427,12 @@ mutual
 ------------------------------------------------------------------------
 
 -- the slot's OWN address is the `bnd` that counts the binds above it
-slot-addrS : DropBindS X Ss Ss′ → (Ss ∥ Bs) ∋n X := α → α ≡ bnd X
-slot-addrS drop-here n-here-bind = refl
-slot-addrS (drop-there d) (n-skip-bind-b p) with slot-addrS d p
-slot-addrS (drop-there d) (n-skip-bind-b p) | refl = refl
-slot-addrS (drop-there d) (n-skip-bind-l p) with slot-addrS d p
-slot-addrS (drop-there d) (n-skip-bind-l p) | ()
-slot-addrS (drop-there d) (n-skip-bind-e p) with slot-addrS d p
-slot-addrS (drop-there d) (n-skip-bind-e p) | ()
+slot-addrS (drop-there d) (n-skip-bind p) with slot-addrS d p
+slot-addrS (drop-there d) (n-skip-bind p) | refl = refl
+slot-addrS (drop-there d) (n-skip-bind p) with slot-addrS d p
+slot-addrS (drop-there d) (n-skip-bind p) | ()
+slot-addrS (drop-there d) (n-skip-bind p) with slot-addrS d p
+slot-addrS (drop-there d) (n-skip-bind p) | ()
 
 -- hence a non-`bnd` address never carries the slot's name
 -- A non-`bnd` address does not depend on the stack at all, so
@@ -458,49 +454,45 @@ nb-≢ d nb-bse n refl | ()
 -- a lookup at a non-`bnd` address survives the drop unchanged
 ∋n-dropS : DropBindS X Ss Ss′ → NotBnd α → (Ss ∥ Bs) ∋n Y := α
   → (Ss′ ∥ Bs) ∋n nameSub X Y := α
-∋n-dropS (drop-here {Ss = Ss}) nb-lvl (n-skip-bind-l {X = Y} p)
+∋n-dropS (drop-here {Ss = Ss}) nb-lvl (n-skip-bind {X = Y} p)
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = p
-∋n-dropS (drop-here {Ss = Ss}) nb-bse (n-skip-bind-e {X = Y} p)
+∋n-dropS (drop-here {Ss = Ss}) nb-bse (n-skip-bind {X = Y} p)
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = p
-∋n-dropS (drop-there {X = X} d) nb-lvl (n-skip-bind-l {X = Y} p)
-  rewrite nameSub-suc X Y = n-skip-bind-l (∋n-dropS d nb-lvl p)
-∋n-dropS (drop-there {X = X} d) nb-bse (n-skip-bind-e {X = Y} p)
-  rewrite nameSub-suc X Y = n-skip-bind-e (∋n-dropS d nb-bse p)
+∋n-dropS (drop-there {X = X} d) nb-lvl (n-skip-bind {X = Y} p)
+  rewrite nameSub-suc X Y = n-skip-bind (∋n-dropS d nb-lvl p)
+∋n-dropS (drop-there {X = X} d) nb-bse (n-skip-bind {X = Y} p)
+  rewrite nameSub-suc X Y = n-skip-bind (∋n-dropS d nb-bse p)
 
 -- any other lookup survives with SOME address: enough for `wf-var`
 ∋n-drop∃ : DropBindS X Ss Ss′ → (Ss ∥ Bs) ∋n Y := α → ¬ (X ≡ Y)
   → Σ[ β ∈ Addr ] (Ss′ ∥ Bs) ∋n nameSub X Y := β
-∋n-drop∃ drop-here n-here-bind ne = ⊥-elim (ne refl)
-∋n-drop∃ (drop-here {Ss = Ss}) (n-skip-bind-b {X = Y} {i = i} p) ne
-  rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = bnd i , p
-∋n-drop∃ (drop-here {Ss = Ss}) (n-skip-bind-l {X = Y} {ℓ = ℓ} p) ne
+∋n-drop∃ (drop-here {Ss = Ss}) (n-skip-bind {X = Y} {i = i} p) ne
+∋n-drop∃ (drop-here {Ss = Ss}) (n-skip-bind {X = Y} {ℓ = ℓ} p) ne
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = lvl ℓ , p
-∋n-drop∃ (drop-here {Ss = Ss}) (n-skip-bind-e {X = Y} {j = j} p) ne
+∋n-drop∃ (drop-here {Ss = Ss}) (n-skip-bind {X = Y} {j = j} p) ne
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = bse j , p
-∋n-drop∃ (drop-there {X = X} d) n-here-bind ne
-  rewrite nameSub-le (suc X) zero (λ ()) = bnd zero , n-here-bind
-∋n-drop∃ (drop-there {X = X} d) (n-skip-bind-b {X = Y} p) ne
+∋n-drop∃ (drop-there {X = X} d) (n-skip-bind {X = Y} p) ne
   with ∋n-drop∃ d p (λ eq → ne (cong suc eq))
-∋n-drop∃ (drop-there {X = X} d) (n-skip-bind-b {X = Y} p) ne | β , q
+∋n-drop∃ (drop-there {X = X} d) (n-skip-bind {X = Y} p) ne | β , q
   rewrite nameSub-suc X Y = shift-names q
-∋n-drop∃ (drop-there {X = X} d) (n-skip-bind-l {X = Y} p) ne
+∋n-drop∃ (drop-there {X = X} d) (n-skip-bind {X = Y} p) ne
   with ∋n-drop∃ d p (λ eq → ne (cong suc eq))
-∋n-drop∃ (drop-there {X = X} d) (n-skip-bind-l {X = Y} p) ne | β , q
+∋n-drop∃ (drop-there {X = X} d) (n-skip-bind {X = Y} p) ne | β , q
   rewrite nameSub-suc X Y = shift-names q
-∋n-drop∃ (drop-there {X = X} d) (n-skip-bind-e {X = Y} p) ne
+∋n-drop∃ (drop-there {X = X} d) (n-skip-bind {X = Y} p) ne
   with ∋n-drop∃ d p (λ eq → ne (cong suc eq))
-∋n-drop∃ (drop-there {X = X} d) (n-skip-bind-e {X = Y} p) ne | β , q
+∋n-drop∃ (drop-there {X = X} d) (n-skip-bind {X = Y} p) ne | β , q
   rewrite nameSub-suc X Y = shift-names q
 
 -- the other direction, for `NotAssigned`: putting the slot back
 ∋n-undropS : DropBindS X Ss Ss′ → NotBnd α → (Ss′ ∥ Bs) ∋n Y := α
   → (Ss ∥ Bs) ∋n shiftAtᵗ X Y := α
-∋n-undropS drop-here nb-lvl p = n-skip-bind-l p
-∋n-undropS drop-here nb-bse p = n-skip-bind-e p
-∋n-undropS (drop-there d) nb-lvl (n-skip-bind-l p) =
-  n-skip-bind-l (∋n-undropS d nb-lvl p)
-∋n-undropS (drop-there d) nb-bse (n-skip-bind-e p) =
-  n-skip-bind-e (∋n-undropS d nb-bse p)
+∋n-undropS drop-here nb-lvl p = n-skip-bind p
+∋n-undropS drop-here nb-bse p = n-skip-bind p
+∋n-undropS (drop-there d) nb-lvl (n-skip-bind p) =
+  n-skip-bind (∋n-undropS d nb-lvl p)
+∋n-undropS (drop-there d) nb-bse (n-skip-bind p) =
+  n-skip-bind (∋n-undropS d nb-bse p)
 
 notasgn-drop : DropBindS X Ss Ss′ → NotBnd α
   → NotAssigned (Ss ∥ Bs) α → NotAssigned (Ss′ ∥ Bs) α
@@ -558,20 +550,20 @@ drop-pop : DropBindS X Ssₑ Ss′ → NotBnd α
   → (Ssₑ ∥ Bs) ▷ Y := α ⇒ Γᵢ
   → Σ[ Γᵢ′ ∈ Ctxᵗ ]
       (DropBind X Γᵢ Γᵢ′ × ((Ss′ ∥ Bs) ▷ nameSub X Y := α ⇒ Γᵢ′))
-drop-pop drop-here nb-lvl (pop-bind-l {X = Y} p)
+drop-pop drop-here nb-lvl (pop-bind {X = Y} p)
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = _ , drop-ctx drop-here , p
-drop-pop drop-here nb-bse (pop-bind-e {X = Y} p)
+drop-pop drop-here nb-bse (pop-bind {X = Y} p)
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = _ , drop-ctx drop-here , p
-drop-pop (drop-there {X = X} d) nb-lvl (pop-bind-l {X = Y} p)
+drop-pop (drop-there {X = X} d) nb-lvl (pop-bind {X = Y} p)
   with drop-pop d nb-lvl p
-drop-pop (drop-there {X = X} d) nb-lvl (pop-bind-l {X = Y} p)
+drop-pop (drop-there {X = X} d) nb-lvl (pop-bind {X = Y} p)
   | Γ″ , drop-ctx d″ , p″ rewrite nameSub-suc X Y =
-  _ , drop-ctx (drop-there d″) , pop-bind-l p″
-drop-pop (drop-there {X = X} d) nb-bse (pop-bind-e {X = Y} p)
+  _ , drop-ctx (drop-there d″) , pop-bind p″
+drop-pop (drop-there {X = X} d) nb-bse (pop-bind {X = Y} p)
   with drop-pop d nb-bse p
-drop-pop (drop-there {X = X} d) nb-bse (pop-bind-e {X = Y} p)
+drop-pop (drop-there {X = X} d) nb-bse (pop-bind {X = Y} p)
   | Γ″ , drop-ctx d″ , p″ rewrite nameSub-suc X Y =
-  _ , drop-ctx (drop-there d″) , pop-bind-e p″
+  _ , drop-ctx (drop-there d″) , pop-bind p″
 
 -- PUSH: the crossing ADDS its assignment going inward (`unseal`,
 -- `show`).  Here X < Y is a hypothesis: without it `pop-here` could
@@ -580,20 +572,20 @@ drop-push : DropBindS X Ssₑ Ss′ → NotBnd α → X < Y
   → Γᵢ ▷ Y := α ⇒ (Ssₑ ∥ Bs)
   → Σ[ Γᵢ′ ∈ Ctxᵗ ]
       (DropBind X Γᵢ Γᵢ′ × (Γᵢ′ ▷ nameSub X Y := α ⇒ (Ss′ ∥ Bs)))
-drop-push drop-here nb-lvl (s≤s z≤n) (pop-bind-l {X = Y} p)
+drop-push drop-here nb-lvl (s≤s z≤n) (pop-bind {X = Y} p)
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = _ , drop-ctx drop-here , p
-drop-push drop-here nb-bse (s≤s z≤n) (pop-bind-e {X = Y} p)
+drop-push drop-here nb-bse (s≤s z≤n) (pop-bind {X = Y} p)
   rewrite nameSub-gt zero (suc Y) (s≤s z≤n) = _ , drop-ctx drop-here , p
-drop-push (drop-there {X = X} d) nb-lvl (s≤s lt) (pop-bind-l {X = Y} p)
+drop-push (drop-there {X = X} d) nb-lvl (s≤s lt) (pop-bind {X = Y} p)
   with drop-push d nb-lvl lt p
-drop-push (drop-there {X = X} d) nb-lvl (s≤s lt) (pop-bind-l {X = Y} p)
+drop-push (drop-there {X = X} d) nb-lvl (s≤s lt) (pop-bind {X = Y} p)
   | Γ″ , drop-ctx d″ , p″ rewrite nameSub-suc X Y =
-  _ , drop-ctx (drop-there d″) , pop-bind-l p″
-drop-push (drop-there {X = X} d) nb-bse (s≤s lt) (pop-bind-e {X = Y} p)
+  _ , drop-ctx (drop-there d″) , pop-bind p″
+drop-push (drop-there {X = X} d) nb-bse (s≤s lt) (pop-bind {X = Y} p)
   with drop-push d nb-bse lt p
-drop-push (drop-there {X = X} d) nb-bse (s≤s lt) (pop-bind-e {X = Y} p)
+drop-push (drop-there {X = X} d) nb-bse (s≤s lt) (pop-bind {X = Y} p)
   | Γ″ , drop-ctx d″ , p″ rewrite nameSub-suc X Y =
-  _ , drop-ctx (drop-there d″) , pop-bind-e p″
+  _ , drop-ctx (drop-there d″) , pop-bind p″
 
 ------------------------------------------------------------------------
 -- §9  The theorem

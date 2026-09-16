@@ -9,27 +9,21 @@ module strong.RepresentationTypes where
 --           appends; the store never reorders or removes, so a level
 --           is permanent and NEITHER renaming family touches it.
 --
---   bnd i   a `∀`.  Every ∀-shaped rule pushes the stack entry `bind`
---           that binds one: `wf-∀` (types), `wfᴿ-∀` (representation
---           types), `read-∀` (read-back), `quote-∀` (`⌊·⌋`), and
---           `conv-all` (the `∀` conversion element).  All type level.
---
 --   bse j   a `Λ` or a `ν`.  `⊢Λ` pushes the base entry `addr`, `⊢ν`
 --           pushes `nuBind R`.  Both term level.
 --
--- So the split is not two arbitrary halves: it is TYPE binders against
--- TERM binders, with the store outside both.  That is what makes the
--- two renaming families independent —
+-- A `∀` binds neither: it binds a TYPE VARIABLE, which is not an
+-- address at all (`RepTy`'s `ᵛ).  So the only binders of addresses are
+-- the store and the base —
 --
---   renᵃ  / renameᴿ  / renConv  / renAddrᴹ   move `bnd`, and extend
---       under `all` and `∀ᴿ`;
---   renᵃᵉ / renameᴿᵉ / renConvᵉ / renBseᴹ    move `bse`, and extend
---       under `Λ` and `ν`;
+--   renᵃᵉ / renameᴿᵉ / renConvᵉ / renBseᴹ   move `bse`, and extend
+--       under `Λ` and `ν`
 --
--- and neither can disturb the other, because no binder is of both
--- kinds.  Substitution mirrors this: `substAddr`/`inst₀` instantiate a
--- `∀ᴿ`'s `bnd`, `substAddrᵉ`/`instᵉ₀` instantiate a `ν`'s `bse` (to a
--- level, at `Alloc`).
+-- and that is the ONLY address renaming: a `∀` binds a type variable,
+-- so descending under one moves no address at all.  Substitution has
+-- the same two jobs: `substᴿⱽ`/`instⱽ₀` instantiate a `∀ᴿ`'s type
+-- variable, `substAddrᵉ`/`instᵉ₀` a `ν`'s `bse` (to a level, at
+-- `Alloc`).
 --
 -- WHERE THEY ARE WRITTEN.  Reduction writes an address in exactly four
 -- places, and only ever the innermost base binder or a fresh level:

@@ -26,21 +26,8 @@ open import strong.Terms
 idᵗ-ren : ℕ → ℕ
 idᵗ-ren X = X
 
-------------------------------------------------------------------------
--- Bound-address renaming and substitution over terms
-------------------------------------------------------------------------
-
-renAddrᴹ : Renameᵇ → Term → Term
-renAddrᴹ ρ (` x)       = ` x
-renAddrᴹ ρ ($ n)       = $ n
-renAddrᴹ ρ (# b)       = # b
-renAddrᴹ ρ (M ⊕[ p ] N) = renAddrᴹ ρ M ⊕[ p ] renAddrᴹ ρ N
-renAddrᴹ ρ (ƛ A ∙ N)   = ƛ A ∙ renAddrᴹ ρ N
-renAddrᴹ ρ (L · M)     = renAddrᴹ ρ L · renAddrᴹ ρ M
-renAddrᴹ ρ (Λ V)       = Λ (renAddrᴹ ρ V)
-renAddrᴹ ρ (L • B [ A ]) = renAddrᴹ ρ L • B [ A ]
-renAddrᴹ ρ (ν R ∙ M)   = ν renameᴿ ρ R ∙ renAddrᴹ ρ M
-renAddrᴹ ρ (M ⟨ c ⟩)   = renAddrᴹ ρ M ⟨ renConv idᵗ-ren ρ c ⟩
+-- (The stack-address renaming of terms is gone: a `∀` binds a type
+-- variable, so no term-level address ever moves under one.)
 
 -- The BASE renaming of a term.  `Λ` and `ν` are the base's binders, so
 -- this is the family that extends under them — and, crucially, it is

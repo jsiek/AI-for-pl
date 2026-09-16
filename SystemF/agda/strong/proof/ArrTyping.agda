@@ -62,35 +62,48 @@ wf-⇒-inv (wf-⇒ a b) = a , b
 -- renaming algebra carries well-formedness along: a map of lookups
 -- extends under a binder, and `⊢ᵗ` follows it.
 
+-- Two versions, because the two things a renaming can carry are now
+-- genuinely different: an ASSIGNMENT (address and all), and mere
+-- SCOPE, which is all `⊢ᵗ` reads.
+
 Renamesᵗ : Renameᵗ → Ctxᵗ → Ctxᵗ → Set
 Renamesᵗ ρ Γ Γ′ = ∀ {X α} → Γ ∋n X := α → Γ′ ∋n ρ X := α
 
+Renamesˢ : Renameᵗ → List StackEnt → List StackEnt → Set
+Renamesˢ ρ Ss Ss′ = ∀ {X} → Ss ∋ᵗ X → Ss′ ∋ᵗ ρ X
+
 ext-renames : ∀ {ρ Γ Γ′} → Renamesᵗ ρ Γ Γ′
   → Renamesᵗ (extᵗ ρ) (bind ∷ stk Γ ∥ bas Γ) (bind ∷ stk Γ′ ∥ bas Γ′)
-ext-renames r n-here-bind = n-here-bind
-ext-renames r (n-skip-bind-b p) = n-skip-bind-b (r p)
-ext-renames r (n-skip-bind-l p) = n-skip-bind-l (r p)
-ext-renames r (n-skip-bind-e p) = n-skip-bind-e (r p)
+ext-renames r (n-skip-bind p) = n-skip-bind (r p)
 
-wf-ren : ∀ {ρ Γ Γ′ A} → Renamesᵗ ρ Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ renameᵗ ρ A
-wf-ren r (wf-var n) with ∋ᵗ→∋n n
-wf-ren r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (r m))
+ext-renamesˢ : ∀ {ρ Ss Ss′} → Renamesˢ ρ Ss Ss′
+  → Renamesˢ (extᵗ ρ) (bind ∷ Ss) (bind ∷ Ss′)
+ext-renamesˢ r t-here = t-here
+ext-renamesˢ r (t-there p) = t-there (r p)
+
+wf-ren : ∀ {ρ Ss Ss′ Bs Bs′ A} → Renamesˢ ρ Ss Ss′
+  → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ renameᵗ ρ A
+wf-ren r (wf-var n) = wf-var (r n)
 wf-ren r wf-ℕ = wf-ℕ
 wf-ren r wf-𝔹 = wf-𝔹
 wf-ren r (wf-⇒ a b) = wf-⇒ (wf-ren r a) (wf-ren r b)
-wf-ren r (wf-∀ a) = wf-∀ (wf-ren (ext-renames r) a)
+wf-ren r (wf-∀ a) = wf-∀ (wf-ren (ext-renamesˢ r) a)
 
 -- Inserting the assignment a crossing introduces IS that shift.
 pop-renames : ∀ {Γₑ Γᵢ X α} → Γₑ ▷ X := α ⇒ Γᵢ
   → Renamesᵗ (shiftAtᵗ X) Γᵢ Γₑ
 pop-renames pop-here p = n-skip-asgn p
-pop-renames (pop-bind-b q) = ext-renames (pop-renames q)
-pop-renames (pop-bind-l q) = ext-renames (pop-renames q)
-pop-renames (pop-bind-e q) = ext-renames (pop-renames q)
+pop-renames (pop-bind q) = ext-renames (pop-renames q)
+
+-- only the STACKS matter, so this needs no relation between the bases
+pop-renamesˢ : ∀ {Γₑ Γᵢ X α} → Γₑ ▷ X := α ⇒ Γᵢ
+  → Renamesˢ (shiftAtᵗ X) (stk Γᵢ) (stk Γₑ)
+pop-renamesˢ pop-here p = t-there p
+pop-renamesˢ (pop-bind q) = ext-renamesˢ (pop-renamesˢ q)
 
 wf-shift : ∀ {Γₑ Γᵢ X α A} → Γₑ ▷ X := α ⇒ Γᵢ → Γᵢ ⊢ᵗ A
   → Γₑ ⊢ᵗ renameᵗ (shiftAtᵗ X) A
-wf-shift q wf = wf-ren (pop-renames q) wf
+wf-shift q wf = wf-ren (pop-renamesˢ q) wf
 
 ------------------------------------------------------------------------
 -- Reading the folds back

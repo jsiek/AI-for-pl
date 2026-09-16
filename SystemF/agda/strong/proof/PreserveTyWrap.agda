@@ -90,7 +90,7 @@ open import strong.proof.TypeWf using (typing-wf; ctxOk-[])
   → Σ[ X ∈ ℕ ] ((Ss ∥ Bs) ∋n X := bnd i)
 ∋a-bnd-named a-here-bind = zero , n-here-bind
 ∋a-bnd-named (a-skip-bind p) with ∋a-bnd-named p
-∋a-bnd-named (a-skip-bind p) | X , n = suc X , n-skip-bind-b n
+∋a-bnd-named (a-skip-bind p) | X , n = suc X , n-skip-bind n
 ∋a-bnd-named (a-skip-asgn p) with ∋a-bnd-named p
 ∋a-bnd-named (a-skip-asgn p) | X , n = suc X , n-skip-asgn n
 
@@ -247,19 +247,19 @@ ok-≢ d (ok-bnd lt) n refl | refl = <-irr lt
 ∋n-dropOk : ∀ {X Ss Ss′ Bs Z α} → DropBindS X Ss Ss′ → OkAddr X α
   → (Ss ∥ Bs) ∋n Z := α → (Ss′ ∥ Bs) ∋n nameSub X Z := α
 ∋n-dropOk drop-here (ok-bnd ()) n
-∋n-dropOk drop-here ok-lvl (n-skip-bind-l {X = Z} p)
+∋n-dropOk drop-here ok-lvl (n-skip-bind {X = Z} p)
   rewrite nameSub-gt zero (suc Z) (s≤s z≤n) = p
-∋n-dropOk drop-here ok-bse (n-skip-bind-e {X = Z} p)
+∋n-dropOk drop-here ok-bse (n-skip-bind {X = Z} p)
   rewrite nameSub-gt zero (suc Z) (s≤s z≤n) = p
 ∋n-dropOk (drop-there {X = X} d) (ok-bnd lt) n-here-bind
   rewrite nameSub-le (suc X) zero (λ ()) = n-here-bind
-∋n-dropOk (drop-there {X = X} d) (ok-bnd lt) (n-skip-bind-b {X = Z} p)
+∋n-dropOk (drop-there {X = X} d) (ok-bnd lt) (n-skip-bind {X = Z} p)
   rewrite nameSub-suc X Z =
-  n-skip-bind-b (∋n-dropOk d (ok-bnd (pred≤ lt)) p)
-∋n-dropOk (drop-there {X = X} d) ok-lvl (n-skip-bind-l {X = Z} p)
-  rewrite nameSub-suc X Z = n-skip-bind-l (∋n-dropOk d ok-lvl p)
-∋n-dropOk (drop-there {X = X} d) ok-bse (n-skip-bind-e {X = Z} p)
-  rewrite nameSub-suc X Z = n-skip-bind-e (∋n-dropOk d ok-bse p)
+  n-skip-bind (∋n-dropOk d (ok-bnd (pred≤ lt)) p)
+∋n-dropOk (drop-there {X = X} d) ok-lvl (n-skip-bind {X = Z} p)
+  rewrite nameSub-suc X Z = n-skip-bind (∋n-dropOk d ok-lvl p)
+∋n-dropOk (drop-there {X = X} d) ok-bse (n-skip-bind {X = Z} p)
+  rewrite nameSub-suc X Z = n-skip-bind (∋n-dropOk d ok-bse p)
 
 read-drop-lc : ∀ {Sg Ss Ss′ Bs X S R A} → DropBindS X Ss Ss′ → LCᴿ X R
   → Sg ∣ (Ss ∥ Bs) ⊢ R ⇓ A → Sg ∣ (Ss′ ∥ Bs) ⊢ R ⇓ closeAt X S A
@@ -437,18 +437,18 @@ namefn-ren r nf p q | β , p′ , e₁ | γ , q′ , e₂ | refl = nf p′ q′
 -- a name below the binder prefix is the prefix's own `bnd`
 binds-here : ∀ {n Ss Bs Z} → Z < n → (binds n ++ Ss ∥ Bs) ∋n Z := bnd Z
 binds-here {n = suc n} {Z = zero} lt = n-here-bind
-binds-here {n = suc n} {Z = suc Z} (s≤s lt) = n-skip-bind-b (binds-here lt)
+binds-here {n = suc n} {Z = suc Z} (s≤s lt) = n-skip-bind (binds-here lt)
 
 binds-addr : ∀ {n Ss Bs Z α} → Z < n
   → (binds n ++ Ss ∥ Bs) ∋n Z := α → α ≡ bnd Z
 binds-addr {n = zero} () n
 binds-addr {n = suc n} lt n-here-bind = refl
-binds-addr {n = suc n} (s≤s lt) (n-skip-bind-b p) =
+binds-addr {n = suc n} (s≤s lt) (n-skip-bind p) =
   cong ⇑ᵃ (binds-addr lt p)
-binds-addr {n = suc n} (s≤s lt) (n-skip-bind-l p) with binds-addr lt p
-binds-addr {n = suc n} (s≤s lt) (n-skip-bind-l p) | ()
-binds-addr {n = suc n} (s≤s lt) (n-skip-bind-e p) with binds-addr lt p
-binds-addr {n = suc n} (s≤s lt) (n-skip-bind-e p) | ()
+binds-addr {n = suc n} (s≤s lt) (n-skip-bind p) with binds-addr lt p
+binds-addr {n = suc n} (s≤s lt) (n-skip-bind p) | ()
+binds-addr {n = suc n} (s≤s lt) (n-skip-bind p) with binds-addr lt p
+binds-addr {n = suc n} (s≤s lt) (n-skip-bind p) | ()
 
 quote-read-closed : ∀ {Sg n Ss Ss′ Bs Bs′ A R}
   → NoFreeᵗ n A
@@ -662,7 +662,7 @@ private
 
   -- `lvl 0` carries no name in `bind ∷ [] ∥ []`
   naₚ : NotAssigned (bind ∷ [] ∥ []) (lvl zero)
-  naₚ (n-skip-bind-l ())
+  naₚ (n-skip-bind ())
 
   scₚ : Sgₚ ∣ (bind ∷ [] ∥ []) ∋a lvl zero
   scₚ = a-lvl l-here

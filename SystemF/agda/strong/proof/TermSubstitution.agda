@@ -72,9 +72,8 @@ module Proof where
   -- address.
   ⤒-fresh : ∀ {Ss Bs} → NotAssigned (⤒ Ss ∥ Bs) (bse zero)
   ⤒-fresh {[]} ()
-  ⤒-fresh {bind ∷ Ss} (n-skip-bind-e p) = ⤒-fresh p
+  ⤒-fresh {bind ∷ Ss} (n-skip-bind p) = ⤒-fresh p
   ⤒-fresh {asgn (lvl ℓ) ∷ Ss} (n-skip-asgn p) = ⤒-fresh p
-  ⤒-fresh {asgn (bnd i) ∷ Ss} (n-skip-asgn p) = ⤒-fresh p
   ⤒-fresh {asgn (bse j) ∷ Ss} (n-skip-asgn p) = ⤒-fresh p
 
   nuWeaken : ∀ {Sg Ss Bs Γ M A e} → StoreOk Sg

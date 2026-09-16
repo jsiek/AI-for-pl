@@ -62,9 +62,7 @@ scoped-[] ()
 scoped-bind : ∀ {Sg Ss Bs} → Scoped Sg (Ss ∥ Bs)
   → Scoped Sg (bind ∷ Ss ∥ Bs)
 scoped-bind sc n-here-bind = a-here-bind
-scoped-bind sc (n-skip-bind-b p) = ∋a-⇑ (sc p)
-scoped-bind sc (n-skip-bind-l p) = ∋a-⇑ (sc p)
-scoped-bind sc (n-skip-bind-e p) = ∋a-⇑ (sc p)
+scoped-bind sc (n-skip-bind p) = ∋a-⇑ (sc p)
 
 -- an `asgn` is scoped exactly when its own address is
 scoped-asgn : ∀ {Sg Ss Bs α} → Sg ∣ (Ss ∥ Bs) ∋a α → Scoped Sg (Ss ∥ Bs)
@@ -76,9 +74,9 @@ scoped-asgn a sc (n-skip-asgn p) = ∋a-push pop-here (sc p)
 -- are invertible — which is what lets the invariant come back out.
 ∋n-⇑ : ∀ {Ss Bs Y β} → (Ss ∥ Bs) ∋n Y := β
   → (bind ∷ Ss ∥ Bs) ∋n suc Y := ⇑ᵃ β
-∋n-⇑ {β = lvl ℓ} r = n-skip-bind-l r
-∋n-⇑ {β = bnd i} r = n-skip-bind-b r
-∋n-⇑ {β = bse j} r = n-skip-bind-e r
+∋n-⇑ {β = lvl ℓ} r = n-skip-bind r
+∋n-⇑ {β = bnd i} r = n-skip-bind r
+∋n-⇑ {β = bse j} r = n-skip-bind r
 
 ∋a-unbind : ∀ {Sg Ss Bs β} → Sg ∣ (bind ∷ Ss ∥ Bs) ∋a ⇑ᵃ β
   → Sg ∣ (Ss ∥ Bs) ∋a β
@@ -117,11 +115,11 @@ pop-scoped p sc q = ∋a-pop p (sc (pop-renames p q))
 push-scoped : ∀ {Sg Δₑ Δᵢ X α} → Δᵢ ▷ X := α ⇒ Δₑ
   → Sg ∣ Δₑ ∋a α → Scoped Sg Δₑ → Scoped Sg Δᵢ
 push-scoped pop-here a sc = scoped-asgn a sc
-push-scoped (pop-bind-b p) a sc =
+push-scoped (pop-bind p) a sc =
   scoped-bind (push-scoped p (∋a-unbind a) (scoped-unbind sc))
-push-scoped (pop-bind-l p) a sc =
+push-scoped (pop-bind p) a sc =
   scoped-bind (push-scoped p (∋a-unbind a) (scoped-unbind sc))
-push-scoped (pop-bind-e p) a sc =
+push-scoped (pop-bind p) a sc =
   scoped-bind (push-scoped p (∋a-restk a) (scoped-unbind sc))
 
 mutual

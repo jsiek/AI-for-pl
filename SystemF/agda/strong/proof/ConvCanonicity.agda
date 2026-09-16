@@ -82,27 +82,9 @@ shiftAt-var-≢ X′ (`∀ A) ()
 pop-unique : Γ ▷ X := α ⇒ Γ′ → Γ ▷ Y := β ⇒ Γ″
   → (X ≡ Y) × (α ≡ β) × (Γ′ ≡ Γ″)
 pop-unique pop-here pop-here = refl , refl , refl
-pop-unique (pop-bind-b p) (pop-bind-b q) with pop-unique p q
-pop-unique (pop-bind-b p) (pop-bind-b q) | refl , refl , refl =
+pop-unique (pop-bind p) (pop-bind q) with pop-unique p q
+pop-unique (pop-bind p) (pop-bind q) | refl , refl , refl =
   refl , refl , refl
-pop-unique (pop-bind-l p) (pop-bind-l q) with pop-unique p q
-pop-unique (pop-bind-l p) (pop-bind-l q) | refl , refl , refl =
-  refl , refl , refl
-pop-unique (pop-bind-b p) (pop-bind-l q) with pop-unique p q
-pop-unique (pop-bind-b p) (pop-bind-l q) | refl , () , _
-pop-unique (pop-bind-l p) (pop-bind-b q) with pop-unique p q
-pop-unique (pop-bind-l p) (pop-bind-b q) | refl , () , _
-pop-unique (pop-bind-e p) (pop-bind-e q) with pop-unique p q
-pop-unique (pop-bind-e p) (pop-bind-e q) | refl , refl , refl =
-  refl , refl , refl
-pop-unique (pop-bind-b p) (pop-bind-e q) with pop-unique p q
-pop-unique (pop-bind-b p) (pop-bind-e q) | refl , () , _
-pop-unique (pop-bind-e p) (pop-bind-b q) with pop-unique p q
-pop-unique (pop-bind-e p) (pop-bind-b q) | refl , () , _
-pop-unique (pop-bind-l p) (pop-bind-e q) with pop-unique p q
-pop-unique (pop-bind-l p) (pop-bind-e q) | refl , () , _
-pop-unique (pop-bind-e p) (pop-bind-l q) with pop-unique p q
-pop-unique (pop-bind-e p) (pop-bind-l q) | refl , () , _
 
 ------------------------------------------------------------------------
 -- After an addition: the running type is a variable, and stays one

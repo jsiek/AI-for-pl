@@ -81,9 +81,7 @@ read-wf (read-∀ a) = wf-∀ (read-wf a)
 -- the popped name is in scope on the side that has the assignment
 pop-∋n : Δₑ ▷ X := α ⇒ Δᵢ → Δₑ ∋n X := α
 pop-∋n pop-here = n-here-asgn
-pop-∋n (pop-bind-b p) = n-skip-bind-b (pop-∋n p)
-pop-∋n (pop-bind-l p) = n-skip-bind-l (pop-∋n p)
-pop-∋n (pop-bind-e p) = n-skip-bind-e (pop-∋n p)
+pop-∋n (pop-bind p) = n-skip-bind (pop-∋n p)
 
 mutual
   convElt-wf-src : ∀ {ĉ} → Sg ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δₑ → Δᵢ ⊢ᵗ A

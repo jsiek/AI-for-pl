@@ -59,8 +59,6 @@ private
 ∋r-unique r-here r-here = refl
 ∋r-unique (r-skip-addr p) (r-skip-addr q) = cong ⇑ᴿᵉ (∋r-unique p q)
 ∋r-unique (r-skip-nu p) (r-skip-nu q) = cong ⇑ᴿᵉ (∋r-unique p q)
-∋r-unique (r-skip-bind p) (r-skip-bind q) = cong ⇑ᴿ (∋r-unique p q)
-∋r-unique (r-skip-asgn p) (r-skip-asgn q) = ∋r-unique p q
 
 ------------------------------------------------------------------------
 -- Name uniqueness propagates, so the read-back is single-valued
@@ -70,39 +68,17 @@ private
 -- assignment; `bind` carries it across a `∀` element's binder.
 
 namefn-bind : NameFn Γ → NameFn (bind ∷ stk Γ ∥ bas Γ)
-namefn-bind nf n-here-bind n-here-bind = refl
-namefn-bind nf (n-skip-bind-b p) (n-skip-bind-b q) = cong suc (nf p q)
-namefn-bind nf (n-skip-bind-l p) (n-skip-bind-l q) = cong suc (nf p q)
-namefn-bind nf (n-skip-bind-e p) (n-skip-bind-e q) = cong suc (nf p q)
+namefn-bind nf (n-skip-bind p) (n-skip-bind q) = cong suc (nf p q)
 
 namefn-unbind : NameFn (bind ∷ stk Γ ∥ bas Γ) → NameFn Γ
-namefn-unbind nf {α = lvl ℓ} p q =
-  suc-inj (nf (n-skip-bind-l p) (n-skip-bind-l q))
-  where
-  suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
-  suc-inj refl = refl
-namefn-unbind nf {α = bnd i} p q =
-  suc-inj (nf (n-skip-bind-b p) (n-skip-bind-b q))
-  where
-  suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
-  suc-inj refl = refl
-namefn-unbind nf {α = bse j} p q =
-  suc-inj (nf (n-skip-bind-e p) (n-skip-bind-e q))
+namefn-unbind nf p q = suc-inj (nf (n-skip-bind p) (n-skip-bind q))
   where
   suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
   suc-inj refl = refl
 
-notasgn-unbind : ∀ {Γ i} → NotAssigned (bind ∷ stk Γ ∥ bas Γ) (bnd (suc i))
-  → NotAssigned Γ (bnd i)
-notasgn-unbind na p = na (n-skip-bind-b p)
-
-notasgn-unbind-l : ∀ {Γ ℓ} → NotAssigned (bind ∷ stk Γ ∥ bas Γ) (lvl ℓ)
-  → NotAssigned Γ (lvl ℓ)
-notasgn-unbind-l na p = na (n-skip-bind-l p)
-
-notasgn-unbind-e : ∀ {Γ j} → NotAssigned (bind ∷ stk Γ ∥ bas Γ) (bse j)
-  → NotAssigned Γ (bse j)
-notasgn-unbind-e na p = na (n-skip-bind-e p)
+notasgn-unbind : ∀ {Γ α} → NotAssigned (bind ∷ stk Γ ∥ bas Γ) α
+  → NotAssigned Γ α
+notasgn-unbind na p = na (n-skip-bind p)
 
 -- Pushing the assignment an `unseal`/`show` introduces keeps names
 -- unique, PROVIDED the address was unassigned — which is the premise.
@@ -113,16 +89,23 @@ namefn-push nf na pop-here n-here-asgn (n-skip-asgn q) = ⊥-elim (na q)
 namefn-push nf na pop-here (n-skip-asgn p) n-here-asgn = ⊥-elim (na p)
 namefn-push nf na pop-here (n-skip-asgn p) (n-skip-asgn q) =
   cong suc (nf p q)
-namefn-push nf na (pop-bind-b p) =
+namefn-push nf na (pop-bind p) =
   namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind na) p)
-namefn-push nf na (pop-bind-l p) =
-  namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind-l na) p)
-namefn-push nf na (pop-bind-e p) =
-  namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind-e na) p)
+namefn-push nf na (pop-bind p) =
+  namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind na) p)
+namefn-push nf na (pop-bind p) =
+  namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind na) p)
+
+-- the i-th `bind` has exactly one name
+∋b-unique : ∀ {Ss X Y i} → Ss ∋b X at i → Ss ∋b Y at i → X ≡ Y
+∋b-unique b-here b-here = refl
+∋b-unique (b-asgn p) (b-asgn q) = cong suc (∋b-unique p q)
+∋b-unique (b-bind p) (b-bind q) = cong suc (∋b-unique p q)
 
 read-unique : ∀ {Γ} → NameFn Γ
   → Sg ∣ Γ ⊢ R ⇓ A → Sg ∣ Γ ⊢ R ⇓ B → A ≡ B
 read-unique nf (read-var n) (read-var m) = cong `_ (nf n m)
+read-unique nf (read-bv n) (read-bv m) = cong `_ (∋b-unique n m)
 read-unique nf read-ℕ read-ℕ = refl
 read-unique nf read-𝔹 read-𝔹 = refl
 read-unique nf (read-⇒ p q) (read-⇒ p′ q′)
@@ -209,11 +192,11 @@ shiftAtᵗ-inj X A B eq = ren-inj (shiftAtᵗ X) (inj-shiftAt X) A B eq
 -- Removing the newest assignment keeps names unique.
 namefn-pop : ∀ {Γᵢ Γₑ X α} → Γᵢ ▷ X := α ⇒ Γₑ → NameFn Γᵢ → NameFn Γₑ
 namefn-pop pop-here nf p q = suc-inj (nf (n-skip-asgn p) (n-skip-asgn q))
-namefn-pop (pop-bind-b r) nf =
+namefn-pop (pop-bind r) nf =
   namefn-bind (namefn-pop r (namefn-unbind nf))
-namefn-pop (pop-bind-l r) nf =
+namefn-pop (pop-bind r) nf =
   namefn-bind (namefn-pop r (namefn-unbind nf))
-namefn-pop (pop-bind-e r) nf =
+namefn-pop (pop-bind r) nf =
   namefn-bind (namefn-pop r (namefn-unbind nf))
 
 -- `NameFn` holds at every context a typed conversion passes through,

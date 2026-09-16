@@ -60,17 +60,20 @@ infixr 7 _↦_
 infixr 6 _∷ᶜ_
 
 mutual
-  renElt : Renameᵗ → Renameᵇ → ConvElt → ConvElt
-  renElt ρ σ (seal X α)   = seal (ρ X) (renᵃ σ α)
-  renElt ρ σ (unseal X α) = unseal (ρ X) (renᵃ σ α)
-  renElt ρ σ (hide X α)   = hide (ρ X) (renᵃ σ α)
-  renElt ρ σ (show X α)   = show (ρ X) (renᵃ σ α)
-  renElt ρ σ (s ↦ t)    = renConv ρ σ s ↦ renConv ρ σ t
-  renElt ρ σ (all s)    = all (renConv (extᵗ ρ) (extᵇ σ) s)
+  -- Renaming a conversion's NAMES.  There is no address renaming to
+  -- pair it with any more: a `∀` binds a type variable, so descending
+  -- under an `all` moves no address.
+  renElt : Renameᵗ → ConvElt → ConvElt
+  renElt ρ (seal X α)   = seal (ρ X) α
+  renElt ρ (unseal X α) = unseal (ρ X) α
+  renElt ρ (hide X α)   = hide (ρ X) α
+  renElt ρ (show X α)   = show (ρ X) α
+  renElt ρ (s ↦ t)    = renConv ρ s ↦ renConv ρ t
+  renElt ρ (all s)    = all (renConv (extᵗ ρ) s)
 
-  renConv : Renameᵗ → Renameᵇ → Conv → Conv
-  renConv ρ σ (id A)    = id (renameᵗ ρ A)
-  renConv ρ σ (ĉ ∷ᶜ c) = renElt ρ σ ĉ ∷ᶜ renConv ρ σ c
+  renConv : Renameᵗ → Conv → Conv
+  renConv ρ (id A)    = id (renameᵗ ρ A)
+  renConv ρ (ĉ ∷ᶜ c) = renElt ρ ĉ ∷ᶜ renConv ρ c
 
 -- The BASE renaming of a conversion.  An `all` binds a STACK address,
 -- so the renaming passes through it unextended — and names are
@@ -168,7 +171,7 @@ mutual
   revTy X α S (`∀ A) with occursᵗ (suc X) A
   revTy X α S (`∀ A) | false = show X α ∷ᶜ id (closeAt X S (`∀ A))
   revTy X α S (`∀ A) | true =
-    all (revTy (suc X) (⇑ᵃ α) (renameᵗ suc S) A) ∷ᶜ id (closeAt X S (`∀ A))
+    all (revTy (suc X) α (renameᵗ suc S) A) ∷ᶜ id (closeAt X S (`∀ A))
 
   concTy : ℕ → Addr → Ty → Ty → Conv
   concTy X α S (` Y) with X ≟ Y
@@ -183,7 +186,7 @@ mutual
   concTy X α S (`∀ A) with occursᵗ (suc X) A
   concTy X α S (`∀ A) | false = hide X α ∷ᶜ id (`∀ A)
   concTy X α S (`∀ A) | true =
-    all (concTy (suc X) (⇑ᵃ α) (renameᵗ suc S) A) ∷ᶜ id (`∀ A)
+    all (concTy (suc X) α (renameᵗ suc S) A) ∷ᶜ id (`∀ A)
 
 ------------------------------------------------------------------------
 -- Composition: append, fusion, weight
@@ -388,8 +391,8 @@ arr⁺ (all s)      = nothing
 all⁺ : ConvElt → Maybe (List ConvElt)
 all⁺ (seal X α)   = nothing
 all⁺ (unseal X α) = nothing
-all⁺ (hide X α)   = just (hide (suc X) (⇑ᵃ α) ∷ [])
-all⁺ (show X α)   = just (show (suc X) (⇑ᵃ α) ∷ [])
+all⁺ (hide X α)   = just (hide (suc X) α ∷ [])
+all⁺ (show X α)   = just (show (suc X) α ∷ [])
 all⁺ (s ↦ t)      = nothing
 all⁺ (all s)      = just (elts s)
 
@@ -457,13 +460,8 @@ pushAsgnS zero α Ss = just (asgn α ∷ Ss)
 pushAsgnS (suc X) α [] = nothing
 pushAsgnS (suc X) α (asgn β ∷ Ss) =
   underJustS (asgn β ∷_) (pushAsgnS X α Ss)
-pushAsgnS (suc X) (lvl ℓ) (bind ∷ Ss) =
-  underJustS (bind ∷_) (pushAsgnS X (lvl ℓ) Ss)
-pushAsgnS (suc X) (bnd zero) (bind ∷ Ss) = nothing
-pushAsgnS (suc X) (bnd (suc i)) (bind ∷ Ss) =
-  underJustS (bind ∷_) (pushAsgnS X (bnd i) Ss)
-pushAsgnS (suc X) (bse j) (bind ∷ Ss) =
-  underJustS (bind ∷_) (pushAsgnS X (bse j) Ss)
+pushAsgnS (suc X) α (bind ∷ Ss) =
+  underJustS (bind ∷_) (pushAsgnS X α Ss)
 
 popAsgnS : ℕ → Addr → List StackEnt → Maybe (List StackEnt)
 popAsgnS X α [] = nothing
@@ -472,13 +470,8 @@ popAsgnS zero α (asgn β ∷ Ss) | yes _ = just Ss
 popAsgnS zero α (asgn β ∷ Ss) | no _ = nothing
 popAsgnS (suc X) α (asgn β ∷ Ss) = nothing
 popAsgnS zero α (bind ∷ Ss) = nothing
-popAsgnS (suc X) (lvl ℓ) (bind ∷ Ss) =
-  underJustS (bind ∷_) (popAsgnS X (lvl ℓ) Ss)
-popAsgnS (suc X) (bnd zero) (bind ∷ Ss) = nothing
-popAsgnS (suc X) (bnd (suc i)) (bind ∷ Ss) =
-  underJustS (bind ∷_) (popAsgnS X (bnd i) Ss)
-popAsgnS (suc X) (bse j) (bind ∷ Ss) =
-  underJustS (bind ∷_) (popAsgnS X (bse j) Ss)
+popAsgnS (suc X) α (bind ∷ Ss) =
+  underJustS (bind ∷_) (popAsgnS X α Ss)
 
 underJust : (List StackEnt → List StackEnt)
   → List BaseEnt → Maybe (List StackEnt) → Maybe Ctxᵗ

@@ -51,9 +51,6 @@ open import strong.Terms using
 
 ∋a-snoc : ∀ {Σ R Δ α} → Σ ∣ Δ ∋a α → (Σ ∷ʳ R) ∣ Δ ∋a α
 ∋a-snoc (a-lvl p) = a-lvl (∋ˡ-snoc p)
-∋a-snoc a-here-bind = a-here-bind
-∋a-snoc (a-skip-bind p) = a-skip-bind (∋a-snoc p)
-∋a-snoc (a-skip-asgn p) = a-skip-asgn (∋a-snoc p)
 ∋a-snoc a-here-addr = a-here-addr
 ∋a-snoc a-here-nu = a-here-nu
 ∋a-snoc (a-skip-addr p) = a-skip-addr (∋a-snoc p)
@@ -61,14 +58,13 @@ open import strong.Terms using
 
 ∋r-snoc : ∀ {Σ R Δ α S} → Σ ∣ Δ ∋r α := S → (Σ ∷ʳ R) ∣ Δ ∋r α := S
 ∋r-snoc (r-lvl p) = r-lvl (∋ˡ-snoc p)
-∋r-snoc (r-skip-bind p) = r-skip-bind (∋r-snoc p)
-∋r-snoc (r-skip-asgn p) = r-skip-asgn (∋r-snoc p)
 ∋r-snoc r-here = r-here
 ∋r-snoc (r-skip-addr p) = r-skip-addr (∋r-snoc p)
 ∋r-snoc (r-skip-nu p) = r-skip-nu (∋r-snoc p)
 
-wfᴿ-snoc : ∀ {Σ R Δ S} → Σ ∣ Δ ⊢ᴿ S → (Σ ∷ʳ R) ∣ Δ ⊢ᴿ S
+wfᴿ-snoc : ∀ {Σ R Δ n S} → Σ ∣ Δ ⊢ᴿ[ n ] S → (Σ ∷ʳ R) ∣ Δ ⊢ᴿ[ n ] S
 wfᴿ-snoc (wfᴿ-var p) = wfᴿ-var (∋a-snoc p)
+wfᴿ-snoc (wfᴿ-bv lt) = wfᴿ-bv lt
 wfᴿ-snoc wfᴿ-ℕ = wfᴿ-ℕ
 wfᴿ-snoc wfᴿ-𝔹 = wfᴿ-𝔹
 wfᴿ-snoc (wfᴿ-⇒ p q) = wfᴿ-⇒ (wfᴿ-snoc p) (wfᴿ-snoc q)
@@ -82,6 +78,7 @@ wfᴿ-snoc (wfᴿ-∀ p) = wfᴿ-∀ (wfᴿ-snoc p)
 
 read-snoc : ∀ {Σ R Δ S A} → Σ ∣ Δ ⊢ S ⇓ A → (Σ ∷ʳ R) ∣ Δ ⊢ S ⇓ A
 read-snoc (read-var n) = read-var n
+read-snoc (read-bv n) = read-bv n
 read-snoc read-ℕ = read-ℕ
 read-snoc read-𝔹 = read-𝔹
 read-snoc (read-⇒ p q) = read-⇒ (read-snoc p) (read-snoc q)
@@ -89,6 +86,7 @@ read-snoc (read-∀ p) = read-∀ (read-snoc p)
 
 quote-snoc : ∀ {Σ R Δ A S} → Σ ∣ Δ ⊢⌊ A ⌋ S → (Σ ∷ʳ R) ∣ Δ ⊢⌊ A ⌋ S
 quote-snoc (quote-var n) = quote-var n
+quote-snoc (quote-bv n) = quote-bv n
 quote-snoc quote-ℕ = quote-ℕ
 quote-snoc quote-𝔹 = quote-𝔹
 quote-snoc (quote-⇒ p q) = quote-⇒ (quote-snoc p) (quote-snoc q)

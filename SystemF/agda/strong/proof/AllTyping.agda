@@ -61,36 +61,18 @@ shift-∀-inv X `ℕ ()
 shift-∀-inv X `𝔹 ()
 shift-∀-inv X (A ⇒ B) ()
 
--- The crossing itself travels past the new `bind`: one pop rule per
--- address form, and `⇑ᵃ` moves exactly the stack-bound one.
-popˢ-⇑ : ∀ {Ss Ss′ Bs} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
-  → (bind ∷ Ss ∥ Bs) ▷ suc X := ⇑ᵃ α ⇒ (bind ∷ Ss′ ∥ Bs)
-popˢ-⇑ {α = lvl ℓ} p = pop-bind-l p
-popˢ-⇑ {α = bnd i} p = pop-bind-b p
-popˢ-⇑ {α = bse j} p = pop-bind-e p
-
--- a pop leaves the base alone, which is what lines the two halves up
-pop-⇑ : ∀ {Δₑ Δᵢ} → Δₑ ▷ X := α ⇒ Δᵢ → ⇑ᶜ Δₑ ▷ suc X := ⇑ᵃ α ⇒ ⇑ᶜ Δᵢ
+-- The crossing itself travels past the new `bind` — and now nothing
+-- happens to its ADDRESS, because a `∀` binds no address.  Only the
+-- name shifts.
+pop-⇑ : ∀ {Δₑ Δᵢ} → Δₑ ▷ X := α ⇒ Δᵢ → ⇑ᶜ Δₑ ▷ suc X := α ⇒ ⇑ᶜ Δᵢ
 pop-⇑ {Δₑ = Ss ∥ Bs} {Δᵢ = Ss′ ∥ Bs′} p with pop-base p
-pop-⇑ {Δₑ = Ss ∥ Bs} {Δᵢ = Ss′ ∥ .Bs} p | refl = popˢ-⇑ p
+pop-⇑ {Δₑ = Ss ∥ Bs} {Δᵢ = Ss′ ∥ .Bs} p | refl = pop-bind p
 
--- the address travels too: a stack binder shifts a `bnd` and leaves
--- a `lvl` or a `bse` alone
-∋a-⇑ : ∀ {Sg Ss Bs α} → Sg ∣ (Ss ∥ Bs) ∋a α
-  → Sg ∣ (bind ∷ Ss ∥ Bs) ∋a ⇑ᵃ α
-∋a-⇑ (a-lvl l) = a-lvl l
-∋a-⇑ a-here-bind = a-skip-bind a-here-bind
-∋a-⇑ (a-skip-bind p) = a-skip-bind (a-skip-bind p)
-∋a-⇑ (a-skip-asgn p) = a-skip-bind (a-skip-asgn p)
-∋a-⇑ a-here-addr = a-here-addr
-∋a-⇑ a-here-nu = a-here-nu
-∋a-⇑ (a-skip-addr p) = a-skip-addr (∋a-restk p)
-∋a-⇑ (a-skip-nu p) = a-skip-nu (∋a-restk p)
+∋a-⇑ : ∀ {Sg Ss Bs α} → Sg ∣ (Ss ∥ Bs) ∋a α → Sg ∣ (bind ∷ Ss ∥ Bs) ∋a α
+∋a-⇑ = ∋a-restk
 
-notasgn-⇑ : NotAssigned Δ α → NotAssigned (⇑ᶜ Δ) (⇑ᵃ α)
-notasgn-⇑ {α = lvl ℓ} na (n-skip-bind-l q) = na q
-notasgn-⇑ {α = bnd i} na (n-skip-bind-b q) = na q
-notasgn-⇑ {α = bse j} na (n-skip-bind-e q) = na q
+notasgn-⇑ : NotAssigned Δ α → NotAssigned (⇑ᶜ Δ) α
+notasgn-⇑ na (n-skip-bind q) = na q
 
 ------------------------------------------------------------------------
 -- The elementwise view, before normalization
@@ -132,7 +114,7 @@ allElts-typing {A′ = A′}
 allElts-typing {A₀ = A₀} {A′ = A′}
   (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
   | Es′ , eq′ , refl | ih
-  rewrite attach-++ (hide (suc X) (⇑ᵃ α) ∷ []) Es′
+  rewrite attach-++ (hide (suc X) α ∷ []) Es′
             (renameᵗ (shiftAtᵗ (suc X)) A₀) A′ =
   conv-cons (conv-hide (∋a-⇑ sc) (wf-∀-inv wf) (pop-⇑ p) (notasgn-⇑ na)) ih
 
@@ -150,7 +132,7 @@ allElts-typing {A′ = A′}
 allElts-typing {A′ = A′}
   (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   | A₁ , refl , refl | Es′ , eq′ , refl | ih
-  rewrite attach-++ (show (suc X) (⇑ᵃ α) ∷ []) Es′ A₁ A′ =
+  rewrite attach-++ (show (suc X) α ∷ []) Es′ A₁ A′ =
   conv-cons (conv-show (∋a-⇑ sc) (wf-∀-inv wf) (pop-⇑ p) (notasgn-⇑ na)) ih
 
 -- the sealing elements and `↦` are not view-accepted

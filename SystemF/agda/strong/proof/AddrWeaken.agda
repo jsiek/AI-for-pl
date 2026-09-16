@@ -60,6 +60,9 @@ record Renamesᵇ (Sg : Store) (ρ : Renameᵇ) (Γ Γ′ : Ctxᵗ) : Set where
     ren-ok : StoreOk Sg
     ren-a : ∀ {α} → Sg ∣ Γ ∋a α → Sg ∣ Γ′ ∋a renᵃᵉ ρ α
     ren-n : ∀ {X α} → Γ ∋n X := α → Γ′ ∋n X := renᵃᵉ ρ α
+    -- scope alone, which is all `⊢ᵗ` reads
+    ren-t : ∀ {X} → stk Γ ∋ᵗ X → stk Γ′ ∋ᵗ X
+    ren-b : ∀ {X i} → stk Γ ∋b X at i → stk Γ′ ∋b X at i
     ren-r : ∀ {α R} → Sg ∣ Γ ∋r α := R
           → Sg ∣ Γ′ ∋r renᵃᵉ ρ α := renameᴿᵉ ρ R
     -- the NEGATIVE premises (`NotAssigned`, on `unseal`/`hide`/`show`)
@@ -75,32 +78,15 @@ open Renamesᵇ
 -- The two renaming families act on disjoint address forms, so they
 -- commute — pointwise on addresses, hence on representation types.
 
-renᵃ-comm : ∀ ρ η α
-  → renᵃᵉ ρ (renᵃ η α) ≡ renᵃ η (renᵃᵉ ρ α)
-renᵃ-comm ρ η (lvl ℓ) = refl
-renᵃ-comm ρ η (bnd i) = refl
-renᵃ-comm ρ η (bse j) = refl
-
-renᴿ-comm : ∀ ρ η R
-  → renameᴿᵉ ρ (renameᴿ η R) ≡ renameᴿ η (renameᴿᵉ ρ R)
-renᴿ-comm ρ η (`ᵃ α) = cong `ᵃ_ (renᵃ-comm ρ η α)
-renᴿ-comm ρ η `ℕᴿ = refl
-renᴿ-comm ρ η `𝔹ᴿ = refl
-renᴿ-comm ρ η (R ⇒ᴿ T) = cong₂′ (renᴿ-comm ρ η R) (renᴿ-comm ρ η T)
-  where
-  cong₂′ : ∀ {R R′ T T′} → R ≡ R′ → T ≡ T′ → R ⇒ᴿ T ≡ R′ ⇒ᴿ T′
-  cong₂′ refl refl = refl
-renᴿ-comm ρ η (`∀ᴿ R) = cong `∀ᴿ (renᴿ-comm ρ (extᵇ η) R)
-
--- the instance every `r-skip-bind` uses
-renᴿ-⇑ : ∀ ρ R → renameᴿᵉ ρ (⇑ᴿ R) ≡ ⇑ᴿ (renameᴿᵉ ρ R)
-renᴿ-⇑ ρ R = renᴿ-comm ρ suc R
+-- (The commutation between the two renaming families is gone with the
+-- family: a `∀` binds a type variable, so there is nothing to commute
+-- with.)
 
 -- and the one every base skip uses, after the renaming is extended
 renᴿ-⇑ᵉ : ∀ ρ R → renameᴿᵉ (extᵇ ρ) (⇑ᴿᵉ R) ≡ ⇑ᴿᵉ (renameᴿᵉ ρ R)
 renᴿ-⇑ᵉ ρ (`ᵃ lvl ℓ) = refl
-renᴿ-⇑ᵉ ρ (`ᵃ bnd i) = refl
 renᴿ-⇑ᵉ ρ (`ᵃ bse j) = refl
+renᴿ-⇑ᵉ ρ (`ᵛ i) = refl
 renᴿ-⇑ᵉ ρ `ℕᴿ = refl
 renᴿ-⇑ᵉ ρ `𝔹ᴿ = refl
 renᴿ-⇑ᵉ ρ (R ⇒ᴿ T) = cong₂′ (renᴿ-⇑ᵉ ρ R) (renᴿ-⇑ᵉ ρ T)
@@ -115,11 +101,9 @@ renᴿ-⇑ᵉ ρ (`∀ᴿ R) = cong `∀ᴿ (renᴿ-⇑ᵉ ρ R)
 -- `bse` rule can ever have applied.
 ------------------------------------------------------------------------
 
-wfᴿ-nobse : ∀ {Sg Ss R} ρ → Sg ∣ (Ss ∥ []) ⊢ᴿ R → renameᴿᵉ ρ R ≡ R
+wfᴿ-nobse : ∀ {Sg Ss n R} ρ → Sg ∣ (Ss ∥ []) ⊢ᴿ[ n ] R → renameᴿᵉ ρ R ≡ R
 wfᴿ-nobse ρ (wfᴿ-var (a-lvl l)) = refl
-wfᴿ-nobse ρ (wfᴿ-var a-here-bind) = refl
-wfᴿ-nobse ρ (wfᴿ-var (a-skip-bind p)) = refl
-wfᴿ-nobse ρ (wfᴿ-var (a-skip-asgn p)) = refl
+wfᴿ-nobse ρ (wfᴿ-bv lt) = refl
 wfᴿ-nobse ρ wfᴿ-ℕ = refl
 wfᴿ-nobse ρ wfᴿ-𝔹 = refl
 wfᴿ-nobse ρ (wfᴿ-⇒ a b) = cong₂′ (wfᴿ-nobse ρ a) (wfᴿ-nobse ρ b)
@@ -135,71 +119,39 @@ lvl-fixed ρ sok l = wfᴿ-nobse ρ (sok l)
 -- Closure under the binders
 ------------------------------------------------------------------------
 
+-- Both address lookups are stack-free now, so a stack entry only has
+-- to be carried by the NAME components.
+
 ren-bind : Renamesᵇ Sg ρ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → Renamesᵇ Sg ρ (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
-ren-a (ren-bind r) a-here-bind = a-here-bind
-ren-a (ren-bind r) (a-skip-bind p) = a-skip-bind (ren-a r p)
-ren-a (ren-bind r) (a-lvl l) = a-lvl l
-ren-a (ren-bind r) a-here-addr = ∋a-restk (ren-a r a-here-addr)
-ren-a (ren-bind r) a-here-nu = ∋a-restk (ren-a r a-here-nu)
-ren-a (ren-bind r) (a-skip-addr p) =
-  ∋a-restk (ren-a r (a-skip-addr (∋a-restk p)))
-ren-a (ren-bind r) (a-skip-nu p) =
-  ∋a-restk (ren-a r (a-skip-nu (∋a-restk p)))
 ren-ok (ren-bind r) = ren-ok r
-ren-n (ren-bind r) n-here-bind = n-here-bind
-ren-n (ren-bind r) (n-skip-bind-b p) = n-skip-bind-b (ren-n r p)
-ren-n (ren-bind r) (n-skip-bind-l p) = n-skip-bind-l (ren-n r p)
-ren-n (ren-bind r) (n-skip-bind-e p) = n-skip-bind-e (ren-n r p)
-ren-r (ren-bind {ρ = ρ} r) (r-skip-bind {R = R} p)
-  rewrite renᴿ-⇑ ρ R = r-skip-bind (ren-r r p)
-ren-r (ren-bind r) r-here = ∋r-restk (ren-r r r-here)
-ren-r (ren-bind r) (r-skip-addr p) =
-  ∋r-restk (ren-r r (r-skip-addr (∋r-restk p)))
-ren-r (ren-bind r) (r-skip-nu p) =
-  ∋r-restk (ren-r r (r-skip-nu (∋r-restk p)))
-ren-r (ren-bind {ρ = ρ} r) (r-lvl l)
-  rewrite lvl-fixed ρ (ren-ok r) l = r-lvl l
+ren-b (ren-bind r) b-here = b-here
+ren-b (ren-bind r) (b-bind p) = b-bind (ren-b r p)
+ren-t (ren-bind r) t-here = t-here
+ren-t (ren-bind r) (t-there p) = t-there (ren-t r p)
 ren-inj (ren-bind r) = ren-inj r
-ren-n⁻ (ren-bind r) n-here-bind = bnd zero , n-here-bind , refl
-ren-n⁻ (ren-bind r) (n-skip-bind-b p) with ren-n⁻ r p
-ren-n⁻ (ren-bind r) (n-skip-bind-b p) | bnd i , q , refl =
-  bnd (suc i) , n-skip-bind-b q , refl
-ren-n⁻ (ren-bind r) (n-skip-bind-l p) with ren-n⁻ r p
-ren-n⁻ (ren-bind r) (n-skip-bind-l p) | lvl ℓ , q , refl =
-  lvl ℓ , n-skip-bind-l q , refl
-ren-n⁻ (ren-bind r) (n-skip-bind-e p) with ren-n⁻ r p
-ren-n⁻ (ren-bind r) (n-skip-bind-e p) | bse j , q , refl =
-  bse j , n-skip-bind-e q , refl
-
+ren-a (ren-bind r) p = ∋a-restk (ren-a r (∋a-restk p))
+ren-r (ren-bind r) p = ∋r-restk (ren-r r (∋r-restk p))
+ren-n (ren-bind r) (n-skip-bind p) = n-skip-bind (ren-n r p)
+ren-n⁻ (ren-bind r) (n-skip-bind p) with ren-n⁻ r p
+ren-n⁻ (ren-bind r) (n-skip-bind p) | β , q , refl =
+  β , n-skip-bind q , refl
 
 ren-asgn : ∀ {α} → Renamesᵇ Sg ρ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → Renamesᵇ Sg ρ (asgn α ∷ Ss ∥ Bs) (asgn (renᵃᵉ ρ α) ∷ Ss′ ∥ Bs′)
-ren-a (ren-asgn r) (a-skip-asgn p) = a-skip-asgn (ren-a r p)
-ren-a (ren-asgn r) (a-lvl l) = a-lvl l
-ren-a (ren-asgn r) a-here-addr = ∋a-restk (ren-a r a-here-addr)
-ren-a (ren-asgn r) a-here-nu = ∋a-restk (ren-a r a-here-nu)
-ren-a (ren-asgn r) (a-skip-addr p) =
-  ∋a-restk (ren-a r (a-skip-addr (∋a-restk p)))
-ren-a (ren-asgn r) (a-skip-nu p) =
-  ∋a-restk (ren-a r (a-skip-nu (∋a-restk p)))
 ren-ok (ren-asgn r) = ren-ok r
+ren-b (ren-asgn r) (b-asgn p) = b-asgn (ren-b r p)
+ren-t (ren-asgn r) t-here = t-here
+ren-t (ren-asgn r) (t-there p) = t-there (ren-t r p)
+ren-inj (ren-asgn r) = ren-inj r
+ren-a (ren-asgn r) p = ∋a-restk (ren-a r (∋a-restk p))
+ren-r (ren-asgn r) p = ∋r-restk (ren-r r (∋r-restk p))
 ren-n (ren-asgn r) n-here-asgn = n-here-asgn
 ren-n (ren-asgn r) (n-skip-asgn p) = n-skip-asgn (ren-n r p)
-ren-r (ren-asgn r) (r-skip-asgn p) = r-skip-asgn (ren-r r p)
-ren-r (ren-asgn r) r-here = ∋r-restk (ren-r r r-here)
-ren-r (ren-asgn r) (r-skip-addr p) =
-  ∋r-restk (ren-r r (r-skip-addr (∋r-restk p)))
-ren-r (ren-asgn r) (r-skip-nu p) =
-  ∋r-restk (ren-r r (r-skip-nu (∋r-restk p)))
-ren-r (ren-asgn {ρ = ρ} r) (r-lvl l)
-  rewrite lvl-fixed ρ (ren-ok r) l = r-lvl l
-ren-inj (ren-asgn r) = ren-inj r
 ren-n⁻ (ren-asgn {α = α} r) n-here-asgn = α , n-here-asgn , refl
 ren-n⁻ (ren-asgn r) (n-skip-asgn p) with ren-n⁻ r p
 ren-n⁻ (ren-asgn r) (n-skip-asgn p) | β , q , refl =
   β , n-skip-asgn q , refl
-
 
 ------------------------------------------------------------------------
 -- The renaming the weakening itself performs
@@ -221,7 +173,6 @@ ren-stk {Ss = asgn α ∷ Ss} r = ren-asgn (ren-stk r)
 renᵃᵉ-inj : ∀ {ρ α β} → (∀ {i j} → ρ i ≡ ρ j → i ≡ j)
   → renᵃᵉ ρ α ≡ renᵃᵉ ρ β → α ≡ β
 renᵃᵉ-inj {α = lvl ℓ} {lvl m} inj refl = refl
-renᵃᵉ-inj {α = bnd i} {bnd j} inj refl = refl
 renᵃᵉ-inj {α = bse i} {bse j} inj eq = cong bse (inj (bse-inj eq))
 
 suc-inj : ∀ {i j} → suc i ≡ suc j → i ≡ j
@@ -260,24 +211,25 @@ ren-inj (ren-wk sok) = renᵃᵉ-inj suc-inj
 -- only the representation types move.
 
 wfᵗ-ren : ∀ {Sg ρ Γ Γ′ A} → Renamesᵇ Sg ρ Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ A
-wfᵗ-ren r (wf-var n) with ∋ᵗ→∋n n
-wfᵗ-ren r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (ren-n r m))
+wfᵗ-ren r (wf-var n) = wf-var (ren-t r n)
 wfᵗ-ren r wf-ℕ = wf-ℕ
 wfᵗ-ren r wf-𝔹 = wf-𝔹
 wfᵗ-ren r (wf-⇒ a b) = wf-⇒ (wfᵗ-ren r a) (wfᵗ-ren r b)
 wfᵗ-ren r (wf-∀ a) = wf-∀ (wfᵗ-ren (ren-bind r) a)
 
-wfᴿ-ren : ∀ {Sg ρ Γ Γ′ R} → Renamesᵇ Sg ρ Γ Γ′
-  → Sg ∣ Γ ⊢ᴿ R → Sg ∣ Γ′ ⊢ᴿ renameᴿᵉ ρ R
+wfᴿ-ren : ∀ {Sg ρ Γ Γ′ n R} → Renamesᵇ Sg ρ Γ Γ′
+  → Sg ∣ Γ ⊢ᴿ[ n ] R → Sg ∣ Γ′ ⊢ᴿ[ n ] renameᴿᵉ ρ R
 wfᴿ-ren r (wfᴿ-var a) = wfᴿ-var (ren-a r a)
+wfᴿ-ren r (wfᴿ-bv lt) = wfᴿ-bv lt
 wfᴿ-ren r wfᴿ-ℕ = wfᴿ-ℕ
 wfᴿ-ren r wfᴿ-𝔹 = wfᴿ-𝔹
 wfᴿ-ren r (wfᴿ-⇒ a b) = wfᴿ-⇒ (wfᴿ-ren r a) (wfᴿ-ren r b)
-wfᴿ-ren r (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-ren (ren-bind r) a)
+wfᴿ-ren r (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-ren r a)
 
 read-ren : ∀ {Sg ρ Γ Γ′ R A} → Renamesᵇ Sg ρ Γ Γ′
   → Sg ∣ Γ ⊢ R ⇓ A → Sg ∣ Γ′ ⊢ renameᴿᵉ ρ R ⇓ A
 read-ren r (read-var n) = read-var (ren-n r n)
+read-ren r (read-bv n) = read-bv (ren-b r n)
 read-ren r read-ℕ = read-ℕ
 read-ren r read-𝔹 = read-𝔹
 read-ren r (read-⇒ a b) = read-⇒ (read-ren r a) (read-ren r b)
@@ -288,9 +240,7 @@ read-ren r (read-∀ a) = read-∀ (read-ren (ren-bind r) a)
 pop-ren : ∀ {ρ Ss Ss′ Bs Bs′ X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → (renStk ρ Ss ∥ Bs′) ▷ X := renᵃᵉ ρ α ⇒ (renStk ρ Ss′ ∥ Bs′)
 pop-ren pop-here = pop-here
-pop-ren (pop-bind-b p) = pop-bind-b (pop-ren p)
-pop-ren (pop-bind-l p) = pop-bind-l (pop-ren p)
-pop-ren (pop-bind-e p) = pop-bind-e (pop-ren p)
+pop-ren (pop-bind p) = pop-bind (pop-ren p)
 
 notasgn-ren : ∀ {Sg ρ Γ Γ′ α} → Renamesᵇ Sg ρ Γ Γ′
   → NotAssigned Γ α → NotAssigned Γ′ (renᵃᵉ ρ α)
@@ -451,7 +401,6 @@ mutual
 
 renᵃᵉ-ext : ∀ ρ α → renᵃᵉ (extᵇ ρ) (renᵃᵉ suc α) ≡ renᵃᵉ suc (renᵃᵉ ρ α)
 renᵃᵉ-ext ρ (lvl ℓ) = refl
-renᵃᵉ-ext ρ (bnd i) = refl
 renᵃᵉ-ext ρ (bse j) = refl
 
 -- `⤒` commutes with a base renaming, the usual ext/shift square.

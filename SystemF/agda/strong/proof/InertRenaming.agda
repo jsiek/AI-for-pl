@@ -56,12 +56,6 @@ elts-renᵉ : ∀ ρ c → elts (renConvᵉ ρ c) ≡ map (renEltᵉ ρ) (elts c
 elts-renᵉ ρ (id A)    = refl
 elts-renᵉ ρ (ĉ ∷ᶜ c) = cong (renEltᵉ ρ ĉ ∷_) (elts-renᵉ ρ c)
 
--- A base renaming commutes with the stack shift `⇑ᵃ`: the two halves of
--- an address are disjoint, so neither sees the other's move.
-renᵃᵉ-⇑ᵃ : ∀ ρ α → renᵃᵉ ρ (⇑ᵃ α) ≡ ⇑ᵃ (renᵃᵉ ρ α)
-renᵃᵉ-⇑ᵃ ρ (lvl ℓ) = refl
-renᵃᵉ-⇑ᵃ ρ (bnd i) = refl
-renᵃᵉ-⇑ᵃ ρ (bse j) = refl
 
 ------------------------------------------------------------------------
 -- The elementwise views commute with the renaming
@@ -99,10 +93,8 @@ arr⁺-renᵉ ρ (all s)      = refl
 all⁺-renᵉ : ∀ ρ ĉ → all⁺ (renEltᵉ ρ ĉ) ≡ mapEls ρ (all⁺ ĉ)
 all⁺-renᵉ ρ (seal X α)   = refl
 all⁺-renᵉ ρ (unseal X α) = refl
-all⁺-renᵉ ρ (hide X α) =
-  cong (λ β → just (hide (suc X) β ∷ [])) (sym (renᵃᵉ-⇑ᵃ ρ α))
-all⁺-renᵉ ρ (show X α) =
-  cong (λ β → just (show (suc X) β ∷ [])) (sym (renᵃᵉ-⇑ᵃ ρ α))
+all⁺-renᵉ ρ (hide X α)   = refl
+all⁺-renᵉ ρ (show X α)   = refl
 all⁺-renᵉ ρ (s ↦ t)      = refl
 all⁺-renᵉ ρ (all s)      = cong just (elts-renᵉ ρ s)
 
@@ -224,13 +216,8 @@ injᵇ-of inj e = bse-inj (inj (cong bse e))
 
 injᵇ-to : ∀ {ρ} → (∀ {i j} → ρ i ≡ ρ j → i ≡ j) → Injᵉ ρ
 injᵇ-to f {lvl ℓ} {lvl m} e = e
-injᵇ-to f {lvl ℓ} {bnd j} ()
 injᵇ-to f {lvl ℓ} {bse j} ()
-injᵇ-to f {bnd i} {lvl m} ()
-injᵇ-to f {bnd i} {bnd j} e = e
-injᵇ-to f {bnd i} {bse j} ()
 injᵇ-to f {bse i} {lvl m} ()
-injᵇ-to f {bse i} {bnd j} ()
 injᵇ-to f {bse i} {bse j} e = cong bse (f (bse-inj e))
 
 extᵇ-injᵇ : ∀ {ρ} → (∀ {i j} → ρ i ≡ ρ j → i ≡ j)

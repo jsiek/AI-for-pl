@@ -22,7 +22,7 @@ module strong.proof.PreserveAlloc where
 --
 -- (1) `substAddrᵉ σ` can turn a `bse` into a `lvl`.  So the judgments
 --     that are indexed by the ADDRESS FORM need a view: the pop rules
---     `pop-bind-b`/`-l`/`-e`, the name rules `n-skip-bind-b`/`-l`/`-e`,
+--     `pop-bind`/`-l`/`-e`, the name rules `n-skip-bind`/`-l`/`-e`,
 --     and `∋a`/`∋r` restacking.  The side condition is that σ never
 --     produces a BOUND STACK address (`NoBnd`), which holds of
 --     `instᵉ₀ (lvl ℓ)` and is preserved by `extsᵃᵉ`.
@@ -170,7 +170,6 @@ noBnd-ext nb (suc j) | inj₂ (k , e) = inj₂ (suc k , cong (renᵃᵉ suc) e)
 substAddrᵉ-renᵃ : NoBnd σ → ∀ η α
   → substAddrᵉ σ (renᵃ η α) ≡ renᵃ η (substAddrᵉ σ α)
 substAddrᵉ-renᵃ nb η (lvl ℓ) = refl
-substAddrᵉ-renᵃ nb η (bnd i) = refl
 substAddrᵉ-renᵃ nb η (bse j) with nb j
 substAddrᵉ-renᵃ nb η (bse j) | inj₁ (ℓ , e) rewrite e = refl
 substAddrᵉ-renᵃ nb η (bse j) | inj₂ (k , e) rewrite e = refl
@@ -188,18 +187,17 @@ substᴿᵉ-⇑ᴿ : NoBnd σ → ∀ R → substᴿᵉ σ (⇑ᴿ R) ≡ ⇑ᴿ
 substᴿᵉ-⇑ᴿ nb R = substᴿᵉ-renameᴿ nb suc R
 
 -- a `bse` image is its own stack shift
-nobnd-⇑ᵃ : NoBnd σ → ∀ j
-  → ⇑ᵃ (substAddrᵉ σ (bse j)) ≡ substAddrᵉ σ (bse j)
-nobnd-⇑ᵃ nb j with nb j
-nobnd-⇑ᵃ nb j | inj₁ (ℓ , e) rewrite e = refl
-nobnd-⇑ᵃ nb j | inj₂ (k , e) rewrite e = refl
+nobnd-: NoBnd σ → ∀ j
+  → (substAddrᵉ σ (bse j)) ≡ substAddrᵉ σ (bse j)
+nobnd-nb j with nb j
+nobnd-nb j | inj₁ (ℓ , e) rewrite e = refl
+nobnd-nb j | inj₂ (k , e) rewrite e = refl
 
 -- The ext/base-shift square: UNCONDITIONAL, since `extsᵃᵉ` is defined
 -- by exactly this shift.
 substAddrᵉ-ext : ∀ σ α
   → substAddrᵉ (extsᵃᵉ σ) (renᵃᵉ suc α) ≡ renᵃᵉ suc (substAddrᵉ σ α)
 substAddrᵉ-ext σ (lvl ℓ) = refl
-substAddrᵉ-ext σ (bnd i) = refl
 substAddrᵉ-ext σ (bse j) = refl
 
 substᴿᵉ-ext : ∀ σ R → substᴿᵉ (extsᵃᵉ σ) (⇑ᴿᵉ R) ≡ ⇑ᴿᵉ (substᴿᵉ σ R)
@@ -212,7 +210,6 @@ substᴿᵉ-ext σ (`∀ᴿ R) = cong `∀ᴿ (substᴿᵉ-ext σ R)
 -- THE PIVOT.  `instᵉ₀` un-shifts the base exactly.
 inst-unshiftᵃ : ∀ β α → substAddrᵉ (instᵉ₀ β) (renᵃᵉ suc α) ≡ α
 inst-unshiftᵃ β (lvl ℓ) = refl
-inst-unshiftᵃ β (bnd i) = refl
 inst-unshiftᵃ β (bse j) = refl
 
 inst-unshiftᴿ : ∀ β R → substᴿᵉ (instᵉ₀ β) (⇑ᴿᵉ R) ≡ R
@@ -255,7 +252,6 @@ data Fresh (L : ℕ) : Addr → Set where
 
 fresh-⇑ᵃᵉ : Fresh L α → Fresh L (renᵃᵉ suc α)
 fresh-⇑ᵃᵉ (fr-lvl ne) = fr-lvl ne
-fresh-⇑ᵃᵉ fr-bnd = fr-bnd
 fresh-⇑ᵃᵉ fr-bse = fr-bse
 
 data FreshStk (L : ℕ) : List StackEnt → Set where
@@ -312,19 +308,18 @@ InjF L σ = ∀ {α β} → Fresh L α → Fresh L β
 pop-fresh : ∀ {L Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → FreshStk L Ss → Fresh L α × FreshStk L Ss′
 pop-fresh pop-here (fs-asgn f fs) = f , fs
-pop-fresh (pop-bind-b p) (fs-bind fs) =
+pop-fresh (pop-bind p) (fs-bind fs) =
   fr-bnd , fs-bind (proj₂ (pop-fresh p fs))
-pop-fresh (pop-bind-l p) (fs-bind fs) with pop-fresh p fs
-pop-fresh (pop-bind-l p) (fs-bind fs) | f , fs′ = f , fs-bind fs′
-pop-fresh (pop-bind-e p) (fs-bind fs) =
+pop-fresh (pop-bind p) (fs-bind fs) with pop-fresh p fs
+pop-fresh (pop-bind p) (fs-bind fs) | f , fs′ = f , fs-bind fs′
+pop-fresh (pop-bind p) (fs-bind fs) =
   fr-bse , fs-bind (proj₂ (pop-fresh p fs))
 
 push-fresh : ∀ {L Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → Fresh L α → FreshStk L Ss′ → FreshStk L Ss
 push-fresh pop-here f fs = fs-asgn f fs
-push-fresh (pop-bind-b p) f (fs-bind fs) = fs-bind (push-fresh p fr-bnd fs)
-push-fresh (pop-bind-l p) f (fs-bind fs) = fs-bind (push-fresh p f fs)
-push-fresh (pop-bind-e p) f (fs-bind fs) = fs-bind (push-fresh p fr-bse fs)
+push-fresh (pop-bind p) f (fs-bind fs) = fs-bind (push-fresh p f fs)
+push-fresh (pop-bind p) f (fs-bind fs) = fs-bind (push-fresh p fr-bse fs)
 
 mutual
   convElt-freshStk : ∀ {L Sg Ssᵢ Ssₑ Bs ĉ A B}
@@ -362,7 +357,6 @@ mutual
 inj-inst₀ : ∀ L → InjF L (instᵉ₀ (lvl L))
 inj-inst₀ L {lvl ℓ} {lvl m} f g eq = eq
 inj-inst₀ L {lvl ℓ} {bse zero} (fr-lvl ne) g eq = ⊥-elim (ne (lvl-inj eq))
-inj-inst₀ L {bnd i} {bnd j} f g eq = eq
 inj-inst₀ L {bnd i} {bse zero} f g ()
 inj-inst₀ L {bnd i} {bse (suc j)} f g ()
 inj-inst₀ L {bse zero} {lvl m} f (fr-lvl ne) eq =
@@ -384,7 +378,6 @@ ext-view nb j | inj₂ (k , e) = inj₂ (k , cong (renᵃᵉ suc) e)
 
 inj-ext : ∀ {L σ} → NoBnd σ → InjF L σ → InjF L (extsᵃᵉ σ)
 inj-ext nb inj {lvl ℓ} {lvl m} f g eq = eq
-inj-ext nb inj {bnd i} {bnd j} f g eq = eq
 inj-ext nb inj {bse zero} {bse zero} f g eq = refl
 inj-ext {σ = σ} nb inj {lvl ℓ} {bse (suc j)} f g eq with ext-view nb j
 inj-ext {σ = σ} nb inj {lvl ℓ} {bse (suc j)} f g eq | inj₁ (p , e1 , e2) =
@@ -396,15 +389,9 @@ inj-ext {σ = σ} nb inj {bse (suc i)} {lvl m} f g eq | inj₁ (p , e1 , e2) =
   ⊥-elim (bse≢lvl (inj fr-bse g (trans e1 (trans (sym e2) eq))))
 inj-ext {σ = σ} nb inj {bse (suc i)} {lvl m} f g eq | inj₂ (k , e2) =
   ⊥-elim (bse≢lvl (trans (sym e2) eq))
-inj-ext {σ = σ} nb inj {bnd i} {bse (suc j)} f g eq with ext-view nb j
-inj-ext {σ = σ} nb inj {bnd i} {bse (suc j)} f g eq | inj₁ (p , e1 , e2) =
   ⊥-elim (bnd≢lvl (trans eq e2))
-inj-ext {σ = σ} nb inj {bnd i} {bse (suc j)} f g eq | inj₂ (k , e2) =
   ⊥-elim (bnd≢bse (trans eq e2))
-inj-ext {σ = σ} nb inj {bse (suc i)} {bnd j} f g eq with ext-view nb i
-inj-ext {σ = σ} nb inj {bse (suc i)} {bnd j} f g eq | inj₁ (p , e1 , e2) =
   ⊥-elim (lvl≢bnd (trans (sym e2) eq))
-inj-ext {σ = σ} nb inj {bse (suc i)} {bnd j} f g eq | inj₂ (k , e2) =
   ⊥-elim (bse≢bnd (trans (sym e2) eq))
 inj-ext {σ = σ} nb inj {bse zero} {bse (suc j)} f g eq with ext-view nb j
 inj-ext {σ = σ} nb inj {bse zero} {bse (suc j)} f g eq | inj₁ (p , e1 , e2) =
@@ -452,38 +439,31 @@ AddrOK α = (Σ[ ℓ ∈ ℕ ] α ≡ lvl ℓ) ⊎ (Σ[ j ∈ ℕ ] α ≡ bse j
 
 n-skip-bind : ∀ {Ss Bs X α} → AddrOK α
   → (Ss ∥ Bs) ∋n X := α → (bind ∷ Ss ∥ Bs) ∋n suc X := α
-n-skip-bind (inj₁ (ℓ , refl)) p = n-skip-bind-l p
-n-skip-bind (inj₂ (j , refl)) p = n-skip-bind-e p
+n-skip-bind (inj₁ (ℓ , refl)) p = n-skip-bind p
+n-skip-bind (inj₂ (j , refl)) p = n-skip-bind p
 
 -- The three `pop-bind-*` rules are one rule, up to the stack shift the
 -- binder performs on the address.
-pop-bind′ : ∀ {Ss Ss′ Bs X α β} → α ≡ ⇑ᵃ β
+pop-bind′ : ∀ {Ss Ss′ Bs X α β} → α ≡ β
   → (Ss ∥ Bs) ▷ X := β ⇒ (Ss′ ∥ Bs)
   → (bind ∷ Ss ∥ Bs) ▷ suc X := α ⇒ (bind ∷ Ss′ ∥ Bs)
-pop-bind′ {β = lvl ℓ} refl p = pop-bind-l p
-pop-bind′ {β = bnd i} refl p = pop-bind-b p
-pop-bind′ {β = bse j} refl p = pop-bind-e p
+pop-bind′ {β = lvl ℓ} refl p = pop-bind p
+pop-bind′ {β = bse j} refl p = pop-bind p
 
 pop-inst : ∀ {σ Ss Ss′ Bs Bs′ X α} → NoBnd σ
   → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → (substStk σ Ss ∥ Bs′) ▷ X := substAddrᵉ σ α ⇒ (substStk σ Ss′ ∥ Bs′)
 pop-inst nb pop-here = pop-here
-pop-inst nb (pop-bind-b p) = pop-bind′ refl (pop-inst nb p)
-pop-inst nb (pop-bind-l p) = pop-bind′ refl (pop-inst nb p)
-pop-inst nb (pop-bind-e {j = j} p) =
-  pop-bind′ (sym (nobnd-⇑ᵃ nb j)) (pop-inst nb p)
+pop-inst nb (pop-bind p) = pop-bind′ refl (pop-inst nb p)
+pop-inst nb (pop-bind {j = j} p) =
+  pop-bind′ (sym (nobnd-nb j)) (pop-inst nb p)
 
 bnd≢sub : ∀ {σ i j} → NoBnd σ → bnd i ≡ substAddrᵉ σ (bse j) → ⊥
-bnd≢sub {j = j} nb eq with nb j
-bnd≢sub {j = j} nb eq | inj₁ (ℓ , e) = bnd≢lvl (trans eq e)
-bnd≢sub {j = j} nb eq | inj₂ (k , e) = bnd≢bse (trans eq e)
 
 -- A STORED representation mentions no base address, so a base
 -- substitution leaves it alone — the `lvl-fixed` of proof.AddrWeaken.
 wfᴿ-nobse-sub : ∀ {Sg Ss R} σ → Sg ∣ (Ss ∥ []) ⊢ᴿ R → substᴿᵉ σ R ≡ R
 wfᴿ-nobse-sub σ (wfᴿ-var (a-lvl l)) = refl
-wfᴿ-nobse-sub σ (wfᴿ-var a-here-bind) = refl
-wfᴿ-nobse-sub σ (wfᴿ-var (a-skip-bind p)) = refl
 wfᴿ-nobse-sub σ (wfᴿ-var (a-skip-asgn p)) = refl
 wfᴿ-nobse-sub σ wfᴿ-ℕ = refl
 wfᴿ-nobse-sub σ wfᴿ-𝔹 = refl
@@ -528,8 +508,6 @@ sub-bind : Substsᵇ Sg L σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
 sub-ok (sub-bind r) = sub-ok r
 sub-nb (sub-bind r) = sub-nb r
 sub-inj (sub-bind r) = sub-inj r
-sub-a (sub-bind r) a-here-bind = a-here-bind
-sub-a (sub-bind r) (a-skip-bind p) = a-skip-bind (sub-a r p)
 sub-a (sub-bind r) (a-lvl l) = a-lvl l
 sub-a (sub-bind r) a-here-addr = ∋a-move (sub-nb r zero) (sub-a r a-here-addr)
 sub-a (sub-bind r) a-here-nu = ∋a-move (sub-nb r zero) (sub-a r a-here-nu)
@@ -537,13 +515,9 @@ sub-a (sub-bind r) (a-skip-addr {j = j} p) =
   ∋a-move (sub-nb r (suc j)) (sub-a r (a-skip-addr (∋a-restk p)))
 sub-a (sub-bind r) (a-skip-nu {j = j} p) =
   ∋a-move (sub-nb r (suc j)) (sub-a r (a-skip-nu (∋a-restk p)))
-sub-n (sub-bind r) n-here-bind = n-here-bind
-sub-n (sub-bind r) (n-skip-bind-b p) = n-skip-bind-b (sub-n r p)
-sub-n (sub-bind r) (n-skip-bind-l p) = n-skip-bind-l (sub-n r p)
-sub-n (sub-bind r) (n-skip-bind-e {j = j} p) =
+sub-n (sub-bind r) (n-skip-bind p) = n-skip-bind (sub-n r p)
+sub-n (sub-bind r) (n-skip-bind {j = j} p) =
   n-skip-bind (sub-nb r j) (sub-n r p)
-sub-r (sub-bind {σ = σ} r) (r-skip-bind {R = R} p)
-  rewrite substᴿᵉ-⇑ᴿ (sub-nb r) R = r-skip-bind (sub-r r p)
 sub-r (sub-bind r) r-here = ∋r-move (sub-nb r zero) (sub-r r r-here)
 sub-r (sub-bind r) (r-skip-addr {j = j} p) =
   ∋r-move (sub-nb r (suc j)) (sub-r r (r-skip-addr (∋r-restk p)))
@@ -551,20 +525,18 @@ sub-r (sub-bind r) (r-skip-nu {j = j} p) =
   ∋r-move (sub-nb r (suc j)) (sub-r r (r-skip-nu (∋r-restk p)))
 sub-r (sub-bind {σ = σ} r) (r-lvl l)
   rewrite lvl-fixed-sub σ (sub-ok r) l = r-lvl l
-sub-n⁻ (sub-bind r) n-here-bind = bnd zero , n-here-bind , fr-bnd , refl
-sub-n⁻ (sub-bind r) (n-skip-bind-b p) with sub-n⁻ r p
-sub-n⁻ (sub-bind r) (n-skip-bind-b p) | bnd i , q , f , refl =
-  bnd (suc i) , n-skip-bind-b q , fr-bnd , refl
-sub-n⁻ (sub-bind r) (n-skip-bind-b p) | bse j , q , f , eq =
+sub-n⁻ (sub-bind r) (n-skip-bind p) with sub-n⁻ r p
+  bnd (suc i) , n-skip-bind q , fr-bnd , refl
+sub-n⁻ (sub-bind r) (n-skip-bind p) | bse j , q , f , eq =
   ⊥-elim (bnd≢sub (sub-nb r) eq)
-sub-n⁻ (sub-bind r) (n-skip-bind-l p) with sub-n⁻ r p
-sub-n⁻ (sub-bind r) (n-skip-bind-l p) | lvl m , q , f , eq =
-  lvl m , n-skip-bind-l q , f , eq
-sub-n⁻ (sub-bind r) (n-skip-bind-l p) | bse j , q , f , eq =
-  bse j , n-skip-bind-e q , fr-bse , eq
-sub-n⁻ (sub-bind r) (n-skip-bind-e p) with sub-n⁻ r p
-sub-n⁻ (sub-bind r) (n-skip-bind-e p) | bse k , q , f , eq =
-  bse k , n-skip-bind-e q , fr-bse , eq
+sub-n⁻ (sub-bind r) (n-skip-bind p) with sub-n⁻ r p
+sub-n⁻ (sub-bind r) (n-skip-bind p) | lvl m , q , f , eq =
+  lvl m , n-skip-bind q , f , eq
+sub-n⁻ (sub-bind r) (n-skip-bind p) | bse j , q , f , eq =
+  bse j , n-skip-bind q , fr-bse , eq
+sub-n⁻ (sub-bind r) (n-skip-bind p) with sub-n⁻ r p
+sub-n⁻ (sub-bind r) (n-skip-bind p) | bse k , q , f , eq =
+  bse k , n-skip-bind q , fr-bse , eq
 
 sub-asgn : Fresh L α → Substsᵇ Sg L σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → Substsᵇ Sg L σ (asgn α ∷ Ss ∥ Bs) (asgn (substAddrᵉ σ α) ∷ Ss′ ∥ Bs′)
@@ -582,7 +554,6 @@ sub-a (sub-asgn f r) (a-skip-nu {j = j} p) =
   ∋a-move (sub-nb r (suc j)) (sub-a r (a-skip-nu (∋a-restk p)))
 sub-n (sub-asgn f r) n-here-asgn = n-here-asgn
 sub-n (sub-asgn f r) (n-skip-asgn p) = n-skip-asgn (sub-n r p)
-sub-r (sub-asgn f r) (r-skip-asgn p) = r-skip-asgn (sub-r r p)
 sub-r (sub-asgn f r) r-here = ∋r-move (sub-nb r zero) (sub-r r r-here)
 sub-r (sub-asgn f r) (r-skip-addr {j = j} p) =
   ∋r-move (sub-nb r (suc j)) (sub-r r (r-skip-addr (∋r-restk p)))
@@ -767,8 +738,8 @@ elts-inst : ∀ σ c → elts (substAddrConv σ c) ≡ map (substAddrElt σ) (el
 elts-inst σ (id A) = refl
 elts-inst σ (ĉ ∷ᶜ c) = cong (substAddrElt σ ĉ ∷_) (elts-inst σ c)
 
-substAddrᵉ-⇑ᵃ : NoBnd σ → ∀ α → substAddrᵉ σ (⇑ᵃ α) ≡ ⇑ᵃ (substAddrᵉ σ α)
-substAddrᵉ-⇑ᵃ nb α = substAddrᵉ-renᵃ nb suc α
+substAddrᵉ-: NoBnd σ → ∀ α → substAddrᵉ σ (α) ≡ (substAddrᵉ σ α)
+substAddrᵉ-nb α = substAddrᵉ-renᵃ nb suc α
 
 mapEls′ : SubstAddr → Maybe (List ConvElt) → Maybe (List ConvElt)
 mapEls′ σ (just es) = just (map (substAddrElt σ) es)
@@ -801,9 +772,9 @@ all⁺-inst : ∀ {σ} → NoBnd σ → ∀ ĉ
 all⁺-inst nb (seal X α)   = refl
 all⁺-inst nb (unseal X α) = refl
 all⁺-inst nb (hide X α) =
-  cong (λ β → just (hide (suc X) β ∷ [])) (sym (substAddrᵉ-⇑ᵃ nb α))
+  cong (λ β → just (hide (suc X) β ∷ [])) (sym (substAddrᵉ-nb α))
 all⁺-inst nb (show X α) =
-  cong (λ β → just (show (suc X) β ∷ [])) (sym (substAddrᵉ-⇑ᵃ nb α))
+  cong (λ β → just (show (suc X) β ∷ [])) (sym (substAddrᵉ-nb α))
 all⁺-inst nb (s ↦ t)      = refl
 all⁺-inst {σ} nb (all s)  = cong just (elts-inst σ s)
 
@@ -1137,9 +1108,6 @@ preserve-Alloc {Sg} sok fl fs fm (⊢ν {Ss = Ss} {Bs = Bs} wf ⊢M) | refl
 
 fresh-of-∋a : ∀ {Sg Γ α} → Sg ∣ Γ ∋a α → Fresh (length Sg) α
 fresh-of-∋a (a-lvl l) = fr-lvl λ { refl → ∋ˡ-fresh l }
-fresh-of-∋a a-here-bind = fr-bnd
-fresh-of-∋a (a-skip-bind p) = fr-bnd
-fresh-of-∋a (a-skip-asgn p) = fr-bnd
 fresh-of-∋a a-here-addr = fr-bse
 fresh-of-∋a a-here-nu = fr-bse
 fresh-of-∋a (a-skip-addr p) = fr-bse
@@ -1147,8 +1115,6 @@ fresh-of-∋a (a-skip-nu p) = fr-bse
 
 fresh-of-∋r : ∀ {Sg Γ α R} → Sg ∣ Γ ∋r α := R → Fresh (length Sg) α
 fresh-of-∋r (r-lvl l) = fr-lvl λ { refl → ∋ˡ-fresh l }
-fresh-of-∋r (r-skip-bind p) = fr-bnd
-fresh-of-∋r (r-skip-asgn p) = fr-bnd
 fresh-of-∋r r-here = fr-bse
 fresh-of-∋r (r-skip-addr p) = fr-bse
 fresh-of-∋r (r-skip-nu p) = fr-bse

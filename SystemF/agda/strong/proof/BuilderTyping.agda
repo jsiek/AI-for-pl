@@ -75,8 +75,6 @@ data BaseGrow : List BaseEnt → List BaseEnt → Set where
 ∋a-grow : ∀ {Sg Ss Bs Bs′ α} → BaseGrow Bs Bs′
   → Sg ∣ (Ss ∥ Bs) ∋a α → Sg ∣ (Ss ∥ Bs′) ∋a α
 ∋a-grow bg (a-lvl l) = a-lvl l
-∋a-grow bg a-here-bind = a-here-bind
-∋a-grow bg (a-skip-bind q) = a-skip-bind (∋a-grow bg q)
 ∋a-grow bg (a-skip-asgn q) = a-skip-asgn (∋a-grow bg q)
 ∋a-grow bg-here a-here-addr = a-here-nu
 ∋a-grow (bg-skip bg) a-here-addr = a-here-addr
@@ -91,8 +89,6 @@ data BaseGrow : List BaseEnt → List BaseEnt → Set where
 ∋r-grow : ∀ {Sg Ss Bs Bs′ α T} → BaseGrow Bs Bs′
   → Sg ∣ (Ss ∥ Bs) ∋r α := T → Sg ∣ (Ss ∥ Bs′) ∋r α := T
 ∋r-grow bg (r-lvl l) = r-lvl l
-∋r-grow bg (r-skip-bind q) = r-skip-bind (∋r-grow bg q)
-∋r-grow bg (r-skip-asgn q) = r-skip-asgn (∋r-grow bg q)
 ∋r-grow (bg-skip bg) r-here = r-here
 ∋r-grow bg-here (r-skip-addr q) = r-skip-nu q
 ∋r-grow (bg-skip bg) (r-skip-addr q) = r-skip-addr (∋r-grow bg q)
@@ -119,9 +115,7 @@ read-rebase (read-∀ a) = read-∀ (read-rebase a)
 pop-rebase : ∀ {Ss Ss′ Bs Bs′ X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
   → (Ss ∥ Bs′) ▷ X := α ⇒ (Ss′ ∥ Bs′)
 pop-rebase pop-here = pop-here
-pop-rebase (pop-bind-b q) = pop-bind-b (pop-rebase q)
-pop-rebase (pop-bind-l q) = pop-bind-l (pop-rebase q)
-pop-rebase (pop-bind-e q) = pop-bind-e (pop-rebase q)
+pop-rebase (pop-bind q) = pop-bind (pop-rebase q)
 
 notasgn-rebase : ∀ {Ss Bs Bs′ α}
   → NotAssigned (Ss ∥ Bs) α → NotAssigned (Ss ∥ Bs′) α
@@ -304,44 +298,35 @@ close-shift X S (`∀ A) eq =
 
 pop-∋n : ∀ {Γ Γ′ X α} → Γ ▷ X := α ⇒ Γ′ → Γ ∋n X := α
 pop-∋n pop-here = n-here-asgn
-pop-∋n (pop-bind-b q) = n-skip-bind-b (pop-∋n q)
-pop-∋n (pop-bind-l q) = n-skip-bind-l (pop-∋n q)
-pop-∋n (pop-bind-e q) = n-skip-bind-e (pop-∋n q)
+pop-∋n (pop-bind q) = n-skip-bind (pop-∋n q)
 
 pop-⇑ : ∀ {Ss Ss′ Bs X α} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
-  → (bind ∷ Ss ∥ Bs) ▷ suc X := ⇑ᵃ α ⇒ (bind ∷ Ss′ ∥ Bs)
-pop-⇑ {α = lvl ℓ} q = pop-bind-l q
-pop-⇑ {α = bnd i} q = pop-bind-b q
-pop-⇑ {α = bse j} q = pop-bind-e q
+  → (bind ∷ Ss ∥ Bs) ▷ suc X := α ⇒ (bind ∷ Ss′ ∥ Bs)
+pop-⇑ {α = lvl ℓ} q = pop-bind q
+pop-⇑ {α = bse j} q = pop-bind q
 
 -- The name lookups rise by (suc , ⇑ᵃ): the binder is a name entry AND
 -- an address binder, so both indices move.
 ∋n-⇑ : ∀ {Ss Bs X α} → (Ss ∥ Bs) ∋n X := α
-  → (bind ∷ Ss ∥ Bs) ∋n suc X := ⇑ᵃ α
-∋n-⇑ {α = lvl ℓ} q = n-skip-bind-l q
-∋n-⇑ {α = bnd i} q = n-skip-bind-b q
-∋n-⇑ {α = bse j} q = n-skip-bind-e q
+  → (bind ∷ Ss ∥ Bs) ∋n suc X := α
+∋n-⇑ {α = lvl ℓ} q = n-skip-bind q
+∋n-⇑ {α = bse j} q = n-skip-bind q
 
 notasgn-⇑ : ∀ {Ss Bs α} → NotAssigned (Ss ∥ Bs) α
-  → NotAssigned (bind ∷ Ss ∥ Bs) (⇑ᵃ α)
-notasgn-⇑ {α = lvl ℓ} na (n-skip-bind-l q) = na q
-notasgn-⇑ {α = bnd i} na (n-skip-bind-b q) = na q
-notasgn-⇑ {α = bse j} na (n-skip-bind-e q) = na q
+  → NotAssigned (bind ∷ Ss ∥ Bs) (α)
+notasgn-⇑ {α = lvl ℓ} na (n-skip-bind q) = na q
+notasgn-⇑ {α = bse j} na (n-skip-bind q) = na q
 
 -- The representation does NOT move, provided it is closed for the
 -- stack — which is what `StoreOk` and `Flat` deliver at the redex.
 ∋r-⇑ : ∀ {Sg Ss Bs α R} → (∀ η → renameᴿ η R ≡ R)
-  → Sg ∣ (Ss ∥ Bs) ∋r α := R → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r ⇑ᵃ α := R
+  → Sg ∣ (Ss ∥ Bs) ∋r α := R → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r α := R
 ∋r-⇑ fix (r-lvl l) = r-lvl l
 ∋r-⇑ fix h@r-here = ∋r-restk h
 ∋r-⇑ fix h@(r-skip-addr q) = ∋r-restk h
 ∋r-⇑ fix h@(r-skip-nu q) = ∋r-restk h
-∋r-⇑ {Sg} {Ss} {Bs} {α} {R} fix (r-skip-bind q) =
-  subst (λ T → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r ⇑ᵃ α := T) (fix suc)
-        (r-skip-bind (r-skip-bind q))
-∋r-⇑ {Sg} {Ss} {Bs} {α} {R} fix (r-skip-asgn q) =
-  subst (λ T → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r ⇑ᵃ α := T) (fix suc)
-        (r-skip-bind (r-skip-asgn q))
+  subst (λ T → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r α := T) (fix suc)
+  subst (λ T → Sg ∣ (bind ∷ Ss ∥ Bs) ∋r α := T) (fix suc)
 
 -- The name-renaming algebra the read-back travels along: names by `ρ`,
 -- addresses by the STACK renaming `η`, both extending under a `bind`.
@@ -350,10 +335,7 @@ Ren∋ ρ η Γ Γ′ = ∀ {X α} → Γ ∋n X := α → Γ′ ∋n ρ X := re
 
 ren∋-ext : ∀ {ρ η Γ Γ′} → Ren∋ ρ η Γ Γ′
   → Ren∋ (extᵗ ρ) (extᵇ η) (bind ∷ stk Γ ∥ bas Γ) (bind ∷ stk Γ′ ∥ bas Γ′)
-ren∋-ext r n-here-bind = n-here-bind
-ren∋-ext r (n-skip-bind-b q) = n-skip-bind-b (r q)
-ren∋-ext r (n-skip-bind-l q) = n-skip-bind-l (r q)
-ren∋-ext r (n-skip-bind-e q) = n-skip-bind-e (r q)
+ren∋-ext r (n-skip-bind q) = n-skip-bind (r q)
 
 read-ren∋ : ∀ {Sg ρ η Γ Γ′ T A} → Ren∋ ρ η Γ Γ′
   → Sg ∣ Γ ⊢ T ⇓ A → Sg ∣ Γ′ ⊢ renameᴿ η T ⇓ renameᵗ ρ A
@@ -408,36 +390,33 @@ wf-∀-inv (wf-∀ a) = a
   → Σ[ γ ∈ Addr ] ((Ss′ ∥ Bs) ∋n closeIdx X Y := γ)
 ∋n-close pop-here ne n-here-asgn = ⊥-elim (ne refl)
 ∋n-close pop-here ne (n-skip-asgn q) = _ , q
-∋n-close (pop-bind-b p) ne n-here-bind = _ , n-here-bind
-∋n-close (pop-bind-l p) ne n-here-bind = _ , n-here-bind
-∋n-close (pop-bind-e p) ne n-here-bind = _ , n-here-bind
-∋n-close (pop-bind-b p) ne (n-skip-bind-b q)
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-b p) ne (n-skip-bind-b q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-b p) ne (n-skip-bind-l q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-b p) ne (n-skip-bind-l q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-b p) ne (n-skip-bind-e q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-b p) ne (n-skip-bind-e q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-l p) ne (n-skip-bind-b q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-l p) ne (n-skip-bind-b q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-l p) ne (n-skip-bind-l q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-l p) ne (n-skip-bind-l q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-l p) ne (n-skip-bind-e q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-l p) ne (n-skip-bind-e q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-e p) ne (n-skip-bind-b q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-e p) ne (n-skip-bind-b q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-e p) ne (n-skip-bind-l q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-e p) ne (n-skip-bind-l q) | γ , r = _ , ∋n-⇑ r
-∋n-close (pop-bind-e p) ne (n-skip-bind-e q)
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q)
   with ∋n-close p (λ e → ne (cong suc e)) q
-∋n-close (pop-bind-e p) ne (n-skip-bind-e q) | γ , r = _ , ∋n-⇑ r
+∋n-close (pop-bind p) ne (n-skip-bind q) | γ , r = _ , ∋n-⇑ r
 
 closeAt-wf : ∀ {Ssᵢ Ssₑ Bs X α S B} → (Ssᵢ ∥ Bs) ▷ X := α ⇒ (Ssₑ ∥ Bs)
   → (Ssₑ ∥ Bs) ⊢ᵗ S → (Ssᵢ ∥ Bs) ⊢ᵗ B → (Ssₑ ∥ Bs) ⊢ᵗ closeAt X S B
@@ -503,7 +482,7 @@ revTy-∀-miss X α S A eq rewrite eq = refl
 
 revTy-∀-hit : ∀ X α S A → occursᵗ (suc X) A ≡ true
   → revTy X α S (`∀ A)
-      ≡ all (revTy (suc X) (⇑ᵃ α) (⇑ᵗ S) A) ∷ᶜ id (closeAt X S (`∀ A))
+      ≡ all (revTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id (closeAt X S (`∀ A))
 revTy-∀-hit X α S A eq rewrite eq = refl
 
 concTy-var-hit : ∀ X α S → concTy X α S (` X) ≡ seal X α ∷ᶜ id (` X)
@@ -532,7 +511,7 @@ concTy-∀-miss X α S A eq rewrite eq = refl
 
 concTy-∀-hit : ∀ X α S A → occursᵗ (suc X) A ≡ true
   → concTy X α S (`∀ A)
-      ≡ all (concTy (suc X) (⇑ᵃ α) (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
+      ≡ all (concTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
 concTy-∀-hit X α S A eq rewrite eq = refl
 
 ------------------------------------------------------------------------
@@ -555,7 +534,7 @@ mutual
   revTy-NF X α S (`∀ A) with occursᵗ (suc X) A
   revTy-NF X α S (`∀ A) | false = nf-cons nf-show nf-id irr-id
   revTy-NF X α S (`∀ A) | true =
-    nf-cons (nf-all (revTy-NF (suc X) (⇑ᵃ α) (⇑ᵗ S) A)) nf-id irr-id
+    nf-cons (nf-all (revTy-NF (suc X) (α) (⇑ᵗ S) A)) nf-id irr-id
 
   concTy-NF : ∀ X α S B → NF (concTy X α S B)
   concTy-NF X α S (` Y) with X ≟ Y
@@ -570,7 +549,7 @@ mutual
   concTy-NF X α S (`∀ A) with occursᵗ (suc X) A
   concTy-NF X α S (`∀ A) | false = nf-cons nf-hide nf-id irr-id
   concTy-NF X α S (`∀ A) | true =
-    nf-cons (nf-all (concTy-NF (suc X) (⇑ᵃ α) (⇑ᵗ S) A)) nf-id irr-id
+    nf-cons (nf-all (concTy-NF (suc X) (α) (⇑ᵗ S) A)) nf-id irr-id
 
 ------------------------------------------------------------------------
 -- 6.  THE BUILDER TYPING
@@ -667,11 +646,11 @@ mutual
       revTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf)
     go true eq rewrite revTy-∀-hit X α S A eq =
       subst (λ C → Sg ∣ (Ssᵢ ∥ Bs)
-                      ⊢ all (revTy (suc X) (⇑ᵃ α) (⇑ᵗ S) A) ∷ᶜ id C
+                      ⊢ all (revTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id C
                       ∶ (`∀ A) ⇝ C ⊣ (Ssₑ ∥ Bs))
             (sym (closeAt-∀ X S A))
             (conv-cons
-              (conv-all (revTy-typing (suc X) (⇑ᵃ α) (⇑ᵗ S) A
+              (conv-all (revTy-typing (suc X) (α) (⇑ᵗ S) A
                           (pop-⇑ p) (notasgn-⇑ na) (∋r-⇑ fix rep)
                           (rd-⇑ fix rd) fix (wf-∀-inv wf)))
               (conv-id (wf-∀ (closeAt-wf (pop-⇑ p) (wf-⇑ (read-wf rd))
@@ -729,11 +708,11 @@ mutual
       concTy-miss-typing S (`∀ A) (∋a-pop p (∋r→∋a rep)) p na eq (closeAt-wf p (read-wf rd) wf) wf
     go true eq rewrite concTy-∀-hit X α S A eq =
       subst (λ C → Sg ∣ (Ssₑ ∥ Bs)
-                      ⊢ all (concTy (suc X) (⇑ᵃ α) (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
+                      ⊢ all (concTy (suc X) (α) (⇑ᵗ S) A) ∷ᶜ id (`∀ A)
                       ∶ C ⇝ (`∀ A) ⊣ (Ssᵢ ∥ Bs))
             (sym (closeAt-∀ X S A))
             (conv-cons
-              (conv-all (concTy-typing (suc X) (⇑ᵃ α) (⇑ᵗ S) A
+              (conv-all (concTy-typing (suc X) (α) (⇑ᵗ S) A
                           (pop-⇑ p) (notasgn-⇑ na) (∋r-⇑ fix rep)
                           (rd-⇑ fix rd) fix (wf-∀-inv wf)))
               (conv-id wf))
@@ -757,14 +736,12 @@ wfᴿ-fixed : ∀ {Sg Ts Bs T} (η : Renameᵇ)
   → (∀ {i} → Sg ∣ (Ts ∥ Bs) ∋a bnd i → η i ≡ i)
   → Sg ∣ (Ts ∥ Bs) ⊢ᴿ T → renameᴿ η T ≡ T
 wfᴿ-fixed η h (wfᴿ-var {α = lvl ℓ} a) = refl
-wfᴿ-fixed η h (wfᴿ-var {α = bnd i} a) = cong (λ j → `ᵃ bnd j) (h a)
 wfᴿ-fixed η h (wfᴿ-var {α = bse j} a) = refl
 wfᴿ-fixed η h wfᴿ-ℕ = refl
 wfᴿ-fixed η h wfᴿ-𝔹 = refl
 wfᴿ-fixed η h (wfᴿ-⇒ a b) = cong₂ _⇒ᴿ_ (wfᴿ-fixed η h a) (wfᴿ-fixed η h b)
 wfᴿ-fixed η h (wfᴿ-∀ a) =
   cong `∀ᴿ (wfᴿ-fixed (extᵇ η)
-    (λ { a-here-bind → refl ; (a-skip-bind r) → cong suc (h r) }) a)
 
 repFixed : ∀ {Sg Bs T} → Sg ∣ ([] ∥ Bs) ⊢ᴿ T → ∀ η → renameᴿ η T ≡ T
 repFixed wf η = wfᴿ-fixed η (λ ()) wf
@@ -773,9 +750,8 @@ repFixed wf η = wfᴿ-fixed η (λ ()) wf
 -- fresh one: the freshness premise of `unseal`/`show` at the redex.
 notasgn-⤒ : ∀ {Bs} (Ss : List StackEnt) → NotAssigned (⤒ Ss ∥ Bs) (bse zero)
 notasgn-⤒ [] ()
-notasgn-⤒ (bind ∷ Ss) (n-skip-bind-e q) = notasgn-⤒ Ss q
+notasgn-⤒ (bind ∷ Ss) (n-skip-bind q) = notasgn-⤒ Ss q
 notasgn-⤒ (asgn (lvl ℓ) ∷ Ss) (n-skip-asgn q) = notasgn-⤒ Ss q
-notasgn-⤒ (asgn (bnd i) ∷ Ss) (n-skip-asgn q) = notasgn-⤒ Ss q
 notasgn-⤒ (asgn (bse j) ∷ Ss) (n-skip-asgn q) = notasgn-⤒ Ss q
 
 -- Moving a type from the `∀`'s binder assignment to the `Λ`'s crossing
@@ -786,13 +762,12 @@ NameExt Γ Γ′ = ∀ {X α} → Γ ∋n X := α → Σ[ β ∈ Addr ] (Γ′ �
 
 ne-bind : ∀ {Ss Bs Ss′ Bs′} → NameExt (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → NameExt (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
-ne-bind f n-here-bind = bnd zero , n-here-bind
-ne-bind f (n-skip-bind-b q) with f q
-ne-bind f (n-skip-bind-b q) | β , r = _ , ∋n-⇑ r
-ne-bind f (n-skip-bind-l q) with f q
-ne-bind f (n-skip-bind-l q) | β , r = _ , ∋n-⇑ r
-ne-bind f (n-skip-bind-e q) with f q
-ne-bind f (n-skip-bind-e q) | β , r = _ , ∋n-⇑ r
+ne-bind f (n-skip-bind q) with f q
+ne-bind f (n-skip-bind q) | β , r = _ , ∋n-⇑ r
+ne-bind f (n-skip-bind q) with f q
+ne-bind f (n-skip-bind q) | β , r = _ , ∋n-⇑ r
+ne-bind f (n-skip-bind q) with f q
+ne-bind f (n-skip-bind q) | β , r = _ , ∋n-⇑ r
 
 wf-ext : ∀ {Γ Γ′ A} → NameExt Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ A
 wf-ext f (wf-var n) with ∋ᵗ→∋n n
@@ -805,12 +780,11 @@ wf-ext f (wf-∀ a) = wf-∀ (wf-ext (ne-bind f) a)
 
 Λ-nameext : ∀ {Sg Ss Bs e} → StoreOk Sg
   → NameExt (bind ∷ Ss ∥ Bs) (asgn (bse zero) ∷ ⤒ Ss ∥ e ∷ Bs)
-Λ-nameext sok n-here-bind = bse zero , n-here-asgn
-Λ-nameext sok (n-skip-bind-b q) =
+Λ-nameext sok (n-skip-bind q) =
   _ , n-skip-asgn (ren-n (ren-stk (ren-wk sok)) q)
-Λ-nameext sok (n-skip-bind-l q) =
+Λ-nameext sok (n-skip-bind q) =
   _ , n-skip-asgn (ren-n (ren-stk (ren-wk sok)) q)
-Λ-nameext sok (n-skip-bind-e q) =
+Λ-nameext sok (n-skip-bind q) =
   _ , n-skip-asgn (ren-n (ren-stk (ren-wk sok)) q)
 
 -- TYBETA.

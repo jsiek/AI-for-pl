@@ -134,38 +134,56 @@ nameSub X Y with X <? Y
 nameSub X Y | yes _ = Y ∸ 1
 nameSub X Y | no _ = Y
 
+-- Substituting `S` for the name at the SLOT X, and removing the slot.
+--
+-- Both the slot and `S` travel along the spine: the tail of a spine
+-- lives one crossing further out, where the slot sits at a different
+-- index and `S` needs re-expressing.  `slotOut`/`tyOut` say where they
+-- have got to, and every recursive call is given the index of the
+-- frame it actually spans — which for `↦`'s CONTRAVARIANT component is
+-- the stepped one, since that component runs exterior → interior.
 mutual
+  slotOutElt : ConvElt → ℕ → ℕ
+  slotOutElt (seal Y α)   X = shiftAtᵗ Y X
+  slotOutElt (unseal Y α) X = nameSub Y X
+  slotOutElt (hide Y α)   X = shiftAtᵗ Y X
+  slotOutElt (show Y α)   X = nameSub Y X
+  -- the element spans what its COVARIANT component spans
+  slotOutElt (s ↦ t)      X = slotOut t X
+  -- `all` keeps a `bind` on both sides, so the slot moves under it
+  slotOutElt (all s)      X = slotOut s (suc X) ∸ 1
+
+  tyOutElt : ConvElt → Ty → Ty
+  tyOutElt (seal Y α)   S = renameᵗ (shiftAtᵗ Y) S
+  tyOutElt (unseal Y α) S = renameᵗ (nameSub Y) S
+  tyOutElt (hide Y α)   S = renameᵗ (shiftAtᵗ Y) S
+  tyOutElt (show Y α)   S = renameᵗ (nameSub Y) S
+  tyOutElt (s ↦ t)      S = tyOut t S
+  tyOutElt (all s)      S = renameᵗ (nameSub 0) (tyOut s (renameᵗ suc S))
+
+  slotOut : Conv → ℕ → ℕ
+  slotOut (id A)   X = X
+  slotOut (ĉ ∷ᶜ c) X = slotOut c (slotOutElt ĉ X)
+
+  tyOut : Conv → Ty → Ty
+  tyOut (id A)   S = S
+  tyOut (ĉ ∷ᶜ c) S = tyOut c (tyOutElt ĉ S)
+
   substAnnElt : ℕ → Ty → ConvElt → ConvElt
   substAnnElt X S (seal Y α)   = seal (nameSub X Y) α
   substAnnElt X S (unseal Y α) = unseal (nameSub X Y) α
   substAnnElt X S (hide Y α)   = hide (nameSub X Y) α
   substAnnElt X S (show Y α)   = show (nameSub X Y) α
-  substAnnElt X S (s ↦ t)    = substAnn X S s ↦ substAnn X S t
-  substAnnElt X S (all s)    = all (substAnn (suc X) (renameᵗ suc S) s)
+  -- `t` spans the element's own interior → exterior; `s` spans it
+  -- BACKWARD, so its interior is where the slot has already moved
+  substAnnElt X S (s ↦ t) =
+    substAnn (slotOut t X) (tyOut t S) s ↦ substAnn X S t
+  substAnnElt X S (all s) = all (substAnn (suc X) (renameᵗ suc S) s)
 
   substAnn : ℕ → Ty → Conv → Conv
   substAnn X S (id A)    = id (closeAt X S A)
-  substAnn X S (ĉ ∷ᶜ c) = substAnnElt X S ĉ ∷ᶜ substAnnOut ĉ X S c
-
-  -- The tail lives ONE CROSSING FURTHER OUT, where the slot sits at a
-  -- different index and `S` needs re-expressing — so both are carried
-  -- along the spine rather than reused.  `S` is the read-back of α on
-  -- the unassigned side, which is this conversion's INTERIOR, and the
-  -- list runs interior → exterior, so the walk is outward.
-  --
-  --   seal Y, hide Y    the exterior GAINS a name at Y
-  --   unseal Y, show Y  the exterior LOSES the name at Y
-  substAnnOut : ConvElt → ℕ → Ty → Conv → Conv
-  substAnnOut (seal Y α) X S c =
-    substAnn (shiftAtᵗ Y X) (renameᵗ (shiftAtᵗ Y) S) c
-  substAnnOut (hide Y α) X S c =
-    substAnn (shiftAtᵗ Y X) (renameᵗ (shiftAtᵗ Y) S) c
-  substAnnOut (unseal Y α) X S c =
-    substAnn (nameSub Y X) (renameᵗ (nameSub Y) S) c
-  substAnnOut (show Y α) X S c =
-    substAnn (nameSub Y X) (renameᵗ (nameSub Y) S) c
-  substAnnOut (s ↦ t) X S c = substAnn X S c
-  substAnnOut (all s) X S c = substAnn X S c
+  substAnn X S (ĉ ∷ᶜ c) =
+    substAnnElt X S ĉ ∷ᶜ substAnn (slotOutElt ĉ X) (tyOutElt ĉ S) c
 
 ------------------------------------------------------------------------
 -- The builders  +X(A) and -X(A)

@@ -1,53 +1,51 @@
 module strong.Show where
 
--- de Bruijn → NAMED rendering for strong System F terms, types, boundary
--- context morphisms, conversions and type contexts — adapted from the name-supply
--- infrastructure of GTSFImp/proof/DGG/ImpLadder.agda (Jeremy's request,
--- 2026-09-05, after a hand-transcription error read an interior ` 0 in the
--- exterior frame), and PORTED to the conversion-boundary design.
+-- de Bruijn → NAMED rendering for Strong System F v8 (2026-09-16).
 --
--- CONVENTIONS (Jeremy's): type variables are X, Y, Z (then X′, Y′, Z′, …);
--- term binders are x, y, z, f, g, h (then primes).  V and W are reserved
--- for metavariables over term VALUES and never generated here.
+-- Ported from the v7 renderer, which still spoke of `M ⟪ Θ , c ⟫`,
+-- locks and scopes.  v8's boundary is `M ⟨ c ⟩` and carries no Θ, so
+-- the whole scope apparatus is gone; what remains is the one real
+-- question, WHICH TYPE-VARIABLE FRAME THE INTERIOR IS IN.
 --
--- THE POINT of the adaptation: a boundary changes the type-variable frame.
--- Rendering M ⟪ Θ , c ⟫ under an exterior supply `ext`:
---   * Θ's BINDS bind fresh interior slots; the interior supply is
---     [fresh names for the binders] then ext SHIFTED past them.  Nothing is
---     dropped any more (conceal masks in place), so there is exactly ONE
---     inner supply — the old `cmax` correction has no analogue, and the
---     interior supply and the CONVERSION-CONTEXT supply coincide
---     (`interior` and `convCtx` differ in blocking, not in slot layout).
---   * a BINDER's rep is shown under `ext` — a rep uses the exterior's
---     slots (the judgement reads it on `unlockedScope Θ Δ`, which has the
---     same slot layout as Δ);
---   * a `lock X` / `unlock X` names an EXTERIOR slot, so it is shown under
---     `ext`; neither carries a rep, which is the whole point of the
---     redesign.  THE PAIR IS RENDERED IN ITS OWN ORDER: all the binds,
---     then all the changes, then the conversion —
---     `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`;
---   * the CONVERSION `c` is shown under that same supply, and its
---     `seal`/`unseal` names are read there — by their type context, not by a
---     stored spelling.
+-- A conversion's element list runs INTERIOR → EXTERIOR (`conv-cons`
+-- types its head at the interior end), and each atomic element moves
+-- the frame by one name:
+--
+--   seal X α, hide X α    the EXTERIOR has the assignment at X
+--   unseal X α, show X α  the INTERIOR has it
+--
+-- so to render the body under an exterior supply we walk the list
+-- BACKWARD, undoing each: a `seal`/`hide` deletes the name at X going
+-- inward, an `unseal`/`show` inserts a fresh one there.  `↦` and `all`
+-- do not move the frame at their own level.
+--
+-- CONVENTIONS (Jeremy's): type variables X, Y, Z (then primed); term
+-- binders x, y, z, f, g, h.  V and W are reserved for metavariables
+-- over values and are never generated.  Elements print in the notes'
+-- spelling — `seal{-X:=α}`, `unseal{+X:=α}`, `id{-X:=α}` for `hide`,
+-- `id{+X:=α}` for `show`.  Addresses print by KIND, which is the point
+-- of the v8 split: `@ℓ` a store level, `νj` a base binder (a Λ's or a
+-- ν's), `∀i` a stack binder (a ∀'s).
 --
 -- USED AS A TOOL non-interactively via scripts/render_term.sh, which
--- exploits the type-error trick: `oops : e ≡ ""; oops = refl` makes Agda
--- print e's normal form in the mismatch error.
+-- exploits the type-error trick: `oops : e ≡ ""; oops = refl` makes
+-- Agda print e's normal form in the mismatch error.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _<ᵇ_)
-open import Data.Nat.Show using (show)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _<ᵇ_; _≡ᵇ_)
+open import Data.Nat.Show using () renaming (show to showℕ)
 open import Data.Bool using (Bool; true; false; if_then_else_)
-open import Data.List using (List; []; _∷_; length)
-open import Data.List using () renaming (_++_ to _l++_)
+open import Data.List using (List; []; _∷_; length; reverse)
 open import Data.String using (String; _++_)
-open import Data.Product using (_×_; _,_; proj₁)
+open import Data.Product using (_×_; _,_)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
-open import strong.Ctx
-  using (Ent; Binding; unmasked; masked; abst; bind; Ctxᵗ)
-open import strong.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
-open import strong.Terms using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫)
-open import strong.CtxMorph
+open import strong.RepresentationTypes using
+  (Addr; lvl; bnd; bse; RepTy; `ᵃ_; `ℕᴿ; `𝔹ᴿ; _⇒ᴿ_; `∀ᴿ)
+open import strong.Conversion using
+  (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all; elts)
+open import strong.Terms using
+  (Term; `_; $_; #_; _⊕[_]_; ƛ_∙_; _·_; Λ_; _•_[_]; ν_∙_; _⟨_⟩;
+   Prim; p+; p×)
 
 Supply : Set
 Supply = ℕ → String
@@ -60,14 +58,14 @@ primes : ℕ → String
 primes zero    = ""
 primes (suc n) = "′" ++ primes n
 
-cyc3 : ℕ → String → String → String → ℕ → String
-cyc3 zero                a b c p = a ++ primes p
-cyc3 (suc zero)          a b c p = b ++ primes p
-cyc3 (suc (suc zero))    a b c p = c ++ primes p
-cyc3 (suc (suc (suc n))) a b c p = cyc3 n a b c (suc p)
+cyc3 : ℕ → ℕ → String
+cyc3 zero p = "X" ++ primes p
+cyc3 (suc zero) p = "Y" ++ primes p
+cyc3 (suc (suc zero)) p = "Z" ++ primes p
+cyc3 (suc (suc (suc n))) p = cyc3 n (suc p)
 
 tyBinder : ℕ → String
-tyBinder n = cyc3 n "X" "Y" "Z" zero
+tyBinder n = cyc3 n zero
 
 cyc6 : ℕ → ℕ → String
 cyc6 zero p = "x" ++ primes p
@@ -85,8 +83,27 @@ extS : Supply → String → Supply
 extS sup b zero    = b
 extS sup b (suc k) = sup k
 
+-- insert a name at slot X; everything from X up shifts one out
+insAt : ℕ → String → Supply → Supply
+insAt X b sup Y =
+  if Y <ᵇ X then sup Y
+  else (if Y ≡ᵇ X then b else sup (Y ∸ 1))
+
+-- delete the name at slot X; everything above shifts one in
+delAt : ℕ → Supply → Supply
+delAt X sup Y = if Y <ᵇ X then sup Y else sup (suc Y)
+
 ------------------------------------------------------------------------
--- types
+-- addresses, by KIND
+------------------------------------------------------------------------
+
+showAddr : Addr → String
+showAddr (lvl ℓ) = "@" ++ showℕ ℓ
+showAddr (bnd i) = "∀" ++ showℕ i
+showAddr (bse j) = "ν" ++ showℕ j
+
+------------------------------------------------------------------------
+-- types and representation types
 ------------------------------------------------------------------------
 
 showTy : ℕ → Supply → Ty → String
@@ -94,185 +111,127 @@ showTy d sup (` X)   = sup X
 showTy d sup `ℕ      = "ℕ"
 showTy d sup `𝔹      = "𝔹"
 showTy d sup (A ⇒ B) =
-  "(" ++ showTy d sup A ++ "⇒" ++ showTy d sup B ++ ")"
+  "(" ++ showTy d sup A ++ "→" ++ showTy d sup B ++ ")"
 showTy d sup (`∀ A)  =
   "(∀" ++ tyBinder d ++ ". "
       ++ showTy (suc d) (extS sup (tyBinder d)) A ++ ")"
 
+showRep : RepTy → String
+showRep (`ᵃ α)   = showAddr α
+showRep `ℕᴿ      = "ℕᴿ"
+showRep `𝔹ᴿ      = "𝔹ᴿ"
+showRep (R ⇒ᴿ S) = "(" ++ showRep R ++ "→" ++ showRep S ++ ")"
+showRep (`∀ᴿ R)  = "(∀ᴿ. " ++ showRep R ++ ")"
+
 ------------------------------------------------------------------------
 -- conversions
 ------------------------------------------------------------------------
+-- An element is rendered in the frame it is READ in: the assignment it
+-- moves names the slot X on whichever side HAS it, and that is the
+-- side whose supply we are holding as we walk.
 
-showConv : ℕ → Supply → Conv → String
-showConv d sup (id A)     = "id " ++ showTy d sup A
-showConv d sup (seal X)   = "seal " ++ sup X
-showConv d sup (unseal X) = "unseal " ++ sup X
-showConv d sup (s ↦ t)    =
-  "(" ++ showConv d sup s ++ " ↦ " ++ showConv d sup t ++ ")"
-showConv d sup (`∀ s)     =
-  "(∀" ++ tyBinder d ++ ". "
-      ++ showConv (suc d) (extS sup (tyBinder d)) s ++ ")"
+-- The list runs INTERIOR → EXTERIOR, so the walk starts at the
+-- interior frame and carries it outward.  Which frame an element's
+-- name lives in depends on which side HAS the assignment:
+--
+--   unseal X α, show X α   the INTERIOR has it — X names the frame we
+--                          are holding, and the next frame loses it
+--   seal X α,  hide X α    the EXTERIOR has it — the next frame GAINS
+--                          it, and X names that one
+--
+-- (rendering the whole conversion at the exterior printed `?` for
+-- every `show`/`unseal`, whose slot does not exist there)
+
+mutual
+  showConvFrom : (ℕ × Supply) → Conv → String
+  showConvFrom (d , sup) (id A) = "id " ++ showTy d sup A
+  showConvFrom (d , sup) (seal X α ∷ᶜ c) =
+    "seal{-" ++ outS X ++ ":=" ++ showAddr α ++ "} ∷ "
+      ++ showConvFrom (suc d , outSup) c
+    where
+    outSup = insAt X (tyBinder d) sup
+    outS = outSup
+  showConvFrom (d , sup) (hide X α ∷ᶜ c) =
+    "id{-" ++ outS X ++ ":=" ++ showAddr α ++ "} ∷ "
+      ++ showConvFrom (suc d , outSup) c
+    where
+    outSup = insAt X (tyBinder d) sup
+    outS = outSup
+  showConvFrom (d , sup) (unseal X α ∷ᶜ c) =
+    "unseal{+" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ "
+      ++ showConvFrom (d ∸ 1 , delAt X sup) c
+  showConvFrom (d , sup) (show X α ∷ᶜ c) =
+    "id{+" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ "
+      ++ showConvFrom (d ∸ 1 , delAt X sup) c
+  showConvFrom (d , sup) ((s ↦ t) ∷ᶜ c) =
+    "(" ++ showConvFrom (d , sup) s ++ " → " ++ showConvFrom (d , sup) t
+        ++ ") ∷ " ++ showConvFrom (d , sup) c
+  showConvFrom (d , sup) (all s ∷ᶜ c) =
+    "(∀" ++ tyBinder d ++ ". "
+        ++ showConvFrom (suc d , extS sup (tyBinder d)) s ++ ") ∷ "
+        ++ showConvFrom (d , sup) c
 
 ------------------------------------------------------------------------
--- the supply a boundary induces
+-- the frame a conversion's interior is in
 ------------------------------------------------------------------------
+-- Walk the elements BACKWARD from the exterior, undoing each.
 
--- one fresh name per BINDER, newest first (binder 0 is interior slot 0)
-bindNames : ℕ → List Ty → List String
-bindNames d []       = []
-bindNames d (A ∷ Bs) = tyBinder d ∷ bindNames (suc d) Bs
+-- going OUTWARD→INWARD: a seal/hide loses the name, an unseal/show
+-- gains a fresh one; a `↦` or `all` does not move the frame here
+undo : (ℕ × Supply) → ConvElt → (ℕ × Supply)
+undo (d , sup) (seal X α) = d ∸ 1 , delAt X sup
+undo (d , sup) (hide X α) = d ∸ 1 , delAt X sup
+undo (d , sup) (unseal X α) = suc d , insAt X (tyBinder d) sup
+undo (d , sup) (show X α) = suc d , insAt X (tyBinder d) sup
+undo (d , sup) (s ↦ t) = d , sup
+undo (d , sup) (all s) = d , sup
 
-nth : List String → ℕ → String
-nth []       k       = "?"
-nth (s ∷ ss) zero    = s
-nth (s ∷ ss) (suc k) = nth ss k
+undoAll : (ℕ × Supply) → List ConvElt → (ℕ × Supply)
+undoAll st [] = st
+undoAll st (ĉ ∷ ĉs) = undoAll (undo st ĉ) ĉs
 
--- interior (= conversion-context) supply: bind names, then ext shifted
--- past them.  No `cmax` correction: conceal masks in place, so no slot
--- is dropped.
-intSup : CtxMorph → List String → Supply → Supply
-intSup Θ on ext k =
-  if k <ᵇ numBinds Θ then nth on k else ext (k ∸ numBinds Θ)
-
-------------------------------------------------------------------------
--- boundary context morphisms
-------------------------------------------------------------------------
-
-tl : List String → List String
-tl []       = []
-tl (s ∷ ss) = ss
-
--- THE PAIR IS RENDERED IN ITS OWN ORDER: the BINDS first (`↑X:=A`), then
--- the CHANGES (`↓Y`, `↥Z`), then the conversion — `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`.
--- `on` is the binder-name list still to be consumed; `ext` names exterior
--- slots.  A binder's rep uses the exterior's slots; `lock`/`unlock` carry
--- a name only.
-bindPieces : ℕ → List String → Supply → List Ty → List String
-bindPieces d on ext []       = []
-bindPieces d on ext (A ∷ Bs) =
-  ("↑" ++ nth on 0 ++ ":=" ++ showTy d ext A) ∷ bindPieces d (tl on) ext Bs
-
-changePieces : Supply → List Change → List String
-changePieces ext []             = []
-changePieces ext (lock X ∷ S)   = ("↓" ++ ext X) ∷ changePieces ext S
-changePieces ext (unlock X ∷ S) = ("↥" ++ ext X) ∷ changePieces ext S
-
-joinC : List String → String
-joinC []                 = ""
-joinC (s ∷ [])           = s
-joinC (s ∷ ss@(_ ∷ _))   = s ++ " , " ++ joinC ss
-
-showEnts : ℕ → List String → Supply → CtxMorph → String
-showEnts d on ext Θ =
-  joinC (bindPieces d on ext (binds Θ) l++ changePieces ext (changes Θ))
-
--- the entry block, with its trailing separator — empty for an empty
--- morphism, so `⟪ c ⟫` still renders with no leading comma
-entBlock : List String → String
-entBlock []             = ""
-entBlock ps@(_ ∷ _)     = joinC ps ++ " , "
-
-showBnd : ℕ → Supply → CtxMorph → Conv → String
-showBnd d ext Θ c =
-  "⟪ " ++ entBlock (bindPieces d on ext (binds Θ)
-                      l++ changePieces ext (changes Θ))
-       ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
-  where on = bindNames d (binds Θ)
+-- the frame the BODY of `M ⟨ c ⟩` is read in
+interiorOf : ℕ → Supply → Conv → (ℕ × Supply)
+interiorOf d sup c = undoAll (d , sup) (reverse (elts c))
 
 ------------------------------------------------------------------------
 -- terms
 ------------------------------------------------------------------------
 
--- Binder names are GLOBALLY UNIQUE across one rendered term (Jeremy,
--- 2026-09-06: two sibling Λs must not both print as ΛX).  Two counters
--- are threaded left to right through the term: `tf` for type binders (Λ
--- and boundary binds) is a global counter; `xf` for term binders is the
--- λ-depth (restored after each body: term names are stable across steps
--- and sibling λs may share a name).  Type-level ∀ binders inside type
--- annotations stay depth-named: they are local to their type.
--- The ambient supply names the free slots 0..n-1, so `tf` starts at n.
+showPrim : Prim → String
+showPrim p+ = "+"
+showPrim p× = "×"
 
-record St : Set where
-  constructor mkSt
-  field tf xf : ℕ
-open St
+-- `d`/`sup` are the TYPE frame, `e`/`tsup` the TERM frame
+showTm : ℕ → Supply → ℕ → Supply → Term → String
+showTm d sup e tsup (` x) = tsup x
+showTm d sup e tsup ($ n) = showℕ n
+showTm d sup e tsup (# false) = "false"
+showTm d sup e tsup (# true) = "true"
+showTm d sup e tsup (M ⊕[ p ] N) =
+  "(" ++ showTm d sup e tsup M ++ " " ++ showPrim p ++ " "
+      ++ showTm d sup e tsup N ++ ")"
+showTm d sup e tsup (ƛ A ∙ N) =
+  "(λ" ++ tmBinder e ++ ":" ++ showTy d sup A ++ ". "
+       ++ showTm d sup (suc e) (extS tsup (tmBinder e)) N ++ ")"
+showTm d sup e tsup (L · M) =
+  "(" ++ showTm d sup e tsup L ++ " " ++ showTm d sup e tsup M ++ ")"
+showTm d sup e tsup (Λ V) =
+  "(Λ" ++ tyBinder d ++ ". "
+       ++ showTm (suc d) (extS sup (tyBinder d)) e tsup V ++ ")"
+showTm d sup e tsup (L • B [ A ]) =
+  showTm d sup e tsup L ++ " [" ++ showTy d sup A ++ "]"
+showTm d sup e tsup (ν R ∙ M) =
+  "(ν:=" ++ showRep R ++ ". " ++ showTm d sup e tsup M ++ ")"
+showTm d sup e tsup (M ⟨ c ⟩) = showBody (interiorOf d sup c)
+  where
+  showBody : (ℕ × Supply) → String
+  showBody (dᵢ , supᵢ) =
+    showTm dᵢ supᵢ e tsup M ++ "⟨ " ++ showConvFrom (dᵢ , supᵢ) c ++ " ⟩"
 
--- one fresh name per BINDER (bind), listed newest first (slot 0 first) but
--- NAMED oldest first, so an older bind keeps its name when a newer one is
--- prepended (TyPeelR prepends one): the last bind gets tyBinder f.
-bindNamesF : ℕ → List Ty → List String
-bindNamesF f []       = []
-bindNamesF f (A ∷ Bs) = tyBinder (f + length Bs) ∷ bindNamesF f Bs
+-- closed, at the empty frame
+showTm₀ : Term → String
+showTm₀ = showTm zero (λ _ → "?") zero (λ _ → "?")
 
-showBndF : ℕ → ℕ → Supply → CtxMorph → Conv → String
-showBndF d f ext Θ c =
-  "⟪ " ++ entBlock (bindPieces d on ext (binds Θ)
-                      l++ changePieces ext (changes Θ))
-       ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
-  where on = bindNamesF f (binds Θ)
-
-showTmF : ℕ → Supply → Supply → St → Term → String × St
-showTmF td tys tms σ (` x)      = tms x , σ
-showTmF td tys tms σ ($ n)      = show n , σ
-showTmF td tys tms σ (ƛ A ∙ N)
-  with showTmF td tys (extS tms (tmBinder (xf σ))) (mkSt (tf σ) (suc (xf σ))) N
-... | body , σ′ =
-  "(λ" ++ tmBinder (xf σ) ++ ":" ++ showTy td tys A ++ ". " ++ body ++ ")"
-    , mkSt (tf σ′) (xf σ)          -- term binders stay depth-named
-showTmF td tys tms σ (L · M) with showTmF td tys tms σ L
-... | l , σ₁ with showTmF td tys tms σ₁ M
-... | m , σ₂ = "(" ++ l ++ " · " ++ m ++ ")" , σ₂
-showTmF td tys tms σ (Λ N) with showTmF (suc td) (extS tys (tyBinder (tf σ))) tms (mkSt (suc (tf σ)) (xf σ)) N
-... | body , σ′ = "(Λ" ++ tyBinder (tf σ) ++ ". " ++ body ++ ")" , σ′
-showTmF td tys tms σ (L ·[ B , A ]) with showTmF td tys tms σ L
-... | l , σ′ = l ++ " [" ++ showTy td tys A ++ "]" , σ′
-showTmF td tys tms σ (M ⟪ Θ , c ⟫)
-  with showTmF (td + numBinds Θ) (intSup Θ (bindNamesF (tf σ) (binds Θ)) tys) tms
-               (mkSt (tf σ + numBinds Θ) (xf σ)) M
-... | body , σ′ =
-  "(" ++ body ++ " " ++ showBndF td (tf σ) tys Θ c ++ ")" , σ′
-
-showTm : ℕ → ℕ → Supply → Supply → Term → String
-showTm td xd tys tms M = proj₁ (showTmF td tys tms (mkSt td xd) M)
-
-------------------------------------------------------------------------
--- type contexts (entries named newest-first: slot 0 = X)
-------------------------------------------------------------------------
-
--- The binding layer renders the slot; the lock layer wraps it in `⌷[…]`.
--- The rendered strings are exactly as before — `X := A`, `X Λ-bound`,
--- `⌷[…]` — but the recursion is gone: one lock, one wrap.
-showBinding : ℕ → Supply → String → Binding → String
-showBinding d sup nm abst     = nm ++ " Λ-bound"
-showBinding d sup nm (bind A) = nm ++ " := " ++ showTy d sup A
-
-showEntry : ℕ → Supply → String → Ent → String
-showEntry d sup nm (unmasked b) = showBinding d sup nm b
-showEntry d sup nm (masked b)   = "⌷[" ++ showBinding d sup nm b ++ "]"
-
-showTCtxAt : ℕ → ℕ → Supply → Ctxᵗ → String
-showTCtxAt d i sup [] = "·"
-showTCtxAt d i sup (E ∷ []) =
-  showEntry d (λ k → sup (suc (k + i))) (sup i) E
-showTCtxAt d i sup (E ∷ Δ@(_ ∷ _)) =
-  showEntry d (λ k → sup (suc (k + i))) (sup i) E
-    ++ " , " ++ showTCtxAt d (suc i) sup Δ
-
-------------------------------------------------------------------------
--- conveniences: n = ambient context length; slot 0 is named X
-------------------------------------------------------------------------
-
-showTyIn : ℕ → Ty → String
-showTyIn n A = showTy n tyBinder A
-
-showTmIn : ℕ → Term → String
-showTmIn n M = showTm n zero tyBinder tmBinder M
-
-showConvIn : ℕ → Conv → String
-showConvIn n c = showConv n tyBinder c
-
-showBndIn : ℕ → CtxMorph → Conv → String
-showBndIn n Θ c = showBnd n tyBinder Θ c
-
-showTCtx : Ctxᵗ → String
-showTCtx Δ = showTCtxAt 99 zero tyBinder Δ
+showConv₀ : Conv → String
+showConv₀ c = showConvFrom (interiorOf zero (λ _ → "?") c) c

@@ -2,50 +2,31 @@ module strong.RepresentationTypes where
 
 -- Strong System F v8 — representation types and their ADDRESSES.
 --
--- An address locates a representation type.  There are three forms,
--- and they are distinguished by WHO BINDS THEM:
+-- Two forms, and the distinction is DE BRUIJN LEVEL versus DE BRUIJN
+-- INDEX — they are counted from opposite ends, and that is why they
+-- cannot be one `ℕ`:
 --
---   lvl ℓ   the global store Σ.  Introduced only by `Alloc`, which
---           appends; the store never reorders or removes, so a level
---           is permanent and NEITHER renaming family touches it.
+--   lvl ℓ   a LEVEL into the global store, counted from the bottom.
+--           The store is append-only, so a level is permanent and no
+--           renaming touches it.
+--   bse j   an INDEX into the base, counted from the newest binder.
+--           A `Λ` or a `ν` pushes one, and that push shifts every `bse`.
 --
---   bse j   a `Λ` or a `ν`.  `⊢Λ` pushes the base entry `addr`, `⊢ν`
---           pushes `nuBind R`.  Both term level.
+-- Each convention is forced.  The store must use levels because it is
+-- shared: with indices, every `Alloc` would renumber every stored
+-- address in every term.  The base must use indices because `crossΛ`
+-- has to WRITE the `Λ`'s address syntactically, and that is `bse 0`;
+-- as a level it would be `length Bs`, which depends on the enclosing
+-- telescope.  `notes/AddrNeeded` has the witness that keeping them
+-- apart is load-bearing: the color wrap's `bse 0` sits next to a
+-- seal's `lvl 0`, and merging them would let `fuse` cancel the two.
 --
--- A `∀` binds neither: it binds a TYPE VARIABLE, which is not an
--- address at all (`RepTy`'s `ᵛ).  So the only binders of addresses are
--- the store and the base —
---
---   renᵃᵉ / renameᴿᵉ / renConvᵉ / renBseᴹ   move `bse`, and extend
---       under `Λ` and `ν`
---
--- and that is the ONLY address renaming: a `∀` binds a type variable,
--- so descending under one moves no address at all.  Substitution has
--- the same two jobs: `substᴿⱽ`/`instⱽ₀` instantiate a `∀ᴿ`'s type
--- variable, `substAddrᵉ`/`instᵉ₀` a `ν`'s `bse` (to a level, at
--- `Alloc`).
---
--- WHERE THEY ARE WRITTEN.  Reduction writes an address in exactly four
--- places, and only ever the innermost base binder or a fresh level:
---
---   crossΛ   `hide 0 (bse 0)`              the color wrap
---   TyBeta   `revTy 0 (bse 0) A B`
---   TyWrap   `instReveal 0 (bse 0) A d`
---   Alloc    `M [ lvl (length Σ) ]ᵃᴹ`
---
--- `bse zero` is writable precisely BECAUSE of the split: it names the
--- newest base binder however many crossings and `∀`s stand above it.
--- With a single index counting through both halves a `Λ`'s address
--- would be `bnd (binds Ss)`, which depends on the enclosing telescope
--- and which a syntactic function on terms cannot know.
---
--- A `bnd` is never written into a term or a conversion at all.  It
--- occurs only inside representation types, under the `∀ᴿ` that binds
--- it, and as the address a `bind` entry assigns to its own name — see
--- `proof.PreserveTyWrap.∋r-nobnd` (a `bnd` has no representation) and
--- `∋a-bnd-named` (a `bnd` in scope already carries a name, so no
--- crossing can introduce an assignment to one).  It cannot be dropped,
--- though: `read-var` needs it to name a `∀`-bound variable.
+-- A `∀` binds NEITHER: it binds a type variable, `ᵛ, which is not an
+-- address.  So there is exactly one address renaming — `renᵃᵉ`,
+-- `renameᴿᵉ`, `renConvᵉ`, `renBseᴹ`, extending under `Λ` and `ν` — and
+-- descending under a `∀` moves nothing.  Substitution has two jobs:
+-- `substᴿⱽ`/`instⱽ₀` instantiate a `∀ᴿ`'s type variable,
+-- `substAddrᵉ`/`instᵉ₀` a `ν`'s `bse`, to a level, at `Alloc`.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)

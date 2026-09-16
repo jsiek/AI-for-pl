@@ -200,11 +200,16 @@ showTm d sup e tsup (L • B [ A ]) =
   showTm d sup e tsup L ++ " [" ++ showTy d sup A ++ "]"
 showTm d sup e tsup (ν R ∙ M) =
   "(ν:=" ++ showRep R ++ ". " ++ showTm d sup e tsup M ++ ")"
+-- A boundary's body is TERM-CLOSED — `⊢⟨⟩` types it at `[]` — so the
+-- term-binder supply restarts inside one.  Without the reset the same
+-- closed value prints with different binder names depending on how
+-- deep the boundary happens to sit, and a reduction step that only
+-- moved it would look like a renaming.
 showTm d sup e tsup (M ⟨ c ⟩) = go (showConvOut (d , sup) c)
   where
   go : (ℕ × Supply) × String → String
   go ((dᵢ , supᵢ) , str) =
-    showTm dᵢ supᵢ e tsup M ++ "⟨ " ++ str ++ " ⟩"
+    showTm dᵢ supᵢ zero (λ _ → "?") M ++ "⟨ " ++ str ++ " ⟩"
 
 -- closed, at the empty frame
 showTm₀ : Term → String

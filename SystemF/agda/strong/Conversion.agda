@@ -145,7 +145,27 @@ mutual
 
   substAnn : ℕ → Ty → Conv → Conv
   substAnn X S (id A)    = id (closeAt X S A)
-  substAnn X S (ĉ ∷ᶜ c) = substAnnElt X S ĉ ∷ᶜ substAnn X S c
+  substAnn X S (ĉ ∷ᶜ c) = substAnnElt X S ĉ ∷ᶜ substAnnOut ĉ X S c
+
+  -- The tail lives ONE CROSSING FURTHER OUT, where the slot sits at a
+  -- different index and `S` needs re-expressing — so both are carried
+  -- along the spine rather than reused.  `S` is the read-back of α on
+  -- the unassigned side, which is this conversion's INTERIOR, and the
+  -- list runs interior → exterior, so the walk is outward.
+  --
+  --   seal Y, hide Y    the exterior GAINS a name at Y
+  --   unseal Y, show Y  the exterior LOSES the name at Y
+  substAnnOut : ConvElt → ℕ → Ty → Conv → Conv
+  substAnnOut (seal Y α) X S c =
+    substAnn (shiftAtᵗ Y X) (renameᵗ (shiftAtᵗ Y) S) c
+  substAnnOut (hide Y α) X S c =
+    substAnn (shiftAtᵗ Y X) (renameᵗ (shiftAtᵗ Y) S) c
+  substAnnOut (unseal Y α) X S c =
+    substAnn (nameSub Y X) (renameᵗ (nameSub Y) S) c
+  substAnnOut (show Y α) X S c =
+    substAnn (nameSub Y X) (renameᵗ (nameSub Y) S) c
+  substAnnOut (s ↦ t) X S c = substAnn X S c
+  substAnnOut (all s) X S c = substAnn X S c
 
 ------------------------------------------------------------------------
 -- The builders  +X(A) and -X(A)

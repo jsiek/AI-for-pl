@@ -64,8 +64,33 @@ cyc3 (suc zero) p = "Y" ++ primes p
 cyc3 (suc (suc zero)) p = "Z" ++ primes p
 cyc3 (suc (suc (suc n))) p = cyc3 n (suc p)
 
+-- Type-variable names come from TWO DISJOINT POOLS.
+--
+--   X Y Z …   an ASSIGNMENT to an address; the letter is keyed to the
+--             address, so it is the same in every step of every trace
+--   S T U …   a variable BOUND by a `∀` in a type or an `all` in a
+--             conversion; it has no address, so it is named by
+--             position
 tyBinder : ℕ → String
 tyBinder n = cyc3 n zero
+
+cyc3b : ℕ → ℕ → String
+cyc3b zero p = "S" ++ primes p
+cyc3b (suc zero) p = "T" ++ primes p
+cyc3b (suc (suc zero)) p = "U" ++ primes p
+cyc3b (suc (suc (suc n))) p = cyc3b n (suc p)
+
+boundVar : ℕ → String
+boundVar n = cyc3b n zero
+
+cyc3g : ℕ → ℕ → String
+cyc3g zero p = "α" ++ primes p
+cyc3g (suc zero) p = "β" ++ primes p
+cyc3g (suc (suc zero)) p = "γ" ++ primes p
+cyc3g (suc (suc (suc n))) p = cyc3g n (suc p)
+
+greek : ℕ → String
+greek n = cyc3g n zero
 
 cyc6 : ℕ → ℕ → String
 cyc6 zero p = "x" ++ primes p
@@ -98,9 +123,16 @@ delAt X sup Y = if Y <ᵇ X then sup Y else sup (suc Y)
 ------------------------------------------------------------------------
 
 showAddr : Addr → String
-showAddr (lvl ℓ) = "@" ++ showℕ ℓ
-showAddr (bnd i) = "∀" ++ showℕ i
-showAddr (bse j) = "ν" ++ showℕ j
+showAddr (lvl ℓ) = greek ℓ
+showAddr (bnd i) = "∀" ++ greek i
+showAddr (bse j) = "ν" ++ greek j
+
+-- THE NAME ASSIGNED TO AN ADDRESS, keyed to the address itself — this
+-- is what makes a variable print the same at every step of a trace.
+varOfAddr : Addr → String
+varOfAddr (lvl ℓ) = tyBinder ℓ
+varOfAddr (bnd i) = tyBinder i ++ "″"
+varOfAddr (bse j) = tyBinder j ++ "′"
 
 ------------------------------------------------------------------------
 -- types and representation types
@@ -113,8 +145,8 @@ showTy d sup `𝔹      = "𝔹"
 showTy d sup (A ⇒ B) =
   "(" ++ showTy d sup A ++ "→" ++ showTy d sup B ++ ")"
 showTy d sup (`∀ A)  =
-  "(∀" ++ tyBinder d ++ ". "
-      ++ showTy (suc d) (extS sup (tyBinder d)) A ++ ")"
+  "(∀" ++ boundVar d ++ ". "
+      ++ showTy (suc d) (extS sup (boundVar d)) A ++ ")"
 
 showRep : RepTy → String
 showRep (`ᵃ α)   = showAddr α
@@ -157,19 +189,19 @@ showConvOut ext (hide X α ∷ᶜ c) with showConvOut ext c
   , "id{-" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
 showConvOut ext (unseal X α ∷ᶜ c) with showConvOut ext c
 ... | (n , sup) , str =
-  (suc n , insAt X (tyBinder n) sup)
-  , "unseal{+" ++ tyBinder n ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+  (n , insAt X (varOfAddr α) sup)
+  , "unseal{+" ++ varOfAddr α ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
 showConvOut ext (show X α ∷ᶜ c) with showConvOut ext c
 ... | (n , sup) , str =
-  (suc n , insAt X (tyBinder n) sup)
-  , "id{+" ++ tyBinder n ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+  (n , insAt X (varOfAddr α) sup)
+  , "id{+" ++ varOfAddr α ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
 showConvOut ext ((s ↦ t) ∷ᶜ c) with showConvOut ext c
 ... | (n , sup) , str with showConvOut (n , sup) s | showConvOut (n , sup) t
 ... | _ , ss | _ , ts = (n , sup) , "(" ++ ss ++ " → " ++ ts ++ ") ∷ " ++ str
 showConvOut ext (all s ∷ᶜ c) with showConvOut ext c
-... | (n , sup) , str with showConvOut (suc n , extS sup (tyBinder n)) s
+... | (n , sup) , str with showConvOut (suc n , extS sup (boundVar n)) s
 ... | _ , ss =
-  (n , sup) , "(∀" ++ tyBinder n ++ ". " ++ ss ++ ") ∷ " ++ str
+  (n , sup) , "(∀" ++ boundVar n ++ ". " ++ ss ++ ") ∷ " ++ str
 
 ------------------------------------------------------------------------
 -- terms
@@ -193,9 +225,10 @@ showTm d sup e tsup (ƛ A ∙ N) =
        ++ showTm d sup (suc e) (extS tsup (tmBinder e)) N ++ ")"
 showTm d sup e tsup (L · M) =
   "(" ++ showTm d sup e tsup L ++ " " ++ showTm d sup e tsup M ++ ")"
+-- `⊢Λ` always assigns the Λ's name to `bse zero`, so key it there
 showTm d sup e tsup (Λ V) =
-  "(Λ" ++ tyBinder d ++ ". "
-       ++ showTm (suc d) (extS sup (tyBinder d)) e tsup V ++ ")"
+  "(Λ" ++ varOfAddr (bse zero) ++ ". "
+       ++ showTm d (extS sup (varOfAddr (bse zero))) e tsup V ++ ")"
 showTm d sup e tsup (L • B [ A ]) =
   showTm d sup e tsup L ++ " [" ++ showTy d sup A ++ "]"
 showTm d sup e tsup (ν R ∙ M) =

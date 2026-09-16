@@ -4413,3 +4413,34 @@ the `∀`'s binder slot must be REMOVED, and only `substAnn` does that.
 The branch is reachable: a `seal` inside an `all s` passes through
 `all⁺`, and a seal-headed conversion is exactly where `srcᶜ` is
 undefined.
+
+------------------------------------------------------------------------
+2026-09-16 — SETTLED: A `Λ` MUST BIND AN ADDRESS
+------------------------------------------------------------------------
+
+Asked whether the `Λ`'s address binding could be removed along with the
+addresses in `⊢ᵗ`.  It cannot, and there are two independent reasons.
+
+THE SHORT ONE (Jeremy).  Substituting a value under a `Λ` inserts
+`hide 0 α` — the color wrap — and `conv-hide`'s pop `Γₑ ▷ X := α ⇒ Γᵢ`
+forces α to be exactly the address the `Λ`'s own crossing assignment
+carries.  The element has an address field and only the `Λ` can fill
+it.
+
+THE LONGER ONE (notes/AddrNeeded.agda, checked).  The address does
+real work, not just fill a field: `hide`/`show` at the same NAME and
+different addresses must not cancel, because the pair genuinely
+renames an assignment.  `notes/ShowHide.agda` derives such a pair from
+a source program — two separate instantiations, a value sealed by the
+first carried under the second — ending in
+
+    id{+Y:=@0} ∷ id{-X:=@1}
+
+one de Bruijn index 0 in each frame, two distinct store levels.
+
+WHAT IS STILL OPEN is only the PLACEMENT.  The address must exist; that
+its binder sits in the BASE (so pops cannot see it) is what costs the
+`⤒` in `⊢Λ` and the `renBseᴹ` in `crossΛ`.  Moving it to the stack
+would reintroduce the context-dependent index that forced the address
+split in the first place — see 2026-09-15 — so any attack on that cost
+has to change what `crossΛ` writes, not whether the address exists.

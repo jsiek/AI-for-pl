@@ -91,10 +91,6 @@ namefn-push nf na pop-here (n-skip-asgn p) (n-skip-asgn q) =
   cong suc (nf p q)
 namefn-push nf na (pop-bind p) =
   namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind na) p)
-namefn-push nf na (pop-bind p) =
-  namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind na) p)
-namefn-push nf na (pop-bind p) =
-  namefn-bind (namefn-push (namefn-unbind nf) (notasgn-unbind na) p)
 
 -- the i-th `bind` has exactly one name
 ∋b-unique : ∀ {Ss X Y i} → Ss ∋b X at i → Ss ∋b Y at i → X ≡ Y
@@ -192,10 +188,6 @@ shiftAtᵗ-inj X A B eq = ren-inj (shiftAtᵗ X) (inj-shiftAt X) A B eq
 -- Removing the newest assignment keeps names unique.
 namefn-pop : ∀ {Γᵢ Γₑ X α} → Γᵢ ▷ X := α ⇒ Γₑ → NameFn Γᵢ → NameFn Γₑ
 namefn-pop pop-here nf p q = suc-inj (nf (n-skip-asgn p) (n-skip-asgn q))
-namefn-pop (pop-bind r) nf =
-  namefn-bind (namefn-pop r (namefn-unbind nf))
-namefn-pop (pop-bind r) nf =
-  namefn-bind (namefn-pop r (namefn-unbind nf))
 namefn-pop (pop-bind r) nf =
   namefn-bind (namefn-pop r (namefn-unbind nf))
 

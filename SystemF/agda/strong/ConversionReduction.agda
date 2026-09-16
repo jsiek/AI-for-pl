@@ -35,7 +35,7 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong.Types
-open import strong.RepresentationTypes using (Addr; lvl; bnd; _≟ᵃ_; ⇑ᵃ)
+open import strong.RepresentationTypes using (Addr; lvl; bse; _≟ᵃ_)
 open import strong.Conversion
 
 private

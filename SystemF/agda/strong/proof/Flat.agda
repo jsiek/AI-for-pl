@@ -106,25 +106,9 @@ pop-flat (pop-bind p) (flat (fu-bind fu) refl)
   with pop-flat p (flat fu refl)
 pop-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
   flat (fu-bind fu′) refl
-pop-flat (pop-bind p) (flat (fu-bind fu) refl)
-  with pop-flat p (flat fu refl)
-pop-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
-  flat (fu-bind fu′) refl
-pop-flat (pop-bind p) (flat (fu-bind fu) refl)
-  with pop-flat p (flat fu refl)
-pop-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
-  flat (fu-bind fu′) refl
 
 push-flat : ∀ {n} → Δᵢ ▷ X := α ⇒ Δₑ → Flatn n Δₑ → Flatn n Δᵢ
 push-flat pop-here (flat fu refl) = flat (fu-asgn fu) refl
-push-flat (pop-bind p) (flat (fu-bind fu) refl)
-  with push-flat p (flat fu refl)
-push-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
-  flat (fu-bind fu′) refl
-push-flat (pop-bind p) (flat (fu-bind fu) refl)
-  with push-flat p (flat fu refl)
-push-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =
-  flat (fu-bind fu′) refl
 push-flat (pop-bind p) (flat (fu-bind fu) refl)
   with push-flat p (flat fu refl)
 push-flat (pop-bind p) (flat (fu-bind fu) refl) | flat fu′ refl =

@@ -47,86 +47,21 @@ private
 -- Well-formedness depends only on how many names are in scope
 ------------------------------------------------------------------------
 
--- Every stack entry names something, so a lookup exists at every
--- position below the stack's length — whatever the entries are.
-∋n-len : length Ss ≡ length Ss′ → (Ss ∥ Bs) ∋n X := α
-  → Σ[ β ∈ Addr ] ((Ss′ ∥ Bs′) ∋n X := β)
-∋n-len {Ss′ = asgn β ∷ Ss′} eq n-here-asgn = β , n-here-asgn
-∋n-len {Ss′ = bind ∷ Ss′} eq n-here-asgn = bnd zero , n-here-bind
-∋n-len {Ss′ = asgn β ∷ Ss′} eq n-here-bind = β , n-here-asgn
-∋n-len {Ss′ = bind ∷ Ss′} eq n-here-bind = bnd zero , n-here-bind
-∋n-len {Ss′ = asgn β ∷ Ss′} eq (n-skip-asgn p) with ∋n-len (suc-inj eq) p
+-- Well-formedness reads NAMES only, and the address-free lookup reads
+-- nothing but the stack's shape — so it is carried by any
+-- length-preserving change, with no case analysis at all.  (This
+-- replaces a 70-line induction that had to thread an existential
+-- address through the `bnd`/`lvl`/`bse` trichotomy at every step.)
+∋ᵗ-len : ∀ {Ss Ss′ X} → length Ss ≡ length Ss′ → Ss ∋ᵗ X → Ss′ ∋ᵗ X
+∋ᵗ-len {Ss′ = e ∷ Ss′} eq t-here = t-here
+∋ᵗ-len {Ss′ = e ∷ Ss′} eq (t-there p) = t-there (∋ᵗ-len (suc-inj eq) p)
   where
   suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
   suc-inj refl = refl
-∋n-len {Ss′ = asgn β ∷ Ss′} eq (n-skip-asgn p) | γ , q =
-  γ , n-skip-asgn q
-∋n-len {Ss′ = bind ∷ Ss′} eq (n-skip-asgn p) with ∋n-len (suc-inj eq) p
-  where
-  suc-inj : ∀ {m n} → suc m ≡ suc n → m ≡ n
-  suc-inj refl = refl
-∋n-len {Ss′ = bind ∷ Ss′} eq (n-skip-asgn p) | lvl ℓ , q =
-  lvl ℓ , n-skip-bind-l q
-∋n-len {Ss′ = bind ∷ Ss′} eq (n-skip-asgn p) | bnd i , q =
-  bnd (suc i) , n-skip-bind-b q
-∋n-len {Ss′ = bind ∷ Ss′} eq (n-skip-asgn p) | bse j , q =
-  bse j , n-skip-bind-e q
-∋n-len {Ss′ = Ss′} eq (n-skip-bind-b p) = skip eq p
-  where
-  skip : ∀ {Ss Ss′ Bs Bs′ X i} → length (bind ∷ Ss) ≡ length Ss′
-    → (Ss ∥ Bs) ∋n X := bnd i
-    → Σ[ β ∈ Addr ] ((Ss′ ∥ Bs′) ∋n suc X := β)
-  skip {Ss′ = asgn β ∷ Ss′} eq p with ∋n-len (sucI eq) p
-    where
-    sucI : ∀ {m n} → suc m ≡ suc n → m ≡ n
-    sucI refl = refl
-  skip {Ss′ = asgn β ∷ Ss′} eq p | γ , q = γ , n-skip-asgn q
-  skip {Ss′ = bind ∷ Ss′} eq p with ∋n-len (sucI eq) p
-    where
-    sucI : ∀ {m n} → suc m ≡ suc n → m ≡ n
-    sucI refl = refl
-  skip {Ss′ = bind ∷ Ss′} eq p | lvl ℓ , q = lvl ℓ , n-skip-bind-l q
-  skip {Ss′ = bind ∷ Ss′} eq p | bnd i , q = bnd (suc i) , n-skip-bind-b q
-  skip {Ss′ = bind ∷ Ss′} eq p | bse j , q = bse j , n-skip-bind-e q
-∋n-len {Ss′ = Ss′} eq (n-skip-bind-l p) = skip eq p
-  where
-  skip : ∀ {Ss Ss′ Bs Bs′ X ℓ} → length (bind ∷ Ss) ≡ length Ss′
-    → (Ss ∥ Bs) ∋n X := lvl ℓ
-    → Σ[ β ∈ Addr ] ((Ss′ ∥ Bs′) ∋n suc X := β)
-  skip {Ss′ = asgn β ∷ Ss′} eq p with ∋n-len (sucI eq) p
-    where
-    sucI : ∀ {m n} → suc m ≡ suc n → m ≡ n
-    sucI refl = refl
-  skip {Ss′ = asgn β ∷ Ss′} eq p | γ , q = γ , n-skip-asgn q
-  skip {Ss′ = bind ∷ Ss′} eq p with ∋n-len (sucI eq) p
-    where
-    sucI : ∀ {m n} → suc m ≡ suc n → m ≡ n
-    sucI refl = refl
-  skip {Ss′ = bind ∷ Ss′} eq p | lvl m , q = lvl m , n-skip-bind-l q
-  skip {Ss′ = bind ∷ Ss′} eq p | bnd i , q = bnd (suc i) , n-skip-bind-b q
-  skip {Ss′ = bind ∷ Ss′} eq p | bse j , q = bse j , n-skip-bind-e q
-∋n-len {Ss′ = Ss′} eq (n-skip-bind-e p) = skip eq p
-  where
-  skip : ∀ {Ss Ss′ Bs Bs′ X j} → length (bind ∷ Ss) ≡ length Ss′
-    → (Ss ∥ Bs) ∋n X := bse j
-    → Σ[ β ∈ Addr ] ((Ss′ ∥ Bs′) ∋n suc X := β)
-  skip {Ss′ = asgn β ∷ Ss′} eq p with ∋n-len (sucI eq) p
-    where
-    sucI : ∀ {m n} → suc m ≡ suc n → m ≡ n
-    sucI refl = refl
-  skip {Ss′ = asgn β ∷ Ss′} eq p | γ , q = γ , n-skip-asgn q
-  skip {Ss′ = bind ∷ Ss′} eq p with ∋n-len (sucI eq) p
-    where
-    sucI : ∀ {m n} → suc m ≡ suc n → m ≡ n
-    sucI refl = refl
-  skip {Ss′ = bind ∷ Ss′} eq p | lvl m , q = lvl m , n-skip-bind-l q
-  skip {Ss′ = bind ∷ Ss′} eq p | bnd i , q = bnd (suc i) , n-skip-bind-b q
-  skip {Ss′ = bind ∷ Ss′} eq p | bse j , q = bse j , n-skip-bind-e q
 
 wf-len : ∀ {Ss Ss′ Bs Bs′ A} → length Ss ≡ length Ss′
   → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ A
-wf-len eq (wf-var n) with ∋n-len eq n
-wf-len eq (wf-var n) | β , q = wf-var q
+wf-len eq (wf-var n) = wf-var (∋ᵗ-len eq n)
 wf-len eq wf-ℕ = wf-ℕ
 wf-len eq wf-𝔹 = wf-𝔹
 wf-len eq (wf-⇒ a b) = wf-⇒ (wf-len eq a) (wf-len eq b)
@@ -137,7 +72,7 @@ wf-len eq (wf-∀ a) = wf-∀ (wf-len (cong suc eq) a)
 ------------------------------------------------------------------------
 
 read-wf : Sg ∣ Δ ⊢ R ⇓ A → Δ ⊢ᵗ A
-read-wf (read-var n) = wf-var n
+read-wf (read-var n) = wf-var (∋n→∋ᵗ n)
 read-wf read-ℕ = wf-ℕ
 read-wf read-𝔹 = wf-𝔹
 read-wf (read-⇒ a b) = wf-⇒ (read-wf a) (read-wf b)
@@ -153,7 +88,7 @@ pop-∋n (pop-bind-e p) = n-skip-bind-e (pop-∋n p)
 mutual
   convElt-wf-src : ∀ {ĉ} → Sg ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δₑ → Δᵢ ⊢ᵗ A
   convElt-wf-src (conv-seal rep rd p) = read-wf rd
-  convElt-wf-src (conv-unseal rep rd p na) = wf-var (pop-∋n p)
+  convElt-wf-src (conv-unseal rep rd p na) = wf-var (∋n→∋ᵗ (pop-∋n p))
   convElt-wf-src (conv-hide sc wf p na) = wf
   convElt-wf-src (conv-show sc wf p na) = wf-shift p wf
   convElt-wf-src (conv-fun ⊢s ⊢t) =
@@ -161,7 +96,7 @@ mutual
   convElt-wf-src (conv-all ⊢s) = wf-∀ (conv-wf-src ⊢s)
 
   convElt-wf-tgt : ∀ {ĉ} → Sg ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δₑ → Δₑ ⊢ᵗ B
-  convElt-wf-tgt (conv-seal rep rd p) = wf-var (pop-∋n p)
+  convElt-wf-tgt (conv-seal rep rd p) = wf-var (∋n→∋ᵗ (pop-∋n p))
   convElt-wf-tgt (conv-unseal rep rd p na) = read-wf rd
   convElt-wf-tgt (conv-hide sc wf p na) = wf-shift p wf
   convElt-wf-tgt (conv-show sc wf p na) = wf
@@ -181,17 +116,15 @@ mutual
 -- Type substitution preserves well-formedness
 ------------------------------------------------------------------------
 
-Substsᵗ : Substᵗ → Ctxᵗ → Ctxᵗ → Set
-Substsᵗ σ Δ Δ′ = ∀ {X α} → Δ ∋n X := α → Δ′ ⊢ᵗ σ X
+Substsᵗ : Substᵗ → List StackEnt → Ctxᵗ → Set
+Substsᵗ σ Ss Δ′ = ∀ {X} → Ss ∋ᵗ X → Δ′ ⊢ᵗ σ X
 
-exts-substs : ∀ {σ Ss Ss′ Bs Bs′} → Substsᵗ σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
-  → Substsᵗ (extsᵗ σ) (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
-exts-substs s n-here-bind = wf-var n-here-bind
-exts-substs s (n-skip-bind-b p) = wf-⇑ (s p)
-exts-substs s (n-skip-bind-l p) = wf-⇑ (s p)
-exts-substs s (n-skip-bind-e p) = wf-⇑ (s p)
+exts-substs : ∀ {σ Ss Ss′ Bs′} → Substsᵗ σ Ss (Ss′ ∥ Bs′)
+  → Substsᵗ (extsᵗ σ) (bind ∷ Ss) (bind ∷ Ss′ ∥ Bs′)
+exts-substs s t-here = wf-var t-here
+exts-substs s (t-there p) = wf-⇑ (s p)
 
-wf-subst : ∀ {σ Ss Ss′ Bs Bs′ A} → Substsᵗ σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
+wf-subst : ∀ {σ Ss Ss′ Bs Bs′ A} → Substsᵗ σ Ss (Ss′ ∥ Bs′)
   → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ substᵗ σ A
 wf-subst s (wf-var n) = s n
 wf-subst s wf-ℕ = wf-ℕ
@@ -204,11 +137,9 @@ wf-inst : ∀ {Ss Bs A B} → (bind ∷ Ss ∥ Bs) ⊢ᵗ B → (Ss ∥ Bs) ⊢�
   → (Ss ∥ Bs) ⊢ᵗ B [ A ]ᵗ
 wf-inst {Ss = Ss} {Bs = Bs} {A = A} wfB wfA = wf-subst single wfB
   where
-  single : Substsᵗ (singleTyEnv A) (bind ∷ Ss ∥ Bs) (Ss ∥ Bs)
-  single n-here-bind = wfA
-  single (n-skip-bind-b p) = wf-var p
-  single (n-skip-bind-l p) = wf-var p
-  single (n-skip-bind-e p) = wf-var p
+  single : Substsᵗ (singleTyEnv A) (bind ∷ Ss) (Ss ∥ Bs)
+  single t-here = wfA
+  single (t-there p) = wf-var p
 
 ------------------------------------------------------------------------
 -- A well-typed term's type is well formed

@@ -665,7 +665,8 @@ sub-r (sub-inst₀ Sg sok) (r-skip-nu {R = S} p)
 -- unchanged; only the representation types move.
 
 wfᵗ-inst : ∀ {Sg L σ Γ Γ′ A} → Substsᵇ Sg L σ Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ A
-wfᵗ-inst r (wf-var n) = wf-var (sub-n r n)
+wfᵗ-inst r (wf-var n) with ∋ᵗ→∋n n
+wfᵗ-inst r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (sub-n r m))
 wfᵗ-inst r wf-ℕ = wf-ℕ
 wfᵗ-inst r wf-𝔹 = wf-𝔹
 wfᵗ-inst r (wf-⇒ a b) = wf-⇒ (wfᵗ-inst r a) (wfᵗ-inst r b)

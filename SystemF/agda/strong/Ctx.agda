@@ -228,7 +228,7 @@ NameFn Γ = ∀ {X Y α} → Γ ∋n X := α → Γ ∋n Y := α → X ≡ Y
 
 infix 4 _⊢ᵗ_
 data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
-  wf-var : Γ ∋n X := α → Γ ⊢ᵗ ` X
+  wf-var : stk Γ ∋ᵗ X → Γ ⊢ᵗ ` X
   wf-ℕ   : Γ ⊢ᵗ `ℕ
   wf-𝔹   : Γ ⊢ᵗ `𝔹
   wf-⇒   : Γ ⊢ᵗ A → Γ ⊢ᵗ B → Γ ⊢ᵗ A ⇒ B
@@ -261,7 +261,7 @@ data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
 ∋n-rebase (n-skip-bind-e p) = n-skip-bind-e (∋n-rebase p)
 
 wf-rebase : ∀ {Ss Bs Bs′ A} → (Ss ∥ Bs) ⊢ᵗ A → (Ss ∥ Bs′) ⊢ᵗ A
-wf-rebase (wf-var n) = wf-var (∋n-rebase n)
+wf-rebase (wf-var n) = wf-var n
 wf-rebase wf-ℕ = wf-ℕ
 wf-rebase wf-𝔹 = wf-𝔹
 wf-rebase (wf-⇒ a b) = wf-⇒ (wf-rebase a) (wf-rebase b)

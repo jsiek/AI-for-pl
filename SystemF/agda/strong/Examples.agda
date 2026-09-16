@@ -38,7 +38,7 @@ module §6 where
   P = (idᴾ • (` 0 ⇒ ` 0) [ `ℕ ]) · ($ 7)
 
   ⊢P : [] ∣ ([] ∥ []) ∣ [] ⊢ P ⦂ `ℕ
-  ⊢P = ⊢· (⊢•[] (⊢Λ (Vs Sƛ) (⊢ƛ (wf-var n-here-asgn) (⊢` here))) wf-ℕ) ⊢$
+  ⊢P = ⊢· (⊢•[] (⊢Λ (Vs Sƛ) (⊢ƛ (wf-var t-here) (⊢` here))) wf-ℕ) ⊢$
 
   -- TyBeta's conversion, as the notes write it:
   --   ((seal{-X:=α} ∷ id(X)) → (unseal{+X:=α} ∷ id(ℕ))) ∷ id(ℕ→ℕ)
@@ -115,9 +115,9 @@ module K where
 
   ⊢g : [] ∣ ([] ∥ []) ∣ [] ⊢ g ⦂ `∀ Bₓ
   ⊢g = ⊢Λ (Vs Sƛ)
-        (⊢ƛ (wf-var n-here-asgn)
+        (⊢ƛ (wf-var t-here)
           (⊢Λ (Vs Sƛ)
-            (⊢ƛ (wf-var n-here-asgn) (⊢` (there here)))))
+            (⊢ƛ (wf-var t-here) (⊢` (there here)))))
 
   -- the notes' c_ZX and c_X, and the builder agrees with both
   c_ZX : Conv
@@ -271,13 +271,13 @@ module §14 where
 
   ⊢P : [] ∣ ([] ∥ []) ∣ [] ⊢ P ⦂ ∀ZZ→Z
   ⊢P = ⊢· (⊢•[] (⊢Λ (Vs Sƛ)
-                   (⊢ƛ (wf-∀ (wf-⇒ (wf-var n-here-bind) (wf-var n-here-bind)))
+                   (⊢ƛ (wf-∀ (wf-⇒ (wf-var t-here) (wf-var t-here)))
                      (⊢Λ (Vs Sƛ)
-                       (⊢ƛ (wf-var n-here-asgn)
-                         (⊢· (⊢•[] (⊢` (there here)) (wf-var n-here-asgn))
+                       (⊢ƛ (wf-var t-here)
+                         (⊢· (⊢•[] (⊢` (there here)) (wf-var t-here))
                              (⊢` here))))))
                 wf-ℕ)
-          (⊢Λ (Vs Sƛ) (⊢ƛ (wf-var n-here-asgn) (⊢` here)))
+          (⊢Λ (Vs Sƛ) (⊢ƛ (wf-var t-here) (⊢` here)))
 
   -- X ∉ B, so the builder takes the MISS equation: one identity
   -- crossing, exactly as the notes write `+X(B) = id{+X:=α} ∷ id(B)`.

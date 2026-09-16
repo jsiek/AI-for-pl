@@ -73,7 +73,8 @@ ext-renames r (n-skip-bind-l p) = n-skip-bind-l (r p)
 ext-renames r (n-skip-bind-e p) = n-skip-bind-e (r p)
 
 wf-ren : ∀ {ρ Γ Γ′ A} → Renamesᵗ ρ Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ renameᵗ ρ A
-wf-ren r (wf-var n) = wf-var (r n)
+wf-ren r (wf-var n) with ∋ᵗ→∋n n
+wf-ren r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (r m))
 wf-ren r wf-ℕ = wf-ℕ
 wf-ren r wf-𝔹 = wf-𝔹
 wf-ren r (wf-⇒ a b) = wf-⇒ (wf-ren r a) (wf-ren r b)

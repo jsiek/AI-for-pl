@@ -228,8 +228,9 @@ ext-rennames r (n-skip-bind-e p) | β , q = shift-names q
 
 wf-rn : ∀ {ρ} → RenNames ρ (Ss ∥ Bs) (Ss′ ∥ Bs′)
   → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ renameᵗ ρ A
-wf-rn r (wf-var n) with r n
-wf-rn r (wf-var n) | β , q = wf-var q
+wf-rn r (wf-var n) with ∋ᵗ→∋n n
+wf-rn r (wf-var n) | α , m with r m
+wf-rn r (wf-var n) | α , m | β , q = wf-var (∋n→∋ᵗ q)
 wf-rn r wf-ℕ = wf-ℕ
 wf-rn r wf-𝔹 = wf-𝔹
 wf-rn r (wf-⇒ a b) = wf-⇒ (wf-rn r a) (wf-rn r b)
@@ -238,17 +239,18 @@ wf-rn r (wf-∀ a) = wf-∀ (wf-rn (ext-rennames r) a)
 wf-⇑ : (Ss ∥ Bs) ⊢ᵗ A → (bind ∷ Ss ∥ Bs) ⊢ᵗ renameᵗ suc A
 wf-⇑ = wf-rn shift-names
 
-SubstsᵗM : Substᵗ → Ctxᵗ → Ctxᵗ → Set
-SubstsᵗM σ Γ Γ′ = ∀ {Y α} → Γ ∋n Y := α → Γ′ ⊢ᵗ σ Y
+-- The address-free lookup is what makes this two clauses: a name is
+-- either the binder's own or one below it, with no address to shift.
+-- the SOURCE is just a stack, since that is all a lookup reads
+SubstsᵗM : Substᵗ → List StackEnt → Ctxᵗ → Set
+SubstsᵗM σ Ss Γ′ = ∀ {Y} → Ss ∋ᵗ Y → Γ′ ⊢ᵗ σ Y
 
-ext-substs : ∀ {σ} → SubstsᵗM σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
-  → SubstsᵗM (extsᵗ σ) (bind ∷ Ss ∥ Bs) (bind ∷ Ss′ ∥ Bs′)
-ext-substs m n-here-bind = wf-var n-here-bind
-ext-substs m (n-skip-bind-b p) = wf-⇑ (m p)
-ext-substs m (n-skip-bind-l p) = wf-⇑ (m p)
-ext-substs m (n-skip-bind-e p) = wf-⇑ (m p)
+ext-substs : ∀ {σ} → SubstsᵗM σ Ss (Ss′ ∥ Bs′)
+  → SubstsᵗM (extsᵗ σ) (bind ∷ Ss) (bind ∷ Ss′ ∥ Bs′)
+ext-substs m t-here = wf-var t-here
+ext-substs m (t-there p) = wf-⇑ (m p)
 
-wf-substM : ∀ {σ} → SubstsᵗM σ (Ss ∥ Bs) (Ss′ ∥ Bs′)
+wf-substM : ∀ {σ} → SubstsᵗM σ Ss (Ss′ ∥ Bs′)
   → (Ss ∥ Bs) ⊢ᵗ A → (Ss′ ∥ Bs′) ⊢ᵗ substᵗ σ A
 wf-substM m (wf-var n) = m n
 wf-substM m wf-ℕ = wf-ℕ
@@ -257,17 +259,15 @@ wf-substM m (wf-⇒ a b) = wf-⇒ (wf-substM m a) (wf-substM m b)
 wf-substM m (wf-∀ a) = wf-∀ (wf-substM (ext-substs m) a)
 
 -- a closed type is well formed anywhere
-Names< : ℕ → Ctxᵗ → Set
-Names< n Γ = ∀ {Y} → Y < n → Σ[ α ∈ Addr ] Γ ∋n Y := α
+Names< : ℕ → List StackEnt → Set
+Names< n Ss = ∀ {Y} → Y < n → Ss ∋ᵗ Y
 
-ext-names : ∀ {n} → Names< n (Ss ∥ Bs) → Names< (suc n) (bind ∷ Ss ∥ Bs)
-ext-names h {zero} lt = bnd zero , n-here-bind
-ext-names h {suc Y} (s≤s lt) with h lt
-ext-names h {suc Y} (s≤s lt) | α , p = shift-names p
+ext-names : ∀ {n} → Names< n Ss → Names< (suc n) (bind ∷ Ss)
+ext-names h {zero} lt = t-here
+ext-names h {suc Y} (s≤s lt) = t-there (h lt)
 
-wf-nofree : ∀ {n} → NoFreeᵗ n S → Names< n (Ss ∥ Bs) → (Ss ∥ Bs) ⊢ᵗ S
-wf-nofree (nf-var lt) h with h lt
-wf-nofree (nf-var lt) h | α , p = wf-var p
+wf-nofree : ∀ {n} → NoFreeᵗ n S → Names< n Ss → (Ss ∥ Bs) ⊢ᵗ S
+wf-nofree (nf-var lt) h = wf-var (h lt)
 wf-nofree nf-ℕ h = wf-ℕ
 wf-nofree nf-𝔹 h = wf-𝔹
 wf-nofree (nf-⇒ a b) h = wf-⇒ (wf-nofree a h) (wf-nofree b h)
@@ -507,8 +507,8 @@ notasgn-drop : DropBindS X Ss Ss′ → NotBnd α
 notasgn-drop d nb na q = na (∋n-undropS d nb q)
 
 -- well-formedness: the substitution algebra instantiated at the drop
-drop-substs : DropBindS X Ss Ss′ → Closedᵗ S
-  → SubstsᵗM (closeEnv X S) (Ss ∥ Bs) (Ss′ ∥ Bs)
+drop-substs : ∀ {Bs} → DropBindS X Ss Ss′ → Closedᵗ S
+  → SubstsᵗM (closeEnv X S) Ss (Ss′ ∥ Bs)
 -- the decision is taken in a helper: a `with X ≟ Y` at the top level
 -- would abstract the very `X ≟ Y` that `closeEnv X S Y` is waiting on,
 -- and no equation about `closeEnv` could then be applied to the goal
@@ -516,8 +516,9 @@ drop-substs {X = X} {S = S} d cl {Y = Y} n = go (X ≟ Y)
   where
   go : Dec (X ≡ Y) → _ ⊢ᵗ closeEnv X S Y
   go (yes eq) rewrite eq | closeEnv-eq Y S = wf-closed cl
-  go (no ne) rewrite closeEnv-≢ X S Y ne with ∋n-drop∃ d n ne
-  go (no ne) | β , q = wf-var q
+  go (no ne) rewrite closeEnv-≢ X S Y ne with ∋ᵗ→∋n {Bs = []} n
+  go (no ne) | α , m with ∋n-drop∃ {Bs = []} d m ne
+  go (no ne) | α , m | β , q = wf-var (∋n→∋ᵗ q)
 
 wf-drop : DropBindS X Ss Ss′ → Closedᵗ S → (Ss ∥ Bs) ⊢ᵗ A
   → (Ss′ ∥ Bs) ⊢ᵗ closeAt X S A

@@ -364,7 +364,8 @@ read-ren∋ r (read-⇒ a b) = read-⇒ (read-ren∋ r a) (read-ren∋ r b)
 read-ren∋ r (read-∀ a) = read-∀ (read-ren∋ (ren∋-ext r) a)
 
 wf-renN : ∀ {ρ η Γ Γ′ A} → Ren∋ ρ η Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ renameᵗ ρ A
-wf-renN r (wf-var n) = wf-var (r n)
+wf-renN r (wf-var n) with ∋ᵗ→∋n n
+wf-renN r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (r m))
 wf-renN r wf-ℕ = wf-ℕ
 wf-renN r wf-𝔹 = wf-𝔹
 wf-renN r (wf-⇒ a b) = wf-⇒ (wf-renN r a) (wf-renN r b)
@@ -380,7 +381,7 @@ rd-⇑ {Sg} {Ss} {Bs} {R} {S} fix rd =
         (read-ren∋ ∋n-⇑ rd)
 
 read-wf : ∀ {Sg Γ T A} → Sg ∣ Γ ⊢ T ⇓ A → Γ ⊢ᵗ A
-read-wf (read-var n) = wf-var n
+read-wf (read-var n) = wf-var (∋n→∋ᵗ n)
 read-wf read-ℕ = wf-ℕ
 read-wf read-𝔹 = wf-𝔹
 read-wf (read-⇒ a b) = wf-⇒ (read-wf a) (read-wf b)
@@ -444,8 +445,10 @@ closeAt-wf {Ssᵢ} {Ssₑ} {Bs} {X} {α} {S} p wfS (wf-var {X = Y} n) = go (X �
   where
   go : Dec (X ≡ Y) → (Ssₑ ∥ Bs) ⊢ᵗ closeAt X S (` Y)
   go (yes refl) rewrite closeAt-hit X S = wfS
-  go (no ne) with ∋n-close p ne n
-  go (no ne) | γ , q rewrite closeAt-miss X S Y ne = wf-var q
+  go (no ne) with ∋ᵗ→∋n {Bs = Bs} n
+  go (no ne) | δ , m with ∋n-close p ne m
+  go (no ne) | δ , m | γ , q rewrite closeAt-miss X S Y ne =
+    wf-var (∋n→∋ᵗ q)
 closeAt-wf p wfS wf-ℕ = wf-ℕ
 closeAt-wf p wfS wf-𝔹 = wf-𝔹
 closeAt-wf p wfS (wf-⇒ a b) =
@@ -792,8 +795,9 @@ ne-bind f (n-skip-bind-e q) with f q
 ne-bind f (n-skip-bind-e q) | β , r = _ , ∋n-⇑ r
 
 wf-ext : ∀ {Γ Γ′ A} → NameExt Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ A
-wf-ext f (wf-var n) with f n
-wf-ext f (wf-var n) | β , q = wf-var q
+wf-ext f (wf-var n) with ∋ᵗ→∋n n
+wf-ext f (wf-var n) | α , m with f m
+wf-ext f (wf-var n) | α , m | β , q = wf-var (∋n→∋ᵗ q)
 wf-ext f wf-ℕ = wf-ℕ
 wf-ext f wf-𝔹 = wf-𝔹
 wf-ext f (wf-⇒ a b) = wf-⇒ (wf-ext f a) (wf-ext f b)
@@ -880,7 +884,7 @@ private
   §6-builder =
     revTy-typing zero (bse zero) `ℕ (` 0 ⇒ ` 0) pop-here (notasgn-⤒ [])
       r-here read-ℕ (λ η → refl)
-      (wf-⇒ (wf-var n-here-asgn) (wf-var n-here-asgn))
+      (wf-⇒ (wf-var t-here) (wf-var t-here))
 
   -- K  g = Λα,X. λx:X. Λγ,Z. λz:Z. x : the crossing descends under a
   -- `∀`, raising the name to 1 and dualising into `hide`
@@ -895,9 +899,9 @@ private
   K-builder =
     revTy-typing zero (bse zero) `ℕ (` 0 ⇒ `∀ (` 0 ⇒ ` 1)) pop-here
       (notasgn-⤒ []) r-here read-ℕ (λ η → refl)
-      (wf-⇒ (wf-var n-here-asgn)
-            (wf-∀ (wf-⇒ (wf-var n-here-bind)
-                        (wf-var (n-skip-bind-e n-here-asgn)))))
+      (wf-⇒ (wf-var t-here)
+            (wf-∀ (wf-⇒ (wf-var t-here)
+                        (wf-var (t-there t-here)))))
 
   -- §14  X ∉ B: the MISS equation, one identity crossing
   §14-builder :
@@ -907,5 +911,5 @@ private
   §14-builder =
     revTy-typing zero (bse zero) `ℕ (`∀ (` 0 ⇒ ` 0) ⇒ `∀ (` 0 ⇒ ` 0))
       pop-here (notasgn-⤒ []) r-here read-ℕ (λ η → refl)
-      (wf-⇒ (wf-∀ (wf-⇒ (wf-var n-here-bind) (wf-var n-here-bind)))
-            (wf-∀ (wf-⇒ (wf-var n-here-bind) (wf-var n-here-bind))))
+      (wf-⇒ (wf-∀ (wf-⇒ (wf-var t-here) (wf-var t-here)))
+            (wf-∀ (wf-⇒ (wf-var t-here) (wf-var t-here))))

@@ -260,7 +260,8 @@ ren-inj (ren-wk sok) = renᵃᵉ-inj suc-inj
 -- only the representation types move.
 
 wfᵗ-ren : ∀ {Sg ρ Γ Γ′ A} → Renamesᵇ Sg ρ Γ Γ′ → Γ ⊢ᵗ A → Γ′ ⊢ᵗ A
-wfᵗ-ren r (wf-var n) = wf-var (ren-n r n)
+wfᵗ-ren r (wf-var n) with ∋ᵗ→∋n n
+wfᵗ-ren r (wf-var n) | α , m = wf-var (∋n→∋ᵗ (ren-n r m))
 wfᵗ-ren r wf-ℕ = wf-ℕ
 wfᵗ-ren r wf-𝔹 = wf-𝔹
 wfᵗ-ren r (wf-⇒ a b) = wf-⇒ (wfᵗ-ren r a) (wfᵗ-ren r b)

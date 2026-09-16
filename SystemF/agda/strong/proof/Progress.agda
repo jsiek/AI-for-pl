@@ -34,7 +34,8 @@ open import strong.proof.Canonical
 ------------------------------------------------------------------------
 
 quote-total : ∀ {Δ A} (Sg : Store) → Δ ⊢ᵗ A → Σ[ R ∈ RepTy ] (Sg ∣ Δ ⊢⌊ A ⌋ R)
-quote-total Sg (wf-var n) = _ , quote-var n
+quote-total Sg (wf-var n) with ∋ᵗ→∋n n
+quote-total Sg (wf-var n) | α , m = _ , quote-var m
 quote-total Sg wf-ℕ = _ , quote-ℕ
 quote-total Sg wf-𝔹 = _ , quote-𝔹
 quote-total Sg (wf-⇒ a b) with quote-total Sg a | quote-total Sg b

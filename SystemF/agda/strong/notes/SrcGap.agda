@@ -144,3 +144,41 @@ repair = refl
 -- slides 1 ↦ 0, and its target — the crossing's OWN name — slides with
 -- it.  The branch as it stands leaves both at 1, naming a binder that
 -- is no longer there.
+
+------------------------------------------------------------------------
+-- WHAT THIS EXAMPLE DOES NOT TEST
+------------------------------------------------------------------------
+-- The repair's `substAnn` takes only trivial steps here.  In this
+-- family the seal's name is always the slot PLUS ONE — both count from
+-- the same place, but the seal's name is the Λ's variable, one binder
+-- deeper than the ∀ being instantiated — so no crossing ever sits at a
+-- name ≤ the slot and the threading never fires.
+
+noMove : slotOut d 0 ≡ 0
+noMove = refl
+
+-- Nor does taking a deeper domain, `∀Z.∀W. X`, help: the seal descends
+-- to name 2 but so does the slot's index under the `all`, keeping the
+-- gap of one.
+d′ : Conv
+d′ = all (seal 2 (lvl 0) ∷ᶜ id (` 2)) ∷ᶜ id (`∀ (` 2))
+
+noMove′ : slotOut d′ 0 ≡ 0
+noMove′ = refl
+
+-- The `all` stepping — `slotOutElt (all s) X = slotOut s (suc X) ∸ 1`,
+-- derived by hand — fires only when a crossing INSIDE the `all` sits at
+-- a name ≤ the slot there:
+d″ : Conv
+d″ = all (seal 1 (lvl 0) ∷ᶜ id (` 1)) ∷ᶜ id (`∀ (` 1))
+
+doesMove : slotOut d″ 0 ≡ 1
+doesMove = refl
+
+-- WHERE A NAME-0 CROSSING COMES FROM: the color wrap.  `crossΛ` emits
+-- `hide 0 (bse 0)`, and `TyWrap`'s slot is also 0.  So the example that
+-- would test the generalization combines the two families — a `Λ` value
+-- that has been SUBSTITUTED UNDER A `Λ` (giving the name-0 crossing,
+-- as in notes/ShowHide) and then passed to a function with a
+-- POLYMORPHIC DOMAIN (giving the seal, as here), and only then type
+-- applied.  Neither example alone reaches it.

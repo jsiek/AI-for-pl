@@ -19,8 +19,9 @@ module strong.proof.PreserveTyWrap where
 --     `bnd`: a `∀` binds a type VARIABLE (`RepTy`'s `` `ᵛ ``), so
 --     `NotBnd` is vacuous and `proof.SubstAnnTyping` has deleted it.
 --     With it goes `DeepNames`, which existed only to name the NAME
---     half of `SlotFree`; the premise below is `SlotFree zero d`
---     itself.
+--     half of `SlotFree` — and that half is gone too, now that
+--     `substAnn` threads the slot along the spine: what is left is
+--     `StepFix`, whose atomic constructors carry nothing at all.
 --
 --   * §3 used to re-prove `substAnn`'s typing against a repaired side
 --     condition, because v7's `NoBndReps` was refutable.  Its v8
@@ -61,14 +62,11 @@ open Renamesᵇ
 open import strong.proof.BuilderTyping using
   (BaseGrow; bg-here; ⊢-grow; revTy-typing; closeAt-single; notasgn-⤒)
 open import strong.proof.SubstAnnTyping using
-  (NoFreeᵗ; nf-var; nf-ℕ; nf-𝔹; nf-⇒; nf-∀; Closedᵗ; closed-⇑;
+  (NoFreeᵗ; nf-var; nf-ℕ; nf-𝔹; nf-⇒; nf-∀; Closedᵗ; wf-closed;
    RepsWf; substAnn-typing′;
-   SlotFree; sf-id; sf-cons; SlotFreeElt; sf-seal; sf-unseal; sf-hide;
-   sf-show; sf-fun; sf-all;
-   DropBindS; drop-here; drop-there; DropBind; drop-ctx; drop-unique;
-   drop-uniqueS;
-   read-drop; ∋r-drop; notasgn-drop; wf-drop; drop-pop; drop-push;
-   closeAt-∀; closeAt-shift; closeEnv-≢; <-≢)
+   SAvoids; closed-avoids; closed-tyOut;
+   StepFix; fx-id; fx-cons; fx-hide; fx-show; fx-fun;
+   slotOut; drop-here)
 open import strong.proof.CompositionTyping using (⨟-typing)
 open import strong.proof.AllTyping using (⇑ᶜ; allView-typing)
 open import strong.proof.SrcTyping using (srcᶜ-sound)
@@ -238,11 +236,19 @@ quote-read-anywhere cl q = quote-read-closed {n = zero} cl q
 --
 -- THE EXTRA PREMISES, and nothing else:
 --
---   * `Closedᵗ A`  — the KNOWN GAP, spent TWICE (§5 and §2); see §9.1.
---   * `SlotFree zero d` — see §9.2.  In v7 this was split into a NAME
---     half (`DeepNames`) and an ADDRESS half that §1 proved free; with
---     `bnd` gone the address half is not there to prove, so the premise
---     is `SlotFree` itself.
+--   * `Closedᵗ A`  — the KNOWN GAP, spent THREE times: §5's read-back,
+--     `wf-closed` for `substAnn`'s well-formedness premise on the slot's
+--     type, and `closed-avoids`/`closed-tyOut` for its `SAvoids`
+--     premise.  See §8.1: a NON-closed A really does break the
+--     annotation equation at a crossing whose name it mentions.
+--   * `StepFix zero d` and `slotOut d zero ≡ zero` — see §8.2.  These
+--     are what is left of v7's `SlotFree zero d`, and they are much
+--     weaker: the atomic constructors of `StepFix` carry nothing at
+--     all, so the probe of §8.2 — which REFUTED `SlotFree` — satisfies
+--     both (`stepfixₚ`, `slotₚ`).  What is left says only that the slot
+--     index comes back to itself across an `↦`'s components, across an
+--     `all`'s body, and across `d` as a whole, which is what
+--     `substAnnElt`'s own equations for those three assume.
 --   * `srcᶜ d ≢ nothing` — `instReveal`'s OTHER branch, `show X α ∷ᶜ d`,
 --     is ill-typed at a `TyWrap` redex; see §9.3.
 --
@@ -252,33 +258,34 @@ quote-read-anywhere cl q = quote-read-closed {n = zero} cl q
 tyWrapOk′ : ∀ {Sg Δ V c d A B R C}
   → StoreOk Sg → Flat Δ → NameFn Δ → Scoped Sg Δ
   → Closedᵗ A
-  → SlotFree zero d
+  → StepFix zero d
+  → slotOut d zero ≡ zero
   → ¬ (srcᶜ d ≡ nothing)
   → allView c ≡ just d
   → Sg ∣ Δ ⊢⌊ A ⌋ R
   → Sg ∣ Δ ∣ [] ⊢ ((Λ V) ⟨ c ⟩) • B [ A ] ⦂ C
   → Sg ∣ Δ ∣ [] ⊢ ν R ∙ (V ⟨ instReveal zero (bse zero) A d ⟩) ⦂ C
-tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf
+tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf slotOk
   srcOk eq q (⊢•[] (⊢⟨⟩ nfc (⊢Λ {Ss = Ssᵢ} {Bs = Bsᵢ} val ⊢V) ⊢c) wfA)
   with flat-bas fl | flat-bas (conv-flat ⊢c fl)
-tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf
+tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf slotOk
   srcOk eq q (⊢•[] (⊢⟨⟩ nfc (⊢Λ {Ss = Ssᵢ} {Bs = Bsᵢ} val ⊢V) ⊢c) wfA)
   | refl | refl with allView-typing nfΔ ⊢c eq
-tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf
+tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf slotOk
   srcOk eq q (⊢•[] (⊢⟨⟩ nfc (⊢Λ {Ss = Ssᵢ} {Bs = Bsᵢ} val ⊢V) ⊢c) wfA)
   | refl | refl | ⊢d , nfd with srcᶜ d | srcᶜ-sound ⊢d | srcOk
 
-tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf
+tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf slotOk
   srcOk eq q (⊢•[] (⊢⟨⟩ nfc (⊢Λ {Ss = Ssᵢ} {Bs = Bsᵢ} val ⊢V) ⊢c) wfA)
   | refl | refl | ⊢d , nfd | just A₁ | inj₂ () | _
-tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf
+tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf slotOk
   srcOk eq q (⊢•[] (⊢⟨⟩ nfc (⊢Λ {Ss = Ssᵢ} {Bs = Bsᵢ} val ⊢V) ⊢c) wfA)
   | refl | refl | ⊢d , nfd | nothing | inj₁ () | _
-tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf
+tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf slotOk
   srcOk eq q (⊢•[] (⊢⟨⟩ nfc (⊢Λ {Ss = Ssᵢ} {Bs = Bsᵢ} val ⊢V) ⊢c) wfA)
   | refl | refl | ⊢d , nfd | nothing | inj₂ refl | nj = ⊥-elim (nj refl)
 
-tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf
+tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA sf slotOk
   srcOk eq q (⊢•[] (⊢⟨⟩ nfc (⊢Λ {Ss = Ssᵢ} {Bs = Bsᵢ} val ⊢V) ⊢c) wfA)
   | refl | refl | ⊢d , nfd | just A₁ | inj₁ refl | _ =
   ⊢ν wfR
@@ -311,8 +318,11 @@ tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA s
 
   ⊢sub₀ : Sg ∣ (Ssᵢ ∥ []) ⊢ substAnn zero A d
             ∶ closeAt zero A A₁ ⇝ closeAt zero A B ⊣ (Ssₑ ∥ [])
-  ⊢sub₀ = substAnn-typing′ (storeOk-RepsWf sok) clA sf
-            (drop-ctx drop-here) (drop-ctx drop-here) ⊢d
+  -- the slot is the `∀`'s own binder assignment, at index zero on
+  -- BOTH sides, and `slotOk` says `d` puts it back where it was
+  ⊢sub₀ = substAnn-typing′ (storeOk-RepsWf sok) (closed-avoids d clA) sf
+            (wf-closed clA) slotOk (closed-tyOut d clA)
+            drop-here drop-here ⊢d
 
   -- the `ν` pushes a base entry; §3 says it leaves the conversion alone
   ⊢subν : Sg ∣ (⤒ Ssᵢ ∥ nuBind R ∷ []) ⊢ substAnn zero A d
@@ -335,69 +345,83 @@ tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA s
 ------------------------------------------------------------------------
 -- §7  WHAT IS NOT CLOSED: `TyWrapOk` ITSELF
 ------------------------------------------------------------------------
--- `proof.PreserveTyDef.TyWrapOk` is `tyWrapOk′` MINUS the three extra
+-- `proof.PreserveTyDef.TyWrapOk` is `tyWrapOk′` MINUS the four extra
 -- premises, so the wrapper
 --
 --   tyWrapOk : TyWrapOk
 --   tyWrapOk sok fl nf scp eq q ⊢M =
---     tyWrapOk′ sok fl nf scp {- Closedᵗ A -} {- SlotFree zero d -}
+--     tyWrapOk′ sok fl nf scp {- Closedᵗ A -} {- StepFix zero d -}
+--                             {- slotOut d zero ≡ zero -}
 --                             {- srcᶜ d ≢ nothing -} eq q ⊢M
 --
--- cannot be written: none of the three is derivable from the redex.
--- §8 gives a probe for each.  The repairs they call for all live in
--- files this module may not touch:
+-- cannot be written: none of them is derivable from the redex.  §8
+-- gives a probe for each.  The repairs they call for live in files
+-- this module may not touch:
 --
---   (1) `substAnn` should SHIFT `S` at every crossing, exactly as its
---       own `all` equation already does
---       (`substAnnElt X S (all s) = all (substAnn (suc X) (⇑ᵗ S) s)`);
---       then `closeEnv-shift`'s slot branch would not need
---       `renameᵗ (shiftAtᵗ W) S ≡ S`, and `Closedᵗ S` would go.
---       Equally, `revTy`'s read-back premise would then be stated at
---       the interior's own coordinates.  (strong/Conversion.agda)
+--   (1) `substAnn` now THREADS the slot and `S` along the spine
+--       (`substAnnOut`), which is what removed v7's `SlotFree` — the
+--       §8.2 probe below, which REFUTED it, satisfies what took its
+--       place.  What `Closedᵗ A` still buys is §5's read-back plus
+--       `SubstAnnTyping.SAvoids`: going outward across an `unseal`/
+--       `show`, `S` must not mention the name the crossing removes,
+--       and across a `seal`/`hide` it must not mention the one the
+--       frame gains — see §8.1, where a NON-closed `A` breaks the
+--       annotation equation outright.  (strong/Conversion.agda)
 --
 --   (2) `allView`'s `all⁺` must not let a NESTED `all s` contribute
 --       `elts s` unshifted: those elements keep their own names, and
 --       a name 0 among them sits AT the slot `substAnn` is removing.
+--       That no longer makes the redex ILL TYPED — §8.2 now goes
+--       through — but it is still what puts an `asgn` above the slot.
 --       (strong/Conversion.agda, `all⁺ (all s) = just (elts s)`)
 --
 --   (3) `instReveal`'s `nothing` branch, `show X α ∷ᶜ c`, crosses ONE
 --       assignment where the redex needs the `∀`'s binder slot to
 --       DISAPPEAR.  (strong/ConversionReduction.agda)
 --
--- Independently, `proof.SubstAnnTyping`'s `RepsWf` quantifies its
--- context too widely and is refuted outright by §1's
--- `repsWf-refuted`; §1/§2's base-indexed `RepsWf` is the repair, and
--- it is what `tyWrapOk′` uses.
+--   (4) `slotOut d zero ≡ zero` — and the `↦`/`all` equations inside
+--       `StepFix` — say the slot index returns to itself.  They are
+--       NOT derivable: `substAnnElt` hands an `↦`'s two components the
+--       SAME slot index although they run in opposite directions, and
+--       with Γᵢ = asgn α ∷ bind ∷ Ss, Γₑ = bind ∷ Ss the components
+--       `show 0 α ∷ᶜ id` and `hide 0 α ∷ᶜ id` move the slot 1 ↦ 0.
+--       The repair would be for `substAnnElt` to step the index into
+--       the contravariant component too.  (strong/Conversion.agda)
 
 ------------------------------------------------------------------------
 -- §8  THE PROBES
 ------------------------------------------------------------------------
 
--- 8.1  `Closedᵗ A` — `substAnn` carries S past a crossing UNSHIFTED.
+-- 8.1  `Closedᵗ A` — `S` may not mention a name the spine moves.
 --
 -- Take the §14-shaped word `d = show 1 (lvl 0) ∷ᶜ id (` 0)` under the
 -- slot X = 0, and instantiate at the type argument `S = ` 0` — a
 -- variable that IS in scope at the redex (a sealed name), so a
--- perfectly legal `•B[A]`, but not closed.  Then
+-- perfectly legal `•B[A]`, but not closed.  Going outward the `show`
+-- REMOVES the name 1, so `substAnn` re-expresses S by
+-- `renameᵗ (nameSub 1)`, and the slot moves to `nameSub 1 0 = 0`.
+-- `conv-show` states its source as `renameᵗ (shiftAtᵗ (nameSub 0 1))`
+-- of its target, so the equation `substAnn-typing` must discharge at
+-- this element (`closeAt-unshift`, with A = ` 0) has the two sides:
 --
---   substAnn 0 (` 0) d  =  show 0 (lvl 0) ∷ᶜ id (` 0)
---
--- and `conv-show` states its source as `renameᵗ (shiftAtᵗ 0)` of its
--- target.  The equation `substAnn-typing` must discharge there is
--- `closeAt-shift 0 1 S A`, whose two sides are:
---
---   closeAt 0 (` 0) (renameᵗ (shiftAtᵗ 1) (` 0))            =  ` 0
---   renameᵗ (shiftAtᵗ (nameSub 0 1)) (closeAt 0 (` 0) (` 0))  =  ` 1
+--   closeAt 0 (` 0) (renameᵗ (shiftAtᵗ 1) (` 0))              =  ` 0
+--   renameᵗ (shiftAtᵗ (nameSub 0 1))
+--     (closeAt (nameSub 1 0) (renameᵗ (nameSub 1) (` 0)) (` 0)) =  ` 1
 --
 -- The interior demands `` ` 0 `` (the slot's own variable, read under
--- the crossing) and the substituted annotation supplies `` ` 1 ``: the
--- crossing inserted a name entry that `S` was never shifted past.
-closed-needed :
+-- the crossing) and the substituted annotation supplies `` ` 1 ``.
+-- `SAvoids`' premise for a `show` at name Y is exactly what fails:
+-- `Avoidᵗ 0 (` 0)` is false, and 0 is `nameSub 0 1`, the name the
+-- dropped frame loses here.
+avoid-needed :
   ¬ (closeAt zero (` zero) (renameᵗ (shiftAtᵗ 1) (` zero))
-      ≡ renameᵗ (shiftAtᵗ (nameSub zero 1)) (closeAt zero (` zero) (` zero)))
-closed-needed ()
+      ≡ renameᵗ (shiftAtᵗ (nameSub zero 1))
+          (closeAt (nameSub 1 zero) (renameᵗ (nameSub 1) (` zero))
+            (` zero)))
+avoid-needed ()
 
--- 8.2  `SlotFree zero d` — a REDEX whose `d` has a crossing at name 0.
+-- 8.2  THE PROBE THAT BOUGHT THE THREADING: a REDEX whose `d` has a
+-- crossing at name 0.
 --
 -- `all⁺` does shift the name of every `hide`/`show` it lifts, so those
 -- land at `suc X > 0`.  But `all⁺ (all s) = just (elts s)` passes a
@@ -407,9 +431,13 @@ closed-needed ()
 -- well-typed, normal, INERT value at a flat scoped context whose
 -- `allView` has crossings at name 0 in both directions.
 --
--- This probe is unchanged by v8 except for the constructor arity:
--- `SlotFreeElt` lost its `NotBnd` argument, and what is left — `X < Y`
--- — is exactly what fails.
+-- In v7 this REFUTED `SlotFree zero sₚ`: its `sf-hide` demanded
+-- `0 < 0`.  With the slot threaded the conditions that took its place
+-- HOLD of exactly this word (`stepfixₚ`, `slotₚ` below) — the hide
+-- moves the slot 0 ↦ 1, the `↦` keeps it at 1, the show moves it back
+-- 1 ↦ 0 — which is the whole point of the change.  What is left to ask
+-- of the `↦` is only that its two components agree about where the
+-- slot is, and here they do, both being identities.
 
 private
   Sgₚ : Store
@@ -473,9 +501,19 @@ private
              ⦂ ((`ℕ ⇒ `ℕ) [ `ℕ ]ᵗ)
   redexₚ = ⊢•[] (⊢⟨⟩ nfcₚ (⊢Λ (Vs Sƛ) ⊢Vₚ) ⊢cₚ) wf-ℕ
 
-  -- yet the name condition fails on the very first element
-  slotfree-refutedₚ : ¬ (SlotFree zero sₚ)
-  slotfree-refutedₚ (sf-cons (sf-hide ()) _)
+  -- ... and the conditions that replaced `SlotFree` hold of it: the
+  -- slot travels 0 ↦ 1 ↦ 1 ↦ 0 along the spine
+  slotₚ : slotOut sₚ zero ≡ zero
+  slotₚ = refl
+
+  stepfixₚ : StepFix zero sₚ
+  stepfixₚ = fx-cons fx-hide
+               (fx-cons (fx-fun fx-id fx-id refl refl)
+                 (fx-cons fx-show fx-id))
+
+  -- the type argument is ground, so the `S`-condition is free too
+  avoidsₚ : SAvoids zero `ℕ sₚ
+  avoidsₚ = closed-avoids sₚ nf-ℕ
 
 -- 8.3  `srcᶜ d ≢ nothing` — `instReveal`'s other branch is ill-typed.
 --

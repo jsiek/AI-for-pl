@@ -1,183 +1,125 @@
+-- Strong System F v8 — PROGRESS.
+--
+-- Every case is discharged here except one, which the module takes as a
+-- parameter: at a boundary over a SIMPLE value, the conversion is
+-- INERT (so the boundary is a value) or ACTIVE — the body is a literal
+-- the `base` view sees through, and `Const` fires.  That is the
+-- canonicity obligation notes-v8.md flags under "Conversion views";
+-- `proof.ConvCanonicity.canonicity` PROVES it, and `strong.Progress`
+-- instantiates this module with it.  The parameter stays so that the
+-- case analysis here and the canonicity argument there remain
+-- separable.
 module strong.proof.Progress where
 
--- PROGRESS for the conversion-boundary calculus — THE PROOF SCRIPT.
--- The public statement is `strong.Progress.progress`, a one-line wrapper
--- around the `progress` below.
---
---     a closed, well-typed term is a VALUE or it STEPS.
---
--- The three ordinary cases (application, type application, Λ) are the
--- usual ones, decided by strong.proof.Canonical — type application at a
--- ∀-conversion wrapper takes ONE MORE `canon-∀`, on the boundary's
--- interior, because TyPeelR is split on it (`progress-·[]-∀conv`).  The
--- boundary case is
--- the whole content of the theorem, and it is a two-step argument:
---
---   1. run the induction hypothesis on the INTERIOR, at `interior Θ Δ`
---      (`env`'s second premise types it there).  An interior step lifts by
---      ξ-⟪⟫; an interior VALUE moves to step 2.
---
---   2. classify the CONVERSION by inverting `env`'s conversion premise —
---      i.e. `act-or-inert` (strong.Terms) with its two branches read off
---      the derivation, so that the ACTIVE branches keep their premises:
---
---        INERT  (id (` X) / seal / ↦ / `∀)   the boundary is a VALUE, V-⟪⟫.
---        ACTIVE:
---          conv-id b   — base exterior, so the interior value is a
---                        NUMERAL (canon-base): Drop$ fires, with `b` the
---                        rule's own Base premise.
---          conv-unseal d — the interior value has the VARIABLE type ` Y,
---                        so it is a concealing wrapper or one whose
---                        conversion is `id (` Z)` (canon-var), and
---                        CancelR / IdPush fires.
---                        Both rules ask for `convCtx Θ Δ ∋ Y := A`, which IS
---                        `conv-unseal`'s own premise `d` — the lookup is
---                        FREE, never re-derived.
---
--- The historically hard case — a value at an abstract type — costs one
--- two-way split here (canon-var), because the only conversions with a
--- variable target type are precisely the two the id-layer rules consume.
---
--- ZERO module parameters: nothing is assumed, nothing is postulated.
-
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; [])
+open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
-open import Data.Empty using (⊥; ⊥-elim)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Data.Empty using (⊥-elim)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; sym; subst)
 
-open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
+open import strong.Types
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
+open import strong.ConversionReduction using (arr; allView; base)
 open import strong.Terms
-open import strong.CtxMorph
-open import strong.TermSubst
 open import strong.Reduction
+open import strong.proof.Interior using (conv-interior)
 open import strong.proof.Canonical
 
 ------------------------------------------------------------------------
--- THE BOUNDARY CASE
+-- Representation totality: every well-formed type has a representation
 ------------------------------------------------------------------------
 
--- Split off so that the conversion classification is a flat, named case
--- analysis.  The interior has already been run: `v` is the interior
--- value, `⊢M` its typing at `interior Θ Δ`, `⊢c` the conversion.
---
--- The split is `act-or-inert` — the classification is total over TYPED
--- conversions — and the ACTIVE branches recover their premises from `⊢c`
--- by the conversion inversions of strong.Conversion, so no lookup and no
--- Base witness is ever re-derived:
---
---   A-idb b   : `b` IS Drop$'s Base premise;
---               conv-id-base-src pins the source type to the base type.
---   A-unseal  : conv-unseal-src pins the source type to ` Y, and
---               unseal-target-is-rep IS CancelR's / IdPush's
---               `convCtx Θ Δ ∋ Y := A` premise.
-progress-env : ∀ {Δ Θ c M Bᵢ Bₑ}
-  → Value M
-  → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-  → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
-    ------------------------------------------------------------
-  → Value (M ⟪ Θ , c ⟫)
-  ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′))
-progress-env v ⊢M ⊢c with act-or-inert ⊢c
-
--- INERT conversion over an interior value: the boundary IS a value.
-progress-env v ⊢M ⊢c | inj₂ ic = inj₁ (V-⟪⟫ v ic)
-
--- ACTIVE `id A` at a base type: the interior value is a numeral.
-progress-env v ⊢M ⊢c | inj₁ (A-idb b)
-  with canon-base v b (⊢ty≡ (conv-id-base-src b ⊢c) ⊢M)
-progress-env v ⊢M ⊢c | inj₁ (A-idb b) | n , refl = inj₂ ($ n , Drop$ b)
-
--- ACTIVE `unseal Y`: the interior value sits at the VARIABLE type ` Y,
--- so it is a concealing wrapper or one whose conversion is `id (` Z)` —
--- and those two are exactly CancelR's and IdPush's left-hand sides.
-progress-env v ⊢M ⊢c | inj₁ A-unseal
-  with canon-var v (⊢ty≡ (conv-unseal-src ⊢c) ⊢M)
-progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₁ refl =
-  inj₂ (_ , CancelR vW (unseal-target-is-rep ⊢c))
-progress-env v ⊢M ⊢c | inj₁ A-unseal | W , Θ₁ , Z , vW , inj₂ refl =
-  inj₂ (_ , IdPush vW (unseal-target-is-rep ⊢c))
+quote-total : ∀ {Δ A} (Sg : Store) → Δ ⊢ᵗ A → Σ[ R ∈ RepTy ] (Sg ∣ Δ ⊢⌊ A ⌋ R)
+quote-total Sg (wf-var n) with ∋ᵗ→∋n n
+quote-total Sg (wf-var n) | α , m = _ , quote-var m
+quote-total Sg wf-ℕ = _ , quote-ℕ
+quote-total Sg wf-𝔹 = _ , quote-𝔹
+quote-total Sg (wf-⇒ a b) with quote-total Sg a | quote-total Sg b
+quote-total Sg (wf-⇒ a b) | _ , qa | _ , qb = _ , quote-⇒ qa qb
+quote-total Sg (wf-∀ a) with quote-total Sg a
+quote-total Sg (wf-∀ a) | _ , qa = _ , quote-∀ qa
 
 ------------------------------------------------------------------------
--- THE TYPEELR SPLIT, DECIDED BY `canon-∀`
+-- A value at a ground type is a literal
 ------------------------------------------------------------------------
 
--- TyPeelR is TWO CLAUSES (strong.Reduction, 2026-09-08), split on the
--- crossed boundary's INTERIOR, and `canon-∀` hands the split EXACTLY its
--- two patterns — a `Λ` over a value, or a wrapper with a `∀` conversion.
--- So the pair is TOTAL over canonical `∀`-values: it REPLACES the single
--- rule rather than supplementing it.
---
--- Both clauses' premises come off the redex's own derivation, and ONE
--- inversion supplies both: `conv-all-inv` gives the conversion typing
--- `⊢s` (TyPeelR's pushed-in annotation is the INTERIOR ∀-body, which the
--- rule carries as a premise — strong.Reduction, repair 2a) and pins the
--- interior's type to `` `∀ A₀ ``, which is what lets `canon-∀` run on the
--- interior at all.
-progress-·[]-∀conv : ∀ {Δ V Θ s B A C} → Value V
-  → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-    -----------------------------------------------------------
-  → Σ[ M ∈ Term ] (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M)
-progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA) with conv-all-inv ⊢c
-progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
-  | A₀ , B₀ , refl , eqₑ , ⊢s with canon-∀ v ⊢V
-progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
-  | A₀ , B₀ , refl , eqₑ , ⊢s | inj₁ (N , vN , refl) =
-  _ , TyPeelR-Λ vN ⊢s
-progress-·[]-∀conv v (⊢·[] (env mwᵥ ⊢V ⊢c wE) wA)
-  | A₀ , B₀ , refl , eqₑ , ⊢s | inj₂ (W , Θ′ , s′ , vW , refl) =
-  _ , TyPeelR-⟪⟫ vW ⊢s
+value-ℕ : ∀ {Sg Δ V} → Value V → Sg ∣ Δ ∣ [] ⊢ V ⦂ `ℕ
+  → Σ[ n ∈ ℕ ] (V ≡ $ n)
+value-ℕ (Vs simple) ⊢V = simple-ℕ simple ⊢V
+value-ℕ (V⟨⟩ simple nf app) (⊢⟨⟩ nf′ ⊢M conv) =
+  ⊥-elim (inert-ground app
+           (subst GroundShape (sym (conv-target conv)) ground-ℕ))
 
 ------------------------------------------------------------------------
--- THE THEOREM
+-- The canonicity obligation
 ------------------------------------------------------------------------
 
-progress : ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
-  → Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
+Canonicity : Set
+Canonicity = ∀ {Sg Δᵢ Δ V c A B}
+  → Simple V
+  → Sg ∣ Δᵢ ∣ [] ⊢ V ⦂ A
+  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
+  → NF c
+  → Inert c ⊎ (Σ[ ι ∈ Ty ] (Literal V × (base c ≡ just ι)))
 
--- ` x — impossible at the empty term context.
-progress (⊢` ())
+module Proof (canon : Canonicity) where
 
--- the two introduction forms that are values outright
-progress ⊢$         = inj₁ V-$
-progress (⊢ƛ _ _)   = inj₁ V-ƛ
+  Progresses : Store → Ctxᵗ → Term → Set
+  Progresses Sg Δ M =
+    Value M ⊎ (Σ[ N ∈ Term ] Σ[ Sg′ ∈ Store ] (Sg ∣ Δ ⊢ M —→ N ⊣ Sg′))
 
--- Λ N — reduction goes UNDER Λ, so `Λ N` is a value only when N is one.
-progress (⊢Λ ⊢N) with progress ⊢N
-progress (⊢Λ ⊢N) | inj₁ vN        = inj₁ (V-Λ vN)
-progress (⊢Λ ⊢N) | inj₂ (N′ , st) = inj₂ (Λ N′ , ξ-Λ st)
+  progress : ∀ {Sg Δ M A} → Sg ∣ Δ ∣ [] ⊢ M ⦂ A → Progresses Sg Δ M
+  progress (⊢` ())
+  progress ⊢$ = inj₁ (Vs S$)
+  progress ⊢# = inj₁ (Vs S#)
 
--- L · M — Beta at a λ, Peel at a function-conversion wrapper (canon-⇒
--- exhausts).
-progress (⊢· ⊢L ⊢M) with progress ⊢L
-progress (⊢· ⊢L ⊢M) | inj₂ (L′ , st) = inj₂ (L′ · _ , ξ-·-l st)
-progress (⊢· ⊢L ⊢M) | inj₁ vL with progress ⊢M
-progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₂ (M′ , st) =
-  inj₂ (_ · M′ , ξ-·-r vL st)
-progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM with canon-⇒ vL ⊢L
-progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM | inj₁ (N , refl) =
-  inj₂ (_ , Beta vM)
-progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM
-  | inj₂ (W , Θ , s , t , vW , refl) = inj₂ (_ , Peel vW vM)
+  progress (⊢⊕ ⊢L ⊢M) with progress ⊢L
+  progress (⊢⊕ ⊢L ⊢M) | inj₂ (_ , _ , st) = inj₂ (_ , _ , ξ-⊕-l st)
+  progress (⊢⊕ ⊢L ⊢M) | inj₁ vL with value-ℕ vL ⊢L
+  progress (⊢⊕ ⊢L ⊢M) | inj₁ vL | _ , refl with progress ⊢M
+  progress (⊢⊕ ⊢L ⊢M) | inj₁ vL | _ , refl | inj₂ (_ , _ , st) =
+    inj₂ (_ , _ , ξ-⊕-r vL st)
+  progress (⊢⊕ ⊢L ⊢M) | inj₁ vL | _ , refl | inj₁ vM with value-ℕ vM ⊢M
+  progress (⊢⊕ ⊢L ⊢M) | inj₁ vL | _ , refl | inj₁ vM | _ , refl =
+    inj₂ (_ , _ , PrimBeta)
 
--- L ·[ B , A ] — TyBeta at a Λ (whose body is a value: V-Λ's premise IS
--- TyBeta's premise), and at a ∀-conversion wrapper the TyPeelR SPLIT,
--- which `progress-·[]-∀conv` decides by a second `canon-∀`, on the
--- boundary's interior.
-progress (⊢·[] ⊢L wA) with progress ⊢L
-progress (⊢·[] ⊢L wA) | inj₂ (L′ , st) = inj₂ (L′ ·[ _ , _ ] , ξ-·[] st)
-progress (⊢·[] ⊢L wA) | inj₁ vL with canon-∀ vL ⊢L
-progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl) =
-  inj₂ (_ , TyBeta vN)
-progress (⊢·[] ⊢L wA) | inj₁ vL | inj₂ (W , Θ , s , vW , refl) =
-  inj₂ (progress-·[]-∀conv vW (⊢·[] ⊢L wA))
+  progress (⊢ƛ wf body) = inj₁ (Vs Sƛ)
+  progress (⊢Λ v body) = inj₁ (Vs (SΛ v))
+  progress (⊢ν wfR ⊢M) = inj₂ (_ , _ , Alloc)
 
--- M ⟪ Θ , c ⟫ — the boundary.  The interior is typed at `interior Θ Δ`; an
--- interior step lifts by ξ-⟪⟫, an interior value goes to `progress-env`.
-progress (env mwᵥ ⊢M ⊢c wE) with progress ⊢M
-progress (env mwᵥ ⊢M ⊢c wE) | inj₂ (M′ , st) =
-  inj₂ (M′ ⟪ _ , _ ⟫ , ξ-⟪⟫ st)
-progress (env mwᵥ ⊢M ⊢c wE) | inj₁ vM = progress-env vM ⊢M ⊢c
+  progress (⊢· ⊢L ⊢M) with progress ⊢L
+  progress (⊢· ⊢L ⊢M) | inj₂ (_ , _ , st) = inj₂ (_ , _ , ξ-·-l st)
+  progress (⊢· ⊢L ⊢M) | inj₁ vL with canonical-⇒ vL ⊢L | progress ⊢M
+  progress (⊢· ⊢L ⊢M) | inj₁ vL | _ | inj₂ (_ , _ , st) =
+    inj₂ (_ , _ , ξ-·-r vL st)
+  progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ (_ , _ , refl) | inj₁ vM =
+    inj₂ (_ , _ , Beta vM)
+  progress (⊢· ⊢L ⊢M) | inj₁ vL
+    | inj₂ (_ , _ , _ , _ , _ , refl , arr-eq) | inj₁ vM =
+    inj₂ (_ , _ , Wrap vL vM arr-eq)
+
+  progress (⊢•[] ⊢L wfA) with progress ⊢L
+  progress (⊢•[] ⊢L wfA) | inj₂ (_ , _ , st) = inj₂ (_ , _ , ξ-•[] st)
+  progress {Sg = Sg} (⊢•[] ⊢L wfA) | inj₁ vL
+    with canonical-∀ vL ⊢L | quote-total Sg wfA
+  progress {Sg = Sg} (⊢•[] ⊢L wfA) | inj₁ vL
+    | inj₁ (_ , v , refl) | _ , q = inj₂ (_ , _ , TyBeta v q)
+  progress {Sg = Sg} (⊢•[] ⊢L wfA) | inj₁ vL
+    | inj₂ (_ , _ , _ , refl , all-eq) | _ , q =
+    inj₂ (_ , _ , TyWrap vL all-eq q)
+
+  progress (⊢⟨⟩ nf ⊢M conv) with progress ⊢M
+  progress (⊢⟨⟩ nf ⊢M conv) | inj₂ (_ , _ , st) =
+    inj₂ (_ , _ , ξ-⟨⟩ (conv-interior conv) st)
+  progress (⊢⟨⟩ nf ⊢M conv) | inj₁ (V⟨⟩ simple nf″ app) =
+    inj₂ (_ , _ , Merge (V⟨⟩ simple nf″ app))
+  progress (⊢⟨⟩ nf ⊢M conv) | inj₁ (Vs simple)
+    with canon simple ⊢M conv nf
+  progress (⊢⟨⟩ nf ⊢M conv) | inj₁ (Vs simple) | inj₁ app =
+    inj₁ (V⟨⟩ simple nf app)
+  progress (⊢⟨⟩ nf ⊢M conv) | inj₁ (Vs simple)
+    | inj₂ (_ , lit , base-eq) = inj₂ (_ , _ , Const lit base-eq)

@@ -1,183 +1,349 @@
 module strong.proof.Canonical where
 
--- CANONICAL FORMS for the conversion-boundary calculus.
---
--- A closed value is one of five shapes, and its EXTERIOR TYPE decides
--- which.  The whole suite is driven by ONE observation: for a wrapper
--- value `V ⟪ Θ , c ⟫` the `env` rule pins the TARGET TYPE of `c` to
--- `shiftBy (numBinds Θ) Bₑ`, and an INERT `c` determines that type's head
--- constructor outright:
---
---   id (` X)  ⇝  ` X          I-idv
---   seal X    ⇝  ` X          I-seal
---   s ↦ t     ⇝  A′ ⇒ B′      I-fun
---   `∀ s      ⇝  `∀ B         I-all
---
--- Neither ACTIVE conversion can occur under `V-⟪⟫`, so no inert
--- conversion has a BASE target at all — which is why `canon-base` returns
--- a numeral OUTRIGHT (§3), with no wrapper escape hatch.  Dually, the two
--- conversions with a VARIABLE target are exactly `seal` and the
--- id-at-a-variable — the two left-hand sides of CancelR and IdPush (§3,
--- canon-var).  This is the v1 "canon-var nightmare", dissolved: it is a
--- two-way case split on a conversion constructor, with no rep comparison
--- anywhere.
+-- Strong System F v8 — canonical forms, and the SHAPE facts the views
+-- carry: a conversion the views accept has no renaming elements, so its
+-- source has the same shape as its target.
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.List using (List; []; _∷_; _++_)
+open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Product using (Σ-syntax; _×_; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; trans; subst)
+open import Data.Unit using (⊤; tt)
+open import Relation.Binary.PropositionalEquality using
+  (_≡_; refl; sym; trans; cong; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; renameᵗ; extᵗ; ⇑ᵗ)
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
+open import strong.ConversionReduction
 open import strong.Terms
-open import strong.CtxMorph
 
 private
   variable
-    Δ : Ctxᵗ
-    A B C : Ty
-    X Y : ℕ
-    c : Conv
+    Sg : Store
+    Δ Δᵢ : Ctxᵗ
+    Γ : Ctx
+    A B A₀ : Ty
+    c s t : Conv
+    ĉ : ConvElt
+    V : Term
 
 ------------------------------------------------------------------------
--- §1  The TARGET type is the exterior type, LIFTED past the binders
+-- A typed conversion's target is its syntactic target
 ------------------------------------------------------------------------
 
--- `env` reads the target type at `shiftBy (numBinds Θ) Bₑ`, so every
--- conversion inversion below has to see through `shiftBy`.  Lifting
--- preserves the head constructor; that is all we need.  (`shiftBy-base`
--- and `shiftBy-var` are already in strong.Ctx.)
-
-shiftBy-⇒ : (n : ℕ) (A B : Ty) → shiftBy n (A ⇒ B) ≡ shiftBy n A ⇒ shiftBy n B
-shiftBy-⇒ zero    A B = refl
-shiftBy-⇒ (suc n) A B = cong ⇑ᵗ (shiftBy-⇒ n A B)
-
-shiftBy-∀ : (n : ℕ) (C : Ty) → Σ[ C′ ∈ Ty ] (shiftBy n (`∀ C) ≡ `∀ C′)
-shiftBy-∀ zero    C = C , refl
-shiftBy-∀ (suc n) C with shiftBy-∀ n C
-... | C′ , eq = renameᵗ (extᵗ suc) C′ , cong ⇑ᵗ eq
-
--- Retype a conversion along an equality of its target type.
-conv-tgt≡ : ∀ {B′} → B ≡ B′
-  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A ⇝ B′
-conv-tgt≡ refl ⊢c = ⊢c
-
--- Retype a term along an equality of its type.  Used to move an interior
--- derivation along the conversion inversions of strong.Conversion (which
--- name the SOURCE type of an `id`/`unseal`), so that the canonical-forms
--- lemmas can be applied to it.
-⊢ty≡ : ∀ {Γ M} → A ≡ B → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ ⊢ M ⦂ B
-⊢ty≡ refl ⊢M = ⊢M
+conv-target : Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → target c ≡ B
+conv-target (conv-id wf) = refl
+conv-target (conv-cons hd tl) = conv-target tl
 
 ------------------------------------------------------------------------
--- §2  What an INERT conversion can look like, read off its TARGET type
+-- Type shapes
 ------------------------------------------------------------------------
 
--- No inert conversion has a base target.  `id A` at a base type is the
--- one conversion with a base target, and it is ACTIVE (A-idb), so `V-⟪⟫`
--- can never build a value at a base type.
-inert-¬base : Inert c → Δ ⊢ c ∶ A ⇝ B → ¬ Base B
-inert-¬base I-idv  (conv-id ())
-inert-¬base I-idv  (conv-idv _)   ()
-inert-¬base I-seal (conv-seal _)  ()
-inert-¬base I-fun  (conv-fun _ _) ()
-inert-¬base I-all  (conv-all _)   ()
+data FunShape : Ty → Set where
+  fun-shape : ∀ A B → FunShape (A ⇒ B)
 
--- An ARROW target forces a function conversion: `id`/`seal` have
--- variable targets and `` `∀ `` has a ∀ target.
-inert-fun-conv : Inert c → Δ ⊢ c ∶ A ⇝ (B ⇒ C)
-  → Σ[ s ∈ Conv ] Σ[ t ∈ Conv ] (c ≡ s ↦ t)
-inert-fun-conv I-fun (conv-fun ⊢s ⊢t) = _ , _ , refl
+data AllShape : Ty → Set where
+  all-shape : ∀ A → AllShape (`∀ A)
 
--- A ∀ target forces a ∀ conversion.
-inert-all-conv : Inert c → Δ ⊢ c ∶ A ⇝ `∀ B
-  → Σ[ s ∈ Conv ] (c ≡ `∀ s)
-inert-all-conv I-all (conv-all ⊢s) = _ , refl
+data GroundShape : Ty → Set where
+  ground-ℕ : GroundShape `ℕ
+  ground-𝔹 : GroundShape `𝔹
 
--- A VARIABLE target admits exactly TWO conversions, and the variable is
--- literally the name they carry — there is no second spelling to compare.
--- These two are the left-hand sides of CancelR and IdPush.
-inert-var-conv : Inert c → Δ ⊢ c ∶ A ⇝ ` X
-  → (c ≡ seal X) ⊎ (c ≡ id (` X))
-inert-var-conv I-idv  (conv-id ())
-inert-var-conv I-idv  (conv-idv _)  = inj₂ refl
-inert-var-conv I-seal (conv-seal _) = inj₁ refl
+-- An identity crossing preserves shape: it relates A to `shiftAtᵗ X A`.
+shift-fun : ∀ X A → FunShape (renameᵗ (shiftAtᵗ X) A) → FunShape A
+shift-fun X (` Y) ()
+shift-fun X `ℕ ()
+shift-fun X `𝔹 ()
+shift-fun X (A ⇒ B) _ = fun-shape A B
+shift-fun X (`∀ A) ()
+
+shift-all : ∀ X A → AllShape (renameᵗ (shiftAtᵗ X) A) → AllShape A
+shift-all X (` Y) ()
+shift-all X `ℕ ()
+shift-all X `𝔹 ()
+shift-all X (A ⇒ B) ()
+shift-all X (`∀ A) _ = all-shape A
+
+shift-ground : ∀ X A → GroundShape (renameᵗ (shiftAtᵗ X) A) → GroundShape A
+shift-ground X (` Y) ()
+shift-ground X `ℕ _ = ground-ℕ
+shift-ground X `𝔹 _ = ground-𝔹
+shift-ground X (A ⇒ B) ()
+shift-ground X (`∀ A) ()
 
 ------------------------------------------------------------------------
--- §3  CANONICAL FORMS
+-- The views determine the target's shape
 ------------------------------------------------------------------------
 
--- BASE.  A closed value at a base type is a NUMERAL, outright — no
--- wrapper survives (§2, inert-¬base).  Note the `𝔹 instance is vacuous:
--- the calculus has no boolean literal, so there is simply no closed value
--- at `𝔹, and this statement absorbs that fact.
-canon-base : ∀ {V} → Value V → Base A → Δ ∣ [] ⊢ V ⦂ A
-  → Σ[ n ∈ ℕ ] (V ≡ $ n)
-canon-base V-$        b  ⊢$            = _ , refl
-canon-base V-ƛ        () (⊢ƛ _ _)
-canon-base (V-Λ _)    () (⊢Λ _)
-canon-base (V-⟪⟫ v ic) b (env {Θ = Θ} _ _ ⊢c _) =
-  ⊥-elim (inert-¬base ic (conv-tgt≡ (shiftBy-base (numBinds Θ) b) ⊢c) b)
+arr-target : ∀ {A₀ p c} → arr A₀ c ≡ just p → FunShape (target c)
+arr-target {A₀ = A₀} {c = c} eq with arrElts (elts c) | target c
+arr-target {A₀ = A₀} {c = c} eq | just q | C ⇒ D = fun-shape C D
+arr-target {A₀ = A₀} {c = c} () | just q | ` X
+arr-target {A₀ = A₀} {c = c} () | just q | `ℕ
+arr-target {A₀ = A₀} {c = c} () | just q | `𝔹
+arr-target {A₀ = A₀} {c = c} () | just q | `∀ B
+arr-target {A₀ = A₀} {c = c} () | nothing | _
 
-canon-ℕ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `ℕ → Σ[ n ∈ ℕ ] (V ≡ $ n)
-canon-ℕ v ⊢V = canon-base v base-ℕ ⊢V
+allView-target : ∀ {d c} → allView c ≡ just d → AllShape (target c)
+allView-target {c = c} eq with allElts (elts c) | target c
+allView-target {c = c} eq | just q | `∀ B = all-shape B
+allView-target {c = c} () | just q | ` X
+allView-target {c = c} () | just q | `ℕ
+allView-target {c = c} () | just q | `𝔹
+allView-target {c = c} () | just q | C ⇒ D
+allView-target {c = c} () | nothing | _
 
--- ARROW.  A closed value at an arrow type is a λ or a wrapper with a
--- FUNCTION CONVERSION — the two left-hand sides of Beta and Peel.  The
--- wrapper's interior is itself a value, which is exactly Peel's first
--- premise.
-canon-⇒ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ (A ⇒ B)
-  → (Σ[ N ∈ Term ] (V ≡ ƛ A ∙ N))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
-       (Value W × (V ≡ W ⟪ Θ , s ↦ t ⟫)))
-canon-⇒ V-$     ()
-canon-⇒ V-ƛ     (⊢ƛ _ _) = inj₁ (_ , refl)
-canon-⇒ (V-Λ _) ()
-canon-⇒ {A = A} {B = B} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with inert-fun-conv ic
-         (conv-tgt≡ (shiftBy-⇒ (numBinds Θ) A B) ⊢c)
-canon-⇒ (V-⟪⟫ v ic) (env _ _ ⊢c _) | s , t , refl =
-  inj₂ (_ , _ , s , t , v , refl)
+-- `arr` succeeds on the SHAPE alone; the domain only lands in the
+-- output, so success at one domain is success at any.
+arr-any : ∀ {A′ p c} (A₀ : Ty) → arr A′ c ≡ just p
+  → Σ[ c₁ ∈ Conv ] Σ[ c₂ ∈ Conv ] (arr A₀ c ≡ just (c₁ , c₂))
+arr-any {A′ = A′} {c = c} A₀ eq with arrElts (elts c) | target c
+arr-any {A′ = A′} {c = c} A₀ eq | just (Ls , Rs) | C ⇒ D = _ , _ , refl
+arr-any {A′ = A′} {c = c} A₀ () | just p | ` X
+arr-any {A′ = A′} {c = c} A₀ () | just p | `ℕ
+arr-any {A′ = A′} {c = c} A₀ () | just p | `𝔹
+arr-any {A′ = A′} {c = c} A₀ () | just p | `∀ B
+arr-any {A′ = A′} {c = c} A₀ () | nothing | _
 
--- ∀.  A closed value at a ∀ type is a Λ over a VALUE (V-Λ's premise, and
--- exactly TyBeta's premise) or a wrapper with a ∀ CONVERSION (TyPeelR's).
-canon-∀ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
-  → (Σ[ N ∈ Term ] (Value N × (V ≡ Λ N)))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ]
-       (Value W × (V ≡ W ⟪ Θ , `∀ s ⟫)))
-canon-∀ V-$      ()
-canon-∀ V-ƛ      ()
-canon-∀ (V-Λ vN) (⊢Λ _) = inj₁ (_ , vN , refl)
-canon-∀ {C = C} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with shiftBy-∀ (numBinds Θ) C
-canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq
-  with inert-all-conv ic (conv-tgt≡ eq ⊢c)
-canon-∀ (V-⟪⟫ v ic) (env _ _ ⊢c _) | C′ , eq | s , refl =
-  inj₂ (_ , _ , s , v , refl)
+-- A conversion the views accept has no RENAMING element at its head:
+-- `arr⁻`/`all⁺` are undefined there, and the fold propagates.
+headArr : Conv → Set
+headArr (id A) = ⊤
+headArr (seal X α ∷ᶜ c) = ⊥
+headArr (unseal X α ∷ᶜ c) = ⊥
+headArr (hide X α ∷ᶜ c) = ⊤
+headArr (show X α ∷ᶜ c) = ⊤
+headArr ((s ↦ t) ∷ᶜ c) = ⊤
+headArr (all s ∷ᶜ c) = ⊥
 
--- VARIABLE — the v2 canon-var.  A closed value at an abstract type is a
--- wrapper whose conversion is `seal Y` or `id (` Y)`, nothing else: the
--- two left-hand sides of CancelR and IdPush.  (`value-var-visible` is NOT
--- needed here — the conversion inversion already decides the shape;
--- visibility of the named slot is a separate, and independently available,
--- fact.)
-canon-var : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
-  → Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ Y ∈ ℕ ]
-      (Value W
-       × ((V ≡ W ⟪ Θ , seal Y ⟫) ⊎ (V ≡ W ⟪ Θ , id (` Y) ⟫)))
-canon-var V-$     ()
-canon-var V-ƛ     ()
-canon-var (V-Λ _) ()
-canon-var {X = X} (V-⟪⟫ v ic) (env {Θ = Θ} _ _ ⊢c _)
-  with inert-var-conv ic
-         (conv-tgt≡ (shiftBy-var (numBinds Θ) X) ⊢c)
-canon-var (V-⟪⟫ v ic) (env _ _ ⊢c _) | inj₁ refl =
-  _ , _ , _ , v , inj₁ refl
-canon-var (V-⟪⟫ v ic) (env _ _ ⊢c _) | inj₂ refl =
-  _ , _ , _ , v , inj₂ refl
+arr-headArr : ∀ {A₀ p} (c : Conv) → arr A₀ c ≡ just p → headArr c
+arr-headArr (id A) eq = tt
+arr-headArr (seal X α ∷ᶜ c) ()
+arr-headArr (unseal X α ∷ᶜ c) ()
+arr-headArr (hide X α ∷ᶜ c) eq = tt
+arr-headArr (show X α ∷ᶜ c) eq = tt
+arr-headArr ((s ↦ t) ∷ᶜ c) eq = tt
+arr-headArr (all s ∷ᶜ c) ()
+
+headAll : Conv → Set
+headAll (id A) = ⊤
+headAll (seal X α ∷ᶜ c) = ⊥
+headAll (unseal X α ∷ᶜ c) = ⊥
+headAll (hide X α ∷ᶜ c) = ⊤
+headAll (show X α ∷ᶜ c) = ⊤
+headAll ((s ↦ t) ∷ᶜ c) = ⊥
+headAll (all s ∷ᶜ c) = ⊤
+
+allView-headAll : ∀ {d} (c : Conv) → allView c ≡ just d → headAll c
+allView-headAll (id A) eq = tt
+allView-headAll (seal X α ∷ᶜ c) ()
+allView-headAll (unseal X α ∷ᶜ c) ()
+allView-headAll (hide X α ∷ᶜ c) eq = tt
+allView-headAll (show X α ∷ᶜ c) eq = tt
+allView-headAll ((s ↦ t) ∷ᶜ c) ()
+allView-headAll (all s ∷ᶜ c) eq = tt
+
+------------------------------------------------------------------------
+-- Inert at a given target shape
+------------------------------------------------------------------------
+
+-- Shapes are mutually exclusive.
+fun-not-all : FunShape A → AllShape A → ⊥
+fun-not-all (fun-shape _ _) ()
+
+fun-not-ground : FunShape A → GroundShape A → ⊥
+fun-not-ground (fun-shape _ _) ()
+
+all-not-ground : AllShape A → GroundShape A → ⊥
+all-not-ground (all-shape _) ()
+
+var-not-fun : ∀ {X} → FunShape (` X) → ⊥
+var-not-fun ()
+
+var-not-all : ∀ {X} → AllShape (` X) → ⊥
+var-not-all ()
+
+var-not-ground : ∀ {X} → GroundShape (` X) → ⊥
+var-not-ground ()
+
+inert-arr-view : ∀ {c} → Inert c → FunShape (target c)
+  → ∀ A₀ → Σ[ c₁ ∈ Conv ] Σ[ c₂ ∈ Conv ] (arr A₀ c ≡ just (c₁ , c₂))
+inert-arr-view {c = c} (inert-arr A′ eq) sh A₀ = arr-any {c = c} A₀ eq
+inert-arr-view {c = c} (inert-all eq) sh A₀ =
+  ⊥-elim (fun-not-all sh (allView-target {c = c} eq))
+inert-arr-view {c = c} (inert-var veq) sh A₀ =
+  ⊥-elim (var-not-fun (subst FunShape veq sh))
+
+inert-all-view : ∀ {c} → Inert c → AllShape (target c)
+  → Σ[ d ∈ Conv ] (allView c ≡ just d)
+inert-all-view {c = c} (inert-arr A′ eq) sh =
+  ⊥-elim (fun-not-all (arr-target {c = c} eq) sh)
+inert-all-view (inert-all eq) sh = _ , eq
+inert-all-view {c = c} (inert-var veq) sh =
+  ⊥-elim (var-not-all (subst AllShape veq sh))
+
+inert-ground : ∀ {c} → Inert c → GroundShape (target c) → ⊥
+inert-ground {c = c} (inert-arr A′ eq) sh =
+  fun-not-ground (arr-target {c = c} eq) sh
+inert-ground {c = c} (inert-all eq) sh =
+  all-not-ground (allView-target {c = c} eq) sh
+inert-ground {c = c} (inert-var veq) sh =
+  var-not-ground (subst GroundShape veq sh)
+
+------------------------------------------------------------------------
+-- Simple values: their types are never type variables
+------------------------------------------------------------------------
+
+simple-fun : Simple V → Sg ∣ Δ ∣ [] ⊢ V ⦂ A → FunShape A
+  → Σ[ A₁ ∈ Ty ] Σ[ N ∈ Term ] (V ≡ ƛ A₁ ∙ N)
+simple-fun S$ ⊢$ ()
+simple-fun S# ⊢# ()
+simple-fun Sƛ (⊢ƛ wf body) (fun-shape A B) = _ , _ , refl
+simple-fun (SΛ v) (⊢Λ _ body) ()
+
+simple-all : Simple V → Sg ∣ Δ ∣ [] ⊢ V ⦂ A → AllShape A
+  → Σ[ W ∈ Term ] (Value W × (V ≡ Λ W))
+simple-all S$ ⊢$ ()
+simple-all S# ⊢# ()
+simple-all Sƛ (⊢ƛ wf body) ()
+simple-all (SΛ v) (⊢Λ _ body) (all-shape A) = _ , v , refl
+
+simple-ℕ : Simple V → Sg ∣ Δ ∣ [] ⊢ V ⦂ `ℕ → Σ[ n ∈ ℕ ] (V ≡ $ n)
+simple-ℕ S$ ⊢$ = _ , refl
+simple-ℕ S# ()
+simple-ℕ Sƛ ()
+simple-ℕ (SΛ v) ()
+
+------------------------------------------------------------------------
+-- Canonical forms for values at each type shape
+------------------------------------------------------------------------
+
+canonical-ℕ : Value V → Sg ∣ Δ ∣ Γ ⊢ V ⦂ `ℕ
+  → (Σ[ n ∈ ℕ ] (V ≡ $ n))
+    ⊎ (Σ[ W ∈ Term ] Σ[ c ∈ Conv ] (V ≡ W ⟨ c ⟩))
+canonical-ℕ (Vs S$) ⊢$ = inj₁ (_ , refl)
+canonical-ℕ (Vs S#) ()
+canonical-ℕ (Vs Sƛ) ()
+canonical-ℕ (Vs (SΛ v)) ()
+canonical-ℕ (V⟨⟩ simple nf app) ⊢V = inj₂ (_ , _ , refl)
+
+------------------------------------------------------------------------
+-- The SOURCE shape: a conversion the views accept preserves shape,
+-- because only the renaming elements change it
+------------------------------------------------------------------------
+
+fun-shift : ∀ X A → FunShape A → FunShape (renameᵗ (shiftAtᵗ X) A)
+fun-shift X (A ⇒ B) (fun-shape _ _) = fun-shape _ _
+
+all-shift : ∀ X A → AllShape A → AllShape (renameᵗ (shiftAtᵗ X) A)
+all-shift X (`∀ A) (all-shape _) = all-shape _
+
+arr-tail-hide : ∀ {A₀ p X α} (c : Conv) → arr A₀ (hide X α ∷ᶜ c) ≡ just p
+  → Σ[ q ∈ Conv × Conv ] (arr A₀ c ≡ just q)
+arr-tail-hide c eq with arrElts (elts c) | target c
+arr-tail-hide c eq | just q | C ⇒ D = _ , refl
+arr-tail-hide c () | just q | ` X
+arr-tail-hide c () | just q | `ℕ
+arr-tail-hide c () | just q | `𝔹
+arr-tail-hide c () | just q | `∀ B
+arr-tail-hide c () | nothing | _
+
+arr-tail-show : ∀ {A₀ p X α} (c : Conv) → arr A₀ (show X α ∷ᶜ c) ≡ just p
+  → Σ[ q ∈ Conv × Conv ] (arr A₀ c ≡ just q)
+arr-tail-show c eq with arrElts (elts c) | target c
+arr-tail-show c eq | just q | C ⇒ D = _ , refl
+arr-tail-show c () | just q | ` X
+arr-tail-show c () | just q | `ℕ
+arr-tail-show c () | just q | `𝔹
+arr-tail-show c () | just q | `∀ B
+arr-tail-show c () | nothing | _
+
+allView-tail-hide : ∀ {d X α} (c : Conv) → allView (hide X α ∷ᶜ c) ≡ just d
+  → Σ[ e ∈ Conv ] (allView c ≡ just e)
+allView-tail-hide c eq with allElts (elts c) | target c
+allView-tail-hide c eq | just q | `∀ B = _ , refl
+allView-tail-hide c () | just q | ` X
+allView-tail-hide c () | just q | `ℕ
+allView-tail-hide c () | just q | `𝔹
+allView-tail-hide c () | just q | C ⇒ D
+allView-tail-hide c () | nothing | _
+
+allView-tail-show : ∀ {d X α} (c : Conv) → allView (show X α ∷ᶜ c) ≡ just d
+  → Σ[ e ∈ Conv ] (allView c ≡ just e)
+allView-tail-show c eq with allElts (elts c) | target c
+allView-tail-show c eq | just q | `∀ B = _ , refl
+allView-tail-show c () | just q | ` X
+allView-tail-show c () | just q | `ℕ
+allView-tail-show c () | just q | `𝔹
+allView-tail-show c () | just q | C ⇒ D
+allView-tail-show c () | nothing | _
+
+conv-fun-source : ∀ {Sg Δᵢ Δ c A B A₀ p}
+  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → arr A₀ c ≡ just p → FunShape A
+conv-fun-source {c = id A} (conv-id wf) eq = arr-target {c = id A} eq
+conv-fun-source (conv-cons (conv-seal r rd p) tl) ()
+conv-fun-source (conv-cons (conv-unseal r rd p na) tl) ()
+conv-fun-source (conv-cons (conv-all s) tl) ()
+conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
+  with arr-tail-hide c eq
+conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
+  | _ , eq′ = shift-fun X A (conv-fun-source tl eq′)
+conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
+  with arr-tail-show c eq
+conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
+  | _ , eq′ = fun-shift X _ (conv-fun-source tl eq′)
+conv-fun-source (conv-cons (conv-fun s t) tl) eq = fun-shape _ _
+
+conv-all-source : ∀ {Sg Δᵢ Δ c A B d}
+  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → allView c ≡ just d → AllShape A
+conv-all-source {c = id A} (conv-id wf) eq = allView-target {c = id A} eq
+conv-all-source (conv-cons (conv-seal r rd p) tl) ()
+conv-all-source (conv-cons (conv-unseal r rd p na) tl) ()
+conv-all-source (conv-cons (conv-fun s t) tl) ()
+conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
+  with allView-tail-hide c eq
+conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
+  | _ , eq′ = shift-all X A (conv-all-source tl eq′)
+conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
+  with allView-tail-show c eq
+conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
+  | _ , eq′ = all-shift X _ (conv-all-source tl eq′)
+conv-all-source (conv-cons (conv-all s) tl) eq = all-shape _
+
+------------------------------------------------------------------------
+-- Canonical forms at arrow and universal type
+------------------------------------------------------------------------
+
+canonical-⇒ : ∀ {Sg Δ L A B} → Value L → Sg ∣ Δ ∣ [] ⊢ L ⦂ A ⇒ B
+  → (Σ[ A₁ ∈ Ty ] Σ[ N ∈ Term ] (L ≡ ƛ A₁ ∙ N))
+    ⊎ (Σ[ A₁ ∈ Ty ] Σ[ N ∈ Term ] Σ[ c ∈ Conv ]
+       Σ[ c₁ ∈ Conv ] Σ[ c₂ ∈ Conv ]
+       ((L ≡ (ƛ A₁ ∙ N) ⟨ c ⟩) × (arr A₁ c ≡ just (c₁ , c₂))))
+canonical-⇒ (Vs simple) ⊢L = inj₁ (simple-fun simple ⊢L (fun-shape _ _))
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
+  with inert-arr-view {c = c} app
+         (subst FunShape (sym (conv-target conv)) (fun-shape A B)) `ℕ
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
+  | _ , _ , probe with simple-fun simple ⊢W (conv-fun-source conv probe)
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
+  | _ , _ , probe | A₁ , N , refl with arr-any {c = c} A₁ probe
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
+  | _ , _ , probe | A₁ , N , refl | c₁ , c₂ , arr-eq =
+  inj₂ (A₁ , N , _ , c₁ , c₂ , refl , arr-eq)
+
+canonical-∀ : ∀ {Sg Δ L B} → Value L → Sg ∣ Δ ∣ [] ⊢ L ⦂ `∀ B
+  → (Σ[ V ∈ Term ] (Value V × (L ≡ Λ V)))
+    ⊎ (Σ[ V ∈ Term ] Σ[ c ∈ Conv ] Σ[ d ∈ Conv ]
+       ((L ≡ (Λ V) ⟨ c ⟩) × (allView c ≡ just d)))
+canonical-∀ (Vs simple) ⊢L = inj₁ (simple-all simple ⊢L (all-shape _))
+canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv)
+  with inert-all-view {c = c} app
+         (subst AllShape (sym (conv-target conv)) (all-shape B))
+canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv) | d , all-eq
+  with simple-all simple ⊢V (conv-all-source conv all-eq)
+canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv) | d , all-eq
+  | V , v , refl = inj₂ (V , c , d , refl , all-eq)

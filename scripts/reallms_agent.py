@@ -252,7 +252,10 @@ class Worker:
             return self.grep(args.get("pattern", ""), args.get("path"),
                              int(args.get("max_results", 40)))
         if name == "read_file":
-            return self.read_file(args["path"], args.get("start"), args.get("end"))
+            def as_int(v):
+                return None if v is None else int(float(v))
+            return self.read_file(args["path"], as_int(args.get("start")),
+                                  as_int(args.get("end")))
         if name == "check_solution":
             return self.check_solution(args["code"])
         return f"(unknown tool: {name})"

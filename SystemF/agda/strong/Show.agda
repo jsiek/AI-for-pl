@@ -130,69 +130,46 @@ showRep (`∀ᴿ R)  = "(∀ᴿ. " ++ showRep R ++ ")"
 -- moves names the slot X on whichever side HAS it, and that is the
 -- side whose supply we are holding as we walk.
 
--- The list runs INTERIOR → EXTERIOR, so the walk starts at the
--- interior frame and carries it outward.  Which frame an element's
--- name lives in depends on which side HAS the assignment:
+-- The list runs INTERIOR → EXTERIOR, but the frame we are GIVEN is the
+-- exterior one, so the walk goes outside-in: recurse on the tail (which
+-- is the more exterior part) to reach the frame just outside the head,
+-- then handle the head there.  Which frame an element's NAME lives in
+-- depends on which side holds the assignment:
 --
---   unseal X α, show X α   the INTERIOR has it — X names the frame we
---                          are holding, and the next frame loses it
---   seal X α,  hide X α    the EXTERIOR has it — the next frame GAINS
---                          it, and X names that one
+--   seal X α, hide X α    the EXTERIOR has it — X names the frame we
+--                         are holding, and the interior LOSES it
+--   unseal X α, show X α  the INTERIOR has it — the interior GAINS a
+--                         fresh name at X, and that is what X names
 --
--- (rendering the whole conversion at the exterior printed `?` for
--- every `show`/`unseal`, whose slot does not exist there)
+-- The ℕ is a monotone FRESH-NAME COUNTER, not a depth: it is never
+-- decremented, so two different type variables can never print as the
+-- same letter even when both sit at slot 0 of their own frames.
 
-mutual
-  showConvFrom : (ℕ × Supply) → Conv → String
-  showConvFrom (d , sup) (id A) = "id " ++ showTy d sup A
-  showConvFrom (d , sup) (seal X α ∷ᶜ c) =
-    "seal{-" ++ outS X ++ ":=" ++ showAddr α ++ "} ∷ "
-      ++ showConvFrom (suc d , outSup) c
-    where
-    outSup = insAt X (tyBinder d) sup
-    outS = outSup
-  showConvFrom (d , sup) (hide X α ∷ᶜ c) =
-    "id{-" ++ outS X ++ ":=" ++ showAddr α ++ "} ∷ "
-      ++ showConvFrom (suc d , outSup) c
-    where
-    outSup = insAt X (tyBinder d) sup
-    outS = outSup
-  showConvFrom (d , sup) (unseal X α ∷ᶜ c) =
-    "unseal{+" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ "
-      ++ showConvFrom (d ∸ 1 , delAt X sup) c
-  showConvFrom (d , sup) (show X α ∷ᶜ c) =
-    "id{+" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ "
-      ++ showConvFrom (d ∸ 1 , delAt X sup) c
-  showConvFrom (d , sup) ((s ↦ t) ∷ᶜ c) =
-    "(" ++ showConvFrom (d , sup) s ++ " → " ++ showConvFrom (d , sup) t
-        ++ ") ∷ " ++ showConvFrom (d , sup) c
-  showConvFrom (d , sup) (all s ∷ᶜ c) =
-    "(∀" ++ tyBinder d ++ ". "
-        ++ showConvFrom (suc d , extS sup (tyBinder d)) s ++ ") ∷ "
-        ++ showConvFrom (d , sup) c
-
-------------------------------------------------------------------------
--- the frame a conversion's interior is in
-------------------------------------------------------------------------
--- Walk the elements BACKWARD from the exterior, undoing each.
-
--- going OUTWARD→INWARD: a seal/hide loses the name, an unseal/show
--- gains a fresh one; a `↦` or `all` does not move the frame here
-undo : (ℕ × Supply) → ConvElt → (ℕ × Supply)
-undo (d , sup) (seal X α) = d ∸ 1 , delAt X sup
-undo (d , sup) (hide X α) = d ∸ 1 , delAt X sup
-undo (d , sup) (unseal X α) = suc d , insAt X (tyBinder d) sup
-undo (d , sup) (show X α) = suc d , insAt X (tyBinder d) sup
-undo (d , sup) (s ↦ t) = d , sup
-undo (d , sup) (all s) = d , sup
-
-undoAll : (ℕ × Supply) → List ConvElt → (ℕ × Supply)
-undoAll st [] = st
-undoAll st (ĉ ∷ ĉs) = undoAll (undo st ĉ) ĉs
-
--- the frame the BODY of `M ⟨ c ⟩` is read in
-interiorOf : ℕ → Supply → Conv → (ℕ × Supply)
-interiorOf d sup c = undoAll (d , sup) (reverse (elts c))
+showConvOut : (ℕ × Supply) → Conv → (ℕ × Supply) × String
+showConvOut (n , sup) (id A) = (n , sup) , "id " ++ showTy n sup A
+showConvOut ext (seal X α ∷ᶜ c) with showConvOut ext c
+... | (n , sup) , str =
+  (n , delAt X sup)
+  , "seal{-" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+showConvOut ext (hide X α ∷ᶜ c) with showConvOut ext c
+... | (n , sup) , str =
+  (n , delAt X sup)
+  , "id{-" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+showConvOut ext (unseal X α ∷ᶜ c) with showConvOut ext c
+... | (n , sup) , str =
+  (suc n , insAt X (tyBinder n) sup)
+  , "unseal{+" ++ tyBinder n ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+showConvOut ext (show X α ∷ᶜ c) with showConvOut ext c
+... | (n , sup) , str =
+  (suc n , insAt X (tyBinder n) sup)
+  , "id{+" ++ tyBinder n ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+showConvOut ext ((s ↦ t) ∷ᶜ c) with showConvOut ext c
+... | (n , sup) , str with showConvOut (n , sup) s | showConvOut (n , sup) t
+... | _ , ss | _ , ts = (n , sup) , "(" ++ ss ++ " → " ++ ts ++ ") ∷ " ++ str
+showConvOut ext (all s ∷ᶜ c) with showConvOut ext c
+... | (n , sup) , str with showConvOut (suc n , extS sup (tyBinder n)) s
+... | _ , ss =
+  (n , sup) , "(∀" ++ tyBinder n ++ ". " ++ ss ++ ") ∷ " ++ str
 
 ------------------------------------------------------------------------
 -- terms
@@ -223,15 +200,18 @@ showTm d sup e tsup (L • B [ A ]) =
   showTm d sup e tsup L ++ " [" ++ showTy d sup A ++ "]"
 showTm d sup e tsup (ν R ∙ M) =
   "(ν:=" ++ showRep R ++ ". " ++ showTm d sup e tsup M ++ ")"
-showTm d sup e tsup (M ⟨ c ⟩) = showBody (interiorOf d sup c)
+showTm d sup e tsup (M ⟨ c ⟩) = go (showConvOut (d , sup) c)
   where
-  showBody : (ℕ × Supply) → String
-  showBody (dᵢ , supᵢ) =
-    showTm dᵢ supᵢ e tsup M ++ "⟨ " ++ showConvFrom (dᵢ , supᵢ) c ++ " ⟩"
+  go : (ℕ × Supply) × String → String
+  go ((dᵢ , supᵢ) , str) =
+    showTm dᵢ supᵢ e tsup M ++ "⟨ " ++ str ++ " ⟩"
 
 -- closed, at the empty frame
 showTm₀ : Term → String
 showTm₀ = showTm zero (λ _ → "?") zero (λ _ → "?")
 
 showConv₀ : Conv → String
-showConv₀ c = showConvFrom (interiorOf zero (λ _ → "?") c) c
+showConv₀ c = go (showConvOut (zero , λ _ → "?") c)
+  where
+  go : (ℕ × Supply) × String → String
+  go (_ , str) = str

@@ -27,10 +27,11 @@ module strong.Ctx where
 -- crossing assignment — "every conceal removes the latest visible
 -- source name".
 
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.Nat using (ℕ; zero; suc) renaming (_<_ to _<ᵗ_)
 open import Data.Empty using (⊥)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Data.Product using (Σ-syntax; _,_)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.List using (List; []; _∷_; _∷ʳ_; take)
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.RepresentationTypes
@@ -97,50 +98,55 @@ private
     R T : RepTy
     α β : Addr
     X : ℕ
-    i j ℓ : ℕ
+    i j ℓ n : ℕ
 
 ------------------------------------------------------------------------
--- An address in scope: the stack's `bind`s are address binders too, so
--- the count runs through the stack and then into the base
+-- An address in scope.  NEITHER address lookup reads the stack: a `∀`
+-- binds a type VARIABLE, not an address, so the only binders are the
+-- base's and the store's.
 ------------------------------------------------------------------------
 
--- The two bound forms are read off the two halves INDEPENDENTLY: a
--- `bnd` walks the stack and never reaches the base, a `bse` walks the
--- base and never reaches the stack.
 infix 4 _∣_∋a_
 data _∣_∋a_ (Σ : Store) : Ctxᵗ → Addr → Set where
   a-lvl       : Σ ∋ˡ ℓ := R → Σ ∣ Γ ∋a lvl ℓ
-  a-here-bind : Σ ∣ (bind ∷ Ss ∥ Bs) ∋a bnd zero
-  a-skip-bind : Σ ∣ (Ss ∥ Bs) ∋a bnd i → Σ ∣ (bind ∷ Ss ∥ Bs) ∋a bnd (suc i)
-  a-skip-asgn : Σ ∣ (Ss ∥ Bs) ∋a bnd i → Σ ∣ (asgn β ∷ Ss ∥ Bs) ∋a bnd i
   a-here-addr : Σ ∣ (Ss ∥ addr ∷ Bs) ∋a bse zero
   a-here-nu   : Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∋a bse zero
   a-skip-addr : Σ ∣ (Ss ∥ Bs) ∋a bse j → Σ ∣ (Ss ∥ addr ∷ Bs) ∋a bse (suc j)
   a-skip-nu   : Σ ∣ (Ss ∥ Bs) ∋a bse j
               → Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∋a bse (suc j)
 
+∋a-restk : ∀ {Σ Ss Ss′ Bs α} → Σ ∣ (Ss ∥ Bs) ∋a α → Σ ∣ (Ss′ ∥ Bs) ∋a α
+∋a-restk (a-lvl l) = a-lvl l
+∋a-restk a-here-addr = a-here-addr
+∋a-restk a-here-nu = a-here-nu
+∋a-restk (a-skip-addr p) = a-skip-addr (∋a-restk p)
+∋a-restk (a-skip-nu p) = a-skip-nu (∋a-restk p)
+
 ------------------------------------------------------------------------
--- A named address.  Names live ONLY in the stack, so this judgment
--- never mentions the base — five rules where there were nine.
+-- A type variable ASSIGNED TO AN ADDRESS.  Only an `asgn` assigns one,
+-- and passing a `bind` moves no address — so no rule needs a case
+-- analysis on the address's form.  (That trichotomy was the entire
+-- cost of having a `∀` bind an address.)
 ------------------------------------------------------------------------
 
 infix 4 _∋n_:=_
 data _∋n_:=_ : Ctxᵗ → ℕ → Addr → Set where
-  n-here-asgn   : (asgn α ∷ Ss ∥ Bs) ∋n zero := α
-  n-here-bind   : (bind ∷ Ss ∥ Bs) ∋n zero := bnd zero
-  n-skip-asgn   : (Ss ∥ Bs) ∋n X := α → (asgn β ∷ Ss ∥ Bs) ∋n suc X := α
-  n-skip-bind-b : (Ss ∥ Bs) ∋n X := bnd i
-                → (bind ∷ Ss ∥ Bs) ∋n suc X := bnd (suc i)
-  n-skip-bind-l : (Ss ∥ Bs) ∋n X := lvl ℓ
-                → (bind ∷ Ss ∥ Bs) ∋n suc X := lvl ℓ
-  n-skip-bind-e : (Ss ∥ Bs) ∋n X := bse j
-                → (bind ∷ Ss ∥ Bs) ∋n suc X := bse j
+  n-here-asgn : (asgn α ∷ Ss ∥ Bs) ∋n zero := α
+  n-skip-asgn : (Ss ∥ Bs) ∋n X := α → (asgn β ∷ Ss ∥ Bs) ∋n suc X := α
+  n-skip-bind : (Ss ∥ Bs) ∋n X := α → (bind ∷ Ss ∥ Bs) ∋n suc X := α
+
+-- A type variable BOUND BY A `∀`, and WHICH one: `X` names the `i`-th
+-- `bind`, counting binds newest first.  This is what a `∀ᴿ`-bound `ᵛ
+-- reads back to.
+infix 4 _∋b_at_
+data _∋b_at_ : List StackEnt → ℕ → ℕ → Set where
+  b-here : ∀ {Ss} → (bind ∷ Ss) ∋b zero at zero
+  b-asgn : ∀ {Ss α} → Ss ∋b X at i → (asgn α ∷ Ss) ∋b suc X at i
+  b-bind : ∀ {Ss} → Ss ∋b X at i → (bind ∷ Ss) ∋b suc X at suc i
 
 ------------------------------------------------------------------------
--- A type variable IN SCOPE.  This is `∋n` with the address forgotten,
--- and forgetting it collapses the five rules to two: both kinds of
--- stack entry name something, so the relation never looks at an entry,
--- and there is no address to shift past a `bind`.
+-- A type variable IN SCOPE: `∋n` with the address forgotten, which is
+-- all that well-formedness of a TYPE reads.
 ------------------------------------------------------------------------
 
 infix 4 _∋ᵗ_
@@ -148,72 +154,78 @@ data _∋ᵗ_ : List StackEnt → ℕ → Set where
   t-here  : ∀ {e Ss} → (e ∷ Ss) ∋ᵗ zero
   t-there : ∀ {e Ss X} → Ss ∋ᵗ X → (e ∷ Ss) ∋ᵗ suc X
 
--- the two directions: forget the address, and recover SOME address
 ∋n→∋ᵗ : ∀ {Ss Bs X α} → (Ss ∥ Bs) ∋n X := α → Ss ∋ᵗ X
 ∋n→∋ᵗ n-here-asgn = t-here
-∋n→∋ᵗ n-here-bind = t-here
 ∋n→∋ᵗ (n-skip-asgn p) = t-there (∋n→∋ᵗ p)
-∋n→∋ᵗ (n-skip-bind-b p) = t-there (∋n→∋ᵗ p)
-∋n→∋ᵗ (n-skip-bind-l p) = t-there (∋n→∋ᵗ p)
-∋n→∋ᵗ (n-skip-bind-e p) = t-there (∋n→∋ᵗ p)
+∋n→∋ᵗ (n-skip-bind p) = t-there (∋n→∋ᵗ p)
 
-∋ᵗ→∋n : ∀ {Ss Bs X} → Ss ∋ᵗ X → Σ[ α ∈ Addr ] ((Ss ∥ Bs) ∋n X := α)
-∋ᵗ→∋n {Ss = asgn α ∷ Ss} t-here = α , n-here-asgn
-∋ᵗ→∋n {Ss = bind ∷ Ss} t-here = bnd zero , n-here-bind
-∋ᵗ→∋n {Ss = asgn α ∷ Ss} (t-there p) with ∋ᵗ→∋n p
-∋ᵗ→∋n {Ss = asgn α ∷ Ss} (t-there p) | β , q = β , n-skip-asgn q
-∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) with ∋ᵗ→∋n p
-∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) | lvl ℓ , q = lvl ℓ , n-skip-bind-l q
-∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) | bnd i , q = bnd (suc i) , n-skip-bind-b q
-∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) | bse j , q = bse j , n-skip-bind-e q
+∋b→∋ᵗ : ∀ {Ss X i} → Ss ∋b X at i → Ss ∋ᵗ X
+∋b→∋ᵗ b-here = t-here
+∋b→∋ᵗ (b-asgn p) = t-there (∋b→∋ᵗ p)
+∋b→∋ᵗ (b-bind p) = t-there (∋b→∋ᵗ p)
+
+-- A variable in scope is EITHER assigned to an address OR bound by a
+-- `∀`.  With a `∀` binding an address these were one judgment and the
+-- address was always recoverable; now they are different things, which
+-- is the point.
+∋ᵗ-view : ∀ {Ss Bs X} → Ss ∋ᵗ X
+  → (Σ[ α ∈ Addr ] ((Ss ∥ Bs) ∋n X := α)) ⊎ (Σ[ i ∈ ℕ ] (Ss ∋b X at i))
+∋ᵗ-view {Ss = asgn α ∷ Ss} t-here = inj₁ (α , n-here-asgn)
+∋ᵗ-view {Ss = bind ∷ Ss} t-here = inj₂ (zero , b-here)
+∋ᵗ-view {Ss = asgn α ∷ Ss} (t-there p) with ∋ᵗ-view p
+∋ᵗ-view {Ss = asgn α ∷ Ss} (t-there p) | inj₁ (β , q) = inj₁ (β , n-skip-asgn q)
+∋ᵗ-view {Ss = asgn α ∷ Ss} (t-there p) | inj₂ (i , q) = inj₂ (i , b-asgn q)
+∋ᵗ-view {Ss = bind ∷ Ss} (t-there p) with ∋ᵗ-view p
+∋ᵗ-view {Ss = bind ∷ Ss} (t-there p) | inj₁ (β , q) = inj₁ (β , n-skip-bind q)
+∋ᵗ-view {Ss = bind ∷ Ss} (t-there p) | inj₂ (i , q) = inj₂ (suc i , b-bind q)
 
 ------------------------------------------------------------------------
--- A represented address.  Only the base's `nuBind` carries one; a
--- stored representation mentions only levels (`StoreOk`), so the store
--- case needs no shifting.
+-- A represented address: the base's `nuBind`s and the store.
 ------------------------------------------------------------------------
 
 infix 4 _∣_∋r_:=_
 data _∣_∋r_:=_ (Σ : Store) : Ctxᵗ → Addr → RepTy → Set where
   r-lvl       : Σ ∋ˡ ℓ := R → Σ ∣ Γ ∋r lvl ℓ := R
-  r-skip-bind : Σ ∣ (Ss ∥ Bs) ∋r bnd i := R
-              → Σ ∣ (bind ∷ Ss ∥ Bs) ∋r bnd (suc i) := ⇑ᴿ R
-  r-skip-asgn : Σ ∣ (Ss ∥ Bs) ∋r bnd i := R
-              → Σ ∣ (asgn β ∷ Ss ∥ Bs) ∋r bnd i := R
-  r-here      : Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∋r bse zero := ⇑ᴿᵉ R
+  r-here      : Σ ∣ (Ss ∥ nuBind R ∷ Bs) ∋r bse zero := R
   r-skip-addr : Σ ∣ (Ss ∥ Bs) ∋r bse j := R
-              → Σ ∣ (Ss ∥ addr ∷ Bs) ∋r bse (suc j) := ⇑ᴿᵉ R
+              → Σ ∣ (Ss ∥ addr ∷ Bs) ∋r bse (suc j) := R
   r-skip-nu   : Σ ∣ (Ss ∥ Bs) ∋r bse j := R
-              → Σ ∣ (Ss ∥ nuBind T ∷ Bs) ∋r bse (suc j) := ⇑ᴿᵉ R
+              → Σ ∣ (Ss ∥ nuBind T ∷ Bs) ∋r bse (suc j) := R
 
--- A represented address is in scope.
+∋r-restk : ∀ {Σ Ss Ss′ Bs α R} → Σ ∣ (Ss ∥ Bs) ∋r α := R
+  → Σ ∣ (Ss′ ∥ Bs) ∋r α := R
+∋r-restk (r-lvl l) = r-lvl l
+∋r-restk r-here = r-here
+∋r-restk (r-skip-addr p) = r-skip-addr (∋r-restk p)
+∋r-restk (r-skip-nu p) = r-skip-nu (∋r-restk p)
+
 ∋r→∋a : ∀ {Σ Γ α R} → Σ ∣ Γ ∋r α := R → Σ ∣ Γ ∋a α
 ∋r→∋a (r-lvl l) = a-lvl l
-∋r→∋a (r-skip-bind p) = a-skip-bind (∋r→∋a p)
-∋r→∋a (r-skip-asgn p) = a-skip-asgn (∋r→∋a p)
 ∋r→∋a r-here = a-here-nu
 ∋r→∋a (r-skip-addr p) = a-skip-addr (∋r→∋a p)
 ∋r→∋a (r-skip-nu p) = a-skip-nu (∋r→∋a p)
 
 ------------------------------------------------------------------------
--- The pop judgment: X:=α is the newest crossing assignment.  It is now
--- a STACK operation — the base cannot get in the way, so there is no
--- transparency question and the judgment is deterministic in both
--- directions (which is what makes the interior walk a function).
+-- The pop judgment: X:=α is the newest crossing assignment.  A pure
+-- STACK operation, and now with no address arithmetic either.
 ------------------------------------------------------------------------
 
 infix 4 _▷_:=_⇒_
 data _▷_:=_⇒_ : Ctxᵗ → ℕ → Addr → Ctxᵗ → Set where
-  pop-here   : (asgn α ∷ Ss ∥ Bs) ▷ zero := α ⇒ (Ss ∥ Bs)
-  pop-bind-b : (Ss ∥ Bs) ▷ X := bnd i ⇒ (Ss′ ∥ Bs)
-             → (bind ∷ Ss ∥ Bs) ▷ suc X := bnd (suc i) ⇒ (bind ∷ Ss′ ∥ Bs)
-  pop-bind-l : (Ss ∥ Bs) ▷ X := lvl ℓ ⇒ (Ss′ ∥ Bs)
-             → (bind ∷ Ss ∥ Bs) ▷ suc X := lvl ℓ ⇒ (bind ∷ Ss′ ∥ Bs)
-  pop-bind-e : (Ss ∥ Bs) ▷ X := bse j ⇒ (Ss′ ∥ Bs)
-             → (bind ∷ Ss ∥ Bs) ▷ suc X := bse j ⇒ (bind ∷ Ss′ ∥ Bs)
+  pop-here : (asgn α ∷ Ss ∥ Bs) ▷ zero := α ⇒ (Ss ∥ Bs)
+  pop-bind : (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+           → (bind ∷ Ss ∥ Bs) ▷ suc X := α ⇒ (bind ∷ Ss′ ∥ Bs)
 
--- An address with no name assigned to it: the notes' `Γ ∌ _:=α` side
--- condition, carried by the elements that INTRODUCE an assignment.
+-- Popping changes only the stack, which no address lookup reads.
+∋a-pop : ∀ {Σ Ss Ss′ Bs X α β} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → Σ ∣ (Ss ∥ Bs) ∋a β → Σ ∣ (Ss′ ∥ Bs) ∋a β
+∋a-pop p q = ∋a-restk q
+
+∋a-push : ∀ {Σ Ss Ss′ Bs X α β} → (Ss ∥ Bs) ▷ X := α ⇒ (Ss′ ∥ Bs)
+  → Σ ∣ (Ss′ ∥ Bs) ∋a β → Σ ∣ (Ss ∥ Bs) ∋a β
+∋a-push p q = ∋a-restk q
+
+-- An address with no name assigned to it: the notes' `Γ ∌ _:=α`.
 NotAssigned : Ctxᵗ → Addr → Set
 NotAssigned Γ α = ∀ {X} → Γ ∋n X := α → ⊥
 
@@ -222,8 +234,8 @@ NameFn : Ctxᵗ → Set
 NameFn Γ = ∀ {X Y α} → Γ ∋n X := α → Γ ∋n Y := α → X ≡ Y
 
 ------------------------------------------------------------------------
--- Well-formed types: every variable names an address (either entry
--- form); ∀ pushes a binder assignment
+-- Well-formed types: well-formedness reads only WHICH NAMES are in
+-- scope, never the addresses they denote.
 ------------------------------------------------------------------------
 
 infix 4 _⊢ᵗ_
@@ -234,31 +246,10 @@ data _⊢ᵗ_ : Ctxᵗ → Ty → Set where
   wf-⇒   : Γ ⊢ᵗ A → Γ ⊢ᵗ B → Γ ⊢ᵗ A ⇒ B
   wf-∀   : ∀ {Ss Bs} → (bind ∷ Ss ∥ Bs) ⊢ᵗ A → (Ss ∥ Bs) ⊢ᵗ `∀ A
 
--- Dually, a BASE address is read off the base alone, so the stack it
--- is read under does not matter.
-∋a-restk : ∀ {Σ Ss Ss′ Bs j} → Σ ∣ (Ss ∥ Bs) ∋a bse j → Σ ∣ (Ss′ ∥ Bs) ∋a bse j
-∋a-restk a-here-addr = a-here-addr
-∋a-restk a-here-nu = a-here-nu
-∋a-restk (a-skip-addr p) = a-skip-addr (∋a-restk p)
-∋a-restk (a-skip-nu p) = a-skip-nu (∋a-restk p)
-
-∋r-restk : ∀ {Σ Ss Ss′ Bs j R} → Σ ∣ (Ss ∥ Bs) ∋r bse j := R
-  → Σ ∣ (Ss′ ∥ Bs) ∋r bse j := R
-∋r-restk r-here = r-here
-∋r-restk (r-skip-addr p) = r-skip-addr (∋r-restk p)
-∋r-restk (r-skip-nu p) = r-skip-nu (∋r-restk p)
-
--- THE PAYOFF OF THE SPLIT.  Names live only in the stack, so neither
--- a name lookup nor the well-formedness of a type can see the base:
--- changing the base — which is all that address weakening does — is
--- invisible to both.
 ∋n-rebase : ∀ {Ss Bs Bs′ X α} → (Ss ∥ Bs) ∋n X := α → (Ss ∥ Bs′) ∋n X := α
 ∋n-rebase n-here-asgn = n-here-asgn
-∋n-rebase n-here-bind = n-here-bind
 ∋n-rebase (n-skip-asgn p) = n-skip-asgn (∋n-rebase p)
-∋n-rebase (n-skip-bind-b p) = n-skip-bind-b (∋n-rebase p)
-∋n-rebase (n-skip-bind-l p) = n-skip-bind-l (∋n-rebase p)
-∋n-rebase (n-skip-bind-e p) = n-skip-bind-e (∋n-rebase p)
+∋n-rebase (n-skip-bind p) = n-skip-bind (∋n-rebase p)
 
 wf-rebase : ∀ {Ss Bs Bs′ A} → (Ss ∥ Bs) ⊢ᵗ A → (Ss ∥ Bs′) ⊢ᵗ A
 wf-rebase (wf-var n) = wf-var n
@@ -267,82 +258,26 @@ wf-rebase wf-𝔹 = wf-𝔹
 wf-rebase (wf-⇒ a b) = wf-⇒ (wf-rebase a) (wf-rebase b)
 wf-rebase (wf-∀ a) = wf-∀ (wf-rebase a)
 
--- Popping a crossing assignment does not change which ADDRESSES are
--- in scope: an `asgn` binds none, and a `bind` is kept by both sides.
-∋a-pop : ∀ {Σ Γ Γ′ X α β} → Γ ▷ X := α ⇒ Γ′ → Σ ∣ Γ ∋a β → Σ ∣ Γ′ ∋a β
-∋a-pop p (a-lvl l) = a-lvl l
-∋a-pop pop-here (a-skip-asgn q) = q
-∋a-pop pop-here a-here-addr = a-here-addr
-∋a-pop pop-here a-here-nu = a-here-nu
-∋a-pop pop-here (a-skip-addr q) = a-skip-addr (∋a-restk q)
-∋a-pop pop-here (a-skip-nu q) = a-skip-nu (∋a-restk q)
-∋a-pop (pop-bind-b p) a-here-bind = a-here-bind
-∋a-pop (pop-bind-b p) (a-skip-bind q) = a-skip-bind (∋a-pop p q)
-∋a-pop (pop-bind-b p) a-here-addr = a-here-addr
-∋a-pop (pop-bind-b p) a-here-nu = a-here-nu
-∋a-pop (pop-bind-b p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
-∋a-pop (pop-bind-b p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
-∋a-pop (pop-bind-l p) a-here-bind = a-here-bind
-∋a-pop (pop-bind-l p) (a-skip-bind q) = a-skip-bind (∋a-pop p q)
-∋a-pop (pop-bind-l p) a-here-addr = a-here-addr
-∋a-pop (pop-bind-l p) a-here-nu = a-here-nu
-∋a-pop (pop-bind-l p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
-∋a-pop (pop-bind-l p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
-∋a-pop (pop-bind-e p) a-here-bind = a-here-bind
-∋a-pop (pop-bind-e p) (a-skip-bind q) = a-skip-bind (∋a-pop p q)
-∋a-pop (pop-bind-e p) a-here-addr = a-here-addr
-∋a-pop (pop-bind-e p) a-here-nu = a-here-nu
-∋a-pop (pop-bind-e p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
-∋a-pop (pop-bind-e p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
-
-∋a-push : ∀ {Σ Γ Γ′ X α β} → Γ ▷ X := α ⇒ Γ′ → Σ ∣ Γ′ ∋a β → Σ ∣ Γ ∋a β
-∋a-push p (a-lvl l) = a-lvl l
-∋a-push pop-here q = ∋a-skip q
-  where
-  ∋a-skip : ∀ {Σ Ss Bs β γ} → Σ ∣ (Ss ∥ Bs) ∋a β
-    → Σ ∣ (asgn γ ∷ Ss ∥ Bs) ∋a β
-  ∋a-skip (a-lvl l) = a-lvl l
-  ∋a-skip a-here-bind = a-skip-asgn a-here-bind
-  ∋a-skip (a-skip-bind r) = a-skip-asgn (a-skip-bind r)
-  ∋a-skip (a-skip-asgn r) = a-skip-asgn (a-skip-asgn r)
-  ∋a-skip a-here-addr = a-here-addr
-  ∋a-skip a-here-nu = a-here-nu
-  ∋a-skip (a-skip-addr r) = a-skip-addr (∋a-restk r)
-  ∋a-skip (a-skip-nu r) = a-skip-nu (∋a-restk r)
-∋a-push (pop-bind-b p) a-here-bind = a-here-bind
-∋a-push (pop-bind-b p) (a-skip-bind q) = a-skip-bind (∋a-push p q)
-∋a-push (pop-bind-b p) a-here-addr = a-here-addr
-∋a-push (pop-bind-b p) a-here-nu = a-here-nu
-∋a-push (pop-bind-b p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
-∋a-push (pop-bind-b p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
-∋a-push (pop-bind-l p) a-here-bind = a-here-bind
-∋a-push (pop-bind-l p) (a-skip-bind q) = a-skip-bind (∋a-push p q)
-∋a-push (pop-bind-l p) a-here-addr = a-here-addr
-∋a-push (pop-bind-l p) a-here-nu = a-here-nu
-∋a-push (pop-bind-l p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
-∋a-push (pop-bind-l p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
-∋a-push (pop-bind-e p) a-here-bind = a-here-bind
-∋a-push (pop-bind-e p) (a-skip-bind q) = a-skip-bind (∋a-push p q)
-∋a-push (pop-bind-e p) a-here-addr = a-here-addr
-∋a-push (pop-bind-e p) a-here-nu = a-here-nu
-∋a-push (pop-bind-e p) (a-skip-addr q) = a-skip-addr (∋a-restk q)
-∋a-push (pop-bind-e p) (a-skip-nu q) = a-skip-nu (∋a-restk q)
-
 
 ------------------------------------------------------------------------
--- Well-formed representation types; ∀ᴿ pushes a bare address binder
+-- Well-formed representation types.  `∀ᴿ` binds a type VARIABLE, so
+-- this judgment tracks how many are in scope and `ᵛ is checked against
+-- that count — no context entry, and nothing to rename.
 ------------------------------------------------------------------------
 
+infix 4 _∣_⊢ᴿ[_]_
+data _∣_⊢ᴿ[_]_ (Σ : Store) : Ctxᵗ → ℕ → RepTy → Set where
+  wfᴿ-var : Σ ∣ Γ ∋a α → Σ ∣ Γ ⊢ᴿ[ n ] `ᵃ α
+  wfᴿ-bv  : i <ᵗ n → Σ ∣ Γ ⊢ᴿ[ n ] `ᵛ i
+  wfᴿ-ℕ   : Σ ∣ Γ ⊢ᴿ[ n ] `ℕᴿ
+  wfᴿ-𝔹   : Σ ∣ Γ ⊢ᴿ[ n ] `𝔹ᴿ
+  wfᴿ-⇒   : Σ ∣ Γ ⊢ᴿ[ n ] R → Σ ∣ Γ ⊢ᴿ[ n ] T → Σ ∣ Γ ⊢ᴿ[ n ] R ⇒ᴿ T
+  wfᴿ-∀   : Σ ∣ Γ ⊢ᴿ[ suc n ] R → Σ ∣ Γ ⊢ᴿ[ n ] `∀ᴿ R
+
+-- the common case: no free `ᵛ
 infix 4 _∣_⊢ᴿ_
-data _∣_⊢ᴿ_ (Σ : Store) : Ctxᵗ → RepTy → Set where
-  wfᴿ-var : Σ ∣ Γ ∋a α → Σ ∣ Γ ⊢ᴿ `ᵃ α
-  wfᴿ-ℕ   : Σ ∣ Γ ⊢ᴿ `ℕᴿ
-  wfᴿ-𝔹   : Σ ∣ Γ ⊢ᴿ `𝔹ᴿ
-  wfᴿ-⇒   : Σ ∣ Γ ⊢ᴿ R → Σ ∣ Γ ⊢ᴿ T → Σ ∣ Γ ⊢ᴿ R ⇒ᴿ T
-  -- `∀ᴿ` binds a STACK address — that is what `renameᴿ`/`substᴿ`
-  -- extend under, and what `read-∀` names — so it pushes a `bind`,
-  -- whose name this judgment simply never reads.
-  wfᴿ-∀   : ∀ {Ss Bs} → Σ ∣ (bind ∷ Ss ∥ Bs) ⊢ᴿ R → Σ ∣ (Ss ∥ Bs) ⊢ᴿ `∀ᴿ R
+_∣_⊢ᴿ_ : Store → Ctxᵗ → RepTy → Set
+Σ ∣ Γ ⊢ᴿ R = Σ ∣ Γ ⊢ᴿ[ zero ] R
 
 -- Store well-formedness: each representation is well-formed over the
 -- strictly earlier prefix, so a representation mentions only OLDER
@@ -357,6 +292,9 @@ StoreOk Σ = ∀ {ℓ R} → Σ ∋ˡ ℓ := R → take ℓ Σ ∣ ([] ∥ []) �
 infix 4 _∣_⊢_⇓_
 data _∣_⊢_⇓_ (Σ : Store) : Ctxᵗ → RepTy → Ty → Set where
   read-var : Γ ∋n X := α → Σ ∣ Γ ⊢ `ᵃ α ⇓ ` X
+  -- a `∀ᴿ`-bound variable reads back to the name of the `bind` it
+  -- corresponds to — no address is consulted
+  read-bv  : stk Γ ∋b X at i → Σ ∣ Γ ⊢ `ᵛ i ⇓ ` X
   read-ℕ   : Σ ∣ Γ ⊢ `ℕᴿ ⇓ `ℕ
   read-𝔹   : Σ ∣ Γ ⊢ `𝔹ᴿ ⇓ `𝔹
   read-⇒   : Σ ∣ Γ ⊢ R ⇓ A → Σ ∣ Γ ⊢ T ⇓ B → Σ ∣ Γ ⊢ R ⇒ᴿ T ⇓ A ⇒ B
@@ -370,6 +308,7 @@ data _∣_⊢_⇓_ (Σ : Store) : Ctxᵗ → RepTy → Ty → Set where
 infix 4 _∣_⊢⌊_⌋_
 data _∣_⊢⌊_⌋_ (Σ : Store) : Ctxᵗ → Ty → RepTy → Set where
   quote-var : Γ ∋n X := α → Σ ∣ Γ ⊢⌊ ` X ⌋ `ᵃ α
+  quote-bv  : stk Γ ∋b X at i → Σ ∣ Γ ⊢⌊ ` X ⌋ `ᵛ i
   quote-ℕ   : Σ ∣ Γ ⊢⌊ `ℕ ⌋ `ℕᴿ
   quote-𝔹   : Σ ∣ Γ ⊢⌊ `𝔹 ⌋ `𝔹ᴿ
   quote-⇒   : Σ ∣ Γ ⊢⌊ A ⌋ R → Σ ∣ Γ ⊢⌊ B ⌋ T

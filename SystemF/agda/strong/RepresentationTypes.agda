@@ -60,14 +60,10 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 data Addr : Set where
   lvl : ℕ → Addr
-  bnd : ℕ → Addr
   bse : ℕ → Addr
 
 lvl-inj : ∀ {ℓ m} → lvl ℓ ≡ lvl m → ℓ ≡ m
 lvl-inj refl = refl
-
-bnd-inj : ∀ {i j} → bnd i ≡ bnd j → i ≡ j
-bnd-inj refl = refl
 
 bse-inj : ∀ {i j} → bse i ≡ bse j → i ≡ j
 bse-inj refl = refl
@@ -77,15 +73,8 @@ _≟ᵃ_ : (α β : Addr) → Dec (α ≡ β)
 lvl ℓ ≟ᵃ lvl m with ℓ ≟ m
 lvl ℓ ≟ᵃ lvl m | yes refl = yes refl
 lvl ℓ ≟ᵃ lvl m | no ne = no λ eq → ne (lvl-inj eq)
-lvl ℓ ≟ᵃ bnd j = no λ ()
 lvl ℓ ≟ᵃ bse j = no λ ()
-bnd i ≟ᵃ lvl m = no λ ()
-bnd i ≟ᵃ bse j = no λ ()
 bse i ≟ᵃ lvl m = no λ ()
-bse i ≟ᵃ bnd j = no λ ()
-bnd i ≟ᵃ bnd j with i ≟ j
-bnd i ≟ᵃ bnd j | yes refl = yes refl
-bnd i ≟ᵃ bnd j | no ne = no λ eq → ne (bnd-inj eq)
 bse i ≟ᵃ bse j with i ≟ j
 bse i ≟ᵃ bse j | yes refl = yes refl
 bse i ≟ᵃ bse j | no ne = no λ eq → ne (bse-inj eq)
@@ -94,7 +83,8 @@ infixr 7 _⇒ᴿ_
 infix 6 `∀ᴿ
 
 data RepTy : Set where
-  `ᵃ_  : Addr → RepTy
+  `ᵃ_  : Addr → RepTy      -- a FREE address
+  `ᵛ_  : ℕ → RepTy         -- a type variable bound by an enclosing ∀ᴿ
   `ℕᴿ  : RepTy
   `𝔹ᴿ  : RepTy
   _⇒ᴿ_ : RepTy → RepTy → RepTy
@@ -107,21 +97,13 @@ data RepTy : Set where
 Renameᵇ : Set
 Renameᵇ = ℕ → ℕ
 
--- A STACK renaming touches `bnd` alone: levels are stable, and so are
--- base addresses, which the stack's binders do not shift.
-renᵃ : Renameᵇ → Addr → Addr
-renᵃ ρ (lvl ℓ) = lvl ℓ
-renᵃ ρ (bnd i) = bnd (ρ i)
-renᵃ ρ (bse j) = bse j
-
--- A BASE renaming is the mirror image.
+-- The ONLY address renaming: a base push renumbers `bse`; a level is
+-- permanent.  There is no stack-address family any more — a `∀` binds a
+-- type VARIABLE, not an address, so passing one moves no address at
+-- all.
 renᵃᵉ : Renameᵇ → Addr → Addr
 renᵃᵉ ρ (lvl ℓ) = lvl ℓ
-renᵃᵉ ρ (bnd i) = bnd i
 renᵃᵉ ρ (bse j) = bse (ρ j)
-
-⇑ᵃ : Addr → Addr
-⇑ᵃ = renᵃ suc
 
 ⇑ᵃᵉ : Addr → Addr
 ⇑ᵃᵉ = renᵃᵉ suc
@@ -130,20 +112,11 @@ extᵇ : Renameᵇ → Renameᵇ
 extᵇ ρ zero    = zero
 extᵇ ρ (suc i) = suc (ρ i)
 
-renameᴿ : Renameᵇ → RepTy → RepTy
-renameᴿ ρ (`ᵃ α)   = `ᵃ renᵃ ρ α
-renameᴿ ρ `ℕᴿ      = `ℕᴿ
-renameᴿ ρ `𝔹ᴿ      = `𝔹ᴿ
-renameᴿ ρ (R ⇒ᴿ S) = renameᴿ ρ R ⇒ᴿ renameᴿ ρ S
-renameᴿ ρ (`∀ᴿ R)  = `∀ᴿ (renameᴿ (extᵇ ρ) R)
-
-⇑ᴿ : RepTy → RepTy
-⇑ᴿ = renameᴿ suc
-
--- `∀ᴿ binds a STACK address, so a base renaming passes through it
--- unextended.
+-- `∀ᴿ` binds a type variable, so a base renaming passes through it
+-- unextended and leaves `ᵛ alone.
 renameᴿᵉ : Renameᵇ → RepTy → RepTy
 renameᴿᵉ ρ (`ᵃ α)   = `ᵃ renᵃᵉ ρ α
+renameᴿᵉ ρ (`ᵛ i)   = `ᵛ i
 renameᴿᵉ ρ `ℕᴿ      = `ℕᴿ
 renameᴿᵉ ρ `𝔹ᴿ      = `𝔹ᴿ
 renameᴿᵉ ρ (R ⇒ᴿ S) = renameᴿᵉ ρ R ⇒ᴿ renameᴿᵉ ρ S
@@ -153,50 +126,54 @@ renameᴿᵉ ρ (`∀ᴿ R)  = `∀ᴿ (renameᴿᵉ ρ R)
 ⇑ᴿᵉ = renameᴿᵉ suc
 
 ------------------------------------------------------------------------
--- Substitution of bound addresses by addresses
+-- Instantiating a `∀ᴿ`
 ------------------------------------------------------------------------
--- Instantiating a binder replaces a bound address VARIABLE by an
--- ADDRESS (typically a fresh level, at `Alloc`); representation types
--- are never substituted for address variables.
+-- Its binder is a type VARIABLE, so instantiation replaces `ᵛ 0 by a
+-- representation — at `TyBeta` that is the address of the `ν` the rule
+-- creates — and the remaining bound indices shift down.
 
 SubstAddr : Set
 SubstAddr = ℕ → Addr
 
-extsᵃ : SubstAddr → SubstAddr
-extsᵃ σ zero    = bnd zero
-extsᵃ σ (suc i) = ⇑ᵃ (σ i)
+substᴿⱽ : (ℕ → RepTy) → RepTy → RepTy
+substᴿⱽ σ (`ᵃ α)   = `ᵃ α
+substᴿⱽ σ (`ᵛ i)   = σ i
+substᴿⱽ σ `ℕᴿ      = `ℕᴿ
+substᴿⱽ σ `𝔹ᴿ      = `𝔹ᴿ
+substᴿⱽ σ (R ⇒ᴿ S) = substᴿⱽ σ R ⇒ᴿ substᴿⱽ σ S
+substᴿⱽ σ (`∀ᴿ R)  = `∀ᴿ (substᴿⱽ (extsⱽ σ) R)
+  where
+  extsⱽ : (ℕ → RepTy) → (ℕ → RepTy)
+  extsⱽ τ zero = `ᵛ zero
+  extsⱽ τ (suc i) = shiftⱽ (τ i)
+    where
+    shiftⱽ : RepTy → RepTy
+    shiftⱽ (`ᵃ α) = `ᵃ α
+    shiftⱽ (`ᵛ i) = `ᵛ (suc i)
+    shiftⱽ `ℕᴿ = `ℕᴿ
+    shiftⱽ `𝔹ᴿ = `𝔹ᴿ
+    shiftⱽ (R ⇒ᴿ S) = shiftⱽ R ⇒ᴿ shiftⱽ S
+    shiftⱽ (`∀ᴿ R) = `∀ᴿ R
 
-substAddr : SubstAddr → Addr → Addr
-substAddr σ (lvl ℓ) = lvl ℓ
-substAddr σ (bnd i) = σ i
-substAddr σ (bse j) = bse j
+instⱽ₀ : Addr → (ℕ → RepTy)
+instⱽ₀ β zero    = `ᵃ β
+instⱽ₀ β (suc i) = `ᵛ i
 
-substᴿ : SubstAddr → RepTy → RepTy
-substᴿ σ (`ᵃ α)   = `ᵃ substAddr σ α
-substᴿ σ `ℕᴿ      = `ℕᴿ
-substᴿ σ `𝔹ᴿ      = `𝔹ᴿ
-substᴿ σ (R ⇒ᴿ S) = substᴿ σ R ⇒ᴿ substᴿ σ S
-substᴿ σ (`∀ᴿ R)  = `∀ᴿ (substᴿ (extsᵃ σ) R)
-
--- Instantiate the innermost bound address (a `∀ᴿ`'s, or a discharged
--- binder's) by β; the remaining bound indices shift down.
-inst₀ : Addr → SubstAddr
-inst₀ β zero    = β
-inst₀ β (suc i) = bnd i
-
+infix 8 _[_]ᵇ
 _[_]ᵇ : RepTy → Addr → RepTy
-R [ β ]ᵇ = substᴿ (inst₀ β) R
+R [ β ]ᵇ = substᴿⱽ (instⱽ₀ β) R
 
--- The BASE mirror: discharging a `ν` replaces its address, `bse zero`,
--- by the fresh store level.  `∀ᴿ` binds a stack address, so the
--- substitution passes through it unextended.
+------------------------------------------------------------------------
+-- The BASE mirror: discharging a `ν` replaces its address by a level
+------------------------------------------------------------------------
+
 substAddrᵉ : SubstAddr → Addr → Addr
 substAddrᵉ σ (lvl ℓ) = lvl ℓ
-substAddrᵉ σ (bnd i) = bnd i
 substAddrᵉ σ (bse j) = σ j
 
 substᴿᵉ : SubstAddr → RepTy → RepTy
 substᴿᵉ σ (`ᵃ α)   = `ᵃ substAddrᵉ σ α
+substᴿᵉ σ (`ᵛ i)   = `ᵛ i
 substᴿᵉ σ `ℕᴿ      = `ℕᴿ
 substᴿᵉ σ `𝔹ᴿ      = `𝔹ᴿ
 substᴿᵉ σ (R ⇒ᴿ S) = substᴿᵉ σ R ⇒ᴿ substᴿᵉ σ S

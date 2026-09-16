@@ -30,6 +30,7 @@ module strong.Ctx where
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Empty using (⊥)
 open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Data.Product using (Σ-syntax; _,_)
 open import Data.List using (List; []; _∷_; _∷ʳ_; take)
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.RepresentationTypes
@@ -134,6 +135,37 @@ data _∋n_:=_ : Ctxᵗ → ℕ → Addr → Set where
                 → (bind ∷ Ss ∥ Bs) ∋n suc X := lvl ℓ
   n-skip-bind-e : (Ss ∥ Bs) ∋n X := bse j
                 → (bind ∷ Ss ∥ Bs) ∋n suc X := bse j
+
+------------------------------------------------------------------------
+-- A type variable IN SCOPE.  This is `∋n` with the address forgotten,
+-- and forgetting it collapses the five rules to two: both kinds of
+-- stack entry name something, so the relation never looks at an entry,
+-- and there is no address to shift past a `bind`.
+------------------------------------------------------------------------
+
+infix 4 _∋ᵗ_
+data _∋ᵗ_ : List StackEnt → ℕ → Set where
+  t-here  : ∀ {e Ss} → (e ∷ Ss) ∋ᵗ zero
+  t-there : ∀ {e Ss X} → Ss ∋ᵗ X → (e ∷ Ss) ∋ᵗ suc X
+
+-- the two directions: forget the address, and recover SOME address
+∋n→∋ᵗ : ∀ {Ss Bs X α} → (Ss ∥ Bs) ∋n X := α → Ss ∋ᵗ X
+∋n→∋ᵗ n-here-asgn = t-here
+∋n→∋ᵗ n-here-bind = t-here
+∋n→∋ᵗ (n-skip-asgn p) = t-there (∋n→∋ᵗ p)
+∋n→∋ᵗ (n-skip-bind-b p) = t-there (∋n→∋ᵗ p)
+∋n→∋ᵗ (n-skip-bind-l p) = t-there (∋n→∋ᵗ p)
+∋n→∋ᵗ (n-skip-bind-e p) = t-there (∋n→∋ᵗ p)
+
+∋ᵗ→∋n : ∀ {Ss Bs X} → Ss ∋ᵗ X → Σ[ α ∈ Addr ] ((Ss ∥ Bs) ∋n X := α)
+∋ᵗ→∋n {Ss = asgn α ∷ Ss} t-here = α , n-here-asgn
+∋ᵗ→∋n {Ss = bind ∷ Ss} t-here = bnd zero , n-here-bind
+∋ᵗ→∋n {Ss = asgn α ∷ Ss} (t-there p) with ∋ᵗ→∋n p
+∋ᵗ→∋n {Ss = asgn α ∷ Ss} (t-there p) | β , q = β , n-skip-asgn q
+∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) with ∋ᵗ→∋n p
+∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) | lvl ℓ , q = lvl ℓ , n-skip-bind-l q
+∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) | bnd i , q = bnd (suc i) , n-skip-bind-b q
+∋ᵗ→∋n {Ss = bind ∷ Ss} (t-there p) | bse j , q = bse j , n-skip-bind-e q
 
 ------------------------------------------------------------------------
 -- A represented address.  Only the base's `nuBind` carries one; a

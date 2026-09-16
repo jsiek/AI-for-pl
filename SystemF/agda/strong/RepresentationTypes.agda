@@ -2,21 +2,56 @@ module strong.RepresentationTypes where
 
 -- Strong System F v8 — representation types and their ADDRESSES.
 --
--- An address locates a representation type.  `lvl ℓ` is a stable level
--- into the global store Σ; the store is append-only, so levels are
--- never renamed.  The two BOUND forms mirror the two halves of a
--- context (`strong.Ctx`):
+-- An address locates a representation type.  There are three forms,
+-- and they are distinguished by WHO BINDS THEM:
 --
---   * `bnd i` indexes the STACK's binders — the binder assignment `X:α`
---     pushed by the `∀` conversion element, by `∀ᴿ`, and by the
---     type-level `∀` rules;
---   * `bse j` indexes the BASE's binders — a `Λ`'s address and a `ν`'s.
+--   lvl ℓ   the global store Σ.  Introduced only by `Alloc`, which
+--           appends; the store never reorders or removes, so a level
+--           is permanent and NEITHER renaming family touches it.
 --
--- Keeping them apart is what makes both halves usable.  A `Λ`'s own
--- address is `bse zero` no matter how many crossings and `∀`s stand
--- above it, so the color wrap can WRITE it; and pushing a base binder
--- shifts `bse` alone, leaving every stack address — hence every
--- crossing, hence every pop — exactly as it was.
+--   bnd i   a `∀`.  Every ∀-shaped rule pushes the stack entry `bind`
+--           that binds one: `wf-∀` (types), `wfᴿ-∀` (representation
+--           types), `read-∀` (read-back), `quote-∀` (`⌊·⌋`), and
+--           `conv-all` (the `∀` conversion element).  All type level.
+--
+--   bse j   a `Λ` or a `ν`.  `⊢Λ` pushes the base entry `addr`, `⊢ν`
+--           pushes `nuBind R`.  Both term level.
+--
+-- So the split is not two arbitrary halves: it is TYPE binders against
+-- TERM binders, with the store outside both.  That is what makes the
+-- two renaming families independent —
+--
+--   renᵃ  / renameᴿ  / renConv  / renAddrᴹ   move `bnd`, and extend
+--       under `all` and `∀ᴿ`;
+--   renᵃᵉ / renameᴿᵉ / renConvᵉ / renBseᴹ    move `bse`, and extend
+--       under `Λ` and `ν`;
+--
+-- and neither can disturb the other, because no binder is of both
+-- kinds.  Substitution mirrors this: `substAddr`/`inst₀` instantiate a
+-- `∀ᴿ`'s `bnd`, `substAddrᵉ`/`instᵉ₀` instantiate a `ν`'s `bse` (to a
+-- level, at `Alloc`).
+--
+-- WHERE THEY ARE WRITTEN.  Reduction writes an address in exactly four
+-- places, and only ever the innermost base binder or a fresh level:
+--
+--   crossΛ   `hide 0 (bse 0)`              the color wrap
+--   TyBeta   `revTy 0 (bse 0) A B`
+--   TyWrap   `instReveal 0 (bse 0) A d`
+--   Alloc    `M [ lvl (length Σ) ]ᵃᴹ`
+--
+-- `bse zero` is writable precisely BECAUSE of the split: it names the
+-- newest base binder however many crossings and `∀`s stand above it.
+-- With a single index counting through both halves a `Λ`'s address
+-- would be `bnd (binds Ss)`, which depends on the enclosing telescope
+-- and which a syntactic function on terms cannot know.
+--
+-- A `bnd` is never written into a term or a conversion at all.  It
+-- occurs only inside representation types, under the `∀ᴿ` that binds
+-- it, and as the address a `bind` entry assigns to its own name — see
+-- `proof.PreserveTyWrap.∋r-nobnd` (a `bnd` has no representation) and
+-- `∋a-bnd-named` (a `bnd` in scope already carries a name, so no
+-- crossing can introduce an assignment to one).  It cannot be dropped,
+-- though: `read-var` needs it to name a `∀`-bound variable.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (_≟_)

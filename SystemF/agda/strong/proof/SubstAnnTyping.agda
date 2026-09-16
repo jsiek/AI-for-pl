@@ -16,8 +16,9 @@ module strong.proof.SubstAnnTyping where
 -- slot sits at a different index at every element, and `S` — which
 -- lives in the coordinates of the context with the slot ALREADY
 -- REMOVED — has to be re-expressed as well.  `substAnn` threads both
--- along the spine with `substAnnOut`; this proof threads the DROP with
--- them (§9), which is what removed v7's `SlotFree`.
+-- along the spine with `slotOutElt`/`tyOutElt` (strong.Conversion);
+-- this proof threads the DROP with them (§9), which is what removed
+-- v7's `SlotFree`.
 --
 -- THE SHAPE OF THE RELATION.  `DropBindS` is an inductive relation in
 -- constructor form, not an equation on lists, because every judgment
@@ -34,8 +35,8 @@ module strong.proof.SubstAnnTyping where
 -- never happens.  With the general form the exterior drop is CONSTRUCT-
 -- IBLE (`drop-pop`), and with it the slot index the crossing moves to.
 --
--- WHAT IS LEFT OF THE SIDE CONDITIONS.  Three, and each is smaller
--- than its v7 ancestor:
+-- WHAT IS LEFT OF THE SIDE CONDITIONS.  Two, and each is smaller than
+-- its v7 ancestor:
 --
 --   * `RepsWf` (§6) — a representation reached by `∋r` has its `` `ᵛ ``s
 --     bound by its own `∀ᴿ`s.  All that is left of v7's `NoBndReps`.
@@ -46,15 +47,17 @@ module strong.proof.SubstAnnTyping where
 --     element (two for `unseal`/`show`), plus a well-formedness premise
 --     on `S` that is threaded along the spine.
 --
---   * `StepFix` (§6) — what is left of `SlotFree`.  Its atomic
---     constructors carry NOTHING.  Its `↦` and `all` constructors carry
---     an equation saying the slot index comes BACK to where it started
---     across the component, which is what `substAnnElt`'s own equations
---       substAnnElt X S (s ↦ t) = substAnn X S s ↦ substAnn X S t
---       substAnnElt X S (all s) = all (substAnn (suc X) (⇑ᵗ S) s)
---     assume: `t` runs from the element's interior to its exterior and
---     `s` runs back, both at the SAME X, and `all`'s body must return
---     `suc X` to `suc X`.  See §6 for why that is not derivable.
+-- `StepFix` — the last residue of `SlotFree` — IS GONE.  It said that
+-- the slot index comes back to where it started across an `↦`'s
+-- components and across an `all`'s body, which is what the OLD
+--   substAnnElt X S (s ↦ t) = substAnn X S s ↦ substAnn X S t
+-- assumed by handing the same index to two components running in
+-- OPPOSITE directions.  `substAnnElt` now steps the index into the
+-- contravariant component (`substAnn (slotOut t X) (tyOut t S) s`),
+-- and §8b DERIVES what is left: a conversion never changes the BIND
+-- SKELETON of its context, so the slot — a `bind` — keeps its rank
+-- among the binds along the whole spine, and `↦`'s two components,
+-- running between the SAME two contexts, return it to itself.
 
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z≤n; s≤s; _∸_)
 open import Data.Nat.Properties using
@@ -220,6 +223,25 @@ nameSub-shiftAt (suc Y) (suc P) (suc Z) ne
   rewrite nameSub-suc (shiftAtᵗ Y P) (shiftAtᵗ Y Z)
         | nameSub-suc P Y | nameSub-suc P Z =
   cong suc (nameSub-shiftAt Y P Z (λ eq → ne (cong suc eq)))
+
+-- A renaming that is pointwise the identity is the identity; and
+-- `nameSub 0` undoes `suc`, which is what `tyOutElt (all s)` needs —
+-- it brings the slot's type back out from under the `all`'s binder.
+ren-id : ∀ {ρ} → (∀ V → ρ V ≡ V) → ∀ S → renameᵗ ρ S ≡ S
+ren-id h (` V) = cong `_ (h V)
+ren-id h `ℕ = refl
+ren-id h `𝔹 = refl
+ren-id h (A ⇒ B) = cong₂ _⇒_ (ren-id h A) (ren-id h B)
+ren-id {ρ = ρ} h (`∀ A) = cong `∀ (ren-id h-ext A)
+  where
+  h-ext : ∀ V → extᵗ ρ V ≡ V
+  h-ext zero = refl
+  h-ext (suc V) = cong suc (h V)
+
+ren-sub0 : ∀ S → renameᵗ (nameSub zero) (renameᵗ suc S) ≡ S
+ren-sub0 S =
+  trans (rename-rename-commute suc (nameSub zero) S)
+        (ren-id (λ V → nameSub-pred V) S)
 
 closeEnv-eq : ∀ X S → closeEnv X S X ≡ S
 closeEnv-eq X S with X ≟ X
@@ -612,45 +634,14 @@ RepsWf : Store → List BaseEnt → Set
 RepsWf Sg Bs =
   ∀ {Ss α R} → Sg ∣ (Ss ∥ Bs) ∋r α := R → Sg ∣ (Ss ∥ Bs) ⊢ᴿ R
 
--- The slot index and the slot's type, stepped one element outward.
--- These are `substAnnOut`'s two arguments, read off the element alone;
--- `substAnnOut-step` below says so.
-slotOutElt : ConvElt → ℕ → ℕ
-slotOutElt (seal Y α)   X = shiftAtᵗ Y X
-slotOutElt (unseal Y α) X = nameSub Y X
-slotOutElt (hide Y α)   X = shiftAtᵗ Y X
-slotOutElt (show Y α)   X = nameSub Y X
-slotOutElt (s ↦ t)      X = X
-slotOutElt (all s)      X = X
-
-tyOutElt : ConvElt → Ty → Ty
-tyOutElt (seal Y α)   S = renameᵗ (shiftAtᵗ Y) S
-tyOutElt (unseal Y α) S = renameᵗ (nameSub Y) S
-tyOutElt (hide Y α)   S = renameᵗ (shiftAtᵗ Y) S
-tyOutElt (show Y α)   S = renameᵗ (nameSub Y) S
-tyOutElt (s ↦ t)      S = S
-tyOutElt (all s)      S = S
-
-slotOut : Conv → ℕ → ℕ
-slotOut (id A)    X = X
-slotOut (ĉ ∷ᶜ c) X = slotOut c (slotOutElt ĉ X)
-
-tyOut : Conv → Ty → Ty
-tyOut (id A)    S = S
-tyOut (ĉ ∷ᶜ c) S = tyOut c (tyOutElt ĉ S)
-
-substAnnOut-step : ∀ ĉ X S c
-  → substAnnOut ĉ X S c ≡ substAnn (slotOutElt ĉ X) (tyOutElt ĉ S) c
-substAnnOut-step (seal Y α) X S c = refl
-substAnnOut-step (unseal Y α) X S c = refl
-substAnnOut-step (hide Y α) X S c = refl
-substAnnOut-step (show Y α) X S c = refl
-substAnnOut-step (s ↦ t) X S c = refl
-substAnnOut-step (all s) X S c = refl
-
+-- `slotOutElt`, `tyOutElt`, `slotOut` and `tyOut` — the slot index and
+-- the slot's type, stepped one element (one spine) outward — are
+-- `substAnn`'s own threading functions and live with it in
+-- strong.Conversion.
+--
 -- (2) `SAvoids`, the weakening of `Closedᵗ S`.  `S` lives in the
 -- frame with the slot ALREADY REMOVED, where the crossing's name is
--- not Y but `nameSub X Y` — while `substAnnOut` re-expresses S at Y.
+-- not Y but `nameSub X Y` — while `tyOutElt` re-expresses S at Y.
 -- The two renamings agree off that one name, which is what each
 -- `Avoidᵗ` buys:
 --
@@ -664,8 +655,14 @@ substAnnOut-step (all s) X S c = refl
 -- Only `hide`, `unseal` and `show` spend theirs on an ANNOTATION:
 -- `seal`'s is spent only on carrying `S`'s well-formedness outward,
 -- which a monotonicity argument could do instead.  It is stated
--- anyway, so that the two elements `substAnnOut` treats alike ask for
+-- anyway, so that the two elements `tyOutElt` treats alike ask for
 -- the same thing.
+--
+-- `sa-fun` asks for ONE equation, not two: `t` runs the element's
+-- interior → exterior and `s` runs back, so the round trip
+-- `tyOut s (tyOut t S)` must land on `S` again.  (The INDEX round trip
+-- is the same statement one level down, and §8b derives it — that is
+-- the difference between the two conditions.)
 mutual
   data SAvoidsElt : ℕ → Ty → ConvElt → Set where
     sa-seal   : ∀ {X S Y α} → Avoidᵗ (nameSub X Y) S
@@ -676,8 +673,9 @@ mutual
               → SAvoidsElt X S (hide Y α)
     sa-show   : ∀ {X S Y α} → Avoidᵗ Y S → Avoidᵗ (nameSub X Y) S
               → SAvoidsElt X S (show Y α)
-    sa-fun    : ∀ {X S s t} → SAvoids X S s → SAvoids X S t
-              → tyOut s S ≡ S → tyOut t S ≡ S
+    sa-fun    : ∀ {X S s t} → SAvoids (slotOut t X) (tyOut t S) s
+              → SAvoids X S t
+              → tyOut s (tyOut t S) ≡ S
               → SAvoidsElt X S (s ↦ t)
     sa-all    : ∀ {X S s} → SAvoids (suc X) (renameᵗ suc S) s
               → tyOut s (renameᵗ suc S) ≡ renameᵗ suc S
@@ -689,44 +687,14 @@ mutual
             → SAvoids (slotOutElt ĉ X) (tyOutElt ĉ S) c
             → SAvoids X S (ĉ ∷ᶜ c)
 
--- (3) `StepFix`, all that is left of v7's `SlotFree`.  Its atomic
--- constructors carry NOTHING: with the drop threaded, `X < Y` is
--- either derivable (`unseal`/`show`: the slot is a `bind` and the
--- names above it in the interior are, by the pop judgment, `bind`s) or
--- unnecessary (`seal`/`hide`: the exterior gains its entry above the
--- slot and `drop-pop` follows it there).
---
--- The `↦` and `all` constructors are NOT free, and they are not
--- derivable either.  `s ↦ t` runs `t` from the element's interior Γᵢ
--- to its exterior Γₑ and `s` back, and `substAnnElt` gives BOTH the
--- same X — which is right only if the slot returns to its own index
--- across `t`.  It need not: with Γᵢ = asgn α ∷ bind ∷ Ss and Γₑ = bind
--- ∷ Ss, `t = show 0 α ∷ᶜ id` and `s = hide 0 α ∷ᶜ id` are well typed
--- and the slot moves 1 ↦ 0.  Same for `all`, whose body must return
--- `suc X` to `suc X`.
-mutual
-  data StepFixElt : ℕ → ConvElt → Set where
-    fx-seal   : ∀ {X Y α} → StepFixElt X (seal Y α)
-    fx-unseal : ∀ {X Y α} → StepFixElt X (unseal Y α)
-    fx-hide   : ∀ {X Y α} → StepFixElt X (hide Y α)
-    fx-show   : ∀ {X Y α} → StepFixElt X (show Y α)
-    fx-fun    : ∀ {X s t} → StepFix X s → StepFix X t
-              → slotOut s X ≡ X → slotOut t X ≡ X
-              → StepFixElt X (s ↦ t)
-    fx-all    : ∀ {X s} → StepFix (suc X) s → slotOut s (suc X) ≡ suc X
-              → StepFixElt X (all s)
-
-  data StepFix : ℕ → Conv → Set where
-    fx-id   : ∀ {X A} → StepFix X (id A)
-    fx-cons : ∀ {X ĉ c} → StepFixElt X ĉ → StepFix (slotOutElt ĉ X) c
-            → StepFix X (ĉ ∷ᶜ c)
-
--- THE PROBE `fx-fun`'s two equations are there for.  Both components
--- of a `↦` are well typed between these two contexts, and the slot
--- does NOT come back: `t` moves it 1 ↦ 0 while `substAnnElt` hands `s`
--- the index 1 all the same.  So the equations are not derivable, and
--- `substAnnElt X S (s ↦ t) = substAnn X S s ↦ substAnn X S t` is
--- wrong without them.
+-- THE WORD THAT KILLED THE OLD `↦` EQUATION.  Both components of this
+-- `↦` are well typed between these two contexts, and the slot does NOT
+-- come back across either one: `t` moves it 1 ↦ 0 and `s` moves it
+-- back 0 ↦ 1.  The old `substAnnElt X S (s ↦ t) = substAnn X S s ↦
+-- substAnn X S t` handed `s` the index 1 all the same, and needed
+-- `StepFix`'s `slotOut t X ≡ X` to paper over it; the stepped equation
+-- hands `s` the index `slotOut t X = 0`, and §10b checks that
+-- `substAnn` then TYPES this word.
 private
   Sgₓ : Store
   Sgₓ = `ℕᴿ ∷ []
@@ -776,8 +744,8 @@ mutual
   closed-avoidsElt (show Y α) cl =
     sa-show (closed-avoidᵗ cl _) (closed-avoidᵗ cl _)
   closed-avoidsElt (s ↦ t) cl =
-    sa-fun (closed-avoids s cl) (closed-avoids t cl)
-           (closed-tyOut s cl) (closed-tyOut t cl)
+    sa-fun (closed-avoids s (closed-tyOutC t cl)) (closed-avoids t cl)
+           (trans (cong (tyOut s) (closed-tyOut t cl)) (closed-tyOut s cl))
   closed-avoidsElt {S = S} (all s) cl =
     sa-all (closed-avoids s (closed-⇑ cl)) (closed-tyOut s (closed-⇑ cl))
 
@@ -796,21 +764,27 @@ mutual
     rewrite closed-ren cl (shiftAtᵗ Y) = cl
   closed-tyElt {S = S} (show Y α) cl
     rewrite closed-ren cl (nameSub Y) = cl
-  closed-tyElt (s ↦ t) cl = cl
-  closed-tyElt (all s) cl = cl
+  closed-tyElt (s ↦ t) cl = closed-tyOutC t cl
+  closed-tyElt {S = S} (all s) cl
+    rewrite closed-tyOut s (closed-⇑ cl) | ren-sub0 S = cl
 
   closed-tyEltEq : ∀ {S} ĉ → Closedᵗ S → tyOutElt ĉ S ≡ S
   closed-tyEltEq (seal Y α) cl = closed-ren cl (shiftAtᵗ Y)
   closed-tyEltEq (unseal Y α) cl = closed-ren cl (nameSub Y)
   closed-tyEltEq (hide Y α) cl = closed-ren cl (shiftAtᵗ Y)
   closed-tyEltEq (show Y α) cl = closed-ren cl (nameSub Y)
-  closed-tyEltEq (s ↦ t) cl = refl
-  closed-tyEltEq (all s) cl = refl
+  closed-tyEltEq (s ↦ t) cl = closed-tyOut t cl
+  closed-tyEltEq {S = S} (all s) cl =
+    trans (cong (renameᵗ (nameSub zero)) (closed-tyOut s (closed-⇑ cl)))
+          (ren-sub0 S)
 
   closed-tyOut : ∀ {S} c → Closedᵗ S → tyOut c S ≡ S
   closed-tyOut (id A) cl = refl
   closed-tyOut (ĉ ∷ᶜ c) cl =
     trans (closed-tyOut c (closed-tyElt ĉ cl)) (closed-tyEltEq ĉ cl)
+
+  closed-tyOutC : ∀ {S} c → Closedᵗ S → Closedᵗ (tyOut c S)
+  closed-tyOutC c cl rewrite closed-tyOut c cl = cl
 
 ------------------------------------------------------------------------
 -- §7  Transporting the lookups across the drop
@@ -997,6 +971,104 @@ drop-push (drop-there {X = X} d) (pop-bind {X = Y} p) | Ssₑ′ , d′ , p′
   _ , drop-there d′ , pop-bind p′
 
 ------------------------------------------------------------------------
+-- §8b  The slot's BIND RANK — what replaced `StepFix`
+------------------------------------------------------------------------
+-- An atomic element inserts or removes an `asgn`, a `↦` delegates, and
+-- an `all` keeps a `bind` at the head on both sides: no element touches
+-- the BIND SKELETON of its two contexts.  So count the binds strictly
+-- below the slot — `BRank X Ss n` — and that count is invariant along
+-- the whole spine (`brank-conv`), while the rank determines the index
+-- back (`brank-inj`).
+--
+-- That is the whole content of the deleted `StepFix`.  A `↦`'s two
+-- components run between the SAME two contexts, so `t` sends the slot
+-- to the bind of rank n in Ssₑ and `s` sends THAT back to the bind of
+-- rank n in Ssᵢ — the slot itself.  No premise required.
+
+data BRank : ℕ → List StackEnt → ℕ → Set where
+  br-here : BRank zero (bind ∷ Ss) zero
+  br-asgn : BRank X Ss n → BRank (suc X) (asgn α ∷ Ss) n
+  br-bind : BRank X Ss n → BRank (suc X) (bind ∷ Ss) (suc n)
+
+-- the slot is a `bind`, so it HAS a rank
+drop-brank : DropBindS X Ss Ss′ → Σ[ n ∈ ℕ ] BRank X Ss n
+drop-brank drop-here = zero , br-here
+drop-brank (drop-there {e = asgn α} d) with drop-brank d
+drop-brank (drop-there {e = asgn α} d) | n , b = n , br-asgn b
+drop-brank (drop-there {e = bind} d) with drop-brank d
+drop-brank (drop-there {e = bind} d) | n , b = suc n , br-bind b
+
+brank-inj : BRank X Ss n → BRank Z Ss n → X ≡ Z
+brank-inj br-here br-here = refl
+brank-inj (br-asgn b₁) (br-asgn b₂) = cong suc (brank-inj b₁ b₂)
+brank-inj (br-bind b₁) (br-bind b₂) = cong suc (brank-inj b₁ b₂)
+
+-- under an `all`'s binder the rank is a successor, so the index is too
+-- — which is what makes `slotOutElt (all s) X = slotOut s (suc X) ∸ 1`
+-- the right stepping
+brank-bind-inv : BRank W (bind ∷ Ss) (suc n)
+  → Σ[ Z ∈ ℕ ] (W ≡ suc Z × BRank Z Ss n)
+brank-bind-inv (br-bind b) = _ , refl , b
+
+brank-bind-zero : BRank W (bind ∷ Ss) zero → W ≡ zero
+brank-bind-zero br-here = refl
+
+-- a crossing that ADDS its assignment going outward slides the slot up
+brank-pop-shift : ∀ {Ss Ss′ Bs} → (Ss ∥ Bs) ▷ Y := α ⇒ (Ss′ ∥ Bs)
+  → BRank X Ss′ n → BRank (shiftAtᵗ Y X) Ss n
+brank-pop-shift pop-here b = br-asgn b
+brank-pop-shift (pop-bind p) br-here = br-here
+brank-pop-shift (pop-bind p) (br-bind b) = br-bind (brank-pop-shift p b)
+
+-- ... and one that REMOVES it slides the slot down
+brank-pop-sub : ∀ {Ss Ss′ Bs} → (Ss ∥ Bs) ▷ Y := α ⇒ (Ss′ ∥ Bs)
+  → BRank X Ss n → BRank (nameSub Y X) Ss′ n
+brank-pop-sub pop-here (br-asgn {X = Z} b) rewrite nameSub-pred Z = b
+brank-pop-sub (pop-bind {X = Y} p) br-here
+  rewrite nameSub-le (suc Y) zero (λ ()) = br-here
+brank-pop-sub (pop-bind {X = Y} p) (br-bind {X = Z} b)
+  rewrite nameSub-suc Y Z = br-bind (brank-pop-sub p b)
+
+mutual
+  brankElt-out : ∀ {Sg Ssᵢ Ssₑ Bs ĉ A B X n}
+    → Sg ∣ (Ssᵢ ∥ Bs) ⊢̂ ĉ ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
+    → BRank X Ssᵢ n → BRank (slotOutElt ĉ X) Ssₑ n
+  brankElt-out (conv-seal rep rd p) b = brank-pop-shift p b
+  brankElt-out (conv-unseal rep rd p na) b = brank-pop-sub p b
+  brankElt-out (conv-hide sc wf p na) b = brank-pop-shift p b
+  brankElt-out (conv-show sc wf p na) b = brank-pop-sub p b
+  -- the element spans what its COVARIANT component spans
+  brankElt-out (conv-fun ⊢s ⊢t) b = brank-conv ⊢t b
+  brankElt-out (conv-all ⊢s) b with brank-conv ⊢s (br-bind b)
+  brankElt-out (conv-all ⊢s) b | b′ with brank-bind-inv b′
+  brankElt-out (conv-all ⊢s) b | b′ | Z , eq , bZ rewrite eq = bZ
+
+  brank-conv : ∀ {Sg Ssᵢ Ssₑ Bs c A B X n}
+    → Sg ∣ (Ssᵢ ∥ Bs) ⊢ c ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
+    → BRank X Ssᵢ n → BRank (slotOut c X) Ssₑ n
+  brank-conv (conv-id wf) b = b
+  brank-conv (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) b with conv-base tl
+  brank-conv (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) b | refl =
+    brank-conv tl (brankElt-out hd b)
+
+-- THE `↦` FACT: the round trip returns the slot index.
+slotOut-round : ∀ {Sg Ssᵢ Ssₑ Bs s t A B C D X Ssᵢ′}
+  → Sg ∣ (Ssₑ ∥ Bs) ⊢ s ∶ C ⇝ A ⊣ (Ssᵢ ∥ Bs)
+  → Sg ∣ (Ssᵢ ∥ Bs) ⊢ t ∶ B ⇝ D ⊣ (Ssₑ ∥ Bs)
+  → DropBindS X Ssᵢ Ssᵢ′
+  → slotOut s (slotOut t X) ≡ X
+slotOut-round ⊢s ⊢t d with drop-brank d
+slotOut-round ⊢s ⊢t d | n , b =
+  brank-inj (brank-conv ⊢s (brank-conv ⊢t b)) b
+
+-- ... and the `∀`-slot fact the callers use: a conversion between two
+-- contexts that both begin with a `bind` fixes the index zero.
+slotOut-bind : ∀ {Sg Ssᵢ Ssₑ Bs c A B}
+  → Sg ∣ (bind ∷ Ssᵢ ∥ Bs) ⊢ c ∶ A ⇝ B ⊣ (bind ∷ Ssₑ ∥ Bs)
+  → slotOut c zero ≡ zero
+slotOut-bind ⊢c = brank-bind-zero (brank-conv ⊢c br-here)
+
+------------------------------------------------------------------------
 -- §9  The theorem
 ------------------------------------------------------------------------
 -- Stated so that the INTERIOR drop is given and the EXTERIOR one is
@@ -1004,10 +1076,10 @@ drop-push (drop-there {X = X} d) (pop-bind {X = Y} p) | Ssₑ′ , d′ , p′
 -- `substAnn` itself threads, so the recursion never has to guess where
 -- the slot has got to.  `conv-fun`, whose two components run in
 -- opposite directions, closes the circle with `drop-uniqueS` — which
--- is legitimate only because `StepFix` says the two components return
--- the slot index to itself.
+-- is legitimate because §8b's `slotOut-round` DERIVES that the two
+-- components return the slot index to itself.
 
--- transports along the two `StepFix`/`SAvoids` equations
+-- transports along the `slotOut`/`SAvoids` equations
 conv-≡ : ∀ {Sg Γ Γ′ c A B B′} → B ≡ B′
   → Sg ∣ Γ ⊢ c ∶ A ⇝ B ⊣ Γ′ → Sg ∣ Γ ⊢ c ∶ A ⇝ B′ ⊣ Γ′
 conv-≡ refl ty = ty
@@ -1022,7 +1094,7 @@ convElt-≡ refl ty = ty
 
 mutual
   substAnnElt-typing : ∀ {Sg X S ĉ A B Ssᵢ Ssᵢ′ Ssₑ Bs}
-    → RepsWf Sg Bs → SAvoidsElt X S ĉ → StepFixElt X ĉ
+    → RepsWf Sg Bs → SAvoidsElt X S ĉ
     → (Ssᵢ′ ∥ Bs) ⊢ᵗ S → DropBindS X Ssᵢ Ssᵢ′
     → Sg ∣ (Ssᵢ ∥ Bs) ⊢̂ ĉ ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
     → Σ[ Ssₑ′ ∈ List StackEnt ]
@@ -1035,9 +1107,9 @@ mutual
 
   -- a `seal`: the assignment is the EXTERIOR's, and the element's
   -- target IS its name, which slides down to `nameSub X Y`
-  substAnnElt-typing {X = X} {S = S} rw (sa-seal {Y = Y} av) fx wfS d
+  substAnnElt-typing {X = X} {S = S} rw (sa-seal {Y = Y} av) wfS d
     (conv-seal rep rd p) with drop-pop d p
-  substAnnElt-typing {X = X} {S = S} rw (sa-seal {Y = Y} av) fx wfS d
+  substAnnElt-typing {X = X} {S = S} rw (sa-seal {Y = Y} av) wfS d
     (conv-seal rep rd p) | Ssₑ′ , dₑ , p′
     rewrite closeEnv-≢ (shiftAtᵗ Y X) (renameᵗ (shiftAtᵗ Y) S) Y
               (slot-≢ dₑ (pop-∋n p))
@@ -1049,10 +1121,10 @@ mutual
 
   -- an `unseal`: dual, and its freshness side condition comes back
   substAnnElt-typing {X = X} {S = S} rw
-    (sa-unseal {Y = Y} avY avW) fx wfS d (conv-unseal rep rd p na)
+    (sa-unseal {Y = Y} avY avW) wfS d (conv-unseal rep rd p na)
     with drop-push d p
   substAnnElt-typing {X = X} {S = S} rw
-    (sa-unseal {Y = Y} avY avW) fx wfS d (conv-unseal rep rd p na)
+    (sa-unseal {Y = Y} avY avW) wfS d (conv-unseal rep rd p na)
     | Ssₑ′ , dₑ , p′
     rewrite closeEnv-≢ X S Y (slot-≢ d (pop-∋n p)) =
     Ssₑ′ , dₑ
@@ -1063,9 +1135,9 @@ mutual
 
   -- a `hide`: its target is a `shiftAtᵗ Y` rename, and `closeAt-shift`
   -- slides the shift's cutoff down with the crossing's name
-  substAnnElt-typing {X = X} {S = S} rw (sa-hide {Y = Y} av) fx wfS d
+  substAnnElt-typing {X = X} {S = S} rw (sa-hide {Y = Y} av) wfS d
     (conv-hide {A = A} sc wf p na) with drop-pop d p
-  substAnnElt-typing {X = X} {S = S} rw (sa-hide {Y = Y} av) fx wfS d
+  substAnnElt-typing {X = X} {S = S} rw (sa-hide {Y = Y} av) wfS d
     (conv-hide {A = A} sc wf p na) | Ssₑ′ , dₑ , p′
     rewrite closeAt-shift X Y S A
               (shift-avoid Y (nameSub X Y) av (nameSub-cases X Y)) =
@@ -1076,9 +1148,9 @@ mutual
 
   -- a `show`: the SOURCE is the rename, so the same equation is used
   -- in the other position, with the slot taken on the small side
-  substAnnElt-typing {X = X} {S = S} rw (sa-show {Y = Y} avY avW) fx wfS
+  substAnnElt-typing {X = X} {S = S} rw (sa-show {Y = Y} avY avW) wfS
     d (conv-show {A = A} sc wf p na) with drop-push d p
-  substAnnElt-typing {X = X} {S = S} rw (sa-show {Y = Y} avY avW) fx wfS
+  substAnnElt-typing {X = X} {S = S} rw (sa-show {Y = Y} avY avW) wfS
     d (conv-show {A = A} sc wf p na) | Ssₑ′ , dₑ , p′ =
     Ssₑ′ , dₑ , wfS″
     , convElt-≡ (sym eq)
@@ -1109,42 +1181,51 @@ mutual
                (sub-avoid Y (nameSub X Y) avY avW (nameSub-cases X Y)))))
 
   -- a `↦`: the components run in opposite directions between the same
-  -- two contexts, and `StepFix` is what says the slot index comes back
+  -- two contexts, so `t` is substituted at X and `s` at the index and
+  -- type `t` has moved the slot to.  §8b's `slotOut-round` says the
+  -- round trip lands on X again — no premise about it is needed.
   substAnnElt-typing {X = X} {S = S} {Ssᵢ′ = Ssᵢ′} {Bs = Bs} rw
-    (sa-fun sas sat eTs eTt) (fx-fun fxs fxt eXs eXt) wfS d
+    (sa-fun sas sat eT) wfS d
     (conv-fun {C = C} {A = A} {B = B} {D = D} ⊢s ⊢t)
-    with substAnn-typing rw sat fxt wfS d ⊢t
+    with substAnn-typing rw sat wfS d ⊢t
   substAnnElt-typing {X = X} {S = S} {Ssᵢ′ = Ssᵢ′} {Bs = Bs} rw
-    (sa-fun sas sat eTs eTt) (fx-fun fxs fxt eXs eXt) wfS d
+    (sa-fun sas sat eT) wfS d
     (conv-fun {C = C} {A = A} {B = B} {D = D} ⊢s ⊢t) | Ssₑ′ , dₑ , wfₑ , ty-t
-    with substAnn-typing rw sas fxs (wf-≡ eTt wfₑ) (drop-≡ eXt dₑ) ⊢s
+    with substAnn-typing rw sas wfₑ dₑ ⊢s | slotOut-round ⊢s ⊢t d
   substAnnElt-typing {X = X} {S = S} {Ssᵢ′ = Ssᵢ′} {Bs = Bs} rw
-    (sa-fun sas sat eTs eTt) (fx-fun fxs fxt eXs eXt) wfS d
+    (sa-fun sas sat eT) wfS d
     (conv-fun {C = C} {A = A} {B = B} {D = D} ⊢s ⊢t)
-    | Ssₑ′ , dₑ , wfₑ , ty-t | Ssᵢ″ , d″ , wf″ , ty-s =
-    Ssₑ′ , drop-≡ eXt dₑ , wf-≡ eTt wfₑ
+    | Ssₑ′ , dₑ , wfₑ , ty-t | Ssᵢ″ , d″ , wf″ , ty-s | eX =
+    Ssₑ′ , dₑ , wfₑ
     , conv-fun
-        (conv-ctx-≡ (cong (_∥ Bs) (sym (drop-uniqueS d (drop-≡ eXs d″))))
-          (conv-≡ (cong₂ (λ P T → closeAt P T A) eXs eTs) ty-s))
-        (conv-≡ (cong₂ (λ P T → closeAt P T D) eXt eTt) ty-t)
+        (conv-ctx-≡ (cong (_∥ Bs) (sym (drop-uniqueS d (drop-≡ eX d″))))
+          (conv-≡ (cong₂ (λ P T → closeAt P T A) eX eT) ty-s))
+        ty-t
 
   -- an `all`: one more binder assignment on both sides, so the slot
-  -- moves up by one and S shifts with it
-  substAnnElt-typing {X = X} {S = S} rw (sa-all sa eT) (fx-all fx eX)
+  -- moves up by one and S shifts with it.  Coming back out the slot is
+  -- again under a `bind` — §8b's rank says its index is a successor —
+  -- and `tyOutElt (all s)` brings the slot's type back with it.
+  substAnnElt-typing {X = X} {S = S} rw (sa-all sa eT)
     wfS d (conv-all {A = A} {B = B} ⊢s)
-    with substAnn-typing rw sa fx (wf-⇑ wfS) (drop-there d) ⊢s
-  substAnnElt-typing {X = X} {S = S} rw (sa-all sa eT) (fx-all fx eX)
-    wfS d (conv-all {A = A} {B = B} ⊢s) | Ss₂′ , d₂ , wf₂ , ty
+    with substAnn-typing rw sa (wf-⇑ wfS) (drop-there d) ⊢s
+       | drop-brank d
+  substAnnElt-typing {X = X} {S = S} rw (sa-all sa eT)
+    wfS d (conv-all {A = A} {B = B} ⊢s) | Ss₂′ , d₂ , wf₂ , ty | n , bX
+    with brank-bind-inv (brank-conv ⊢s (br-bind bX))
+  substAnnElt-typing {X = X} {S = S} rw (sa-all sa eT)
+    wfS d (conv-all {A = A} {B = B} ⊢s) | Ss₂′ , d₂ , wf₂ , ty | n , bX
+    | Z , eX , bZ
     with drop-≡ eX d₂ | wf-≡ eT wf₂
        | conv-≡ (cong₂ (λ P T → closeAt P T B) eX eT) ty
-  substAnnElt-typing {X = X} {S = S} rw (sa-all sa eT) (fx-all fx eX)
-    wfS d (conv-all {A = A} {B = B} ⊢s) | Ss₂′ , d₂ , wf₂ , ty
-    | drop-there dₑ | wfₑ | ty′
-    rewrite closeAt-∀ X S A | closeAt-∀ X S B =
+  substAnnElt-typing {X = X} {S = S} rw (sa-all sa eT)
+    wfS d (conv-all {A = A} {B = B} ⊢s) | Ss₂′ , d₂ , wf₂ , ty | n , bX
+    | Z , eX , bZ | drop-there dₑ | wfₑ | ty′
+    rewrite eX | eT | ren-sub0 S | closeAt-∀ X S A | closeAt-∀ Z S B =
     _ , dₑ , wf-⇓ wfₑ , conv-all ty′
 
   substAnn-typing : ∀ {Sg X S c A B Ssᵢ Ssᵢ′ Ssₑ Bs}
-    → RepsWf Sg Bs → SAvoids X S c → StepFix X c
+    → RepsWf Sg Bs → SAvoids X S c
     → (Ssᵢ′ ∥ Bs) ⊢ᵗ S → DropBindS X Ssᵢ Ssᵢ′
     → Sg ∣ (Ssᵢ ∥ Bs) ⊢ c ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
     → Σ[ Ssₑ′ ∈ List StackEnt ]
@@ -1154,22 +1235,21 @@ mutual
              ∶ closeAt X S A ⇝ closeAt (slotOut c X) (tyOut c S) B
              ⊣ (Ssₑ′ ∥ Bs))
 
-  substAnn-typing rw sa-id fx-id wfS d (conv-id wf) =
+  substAnn-typing rw sa-id wfS d (conv-id wf) =
     _ , d , wfS , conv-id (wf-drop d wfS wf)
   substAnn-typing {X = X} {S = S} rw (sa-cons {ĉ = ĉ} {c = c} saĉ sac)
-    (fx-cons fxĉ fxc) wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl)
+    wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl)
     with conv-base tl
   substAnn-typing {X = X} {S = S} rw (sa-cons {ĉ = ĉ} {c = c} saĉ sac)
-    (fx-cons fxĉ fxc) wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
-    with substAnnElt-typing rw saĉ fxĉ wfS d hd
+    wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
+    with substAnnElt-typing rw saĉ wfS d hd
   substAnn-typing {X = X} {S = S} rw (sa-cons {ĉ = ĉ} {c = c} saĉ sac)
-    (fx-cons fxĉ fxc) wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
+    wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
     | Ss₂′ , d₂ , wf₂ , ty-hd
-    with substAnn-typing rw sac fxc wf₂ d₂ tl
+    with substAnn-typing rw sac wf₂ d₂ tl
   substAnn-typing {X = X} {S = S} rw (sa-cons {ĉ = ĉ} {c = c} saĉ sac)
-    (fx-cons fxĉ fxc) wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
-    | Ss₂′ , d₂ , wf₂ , ty-hd | Ssₑ′ , dₑ , wfₑ , ty-tl
-    rewrite substAnnOut-step ĉ X S c =
+    wfS d (conv-cons {Γ₂ = Ss₂ ∥ Bs₂} hd tl) | refl
+    | Ss₂′ , d₂ , wf₂ , ty-hd | Ssₑ′ , dₑ , wfₑ , ty-tl =
     Ssₑ′ , dₑ , wfₑ , conv-cons ty-hd ty-tl
 
 ------------------------------------------------------------------------
@@ -1180,19 +1260,46 @@ mutual
 -- it hands over both drops and the two equations that say so.
 
 substAnn-typing′ : ∀ {Sg X S c A B Ssᵢ Ssᵢ′ Ssₑ Ssₑ′ Bs}
-  → RepsWf Sg Bs → SAvoids X S c → StepFix X c
+  → RepsWf Sg Bs → SAvoids X S c
   → (Ssᵢ′ ∥ Bs) ⊢ᵗ S
   → slotOut c X ≡ X → tyOut c S ≡ S
   → DropBindS X Ssᵢ Ssᵢ′ → DropBindS X Ssₑ Ssₑ′
   → Sg ∣ (Ssᵢ ∥ Bs) ⊢ c ∶ A ⇝ B ⊣ (Ssₑ ∥ Bs)
   → Sg ∣ (Ssᵢ′ ∥ Bs) ⊢ substAnn X S c
       ∶ closeAt X S A ⇝ closeAt X S B ⊣ (Ssₑ′ ∥ Bs)
-substAnn-typing′ {Bs = Bs} rw sa fx wfS eX eT dᵢ dₑ ⊢c
-  with substAnn-typing rw sa fx wfS dᵢ ⊢c
-substAnn-typing′ {B = B} {Bs = Bs} rw sa fx wfS eX eT dᵢ dₑ ⊢c
+substAnn-typing′ {Bs = Bs} rw sa wfS eX eT dᵢ dₑ ⊢c
+  with substAnn-typing rw sa wfS dᵢ ⊢c
+substAnn-typing′ {B = B} {Bs = Bs} rw sa wfS eX eT dᵢ dₑ ⊢c
   | Ssₑ″ , d″ , wf″ , ty =
   conv-ctx-≡ (cong (_∥ Bs) (sym (drop-uniqueS dₑ (drop-≡ eX d″))))
     (conv-≡ (cong₂ (λ P T → closeAt P T B) eX eT) ty)
+
+------------------------------------------------------------------------
+-- §10b  The §6 word, now TYPED at the stepped index
+------------------------------------------------------------------------
+-- `substAnnElt 1 `ℕ (sₓ ↦ tₓ)` substitutes `tₓ` at the slot index 1
+-- and `sₓ` at `slotOut tₓ 1 = 0` — the whole point of the change.  The
+-- old definition handed `sₓ` the index 1 as well, and `StepFix`'s
+-- `slotOut tₓ 1 ≡ 1` — which `slot-movesₓ` REFUTES — was the premise
+-- that hid it.  Here the theorem types the word with no premise about
+-- the slot at all.
+
+private
+  substₓ-steps : substAnnElt 1 `ℕ (sₓ ↦ tₓ)
+    ≡ substAnn zero `ℕ sₓ ↦ substAnn 1 `ℕ tₓ
+  substₓ-steps = refl
+
+  rwₓ : RepsWf Sgₓ []
+  rwₓ (r-lvl l-here) = wfᴿ-ℕ
+
+  ⊢substₓ : Sgₓ ∣ (asgn (lvl zero) ∷ [] ∥ [])
+    ⊢̂ substAnnElt 1 `ℕ (sₓ ↦ tₓ)
+    ∶ closeAt 1 `ℕ (`ℕ ⇒ `ℕ)
+    ⇝ closeAt (slotOutElt (sₓ ↦ tₓ) 1) (tyOutElt (sₓ ↦ tₓ) `ℕ) (`ℕ ⇒ `ℕ)
+    ⊣ ([] ∥ [])
+  ⊢substₓ with substAnnElt-typing rwₓ (closed-avoidsElt (sₓ ↦ tₓ) nf-ℕ)
+                 wf-ℕ dropₓ ⊢funₓ
+  ⊢substₓ | [] , drop-here , wfₓ , tyₓ = tyₓ
 
 ------------------------------------------------------------------------
 -- §11  Sanity check against `Examples.§14`
@@ -1200,9 +1307,9 @@ substAnn-typing′ {B = B} {Bs = Bs} rw sa fx wfS eX eT dᵢ dₑ ⊢c
 -- There `allView c₂` is `d = show 1 (lvl 0) ∷ᶜ id (` 0 ⇒ ` 0)`, typed
 -- under the ∀'s binder assignment — slot 0 — and `instReveal zero (bse
 -- zero) `𝔹 d` composes the builder with `substAnn zero `𝔹 d`.  The
--- crossing returns the slot to 0 (`nameSub 1 0 ≡ 0`), so `StepFix`
--- holds; the type argument is ground, so `SAvoids` holds by
--- `closed-avoids`; and the substituted conversion is the one
+-- crossing returns the slot to 0 (`nameSub 1 0 ≡ 0`), which is what
+-- `slotOut-bind` derives; the type argument is ground, so `SAvoids`
+-- holds by `closed-avoids`; and the substituted conversion is the one
 -- `inst-agrees` checks.
 
 private
@@ -1214,9 +1321,6 @@ private
 
   §14-closed : Closedᵗ `𝔹
   §14-closed = nf-𝔹
-
-  §14-stepfix : StepFix zero §14-d
-  §14-stepfix = fx-cons fx-show fx-id
 
   §14-slot : slotOut §14-d zero ≡ zero
   §14-slot = refl

@@ -12,6 +12,8 @@ module strong.notes.HideUnseal where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
+open import Data.Bool using (true)
+open import Data.Empty using (⊥)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -57,3 +59,41 @@ shift-never-X `ℕ ()
 shift-never-X `𝔹 ()
 shift-never-X (A ⇒ B) ()
 shift-never-X (`∀ A) ()
+
+------------------------------------------------------------------------
+-- THE LOST INFORMATION, and which form of it we want
+------------------------------------------------------------------------
+-- Jeremy: "an id conversion is never used at the type variable that is
+-- being hidden or revealed (otherwise it would have been a seal or
+-- unseal)" — so the premise goes on BOTH `conv-hide` and `conv-show`,
+-- which are duals and must stay duals for `arr`.  notes-v8.md says it too, of `id{+X:=α}`: "the type must
+-- not mention `X`".  The old `shiftAtᵗ` encoded it — a shifted type
+-- cannot mention the slot shifted into — and with the shift gone it
+-- has to be a premise.  Two readings, and they DISAGREE:
+--
+--   (A)  the type is not THE hidden variable          A ≢ ` X′
+--   (B)  the hidden variable does not OCCUR in it     X′ ∉ A
+--
+-- where `X′` is the name the FRAME gives the hidden address.
+
+-- the counterexample's hide, where the type IS the hidden variable
+badA : Ty
+badA = ` zero            -- and Ξ ∋n 0 := lvl 0
+
+-- M₅'s hide, from notes/UnlockedFrame2's `W″`: its address is `lvl 0`,
+-- the frame names it 0, and the type MENTIONS it — because the
+-- boundary's own result type is `X → 𝔹`, and this is the outermost
+-- crossing.
+goodA : Ty
+goodA = ` zero ⇒ `𝔹      -- and Ξ″ ∋n 0 := lvl 0
+
+-- (A) separates them …
+A-rejects-bad : ¬ (badA ≡ ` zero)  → ⊥
+A-rejects-bad k = k refl
+
+A-accepts-good : ¬ (goodA ≡ ` zero)
+A-accepts-good ()
+
+-- … and (B) does not: it throws M₅ out along with the counterexample.
+B-rejects-good : occursᵗ zero goodA ≡ true
+B-rejects-good = refl

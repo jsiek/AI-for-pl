@@ -25,13 +25,14 @@ open import Data.Bool using (true)
 open import Relation.Nullary using (¬_)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
 open Ctxᵗ
 open import strong.Terms
+open import strong.ConversionReduction using (instReveal)
 open import strong.Conversion using
   (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all; _⧺_;
    interior; pushAsgn; _∣_⊢_∶_⇝_⊣_; conv-id; conv-cons;
@@ -535,3 +536,102 @@ namefnΞ n-here-asgn n-here-asgn = refl
 namefnΞ n-here-asgn (n-skip-asgn (n-skip-asgn ()))
 namefnΞ (n-skip-asgn n-here-asgn) (n-skip-asgn n-here-asgn) = refl
 namefnΞ (n-skip-asgn (n-skip-asgn ())) q
+
+------------------------------------------------------------------------
+-- THE BUILDERS — what has to change, and the recipe
+------------------------------------------------------------------------
+-- `instReveal` today produces `W` (notes/SourceToTyWrapGap), which has
+-- no typing; the proposal wants `W′`.  They differ in EXACTLY ONE
+-- annotation:
+--
+--   W   = (… ↦ …) ∷ᶜ hide 0 (lvl 0) ∷ᶜ id (` 0 ⇒ 𝔹)
+--   W′  = (… ↦ …) ∷ᶜ hide 0 (lvl 0) ∷ᶜ id (` 1 ⇒ 𝔹)
+--
+-- and NO UNIFORM RENAMING relates them: `annRen (shiftAtᵗ 0) W` also
+-- moves the seal's `id (` 0)` to `id (` 1)`, which `⊢W′` does not want.
+
+-- `W` as `instReveal` builds it today (notes/SourceToTyWrapGap.W)
+Wnow : Conv
+Wnow = ((seal zero (bse zero) ∷ᶜ id (` zero))
+         ↦ (show zero (bse zero) ∷ᶜ id `𝔹))
+       ∷ᶜ hide zero (lvl zero) ∷ᶜ id (` zero ⇒ `𝔹)
+
+built-today : instReveal Sg (bind ∷ [] ∥ []) zero (bse zero) (` zero)
+                (hide (suc zero) (lvl zero) ∷ᶜ id (` zero ⇒ `𝔹))
+            ≡ Wnow
+built-today = refl
+
+not-uniform : annRen (shiftAtᵗ zero) Wnow ≢ W′
+not-uniform ()
+
+-- The reason is that today EACH ANNOTATION IS IN ITS OWN LOCAL FRAME,
+-- so the same syntax `` ` 0 `` means Y at one position and X at another.
+-- Under the proposal they are all in `Ξ`, where `` ` 0 `` is Y and
+-- `` ` 1 `` is X — one frame, no coincidences.  The recipe is therefore
+-- POSITION-WISE: transport each terminator along the insertion from ITS
+-- OWN local context into `Ξ`.  On `W`'s three terminators:
+
+--   1.  `id (` 0)` sits after the seal, at Γ₁.  `bse 0` is slot 0 in
+--       Γ₁ AND in Ξ, so the map is the identity there.
+retarget₁ : renameᵗ (λ n → n) (` zero) ≡ ` zero
+retarget₁ = refl
+
+--   2.  `id 𝔹` sits after the show, at Γ₁.  No variables.
+retarget₂ : renameᵗ (λ n → n) `𝔹 ≡ `𝔹
+retarget₂ = refl
+
+--   3.  `id (` 0 ⇒ 𝔹)` is the terminator, at Γ₃.  `lvl 0` is slot 0 in
+--       Γ₃ but slot 1 in Ξ, so the map is `shiftAtᵗ 0`.
+retarget₃ : renameᵗ (shiftAtᵗ zero) (` zero ⇒ `𝔹) ≡ (` suc zero ⇒ `𝔹)
+retarget₃ = refl
+
+-- … and that is `W′` on the nose.
+recipe : ((seal zero (bse zero) ∷ᶜ id (renameᵗ (λ n → n) (` zero)))
+           ↦ (show zero (bse zero) ∷ᶜ id (renameᵗ (λ n → n) `𝔹)))
+         ∷ᶜ hide zero (lvl zero)
+         ∷ᶜ id (renameᵗ (shiftAtᵗ zero) (` zero ⇒ `𝔹))
+       ≡ W′
+recipe = refl
+
+------------------------------------------------------------------------
+-- … AND A CORRECTION TO `unlocked` THAT THE BUILDERS WANT
+------------------------------------------------------------------------
+-- `unlocked` inserts a reveal at its LOCAL name X.  That is what made
+-- `ins2`'s map non-monotone, and a non-monotone map is bad news for the
+-- builders: each terminator's transport stops being a `shiftAtᵗ`
+-- composite and has to be recomputed by address matching.
+--
+-- The fix is to insert at the FRAME position instead — i.e. to carry
+-- the map ρ : Γ → Ξ along the walk and insert at ρ X.  Main has this
+-- for free ("a change names an EXTERIOR slot and is unshifted by the
+-- morphism's own binds"); v8's names are local, so the walk must track
+-- it.  Redoing the two-conceals case that way:
+--
+--   start            Γ = lvl 0, lvl 1        Ξ = lvl 0, lvl 1     ρ = id
+--   hide 0 (lvl 0)   Γ = lvl 1               Ξ unchanged          ρ = shiftAtᵗ 0
+--   show 1 (bse 0)   Γ = lvl 1, bse 0        insert at ρ 1 = 2
+--                                            Ξ = lvl 0, lvl 1, bse 0
+--
+-- and now Γ's 0 ↦ Ξ's 1, Γ's 1 ↦ Ξ's 2 — MONOTONE, and exactly
+-- `shiftAtᵗ 0`.
+
+Δ2ᵢ Ξ2′ : Ctxᵗ
+Δ2ᵢ = asgn (lvl (suc zero)) ∷ asgn (bse zero) ∷ [] ∥ nuBind `𝔹ᴿ ∷ []
+Ξ2′ = asgn (lvl zero) ∷ asgn (lvl (suc zero)) ∷ asgn (bse zero) ∷ []
+      ∥ nuBind `𝔹ᴿ ∷ []
+
+ins2′ : Insert (shiftAtᵗ zero) Δ2ᵢ Ξ2′
+ins-t ins2′ t-here = t-there t-here
+ins-t ins2′ (t-there t-here) = t-there (t-there t-here)
+ins-t ins2′ (t-there (t-there ()))
+ins-n ins2′ n-here-asgn = n-skip-asgn n-here-asgn
+ins-n ins2′ (n-skip-asgn n-here-asgn) =
+  n-skip-asgn (n-skip-asgn n-here-asgn)
+ins-n ins2′ (n-skip-asgn (n-skip-asgn ()))
+ins-b ins2′ (b-asgn (b-asgn ()))
+
+-- So the recommendation for the port: `unlocked` returns `(Ξ , ρ)`,
+-- inserting each reveal at `ρ X`; every transport in sight — `jᵢ`, `jₑ`
+-- and the builders' per-terminator retargeting — is then a `shiftAtᵗ`
+-- composite, and `NameFn Ξ` follows from the strengthened freshness
+-- premise rather than having to be re-established by address matching.

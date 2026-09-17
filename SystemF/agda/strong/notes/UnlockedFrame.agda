@@ -21,15 +21,19 @@ module strong.notes.UnlockedFrame where
 -- types all live in `Ξ`.
 
 open import Data.Nat using (ℕ; zero; suc)
+open import Data.Bool using (true)
 open import Data.List using (List; []; _∷_)
+open import Data.Maybe using (Maybe; just; nothing)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
 open Ctxᵗ
+open import strong.Terms
 open import strong.Conversion using
-  (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all; _⧺_)
+  (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all; _⧺_;
+   interior; pushAsgn)
 
 ------------------------------------------------------------------------
 -- The proposed conversion typing
@@ -46,13 +50,19 @@ data _∣_∣_⊢′_∶_⇝_⊣_ (Σ : Store) (Ξ : Ctxᵗ)
 data _∣_∣_⊢̂′_∶_⇝_⊣_ Σ Ξ where
   -- THE ONE CHANGE: the read-back is at `Ξ`, not at the element's own
   -- interior.  The lookup and the pop are unmoved.
-  seal′ : ∀ {Γᵢ Γₑ X α R A}
-    → Σ ∣ Γₑ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Γₑ ▷ X := α ⇒ Γᵢ
-    → Σ ∣ Ξ ∣ Γᵢ ⊢̂′ seal X α ∶ A ⇝ ` X ⊣ Γₑ
-  unseal′ : ∀ {Γᵢ Γₑ X α R A}
-    → Σ ∣ Γᵢ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Γᵢ ▷ X := α ⇒ Γₑ
-    → NotAssigned Γₑ α
-    → Σ ∣ Ξ ∣ Γᵢ ⊢̂′ unseal X α ∶ ` X ⇝ A ⊣ Γₑ
+  -- BOTH SIDES COME FROM `Ξ`.  The element's NAME `X` indexes the real
+  -- context (it is what the pop consumes); the TYPE `` ` X′ `` is the
+  -- name `Ξ` has for the same address.  Conflating them — writing
+  -- `` ` X `` for the type, as a first draft did — is unsound as soon
+  -- as `Γₑ` and `Ξ` disagree, and `Ξ-weaken` below is what caught it.
+  seal′ : ∀ {Γᵢ Γₑ X X′ α R A}
+    → Σ ∣ Γₑ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Ξ ∋n X′ := α
+    → Γₑ ▷ X := α ⇒ Γᵢ
+    → Σ ∣ Ξ ∣ Γᵢ ⊢̂′ seal X α ∶ A ⇝ ` X′ ⊣ Γₑ
+  unseal′ : ∀ {Γᵢ Γₑ X X′ α R A}
+    → Σ ∣ Γᵢ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Ξ ∋n X′ := α
+    → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
+    → Σ ∣ Ξ ∣ Γᵢ ⊢̂′ unseal X α ∶ ` X′ ⇝ A ⊣ Γₑ
   -- NO RE-SPELLING: `A ⇝ A`, and well-formedness is at `Ξ`.
   hide′ : ∀ {Γᵢ Γₑ X α A}
     → Σ ∣ Γᵢ ∋a α → Ξ ⊢ᵗ A → Γₑ ▷ X := α ⇒ Γᵢ → NotAssigned Γᵢ α
@@ -114,7 +124,8 @@ readΞ = read-var (n-skip-asgn n-here-asgn)
 ⊢W′ : Sg ∣ Ξ ∣ Γ₁ ⊢′ W′ ∶ (` zero ⇒ `𝔹) ⇝ (` suc zero ⇒ `𝔹) ⊣ Γ₃
 ⊢W′ =
   cons′
-    (fun′ (cons′ (seal′ r-here readΞ pop-here) (id′ (wf-var t-here)))
+    (fun′ (cons′ (seal′ r-here readΞ n-here-asgn pop-here)
+                 (id′ (wf-var t-here)))
           (cons′ (show′ a-here-nu wf-𝔹 pop-here (λ ())) (id′ wf-𝔹)))
     (cons′ (hide′ (a-lvl l-here) wfΞ pop-here (λ ())) (id′ wfΞ))
 
@@ -257,3 +268,151 @@ exterior-endpoint = refl
 -- Main pays the same bill here and it is not small: `_⋉_` / `rewind`
 -- (strong.CtxMorph §4) and `proof/MoveScope` exist for exactly this
 -- move, under `IdPush` and `CancelR`.
+
+------------------------------------------------------------------------
+-- FRAME WEAKENING — what `Merge` needs
+------------------------------------------------------------------------
+-- An INSERTION `Ξ ↪ Ξ′` is a renaming that preserves the three lookups
+-- the frame is read through.  Only `asgn` entries are ever inserted (a
+-- reveal or a conceal), so the bind skeleton — and hence `∋b`'s rank —
+-- is untouched.
+
+record Insert (ρ : Renameᵗ) (Ξ Ξ′ : Ctxᵗ) : Set where
+  field
+    ins-t : ∀ {X} → stk Ξ ∋ᵗ X → stk Ξ′ ∋ᵗ ρ X
+    ins-n : ∀ {X α} → Ξ ∋n X := α → Ξ′ ∋n ρ X := α
+    ins-b : ∀ {X i} → stk Ξ ∋b X at i → stk Ξ′ ∋b ρ X at i
+open Insert
+
+ins-bind : ∀ {ρ Ξ Ξ′} → Insert ρ Ξ Ξ′
+  → Insert (extᵗ ρ) (bind ∷ stk Ξ ∥ bas Ξ) (bind ∷ stk Ξ′ ∥ bas Ξ′)
+ins-t (ins-bind i) t-here = t-here
+ins-t (ins-bind i) (t-there p) = t-there (ins-t i p)
+ins-n (ins-bind i) (n-skip-bind p) = n-skip-bind (ins-n i p)
+ins-b (ins-bind i) b-here = b-here
+ins-b (ins-bind i) (b-bind p) = b-bind (ins-b i p)
+
+wf-ren : ∀ {ρ Ξ Ξ′ A} → Insert ρ Ξ Ξ′ → Ξ ⊢ᵗ A → Ξ′ ⊢ᵗ renameᵗ ρ A
+wf-ren i (wf-var n) = wf-var (ins-t i n)
+wf-ren i wf-ℕ = wf-ℕ
+wf-ren i wf-𝔹 = wf-𝔹
+wf-ren i (wf-⇒ a b) = wf-⇒ (wf-ren i a) (wf-ren i b)
+wf-ren i (wf-∀ a) = wf-∀ (wf-ren (ins-bind i) a)
+
+-- the one genuinely NEW obligation: the read-back under a renaming
+read-ren : ∀ {ρ Ξ Ξ′ R A} → Insert ρ Ξ Ξ′
+  → Sg ∣ Ξ ⊢ R ⇓ A → Sg ∣ Ξ′ ⊢ R ⇓ renameᵗ ρ A
+read-ren i (read-var n) = read-var (ins-n i n)
+read-ren i (read-bv n) = read-bv (ins-b i n)
+read-ren i read-ℕ = read-ℕ
+read-ren i read-𝔹 = read-𝔹
+read-ren i (read-⇒ a b) = read-⇒ (read-ren i a) (read-ren i b)
+read-ren i (read-∀ a) = read-∀ (read-ren (ins-bind i) a)
+
+-- Renaming the TERMINATOR ANNOTATIONS only.  An element's name indexes
+-- the real context, which the insertion does not touch, so the atomic
+-- elements are carried unchanged.
+annRen : Renameᵗ → Conv → Conv
+annRenElt : Renameᵗ → ConvElt → ConvElt
+annRen ρ (id A)   = id (renameᵗ ρ A)
+annRen ρ (ĉ ∷ᶜ c) = annRenElt ρ ĉ ∷ᶜ annRen ρ c
+annRenElt ρ (seal X α)   = seal X α
+annRenElt ρ (unseal X α) = unseal X α
+annRenElt ρ (hide X α)   = hide X α
+annRenElt ρ (show X α)   = show X α
+annRenElt ρ (s ↦ t)      = annRen ρ s ↦ annRen ρ t
+annRenElt ρ (all s)      = all (annRen (extᵗ ρ) s)
+
+Ξ-weakenElt : ∀ {ρ Ξ Ξ′ Γᵢ Γₑ ĉ A B} → Insert ρ Ξ Ξ′
+  → Sg ∣ Ξ  ∣ Γᵢ ⊢̂′ ĉ ∶ A ⇝ B ⊣ Γₑ
+  → Sg ∣ Ξ′ ∣ Γᵢ ⊢̂′ annRenElt ρ ĉ ∶ renameᵗ ρ A ⇝ renameᵗ ρ B ⊣ Γₑ
+Ξ-weaken : ∀ {ρ Ξ Ξ′ Γᵢ Γₑ c A B} → Insert ρ Ξ Ξ′
+  → Sg ∣ Ξ  ∣ Γᵢ ⊢′ c ∶ A ⇝ B ⊣ Γₑ
+  → Sg ∣ Ξ′ ∣ Γᵢ ⊢′ annRen ρ c ∶ renameᵗ ρ A ⇝ renameᵗ ρ B ⊣ Γₑ
+
+Ξ-weakenElt i (seal′ r rd nm pop) =
+  seal′ r (read-ren i rd) (ins-n i nm) pop
+Ξ-weakenElt i (unseal′ r rd nm pop na) =
+  unseal′ r (read-ren i rd) (ins-n i nm) pop na
+Ξ-weakenElt i (hide′ sc wf pop na) = hide′ sc (wf-ren i wf) pop na
+Ξ-weakenElt i (show′ sc wf pop na) = show′ sc (wf-ren i wf) pop na
+Ξ-weakenElt i (fun′ s t) = fun′ (Ξ-weaken i s) (Ξ-weaken i t)
+Ξ-weakenElt i (all′ s) = all′ (Ξ-weaken (ins-bind i) s)
+
+Ξ-weaken i (id′ wf) = id′ (wf-ren i wf)
+Ξ-weaken i (cons′ hd tl) = cons′ (Ξ-weakenElt i hd) (Ξ-weaken i tl)
+
+------------------------------------------------------------------------
+-- `unlocked` — computing `Ξ` from the syntax
+------------------------------------------------------------------------
+-- The mirror of `Conversion.interior`: the same walk with the CONCEALS
+-- SKIPPED.  `↦` collects the reveals of both components (the element's
+-- own crossing is delegated to them), `all` descends under a `bind`.
+
+mutual
+  unlockedElt : ConvElt → Ctxᵗ → Maybe Ctxᵗ
+  unlockedElt (seal X α)   Γ = just Γ          -- conceal: SKIPPED
+  unlockedElt (hide X α)   Γ = just Γ          -- conceal: SKIPPED
+  unlockedElt (unseal X α) Γ = pushAsgn X α Γ
+  unlockedElt (show X α)   Γ = pushAsgn X α Γ
+  unlockedElt (s ↦ t)      Γ with unlocked t Γ
+  unlockedElt (s ↦ t)      Γ | just Γ′ = unlocked s Γ′
+  unlockedElt (s ↦ t)      Γ | nothing = nothing
+  unlockedElt (all s) (Ss ∥ Bs) with unlocked s (bind ∷ Ss ∥ Bs)
+  unlockedElt (all s) (Ss ∥ Bs) | just (bind ∷ Ss′ ∥ Bs′) = just (Ss′ ∥ Bs′)
+  unlockedElt (all s) (Ss ∥ Bs) | just (asgn β ∷ Ss′ ∥ Bs′) = nothing
+  unlockedElt (all s) (Ss ∥ Bs) | just ([] ∥ Bs′) = nothing
+  unlockedElt (all s) (Ss ∥ Bs) | nothing = nothing
+
+  unlocked : Conv → Ctxᵗ → Maybe Ctxᵗ
+  unlocked (id A) Γ = just Γ
+  unlocked (ĉ ∷ᶜ c) Γ with unlocked c Γ
+  unlocked (ĉ ∷ᶜ c) Γ | just Γ′ = unlockedElt ĉ Γ′
+  unlocked (ĉ ∷ᶜ c) Γ | nothing = nothing
+
+-- and it delivers exactly the frame the derivation was given by hand
+computesΞ : unlocked W′ Γ₃ ≡ just Ξ
+computesΞ = refl
+
+-- for comparison, the real interior is unchanged
+computesΓ₁ : interior W′ Γ₃ ≡ just Γ₁
+computesΓ₁ = refl
+
+------------------------------------------------------------------------
+-- The whole reduct, under the proposed boundary rule
+------------------------------------------------------------------------
+-- The rule, as a record of its premises (main's `env`, clause for
+-- clause).  `Δᵢ` and `Ξ` are COMPUTED; `ιᵢ`/`ιₑ` are the two insertions
+-- of §"endpoints" and would be computed from the spine the same way.
+
+record Boundary (Δ : Ctxᵗ) (M : Term) (c : Conv) (B : Ty) : Set where
+  field
+    Δᵢ Ξb : Ctxᵗ
+    b-int : interior c Δ ≡ just Δᵢ
+    b-unl : unlocked c Δ ≡ just Ξb
+    jᵢ jₑ : Renameᵗ
+    A     : Ty
+    b-tm  : Sg ∣ Δᵢ ∣ [] ⊢ M ⦂ A
+    b-cv  : Sg ∣ Ξb ∣ Δᵢ ⊢′ c ∶ renameᵗ jᵢ A ⇝ renameᵗ jₑ B ⊣ Δ
+    b-wf  : Δ ⊢ᵗ B
+
+-- M₅'s inner boundary, at the type the ν's body must have: the redex's
+-- own type `T [ ` 0 ]ᵗ = ` 0 ⇒ 𝔹`.
+reduct-ok : Boundary Γ₃ (ƛ (` zero) ∙ (# true)) W′ (` zero ⇒ `𝔹)
+reduct-ok = record
+  { Δᵢ = Γ₁ ; Ξb = Ξ
+  ; b-int = refl ; b-unl = refl
+  ; jᵢ = shiftAtᵗ (suc zero) ; jₑ = shiftAtᵗ zero
+  ; A = ` zero ⇒ `𝔹
+  ; b-tm = ⊢ƛ (wf-var t-here) ⊢#
+  ; b-cv = ⊢W′
+  ; b-wf = wf-⇒ (wf-var t-here) wf-𝔹
+  }
+
+-- So the boundary `V ⟨ W′ ⟩` has type `` ` 0 ⇒ 𝔹 `` at Γ₃, which is
+-- exactly what `⊢ν` needs of the ν's body (`⊢ν` moves no type), and
+-- `` ` 0 ⇒ 𝔹 `` is `T [ ` 0 ]ᵗ` — the redex's type.  The step that
+-- `notes/SourceToTyWrapGap.M₅-⊥` refutes today is TYPE-PRESERVING under
+-- the proposed rules.
+redex-type : (` zero ⇒ `𝔹) ≡ ((` zero ⇒ `𝔹) [ ` zero ]ᵗ)
+redex-type = refl

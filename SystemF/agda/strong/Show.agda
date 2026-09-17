@@ -194,9 +194,18 @@ showConvOut ext (show X α ∷ᶜ c) with showConvOut ext c
 ... | (n , sup) , str =
   (n , insAt X (varOfAddr α) sup)
   , "id{+" ++ varOfAddr α ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+-- `conv-fun`'s components carry the element's own crossing:
+--   t : Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ   runs interior → exterior, like the element
+--   s : Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ   runs BACKWARD
+-- so the element's interior frame is the one `t` ends at, and `s` is
+-- read from there.  Threading it is what makes a `↦` whose covariant
+-- half crosses an assignment print that assignment's name in the body
+-- (notes/SourceToTyWrapGap); returning the exterior frame unchanged
+-- printed it as `?`.
 showConvOut ext ((s ↦ t) ∷ᶜ c) with showConvOut ext c
-... | (n , sup) , str with showConvOut (n , sup) s | showConvOut (n , sup) t
-... | _ , ss | _ , ts = (n , sup) , "(" ++ ss ++ " → " ++ ts ++ ") ∷ " ++ str
+... | extₑ , str with showConvOut extₑ t
+... | extᵢ , ts with showConvOut extᵢ s
+... | _ , ss = extᵢ , "(" ++ ss ++ " → " ++ ts ++ ") ∷ " ++ str
 showConvOut ext (all s ∷ᶜ c) with showConvOut ext c
 ... | (n , sup) , str with showConvOut (suc n , extS sup (boundVar n)) s
 ... | _ , ss =

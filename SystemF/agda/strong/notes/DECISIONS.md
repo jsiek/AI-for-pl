@@ -4792,3 +4792,44 @@ TWO CONSEQUENCES, BOTH RECORDED IN PLACE.
 
 Step 3 was NOT requested and is the last thing in the commit, so it is
 the easy one to revert if the address test is wanted back.
+
+## 2026-09-17: PRESERVATION IS FALSE on a REACHABLE term — the source program
+
+Jeremy asked whether §8.1b's refutation bites on reachable states or
+only on `TyWrapOk`'s over-general statement.  Answer: REACHABLE.
+`notes/SourceToTyWrapGap.agda` is a closed, well-typed SOURCE program —
+no boundaries, no store, no conversions —
+
+    ( ΛX. λf:(∀S. S→𝔹). f [X] ) [𝔹]  ·  ( ΛS. λz:S. true )
+
+    ⊢M₀ : [] ∣ ([] ∥ []) ∣ [] ⊢ M₀ ⦂ (`𝔹 ⇒ `𝔹)
+
+that reduces in FIVE steps to a term with no typing at any type:
+
+    run  : [] ∣ ([] ∥ []) ⊢ M₀ —↠ M₅ ⊣ (`𝔹ᴿ ∷ [])
+    M₅-⊥ : ∀ {C} → ¬ ((`𝔹ᴿ ∷ []) ∣ ([] ∥ []) ∣ [] ⊢ M₅ ⦂ C)
+
+THE TRICK is in the source: the outer `Λ` instantiates `f` AT ITS OWN
+TYPE VARIABLE.  After `TyBeta`/`Alloc` that variable is a crossing
+assignment to a store level, and the route is forced from there:
+
+  TyBeta    mints the boundary; `revTy` puts a `↦` at the head
+  Alloc     `bse 0 ↦ lvl 0`; the store gains `𝔹`
+  Wrap      `arr` hands the polymorphic argument the CONTRAVARIANT half
+            `c₁ = hide 0 (lvl 0) ∷ᶜ id (∀S. S→𝔹)`, and leaves the
+            covariant half as the boundary — whose interior is
+            `asgn (lvl 0) ∷ [] ∥ []`, i.e. §8.1b's `Δₘ`
+  ξ-⟨⟩/Beta  substitutes the argument for `f` INSIDE that boundary
+  ξ-⟨⟩/TyWrap  the redex `((Λ V) ⟨ c₁ ⟩) • T [ ` 0 ]` at `Δₘ`
+
+and the checks line up with §8.1b verbatim: `allView c₁ ≡ just dₘ`,
+`interior c₁ Δₘ ≡ just ([] ∥ [])`, `⌊ ` 0 ⌋ ≡ `ᵃ (lvl 0)`, and
+`instReveal … ≡ Wₘ`.  The `seal`'s read-back then has an empty stack
+and no name for `lvl 0`.
+
+SO THE GAP IS NOT A STATEMENT ARTIFACT.  Restricting `preserve` to
+reachable configurations cannot close it, and neither can any premise
+on `TyWrapOk` — `M₀` is an ordinary System F program.  What must change
+is the calculus: either the `seal` rule stops demanding an interior
+read-back, or the representation reaches the interior without needing a
+name there (the "carry reps on boundaries, closed" direction).

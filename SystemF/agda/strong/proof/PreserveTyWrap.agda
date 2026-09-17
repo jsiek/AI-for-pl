@@ -7,9 +7,15 @@ module strong.proof.PreserveTyWrap where
 --
 -- This module discharges `proof.PreserveTyDef.TyWrapOk` up to the side
 -- conditions the INGREDIENTS require but the redex does not supply.
--- See §7 for the exact statement proved (`tyWrapOk′`), §8 for what is
--- still open, and §9 for the probes that show why each extra premise is
--- there.
+-- See §7 for the exact statement proved (`tyWrapOk′`) and §8 for the
+-- probes that show why each extra premise is there.
+--
+-- NEITHER PREMISE IS REMOVABLE, and the reason is not a gap in this
+-- proof: §8 REFUTES `TyWrapOk` itself, twice over, with a well-typed
+-- `TyWrap` redex whose reduct has no typing derivation at all.
+-- `tyWrapOk-refuted` (§8.3) states the consequence: `TyWrap` does not
+-- preserve typing as the rule stands, and `proof.Preservation.Main`
+-- cannot be instantiated until `instReveal` or the rule is changed.
 --
 -- WHAT THE v8 ADDRESS SPLIT COLLAPSED.  Two whole sections of the v7
 -- version are gone:
@@ -36,6 +42,7 @@ module strong.proof.PreserveTyWrap where
 
 open import Data.Nat using (ℕ; zero; suc; _<_; _≤_; z≤n; s≤s)
 open import Data.List using (List; []; _∷_; _++_; take)
+open import Data.Bool using (true)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ-syntax; _×_; _,_; proj₁; proj₂)
@@ -51,9 +58,12 @@ open Ctxᵗ
 open import strong.Conversion
 open import strong.ConversionReduction
 open import strong.Terms
+open import strong.TermSubst
+open import strong.Reduction
 
+open import strong.proof.PreserveTyDef using (TyWrapOk)
 open import strong.proof.Flat using
-  (Flat; Flatn; flat; conv-flat; fu-nobinds; wfᴿ-restk)
+  (Flat; Flatn; flat; conv-flat; fu-nobinds; wfᴿ-restk; fu-[]; fu-asgn)
 open Flatn
 open import strong.proof.Scoped using
   (Scoped; quote-wfᴿ; flat-bindsBelow)
@@ -344,7 +354,7 @@ tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA
             (⨟-typing (namefn-ren (ren-stk Sh) nfΔ) ⊢rev ⊢subν)
 
 ------------------------------------------------------------------------
--- §7  WHAT IS NOT CLOSED: `TyWrapOk` ITSELF
+-- §7  WHAT IS NOT CLOSED: `TyWrapOk` IS FALSE
 ------------------------------------------------------------------------
 -- `proof.PreserveTyDef.TyWrapOk` is `tyWrapOk′` MINUS the two extra
 -- premises, so the wrapper
@@ -354,20 +364,24 @@ tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA
 --     tyWrapOk′ sok fl nf scp {- Closedᵗ A -}
 --                             {- srcᶜ d ≢ nothing -} eq q ⊢M
 --
--- cannot be written: neither is derivable from the redex.  §8 gives a
--- probe for each.  The repairs they call for live in files this module
--- may not touch:
+-- cannot be written — and NOT because the two premises are merely
+-- underived.  §8 exhibits, for each, a well-typed `TyWrap` redex whose
+-- reduct is not typable at any type: `TyWrapOk` is REFUTED
+-- (`tyWrapOk-refuted`, §8.3), so what is wrong is `instReveal`, not the
+-- proof.  What each probe pins down:
 --
---   (1) `substAnn` THREADS the slot and `S` along the spine
---       (`slotOutElt`/`tyOutElt`), which is what removed v7's
---       `SlotFree` — and, since the threading also steps the index into
---       an `↦`'s contravariant component, the residue `StepFix` too.
---       What `Closedᵗ A` still buys is §5's read-back plus
---       `SubstAnnTyping.SAvoids`: going outward across an `unseal`/
---       `show`, `S` must not mention the name the crossing removes,
---       and across a `seal`/`hide` it must not mention the one the
---       frame gains — see §8.1, where a NON-closed `A` breaks the
---       annotation equation outright.  (strong/Conversion.agda)
+--   (1) `Closedᵗ A` — §8.1.  `A` is a type of the redex's EXTERIOR Δ,
+--       and the rule writes it into a conversion whose INTERIOR is a
+--       different context: the spine's crossings create and destroy
+--       exactly the assignments A may name.  §8.1a is the pointwise
+--       failure of `substAnn`'s annotation equation; §8.1b is the
+--       redex.  There `d = hide 1 (lvl 0) ∷ᶜ id (` 0 ⇒ `𝔹)` and
+--       `A = ` 0` — legal at Δ, since the `hide` is what PUT the
+--       assignment there — and the `seal` that `revTy` emits for A has
+--       to read its representation back at the interior, where the
+--       stack is empty and there is no name to read it to.  `Closedᵗ A`
+--       is exactly the condition that A means the same thing at both
+--       ends.  (strong/Conversion.agda, strong/Reduction.agda)
 --
 --   (2) `allView`'s `all⁺` must not let a NESTED `all s` contribute
 --       `elts s` unshifted: those elements keep their own names, and
@@ -376,15 +390,25 @@ tyWrapOk′ {Sg} {Ssₑ ∥ Bsₑ} {V} {c} {d} {A} {B} {R} sok fl nfΔ scp clA
 --       through — but it is still what puts an `asgn` above the slot.
 --       (strong/Conversion.agda, `all⁺ (all s) = just (elts s)`)
 --
---   (3) `instReveal`'s `nothing` branch, `show X α ∷ᶜ c`, crosses ONE
---       assignment where the redex needs the `∀`'s binder slot to
---       DISAPPEAR.  (strong/ConversionReduction.agda)
+--   (3) `srcᶜ d ≢ nothing` — §8.3.  The 2026-09-16 repair of
+--       `instReveal`'s `nothing` branch (`show X α ∷ᶜ substAnn X S c`,
+--       which drops the slot as the `just` branch does) is right for a
+--       SEAL-HEADED `d`, whose source is the read-back of a store
+--       representation and hence closed.  It is NOT right in general:
+--       `srcᶜ` also gives out on `(s ↦ t) ∷ᶜ c` with `t` seal-bottomed,
+--       and there the source is `target s ⇒ src t`, whose LEFT half is
+--       arbitrary.  §8.3's redex has `target s ≡ ` 0`, so the spine's
+--       source mentions the slot, and `show X α` — which states its
+--       source as a `renameᵗ suc` — cannot have it.  Making the branch
+--       correct needs the spine's SOURCE TYPE, which `srcᶜ` cannot
+--       compute and the redex does not carry.
+--       (strong/ConversionReduction.agda)
 
 ------------------------------------------------------------------------
 -- §8  THE PROBES
 ------------------------------------------------------------------------
 
--- 8.1  `Closedᵗ A` — `S` may not mention a name the spine moves.
+-- 8.1a  `Closedᵗ A` — `S` may not mention a name the spine moves.
 --
 -- Take the §14-shaped word `d = show 1 (lvl 0) ∷ᶜ id (` 0)` under the
 -- slot X = 0, and instantiate at the type argument `S = ` 0` — a
@@ -411,6 +435,142 @@ avoid-needed :
           (closeAt (nameSub 1 zero) (renameᵗ (nameSub 1) (` zero))
             (` zero)))
 avoid-needed ()
+
+-- 8.1b  ... AND THE REDEX ITSELF.  8.1a is an equation; here is a
+-- well-typed `TyWrap` redex with an OPEN type argument whose reduct
+-- has no typing derivation at all — so `Closedᵗ A` is not an artefact
+-- of how `substAnn-typing` is stated.
+--
+-- The spine is one `hide`, which going OUTWARD adds the assignment
+-- `1 := lvl 0`; the redex's Δ therefore HAS that assignment, and
+-- `A = ` 0` names it — `⊢•[]`'s `Δ ⊢ᵗ A` is satisfied and `⌊·⌋` quotes
+-- it to `` `ᵃ (lvl 0) ``.  Going inward the assignment is gone.  So
+-- `revTy 0 (bse 0) (` 0) (` 0 ⇒ `𝔹)` hits, emits
+-- `concTy 0 (bse 0) (` 0) (` 0) = seal 0 (bse 0) ∷ᶜ id (` 0)` for the
+-- domain, and `conv-seal` must read `` `ᵃ (lvl 0) `` back at the
+-- element's own interior — which the `hide` in the tail pins down to a
+-- context with an EMPTY stack (`tail-openₘ`).  `read-var` has no name
+-- to land on.
+private
+  Sgₘ : Store
+  Sgₘ = `𝔹ᴿ ∷ []
+
+  sokₘ : StoreOk Sgₘ
+  sokₘ l-here = wfᴿ-𝔹
+
+  Γᵢₘ Γₑₘ Δₘ : Ctxᵗ
+  Γᵢₘ = bind ∷ [] ∥ []
+  Γₑₘ = bind ∷ asgn (lvl zero) ∷ [] ∥ []
+  Δₘ = asgn (lvl zero) ∷ [] ∥ []
+
+  naₘ : NotAssigned Γᵢₘ (lvl zero)
+  naₘ (n-skip-bind ())
+
+  Tₘ : Ty
+  Tₘ = ` zero ⇒ `𝔹
+
+  dₘ : Conv
+  dₘ = hide 1 (lvl zero) ∷ᶜ id Tₘ
+
+  ⊢dₘ : Sgₘ ∣ Γᵢₘ ⊢ dₘ ∶ Tₘ ⇝ Tₘ ⊣ Γₑₘ
+  ⊢dₘ = conv-cons
+          (conv-hide (a-lvl l-here) (wf-⇒ (wf-var t-here) wf-𝔹)
+            (pop-bind pop-here) naₘ)
+          (conv-id (wf-⇒ (wf-var t-here) wf-𝔹))
+
+  -- `srcᶜ` is DEFINED here: this is `instReveal`'s `just` branch, so
+  -- 8.3's premise is not what is at stake
+  srcₘ : srcᶜ dₘ ≡ just Tₘ
+  srcₘ = refl
+
+  nfdₘ : NF dₘ
+  nfdₘ = nf-cons nf-hide nf-id irr-id
+
+  cₘ : Conv
+  cₘ = all dₘ ∷ᶜ id (`∀ Tₘ)
+
+  ⊢cₘ : Sgₘ ∣ ([] ∥ []) ⊢ cₘ ∶ `∀ Tₘ ⇝ `∀ Tₘ ⊣ Δₘ
+  ⊢cₘ = conv-cons (conv-all ⊢dₘ)
+          (conv-id (wf-∀ (wf-⇒ (wf-var t-here) wf-𝔹)))
+
+  nfcₘ : NF cₘ
+  nfcₘ = nf-cons (nf-all nfdₘ) nf-id irr-id
+
+  viewₘ : allView cₘ ≡ just dₘ
+  viewₘ = refl
+
+  Vₘ : Term
+  Vₘ = ƛ (` zero) ∙ (# true)
+
+  ⊢Vₘ : Sgₘ ∣ (asgn (bse zero) ∷ [] ∥ addr ∷ []) ∣ [] ⊢ Vₘ ⦂ Tₘ
+  ⊢Vₘ = ⊢ƛ (wf-var t-here) ⊢#
+
+  Rₘ : RepTy
+  Rₘ = `ᵃ (lvl zero)
+
+  qₘ : Sgₘ ∣ Δₘ ⊢⌊ ` zero ⌋ Rₘ
+  qₘ = quote-var n-here-asgn
+
+  -- the redex, at a flat scoped context with a name function
+  redexₘ : Sgₘ ∣ Δₘ ∣ []
+         ⊢ ((Λ Vₘ) ⟨ cₘ ⟩) • Tₘ [ ` zero ] ⦂ (Tₘ [ ` zero ]ᵗ)
+  redexₘ = ⊢•[] (⊢⟨⟩ nfcₘ (⊢Λ (Vs Sƛ) ⊢Vₘ) ⊢cₘ) (wf-var t-here)
+
+  valueₘ : Value ((Λ Vₘ) ⟨ cₘ ⟩)
+  valueₘ = V⟨⟩ (SΛ (Vs Sƛ)) nfcₘ (inert-all viewₘ)
+
+  stepₘ : Sgₘ ∣ Δₘ
+        ⊢ ((Λ Vₘ) ⟨ cₘ ⟩) • Tₘ [ ` zero ]
+        —→ ν Rₘ ∙ (Vₘ ⟨ instReveal zero (bse zero) (` zero) dₘ ⟩) ⊣ Sgₘ
+  stepₘ = TyWrap valueₘ viewₘ qₘ
+
+  flₘ : Flat Δₘ
+  flₘ = flat (fu-asgn fu-[]) refl
+
+  nfnₘ : NameFn Δₘ
+  nfnₘ n-here-asgn n-here-asgn = refl
+  nfnₘ n-here-asgn (n-skip-asgn ())
+  nfnₘ (n-skip-asgn ()) q
+
+  scpₘ : Scoped Sgₘ Δₘ
+  scpₘ n-here-asgn = a-lvl l-here
+  scpₘ (n-skip-asgn ())
+
+  Wₘ : Conv
+  Wₘ = ((seal zero (bse zero) ∷ᶜ id (` zero))
+        ↦ (show zero (bse zero) ∷ᶜ id `𝔹))
+       ∷ᶜ hide zero (lvl zero) ∷ᶜ id Tₘ
+
+  builtₘ : instReveal zero (bse zero) (` zero) dₘ ≡ Wₘ
+  builtₘ = refl
+
+  id-ctxₘ : ∀ {Γ Γ′ A B C} → Sgₘ ∣ Γ ⊢ id A ∶ B ⇝ C ⊣ Γ′ → Γ ≡ Γ′
+  id-ctxₘ (conv-id wf) = refl
+
+  -- the `hide` tail pins the `↦`'s exterior to a context with an EMPTY
+  -- stack: the crossing that carried the assignment is spent there
+  tail-openₘ : ∀ {Γ₁ B C}
+    → Sgₘ ∣ Γ₁ ⊢ hide zero (lvl zero) ∷ᶜ id Tₘ ∶ B ⇝ C
+        ⊣ (asgn (lvl zero) ∷ [] ∥ nuBind Rₘ ∷ [])
+    → Γ₁ ≡ ([] ∥ nuBind Rₘ ∷ [])
+  tail-openₘ (conv-cons (conv-hide sc wf pop-here na) tl) with id-ctxₘ tl
+  tail-openₘ (conv-cons (conv-hide sc wf pop-here na) tl) | refl = refl
+
+  -- ... and there the `seal`'s read-back has no name to land on
+  seal-⊥ₘ : ∀ {Γ′ A C}
+    → ¬ (Sgₘ ∣ ([] ∥ nuBind Rₘ ∷ [])
+           ⊢ seal zero (bse zero) ∷ᶜ id (` zero) ∶ A ⇝ C ⊣ Γ′)
+  seal-⊥ₘ (conv-cons (conv-seal r-here (read-var ()) pop-here) tl)
+
+  reduct-⊥ₘ : ∀ {C} → ¬ (Sgₘ ∣ Δₘ ∣ [] ⊢ ν Rₘ ∙ (Vₘ ⟨ Wₘ ⟩) ⦂ C)
+  reduct-⊥ₘ (⊢ν wfR (⊢⟨⟩ nf (⊢ƛ wf ⊢#) (conv-cons (conv-fun ⊢s ⊢t) tl)))
+    with tail-openₘ tl
+  reduct-⊥ₘ (⊢ν wfR (⊢⟨⟩ nf (⊢ƛ wf ⊢#) (conv-cons (conv-fun ⊢s ⊢t) tl)))
+    | refl = seal-⊥ₘ ⊢s
+
+  -- so `TyWrapOk` fails already at a redex whose `srcᶜ d` is defined
+  closed-neededₘ : ¬ TyWrapOk
+  closed-neededₘ ok = reduct-⊥ₘ (ok sokₘ flₘ nfnₘ scpₘ viewₘ qₘ redexₘ)
 
 -- 8.2  THE PROBE THAT BOUGHT THE THREADING: a REDEX whose `d` has a
 -- crossing at name 0.
@@ -503,22 +663,170 @@ private
   avoidsₚ : SAvoids zero `ℕ sₚ
   avoidsₚ = closed-avoids sₚ nf-ℕ
 
--- 8.3  `srcᶜ d ≢ nothing` — `instReveal`'s other branch is ill-typed.
+-- 8.3  `srcᶜ d ≢ nothing` — THE REPAIRED BRANCH IS STILL ILL-TYPED.
 --
--- When `srcᶜ d` is undefined — `d` seal-headed, which `allView` can
--- certainly produce, since `all⁺ (all s) = just (elts s)` passes a
--- `seal` straight through — `instReveal X α S d` is `show X α ∷ᶜ d`.
--- At the redex the whole conversion must run from the `ν`'s interior
--- `asgn (bse 0) ∷ ⤒ Ssᵢ ∥ nuBind R ∷ []` to its exterior, while
--- `allView-typing` hands `d` a context whose stack is `bind ∷ ⤒ Ssᵢ`.
--- The head `show 0 (bse 0)` is typed by `pop-here` — the only pop at
--- name 0 — so the context it hands the tail is `⤒ Ssᵢ`, and
+-- The 2026-09-16 repair made `instReveal`'s `nothing` branch
+-- `show X α ∷ᶜ substAnn X S c`, so that it drops the slot as the `just`
+-- branch does; `notes/SrcGap` is the source program that reaches it and
+-- shows the word it now produces is coherent THERE.  It is not coherent
+-- in general, and the premise cannot be deleted.
 --
---     ⤒ Ssᵢ  ≢  bind ∷ ⤒ Ssᵢ
+-- `show X α ∷ᶜ …` is exactly `revTy`'s MISS equation with `substAnn X S
+-- d` for a terminator, so it is correct precisely when X does not occur
+-- in the spine's SOURCE — `conv-show` states its source as
+-- `renameᵗ (shiftAtᵗ X) A`, and at X = 0 that is `renameᵗ suc`, which
+-- never produces the name 0.  For a SEAL-HEADED `d` the miss condition
+-- is free: the seal's source is the read-back of a representation `∋r`
+-- reaches, which over an empty base is a store entry, hence closed.
+-- But `srcᶜ` also gives out through a `↦`:
 --
--- for the reason below.  The branch crosses ONE assignment where the
--- rule needs the `∀`'s binder slot to be REMOVED, which is what
--- `substAnn` does and a bare identity crossing does not.
-∷-≢ : ∀ {A : Set} (x : A) (xs : List A) → ¬ (xs ≡ x ∷ xs)
-∷-≢ x [] ()
-∷-≢ x (y ∷ xs) ()
+--     srcᶜ ((s ↦ t) ∷ᶜ c) | nothing = nothing     when srcᶜ t ≡ nothing
+--
+-- and the true source there is `target s ⇒ src t`.  Only the RIGHT half
+-- is forced closed; `target s` is whatever the contravariant component
+-- happens to end at.  Below it ends at `` ` 0 `` — the slot itself.
+--
+-- The redex: `d = (s ↦ t) ∷ᶜ id (` 0 ⇒ ` 1)` with `t` seal-headed
+-- (source `𝔹, closed, as predicted) and `s = show 1 (lvl 0) ∷ᶜ id (` 0)`
+-- running the other way.  Its source is `` ` 0 ⇒ `𝔹 ``, `srcᶜ d` is
+-- `nothing`, the type argument is `ℕ — CLOSED, so 8.1 is not what is
+-- at stake — and the reduct has no typing derivation at any type.
+private
+  Sgₖ : Store
+  Sgₖ = `𝔹ᴿ ∷ []
+
+  sokₖ : StoreOk Sgₖ
+  sokₖ l-here = wfᴿ-𝔹
+
+  Γᵢₖ Γₑₖ Δₖ : Ctxᵗ
+  Γᵢₖ = bind ∷ [] ∥ []
+  Γₑₖ = bind ∷ asgn (lvl zero) ∷ [] ∥ []
+  Δₖ = asgn (lvl zero) ∷ [] ∥ []
+
+  naₖ : NotAssigned Γᵢₖ (lvl zero)
+  naₖ (n-skip-bind ())
+
+  sₖ tₖ dₖ : Conv
+  sₖ = show 1 (lvl zero) ∷ᶜ id (` zero)
+  tₖ = seal 1 (lvl zero) ∷ᶜ id (` 1)
+  dₖ = (sₖ ↦ tₖ) ∷ᶜ id (` zero ⇒ ` 1)
+
+  ⊢sₖ : Sgₖ ∣ Γₑₖ ⊢ sₖ ∶ ` zero ⇝ ` zero ⊣ Γᵢₖ
+  ⊢sₖ = conv-cons
+          (conv-show (a-lvl l-here) (wf-var t-here) (pop-bind pop-here) naₖ)
+          (conv-id (wf-var t-here))
+
+  ⊢tₖ : Sgₖ ∣ Γᵢₖ ⊢ tₖ ∶ `𝔹 ⇝ ` 1 ⊣ Γₑₖ
+  ⊢tₖ = conv-cons
+          (conv-seal (r-lvl l-here) read-𝔹 (pop-bind pop-here))
+          (conv-id (wf-var (t-there t-here)))
+
+  ⊢dₖ : Sgₖ ∣ Γᵢₖ ⊢ dₖ ∶ (` zero ⇒ `𝔹) ⇝ (` zero ⇒ ` 1) ⊣ Γₑₖ
+  ⊢dₖ = conv-cons (conv-fun ⊢sₖ ⊢tₖ)
+          (conv-id (wf-⇒ (wf-var t-here) (wf-var (t-there t-here))))
+
+  gapₖ : srcᶜ dₖ ≡ nothing
+  gapₖ = refl
+
+  nfdₖ : NF dₖ
+  nfdₖ = nf-cons
+           (nf-fun (nf-cons nf-show nf-id irr-id)
+                   (nf-cons nf-seal nf-id irr-id))
+           nf-id irr-id
+
+  cₖ : Conv
+  cₖ = all dₖ ∷ᶜ id (`∀ (` zero ⇒ ` 1))
+
+  ⊢cₖ : Sgₖ ∣ ([] ∥ []) ⊢ cₖ ∶ `∀ (` zero ⇒ `𝔹) ⇝ `∀ (` zero ⇒ ` 1) ⊣ Δₖ
+  ⊢cₖ = conv-cons (conv-all ⊢dₖ)
+          (conv-id (wf-∀ (wf-⇒ (wf-var t-here) (wf-var (t-there t-here)))))
+
+  nfcₖ : NF cₖ
+  nfcₖ = nf-cons (nf-all nfdₖ) nf-id irr-id
+
+  viewₖ : allView cₖ ≡ just dₖ
+  viewₖ = refl
+
+  Vₖ : Term
+  Vₖ = ƛ (` zero) ∙ (# true)
+
+  ⊢Vₖ : Sgₖ ∣ (asgn (bse zero) ∷ [] ∥ addr ∷ []) ∣ []
+          ⊢ Vₖ ⦂ (` zero ⇒ `𝔹)
+  ⊢Vₖ = ⊢ƛ (wf-var t-here) ⊢#
+
+  redexₖ : Sgₖ ∣ Δₖ ∣ []
+         ⊢ ((Λ Vₖ) ⟨ cₖ ⟩) • (` zero ⇒ ` 1) [ `ℕ ]
+         ⦂ ((` zero ⇒ ` 1) [ `ℕ ]ᵗ)
+  redexₖ = ⊢•[] (⊢⟨⟩ nfcₖ (⊢Λ (Vs Sƛ) ⊢Vₖ) ⊢cₖ) wf-ℕ
+
+  qₖ : Sgₖ ∣ Δₖ ⊢⌊ `ℕ ⌋ `ℕᴿ
+  qₖ = quote-ℕ
+
+  clₖ : Closedᵗ `ℕ
+  clₖ = nf-ℕ
+
+  valueₖ : Value ((Λ Vₖ) ⟨ cₖ ⟩)
+  valueₖ = V⟨⟩ (SΛ (Vs Sƛ)) nfcₖ (inert-all viewₖ)
+
+  stepₖ : Sgₖ ∣ Δₖ
+        ⊢ ((Λ Vₖ) ⟨ cₖ ⟩) • (` zero ⇒ ` 1) [ `ℕ ]
+        —→ ν `ℕᴿ ∙ (Vₖ ⟨ instReveal zero (bse zero) `ℕ dₖ ⟩) ⊣ Sgₖ
+  stepₖ = TyWrap valueₖ viewₖ qₖ
+
+  flₖ : Flat Δₖ
+  flₖ = flat (fu-asgn fu-[]) refl
+
+  nfnₖ : NameFn Δₖ
+  nfnₖ n-here-asgn n-here-asgn = refl
+  nfnₖ n-here-asgn (n-skip-asgn ())
+  nfnₖ (n-skip-asgn ()) q
+
+  scpₖ : Scoped Sgₖ Δₖ
+  scpₖ n-here-asgn = a-lvl l-here
+  scpₖ (n-skip-asgn ())
+
+  -- the repaired branch DOES drop the slot — the seal's name slides
+  -- 1 ↦ 0 — but the head `show 0 (bse 0)` is the miss crossing
+  builtₖ : instReveal zero (bse zero) `ℕ dₖ
+         ≡ show zero (bse zero)
+           ∷ᶜ ((show zero (lvl zero) ∷ᶜ id `ℕ)
+               ↦ (seal zero (lvl zero) ∷ᶜ id (` zero)))
+           ∷ᶜ id (`ℕ ⇒ ` zero)
+  builtₖ = refl
+
+  -- no shift produces the name 0, so no `show 0` has this source
+  shift-≢ₖ : ∀ {A} → ¬ (renameᵗ (shiftAtᵗ zero) A ≡ (` zero ⇒ `𝔹))
+  shift-≢ₖ {` X} ()
+  shift-≢ₖ {`ℕ} ()
+  shift-≢ₖ {`𝔹} ()
+  shift-≢ₖ {`∀ A} ()
+  shift-≢ₖ {` X ⇒ B} ()
+  shift-≢ₖ {`ℕ ⇒ B} ()
+  shift-≢ₖ {`𝔹 ⇒ B} ()
+  shift-≢ₖ {(A ⇒ A′) ⇒ B} ()
+  shift-≢ₖ {`∀ A ⇒ B} ()
+
+  show-srcₖ : ∀ {Γ Γ′ X α A B} → Sgₖ ∣ Γ ⊢̂ show X α ∶ A ⇝ B ⊣ Γ′
+    → Σ[ A′ ∈ Ty ] (A ≡ renameᵗ (shiftAtᵗ X) A′)
+  show-srcₖ (conv-show {A = A} sc wf p na) = A , refl
+
+  branch-⊥ₖ : ∀ {Δᵢ Δₑ C}
+    → ¬ (Sgₖ ∣ Δᵢ ⊢ instReveal zero (bse zero) `ℕ dₖ
+           ∶ (` zero ⇒ `𝔹) ⇝ C ⊣ Δₑ)
+  branch-⊥ₖ (conv-cons hd tl) with show-srcₖ hd
+  branch-⊥ₖ (conv-cons hd tl) | A′ , eq = shift-≢ₖ {A′} (sym eq)
+
+  -- `⊢ƛ` fixes the body's type, so the boundary fixes the spine's source
+  reduct-⊥ₖ : ∀ {C}
+    → ¬ (Sgₖ ∣ Δₖ ∣ []
+           ⊢ ν `ℕᴿ ∙ (Vₖ ⟨ instReveal zero (bse zero) `ℕ dₖ ⟩) ⦂ C)
+  reduct-⊥ₖ (⊢ν wfR (⊢⟨⟩ nf (⊢ƛ wf ⊢#) ⊢c)) = branch-⊥ₖ ⊢c
+
+-- THE CONSEQUENCE.  `TyWrapOk` is not merely unproved: it is false, so
+-- `TyWrap` does not preserve typing as the rule stands, and
+-- `proof.Preservation.Main` stays uninstantiated until `instReveal`
+-- (or the rule) is changed.  §8.1b refutes it a second time, at a redex
+-- whose `srcᶜ d` is defined — so BOTH premises of `tyWrapOk′` are
+-- load-bearing, independently.
+tyWrapOk-refuted : ¬ TyWrapOk
+tyWrapOk-refuted ok = reduct-⊥ₖ (ok sokₖ flₖ nfnₖ scpₖ viewₖ qₖ redexₖ)

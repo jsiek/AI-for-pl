@@ -144,6 +144,16 @@ built = refl
 -- slides 1 ↦ 0, and its target — the crossing's OWN name — slides with
 -- it.  The branch as it stands leaves both at 1, naming a binder that
 -- is no longer there.
+--
+-- THE REPAIR IS NOT SUFFICIENT (2026-09-17).  It is right HERE because
+-- `d` is seal-HEADED: a seal's source is the read-back of a
+-- representation `∋r` reaches, which over an empty base is a store
+-- entry, hence closed — so `show X α`, which is `revTy`'s MISS
+-- equation, is the correct crossing.  `srcᶜ` also gives out through an
+-- `↦`, where the source is `target s ⇒ src t` and only `src t` is
+-- forced closed; `proof.PreserveTyWrap` §8.3 builds a well-typed
+-- `TyWrap` redex of that shape (with a CLOSED type argument) whose
+-- reduct has no typing derivation, refuting `TyWrapOk` outright.
 
 ------------------------------------------------------------------------
 -- WHAT THIS EXAMPLE DOES NOT TEST

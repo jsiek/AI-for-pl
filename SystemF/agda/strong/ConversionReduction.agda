@@ -370,6 +370,15 @@ instReveal X α S c | just A = revTy X α S A ⨟ substAnn X S c
 -- binder, and a bare crossing leaves its names pointing at a binder
 -- the `ν` has replaced.  See notes/SrcGap for a source program that
 -- reaches this branch and for the word it produces.
+--
+-- STILL NOT ENOUGH.  `show X α ∷ᶜ …` is `revTy`'s MISS equation, so it
+-- is right only when X misses the spine's SOURCE.  That is automatic
+-- for a seal-HEADED `c` (its source is a read-back of a store
+-- representation, hence closed) but not when `srcᶜ` gives out through
+-- an `↦`, where the source is `target s ⇒ src t` and only the right
+-- half is forced closed.  `proof.PreserveTyWrap` §8.3 REFUTES
+-- `TyWrapOk` on such a redex; making this branch correct needs the
+-- spine's source type, which `srcᶜ` cannot compute.
 instReveal X α S c | nothing = show X α ∷ᶜ substAnn X S c
 
 instConceal : ℕ → Addr → Ty → Conv → Conv

@@ -4560,3 +4560,67 @@ slot; and `substAnn` does lower names, but a value sealed at the top
 has a type variable for its target and cannot be type-applied again.
 The threading earns its keep DEEPER in a spine, inside `↦` and `all`,
 which is why `notes/SubstAnnTest`'s word is hand-written.
+
+## 2026-09-17: `TyWrapOk` IS FALSE — both of `tyWrapOk′`'s premises are load-bearing
+
+The task was to delete the two extra premises from
+`proof/PreserveTyWrap.tyWrapOk′` and instantiate `proof.Preservation.Main`.
+Neither premise can go, and the reason is not a gap in the proof: each is
+refuted by a WELL-TYPED `TyWrap` redex whose reduct has no typing
+derivation at any type.  Both witnesses are machine-checked, in
+`proof/PreserveTyWrap` §8.1b and §8.3, and
+
+    tyWrapOk-refuted : ¬ TyWrapOk
+
+states the consequence.  `TyWrap` does not preserve typing as the rule
+stands; `Preservation.Main` stays uninstantiated.
+
+(2) `¬ (srcᶜ d ≡ nothing)` — the 2026-09-16 repair is RIGHT BUT PARTIAL.
+`show X α ∷ᶜ substAnn X S c` is `revTy`'s MISS equation with `substAnn`
+for a terminator, so it is correct exactly when X misses the spine's
+SOURCE.  For a seal-HEADED `d` that is free: the seal's source is the
+read-back of a representation `∋r` reaches, which over an empty base is
+a store entry, hence closed — which is why `notes/SrcGap`'s word (a seal
+head) came out coherent.  But `srcᶜ` also gives out through an `↦`,
+
+    srcᶜ ((s ↦ t) ∷ᶜ c) | nothing = nothing     when srcᶜ t ≡ nothing
+
+and there the source is `target s ⇒ src t`: only the RIGHT half is
+forced closed.  §8.3's redex takes `target s ≡ ` 0` — the slot itself —
+so the spine's source is `` ` 0 ⇒ `𝔹 ``, while `conv-show` states its
+source as `renameᵗ (shiftAtᵗ 0) A ≡ renameᵗ suc A`, which never produces
+the name 0.  Ill-typed at the head, with a CLOSED type argument, so this
+is premise (2) alone.  The spine:
+
+    d  =  ((show 1 (lvl 0) ∷ᶜ id (` 0)) ↦ (seal 1 (lvl 0) ∷ᶜ id (` 1)))
+            ∷ᶜ id (` 0 ⇒ ` 1)            :  ` 0 ⇒ `𝔹  ⇝  ` 0 ⇒ ` 1
+
+Repairing the branch needs the spine's SOURCE TYPE, which `srcᶜ` cannot
+compute (a seal's source is a read-back the syntax does not carry) and
+which the redex does not supply.  Either `TyWrap` carries it, or
+`srcᶜ`/`instReveal` is restructured so the `↦` case does not have to
+guess it.
+
+(1) `Closedᵗ A` — the type argument must mean the same thing at BOTH ends
+of the conversion.  §8.1a's equation failure was already recorded; §8.1b
+now gives the redex.  `A` is a type of the EXTERIOR Δ, and the rule
+writes it into a word whose interior is a different context, with the
+spine's crossings creating and destroying exactly the assignments A may
+name.  Take one `hide`, which going OUTWARD adds `1 := lvl 0`:
+
+    d  =  hide 1 (lvl 0) ∷ᶜ id (` 0 ⇒ `𝔹)        A  =  ` 0
+
+`Δ ⊢ᵗ ` 0` holds (the `hide` is what put the assignment there) and `⌊·⌋`
+quotes it to `` `ᵃ (lvl 0) ``, so `⊢•[]` and `TyWrap` both apply.
+`revTy 0 (bse 0) (` 0) (` 0 ⇒ `𝔹)` then hits and emits
+`seal 0 (bse 0) ∷ᶜ id (` 0)` for the domain — and `conv-seal` has to read
+`` `ᵃ (lvl 0) `` back at the element's own interior, which the `hide` in
+the tail pins to a context with an EMPTY STACK.  `read-var` has no name
+to land on.  Note this is `instReveal`'s `just` branch, so (1) and (2)
+are independent.
+
+WHAT THIS DOES NOT SAY.  Neither witness is claimed reachable from a
+source program; both are typed redexes, which is all `TyWrapOk`
+quantifies over.  If the intended calculus excludes them, the exclusion
+has to become part of the typing judgment (a grounded invariant), not a
+premise of the preservation lemma.

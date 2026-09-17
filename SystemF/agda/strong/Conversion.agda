@@ -401,10 +401,13 @@ mutual
     -- stronger `X′ ∉ A`: instantiation legitimately creates such an
     -- occurrence (notes/HideUnseal), and requiring its absence would
     -- reject `TyWrap`'s own reduct.
-    conv-hide : Σ ∣ Γᵢ ∋a α → Ξ ⊢ᵗ A → Ξ ∋n X′ := α → A ≢ ` X′
+    -- EXPERIMENT 2026-09-17 (option 5): the `A ≢ ` X′` premise is
+    -- REMOVED again — it is not closed under `arr`'s dualization
+    -- (notes/HideUnseal).  What `Progress` then demands is the question.
+    conv-hide : Σ ∣ Γᵢ ∋a α → Ξ ⊢ᵗ A
       → Γₑ ▷ X := α ⇒ Γᵢ → NotAssigned Γᵢ α
       → Σ ∣ Ξ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ A ⊣ Γₑ
-    conv-show : Σ ∣ Γₑ ∋a α → Ξ ⊢ᵗ A → Ξ ∋n X′ := α → A ≢ ` X′
+    conv-show : Σ ∣ Γₑ ∋a α → Ξ ⊢ᵗ A
       → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
       → Σ ∣ Ξ ∣ Γᵢ ⊢̂ show X α ∶ A ⇝ A ⊣ Γₑ
     conv-fun : Σ ∣ Ξ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Ξ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ

@@ -17,10 +17,11 @@ open import Data.Product using (_×_; _,_)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ; _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ; _[_]ᵗ; Renameᵗ; renameᵗ)
 open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
+open import strong.Frame using (Insert)
 open import strong.ConversionReduction
 
 data Prim : Set where
@@ -143,10 +144,27 @@ data _∣_∣_⊢_⦂_ (Σ : Store) : Ctxᵗ → Ctx → Term → Ty → Set whe
     → Σ ∣ (Ss ∥ Bs) ⊢ᴿ R
     → Σ ∣ (⤒ Ss ∥ nuBind R ∷ Bs) ∣ Γ ⊢ M ⦂ A
     → Σ ∣ (Ss ∥ Bs) ∣ Γ ⊢ ν R ∙ M ⦂ A
-  -- The boundary: the conversion's typing determines the interior
-  -- context; the body is term-closed with respect to the exterior.
-  ⊢⟨⟩ : ∀ {Δ Δᵢ Γ M c A B}
+  -- THE BOUNDARY, main's `env` clause for clause (strong.Terms on
+  -- `main`).  Three contexts, not two: the body is typed at the
+  -- INTERIOR, which still pops; the conversion at the FRAME `Ξ`, where
+  -- the reveals are kept and the conceals skipped; and the result type
+  -- at the plain EXTERIOR.  Both endpoint types are stated outside the
+  -- frame and transported IN — `Ξ` is the largest of the three, so both
+  -- transports are insertions and total, exactly as main shifts its
+  -- target by `shiftBy (numBinds Θ)` and never the other way.
+  --
+  -- `NameFn Ξ` is Jeremy's invariant — "in a given context there should
+  -- not be two distinct type names with the same address" — and it is
+  -- NOT automatic: a `hide X α` then a `show Y α` with X ≠ Y passes
+  -- both local freshness checks and puts two names for α in the frame
+  -- (`notes/UnlockedFrame`).  It is what makes the two transports
+  -- functions, and what `read-unique` already needs.
+  ⊢⟨⟩ : ∀ {Δ Δᵢ Ξ Γ M c A B jᵢ jₑ}
     → NF c
+    → NameFn Ξ
+    → Insert jᵢ Δᵢ Ξ
+    → Insert jₑ Δ Ξ
     → Σ ∣ Δᵢ ∣ [] ⊢ M ⦂ A
-    → Σ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
+    → Σ ∣ Ξ ∣ Δᵢ ⊢ c ∶ renameᵗ jᵢ A ⇝ renameᵗ jₑ B ⊣ Δ
+    → Δ ⊢ᵗ B
     → Σ ∣ Δ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B

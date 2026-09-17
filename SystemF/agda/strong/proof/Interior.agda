@@ -57,15 +57,17 @@ push-sound pop-here = refl
 push-sound (pop-bind p) rewrite push-soundS p = refl
 
 mutual
-  elt-interior : Σ ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δ → interiorElt ĉ Δ ≡ just Δᵢ
-  elt-interior (conv-seal r rd p) = pop-sound p
+  elt-interior : ∀ {Ξ} → Σ ∣ Ξ ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δ
+    → interiorElt ĉ Δ ≡ just Δᵢ
+  elt-interior (conv-seal r rd nm p) = pop-sound p
   elt-interior (conv-hide sc wf p na) = pop-sound p
-  elt-interior (conv-unseal r rd p na) = push-sound p
+  elt-interior (conv-unseal r rd nm p na) = push-sound p
   elt-interior (conv-show sc wf p na) = push-sound p
   elt-interior (conv-fun s t) = conv-interior t
   elt-interior (conv-all s) rewrite conv-interior s = refl
 
-  conv-interior : Σ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → interior c Δ ≡ just Δᵢ
+  conv-interior : ∀ {Ξ} → Σ ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
+    → interior c Δ ≡ just Δᵢ
   conv-interior (conv-id wf) = refl
   conv-interior (conv-cons hd tl)
     rewrite conv-interior tl = elt-interior hd

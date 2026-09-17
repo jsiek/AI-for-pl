@@ -38,6 +38,7 @@ open import strong.Types
          shiftAtᵗ)
 open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
 
 ------------------------------------------------------------------------
 -- Syntax
@@ -327,59 +328,89 @@ private
     Γ Γ₁ Γ₂ Γ₃ Γᵢ Γₑ : Ctxᵗ
     A B C D : Ty
     R : RepTy
-    X : ℕ
+    X X′ : ℕ
     α : Addr
     c d s t : Conv
     ĉ : ConvElt
 
-infix 4 _∣_⊢̂_∶_⇝_⊣_
-infix 4 _∣_⊢_∶_⇝_⊣_
+-- THE FRAME.  A conversion is typed against a THIRD context `Ξ` — the
+-- exterior with the reveals added and the CONCEALS SKIPPED
+-- (`strong.Frame.unlocked`).  It is main's `unlockedScope Θ Δ`, where
+-- that development checks the boundary's representations
+-- (`CtxMorph._⊢ᵐ_.mw-reps` on `main`), and it is what the read-backs
+-- need: a conceal removes the very name a later element must read an
+-- address back to, and `notes/SourceToTyWrapGap` is a closed source
+-- program that reaches exactly that state.
+--
+-- WHAT LIVES WHERE.  A crossing's NAME still indexes the real context —
+-- it is what the pop consumes, and the `▷` stack discipline is
+-- unchanged.  Everything the frame carries is TYPES: the read-backs,
+-- the well-formedness premises, the terminator annotations, and a
+-- seal's or unseal's abstract side, which is now `` ` X′ `` for the
+-- name `Ξ` has for the address rather than the element's own `X`.
+-- Conflating the two is unsound as soon as the real context and the
+-- frame disagree (`strong.Frame`, and `notes/UnlockedFrame`'s
+-- `Ξ-weaken` is what caught it).
+--
+-- AND THE CROSSINGS NO LONGER RE-SPELL.  With every type read in one
+-- frame there is no reindexing to do, so `hide`/`show` are `A ⇝ A` —
+-- main's "nothing is dropped and nothing is re-spelled, so there is no
+-- demotion".  `shiftAtᵗ` has not left the calculus: it moved from every
+-- crossing to the two BOUNDARY ENDPOINTS (strong.Terms), which is where
+-- main has it, once, as `shiftBy (numBinds Θ)`.
+
+infix 4 _∣_∣_⊢̂_∶_⇝_⊣_
+infix 4 _∣_∣_⊢_∶_⇝_⊣_
 mutual
-  data _∣_⊢̂_∶_⇝_⊣_ (Σ : Store) : Ctxᵗ → ConvElt → Ty → Ty → Ctxᵗ → Set
-    where
-    conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Γᵢ ⊢ R ⇓ A
+  data _∣_∣_⊢̂_∶_⇝_⊣_ (Σ : Store) (Ξ : Ctxᵗ)
+       : Ctxᵗ → ConvElt → Ty → Ty → Ctxᵗ → Set where
+    conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Ξ ∋n X′ := α
       → Γₑ ▷ X := α ⇒ Γᵢ
-      → Σ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X ⊣ Γₑ
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X′ ⊣ Γₑ
     -- `unseal` and `show` INTRODUCE the assignment going inward, so
     -- they carry the notes' freshness condition on the side that does
     -- not have it yet.  This is what makes name-uniqueness — and hence
     -- the single-valuedness of the read-back — propagate along a
-    -- conversion (see proof.CompositionTyping).
-    conv-unseal : Σ ∣ Γᵢ ∋r α := R → Σ ∣ Γₑ ⊢ R ⇓ A
+    -- conversion (see proof.CompositionTyping).  Uniqueness at the
+    -- FRAME is a separate matter and is guarded at the boundary
+    -- (`NameFn Ξ`, strong.Terms): a `hide X α` followed by a
+    -- `show Y α` with X ≠ Y passes both local checks and would put two
+    -- names for α in Ξ.
+    conv-unseal : Σ ∣ Γᵢ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Ξ ∋n X′ := α
       → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
-      → Σ ∣ Γᵢ ⊢̂ unseal X α ∶ ` X ⇝ A ⊣ Γₑ
-    -- An identity crossing is "the same type" in named notation; in de
-    -- Bruijn form the crossed assignment inserts a name entry at depth
-    -- X, so the assigned side reads the type through `shiftAtᵗ X`.
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ unseal X α ∶ ` X′ ⇝ A ⊣ Γₑ
     -- `hide` and `show` are exact duals, down to their premises: each
     -- relates the SMALLER context (the one without the assignment) to
-    -- the larger, well-formedness is stated at the smaller, and the
-    -- freshness condition says the address is unassigned there.  The
-    -- symmetry is what lets `arr` dualize a crossing into the
-    -- contravariant component (see proof.ArrTyping).
+    -- the larger, and the freshness condition says the address is
+    -- unassigned there.  Now that neither re-spells its type the
+    -- symmetry is exact, and `arr`'s dualization is premise for premise
+    -- (see proof.ArrTyping).
     -- Each SCOPES its address in the context without the assignment,
     -- as `conv-seal`/`conv-unseal` do with their `∋r`.  Without it a
     -- crossing may name an address nothing has bound, and then `Alloc`
     -- can discharge a fresh level onto it and turn a normal pair into
     -- a cancelling one — see notes/DECISIONS.md (2026-09-15) and
     -- `proof.PreserveAlloc.alloc-claim-refuted`.
-    conv-hide : Σ ∣ Γᵢ ∋a α → Γᵢ ⊢ᵗ A
+    conv-hide : Σ ∣ Γᵢ ∋a α → Ξ ⊢ᵗ A
       → Γₑ ▷ X := α ⇒ Γᵢ → NotAssigned Γᵢ α
-      → Σ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ renameᵗ (shiftAtᵗ X) A ⊣ Γₑ
-    conv-show : Σ ∣ Γₑ ∋a α → Γₑ ⊢ᵗ A
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ A ⊣ Γₑ
+    conv-show : Σ ∣ Γₑ ∋a α → Ξ ⊢ᵗ A
       → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
-      → Σ ∣ Γᵢ ⊢̂ show X α ∶ renameᵗ (shiftAtᵗ X) A ⇝ A ⊣ Γₑ
-    conv-fun : Σ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ
-      → Σ ∣ Γᵢ ⊢̂ (s ↦ t) ∶ A ⇒ B ⇝ C ⇒ D ⊣ Γₑ
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ show X α ∶ A ⇝ A ⊣ Γₑ
+    conv-fun : Σ ∣ Ξ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Ξ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ (s ↦ t) ∶ A ⇒ B ⇝ C ⇒ D ⊣ Γₑ
+    -- a BIND shifts — main's `shiftBy (numBinds Θ)` — so the frame
+    -- grows with the real contexts here
     conv-all : ∀ {Ssᵢ Bsᵢ Ssₑ Bsₑ}
-      → Σ ∣ (bind ∷ Ssᵢ ∥ Bsᵢ) ⊢ s ∶ A ⇝ B ⊣ (bind ∷ Ssₑ ∥ Bsₑ)
-      → Σ ∣ (Ssᵢ ∥ Bsᵢ) ⊢̂ all s ∶ `∀ A ⇝ `∀ B ⊣ (Ssₑ ∥ Bsₑ)
+      → Σ ∣ (bind ∷ stk Ξ ∥ bas Ξ) ∣ (bind ∷ Ssᵢ ∥ Bsᵢ) ⊢ s ∶ A ⇝ B
+          ⊣ (bind ∷ Ssₑ ∥ Bsₑ)
+      → Σ ∣ Ξ ∣ (Ssᵢ ∥ Bsᵢ) ⊢̂ all s ∶ `∀ A ⇝ `∀ B ⊣ (Ssₑ ∥ Bsₑ)
 
-  data _∣_⊢_∶_⇝_⊣_ (Σ : Store) : Ctxᵗ → Conv → Ty → Ty → Ctxᵗ → Set
-    where
-    conv-id : Γ ⊢ᵗ A → Σ ∣ Γ ⊢ id A ∶ A ⇝ A ⊣ Γ
-    conv-cons : Σ ∣ Γ₁ ⊢̂ ĉ ∶ A ⇝ B ⊣ Γ₂ → Σ ∣ Γ₂ ⊢ c ∶ B ⇝ C ⊣ Γ₃
-      → Σ ∣ Γ₁ ⊢ ĉ ∷ᶜ c ∶ A ⇝ C ⊣ Γ₃
+  data _∣_∣_⊢_∶_⇝_⊣_ (Σ : Store) (Ξ : Ctxᵗ)
+       : Ctxᵗ → Conv → Ty → Ty → Ctxᵗ → Set where
+    conv-id : Ξ ⊢ᵗ A → Σ ∣ Ξ ∣ Γ ⊢ id A ∶ A ⇝ A ⊣ Γ
+    conv-cons : Σ ∣ Ξ ∣ Γ₁ ⊢̂ ĉ ∶ A ⇝ B ⊣ Γ₂ → Σ ∣ Ξ ∣ Γ₂ ⊢ c ∶ B ⇝ C ⊣ Γ₃
+      → Σ ∣ Ξ ∣ Γ₁ ⊢ ĉ ∷ᶜ c ∶ A ⇝ C ⊣ Γ₃
 
 ------------------------------------------------------------------------
 -- Normal forms

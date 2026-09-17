@@ -45,6 +45,7 @@ open import strong.proof.Canonical
 private
   variable
     Sg : Store
+    Ξ : Ctxᵗ
     Γ Γ′ Γ″ Δ Δᵢ : Ctxᵗ
     A B : Ty
     X Y r : ℕ
@@ -121,22 +122,30 @@ var≢⇒ ()
 var≢∀ : ∀ {A X} → (`∀ A) ≢ ` X
 var≢∀ ()
 
+-- PORT NOTE (2026-09-17, stage 3).  This invariant needs restating for
+-- the frame.  `AfterAdd Γ r ĉ` says the element introduced an
+-- assignment at NAME r, and `A ≡ ` r` said the running type was that
+-- name.  Under the frame an `unseal`'s abstract side is `` ` X′ ``, the
+-- name Ξ has for the ADDRESS, not the element's own r — so the
+-- invariant should track the address and read the name off Ξ.  The rest
+-- of the module ports mechanically; this is the one place that does
+-- not.
 after-add : AfterAdd Γ r ĉ
-  → Sg ∣ Γ ⊢ c ∶ A ⇝ B ⊣ Δ → A ≡ ` r → NF c → IrreducibleAfter ĉ c
+  → Sg ∣ Ξ ∣ Γ ⊢ c ∶ A ⇝ B ⊣ Δ → A ≡ ` r → NF c → IrreducibleAfter ĉ c
   → Σ[ Y ∈ ℕ ] (B ≡ ` Y)
 after-add aa (conv-id wf) refl nf irr = _ , refl
 
 -- an unseal REMOVES: pop-determinism forces its address
 after-add (aa-seal {X = X₁} {α = α₁} p refl)
-  (conv-cons (conv-unseal {X = Y₁} rep rd q na) tl) refl
+  (conv-cons (conv-unseal {X = Y₁} rep rd nm q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
 after-add (aa-seal {X = X₁} {α = α₁} p refl)
-  (conv-cons (conv-unseal {X = Y₁} rep rd q na) tl) refl
+  (conv-cons (conv-unseal {X = Y₁} rep rd nm q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
   ⊥-elim (fuse-su X₁ α₁ fq)
-after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd q na) tl) refl
+after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd nm q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
-after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd q na) tl) refl
+after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd nm q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl = ⊥-elim (ne refl)
 
 -- a show REMOVES: blocked by `fuse` after a hide, and by the shift
@@ -155,7 +164,7 @@ after-add (aa-hide {X = X₁} {α = α₁} p ne)
   ⊥-elim (fuse-hs X₁ α₁ fq)
 
 -- an ADDITION keeps us in the same situation
-after-add aa (conv-cons (conv-seal rep rd q) tl) eq
+after-add aa (conv-cons (conv-seal rep rd nm q) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) =
   after-add (aa-seal q refl) tl refl nfc irr′
 after-add aa (conv-cons (conv-hide {A = A} sc wf q na) tl) refl
@@ -206,16 +215,16 @@ lift-all-all ĉs eq rewrite eq = _ , refl
 
 -- From an ARROW source: either a seal sent the target to a variable, or
 -- `arrElts` is defined and the target is an arrow too.
-canon-fun : Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → FunShape A
+canon-fun : Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → FunShape A
   → (Σ[ Y ∈ ℕ ] (B ≡ ` Y))
     ⊎ (Σ[ q ∈ List ConvElt × List ConvElt ]
          ((arrElts (elts c) ≡ just q) × FunShape B))
 canon-fun (conv-id wf) nf sh = inj₂ (_ , refl , sh)
-canon-fun (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
+canon-fun (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   with after-add (aa-seal p refl) tl refl nfc irr
-canon-fun (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
+canon-fun (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
-canon-fun (conv-cons (conv-unseal rep rd p na) tl) nf ()
+canon-fun (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
 canon-fun (conv-cons (conv-all s′) tl) nf ()
 canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh with canon-fun tl nfc (fun-shift X A sh)
@@ -249,16 +258,16 @@ canon-fun {c = (s′ ↦ t′) ∷ᶜ c} (conv-cons (conv-fun s″ t″) tl)
   inj₂ (_ , eq′ , shB)
 
 -- From a UNIVERSAL source, symmetrically.
-canon-all : Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → AllShape A
+canon-all : Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → AllShape A
   → (Σ[ Y ∈ ℕ ] (B ≡ ` Y))
     ⊎ (Σ[ q ∈ List ConvElt ]
          ((allElts (elts c) ≡ just q) × AllShape B))
 canon-all (conv-id wf) nf sh = inj₂ (_ , refl , sh)
-canon-all (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
+canon-all (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   with after-add (aa-seal p refl) tl refl nfc irr
-canon-all (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
+canon-all (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
-canon-all (conv-cons (conv-unseal rep rd p na) tl) nf ()
+canon-all (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
 canon-all (conv-cons (conv-fun s′ t′) tl) nf ()
 canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
   (nf-cons nfe nfc irr) sh with canon-all tl nfc (all-shift X A sh)
@@ -293,15 +302,15 @@ canon-all {c = all s′ ∷ᶜ c} (conv-cons (conv-all s″) tl)
 
 -- From a GROUND source: either a seal, or every element is a crossing
 -- and `base` sees the ground terminator.
-canon-ground : Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → GroundShape A
+canon-ground : Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → GroundShape A
   → (Σ[ Y ∈ ℕ ] (B ≡ ` Y)) ⊎ (Σ[ ι ∈ Ty ] (base c ≡ just ι))
 canon-ground (conv-id wf) nf ground-ℕ = inj₂ (_ , refl)
 canon-ground (conv-id wf) nf ground-𝔹 = inj₂ (_ , refl)
-canon-ground (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
+canon-ground (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   with after-add (aa-seal p refl) tl refl nfc irr
-canon-ground (conv-cons (conv-seal rep rd p) tl) (nf-cons nfe nfc irr) sh
+canon-ground (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
-canon-ground (conv-cons (conv-unseal rep rd p na) tl) nf ()
+canon-ground (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
 canon-ground (conv-cons (conv-fun s′ t′) tl) nf ()
 canon-ground (conv-cons (conv-all s′) tl) nf ()
 canon-ground {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
@@ -336,7 +345,7 @@ inert-of-all c eqE teq (all-shape A) rewrite eqE | teq = _ , refl
 
 canonicity : ∀ {V} → Simple V
   → Sg ∣ Δᵢ ∣ [] ⊢ V ⦂ A
-  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
+  → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
   → NF c
   → Inert c ⊎ (Σ[ ι ∈ Ty ] (Literal V × (base c ≡ just ι)))
 canonicity simple ⊢V conv nf with simple-kind simple ⊢V

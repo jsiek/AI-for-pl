@@ -36,7 +36,7 @@ private
 -- A typed conversion's target is its syntactic target
 ------------------------------------------------------------------------
 
-conv-target : Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → target c ≡ B
+conv-target : ∀ {Ξ} → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → target c ≡ B
 conv-target (conv-id wf) = refl
 conv-target (conv-cons hd tl) = conv-target tl
 
@@ -61,6 +61,22 @@ shift-fun X `ℕ ()
 shift-fun X `𝔹 ()
 shift-fun X (A ⇒ B) _ = fun-shape A B
 shift-fun X (`∀ A) ()
+
+-- the boundary's endpoints are transported into the frame, so the
+-- shapes come back through an ARBITRARY renaming, not just a shift
+ren-fun : ∀ ρ A → FunShape (renameᵗ ρ A) → FunShape A
+ren-fun ρ (` Y) ()
+ren-fun ρ `ℕ ()
+ren-fun ρ `𝔹 ()
+ren-fun ρ (A ⇒ B) _ = fun-shape A B
+ren-fun ρ (`∀ A) ()
+
+ren-all : ∀ ρ A → AllShape (renameᵗ ρ A) → AllShape A
+ren-all ρ (` Y) ()
+ren-all ρ `ℕ ()
+ren-all ρ `𝔹 ()
+ren-all ρ (A ⇒ B) ()
+ren-all ρ (`∀ A) _ = all-shape A
 
 shift-all : ∀ X A → AllShape (renameᵗ (shiftAtᵗ X) A) → AllShape A
 shift-all X (` Y) ()
@@ -283,36 +299,36 @@ allView-tail-show c () | just q | `𝔹
 allView-tail-show c () | just q | C ⇒ D
 allView-tail-show c () | nothing | _
 
-conv-fun-source : ∀ {Sg Δᵢ Δ c A B A₀ p}
-  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → arr A₀ c ≡ just p → FunShape A
+conv-fun-source : ∀ {Sg Ξ Δᵢ Δ c A B A₀ p}
+  → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → arr A₀ c ≡ just p → FunShape A
 conv-fun-source {c = id A} (conv-id wf) eq = arr-target {c = id A} eq
-conv-fun-source (conv-cons (conv-seal r rd p) tl) ()
-conv-fun-source (conv-cons (conv-unseal r rd p na) tl) ()
+conv-fun-source (conv-cons (conv-seal r rd nm p) tl) ()
+conv-fun-source (conv-cons (conv-unseal r rd nm p na) tl) ()
 conv-fun-source (conv-cons (conv-all s) tl) ()
 conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
   with arr-tail-hide c eq
 conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
-  | _ , eq′ = shift-fun X A (conv-fun-source tl eq′)
+  | _ , eq′ = conv-fun-source tl eq′
 conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
   with arr-tail-show c eq
 conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
-  | _ , eq′ = fun-shift X _ (conv-fun-source tl eq′)
+  | _ , eq′ = conv-fun-source tl eq′
 conv-fun-source (conv-cons (conv-fun s t) tl) eq = fun-shape _ _
 
-conv-all-source : ∀ {Sg Δᵢ Δ c A B d}
-  → Sg ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → allView c ≡ just d → AllShape A
+conv-all-source : ∀ {Sg Ξ Δᵢ Δ c A B d}
+  → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → allView c ≡ just d → AllShape A
 conv-all-source {c = id A} (conv-id wf) eq = allView-target {c = id A} eq
-conv-all-source (conv-cons (conv-seal r rd p) tl) ()
-conv-all-source (conv-cons (conv-unseal r rd p na) tl) ()
+conv-all-source (conv-cons (conv-seal r rd nm p) tl) ()
+conv-all-source (conv-cons (conv-unseal r rd nm p na) tl) ()
 conv-all-source (conv-cons (conv-fun s t) tl) ()
 conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
   with allView-tail-hide c eq
 conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
-  | _ , eq′ = shift-all X A (conv-all-source tl eq′)
+  | _ , eq′ = conv-all-source tl eq′
 conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
   with allView-tail-show c eq
 conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
-  | _ , eq′ = all-shift X _ (conv-all-source tl eq′)
+  | _ , eq′ = conv-all-source tl eq′
 conv-all-source (conv-cons (conv-all s) tl) eq = all-shape _
 
 ------------------------------------------------------------------------
@@ -325,14 +341,15 @@ canonical-⇒ : ∀ {Sg Δ L A B} → Value L → Sg ∣ Δ ∣ [] ⊢ L ⦂ A �
        Σ[ c₁ ∈ Conv ] Σ[ c₂ ∈ Conv ]
        ((L ≡ (ƛ A₁ ∙ N) ⟨ c ⟩) × (arr A₁ c ≡ just (c₁ , c₂))))
 canonical-⇒ (Vs simple) ⊢L = inj₁ (simple-fun simple ⊢L (fun-shape _ _))
-canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ nfn iᵢ iₑ ⊢W conv wfB)
   with inert-arr-view {c = c} app
-         (subst FunShape (sym (conv-target conv)) (fun-shape A B)) `ℕ
-canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
-  | _ , _ , probe with simple-fun simple ⊢W (conv-fun-source conv probe)
-canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
+         (subst FunShape (sym (conv-target conv)) (fun-shape _ _)) `ℕ
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ nfn iᵢ iₑ ⊢W conv wfB)
+  | _ , _ , probe
+  with simple-fun simple ⊢W (ren-fun _ _ (conv-fun-source conv probe))
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ nfn iᵢ iₑ ⊢W conv wfB)
   | _ , _ , probe | A₁ , N , refl with arr-any {c = c} A₁ probe
-canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢W conv)
+canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ nfn iᵢ iₑ ⊢W conv wfB)
   | _ , _ , probe | A₁ , N , refl | c₁ , c₂ , arr-eq =
   inj₂ (A₁ , N , _ , c₁ , c₂ , refl , arr-eq)
 
@@ -346,11 +363,11 @@ canonical-∀ : ∀ {Sg Δ L B} → Value L → Sg ∣ Δ ∣ [] ⊢ L ⦂ `∀ 
        ((L ≡ (Λ V) ⟨ c ⟩) × (allView c ≡ just d)
         × (interior c Δ ≡ just Δᵢ)))
 canonical-∀ (Vs simple) ⊢L = inj₁ (simple-all simple ⊢L (all-shape _))
-canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv)
+canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ nfn iᵢ iₑ ⊢V conv wfB)
   with inert-all-view {c = c} app
-         (subst AllShape (sym (conv-target conv)) (all-shape B))
-canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv) | d , all-eq
-  with simple-all simple ⊢V (conv-all-source conv all-eq)
-canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv) | d , all-eq
+         (subst AllShape (sym (conv-target conv)) (all-shape _))
+canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ nfn iᵢ iₑ ⊢V conv wfB) | d , all-eq
+  with simple-all simple ⊢V (ren-all _ _ (conv-all-source conv all-eq))
+canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ nfn iᵢ iₑ ⊢V conv wfB) | d , all-eq
   | V , v , refl =
   inj₂ (V , c , d , _ , refl , all-eq , conv-interior conv)

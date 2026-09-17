@@ -122,14 +122,36 @@ var≢⇒ ()
 var≢∀ : ∀ {A X} → (`∀ A) ≢ ` X
 var≢∀ ()
 
--- PORT NOTE (2026-09-17, stage 3).  This invariant needs restating for
--- the frame.  `AfterAdd Γ r ĉ` says the element introduced an
--- assignment at NAME r, and `A ≡ ` r` said the running type was that
--- name.  Under the frame an `unseal`'s abstract side is `` ` X′ ``, the
--- name Ξ has for the ADDRESS, not the element's own r — so the
--- invariant should track the address and read the name off Ξ.  The rest
--- of the module ports mechanically; this is the one place that does
--- not.
+-- PORT NOTE (2026-09-17, stage 3).  TWO things changed under it and
+-- only the first is a restatement.
+--
+-- (1) `AfterAdd Γ r ĉ` says the element introduced an assignment at
+--     NAME r, and `A ≡ ` r` said the running type was that name.  A
+--     seal's abstract side is now `` ` X′ ``, the name Ξ has for the
+--     ADDRESS, so the invariant should track the address and read its
+--     name off Ξ.  Jeremy approved that restatement.
+--
+-- (2) BUT the two cases that were blocked by the SHIFT ARITHMETIC lose
+--     their argument, because `hide`/`show` no longer re-spell:
+--
+--       * `show` after `seal` was `⊥-elim (shiftAt-var-≢ _ A eq)` — the
+--         show's source used to be `renameᵗ (shiftAtᵗ X) A`, which could
+--         not be the variable the seal produced.  It is now just `A`,
+--         so the case is no longer absurd.  It also need not be: the
+--         show preserves the type, so the running type stays a
+--         variable — the RECURSION has to continue rather than close,
+--         which means the invariant is not `AfterAdd` but the weaker
+--         "the running type is a variable named in Ξ".
+--
+--       * `unseal` after `hide` was `⊥-elim (ne refl)` from `r ≢ X`,
+--         which was about the shift.  Without it, `pop-unique` forces
+--         the addresses equal and `fuse (hide X α) (unseal X α)` is
+--         `nothing`, so nothing rules the pair out here.  Whether it is
+--         ruled out at all — and hence whether the LEMMA still holds —
+--         is the open question.
+--
+-- So this is a proof restructuring, not a restatement, and it is worth
+-- settling before the rest of stage 3 leans on it.
 after-add : AfterAdd Γ r ĉ
   → Sg ∣ Ξ ∣ Γ ⊢ c ∶ A ⇝ B ⊣ Δ → A ≡ ` r → NF c → IrreducibleAfter ĉ c
   → Σ[ Y ∈ ℕ ] (B ≡ ` Y)

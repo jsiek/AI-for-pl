@@ -56,6 +56,12 @@ renameᵗ ρ (`∀ A)  = `∀ (renameᵗ (extᵗ ρ) A)
 ⇑ᵗ : Ty → Ty
 ⇑ᵗ = renameᵗ suc
 
+-- Shift the names at or above a cutoff (inserting one name entry at
+-- depth X): the reindexing an identity crossing performs.
+shiftAtᵗ : ℕ → Renameᵗ
+shiftAtᵗ zero    = suc
+shiftAtᵗ (suc X) = extᵗ (shiftAtᵗ X)
+
 extsᵗ : Substᵗ → Substᵗ
 extsᵗ σ zero    = ` zero
 extsᵗ σ (suc X) = ⇑ᵗ (σ X)

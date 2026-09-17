@@ -1,315 +1,614 @@
 module strong.Conversion where
 
--- Strong System F — CONVERSIONS, the `c` of a boundary `M ⟪ Θ , c ⟫`.
+-- Strong System F v8 — conversions: lists of conversion elements.
 --
--- The grammar and the names are GTSF's (see GTSF/Conversion.agda,
--- GTSF/Coercions.agda): id / seal / unseal / _↦_ / `∀.  The echo is
--- deliberate — Jeremy's Q3 answer was "use Conversion for relating the
--- interior type to the exterior type", and this is that judgement, with
--- GTSF's two mutually defined directions merged into ONE family.
+-- The four atomic elements each cross the introduction of one name
+-- assignment, and each carries its ADDRESS:
 --
--- NO POLARITY (Jeremy's ruling, 2026-09-06).  The judgement carried a
--- global index `p` that fixed `unseal` to a REVEAL position and `seal` to
--- a CONCEAL one, flipping on `conv-fun`'s domain.  It is REDUNDANT: the
--- discipline it enforced is PER TYPE VARIABLE, and `env` already enforces
--- it with the FRAMES — a LOCKED X is masked in `interior`, so it cannot sit
--- on the interior side of a leaf, and a BOUND X is not in the image of
--- `shiftBy`, so it cannot sit on the exterior side.  Dropping `p` is what
--- makes TyPeelR's preservation case a theorem at every ∀ conversion
--- rather than only at a reveal one (proof/Preserve.preserve-TyPeelR-Λ).
+--   seal X α     seal{-X:=α}    : A ⇝ X   renames via α's representation
+--   unseal X α   unseal{+X:=α}  : X ⇝ A
+--   hide X α     id{-X:=α}      : A ⇝ A    identity conceal crossing
+--   show X α     id{+X:=α}      : A ⇝ A    identity reveal crossing
 --
--- Conversions are REP-FREE by construction: `seal` and `unseal` carry a
--- NAME, never a spelling, and the rep is read by a BINDER LOOKUP on the
--- type context (`Δ ∋ X := A`).  That is what makes Q4's cancel type
--- equation definitional (proof/MoveScope.agda) and what makes both transports
--- below hypothesis-free.
+-- Each carries BOTH the name and the address, exactly as the notes
+-- write it.  The address is what `fuse` cancels on; the NAME is what
+-- makes the crossing's context movement a function of the syntax — the
+-- pop judgment skips binder assignments, so an element under a
+-- ∀-component may cross an assignment lying below those binders, and
+-- only the name says how deep.
+--
+-- The structural elements delegate their crossing to their components.
+-- The terminator `id A` is STRICTLY REFLEXIVE — all context movement is
+-- in the elements — so the v7 tail judgment is gone: one typing
+-- judgment suffices.  The stack discipline is typing: an atomic
+-- element's premise `Γ ▷ X := α ⇒ Γ′` pops only the newest crossing
+-- assignment.
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_)
+open import Data.Nat.Properties using (_≟_; _<?_)
+open import Data.Bool using (Bool; true; false; _∨_)
+open import Data.List using (List; []; _∷_; _++_)
+open import Data.Maybe using (Maybe; just; nothing)
+open import Data.Product using (_×_; _,_)
 open import Relation.Nullary using (yes; no)
-open import Data.List using (List; []; _∷_)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; trans; cong₂; subst)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; substᵗ; extᵗ;
+         shiftAtᵗ)
+open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
+
+------------------------------------------------------------------------
+-- Syntax
+------------------------------------------------------------------------
+
+mutual
+  data ConvElt : Set where
+    seal   : ℕ → Addr → ConvElt
+    unseal : ℕ → Addr → ConvElt
+    hide   : ℕ → Addr → ConvElt
+    show   : ℕ → Addr → ConvElt
+    _↦_    : Conv → Conv → ConvElt
+    all    : Conv → ConvElt
+
+  data Conv : Set where
+    id   : Ty → Conv
+    _∷ᶜ_ : ConvElt → Conv → Conv
+
+infixr 7 _↦_
+infixr 6 _∷ᶜ_
+
+mutual
+  -- Renaming a conversion's NAMES.  There is no address renaming to
+  -- pair it with any more: a `∀` binds a type variable, so descending
+  -- under an `all` moves no address.
+  renElt : Renameᵗ → ConvElt → ConvElt
+  renElt ρ (seal X α)   = seal (ρ X) α
+  renElt ρ (unseal X α) = unseal (ρ X) α
+  renElt ρ (hide X α)   = hide (ρ X) α
+  renElt ρ (show X α)   = show (ρ X) α
+  renElt ρ (s ↦ t)    = renConv ρ s ↦ renConv ρ t
+  renElt ρ (all s)    = all (renConv (extᵗ ρ) s)
+
+  renConv : Renameᵗ → Conv → Conv
+  renConv ρ (id A)    = id (renameᵗ ρ A)
+  renConv ρ (ĉ ∷ᶜ c) = renElt ρ ĉ ∷ᶜ renConv ρ c
+
+-- The BASE renaming of a conversion.  An `all` binds a STACK address,
+-- so the renaming passes through it unextended — and names are
+-- untouched, since a base push adds none.
+mutual
+  renEltᵉ : Renameᵇ → ConvElt → ConvElt
+  renEltᵉ σ (seal X α)   = seal X (renᵃᵉ σ α)
+  renEltᵉ σ (unseal X α) = unseal X (renᵃᵉ σ α)
+  renEltᵉ σ (hide X α)   = hide X (renᵃᵉ σ α)
+  renEltᵉ σ (show X α)   = show X (renᵃᵉ σ α)
+  renEltᵉ σ (s ↦ t)     = renConvᵉ σ s ↦ renConvᵉ σ t
+  renEltᵉ σ (all s)     = all (renConvᵉ σ s)
+
+  renConvᵉ : Renameᵇ → Conv → Conv
+  renConvᵉ σ (id A)    = id A
+  renConvᵉ σ (ĉ ∷ᶜ c) = renEltᵉ σ ĉ ∷ᶜ renConvᵉ σ c
+
+elts : Conv → List ConvElt
+elts (id A)   = []
+elts (ĉ ∷ᶜ c) = ĉ ∷ elts c
+
+target : Conv → Ty
+target (id A)   = A
+target (ĉ ∷ᶜ c) = target c
+
+attach : List ConvElt → Ty → Conv
+attach []       A = id A
+attach (ĉ ∷ ĉs) A = ĉ ∷ᶜ attach ĉs A
+
+------------------------------------------------------------------------
+-- Type-variable occurrence, closing, and annotation substitution
+------------------------------------------------------------------------
+
+occursᵗ : ℕ → Ty → Bool
+occursᵗ X (` Y) with X ≟ Y
+occursᵗ X (` Y) | yes _ = true
+occursᵗ X (` Y) | no  _ = false
+occursᵗ X `ℕ      = false
+occursᵗ X `𝔹      = false
+occursᵗ X (A ⇒ B) = occursᵗ X A ∨ occursᵗ X B
+occursᵗ X (`∀ A)  = occursᵗ (suc X) A
+
+closeEnv : ℕ → Ty → ℕ → Ty
+closeEnv X S Y with X ≟ Y
+closeEnv X S Y | yes _ = S
+closeEnv X S Y | no _ with X <? Y
+closeEnv X S Y | no _ | yes _ = ` (Y ∸ 1)
+closeEnv X S Y | no _ | no  _ = ` Y
+
+closeAt : ℕ → Ty → Ty → Ty
+closeAt X S A = substᵗ (closeEnv X S) A
+
+-- `c[X:=S]`: the crossings a conversion performs are unchanged, but
+-- removing the name slot X reindexes the names ABOVE it, so an
+-- element's name decrements exactly when it lies above the slot.
+nameSub : ℕ → ℕ → ℕ
+nameSub X Y with X <? Y
+nameSub X Y | yes _ = Y ∸ 1
+nameSub X Y | no _ = Y
+
+-- Substituting `S` for the name at the SLOT X, and removing the slot.
+--
+-- Both the slot and `S` travel along the spine: the tail of a spine
+-- lives one crossing further out, where the slot sits at a different
+-- index and `S` needs re-expressing.  `slotOut`/`tyOut` say where they
+-- have got to, and every recursive call is given the index of the
+-- frame it actually spans — which for `↦`'s CONTRAVARIANT component is
+-- the stepped one, since that component runs exterior → interior.
+mutual
+  slotOutElt : ConvElt → ℕ → ℕ
+  slotOutElt (seal Y α)   X = shiftAtᵗ Y X
+  slotOutElt (unseal Y α) X = nameSub Y X
+  slotOutElt (hide Y α)   X = shiftAtᵗ Y X
+  slotOutElt (show Y α)   X = nameSub Y X
+  -- the element spans what its COVARIANT component spans
+  slotOutElt (s ↦ t)      X = slotOut t X
+  -- `all` keeps a `bind` on both sides, so the slot moves under it
+  slotOutElt (all s)      X = slotOut s (suc X) ∸ 1
+
+  tyOutElt : ConvElt → Ty → Ty
+  tyOutElt (seal Y α)   S = renameᵗ (shiftAtᵗ Y) S
+  tyOutElt (unseal Y α) S = renameᵗ (nameSub Y) S
+  tyOutElt (hide Y α)   S = renameᵗ (shiftAtᵗ Y) S
+  tyOutElt (show Y α)   S = renameᵗ (nameSub Y) S
+  tyOutElt (s ↦ t)      S = tyOut t S
+  tyOutElt (all s)      S = renameᵗ (nameSub 0) (tyOut s (renameᵗ suc S))
+
+  slotOut : Conv → ℕ → ℕ
+  slotOut (id A)   X = X
+  slotOut (ĉ ∷ᶜ c) X = slotOut c (slotOutElt ĉ X)
+
+  tyOut : Conv → Ty → Ty
+  tyOut (id A)   S = S
+  tyOut (ĉ ∷ᶜ c) S = tyOut c (tyOutElt ĉ S)
+
+  substAnnElt : ℕ → Ty → ConvElt → ConvElt
+  substAnnElt X S (seal Y α)   = seal (nameSub X Y) α
+  substAnnElt X S (unseal Y α) = unseal (nameSub X Y) α
+  substAnnElt X S (hide Y α)   = hide (nameSub X Y) α
+  substAnnElt X S (show Y α)   = show (nameSub X Y) α
+  -- `t` spans the element's own interior → exterior; `s` spans it
+  -- BACKWARD, so its interior is where the slot has already moved
+  substAnnElt X S (s ↦ t) =
+    substAnn (slotOut t X) (tyOut t S) s ↦ substAnn X S t
+  substAnnElt X S (all s) = all (substAnn (suc X) (renameᵗ suc S) s)
+
+  substAnn : ℕ → Ty → Conv → Conv
+  substAnn X S (id A)    = id (closeAt X S A)
+  substAnn X S (ĉ ∷ᶜ c) =
+    substAnnElt X S ĉ ∷ᶜ substAnn (slotOutElt ĉ X) (tyOutElt ĉ S) c
+
+------------------------------------------------------------------------
+-- The builders  +X(A) and -X(A)
+------------------------------------------------------------------------
+-- Every equation's result crosses the assignment exactly once at the
+-- top level: a miss (X does not occur) crosses with the identity
+-- element, a hit with the renaming element, and a split delegates the
+-- crossing to its components.  `S` is the read-back of α's
+-- representation on the unassigned side.  Under a `∀` the binder
+-- assignment shifts the name, the address, and S.
+
+mutual
+  revTy : ℕ → Addr → Ty → Ty → Conv
+  revTy X α S (` Y) with X ≟ Y
+  revTy X α S (` Y) | yes _ = unseal X α ∷ᶜ id S
+  revTy X α S (` Y) | no  _ = show X α ∷ᶜ id (closeAt X S (` Y))
+  revTy X α S `ℕ = show X α ∷ᶜ id `ℕ
+  revTy X α S `𝔹 = show X α ∷ᶜ id `𝔹
+  revTy X α S (A ⇒ B) with occursᵗ X (A ⇒ B)
+  revTy X α S (A ⇒ B) | false = show X α ∷ᶜ id (closeAt X S (A ⇒ B))
+  revTy X α S (A ⇒ B) | true =
+    (concTy X α S A ↦ revTy X α S B) ∷ᶜ id (closeAt X S (A ⇒ B))
+  revTy X α S (`∀ A) with occursᵗ (suc X) A
+  revTy X α S (`∀ A) | false = show X α ∷ᶜ id (closeAt X S (`∀ A))
+  revTy X α S (`∀ A) | true =
+    all (revTy (suc X) α (renameᵗ suc S) A) ∷ᶜ id (closeAt X S (`∀ A))
+
+  concTy : ℕ → Addr → Ty → Ty → Conv
+  concTy X α S (` Y) with X ≟ Y
+  concTy X α S (` Y) | yes _ = seal X α ∷ᶜ id (` X)
+  concTy X α S (` Y) | no  _ = hide X α ∷ᶜ id (` Y)
+  concTy X α S `ℕ = hide X α ∷ᶜ id `ℕ
+  concTy X α S `𝔹 = hide X α ∷ᶜ id `𝔹
+  concTy X α S (A ⇒ B) with occursᵗ X (A ⇒ B)
+  concTy X α S (A ⇒ B) | false = hide X α ∷ᶜ id (A ⇒ B)
+  concTy X α S (A ⇒ B) | true =
+    (revTy X α S A ↦ concTy X α S B) ∷ᶜ id (A ⇒ B)
+  concTy X α S (`∀ A) with occursᵗ (suc X) A
+  concTy X α S (`∀ A) | false = hide X α ∷ᶜ id (`∀ A)
+  concTy X α S (`∀ A) | true =
+    all (concTy (suc X) α (renameᵗ suc S) A) ∷ᶜ id (`∀ A)
+
+------------------------------------------------------------------------
+-- Composition: append, fusion, weight
+------------------------------------------------------------------------
+
+-- Appending two conversions: the first one's terminator gives way to
+-- the second.  This is the RAW composition; the normalizing one is
+-- `_⨟_` in strong.ConversionReduction.
+infixl 5 _⧺_
+_⧺_ : Conv → Conv → Conv
+id A ⧺ d      = d
+(ĉ ∷ᶜ c) ⧺ d = ĉ ∷ᶜ (c ⧺ d)
+
+-- One adjacent pair of elements fuses — or does not, and `nothing` is
+-- what the normal form `NF` forbids.  Cancellation compares ADDRESSES.
+-- A `↦` or `all` fusion defers its component compositions as plain
+-- appends; the reduction system's congruence steps finish them.
+-- Cancellation compares the NAME as well as the address.  The address
+-- alone is not enough in the REMOVE-then-ADD order (`unseal ∷ seal`,
+-- `show ∷ hide`): both elements then pop from different contexts, and
+-- an assignment removed at one depth could be re-added at another, so
+-- the pair's endpoints would not meet.  With the name checked, both
+-- pushes are `pushAsgn X α` of the same context — a function — so the
+-- two contexts coincide.  In the ADD-then-REMOVE order the names agree
+-- automatically (`pop-unique`), so the check is free.
+fuse : ConvElt → ConvElt → Maybe (List ConvElt)
+-- The surviving seal direction cancels on the NAME ALONE.  At this seam
+-- the `seal` pushes `X:=α` and the `unseal` pops it, so both pops are
+-- from the SAME context and `proof.ConvCanonicity.pop-unique` already
+-- forces the addresses equal — the syntactic address test was redundant.
+-- (Contrast the crossing pair, whose seam has neither name in scope:
+-- `notes/AddrNeeded.keptApart`.)
+fuse (seal X α) (unseal Y β) with X ≟ Y
+fuse (seal X α) (unseal Y β) | yes _ = just []
+fuse (seal X α) (unseal Y β) | no  _ = nothing
+-- PROBE 2026-09-17: does the unseal/seal direction earn its keep?
+fuse (unseal X α) (seal Y β) = nothing
+fuse (hide X α) (show Y β) with X ≟ Y
+fuse (hide X α) (show Y β) | yes _ = just []
+fuse (hide X α) (show Y β) | no  _ = nothing
+-- RESTORED 2026-09-17.  It was deleted earlier the same day for not
+-- earning its keep — measured against the SHIFT-based rules, where a
+-- `show ∷ hide` could not arise where it matters.  Under the frame it
+-- can: it is the one adjacency that lets a sealed variable be popped
+-- and re-pushed, and so lets an `unseal` escape `after-add`'s invariant
+-- (notes/ShowHideNeeded).  The row is sound — `show X β` pops β and
+-- `hide X β` pushes it back, so the pair is net-zero on the context and,
+-- now that neither re-spells, type-preserving as well.
+-- AND IT NEEDS THE ADDRESS TEST.  Unlike the other direction, the two
+-- pops here are from DIFFERENT contexts (`show` pops from its interior,
+-- `hide` from its exterior), so `pop-unique` says nothing and equal
+-- names do not force equal addresses.  `notes/AddrNeeded.keptApart` is
+-- the witness.  This is the one row for which `Addr` still has to be
+-- richer than a name.
+fuse (show X α) (hide Y β) with X ≟ Y | α ≟ᵃ β
+fuse (show X α) (hide Y β) | yes _ | yes _ = just []
+fuse (show X α) (hide Y β) | yes _ | no  _ = nothing
+fuse (show X α) (hide Y β) | no  _ | _ = nothing
+fuse (s₁ ↦ t₁) (s₂ ↦ t₂) = just (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
+fuse (all s) (all t) = just (all (s ⧺ t) ∷ [])
+fuse (seal X α) (seal Y β) = nothing
+fuse (seal X α) (hide Y β) = nothing
+fuse (seal X α) (show Y β) = nothing
+fuse (seal X α) (s ↦ t) = nothing
+fuse (seal X α) (all s) = nothing
+fuse (unseal X α) (unseal Y β) = nothing
+fuse (unseal X α) (hide Y β) = nothing
+fuse (unseal X α) (show Y β) = nothing
+fuse (unseal X α) (s ↦ t) = nothing
+fuse (unseal X α) (all s) = nothing
+fuse (hide X α) (seal Y β) = nothing
+fuse (hide X α) (unseal Y β) = nothing
+fuse (hide X α) (hide Y β) = nothing
+fuse (hide X α) (s ↦ t) = nothing
+fuse (hide X α) (all s) = nothing
+fuse (show X α) (seal Y β) = nothing
+fuse (show X α) (unseal Y β) = nothing
+fuse (show X α) (show Y β) = nothing
+fuse (show X α) (s ↦ t) = nothing
+fuse (show X α) (all s) = nothing
+fuse (s ↦ t) (seal Y β) = nothing
+fuse (s ↦ t) (unseal Y β) = nothing
+fuse (s ↦ t) (hide Y β) = nothing
+fuse (s ↦ t) (show Y β) = nothing
+fuse (s ↦ t) (all u) = nothing
+fuse (all s) (seal Y β) = nothing
+fuse (all s) (unseal Y β) = nothing
+fuse (all s) (hide Y β) = nothing
+fuse (all s) (show Y β) = nothing
+fuse (all s) (t ↦ u) = nothing
+
+mutual
+  weightElt : ConvElt → ℕ
+  weightElt (seal X α)   = 1
+  weightElt (unseal X α) = 1
+  weightElt (hide X α)   = 1
+  weightElt (show X α)   = 1
+  weightElt (s ↦ t)    = suc (weight s + weight t)
+  weightElt (all s)    = suc (weight s)
+
+  weight : Conv → ℕ
+  weight (id A)    = 1
+  weight (ĉ ∷ᶜ c) = suc (weightElt ĉ + weight c)
+
+weightElts : List ConvElt → ℕ
+weightElts []       = zero
+weightElts (ĉ ∷ ĉs) = weightElt ĉ + weightElts ĉs
+
+------------------------------------------------------------------------
+-- Typing
+------------------------------------------------------------------------
 
 private
   variable
-    Δ Δ′ : Ctxᵗ
-    A A′ B B′ : Ty
-    X Y : ℕ
-    ρ : Renameᵗ
+    Σ : Store
+    Γ Γ₁ Γ₂ Γ₃ Γᵢ Γₑ : Ctxᵗ
+    A B C D : Ty
+    R : RepTy
+    X X′ : ℕ
+    α : Addr
+    c d s t : Conv
+    ĉ : ConvElt
 
-------------------------------------------------------------------------
--- 1.  The grammar
-------------------------------------------------------------------------
+-- THE FRAME.  A conversion is typed against a THIRD context `Ξ` — the
+-- exterior with the reveals added and the CONCEALS SKIPPED
+-- (`strong.Frame.unlocked`).  It is main's `unlockedScope Θ Δ`, where
+-- that development checks the boundary's representations
+-- (`CtxMorph._⊢ᵐ_.mw-reps` on `main`), and it is what the read-backs
+-- need: a conceal removes the very name a later element must read an
+-- address back to, and `notes/SourceToTyWrapGap` is a closed source
+-- program that reaches exactly that state.
+--
+-- WHAT LIVES WHERE.  A crossing's NAME still indexes the real context —
+-- it is what the pop consumes, and the `▷` stack discipline is
+-- unchanged.  Everything the frame carries is TYPES: the read-backs,
+-- the well-formedness premises, the terminator annotations, and a
+-- seal's or unseal's abstract side, which is now `` ` X′ `` for the
+-- name `Ξ` has for the address rather than the element's own `X`.
+-- Conflating the two is unsound as soon as the real context and the
+-- frame disagree (`strong.Frame`, and `notes/UnlockedFrame`'s
+-- `Ξ-weaken` is what caught it).
+--
+-- AND THE CROSSINGS NO LONGER RE-SPELL.  With every type read in one
+-- frame there is no reindexing to do, so `hide`/`show` are `A ⇝ A` —
+-- main's "nothing is dropped and nothing is re-spelled, so there is no
+-- demotion".  `shiftAtᵗ` has not left the calculus: it moved from every
+-- crossing to the two BOUNDARY ENDPOINTS (strong.Terms), which is where
+-- main has it, once, as `shiftBy (numBinds Θ)`.
 
--- `id A` is restricted to BASE TYPES AND VARIABLES by the typing judgment
--- (conv-id / conv-idv) and by the classification in strong.Terms (A-idb
--- needs Base A, I-idv needs a variable payload); compound identities stay
--- structural (`mkId` below).
-data Conv : Set where
-  id     : Ty → Conv          -- ACTIVE at a base type, INERT at a variable
-  seal   : ℕ → Conv           -- seal   at the binder named       INERT
-  unseal : ℕ → Conv           -- unseal at the binder named       ACTIVE
-  _↦_    : Conv → Conv → Conv -- s ↦ t, contravariant domain      INERT
-  `∀     : Conv → Conv        -- ∀ s                              INERT
-
-infixr 7 _↦_
-
-renᶜ : Renameᵗ → Conv → Conv
-renᶜ ρ (id A)      = id (renameᵗ ρ A)
-renᶜ ρ (seal X)    = seal (ρ X)
-renᶜ ρ (unseal X)  = unseal (ρ X)
-renᶜ ρ (s ↦ t)     = renᶜ ρ s ↦ renᶜ ρ t
-renᶜ ρ (`∀ s)      = `∀ (renᶜ (extᵗ ρ) s)
-
-------------------------------------------------------------------------
--- 2.  The typing judgment
-------------------------------------------------------------------------
-
--- Δ ⊢ c ∶ A ⇝ B   —   c converts the SOURCE type A to the TARGET type
--- B, both read on the type context Δ (the CONVERSION CONTEXT: the type
--- context at which the boundary's binders are live).  Every rep is read by
--- NAME from Δ.  `conv-fun` is CONTRAVARIANT in its domain — that is the
--- only trace the retired polarity index leaves.
-infix 4 _⊢_∶_⇝_
-data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
-
-  conv-id : Base A
-      --------------------------------
-    → Δ ⊢ id A ∶ A ⇝ A
-
-  conv-idv : Δ ∋tv X
-      --------------------------------
-    → Δ ⊢ id (` X) ∶ ` X ⇝ ` X
-
-  -- REVEAL: the interior sees the abstract name, the exterior its rep.
-  conv-unseal : Δ ∋ X := A
-      --------------------------------
-    → Δ ⊢ unseal X ∶ ` X ⇝ A
-
-  -- CONCEAL: the interior sees the rep, the exterior the abstract name.
-  -- THE SOUNDNESS GATE: a seal must cite a LIVE BINDER on its type context.
-  conv-seal : Δ ∋ X := A
-      --------------------------------
-    → Δ ⊢ seal X ∶ A ⇝ ` X
-
-  conv-fun : ∀ {s t}
-    → Δ ⊢ s ∶ A′ ⇝ A → Δ ⊢ t ∶ B ⇝ B′
-      ----------------------------------------------
-    → Δ ⊢ s ↦ t ∶ (A ⇒ B) ⇝ (A′ ⇒ B′)
-
-  conv-all : ∀ {s} → (unmasked abst ∷ Δ) ⊢ s ∶ A ⇝ B
-      --------------------------------------
-    → Δ ⊢ `∀ s ∶ `∀ A ⇝ `∀ B
-
-------------------------------------------------------------------------
--- 3.  The identity conversion at an arbitrary type
-------------------------------------------------------------------------
-
-mkId : Ty → Conv
-mkId (` X)   = id (` X)
-mkId `ℕ      = id `ℕ
-mkId `𝔹      = id `𝔹
-mkId (A ⇒ B) = mkId A ↦ mkId B
-mkId (`∀ A)  = `∀ (mkId A)
-
-mkId-⊢ : Δ ⊢ᵗ A → Δ ⊢ mkId A ∶ A ⇝ A
-mkId-⊢ (wf-var tv)  = conv-idv tv
-mkId-⊢ wf-ℕ         = conv-id base-ℕ
-mkId-⊢ wf-𝔹         = conv-id base-𝔹
-mkId-⊢ (wf-⇒ wA wB) = conv-fun (mkId-⊢ wA) (mkId-⊢ wB)
-mkId-⊢ (wf-∀ wA)    = conv-all (mkId-⊢ wA)
-
-------------------------------------------------------------------------
--- 4.  The canonical conversions at a slot
-------------------------------------------------------------------------
-
--- Unseal every occurrence of X where the conversion runs covariantly /
--- seal it back where it runs contravariantly.  These are what the
--- boundary rules mint at a fresh binder; they are DERIVED FROM THE TYPE,
--- not from stored knowledge, and they carry only the NAME X.
+infix 4 _∣_∣_⊢̂_∶_⇝_⊣_
+infix 4 _∣_∣_⊢_∶_⇝_⊣_
 mutual
-  reveal : ℕ → Ty → Conv
-  reveal X (` Y) with X ≟ℕ Y
-  ... | yes _ = unseal X
-  ... | no  _ = id (` Y)
-  reveal X `ℕ      = id `ℕ
-  reveal X `𝔹      = id `𝔹
-  reveal X (A ⇒ B) = conceal X A ↦ reveal X B
-  reveal X (`∀ A)  = `∀ (reveal (suc X) A)
+  data _∣_∣_⊢̂_∶_⇝_⊣_ (Σ : Store) (Ξ : Ctxᵗ)
+       : Ctxᵗ → ConvElt → Ty → Ty → Ctxᵗ → Set where
+    conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Ξ ∋n X′ := α
+      → Γₑ ▷ X := α ⇒ Γᵢ
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X′ ⊣ Γₑ
+    -- `unseal` and `show` INTRODUCE the assignment going inward, so
+    -- they carry the notes' freshness condition on the side that does
+    -- not have it yet.  This is what makes name-uniqueness — and hence
+    -- the single-valuedness of the read-back — propagate along a
+    -- conversion (see proof.CompositionTyping).  Uniqueness at the
+    -- FRAME is a separate matter and is guarded at the boundary
+    -- (`NameFn Ξ`, strong.Terms): a `hide X α` followed by a
+    -- `show Y α` with X ≠ Y passes both local checks and would put two
+    -- names for α in Ξ.
+    conv-unseal : Σ ∣ Γᵢ ∋r α := R → Σ ∣ Ξ ⊢ R ⇓ A → Ξ ∋n X′ := α
+      → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ unseal X α ∶ ` X′ ⇝ A ⊣ Γₑ
+    -- `hide` and `show` are exact duals, down to their premises: each
+    -- relates the SMALLER context (the one without the assignment) to
+    -- the larger, and the freshness condition says the address is
+    -- unassigned there.  Now that neither re-spells its type the
+    -- symmetry is exact, and `arr`'s dualization is premise for premise
+    -- (see proof.ArrTyping).
+    -- Each SCOPES its address in the context without the assignment,
+    -- as `conv-seal`/`conv-unseal` do with their `∋r`.  Without it a
+    -- crossing may name an address nothing has bound, and then `Alloc`
+    -- can discharge a fresh level onto it and turn a normal pair into
+    -- a cancelling one — see notes/DECISIONS.md (2026-09-15) and
+    -- `proof.PreserveAlloc.alloc-claim-refuted`.
+    -- `A ≢ ` X′` IS WHAT THE OLD SHIFT CARRIED.  An identity crossing
+    -- is never used AT the variable it hides or reveals — "otherwise it
+    -- would have been a seal or unseal" (Jeremy, 2026-09-17), and
+    -- notes-v8.md says the same of `id{+X:=α}`.  The old rule encoded
+    -- it as `A ⇝ renameᵗ (shiftAtᵗ X) A`, since a shifted type cannot
+    -- be the slot shifted into; with the types now read in one frame
+    -- there is no shift to carry it, so it is a premise.  NOT the
+    -- stronger `X′ ∉ A`: instantiation legitimately creates such an
+    -- occurrence (notes/HideUnseal), and requiring its absence would
+    -- reject `TyWrap`'s own reduct.
+    -- EXPERIMENT 2026-09-17 (option 5): the `A ≢ ` X′` premise is
+    -- REMOVED again — it is not closed under `arr`'s dualization
+    -- (notes/HideUnseal).  What `Progress` then demands is the question.
+    conv-hide : Σ ∣ Γᵢ ∋a α → Ξ ⊢ᵗ A
+      → Γₑ ▷ X := α ⇒ Γᵢ → NotAssigned Γᵢ α
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ A ⊣ Γₑ
+    conv-show : Σ ∣ Γₑ ∋a α → Ξ ⊢ᵗ A
+      → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ show X α ∶ A ⇝ A ⊣ Γₑ
+    conv-fun : Σ ∣ Ξ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Ξ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ
+      → Σ ∣ Ξ ∣ Γᵢ ⊢̂ (s ↦ t) ∶ A ⇒ B ⇝ C ⇒ D ⊣ Γₑ
+    -- a BIND shifts — main's `shiftBy (numBinds Θ)` — so the frame
+    -- grows with the real contexts here
+    conv-all : ∀ {Ssᵢ Bsᵢ Ssₑ Bsₑ}
+      → Σ ∣ (bind ∷ stk Ξ ∥ bas Ξ) ∣ (bind ∷ Ssᵢ ∥ Bsᵢ) ⊢ s ∶ A ⇝ B
+          ⊣ (bind ∷ Ssₑ ∥ Bsₑ)
+      → Σ ∣ Ξ ∣ (Ssᵢ ∥ Bsᵢ) ⊢̂ all s ∶ `∀ A ⇝ `∀ B ⊣ (Ssₑ ∥ Bsₑ)
 
-  conceal : ℕ → Ty → Conv
-  conceal X (` Y) with X ≟ℕ Y
-  ... | yes _ = seal X
-  ... | no  _ = id (` Y)
-  conceal X `ℕ      = id `ℕ
-  conceal X `𝔹      = id `𝔹
-  conceal X (A ⇒ B) = reveal X A ↦ conceal X B
-  conceal X (`∀ A)  = `∀ (conceal (suc X) A)
+  data _∣_∣_⊢_∶_⇝_⊣_ (Σ : Store) (Ξ : Ctxᵗ)
+       : Ctxᵗ → Conv → Ty → Ty → Ctxᵗ → Set where
+    conv-id : Ξ ⊢ᵗ A → Σ ∣ Ξ ∣ Γ ⊢ id A ∶ A ⇝ A ⊣ Γ
+    conv-cons : Σ ∣ Ξ ∣ Γ₁ ⊢̂ ĉ ∶ A ⇝ B ⊣ Γ₂ → Σ ∣ Ξ ∣ Γ₂ ⊢ c ∶ B ⇝ C ⊣ Γ₃
+      → Σ ∣ Ξ ∣ Γ₁ ⊢ ĉ ∷ᶜ c ∶ A ⇝ C ⊣ Γ₃
 
--- THE SAME MINT, APPLIED TO A CONVERSION (the TyPeelR repair,
--- notes/RuleRepairs-TyPeelR-CancelR.md §1).  When a boundary whose
--- conversion is a `` `∀ `` is instantiated, the boundary's frame gains
--- a BINDER at slot 0 — the slot the conversion's `` `∀ `` had left
--- ABSTRACT.  Every leaf of the conversion that reads that slot is an
--- identity (`id (` 0)`, because an abstract slot has no binder to seal or
--- unseal at), and each such leaf must become the instantiation step:
--- `unseal 0` where the conversion runs covariantly, `seal 0` where it
--- runs contravariantly.  That is exactly `reveal`/`conceal`, pushed
--- through a CONVERSION instead of through a type — and on an identity
--- conversion the two agree (`instReveal-mkId` below).
+------------------------------------------------------------------------
+-- Normal forms
+------------------------------------------------------------------------
+
 mutual
-  instReveal : ℕ → Conv → Conv
-  instReveal X (id A)     = reveal X A
-  instReveal X (seal Y)   = seal Y
-  instReveal X (unseal Y) = unseal Y
-  instReveal X (s ↦ t)    = instConceal X s ↦ instReveal X t
-  instReveal X (`∀ s)     = `∀ (instReveal (suc X) s)
+  data NFElt : ConvElt → Set where
+    nf-seal   : ∀ {X α} → NFElt (seal X α)
+    nf-unseal : ∀ {X α} → NFElt (unseal X α)
+    nf-hide   : ∀ {X α} → NFElt (hide X α)
+    nf-show   : ∀ {X α} → NFElt (show X α)
+    nf-fun    : NF s → NF t → NFElt (s ↦ t)
+    nf-all    : NF s → NFElt (all s)
 
-  instConceal : ℕ → Conv → Conv
-  instConceal X (id A)     = conceal X A
-  instConceal X (seal Y)   = seal Y
-  instConceal X (unseal Y) = unseal Y
-  instConceal X (s ↦ t)    = instReveal X s ↦ instConceal X t
-  instConceal X (`∀ s)     = `∀ (instConceal (suc X) s)
+  data IrreducibleAfter (ĉ : ConvElt) : Conv → Set where
+    irr-id   : ∀ {A} → IrreducibleAfter ĉ (id A)
+    irr-cons : ∀ {ḓ c} → fuse ĉ ḓ ≡ nothing
+             → IrreducibleAfter ĉ (ḓ ∷ᶜ c)
 
--- TyBeta's minted conversion IS this operation at an identity
--- conversion: the type version is the conversion version on `mkId`.  (So
--- TyPeelR's reveal case really is TyBeta's mint, one ∀ inside — and
--- since the 2026-09-08 split that is literal: `TyPeelR-Λ` moves nothing
--- and refines the `Λ`'s own slot into the boundary's binder, exactly as
--- TyBeta does.)
+  data NF : Conv → Set where
+    nf-id   : ∀ {A} → NF (id A)
+    nf-cons : NFElt ĉ → NF c → IrreducibleAfter ĉ c → NF (ĉ ∷ᶜ c)
+
+------------------------------------------------------------------------
+-- The views: elementwise, since identity crossings and structural
+-- elements interleave in normal forms
+------------------------------------------------------------------------
+
+arr⁻ : ConvElt → Maybe (List ConvElt)
+arr⁻ (seal X α)   = nothing
+arr⁻ (unseal X α) = nothing
+arr⁻ (hide X α)   = just (show X α ∷ [])
+arr⁻ (show X α)   = just (hide X α ∷ [])
+arr⁻ (s ↦ t)      = just (elts s)
+arr⁻ (all s)      = nothing
+
+arr⁺ : ConvElt → Maybe (List ConvElt)
+arr⁺ (seal X α)   = nothing
+arr⁺ (unseal X α) = nothing
+arr⁺ (hide X α)   = just (hide X α ∷ [])
+arr⁺ (show X α)   = just (show X α ∷ [])
+arr⁺ (s ↦ t)      = just (elts t)
+arr⁺ (all s)      = nothing
+
+-- A hoisted crossing moves under the ∀ element's binder, so its bound
+-- address shifts; `arr` introduces no binder, so `arr⁻`/`arr⁺` do not.
+all⁺ : ConvElt → Maybe (List ConvElt)
+all⁺ (seal X α)   = nothing
+all⁺ (unseal X α) = nothing
+all⁺ (hide X α)   = just (hide (suc X) α ∷ [])
+all⁺ (show X α)   = just (show (suc X) α ∷ [])
+all⁺ (s ↦ t)      = nothing
+all⁺ (all s)      = just (elts s)
+
+-- Fold over the element list; the contravariant side reverses.
+consArr : Maybe (List ConvElt) → Maybe (List ConvElt)
+  → Maybe (List ConvElt × List ConvElt)
+  → Maybe (List ConvElt × List ConvElt)
+consArr (just ls) (just rs) (just (Ls , Rs)) = just (Ls ++ ls , rs ++ Rs)
+consArr (just ls) (just rs) nothing = nothing
+consArr (just ls) nothing q = nothing
+consArr nothing r q = nothing
+
+arrElts : List ConvElt → Maybe (List ConvElt × List ConvElt)
+arrElts [] = just ([] , [])
+arrElts (ĉ ∷ ĉs) = consArr (arr⁻ ĉ) (arr⁺ ĉ) (arrElts ĉs)
+
+consAllE : Maybe (List ConvElt) → Maybe (List ConvElt)
+  → Maybe (List ConvElt)
+consAllE (just es) (just Es) = just (es ++ Es)
+consAllE (just es) nothing = nothing
+consAllE nothing Es = nothing
+
+allElts : List ConvElt → Maybe (List ConvElt)
+allElts [] = just []
+allElts (ĉ ∷ ĉs) = consAllE (all⁺ ĉ) (allElts ĉs)
+
+-- The views `arr`, `allView` and `base` are assembled from these
+-- folds in `strong.ConversionReduction`: their components are APPENDS,
+-- which can leave a redex at the seam, so they NORMALIZE — the same
+-- discipline the builders follow.
+
+------------------------------------------------------------------------
+-- Address substitution over conversions (binder discharge at `Alloc`)
+------------------------------------------------------------------------
+-- `Alloc` discharges a BASE binder — the `ν`'s — into a store level, so
+-- this is the base family: it replaces `bse`, and `all`, which binds on
+-- the stack, does not extend it.
+
 mutual
-  instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ reveal X B
-  instReveal-mkId X (` Y)   = refl
-  instReveal-mkId X `ℕ      = refl
-  instReveal-mkId X `𝔹      = refl
-  instReveal-mkId X (A ⇒ B) =
-    cong₂ _↦_ (instConceal-mkId X A) (instReveal-mkId X B)
-  instReveal-mkId X (`∀ A)  = cong `∀ (instReveal-mkId (suc X) A)
+  substAddrElt : SubstAddr → ConvElt → ConvElt
+  substAddrElt σ (seal X α)   = seal X (substAddrᵉ σ α)
+  substAddrElt σ (unseal X α) = unseal X (substAddrᵉ σ α)
+  substAddrElt σ (hide X α)   = hide X (substAddrᵉ σ α)
+  substAddrElt σ (show X α)   = show X (substAddrᵉ σ α)
+  substAddrElt σ (s ↦ t)    = substAddrConv σ s ↦ substAddrConv σ t
+  substAddrElt σ (all s)    = all (substAddrConv σ s)
 
-  instConceal-mkId : (X : ℕ) (B : Ty) → instConceal X (mkId B) ≡ conceal X B
-  instConceal-mkId X (` Y)   = refl
-  instConceal-mkId X `ℕ      = refl
-  instConceal-mkId X `𝔹      = refl
-  instConceal-mkId X (A ⇒ B) =
-    cong₂ _↦_ (instReveal-mkId X A) (instConceal-mkId X B)
-  instConceal-mkId X (`∀ A)  = cong `∀ (instConceal-mkId (suc X) A)
+  substAddrConv : SubstAddr → Conv → Conv
+  substAddrConv σ (id A)    = id A
+  substAddrConv σ (ĉ ∷ᶜ c) = substAddrElt σ ĉ ∷ᶜ substAddrConv σ c
 
-------------------------------------------------------------------------
--- 5.  TRANSPORT I — type context renaming (the ⊢renameᵗ analogue)
-------------------------------------------------------------------------
+-- Pushing and popping the assignment NAMED X.  Both are STACK
+-- operations now: the base cannot get in the way, so there is no
+-- transparency question, and the two are inverses.
 
--- A context-indexed conversion typing moves along ANY type context renaming, with NO
--- hypothesis beyond `Ren` itself: no SkelEq, no starOnly, no unfolding, no
--- second chance.  The `conv-unseal`/`conv-seal` cases are literally
--- `ren-kn` — the name is carried, and the rep comes back out of the target
--- type context already renamed.
-conv-ren : ∀ {c} → Ren ρ Δ Δ′
-  → Δ  ⊢ c ∶ A ⇝ B
-    -----------------------------------------------
-  → Δ′ ⊢ renᶜ ρ c ∶ renameᵗ ρ A ⇝ renameᵗ ρ B
-conv-ren {ρ = ρ} r (conv-id bA)
-  rewrite base-ren {A = _} {ρ = ρ} bA  = conv-id bA
-conv-ren r (conv-idv tv)     = conv-idv (ren-tv r tv)
-conv-ren r (conv-unseal d)   = conv-unseal (ren-kn r d)
-conv-ren r (conv-seal d)     = conv-seal (ren-kn r d)
-conv-ren r (conv-fun s t)    = conv-fun (conv-ren r s) (conv-ren r t)
-conv-ren r (conv-all s)      = conv-all (conv-ren (ren-ext r) s)
+underJustS : (List StackEnt → List StackEnt)
+  → Maybe (List StackEnt) → Maybe (List StackEnt)
+underJustS f (just Ss) = just (f Ss)
+underJustS f nothing   = nothing
 
-------------------------------------------------------------------------
--- 6.  TRANSPORT II — knowledge refinement (the ⊢retag analogue)
-------------------------------------------------------------------------
+-- Descending past a `bind` takes the address out of that binder's
+-- coordinates; the binder's OWN address names no assignment.
+pushAsgnS : ℕ → Addr → List StackEnt → Maybe (List StackEnt)
+pushAsgnS zero α Ss = just (asgn α ∷ Ss)
+pushAsgnS (suc X) α [] = nothing
+pushAsgnS (suc X) α (asgn β ∷ Ss) =
+  underJustS (asgn β ∷_) (pushAsgnS X α Ss)
+pushAsgnS (suc X) α (bind ∷ Ss) =
+  underJustS (bind ∷_) (pushAsgnS X α Ss)
 
--- Knowledge refinement preserves conversion typing with the SOURCE AND
--- TARGET TYPES UNCHANGED — no ≈, no unfolding, no retagging of the types.
-conv-⊑ : ∀ {c} → Δ ⊑ Δ′
-  → Δ  ⊢ c ∶ A ⇝ B
-    ------------------------
-  → Δ′ ⊢ c ∶ A ⇝ B
-conv-⊑ ls (conv-id bA)     = conv-id bA
-conv-⊑ ls (conv-idv tv)    = conv-idv (⊑-tv ls tv)
-conv-⊑ ls (conv-unseal d)  = conv-unseal (⊑-kn ls d)
-conv-⊑ ls (conv-seal d)    = conv-seal (⊑-kn ls d)
-conv-⊑ ls (conv-fun s t)   = conv-fun (conv-⊑ ls s) (conv-⊑ ls t)
-conv-⊑ ls (conv-all s)     =
-  conv-all (conv-⊑ (le∷ (le-uu le-aa) ls) s)
+popAsgnS : ℕ → Addr → List StackEnt → Maybe (List StackEnt)
+popAsgnS X α [] = nothing
+popAsgnS zero α (asgn β ∷ Ss) with α ≟ᵃ β
+popAsgnS zero α (asgn β ∷ Ss) | yes _ = just Ss
+popAsgnS zero α (asgn β ∷ Ss) | no _ = nothing
+popAsgnS (suc X) α (asgn β ∷ Ss) = nothing
+popAsgnS zero α (bind ∷ Ss) = nothing
+popAsgnS (suc X) α (bind ∷ Ss) =
+  underJustS (bind ∷_) (popAsgnS X α Ss)
+
+underJust : (List StackEnt → List StackEnt)
+  → List BaseEnt → Maybe (List StackEnt) → Maybe Ctxᵗ
+underJust f Bs (just Ss) = just (f Ss ∥ Bs)
+underJust f Bs nothing   = nothing
+
+pushAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+pushAsgn X α (Ss ∥ Bs) = underJust (λ z → z) Bs (pushAsgnS X α Ss)
+
+popAsgn : ℕ → Addr → Ctxᵗ → Maybe Ctxᵗ
+popAsgn X α (Ss ∥ Bs) = underJust (λ z → z) Bs (popAsgnS X α Ss)
 
 ------------------------------------------------------------------------
--- 7.  Conversion inversions
+-- The interior context of a conversion: `⟨c⟩(Γ)`, walking the elements
+-- from the terminator inward
 ------------------------------------------------------------------------
 
--- Every rep a conversion mentions IS the binder's rep — there is no second
--- spelling, which is why the §9m ≡/≈ gap cannot arise.
-seal-source-is-rep :
-  Δ ⊢ seal X ∶ A ⇝ B → Δ ∋ X := A
-seal-source-is-rep (conv-seal d) = d
+mutual
+  interiorElt : ConvElt → Ctxᵗ → Maybe Ctxᵗ
+  interiorElt (seal X α)   Γ = popAsgn X α Γ
+  interiorElt (hide X α)   Γ = popAsgn X α Γ
+  interiorElt (unseal X α) Γ = pushAsgn X α Γ
+  interiorElt (show X α)   Γ = pushAsgn X α Γ
+  interiorElt (s ↦ t)      Γ = interior t Γ
+  interiorElt (all s) (Ss ∥ Bs) with interior s (bind ∷ Ss ∥ Bs)
+  interiorElt (all s) (Ss ∥ Bs) | just (bind ∷ Ss′ ∥ Bs′) = just (Ss′ ∥ Bs′)
+  interiorElt (all s) (Ss ∥ Bs) | just (asgn β ∷ Ss′ ∥ Bs′) = nothing
+  interiorElt (all s) (Ss ∥ Bs) | just ([] ∥ Bs′) = nothing
+  interiorElt (all s) (Ss ∥ Bs) | nothing = nothing
 
-unseal-target-is-rep :
-  Δ ⊢ unseal X ∶ A ⇝ B → Δ ∋ X := B
-unseal-target-is-rep (conv-unseal d) = d
+  interior : Conv → Ctxᵗ → Maybe Ctxᵗ
+  interior (id A) Γ = just Γ
+  interior (ĉ ∷ᶜ c) Γ with interior c Γ
+  interior (ĉ ∷ᶜ c) Γ | just Γ′ = interiorElt ĉ Γ′
+  interior (ĉ ∷ᶜ c) Γ | nothing = nothing
 
-conv-unseal-src : Δ ⊢ unseal X ∶ A ⇝ B → A ≡ ` X
-conv-unseal-src (conv-unseal _) = refl
-
-conv-seal-tgt : Δ ⊢ seal X ∶ A ⇝ B → B ≡ ` X
-conv-seal-tgt (conv-seal _) = refl
-
-conv-idv-src : Δ ⊢ id (` X) ∶ A ⇝ B → A ≡ ` X
-conv-idv-src (conv-idv _) = refl
-
-conv-idv-tgt : Δ ⊢ id (` X) ∶ A ⇝ B → B ≡ ` X
-conv-idv-tgt (conv-idv _) = refl
-
-conv-id-base-src : ∀ {C} → Base A → Δ ⊢ id A ∶ B ⇝ C → B ≡ A
-conv-id-base-src bA (conv-id _)  = refl
-conv-id-base-src () (conv-idv _)
-
-conv-id-refl : ∀ {C} → Δ ⊢ id A ∶ B ⇝ C → B ≡ C
-conv-id-refl (conv-id _)  = refl
-conv-id-refl (conv-idv _) = refl
-
--- A ∀ conversion's body, as an inversion that does NOT have to see
--- through `shiftBy`: `env` pins the target type to `shiftBy (numBinds Θ) Bₑ`,
--- which is a stuck term, so TyPeelR's premise is recovered by this lemma rather
--- than by matching `conv-all` directly.
-conv-all-inv : ∀ {s A B} → Δ ⊢ `∀ s ∶ A ⇝ B
-  → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]
-      ((A ≡ `∀ A₀) × (B ≡ `∀ B₀) × ((unmasked abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B₀))
-conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
-
-------------------------------------------------------------------------
--- 8.  THE TYPES ARE A FUNCTION OF THE CONVERSION AND THE TYPE CONTEXT
-------------------------------------------------------------------------
-
--- A conversion determines BOTH its types: `id` carries its own, a
--- `seal`/`unseal` reads its rep by the binder lookup (`∋:=-det`), and
--- `↦`/`` `∀ `` are structural.  This is what makes TyPeelR deterministic even
--- though its pushed-in annotation is premise-determined rather than
--- syntactic (strong.Reduction, `det`).
-conv-types-unique : ∀ {c A A′ B B′}
-  → Δ ⊢ c ∶ A  ⇝ B
-  → Δ ⊢ c ∶ A′ ⇝ B′
-    ----------------------
-  → (A ≡ A′) × (B ≡ B′)
-conv-types-unique (conv-id b)     (conv-id b′)     = refl , refl
-conv-types-unique (conv-id ())    (conv-idv tv′)
-conv-types-unique (conv-idv tv)   (conv-id ())
-conv-types-unique (conv-idv tv)   (conv-idv tv′)   = refl , refl
-conv-types-unique (conv-unseal d) (conv-unseal d′) = refl , ∋:=-det d d′
-conv-types-unique (conv-seal d)   (conv-seal d′)   = ∋:=-det d d′ , refl
-conv-types-unique (conv-fun s t)  (conv-fun s′ t′)
-  with conv-types-unique s s′ | conv-types-unique t t′
-... | refl , refl | refl , refl = refl , refl
-conv-types-unique (conv-all s)    (conv-all s′)
-  with conv-types-unique s s′
-... | refl , refl = refl , refl
-
-conv-src-unique : ∀ {c A A′ B B′}
-  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A′ ⇝ B′ → A ≡ A′
-conv-src-unique ⊢c ⊢c′ with conv-types-unique ⊢c ⊢c′
-... | eq , _ = eq
+-- The conversion-level instantiation +X(c)/-X(c) is specified by
+-- composition with the builders (+X(c) ≡ +X(src c) ⨟ c[X:=S]); it
+-- needs the normalizing composition, so it lands with
+-- strong.ConversionReduction.  The syntactic source reader `src` is
+-- name-dependent at an unseal element in de Bruijn form, so its
+-- treatment is settled there as well.

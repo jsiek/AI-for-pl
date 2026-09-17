@@ -1,61 +1,101 @@
 module strong.Terms where
 
--- Strong System F — the TERMS, the typing judgement, and values.
+-- Strong System F v8 — terms, values, and typing.
 --
--- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
---
---   Θ : CtxMorph   the context morphism (strong.CtxMorph, re-exported
---                here), a PAIR `morph B S`: each entry of the PARALLEL
---                block B binds a fresh interior slot at that
---                representation, and the SEQUENTIAL change list S masks
---                (`lock X`) and unmasks (`unlock X`) exterior slots.
---                `interior Θ Δ` is the type context the interior is
---                typed in, `convCtx Θ Δ` the one the conversion is
---                checked in, `Δ ⊢ᵐ Θ` its well-formedness.
---   c : Conv     the CONVERSION (strong.Conversion), from the interior
---                type to the exterior type shifted past Θ's binders.
---
--- Frames change ONLY at binders: there is no dropN, no cmax, no swapᵇ.
+-- The boundary is conversion application `M ⟨ c ⟩`: no store, no scope.
+-- `ν R ∙ M` binds a local address with its representation, awaiting
+-- discharge into the global store.  `Λ V` binds an address and a name:
+-- its typing pushes the address binder and a CROSSING assignment for
+-- it, and restricts the body to a VALUE, so there is no reduction under
+-- `Λ`.  Boundary bodies are term-closed; ν bodies are not.
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; map; length)
-open import Data.Sum using (_⊎_; inj₁; inj₂)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
-open import Data.Empty using (⊥; ⊥-elim)
-open import Relation.Nullary using (¬_)
-open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; cong₂; trans; subst)
+open import Data.Nat using (ℕ; zero; suc)
+open import Data.Bool using (Bool)
+open import Data.List using (List; []; _∷_; map)
+open import Data.Maybe using (just)
+open import Data.Product using (_×_; _,_)
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ; _[_]ᵗ; Renameᵗ; renameᵗ)
+open import strong.RepresentationTypes
 open import strong.Ctx
 open import strong.Conversion
-open import strong.CtxMorph
+open import strong.Frame using (Insert)
+open import strong.ConversionReduction
 
-private
-  variable
-    Δ Δ′ : Ctxᵗ
-    A B : Ty
-    X Y : ℕ
-
-------------------------------------------------------------------------
--- 1.  Terms
-------------------------------------------------------------------------
+data Prim : Set where
+  p+ : Prim
+  p× : Prim
 
 infix  9 `_
 infix  9 $_
+infix  9 #_
+infixl 8 _•_[_]
+infixl 8 _⟨_⟩
 infixl 7 _·_
+infixl 6 _⊕[_]_
 infix  6 ƛ_∙_
-infix  5 _⟪_,_⟫
+infix  6 Λ_
+infix  5 ν_∙_
 
 data Term : Set where
-  `_      : ℕ → Term
-  $_      : ℕ → Term
-  ƛ_∙_    : Ty → Term → Term
-  _·_     : Term → Term → Term
-  Λ_      : Term → Term
-  _·[_,_] : Term → Ty → Ty → Term
-  _⟪_,_⟫  : Term → CtxMorph → Conv → Term
+  `_     : ℕ → Term
+  $_     : ℕ → Term
+  #_     : Bool → Term
+  _⊕[_]_ : Term → Prim → Term → Term
+  ƛ_∙_   : Ty → Term → Term
+  _·_    : Term → Term → Term
+  Λ_     : Term → Term
+  _•_[_] : Term → Ty → Ty → Term
+  ν_∙_   : RepTy → Term → Term
+  _⟨_⟩   : Term → Conv → Term
+
+data Literal : Term → Set where
+  literal-$ : ∀ {n} → Literal ($ n)
+  literal-# : ∀ {b} → Literal (# b)
+
+------------------------------------------------------------------------
+-- Values
+------------------------------------------------------------------------
+-- Term variables are NOT values; a `Λ` body is a value with, possibly,
+-- free term variables under an inner λ.  An allocation is never a
+-- value: in evaluation position it discharges.  A literal boundary with
+-- a `base`-defined conversion is not a value: it steps by `Const`.
+
+-- INERT conversions, in the sense of Siek and Chen's parameterized
+-- cast calculi (see the PDF in this directory): a conversion that is
+-- PART OF A VALUE.  It is inert exactly when an elimination can still
+-- consume it — `arr` splits it at an application, `allView` at a type
+-- application — or when its target is a type variable, the SEALED case
+-- where no elimination applies and the boundary is genuinely opaque
+-- until a later composition cancels the seal.  The complementary
+-- ACTIVE conversions are the ones a step consumes on the spot: `base`
+-- sees through a ground one and `Const` discards it.
+data Inert : Conv → Set where
+  inert-arr : ∀ A₀ {c c₁ c₂}
+    → arr A₀ c ≡ just (c₁ , c₂) → Inert c
+  inert-all : ∀ {c d}
+    → allView c ≡ just d → Inert c
+  inert-var : ∀ {c X}
+    → target c ≡ ` X → Inert c
+
+mutual
+  data Simple : Term → Set where
+    S$ : ∀ {n} → Simple ($ n)
+    S# : ∀ {b} → Simple (# b)
+    Sƛ : ∀ {A N} → Simple (ƛ A ∙ N)
+    SΛ : ∀ {V} → Value V → Simple (Λ V)
+
+  data Value : Term → Set where
+    Vs  : ∀ {V} → Simple V → Value V
+    V⟨⟩ : ∀ {V c}
+      → Simple V → NF c → Inert c
+      → Value (V ⟨ c ⟩)
+
+------------------------------------------------------------------------
+-- Typing
+------------------------------------------------------------------------
 
 Ctx : Set
 Ctx = List Ty
@@ -65,92 +105,66 @@ data _∋_⦂_ : Ctx → ℕ → Ty → Set where
   here  : ∀ {Γ A} → (A ∷ Γ) ∋ zero ⦂ A
   there : ∀ {Γ x A B} → Γ ∋ x ⦂ A → (B ∷ Γ) ∋ suc x ⦂ A
 
+-- Crossing into a `Λ` adds one name entry (the crossing assignment), so
+-- the term context's types shift by one name.
 ⤊ : Ctx → Ctx
 ⤊ Γ = map ⇑ᵗ Γ
 
-------------------------------------------------------------------------
--- 2.  The typing judgment
-------------------------------------------------------------------------
-
-infix 3 _∣_⊢_⦂_
-data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
-
-  ⊢` : ∀ {Δ Γ x A} → Γ ∋ x ⦂ A → Δ ∣ Γ ⊢ ` x ⦂ A
-
-  ⊢$ : ∀ {Δ Γ n} → Δ ∣ Γ ⊢ $ n ⦂ `ℕ
-
-  ⊢ƛ : ∀ {Δ Γ A B N} → Δ ⊢ᵗ A → Δ ∣ A ∷ Γ ⊢ N ⦂ B
-     → Δ ∣ Γ ⊢ ƛ A ∙ N ⦂ (A ⇒ B)
-
-  ⊢· : ∀ {Δ Γ A B L M} → Δ ∣ Γ ⊢ L ⦂ (A ⇒ B) → Δ ∣ Γ ⊢ M ⦂ A
-     → Δ ∣ Γ ⊢ L · M ⦂ B
-
-  ⊢Λ : ∀ {Δ Γ C N} → (unmasked abst ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
-
-  ⊢·[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
-       → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
-
-  -- (env).  ONE frame change.  The interior is term-closed and typed on the
-  -- interior type context; the conversion is checked on the CONVERSION
-  -- CONTEXT, where the boundary's binders and the slots it masks are both
-  -- live; and its target type is the exterior type shifted past the
-  -- boundary's binders.  Interior and conversion are both on the wrapper.
-  env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
-      → Δ ⊢ᵐ Θ
-      → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
-      → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
-      → Δ ⊢ᵗ Bₑ
-        --------------------------------------------
-      → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
-
-------------------------------------------------------------------------
--- 3.  Classification — ACTIVE / INERT, by the CONVERSION constructor
-------------------------------------------------------------------------
-
--- Inert  = { s ↦ t , ∀ s , seal X , id-at-a-variable }
--- Active = { unseal X , id-at-base }
--- No source or target type is inspected and no slot arithmetic occurs.
-data Inert : Conv → Set where
-  I-idv  : ∀ {X}   → Inert (id (` X))
-  I-seal : ∀ {X}   → Inert (seal X)
-  I-fun  : ∀ {s t} → Inert (s ↦ t)
-  I-all  : ∀ {s}   → Inert (`∀ s)
-
-data Active : Conv → Set where
-  A-idb    : ∀ {A} → Base A → Active (id A)
-  A-unseal : ∀ {X} → Active (unseal X)
-
--- Totality over TYPED conversions: the payload restriction on `id` makes
--- classification a match on the TYPING derivation (the untypeable compound
--- identities are never classified at all).
-act-or-inert : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → Active c ⊎ Inert c
-act-or-inert (conv-id b)      = inj₁ (A-idb b)
-act-or-inert (conv-idv tv)    = inj₂ I-idv
-act-or-inert (conv-seal o)    = inj₂ I-seal
-act-or-inert (conv-unseal o)  = inj₁ A-unseal
-act-or-inert (conv-fun s t)   = inj₂ I-fun
-act-or-inert (conv-all s)     = inj₂ I-all
-
-act-not-inert : ∀ {c} → Active c → Inert c → ⊥
-act-not-inert (A-idb ()) I-idv
-act-not-inert A-unseal ()
-
-------------------------------------------------------------------------
--- 4.  Values
-------------------------------------------------------------------------
-
--- V-Λ carries `Value N`.  Reduction goes UNDER Λ (ξ-Λ in strong.Reduction),
--- so without this premise `Λ N` would be a value for every N and both
--- "values don't step" and determinism would be false — the defect the
--- IdLayerProbe machine-checked (notes/DECISIONS.md, repair 3).
-data Value : Term → Set where
-  V-$  : ∀ {n} → Value ($ n)
-  V-ƛ  : ∀ {A N} → Value (ƛ A ∙ N)
-  V-Λ  : ∀ {N} → Value N → Value (Λ N)
-  V-⟪⟫ : ∀ {M Θ c} → Value M → Inert c → Value (M ⟪ Θ , c ⟫)
-
--- A value's variable type is VISIBLE on the value's bind type context, because
--- `env`'s last conjunct checks it there.  So a boundary can never conceal
--- the slot its bind conversion names.
-value-var-visible : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
-value-var-visible (V-⟪⟫ _ _) (env _ _ _ (wf-var tv)) = tv
+infix 3 _∣_∣_⊢_⦂_
+data _∣_∣_⊢_⦂_ (Σ : Store) : Ctxᵗ → Ctx → Term → Ty → Set where
+  ⊢` : ∀ {Δ Γ x A} → Γ ∋ x ⦂ A → Σ ∣ Δ ∣ Γ ⊢ ` x ⦂ A
+  ⊢$ : ∀ {Δ Γ n} → Σ ∣ Δ ∣ Γ ⊢ $ n ⦂ `ℕ
+  ⊢# : ∀ {Δ Γ b} → Σ ∣ Δ ∣ Γ ⊢ # b ⦂ `𝔹
+  ⊢⊕ : ∀ {Δ Γ M N p}
+    → Σ ∣ Δ ∣ Γ ⊢ M ⦂ `ℕ → Σ ∣ Δ ∣ Γ ⊢ N ⦂ `ℕ
+    → Σ ∣ Δ ∣ Γ ⊢ M ⊕[ p ] N ⦂ `ℕ
+  ⊢ƛ : ∀ {Δ Γ A B N}
+    → Δ ⊢ᵗ A → Σ ∣ Δ ∣ (A ∷ Γ) ⊢ N ⦂ B
+    → Σ ∣ Δ ∣ Γ ⊢ ƛ A ∙ N ⦂ A ⇒ B
+  ⊢· : ∀ {Δ Γ A B L M}
+    → Σ ∣ Δ ∣ Γ ⊢ L ⦂ A ⇒ B → Σ ∣ Δ ∣ Γ ⊢ M ⦂ A
+    → Σ ∣ Δ ∣ Γ ⊢ L · M ⦂ B
+  -- `Λ` binds an address (into the BASE) and pushes the crossing
+  -- assignment naming it (onto the STACK); the body is a VALUE.  The
+  -- address is `bse zero`, the base's newest entry — an index the
+  -- crossings above it cannot disturb, which is what lets the color
+  -- wrap write it.
+  ⊢Λ : ∀ {Ss Bs Γ A V}
+    → Value V
+    → Σ ∣ (asgn (bse zero) ∷ ⤒ Ss ∥ addr ∷ Bs) ∣ ⤊ Γ ⊢ V ⦂ A
+    → Σ ∣ (Ss ∥ Bs) ∣ Γ ⊢ Λ V ⦂ `∀ A
+  ⊢•[] : ∀ {Δ Γ A B L}
+    → Σ ∣ Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
+    → Σ ∣ Δ ∣ Γ ⊢ L • B [ A ] ⦂ B [ A ]ᵗ
+  -- An allocation: the ν-bound entry adds no name, so neither the term
+  -- context nor the result type shifts; addresses never appear in
+  -- types, so A cannot leak the binder.
+  -- `ν` binds an address and no name: the STACK is untouched.
+  ⊢ν : ∀ {Ss Bs Γ R M A}
+    → Σ ∣ (Ss ∥ Bs) ⊢ᴿ R
+    → Σ ∣ (⤒ Ss ∥ nuBind R ∷ Bs) ∣ Γ ⊢ M ⦂ A
+    → Σ ∣ (Ss ∥ Bs) ∣ Γ ⊢ ν R ∙ M ⦂ A
+  -- THE BOUNDARY, main's `env` clause for clause (strong.Terms on
+  -- `main`).  Three contexts, not two: the body is typed at the
+  -- INTERIOR, which still pops; the conversion at the FRAME `Ξ`, where
+  -- the reveals are kept and the conceals skipped; and the result type
+  -- at the plain EXTERIOR.  Both endpoint types are stated outside the
+  -- frame and transported IN — `Ξ` is the largest of the three, so both
+  -- transports are insertions and total, exactly as main shifts its
+  -- target by `shiftBy (numBinds Θ)` and never the other way.
+  --
+  -- `NameFn Ξ` is Jeremy's invariant — "in a given context there should
+  -- not be two distinct type names with the same address" — and it is
+  -- NOT automatic: a `hide X α` then a `show Y α` with X ≠ Y passes
+  -- both local freshness checks and puts two names for α in the frame
+  -- (`notes/UnlockedFrame`).  It is what makes the two transports
+  -- functions, and what `read-unique` already needs.
+  ⊢⟨⟩ : ∀ {Δ Δᵢ Ξ Γ M c A B jᵢ jₑ}
+    → NF c
+    → NameFn Ξ
+    → Insert jᵢ Δᵢ Ξ
+    → Insert jₑ Δ Ξ
+    → Σ ∣ Δᵢ ∣ [] ⊢ M ⦂ A
+    → Σ ∣ Ξ ∣ Δᵢ ⊢ c ∶ renameᵗ jᵢ A ⇝ renameᵗ jₑ B ⊣ Δ
+    → Δ ⊢ᵗ B
+    → Σ ∣ Δ ∣ Γ ⊢ M ⟨ c ⟩ ⦂ B

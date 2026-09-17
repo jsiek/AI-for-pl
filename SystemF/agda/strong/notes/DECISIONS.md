@@ -2631,3 +2631,2205 @@ measured in Examples: the Λ clause performs the instantiation itself,
 so one type instantiation mints ONE binder where TyPeelR ⨟ TyBeta minted
 two — J₀ 14 → 11 steps, E₀ 6 → 5 (ends in a value), T₉'s birth story
 2 → 1 step; P₀ Q₀ R₀ L₀ Ri G unchanged.
+
+### RULING: colour annotations on source terms (Jeremy, 2026-09-11)
+
+THE GOAL.  Colour Preservation (notes-v3 §Criteria): the set of type
+variables in scope at every subterm from the SOURCE program is invariant
+under reduction.  Jeremy's plan: annotate every source term node with a
+set of type variables, make the typing rules demand "in scope iff in the
+annotation", and get colour preservation as a COROLLARY of ordinary type
+preservation — the annotation is fixed data that reduction transports but
+never recomputes, so Preservation has to discharge the scope equation at
+every source node.
+
+THE THREE RULINGS.
+
+(1) REPRESENTATION: de Bruijn INDICES, transported by the existing `renᴹ`
+    (an annotation is just more type-variable data in the term).  Every
+    renaming reduction applies (`suc`, `extN k suc`, `extᵗ ρ`) is a
+    monotone injection, so ascending order survives and no new machinery
+    is needed.  Rejected: stable nominal "colour names" (a name supply and
+    freshness side conditions on every binder-minting rule).
+
+(2) THE "IFF": `χ ≡ scopeᵗ Δ`, where
+
+      scopeᵗ : Ctxᵗ → VarSet                      (strong.CtxMorph §1b)
+      scopeᵗ []               = []
+      scopeᵗ (unmasked b ∷ Δ) = 0 ∷ map suc (scopeᵗ Δ)
+      scopeᵗ (masked   b ∷ Δ) =     map suc (scopeᵗ Δ)
+
+    is the ascending, duplicate-free list of NAMEABLE slots.  Adequacy
+    (`scopeᵗ-sound` / `scopeᵗ-complete`): `X ∈χ scopeᵗ Δ ⟺ Δ ∋tv X`.
+    Propositional equality is the cheap choice — the ⊢Λ / ⊢intro / crossΛ
+    cases discharge by `refl` — at the price of an ordered insert
+    (`insertᵒ` / `mergeᵒ`) for the unlocking side, since `_∪_` is `_++_`
+    and is right only for boundary TAGS.  Rejected: pointwise `↔`.
+
+(3) THE ⊢reveal / ⊢conceal HOLE, FIXED FIRST.  Found while planning:
+    Preservation was ALREADY FALSE, with no annotations involved.
+    `crossArg (reveal χ) W = ν conceal χ [ W ]` lands W at
+    `lockχ χ (unlockχ χ Δ)`, which is Δ only if every X ∈ χ was already
+    LOCKED — and ⊢reveal did not require it.  Witness: at
+    Δ = unmasked (bind ℕ) ∷ [] with b = reveal (0 ∷ []) (a vacuous
+    unlock) and W = ƛ ` 0 ∙ ` 0, the AppBnd reduct types W at
+    masked (bind ℕ) ∷ [], where its body's ` 0 is no longer nameable.
+    REPAIR: ⊢reveal gains `Δ ∋lks χ` (every slot locked), ⊢conceal gains
+    `Δ ∋tvs χ` (every slot nameable), with the round trips proved:
+
+      lock-unlock : Δ ∋lks χ → lockχ χ (unlockχ χ Δ) ≡ Δ
+      unlock-lock : Δ ∋tvs χ → unlockχ χ (lockχ χ Δ) ≡ Δ
+
+    (strong.CtxMorph §2c, on the `updateAt` algebra added to strong.Ctx
+    §6: `updateAt-comm`, `updateAt-∘`, `mask-absorb`, `unmask-absorb`,
+    `mask-locked`, `unmask-nameable`).  Both hold for ANY χ, duplicates
+    included.  Every rule that mints a reveal/conceal tag can establish
+    the new premises: crossArg is self-establishing at both polarities,
+    and Commute, MergeConceal, PushIntro, TyConceal, TyPos, PushConv
+    inherit theirs.
+
+WHAT THE ANNOTATION COSTS THE RULES.  Rule by rule, EXACTLY TWO of the
+nineteen move a node across a boundary frame and so must REBUILD its
+annotation — `AppBnd` (the application node lands at `applyᵇ b Δ`) and
+`TyPos` (the type-application node is rebuilt two boundaries deeper).
+Both compute the new set from the node's OWN old set and the tag, with no
+reference to Δ:
+
+  scopeᵇ : Bnd → VarSet → VarSet                  (strong.CtxMorph §5)
+  scopeᵇ (intro A)   χ = 0 ∷ map suc χ
+  scopeᵇ (reveal ψ)  χ = mergeᵒ ψ χ
+  scopeᵇ (conceal ψ) χ = χ ∖ ψ
+
+  LAW (proof phase):  scopeᵇ b (scopeᵗ Δ) ≡ scopeᵗ (applyᵇ b Δ)
+
+Every other rule transports annotations UNCHANGED.  Two that might have
+been expected to change and do not, by a context identity:
+  TyBeta     V's frame goes `unmasked abst ∷ Δ` → `unmasked (bind A) ∷ Δ`
+             — both UNMASKED, same scopeᵗ.  The Λ-bound colour simply
+             BECOMES the intro'd one.
+  TyConceal  `unmasked abst ∷ lockχ χ Δ` = `lockχ (map suc χ)
+             (unmasked (bind A) ∷ Δ)` — literally the same context.
+And crossΛ is colour-exact by `refl`: its interior frame `masked abst ∷ Δ`
+has scopeᵗ `map suc (scopeᵗ Δ)`, exactly what its `renᴹ suc` does to the
+annotations it carries.
+
+OPEN.  Whether rebuilding AppBnd's and TyPos's annotations is the right
+reading of the criterion (the node is reconstructed by the rule, so no
+SURVIVING source node changes colour) or whether those two rules should
+instead be read as violating it, is Jeremy's call at the next check-in.
+
+#### Addendum (2026-09-11): crossArg INLINED, and the colour catalogue
+
+SIMPLIFICATION (Jeremy's call).  `crossArg` re-derived `dualᵇ` inline,
+tangled it with the intro shift, and hid what the rule actually does.  It
+is GONE.  AppBnd now writes the crossing out in full, and the one piece
+worth naming keeps a name (`strong.Reduction` §0):
+
+  shiftIn : Bnd → Term → Term        -- ONLY intro shifts; it alone binds
+  shiftIn (intro A)   W = ⇑ᴹ W
+  shiftIn (reveal χ)  W = W
+  shiftIn (conceal χ) W = W
+
+  AppBnd : Value (ν b [ M ]) → Value W
+    → Δ ⊢ (ν b [ M ]) · W ⟪ κ ⟫
+        -→ ν b [ M · (ν dualᵇ b [ shiftIn b W ]) ⟪ scopeᵇ b κ ⟫ ]
+
+The criterion now reads straight off the rule: the crossing moves the
+argument's type variables by `shiftIn` AND BY NOTHING ELSE, because the
+dual tag restores the argument's frame exactly (`lock-unlock` /
+`unlock-lock`).
+
+THE CROSSING AND scopeᵇ DO UNRELATED JOBS.  The crossing protects the
+ARGUMENT, and protects it perfectly.  scopeᵇ exists only for the
+ELIMINATOR NODE itself, the one thing AppBnd moves into the interior.
+
+THE CATALOGUE, against Jeremy's criterion ("a shift from an intro is
+fine, nothing else"):
+
+  AppBnd  intro A    κ ↦ 0 ∷ map suc κ   shift + the fresh colour   OK
+  AppBnd  reveal χ   κ ↦ κ ⊎ χ           ADDED  (χ ∩ κ = ∅ by ⊢reveal)   ✗
+  AppBnd  conceal χ  κ ↦ κ ∖ χ           REMOVED (χ ⊆ κ by ⊢conceal)     ✗
+  TyPos   intro A′   two shifts                                      OK
+  TyPos   reveal χ   shift, then ADDED                                ✗
+  (the other 17 rules: unchanged)
+
+Three violating configurations, ONE SHAPE: an elimination node whose
+operator is a boundary is pushed inside that boundary.  reveal/conceal are
+exactly the tags that move the SET rather than reindex it, and AppBnd's
+`Value (ν b [ M ])` premise forces χ ≠ ∅ (empty tags are not values — they
+are DropReveal/DropConceal redexes), so no instance is benign.
+
+notes/AppBndExample.agda is the smallest complete run that reaches one:
+`(λg:ℕ→ℕ. ΛX. g · 5) · (λz:ℕ. z)` in five steps, with the application
+node's colour set going {X} → ∅ at the AppBnd and the argument's frame
+restored exactly by `unlock-lock`.
+
+STILL OPEN (Jeremy is thinking): whether `·` and `⊕` should carry colour
+annotations at all.  They are the only source forms that mention no type;
+dropping their annotation makes AppBnd transport everything unchanged and
+removes scopeᵇ from it entirely, leaving TyPos, where the `•` node is
+arguably genuinely NEW (its type argument changed from A to the fresh Y).
+
+#### Bug (2026-09-11): TyPos concealed the wrong slot
+
+FOUND by reading the renaming against its partner, CONFIRMED by the colour
+annotations.  TyPos wedges the fresh binder Y BELOW b's own binders:
+
+  ᵇ[M] •B[A]  -→  ⁺ʸ⁼ᴬ[ ᵇ′[ ⁻ʸ[M′] •B′[Y] ] ]
+
+which is exactly what `renᴹ (extN (numBindsᵇ b) suc) M` does — it holds M's
+OWN binders (indices 0 … numBindsᵇ b − 1) fixed and shifts M's references
+to Δ up by one.  THE RENAMING WAS RIGHT.  Its partner was not: the rule
+wrapped M in `ν conceal (0 ∷ [])` and instantiated at `[ ` 0 ]`.
+
+Y's index inside `ν renBnd suc b` is `numBindsᵇ b`: 0 for a `reveal`
+(binds nothing) but 1 for an `intro`.  So at an intro tag the rule
+concealed M'S OWN BINDER and left Y visible — the exact opposite of the
+notes' `⁻ʸ[V⁺] •B[Y]` — and instantiated at M's binder instead of Y.
+
+THE COLOUR ANNOTATION CAUGHT IT.  At Δ = [Z], b = intro ℕ, A = 𝔹:
+
+  M's colours at its old frame          0 ∷ 1 ∷ []
+  after renᴹ (extN 1 suc)               0 ∷ 2 ∷ []
+  the frame it landed in, conceal 0     1 ∷ 2 ∷ []     ✗
+  the frame it lands in, conceal 1      0 ∷ 2 ∷ []     ✓
+
+FIXED: `conceal (numBindsᵇ b ∷ [])` and `[ ` (numBindsᵇ b) ]`.  The reveal
+case is unchanged, since numBindsᵇ (reveal χ) = 0.  Regression:
+notes/TyPosExample.agda, including the counterfactual.
+
+TWO ITEMS IN THE SAME RULE REMAIN OPEN (Jeremy is ruling on them):
+
+(i) NO CONVERSION.  TyBeta mints `V ⟨ revTy 0 B ⟩` to reconcile the
+    interior's view (which names the fresh binder) with the exterior's
+    (which names its rep).  TyPos mints none, so its interior type
+    mentions Y where ⊢intro demands A.  With B = ` 0 and A = ℕ:
+    the • node's type is ` 0, ⊢intro wants ⇑ᵗ (` 0 [ ℕ ]ᵗ) = ℕ.  The notes
+    have the same gap read literally: `⁺ʸ⁼ᴬ[…•B[Y]]` gives body type B[Y],
+    but the +Y=A boundary's own rule demands Y ∉ FV of its type.
+
+(ii) B'S SHIFT.  `renameᵗ (extᵗ suc) B` is ONE shift.  Right for a reveal
+     (⊢reveal gives the interior the exterior's type unchanged); for an
+     intro, ⊢intro ALREADY shifted M's type by ⇑ᵗ, so M′'s ∀-body carries
+     two shifts and the rule names only one.
+
+AND THE GENERAL FRAME LAW the rule now owes (notes/TyPosExample.agda §1
+and §3 are instances; not refl in general — needs map-fusion and, on the
+reveal side, the ⊢reveal premise):
+
+  map (extN (numBindsᵇ b) suc) (scopeᵗ (applyᵇ b Δ))
+    ≡ scopeᵗ (lockχ (numBindsᵇ b ∷ [])
+                    (applyᵇ (renBnd suc b) (unmasked (bind A) ∷ Δ)))
+
+#### Fixed (2026-09-11): TyPos's missing conversion, and the notes' +X on arrows
+
+Jeremy approved both.  The two OPEN items of the previous entry are closed.
+
+(i) THE MISSING CONVERSION.  Typed by hand on `V : ∀Z. Z→Z` instantiated
+    at ℕ (so B = Z→Z, A = ℕ), the notes' rule
+    `⁺ᵖ[V⁺]•B[A] -→ ⁺ʸ⁼ᴬ[⁺ᵖ[⁻ʸ[V⁺]•B[Y]]]` gives
+
+      ⁻ʸ[V] : ∀Z.Z→Z ,  ⁻ʸ[V]•(Z→Z)[Y] : Y→Y ,  ⁺ᵖ[…] : Y→Y
+
+    and then the ⁺ʸ⁼ᴬ boundary's own side condition `names(b) ∩ FV(B) = ∅`
+    demands Y ∉ FV(Y→Y), which is FALSE — and the type delivered is Y→Y
+    where the redex had ℕ→ℕ.  Two symptoms, one cause: nothing converts Y
+    back to its representation.  TyBeta does exactly that with `+Z(B)`;
+    TyPos minted nothing.
+
+    INSTALLED, both in notes-v3 and in strong.Reduction:
+
+      Δ ⊢ ⁺ᵖ[V⁺] •B[A] -→ ⁺ʸ⁼ᴬ[(⁺ᵖ[⁻ʸ[V⁺] •B[Y]])⟨+Y(B[Y])⟩]
+
+    In de Bruijn the conversion is LITERALLY `revTy 0 B` — the very one
+    TyBeta mints — because the lift-then-substitute composite is the
+    identity (`produced : (renameᵗ (extᵗ suc) B) [ ` 0 ]ᵗ ≡ B`, refl).
+    PLACEMENT: just inside `ν intro A`, OUTSIDE `ν renBnd suc b`.  There Y
+    is slot 0 and the body's type is literally B whether or not b binds,
+    so one expression serves both tags; innermost would need
+    `revTy (numBindsᵇ b)` at a shifted type.  The ⁺ᵖ side condition stays
+    easy at that placement: it needs names(p) ∩ FV(B[Y]) = ∅, which holds
+    because Y is fresh and names(p) ∩ FV(∀Z.B) = ∅ came with the redex.
+    Machine-checked in notes/TyPosExample.agda §4:
+
+      conversion-types : Δ₁ ⊢ revTy 0 B ∶ B ⇝ (B [ A ]ᵗ)
+      conversion-types = conv-fun (conv-seal Y∋ℕ) (conv-unseal Y∋ℕ)
+
+(ii) B'S SHIFT.  M's type already carries `numBindsᵇ b` shifts (⊢intro
+     hands its body ⇑ᵗ of the exterior type; ⊢reveal hands it the type
+     unchanged), and the rule adds one more for Y.  So the ∀-body the `•`
+     node names is `renameᵗ (extᵗ (wkN (suc (numBindsᵇ b)))) B`.  At a
+     reveal that is DEFINITIONALLY the old `extᵗ suc` (wkN 1 X = suc X),
+     so nothing that worked before moved; at an intro it is genuinely two
+     shifts (§5 of the example).
+
+(iii) THE NOTES' `+X` WAS WRONG ON ARROWS.  notes-v3 said
+      `+X(A → B) = +X(A) → +X(B)` and defined no `-X(A)` at all.  A
+      conversion `c → d : (A→B) ⇒ (C→D)` requires `c : C ⇒ A`, so
+      revealing X in an arrow must CONCEAL it in the domain.  The Agda had
+      it right all along (`revTy X (A ⇒ B) = concTy X A ↦ revTy X B`); the
+      notes now carry both mints, mutually recursive, with the flip
+      spelled out.  It is visible in the example: the installed conversion
+      is `seal 0 ↦ unseal 0` — conceal on the domain, reveal on the
+      codomain.
+
+#### Fixed (2026-09-11): TyConceal had the same missing conversion
+
+Jeremy asked whether `⁻χ[ΛY.V] •B[A] -→ ⁺ʸ⁼ᴬ[⁻χ[V]]` was OK.  It was not:
+it is TyBeta with a conceal boundary wedged in, and it dropped TyBeta's
+conversion on the way.  `lock(χ,Γ) ⊢ ΛY.V : ∀Y.B` gives
+`lock(χ,Γ),Y ⊢ V : B`, so the contractum's `⁻χ[V]` has type B — which
+NAMES Y — and the ⁺ʸ⁼ᴬ boundary's side condition `Y ∉ FV(B)` fails, with
+the reduct typed B where the redex had B[A].
+
+INSTALLED in notes-v3 and strong.Reduction:
+
+  Δ ⊢ ⁻χ[ΛY.V] •B[A] -→ ⁺ʸ⁼ᴬ[(⁻χ[V])⟨+Y(B)⟩]
+
+In de Bruijn, `revTy 0 B` — the third use of the very same conversion.
+
+THE PLACEMENT IS FORCED HERE, not merely preferred as in TyPos.  OUTSIDE
+the conceal, its body keeps type B and needs `map suc χ ∉FVs B`, which is
+exactly the redex's own `χ ∉FVs (`∀ B)` (`∉FVs-∀`, proved in
+notes/TyPosExample.agda §6).  INSIDE, the body's type would be B[Y:=A] and
+⊢conceal would need `χ ∉FVs A` — and NOTHING provides that: its premise is
+`Δ ∋tvs χ`, i.e. every slot of χ is NAMEABLE in Δ, and A is a type over Δ,
+so A may name them.  §6 exhibits such an A (`A-names-χ`).
+
+THE AUDIT of every rule that mints an `intro` is now closed:
+
+  TyBeta     ✓ always had `revTy 0 B`
+  TyPos      ✓ installed
+  TyConceal  ✓ installed
+  PushIntro  ✓ none needed — it mints NO binder.  The intro already
+             existed, and `lockχ (map suc χ) (unmasked (bind A) ∷ Δ)` IS
+             `unmasked (bind A) ∷ lockχ χ Δ`, so both sides type M at the
+             same frame (`PushIntro-same-frame`, §6).
+
+THE RULE OF THUMB, for the proof phase: every rule that turns a Λ-bound or
+freshly-introduced variable INTO an `intro` binder owes a `revTy` at that
+binder.  PushIntro is exempt precisely because it mints none.
+
+#### Investigated (2026-09-11): can the `Γ↓X` prefix design come back?
+
+CONTEXT.  Jeremy asked whether Example 8 — which killed the prefix design
+in v1 — is still a counterexample now that substitution inserts a conceal
+when it crosses a Λ.  It is NOT: Example 8 failed because TyWrapCncl
+pushed a TYPE ARGUMENT into a sealed body, and no v3 rule does that
+(TyConceal records A as the intro's representation instead).  crossΛ's
+insertion actively HELPS — it conceals slot 0, the shallowest, and shifts
+the body past it, so the body names only deeper slots.
+
+THE QUESTION, restated for v3: the prefix design types a conceal body at
+`Γ↓X`, so it is expressible exactly when NO conceal body ever needs to
+name a slot SHALLOWER than what its boundary conceals.  Rule by rule
+(notes/PrefixDesignProbe.agda):
+
+  crossΛ       CLEAN  conceals slot 0, body shifted past it
+  AppBnd/intro CLEAN  same shape (`ν conceal {0} [ ⇑ᴹ W ]`)
+  AppBnd/reveal CLEAN the dual crossing lands W back at its OWN frame
+                      EXACTLY — `lock-unlock` is the reason — so AppBnd
+                      hides nothing from W that Δ did not already hide
+  AppBnd/conceal CLEAN the dual is a REVEAL; no conceal is created
+  TyPos        CLEAN  since Y moved inside b, it conceals slot 0 with the
+                      body shifted by plain `suc`
+  PushIntro    NOT CLEAN
+  TyConceal    NOT CLEAN
+
+I HAD FLAGGED AppBnd AT A REVEAL TAG AS SUSPECT.  It is not: `lock-unlock`
+settles it.  The obstruction is elsewhere.
+
+THE REAL OBSTRUCTION is the CONCEAL-COMMUTES-PAST-AN-INTRO family.  Both
+PushIntro and TyConceal have the shape `⁺ʸ⁼ᴬ[⁻^(map suc χ)[M]]`: the intro
+moves OUT past the conceal, so inside, Y is slot 0 and UNMASKED while the
+concealed slots are all ≥ 1.  The body sits under a conceal yet may name a
+slot shallower than everything that conceal hides — and for TyConceal it
+DOES by construction, since its redex is `⁻χ[ΛY.V] •B[A]` and V is the Λ's
+own body (probe §3 types V = λw:Y.w at exactly that frame).
+
+AND TyConceal CANNOT BE REPAIRED THE WAY TyPos WAS.  Moving its fresh
+binder inside the tag gives `⁻χ[⁺ʸ⁼ᴬ[…]]`, whose conceal body then has
+type B[Y:=A], so ⊢conceal would need `χ ∉FVs A` — and nothing provides it:
+its premise is `Δ ∋tvs χ` (every slot of χ NAMEABLE in Δ) and A is a type
+over Δ, so A may name them (notes/TyPosExample.agda §7).
+
+VERDICT: the prefix design stays retired.  Not for Example 8's reason, and
+not because of AppBnd, but because two rules force an intro to be visible
+beneath a conceal — a shape `Γ↓X` cannot denote.
+
+#### Strengthened (2026-09-11): why the prefix design is dead, properly
+
+Jeremy, on notes-v4's TyBeta: "doesn't this ordering ruin the prefix
+approach to contexts?"  Yes — and following it gives a much better
+argument than the one in notes/PrefixDesignProbe.agda.
+
+THE ORDERING.  TyBeta's contractum is
+`ν new Y:β:=⌊A⌋ [ (⁻ᵟ′[V])⟨+Y(B)⟩ ]`, which puts Y (newest) in scope while
+δ's slots (older) are gone — the non-prefix shape.
+
+WHY Y IS OUTSIDE THE SPINE (notes-v4 [C16]): the conversion `+Y(B)` types
+only where β's representation is READABLE, and inside the spine that fails
+in exactly the motivating case (A = Z, δ concealing Z); the conversion
+must therefore sit outside the spine, and it needs Y in scope, so the
+intro must enclose it.
+
+THE POINT.  Read that forcing again:
+
+    the REPRESENTATION must be READABLE where the conversion is,
+    and the CONVERSION must sit UNDER the binder it converts;
+    together these force the binder OUTSIDE the concealment of whatever
+    the representation mentions.
+
+NEITHER PREMISE MENTIONS MASKS, DELETION, POSITIONS OR NAMES.  So the
+ordering is forced under v3's masks, under v4's slot deletion, and under
+v5's names alike — and `Γ↓X`, which drops a SUFFIX, cannot denote it in
+any of them.
+
+SO THE PREFIX DESIGN DOES NOT BECOME REACHABLE BY CHANGING HOW CONTEXTS
+ARE REPRESENTED.  The earlier probe's verdict ("two rules force non-prefix
+MASKS") was right but under-argued — it reads as a fact about masks, and
+it is a fact about conversions.  This is also the same principle as the
+TyConceal discussion's "an alias must be minted where its representation
+is visible", seen from the conversion's side rather than the binder's.
+
+Recorded in notes-v4 [C16] and at the foot of
+notes/PrefixDesignProbe.agda §4 (which still checks).
+
+#### Corrected (2026-09-11): the prefix verdict is not boundary-shape-independent
+
+The entry above claims the Γ↓X design is dead for a reason surviving every
+representation change.  Jeremy: what about v2-style FUSED boundaries
+(intro, reveal, conceal and conversion in one node) with prefix contexts —
+and, separately, typing a conversion in TWO contexts, one per endpoint?
+
+THE TWO ARE ONE IDEA.  `Γᵢ ; Γₑ ⊢ c : A ⇒ B` says something only if the
+node CHANGES the context; otherwise Γᵢ = Γₑ.  So a two-context conversion
+IS a fused boundary — Θ supplies the two contexts, c mediates.
+
+AND IT DISSOLVES THE FORCING.  My second premise — "the conversion must
+sit UNDER the binder it converts" — assumes the boundary and the
+conversion are SEPARATE NODES.  Fused, "under" is not a question: the
+interior is `Γ ⇈ (↓Y ; ρ) = (Γ↓Y) , ρ`, truncate THEN append, so a freshly
+introduced variable lands SHALLOWEST and the truncation stays a prefix by
+construction.  The claim is representation-independent but NOT
+boundary-shape-independent.  notes-v4 [C16] and PrefixDesignProbe.agda
+corrected to say "for SPLIT boundaries".
+
+notes-v6.md drafts the combination — fused boundaries, prefix interiors,
+ANCHORED entries.  The three cover three different historical failures:
+fusion makes the interior truncate-then-append; two-context conversions
+are what fusion formally is (and contravariance becomes literal CONTEXT
+SWAPPING in the arrow rule, which is the test that it is the right
+reading); anchors remove the `⟦A⟧` interior reading and its three-case
+fallback chain that killed v1's fused+prefix design ("every failure is a
+failed rep copy", 2026-09-05).
+
+WHAT v6 DOES NOT FIX, and why I would not bet on it yet.  v2 bled in two
+places and v6 makes the INTERIOR cheaper while leaving the MORPHISM
+ALGEBRA where it was:
+  * THE DUAL.  Undoing an append is a truncation; undoing a TRUNCATION is
+    an append of the whole dropped block.  So Θᵈ's size is the size of
+    that block (v3/v4 restore in O(1)) and the restored context is Γ only
+    UP TO REORDERING — v2's ≼≈ in a new place.  Anchors make each entry
+    cheap and identity-by-anchor would make the reordering immaterial;
+    neither makes the size immaterial.
+  * Θ COMPOSITION, needed because Cancel may match a pair spanning two
+    adjacent boundaries.  Anchors give the pair a stable identity, which
+    is the matching half; they say nothing about composing two
+    truncate-then-append morphisms, which is the half v2's ≼≈ came from.
+
+THE COMPARISON TO SETTLE: v3 buys a cheap interior (masks) with NO
+morphism algebra; v6 buys a cheap interior and PAYS one.  Re-reading v2's
+Boundary.agda for what the dual and composition actually cost is probably
+worth more than further design.
+
+#### Settled (2026-09-11): what anchors are actually for
+
+Jeremy: with two-context conversions, perhaps the representation R is well
+formed in the exterior (for a reveal) or the interior (for a conceal), so
+the anchor-closed R,S sublanguage could go.
+
+BOTH IMMEDIATE CASES DO WORK.
+  REVEAL   `+X : X ⇒ R` needs R in the EXTERIOR; the boundary's own field
+           supplies it as a type over the exterior.
+  CONCEAL  `-Y : R ⇒ Y` needs R in the INTERIOR, which is `Γ↓Y` — EXACTLY
+           the context Y's telescope entry was written over.  The prefix
+           truncation is what makes this automatic: it is Y's existential
+           scope.
+
+AND THE RESIDUE IS REAL, AND REACHED BY A CLOSED PROGRAM.  A boundary that
+BOTH truncates at Z AND appends Y:=A with A mentioning Z cannot store Y's
+representation in its interior telescope (Y's prefix there is Γ↓Z, which
+lacks Z).  An ABSTRACT entry would do unless something INSIDE needs the
+representation — and AppBnd's DUAL does: it sends the argument back out
+through a conceal of Y carrying `-Y`, whose interior side needs it.
+
+notes/DeeperConcealProbe.agda reaches the shape in THREE steps from
+
+  (λg:(∀Y. ℕ→ℕ). ΛZ. (g •(ℕ→ℕ)[Z]) · 5) · (ΛY. λw:ℕ. w)
+
+Beta sends g across the ΛZ (crossΛ conceals Z); TyConceal instantiates AT
+the concealed Z, so the minted intro's representation IS Z; AppBnd then
+drags a conceal of that fresh Y down INSIDE the intro.  Checked in the
+live v3 calculus.  v3 survives it ONLY because masking RETAINS the binding
+(`v3-retains`); a prefix interior does not retain.
+
+THE FORCING, FINALLY ARGUED (notes-v4 [C3], twice retracted before this).
+It is not about where a node sits and not about Σ's existence.  It is:
+
+    a conceal that REMOVES an entry (delete, or truncate) means a later
+    reveal must RESTORE it with its representation, so the representation
+    must live somewhere PERMANENT — and a permanent store cannot hold a
+    type scoped at a transient context, hence anchor-closed.
+
+v3 ESCAPES THIS ENTIRELY, and that is the whole point of masking: `masked
+b` retains b, so the representation never leaves the context.  v4's
+deletion and v6's truncation both need the store.
+
+TWO EARLIER ARGUMENTS RETRACTED, kept in [C3] because they were believed:
+"TyConceal plants an intro inside a conceal" (superseded — the intro is
+always outside since the TyBeta/TyConceal unification), and the pair
+"Σ is permanent" (circular) / "crossΛ may wrap a value containing an intro
+naming the concealed variable" (refuted by the premises: crossΛ conceals
+the Λ's FRESH slot, and AppBnd at a reveal conceals slots ⊢reveal requires
+be LOCKED, neither of which the wrapped value can name).
+
+SO: ANCHORS ARE FOR (1) surviving a conceal that REMOVES an entry, and
+(2) IDENTITY — Cancel across a crossing, position-independence.  NOT
+representations in general.  Which also says something about the whole
+line of exploration: masking is not a cost v3 pays, it is what v3 buys.
+
+#### Retracted (2026-09-11): "anchors are forced"
+
+The entry above concludes that anchors are needed to survive a conceal
+that removes an entry.  THAT IS CONDITIONAL ON REPRESENTATIONS LIVING IN
+CONTEXTS, which I did not say, and it is false in general.
+
+Jeremy asked what option (c) — conversions reading representations from Θ,
+with v1's four entry forms — actually looks like.  Written out
+(notes-v6.md, rewritten), it needs no anchors at all:
+
+  * CONTEXTS ARE BARE.  `Γ ::= ∅ | Γ, X`.  No representations, no marks.
+    All knowledge lives on Θ.
+  * Θ's WELL-FORMEDNESS checks representations AT THE TWO ENDPOINTS:
+    a REVEAL's rep is a type over the EXTERIOR, a CONCEAL's over the
+    INTERIOR.  Simultaneity, in v1's sense — and checking it at
+    INTERMEDIATE stages instead genuinely fails (notes-v6 [C4], [C8]).
+  * CONVERSIONS take three places, `Γₛ ; Γₜ ; Θ ⊢ c : A ⇒ B`, with four
+    leaf rules — each Θ entry gives one per direction.  `+` is always
+    name → representation, `-` always representation → name.
+
+AND THE DUAL COMES OUT FREE, which is the result worth keeping:
+
+  (↑X:=A)ᵈ = ↓X:=A      (↓Y:=B)ᵈ = ↑Y:=B      reps carried VERBATIM
+  (θ₁,…,θₙ)ᵈ = θₙᵈ,…,θ₁ᵈ                       Θᵈᵈ = Θ on the nose
+
+Dualising swaps exterior and interior, and the endpoint convention swaps
+with it — so "a reveal's rep is over the exterior" BECOMES "a conceal's
+rep is over the interior", and no re-scoping, reading or fallback is
+needed.  The asymmetry that looked arbitrary when written down is exactly
+what makes the dual free.
+
+ALSO CORRECTS THE EARLIER [O1].  I predicted the round trip would return Γ
+only UP TO REORDERING (v2's ≼≈).  It is EXACT, in order, provided Θᵈ is
+taken relative to Γ so it can re-append the COLLATERAL — the variables
+`Γ↓Y` drops after Y, which Θ does not name.  They are re-appended
+ABSTRACTLY, losing nothing, because contexts are bare.  What remains of
+the cost is that Θᵈ depends on Γ as well as Θ and is O(|collateral|) where
+v3 restores in O(1).
+
+SO THE THREE DESIGNS DIFFER ONLY IN WHERE THE REPRESENTATION SITS:
+  v3  in the CONTEXT, retained through a mask
+  v4  in a permanent STORE, because deletion loses it
+  v6  on the BOUNDARY MORPHISM, because that is where both endpoints are
+      visible at once
+and the anchor was v4's answer to v4's own choice, not a law.
+notes-v4 [C3] rewritten to say so.
+
+REMAINING RISK is now [O2], Θ composition for Cancel across adjacent
+boundaries — the last place v2's ≼≈ might live.  Next measurement: what
+composition actually cost in v2's Boundary.agda.
+
+#### Corrected (2026-09-11): Θ is a PAIR OF BLOCKS, and the dual is free
+
+Jeremy: the "at most one conceal in Θ" restriction is incompatible with
+the dual.  Correct — and fixing it makes the dual strictly better.
+
+THE INCOMPATIBILITY.  With Θ a flat list and Θᵈ = reverse(flip Θ), a Θ
+with r reveals dualises to one with r conceals, so the restriction is
+violated by any boundary that reveals more than once.  And `reverse` was
+wrong too: it permutes the re-appended block.
+
+THE FIX.  Θ = ( C ; R ), two blocks, each deepest-first:
+
+  Γ ⇈ ( C ; R ) = (Γ ↓ first C) , R
+  ( C ; R )ᵈ    = ( Rᵈ ; Cᵈ )        each entry flipped, ORDER PRESERVED
+
+with a BLOCK CONDITION replacing the old restriction: C names EXACTLY the
+dropped block — a contiguous suffix of Γ, deepest first.  There is still
+ONE truncation, at `first C`; the remaining C entries are not further
+truncations but carriers of representations for what that truncation
+removed.  This is v1's design read correctly ("one restriction at the
+deepest conceal", other entries carrying knowledge) — not "one conceal
+entry", which is what I had written.
+
+THE DUAL IS THEN A BLOCK SWAP, and both costs I had accepted vanish:
+
+  Θᵈ is a function of Θ ALONE             (no Γ-dependence)
+  |Θᵈ| = |Θ|                              (no O(collateral) re-append)
+  Γ ⇈ Θ ⇈ Θᵈ = Γ exactly, in order        (no ≼≈)
+  Θᵈᵈ = Θ                                 (involution)
+
+Both costs came from letting C name only the truncation point, leaving the
+rest of the dropped block unnamed; the block condition removes them
+together.  The endpoint convention is preserved by the swap exactly as
+before — Rᵈ becomes conceals needing their reps over the new interior
+(= old exterior, where they were written), Cᵈ becomes reveals needing
+theirs over the new exterior (= old interior, where they were written).
+
+SO THE DUAL COSTS NOTHING AT ALL, and [O2] — Θ composition for Cancel
+across adjacent boundaries — is the only place v2's ≼≈ could still live.
+
+#### Open (2026-09-13): a conversion's SEAM contexts are unconstrained
+
+Working on v7 preservation.  `conv-cons`'s middle context `Γ₂` is tied to
+nothing, and `conv-unseal`/`conv-seal` only ask the FAR side to READ the
+representation.  A GROUND representation reads in every context, so the
+seam can be any context at all — including `∅` between two ends that carry
+anchors.  `notes/probes/V7ConvIntermediateProbe.agda` derives, under
+--safe, with `Γ = α:=ℕ, X:=α`:
+
+    Γ ∋ X:=α   Γ ∋ α:=ℕ   ∅ ⊢ ℕ ⇓ ℕ          ∅ ⊢ ℕ   Γ ⊢ ℕ
+    -------------------------------          ---------------------
+    Γ ⊢̂ +X : X ⇒ ℕ ⊣ ∅                       ∅ ⊢ id(ℕ) : ℕ ⇒ ℕ ⊣ Γ
+    ------------------------------------------------------------
+    Γ ⊢ +X ∷ id(ℕ) : X ⇒ ℕ ⊣ Γ            and NF(+X ∷ id(ℕ)).
+
+`+X ∷ id(ℕ)` is not exotic: it is `+X(X)` with `repr(X) = ℕ`, the right
+component of §6's own boundary conversion.  Only the SEAM is degenerate.
+
+THE HARM.  `SameTy` matches free variables by anchor LEVEL, counted from
+the bottom of the context.  Two contexts with different anchor counts give
+the same level to different anchors, and `id` then identifies them.  The
+same probe derives
+
+    id(∀Y.Y) : (∀Y.X) ⇒ (∀Y.Y)
+
+between `α:=ℕ, X:=α` and `∅` — under one structural `∀`, the left's
+ambient `X` and the right's freshly bound `Y` both sit at anchor level 0.
+It equates an ambient type variable with a `∀`-bound one.
+
+WHY IT BLOCKS PRESERVATION.  In these notes anchors are GLOBAL NAMES, so
+nothing is ever re-indexed and the seam's looseness is invisible.  In the
+Agda they are de Bruijn indices, so every rule that carries a term or a
+conversion under new anchors must shift them: `Merge` applies
+`renConv … (shiftAnchor (length Θ₂)) d`, `TyWrap` applies
+`shiftByᴿ (length Θ)`, `Wrap` and `Beta`'s `crossΛ` apply `renAnchᴹ`.
+Proving that a shifted conversion is still well typed means re-deriving
+every head's premises at the shifted contexts — and ONE renaming serves
+the whole conversion, so every context along the chain must admit the SAME
+insertion.  Where the counts disagree, no single insertion works, and the
+level maps of the two sides disagree exactly on the range between them.
+
+REPAIR (option A, signed off 2026-09-13).  Say what is morally intended: the
+contexts along a conversion all bind the SAME ANCHORS and differ only in
+which source names are visible.  It suffices to add that to the three
+rules that do not already inherit it —
+
+    Γᵢ ⊢ A   Γₑ ⊢ A   anchors(Γᵢ) = anchors(Γₑ)
+    ------------------------------------------
+    Γᵢ ⊢ id(A) : A ⇒ A ⊣ Γₑ
+
+and likewise on `+X` and `-X`; `→`, `∀` and `∷` then inherit it.  In the
+Agda the condition is `anchorCount Δ₁ ≡ anchorCount Δ₂`.  Both probes are
+rejected under it, and `revTy-typing` already has it in hand —
+`reveals-count` proves a reveal pair has equal anchor counts.
+
+INSTALLED.  `conv-id`, `conv-seal` and `conv-unseal` carry the premise;
+`conv-fun`, `conv-all` and `conv-cons` inherit it.  Every module is green
+under the change, and `notes/probes/V7ConvIntermediateProbe.agda` is now a
+REGRESSION RECORD: both derivations are commented out with the premise
+that rejects them, and what still checks is the anchor-LEVEL coincidence
+that made the second one dangerous.
+
+WHY THE COUNT AND NOT THE ANCHOR PART.  `anchorsOf Δ₁ ≡ anchorsOf Δ₂` —
+the same anchors, with the same representations, in the same order — is
+the true invariant, and `notes/probes/V7AnchorPartProbe.agda` proves a
+scope change preserves it (`scope-anchors`).  The COUNT is its shadow, and
+is exactly what the metatheory consumes: weakening inserts k anchors at a
+context's top, leaving every original anchor's LEVEL alone and shifting
+each `∀`-descent anchor's level by +k, and the split between the two cases
+is at `anchorCount`.  The count is also the premise STABLE UNDER THE
+TyBeta TRANSPORT: `fill-conv` fills the two ends and leaves `conv-cons`'s
+existential seam alone (`fill-id`), which preserves the count but not the
+anchor part.  Adopting `anchorsOf` would force the transport to fill seams
+too — the positional construction the `SameAnchor` decision removed.  It
+is recorded as the available tightening, not taken.
+
+#### Open (2026-09-13): `dual χ` returns the context only UP TO REORDERING
+
+`Wrap` sends the argument back out through the boundary's dual scope:
+
+    νΘ,χ[V|c] · W  -→  νΘ,χ[ V · ν∅,-χ[W|c₁] | c₂ ]
+
+For the inner boundary to type, `-χ` must lead from the interior Γᵢ back to
+`ty(Γ)++Θ` — that is where `c₁` lives, and where the weakened argument
+lands.  It does not.  A CONCEAL removes a name IN PLACE, passing through
+whatever anchors sit above it; its dual REVEAL puts the name back ON TOP.
+
+`notes/probes/V7DualScopeProbe.agda` (checks under --safe) exhibits it at
+the shape of §14, where `χ = (-Y:=β) ; (-X:=α)` passes `-X` through the rep
+binding `β`:
+
+    ΔΘ     = β:=ℕ , X:=α , α          (α abstract, named X; β from Θ)
+    χ      = -X:=α
+    Δᵢ     = β:=ℕ , α                 (name removed under β)
+    -χ     = +X:=α
+    Δ-back = X:=α , β:=ℕ , α          (name restored on top) ≠ ΔΘ
+
+The two are OBSERVATIONALLY IDENTICAL — same anchor count (so levels
+agree), same `scopeᵗ` (so colours agree), X is source variable 0 naming
+anchor 1 in both, and the store's representation reads the same in both —
+but they are different lists, and `⊢ν` demands the literal context its
+scope judgment produces.  This is v2's `≼≈` in a new place.
+
+THREE WAYS OUT, none taken pending sign-off:
+
+  (a) PROOF SIDE, calculus untouched.  Define `Δ ≈ᶜ Δ′` — commuting a
+      `name` past an anchor entry, adjusting the name's anchor index —
+      prove every judgment transports along it, and prove `dual χ` always
+      lands in a context `≈ᶜ` the one χ left.  Roughly the size of
+      proof/FillAnchor plus the round-trip induction.
+
+  (b) MAKE REVEAL INSERT IN PLACE, just above the anchor it names, rather
+      than on top.  Then `dual` is exact and (a) is unnecessary.  Changes
+      `_⊢δ_⇒_` and the notes' scope-change action.
+
+  (c) CHANGE `Wrap` so the inner boundary's scope is one that provably
+      lands on `ty(Γ)++Θ`.
+
+#### Noted (2026-09-13): TyWrap and Merge both need composition totality
+
+`Merge` contracts `c ⨟ renConv … d`, and `TyWrap`'s `instReveal` calls
+`contract` at every list seam, so both cases need
+
+    NF c → NF d → typed → NF (c ⨟ d) and typed
+
+— the notes' "composition totality".  In the Agda `fuseFuel`, `scanFuel`
+and `composeFuel` are FUEL-recursive, which makes that proof considerably
+harder than the informal argument (which reasons by "every successful
+fusion shortens the unprocessed conversion path").  Re-founding them on
+well-founded recursion over `weightHeads` would let the proof follow the
+notes' own measure.  Worth deciding before the case is attempted.
+
+#### Probed (2026-09-13): the MERGED-ENTRY context works
+
+`notes/probes/V7MergedEntryProbe.agda` (checks under --safe) builds the
+context layer with ONE entry form — an anchor carrying its binding and
+whether a source name currently stands for it —
+
+    Ent ::= anch concealed b | anch revealed b      b ::= abstA | bindA R
+
+and `reveal α` / `conceal α` FLIP THAT BIT in place.  Results:
+
+  * `χ-invert : Δ ⊢χ χ ⇒ Δ′ → Δ′ ⊢χ dual χ ⇒ Δ`.  EXACT — the same
+    context, not one up to reordering.  §14's `χ = (-Y:=β);(-X:=α)`,
+    where `-X` passes through the rep binding β, round-trips on the nose.
+
+  * THE TWO UNIVERSES KEEP THEIR ROLES, with cleaner coordinates.  An
+    anchor's index is its position; `δ-count` and `δ-anchor` show a change
+    preserves the count and leaves every anchor at its index — anchors
+    have the big, stable scope.  A type variable's index counts the
+    REVEALED entries; `n-revealed` raises both coordinates while
+    `n-concealed` raises only the anchor, which is exactly the difference
+    in scope.  `scopeᵗ` is the revealed entries, so colour is untouched.
+
+  * `reveal-newest` : a reveal makes its anchor the NEWEST type variable
+    (index zero) — the same semantics as `(+X:=α)(Γ) = Γ,X:=α` today.
+
+  * `conceal-newest` : a conceal removes the newest.  That is the notes'
+    "rightmost visible source name" condition, and it is now FORCED BY THE
+    RULE SHAPE (`con-under` passes only already-concealed entries) rather
+    than policed by the side judgment `Γ ▷ X:=α`.
+
+  * Hence the OUT-OF-ORDER state — revealing an old anchor while a newer
+    one is revealed — is UNREPRESENTABLE.  That was the one claim the
+    design rested on.
+
+WHAT RETIRES.  `Unoccupied` (an anchor carries at most one name by
+construction), `_▷_↘_`, `anchorLevel` and `SameAnchor`'s level comparison
+(reveal/conceal are length-preserving, so anchor indices are stable), and
+with it the conversion seam condition installed earlier today — whose two
+probes both turned on two contexts counting anchors differently.  Both of
+this session's `SameAnchor`/seam patches exist to manage the gap between
+an anchor and its name; merging closes the gap instead.
+
+NOT YET PROBED: the rest of the layer — `⊢ᵗ`, `⊢ᴿ`, `⇓`, `⌊_⌋`, conversion
+typing, terms — and the store (Θ's entries would push on as
+`anch concealed b`, which is the natural reading).  TyBeta's `abst ↦ bind`
+transport survives as a flip of the BINDING field with the visibility left
+alone.
+
+#### Open (2026-09-13): `arr` reads the syntax, but the re-indexing is in the TYPING
+
+`preserve-Wrap` is FALSE as the rule stands.  `notes/probes/V7ArrViewProbe.agda`
+checks under --safe.
+
+    νΘ,χ[V|c] · W  -→  νΘ,χ[ V · ν∅,-χ[W|c₁] | c₂ ]      arr c = (c₁,c₂)
+
+The contractum's boundary carries `c₂`, so by `⊢ν` its type is
+`target c₂`; the redex's type is the CODOMAIN of `c`'s target.  `arr`
+cannot make those agree, because it reads the syntax alone.
+
+WHY.  A conversion is a list of heads terminated by `id T`, and `conv-id`
+BRIDGES: its source and target are related by `SameTy`, not equal, because
+a source variable's index counts the REVEALED entries and a boundary's
+interior reveals one more than its exterior.  When the bridging sits in
+the TERMINATOR, `arr` throws it away — it returns the head's two
+components, whose types are stated at the seam.  The probe exhibits a
+well-typed NORMAL
+
+    Δᵢ ⊢ (id (` 1) ↦ id (` 1)) ∷ᶜ id (` 0 ⇒ ` 0)
+       ∶ (` 1 ⇒ ` 1) ⇝ (` 0 ⇒ ` 0) ⊣ ΔΘ
+
+whose `arr` gives `c₂ = id (` 1)`, target `` ` 1 ``, where the boundary's
+exterior says `` ` 0 ``.  The contravariant side fails in a sharper form:
+`arr (id (A ⇒ B)) = (id A , id B)` takes BOTH halves from the target,
+while `c₁` must end at the SOURCE's domain — a type `arr` never sees.
+
+THREE REPAIRS.
+
+  (1) TYPE-FREE `id`.  `Conv ::= id | ĉ ∷ c`, endpoints supplied by
+      typing.  Fixes the bare-`id` case outright (`c₁` retypes as
+      `conv-id (sameTy-sym sa)`) and makes `conv-retarget` available for
+      `c₂`, since the terminator's syntax no longer names its type.  The
+      CONTRAVARIANT side still needs a re-source lemma, which fails at a
+      `seal` head: its source type comes from a read at the source
+      context.
+
+  (2) FORCE THE TERMINATOR REFLEXIVE — all bridging in a bare `id`, never
+      in a cons's terminator.  Then `arr` is exactly right.  Every
+      conversion the calculus BUILDS already satisfies this
+      (`revTy`/`concTy` terminate at `Δₑ ⊣ Δₑ` with `sameTy-refl`); the
+      typing relation merely permits more.  Needs a way to say it.
+
+  (3) REMOVE THE RE-INDEXING.  Index source type variables BY THEIR
+      ANCHOR: with merged entries a type variable IS a revealed anchor, so
+      `` ` α `` with α revealed.  Then a reveal or a conceal shifts NO
+      index, `SameTy` collapses to syntactic equality, `conv-id` becomes
+      the notes' own rule
+
+          Γᵢ ⊢ A    Γₑ ⊢ A
+          ---------------------
+          Γᵢ ⊢ id(A) : A ⇒ A ⊣ Γₑ
+
+      and `arr` is correct on the nose.  `revTy` loses a parameter (X and
+      α coincide) and `closeAt` becomes `single-at`, substituting at an
+      index without shifting — which `strong.Types` already defines.
+      Further: `Ty` and `RepTy` become the SAME syntax under different
+      well-formedness (`⊢ᴿ` asks the anchor to be in scope, `⊢ᵗ` asks it
+      to be REVEALED), so `⌊_⌋` and `_⊢_⇓_` become checks rather than
+      translations, and `SameAnchor`, `CloseTy` and much of
+      `RevealTyping` go with them.
+
+(3) is the continuation of the merge and is where I would go; it is also
+the largest change, touching `Types`, `RepresentationTypes` and everything
+that reads them.  (2) is the smallest repair that makes `Wrap` provable as
+written.  Not taken pending sign-off.
+
+#### Settled (2026-09-13): repair (2) INSTALLED; (3) tried and reverted; (1) is not viable
+
+REPAIR (2), the reflexive terminator, is in.  `strong.Conversion` gains a
+second judgment,
+
+    _⊩_∶_⇝_⊣_      tail-id   : Δ₁ ⊢ᵗ A → Δ₁ ⊩ id A ∶ A ⇝ A ⊣ Δ₁
+                   tail-cons : …
+
+and `conv-cons`'s tail is typed by it.  All BRIDGING between two indexings
+therefore happens in a BARE `id`, never in a terminator, so a cons's last
+seam IS the exterior.  `proof/ArrTyping` records what that buys:
+
+    arr-typing-fun     : Δᵢ ⊢ (s ↦ t) ∷ᶜ id T ∶ A ⇝ (A′ ⇒ B′) ⊣ ΔΘ
+                       → … × (ΔΘ ⊢ s ∶ A′ ⇝ A₁ ⊣ Δᵢ)
+                           × (Δᵢ ⊢ t ∶ B₁ ⇝ B′ ⊣ ΔΘ)
+    allView-typing-all : likewise for `all s ∷ᶜ id T`
+
+Both are one-line proofs — `conv-fun` already states its sub-conversions at
+exactly the contexts `Wrap` and `TyWrap` want, and `NF` is not needed
+because `arr`'s shape pins the derivation.  Every conversion the builders
+produce already satisfied the restriction, so `revTy-typing` and
+`concTy-typing` needed only `conv-id …` replaced by `tail-id …` at their
+terminators; `proof/ConversionCanonical` got SHORTER, since the terminator's
+type is now the head's target and needs no inversion.
+
+REPAIR (3), anchor-indexed type variables, was written (Types, Ctx and
+Conversion all checked) and REVERTED.  It removes the re-indexing, but it
+puts type variables and anchors in ONE index space, and a STORE adds
+anchors — so crossing one shifts every type variable.  `renAnchᴹ` would
+have to descend into `ƛ A ∙ N` and `L • B [ A ]`, `Wrap` and `Beta` would
+shift the annotations inside the term they move, `TyBeta` would mint
+`revTy zero (⇑ᵗ A) B`, and `⊢ν` would need an un-shift by |Θ| between its
+conversion's target and its own type.  Today the ONLY type shift is
+`crossΛ`'s `id (⇑ᵗ A)`, which is honest: crossing a `Λ` really does reveal
+one more type variable.  Jeremy's call: that property is worth more than
+the layer (3) deletes.
+
+REPAIR (1), a type-free `id`, is NOT VIABLE.  It breaks `instReveal`, and
+so `TyWrap`.  The terminator case is
+
+    instReveal X α S (id A) = revTy X α S A
+
+and `revTy` recurses on A's STRUCTURE to build its `↦` and `all` heads, so
+the terminator's type is needed, not incidental.  The notes say as much
+about their own `+X`: "Here `B` is the target supplied by the typing
+derivation of the transformed head."  In the Agda that information lives at
+the `id` leaves, and removing it removes `+X`.
+
+WHAT REMAINS.  Only the BARE-`id`-at-an-arrow case:
+`arr (id (A ⇒ B)) = (id A , id B)` takes both halves from the TARGET, while
+`c₁` must end at the SOURCE's domain.  The minimal fix is to carry the
+source type too — `id : Ty → Ty → Conv`, a bridging identity with both
+endpoints, whose terminator use is the reflexive `id A A`.  Then
+
+    arr (id (A₁ ⇒ B₁) (A′ ⇒ B′)) = just (id A′ A₁ , id B₁ B′)
+
+with the contravariant swap explicit.  `instReveal` on a bridging `id A B`
+then needs saying, which is the part to think about before adopting it.
+
+#### Settled (2026-09-13): the bare-`id` problem was `arr` reading the wrong side — Wrap is PROVEN
+
+Jeremy pushed back on `id : Ty → Ty → Conv`: "I wonder if the real problem
+is somewhere else."  It is.  The stuck component `c₁ : A′ ⇝ A₁` needs the
+INTERIOR domain A₁, and the conversion's syntax was never going to carry
+it, because it already sits on the λ that canonical forms place inside
+every arrow-typed boundary value: `Simple V` at an arrow type forces
+`V = λx:A₁.N`.  `TyWrap` reads its body as `Λα,X.V`; `Wrap` just never
+read its body as a λ.
+
+THE REPAIR, no new syntax anywhere:
+
+    arr : Ty → Conv → Maybe (Conv × Conv)
+    arr A₁ (id (A ⇒ B))            = just (id A₁ , id B)
+    arr A₁ ((c ↦ d) ∷ᶜ id (A ⇒ B)) = just (c , d)
+
+    (Wrap)  νΘ,χ[ λx:A₁.N | c ] · W
+            -→  νΘ,χ[ (λx:A₁.N) · ν∅,-χ[W′|c₁] | c₂ ]
+            if arr(A₁, c) = (c₁ , c₂)
+
+In the notes' named setting `arr(id(A→B)) = (id A , id B)` is unambiguous
+because the two endpoints are literally one type; the de Bruijn rendering
+took the TARGET's half where the interior's was meant, and the interior's
+half is the λ annotation.  `canonical-⇒` now exposes the λ exactly as
+`canonical-∀` exposes the Λ (new: `simple-fun`, `conversion-fun-source`,
+`same-fun-left`, `arr-any`).
+
+WITH THAT, `proof/ArrTyping.arr-typing` covers BOTH shapes —
+
+    arr-typing : Δᵢ ⊢ c ∶ (A₁ ⇒ B₁) ⇝ (A′ ⇒ B′) ⊣ ΔΘ → NF c
+               → arr A₁ c ≡ just (c₁ , c₂)
+               → (ΔΘ ⊢ c₁ ∶ A′ ⇝ A₁ ⊣ Δᵢ) × (Δᵢ ⊢ c₂ ∶ B₁ ⇝ B′ ⊣ ΔΘ)
+                 × NF c₁ × NF c₂
+
+(the bare-`id` case is `sameTy-sym` on the id's own comparison) — and
+`proof/PreserveWrap.preserve-Wrap` IS PROVEN.  The whole case is two `⊢ν`s:
+`χ-invert` sends the dual scope back to ΔΘ on the nose, `wk-⊢` over
+`store-block` carries the argument under the store, and `arr-typing`
+supplies both conversions.  Three of the five computational cases now
+stand: Beta, TyBeta, Wrap.
+
+The notes' Wrap rule and `arr` equations need this folded in — together
+with the merged entries, the seam condition and the reflexive terminator,
+notes-v7.md is now materially behind the Agda.
+
+## 2026-09-13: the spine discipline is INSTALLED — every context along a conversion shares one binding spine
+
+Jeremy approved BOTH refinements to the conversion rules ("Adopt both"),
+replacing the blunt `anchorCount Δ₁ ≡ anchorCount Δ₂` seam premise:
+
+  * `conv-id` now carries `SameBindings Δ₁ Δ₂` (`Ctx.agda`): the two
+    contexts list the SAME anchors with the SAME representations, and only
+    visibility may differ.  A bare `id` therefore relates contexts that
+    agree on every resource.
+  * `conv-seal` carries `FlipAt α Δ₁ Δ₂` and `conv-unseal` carries
+    `FlipAt α Δ₂ Δ₁` (`Ctx.agda`): the two contexts differ in EXACTLY the
+    one visibility bit at α — a seal is one reveal-crossing, pointed at
+    its own anchor.
+
+`FlipAt` is deterministic on either side (`flip-off-unique`,
+`flip-on-unique`), which is what `preserve-step`'s cancel case needs: a
+`seal α` out of Δ₁ and the `unseal α` back land in Δ₁ ON THE NOSE.
+`proof/ConversionProperties.agda` extracts the spine of any derivation
+(`head-sb`/`conv-sb`/`tail-sb`), so every context a typed conversion
+threads through is `SameBindings`-related — the invariant the composition
+campaign types `_⧺_` against.
+
+The transport modules were rebuilt against the discipline:
+
+  * `proof/FillAnchor.agda`: `Fill R n Δ Δ′` is now POSITIONAL
+    (`fill-here`/`fill-there`), hence deterministic (`fill-unique`);
+    a fill crosses a flip by `fill-flip`, and seam contexts inside a tail
+    derive their fills from `sb-fill` on the head's spine.
+  * `proof/AnchorWeaken.agda`: `Wk P d Δ Δ′` inserts the HIDDEN block P at
+    depth d; the renaming it performs is the FUNCTION `wkRen P d`, not an
+    index (the unifier cannot invert `extᴿ`, so a ρ-indexed relation loses
+    `wk-unique`).  `sb-wk`/`wk-sb` weaken the spine in lockstep, `wk-flip`
+    carries the flip to `wkRen P d α`, and `store-wk`/`store-split` replace
+    `store-block`: a store IS a hidden block, absorbed entry by entry with
+    a snoc.
+  * `proof/RevealTyping.agda` bridges `Reveals` to the new premises with
+    `reveals-flip` and `reveals-sb`.
+
+All thirty-two live v7 modules pass `agda --safe` with no postulates and
+no holes; Beta, TyBeta and Wrap stand unchanged on top.
+
+## 2026-09-13: FINDING — `preserve-Merge` is FALSE as the rules stand (machine-checked)
+
+`notes/probes/V7MergeScopeClashProbe.agda` proves, closed and under
+`--safe`, that a well-typed `Merge` redex steps to an untypable term.
+Two distinct classes fail, and they share one cause: a bare `conv-id`
+BRIDGES visibility flips (that is its job — `crossΛ` and `revTy` both
+rely on it), but `Merge`'s raw append `c ⨟ renConv … d` DELETES the inner
+boundary's bare id while the merged scope `shiftScope |Θ₂| χ₁ ++ χ₂`
+still demands the flips it bridged.  The appended conversion then
+performs fewer flips than the scope requires, and the derivation dies.
+
+Class 1 (`contractum-untyped`): the inner scope re-reveals the anchor the
+outer conversion seals.
+
+    ν ∅, conceal γ [ ν ∅, reveal γ [ λx:ℕ. x ∣ id (ℕ→ℕ) ] ∣ seal γ; id X ]
+      —→ᴹ  ν ∅, (conceal γ ; reveal γ) [ λx:ℕ. x ∣ seal γ; id X ]
+
+The merged interior has γ REVEALED, and `conv-seal`'s `FlipAt γ` premise
+demands it concealed.  A "stationary seal" variant (seal typable with no
+flip when the anchor is revealed on both sides) would repair THIS class.
+
+Class 2 (`contractum²-untyped`): the inner scope reveals an anchor δ the
+outer conversion never touches.  After the merge, the scope's net effect
+includes δ's flip, the conversion's heads do not perform it, and the
+reflexive `tail-id` lands one bit away from the store context `⊢ν` pins.
+No loosening of seal/unseal repairs this: the failure is net-flip
+arithmetic, not a rule corner.
+
+The old `anchorCount` premise typed both contracta — the looseness that
+`notes/old/probes-pre-merge` showed unsound elsewhere was silently
+absorbing this mismatch.  The spine discipline did not create the
+problem; it exposed it.
+
+Reachability: `crossΛ V A = ν ∅, conceal 0 [ V ∣ id … ]` is exactly the
+bridging-bare-id shape, so a `Beta`-crossed value sitting directly under
+another boundary drives `Merge` into the same arithmetic — these are not
+purely adversarial terms.
+
+Candidate repairs (Jeremy's call; asked 2026-09-13):
+
+  (A) Stationary `conv-seal`/`conv-unseal` variants at a revealed anchor.
+      This fixes class 1 only; class 2 stands.  Not sufficient alone.
+  (B) REIFY FLIPS AS HEADS.  Add a type-preserving head pair (say
+      `hide α` / `show α`) typed by `FlipAt α` with `SameTy`-related
+      endpoint types, and make `conv-id` strictly non-bridging.  Every
+      visibility crossing is then conversion SYNTAX, the append's flips
+      always match the concatenated scope, and both classes type.  Costs:
+      new `fuse` rows and weights in the normalizer; `crossΛ` gains a
+      `hide 0` head; `revTy`/`concTy` must emit the flip heads their
+      terminators currently bridge.
+  (C) SCOPE-AWARE MERGE.  Keep the typing rules; make `Merge` normalize
+      the concatenated scope against the appended conversion (cancel a
+      dual scope pair against the id that bridged it).  The typing stays
+      small; the reduction rule and its preservation proof grow.
+
+## 2026-09-13: the SPINE-ONLY conversion rules — visibility freed, `FlipAt` retired
+
+Jeremy diagnosed the tension behind the `Merge` failure: a conversion only
+talks about the reveals/conceals involved in the types it converts, while
+the scope flips plenty the types never mention.  The `FlipAt` premises
+made every seal/unseal account for a context crossing — a path
+obligation the syntax cannot honor once `_⧺_` or `fuse` deletes a
+bridging bare `id`.
+
+The reformulation, prototyped and green: `conv-seal` and `conv-unseal`
+now carry `SameBindings Δ₁ Δ₂`, nothing more.  Visibility is constrained
+only where a type forces a lookup — `Δ₂ ∋n X := α` needs α revealed
+THERE, `Δ ⊢ R ⇓ S` needs R's anchors revealed THERE.  `conv-id` keeps
+`SameTy` + `SameBindings` (unchanged); the reflexive terminator `_⊩_`
+stays (repair 2); the seam-looseness probe stays refuted, because
+`SameBindings` still pins the anchor structure that the `id(∀Y.Y)`
+derivation exploited.
+
+Consequences in the code: `FlipAt`, `flip-sb`, `flip-off-unique`,
+`flip-on-unique` are deleted from `Ctx.agda`; `fill-flip`, `wk-flip`,
+`flip-++`, `reveals-flip` die with them, and the transport modules got
+SIMPLER (`fill-sb`/`wk-sb` do the work).  `head-sb` now just projects the
+premise.  Both `Merge` counterexample configurations are now typable —
+`notes/probes/V7MergeScopeRepairedProbe.agda` types both contracta; the
+negative probe and the pre-repair-2 `V7ArrViewProbe` moved to
+`notes/old/probes-pre-merge/`.
+
+The debt this takes on: `preserve-step`'s cancellation case can no longer
+use flip determinism (a cancelled `seal α ; unseal α` no longer returns
+to the same context on the nose).  It needs instead: read-backs of one
+representation at `SameBindings`-related contexts are `SameTy`-related
+(`read-transport`), and the drift is absorbed at the next flexible
+position — a head's loose side or a bare id's bridge.  That grind is
+next, and it is the risk that decides whether this discipline holds.
+
+## 2026-09-13: FINDING — the spine-only rules break the CANCELLATION case (machine-checked)
+
+`notes/probes/V7CancelDriftProbe.agda`: under the spine-only rules,
+`preserve-step` for `_—→ᶜ_` is false.  The rules let a `seal α ;
+unseal α` pair's flanks DRIFT (visibility of bystander anchors may
+differ across the pair), so the pair's two read-backs of α's
+representation spell different variable names.  While the pair stands,
+each read-back is stated at its own flank; when `ξ-pair` cancels the
+pair, the following `↦` head inherits the near flank's read-back as its
+source — and `conv-fun` pins that source domain to its component's
+terminator SYNTAX, which spells the far flank's name.  The probe's
+
+    c = seal α ∷ unseal α ∷ (id(`1) ↦ id(`1)) ∷ id(`1 ⇒ `1)
+
+types as `Δ₁ ⊢ c ∶ (`2 ⇒ `2) ⇝ (`1 ⇒ `1) ⊣ Δ₃` (γ revealed at Δ₁,
+concealed at Δ₃, so β is ` 2 on one flank and ` 1 on the other), steps
+by one `ξ-pair`, and the residue has no derivation at those endpoints.
+`Merge` composites contain exactly such drifted pairs (the class-2
+configuration), so the input is not adversarial-only.
+
+The pattern across every design tried so far: typed conversions mix
+SYNTAX-PINNED types (terminators, and component targets via `target`)
+with DERIVATION-INTERNAL context choices, and every rearranging
+operation (`_⧺_`, `fuse`, `Merge`) breaks at whichever interface mixes
+the two.  `anchorCount` (all loose): unsound seams.  `FlipAt` (heads
+exact, ids loose): `Merge` strands the ids' crossings.  Spine-only
+(heads loose): cancellation strands the flanks' drift.  The two STABLE
+designs are the poles:
+
+  P1 — every crossing is syntax: `show X:=α` / `hide X:=α` heads,
+       `conv-id` strictly reflexive, `⊩` merges into `⊢`.  Drift cannot
+       exist, so flip determinism gives the cancellation case, and
+       appends match scopes by construction.
+  P2 — every interface is up-to-view: `conv-cons`, `conv-fun`/`conv-all`
+       component interfaces, and `⊢ν`'s endpoints all carry
+       `SameTy`+`SameBindings` bridges.  Preservation glues bridges by
+       transitivity everywhere.
+
+Asked Jeremy (2026-09-13); recommendation is P1.
+
+## 2026-09-14: v8 stage 2 — ConversionReduction, and the REALLMS bake-off
+
+`ConversionReduction.agda` lands: the small-step `_—→ᶜ_` with `fuse` at
+adjacent pairs, `progress`, the `weight` measure with `step-decreases`,
+well-founded `normalize`, `c ⨟ d = normalize (c ⧺ d)` with `⨟-↠`/`⨟-NF`,
+and the corrected instantiation `instReveal`/`instConceal` via the
+syntactic source reader `srcᶜ` (nothing at seal/unseal heads, where the
+identity-crossing fallback is justified by store scoping) and
+`substAnn`.  Regression checks: the K example's nested word cancels to
+`id(ℕ)` adjacently, and the overlapping word normalizes to itself —
+typing, not normalization, excludes it.
+
+Per Jeremy's protocol, the six ported/new lemmas ran as a MODEL
+BAKE-OFF, each dispatched to all four REALLMS models:
+
+  goal            qwen      glm-5.2   gpt-oss   gemma
+  fuse-hs-inv     ✓ 4       ✓ 3       ✓ 7       ✓ 6
+  fuse-sh-inv     ✓ 3       ✓ 3       ✓ 3       ✓ 5
+  weight-⧺        ✗,✗       ✓ 5       ✓ 9       ✗
+  ↦-arith         ✗         ✓ 5       ✗         ✗
+  all-arith       ✗         ✓ 4       ✗         ✗
+  fuse-decreases  ✗         gave up   ✓ 10      ✓ 6
+
+WINNER: glm-5.2 (5/6, fewest steps on every solve); its give-up on the
+30-clause case sweep is the one blemish — gemma's 6-step solution was
+adopted there.  glm-5.2 is the default grinder henceforth.
+
+## 2026-09-14: v8 stage 3 — Terms, TermSubst, Reduction
+
+The term layer lands: `M ⟨ c ⟩` and `ν R ∙ M`; values with the Λ-body
+restriction (`SΛ : Value V → Simple (Λ V)`) and no variables-as-values;
+typing with `⊢Λ` pushing `asgn (bnd 0) ∷ addr ∷ Δ` over a `⤊`-shifted
+term context, `⊢ν` shifting nothing, and `⊢⟨⟩` letting the conversion
+derivation determine the interior; the color wrap
+`crossΛ V A = (renAddrᴹ suc V) ⟨ hide (bnd 0) ∷ᶜ id (⇑ᵗ A) ⟩` inside
+`substᵐ`'s Λ clause (and an address-shift-only `underν`); store-passing
+reduction with immediate `Alloc` discharge at `lvl (length Σ)` and no
+ξ-Λ or ξ-ν.  Both `TyBeta` and `TyWrap` build their conversion with
+`S = A` — uniform in v8, where the new boundary's exterior conceals the
+fresh address (v7's TyWrap used `` ` 0`` because its scope revealed it).
+
+Two de Bruijn corrections to the conversion layer fell out of writing
+the wrap: the identity-crossing rules relate a type to its
+`shiftAtᵗ X`-image (the crossed assignment inserts a name entry at
+depth X — "the same type" is a named-notation statement), and
+`all⁺` must `⇑ᵃ`-shift the crossings it hoists under the ∀ element's
+binder.  `revTy`'s miss terminators now uniformly use `closeAt`.
+
+## 2026-09-14: v8 stage 4 — Examples, and the elements must carry the NAME
+
+`Examples.agda` machine-checks the notes' traces.  §6 runs end to end
+(`TyBeta`, `Alloc`, `Wrap`, `ξ-⟨⟩ Beta`, `Merge`, `Const`) to `7` with
+`Σ = ℕ`; the K example runs to its VALUE (the point where the value
+restriction parks `Merge`/`TyWrap` until instantiation) and checks that
+value's `allView`.  Crucially, `builder-agrees` in both modules checks
+by `refl` that `revTy` computes exactly the conversions the notes
+write — `c_X` and `c_ZX` included — so the mechanized builders are
+validated against the design document.  The two v7 failure
+configurations are kept as regression checks: the nested word cancels
+to `id(ℕ)` by adjacent fusion, the overlapping word normalizes to
+itself.
+
+FINDING (this answers Jeremy's earlier question "do we need to carry
+the X?" in the AFFIRMATIVE, reversing my earlier answer): the atomic
+elements must carry the NAME as well as the address.  The K example
+exposed it.  `conv-all`'s premise is `(bind ∷ Γᵢ) ⊢ s ⊣ (bind ∷ Γₑ)`
+and the pop judgment skips binder assignments, so an element inside a
+`∀` component crosses an assignment lying BELOW those binders — while a
+push at the top of the walk inserts ABOVE them.  Nothing in the ADDRESS
+distinguishes the two depths (a level address carries no depth at all),
+so `⟨c⟩` is not a function of address-only syntax, and the K example's
+`cov` walked to `nothing`.  With the name carried, `pushAsgn X α` and
+`popAsgn X α` are the functional forms of the pop judgment, `⟨c⟩` is
+total and syntax-directed, and `srcᶜ` becomes total at an `unseal`
+(`src(unseal{+X:=α} ∷ c) = X`, exactly as notes-v8 writes it) — the
+second obligation I had flagged as a risk when deferring the question.
+The Agda now matches the notes' notation literally: `seal X α`,
+`unseal X α`, `hide X α`, `show X α`.
+
+## 2026-09-14: §14 mechanized — `substAnn` must REINDEX element names
+
+`Examples.§14` machine-checks the notes' §14 example in its
+value-restricted (η-expanded) form: `⊢P`; the MISS equation
+(`+X(B) = id{+X:=α} ∷ id(B)`, since `X ∉ B`); `arr` peeling the single
+crossing into BOTH components with the contravariant one dualized;
+`Beta`'s color wrap nesting the two conceals on the argument; the
+result being a VALUE (the value restriction parks the inner
+`Merge`/`TyWrap` until instantiation); and then `TyWrap` at `𝔹`.
+
+The check that matters is `inst-agrees`: `instReveal` reproduces the
+notes' conversion
+
+  ((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id{+X:=α} ∷ id(𝔹→𝔹)
+
+on the nose.  Getting there needed one de Bruijn correction.  The notes
+say `c[X:=S]` leaves the elements untouched, which is true in named
+notation; in de Bruijn, removing the name slot X REINDEXES the names
+above it, so `substAnnElt` now decrements an element's name exactly
+when it lies above the slot (`nameSub`).  Without it the hoisted
+crossing kept the name `all⁺` gave it under the ∀ element's binder, and
+the composite named two different assignments identically.  The two
+shifts are now consistent: `all⁺` raises a hoisted crossing's name and
+address when it moves under the binder, and `substAnn` lowers the name
+again when the instantiation consumes that binder.
+
+## 2026-09-15: v8 stage 5 — PROGRESS, modulo one canonicity obligation
+
+`proof/Interior.agda`, `proof/Canonical.agda` and `proof/Progress.agda`
+land.  Every case of progress is discharged; the module takes ONE
+parameter, the canonicity obligation at a value boundary:
+
+    Canonicity = Simple V → ⊢ V ⦂ A → ⊢ c ∶ A ⇝ B → NF c
+               → Applicable c ⊎ (Literal V × base c defined)
+
+What is PROVEN along the way, and is the bulk of the work:
+
+  * `proof/Interior`: `pop-sound`/`push-sound` — `popAsgn`/`pushAsgn`
+    are the functional forms of the pop judgment — hence
+    `conv-interior : ⊢ c ∶ A ⇝ B ⊣ Δ → interior c Δ ≡ just Δᵢ`, which
+    is what `ξ-⟨⟩` consumes.
+  * `proof/Canonical`: the view-shape suite (`arr-target`,
+    `allView-target`, `arr-any`, `applicable-arr/all/ground`), the
+    SOURCE-shape lemmas `conv-fun-source`/`conv-all-source` (a
+    conversion the views accept has no renaming element, so it
+    preserves shape — the v7 lemma, now over the v8 elements), and the
+    canonical forms `canonical-⇒`/`canonical-∀` that hand `Wrap` and
+    `TyWrap` their λ and Λ.
+
+TWO corrections were forced by `proof/Interior`:
+
+  * `popAsgn`/`pushAsgn` must un-shift the ADDRESS when descending past
+    a `∀` element's binder, and must split on the CONTEXT before the
+    name, or they do not reduce with a variable name.
+  * The pop judgment's transparency is narrowed to BINDER ASSIGNMENTS.
+    Address entries (`addr`, `nuBind`) are no longer transparent: with
+    them the judgment is not invertible (an assignment at the same name
+    depth could sit above or below an address binder), and no
+    derivation needs them — a crossing assignment is always created
+    above the address binders in scope.  §14 still checks, which is the
+    evidence that the narrowing costs nothing.
+
+ON THE OBLIGATION.  My earlier worry that canonicity is FALSE was
+wrong, and the stack discipline is why.  The shape that would break it
+is a renaming element reached from a non-variable source, e.g.
+`seal ∷ hide ∷ unseal ∷ id (C ⇒ D)`.  It does not type: after
+`seal X α` the running type is `` ` X `` with α's assignment NEWEST, so
+a following `hide`/`show` inserts an assignment ABOVE it and SHIFTS the
+type's name, while an `unseal` must pop the newest assignment and so
+has source `` ` 0 `` — the names no longer agree.  And an `unseal`
+IMMEDIATELY after the seal is forced by pop-determinism to be at the
+same address, which `fuse` cancels, contradicting `NF`.  So from a
+variable source the target stays a variable (v7's `after-seal`), and
+canonicity should follow by: a value's type is never a variable, so a
+leading `unseal` is impossible; a leading `seal` sends the target to a
+variable (`applies-var`); everything else preserves shape.  The
+remaining work is `pop-unique` plus that `after-seal` induction.
+
+## 2026-09-15: PROGRESS IS PROVEN — canonicity discharged
+
+`proof/ConvCanonicity.agda` closes the parameter, and
+`strong/Progress.agda` states progress unconditionally:
+
+    progress : Σ ∣ Δ ∣ [] ⊢ M ⦂ A
+             → Value M ⊎ Σ[ N ] Σ[ Σ′ ] (Σ ∣ Δ ⊢ M —→ N ⊣ Σ′)
+
+The argument, in two halves.
+
+AFTER AN ADDITION (`after-add`).  A `seal` or a `hide` ADDS the newest
+crossing assignment, leaving the running type a type VARIABLE.  From
+there the target stays a variable, because an element that REMOVES an
+assignment is forced by `pop-unique` to the very address the adder
+created, and then one of two things blocks it:
+
+  * same kind (seal/unseal, hide/show) — `fuse` cancels the pair, so
+    `NF` is contradicted;
+  * cross kind (seal/show, hide/unseal) — the NAMES disagree, because
+    `shiftAtᵗ X′ X` is never `X′` (`shiftAt-≢`), so a `show` cannot
+    follow a `seal` and an `unseal` cannot follow a `hide`.
+
+A `↦` or `all` cannot follow at all: their sources are arrows and
+universals, not variables.  The `AfterAdd` relation carries exactly the
+difference between the two adders — a seal makes the running name EQUAL
+to the new assignment's, a hide makes it DIFFERENT — which is what
+selects the blocking mechanism.
+
+SHAPE PRESERVATION (`canon-fun`, `canon-all`, `canon-ground`).  From a
+non-variable source the crossings and the structural elements preserve
+the type's shape, so `arrElts`/`allElts`/`base` stay defined; the only
+escape is a `seal`, which lands in the first half and yields
+`inert-var`.  A simple value's type is never a variable
+(`simple-kind`), which is what starts the induction — and, at a ground
+type, also supplies the `Literal` that `Const` needs.
+
+Two refactors made the assembly possible: `arr`/`allView` are now
+`arrFrom`/`allFrom` applied to their scrutinees, and `arrElts`/`allElts`
+fold with `consArr`/`consAllE`, so a proof that knows a scrutinee can
+REWRITE with it (a `with` is stuck).  This also simplified the
+inversion lemmas in `proof/Canonical`.
+
+Correcting the record: my 2026-09-14 note said canonicity "is NOT
+provable for arbitrary typed normal conversions".  That was wrong, and
+the reason is the stack discipline — the shape I had in mind,
+`seal ∷ hide ∷ unseal ∷ id (C ⇒ D)`, is exactly what `after-add`'s
+cross-kind case refutes.
+
+## 2026-09-15: Preservation — composition's easy half, and a design question
+
+`proof/CompositionTyping.agda` starts the preservation campaign:
+
+  * `⧺-typing : ⊢ c ∶ A ⇝ B ⊣ Γ₂ → ⊢ d ∶ B ⇝ C ⊣ Γ₃ → ⊢ (c ⧺ d) ∶ A ⇝ C ⊣ Γ₃`
+    — two lines.  The `id` case IS the hypothesis, because v8's
+    terminator is strictly reflexive: equal endpoints, equal context.
+    This single case was the whole difficulty of the v7 campaign
+    (`conv-resource`, `conv-retarget`, `read-transport`, SameTy
+    transitivity — all of it existed to bridge a terminator that no
+    longer bridges).
+  * `∋r-unique` — an address's representation is unique, driven by the
+    address's own structure, no well-formedness needed.
+
+THE REMAINING GAP, and it is a design question.  `preserve-step`'s
+cancelling case reconnects exactly: `pop-unique` forces the remover to
+the address AND the context the adder created, and `∋r-unique` forces
+the representations to agree.  What is left is that the two READ-BACKS
+give the same type:
+
+    Sg ∣ Γ ⊢ R ⇓ A → Sg ∣ Γ ⊢ R ⇓ B → A ≡ B
+
+and that is FALSE for an arbitrary context —
+`notes/probes/V8ReadAmbiguityProbe.agda` exhibits
+`Γ = X:=α, Y:=α` reading one address as two names.  The notes' `ok`
+already forbids it (`Γ ∌ _:=α` on `Γ,X:=α`); the question is where v8
+enforces it, and the options differ in what they cost:
+
+  (A) A context well-formedness judgment `Ok Γ`, threaded through
+      preservation as a premise (v7 did this, and notes-v8's
+      Preservation already says `Σ;Γ ok`).  COST: `Ok` does not
+      propagate along a conversion — an `unseal`/`show` introduces an
+      assignment going inward, and nothing in its premises says that
+      address is unassigned — so every lemma that walks a conversion
+      would have to carry `Ok` at every intermediate context.
+  (B) Put the freshness where the assignment is CREATED: add the
+      notes' own `Γ ∌ _:=α` side condition to `conv-unseal` and
+      `conv-show`, the two elements that introduce an assignment on the
+      interior side.  Then `Ok` propagates along a conversion by
+      construction and (A)'s bookkeeping disappears.  COST: a premise
+      on two rules.
+  (C) Make the read-back a FUNCTION `readBack : Ctxᵗ → RepTy → Maybe Ty`
+      and have the rules use it.  Uniqueness becomes definitional.
+      COST: the judgment in the notes becomes a function in the Agda,
+      and the ambiguous contexts stay typable (harmless, but the
+      calculus no longer rejects them).
+
+Jeremy chose (B).  `conv-unseal` and `conv-show` now carry
+`NotAssigned Γₑ α`, and the payoff is immediate: `namefn-push` carries
+name-uniqueness inward across exactly those elements, `namefn-pop`
+carries it across the removers, `namefn-bind` across a `∀` element's
+binder, and so `conv-namefn` propagates it along a whole conversion
+from its exterior.  `read-unique` follows, and with it the two
+cancelling pairs:
+
+  * `cancel-seal` — a `seal α` followed by an `unseal α` reconnects
+    EXACTLY: `pop-unique` forces the unseal to the address and the
+    CONTEXT the seal created, `∋r-unique` forces the representations to
+    agree, and `read-unique` forces the read-backs to agree.  This is
+    the case that was in doubt through three design iterations
+    (anchorCount, FlipAt, spine-only); under the stack discipline it is
+    four lines.
+  * `cancel-hide` — a `hide α` followed by a `show α`, with
+    `shiftAtᵗ-inj` undoing the crossing's shift.
+
+Also proven here: `⧺-typing`, `∋r-unique`, `∋ˡ-unique`,
+`shiftAtᵗ-inj` (via a general `ren-inj` for injective type renamings),
+and the four element inversions (`inv-seal`/`inv-unseal`/`inv-hide`/
+`inv-show`), which are stated with the ELEMENT in constructor form
+because a direct pattern on the derivation leaves the unifier stuck on
+two renames — the crossing rules state their types as renames.
+
+STILL OPEN in the preservation campaign: assembling the cancelling
+lemmas and `⧺-typing` into `preserve-step` (the congruence cases are
+routine; the `↦`/`all` fusion cases are `⧺-typing` on the components),
+then `⨟-typing` along the `—↠ᶜ` trace, then the five term cases —
+`Merge` (from `⨟-typing`), `Wrap` (`arr` typing), `TyBeta`/`TyWrap`
+(builder and instantiation typing), `Beta` (substitution with the color
+wrap), `Alloc` (store extension), and the ξ-rules.
+
+
+## 2026-09-15: preserve-step and ⨟-typing are PROVEN — and `fuse` needed the NAME
+
+`proof/CompositionTyping.agda` now carries the whole composition half:
+
+    preserve-step : NameFn Δ → ⊢ c ∶ A ⇝ B ⊣ Δ → c —→ᶜ c′
+                  → ⊢ c′ ∶ A ⇝ B ⊣ Δ
+    ⨟-typing      : NameFn Γ₃ → ⊢ c ∶ A ⇝ B ⊣ Γ₂ → ⊢ d ∶ B ⇝ C ⊣ Γ₃
+                  → ⊢ (c ⨟ d) ∶ A ⇝ C ⊣ Γ₃
+
+FINDING — `fuse` must compare the NAME as well as the address.  The two
+cancellation ORDERS are not symmetric:
+
+  * ADD-then-REMOVE (`seal ∷ unseal`, `hide ∷ show`).  Both elements pop
+    from the SAME context, so `pop-unique` forces the name, the address
+    AND the context to agree.  The address check alone suffices.
+  * REMOVE-then-ADD (`unseal ∷ seal`, `show ∷ hide`).  The elements pop
+    from DIFFERENT contexts and `pop-unique` says nothing.  With only
+    the address checked, an assignment removed at one depth could be
+    re-added at another: with `Γ₂ = bind ∷ []` and `α = lvl 0`,
+
+        Γ₁ = asgn (lvl 0) ∷ bind ∷ []   (X = 0, pop-here)
+        Γ₃ = bind ∷ asgn (lvl 0) ∷ []   (Y = 1, pop-bind-l)
+
+    both pop to `Γ₂`, so the pair types as `` ` 0 ⇝ ` 1 `` and
+    cancelling it does NOT preserve the endpoints.
+
+Checking the name repairs it: both re-additions are then `pushAsgn X α`
+of the same context, and that is a FUNCTION, so the contexts coincide
+(`cancel-unseal`, `cancel-show`, via `push-sound` and `just`
+injectivity).  In the add-then-remove order the check is free, since
+the names already agree.  This is also what the notes' own notation
+says — `+X:=α` and `-X:=α` cancel when BOTH parts match.
+
+The rest of `preserve-step` is routine: the two structural fusions are
+`⧺-typing` on the components (the contravariant one composes in the
+swapped order, which is exactly how `fuse` builds it), and the four
+congruences recurse, with `conv-namefn`/`namefn-bind` carrying name
+uniqueness to the sub-conversion's exterior.
+
+Next: the five term cases — `Merge` (now a corollary of `⨟-typing`),
+`Wrap` (`arr` typing), `TyBeta`/`TyWrap` (builder and instantiation
+typing), `Beta` (substitution with the color wrap), `Alloc` (store
+extension), and the term-level ξ-rules.
+
+## 2026-09-15: address weakening must be DEPTH-INDEXED (v7's `Wk` shape)
+
+Discharging `proof/TermSubstitution`'s parameter — weakening a term by
+one address entry, which the color wrap needs — ran into a shape
+problem worth recording, because the naive statement is FALSE.
+
+The naive statement pushes the entry on top:
+
+    Sg ∣ Δ ∣ Γ ⊢ M ⦂ A → Sg ∣ (e ∷ Δ) ∣ Γ ⊢ renAddrᴹ suc M ⦂ A
+
+Inside a boundary `M ⟨ c ⟩` this asks the conversion to retype from
+`e ∷ Δᵢ` to `e ∷ Δ`.  But `Δᵢ` is `Δ` with the conversion's CROSSINGS
+above it, so `e ∷ Δᵢ` puts the new address binder ABOVE the crossings —
+i.e. inside the boundary — while the binder it models (the `Λ`'s) is
+OUTSIDE.  The pops then have to pass the entry, which the pop judgment
+forbids: transparency is restricted to binder assignments, deliberately,
+because address transparency is what made push/pop non-invertible
+(2026-09-15, `proof/Interior`).
+
+The correct statement inserts the entry at a DEPTH, and the depth grows
+as the weakening descends under crossings:
+
+    data AddrWk (e : Ent) : ℕ → Ctxᵗ → Ctxᵗ → Set where
+      wk-base : AddrWk e zero Δ (e ∷ Δ)
+      wk-under : AddrWk e d Δ Δ′ → AddrWk e (suc d) (f ∷ Δ) (f ∷ Δ′)
+
+so that a boundary's interior is `crossings ++ (e ∷ Δ)` — the entry
+below the crossings, where the pops never reach it.  This is exactly
+v7's `proof/AnchorWeaken.Wk P d` shape, which v8 retired on the grounds
+that "nothing shifts any more".  That was right about the STORE (levels
+are stable, and `Merge` no longer concatenates stores) but wrong about
+BINDERS: `Λ` and `ν` still bind addresses, so bound addresses still
+shift, and the depth-indexed weakening is still the way to carry a
+judgment under one.
+
+The v7 module's design notes apply verbatim — index by the entry and
+the depth so the relation is deterministic (`wk-unique`), derive the
+renaming as a FUNCTION of the index rather than an index itself (the
+unifier cannot invert `extᵇ`), and thread the depth through the pop
+judgment.  What is NOT needed this time is the block/store arithmetic:
+one entry, not a store block.
+
+
+## 2026-09-15: the conflict — address transparency in the pop judgment
+
+Writing the address weakening turned the earlier finding into a
+genuine conflict between two settled decisions.
+
+REQUIREMENT ONE (the interior walk, 2026-09-15).  Address entries must
+NOT be transparent to the pop judgment, or `pushAsgn`/`popAsgn` are not
+inverses — an assignment at a given name depth could sit above or below
+an address binder — and then `⟨c⟩` is not a function and `ξ-⟨⟩` cannot
+compute the context it reduces in.
+
+REQUIREMENT TWO (address weakening, today).  Address entries MUST be
+transparent, or a value containing a sealed literal cannot cross a `Λ`.
+Concretely, §6's `7 ⟨ seal 0 α ∷ᶜ id (` 0) ⟩` is a value at `Δ = X:=α`;
+weakening it by the `Λ`'s address binder asks for
+
+    (addr ∷ asgn α ∷ []) ▷ 0 := α ⇒ (addr ∷ [])
+
+which requirement one forbids.  Depth-indexing (v7's `Wk P d`) does not
+help: the binder is introduced OUTSIDE the boundary, so it sits at
+depth 0 in the boundary's exterior — exactly where the outermost
+crossing pops.
+
+A PROMISING RESOLUTION.  The two placements are OBSERVATIONALLY
+EQUIVALENT: `asgn α ∷ addr ∷ Δ` and `addr ∷ asgn α ∷ Δ` agree on every
+lookup — `∋n` yields the same name and address in both, and so do `∋a`
+and `∋r`.  So transparency could be restored while `⟨c⟩` keeps picking
+the canonical (highest) placement, sound up to that swap, with `⌊A⌋`
+unaffected because it reads only `∋n`.  The cost is a context-swap
+lemma threaded through the judgments that mention contexts.
+
+Alternatives worth weighing: (b) make `ξ-⟨⟩` take the interior as a
+RELATION (the pop judgment itself) rather than a computed context, so
+transparency costs nothing there — the price is that the step relation's
+context index is no longer unique, which determinism would have to
+handle; (c) keep contexts in a canonical form by construction, e.g. by
+having `Λ` push its address binder BELOW the crossing assignments it
+introduces.  Asked Jeremy.
+
+------------------------------------------------------------------------
+2026-09-15 — THE SPLIT, TWICE: CONTEXTS, THEN ADDRESSES
+------------------------------------------------------------------------
+
+RESOLVED, by the structural option, carried through to its consequence.
+
+STEP ONE — SPLIT THE CONTEXT.  `Ctxᵗ` is now a record `stk ∥ bas`:
+
+    StackEnt = bind | asgn Addr          (names: a ∀'s binder, a crossing)
+    BaseEnt  = addr | nuBind RepTy       (addresses: a Λ's, a ν's)
+
+Names live ONLY in the stack.  So `_∋n_:=_` never mentions the base
+(five rules where there were nine), the pop judgment `▷ ⇒` is a pure
+stack operation, and `⊢ᵗ` cannot see the base at all (`∋n-rebase`,
+`wf-rebase`).  Address weakening extends the BASE, so it cannot disturb
+a crossing or a pop — which is exactly the tension recorded above, and
+it is gone.  No transparency, no context-swap lemma, and `⟨c⟩` stays a
+function.
+
+STEP TWO — SPLIT THE ADDRESSES TO MATCH.  The split immediately exposed
+that one `bnd i` cannot serve both halves.  A `Λ`'s own address, counted
+through the stack, is `bnd (binds Ss)` — a number that depends on how
+many `∀`s stand above it, which `crossΛ` (a syntactic function on terms)
+cannot know.  So:
+
+    Addr = lvl ℓ | bnd i | bse j
+
+`bnd` indexes the stack's binders, `bse` the base's.  Now a `Λ`'s
+address is `bse zero` no matter what stands above it, and the color wrap
+can write it:
+
+    crossΛ V A = renBseᴹ suc V ⟨ hide 0 (bse 0) ∷ᶜ id (⇑ᵗ A) ⟩
+
+The two renaming families are independent — `renAddrᴹ`/`renConv` extend
+under a conversion's `all`, `renBseᴹ`/`renConvᵉ` under `Λ` and `ν` — so
+pushing a base binder leaves every crossing's address alone.
+
+WHAT IT COST.  `⊢Λ` and `⊢ν` carry the stack along the base push,
+`⤒ Ss = renStk suc Ss`, because a crossing may name a base address.
+That is structure-preserving, so pops are untouched (`pop-ren`).  Also
+`wfᴿ-∀` was pushing a base `addr` while `renameᴿ`/`read-∀` treat a `∀ᴿ`
+binder as a stack one; the split made the mismatch visible and it now
+pushes a `bind`.
+
+WHAT IT BOUGHT.  `proof/AddrWeaken` is an ORDINARY renaming lemma —
+`Renamesᵇ` (transport `∋a`/`∋n`/`∋r`, reflect `∋n`), closed under
+`bind`/`asgn`/base binders, lifted to `⊢ᵗ`, `⊢ᴿ`, `⇓`, `▷`,
+`NotAssigned`, conversion typing, and `⊢`.  No depth index, no store
+arithmetic, no interaction with the boundary.  `proof/TermSubstitution`
+has no parameters left: `crossΛ-typing` is `⊢-ren` plus a `conv-hide`,
+and crossing a `ν` is `⊢-ren` outright.
+
+One new side condition surfaced and is discharged: `lvl-fixed`, that a
+STORED representation is base-closed (`StoreOk` gives it well-formedness
+over the empty base, and `∀ᴿ` binds on the stack, so no `bse` rule can
+have applied).  `StoreOk` is therefore threaded through `subst-⊢` and
+`preserve-Beta` — which Preservation assumes anyway.
+
+------------------------------------------------------------------------
+2026-09-15 — WHY `Alloc` CAN STORE ITS REPRESENTATION: NO BINDS AT
+RUNTIME
+------------------------------------------------------------------------
+
+`Alloc` puts the `ν`'s representation into the global store, and
+`StoreOk` demands a stored representation be well formed over
+`[] ∥ []`.  `⊢ν`'s premise is much weaker — `Σ ∣ (Ss ∥ Bs) ⊢ᴿ R` — so
+at first sight a `ν` under an enclosing binder could hold an OPEN
+representation and be undischargeable, which would force cambridge26's
+floating-ν after all.
+
+It cannot, and the reason is structural: NO TERM CONTEXT EVER CONTAINS
+A `bind`.  Only conversion typing pushes one (`conv-all`, and the
+type-level `wf-∀`/`read-∀`/`wfᴿ-∀`), and `conv-all` pushes it around
+the NESTED conversion `s`, not around the element — the boundary's
+interior context gains no bind.  The term rules push only `asgn` (⊢Λ),
+`addr` (⊢Λ) and `nuBind` (⊢ν).  And the base is empty at every redex:
+there is no `ξ-Λ` (a `Λ` body is already a value) and no `ξ-ν` (a `ν`
+discharges on the spot), so the only entries a reduction context ever
+accumulates are the `asgn`s a boundary's crossings push.
+
+So the invariant to carry into Preservation is
+
+    FLAT Δ  =  `bas Δ ≡ []`  and  the stack holds only `asgn`s
+
+which is true of `[] ∥ []`, is preserved by the interior walk (a
+crossing pushes or pops one `asgn`; `↦` and `all` do not change the
+context), and gives exactly what `Alloc` needs: over a flat context the
+only `⊢ᴿ` rules that can fire for an address are `a-lvl`, so `R`
+mentions levels alone and `Σ ∣ ([] ∥ []) ⊢ᴿ R` follows.
+
+------------------------------------------------------------------------
+2026-09-15 — PRESERVATION IS FALSE AS THE RULES STAND: `hide`/`show`
+DO NOT SCOPE THEIR ADDRESS
+------------------------------------------------------------------------
+
+REFUTED, with a machine-checked witness
+(`proof/PreserveAlloc.alloc-claim-refuted`).
+
+`conv-seal` and `conv-unseal` carry `Σ ∣ Γ ∋r α := R`, which ties the
+address to the store.  `conv-hide` and `conv-show` carry only `⊢ᵗ`, a
+pop, and `NotAssigned` — NOTHING ties their address to anything.  Two
+separate obligations break on exactly that hole.
+
+(1) `Alloc`.  Take `Σ = ∅`, the flat context `Δ₀ = X:=lvl 0`, and
+
+      M₀ = 7 ⟨ show 0 (bse 0) ∷ᶜ hide 0 (lvl 0) ∷ᶜ id ℕ ⟩
+
+`Δ₀` is flat, `M₀` is well typed, and the conversion is a NORMAL FORM
+because the two addresses differ, so the pair does not `fuse`.  Now
+`Alloc` discharges `bse 0` to the fresh level, which here is `lvl 0`:
+the pair becomes `show 0 (lvl 0) ∷ᶜ hide 0 (lvl 0)`, which CANCELS, so
+`NF` fails and `⊢⟨⟩` — the only rule for a boundary — cannot fire.  The
+substituted term is not typeable.
+
+The culprit is that `lvl 0` is not in `Σ = ∅`, which typing currently
+permits.  Discharge is injective on addresses that ARE in scope (its
+one collision is `bse 0 ↔ lvl (length Σ)`, and a level in scope is
+never `length Σ`) — see `fresh-of-∋a`, `fresh-of-∋r`, `∋ˡ-fresh`.
+
+(2) `TyBeta`/`TyWrap`.  Both produce a `ν R`, so both need `⊢ν`'s
+premise `Σ ∣ Δ ⊢ᴿ R`.  The reduction rule supplies `Σ ∣ Δ ⊢⌊ A ⌋ R`,
+and `⌊·⌋ → ⊢ᴿ` needs exactly "a named address is in scope": `quote-var`
+gives `Γ ∋n X := α`, and `wfᴿ-var` wants `Σ ∣ Γ ∋a α`.  That is the
+context invariant the notes call `Γ ok` and have not yet defined — and
+it cannot be maintained, because `conv-show` may introduce an
+assignment to an address nothing has bound.
+
+THE FIX (recommended, not yet applied).  Add to both rules the
+premise that the address is in scope in the context WITHOUT the
+assignment — dual to each other, exactly as the rest of the pair is,
+so `arr`'s dualization is unaffected:
+
+    conv-hide : Σ ∣ Γᵢ ∋a α → Γᵢ ⊢ᵗ A → Γₑ ▷ X := α ⇒ Γᵢ
+              → NotAssigned Γᵢ α → …
+    conv-show : Σ ∣ Γₑ ∋a α → Γₑ ⊢ᵗ A → Γᵢ ▷ X := α ⇒ Γₑ
+              → NotAssigned Γₑ α → …
+
+This is what Jeremy's own design law prescribes — the invariant in the
+relation, not in a companion predicate.  With it, `Fresh` becomes
+DERIVABLE from typing (`fresh-of-∋a`), both premises of
+`preserve-Alloc` discharge, and `quote-wfᴿ` goes through.
+
+WHAT IS PROVED IN THE MEANTIME.  `proof/PreserveAlloc` proves the
+weakened statement with the freshness spelled out as premises,
+
+    preserve-Alloc : StoreOk Σ → Flat Δ
+      → FreshStk (length Σ) (stk Δ) → FreshM (length Σ) M
+      → Σ ∣ Δ ∣ Γ ⊢ ν R ∙ M ⦂ A
+      → (Σ ∷ʳ R) ∣ Δ ∣ Γ ⊢ M [ lvl (length Σ) ]ᵃᴹ ⦂ A
+
+together with the whole base-SUBSTITUTION development mirroring
+`proof/AddrWeaken` (`Substsᵇ`, its closures, `sub-inst₀`, and the
+liftings up to `⊢-inst`), and `alloc-storeOk`.  `proof/BuilderTyping`
+likewise carries `Σ ∣ Δ ⊢ᴿ R` and `Δ ⊢ᵗ ∀B` as premises.  Applying the
+fix turns both sets of premises into derived facts; nothing else about
+those developments changes.
+
+ONE THING THE SUBSTITUTION NEEDED THAT THE RENAMING DID NOT.  A base
+SUBSTITUTION can turn a `bse` into a `lvl`, so every rule chosen by
+address FORM (`pop-bind-b/-l/-e`, `n-skip-bind-b/-l/-e`, and the
+`∋a`/`∋r` restackings) needs a view rather than a direct match.  The
+side condition is `NoBnd σ` — σ never yields a `bnd` — which holds of
+`instᵉ₀ (lvl ℓ)` and is preserved by `extsᵃᵉ`.
+
+------------------------------------------------------------------------
+2026-09-15 — THE REPAIR, APPLIED; AND THREE GAPS IN `substAnn`
+------------------------------------------------------------------------
+
+APPLIED (Jeremy chose it over the two alternatives).  `conv-hide` gains
+`Σ ∣ Γᵢ ∋a α` and `conv-show` gains `Σ ∣ Γₑ ∋a α` — the address in
+scope in the context WITHOUT the assignment, exact duals, so `arr`'s
+dualization is unaffected.
+
+The evidence it is the right premise: the counterexample above no
+longer typechecks.  It needed a well-typed term naming `lvl 0` over the
+empty store, which the premise forbids.
+
+~110 sites, almost all mechanical.  The four that were not:
+`∋a-⇑` (carry the address past a `bind`), `∋a-pop`/`∋a-push` (across a
+crossing — popping an assignment changes no address's scope), `∋a-drop`
+(across a slot drop, free because `SlotFree` already forbids a `bnd`
+there), and `∋r→∋a` for the builders.  Every transport already moved
+`∋a`, so those cost one argument each.
+
+WHAT IT BOUGHT, immediately.  `proof/Scoped` is the invariant the notes
+called `Γ ok` — every assignment names an address in scope — now
+preservable (`conv-scoped`) because all four atomic elements scope
+their address.  From it:
+
+    quote-wfᴿ        `Σ ∣ Δ ⊢⌊ A ⌋ R → Σ ∣ Δ ⊢ᴿ R`
+    scoped-freshStk  the stack avoids the store's next level
+    typing-fresh     so does a well-typed term
+
+which discharge every premise `proof/PreserveAlloc` and
+`proof/BuilderTyping` had to assume.  `proof/PreserveTy` closes
+`AllocOk` and `TyBetaOk`; `TyWrapOk` is the last parameter of
+`proof/Preservation`.
+
+------------------------------------------------------------------------
+
+THREE GAPS IN `substAnn` (from mechanizing `substAnn-typing`).  Each is
+a place where the definition in `strong/Conversion.agda` is short, and
+each currently shows up as a side condition rather than a proof
+artefact.
+
+(1) `substAnn` carries `S` past every crossing WITHOUT shifting it — it
+shifts only under `all`.  But going inward a conversion PUSHES
+assignments, so an exterior type must be shifted to be read in the
+interior.  Concretely at `X = 0, Y = 1, A = ` 0`: `closeAt 0 S (` 0)`
+is `S`, but the interior context `asgn α ∷ Δ` demands `⇑S`.  The lemma
+therefore needs `Closedᵗ S`.  FIX: shift `S` at each crossing, as the
+`all` case already does.  This one BLOCKS `TyWrap` in general, since
+there `S` is the instantiating type, which need not be closed.
+
+(2) A crossing at a name `Y ≤ X` moves the slot, and `substAnn` goes on
+substituting at `X`.  `show 0 α` under a slot at 0 inserts its
+assignment ABOVE the slot, renaming the slot to 1.  Hence the side
+condition `X < Y` at every crossing.  At `TyWrap` this is free —
+`all⁺` shifts every name by `suc` when it builds `d`, so every name in
+`d` is at least 1.
+
+(3) `substAnnElt` leaves the ADDRESS alone: `substAnnElt X S (seal Y α)
+= seal (nameSub X Y) α`.  But a `bnd i` counts the stack's `bind`s and
+the slot IS one of them, so from the pop rules a `bnd`-addressed
+crossing at name `Y > X` has `i ≥ Y > X` and always needs decrementing.
+Note `all⁺` DOES shift addresses (`⇑ᵃ`), so `substAnn` is failing to
+undo exactly that shift.  FIX: map the address by
+`λ { (bnd i) → bnd (nameSub X i) ; α → α }`.  Reachable only with a
+`bnd`-addressed crossing, which the reduction rules never build today.
+
+------------------------------------------------------------------------
+2026-09-15 — `TyWrap`: WHAT IS FREE, AND FOUR THINGS THAT ARE NOT
+------------------------------------------------------------------------
+
+`proof/PreserveTyWrap` closes `tyWrapOk′` = `TyWrapOk` + three
+premises.  Everything structural went through; what is left is four
+gaps in the conversion machinery, three of them with machine-checked
+witnesses.  All four are Jeremy's to decide.
+
+FREE, and more cheaply than expected.  Every crossing's address is a
+non-`bnd` FROM TYPING ALONE — no flatness needed.  `∋r` can never
+reach a `bnd` (`r-skip-bind` is the only rule naming one, and it has no
+base case), which covers `seal`/`unseal`; and every `bnd` in scope
+already carries a name, which together with `NotAssigned` excludes it
+for `hide`/`show`.  Also `conv-fixᵉ`: over an empty base no `bse` is in
+scope, so the base weakening into the `ν`'s context leaves `d` alone.
+
+(1) `NoBndReps` IS REFUTABLE — `noBndReps-refuted`.  SubstAnnTyping's
+third side condition can never be met, so `substAnn-typing` as it
+stands could never be applied: `⌊ ∀X.X ⌋` is `` `∀ᴿ (`ᵃ bnd 0) ``, a
+perfectly legal stored representation, and `nbr-∀` forbids a `bnd`
+even UNDER the `∀ᴿ` that binds it.  The condition wanted is LOCAL
+closure: every `bnd` bound by the representation's own `∀ᴿ`s.
+`proof/PreserveTyWrap` carries the repair (`LCᴿ`, `wfᴿ-LC`,
+`storeOk-LCReps`, `substAnn-lc`), and `proof/SubstAnnTyping` should
+adopt it.
+
+(2) `Closedᵗ A` is spent TWICE.  Besides `substAnn` (gap (1) of the
+previous entry), the builder's read-back premise is demanded at the
+CONVERSION'S INTERIOR while `⊢⌊ A ⌋ R` is given at the exterior — two
+contexts with different name assignments.  `TyBeta` never sees this,
+its two contexts being equal.  Closedness makes them agree
+(`quote-read-anywhere`).  The exact mismatch, proved as a `≢`, is
+`closeAt-shift 0 1 S A` at `S = ` 0`, `A = ` 0`: `` ` 0 `` against
+`` ` 1 ``.
+
+(3) `X < Y` AT EVERY CROSSING IS NOT FREE.  I had expected it from
+`all⁺`, which shifts the names of the `hide`/`show` it lifts — but
+`all⁺ (all s) = just (elts s)` passes a NESTED conversion's elements
+through UNSHIFTED, keeping their own names, and `conv-all` only asks
+that s's two contexts begin with a `bind`, not that s's crossings stay
+above it.  The witness is a fully typed `TyWrap` redex (§9.2):
+
+    Σ = ℕᴿ ∷ ∅,  Δ = ∅ ∥ ∅  (flat, scoped, name-functional)
+    s = hide 0 (lvl 0) ∷ᶜ (id ℕ ↦ id ℕ) ∷ᶜ show 0 (lvl 0) ∷ᶜ id (ℕ→ℕ)
+    c = all s ∷ᶜ id (∀ (ℕ→ℕ))
+
+with `⊢c`, `NF c`, `Value ((Λ V) ⟨ c ⟩)`, the redex itself, and
+`allView c ≡ just s` by `refl`, against `¬ SlotFree zero s`.  The
+intervening `↦` is what stops the pair fusing, so normalization does
+not remove it.
+
+(4) `instReveal`'s `nothing` BRANCH IS ILL-TYPED at a `TyWrap` redex.
+`show X α ∷ᶜ d` crosses exactly one assignment, handing the tail a
+stack `⤒ Ssᵢ`, whereas `allView-typing` types `d` at `bind ∷ ⤒ Ssᵢ` —
+the `∀`'s binder slot must be REMOVED, and only `substAnn` does that.
+The branch is reachable: a `seal` inside an `all s` passes through
+`all⁺`, and a seal-headed conversion is exactly where `srcᶜ` is
+undefined.
+
+------------------------------------------------------------------------
+2026-09-16 — SETTLED: A `Λ` MUST BIND AN ADDRESS
+------------------------------------------------------------------------
+
+Asked whether the `Λ`'s address binding could be removed along with the
+addresses in `⊢ᵗ`.  It cannot, and there are two independent reasons.
+
+THE SHORT ONE (Jeremy).  Substituting a value under a `Λ` inserts
+`hide 0 α` — the color wrap — and `conv-hide`'s pop `Γₑ ▷ X := α ⇒ Γᵢ`
+forces α to be exactly the address the `Λ`'s own crossing assignment
+carries.  The element has an address field and only the `Λ` can fill
+it.
+
+THE LONGER ONE (notes/AddrNeeded.agda, checked).  The address does
+real work, not just fill a field: `hide`/`show` at the same NAME and
+different addresses must not cancel, because the pair genuinely
+renames an assignment.  `notes/ShowHide.agda` derives such a pair from
+a source program — two separate instantiations, a value sealed by the
+first carried under the second — ending in
+
+    id{+Y:=@0} ∷ id{-X:=@1}
+
+one de Bruijn index 0 in each frame, two distinct store levels.
+
+WHAT IS STILL OPEN is only the PLACEMENT.  The address must exist; that
+its binder sits in the BASE (so pops cannot see it) is what costs the
+`⤒` in `⊢Λ` and the `renBseᴹ` in `crossΛ`.  Moving it to the stack
+would reintroduce the context-dependent index that forced the address
+split in the first place — see 2026-09-15 — so any attack on that cost
+has to change what `crossΛ` writes, not whether the address exists.
+
+------------------------------------------------------------------------
+2026-09-16 — A `∀` BINDS A TYPE VARIABLE, NOT AN ADDRESS
+------------------------------------------------------------------------
+
+Jeremy's observation: a representation type's FREE variables are
+addresses, but its BOUND ones are not — they are regular type
+variables.  So `∀ᴿ` now binds `ᵛ, a de Bruijn type variable, and `ᵃ
+carries only free addresses.  `bnd` leaves `Addr` entirely:
+
+    Addr = lvl ℓ | bse j
+
+exactly the two things that really are addresses — a store level and a
+`Λ`'s or `ν`'s binder.  This answers the discomfort about the earlier
+lvl/bnd split: the split was right, but one of its three cases was not
+an address at all.
+
+THE PAYOFF, which is larger than the change.  Passing a `bind` no
+longer moves any address, so every rule that had to case-split on
+`bnd`/`lvl`/`bse` collapses:
+
+    ∋n    6 rules → 3, and NO address case analysis
+    ▷ ⇒   4 rules → 2
+    ∋a    6 rules → 5, and it no longer reads the stack AT ALL
+    ∋r    6 rules → 4, likewise
+
+`∋a-pop` and `∋a-push` — sixty lines of trichotomy — are now
+`∋a-restk q`.  The whole stack-address renaming family is deleted:
+`renᵃ`, `renameᴿ`, `⇑ᴿ`, `⇑ᵃ`, `substAddr`, `extsᵃ`, `inst₀`,
+`renAddrᴹ`, and the second argument of `renConv`.  `proof/AddrWeaken`'s
+commutation lemmas between the two families go with the family.
+`proof/Flat`'s `NoBinds`-prefix apparatus reduces to `∋a-restk`.
+`proof/ArrTyping`'s renaming algebra splits honestly into an
+assignment-carrying `Renamesᵗ` and a scope-only `Renamesˢ`, and `⊢ᵗ`
+uses the latter — no address anywhere.
+
+TWO SIDE CONDITIONS BECOME FREE.  `NotBnd` is trivially true of every
+address, since there is no `bnd`.  And `LCᴿ` — the local-closure
+condition `proof/PreserveTyWrap` had to invent after `NoBndReps` turned
+out REFUTABLE — is now structural: a `ᵛ cannot be confused with a free
+address, so what was a side condition is just `⊢ᴿ`'s bound-variable
+rule.  `⊢ᴿ` is accordingly indexed by the number of enclosing `∀ᴿ`
+binders and needs no context entry at all.
+
+A `∀`-bound variable is now looked up by `_∋b_at_` (which `bind` it
+names), and `∋ᵗ-view` splits a variable in scope into
+assigned-to-an-address or `∀`-bound — the same split the renderer's two
+name pools already drew.  `read`/`⌊·⌋` gained `read-bv`/`quote-bv`.
+
+CONSERVATIVE ON TERMS: `notes/ShowHide`'s trace renders identically
+before and after.
+
+------------------------------------------------------------------------
+2026-09-16/17 — `substAnn`: THE THREE GAPS, CLOSED
+------------------------------------------------------------------------
+
+(3) THE `bnd` GAP IS MOOT.  `substAnnElt` leaving a crossing's address
+alone is now CORRECT, since a `∀` binds no address.
+
+(2) THE SLOT MOVES, AND `substAnn` NOW CARRIES IT.  The old definition
+handed the same `X` and `S` to the tail of a spine, though the tail
+lives one crossing further out.  Both are threaded now, OUTWARD (the
+list runs interior → exterior and `S`, the read-back on the unassigned
+side, lives at the interior); and inside an element, `↦`'s
+CONTRAVARIANT component gets the STEPPED index, because it runs
+exterior → interior.  `slotOut`/`tyOut` moved into `Conversion.agda`
+to say where they have got to.
+
+    `SlotFree`'s `X < Y`   gone
+    `StepFix`              gone, and DERIVABLE rather than merely
+                           deletable
+    `Closedᵗ S`            weakened to `SAvoids X S c`
+
+The derivation is the BIND-RANK invariant: no element touches the bind
+skeleton of its two contexts — an atomic element moves an `asgn`, `↦`
+delegates, `all` keeps a `bind` on both sides — so the slot keeps its
+RANK among the binds along a whole spine.  Whence `slotOut-round` (the
+`↦` case's obligation) and `slotOut-bind`, which says a spine between
+two bind-headed contexts cannot move the slot at all.
+
+(1) `instReveal`'s `nothing` BRANCH DROPS THE SLOT.  It was
+`show X α ∷ᶜ c`, leaving `c` typed under the `∀`'s binder that the `ν`
+replaces; it is now `show X α ∷ᶜ substAnn X S c`, matching the `just`
+branch.  `notes/SrcGap` is a source program that REACHES the branch —
+
+    h = ΛX. λk:(∀Z. X). k [ℕ]     a = ΛZ. true     (h [𝔹]) a
+
+the point being the POLYMORPHIC DOMAIN: `revTy`'s contravariant
+component is `concTy`, which at a hit emits a `seal`, and `srcᶜ` gives
+out on a seal.  Recorded there with the word the repair produces.
+
+WHAT TESTS WHAT — worth keeping straight, because three of these look
+like they test more than they do.
+
+  Examples.inst-agrees   the `just` branch; BOTH threads are no-ops
+                         (slot 0, crossing at 1, ground S), so it
+                         passed under the old definition too
+  notes/SubstAnnTest     the slot threading, 0 ↦ 1 — but on a
+                         hand-written word, because no reduction
+                         reaches that position (see below)
+  notes/SrcGap           the `nothing` branch, reachable; threading is
+                         a no-op there
+  notes/ShowHide         the color wrap against a seal, two
+                         instantiations
+  PreserveTyWrap §9.2    a reachable redex whose crossings sit at name
+                         0 — the witness that refuted `SlotFree`
+
+AND THE EXAMPLE THAT WOULD COMBINE THEM DOES NOT EXIST.  I went looking
+for one and it is ruled out by `slotOut-bind`: a `TyWrap`'s spine runs
+between two bind-headed contexts, so its slot provably cannot move.
+The guessed recipe was wrong twice over — `all⁺` SHIFTS an ambient
+crossing past the `∀`, so the color wrap's `hide 0` lands above the
+slot; and `substAnn` does lower names, but a value sealed at the top
+has a type variable for its target and cannot be type-applied again.
+The threading earns its keep DEEPER in a spine, inside `↦` and `all`,
+which is why `notes/SubstAnnTest`'s word is hand-written.
+
+## 2026-09-17: `TyWrapOk` IS FALSE — both of `tyWrapOk′`'s premises are load-bearing
+
+The task was to delete the two extra premises from
+`proof/PreserveTyWrap.tyWrapOk′` and instantiate `proof.Preservation.Main`.
+Neither premise can go, and the reason is not a gap in the proof: each is
+refuted by a WELL-TYPED `TyWrap` redex whose reduct has no typing
+derivation at any type.  Both witnesses are machine-checked, in
+`proof/PreserveTyWrap` §8.1b and §8.3, and
+
+    tyWrapOk-refuted : ¬ TyWrapOk
+
+states the consequence.  `TyWrap` does not preserve typing as the rule
+stands; `Preservation.Main` stays uninstantiated.
+
+(2) `¬ (srcᶜ d ≡ nothing)` — the 2026-09-16 repair is RIGHT BUT PARTIAL.
+`show X α ∷ᶜ substAnn X S c` is `revTy`'s MISS equation with `substAnn`
+for a terminator, so it is correct exactly when X misses the spine's
+SOURCE.  For a seal-HEADED `d` that is free: the seal's source is the
+read-back of a representation `∋r` reaches, which over an empty base is
+a store entry, hence closed — which is why `notes/SrcGap`'s word (a seal
+head) came out coherent.  But `srcᶜ` also gives out through an `↦`,
+
+    srcᶜ ((s ↦ t) ∷ᶜ c) | nothing = nothing     when srcᶜ t ≡ nothing
+
+and there the source is `target s ⇒ src t`: only the RIGHT half is
+forced closed.  §8.3's redex takes `target s ≡ ` 0` — the slot itself —
+so the spine's source is `` ` 0 ⇒ `𝔹 ``, while `conv-show` states its
+source as `renameᵗ (shiftAtᵗ 0) A ≡ renameᵗ suc A`, which never produces
+the name 0.  Ill-typed at the head, with a CLOSED type argument, so this
+is premise (2) alone.  The spine:
+
+    d  =  ((show 1 (lvl 0) ∷ᶜ id (` 0)) ↦ (seal 1 (lvl 0) ∷ᶜ id (` 1)))
+            ∷ᶜ id (` 0 ⇒ ` 1)            :  ` 0 ⇒ `𝔹  ⇝  ` 0 ⇒ ` 1
+
+Repairing the branch needs the spine's SOURCE TYPE, which `srcᶜ` cannot
+compute (a seal's source is a read-back the syntax does not carry) and
+which the redex does not supply.  Either `TyWrap` carries it, or
+`srcᶜ`/`instReveal` is restructured so the `↦` case does not have to
+guess it.
+
+(1) `Closedᵗ A` — the type argument must mean the same thing at BOTH ends
+of the conversion.  §8.1a's equation failure was already recorded; §8.1b
+now gives the redex.  `A` is a type of the EXTERIOR Δ, and the rule
+writes it into a word whose interior is a different context, with the
+spine's crossings creating and destroying exactly the assignments A may
+name.  Take one `hide`, which going OUTWARD adds `1 := lvl 0`:
+
+    d  =  hide 1 (lvl 0) ∷ᶜ id (` 0 ⇒ `𝔹)        A  =  ` 0
+
+`Δ ⊢ᵗ ` 0` holds (the `hide` is what put the assignment there) and `⌊·⌋`
+quotes it to `` `ᵃ (lvl 0) ``, so `⊢•[]` and `TyWrap` both apply.
+`revTy 0 (bse 0) (` 0) (` 0 ⇒ `𝔹)` then hits and emits
+`seal 0 (bse 0) ∷ᶜ id (` 0)` for the domain — and `conv-seal` has to read
+`` `ᵃ (lvl 0) `` back at the element's own interior, which the `hide` in
+the tail pins to a context with an EMPTY STACK.  `read-var` has no name
+to land on.  Note this is `instReveal`'s `just` branch, so (1) and (2)
+are independent.
+
+WHAT THIS DOES NOT SAY.  Neither witness is claimed reachable from a
+source program; both are typed redexes, which is all `TyWrapOk`
+quantifies over.  If the intended calculus excludes them, the exclusion
+has to become part of the typing judgment (a grounded invariant), not a
+premise of the preservation lemma.
+
+## 2026-09-17: `srcᶜ` IS TOTAL — it consults the CONTEXT, and `TyWrapOk`'s second premise is gone
+
+Jeremy's point.  `srcᶜ` was partial only at
+
+    srcᶜ (seal X α ∷ᶜ c) = nothing   -- "a seal's source is a read-back
+                                     --  that the syntax does not carry"
+
+but `conv-seal` reads it straight off the context:
+
+    conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Γᵢ ⊢ R ⇓ A → Γₑ ▷ X := α ⇒ Γᵢ
+              → Σ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X ⊣ Γₑ
+
+The information is present; `srcᶜ` just did not look.  It looks now.
+
+WHAT WAS BUILT (strong/Ctx.agda, §"THE LOOKUPS AS FUNCTIONS"):
+
+    repOf  : Store → Ctxᵗ → Addr → Maybe RepTy   -- inverts `∋r`
+    nameOf : List StackEnt → Addr → Maybe ℕ      -- inverts `∋n`
+    bindOf : List StackEnt → ℕ → Maybe ℕ         -- inverts `∋b`
+    readOf : Ctxᵗ → RepTy → Maybe Ty             -- inverts `⇓`
+
+`repOf` walks the store for a `lvl` and the base for a `bse`, shifting by
+`⇑ᴿᵉ` at each entry exactly as `∋r`'s rules do.  `readOf` is structural;
+its `` `ᵃ α `` case uses `nameOf` and its `` `ᵛ i `` case uses `bindOf` —
+the name of the i-th `bind`, mirroring `read-bv`/`∋b` (an earlier sketch
+had that case return `nothing`, which was a stub, not a design).
+
+`srcᶜ` then takes the STORE and the conversion's INTERIOR context and
+returns a `Ty`, not a `Maybe Ty`:
+
+    srcᶜ Σ Γ (seal X α ∷ᶜ c) = read of α's representation, at Γ
+    srcᶜ Σ Γ (hide X α ∷ᶜ c) = close_X (srcᶜ Σ (pushAsgn X α Γ) c)
+    srcᶜ Σ Γ (show X α ∷ᶜ c) = shift_X (srcᶜ Σ (popAsgn X α Γ) c)
+    srcᶜ Σ Γ (all s ∷ᶜ c)    = ∀ (srcᶜ Σ (bind ∷ Γ) s)
+
+— each recursive call at the context the typing rule gives that subterm.
+The equations that answer `` `ℕ `` (a lookup that fails, a pop or push
+that does not fit) are the ones no typed conversion reaches.
+
+THE OBLIGATIONS, both discharged.
+
+* ADEQUACY (`proof.SrcTyping` §2), both directions, for every lookup:
+  `lvlOf`, `bseOf`/`repOf`, `nameOf`, `bindOf`, `readOf`.  Only the two
+  NAME lookups need a hypothesis, and it is the one `read-unique` needs:
+  `NameFn`.  `nameOf-complete` is `nameOf-total` + `nameOf-sound` +
+  `NameFn`, which is cheaper than restricting `NameFn` to stack tails.
+
+* TOTALITY (`proof.SrcTyping` §3), strengthening the old graph statement
+  to an equation:
+
+      srcᶜ-sound : NameFn Δᵢ → Σ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → srcᶜ Σ Δᵢ c ≡ A
+
+  `pop-sound`/`push-sound` rule out every failing branch; `∋r-pop`
+  (a pop leaves the base alone) brings the seal's `∋r` in from `Γₑ`.
+
+CONSEQUENCES.
+
+* `instReveal` has ONE equation — `instReveal Σ Γ X α S c = revTy X α S
+  (srcᶜ Σ Γ c) ⨟ substAnn X S c` — and no `nothing` branch.
+* `TyWrap` carries `interior c Δ ≡ just Δᵢ` (the same walk `ξ-⟨⟩` uses)
+  and hands `instReveal` the store and `bind ∷ Δᵢ`, which is where
+  `allView-typing` types `d`.  `canonical-∀` returns that equation so
+  `Progress` can supply it; `conv-interior` pins it in `Preservation`.
+* `tyWrapOk′`'s premises are now: `StoreOk Σ`, `Flat Δ`, `NameFn Δ`,
+  `Scoped Σ Δ`, `Closedᵗ A`, `allView c ≡ just d`,
+  `interior c Δ ≡ just Δᵢ`, `Σ ∣ Δ ⊢⌊ A ⌋ R`, and the redex's typing.
+  `¬ (srcᶜ d ≡ nothing)` IS GONE.
+* The 2026-09-17 refutation above (§8.3, the `↦`-shaped redex whose
+  source is `` ` 0 ⇒ `𝔹 ``) is RETRACTED: `srcᶜ` answers `` ` 0 ⇒ `𝔹 ``
+  there, `revTy` HITS and seals the domain, and `proof.PreserveTyWrap`
+  now proves the reduct typed (`reduct-okₖ`).  §8.1b stands, so
+  `tyWrapOk-refuted` is re-pointed at it: `Closedᵗ A` remains the one
+  load-bearing extra premise, and `proof.Preservation.Main` stays
+  uninstantiated on that account alone.
+* `notes/SrcGap` still reaches the seal-headed spine, and produces the
+  SAME word as the old repaired branch — which is the content of that
+  repair having been right *there*: a seal's source is a store entry,
+  hence closed, hence `revTy`'s MISS case, which is `show X α`.  The
+  example's inner steps now sit at the `unseal` boundary's interior,
+  where the assignment the seal pops actually lives (before, they were
+  stated at the empty context and `interior c₁` would have failed).
+* `Examples.inst-agrees` (the §14 check) holds unchanged, with the
+  context threaded in: `interior c₂ ([] ∥ []) ≡ just (asgn (lvl 0) ∷ [])`
+  and `srcᶜ [] (bind ∷ asgn (lvl 0) ∷ []) d ≡ ` 0 ⇒ ` 0`.
+
+## 2026-09-17: `fuse`'s unseal/seal direction is DEAD — removed
+
+Jeremy asked whether both seal directions earn their keep: "the seal,
+unseal direction is absolutely necessary, but I'm not so sure about the
+other direction."  Measured rather than argued — the clause was set to
+`nothing` and the development re-checked.
+
+  * `make check` is GREEN.  Net −39 lines over six files.
+  * Every affected site got SHORTER: `fuse-us-inv`, `fuse-decreases`,
+    `CompositionTyping.fuse-cancel-us` and `preserve-step`'s case all
+    collapse to absurd patterns, and `InertRenaming.fuse-renᵉ`,
+    `AddrWeaken.fuse-renᵉ` and `PreserveAlloc.fuse-inst` each lose a
+    four-way split on name AND address for a single `refl`.
+  * Nothing needed a new argument.  `cancel-unseal` is now dead code.
+
+Exactly one behaviour changed: the `nested-cancel` regression check
+(`unseal 0 α ∷ unseal 0 β ∷ seal 0 β ∷ seal 0 α`) is now a normal form.
+It was the direction's ONLY exercise.  `k-example` — the necessary
+direction with a `hide`/`show` pair nested inside — still collapses to
+`id ℕ`, and `overlap-stuck` is untouched.
+
+Progress is unaffected: it takes no parameter (unlike `Preservation`),
+is in `All.agda`, and still checks, so the extra normal forms strand
+nothing.
+
+WHAT THIS OPENS.  The notes' stated reason for comparing ADDRESSES on a
+seal/unseal pair was specifically the removed order: "in the
+`unseal{+X:=α} ∷ seal{-Y:=β}` order the seam context has neither name
+in scope".  In the SURVIVING order the seam DOES have the name — the
+`seal` pushes `X:=α` and the `unseal` pops it — so equal names at the
+seam should force equal addresses.  Next experiment: drop `α ≟ᵃ β` from
+the seal/unseal clause and see whether preservation still checks.  If
+it does, addresses are load-bearing only for the crossing pair
+(`notes/AddrNeeded.keptApart` is a `show`/`hide` witness), which is a
+much smaller commitment to preserve if the store goes away and
+representations move onto boundaries.
+
+## 2026-09-17: `fuse` cancels on the NAME ALONE — and `Addr` drops out of it
+
+Jeremy: "I think name alone should be OK" for the surviving seal
+direction, and "can we also remove the analogous for id:
+`fuse(id{+X:=α},id{-X:=α})`?"  Both, plus one step further, measured:
+
+  1. `fuse (seal X α) (unseal Y β)` tests `X ≟ Y` only.   GREEN.
+  2. `fuse (show X α) (hide Y β)` deleted, like the unseal/seal
+     direction before it.                                GREEN.
+  3. (not asked for — my initiative) `fuse (hide X α) (show Y β)` tests
+     `X ≟ Y` only.                                       GREEN.
+
+`make check` passes after each, with no postulates or holes.
+
+WHY THE ADDRESS TEST WAS REDUNDANT.  At a `seal X α ∷ unseal Y β` seam
+the `seal` pushes the assignment and the `unseal` pops it, so BOTH pops
+are from the same context Γ₂; likewise at a `hide ∷ show` seam.
+`proof.ConvCanonicity.pop-unique` then delivers `X ≡ Y`, `α ≡ β` AND
+`Γ₁ ≡ Γ₃` from the typing alone.  So `cancel-seal`/`cancel-hide` never
+needed their addresses assumed equal — they now take α and β and derive
+the equality — and `fuse`'s syntactic test was checking something the
+typing already forced.  The notes' own justification for the address
+test named the order that is now gone ("in the `unseal{+X:=α} ∷
+seal{-Y:=β}` order the seam context has neither name in scope").
+
+TWO CONSEQUENCES, BOTH RECORDED IN PLACE.
+
+  * `notes/AddrNeeded.wouldCancel` — the sole witness that `Addr` must
+    be richer than a name — IS DEAD.  Its `show`/`hide` pair no longer
+    cancels at any address, and `keptApart`'s two sides are no longer
+    compared.  Nothing in `All.agda` now needs `Addr` to have two
+    constructors FOR FUSION.  The read-back argument (`lvl` is a store
+    level, `bse` a base index; `proof.AddrWeaken.lvl-fixed`) is
+    untouched and still needs it.
+
+  * `proof.InertRenaming.value-renᵉ-not-unconditional` — "value
+    preservation under a base renaming is FALSE without injectivity" —
+    IS RETRACTED.  Its counterexample was a `hide 0 (bse 0) ∷ show 0
+    (bse 1)` normal form destroyed by a collapsing renaming.  Normality
+    no longer mentions an address, so no renaming can manufacture a
+    redex.  `value-renᵉ` still threads `Injᵉ`; whether it can drop it
+    is not settled here.
+
+Step 3 was NOT requested and is the last thing in the commit, so it is
+the easy one to revert if the address test is wanted back.
+
+## 2026-09-17: PRESERVATION IS FALSE on a REACHABLE term — the source program
+
+Jeremy asked whether §8.1b's refutation bites on reachable states or
+only on `TyWrapOk`'s over-general statement.  Answer: REACHABLE.
+`notes/SourceToTyWrapGap.agda` is a closed, well-typed SOURCE program —
+no boundaries, no store, no conversions —
+
+    ( ΛX. λf:(∀S. S→𝔹). f [X] ) [𝔹]  ·  ( ΛS. λz:S. true )
+
+    ⊢M₀ : [] ∣ ([] ∥ []) ∣ [] ⊢ M₀ ⦂ (`𝔹 ⇒ `𝔹)
+
+that reduces in FIVE steps to a term with no typing at any type:
+
+    run  : [] ∣ ([] ∥ []) ⊢ M₀ —↠ M₅ ⊣ (`𝔹ᴿ ∷ [])
+    M₅-⊥ : ∀ {C} → ¬ ((`𝔹ᴿ ∷ []) ∣ ([] ∥ []) ∣ [] ⊢ M₅ ⦂ C)
+
+THE TRICK is in the source: the outer `Λ` instantiates `f` AT ITS OWN
+TYPE VARIABLE.  After `TyBeta`/`Alloc` that variable is a crossing
+assignment to a store level, and the route is forced from there:
+
+  TyBeta    mints the boundary; `revTy` puts a `↦` at the head
+  Alloc     `bse 0 ↦ lvl 0`; the store gains `𝔹`
+  Wrap      `arr` hands the polymorphic argument the CONTRAVARIANT half
+            `c₁ = hide 0 (lvl 0) ∷ᶜ id (∀S. S→𝔹)`, and leaves the
+            covariant half as the boundary — whose interior is
+            `asgn (lvl 0) ∷ [] ∥ []`, i.e. §8.1b's `Δₘ`
+  ξ-⟨⟩/Beta  substitutes the argument for `f` INSIDE that boundary
+  ξ-⟨⟩/TyWrap  the redex `((Λ V) ⟨ c₁ ⟩) • T [ ` 0 ]` at `Δₘ`
+
+and the checks line up with §8.1b verbatim: `allView c₁ ≡ just dₘ`,
+`interior c₁ Δₘ ≡ just ([] ∥ [])`, `⌊ ` 0 ⌋ ≡ `ᵃ (lvl 0)`, and
+`instReveal … ≡ Wₘ`.  The `seal`'s read-back then has an empty stack
+and no name for `lvl 0`.
+
+SO THE GAP IS NOT A STATEMENT ARTIFACT.  Restricting `preserve` to
+reachable configurations cannot close it, and neither can any premise
+on `TyWrapOk` — `M₀` is an ordinary System F program.  What must change
+is the calculus: either the `seal` rule stops demanding an interior
+read-back, or the representation reaches the interior without needing a
+name there (the "carry reps on boundaries, closed" direction).

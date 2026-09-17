@@ -24,6 +24,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import strong.Types
 open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
 open import strong.Conversion
 open import strong.ConversionReduction
 open import strong.Terms
@@ -41,13 +42,17 @@ TyBetaOk = ∀ {Sg Δ V A B R C}
   → Sg ∣ Δ ∣ [] ⊢ (Λ V) • B [ A ] ⦂ C
   → Sg ∣ Δ ∣ [] ⊢ ν R ∙ (V ⟨ revTy zero (bse zero) A B ⟩) ⦂ C
 
+-- `instReveal` consults the context for the spine's source, so the
+-- obligation carries the same interior equation the rule does.
 TyWrapOk : Set
-TyWrapOk = ∀ {Sg Δ V c d A B R C}
+TyWrapOk = ∀ {Sg Δ Δᵢ V c d A B R C}
   → StoreOk Sg → Flat Δ → NameFn Δ → Scoped Sg Δ
   → allView c ≡ just d
   → Sg ∣ Δ ⊢⌊ A ⌋ R
+  → interior c Δ ≡ just Δᵢ
   → Sg ∣ Δ ∣ [] ⊢ ((Λ V) ⟨ c ⟩) • B [ A ] ⦂ C
-  → Sg ∣ Δ ∣ [] ⊢ ν R ∙ (V ⟨ instReveal zero (bse zero) A d ⟩) ⦂ C
+  → Sg ∣ Δ ∣ [] ⊢ ν R ∙ (V ⟨ instReveal Sg (bind ∷ stk Δᵢ ∥ bas Δᵢ)
+                               zero (bse zero) A d ⟩) ⦂ C
 
 AllocOk : Set
 AllocOk = ∀ {Sg Δ Γ R M A}

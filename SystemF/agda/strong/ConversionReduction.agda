@@ -35,7 +35,10 @@ open import Relation.Binary.PropositionalEquality using
   (_≡_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong.Types
-open import strong.RepresentationTypes using (Addr; lvl; bse; _≟ᵃ_)
+open import strong.RepresentationTypes using (Addr; lvl; bse; RepTy; _≟ᵃ_)
+open import strong.Ctx using
+  (Store; Ctxᵗ; _∥_; StackEnt; bind; asgn; repOf; readOf)
+open Ctxᵗ
 open import strong.Conversion
 
 private
@@ -333,53 +336,59 @@ c ⨟ d = normalize (c ⧺ d)
 --   +X(c) ≡ +X(src c) ⨟ c[X:=S]        -X(c) ≡ c[X:=S] ⨟ -X(tgt c)
 --
 -- placing the single crossing at the stack-correct end of each path.
--- `srcᶜ` reads the source off the syntax where the syntax determines
--- it; on a seal- or unseal-headed conversion it is undefined, and there
--- the head's source is fixed by an address other than the fresh one, so
--- X occurs nowhere in c and a bare identity crossing is correct (the
--- store cannot mention a bound address variable, and c predates the
--- fresh binder).  In de Bruijn form the unseal case is undefined
--- because its source is a NAME, which the syntax does not carry.
-
-srcᶜ : Conv → Maybe Ty
-srcᶜ (id A) = just A
--- The unseal's source IS its name; a `show` shifts its target by the
--- crossing it performs, and a `hide` unshifts it (X cannot occur in a
--- hide's target); only a seal's source is a read-back that the syntax
--- does not carry.
-srcᶜ (seal X α ∷ᶜ c) = nothing
-srcᶜ (unseal X α ∷ᶜ c) = just (` X)
-srcᶜ (hide X α ∷ᶜ c) with srcᶜ c
-srcᶜ (hide X α ∷ᶜ c) | just B = just (closeAt X `ℕ B)
-srcᶜ (hide X α ∷ᶜ c) | nothing = nothing
-srcᶜ (show X α ∷ᶜ c) with srcᶜ c
-srcᶜ (show X α ∷ᶜ c) | just B = just (renameᵗ (shiftAtᵗ X) B)
-srcᶜ (show X α ∷ᶜ c) | nothing = nothing
-srcᶜ ((s ↦ t) ∷ᶜ c) with srcᶜ t
-srcᶜ ((s ↦ t) ∷ᶜ c) | just B = just (target s ⇒ B)
-srcᶜ ((s ↦ t) ∷ᶜ c) | nothing = nothing
-srcᶜ (all s ∷ᶜ c) with srcᶜ s
-srcᶜ (all s ∷ᶜ c) | just A = just (`∀ A)
-srcᶜ (all s ∷ᶜ c) | nothing = nothing
-
-instReveal : ℕ → Addr → Ty → Conv → Conv
-instReveal X α S c with srcᶜ c
-instReveal X α S c | just A = revTy X α S A ⨟ substAnn X S c
--- The `nothing` branch must DROP THE SLOT too, exactly as the `just`
--- branch does through `substAnn` — `c` is still typed under the `∀`'s
--- binder, and a bare crossing leaves its names pointing at a binder
--- the `ν` has replaced.  See notes/SrcGap for a source program that
--- reaches this branch and for the word it produces.
 --
--- STILL NOT ENOUGH.  `show X α ∷ᶜ …` is `revTy`'s MISS equation, so it
--- is right only when X misses the spine's SOURCE.  That is automatic
--- for a seal-HEADED `c` (its source is a read-back of a store
--- representation, hence closed) but not when `srcᶜ` gives out through
--- an `↦`, where the source is `target s ⇒ src t` and only the right
--- half is forced closed.  `proof.PreserveTyWrap` §8.3 REFUTES
--- `TyWrapOk` on such a redex; making this branch correct needs the
--- spine's source type, which `srcᶜ` cannot compute.
-instReveal X α S c | nothing = show X α ∷ᶜ substAnn X S c
+-- `srcᶜ` is TOTAL, and it is total because it CONSULTS THE CONTEXT.  A
+-- seal's source is not in the syntax, but it is not missing either:
+--
+--   conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Γᵢ ⊢ R ⇓ A → Γₑ ▷ X := α ⇒ Γᵢ
+--             → Σ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X ⊣ Γₑ
+--
+-- reads it off α's representation at the element's own INTERIOR.  So
+-- `srcᶜ` is given the store and the conversion's interior context, and
+-- `repOf`/`readOf` (strong.Ctx) do exactly what `∋r` and `⇓` do.  The
+-- other elements move that context as the typing rules do: a `hide`'s
+-- tail sits at `pushAsgn`, a `show`'s at `popAsgn`, an `all`'s
+-- component under one more `bind`, and an `↦`'s covariant component at
+-- the element's own interior.
+--
+-- The equations that answer `` `ℕ `` are the ones no typed conversion
+-- reaches — a lookup that fails, a pop or push that does not fit.
+-- `proof.SrcTyping.srcᶜ-sound` is the statement that they are
+-- unreachable: on a typed conversion `srcᶜ` answers WITH THE SOURCE.
+-- That is why `instReveal` has one equation and no `nothing` branch.
+
+orℕ : Maybe Ty → Ty
+orℕ (just A) = A
+orℕ nothing  = `ℕ
+
+srcSeal : Ctxᵗ → Maybe RepTy → Ty
+srcSeal Γ (just R) = orℕ (readOf Γ R)
+srcSeal Γ nothing  = `ℕ
+
+mutual
+  srcᶜ : Store → Ctxᵗ → Conv → Ty
+  srcᶜ Sg Γ (id A) = A
+  -- a seal's source is the read-back of α's representation, HERE
+  srcᶜ Sg Γ (seal X α ∷ᶜ c) = srcSeal Γ (repOf Sg Γ α)
+  -- an unseal's source IS its name
+  srcᶜ Sg Γ (unseal X α ∷ᶜ c) = ` X
+  -- a `hide` unshifts its tail's source (X cannot occur in it), and
+  -- the tail runs from the context the hide's crossing creates
+  srcᶜ Sg Γ (hide X α ∷ᶜ c) =
+    closeAt X `ℕ (srcAt Sg (pushAsgn X α Γ) c)
+  -- a `show` shifts its tail's source by the crossing it performs
+  srcᶜ Sg Γ (show X α ∷ᶜ c) =
+    renameᵗ (shiftAtᵗ X) (srcAt Sg (popAsgn X α Γ) c)
+  -- the contravariant component's TARGET is the domain
+  srcᶜ Sg Γ ((s ↦ t) ∷ᶜ c) = target s ⇒ srcᶜ Sg Γ t
+  srcᶜ Sg Γ (all s ∷ᶜ c) = `∀ (srcᶜ Sg (bind ∷ stk Γ ∥ bas Γ) s)
+
+  srcAt : Store → Maybe Ctxᵗ → Conv → Ty
+  srcAt Sg (just Γ) c = srcᶜ Sg Γ c
+  srcAt Sg nothing  c = `ℕ
+
+instReveal : Store → Ctxᵗ → ℕ → Addr → Ty → Conv → Conv
+instReveal Sg Γ X α S c = revTy X α S (srcᶜ Sg Γ c) ⨟ substAnn X S c
 
 instConceal : ℕ → Addr → Ty → Conv → Conv
 instConceal X α S c = substAnn X S c ⨟ concTy X α S (target c)

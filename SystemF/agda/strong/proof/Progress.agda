@@ -110,8 +110,8 @@ module Proof (canon : Canonicity) where
   progress {Sg = Sg} (⊢•[] ⊢L wfA) | inj₁ vL
     | inj₁ (_ , v , refl) | _ , q = inj₂ (_ , _ , TyBeta v q)
   progress {Sg = Sg} (⊢•[] ⊢L wfA) | inj₁ vL
-    | inj₂ (_ , _ , _ , refl , all-eq) | _ , q =
-    inj₂ (_ , _ , TyWrap vL all-eq q)
+    | inj₂ (_ , _ , _ , _ , refl , all-eq , int-eq) | _ , q =
+    inj₂ (_ , _ , TyWrap vL all-eq q int-eq)
 
   progress (⊢⟨⟩ nf ⊢M conv) with progress ⊢M
   progress (⊢⟨⟩ nf ⊢M conv) | inj₂ (_ , _ , st) =

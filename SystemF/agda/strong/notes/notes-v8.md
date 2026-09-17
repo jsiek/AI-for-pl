@@ -486,24 +486,44 @@ builders,
                                            X:=α assigned along c)
 
 and computed syntactically.  `tgt` is `target`; `src` reads the source
-off the syntax where the syntax determines it:
+off the syntax and, at a seal, OFF THE CONTEXT — so it is TOTAL.  It is
+written `src_Σ,Γᵢ(c)`, where `Γᵢ` is `c`'s own interior, and each
+equation hands its recursive call the context the typing rule gives
+that subterm:
 
-  src(id(A))          = A
-  src((s → t) ∷ c)    = tgt(s) → src(t)
-  src((∀Y.s) ∷ c)     = ∀Y. src(s)
-  src(unseal{+Y:=β} ∷ c)  = Y
-  src(id{±Y:=β} ∷ c)      = src(c)
-  src(seal{-Y:=β} ∷ c)    undefined
+  src(id(A))                  = A
+  src((s → t) ∷ c)            = tgt(s) → src_Γᵢ(t)
+  src((∀Y.s) ∷ c)             = ∀Y. src_{Γᵢ,Y}(s)
+  src(unseal{+Y:=β} ∷ c)      = Y
+  src(id{-Y:=β} ∷ c)          = close_Y (src_{Γᵢ,Y:=β}(c))
+  src(id{+Y:=β} ∷ c)          = shift_Y (src_{Γᵢ∖Y:=β}(c))
+  src(seal{-Y:=β} ∷ c)        = read_Γᵢ (rep_{Σ,Γᵢ}(β))
 
-  +X(c) = +X(src c) ⨟ c[X:=S]           (src c defined)
-  +X(c) = id{+X:=α} ∷ c                 (src c undefined)
+  +X(c) = +X(src c) ⨟ c[X:=S]
   -X(c) = c[X:=S] ⨟ -X(tgt c)
 
-A seal-headed conversion's source is the read-back of a stored
-representation, and a representation in Σ cannot mention a bound
-address variable — so in the undefined case `X` occurs nowhere in `c`
-and the
-bare identity crossing is correct.  `c[X:=S]` is type substitution on
+There is no second equation for `+X`.  The seal rule is exactly what
+`conv-seal` demands of a derivation,
+
+  Γₑ ∋r β:=R    Γᵢ ⊢ R ⇓ A    Γₑ ▷ Y:=β ⇒ Γᵢ
+  ------------------------------------------
+  Γᵢ ⊢ seal{-Y:=β} : A ⇒ Y ⊣ Γₑ
+
+read as a function: `rep` is `∋r` (the store for a level, the base for a
+`bse`, shifting at each entry) and `read` is `⇓` (a name lookup for an
+address, the i-th binder's name for a `∀ᴿ`-bound variable).  Both are
+adequate in both directions (`proof.SrcTyping` §2), and `read`'s
+completeness is where NAME UNIQUENESS is spent — the same place
+`read-unique` spends it.  `proof.SrcTyping.srcᶜ-sound` is the totality
+statement: on a typed `c`, `src_{Σ,Γᵢ}(c)` IS `c`'s source.
+
+(Until 2026-09-17 `src` was partial at a seal — "a read-back the syntax
+does not carry" — and `+X` had a second equation `id{+X:=α} ∷ c` for it.
+That equation is `+X`'s MISS case, so it is right only when X misses the
+spine's source, which holds for a seal-HEADED `c` but not when the
+partiality propagated through a `→`; see DECISIONS 2026-09-17.)
+
+`c[X:=S]` is type substitution on
 annotations, elements untouched:
 
   id(A)[X:=S]     = id(A[X:=S])

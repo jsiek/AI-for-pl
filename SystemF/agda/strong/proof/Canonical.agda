@@ -20,6 +20,7 @@ open import strong.Ctx
 open import strong.Conversion
 open import strong.ConversionReduction
 open import strong.Terms
+open import strong.proof.Interior using (conv-interior)
 
 private
   variable
@@ -335,10 +336,15 @@ canonical-⇒ {A = A} {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ �
   | _ , _ , probe | A₁ , N , refl | c₁ , c₂ , arr-eq =
   inj₂ (A₁ , N , _ , c₁ , c₂ , refl , arr-eq)
 
+-- `TyWrap` needs the conversion's INTERIOR context as well as the
+-- view, because `instReveal` reads the spine's source off it; the
+-- boundary's own derivation names it, and `conv-interior` says the
+-- computed walk finds it.
 canonical-∀ : ∀ {Sg Δ L B} → Value L → Sg ∣ Δ ∣ [] ⊢ L ⦂ `∀ B
   → (Σ[ V ∈ Term ] (Value V × (L ≡ Λ V)))
-    ⊎ (Σ[ V ∈ Term ] Σ[ c ∈ Conv ] Σ[ d ∈ Conv ]
-       ((L ≡ (Λ V) ⟨ c ⟩) × (allView c ≡ just d)))
+    ⊎ (Σ[ V ∈ Term ] Σ[ c ∈ Conv ] Σ[ d ∈ Conv ] Σ[ Δᵢ ∈ Ctxᵗ ]
+       ((L ≡ (Λ V) ⟨ c ⟩) × (allView c ≡ just d)
+        × (interior c Δ ≡ just Δᵢ)))
 canonical-∀ (Vs simple) ⊢L = inj₁ (simple-all simple ⊢L (all-shape _))
 canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv)
   with inert-all-view {c = c} app
@@ -346,4 +352,5 @@ canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv
 canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv) | d , all-eq
   with simple-all simple ⊢V (conv-all-source conv all-eq)
 canonical-∀ {B = B} (V⟨⟩ {c = c} simple nf app) (⊢⟨⟩ nf′ ⊢V conv) | d , all-eq
-  | V , v , refl = inj₂ (V , c , d , refl , all-eq)
+  | V , v , refl =
+  inj₂ (V , c , d , _ , refl , all-eq , conv-interior conv)

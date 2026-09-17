@@ -21,6 +21,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import strong.Types using (Ty; `_; `ℕ; `𝔹)
 open import strong.RepresentationTypes
 open import strong.Ctx
+open Ctxᵗ
 open import strong.Conversion
 open import strong.ConversionReduction
 open import strong.Terms
@@ -61,11 +62,17 @@ data _∣_⊢_—→_⊣_ : Store → Ctxᵗ → Term → Term → Store → Set
     → Σ ∣ Δ ⊢ ((ƛ A ∙ N) ⟨ c ⟩) · W
         —→ ((ƛ A ∙ N) · (W ⟨ c₁ ⟩)) ⟨ c₂ ⟩ ⊣ Σ
 
-  TyWrap : ∀ {Σ Δ V c B A d R}
+  -- `instReveal` reads `d`'s SOURCE off the context, so the rule hands
+  -- it the store and the context `d` is typed in: `interior c Δ` is the
+  -- conversion's own interior — the same walk `ξ-⟨⟩` uses — and
+  -- `allView` puts `d` one `bind` further in (proof.AllTyping).
+  TyWrap : ∀ {Σ Δ Δᵢ V c B A d R}
     → Value ((Λ V) ⟨ c ⟩)
     → allView c ≡ just d → Σ ∣ Δ ⊢⌊ A ⌋ R
+    → interior c Δ ≡ just Δᵢ
     → Σ ∣ Δ ⊢ ((Λ V) ⟨ c ⟩) • B [ A ]
-        —→ ν R ∙ (V ⟨ instReveal zero (bse zero) A d ⟩) ⊣ Σ
+        —→ ν R ∙ (V ⟨ instReveal Σ (bind ∷ stk Δᵢ ∥ bas Δᵢ)
+                        zero (bse zero) A d ⟩) ⊣ Σ
 
   Merge : ∀ {Σ Δ M c d}
     → Value (M ⟨ c ⟩)

@@ -81,7 +81,7 @@ step-⊑ PrimBeta = ⊑-refl
 step-⊑ (TyBeta v q) = ⊑-refl
 step-⊑ Alloc = ⊑-snoc ⊑-refl
 step-⊑ (Wrap v w eq) = ⊑-refl
-step-⊑ (TyWrap v eq q) = ⊑-refl
+step-⊑ (TyWrap v eq q ieq) = ⊑-refl
 step-⊑ (Merge v) = ⊑-refl
 step-⊑ (Const lit eq) = ⊑-refl
 step-⊑ (ξ-⊕-l st) = step-⊑ st
@@ -110,7 +110,8 @@ module Main (tyBeta : TyBetaOk) (tyWrap : TyWrapOk) (alloc : AllocOk)
   preserve sok fl nf scp ⊢M (TyBeta v q) = sok , tyBeta sok fl nf scp q ⊢M
   preserve sok fl nf scp ⊢M Alloc = alloc sok fl scp ⊢M
   preserve sok fl nf scp ⊢M (Wrap v w eq) = sok , preserve-Wrap nf eq ⊢M
-  preserve sok fl nf scp ⊢M (TyWrap v eq q) = sok , tyWrap sok fl nf scp eq q ⊢M
+  preserve sok fl nf scp ⊢M (TyWrap v eq q ieq) =
+    sok , tyWrap sok fl nf scp eq q ieq ⊢M
   preserve sok fl nf scp ⊢M (Merge v) = sok , preserve-Merge nf ⊢M
   preserve sok fl nf scp ⊢M (Const lit eq) = sok , preserve-Const lit eq ⊢M
 

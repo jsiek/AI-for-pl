@@ -344,12 +344,27 @@ module §14 where
   all-agrees : allView c₂ ≡ just d
   all-agrees = refl
 
+  -- `c₂`'s crossing is what puts the assignment in scope, so the
+  -- conversion's interior HAS it, and `d` is typed one `bind` further
+  -- in — the context `TyWrap` hands to `instReveal`.
+  Δᵢ§14 Γ§14 : Ctxᵗ
+  Δᵢ§14 = asgn (lvl 0) ∷ [] ∥ []
+  Γ§14 = bind ∷ asgn (lvl 0) ∷ [] ∥ []
+
+  int-agrees : interior c₂ ([] ∥ []) ≡ just Δᵢ§14
+  int-agrees = refl
+
+  -- and there the `show` pops the assignment back off, so `d`'s source
+  -- is read at `bind ∷ []` — the `∀`'s own binder and nothing else
+  src-agrees : srcᶜ [] Γ§14 d ≡ (` 0 ⇒ ` 0)
+  src-agrees = refl
+
   -- THE §14 CHECK: `instReveal` reproduces the notes' conversion
   --   ((-Y:=β ∷ id(Y)) → (+Y:=β ∷ id(𝔹))) ∷ id{+X:=α} ∷ id(𝔹→𝔹)
   -- with the fresh crossing FIRST and the hoisted one reindexed to the
   -- slot the fresh name vacates.
   inst-agrees :
-    instReveal zero (bse zero) `𝔹 d
+    instReveal [] Γ§14 zero (bse zero) `𝔹 d
       ≡ ((seal 0 (bse 0) ∷ᶜ id (` 0)) ↦ (unseal 0 (bse 0) ∷ᶜ id `𝔹))
           ∷ᶜ show 0 (lvl 0) ∷ᶜ id (`𝔹 ⇒ `𝔹)
   inst-agrees = refl
@@ -357,6 +372,6 @@ module §14 where
   step-tywrap :
     [] ∣ ([] ∥ []) ⊢ after-beta • (` 0 ⇒ ` 0) [ `𝔹 ]
       —→ ν `𝔹ᴿ ∙ ((ƛ ` 0 ∙ (((crossΛ W ∀ZZ→Z) • (` 0 ⇒ ` 0) [ ` 0 ]) · ` 0))
-                    ⟨ instReveal zero (bse zero) `𝔹 d ⟩)
+                    ⟨ instReveal [] Γ§14 zero (bse zero) `𝔹 d ⟩)
       ⊣ []
-  step-tywrap = TyWrap val-after-beta refl quote-𝔹
+  step-tywrap = TyWrap val-after-beta refl quote-𝔹 int-agrees

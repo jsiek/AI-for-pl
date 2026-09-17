@@ -29,6 +29,8 @@ module strong.Ctx where
 
 open import Data.Nat using (ℕ; zero; suc) renaming (_<_ to _<ᵗ_)
 open import Data.Empty using (⊥)
+open import Data.Maybe using (Maybe; just; nothing)
+open import Relation.Nullary using (Dec; yes; no)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 open import Data.Product using (Σ-syntax; _,_)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
@@ -317,6 +319,88 @@ data _∣_⊢⌊_⌋_ (Σ : Store) : Ctxᵗ → Ty → RepTy → Set where
             → Σ ∣ Γ ⊢⌊ A ⇒ B ⌋ R ⇒ᴿ T
   quote-∀   : ∀ {Ss Bs} → Σ ∣ (bind ∷ Ss ∥ Bs) ⊢⌊ A ⌋ R
             → Σ ∣ (Ss ∥ Bs) ⊢⌊ `∀ A ⌋ `∀ᴿ R
+
+------------------------------------------------------------------------
+-- THE LOOKUPS AS FUNCTIONS
+------------------------------------------------------------------------
+-- `∋ˡ`, `∋r`, `∋n`, `∋b` and `⇓` are all syntax-directed, so each has a
+-- computable inverse — and that is what makes a seal's SOURCE type
+-- readable: `conv-seal` gets it by reading α's representation back at
+-- the element's own interior, so the information is in the context even
+-- though it is not in the syntax.  `strong.ConversionReduction.srcᶜ`
+-- consults these; `proof.SrcTyping` proves them adequate.
+
+sucᴹ : Maybe ℕ → Maybe ℕ
+sucᴹ (just X) = just (suc X)
+sucᴹ nothing  = nothing
+
+⇑ᴹ : Maybe RepTy → Maybe RepTy
+⇑ᴹ (just R) = just (⇑ᴿᵉ R)
+⇑ᴹ nothing  = nothing
+
+-- α's representation.  A `lvl` is a position in the store; a `bse` is
+-- an index into the base, and each base entry it passes shifts the
+-- answer by `⇑ᴿᵉ`, exactly as `∋r`'s rules do.
+
+lvlOf : Store → ℕ → Maybe RepTy
+lvlOf []      ℓ       = nothing
+lvlOf (R ∷ Σ) zero    = just R
+lvlOf (R ∷ Σ) (suc ℓ) = lvlOf Σ ℓ
+
+bseOf : List BaseEnt → ℕ → Maybe RepTy
+bseOf []                j       = nothing
+bseOf (addr ∷ Bs)       zero    = nothing
+bseOf (nuBind R ∷ Bs)   zero    = just (⇑ᴿᵉ R)
+bseOf (addr ∷ Bs)       (suc j) = ⇑ᴹ (bseOf Bs j)
+bseOf (nuBind T ∷ Bs)   (suc j) = ⇑ᴹ (bseOf Bs j)
+
+repOf : Store → Ctxᵗ → Addr → Maybe RepTy
+repOf Σ Γ (lvl ℓ) = lvlOf Σ ℓ
+repOf Σ Γ (bse j) = bseOf (bas Γ) j
+
+-- The NAME assigned to α — the inverse of `∋n`, searching the stack
+-- newest first.  The address test is factored into `pickName` so that
+-- the equations stay `with`-free: a proof can then abstract over
+-- `α ≟ᵃ β` and see the answer reduce.
+pickName : ∀ {P : Set} → Dec P → Maybe ℕ → Maybe ℕ
+pickName (yes _) m = just zero
+pickName (no  _) m = sucᴹ m
+
+nameOf : List StackEnt → Addr → Maybe ℕ
+nameOf []            α = nothing
+nameOf (bind ∷ Ss)   α = sucᴹ (nameOf Ss α)
+nameOf (asgn β ∷ Ss) α = pickName (α ≟ᵃ β) (nameOf Ss α)
+
+-- The name of the i-th `bind` — the inverse of `∋b`, which is what a
+-- `∀ᴿ`-bound `` `ᵛ `` reads back to.
+bindOf : List StackEnt → ℕ → Maybe ℕ
+bindOf []            i       = nothing
+bindOf (asgn β ∷ Ss) i       = sucᴹ (bindOf Ss i)
+bindOf (bind ∷ Ss)   zero    = just zero
+bindOf (bind ∷ Ss)   (suc i) = sucᴹ (bindOf Ss i)
+
+-- The READ-BACK, structurally: `` `ᵃ `` goes through `nameOf`, `` `ᵛ ``
+-- through `bindOf`, and `` `∀ᴿ `` descends under one more `bind`.
+readVar : Maybe ℕ → Maybe Ty
+readVar (just X) = just (` X)
+readVar nothing  = nothing
+
+readFun : Maybe Ty → Maybe Ty → Maybe Ty
+readFun (just A) (just B) = just (A ⇒ B)
+readFun (just A) nothing  = nothing
+readFun nothing  q        = nothing
+
+readAll : Maybe Ty → Maybe Ty
+readAll (just A) = just (`∀ A)
+readAll nothing  = nothing
+
+readOf : Ctxᵗ → RepTy → Maybe Ty
+readOf Γ (`ᵃ α)        = readVar (nameOf (stk Γ) α)
+readOf Γ (`ᵛ i)        = readVar (bindOf (stk Γ) i)
+readOf Γ `ℕᴿ           = just `ℕ
+readOf Γ `𝔹ᴿ           = just `𝔹
+readOf Γ (R ⇒ᴿ T)      = readFun (readOf Γ R) (readOf Γ T)
+readOf (Ss ∥ Bs) (`∀ᴿ R) = readAll (readOf (bind ∷ Ss ∥ Bs) R)
 
 -- Context well-formedness (`ok`), with its one-live-assignment-per-
 -- address condition, lands with the term layer; the conversion rules

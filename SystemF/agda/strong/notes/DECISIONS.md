@@ -4624,3 +4624,88 @@ source program; both are typed redexes, which is all `TyWrapOk`
 quantifies over.  If the intended calculus excludes them, the exclusion
 has to become part of the typing judgment (a grounded invariant), not a
 premise of the preservation lemma.
+
+## 2026-09-17: `srcᶜ` IS TOTAL — it consults the CONTEXT, and `TyWrapOk`'s second premise is gone
+
+Jeremy's point.  `srcᶜ` was partial only at
+
+    srcᶜ (seal X α ∷ᶜ c) = nothing   -- "a seal's source is a read-back
+                                     --  that the syntax does not carry"
+
+but `conv-seal` reads it straight off the context:
+
+    conv-seal : Σ ∣ Γₑ ∋r α := R → Σ ∣ Γᵢ ⊢ R ⇓ A → Γₑ ▷ X := α ⇒ Γᵢ
+              → Σ ∣ Γᵢ ⊢̂ seal X α ∶ A ⇝ ` X ⊣ Γₑ
+
+The information is present; `srcᶜ` just did not look.  It looks now.
+
+WHAT WAS BUILT (strong/Ctx.agda, §"THE LOOKUPS AS FUNCTIONS"):
+
+    repOf  : Store → Ctxᵗ → Addr → Maybe RepTy   -- inverts `∋r`
+    nameOf : List StackEnt → Addr → Maybe ℕ      -- inverts `∋n`
+    bindOf : List StackEnt → ℕ → Maybe ℕ         -- inverts `∋b`
+    readOf : Ctxᵗ → RepTy → Maybe Ty             -- inverts `⇓`
+
+`repOf` walks the store for a `lvl` and the base for a `bse`, shifting by
+`⇑ᴿᵉ` at each entry exactly as `∋r`'s rules do.  `readOf` is structural;
+its `` `ᵃ α `` case uses `nameOf` and its `` `ᵛ i `` case uses `bindOf` —
+the name of the i-th `bind`, mirroring `read-bv`/`∋b` (an earlier sketch
+had that case return `nothing`, which was a stub, not a design).
+
+`srcᶜ` then takes the STORE and the conversion's INTERIOR context and
+returns a `Ty`, not a `Maybe Ty`:
+
+    srcᶜ Σ Γ (seal X α ∷ᶜ c) = read of α's representation, at Γ
+    srcᶜ Σ Γ (hide X α ∷ᶜ c) = close_X (srcᶜ Σ (pushAsgn X α Γ) c)
+    srcᶜ Σ Γ (show X α ∷ᶜ c) = shift_X (srcᶜ Σ (popAsgn X α Γ) c)
+    srcᶜ Σ Γ (all s ∷ᶜ c)    = ∀ (srcᶜ Σ (bind ∷ Γ) s)
+
+— each recursive call at the context the typing rule gives that subterm.
+The equations that answer `` `ℕ `` (a lookup that fails, a pop or push
+that does not fit) are the ones no typed conversion reaches.
+
+THE OBLIGATIONS, both discharged.
+
+* ADEQUACY (`proof.SrcTyping` §2), both directions, for every lookup:
+  `lvlOf`, `bseOf`/`repOf`, `nameOf`, `bindOf`, `readOf`.  Only the two
+  NAME lookups need a hypothesis, and it is the one `read-unique` needs:
+  `NameFn`.  `nameOf-complete` is `nameOf-total` + `nameOf-sound` +
+  `NameFn`, which is cheaper than restricting `NameFn` to stack tails.
+
+* TOTALITY (`proof.SrcTyping` §3), strengthening the old graph statement
+  to an equation:
+
+      srcᶜ-sound : NameFn Δᵢ → Σ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → srcᶜ Σ Δᵢ c ≡ A
+
+  `pop-sound`/`push-sound` rule out every failing branch; `∋r-pop`
+  (a pop leaves the base alone) brings the seal's `∋r` in from `Γₑ`.
+
+CONSEQUENCES.
+
+* `instReveal` has ONE equation — `instReveal Σ Γ X α S c = revTy X α S
+  (srcᶜ Σ Γ c) ⨟ substAnn X S c` — and no `nothing` branch.
+* `TyWrap` carries `interior c Δ ≡ just Δᵢ` (the same walk `ξ-⟨⟩` uses)
+  and hands `instReveal` the store and `bind ∷ Δᵢ`, which is where
+  `allView-typing` types `d`.  `canonical-∀` returns that equation so
+  `Progress` can supply it; `conv-interior` pins it in `Preservation`.
+* `tyWrapOk′`'s premises are now: `StoreOk Σ`, `Flat Δ`, `NameFn Δ`,
+  `Scoped Σ Δ`, `Closedᵗ A`, `allView c ≡ just d`,
+  `interior c Δ ≡ just Δᵢ`, `Σ ∣ Δ ⊢⌊ A ⌋ R`, and the redex's typing.
+  `¬ (srcᶜ d ≡ nothing)` IS GONE.
+* The 2026-09-17 refutation above (§8.3, the `↦`-shaped redex whose
+  source is `` ` 0 ⇒ `𝔹 ``) is RETRACTED: `srcᶜ` answers `` ` 0 ⇒ `𝔹 ``
+  there, `revTy` HITS and seals the domain, and `proof.PreserveTyWrap`
+  now proves the reduct typed (`reduct-okₖ`).  §8.1b stands, so
+  `tyWrapOk-refuted` is re-pointed at it: `Closedᵗ A` remains the one
+  load-bearing extra premise, and `proof.Preservation.Main` stays
+  uninstantiated on that account alone.
+* `notes/SrcGap` still reaches the seal-headed spine, and produces the
+  SAME word as the old repaired branch — which is the content of that
+  repair having been right *there*: a seal's source is a store entry,
+  hence closed, hence `revTy`'s MISS case, which is `show X α`.  The
+  example's inner steps now sit at the `unseal` boundary's interior,
+  where the assignment the seal pops actually lives (before, they were
+  stated at the empty context and `interior c₁` would have failed).
+* `Examples.inst-agrees` (the §14 check) holds unchanged, with the
+  context threaded in: `interior c₂ ([] ∥ []) ≡ just (asgn (lvl 0) ∷ [])`
+  and `srcᶜ [] (bind ∷ asgn (lvl 0) ∷ []) d ≡ ` 0 ⇒ ` 0`.

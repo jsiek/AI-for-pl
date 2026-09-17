@@ -40,12 +40,11 @@ c = hide zero (lvl zero) ∷ᶜ unseal zero (lvl zero) ∷ᶜ id `𝔹
 nf-c : NF c
 nf-c = nf-cons nf-hide (nf-cons nf-unseal nf-id irr-id) (irr-cons refl)
 
--- … and under the FRAME rules it is WELL TYPED, from a VARIABLE to 𝔹
-⊢c : Sg ∣ Ξ ∣ Γ₁ ⊢ c ∶ ` zero ⇝ `𝔹 ⊣ Γ₃
-⊢c = conv-cons (conv-hide (a-lvl l-here) (wf-var t-here) pop-here (λ ()))
-       (conv-cons (conv-unseal (r-lvl l-here) read-𝔹 n-here-asgn
-                     pop-here (λ ()))
-         (conv-id wf-𝔹))
+-- … and under the frame rules AS FIRST DRAFTED (before the `A ≢ ` X′`
+-- premise) it was WELL TYPED, from a VARIABLE to 𝔹 — which is what
+-- `ConvCanonicity.after-add` says cannot happen.  With the premise
+-- added it no longer typechecks: the hide's type is `` ` 0 `` and the
+-- frame names `lvl 0` by 0, so `ne` is unsatisfiable.
 
 -- WHY IT USED TO BE IMPOSSIBLE.  The old `conv-hide` re-spelled its
 -- type — `A ⇝ renameᵗ (shiftAtᵗ X) A` — and `shiftAtᵗ X` never produces
@@ -97,3 +96,33 @@ A-accepts-good ()
 -- … and (B) does not: it throws M₅ out along with the counterexample.
 B-rejects-good : occursᵗ zero goodA ≡ true
 B-rejects-good = refl
+
+------------------------------------------------------------------------
+-- BUT (A) IS NOT CLOSED UNDER `arr`'s DUALIZATION
+------------------------------------------------------------------------
+-- `arr⁻ (hide X α) = just (show X α ∷ [])`, and the dual lands on the
+-- DOMAIN.  So a `hide X α` at `` ` X′ ⇒ 𝔹 `` — which satisfies (A)
+-- vacuously, an arrow never being a variable — dualizes to a
+-- `show X α` at `` ` X′ ``, which does not.
+--
+-- And M₅'s own hide is exactly that shape: `hide 0 (lvl 0)` at
+-- `` ` 0 ⇒ 𝔹 ``, with the frame naming `lvl 0` by 0.  Its boundary
+-- wraps a λ, so `Wrap` can fire on it and `arr` will split it.
+
+arrowA : Ty
+arrowA = ` zero ⇒ `𝔹            -- the hide's type; Ξ ∋n 0 := lvl 0
+
+A-vacuous-at-arrow : ¬ (arrowA ≡ ` zero)
+A-vacuous-at-arrow ()
+
+-- … but the dual's type is the domain, and there (A) fails
+domainA : Ty
+domainA = ` zero
+
+A-fails-on-dual : ¬ (¬ (domainA ≡ ` zero))
+A-fails-on-dual k = k refl
+
+-- The OCCURS reading (B) IS closed under dualization — if `X′` does not
+-- occur in `A ⇒ B` it occurs in neither half — but (B) rejects M₅.  So
+-- neither reading is both strong enough for `after-add` and stable
+-- under `arr`, and that is the open question.

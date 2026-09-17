@@ -30,6 +30,7 @@ open import strong.proof.Canonical using (conv-target)
 private
   variable
     Sg : Store
+    Ξ : Ctxᵗ
     Δ Δᵢ Δ₂ : Ctxᵗ
     A B A₀ B₀ A′ B′ : Ty
     c : Conv
@@ -143,11 +144,11 @@ consArr-inv {q = nothing} ()
 -- types as renames, which the unifier cannot match against an arrow.
 
 arrElts-typing : ∀ {Sg Δᵢ Δ c S A₀ B₀ A′ B′ Ls Rs}
-  → Sg ∣ Δᵢ ⊢ c ∶ S ⇝ (A′ ⇒ B′) ⊣ Δ
+  → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ S ⇝ (A′ ⇒ B′) ⊣ Δ
   → S ≡ (A₀ ⇒ B₀)
   → arrElts (elts c) ≡ just (Ls , Rs)
-  → (Sg ∣ Δ ⊢ attach Ls A₀ ∶ A′ ⇝ A₀ ⊣ Δᵢ)
-    × (Sg ∣ Δᵢ ⊢ attach Rs B′ ∶ B₀ ⇝ B′ ⊣ Δ)
+  → (Sg ∣ Ξ ∣ Δ ⊢ attach Ls A₀ ∶ A′ ⇝ A₀ ⊣ Δᵢ)
+    × (Sg ∣ Ξ ∣ Δᵢ ⊢ attach Rs B′ ∶ B₀ ⇝ B′ ⊣ Δ)
 
 arrElts-typing (conv-id wf) refl refl with wf-⇒-inv wf
 arrElts-typing (conv-id wf) refl refl | wfA , wfB = conv-id wfA , conv-id wfB
@@ -168,44 +169,43 @@ arrElts-typing {A₀ = A₀} {B′ = B′}
 
 -- a `hide`: its DUAL joins the contravariant side, itself the covariant
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf nm ne p na) tl) refl eq
   with wf-⇒-inv wf | consArr-inv eq
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf nm ne p na) tl) refl eq
   | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl
   with arrElts-typing tl refl eq′
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf nm ne p na) tl) refl eq
   | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl | ih₁ , ih₂
-  rewrite attach-++ Ls′ (show X α ∷ []) (renameᵗ (shiftAtᵗ X) A₀) A₀ =
-  ⧺-typing ih₁ (conv-cons (conv-show sc wfA p na) (conv-id wfA))
-  , conv-cons (conv-hide sc wfB p na) ih₂
+  rewrite attach-++ Ls′ (show X α ∷ []) A₀ A₀ =
+  ⧺-typing ih₁ (conv-cons (conv-show sc wfA nm ne p na) (conv-id wfA))
+  , conv-cons (conv-hide sc wfB nm ne p na) ih₂
 
 -- a `show`: its DUAL joins the contravariant side.  The source is a
 -- SHIFT, so the arrow is recovered by inversion.
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
   with shift-⇒-inv X A seq
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
   | A₁ , B₁ , refl , refl , refl
   with wf-⇒-inv wf | consArr-inv eq
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
   | A₁ , B₁ , refl , refl , refl | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl
   with arrElts-typing tl refl eq′
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
   | A₁ , B₁ , refl , refl , refl | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl
   | ih₁ , ih₂
-  rewrite attach-++ Ls′ (hide X α ∷ []) A₁ (renameᵗ (shiftAtᵗ X) A₁) =
-  ⧺-typing ih₁
-    (conv-cons (conv-hide sc wfA p na) (conv-id (wf-shift p wfA)))
-  , conv-cons (conv-show sc wfB p na) ih₂
+  rewrite attach-++ Ls′ (hide X α ∷ []) A₁ A₁ =
+  ⧺-typing ih₁ (conv-cons (conv-hide sc wfA nm ne p na) (conv-id wfA))
+  , conv-cons (conv-show sc wfB nm ne p na) ih₂
 
 -- the renaming elements and `all` are not view-accepted
-arrElts-typing (conv-cons (conv-seal rep rd p) tl) refl ()
-arrElts-typing (conv-cons (conv-unseal rep rd p na) tl) () eq
+arrElts-typing (conv-cons (conv-seal rep rd nm p) tl) refl ()
+arrElts-typing (conv-cons (conv-unseal rep rd nm p na) tl) () eq
 arrElts-typing (conv-cons (conv-all s′) tl) () eq
 
 ------------------------------------------------------------------------
@@ -228,9 +228,9 @@ arr-inv {A₀ = A₀} {c = c} () | nothing | _
 
 arr-typing : ∀ {Sg Δᵢ Δ c A₀ B₀ A′ B′ c₁ c₂}
   → NameFn Δ
-  → Sg ∣ Δᵢ ⊢ c ∶ (A₀ ⇒ B₀) ⇝ (A′ ⇒ B′) ⊣ Δ
+  → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ (A₀ ⇒ B₀) ⇝ (A′ ⇒ B′) ⊣ Δ
   → arr A₀ c ≡ just (c₁ , c₂)
-  → (Sg ∣ Δ ⊢ c₁ ∶ A′ ⇝ A₀ ⊣ Δᵢ) × (Sg ∣ Δᵢ ⊢ c₂ ∶ B₀ ⇝ B′ ⊣ Δ)
+  → (Sg ∣ Ξ ∣ Δ ⊢ c₁ ∶ A′ ⇝ A₀ ⊣ Δᵢ) × (Sg ∣ Ξ ∣ Δᵢ ⊢ c₂ ∶ B₀ ⇝ B′ ⊣ Δ)
     × NF c₁ × NF c₂
 arr-typing {c = c} nf conv eq with arr-inv {c = c} eq
 arr-typing {c = c} nf conv eq | Ls , Rs , C , D , eqE , teq , refl , refl

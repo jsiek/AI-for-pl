@@ -60,9 +60,9 @@ mutual
   elt-interior : ∀ {Ξ} → Σ ∣ Ξ ∣ Δᵢ ⊢̂ ĉ ∶ A ⇝ B ⊣ Δ
     → interiorElt ĉ Δ ≡ just Δᵢ
   elt-interior (conv-seal r rd nm p) = pop-sound p
-  elt-interior (conv-hide sc wf nm ne p na) = pop-sound p
+  elt-interior (conv-hide sc wf p na) = pop-sound p
   elt-interior (conv-unseal r rd nm p na) = push-sound p
-  elt-interior (conv-show sc wf nm ne p na) = push-sound p
+  elt-interior (conv-show sc wf p na) = push-sound p
   elt-interior (conv-fun s t) = conv-interior t
   elt-interior (conv-all s) rewrite conv-interior s = refl
 

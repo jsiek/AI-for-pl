@@ -305,13 +305,13 @@ conv-fun-source {c = id A} (conv-id wf) eq = arr-target {c = id A} eq
 conv-fun-source (conv-cons (conv-seal r rd nm p) tl) ()
 conv-fun-source (conv-cons (conv-unseal r rd nm p na) tl) ()
 conv-fun-source (conv-cons (conv-all s) tl) ()
-conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl) eq
+conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
   with arr-tail-hide c eq
-conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl) eq
+conv-fun-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
   | _ , eq′ = conv-fun-source tl eq′
-conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf nm ne p na) tl) eq
+conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
   with arr-tail-show c eq
-conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf nm ne p na) tl) eq
+conv-fun-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
   | _ , eq′ = conv-fun-source tl eq′
 conv-fun-source (conv-cons (conv-fun s t) tl) eq = fun-shape _ _
 
@@ -321,13 +321,13 @@ conv-all-source {c = id A} (conv-id wf) eq = allView-target {c = id A} eq
 conv-all-source (conv-cons (conv-seal r rd nm p) tl) ()
 conv-all-source (conv-cons (conv-unseal r rd nm p na) tl) ()
 conv-all-source (conv-cons (conv-fun s t) tl) ()
-conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl) eq
+conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
   with allView-tail-hide c eq
-conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl) eq
+conv-all-source {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl) eq
   | _ , eq′ = conv-all-source tl eq′
-conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf nm ne p na) tl) eq
+conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
   with allView-tail-show c eq
-conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf nm ne p na) tl) eq
+conv-all-source {c = show X α ∷ᶜ c} (conv-cons (conv-show sc wf p na) tl) eq
   | _ , eq′ = conv-all-source tl eq′
 conv-all-source (conv-cons (conv-all s) tl) eq = all-shape _
 

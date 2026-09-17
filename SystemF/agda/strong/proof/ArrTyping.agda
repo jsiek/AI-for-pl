@@ -169,39 +169,39 @@ arrElts-typing {A₀ = A₀} {B′ = B′}
 
 -- a `hide`: its DUAL joins the contravariant side, itself the covariant
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf nm ne p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
   with wf-⇒-inv wf | consArr-inv eq
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf nm ne p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
   | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl
   with arrElts-typing tl refl eq′
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf nm ne p na) tl) refl eq
+  (conv-cons (conv-hide {α = α} {A = A} {X = X} sc wf p na) tl) refl eq
   | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl | ih₁ , ih₂
   rewrite attach-++ Ls′ (show X α ∷ []) A₀ A₀ =
-  ⧺-typing ih₁ (conv-cons (conv-show sc wfA nm ne p na) (conv-id wfA))
-  , conv-cons (conv-hide sc wfB nm ne p na) ih₂
+  ⧺-typing ih₁ (conv-cons (conv-show sc wfA p na) (conv-id wfA))
+  , conv-cons (conv-hide sc wfB p na) ih₂
 
 -- a `show`: its DUAL joins the contravariant side.  The source is a
 -- SHIFT, so the arrow is recovered by inversion.
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   with shift-⇒-inv X A seq
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   | A₁ , B₁ , refl , refl , refl
   with wf-⇒-inv wf | consArr-inv eq
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   | A₁ , B₁ , refl , refl , refl | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl
   with arrElts-typing tl refl eq′
 arrElts-typing {A₀ = A₀} {B′ = B′}
-  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf nm ne p na) tl) seq eq
+  (conv-cons (conv-show {α = α} {A = A} {X = X} sc wf p na) tl) seq eq
   | A₁ , B₁ , refl , refl , refl | wfA , wfB | Ls′ , Rs′ , eq′ , refl , refl
   | ih₁ , ih₂
   rewrite attach-++ Ls′ (hide X α ∷ []) A₁ A₁ =
-  ⧺-typing ih₁ (conv-cons (conv-hide sc wfA nm ne p na) (conv-id wfA))
-  , conv-cons (conv-show sc wfB nm ne p na) ih₂
+  ⧺-typing ih₁ (conv-cons (conv-hide sc wfA p na) (conv-id wfA))
+  , conv-cons (conv-show sc wfB p na) ih₂
 
 -- the renaming elements and `all` are not view-accepted
 arrElts-typing (conv-cons (conv-seal rep rd nm p) tl) refl ()

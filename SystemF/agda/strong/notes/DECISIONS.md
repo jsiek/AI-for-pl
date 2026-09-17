@@ -4495,3 +4495,68 @@ name pools already drew.  `read`/`⌊·⌋` gained `read-bv`/`quote-bv`.
 
 CONSERVATIVE ON TERMS: `notes/ShowHide`'s trace renders identically
 before and after.
+
+------------------------------------------------------------------------
+2026-09-16/17 — `substAnn`: THE THREE GAPS, CLOSED
+------------------------------------------------------------------------
+
+(3) THE `bnd` GAP IS MOOT.  `substAnnElt` leaving a crossing's address
+alone is now CORRECT, since a `∀` binds no address.
+
+(2) THE SLOT MOVES, AND `substAnn` NOW CARRIES IT.  The old definition
+handed the same `X` and `S` to the tail of a spine, though the tail
+lives one crossing further out.  Both are threaded now, OUTWARD (the
+list runs interior → exterior and `S`, the read-back on the unassigned
+side, lives at the interior); and inside an element, `↦`'s
+CONTRAVARIANT component gets the STEPPED index, because it runs
+exterior → interior.  `slotOut`/`tyOut` moved into `Conversion.agda`
+to say where they have got to.
+
+    `SlotFree`'s `X < Y`   gone
+    `StepFix`              gone, and DERIVABLE rather than merely
+                           deletable
+    `Closedᵗ S`            weakened to `SAvoids X S c`
+
+The derivation is the BIND-RANK invariant: no element touches the bind
+skeleton of its two contexts — an atomic element moves an `asgn`, `↦`
+delegates, `all` keeps a `bind` on both sides — so the slot keeps its
+RANK among the binds along a whole spine.  Whence `slotOut-round` (the
+`↦` case's obligation) and `slotOut-bind`, which says a spine between
+two bind-headed contexts cannot move the slot at all.
+
+(1) `instReveal`'s `nothing` BRANCH DROPS THE SLOT.  It was
+`show X α ∷ᶜ c`, leaving `c` typed under the `∀`'s binder that the `ν`
+replaces; it is now `show X α ∷ᶜ substAnn X S c`, matching the `just`
+branch.  `notes/SrcGap` is a source program that REACHES the branch —
+
+    h = ΛX. λk:(∀Z. X). k [ℕ]     a = ΛZ. true     (h [𝔹]) a
+
+the point being the POLYMORPHIC DOMAIN: `revTy`'s contravariant
+component is `concTy`, which at a hit emits a `seal`, and `srcᶜ` gives
+out on a seal.  Recorded there with the word the repair produces.
+
+WHAT TESTS WHAT — worth keeping straight, because three of these look
+like they test more than they do.
+
+  Examples.inst-agrees   the `just` branch; BOTH threads are no-ops
+                         (slot 0, crossing at 1, ground S), so it
+                         passed under the old definition too
+  notes/SubstAnnTest     the slot threading, 0 ↦ 1 — but on a
+                         hand-written word, because no reduction
+                         reaches that position (see below)
+  notes/SrcGap           the `nothing` branch, reachable; threading is
+                         a no-op there
+  notes/ShowHide         the color wrap against a seal, two
+                         instantiations
+  PreserveTyWrap §9.2    a reachable redex whose crossings sit at name
+                         0 — the witness that refuted `SlotFree`
+
+AND THE EXAMPLE THAT WOULD COMBINE THEM DOES NOT EXIST.  I went looking
+for one and it is ruled out by `slotOut-bind`: a `TyWrap`'s spine runs
+between two bind-headed contexts, so its slot provably cannot move.
+The guessed recipe was wrong twice over — `all⁺` SHIFTS an ambient
+crossing past the `∀`, so the color wrap's `hide 0` lands above the
+slot; and `substAnn` does lower names, but a value sealed at the top
+has a type variable for its target and cannot be type-applied again.
+The threading earns its keep DEEPER in a spine, inside `↦` and `all`,
+which is why `notes/SubstAnnTest`'s word is hand-written.

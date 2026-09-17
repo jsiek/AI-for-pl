@@ -365,7 +365,12 @@ srcᶜ (all s ∷ᶜ c) | nothing = nothing
 instReveal : ℕ → Addr → Ty → Conv → Conv
 instReveal X α S c with srcᶜ c
 instReveal X α S c | just A = revTy X α S A ⨟ substAnn X S c
-instReveal X α S c | nothing = show X α ∷ᶜ c
+-- The `nothing` branch must DROP THE SLOT too, exactly as the `just`
+-- branch does through `substAnn` — `c` is still typed under the `∀`'s
+-- binder, and a bare crossing leaves its names pointing at a binder
+-- the `ν` has replaced.  See notes/SrcGap for a source program that
+-- reaches this branch and for the word it produces.
+instReveal X α S c | nothing = show X α ∷ᶜ substAnn X S c
 
 instConceal : ℕ → Addr → Ty → Conv → Conv
 instConceal X α S c = substAnn X S c ⨟ concTy X α S (target c)

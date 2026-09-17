@@ -126,19 +126,19 @@ redex : (`𝔹ᴿ ∷ []) ∣ ([] ∥ [])
       ⊣ (`𝔹ᴿ ∷ [])
 redex = TyWrap vwrap refl quote-ℕ
 
--- and what that branch builds is a BARE crossing on top of `d` —
+-- WHAT THE BRANCH USED TO BUILD was a BARE crossing on top of `d` —
 -- `show` crosses ONE assignment, while `d` is still typed under the
--- `∀`'s binder, which only `substAnn` removes.  Hence the premise.
+-- `∀`'s binder, which only `substAnn` removes — so its names pointed
+-- at a binder the `ν` had replaced:
+--
+--     show 0 (bse 0) ∷ᶜ seal 1 (lvl 0) ∷ᶜ id (` 1)
+--
+-- The repair drops the slot here too, as the `just` branch does, and
+-- on this very word gives the coherent version: the seal's name slides
+-- 1 ↦ 0 and its target — the crossing's OWN name — slides with it.
 built : instReveal zero (bse zero) `ℕ d
-      ≡ show 0 (bse 0) ∷ᶜ seal 1 (lvl 0) ∷ᶜ id (` 1)
+      ≡ show 0 (bse 0) ∷ᶜ seal 0 (lvl 0) ∷ᶜ id (` 0)
 built = refl
-
--- The `just` branch is `revTy … ⨟ substAnn …`; by analogy the repair
--- is to substitute here too, `show X α ∷ᶜ substAnn X S c`, which at
--- this word gives
-repair : show 0 (bse 0) ∷ᶜ substAnn zero `ℕ d
-       ≡ show 0 (bse 0) ∷ᶜ seal 0 (lvl 0) ∷ᶜ id (` 0)
-repair = refl
 
 -- which is the coherent word: the slot is dropped, so the seal's name
 -- slides 1 ↦ 0, and its target — the crossing's OWN name — slides with

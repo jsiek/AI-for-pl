@@ -24,7 +24,8 @@ open Ctxᵗ
 open import strong.Terms
 open import strong.Conversion using
   (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all;
-   interior; pushAsgn; popAsgn; nameSub; revTy; concTy)
+   interior; revTy; concTy)
+open import strong.Frame
 open import strong.notes.UnlockedFrame using
   (_∣_∣_⊢′_∶_⇝_⊣_; _∣_∣_⊢̂′_∶_⇝_⊣_;
    seal′; unseal′; hide′; show′; fun′; all′; id′; cons′;
@@ -34,67 +35,7 @@ open import strong.notes.UnlockedFrame using
 -- The walk: real context, frame, and the map between them
 ------------------------------------------------------------------------
 
-Frame : Set
-Frame = Ctxᵗ × Ctxᵗ × Renameᵗ
-
--- a REVEAL at local name X lands at ρ X in the frame; everything at or
--- above it in the frame moves up
-insMap : ℕ → Renameᵗ → Renameᵗ
-insMap X ρ Y with X ≟ Y
-insMap X ρ Y | yes _ = ρ X
-insMap X ρ Y | no  _ = shiftAtᵗ (ρ X) (ρ (nameSub X Y))
-
--- a CONCEAL removes slot X from the real context and nothing from the
--- frame, so the map just reads past the hole
-delMap : ℕ → Renameᵗ → Renameᵗ
-delMap X ρ Y = ρ (shiftAtᵗ X Y)
-
-mutual
-  frameElt : ConvElt → Frame → Maybe Frame
-  frameElt (seal X α) (Γ , Ξ , ρ) with popAsgn X α Γ
-  ... | just Γ′ = just (Γ′ , Ξ , delMap X ρ)
-  ... | nothing = nothing
-  frameElt (hide X α) (Γ , Ξ , ρ) with popAsgn X α Γ
-  ... | just Γ′ = just (Γ′ , Ξ , delMap X ρ)
-  ... | nothing = nothing
-  frameElt (unseal X α) (Γ , Ξ , ρ) with pushAsgn X α Γ | pushAsgn (ρ X) α Ξ
-  ... | just Γ′ | just Ξ′ = just (Γ′ , Ξ′ , insMap X ρ)
-  ... | _ | _ = nothing
-  frameElt (show X α) (Γ , Ξ , ρ) with pushAsgn X α Γ | pushAsgn (ρ X) α Ξ
-  ... | just Γ′ | just Ξ′ = just (Γ′ , Ξ′ , insMap X ρ)
-  ... | _ | _ = nothing
-  -- JEREMY, 2026-09-17: "the domain position of an arrow conversion
-  -- doesn't apply to the current enclosed term and its context, but
-  -- instead to the argument term after `Wrap` fires, at which point the
-  -- domain conversion is no longer under an arrow."  So `s`'s reveals
-  -- belong to the boundary `Wrap` will mint around the ARGUMENT, not to
-  -- this one, and the frame is `t`'s alone — the same clause
-  -- `interiorElt` already has.
-  frameElt (s ↦ t) f = frameConv t f
-  frameElt (all s) ((Ss ∥ Bs) , Ξ , ρ)
-    with frameConv s ((bind ∷ Ss ∥ Bs) , (bind ∷ stk Ξ ∥ bas Ξ) , extᵗ ρ)
-  ... | just ((bind ∷ Ss′ ∥ Bs′) , (bind ∷ Ts ∥ Cs) , ρ′) =
-        just ((Ss′ ∥ Bs′) , (Ts ∥ Cs) , λ Y → ρ′ (suc Y) ∸ 1)
-  ... | _ = nothing
-
-  frameConv : Conv → Frame → Maybe Frame
-  frameConv (id A) f = just f
-  frameConv (ĉ ∷ᶜ c) f with frameConv c f
-  ... | just f′ = frameElt ĉ f′
-  ... | nothing = nothing
-
-start : Ctxᵗ → Frame
-start Δ = (Δ , Δ , λ n → n)
-
-getΓ getΞ : Maybe Frame → Maybe Ctxᵗ
-getΓ (just (Γ , _ , _)) = just Γ
-getΓ nothing = nothing
-getΞ (just (_ , Ξ , _)) = just Ξ
-getΞ nothing = nothing
-
-getρ : Maybe Frame → Renameᵗ
-getρ (just (_ , _ , ρ)) = ρ
-getρ nothing = λ n → n
+-- (the walk itself now lives in `strong.Frame`)
 
 ------------------------------------------------------------------------
 -- On M₅'s conversion
@@ -132,43 +73,6 @@ frρ = refl
 -- contexts.  Only the `id A` terminators move, each by the ρ in force
 -- where it sits.
 
-mutual
-  retElt : ConvElt → Frame → Maybe (ConvElt × Frame)
-  retElt (seal X α) f with frameElt (seal X α) f
-  ... | just f′ = just (seal X α , f′)
-  ... | nothing = nothing
-  retElt (unseal X α) f with frameElt (unseal X α) f
-  ... | just f′ = just (unseal X α , f′)
-  ... | nothing = nothing
-  retElt (hide X α) f with frameElt (hide X α) f
-  ... | just f′ = just (hide X α , f′)
-  ... | nothing = nothing
-  retElt (show X α) f with frameElt (show X α) f
-  ... | just f′ = just (show X α , f′)
-  ... | nothing = nothing
-  retElt (s ↦ t) f with ret t f
-  ... | nothing = nothing
-  ... | just (t′ , (Γᵢ , Ξ₁ , ρ₁)) with ret s (Γᵢ , Ξ₁ , ρ₁)
-  ...   | just (s′ , (_ , Ξ₂ , _)) = just (s′ ↦ t′ , (Γᵢ , Ξ₂ , ρ₁))
-  ...   | nothing = nothing
-  retElt (all s) f with frameElt (all s) f
-  ... | nothing = nothing
-  ... | just f′ with ret s f
-  ...   | just (s′ , _) = just (all s′ , f′)
-  ...   | nothing = nothing
-
-  ret : Conv → Frame → Maybe (Conv × Frame)
-  ret (id A) (Γ , Ξ , ρ) = just (id (renameᵗ ρ A) , (Γ , Ξ , ρ))
-  ret (ĉ ∷ᶜ c) f with ret c f
-  ... | nothing = nothing
-  ... | just (c′ , f′) with retElt ĉ f′
-  ...   | just (ĉ′ , f″) = just (ĉ′ ∷ᶜ c′ , f″)
-  ...   | nothing = nothing
-
-getC : Maybe (Conv × Frame) → Maybe Conv
-getC (just (c , _)) = just c
-getC nothing = nothing
-
 -- the conversion the builders should emit
 W″ : Conv
 W″ = ((seal zero (bse zero) ∷ᶜ id (` suc zero))
@@ -176,7 +80,7 @@ W″ = ((seal zero (bse zero) ∷ᶜ id (` suc zero))
      ∷ᶜ hide zero (lvl zero) ∷ᶜ id (` zero ⇒ `𝔹)
 
 -- and retargeting today's output produces it, ON THE NOSE
-builder : getC (ret Wnow (start Γ₃)) ≡ just W″
+builder : retargetAt Wnow Γ₃ ≡ just W″
 builder = refl
 
 ------------------------------------------------------------------------

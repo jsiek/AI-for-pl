@@ -22,6 +22,7 @@ module strong.notes.UnlockedFrame where
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Bool using (true)
+open import Relation.Nullary using (¬_)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -33,7 +34,8 @@ open Ctxᵗ
 open import strong.Terms
 open import strong.Conversion using
   (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all; _⧺_;
-   interior; pushAsgn)
+   interior; pushAsgn; _∣_⊢_∶_⇝_⊣_; conv-id; conv-cons;
+   conv-seal; conv-unseal; conv-hide; conv-show; conv-fun; conv-all)
 
 ------------------------------------------------------------------------
 -- The proposed conversion typing
@@ -475,3 +477,61 @@ ins-n ins2 n-here-asgn = n-skip-asgn (n-skip-asgn n-here-asgn)
 ins-n ins2 (n-skip-asgn n-here-asgn) = n-skip-asgn n-here-asgn
 ins-n ins2 (n-skip-asgn (n-skip-asgn ()))
 ins-b ins2 (b-asgn (b-asgn ()))
+
+------------------------------------------------------------------------
+-- THE DUPLICATE-ADDRESS HAZARD, and the premise that closes it
+------------------------------------------------------------------------
+-- Jeremy: "In a given context, there should not be two distinct type
+-- names with the same address."  That is `NameFn` — and it is NOT
+-- automatic for `Ξ`.  A `hide X α` followed by a `show Y α` with X ≠ Y
+-- is well typed TODAY: the show's freshness `NotAssigned Γₑ α` is
+-- checked at its own exterior, where the hide has already removed X.
+-- `fuse` does not cancel them either, since the names differ.  But `Ξ`
+-- SKIPS the hide and KEEPS the show, so it holds two names for α.
+
+Sg3 : Store
+Sg3 = `𝔹ᴿ ∷ []
+
+Δ3 : Ctxᵗ                      -- a bind, so the pop can reach depth 1
+Δ3 = bind ∷ asgn (lvl zero) ∷ [] ∥ []
+
+c3 : Conv
+c3 = show zero (lvl zero) ∷ᶜ hide (suc zero) (lvl zero) ∷ᶜ id `𝔹
+
+-- it is well typed under the CURRENT rules
+⊢c3 : Sg3 ∣ (asgn (lvl zero) ∷ bind ∷ [] ∥ []) ⊢ c3 ∶ `𝔹 ⇝ `𝔹 ⊣ Δ3
+⊢c3 = conv-cons (conv-show (a-lvl l-here) wf-𝔹 pop-here
+                  (λ { (n-skip-bind ()) }))
+        (conv-cons (conv-hide (a-lvl l-here) wf-𝔹
+                     (pop-bind pop-here) (λ { (n-skip-bind ()) }))
+          (conv-id wf-𝔹))
+
+-- and its frame holds `lvl 0` at TWO names, 0 and 2
+unl3 : unlocked c3 Δ3
+     ≡ just (asgn (lvl zero) ∷ bind ∷ asgn (lvl zero) ∷ [] ∥ [])
+unl3 = refl
+
+Ξ3 : Ctxᵗ
+Ξ3 = asgn (lvl zero) ∷ bind ∷ asgn (lvl zero) ∷ [] ∥ []
+
+namefn-⊥ : ¬ NameFn Ξ3
+namefn-⊥ nf with nf n-here-asgn (n-skip-asgn (n-skip-bind n-here-asgn))
+namefn-⊥ nf | ()
+
+-- THE FIX, exactly where Jeremy put it: state a reveal's freshness at
+-- the FRAME, not at its local exterior.  `Δ3` already assigns `lvl 0`
+-- (at name 1), so the show above is rejected …
+rejected : ¬ NotAssigned Δ3 (lvl zero)
+rejected na = na (n-skip-bind n-here-asgn)
+
+-- … while M₅'s show, whose address is the ν's `bse 0`, still passes:
+-- the frame before it is Γ₃, which assigns only `lvl 0`.
+accepted : NotAssigned Γ₃ (bse zero)
+accepted (n-skip-asgn ())
+
+-- and the frame M₅ actually gets is name-functional
+namefnΞ : NameFn Ξ
+namefnΞ n-here-asgn n-here-asgn = refl
+namefnΞ n-here-asgn (n-skip-asgn (n-skip-asgn ()))
+namefnΞ (n-skip-asgn n-here-asgn) (n-skip-asgn n-here-asgn) = refl
+namefnΞ (n-skip-asgn (n-skip-asgn ())) q

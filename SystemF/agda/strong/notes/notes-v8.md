@@ -344,9 +344,11 @@ type:
                    must not mention `X`).
 
 Both components are operative, and the syntax carries BOTH.  The
-ADDRESS is what `fuse` cancels on: in the `unseal{+X:=α} ∷ seal{-Y:=β}`
-order the seam context has neither name in scope, and equal names at
-the two outer contexts need not mean equal addresses.  The NAME is what
+ADDRESS is what `fuse` cancels on: at the `id{-X:=α} ∷ id{+Y:=β}` seam
+neither name is in scope, and equal names at the two outer contexts
+need not mean equal addresses — `notes/AddrNeeded.keptApart` is the
+witness (`show 0 (lvl 0)` against `hide 0 (bse 0)`: same name, same
+number, different constructor).  The NAME is what
 makes `⟨c⟩` a function of the syntax: the pop judgment skips binder
 assignments, so an element inside a `∀` element's component may cross
 an assignment lying BELOW those binders, and only the name says how
@@ -564,8 +566,7 @@ discharge into Σ.
 
 Adjacent elements fuse as follows:
 
-  fuse(seal{-X:=α},unseal{+X:=α})                 = []
-  fuse(unseal{+X:=α},seal{-X:=α})                 = []
+  fuse(seal{-X:=α},unseal{+X:=α})   = []
   fuse(id{-X:=α},id{+X:=α})         = []
   fuse(id{+X:=α},id{-X:=α})         = []
   fuse(c₁→d₁,c₂→d₂)                 = [(c₂ ⨟ c₁) → (d₁ ⨟ d₂)]

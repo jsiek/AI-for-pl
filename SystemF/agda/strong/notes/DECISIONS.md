@@ -4709,3 +4709,40 @@ CONSEQUENCES.
 * `Examples.inst-agrees` (the §14 check) holds unchanged, with the
   context threaded in: `interior c₂ ([] ∥ []) ≡ just (asgn (lvl 0) ∷ [])`
   and `srcᶜ [] (bind ∷ asgn (lvl 0) ∷ []) d ≡ ` 0 ⇒ ` 0`.
+
+## 2026-09-17: `fuse`'s unseal/seal direction is DEAD — removed
+
+Jeremy asked whether both seal directions earn their keep: "the seal,
+unseal direction is absolutely necessary, but I'm not so sure about the
+other direction."  Measured rather than argued — the clause was set to
+`nothing` and the development re-checked.
+
+  * `make check` is GREEN.  Net −39 lines over six files.
+  * Every affected site got SHORTER: `fuse-us-inv`, `fuse-decreases`,
+    `CompositionTyping.fuse-cancel-us` and `preserve-step`'s case all
+    collapse to absurd patterns, and `InertRenaming.fuse-renᵉ`,
+    `AddrWeaken.fuse-renᵉ` and `PreserveAlloc.fuse-inst` each lose a
+    four-way split on name AND address for a single `refl`.
+  * Nothing needed a new argument.  `cancel-unseal` is now dead code.
+
+Exactly one behaviour changed: the `nested-cancel` regression check
+(`unseal 0 α ∷ unseal 0 β ∷ seal 0 β ∷ seal 0 α`) is now a normal form.
+It was the direction's ONLY exercise.  `k-example` — the necessary
+direction with a `hide`/`show` pair nested inside — still collapses to
+`id ℕ`, and `overlap-stuck` is untouched.
+
+Progress is unaffected: it takes no parameter (unlike `Preservation`),
+is in `All.agda`, and still checks, so the extra normal forms strand
+nothing.
+
+WHAT THIS OPENS.  The notes' stated reason for comparing ADDRESSES on a
+seal/unseal pair was specifically the removed order: "in the
+`unseal{+X:=α} ∷ seal{-Y:=β}` order the seam context has neither name
+in scope".  In the SURVIVING order the seam DOES have the name — the
+`seal` pushes `X:=α` and the `unseal` pops it — so equal names at the
+seam should force equal addresses.  Next experiment: drop `α ≟ᵃ β` from
+the seal/unseal clause and see whether preservation still checks.  If
+it does, addresses are load-bearing only for the crossing pair
+(`notes/AddrNeeded.keptApart` is a `show`/`hide` witness), which is a
+much smaller commitment to preserve if the store goes away and
+representations move onto boundaries.

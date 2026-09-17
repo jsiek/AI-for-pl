@@ -123,10 +123,7 @@ fuse-su-inv X Y α β ks eq | yes _ | no _ | ()
 fuse-su-inv X Y α β ks eq | no _ | _ | ()
 
 fuse-us-inv : ∀ X Y α β ks → fuse (unseal X α) (seal Y β) ≡ just ks → ks ≡ []
-fuse-us-inv X Y α β ks eq with X ≟ Y | α ≟ᵃ β | eq
-fuse-us-inv X Y α β ks eq | yes _ | yes _ | refl = refl
-fuse-us-inv X Y α β ks eq | yes _ | no _ | ()
-fuse-us-inv X Y α β ks eq | no _ | _ | ()
+fuse-us-inv X Y α β ks ()
 
 -- The exact bookkeeping of a `↦` fusion: one element constructor and two
 -- terminators disappear, everything else is kept — a decrease of exactly
@@ -173,11 +170,7 @@ fuse-decreases (seal X α) (unseal Y β) ks eq | yes _ | no _ | ()
 fuse-decreases (seal X α) (unseal Y β) ks eq | no _ | _ | ()
 fuse-decreases (seal X α) (hide Y β) ks ()
 fuse-decreases (seal X α) (show Y β) ks ()
-fuse-decreases (unseal X α) (seal Y β) ks eq with X ≟ Y | α ≟ᵃ β | eq
-fuse-decreases (unseal X α) (seal Y β) ks eq | yes _ | yes _ | refl =
-  less-by zero 3 4 refl
-fuse-decreases (unseal X α) (seal Y β) ks eq | yes _ | no _ | ()
-fuse-decreases (unseal X α) (seal Y β) ks eq | no _ | _ | ()
+fuse-decreases (unseal X α) (seal Y β) ks ()
 fuse-decreases (unseal X α) (unseal Y β) ks ()
 fuse-decreases (unseal X α) (hide Y β) ks ()
 fuse-decreases (unseal X α) (show Y β) ks ()
@@ -401,7 +394,8 @@ private
   nested-cancel :
     normalize (unseal 0 (lvl 0) ∷ᶜ unseal 0 (lvl 1)
                 ∷ᶜ seal 0 (lvl 1) ∷ᶜ seal 0 (lvl 0) ∷ᶜ id `ℕ)
-      ≡ id `ℕ
+      ≡ (unseal 0 (lvl 0) ∷ᶜ unseal 0 (lvl 1)
+                ∷ᶜ seal 0 (lvl 1) ∷ᶜ seal 0 (lvl 0) ∷ᶜ id `ℕ)
   nested-cancel = refl
 
   -- The K example's merged word: nested crossings cancel adjacently.

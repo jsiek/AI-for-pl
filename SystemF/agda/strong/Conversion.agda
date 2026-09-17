@@ -255,10 +255,8 @@ fuse (seal X α) (unseal Y β) with X ≟ Y | α ≟ᵃ β
 fuse (seal X α) (unseal Y β) | yes _ | yes _ = just []
 fuse (seal X α) (unseal Y β) | yes _ | no  _ = nothing
 fuse (seal X α) (unseal Y β) | no  _ | _ = nothing
-fuse (unseal X α) (seal Y β) with X ≟ Y | α ≟ᵃ β
-fuse (unseal X α) (seal Y β) | yes _ | yes _ = just []
-fuse (unseal X α) (seal Y β) | yes _ | no  _ = nothing
-fuse (unseal X α) (seal Y β) | no  _ | _ = nothing
+-- PROBE 2026-09-17: does the unseal/seal direction earn its keep?
+fuse (unseal X α) (seal Y β) = nothing
 fuse (hide X α) (show Y β) with X ≟ Y | α ≟ᵃ β
 fuse (hide X α) (show Y β) | yes _ | yes _ = just []
 fuse (hide X α) (show Y β) | yes _ | no  _ = nothing

@@ -317,10 +317,7 @@ fuse-cancel-su eq | no _ | _ | ()
 
 fuse-cancel-us : ∀ {X Y α β ks} → fuse (unseal X α) (seal Y β) ≡ just ks
   → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
-fuse-cancel-us {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
-fuse-cancel-us eq | yes refl | yes refl | refl = refl , refl , refl
-fuse-cancel-us eq | yes _ | no _ | ()
-fuse-cancel-us eq | no _ | _ | ()
+fuse-cancel-us ()
 
 fuse-cancel-hs : ∀ {X Y α β ks} → fuse (hide X α) (show Y β) ≡ just ks
   → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
@@ -361,14 +358,7 @@ preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
   | refl , refl = tl
 
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = unseal X α} {ḓ = seal Y β} eq)
-  with fuse-cancel-us eq
-preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = unseal X α} {ḓ = seal Y β} eq) | refl , refl , refl
-  with cancel-unseal hd hd₂
-preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = unseal X α} {ḓ = seal Y β} eq) | refl , refl , refl
-  | refl , refl = tl
+  (ξ-pair {ĉ = unseal X α} {ḓ = seal Y β} ())
 
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
   (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq)

@@ -743,16 +743,7 @@ fuse-inst inj (seal X α) (hide Y β) f g eq = refl
 fuse-inst inj (seal X α) (show Y β) f g eq = refl
 fuse-inst inj (seal X α) (s₂ ↦ t₂) f g eq = refl
 fuse-inst inj (seal X α) (all s₂) f g eq = refl
-fuse-inst {σ = σ} inj (unseal X α) (seal Y β) (fe-unseal f) (fe-seal g) eq
-  with X ≟ Y | α ≟ᵃ β | substAddrᵉ σ α ≟ᵃ substAddrᵉ σ β
-fuse-inst {σ = σ} inj (unseal X α) (seal Y β) (fe-unseal f) (fe-seal g) ()
-  | yes _ | yes _ | _
-fuse-inst {σ = σ} inj (unseal X α) (seal Y β) (fe-unseal f) (fe-seal g) eq
-  | yes _ | no ne | yes e = ⊥-elim (ne (inj f g e))
-fuse-inst {σ = σ} inj (unseal X α) (seal Y β) (fe-unseal f) (fe-seal g) eq
-  | yes _ | no _ | no _ = refl
-fuse-inst {σ = σ} inj (unseal X α) (seal Y β) (fe-unseal f) (fe-seal g) eq
-  | no _ | _ | _ = refl
+fuse-inst inj (unseal X α) (seal Y β) f g eq = refl
 fuse-inst inj (unseal X α) (unseal Y β) f g eq = refl
 fuse-inst inj (unseal X α) (hide Y β) f g eq = refl
 fuse-inst inj (unseal X α) (show Y β) f g eq = refl

@@ -326,13 +326,7 @@ fuse-renᵉ inj (seal X α) (hide Y β) eq = refl
 fuse-renᵉ inj (seal X α) (show Y β) eq = refl
 fuse-renᵉ inj (seal X α) (s₂ ↦ t₂) eq = refl
 fuse-renᵉ inj (seal X α) (all s₂) eq = refl
-fuse-renᵉ {ρ = ρ} inj (unseal X α) (seal Y β) eq
-  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
-fuse-renᵉ {ρ = ρ} inj (unseal X α) (seal Y β) () | yes _ | yes _ | _
-fuse-renᵉ {ρ = ρ} inj (unseal X α) (seal Y β) eq | yes _ | no ne | yes e =
-  ⊥-elim (ne (inj e))
-fuse-renᵉ {ρ = ρ} inj (unseal X α) (seal Y β) eq | yes _ | no _ | no _ = refl
-fuse-renᵉ {ρ = ρ} inj (unseal X α) (seal Y β) eq | no _ | _ | _ = refl
+fuse-renᵉ inj (unseal X α) (seal Y β) eq = refl
 fuse-renᵉ inj (unseal X α) (unseal Y β) eq = refl
 fuse-renᵉ inj (unseal X α) (hide Y β) eq = refl
 fuse-renᵉ inj (unseal X α) (show Y β) eq = refl

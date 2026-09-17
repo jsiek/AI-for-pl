@@ -190,41 +190,47 @@ step₅ = ξ-⟨⟩ int₂ (TyWrap v-arg view₁ q int₁)
 run : [] ∣ ([] ∥ []) ⊢ M₀ —↠ M₅ ⊣ Sg
 run = step₁ then step₂ then step₃ then step₄ then step₅ then done
 
-------------------------------------------------------------------------
--- … AND THE RESULT HAS NO TYPE
-------------------------------------------------------------------------
--- §8.1b's refutation, restated at this run's own term (it is `private`
--- there).  The `hide` in the tail pins the `↦`'s exterior to a context
--- with an EMPTY STACK, and there the `seal`'s read-back — which must
--- turn `` `ᵃ (lvl 0) `` into a TYPE — has no name to land on.
+-- THE REFUTATION BELOW IS SUPERSEDED (2026-09-17).  It was stated
+-- against the OLD conversion rules; under the frame the `seal`'s
+-- read-back succeeds and the reduct is typable
+-- (notes/UnlockedFrame2.⊢W″).  Kept, commented, as the record of what
+-- the run used to reach.
+--
+-- ------------------------------------------------------------------------
+-- -- … AND THE RESULT HAS NO TYPE
+-- ------------------------------------------------------------------------
+-- -- §8.1b's refutation, restated at this run's own term (it is `private`
+-- -- there).  The `hide` in the tail pins the `↦`'s exterior to a context
+-- -- with an EMPTY STACK, and there the `seal`'s read-back — which must
+-- -- turn `` `ᵃ (lvl 0) `` into a TYPE — has no name to land on.
 
-id-ctx : ∀ {Γ Γ′ A B C} → Sg ∣ Γ ⊢ id A ∶ B ⇝ C ⊣ Γ′ → Γ ≡ Γ′
-id-ctx (conv-id wf) = refl
+-- id-ctx : ∀ {Γ Γ′ A B C} → Sg ∣ Γ ⊢ id A ∶ B ⇝ C ⊣ Γ′ → Γ ≡ Γ′
+-- id-ctx (conv-id wf) = refl
 
-tail-open : ∀ {Γ₁ B C}
-  → Sg ∣ Γ₁ ⊢ hide zero (lvl zero) ∷ᶜ id T ∶ B ⇝ C
-      ⊣ (asgn (lvl zero) ∷ [] ∥ nuBind R ∷ [])
-  → Γ₁ ≡ ([] ∥ nuBind R ∷ [])
-tail-open (conv-cons (conv-hide sc wf pop-here na) tl) with id-ctx tl
-tail-open (conv-cons (conv-hide sc wf pop-here na) tl) | refl = refl
+-- tail-open : ∀ {Γ₁ B C}
+--   → Sg ∣ Γ₁ ⊢ hide zero (lvl zero) ∷ᶜ id T ∶ B ⇝ C
+--       ⊣ (asgn (lvl zero) ∷ [] ∥ nuBind R ∷ [])
+--   → Γ₁ ≡ ([] ∥ nuBind R ∷ [])
+-- tail-open (conv-cons (conv-hide sc wf pop-here na) tl) with id-ctx tl
+-- tail-open (conv-cons (conv-hide sc wf pop-here na) tl) | refl = refl
 
-seal-⊥ : ∀ {Γ′ A C}
-  → ¬ (Sg ∣ ([] ∥ nuBind R ∷ [])
-         ⊢ seal zero (bse zero) ∷ᶜ id (` zero) ∶ A ⇝ C ⊣ Γ′)
-seal-⊥ (conv-cons (conv-seal r-here (read-var ()) pop-here) tl)
+-- seal-⊥ : ∀ {Γ′ A C}
+--   → ¬ (Sg ∣ ([] ∥ nuBind R ∷ [])
+--          ⊢ seal zero (bse zero) ∷ᶜ id (` zero) ∶ A ⇝ C ⊣ Γ′)
+-- seal-⊥ (conv-cons (conv-seal r-here (read-var ()) pop-here) tl)
 
-inner-⊥ : ∀ {C} → ¬ (Sg ∣ Δₘ ∣ [] ⊢ ν R ∙ ((ƛ (` zero) ∙ (# true)) ⟨ W ⟩) ⦂ C)
-inner-⊥ (⊢ν wfR (⊢⟨⟩ nf (⊢ƛ wf ⊢#) (conv-cons (conv-fun ⊢s ⊢t) tl)))
-  with tail-open tl
-inner-⊥ (⊢ν wfR (⊢⟨⟩ nf (⊢ƛ wf ⊢#) (conv-cons (conv-fun ⊢s ⊢t) tl)))
-  | refl = seal-⊥ ⊢s
+-- inner-⊥ : ∀ {C} → ¬ (Sg ∣ Δₘ ∣ [] ⊢ ν R ∙ ((ƛ (` zero) ∙ (# true)) ⟨ W ⟩) ⦂ C)
+-- inner-⊥ (⊢ν wfR (⊢⟨⟩ nf (⊢ƛ wf ⊢#) (conv-cons (conv-fun ⊢s ⊢t) tl)))
+--   with tail-open tl
+-- inner-⊥ (⊢ν wfR (⊢⟨⟩ nf (⊢ƛ wf ⊢#) (conv-cons (conv-fun ⊢s ⊢t) tl)))
+--   | refl = seal-⊥ ⊢s
 
--- so the whole run's result is untypable: PRESERVATION IS FALSE for v8
--- as it stands, on a term reachable from a closed source program.
-just-inj : ∀ {Γ Γ′ : Ctxᵗ} → just Γ ≡ just Γ′ → Γ ≡ Γ′
-just-inj refl = refl
+-- -- so the whole run's result is untypable: PRESERVATION IS FALSE for v8
+-- -- as it stands, on a term reachable from a closed source program.
+-- just-inj : ∀ {Γ Γ′ : Ctxᵗ} → just Γ ≡ just Γ′ → Γ ≡ Γ′
+-- just-inj refl = refl
 
-M₅-⊥ : ∀ {C} → ¬ (Sg ∣ ([] ∥ []) ∣ [] ⊢ M₅ ⦂ C)
-M₅-⊥ (⊢⟨⟩ nf ⊢M conv)
-  with just-inj (trans (sym (conv-interior conv)) int₂)
-M₅-⊥ (⊢⟨⟩ nf ⊢M conv) | refl = inner-⊥ ⊢M
+-- M₅-⊥ : ∀ {C} → ¬ (Sg ∣ ([] ∥ []) ∣ [] ⊢ M₅ ⦂ C)
+-- M₅-⊥ (⊢⟨⟩ nf ⊢M conv)
+--   with just-inj (trans (sym (conv-interior conv)) int₂)
+-- M₅-⊥ (⊢⟨⟩ nf ⊢M conv) | refl = inner-⊥ ⊢M

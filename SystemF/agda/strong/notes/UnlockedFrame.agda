@@ -416,3 +416,62 @@ reduct-ok = record
 -- the proposed rules.
 redex-type : (` zero ⇒ `𝔹) ≡ ((` zero ⇒ `𝔹) [ ` zero ]ᵗ)
 redex-type = refl
+
+------------------------------------------------------------------------
+-- TWO CONCEALS AT DIFFERENT DEPTHS
+------------------------------------------------------------------------
+-- The question `unlocked` leaves open: its `pushAsgn X α` inserts at the
+-- element's LOCAL name, but by then the frame has skipped conceals the
+-- real context popped, so the two disagree about where slot X is.  Main
+-- does not have this problem — "a change names an EXTERIOR slot and is
+-- unshifted by the morphism's own binds".
+--
+-- Here is the smallest spine that separates them: a conceal at depth 0
+-- and a reveal at depth 1, over a two-assignment exterior.
+
+Sg2 : Store
+Sg2 = `𝔹ᴿ ∷ `ℕᴿ ∷ []
+
+Δ2 : Ctxᵗ
+Δ2 = asgn (lvl zero) ∷ asgn (lvl (suc zero)) ∷ [] ∥ nuBind `𝔹ᴿ ∷ []
+
+c2 : Conv
+c2 = show (suc zero) (bse zero) ∷ᶜ hide zero (lvl zero) ∷ᶜ id `𝔹
+
+-- the real interior pops `lvl 0`, THEN pushes `bse 0` at depth 1
+int2 : interior c2 Δ2
+     ≡ just (asgn (lvl (suc zero)) ∷ asgn (bse zero) ∷ [] ∥ nuBind `𝔹ᴿ ∷ [])
+int2 = refl
+
+-- the frame SKIPS the pop, so its depth-1 slot is a different one
+unl2 : unlocked c2 Δ2
+     ≡ just (asgn (lvl zero) ∷ asgn (bse zero) ∷ asgn (lvl (suc zero)) ∷ []
+             ∥ nuBind `𝔹ᴿ ∷ [])
+unl2 = refl
+
+-- and the two DISAGREE on what sits at each index:
+--    Δᵢ :  0 ↦ lvl 1   1 ↦ bse 0
+--    Ξ  :  0 ↦ lvl 0   1 ↦ bse 0   2 ↦ lvl 1
+-- so the embedding is 0 ↦ 2, 1 ↦ 1 — NOT MONOTONE, hence not any
+-- composite of `shiftAtᵗ`s.
+ρ2 : Renameᵗ
+ρ2 zero = suc (suc zero)
+ρ2 (suc zero) = suc zero
+ρ2 (suc (suc n)) = suc (suc n)
+
+-- It is still an `Insert`, though: `Insert` asks only that the three
+-- lookups be preserved, and ρ2 sends each slot to the slot holding the
+-- SAME ADDRESS.  So frame weakening and the endpoint transports survive
+-- — but they are address-matching renamings, determined by `NameFn`,
+-- not shifts.
+ins2 : Insert ρ2
+         (asgn (lvl (suc zero)) ∷ asgn (bse zero) ∷ [] ∥ nuBind `𝔹ᴿ ∷ [])
+         (asgn (lvl zero) ∷ asgn (bse zero) ∷ asgn (lvl (suc zero)) ∷ []
+          ∥ nuBind `𝔹ᴿ ∷ [])
+ins-t ins2 t-here = t-there (t-there t-here)
+ins-t ins2 (t-there t-here) = t-there t-here
+ins-t ins2 (t-there (t-there ()))
+ins-n ins2 n-here-asgn = n-skip-asgn (n-skip-asgn n-here-asgn)
+ins-n ins2 (n-skip-asgn n-here-asgn) = n-skip-asgn n-here-asgn
+ins-n ins2 (n-skip-asgn (n-skip-asgn ()))
+ins-b ins2 (b-asgn (b-asgn ()))

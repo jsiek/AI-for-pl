@@ -31,7 +31,7 @@ open import Data.List using (List; []; _∷_; _++_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (_×_; _,_)
 open import Relation.Nullary using (yes; no)
-open import Relation.Binary.PropositionalEquality using (_≡_)
+open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
 open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; substᵗ; extᵗ;
@@ -391,10 +391,20 @@ mutual
     -- can discharge a fresh level onto it and turn a normal pair into
     -- a cancelling one — see notes/DECISIONS.md (2026-09-15) and
     -- `proof.PreserveAlloc.alloc-claim-refuted`.
-    conv-hide : Σ ∣ Γᵢ ∋a α → Ξ ⊢ᵗ A
+    -- `A ≢ ` X′` IS WHAT THE OLD SHIFT CARRIED.  An identity crossing
+    -- is never used AT the variable it hides or reveals — "otherwise it
+    -- would have been a seal or unseal" (Jeremy, 2026-09-17), and
+    -- notes-v8.md says the same of `id{+X:=α}`.  The old rule encoded
+    -- it as `A ⇝ renameᵗ (shiftAtᵗ X) A`, since a shifted type cannot
+    -- be the slot shifted into; with the types now read in one frame
+    -- there is no shift to carry it, so it is a premise.  NOT the
+    -- stronger `X′ ∉ A`: instantiation legitimately creates such an
+    -- occurrence (notes/HideUnseal), and requiring its absence would
+    -- reject `TyWrap`'s own reduct.
+    conv-hide : Σ ∣ Γᵢ ∋a α → Ξ ⊢ᵗ A → Ξ ∋n X′ := α → A ≢ ` X′
       → Γₑ ▷ X := α ⇒ Γᵢ → NotAssigned Γᵢ α
       → Σ ∣ Ξ ∣ Γᵢ ⊢̂ hide X α ∶ A ⇝ A ⊣ Γₑ
-    conv-show : Σ ∣ Γₑ ∋a α → Ξ ⊢ᵗ A
+    conv-show : Σ ∣ Γₑ ∋a α → Ξ ⊢ᵗ A → Ξ ∋n X′ := α → A ≢ ` X′
       → Γᵢ ▷ X := α ⇒ Γₑ → NotAssigned Γₑ α
       → Σ ∣ Ξ ∣ Γᵢ ⊢̂ show X α ∶ A ⇝ A ⊣ Γₑ
     conv-fun : Σ ∣ Ξ ∣ Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ → Σ ∣ Ξ ∣ Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ

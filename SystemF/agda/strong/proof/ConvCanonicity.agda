@@ -91,27 +91,31 @@ pop-unique (pop-bind p) (pop-bind q) | refl , refl , refl =
 -- After an addition: the running type is a variable, and stays one
 ------------------------------------------------------------------------
 
--- `AfterAdd Γ r ĉ` — the previous element ĉ ADDED the newest crossing
--- assignment of Γ, and the running type is `` ` r ``: equal to the new
--- name when the adder was a seal (which renames to it), different from
--- it when the adder was a hide (which only shifts).
-data AfterAdd (Γ : Ctxᵗ) (r : ℕ) : ConvElt → Set where
-  aa-seal : ∀ {X α Γ′} → Γ ▷ X := α ⇒ Γ′ → r ≡ X → AfterAdd Γ r (seal X α)
-  aa-hide : ∀ {X α Γ′} → Γ ▷ X := α ⇒ Γ′ → r ≢ X → AfterAdd Γ r (hide X α)
+-- `AfterAdd Ξ Γ r ĉ` — the previous element ĉ ADDED the newest crossing
+-- assignment of Γ, and the running type is `` ` r ``: the FRAME'S name
+-- for the new address when the adder was a seal (which renames to it),
+-- a different name when the adder was a hide.
+--
+-- PORTED 2026-09-17.  Both halves used to speak of the ELEMENT'S name
+-- X.  A seal's abstract side is now `` ` X′ `` with `Ξ ∋n X′ := α`, and
+-- a hide's discriminator is its own new premise `A ≢ ` X′` rather than
+-- the arithmetic of a shift — so both read the name off the frame.
+data AfterAdd (Ξ Γ : Ctxᵗ) (r : ℕ) : ConvElt → Set where
+  aa-seal : ∀ {X α Γ′} → Γ ▷ X := α ⇒ Γ′ → Ξ ∋n r := α
+    → AfterAdd Ξ Γ r (seal X α)
+  aa-hide : ∀ {X X′ α Γ′} → Γ ▷ X := α ⇒ Γ′ → Ξ ∋n X′ := α → r ≢ X′
+    → AfterAdd Ξ Γ r (hide X α)
 
--- fusing a pair at one address
--- At the SAME name and address the pair fuses, so `NF` forbids it.
-fuse-su : ∀ X α → fuse (seal X α) (unseal X α) ≡ nothing → ⊥
-fuse-su X α eq with X ≟ X | α ≟ᵃ α
-fuse-su X α () | yes _ | yes _
-fuse-su X α eq | yes _ | no ne = ne refl
-fuse-su X α eq | no ne | _ = ne refl
+-- fusing a pair at one NAME (the address test is gone, 2026-09-17)
+fuse-su : ∀ X α β → fuse (seal X α) (unseal X β) ≡ nothing → ⊥
+fuse-su X α β eq with X ≟ X
+fuse-su X α β () | yes _
+fuse-su X α β eq | no ne = ne refl
 
-fuse-hs : ∀ X α → fuse (hide X α) (show X α) ≡ nothing → ⊥
-fuse-hs X α eq with X ≟ X | α ≟ᵃ α
-fuse-hs X α () | yes _ | yes _
-fuse-hs X α eq | yes _ | no ne = ne refl
-fuse-hs X α eq | no ne | _ = ne refl
+fuse-hs : ∀ X α β → fuse (hide X α) (show X β) ≡ nothing → ⊥
+fuse-hs X α β eq with X ≟ X
+fuse-hs X α β () | yes _
+fuse-hs X α β eq | no ne = ne refl
 
 -- The source is carried as an EQUATION rather than as an index: the
 -- crossing rules state their source as a rename, which the unifier
@@ -152,51 +156,60 @@ var≢∀ ()
 --
 -- So this is a proof restructuring, not a restatement, and it is worth
 -- settling before the rest of stage 3 leans on it.
-after-add : AfterAdd Γ r ĉ
+after-add : NameFn Ξ → AfterAdd Ξ Γ r ĉ
   → Sg ∣ Ξ ∣ Γ ⊢ c ∶ A ⇝ B ⊣ Δ → A ≡ ` r → NF c → IrreducibleAfter ĉ c
   → Σ[ Y ∈ ℕ ] (B ≡ ` Y)
-after-add aa (conv-id wf) refl nf irr = _ , refl
+after-add nfΞ aa (conv-id wf) refl nf irr = _ , refl
 
--- an unseal REMOVES: pop-determinism forces its address
-after-add (aa-seal {X = X₁} {α = α₁} p refl)
-  (conv-cons (conv-unseal {X = Y₁} rep rd nm q na) tl) refl
+-- an unseal REMOVES.  Pop-determinism forces its address to the
+-- adder's; after a seal the pair then FUSES, and after a hide the
+-- frame's name for that address is both `r` (from the unseal's own
+-- abstract side) and not `r` (the hide's discriminator).
+after-add nfΞ (aa-seal {X = X₁} p nm)
+  (conv-cons (conv-unseal {X = Y₁} rep rd nm′ q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
-after-add (aa-seal {X = X₁} {α = α₁} p refl)
-  (conv-cons (conv-unseal {X = Y₁} rep rd nm q na) tl) refl
+after-add nfΞ (aa-seal {X = X₁} {α = α₁} p nm)
+  (conv-cons (conv-unseal {X = Y₁} rep rd nm′ q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
-  ⊥-elim (fuse-su X₁ α₁ fq)
-after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd nm q na) tl) refl
+  ⊥-elim (fuse-su X₁ α₁ α₁ fq)
+after-add nfΞ (aa-hide p nm ne)
+  (conv-cons (conv-unseal rep rd nm′ q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
-after-add (aa-hide p ne) (conv-cons (conv-unseal rep rd nm q na) tl) refl
-  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl = ⊥-elim (ne refl)
+after-add nfΞ (aa-hide p nm ne)
+  (conv-cons (conv-unseal rep rd nm′ q na) tl) refl
+  (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
+  ⊥-elim (ne (nfΞ nm′ nm))
 
--- a show REMOVES: blocked by `fuse` after a hide, and by the shift
--- arithmetic after a seal
-after-add (aa-seal p refl) (conv-cons (conv-show {A = A} sc wf q na) tl) eq
+-- a show REMOVES: after a hide the pair fuses, and after a seal the
+-- show's OWN premise `A ≢ ` X′` is contradicted — the running type is
+-- `` ` r ``, and `NameFn Ξ` makes `r` the frame's name for the address.
+after-add nfΞ (aa-seal p nm)
+  (conv-cons (conv-show {A = A} sc wf nm′ ne q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
-after-add (aa-seal p refl) (conv-cons (conv-show {A = A} sc wf q na) tl) eq
+after-add nfΞ (aa-seal p nm)
+  (conv-cons (conv-show {A = A} sc wf nm′ ne q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
-  ⊥-elim (shiftAt-var-≢ _ A eq)
-after-add (aa-hide {X = X₁} {α = α₁} p ne)
-  (conv-cons (conv-show {X = Y₁} sc wf q na) tl) eq
+  ⊥-elim (ne (cong `_ (nfΞ nm nm′)))
+after-add nfΞ (aa-hide {X = X₁} {α = α₁} p nm ne)
+  (conv-cons (conv-show {X = Y₁} sc wf nm′ ne′ q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) with pop-unique q p
-after-add (aa-hide {X = X₁} {α = α₁} p ne)
-  (conv-cons (conv-show {X = Y₁} sc wf q na) tl) eq
+after-add nfΞ (aa-hide {X = X₁} {α = α₁} p nm ne)
+  (conv-cons (conv-show {X = Y₁} sc wf nm′ ne′ q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
-  ⊥-elim (fuse-hs X₁ α₁ fq)
+  ⊥-elim (fuse-hs X₁ α₁ α₁ fq)
 
 -- an ADDITION keeps us in the same situation
-after-add aa (conv-cons (conv-seal rep rd nm q) tl) eq
+after-add nfΞ aa (conv-cons (conv-seal rep rd nm q) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) =
-  after-add (aa-seal q refl) tl refl nfc irr′
-after-add aa (conv-cons (conv-hide {A = A} sc wf q na) tl) refl
+  after-add nfΞ (aa-seal q nm) tl refl nfc irr′
+after-add nfΞ aa (conv-cons (conv-hide {A = A} sc wf nm ne q na) tl) refl
   (nf-cons nfe nfc irr′) (irr-cons fq) =
-  after-add (aa-hide q (shiftAt-≢ _ _)) tl refl nfc irr′
+  after-add nfΞ (aa-hide q nm (λ e → ne (cong `_ e))) tl refl nfc irr′
 
 -- a structural element needs an arrow or a universal source
-after-add aa (conv-cons (conv-fun s′ t′) tl) eq nf irr =
+after-add nfΞ aa (conv-cons (conv-fun s′ t′) tl) eq nf irr =
   ⊥-elim (var≢⇒ eq)
-after-add aa (conv-cons (conv-all s′) tl) eq nf irr =
+after-add nfΞ aa (conv-cons (conv-all s′) tl) eq nf irr =
   ⊥-elim (var≢∀ eq)
 
 ------------------------------------------------------------------------
@@ -237,108 +250,108 @@ lift-all-all ĉs eq rewrite eq = _ , refl
 
 -- From an ARROW source: either a seal sent the target to a variable, or
 -- `arrElts` is defined and the target is an arrow too.
-canon-fun : Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → FunShape A
+canon-fun : NameFn Ξ → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → FunShape A
   → (Σ[ Y ∈ ℕ ] (B ≡ ` Y))
     ⊎ (Σ[ q ∈ List ConvElt × List ConvElt ]
          ((arrElts (elts c) ≡ just q) × FunShape B))
-canon-fun (conv-id wf) nf sh = inj₂ (_ , refl , sh)
-canon-fun (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
-  with after-add (aa-seal p refl) tl refl nfc irr
-canon-fun (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
+canon-fun nfΞ (conv-id wf) nf sh = inj₂ (_ , refl , sh)
+canon-fun nfΞ (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
+  with after-add nfΞ (aa-seal p nm) tl refl nfc irr
+canon-fun nfΞ (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
-canon-fun (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
-canon-fun (conv-cons (conv-all s′) tl) nf ()
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
-  (nf-cons nfe nfc irr) sh with canon-fun tl nfc (fun-shift X A sh)
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
+canon-fun nfΞ (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
+canon-fun nfΞ (conv-cons (conv-all s′) tl) nf ()
+canon-fun {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
+  (nf-cons nfe nfc irr) sh with canon-fun nfΞ tl nfc sh
+canon-fun {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
+canon-fun {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-arr-hide {X = X} {α = α} (elts c) eqE
-canon-fun {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
+canon-fun {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
-  (nf-cons nfe nfc irr) sh with canon-fun tl nfc (shift-fun X A sh)
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
+canon-fun {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
+  (nf-cons nfe nfc irr) sh with canon-fun nfΞ tl nfc sh
+canon-fun {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
+canon-fun {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-arr-show {X = X} {α = α} (elts c) eqE
-canon-fun {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
+canon-fun {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
-canon-fun {c = (s′ ↦ t′) ∷ᶜ c} (conv-cons (conv-fun s″ t″) tl)
-  (nf-cons nfe nfc irr) sh with canon-fun tl nfc (fun-shape _ _)
-canon-fun {c = (s′ ↦ t′) ∷ᶜ c} (conv-cons (conv-fun s″ t″) tl)
+canon-fun {c = (s′ ↦ t′) ∷ᶜ c} nfΞ (conv-cons (conv-fun s″ t″) tl)
+  (nf-cons nfe nfc irr) sh with canon-fun nfΞ tl nfc (fun-shape _ _)
+canon-fun {c = (s′ ↦ t′) ∷ᶜ c} nfΞ (conv-cons (conv-fun s″ t″) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-fun {c = (s′ ↦ t′) ∷ᶜ c} (conv-cons (conv-fun s″ t″) tl)
+canon-fun {c = (s′ ↦ t′) ∷ᶜ c} nfΞ (conv-cons (conv-fun s″ t″) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-arr-fun {s = s′} {t = t′} (elts c) eqE
-canon-fun {c = (s′ ↦ t′) ∷ᶜ c} (conv-cons (conv-fun s″ t″) tl)
+canon-fun {c = (s′ ↦ t′) ∷ᶜ c} nfΞ (conv-cons (conv-fun s″ t″) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
 
 -- From a UNIVERSAL source, symmetrically.
-canon-all : Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → AllShape A
+canon-all : NameFn Ξ → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → AllShape A
   → (Σ[ Y ∈ ℕ ] (B ≡ ` Y))
     ⊎ (Σ[ q ∈ List ConvElt ]
          ((allElts (elts c) ≡ just q) × AllShape B))
-canon-all (conv-id wf) nf sh = inj₂ (_ , refl , sh)
-canon-all (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
-  with after-add (aa-seal p refl) tl refl nfc irr
-canon-all (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
+canon-all nfΞ (conv-id wf) nf sh = inj₂ (_ , refl , sh)
+canon-all nfΞ (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
+  with after-add nfΞ (aa-seal p nm) tl refl nfc irr
+canon-all nfΞ (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
-canon-all (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
-canon-all (conv-cons (conv-fun s′ t′) tl) nf ()
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
-  (nf-cons nfe nfc irr) sh with canon-all tl nfc (all-shift X A sh)
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
+canon-all nfΞ (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
+canon-all nfΞ (conv-cons (conv-fun s′ t′) tl) nf ()
+canon-all {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
+  (nf-cons nfe nfc irr) sh with canon-all nfΞ tl nfc sh
+canon-all {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
+canon-all {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-all-hide {X = X} {α = α} (elts c) eqE
-canon-all {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
+canon-all {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
-  (nf-cons nfe nfc irr) sh with canon-all tl nfc (shift-all X A sh)
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
+canon-all {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
+  (nf-cons nfe nfc irr) sh with canon-all nfΞ tl nfc sh
+canon-all {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
+canon-all {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-all-show {X = X} {α = α} (elts c) eqE
-canon-all {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
+canon-all {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
-canon-all {c = all s′ ∷ᶜ c} (conv-cons (conv-all s″) tl)
-  (nf-cons nfe nfc irr) sh with canon-all tl nfc (all-shape _)
-canon-all {c = all s′ ∷ᶜ c} (conv-cons (conv-all s″) tl)
+canon-all {c = all s′ ∷ᶜ c} nfΞ (conv-cons (conv-all s″) tl)
+  (nf-cons nfe nfc irr) sh with canon-all nfΞ tl nfc (all-shape _)
+canon-all {c = all s′ ∷ᶜ c} nfΞ (conv-cons (conv-all s″) tl)
   (nf-cons nfe nfc irr) sh | inj₁ v = inj₁ v
-canon-all {c = all s′ ∷ᶜ c} (conv-cons (conv-all s″) tl)
+canon-all {c = all s′ ∷ᶜ c} nfΞ (conv-cons (conv-all s″) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB)
   with lift-all-all {s = s′} (elts c) eqE
-canon-all {c = all s′ ∷ᶜ c} (conv-cons (conv-all s″) tl)
+canon-all {c = all s′ ∷ᶜ c} nfΞ (conv-cons (conv-all s″) tl)
   (nf-cons nfe nfc irr) sh | inj₂ (q , eqE , shB) | _ , eq′ =
   inj₂ (_ , eq′ , shB)
 
 -- From a GROUND source: either a seal, or every element is a crossing
 -- and `base` sees the ground terminator.
-canon-ground : Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → GroundShape A
+canon-ground : NameFn Ξ → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ → NF c → GroundShape A
   → (Σ[ Y ∈ ℕ ] (B ≡ ` Y)) ⊎ (Σ[ ι ∈ Ty ] (base c ≡ just ι))
-canon-ground (conv-id wf) nf ground-ℕ = inj₂ (_ , refl)
-canon-ground (conv-id wf) nf ground-𝔹 = inj₂ (_ , refl)
-canon-ground (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
-  with after-add (aa-seal p refl) tl refl nfc irr
-canon-ground (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
+canon-ground nfΞ (conv-id wf) nf ground-ℕ = inj₂ (_ , refl)
+canon-ground nfΞ (conv-id wf) nf ground-𝔹 = inj₂ (_ , refl)
+canon-ground nfΞ (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
+  with after-add nfΞ (aa-seal p nm) tl refl nfc irr
+canon-ground nfΞ (conv-cons (conv-seal rep rd nm p) tl) (nf-cons nfe nfc irr) sh
   | Y , eq = inj₁ (Y , eq)
-canon-ground (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
-canon-ground (conv-cons (conv-fun s′ t′) tl) nf ()
-canon-ground (conv-cons (conv-all s′) tl) nf ()
-canon-ground {c = hide X α ∷ᶜ c} (conv-cons (conv-hide {A = A} sc wf p na) tl)
-  (nf-cons nfe nfc irr) sh = canon-ground tl nfc (ground-shift X A sh)
-canon-ground {c = show X α ∷ᶜ c} (conv-cons (conv-show {A = A} sc wf p na) tl)
-  (nf-cons nfe nfc irr) sh = canon-ground tl nfc (shift-ground X A sh)
+canon-ground nfΞ (conv-cons (conv-unseal rep rd nm p na) tl) nf ()
+canon-ground nfΞ (conv-cons (conv-fun s′ t′) tl) nf ()
+canon-ground nfΞ (conv-cons (conv-all s′) tl) nf ()
+canon-ground {c = hide X α ∷ᶜ c} nfΞ (conv-cons (conv-hide {A = A} sc wf nm ne p na) tl)
+  (nf-cons nfe nfc irr) sh = canon-ground nfΞ tl nfc sh
+canon-ground {c = show X α ∷ᶜ c} nfΞ (conv-cons (conv-show {A = A} sc wf nm ne p na) tl)
+  (nf-cons nfe nfc irr) sh = canon-ground nfΞ tl nfc sh
 
 ------------------------------------------------------------------------
 -- Assembly: the canonicity obligation of `proof.Progress`
@@ -365,38 +378,38 @@ inert-of-all : ∀ {B Es} (c : Conv) → allElts (elts c) ≡ just Es
   → Σ[ d ∈ Conv ] (allView c ≡ just d)
 inert-of-all c eqE teq (all-shape A) rewrite eqE | teq = _ , refl
 
-canonicity : ∀ {V} → Simple V
+canonicity : ∀ {V} → NameFn Ξ → Simple V
   → Sg ∣ Δᵢ ∣ [] ⊢ V ⦂ A
   → Sg ∣ Ξ ∣ Δᵢ ⊢ c ∶ A ⇝ B ⊣ Δ
   → NF c
   → Inert c ⊎ (Σ[ ι ∈ Ty ] (Literal V × (base c ≡ just ι)))
-canonicity simple ⊢V conv nf with simple-kind simple ⊢V
+canonicity nfΞ simple ⊢V conv nf with simple-kind simple ⊢V
 
 -- an arrow-typed body: `arr` splits, unless a seal sealed the target
-canonicity simple ⊢V conv nf | inj₁ sh with canon-fun conv nf sh
-canonicity simple ⊢V conv nf | inj₁ sh | inj₁ (Y , refl) =
+canonicity nfΞ simple ⊢V conv nf | inj₁ sh with canon-fun nfΞ conv nf sh
+canonicity nfΞ simple ⊢V conv nf | inj₁ sh | inj₁ (Y , refl) =
   inj₁ (inert-var (conv-target conv))
-canonicity {c = c} simple ⊢V conv nf | inj₁ sh
+canonicity {c = c} nfΞ simple ⊢V conv nf | inj₁ sh
   | inj₂ ((Ls , Rs) , eqE , shB)
   with inert-of-arr `ℕ c eqE (conv-target conv) shB
-canonicity {c = c} simple ⊢V conv nf | inj₁ sh
+canonicity {c = c} nfΞ simple ⊢V conv nf | inj₁ sh
   | inj₂ ((Ls , Rs) , eqE , shB) | _ , arr-eq =
   inj₁ (inert-arr `ℕ arr-eq)
 
 -- a universally-typed body: `allView`
-canonicity simple ⊢V conv nf | inj₂ (inj₁ sh) with canon-all conv nf sh
-canonicity simple ⊢V conv nf | inj₂ (inj₁ sh) | inj₁ (Y , refl) =
+canonicity nfΞ simple ⊢V conv nf | inj₂ (inj₁ sh) with canon-all nfΞ conv nf sh
+canonicity nfΞ simple ⊢V conv nf | inj₂ (inj₁ sh) | inj₁ (Y , refl) =
   inj₁ (inert-var (conv-target conv))
-canonicity {c = c} simple ⊢V conv nf | inj₂ (inj₁ sh)
+canonicity {c = c} nfΞ simple ⊢V conv nf | inj₂ (inj₁ sh)
   | inj₂ (Es , eqE , shB)
   with inert-of-all c eqE (conv-target conv) shB
-canonicity {c = c} simple ⊢V conv nf | inj₂ (inj₁ sh)
+canonicity {c = c} nfΞ simple ⊢V conv nf | inj₂ (inj₁ sh)
   | inj₂ (Es , eqE , shB) | _ , all-eq = inj₁ (inert-all all-eq)
 
 -- a literal body: either a seal sealed the target, or `base` sees it
-canonicity simple ⊢V conv nf | inj₂ (inj₂ (sh , lit))
-  with canon-ground conv nf sh
-canonicity simple ⊢V conv nf | inj₂ (inj₂ (sh , lit)) | inj₁ (Y , refl) =
+canonicity nfΞ simple ⊢V conv nf | inj₂ (inj₂ (sh , lit))
+  with canon-ground nfΞ conv nf sh
+canonicity nfΞ simple ⊢V conv nf | inj₂ (inj₂ (sh , lit)) | inj₁ (Y , refl) =
   inj₁ (inert-var (conv-target conv))
-canonicity simple ⊢V conv nf | inj₂ (inj₂ (sh , lit))
+canonicity nfΞ simple ⊢V conv nf | inj₂ (inj₂ (sh , lit))
   | inj₂ (ι , base-eq) = inj₂ (ι , lit , base-eq)

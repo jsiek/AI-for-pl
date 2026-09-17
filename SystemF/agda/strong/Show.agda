@@ -36,7 +36,7 @@ open import Data.Nat.Show using () renaming (show to showℕ)
 open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.List using (List; []; _∷_; length; reverse)
 open import Data.String using (String; _++_)
-open import Data.Product using (_×_; _,_)
+open import Data.Product using (_×_; _,_; proj₂)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.RepresentationTypes using
@@ -49,6 +49,13 @@ open import strong.Terms using
 
 Supply : Set
 Supply = ℕ → String
+
+-- A BASE SUPPLY maps a `bse` INDEX to the stable id its binder was
+-- allocated.  Both the address's own name and the type-variable name
+-- for it are derived from that id, so neither changes when a base push
+-- renumbers the index.
+BSupply : Set
+BSupply = ℕ → ℕ
 
 ------------------------------------------------------------------------
 -- binder names
@@ -122,15 +129,26 @@ delAt X sup Y = if Y <ᵇ X then sup Y else sup (suc Y)
 -- addresses, by KIND
 ------------------------------------------------------------------------
 
-showAddr : Addr → String
-showAddr (lvl ℓ) = greek ℓ
-showAddr (bse j) = "ν" ++ greek j
+extB : BSupply → ℕ → BSupply
+extB bs b zero    = b
+extB bs b (suc k) = bs k
+
+-- ONE POOL FOR EVERY ADDRESS.  A level is its own id; a base index is
+-- the id its binder was allocated.  `Alloc` sends the ν's `bse 0` to
+-- the level `length Σ`, so a ν allocated at `length Σ` KEEPS ITS NAME
+-- across the allocation step — which is why `showTmΣ` takes the store's
+-- length as the first free id.
+idxOf : BSupply → Addr → ℕ
+idxOf bs (lvl ℓ) = ℓ
+idxOf bs (bse j) = bs j
+
+showAddr : BSupply → Addr → String
+showAddr bs α = greek (idxOf bs α)
 
 -- THE NAME ASSIGNED TO AN ADDRESS, keyed to the address itself — this
 -- is what makes a variable print the same at every step of a trace.
-varOfAddr : Addr → String
-varOfAddr (lvl ℓ) = tyBinder ℓ
-varOfAddr (bse j) = tyBinder j ++ "′"
+varOfAddr : BSupply → Addr → String
+varOfAddr bs α = tyBinder (idxOf bs α)
 
 ------------------------------------------------------------------------
 -- types and representation types
@@ -146,13 +164,13 @@ showTy d sup (`∀ A)  =
   "(∀" ++ boundVar d ++ ". "
       ++ showTy (suc d) (extS sup (boundVar d)) A ++ ")"
 
-showRep : RepTy → String
-showRep (`ᵃ α)   = showAddr α
-showRep (`ᵛ i)   = boundVar i
-showRep `ℕᴿ      = "ℕᴿ"
-showRep `𝔹ᴿ      = "𝔹ᴿ"
-showRep (R ⇒ᴿ S) = "(" ++ showRep R ++ "→" ++ showRep S ++ ")"
-showRep (`∀ᴿ R)  = "(∀ᴿ. " ++ showRep R ++ ")"
+showRep : BSupply → RepTy → String
+showRep bs (`ᵃ α)   = showAddr bs α
+showRep bs (`ᵛ i)   = boundVar i
+showRep bs `ℕᴿ      = "ℕᴿ"
+showRep bs `𝔹ᴿ      = "𝔹ᴿ"
+showRep bs (R ⇒ᴿ S) = "(" ++ showRep bs R ++ "→" ++ showRep bs S ++ ")"
+showRep bs (`∀ᴿ R)  = "(∀ᴿ. " ++ showRep bs R ++ ")"
 
 ------------------------------------------------------------------------
 -- conversions
@@ -176,24 +194,26 @@ showRep (`∀ᴿ R)  = "(∀ᴿ. " ++ showRep R ++ ")"
 -- decremented, so two different type variables can never print as the
 -- same letter even when both sit at slot 0 of their own frames.
 
-showConvOut : (ℕ × Supply) → Conv → (ℕ × Supply) × String
-showConvOut (n , sup) (id A) = (n , sup) , "id " ++ showTy n sup A
-showConvOut ext (seal X α ∷ᶜ c) with showConvOut ext c
+-- The base supply is CONSTANT along a conversion: no element binds a
+-- base address (an `all` binds a type variable).
+showConvOut : BSupply → (ℕ × Supply) → Conv → (ℕ × Supply) × String
+showConvOut bs (n , sup) (id A) = (n , sup) , "id " ++ showTy n sup A
+showConvOut bs ext (seal X α ∷ᶜ c) with showConvOut bs ext c
 ... | (n , sup) , str =
   (n , delAt X sup)
-  , "seal{-" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
-showConvOut ext (hide X α ∷ᶜ c) with showConvOut ext c
+  , "seal{-" ++ sup X ++ ":=" ++ showAddr bs α ++ "} ∷ " ++ str
+showConvOut bs ext (hide X α ∷ᶜ c) with showConvOut bs ext c
 ... | (n , sup) , str =
   (n , delAt X sup)
-  , "id{-" ++ sup X ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
-showConvOut ext (unseal X α ∷ᶜ c) with showConvOut ext c
+  , "id{-" ++ sup X ++ ":=" ++ showAddr bs α ++ "} ∷ " ++ str
+showConvOut bs ext (unseal X α ∷ᶜ c) with showConvOut bs ext c
 ... | (n , sup) , str =
-  (n , insAt X (varOfAddr α) sup)
-  , "unseal{+" ++ varOfAddr α ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
-showConvOut ext (show X α ∷ᶜ c) with showConvOut ext c
+  (n , insAt X (varOfAddr bs α) sup)
+  , "unseal{+" ++ varOfAddr bs α ++ ":=" ++ showAddr bs α ++ "} ∷ " ++ str
+showConvOut bs ext (show X α ∷ᶜ c) with showConvOut bs ext c
 ... | (n , sup) , str =
-  (n , insAt X (varOfAddr α) sup)
-  , "id{+" ++ varOfAddr α ++ ":=" ++ showAddr α ++ "} ∷ " ++ str
+  (n , insAt X (varOfAddr bs α) sup)
+  , "id{+" ++ varOfAddr bs α ++ ":=" ++ showAddr bs α ++ "} ∷ " ++ str
 -- `conv-fun`'s components carry the element's own crossing:
 --   t : Γᵢ ⊢ t ∶ B ⇝ D ⊣ Γₑ   runs interior → exterior, like the element
 --   s : Γₑ ⊢ s ∶ C ⇝ A ⊣ Γᵢ   runs BACKWARD
@@ -202,12 +222,12 @@ showConvOut ext (show X α ∷ᶜ c) with showConvOut ext c
 -- half crosses an assignment print that assignment's name in the body
 -- (notes/SourceToTyWrapGap); returning the exterior frame unchanged
 -- printed it as `?`.
-showConvOut ext ((s ↦ t) ∷ᶜ c) with showConvOut ext c
-... | extₑ , str with showConvOut extₑ t
-... | extᵢ , ts with showConvOut extᵢ s
+showConvOut bs ext ((s ↦ t) ∷ᶜ c) with showConvOut bs ext c
+... | extₑ , str with showConvOut bs extₑ t
+... | extᵢ , ts with showConvOut bs extᵢ s
 ... | _ , ss = extᵢ , "(" ++ ss ++ " → " ++ ts ++ ") ∷ " ++ str
-showConvOut ext (all s ∷ᶜ c) with showConvOut ext c
-... | (n , sup) , str with showConvOut (suc n , extS sup (boundVar n)) s
+showConvOut bs ext (all s ∷ᶜ c) with showConvOut bs ext c
+... | (n , sup) , str with showConvOut bs (suc n , extS sup (boundVar n)) s
 ... | _ , ss =
   (n , sup) , "(∀" ++ boundVar n ++ ". " ++ ss ++ ") ∷ " ++ str
 
@@ -219,45 +239,65 @@ showPrim : Prim → String
 showPrim p+ = "+"
 showPrim p× = "×"
 
--- `d`/`sup` are the TYPE frame, `e`/`tsup` the TERM frame
-showTm : ℕ → Supply → ℕ → Supply → Term → String
-showTm d sup e tsup (` x) = tsup x
-showTm d sup e tsup ($ n) = showℕ n
-showTm d sup e tsup (# false) = "false"
-showTm d sup e tsup (# true) = "true"
-showTm d sup e tsup (M ⊕[ p ] N) =
-  "(" ++ showTm d sup e tsup M ++ " " ++ showPrim p ++ " "
-      ++ showTm d sup e tsup N ++ ")"
-showTm d sup e tsup (ƛ A ∙ N) =
-  "(λ" ++ tmBinder e ++ ":" ++ showTy d sup A ++ ". "
-       ++ showTm d sup (suc e) (extS tsup (tmBinder e)) N ++ ")"
-showTm d sup e tsup (L · M) =
-  "(" ++ showTm d sup e tsup L ++ " " ++ showTm d sup e tsup M ++ ")"
--- `⊢Λ` always assigns the Λ's name to `bse zero`, so key it there
-showTm d sup e tsup (Λ V) =
-  "(Λ" ++ varOfAddr (bse zero) ++ ". "
-       ++ showTm d (extS sup (varOfAddr (bse zero))) e tsup V ++ ")"
-showTm d sup e tsup (L • B [ A ]) =
-  showTm d sup e tsup L ++ " [" ++ showTy d sup A ++ "]"
-showTm d sup e tsup (ν R ∙ M) =
-  "(ν:=" ++ showRep R ++ ". " ++ showTm d sup e tsup M ++ ")"
+-- `b`/`bs` are the BASE frame, `d`/`sup` the TYPE frame, `e`/`tsup` the
+-- TERM frame.  `b` is a MONOTONE counter threaded through the whole
+-- term, so two `Λ`s never share a name however they are nested — the
+-- reason the result is a pair.
+showTm : ℕ → BSupply → ℕ → Supply → ℕ → Supply → Term → ℕ × String
+showTm b bs d sup e tsup (` x)     = b , tsup x
+showTm b bs d sup e tsup ($ n)     = b , showℕ n
+showTm b bs d sup e tsup (# false) = b , "false"
+showTm b bs d sup e tsup (# true)  = b , "true"
+showTm b bs d sup e tsup (M ⊕[ p ] N)
+  with showTm b bs d sup e tsup M
+... | b₁ , ms with showTm b₁ bs d sup e tsup N
+... | b₂ , ns = b₂ , "(" ++ ms ++ " " ++ showPrim p ++ " " ++ ns ++ ")"
+showTm b bs d sup e tsup (ƛ A ∙ N)
+  with showTm b bs d sup (suc e) (extS tsup (tmBinder e)) N
+... | b₁ , ns =
+  b₁ , "(λ" ++ tmBinder e ++ ":" ++ showTy d sup A ++ ". " ++ ns ++ ")"
+showTm b bs d sup e tsup (L · M)
+  with showTm b bs d sup e tsup L
+... | b₁ , ls with showTm b₁ bs d sup e tsup M
+... | b₂ , ms = b₂ , "(" ++ ls ++ " " ++ ms ++ ")"
+-- `⊢Λ` binds a BASE address and pushes an assignment naming it, so the
+-- Λ takes a fresh id and both frames gain it.
+showTm b bs d sup e tsup (Λ V)
+  with showTm (suc b) (extB bs b) d (extS sup (tyBinder b)) e tsup V
+... | b₁ , vs = b₁ , "(Λ" ++ tyBinder b ++ ". " ++ vs ++ ")"
+showTm b bs d sup e tsup (L • B [ A ])
+  with showTm b bs d sup e tsup L
+... | b₁ , ls = b₁ , ls ++ " [" ++ showTy d sup A ++ "]"
+-- `⊢ν` binds a base address and NO name, so only the base frame grows.
+-- The representation is read OUTSIDE the binder, hence `bs`, not `bs′`.
+showTm b bs d sup e tsup (ν R ∙ M)
+  with showTm (suc b) (extB bs b) d sup e tsup M
+... | b₁ , ms =
+  b₁ , "(ν " ++ greek b ++ ":=" ++ showRep bs R ++ ". " ++ ms ++ ")"
 -- A boundary's body is TERM-CLOSED — `⊢⟨⟩` types it at `[]` — so the
 -- term-binder supply restarts inside one.  Without the reset the same
 -- closed value prints with different binder names depending on how
 -- deep the boundary happens to sit, and a reduction step that only
--- moved it would look like a renaming.
-showTm d sup e tsup (M ⟨ c ⟩) = go (showConvOut (d , sup) c)
+-- moved it would look like a renaming.  The BASE frame does not reset:
+-- no crossing binds an address.
+showTm b bs d sup e tsup (M ⟨ c ⟩) = go (showConvOut bs (d , sup) c)
   where
-  go : (ℕ × Supply) × String → String
-  go ((dᵢ , supᵢ) , str) =
-    showTm dᵢ supᵢ zero (λ _ → "?") M ++ "⟨ " ++ str ++ " ⟩"
+  go : (ℕ × Supply) × String → ℕ × String
+  go ((dᵢ , supᵢ) , str) with showTm b bs dᵢ supᵢ zero (λ _ → "?") M
+  ... | b₁ , ms = b₁ , ms ++ "⟨ " ++ str ++ " ⟩"
 
--- closed, at the empty frame
+-- Closed, at the empty frame.  `n` is the STORE'S LENGTH: base ids
+-- start there, so the first `ν` — the one `Alloc` is about to
+-- discharge to level `length Σ` — keeps its name across that step.
+showTmΣ : ℕ → Term → String
+showTmΣ n M =
+  proj₂ (showTm n (λ _ → zero) zero (λ _ → "?") zero (λ _ → "?") M)
+
 showTm₀ : Term → String
-showTm₀ = showTm zero (λ _ → "?") zero (λ _ → "?")
+showTm₀ = showTmΣ zero
 
 showConv₀ : Conv → String
-showConv₀ c = go (showConvOut (zero , λ _ → "?") c)
+showConv₀ c = go (showConvOut (λ _ → zero) (zero , λ _ → "?") c)
   where
   go : (ℕ × Supply) × String → String
   go (_ , str) = str

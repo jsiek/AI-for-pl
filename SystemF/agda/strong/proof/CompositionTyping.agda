@@ -308,8 +308,25 @@ fuse-cancel-hs eq | yes refl | refl = refl , refl
 fuse-cancel-hs eq | no _ | ()
 
 fuse-cancel-sh : ∀ {X Y α β ks} → fuse (show X α) (hide Y β) ≡ just ks
-  → (X ≡ Y) × (ks ≡ [])
-fuse-cancel-sh ()
+  → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
+fuse-cancel-sh {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
+fuse-cancel-sh eq | yes refl | yes refl | refl = refl , refl , refl
+fuse-cancel-sh eq | yes _ | no _ | ()
+fuse-cancel-sh eq | no _ | _ | ()
+
+-- show α then hide α.  RESTORED with the row: the two pops are from
+-- DIFFERENT contexts, so what makes the endpoints meet is that the
+-- addresses agree (which `fuse` checks) and `pushAsgn` is a function.
+just-inj : ∀ {A : Set} {x y : A} → (just x) ≡ just y → x ≡ y
+just-inj refl = refl
+
+cancel-show : ∀ {Γ₁ Γ₂ Γ₃ A B C X α}
+  → Sg ∣ Ξ ∣ Γ₁ ⊢̂ show X α ∶ A ⇝ B ⊣ Γ₂
+  → Sg ∣ Ξ ∣ Γ₂ ⊢̂ hide X α ∶ B ⇝ C ⊣ Γ₃
+  → (Γ₁ ≡ Γ₃) × (A ≡ C)
+cancel-show hd hd₂ with inv-show hd | inv-hide hd₂
+cancel-show hd hd₂ | refl , p | refl , q =
+  just-inj (trans (sym (push-sound p)) (push-sound q)) , refl
 
 -- the two structural fusions
 fuse-fun-eq : ∀ {s₁ t₁ s₂ t₂ ks} → fuse (s₁ ↦ t₁) (s₂ ↦ t₂) ≡ just ks
@@ -352,7 +369,14 @@ preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
   | refl , refl = tl
 
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} ())
+  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq)
+  with fuse-cancel-sh {X = X} {Y = Y} {α = α} {β = β} eq
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq) | refl , refl , refl
+  with cancel-show hd hd₂
+preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
+  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq) | refl , refl , refl
+  | refl , refl = tl
 
 -- the two structural fusions: `⧺-typing` on the components
 preserve-step nf

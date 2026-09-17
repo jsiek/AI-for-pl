@@ -754,7 +754,13 @@ fuse-inst inj (hide X α) (s₂ ↦ t₂) f g eq = refl
 fuse-inst inj (hide X α) (all s₂) f g eq = refl
 fuse-inst inj (show X α) (seal Y β) f g eq = refl
 fuse-inst inj (show X α) (unseal Y β) f g eq = refl
-fuse-inst inj (show X α) (hide Y β) f g eq = refl
+fuse-inst {ρ = ρ} inj (show X α) (hide Y β) f g eq
+  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
+fuse-inst inj (show X α) (hide Y β) f g () | yes _ | yes _ | _
+fuse-inst inj (show X α) (hide Y β) f g eq | yes _ | no ne | yes e =
+  ⊥-elim (ne (inj e))
+fuse-inst inj (show X α) (hide Y β) f g eq | yes _ | no _ | no _ = refl
+fuse-inst inj (show X α) (hide Y β) f g eq | no _ | _ | _ = refl
 fuse-inst inj (show X α) (show Y β) f g eq = refl
 fuse-inst inj (show X α) (s₂ ↦ t₂) f g eq = refl
 fuse-inst inj (show X α) (all s₂) f g eq = refl

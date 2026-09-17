@@ -198,6 +198,17 @@ after-add nfΞ (aa-hide {X = X₁} {α = α₁} p nm ne)
   (nf-cons nfe nfc irr′) (irr-cons fq) | refl , refl , refl =
   ⊥-elim (fuse-hs X₁ α₁ α₁ fq)
 
+-- PORT STATUS (2026-09-17).  The clauses below still reference the
+-- `A ≢ ` X′` premise, which is gone: the fix turned out to be the
+-- RESTORED `show`/`hide` fuse row (notes/ShowHideNeeded), not a premise.
+-- What `after-add` now needs is the invariant
+--
+--   the running type is `` ` r ``, `Ξ ∋n r := β`, and β is ASSIGNED here
+--
+-- plus a third state for "a `show` at β just popped it", where the only
+-- way back to β on top is a `hide β` — which the restored row cancels.
+-- That third state is the remaining work.
+--
 -- an ADDITION keeps us in the same situation
 after-add nfΞ aa (conv-cons (conv-seal rep rd nm q) tl) eq
   (nf-cons nfe nfc irr′) (irr-cons fq) =

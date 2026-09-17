@@ -274,9 +274,16 @@ fuse (hide X α) (show Y β) | no  _ = nothing
 -- (notes/ShowHideNeeded).  The row is sound — `show X β` pops β and
 -- `hide X β` pushes it back, so the pair is net-zero on the context and,
 -- now that neither re-spells, type-preserving as well.
-fuse (show X α) (hide Y β) with X ≟ Y
-fuse (show X α) (hide Y β) | yes _ = just []
-fuse (show X α) (hide Y β) | no  _ = nothing
+-- AND IT NEEDS THE ADDRESS TEST.  Unlike the other direction, the two
+-- pops here are from DIFFERENT contexts (`show` pops from its interior,
+-- `hide` from its exterior), so `pop-unique` says nothing and equal
+-- names do not force equal addresses.  `notes/AddrNeeded.keptApart` is
+-- the witness.  This is the one row for which `Addr` still has to be
+-- richer than a name.
+fuse (show X α) (hide Y β) with X ≟ Y | α ≟ᵃ β
+fuse (show X α) (hide Y β) | yes _ | yes _ = just []
+fuse (show X α) (hide Y β) | yes _ | no  _ = nothing
+fuse (show X α) (hide Y β) | no  _ | _ = nothing
 fuse (s₁ ↦ t₁) (s₂ ↦ t₂) = just (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
 fuse (all s) (all t) = just (all (s ⧺ t) ∷ [])
 fuse (seal X α) (seal Y β) = nothing

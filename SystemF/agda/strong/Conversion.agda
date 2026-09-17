@@ -18,13 +18,13 @@ module strong.Conversion where
 -- makes TyPeelR's preservation case a theorem at every ∀ conversion
 -- rather than only at a reveal one (proof/Preserve.preserve-TyPeelR-Λ).
 --
--- Conversions are REP-FREE by construction: `seal` and `unseal` carry a
--- NAME, never a spelling, and the rep is read by a BINDER LOOKUP on the
--- type context (`Δ ∋ X := A`).  That is what makes Q4's cancel type
--- equation definitional (proof/MoveScope.agda) and what makes both transports
--- below hypothesis-free.
+-- Conversions are REP-FREE by construction: `seal` and `unseal` carry an
+-- ordinary type-variable NAME, never a representation spelling. The lookup
+-- square `Δ ∋ X := A` follows that name to its representation variable and
+-- relates the stored representation payload back to ordinary type A.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (yes; no)
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
@@ -32,7 +32,8 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans; cong₂; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ;
+         ⇑ᵗ)
 open import strong.Ctx
 
 private
@@ -102,7 +103,7 @@ data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
       ----------------------------------------------
     → Δ ⊢ s ↦ t ∶ (A ⇒ B) ⇝ (A′ ⇒ B′)
 
-  conv-all : ∀ {s} → (unmasked abst ∷ Δ) ⊢ s ∶ A ⇝ B
+  conv-all : ∀ {s} → underΛ Δ ⊢ s ∶ A ⇝ B
       --------------------------------------
     → Δ ⊢ `∀ s ∶ `∀ A ⇝ `∀ B
 
@@ -134,7 +135,7 @@ mkId-⊢ (wf-∀ wA)    = conv-all (mkId-⊢ wA)
 -- not from stored knowledge, and they carry only the NAME X.
 mutual
   reveal : ℕ → Ty → Conv
-  reveal X (` Y) with X ≟ℕ Y
+  reveal X (` Y) with X ≟ Y
   ... | yes _ = unseal X
   ... | no  _ = id (` Y)
   reveal X `ℕ      = id `ℕ
@@ -143,7 +144,7 @@ mutual
   reveal X (`∀ A)  = `∀ (reveal (suc X) A)
 
   conceal : ℕ → Ty → Conv
-  conceal X (` Y) with X ≟ℕ Y
+  conceal X (` Y) with X ≟ Y
   ... | yes _ = seal X
   ... | no  _ = id (` Y)
   conceal X `ℕ      = id `ℕ
@@ -192,7 +193,8 @@ mutual
     cong₂ _↦_ (instConceal-mkId X A) (instReveal-mkId X B)
   instReveal-mkId X (`∀ A)  = cong `∀ (instReveal-mkId (suc X) A)
 
-  instConceal-mkId : (X : ℕ) (B : Ty) → instConceal X (mkId B) ≡ conceal X B
+  instConceal-mkId : (X : ℕ) (B : Ty)
+    → instConceal X (mkId B) ≡ conceal X B
   instConceal-mkId X (` Y)   = refl
   instConceal-mkId X `ℕ      = refl
   instConceal-mkId X `𝔹      = refl
@@ -201,46 +203,7 @@ mutual
   instConceal-mkId X (`∀ A)  = cong `∀ (instConceal-mkId (suc X) A)
 
 ------------------------------------------------------------------------
--- 5.  TRANSPORT I — type context renaming (the ⊢renameᵗ analogue)
-------------------------------------------------------------------------
-
--- A context-indexed conversion typing moves along ANY type context renaming, with NO
--- hypothesis beyond `Ren` itself: no SkelEq, no starOnly, no unfolding, no
--- second chance.  The `conv-unseal`/`conv-seal` cases are literally
--- `ren-kn` — the name is carried, and the rep comes back out of the target
--- type context already renamed.
-conv-ren : ∀ {c} → Ren ρ Δ Δ′
-  → Δ  ⊢ c ∶ A ⇝ B
-    -----------------------------------------------
-  → Δ′ ⊢ renᶜ ρ c ∶ renameᵗ ρ A ⇝ renameᵗ ρ B
-conv-ren {ρ = ρ} r (conv-id bA)
-  rewrite base-ren {A = _} {ρ = ρ} bA  = conv-id bA
-conv-ren r (conv-idv tv)     = conv-idv (ren-tv r tv)
-conv-ren r (conv-unseal d)   = conv-unseal (ren-kn r d)
-conv-ren r (conv-seal d)     = conv-seal (ren-kn r d)
-conv-ren r (conv-fun s t)    = conv-fun (conv-ren r s) (conv-ren r t)
-conv-ren r (conv-all s)      = conv-all (conv-ren (ren-ext r) s)
-
-------------------------------------------------------------------------
--- 6.  TRANSPORT II — knowledge refinement (the ⊢retag analogue)
-------------------------------------------------------------------------
-
--- Knowledge refinement preserves conversion typing with the SOURCE AND
--- TARGET TYPES UNCHANGED — no ≈, no unfolding, no retagging of the types.
-conv-⊑ : ∀ {c} → Δ ⊑ Δ′
-  → Δ  ⊢ c ∶ A ⇝ B
-    ------------------------
-  → Δ′ ⊢ c ∶ A ⇝ B
-conv-⊑ ls (conv-id bA)     = conv-id bA
-conv-⊑ ls (conv-idv tv)    = conv-idv (⊑-tv ls tv)
-conv-⊑ ls (conv-unseal d)  = conv-unseal (⊑-kn ls d)
-conv-⊑ ls (conv-seal d)    = conv-seal (⊑-kn ls d)
-conv-⊑ ls (conv-fun s t)   = conv-fun (conv-⊑ ls s) (conv-⊑ ls t)
-conv-⊑ ls (conv-all s)     =
-  conv-all (conv-⊑ (le∷ (le-uu le-aa) ls) s)
-
-------------------------------------------------------------------------
--- 7.  Conversion inversions
+-- 5. Conversion inversions
 ------------------------------------------------------------------------
 
 -- Every rep a conversion mentions IS the binder's rep — there is no second
@@ -274,42 +237,64 @@ conv-id-refl (conv-id _)  = refl
 conv-id-refl (conv-idv _) = refl
 
 -- A ∀ conversion's body, as an inversion that does NOT have to see
--- through `shiftBy`: `env` pins the target type to `shiftBy (numBinds Θ) Bₑ`,
--- which is a stuck term, so TyPeelR's premise is recovered by this lemma rather
--- than by matching `conv-all` directly.
+-- through `shiftBy`: `env` pins the target type to
+-- `shiftBy (numBinds Θ) Bₑ`, which is a stuck term, so TyPeelR's premise is
+-- recovered by this lemma rather than by matching `conv-all` directly.
 conv-all-inv : ∀ {s A B} → Δ ⊢ `∀ s ∶ A ⇝ B
   → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]
-      ((A ≡ `∀ A₀) × (B ≡ `∀ B₀) × ((unmasked abst ∷ Δ) ⊢ s ∶ A₀ ⇝ B₀))
+      ((A ≡ `∀ A₀) ×
+       (B ≡ `∀ B₀) ×
+       (underΛ Δ ⊢ s ∶ A₀ ⇝ B₀))
 conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 
 ------------------------------------------------------------------------
--- 8.  THE TYPES ARE A FUNCTION OF THE CONVERSION AND THE TYPE CONTEXT
+-- 6. Conversion types are unique on a well-formed name map
 ------------------------------------------------------------------------
 
--- A conversion determines BOTH its types: `id` carries its own, a
--- `seal`/`unseal` reads its rep by the binder lookup (`∋:=-det`), and
--- `↦`/`` `∀ `` are structural.  This is what makes TyPeelR deterministic even
--- though its pushed-in annotation is premise-determined rather than
--- syntactic (strong.Reduction, `det`).
+-- The new premise is the exact invariant used at `seal` and `unseal`: one
+-- representation variable has at most one ordinary name. All contexts
+-- produced by well-formed morphisms preserve this invariant.
 conv-types-unique : ∀ {c A A′ B B′}
+  → Unique (names Δ)
   → Δ ⊢ c ∶ A  ⇝ B
   → Δ ⊢ c ∶ A′ ⇝ B′
-    ----------------------
   → (A ≡ A′) × (B ≡ B′)
-conv-types-unique (conv-id b)     (conv-id b′)     = refl , refl
-conv-types-unique (conv-id ())    (conv-idv tv′)
-conv-types-unique (conv-idv tv)   (conv-id ())
-conv-types-unique (conv-idv tv)   (conv-idv tv′)   = refl , refl
-conv-types-unique (conv-unseal d) (conv-unseal d′) = refl , ∋:=-det d d′
-conv-types-unique (conv-seal d)   (conv-seal d′)   = ∋:=-det d d′ , refl
-conv-types-unique (conv-fun s t)  (conv-fun s′ t′)
-  with conv-types-unique s s′ | conv-types-unique t t′
+conv-types-unique unique (conv-id b) (conv-id b′) = refl , refl
+conv-types-unique unique (conv-id ()) (conv-idv tv′)
+conv-types-unique unique (conv-idv tv) (conv-id ())
+conv-types-unique unique (conv-idv tv) (conv-idv tv′) = refl , refl
+conv-types-unique unique (conv-unseal d) (conv-unseal d′) =
+  refl , ∋:=-det unique d d′
+conv-types-unique unique (conv-seal d) (conv-seal d′) =
+  ∋:=-det unique d d′ , refl
+conv-types-unique unique (conv-fun s t) (conv-fun s′ t′)
+  with conv-types-unique unique s s′ | conv-types-unique unique t t′
 ... | refl , refl | refl , refl = refl , refl
-conv-types-unique (conv-all s)    (conv-all s′)
-  with conv-types-unique s s′
+conv-types-unique {Δ = Δ} unique (conv-all s) (conv-all s′)
+  with conv-types-unique (unique-underΛ {Γ = Δ} unique) s s′
 ... | refl , refl = refl , refl
 
 conv-src-unique : ∀ {c A A′ B B′}
-  → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A′ ⇝ B′ → A ≡ A′
-conv-src-unique ⊢c ⊢c′ with conv-types-unique ⊢c ⊢c′
+  → Unique (names Δ)
+  → Δ ⊢ c ∶ A ⇝ B
+  → Δ ⊢ c ∶ A′ ⇝ B′
+  → A ≡ A′
+conv-src-unique unique ⊢c ⊢c′
+  with conv-types-unique unique ⊢c ⊢c′
 ... | eq , _ = eq
+
+------------------------------------------------------------------------
+-- 7. Concrete lookup-square checks
+------------------------------------------------------------------------
+
+βCtx : Ctxᵗ
+βCtx = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
+
+β-lookup : βCtx ∋ zero := `ℕ
+β-lookup = zero , `ℕ , here , r-here , same-ℕ
+
+β-unseal : βCtx ⊢ unseal zero ∶ ` zero ⇝ `ℕ
+β-unseal = conv-unseal β-lookup
+
+β-seal : βCtx ⊢ seal zero ∶ `ℕ ⇝ ` zero
+β-seal = conv-seal β-lookup

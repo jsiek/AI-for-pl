@@ -252,9 +252,12 @@ inv-unseal : ∀ {Γ₁ Γ₂ A B X α}
 inv-unseal (conv-unseal rep rd p na) = _ , refl , rep , rd , p
 
 -- seal α then unseal α
-cancel-seal : ∀ {Γ₁ Γ₂ Γ₃ A B C X Y α}
+-- The ADDRESSES need not be assumed equal: both pops are from Γ₂, so
+-- `pop-unique` delivers `α ≡ β` along with the rest.  This is why `fuse`
+-- can cancel this pair on the NAME alone (strong.Conversion).
+cancel-seal : ∀ {Γ₁ Γ₂ Γ₃ A B C X Y α β}
   → Sg ∣ Γ₁ ⊢̂ seal X α ∶ A ⇝ B ⊣ Γ₂
-  → Sg ∣ Γ₂ ⊢̂ unseal Y α ∶ B ⇝ C ⊣ Γ₃
+  → Sg ∣ Γ₂ ⊢̂ unseal Y β ∶ B ⇝ C ⊣ Γ₃
   → NameFn Γ₃
   → (Γ₁ ≡ Γ₃) × (A ≡ C)
 cancel-seal hd hd₂ nf with inv-seal hd | inv-unseal hd₂
@@ -266,9 +269,9 @@ cancel-seal hd hd₂ nf | R , refl , rep , rd , p | R′ , teq , rep′ , rd′ 
   | refl , refl , refl | refl = refl , read-unique nf rd rd′
 
 -- hide α then show α
-cancel-hide : ∀ {Γ₁ Γ₂ Γ₃ A B C X Y α}
+cancel-hide : ∀ {Γ₁ Γ₂ Γ₃ A B C X Y α β}
   → Sg ∣ Γ₁ ⊢̂ hide X α ∶ A ⇝ B ⊣ Γ₂
-  → Sg ∣ Γ₂ ⊢̂ show Y α ∶ B ⇝ C ⊣ Γ₃
+  → Sg ∣ Γ₂ ⊢̂ show Y β ∶ B ⇝ C ⊣ Γ₃
   → (Γ₁ ≡ Γ₃) × (A ≡ C)
 cancel-hide {A = A} {C = C} {X = X} hd hd₂ with inv-hide hd | inv-show hd₂
 cancel-hide {A = A} {C = C} {X = X} hd hd₂ | refl , p | teq , q
@@ -309,29 +312,24 @@ open import strong.ConversionReduction using
 -- Reading a cancellation back out of `fuse`: both the name and the
 -- address agreed, and nothing was produced.
 fuse-cancel-su : ∀ {X Y α β ks} → fuse (seal X α) (unseal Y β) ≡ just ks
-  → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
-fuse-cancel-su {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
-fuse-cancel-su eq | yes refl | yes refl | refl = refl , refl , refl
-fuse-cancel-su eq | yes _ | no _ | ()
-fuse-cancel-su eq | no _ | _ | ()
+  → (X ≡ Y) × (ks ≡ [])
+fuse-cancel-su {X = X} {Y = Y} eq with X ≟ Y | eq
+fuse-cancel-su eq | yes refl | refl = refl , refl
+fuse-cancel-su eq | no _ | ()
 
 fuse-cancel-us : ∀ {X Y α β ks} → fuse (unseal X α) (seal Y β) ≡ just ks
   → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
 fuse-cancel-us ()
 
 fuse-cancel-hs : ∀ {X Y α β ks} → fuse (hide X α) (show Y β) ≡ just ks
-  → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
-fuse-cancel-hs {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
-fuse-cancel-hs eq | yes refl | yes refl | refl = refl , refl , refl
-fuse-cancel-hs eq | yes _ | no _ | ()
-fuse-cancel-hs eq | no _ | _ | ()
+  → (X ≡ Y) × (ks ≡ [])
+fuse-cancel-hs {X = X} {Y = Y} eq with X ≟ Y | eq
+fuse-cancel-hs eq | yes refl | refl = refl , refl
+fuse-cancel-hs eq | no _ | ()
 
 fuse-cancel-sh : ∀ {X Y α β ks} → fuse (show X α) (hide Y β) ≡ just ks
   → (X ≡ Y) × (α ≡ β) × (ks ≡ [])
-fuse-cancel-sh {X = X} {Y = Y} {α = α} {β = β} eq with X ≟ Y | α ≟ᵃ β | eq
-fuse-cancel-sh eq | yes refl | yes refl | refl = refl , refl , refl
-fuse-cancel-sh eq | yes _ | no _ | ()
-fuse-cancel-sh eq | no _ | _ | ()
+fuse-cancel-sh ()
 
 -- the two structural fusions
 fuse-fun-eq : ∀ {s₁ t₁ s₂ t₂ ks} → fuse (s₁ ↦ t₁) (s₂ ↦ t₂) ≡ just ks
@@ -349,12 +347,12 @@ preserve-step : ∀ {Γ₁ Δ} → NameFn Δ
 -- the four cancelling pairs: the conversion on either side meets
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
   (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq)
-  with fuse-cancel-su eq
+  with fuse-cancel-su {X = X} {Y = Y} {α = α} {β = β} eq
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq) | refl , refl , refl
+  (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq) | refl , refl
   with cancel-seal hd hd₂ (conv-namefn tl nf)
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq) | refl , refl , refl
+  (ξ-pair {ĉ = seal X α} {ḓ = unseal Y β} eq) | refl , refl
   | refl , refl = tl
 
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
@@ -362,23 +360,16 @@ preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
 
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
   (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq)
-  with fuse-cancel-hs eq
+  with fuse-cancel-hs {X = X} {Y = Y} {α = α} {β = β} eq
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq) | refl , refl , refl
+  (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq) | refl , refl
   with cancel-hide hd hd₂
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq) | refl , refl , refl
+  (ξ-pair {ĉ = hide X α} {ḓ = show Y β} eq) | refl , refl
   | refl , refl = tl
 
 preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq)
-  with fuse-cancel-sh eq
-preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq) | refl , refl , refl
-  with cancel-show hd hd₂
-preserve-step nf (conv-cons hd (conv-cons hd₂ tl))
-  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} eq) | refl , refl , refl
-  | refl , refl = tl
+  (ξ-pair {ĉ = show X α} {ḓ = hide Y β} ())
 
 -- the two structural fusions: `⧺-typing` on the components
 preserve-step nf

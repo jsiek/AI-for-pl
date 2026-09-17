@@ -566,14 +566,16 @@ discharge into Σ.
 
 Adjacent elements fuse as follows:
 
-  fuse(seal{-X:=α},unseal{+X:=α})   = []
-  fuse(id{-X:=α},id{+X:=α})         = []
-  fuse(id{+X:=α},id{-X:=α})         = []
+  fuse(seal{-X:=α},unseal{+Y:=β})   = []   if X = Y
+  fuse(id{-X:=α},id{+Y:=β})         = []   if X = Y
   fuse(c₁→d₁,c₂→d₂)                 = [(c₂ ⨟ c₁) → (d₁ ⨟ d₂)]
   fuse(∀X.c,∀X.d)                   = [∀X.(c ⨟ d)]
   fuse(ĉ,ḓ)                         undefined otherwise.
 
-Cancellation compares the ADDRESSES, which the syntax displays.  A
+Cancellation compares the NAMES ONLY (2026-09-17).  At either seam the
+two pops are from the SAME context, so `pop-unique` already forces the
+addresses — and the contexts — to agree; the syntactic address test was
+redundant.  A
 renaming element against the opposite identity crossing does not fuse:
 `unseal{+X:=α} ∷ id{-X:=α}` performs a net-zero crossing while renaming
 `X ⇒ S ⇒ S`, and stays as it is in normal form.  Identity crossings at

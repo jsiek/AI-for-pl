@@ -4746,3 +4746,49 @@ it does, addresses are load-bearing only for the crossing pair
 (`notes/AddrNeeded.keptApart` is a `show`/`hide` witness), which is a
 much smaller commitment to preserve if the store goes away and
 representations move onto boundaries.
+
+## 2026-09-17: `fuse` cancels on the NAME ALONE — and `Addr` drops out of it
+
+Jeremy: "I think name alone should be OK" for the surviving seal
+direction, and "can we also remove the analogous for id:
+`fuse(id{+X:=α},id{-X:=α})`?"  Both, plus one step further, measured:
+
+  1. `fuse (seal X α) (unseal Y β)` tests `X ≟ Y` only.   GREEN.
+  2. `fuse (show X α) (hide Y β)` deleted, like the unseal/seal
+     direction before it.                                GREEN.
+  3. (not asked for — my initiative) `fuse (hide X α) (show Y β)` tests
+     `X ≟ Y` only.                                       GREEN.
+
+`make check` passes after each, with no postulates or holes.
+
+WHY THE ADDRESS TEST WAS REDUNDANT.  At a `seal X α ∷ unseal Y β` seam
+the `seal` pushes the assignment and the `unseal` pops it, so BOTH pops
+are from the same context Γ₂; likewise at a `hide ∷ show` seam.
+`proof.ConvCanonicity.pop-unique` then delivers `X ≡ Y`, `α ≡ β` AND
+`Γ₁ ≡ Γ₃` from the typing alone.  So `cancel-seal`/`cancel-hide` never
+needed their addresses assumed equal — they now take α and β and derive
+the equality — and `fuse`'s syntactic test was checking something the
+typing already forced.  The notes' own justification for the address
+test named the order that is now gone ("in the `unseal{+X:=α} ∷
+seal{-Y:=β}` order the seam context has neither name in scope").
+
+TWO CONSEQUENCES, BOTH RECORDED IN PLACE.
+
+  * `notes/AddrNeeded.wouldCancel` — the sole witness that `Addr` must
+    be richer than a name — IS DEAD.  Its `show`/`hide` pair no longer
+    cancels at any address, and `keptApart`'s two sides are no longer
+    compared.  Nothing in `All.agda` now needs `Addr` to have two
+    constructors FOR FUSION.  The read-back argument (`lvl` is a store
+    level, `bse` a base index; `proof.AddrWeaken.lvl-fixed`) is
+    untouched and still needs it.
+
+  * `proof.InertRenaming.value-renᵉ-not-unconditional` — "value
+    preservation under a base renaming is FALSE without injectivity" —
+    IS RETRACTED.  Its counterexample was a `hide 0 (bse 0) ∷ show 0
+    (bse 1)` normal form destroyed by a collapsing renaming.  Normality
+    no longer mentions an address, so no renaming can manufacture a
+    redex.  `value-renᵉ` still threads `Injᵉ`; whether it can drop it
+    is not settled here.
+
+Step 3 was NOT requested and is the last thing in the commit, so it is
+the easy one to revert if the address test is wanted back.

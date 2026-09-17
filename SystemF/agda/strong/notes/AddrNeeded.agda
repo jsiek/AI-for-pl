@@ -55,9 +55,10 @@ nf-c = nf-cons nf-show (nf-cons nf-hide nf-id irr-id) (irr-cons refl)
 no-fuse : fuse (show 0 (lvl 0)) (hide 0 (lvl 1)) ≡ nothing
 no-fuse = refl
 
--- by contrast, at the SAME address the pair does cancel
-yes-fuse : fuse (show 0 (lvl 0)) (hide 0 (lvl 0)) ≡ just []
-yes-fuse = refl
+-- SUPERSEDED 2026-09-17: this direction (`id{+}` then `id{-}`) no
+-- longer fuses AT ALL, at any address — see notes/DECISIONS.md.
+still-no-fuse : fuse (show 0 (lvl 0)) (hide 0 (lvl 0)) ≡ nothing
+still-no-fuse = refl
 
 ------------------------------------------------------------------------
 -- AND WHY `lvl` AND `bse` MUST STAY APART (2026-09-16)
@@ -68,13 +69,18 @@ yes-fuse = refl
 -- substitution inserted is `hide 0 (bse 0)` — the SAME name 0 and the
 -- SAME number 0, adjacent, kept apart only by the constructor.
 
-keptApart : fuse (show 0 (lvl 0)) (hide 0 (bse 0)) ≡ nothing
-keptApart = refl
-
--- Merge them into one `ℕ` and this is what `fuse` does instead: the
--- wrap cancels against the seal.
-wouldCancel : fuse (show 0 (lvl 0)) (hide 0 (lvl 0)) ≡ just []
-wouldCancel = refl
+-- SUPERSEDED 2026-09-17.  This argument is DEAD, and its death is the
+-- interesting part: `fuse` now cancels the surviving crossing pair on
+-- the NAME ALONE, so the two sides of `keptApart` are no longer told
+-- apart by their addresses — they are not compared at all.  The
+-- soundness that used to come from the address disequality now comes
+-- from `proof.ConvCanonicity.pop-unique`, which forces a WELL-TYPED
+-- adjacent pair to agree on address and context alike.  Nothing in
+-- `All.agda` depends on `Addr` having two constructors any more.
+--
+-- What stands unchanged is the READ-BACK argument below: a `lvl` is a
+-- level into an append-only store and a `bse` an index into the base,
+-- and `proof.AddrWeaken.lvl-fixed` still needs the distinction.
 
 -- THE REASON THEY CANNOT MERGE is that they are counted in opposite
 -- directions.  `lvl` is a de Bruijn LEVEL into an append-only store, so

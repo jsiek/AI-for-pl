@@ -315,13 +315,10 @@ Injᵉ ρ = ∀ {α β} → renᵃᵉ ρ α ≡ renᵃᵉ ρ β → α ≡ β
 fuse-renᵉ : ∀ {ρ} → Injᵉ ρ → ∀ ĉ ḓ → fuse ĉ ḓ ≡ nothing
   → fuse (renEltᵉ ρ ĉ) (renEltᵉ ρ ḓ) ≡ nothing
 fuse-renᵉ inj (seal X α) (seal Y β) eq = refl
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq
-  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) () | yes _ | yes _ | _
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq | yes _ | no ne | yes e =
-  ⊥-elim (ne (inj e))
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq | yes _ | no _ | no _ = refl
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq | no _ | _ | _ = refl
+-- the seal pair now tests the NAME only, which renaming leaves alone
+fuse-renᵉ inj (seal X α) (unseal Y β) eq with X ≟ Y
+fuse-renᵉ inj (seal X α) (unseal Y β) () | yes _
+fuse-renᵉ inj (seal X α) (unseal Y β) eq | no _ = refl
 fuse-renᵉ inj (seal X α) (hide Y β) eq = refl
 fuse-renᵉ inj (seal X α) (show Y β) eq = refl
 fuse-renᵉ inj (seal X α) (s₂ ↦ t₂) eq = refl
@@ -335,24 +332,14 @@ fuse-renᵉ inj (unseal X α) (all s₂) eq = refl
 fuse-renᵉ inj (hide X α) (seal Y β) eq = refl
 fuse-renᵉ inj (hide X α) (unseal Y β) eq = refl
 fuse-renᵉ inj (hide X α) (hide Y β) eq = refl
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq
-  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) () | yes _ | yes _ | _
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq | yes _ | no ne | yes e =
-  ⊥-elim (ne (inj e))
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq | yes _ | no _ | no _ = refl
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq | no _ | _ | _ = refl
+fuse-renᵉ inj (hide X α) (show Y β) eq with X ≟ Y
+fuse-renᵉ inj (hide X α) (show Y β) () | yes _
+fuse-renᵉ inj (hide X α) (show Y β) eq | no _ = refl
 fuse-renᵉ inj (hide X α) (s₂ ↦ t₂) eq = refl
 fuse-renᵉ inj (hide X α) (all s₂) eq = refl
 fuse-renᵉ inj (show X α) (seal Y β) eq = refl
 fuse-renᵉ inj (show X α) (unseal Y β) eq = refl
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq
-  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) () | yes _ | yes _ | _
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq | yes _ | no ne | yes e =
-  ⊥-elim (ne (inj e))
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq | yes _ | no _ | no _ = refl
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq | no _ | _ | _ = refl
+fuse-renᵉ inj (show X α) (hide Y β) eq = refl
 fuse-renᵉ inj (show X α) (show Y β) eq = refl
 fuse-renᵉ inj (show X α) (s₂ ↦ t₂) eq = refl
 fuse-renᵉ inj (show X α) (all s₂) eq = refl

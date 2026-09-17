@@ -251,20 +251,22 @@ id A ⧺ d      = d
 -- two contexts coincide.  In the ADD-then-REMOVE order the names agree
 -- automatically (`pop-unique`), so the check is free.
 fuse : ConvElt → ConvElt → Maybe (List ConvElt)
-fuse (seal X α) (unseal Y β) with X ≟ Y | α ≟ᵃ β
-fuse (seal X α) (unseal Y β) | yes _ | yes _ = just []
-fuse (seal X α) (unseal Y β) | yes _ | no  _ = nothing
-fuse (seal X α) (unseal Y β) | no  _ | _ = nothing
+-- The surviving seal direction cancels on the NAME ALONE.  At this seam
+-- the `seal` pushes `X:=α` and the `unseal` pops it, so both pops are
+-- from the SAME context and `proof.ConvCanonicity.pop-unique` already
+-- forces the addresses equal — the syntactic address test was redundant.
+-- (Contrast the crossing pair, whose seam has neither name in scope:
+-- `notes/AddrNeeded.keptApart`.)
+fuse (seal X α) (unseal Y β) with X ≟ Y
+fuse (seal X α) (unseal Y β) | yes _ = just []
+fuse (seal X α) (unseal Y β) | no  _ = nothing
 -- PROBE 2026-09-17: does the unseal/seal direction earn its keep?
 fuse (unseal X α) (seal Y β) = nothing
-fuse (hide X α) (show Y β) with X ≟ Y | α ≟ᵃ β
-fuse (hide X α) (show Y β) | yes _ | yes _ = just []
-fuse (hide X α) (show Y β) | yes _ | no  _ = nothing
-fuse (hide X α) (show Y β) | no  _ | _ = nothing
-fuse (show X α) (hide Y β) with X ≟ Y | α ≟ᵃ β
-fuse (show X α) (hide Y β) | yes _ | yes _ = just []
-fuse (show X α) (hide Y β) | yes _ | no  _ = nothing
-fuse (show X α) (hide Y β) | no  _ | _ = nothing
+fuse (hide X α) (show Y β) with X ≟ Y
+fuse (hide X α) (show Y β) | yes _ = just []
+fuse (hide X α) (show Y β) | no  _ = nothing
+-- PROBE 2026-09-17: does the show/hide direction earn its keep?
+fuse (show X α) (hide Y β) = nothing
 fuse (s₁ ↦ t₁) (s₂ ↦ t₂) = just (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
 fuse (all s) (all t) = just (all (s ⧺ t) ∷ [])
 fuse (seal X α) (seal Y β) = nothing

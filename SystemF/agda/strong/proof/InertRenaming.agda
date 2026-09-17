@@ -244,13 +244,10 @@ suc-injᵉ = injᵇ-to suc-injective
 fuse-renᵉ : ∀ {ρ} → Injᵉ ρ → ∀ ĉ ḓ → fuse ĉ ḓ ≡ nothing
   → fuse (renEltᵉ ρ ĉ) (renEltᵉ ρ ḓ) ≡ nothing
 fuse-renᵉ inj (seal X α) (seal Y β) eq = refl
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq
-  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) () | yes _ | yes _ | _
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq | yes _ | no ne | yes e =
-  ⊥-elim (ne (inj e))
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq | yes _ | no _ | no _ = refl
-fuse-renᵉ {ρ = ρ} inj (seal X α) (unseal Y β) eq | no _ | _ | _ = refl
+-- the seal pair now tests the NAME only, which renaming leaves alone
+fuse-renᵉ inj (seal X α) (unseal Y β) eq with X ≟ Y
+fuse-renᵉ inj (seal X α) (unseal Y β) () | yes _
+fuse-renᵉ inj (seal X α) (unseal Y β) eq | no _ = refl
 fuse-renᵉ inj (seal X α) (hide Y β) eq = refl
 fuse-renᵉ inj (seal X α) (show Y β) eq = refl
 fuse-renᵉ inj (seal X α) (s₂ ↦ t₂) eq = refl
@@ -264,24 +261,14 @@ fuse-renᵉ inj (unseal X α) (all s₂) eq = refl
 fuse-renᵉ inj (hide X α) (seal Y β) eq = refl
 fuse-renᵉ inj (hide X α) (unseal Y β) eq = refl
 fuse-renᵉ inj (hide X α) (hide Y β) eq = refl
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq
-  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) () | yes _ | yes _ | _
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq | yes _ | no ne | yes e =
-  ⊥-elim (ne (inj e))
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq | yes _ | no _ | no _ = refl
-fuse-renᵉ {ρ = ρ} inj (hide X α) (show Y β) eq | no _ | _ | _ = refl
+fuse-renᵉ inj (hide X α) (show Y β) eq with X ≟ Y
+fuse-renᵉ inj (hide X α) (show Y β) () | yes _
+fuse-renᵉ inj (hide X α) (show Y β) eq | no _ = refl
 fuse-renᵉ inj (hide X α) (s₂ ↦ t₂) eq = refl
 fuse-renᵉ inj (hide X α) (all s₂) eq = refl
 fuse-renᵉ inj (show X α) (seal Y β) eq = refl
 fuse-renᵉ inj (show X α) (unseal Y β) eq = refl
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq
-  with X ≟ Y | α ≟ᵃ β | renᵃᵉ ρ α ≟ᵃ renᵃᵉ ρ β
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) () | yes _ | yes _ | _
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq | yes _ | no ne | yes e =
-  ⊥-elim (ne (inj e))
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq | yes _ | no _ | no _ = refl
-fuse-renᵉ {ρ = ρ} inj (show X α) (hide Y β) eq | no _ | _ | _ = refl
+fuse-renᵉ inj (show X α) (hide Y β) eq = refl
 fuse-renᵉ inj (show X α) (show Y β) eq = refl
 fuse-renᵉ inj (show X α) (s₂ ↦ t₂) eq = refl
 fuse-renᵉ inj (show X α) (all s₂) eq = refl
@@ -336,38 +323,17 @@ mutual
     V⟨⟩ (simple-renᵉ inj s) (nf-renᵉ inj nf) (inert-renᵉ inrt)
 
 ------------------------------------------------------------------------
--- Why the injectivity hypothesis cannot be dropped
+-- The injectivity hypothesis is no longer FORCED (2026-09-17)
 ------------------------------------------------------------------------
--- `$ 0 ⟨ hide 0 (bse 0) ∷ᶜ show 0 (bse 1) ∷ᶜ id (` 0) ⟩` is a value:
--- the conversion is a normal form (the pair does not cancel, the two
--- addresses differ) and it is inert (its target is a type variable).
--- The constant renaming `λ i → 0` identifies `bse 0` with `bse 1`, so
--- the pair cancels and the renamed conversion is no longer a normal
--- form — hence the renamed term is no longer a value.
+-- It used to be.  `$ 0 ⟨ hide 0 (bse 0) ∷ᶜ show 0 (bse 1) ∷ᶜ id (` 0) ⟩`
+-- was a value — the pair did not cancel, BECAUSE THE TWO ADDRESSES
+-- DIFFERED — and the collapsing renaming `λ i → 0` identified the
+-- addresses, cancelled the pair and destroyed normality.
+--
+-- With `fuse` cancelling the crossing pair on the NAME ALONE
+-- (strong.Conversion) that counterexample is GONE: the conversion above
+-- is not a normal form to begin with, and normality no longer mentions
+-- an address at all, so no renaming can manufacture a redex.  Whether
+-- `value-renᵉ` can now drop `Injᵉ` outright is not settled here — the
+-- hypothesis is still threaded, harmlessly, and every call site has it.
 
-private
-  ce-conv : Conv
-  ce-conv = hide zero (bse zero) ∷ᶜ show zero (bse (suc zero)) ∷ᶜ id (` zero)
-
-  ce-nf : NF ce-conv
-  ce-nf = nf-cons nf-hide (nf-cons nf-show nf-id irr-id) (irr-cons refl)
-
-  ce-inert : Inert ce-conv
-  ce-inert = inert-var refl
-
-  ce-term : Term
-  ce-term = ($ zero) ⟨ ce-conv ⟩
-
-  ce-value : Value ce-term
-  ce-value = V⟨⟩ S$ ce-nf ce-inert
-
-  ce-ρ : Renameᵇ
-  ce-ρ i = zero
-
-  ce-¬value : ¬ Value (renBseᴹ ce-ρ ce-term)
-  ce-¬value (Vs ())
-  ce-¬value (V⟨⟩ s (nf-cons hd tl (irr-cons ())) inrt)
-
-value-renᵉ-not-unconditional :
-  ¬ (∀ {ρ V} → Value V → Value (renBseᴹ ρ V))
-value-renᵉ-not-unconditional f = ce-¬value (f {ce-ρ} {ce-term} ce-value)

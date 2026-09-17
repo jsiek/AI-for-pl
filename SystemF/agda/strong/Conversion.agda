@@ -266,8 +266,17 @@ fuse (unseal X α) (seal Y β) = nothing
 fuse (hide X α) (show Y β) with X ≟ Y
 fuse (hide X α) (show Y β) | yes _ = just []
 fuse (hide X α) (show Y β) | no  _ = nothing
--- PROBE 2026-09-17: does the show/hide direction earn its keep?
-fuse (show X α) (hide Y β) = nothing
+-- RESTORED 2026-09-17.  It was deleted earlier the same day for not
+-- earning its keep — measured against the SHIFT-based rules, where a
+-- `show ∷ hide` could not arise where it matters.  Under the frame it
+-- can: it is the one adjacency that lets a sealed variable be popped
+-- and re-pushed, and so lets an `unseal` escape `after-add`'s invariant
+-- (notes/ShowHideNeeded).  The row is sound — `show X β` pops β and
+-- `hide X β` pushes it back, so the pair is net-zero on the context and,
+-- now that neither re-spells, type-preserving as well.
+fuse (show X α) (hide Y β) with X ≟ Y
+fuse (show X α) (hide Y β) | yes _ = just []
+fuse (show X α) (hide Y β) | no  _ = nothing
 fuse (s₁ ↦ t₁) (s₂ ↦ t₂) = just (((s₂ ⧺ s₁) ↦ (t₁ ⧺ t₂)) ∷ [])
 fuse (all s) (all t) = just (all (s ⧺ t) ∷ [])
 fuse (seal X α) (seal Y β) = nothing

@@ -24,7 +24,7 @@ open Ctxᵗ
 open import strong.Terms
 open import strong.Conversion using
   (Conv; id; _∷ᶜ_; ConvElt; seal; unseal; hide; show; _↦_; all;
-   interior; pushAsgn; popAsgn; nameSub)
+   interior; pushAsgn; popAsgn; nameSub; revTy; concTy)
 open import strong.notes.UnlockedFrame using
   (_∣_∣_⊢′_∶_⇝_⊣_; _∣_∣_⊢̂′_∶_⇝_⊣_;
    seal′; unseal′; hide′; show′; fun′; all′; id′; cons′;
@@ -63,15 +63,14 @@ mutual
   frameElt (show X α) (Γ , Ξ , ρ) with pushAsgn X α Γ | pushAsgn (ρ X) α Ξ
   ... | just Γ′ | just Ξ′ = just (Γ′ , Ξ′ , insMap X ρ)
   ... | _ | _ = nothing
-  -- The element's REAL interior is `t`'s alone (`interiorElt (s ↦ t) Γ
-  -- = interior t Γ`); `s` runs backward and returns to the exterior.
-  -- But its reveals still belong to the frame, so `s` is walked for its
-  -- FRAME effect only and the real context is taken from `t`.
-  frameElt (s ↦ t) f with frameConv t f
-  ... | nothing = nothing
-  ... | just (Γᵢ , Ξ₁ , ρ₁) with frameConv s (Γᵢ , Ξ₁ , ρ₁)
-  ...   | just (_ , Ξ₂ , _) = just (Γᵢ , Ξ₂ , ρ₁)
-  ...   | nothing = nothing
+  -- JEREMY, 2026-09-17: "the domain position of an arrow conversion
+  -- doesn't apply to the current enclosed term and its context, but
+  -- instead to the argument term after `Wrap` fires, at which point the
+  -- domain conversion is no longer under an arrow."  So `s`'s reveals
+  -- belong to the boundary `Wrap` will mint around the ARGUMENT, not to
+  -- this one, and the frame is `t`'s alone — the same clause
+  -- `interiorElt` already has.
+  frameElt (s ↦ t) f = frameConv t f
   frameElt (all s) ((Ss ∥ Bs) , Ξ , ρ)
     with frameConv s ((bind ∷ Ss ∥ Bs) , (bind ∷ stk Ξ ∥ bas Ξ) , extᵗ ρ)
   ... | just ((bind ∷ Ss′ ∥ Bs′) , (bind ∷ Ts ∥ Cs) , ρ′) =
@@ -214,9 +213,46 @@ endpoint-out = refl
 body : Sg ∣ Γ₁ ∣ [] ⊢ (ƛ (` zero) ∙ (# true)) ⦂ (` zero ⇒ `𝔹)
 body = ⊢ƛ (wf-var t-here) ⊢#
 
--- STILL OPEN: `retElt (s ↦ t)` keeps `ρ₁` while letting `s` grow the
--- frame.  `s` contributes no reveal here (`concTy` emits `seal`/`hide`
--- at the top), but `-X(A → B) = (+X(A) → -X(B)) ∷ …` puts a `+X` one
--- level down, so a contravariant component CAN reveal.  Whether such a
--- reveal belongs in the boundary's frame at all — main has no analogue,
--- since its `Θ` is separate from the conversion — is the next question.
+-- The frame is now `t`'s alone, so `frameElt (s ↦ t)` is literally
+-- `interiorElt`'s clause and the two walks differ ONLY at the four
+-- atomic elements.  `s` is still TYPED at this frame — M₅ needs that,
+-- since its seal's address is named by `t`'s reveal — it just does not
+-- CONTRIBUTE to it.
+
+------------------------------------------------------------------------
+-- Does the frame still name every address the domain side needs?
+------------------------------------------------------------------------
+-- The worry the simplification raises: a `seal`/`unseal` nested in a
+-- DOMAIN position still needs `Ξ ∋n X′ := α`, but domain reveals no
+-- longer contribute.  The builders' structure answers it.  Every clause
+-- of `revTy X α S T` emits, at the top of its own spine, either a
+-- reveal at α (`unseal`/`show`) or a delegating element whose FRAME-
+-- VISITED part is again `revTy … α …` — the `↦`'s covariant half, or an
+-- `all`'s body.  So `revTy` always leaves a reveal at α where the walk
+-- can see it, and every `seal`/`hide` `concTy` emits is at that same α.
+--
+-- The smallest case with a domain-nested reveal: a source type whose
+-- DOMAIN is itself an arrow mentioning X.
+
+Δν : Ctxᵗ
+Δν = [] ∥ nuBind R ∷ []
+
+T2 : Ty
+T2 = (` zero ⇒ `𝔹) ⇒ `𝔹
+
+-- `revTy` puts an `unseal` two levels down, inside a domain …
+built2 : revTy zero (bse zero) `𝔹 T2
+       ≡ (((unseal zero (bse zero) ∷ᶜ id `𝔹)
+            ↦ (hide zero (bse zero) ∷ᶜ id `𝔹))
+          ∷ᶜ id (` zero ⇒ `𝔹))
+         ↦ (show zero (bse zero) ∷ᶜ id `𝔹)
+         ∷ᶜ id ((`𝔹 ⇒ `𝔹) ⇒ `𝔹)
+built2 = refl
+
+-- … and the frame still names its address, from the COVARIANT `show`
+frame2 : getΞ (frameConv (revTy zero (bse zero) `𝔹 T2) (start Δν))
+       ≡ just (asgn (bse zero) ∷ [] ∥ nuBind R ∷ [])
+frame2 = refl
+
+names-α : (asgn (bse zero) ∷ [] ∥ nuBind R ∷ []) ∋n zero := bse zero
+names-α = n-here-asgn

@@ -3,21 +3,28 @@ module strong.notes.PeelPremise where
 -- PROTOTYPE, not installed.  What the premise `Peel` would need looks
 -- like (§§1–2), that it is satisfiable on the frame where (P) fails
 -- (§3), the rule it would produce (§4), the PROOF of the invariant that
--- replaces (P) (§5), and the consequence that the premise never blocks a
--- reduction (§6).  Nothing here is imported by the rule set;
+-- replaces (P) (§5), the consequence that the premise never blocks a
+-- reduction (§6), and the existence of the context that consequence is
+-- stated over (§7).  Nothing here is imported by the rule set;
 -- `strong.Reduction` is unchanged.
+--
+-- ONE HYPOTHESIS IS ASSUMED, not proved: `Unique (names Γ)` on the
+-- exterior context.  It is the premise `TyPeelR-⟪⟫`, `IdPush` and
+-- `CancelR` already carry, so `Peel` carrying it too costs nothing new —
+-- but that every reachable context satisfies it is a separate invariant
+-- and no part of this file establishes it.
 
-open import Data.List using (List; []; _∷_; _++_; map; reverse)
-open import Data.Nat using (ℕ; zero; suc)
+open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
+open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (_×_; _,_; ∃-syntax; proj₁)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
-open import Data.Nat.Properties using (_≟_)
+open import Data.Nat.Properties using (_≟_; +-cancelˡ-≡; ≤-trans)
 open import Data.List.Properties using (unfold-reverse; map-++)
 open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; cong₂; subst)
+  using (_≡_; _≢_; refl; sym; cong; cong₂; subst)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
@@ -176,8 +183,10 @@ respelled = unseal 2 , sameᶜ-unseal (there here) , sameᶜ-unseal here
 --
 -- (Q) IS PROVED, in §5, for every well-formed morphism, with no
 -- restriction on the change list and no `Unique`: exactly where (P) is
--- false.  §6 then closes the loop — the premise always has a witness, so
--- installing it costs no reduction.
+-- false.  §6 closes the loop — the premise always has a witness — and §7
+-- builds the third context both of them are stated over, which typing
+-- the redex does not supply.  `peel-premises`, at the very end, is the
+-- three put together.
 
 ------------------------------------------------------------------------
 -- 5. (Q), PROVED
@@ -555,3 +564,209 @@ premise-exists int conv dconv ⊢s with readable ⊢s
 premise-exists int conv dconv ⊢s | r , rd
   with respell (Q int conv dconv) rd
 premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ = s′ , (r , rd′ , rd)
+
+------------------------------------------------------------------------
+-- 7. THE DUAL'S CONVERSION CONTEXT ALWAYS EXISTS
+------------------------------------------------------------------------
+
+-- §6 assumed `Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ`.  Typing the redex does not give
+-- it: a conversion context can FAIL to exist, which is what the
+-- re-unlock clause was added for (notes/ReUnlockWall).  So it has to be
+-- built, and the one thing that can block it is an `unlock X α` whose
+-- position X is past the end of the context it lands in.
+--
+-- 7a. Freshness, uniqueness and length.
+
+fresh→≢ : Fresh α Δ → Live β Δ → β ≢ α
+fresh→≢ (fresh∷ ne fr) (zero , here) = λ eq → ne (sym eq)
+fresh→≢ (fresh∷ ne fr) (suc X , there d) = fresh→≢ fr (X , d)
+
+live? : (α : RVar) (Δ : TyCtx) → Live α Δ ⊎ Fresh α Δ
+live? α [] = inj₂ fresh[]
+live? α (β ∷ Δ) with α ≟ β
+live? α (β ∷ Δ) | yes refl = inj₁ (zero , here)
+live? α (β ∷ Δ) | no ne with live? α Δ
+live? α (β ∷ Δ) | no ne | inj₁ lv = inj₁ (live-cons lv)
+live? α (β ∷ Δ) | no ne | inj₂ fr = inj₂ (fresh∷ ne fr)
+
+del-fresh : α ⊢- Δ at X ⇒ Δ′ → Fresh β Δ → Fresh β Δ′
+del-fresh del-here (fresh∷ ne fr) = fr
+del-fresh (del-there dl) (fresh∷ ne fr) = fresh∷ ne (del-fresh dl fr)
+
+ins-fresh : α ⊢+ Δ at X ⇒ Δ′ → β ≢ α → Fresh β Δ → Fresh β Δ′
+ins-fresh ins-here ne fr = fresh∷ ne fr
+ins-fresh (ins-there i) ne (fresh∷ ne′ fr) = fresh∷ ne′ (ins-fresh i ne fr)
+
+del-unique : α ⊢- Δ at X ⇒ Δ′ → Unique Δ → Unique Δ′
+del-unique del-here (unique∷ fr uq) = uq
+del-unique (del-there dl) (unique∷ fr uq) =
+  unique∷ (del-fresh dl fr) (del-unique dl uq)
+
+ins-unique : α ⊢+ Δ at X ⇒ Δ′ → Fresh α Δ → Unique Δ → Unique Δ′
+ins-unique ins-here fr uq = unique∷ fr uq
+ins-unique (ins-there i) (fresh∷ ne fr) (unique∷ fr′ uq) =
+  unique∷ (ins-fresh i (λ eq → ne (sym eq)) fr′) (ins-unique i fr uq)
+
+int-unique : Unique Δ → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ → Unique Δᵢ
+int-unique uq changes[] = uq
+int-unique uq (changes∷ cs (step-lock v dl fr)) =
+  del-unique dl (int-unique uq cs)
+int-unique uq (changes∷ cs (step-unlock v fr i)) =
+  ins-unique i fr (int-unique uq cs)
+
+del-length : α ⊢- Δ at X ⇒ Δ′ → length Δ ≡ suc (length Δ′)
+del-length del-here = refl
+del-length (del-there dl) = cong suc (del-length dl)
+
+del-lt : α ⊢- Δ at X ⇒ Δ′ → suc X ≤ length Δ
+del-lt del-here = s≤s z≤n
+del-lt (del-there dl) = s≤s (del-lt dl)
+
+lookup→del : Δ ∋ˡ X := α → ∃[ Δ′ ] (α ⊢- Δ at X ⇒ Δ′)
+lookup→del here = _ , del-here
+lookup→del (there d) with lookup→del d
+lookup→del (there d) | Δ′ , dl = _ , del-there dl
+
+-- An insert exists exactly when the position is in range.
+ins-exists : (Δ : TyCtx) (X : ℕ) → X ≤ length Δ
+  → ∃[ Δ′ ] (α ⊢+ Δ at X ⇒ Δ′)
+ins-exists Δ zero le = _ , ins-here
+ins-exists (β ∷ Δ) (suc X) (s≤s le) with ins-exists Δ X le
+ins-exists (β ∷ Δ) (suc X) (s≤s le) | Δ′ , i = β ∷ Δ′ , ins-there i
+
+-- PIGEONHOLE.  This is what turns a statement about NAMES into one about
+-- POSITIONS, and it is the only place uniqueness is needed.
+pigeon : (xs ys : TyCtx) → Unique xs → Keeps xs ys → length xs ≤ length ys
+pigeon [] ys uq k = z≤n
+pigeon (α ∷ xs) ys (unique∷ fr uq) k with k (zero , here)
+pigeon (α ∷ xs) ys (unique∷ fr uq) k | X , d with lookup→del d
+pigeon (α ∷ xs) ys (unique∷ fr uq) k | X , d | ys′ , dl =
+  subst (λ n → suc (length xs) ≤ n) (sym (del-length dl))
+        (s≤s (pigeon xs ys′ uq k′))
+  where
+  k′ : Keeps xs ys′
+  k′ lv = del-mono dl (fresh→≢ fr lv) (k (live-cons lv))
+
+------------------------------------------------------------------------
+-- 7b. Composing conversion runs
+------------------------------------------------------------------------
+
+χᶜ-++ : ∀ {χ₁ χ₂ Δ″} → Ξ ∣ Δ ⊢χᶜ χ₂ ⇒ Δ′ → Ξ ∣ Δ′ ⊢χᶜ χ₁ ⇒ Δ″
+  → Ξ ∣ Δ ⊢χᶜ χ₁ ++ χ₂ ⇒ Δ″
+χᶜ-++ c₂ conv[] = c₂
+χᶜ-++ c₂ (conv-lock v c₁) = conv-lock v (χᶜ-++ c₂ c₁)
+χᶜ-++ c₂ (conv-unlock v c₁ fr i) = conv-unlock v (χᶜ-++ c₂ c₁) fr i
+χᶜ-++ c₂ (conv-unlock-live v c₁ d) = conv-unlock-live v (χᶜ-++ c₂ c₁) d
+
+dual-∷ : (δ : Change) (χ : List Change)
+  → dual (δ ∷ χ) ≡ dual χ ++ (dualChange δ ∷ [])
+dual-∷ δ χ rewrite unfold-reverse δ χ =
+  map-++ dualChange (reverse χ) (δ ∷ [])
+
+------------------------------------------------------------------------
+-- 7c. The construction
+------------------------------------------------------------------------
+
+sucle : ∀ {a b} → suc a ≤ suc b → a ≤ b
+sucle (s≤s le) = le
+
+-- A name live before a lock is either the locked one or still live after.
+keeps-del : ∀ {Δ₀} → α ⊢- Δ at X ⇒ Δ′ → Live α Δ₀ → Keeps Δ′ Δ₀ → Keeps Δ Δ₀
+keeps-del {α = α} dl lvα k {β} lv with β ≟ α
+keeps-del {α = α} dl lvα k {β} lv | yes refl = lvα
+keeps-del {α = α} dl lvα k {β} lv | no ne = k (del-mono dl ne lv)
+
+-- THE CONSTRUCTION.  Running the dual's conversion reading from any
+-- context that names everything the interior ends with.  The induction
+-- has to be stated that way: the dual of an `unlock` is a `lock`, which
+-- the conversion reading SKIPS, so the context it hands on is not the
+-- interior's — it is bigger, and stays bigger.
+--
+-- The one position obligation is the `lock X α` case.  X was in range for
+-- the interior just before that lock, and everything live there is either
+-- still live at the end or is α itself — so `pigeon` puts X in range for
+-- `α ∷ Δ₀` too, hence in range for Δ₀.
+dual-conv-exists : (χ : List Change) {Δ Δᵢ : TyCtx} (Δ₀ : TyCtx)
+  → Unique Δ → Unique Δ₀
+  → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+  → Keeps Δᵢ Δ₀
+  → ∃[ Δᵈ ] (Ξ ∣ Δ₀ ⊢χᶜ dual χ ⇒ Δᵈ)
+dual-conv-exists [] Δ₀ uqΔ uq₀ changes[] k = Δ₀ , conv[]
+dual-conv-exists (unlock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-unlock v fr i)) k
+  with dual-conv-exists χ Δ₀ uqΔ uq₀ cs (λ lv → k (ins-mono i lv))
+dual-conv-exists (unlock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-unlock v fr i)) k | Δᵈ , dc =
+  Δᵈ , subst (λ l → _ ∣ Δ₀ ⊢χᶜ l ⇒ Δᵈ) (sym (dual-∷ (unlock X α) χ))
+             (χᶜ-++ (conv-lock v conv[]) dc)
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k with live? α Δ₀
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₁ (Y , d)
+  with dual-conv-exists χ Δ₀ uqΔ uq₀ cs (keeps-del dl (Y , d) k)
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₁ (Y , d)
+                 | Δᵈ , dc =
+  Δᵈ , subst (λ l → _ ∣ Δ₀ ⊢χᶜ l ⇒ Δᵈ) (sym (dual-∷ (lock X α) χ))
+             (χᶜ-++ (conv-unlock-live v conv[] d) dc)
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₂ frα
+  with ins-exists {α = α} Δ₀ X
+         (sucle (≤-trans (del-lt dl)
+                         (pigeon _ (α ∷ Δ₀) (int-unique uqΔ cs)
+                                 (keeps-del dl (zero , here)
+                                            (λ lv → live-cons (k lv))))))
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₂ frα | Δ₁ , i
+  with dual-conv-exists χ Δ₁ uqΔ (ins-unique i frα uq₀) cs
+         (keeps-del dl (ins-live i) (λ lv → ins-mono i (k lv)))
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₂ frα | Δ₁ , i
+                 | Δᵈ , dc =
+  Δᵈ , subst (λ l → _ ∣ Δ₀ ⊢χᶜ l ⇒ Δᵈ) (sym (dual-∷ (lock X α) χ))
+             (χᶜ-++ (conv-unlock v conv[] frα i) dc)
+
+------------------------------------------------------------------------
+-- 7d. For a morphism, and the whole package
+------------------------------------------------------------------------
+
+fresh-shiftRVars : (n : ℕ) → Fresh α Δ → Fresh (n + α) (shiftRVars n Δ)
+fresh-shiftRVars n fresh[] = fresh[]
+fresh-shiftRVars n (fresh∷ ne fr) =
+  fresh∷ (λ eq → ne (+-cancelˡ-≡ n _ _ eq)) (fresh-shiftRVars n fr)
+
+unique-shiftRVars : (n : ℕ) → Unique Δ → Unique (shiftRVars n Δ)
+unique-shiftRVars n unique[] = unique[]
+unique-shiftRVars n (unique∷ fr uq) =
+  unique∷ (fresh-shiftRVars n fr) (unique-shiftRVars n uq)
+
+-- THE EXISTENCE THEOREM.  Whatever the morphism, the dual has a
+-- conversion context — no premise on the change list, and nothing about
+-- the term.  Uniqueness of the exterior name map is all it takes.
+dual-conversion-exists : ∀ {Γ Γᵢ : Ctxᵗ} {Θ : CtxMorph}
+  → Unique (names Γ)
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → ∃[ Γᵈ ] (Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ)
+dual-conversion-exists {Θ = Θ} uq (interior cs)
+  with dual-conv-exists (changes Θ) _ (unique-shiftRVars _ uq)
+         (int-unique (unique-shiftRVars _ uq) cs) cs (λ lv → lv)
+dual-conversion-exists {Θ = Θ} uq (interior cs) | Δᵈ , dc =
+  _ , conversion (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ Δᵈ)
+                        (sym (shiftRVars-0 _)) dc)
+
+-- THE WHOLE PACKAGE.  Given only what typing the redex already supplies
+-- — the morphism's two contexts, and the conversion read at the
+-- conversion one — every premise the repaired `Peel` would carry has a
+-- witness.  So the repair costs no reduction, and `Peel` fires exactly
+-- where it fires today.
+peel-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
+  → Unique (names Γ)
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Γᶜ ⊢ s ∶ A ⇝ B
+  → ∃[ Γᵈ ] ∃[ s′ ]
+      ((Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
+peel-premises uq int conv ⊢s with dual-conversion-exists uq int
+peel-premises uq int conv ⊢s | Γᵈ , dconv
+  with premise-exists int conv dconv ⊢s
+peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc = Γᵈ , s′ , dconv , sc

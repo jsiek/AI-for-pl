@@ -159,9 +159,18 @@ Testing has found and repaired these errors:
    absorbs the difference. (Q) holds for every well-formed morphism, with
    no restriction on the change list and no `Unique`, so it holds exactly
    where (P) fails. With it, the premise always has a witness, so
-   installing it would cost no reduction. The premise, the rule it would
-   produce, (Q) and that consequence are all in `notes/PeelPremise.agda`;
-   nothing is installed, and `strong.Reduction` is unchanged.
+   installing it would cost no reduction. The third context those claims
+   are stated over — the dual's conversion context, which typing the redex
+   does NOT supply — always exists: `dual-conversion-exists`, for every
+   morphism, needing only that the exterior name map is `Unique`. The one
+   position obligation is a lock's, and `pigeon` discharges it: everything
+   live just before the lock is either still live at the end or is the
+   locked name itself, so the recorded position is still in range. The
+   premise, the rule it would produce, (Q), satisfiability and existence
+   are all in `notes/PeelPremise.agda`, with `peel-premises` putting them
+   together; nothing is installed, and `strong.Reduction` is unchanged.
+   `Unique (names Γ)` is assumed there, as three installed rules already
+   assume it; that every reachable context satisfies it is not proved.
 
    (P) is a theorem on `main` — `convCtx-dual` in `proof/PeelDual.agda`,
    for an arbitrary well-formed change list — because there a name map is

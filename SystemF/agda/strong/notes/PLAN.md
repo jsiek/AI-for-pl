@@ -97,7 +97,7 @@ Testing has found and repaired these errors:
    no-op, which is what reading the conversion context as the union of the
    names live along the morphism already meant. See
    `notes/DECISIONS.md` (2026-09-17) and the machine-checked
-   `no-old-rewind-conv` in §5 of the reduction examples.
+   `no-old-rewind-conv` in `notes/ReUnlockWall.agda`.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism

@@ -2662,8 +2662,8 @@ the `Fresh α Δ₂` premise of `conv-unlock` fails.
 So `rewind Θc` and `dualMorph Θc ⋉ Θc` have NO conversion context, `env`
 cannot type the contractum, and preservation fails at `CancelR` — and at
 `IdPush`, which has the same two frames.  Machine-checked:
-`no-old-rewind-conv` (notes/RepresentationReductionExamples §4, against a
-local copy of the two-clause judgement as it stood).  Every state up to
+`no-old-rewind-conv` (notes/ReUnlockWall.agda, against a local copy of the
+two-clause judgement as it stood).  Every state up to
 and including the redex is well typed, so this is a defect in the rule
 set, not in the example.
 

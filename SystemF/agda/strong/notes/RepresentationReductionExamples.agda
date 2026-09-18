@@ -31,10 +31,15 @@ module strong.notes.RepresentationReductionExamples where
 -- argument is instantiated beneath a LATER `Λ`, so the value that reaches
 -- `true` has crossed three boundaries and carries three seals, and
 -- unwinding them drives `CancelR` and `IdPush` through frames that are
--- COMPOSITES (`_⋉_`, `rewind`).  §5 is not an example at all — it is the
--- machine-checked wall that finishing §4 walked into, and the reason
--- `_∣_⊢χᶜ_⇒_` has a third clause (strong.CtxMorph §3, notes/DECISIONS.md
--- 2026-09-17).
+-- COMPOSITES (`_⋉_`, `rewind`).  The last section is not an example at
+-- all — it is the machine-checked wall that finishing §4 walked into, and
+-- the reason `_∣_⊢χᶜ_⇒_` has a third clause (strong.CtxMorph §3,
+-- notes/DECISIONS.md 2026-09-17).
+--
+-- WHAT THIS SUITE DOES NOT REACH.  Four programs, and two of the fifteen
+-- reduction rules never fire in any of them: `Drop-false` (no run ends at
+-- `false`) and `ξ-·-r` (every argument is already a value when it is
+-- applied).  `TyPeelR-⟪⟫` and `IdPush` fire only in §4.
 
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
@@ -153,7 +158,15 @@ E-run : empty ⊢ E₀ᴮ -→* `true
 E-run = reaches-run E-eval
 
 ------------------------------------------------------------------------
--- 5. THE WALL, AND WHY THE RE-UNLOCK CLAUSE IS FORCED
+-- THE WALL, AND WHY THE RE-UNLOCK CLAUSE IS FORCED
+--
+-- Not an example: nothing here runs a program.  It is the machine-checked
+-- record that the rule set WAS broken and that the repair fixes it.
+--
+-- Its link to §4 is a comment, not a check: the states §4's run passes
+-- through are no longer written down, so that the frame below is the one
+-- the eleventh step of that run cancels against is asserted here and
+-- verified only by the fact that the run completes at all.
 ------------------------------------------------------------------------
 
 -- The eleventh step of §4's run is `CancelR`, whose contractum wraps the
@@ -195,12 +208,20 @@ data _∣_⊢χᶜ°_⇒_ (Ξ : RepCtx)
     → α ⊢+ Δ₂ at X ⇒ Δ₃
     → Ξ ∣ Δ₁ ⊢χᶜ° unlock X α ∷ χ ⇒ Δ₃
 
+-- The conversion run starts from the exterior extended by the frame's
+-- own binds.  Checked, rather than asserted, because `no-old-rewind-conv`
+-- below is a statement about exactly this context and would be a true
+-- statement about an irrelevant one if this were wrong.
+chk-reps : reps (extendReps (binds (rewind Θlock)) Δ-out) ≡ repsW
+chk-reps = refl
+
+chk-names : names (extendReps (binds (rewind Θlock)) Δ-out) ≡ 1 ∷ 3 ∷ []
+chk-names = refl
+
 -- The wall itself: `rewind Θlock` has NO conversion context, so `env`
 -- cannot type `CancelR`'s contractum and the run stops dead.  Every state
 -- up to and including the redex is well typed, so this is a defect in the
--- rules, not in the example.  `1 ∷ 3 ∷ []` is
--- `names (extendReps (binds (rewind Θlock)) Δ-out)`, the name map the
--- conversion run starts from.
+-- rules, not in the example.
 no-old-rewind-conv : ∀ {Δᶜ}
   → repsW ∣ (1 ∷ 3 ∷ []) ⊢χᶜ° changes (rewind Θlock) ⇒ Δᶜ → ⊥
 no-old-rewind-conv

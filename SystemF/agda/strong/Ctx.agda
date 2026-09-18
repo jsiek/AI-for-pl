@@ -280,6 +280,22 @@ same-target-unique unique (same-∀ a) (same-∀ a′) =
   cong `∀ (same-target-unique
     (unique∷ fresh-zero-shift (unique-shift unique)) a a′)
 
+-- A spelling CROSSES between the interior and the conversion context by
+-- the representation it denotes, never by arithmetic on its position: the
+-- two name maps can reorder relative to each other
+-- (notes/ForallPayloadWall §3).  `SameTy` is that crossing, and on a
+-- unique name map it is a function — which is what determinism needs from
+-- the rules that carry it.
+-- Stated on NAME MAPS: `SameTy`'s contexts reach the judgement only
+-- through `names`, which is a projection and so does not determine them.
+sameTy-src-unique : ∀ {η η′ A A₂ B} → Unique η
+  → ∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ B ~ R))
+  → ∃[ R ] ((η ⊢ A₂ ~ R) × (η′ ⊢ B ~ R))
+  → A ≡ A₂
+sameTy-src-unique unique (R , p , q) (R′ , p′ , q′)
+  with same-rep-unique q q′
+... | refl = same-target-unique unique p p′
+
 ∋ʳ-det : Ξ ∋ʳ α := b → Ξ ∋ʳ α := b′ → b ≡ b′
 ∋ʳ-det r-here r-here = refl
 ∋ʳ-det (r-there d) (r-there d′) =

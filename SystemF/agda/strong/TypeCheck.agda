@@ -427,6 +427,21 @@ unread? η (`∀ R) with unread? (zero ∷ shiftNames η) R
 unread? η (`∀ R) | just (A , p) = just (`∀ A , same-∀ p)
 unread? η (`∀ R) | nothing      = nothing
 
+-- RE-BASING.  `A` is read on the name map `η`; this finds its spelling on
+-- `η′`, together with the `SameTy` that relates them.  It goes through the
+-- REPRESENTATION, which is the only route there is: the two maps can
+-- reorder relative to each other, so no arithmetic on positions would do
+-- (notes/ForallPayloadWall §3).  It is partial, because `η′` need not name
+-- everything `η` does — which is why the rules that cross carry this as a
+-- premise rather than computing it.
+rebase? : (η η′ : TyCtx) (A : Ty)
+  → Maybe (∃[ A′ ] (∃[ R ] ((η′ ⊢ A′ ~ R) × (η ⊢ A ~ R))))
+rebase? η η′ A with read? η A
+rebase? η η′ A | nothing = nothing
+rebase? η η′ A | just (R , q) with unread? η′ R
+rebase? η η′ A | just (R , q) | just (A′ , p) = just (A′ , R , p , q)
+rebase? η η′ A | just (R , q) | nothing = nothing
+
 sameTy? : (Γ Γ′ : Ctxᵗ) (A B : Ty) → Maybe (SameTy Γ A Γ′ B)
 sameTy? Γ Γ′ A B with read? (names Γ) A
 sameTy? Γ Γ′ A B | nothing = nothing

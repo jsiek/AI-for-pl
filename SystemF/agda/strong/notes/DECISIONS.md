@@ -2765,12 +2765,14 @@ live type variable, so the payload carries a payload-LOCAL reference and a
 FREE representation variable under the same binder — the mixed reading
 `_⊢ref[_]_` exists for.
 
-BOTH ARE WELL TYPED AND NEITHER RUNS.  H₀ takes ten steps and loses its
+BOTH WERE WELL TYPED AND NEITHER RAN.  H₀ takes ten steps and loses its
 type at the eleventh; N₀ takes eight and loses it at the ninth.  These are
 not stuck states: the evaluator finds a redex each time, and the
-CONTRACTUM fails to typecheck.  Machine-checked in
-notes/ForallPayloadWall.agda, which also pins the failing premise in each
-case.  Not repaired.
+CONTRACTUM fails to typecheck.  Machine-checked at the time in
+notes/ForallPayloadWall.agda, which pinned the failing premise in each
+case.  REPAIRED, below; both programs now run, as §8 and §9 of
+notes/RepresentationReductionExamples.agda — seventeen and twenty-three
+steps, every state type-checked.
 
 THE TWO FAILURES ARE THE SAME DEFECT.  Each rule takes a SPELLING — an
 ordinary de Bruijn index — that is valid in one conversion context and
@@ -2809,7 +2811,8 @@ of its own checks still hold — but it is not sufficient, and the invariant
 it leaned on ("the two contexts agree on the names that matter") is false
 in general.
 
-RECOMMENDED REPAIR (2026-09-18): CARRY THE INTERIOR SPELLING AS A PREMISE.
+THE RULING (2026-09-18), INSTALLED: CARRY THE INTERIOR SPELLING AS A
+PREMISE.
 
 The two candidates were: re-base the spelling at the crossing, or name the
 interior spelling in a premise and relate the two.  They are the same
@@ -2847,10 +2850,34 @@ defined function back inside a contractum — and a defined function in a
 reduction index is what trips Agda's unifier (AGENTS.md, constructor-form
 indices).
 
-CONCRETELY.  `TyPeelR-⟪⟫` gains `SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ`
-and pushes `renameᵗ (extᵗ suc) Bᵢ′`.  `IdPush` gains
-`SameTy Δ₁ᶜ (` X) Δ′ᶜ (` X′)` and mints `unseal X′`.  One premise each, of
-a judgement `env` already uses in three positions.
+AS INSTALLED.  `TyPeelR-⟪⟫` gains `Δ ⊢ⁱ Θ ⇒ Δᵢ`,
+`Unique (names (underΛ Δᵢ))` and `SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ`,
+and pushes `renameᵗ (extᵗ suc) Bᵢ′`.  `IdPush` gains `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`,
+`Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ`, `extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ`,
+`Unique (names Δ⋉ᶜ)` and `SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X)`, and mints
+`unseal X′`.
+
+THE PRICE, HONESTLY.  Three premises and five, not the one apiece the
+recommendation estimated.  The crossing needs BOTH contexts named to be
+stated at all, and the interior name map's `Unique` is what makes the
+re-based spelling a function — so each rule pays for the contexts it
+relates, not just for the relation.  The determinism cases grew to match;
+they are still nothing but `interior-functional`, `conversion-functional`,
+`conv-src-unique`, `sameTy-src-unique` and `∋:=-det`, all of which already
+existed.  Nothing new had to be proved.
+
+WHAT IT DID NOT DISTURB.  The seven runs that predated the repair are
+unchanged, step for step: wherever the two contexts agree on a name, the
+re-based spelling IS the old one, so their contracta are identical.  That
+is also why the defect stayed hidden — the suite had no program in which a
+lock and an unlock moved a name far enough for the readings to part.
+
+STILL OPEN, SAME SHAPE.  `CancelR`'s contractum mints `mkId A` on BOTH
+layers from a single `A` read at the outer conversion context, and the
+inner layer is checked at the merged frame's.  That is the same crossing,
+unrepaired, and no example reaches a configuration where the two
+disagree.  It should be repaired the same way rather than waiting for a
+program to find it.
 
 THE STRUCTURAL OPTION, NOT TAKEN NOW.  Both this defect and the
 2026-09-17 one come from the same place: the interior and the conversion

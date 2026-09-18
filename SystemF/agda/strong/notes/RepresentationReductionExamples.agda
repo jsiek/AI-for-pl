@@ -20,6 +20,8 @@ module strong.notes.RepresentationReductionExamples where
 --   5. identity at 𝔹               6 steps   false  : 𝔹
 --   6. argument still reducing     7 steps   5      : ℕ
 --   7. two later binders          37 steps   true   : 𝔹
+--   8. impredicative identity     17 steps   true   : 𝔹
+--   9. ∀-payload over a free var  23 steps   7      : ℕ
 --
 -- WHAT IS AND IS NOT WRITTEN OUT.  The intermediate states are not.
 -- `eval` (strong.Eval) produces them, and it calls the type checker on
@@ -56,12 +58,13 @@ module strong.notes.RepresentationReductionExamples where
 -- four (§7), and unwinding is quadratic in that depth, so a defect that
 -- needs five boundaries would not show up here.
 --
--- WHAT IS MISSING ON PURPOSE.  No run here instantiates at a POLYMORPHIC
--- type, so no representation payload contains a `∀` and `wfᴿ-∀` fires
--- nowhere.  That is not an oversight: two such programs are written out
--- in notes/ForallPayloadWall.agda and neither runs — `TyPeelR-⟪⟫` and
--- `IdPush` both lose the type on them.  They will belong here when that
--- defect is repaired.
+-- §8 and §9 instantiate at a POLYMORPHIC type, so their morphisms bind a
+-- representation payload with a `∀` in it.  They did not run when they
+-- were written: `TyPeelR-⟪⟫` and `IdPush` each carried a spelling from
+-- the conversion context into the interior without re-basing it, and the
+-- two contexts disagree exactly when a lock and an unlock have moved the
+-- name.  Both rules now carry the interior spelling as a premise
+-- (notes/ForallPayloadWall.agda, notes/DECISIONS.md 2026-09-18).
 
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
@@ -247,3 +250,56 @@ G-eval = reaches refl V-true
 
 G-run : empty ⊢ G₀ -→* `true
 G-run = reaches-run G-eval
+
+------------------------------------------------------------------------
+-- 8. (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z), at [𝔹] · true
+--
+-- IMPREDICATIVE: the type argument is itself a `∀`, so the morphism binds
+-- a representation payload with a `∀` in it and `wfᴿ-∀` fires.  No other
+-- run here instantiates at a polymorphic type.
+------------------------------------------------------------------------
+
+H₀ : Term
+H₀ = (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , EID ]) · Earg)
+       ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `true
+
+H₀-⊢ : empty ∣ [] ⊢ H₀ ⦂ `𝔹
+H₀-⊢ = tc
+
+H-eval : Reaches 17 17 H₀-⊢ `true
+H-eval = reaches refl V-true
+
+H-run : empty ⊢ H₀ -→* `true
+H-run = reaches-run H-eval
+
+------------------------------------------------------------------------
+-- 9. (ΛX. λx:X. ((ΛY. λy:Y. y) [∀Z. Z⇒X]) · (ΛZ. λz:Z. x)) [ℕ] · 7,
+--    at [𝔹] · true
+--
+-- The payload is `∀Z. Z ⇒ X`, formed under `ΛX`, so it carries a
+-- payload-LOCAL reference and a FREE representation variable under the
+-- same binder — the mixed reading `_⊢ref[_]_` exists for.
+--
+-- §8 and §9 are the two programs that found the 2026-09-18 defect: the
+-- interior and the conversion context disagreed on how to spell a name,
+-- and `TyPeelR-⟪⟫` and `IdPush` each carried one across without
+-- re-basing.  Both now carry the interior spelling as a premise.  See
+-- notes/ForallPayloadWall.agda.
+------------------------------------------------------------------------
+
+N₀ : Term
+N₀ =
+  ((Λ (ƛ ` 0 ∙
+        (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `∀ (` 0 ⇒ ` 1) ])
+          · (Λ (ƛ ` 0 ∙ ` 1)))))
+     ·[ ` 0 ⇒ `∀ (` 0 ⇒ ` 1) , `ℕ ] · $ 7)
+    ·[ ` 0 ⇒ `ℕ , `𝔹 ] · `true
+
+N₀-⊢ : empty ∣ [] ⊢ N₀ ⦂ `ℕ
+N₀-⊢ = tc
+
+N-eval : Reaches 23 23 N₀-⊢ ($ 7)
+N-eval = reaches refl V-$
+
+N-run : empty ⊢ N₀ -→* $ 7
+N-run = reaches-run N-eval

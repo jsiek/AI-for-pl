@@ -1,189 +1,51 @@
 module strong.notes.ForallPayloadWall where
 
 -- File Charter:
---   * The machine-checked record of a SECOND defect: a representation
---     payload containing a `∀` breaks the calculus.  Two rules lose the
---     type — `TyPeelR-⟪⟫` and `IdPush` — and for the same reason.
---   * It holds two closed, well-typed programs that do not run, the step
---     at which each loses its type, and the premise that fails with the
---     value that would have worked.
---   * NOT REPAIRED.  Unlike notes/ReUnlockWall.agda, this one records a
---     defect that is still open.  These programs are therefore not in
---     notes/RepresentationReductionExamples.agda: they do not pass.
+--   * The record of a SECOND defect and its repair: a spelling — an
+--     ordinary de Bruijn index — that is valid in a morphism's conversion
+--     context is not valid in its interior, and `TyPeelR-⟪⟫` and `IdPush`
+--     each carried one across without re-basing it.
+--   * It holds the fact that CONSTRAINS the repair: the two name maps can
+--     reorder relative to each other, so the crossing can only go through
+--     the representation a name denotes, never through arithmetic on its
+--     position.
+--   * REPAIRED, unlike when this module was first written.  Both rules now
+--     carry the interior spelling as a `SameTy` premise
+--     (strong.Reduction; notes/DECISIONS.md, 2026-09-18), and the two
+--     programs that found it run: they are §8 and §9 of
+--     notes/RepresentationReductionExamples.agda.
 --
--- WHERE PAYLOADS WITH A `∀` COME FROM.  A morphism's `binds` hold the
--- representation reading of a type ARGUMENT, so one has a `∀` in it
--- exactly when a type application instantiates at a polymorphic type.
--- System F is impredicative, so that is ordinary; nothing in the rest of
--- the suite does it, and `wfᴿ-∀` and `local-ref` fire nowhere else.
+-- HOW IT WAS FOUND.  By the first programs that instantiate at a
+-- POLYMORPHIC type.  A morphism's `binds` hold the representation reading
+-- of a type ARGUMENT, so a payload has a `∀` in it exactly when a type
+-- application is impredicative; nothing else in the suite did that, and
+-- `wfᴿ-∀` and `local-ref` fired nowhere.  Both programs were well typed,
+-- both reached a redex at every step, and in both it was the CONTRACTUM
+-- that failed to typecheck — `TyPeelR-⟪⟫` at the ninth step of one,
+-- `IdPush` at the eleventh of the other.
 --
--- THE SHARED CAUSE.  Both rules take a SPELLING — an ordinary de Bruijn
--- index — that is valid in one conversion context and reuse it in a
--- different one, without re-basing.  The two contexts agree whenever the
--- locks and unlocks between them leave the relevant name where it was,
--- which is why the rest of the suite never notices.
+-- WHY THE PAYLOAD MATTERED.  Not for itself.  A `∀` payload is simply the
+-- first thing that made a lock and an unlock move a name far enough for
+-- the two readings to disagree; the defect was never about payloads.
 
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Bool using (Bool; true; false)
 open import Data.Maybe using (Maybe; just; nothing; from-just)
 open import Data.Product using (_,_; proj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
-open import strong.Conversion
 open import strong.CtxMorph
-open import strong.Terms
-open import strong.Reduction
 open import strong.TypeCheck
-open import strong.Eval
 
 ------------------------------------------------------------------------
--- 0. Reading a term apart, for the dissections below
+-- 1. The two name maps can REORDER
 ------------------------------------------------------------------------
 
-funOf intr tyfun : Term → Term
-funOf (L · M) = L
-funOf t = t
-intr (M ⟪ Θ , c ⟫) = M
-intr t = t
-tyfun (L ·[ B , A ]) = L
-tyfun t = t
-
-tyann : Term → Ty
-tyann (L ·[ B , A ]) = B
-tyann t = `ℕ
-
-cnv : Term → Conv
-cnv (M ⟪ Θ , c ⟫) = c
-cnv t = id `ℕ
-
-------------------------------------------------------------------------
--- 1. `TyPeelR-⟪⟫` pushes in an annotation read in the wrong context
-------------------------------------------------------------------------
-
--- `ΛX. λx:X. ((ΛY. λy:Y. y) [∀Z. Z⇒X]) · (ΛZ. λz:Z. x)`, at `[ℕ] · 7`
--- and then `[𝔹] · true`.  The type argument `∀Z. Z⇒X` is a `∀` whose body
--- mentions a live type variable, so its payload has a payload-LOCAL
--- reference and a FREE representation variable under the same binder.
-N₀ : Term
-N₀ =
-  ((Λ (ƛ ` 0 ∙
-        (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `∀ (` 0 ⇒ ` 1) ])
-          · (Λ (ƛ ` 0 ∙ ` 1)))))
-     ·[ ` 0 ⇒ `∀ (` 0 ⇒ ` 1) , `ℕ ] · $ 7)
-    ·[ ` 0 ⇒ `ℕ , `𝔹 ] · `true
-
-N₀-⊢ : empty ∣ [] ⊢ N₀ ⦂ `ℕ
-N₀-⊢ = tc
-
--- It runs eight steps and then loses the type.  The ninth step is
--- `TyPeelR-⟪⟫`.
-N-breaks : repKept (report (eval 9 N₀ N₀-⊢)) ≡ false
-N-breaks = refl
-
-N-at-step-9 : traceLen (eval 9 N₀ N₀-⊢) ≡ 9
-N-at-step-9 = refl
-
-N-state N-bad : Term
-N-state = traceEnd (eval 8 N₀ N₀-⊢)
-N-bad = from-just (stepTo empty N-state)
-
-N-bad-untypeable : infer empty [] N-bad ≡ nothing
-N-bad-untypeable = refl
-
--- THE FAILING PREMISE.  The contractum pushes the type application in one
--- layer, carrying `renameᵗ (extᵗ suc) Bᵢ` — where Bᵢ is the source of the
--- crossed boundary's conversion, read at `underΛ Δᶜ`.  `⊢·[]` reads that
--- annotation in the INTERIOR context instead, and the two disagree: Δᶜ
--- keeps the names the interior's locks removed, so the same
--- representation sits at a different ordinary index in each.
-ΔN : Ctxᵗ
-ΔN = (bindR (` 1) ∷ bindR (`∀ ((` 0) ⇒ (` 2))) ∷ bindR `𝔹 ∷ bindR `ℕ ∷ [])
-       ∣ (0 ∷ 3 ∷ [])
-
-N-app : Term
-N-app = intr (intr (funOf N-bad))
-
--- the head really is a `∀`-value, at this type
-N-head-ty : infer ΔN [] (tyfun N-app) ≡ just (`∀ ((` 0) ⇒ (` 2)) , tc)
-N-head-ty = refl
-
--- but the annotation the rule pushed in names ` 4 where ` 2 was meant
-N-annotation : tyann N-app ≡ (` 0) ⇒ (` 4)
-N-annotation = refl
-
--- so `⊢·[]` cannot fire
-N-app-untypeable : check⊢ ΔN [] (tyfun N-app) (`∀ (tyann N-app)) ≡ nothing
-N-app-untypeable = refl
-
-------------------------------------------------------------------------
--- 2. `IdPush` pushes a NAME read in the wrong context
-------------------------------------------------------------------------
-
--- `(ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z)`, at `[𝔹] · true`: the
--- identity instantiated at its own type, so the payload is a closed `∀`.
-H₀ : Term
-H₀ = (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `∀ (` 0 ⇒ ` 0) ])
-        · (Λ (ƛ ` 0 ∙ ` 0)))
-       ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `true
-
-H₀-⊢ : empty ∣ [] ⊢ H₀ ⦂ `𝔹
-H₀-⊢ = tc
-
--- Ten steps, then the eleventh — `IdPush` — loses the type.
-H-breaks : repKept (report (eval 11 H₀ H₀-⊢)) ≡ false
-H-breaks = refl
-
-H-at-step-11 : traceLen (eval 11 H₀ H₀-⊢) ≡ 11
-H-at-step-11 = refl
-
-H-state H-bad : Term
-H-state = traceEnd (eval 10 H₀ H₀-⊢)
-H-bad = from-just (stepTo empty H-state)
-
-H-bad-untypeable : infer empty [] H-bad ≡ nothing
-H-bad-untypeable = refl
-
--- THE FAILING PREMISE.  `IdPush` turns the inner `id (` X)` into
--- `unseal X` and merges the two frames.  `X` was read in the INNER
--- frame's conversion context; the merged frame has a different one, and
--- in it `X` names a different representation.
-ΓH ΓHᶜ : Ctxᵗ
-ΓH = (bindR (` 0) ∷ bindR `𝔹 ∷ bindR (`∀ ((` 0) ⇒ (` 0))) ∷ []) ∣ (1 ∷ [])
-ΓHᶜ = (bindR (` 0) ∷ bindR `𝔹 ∷ bindR (`∀ ((` 0) ⇒ (` 0))) ∷ [])
-        ∣ (0 ∷ 1 ∷ 2 ∷ [])
-
-H-inner : Term
-H-inner = intr (intr H-bad)
-
--- the value under the merged frame is fine, at ` 0
-H-value-ty : ΓH ∣ [] ⊢ H-inner ⦂ ` 0
-H-value-ty = tc
-
--- the conversion the rule minted
-H-minted : cnv (intr H-bad) ≡ unseal 2
-H-minted = refl
-
--- `unseal 2`'s source is ` 2, which is NOT the value's type ` 0 …
-H-mismatch : sameTy? ΓH ΓHᶜ (` 0) (` 2) ≡ nothing
-H-mismatch = refl
-
--- … whereas ` 1 is.  The rule should have pushed `unseal 1`.
-H-would-work : SameTy ΓH (` 0) ΓHᶜ (` 1)
-H-would-work = ` 1 , same-var here , same-var (there here)
-
-------------------------------------------------------------------------
--- 3. Why the repair cannot be positional
-------------------------------------------------------------------------
-
--- The obvious repair is to RE-BASE a spelling as it crosses: translate an
--- index from the conversion context's name map to the interior's.  That
--- translation cannot be positional arithmetic, because the two maps can
--- REORDER relative to each other — the interior's `unlock` inserts at a
--- position in ITS list, and the conversion context, having skipped the
--- matching `lock`, is looking at a different one.
+-- The interior's `unlock` inserts at a position in ITS list; the
+-- conversion context, having skipped the matching `lock`, is looking at a
+-- different one.  So the two are not even subsequences of one another.
 Δ↔ : Ctxᵗ
 Δ↔ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
@@ -198,11 +60,38 @@ reorder-conversion :
   names (proj₁ (from-just (conversion? Δ↔ Θ↔))) ≡ 0 ∷ 1 ∷ []
 reorder-conversion = refl
 
--- So the two maps are not even a subsequence of one another, and the only
--- translation there is goes through the REPRESENTATION a name denotes:
--- look the rvar up in one map, find it in the other.  That is exactly what
--- `SameTy` asserts, and `same-target-unique` (strong.Ctx) already makes it
--- a function on a name map with `Unique` names — which both rules already
--- carry.  Stating it as a premise therefore costs one premise of a
--- judgement `env` already uses, and computing it instead would put a
--- PARTIAL, lookup-based function inside a contractum.
+------------------------------------------------------------------------
+-- 2. So a spelling MEANS different things in the two readings
+------------------------------------------------------------------------
+
+-- Ordinary index 0 names representation variable 0 in the conversion
+-- context and representation variable 1 in the interior; the type `` ` 0 ``
+-- written in one is the type `` ` 1 `` in the other.
+crossing : rebase? (0 ∷ 1 ∷ []) (1 ∷ 0 ∷ []) (` 0)
+  ≡ just (` 1 , ` 0 , same-var (there here) , same-var here)
+crossing = refl
+
+-- and it is PARTIAL: the conversion context holds names the interior's
+-- locks removed, and those have no interior spelling at all
+no-crossing : rebase? (0 ∷ 1 ∷ []) (1 ∷ []) (` 0) ≡ nothing
+no-crossing = refl
+
+------------------------------------------------------------------------
+-- 3. The repair
+------------------------------------------------------------------------
+
+-- Because the crossing is a partial lookup rather than arithmetic, it
+-- cannot be a defined function inside a contractum: the rule would have to
+-- give a junk answer where there is none.  Both rules therefore NAME the
+-- interior spelling and carry a `SameTy` relating it to the conversion
+-- context's, which is the judgement `env` already uses for exactly this in
+-- three positions.  Determinism is `sameTy-src-unique` (strong.Ctx), which
+-- is why each rule also carries the interior name map's `Unique`.
+--
+--   TyPeelR-⟪⟫   … → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ → …
+--                   pushes `renameᵗ (extᵗ suc) Bᵢ′`
+--   IdPush       … → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X) → …
+--                   mints `unseal X′`
+--
+-- The seven runs that predated the repair are unchanged by it, because
+-- wherever the two contexts agree the re-based spelling is the old one.

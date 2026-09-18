@@ -193,16 +193,29 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- conversion `instReveal 0 s`, same pushed-in annotation, same type
   -- argument `` ` 0 `` (`TyPeelR-⟪⟫-wkᴹ`,
   -- `TyPeelR-⟪⟫-outer-unchanged`, proof/ShiftAudit §5c).
-  TyPeelR-⟪⟫ : ∀ {Δ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bₑ} → Value W
+  -- THE RE-BASED ANNOTATION (2026-09-18).  `Bᵢ` is read at the CONVERSION
+  -- context, because that is where the crossed boundary's conversion is
+  -- typed; the pushed-in `·[ _ , ` 0 ]` is read by `⊢·[]` at the INTERIOR.
+  -- Those are two different name maps, and they can even reorder relative
+  -- to each other (notes/ForallPayloadWall §3), so the rule carries the
+  -- interior spelling `Bᵢ′` and a `SameTy` relating the two — the
+  -- crossing is by the REPRESENTATION a name denotes, never by
+  -- arithmetic on its position.  Determinism for it is
+  -- `sameTy-src-unique`, which is why the interior's name map is carried
+  -- with its own `Unique`.
+  TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bᵢ′ Bₑ} → Value W
+    → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
+    → Unique (names (underΛ Δᵢ))
     → Unique (names (underΛ Δᶜ))
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
+    → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ ((renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W
                ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′)
                , `∀ (renᶜ (extᵗ suc) s′) ⟫)
-              ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
+              ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
              ⟪ instantiate R Θ , instReveal 0 s ⟫
 
   -- CANCEL — a conceal directly under the binder it names.  The
@@ -280,12 +293,22 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
   -- exterior type C.  That is what retires the wall — the case needs no
   -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
-  IdPush : ∀ {Δ Δᶜ V Θ₁ Θ₂ X Y A} → Value V
+  -- THE RE-BASED NAME (2026-09-18).  `X` is read at the INNER frame's
+  -- conversion context; the swap moves it into the MERGED frame's, which
+  -- is a different name map.  So the rule carries the merged spelling
+  -- `X′` and a `SameTy` relating the two, exactly as `TyPeelR-⟪⟫` does
+  -- for its annotation.
+  IdPush : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A} → Value V
+    → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+    → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+    → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+    → Unique (names Δ⋉ᶜ)
+    → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X)
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
     → Unique (names Δᶜ)
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫)
+        -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X′ ⟫)
              ⟪ rewind Θ₂ , mkId A ⟫
 
   ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′
@@ -373,21 +396,25 @@ det (ξ-·[] st) (TyPeelR-Λ v rel unique ⊢s same) =
 -- The wrapper clause's two contracta agree because the SOURCE type is a
 -- function of the conversion and the type context (`conv-src-unique`), so
 -- the two premises determine the SAME pushed-in annotation.
-det (TyPeelR-⟪⟫ v rel unique ⊢s same)
-    (TyPeelR-⟪⟫ v′ rel′ unique′ ⊢s′ same′)
-  with conversion-functional rel rel′
-det (TyPeelR-⟪⟫ v rel unique ⊢s same)
-    (TyPeelR-⟪⟫ v′ rel′ unique′ ⊢s′ same′) | refl
-  with conv-src-unique unique ⊢s ⊢s′
-det (TyPeelR-⟪⟫ v rel unique ⊢s same)
-    (TyPeelR-⟪⟫ v′ rel′ unique′ ⊢s′ same′) | refl | refl
+det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′)
+  with interior-functional ri ri′ | conversion-functional rc rc′
+det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′) | refl | refl
+  with conv-src-unique u ⊢s ⊢s′
+det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′) | refl | refl | refl
+  with sameTy-src-unique uᵢ sm sm′
+det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl
   with same-rep-unique same same′
-det (TyPeelR-⟪⟫ v rel unique ⊢s same)
-    (TyPeelR-⟪⟫ v′ rel′ unique′ ⊢s′ same′)
-    | refl | refl | refl = refl
-det (TyPeelR-⟪⟫ v rel unique ⊢s same) (ξ-·[] st) =
+det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl = refl
+det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same) (ξ-·[] st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
-det (ξ-·[] st) (TyPeelR-⟪⟫ v rel unique ⊢s same) =
+det (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
 -- CancelR — the two contracta agree because the lookup is a function.
@@ -416,15 +443,22 @@ det Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-false st)
 det (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step V-false st)
 
 -- IdPush — likewise determined by the lookup.
-det (IdPush v rel unique d) (IdPush v′ rel′ unique′ d′)
-  with conversion-functional rel rel′
-det (IdPush v rel unique d) (IdPush v′ rel′ unique′ d′) | refl
-  with ∋:=-det unique d d′
-det (IdPush v rel unique d) (IdPush v′ rel′ unique′ d′)
-    | refl | refl = refl
-det (IdPush v rel unique d) (ξ-⟪⟫ frame st) =
+det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
+    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+  with interior-functional ri ri′ | conversion-functional rel rel′
+det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
+    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′) | refl | refl
+  with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
+det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
+    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+    | refl | refl | refl | refl
+  with sameTy-src-unique u⋉ sm sm′ | ∋:=-det unique d d′
+det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
+    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+    | refl | refl | refl | refl | refl | refl = refl
+det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
-det (ξ-⟪⟫ frame st) (IdPush v rel unique d) =
+det (ξ-⟪⟫ frame st) (IdPush v ri r₁ r⋉ u⋉ sm rel unique d) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
 
 -- the congruences

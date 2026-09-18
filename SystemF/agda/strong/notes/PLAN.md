@@ -57,7 +57,7 @@ The following parts have been ported and typecheck:
 `Eval.agda` is rewritten from scratch rather than ported.
 
 The reduction tests are in `notes/RepresentationReductionExamples.agda`. All
-seven closed programs reduce to first-order values:
+nine closed programs reduce to first-order values:
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;
@@ -69,7 +69,11 @@ seven closed programs reduce to first-order values:
   `5 : ℕ`;
 - the later-bound identity with a SECOND later binder, `ΛY. ΛW. f [W]`,
   continued with `[𝔹] [𝔹] · true`, reduces in thirty-seven steps to
-  `true : 𝔹`.
+  `true : 𝔹`;
+- the identity instantiated at its own type, `[∀Z. Z⇒Z]`, continued with
+  `[𝔹] · true`, reduces in seventeen steps to `true : 𝔹`;
+- a payload `∀Z. Z⇒X` formed under `ΛX` reduces in twenty-three steps to
+  `7 : ℕ`.
 
 All fifteen reduction rules fire somewhere in those seven runs. The last three
 exist for the four that the first four reached once or not at all:
@@ -79,18 +83,9 @@ fires three times and `IdPush` twenty-one. What is still thin is depth: the
 deepest seal tower any run builds is four, and unwinding is quadratic in that
 depth, so a defect needing five boundaries would not show up.
 
-**An eighth kind of program does not run at all.** Nothing in that suite
-instantiates at a polymorphic type, so no representation payload contains a
-`∀`. Two programs that do are written out in `notes/ForallPayloadWall.agda`,
-and neither completes: `TyPeelR-⟪⟫` loses the type at one and `IdPush` at the
-other. Both are well typed, both reach a redex at every step, and in both it
-is the CONTRACTUM that fails to typecheck. The two failures are the same
-defect — a spelling valid in one conversion context is reused in another
-without re-basing — and it is NOT yet repaired. The repair is recommended in
-`notes/DECISIONS.md` (2026-09-18) and awaits Jeremy: carry the interior
-spelling as a `SameTy` premise rather than computing the re-basing, because
-the two name maps can reorder relative to each other, so the translation is a
-partial lookup rather than arithmetic.
+Examples 8 and 9 instantiate at a polymorphic type, so their morphisms bind a
+representation payload with a `∀` in it. They did not run when they were
+written, and finding that is what produced the sixth repair below.
 
 The fourth run is the only one that puts the boundary rules under real load,
 because its argument is instantiated beneath a *later* `Λ`, so the value that
@@ -125,6 +120,17 @@ Testing has found and repaired these errors:
    names live along the morphism already meant. See
    `notes/DECISIONS.md` (2026-09-17) and the machine-checked
    `no-old-rewind-conv` in `notes/ReUnlockWall.agda`.
+6. A spelling — an ordinary de Bruijn index — that is valid in a morphism's
+   conversion context is not valid in its interior, and `TyPeelR-⟪⟫` and
+   `IdPush` each carried one across without re-basing. The two name maps can
+   even reorder relative to each other, so the crossing is a partial lookup
+   through the representation a name denotes, never arithmetic on positions.
+   Both rules now NAME the interior spelling and carry a `SameTy` relating
+   it to the conversion context's; determinism is `sameTy-src-unique`.
+   Found by examples 8 and 9, the first programs that instantiate at a
+   polymorphic type. See `notes/DECISIONS.md` (2026-09-18) and
+   `notes/ForallPayloadWall.agda`. `CancelR` has the same crossing
+   unrepaired — no example reaches a configuration where it bites yet.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism
@@ -224,13 +230,11 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 
 ## Immediate plans
 
-1. Install the `∀`-payload repair (`notes/ForallPayloadWall.agda`,
-   `notes/DECISIONS.md` 2026-09-18, recommended and awaiting Jeremy):
-   `TyPeelR-⟪⟫` gains `SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ` and pushes
-   `renameᵗ (extᵗ suc) Bᵢ′`; `IdPush` gains `SameTy Δ₁ᶜ (` X) Δ′ᶜ (` X′)` and
-   mints `unseal X′`. Determinism for both is `same-target-unique`, which is
-   already proved. Preservation cannot be written until this lands, because
-   it changes the statement of the two rules.
+1. Repair `CancelR` the same way `TyPeelR-⟪⟫` and `IdPush` were: its
+   contractum mints `mkId A` on both layers from one `A` read at the outer
+   conversion context, and the inner layer is checked at the merged frame's.
+   No example reaches a configuration where those disagree, which is exactly
+   the argument for doing it now rather than waiting.
 2. Port the preservation proof to the relational context-morphism interface.
    The fourth example is the case to check it against for the lock-carrying
    frames, and the two in `ForallPayloadWall` for the `∀` payloads.

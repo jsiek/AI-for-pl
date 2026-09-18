@@ -262,13 +262,14 @@ contractum of the run's eleventh step is the first state `check⊢` would have
 rejected.
 
 Because of that, the example module no longer writes out intermediate states
-at all. Each of the four runs is one `Reaches k n ⊢M V`: with fuel `k` the
+at all. Each of the twelve runs is one `Reaches k n ⊢M V`: with fuel `k` the
 evaluator reaches `V` in exactly `n` steps, `V` is a value, and no state along
 the way lost the type. `reaches-run` turns the same thing into the headline
 `Δ ⊢ M -→* V` and `reaches-⦂` into the endpoint's typing, neither of which
 re-runs anything; `evalTerms` hands the states back whenever a reader wants to
-see one. The module went from 1266 lines to 224, and an example costs four
-lines, so the suite can grow.
+see one. The module went from 1266 lines to 224 at four examples, and an
+example costs four lines, so the suite grew to twelve (375 lines) without
+the cost becoming a problem.
 
 Growing it cheaply took one more step, because **Agda shares nothing between
 the occurrences of a term**: a statement mentioning `eval k M ⊢M` three times
@@ -295,6 +296,35 @@ clean. `All.agda` does not yet pass because the main-branch preservation
 development and later metatheory still use the old context representation;
 the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 
+## Resuming on another machine
+
+The work is pushed to `codex/strong-system-f-representation-vars`
+(github.com/jsiek/AI-for-pl/pull/205). Fetch that branch; it is the one the
+PR tracks.
+
+What compiles, from `SystemF/agda/strong/`:
+
+```
+agda --safe --no-allow-unsolved-metas -v0 All.agda
+```
+
+stops at the FIRST unported module, `proof/Preserve.agda`, on the retired
+`Nameable` interface. Everything before it passes: the core, `Reduction`,
+`TypeCheck`, `Eval`, and all four notes modules
+(`RepresentationReductionExamples`, `ReUnlockWall`, `ForallPayloadWall`,
+`CrossingAudit`, `PeelPremise`). That failure is the baseline, not a
+regression — check against it before blaming a change.
+
+The twelve-example suite alone is about 7.4s cold:
+
+```
+agda --safe -v0 notes/RepresentationReductionExamples.agda
+```
+
+Where the open threads are: item 2 below is ready to install and is the
+one with the most leverage; items 1 and 3 are the preservation port; item 5
+is progress and `Examples.agda`.
+
 ## Immediate plans
 
 1. Port the preservation proof to the relational context-morphism interface.
@@ -302,22 +332,50 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
    frames, and examples 8 and 9 for the `∀` payloads. All three crossing
    rules now carry the interior spelling, so the preservation cases have the
    premise they need rather than having to re-derive it.
-2. Repair `Peel` (`notes/CrossingAudit.agda` §§4–5). It moves the domain
-   half of its conversion onto the crossed frame's dual, whose conversion
-   context is taken at the interior — a different name map from the one that
-   half was read in. The alternative, proving that no reachable frame can
-   make those two disagree, is CLOSED: that invariant is false. `_⋉_` does
-   not preserve the property even when both arguments have it, and the
-   shape that breaks it — an inner frame that unlocks against an outer that
-   locks — is exactly the one `IdPush` builds. So there is no closure
-   property of the frame grammar to lean on, and the twelve runs are the
-   only evidence `Peel` is safe.
+2. INSTALL the `Peel` repair. The design work is DONE and machine-checked
+   in `notes/PeelPremise.agda`; nothing of it is installed, and
+   `strong.Reduction` is unchanged. What is there, in order:
 
-   The repair the other three rules took does not transfer either: they
-   carried a type or a name, and `SameTy` relates those, whereas `Peel`
-   carries a CONVERSION and no judgement yet relates two conversions that
-   name the same representations. Inventing one is the open design
-   question. Preservation for `Peel` needs it.
+   * `_⊩_~_` and `SameConv` (§1) — two ordinary spellings of one
+     representation-universe conversion, defined exactly as `_⊢_~_` is for
+     types, one universe up. This is the judgement relating two
+     conversions that §2 of this list used to call an open design
+     question; `sameConv-src-unique` (§2) keeps the rule a function.
+   * The rule the premise produces, written out in §4.
+   * (Q), PROVED (§5): the two conversion contexts `Peel` straddles NAME
+     THE SAME representation variables. (P) — that they are the same
+     LIST — is false; (Q) says only the same SET, and the premise absorbs
+     the difference. (Q) needs no restriction on the change list and no
+     `Unique`, so it holds exactly where (P) fails.
+   * Satisfiability (§6): a well-typed conversion always has a
+     representation-universe reading, and a reading transports to any
+     context that names everything this one names — which is (Q). So the
+     premise always has a witness and the repair costs no reduction.
+   * Existence (§7): the dual's conversion context, which typing the redex
+     does NOT supply, always exists. The one obligation is positional —
+     the dual re-inserts at the position the lock recorded, and that
+     position must still be in range — and it is discharged by a
+     pigeonhole argument, the only place uniqueness is used.
+   * `peel-premises-env` (§8): given the `MorphWf` that `env` already
+     stores at the crossed boundary, every premise the repaired rule would
+     carry has a witness, the `Unique` one included. So `Peel` would not
+     have to CARRY a `Unique` premise, unlike the three rules repaired
+     before it.
+
+   What remains is the installation itself: add the premises to `Peel` in
+   `Reduction.agda`, extend `det`, teach `Eval.agda`'s `peelPremises?` to
+   build the `SameConv` (a `respell?` in the shape of `rebase?`), and
+   re-run the twelve examples. Then preservation for `Peel` has the
+   premise it needs.
+
+   ONE CLAIM TO NOT REPEAT: earlier drafts of this file and of
+   `CrossingAudit.agda` said the frame that breaks (P) is "exactly the one
+   `IdPush` builds". That is stronger than was ever checked. It has the
+   FORM `Θ₁ ⋉ Θ₂` that `IdPush` builds, but no run is known to assemble
+   one from those ingredients, and no REACHABLE frame violating (P) has
+   been exhibited. What the disproof rules out is the proof strategy, not
+   the rule.
+
 3. Prove the two invariants example 4 only witnesses at one point,
    rather than leaving them to the checker: that
    `interior (rewind Θ) Δ ≡ extendReps (binds Θ) Δ` and that
@@ -331,9 +389,9 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 5. Port progress and the remaining modules imported by `All.agda`, deleting
    obsolete masking/nameability compatibility machinery rather than adding
    shims. Progress is the half `Eval.agda`'s `step` deliberately does not
-   claim, and the four `Reaches` checks are the evidence for what it will
-   have to prove: `step` finds a redex at every non-value state of all four
-   runs.
+   claim, and the twelve `Reaches` checks are the evidence for what it will
+   have to prove: `step` finds a redex at every non-value state of all
+   twelve runs.
    `Examples.agda` is the big one, and it is the same transcription problem
    the reduction traces had: port it onto `TypeCheck.agda` rather than
    rewriting its boundary typings by hand.

@@ -8,11 +8,20 @@ module strong.notes.PeelPremise where
 -- stated over (§7).  Nothing here is imported by the rule set;
 -- `strong.Reduction` is unchanged.
 --
--- ONE HYPOTHESIS IS ASSUMED, not proved: `Unique (names Γ)` on the
--- exterior context.  It is the premise `TyPeelR-⟪⟫`, `IdPush` and
--- `CancelR` already carry, so `Peel` carrying it too costs nothing new —
--- but that every reachable context satisfies it is a separate invariant
--- and no part of this file establishes it.
+-- NOTHING IS ASSUMED.  §§5–7 are stated over `Unique (names Γ)`, which
+-- is not an extra hypothesis but `WfCtx.name-fn` — and `env` carries a
+-- `MorphWf` whose `mw-exterior` is a `WfCtx` of the crossed boundary's
+-- exterior.  §8 discharges it from there: `peel-premises-env` takes the
+-- morphism witness the redex's own typing stores and returns every
+-- premise the repaired rule would carry, the `Unique` one included.
+--
+-- What is NOT settled — and is not needed here — is that `MorphWf`'s two
+-- OUTPUT well-formedness fields are derivable rather than obligations
+-- (the standing TODO at strong.CtxMorph §3).  This file supplies the
+-- `name-fn` third of both, in `int-unique` and `conv-unique`; the
+-- `wf-names` third would follow from `unlocks-valid`-style reasoning over
+-- §5's lemmas, and `wf-reps` needs a weakening lemma for representation
+-- payloads across `pushRepBinds`, which is independent of all of this.
 
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
@@ -770,3 +779,51 @@ peel-premises uq int conv ⊢s with dual-conversion-exists uq int
 peel-premises uq int conv ⊢s | Γᵈ , dconv
   with premise-exists int conv dconv ⊢s
 peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc = Γᵈ , s′ , dconv , sc
+
+------------------------------------------------------------------------
+-- 8. THE HYPOTHESIS IS ALREADY WELL-FORMEDNESS
+------------------------------------------------------------------------
+
+-- `Unique (names Γ)` is not an extra assumption.  It is `WfCtx.name-fn`
+-- (strong.Ctx §6), and `env` carries a `MorphWf` whose `mw-exterior` is a
+-- `WfCtx` of the boundary's exterior — so everything §7 needs is already
+-- in the typing derivation of the redex, and `Peel` would not have to
+-- carry a `Unique` premise to get it.
+--
+-- The conversion reading preserves it too: it skips locks, and an unlock
+-- either inserts a name its own premise says is fresh, or does nothing.
+conv-unique : Unique Δ → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ → Unique Δᶜ
+conv-unique uq conv[] = uq
+conv-unique uq (conv-lock v cs) = conv-unique uq cs
+conv-unique uq (conv-unlock v cs fr i) = ins-unique i fr (conv-unique uq cs)
+conv-unique uq (conv-unlock-live v cs d) = conv-unique uq cs
+
+-- so the DUAL's context is unique as well, which is the premise the
+-- repaired rule would need for determinism — also not carried, derived.
+dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+  → Unique (names Γ)
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Unique (names Γᵈ)
+dual-unique uq (interior cs) (conversion dc) =
+  conv-unique (subst Unique (sym (shiftRVars-0 _))
+                    (int-unique (unique-shiftRVars _ uq) cs))
+              dc
+
+-- EVERYTHING, FROM THE REDEX'S OWN DERIVATION.  `MorphWf` is what `env`
+-- stores at the crossed boundary; `Γᶜ ⊢ s ∶ _ ⇝ _` is the domain half of
+-- its conversion, which `conv-fun` hands over.  Nothing else is assumed.
+peel-premises-env : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
+  → MorphWf Γ Θ Γᵢ Γᶜ
+  → Γᶜ ⊢ s ∶ A ⇝ B
+  → ∃[ Γᵈ ] ∃[ s′ ]
+      ((Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ)
+        × Unique (names Γᵈ)
+        × SameConv Γᵈ s′ Γᶜ s)
+peel-premises-env mwΘ ⊢s
+  with peel-premises (name-fn (mw-exterior mwΘ)) (mw-interior mwΘ)
+                     (mw-conversion mwΘ) ⊢s
+peel-premises-env mwΘ ⊢s | Γᵈ , s′ , dconv , sc =
+  Γᵈ , s′ , dconv
+      , dual-unique (name-fn (mw-exterior mwΘ)) (mw-interior mwΘ) dconv
+      , sc

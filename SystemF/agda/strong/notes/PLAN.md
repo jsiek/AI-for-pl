@@ -169,8 +169,20 @@ Testing has found and repaired these errors:
    premise, the rule it would produce, (Q), satisfiability and existence
    are all in `notes/PeelPremise.agda`, with `peel-premises` putting them
    together; nothing is installed, and `strong.Reduction` is unchanged.
-   `Unique (names Γ)` is assumed there, as three installed rules already
-   assume it; that every reachable context satisfies it is not proved.
+   Nothing is assumed: `Unique (names Γ)` is `WfCtx.name-fn`, and `env`
+   carries a `MorphWf` whose `mw-exterior` is a `WfCtx` of the crossed
+   boundary's exterior, so `peel-premises-env` takes the redex's own
+   typing and returns every premise — the `Unique` one for determinism
+   included, via `conv-unique`. `Peel` would therefore not have to CARRY
+   a `Unique` premise, unlike the three rules repaired before it.
+
+   Still open, and independent of `Peel`: `MorphWf`'s two OUTPUT
+   well-formedness fields are obligations rather than derived lemmas (the
+   standing TODO at `CtxMorph.agda` §3), so `morphWf?` re-checks them with
+   `wfCtx?` on every boundary. `notes/PeelPremise.agda` supplies the
+   `name-fn` third of both (`int-unique`, `conv-unique`); `wf-names` would
+   follow from the same §5 lemmas, and `wf-reps` needs a weakening lemma
+   for representation payloads across `pushRepBinds`.
 
    (P) is a theorem on `main` — `convCtx-dual` in `proof/PeelDual.agda`,
    for an arbitrary well-formed change list — because there a name map is

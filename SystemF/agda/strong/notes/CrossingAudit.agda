@@ -141,15 +141,17 @@ peel-used = refl
 -- than assumed.
 --
 ------------------------------------------------------------------------
--- 5. The invariant that would have made `Peel` safe is FALSE
+-- 5. THE PROPERTY `Peel` NEEDS, AND WHEN IT HOLDS
 ------------------------------------------------------------------------
 
--- The audit first guessed that every frame the rules build is BALANCED —
--- that each `lock` is undone by the `unlock` of its own dual at the same
--- recorded position, since `dualMorph` inverts change by change, `rewind`
--- is `dual χ ++ χ`, and `instantiate` shifts uniformly — and that this
--- would make `Peel` safe.  It would have.  It is not true: `_⋉_` does not
--- preserve the property, even when both of its arguments have it.
+-- Write I⟦Θ⟧Δ for the interior name map and C⟦Θ⟧Δ for the conversion
+-- one.  `Peel` reads `s` at C⟦Θ⟧Δ and uses it at C⟦dualMorph Θ⟧(I⟦Θ⟧Δ),
+-- so what it needs, for the frame it fires on, is
+--
+--     (P)    C⟦dualMorph Θ⟧(I⟦Θ⟧Δ)  ≡  C⟦Θ⟧Δ
+--
+-- and that is `Ok` below.  §4 showed (P) failing on a hand-built frame.
+-- The three facts that say when it holds are these.
 Ok : Ctxᵗ → CtxMorph → Set
 Ok Γ Θ = nmDual Γ Θ ≡ nmConv Γ Θ
 
@@ -163,32 +165,54 @@ Lock Unlock : CtxMorph
 Lock = morph [] (lock 0 0 ∷ [])
 Unlock = morph [] (unlock 0 2 ∷ [])
 
--- each of them on its own is fine
-lock-ok : Ok Δ₃ Lock
-lock-ok = refl
+-- FACT 1.  A change list with NO UNLOCKS has (P).  The conversion context
+-- skips every lock, so C⟦Θ⟧Δ = Δ; the interior deletes the locked names;
+-- the dual is all unlocks, at the positions the locks recorded, and each
+-- is fresh at the interior, so running them restores Δ exactly.
+locks-only-ok : Ok Δ₃ (morph [] (lock 0 1 ∷ lock 0 0 ∷ []))
+locks-only-ok = refl
 
-unlock-ok : Ok Δ₃ Unlock
-unlock-ok = refl
+-- FACT 2.  A change list with NO LOCKS has (P).  Nothing is skipped, so
+-- the two readings perform the same insertions and C⟦Θ⟧Δ = I⟦Θ⟧Δ; the
+-- dual is all locks, which the conversion context skips, so it leaves
+-- that map alone.
+unlocks-only-ok : Ok Δ₃ Unlock
+unlocks-only-ok = refl
 
--- and so is the composite `CancelR` builds, an inner frame against the
--- dual it came from
-cancel-shape-ok : Ok Δ₃ (dualMorph Unlock ⋉ Unlock)
-cancel-shape-ok = refl
+-- FACT 3.  A MIXED list need not.  `lock 0 0` then `unlock 0 2`:
+--
+--   interior     (0 1)  --lock 0 0-->  (1)    --unlock 0 2 at 0-->  (2 1)
+--   conversion   (0 1)  --skipped-->   (0 1)  --unlock 0 2 at 0-->  (2 0 1)
+--
+-- The same unlock inserts at position 0 of two lists that a skipped lock
+-- has already made different, so 2 lands before 1 in one and before 0 in
+-- the other.  The dual then restores 0 at the front of the interior's
+-- result, and the two maps hold the same names in different orders.
+mixed-dual : nmDual Δ₃ (morph [] (unlock 0 2 ∷ lock 0 0 ∷ []))
+  ≡ just (0 ∷ 2 ∷ 1 ∷ [])
+mixed-dual = refl
 
--- but the composite `IdPush` builds — an inner frame that UNLOCKS against
--- an outer that LOCKS — loses it
+mixed-conv : nmConv Δ₃ (morph [] (unlock 0 2 ∷ lock 0 0 ∷ []))
+  ≡ just (2 ∷ 0 ∷ 1 ∷ [])
+mixed-conv = refl
+
+-- SO THERE IS NO STRUCTURAL ARGUMENT FOR `Peel`.  (P) is not closed under
+-- `_⋉_`, which is what mixes a locking list with an unlocking one:
 push-shape-dual : nmDual Δ₃ (rewind Unlock ⋉ Lock) ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 push-shape-dual = refl
 
 push-shape-conv : nmConv Δ₃ (rewind Unlock ⋉ Lock) ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 push-shape-conv = refl
 
--- SO `Peel` CANNOT BE JUSTIFIED STRUCTURALLY.  There is no closure
--- property of the frame grammar to lean on: the one constructor that
--- matters breaks it, in exactly the shape `IdPush` produces
--- (`rewind Θ₁ ⋉ Θ₂`).  What is left is the narrower claim that no frame
--- carrying a `_↦_` conversion is ever of that shape, for which there is
--- no evidence beyond the runs.  Example 12 is the hardest case the suite
--- could put to it — a function flowing through §4's tower, so that the
--- identities the tower mints are `_↦_`s and `Peel` fires on composites
--- `IdPush` built — and it passes.  That is testing, not proof.
+-- and `_⋉_` is how `CancelR` and `IdPush` build every composite frame.
+-- So (P) cannot be proved by induction over the grammar of frames, which
+-- is what "every reachable frame is balanced" would have had to mean.
+--
+-- WHAT IS NOT CLAIMED.  That the frame above is REACHABLE.  It has the
+-- form `Θ₁ ⋉ Θ₂` that `IdPush` builds, but no run is known to build one
+-- from these ingredients, and no reachable frame violating (P) has been
+-- exhibited.  What the disproof rules out is the PROOF STRATEGY, not
+-- `Peel`.  Example 12 is the hardest case the suite puts to it — a
+-- function flowing through §4's tower, so the identities the tower mints
+-- are `_↦_`s and `Peel` fires on composites `CancelR` and `IdPush` built —
+-- and it passes.  That is testing, not proof.

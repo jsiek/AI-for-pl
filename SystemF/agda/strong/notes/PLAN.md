@@ -328,7 +328,8 @@ agda --safe -v0 notes/RepresentationReductionExamples.agda
 
 Where the open threads are: items 1, 2 and 3 are the preservation port —
 all four crossing rules now carry the spelling their preservation cases
-need; item 5 is progress and `Examples.agda`.
+need; item 4 is a rule-set cleanup that is cheapest done BEFORE that port;
+item 6 is progress and `Examples.agda`.
 
 ## Immediate plans
 
@@ -365,11 +366,51 @@ need; item 5 is progress and `Examples.agda`.
    `convCtx (rewind Θ) Δ ≡ convCtx Θ Δ`, the second now holding by
    `conv-unlock-live`. `CancelR`'s and `IdPush`'s preservation cases both
    read the minted `mkId A` at the second of these.
-4. Re-audit every rule that crosses a `Λ` or a morphism bind prefix. At each
+4. Give `det` a TYPING-DERIVATION premise, and drop the `Unique`
+   premises from the rules that carry them.
+
+       det : ∀ {Δ Γ M M₁ M₂ A} → Δ ∣ Γ ⊢ M ⦂ A
+         → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+
+   Five rules carry a `Unique (names …)` premise — `TyPeelR-Λ`,
+   `TyPeelR-⟪⟫`, `IdPush`, `CancelR` and, since 2026-09-18, `Peel` — and
+   none of them NEEDS it. `Unique` is not a side condition on reduction;
+   it is `WfCtx.name-fn`, a field of context well-formedness. The rules
+   carry it only because `det` has no typing derivation to read it from.
+   Given one, each is recoverable: `mw-exterior` of the boundary's
+   `MorphWf` is a `WfCtx` of the exterior, `interior-wf` and
+   `conversion-wf` (`CtxMorph.agda` §3a) transport it to the two induced
+   contexts, `unique-underΛ` crosses a `Λ`, and `dual-unique`
+   (`notes/PeelPremise.agda` §8) reaches the dual's context.
+
+   WHAT TO KEEP. Only the `Unique`s come out. The `SameTy`/`SameConv`
+   premises and the context readings STAY: they are what pins the spelling
+   the contractum mentions, so the contractum is a function of the redex
+   alone. `Δᵈ` in particular is pinned by `Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ`, which
+   is not in the typing derivation and has to stay on the rule.
+
+   WHAT IT COSTS. Determinism becomes a statement about WELL-TYPED terms
+   only. That is the usual form and is arguably the honest one — the rule
+   set was never meant to be deterministic on garbage — but it is a real
+   weakening, so check no consumer wants the untyped version first.
+
+   WHAT IT BUYS. The rules state only what their contracta depend on;
+   `Eval.agda`'s premise gatherers stop running `unique?`, which is
+   quadratic, once per boundary per step; and the `Unique` obligations
+   stop being duplicated at every construction site.
+
+   DO IT BEFORE THE PRESERVATION PORT. `det` currently has exactly one
+   consumer, the thin re-export at `TypeSafety.agda:82`, and that module
+   is beyond the compiling frontier — so the change is nearly free today
+   and gets more expensive with every case the port adds. Whether the
+   preservation cases themselves want the `Unique`s is the one thing to
+   check first; if they do, they can take them the same way, from the
+   `MorphWf` they already have in hand.
+5. Re-audit every rule that crosses a `Λ` or a morphism bind prefix. At each
    crossing, state separately how ordinary indices and representation indices
    move, AND in which of the two contexts each spelling is read — that last
    question is what the 2026-09-18 defect turns on.
-5. Port progress and the remaining modules imported by `All.agda`, deleting
+6. Port progress and the remaining modules imported by `All.agda`, deleting
    obsolete masking/nameability compatibility machinery rather than adding
    shims. Progress is the half `Eval.agda`'s `step` deliberately does not
    claim, and the twelve `Reaches` checks are the evidence for what it will
@@ -378,7 +419,7 @@ need; item 5 is progress and `Examples.agda`.
    `Examples.agda` is the big one, and it is the same transcription problem
    the reduction traces had: port it onto `TypeCheck.agda` rather than
    rewriting its boundary typings by hand.
-6. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
+7. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
    `SystemF/agda/strong/`, then update the design notes with the final
    invariants and proof lessons.
 

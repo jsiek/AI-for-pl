@@ -24,6 +24,7 @@ module strong.notes.RepresentationReductionExamples where
 --   9. ∀-payload over a free var  23 steps   7      : ℕ
 --  10. a function crosses          11 steps   7      : ℕ
 --  11. a function crosses twice    21 steps   7      : ℕ
+--  12. a function through a tower  38 steps   7      : ℕ
 --
 -- WHAT IS AND IS NOT WRITTEN OUT.  The intermediate states are not.
 -- `eval` (strong.Eval) produces them, and it calls the type checker on
@@ -347,3 +348,28 @@ B-eval = reaches refl V-$
 
 B-run : empty ⊢ B₀ -→* $ 7
 B-run = reaches-run B-eval
+
+------------------------------------------------------------------------
+-- 12. §4's tower, with a FUNCTION flowing through it
+--
+-- The hardest case the suite puts to `Peel`.  Because the value that
+-- crosses is a function, every identity the unwinding tower mints is a
+-- `mkId` at a function type — that is, a `_↦_` — so `Peel` fires on the
+-- composite frames `CancelR` and `IdPush` build, rather than only on the
+-- ones born at a `TyBeta`.  `notes/CrossingAudit` §5 shows that those
+-- composites are not structurally guaranteed to be safe; this run is the
+-- evidence that they are safe in practice, which is testing and not
+-- proof.
+------------------------------------------------------------------------
+
+C₀ : Term
+C₀ = ((E₀ ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ]) · (ƛ `ℕ ∙ ` 0)) · $ 7
+
+C₀-⊢ : empty ∣ [] ⊢ C₀ ⦂ `ℕ
+C₀-⊢ = tc
+
+C-eval : Reaches 38 38 C₀-⊢ ($ 7)
+C-eval = reaches refl V-$
+
+C-run : empty ⊢ C₀ -→* $ 7
+C-run = reaches-run C-eval

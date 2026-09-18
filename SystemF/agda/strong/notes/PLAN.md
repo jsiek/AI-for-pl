@@ -57,7 +57,7 @@ The following parts have been ported and typecheck:
 `Eval.agda` is rewritten from scratch rather than ported.
 
 The reduction tests are in `notes/RepresentationReductionExamples.agda`. All
-eleven closed programs reduce to first-order values:
+twelve closed programs reduce to first-order values:
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;
@@ -78,7 +78,11 @@ eleven closed programs reduce to first-order values:
   `7 : ℕ`, and crossing twice, in twenty-one. These are the only runs in
   which `Peel` fires on a composite (`_⋉_`, `rewind`) frame: elsewhere the
   value that crosses is first-order, so the composites only ever carry an
-  identity conversion rather than a `_↦_`.
+  identity conversion rather than a `_↦_`;
+- a function flowing through example 4's TOWER reduces in thirty-eight steps
+  to `7 : ℕ`. This is the hardest case the suite puts to `Peel`: the
+  identities the unwinding tower mints are at a function type, so they are
+  `_↦_`s and `Peel` fires on the composites `CancelR` and `IdPush` build.
 
 All fifteen reduction rules fire somewhere in those seven runs. The last three
 exist for the four that the first four reached once or not at all:
@@ -140,8 +144,10 @@ Testing has found and repaired these errors:
    witness rather than by a failing program. `TyBeta`, `Beta` and
    `TyPeelR-Λ` were audited and are safe STRUCTURALLY — their frames either
    never lock, or the conversion context skips the only lock, so the two
-   maps coincide. `Peel` is neither repaired nor clean; see the immediate
-   plans. Machine-checked in `notes/CrossingAudit.agda`.
+   maps coincide. `Peel` is neither repaired nor clean, and the invariant
+   that would have excused it is FALSE — `_⋉_` breaks it in exactly the
+   shape `IdPush` builds. See the immediate plans. Machine-checked in
+   `notes/CrossingAudit.agda`.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism
@@ -246,19 +252,22 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
    frames, and examples 8 and 9 for the `∀` payloads. All three crossing
    rules now carry the interior spelling, so the preservation cases have the
    premise they need rather than having to re-derive it.
-2. Rule on `Peel`, the one hazard the audit left open
-   (`notes/CrossingAudit.agda` §4). It moves the domain half of its
-   conversion onto the crossed frame's dual, whose conversion context is
-   taken at the interior — a different name map from the one that half was
-   read in. The repair the other three rules took does not transfer: they
+2. Repair `Peel` (`notes/CrossingAudit.agda` §§4–5). It moves the domain
+   half of its conversion onto the crossed frame's dual, whose conversion
+   context is taken at the interior — a different name map from the one that
+   half was read in. The alternative, proving that no reachable frame can
+   make those two disagree, is CLOSED: that invariant is false. `_⋉_` does
+   not preserve the property even when both arguments have it, and the
+   shape that breaks it — an inner frame that unlocks against an outer that
+   locks — is exactly the one `IdPush` builds. So there is no closure
+   property of the frame grammar to lean on, and the twelve runs are the
+   only evidence `Peel` is safe.
+
+   The repair the other three rules took does not transfer either: they
    carried a type or a name, and `SameTy` relates those, whereas `Peel`
-   carries a CONVERSION and there is no judgement yet relating two
-   conversions that name the same representations. Either invent one, or
-   prove the invariant that makes `Peel` safe as it stands: every frame the
-   rules build pairs each `lock` with the `unlock` of its own dual at the
-   same recorded position, so the two contexts cannot reorder. That
-   invariant is currently neither stated nor proved, and preservation for
-   `Peel` will need one or the other.
+   carries a CONVERSION and no judgement yet relates two conversions that
+   name the same representations. Inventing one is the open design
+   question. Preservation for `Peel` needs it.
 3. Prove the two invariants example 4 only witnesses at one point,
    rather than leaving them to the checker: that
    `interior (rewind Θ) Δ ≡ extendReps (binds Θ) Δ` and that

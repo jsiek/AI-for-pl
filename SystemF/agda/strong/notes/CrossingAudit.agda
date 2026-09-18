@@ -6,9 +6,8 @@ module strong.notes.CrossingAudit where
 --     in the same context it is used in?
 --   * Each answer is machine-checked here, on a frame that both locks and
 --     unlocks, since that is what makes the two contexts part.
---   * It records one hazard that is NOT repaired — `Peel` — together with
---     the reason no program reaches it, which is an invariant nobody has
---     proved.
+--   * It records one hazard that is NOT repaired — `Peel` — and DISPROVES
+--     the invariant that would have made it safe (§5).
 --
 -- THE QUESTION.  A morphism induces two name maps: the INTERIOR, which
 -- performs every change, and the CONVERSION context, which skips `lock`s
@@ -26,7 +25,7 @@ module strong.notes.CrossingAudit where
 
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Maybe using (from-just)
+open import Data.Maybe using (Maybe; just; nothing; from-just)
 open import Data.Product using (_,_; proj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -49,6 +48,16 @@ open import strong.TypeCheck
 
 Θ₀ : CtxMorph
 Θ₀ = morph [] (unlock 1 0 ∷ lock 0 0 ∷ [])
+
+nmConv : Ctxᵗ → CtxMorph → Maybe TyCtx
+nmConv Γ Θ with conversion? Γ Θ
+nmConv Γ Θ | just (Γᶜ , _) = just (names Γᶜ)
+nmConv Γ Θ | nothing = nothing
+
+nmDual : Ctxᵗ → CtxMorph → Maybe TyCtx
+nmDual Γ Θ with interior? Γ Θ
+nmDual Γ Θ | just (Γᵢ , _) = nmConv Γᵢ (dualMorph Θ)
+nmDual Γ Θ | nothing = nothing
 
 Δᵢ Δᶜ : Ctxᵗ
 Δᵢ = proj₁ (from-just (interior? Δ₀ Θ₀))
@@ -131,13 +140,55 @@ peel-used = refl
 -- larger step than the other three took, and it should be ruled rather
 -- than assumed.
 --
--- WHY NO PROGRAM REACHES IT — AND WHY THAT IS NOT A PROOF.  Every frame
--- the rules actually build pairs each `lock` with the `unlock` of its own
--- DUAL, at the same recorded position: `dualMorph` inverts change by
--- change, `rewind` is `dual χ ++ χ`, `_⋉_` concatenates two such, and
--- `instantiate` shifts all of them uniformly.  Θ₀ above is not of that
--- shape, and no run in the suite produces one that is not.  That is an
--- INVARIANT — "every reachable frame is balanced" — which would make
--- `Peel` safe, and which nobody has stated or proved.  Until it is, the
--- eleven runs are the only evidence, and `Peel` fires on composite frames
--- in examples 10 and 11 without incident.
+------------------------------------------------------------------------
+-- 5. The invariant that would have made `Peel` safe is FALSE
+------------------------------------------------------------------------
+
+-- The audit first guessed that every frame the rules build is BALANCED —
+-- that each `lock` is undone by the `unlock` of its own dual at the same
+-- recorded position, since `dualMorph` inverts change by change, `rewind`
+-- is `dual χ ++ χ`, and `instantiate` shifts uniformly — and that this
+-- would make `Peel` safe.  It would have.  It is not true: `_⋉_` does not
+-- preserve the property, even when both of its arguments have it.
+Ok : Ctxᵗ → CtxMorph → Set
+Ok Γ Θ = nmDual Γ Θ ≡ nmConv Γ Θ
+
+reps₃ : RepCtx
+reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
+
+Δ₃ : Ctxᵗ
+Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
+
+Lock Unlock : CtxMorph
+Lock = morph [] (lock 0 0 ∷ [])
+Unlock = morph [] (unlock 0 2 ∷ [])
+
+-- each of them on its own is fine
+lock-ok : Ok Δ₃ Lock
+lock-ok = refl
+
+unlock-ok : Ok Δ₃ Unlock
+unlock-ok = refl
+
+-- and so is the composite `CancelR` builds, an inner frame against the
+-- dual it came from
+cancel-shape-ok : Ok Δ₃ (dualMorph Unlock ⋉ Unlock)
+cancel-shape-ok = refl
+
+-- but the composite `IdPush` builds — an inner frame that UNLOCKS against
+-- an outer that LOCKS — loses it
+push-shape-dual : nmDual Δ₃ (rewind Unlock ⋉ Lock) ≡ just (0 ∷ 2 ∷ 1 ∷ [])
+push-shape-dual = refl
+
+push-shape-conv : nmConv Δ₃ (rewind Unlock ⋉ Lock) ≡ just (2 ∷ 0 ∷ 1 ∷ [])
+push-shape-conv = refl
+
+-- SO `Peel` CANNOT BE JUSTIFIED STRUCTURALLY.  There is no closure
+-- property of the frame grammar to lean on: the one constructor that
+-- matters breaks it, in exactly the shape `IdPush` produces
+-- (`rewind Θ₁ ⋉ Θ₂`).  What is left is the narrower claim that no frame
+-- carrying a `_↦_` conversion is ever of that shape, for which there is
+-- no evidence beyond the runs.  Example 12 is the hardest case the suite
+-- could put to it — a function flowing through §4's tower, so that the
+-- identities the tower mints are `_↦_`s and `Peel` fires on composites
+-- `IdPush` built — and it passes.  That is testing, not proof.

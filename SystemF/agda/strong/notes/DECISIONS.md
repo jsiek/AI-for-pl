@@ -2904,3 +2904,36 @@ SCOPE MOVE of 2026-09-06), so it should not be reached for on two data
 points.  If a third defect of this kind appears, it is the thing to
 reconsider — and the reasons masking was dropped should be re-read first,
 because they may not apply to marking the CONVERSION context.
+
+## 2026-09-18 — `MorphWf` stops storing what it can prove
+
+`MorphWf` carried its OUTPUT well-formedness as two explicit obligations,
+`mw-interior-wf : WfCtx Γᵢ` and `mw-conversion-wf : WfCtx Γᶜ`, with a
+standing note that they should become derived lemmas. They are now
+derived, and the fields are gone.
+
+WHAT IT TOOK.  `WfCtx` has three fields and each transports separately
+(`strong.CtxMorph` §3a):
+
+* `name-fn` — a lock deletes and an unlock inserts a name its own premise
+  says is fresh, so both readings preserve `Unique` (`int-unique`,
+  `conv-unique`), and `shiftRVars` is injective past the bind block.
+* `wf-names` — every name a reading leaves live is one the exterior
+  already had, shifted past the bind block, or one an `unlock` brought in,
+  and an `unlock` carries its own `ValidRVar` (`int-valid`, `conv-valid`).
+* `wf-reps` — neither reading touches the representation context, so all
+  that is needed is that the bind block is well formed where it lands:
+  each payload weakened past the block's own tail. That is `wfᴿ-push`, on
+  a general renaming lemma `wfᴿ-rename` for `_⊢ᴿ[_]_`, which is the only
+  genuinely new proof here.
+
+WHY THIS SHAPE.  The two former fields keep their names, as functions of
+a `MorphWf`, so every USE site is unchanged and only the two construction
+sites shrink. `morphWf?` no longer re-runs `wfCtx?` on both derived
+contexts at every boundary; that re-check was measured at about 0.3s of
+the 7.4s example suite, so the gain is the obligation, not the clock.
+
+The `Unique` half of this is what `notes/PeelPremise.agda` §8 consumes: a
+repaired `Peel` would get `Unique` from the morphism witness the redex's
+own typing already stores, rather than carrying it as a premise the way
+`TyPeelR-⟪⟫`, `IdPush` and `CancelR` do.

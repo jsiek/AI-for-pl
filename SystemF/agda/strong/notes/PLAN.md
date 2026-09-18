@@ -176,13 +176,17 @@ Testing has found and repaired these errors:
    included, via `conv-unique`. `Peel` would therefore not have to CARRY
    a `Unique` premise, unlike the three rules repaired before it.
 
-   Still open, and independent of `Peel`: `MorphWf`'s two OUTPUT
-   well-formedness fields are obligations rather than derived lemmas (the
-   standing TODO at `CtxMorph.agda` §3), so `morphWf?` re-checks them with
-   `wfCtx?` on every boundary. `notes/PeelPremise.agda` supplies the
-   `name-fn` third of both (`int-unique`, `conv-unique`); `wf-names` would
-   follow from the same §5 lemmas, and `wf-reps` needs a weakening lemma
-   for representation payloads across `pushRepBinds`.
+   `MorphWf`'s two OUTPUT well-formedness fields are now DERIVED and have
+   been dropped from the record (`CtxMorph.agda` §3a, `interior-wf` and
+   `conversion-wf`; `notes/DECISIONS.md`, 2026-09-18). All three `WfCtx`
+   fields transport: `Unique` because a lock deletes and an unlock inserts
+   a name its own premise says is fresh; `ValidNames` because an unlock
+   carries its own `ValidRVar`; and `WfRepCtx` because neither reading
+   touches the representation context, leaving only a weakening of each
+   bind payload past the block's tail (`wfᴿ-rename`, the one new proof).
+   The former fields survive as functions of the same names, so use sites
+   are unchanged, and `morphWf?` no longer re-runs `wfCtx?` on both
+   derived contexts at every boundary.
 
    (P) is a theorem on `main` — `convCtx-dual` in `proof/PeelDual.agda`,
    for an arbitrary well-formed change list — because there a name map is

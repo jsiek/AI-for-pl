@@ -7,13 +7,16 @@ module strong.CtxMorph where
 -- anti-bind ordinary type variables. Every change carries both the ordinary
 -- de Bruijn position and the representation variable named at that position.
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_; z≤n; s≤s)
+open import Data.Nat.Properties using (+-cancelˡ-≡)
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
-open import Data.Product using (_,_; ∃-syntax)
+open import Data.Product using (_,_; _×_; ∃-syntax; proj₂)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; _≢_; refl; sym; cong)
 
-open import strong.Types using (Ty; `ℕ; ⇑ᵗ)
+open import strong.Types using (Ty; `ℕ; ⇑ᵗ; Renameᵗ; renameᵗ; extᵗ)
 open import strong.Ctx
 
 private
@@ -311,9 +314,217 @@ conversion-functional : ∀ {Θ : CtxMorph}
 conversion-functional (conversion cs) (conversion cs′) =
   cong (_ ∣_) (conv-changes-functional cs cs′)
 
+------------------------------------------------------------------------
+-- 3a. Transporting well-formedness across a morphism
+------------------------------------------------------------------------
+
+-- The two induced contexts are WELL FORMED whenever the exterior is and
+-- the bind block checks. Each of `WfCtx`'s three fields transports
+-- separately, and none of them needs the term or the conversion.
+
+-- `Live α Δ`: α has an ordinary name in Δ.
+Live : RVar → TyCtx → Set
+Live α Δ = ∃[ X ] Δ ∋ˡ X := α
+
+live-cons : Live α Δ → Live α (β ∷ Δ)
+live-cons (X , d) = suc X , there d
+
+ins-live : α ⊢+ Δ at X ⇒ Δ′ → Live α Δ′
+ins-live ins-here = zero , here
+ins-live (ins-there i) with ins-live i
+ins-live (ins-there i) | X , d = suc X , there d
+
+ins-mono : α ⊢+ Δ at X ⇒ Δ′ → Live β Δ → Live β Δ′
+ins-mono ins-here (X , d) = suc X , there d
+ins-mono (ins-there i) (zero , here) = zero , here
+ins-mono (ins-there i) (suc X , there d) with ins-mono i (X , d)
+ins-mono (ins-there i) (suc X , there d) | Y , d′ = suc Y , there d′
+
+ins-inv : α ⊢+ Δ at X ⇒ Δ′ → Live β Δ′ → (β ≡ α) ⊎ Live β Δ
+ins-inv ins-here (zero , here) = inj₁ refl
+ins-inv ins-here (suc X , there d) = inj₂ (X , d)
+ins-inv (ins-there i) (zero , here) = inj₂ (zero , here)
+ins-inv (ins-there i) (suc X , there d) with ins-inv i (X , d)
+ins-inv (ins-there i) (suc X , there d) | inj₁ eq = inj₁ eq
+ins-inv (ins-there i) (suc X , there d) | inj₂ (Y , d′) =
+  inj₂ (suc Y , there d′)
+
+del-live : α ⊢- Δ at X ⇒ Δ′ → Live α Δ
+del-live del-here = zero , here
+del-live (del-there dl) with del-live dl
+del-live (del-there dl) | X , d = suc X , there d
+
+del-mono : α ⊢- Δ at X ⇒ Δ′ → β ≢ α → Live β Δ → Live β Δ′
+del-mono del-here ne (zero , here) = ⊥-elim (ne refl)
+del-mono del-here ne (suc X , there d) = X , d
+del-mono (del-there dl) ne (zero , here) = zero , here
+del-mono (del-there dl) ne (suc X , there d) with del-mono dl ne (X , d)
+del-mono (del-there dl) ne (suc X , there d) | Y , d′ = suc Y , there d′
+
+del-inv : α ⊢- Δ at X ⇒ Δ′ → Live β Δ′ → Live β Δ
+del-inv del-here (X , d) = suc X , there d
+del-inv (del-there dl) (zero , here) = zero , here
+del-inv (del-there dl) (suc X , there d) with del-inv dl (X , d)
+del-inv (del-there dl) (suc X , there d) | Y , d′ = suc Y , there d′
+
+-- (i) `name-fn`. A lock deletes and an unlock inserts a name its own
+-- premise says is fresh, so both readings preserve uniqueness.
+fresh→≢ : Fresh α Δ → Live β Δ → β ≢ α
+fresh→≢ (fresh∷ ne fr) (zero , here) = λ eq → ne (sym eq)
+fresh→≢ (fresh∷ ne fr) (suc X , there d) = fresh→≢ fr (X , d)
+
+del-fresh : α ⊢- Δ at X ⇒ Δ′ → Fresh β Δ → Fresh β Δ′
+del-fresh del-here (fresh∷ ne fr) = fr
+del-fresh (del-there dl) (fresh∷ ne fr) = fresh∷ ne (del-fresh dl fr)
+
+ins-fresh : α ⊢+ Δ at X ⇒ Δ′ → β ≢ α → Fresh β Δ → Fresh β Δ′
+ins-fresh ins-here ne fr = fresh∷ ne fr
+ins-fresh (ins-there i) ne (fresh∷ ne′ fr) = fresh∷ ne′ (ins-fresh i ne fr)
+
+del-unique : α ⊢- Δ at X ⇒ Δ′ → Unique Δ → Unique Δ′
+del-unique del-here (unique∷ fr uq) = uq
+del-unique (del-there dl) (unique∷ fr uq) =
+  unique∷ (del-fresh dl fr) (del-unique dl uq)
+
+ins-unique : α ⊢+ Δ at X ⇒ Δ′ → Fresh α Δ → Unique Δ → Unique Δ′
+ins-unique ins-here fr uq = unique∷ fr uq
+ins-unique (ins-there i) (fresh∷ ne fr) (unique∷ fr′ uq) =
+  unique∷ (ins-fresh i (λ eq → ne (sym eq)) fr′) (ins-unique i fr uq)
+
+int-unique : Unique Δ → Ξ ∣ Δ ⊢χ χ ⇒ Δ′ → Unique Δ′
+int-unique uq changes[] = uq
+int-unique uq (changes∷ cs (step-lock v dl fr)) =
+  del-unique dl (int-unique uq cs)
+int-unique uq (changes∷ cs (step-unlock v fr i)) =
+  ins-unique i fr (int-unique uq cs)
+
+fresh-shiftRVars : (n : ℕ) → Fresh α Δ → Fresh (n + α) (shiftRVars n Δ)
+fresh-shiftRVars n fresh[] = fresh[]
+fresh-shiftRVars n (fresh∷ ne fr) =
+  fresh∷ (λ eq → ne (+-cancelˡ-≡ n _ _ eq)) (fresh-shiftRVars n fr)
+
+unique-shiftRVars : (n : ℕ) → Unique Δ → Unique (shiftRVars n Δ)
+unique-shiftRVars n unique[] = unique[]
+unique-shiftRVars n (unique∷ fr uq) =
+  unique∷ (fresh-shiftRVars n fr) (unique-shiftRVars n uq)
+
+shiftRVars-0 : (Δ : TyCtx) → shiftRVars 0 Δ ≡ Δ
+shiftRVars-0 [] = refl
+shiftRVars-0 (α ∷ Δ) = cong (α ∷_) (shiftRVars-0 Δ)
+
+-- (ii) `wf-names`. Every name a reading leaves live is one the exterior
+-- already had, shifted past the bind block, or one an `unlock` brought
+-- in — and an unlock carries its own `ValidRVar`.
+∋ˡ-push : (Rs : List Ty) → Ξ ∋ˡ α := b
+  → pushRepBinds Rs Ξ ∋ˡ (length Rs + α) := b
+∋ˡ-push [] d = d
+∋ˡ-push (S ∷ Rs) d = there (∋ˡ-push Rs d)
+
+∋ˡ-shiftRVars : (n : ℕ) (Δ : TyCtx) {γ : RVar} → shiftRVars n Δ ∋ˡ X := γ
+  → ∃[ α ] ((Δ ∋ˡ X := α) × (γ ≡ n + α))
+∋ˡ-shiftRVars n (α ∷ Δ) here = α , here , refl
+∋ˡ-shiftRVars n (α ∷ Δ) (there d) with ∋ˡ-shiftRVars n Δ d
+∋ˡ-shiftRVars n (α ∷ Δ) (there d) | β , d′ , eq = β , there d′ , eq
+
+validNames-push : (Rs : List Ty) → ValidNames Ξ Δ
+  → ValidNames (pushRepBinds Rs Ξ) (shiftRVars (length Rs) Δ)
+validNames-push {Δ = Δ} Rs vn d
+  with ∋ˡ-shiftRVars (length Rs) Δ d
+validNames-push {Δ = Δ} Rs vn d | α , d′ , refl with vn d′
+validNames-push {Δ = Δ} Rs vn d | α , d′ , refl | b , dr =
+  b , ∋ˡ-push Rs dr
+
+del-valid : α ⊢- Δ at X ⇒ Δ′ → ValidNames Ξ Δ → ValidNames Ξ Δ′
+del-valid dl vn d = vn (proj₂ (del-inv dl (_ , d)))
+
+ins-valid : α ⊢+ Δ at X ⇒ Δ′ → ValidRVar Ξ α
+  → ValidNames Ξ Δ → ValidNames Ξ Δ′
+ins-valid i v vn d with ins-inv i (_ , d)
+ins-valid i v vn d | inj₁ refl = v
+ins-valid i v vn d | inj₂ lv = vn (proj₂ lv)
+
+int-valid : ValidNames Ξ Δ → Ξ ∣ Δ ⊢χ χ ⇒ Δ′ → ValidNames Ξ Δ′
+int-valid vn changes[] = vn
+int-valid vn (changes∷ cs (step-lock v dl fr)) =
+  del-valid dl (int-valid vn cs)
+int-valid vn (changes∷ cs (step-unlock v fr i)) =
+  ins-valid i v (int-valid vn cs)
+
+-- (iii) `wf-reps`. Both readings leave the representation context alone,
+-- so all that is needed is that the bind block itself is well formed
+-- where it lands — each payload weakened past the block's own tail.
+ref-suc : ∀ {n i} → Ξ ⊢ref[ n ] i → Ξ ⊢ref[ suc n ] suc i
+ref-suc (local-ref lt) = local-ref (s≤s lt)
+ref-suc (free-ref d) = free-ref d
+
+ref-ext : ∀ {Ξ′ n m} {ρ : Renameᵗ}
+  → (∀ {i} → Ξ ⊢ref[ n ] i → Ξ′ ⊢ref[ m ] ρ i)
+  → ∀ {i} → Ξ ⊢ref[ suc n ] i → Ξ′ ⊢ref[ suc m ] extᵗ ρ i
+ref-ext f (local-ref {i = zero} lt) = local-ref (s≤s z≤n)
+ref-ext f (local-ref {i = suc j} (s≤s lt)) = ref-suc (f (local-ref lt))
+ref-ext f (free-ref d) = ref-suc (f (free-ref d))
+
+wfᴿ-rename : ∀ {Ξ′ n m} {ρ : Renameᵗ}
+  → (∀ {i} → Ξ ⊢ref[ n ] i → Ξ′ ⊢ref[ m ] ρ i)
+  → Ξ ⊢ᴿ[ n ] R → Ξ′ ⊢ᴿ[ m ] renameᵗ ρ R
+wfᴿ-rename f (wfᴿ-var r) = wfᴿ-var (f r)
+wfᴿ-rename f wfᴿ-ℕ = wfᴿ-ℕ
+wfᴿ-rename f wfᴿ-𝔹 = wfᴿ-𝔹
+wfᴿ-rename f (wfᴿ-⇒ a c) = wfᴿ-⇒ (wfᴿ-rename f a) (wfᴿ-rename f c)
+wfᴿ-rename f (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-rename (ref-ext f) a)
+
+wfᴿ-⇑ : Ξ ⊢ᴿ R → (b ∷ Ξ) ⊢ᴿ ⇑ᵗ R
+wfᴿ-⇑ {Ξ = Ξ} {b = b} w = wfᴿ-rename step w
+  where
+  step : ∀ {i} → Ξ ⊢ref[ 0 ] i → (b ∷ Ξ) ⊢ref[ 0 ] suc i
+  step (local-ref ())
+  step (free-ref d) = free-ref (there d)
+
+wfᴿ-push : (Rs : List Ty) → Ξ ⊢ᴿ R
+  → pushRepBinds Rs Ξ ⊢ᴿ shiftBy (length Rs) R
+wfᴿ-push [] w = w
+wfᴿ-push (S ∷ Rs) w = wfᴿ-⇑ (wfᴿ-push Rs w)
+
+wfRepCtx-push : Ξ ⊢ᴮ Rs → WfRepCtx Ξ → WfRepCtx (pushRepBinds Rs Ξ)
+wfRepCtx-push binds[] wr = wr
+wfRepCtx-push (binds∷ {Rs = Rs} w bs) wr =
+  wf-bindR (wfᴿ-push Rs w) (wfRepCtx-push bs wr)
+
+-- The conversion reading preserves both, for the same reasons: it skips
+-- locks, and an unlock either inserts a name its own premise says is
+-- fresh (carrying its `ValidRVar`) or does nothing at all.
+conv-unique : Unique Δ → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′ → Unique Δ′
+conv-unique uq conv[] = uq
+conv-unique uq (conv-lock v cs) = conv-unique uq cs
+conv-unique uq (conv-unlock v cs fr i) = ins-unique i fr (conv-unique uq cs)
+conv-unique uq (conv-unlock-live v cs d) = conv-unique uq cs
+
+conv-valid : ValidNames Ξ Δ → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′ → ValidNames Ξ Δ′
+conv-valid vn conv[] = vn
+conv-valid vn (conv-lock v cs) = conv-valid vn cs
+conv-valid vn (conv-unlock v cs fr i) = ins-valid i v (conv-valid vn cs)
+conv-valid vn (conv-unlock-live v cs d) = conv-valid vn cs
+
+-- THE TWO TRANSPORT THEOREMS.  These are what `MorphWf` used to take as
+-- explicit obligations.
+interior-wf : ∀ {Θ : CtxMorph} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ → WfCtx Γᵢ
+interior-wf {Θ = Θ} w bs (interior cs) =
+  wf-ctx (wfRepCtx-push bs (wf-reps w))
+         (int-valid (validNames-push (binds Θ) (wf-names w)) cs)
+         (int-unique (unique-shiftRVars _ (name-fn w)) cs)
+
+conversion-wf : ∀ {Θ : CtxMorph} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ → WfCtx Γᶜ
+conversion-wf {Θ = Θ} w bs (conversion cs) =
+  wf-ctx (wfRepCtx-push bs (wf-reps w))
+         (conv-valid (validNames-push (binds Θ) (wf-names w)) cs)
+         (conv-unique (unique-shiftRVars _ (name-fn w)) cs)
+
 -- A complete morphism witness names both induced contexts. The output
--- well-formedness fields are currently explicit obligations; they will become
--- derived lemmas once context transport is developed.
+-- well-formedness is DERIVED (§3a), not stored: a witness carries only
+-- what cannot be recovered — the exterior's well-formedness, the bind
+-- block, and the two readings.
 record MorphWf (Γ : Ctxᵗ) (Θ : CtxMorph)
                (Γᵢ Γᶜ : Ctxᵗ) : Set where
   constructor mw
@@ -322,9 +533,17 @@ record MorphWf (Γ : Ctxᵗ) (Θ : CtxMorph)
     mw-binds     : reps Γ ⊢ᴮ binds Θ
     mw-interior  : Γ ⊢ⁱ Θ ⇒ Γᵢ
     mw-conversion : Γ ⊢ᶜ Θ ⇒ Γᶜ
-    mw-interior-wf : WfCtx Γᵢ
-    mw-conversion-wf : WfCtx Γᶜ
 open MorphWf public
+
+-- The two former fields, now theorems. They keep the names they had, so
+-- every USE site reads the same; only the construction sites shrink.
+mw-interior-wf : ∀ {Θ} → MorphWf Γ Θ Γᵢ Γᶜ → WfCtx Γᵢ
+mw-interior-wf mwΘ =
+  interior-wf (mw-exterior mwΘ) (mw-binds mwΘ) (mw-interior mwΘ)
+
+mw-conversion-wf : ∀ {Θ} → MorphWf Γ Θ Γᵢ Γᶜ → WfCtx Γᶜ
+mw-conversion-wf mwΘ =
+  conversion-wf (mw-exterior mwΘ) (mw-binds mwΘ) (mw-conversion mwΘ)
 
 ------------------------------------------------------------------------
 -- 4. Concrete boundary shapes
@@ -354,8 +573,7 @@ TyBetaCtx-wf =
 
 TyBeta-mw : MorphWf empty TyBetaMorph TyBetaCtx TyBetaCtx
 TyBeta-mw =
-  mw wf-empty (binds∷ wfᴿ-ℕ binds[])
-     TyBeta-interior TyBeta-conversion TyBetaCtx-wf TyBetaCtx-wf
+  mw wf-empty (binds∷ wfᴿ-ℕ binds[]) TyBeta-interior TyBeta-conversion
 
 -- Crossing an argument under `ΛX` removes only ordinary X. Its abstract
 -- representation variable remains, and the dual restores X exactly.

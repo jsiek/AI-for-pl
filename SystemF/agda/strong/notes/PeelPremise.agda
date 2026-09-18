@@ -204,50 +204,9 @@ respelled = unseal 2 , sameᶜ-unseal (there here) , sameᶜ-unseal here
 -- The claim is about NAME MAPS alone: no conversion, no type, no term.
 -- Write `Live α Δ` for "α has an ordinary name in Δ".  Then the two
 -- conversion contexts `Peel` straddles hold THE SAME representation
--- variables — with `Unique` on both, which the rule already carries, that
--- is a permutation.
-Live : RVar → TyCtx → Set
-Live α Δ = ∃[ X ] Δ ∋ˡ X := α
-
--- Insert and delete, against `Live`.
-ins-live : α ⊢+ Δ at X ⇒ Δ′ → Live α Δ′
-ins-live ins-here = zero , here
-ins-live (ins-there i) with ins-live i
-ins-live (ins-there i) | X , d = suc X , there d
-
-ins-mono : α ⊢+ Δ at X ⇒ Δ′ → Live β Δ → Live β Δ′
-ins-mono ins-here (X , d) = suc X , there d
-ins-mono (ins-there i) (zero , here) = zero , here
-ins-mono (ins-there i) (suc X , there d) with ins-mono i (X , d)
-ins-mono (ins-there i) (suc X , there d) | Y , d′ = suc Y , there d′
-
-ins-inv : α ⊢+ Δ at X ⇒ Δ′ → Live β Δ′ → (β ≡ α) ⊎ Live β Δ
-ins-inv ins-here (zero , here) = inj₁ refl
-ins-inv ins-here (suc X , there d) = inj₂ (X , d)
-ins-inv (ins-there i) (zero , here) = inj₂ (zero , here)
-ins-inv (ins-there i) (suc X , there d) with ins-inv i (X , d)
-ins-inv (ins-there i) (suc X , there d) | inj₁ eq = inj₁ eq
-ins-inv (ins-there i) (suc X , there d) | inj₂ (Y , d′) =
-  inj₂ (suc Y , there d′)
-
-del-live : α ⊢- Δ at X ⇒ Δ′ → Live α Δ
-del-live del-here = zero , here
-del-live (del-there dl) with del-live dl
-del-live (del-there dl) | X , d = suc X , there d
-
-del-mono : α ⊢- Δ at X ⇒ Δ′ → β ≢ α → Live β Δ → Live β Δ′
-del-mono del-here ne (zero , here) = ⊥-elim (ne refl)
-del-mono del-here ne (suc X , there d) = X , d
-del-mono (del-there dl) ne (zero , here) = zero , here
-del-mono (del-there dl) ne (suc X , there d) with del-mono dl ne (X , d)
-del-mono (del-there dl) ne (suc X , there d) | Y , d′ = suc Y , there d′
-
-del-inv : α ⊢- Δ at X ⇒ Δ′ → Live β Δ′ → Live β Δ
-del-inv del-here (X , d) = suc X , there d
-del-inv (del-there dl) (zero , here) = zero , here
-del-inv (del-there dl) (suc X , there d) with del-inv dl (X , d)
-del-inv (del-there dl) (suc X , there d) | Y , d′ = suc Y , there d′
-
+-- variables.  `Live`, and the facts about insert and delete it obeys,
+-- are in strong.CtxMorph §3a — they are shared with the well-formedness
+-- transport there.
 ------------------------------------------------------------------------
 -- 5a. Which names a change list mentions
 ------------------------------------------------------------------------
@@ -457,12 +416,9 @@ Q-changes-conv χ int conv dconv lv | inj₂ iud | inj₂ iu =
 -- 5e. (Q) for a morphism — the form `Peel`'s premises have
 ------------------------------------------------------------------------
 
--- `dualMorph Θ` binds nothing, so its reading starts at the interior
--- unshifted.
-shiftRVars-0 : (Δ : TyCtx) → shiftRVars 0 Δ ≡ Δ
-shiftRVars-0 [] = refl
-shiftRVars-0 (α ∷ Δ) = cong (α ∷_) (shiftRVars-0 Δ)
-
+-- (`shiftRVars-0`, strong.CtxMorph §3a, is what says `dualMorph Θ` binds
+-- nothing, so its reading starts at the interior unshifted.)
+--
 -- (Q).  The two conversion contexts `Peel` straddles NAME THE SAME
 -- REPRESENTATION VARIABLES.  Neither `Unique` nor any premise about the
 -- shape of Θ is needed: it holds for every well-formed morphism, mixed
@@ -493,9 +449,6 @@ Q-inv {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
 
 -- Transporting a spelling needs the name map only through `Live`, so (Q)
 -- is exactly the right interface.  First, `Live` under a `∀`.
-live-cons : Live α η → Live α (β ∷ η)
-live-cons (X , d) = suc X , there d
-
 live-shift : Live α η → Live (suc α) (shiftNames η)
 live-shift (zero , here) = zero , here
 live-shift (suc X , there d) with live-shift (X , d)
@@ -584,11 +537,7 @@ premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ = s′ , (r , rd′ ,
 -- built, and the one thing that can block it is an `unlock X α` whose
 -- position X is past the end of the context it lands in.
 --
--- 7a. Freshness, uniqueness and length.
-
-fresh→≢ : Fresh α Δ → Live β Δ → β ≢ α
-fresh→≢ (fresh∷ ne fr) (zero , here) = λ eq → ne (sym eq)
-fresh→≢ (fresh∷ ne fr) (suc X , there d) = fresh→≢ fr (X , d)
+-- 7a. Length, and the positions an insert admits.
 
 live? : (α : RVar) (Δ : TyCtx) → Live α Δ ⊎ Fresh α Δ
 live? α [] = inj₂ fresh[]
@@ -597,31 +546,6 @@ live? α (β ∷ Δ) | yes refl = inj₁ (zero , here)
 live? α (β ∷ Δ) | no ne with live? α Δ
 live? α (β ∷ Δ) | no ne | inj₁ lv = inj₁ (live-cons lv)
 live? α (β ∷ Δ) | no ne | inj₂ fr = inj₂ (fresh∷ ne fr)
-
-del-fresh : α ⊢- Δ at X ⇒ Δ′ → Fresh β Δ → Fresh β Δ′
-del-fresh del-here (fresh∷ ne fr) = fr
-del-fresh (del-there dl) (fresh∷ ne fr) = fresh∷ ne (del-fresh dl fr)
-
-ins-fresh : α ⊢+ Δ at X ⇒ Δ′ → β ≢ α → Fresh β Δ → Fresh β Δ′
-ins-fresh ins-here ne fr = fresh∷ ne fr
-ins-fresh (ins-there i) ne (fresh∷ ne′ fr) = fresh∷ ne′ (ins-fresh i ne fr)
-
-del-unique : α ⊢- Δ at X ⇒ Δ′ → Unique Δ → Unique Δ′
-del-unique del-here (unique∷ fr uq) = uq
-del-unique (del-there dl) (unique∷ fr uq) =
-  unique∷ (del-fresh dl fr) (del-unique dl uq)
-
-ins-unique : α ⊢+ Δ at X ⇒ Δ′ → Fresh α Δ → Unique Δ → Unique Δ′
-ins-unique ins-here fr uq = unique∷ fr uq
-ins-unique (ins-there i) (fresh∷ ne fr) (unique∷ fr′ uq) =
-  unique∷ (ins-fresh i (λ eq → ne (sym eq)) fr′) (ins-unique i fr uq)
-
-int-unique : Unique Δ → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ → Unique Δᵢ
-int-unique uq changes[] = uq
-int-unique uq (changes∷ cs (step-lock v dl fr)) =
-  del-unique dl (int-unique uq cs)
-int-unique uq (changes∷ cs (step-unlock v fr i)) =
-  ins-unique i fr (int-unique uq cs)
 
 del-length : α ⊢- Δ at X ⇒ Δ′ → length Δ ≡ suc (length Δ′)
 del-length del-here = refl
@@ -739,16 +663,6 @@ dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
 -- 7d. For a morphism, and the whole package
 ------------------------------------------------------------------------
 
-fresh-shiftRVars : (n : ℕ) → Fresh α Δ → Fresh (n + α) (shiftRVars n Δ)
-fresh-shiftRVars n fresh[] = fresh[]
-fresh-shiftRVars n (fresh∷ ne fr) =
-  fresh∷ (λ eq → ne (+-cancelˡ-≡ n _ _ eq)) (fresh-shiftRVars n fr)
-
-unique-shiftRVars : (n : ℕ) → Unique Δ → Unique (shiftRVars n Δ)
-unique-shiftRVars n unique[] = unique[]
-unique-shiftRVars n (unique∷ fr uq) =
-  unique∷ (fresh-shiftRVars n fr) (unique-shiftRVars n uq)
-
 -- THE EXISTENCE THEOREM.  Whatever the morphism, the dual has a
 -- conversion context — no premise on the change list, and nothing about
 -- the term.  Uniqueness of the exterior name map is all it takes.
@@ -790,16 +704,10 @@ peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc = Γᵈ , s′ , dcon
 -- in the typing derivation of the redex, and `Peel` would not have to
 -- carry a `Unique` premise to get it.
 --
--- The conversion reading preserves it too: it skips locks, and an unlock
--- either inserts a name its own premise says is fresh, or does nothing.
-conv-unique : Unique Δ → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ → Unique Δᶜ
-conv-unique uq conv[] = uq
-conv-unique uq (conv-lock v cs) = conv-unique uq cs
-conv-unique uq (conv-unlock v cs fr i) = ins-unique i fr (conv-unique uq cs)
-conv-unique uq (conv-unlock-live v cs d) = conv-unique uq cs
-
--- so the DUAL's context is unique as well, which is the premise the
--- repaired rule would need for determinism — also not carried, derived.
+-- The conversion reading preserves uniqueness (`conv-unique`, now in
+-- strong.CtxMorph §3a, where the well-formedness transport needs it), so
+-- the DUAL's context is unique as well — the premise the repaired rule
+-- would need for determinism, also derived rather than carried.
 dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
   → Unique (names Γ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ

@@ -334,17 +334,8 @@ morphWf? Γ Θ | just wΓ | just bs with interior? Γ Θ
 morphWf? Γ Θ | just wΓ | just bs | nothing = nothing
 morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) with conversion? Γ Θ
 morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | nothing = nothing
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv)
-  with wfCtx? Γᵢ
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv)
-  | nothing = nothing
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv)
-  | just wᵢ with wfCtx? Γᶜ
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv)
-  | just wᵢ | nothing = nothing
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv)
-  | just wᵢ | just wᶜ =
-  just (Γᵢ , Γᶜ , mw wΓ bs int cnv wᵢ wᶜ)
+morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv) =
+  just (Γᵢ , Γᶜ , mw wΓ bs int cnv)
 
 ------------------------------------------------------------------------
 -- 6. Strengthening: the inverse of `shiftRep`

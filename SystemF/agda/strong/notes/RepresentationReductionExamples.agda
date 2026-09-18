@@ -13,10 +13,13 @@ module strong.notes.RepresentationReductionExamples where
 -- Each example is a closed program, its typing derivation, the run it
 -- performs, and what that run reaches:
 --
---   1. polymorphic identity       6 steps   7     : ℕ
---   2. polymorphic Boolean use    9 steps   true  : 𝔹
---   3. polymorphic constant 3    11 steps   3     : ℕ
---   4. later-bound identity      25 steps   true  : 𝔹
+--   1. polymorphic identity        6 steps   7      : ℕ
+--   2. polymorphic Boolean use     9 steps   true   : 𝔹
+--   3. polymorphic constant 3     11 steps   3      : ℕ
+--   4. later-bound identity       25 steps   true   : 𝔹
+--   5. identity at 𝔹               6 steps   false  : 𝔹
+--   6. argument still reducing     7 steps   5      : ℕ
+--   7. two later binders          37 steps   true   : 𝔹
 --
 -- WHAT IS AND IS NOT WRITTEN OUT.  The intermediate states are not.
 -- `eval` (strong.Eval) produces them, and it calls the type checker on
@@ -35,17 +38,25 @@ module strong.notes.RepresentationReductionExamples where
 -- catches strictly more than the endpoint alone and strictly less than an
 -- exact transcript.
 --
--- §4's run is the one that puts the boundary rules under load: its
--- argument is instantiated beneath a LATER `Λ`, so the value that reaches
--- `true` has crossed three boundaries and carries three seals, and
--- unwinding them drives `CancelR` and `IdPush` through frames that are
--- COMPOSITES (`_⋉_`, `rewind`).  Finishing it is what found the defect
--- recorded in notes/ReUnlockWall.agda.
+-- §4 and §7 are the runs that put the boundary rules under load: their
+-- argument is instantiated beneath LATER `Λ`s, so the value that reaches
+-- `true` has crossed several boundaries and carries a seal for each, and
+-- unwinding that tower drives `CancelR` and `IdPush` through frames that
+-- are COMPOSITES (`_⋉_`, `rewind`).  Finishing §4 is what found the
+-- defect recorded in notes/ReUnlockWall.agda.
 --
--- WHAT THIS SUITE DOES NOT REACH.  Four programs, and two of the fifteen
--- reduction rules never fire in any of them: `Drop-false` (no run ends at
--- `false`) and `ξ-·-r` (every argument is already a value when it is
--- applied).  `TyPeelR-⟪⟫` and `IdPush` fire only in §4.
+-- COVERAGE.  All fifteen reduction rules fire somewhere in these seven
+-- runs.  §5, §6 and §7 are here for the four that the first four runs
+-- reached once or not at all: `Drop-false` and `ξ-·-r` fired nowhere, and
+-- `TyPeelR-⟪⟫` and `IdPush` fired only in §4 — `TyPeelR-⟪⟫` exactly once.
+-- Counting across the suite, `TyPeelR-⟪⟫` now fires three times and
+-- `IdPush` twenty-one.
+--
+-- WHAT IS STILL THIN.  Depth.  The deepest seal tower any run builds is
+-- four (§7), and unwinding is quadratic in that depth, so a defect that
+-- needs five boundaries would not show up here.  Nothing exercises a
+-- representation payload with a `∀` in it beyond what §3 and §4 happen to
+-- produce.
 
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
@@ -161,3 +172,73 @@ E-eval = reaches refl V-true
 
 E-run : empty ⊢ E₀ᴮ -→* `true
 E-run = reaches-run E-eval
+
+------------------------------------------------------------------------
+-- 5. (ΛX. λx:X. x) [𝔹] · false
+--
+-- §1 at the other base type.  It is here for `Drop-false`, which no other
+-- run reaches: every other example that ends in a Boolean ends at `true`.
+------------------------------------------------------------------------
+
+F₀ : Term
+F₀ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `false
+
+F₀-⊢ : empty ∣ [] ⊢ F₀ ⦂ `𝔹
+F₀-⊢ = tc
+
+F-eval : Reaches 6 6 F₀-⊢ `false
+F-eval = reaches refl V-false
+
+F-run : empty ⊢ F₀ -→* `false
+F-run = reaches-run F-eval
+
+------------------------------------------------------------------------
+-- 6. (λf:ℕ⇒ℕ. f · 5) · ((ΛX. λx:X. x) [ℕ])
+--
+-- Here for `ξ-·-r`: the function is already a value while the argument
+-- still has to reduce, which is the one congruence no other run enters —
+-- everywhere else an argument is a value by the time it is applied.
+------------------------------------------------------------------------
+
+R₀ : Term
+R₀ = (ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · $ 5))
+       · ((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ])
+
+R₀-⊢ : empty ∣ [] ⊢ R₀ ⦂ `ℕ
+R₀-⊢ = tc
+
+R-eval : Reaches 7 7 R₀-⊢ ($ 5)
+R-eval = reaches refl V-$
+
+R-run : empty ⊢ R₀ -→* $ 5
+R-run = reaches-run R-eval
+
+------------------------------------------------------------------------
+-- 7. ( ΛX. λf:(∀Z. Z⇒Z). ΛY. ΛW. f [W] ) [ℕ] · (ΛZ. λz:Z. z),
+--    at [𝔹] [𝔹] · true
+--
+-- §4 with one more later binder, which is what puts weight on the two
+-- rules §4 barely touches.  The argument now crosses THREE boundaries
+-- before it is instantiated, so the `∀`-value the type application meets
+-- is two boundaries deep and `TyPeelR-⟪⟫` fires twice rather than once;
+-- the seal tower it leaves is four deep, and unwinding it is quadratic,
+-- so `IdPush` fires fifteen times rather than six.
+------------------------------------------------------------------------
+
+GBod : Ty
+GBod = EID ⇒ `∀ (`∀ (` 0 ⇒ ` 0))
+
+Gbody Gfun G₀ : Term
+Gbody = Λ (Λ ((` 0) ·[ ` 0 ⇒ ` 0 , ` 0 ]))
+Gfun = Λ (ƛ EID ∙ Gbody)
+G₀ = (((Gfun ·[ GBod , `ℕ ]) · Earg) ·[ `∀ (` 0 ⇒ ` 0) , `𝔹 ])
+       ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `true
+
+G₀-⊢ : empty ∣ [] ⊢ G₀ ⦂ `𝔹
+G₀-⊢ = tc
+
+G-eval : Reaches 37 37 G₀-⊢ `true
+G-eval = reaches refl V-true
+
+G-run : empty ⊢ G₀ -→* `true
+G-run = reaches-run G-eval

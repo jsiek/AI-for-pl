@@ -57,13 +57,27 @@ The following parts have been ported and typecheck:
 `Eval.agda` is rewritten from scratch rather than ported.
 
 The reduction tests are in `notes/RepresentationReductionExamples.agda`. All
-four closed programs reduce to first-order values:
+seven closed programs reduce to first-order values:
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;
 - the polymorphic constant example reduces in eleven steps to `3 : ℕ`;
 - `( ΛX. λf:(∀Z. Z⇒Z). ΛY. f [Y] ) [ℕ] · (ΛZ. λz:Z. z)`, continued with
-  `[ 𝔹 ] · true`, reduces in twenty-five steps to `true : 𝔹`.
+  `[ 𝔹 ] · true`, reduces in twenty-five steps to `true : 𝔹`;
+- the same identity at `𝔹` reduces in six steps to `false : 𝔹`;
+- a value applied to an argument that still reduces takes seven steps to
+  `5 : ℕ`;
+- the later-bound identity with a SECOND later binder, `ΛY. ΛW. f [W]`,
+  continued with `[𝔹] [𝔹] · true`, reduces in thirty-seven steps to
+  `true : 𝔹`.
+
+All fifteen reduction rules fire somewhere in those seven runs. The last three
+exist for the four that the first four reached once or not at all:
+`Drop-false` and `ξ-·-r` fired nowhere, and `TyPeelR-⟪⟫` and `IdPush` only in
+the fourth — `TyPeelR-⟪⟫` exactly once. Across the suite `TyPeelR-⟪⟫` now
+fires three times and `IdPush` twenty-one. What is still thin is depth: the
+deepest seal tower any run builds is four, and unwinding is quadratic in that
+depth, so a defect needing five boundaries would not show up.
 
 The fourth run is the only one that puts the boundary rules under real load,
 because its argument is instantiated beneath a *later* `Λ`, so the value that

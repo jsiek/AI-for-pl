@@ -22,6 +22,7 @@ open import strong.notes.RepresentationReductionExamples
 open import strong.notes.ReUnlockWall
 open import strong.notes.ForallPayloadWall
 open import strong.notes.CrossingAudit
+open import strong.notes.PeelPremise
 
 -- the main theorems
 open import strong.Preservation

@@ -129,8 +129,10 @@ Testing has found and repaired these errors:
    it to the conversion context's; determinism is `sameTy-src-unique`.
    Found by examples 8 and 9, the first programs that instantiate at a
    polymorphic type. See `notes/DECISIONS.md` (2026-09-18) and
-   `notes/ForallPayloadWall.agda`. `CancelR` has the same crossing
-   unrepaired — no example reaches a configuration where it bites yet.
+   `notes/ForallPayloadWall.agda`. `CancelR` had the same crossing and was
+   repaired the same way, preventively: no example distinguishes its two
+   spellings, so that one is justified by uniformity and by the reorder
+   witness rather than by a failing program.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism
@@ -230,15 +232,18 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 
 ## Immediate plans
 
-1. Repair `CancelR` the same way `TyPeelR-⟪⟫` and `IdPush` were: its
-   contractum mints `mkId A` on both layers from one `A` read at the outer
-   conversion context, and the inner layer is checked at the merged frame's.
-   No example reaches a configuration where those disagree, which is exactly
-   the argument for doing it now rather than waiting.
-2. Port the preservation proof to the relational context-morphism interface.
+1. Port the preservation proof to the relational context-morphism interface.
    The fourth example is the case to check it against for the lock-carrying
-   frames, and the two in `ForallPayloadWall` for the `∀` payloads.
-3. Prove the two invariants the fourth example only witnesses at one point,
+   frames, and examples 8 and 9 for the `∀` payloads. All three crossing
+   rules now carry the interior spelling, so the preservation cases have the
+   premise they need rather than having to re-derive it.
+2. Audit the remaining rules for the same crossing before preservation, not
+   after. `TyBeta`, `TyPeelR-Λ`, `Peel` and `Beta` all mint or move
+   something; each should be checked for a spelling that is read in one of
+   the two contexts and used in the other. Three of the six repairs so far
+   have been exactly that, and two of them were found by a program rather
+   than by looking.
+3. Prove the two invariants example 4 only witnesses at one point,
    rather than leaving them to the checker: that
    `interior (rewind Θ) Δ ≡ extendReps (binds Θ) Δ` and that
    `convCtx (rewind Θ) Δ ≡ convCtx Θ Δ`, the second now holding by

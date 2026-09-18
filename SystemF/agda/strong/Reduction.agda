@@ -256,12 +256,23 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- name, so Θ₂'s LOCKS travel into the inner frame (§2b) — otherwise
   -- `env`'s last premise reads that rep INSIDE Θ₂'s masking.  The lift is
   -- unchanged, because `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`.
-  CancelR : ∀ {Δ Δᶜ V Θ₁ Θ₂ X Y A} → Value V
+  --
+  -- THE RE-BASED IDENTITY (2026-09-18).  `A` is the looked-up type at the
+  -- OUTER conversion context, which is where the outer layer's `mkId A`
+  -- is checked.  The INNER layer is checked at the merged frame's, a
+  -- different name map, so it carries its own spelling `A′` and a
+  -- `SameTy` relating the two — the same crossing `TyPeelR-⟪⟫` and
+  -- `IdPush` carry, repaired here before any example reached a
+  -- configuration where the two disagree.
+  CancelR : ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′} → Value V
+    → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+    → Unique (names Δ⋉ᶜ)
+    → SameTy Δ⋉ᶜ A′ Δᶜ A
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
     → Unique (names Δᶜ)
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A ⟫)
+        -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫)
              ⟪ rewind Θ₂ , mkId A ⟫
 
   -- DROP$ — an identity boundary at a base type, over a numeral (`⊢$`
@@ -418,15 +429,21 @@ det (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
 -- CancelR — the two contracta agree because the lookup is a function.
-det (CancelR v rel unique d) (CancelR v′ rel′ unique′ d′)
-  with conversion-functional rel rel′
-det (CancelR v rel unique d) (CancelR v′ rel′ unique′ d′) | refl
+det (CancelR v r⋉ u⋉ sm rel unique d)
+    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+  with conversion-functional rel rel′ | conversion-functional r⋉ r⋉′
+det (CancelR v r⋉ u⋉ sm rel unique d)
+    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′) | refl | refl
   with ∋:=-det unique d d′
-det (CancelR v rel unique d) (CancelR v′ rel′ unique′ d′)
-    | refl | refl = refl
-det (CancelR v rel unique d) (ξ-⟪⟫ frame st) =
+det (CancelR v r⋉ u⋉ sm rel unique d)
+    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′) | refl | refl | refl
+  with sameTy-src-unique u⋉ sm sm′
+det (CancelR v r⋉ u⋉ sm rel unique d)
+    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+    | refl | refl | refl | refl = refl
+det (CancelR v r⋉ u⋉ sm rel unique d) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
-det (ξ-⟪⟫ frame st) (CancelR v rel unique d) =
+det (ξ-⟪⟫ frame st) (CancelR v r⋉ u⋉ sm rel unique d) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 
 -- Drop$

@@ -182,9 +182,30 @@ pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ⋉ᶜ , r⋉) | just u⋉ | just (`∀ C , sm) = nothing
 
--- `CancelR` asks for three things of the OUTER frame.  The looked-up type
--- is an output: its contractum mentions it only under `mkId`, which the
--- unifier cannot invert.
+-- `CancelR`'s inner layer is checked at the MERGED frame's conversion
+-- context, so its `mkId` needs the looked-up type spelled there.
+MergedPremises : Ctxᵗ → CtxMorph → CtxMorph → Ctxᵗ → Ty → Set
+MergedPremises Δ Θ₁ Θ₂ Δᶜ A =
+  Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
+    ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+      × Unique (names Δ⋉ᶜ) × SameTy Δ⋉ᶜ A′ Δᶜ A)
+
+mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (Δᶜ : Ctxᵗ) (A : Ty)
+  → Maybe (MergedPremises Δ Θ₁ Θ₂ Δᶜ A)
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A
+  with conversion? (extendReps (binds Θ₂) Δ) (Θ₁ ⋉ Θ₂)
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) with unique? (names Δ⋉ᶜ)
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
+  with rebase? (names Δᶜ) (names Δ⋉ᶜ) A
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
+  | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
+  | just (A′ , sm) = just (Δ⋉ᶜ , A′ , r⋉ , u⋉ , sm)
+
+-- The looked-up type is an output: the contracta mention it only under
+-- `mkId`, which the unifier cannot invert.
 CancelPremises : Ctxᵗ → CtxMorph → ℕ → Set
 CancelPremises Δ Θ Y =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ A ∈ Ty ]
@@ -265,9 +286,14 @@ bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) with value? V
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
   with cancelPremises? Δ Θ Y
-bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , u , d) = just (_ , CancelR v rel u d)
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v | nothing = nothing
+bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
+  | just (Δᶜ , A , rel , u , d) with mergedPremises? Δ Θ₁ Θ Δᶜ A
+bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
+  | just (Δᶜ , A , rel , u , d) | just (Δ⋉ᶜ , A′ , r⋉ , u⋉ , sm) =
+  just (_ , CancelR v r⋉ u⋉ sm rel u d)
+bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
+  | just (Δᶜ , A , rel , u , d) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) with value? V
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v

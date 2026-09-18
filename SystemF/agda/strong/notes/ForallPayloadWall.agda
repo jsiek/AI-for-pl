@@ -92,6 +92,13 @@ no-crossing = refl
 --                   pushes `renameᵗ (extᵗ suc) Bᵢ′`
 --   IdPush       … → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X) → …
 --                   mints `unseal X′`
+--   CancelR      … → SameTy Δ⋉ᶜ A′ Δᶜ A → …
+--                   mints `mkId A′` on the inner layer
 --
 -- The seven runs that predated the repair are unchanged by it, because
 -- wherever the two contexts agree the re-based spelling is the old one.
+--
+-- `CancelR` was repaired PREVENTIVELY: it has the same crossing, but no
+-- example distinguishes its two spellings, so it is the one of the three
+-- that no failing program forced.  §1 is the argument for doing it
+-- anyway.

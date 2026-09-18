@@ -2872,12 +2872,25 @@ re-based spelling IS the old one, so their contracta are identical.  That
 is also why the defect stayed hidden — the suite had no program in which a
 lock and an unlock moved a name far enough for the readings to part.
 
-STILL OPEN, SAME SHAPE.  `CancelR`'s contractum mints `mkId A` on BOTH
-layers from a single `A` read at the outer conversion context, and the
-inner layer is checked at the merged frame's.  That is the same crossing,
-unrepaired, and no example reaches a configuration where the two
-disagree.  It should be repaired the same way rather than waiting for a
-program to find it.
+`CancelR`, REPAIRED THE SAME WAY, PREVENTIVELY.  Its contractum minted
+`mkId A` on BOTH layers from a single `A` read at the outer conversion
+context, while the inner layer is checked at the merged frame's — the same
+crossing.  It now carries
+`extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ`, `Unique (names Δ⋉ᶜ)` and
+`SameTy Δ⋉ᶜ A′ Δᶜ A`, and mints `mkId A′` inside.  Three premises, not
+five: the source spelling is the looked-up `A`, which the rule already
+had at Δᶜ, so unlike `IdPush` it needs neither the interior context nor
+the inner frame's conversion context.
+
+BE CLEAR ABOUT THE EVIDENCE.  No example distinguishes `A′` from `A`, so
+this one is not justified by a failing program the way the other two
+were.  It is justified by uniformity and by the fact that the two
+contexts PROVABLY can disagree (the reorder witness,
+notes/ForallPayloadWall §1) — the previous two defects were both found
+only after a program happened to reach the disagreement, and waiting for
+a third is not a strategy.  The nine runs are unchanged by it, and the
+new premise is built at every `CancelR` in the suite, so the machinery is
+exercised even where the value coincides.
 
 THE STRUCTURAL OPTION, NOT TAKEN NOW.  Both this defect and the
 2026-09-17 one come from the same place: the interior and the conversion

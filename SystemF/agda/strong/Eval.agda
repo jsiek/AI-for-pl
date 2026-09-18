@@ -20,9 +20,8 @@ module strong.Eval where
 --
 -- Determinism (`det`, strong.Reduction) is what makes "no soundness
 -- theorem" enough in practice.  Any redex `step` finds is THE redex, so a
--- run it produces is the run, and the hand-written traces in
--- notes/RepresentationReductionExamples are checked against it edge by
--- edge.
+-- run it produces is THE run, and an example has only to say where that
+-- run ends (`Reaches`, §10).
 --
 -- WHERE THE PREMISES COME FROM.  Four rules carry side conditions that are
 -- not read off the redex — the frame's conversion context, name
@@ -388,3 +387,26 @@ eval-⦂ k ⊢M c = trace-⦂ ⊢M (eval k _ ⊢M) c
 broke-unchecked : ∀ {Δ A M M′} (r : Δ ⊢ M -→ M′)
   → Checked {Δ} {A} (broke r) → ⊥
 broke-unchecked r c = c
+
+------------------------------------------------------------------------
+-- 10. What a recorded example asserts
+------------------------------------------------------------------------
+
+-- The multi-step run, with the endpoint NAMED.  `eval-sound` already
+-- gives `Δ ⊢ M -→* traceEnd …`; this is that, with the endpoint read off
+-- an equation the caller discharges by `refl`.
+eval-run : ∀ {Δ A M V} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
+  → traceEnd (eval k M ⊢M) ≡ V → Δ ⊢ M -→* V
+eval-run k ⊢M refl = eval-sound k ⊢M
+
+-- One statement per example: with fuel `k` the evaluator reaches `V` in
+-- exactly `n` steps, `V` is a value, and NO state along the way lost the
+-- type.  The endpoint's own typing derivation is then `eval-⦂ k ⊢M`.
+--
+-- The intermediate states are deliberately not part of this.  They are
+-- what `eval` type-checked on the way — `Checked` is the record of that —
+-- and `evalTerms` hands them back whenever a reader wants to see one.
+Reaches : ∀ {Δ A M} (k n : ℕ) → Δ ∣ [] ⊢ M ⦂ A → Term → Set
+Reaches k n ⊢M V =
+  (traceEnd (eval k _ ⊢M) ≡ V) × (traceLen (eval k _ ⊢M) ≡ n)
+    × Value V × Checked (eval k _ ⊢M)

@@ -56,9 +56,8 @@ The following parts have been ported and typecheck:
 `TypeCheck.agda` is new on this branch and has no main-branch counterpart, and
 `Eval.agda` is rewritten from scratch rather than ported.
 
-The reduction tests in `notes/RepresentationReductionExamples.agda` carry a
-typing derivation for every recorded intermediate state. All four closed
-programs now reduce to first-order values:
+The reduction tests are in `notes/RepresentationReductionExamples.agda`. All
+four closed programs reduce to first-order values:
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;
@@ -98,7 +97,7 @@ Testing has found and repaired these errors:
    no-op, which is what reading the conversion context as the union of the
    names live along the morphism already meant. See
    `notes/DECISIONS.md` (2026-09-17) and the machine-checked
-   `no-old-rewind-conv` at the end of §4 of the reduction examples.
+   `no-old-rewind-conv` in §5 of the reduction examples.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism
@@ -113,10 +112,7 @@ The checker became necessary at the fourth example. `CancelR` and `IdPush`
 replace their frames by `_⋉_`/`rewind` composites, whose change lists are
 concatenations, so unwinding an n-deep tower reaches frames carrying tens of
 changes; a hand-written `Ξ ∣ Δ ⊢χ χ ⇒ Δ′` is one line per change and contains
-nothing the change list does not already determine. Converting the example
-module to the checker removed about 1400 lines of that transcription. The
-reduction steps stay written out, because the rule and the value premises at
-each edge are the content of the test.
+nothing the change list does not already determine.
 
 Three things about it are worth knowing before using it.
 
@@ -161,13 +157,25 @@ broke, so `trace-⦂` hands back the endpoint's typing and Agda discharges the
 side condition by eta at a concrete run.
 
 That is subject reduction *for that run*, checked rather than proved, and it
-is the check that would have caught the `rewind` defect on its own: E₁₁ is the
-first state `check⊢` would have rejected. All four recorded runs are checked
-this way — the states `eval` visits are compared with the ones written out, by
-`refl`, and the endpoint's typing is produced by `eval-⦂`. Determinism is what
-makes that meaningful: any redex `step` finds is *the* redex. The checks are
-not vacuous: a wrong state list, too little fuel, a value that "steps", and a
-`broke` trace are all rejected.
+is the check that would have caught the `rewind` defect on its own: the
+contractum of the run's eleventh step is the first state `check⊢` would have
+rejected.
+
+Because of that, the example module no longer writes out intermediate states
+at all. Each of the four runs is one `Reaches k n ⊢M V`: with fuel `k` the
+evaluator reaches `V` in exactly `n` steps, `V` is a value, and no state along
+the way lost the type. `eval-run` turns the same thing into the headline
+`Δ ⊢ M -→* V`, and `evalTerms` hands the states back whenever a reader wants
+to see one. The module went from 1266 lines to 224 and checks in about 5
+seconds from scratch, so an example now costs four lines and the suite can
+grow.
+
+The trade is real and worth stating: hand-written states were a second,
+independent transcription that `step` could be checked against, and they are
+gone. What replaces them is the per-state type check, which catches strictly
+more than the endpoint alone and strictly less than an exact transcript. The
+checks are not vacuous — a wrong endpoint, a wrong step count, too little
+fuel, a value that "steps", and a `broke` trace are all rejected.
 
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
@@ -193,8 +201,9 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 4. Port progress and the remaining modules imported by `All.agda`, deleting
    obsolete masking/nameability compatibility machinery rather than adding
    shims. Progress is the half `Eval.agda`'s `step` deliberately does not
-   claim, and the 51 edge checks are the evidence for what it will have to
-   prove: `step` finds a redex at every non-value state of all four runs.
+   claim, and the four `Reaches` checks are the evidence for what it will
+   have to prove: `step` finds a redex at every non-value state of all four
+   runs.
    `Examples.agda` is the big one, and it is the same transcription problem
    the reduction traces had: port it onto `TypeCheck.agda` rather than
    rewriting its boundary typings by hand.

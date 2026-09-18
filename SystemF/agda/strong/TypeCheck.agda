@@ -13,8 +13,8 @@ module strong.TypeCheck where
 -- USAGE.  `tc` IS a typing derivation — it reads its four arguments off
 -- the goal, so
 --
---     P₁₀-⊢ : empty ∣ [] ⊢ P₁₀ ⦂ `ℕ
---     P₁₀-⊢ = tc
+--     P₀-⊢ : empty ∣ [] ⊢ P₀ ⦂ `ℕ
+--     P₀-⊢ = tc
 --
 -- is the whole thing.  `tk`, `tu`, `tf` and `tr` do the same for the
 -- conversion, uniqueness, type-formation and representation-reading

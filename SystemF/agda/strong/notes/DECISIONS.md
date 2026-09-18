@@ -3009,3 +3009,48 @@ recurse.
 THE EXECUTABLE CONSEQUENCE. `Eval.agda` no longer imports or runs
 `unique?`: its gatherers decide only evidence the rules still carry. The
 twelve example runs keep the same step counts and endpoints.
+
+## 2026-09-18 — rewind's two context invariants are relational theorems
+
+THE NECESSARY HYPOTHESIS, on a concrete morphism. Let
+
+    Δ₀ = (bindR `ℕ ∷ []) ∣ []
+    Θ₀ = morph [] (lock 0 0 ∷ []) .
+
+The raw conversion relation admits `Δ₀ ⊢ᶜ Θ₀ ⇒ Δ₀`: `conv-lock`
+skips the lock even though representation variable 0 has no ordinary name.
+But `rewind Θ₀` has changes
+`unlock 0 0 ∷ lock 0 0 ∷ []`. Its conversion reading skips the tail lock
+and then inserts name 0, so its result is
+
+    (bindR `ℕ ∷ []) ∣ (0 ∷ []) ,
+
+not `Δ₀`. Thus a theorem from the conversion reading alone is false for
+the relational interface. There is no interior reading of `Θ₀` at `Δ₀`,
+because its lock has nothing to delete.
+
+THE RULING, INSTALLED in `strong.CtxMorph` §3a:
+
+    rewind-interior : ∀ {Θ : CtxMorph}
+      → Γ ⊢ⁱ Θ ⇒ Γᵢ
+      → Γ ⊢ⁱ rewind Θ ⇒ extendReps (binds Θ) Γ
+
+    rewind-conversion : ∀ {Θ : CtxMorph}
+      → Γ ⊢ⁱ Θ ⇒ Γᵢ
+      → Γ ⊢ᶜ Θ ⇒ Γᶜ
+      → Γ ⊢ᶜ rewind Θ ⇒ Γᶜ
+
+The first proof runs the original changes and their exact inverse. The
+second uses the original interior reading to show that every name a dual
+unlock restores is already live in the original conversion context; that
+step is discharged by `conv-unlock-live`. A dual lock is skipped. No
+`WfCtx`, bind-well-formedness or `MorphWf` hypothesis is needed: the pair
+of relational readings is the weaker interface, and every `MorphWf`
+already supplies both.
+
+WHY THESE TWO FORMS. The outer identity layer minted by both `CancelR` and
+`IdPush` uses `rewind Θ₂`, so these lemmas construct exactly the
+interior and conversion readings its `env` needs. The inner layer uses
+`Θ₁ ⋉ Θ₂`; both reduction rules already carry that composite's
+conversion reading explicitly, so item 3 needs no additional composite
+theorem.

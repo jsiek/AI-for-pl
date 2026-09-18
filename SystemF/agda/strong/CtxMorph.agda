@@ -10,11 +10,12 @@ module strong.CtxMorph where
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; z≤n; s≤s)
 open import Data.Nat.Properties using (+-cancelˡ-≡)
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
+open import Data.List.Properties using (unfold-reverse; map-++)
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; cong)
+  using (_≡_; _≢_; refl; sym; cong; subst)
 
 open import strong.Types using (Ty; `ℕ; ⇑ᵗ; Renameᵗ; renameᵗ; extᵗ)
 open import strong.Ctx
@@ -315,7 +316,7 @@ conversion-functional (conversion cs) (conversion cs′) =
   cong (_ ∣_) (conv-changes-functional cs cs′)
 
 ------------------------------------------------------------------------
--- 3a. Transporting well-formedness across a morphism
+-- 3a. Transport across a morphism
 ------------------------------------------------------------------------
 
 -- The two induced contexts are WELL FORMED whenever the exterior is and
@@ -366,6 +367,122 @@ del-inv del-here (X , d) = suc X , there d
 del-inv (del-there dl) (zero , here) = zero , here
 del-inv (del-there dl) (suc X , there d) with del-inv dl (X , d)
 del-inv (del-there dl) (suc X , there d) | Y , d′ = suc Y , there d′
+
+-- Rewinding a morphism.
+
+-- A rewound morphism performs the original changes and then their exact
+-- inverse.  Its interior is therefore just the exterior under the original
+-- bind block.  Its conversion context is the original conversion context:
+-- locks are skipped in both halves, and each inverse unlock is a no-op
+-- because the corresponding locked name is live in that union context.
+-- The interior reading is the evidence for that last fact: a conversion
+-- reading alone permits a `conv-lock` even when its name is absent.
+
+private
+  changes-++ : ∀ {Ξ Δ Δ′ Δ″ χ₁ χ₂}
+    → Ξ ∣ Δ ⊢χ χ₂ ⇒ Δ′
+    → Ξ ∣ Δ′ ⊢χ χ₁ ⇒ Δ″
+    → Ξ ∣ Δ ⊢χ χ₁ ++ χ₂ ⇒ Δ″
+  changes-++ cs₂ changes[] = cs₂
+  changes-++ cs₂ (changes∷ cs₁ st) =
+    changes∷ (changes-++ cs₂ cs₁) st
+
+  conv-changes-++ : ∀ {Ξ Δ Δ′ Δ″ χ₁ χ₂}
+    → Ξ ∣ Δ ⊢χᶜ χ₂ ⇒ Δ′
+    → Ξ ∣ Δ′ ⊢χᶜ χ₁ ⇒ Δ″
+    → Ξ ∣ Δ ⊢χᶜ χ₁ ++ χ₂ ⇒ Δ″
+  conv-changes-++ cs₂ conv[] = cs₂
+  conv-changes-++ cs₂ (conv-lock v cs₁) =
+    conv-lock v (conv-changes-++ cs₂ cs₁)
+  conv-changes-++ cs₂ (conv-unlock v cs₁ fr i) =
+    conv-unlock v (conv-changes-++ cs₂ cs₁) fr i
+  conv-changes-++ cs₂ (conv-unlock-live v cs₁ d) =
+    conv-unlock-live v (conv-changes-++ cs₂ cs₁) d
+
+  dual-∷ : (δ : Change) (χ : List Change)
+    → dual (δ ∷ χ) ≡ dual χ ++ (dualChange δ ∷ [])
+  dual-∷ δ χ rewrite unfold-reverse δ χ =
+    map-++ dualChange (reverse χ) (δ ∷ [])
+
+  dual-changes : ∀ {Ξ Δ Δ′ χ}
+    → Ξ ∣ Δ ⊢χ χ ⇒ Δ′
+    → Ξ ∣ Δ′ ⊢χ dual χ ⇒ Δ
+  dual-changes changes[] = changes[]
+  dual-changes {χ = δ ∷ χ} (changes∷ cs st) =
+    subst (λ χ′ → _ ∣ _ ⊢χ χ′ ⇒ _)
+          (sym (dual-∷ δ χ))
+          (changes-++ (changes∷ changes[] (dual-step st))
+                      (dual-changes cs))
+
+  int⇒conv-live : ∀ {Ξ Δ Δᵢ Δᶜ χ α}
+    → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+    → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ
+    → Live α Δᵢ
+    → Live α Δᶜ
+  int⇒conv-live changes[] conv[] lv = lv
+  int⇒conv-live (changes∷ cs (step-lock v dl fr))
+                (conv-lock v′ csᶜ) lv =
+    int⇒conv-live cs csᶜ (del-inv dl lv)
+  int⇒conv-live (changes∷ cs (step-unlock v fr i))
+                (conv-unlock v′ csᶜ fr′ i′) lv with ins-inv i lv
+  int⇒conv-live (changes∷ cs (step-unlock v fr i))
+                (conv-unlock v′ csᶜ fr′ i′) lv | inj₁ refl =
+    ins-live i′
+  int⇒conv-live (changes∷ cs (step-unlock v fr i))
+                (conv-unlock v′ csᶜ fr′ i′) lv | inj₂ lv′ =
+    ins-mono i′ (int⇒conv-live cs csᶜ lv′)
+  int⇒conv-live (changes∷ cs (step-unlock v fr i))
+                (conv-unlock-live v′ csᶜ d) lv with ins-inv i lv
+  int⇒conv-live (changes∷ cs (step-unlock v fr i))
+                (conv-unlock-live v′ csᶜ d) lv | inj₁ refl = _ , d
+  int⇒conv-live (changes∷ cs (step-unlock v fr i))
+                (conv-unlock-live v′ csᶜ d) lv | inj₂ lv′ =
+    int⇒conv-live cs csᶜ lv′
+
+  conv-dual-id : ∀ {Ξ Δ Δᵢ Δᶜ Δ₀ χ}
+    → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+    → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ
+    → (∀ {α} → Live α Δᶜ → Live α Δ₀)
+    → Ξ ∣ Δ₀ ⊢χᶜ dual χ ⇒ Δ₀
+  conv-dual-id changes[] conv[] keep = conv[]
+  conv-dual-id {χ = lock X α ∷ χ}
+               (changes∷ cs (step-lock v dl fr))
+               (conv-lock v′ csᶜ) keep
+    with keep (int⇒conv-live cs csᶜ (del-live dl))
+  conv-dual-id {χ = lock X α ∷ χ}
+               (changes∷ cs (step-lock v dl fr))
+               (conv-lock v′ csᶜ) keep | Y , d =
+    subst (λ χ′ → _ ∣ _ ⊢χᶜ χ′ ⇒ _)
+          (sym (dual-∷ (lock X α) χ))
+          (conv-changes-++ (conv-unlock-live v conv[] d)
+                           (conv-dual-id cs csᶜ keep))
+  conv-dual-id {χ = unlock X α ∷ χ}
+               (changes∷ cs (step-unlock v fr i))
+               (conv-unlock v′ csᶜ fr′ i′) keep =
+    subst (λ χ′ → _ ∣ _ ⊢χᶜ χ′ ⇒ _)
+          (sym (dual-∷ (unlock X α) χ))
+          (conv-changes-++ (conv-lock v conv[])
+            (conv-dual-id cs csᶜ (λ lv → keep (ins-mono i′ lv))))
+  conv-dual-id {χ = unlock X α ∷ χ}
+               (changes∷ cs (step-unlock v fr i))
+               (conv-unlock-live v′ csᶜ d) keep =
+    subst (λ χ′ → _ ∣ _ ⊢χᶜ χ′ ⇒ _)
+          (sym (dual-∷ (unlock X α) χ))
+          (conv-changes-++ (conv-lock v conv[])
+                           (conv-dual-id cs csᶜ keep))
+
+rewind-interior : ∀ {Θ : CtxMorph}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ⁱ rewind Θ ⇒ extendReps (binds Θ) Γ
+rewind-interior (interior cs) =
+  interior (changes-++ cs (dual-changes cs))
+
+rewind-conversion : ∀ {Θ : CtxMorph}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Γ ⊢ᶜ rewind Θ ⇒ Γᶜ
+rewind-conversion (interior cs) (conversion csᶜ) =
+  conversion (conv-changes-++ csᶜ (conv-dual-id cs csᶜ (λ lv → lv)))
 
 -- (i) `name-fn`. A lock deletes and an unlock inserts a name its own
 -- premise says is fresh, so both readings preserve uniqueness.

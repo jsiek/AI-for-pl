@@ -326,10 +326,10 @@ The twelve-example suite alone is about 7.4s cold:
 agda --safe -v0 notes/RepresentationReductionExamples.agda
 ```
 
-Where the open threads are: items 1, 2 and 3 are the preservation port —
-all four crossing rules now carry the spelling their preservation cases
-need; item 4's rule-set cleanup is done; item 6 is progress and
-`Examples.agda`.
+Where the open threads are: items 1 and 2 are the preservation port — all
+four crossing rules now carry the spelling their preservation cases need,
+and item 3's rewind transport is done; item 4's rule-set cleanup is done;
+item 6 is progress and `Examples.agda`.
 
 ## Immediate plans
 
@@ -360,12 +360,30 @@ need; item 4's rule-set cleanup is done; item 6 is progress and
    What is left for this item is the PRESERVATION case, which now has the
    premise it needs rather than having to re-derive it.
 
-3. Prove the two invariants example 4 only witnesses at one point,
-   rather than leaving them to the checker: that
-   `interior (rewind Θ) Δ ≡ extendReps (binds Θ) Δ` and that
-   `convCtx (rewind Θ) Δ ≡ convCtx Θ Δ`, the second now holding by
-   `conv-unlock-live`. `CancelR`'s and `IdPush`'s preservation cases both
-   read the minted `mkId A` at the second of these.
+3. **DONE (2026-09-18).** The two rewind invariants are now relational
+   transport lemmas in `CtxMorph.agda` §3a:
+
+       rewind-interior : ∀ {Θ : CtxMorph}
+         → Γ ⊢ⁱ Θ ⇒ Γᵢ
+         → Γ ⊢ⁱ rewind Θ ⇒ extendReps (binds Θ) Γ
+
+       rewind-conversion : ∀ {Θ : CtxMorph}
+         → Γ ⊢ⁱ Θ ⇒ Γᵢ
+         → Γ ⊢ᶜ Θ ⇒ Γᶜ
+         → Γ ⊢ᶜ rewind Θ ⇒ Γᶜ
+
+   Both take the original interior reading; the second also takes the
+   original conversion reading. No `WfCtx`, bind-well-formedness or
+   `MorphWf` hypothesis is needed. The interior reading is genuinely
+   necessary for the second lemma because the raw conversion relation
+   permits a `conv-lock` whose name is absent; it proves that every inverse
+   unlock corresponds to a name the original change run could actually
+   lock. `conv-unlock-live` then makes that inverse unlock a no-op.
+
+   These are exactly the facts the outer `rewind Θ₂` frame in both
+   `CancelR` and `IdPush` consumes. Their inner `Θ₁ ⋉ Θ₂` frame already
+   comes with the required conversion reading as an explicit rule premise,
+   so no extra composite form is needed.
 4. **DONE (2026-09-18).** Give `det` a TYPING-DERIVATION premise, and drop
    the `Unique` premises from the rules that carried them.
 

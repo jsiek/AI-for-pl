@@ -82,12 +82,32 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ
 
   -- PEEL — the crossing.  The application is pushed in one layer and the
-  -- argument acquires the DUAL.  `s`/`t` are literally ↦'s components: the
-  -- crossing argument's conversion is RE-BASED by the repointing.
-  Peel : ∀ {Δ V W Θ s t} → Value V → Value W
+  -- argument acquires the DUAL.  `s`/`t` are ↦'s components: the crossing
+  -- argument's conversion is RE-BASED by the repointing.
+  --
+  -- IT CARRIES THE DUAL'S SPELLING (2026-09-18, the crossing audit).  `s`
+  -- is read at Θ's conversion context and is used at the DUAL's, which is
+  -- taken at the interior — a different name map, and not merely a
+  -- renumbering of the same one: the invariant that would have made the
+  -- two agree, `conv(dual Θ, int(Θ,Δ)) ≡ conv(Θ,Δ)`, is FALSE here, and
+  -- `_⋉_` is what breaks it (notes/CrossingAudit §§4–6).  So the rule
+  -- NAMES the dual's spelling `s′` and carries a `SameConv` relating it to
+  -- `s`, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry `SameTy`.
+  --
+  -- The premise never blocks a reduction.  The two contexts name the same
+  -- representation variables — that is (Q), notes/PeelPremise §5 — and a
+  -- well-typed conversion always has a reading to transport, so a witness
+  -- always exists (`peel-premises-env`, §8).  `t` needs no premise: it
+  -- stays on the same boundary, at Δᶜ, where it was read.
+  Peel : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
+    → Δ ⊢ᶜ Θ ⇒ Δᶜ
+    → Δ ⊢ⁱ Θ ⇒ Δᵢ
+    → Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ
+    → Unique (names Δᵈ)
+    → SameConv Δᵈ s′ Δᶜ s
     → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
         -→ (V · (renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W
-                    ⟪ dualMorph Θ , s ⟫)) ⟪ Θ , t ⟫
+                    ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫
 
   -- TYPEEL — the ∀-conversion analogue; the new binder is prepended and the
   -- elimination instantiates at the new binder's bind name.  IT IS TWO
@@ -383,11 +403,23 @@ det (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step V-ƛ st)
 det (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
 
 -- Peel
-det (Peel v w)   (Peel v′ w′) = refl
-det (Peel v w)   (ξ-·-l st)   = ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det (Peel v w)   (ξ-·-r u st) = ⊥-elim (value-¬step w st)
-det (ξ-·-l st)   (Peel v w)   = ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det (ξ-·-r u st) (Peel v w)   = ⊥-elim (value-¬step w st)
+-- the dual's spelling is pinned by `sameConv-src-unique`, once the three
+-- readings have been identified.
+det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+  with conversion-functional rc rc′ | interior-functional ri ri′
+det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+  | refl | refl with conversion-functional rd rd′
+det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+  | refl | refl | refl
+  with sameConv-src-unique u sc sc′
+det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+  | refl | refl | refl | refl = refl
+det (Peel v w rc ri rd u sc) (ξ-·-l st) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
+det (Peel v w rc ri rd u sc) (ξ-·-r u′ st) = ⊥-elim (value-¬step w st)
+det (ξ-·-l st)   (Peel v w rc ri rd u sc) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
+det (ξ-·-r u′ st) (Peel v w rc ri rd u sc) = ⊥-elim (value-¬step w st)
 
 -- TyPeelR — the two clauses' patterns are DISJOINT (a `Λ` is not a
 -- boundary), so no cross case arises.

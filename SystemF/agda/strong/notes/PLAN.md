@@ -141,7 +141,12 @@ Testing has found and repaired these errors:
    `notes/ForallPayloadWall.agda`. `CancelR` had the same crossing and was
    repaired the same way, preventively: no example distinguishes its two
    spellings, so that one is justified by uniformity and by the reorder
-   witness rather than by a failing program. `TyBeta`, `Beta` and
+   witness rather than by a failing program. `Peel` was the fourth and
+   last crossing, repaired on 2026-09-18 with `SameConv` — the same idea
+   one universe up, since `Peel` carries a CONVERSION rather than a type.
+   That one is justified neither by a failing program nor by uniformity
+   alone: the invariant that would have excused it, `conv(dual Θ,
+   int(Θ,Δ)) ≡ conv(Θ,Δ)`, is DISPROVED. `TyBeta`, `Beta` and
    `TyPeelR-Λ` were audited and are safe STRUCTURALLY — their frames either
    never lock, or the conversion context skips the only lock, so the two
    maps coincide. `Peel` is neither repaired nor clean, and the invariant
@@ -321,9 +326,9 @@ The twelve-example suite alone is about 7.4s cold:
 agda --safe -v0 notes/RepresentationReductionExamples.agda
 ```
 
-Where the open threads are: item 2 below is ready to install and is the
-one with the most leverage; items 1 and 3 are the preservation port; item 5
-is progress and `Examples.agda`.
+Where the open threads are: items 1, 2 and 3 are the preservation port —
+all four crossing rules now carry the spelling their preservation cases
+need; item 5 is progress and `Examples.agda`.
 
 ## Immediate plans
 
@@ -332,49 +337,27 @@ is progress and `Examples.agda`.
    frames, and examples 8 and 9 for the `∀` payloads. All three crossing
    rules now carry the interior spelling, so the preservation cases have the
    premise they need rather than having to re-derive it.
-2. INSTALL the `Peel` repair. The design work is DONE and machine-checked
-   in `notes/PeelPremise.agda`; nothing of it is installed, and
-   `strong.Reduction` is unchanged. What is there, in order:
+2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
+   `Peel` names the dual's spelling `s′` and carries
+   `SameConv Δᵈ s′ Δᶜ s`, with the morphism's two readings, the dual's
+   conversion context and `Unique (names Δᵈ)` beside it. `SameConv` lives
+   in `Conversion.agda` §2b, `det` closes on `sameConv-src-unique`,
+   `respell?` decides it in `TypeCheck.agda`, `crossPremises?` builds the
+   premises in `Eval.agda`, and all twelve runs pass unchanged — same step
+   counts, same endpoints — at about the same cost as before.
 
-   * `_⊩_~_` and `SameConv` (§1) — two ordinary spellings of one
-     representation-universe conversion, defined exactly as `_⊢_~_` is for
-     types, one universe up. This is the judgement relating two
-     conversions that §2 of this list used to call an open design
-     question; `sameConv-src-unique` (§2) keeps the rule a function.
-   * The rule the premise produces, written out in §4.
-   * (Q), PROVED (§5): the two conversion contexts `Peel` straddles NAME
-     THE SAME representation variables. (P) — that they are the same
-     LIST — is false; (Q) says only the same SET, and the premise absorbs
-     the difference. (Q) needs no restriction on the change list and no
-     `Unique`, so it holds exactly where (P) fails.
-   * Satisfiability (§6): a well-typed conversion always has a
-     representation-universe reading, and a reading transports to any
-     context that names everything this one names — which is (Q). So the
-     premise always has a witness and the repair costs no reduction.
-   * Existence (§7): the dual's conversion context, which typing the redex
-     does NOT supply, always exists. The one obligation is positional —
-     the dual re-inserts at the position the lock recorded, and that
-     position must still be in range — and it is discharged by a
-     pigeonhole argument, the only place uniqueness is used.
-   * `peel-premises-env` (§8): given the `MorphWf` that `env` already
-     stores at the crossed boundary, every premise the repaired rule would
-     carry has a witness, the `Unique` one included. So `Peel` would not
-     have to CARRY a `Unique` premise, unlike the three rules repaired
-     before it.
+   The argument that it costs no reduction is in `notes/PeelPremise.agda`
+   and is complete: (Q) — the two contexts name the same representation
+   variables — is proved for every morphism (§5); a well-typed conversion
+   always has a reading to transport (§6); the dual's conversion context
+   always exists, the position obligation being discharged by a pigeonhole
+   argument (§7); and `peel-premises-env` assembles all of it from the
+   `MorphWf` that `env` already stores (§8). The rule still CARRIES
+   `Unique (names Δᵈ)`, because `det` has no typing derivation to read it
+   from — §8 shows only that a well-typed redex always supplies it.
 
-   What remains is the installation itself: add the premises to `Peel` in
-   `Reduction.agda`, extend `det`, teach `Eval.agda`'s `peelPremises?` to
-   build the `SameConv` (a `respell?` in the shape of `rebase?`), and
-   re-run the twelve examples. Then preservation for `Peel` has the
-   premise it needs.
-
-   ONE CLAIM TO NOT REPEAT: earlier drafts of this file and of
-   `CrossingAudit.agda` said the frame that breaks (P) is "exactly the one
-   `IdPush` builds". That is stronger than was ever checked. It has the
-   FORM `Θ₁ ⋉ Θ₂` that `IdPush` builds, but no run is known to assemble
-   one from those ingredients, and no REACHABLE frame violating (P) has
-   been exhibited. What the disproof rules out is the proof strategy, not
-   the rule.
+   What is left for this item is the PRESERVATION case, which now has the
+   premise it needs rather than having to re-derive it.
 
 3. Prove the two invariants example 4 only witnesses at one point,
    rather than leaving them to the checker: that

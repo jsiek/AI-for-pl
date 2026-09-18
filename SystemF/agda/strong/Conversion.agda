@@ -39,8 +39,10 @@ open import strong.Ctx
 private
   variable
     Δ Δ′ : Ctxᵗ
-    A A′ B B′ : Ty
+    η η′ : TyCtx
+    A A′ B B′ R : Ty
     X Y : ℕ
+    α : RVar
     ρ : Renameᵗ
 
 ------------------------------------------------------------------------
@@ -59,6 +61,10 @@ data Conv : Set where
   `∀     : Conv → Conv        -- ∀ s                              INERT
 
 infixr 7 _↦_
+
+private
+  variable
+    s t s′ r u : Conv
 
 renᶜ : Renameᵗ → Conv → Conv
 renᶜ ρ (id A)      = id (renameᵗ ρ A)
@@ -106,6 +112,67 @@ data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
   conv-all : ∀ {s} → underΛ Δ ⊢ s ∶ A ⇝ B
       --------------------------------------
     → Δ ⊢ `∀ s ∶ `∀ A ⇝ `∀ B
+
+------------------------------------------------------------------------
+-- 2b.  Two spellings of one conversion
+------------------------------------------------------------------------
+
+-- `SameTy` (strong.Ctx §5) relates two ordinary spellings of ONE
+-- representation-universe type.  This is the same thing for a CONVERSION,
+-- and it exists for the same reason: a rule that carries a conversion
+-- from one name map to another cannot reuse the spelling, because the two
+-- maps can reorder relative to each other.
+--
+-- A conversion mentions ordinary names at exactly three leaves — `seal`,
+-- `unseal`, and the type under `id` — so the judgement is `_⊢_~_` one
+-- universe up, structural everywhere else.
+infix 4 _⊩_~_
+data _⊩_~_ (η : TyCtx) : Conv → Conv → Set where
+  sameᶜ-id     : η ⊢ A ~ R → η ⊩ id A ~ id R
+  sameᶜ-seal   : η ∋ˡ X := α → η ⊩ seal X ~ seal α
+  sameᶜ-unseal : η ∋ˡ X := α → η ⊩ unseal X ~ unseal α
+  sameᶜ-fun    : η ⊩ s ~ r → η ⊩ t ~ u → η ⊩ s ↦ t ~ r ↦ u
+  sameᶜ-all    : (zero ∷ shiftNames η) ⊩ s ~ r → η ⊩ `∀ s ~ `∀ r
+
+SameConv : Ctxᵗ → Conv → Ctxᵗ → Conv → Set
+SameConv Γ s Γ′ s′ = ∃[ r ] ((names Γ ⊩ s ~ r) × (names Γ′ ⊩ s′ ~ r))
+
+-- It determines the spelling, so a rule carrying it stays a function.
+sameᶜ-rep-unique : η ⊩ s ~ r → η ⊩ s ~ u → r ≡ u
+sameᶜ-rep-unique (sameᶜ-id a) (sameᶜ-id a′) =
+  cong id (same-rep-unique a a′)
+sameᶜ-rep-unique (sameᶜ-seal d) (sameᶜ-seal d′) =
+  cong seal (∋ˡ-det d d′)
+sameᶜ-rep-unique (sameᶜ-unseal d) (sameᶜ-unseal d′) =
+  cong unseal (∋ˡ-det d d′)
+sameᶜ-rep-unique (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
+  cong₂ _↦_ (sameᶜ-rep-unique a a′) (sameᶜ-rep-unique b b′)
+sameᶜ-rep-unique (sameᶜ-all a) (sameᶜ-all a′) =
+  cong `∀ (sameᶜ-rep-unique a a′)
+
+sameᶜ-target-unique : Unique η → η ⊩ s ~ r → η ⊩ s′ ~ r → s ≡ s′
+sameᶜ-target-unique uq (sameᶜ-id a) (sameᶜ-id a′) =
+  cong id (same-target-unique uq a a′)
+sameᶜ-target-unique uq (sameᶜ-seal d) (sameᶜ-seal d′) =
+  cong seal (unique-lookup uq d d′)
+sameᶜ-target-unique uq (sameᶜ-unseal d) (sameᶜ-unseal d′) =
+  cong unseal (unique-lookup uq d d′)
+sameᶜ-target-unique uq (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
+  cong₂ _↦_ (sameᶜ-target-unique uq a a′)
+            (sameᶜ-target-unique uq b b′)
+sameᶜ-target-unique uq (sameᶜ-all a) (sameᶜ-all a′) =
+  cong `∀ (sameᶜ-target-unique
+             (unique∷ fresh-zero-shift (unique-shift uq)) a a′)
+
+-- `Peel`'s determinism case, in the shape `sameTy-src-unique` has.
+sameConv-src-unique : Unique η
+  → ∃[ r ] ((η ⊩ s ~ r) × (η′ ⊩ t ~ r))
+  → ∃[ r ] ((η ⊩ s′ ~ r) × (η′ ⊩ t ~ r))
+  → s ≡ s′
+sameConv-src-unique uq (r , p , q) (r′ , p′ , q′)
+  with sameᶜ-rep-unique q q′
+sameConv-src-unique uq (r , p , q) (r′ , p′ , q′) | refl =
+  sameᶜ-target-unique uq p p′
 
 ------------------------------------------------------------------------
 -- 3.  The identity conversion at an arbitrary type

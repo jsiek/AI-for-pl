@@ -1,12 +1,13 @@
 module strong.notes.PeelPremise where
 
--- PROTOTYPE, not installed.  What the premise `Peel` would need looks
--- like (§§1–2), that it is satisfiable on the frame where (P) fails
--- (§3), the rule it would produce (§4), the PROOF of the invariant that
+-- THE ARGUMENT FOR THE `Peel` PREMISE, which is now INSTALLED
+-- (strong.Reduction).  The judgement itself has moved to
+-- strong.Conversion §2b; what remains here is why carrying it is safe:
+-- that it is satisfiable on the frame where (P) fails
+-- (§3), the rule it produces (§4), the PROOF of the invariant that
 -- replaces (P) (§5), the consequence that the premise never blocks a
 -- reduction (§6), and the existence of the context that consequence is
--- stated over (§7).  Nothing here is imported by the rule set;
--- `strong.Reduction` is unchanged.
+-- stated over (§7).
 --
 -- NOTHING IS ASSUMED.  §§5–7 are stated over `Unique (names Γ)`, which
 -- is not an extra hypothesis but `WfCtx.name-fn` — and `env` carries a
@@ -55,61 +56,19 @@ private
     β : RVar
 
 ------------------------------------------------------------------------
--- 1. Reading a conversion in the representation universe
+-- 1–2. The judgement, now INSTALLED
 ------------------------------------------------------------------------
 
--- Exactly `_⊢_~_`, one universe up: the ordinary NAMES a conversion
--- carries are translated through the name map, and everything else is
--- structural.  `id` carries a type, so it defers to `_⊢_~_`.
-infix 4 _⊩_~_
-data _⊩_~_ (η : TyCtx) : Conv → Conv → Set where
-  sameᶜ-id     : η ⊢ A ~ R → η ⊩ id A ~ id R
-  sameᶜ-seal   : η ∋ˡ X := α → η ⊩ seal X ~ seal α
-  sameᶜ-unseal : η ∋ˡ X := α → η ⊩ unseal X ~ unseal α
-  sameᶜ-fun    : η ⊩ s ~ r → η ⊩ t ~ u → η ⊩ s ↦ t ~ r ↦ u
-  sameᶜ-all    : (zero ∷ shiftNames η) ⊩ s ~ r → η ⊩ `∀ s ~ `∀ r
-
--- Two ordinary spellings of ONE representation-universe conversion.
-SameConv : Ctxᵗ → Conv → Ctxᵗ → Conv → Set
-SameConv Γ s Γ′ s′ = ∃[ r ] ((names Γ ⊩ s ~ r) × (names Γ′ ⊩ s′ ~ r))
-
-------------------------------------------------------------------------
--- 2. It determines the spelling, so a rule carrying it stays a function
-------------------------------------------------------------------------
-
-sameᶜ-rep-unique : η ⊩ s ~ r → η ⊩ s ~ u → r ≡ u
-sameᶜ-rep-unique (sameᶜ-id a) (sameᶜ-id a′) =
-  cong id (same-rep-unique a a′)
-sameᶜ-rep-unique (sameᶜ-seal d) (sameᶜ-seal d′) =
-  cong seal (∋ˡ-det d d′)
-sameᶜ-rep-unique (sameᶜ-unseal d) (sameᶜ-unseal d′) =
-  cong unseal (∋ˡ-det d d′)
-sameᶜ-rep-unique (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
-  cong₂ _↦_ (sameᶜ-rep-unique a a′) (sameᶜ-rep-unique b b′)
-sameᶜ-rep-unique (sameᶜ-all a) (sameᶜ-all a′) =
-  cong `∀ (sameᶜ-rep-unique a a′)
-
-sameᶜ-target-unique : Unique η → η ⊩ s ~ r → η ⊩ s′ ~ r → s ≡ s′
-sameᶜ-target-unique uq (sameᶜ-id a) (sameᶜ-id a′) =
-  cong id (same-target-unique uq a a′)
-sameᶜ-target-unique uq (sameᶜ-seal d) (sameᶜ-seal d′) =
-  cong seal (unique-lookup uq d d′)
-sameᶜ-target-unique uq (sameᶜ-unseal d) (sameᶜ-unseal d′) =
-  cong unseal (unique-lookup uq d d′)
-sameᶜ-target-unique uq (sameᶜ-fun a b) (sameᶜ-fun a′ b′) =
-  cong₂ _↦_ (sameᶜ-target-unique uq a a′)
-            (sameᶜ-target-unique uq b b′)
-sameᶜ-target-unique uq (sameᶜ-all a) (sameᶜ-all a′) =
-  cong `∀ (sameᶜ-target-unique
-             (unique∷ fresh-zero-shift (unique-shift uq)) a a′)
-
-sameConv-src-unique : Unique η
-  → ∃[ r ] ((η ⊩ s ~ r) × (η′ ⊩ t ~ r))
-  → ∃[ r ] ((η ⊩ s′ ~ r) × (η′ ⊩ t ~ r))
-  → s ≡ s′
-sameConv-src-unique uq (r , p , q) (r′ , p′ , q′)
-  with sameᶜ-rep-unique q q′
-... | refl = sameᶜ-target-unique uq p p′
+-- `_⊩_~_` and `SameConv` were prototyped here and have moved to
+-- strong.Conversion §2b, next to the conversion typing they mirror,
+-- together with `sameᶜ-rep-unique`, `sameᶜ-target-unique` and
+-- `sameConv-src-unique` — the last being the shape `det` consumes.
+--
+-- What is left in this file is the ARGUMENT that installing them costs
+-- nothing: §3 the frame where (P) fails, §5 the invariant (Q) that
+-- replaces it, §6 that the premise is always satisfiable, §7 that the
+-- context it is stated over always exists, §8 all of it from the redex's
+-- own typing derivation.
 
 ------------------------------------------------------------------------
 -- 3. It is SATISFIABLE exactly where (P) fails
@@ -158,12 +117,12 @@ respelled : SameConv Γᵈ (unseal 1) Γᶜ (unseal 0)
 respelled = unseal 2 , sameᶜ-unseal (there here) , sameᶜ-unseal here
 
 ------------------------------------------------------------------------
--- 4. The rule it would produce, and the invariant it rests on
+-- 4. The rule, as installed, and the invariant it rests on
 ------------------------------------------------------------------------
 
--- `Peel` would read, in the shape the other three repairs already have —
--- name the target spelling, carry a `Same…` relating it to the source,
--- and a `Unique` to keep the rule a function:
+-- `Peel` now reads as follows in strong.Reduction, in the shape the other
+-- three repairs already have — name the target spelling, carry a `Same…`
+-- relating it to the source, and a `Unique` to keep the rule a function:
 --
 --   Peel : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
 --     → Δ ⊢ᶜ Θ ⇒ Δᶜ                     -- where `s` is read
@@ -177,7 +136,8 @@ respelled = unseal 2 , sameᶜ-unseal (there here) , sameᶜ-unseal here
 --
 -- `det` closes with `conversion-functional`, `interior-functional` and
 -- `sameConv-src-unique`, as the other three do.  `t` needs no premise:
--- it stays on the same boundary, at Δᶜ, where it was read.
+-- it stays on the same boundary, at Δᶜ, where it was read.  The premises
+-- are built by `crossPremises?` in strong.Eval, on `respell?`.
 --
 -- WHAT REPLACES (P) is §3 in general, not on one frame:
 --
@@ -701,13 +661,18 @@ peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc = Γᵈ , s′ , dcon
 -- `Unique (names Γ)` is not an extra assumption.  It is `WfCtx.name-fn`
 -- (strong.Ctx §6), and `env` carries a `MorphWf` whose `mw-exterior` is a
 -- `WfCtx` of the boundary's exterior — so everything §7 needs is already
--- in the typing derivation of the redex, and `Peel` would not have to
--- carry a `Unique` premise to get it.
+-- in the typing derivation of the redex.
+--
+-- TO BE EXACT about what that does and does not mean: the RULE still
+-- carries `Unique (names Δᵈ)`, because `det` has no typing derivation to
+-- read it from, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry
+-- theirs.  What §8 shows is that the premise never BLOCKS anything: a
+-- well-typed redex always supplies it.
 --
 -- The conversion reading preserves uniqueness (`conv-unique`, now in
 -- strong.CtxMorph §3a, where the well-formedness transport needs it), so
--- the DUAL's context is unique as well — the premise the repaired rule
--- would need for determinism, also derived rather than carried.
+-- the DUAL's context is unique as well, so the rule's determinism premise
+-- is always available.
 dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
   → Unique (names Γ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ

@@ -433,6 +433,59 @@ rebase? η η′ A | just (R , q) with unread? η′ R
 rebase? η η′ A | just (R , q) | just (A′ , p) = just (A′ , R , p , q)
 rebase? η η′ A | just (R , q) | nothing = nothing
 
+-- THE SAME THING FOR A CONVERSION, which is what `Peel` needs.  A
+-- conversion mentions ordinary names at three leaves only, so both
+-- directions are `read?`/`unread?` with those three cases added.
+readᶜ? : (η : TyCtx) (s : Conv) → Maybe (∃[ r ] η ⊩ s ~ r)
+readᶜ? η (id A) with read? η A
+readᶜ? η (id A) | just (R , p) = just (id R , sameᶜ-id p)
+readᶜ? η (id A) | nothing      = nothing
+readᶜ? η (seal X) with lookupˡ? η X
+readᶜ? η (seal X) | just (α , d) = just (seal α , sameᶜ-seal d)
+readᶜ? η (seal X) | nothing      = nothing
+readᶜ? η (unseal X) with lookupˡ? η X
+readᶜ? η (unseal X) | just (α , d) = just (unseal α , sameᶜ-unseal d)
+readᶜ? η (unseal X) | nothing      = nothing
+readᶜ? η (s ↦ t) with readᶜ? η s
+readᶜ? η (s ↦ t) | nothing = nothing
+readᶜ? η (s ↦ t) | just (r , p) with readᶜ? η t
+readᶜ? η (s ↦ t) | just (r , p) | just (u , q) =
+  just (r ↦ u , sameᶜ-fun p q)
+readᶜ? η (s ↦ t) | just (r , p) | nothing = nothing
+readᶜ? η (`∀ s) with readᶜ? (zero ∷ shiftNames η) s
+readᶜ? η (`∀ s) | just (r , p) = just (`∀ r , sameᶜ-all p)
+readᶜ? η (`∀ s) | nothing      = nothing
+
+unreadᶜ? : (η : TyCtx) (r : Conv) → Maybe (∃[ s ] η ⊩ s ~ r)
+unreadᶜ? η (id R) with unread? η R
+unreadᶜ? η (id R) | just (A , p) = just (id A , sameᶜ-id p)
+unreadᶜ? η (id R) | nothing      = nothing
+unreadᶜ? η (seal α) with find? η α
+unreadᶜ? η (seal α) | just (X , d) = just (seal X , sameᶜ-seal d)
+unreadᶜ? η (seal α) | nothing      = nothing
+unreadᶜ? η (unseal α) with find? η α
+unreadᶜ? η (unseal α) | just (X , d) = just (unseal X , sameᶜ-unseal d)
+unreadᶜ? η (unseal α) | nothing      = nothing
+unreadᶜ? η (r ↦ u) with unreadᶜ? η r
+unreadᶜ? η (r ↦ u) | nothing = nothing
+unreadᶜ? η (r ↦ u) | just (s , p) with unreadᶜ? η u
+unreadᶜ? η (r ↦ u) | just (s , p) | just (t , q) =
+  just (s ↦ t , sameᶜ-fun p q)
+unreadᶜ? η (r ↦ u) | just (s , p) | nothing = nothing
+unreadᶜ? η (`∀ r) with unreadᶜ? (zero ∷ shiftNames η) r
+unreadᶜ? η (`∀ r) | just (s , p) = just (`∀ s , sameᶜ-all p)
+unreadᶜ? η (`∀ r) | nothing      = nothing
+
+-- `respell? η η′ s` is `rebase?` one universe up: `s` is read on η, and
+-- this finds its spelling on η′ with the `SameConv` that relates them.
+respell? : (η η′ : TyCtx) (s : Conv)
+  → Maybe (∃[ s′ ] (∃[ r ] ((η′ ⊩ s′ ~ r) × (η ⊩ s ~ r))))
+respell? η η′ s with readᶜ? η s
+respell? η η′ s | nothing = nothing
+respell? η η′ s | just (r , q) with unreadᶜ? η′ r
+respell? η η′ s | just (r , q) | just (s′ , p) = just (s′ , r , p , q)
+respell? η η′ s | just (r , q) | nothing = nothing
+
 sameTy? : (Γ Γ′ : Ctxᵗ) (A B : Ty) → Maybe (SameTy Γ A Γ′ B)
 sameTy? Γ Γ′ A B with read? (names Γ) A
 sameTy? Γ Γ′ A B | nothing = nothing

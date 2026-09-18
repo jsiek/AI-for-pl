@@ -2937,3 +2937,37 @@ The `Unique` half of this is what `notes/PeelPremise.agda` §8 consumes: a
 repaired `Peel` would get `Unique` from the morphism witness the redex's
 own typing already stores, rather than carrying it as a premise the way
 `TyPeelR-⟪⟫`, `IdPush` and `CancelR` do.
+
+## 2026-09-18 — the `Peel` repair, installed
+
+`Peel` moves the domain half `s` of its boundary's conversion onto the
+crossed frame's DUAL. `s` was read at Θ's conversion context and is used
+at the dual's, which is taken at the interior. Those are different name
+maps, and not merely renumberings of each other: the invariant that would
+have made them agree is false (`notes/CrossingAudit.agda` §5).
+
+THE RULE now names the dual's spelling `s′` and carries
+`SameConv Δᵈ s′ Δᶜ s`, alongside the morphism's two readings, the dual's
+conversion context and `Unique (names Δᵈ)`. That is the fourth and last
+crossing to be repaired this way, and the only one whose carried object is
+a CONVERSION rather than a type, so it needed a new judgement: `_⊩_~_`
+and `SameConv` in `strong.Conversion` §2b, which is `_⊢_~_` one universe
+up, structural except at the three leaves a conversion spells a name at.
+
+WHY IT IS SAFE TO CARRY, which is the part that took the work
+(`notes/PeelPremise.agda`): the two contexts NAME THE SAME representation
+variables — (Q), proved for every morphism with no restriction on the
+change list — a well-typed conversion always has a representation-universe
+reading to transport, and the dual's conversion context, which typing the
+redex does not supply, always exists. So the premise never blocks a
+reduction. All twelve runs pass unchanged, same step counts and endpoints.
+
+BE CLEAR ABOUT ONE THING. The rule still CARRIES `Unique (names Δᵈ)`.
+`det` has no typing derivation to read it from, exactly as for the other
+three. What the argument shows is that a well-typed redex always supplies
+it, not that the premise can be dropped.
+
+MEASUREMENT. The example suite is ~7.5s cold, against ~7.4s before, so the
+extra premises cost roughly nothing at this size. Two readings of ~32s
+were taken during the install and did not reproduce across five later
+runs; they were artifacts, not a regression.

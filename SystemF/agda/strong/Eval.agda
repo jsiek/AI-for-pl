@@ -50,7 +50,7 @@ open import strong.TermSubst
 open import strong.Reduction
 open import strong.TypeCheck
   using (interior?; conversion?; unique?; ∋:=?; read?; convTy?;
-         rebase?; check⊢)
+         rebase?; respell?; check⊢)
 
 ------------------------------------------------------------------------
 -- 1. Deciding the classifications the rules guard on
@@ -204,6 +204,38 @@ mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
 mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
   | just (A′ , sm) = just (Δ⋉ᶜ , A′ , r⋉ , u⋉ , sm)
 
+-- `Peel`'s crossing premises (2026-09-18).  The morphism's two readings,
+-- the DUAL's conversion context — which typing the redex does not supply,
+-- so it is built here — and the dual's spelling of the domain half.  All
+-- five are outputs; the redex fixes only Δ, Θ and `s`.
+CrossPremises : Ctxᵗ → CtxMorph → Conv → Set
+CrossPremises Δ Θ s =
+  Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ] Σ[ s′ ∈ Conv ]
+    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ)
+      × Unique (names Δᵈ) × SameConv Δᵈ s′ Δᶜ s)
+
+crossPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (s : Conv)
+  → Maybe (CrossPremises Δ Θ s)
+crossPremises? Δ Θ s with conversion? Δ Θ
+crossPremises? Δ Θ s | nothing = nothing
+crossPremises? Δ Θ s | just (Δᶜ , rc) with interior? Δ Θ
+crossPremises? Δ Θ s | just (Δᶜ , rc) | nothing = nothing
+crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
+  with conversion? Δᵢ (dualMorph Θ)
+crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
+  | nothing = nothing
+crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
+  with unique? (names Δᵈ)
+crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
+  | nothing = nothing
+crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
+  | just u with respell? (names Δᶜ) (names Δᵈ) s
+crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
+  | just u | nothing = nothing
+crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
+  | just u | just (s′ , sc) =
+  just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , u , sc)
+
 -- The looked-up type is an output: the contracta mention it only under
 -- `mkId`, which the unifier cannot invert.
 CancelPremises : Ctxᵗ → CtxMorph → ℕ → Set
@@ -232,7 +264,12 @@ cancelPremises? Δ Θ Y | just (Δᶜ , rel) | just u | just (A , d) =
 appRedex : (Δ : Ctxᵗ) {L M : Term} → Value L → Value M
   → Maybe (∃[ N ] (Δ ⊢ L · M -→ N))
 appRedex Δ V-ƛ             vM = just (_ , Beta vM)
-appRedex Δ (V-⟪⟫ v I-fun)  vM = just (_ , Peel v vM)
+appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
+  with crossPremises? Δ Θ s
+appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
+  | just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , u , sc) =
+  just (_ , Peel v vM rc ri rd u sc)
+appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM | nothing = nothing
 appRedex Δ (V-⟪⟫ v I-idv)  vM = nothing
 appRedex Δ (V-⟪⟫ v I-seal) vM = nothing
 appRedex Δ (V-⟪⟫ v I-all)  vM = nothing

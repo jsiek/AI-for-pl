@@ -53,6 +53,7 @@ The following parts have been ported and typecheck:
 - reduction and determinism in `Reduction.agda`.
 
 `Types.agda` and `TypeSubst.agda` remain unchanged, as intended.
+`TypeCheck.agda` is new on this branch and has no main-branch counterpart.
 
 The reduction tests in `notes/RepresentationReductionExamples.agda` carry a
 typing derivation for every recorded intermediate state. All four closed
@@ -63,6 +64,16 @@ programs now reduce to first-order values:
 - the polymorphic constant example reduces in eleven steps to `3 : ℕ`;
 - `( ΛX. λf:(∀Z. Z⇒Z). ΛY. f [Y] ) [ℕ] · (ΛZ. λz:Z. z)`, continued with
   `[ 𝔹 ] · true`, reduces in twenty-five steps to `true : 𝔹`.
+
+The fourth run is the only one that puts the boundary rules under real load,
+because its argument is instantiated beneath a *later* `Λ`, so the value that
+reaches `true` has crossed three boundaries and carries three seals. The shape
+of its tail is a property of the rule set worth recording: with a tower of n
+seals against n unseals, `CancelR` at the innermost live pair leaves two
+identity layers, each of which `IdPush` walks outward one layer at a time
+before the next `CancelR` can fire, so unwinding is quadratic in n. For n = 3
+that is four `Peel`/`Beta` steps, two `CancelR`s inside, five `IdPush`es, a
+last `CancelR`, and six `Drop-true`s.
 
 Testing has found and repaired these errors:
 
@@ -106,12 +117,27 @@ module to the checker removed about 1400 lines of that transcription. The
 reduction steps stay written out, because the rule and the value premises at
 each edge are the content of the test.
 
-The one subtlety is that the checker has to INFER, not just check: `⊢·` and
-`⊢·[]` need the head's type and a head can be a boundary. Inferring a
-boundary's exterior type means inverting `shiftRep`, since `env` reads that
-type across the morphism's representation-bind prefix; that is `strAt`,
-strengthening at a binder depth, and it is the only place in the checker that
-produces an equation rather than a derivation.
+Three things about it are worth knowing before using it.
+
+The checker has to INFER, not just check: `⊢·` and `⊢·[]` need the head's type
+and a head can be a boundary. Inferring a boundary's exterior type means
+inverting `shiftRep`, since `env` reads that type across the morphism's
+representation-bind prefix; that is `strAt`, strengthening at a binder depth,
+and it is the only place in the checker that produces an equation rather than a
+derivation.
+
+A rule premise can only be discharged by the goal-directed forms (`tc`, `tk`,
+`tu`, `tf`, `tr`) when the goal fixes every input. The lookup premise of
+`CancelR` and `IdPush` does not: both contracta mention the looked-up type only
+under `mkId`, which the unifier cannot invert, so `A` is fixed by that premise
+and by nothing else and the inferring `sq!` has to be used there. Expect the
+same wherever a rule mints a conversion from a looked-up type — which includes
+the preservation cases for those two rules.
+
+When a checker fails, the hidden argument's type is `⊥` and Agda reports an
+unsolved meta at the call site. That is a rejection, not an acceptance —
+`--no-allow-unsolved-metas` and `make check` turn it into an error — but it
+does not say why; `proj₂ (ty! Δ Γ M)` reports the type the checker did infer.
 
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
@@ -136,7 +162,9 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
    move; do not use a one-universe weakening by default.
 4. Port progress, evaluation, and the remaining modules imported by
    `All.agda`, deleting obsolete masking/nameability compatibility machinery
-   rather than adding shims.
+   rather than adding shims. `Examples.agda` is the big one, and it is the
+   same transcription problem the reduction traces had: port it onto
+   `TypeCheck.agda` rather than rewriting its boundary typings by hand.
 5. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
    `SystemF/agda/strong/`, then update the design notes with the final
    invariants and proof lessons.

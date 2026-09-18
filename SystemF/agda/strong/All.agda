@@ -12,6 +12,9 @@ open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
+
+-- executable, derivation-producing type checking (used by the examples)
+open import strong.TypeCheck
 open import strong.notes.RepresentationReductionExamples
 
 -- the main theorems

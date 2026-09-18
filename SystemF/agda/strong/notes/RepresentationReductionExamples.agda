@@ -1,17 +1,37 @@
 module strong.notes.RepresentationReductionExamples where
 
 -- Executable reduction checks for the representation-variable experiment.
--- Every displayed state has an explicit typing derivation; every edge is a
+-- Every displayed state has a typing derivation and every edge is a
 -- derivation of strong.Reduction._⊢_-→_.
+--
+-- The typing derivations are the ORDINARY ones, built by the checker in
+-- strong.TypeCheck: `tc` is `env`/`⊢·`/`⊢Λ`/… applied to the premises the
+-- checker found, and it typechecks only against the type written beside
+-- it.  What a state's derivation DOCUMENTS is therefore its type, which is
+-- what a reader wants; what it used to document as well was every
+-- `SameTy` reading and every change of every frame, which the terms below
+-- already fix.  The reduction steps stay written out, because the rule and
+-- the value premises at each edge are the content of the test.
 --
 --   polymorphic identity       6 steps   value 7     : ℕ
 --   polymorphic Boolean use    9 steps   value true  : 𝔹
 --   polymorphic constant 3    11 steps   value 3     : ℕ
---   later-bound identity       5 steps   value at ∀Y. Y ⇒ Y
+--   later-bound identity      25 steps   value true  : 𝔹
+--
+-- The fourth run is the one that pins the design down.  Its argument is a
+-- polymorphic identity handed to a function that instantiates it BENEATH A
+-- LATER `Λ`, so the value that finally reaches `true` has crossed three
+-- boundaries and carries three seals, and unwinding them drives `CancelR`
+-- and `IdPush` through frames that are COMPOSITES (`_⋉_`, `rewind`).
+-- Finishing it found a defect in the conversion context of exactly those
+-- composites and forced the re-unlock clause of `_∣_⊢χᶜ_⇒_`
+-- (strong.CtxMorph §3); the wall and its repair are recorded at the end of
+-- §4 below.
 
-open import Data.List using ([]; _∷_)
+open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Product using (_,_)
+open import Data.Product using (_×_; _,_; ∃-syntax; proj₂)
+open import Data.Empty using (⊥)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
@@ -21,6 +41,7 @@ open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
+open import strong.TypeCheck
 
 ------------------------------------------------------------------------
 -- Shared ℕ-instantiation frames
@@ -30,70 +51,10 @@ open import strong.Reduction
 Δℕ = TyBetaCtx
 Δℕ-lock = (bindR `ℕ ∷ []) ∣ []
 
-wf-Δℕ-lock : WfCtx Δℕ-lock
-wf-Δℕ-lock = wf-ctx (wf-bindR wfᴿ-ℕ wf-reps[]) (λ ()) unique[]
-
 Θℕ-dual Θℕ-cancel Θℕ-rewind : CtxMorph
 Θℕ-dual = dualMorph TyBetaMorph
 Θℕ-cancel = Θℕ-dual ⋉ TyBetaMorph
 Θℕ-rewind = rewind TyBetaMorph
-
-Θℕ-dual-mw : MorphWf Δℕ Θℕ-dual Δℕ-lock Δℕ
-Θℕ-dual-mw =
-  mw TyBetaCtx-wf binds[]
-     (interior
-       (changes∷ changes[]
-         (step-lock (_ , here) del-here fresh[])))
-     (conversion (conv-lock (_ , here) conv[]))
-     wf-Δℕ-lock TyBetaCtx-wf
-
-Θℕ-cancel-mw : MorphWf Δℕ-lock Θℕ-cancel Δℕ-lock Δℕ
-Θℕ-cancel-mw =
-  mw wf-Δℕ-lock binds[]
-     (interior
-       (changes∷
-         (changes∷ changes[]
-           (step-unlock (_ , here) fresh[] ins-here))
-         (step-lock (_ , here) del-here fresh[])))
-     (conversion
-       (conv-lock (_ , here)
-         (conv-unlock (_ , here) conv[] fresh[] ins-here)))
-     wf-Δℕ-lock TyBetaCtx-wf
-
-Θℕ-rewind-mw : MorphWf empty Θℕ-rewind Δℕ-lock Δℕ
-Θℕ-rewind-mw =
-  mw wf-empty (binds∷ wfᴿ-ℕ binds[])
-     (interior
-       (changes∷
-         (changes∷ changes[]
-           (step-unlock (_ , here) fresh[] ins-here))
-         (step-lock (_ , here) del-here fresh[])))
-     (conversion
-       (conv-lock (_ , here)
-         (conv-unlock (_ , here) conv[] fresh[] ins-here)))
-     wf-Δℕ-lock TyBetaCtx-wf
-
-same-ℕℕ : ∀ {Γ Γ′} → SameTy Γ `ℕ Γ′ `ℕ
-same-ℕℕ = `ℕ , same-ℕ , same-ℕ
-
-same-ℕ⇒ℕ : ∀ {Γ Γ′}
-  → SameTy Γ (`ℕ ⇒ `ℕ) Γ′ (`ℕ ⇒ `ℕ)
-same-ℕ⇒ℕ = `ℕ ⇒ `ℕ , same-⇒ same-ℕ same-ℕ
-                         , same-⇒ same-ℕ same-ℕ
-
-sameExt-ℕ₀ : ∀ {Γ Γ′} → SameTyExt 0 Γ `ℕ Γ′ `ℕ
-sameExt-ℕ₀ = `ℕ , same-ℕ , same-ℕ
-
-sameExt-ℕ₁ : ∀ {Γ Γ′} → SameTyExt 1 Γ `ℕ Γ′ `ℕ
-sameExt-ℕ₁ = `ℕ , same-ℕ , same-ℕ
-
-sameExt-ℕ⇒ℕ₁ : ∀ {Γ Γ′}
-  → SameTyExt 1 Γ (`ℕ ⇒ `ℕ) Γ′ (`ℕ ⇒ `ℕ)
-sameExt-ℕ⇒ℕ₁ = `ℕ ⇒ `ℕ , same-⇒ same-ℕ same-ℕ
-                            , same-⇒ same-ℕ same-ℕ
-
-same-Xℕ : SameTy Δℕ (` 0) Δℕ (` 0)
-same-Xℕ = ` 0 , same-var here , same-var here
 
 ------------------------------------------------------------------------
 -- 1. (ΛX. λx:X. x) [ℕ] · 7
@@ -113,65 +74,29 @@ P₁₅ = ($ 7) ⟪ Θℕ-rewind , id `ℕ ⟫
 P₁₆ = $ 7
 
 P₁₀-⊢ : empty ∣ [] ⊢ P₁₀ ⦂ `ℕ
-P₁₀-⊢ =
-  ⊢· (⊢·[] (⊢Λ (⊢ƛ (wf-var (_ , here)) (⊢` here))) wf-ℕ) ⊢$
+P₁₀-⊢ = tc
 
 P₁₁-⊢ : empty ∣ [] ⊢ P₁₁ ⦂ `ℕ
-P₁₁-⊢ = ⊢· wrapped-id ⊢$
-  where
-  wrapped-id : empty ∣ [] ⊢
-    (ƛ ` 0 ∙ ` 0) ⟪ TyBetaMorph , seal 0 ↦ unseal 0 ⟫
-      ⦂ (`ℕ ⇒ `ℕ)
-  wrapped-id =
-    env TyBeta-mw
-        (⊢ƛ (wf-var (_ , here)) (⊢` here))
-        (conv-fun (conv-seal β-lookup) (conv-unseal β-lookup))
-        (` 0 ⇒ ` 0 , same-⇒ (same-var here) (same-var here)
-                    , same-⇒ (same-var here) (same-var here))
-        (sameExt-ℕ⇒ℕ₁ {Γ = empty} {Γ′ = Δℕ})
-        (wf-⇒ wf-ℕ wf-ℕ)
-
-sealed-seven-⊢ : ∀ {Γ}
-  → Δℕ ∣ Γ ⊢ ($ 7) ⟪ Θℕ-dual , seal 0 ⟫ ⦂ ` 0
-sealed-seven-⊢ =
-  env Θℕ-dual-mw ⊢$ (conv-seal β-lookup)
-      (same-ℕℕ {Γ = Δℕ-lock} {Γ′ = Δℕ})
-      (` 0 , same-var here , same-var here)
-      (wf-var (_ , here))
+P₁₁-⊢ = tc
 
 P₁₂-⊢ : empty ∣ [] ⊢ P₁₂ ⦂ `ℕ
-P₁₂-⊢ =
-  env TyBeta-mw
-      (⊢· (⊢ƛ (wf-var (_ , here)) (⊢` here)) sealed-seven-⊢)
-      (conv-unseal β-lookup)
-      same-Xℕ (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+P₁₂-⊢ = tc
 
 P₁₃-⊢ : empty ∣ [] ⊢ P₁₃ ⦂ `ℕ
-P₁₃-⊢ =
-  env TyBeta-mw sealed-seven-⊢ (conv-unseal β-lookup)
-      same-Xℕ (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+P₁₃-⊢ = tc
 
 cancel-seven-⊢ : Δℕ-lock ∣ []
   ⊢ ($ 7) ⟪ Θℕ-cancel , id `ℕ ⟫ ⦂ `ℕ
-cancel-seven-⊢ =
-  env Θℕ-cancel-mw ⊢$ (conv-id base-ℕ)
-      (same-ℕℕ {Γ = Δℕ-lock} {Γ′ = Δℕ})
-      (sameExt-ℕ₀ {Γ = Δℕ-lock} {Γ′ = Δℕ}) wf-ℕ
+cancel-seven-⊢ = tc
 
 P₁₄-⊢ : empty ∣ [] ⊢ P₁₄ ⦂ `ℕ
-P₁₄-⊢ =
-  env Θℕ-rewind-mw cancel-seven-⊢ (conv-id base-ℕ)
-      (same-ℕℕ {Γ = Δℕ-lock} {Γ′ = Δℕ})
-      (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+P₁₄-⊢ = tc
 
 P₁₅-⊢ : empty ∣ [] ⊢ P₁₅ ⦂ `ℕ
-P₁₅-⊢ =
-  env Θℕ-rewind-mw ⊢$ (conv-id base-ℕ)
-      (same-ℕℕ {Γ = Δℕ-lock} {Γ′ = Δℕ})
-      (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+P₁₅-⊢ = tc
 
 P₁₆-⊢ : empty ∣ [] ⊢ P₁₆ ⦂ `ℕ
-P₁₆-⊢ = ⊢$
+P₁₆-⊢ = tc
 
 P₁-step₀ : empty ⊢ P₁₀ -→ P₁₁
 P₁-step₀ = ξ-·-l (TyBeta V-ƛ same-ℕ)
@@ -185,10 +110,10 @@ P₁-step₂ =
 
 P₁-step₃ : empty ⊢ P₁₃ -→ P₁₄
 P₁-step₃ =
-  CancelR V-$ TyBeta-conversion (name-fn TyBetaCtx-wf) β-lookup
+  CancelR V-$ TyBeta-conversion tu (proj₂ (sq! Δℕ 0))
 
 P₁-step₄ : empty ⊢ P₁₄ -→ P₁₅
-P₁-step₄ = ξ-⟪⟫ (mw-interior Θℕ-rewind-mw) (Drop$ base-ℕ)
+P₁-step₄ = ξ-⟪⟫ (proj₂ (int! empty Θℕ-rewind)) (Drop$ base-ℕ)
 
 P₁-step₅ : empty ⊢ P₁₅ -→ P₁₆
 P₁-step₅ = Drop$ base-ℕ
@@ -216,42 +141,14 @@ const3 = Λ (ƛ ` 0 ∙ $ 3)
 const3Ty : Ty
 const3Ty = `∀ (` 0 ⇒ `ℕ)
 
-const3-⊢ : ∀ {Γ} → Δℕ-lock ∣ Γ ⊢ const3 ⦂ const3Ty
-const3-⊢ = ⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢$)
-
-lookup-X-underΛℕ : underΛ Δℕ ∋ 1 := `ℕ
-lookup-X-underΛℕ =
-  1 , `ℕ , there here , r-there-abst r-here , same-ℕ
-
 stℕ : Conv
 stℕ = id (` 0) ↦ seal 1
 
 stℕ-⊢ : underΛ Δℕ ⊢ stℕ ∶ (` 0 ⇒ `ℕ) ⇝ (` 0 ⇒ ` 1)
-stℕ-⊢ =
-  conv-fun (conv-idv (_ , here)) (conv-seal lookup-X-underΛℕ)
-
-unique-underΛΔℕ : Unique (names (underΛ Δℕ))
-unique-underΛΔℕ =
-  unique-underΛ {Γ = Δℕ} (name-fn TyBetaCtx-wf)
+stℕ-⊢ = tk
 
 JT : Ty
 JT = `∀ (` 0 ⇒ ` 1)
-
-JT-wf : Δℕ ⊢ᵗ JT
-JT-wf =
-  wf-∀ (wf-⇒ (wf-var (_ , here)) (wf-var (_ , there here)))
-
-const3-cross-⊢ : ∀ {Γ}
-  → Δℕ ∣ Γ ⊢ const3 ⟪ Θℕ-dual , `∀ stℕ ⟫ ⦂ JT
-const3-cross-⊢ =
-  env Θℕ-dual-mw const3-⊢ (conv-all stℕ-⊢)
-      (`∀ (` 0 ⇒ `ℕ)
-        , same-∀ (same-⇒ (same-var here) same-ℕ)
-        , same-∀ (same-⇒ (same-var here) same-ℕ))
-      (`∀ (` 0 ⇒ ` 1)
-        , same-∀ (same-⇒ (same-var here) (same-var (there here)))
-        , same-∀ (same-⇒ (same-var here) (same-var (there here))))
-      JT-wf
 
 ------------------------------------------------------------------------
 -- 3. ((ΛX. λx:X. λf:(∀Y. Y⇒X). f[X]·x) [ℕ]) · 7 · const3
@@ -264,24 +161,11 @@ Jbody Jfun : Term
 Jbody = ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · ` 1)
 Jfun = Λ (ƛ ` 0 ∙ Jbody)
 
-Jfun-⊢ : empty ∣ [] ⊢ Jfun ⦂ `∀ JB
-Jfun-⊢ =
-  ⊢Λ
-    (⊢ƛ (wf-var (_ , here))
-      (⊢ƛ
-        (wf-∀
-          (wf-⇒ (wf-var (_ , here))
-                (wf-var (_ , there here))))
-        (⊢· (⊢·[] (⊢` here) (wf-var (_ , here)))
-            (⊢` (there here)))))
-
 J₀ : Term
 J₀ = ((Jfun ·[ JB , `ℕ ]) · $ 7) · const3
 
 J₀-⊢ : empty ∣ [] ⊢ J₀ ⦂ `ℕ
-J₀-⊢ =
-  ⊢· (⊢· (⊢·[] Jfun-⊢ wf-ℕ) ⊢$)
-      (⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢$))
+J₀-⊢ = tc
 
 Jmint : Conv
 Jmint = seal 0 ↦ ((`∀ stℕ) ↦ unseal 0)
@@ -331,8 +215,8 @@ J-step₅ =
   ξ-⟪⟫ TyBeta-interior
     (ξ-·-l
       (TyPeelR-Λ V-ƛ
-        (mw-conversion Θℕ-dual-mw)
-        unique-underΛΔℕ
+        (proj₂ (conv! Δℕ Θℕ-dual))
+        tu
         stℕ-⊢
         (same-var here)))
 
@@ -340,189 +224,41 @@ JTarget : Ty
 JTarget = `ℕ ⇒ (const3Ty ⇒ `ℕ)
 
 Jmint-⊢ : Δℕ ⊢ Jmint ∶ JB ⇝ JTarget
-Jmint-⊢ =
-  conv-fun (conv-seal β-lookup)
-    (conv-fun (conv-all stℕ-⊢) (conv-unseal β-lookup))
+Jmint-⊢ = tk
 
 Jbody-Δℕ-⊢ : Δℕ ∣ (` 0 ∷ []) ⊢ Jbody ⦂ (JT ⇒ ` 0)
-Jbody-Δℕ-⊢ =
-  ⊢ƛ JT-wf
-    (⊢· (⊢·[] (⊢` here) (wf-var (_ , here)))
-        (⊢` (there here)))
-
-same-JT : SameTy Δℕ JT Δℕ JT
-same-JT =
-  `∀ (` 0 ⇒ ` 1)
-    , same-∀ (same-⇒ (same-var here) (same-var (there here)))
-    , same-∀ (same-⇒ (same-var here) (same-var (there here)))
-
-same-JB : SameTy Δℕ JB Δℕ JB
-same-JB =
-  ` 0 ⇒ ((`∀ (` 0 ⇒ ` 1)) ⇒ ` 0)
-    , same-⇒ (same-var here)
-        (same-⇒
-          (same-∀ (same-⇒ (same-var here) (same-var (there here))))
-          (same-var here))
-    , same-⇒ (same-var here)
-        (same-⇒
-          (same-∀ (same-⇒ (same-var here) (same-var (there here))))
-          (same-var here))
-
-sameExt-JTarget : SameTyExt 1 empty JTarget Δℕ JTarget
-sameExt-JTarget =
-  JTarget
-    , same-⇒ same-ℕ
-        (same-⇒
-          (same-∀ (same-⇒ (same-var here) same-ℕ))
-          same-ℕ)
-    , same-⇒ same-ℕ
-        (same-⇒
-          (same-∀ (same-⇒ (same-var here) same-ℕ))
-          same-ℕ)
+Jbody-Δℕ-⊢ = tc
 
 J₁-⊢ : empty ∣ [] ⊢ J₁ ⦂ `ℕ
-J₁-⊢ = ⊢· (⊢· wrapped ⊢$) (⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢$))
-  where
-  wrapped : empty ∣ []
-    ⊢ (ƛ ` 0 ∙ Jbody) ⟪ TyBetaMorph , Jmint ⟫ ⦂ JTarget
-  wrapped =
-    env TyBeta-mw (⊢ƛ (wf-var (_ , here)) Jbody-Δℕ-⊢)
-        Jmint-⊢ same-JB sameExt-JTarget
-        (wf-⇒ wf-ℕ
-          (wf-⇒ (wf-∀ (wf-⇒ (wf-var (_ , here)) wf-ℕ)) wf-ℕ))
-
-same-JT⇒X : SameTy Δℕ (JT ⇒ ` 0) Δℕ (JT ⇒ ` 0)
-same-JT⇒X =
-  (`∀ (` 0 ⇒ ` 1)) ⇒ ` 0
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) (same-var (there here))))
-        (same-var here)
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) (same-var (there here))))
-        (same-var here)
-
-sameExt-const3⇒ℕ : SameTyExt 1 empty (const3Ty ⇒ `ℕ)
-  Δℕ (const3Ty ⇒ `ℕ)
-sameExt-const3⇒ℕ =
-  const3Ty ⇒ `ℕ
-    , same-⇒ (same-∀ (same-⇒ (same-var here) same-ℕ)) same-ℕ
-    , same-⇒ (same-∀ (same-⇒ (same-var here) same-ℕ)) same-ℕ
+J₁-⊢ = tc
 
 J₂-⊢ : empty ∣ [] ⊢ J₂ ⦂ `ℕ
-J₂-⊢ = ⊢· wrapped (⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢$))
-  where
-  wrapped : empty ∣ [] ⊢
-    ((ƛ ` 0 ∙ Jbody) · (($ 7) ⟪ Θℕ-dual , seal 0 ⟫))
-      ⟪ TyBetaMorph , (`∀ stℕ) ↦ unseal 0 ⟫
-      ⦂ (const3Ty ⇒ `ℕ)
-  wrapped =
-    env TyBeta-mw
-        (⊢· (⊢ƛ (wf-var (_ , here)) Jbody-Δℕ-⊢)
-            sealed-seven-⊢)
-        (conv-fun (conv-all stℕ-⊢) (conv-unseal β-lookup))
-        same-JT⇒X sameExt-const3⇒ℕ
-        (wf-⇒ (wf-∀ (wf-⇒ (wf-var (_ , here)) wf-ℕ)) wf-ℕ)
+J₂-⊢ = tc
 
 J₃-inner-⊢ : Δℕ ∣ [] ⊢
   ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) ·
             (($ 7) ⟪ Θℕ-dual , seal 0 ⟫))
     ⦂ (JT ⇒ ` 0)
-J₃-inner-⊢ =
-  ⊢ƛ JT-wf
-    (⊢· (⊢·[] (⊢` here) (wf-var (_ , here))) sealed-seven-⊢)
+J₃-inner-⊢ = tc
 
 J₃-⊢ : empty ∣ [] ⊢ J₃ ⦂ `ℕ
-J₃-⊢ = ⊢· wrapped (⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢$))
-  where
-  wrapped : empty ∣ [] ⊢
-    (ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) ·
-               (($ 7) ⟪ Θℕ-dual , seal 0 ⟫)))
-      ⟪ TyBetaMorph , (`∀ stℕ) ↦ unseal 0 ⟫
-      ⦂ (const3Ty ⇒ `ℕ)
-  wrapped =
-    env TyBeta-mw J₃-inner-⊢
-        (conv-fun (conv-all stℕ-⊢) (conv-unseal β-lookup))
-        same-JT⇒X sameExt-const3⇒ℕ
-        (wf-⇒ (wf-∀ (wf-⇒ (wf-var (_ , here)) wf-ℕ)) wf-ℕ)
+J₃-⊢ = tc
 
 J₄-⊢ : empty ∣ [] ⊢ J₄ ⦂ `ℕ
-J₄-⊢ =
-  env TyBeta-mw (⊢· J₃-inner-⊢ const3-cross-⊢)
-      (conv-unseal β-lookup)
-      same-Xℕ (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+J₄-⊢ = tc
 
 J₅-⊢ : empty ∣ [] ⊢ J₅ ⦂ `ℕ
-J₅-⊢ =
-  env TyBeta-mw
-      (⊢· (⊢·[] const3-cross-⊢ (wf-var (_ , here)))
-          sealed-seven-⊢)
-      (conv-unseal β-lookup)
-      same-Xℕ (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+J₅-⊢ = tc
 
 ΔJ-int ΔJ-conv : Ctxᵗ
 ΔJ-int = (bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ [])
 ΔJ-conv = (bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])
 
-wf-J-reps : WfRepCtx (bindR (` 0) ∷ bindR `ℕ ∷ [])
-wf-J-reps =
-  wf-bindR (wfᴿ-var (free-ref here))
-    (wf-bindR wfᴿ-ℕ wf-reps[])
-
-wf-ΔJ-int : WfCtx ΔJ-int
-wf-ΔJ-int =
-  wf-ctx wf-J-reps
-    (λ { here → _ , here })
-    (unique∷ fresh[] unique[])
-
-wf-ΔJ-conv : WfCtx ΔJ-conv
-wf-ΔJ-conv =
-  wf-ctx wf-J-reps
-    (λ { here → _ , here
-       ; (there here) → _ , there here })
-    (unique∷ (fresh∷ (λ ()) fresh[])
-      (unique∷ fresh[] unique[]))
-
-ΘJ-mw : MorphWf Δℕ (instantiate (` 0) Θℕ-dual) ΔJ-int ΔJ-conv
-ΘJ-mw =
-  mw TyBetaCtx-wf
-     (binds∷ (wfᴿ-var (free-ref here)) binds[])
-     (interior
-       (changes∷
-         (changes∷ changes[]
-           (step-unlock (_ , here) (fresh∷ (λ ()) fresh[])
-             ins-here))
-         (step-lock (_ , there here) (del-there del-here)
-           (fresh∷ (λ ()) fresh[]))))
-     (conversion
-       (conv-lock (_ , there here)
-         (conv-unlock (_ , here) conv[]
-           (fresh∷ (λ ()) fresh[]) ins-here)))
-     wf-ΔJ-int wf-ΔJ-conv
-
-lookup-J0 : ΔJ-conv ∋ 0 := ` 1
-lookup-J0 = 0 , ` 1 , here , r-here , same-var (there here)
-
-lookup-J1 : ΔJ-conv ∋ 1 := `ℕ
-lookup-J1 = 1 , `ℕ , there here , r-there r-here , same-ℕ
-
 J₆head-⊢ : Δℕ ∣ [] ⊢ J₆head ⦂ (` 0 ⇒ ` 0)
-J₆head-⊢ =
-  env ΘJ-mw
-      (⊢ƛ (wf-var (_ , here)) ⊢$)
-      (conv-fun (conv-seal lookup-J0) (conv-seal lookup-J1))
-      (` 0 ⇒ `ℕ
-        , same-⇒ (same-var here) same-ℕ
-        , same-⇒ (same-var here) same-ℕ)
-      (` 0 ⇒ ` 0
-        , same-⇒ (same-var here) (same-var here)
-        , same-⇒ (same-var (there here)) (same-var (there here)))
-      (wf-⇒ (wf-var (_ , here)) (wf-var (_ , here)))
+J₆head-⊢ = tc
 
 J₆-⊢ : empty ∣ [] ⊢ J₆ ⦂ `ℕ
-J₆-⊢ =
-  env TyBeta-mw (⊢· J₆head-⊢ sealed-seven-⊢)
-      (conv-unseal β-lookup)
-      same-Xℕ (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+J₆-⊢ = tc
 
 ΘJ ΘJ-dual ΘJ-cancel : CtxMorph
 ΘJ = morph (` 0 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
@@ -554,14 +290,14 @@ Jarg-value = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-seal
 J-step₇ : empty ⊢ J₇ -→ J₈
 J-step₇ =
   ξ-⟪⟫ TyBeta-interior
-    (ξ-⟪⟫ (mw-interior ΘJ-mw) (Beta Jarg-value))
+    (ξ-⟪⟫ (proj₂ (int! Δℕ (instantiate (` 0) Θℕ-dual))) (Beta Jarg-value))
 
 J-step₈ : empty ⊢ J₈ -→ J₉
 J-step₈ =
-  CancelR V-$ TyBeta-conversion (name-fn TyBetaCtx-wf) β-lookup
+  CancelR V-$ TyBeta-conversion tu (proj₂ (sq! Δℕ 0))
 
 J-step₉ : empty ⊢ J₉ -→ J₁₀
-J-step₉ = ξ-⟪⟫ (mw-interior Θℕ-rewind-mw) (Drop$ base-ℕ)
+J-step₉ = ξ-⟪⟫ (proj₂ (int! empty Θℕ-rewind)) (Drop$ base-ℕ)
 
 J-step₁₀ : empty ⊢ J₁₀ -→ $ 3
 J-step₁₀ = Drop$ base-ℕ
@@ -570,129 +306,37 @@ J-step₁₀ = Drop$ base-ℕ
 ΔJ-arg-int = (bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (1 ∷ [])
 ΔJ-none = (bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ []
 
-wf-ΔJ-arg-int : WfCtx ΔJ-arg-int
-wf-ΔJ-arg-int =
-  wf-ctx wf-J-reps
-    (λ { here → _ , there here })
-    (unique∷ fresh[] unique[])
-
-wf-ΔJ-none : WfCtx ΔJ-none
-wf-ΔJ-none = wf-ctx wf-J-reps (λ ()) unique[]
-
-ΘJ-shift-mw : MorphWf ΔJ-arg-int
-  (morph [] (lock 0 1 ∷ [])) ΔJ-none ΔJ-arg-int
-ΘJ-shift-mw =
-  mw wf-ΔJ-arg-int binds[]
-     (interior
-       (changes∷ changes[]
-         (step-lock (_ , there here) del-here fresh[])))
-     (conversion (conv-lock (_ , there here) conv[]))
-     wf-ΔJ-none wf-ΔJ-arg-int
-
-lookup-shift-X : ΔJ-arg-int ∋ 0 := `ℕ
-lookup-shift-X = 1 , `ℕ , here , r-there r-here , same-ℕ
-
 Jshift-⊢ : ΔJ-arg-int ∣ [] ⊢ Jshift ⦂ ` 0
-Jshift-⊢ =
-  env ΘJ-shift-mw ⊢$ (conv-seal lookup-shift-X)
-      (`ℕ , same-ℕ , same-ℕ)
-      (` 1 , same-var here , same-var here)
-      (wf-var (_ , here))
-
-ΘJ-dual-mw : MorphWf ΔJ-int
-  (morph [] (lock 0 0 ∷ unlock 1 1 ∷ []))
-  ΔJ-arg-int ΔJ-conv
-ΘJ-dual-mw =
-  mw wf-ΔJ-int binds[]
-     (interior
-       (changes∷
-         (changes∷ changes[]
-           (step-unlock (_ , there here)
-             (fresh∷ (λ ()) fresh[])
-             (ins-there ins-here)))
-         (step-lock (_ , here) del-here
-           (fresh∷ (λ ()) fresh[]))))
-     (conversion
-       (conv-lock (_ , here)
-         (conv-unlock (_ , there here) conv[]
-           (fresh∷ (λ ()) fresh[])
-           (ins-there ins-here))))
-     wf-ΔJ-arg-int wf-ΔJ-conv
+Jshift-⊢ = tc
 
 Jarg-⊢ : ΔJ-int ∣ [] ⊢ Jarg ⦂ ` 0
-Jarg-⊢ =
-  env ΘJ-dual-mw Jshift-⊢ (conv-seal lookup-J0)
-      (` 1 , same-var here , same-var (there here))
-      (` 0 , same-var here , same-var here)
-      (wf-var (_ , here))
+Jarg-⊢ = tc
 
 J₇-inner-⊢ : Δℕ ∣ []
   ⊢ ((ƛ ` 0 ∙ $ 3) · Jarg) ⟪ ΘJ , seal 1 ⟫ ⦂ ` 0
-J₇-inner-⊢ =
-  env ΘJ-mw (⊢· (⊢ƛ (wf-var (_ , here)) ⊢$) Jarg-⊢)
-      (conv-seal lookup-J1)
-      (`ℕ , same-ℕ , same-ℕ)
-      (` 0 , same-var here , same-var (there here))
-      (wf-var (_ , here))
+J₇-inner-⊢ = tc
 
 J₇-⊢ : empty ∣ [] ⊢ J₇ ⦂ `ℕ
-J₇-⊢ =
-  env TyBeta-mw J₇-inner-⊢ (conv-unseal β-lookup)
-      same-Xℕ (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+J₇-⊢ = tc
 
 J₈-inner-⊢ : Δℕ ∣ [] ⊢ ($ 3) ⟪ ΘJ , seal 1 ⟫ ⦂ ` 0
-J₈-inner-⊢ =
-  env ΘJ-mw ⊢$ (conv-seal lookup-J1)
-      (`ℕ , same-ℕ , same-ℕ)
-      (` 0 , same-var here , same-var (there here))
-      (wf-var (_ , here))
+J₈-inner-⊢ = tc
 
 J₈-⊢ : empty ∣ [] ⊢ J₈ ⦂ `ℕ
-J₈-⊢ =
-  env TyBeta-mw J₈-inner-⊢ (conv-unseal β-lookup)
-      same-Xℕ (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
-
-ΘJ-cancel-mw : MorphWf Δℕ-lock ΘJ-cancel ΔJ-int ΔJ-conv
-ΘJ-cancel-mw =
-  mw wf-Δℕ-lock
-     (binds∷ (wfᴿ-var (free-ref here)) binds[])
-     (interior
-       (changes∷
-         (changes∷
-           (changes∷ changes[]
-             (step-unlock (_ , there here) fresh[] ins-here))
-           (step-unlock (_ , here)
-             (fresh∷ (λ ()) fresh[]) ins-here))
-         (step-lock (_ , there here) (del-there del-here)
-           (fresh∷ (λ ()) fresh[]))))
-     (conversion
-       (conv-lock (_ , there here)
-         (conv-unlock (_ , here)
-           (conv-unlock (_ , there here) conv[] fresh[] ins-here)
-           (fresh∷ (λ ()) fresh[]) ins-here)))
-     wf-ΔJ-int wf-ΔJ-conv
+J₈-⊢ = tc
 
 J₉-inner-⊢ : Δℕ-lock ∣ []
   ⊢ ($ 3) ⟪ ΘJ-cancel , id `ℕ ⟫ ⦂ `ℕ
-J₉-inner-⊢ =
-  env ΘJ-cancel-mw ⊢$ (conv-id base-ℕ)
-      (`ℕ , same-ℕ , same-ℕ)
-      (sameExt-ℕ₁ {Γ = Δℕ-lock} {Γ′ = ΔJ-conv}) wf-ℕ
+J₉-inner-⊢ = tc
 
 J₉-⊢ : empty ∣ [] ⊢ J₉ ⦂ `ℕ
-J₉-⊢ =
-  env Θℕ-rewind-mw J₉-inner-⊢ (conv-id base-ℕ)
-      (same-ℕℕ {Γ = Δℕ-lock} {Γ′ = Δℕ})
-      (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+J₉-⊢ = tc
 
 J₁₀-⊢ : empty ∣ [] ⊢ J₁₀ ⦂ `ℕ
-J₁₀-⊢ =
-  env Θℕ-rewind-mw ⊢$ (conv-id base-ℕ)
-      (same-ℕℕ {Γ = Δℕ-lock} {Γ′ = Δℕ})
-      (sameExt-ℕ₁ {Γ = empty} {Γ′ = Δℕ}) wf-ℕ
+J₁₀-⊢ = tc
 
 J-final-⊢ : empty ∣ [] ⊢ $ 3 ⦂ `ℕ
-J-final-⊢ = ⊢$
+J-final-⊢ = tc
 
 J-final-value : Value ($ 3)
 J-final-value = V-$
@@ -720,56 +364,11 @@ J-run =
 Δ𝔹 = (bindR `𝔹 ∷ []) ∣ (0 ∷ [])
 Δ𝔹-lock = (bindR `𝔹 ∷ []) ∣ []
 
-wf-Δ𝔹 : WfCtx Δ𝔹
-wf-Δ𝔹 =
-  wf-ctx (wf-bindR wfᴿ-𝔹 wf-reps[])
-    (λ { here → _ , here })
-    (unique∷ fresh[] unique[])
-
-wf-Δ𝔹-lock : WfCtx Δ𝔹-lock
-wf-Δ𝔹-lock =
-  wf-ctx (wf-bindR wfᴿ-𝔹 wf-reps[]) (λ ()) unique[]
-
 Θ𝔹 Θ𝔹-dual Θ𝔹-rewind : CtxMorph
 Θ𝔹 = morph (`𝔹 ∷ []) (unlock 0 0 ∷ [])
 Θ𝔹-dual = morph [] (lock 0 0 ∷ [])
 Θ𝔹-rewind =
   morph (`𝔹 ∷ []) (lock 0 0 ∷ unlock 0 0 ∷ [])
-
-Θ𝔹-mw : MorphWf empty Θ𝔹 Δ𝔹 Δ𝔹
-Θ𝔹-mw =
-  mw wf-empty (binds∷ wfᴿ-𝔹 binds[])
-     (interior
-       (changes∷ changes[]
-         (step-unlock (_ , here) fresh[] ins-here)))
-     (conversion
-       (conv-unlock (_ , here) conv[] fresh[] ins-here))
-     wf-Δ𝔹 wf-Δ𝔹
-
-Θ𝔹-dual-mw : MorphWf Δ𝔹 Θ𝔹-dual Δ𝔹-lock Δ𝔹
-Θ𝔹-dual-mw =
-  mw wf-Δ𝔹 binds[]
-     (interior
-       (changes∷ changes[]
-         (step-lock (_ , here) del-here fresh[])))
-     (conversion (conv-lock (_ , here) conv[]))
-     wf-Δ𝔹-lock wf-Δ𝔹
-
-Θ𝔹-rewind-mw : MorphWf empty Θ𝔹-rewind Δ𝔹-lock Δ𝔹
-Θ𝔹-rewind-mw =
-  mw wf-empty (binds∷ wfᴿ-𝔹 binds[])
-     (interior
-       (changes∷
-         (changes∷ changes[]
-           (step-unlock (_ , here) fresh[] ins-here))
-         (step-lock (_ , here) del-here fresh[])))
-     (conversion
-       (conv-lock (_ , here)
-         (conv-unlock (_ , here) conv[] fresh[] ins-here)))
-     wf-Δ𝔹-lock wf-Δ𝔹
-
-lookup-𝔹 : Δ𝔹 ∋ 0 := `𝔹
-lookup-𝔹 = 0 , `𝔹 , here , r-here , same-𝔹
 
 GT : Ty
 GT = `∀ (` 0 ⇒ `𝔹)
@@ -777,30 +376,11 @@ GT = `∀ (` 0 ⇒ `𝔹)
 truePoly : Term
 truePoly = Λ (ƛ ` 0 ∙ `true)
 
-truePoly-⊢ : ∀ {Γ} → Δ𝔹-lock ∣ Γ ⊢ truePoly ⦂ GT
-truePoly-⊢ = ⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢true)
-
-lookup-X-underΛ𝔹 : underΛ Δ𝔹 ∋ 1 := `𝔹
-lookup-X-underΛ𝔹 =
-  1 , `𝔹 , there here , r-there-abst r-here , same-𝔹
-
 st𝔹 : Conv
 st𝔹 = id (` 0) ↦ id `𝔹
 
 st𝔹-⊢ : underΛ Δ𝔹 ⊢ st𝔹 ∶ (` 0 ⇒ `𝔹) ⇝ (` 0 ⇒ `𝔹)
-st𝔹-⊢ = conv-fun (conv-idv (_ , here)) (conv-id base-𝔹)
-
-truePoly-cross-⊢ : ∀ {Γ}
-  → Δ𝔹 ∣ Γ ⊢ truePoly ⟪ Θ𝔹-dual , `∀ st𝔹 ⟫ ⦂ GT
-truePoly-cross-⊢ =
-  env Θ𝔹-dual-mw truePoly-⊢ (conv-all st𝔹-⊢)
-      (`∀ (` 0 ⇒ `𝔹)
-        , same-∀ (same-⇒ (same-var here) same-𝔹)
-        , same-∀ (same-⇒ (same-var here) same-𝔹))
-      (`∀ (` 0 ⇒ `𝔹)
-        , same-∀ (same-⇒ (same-var here) same-𝔹)
-        , same-∀ (same-⇒ (same-var here) same-𝔹))
-      (wf-∀ (wf-⇒ (wf-var (_ , here)) wf-𝔹))
+st𝔹-⊢ = tk
 
 FB : Ty
 FB = GT ⇒ (` 0 ⇒ `𝔹)
@@ -809,21 +389,11 @@ Fbody Ffun : Term
 Fbody = ƛ GT ∙ ((` 0) ·[ ` 0 ⇒ `𝔹 , ` 0 ])
 Ffun = Λ Fbody
 
-Ffun-⊢ : empty ∣ [] ⊢ Ffun ⦂ `∀ FB
-Ffun-⊢ =
-  ⊢Λ
-    (⊢ƛ
-      (wf-∀ (wf-⇒ (wf-var (_ , here)) wf-𝔹))
-      (⊢·[] (⊢` here) (wf-var (_ , here))))
-
 K₀ : Term
 K₀ = ((Ffun ·[ FB , `𝔹 ]) · truePoly) · `false
 
 K₀-⊢ : empty ∣ [] ⊢ K₀ ⦂ `𝔹
-K₀-⊢ =
-  ⊢· (⊢· (⊢·[] Ffun-⊢ wf-𝔹)
-          (⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢true)))
-      ⊢false
+K₀-⊢ = tc
 
 Kmint : Conv
 Kmint = (`∀ st𝔹) ↦ (seal 0 ↦ id `𝔹)
@@ -856,48 +426,6 @@ K₈ = `true ⟪ Θ𝔹 , id `𝔹 ⟫
 ΔK-int = (bindR (` 0) ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ [])
 ΔK-conv = (bindR (` 0) ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
-wf-K-reps : WfRepCtx (bindR (` 0) ∷ bindR `𝔹 ∷ [])
-wf-K-reps =
-  wf-bindR (wfᴿ-var (free-ref here))
-    (wf-bindR wfᴿ-𝔹 wf-reps[])
-
-wf-ΔK-int : WfCtx ΔK-int
-wf-ΔK-int =
-  wf-ctx wf-K-reps
-    (λ { here → _ , here })
-    (unique∷ fresh[] unique[])
-
-wf-ΔK-conv : WfCtx ΔK-conv
-wf-ΔK-conv =
-  wf-ctx wf-K-reps
-    (λ { here → _ , here
-       ; (there here) → _ , there here })
-    (unique∷ (fresh∷ (λ ()) fresh[])
-      (unique∷ fresh[] unique[]))
-
-ΘK-mw : MorphWf Δ𝔹 ΘK ΔK-int ΔK-conv
-ΘK-mw =
-  mw wf-Δ𝔹
-     (binds∷ (wfᴿ-var (free-ref here)) binds[])
-     (interior
-       (changes∷
-         (changes∷ changes[]
-           (step-unlock (_ , here) (fresh∷ (λ ()) fresh[])
-             ins-here))
-         (step-lock (_ , there here) (del-there del-here)
-           (fresh∷ (λ ()) fresh[]))))
-     (conversion
-       (conv-lock (_ , there here)
-         (conv-unlock (_ , here) conv[]
-           (fresh∷ (λ ()) fresh[]) ins-here)))
-     wf-ΔK-int wf-ΔK-conv
-
-lookup-K0 : ΔK-conv ∋ 0 := ` 1
-lookup-K0 = 0 , ` 1 , here , r-here , same-var (there here)
-
-lookup-K1 : ΔK-conv ∋ 1 := `𝔹
-lookup-K1 = 1 , `𝔹 , there here , r-there r-here , same-𝔹
-
 K-step₀ : empty ⊢ K₀ -→ K₁
 K-step₀ = ξ-·-l (ξ-·-l (TyBeta V-ƛ same-𝔹))
 
@@ -907,26 +435,23 @@ K-step₁ = ξ-·-l (Peel V-ƛ (V-Λ V-ƛ))
 K-step₂ : empty ⊢ K₂ -→ K₃
 K-step₂ =
   ξ-·-l
-    (ξ-⟪⟫ (mw-interior Θ𝔹-mw)
+    (ξ-⟪⟫ (proj₂ (int! empty Θ𝔹))
       (Beta (V-⟪⟫ (V-Λ V-ƛ) I-all)))
-
-unique-underΛΔ𝔹 : Unique (names (underΛ Δ𝔹))
-unique-underΛΔ𝔹 = unique-underΛ {Γ = Δ𝔹} (name-fn wf-Δ𝔹)
 
 K-step₃ : empty ⊢ K₃ -→ K₄
 K-step₃ =
   ξ-·-l
-    (ξ-⟪⟫ (mw-interior Θ𝔹-mw)
+    (ξ-⟪⟫ (proj₂ (int! empty Θ𝔹))
       (TyPeelR-Λ V-ƛ
-        (mw-conversion Θ𝔹-dual-mw)
-        unique-underΛΔ𝔹 st𝔹-⊢ (same-var here)))
+        (proj₂ (conv! Δ𝔹 Θ𝔹-dual))
+        tu st𝔹-⊢ (same-var here)))
 
 K-step₄ : empty ⊢ K₄ -→ K₅
 K-step₄ = Peel (V-⟪⟫ V-ƛ I-fun) V-false
 
 K-step₅ : empty ⊢ K₅ -→ K₆
 K-step₅ =
-  ξ-⟪⟫ (mw-interior Θ𝔹-mw)
+  ξ-⟪⟫ (proj₂ (int! empty Θ𝔹))
     (Peel V-ƛ (V-⟪⟫ V-false I-seal))
 
 Karg-value : Value Karg
@@ -934,12 +459,12 @@ Karg-value = V-⟪⟫ (V-⟪⟫ V-false I-seal) I-seal
 
 K-step₆ : empty ⊢ K₆ -→ K₇
 K-step₆ =
-  ξ-⟪⟫ (mw-interior Θ𝔹-mw)
-    (ξ-⟪⟫ (mw-interior ΘK-mw) (Beta Karg-value))
+  ξ-⟪⟫ (proj₂ (int! empty Θ𝔹))
+    (ξ-⟪⟫ (proj₂ (int! Δ𝔹 ΘK)) (Beta Karg-value))
 
 K-step₇ : empty ⊢ K₇ -→ K₈
 K-step₇ =
-  ξ-⟪⟫ (mw-interior Θ𝔹-mw) Drop-true
+  ξ-⟪⟫ (proj₂ (int! empty Θ𝔹)) Drop-true
 
 K-step₈ : empty ⊢ K₈ -→ `true
 K-step₈ = Drop-true
@@ -948,225 +473,58 @@ KTarget : Ty
 KTarget = GT ⇒ (`𝔹 ⇒ `𝔹)
 
 Kmint-⊢ : Δ𝔹 ⊢ Kmint ∶ FB ⇝ KTarget
-Kmint-⊢ =
-  conv-fun (conv-all st𝔹-⊢)
-    (conv-fun (conv-seal lookup-𝔹) (conv-id base-𝔹))
+Kmint-⊢ = tk
 
 Fbody-Δ𝔹-⊢ : Δ𝔹 ∣ [] ⊢ Fbody ⦂ (GT ⇒ (` 0 ⇒ `𝔹))
-Fbody-Δ𝔹-⊢ =
-  ⊢ƛ (wf-∀ (wf-⇒ (wf-var (_ , here)) wf-𝔹))
-    (⊢·[] (⊢` here) (wf-var (_ , here)))
-
-same-FB : SameTy Δ𝔹 FB Δ𝔹 FB
-same-FB =
-  (`∀ (` 0 ⇒ `𝔹)) ⇒ (` 0 ⇒ `𝔹)
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) same-𝔹))
-        (same-⇒ (same-var here) same-𝔹)
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) same-𝔹))
-        (same-⇒ (same-var here) same-𝔹)
-
-sameExt-KTarget : SameTyExt 1 empty KTarget Δ𝔹 KTarget
-sameExt-KTarget =
-  KTarget
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) same-𝔹))
-        (same-⇒ same-𝔹 same-𝔹)
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) same-𝔹))
-        (same-⇒ same-𝔹 same-𝔹)
+Fbody-Δ𝔹-⊢ = tc
 
 K₁-⊢ : empty ∣ [] ⊢ K₁ ⦂ `𝔹
-K₁-⊢ =
-  ⊢· (⊢· wrapped (⊢Λ (⊢ƛ (wf-var (_ , here)) ⊢true))) ⊢false
-  where
-  wrapped : empty ∣ [] ⊢ Fbody ⟪ Θ𝔹 , Kmint ⟫ ⦂ KTarget
-  wrapped =
-    env Θ𝔹-mw Fbody-Δ𝔹-⊢ Kmint-⊢ same-FB sameExt-KTarget
-        (wf-⇒ (wf-∀ (wf-⇒ (wf-var (_ , here)) wf-𝔹))
-          (wf-⇒ wf-𝔹 wf-𝔹))
-
-same-GT⇒X𝔹 : SameTy Δ𝔹 (GT ⇒ (` 0 ⇒ `𝔹))
-  Δ𝔹 (GT ⇒ (` 0 ⇒ `𝔹))
-same-GT⇒X𝔹 =
-  (`∀ (` 0 ⇒ `𝔹)) ⇒ (` 0 ⇒ `𝔹)
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) same-𝔹))
-        (same-⇒ (same-var here) same-𝔹)
-    , same-⇒
-        (same-∀ (same-⇒ (same-var here) same-𝔹))
-        (same-⇒ (same-var here) same-𝔹)
-
-sameExt-𝔹⇒𝔹 :
-  SameTyExt 1 empty (`𝔹 ⇒ `𝔹) Δ𝔹 (`𝔹 ⇒ `𝔹)
-sameExt-𝔹⇒𝔹 =
-  `𝔹 ⇒ `𝔹 , same-⇒ same-𝔹 same-𝔹
-             , same-⇒ same-𝔹 same-𝔹
+K₁-⊢ = tc
 
 K₂-⊢ : empty ∣ [] ⊢ K₂ ⦂ `𝔹
-K₂-⊢ = ⊢· wrapped ⊢false
-  where
-  wrapped : empty ∣ [] ⊢
-    (Fbody · (truePoly ⟪ Θ𝔹-dual , `∀ st𝔹 ⟫))
-      ⟪ Θ𝔹 , seal 0 ↦ id `𝔹 ⟫ ⦂ (`𝔹 ⇒ `𝔹)
-  wrapped =
-    env Θ𝔹-mw (⊢· Fbody-Δ𝔹-⊢ truePoly-cross-⊢)
-        (conv-fun (conv-seal lookup-𝔹) (conv-id base-𝔹))
-        (` 0 ⇒ `𝔹
-          , same-⇒ (same-var here) same-𝔹
-          , same-⇒ (same-var here) same-𝔹)
-        sameExt-𝔹⇒𝔹 (wf-⇒ wf-𝔹 wf-𝔹)
+K₂-⊢ = tc
 
 K₃-⊢ : empty ∣ [] ⊢ K₃ ⦂ `𝔹
-K₃-⊢ = ⊢· wrapped ⊢false
-  where
-  wrapped : empty ∣ [] ⊢
-    ((truePoly ⟪ Θ𝔹-dual , `∀ st𝔹 ⟫)
-       ·[ ` 0 ⇒ `𝔹 , ` 0 ])
-      ⟪ Θ𝔹 , seal 0 ↦ id `𝔹 ⟫ ⦂ (`𝔹 ⇒ `𝔹)
-  wrapped =
-    env Θ𝔹-mw
-        (⊢·[] truePoly-cross-⊢ (wf-var (_ , here)))
-        (conv-fun (conv-seal lookup-𝔹) (conv-id base-𝔹))
-        (` 0 ⇒ `𝔹
-          , same-⇒ (same-var here) same-𝔹
-          , same-⇒ (same-var here) same-𝔹)
-        sameExt-𝔹⇒𝔹 (wf-⇒ wf-𝔹 wf-𝔹)
+K₃-⊢ = tc
 
 Khead-⊢ : Δ𝔹 ∣ [] ⊢ Khead ⦂ (` 0 ⇒ `𝔹)
-Khead-⊢ =
-  env ΘK-mw (⊢ƛ (wf-var (_ , here)) ⊢true)
-      (conv-fun (conv-seal lookup-K0) (conv-id base-𝔹))
-      (` 0 ⇒ `𝔹
-        , same-⇒ (same-var here) same-𝔹
-        , same-⇒ (same-var here) same-𝔹)
-      (` 0 ⇒ `𝔹
-        , same-⇒ (same-var here) same-𝔹
-        , same-⇒ (same-var (there here)) same-𝔹)
-      (wf-⇒ (wf-var (_ , here)) wf-𝔹)
+Khead-⊢ = tc
 
 K₄-⊢ : empty ∣ [] ⊢ K₄ ⦂ `𝔹
-K₄-⊢ = ⊢· wrapped ⊢false
-  where
-  wrapped : empty ∣ []
-    ⊢ Khead ⟪ Θ𝔹 , seal 0 ↦ id `𝔹 ⟫ ⦂ (`𝔹 ⇒ `𝔹)
-  wrapped =
-    env Θ𝔹-mw Khead-⊢
-        (conv-fun (conv-seal lookup-𝔹) (conv-id base-𝔹))
-        (` 0 ⇒ `𝔹
-          , same-⇒ (same-var here) same-𝔹
-          , same-⇒ (same-var here) same-𝔹)
-        sameExt-𝔹⇒𝔹 (wf-⇒ wf-𝔹 wf-𝔹)
-
-Kfalse-⊢ : ∀ {Γ} → Δ𝔹 ∣ Γ ⊢ Kfalse ⦂ ` 0
-Kfalse-⊢ =
-  env Θ𝔹-dual-mw ⊢false (conv-seal lookup-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (` 0 , same-var here , same-var here)
-      (wf-var (_ , here))
+K₄-⊢ = tc
 
 K₅-⊢ : empty ∣ [] ⊢ K₅ ⦂ `𝔹
-K₅-⊢ =
-  env Θ𝔹-mw (⊢· Khead-⊢ Kfalse-⊢) (conv-id base-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹) wf-𝔹
+K₅-⊢ = tc
 
 ΔK-arg-int ΔK-none : Ctxᵗ
 ΔK-arg-int = (bindR (` 0) ∷ bindR `𝔹 ∷ []) ∣ (1 ∷ [])
 ΔK-none = (bindR (` 0) ∷ bindR `𝔹 ∷ []) ∣ []
 
-wf-ΔK-arg-int : WfCtx ΔK-arg-int
-wf-ΔK-arg-int =
-  wf-ctx wf-K-reps
-    (λ { here → _ , there here })
-    (unique∷ fresh[] unique[])
-
-wf-ΔK-none : WfCtx ΔK-none
-wf-ΔK-none = wf-ctx wf-K-reps (λ ()) unique[]
-
-ΘK-shift-mw : MorphWf ΔK-arg-int
-  (morph [] (lock 0 1 ∷ [])) ΔK-none ΔK-arg-int
-ΘK-shift-mw =
-  mw wf-ΔK-arg-int binds[]
-     (interior
-       (changes∷ changes[]
-         (step-lock (_ , there here) del-here fresh[])))
-     (conversion (conv-lock (_ , there here) conv[]))
-     wf-ΔK-none wf-ΔK-arg-int
-
-lookup-shift-𝔹 : ΔK-arg-int ∋ 0 := `𝔹
-lookup-shift-𝔹 = 1 , `𝔹 , here , r-there r-here , same-𝔹
-
 Kshift-⊢ : ΔK-arg-int ∣ []
   ⊢ renᴹ² (ren² idᵗ (wkN (numBinds ΘK))) Kfalse ⦂ ` 0
-Kshift-⊢ =
-  env ΘK-shift-mw ⊢false (conv-seal lookup-shift-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (` 1 , same-var here , same-var here)
-      (wf-var (_ , here))
-
-ΘK-dual-mw : MorphWf ΔK-int
-  (morph [] (lock 0 0 ∷ unlock 1 1 ∷ []))
-  ΔK-arg-int ΔK-conv
-ΘK-dual-mw =
-  mw wf-ΔK-int binds[]
-     (interior
-       (changes∷
-         (changes∷ changes[]
-           (step-unlock (_ , there here)
-             (fresh∷ (λ ()) fresh[])
-             (ins-there ins-here)))
-         (step-lock (_ , here) del-here
-           (fresh∷ (λ ()) fresh[]))))
-     (conversion
-       (conv-lock (_ , here)
-         (conv-unlock (_ , there here) conv[]
-           (fresh∷ (λ ()) fresh[])
-           (ins-there ins-here))))
-     wf-ΔK-arg-int wf-ΔK-conv
+Kshift-⊢ = tc
 
 Karg-⊢ : ΔK-int ∣ [] ⊢ Karg ⦂ ` 0
-Karg-⊢ =
-  env ΘK-dual-mw Kshift-⊢ (conv-seal lookup-K0)
-      (` 1 , same-var here , same-var (there here))
-      (` 0 , same-var here , same-var here)
-      (wf-var (_ , here))
+Karg-⊢ = tc
 
 K₆-inner-⊢ : Δ𝔹 ∣ []
   ⊢ ((ƛ ` 0 ∙ `true) · Karg) ⟪ ΘK , id `𝔹 ⟫ ⦂ `𝔹
-K₆-inner-⊢ =
-  env ΘK-mw (⊢· (⊢ƛ (wf-var (_ , here)) ⊢true) Karg-⊢)
-      (conv-id base-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹) wf-𝔹
+K₆-inner-⊢ = tc
 
 K₆-⊢ : empty ∣ [] ⊢ K₆ ⦂ `𝔹
-K₆-⊢ =
-  env Θ𝔹-mw K₆-inner-⊢ (conv-id base-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹) wf-𝔹
+K₆-⊢ = tc
 
 K₇-inner-⊢ : Δ𝔹 ∣ [] ⊢ `true ⟪ ΘK , id `𝔹 ⟫ ⦂ `𝔹
-K₇-inner-⊢ =
-  env ΘK-mw ⊢true (conv-id base-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹) wf-𝔹
+K₇-inner-⊢ = tc
 
 K₇-⊢ : empty ∣ [] ⊢ K₇ ⦂ `𝔹
-K₇-⊢ =
-  env Θ𝔹-mw K₇-inner-⊢ (conv-id base-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹) wf-𝔹
+K₇-⊢ = tc
 
 K₈-⊢ : empty ∣ [] ⊢ K₈ ⦂ `𝔹
-K₈-⊢ =
-  env Θ𝔹-mw ⊢true (conv-id base-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹)
-      (`𝔹 , same-𝔹 , same-𝔹) wf-𝔹
+K₈-⊢ = tc
 
 K-final-⊢ : empty ∣ [] ⊢ `true ⦂ `𝔹
-K-final-⊢ = ⊢true
+K-final-⊢ = tc
 
 K-final-value : Value `true
 K-final-value = V-true
@@ -1240,333 +598,40 @@ E₅ =
 ΔE-moved-int =
   (bindR (` 0) ∷ abstR ∷ bindR `ℕ ∷ []) ∣ []
 
-ΔE-Z-int ΔE-Z-conv : Ctxᵗ
-ΔE-Z-int =
-  (bindR (` 0) ∷ bindR (` 0) ∷ abstR ∷ bindR `ℕ ∷ [])
-    ∣ (0 ∷ [])
-ΔE-Z-conv =
-  (bindR (` 0) ∷ bindR (` 0) ∷ abstR ∷ bindR `ℕ ∷ [])
-    ∣ (0 ∷ 1 ∷ 3 ∷ [])
-
-wf-E-reps : WfRepCtx (abstR ∷ bindR `ℕ ∷ [])
-wf-E-reps = wf-abstR (wf-bindR wfᴿ-ℕ wf-reps[])
-
-wf-ΔE : WfCtx ΔE
-wf-ΔE =
-  wf-ctx wf-E-reps
-    (λ { here → _ , here ; (there here) → _ , there here })
-    (unique∷ (fresh∷ (λ ()) fresh[]) (unique∷ fresh[] unique[]))
-
-wf-ΔE-Y-int : WfCtx ΔE-Y-int
-wf-ΔE-Y-int =
-  wf-ctx wf-E-reps (λ { here → _ , there here })
-    (unique∷ fresh[] unique[])
-
-wf-ΔE-none : WfCtx ΔE-none
-wf-ΔE-none = wf-ctx wf-E-reps (λ ()) unique[]
-
-wf-EYI-reps :
-  WfRepCtx (bindR (` 0) ∷ abstR ∷ bindR `ℕ ∷ [])
-wf-EYI-reps =
-  wf-bindR (wfᴿ-var (free-ref here)) wf-E-reps
-
-wf-ΔE-YI-int : WfCtx ΔE-YI-int
-wf-ΔE-YI-int =
-  wf-ctx wf-EYI-reps
-    (λ { here → _ , here ; (there here) → _ , there (there here) })
-    (unique∷ (fresh∷ (λ ()) fresh[])
-      (unique∷ fresh[] unique[]))
-
-wf-ΔE-YI-conv : WfCtx ΔE-YI-conv
-wf-ΔE-YI-conv =
-  wf-ctx wf-EYI-reps
-    (λ { here → _ , here
-       ; (there here) → _ , there here
-       ; (there (there here)) → _ , there (there here) })
-    (unique∷ (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[]))
-      (unique∷ (fresh∷ (λ ()) fresh[])
-        (unique∷ fresh[] unique[])))
-
-wf-ΔE-moved-int : WfCtx ΔE-moved-int
-wf-ΔE-moved-int = wf-ctx wf-EYI-reps (λ ()) unique[]
-
-wf-EZ-reps : WfRepCtx
-  (bindR (` 0) ∷ bindR (` 0) ∷ abstR ∷ bindR `ℕ ∷ [])
-wf-EZ-reps =
-  wf-bindR (wfᴿ-var (free-ref here)) wf-EYI-reps
-
-wf-ΔE-Z-int : WfCtx ΔE-Z-int
-wf-ΔE-Z-int =
-  wf-ctx wf-EZ-reps (λ { here → _ , here })
-    (unique∷ fresh[] unique[])
-
-wf-ΔE-Z-conv : WfCtx ΔE-Z-conv
-wf-ΔE-Z-conv =
-  wf-ctx wf-EZ-reps
-    (λ { here → _ , here
-       ; (there here) → _ , there here
-       ; (there (there here)) → _ , there (there (there here)) })
-    (unique∷ (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[]))
-      (unique∷ (fresh∷ (λ ()) fresh[])
-        (unique∷ fresh[] unique[])))
-
-ΘE-Y-mw : MorphWf ΔE ΘE-Y ΔE-Y-int ΔE
-ΘE-Y-mw =
-  mw wf-ΔE binds[]
-    (interior
-      (changes∷ changes[]
-        (step-lock (_ , here) del-here
-          (fresh∷ (λ ()) fresh[]))))
-    (conversion (conv-lock (_ , here) conv[]))
-    wf-ΔE-Y-int wf-ΔE
-
-ΘE-X-mw : MorphWf ΔE-Y-int ΘE-X ΔE-none ΔE-Y-int
-ΘE-X-mw =
-  mw wf-ΔE-Y-int binds[]
-    (interior
-      (changes∷ changes[]
-        (step-lock (_ , there here) del-here fresh[])))
-    (conversion (conv-lock (_ , there here) conv[]))
-    wf-ΔE-none wf-ΔE-Y-int
-
-ΘE-Y-inst-mw : MorphWf ΔE ΘE-Y-inst ΔE-YI-int ΔE-YI-conv
-ΘE-Y-inst-mw =
-  mw wf-ΔE (binds∷ (wfᴿ-var (free-ref here)) binds[])
-    (interior
-      (changes∷
-        (changes∷ changes[]
-          (step-unlock (_ , here)
-            (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[])) ins-here))
-        (step-lock (_ , there here) (del-there del-here)
-          (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[])))))
-    (conversion
-      (conv-lock (_ , there here)
-        (conv-unlock (_ , here) conv[]
-          (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[])) ins-here)))
-    wf-ΔE-YI-int wf-ΔE-YI-conv
-
 ΘE-Y-inst-interior : ΔE ⊢ⁱ ΘE-Y-inst ⇒ ΔE-YI-int
-ΘE-Y-inst-interior = mw-interior ΘE-Y-inst-mw
-
-ΘE-moved-mw : MorphWf ΔE-YI-int ΘE-moved
-  ΔE-moved-int ΔE-YI-int
-ΘE-moved-mw =
-  mw wf-ΔE-YI-int binds[]
-    (interior
-      (changes∷
-        (changes∷ changes[]
-          (step-lock (_ , here) del-here
-            (fresh∷ (λ ()) fresh[])))
-        (step-lock (_ , there (there here)) del-here fresh[])))
-    (conversion
-      (conv-lock (_ , there (there here))
-        (conv-lock (_ , here) conv[])))
-    wf-ΔE-moved-int wf-ΔE-YI-int
-
-ΘE-Z-inst-mw : MorphWf ΔE-YI-int ΘE-Z-inst
-  ΔE-Z-int ΔE-Z-conv
-ΘE-Z-inst-mw =
-  mw wf-ΔE-YI-int (binds∷ (wfᴿ-var (free-ref here)) binds[])
-    (interior
-      (changes∷
-        (changes∷
-          (changes∷ changes[]
-            (step-unlock (_ , here)
-              (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[])) ins-here))
-          (step-lock (_ , there here) (del-there del-here)
-            (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[]))))
-        (step-lock (_ , there (there (there here)))
-          (del-there del-here) (fresh∷ (λ ()) fresh[]))))
-    (conversion
-      (conv-lock (_ , there (there (there here)))
-        (conv-lock (_ , there here)
-          (conv-unlock (_ , here) conv[]
-            (fresh∷ (λ ()) (fresh∷ (λ ()) fresh[])) ins-here))))
-    wf-ΔE-Z-int wf-ΔE-Z-conv
+ΘE-Y-inst-interior = proj₂ (int! ΔE ΘE-Y-inst)
 
 Eid↦Eid-⊢ : ∀ {Γ} → underΛ Γ ⊢ id (` 0) ↦ id (` 0)
   ∶ (` 0 ⇒ ` 0) ⇝ (` 0 ⇒ ` 0)
 Eid↦Eid-⊢ =
   conv-fun (conv-idv (_ , here)) (conv-idv (_ , here))
 
-unique-underΛΔE : Unique (names (underΛ ΔE))
-unique-underΛΔE = unique-underΛ { Γ = ΔE } (name-fn wf-ΔE)
-
-unique-underΛΔE-moved : Unique (names (underΛ ΔE-YI-int))
-unique-underΛΔE-moved =
-  unique-underΛ { Γ = ΔE-YI-int } (name-fn wf-ΔE-YI-int)
-
-wf-EID : ∀ {Γ} → Γ ⊢ᵗ EID
-wf-EID = wf-∀ (wf-⇒ (wf-var (_ , here)) (wf-var (_ , here)))
-
-same-EID : ∀ {Γ Γ′} → SameTy Γ EID Γ′ EID
-same-EID =
-  EID , same-∀ (same-⇒ (same-var here) (same-var here))
-      , same-∀ (same-⇒ (same-var here) (same-var here))
-
-shiftRep-EID : ∀ n → shiftRep n EID ≡ EID
-shiftRep-EID zero = refl
-shiftRep-EID (suc n) rewrite shiftRep-EID n = refl
-
-sameExt-EID₁ : ∀ {Γ Γ′} → SameTyExt 1 Γ EID Γ′ EID
-sameExt-EID₁ =
-  EID , same-∀ (same-⇒ (same-var here) (same-var here))
-      , same-∀ (same-⇒ (same-var here) (same-var here))
-
-Eid∀-⊢ : ∀ {Γ} → Γ ⊢ Eid∀ ∶ EID ⇝ EID
-Eid∀-⊢ = conv-all Eid↦Eid-⊢
-
-Earg-⊢ : ∀ {Γ Δ} → Γ ∣ Δ ⊢ Earg ⦂ EID
-Earg-⊢ = ⊢Λ (⊢ƛ (wf-var (_ , here)) (⊢` here))
-
-Efun-⊢ : empty ∣ [] ⊢ Efun ⦂ `∀ EBod
-Efun-⊢ =
-  ⊢Λ (⊢ƛ wf-EID
-    (⊢Λ (⊢·[] (⊢` here) (wf-var (_ , here)))))
-
 E₀-⊢ : empty ∣ [] ⊢ E₀ ⦂ EID
-E₀-⊢ = ⊢· (⊢·[] Efun-⊢ wf-ℕ) Earg-⊢
+E₀-⊢ = tc
 
 E₁-⊢ : empty ∣ [] ⊢ E₁ ⦂ EID
-E₁-⊢ = ⊢· wrapped Earg-⊢
-  where
-  wrapped : empty ∣ [] ⊢
-    (ƛ EID ∙ Ebody) ⟪ TyBetaMorph , Eid∀ ↦ Eid∀ ⟫ ⦂ EBod
-  wrapped =
-    env TyBeta-mw
-      (⊢ƛ wf-EID
-        (⊢Λ (⊢·[] (⊢` here) (wf-var (_ , here)))))
-      (conv-fun Eid∀-⊢ Eid∀-⊢)
-      (EBod
-        , same-⇒
-            (same-∀ (same-⇒ (same-var here) (same-var here)))
-            (same-∀ (same-⇒ (same-var here) (same-var here)))
-        , same-⇒
-            (same-∀ (same-⇒ (same-var here) (same-var here)))
-            (same-∀ (same-⇒ (same-var here) (same-var here))))
-      (EBod
-        , same-⇒
-            (same-∀ (same-⇒ (same-var here) (same-var here)))
-            (same-∀ (same-⇒ (same-var here) (same-var here)))
-        , same-⇒
-            (same-∀ (same-⇒ (same-var here) (same-var here)))
-            (same-∀ (same-⇒ (same-var here) (same-var here))))
-      (wf-⇒ wf-EID wf-EID)
-
-EW-⊢ : ∀ {Γ} → Δℕ ∣ Γ ⊢ EW ⦂ EID
-EW-⊢ =
-  env Θℕ-dual-mw Earg-⊢ (Eid∀-⊢ { Γ = Δℕ })
-    (same-EID { Γ = Δℕ-lock } { Γ′ = Δℕ })
-    (same-EID { Γ = Δℕ } { Γ′ = Δℕ }) wf-EID
+E₁-⊢ = tc
 
 E₂-⊢ : empty ∣ [] ⊢ E₂ ⦂ EID
-E₂-⊢ =
-  env TyBeta-mw
-    (⊢·
-      (⊢ƛ wf-EID
-        (⊢Λ (⊢·[] (⊢` here) (wf-var (_ , here)))))
-      EW-⊢)
-    (Eid∀-⊢ { Γ = Δℕ })
-    (same-EID { Γ = Δℕ } { Γ′ = Δℕ })
-    (sameExt-EID₁ { Γ = empty } { Γ′ = Δℕ }) wf-EID
-
-EW-cross-⊢ : ∀ {Γ} → ΔE ∣ Γ ⊢ EW-cross ⦂ EID
-EW-cross-⊢ =
-  env ΘE-Y-mw
-    (env ΘE-X-mw Earg-⊢ (Eid∀-⊢ { Γ = ΔE-Y-int })
-      (same-EID { Γ = ΔE-none } { Γ′ = ΔE-Y-int })
-      (same-EID { Γ = ΔE-Y-int } { Γ′ = ΔE-Y-int }) wf-EID)
-    (Eid∀-⊢ { Γ = ΔE })
-    (same-EID { Γ = ΔE-Y-int } { Γ′ = ΔE })
-    (same-EID { Γ = ΔE } { Γ′ = ΔE }) wf-EID
+E₂-⊢ = tc
 
 E₃-⊢ : empty ∣ [] ⊢ E₃ ⦂ EID
-E₃-⊢ =
-  env TyBeta-mw
-    (⊢Λ (⊢·[] EW-cross-⊢ (wf-var (_ , here))))
-    (Eid∀-⊢ { Γ = Δℕ })
-    (same-EID { Γ = Δℕ } { Γ′ = Δℕ })
-    (sameExt-EID₁ { Γ = empty } { Γ′ = Δℕ }) wf-EID
-
-lookup-EYI0 : ΔE-YI-conv ∋ 0 := ` 1
-lookup-EYI0 = 0 , ` 1 , here , r-here , same-var (there here)
-
-lookup-EZ0 : ΔE-Z-conv ∋ 0 := ` 1
-lookup-EZ0 = 0 , ` 1 , here , r-here , same-var (there here)
-
-Emoved-⊢ : ΔE-YI-int ∣ [] ⊢ Earg ⟪ ΘE-moved , Eid∀ ⟫ ⦂ EID
-Emoved-⊢ =
-  env ΘE-moved-mw Earg-⊢ (Eid∀-⊢ { Γ = ΔE-YI-int })
-    (same-EID { Γ = ΔE-moved-int } { Γ′ = ΔE-YI-int })
-    (same-EID { Γ = ΔE-YI-int } { Γ′ = ΔE-YI-int }) wf-EID
-
-same-E00 : SameTy ΔE-YI-int (` 0 ⇒ ` 0)
-  ΔE-YI-conv (` 0 ⇒ ` 0)
-same-E00 =
-  ` 0 ⇒ ` 0 , same-⇒ (same-var here) (same-var here)
-                  , same-⇒ (same-var here) (same-var here)
-
-sameExt-E01 : SameTyExt 1 ΔE (` 0 ⇒ ` 0)
-  ΔE-YI-conv (` 1 ⇒ ` 1)
-sameExt-E01 =
-  ` 0 ⇒ ` 0 , same-⇒ (same-var here) (same-var here)
-                  , same-⇒ (same-var (there here))
-                                (same-var (there here))
-
-E₄-inner-⊢ : ΔE ∣ [] ⊢
-  ((Earg ⟪ ΘE-moved , Eid∀ ⟫) ·[ ` 0 ⇒ ` 0 , ` 0 ])
-    ⟪ ΘE-Y-inst , seal 0 ↦ unseal 0 ⟫ ⦂ (` 0 ⇒ ` 0)
-E₄-inner-⊢ =
-  env ΘE-Y-inst-mw
-    (⊢·[] Emoved-⊢ (wf-var (_ , here)))
-    (conv-fun (conv-seal lookup-EYI0) (conv-unseal lookup-EYI0))
-    same-E00 sameExt-E01
-    (wf-⇒ (wf-var (_ , here)) (wf-var (_ , here)))
+E₃-⊢ = tc
 
 E₄-⊢ : empty ∣ [] ⊢ E₄ ⦂ EID
-E₄-⊢ =
-  env TyBeta-mw (⊢Λ E₄-inner-⊢)
-    (Eid∀-⊢ { Γ = Δℕ })
-    (same-EID { Γ = Δℕ } { Γ′ = Δℕ })
-    (sameExt-EID₁ { Γ = empty } { Γ′ = Δℕ }) wf-EID
-
-same-EZ00 : SameTy ΔE-Z-int (` 0 ⇒ ` 0)
-  ΔE-Z-conv (` 0 ⇒ ` 0)
-same-EZ00 =
-  ` 0 ⇒ ` 0 , same-⇒ (same-var here) (same-var here)
-                  , same-⇒ (same-var here) (same-var here)
-
-sameExt-EZ01 : SameTyExt 1 ΔE-YI-int (` 0 ⇒ ` 0)
-  ΔE-Z-conv (` 1 ⇒ ` 1)
-sameExt-EZ01 =
-  ` 0 ⇒ ` 0 , same-⇒ (same-var here) (same-var here)
-                  , same-⇒ (same-var (there here))
-                                (same-var (there here))
+E₄-⊢ = tc
 
 E₅-head-⊢ : ΔE-YI-int ∣ [] ⊢
   (ƛ ` 0 ∙ ` 0) ⟪ ΘE-Z-inst , seal 0 ↦ unseal 0 ⟫
     ⦂ (` 0 ⇒ ` 0)
-E₅-head-⊢ =
-  env ΘE-Z-inst-mw
-    (⊢ƛ (wf-var (_ , here)) (⊢` here))
-    (conv-fun (conv-seal lookup-EZ0) (conv-unseal lookup-EZ0))
-    same-EZ00 sameExt-EZ01
-    (wf-⇒ (wf-var (_ , here)) (wf-var (_ , here)))
+E₅-head-⊢ = tc
 
 E₅-inner-⊢ : ΔE ∣ [] ⊢
   E₅-head ⟪ ΘE-Y-inst , seal 0 ↦ unseal 0 ⟫ ⦂ (` 0 ⇒ ` 0)
-E₅-inner-⊢ =
-  env ΘE-Y-inst-mw E₅-head-⊢
-    (conv-fun (conv-seal lookup-EYI0) (conv-unseal lookup-EYI0))
-    same-E00 sameExt-E01
-    (wf-⇒ (wf-var (_ , here)) (wf-var (_ , here)))
+E₅-inner-⊢ = tc
 
 E₅-⊢ : empty ∣ [] ⊢ E₅ ⦂ EID
-E₅-⊢ =
-  env TyBeta-mw (⊢Λ E₅-inner-⊢)
-    (Eid∀-⊢ { Γ = Δℕ })
-    (same-EID { Γ = Δℕ } { Γ′ = Δℕ })
-    (sameExt-EID₁ { Γ = empty } { Γ′ = Δℕ }) wf-EID
+E₅-⊢ = tc
 
 E-step₀ : empty ⊢ E₀ -→ E₁
 E-step₀ = ξ-·-l (TyBeta V-ƛ same-ℕ)
@@ -1584,8 +649,8 @@ E-step₃ =
   ξ-⟪⟫ TyBeta-interior
     (ξ-Λ
       (TyPeelR-⟪⟫ (V-Λ V-ƛ)
-        (mw-conversion ΘE-Y-mw)
-        unique-underΛΔE Eid↦Eid-⊢ (same-var here)))
+        (proj₂ (conv! ΔE ΘE-Y))
+        tu Eid↦Eid-⊢ (same-var here)))
 
 E-step₄ : empty ⊢ E₄ -→ E₅
 E-step₄ =
@@ -1593,8 +658,8 @@ E-step₄ =
     (ξ-Λ
       (ξ-⟪⟫ (ΘE-Y-inst-interior)
         (TyPeelR-Λ V-ƛ
-          (mw-conversion ΘE-moved-mw)
-          unique-underΛΔE-moved Eid↦Eid-⊢
+          (proj₂ (conv! ΔE-YI-int ΘE-moved))
+          tu Eid↦Eid-⊢
           (same-var here))))
 
 E₀ᴮ E₁ᴮ E₂ᴮ E₃ᴮ E₄ᴮ E₅ᴮ : Term
@@ -1606,22 +671,22 @@ E₄ᴮ = (E₄ ·[ ` 0 ⇒ ` 0 , `𝔹 ]) · `true
 E₅ᴮ = (E₅ ·[ ` 0 ⇒ ` 0 , `𝔹 ]) · `true
 
 E₀ᴮ-⊢ : empty ∣ [] ⊢ E₀ᴮ ⦂ `𝔹
-E₀ᴮ-⊢ = ⊢· (⊢·[] E₀-⊢ wf-𝔹) ⊢true
+E₀ᴮ-⊢ = tc
 
 E₁ᴮ-⊢ : empty ∣ [] ⊢ E₁ᴮ ⦂ `𝔹
-E₁ᴮ-⊢ = ⊢· (⊢·[] E₁-⊢ wf-𝔹) ⊢true
+E₁ᴮ-⊢ = tc
 
 E₂ᴮ-⊢ : empty ∣ [] ⊢ E₂ᴮ ⦂ `𝔹
-E₂ᴮ-⊢ = ⊢· (⊢·[] E₂-⊢ wf-𝔹) ⊢true
+E₂ᴮ-⊢ = tc
 
 E₃ᴮ-⊢ : empty ∣ [] ⊢ E₃ᴮ ⦂ `𝔹
-E₃ᴮ-⊢ = ⊢· (⊢·[] E₃-⊢ wf-𝔹) ⊢true
+E₃ᴮ-⊢ = tc
 
 E₄ᴮ-⊢ : empty ∣ [] ⊢ E₄ᴮ ⦂ `𝔹
-E₄ᴮ-⊢ = ⊢· (⊢·[] E₄-⊢ wf-𝔹) ⊢true
+E₄ᴮ-⊢ = tc
 
 E₅ᴮ-⊢ : empty ∣ [] ⊢ E₅ᴮ ⦂ `𝔹
-E₅ᴮ-⊢ = ⊢· (⊢·[] E₅-⊢ wf-𝔹) ⊢true
+E₅ᴮ-⊢ = tc
 
 Eᴮ-step₀ : empty ⊢ E₀ᴮ -→ E₁ᴮ
 Eᴮ-step₀ = ξ-·-l (ξ-·[] E-step₀)
@@ -1637,3 +702,517 @@ Eᴮ-step₃ = ξ-·-l (ξ-·[] E-step₃)
 
 Eᴮ-step₄ : empty ⊢ E₄ᴮ -→ E₅ᴮ
 Eᴮ-step₄ = ξ-·-l (ξ-·[] E-step₄)
+
+------------------------------------------------------------------------
+-- 4 (continued). The later-bound identity, instantiated and run to `true`
+--
+-- The frames below are COMPOSITES: `CancelR` and `IdPush` replace their
+-- two frames by `Θ₁ ⋉ Θ₂` and `rewind Θ₂`, whose change lists are the
+-- concatenations of their arguments', so the last ones in this run carry
+-- tens of changes each.  That is what made the checker necessary — and
+-- what broke the conversion context, which the end of this section
+-- records.
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+-- the three live frames and the contexts they induce
+------------------------------------------------------------------------
+
+Θa Θb Θc : CtxMorph
+Θa = instantiate `𝔹 TyBetaMorph
+Θb = ΘE-Y-inst
+Θc = ΘE-Z-inst
+
+Θa-explicit : Θa ≡ morph (`𝔹 ∷ `ℕ ∷ []) (unlock 1 1 ∷ unlock 0 0 ∷ [])
+Θa-explicit = refl
+
+repsA repsB repsC : RepCtx
+repsA = bindR `𝔹 ∷ bindR `ℕ ∷ []
+repsB = bindR (` 0) ∷ repsA
+repsC = bindR (` 0) ∷ repsB
+
+Δa Δa-none : Ctxᵗ
+Δa = repsA ∣ (0 ∷ 1 ∷ [])
+Δa-none = repsA ∣ []
+
+Δb-int Δb-conv Δb-arg Δb-none : Ctxᵗ
+Δb-int = repsB ∣ (0 ∷ 2 ∷ [])
+Δb-conv = repsB ∣ (0 ∷ 1 ∷ 2 ∷ [])
+Δb-arg = repsB ∣ (1 ∷ 2 ∷ [])
+Δb-none = repsB ∣ []
+
+Δc-int Δc-conv Δc-arg Δc-mid Δc-in Δc-none Δc-full : Ctxᵗ
+Δc-int = repsC ∣ (0 ∷ [])
+Δc-conv = repsC ∣ (0 ∷ 1 ∷ 3 ∷ [])
+Δc-arg = repsC ∣ (1 ∷ 3 ∷ [])
+Δc-mid = repsC ∣ (1 ∷ 2 ∷ 3 ∷ [])
+Δc-in = repsC ∣ (2 ∷ 3 ∷ [])
+Δc-none = repsC ∣ []
+Δc-full = repsC ∣ (0 ∷ 1 ∷ 2 ∷ 3 ∷ [])
+
+------------------------------------------------------------------------
+-- E₅ᴮ instantiates: TyPeelR-Λ
+------------------------------------------------------------------------
+
+sc : Conv
+sc = seal 0 ↦ unseal 0
+
+U H G E₆ E₆ᴮ : Term
+U = ƛ ` 0 ∙ ` 0
+H = U ⟪ Θc , sc ⟫
+G = H ⟪ Θb , sc ⟫
+E₆ = G ⟪ Θa , sc ⟫
+E₆ᴮ = E₆ · `true
+
+Eᴮ-step₅ : empty ⊢ E₅ᴮ -→ E₆ᴮ
+Eᴮ-step₅ =
+  ξ-·-l
+    (TyPeelR-Λ (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun)
+      TyBeta-conversion tu
+      (Eid↦Eid-⊢ { Γ = Δℕ }) same-𝔹)
+
+U-⊢ : Δc-int ∣ [] ⊢ U ⦂ (` 0 ⇒ ` 0)
+U-⊢ = tc
+
+H-⊢ : Δb-int ∣ [] ⊢ H ⦂ (` 0 ⇒ ` 0)
+H-⊢ = tc
+
+G-⊢ : Δa ∣ [] ⊢ G ⦂ (` 0 ⇒ ` 0)
+G-⊢ = tc
+
+E₆-⊢ : empty ∣ [] ⊢ E₆ ⦂ (`𝔹 ⇒ `𝔹)
+E₆-⊢ = tc
+
+E₆ᴮ-⊢ : empty ∣ [] ⊢ E₆ᴮ ⦂ `𝔹
+E₆ᴮ-⊢ = tc
+
+------------------------------------------------------------------------
+-- the three Peels and the Beta
+------------------------------------------------------------------------
+
+A₁ A₂ A₃ : Term
+A₁ = renᴹ² (ren² idᵗ (wkN (numBinds Θa))) `true ⟪ dualMorph Θa , seal 0 ⟫
+A₂ = renᴹ² (ren² idᵗ (wkN (numBinds Θb))) A₁ ⟪ dualMorph Θb , seal 0 ⟫
+A₃ = renᴹ² (ren² idᵗ (wkN (numBinds Θc))) A₂ ⟪ dualMorph Θc , seal 0 ⟫
+
+A₁-explicit : A₁ ≡ `true ⟪ morph [] (lock 0 0 ∷ lock 1 1 ∷ []) , seal 0 ⟫
+A₁-explicit = refl
+
+A₂-explicit : A₂ ≡
+  (`true ⟪ morph [] (lock 0 1 ∷ lock 1 2 ∷ []) , seal 0 ⟫)
+    ⟪ morph [] (lock 0 0 ∷ unlock 1 1 ∷ []) , seal 0 ⟫
+A₂-explicit = refl
+
+A₃-explicit : A₃ ≡
+  ((`true ⟪ morph [] (lock 0 2 ∷ lock 1 3 ∷ []) , seal 0 ⟫)
+     ⟪ morph [] (lock 0 1 ∷ unlock 1 2 ∷ []) , seal 0 ⟫)
+    ⟪ morph [] (lock 0 0 ∷ unlock 1 1 ∷ unlock 1 3 ∷ []) , seal 0 ⟫
+A₃-explicit = refl
+
+Σi Σo : CtxMorph
+Σi = morph [] (lock 0 2 ∷ lock 1 3 ∷ [])
+Σo = morph [] (lock 0 1 ∷ unlock 1 2 ∷ [])
+
+A₂in A₂shift : Term
+A₂in = `true ⟪ Σi , seal 0 ⟫
+A₂shift = A₂in ⟪ Σo , seal 0 ⟫
+
+A₂shift-explicit :
+  renᴹ² (ren² idᵗ (wkN (numBinds Θc))) A₂ ≡ A₂shift
+A₂shift-explicit = refl
+
+E₇ E₈ E₉ E₁₀ : Term
+E₇ = (G · A₁) ⟪ Θa , unseal 0 ⟫
+E₈ = ((H · A₂) ⟪ Θb , unseal 0 ⟫) ⟪ Θa , unseal 0 ⟫
+E₉ = (((U · A₃) ⟪ Θc , unseal 0 ⟫) ⟪ Θb , unseal 0 ⟫)
+       ⟪ Θa , unseal 0 ⟫
+E₁₀ = ((A₃ ⟪ Θc , unseal 0 ⟫) ⟪ Θb , unseal 0 ⟫) ⟪ Θa , unseal 0 ⟫
+
+Eᴮ-step₆ : empty ⊢ E₆ᴮ -→ E₇
+Eᴮ-step₆ = Peel (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun) V-true
+
+Eᴮ-step₇ : empty ⊢ E₇ -→ E₈
+Eᴮ-step₇ =
+  ξ-⟪⟫ (proj₂ (int! empty Θa))
+    (Peel (V-⟪⟫ V-ƛ I-fun) (V-⟪⟫ V-true I-seal))
+
+Eᴮ-step₈ : empty ⊢ E₈ -→ E₉
+Eᴮ-step₈ =
+  ξ-⟪⟫ (proj₂ (int! empty Θa))
+    (ξ-⟪⟫ (proj₂ (int! Δa Θb))
+      (Peel V-ƛ (V-⟪⟫ (V-⟪⟫ V-true I-seal) I-seal)))
+
+Eᴮ-step₉ : empty ⊢ E₉ -→ E₁₀
+Eᴮ-step₉ =
+  ξ-⟪⟫ (proj₂ (int! empty Θa))
+    (ξ-⟪⟫ (proj₂ (int! Δa Θb))
+      (ξ-⟪⟫ (proj₂ (int! Δb-int Θc))
+        (Beta (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-true I-seal) I-seal) I-seal))))
+
+A₁-⊢ : Δa ∣ [] ⊢ A₁ ⦂ ` 0
+A₁-⊢ = tc
+
+A₁shift-⊢ : Δb-arg ∣ []
+  ⊢ renᴹ² (ren² idᵗ (wkN (numBinds Θb))) A₁ ⦂ ` 0
+A₁shift-⊢ = tc
+
+A₂-⊢ : Δb-int ∣ [] ⊢ A₂ ⦂ ` 0
+A₂-⊢ = tc
+
+A₂in-⊢ : Δc-in ∣ [] ⊢ A₂in ⦂ ` 0
+A₂in-⊢ = tc
+
+A₂shift-⊢ : Δc-arg ∣ []
+  ⊢ renᴹ² (ren² idᵗ (wkN (numBinds Θc))) A₂ ⦂ ` 0
+A₂shift-⊢ = tc
+
+A₃-⊢ : Δc-int ∣ [] ⊢ A₃ ⦂ ` 0
+A₃-⊢ = tc
+
+E₇-⊢ : empty ∣ [] ⊢ E₇ ⦂ `𝔹
+E₇-⊢ = tc
+
+E₈-⊢ : empty ∣ [] ⊢ E₈ ⦂ `𝔹
+E₈-⊢ = tc
+
+E₉-⊢ : empty ∣ [] ⊢ E₉ ⦂ `𝔹
+E₉-⊢ = tc
+
+E₁₀-⊢ : empty ∣ [] ⊢ E₁₀ ⦂ `𝔹
+E₁₀-⊢ = tc
+
+------------------------------------------------------------------------
+-- the cancellation tower
+------------------------------------------------------------------------
+
+Dc Ψc Rc : CtxMorph
+Dc = dualMorph Θc
+Ψc = Dc ⋉ Θc
+Rc = rewind Θc
+
+Rc-explicit : Rc ≡
+  morph (` 0 ∷ [])
+    (lock 0 0 ∷ unlock 1 1 ∷ unlock 1 3
+       ∷ lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
+Rc-explicit = refl
+
+E₁₁ : Term
+E₁₁ =
+  (((A₂shift ⟪ Ψc , id (` 1) ⟫) ⟪ Rc , id (` 1) ⟫) ⟪ Θb , unseal 0 ⟫)
+    ⟪ Θa , unseal 0 ⟫
+
+Eᴮ-step₁₀ : empty ⊢ E₁₀ -→ E₁₁
+Eᴮ-step₁₀ =
+  ξ-⟪⟫ (proj₂ (int! empty Θa))
+    (ξ-⟪⟫ (proj₂ (int! Δa Θb))
+      (CancelR (V-⟪⟫ (V-⟪⟫ V-true I-seal) I-seal)
+        (proj₂ (conv! Δb-int Θc)) tu
+        (proj₂ (sq! Δc-conv 0))))
+
+I₁-⊢ : Δc-arg ∣ [] ⊢ A₂shift ⟪ Ψc , id (` 1) ⟫ ⦂ ` 0
+I₁-⊢ = tc
+
+E₁₁-⊢ : empty ∣ [] ⊢ E₁₁ ⦂ `𝔹
+E₁₁-⊢ = tc
+
+------------------------------------------------------------------------
+-- IdPush chain, round one
+------------------------------------------------------------------------
+
+RbΘa Θ₄ : CtxMorph
+Θ₄ = Rc ⋉ Θb
+RbΘa = rewind Θb
+
+I₁ : Term
+I₁ = A₂shift ⟪ Ψc , id (` 1) ⟫
+
+I₁-value : Value I₁
+I₁-value = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-true I-seal) I-seal) I-idv
+
+E₁₂ : Term
+E₁₂ =
+  ((I₁ ⟪ Θ₄ , unseal 1 ⟫) ⟪ RbΘa , id (` 1) ⟫) ⟪ Θa , unseal 0 ⟫
+
+Eᴮ-step₁₁ : empty ⊢ E₁₁ -→ E₁₂
+Eᴮ-step₁₁ =
+  ξ-⟪⟫ (proj₂ (int! empty Θa))
+    (IdPush I₁-value (proj₂ (conv! Δa Θb)) tu
+      (proj₂ (sq! Δb-conv 0)))
+
+E₁₂-⊢ : empty ∣ [] ⊢ E₁₂ ⦂ `𝔹
+E₁₂-⊢ = tc
+
+Ω R₄ : CtxMorph
+Ω = Ψc ⋉ Θ₄
+R₄ = rewind Θ₄
+
+E₁₃ : Term
+E₁₃ =
+  (((A₂shift ⟪ Ω , unseal 1 ⟫) ⟪ R₄ , id (` 2) ⟫)
+     ⟪ RbΘa , id (` 1) ⟫)
+    ⟪ Θa , unseal 0 ⟫
+
+Eᴮ-step₁₂ : empty ⊢ E₁₂ -→ E₁₃
+Eᴮ-step₁₂ =
+  ξ-⟪⟫ (proj₂ (int! empty Θa))
+    (ξ-⟪⟫ (proj₂ (int! Δa RbΘa))
+      (IdPush (V-⟪⟫ (V-⟪⟫ V-true I-seal) I-seal)
+        (proj₂ (conv! Δb-arg Θ₄)) tu
+        (proj₂ (sq! Δc-full 1))))
+
+E₁₃-⊢ : empty ∣ [] ⊢ E₁₃ ⦂ `𝔹
+E₁₃-⊢ = tc
+
+------------------------------------------------------------------------
+-- the second cancellation
+------------------------------------------------------------------------
+
+ΣΩ RΩ : CtxMorph
+ΣΩ = Σo ⋉ Ω
+RΩ = rewind Ω
+
+E₁₄ : Term
+E₁₄ =
+  ((((A₂in ⟪ ΣΩ , id (` 2) ⟫) ⟪ RΩ , id (` 2) ⟫) ⟪ R₄ , id (` 2) ⟫)
+     ⟪ RbΘa , id (` 1) ⟫)
+    ⟪ Θa , unseal 0 ⟫
+
+Eᴮ-step₁₃ : empty ⊢ E₁₃ -→ E₁₄
+Eᴮ-step₁₃ =
+  ξ-⟪⟫ (proj₂ (int! empty Θa))
+    (ξ-⟪⟫ (proj₂ (int! Δa RbΘa))
+      (ξ-⟪⟫ (proj₂ (int! Δb-arg R₄))
+        (CancelR (V-⟪⟫ V-true I-seal)
+          (proj₂ (conv! Δc-in Ω)) tu
+          (proj₂ (sq! Δc-full 1)))))
+
+E₁₄-⊢ : empty ∣ [] ⊢ E₁₄ ⦂ `𝔹
+E₁₄-⊢ = tc
+
+------------------------------------------------------------------------
+-- the outward IdPush chain and the last cancellation
+------------------------------------------------------------------------
+
+Ra P₅ Q₅ P₄ Q₄ P₃ Q₃ P₂ Q₂ P₁ : CtxMorph
+Ra = rewind Θa
+P₅ = RbΘa ⋉ Θa
+Q₅ = rewind P₅
+P₄ = R₄ ⋉ P₅
+Q₄ = rewind P₄
+P₃ = RΩ ⋉ P₄
+Q₃ = rewind P₃
+P₂ = ΣΩ ⋉ P₃
+Q₂ = rewind P₂
+P₁ = Σi ⋉ P₂
+
+L₄ : Term
+L₄ = (A₂in ⟪ ΣΩ , id (` 2) ⟫) ⟪ RΩ , id (` 2) ⟫
+
+L₄-value : Value L₄
+L₄-value = V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-true I-seal) I-idv) I-idv
+
+E₁₅ E₁₆ E₁₇ E₁₈ E₁₉ : Term
+E₁₅ = ((L₄ ⟪ R₄ , id (` 2) ⟫) ⟪ P₅ , unseal 1 ⟫) ⟪ Ra , id `𝔹 ⟫
+E₁₆ = ((L₄ ⟪ P₄ , unseal 2 ⟫) ⟪ Q₅ , id `𝔹 ⟫) ⟪ Ra , id `𝔹 ⟫
+E₁₇ =
+  ((((A₂in ⟪ ΣΩ , id (` 2) ⟫) ⟪ P₃ , unseal 2 ⟫) ⟪ Q₄ , id `𝔹 ⟫)
+     ⟪ Q₅ , id `𝔹 ⟫)
+    ⟪ Ra , id `𝔹 ⟫
+E₁₈ =
+  (((((A₂in ⟪ P₂ , unseal 2 ⟫) ⟪ Q₃ , id `𝔹 ⟫) ⟪ Q₄ , id `𝔹 ⟫)
+      ⟪ Q₅ , id `𝔹 ⟫)
+     ⟪ Ra , id `𝔹 ⟫)
+E₁₉ =
+  ((((((`true ⟪ P₁ , id `𝔹 ⟫) ⟪ Q₂ , id `𝔹 ⟫) ⟪ Q₃ , id `𝔹 ⟫)
+       ⟪ Q₄ , id `𝔹 ⟫)
+      ⟪ Q₅ , id `𝔹 ⟫)
+     ⟪ Ra , id `𝔹 ⟫)
+
+Eᴮ-step₁₄ : empty ⊢ E₁₄ -→ E₁₅
+Eᴮ-step₁₄ =
+  IdPush (V-⟪⟫ L₄-value I-idv) (proj₂ (conv! empty Θa))
+    tu (proj₂ (sq! Δa 0))
+
+Eᴮ-step₁₅ : empty ⊢ E₁₅ -→ E₁₆
+Eᴮ-step₁₅ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (IdPush L₄-value (proj₂ (conv! Δa-none P₅)) tu
+      (proj₂ (sq! Δb-conv 1)))
+
+Eᴮ-step₁₆ : empty ⊢ E₁₆ -→ E₁₇
+Eᴮ-step₁₆ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (ξ-⟪⟫ (proj₂ (int! Δa-none Q₅))
+      (IdPush (V-⟪⟫ (V-⟪⟫ V-true I-seal) I-idv)
+        (proj₂ (conv! Δb-none P₄)) tu
+        (proj₂ (sq! Δc-full 2))))
+
+Eᴮ-step₁₇ : empty ⊢ E₁₇ -→ E₁₈
+Eᴮ-step₁₇ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (ξ-⟪⟫ (proj₂ (int! Δa-none Q₅))
+      (ξ-⟪⟫ (proj₂ (int! Δb-none Q₄))
+        (IdPush (V-⟪⟫ V-true I-seal)
+          (proj₂ (conv! Δc-none P₃)) tu
+          (proj₂ (sq! Δc-full 2)))))
+
+Eᴮ-step₁₈ : empty ⊢ E₁₈ -→ E₁₉
+Eᴮ-step₁₈ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (ξ-⟪⟫ (proj₂ (int! Δa-none Q₅))
+      (ξ-⟪⟫ (proj₂ (int! Δb-none Q₄))
+        (ξ-⟪⟫ (proj₂ (int! Δc-none Q₃))
+          (CancelR V-true (proj₂ (conv! Δc-none P₂))
+            tu (proj₂ (sq! Δc-full 2))))))
+
+E₂₀ E₂₁ E₂₂ E₂₃ E₂₄ : Term
+E₂₀ =
+  (((((`true ⟪ Q₂ , id `𝔹 ⟫) ⟪ Q₃ , id `𝔹 ⟫) ⟪ Q₄ , id `𝔹 ⟫)
+      ⟪ Q₅ , id `𝔹 ⟫)
+     ⟪ Ra , id `𝔹 ⟫)
+E₂₁ =
+  ((((`true ⟪ Q₃ , id `𝔹 ⟫) ⟪ Q₄ , id `𝔹 ⟫) ⟪ Q₅ , id `𝔹 ⟫)
+     ⟪ Ra , id `𝔹 ⟫)
+E₂₂ = (((`true ⟪ Q₄ , id `𝔹 ⟫) ⟪ Q₅ , id `𝔹 ⟫) ⟪ Ra , id `𝔹 ⟫)
+E₂₃ = ((`true ⟪ Q₅ , id `𝔹 ⟫) ⟪ Ra , id `𝔹 ⟫)
+E₂₄ = (`true ⟪ Ra , id `𝔹 ⟫)
+
+Eᴮ-step₁₉ : empty ⊢ E₁₉ -→ E₂₀
+Eᴮ-step₁₉ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (ξ-⟪⟫ (proj₂ (int! Δa-none Q₅))
+      (ξ-⟪⟫ (proj₂ (int! Δb-none Q₄))
+        (ξ-⟪⟫ (proj₂ (int! Δc-none Q₃))
+          (ξ-⟪⟫ (proj₂ (int! Δc-none Q₂)) Drop-true))))
+
+Eᴮ-step₂₀ : empty ⊢ E₂₀ -→ E₂₁
+Eᴮ-step₂₀ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (ξ-⟪⟫ (proj₂ (int! Δa-none Q₅))
+      (ξ-⟪⟫ (proj₂ (int! Δb-none Q₄))
+        (ξ-⟪⟫ (proj₂ (int! Δc-none Q₃)) Drop-true)))
+
+Eᴮ-step₂₁ : empty ⊢ E₂₁ -→ E₂₂
+Eᴮ-step₂₁ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (ξ-⟪⟫ (proj₂ (int! Δa-none Q₅))
+      (ξ-⟪⟫ (proj₂ (int! Δb-none Q₄)) Drop-true))
+
+Eᴮ-step₂₂ : empty ⊢ E₂₂ -→ E₂₃
+Eᴮ-step₂₂ =
+  ξ-⟪⟫ (proj₂ (int! empty Ra))
+    (ξ-⟪⟫ (proj₂ (int! Δa-none Q₅)) Drop-true)
+
+Eᴮ-step₂₃ : empty ⊢ E₂₃ -→ E₂₄
+Eᴮ-step₂₃ = ξ-⟪⟫ (proj₂ (int! empty Ra)) Drop-true
+
+Eᴮ-step₂₄ : empty ⊢ E₂₄ -→ `true
+Eᴮ-step₂₄ = Drop-true
+
+Eᴮ-run : empty ⊢ E₀ᴮ -→* `true
+Eᴮ-run =
+  Eᴮ-step₀ then Eᴮ-step₁ then Eᴮ-step₂ then Eᴮ-step₃ then
+  Eᴮ-step₄ then Eᴮ-step₅ then Eᴮ-step₆ then Eᴮ-step₇ then
+  Eᴮ-step₈ then Eᴮ-step₉ then Eᴮ-step₁₀ then Eᴮ-step₁₁ then
+  Eᴮ-step₁₂ then Eᴮ-step₁₃ then Eᴮ-step₁₄ then Eᴮ-step₁₅ then
+  Eᴮ-step₁₆ then Eᴮ-step₁₇ then Eᴮ-step₁₈ then Eᴮ-step₁₉ then
+  Eᴮ-step₂₀ then Eᴮ-step₂₁ then Eᴮ-step₂₂ then Eᴮ-step₂₃ then
+  Eᴮ-step₂₄ then done
+
+------------------------------------------------------------------------
+-- typing derivations for the outward chain
+------------------------------------------------------------------------
+
+M₂-⊢ : Δc-in ∣ [] ⊢ A₂in ⟪ ΣΩ , id (` 2) ⟫ ⦂ ` 0
+M₂-⊢ = tc
+
+L₄-⊢ : Δc-in ∣ [] ⊢ L₄ ⦂ ` 0
+L₄-⊢ = tc
+
+L₄R₄-⊢ : Δb-arg ∣ [] ⊢ L₄ ⟪ R₄ , id (` 2) ⟫ ⦂ ` 0
+L₄R₄-⊢ = tc
+
+E₁₅-⊢ : empty ∣ [] ⊢ E₁₅ ⦂ `𝔹
+E₁₅-⊢ = tc
+
+E₁₆-⊢ : empty ∣ [] ⊢ E₁₆ ⦂ `𝔹
+E₁₆-⊢ = tc
+
+E₁₇-⊢ : empty ∣ [] ⊢ E₁₇ ⦂ `𝔹
+E₁₇-⊢ = tc
+
+E₁₈-⊢ : empty ∣ [] ⊢ E₁₈ ⦂ `𝔹
+E₁₈-⊢ = tc
+
+E₁₉-⊢ : empty ∣ [] ⊢ E₁₉ ⦂ `𝔹
+E₁₉-⊢ = tc
+
+E₂₀-⊢ : empty ∣ [] ⊢ E₂₀ ⦂ `𝔹
+E₂₀-⊢ = tc
+
+E₂₁-⊢ : empty ∣ [] ⊢ E₂₁ ⦂ `𝔹
+E₂₁-⊢ = tc
+
+E₂₂-⊢ : empty ∣ [] ⊢ E₂₂ ⦂ `𝔹
+E₂₂-⊢ = tc
+
+E₂₃-⊢ : empty ∣ [] ⊢ E₂₃ ⦂ `𝔹
+E₂₃-⊢ = tc
+
+E₂₄-⊢ : empty ∣ [] ⊢ E₂₄ ⦂ `𝔹
+E₂₄-⊢ = tc
+
+E-final-⊢ : empty ∣ [] ⊢ `true ⦂ `𝔹
+E-final-⊢ = tc
+
+E-final-value : Value `true
+E-final-value = V-true
+
+------------------------------------------------------------------------
+-- THE WALL THE RUN WALKED INTO, AND WHY THE RE-UNLOCK CLAUSE IS FORCED
+------------------------------------------------------------------------
+
+-- `Eᴮ-step₁₀` is `CancelR`, whose contractum wraps the cancelled value in
+-- `rewind Θc`.  Θc LOCKS (it is `TyPeelR-Λ`'s `instantiate` over a frame
+-- that already crossed two `Λ`s), and a rewind appends the dual of every
+-- change, so its change list re-`unlock`s two representation variables
+-- whose `lock`s the conversion context SKIPPED.  Under the conversion
+-- judgement as it stood — `conv[]`, `conv-lock`, `conv-unlock`, repeated
+-- here — that is a freshness violation, so `rewind Θc` has NO conversion
+-- context and `env` cannot type `E₁₁` at all.
+infix 4 _∣_⊢χᶜ°_⇒_
+data _∣_⊢χᶜ°_⇒_ (Ξ : RepCtx)
+  : TyCtx → List Change → TyCtx → Set where
+  conv°[] : ∀ {Δ} → Ξ ∣ Δ ⊢χᶜ° [] ⇒ Δ
+  conv°-lock : ∀ {Δ₁ Δ₂ χ X α} → ValidRVar Ξ α
+    → Ξ ∣ Δ₁ ⊢χᶜ° χ ⇒ Δ₂
+    → Ξ ∣ Δ₁ ⊢χᶜ° lock X α ∷ χ ⇒ Δ₂
+  conv°-unlock : ∀ {Δ₁ Δ₂ Δ₃ χ X α} → ValidRVar Ξ α
+    → Ξ ∣ Δ₁ ⊢χᶜ° χ ⇒ Δ₂
+    → Fresh α Δ₂
+    → α ⊢+ Δ₂ at X ⇒ Δ₃
+    → Ξ ∣ Δ₁ ⊢χᶜ° unlock X α ∷ χ ⇒ Δ₃
+
+-- The wall itself.  `1 ∷ 3 ∷ []` is `names (extendReps (binds Rc) Δb-int)`,
+-- the name map the conversion run starts from.
+no-old-rewind-conv : ∀ {Δᶜ}
+  → repsC ∣ (1 ∷ 3 ∷ []) ⊢χᶜ° changes Rc ⇒ Δᶜ → ⊥
+no-old-rewind-conv
+  (conv°-lock _
+    (conv°-unlock _
+      (conv°-unlock _
+        (conv°-lock _
+          (conv°-lock _ (conv°-unlock _ conv°[] _ ins-here)))
+        (fresh∷ _ (fresh∷ _ (fresh∷ ne _))) _)
+      _ _)) = ne refl
+
+-- With the re-unlock clause the run goes through, and the conversion
+-- context is the one Θc's own conversion produced — which is exactly what
+-- `CancelR`'s minted `mkId A` is checked against.
+rewind-conv-repaired : Δb-int ⊢ᶜ Rc ⇒ Δc-conv
+rewind-conv-repaired = proj₂ (conv! Δb-int Rc)
+
+-- The same wall stands in front of `CancelR`'s OTHER frame, `Θ₁ ⋉ Θ₂`,
+-- whenever the crossing argument acquired Θ₂'s dual at a `Peel`.
+cancel-inner-conv-repaired : Δc-arg ⊢ᶜ Ψc ⇒ Δc-conv
+cancel-inner-conv-repaired = proj₂ (conv! Δc-arg Ψc)

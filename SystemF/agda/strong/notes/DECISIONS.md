@@ -2631,3 +2631,115 @@ measured in Examples: the Λ clause performs the instantiation itself,
 so one type instantiation mints ONE binder where TyPeelR ⨟ TyBeta minted
 two — J₀ 14 → 11 steps, E₀ 6 → 5 (ends in a value), T₉'s birth story
 2 → 1 step; P₀ Q₀ R₀ L₀ Ri G unchanged.
+
+## THE RE-UNLOCK CLAUSE (2026-09-17, representation-variable branch)
+## — finishing the fourth reduction example broke `rewind` and `_⋉_`
+
+CONTEXT.  notes/PLAN.md item 1 asked for the fourth example,
+
+    ( ΛX. λf:(∀Z. Z⇒Z). ΛY. f [Y] ) [ℕ] · (ΛZ. λz:Z. z) , then [𝔹] · true
+
+run to a first-order value with an explicit typing derivation at every
+state.  The first five steps were already checked; the continuation is
+where the two-universe design is actually under load, because the value
+that must reach `true` has crossed THREE boundaries and carries three
+seals, and unwinding them is what drives `CancelR` and `IdPush`.
+
+THE DEFECT.  The eleventh step is `CancelR`, whose contractum is
+
+    (V ⟪ Θ₁ ⋉ Θ₂ , mkId A ⟫) ⟪ rewind Θ₂ , mkId A ⟫ .
+
+Here Θ₂ is `instantiate (` 0) ΘE-moved`, which LOCKS: it is `TyPeelR-Λ`'s
+frame over a boundary that had already crossed two `Λ`s, so its change
+list is `lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ []`.  Both of the contractum's
+frames append the DUAL of that list — `rewind Θ = dual (changes Θ) ++
+changes Θ`, and `Θ₁` is the argument's `dualMorph Θ₂` from the `Peel` that
+sent it across.  The conversion context SKIPS a `lock` (that is the whole
+point: the conversion must still be able to name the concealed variable),
+so when the dual's matching `unlock` arrives, the name is still live and
+the `Fresh α Δ₂` premise of `conv-unlock` fails.
+
+So `rewind Θc` and `dualMorph Θc ⋉ Θc` have NO conversion context, `env`
+cannot type the contractum, and preservation fails at `CancelR` — and at
+`IdPush`, which has the same two frames.  Machine-checked:
+`no-old-rewind-conv` (notes/RepresentationReductionExamples §4, against a
+local copy of the two-clause judgement as it stood).  Every state up to
+and including the redex is well typed, so this is a defect in the rule
+set, not in the example.
+
+Note this could not show up in examples 1–3: their `CancelR`s all have a
+lock-free Θ₂ (`TyBetaMorph`, or a `⋉` of it), and for a lock-free Θ the
+dual is all locks, which the conversion context skips.
+
+THE RULING.  The conversion context is the UNION of the names live
+anywhere along the morphism — that is what "skips `lock`s" means.  Read
+that way the old judgement was simply not total: an `unlock` of a name
+that is already live is a NO-OP, and the missing clause is
+
+    conv-unlock-live : ValidRVar Ξ α → Ξ ∣ Δ₁ ⊢χᶜ χ ⇒ Δ₂ → Δ₂ ∋ˡ Y := α
+      → Ξ ∣ Δ₁ ⊢χᶜ unlock X α ∷ χ ⇒ Δ₂ .
+
+The position X is dropped, exactly as `conv-lock` already drops its own:
+skipping the lock left α where it was, so the paired unlock must leave it
+there too.  The two unlock clauses are mutually exclusive
+(`fresh-not-lookup`), so the conversion context stays a FUNCTION of the
+change list — which is what determinism for `CancelR`, `IdPush` and
+`TyPeelR-⟪⟫` consumes.  With the clause, `rewind Θ`'s conversion context
+is Θ's own conversion context, which is where `CancelR`'s minted `mkId A`
+is read; that is the invariant the rule always presumed.
+
+ALTERNATIVE CONSIDERED AND REJECTED.  Redefine `rewind` to invert only
+the unlocks (`dual (unlocks χ) ++ unlocks χ`).  That repairs `rewind` —
+its interior run becomes literally Θ's conversion run, followed by its
+inverse — but leaves `Θ₁ ⋉ Θ₂` broken, and `Θ₁` is the argument's dual,
+which is not ours to rewrite.  One clause fixes both frames; two rule
+rewrites fix one.
+
+INSTALLED in strong.CtxMorph §3.  The whole development still checks, and
+examples 1–3 are unchanged (no lock-carrying `CancelR` occurs in them).
+
+THE RESULT.  The fourth example now runs `E₀ᴮ -→* true` in 25 steps with a
+typing derivation at every state.  The shape of the tail is worth
+recording: with a tower of n seals against n unseals, `CancelR` at the
+innermost live pair leaves two identity layers, each of which `IdPush`
+walks outward one layer at a time before the next `CancelR` can fire, so
+the run is quadratic in n — for n = 3, four `Peel`/`Beta` steps, two
+`CancelR`s inside, five `IdPush`es, a last `CancelR`, and six `Drop-true`s.
+
+THE TOOLING THIS FORCED (strong.TypeCheck).  Because `_⋉_` and `rewind`
+CONCATENATE change lists, those frames grow with the tower: the last ones
+in this run carry tens of changes each.  A hand-written
+`Ξ ∣ Δ ⊢χ χ ⇒ Δ′` is one line per change and contains nothing the change
+list does not already determine.  So the development now carries an
+executable, DERIVATION-PRODUCING type checker: every judgement it decides
+— the two induced contexts, `WfCtx`, the lookup square, conversion
+typing, type formation, and the term judgement itself — is returned as a
+`Maybe` of the ordinary derivation, built from the ordinary constructors.
+The caller states the answer and the checker is forced at it, so a
+failure or a different answer is a type error, not a silently accepted
+witness.  Nothing is postulated.
+
+Consequence for the example module: a state's typing derivation is now
+
+    E₁₄-⊢ : empty ∣ [] ⊢ E₁₄ ⦂ `𝔹
+    E₁₄-⊢ = tc
+
+and the module lost about 1400 lines of `SameTy` readings, `WfCtx`
+obligations and change-by-change frame derivations, all of which the
+terms already fixed.  What each state's derivation documents — its TYPE —
+survives; the reduction steps are untouched, because the rule and the
+value premises at each edge are the content of the test.
+
+One design point is worth recording.  The checker must INFER, not merely
+check: `⊢·` and `⊢·[]` need the head's type and a head can be a boundary.
+Inferring a boundary's exterior type means inverting `shiftRep`, because
+`env` reads that type across the morphism's representation-bind prefix
+(`Δᶜ ⊢ᶜ Cₑ ~ shiftRep n R`).  That inverse is `strAt`, strengthening at a
+binder depth, and it is the only place in the checker that produces an
+equation rather than a derivation.
+
+A second one, found by trying to be too clever: the lookup premise of
+`CancelR`/`IdPush` canNOT be discharged by a goal-directed checker.  Both
+contracta mention the looked-up type only under `mkId`, which the unifier
+cannot invert, so `A` is fixed by that premise and by nothing else and the
+INFERRING form has to be used there.

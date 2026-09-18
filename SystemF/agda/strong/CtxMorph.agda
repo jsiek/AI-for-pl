@@ -10,6 +10,7 @@ module strong.CtxMorph where
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
 open import Data.Product using (_,_; ∃-syntax)
+open import Data.Empty using (⊥-elim)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong)
 
 open import strong.Types using (Ty; `ℕ; ⇑ᵗ)
@@ -226,6 +227,31 @@ data _⊢ⁱ_⇒_ (Γ : Ctxᵗ) (Θ : CtxMorph) : Ctxᵗ → Set where
 
 -- The conversion context performs `unlock`s but skips `lock`s, so both the
 -- concealed variable and its representation are available to the conversion.
+-- It is therefore the UNION of the names live anywhere along the morphism,
+-- not the name map at any one point of the run.
+--
+-- THE RE-UNLOCK CLAUSE (2026-09-17).  Reading it as a union forces a third
+-- clause.  Skipping a `lock X α` leaves α live, so a LATER `unlock` of that
+-- same α — the shape every `dualMorph`/`rewind` composite has, since a dual
+-- inverts each lock with an unlock — meets a name that is already there and
+-- the freshness premise of `conv-unlock` fails.  Without this clause
+-- `rewind Θ` and `Θ′ ⋉ Θ` have NO conversion context whenever Θ locks, so
+-- CancelR's and IdPush's contracta are untypeable: that is the wall the
+-- fourth reduction example walked into (notes/RepresentationReductionExamples
+-- §4, `no-rewind-conv` / `no-cancel-inner-conv`).
+--
+-- The clause does not widen the judgement where the old one applied: the two
+-- unlock clauses are mutually exclusive (`fresh-not-lookup`), so the
+-- conversion context stays a FUNCTION of the change list, which is what
+-- determinism for CancelR/IdPush/TyPeelR-⟪⟫ consumes
+-- (`conv-changes-functional`, `conversion-functional`).
+--
+-- WHY THE POSITION IS DROPPED.  `conv-lock` already ignores its position:
+-- skipping the lock keeps α exactly where it was.  The paired unlock must
+-- therefore keep it there too — re-inserting it at the interior position X
+-- would move a name the conversion context never moved.  The positions of a
+-- conversion context are the interior's positions with the locked names left
+-- in place, and this clause is what makes that reading hold through a dual.
 infix 4 _∣_⊢χᶜ_⇒_
 data _∣_⊢χᶜ_⇒_ (Ξ : RepCtx)
   : TyCtx → List Change → TyCtx → Set where
@@ -237,6 +263,10 @@ data _∣_⊢χᶜ_⇒_ (Ξ : RepCtx)
     → Fresh α Δ₂
     → α ⊢+ Δ₂ at X ⇒ Δ₃
     → Ξ ∣ Δ₁ ⊢χᶜ unlock X α ∷ χ ⇒ Δ₃
+  conv-unlock-live : ∀ {Y} → ValidRVar Ξ α
+    → Ξ ∣ Δ₁ ⊢χᶜ χ ⇒ Δ₂
+    → Δ₂ ∋ˡ Y := α
+    → Ξ ∣ Δ₁ ⊢χᶜ unlock X α ∷ χ ⇒ Δ₂
 
 conv-changes-functional : Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ₁
   → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ₂
@@ -250,6 +280,19 @@ conv-changes-functional (conv-unlock valid cs fresh i)
 conv-changes-functional (conv-unlock valid cs fresh i)
                         (conv-unlock valid′ cs′ fresh′ i′) | refl =
   insert-functional i i′
+conv-changes-functional (conv-unlock-live valid cs d)
+                        (conv-unlock-live valid′ cs′ d′) =
+  conv-changes-functional cs cs′
+-- the mixed pairs are impossible: one says α is FRESH in the tail's
+-- output, the other says α is LOOKED UP there.
+conv-changes-functional (conv-unlock valid cs fresh i)
+                        (conv-unlock-live valid′ cs′ d′)
+  with conv-changes-functional cs cs′
+... | refl = ⊥-elim (fresh-not-lookup fresh d′)
+conv-changes-functional (conv-unlock-live valid cs d)
+                        (conv-unlock valid′ cs′ fresh′ i′)
+  with conv-changes-functional cs cs′
+... | refl = ⊥-elim (fresh-not-lookup fresh′ d)
 
 infix 4 _⊢ᶜ_⇒_
 data _⊢ᶜ_⇒_ (Γ : Ctxᵗ) (Θ : CtxMorph) : Ctxᵗ → Set where

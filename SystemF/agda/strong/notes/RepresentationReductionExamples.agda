@@ -42,7 +42,7 @@ open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
 open import strong.TypeCheck
-open import strong.Eval using (Steps)
+open import strong.Eval using (eval; evalTerms; traceEnd; eval-⦂)
 
 ------------------------------------------------------------------------
 -- Shared ℕ-instantiation frames
@@ -1219,52 +1219,48 @@ cancel-inner-conv-repaired : Δc-arg ⊢ᶜ Ψc ⇒ Δc-conv
 cancel-inner-conv-repaired = proj₂ (conv! Δc-arg Ψc)
 
 ------------------------------------------------------------------------
--- The step function agrees with every recorded edge
+-- The evaluator reproduces every recorded run, and keeps the type
 --
--- `step` (strong.Eval) is type-blind: it searches for a redex and hands
--- back the contractum together with its derivation.  Reduction is
--- deterministic (`det`), so any redex it finds is THE redex, and agreeing
--- with a hand-written edge is the strongest check there is short of
--- progress.  Each `refl` below RUNS that search, so what these test is the
--- rule set and the frames, not the notation.
+-- `eval` (strong.Eval) iterates `step` and calls the type checker on each
+-- contractum, at the type the run started with.  Each example below is
+-- checked twice: the states it visits are the ones written out above, and
+-- no step lost the type — `Checked` is the unit record exactly when
+-- nothing broke, so the `_` is a proof only because every state checked.
+--
+-- That is subject reduction FOR THESE RUNS, checked rather than proved,
+-- and it is the check that would have caught the `rewind` defect on its
+-- own: E₁₁ is the first state the type checker would have rejected
+-- (notes/DECISIONS.md, 2026-09-17).
 ------------------------------------------------------------------------
 
 -- 1. the polymorphic identity
-step-agrees-P₁ :
-  Steps empty P₁₀ P₁₁ × Steps empty P₁₁ P₁₂ × Steps empty P₁₂ P₁₃ ×
-    Steps empty P₁₃ P₁₄ × Steps empty P₁₄ P₁₅ × Steps empty P₁₅ P₁₆
-step-agrees-P₁ =
-  refl , refl , refl , refl , refl , refl
+eval-P₁ : evalTerms 6 P₁₀-⊢ ≡ P₁₀ ∷ P₁₁ ∷ P₁₂ ∷ P₁₃ ∷ P₁₄ ∷ P₁₅ ∷ P₁₆ ∷ []
+eval-P₁ = refl
+
+eval-P₁-⦂ : empty ∣ [] ⊢ traceEnd (eval 6 P₁₀ P₁₀-⊢) ⦂ `ℕ
+eval-P₁-⦂ = eval-⦂ 6 P₁₀-⊢ _
 
 -- 3. the polymorphic constant
-step-agrees-J :
-  Steps empty J₀ J₁ × Steps empty J₁ J₂ × Steps empty J₂ J₃ ×
-    Steps empty J₃ J₄ × Steps empty J₄ J₅ × Steps empty J₅ J₆ ×
-    Steps empty J₆ J₇ × Steps empty J₇ J₈ × Steps empty J₈ J₉ ×
-    Steps empty J₉ J₁₀ × Steps empty J₁₀ ($ 3)
-step-agrees-J =
-  refl , refl , refl , refl , refl , refl , refl , refl , refl , refl , refl
+eval-J : evalTerms 11 J₀-⊢ ≡ J₀ ∷ J₁ ∷ J₂ ∷ J₃ ∷ J₄ ∷ J₅ ∷ J₆ ∷ J₇ ∷ J₈ ∷
+  J₉ ∷ J₁₀ ∷ $ 3 ∷ []
+eval-J = refl
+
+eval-J-⦂ : empty ∣ [] ⊢ traceEnd (eval 11 J₀ J₀-⊢) ⦂ `ℕ
+eval-J-⦂ = eval-⦂ 11 J₀-⊢ _
 
 -- 2. the polymorphic Boolean use
-step-agrees-K :
-  Steps empty K₀ K₁ × Steps empty K₁ K₂ × Steps empty K₂ K₃ ×
-    Steps empty K₃ K₄ × Steps empty K₄ K₅ × Steps empty K₅ K₆ ×
-    Steps empty K₆ K₇ × Steps empty K₇ K₈ × Steps empty K₈ `true
-step-agrees-K =
-  refl , refl , refl , refl , refl , refl , refl , refl , refl
+eval-K : evalTerms 9 K₀-⊢ ≡ K₀ ∷ K₁ ∷ K₂ ∷ K₃ ∷ K₄ ∷ K₅ ∷ K₆ ∷ K₇ ∷ K₈ ∷
+  `true ∷ []
+eval-K = refl
+
+eval-K-⦂ : empty ∣ [] ⊢ traceEnd (eval 9 K₀ K₀-⊢) ⦂ `𝔹
+eval-K-⦂ = eval-⦂ 9 K₀-⊢ _
 
 -- 4. the later-bound identity
-step-agrees-Eᴮ :
-  Steps empty E₀ᴮ E₁ᴮ × Steps empty E₁ᴮ E₂ᴮ × Steps empty E₂ᴮ E₃ᴮ ×
-    Steps empty E₃ᴮ E₄ᴮ × Steps empty E₄ᴮ E₅ᴮ × Steps empty E₅ᴮ E₆ᴮ ×
-    Steps empty E₆ᴮ E₇ × Steps empty E₇ E₈ × Steps empty E₈ E₉ ×
-    Steps empty E₉ E₁₀ × Steps empty E₁₀ E₁₁ × Steps empty E₁₁ E₁₂ ×
-    Steps empty E₁₂ E₁₃ × Steps empty E₁₃ E₁₄ × Steps empty E₁₄ E₁₅ ×
-    Steps empty E₁₅ E₁₆ × Steps empty E₁₆ E₁₇ × Steps empty E₁₇ E₁₈ ×
-    Steps empty E₁₈ E₁₉ × Steps empty E₁₉ E₂₀ × Steps empty E₂₀ E₂₁ ×
-    Steps empty E₂₁ E₂₂ × Steps empty E₂₂ E₂₃ × Steps empty E₂₃ E₂₄ ×
-    Steps empty E₂₄ `true
-step-agrees-Eᴮ =
-  refl , refl , refl , refl , refl , refl , refl , refl , refl , refl ,
-    refl , refl , refl , refl , refl , refl , refl , refl , refl , refl ,
-    refl , refl , refl , refl , refl
+eval-Eᴮ : evalTerms 25 E₀ᴮ-⊢ ≡ E₀ᴮ ∷ E₁ᴮ ∷ E₂ᴮ ∷ E₃ᴮ ∷ E₄ᴮ ∷ E₅ᴮ ∷ E₆ᴮ ∷
+  E₇ ∷ E₈ ∷ E₉ ∷ E₁₀ ∷ E₁₁ ∷ E₁₂ ∷ E₁₃ ∷ E₁₄ ∷ E₁₅ ∷ E₁₆ ∷ E₁₇ ∷ E₁₈ ∷ E₁₉ ∷
+  E₂₀ ∷ E₂₁ ∷ E₂₂ ∷ E₂₃ ∷ E₂₄ ∷ `true ∷ []
+eval-Eᴮ = refl
+
+eval-Eᴮ-⦂ : empty ∣ [] ⊢ traceEnd (eval 25 E₀ᴮ E₀ᴮ-⊢) ⦂ `𝔹
+eval-Eᴮ-⦂ = eval-⦂ 25 E₀ᴮ-⊢ _

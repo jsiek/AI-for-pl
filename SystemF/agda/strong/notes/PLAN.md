@@ -151,11 +151,23 @@ is the other half — that a well-typed term is a value or steps — so a
 `nothing` means only that this search found no redex, and progress is still
 owed.
 
-Determinism is what makes that enough in practice: any redex `step` finds is
-*the* redex, so `step` is checked against every edge of all four recorded
-runs — 51 of them — by `refl`. Those checks run the search, so they are a
-regression test for the rules and the frames rather than for the notation, and
-unlike the type checker they report the actual contractum when they fail.
+`eval k M ⊢M` iterates `step` with fuel and calls the type checker on each
+contractum, at the type the run started with. The checker is what closes the
+loop: preservation is not available to retype the contractum, so the
+contractum is *checked* instead. Each state's typing derivation is stored in
+the returned `Trace`, and a step whose contractum the checker rejected is
+recorded as `broke`; `Checked tr` is the unit record exactly when nothing
+broke, so `trace-⦂` hands back the endpoint's typing and Agda discharges the
+side condition by eta at a concrete run.
+
+That is subject reduction *for that run*, checked rather than proved, and it
+is the check that would have caught the `rewind` defect on its own: E₁₁ is the
+first state `check⊢` would have rejected. All four recorded runs are checked
+this way — the states `eval` visits are compared with the ones written out, by
+`refl`, and the endpoint's typing is produced by `eval-⦂`. Determinism is what
+makes that meaningful: any redex `step` finds is *the* redex. The checks are
+not vacuous: a wrong state list, too little fuel, a value that "steps", and a
+`broke` trace are all rejected.
 
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is

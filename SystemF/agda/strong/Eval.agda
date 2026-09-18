@@ -34,6 +34,8 @@ module strong.Eval where
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing; map)
+open import Data.Unit using (⊤)
+open import Data.Empty using (⊥)
 open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; ∃-syntax; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
@@ -46,7 +48,7 @@ open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
 open import strong.TypeCheck
-  using (interior?; conversion?; unique?; ∋:=?; read?; convTy?)
+  using (interior?; conversion?; unique?; ∋:=?; read?; convTy?; check⊢)
 
 ------------------------------------------------------------------------
 -- 1. Deciding the classifications the rules guard on
@@ -269,3 +271,120 @@ Steps Δ M N = stepTo Δ M ≡ just N
 -- the equation.
 stepDeriv : ∀ {Δ M} (r : StepResult Δ M) → Δ ⊢ M -→ proj₁ r
 stepDeriv r = proj₂ r
+
+------------------------------------------------------------------------
+-- 6. Traces
+------------------------------------------------------------------------
+
+-- Why the run stopped, said of the state it stopped at.  `no-redex` is
+-- the honest one: it is where progress would say something and cannot
+-- yet, so the evaluator reports "this search found nothing" rather than
+-- claiming the term is stuck.
+data Final (M : Term) : Set where
+  value       : Value M → Final M
+  no-redex    : Final M
+  out-of-fuel : Final M
+
+-- A run from M that is supposed to keep the type A.  Each step stores its
+-- own derivation AND a typing derivation for the contractum, because
+-- `eval` re-checks after every step; `broke` records a step whose
+-- contractum the checker REJECTED, and is the only way the type can be
+-- lost along a trace.
+infixr 5 _◅⟨_⟩_
+data Trace (Δ : Ctxᵗ) (A : Ty) : Term → Set where
+  stop   : ∀ {M} → Final M → Trace Δ A M
+  broke  : ∀ {M M′} → Δ ⊢ M -→ M′ → Trace Δ A M
+  _◅⟨_⟩_ : ∀ {M M′} → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
+    → Trace Δ A M′ → Trace Δ A M
+
+------------------------------------------------------------------------
+-- 7. The evaluator
+------------------------------------------------------------------------
+
+-- `step ⨟ check⊢`, iterated with fuel.  The type checker is what closes
+-- the loop: preservation is not available to retype the contractum, so
+-- the contractum is CHECKED instead, at the type the run started with.
+--
+-- That is not preservation and does not pretend to be — it says nothing
+-- about runs it was not pointed at.  What it is, is the executable form
+-- of subject reduction, and it is the check that would have caught the
+-- `rewind` defect by itself: the eleventh state of the fourth example was
+-- the first one `check⊢` would have rejected (notes/DECISIONS.md,
+-- 2026-09-17).
+eval : ∀ {Δ A} (k : ℕ) (M : Term) → Δ ∣ [] ⊢ M ⦂ A → Trace Δ A M
+eval {Δ} {A} zero M ⊢M with value? M
+eval {Δ} {A} zero M ⊢M | just v  = stop (value v)
+eval {Δ} {A} zero M ⊢M | nothing = stop out-of-fuel
+eval {Δ} {A} (suc k) M ⊢M with step Δ M
+eval {Δ} {A} (suc k) M ⊢M | nothing with value? M
+eval {Δ} {A} (suc k) M ⊢M | nothing | just v  = stop (value v)
+eval {Δ} {A} (suc k) M ⊢M | nothing | nothing = stop no-redex
+eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) with check⊢ Δ [] M′ A
+eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | just ⊢M′ =
+  r ◅⟨ ⊢M′ ⟩ eval k M′ ⊢M′
+eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | nothing = broke r
+
+------------------------------------------------------------------------
+-- 8. Reading a trace
+------------------------------------------------------------------------
+
+traceEnd : ∀ {Δ A M} → Trace Δ A M → Term
+traceEnd {M = M} (stop f)            = M
+traceEnd         (broke {M′ = M′} r) = M′
+traceEnd         (r ◅⟨ ⊢M′ ⟩ tr)     = traceEnd tr
+
+-- the states, the first one included
+traceTerms : ∀ {Δ A M} → Trace Δ A M → List Term
+traceTerms {M = M} (stop f)            = M ∷ []
+traceTerms {M = M} (broke {M′ = M′} r) = M ∷ M′ ∷ []
+traceTerms {M = M} (r ◅⟨ ⊢M′ ⟩ tr)     = M ∷ traceTerms tr
+
+traceLen : ∀ {Δ A M} → Trace Δ A M → ℕ
+traceLen (stop f)        = zero
+traceLen (broke r)       = suc zero
+traceLen (r ◅⟨ ⊢M′ ⟩ tr) = suc (traceLen tr)
+
+evalTerms : ∀ {Δ A M} (k : ℕ) → Δ ∣ [] ⊢ M ⦂ A → List Term
+evalTerms k ⊢M = traceTerms (eval k _ ⊢M)
+
+------------------------------------------------------------------------
+-- 9. What a trace proves
+------------------------------------------------------------------------
+
+-- The states really are a run: the `_⊢_-→_` derivations are stored, so
+-- this only reassembles them.
+trace-sound : ∀ {Δ A M} (tr : Trace Δ A M) → Δ ⊢ M -→* traceEnd tr
+trace-sound (stop f)        = done
+trace-sound (broke r)       = r then done
+trace-sound (r ◅⟨ ⊢M′ ⟩ tr) = r then trace-sound tr
+
+eval-sound : ∀ {Δ A M} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
+  → Δ ⊢ M -→* traceEnd (eval k M ⊢M)
+eval-sound k ⊢M = trace-sound (eval k _ ⊢M)
+
+-- `Checked tr` is the unit RECORD exactly when no step along `tr` lost the
+-- type, so Agda discharges it by eta at a concrete run and a `broke`
+-- anywhere leaves an unsolvable `⊥`.
+Checked : ∀ {Δ A M} → Trace Δ A M → Set
+Checked (stop f)        = ⊤
+Checked (broke r)       = ⊥
+Checked (r ◅⟨ ⊢M′ ⟩ tr) = Checked tr
+
+-- SUBJECT REDUCTION, FOR THIS RUN.  Not proved — checked, state by
+-- state, by the derivations the trace stores.
+trace-⦂ : ∀ {Δ A M} → Δ ∣ [] ⊢ M ⦂ A → (tr : Trace Δ A M)
+  → Checked tr → Δ ∣ [] ⊢ traceEnd tr ⦂ A
+trace-⦂ ⊢M (stop f)        c = ⊢M
+trace-⦂ ⊢M (broke r)       ()
+trace-⦂ ⊢M (r ◅⟨ ⊢M′ ⟩ tr) c = trace-⦂ ⊢M′ tr c
+
+eval-⦂ : ∀ {Δ A M} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
+  → Checked (eval k M ⊢M) → Δ ∣ [] ⊢ traceEnd (eval k M ⊢M) ⦂ A
+eval-⦂ k ⊢M c = trace-⦂ ⊢M (eval k _ ⊢M) c
+
+-- and `Checked` really bites: a trace that broke has no such proof, so
+-- the `_` a caller writes for it is a proof only because every state the
+-- run passed through was checked.
+broke-unchecked : ∀ {Δ A M M′} (r : Δ ⊢ M -→ M′)
+  → Checked {Δ} {A} (broke r) → ⊥
+broke-unchecked r c = c

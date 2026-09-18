@@ -13,8 +13,11 @@ open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
 
--- executable, derivation-producing type checking (used by the examples)
+-- executable, derivation-producing type checking, and the step function
+-- that searches for a redex.  Neither depends on the metatheory below, so
+-- both are checked here, before it.
 open import strong.TypeCheck
+open import strong.Eval
 open import strong.notes.RepresentationReductionExamples
 
 -- the main theorems
@@ -45,10 +48,6 @@ open import strong.proof.Canonicity
 open import strong.proof.Canonical
 open import strong.proof.Progress
 open import strong.Progress
-
--- the evaluator: `step` IS progress, `eval` iterates it under
--- preservation, and a Trace stores the step derivations it took
-open import strong.Eval
 
 -- THE SHIFT AUDIT (2026-09-08).  Every rule that MOVES a subterm,
 -- checked against frame exactness: the frame identity per site, the ONE

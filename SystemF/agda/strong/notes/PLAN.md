@@ -53,7 +53,8 @@ The following parts have been ported and typecheck:
 - reduction and determinism in `Reduction.agda`.
 
 `Types.agda` and `TypeSubst.agda` remain unchanged, as intended.
-`TypeCheck.agda` is new on this branch and has no main-branch counterpart.
+`TypeCheck.agda` is new on this branch and has no main-branch counterpart, and
+`Eval.agda` is rewritten from scratch rather than ported.
 
 The reduction tests in `notes/RepresentationReductionExamples.agda` carry a
 typing derivation for every recorded intermediate state. All four closed
@@ -139,6 +140,23 @@ unsolved meta at the call site. That is a rejection, not an acceptance —
 `--no-allow-unsolved-metas` and `make check` turn it into an error — but it
 does not say why; `proj₂ (ty! Δ Γ M)` reports the type the checker did infer.
 
+`Eval.agda` is rewritten around a step function that needs no metatheory.
+`step Δ M` searches for a redex and returns the contractum *together with its
+`Δ ⊢ M -→ M′` derivation*, so it is not a second rule table and there is no
+`step-sound` theorem to prove — that was the objection to v1's evaluator, and
+returning the derivation answers it. It takes no typing derivation, so it runs
+while preservation and progress are still unported; the side conditions the
+four boundary rules carry come from `TypeCheck.agda`. What it does *not* give
+is the other half — that a well-typed term is a value or steps — so a
+`nothing` means only that this search found no redex, and progress is still
+owed.
+
+Determinism is what makes that enough in practice: any redex `step` finds is
+*the* redex, so `step` is checked against every edge of all four recorded
+runs — 51 of them — by `refl`. Those checks run the search, so they are a
+regression test for the rules and the frames rather than for the notation, and
+unlike the type checker they report the actual contractum when they fail.
+
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
 clean. `All.agda` does not yet pass because the main-branch preservation
@@ -160,11 +178,14 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 3. Re-audit every rule that crosses a `Λ` or a morphism bind prefix. At each
    crossing, state separately how ordinary indices and representation indices
    move; do not use a one-universe weakening by default.
-4. Port progress, evaluation, and the remaining modules imported by
-   `All.agda`, deleting obsolete masking/nameability compatibility machinery
-   rather than adding shims. `Examples.agda` is the big one, and it is the
-   same transcription problem the reduction traces had: port it onto
-   `TypeCheck.agda` rather than rewriting its boundary typings by hand.
+4. Port progress and the remaining modules imported by `All.agda`, deleting
+   obsolete masking/nameability compatibility machinery rather than adding
+   shims. Progress is the half `Eval.agda`'s `step` deliberately does not
+   claim, and the 51 edge checks are the evidence for what it will have to
+   prove: `step` finds a redex at every non-value state of all four runs.
+   `Examples.agda` is the big one, and it is the same transcription problem
+   the reduction traces had: port it onto `TypeCheck.agda` rather than
+   rewriting its boundary typings by hand.
 5. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
    `SystemF/agda/strong/`, then update the design notes with the final
    invariants and proof lessons.

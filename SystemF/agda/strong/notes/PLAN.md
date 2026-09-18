@@ -177,9 +177,9 @@ Testing has found and repaired these errors:
    Nothing is assumed: `Unique (names Γ)` is `WfCtx.name-fn`, and `env`
    carries a `MorphWf` whose `mw-exterior` is a `WfCtx` of the crossed
    boundary's exterior, so `peel-premises-env` takes the redex's own
-   typing and returns every premise — the `Unique` one for determinism
-   included, via `conv-unique`. `Peel` would therefore not have to CARRY
-   a `Unique` premise, unlike the three rules repaired before it.
+   typing and returns the rule premises plus the `Unique` fact determinism
+   derives via `dual-unique`. None of the five boundary rules now carries
+   a `Unique` premise.
 
    `MorphWf`'s two OUTPUT well-formedness fields are now DERIVED and have
    been dropped from the record (`CtxMorph.agda` §3a, `interior-wf` and
@@ -328,8 +328,8 @@ agda --safe -v0 notes/RepresentationReductionExamples.agda
 
 Where the open threads are: items 1, 2 and 3 are the preservation port —
 all four crossing rules now carry the spelling their preservation cases
-need; item 4 is a rule-set cleanup that is cheapest done BEFORE that port;
-item 6 is progress and `Examples.agda`.
+need; item 4's rule-set cleanup is done; item 6 is progress and
+`Examples.agda`.
 
 ## Immediate plans
 
@@ -341,7 +341,7 @@ item 6 is progress and `Examples.agda`.
 2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
    `Peel` names the dual's spelling `s′` and carries
    `SameConv Δᵈ s′ Δᶜ s`, with the morphism's two readings, the dual's
-   conversion context and `Unique (names Δᵈ)` beside it. `SameConv` lives
+   conversion context beside it. `SameConv` lives
    in `Conversion.agda` §2b, `det` closes on `sameConv-src-unique`,
    `respell?` decides it in `TypeCheck.agda`, `crossPremises?` builds the
    premises in `Eval.agda`, and all twelve runs pass unchanged — same step
@@ -353,9 +353,9 @@ item 6 is progress and `Examples.agda`.
    always has a reading to transport (§6); the dual's conversion context
    always exists, the position obligation being discharged by a pigeonhole
    argument (§7); and `peel-premises-env` assembles all of it from the
-   `MorphWf` that `env` already stores (§8). The rule still CARRIES
-   `Unique (names Δᵈ)`, because `det` has no typing derivation to read it
-   from — §8 shows only that a well-typed redex always supplies it.
+   `MorphWf` that `env` already stores (§8). `det` now takes that typing
+   derivation and obtains the dual context's uniqueness with the core
+   `dual-unique`, so the rule does not carry it.
 
    What is left for this item is the PRESERVATION case, which now has the
    premise it needs rather than having to re-derive it.
@@ -366,46 +366,33 @@ item 6 is progress and `Examples.agda`.
    `convCtx (rewind Θ) Δ ≡ convCtx Θ Δ`, the second now holding by
    `conv-unlock-live`. `CancelR`'s and `IdPush`'s preservation cases both
    read the minted `mkId A` at the second of these.
-4. Give `det` a TYPING-DERIVATION premise, and drop the `Unique`
-   premises from the rules that carry them.
+4. **DONE (2026-09-18).** Give `det` a TYPING-DERIVATION premise, and drop
+   the `Unique` premises from the rules that carried them.
 
        det : ∀ {Δ Γ M M₁ M₂ A} → Δ ∣ Γ ⊢ M ⦂ A
          → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
 
-   Five rules carry a `Unique (names …)` premise — `TyPeelR-Λ`,
-   `TyPeelR-⟪⟫`, `IdPush`, `CancelR` and, since 2026-09-18, `Peel` — and
-   none of them NEEDS it. `Unique` is not a side condition on reduction;
-   it is `WfCtx.name-fn`, a field of context well-formedness. The rules
-   carry it only because `det` has no typing derivation to read it from.
-   Given one, each is recoverable: `mw-exterior` of the boundary's
-   `MorphWf` is a `WfCtx` of the exterior, `interior-wf` and
-   `conversion-wf` (`CtxMorph.agda` §3a) transport it to the two induced
-   contexts, `unique-underΛ` crosses a `Λ`, and `dual-unique`
-   (`notes/PeelPremise.agda` §8) reaches the dual's context.
+   All eight `Unique` arguments came out: one each from `Peel` and
+   `TyPeelR-Λ`, and two each from `TyPeelR-⟪⟫`, `CancelR` and `IdPush`.
+   The `SameTy`/`SameConv` premises and every interior/conversion-context
+   reading stayed: those are what pin each contractum's spelling.
 
-   WHAT TO KEEP. Only the `Unique`s come out. The `SameTy`/`SameConv`
-   premises and the context readings STAY: they are what pins the spelling
-   the contractum mentions, so the contractum is a function of the redex
-   alone. `Δᵈ` in particular is pinned by `Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ`, which
-   is not in the typing derivation and has to stay on the rule.
+   `det` now inverts the redex typing to the boundary's `env`. For
+   `TyPeelR-⟪⟫` it reads the induced contexts' `name-fn` fields through
+   `mw-interior-wf` and `mw-conversion-wf`, then uses `unique-underΛ`.
+   `CancelR` and `IdPush` read the outer conversion context the same way
+   and obtain the merged context's uniqueness by transporting the
+   exterior `name-fn` through its conversion reading. `Peel` uses
+   `dual-unique`, moved from `notes/PeelPremise.agda` into
+   `CtxMorph.agda` §3a beside the new lifted `interior-unique` and
+   `conversion-unique` lemmas. The ξ cases invert their source typing and
+   pass the corresponding subterm derivation to the recursive call.
 
-   WHAT IT COSTS. Determinism becomes a statement about WELL-TYPED terms
-   only. That is the usual form and is arguably the honest one — the rule
-   set was never meant to be deterministic on garbage — but it is a real
-   weakening, so check no consumer wants the untyped version first.
-
-   WHAT IT BUYS. The rules state only what their contracta depend on;
-   `Eval.agda`'s premise gatherers stop running `unique?`, which is
-   quadratic, once per boundary per step; and the `Unique` obligations
-   stop being duplicated at every construction site.
-
-   DO IT BEFORE THE PRESERVATION PORT. `det` currently has exactly one
-   consumer, the thin re-export at `TypeSafety.agda:82`, and that module
-   is beyond the compiling frontier — so the change is nearly free today
-   and gets more expensive with every case the port adds. Whether the
-   preservation cases themselves want the `Unique`s is the one thing to
-   check first; if they do, they can take them the same way, from the
-   `MorphWf` they already have in hand.
+   Determinism is consequently about well-typed terms. `Eval.agda` no
+   longer imports or runs `unique?`; its premise gatherers build only the
+   context readings, lookup/re-spelling evidence and conversion typings
+   the reduction rules retain. The twelve `Reaches` statements remain
+   unchanged.
 5. Re-audit every rule that crosses a `Λ` or a morphism bind prefix. At each
    crossing, state separately how ordinary indices and representation indices
    move, AND in which of the two contexts each spelling is read — that last

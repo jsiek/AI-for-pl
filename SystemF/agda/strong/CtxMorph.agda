@@ -505,6 +505,27 @@ conv-valid vn (conv-lock v cs) = conv-valid vn cs
 conv-valid vn (conv-unlock v cs fr i) = ins-valid i v (conv-valid vn cs)
 conv-valid vn (conv-unlock-live v cs d) = conv-valid vn cs
 
+-- The lifted readings preserve name-map functionality independently of the
+-- other two `WfCtx` fields.  `dual-unique` is the instance needed when a
+-- crossed argument is wrapped in a morphism's dual.
+interior-unique : ∀ {Θ : CtxMorph}
+  → Unique (names Γ) → Γ ⊢ⁱ Θ ⇒ Γᵢ → Unique (names Γᵢ)
+interior-unique {Θ = Θ} uq (interior cs) =
+  int-unique (unique-shiftRVars (numBinds Θ) uq) cs
+
+conversion-unique : ∀ {Θ : CtxMorph}
+  → Unique (names Γ) → Γ ⊢ᶜ Θ ⇒ Γᶜ → Unique (names Γᶜ)
+conversion-unique {Θ = Θ} uq (conversion cs) =
+  conv-unique (unique-shiftRVars (numBinds Θ) uq) cs
+
+dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+  → Unique (names Γ)
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Unique (names Γᵈ)
+dual-unique uq int dconv =
+  conversion-unique (interior-unique uq int) dconv
+
 -- THE TWO TRANSPORT THEOREMS.  These are what `MorphWf` used to take as
 -- explicit obligations.
 interior-wf : ∀ {Θ : CtxMorph} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ

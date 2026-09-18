@@ -2971,3 +2971,41 @@ MEASUREMENT. The example suite is ~7.5s cold, against ~7.4s before, so the
 extra premises cost roughly nothing at this size. Two readings of ~32s
 were taken during the install and did not reproduce across five later
 runs; they were artifacts, not a regression.
+
+## 2026-09-18 — uniqueness comes from typing, not reduction
+
+The concrete `IdPush` redex
+
+    (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+
+used to carry both `Unique (names Δ⋉ᶜ)` for the merged frame and
+`Unique (names Δᶜ)` for Θ₂'s conversion context. The contractum mentions
+neither witness; it depends on the retained `SameTy`, lookup and context
+readings. The same duplication occurred at every boundary rule whose
+determinism case compared a re-spelled type or conversion.
+
+THE RULING, INSTALLED. Reduction carries no `Unique` premises. All eight
+were removed: one each from `Peel` and `TyPeelR-Λ`, and two each from
+`TyPeelR-⟪⟫`, `CancelR` and `IdPush`. The `SameTy`/`SameConv` and context
+reading premises stay because they pin the spellings that occur in the
+contracta.
+
+Determinism now states
+
+    det : ∀ {Δ Γ M M₁ M₂ A} → Δ ∣ Γ ⊢ M ⦂ A
+      → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+
+and obtains name-map functionality from that typing derivation. In a
+boundary case it inverts to `env`, reads `name-fn` from the stored
+`MorphWf`, and uses `mw-interior-wf`/`mw-conversion-wf`; `unique-underΛ`
+handles the type-binder cases. The merged contexts of `CancelR` and
+`IdPush` transport the exterior's uniqueness through their explicit
+conversion readings. `Peel` uses `dual-unique`, moved from
+`notes/PeelPremise.agda` to `strong.CtxMorph` §3a, where it is stated from
+the lifted `interior-unique` and `conversion-unique` lemmas. Congruence
+cases invert typing and pass the appropriate subterm derivation when they
+recurse.
+
+THE EXECUTABLE CONSEQUENCE. `Eval.agda` no longer imports or runs
+`unique?`: its gatherers decide only evidence the rules still carry. The
+twelve example runs keep the same step counts and endpoints.

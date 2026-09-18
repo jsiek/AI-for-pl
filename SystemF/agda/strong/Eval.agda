@@ -18,17 +18,17 @@ module strong.Eval where
 -- module deliberately does not pretend to it: a `nothing` here means only
 -- that this function found no redex.
 --
--- Determinism (`det`, strong.Reduction) is what makes "no soundness
--- theorem" enough in practice.  Any redex `step` finds is THE redex, so a
--- run it produces is THE run, and an example has only to say where that
--- run ends (`Reaches`, §10).
+-- On a well-typed term, determinism (`det`, strong.Reduction) is what makes
+-- "no soundness theorem" enough in practice.  Any redex `step` finds is THE
+-- redex, so a run it produces is THE run, and an example has only to say
+-- where that run ends (`Reaches`, §10).
 --
--- WHERE THE PREMISES COME FROM.  Four rules carry side conditions that are
--- not read off the redex — the frame's conversion context, name
--- uniqueness, the conversion's own typing, the lookup square, the
--- representation reading of a type argument.  Those are decided by
--- strong.TypeCheck, which returns the ordinary derivations, so this module
--- assumes nothing either.
+-- WHERE THE PREMISES COME FROM.  The boundary rules carry side conditions
+-- not read off the redex — induced contexts, conversion typing, lookup
+-- squares, re-spellings and the representation reading of a type argument.
+-- Those are decided by strong.TypeCheck, which returns the ordinary
+-- derivations, so this module assumes nothing either.  Name uniqueness is
+-- no longer a reduction premise and is not decided here.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -49,7 +49,7 @@ open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
 open import strong.TypeCheck
-  using (interior?; conversion?; unique?; ∋:=?; read?; convTy?;
+  using (interior?; conversion?; ∋:=?; read?; convTy?;
          rebase?; respell?; check⊢)
 
 ------------------------------------------------------------------------
@@ -97,50 +97,44 @@ value? (M ⟪ Θ , c ⟫) | just v | nothing = nothing
 -- 2. The side conditions the boundary rules carry
 ------------------------------------------------------------------------
 
--- `TyPeelR-Λ` asks for four things of the crossed frame and the type
+-- `TyPeelR-Λ` asks for three things of the crossed frame and the type
 -- argument; `TyPeelR-⟪⟫` asks for those and, since 2026-09-18, for the
 -- interior spelling of the annotation it pushes in.
 PeelPremises : Ctxᵗ → CtxMorph → Conv → Ty → Set
 PeelPremises Δ Θ s A =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ] Σ[ R ∈ Ty ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × Unique (names (underΛ Δᶜ))
-      × (underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ) × (Δ ⊢ᶜ A ~ R))
+    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
+      × (Δ ⊢ᶜ A ~ R))
 
 peelPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (s : Conv) (A : Ty)
   → Maybe (PeelPremises Δ Θ s A)
 peelPremises? Δ Θ s A with conversion? Δ Θ
 peelPremises? Δ Θ s A | nothing = nothing
-peelPremises? Δ Θ s A | just (Δᶜ , rel) with unique? (names (underΛ Δᶜ))
+peelPremises? Δ Θ s A | just (Δᶜ , rel) with convTy? (underΛ Δᶜ) s
 peelPremises? Δ Θ s A | just (Δᶜ , rel) | nothing = nothing
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just u with convTy? (underΛ Δᶜ) s
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just u | nothing = nothing
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just u | just (Bᵢ , Bₑ , ⊢s)
+peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   with read? (names Δ) A
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just u | just (Bᵢ , Bₑ , ⊢s)
+peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   | nothing = nothing
-peelPremises? Δ Θ s A | just (Δᶜ , rel) | just u | just (Bᵢ , Bₑ , ⊢s)
-  | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , u , ⊢s , same)
+peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
+  | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
 
--- The wrapper clause's extra three: the interior context, its name map's
--- uniqueness (which is what makes the re-based spelling a function), and
--- the crossing itself.
+-- The wrapper clause's extra two: the interior context and the crossing
+-- itself.
 BdyPremises : Ctxᵗ → CtxMorph → Ty → Ctxᵗ → Set
 BdyPremises Δ Θ Bᵢ Δᶜ =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Bᵢ′ ∈ Ty ]
-    ((Δ ⊢ⁱ Θ ⇒ Δᵢ) × Unique (names (underΛ Δᵢ))
-      × SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ)
+    ((Δ ⊢ⁱ Θ ⇒ Δᵢ) × SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ)
 
 bdyPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (Bᵢ : Ty) (Δᶜ : Ctxᵗ)
   → Maybe (BdyPremises Δ Θ Bᵢ Δᶜ)
 bdyPremises? Δ Θ Bᵢ Δᶜ with interior? Δ Θ
 bdyPremises? Δ Θ Bᵢ Δᶜ | nothing = nothing
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) with unique? (names (underΛ Δᵢ))
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | nothing = nothing
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | just uᵢ
+bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri)
   with rebase? (names (underΛ Δᶜ)) (names (underΛ Δᵢ)) Bᵢ
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | just uᵢ | nothing = nothing
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | just uᵢ | just (Bᵢ′ , sm) =
-  just (Δᵢ , Bᵢ′ , ri , uᵢ , sm)
+bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | nothing = nothing
+bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | just (Bᵢ′ , sm) =
+  just (Δᵢ , Bᵢ′ , ri , sm)
 
 -- `IdPush` re-bases the name it pushes into the merged frame, the same
 -- way `TyPeelR-⟪⟫` re-bases its annotation.
@@ -149,7 +143,7 @@ PushPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ X′ ∈ ℕ ]
     ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
       × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
-      × Unique (names Δ⋉ᶜ) × SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X))
+      × SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X))
 
 pushPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (X : ℕ)
   → Maybe (PushPremises Δ Θ₁ Θ₂ X)
@@ -162,25 +156,21 @@ pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) with unique? (names Δ⋉ᶜ)
+  | just (Δ⋉ᶜ , r⋉)
+  with rebase? (names Δ₁ᶜ) (names Δ⋉ᶜ) (` X)
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ⋉ᶜ , r⋉) | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just u⋉
-  with rebase? (names Δ₁ᶜ) (names Δ⋉ᶜ) (` X)
+  | just (Δ⋉ᶜ , r⋉) | just (` X′ , sm) =
+  just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , sm)
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just u⋉ | nothing = nothing
+  | just (Δ⋉ᶜ , r⋉) | just (`ℕ , sm) = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just u⋉ | just (` X′ , sm) =
-  just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , u⋉ , sm)
+  | just (Δ⋉ᶜ , r⋉) | just (`𝔹 , sm) = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just u⋉ | just (`ℕ , sm) = nothing
+  | just (Δ⋉ᶜ , r⋉) | just (C ⇒ D , sm) = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just u⋉ | just (`𝔹 , sm) = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just u⋉ | just (C ⇒ D , sm) = nothing
-pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  | just (Δ⋉ᶜ , r⋉) | just u⋉ | just (`∀ C , sm) = nothing
+  | just (Δ⋉ᶜ , r⋉) | just (`∀ C , sm) = nothing
 
 -- `CancelR`'s inner layer is checked at the MERGED frame's conversion
 -- context, so its `mkId` needs the looked-up type spelled there.
@@ -188,31 +178,28 @@ MergedPremises : Ctxᵗ → CtxMorph → CtxMorph → Ctxᵗ → Ty → Set
 MergedPremises Δ Θ₁ Θ₂ Δᶜ A =
   Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
     ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
-      × Unique (names Δ⋉ᶜ) × SameTy Δ⋉ᶜ A′ Δᶜ A)
+      × SameTy Δ⋉ᶜ A′ Δᶜ A)
 
 mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (Δᶜ : Ctxᵗ) (A : Ty)
   → Maybe (MergedPremises Δ Θ₁ Θ₂ Δᶜ A)
 mergedPremises? Δ Θ₁ Θ₂ Δᶜ A
   with conversion? (extendReps (binds Θ₂) Δ) (Θ₁ ⋉ Θ₂)
 mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) with unique? (names Δ⋉ᶜ)
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉)
   with rebase? (names Δᶜ) (names Δ⋉ᶜ) A
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
-  | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just u⋉
-  | just (A′ , sm) = just (Δ⋉ᶜ , A′ , r⋉ , u⋉ , sm)
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just (A′ , sm) =
+  just (Δ⋉ᶜ , A′ , r⋉ , sm)
 
 -- `Peel`'s crossing premises (2026-09-18).  The morphism's two readings,
 -- the DUAL's conversion context — which typing the redex does not supply,
--- so it is built here — and the dual's spelling of the domain half.  All
--- five are outputs; the redex fixes only Δ, Θ and `s`.
+-- so it is built here — and the dual's spelling of the domain half.  The
+-- redex fixes only Δ, Θ and `s`.
 CrossPremises : Ctxᵗ → CtxMorph → Conv → Set
 CrossPremises Δ Θ s =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ] Σ[ s′ ∈ Conv ]
     ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ)
-      × Unique (names Δᵈ) × SameConv Δᵈ s′ Δᶜ s)
+      × SameConv Δᵈ s′ Δᶜ s)
 
 crossPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (s : Conv)
   → Maybe (CrossPremises Δ Θ s)
@@ -225,34 +212,27 @@ crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
   | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  with unique? (names Δᵈ)
+  with respell? (names Δᶜ) (names Δᵈ) s
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
   | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  | just u with respell? (names Δᶜ) (names Δᵈ) s
-crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  | just u | nothing = nothing
-crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
-  | just u | just (s′ , sc) =
-  just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , u , sc)
+  | just (s′ , sc) = just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc)
 
 -- The looked-up type is an output: the contracta mention it only under
 -- `mkId`, which the unifier cannot invert.
 CancelPremises : Ctxᵗ → CtxMorph → ℕ → Set
 CancelPremises Δ Θ Y =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ A ∈ Ty ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × Unique (names Δᶜ) × (Δᶜ ∋ Y := A))
+    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δᶜ ∋ Y := A))
 
 cancelPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (Y : ℕ)
   → Maybe (CancelPremises Δ Θ Y)
 cancelPremises? Δ Θ Y with conversion? Δ Θ
 cancelPremises? Δ Θ Y | nothing = nothing
-cancelPremises? Δ Θ Y | just (Δᶜ , rel) with unique? (names Δᶜ)
+cancelPremises? Δ Θ Y | just (Δᶜ , rel) with ∋:=? Δᶜ Y
 cancelPremises? Δ Θ Y | just (Δᶜ , rel) | nothing = nothing
-cancelPremises? Δ Θ Y | just (Δᶜ , rel) | just u with ∋:=? Δᶜ Y
-cancelPremises? Δ Θ Y | just (Δᶜ , rel) | just u | nothing = nothing
-cancelPremises? Δ Θ Y | just (Δᶜ , rel) | just u | just (A , d) =
-  just (Δᶜ , A , rel , u , d)
+cancelPremises? Δ Θ Y | just (Δᶜ , rel) | just (A , d) =
+  just (Δᶜ , A , rel , d)
 
 ------------------------------------------------------------------------
 -- 3. The redexes, by the shape of the head
@@ -267,8 +247,8 @@ appRedex Δ V-ƛ             vM = just (_ , Beta vM)
 appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
   with crossPremises? Δ Θ s
 appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
-  | just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , u , sc) =
-  just (_ , Peel v vM rc ri rd u sc)
+  | just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc) =
+  just (_ , Peel v vM rc ri rd sc)
 appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM | nothing = nothing
 appRedex Δ (V-⟪⟫ v I-idv)  vM = nothing
 appRedex Δ (V-⟪⟫ v I-seal) vM = nothing
@@ -290,22 +270,22 @@ tyAppRedex Δ B A (V-Λ vN) | nothing = nothing
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
   with peelPremises? Δ Θ s A
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , u , ⊢s , same) =
-  just (_ , TyPeelR-Λ vN rel u ⊢s same)
+  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) =
+  just (_ , TyPeelR-Λ vN rel ⊢s same)
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s})) | nothing = nothing
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
   with peelPremises? Δ Θ s A
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
   | nothing = nothing
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , u , ⊢s , same)
+  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
   with bdyPremises? Δ Θ Bᵢ Δᶜ
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , u , ⊢s , same)
-  | just (Δᵢ , Bᵢ′ , ri , uᵢ , sm) =
-  just (_ , TyPeelR-⟪⟫ vW ri rel uᵢ u ⊢s sm same)
+  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
+  | just (Δᵢ , Bᵢ′ , ri , sm) =
+  just (_ , TyPeelR-⟪⟫ vW ri rel ⊢s sm same)
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
-  | just (Δᶜ , Bᵢ , Bₑ , R , rel , u , ⊢s , same) | nothing = nothing
+  | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) | nothing = nothing
 tyAppRedex Δ B A _ = nothing
 
 -- A boundary.  `Drop` fires at a literal under an identity at a base
@@ -325,12 +305,12 @@ bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
   with cancelPremises? Δ Θ Y
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , u , d) with mergedPremises? Δ Θ₁ Θ Δᶜ A
+  | just (Δᶜ , A , rel , d) with mergedPremises? Δ Θ₁ Θ Δᶜ A
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , u , d) | just (Δ⋉ᶜ , A′ , r⋉ , u⋉ , sm) =
-  just (_ , CancelR v r⋉ u⋉ sm rel u d)
+  | just (Δᶜ , A , rel , d) | just (Δ⋉ᶜ , A′ , r⋉ , sm) =
+  just (_ , CancelR v r⋉ sm rel d)
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , u , d) | nothing = nothing
+  | just (Δᶜ , A , rel , d) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) with value? V
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
@@ -338,13 +318,13 @@ bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v | nothing =
   nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , u , d) with pushPremises? Δ Θ₁ Θ X
+  | just (Δᶜ , A , rel , d) with pushPremises? Δ Θ₁ Θ X
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , u , d)
-  | just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , u⋉ , sm) =
-  just (_ , IdPush v ri r₁ r⋉ u⋉ sm rel u d)
+  | just (Δᶜ , A , rel , d)
+  | just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , sm) =
+  just (_ , IdPush v ri r₁ r⋉ sm rel d)
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , u , d) | nothing = nothing
+  | just (Δᶜ , A , rel , d) | nothing = nothing
 bdyRedex Δ M Θ c = nothing
 
 ------------------------------------------------------------------------

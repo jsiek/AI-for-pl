@@ -103,7 +103,6 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ
-    → Unique (names Δᵈ)
     → SameConv Δᵈ s′ Δᶜ s
     → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
         -→ (V · (renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W
@@ -193,7 +192,6 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `shiftBy (numBinds Θ + 1) (Bₑ [ A ])`.
   TyPeelR-Λ : ∀ {Δ Δᶜ N Θ s B A R Bᵢ Bₑ} → Value N
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
-    → Unique (names (underΛ Δᶜ))
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
@@ -221,13 +219,11 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- interior spelling `Bᵢ′` and a `SameTy` relating the two — the
   -- crossing is by the REPRESENTATION a name denotes, never by
   -- arithmetic on its position.  Determinism for it is
-  -- `sameTy-src-unique`, which is why the interior's name map is carried
-  -- with its own `Unique`.
+  -- `sameTy-src-unique`; `det` reads the interior's `Unique` name map from
+  -- the redex typing derivation.
   TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bᵢ′ Bₑ} → Value W
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
-    → Unique (names (underΛ Δᵢ))
-    → Unique (names (underΛ Δᶜ))
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
     → Δ ⊢ᶜ A ~ R
@@ -286,10 +282,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- configuration where the two disagree.
   CancelR : ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′} → Value V
     → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-    → Unique (names Δ⋉ᶜ)
     → SameTy Δ⋉ᶜ A′ Δᶜ A
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
-    → Unique (names Δᶜ)
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
         -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫)
@@ -333,10 +327,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
     → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-    → Unique (names Δ⋉ᶜ)
     → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X)
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
-    → Unique (names Δᶜ)
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
         -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X′ ⟫)
@@ -383,142 +375,194 @@ value-¬step (V-Λ v)        (ξ-Λ st)  = value-¬step v st
 -- 3.  DETERMINISM
 ------------------------------------------------------------------------
 
-det : ∀ {Δ M M₁ M₂}
-  → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+det : ∀ {Δ Γ M M₁ M₂ A}
+  → Δ ∣ Γ ⊢ M ⦂ A
+  → Δ ⊢ M -→ M₁
+  → Δ ⊢ M -→ M₂
+  → M₁ ≡ M₂
 
 -- TyBeta
-det (TyBeta v same) (TyBeta v′ same′)
+det _ (TyBeta v same) (TyBeta v′ same′)
   with same-rep-unique same same′
-det (TyBeta v same) (TyBeta v′ same′) | refl = refl
-det (TyBeta v same) (ξ-·[] st) =
+det _ (TyBeta v same) (TyBeta v′ same′) | refl = refl
+det _ (TyBeta v same) (ξ-·[] st) =
   ⊥-elim (value-¬step (V-Λ v) st)
-det (ξ-·[] st) (TyBeta v same) =
+det _ (ξ-·[] st) (TyBeta v same) =
   ⊥-elim (value-¬step (V-Λ v) st)
 
 -- Beta
-det (Beta w)     (Beta w′)    = refl
-det (Beta w)     (ξ-·-l st)   = ⊥-elim (value-¬step V-ƛ st)
-det (Beta w)     (ξ-·-r v st) = ⊥-elim (value-¬step w st)
-det (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step V-ƛ st)
-det (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
+det _ (Beta w)     (Beta w′)    = refl
+det _ (Beta w)     (ξ-·-l st)   = ⊥-elim (value-¬step V-ƛ st)
+det _ (Beta w)     (ξ-·-r v st) = ⊥-elim (value-¬step w st)
+det _ (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step V-ƛ st)
+det _ (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
 
 -- Peel
 -- the dual's spelling is pinned by `sameConv-src-unique`, once the three
 -- readings have been identified.
-det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   with conversion-functional rc rc′ | interior-functional ri ri′
-det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl with conversion-functional rd rd′
-det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl | refl
-  with sameConv-src-unique u sc sc′
-det (Peel v w rc ri rd u sc) (Peel v′ w′ rc′ ri′ rd′ u′ sc′)
+  with sameConv-src-unique
+         (dual-unique (name-fn (mw-exterior mwΘ)) ri rd) sc sc′
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
   | refl | refl | refl | refl = refl
-det (Peel v w rc ri rd u sc) (ξ-·-l st) =
+det _ (Peel v w rc ri rd sc) (ξ-·-l st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det (Peel v w rc ri rd u sc) (ξ-·-r u′ st) = ⊥-elim (value-¬step w st)
-det (ξ-·-l st)   (Peel v w rc ri rd u sc) =
+det _ (Peel v w rc ri rd sc) (ξ-·-r u′ st) =
+  ⊥-elim (value-¬step w st)
+det _ (ξ-·-l st) (Peel v w rc ri rd sc) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det (ξ-·-r u′ st) (Peel v w rc ri rd u sc) = ⊥-elim (value-¬step w st)
+det _ (ξ-·-r u′ st) (Peel v w rc ri rd sc) =
+  ⊥-elim (value-¬step w st)
 
 -- TyPeelR — the two clauses' patterns are DISJOINT (a `Λ` is not a
 -- boundary), so no cross case arises.
 --
 -- The Λ clause is determined by the redex OUTRIGHT: its contractum does
 -- not mention `Bᵢ`, so `conv-src-unique` is not needed at all.
-det (TyPeelR-Λ v rel unique ⊢s same)
-    (TyPeelR-Λ v′ rel′ unique′ ⊢s′ same′)
+det _ (TyPeelR-Λ v rel ⊢s same)
+    (TyPeelR-Λ v′ rel′ ⊢s′ same′)
   with same-rep-unique same same′
-det (TyPeelR-Λ v rel unique ⊢s same)
-    (TyPeelR-Λ v′ rel′ unique′ ⊢s′ same′) | refl = refl
-det (TyPeelR-Λ v rel unique ⊢s same) (ξ-·[] st) =
+det _ (TyPeelR-Λ v rel ⊢s same)
+    (TyPeelR-Λ v′ rel′ ⊢s′ same′) | refl = refl
+det _ (TyPeelR-Λ v rel ⊢s same) (ξ-·[] st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
-det (ξ-·[] st) (TyPeelR-Λ v rel unique ⊢s same) =
+det _ (ξ-·[] st) (TyPeelR-Λ v rel ⊢s same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
 
 -- The wrapper clause's two contracta agree because the SOURCE type is a
 -- function of the conversion and the type context (`conv-src-unique`), so
 -- the two premises determine the SAME pushed-in annotation.
-det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′)
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
   with interior-functional ri ri′ | conversion-functional rc rc′
-det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′) | refl | refl
-  with conv-src-unique u ⊢s ⊢s′
-det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′) | refl | refl | refl
-  with sameTy-src-unique uᵢ sm sm′
-det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′)
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′) | refl | refl
+  with interior-functional ri (mw-interior mwΘ)
+     | conversion-functional rc (mw-conversion mwΘ)
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl
+  with conv-src-unique
+         (unique-underΛ {Γ = Δᶜ} (name-fn (mw-conversion-wf mwΘ))) ⊢s ⊢s′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl
+  with sameTy-src-unique
+         (unique-underΛ {Γ = Δᵢ} (name-fn (mw-interior-wf mwΘ))) sm sm′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl
   with same-rep-unique same same′
-det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ uᵢ′ u′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl = refl
-det (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same) (ξ-·[] st) =
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl | refl = refl
+det _ (TyPeelR-⟪⟫ v ri rc ⊢s sm same) (ξ-·[] st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
-det (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc uᵢ u ⊢s sm same) =
+det _ (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
 -- CancelR — the two contracta agree because the lookup is a function.
-det (CancelR v r⋉ u⋉ sm rel unique d)
-    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′)
   with conversion-functional rel rel′ | conversion-functional r⋉ r⋉′
-det (CancelR v r⋉ u⋉ sm rel unique d)
-    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′) | refl | refl
-  with ∋:=-det unique d d′
-det (CancelR v r⋉ u⋉ sm rel unique d)
-    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′) | refl | refl | refl
-  with sameTy-src-unique u⋉ sm sm′
-det (CancelR v r⋉ u⋉ sm rel unique d)
-    (CancelR v′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
-    | refl | refl | refl | refl = refl
-det (CancelR v r⋉ u⋉ sm rel unique d) (ξ-⟪⟫ frame st) =
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl
+  with conversion-functional rel (mw-conversion mwΘ₂)
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl | refl
+  with ∋:=-det (name-fn (mw-conversion-wf mwΘ₂)) d d′
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl | refl | refl
+  with sameTy-src-unique
+         (conversion-unique
+           (unique-shiftRVars (numBinds Θ₂)
+             (name-fn (mw-exterior mwΘ₂))) r⋉) sm sm′
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′)
+    | refl | refl | refl | refl | refl = refl
+det _ (CancelR v r⋉ sm rel d) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
-det (ξ-⟪⟫ frame st) (CancelR v r⋉ u⋉ sm rel unique d) =
+det _ (ξ-⟪⟫ frame st) (CancelR v r⋉ sm rel d) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 
 -- Drop$
-det (Drop$ b)    (Drop$ b′)   = refl
-det (Drop$ b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-$ st)
-det (ξ-⟪⟫ frame st) (Drop$ b) = ⊥-elim (value-¬step V-$ st)
+det _ (Drop$ b)    (Drop$ b′)   = refl
+det _ (Drop$ b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-$ st)
+det _ (ξ-⟪⟫ frame st) (Drop$ b) = ⊥-elim (value-¬step V-$ st)
 
 -- Drop-true / Drop-false
-det Drop-true Drop-true = refl
-det Drop-true (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-true st)
-det (ξ-⟪⟫ frame st) Drop-true = ⊥-elim (value-¬step V-true st)
-det Drop-false Drop-false = refl
-det Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-false st)
-det (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step V-false st)
+det _ Drop-true Drop-true = refl
+det _ Drop-true (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-true st)
+det _ (ξ-⟪⟫ frame st) Drop-true = ⊥-elim (value-¬step V-true st)
+det _ Drop-false Drop-false = refl
+det _ Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-false st)
+det _ (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step V-false st)
 
 -- IdPush — likewise determined by the lookup.
-det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
-    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
   with interior-functional ri ri′ | conversion-functional rel rel′
-det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
-    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′) | refl | refl
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′) | refl | refl
   with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
-det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
-    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
     | refl | refl | refl | refl
-  with sameTy-src-unique u⋉ sm sm′ | ∋:=-det unique d d′
-det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d)
-    (IdPush v′ ri′ r₁′ r⋉′ u⋉′ sm′ rel′ unique′ d′)
-    | refl | refl | refl | refl | refl | refl = refl
-det (IdPush v ri r₁ r⋉ u⋉ sm rel unique d) (ξ-⟪⟫ frame st) =
+  with conversion-functional rel (mw-conversion mwΘ₂)
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
+    | refl | refl | refl | refl | refl
+  with sameTy-src-unique
+         (conversion-unique
+           (unique-shiftRVars (numBinds Θ₂)
+             (name-fn (mw-exterior mwΘ₂))) r⋉) sm sm′
+     | ∋:=-det (name-fn (mw-conversion-wf mwΘ₂)) d d′
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
+    | refl | refl | refl | refl | refl | refl | refl = refl
+det _ (IdPush v ri r₁ r⋉ sm rel d) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
-det (ξ-⟪⟫ frame st) (IdPush v ri r₁ r⋉ u⋉ sm rel unique d) =
+det _ (ξ-⟪⟫ frame st) (IdPush v ri r₁ r⋉ sm rel d) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
 
 -- the congruences
-det (ξ-·-l st)   (ξ-·-l st′)  = cong (_· _) (det st st′)
-det (ξ-·-l st)   (ξ-·-r v st′) = ⊥-elim (value-¬step v st)
-det (ξ-·-r v st) (ξ-·-l st′)  = ⊥-elim (value-¬step v st′)
-det (ξ-·-r v st) (ξ-·-r u st′) = cong (_ ·_) (det st st′)
-det (ξ-·[] st) (ξ-·[] st′) =
-  cong (λ L → L ·[ _ , _ ]) (det st st′)
-det (ξ-Λ st)     (ξ-Λ st′)    = cong Λ_ (det st st′)
-det (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+det (⊢· ⊢L ⊢M) (ξ-·-l st) (ξ-·-l st′) =
+  cong (_· _) (det ⊢L st st′)
+det _ (ξ-·-l st) (ξ-·-r v st′) = ⊥-elim (value-¬step v st)
+det _ (ξ-·-r v st) (ξ-·-l st′) = ⊥-elim (value-¬step v st′)
+det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) =
+  cong (_ ·_) (det ⊢M st st′)
+det (⊢·[] ⊢L ⊢A) (ξ-·[] st) (ξ-·[] st′) =
+  cong (λ L → L ·[ _ , _ ]) (det ⊢L st st′)
+det (⊢Λ ⊢N) (ξ-Λ st) (ξ-Λ st′) = cong Λ_ (det ⊢N st st′)
+det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   with interior-functional rel rel′
-det (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′) | refl =
-  cong (λ M → M ⟪ _ , _ ⟫) (det st st′)
+det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+  | refl with interior-functional rel (mw-interior mwΘ)
+det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+  | refl | refl = cong (λ M → M ⟪ _ , _ ⟫) (det ⊢M st st′)

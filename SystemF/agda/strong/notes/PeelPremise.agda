@@ -13,16 +13,13 @@ module strong.notes.PeelPremise where
 -- is not an extra hypothesis but `WfCtx.name-fn` — and `env` carries a
 -- `MorphWf` whose `mw-exterior` is a `WfCtx` of the crossed boundary's
 -- exterior.  §8 discharges it from there: `peel-premises-env` takes the
--- morphism witness the redex's own typing stores and returns every
--- premise the repaired rule would carry, the `Unique` one included.
+-- morphism witness the redex's own typing stores and returns the rule's
+-- premises together with the `Unique` fact that `det` now reads from that
+-- typing derivation.
 --
--- What is NOT settled — and is not needed here — is that `MorphWf`'s two
--- OUTPUT well-formedness fields are derivable rather than obligations
--- (the standing TODO at strong.CtxMorph §3).  This file supplies the
--- `name-fn` third of both, in `int-unique` and `conv-unique`; the
--- `wf-names` third would follow from `unlocks-valid`-style reasoning over
--- §5's lemmas, and `wf-reps` needs a weakening lemma for representation
--- payloads across `pushRepBinds`, which is independent of all of this.
+-- `MorphWf`'s two output well-formedness facts are now derived in
+-- strong.CtxMorph §3a.  The `name-fn` component used here is exposed by
+-- `interior-unique`, `conversion-unique` and `dual-unique` there.
 
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
@@ -121,23 +118,23 @@ respelled = unseal 2 , sameᶜ-unseal (there here) , sameᶜ-unseal here
 ------------------------------------------------------------------------
 
 -- `Peel` now reads as follows in strong.Reduction, in the shape the other
--- three repairs already have — name the target spelling, carry a `Same…`
--- relating it to the source, and a `Unique` to keep the rule a function:
+-- three repairs already have — name the target spelling and carry a `Same…`
+-- relating it to the source:
 --
 --   Peel : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
 --     → Δ ⊢ᶜ Θ ⇒ Δᶜ                     -- where `s` is read
 --     → Δ ⊢ⁱ Θ ⇒ Δᵢ
 --     → Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ           -- where `s′` is used
---     → Unique (names Δᵈ)
 --     → SameConv Δᵈ s′ Δᶜ s
 --     → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
 --         -→ (V · (renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W
 --                     ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫
 --
 -- `det` closes with `conversion-functional`, `interior-functional` and
--- `sameConv-src-unique`, as the other three do.  `t` needs no premise:
--- it stays on the same boundary, at Δᶜ, where it was read.  The premises
--- are built by `crossPremises?` in strong.Eval, on `respell?`.
+-- `sameConv-src-unique`, deriving the latter's `Unique` argument from the
+-- redex typing by `dual-unique`.  `t` needs no premise: it stays on the
+-- same boundary, at Δᶜ, where it was read.  The rule premises are built by
+-- `crossPremises?` in strong.Eval, on `respell?`.
 --
 -- WHAT REPLACES (P) is §3 in general, not on one frame:
 --
@@ -663,25 +660,14 @@ peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc = Γᵈ , s′ , dcon
 -- `WfCtx` of the boundary's exterior — so everything §7 needs is already
 -- in the typing derivation of the redex.
 --
--- TO BE EXACT about what that does and does not mean: the RULE still
--- carries `Unique (names Δᵈ)`, because `det` has no typing derivation to
--- read it from, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry
--- theirs.  What §8 shows is that the premise never BLOCKS anything: a
--- well-typed redex always supplies it.
+-- `det` now takes the redex's typing derivation, so the RULE no longer
+-- carries `Unique (names Δᵈ)`.  The proof reaches the boundary's `env`,
+-- reads `name-fn (mw-exterior mwΘ)`, and applies `dual-unique` to the
+-- rule's interior and dual-conversion readings.
 --
--- The conversion reading preserves uniqueness (`conv-unique`, now in
--- strong.CtxMorph §3a, where the well-formedness transport needs it), so
--- the DUAL's context is unique as well, so the rule's determinism premise
--- is always available.
-dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
-  → Unique (names Γ)
-  → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
-  → Unique (names Γᵈ)
-dual-unique uq (interior cs) (conversion dc) =
-  conv-unique (subst Unique (sym (shiftRVars-0 _))
-                    (int-unique (unique-shiftRVars _ uq) cs))
-              dc
+-- The conversion reading preserves uniqueness, so the DUAL's context is
+-- unique as well.  The reusable statement is `dual-unique` in
+-- strong.CtxMorph §3a; this note now consumes the core lemma.
 
 -- EVERYTHING, FROM THE REDEX'S OWN DERIVATION.  `MorphWf` is what `env`
 -- stores at the crossed boundary; `Γᶜ ⊢ s ∶ _ ⇝ _` is the domain half of

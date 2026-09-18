@@ -164,11 +164,23 @@ rejected.
 Because of that, the example module no longer writes out intermediate states
 at all. Each of the four runs is one `Reaches k n ⊢M V`: with fuel `k` the
 evaluator reaches `V` in exactly `n` steps, `V` is a value, and no state along
-the way lost the type. `eval-run` turns the same thing into the headline
-`Δ ⊢ M -→* V`, and `evalTerms` hands the states back whenever a reader wants
-to see one. The module went from 1266 lines to 224 and checks in about 5
-seconds from scratch, so an example now costs four lines and the suite can
-grow.
+the way lost the type. `reaches-run` turns the same thing into the headline
+`Δ ⊢ M -→* V` and `reaches-⦂` into the endpoint's typing, neither of which
+re-runs anything; `evalTerms` hands the states back whenever a reader wants to
+see one. The module went from 1266 lines to 224, and an example costs four
+lines, so the suite can grow.
+
+Growing it cheaply took one more step, because **Agda shares nothing between
+the occurrences of a term**: a statement mentioning `eval k M ⊢M` three times
+runs the program three times. Measured on the 25-step example, one occurrence
+costs about 0.12s, and the module was paying for four per example. `Reaches`
+therefore states everything in a single equation on a `report` that walks the
+trace once. Two details are load-bearing and were each found by measuring:
+`report` returns a **datatype**, because a tuple has eta and comparing one
+against a literal splits back into three independent projections; and it
+recurses through a helper that pattern-matches, because projecting instead
+would put three copies of the recursive call back. The marginal cost of an
+example dropped from about 0.42s to 0.17s and the module from 2.3s to 1.8s.
 
 The trade is real and worth stating: hand-written states were a second,
 independent transcription that `step` could be checked against, and they are

@@ -33,11 +33,13 @@ module strong.Eval where
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing; map)
-open import Data.Unit using (⊤)
+open import Data.Unit using (⊤; tt)
+open import Data.Bool using (Bool; true; false)
 open import Data.Empty using (⊥)
 open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; ∃-syntax; proj₁; proj₂)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; trans; cong; subst)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
@@ -392,21 +394,99 @@ broke-unchecked r c = c
 -- 10. What a recorded example asserts
 ------------------------------------------------------------------------
 
+-- ONE PASS OVER THE RUN.  Agda shares nothing between the occurrences of
+-- a term, so a statement that mentions `eval k M ⊢M` three times RUNS THE
+-- PROGRAM THREE TIMES — measured, on the 25-step example, at about 0.12s
+-- an occurrence.  `report` therefore walks the trace once and returns
+-- everything an example asserts about it: where the run ended, how many
+-- steps it took, and whether every state kept its type.  `Reaches` then
+-- mentions the run ONCE.
+--
+-- `bump` matches on the triple rather than projecting out of it, which is
+-- what keeps that one pass one pass: projections would put three copies
+-- of the recursive call back in.  The price is that `report` is stuck on
+-- a variable trace, so the two lemmas below have to `with` their way past
+-- it; that is paid once, here, and not per example.
+-- A DATA type, not a triple: a triple has eta, so comparing one against
+-- a literal splits into three independent projections and walks the run
+-- three times anyway (measured).  Forcing a datatype to weak head normal
+-- form walks it once and leaves the three components computed.
+data Report : Set where
+  reported : Term → ℕ → Bool → Report
+
+repEnd : Report → Term
+repEnd (reported V n b) = V
+
+repKept : Report → Bool
+repKept (reported V n b) = b
+
+bump : Report → Report
+bump (reported V n b) = reported V (suc n) b
+
+report : ∀ {Δ A M} → Trace Δ A M → Report
+report {M = M} (stop f)            = reported M zero true
+report         (broke {M′ = M′} r) = reported M′ (suc zero) false
+report         (r ◅⟨ ⊢M′ ⟩ tr)     = bump (report tr)
+
+report-end : ∀ {Δ A M} (tr : Trace Δ A M)
+  → repEnd (report tr) ≡ traceEnd tr
+report-end (stop f)  = refl
+report-end (broke r) = refl
+report-end (r ◅⟨ ⊢M′ ⟩ tr) with report tr | report-end tr
+report-end (r ◅⟨ ⊢M′ ⟩ tr) | reported V n b | eq = eq
+
+report-kept : ∀ {Δ A M} (tr : Trace Δ A M)
+  → repKept (report tr) ≡ true → Checked tr
+report-kept (stop f)  eq = tt
+report-kept (broke r) ()
+report-kept (r ◅⟨ ⊢M′ ⟩ tr) eq with report tr | report-kept tr
+report-kept (r ◅⟨ ⊢M′ ⟩ tr) eq | reported V n b | h = h eq
+
+-- One statement per example: with fuel `k` the evaluator reaches `V` in
+-- exactly `n` steps, no state along the way lost the type, and `V` is a
+-- value.  Only the first component mentions the run.
+--
+-- The intermediate states are deliberately not part of this.  They are
+-- what `eval` type-checked on the way — the `true` is the record of that
+-- — and `evalTerms` hands them back whenever a reader wants to see one.
+-- A RECORD, not a product, so that `k`, `n` and `⊢M` are recoverable
+-- from the type: the accessors below are applied to an example's
+-- `Reaches` and have to read them off it.
+record Reaches {Δ A M} (k n : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A) (V : Term)
+  : Set where
+  constructor reaches
+  field
+    ran      : report (eval k M ⊢M) ≡ reported V n true
+    endValue : Value V
+open Reaches public
+
+-- What an example's `Reaches` yields.  None of these re-runs the program:
+-- they are equational, so the trace stays unevaluated.
+reaches-end : ∀ {Δ A M V k n} {⊢M : Δ ∣ [] ⊢ M ⦂ A}
+  → Reaches k n ⊢M V → traceEnd (eval k M ⊢M) ≡ V
+reaches-end {k = k} {⊢M = ⊢M} r =
+  trans (sym (report-end (eval k _ ⊢M))) (cong repEnd (ran r))
+
+reaches-checked : ∀ {Δ A M V k n} {⊢M : Δ ∣ [] ⊢ M ⦂ A}
+  → Reaches k n ⊢M V → Checked (eval k M ⊢M)
+reaches-checked {k = k} {⊢M = ⊢M} r =
+  report-kept (eval k _ ⊢M) (cong repKept (ran r))
+
 -- The multi-step run, with the endpoint NAMED.  `eval-sound` already
 -- gives `Δ ⊢ M -→* traceEnd …`; this is that, with the endpoint read off
--- an equation the caller discharges by `refl`.
+-- an equation.
 eval-run : ∀ {Δ A M V} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
   → traceEnd (eval k M ⊢M) ≡ V → Δ ⊢ M -→* V
 eval-run k ⊢M refl = eval-sound k ⊢M
 
--- One statement per example: with fuel `k` the evaluator reaches `V` in
--- exactly `n` steps, `V` is a value, and NO state along the way lost the
--- type.  The endpoint's own typing derivation is then `eval-⦂ k ⊢M`.
---
--- The intermediate states are deliberately not part of this.  They are
--- what `eval` type-checked on the way — `Checked` is the record of that —
--- and `evalTerms` hands them back whenever a reader wants to see one.
-Reaches : ∀ {Δ A M} (k n : ℕ) → Δ ∣ [] ⊢ M ⦂ A → Term → Set
-Reaches k n ⊢M V =
-  (traceEnd (eval k _ ⊢M) ≡ V) × (traceLen (eval k _ ⊢M) ≡ n)
-    × Value V × Checked (eval k _ ⊢M)
+-- the run, in the object language's own relation
+reaches-run : ∀ {Δ A M V k n} {⊢M : Δ ∣ [] ⊢ M ⦂ A}
+  → Reaches k n ⊢M V → Δ ⊢ M -→* V
+reaches-run {k = k} {⊢M = ⊢M} r = eval-run k ⊢M (reaches-end r)
+
+-- and the endpoint's typing: SUBJECT REDUCTION for this run, checked
+reaches-⦂ : ∀ {Δ A M V k n} {⊢M : Δ ∣ [] ⊢ M ⦂ A}
+  → Reaches k n ⊢M V → Δ ∣ [] ⊢ V ⦂ A
+reaches-⦂ {A = A} {k = k} {⊢M = ⊢M} r =
+  subst (λ W → _ ∣ [] ⊢ W ⦂ A) (reaches-end r)
+    (eval-⦂ k ⊢M (reaches-checked r))

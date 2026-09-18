@@ -12,11 +12,13 @@ module strong.notes.RepresentationReductionExamples where
 -- WHAT IS AND IS NOT WRITTEN OUT.  The intermediate states are not.
 -- `eval` (strong.Eval) produces them, and it calls the type checker on
 -- every one at the type the run started with, so a state that lost the
--- type is a `broke` in the trace and the `Checked` component of `Reaches`
--- becomes `⊥`.  What an example asserts is therefore the endpoint, the
--- step count, that the endpoint is a value, and that no state on the way
--- was ill-typed.  The states themselves are one `evalTerms` away whenever
--- a reader wants to look at one.
+-- type is a `broke` in the trace, and a `broke` makes the `true` in the
+-- example's `Reaches` false.  What an example asserts is therefore the
+-- endpoint, the step count, that no state on the way was ill-typed, and
+-- that the endpoint is a value — all in ONE statement, which is what
+-- keeps the run from being evaluated several times over.  The states
+-- themselves are one `evalTerms` away whenever a reader wants to look at
+-- one.
 --
 -- That is a deliberate trade.  Hand-written states were a SECOND,
 -- independent transcription that `step` could be checked against, and
@@ -49,7 +51,7 @@ open import strong.TermSubst
 open import strong.Reduction
 open import strong.TypeCheck using (tc; conv!)
 open import strong.Eval
-  using (eval; evalTerms; traceEnd; eval-⦂; eval-run; Reaches)
+  using (eval; evalTerms; Reaches; reaches; reaches-run)
 
 ------------------------------------------------------------------------
 -- 1. (ΛX. λx:X. x) [ℕ] · 7
@@ -62,10 +64,10 @@ P₀-⊢ : empty ∣ [] ⊢ P₀ ⦂ `ℕ
 P₀-⊢ = tc
 
 P-eval : Reaches 6 6 P₀-⊢ ($ 7)
-P-eval = refl , refl , V-$ , _
+P-eval = reaches refl V-$
 
 P-run : empty ⊢ P₀ -→* $ 7
-P-run = eval-run 6 P₀-⊢ refl
+P-run = reaches-run P-eval
 
 ------------------------------------------------------------------------
 -- 2. ((ΛX. λf:(∀Y. Y⇒𝔹). f[X]) [𝔹] · (ΛZ. λz:Z. true)) · false
@@ -85,10 +87,10 @@ K₀-⊢ : empty ∣ [] ⊢ K₀ ⦂ `𝔹
 K₀-⊢ = tc
 
 K-eval : Reaches 9 9 K₀-⊢ `true
-K-eval = refl , refl , V-true , _
+K-eval = reaches refl V-true
 
 K-run : empty ⊢ K₀ -→* `true
-K-run = eval-run 9 K₀-⊢ refl
+K-run = reaches-run K-eval
 
 ------------------------------------------------------------------------
 -- 3. ((ΛX. λx:X. λf:(∀Y. Y⇒X). f[X]·x) [ℕ]) · 7 · const3
@@ -108,10 +110,10 @@ J₀-⊢ : empty ∣ [] ⊢ J₀ ⦂ `ℕ
 J₀-⊢ = tc
 
 J-eval : Reaches 11 11 J₀-⊢ ($ 3)
-J-eval = refl , refl , V-$ , _
+J-eval = reaches refl V-$
 
 J-run : empty ⊢ J₀ -→* $ 3
-J-run = eval-run 11 J₀-⊢ refl
+J-run = reaches-run J-eval
 
 ------------------------------------------------------------------------
 -- 4. ( ΛX. λf:(∀Z. Z⇒Z). ΛY. f [Y] ) [ℕ] · (ΛZ. λz:Z. z), at [𝔹] · true
@@ -145,10 +147,10 @@ E₀ᴮ-⊢ : empty ∣ [] ⊢ E₀ᴮ ⦂ `𝔹
 E₀ᴮ-⊢ = tc
 
 E-eval : Reaches 25 25 E₀ᴮ-⊢ `true
-E-eval = refl , refl , V-true , _
+E-eval = reaches refl V-true
 
 E-run : empty ⊢ E₀ᴮ -→* `true
-E-run = eval-run 25 E₀ᴮ-⊢ refl
+E-run = reaches-run E-eval
 
 ------------------------------------------------------------------------
 -- 5. THE WALL, AND WHY THE RE-UNLOCK CLAUSE IS FORCED
@@ -222,3 +224,5 @@ cancel-inner-conv-repaired :
   Δ-arg ⊢ᶜ dualMorph Θlock ⋉ Θlock ⇒ Δ-conv
 cancel-inner-conv-repaired =
   proj₂ (conv! Δ-arg (dualMorph Θlock ⋉ Θlock))
+E-eval-dup : Reaches 25 25 E₀ᴮ-⊢ `true
+E-eval-dup = reaches refl V-true

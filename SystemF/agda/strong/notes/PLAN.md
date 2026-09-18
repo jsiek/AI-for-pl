@@ -145,9 +145,23 @@ Testing has found and repaired these errors:
    `TyPeelR-Λ` were audited and are safe STRUCTURALLY — their frames either
    never lock, or the conversion context skips the only lock, so the two
    maps coincide. `Peel` is neither repaired nor clean, and the invariant
-   that would have excused it is FALSE — `_⋉_` breaks it in exactly the
-   shape `IdPush` builds. See the immediate plans. Machine-checked in
+   that would have excused it — write it (P), `conv(dual Θ, int(Θ, Δ)) =
+   conv(Θ, Δ)` — is FALSE: lock-free and unlock-free change lists have it,
+   mixed ones need not, and `_⋉_` mixes. No REACHABLE frame violating (P)
+   has been exhibited; what the disproof rules out is the proof strategy,
+   not the rule. See the immediate plans. Machine-checked in
    `notes/CrossingAudit.agda`.
+
+   (P) is a theorem on `main` — `convCtx-dual` in `proof/PeelDual.agda`,
+   for an arbitrary well-formed change list — because there a name map is
+   a fixed carrier with a lock BIT per slot, so nothing is renumbered, two
+   updates commute and the dual's reversal is invisible. Here a name map is
+   a sequence and deleting an entry renumbers the rest, which is precisely
+   what this branch's design buys by putting variables in or out of scope
+   instead of marking them. Repairing `dual` rather than `Peel` does not
+   work: on a mixed frame the list that inverts the interior and the list
+   that satisfies (P) differ, so no single change list serves both readings
+   (`notes/CrossingAudit.agda` §6).
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism

@@ -8,6 +8,8 @@ module strong.notes.CrossingAudit where
 --     unlocks, since that is what makes the two contexts part.
 --   * It records one hazard that is NOT repaired — `Peel` — and DISPROVES
 --     the invariant that would have made it safe (§5).
+--   * §6 compares with `main`, where that same invariant IS a theorem,
+--     and locates what this branch's design gave up to lose it.
 --
 -- THE QUESTION.  A morphism induces two name maps: the INTERIOR, which
 -- performs every change, and the CONVERSION context, which skips `lock`s
@@ -53,6 +55,11 @@ nmConv : Ctxᵗ → CtxMorph → Maybe TyCtx
 nmConv Γ Θ with conversion? Γ Θ
 nmConv Γ Θ | just (Γᶜ , _) = just (names Γᶜ)
 nmConv Γ Θ | nothing = nothing
+
+nmInt : Ctxᵗ → CtxMorph → Maybe TyCtx
+nmInt Γ Θ with interior? Γ Θ
+nmInt Γ Θ | just (Γᵢ , _) = just (names Γᵢ)
+nmInt Γ Θ | nothing = nothing
 
 nmDual : Ctxᵗ → CtxMorph → Maybe TyCtx
 nmDual Γ Θ with interior? Γ Θ
@@ -216,3 +223,81 @@ push-shape-conv = refl
 -- function flowing through §4's tower, so the identities the tower mints
 -- are `_↦_`s and `Peel` fires on composites `CancelR` and `IdPush` built —
 -- and it passes.  That is testing, not proof.
+
+------------------------------------------------------------------------
+-- 6. WHY `main` HAS (P) FOR FREE, AND WHY ONE CHANGE LIST CANNOT HERE
+------------------------------------------------------------------------
+
+-- On `main` the SAME equation is a theorem — `convCtx-dual`, in
+-- strong/proof/PeelDual.agda — for an ARBITRARY well-formed change list,
+-- mixed ones included, and `preserve-Peel` is proved from it.  The reason
+-- is not a cleverer proof.  It is the representation.
+--
+-- There a name map is a FIXED CARRIER WITH A BIT PER SLOT: `lock` and
+-- `unlock` are `updateAt maskEnt X` and `updateAt unmaskEnt X`, so
+-- nothing moves, nothing is renumbered, and an index means the same
+-- thing in both readings.  (P) is then a two-line argument about bits:
+--
+--     int(Θ)        sets the lock bits, clears the unlock bits
+--     conv(dual Θ)  additionally CLEARS the lock bits
+--     net           the unlock bits cleared, i.e. conv(Θ)
+--
+-- The set-then-cleared step is where `Δ ⊢ˢ changes Θ` is spent: a lock is
+-- admitted only at a nameable slot, so `unmask ∘ mask = id` there.  And
+-- bits at distinct slots are independent (`updateAt-updateAt-comm`),
+-- which makes the dual's REVERSAL invisible (`dualScope-unmask-comm`) —
+-- the one genuinely nontrivial step in main's whole proof.
+--
+-- HERE a name map is a SEQUENCE.  Deleting an entry renumbers every later
+-- one, so two unlocks do not commute and the reversal is not invisible.
+-- There is no fixed carrier for the bit argument to stand on.  That is
+-- not an oversight: a variable being in scope or not in scope, rather
+-- than present-but-marked, is the premise of this branch, and removing
+-- the carrier is what it buys.
+
+-- THE OBSTRUCTION TO REPAIRING `dual` INSTEAD OF `Peel`.  One could hope
+-- to recompute the restored positions against Δ rather than replay the
+-- ones the locks recorded.  It does not work, because `dual` is asked to
+-- do TWO jobs and, once positions move, they want different numbers.
+-- On §5's mixed frame — `lock 0 0` then `unlock 0 2` over Δ₃:
+Mixed : CtxMorph
+Mixed = morph [] (unlock 0 2 ∷ lock 0 0 ∷ [])
+
+mixed-int : nmInt Δ₃ Mixed ≡ just (2 ∷ 1 ∷ [])
+mixed-int = refl
+
+mixed-target : nmConv Δ₃ Mixed ≡ just (2 ∷ 0 ∷ 1 ∷ [])
+mixed-target = refl
+
+Δᵐ : Ctxᵗ
+Δᵐ = reps₃ ∣ (2 ∷ 1 ∷ [])
+
+-- `dualMorph Mixed`, as defined.  It INVERTS the interior, which is the
+-- job the crossing frame identity needs — and misses (P).
+Dsyn : CtxMorph
+Dsyn = morph [] (unlock 0 0 ∷ lock 0 2 ∷ [])
+
+syn-inverts : nmInt Δᵐ Dsyn ≡ just (0 ∷ 1 ∷ [])
+syn-inverts = refl
+
+syn-misses : nmConv Δᵐ Dsyn ≡ just (0 ∷ 2 ∷ 1 ∷ [])
+syn-misses = refl
+
+-- The same list with the restoring unlock moved to the position the
+-- CONVERSION reading wants.  It has (P) — and stops inverting.
+Dfix : CtxMorph
+Dfix = morph [] (unlock 1 0 ∷ lock 0 2 ∷ [])
+
+fix-has-P : nmConv Δᵐ Dfix ≡ just (2 ∷ 0 ∷ 1 ∷ [])
+fix-has-P = refl
+
+fix-stops-inverting : nmInt Δᵐ Dfix ≡ just (1 ∷ 0 ∷ [])
+fix-stops-inverting = refl
+
+-- So no single change list serves both readings on this frame, and the
+-- choice is between the two things `Peel` needs.  What is left is either
+-- a PREMISE on `Peel`, as the other three crossings got — but `Peel`
+-- carries a CONVERSION, and there is no judgement yet relating two
+-- conversions that name the same representations, so `SameTy` does not
+-- transfer — or a representation in which removing a name does not
+-- renumber the others, which is the question this branch exists to ask.

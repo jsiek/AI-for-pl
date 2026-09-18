@@ -86,9 +86,11 @@ and neither completes: `TyPeelR-⟪⟫` loses the type at one and `IdPush` at th
 other. Both are well typed, both reach a redex at every step, and in both it
 is the CONTRACTUM that fails to typecheck. The two failures are the same
 defect — a spelling valid in one conversion context is reused in another
-without re-basing — and it is NOT repaired. See `notes/DECISIONS.md`
-(2026-09-18); the repair is unruled, and preservation has to be written
-against whichever way it goes.
+without re-basing — and it is NOT yet repaired. The repair is recommended in
+`notes/DECISIONS.md` (2026-09-18) and awaits Jeremy: carry the interior
+spelling as a `SameTy` premise rather than computing the re-basing, because
+the two name maps can reorder relative to each other, so the translation is a
+partial lookup rather than arithmetic.
 
 The fourth run is the only one that puts the boundary rules under real load,
 because its argument is instantiated beneath a *later* `Λ`, so the value that

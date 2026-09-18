@@ -152,6 +152,17 @@ Testing has found and repaired these errors:
    not the rule. See the immediate plans. Machine-checked in
    `notes/CrossingAudit.agda`.
 
+   The invariant that REPLACES (P) is proved. Write (Q) for: the two
+   conversion contexts `Peel` straddles name the same representation
+   variables — both being Δ with the unlocked names added. (P) said they
+   are the same LIST; (Q) says only the same SET, and a premise on `Peel`
+   absorbs the difference. (Q) holds for every well-formed morphism, with
+   no restriction on the change list and no `Unique`, so it holds exactly
+   where (P) fails. With it, the premise always has a witness, so
+   installing it would cost no reduction. The premise, the rule it would
+   produce, (Q) and that consequence are all in `notes/PeelPremise.agda`;
+   nothing is installed, and `strong.Reduction` is unchanged.
+
    (P) is a theorem on `main` — `convCtx-dual` in `proof/PeelDual.agda`,
    for an arbitrary well-formed change list — because there a name map is
    a fixed carrier with a lock BIT per slot, so nothing is renumbered, two

@@ -22,6 +22,8 @@ module strong.notes.RepresentationReductionExamples where
 --   7. two later binders          37 steps   true   : 𝔹
 --   8. impredicative identity     17 steps   true   : 𝔹
 --   9. ∀-payload over a free var  23 steps   7      : ℕ
+--  10. a function crosses          11 steps   7      : ℕ
+--  11. a function crosses twice    21 steps   7      : ℕ
 --
 -- WHAT IS AND IS NOT WRITTEN OUT.  The intermediate states are not.
 -- `eval` (strong.Eval) produces them, and it calls the type checker on
@@ -303,3 +305,45 @@ N-eval = reaches refl V-$
 
 N-run : empty ⊢ N₀ -→* $ 7
 N-run = reaches-run N-eval
+
+------------------------------------------------------------------------
+-- 10. (ΛX. λx:X. x) [ℕ⇒ℕ] · (λn:ℕ. n) · 7
+--
+-- A FUNCTION crosses a boundary and is then applied.  `CancelR` leaves it
+-- under a `_⋉_` frame whose conversion is `mkId (ℕ⇒ℕ)` — which is a
+-- `_↦_` — so `Peel` fires on a COMPOSITE frame, three times in all.  No
+-- earlier run does that: everywhere else the value that crosses is
+-- first-order and the composite frames only ever carry an identity.
+------------------------------------------------------------------------
+
+A₀ : Term
+A₀ = ((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ] · (ƛ `ℕ ∙ ` 0)) · $ 7
+
+A₀-⊢ : empty ∣ [] ⊢ A₀ ⦂ `ℕ
+A₀-⊢ = tc
+
+A-eval : Reaches 11 11 A₀-⊢ ($ 7)
+A-eval = reaches refl V-$
+
+A-run : empty ⊢ A₀ -→* $ 7
+A-run = reaches-run A-eval
+
+------------------------------------------------------------------------
+-- 11. the same, with the function crossing TWICE
+--
+-- Stacked composites: `Peel` fires five times, on frames that are `_⋉_`
+-- and `rewind` of each other.
+------------------------------------------------------------------------
+
+idℕℕ B₀ : Term
+idℕℕ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ]
+B₀ = (idℕℕ · (idℕℕ · (ƛ `ℕ ∙ ` 0))) · $ 7
+
+B₀-⊢ : empty ∣ [] ⊢ B₀ ⦂ `ℕ
+B₀-⊢ = tc
+
+B-eval : Reaches 21 21 B₀-⊢ ($ 7)
+B-eval = reaches refl V-$
+
+B-run : empty ⊢ B₀ -→* $ 7
+B-run = reaches-run B-eval

@@ -21,6 +21,7 @@ open import strong.Eval
 open import strong.notes.RepresentationReductionExamples
 open import strong.notes.ReUnlockWall
 open import strong.notes.ForallPayloadWall
+open import strong.notes.CrossingAudit
 
 -- the main theorems
 open import strong.Preservation

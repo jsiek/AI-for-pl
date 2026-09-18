@@ -57,7 +57,7 @@ The following parts have been ported and typecheck:
 `Eval.agda` is rewritten from scratch rather than ported.
 
 The reduction tests are in `notes/RepresentationReductionExamples.agda`. All
-nine closed programs reduce to first-order values:
+eleven closed programs reduce to first-order values:
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;
@@ -73,7 +73,12 @@ nine closed programs reduce to first-order values:
 - the identity instantiated at its own type, `[∀Z. Z⇒Z]`, continued with
   `[𝔹] · true`, reduces in seventeen steps to `true : 𝔹`;
 - a payload `∀Z. Z⇒X` formed under `ΛX` reduces in twenty-three steps to
-  `7 : ℕ`.
+  `7 : ℕ`;
+- a FUNCTION crossing a boundary and then applied reduces in eleven steps to
+  `7 : ℕ`, and crossing twice, in twenty-one. These are the only runs in
+  which `Peel` fires on a composite (`_⋉_`, `rewind`) frame: elsewhere the
+  value that crosses is first-order, so the composites only ever carry an
+  identity conversion rather than a `_↦_`.
 
 All fifteen reduction rules fire somewhere in those seven runs. The last three
 exist for the four that the first four reached once or not at all:
@@ -132,7 +137,11 @@ Testing has found and repaired these errors:
    `notes/ForallPayloadWall.agda`. `CancelR` had the same crossing and was
    repaired the same way, preventively: no example distinguishes its two
    spellings, so that one is justified by uniformity and by the reorder
-   witness rather than by a failing program.
+   witness rather than by a failing program. `TyBeta`, `Beta` and
+   `TyPeelR-Λ` were audited and are safe STRUCTURALLY — their frames either
+   never lock, or the conversion context skips the only lock, so the two
+   maps coincide. `Peel` is neither repaired nor clean; see the immediate
+   plans. Machine-checked in `notes/CrossingAudit.agda`.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism
@@ -237,12 +246,19 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
    frames, and examples 8 and 9 for the `∀` payloads. All three crossing
    rules now carry the interior spelling, so the preservation cases have the
    premise they need rather than having to re-derive it.
-2. Audit the remaining rules for the same crossing before preservation, not
-   after. `TyBeta`, `TyPeelR-Λ`, `Peel` and `Beta` all mint or move
-   something; each should be checked for a spelling that is read in one of
-   the two contexts and used in the other. Three of the six repairs so far
-   have been exactly that, and two of them were found by a program rather
-   than by looking.
+2. Rule on `Peel`, the one hazard the audit left open
+   (`notes/CrossingAudit.agda` §4). It moves the domain half of its
+   conversion onto the crossed frame's dual, whose conversion context is
+   taken at the interior — a different name map from the one that half was
+   read in. The repair the other three rules took does not transfer: they
+   carried a type or a name, and `SameTy` relates those, whereas `Peel`
+   carries a CONVERSION and there is no judgement yet relating two
+   conversions that name the same representations. Either invent one, or
+   prove the invariant that makes `Peel` safe as it stands: every frame the
+   rules build pairs each `lock` with the `unlock` of its own dual at the
+   same recorded position, so the two contexts cannot reorder. That
+   invariant is currently neither stated nor proved, and preservation for
+   `Peel` will need one or the other.
 3. Prove the two invariants example 4 only witnesses at one point,
    rather than leaving them to the checker: that
    `interior (rewind Θ) Δ ≡ extendReps (binds Θ) Δ` and that

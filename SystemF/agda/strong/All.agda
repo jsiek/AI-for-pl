@@ -20,6 +20,7 @@ open import strong.TypeCheck
 open import strong.Eval
 open import strong.notes.RepresentationReductionExamples
 open import strong.notes.ReUnlockWall
+open import strong.notes.ForallPayloadWall
 
 -- the main theorems
 open import strong.Preservation

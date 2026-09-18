@@ -2743,3 +2743,78 @@ A second one, found by trying to be too clever: the lookup premise of
 contracta mention the looked-up type only under `mkId`, which the unifier
 cannot invert, so `A` is fixed by that premise and by nothing else and the
 INFERRING form has to be used there.
+
+## A REPRESENTATION PAYLOAD WITH A `∀` BREAKS TWO RULES (2026-09-18)
+## — found by the first example that instantiates at a polymorphic type
+
+CONTEXT.  The example suite had been extended until all fifteen reduction
+rules fire, and the remaining gap was a kind of VALUE rather than a rule:
+nothing anywhere instantiated a type variable at a polymorphic type, so no
+morphism ever bound a representation payload containing a `∀`, and
+`wfᴿ-∀` and `local-ref` fired nowhere.  System F is impredicative, so that
+is an ordinary program, not an exotic one.
+
+Two were written:
+
+    H₀ = (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z) , at [𝔹] · true
+    N₀ = (ΛX. λx:X. ((ΛY. λy:Y. y) [∀Z. Z⇒X]) · (ΛZ. λz:Z. x)) [ℕ] · 7 ,
+         at [𝔹] · true
+
+H₀'s payload is a closed `∀`; N₀'s is `∀Z. Z⇒X`, whose body mentions a
+live type variable, so the payload carries a payload-LOCAL reference and a
+FREE representation variable under the same binder — the mixed reading
+`_⊢ref[_]_` exists for.
+
+BOTH ARE WELL TYPED AND NEITHER RUNS.  H₀ takes ten steps and loses its
+type at the eleventh; N₀ takes eight and loses it at the ninth.  These are
+not stuck states: the evaluator finds a redex each time, and the
+CONTRACTUM fails to typecheck.  Machine-checked in
+notes/ForallPayloadWall.agda, which also pins the failing premise in each
+case.  Not repaired.
+
+THE TWO FAILURES ARE THE SAME DEFECT.  Each rule takes a SPELLING — an
+ordinary de Bruijn index — that is valid in one conversion context and
+reuses it in a different one, without re-basing.  The two contexts agree
+whenever the locks and unlocks between them leave the relevant name where
+it was, which is why nothing else in the suite notices.
+
+`TyPeelR-⟪⟫` (N₀, step 9).  The contractum pushes the type application in
+one layer carrying `renameᵗ (extᵗ suc) Bᵢ`, where Bᵢ is the source of the
+crossed boundary's conversion — read at `underΛ Δᶜ` by the rule's own
+premise.  `⊢·[]` reads that annotation in the INTERIOR context instead.
+Here Δᶜ is `… ∣ (0 ∷ 1 ∷ 2 ∷ 3 ∷ [])` and the interior is `… ∣ (0 ∷ 3 ∷ [])`,
+because the conversion context keeps the two names the interior's locks
+removed; the same representation therefore sits at ordinary index 3 in one
+and 1 in the other.  The head's type is `∀ (` 0 ⇒ ` 2)` and the pushed
+annotation is `` ` 0 ⇒ ` 4 ``.
+
+`IdPush` (H₀, step 11).  The rule turns the inner `id (` X)` into
+`unseal X` and merges the two frames.  `X` was read in the INNER frame's
+conversion context; the merged frame `Θ₁ ⋉ Θ₂` has a different one.  Here
+the value under the merged frame has type `` ` 0 `` at
+`… ∣ (1 ∷ [])`, whose representation is `𝔹, and the merged conversion
+context is `… ∣ (0 ∷ 1 ∷ 2 ∷ [])`, in which `𝔹 is named 1 and the `∀`
+payload is named 2.  The rule minted `unseal 2`; `unseal 1` is what
+matches.
+
+WHAT THIS SAYS ABOUT THE RE-UNLOCK CLAUSE (2026-09-17).  That repair
+turned on the same question and was decided the same way: the conversion
+context keeps a locked name WHERE IT WAS, so positions in it are the
+interior's positions with the locked names left in place.  The ruling
+recorded that dropping the position was safe because a dual restores what
+its lock removed.  These two rules show the wider consequence the ruling
+did not draw: as soon as a spelling CROSSES between the two readings it
+must be re-based, and neither rule does.  The repair is not wrong — both
+of its own checks still hold — but it is not sufficient, and the invariant
+it leaned on ("the two contexts agree on the names that matter") is false
+in general.
+
+NOT RULED.  Which way to repair is open, and the two candidates differ:
+re-base the spelling at the crossing (a renaming from Δᶜ's name map to the
+interior's, which has to be defined and shown functional), or change the
+rules to carry the interior spelling as a premise, as `TyPeelR`'s
+annotation premise already does for the type and `CancelR`'s lookup
+premise does for the rep.  The second is closer to the design's existing
+habit; the first is less machinery in the rules.  Preservation will have
+to be written against whichever is chosen, so this should be settled
+before that port goes further.

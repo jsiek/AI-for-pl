@@ -54,9 +54,14 @@ module strong.notes.RepresentationReductionExamples where
 --
 -- WHAT IS STILL THIN.  Depth.  The deepest seal tower any run builds is
 -- four (§7), and unwinding is quadratic in that depth, so a defect that
--- needs five boundaries would not show up here.  Nothing exercises a
--- representation payload with a `∀` in it beyond what §3 and §4 happen to
--- produce.
+-- needs five boundaries would not show up here.
+--
+-- WHAT IS MISSING ON PURPOSE.  No run here instantiates at a POLYMORPHIC
+-- type, so no representation payload contains a `∀` and `wfᴿ-∀` fires
+-- nowhere.  That is not an oversight: two such programs are written out
+-- in notes/ForallPayloadWall.agda and neither runs — `TyPeelR-⟪⟫` and
+-- `IdPush` both lose the type on them.  They will belong here when that
+-- defect is repaired.
 
 open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)

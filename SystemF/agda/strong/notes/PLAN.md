@@ -79,6 +79,17 @@ fires three times and `IdPush` twenty-one. What is still thin is depth: the
 deepest seal tower any run builds is four, and unwinding is quadratic in that
 depth, so a defect needing five boundaries would not show up.
 
+**An eighth kind of program does not run at all.** Nothing in that suite
+instantiates at a polymorphic type, so no representation payload contains a
+`∀`. Two programs that do are written out in `notes/ForallPayloadWall.agda`,
+and neither completes: `TyPeelR-⟪⟫` loses the type at one and `IdPush` at the
+other. Both are well typed, both reach a redex at every step, and in both it
+is the CONTRACTUM that fails to typecheck. The two failures are the same
+defect — a spelling valid in one conversion context is reused in another
+without re-basing — and it is NOT repaired. See `notes/DECISIONS.md`
+(2026-09-18); the repair is unruled, and preservation has to be written
+against whichever way it goes.
+
 The fourth run is the only one that puts the boundary rules under real load,
 because its argument is instantiated beneath a *later* `Λ`, so the value that
 reaches `true` has crossed three boundaries and carries three seals. The shape
@@ -211,20 +222,25 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 
 ## Immediate plans
 
-1. Port the preservation proof to the relational context-morphism interface.
-   The fourth example is now the case to check it against: it is the only one
-   that exercises `CancelR`/`IdPush` at a lock-carrying frame, which is where
-   the last defect hid.
-2. Prove the two invariants the fourth example only witnesses at one point,
+1. Rule on the `∀`-payload defect (`notes/ForallPayloadWall.agda`,
+   `notes/DECISIONS.md` 2026-09-18): re-base the spelling at the crossing, or
+   carry the interior spelling as a rule premise. Preservation cannot be
+   written until this is settled, because both candidate repairs change the
+   statement of `TyPeelR-⟪⟫` and `IdPush`.
+2. Port the preservation proof to the relational context-morphism interface.
+   The fourth example is the case to check it against for the lock-carrying
+   frames, and the two in `ForallPayloadWall` for the `∀` payloads.
+3. Prove the two invariants the fourth example only witnesses at one point,
    rather than leaving them to the checker: that
    `interior (rewind Θ) Δ ≡ extendReps (binds Θ) Δ` and that
    `convCtx (rewind Θ) Δ ≡ convCtx Θ Δ`, the second now holding by
    `conv-unlock-live`. `CancelR`'s and `IdPush`'s preservation cases both
    read the minted `mkId A` at the second of these.
-3. Re-audit every rule that crosses a `Λ` or a morphism bind prefix. At each
+4. Re-audit every rule that crosses a `Λ` or a morphism bind prefix. At each
    crossing, state separately how ordinary indices and representation indices
-   move; do not use a one-universe weakening by default.
-4. Port progress and the remaining modules imported by `All.agda`, deleting
+   move, AND in which of the two contexts each spelling is read — that last
+   question is what the 2026-09-18 defect turns on.
+5. Port progress and the remaining modules imported by `All.agda`, deleting
    obsolete masking/nameability compatibility machinery rather than adding
    shims. Progress is the half `Eval.agda`'s `step` deliberately does not
    claim, and the four `Reaches` checks are the evidence for what it will
@@ -233,7 +249,7 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
    `Examples.agda` is the big one, and it is the same transcription problem
    the reduction traces had: port it onto `TypeCheck.agda` rather than
    rewriting its boundary typings by hand.
-5. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
+6. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
    `SystemF/agda/strong/`, then update the design notes with the final
    invariants and proof lessons.
 

@@ -222,11 +222,13 @@ the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
 
 ## Immediate plans
 
-1. Rule on the `∀`-payload defect (`notes/ForallPayloadWall.agda`,
-   `notes/DECISIONS.md` 2026-09-18): re-base the spelling at the crossing, or
-   carry the interior spelling as a rule premise. Preservation cannot be
-   written until this is settled, because both candidate repairs change the
-   statement of `TyPeelR-⟪⟫` and `IdPush`.
+1. Install the `∀`-payload repair (`notes/ForallPayloadWall.agda`,
+   `notes/DECISIONS.md` 2026-09-18, recommended and awaiting Jeremy):
+   `TyPeelR-⟪⟫` gains `SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ` and pushes
+   `renameᵗ (extᵗ suc) Bᵢ′`; `IdPush` gains `SameTy Δ₁ᶜ (` X) Δ′ᶜ (` X′)` and
+   mints `unseal X′`. Determinism for both is `same-target-unique`, which is
+   already proved. Preservation cannot be written until this lands, because
+   it changes the statement of the two rules.
 2. Port the preservation proof to the relational context-morphism interface.
    The fourth example is the case to check it against for the lock-carrying
    frames, and the two in `ForallPayloadWall` for the `∀` payloads.

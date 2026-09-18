@@ -27,7 +27,7 @@ open import Data.List using (List; []; _∷_)
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Bool using (Bool; true; false)
 open import Data.Maybe using (Maybe; just; nothing; from-just)
-open import Data.Product using (_,_)
+open import Data.Product using (_,_; proj₁)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
@@ -173,3 +173,36 @@ H-mismatch = refl
 -- … whereas ` 1 is.  The rule should have pushed `unseal 1`.
 H-would-work : SameTy ΓH (` 0) ΓHᶜ (` 1)
 H-would-work = ` 1 , same-var here , same-var (there here)
+
+------------------------------------------------------------------------
+-- 3. Why the repair cannot be positional
+------------------------------------------------------------------------
+
+-- The obvious repair is to RE-BASE a spelling as it crosses: translate an
+-- index from the conversion context's name map to the interior's.  That
+-- translation cannot be positional arithmetic, because the two maps can
+-- REORDER relative to each other — the interior's `unlock` inserts at a
+-- position in ITS list, and the conversion context, having skipped the
+-- matching `lock`, is looking at a different one.
+Δ↔ : Ctxᵗ
+Δ↔ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
+
+-- lock representation variable 0 away, then bring it back at the END
+Θ↔ : CtxMorph
+Θ↔ = morph [] (unlock 1 0 ∷ lock 0 0 ∷ [])
+
+reorder-interior : names (proj₁ (from-just (interior? Δ↔ Θ↔))) ≡ 1 ∷ 0 ∷ []
+reorder-interior = refl
+
+reorder-conversion :
+  names (proj₁ (from-just (conversion? Δ↔ Θ↔))) ≡ 0 ∷ 1 ∷ []
+reorder-conversion = refl
+
+-- So the two maps are not even a subsequence of one another, and the only
+-- translation there is goes through the REPRESENTATION a name denotes:
+-- look the rvar up in one map, find it in the other.  That is exactly what
+-- `SameTy` asserts, and `same-target-unique` (strong.Ctx) already makes it
+-- a function on a name map with `Unique` names — which both rules already
+-- carry.  Stating it as a premise therefore costs one premise of a
+-- judgement `env` already uses, and computing it instead would put a
+-- PARTIAL, lookup-based function inside a contractum.

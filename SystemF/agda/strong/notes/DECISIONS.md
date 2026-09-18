@@ -2809,12 +2809,58 @@ of its own checks still hold — but it is not sufficient, and the invariant
 it leaned on ("the two contexts agree on the names that matter") is false
 in general.
 
-NOT RULED.  Which way to repair is open, and the two candidates differ:
-re-base the spelling at the crossing (a renaming from Δᶜ's name map to the
-interior's, which has to be defined and shown functional), or change the
-rules to carry the interior spelling as a premise, as `TyPeelR`'s
-annotation premise already does for the type and `CancelR`'s lookup
-premise does for the rep.  The second is closer to the design's existing
-habit; the first is less machinery in the rules.  Preservation will have
-to be written against whichever is chosen, so this should be settled
-before that port goes further.
+RECOMMENDED REPAIR (2026-09-18): CARRY THE INTERIOR SPELLING AS A PREMISE.
+
+The two candidates were: re-base the spelling at the crossing, or name the
+interior spelling in a premise and relate the two.  They are the same
+CONTENT — the question is only whether the rule computes it or asserts it
+— and four things decide it for the premise.
+
+(1) The translation is not arithmetic.  The two name maps can REORDER
+relative to each other: the interior's `unlock` inserts at a position in
+ITS list, and the conversion context, having skipped the matching `lock`,
+is looking at a different one.  `Θ↔ = morph [] (unlock 1 0 ∷ lock 0 0 ∷ [])`
+over names `0 ∷ 1 ∷ []` gives interior `1 ∷ 0 ∷ []` and conversion
+`0 ∷ 1 ∷ []` (machine-checked, notes/ForallPayloadWall §3).  So the two
+maps are not even subsequences of one another and the only translation
+there is goes through the REPRESENTATION a name denotes.
+
+(2) That translation is a LOOKUP, and it is partial: Δᶜ holds names the
+interior does not, so re-basing can fail.  A total version needs a junk
+case; a faithful one needs a premise saying it succeeded — which is the
+other candidate.
+
+(3) A premise is free on both of the things a new premise usually costs.
+Determinism: the premise is a `SameTy`, whose target is unique on a name
+map with `Unique` names by `same-target-unique` (strong.Ctx) — already
+proved, and both rules already carry the `Unique` premise.  Progress: it
+comes by inverting the redex's own `env`, at exactly the point where
+`TyPeelR` already inverts to recover its annotation premise.
+
+(4) It is what this design already does everywhere else, and the reason it
+does.  `CancelR` and `IdPush` carry a binder-lookup premise rather than
+computing `mkId` from stored knowledge; `TyPeelR` carries the annotation
+premise rather than computing the interior body; `IdPush` REPLACED
+`IdAbsorb` precisely to keep context arithmetic (`⊕`, `⊳`) out of the
+contracta.  Computing the re-basing would put a partial, lookup-based
+defined function back inside a contractum — and a defined function in a
+reduction index is what trips Agda's unifier (AGENTS.md, constructor-form
+indices).
+
+CONCRETELY.  `TyPeelR-⟪⟫` gains `SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ`
+and pushes `renameᵗ (extᵗ suc) Bᵢ′`.  `IdPush` gains
+`SameTy Δ₁ᶜ (` X) Δ′ᶜ (` X′)` and mints `unseal X′`.  One premise each, of
+a judgement `env` already uses in three positions.
+
+THE STRUCTURAL OPTION, NOT TAKEN NOW.  Both this defect and the
+2026-09-17 one come from the same place: the interior and the conversion
+context are two DIFFERENT LISTS, and every spelling that crosses between
+them is a hazard.  A representation in which they share one list — the
+interior's map with the locked entries marked rather than deleted — would
+make the positions coincide and retire the whole class.  That is a
+redesign of `Ctxᵗ` touching everything, and it is close to the masking
+discipline this development already retired once (proof/MaskFacts, the
+SCOPE MOVE of 2026-09-06), so it should not be reached for on two data
+points.  If a third defect of this kind appears, it is the thing to
+reconsider — and the reasons masking was dropped should be re-read first,
+because they may not apply to marking the CONVERSION context.

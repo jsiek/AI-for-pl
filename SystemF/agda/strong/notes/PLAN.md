@@ -299,9 +299,11 @@ The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
 clean. The stage-1 preservation induction now passes as well, through the
 parameterized interface described in immediate-plan item 1 below. Canonical
-forms now pass against the relational `env` interface as well. `All.agda`
-reaches `proof/Progress.agda`; its first failure is the retired `convCtx` name
-at line 80.
+forms now pass against the relational `env` interface as well. Stage-1
+progress passes too: its public logical statement stays premise-free, while
+the proof is parameterized by the new `MergedReading` invariant pending
+review. `All.agda` now reaches `proof/TypeSafety.agda`; its first failure is
+the unavailable unconditional `progress` name at line 25.
 
 ## Resuming on another machine
 
@@ -315,10 +317,11 @@ What compiles, from `SystemF/agda/strong/`:
 agda --safe --no-allow-unsolved-metas -v0 All.agda
 ```
 
-stops at the FIRST unported dependency, `proof/Progress.agda`, on the retired
-`convCtx` name at line 80. The core, `Reduction`, `TypeCheck`, `Eval`, the
-notes modules, canonical forms, stage-1 `proof/Preserve.agda`, and its honest
-parameterized public wrapper all pass before that frontier.
+stops at the FIRST unported dependency, `proof/TypeSafety.agda`, on the
+unavailable unconditional `progress` name at line 25. The core, `Reduction`,
+`TypeCheck`, `Eval`, the notes modules, canonical forms, stage-1
+`proof/Preserve.agda`, stage-1 `proof/Progress.agda`, and their honest
+parameterized public wrappers all pass before that frontier.
 
 The twelve-example suite alone is about 7.4s cold:
 
@@ -330,7 +333,8 @@ Where the open threads are: item 1's stage-1 preservation port is done;
 item 2 and the other two crossing cases remain parameters for stage 2; two
 representation-only typing transports identified by stage 1 await review;
 item 3's rewind transport and item 4's rule-set cleanup are done; canonical
-forms are done; item 6 now starts at progress and then `Examples.agda`.
+forms are done; item 6's progress port is done modulo `MergedReading`, and the
+frontier is now `proof/TypeSafety.agda` before `Examples.agda`.
 
 ## Immediate plans
 
@@ -457,7 +461,8 @@ forms are done; item 6 now starts at progress and then `Examples.agda`.
    crossing, state separately how ordinary indices and representation indices
    move, AND in which of the two contexts each spelling is read — that last
    question is what the 2026-09-18 defect turns on.
-6. **CANONICAL FORMS DONE (2026-09-19); NEXT: PROGRESS.** Canonical forms
+6. **CANONICAL FORMS AND STAGE-1 PROGRESS DONE (2026-09-19); NEXT:
+   `MergedReading` REVIEW, THEN TYPE SAFETY.** Canonical forms
    invert the exterior `SameTyExt` premise through its common representation
    type, then use `shiftRep` head preservation to recover the conversion
    target's base, variable, arrow, or `∀` shape. The old `canon-base` statement
@@ -466,12 +471,24 @@ forms are done; item 6 now starts at progress and then `Examples.agda`.
    `canon-ℕ` retains its numeral-only statement. See `notes/DECISIONS.md`,
    2026-09-19.
 
-   Port progress and the remaining modules imported by `All.agda`, deleting
-   obsolete masking/nameability compatibility machinery rather than adding
-   shims. Progress is the half `Eval.agda`'s `step` deliberately does not
-   claim, and the twelve `Reaches` checks are the evidence for what it will
-   have to prove: `step` finds a redex at every non-value state of all
-   twelve runs.
+   Progress now constructs the carried readings and re-spellings for Peel,
+   both TyPeelR clauses, CancelR, and IdPush. The proved Peel package moved
+   from `notes/PeelPremise.agda` into `CtxMorph.agda` §3b/§3c and
+   `Conversion.agda` §2c; the note now checks the moved facts on its original
+   mixed-frame witness. The corrected `canon-base` branches go directly to
+   `Drop$`, `Drop-true`, and `Drop-false`.
+
+   The public statement remains premise-free: recursive calls under `Λ` need
+   no well-formedness, and every boundary case gets `WfCtx` from its own
+   `MorphWf`. The proof is honestly parameterized by one NEW MAJOR statement,
+   `MergedReading`, which says the conversion reading of `Θ₁ ⋉ Θ₂` exists and
+   retains every representation name available in both Θ₂'s conversion
+   context and Θ₁'s. Those are exactly the two re-spellings that CancelR and
+   IdPush mint. It is deferred for review rather than implemented in stage 1.
+
+   `All.agda` consequently reaches `proof/TypeSafety.agda:25`, where the old
+   module still asks for an unconditional `progress` theorem.
+
    `Examples.agda` is the big one, and it is the same transcription problem
    the reduction traces had: port it onto `TypeCheck.agda` rather than
    rewriting its boundary typings by hand.

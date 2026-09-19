@@ -495,29 +495,6 @@ same-shiftRVars {η = η} (suc n) p =
   subst (_⊢ _ ~ _) (sym (shiftRVars-suc′ n η))
         (same-shift-free (same-shiftRVars n p))
 
-Keeps : TyCtx → TyCtx → Set
-Keeps η η′ = ∀ {α} → Live α η → Live α η′
-
-keeps-underΛ : Keeps η η′
-  → Keeps (zero ∷ shiftNames η) (zero ∷ shiftNames η′)
-keeps-underΛ f (zero , here) = zero , here
-keeps-underΛ {η = η} f (suc X , there d) with shiftNames-∋⁻ d
-keeps-underΛ {η = η} f (suc X , there d) | α , refl , d′
-  with f (X , d′)
-keeps-underΛ {η = η} f (suc X , there d) | α , refl , d′
-  | Y , d′′ = suc Y , there (shiftNames-∋ d′′)
-
-respell-ty : Keeps η η′ → η ⊢ A ~ R → ∃[ B ] (η′ ⊢ B ~ R)
-respell-ty f (same-var d) with f (_ , d)
-respell-ty f (same-var d) | X , d′ = ` X , same-var d′
-respell-ty f same-ℕ = `ℕ , same-ℕ
-respell-ty f same-𝔹 = `𝔹 , same-𝔹
-respell-ty f (same-⇒ p q) with respell-ty f p | respell-ty f q
-respell-ty f (same-⇒ p q) | A′ , p′ | B′ , q′ =
-  A′ ⇒ B′ , same-⇒ p′ q′
-respell-ty f (same-∀ p) with respell-ty (keeps-underΛ f) p
-respell-ty f (same-∀ p) | A′ , p′ = `∀ A′ , same-∀ p′
-
 underNames-ref : ∀ {η X α} (n : ℕ) → ValidNames Ξ η
   → underNames n η ∋ˡ X := α → Ξ ⊢ref[ n ] α
 underNames-ref zero valid d with valid d

@@ -3169,3 +3169,84 @@ spellings through a common representation type. Local inversions show that
 `shiftRep (numBinds Θ)` preserves that type's base, variable, arrow, or `∀`
 head; the existing inert-conversion inversions then recover the same wrapper
 shapes as before.
+
+## 2026-09-19 — stage-1 progress is relational and premise-free
+
+THE CONCRETE CASE THAT EXPOSES THE REMAINING OBLIGATION is the repaired
+`IdPush` state from the polymorphic-payload run. The inner identity is read at
+
+    names Δ₁ᶜ = 1 ∷ []
+    id (` 0)                       -- ordinary name 0 denotes representation 1
+
+while the merged frame's conversion context is
+
+    names Δ⋉ᶜ = 0 ∷ 1 ∷ 2 ∷ [] .
+
+After the push, the conversion must therefore be `unseal 1`, not `unseal 0`:
+
+    (V ⟪ Θ₁ , id (` 0) ⟫) ⟪ Θ₂ , unseal Y ⟫
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal 1 ⟫)
+           ⟪ rewind Θ₂ , mkId A ⟫ .
+
+The typing derivation supplies `MorphWf` for Θ₂ and Θ₁, but it does not
+supply a conversion reading for `Θ₁ ⋉ Θ₂`. The rule carries that reading and
+the `SameTy` re-spelling explicitly, so Progress must construct both before it
+can exhibit this step.
+
+THE TWO IMPLEMENTATION CHOICES on this example were:
+
+1. Prove immediately that the merged reading always exists and contains both
+   source name sets. On the example this theorem constructs a context
+   containing representation 1 and re-spells name 0 as name 1.
+2. State that invariant exactly, use it as a stage-1 module parameter, and
+   defer its proof for review. On the same example the parameter supplies the
+   identical merged reading and the identical name-1 witness, while making the
+   new general claim visible at the public proof boundary.
+
+THE RULING FOR STAGE 1 is option 2. This is a genuinely new major statement,
+not a transcription of a computed-context theorem and not one of the facts
+already proved in `notes/PeelPremise.agda`:
+
+    MergedReading : Set
+    MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
+      → MorphWf Δ Θ₂ Δᵢ Δᶜ
+      → MorphWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
+      → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
+          ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+            × Keeps (names Δᶜ) (names Δ⋉ᶜ)
+            × Keeps (names Δ₁ᶜ) (names Δ⋉ᶜ))
+
+The first `Keeps` supplies CancelR's re-spelling of the lookup type from
+Θ₂'s conversion context. The second supplies IdPush's re-spelling of the
+inner identity variable from Θ₁'s conversion context. `respell-ty` turns each
+name-retention fact into the exact `SameTy` carried by the reduction rule.
+
+THE PUBLIC LOGICAL STATEMENT DOES NOT CHANGE and takes no `WfCtx` premise:
+
+    Progress : Set
+    Progress = ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+      → Δ ∣ [] ⊢ M ⦂ A
+      → Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
+
+For the preservation counterexample at the duplicate-name context,
+TyBeta's contractum had to mint a new `MorphWf`, so preservation needed
+`WfCtx Δ`. Progress only mints a step derivation. TyBeta gets its
+representation reading from the type-formation premise, and if Progress is
+under a boundary then that boundary's `env` node already carries the needed
+`MorphWf`. Thus the typing derivation alone suffices.
+
+THE PROVED PEEL PACKAGE MOVED FROM NOTES TO CORE. The name-set invariant (Q),
+its list machinery, and `dual-conversion-exists` now live in
+`CtxMorph.agda` §3b/§3c. Type/conversion re-spelling, readability,
+`premise-exists`, `peel-premises`, and `peel-premises-env` now live in
+`Conversion.agda` §2c. `notes/PeelPremise.agda` retains the mixed-frame
+counterexample and machine-checks the moved `Q` and `premise-exists` on it.
+The duplicate `Keeps`, `keeps-underΛ`, and `respell-ty` definitions in
+`proof/Preserve.agda` were removed so preservation reuses the core facts too.
+
+All other Progress obligations are direct inversions of the typing
+derivation. `canon-base`'s three branches construct `Drop$`, `Drop-true`, and
+`Drop-false`; the two TyPeelR clauses reuse the outer `MorphWf` readings and
+the `SameTy` body inversion; Peel uses `peel-premises-env`; CancelR and
+IdPush reuse the outer lookup and the deferred merged package. No term,
+typing, conversion, or reduction rule changed.

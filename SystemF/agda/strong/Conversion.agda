@@ -35,6 +35,7 @@ open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ;
          ⇑ᵗ)
 open import strong.Ctx
+open import strong.CtxMorph
 
 private
   variable
@@ -173,6 +174,92 @@ sameConv-src-unique uq (r , p , q) (r′ , p′ , q′)
   with sameᶜ-rep-unique q q′
 sameConv-src-unique uq (r , p , q) (r′ , p′ , q′) | refl =
   sameᶜ-target-unique uq p p′
+
+------------------------------------------------------------------------
+-- 2c. Re-spelling a conversion across a morphism crossing
+------------------------------------------------------------------------
+
+-- These facts were proved first in notes/PeelPremise.agda.  They are core
+-- infrastructure now because Progress must construct every premise carried
+-- by `Peel`.  `Q` and `dual-conversion-exists` live with the relational
+-- context readings in strong.CtxMorph; this section transports the actual
+-- type and conversion spellings.
+
+respell-ty : Keeps η η′ → η ⊢ A ~ R
+  → ∃[ A′ ] (η′ ⊢ A′ ~ R)
+respell-ty f (same-var d) with f (_ , d)
+respell-ty f (same-var d) | X , d′ = ` X , same-var d′
+respell-ty f same-ℕ = `ℕ , same-ℕ
+respell-ty f same-𝔹 = `𝔹 , same-𝔹
+respell-ty f (same-⇒ a b) with respell-ty f a
+respell-ty f (same-⇒ a b) | A′ , a′ with respell-ty f b
+respell-ty f (same-⇒ a b) | A′ , a′ | B′ , b′ =
+  A′ ⇒ B′ , same-⇒ a′ b′
+respell-ty f (same-∀ a) with respell-ty (keeps-underΛ f) a
+respell-ty f (same-∀ a) | A′ , a′ = `∀ A′ , same-∀ a′
+
+respell : Keeps η η′ → η ⊩ s ~ r → ∃[ s′ ] (η′ ⊩ s′ ~ r)
+respell f (sameᶜ-id a) with respell-ty f a
+respell f (sameᶜ-id a) | A′ , a′ = id A′ , sameᶜ-id a′
+respell f (sameᶜ-seal d) with f (_ , d)
+respell f (sameᶜ-seal d) | X , d′ = seal X , sameᶜ-seal d′
+respell f (sameᶜ-unseal d) with f (_ , d)
+respell f (sameᶜ-unseal d) | X , d′ = unseal X , sameᶜ-unseal d′
+respell f (sameᶜ-fun a b) with respell f a
+respell f (sameᶜ-fun a b) | s₁ , a′ with respell f b
+respell f (sameᶜ-fun a b) | s₁ , a′ | s₂ , b′ =
+  s₁ ↦ s₂ , sameᶜ-fun a′ b′
+respell f (sameᶜ-all a) with respell (keeps-underΛ f) a
+respell f (sameᶜ-all a) | s₁ , a′ = `∀ s₁ , sameᶜ-all a′
+
+readable : ∀ {Γ : Ctxᵗ} {c} → Γ ⊢ c ∶ A ⇝ B
+  → ∃[ r ] (names Γ ⊩ c ~ r)
+readable (conv-id base-ℕ) = id `ℕ , sameᶜ-id same-ℕ
+readable (conv-id base-𝔹) = id `𝔹 , sameᶜ-id same-𝔹
+readable (conv-idv (α , d)) = id (` α) , sameᶜ-id (same-var d)
+readable (conv-unseal (α , R , d , rd , sm)) =
+  unseal α , sameᶜ-unseal d
+readable (conv-seal (α , R , d , rd , sm)) = seal α , sameᶜ-seal d
+readable (conv-fun a b) with readable a
+readable (conv-fun a b) | r₁ , a′ with readable b
+readable (conv-fun a b) | r₁ , a′ | r₂ , b′ =
+  r₁ ↦ r₂ , sameᶜ-fun a′ b′
+readable (conv-all a) with readable a
+readable (conv-all a) | r₁ , a′ = `∀ r₁ , sameᶜ-all a′
+
+premise-exists : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Γᶜ ⊢ s ∶ A ⇝ B
+  → ∃[ s′ ] SameConv Γᵈ s′ Γᶜ s
+premise-exists int conv dconv ⊢s with readable ⊢s
+premise-exists int conv dconv ⊢s | r , rd
+  with respell (Q int conv dconv) rd
+premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ =
+  s′ , (r , rd′ , rd)
+
+peel-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
+  → Unique (names Γ)
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Γᶜ ⊢ s ∶ A ⇝ B
+  → ∃[ Γᵈ ] ∃[ s′ ]
+      ((Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
+peel-premises uq int conv ⊢s with dual-conversion-exists uq int
+peel-premises uq int conv ⊢s | Γᵈ , dconv
+  with premise-exists int conv dconv ⊢s
+peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc =
+  Γᵈ , s′ , dconv , sc
+
+peel-premises-env : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
+  → MorphWf Γ Θ Γᵢ Γᶜ
+  → Γᶜ ⊢ s ∶ A ⇝ B
+  → ∃[ Γᵈ ] ∃[ s′ ]
+      ((Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
+peel-premises-env mwΘ ⊢s =
+  peel-premises (name-fn (mw-exterior mwΘ)) (mw-interior mwΘ)
+                (mw-conversion mwΘ) ⊢s
 
 ------------------------------------------------------------------------
 -- 3.  The identity conversion at an arbitrary type

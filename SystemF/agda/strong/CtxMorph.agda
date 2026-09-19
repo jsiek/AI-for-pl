@@ -7,13 +7,14 @@ module strong.CtxMorph where
 -- anti-bind ordinary type variables. Every change carries both the ordinary
 -- de Bruijn position and the representation variable named at that position.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_; z≤n; s≤s)
-open import Data.Nat.Properties using (+-cancelˡ-≡)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s)
+open import Data.Nat.Properties using (_≟_; +-cancelˡ-≡; ≤-trans)
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
 open import Data.List.Properties using (unfold-reverse; map-++)
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
+open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; subst)
 
@@ -22,9 +23,9 @@ open import strong.Ctx
 
 private
   variable
-    Γ Γᵢ Γᶜ : Ctxᵗ
-    Ξ : RepCtx
-    Δ Δ′ Δ₁ Δ₂ Δ₃ : TyCtx
+    Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ
+    Ξ Ξ′ : RepCtx
+    Δ Δ′ Δ₁ Δ₂ Δ₃ Δᵢ Δᶜ Δᵈ : TyCtx
     Rs : List Ty
     R : Ty
     b : RepBinding
@@ -751,6 +752,364 @@ dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
   → Unique (names Γᵈ)
 dual-unique uq int dconv =
   conversion-unique (interior-unique uq int) dconv
+
+------------------------------------------------------------------------
+-- 3b. The name-set invariant for a crossed morphism
+------------------------------------------------------------------------
+
+-- `Peel` reads its domain conversion at a morphism's conversion context,
+-- then uses a re-spelling of it at the dual's conversion context.  Those
+-- contexts need not have the same name LIST, but they name the same
+-- representation variables.  The following development was proved first in
+-- notes/PeelPremise.agda; it lives here now because Progress needs the
+-- general theorem, not just the note's concrete witness.
+
+data InLocks (α : RVar) : List Change → Set where
+  il-here  : ∀ {X χ} → InLocks α (lock X α ∷ χ)
+  il-there : ∀ {δ χ} → InLocks α χ → InLocks α (δ ∷ χ)
+
+data InUnlocks (α : RVar) : List Change → Set where
+  iu-here  : ∀ {X χ} → InUnlocks α (unlock X α ∷ χ)
+  iu-there : ∀ {δ χ} → InUnlocks α χ → InUnlocks α (δ ∷ χ)
+
+inLocks? : (α : RVar) (χ : List Change) → Dec (InLocks α χ)
+inLocks? α [] = no (λ ())
+inLocks? α (unlock X β ∷ χ) with inLocks? α χ
+inLocks? α (unlock X β ∷ χ) | yes il = yes (il-there il)
+inLocks? α (unlock X β ∷ χ) | no nl =
+  no (λ where (il-there il) → nl il)
+inLocks? α (lock X β ∷ χ) with α ≟ β
+inLocks? α (lock X β ∷ χ) | yes refl = yes il-here
+inLocks? α (lock X β ∷ χ) | no ne with inLocks? α χ
+inLocks? α (lock X β ∷ χ) | no ne | yes il = yes (il-there il)
+inLocks? α (lock X β ∷ χ) | no ne | no nl =
+  no (λ where il-here → ne refl
+              (il-there il) → nl il)
+
+conv-mono : Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′ → Live α Δ → Live α Δ′
+conv-mono conv[] lv = lv
+conv-mono (conv-lock v cs) lv = conv-mono cs lv
+conv-mono (conv-unlock v cs fr i) lv = ins-mono i (conv-mono cs lv)
+conv-mono (conv-unlock-live v cs d) lv = conv-mono cs lv
+
+conv-unlocks : Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
+  → InUnlocks α χ → Live α Δ′
+conv-unlocks (conv-lock v cs) (iu-there iu) = conv-unlocks cs iu
+conv-unlocks (conv-unlock v cs fr i) iu-here = ins-live i
+conv-unlocks (conv-unlock v cs fr i) (iu-there iu) =
+  ins-mono i (conv-unlocks cs iu)
+conv-unlocks (conv-unlock-live v cs d) iu-here = _ , d
+conv-unlocks (conv-unlock-live v cs d) (iu-there iu) =
+  conv-unlocks cs iu
+
+conv-inv : Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′ → Live α Δ′
+  → Live α Δ ⊎ InUnlocks α χ
+conv-inv conv[] lv = inj₁ lv
+conv-inv (conv-lock v cs) lv with conv-inv cs lv
+conv-inv (conv-lock v cs) lv | inj₁ l = inj₁ l
+conv-inv (conv-lock v cs) lv | inj₂ iu = inj₂ (iu-there iu)
+conv-inv (conv-unlock v cs fr i) lv with ins-inv i lv
+conv-inv (conv-unlock v cs fr i) lv | inj₁ refl = inj₂ iu-here
+conv-inv (conv-unlock v cs fr i) lv | inj₂ lv′ with conv-inv cs lv′
+conv-inv (conv-unlock v cs fr i) lv | inj₂ lv′ | inj₁ l = inj₁ l
+conv-inv (conv-unlock v cs fr i) lv | inj₂ lv′ | inj₂ iu =
+  inj₂ (iu-there iu)
+conv-inv (conv-unlock-live v cs d) lv with conv-inv cs lv
+conv-inv (conv-unlock-live v cs d) lv | inj₁ l = inj₁ l
+conv-inv (conv-unlock-live v cs d) lv | inj₂ iu = inj₂ (iu-there iu)
+
+int-keep : Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+  → ¬ InLocks α χ → Live α Δ → Live α Δᵢ
+int-keep changes[] nl lv = lv
+int-keep (changes∷ cs (step-lock v dl fr)) nl lv =
+  del-mono dl (λ where refl → nl il-here)
+           (int-keep cs (λ il → nl (il-there il)) lv)
+int-keep (changes∷ cs (step-unlock v fr i)) nl lv =
+  ins-mono i (int-keep cs (λ il → nl (il-there il)) lv)
+
+int-unlocked : Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ → ¬ InLocks α χ
+  → InUnlocks α χ → Live α Δᵢ
+int-unlocked (changes∷ cs (step-lock v dl fr)) nl (iu-there iu) =
+  del-mono dl (λ where refl → nl il-here)
+           (int-unlocked cs (λ il → nl (il-there il)) iu)
+int-unlocked (changes∷ cs (step-unlock v fr i)) nl iu-here = ins-live i
+int-unlocked (changes∷ cs (step-unlock v fr i)) nl (iu-there iu) =
+  ins-mono i (int-unlocked cs (λ il → nl (il-there il)) iu)
+
+int-inv : Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ → Live α Δᵢ
+  → Live α Δ ⊎ InUnlocks α χ
+int-inv changes[] lv = inj₁ lv
+int-inv (changes∷ cs (step-lock v dl fr)) lv
+  with int-inv cs (del-inv dl lv)
+int-inv (changes∷ cs (step-lock v dl fr)) lv | inj₁ l = inj₁ l
+int-inv (changes∷ cs (step-lock v dl fr)) lv | inj₂ iu =
+  inj₂ (iu-there iu)
+int-inv (changes∷ cs (step-unlock v fr i)) lv with ins-inv i lv
+int-inv (changes∷ cs (step-unlock v fr i)) lv | inj₁ refl = inj₂ iu-here
+int-inv (changes∷ cs (step-unlock v fr i)) lv | inj₂ lv′
+  with int-inv cs lv′
+int-inv (changes∷ cs (step-unlock v fr i)) lv | inj₂ lv′ | inj₁ l =
+  inj₁ l
+int-inv (changes∷ cs (step-unlock v fr i)) lv | inj₂ lv′ | inj₂ iu =
+  inj₂ (iu-there iu)
+
+int-locked : Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ → InLocks α χ
+  → Live α Δ ⊎ InUnlocks α χ
+int-locked (changes∷ cs (step-lock v dl fr)) il-here
+  with int-inv cs (del-live dl)
+int-locked (changes∷ cs (step-lock v dl fr)) il-here | inj₁ l = inj₁ l
+int-locked (changes∷ cs (step-lock v dl fr)) il-here | inj₂ iu =
+  inj₂ (iu-there iu)
+int-locked (changes∷ cs (step-lock v dl fr)) (il-there il)
+  with int-locked cs il
+int-locked (changes∷ cs (step-lock v dl fr)) (il-there il) | inj₁ l =
+  inj₁ l
+int-locked (changes∷ cs (step-lock v dl fr)) (il-there il) | inj₂ iu =
+  inj₂ (iu-there iu)
+int-locked (changes∷ cs (step-unlock v fr i)) (il-there il)
+  with int-locked cs il
+int-locked (changes∷ cs (step-unlock v fr i)) (il-there il) | inj₁ l =
+  inj₁ l
+int-locked (changes∷ cs (step-unlock v fr i)) (il-there il) | inj₂ iu =
+  inj₂ (iu-there iu)
+
+in-unlocks-++ˡ : ∀ {χ₂} → InUnlocks α χ → InUnlocks α (χ ++ χ₂)
+in-unlocks-++ˡ iu-here = iu-here
+in-unlocks-++ˡ (iu-there iu) = iu-there (in-unlocks-++ˡ iu)
+
+in-unlocks-++ʳ : ∀ {χ₂} (χ₁ : List Change)
+  → InUnlocks α χ₂ → InUnlocks α (χ₁ ++ χ₂)
+in-unlocks-++ʳ [] iu = iu
+in-unlocks-++ʳ (δ ∷ χ₁) iu = iu-there (in-unlocks-++ʳ χ₁ iu)
+
+in-unlocks-++-inv : ∀ {χ₂} (χ₁ : List Change)
+  → InUnlocks α (χ₁ ++ χ₂)
+  → InUnlocks α χ₁ ⊎ InUnlocks α χ₂
+in-unlocks-++-inv [] iu = inj₂ iu
+in-unlocks-++-inv (unlock X β ∷ χ₁) iu-here = inj₁ iu-here
+in-unlocks-++-inv (unlock X β ∷ χ₁) (iu-there iu)
+  with in-unlocks-++-inv χ₁ iu
+in-unlocks-++-inv (unlock X β ∷ χ₁) (iu-there iu) | inj₁ a =
+  inj₁ (iu-there a)
+in-unlocks-++-inv (unlock X β ∷ χ₁) (iu-there iu) | inj₂ b = inj₂ b
+in-unlocks-++-inv (lock X β ∷ χ₁) (iu-there iu)
+  with in-unlocks-++-inv χ₁ iu
+in-unlocks-++-inv (lock X β ∷ χ₁) (iu-there iu) | inj₁ a =
+  inj₁ (iu-there a)
+in-unlocks-++-inv (lock X β ∷ χ₁) (iu-there iu) | inj₂ b = inj₂ b
+
+locks→dual : (χ : List Change) → InLocks α χ → InUnlocks α (dual χ)
+locks→dual (lock X β ∷ χ) il-here
+  rewrite unfold-reverse (lock X β) χ
+        | map-++ dualChange (reverse χ) (lock X β ∷ []) =
+  in-unlocks-++ʳ (dual χ) iu-here
+locks→dual (lock X β ∷ χ) (il-there il)
+  rewrite unfold-reverse (lock X β) χ
+        | map-++ dualChange (reverse χ) (lock X β ∷ []) =
+  in-unlocks-++ˡ (locks→dual χ il)
+locks→dual (unlock X β ∷ χ) (il-there il)
+  rewrite unfold-reverse (unlock X β) χ
+        | map-++ dualChange (reverse χ) (unlock X β ∷ []) =
+  in-unlocks-++ˡ (locks→dual χ il)
+
+dual→locks : (χ : List Change) → InUnlocks α (dual χ) → InLocks α χ
+dual→locks [] ()
+dual→locks (lock X β ∷ χ) iu
+  rewrite unfold-reverse (lock X β) χ
+        | map-++ dualChange (reverse χ) (lock X β ∷ [])
+  with in-unlocks-++-inv (dual χ) iu
+dual→locks (lock X β ∷ χ) iu | inj₁ a = il-there (dual→locks χ a)
+dual→locks (lock X β ∷ χ) iu | inj₂ iu-here = il-here
+dual→locks (unlock X β ∷ χ) iu
+  rewrite unfold-reverse (unlock X β) χ
+        | map-++ dualChange (reverse χ) (unlock X β ∷ [])
+  with in-unlocks-++-inv (dual χ) iu
+dual→locks (unlock X β ∷ χ) iu | inj₁ a = il-there (dual→locks χ a)
+dual→locks (unlock X β ∷ χ) iu | inj₂ (iu-there ())
+
+Q-changes : (χ : List Change)
+  → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+  → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ
+  → Ξ′ ∣ Δᵢ ⊢χᶜ dual χ ⇒ Δᵈ
+  → Live α Δᶜ → Live α Δᵈ
+Q-changes {α = α} χ int conv dconv lv with inLocks? α χ
+Q-changes {α = α} χ int conv dconv lv | yes il =
+  conv-unlocks dconv (locks→dual χ il)
+Q-changes {α = α} χ int conv dconv lv | no nl with conv-inv conv lv
+Q-changes {α = α} χ int conv dconv lv | no nl | inj₁ l =
+  conv-mono dconv (int-keep int nl l)
+Q-changes {α = α} χ int conv dconv lv | no nl | inj₂ iu =
+  conv-mono dconv (int-unlocked int nl iu)
+
+Q-changes-conv : (χ : List Change)
+  → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+  → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δᶜ
+  → Ξ′ ∣ Δᵢ ⊢χᶜ dual χ ⇒ Δᵈ
+  → Live α Δᵈ → Live α Δᶜ
+Q-changes-conv χ int conv dconv lv with conv-inv dconv lv
+Q-changes-conv χ int conv dconv lv | inj₁ lvᵢ with int-inv int lvᵢ
+Q-changes-conv χ int conv dconv lv | inj₁ lvᵢ | inj₁ l = conv-mono conv l
+Q-changes-conv χ int conv dconv lv | inj₁ lvᵢ | inj₂ iu =
+  conv-unlocks conv iu
+Q-changes-conv χ int conv dconv lv | inj₂ iud
+  with int-locked int (dual→locks χ iud)
+Q-changes-conv χ int conv dconv lv | inj₂ iud | inj₁ l = conv-mono conv l
+Q-changes-conv χ int conv dconv lv | inj₂ iud | inj₂ iu =
+  conv-unlocks conv iu
+
+-- (Q): the two conversion contexts straddled by `Peel` name the same
+-- representation variables, although their ordinary positions may differ.
+Q : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Live α (names Γᶜ) → Live α (names Γᵈ)
+Q {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
+  Q-changes (changes Θ) cs cc
+    (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ _)
+           (shiftRVars-0 _) dc)
+    lv
+
+Q-inv : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Live α (names Γᵈ) → Live α (names Γᶜ)
+Q-inv {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
+  Q-changes-conv (changes Θ) cs cc
+    (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ _)
+           (shiftRVars-0 _) dc)
+    lv
+
+live-shift : Live α Δ → Live (suc α) (shiftNames Δ)
+live-shift (zero , here) = zero , here
+live-shift (suc X , there d) with live-shift (X , d)
+live-shift (suc X , there d) | Y , d′ = suc Y , there d′
+
+live-shift-inv : (Δ : TyCtx) → Live α (shiftNames Δ)
+  → ∃[ β ] (Live β Δ × (α ≡ suc β))
+live-shift-inv (γ ∷ Δ) (zero , here) = γ , (zero , here) , refl
+live-shift-inv (γ ∷ Δ) (suc X , there d) with live-shift-inv Δ (X , d)
+live-shift-inv (γ ∷ Δ) (suc X , there d) | β , lv , eq =
+  β , live-cons lv , eq
+
+Keeps : TyCtx → TyCtx → Set
+Keeps Δ Δ′ = ∀ {α} → Live α Δ → Live α Δ′
+
+keeps-underΛ : Keeps Δ Δ′
+  → Keeps (zero ∷ shiftNames Δ) (zero ∷ shiftNames Δ′)
+keeps-underΛ f (zero , here) = zero , here
+keeps-underΛ {Δ = Δ} f (suc X , there d) with live-shift-inv Δ (X , d)
+keeps-underΛ {Δ = Δ} f (suc X , there d) | β , lv , refl =
+  live-cons (live-shift (f lv))
+
+------------------------------------------------------------------------
+-- 3c. The dual conversion context exists
+------------------------------------------------------------------------
+
+live? : (α : RVar) (Δ : TyCtx) → Live α Δ ⊎ Fresh α Δ
+live? α [] = inj₂ fresh[]
+live? α (β ∷ Δ) with α ≟ β
+live? α (β ∷ Δ) | yes refl = inj₁ (zero , here)
+live? α (β ∷ Δ) | no ne with live? α Δ
+live? α (β ∷ Δ) | no ne | inj₁ lv = inj₁ (live-cons lv)
+live? α (β ∷ Δ) | no ne | inj₂ fr = inj₂ (fresh∷ ne fr)
+
+del-length : α ⊢- Δ at X ⇒ Δ′ → length Δ ≡ suc (length Δ′)
+del-length del-here = refl
+del-length (del-there dl) = cong suc (del-length dl)
+
+del-lt : α ⊢- Δ at X ⇒ Δ′ → suc X ≤ length Δ
+del-lt del-here = s≤s z≤n
+del-lt (del-there dl) = s≤s (del-lt dl)
+
+lookup→del : Δ ∋ˡ X := α → ∃[ Δ′ ] (α ⊢- Δ at X ⇒ Δ′)
+lookup→del here = _ , del-here
+lookup→del (there d) with lookup→del d
+lookup→del (there d) | Δ′ , dl = _ , del-there dl
+
+ins-exists : (Δ : TyCtx) (X : ℕ) → X ≤ length Δ
+  → ∃[ Δ′ ] (α ⊢+ Δ at X ⇒ Δ′)
+ins-exists Δ zero le = _ , ins-here
+ins-exists (β ∷ Δ) (suc X) (s≤s le) with ins-exists Δ X le
+ins-exists (β ∷ Δ) (suc X) (s≤s le) | Δ′ , i =
+  β ∷ Δ′ , ins-there i
+
+pigeon : (xs ys : TyCtx) → Unique xs → Keeps xs ys
+  → length xs ≤ length ys
+pigeon [] ys uq k = z≤n
+pigeon (α ∷ xs) ys (unique∷ fr uq) k with k (zero , here)
+pigeon (α ∷ xs) ys (unique∷ fr uq) k | X , d with lookup→del d
+pigeon (α ∷ xs) ys (unique∷ fr uq) k | X , d | ys′ , dl =
+  subst (λ n → suc (length xs) ≤ n) (sym (del-length dl))
+        (s≤s (pigeon xs ys′ uq k′))
+  where
+  k′ : Keeps xs ys′
+  k′ lv = del-mono dl (fresh→≢ fr lv) (k (live-cons lv))
+
+sucle : ∀ {a b} → suc a ≤ suc b → a ≤ b
+sucle (s≤s le) = le
+
+keeps-del : ∀ {Δ₀} → α ⊢- Δ at X ⇒ Δ′ → Live α Δ₀
+  → Keeps Δ′ Δ₀ → Keeps Δ Δ₀
+keeps-del {α = α} dl lvα k {β} lv with β ≟ α
+keeps-del {α = α} dl lvα k {β} lv | yes refl = lvα
+keeps-del {α = α} dl lvα k {β} lv | no ne = k (del-mono dl ne lv)
+
+dual-conv-exists : (χ : List Change) {Δ Δᵢ : TyCtx} (Δ₀ : TyCtx)
+  → Unique Δ → Unique Δ₀
+  → Ξ ∣ Δ ⊢χ χ ⇒ Δᵢ
+  → Keeps Δᵢ Δ₀
+  → ∃[ Δᵈ ] (Ξ ∣ Δ₀ ⊢χᶜ dual χ ⇒ Δᵈ)
+dual-conv-exists [] Δ₀ uqΔ uq₀ changes[] k = Δ₀ , conv[]
+dual-conv-exists (unlock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-unlock v fr i)) k
+  with dual-conv-exists χ Δ₀ uqΔ uq₀ cs (λ lv → k (ins-mono i lv))
+dual-conv-exists (unlock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-unlock v fr i)) k | Δᵈ , dc =
+  Δᵈ , subst (λ l → _ ∣ Δ₀ ⊢χᶜ l ⇒ Δᵈ)
+             (sym (dual-∷ (unlock X α) χ))
+             (conv-changes-++ (conv-lock v conv[]) dc)
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k with live? α Δ₀
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₁ (Y , d)
+  with dual-conv-exists χ Δ₀ uqΔ uq₀ cs (keeps-del dl (Y , d) k)
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₁ (Y , d)
+                 | Δᵈ , dc =
+  Δᵈ , subst (λ l → _ ∣ Δ₀ ⊢χᶜ l ⇒ Δᵈ)
+             (sym (dual-∷ (lock X α) χ))
+             (conv-changes-++ (conv-unlock-live v conv[] d) dc)
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₂ frα
+  with ins-exists {α = α} Δ₀ X
+         (sucle (≤-trans (del-lt dl)
+                         (pigeon _ (α ∷ Δ₀) (int-unique uqΔ cs)
+                                 (keeps-del dl (zero , here)
+                                            (λ lv → live-cons (k lv))))))
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₂ frα | Δ₁ , i
+  with dual-conv-exists χ Δ₁ uqΔ (ins-unique i frα uq₀) cs
+         (keeps-del dl (ins-live i) (λ lv → ins-mono i (k lv)))
+dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
+                 (changes∷ cs (step-lock v dl fr)) k | inj₂ frα | Δ₁ , i
+                 | Δᵈ , dc =
+  Δᵈ , subst (λ l → _ ∣ Δ₀ ⊢χᶜ l ⇒ Δᵈ)
+             (sym (dual-∷ (lock X α) χ))
+             (conv-changes-++ (conv-unlock v conv[] frα i) dc)
+
+dual-conversion-exists : ∀ {Γ Γᵢ : Ctxᵗ} {Θ : CtxMorph}
+  → Unique (names Γ)
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → ∃[ Γᵈ ] (Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ)
+dual-conversion-exists {Θ = Θ} uq (interior cs)
+  with dual-conv-exists (changes Θ) _ (unique-shiftRVars _ uq)
+         (int-unique (unique-shiftRVars _ uq) cs) cs (λ lv → lv)
+dual-conversion-exists {Θ = Θ} uq (interior cs) | Δᵈ , dc =
+  _ , conversion
+        (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ Δᵈ)
+               (sym (shiftRVars-0 _)) dc)
 
 -- THE TWO TRANSPORT THEOREMS.  These are what `MorphWf` used to take as
 -- explicit obligations.

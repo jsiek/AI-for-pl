@@ -2631,3 +2631,1097 @@ measured in Examples: the Λ clause performs the instantiation itself,
 so one type instantiation mints ONE binder where TyPeelR ⨟ TyBeta minted
 two — J₀ 14 → 11 steps, E₀ 6 → 5 (ends in a value), T₉'s birth story
 2 → 1 step; P₀ Q₀ R₀ L₀ Ri G unchanged.
+
+## THE RE-UNLOCK CLAUSE (2026-09-17, representation-variable branch)
+## — finishing the fourth reduction example broke `rewind` and `_⋉_`
+
+CONTEXT.  notes/PLAN.md item 1 asked for the fourth example,
+
+    ( ΛX. λf:(∀Z. Z⇒Z). ΛY. f [Y] ) [ℕ] · (ΛZ. λz:Z. z) , then [𝔹] · true
+
+run to a first-order value with an explicit typing derivation at every
+state.  The first five steps were already checked; the continuation is
+where the two-universe design is actually under load, because the value
+that must reach `true` has crossed THREE boundaries and carries three
+seals, and unwinding them is what drives `CancelR` and `IdPush`.
+
+THE DEFECT.  The eleventh step is `CancelR`, whose contractum is
+
+    (V ⟪ Θ₁ ⋉ Θ₂ , mkId A ⟫) ⟪ rewind Θ₂ , mkId A ⟫ .
+
+Here Θ₂ is `instantiate (` 0) ΘE-moved`, which LOCKS: it is `TyPeelR-Λ`'s
+frame over a boundary that had already crossed two `Λ`s, so its change
+list is `lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ []`.  Both of the contractum's
+frames append the DUAL of that list — `rewind Θ = dual (changes Θ) ++
+changes Θ`, and `Θ₁` is the argument's `dualMorph Θ₂` from the `Peel` that
+sent it across.  The conversion context SKIPS a `lock` (that is the whole
+point: the conversion must still be able to name the concealed variable),
+so when the dual's matching `unlock` arrives, the name is still live and
+the `Fresh α Δ₂` premise of `conv-unlock` fails.
+
+So `rewind Θc` and `dualMorph Θc ⋉ Θc` have NO conversion context, `env`
+cannot type the contractum, and preservation fails at `CancelR` — and at
+`IdPush`, which has the same two frames.  Machine-checked:
+`no-old-rewind-conv` (notes/ReUnlockWall.agda, against a local copy of the
+two-clause judgement as it stood).  Every state up to
+and including the redex is well typed, so this is a defect in the rule
+set, not in the example.
+
+Note this could not show up in examples 1–3: their `CancelR`s all have a
+lock-free Θ₂ (`TyBetaMorph`, or a `⋉` of it), and for a lock-free Θ the
+dual is all locks, which the conversion context skips.
+
+THE RULING.  The conversion context is the UNION of the names live
+anywhere along the morphism — that is what "skips `lock`s" means.  Read
+that way the old judgement was simply not total: an `unlock` of a name
+that is already live is a NO-OP, and the missing clause is
+
+    conv-unlock-live : ValidRVar Ξ α → Ξ ∣ Δ₁ ⊢χᶜ χ ⇒ Δ₂ → Δ₂ ∋ˡ Y := α
+      → Ξ ∣ Δ₁ ⊢χᶜ unlock X α ∷ χ ⇒ Δ₂ .
+
+The position X is dropped, exactly as `conv-lock` already drops its own:
+skipping the lock left α where it was, so the paired unlock must leave it
+there too.  The two unlock clauses are mutually exclusive
+(`fresh-not-lookup`), so the conversion context stays a FUNCTION of the
+change list — which is what determinism for `CancelR`, `IdPush` and
+`TyPeelR-⟪⟫` consumes.  With the clause, `rewind Θ`'s conversion context
+is Θ's own conversion context, which is where `CancelR`'s minted `mkId A`
+is read; that is the invariant the rule always presumed.
+
+ALTERNATIVE CONSIDERED AND REJECTED.  Redefine `rewind` to invert only
+the unlocks (`dual (unlocks χ) ++ unlocks χ`).  That repairs `rewind` —
+its interior run becomes literally Θ's conversion run, followed by its
+inverse — but leaves `Θ₁ ⋉ Θ₂` broken, and `Θ₁` is the argument's dual,
+which is not ours to rewrite.  One clause fixes both frames; two rule
+rewrites fix one.
+
+INSTALLED in strong.CtxMorph §3.  The whole development still checks, and
+examples 1–3 are unchanged (no lock-carrying `CancelR` occurs in them).
+
+THE RESULT.  The fourth example now runs `E₀ᴮ -→* true` in 25 steps with a
+typing derivation at every state.  The shape of the tail is worth
+recording: with a tower of n seals against n unseals, `CancelR` at the
+innermost live pair leaves two identity layers, each of which `IdPush`
+walks outward one layer at a time before the next `CancelR` can fire, so
+the run is quadratic in n — for n = 3, four `Peel`/`Beta` steps, two
+`CancelR`s inside, five `IdPush`es, a last `CancelR`, and six `Drop-true`s.
+
+THE TOOLING THIS FORCED (strong.TypeCheck).  Because `_⋉_` and `rewind`
+CONCATENATE change lists, those frames grow with the tower: the last ones
+in this run carry tens of changes each.  A hand-written
+`Ξ ∣ Δ ⊢χ χ ⇒ Δ′` is one line per change and contains nothing the change
+list does not already determine.  So the development now carries an
+executable, DERIVATION-PRODUCING type checker: every judgement it decides
+— the two induced contexts, `WfCtx`, the lookup square, conversion
+typing, type formation, and the term judgement itself — is returned as a
+`Maybe` of the ordinary derivation, built from the ordinary constructors.
+The caller states the answer and the checker is forced at it, so a
+failure or a different answer is a type error, not a silently accepted
+witness.  Nothing is postulated.
+
+Consequence for the example module: a state's typing derivation is now
+
+    E₁₄-⊢ : empty ∣ [] ⊢ E₁₄ ⦂ `𝔹
+    E₁₄-⊢ = tc
+
+and the module lost about 1400 lines of `SameTy` readings, `WfCtx`
+obligations and change-by-change frame derivations, all of which the
+terms already fixed.  What each state's derivation documents — its TYPE —
+survives; the reduction steps are untouched, because the rule and the
+value premises at each edge are the content of the test.
+
+One design point is worth recording.  The checker must INFER, not merely
+check: `⊢·` and `⊢·[]` need the head's type and a head can be a boundary.
+Inferring a boundary's exterior type means inverting `shiftRep`, because
+`env` reads that type across the morphism's representation-bind prefix
+(`Δᶜ ⊢ᶜ Cₑ ~ shiftRep n R`).  That inverse is `strAt`, strengthening at a
+binder depth, and it is the only place in the checker that produces an
+equation rather than a derivation.
+
+A second one, found by trying to be too clever: the lookup premise of
+`CancelR`/`IdPush` canNOT be discharged by a goal-directed checker.  Both
+contracta mention the looked-up type only under `mkId`, which the unifier
+cannot invert, so `A` is fixed by that premise and by nothing else and the
+INFERRING form has to be used there.
+
+## A REPRESENTATION PAYLOAD WITH A `∀` BREAKS TWO RULES (2026-09-18)
+## — found by the first example that instantiates at a polymorphic type
+
+CONTEXT.  The example suite had been extended until all fifteen reduction
+rules fire, and the remaining gap was a kind of VALUE rather than a rule:
+nothing anywhere instantiated a type variable at a polymorphic type, so no
+morphism ever bound a representation payload containing a `∀`, and
+`wfᴿ-∀` and `local-ref` fired nowhere.  System F is impredicative, so that
+is an ordinary program, not an exotic one.
+
+Two were written:
+
+    H₀ = (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z) , at [𝔹] · true
+    N₀ = (ΛX. λx:X. ((ΛY. λy:Y. y) [∀Z. Z⇒X]) · (ΛZ. λz:Z. x)) [ℕ] · 7 ,
+         at [𝔹] · true
+
+H₀'s payload is a closed `∀`; N₀'s is `∀Z. Z⇒X`, whose body mentions a
+live type variable, so the payload carries a payload-LOCAL reference and a
+FREE representation variable under the same binder — the mixed reading
+`_⊢ref[_]_` exists for.
+
+BOTH WERE WELL TYPED AND NEITHER RAN.  H₀ takes ten steps and loses its
+type at the eleventh; N₀ takes eight and loses it at the ninth.  These are
+not stuck states: the evaluator finds a redex each time, and the
+CONTRACTUM fails to typecheck.  Machine-checked at the time in
+notes/ForallPayloadWall.agda, which pinned the failing premise in each
+case.  REPAIRED, below; both programs now run, as §8 and §9 of
+notes/RepresentationReductionExamples.agda — seventeen and twenty-three
+steps, every state type-checked.
+
+THE TWO FAILURES ARE THE SAME DEFECT.  Each rule takes a SPELLING — an
+ordinary de Bruijn index — that is valid in one conversion context and
+reuses it in a different one, without re-basing.  The two contexts agree
+whenever the locks and unlocks between them leave the relevant name where
+it was, which is why nothing else in the suite notices.
+
+`TyPeelR-⟪⟫` (N₀, step 9).  The contractum pushes the type application in
+one layer carrying `renameᵗ (extᵗ suc) Bᵢ`, where Bᵢ is the source of the
+crossed boundary's conversion — read at `underΛ Δᶜ` by the rule's own
+premise.  `⊢·[]` reads that annotation in the INTERIOR context instead.
+Here Δᶜ is `… ∣ (0 ∷ 1 ∷ 2 ∷ 3 ∷ [])` and the interior is `… ∣ (0 ∷ 3 ∷ [])`,
+because the conversion context keeps the two names the interior's locks
+removed; the same representation therefore sits at ordinary index 3 in one
+and 1 in the other.  The head's type is `∀ (` 0 ⇒ ` 2)` and the pushed
+annotation is `` ` 0 ⇒ ` 4 ``.
+
+`IdPush` (H₀, step 11).  The rule turns the inner `id (` X)` into
+`unseal X` and merges the two frames.  `X` was read in the INNER frame's
+conversion context; the merged frame `Θ₁ ⋉ Θ₂` has a different one.  Here
+the value under the merged frame has type `` ` 0 `` at
+`… ∣ (1 ∷ [])`, whose representation is `𝔹, and the merged conversion
+context is `… ∣ (0 ∷ 1 ∷ 2 ∷ [])`, in which `𝔹 is named 1 and the `∀`
+payload is named 2.  The rule minted `unseal 2`; `unseal 1` is what
+matches.
+
+WHAT THIS SAYS ABOUT THE RE-UNLOCK CLAUSE (2026-09-17).  That repair
+turned on the same question and was decided the same way: the conversion
+context keeps a locked name WHERE IT WAS, so positions in it are the
+interior's positions with the locked names left in place.  The ruling
+recorded that dropping the position was safe because a dual restores what
+its lock removed.  These two rules show the wider consequence the ruling
+did not draw: as soon as a spelling CROSSES between the two readings it
+must be re-based, and neither rule does.  The repair is not wrong — both
+of its own checks still hold — but it is not sufficient, and the invariant
+it leaned on ("the two contexts agree on the names that matter") is false
+in general.
+
+THE RULING (2026-09-18), INSTALLED: CARRY THE INTERIOR SPELLING AS A
+PREMISE.
+
+The two candidates were: re-base the spelling at the crossing, or name the
+interior spelling in a premise and relate the two.  They are the same
+CONTENT — the question is only whether the rule computes it or asserts it
+— and four things decide it for the premise.
+
+(1) The translation is not arithmetic.  The two name maps can REORDER
+relative to each other: the interior's `unlock` inserts at a position in
+ITS list, and the conversion context, having skipped the matching `lock`,
+is looking at a different one.  `Θ↔ = morph [] (unlock 1 0 ∷ lock 0 0 ∷ [])`
+over names `0 ∷ 1 ∷ []` gives interior `1 ∷ 0 ∷ []` and conversion
+`0 ∷ 1 ∷ []` (machine-checked, notes/ForallPayloadWall §3).  So the two
+maps are not even subsequences of one another and the only translation
+there is goes through the REPRESENTATION a name denotes.
+
+(2) That translation is a LOOKUP, and it is partial: Δᶜ holds names the
+interior does not, so re-basing can fail.  A total version needs a junk
+case; a faithful one needs a premise saying it succeeded — which is the
+other candidate.
+
+(3) A premise is free on both of the things a new premise usually costs.
+Determinism: the premise is a `SameTy`, whose target is unique on a name
+map with `Unique` names by `same-target-unique` (strong.Ctx) — already
+proved, and both rules already carry the `Unique` premise.  Progress: it
+comes by inverting the redex's own `env`, at exactly the point where
+`TyPeelR` already inverts to recover its annotation premise.
+
+(4) It is what this design already does everywhere else, and the reason it
+does.  `CancelR` and `IdPush` carry a binder-lookup premise rather than
+computing `mkId` from stored knowledge; `TyPeelR` carries the annotation
+premise rather than computing the interior body; `IdPush` REPLACED
+`IdAbsorb` precisely to keep context arithmetic (`⊕`, `⊳`) out of the
+contracta.  Computing the re-basing would put a partial, lookup-based
+defined function back inside a contractum — and a defined function in a
+reduction index is what trips Agda's unifier (AGENTS.md, constructor-form
+indices).
+
+AS INSTALLED.  `TyPeelR-⟪⟫` gains `Δ ⊢ⁱ Θ ⇒ Δᵢ`,
+`Unique (names (underΛ Δᵢ))` and `SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ`,
+and pushes `renameᵗ (extᵗ suc) Bᵢ′`.  `IdPush` gains `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`,
+`Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ`, `extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ`,
+`Unique (names Δ⋉ᶜ)` and `SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X)`, and mints
+`unseal X′`.
+
+THE PRICE, HONESTLY.  Three premises and five, not the one apiece the
+recommendation estimated.  The crossing needs BOTH contexts named to be
+stated at all, and the interior name map's `Unique` is what makes the
+re-based spelling a function — so each rule pays for the contexts it
+relates, not just for the relation.  The determinism cases grew to match;
+they are still nothing but `interior-functional`, `conversion-functional`,
+`conv-src-unique`, `sameTy-src-unique` and `∋:=-det`, all of which already
+existed.  Nothing new had to be proved.
+
+WHAT IT DID NOT DISTURB.  The seven runs that predated the repair are
+unchanged, step for step: wherever the two contexts agree on a name, the
+re-based spelling IS the old one, so their contracta are identical.  That
+is also why the defect stayed hidden — the suite had no program in which a
+lock and an unlock moved a name far enough for the readings to part.
+
+`CancelR`, REPAIRED THE SAME WAY, PREVENTIVELY.  Its contractum minted
+`mkId A` on BOTH layers from a single `A` read at the outer conversion
+context, while the inner layer is checked at the merged frame's — the same
+crossing.  It now carries
+`extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ`, `Unique (names Δ⋉ᶜ)` and
+`SameTy Δ⋉ᶜ A′ Δᶜ A`, and mints `mkId A′` inside.  Three premises, not
+five: the source spelling is the looked-up `A`, which the rule already
+had at Δᶜ, so unlike `IdPush` it needs neither the interior context nor
+the inner frame's conversion context.
+
+BE CLEAR ABOUT THE EVIDENCE.  No example distinguishes `A′` from `A`, so
+this one is not justified by a failing program the way the other two
+were.  It is justified by uniformity and by the fact that the two
+contexts PROVABLY can disagree (the reorder witness,
+notes/ForallPayloadWall §1) — the previous two defects were both found
+only after a program happened to reach the disagreement, and waiting for
+a third is not a strategy.  The nine runs are unchanged by it, and the
+new premise is built at every `CancelR` in the suite, so the machinery is
+exercised even where the value coincides.
+
+THE STRUCTURAL OPTION, NOT TAKEN NOW.  Both this defect and the
+2026-09-17 one come from the same place: the interior and the conversion
+context are two DIFFERENT LISTS, and every spelling that crosses between
+them is a hazard.  A representation in which they share one list — the
+interior's map with the locked entries marked rather than deleted — would
+make the positions coincide and retire the whole class.  That is a
+redesign of `Ctxᵗ` touching everything, and it is close to the masking
+discipline this development already retired once (proof/MaskFacts, the
+SCOPE MOVE of 2026-09-06), so it should not be reached for on two data
+points.  If a third defect of this kind appears, it is the thing to
+reconsider — and the reasons masking was dropped should be re-read first,
+because they may not apply to marking the CONVERSION context.
+
+## 2026-09-18 — `MorphWf` stops storing what it can prove
+
+`MorphWf` carried its OUTPUT well-formedness as two explicit obligations,
+`mw-interior-wf : WfCtx Γᵢ` and `mw-conversion-wf : WfCtx Γᶜ`, with a
+standing note that they should become derived lemmas. They are now
+derived, and the fields are gone.
+
+WHAT IT TOOK.  `WfCtx` has three fields and each transports separately
+(`strong.CtxMorph` §3a):
+
+* `name-fn` — a lock deletes and an unlock inserts a name its own premise
+  says is fresh, so both readings preserve `Unique` (`int-unique`,
+  `conv-unique`), and `shiftRVars` is injective past the bind block.
+* `wf-names` — every name a reading leaves live is one the exterior
+  already had, shifted past the bind block, or one an `unlock` brought in,
+  and an `unlock` carries its own `ValidRVar` (`int-valid`, `conv-valid`).
+* `wf-reps` — neither reading touches the representation context, so all
+  that is needed is that the bind block is well formed where it lands:
+  each payload weakened past the block's own tail. That is `wfᴿ-push`, on
+  a general renaming lemma `wfᴿ-rename` for `_⊢ᴿ[_]_`, which is the only
+  genuinely new proof here.
+
+WHY THIS SHAPE.  The two former fields keep their names, as functions of
+a `MorphWf`, so every USE site is unchanged and only the two construction
+sites shrink. `morphWf?` no longer re-runs `wfCtx?` on both derived
+contexts at every boundary; that re-check was measured at about 0.3s of
+the 7.4s example suite, so the gain is the obligation, not the clock.
+
+The `Unique` half of this is what `notes/PeelPremise.agda` §8 consumes: a
+repaired `Peel` would get `Unique` from the morphism witness the redex's
+own typing already stores, rather than carrying it as a premise the way
+`TyPeelR-⟪⟫`, `IdPush` and `CancelR` do.
+
+## 2026-09-18 — the `Peel` repair, installed
+
+`Peel` moves the domain half `s` of its boundary's conversion onto the
+crossed frame's DUAL. `s` was read at Θ's conversion context and is used
+at the dual's, which is taken at the interior. Those are different name
+maps, and not merely renumberings of each other: the invariant that would
+have made them agree is false (`notes/CrossingAudit.agda` §5).
+
+THE RULE now names the dual's spelling `s′` and carries
+`SameConv Δᵈ s′ Δᶜ s`, alongside the morphism's two readings, the dual's
+conversion context and `Unique (names Δᵈ)`. That is the fourth and last
+crossing to be repaired this way, and the only one whose carried object is
+a CONVERSION rather than a type, so it needed a new judgement: `_⊩_~_`
+and `SameConv` in `strong.Conversion` §2b, which is `_⊢_~_` one universe
+up, structural except at the three leaves a conversion spells a name at.
+
+WHY IT IS SAFE TO CARRY, which is the part that took the work
+(`notes/PeelPremise.agda`): the two contexts NAME THE SAME representation
+variables — (Q), proved for every morphism with no restriction on the
+change list — a well-typed conversion always has a representation-universe
+reading to transport, and the dual's conversion context, which typing the
+redex does not supply, always exists. So the premise never blocks a
+reduction. All twelve runs pass unchanged, same step counts and endpoints.
+
+BE CLEAR ABOUT ONE THING. The rule still CARRIES `Unique (names Δᵈ)`.
+`det` has no typing derivation to read it from, exactly as for the other
+three. What the argument shows is that a well-typed redex always supplies
+it, not that the premise can be dropped.
+
+MEASUREMENT. The example suite is ~7.5s cold, against ~7.4s before, so the
+extra premises cost roughly nothing at this size. Two readings of ~32s
+were taken during the install and did not reproduce across five later
+runs; they were artifacts, not a regression.
+
+## 2026-09-18 — uniqueness comes from typing, not reduction
+
+The concrete `IdPush` redex
+
+    (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
+
+used to carry both `Unique (names Δ⋉ᶜ)` for the merged frame and
+`Unique (names Δᶜ)` for Θ₂'s conversion context. The contractum mentions
+neither witness; it depends on the retained `SameTy`, lookup and context
+readings. The same duplication occurred at every boundary rule whose
+determinism case compared a re-spelled type or conversion.
+
+THE RULING, INSTALLED. Reduction carries no `Unique` premises. All eight
+were removed: one each from `Peel` and `TyPeelR-Λ`, and two each from
+`TyPeelR-⟪⟫`, `CancelR` and `IdPush`. The `SameTy`/`SameConv` and context
+reading premises stay because they pin the spellings that occur in the
+contracta.
+
+Determinism now states
+
+    det : ∀ {Δ Γ M M₁ M₂ A} → Δ ∣ Γ ⊢ M ⦂ A
+      → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+
+and obtains name-map functionality from that typing derivation. In a
+boundary case it inverts to `env`, reads `name-fn` from the stored
+`MorphWf`, and uses `mw-interior-wf`/`mw-conversion-wf`; `unique-underΛ`
+handles the type-binder cases. The merged contexts of `CancelR` and
+`IdPush` transport the exterior's uniqueness through their explicit
+conversion readings. `Peel` uses `dual-unique`, moved from
+`notes/PeelPremise.agda` to `strong.CtxMorph` §3a, where it is stated from
+the lifted `interior-unique` and `conversion-unique` lemmas. Congruence
+cases invert typing and pass the appropriate subterm derivation when they
+recurse.
+
+THE EXECUTABLE CONSEQUENCE. `Eval.agda` no longer imports or runs
+`unique?`: its gatherers decide only evidence the rules still carry. The
+twelve example runs keep the same step counts and endpoints.
+
+## 2026-09-18 — rewind's two context invariants are relational theorems
+
+THE NECESSARY HYPOTHESIS, on a concrete morphism. Let
+
+    Δ₀ = (bindR `ℕ ∷ []) ∣ []
+    Θ₀ = morph [] (lock 0 0 ∷ []) .
+
+The raw conversion relation admits `Δ₀ ⊢ᶜ Θ₀ ⇒ Δ₀`: `conv-lock`
+skips the lock even though representation variable 0 has no ordinary name.
+But `rewind Θ₀` has changes
+`unlock 0 0 ∷ lock 0 0 ∷ []`. Its conversion reading skips the tail lock
+and then inserts name 0, so its result is
+
+    (bindR `ℕ ∷ []) ∣ (0 ∷ []) ,
+
+not `Δ₀`. Thus a theorem from the conversion reading alone is false for
+the relational interface. There is no interior reading of `Θ₀` at `Δ₀`,
+because its lock has nothing to delete.
+
+THE RULING, INSTALLED in `strong.CtxMorph` §3a:
+
+    rewind-interior : ∀ {Θ : CtxMorph}
+      → Γ ⊢ⁱ Θ ⇒ Γᵢ
+      → Γ ⊢ⁱ rewind Θ ⇒ extendReps (binds Θ) Γ
+
+    rewind-conversion : ∀ {Θ : CtxMorph}
+      → Γ ⊢ⁱ Θ ⇒ Γᵢ
+      → Γ ⊢ᶜ Θ ⇒ Γᶜ
+      → Γ ⊢ᶜ rewind Θ ⇒ Γᶜ
+
+The first proof runs the original changes and their exact inverse. The
+second uses the original interior reading to show that every name a dual
+unlock restores is already live in the original conversion context; that
+step is discharged by `conv-unlock-live`. A dual lock is skipped. No
+`WfCtx`, bind-well-formedness or `MorphWf` hypothesis is needed: the pair
+of relational readings is the weaker interface, and every `MorphWf`
+already supplies both.
+
+WHY THESE TWO FORMS. The outer identity layer minted by both `CancelR` and
+`IdPush` uses `rewind Θ₂`, so these lemmas construct exactly the
+interior and conversion readings its `env` needs. The inner layer uses
+`Θ₁ ⋉ Θ₂`; both reduction rules already carry that composite's
+conversion reading explicitly, so item 3 needs no additional composite
+theorem.
+
+## 2026-09-18 — stage-1 preservation is relational and parameterized
+
+THE EXAMPLE THAT CHANGED THE PUBLIC STATEMENT. Let
+
+    Δdup = (abstR ∷ []) ∣ (0 ∷ 0 ∷ [])
+
+and consider
+
+    (Λ ($ 0)) ·[ `ℕ , `ℕ ] .
+
+The source is typed at `Δdup`: neither `$ 0` nor either `ℕ` annotation
+uses an ordinary type variable. TyBeta also steps because `$ 0` is a value
+and `Δdup ⊢ᶨ `ℕ ~ `ℕ`. Its contractum is
+
+    ($ 0) ⟪ instantiate `ℕ (morph [] []) , reveal 0 `ℕ ⟫ .
+
+Typing that boundary requires a `MorphWf` whose exterior field is
+`WfCtx Δdup`, but the duplicate name map is not `Unique`. Keeping the old
+premise-free preservation statement would therefore assert a false result
+on this example; trying to recover `WfCtx Δ` from the source typing also
+fails on this same derivation. THE RULING: the stage-1 `Preservation` and
+every local rule case take `WfCtx Δ`. On the example this premise rejects
+`Δdup` at the theorem boundary, exactly where the minted `MorphWf` needs it.
+
+THE RETIRED INTERFACE WAS DELETED, NOT SHIMMED. The old `Nameable` and
+masked/unmasked-entry arguments do not occur in `proof/Preserve.agda`.
+Section 1 now phrases lookup preservation directly on `Ctx.agda`:
+
+    WfRen Δ Δ′ ρ = ∀ {X} → Δ ∋tv X → Δ′ ∋tv ρ X
+
+    SubWf Δ Δ′ σ = ∀ {X} → Δ ∋tv X → Δ′ ⊢ᵗ σ X
+
+`wf-ren`, `wf-substᵗ`, and `wf-[]ᵗ` follow those live ordinary-name
+lookups. `CtxWf` still records well-formed term-context entries, and
+`⊢ᵗ-of` is its typing induction. The former retagging step became
+`RepRefines`: it changes an `abstR` binding to `bindR R` while leaving the
+ordinary name map fixed, and `⊢refine` transports the term typing through
+that representation refinement.
+
+THE MINTED CONVERSIONS FOLLOW THE NEW RULES. TyBeta uses `reveal 0 B` and
+the new relational readings of `instantiate R (morph [] [])`. Both TyPeelR
+clauses use the rule-carried representation spelling and mint
+`instReveal 0 s`; `instantiate-interior` and `instantiate-conversion`
+transport the two induced contexts. The wrapper clause consumes its carried
+`SameTy` premise instead of reconstructing the interior spelling. No term,
+typing, conversion, or reduction rule changed in this port.
+
+THE STAGE-1 MODULE IS HONESTLY PARAMETERIZED. `Peel`, `CancelR`, and
+`IdPush` remain the downstream cases they were designed to be. Two further
+representation-only typing transports have no new-design theorem yet. On
+the Beta example `( ƛ A ∙ N) · W`, `CrossΛTyping` is what types an image
+`crossΛᴹ W A` when substitution passes a `Λ`. On the nested TyPeelR
+example, `AddLock0Typing` types the moved inner boundary after paired
+ordinary/representation renaming and `addLock0`.
+
+**NEW MAJOR STATEMENTS FOR REVIEW; NOT PROVED IN STAGE 1:**
+
+    CrossΛTyping : Set
+    CrossΛTyping = ∀ {Δ W A}
+      → WfCtx Δ
+      → Δ ⊢ᵗ A
+      → Δ ∣ [] ⊢ W ⦂ A
+      → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
+
+    AddLock0Typing : Set
+    AddLock0Typing = ∀ {Δ W Θ s A P}
+      → WfCtx ((bindR P ∷ reps Δ) ∣
+                   (zero ∷ shiftNames (names Δ)))
+      → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
+      → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+          ∣ [] ⊢
+            (renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W
+              ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ)
+              , `∀ (renᶨ (extᵗ suc) s) ⟫)
+            ⦂ `∀ (renameᵗ (extᵗ suc) A)
+
+The top-level `Preservation.agda` no longer repeats the main branch's false
+claim of an unconditional theorem. It exports the statement with `WfCtx`
+and a `Stage1` module parameterized by these two transports plus the three
+crossing cases. The next stage must review and prove the two transport
+statements, then port `PeelDual.agda` and `MoveScope.agda`, before restoring
+an unparameterized public theorem.
+
+## 2026-09-19 — canonical base values include Boolean literals
+
+THE CONCRETE COUNTEREXAMPLE to the inherited statement is
+
+    V = `true
+    V-true : Value V
+    ⊢true  : empty ∣ [] ⊢ V ⦂ `𝔹
+    base-𝔹 : Base `𝔹 .
+
+The old `canon-base` conclusion required `Σ[ n ∈ ℕ ] (V ≡ $ n)`, so these
+premises demanded that `true` equal a numeral. Boolean terms, typings, values,
+and `Drop-true`/`Drop-false` were added when the representation-variable
+experiment began, but `proof/Canonical.agda` had not yet been ported and still
+described the earlier language in which no Boolean literal existed.
+
+THE RULING. `canon-base` keeps its name and base-type premise, but its result
+now enumerates all three base literals:
+
+    (Σ[ n ∈ ℕ ] (V ≡ $ n)) ⊎ (V ≡ `true) ⊎ (V ≡ `false) .
+
+On the example it returns the `true` branch. `canon-ℕ` keeps its old,
+numeral-only statement, so clients that specifically know the exterior type is
+`ℕ` lose no precision. Progress must split the three branches against `Drop$`,
+`Drop-true`, and `Drop-false` when it is ported.
+
+THE RELATIONAL PORT itself adds no new major theorem. For a boundary
+`W ⟪ Θ , c ⟫`, `SameTyExt` factors the exterior and conversion-target
+spellings through a common representation type. Local inversions show that
+`shiftRep (numBinds Θ)` preserves that type's base, variable, arrow, or `∀`
+head; the existing inert-conversion inversions then recover the same wrapper
+shapes as before.
+
+## 2026-09-19 — stage-1 progress is relational and premise-free
+
+THE CONCRETE CASE THAT EXPOSES THE REMAINING OBLIGATION is the repaired
+`IdPush` state from the polymorphic-payload run. The inner identity is read at
+
+    names Δ₁ᶜ = 1 ∷ []
+    id (` 0)                       -- ordinary name 0 denotes representation 1
+
+while the merged frame's conversion context is
+
+    names Δ⋉ᶜ = 0 ∷ 1 ∷ 2 ∷ [] .
+
+After the push, the conversion must therefore be `unseal 1`, not `unseal 0`:
+
+    (V ⟪ Θ₁ , id (` 0) ⟫) ⟪ Θ₂ , unseal Y ⟫
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal 1 ⟫)
+           ⟪ rewind Θ₂ , mkId A ⟫ .
+
+The typing derivation supplies `MorphWf` for Θ₂ and Θ₁, but it does not
+supply a conversion reading for `Θ₁ ⋉ Θ₂`. The rule carries that reading and
+the `SameTy` re-spelling explicitly, so Progress must construct both before it
+can exhibit this step.
+
+THE TWO IMPLEMENTATION CHOICES on this example were:
+
+1. Prove immediately that the merged reading always exists and contains both
+   source name sets. On the example this theorem constructs a context
+   containing representation 1 and re-spells name 0 as name 1.
+2. State that invariant exactly, use it as a stage-1 module parameter, and
+   defer its proof for review. On the same example the parameter supplies the
+   identical merged reading and the identical name-1 witness, while making the
+   new general claim visible at the public proof boundary.
+
+THE RULING FOR STAGE 1 is option 2. This is a genuinely new major statement,
+not a transcription of a computed-context theorem and not one of the facts
+already proved in `notes/PeelPremise.agda`:
+
+    MergedReading : Set
+    MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
+      → MorphWf Δ Θ₂ Δᵢ Δᶜ
+      → MorphWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
+      → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
+          ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+            × Keeps (names Δᶜ) (names Δ⋉ᶜ)
+            × Keeps (names Δ₁ᶜ) (names Δ⋉ᶜ))
+
+The first `Keeps` supplies CancelR's re-spelling of the lookup type from
+Θ₂'s conversion context. The second supplies IdPush's re-spelling of the
+inner identity variable from Θ₁'s conversion context. `respell-ty` turns each
+name-retention fact into the exact `SameTy` carried by the reduction rule.
+
+THE PUBLIC LOGICAL STATEMENT DOES NOT CHANGE and takes no `WfCtx` premise:
+
+    Progress : Set
+    Progress = ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+      → Δ ∣ [] ⊢ M ⦂ A
+      → Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
+
+For the preservation counterexample at the duplicate-name context,
+TyBeta's contractum had to mint a new `MorphWf`, so preservation needed
+`WfCtx Δ`. Progress only mints a step derivation. TyBeta gets its
+representation reading from the type-formation premise, and if Progress is
+under a boundary then that boundary's `env` node already carries the needed
+`MorphWf`. Thus the typing derivation alone suffices.
+
+THE PROVED PEEL PACKAGE MOVED FROM NOTES TO CORE. The name-set invariant (Q),
+its list machinery, and `dual-conversion-exists` now live in
+`CtxMorph.agda` §3b/§3c. Type/conversion re-spelling, readability,
+`premise-exists`, `peel-premises`, and `peel-premises-env` now live in
+`Conversion.agda` §2c. `notes/PeelPremise.agda` retains the mixed-frame
+counterexample and machine-checks the moved `Q` and `premise-exists` on it.
+The duplicate `Keeps`, `keeps-underΛ`, and `respell-ty` definitions in
+`proof/Preserve.agda` were removed so preservation reuses the core facts too.
+
+All other Progress obligations are direct inversions of the typing
+derivation. `canon-base`'s three branches construct `Drop$`, `Drop-true`, and
+`Drop-false`; the two TyPeelR clauses reuse the outer `MorphWf` readings and
+the `SameTy` body inversion; Peel uses `peel-premises-env`; CancelR and
+IdPush reuse the outer lookup and the deferred merged package. No term,
+typing, conversion, or reduction rule changed.
+
+## 2026-09-19 — stage-2 crossings: IdPush and Peel land, CancelR is refuted
+
+THE CONCRETE COUNTEREXAMPLE, and it is small. Let
+
+    Ξ* = bindR (` 0) ∷ bindR `ℕ ∷ []
+    Δ* = Ξ* ∣ (0 ∷ 1 ∷ [])
+    Θ₂* = morph [] []            Θ₁* = morph (`ℕ ∷ []) []
+
+so that ordinary name 0 denotes representation 0, whose payload is the
+representation VARIABLE 1 — the shape a type application at a type
+variable produces. `Δ* ∋ 0 := ` 1` and the redex
+
+    (($ 7) ⟪ morph [] [] , seal 1 ⟫ ⟪ Θ₁* , seal 0 ⟫) ⟪ Θ₂* , unseal 0 ⟫
+
+is well typed at `` ` 1 ``. Every premise of `CancelR` holds — the merged
+frame's conversion reading is `Δ₁* = (bindR `ℕ ∷ Ξ*) ∣ (1 ∷ 2 ∷ [])`, and
+`SameTy Δ₁* (` 0) Δ* (` 1)` has the witness `` ` 1 `` — so the rule fires.
+Its contractum
+
+    (V ⟪ Θ₁* ⋉ Θ₂* , mkId (` 0) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
+
+has NO typing derivation. The outer `mkId (` 1)` pins the inner boundary's
+exterior type to representation 1; the inner `env`'s `SameTyExt 1` then
+asks its conversion's type to denote `shiftBy 1 (` 1) ≡ ` 2`, while the
+inner `mkId (` 0)` denotes representation 1. A representation reading is
+unique (`same-rep-unique`), and `1 ≢ 2`.
+
+THE DIAGNOSIS. `CancelR`'s re-spelling premise reads the inner layer's
+identity type in the OUTER conversion context:
+
+    SameTy Δ⋉ᶜ A′ Δᶜ A ,
+
+so it asserts that `A′` denotes the SAME representation as `A`. But the
+inner boundary sits `numBinds Θ₁` representation binders inside its own
+exterior, and `env` compares an exterior type with a conversion type
+across exactly that block. The premise therefore drops the shift. The
+other three crossings do not: `TyPeelR-⟪⟫` and `IdPush` re-spell against
+the INNER boundary's own conversion context `Δ₁ᶜ`, where the shifted
+reading already lives, and `Peel` re-spells a conversion between two
+contexts that share a representation context. `CancelR` was the one
+repaired PREVENTIVELY (2026-09-18), against no failing program, and it was
+repaired against the wrong context.
+
+WHY NO EXAMPLE SAW IT. A bare `seal X` conversion is minted by exactly one
+rule — `Peel`, on the crossing argument — and `Peel`'s frame is
+`dualMorph Θ`, whose `binds` is `[]`. So every `CancelR` the twelve runs
+reach has `numBinds Θ₁ ≡ 0`, and `shiftBy 0` is the identity. The
+identities the unwinding tower mints are moreover at first-order types,
+where the representation is closed and the shift is invisible a second
+time.
+
+IS THE CONFIGURATION REACHABLE? NOT SETTLED, and that is the second
+repair path. The redex above is well typed and the rule fires on it, which
+is everything `CancelRCase` quantifies over; but no closed program is
+exhibited that reduces to it, and the `Peel` observation above suggests a
+REACHABLE `CancelR` redex may always have `numBinds Θ₁ ≡ 0`. If so the
+rule is sound where it fires and only the statement is wrong. The two
+repairs are therefore: carry the shifted premise, or prove and carry the
+invariant `numBinds Θ₁ ≡ 0`. Both are rule-level decisions.
+
+THE RULING: NOTHING IS CHANGED. A rule repair is Jeremy's call. The wall
+is machine-checked in `notes/CancelRShiftWall.agda`, which also carries
+the reduction step and `cancelR-case-false : ¬ CancelRCase`;
+`strong.proof.Preserve` keeps `CancelRCase` as the parameter of
+`Impl` it always was, and `strong.Preservation` and `strong.TypeSafety`
+keep it in `Stage1`. The public preservation and type-safety theorems are
+therefore conditional on a hypothesis now known to be false — which is the
+finding, not a gap. For the record, the shape the other crossings suggest
+is `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ`, with `Aᵢ` the cancelled `seal X`'s source and
+`Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` a new premise; the retired `preserve-CancelR` minted
+`mkId (shiftBy (numBinds Θ₁) A)`, so the old design had the shift and the
+port lost it.
+
+IDPUSH NEEDS NOTHING NEW, AND IN PARTICULAR NOT `MergedReading`. Four
+facts do it, and three are relational readings:
+
+  * `rewind-interior` / `rewind-conversion` give the outer frame's two
+    contexts (2026-09-18);
+  * `merged-interior` — NEW, `CtxMorph.agda` §3a — gives the merged
+    frame's interior, and it is the inner frame's OWN interior on the
+    nose. The lifted copy of Θ₂'s changes re-creates Θ₂'s interior one
+    bind block in, which is exactly where Θ₁'s reading starts. This is
+    the relational form of the retired `interior-⋉-rewind` equality;
+  * `conversion-live` re-spells the exterior type C into the merged
+    conversion context, because a conversion reading only ADDS names, so
+    every name of the merged frame's own exterior survives into it. That
+    is the half of `MergedReading` preservation actually needs, and it was
+    already a theorem;
+  * `∋ʳ-push` — NEW, §3a — says a payload looked up THROUGH a bind block
+    is the payload shifted past it. This is why `IdPush` escapes
+    `CancelR`'s defect: its minted `unseal X′` takes its type from a
+    LOOKUP, which shifts itself, where `mkId A′` takes its type from the
+    premise.
+
+Typing also forces `X′`'s representation to be `numBinds Θ₁ + αY` — the
+old `idpush-name` equation, one universe up — and that is what lets the
+lookup be taken at all.
+
+PEEL LANDS ON ONE NEW TRANSPORT. `dual-interior` — NEW, §3a, beside
+`rewind-interior` — says the dual's interior is the exterior under the
+original bind block, so the crossing argument gains no ordinary scope.
+`respell-⊢` — NEW, `proof/PeelDual.agda` §1 — turns the rule's `SameConv`
+premise into the dual boundary's conversion TYPING: the two conversion
+contexts share a representation context, so a `seal`/`unseal` cites the
+same binder and only its ordinary spelling changes, and an identity's
+payload goes through `respell-ty` against (Q). Source and target come back
+paired with the `SameTy`s the crossing boundary's `env` consumes.
+
+**REVIEW REQUIRED — NEW MAJOR STATEMENT, NOT PROVED.** The argument must
+be retyped one bind block in, and that is the third representation-only
+typing transport this port has needed:
+
+    RepWeakenTyping : Set
+    RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+      → Δ ∣ [] ⊢ W ⦂ A
+      → extendReps Rs Δ ∣ []
+          ⊢ renᴹ² (ren² (λ X → X) (wkN (length Rs))) W ⦂ A
+
+It stands beside `CrossΛTyping` and `AddLock0Typing` in
+`proof/Preserve.agda` §4, and `preserve-Peel` takes it as a module
+parameter rather than assuming it silently.
+
+WHAT WAS DELETED, NOT SHIMMED. `proof/MoveScope.agda` lost its whole
+masked-entry development: the `applyUnlocks`/`applyChanges` lookup
+transports, the `shiftScope`/`rewind`/`_⋉_` list algebra, the
+`scope`/`interior` context identities, the frame lemmas as EQUALITIES with
+the lock-only refutation, and `_⊢ᵐ_` for the two new frames.
+`proof/PeelDual.agda` lost `applyChanges-dualScope`, `⊢ˢ-dualScope`,
+`applyUnlocks-dualScope`, `interior-dual`, `applyUnlocks-hideBinds`, the
+`Ren`/`wkN` crossing machinery `⊢ᵐ-dual`/`Ren-wkN`/`crossing`, and
+`convCtx-dual` — which WAS (P), and (P) is refuted on this branch. None of
+it has a two-universe counterpart: there is no computed context to state
+an equality between, and the relational readings replace all of it.
+
+WHAT MOVED INTO CORE. `CtxMorph.agda` §3a gained `dual-interior`,
+`merged-interior`, `∋ʳ-push`, `interior-reps`/`conversion-reps`, and the
+private `shiftRVars`-lifting of a change run that `merged-interior` needs.
+`proof/Preserve.agda` §1 gained `same-wf` (the converse of `wf-same`),
+`wf-mono`/`TvMono` with `tvMono-extendReps` (type formation depends on
+ordinary POSITIONS only), `shiftRVars-∋` and `shiftRep-var`.
+
+THE INTERFACE SHRANK. `strong.Preservation.Stage1` now takes `crossΛ`,
+`addLock0`, `repWeaken` and `cancel`; `peel` and `idpush` are discharged
+and gone. `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda` follow.
+`All.agda`'s first failure is unchanged: `proof/Adversary.agda:38`, on the
+retired `applyChanges`.
+
+## 2026-09-19 — the module sweep: four deletions, four ports
+
+THE FRONTIER MOVED to `Examples.agda`. `All.agda` stopped at
+`proof/Adversary.agda:38`, on the retired `applyChanges`; every proof
+script between there and the regression corpus has now been classified
+and acted on, by the branch's closed-world rule — port a fact about the
+LIVE rules, delete a module whose subject IS the retired design, and say
+which in one line.
+
+WHAT WAS DELETED, AND WHY EACH.
+
+* `proof/MaskFacts.agda` — its whole subject is masking: `mask`/`unmask`
+  at a retained entry, `Nameable`, `∋lk`, `updateAt`, and `mask-only`, the
+  statement that `interior Θ Δ` and `convCtx Θ Δ` "differ ONLY by
+  masking". There is no lock BIT here: a lock DELETES an ordinary name and
+  an unlock INSERTS one, so there is no core to compare and no computed
+  context to write the equation between. What replaces `mask-only` is
+  `conv-lock` itself (`strong.CtxMorph` §3), which skips a lock outright,
+  and `conversion-live`, which says a conversion reading only ADDS names.
+
+* `proof/PreserveObstruct.agda` — four concrete redexes, each written in
+  `unmasked (bind …)` contexts with `mw`/`sw-l`/`sw-u` witnesses, exhibited
+  to refute an OLD rule shape and then repaired. Three of the four rules
+  have since changed shape again on this branch, and `CancelR` is refuted
+  outright (notes/CancelRShiftWall.agda). The positive content is now
+  theorems — `preserve-TyPeelR-Λ`, `preserve-IdPush` — and the twelve
+  closed runs in `notes/RepresentationReductionExamples.agda`, which
+  exercise them from plain source rather than from hand-built derivations.
+
+* `proof/DualTightness.agda` — Jeremy's 2026-09-06 tightness test, stated
+  as `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (bind prefix) ++ Δ`
+  with a vacuous-unlock refutation beside it. Both halves are properties of
+  the masked-entry `_⊢ᵐ_`. Tightness is now `dual-interior` (§3a): the
+  dual's interior is the EXTERIOR under the original bind block, so a
+  crossing argument gains no ordinary name at all — a stronger statement,
+  proved for every morphism, with no well-formedness hypothesis. The
+  vacuous unlock is refused by `step-unlock`'s own `Fresh α Δ` premise.
+
+* `proof/MwUObstruct.agda` — the record of WHY the outer frame of
+  CancelR/IdPush is `rewind Θ₂` rather than `dropLocks Θ₂` or
+  `bindsOnly Θ₂`. Every one of its three refutations is an appeal to
+  `sw-u`'s "the slot must be LOCKED" premise or to reading a bind payload
+  on `applyUnlocks`. Neither survives: a bind payload is now checked in the
+  representation universe against the exterior (`_⊢ᴮ_`), where the ordinary
+  change list cannot reach it, so the question the module answered is not
+  askable. The choice itself is settled by `rewind-interior` /
+  `rewind-conversion` (2026-09-18).
+
+WHAT WAS PORTED.
+
+* `proof/Adversary.agda`. The gate is unchanged — `seal-cites-binder` is
+  still the one-line inversion of `conv-seal`. What the two universes add
+  is that the gate now refuses a conceal for TWO independent reasons, and
+  the module states both: the cited ordinary name may be absent from the
+  map (§2b, the reading that replaces `∋lk`), or the representation
+  variable it names may be `abstR` (§2, the old ⊢3n-adv, at
+  `Δadv = (abstR ∷ []) ∣ (0 ∷ [])`). Neither can be repaired by a change
+  list, because no change rewrites a representation binding. §3's "two
+  spellings of one fact" survives as stated — `seal 0` at a binder whose
+  payload is `∀Z.Z⇒Z` forces the source type, and the boundary at a
+  mismatched interior type is untypeable. §4's `cancel-types-agree` gains
+  the `Unique (names Δ)` premise that `∋:=-det` now carries. DELETED from
+  it: `unlock-claims-a-lock` and `unlock-mentions-no-rep`, which asserted
+  things about the lock layer of a retained entry.
+
+* `proof/IdLayer.agda`. §1 was an EQUATION between ordinary de Bruijn
+  indices, `X ≡ numBinds Θ₁ + Y`. That equation is FALSE here and not
+  wanted: the two conversions are read on different name maps which may
+  reorder relative to each other. The fact is one universe up, and it is
+  what `preserve-IdPush` already consumes — `push-rep` says the inner
+  conversion's name denotes `numBinds Θ₁ + α` exactly when the outer's
+  denotes α, and `idpush-name`/`cancel-name` package it with the three
+  context readings the derivation supplies. §2's
+  `outer-id-base-untypeable` is proved through the representation universe
+  instead of through `shiftBy`: the outer `id A` forces the inner
+  boundary's exterior type to be BASE, `SameTyExt` carries base to base
+  across the bind block, and the inner conversion's target is a VARIABLE.
+  §3 keeps the naked-drop trap and `drop-empty-frame`, the latter now
+  reading both induced contexts off `extendReps [] Δ ≡ Δ`. DELETED:
+  `convCtx-lock`.
+
+* `proof/Canonicity.agda`, with ONE NEW SECTION. The family and its mint,
+  decompose and rename facts port unchanged. `Peel` is what forces the new
+  work: it no longer carries its crossing argument's conversion `s` onto
+  the dual, it carries the dual's own spelling `s′` with a `SameConv`
+  (2026-09-18). So canonicity must RE-SPELL, and §5 does it by stating the
+  family a SECOND time on representation variables (`CanonAtᴿ`) and
+  transporting through `_⊩_~_` in both directions. Two things fell out.
+  First, the way back needs the target name map to be a FUNCTION, so
+  `canon-step` takes `Unique (names Δ)` — obtained for the dual by
+  `dual-unique` from the readings `Peel` already carries, and propagated
+  through `ξ-Λ`/`ξ-⟪⟫` by `unique-underΛ`/`interior-unique`. This is the
+  same ruling as for `det`: uniqueness is a property of the context, not a
+  premise of a rule. Second, a conversion whose leaves are ALL identities
+  names no binder, so it is canonical everywhere and its re-spelling has
+  no name to inherit; both transports therefore return a sum over a new
+  `AllId` predicate, of which `mkId` is the leading instance. The old §10,
+  which validated the invariant on `strong.Examples`, is dropped while that
+  module is unported; its ground-level mint checks are kept.
+  `CanonTyPeelR` is still REFUTED, for the unchanged two-binder reason.
+
+* `proof/ShiftAudit.agda`. The criterion survives verbatim; what changes is
+  that a frame identity is no longer an EQUATION BETWEEN COMPUTED
+  CONTEXTS. §2 and §6 therefore CITE `dual-interior`, `rewind-interior`,
+  `rewind-conversion` and `merged-interior` rather than restating them, and
+  the masked-entry material — the `⊑ᵃ` refinement, the `Nameable`/`Locked`
+  slot arithmetic, the old single `TyPeelR`'s leak witness and the fix-(a)
+  prototype relation — goes with the design that stated it. The audit's NEW
+  headline is the second half: a moved subterm is renamed in the two
+  universes SEPARATELY, and at every site but TyBeta's the ORDINARY
+  component is the identity, because the lock the crossing appends deletes
+  the ordinary name it introduced. That is recorded per site in §2, §3 and
+  §5. KEPT IN FULL: the tower measure. `towerHeight`,
+  `towerHeight-renᴹ²`, `TyPeelR-⟪⟫-height` (the measure strictly
+  decreases), `fixA-height-stalls` (the rejected repair's does not),
+  `canon-∀-height` and `progress-Λ-at-0` (where the descent stops) are
+  live facts about the live wrapper clause, and `strong.Reduction`'s own
+  comment cites them.
+
+WHAT THE SWEEP DID NOT TOUCH. No rule, term, typing, conversion or
+morphism definition changed; `notes/RepresentationReductionExamples.agda`
+runs the same twelve programs to the same endpoints in the same step
+counts. `CancelR`'s refuted preservation case is untouched, and the three
+representation-only typing transports — `CrossΛTyping`, `AddLock0Typing`,
+`RepWeakenTyping` — and `MergedReading` remain module parameters awaiting
+review.
+
+ONE LOOSE END FOR THE NEXT PORT. `Examples.agda` imports
+`strong.proof.PreserveObstruct` twice (§§ around its IdPush and TyPeelR
+witnesses). That module is gone, so those two sections must be rebuilt
+against the live rules or dropped when the corpus is ported. Several
+comments in `strong.Reduction` still name the four deleted modules; they
+are left as they stand because that file is not to be edited in this
+sweep.
+
+## 2026-09-19 — the regression corpus and the renderer: the frontier closes
+
+`All.agda` now passes end to end, and so does `make check`. The two
+modules that stood between it and the gate were `Examples.agda` (3763
+lines) and `Show.agda`; both are ported, and nothing in the development
+is postulated, holed or unported.
+
+THE RULE THE PORT FOLLOWED, section by section, is the branch's
+closed-world rule again: a section whose PROGRAM still makes sense is
+rebuilt as a run stated through `TypeCheck.agda`/`Eval.agda`; a section
+whose subject IS the retired design is dropped, with one line saying
+where its verdict lives; a section the twelve-run suite already covers is
+CITED rather than duplicated.
+
+WHAT WAS REBUILT AS A RUN. Each is one `Reaches k n ⊢M V`, so each run is
+evaluated once and every intermediate state is type-checked by `eval` at
+the type the run started with.
+
+* old §11 `Q` — `((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [ℕ]) · 7`, the smallest
+  closed program that reaches `IdPush`, since a VACUOUS `Λ` is what makes
+  `TyBeta` mint an identity-at-a-variable layer. 11 steps to `7`, the
+  same length as in the old design.
+* old §11a `D` — two vacuous `Λ`s, so `IdPush` fires twice: 16 steps.
+* old §12 `L` — `Q` with the vacuous `Λ` instantiated at the OUTER
+  ordinary variable, which is the "wall" configuration: the chained
+  representation with a `Peel`-minted lock on the very name it was read
+  through. 11 steps, every state typed. The reading is unchanged by the
+  port: the wall CONTEXT is reachable, the wall CONFIGURATION is not,
+  because the blocked name is always in a `Θ₁` (inert) position.
+* old §11b `R` — the chained-representation variant, 21 steps.
+* old §11c `G` — the only closed source that reaches `TyPeelR` over a
+  frame that already has a bind, hence the only route to a two-bind
+  frame. In the old design its run stopped after 5 steps at a non-value;
+  here it runs to `7` in 14. Its `numBinds` table is kept and restated on
+  the live frames (`instantiate`, `dualMorph`, `addLock0 ∘ renᴮ²`, `_⋉_`,
+  `rewind`), because it is what explains why no example ever saw the
+  `CancelR` defect: `Peel`'s dual binds nothing.
+* old §13b `H` — the REVEAL mirror, where the `∀` crosses OUTWARD as a
+  result. Applied to an argument so that it ends at a numeral: 11 steps.
+* old §7's `Bg` — the base-typed crossing wrapper, 2 steps to `Λ 7`.
+
+WHAT WAS REBUILT AS A HAND-BUILT RUN AT A NON-EMPTY AMBIENT. Every run
+above starts at `empty`; old §§1–3 did not, and that coverage was worth
+keeping. At `Δ₆ = (bindR ℕ ∣ names 0)` the corpus now carries the cancel
+pair (3 steps), one transparent id-layer (5) and two (7) — the stack
+resolving one layer per step, outermost first, exactly as the old §3
+observed. These three are the ONLY places a state-by-state transcript is
+still written out; two of them are pinned with `evalTerms`, which is the
+old file's second, independent transcription kept where it costs nothing.
+
+WHAT WAS CITED, NOT DUPLICATED. Old §13a `J` is the twelve-run suite's
+§3 and old §14 `E` — the program that killed the per-variable design,
+v1's historical Example 8 — is its §4. Both run there; repeating them
+would only pay for the evaluation twice.
+
+WHAT WAS DROPPED, AND WHY EACH.
+
+* old §4 (`Tᵣ`/`Tₘ`, the adversaries the retired `⊳` could not clear) —
+  `⊳` does not exist. The gate is `proof/Adversary.agda`, which on this
+  branch refuses a conceal for two independent reasons.
+* old §5 (the three preservation BREAKS of the PREVIOUS design and the
+  shape-IV survivor) — hand-built redexes in `unmasked (bind …)`
+  contexts refuting rule shapes that are gone. The live verdicts are
+  `proof/Preserve.agda`, `proof/MoveScope.agda`, `proof/PeelDual.agda`,
+  and the one refutation that survives, `notes/CancelRShiftWall.agda`.
+* old §6 — `P₀`, which is the suite's §1; its hand-composed chain and
+  pinned `evalTerms` line are what the suite replaced.
+* old §8, §9 (progress and preservation along a run) — both theorems sit
+  inside parameterized modules today and one parameter is known FALSE,
+  so applying them to a run would state a conditional. The run-level
+  subject reduction in the corpus is the one `eval` CHECKS, state by
+  state, and `reaches-⦂` hands the endpoint's typing back.
+* old §12b, and the witnesses old §13a/§13b imported — they came from
+  `strong.proof.PreserveObstruct`, deleted in the module sweep.
+* old §15 (TIGHTNESS, RULE BY RULE) — its seven frame identities were
+  EQUATIONS BETWEEN COMPUTED CONTEXTS, and there are no computed
+  contexts here. They are now the relational transports `dual-interior`,
+  `rewind-interior`, `rewind-conversion` and `merged-interior`
+  (`strong.CtxMorph` §3a), and `proof/ShiftAudit.agda` is what consumes
+  them.
+
+WHAT WAS ADDED. A refutation section, because the port is only worth
+having if its checks bite: a boundary over an ACTIVE conversion is not a
+value; `infer` refuses `(ΛZ. z) [Z]`, an unbound ordinary type argument;
+and a wrong endpoint, a wrong step count and too little fuel are each
+rejected by `Reaches`.
+
+THE RENDERER NOW SHOWS THE TWO UNIVERSES DIFFERENTLY, which is the whole
+point of porting it rather than deleting it. A representation variable
+prints as α, β, γ (then α′, …) and the ORDINARY variable that names it
+prints as the Latin letter at the same counter — X names α, Y names β.
+So a boundary reads `⟪ ↑α:=ℕ , ↥X , (seal X ↦ unseal X) ⟫`, and a change
+whose letter does not match the representation it carries is visibly
+wrong, which is the defect class the 2026-09-18 repairs were about.
+Three further things the port had to get right, each a consequence of the
+two-universe design rather than a display choice:
+
+* the rendering environment IS the context: a representation context of
+  named entries plus the ordinary name map `names Γ`, so an ordinary
+  variable's name is a TWO-STEP lookup, a `lock` DELETES an entry of the
+  map and an `unlock` INSERTS one;
+* a boundary's body is rendered on the INTERIOR reading and its
+  conversion on the CONVERSION reading — locks skipped, a re-unlock of a
+  live name a no-op — because those two name maps genuinely differ;
+* the changes print IN THE ORDER THEY ACT, which is the list read
+  head-LAST, and a bind payload prints in the representation universe
+  over the EXTERIOR representation context, because the bind block is
+  parallel.
+
+`showRun` renders a whole `strong.Eval` trace with the name of the rule
+that fired at each step (`ruleName` reports the rule INSIDE a
+congruence), which is what `scripts/render_term.sh` was always being
+used for by hand. That script needed no change.
+
+## 2026-09-19 — the `CancelR` configuration is REACHABLE, and path (b) dies
+
+THE QUESTION, Jeremy's, verbatim: "For the CancelR problem and repair, do
+you have an example source program that reduces to the problematic
+configuration?"  YES.  The program is
+
+    Src = ((ΛP. λp:P. ((ΛX. λf:(∀Z. Z⇒X). f [ℕ] · 7) [P])
+                         · (ΛZ. λz:Z. p)) [ℕ]) · 7  :  ℕ
+
+closed, plain System F: not a boundary, morphism or conversion anywhere in
+the source.  Nine steps — TyBeta, Peel, Beta, TyBeta, Peel, Beta,
+TyPeelR-Λ, Peel, Beta — reach
+
+    (((($ 7 ⟪ ↓X , seal X ⟫) ⟪ ↓Z , id X ⟫)
+        ⟪ ↑γ:=ℕ , ↥Z , ↓Y , seal Y ⟫)      -- Θ₁, numBinds ≡ 1
+       ⟪ ↑β:=α , ↥Y , unseal Y ⟫)          -- Θ₂, payload the rep VARIABLE α
+      ⟪ ↑α:=ℕ , ↥X , unseal X ⟫
+
+and the tenth step is the `CancelR`.  `eval` records it as `broke`, and
+`no-contractum` refutes the contractum outright — an explicit `¬`, not the
+checker's refusal.  BOTH conjuncts of the defect hold at once, which is
+what no earlier example achieved.  The conversion context the run builds
+for `Θ₂` is `notes/CancelRShiftWall.agda`'s hand-built `Δ*` ON THE NOSE:
+`(bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])`, with `Δ* ∋ 0 := ` 1` and
+`` ` 1 `` denoting representation `` ` 1 ``.  The wall was not a synthetic
+configuration after all.
+
+WHERE THE UNREACHABILITY ARGUMENT WENT WRONG.  The wall module said a bare
+`seal X` conversion "is minted by exactly one rule — `Peel`, on the
+crossing argument — whose frame is `dualMorph Θ`".  `Peel` mints TWO
+boundaries:
+
+    Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
+      -→ (V · (… ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫
+
+Only the ARGUMENT's carries the dual.  The RESULT keeps `Θ` and takes the
+CODOMAIN `t`, so a bare `seal` sits on `Θ` whenever `t` is one — and `Θ`
+binds when that boundary came from `TyPeelR`, whose mint is
+`instReveal 0 s` on `instantiate R Θ₀` and whose `instReveal X (seal Y) ≡
+seal Y` carries a `seal` leaf across untouched.  What was still needed was
+a `↦` with a bare `seal` CODOMAIN, i.e. a `conceal` at the abstracted
+variable to the RIGHT of an `⇒` and UNDER a `∀`:
+
+    conceal 0 (∀Z. Z ⇒ X) ≡ `∀ (id (` 0) ↦ seal 1)
+
+which is `TyBeta`'s mint at an argument of type `∀Z. Z ⇒ X`.  No program
+in the twelve-run suite or in `Examples.agda` ever passed an argument
+whose polymorphic type RETURNS the abstracted variable — example 9 has
+`∀Z. Z ⇒ X`, but as the PAYLOAD of a type application, so its seal leaf
+never meets a `TyPeelR`.  That was the gap.  The open representation is
+then the same trick `Examples.agda` §1c uses for `IdPush`: instantiate at
+an enclosing `Λ`'s variable, `[P]` and not `[ℕ]`.
+
+EACH CONJUNCT ALONE IS STILL HARMLESS, and now that is a regression rather
+than a remark.  Two controls, §7 of the witness module: the same program
+instantiated at `ℕ` (so `numBinds Θ₁ ≡ 1` but the payload is closed) runs
+to `5` in nine steps; the same program with a FIRST-ORDER crossing
+argument `ℕ ⇒ X` (so the payload is still α but the seal stays on the
+`Peel` dual, `numBinds Θ₁ ≡ 0`) runs to `7` in seventeen.
+
+THE CONSEQUENCE FOR THE REPAIR.  Path (b) — prove and carry the invariant
+`numBinds Θ₁ ≡ 0` — is CLOSED: the invariant is FALSE at a reachable
+redex.  Path (a) is what is left, and it is confirmed on this example:
+with the premise read against the inner boundary's own conversion context,
+`Δ₁ᶜ = conv Θ₁ (int Θ₂ Δ₉) = (bindR `ℕ ∷ bindR (` 0) ∷ bindR `ℕ ∷ []) ∣
+(0 ∷ 1 ∷ 2 ∷ [])`, the cancelled `seal 1`'s source is `Δ₁ᶜ ∋ 1 := ` 2`, so
+the repaired premise delivers `A′ ≡ ` 2` where the rule as stated delivers
+`A′ ≡ ` 1` — and the contractum built with `mkId (` 2)` IS well typed
+(`repaired-⊢`).  What is NOT answered here is whether that premise is
+always satisfiable, the analogue of `peel-premises` for `CancelR`.
+
+THE RULING: STILL NOTHING IS CHANGED.  `strong.Reduction` is untouched,
+`strong.proof.Preserve` keeps `CancelRCase` as the open parameter it was,
+and the public preservation and type-safety theorems stay conditional on a
+hypothesis now known false FOR A REACHABLE REDEX rather than only for a
+hand-built one.  The evidence is `notes/CancelRReachabilityWitness.agda`
+(in `All.agda`, which stays green) with the hunt log in
+`notes/CancelRReachability.md`.

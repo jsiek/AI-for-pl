@@ -1,19 +1,41 @@
 module strong.TypeSafety where
 
--- TYPE SAFETY for Strong System F (v2, the conversion-boundary calculus).
+-- TYPE SAFETY for Strong System F (the two-universe design).
 --
--- The public theorem surface, stated in full and proven by thin wrappers
--- over strong.Progress, strong.Preservation and strong.Reduction:
+-- The public theorem surface.  Two theorems hold outright:
 --
---   progress      a well-typed closed term is a value or steps
---   preservation  a step preserves the type (and preservation* along a run)
---   type-safety   after any run, a well-typed closed term is a value or
---                 steps again — it never gets stuck
---   det           reduction is deterministic
+--   det           reduction is deterministic on well-typed terms
 --   value-¬step   values do not step
 --
--- All five hold with NO parameters and NO postulates (--safe).  The
--- reduction relation is indexed by the type context Δ only; the term
+-- The other three — progress, preservation (and preservation* along a
+-- run), and their composition type-safety — are STAGE-1 PARAMETERIZED:
+-- the statements are final, and the proofs are complete modulo the
+-- reviewed-before-implementation statements collected by `Stage1` below
+-- (`MergedReading` for progress; `CrossΛTyping`, `AddLock0Typing`,
+-- `RepWeakenTyping` and the refuted `CancelRCase` for preservation).  No
+-- postulates: a missing proof is a module parameter, visible in the type
+-- of `Stage1`.
+--
+-- ONE PARAMETER IS KNOWN FALSE.  `CancelRCase` has no proof and cannot
+-- have one: `notes/CancelRShiftWall.agda` refutes it for the rule as it
+-- stands (`cancelR-case-false : ¬ CancelRCase`).  So `preservation` and
+-- `type-safety` are, today, conditional on a false hypothesis — which is
+-- exactly the finding stage 2 has to report, and why a rule repair is the
+-- next thing this development needs.
+--
+-- Two statements CHANGED with the port, each against the old surface:
+--
+--   * `preservation` (and everything built on it) takes `WfCtx Δ`.  The
+--     premise-free statement is FALSE here: at a duplicate name map a
+--     TyBeta contractum must mint a `MorphWf` that `Unique` refuses
+--     (notes/DECISIONS.md, 2026-09-18).  `progress` needs no such
+--     premise — a boundary case reads well-formedness off its own `env`.
+--
+--   * `det` takes the redex's typing derivation, from which it recovers
+--     the name-map uniqueness the rules used to carry as premises
+--     (notes/DECISIONS.md, 2026-09-18).
+--
+-- The reduction relation is indexed by the type context Δ only; the term
 -- context is empty, as it must be (see strong.Preservation).
 
 open import Data.List using ([])
@@ -23,58 +45,86 @@ open import Data.Empty using (⊥)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong.Types using (Ty)
-open import strong.Ctx using (Ctxᵗ)
-open import strong.Terms using (Term; Value; _∣_⊢_⦂_)
+open import strong.Ctx using (Ctxᵗ; WfCtx)
+open import strong.Terms using (Term; Ctx; Value; _∣_⊢_⦂_)
 open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 import strong.Reduction as R
+import strong.proof.Preserve as P
+import strong.proof.Progress as PP
 import strong.Progress as Pr
 import strong.Preservation as Pv
 import strong.proof.TypeSafety as TS
 
 ------------------------------------------------------------------------
--- Progress
+-- The statements
 ------------------------------------------------------------------------
 
-progress : ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
+Progress : Set
+Progress = ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
   → Δ ∣ [] ⊢ M ⦂ A
     ---------------------------------------------
   → Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
-progress = Pr.progress
 
-------------------------------------------------------------------------
--- Preservation
-------------------------------------------------------------------------
-
-preservation : ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty}
+Preservation : Set
+Preservation = ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty}
+  → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
   → Δ ⊢ M -→ M′
     ----------------
   → Δ ∣ [] ⊢ M′ ⦂ A
-preservation = Pv.preservation
 
-preservation* : ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty}
+Preservation* : Set
+Preservation* = ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty}
+  → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
   → Δ ⊢ M -→* M′
     ----------------
   → Δ ∣ [] ⊢ M′ ⦂ A
-preservation* = Pv.preservation*
 
-------------------------------------------------------------------------
--- Type safety
-------------------------------------------------------------------------
-
-type-safety : ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
+TypeSafety : Set
+TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
+  → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
   → Δ ⊢ M -→* N
     ---------------------------------------------
   → Value N ⊎ (Σ[ N′ ∈ Term ] (Δ ⊢ N -→ N′))
-type-safety = TS.type-safety
 
 ------------------------------------------------------------------------
--- Determinism, and values do not step
+-- The stage-1 theorems, over the statements pending review
 ------------------------------------------------------------------------
 
-det : ∀ {Δ : Ctxᵗ} {M M₁ M₂ : Term}
+module Stage1
+  (merged-reading : PP.MergedReading)
+  (crossΛ    : P.CrossΛTyping)
+  (addLock0  : P.AddLock0Typing)
+  (repWeaken : P.RepWeakenTyping)
+  (cancel    : P.CancelRCase)
+  where
+
+  private
+    module Pr1 = Pr.Stage1 merged-reading
+    module Pv1 = Pv.Stage1 crossΛ addLock0 repWeaken cancel
+    module TS1 = TS.Stage1 merged-reading crossΛ addLock0
+                           repWeaken cancel
+
+  progress : Progress
+  progress = Pr1.progress
+
+  preservation : Preservation
+  preservation = Pv1.preservation
+
+  preservation* : Preservation*
+  preservation* = Pv1.preservation*
+
+  type-safety : TypeSafety
+  type-safety = TS1.type-safety
+
+------------------------------------------------------------------------
+-- Determinism, and values do not step — unconditional
+------------------------------------------------------------------------
+
+det : ∀ {Δ : Ctxᵗ} {Γ : Ctx} {M M₁ M₂ : Term} {A : Ty}
+  → Δ ∣ Γ ⊢ M ⦂ A
   → Δ ⊢ M -→ M₁
   → Δ ⊢ M -→ M₂
     -------------

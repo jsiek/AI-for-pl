@@ -19,12 +19,21 @@ module strong.Reduction where
 --       arithmetic (`⊳`) is needed and the no-⊕ test is passed by
 --       construction.
 --   (5) TyBeta carries `Value N` — see the note on the rule.  Without it
---       TyBeta and ξ-·[] ⨟ ξ-Λ are a genuine overlap (repair (1) alone does
+--       TyBeta and ξ-·[] ⨟ ξ-Λ are a genuine overlap (repair (1) alone
+--       does
 --       not close it), so determinism would still be false.
 --
 -- The principle behind (3)/(4): EVERY rule that mints an identity
 -- conversion at a looked-up rep carries the binder-lookup premise, and
 -- determinism for those rules is exactly `∋:=-det`.
+--
+-- TWO-UNIVERSE PORT. A type application carries an ordinary type `A`, but a
+-- morphism binds a representation payload `R`. `TyBeta` and both TyPeelR
+-- rules therefore carry `Δ ⊢ᶜ A ~ R` and build `instantiate R Θ`. This
+-- operation prepends `bindR R`, explicitly unlocks ordinary name 0 for it,
+-- and shifts the old changes in both universes. Congruence rules carry the
+-- relational interior/conversion-context witnesses rather than computing
+-- those contexts with the retired `interior` and `convCtx` functions.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; map; length)
@@ -35,7 +44,8 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ;
+         _[_]ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
@@ -55,8 +65,10 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- so `Λ N` is a value only when N is one (V-Λ).  Without `Value N` here,
   -- `(Λ N) ·[ B , A ]` with N a redex has TWO distinct steps — this one and
   -- ξ-·[] ⨟ ξ-Λ — and determinism fails.  The premise mirrors Beta's.
-  TyBeta : ∀ {Δ B A N} → Value N
-    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫
+  TyBeta : ∀ {Δ B A R N} → Value N
+    → Δ ⊢ᶜ A ~ R
+    → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ instantiate R (morph [] [])
+                                      , reveal 0 B ⟫
 
   -- BETA, FRAME-EXACT (2026-09-08).  The substitution CARRIES THE
   -- ARGUMENT'S TYPE — the ƛ's own annotation A — because every image that
@@ -70,11 +82,31 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ
 
   -- PEEL — the crossing.  The application is pushed in one layer and the
-  -- argument acquires the DUAL.  `s`/`t` are literally ↦'s components: the
-  -- crossing argument's conversion is RE-BASED by the repointing.
-  Peel : ∀ {Δ V W Θ s t} → Value V → Value W
+  -- argument acquires the DUAL.  `s`/`t` are ↦'s components: the crossing
+  -- argument's conversion is RE-BASED by the repointing.
+  --
+  -- IT CARRIES THE DUAL'S SPELLING (2026-09-18, the crossing audit).  `s`
+  -- is read at Θ's conversion context and is used at the DUAL's, which is
+  -- taken at the interior — a different name map, and not merely a
+  -- renumbering of the same one: the invariant that would have made the
+  -- two agree, `conv(dual Θ, int(Θ,Δ)) ≡ conv(Θ,Δ)`, is FALSE here, and
+  -- `_⋉_` is what breaks it (notes/CrossingAudit §§4–6).  So the rule
+  -- NAMES the dual's spelling `s′` and carries a `SameConv` relating it to
+  -- `s`, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry `SameTy`.
+  --
+  -- The premise never blocks a reduction.  The two contexts name the same
+  -- representation variables — that is (Q), notes/PeelPremise §5 — and a
+  -- well-typed conversion always has a reading to transport, so a witness
+  -- always exists (`peel-premises-env`, §8).  `t` needs no premise: it
+  -- stays on the same boundary, at Δᶜ, where it was read.
+  Peel : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
+    → Δ ⊢ᶜ Θ ⇒ Δᶜ
+    → Δ ⊢ⁱ Θ ⇒ Δᵢ
+    → Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ
+    → SameConv Δᵈ s′ Δᶜ s
     → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-        -→ (V · (wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫)) ⟪ Θ , t ⟫
+        -→ (V · (renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W
+                    ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫
 
   -- TYPEEL — the ∀-conversion analogue; the new binder is prepended and the
   -- elimination instantiates at the new binder's bind name.  IT IS TWO
@@ -125,12 +157,14 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- its measure stalls and it loops: an identity conversion at a `∀` is
   -- necessarily a `` `∀ `` conversion, hence inert, hence the wrapped
   -- value under `·[ … ]` is itself a redex (`fixA-height-stalls` and the
-  -- run `T₀ -→ᵃ T₁ -→ᵃ T₂`, proof/ShiftAudit §4/§4a).  A tower of height
+  -- run `T₀ -→ᵃ T₁ -→ᵃ T₂`, proof/ShiftAudit §4/§4a). A tower
+  -- height
   -- `h` therefore takes `h − 1` `TyPeelR-⟪⟫` steps and then exactly one
   -- `TyPeelR-Λ` step.
   --
   -- THE ANNOTATION PREMISE (2a).  The pushed-in `·[ _ , ` 0 ]` must carry
-  -- the INTERIOR ∀-body — what the interior's own `⊢·[]` demands — not the
+  -- the INTERIOR ∀-body — what the interior's own `⊢·[]` demands — not
+  -- the
   -- exterior body `B`, from which it differs at every non-identity leaf.
   -- The interior body is not syntactic (a `seal`'s source is a binder's
   -- rep, which the rep-free conversion does not carry) but it IS
@@ -145,7 +179,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE SHIFT (2b).  `renᴮ suc Θ` would double-count: `interior` already
   -- lifts Θ's reps past the binder A prepended here
   -- (`interior (morph (A ∷ binds Θ) (changes Θ)) Δ
-  --   ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`), so the CHANGES are
+  --   ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`), so the CHANGES
+  -- are
   -- plain `changes Θ` — a change names an EXTERIOR slot and is unshifted
   -- by the morphism's own binds.
   --
@@ -155,29 +190,49 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- Keeping `s` itself is ill-typed — its TARGET body still mentions
   -- `` ` 0 `` where `env` demands the instantiated
   -- `shiftBy (numBinds Θ + 1) (Bₑ [ A ])`.
-  TyPeelR-Λ : ∀ {Δ N Θ s B A Bᵢ Bₑ} → Value N
-    → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  TyPeelR-Λ : ∀ {Δ Δᶜ N Θ s B A R Bᵢ Bₑ} → Value N
+    → Δ ⊢ᶜ Θ ⇒ Δᶜ
+    → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
+    → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+        -→ N ⟪ instantiate R Θ , instReveal 0 s ⟫
 
-  -- The moved boundary is SHIFTED exactly as the single rule shifted it —
-  -- `wkᴹ 1` on a boundary is `renᴹ (extN (numBinds Θ′) suc)` on its
-  -- interior, `renᴮ suc` on its frame and
-  -- `renᶜ (extᵗ (extN (numBinds Θ′) suc))` on its `∀`-conversion body —
+  -- The moved boundary crosses a binder that its appended `lock 0` removes.
+  -- Its ordinary indices therefore retain their positions after deletion;
+  -- only representation occurrences move past the new representation binder.
+  -- Thus the interior and frame use paired, rep-only renamings, while the
+  -- conversion and annotation (which can see the new ordinary binder) retain
+  -- their ordinary weakening.
+  -- `renᶜ (extᵗ (extN (numBinds Θ′) suc))` on its `∀`-conversion
+  -- body —
   -- and then `lock 0` is APPENDED to its own (shifted) change list.  So
   -- the contractum is the single rule's, with `addLock0` on the moved
   -- boundary and nothing else changed: same outer frame, same minted
   -- conversion `instReveal 0 s`, same pushed-in annotation, same type
   -- argument `` ` 0 `` (`TyPeelR-⟪⟫-wkᴹ`,
   -- `TyPeelR-⟪⟫-outer-unchanged`, proof/ShiftAudit §5c).
-  TyPeelR-⟪⟫ : ∀ {Δ W Θ′ s′ Θ s B A Bᵢ Bₑ} → Value W
-    → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
+  -- THE RE-BASED ANNOTATION (2026-09-18).  `Bᵢ` is read at the CONVERSION
+  -- context, because that is where the crossed boundary's conversion is
+  -- typed; the pushed-in `·[ _ , ` 0 ]` is read by `⊢·[]` at the INTERIOR.
+  -- Those are two different name maps, and they can even reorder relative
+  -- to each other (notes/ForallPayloadWall §3), so the rule carries the
+  -- interior spelling `Bᵢ′` and a `SameTy` relating the two — the
+  -- crossing is by the REPRESENTATION a name denotes, never by
+  -- arithmetic on its position.  Determinism for it is
+  -- `sameTy-src-unique`; `det` reads the interior's `Unique` name map from
+  -- the redex typing derivation.
+  TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bᵢ′ Bₑ} → Value W
+    → Δ ⊢ⁱ Θ ⇒ Δᵢ
+    → Δ ⊢ᶜ Θ ⇒ Δᶜ
+    → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
+    → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+    → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-        -→ ((renᴹ (extN (numBinds Θ′) suc) W
-               ⟪ addLock0 (renᴮ suc Θ′)
-               , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-              ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-             ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+        -→ ((renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W
+               ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′)
+               , `∀ (renᶜ (extᵗ suc) s′) ⟫)
+              ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
+             ⟪ instantiate R Θ , instReveal 0 s ⟫
 
   -- CANCEL — a conceal directly under the binder it names.  The
   -- conversion match is DEFINITIONAL: `seal X` and `unseal Y` cite the
@@ -187,7 +242,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE RESIDUE REPAIR (3a), AS RE-RULED (2026-09-05).  The mini-core
   -- appended `hideBinds (numBinds Θ₂)`, which masks EXTERIOR slots that need
   -- not exist (proof/MaskFacts.agda, `¬⊢ᵐ-cancel-residue`); dropping the
-  -- residue was not enough either, because `repsOf→bind (binds Θ₂)` DISCARDS
+  -- residue was not enough either, because `repsOf→bind (binds Θ₂)`
+  -- DISCARDS
   -- Θ₁'s whole frame, and a `V` that names one of Θ₁'s own binders loses
   -- it (the old proof/PreserveObstruct §1 witness).  The honest form keeps
   -- BOTH FRAMES and neutralises BOTH CONVERSIONS: composition happens
@@ -198,7 +254,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   --
   -- THE SINGLE-NAME PRESUMPTION, EXAMINED (3b).  The mini-core wrote ONE
   -- name X on both conversions.  That presumes `numBinds Θ₁ ≡ 0`: the
-  -- inner conversion is checked on `convCtx Θ₁ (interior Θ₂ Δ)`, which is
+  -- inner conversion is checked on `convCtx Θ₁ (interior Θ₂ Δ)`, which
+  -- is
   -- `numBinds Θ₁` binders INSIDE the conversion context `convCtx Θ₂ Δ`
   -- the outer conversion is checked on.  The honest general form carries
   -- TWO names — and needs no extra premise to relate them, because typing
@@ -210,19 +267,38 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- for it is `∋:=-det`.
   --
   -- THE SCOPE MOVE (3d, 2026-09-06).  The residue's INNER boundary now
-  -- presents the rep `shiftBy (numBinds Θ₁) A` where it presented the abstract
+  -- presents the rep `shiftBy (numBinds Θ₁) A` where it presented the
+  -- abstract
   -- name, so Θ₂'s LOCKS travel into the inner frame (§2b) — otherwise
   -- `env`'s last premise reads that rep INSIDE Θ₂'s masking.  The lift is
   -- unchanged, because `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`.
-  CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
+  --
+  -- THE RE-BASED IDENTITY (2026-09-18).  `A` is the looked-up type at the
+  -- OUTER conversion context, which is where the outer layer's `mkId A`
+  -- is checked.  The INNER layer is checked at the merged frame's, a
+  -- different name map, so it carries its own spelling `A′` and a
+  -- `SameTy` relating the two — the same crossing `TyPeelR-⟪⟫` and
+  -- `IdPush` carry, repaired here before any example reached a
+  -- configuration where the two disagree.
+  CancelR : ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′} → Value V
+    → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+    → SameTy Δ⋉ᶜ A′ Δᶜ A
+    → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
+    → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) A) ⟫)
+        -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫)
              ⟪ rewind Θ₂ , mkId A ⟫
 
   -- DROP$ — an identity boundary at a base type, over a numeral (`⊢$`
   -- types it anywhere).
   Drop$ : ∀ {Δ n Θ A} → Base A
     → Δ ⊢ ($ n) ⟪ Θ , id A ⟫ -→ $ n
+
+  Drop-true : ∀ {Δ Θ}
+    → Δ ⊢ `true ⟪ Θ , id `𝔹 ⟫ -→ `true
+
+  Drop-false : ∀ {Δ Θ}
+    → Δ ⊢ `false ⟪ Θ , id `𝔹 ⟫ -→ `false
 
   -- IDPUSH (repair (4)) — the transparent-layer rule, as ruled.  An inert
   -- `id (` X)` layer under an ACTIVE conversion is not a value and no
@@ -238,24 +314,49 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- revealing one, so its exterior type becomes Y's rep `A`.  Θ₂'s LOCKS
   -- travel into the inner frame (§2b) so that the rep is presented
   -- OUTSIDE them, where it is nameable: `interior (rewind Θ₂) Δ` IS
-  -- `pushBinds (binds Θ₂) Δ`, and `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
+  -- `pushBinds (binds Θ₂) Δ`, and
+  -- `A ≡ shiftBy (numBinds Θ₂) C` for the redex's own
   -- exterior type C.  That is what retires the wall — the case needs no
   -- scoping invariant at all (proof/MoveScope.preserve-IdPush).
-  IdPush : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y := A
+  -- THE RE-BASED NAME (2026-09-18).  `X` is read at the INNER frame's
+  -- conversion context; the swap moves it into the MERGED frame's, which
+  -- is a different name map.  So the rule carries the merged spelling
+  -- `X′` and a `SameTy` relating the two, exactly as `TyPeelR-⟪⟫` does
+  -- for its annotation.
+  IdPush : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A} → Value V
+    → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+    → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+    → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+    → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X)
+    → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
+    → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫
-        -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫) ⟪ rewind Θ₂ , mkId A ⟫
+        -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X′ ⟫)
+             ⟪ rewind Θ₂ , mkId A ⟫
 
-  ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′ → Δ ⊢ L · M -→ L′ · M
-  ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′ → Δ ⊢ V · M -→ V · M′
-  ξ-·[] : ∀ {Δ L L′ B A} → Δ ⊢ L -→ L′ → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]
-  ξ-Λ   : ∀ {Δ N N′} → (unmasked abst ∷ Δ) ⊢ N -→ N′ → Δ ⊢ Λ N -→ Λ N′
-  ξ-⟪⟫  : ∀ {Δ M M′ Θ c} → interior Θ Δ ⊢ M -→ M′
+  ξ-·-l : ∀ {Δ L L′ M} → Δ ⊢ L -→ L′
+    → Δ ⊢ L · M -→ L′ · M
+  ξ-·-r : ∀ {Δ V M M′} → Value V → Δ ⊢ M -→ M′
+    → Δ ⊢ V · M -→ V · M′
+  ξ-·[] : ∀ {Δ L L′ B A} → Δ ⊢ L -→ L′
+    → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]
+  ξ-Λ   : ∀ {Δ N N′} → underΛ Δ ⊢ N -→ N′
+    → Δ ⊢ Λ N -→ Λ N′
+  ξ-⟪⟫  : ∀ {Δ Δᵢ M M′ Θ c} → Δ ⊢ⁱ Θ ⇒ Δᵢ
+        → Δᵢ ⊢ M -→ M′
         → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ Θ , c ⟫
+
+-- Concrete instantiation check: the ordinary argument `ℕ` translates to
+-- representation payload `ℕ`, and `instantiate` produces TyBetaMorph.
+TyBeta-ℕ : empty ⊢ (Λ ($ 7)) ·[ `ℕ , `ℕ ]
+  -→ ($ 7) ⟪ TyBetaMorph , id `ℕ ⟫
+TyBeta-ℕ = TyBeta V-$ same-ℕ
 
 infix 2 _⊢_-→*_
 data _⊢_-→*_ : Ctxᵗ → Term → Term → Set where
   done   : ∀ {Δ M} → Δ ⊢ M -→* M
-  _then_ : ∀ {Δ L M N} → Δ ⊢ L -→ M → Δ ⊢ M -→* N → Δ ⊢ L -→* N
+  _then_ : ∀ {Δ L M N} → Δ ⊢ L -→ M → Δ ⊢ M -→* N
+    → Δ ⊢ L -→* N
 
 infixr 2 _then_
 
@@ -267,84 +368,201 @@ infixr 2 _then_
 -- was false: `Λ N` was a value for every N while ξ-Λ reduced under it.)
 value-¬step : ∀ {Δ M M′} → Value M → Δ ⊢ M -→ M′ → ⊥
 value-¬step (V-⟪⟫ v I-idv) (Drop$ ())
-value-¬step (V-⟪⟫ v ic)    (ξ-⟪⟫ st) = value-¬step v st
+value-¬step (V-⟪⟫ v ic)    (ξ-⟪⟫ rel st) = value-¬step v st
 value-¬step (V-Λ v)        (ξ-Λ st)  = value-¬step v st
 
 ------------------------------------------------------------------------
 -- 3.  DETERMINISM
 ------------------------------------------------------------------------
 
-det : ∀ {Δ M M₁ M₂} → Δ ⊢ M -→ M₁ → Δ ⊢ M -→ M₂ → M₁ ≡ M₂
+det : ∀ {Δ Γ M M₁ M₂ A}
+  → Δ ∣ Γ ⊢ M ⦂ A
+  → Δ ⊢ M -→ M₁
+  → Δ ⊢ M -→ M₂
+  → M₁ ≡ M₂
 
 -- TyBeta
-det (TyBeta v)   (TyBeta v′)  = refl
-det (TyBeta v)   (ξ-·[] st)   = ⊥-elim (value-¬step (V-Λ v) st)
-det (ξ-·[] st)   (TyBeta v)   = ⊥-elim (value-¬step (V-Λ v) st)
+det _ (TyBeta v same) (TyBeta v′ same′)
+  with same-rep-unique same same′
+det _ (TyBeta v same) (TyBeta v′ same′) | refl = refl
+det _ (TyBeta v same) (ξ-·[] st) =
+  ⊥-elim (value-¬step (V-Λ v) st)
+det _ (ξ-·[] st) (TyBeta v same) =
+  ⊥-elim (value-¬step (V-Λ v) st)
 
 -- Beta
-det (Beta w)     (Beta w′)    = refl
-det (Beta w)     (ξ-·-l st)   = ⊥-elim (value-¬step V-ƛ st)
-det (Beta w)     (ξ-·-r v st) = ⊥-elim (value-¬step w st)
-det (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step V-ƛ st)
-det (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
+det _ (Beta w)     (Beta w′)    = refl
+det _ (Beta w)     (ξ-·-l st)   = ⊥-elim (value-¬step V-ƛ st)
+det _ (Beta w)     (ξ-·-r v st) = ⊥-elim (value-¬step w st)
+det _ (ξ-·-l st)   (Beta w)     = ⊥-elim (value-¬step V-ƛ st)
+det _ (ξ-·-r v st) (Beta w)     = ⊥-elim (value-¬step w st)
 
 -- Peel
-det (Peel v w)   (Peel v′ w′) = refl
-det (Peel v w)   (ξ-·-l st)   = ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det (Peel v w)   (ξ-·-r u st) = ⊥-elim (value-¬step w st)
-det (ξ-·-l st)   (Peel v w)   = ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
-det (ξ-·-r u st) (Peel v w)   = ⊥-elim (value-¬step w st)
+-- the dual's spelling is pinned by `sameConv-src-unique`, once the three
+-- readings have been identified.
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+  with conversion-functional rc rc′ | interior-functional ri ri′
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+  | refl | refl with conversion-functional rd rd′
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+  | refl | refl | refl
+  with sameConv-src-unique
+         (dual-unique (name-fn (mw-exterior mwΘ)) ri rd) sc sc′
+det (⊢· (env mwΘ _ _ _ _ _) _)
+    (Peel v w rc ri rd sc) (Peel v′ w′ rc′ ri′ rd′ sc′)
+  | refl | refl | refl | refl = refl
+det _ (Peel v w rc ri rd sc) (ξ-·-l st) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
+det _ (Peel v w rc ri rd sc) (ξ-·-r u′ st) =
+  ⊥-elim (value-¬step w st)
+det _ (ξ-·-l st) (Peel v w rc ri rd sc) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-fun) st)
+det _ (ξ-·-r u′ st) (Peel v w rc ri rd sc) =
+  ⊥-elim (value-¬step w st)
 
 -- TyPeelR — the two clauses' patterns are DISJOINT (a `Λ` is not a
 -- boundary), so no cross case arises.
 --
 -- The Λ clause is determined by the redex OUTRIGHT: its contractum does
 -- not mention `Bᵢ`, so `conv-src-unique` is not needed at all.
-det (TyPeelR-Λ v ⊢s) (TyPeelR-Λ v′ ⊢s′) = refl
-det (TyPeelR-Λ v ⊢s) (ξ-·[] st) =
+det _ (TyPeelR-Λ v rel ⊢s same)
+    (TyPeelR-Λ v′ rel′ ⊢s′ same′)
+  with same-rep-unique same same′
+det _ (TyPeelR-Λ v rel ⊢s same)
+    (TyPeelR-Λ v′ rel′ ⊢s′ same′) | refl = refl
+det _ (TyPeelR-Λ v rel ⊢s same) (ξ-·[] st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
-det (ξ-·[] st) (TyPeelR-Λ v ⊢s) =
+det _ (ξ-·[] st) (TyPeelR-Λ v rel ⊢s same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
 
 -- The wrapper clause's two contracta agree because the SOURCE type is a
 -- function of the conversion and the type context (`conv-src-unique`), so
 -- the two premises determine the SAME pushed-in annotation.
-det (TyPeelR-⟪⟫ {W = W} {Θ′ = Θ′} {s′ = s′} {Θ = Θ} {s = s} {A = A} v ⊢s)
-    (TyPeelR-⟪⟫ v′ ⊢s′) =
-  cong (λ T → ((renᴹ (extN (numBinds Θ′) suc) W
-                  ⟪ addLock0 (renᴮ suc Θ′)
-                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
-                 ·[ renameᵗ (extᵗ suc) T , ` 0 ])
-                ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫)
-       (conv-src-unique ⊢s ⊢s′)
-det (TyPeelR-⟪⟫ v ⊢s) (ξ-·[] st) =
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+  with interior-functional ri ri′ | conversion-functional rc rc′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′) | refl | refl
+  with interior-functional ri (mw-interior mwΘ)
+     | conversion-functional rc (mw-conversion mwΘ)
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl
+  with conv-src-unique
+         (unique-underΛ {Γ = Δᶜ} (name-fn (mw-conversion-wf mwΘ))) ⊢s ⊢s′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl
+  with sameTy-src-unique
+         (unique-underΛ {Γ = Δᵢ} (name-fn (mw-interior-wf mwΘ))) sm sm′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl
+  with same-rep-unique same same′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl | refl = refl
+det _ (TyPeelR-⟪⟫ v ri rc ⊢s sm same) (ξ-·[] st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
-det (ξ-·[] st) (TyPeelR-⟪⟫ v ⊢s) =
+det _ (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
 -- CancelR — the two contracta agree because the lookup is a function.
-det (CancelR {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} v d) (CancelR v′ d′) =
-  cong (λ T → (V ⟪ Θ₁ ⋉ Θ₂ , mkId (shiftBy (numBinds Θ₁) T) ⟫)
-                ⟪ rewind Θ₂ , mkId T ⟫)
-       (∋:=-det d d′)
-det (CancelR v d) (ξ-⟪⟫ st) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
-det (ξ-⟪⟫ st) (CancelR v d) = ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′)
+  with conversion-functional rel rel′ | conversion-functional r⋉ r⋉′
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl
+  with conversion-functional rel (mw-conversion mwΘ₂)
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl | refl
+  with ∋:=-det (name-fn (mw-conversion-wf mwΘ₂)) d d′
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl | refl | refl
+  with sameTy-src-unique
+         (conversion-unique
+           (unique-shiftRVars (numBinds Θ₂)
+             (name-fn (mw-exterior mwΘ₂))) r⋉) sm sm′
+det (env mwΘ₂ _ _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
+    (CancelR v′ r⋉′ sm′ rel′ d′)
+    | refl | refl | refl | refl | refl = refl
+det _ (CancelR v r⋉ sm rel d) (ξ-⟪⟫ frame st) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
+det _ (ξ-⟪⟫ frame st) (CancelR v r⋉ sm rel d) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 
 -- Drop$
-det (Drop$ b)    (Drop$ b′)   = refl
-det (Drop$ b)    (ξ-⟪⟫ st)    = ⊥-elim (value-¬step V-$ st)
-det (ξ-⟪⟫ st)    (Drop$ b)    = ⊥-elim (value-¬step V-$ st)
+det _ (Drop$ b)    (Drop$ b′)   = refl
+det _ (Drop$ b) (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-$ st)
+det _ (ξ-⟪⟫ frame st) (Drop$ b) = ⊥-elim (value-¬step V-$ st)
+
+-- Drop-true / Drop-false
+det _ Drop-true Drop-true = refl
+det _ Drop-true (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-true st)
+det _ (ξ-⟪⟫ frame st) Drop-true = ⊥-elim (value-¬step V-true st)
+det _ Drop-false Drop-false = refl
+det _ Drop-false (ξ-⟪⟫ frame st) = ⊥-elim (value-¬step V-false st)
+det _ (ξ-⟪⟫ frame st) Drop-false = ⊥-elim (value-¬step V-false st)
 
 -- IdPush — likewise determined by the lookup.
-det (IdPush v d) (IdPush v′ d′) = cong (λ A → _ ⟪ _ , mkId A ⟫) (∋:=-det d d′)
-det (IdPush v d) (ξ-⟪⟫ st) = ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
-det (ξ-⟪⟫ st) (IdPush v d) = ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
+  with interior-functional ri ri′ | conversion-functional rel rel′
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′) | refl | refl
+  with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
+    | refl | refl | refl | refl
+  with conversion-functional rel (mw-conversion mwΘ₂)
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
+    | refl | refl | refl | refl | refl
+  with sameTy-src-unique
+         (conversion-unique
+           (unique-shiftRVars (numBinds Θ₂)
+             (name-fn (mw-exterior mwΘ₂))) r⋉) sm sm′
+     | ∋:=-det (name-fn (mw-conversion-wf mwΘ₂)) d d′
+det (env mwΘ₂ _ _ _ _ _)
+    (IdPush {Θ₂ = Θ₂} v ri r₁ r⋉ sm rel d)
+    (IdPush v′ ri′ r₁′ r⋉′ sm′ rel′ d′)
+    | refl | refl | refl | refl | refl | refl | refl = refl
+det _ (IdPush v ri r₁ r⋉ sm rel d) (ξ-⟪⟫ frame st) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
+det _ (ξ-⟪⟫ frame st) (IdPush v ri r₁ r⋉ sm rel d) =
+  ⊥-elim (value-¬step (V-⟪⟫ v I-idv) st)
 
 -- the congruences
-det (ξ-·-l st)   (ξ-·-l st′)  = cong (_· _) (det st st′)
-det (ξ-·-l st)   (ξ-·-r v st′) = ⊥-elim (value-¬step v st)
-det (ξ-·-r v st) (ξ-·-l st′)  = ⊥-elim (value-¬step v st′)
-det (ξ-·-r v st) (ξ-·-r u st′) = cong (_ ·_) (det st st′)
-det (ξ-·[] st)   (ξ-·[] st′)  = cong (λ L → L ·[ _ , _ ]) (det st st′)
-det (ξ-Λ st)     (ξ-Λ st′)    = cong Λ_ (det st st′)
-det (ξ-⟪⟫ st)    (ξ-⟪⟫ st′)   = cong (λ M → M ⟪ _ , _ ⟫) (det st st′)
+det (⊢· ⊢L ⊢M) (ξ-·-l st) (ξ-·-l st′) =
+  cong (_· _) (det ⊢L st st′)
+det _ (ξ-·-l st) (ξ-·-r v st′) = ⊥-elim (value-¬step v st)
+det _ (ξ-·-r v st) (ξ-·-l st′) = ⊥-elim (value-¬step v st′)
+det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) =
+  cong (_ ·_) (det ⊢M st st′)
+det (⊢·[] ⊢L ⊢A) (ξ-·[] st) (ξ-·[] st′) =
+  cong (λ L → L ·[ _ , _ ]) (det ⊢L st st′)
+det (⊢Λ ⊢N) (ξ-Λ st) (ξ-Λ st′) = cong Λ_ (det ⊢N st st′)
+det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+  with interior-functional rel rel′
+det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+  | refl with interior-functional rel (mw-interior mwΘ)
+det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
+  | refl | refl = cong (λ M → M ⟪ _ , _ ⟫) (det ⊢M st st′)

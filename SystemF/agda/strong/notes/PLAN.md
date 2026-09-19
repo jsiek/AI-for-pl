@@ -306,8 +306,9 @@ payload is open (notes/CancelRShiftWall.agda). Canonical
 forms now pass against the relational `env` interface as well. Stage-1
 progress passes too: its public logical statement stays premise-free, while
 the proof is parameterized by the new `MergedReading` invariant pending
-review. `All.agda` now reaches `proof/TypeSafety.agda`; its first failure is
-the unavailable unconditional `progress` name at line 25.
+review. The module sweep of item 6 is done: every remaining old-design proof
+script is either ported or deleted, and `All.agda`'s first failure is now
+`Examples.agda:128`, on the retired `unmasked` constructor.
 
 ## Resuming on another machine
 
@@ -321,11 +322,13 @@ What compiles, from `SystemF/agda/strong/`:
 agda --safe --no-allow-unsolved-metas -v0 All.agda
 ```
 
-stops at the FIRST unported dependency, `proof/TypeSafety.agda`, on the
-unavailable unconditional `progress` name at line 25. The core, `Reduction`,
-`TypeCheck`, `Eval`, the notes modules, canonical forms, stage-1
-`proof/Preserve.agda`, stage-1 `proof/Progress.agda`, and their honest
-parameterized public wrappers all pass before that frontier.
+stops at the FIRST unported dependency, `Examples.agda`, at line 128 on the
+retired `unmasked` constructor. The core, `Reduction`, `TypeCheck`, `Eval`,
+the notes modules, canonical forms, stage-1 `proof/Preserve.agda`, stage-1
+`proof/Progress.agda`, their honest parameterized public wrappers, and the
+whole ported proof-script suite — `proof/Adversary.agda`,
+`proof/IdLayer.agda`, `proof/Canonicity.agda`, `proof/ShiftAudit.agda` —
+all pass before that frontier. Only `Examples.agda` and `Show.agda` remain.
 
 The twelve-example suite alone is about 7.4s cold:
 
@@ -337,8 +340,8 @@ Where the open threads are: item 1's stage-1 preservation port is done;
 stage 2 proved `IdPush` and `Peel` and REFUTED `CancelR` (item 2); three
 representation-only typing transports now await review;
 item 3's rewind transport and item 4's rule-set cleanup are done; canonical
-forms are done; item 6's progress port is done modulo `MergedReading`, and the
-frontier is now `proof/TypeSafety.agda` before `Examples.agda`.
+forms are done; item 6's progress port is done modulo `MergedReading`, its
+module sweep is done, and the frontier is now `Examples.agda`.
 
 ## Immediate plans
 
@@ -551,12 +554,36 @@ frontier is now `proof/TypeSafety.agda` before `Examples.agda`.
    context and Θ₁'s. Those are exactly the two re-spellings that CancelR and
    IdPush mint. It is deferred for review rather than implemented in stage 1.
 
-   `All.agda` consequently reaches `proof/TypeSafety.agda:25`, where the old
-   module still asks for an unconditional `progress` theorem.
+   **THE MODULE SWEEP IS DONE (2026-09-19).** Every remaining old-design
+   proof script between the frontier and `Examples.agda` has been ported or
+   deleted, per the closed-world rule.
+
+   PORTED: `proof/Adversary.agda` (the soundness gate, the abstract-slot
+   adversary, the one-spelling fact, and cancel's type equation — the
+   masking half, `unlock-claims-a-lock`/`unlock-mentions-no-rep`, deleted);
+   `proof/IdLayer.agda` (`idpush-name`/`cancel-name` restated one universe
+   up on the representation variable, `outer-id-base-untypeable`, the naked
+   drop and its sound side condition — `convCtx-lock` deleted);
+   `proof/Canonicity.agda` (plus a new §5: canonicity crosses `Peel`'s
+   `SameConv`, which needs the family stated on representation variables
+   and a `Unique` name map, so `canon-step` takes `Unique (names Δ)`);
+   `proof/ShiftAudit.agda` (the per-site frame facts now CITE the
+   relational transports, the moves are recorded as representation-only,
+   and the tower measure and its termination argument are kept).
+
+   DELETED: `proof/MaskFacts.agda`, `proof/PreserveObstruct.agda`,
+   `proof/DualTightness.agda`, `proof/MwUObstruct.agda` — all four are
+   about masked entries, `_⊢ᵐ_`, `∋lk` and computed-context equalities.
+   See notes/DECISIONS.md, 2026-09-19.
+
+   `All.agda` consequently reaches `Examples.agda:128`, on the retired
+   `unmasked` constructor.
 
    `Examples.agda` is the big one, and it is the same transcription problem
    the reduction traces had: port it onto `TypeCheck.agda` rather than
-   rewriting its boundary typings by hand.
+   rewriting its boundary typings by hand. Note that it still imports
+   `strong.proof.PreserveObstruct` (twice), which no longer exists; those
+   two sections must be rebuilt or dropped in the port.
 7. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
    `SystemF/agda/strong/`, then update the design notes with the final
    invariants and proof lessons.

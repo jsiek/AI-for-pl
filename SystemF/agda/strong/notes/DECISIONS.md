@@ -3397,3 +3397,138 @@ THE INTERFACE SHRANK. `strong.Preservation.Stage1` now takes `crossΛ`,
 and gone. `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda` follow.
 `All.agda`'s first failure is unchanged: `proof/Adversary.agda:38`, on the
 retired `applyChanges`.
+
+## 2026-09-19 — the module sweep: four deletions, four ports
+
+THE FRONTIER MOVED to `Examples.agda`. `All.agda` stopped at
+`proof/Adversary.agda:38`, on the retired `applyChanges`; every proof
+script between there and the regression corpus has now been classified
+and acted on, by the branch's closed-world rule — port a fact about the
+LIVE rules, delete a module whose subject IS the retired design, and say
+which in one line.
+
+WHAT WAS DELETED, AND WHY EACH.
+
+* `proof/MaskFacts.agda` — its whole subject is masking: `mask`/`unmask`
+  at a retained entry, `Nameable`, `∋lk`, `updateAt`, and `mask-only`, the
+  statement that `interior Θ Δ` and `convCtx Θ Δ` "differ ONLY by
+  masking". There is no lock BIT here: a lock DELETES an ordinary name and
+  an unlock INSERTS one, so there is no core to compare and no computed
+  context to write the equation between. What replaces `mask-only` is
+  `conv-lock` itself (`strong.CtxMorph` §3), which skips a lock outright,
+  and `conversion-live`, which says a conversion reading only ADDS names.
+
+* `proof/PreserveObstruct.agda` — four concrete redexes, each written in
+  `unmasked (bind …)` contexts with `mw`/`sw-l`/`sw-u` witnesses, exhibited
+  to refute an OLD rule shape and then repaired. Three of the four rules
+  have since changed shape again on this branch, and `CancelR` is refuted
+  outright (notes/CancelRShiftWall.agda). The positive content is now
+  theorems — `preserve-TyPeelR-Λ`, `preserve-IdPush` — and the twelve
+  closed runs in `notes/RepresentationReductionExamples.agda`, which
+  exercise them from plain source rather than from hand-built derivations.
+
+* `proof/DualTightness.agda` — Jeremy's 2026-09-06 tightness test, stated
+  as `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (bind prefix) ++ Δ`
+  with a vacuous-unlock refutation beside it. Both halves are properties of
+  the masked-entry `_⊢ᵐ_`. Tightness is now `dual-interior` (§3a): the
+  dual's interior is the EXTERIOR under the original bind block, so a
+  crossing argument gains no ordinary name at all — a stronger statement,
+  proved for every morphism, with no well-formedness hypothesis. The
+  vacuous unlock is refused by `step-unlock`'s own `Fresh α Δ` premise.
+
+* `proof/MwUObstruct.agda` — the record of WHY the outer frame of
+  CancelR/IdPush is `rewind Θ₂` rather than `dropLocks Θ₂` or
+  `bindsOnly Θ₂`. Every one of its three refutations is an appeal to
+  `sw-u`'s "the slot must be LOCKED" premise or to reading a bind payload
+  on `applyUnlocks`. Neither survives: a bind payload is now checked in the
+  representation universe against the exterior (`_⊢ᴮ_`), where the ordinary
+  change list cannot reach it, so the question the module answered is not
+  askable. The choice itself is settled by `rewind-interior` /
+  `rewind-conversion` (2026-09-18).
+
+WHAT WAS PORTED.
+
+* `proof/Adversary.agda`. The gate is unchanged — `seal-cites-binder` is
+  still the one-line inversion of `conv-seal`. What the two universes add
+  is that the gate now refuses a conceal for TWO independent reasons, and
+  the module states both: the cited ordinary name may be absent from the
+  map (§2b, the reading that replaces `∋lk`), or the representation
+  variable it names may be `abstR` (§2, the old ⊢3n-adv, at
+  `Δadv = (abstR ∷ []) ∣ (0 ∷ [])`). Neither can be repaired by a change
+  list, because no change rewrites a representation binding. §3's "two
+  spellings of one fact" survives as stated — `seal 0` at a binder whose
+  payload is `∀Z.Z⇒Z` forces the source type, and the boundary at a
+  mismatched interior type is untypeable. §4's `cancel-types-agree` gains
+  the `Unique (names Δ)` premise that `∋:=-det` now carries. DELETED from
+  it: `unlock-claims-a-lock` and `unlock-mentions-no-rep`, which asserted
+  things about the lock layer of a retained entry.
+
+* `proof/IdLayer.agda`. §1 was an EQUATION between ordinary de Bruijn
+  indices, `X ≡ numBinds Θ₁ + Y`. That equation is FALSE here and not
+  wanted: the two conversions are read on different name maps which may
+  reorder relative to each other. The fact is one universe up, and it is
+  what `preserve-IdPush` already consumes — `push-rep` says the inner
+  conversion's name denotes `numBinds Θ₁ + α` exactly when the outer's
+  denotes α, and `idpush-name`/`cancel-name` package it with the three
+  context readings the derivation supplies. §2's
+  `outer-id-base-untypeable` is proved through the representation universe
+  instead of through `shiftBy`: the outer `id A` forces the inner
+  boundary's exterior type to be BASE, `SameTyExt` carries base to base
+  across the bind block, and the inner conversion's target is a VARIABLE.
+  §3 keeps the naked-drop trap and `drop-empty-frame`, the latter now
+  reading both induced contexts off `extendReps [] Δ ≡ Δ`. DELETED:
+  `convCtx-lock`.
+
+* `proof/Canonicity.agda`, with ONE NEW SECTION. The family and its mint,
+  decompose and rename facts port unchanged. `Peel` is what forces the new
+  work: it no longer carries its crossing argument's conversion `s` onto
+  the dual, it carries the dual's own spelling `s′` with a `SameConv`
+  (2026-09-18). So canonicity must RE-SPELL, and §5 does it by stating the
+  family a SECOND time on representation variables (`CanonAtᴿ`) and
+  transporting through `_⊩_~_` in both directions. Two things fell out.
+  First, the way back needs the target name map to be a FUNCTION, so
+  `canon-step` takes `Unique (names Δ)` — obtained for the dual by
+  `dual-unique` from the readings `Peel` already carries, and propagated
+  through `ξ-Λ`/`ξ-⟪⟫` by `unique-underΛ`/`interior-unique`. This is the
+  same ruling as for `det`: uniqueness is a property of the context, not a
+  premise of a rule. Second, a conversion whose leaves are ALL identities
+  names no binder, so it is canonical everywhere and its re-spelling has
+  no name to inherit; both transports therefore return a sum over a new
+  `AllId` predicate, of which `mkId` is the leading instance. The old §10,
+  which validated the invariant on `strong.Examples`, is dropped while that
+  module is unported; its ground-level mint checks are kept.
+  `CanonTyPeelR` is still REFUTED, for the unchanged two-binder reason.
+
+* `proof/ShiftAudit.agda`. The criterion survives verbatim; what changes is
+  that a frame identity is no longer an EQUATION BETWEEN COMPUTED
+  CONTEXTS. §2 and §6 therefore CITE `dual-interior`, `rewind-interior`,
+  `rewind-conversion` and `merged-interior` rather than restating them, and
+  the masked-entry material — the `⊑ᵃ` refinement, the `Nameable`/`Locked`
+  slot arithmetic, the old single `TyPeelR`'s leak witness and the fix-(a)
+  prototype relation — goes with the design that stated it. The audit's NEW
+  headline is the second half: a moved subterm is renamed in the two
+  universes SEPARATELY, and at every site but TyBeta's the ORDINARY
+  component is the identity, because the lock the crossing appends deletes
+  the ordinary name it introduced. That is recorded per site in §2, §3 and
+  §5. KEPT IN FULL: the tower measure. `towerHeight`,
+  `towerHeight-renᴹ²`, `TyPeelR-⟪⟫-height` (the measure strictly
+  decreases), `fixA-height-stalls` (the rejected repair's does not),
+  `canon-∀-height` and `progress-Λ-at-0` (where the descent stops) are
+  live facts about the live wrapper clause, and `strong.Reduction`'s own
+  comment cites them.
+
+WHAT THE SWEEP DID NOT TOUCH. No rule, term, typing, conversion or
+morphism definition changed; `notes/RepresentationReductionExamples.agda`
+runs the same twelve programs to the same endpoints in the same step
+counts. `CancelR`'s refuted preservation case is untouched, and the three
+representation-only typing transports — `CrossΛTyping`, `AddLock0Typing`,
+`RepWeakenTyping` — and `MergedReading` remain module parameters awaiting
+review.
+
+ONE LOOSE END FOR THE NEXT PORT. `Examples.agda` imports
+`strong.proof.PreserveObstruct` twice (§§ around its IdPush and TyPeelR
+witnesses). That module is gone, so those two sections must be rebuilt
+against the live rules or dropped when the corpus is ported. Several
+comments in `strong.Reduction` still name the four deleted modules; they
+are left as they stand because that file is not to be edited in this
+sweep.

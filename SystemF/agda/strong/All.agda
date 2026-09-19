@@ -30,43 +30,46 @@ open import strong.Preservation
 open import strong.TypeSafety
 
 -- the proof scripts
-open import strong.proof.Adversary
-open import strong.proof.MaskFacts
-open import strong.proof.IdLayer
 open import strong.proof.Preserve
 open import strong.proof.PeelDual
 open import strong.proof.MoveScope
 open import strong.proof.TypeSafety
-open import strong.proof.PreserveObstruct
-
--- the TIGHTNESS OF THE DUAL: the defect (`Peel` gained scope), its
--- repair, and the frame choice the repair forced
-open import strong.proof.DualTightness
-open import strong.proof.MwUObstruct
-
--- the regression corpus and the renderer
-open import strong.Examples
-open import strong.Show
-open import strong.proof.Canonicity
 
 -- progress (the canonical-forms suite, the proof script, the theorem)
 open import strong.proof.Canonical
 open import strong.proof.Progress
 open import strong.Progress
 
--- THE SHIFT AUDIT (2026-09-08).  Every rule that MOVES a subterm,
--- checked against frame exactness: the frame identity per site, the ONE
--- LEAK it found (the single TyPeelR's moved value gained the new
--- binder's slot, UNMASKED) with its witness, the refutation of the wrap
--- repair (it LOOPS), and — for the two clauses that replaced the rule —
--- their frame exactness and the tower measure that makes the wrapper
--- clause terminate.  The repair is INSTALLED (strong.Reduction).
+-- THE SOUNDNESS GATE.  A conceal must cite a REPRESENTED binder, and the
+-- two-universe design refuses it twice over: the name may be absent from
+-- the map, or the representation variable it names may be `abstR`.
+open import strong.proof.Adversary
+
+-- THE ID-LAYER FACTS.  What makes IdPush and CancelR legitimate: the
+-- pushed name is already written in the inner conversion (one universe
+-- up, on the representation variable), `unseal` is the only active
+-- conversion an id-layer can meet, and the naked drop is unsound except
+-- at an empty frame.
+open import strong.proof.IdLayer
+
+-- CANONICITY.  Every conversion reduction writes is in the canonical
+-- family, and the family survives reduction — including `Peel`'s
+-- re-spelling onto the dual's name map, which is what the two universes
+-- added.
+open import strong.proof.Canonicity
+
+-- THE SHIFT AUDIT (2026-09-08, ported 2026-09-19).  Every rule that MOVES
+-- a subterm, checked against frame exactness — now the relational
+-- transport lemmas of strong.CtxMorph §3a plus the observation that every
+-- move but TyBeta's is REPRESENTATION-ONLY — together with the tower
+-- measure that makes the wrapper clause of TyPeelR terminate.
 open import strong.proof.ShiftAudit
 
--- THE WALL.  The search for an INVARIANT grounding the premise
--- `interior Θ₂ Δ ⊢ᵗ A` — the one the old CancelR/IdPush contracta
--- needed —
--- is recorded in notes/DECISIONS.md (2026-09-06 entries).  The SCOPE MOVE
--- (strong.CtxMorph §4) removes the need, so the development carries no
--- module for it; the two surviving artifacts are proof/MaskFacts.mask-only
--- and Examples §12/§12b.
+-- THE FRONTIER (2026-09-19).  Everything above type-checks.  The
+-- regression corpus and the renderer are the remaining old-design
+-- modules; `Examples.agda` is the big one, and it is the same
+-- transcription problem the reduction traces had — port it onto
+-- `TypeCheck.agda` rather than rewriting its boundary typings by hand
+-- (notes/PLAN.md item 6).  `Show.agda` follows it.
+open import strong.Examples
+open import strong.Show

@@ -406,13 +406,13 @@ data Final (M : Term) : Set where
 
 -- A run from M that is supposed to keep the type A.  Each step stores its
 -- own derivation AND a typing derivation for the contractum, because
--- `eval` re-checks after every step; `broke` records a step whose
+-- `eval` re-checks after every step; `illtyped` records a step whose
 -- contractum the checker REJECTED, and is the only way the type can be
 -- lost along a trace.
 infixr 5 _◅⟨_⟩_
 data Trace (Δ : Ctxᵗ) (A : Ty) : Term → Set where
   stop   : ∀ {M} → Final M → Trace Δ A M
-  broke  : ∀ {M M′} → Δ ⊢ M -→ M′ → Trace Δ A M
+  illtyped  : ∀ {M M′} → Δ ⊢ M -→ M′ → Trace Δ A M
   _◅⟨_⟩_ : ∀ {M M′} → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
     → Trace Δ A M′ → Trace Δ A M
 
@@ -441,7 +441,7 @@ eval {Δ} {A} (suc k) M ⊢M | nothing | nothing = stop no-redex
 eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) with check⊢ Δ [] M′ A
 eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | just ⊢M′ =
   r ◅⟨ ⊢M′ ⟩ eval k M′ ⊢M′
-eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | nothing = broke r
+eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | nothing = illtyped r
 
 ------------------------------------------------------------------------
 -- 8. Reading a trace
@@ -449,18 +449,18 @@ eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | nothing = broke r
 
 traceEnd : ∀ {Δ A M} → Trace Δ A M → Term
 traceEnd {M = M} (stop f)            = M
-traceEnd         (broke {M′ = M′} r) = M′
+traceEnd         (illtyped {M′ = M′} r) = M′
 traceEnd         (r ◅⟨ ⊢M′ ⟩ tr)     = traceEnd tr
 
 -- the states, the first one included
 traceTerms : ∀ {Δ A M} → Trace Δ A M → List Term
 traceTerms {M = M} (stop f)            = M ∷ []
-traceTerms {M = M} (broke {M′ = M′} r) = M ∷ M′ ∷ []
+traceTerms {M = M} (illtyped {M′ = M′} r) = M ∷ M′ ∷ []
 traceTerms {M = M} (r ◅⟨ ⊢M′ ⟩ tr)     = M ∷ traceTerms tr
 
 traceLen : ∀ {Δ A M} → Trace Δ A M → ℕ
 traceLen (stop f)        = zero
-traceLen (broke r)       = suc zero
+traceLen (illtyped r)       = suc zero
 traceLen (r ◅⟨ ⊢M′ ⟩ tr) = suc (traceLen tr)
 
 evalTerms : ∀ {Δ A M} (k : ℕ) → Δ ∣ [] ⊢ M ⦂ A → List Term
@@ -474,7 +474,7 @@ evalTerms k ⊢M = traceTerms (eval k _ ⊢M)
 -- this only reassembles them.
 trace-sound : ∀ {Δ A M} (tr : Trace Δ A M) → Δ ⊢ M -→* traceEnd tr
 trace-sound (stop f)        = done
-trace-sound (broke r)       = r then done
+trace-sound (illtyped r)       = r then done
 trace-sound (r ◅⟨ ⊢M′ ⟩ tr) = r then trace-sound tr
 
 eval-sound : ∀ {Δ A M} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
@@ -482,11 +482,11 @@ eval-sound : ∀ {Δ A M} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
 eval-sound k ⊢M = trace-sound (eval k _ ⊢M)
 
 -- `Checked tr` is the unit RECORD exactly when no step along `tr` lost the
--- type, so Agda discharges it by eta at a concrete run and a `broke`
+-- type, so Agda discharges it by eta at a concrete run and an `illtyped`
 -- anywhere leaves an unsolvable `⊥`.
 Checked : ∀ {Δ A M} → Trace Δ A M → Set
 Checked (stop f)        = ⊤
-Checked (broke r)       = ⊥
+Checked (illtyped r)       = ⊥
 Checked (r ◅⟨ ⊢M′ ⟩ tr) = Checked tr
 
 -- SUBJECT REDUCTION, FOR THIS RUN.  Not proved — checked, state by
@@ -494,19 +494,19 @@ Checked (r ◅⟨ ⊢M′ ⟩ tr) = Checked tr
 trace-⦂ : ∀ {Δ A M} → Δ ∣ [] ⊢ M ⦂ A → (tr : Trace Δ A M)
   → Checked tr → Δ ∣ [] ⊢ traceEnd tr ⦂ A
 trace-⦂ ⊢M (stop f)        c = ⊢M
-trace-⦂ ⊢M (broke r)       ()
+trace-⦂ ⊢M (illtyped r)       ()
 trace-⦂ ⊢M (r ◅⟨ ⊢M′ ⟩ tr) c = trace-⦂ ⊢M′ tr c
 
 eval-⦂ : ∀ {Δ A M} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
   → Checked (eval k M ⊢M) → Δ ∣ [] ⊢ traceEnd (eval k M ⊢M) ⦂ A
 eval-⦂ k ⊢M c = trace-⦂ ⊢M (eval k _ ⊢M) c
 
--- and `Checked` really bites: a trace that broke has no such proof, so
+-- and `Checked` really bites: an `illtyped` trace has no such proof, so
 -- the `_` a caller writes for it is a proof only because every state the
 -- run passed through was checked.
-broke-unchecked : ∀ {Δ A M M′} (r : Δ ⊢ M -→ M′)
-  → Checked {Δ} {A} (broke r) → ⊥
-broke-unchecked r c = c
+illtyped-unchecked : ∀ {Δ A M M′} (r : Δ ⊢ M -→ M′)
+  → Checked {Δ} {A} (illtyped r) → ⊥
+illtyped-unchecked r c = c
 
 ------------------------------------------------------------------------
 -- 10. What a recorded example asserts
@@ -543,20 +543,20 @@ bump (reported V n b) = reported V (suc n) b
 
 report : ∀ {Δ A M} → Trace Δ A M → Report
 report {M = M} (stop f)            = reported M zero true
-report         (broke {M′ = M′} r) = reported M′ (suc zero) false
+report         (illtyped {M′ = M′} r) = reported M′ (suc zero) false
 report         (r ◅⟨ ⊢M′ ⟩ tr)     = bump (report tr)
 
 report-end : ∀ {Δ A M} (tr : Trace Δ A M)
   → repEnd (report tr) ≡ traceEnd tr
 report-end (stop f)  = refl
-report-end (broke r) = refl
+report-end (illtyped r) = refl
 report-end (r ◅⟨ ⊢M′ ⟩ tr) with report tr | report-end tr
 report-end (r ◅⟨ ⊢M′ ⟩ tr) | reported V n b | eq = eq
 
 report-kept : ∀ {Δ A M} (tr : Trace Δ A M)
   → repKept (report tr) ≡ true → Checked tr
 report-kept (stop f)  eq = tt
-report-kept (broke r) ()
+report-kept (illtyped r) ()
 report-kept (r ◅⟨ ⊢M′ ⟩ tr) eq with report tr | report-kept tr
 report-kept (r ◅⟨ ⊢M′ ⟩ tr) eq | reported V n b | h = h eq
 

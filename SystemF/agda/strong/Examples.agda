@@ -34,7 +34,7 @@ module strong.Examples where
 -- reaches `V` in exactly `n` steps, that `V` is a value, and that NO state
 -- along the way lost the type — `eval` (strong.Eval) calls `check⊢` on
 -- every contractum at the type the run started with, and a rejected one is
--- a `broke`, which makes the statement false.  The intermediate states are
+-- an `illtyped`, which makes the statement false.  The intermediate states are
 -- one `evalTerms` away; §4 is the only place they are written out.
 --
 -- WHAT IS NOT DUPLICATED.  `notes/RepresentationReductionExamples.agda`

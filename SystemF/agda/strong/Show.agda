@@ -70,7 +70,7 @@ open import strong.Reduction using (_⊢_-→_; TyBeta; Beta; Peel; TyPeelR-Λ;
   TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
   ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫)
 open import strong.Eval
-  using (Trace; stop; broke; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
+  using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
          eval)
 
 ------------------------------------------------------------------------
@@ -437,7 +437,7 @@ showTermsIn n (M ∷ Ms@(_ ∷ _)) =
 showTrace : ∀ {Δ A M} → ℕ → Trace Δ A M → String
 showTrace {M = M} n (stop fin) =
   showTmIn n M ++ "\n    -- " ++ finalName fin
-showTrace {M = M} n (broke r) =
+showTrace {M = M} n (illtyped r) =
   showTmIn n M ++ "\n  --[" ++ ruleName r ++ "]-->  -- TYPE LOST"
 showTrace {M = M} n (r ◅⟨ ⊢M′ ⟩ tr) =
   showTmIn n M ++ "\n  --[" ++ ruleName r ++ "]-->\n" ++ showTrace n tr

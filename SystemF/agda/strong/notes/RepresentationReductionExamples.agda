@@ -29,7 +29,7 @@ module strong.notes.RepresentationReductionExamples where
 -- WHAT IS AND IS NOT WRITTEN OUT.  The intermediate states are not.
 -- `eval` (strong.Eval) produces them, and it calls the type checker on
 -- every one at the type the run started with, so a state that lost the
--- type is a `broke` in the trace, and a `broke` makes the `true` in the
+-- type is an `illtyped` in the trace, and an `illtyped` makes the `true` in the
 -- example's `Reaches` false.  What an example asserts is therefore the
 -- endpoint, the step count, that no state on the way was ill-typed, and
 -- that the endpoint is a value — all in ONE statement, which is what

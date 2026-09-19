@@ -257,8 +257,8 @@ contractum, at the type the run started with. The checker is what closes the
 loop: preservation is not available to retype the contractum, so the
 contractum is *checked* instead. Each state's typing derivation is stored in
 the returned `Trace`, and a step whose contractum the checker rejected is
-recorded as `broke`; `Checked tr` is the unit record exactly when nothing
-broke, so `trace-⦂` hands back the endpoint's typing and Agda discharges the
+recorded as `illtyped`; `Checked tr` is the unit record exactly when nothing
+was ill-typed, so `trace-⦂` hands back the endpoint's typing and Agda discharges the
 side condition by eta at a concrete run.
 
 That is subject reduction *for that run*, checked rather than proved, and it
@@ -293,7 +293,7 @@ independent transcription that `step` could be checked against, and they are
 gone. What replaces them is the per-state type check, which catches strictly
 more than the endpoint alone and strictly less than an exact transcript. The
 checks are not vacuous — a wrong endpoint, a wrong step count, too little
-fuel, a value that "steps", and a `broke` trace are all rejected.
+fuel, a value that "steps", and an `illtyped` trace are all rejected.
 
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
@@ -517,7 +517,7 @@ is the review items and `CancelR`'s rule repair.
      closed, plain, boundary-free. In nine steps it reaches a `CancelR`
      redex with `numBinds Θ₁ ≡ 1` and a cancelled binder whose payload is
      a representation VARIABLE; the tenth step is the `CancelR`, `eval`
-     records it as `broke`, and the contractum is refuted by an explicit
+     records it as `illtyped`, and the contractum is refuted by an explicit
      `¬`. The conversion context the run builds for `Θ₂` is
      `notes/CancelRShiftWall.agda`'s hand-built `Δ*` on the nose. The
      wall's reason for hoping otherwise — a bare `seal` is minted only on

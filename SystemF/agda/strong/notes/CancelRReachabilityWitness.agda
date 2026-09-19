@@ -178,9 +178,9 @@ src-→*-contractum = eval-run 10 Src-⊢ contractum-is-state-10
 -- AND `eval` RECORDS IT AS A BREAK.  `report` returns `false` exactly
 -- when some state lost the type; the `true` a `Reaches` asserts is
 -- therefore unavailable for this run at any fuel past nine.
-eval-broke-at-step-10 :
+eval-illtyped-at-step-10 :
   report (eval 10 Src Src-⊢) ≡ reported Contractum 10 false
-eval-broke-at-step-10 = refl
+eval-illtyped-at-step-10 = refl
 
 ------------------------------------------------------------------------
 -- 3. The contexts the run built

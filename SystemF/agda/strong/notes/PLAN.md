@@ -298,9 +298,10 @@ fuel, a value that "steps", and a `broke` trace are all rejected.
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
 clean. The stage-1 preservation induction now passes as well, through the
-parameterized interface described in immediate-plan item 1 below. `All.agda`
-now reaches `proof/Canonical.agda`; its first failure is the retired
-`shiftBy-base` lemma at line 126.
+parameterized interface described in immediate-plan item 1 below. Canonical
+forms now pass against the relational `env` interface as well. `All.agda`
+reaches `proof/Progress.agda`; its first failure is the retired `convCtx` name
+at line 80.
 
 ## Resuming on another machine
 
@@ -314,9 +315,9 @@ What compiles, from `SystemF/agda/strong/`:
 agda --safe --no-allow-unsolved-metas -v0 All.agda
 ```
 
-stops at the FIRST unported dependency, `proof/Canonical.agda`, on the
-retired `shiftBy-base` lemma at line 126. The core, `Reduction`, `TypeCheck`,
-`Eval`, the notes modules, the stage-1 `proof/Preserve.agda`, and its honest
+stops at the FIRST unported dependency, `proof/Progress.agda`, on the retired
+`convCtx` name at line 80. The core, `Reduction`, `TypeCheck`, `Eval`, the
+notes modules, canonical forms, stage-1 `proof/Preserve.agda`, and its honest
 parameterized public wrapper all pass before that frontier.
 
 The twelve-example suite alone is about 7.4s cold:
@@ -328,8 +329,8 @@ agda --safe -v0 notes/RepresentationReductionExamples.agda
 Where the open threads are: item 1's stage-1 preservation port is done;
 item 2 and the other two crossing cases remain parameters for stage 2; two
 representation-only typing transports identified by stage 1 await review;
-item 3's rewind transport and item 4's rule-set cleanup are done; item 6 is
-progress and `Examples.agda`.
+item 3's rewind transport and item 4's rule-set cleanup are done; canonical
+forms are done; item 6 now starts at progress and then `Examples.agda`.
 
 ## Immediate plans
 
@@ -456,7 +457,16 @@ progress and `Examples.agda`.
    crossing, state separately how ordinary indices and representation indices
    move, AND in which of the two contexts each spelling is read — that last
    question is what the 2026-09-18 defect turns on.
-6. Port progress and the remaining modules imported by `All.agda`, deleting
+6. **CANONICAL FORMS DONE (2026-09-19); NEXT: PROGRESS.** Canonical forms
+   invert the exterior `SameTyExt` premise through its common representation
+   type, then use `shiftRep` head preservation to recover the conversion
+   target's base, variable, arrow, or `∀` shape. The old `canon-base` statement
+   was false after Boolean literals landed: `true : 𝔹` satisfied its premises
+   but could not equal `$ n`. It now returns a numeral, `true`, or `false`;
+   `canon-ℕ` retains its numeral-only statement. See `notes/DECISIONS.md`,
+   2026-09-19.
+
+   Port progress and the remaining modules imported by `All.agda`, deleting
    obsolete masking/nameability compatibility machinery rather than adding
    shims. Progress is the half `Eval.agda`'s `step` deliberately does not
    claim, and the twelve `Reaches` checks are the evidence for what it will

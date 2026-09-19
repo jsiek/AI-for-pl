@@ -3137,3 +3137,35 @@ and a `Stage1` module parameterized by these two transports plus the three
 crossing cases. The next stage must review and prove the two transport
 statements, then port `PeelDual.agda` and `MoveScope.agda`, before restoring
 an unparameterized public theorem.
+
+## 2026-09-19 — canonical base values include Boolean literals
+
+THE CONCRETE COUNTEREXAMPLE to the inherited statement is
+
+    V = `true
+    V-true : Value V
+    ⊢true  : empty ∣ [] ⊢ V ⦂ `𝔹
+    base-𝔹 : Base `𝔹 .
+
+The old `canon-base` conclusion required `Σ[ n ∈ ℕ ] (V ≡ $ n)`, so these
+premises demanded that `true` equal a numeral. Boolean terms, typings, values,
+and `Drop-true`/`Drop-false` were added when the representation-variable
+experiment began, but `proof/Canonical.agda` had not yet been ported and still
+described the earlier language in which no Boolean literal existed.
+
+THE RULING. `canon-base` keeps its name and base-type premise, but its result
+now enumerates all three base literals:
+
+    (Σ[ n ∈ ℕ ] (V ≡ $ n)) ⊎ (V ≡ `true) ⊎ (V ≡ `false) .
+
+On the example it returns the `true` branch. `canon-ℕ` keeps its old,
+numeral-only statement, so clients that specifically know the exterior type is
+`ℕ` lose no precision. Progress must split the three branches against `Drop$`,
+`Drop-true`, and `Drop-false` when it is ported.
+
+THE RELATIONAL PORT itself adds no new major theorem. For a boundary
+`W ⟪ Θ , c ⟫`, `SameTyExt` factors the exterior and conversion-target
+spellings through a common representation type. Local inversions show that
+`shiftRep (numBinds Θ)` preserves that type's base, variable, arrow, or `∀`
+head; the existing inert-conversion inversions then recover the same wrapper
+shapes as before.

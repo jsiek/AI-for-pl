@@ -478,7 +478,8 @@ canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-⟪⟫ cW cs′) cs))
   ct-⟪⟫ (ct-·[] (ct-⟪⟫ (canon-renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) cW)
                        (canonC-ren suc cs′)))
         (tp cs)
-canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _) (CancelR {A = A} {A′ = A′} _ _ _ _ _) =
+canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
+              (CancelR {A = A} {A′ = A′} _ _ _ _ _ _ _ _) =
   ct-⟪⟫ (ct-⟪⟫ cV (canonC-mkId A′)) (canonC-mkId A)
 canon-step uq tp (ct-⟪⟫ _ _) (Drop$ _)     = ct-lit
 canon-step uq tp (ct-⟪⟫ _ _) Drop-true     = ct-true

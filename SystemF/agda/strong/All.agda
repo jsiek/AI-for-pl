@@ -22,7 +22,6 @@ open import strong.notes.RepresentationReductionExamples
 open import strong.notes.ReUnlockWall
 open import strong.notes.ForallPayloadWall
 open import strong.notes.CrossingAudit
-open import strong.notes.CancelRShiftWall
 open import strong.notes.CancelRReachabilityWitness
 open import strong.notes.RawRunProbe
 open import strong.notes.PeelPremise
@@ -36,6 +35,13 @@ open import strong.proof.Preserve
 open import strong.proof.PeelDual
 open import strong.proof.MoveScope
 open import strong.proof.TypeSafety
+
+-- THE CANCELR WALL AND ITS REPAIR (2026-09-19).  This one notes module
+-- sits BELOW the proof scripts rather than with the others above, because
+-- its §6 retypes the wall's own contractum with
+-- `strong.proof.MoveScope.preserve-CancelR` — the preservation case the
+-- repaired rule generates.
+open import strong.notes.CancelRShiftWall
 
 -- progress (the canonical-forms suite, the proof script, the theorem)
 open import strong.proof.Canonical

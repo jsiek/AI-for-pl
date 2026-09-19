@@ -183,3 +183,35 @@ available), the rule mints `mkId (` 2)` where it now mints `mkId (` 1)`,
 and the contractum types. Whether that premise is always satisfiable —
 the analogue of `peel-premises` for `CancelR` — is the next question, and
 it is not answered here.
+
+## Postscript, 2026-09-19 — repair (a) approved and installed
+
+Jeremy approved repair (a) the same day this hunt log was written, and it
+is installed on `codex/strong-system-f-representation-vars`.
+
+`strong.Reduction`'s `CancelR` now carries the three readings the old rule
+lacked and re-spells at the inner boundary's own conversion context:
+
+    CancelR : … → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → Δ₁ᶜ ∋ X := Aᵢ
+      → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+      → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
+      → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A → …
+
+which is `IdPush`'s premise block with `Aᵢ` in place of `` ` X ``.
+
+What changed for `Src`. The first nine steps are untouched; step 10 now
+mints `mkId (` 2)` on the inner layer where it minted `mkId (` 1)`, and
+the run COMPLETES — `Reaches 19 19 Src-⊢ ($ 7)`, every state type checked
+(`notes/CancelRReachabilityWitness.Src-eval`). The raw machine, which
+carries no typing and used to stick at 16 steps on a non-value identity
+tower, now agrees exactly: `rawLen 100 Src ≡ 19`, ending at `$ 7`
+(`notes/RawRunProbe.agda`). The two controls keep their counts, 9 and 17.
+
+And the question section 5 left open — whether the repaired premise is
+always satisfiable, and whether the preservation case it generates is
+provable — is answered for preservation:
+`strong.proof.MoveScope.preserve-CancelR` proves `CancelRCase` outright,
+by `preserve-IdPush`'s argument. `strong.Preservation.Stage1` and
+`strong.TypeSafety.Stage1` no longer take a `cancel` parameter. The
+satisfiability half for progress is still carried by the pending-review
+`MergedReading`.

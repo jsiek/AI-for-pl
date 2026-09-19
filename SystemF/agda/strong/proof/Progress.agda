@@ -68,11 +68,18 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
 -- The conversion reading of `Θ₁ ⋉ Θ₂` must retain both sources whose
 -- spellings the two id-layer rules move into that merged frame:
 --
---   * `CancelR` moves a type read at Θ₂'s conversion context;
---   * `IdPush` moves a variable read at Θ₁'s conversion context.
+--   * repaired `CancelR` (2026-09-19) moves the cancelled seal's source,
+--     read at Θ₁'s conversion context;
+--   * `IdPush` moves a variable read at the same context.
 --
 -- `Keeps` states only name availability.  strong.Conversion.respell-ty then
 -- constructs the `SameTy` premise at the exact type being moved.
+--
+-- NOTE, PENDING REVIEW.  With `CancelR` repaired, BOTH id-layer rules now
+-- read at `Δ₁ᶜ`, so this proof no longer consumes the outer
+-- `Keeps (names Δᶜ) (names Δ⋉ᶜ)` component.  The statement is NOT shrunk
+-- here: it is one of the statements awaiting Jeremy's review, and
+-- shrinking it is a separate decision.
 MergedReading : Set
 MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
   → MorphWf Δ Θ₂ Δᵢ Δᶜ
@@ -129,19 +136,20 @@ module Impl (merged-reading : MergedReading) where
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₁ refl
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
-    | Δ⋉ᶜ , r⋉ , keep₂ , keep₁ with d
+    | Δ⋉ᶜ , r⋉ , keep₂ , keep₁ with dX
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₁ refl
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
     | Δ⋉ᶜ , r⋉ , keep₂ , keep₁
-    | α , R , nameY , repY , sameA with respell-ty keep₂ sameA
+    | α , R , nameX , repX , sameA with respell-ty keep₁ sameA
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₁ refl
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
     | Δ⋉ᶜ , r⋉ , keep₂ , keep₁
-    | α , R , nameY , repY , sameA | A′ , sameA′ =
-    _ , CancelR vW r⋉ (R , sameA′ , sameA) (mw-conversion mwΘ)
-                (α , R , nameY , repY , sameA)
+    | α , R , nameX , repX , sameA | A′ , sameA′ =
+    _ , CancelR vW (mw-interior mwΘ) (mw-conversion mw₁)
+                (α , R , nameX , repX , sameA)
+                r⋉ (R , sameA′ , sameA) (mw-conversion mwΘ) d
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₂ refl with ⊢M
   progress-unseal v mwΘ ⊢M sameᵢ d

@@ -26,7 +26,7 @@ module strong.proof.MoveScope where
 --
 --   §1  the small inversions the two cases share
 --   §2  IDPUSH — PROVED
---   §3  CANCELR — REFUTED, and why
+--   §3  CANCELR — PROVED, on the rule repaired 2026-09-19
 --
 -- WHAT WAS DELETED (2026-09-19).  Everything this module used to hold was
 -- about the retired masked-entry design: `applyUnlocks`/`applyChanges`
@@ -42,7 +42,7 @@ open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; length)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; subst)
+  using (_≡_; refl; sym; trans; cong; subst)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
 open import strong.Ctx
@@ -70,6 +70,10 @@ sameTy-tgt-var : ∀ {η η′ : TyCtx} {A : Ty} {Y : ℕ}
   → ∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ ` Y ~ R))
   → ∃[ α ] ((η ⊢ A ~ ` α) × (η′ ∋ˡ Y := α))
 sameTy-tgt-var (` α , p , same-var d) = α , p , d
+
+-- A representation binding determines its payload.
+bindR-inj : ∀ {R S : Ty} → bindR R ≡ bindR S → R ≡ S
+bindR-inj refl = refl
 
 -- A name that reads a representation variable ACROSS a bind block reads
 -- it shifted, so the lookup lands at `k + α`.
@@ -238,24 +242,197 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   outerᵢ = shiftBy m Rc , pCᵣ , pA
 
 ------------------------------------------------------------------------
--- §3  CANCELR — REFUTED
+-- §3  CANCELR — PROVED, on the repaired rule
 ------------------------------------------------------------------------
 
--- `CancelRCase` has NO proof: it is FALSE.  The rule's re-spelling
--- premise `SameTy Δ⋉ᶜ A′ Δᶜ A` reads the inner layer's identity type in
--- the OUTER conversion context, and so omits the `numBinds Θ₁` shift that
--- `env`'s `SameTyExt` demands of the inner layer.  `IdPush` escapes
--- because its minted `unseal X′` takes its type from a LOOKUP, which
--- shifts itself (`∋ʳ-push` above); `CancelR` mints `mkId A′`, whose type
--- is whatever the premise says it is.
+-- WHAT THE REPAIR BOUGHT (2026-09-19).  The old rule re-spelled the inner
+-- layer's identity type FROM the OUTER conversion context —
+-- `SameTy Δ⋉ᶜ A′ Δᶜ A` — and so asserted that `A′` denotes the SAME
+-- representation as `A`, where the inner `env`'s `SameTyExt (numBinds Θ₁)`
+-- demands `shiftBy (numBinds Θ₁)` of it.  That was refuted, at a redex
+-- reachable from a closed plain source program
+-- (notes/CancelRShiftWall.agda, notes/CancelRReachabilityWitness.agda).
+-- The repaired premise reads the cancelled `seal X`'s OWN source `Aᵢ` at
+-- Θ₁'s conversion context `Δ₁ᶜ`, which is where the shifted reading
+-- already lives.
 --
--- The machine-checked counterexample — a well-typed redex, every premise
--- of the rule satisfied, an actual reduction step, and no typing
--- derivation for the contractum — is `notes/CancelRShiftWall.agda`:
+-- THE PROOF IS `preserve-IdPush`'s, and the outer layer is LITERALLY it:
+-- the same `rewind Θ₂` frame from `rewind-interior`/`rewind-conversion`,
+-- the same `mkId A` minted at the outer binder's own payload, the same
+-- `outerᵢ`, and the redex's own `se₂`/`wE` reused unchanged.
 --
---   cancelR-case-false : ¬ CancelRCase
+-- THE INNER LAYER IS WHERE THE TWO CASES DIVERGE.  `IdPush` mints
+-- `unseal X′`, whose SOURCE is a variable and whose TARGET is a LOOKUP —
+-- and a lookup shifts itself past Θ₁'s bind block (`∋ʳ-push`).  `CancelR`
+-- mints `mkId A′`, whose source and target are the SAME type, so ONE type
+-- must satisfy both premises of the inner `env`:
 --
--- A repair is a RULE change and therefore Jeremy's call; the shape the
--- other three crossings suggest is recorded in that module.  Until then
--- `CancelRCase` stays a parameter of `strong.proof.Preserve.Impl`, and
--- `strong.Preservation` keeps it in its `Stage1` interface.
+--   innerᵢ  `A′` denotes what `V`'s type `B₁` denotes — which is what the
+--           rule's re-spelling premise says, since `sm₁` reads `B₁`
+--           against the cancelled seal's source `Aᵢ` at `Δ₁ᶜ`;
+--   innerₑ  `A′` denotes `shiftBy (numBinds Θ₁)` of what the redex's
+--           exterior type `C` denotes.
+--
+-- The two meet because the LOOKUP still shifts itself, one level up: the
+-- cancelled binder's representation variable is `numBinds Θ₁ + αY` (`eqX`,
+-- the old `cancel-name` equation one universe up), and `∋ʳ-push` reads Y's
+-- payload through Θ₁'s bind block as `shiftBy (numBinds Θ₁)` of it
+-- (`eqRB`).  So the rep the seal's source names at `Δ₁ᶜ` IS the shifted
+-- one, and the repaired premise transports exactly that to `Δ⋉ᶜ`.  Read
+-- against `Δᶜ` it was the UNshifted one, and nothing could have fixed it.
+preserve-CancelR : CancelRCase
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
+                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
+                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                               sm₁ se₁ wB)
+                      (conv-unseal dY) sm₂ se₂ wE)
+  with interior-functional (mw-interior mw₂) ri
+     | conversion-functional (mw-conversion mw₂) r₂
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
+                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
+                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                               sm₁ se₁ wB)
+                      (conv-unseal dY) sm₂ se₂ wE)
+  | refl | refl
+  with conversion-functional (mw-conversion mw₁) r₁
+     | ∋:=-det (name-fn (mw-conversion-wf mw₂)) dY d
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
+                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
+                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                               sm₁ se₁ wB)
+                      (conv-unseal dY) sm₂ se₂ wE)
+  | refl | refl | refl | refl
+  with ∋:=-det (name-fn (mw-conversion-wf mw₁)) dX d₁
+preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
+                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
+                 {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
+                 wfΔ v ri r₁ d₁ r⋉ sm r₂ d
+                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
+                               sm₁ se₁ wB)
+                      (conv-unseal dY) sm₂ se₂ wE)
+  | refl | refl | refl | refl | refl =
+  env mwR inner (mkId-⊢ (same-wf pA)) outerᵢ se₂ wE
+  where
+  n : ℕ
+  n = numBinds Θ₁
+
+  m : ℕ
+  m = numBinds Θ₂
+
+  -- the outer frame: the plain exterior under Θ₂'s bind block
+  Δᵣᵢ : Ctxᵗ
+  Δᵣᵢ = extendReps (binds Θ₂) Δ
+
+  mwR : MorphWf Δ (rewind Θ₂) Δᵣᵢ Δᶜ
+  mwR = mw wfΔ (mw-binds mw₂)
+           (rewind-interior ri) (rewind-conversion ri r₂)
+
+  -- THE BINDER Y NAMES, and the exterior type it represents
+  αY : ℕ
+  αY = proj₁ (sameTy-tgt-var sm₂)
+
+  Rc : Ty
+  Rc = proj₁ se₂
+
+  pA : names Δᶜ ⊢ A ~ shiftBy m Rc
+  pA = subst (λ T → names Δᶜ ⊢ A ~ T)
+             (shiftRep-shiftBy m Rc) (proj₂ (proj₂ se₂))
+
+  pCᵣ : names Δᵣᵢ ⊢ C ~ shiftBy m Rc
+  pCᵣ = same-shiftRVars m (proj₁ (proj₂ se₂))
+
+  dYrep : pushRepBinds (binds Θ₂) (reps Δ)
+            ∋ʳ αY := bindR (shiftBy m Rc)
+  dYrep =
+    subst (λ Ξ → Ξ ∋ʳ αY := bindR (shiftBy m Rc))
+      (conversion-reps r₂)
+      (subst (λ a → reps Δᶜ ∋ʳ a := bindR (shiftBy m Rc))
+        (∋ˡ-det (proj₁ (proj₂ (proj₂ d)))
+                (proj₂ (proj₂ (sameTy-tgt-var sm₂))))
+        (subst (λ T → reps Δᶜ ∋ʳ proj₁ d := bindR T)
+          (same-rep-unique (proj₂ (proj₂ (proj₂ (proj₂ d)))) pA)
+          (proj₁ (proj₂ (proj₂ (proj₂ d))))))
+
+  -- THE CANCELLED BINDER, read on Θ₁'s own conversion context.  Its
+  -- representation variable is X's, its payload the type `Aᵢ` denotes.
+  αX : ℕ
+  αX = proj₁ dX
+
+  RB : Ty
+  RB = proj₁ (proj₂ dX)
+
+  pAᵢ : names Δ₁ᶜ ⊢ Aᵢ ~ RB
+  pAᵢ = proj₂ (proj₂ (proj₂ (proj₂ dX)))
+
+  dXrep : reps Δ₁ᶜ ∋ʳ αX := bindR RB
+  dXrep = proj₁ (proj₂ (proj₂ (proj₂ dX)))
+
+  -- X's representation is Y's, one bind block in: `cancel-name`.
+  eqX : αX ≡ n + αY
+  eqX =
+    ∋ˡ-det (proj₁ (proj₂ (proj₂ dX)))
+      (ext-lookup n αY
+        (subst (λ T → names Δ₁ᶜ ⊢ ` X ~ shiftRep n T)
+               (sym (same-rep-unique (proj₁ (proj₂ (sameTy-tgt-var sm₂)))
+                                     (proj₁ (proj₂ se₁))))
+               (proj₂ (proj₂ se₁))))
+
+  -- THE SHIFT, RECOVERED.  Reading Y's payload through Θ₁'s bind block
+  -- shifts it, so the cancelled seal's source denotes exactly the
+  -- representation the inner `env`'s `SameTyExt n` asks for.
+  dXrep′ : reps Δ₁ᶜ ∋ʳ αX := bindR (shiftBy n (shiftBy m Rc))
+  dXrep′ =
+    subst (λ Ξ → Ξ ∋ʳ αX := bindR (shiftBy n (shiftBy m Rc)))
+      (sym (trans (conversion-reps r₁)
+                  (cong (pushRepBinds (binds Θ₁)) (interior-reps ri))))
+      (subst (λ a → pushRepBinds (binds Θ₁)
+                      (pushRepBinds (binds Θ₂) (reps Δ))
+                      ∋ʳ a := bindR (shiftBy n (shiftBy m Rc)))
+             (sym eqX) (∋ʳ-push (binds Θ₁) dYrep))
+
+  eqRB : RB ≡ shiftBy n (shiftBy m Rc)
+  eqRB = bindR-inj (∋ʳ-det dXrep dXrep′)
+
+  -- the rule-carried re-spelling, and the representation it transports
+  RA′ : Ty
+  RA′ = proj₁ sm
+
+  qA′ : names Δ⋉ᶜ ⊢ A′ ~ RA′
+  qA′ = proj₁ (proj₂ sm)
+
+  eqA′ : RA′ ≡ RB
+  eqA′ = same-rep-unique (proj₂ (proj₂ sm)) pAᵢ
+
+  mw⋉ : MorphWf Δᵣᵢ (Θ₁ ⋉ Θ₂) Δ₁ᵢ Δ⋉ᶜ
+  mw⋉ = mw (mw-interior-wf mwR)
+           (subst (λ Ξ → Ξ ⊢ᴮ binds Θ₁) (interior-reps ri) (mw-binds mw₁))
+           (merged-interior (mw-interior mw₂) (mw-interior mw₁))
+           r⋉
+
+  innerᵢ : SameTy Δ₁ᵢ B₁ Δ⋉ᶜ A′
+  innerᵢ =
+    RA′
+    , subst (λ T → names Δ₁ᵢ ⊢ B₁ ~ T)
+            (same-rep-unique (proj₂ (proj₂ sm₁)) (proj₂ (proj₂ sm)))
+            (proj₁ (proj₂ sm₁))
+    , qA′
+
+  innerₑ : SameTyExt (numBinds (Θ₁ ⋉ Θ₂)) Δᵣᵢ C Δ⋉ᶜ A′
+  innerₑ =
+    shiftBy m Rc , pCᵣ
+    , subst (λ T → names Δ⋉ᶜ ⊢ A′ ~ T)
+            (sym (shiftRep-shiftBy n (shiftBy m Rc)))
+            (subst (λ T → names Δ⋉ᶜ ⊢ A′ ~ T) (trans eqA′ eqRB) qA′)
+
+  inner : Δᵣᵢ ∣ [] ⊢ V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫ ⦂ C
+  inner = env mw⋉ ⊢V (mkId-⊢ (same-wf qA′)) innerᵢ innerₑ
+              (wf-mono Δ Δᵣᵢ (tvMono-extendReps (binds Θ₂) Δ) wE)
+
+  outerᵢ : SameTy Δᵣᵢ C Δᶜ A
+  outerᵢ = shiftBy m Rc , pCᵣ , pA

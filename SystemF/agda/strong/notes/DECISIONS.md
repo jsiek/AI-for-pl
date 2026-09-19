@@ -3725,3 +3725,139 @@ hypothesis now known false FOR A REACHABLE REDEX rather than only for a
 hand-built one.  The evidence is `notes/CancelRReachabilityWitness.agda`
 (in `All.agda`, which stays green) with the hunt log in
 `notes/CancelRReachability.md`.
+
+## 2026-09-19 — repair (a) for `CancelR`, approved and installed; the
+## preservation case lands
+
+THE APPROVAL, and it is the first rule change on this branch that Jeremy
+ruled on directly.  The two earlier entries of today left `CancelR` with a
+refuted preservation case and only one repair path open: path (b), the
+invariant `numBinds Θ₁ ≡ 0`, died when the configuration turned out to be
+reachable from a closed, plain source program.  Repair (a) — read the
+re-spelling premise at the INNER boundary's conversion context — is
+approved and installed.  `strong.Reduction` is no longer untouched.
+
+THE RULE, BEFORE:
+
+    CancelR : ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′} → Value V
+      → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+      → SameTy Δ⋉ᶜ A′ Δᶜ A
+      → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
+      → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+          -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
+
+AND AFTER:
+
+    CancelR : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′ Aᵢ} → Value V
+      → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+      → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+      → Δ₁ᶜ ∋ X := Aᵢ
+      → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+      → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
+      → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
+      → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+          -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
+
+Three premises are added and one is re-pointed.  The contractum is
+UNCHANGED as a term shape; what changed is which type `A′` is forced to
+be.  The block is now premise-isomorphic to `IdPush`'s: the same interior
+reading of Θ₂, the same conversion reading of Θ₁, the same lookup at
+`Δ₁ᶜ`, the same re-spelling target `Δ⋉ᶜ`.  `IdPush` looks up a VARIABLE
+and mints `unseal X′`; `CancelR` looks up the cancelled seal's SOURCE and
+mints `mkId A′`.
+
+WHY THE SPELLING MUST BE READ AT `Δ₁ᶜ`, in one paragraph.  The inner
+boundary of the contractum carries the merged frame `Θ₁ ⋉ Θ₂`, and
+`numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`.  So its `env` compares its exterior
+type against its conversion's type across `n = numBinds Θ₁`
+representation binders: `SameTyExt n`, which asks the conversion's type to
+denote `shiftBy n` of what the exterior denotes.  The outer layer's
+`mkId A` pins that exterior to the representation `A` denotes in `Δᶜ`.
+Reading `A′` FROM `Δᶜ` therefore asserts exactly the wrong thing — that
+`A′` denotes the UNSHIFTED representation — and a representation reading
+is unique (`same-rep-unique`), so the two are compatible only when `n ≡ 0`
+or the representation is closed.  `Δ₁ᶜ` is `n` binders in, which is where
+the shifted reading already lives; and the cancelled `seal X`'s own source
+is read there, by `conv-seal`, in the redex's own typing derivation.  This
+is not a coincidence of `CancelR`: it is why `TyPeelR-⟪⟫` and `IdPush`
+re-spell against `Δ₁ᶜ` too.  `CancelR` was the one crossing repaired
+PREVENTIVELY (2026-09-18), against no failing program — and it was
+repaired against the wrong context.
+
+THE MEASURED RUN.  `notes/CancelRReachabilityWitness.agda`'s `Src` —
+closed, plain System F, no boundary in the source — is unchanged.  Its
+first nine steps are unchanged.  Step 10 now mints `mkId (` 2)` on the
+inner layer where it minted `mkId (` 1)`, pinned by
+
+    contractum-is-state-10 : traceEnd (eval 10 Src Src-⊢) ≡ Contractum
+
+and the run COMPLETES:
+
+    Src-eval : Reaches 19 19 Src-⊢ ($ 7)
+
+nineteen steps, every state type checked at `ℕ`.  The tail past the
+repaired `CancelR` is three `IdPush`es, a second `CancelR`, and the
+`Drop$` tower.  `notes/RawRunProbe.agda` checks the same thing without the
+type checker in the loop: `rawLen 100 Src ≡ 19` ending at `$ 7`, where the
+pre-repair raw machine stuck after SIXTEEN steps at a non-value identity
+tower — an `id ℕ` boundary over a wrapper claiming type X.  The raw and
+the checked machines now agree exactly.
+
+NO REGRESSION.  The twelve-run suite
+(`notes/RepresentationReductionExamples.agda`) is BYTE-IDENTICAL and
+green — every `CancelR` it reaches has `numBinds Θ₁ ≡ 0`, where the old
+and the new premise deliver the same spelling.  `Examples.agda` is
+likewise untouched and green, same step counts, for the same reason.  The
+two controls of the witness module keep their counts, 9 and 17.  `make
+check` is green: `All.agda` passes and `postulate-check` is clean.
+
+THE FATE OF `CancelRCase`.  It is PROVED —
+`strong.proof.MoveScope.preserve-CancelR`, beside `preserve-IdPush` and by
+the same argument.  The outer layer is literally `IdPush`'s: the same
+`rewind Θ₂` frame from `rewind-interior`/`rewind-conversion`, the same
+`mkId A` at the outer binder's payload, the redex's own `se₂`/`wE` reused.
+The inner layer is where the two diverge, because `mkId A′` has the SAME
+type as source and target, so one type must satisfy both premises of the
+inner `env`.  They meet because the lookup still shifts itself, one level
+up: the cancelled binder's representation variable is `numBinds Θ₁ + αY`
+(`eqX`, the old `cancel-name` equation one universe up), and `∋ʳ-push`
+reads Y's payload through Θ₁'s bind block as `shiftBy (numBinds Θ₁)` of it
+(`eqRB`).  So the representation the seal's source names at `Δ₁ᶜ` IS the
+shifted one, and the repaired premise transports exactly that to `Δ⋉ᶜ`.
+Read against `Δᶜ` it was the unshifted one, and nothing could have fixed
+it.  One new one-line inversion was needed, `bindR-inj`.
+
+CONSEQUENTLY THE INTERFACE SHRANK AGAIN.  `strong.Preservation.Stage1`
+takes `crossΛ`, `addLock0` and `repWeaken` — `cancel` is gone, as `peel`
+and `idpush` went before it.  `strong.TypeSafety.Stage1` and
+`proof/TypeSafety.agda` follow.  No parameter of this development is known
+false any more: the four that remain (`CrossΛTyping`, `AddLock0Typing`,
+`RepWeakenTyping` for preservation, `MergedReading` for progress) are
+open, plausible obligations pending review.
+
+WHAT THE HISTORY MODULES BECAME, and the choice made for each.
+`notes/CancelRShiftWall.agda` KEEPS its refutation machine-checked, by
+stating the old preservation case LOCALLY as `CancelRCase°` — the device
+`notes/ReUnlockWall.agda` already uses for the pre-`conv-unlock-live`
+conversion judgement.  So `cancelR-case°-false : ¬ CancelRCase°` still
+runs, the `Δ*` configuration and the redex typing are untouched, and a new
+§6 closes the module: the repaired rule fires on the same configuration
+and its contractum is retyped by `preserve-CancelR` itself.  Only the old
+rule's `step*` had to go, since its constructor no longer exists.  The
+wall module now sits BELOW the proof scripts in `All.agda` for that
+reason.  `notes/CancelRReachabilityWitness.agda` becomes the before/after
+record: the before half is prose (its equations were about a constructor
+that is gone), the after half is `Src-eval` plus the pinned state-9 redex,
+the pinned state-10 contractum, the six contexts the run builds, both
+conjuncts, and the repaired premises assembled into an actual `CancelR`
+step.  `notes/RawRunProbe.agda` is KEPT as a separate module rather than
+folded in, because it checks something the witness cannot: `eval` refuses
+to continue past an ill-typed state, so its count is partly a statement
+about the checker, while the raw step function carries no typing at all.
+Agreement between the two is an independent check.
+
+WHAT WAS NOT DONE, deliberately.  `MergedReading`'s statement could now
+SHRINK — with both id-layer rules reading at `Δ₁ᶜ`, `proof/Progress.agda`
+no longer consumes its outer `Keeps (names Δᶜ) (names Δ⋉ᶜ)` component.
+The statement is under review and shrinking it is a separate decision, so
+it stands unchanged with a note at the definition.

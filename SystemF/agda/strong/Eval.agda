@@ -173,23 +173,44 @@ pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ⋉ᶜ , r⋉) | just (`∀ C , sm) = nothing
 
 -- `CancelR`'s inner layer is checked at the MERGED frame's conversion
--- context, so its `mkId` needs the looked-up type spelled there.
-MergedPremises : Ctxᵗ → CtxMorph → CtxMorph → Ctxᵗ → Ty → Set
-MergedPremises Δ Θ₁ Θ₂ Δᶜ A =
-  Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
-    ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
-      × SameTy Δ⋉ᶜ A′ Δᶜ A)
+-- context, so its `mkId` needs a type spelled there.  Repaired
+-- (2026-09-19): the type re-spelled is the cancelled `seal X`'s OWN
+-- source, read at Θ₁'s conversion context — the same context-reading
+-- block `pushPremises?` builds for `IdPush`.
+MergedPremises : Ctxᵗ → CtxMorph → CtxMorph → ℕ → Set
+MergedPremises Δ Θ₁ Θ₂ X =
+  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Aᵢ ∈ Ty ]
+    Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
+      ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
+        × (Δ₁ᶜ ∋ X := Aᵢ)
+        × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+        × SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ)
 
-mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (Δᶜ : Ctxᵗ) (A : Ty)
-  → Maybe (MergedPremises Δ Θ₁ Θ₂ Δᶜ A)
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A
+mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (X : ℕ)
+  → Maybe (MergedPremises Δ Θ₁ Θ₂ X)
+mergedPremises? Δ Θ₁ Θ₂ X with interior? Δ Θ₂
+mergedPremises? Δ Θ₁ Θ₂ X | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri)
+  with conversion? Δᵢ Θ₁
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  with ∋:=? Δ₁ᶜ X
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Aᵢ , d₁)
   with conversion? (extendReps (binds Θ₂) Δ) (Θ₁ ⋉ Θ₂)
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉)
-  with rebase? (names Δᶜ) (names Δ⋉ᶜ) A
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | nothing = nothing
-mergedPremises? Δ Θ₁ Θ₂ Δᶜ A | just (Δ⋉ᶜ , r⋉) | just (A′ , sm) =
-  just (Δ⋉ᶜ , A′ , r⋉ , sm)
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Aᵢ , d₁) | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Aᵢ , d₁) | just (Δ⋉ᶜ , r⋉)
+  with rebase? (names Δ₁ᶜ) (names Δ⋉ᶜ) Aᵢ
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Aᵢ , d₁) | just (Δ⋉ᶜ , r⋉) | nothing = nothing
+mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
+  | just (Aᵢ , d₁) | just (Δ⋉ᶜ , r⋉) | just (A′ , sm) =
+  just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
+       , ri , r₁ , d₁ , r⋉ , sm)
 
 -- `Peel`'s crossing premises (2026-09-18).  The morphism's two readings,
 -- the DUAL's conversion context — which typing the redex does not supply,
@@ -305,10 +326,12 @@ bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
   with cancelPremises? Δ Θ Y
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d) with mergedPremises? Δ Θ₁ Θ Δᶜ A
+  | just (Δᶜ , A , rel , d) with mergedPremises? Δ Θ₁ Θ X
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
-  | just (Δᶜ , A , rel , d) | just (Δ⋉ᶜ , A′ , r⋉ , sm) =
-  just (_ , CancelR v r⋉ sm rel d)
+  | just (Δᶜ , A , rel , d)
+  | just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
+         , ri , r₁ , d₁ , r⋉ , sm) =
+  just (_ , CancelR v ri r₁ d₁ r⋉ sm rel d)
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
   | just (Δᶜ , A , rel , d) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) with value? V

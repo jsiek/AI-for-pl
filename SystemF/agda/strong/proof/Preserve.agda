@@ -1395,13 +1395,16 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 --                above, which it takes as a module parameter.
 --   IdPushCase   PROVED outright —
 --                `strong.proof.MoveScope.preserve-IdPush`.
---   CancelRCase  REFUTED — `notes/CancelRShiftWall.agda` proves
---                `¬ CancelRCase`.  The rule's `SameTy Δ⋉ᶜ A′ Δᶜ A`
---                premise reads the inner layer's identity type in the
---                OUTER conversion context, so it omits the `numBinds Θ₁`
---                shift that the inner `env`'s `SameTyExt` demands.  A
---                rule repair is Jeremy's call; until then the statement
---                below is the one the rule generates, and it is false.
+--   CancelRCase  PROVED outright, on the rule REPAIRED 2026-09-19 —
+--                `strong.proof.MoveScope.preserve-CancelR`.  The old
+--                statement re-spelled the inner identity FROM the OUTER
+--                conversion context and was refuted; the repaired rule
+--                reads the cancelled `seal X`'s own source at Θ₁'s
+--                conversion context `Δ₁ᶜ`, which makes this block
+--                premise-isomorphic to `IdPushCase` below — and the proof
+--                is `preserve-IdPush`'s.  See notes/CancelRShiftWall.agda
+--                for the incompatibility the old spelling walked into and
+--                notes/DECISIONS.md, 2026-09-19.
 
 PeelCase : Set
 PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
@@ -1414,10 +1417,13 @@ PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
               ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 CancelRCase : Set
-CancelRCase = ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′ C}
-  → WfCtx Δ → Value V
+CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
+  {A A′ Aᵢ C}
+  → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+  → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+  → Δ₁ᶜ ∋ X := Aᵢ
   → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-  → SameTy Δ⋉ᶜ A′ Δᶜ A
+  → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
   → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
@@ -1455,8 +1461,8 @@ module Impl
     preserve-TyPeelR-Λ wfΔ v rc ⊢s p ⊢M
   preserve wfΔ ⊢M (TyPeelR-⟪⟫ v ri rc ⊢s sm p) =
     preserve-TyPeelR-⟪⟫ addLock0 wfΔ v ri rc ⊢s sm p ⊢M
-  preserve wfΔ ⊢M (CancelR v rc sm r₂ d) =
-    cancel wfΔ v rc sm r₂ d ⊢M
+  preserve wfΔ ⊢M (CancelR v ri r₁ d₁ rc sm r₂ d₂) =
+    cancel wfΔ v ri r₁ d₁ rc sm r₂ d₂ ⊢M
   preserve wfΔ ⊢M (Drop$ b) = preserve-Drop$ wfΔ b ⊢M
   preserve wfΔ ⊢M Drop-true = preserve-Drop-true wfΔ ⊢M
   preserve wfΔ ⊢M Drop-false = preserve-Drop-false wfΔ ⊢M

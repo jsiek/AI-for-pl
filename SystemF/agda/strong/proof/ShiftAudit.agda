@@ -430,7 +430,7 @@ Drop$-only-numerals (Beta w)                ()
 Drop$-only-numerals (Peel v w rc ri rd sc)  ()
 Drop$-only-numerals (TyPeelR-Λ v rc ⊢s p)   ()
 Drop$-only-numerals (TyPeelR-⟪⟫ v ri rc ⊢s sm p) ()
-Drop$-only-numerals (CancelR v r⋉ sm rc d)  ()
+Drop$-only-numerals (CancelR v ri r₁ d₁ r⋉ sm rc d) ()
 Drop$-only-numerals (Drop$ b)               refl = refl
 Drop$-only-numerals Drop-true               ()
 Drop$-only-numerals Drop-false              ()

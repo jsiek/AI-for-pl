@@ -1,20 +1,32 @@
 module strong.notes.CancelRShiftWall where
 
 -- File Charter:
---   * The record of a THIRD crossing defect, found by the stage-2
---     preservation port (2026-09-19): `CancelR`'s re-spelling premise is
---     read in the WRONG conversion context, and consequently omits the
---     morphism's own representation-bind shift.
---   * It exhibits a CONCRETE well-typed redex, with every premise of the
---     rule satisfied, whose CONTRACTUM has no typing derivation.
---   * NOT repaired.  A rule change is Jeremy's call; this module records
---     the wall, and `strong.proof.MoveScope` keeps `CancelRCase` as the
---     open case it is.
+--   * THE WALL, and the record of the repair that answered it.  Found by
+--     the stage-2 preservation port (2026-09-19): `CancelR`'s re-spelling
+--     premise was read in the WRONG conversion context, and consequently
+--     omitted the morphism's own representation-bind shift.
+--   * REPAIRED THE SAME DAY, with Jeremy's approval — repair (a), the
+--     premise read at Θ₁'s own conversion context.  `strong.Reduction`
+--     carries the repaired rule and
+--     `strong.proof.MoveScope.preserve-CancelR` proves the preservation
+--     case it generates.  See notes/DECISIONS.md, 2026-09-19.
+--   * WHAT SURVIVES HERE, all still machine-checked: the `Δ*`
+--     configuration (§1), the well-typed redex (§2), the premises (§3),
+--     the shift incompatibility at the core of the defect (§4), the
+--     refutation of the OLD stage-2 statement — stated against a LOCAL
+--     copy of that statement, because the rule it came from no longer
+--     exists (§5), and the repaired step with its now-typeable
+--     contractum, on this very configuration (§6).
 --
--- WHAT THE RULE SAYS (strong.Reduction):
+-- The local-copy device is the repo's usual one for a retired design:
+-- `notes/ReUnlockWall.agda` states the pre-`conv-unlock-live` conversion
+-- judgement locally in the same way, so that `no-old-rewind-conv` stays a
+-- checked refutation rather than prose.
+--
+-- WHAT THE RULE SAID, BEFORE (strong.Reduction, until 2026-09-19):
 --
 --   CancelR : … → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
---     → SameTy Δ⋉ᶜ A′ Δᶜ A
+--     → SameTy Δ⋉ᶜ A′ Δᶜ A                   -- ← read at the OUTER Δᶜ
 --     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
 --     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
 --         -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
@@ -24,12 +36,13 @@ module strong.notes.CancelRShiftWall where
 -- forces the inner boundary's exterior type to denote R; the INNER
 -- layer's own `SameTyExt n` premise then forces `mkId A′`'s type to
 -- denote `shiftBy n R`, because the inner boundary's conversion context
--- `Δ⋉ᶜ` lies `n` representation binders inside its exterior.  The rule,
--- however, gives `A′` the UNSHIFTED reading: `SameTy Δ⋉ᶜ A′ Δᶜ A` says
--- `A′` denotes R itself.  A representation reading is unique
+-- `Δ⋉ᶜ` lies `n` representation binders inside its exterior.  The old
+-- rule, however, gave `A′` the UNSHIFTED reading: `SameTy Δ⋉ᶜ A′ Δᶜ A`
+-- says `A′` denotes R itself.  A representation reading is unique
 -- (`same-rep-unique`), so the two are compatible only when
 -- `shiftBy n R ≡ R` — that is, only when `n ≡ 0` or R has no free
--- representation variable.
+-- representation variable.  That is the whole defect, and §4 checks it on
+-- `Δ*`.
 --
 -- WHY NO EXAMPLE SAW IT.  Every `CancelR` in the twelve runs cancels a
 -- boundary minted by `Peel`, whose morphism is `dualMorph Θ` — and
@@ -43,30 +56,27 @@ module strong.notes.CancelRShiftWall where
 -- masked-entry contexts let the contractum COMPUTE the inner spelling.
 -- The two-universe design cannot compute it — the crossing is a partial
 -- lookup (notes/ForallPayloadWall §1) — so the rule must CARRY it, and
--- the premise that carries it is the one stated against the wrong
--- context.
+-- the premise that carried it was stated against the wrong context.
 --
--- IS THE CONFIGURATION REACHABLE?  NOT SETTLED, and the question is the
--- second repair path.  The redex below is well typed and the rule fires
--- on it, which is all `CancelRCase` quantifies over; but no closed
--- program is exhibited that reduces TO it.  A bare `seal X` conversion is
--- minted by exactly one rule — `Peel`, on the crossing argument — whose
--- frame is `dualMorph Θ`, and `binds (dualMorph Θ) ≡ []`.  So a REACHABLE
--- `CancelR` redex may always have `numBinds Θ₁ ≡ 0`, in which case the
--- rule is sound where it fires and what is wrong is only the statement.
--- The two repairs are therefore: carry the shifted premise (below), or
--- prove and carry the invariant `numBinds Θ₁ ≡ 0`.  Both are rule-level
--- decisions.
+-- THE TWO REPAIR PATHS, AND WHY (a) WON.  Path (b) was to prove and carry
+-- the invariant `numBinds Θ₁ ≡ 0` — the hope being that a REACHABLE
+-- `CancelR` redex always has it, since a bare `seal X` is minted by
+-- `Peel` on the crossing argument, whose frame is `dualMorph Θ`.  That
+-- hope was wrong: `Peel` mints TWO boundaries and only the ARGUMENT's
+-- carries the dual, so `notes/CancelRReachabilityWitness.agda` reaches
+-- this configuration in nine steps from a closed, plain source program.
+-- Path (b) is closed; path (a) — carry the shifted premise, below — is
+-- what Jeremy approved and what §6 checks here.
 --
--- THE SHAPE OF THE REPAIR (not installed).  `IdPush` already carries the
--- analogous premise against the INNER boundary's conversion context,
+-- THE REPAIR, AS INSTALLED.  `IdPush` already carried the analogous
+-- premise against the INNER boundary's conversion context,
 --
 --   IdPush  … → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → … → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X) → …
 --
--- and `Δ₁ᶜ` is exactly where the shifted reading lives.  The uniform
--- premise for `CancelR` is therefore `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ` with `Aᵢ`
--- the source of the cancelled `seal X`, together with the reading
--- `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` the rule does not currently carry.
+-- and `Δ₁ᶜ` is exactly where the shifted reading lives.  `CancelR` now
+-- carries `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ`, `Δ₁ᶜ ∋ X := Aᵢ` and
+-- `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ`, with `Aᵢ` the source of the cancelled
+-- `seal X` — a premise block premise-isomorphic to `IdPush`'s.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -74,7 +84,7 @@ open import Data.Product using (_,_; ∃-syntax; proj₁; proj₂)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong)
+  using (_≡_; _≢_; refl; sym; trans; cong)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
@@ -82,7 +92,7 @@ open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms
 open import strong.Reduction
-open import strong.proof.Preserve using (CancelRCase)
+open import strong.proof.MoveScope using (preserve-CancelR)
 
 ------------------------------------------------------------------------
 -- 1. The configuration
@@ -113,7 +123,7 @@ wfΔ* = wf-ctx reps* names* unique*
   unique* = unique∷ (fresh∷ (λ ()) fresh[]) (unique∷ fresh[] unique[])
 
 -- The OUTER morphism is trivial: it is the inner morphism's bind block
--- that the rule mis-crosses, and a trivial outer one keeps every context
+-- that the rule mis-crossed, and a trivial outer one keeps every context
 -- in the example computable.
 Θ₂* : CtxMorph
 Θ₂* = morph [] []
@@ -188,8 +198,14 @@ d₂* = 0 , ` 1 , here , r-here , same-var (there here)
       (wf-var (1 , there here))
 
 ------------------------------------------------------------------------
--- 3. Every premise of the rule is satisfied
+-- 3. The context readings, shared by the old and the repaired premises
 ------------------------------------------------------------------------
+
+ri* : Δ* ⊢ⁱ Θ₂* ⇒ Δ*
+ri* = interior changes[]
+
+r₁* : Δ* ⊢ᶜ Θ₁* ⇒ Δ₁*
+r₁* = conversion conv[]
 
 r⋉* : extendReps (binds Θ₂*) Δ* ⊢ᶜ Θ₁* ⋉ Θ₂* ⇒ Δ₁*
 r⋉* = conversion conv[]
@@ -197,21 +213,45 @@ r⋉* = conversion conv[]
 r₂* : Δ* ⊢ᶜ Θ₂* ⇒ Δ*
 r₂* = conversion conv[]
 
--- THE PREMISE AT ISSUE.  `A = ` 1` denotes representation 1 on Δ*; the
--- merged frame's conversion context spells that representation `` ` 0 ``.
--- So the premise HAS a witness, and the rule FIRES.
+-- THE PREMISE AT ISSUE, in the OLD spelling.  `A = ` 1` denotes
+-- representation 1 on Δ*; the merged frame's conversion context spells
+-- that representation `` ` 0 ``.  So the old premise HAD a witness, and
+-- the old rule FIRED.
 smA* : SameTy Δ₁* (` 0) Δ* (` 1)
 smA* = ` 1 , same-var here , same-var (there here)
 
--- and the step itself
-step* : Δ* ⊢ (V* ⟪ Θ₁* , seal 0 ⟫) ⟪ Θ₂* , unseal 0 ⟫
-  -→ (V* ⟪ Θ₁* ⋉ Θ₂* , mkId (` 0) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
-step* = CancelR v* r⋉* smA* r₂* d₂*
+-- THE SAME PREMISE, REPAIRED.  Read from the cancelled seal's own source
+-- at `Δ₁*` instead, and the witness is `` ` 1 ``, which denotes
+-- representation 2 — the SHIFTED one.
+smAᵢ* : SameTy Δ₁* (` 1) Δ₁* (` 1)
+smAᵢ* = ` 2 , same-var (there here) , same-var (there here)
 
 ------------------------------------------------------------------------
--- 4. The contractum has NO typing derivation
+-- 4. The shift incompatibility, at the core of the defect
 ------------------------------------------------------------------------
 
+-- The inner boundary's `SameTyExt 1` compares the exterior reading
+-- against `shiftRep 1` of it, and on `Δ*` the outer layer's reading is
+-- the representation VARIABLE `` ` 1 ``.  So what the inner layer must
+-- denote is `` ` 2 ``, not `` ` 1 ``.
+shift-moves-it : shiftRep 1 (` 1) ≢ ` 1
+shift-moves-it ()
+
+-- The OLD spelling `` ` 0 `` denotes representation 1 at `Δ₁*` …
+old-spelling-denotes : Δ₁* ⊢ᶜ ` 0 ~ ` 1
+old-spelling-denotes = same-var here
+
+-- … and nothing at `Δ₁*` spelled `` ` 0 `` can denote anything else
+-- (`same-rep-unique` one witness down), so the inner layer's demand for
+-- `` ` 2 `` is UNSATISFIABLE by the old premise's answer.
+no-0-denotes-2 : ¬ (Δ₁* ⊢ᶜ ` 0 ~ ` 2)
+no-0-denotes-2 (same-var ())
+
+-- The REPAIRED spelling `` ` 1 `` denotes exactly `` ` 2 ``.
+new-spelling-denotes : Δ₁* ⊢ᶜ ` 1 ~ shiftRep 1 (` 1)
+new-spelling-denotes = same-var (there here)
+
+-- The contractum the OLD rule built therefore has NO typing derivation.
 -- The outer `mkId (` 1)` pins the inner boundary's exterior type to
 -- representation 1.  The inner `env`'s `SameTyExt 1` then asks for
 -- `shiftBy 1 (` 1) ≡ ` 2` where the inner `mkId (` 0)` delivers
@@ -249,12 +289,47 @@ no-cancel-contractum
   | refl | same-var ()
 
 ------------------------------------------------------------------------
--- 5. Hence the stage-2 case, AS STATED, is refuted
+-- 5. Hence the OLD stage-2 case is refuted — a LOCAL statement
 ------------------------------------------------------------------------
 
--- `CancelRCase` (strong.proof.Preserve §4) is the rule's premises and the
--- redex's typing in, the contractum's typing out.  §3 supplies the
--- premises and §2 the typing; §4 refutes the output.
-cancelR-case-false : ¬ CancelRCase
-cancelR-case-false cancel =
+-- `CancelRCase°` is `strong.proof.Preserve.CancelRCase` AS IT STOOD on
+-- 2026-09-19 before the repair — the rule's premises and the redex's
+-- typing in, the contractum's typing out.  It is written out here rather
+-- than imported because the rule that generated it no longer exists, and
+-- a refutation that cannot be re-run is not evidence.  The one line that
+-- matters is `SameTy Δ⋉ᶜ A′ Δᶜ A`: read at the OUTER conversion context.
+CancelRCase° : Set
+CancelRCase° = ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′ C}
+  → WfCtx Δ → Value V
+  → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+  → SameTy Δ⋉ᶜ A′ Δᶜ A
+  → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
+  → Δᶜ ∋ Y := A
+  → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
+  → Δ ∣ [] ⊢
+      (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫)
+        ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
+
+-- §3 supplies the premises and §2 the typing; §4 refutes the output.
+cancelR-case°-false : ¬ CancelRCase°
+cancelR-case°-false cancel =
   no-cancel-contractum (cancel wfΔ* v* r⋉* smA* r₂* d₂* ⊢redex*)
+
+------------------------------------------------------------------------
+-- 6. THE REPAIRED RULE, ON THIS CONFIGURATION
+------------------------------------------------------------------------
+
+-- The repaired rule fires here too — the wall was never about firing —
+-- but it mints `mkId (` 1)` on the inner layer where the old rule minted
+-- `mkId (` 0)`.
+repaired-step : Δ* ⊢ (V* ⟪ Θ₁* , seal 0 ⟫) ⟪ Θ₂* , unseal 0 ⟫
+  -→ (V* ⟪ Θ₁* ⋉ Θ₂* , mkId (` 1) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
+repaired-step = CancelR v* ri* r₁* d₁* r⋉* smAᵢ* r₂* d₂*
+
+-- And its contractum IS well typed, by the preservation case the repaired
+-- rule generates.  The wall is answered on the configuration that raised
+-- it, by the theorem rather than by a hand-built derivation.
+repaired-contractum-⊢ : Δ* ∣ [] ⊢
+    (V* ⟪ Θ₁* ⋉ Θ₂* , mkId (` 1) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫ ⦂ ` 1
+repaired-contractum-⊢ =
+  preserve-CancelR wfΔ* v* ri* r₁* d₁* r⋉* smAᵢ* r₂* d₂* ⊢redex*

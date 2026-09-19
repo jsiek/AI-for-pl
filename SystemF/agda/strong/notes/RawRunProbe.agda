@@ -1,38 +1,46 @@
 module strong.notes.RawRunProbe where
 
--- WHAT THE ILL-TYPED CONTRACTUM DOES — the operational half of the
--- CancelR witness (notes/CancelRReachabilityWitness).
+-- File Charter:
+--   * THE RAW MACHINE, run on the `CancelR` witness program
+--     (notes/CancelRReachabilityWitness `Src`) — the operational half of
+--     the before/after record for repair (a).
+--   * It is kept as a SEPARATE module from the witness because it checks
+--     something the witness cannot: `eval` refuses to continue past a
+--     state that lost the type, so its step count is partly a statement
+--     about the TYPE CHECKER.  The raw step function carries no typing at
+--     all.  Agreement between the two is therefore an independent check
+--     that the repaired run is not an artefact of the checked harness.
 --
--- `eval` stops at the `illtyped` step, because a `Trace` cons carries the
--- contractum's typing.  The RAW step function carries no typing, so it
--- can run past the break.  Iterating it from `Src`:
+-- BEFORE THE REPAIR (2026-09-19, morning; prose, because the rule that
+-- produced it no longer exists — see notes/DECISIONS.md and the git
+-- history of this file).  `eval` stopped at step 10 with an `illtyped`
+-- contractum.  The raw machine ran on: SIXTEEN steps in total — nine
+-- checked, the ill-typed `CancelR`, and six more — and then `step` found
+-- no redex.  The final state was NOT a value: a three-layer identity
+-- tower over 7 whose innermost boundary carried `id X`, inert at a
+-- VARIABLE (I-idv) and so a value, under a boundary carrying `id ℕ`,
+-- which is active and whose `Drop$` demands a NUMERAL interior.  The
+-- interior was the id-X wrapper, not a numeral, so no rule applied and
+-- the term was STUCK.  That stuckness was the unshifted `mkId` made
+-- operational: the minted identity misstated which representation the
+-- inner value presented, and six steps later an `id ℕ` boundary found a
+-- wrapper claiming type X where canonical forms, at a well-typed state,
+-- would have guaranteed a numeral.  Progress was never contradicted — its
+-- hypothesis, a typing derivation, is exactly what step 10 destroyed.
 --
---   * the run takes 16 raw steps in total (9 checked + the illtyped
---     CancelR + 6 more), then `step` finds no redex;
---   * the final state is NOT a value: a three-layer identity tower
---     over 7 whose innermost boundary carries `id X` — inert at a
---     VARIABLE (I-idv), so that wrapper is a value — under a boundary
---     carrying `id ℕ`, which is active, and whose Drop$ demands a
---     NUMERAL interior.  The interior is the id-X wrapper, not a
---     numeral, so no rule applies: the term is STUCK.
---
--- That stuckness is the unshifted `mkId` made operational: the minted
--- identity misstates which representation the inner value presents, and
--- six steps later an `id ℕ` boundary finds a wrapper claiming type X
--- where canonical forms (at a well-typed state) would guarantee a
--- numeral.  The run never reaches `7`: the defect is not merely
--- meta-theoretic bookkeeping, it jams the machine.  Progress itself is
--- not contradicted — its hypothesis (a typing derivation) is exactly
--- what step 10 destroyed.
+-- AFTER THE REPAIR.  The equations below: NINETEEN raw steps, ending at
+-- the numeral `7`, and the machine then correctly reports no redex.  That
+-- is the same count and the same endpoint as the fully checked
+-- `Src-eval : Reaches 19 19 Src-⊢ ($ 7)`, so the raw machine and the
+-- type-checked one now agree exactly.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (_,_)
-open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong.Ctx using (Ctxᵗ; empty)
-open import strong.Terms using (Term; Value; V-⟪⟫)
+open import strong.Terms using (Term; $_; Value; V-$)
 open import strong.Eval using (step; StepResult)
 open import strong.notes.CancelRReachabilityWitness using (Src)
 
@@ -50,19 +58,23 @@ rawLen (suc k) M with step empty M
 rawLen (suc k) M | nothing       = zero
 rawLen (suc k) M | just (M′ , _) = suc (rawLen k M′)
 
--- The raw run from Src halts after 16 steps — 9 checked, the illtyped
--- CancelR, and 6 more on the ill-typed term.
-raw-run-length : rawLen 100 Src ≡ 16
+-- The raw run from Src halts after 19 steps, where the pre-repair run
+-- halted after 16.
+raw-run-length : rawLen 100 Src ≡ 19
 raw-run-length = refl
 
-stuck-state : Term
-stuck-state = rawRun 16 Src
+raw-end : Term
+raw-end = rawRun 19 Src
 
--- `step` finds no redex there...
-stuck-no-step : step empty stuck-state ≡ nothing
-stuck-no-step = refl
+-- ...at the NUMERAL 7, where the pre-repair run ended at a stuck identity
+-- tower...
+raw-end-is-7 : raw-end ≡ $ 7
+raw-end-is-7 = refl
 
--- ...and it is not a value: the outermost boundary's conversion is
--- `id ℕ`, and an identity at a BASE type is not inert.
-stuck-not-value : ¬ Value stuck-state
-stuck-not-value (V-⟪⟫ v ())
+-- ...and `step` stops there because the term is a value, not because no
+-- rule applies to a non-value.
+raw-end-no-step : step empty raw-end ≡ nothing
+raw-end-no-step = refl
+
+raw-end-value : Value raw-end
+raw-end-value = V-$

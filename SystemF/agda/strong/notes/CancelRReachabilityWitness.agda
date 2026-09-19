@@ -1,25 +1,36 @@
 module strong.notes.CancelRReachabilityWitness where
 
 -- File Charter:
---   * THE REACHABILITY ANSWER for the `CancelR` defect of
---     notes/CancelRShiftWall.agda (Jeremy's question, 2026-09-19: "do you
---     have an example source program that reduces to the problematic
---     configuration?").  YES.
---   * One CLOSED, PLAIN System F program — no boundary, no morphism, no
---     conversion anywhere in the source — reduces in NINE steps to a
---     `CancelR` redex whose inner frame BINDS a representation variable
---     (`numBinds Θ₁ ≡ 1`) and whose cancelled binder's representation is
---     OPEN (`` ` 1 ``, a representation VARIABLE).  The tenth step is the
---     `CancelR`, and its contractum has NO typing derivation.
---   * Everything here is observed, not designed: the redex, its frames and
---     its contexts are read off `eval`, and §2 pins them by `refl`.
---   * NOTHING IS REPAIRED.  A rule change is Jeremy's call.  §6 records,
---     machine-checked, that the SHIFTED spelling the wall module proposes
---     as repair (a) retypes this very contractum.
+--   * THE BEFORE/AFTER RECORD of the `CancelR` defect and its repair.
+--   * BEFORE (2026-09-19, morning).  This module answered Jeremy's
+--     question — "do you have an example source program that reduces to
+--     the problematic configuration?" — with YES.  One CLOSED, PLAIN
+--     System F program (no boundary, no morphism, no conversion anywhere
+--     in the source) reduces in NINE steps to a `CancelR` redex whose
+--     inner frame BINDS a representation variable (`numBinds Θ₁ ≡ 1`) and
+--     whose cancelled binder's representation is OPEN.  Under the OLD
+--     rule the tenth step lost the type — `eval` recorded it as
+--     `illtyped` — and the raw machine then STUCK after sixteen steps at
+--     a non-value identity tower.  That closed repair path (b), the
+--     invariant `numBinds Θ₁ ≡ 0`: it is false at a reachable redex.
+--   * AFTER (2026-09-19, same day).  Repair (a) was approved by Jeremy
+--     and installed in `strong.Reduction`.  The first nine steps are
+--     unchanged; the tenth now mints `mkId (` 2)` where it minted
+--     `mkId (` 1)`, and the run COMPLETES: `Src-eval` below is
+--     `Reaches 19 19 Src-⊢ ($ 7)`, every state along the way type
+--     checked.  The two controls are unchanged.
+--   * The BEFORE half is now prose, not Agda: its equations were stated
+--     against a constructor that no longer exists.  What made them true —
+--     the shift incompatibility, and the old statement refuted against a
+--     local copy of itself — is kept machine-checked in
+--     `notes/CancelRShiftWall.agda`, and the narrative is
+--     notes/DECISIONS.md (2026-09-19) and notes/CancelRReachability.md.
+--   * Everything below is observed, not designed: the redex, its frames
+--     and its contexts are read off `eval` and pinned by `refl`.
 --
--- WHERE THE WALL'S REASONING WAS TOO NARROW.  notes/CancelRShiftWall says
--- a bare `seal X` conversion "is minted by exactly one rule — `Peel`, on
--- the crossing ARGUMENT — whose frame is `dualMorph Θ`", and
+-- WHERE THE WALL'S UNREACHABILITY ARGUMENT WENT WRONG.  It said a bare
+-- `seal X` conversion "is minted by exactly one rule — `Peel`, on the
+-- crossing ARGUMENT — whose frame is `dualMorph Θ`", and
 -- `binds (dualMorph Θ) ≡ []`.  `Peel` mints TWO boundaries, and only the
 -- argument's carries the dual:
 --
@@ -47,10 +58,8 @@ module strong.notes.CancelRReachabilityWitness where
 -- Its payload is then a representation VARIABLE, and `shiftBy 1` moves it.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.Bool using (Bool; true; false)
 open import Data.List using (List; []; _∷_)
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₁; proj₂)
-open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym)
@@ -63,8 +72,7 @@ open import strong.Terms
 open import strong.Reduction
 open import strong.TypeCheck using (tc; int!; conv!; sq!; tr)
 open import strong.Eval
-  using (eval; traceEnd; eval-run; report; reported; Reaches; reaches;
-         reaches-run)
+  using (eval; traceEnd; eval-run; Reaches; reaches; reaches-run)
 
 ------------------------------------------------------------------------
 -- 0. The route, in four identities
@@ -113,8 +121,8 @@ numBinds-dual = refl
 --        the binder `CancelR` cancels has a representation VARIABLE for
 --        its payload.  That is the OPEN representation.
 --
--- Drop either one and the run completes — §7, and the hunt log in
--- notes/CancelRReachability.md.
+-- Drop either one and the run completes even under the OLD rule — §6, and
+-- the hunt log in notes/CancelRReachability.md.
 
 Inner Outer Src : Term
 Inner = Λ (ƛ (`∀ (` 0 ⇒ ` 1)) ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , `ℕ ]) · ($ 7)))
@@ -127,13 +135,32 @@ Src-⊢ : empty ∣ [] ⊢ Src ⦂ `ℕ
 Src-⊢ = tc
 
 ------------------------------------------------------------------------
--- 2. The state reduction reaches, and the state the next step produces
+-- 2. AFTER — the complete, fully checked run
 ------------------------------------------------------------------------
 
--- The rules that fire, in order, are
+-- THE HEADLINE.  With repair (a) installed, the program runs to a value
+-- and no state loses the type.  `Reaches k n ⊢M V` says: with fuel k the
+-- evaluator reaches V in exactly n steps, V is a value, and every
+-- intermediate state type checked at `ℕ`.
+--
+-- The tail past the repaired `CancelR` is three `IdPush`es, a second
+-- `CancelR`, and the `Drop$` tower.  Under the OLD rule step 10 was
+-- recorded `illtyped` and the raw machine stuck at sixteen
+-- (notes/RawRunProbe.agda).
+Src-eval : Reaches 19 19 Src-⊢ ($ 7)
+Src-eval = reaches refl V-$
+
+Src-run : empty ⊢ Src -→* $ 7
+Src-run = reaches-run Src-eval
+
+------------------------------------------------------------------------
+-- 3. The `CancelR` state the run still reaches, and what it produces now
+------------------------------------------------------------------------
+
+-- The first nine rules that fire are untouched by the repair:
 --
 --   TyBeta, Peel, Beta, TyBeta, Peel, Beta, TyPeelR-Λ, Peel, Beta,
---   and then CancelR, which loses the type.
+--   and then CancelR.
 --
 -- Rendered (strong.Show; α is a representation variable, X the ordinary
 -- name for it), the ninth state is
@@ -158,10 +185,12 @@ Vcr = (($ 7) ⟪ morph [] (lock 0 2 ∷ []) , seal 0 ⟫)
 
 Redex Contractum : Term
 Redex      = ((Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫) ⟪ Θout , unseal 0 ⟫
-Contractum = ((Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 1) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫)
+Contractum = ((Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫)
                ⟪ Θout , unseal 0 ⟫
 
--- what `eval` actually produced, at nine steps and at ten
+-- what `eval` actually produces, at nine steps and at ten.  THE INNER
+-- SPELLING IS THE WHOLE REPAIR: `mkId (` 2)`, the SHIFTED reading, where
+-- the old rule minted `mkId (` 1)`.
 redex-is-state-9 : traceEnd (eval 9 Src Src-⊢) ≡ Redex
 redex-is-state-9 = refl
 
@@ -175,15 +204,8 @@ src-→*-redex = eval-run 9 Src-⊢ redex-is-state-9
 src-→*-contractum : empty ⊢ Src -→* Contractum
 src-→*-contractum = eval-run 10 Src-⊢ contractum-is-state-10
 
--- AND `eval` RECORDS IT AS A BREAK.  `report` returns `false` exactly
--- when some state lost the type; the `true` a `Reaches` asserts is
--- therefore unavailable for this run at any fuel past nine.
-eval-illtyped-at-step-10 :
-  report (eval 10 Src Src-⊢) ≡ reported Contractum 10 false
-eval-illtyped-at-step-10 = refl
-
 ------------------------------------------------------------------------
--- 3. The contexts the run built
+-- 4. The contexts the run built
 ------------------------------------------------------------------------
 
 -- `Δ₉` is the ambient of the `CancelR` — the interior of the outermost
@@ -194,7 +216,7 @@ eval-illtyped-at-step-10 = refl
 Δ₉-is-interior : proj₁ (int! empty Θout) ≡ Δ₉
 Δ₉-is-interior = refl
 
--- `Δᶜ` is `Θ₂`'s conversion context, where the cancelled binder is read.
+-- `Δᶜ` is `Θ₂`'s conversion context, where the OUTER binder is read.
 -- IT IS THE WALL'S `Δ*` ON THE NOSE (notes/CancelRShiftWall §1): a
 -- representation context whose slot 0 is represented by slot 1.
 Δᶜ : Ctxᵗ
@@ -202,6 +224,19 @@ eval-illtyped-at-step-10 = refl
 
 Δᶜ-is-conversion : proj₁ (conv! Δ₉ Θ₂) ≡ Δᶜ
 Δᶜ-is-conversion = refl
+
+-- `Δᵢ` is `Θ₂`'s INTERIOR, and `Δ₁ᶜ` is Θ₁'s conversion context read from
+-- it.  These two are the readings repair (a) added to the rule, and the
+-- second is where the cancelled seal's source is spelled.
+Δᵢ Δ₁ᶜ : Ctxᵗ
+Δᵢ  = (bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])
+Δ₁ᶜ = (bindR `ℕ ∷ bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ 2 ∷ [])
+
+Δᵢ-is-interior : proj₁ (int! Δ₉ Θ₂) ≡ Δᵢ
+Δᵢ-is-interior = refl
+
+Δ₁ᶜ-is-conversion : proj₁ (conv! Δᵢ Θ₁) ≡ Δ₁ᶜ
+Δ₁ᶜ-is-conversion = refl
 
 -- `Δᵣ` is where the INNER of the two minted layers sits: the interior of
 -- the outer frame `rewind Θ₂`, which is `Δ₉` under `Θ₂`'s bind block.
@@ -214,7 +249,8 @@ eval-illtyped-at-step-10 = refl
 Δᵣ-is-extendReps : extendReps (binds Θ₂) Δ₉ ≡ Δᵣ
 Δᵣ-is-extendReps = refl
 
--- `Δ⋉ᶜ` is the merged frame's conversion context, one bind block inside.
+-- `Δ⋉ᶜ` is the merged frame's conversion context, one bind block inside —
+-- and on this run it coincides with `Δ₁ᶜ`.
 Δ⋉ᶜ : Ctxᵗ
 Δ⋉ᶜ = (bindR `ℕ ∷ bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ 2 ∷ [])
 
@@ -222,7 +258,8 @@ eval-illtyped-at-step-10 = refl
 Δ⋉ᶜ-is-conversion = refl
 
 ------------------------------------------------------------------------
--- 4. The state IS a `CancelR` redex, and BOTH conjuncts hold
+-- 5. The state IS a `CancelR` redex, BOTH conjuncts hold, and the
+--    repaired premises deliver the SHIFTED spelling
 ------------------------------------------------------------------------
 
 -- (i) THE INNER FRAME BINDS.  Every `CancelR` the twelve runs reach has
@@ -243,148 +280,56 @@ conjunct-ii-open : shiftRep 1 (` 1) ≢ ` 1
 conjunct-ii-open ()
 
 -- THE PREMISES, and the step.  Nothing is assumed: each premise is
--- produced by the checker at the contexts §3 pinned.
+-- produced by the checker at the contexts §4 pinned.
+cancel-int : Δ₉ ⊢ⁱ Θ₂ ⇒ Δᵢ
+cancel-int = proj₂ (int! Δ₉ Θ₂)
+
+cancel-Θ₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+cancel-Θ₁ = proj₂ (conv! Δᵢ Θ₁)
+
 cancel-⋉ : Δᵣ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
 cancel-⋉ = proj₂ (conv! Δᵣ (Θ₁ ⋉ Θ₂))
 
 cancel-Θ₂ : Δ₉ ⊢ᶜ Θ₂ ⇒ Δᶜ
 cancel-Θ₂ = proj₂ (conv! Δ₉ Θ₂)
 
--- THE PREMISE AT ISSUE, read the way the rule states it: `A′` denotes the
--- SAME representation as `A`, not the shifted one.
-cancel-same : SameTy Δ⋉ᶜ (` 1) Δᶜ (` 1)
-cancel-same = ` 1 , tr , tr
+-- THE PREMISE THE REPAIR CHANGED.  The cancelled `seal 1`'s SOURCE, read
+-- where that conversion is typed, is `` ` 2 `` — the SHIFTED spelling.
+-- The old rule read `` ` 1 `` at `Δᶜ` instead, and delivered `A′ ≡ ` 1`.
+seal-source : Δ₁ᶜ ∋ 1 := ` 2
+seal-source = proj₂ (sq! Δ₁ᶜ 1)
+
+cancel-same : SameTy Δ⋉ᶜ (` 2) Δ₁ᶜ (` 2)
+cancel-same = ` 2 , tr , tr
+
+-- and `` ` 2 `` at `Δ⋉ᶜ` denotes exactly what the inner `env` asks for:
+-- `shiftRep 1` of the representation `` ` 1 `` denotes at `Δᶜ`
+repaired-denotes : Δ⋉ᶜ ⊢ᶜ ` 2 ~ shiftRep 1 (` 1)
+repaired-denotes = tr
 
 cancel-value : Value Vcr
 cancel-value = V-⟪⟫ (V-⟪⟫ V-$ I-seal) I-idv
 
 cancel-step : Δ₉ ⊢ (Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫
-  -→ (Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 1) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫
-cancel-step = CancelR cancel-value cancel-⋉ cancel-same cancel-Θ₂ lookup-A
+  -→ (Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫
+cancel-step =
+  CancelR cancel-value cancel-int cancel-Θ₁ seal-source
+          cancel-⋉ cancel-same cancel-Θ₂ lookup-A
 
 -- and the same step where the run takes it, under the outermost boundary
 redex-step : empty ⊢ Redex -→ Contractum
 redex-step = ξ-⟪⟫ (proj₂ (int! empty Θout)) cancel-step
 
 ------------------------------------------------------------------------
--- 5. The contractum has NO typing derivation
-------------------------------------------------------------------------
-
--- The argument is the wall's, now at a REACHED configuration.  The outer
--- layer's `mkId (` 1)` pins the inner boundary's exterior type to the
--- representation `` ` 1 ``; the inner `env`'s `SameTyExt 1` then asks the
--- inner conversion's type to denote `shiftRep 1 (` 1) ≡ ` 2`, while the
--- inner `mkId (` 1)` denotes `` ` 1 `` at `Δ⋉ᶜ`.  A representation
--- reading is unique (`same-rep-unique`), and `` ` 1 ≢ ` 2 ``.
---
--- The refutation needs only the TWO layers `CancelR` minted, so it is
--- stated for an ARBITRARY exterior type: no choice of type for the pair
--- makes it typeable.
-
--- WHAT THE OUTER LAYER SAYS.  `` ` 1 `` names representation `` ` 1 ``
--- at `Δᶜ`, and nothing else can.
-rep-of-1-at-Δᶜ : ∀ {R} → Δᶜ ⊢ᶜ ` 1 ~ R → R ≡ ` 1
-rep-of-1-at-Δᶜ (same-var (there here)) = refl
-
--- WHAT THE INNER LAYER CANNOT SAY.  At `Δ⋉ᶜ` the name `` ` 1 `` still
--- denotes representation `` ` 1 ``, never the shifted `` ` 2 ``.  This is
--- the whole defect: the inner boundary's `SameTyExt 1` asks for `` ` 2 ``.
-no-1-denotes-2 : ¬ (Δ⋉ᶜ ⊢ᶜ ` 1 ~ ` 2)
-no-1-denotes-2 (same-var (there ()))
-
--- The inner of the two minted layers, at the exterior type the outer one
--- forces on it: `B` denotes `` ` 1 ``, so `SameTyExt 1` wants `` ` 2 ``.
-no-inner-layer : ∀ {B}
-  → Δᵣ ∣ [] ⊢ Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 1) ⟫ ⦂ B
-  → Δᵣ ⊢ᶜ B ~ ` 1
-  → ⊥
-no-inner-layer (env mw⋉ ⊢V (conv-idv tv) sameᵢ′ (R , pₑ , q) wE′) pB
-  with conversion-functional (mw-conversion mw⋉) cancel-⋉
-no-inner-layer (env mw⋉ ⊢V (conv-idv tv) sameᵢ′ (R , pₑ , q) wE′) pB
-  | refl with same-rep-unique pₑ pB
-no-inner-layer (env mw⋉ ⊢V (conv-idv tv) sameᵢ′ (R , pₑ , q) wE′) pB
-  | refl | refl = no-1-denotes-2 q
-
-no-cancel-pair : ¬ (∃[ B ]
-  (Δ₉ ∣ [] ⊢
-     (Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 1) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫ ⦂ B))
-no-cancel-pair (B , env mwR ⊢inner (conv-idv tv) (R₀ , pᵢ , sm) sameₑ wE)
-  with conversion-functional (mw-conversion mwR)
-         (proj₂ (conv! Δ₉ (rewind Θ₂)))
-     | interior-functional (mw-interior mwR)
-         (proj₂ (int! Δ₉ (rewind Θ₂)))
-no-cancel-pair (B , env mwR ⊢inner (conv-idv tv) (R₀ , pᵢ , sm) sameₑ wE)
-  | refl | refl with rep-of-1-at-Δᶜ sm
-no-cancel-pair (B , env mwR ⊢inner (conv-idv tv) (R₀ , pᵢ , sm) sameₑ wE)
-  | refl | refl | refl = no-inner-layer ⊢inner pᵢ
-
--- and therefore the whole state the run reached is untypeable
-no-contractum : ¬ (empty ∣ [] ⊢ Contractum ⦂ `ℕ)
-no-contractum (env mwO ⊢pair ⊢c sameᵢ sameₑ wE)
-  with interior-functional (mw-interior mwO) (proj₂ (int! empty Θout))
-no-contractum (env mwO ⊢pair ⊢c sameᵢ sameₑ wE) | refl =
-  no-cancel-pair (_ , ⊢pair)
-
-------------------------------------------------------------------------
--- 6. THE SHIFTED SPELLING RETYPES IT — repair (a), on this example
-------------------------------------------------------------------------
-
--- notes/CancelRShiftWall proposes carrying the re-spelling premise against
--- the INNER boundary's own conversion context: `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ`,
--- with `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` a new premise and `Aᵢ` the SOURCE of the
--- cancelled `seal X`.  On this run those are
---
---   Δᵢ  = (bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])   -- int Θ₂ Δ₉
---   Δ₁ᶜ = Δ⋉ᶜ                                            -- conv Θ₁ Δᵢ
---   Aᵢ  = ` 2                                            -- Δ₁ᶜ ∋ 1 := Aᵢ
---
--- so the repaired premise delivers `A′ ≡ ` 2` where the rule as stated
--- delivers `A′ ≡ ` 1`.  Both facts are checked here, and the contractum
--- built with `mkId (` 2)` IS well typed.
-
-Δᵢ Δ₁ᶜ : Ctxᵗ
-Δᵢ  = (bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])
-Δ₁ᶜ = Δ⋉ᶜ
-
-Δᵢ-is-interior : proj₁ (int! Δ₉ Θ₂) ≡ Δᵢ
-Δᵢ-is-interior = refl
-
-Δ₁ᶜ-is-conversion : proj₁ (conv! Δᵢ Θ₁) ≡ Δ₁ᶜ
-Δ₁ᶜ-is-conversion = refl
-
--- the source of the cancelled `seal 1`, read where that conversion is
--- typed: `` ` 2 ``, the SHIFTED spelling
-seal-source : Δ₁ᶜ ∋ 1 := ` 2
-seal-source = proj₂ (sq! Δ₁ᶜ 1)
-
--- the repaired premise, satisfied with `A′ ≡ ` 2`
-repaired-reading : SameTy Δ⋉ᶜ (` 2) Δ₁ᶜ (` 2)
-repaired-reading = ` 2 , tr , tr
-
--- and `` ` 2 `` at `Δ⋉ᶜ` denotes exactly what the inner `env` asked for:
--- `shiftRep 1` of the representation `` ` 1 `` denotes at `Δᶜ`
-repaired-denotes : Δ⋉ᶜ ⊢ᶜ ` 2 ~ shiftRep 1 (` 1)
-repaired-denotes = tr
-
-RepairedContractum : Term
-RepairedContractum =
-  ((Vcr ⟪ Θ₁ ⋉ Θ₂ , mkId (` 2) ⟫) ⟪ rewind Θ₂ , mkId (` 1) ⟫)
-    ⟪ Θout , unseal 0 ⟫
-
-repaired-⊢ : empty ∣ [] ⊢ RepairedContractum ⦂ `ℕ
-repaired-⊢ = tc
-
--- NOT INSTALLED.  `strong.Reduction` is unchanged; `redex-step` above is
--- the rule as it stands, and §5 refutes its contractum.
-
-------------------------------------------------------------------------
--- 7. THE TWO CONTROLS — each conjunct alone is harmless
+-- 6. THE TWO CONTROLS — each conjunct alone was always harmless
 ------------------------------------------------------------------------
 
 -- Removing either ingredient of §1 gives a program that reaches a
--- `CancelR` and RUNS TO A VALUE with no state losing its type.  So it is
--- the CONJUNCTION that breaks preservation, exactly as the wall module
--- says, and the witness above is not an accident of the shape.
+-- `CancelR` and RUNS TO A VALUE with no state losing its type — and did
+-- so under the OLD rule too.  So it was the CONJUNCTION that broke
+-- preservation, and the witness above is not an accident of the shape.
+-- Both step counts are unchanged by the repair, which is the local
+-- no-regression check.
 
 -- CONTROL A — conjunct (i) only.  `Inner` instantiated at `ℕ` instead of
 -- at an enclosing `Λ`'s variable.  Its `CancelR` still has

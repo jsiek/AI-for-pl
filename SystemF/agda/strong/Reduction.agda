@@ -273,16 +273,35 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- `env`'s last premise reads that rep INSIDE Θ₂'s masking.  The lift is
   -- unchanged, because `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁`.
   --
-  -- THE RE-BASED IDENTITY (2026-09-18).  `A` is the looked-up type at the
-  -- OUTER conversion context, which is where the outer layer's `mkId A`
-  -- is checked.  The INNER layer is checked at the merged frame's, a
-  -- different name map, so it carries its own spelling `A′` and a
-  -- `SameTy` relating the two — the same crossing `TyPeelR-⟪⟫` and
-  -- `IdPush` carry, repaired here before any example reached a
-  -- configuration where the two disagree.
-  CancelR : ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′} → Value V
+  -- THE RE-BASED IDENTITY (2026-09-18), REPAIRED (2026-09-19, repair (a),
+  -- approved by Jeremy).  `A` is the looked-up type at the OUTER
+  -- conversion context `Δᶜ`, which is where the outer layer's `mkId A` is
+  -- checked; that half was always right.  The INNER layer is checked at
+  -- the merged frame's conversion context `Δ⋉ᶜ`, which lies `numBinds Θ₁`
+  -- representation binders inside `Δᶜ` — so re-spelling `A` FROM `Δᶜ`
+  -- asserted that `A′` denotes the same representation as `A`, while the
+  -- inner `env`'s `SameTyExt (numBinds Θ₁)` demands `shiftBy (numBinds
+  -- Θ₁)` of it.  The two agree only when Θ₁ binds nothing or the
+  -- representation is closed, and NEITHER holds at a reachable redex.
+  --
+  -- The premise is therefore read where the shift already lives: at Θ₁'s
+  -- OWN conversion context `Δ₁ᶜ`, on the cancelled `seal X`'s own source
+  -- `Aᵢ`.  That makes this premise block premise-isomorphic to `IdPush`'s
+  -- below — the same interior reading, the same inner conversion reading,
+  -- the same lookup, the same re-spelling target.
+  --
+  -- The wall is `notes/CancelRShiftWall.agda` (the shift incompatibility,
+  -- and the OLD statement refuted against a local copy); the reachable
+  -- closed witness and the measured before/after run are
+  -- `notes/CancelRReachabilityWitness.agda`.  See notes/DECISIONS.md,
+  -- 2026-09-19.
+  CancelR : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′ Aᵢ}
+    → Value V
+    → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+    → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
+    → Δ₁ᶜ ∋ X := Aᵢ
     → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-    → SameTy Δ⋉ᶜ A′ Δᶜ A
+    → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
@@ -476,33 +495,51 @@ det _ (TyPeelR-⟪⟫ v ri rc ⊢s sm same) (ξ-·[] st) =
 det _ (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
--- CancelR — the two contracta agree because the lookup is a function.
-det (env mwΘ₂ _ _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
-    (CancelR v′ r⋉′ sm′ rel′ d′)
-  with conversion-functional rel rel′ | conversion-functional r⋉ r⋉′
-det (env mwΘ₂ _ _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
-    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl
-  with conversion-functional rel (mw-conversion mwΘ₂)
-det (env mwΘ₂ _ _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
-    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl | refl
-  with ∋:=-det (name-fn (mw-conversion-wf mwΘ₂)) d d′
-det (env mwΘ₂ _ _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
-    (CancelR v′ r⋉′ sm′ rel′ d′) | refl | refl | refl | refl
+-- CancelR — both looked-up types and the re-spelling are functional.  The
+-- repaired rule reads its inner lookup at Θ₁'s own conversion context, so
+-- determinism inverts the redex typing to BOTH boundaries' `MorphWf`s.
+det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
+  with interior-functional ri ri′ | conversion-functional r₂ r₂′
+det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
+    | refl | refl
+  with conversion-functional r₁ r₁′ | conversion-functional r⋉ r⋉′
+det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
+    | refl | refl | refl | refl
+  with interior-functional ri (mw-interior mwΘ₂)
+det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
+    | refl | refl | refl | refl | refl
+  with conversion-functional r₁ (mw-conversion mwΘ₁)
+     | conversion-functional r₂ (mw-conversion mwΘ₂)
+det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
+    | refl | refl | refl | refl | refl | refl | refl
+  with ∋:=-det (name-fn (mw-conversion-wf mwΘ₁)) d₁ d₁′
+     | ∋:=-det (name-fn (mw-conversion-wf mwΘ₂)) d₂ d₂′
+det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
+    | refl | refl | refl | refl | refl | refl | refl | refl | refl
   with sameTy-src-unique
          (conversion-unique
            (unique-shiftRVars (numBinds Θ₂)
              (name-fn (mw-exterior mwΘ₂))) r⋉) sm sm′
-det (env mwΘ₂ _ _ _ _ _)
-    (CancelR {Θ₂ = Θ₂} v r⋉ sm rel d)
-    (CancelR v′ r⋉′ sm′ rel′ d′)
-    | refl | refl | refl | refl | refl = refl
-det _ (CancelR v r⋉ sm rel d) (ξ-⟪⟫ frame st) =
+det (env mwΘ₂ (env mwΘ₁ _ _ _ _ _) _ _ _ _)
+    (CancelR {Θ₂ = Θ₂} v ri r₁ d₁ r⋉ sm r₂ d₂)
+    (CancelR v′ ri′ r₁′ d₁′ r⋉′ sm′ r₂′ d₂′)
+    | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl =
+  refl
+det _ (CancelR v ri r₁ d₁ r⋉ sm r₂ d₂) (ξ-⟪⟫ frame st) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
-det _ (ξ-⟪⟫ frame st) (CancelR v r⋉ sm rel d) =
+det _ (ξ-⟪⟫ frame st) (CancelR v ri r₁ d₁ r⋉ sm r₂ d₂) =
   ⊥-elim (value-¬step (V-⟪⟫ v I-seal) st)
 
 -- Drop$

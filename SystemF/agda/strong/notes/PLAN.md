@@ -139,9 +139,8 @@ Testing has found and repaired these errors:
    Found by examples 8 and 9, the first programs that instantiate at a
    polymorphic type. See `notes/DECISIONS.md` (2026-09-18) and
    `notes/ForallPayloadWall.agda`. `CancelR` had the same crossing and was
-   repaired the same way, preventively: no example distinguishes its two
-   spellings, so that one is justified by uniformity and by the reorder
-   witness rather than by a failing program. `Peel` was the fourth and
+   repaired the same way, preventively — and against the WRONG context,
+   which is the seventh repair below. `Peel` was the fourth and
    last crossing, repaired on 2026-09-18 with `SameConv` — the same idea
    one universe up, since `Peel` carries a CONVERSION rather than a type.
    That one is justified neither by a failing program nor by uniformity
@@ -203,6 +202,22 @@ Testing has found and repaired these errors:
    work: on a mixed frame the list that inverts the interior and the list
    that satisfies (P) differ, so no single change list serves both readings
    (`notes/CrossingAudit.agda` §6).
+
+7. `CancelR`'s re-spelling premise was read at the OUTER conversion
+   context `Δᶜ` and so dropped the `numBinds Θ₁` representation-bind
+   shift that the inner boundary's `SameTyExt` demands. Found by the
+   stage-2 preservation port, refuted machine-checked, and shown REACHABLE
+   from a closed plain source program that ran nine steps and then lost
+   its type. **Repair (a) approved by Jeremy and installed 2026-09-19**:
+   the premise now reads the cancelled `seal X`'s own source `Aᵢ` at Θ₁'s
+   conversion context `Δ₁ᶜ`, with `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` and
+   `Δ₁ᶜ ∋ X := Aᵢ` as new premises — the same block `IdPush` carries. The
+   witness program now runs to `7` in nineteen fully checked steps; the
+   twelve-run suite and `Examples.agda` are unchanged and green. The
+   preservation case `CancelRCase` is PROVED,
+   `proof/MoveScope.agda` `preserve-CancelR`. See `notes/DECISIONS.md`
+   (2026-09-19), `notes/CancelRShiftWall.agda`,
+   `notes/CancelRReachabilityWitness.agda`.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
 whole development: decidable equality on types, the two contexts a morphism
@@ -299,12 +314,14 @@ The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
 clean. The stage-1 preservation induction now passes as well, through the
 parameterized interface described in immediate-plan item 1 below, and
-stage 2 (item 2) discharged two of its three crossing cases and REFUTED
-the third — `CancelR`'s contractum is untypeable whenever the cancelled
-inner boundary binds a representation variable and the cancelled binder's
-payload is open (notes/CancelRShiftWall.agda), and that configuration is
+stage 2 (item 2) has now discharged ALL THREE of its crossing cases.
+`CancelR` was the last: its contractum was untypeable whenever the
+cancelled inner boundary binds a representation variable and the cancelled
+binder's payload is open (notes/CancelRShiftWall.agda), a configuration
 REACHABLE from a closed, plain source program
-(notes/CancelRReachabilityWitness.agda, 2026-09-19). Canonical
+(notes/CancelRReachabilityWitness.agda). Jeremy approved repair (a) on
+2026-09-19, it is installed in `Reduction.agda`, and the preservation case
+it generates is proved in `proof/MoveScope.agda`. Canonical
 forms now pass against the relational `env` interface as well. Stage-1
 progress passes too: its public logical statement stays premise-free, while
 the proof is parameterized by the new `MergedReading` invariant pending
@@ -335,10 +352,9 @@ DIFFERENTLY — a representation variable as α, β, γ and the ordinary variabl
 that names it as X, Y, Z at the same position — and renders a whole run,
 with the rule that fired at each step, through `showRun`.
 
-What is left on this branch is therefore not module porting. It is the
-three representation-only typing transports and `MergedReading` awaiting
-review (items 1, 2, 6), and `CancelR`'s refuted preservation case awaiting
-Jeremy's rule repair (item 2).
+What is left on this branch is therefore not module porting, and no
+parameter is known false any more. It is the three representation-only
+typing transports and `MergedReading` awaiting review (items 1, 2, 6).
 
 ## Resuming on another machine
 
@@ -376,12 +392,12 @@ scripts/render_term.sh 'showTCtx Δ₆'       'open import strong.Examples'
 ```
 
 Where the open threads are: item 1's stage-1 preservation port is done;
-stage 2 proved `IdPush` and `Peel` and REFUTED `CancelR` (item 2); three
-representation-only typing transports now await review;
-item 3's rewind transport and item 4's rule-set cleanup are done; canonical
-forms are done; item 6's progress port is done modulo `MergedReading`, and
-its module sweep and the two remaining ports are done. The ONLY open work
-is the review items and `CancelR`'s rule repair.
+stage 2 proved `IdPush`, `Peel` and — after the rule repair of 2026-09-19
+— `CancelR` (item 2); three representation-only typing transports now
+await review; item 3's rewind transport and item 4's rule-set cleanup are
+done; canonical forms are done; item 6's progress port is done modulo
+`MergedReading`, and its module sweep and the two remaining ports are
+done. The ONLY open work is the four review items.
 
 ## Immediate plans
 
@@ -450,8 +466,8 @@ is the review items and `CancelR`'s rule repair.
    derivation and obtains the dual context's uniqueness with the core
    `dual-unique`, so the rule does not carry it.
 
-   **STAGE 2 DONE (2026-09-19); ONE CASE REFUTED, ONE NEW TRANSPORT.**
-   The three crossing cases are settled:
+   **STAGE 2 DONE (2026-09-19); ALL THREE CASES PROVED, ONE NEW
+   TRANSPORT, ONE RULE REPAIRED.** The three crossing cases are settled:
 
    - `IdPushCase` is PROVED outright, `proof/MoveScope.agda`
      `preserve-IdPush`. Nothing new was assumed. The merged frame's
@@ -488,55 +504,69 @@ is the review items and `CancelR`'s rule repair.
      boundary's representation bind block. The ordinary name map is
      untouched, so the argument's type does not change.
 
-   - `CancelRCase` is **FALSE**, and machine-checked false:
-     `notes/CancelRShiftWall.agda` proves `¬ CancelRCase` from a concrete
+   - `CancelRCase` WAS **FALSE**, and machine-checked false:
+     `notes/CancelRShiftWall.agda` proved `¬ CancelRCase` from a concrete
      well-typed redex with every premise of the rule satisfied and an
      actual `CancelR` step. The rule's re-spelling premise
-     `SameTy Δ⋉ᶜ A′ Δᶜ A` reads the inner layer's identity type in the
-     OUTER conversion context, so it asserts that `A′` denotes the same
+     `SameTy Δ⋉ᶜ A′ Δᶜ A` read the inner layer's identity type in the
+     OUTER conversion context, so it asserted that `A′` denotes the same
      representation as `A`; the inner `env`'s `SameTyExt (numBinds Θ₁)`
      demands that it denote `shiftBy (numBinds Θ₁)` of it. The two agree
      only when `numBinds Θ₁ ≡ 0` or the representation is closed — which
      is why no example saw it: every `CancelR` in the twelve runs cancels
      a boundary `Peel` minted, and `binds (dualMorph Θ) ≡ []`.
 
-     The old design DID shift: retired `preserve-CancelR` minted
-     `mkId (shiftBy (numBinds Θ₁) A)`. The uniform premise, the one
-     `IdPush` already carries, is against the INNER boundary's conversion
-     context — `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ` with `Aᵢ` the cancelled `seal X`'s
-     source, plus the reading `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` the rule does not yet
-     carry. **A rule change is Jeremy's call; nothing was changed.**
-
-     **THE CONFIGURATION IS REACHABLE (2026-09-19), so the second repair
-     path is closed.** Jeremy asked for a source program that reduces to
-     it, and there is one:
+     **THE CONFIGURATION IS REACHABLE (2026-09-19), so path (b) — prove
+     and carry the invariant `numBinds Θ₁ ≡ 0` — died.** Jeremy asked for
+     a source program that reduces to it, and there is one:
 
          Src = ((ΛP. λp:P. ((ΛX. λf:(∀Z. Z⇒X). f [ℕ] · 7) [P])
                               · (ΛZ. λz:Z. p)) [ℕ]) · 7  :  ℕ
 
      closed, plain, boundary-free. In nine steps it reaches a `CancelR`
      redex with `numBinds Θ₁ ≡ 1` and a cancelled binder whose payload is
-     a representation VARIABLE; the tenth step is the `CancelR`, `eval`
-     records it as `illtyped`, and the contractum is refuted by an explicit
-     `¬`. The conversion context the run builds for `Θ₂` is
-     `notes/CancelRShiftWall.agda`'s hand-built `Δ*` on the nose. The
-     wall's reason for hoping otherwise — a bare `seal` is minted only on
-     a `Peel` dual frame — overlooked that `Peel` mints TWO boundaries and
-     leaves the CODOMAIN conversion on its own frame, which binds when
-     that boundary came from `TyPeelR`. Two controls (drop either
-     conjunct) run to a value. So there is no invariant `numBinds Θ₁ ≡ 0`
-     to carry, and repair (a) is the only path left; on this contractum
-     the shifted spelling repair (a) delivers — `mkId (` 2)` in place of
-     `mkId (` 1)` — retypes it, checked. See
+     a representation VARIABLE; under the old rule the tenth step lost the
+     type and the raw machine then stuck at sixteen. The conversion
+     context the run builds for `Θ₂` is `notes/CancelRShiftWall.agda`'s
+     hand-built `Δ*` on the nose. The wall's reason for hoping otherwise —
+     a bare `seal` is minted only on a `Peel` dual frame — overlooked that
+     `Peel` mints TWO boundaries and leaves the CODOMAIN conversion on its
+     own frame, which binds when that boundary came from `TyPeelR`. Two
+     controls (drop either conjunct) run to a value.
+
+     **REPAIR (a) IS APPROVED AND INSTALLED (Jeremy, 2026-09-19).** The
+     premise is read where the shifted spelling already lives — at Θ₁'s
+     own conversion context, on the cancelled `seal X`'s own source:
+
+         CancelR : … → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → Δ₁ᶜ ∋ X := Aᵢ
+           → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+           → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
+           → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A → …
+
+     which is `IdPush`'s premise block with `Aᵢ` in place of `` ` X ``.
+     `Src` now runs to `7` in NINETEEN steps with every state checked
+     (`Reaches 19 19 Src-⊢ ($ 7)`), the raw machine agrees exactly, and
+     the twelve-run suite and `Examples.agda` are byte-identical, green,
+     and at the same step counts — every `CancelR` they reach has
+     `numBinds Θ₁ ≡ 0`, where the old and the new premise agree.
+
+     **AND `CancelRCase` IS PROVED**, `proof/MoveScope.agda`
+     `preserve-CancelR`, beside `preserve-IdPush` and by the same
+     argument: the outer layer is literally `IdPush`'s, and the inner
+     layer's one obligation — that the minted `mkId A′` serve both the
+     interior and the exterior premise of the inner `env` — is discharged
+     because the cancelled binder's representation variable is
+     `numBinds Θ₁ + αY` and `∋ʳ-push` reads Y's payload through Θ₁'s bind
+     block already shifted. One new inversion, `bindR-inj`. See
+     `notes/DECISIONS.md` (2026-09-19),
      `notes/CancelRReachabilityWitness.agda` and
      `notes/CancelRReachability.md`.
 
    Consequently `strong.Preservation.Stage1` now takes `crossΛ`,
-   `addLock0`, `repWeaken` and `cancel` — `peel` and `idpush` are gone —
-   and `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda` follow. The
-   `cancel` parameter is known false, so the public preservation and
-   type-safety theorems are today conditional on a false hypothesis.
-   That is the honest state, and the rule repair is what unblocks it.
+   `addLock0` and `repWeaken` — `peel`, `idpush` and `cancel` are all
+   gone — and `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda`
+   follow. No parameter is known false: the four that remain are open,
+   plausible obligations pending review.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
    transport lemmas in `CtxMorph.agda` §3a:
@@ -597,11 +627,13 @@ is the review items and `CancelR`'s rule repair.
    spelling is either PROVEN sound (`TyBeta`, `Beta` and `TyPeelR-⟪⟫`
    modulo the three transports under review; `TyPeelR-Λ`, `Drop$`,
    `Drop-true/false` outright; `IdPush` in `proof/MoveScope.agda`; `Peel`
-   in `proof/PeelDual.agda` modulo `RepWeakenTyping`) or REFUTED
-   (`CancelR`'s inner `mkId` reads its type UNSHIFTED where the inner
-   `env` demands `shiftBy (numBinds Θ₁)` — `notes/CancelRShiftWall.agda`,
-   the fourth crossing defect, exactly the read-context question this
-   item was written to ask). The per-site movement facts live in the
+   in `proof/PeelDual.agda` modulo `RepWeakenTyping`) or was REFUTED and
+   then REPAIRED (`CancelR`'s inner `mkId` read its type UNSHIFTED where
+   the inner `env` demands `shiftBy (numBinds Θ₁)` —
+   `notes/CancelRShiftWall.agda`, the fourth crossing defect, exactly the
+   read-context question this item was written to ask; repair (a)
+   installed 2026-09-19 and `preserve-CancelR` proved). The per-site
+   movement facts live in the
    ported `proof/ShiftAudit.agda`; the headline is that every move but
    TyBeta's is representation-only.
 6. **CANONICAL FORMS AND STAGE-1 PROGRESS DONE (2026-09-19); NEXT:
@@ -628,6 +660,13 @@ is the review items and `CancelR`'s rule repair.
    retains every representation name available in both Θ₂'s conversion
    context and Θ₁'s. Those are exactly the two re-spellings that CancelR and
    IdPush mint. It is deferred for review rather than implemented in stage 1.
+
+   **A NOTE FOR THAT REVIEW (2026-09-19).** With `CancelR` repaired, BOTH
+   id-layer rules re-spell from `Δ₁ᶜ`, so `proof/Progress.agda` no longer
+   consumes `MergedReading`'s outer `Keeps (names Δᶜ) (names Δ⋉ᶜ)`
+   component and the statement could SHRINK. It was deliberately NOT
+   shrunk: the statement is under review, and that is a separate
+   decision.
 
    **THE MODULE SWEEP IS DONE (2026-09-19).** Every remaining old-design
    proof script between the frontier and `Examples.agda` has been ported or

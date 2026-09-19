@@ -297,9 +297,10 @@ fuel, a value that "steps", and a `broke` trace are all rejected.
 
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
-clean. `All.agda` does not yet pass because the main-branch preservation
-development and later metatheory still use the old context representation;
-the first failure is the retired `Nameable` interface in `proof/Preserve.agda`.
+clean. The stage-1 preservation induction now passes as well, through the
+parameterized interface described in immediate-plan item 1 below. `All.agda`
+now reaches `proof/Canonical.agda`; its first failure is the retired
+`shiftBy-base` lemma at line 126.
 
 ## Resuming on another machine
 
@@ -313,12 +314,10 @@ What compiles, from `SystemF/agda/strong/`:
 agda --safe --no-allow-unsolved-metas -v0 All.agda
 ```
 
-stops at the FIRST unported module, `proof/Preserve.agda`, on the retired
-`Nameable` interface. Everything before it passes: the core, `Reduction`,
-`TypeCheck`, `Eval`, and all four notes modules
-(`RepresentationReductionExamples`, `ReUnlockWall`, `ForallPayloadWall`,
-`CrossingAudit`, `PeelPremise`). That failure is the baseline, not a
-regression — check against it before blaming a change.
+stops at the FIRST unported dependency, `proof/Canonical.agda`, on the
+retired `shiftBy-base` lemma at line 126. The core, `Reduction`, `TypeCheck`,
+`Eval`, the notes modules, the stage-1 `proof/Preserve.agda`, and its honest
+parameterized public wrapper all pass before that frontier.
 
 The twelve-example suite alone is about 7.4s cold:
 
@@ -326,18 +325,59 @@ The twelve-example suite alone is about 7.4s cold:
 agda --safe -v0 notes/RepresentationReductionExamples.agda
 ```
 
-Where the open threads are: items 1 and 2 are the preservation port — all
-four crossing rules now carry the spelling their preservation cases need,
-and item 3's rewind transport is done; item 4's rule-set cleanup is done;
-item 6 is progress and `Examples.agda`.
+Where the open threads are: item 1's stage-1 preservation port is done;
+item 2 and the other two crossing cases remain parameters for stage 2; two
+representation-only typing transports identified by stage 1 await review;
+item 3's rewind transport and item 4's rule-set cleanup are done; item 6 is
+progress and `Examples.agda`.
 
 ## Immediate plans
 
-1. Port the preservation proof to the relational context-morphism interface.
-   The fourth example is the case to check it against for the lock-carrying
-   frames, and examples 8 and 9 for the `∀` payloads. All three crossing
-   rules now carry the interior spelling, so the preservation cases have the
-   premise they need rather than having to re-derive it.
+1. **STAGE 1 DONE (2026-09-18).** `proof/Preserve.agda` now uses relational
+   interior and conversion readings throughout. It proves TyBeta, Beta,
+   both TyPeelR clauses, Drop$/Drop-true/Drop-false, and every congruence
+   case. `Nameable`, `masked`, and the computed-context interface were
+   deleted from this proof rather than reproduced as shims. Peel, CancelR,
+   and IdPush remain module parameters for stage 2.
+
+   The statement now carries `WfCtx Δ`. For a concrete reason, take a
+   context whose name map is `0 ∷ 0 ∷ []` and the redex
+
+       (Λ ($ 0)) ·[ `ℕ , `ℕ ] .
+
+   The redex types without inspecting either duplicate ordinary name, but
+   TyBeta's contractum must construct a `MorphWf`, whose exterior field
+   requires the name map to be unique. Typing alone therefore cannot recover
+   the well-formed context required by the new relational interface.
+
+   **REVIEW REQUIRED — NEW MAJOR LEMMA STATEMENTS.** The old development's
+   `⊢crossΛ` and `⊢addLock0-cross` have no two-universe counterparts yet.
+   Stage 1 exposes exactly the two required transports as parameters:
+
+       CrossΛTyping : Set
+       CrossΛTyping = ∀ {Δ W A}
+         → WfCtx Δ
+         → Δ ⊢ᵗ A
+         → Δ ∣ [] ⊢ W ⦂ A
+         → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
+
+       AddLock0Typing : Set
+       AddLock0Typing = ∀ {Δ W Θ s A P}
+         → WfCtx ((bindR P ∷ reps Δ) ∣
+                      (zero ∷ shiftNames (names Δ)))
+         → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
+         → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+             ∣ [] ⊢
+               (renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W
+                 ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ)
+                 , `∀ (renᶨ (extᵗ suc) s) ⟫)
+               ⦂ `∀ (renameᵗ (extᵗ suc) A)
+
+   On the Beta redex `( ƛ A ∙ N) · W`, `CrossΛTyping` types each
+   substituted image when it crosses a `Λ`. On the nested TyPeelR redex,
+   `AddLock0Typing` types the moved inner boundary after the fresh lock and
+   paired ordinary/representation renaming. No proofs of these two new
+   statements are attempted in stage 1.
 2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
    `Peel` names the dual's spelling `s′` and carries
    `SameConv Δᵈ s′ Δᶜ s`, with the morphism's two readings, the dual's
@@ -357,8 +397,9 @@ item 6 is progress and `Examples.agda`.
    derivation and obtains the dual context's uniqueness with the core
    `dual-unique`, so the rule does not carry it.
 
-   What is left for this item is the PRESERVATION case, which now has the
-   premise it needs rather than having to re-derive it.
+   What is left for this item is the PRESERVATION case. It is the `peel`
+   parameter of `proof.Preserve.Impl`; CancelR and IdPush are likewise kept
+   as `cancel` and `idpush` parameters for their stage-2 downstream ports.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
    transport lemmas in `CtxMorph.agda` §3a:

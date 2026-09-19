@@ -3054,3 +3054,86 @@ interior and conversion readings its `env` needs. The inner layer uses
 `Θ₁ ⋉ Θ₂`; both reduction rules already carry that composite's
 conversion reading explicitly, so item 3 needs no additional composite
 theorem.
+
+## 2026-09-18 — stage-1 preservation is relational and parameterized
+
+THE EXAMPLE THAT CHANGED THE PUBLIC STATEMENT. Let
+
+    Δdup = (abstR ∷ []) ∣ (0 ∷ 0 ∷ [])
+
+and consider
+
+    (Λ ($ 0)) ·[ `ℕ , `ℕ ] .
+
+The source is typed at `Δdup`: neither `$ 0` nor either `ℕ` annotation
+uses an ordinary type variable. TyBeta also steps because `$ 0` is a value
+and `Δdup ⊢ᶨ `ℕ ~ `ℕ`. Its contractum is
+
+    ($ 0) ⟪ instantiate `ℕ (morph [] []) , reveal 0 `ℕ ⟫ .
+
+Typing that boundary requires a `MorphWf` whose exterior field is
+`WfCtx Δdup`, but the duplicate name map is not `Unique`. Keeping the old
+premise-free preservation statement would therefore assert a false result
+on this example; trying to recover `WfCtx Δ` from the source typing also
+fails on this same derivation. THE RULING: the stage-1 `Preservation` and
+every local rule case take `WfCtx Δ`. On the example this premise rejects
+`Δdup` at the theorem boundary, exactly where the minted `MorphWf` needs it.
+
+THE RETIRED INTERFACE WAS DELETED, NOT SHIMMED. The old `Nameable` and
+masked/unmasked-entry arguments do not occur in `proof/Preserve.agda`.
+Section 1 now phrases lookup preservation directly on `Ctx.agda`:
+
+    WfRen Δ Δ′ ρ = ∀ {X} → Δ ∋tv X → Δ′ ∋tv ρ X
+
+    SubWf Δ Δ′ σ = ∀ {X} → Δ ∋tv X → Δ′ ⊢ᵗ σ X
+
+`wf-ren`, `wf-substᵗ`, and `wf-[]ᵗ` follow those live ordinary-name
+lookups. `CtxWf` still records well-formed term-context entries, and
+`⊢ᵗ-of` is its typing induction. The former retagging step became
+`RepRefines`: it changes an `abstR` binding to `bindR R` while leaving the
+ordinary name map fixed, and `⊢refine` transports the term typing through
+that representation refinement.
+
+THE MINTED CONVERSIONS FOLLOW THE NEW RULES. TyBeta uses `reveal 0 B` and
+the new relational readings of `instantiate R (morph [] [])`. Both TyPeelR
+clauses use the rule-carried representation spelling and mint
+`instReveal 0 s`; `instantiate-interior` and `instantiate-conversion`
+transport the two induced contexts. The wrapper clause consumes its carried
+`SameTy` premise instead of reconstructing the interior spelling. No term,
+typing, conversion, or reduction rule changed in this port.
+
+THE STAGE-1 MODULE IS HONESTLY PARAMETERIZED. `Peel`, `CancelR`, and
+`IdPush` remain the downstream cases they were designed to be. Two further
+representation-only typing transports have no new-design theorem yet. On
+the Beta example `( ƛ A ∙ N) · W`, `CrossΛTyping` is what types an image
+`crossΛᴹ W A` when substitution passes a `Λ`. On the nested TyPeelR
+example, `AddLock0Typing` types the moved inner boundary after paired
+ordinary/representation renaming and `addLock0`.
+
+**NEW MAJOR STATEMENTS FOR REVIEW; NOT PROVED IN STAGE 1:**
+
+    CrossΛTyping : Set
+    CrossΛTyping = ∀ {Δ W A}
+      → WfCtx Δ
+      → Δ ⊢ᵗ A
+      → Δ ∣ [] ⊢ W ⦂ A
+      → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
+
+    AddLock0Typing : Set
+    AddLock0Typing = ∀ {Δ W Θ s A P}
+      → WfCtx ((bindR P ∷ reps Δ) ∣
+                   (zero ∷ shiftNames (names Δ)))
+      → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
+      → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
+          ∣ [] ⊢
+            (renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W
+              ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ)
+              , `∀ (renᶨ (extᵗ suc) s) ⟫)
+            ⦂ `∀ (renameᵗ (extᵗ suc) A)
+
+The top-level `Preservation.agda` no longer repeats the main branch's false
+claim of an unconditional theorem. It exports the statement with `WfCtx`
+and a `Stage1` module parameterized by these two transports plus the three
+crossing cases. The next stage must review and prove the two transport
+statements, then port `PeelDual.agda` and `MoveScope.agda`, before restoring
+an unparameterized public theorem.

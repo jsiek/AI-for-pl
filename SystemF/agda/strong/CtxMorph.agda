@@ -212,14 +212,15 @@ addLock0 Θ =
 -- Instantiation prepends a represented binder and gives it ordinary name 0.
 -- The unlock acts first (head-LAST order); every pre-existing change then
 -- moves past both the new ordinary name and the new representation binder.
+private
+  shiftChange : Change → Change
+  shiftChange (lock X α)   = lock (suc X) (suc α)
+  shiftChange (unlock X α) = unlock (suc X) (suc α)
+
 instantiate : Ty → CtxMorph → CtxMorph
 instantiate R Θ =
   morph (R ∷ binds Θ)
         (map shiftChange (changes Θ) ++ (unlock 0 0 ∷ []))
-  where
-  shiftChange : Change → Change
-  shiftChange (lock X α)   = lock (suc X) (suc α)
-  shiftChange (unlock X α) = unlock (suc X) (suc α)
 
 -- The interior performs every change.
 infix 4 _⊢ⁱ_⇒_
@@ -340,6 +341,23 @@ ins-mono ins-here (X , d) = suc X , there d
 ins-mono (ins-there i) (zero , here) = zero , here
 ins-mono (ins-there i) (suc X , there d) with ins-mono i (X , d)
 ins-mono (ins-there i) (suc X , there d) | Y , d′ = suc Y , there d′
+
+-- A conversion reading only adds ordinary names: locks are skipped and an
+-- unlock either inserts its representation variable or finds it already
+-- live.  Preservation uses this to re-spell an exterior type in the
+-- conversion context selected by the relational reading.
+conversion-live : ∀ {Θ : CtxMorph}
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Live α (names (extendReps (binds Θ) Γ))
+  → Live α (names Γᶜ)
+conversion-live (conversion cs) lv = conv-live cs lv
+  where
+  conv-live : ∀ {Ξ Δ Δ′ χ α}
+    → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′ → Live α Δ → Live α Δ′
+  conv-live conv[] live = live
+  conv-live (conv-lock v css) live = conv-live css live
+  conv-live (conv-unlock v css fr i) live = ins-mono i (conv-live css live)
+  conv-live (conv-unlock-live v css d) live = conv-live css live
 
 ins-inv : α ⊢+ Δ at X ⇒ Δ′ → Live β Δ′ → (β ≡ α) ⊎ Live β Δ
 ins-inv ins-here (zero , here) = inj₁ refl
@@ -470,6 +488,97 @@ private
           (sym (dual-∷ (unlock X α) χ))
           (conv-changes-++ (conv-lock v conv[])
                            (conv-dual-id cs csᶜ keep))
+
+  shiftNames-lookup : Δ ∋ˡ X := α → shiftNames Δ ∋ˡ X := suc α
+  shiftNames-lookup here = here
+  shiftNames-lookup (there d) = there (shiftNames-lookup d)
+
+  valid-suc : ValidRVar Ξ α → ValidRVar (b ∷ Ξ) (suc α)
+  valid-suc (b′ , d) = b′ , there d
+
+  insert-shift : α ⊢+ Δ at X ⇒ Δ′
+    → suc α ⊢+ shiftNames Δ at X ⇒ shiftNames Δ′
+  insert-shift ins-here = ins-here
+  insert-shift (ins-there i) = ins-there (insert-shift i)
+
+  delete-shift : α ⊢- Δ at X ⇒ Δ′
+    → suc α ⊢- shiftNames Δ at X ⇒ shiftNames Δ′
+  delete-shift del-here = del-here
+  delete-shift (del-there d) = del-there (delete-shift d)
+
+  step-shift : Ξ ∣ Δ ⊢δ δ ⇒ Δ′
+    → (b ∷ Ξ) ∣ (zero ∷ shiftNames Δ) ⊢δ shiftChange δ
+        ⇒ (zero ∷ shiftNames Δ′)
+  step-shift (step-lock valid d fresh) =
+    step-lock (valid-suc valid) (del-there (delete-shift d))
+      (fresh∷ (λ ()) (fresh-shift fresh))
+  step-shift (step-unlock valid fresh i) =
+    step-unlock (valid-suc valid)
+      (fresh∷ (λ ()) (fresh-shift fresh))
+      (ins-there (insert-shift i))
+
+  changes-shift : Ξ ∣ Δ ⊢χ χ ⇒ Δ′
+    → (b ∷ Ξ) ∣ (zero ∷ shiftNames Δ) ⊢χ map shiftChange χ
+        ⇒ (zero ∷ shiftNames Δ′)
+  changes-shift changes[] = changes[]
+  changes-shift (changes∷ cs st) =
+    changes∷ (changes-shift cs) (step-shift st)
+
+  conv-changes-shift : Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
+    → (b ∷ Ξ) ∣ (zero ∷ shiftNames Δ) ⊢χᶜ map shiftChange χ
+        ⇒ (zero ∷ shiftNames Δ′)
+  conv-changes-shift conv[] = conv[]
+  conv-changes-shift (conv-lock valid cs) =
+    conv-lock (valid-suc valid) (conv-changes-shift cs)
+  conv-changes-shift (conv-unlock valid cs fresh i) =
+    conv-unlock (valid-suc valid) (conv-changes-shift cs)
+      (fresh∷ (λ ()) (fresh-shift fresh))
+      (ins-there (insert-shift i))
+  conv-changes-shift (conv-unlock-live valid cs d) =
+    conv-unlock-live (valid-suc valid) (conv-changes-shift cs)
+      (there (shiftNames-lookup d))
+
+  shiftRVars-suc : (n : ℕ) (Δ : TyCtx)
+    → shiftRVars (suc n) Δ ≡ shiftNames (shiftRVars n Δ)
+  shiftRVars-suc n [] = refl
+  shiftRVars-suc n (α ∷ Δ) =
+    cong (suc (n + α) ∷_) (shiftRVars-suc n Δ)
+
+-- Instantiating a morphism replaces the abstract context in which its
+-- `∀` conversion body was read by a represented binder. The old changes
+-- run underneath the fresh ordinary name, in both induced readings.
+instantiate-interior : ∀ {R : Ty} {Γ Γᵢ : Ctxᵗ} {Θ : CtxMorph}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γ ⊢ⁱ instantiate R Θ ⇒
+      ((bindR (shiftBy (numBinds Θ) R) ∷ reps Γᵢ)
+        ∣ (zero ∷ shiftNames (names Γᵢ)))
+instantiate-interior {Γ = Ξ ∣ Δ} {Θ = morph Rs χ}
+                     (interior cs) =
+  interior
+    (subst (λ Δ₀ →
+             _ ∣ Δ₀ ⊢χ map shiftChange χ ++ (unlock 0 0 ∷ [])
+               ⇒ (zero ∷ shiftNames _))
+           (sym (shiftRVars-suc (length Rs) Δ))
+           (changes-++
+             (changes∷ changes[]
+               (step-unlock (_ , here) fresh-zero-shift ins-here))
+             (changes-shift cs)))
+
+instantiate-conversion : ∀ {R : Ty} {Γ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
+  → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → Γ ⊢ᶜ instantiate R Θ ⇒
+      ((bindR (shiftBy (numBinds Θ) R) ∷ reps Γᶜ)
+        ∣ (zero ∷ shiftNames (names Γᶜ)))
+instantiate-conversion {Γ = Ξ ∣ Δ} {Θ = morph Rs χ}
+                       (conversion cs) =
+  conversion
+    (subst (λ Δ₀ →
+             _ ∣ Δ₀ ⊢χᶜ map shiftChange χ ++ (unlock 0 0 ∷ [])
+               ⇒ (zero ∷ shiftNames _))
+           (sym (shiftRVars-suc (length Rs) Δ))
+           (conv-changes-++
+             (conv-unlock (_ , here) conv[] fresh-zero-shift ins-here)
+             (conv-changes-shift cs)))
 
 rewind-interior : ∀ {Θ : CtxMorph}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ

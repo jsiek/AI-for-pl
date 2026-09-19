@@ -3,8 +3,8 @@ module strong.proof.TypeSafety where
 -- TYPE SAFETY for Strong System F: the composition of progress and
 -- preservation along a run.  The two theorems are stage-1 parameterized
 -- (strong.Progress, strong.Preservation), so their composition inherits
--- every parameter of both: `MergedReading` from progress, and the two
--- representation transports plus the three crossing cases from
+-- every parameter of both: `MergedReading` from progress, and the three
+-- representation transports plus the refuted `CancelRCase` from
 -- preservation.  The public statement lives in strong.TypeSafety.
 --
 -- The `WfCtx Δ` premise is preservation's (see notes/DECISIONS.md,
@@ -35,16 +35,15 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
 
 module Stage1
   (merged-reading : PP.MergedReading)
-  (crossΛ   : P.CrossΛTyping)
-  (addLock0 : P.AddLock0Typing)
-  (peel     : P.PeelCase)
-  (cancel   : P.CancelRCase)
-  (idpush   : P.IdPushCase)
+  (crossΛ    : P.CrossΛTyping)
+  (addLock0  : P.AddLock0Typing)
+  (repWeaken : P.RepWeakenTyping)
+  (cancel    : P.CancelRCase)
   where
 
   private
     module Pr1 = Pr.Stage1 merged-reading
-    module Pv1 = Pv.Stage1 crossΛ addLock0 peel cancel idpush
+    module Pv1 = Pv.Stage1 crossΛ addLock0 repWeaken cancel
 
   type-safety : TypeSafety
   type-safety wfΔ ⊢M M-→*N =

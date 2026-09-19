@@ -3250,3 +3250,150 @@ derivation. `canon-base`'s three branches construct `Drop$`, `Drop-true`, and
 the `SameTy` body inversion; Peel uses `peel-premises-env`; CancelR and
 IdPush reuse the outer lookup and the deferred merged package. No term,
 typing, conversion, or reduction rule changed.
+
+## 2026-09-19 — stage-2 crossings: IdPush and Peel land, CancelR is refuted
+
+THE CONCRETE COUNTEREXAMPLE, and it is small. Let
+
+    Ξ* = bindR (` 0) ∷ bindR `ℕ ∷ []
+    Δ* = Ξ* ∣ (0 ∷ 1 ∷ [])
+    Θ₂* = morph [] []            Θ₁* = morph (`ℕ ∷ []) []
+
+so that ordinary name 0 denotes representation 0, whose payload is the
+representation VARIABLE 1 — the shape a type application at a type
+variable produces. `Δ* ∋ 0 := ` 1` and the redex
+
+    (($ 7) ⟪ morph [] [] , seal 1 ⟫ ⟪ Θ₁* , seal 0 ⟫) ⟪ Θ₂* , unseal 0 ⟫
+
+is well typed at `` ` 1 ``. Every premise of `CancelR` holds — the merged
+frame's conversion reading is `Δ₁* = (bindR `ℕ ∷ Ξ*) ∣ (1 ∷ 2 ∷ [])`, and
+`SameTy Δ₁* (` 0) Δ* (` 1)` has the witness `` ` 1 `` — so the rule fires.
+Its contractum
+
+    (V ⟪ Θ₁* ⋉ Θ₂* , mkId (` 0) ⟫) ⟪ rewind Θ₂* , mkId (` 1) ⟫
+
+has NO typing derivation. The outer `mkId (` 1)` pins the inner boundary's
+exterior type to representation 1; the inner `env`'s `SameTyExt 1` then
+asks its conversion's type to denote `shiftBy 1 (` 1) ≡ ` 2`, while the
+inner `mkId (` 0)` denotes representation 1. A representation reading is
+unique (`same-rep-unique`), and `1 ≢ 2`.
+
+THE DIAGNOSIS. `CancelR`'s re-spelling premise reads the inner layer's
+identity type in the OUTER conversion context:
+
+    SameTy Δ⋉ᶜ A′ Δᶜ A ,
+
+so it asserts that `A′` denotes the SAME representation as `A`. But the
+inner boundary sits `numBinds Θ₁` representation binders inside its own
+exterior, and `env` compares an exterior type with a conversion type
+across exactly that block. The premise therefore drops the shift. The
+other three crossings do not: `TyPeelR-⟪⟫` and `IdPush` re-spell against
+the INNER boundary's own conversion context `Δ₁ᶜ`, where the shifted
+reading already lives, and `Peel` re-spells a conversion between two
+contexts that share a representation context. `CancelR` was the one
+repaired PREVENTIVELY (2026-09-18), against no failing program, and it was
+repaired against the wrong context.
+
+WHY NO EXAMPLE SAW IT. A bare `seal X` conversion is minted by exactly one
+rule — `Peel`, on the crossing argument — and `Peel`'s frame is
+`dualMorph Θ`, whose `binds` is `[]`. So every `CancelR` the twelve runs
+reach has `numBinds Θ₁ ≡ 0`, and `shiftBy 0` is the identity. The
+identities the unwinding tower mints are moreover at first-order types,
+where the representation is closed and the shift is invisible a second
+time.
+
+IS THE CONFIGURATION REACHABLE? NOT SETTLED, and that is the second
+repair path. The redex above is well typed and the rule fires on it, which
+is everything `CancelRCase` quantifies over; but no closed program is
+exhibited that reduces to it, and the `Peel` observation above suggests a
+REACHABLE `CancelR` redex may always have `numBinds Θ₁ ≡ 0`. If so the
+rule is sound where it fires and only the statement is wrong. The two
+repairs are therefore: carry the shifted premise, or prove and carry the
+invariant `numBinds Θ₁ ≡ 0`. Both are rule-level decisions.
+
+THE RULING: NOTHING IS CHANGED. A rule repair is Jeremy's call. The wall
+is machine-checked in `notes/CancelRShiftWall.agda`, which also carries
+the reduction step and `cancelR-case-false : ¬ CancelRCase`;
+`strong.proof.Preserve` keeps `CancelRCase` as the parameter of
+`Impl` it always was, and `strong.Preservation` and `strong.TypeSafety`
+keep it in `Stage1`. The public preservation and type-safety theorems are
+therefore conditional on a hypothesis now known to be false — which is the
+finding, not a gap. For the record, the shape the other crossings suggest
+is `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ`, with `Aᵢ` the cancelled `seal X`'s source and
+`Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` a new premise; the retired `preserve-CancelR` minted
+`mkId (shiftBy (numBinds Θ₁) A)`, so the old design had the shift and the
+port lost it.
+
+IDPUSH NEEDS NOTHING NEW, AND IN PARTICULAR NOT `MergedReading`. Four
+facts do it, and three are relational readings:
+
+  * `rewind-interior` / `rewind-conversion` give the outer frame's two
+    contexts (2026-09-18);
+  * `merged-interior` — NEW, `CtxMorph.agda` §3a — gives the merged
+    frame's interior, and it is the inner frame's OWN interior on the
+    nose. The lifted copy of Θ₂'s changes re-creates Θ₂'s interior one
+    bind block in, which is exactly where Θ₁'s reading starts. This is
+    the relational form of the retired `interior-⋉-rewind` equality;
+  * `conversion-live` re-spells the exterior type C into the merged
+    conversion context, because a conversion reading only ADDS names, so
+    every name of the merged frame's own exterior survives into it. That
+    is the half of `MergedReading` preservation actually needs, and it was
+    already a theorem;
+  * `∋ʳ-push` — NEW, §3a — says a payload looked up THROUGH a bind block
+    is the payload shifted past it. This is why `IdPush` escapes
+    `CancelR`'s defect: its minted `unseal X′` takes its type from a
+    LOOKUP, which shifts itself, where `mkId A′` takes its type from the
+    premise.
+
+Typing also forces `X′`'s representation to be `numBinds Θ₁ + αY` — the
+old `idpush-name` equation, one universe up — and that is what lets the
+lookup be taken at all.
+
+PEEL LANDS ON ONE NEW TRANSPORT. `dual-interior` — NEW, §3a, beside
+`rewind-interior` — says the dual's interior is the exterior under the
+original bind block, so the crossing argument gains no ordinary scope.
+`respell-⊢` — NEW, `proof/PeelDual.agda` §1 — turns the rule's `SameConv`
+premise into the dual boundary's conversion TYPING: the two conversion
+contexts share a representation context, so a `seal`/`unseal` cites the
+same binder and only its ordinary spelling changes, and an identity's
+payload goes through `respell-ty` against (Q). Source and target come back
+paired with the `SameTy`s the crossing boundary's `env` consumes.
+
+**REVIEW REQUIRED — NEW MAJOR STATEMENT, NOT PROVED.** The argument must
+be retyped one bind block in, and that is the third representation-only
+typing transport this port has needed:
+
+    RepWeakenTyping : Set
+    RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+      → Δ ∣ [] ⊢ W ⦂ A
+      → extendReps Rs Δ ∣ []
+          ⊢ renᴹ² (ren² (λ X → X) (wkN (length Rs))) W ⦂ A
+
+It stands beside `CrossΛTyping` and `AddLock0Typing` in
+`proof/Preserve.agda` §4, and `preserve-Peel` takes it as a module
+parameter rather than assuming it silently.
+
+WHAT WAS DELETED, NOT SHIMMED. `proof/MoveScope.agda` lost its whole
+masked-entry development: the `applyUnlocks`/`applyChanges` lookup
+transports, the `shiftScope`/`rewind`/`_⋉_` list algebra, the
+`scope`/`interior` context identities, the frame lemmas as EQUALITIES with
+the lock-only refutation, and `_⊢ᵐ_` for the two new frames.
+`proof/PeelDual.agda` lost `applyChanges-dualScope`, `⊢ˢ-dualScope`,
+`applyUnlocks-dualScope`, `interior-dual`, `applyUnlocks-hideBinds`, the
+`Ren`/`wkN` crossing machinery `⊢ᵐ-dual`/`Ren-wkN`/`crossing`, and
+`convCtx-dual` — which WAS (P), and (P) is refuted on this branch. None of
+it has a two-universe counterpart: there is no computed context to state
+an equality between, and the relational readings replace all of it.
+
+WHAT MOVED INTO CORE. `CtxMorph.agda` §3a gained `dual-interior`,
+`merged-interior`, `∋ʳ-push`, `interior-reps`/`conversion-reps`, and the
+private `shiftRVars`-lifting of a change run that `merged-interior` needs.
+`proof/Preserve.agda` §1 gained `same-wf` (the converse of `wf-same`),
+`wf-mono`/`TvMono` with `tvMono-extendReps` (type formation depends on
+ordinary POSITIONS only), `shiftRVars-∋` and `shiftRep-var`.
+
+THE INTERFACE SHRANK. `strong.Preservation.Stage1` now takes `crossΛ`,
+`addLock0`, `repWeaken` and `cancel`; `peel` and `idpush` are discharged
+and gone. `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda` follow.
+`All.agda`'s first failure is unchanged: `proof/Adversary.agda:38`, on the
+retired `applyChanges`.

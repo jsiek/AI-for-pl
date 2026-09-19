@@ -298,7 +298,11 @@ fuel, a value that "steps", and a `broke` trace are all rejected.
 The reduction development, the checker and the test module pass Agda with
 `--safe` and with unsolved metas disabled, and `make postulate-check` is
 clean. The stage-1 preservation induction now passes as well, through the
-parameterized interface described in immediate-plan item 1 below. Canonical
+parameterized interface described in immediate-plan item 1 below, and
+stage 2 (item 2) discharged two of its three crossing cases and REFUTED
+the third — `CancelR`'s contractum is untypeable whenever the cancelled
+inner boundary binds a representation variable and the cancelled binder's
+payload is open (notes/CancelRShiftWall.agda). Canonical
 forms now pass against the relational `env` interface as well. Stage-1
 progress passes too: its public logical statement stays premise-free, while
 the proof is parameterized by the new `MergedReading` invariant pending
@@ -330,8 +334,8 @@ agda --safe -v0 notes/RepresentationReductionExamples.agda
 ```
 
 Where the open threads are: item 1's stage-1 preservation port is done;
-item 2 and the other two crossing cases remain parameters for stage 2; two
-representation-only typing transports identified by stage 1 await review;
+stage 2 proved `IdPush` and `Peel` and REFUTED `CancelR` (item 2); three
+representation-only typing transports now await review;
 item 3's rewind transport and item 4's rule-set cleanup are done; canonical
 forms are done; item 6's progress port is done modulo `MergedReading`, and the
 frontier is now `proof/TypeSafety.agda` before `Examples.agda`.
@@ -357,7 +361,8 @@ frontier is now `proof/TypeSafety.agda` before `Examples.agda`.
 
    **REVIEW REQUIRED — NEW MAJOR LEMMA STATEMENTS.** The old development's
    `⊢crossΛ` and `⊢addLock0-cross` have no two-universe counterparts yet.
-   Stage 1 exposes exactly the two required transports as parameters:
+   Stage 1 exposes exactly the two required transports as parameters
+   (stage 2 added a third, `RepWeakenTyping`, in item 2 below):
 
        CrossΛTyping : Set
        CrossΛTyping = ∀ {Δ W A}
@@ -402,9 +407,69 @@ frontier is now `proof/TypeSafety.agda` before `Examples.agda`.
    derivation and obtains the dual context's uniqueness with the core
    `dual-unique`, so the rule does not carry it.
 
-   What is left for this item is the PRESERVATION case. It is the `peel`
-   parameter of `proof.Preserve.Impl`; CancelR and IdPush are likewise kept
-   as `cancel` and `idpush` parameters for their stage-2 downstream ports.
+   **STAGE 2 DONE (2026-09-19); ONE CASE REFUTED, ONE NEW TRANSPORT.**
+   The three crossing cases are settled:
+
+   - `IdPushCase` is PROVED outright, `proof/MoveScope.agda`
+     `preserve-IdPush`. Nothing new was assumed. The merged frame's
+     interior is the inner frame's own (`merged-interior`, new in
+     `CtxMorph.agda` §3a — the relational form of the retired
+     `interior-⋉-rewind` equality); the outer frame's two readings are
+     `rewind-interior`/`rewind-conversion`; the exterior type's
+     re-spelling into the merged conversion context comes free from
+     `conversion-live`, because a conversion reading only ADDS names; and
+     the minted `unseal X′`'s type is a LOOKUP, which shifts itself past
+     Θ₁'s bind block (`∋ʳ-push`, also new in §3a). So `MergedReading` was
+     NOT needed for preservation — only Progress asks for it.
+
+   - `PeelCase` is PROVED, `proof/PeelDual.agda` `preserve-Peel`, modulo
+     ONE new parameter. The dual's interior is `dual-interior` (new in
+     §3a, beside `rewind-interior`); the `SameConv` premise is turned into
+     the dual boundary's conversion TYPING by `respell-⊢` (new,
+     `proof/PeelDual.agda` §1), which transports each leaf across the
+     crossing: a `seal`/`unseal` cites the same binder and only changes
+     ordinary spelling, an identity's payload goes through `respell-ty`,
+     and the source and target come back paired with `SameTy`s.
+
+     **REVIEW REQUIRED — NEW MAJOR LEMMA STATEMENT** (the third
+     representation-only typing transport, beside `CrossΛTyping` and
+     `AddLock0Typing`; `proof/Preserve.agda` §4):
+
+         RepWeakenTyping : Set
+         RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+           → Δ ∣ [] ⊢ W ⦂ A
+           → extendReps Rs Δ ∣ []
+               ⊢ renᴹ² (ren² (λ X → X) (wkN (length Rs))) W ⦂ A
+
+     It is what retypes `Peel`'s argument when it crosses into the
+     boundary's representation bind block. The ordinary name map is
+     untouched, so the argument's type does not change.
+
+   - `CancelRCase` is **FALSE**, and machine-checked false:
+     `notes/CancelRShiftWall.agda` proves `¬ CancelRCase` from a concrete
+     well-typed redex with every premise of the rule satisfied and an
+     actual `CancelR` step. The rule's re-spelling premise
+     `SameTy Δ⋉ᶜ A′ Δᶜ A` reads the inner layer's identity type in the
+     OUTER conversion context, so it asserts that `A′` denotes the same
+     representation as `A`; the inner `env`'s `SameTyExt (numBinds Θ₁)`
+     demands that it denote `shiftBy (numBinds Θ₁)` of it. The two agree
+     only when `numBinds Θ₁ ≡ 0` or the representation is closed — which
+     is why no example saw it: every `CancelR` in the twelve runs cancels
+     a boundary `Peel` minted, and `binds (dualMorph Θ) ≡ []`.
+
+     The old design DID shift: retired `preserve-CancelR` minted
+     `mkId (shiftBy (numBinds Θ₁) A)`. The uniform premise, the one
+     `IdPush` already carries, is against the INNER boundary's conversion
+     context — `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ` with `Aᵢ` the cancelled `seal X`'s
+     source, plus the reading `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` the rule does not yet
+     carry. **A rule change is Jeremy's call; nothing was changed.**
+
+   Consequently `strong.Preservation.Stage1` now takes `crossΛ`,
+   `addLock0`, `repWeaken` and `cancel` — `peel` and `idpush` are gone —
+   and `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda` follow. The
+   `cancel` parameter is known false, so the public preservation and
+   type-safety theorems are today conditional on a false hypothesis.
+   That is the honest state, and the rule repair is what unblocks it.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
    transport lemmas in `CtxMorph.agda` §3a:

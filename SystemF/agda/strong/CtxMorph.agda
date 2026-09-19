@@ -594,6 +594,7 @@ rewind-conversion : ∀ {Θ : CtxMorph}
 rewind-conversion (interior cs) (conversion csᶜ) =
   conversion (conv-changes-++ csᶜ (conv-dual-id cs csᶜ (λ lv → lv)))
 
+
 -- (i) `name-fn`. A lock deletes and an unlock inserts a name its own
 -- premise says is fresh, so both readings preserve uniqueness.
 fresh→≢ : Fresh α Δ → Live β Δ → β ≢ α
@@ -676,6 +677,83 @@ int-valid vn (changes∷ cs (step-lock v dl fr)) =
   del-valid dl (int-valid vn cs)
 int-valid vn (changes∷ cs (step-unlock v fr i)) =
   ins-valid i v (int-valid vn cs)
+
+-- The dual runs the same changes backwards, so its interior is the
+-- exterior UNDER THE ORIGINAL BIND BLOCK: a crossing argument is already
+-- inside the boundary's representation binders, and the dual returns it
+-- to the ordinary name map the boundary was read on.  This is `Peel`'s
+-- counterpart of `rewind-interior`, and it needs no `MorphWf` either.
+dual-interior : ∀ {Θ : CtxMorph}
+  → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → Γᵢ ⊢ⁱ dualMorph Θ ⇒ extendReps (binds Θ) Γ
+dual-interior {Θ = Θ} (interior cs) =
+  interior
+    (subst (λ D → _ ∣ D ⊢χ dual (changes Θ) ⇒ _)
+           (sym (shiftRVars-0 _))
+           (dual-changes cs))
+
+-- Lifting a reading past a PARALLEL BIND BLOCK.  `underRepBinds k` keeps
+-- every ordinary POSITION and moves every representation occurrence past
+-- k binders; `shiftRVars k` does the same to the name map.  This is what
+-- `_⋉_` does to the outer morphism's change list.
+private
+  del-shiftRVars : (k : ℕ) → α ⊢- Δ at X ⇒ Δ′
+    → (k + α) ⊢- shiftRVars k Δ at X ⇒ shiftRVars k Δ′
+  del-shiftRVars k del-here = del-here
+  del-shiftRVars k (del-there dl) = del-there (del-shiftRVars k dl)
+
+  ins-shiftRVars : (k : ℕ) → α ⊢+ Δ at X ⇒ Δ′
+    → (k + α) ⊢+ shiftRVars k Δ at X ⇒ shiftRVars k Δ′
+  ins-shiftRVars k ins-here = ins-here
+  ins-shiftRVars k (ins-there i) = ins-there (ins-shiftRVars k i)
+
+  step-lift : (Rs : List Ty) → Ξ ∣ Δ ⊢δ δ ⇒ Δ′
+    → pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
+        ⊢δ underRepBinds (length Rs) δ ⇒ shiftRVars (length Rs) Δ′
+  step-lift Rs (step-lock (b , v) dl fr) =
+    step-lock (b , ∋ˡ-push Rs v)
+              (del-shiftRVars (length Rs) dl)
+              (fresh-shiftRVars (length Rs) fr)
+  step-lift Rs (step-unlock (b , v) fr i) =
+    step-unlock (b , ∋ˡ-push Rs v)
+                (fresh-shiftRVars (length Rs) fr)
+                (ins-shiftRVars (length Rs) i)
+
+  changes-lift : (Rs : List Ty) → Ξ ∣ Δ ⊢χ χ ⇒ Δ′
+    → pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
+        ⊢χ map (underRepBinds (length Rs)) χ ⇒ shiftRVars (length Rs) Δ′
+  changes-lift Rs changes[] = changes[]
+  changes-lift Rs (changes∷ cs st) =
+    changes∷ (changes-lift Rs cs) (step-lift Rs st)
+
+-- The MERGED frame's interior is the inner frame's own interior.  The
+-- lifted copy of the outer changes re-creates the outer interior one bind
+-- block in, which is exactly where the inner morphism's reading starts.
+-- This is the relational form of the old development's
+-- `interior-⋉-rewind` equality (retired proof/MoveScope §4).
+merged-interior : ∀ {Θ₁ Θ₂ : CtxMorph} {Γ₁ᵢ : Ctxᵗ}
+  → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
+  → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
+  → extendReps (binds Θ₂) Γ ⊢ⁱ Θ₁ ⋉ Θ₂ ⇒ Γ₁ᵢ
+merged-interior {Θ₁ = Θ₁} (interior cs₂) (interior cs₁) =
+  interior (changes-++ (changes-lift (binds Θ₁) cs₂) cs₁)
+
+-- A representation payload looked up THROUGH a bind block is the payload
+-- shifted past that block.
+∋ʳ-push : (Rs : List Ty) → Ξ ∋ʳ α := bindR R
+  → pushRepBinds Rs Ξ ∋ʳ (length Rs + α) := bindR (shiftBy (length Rs) R)
+∋ʳ-push [] d = d
+∋ʳ-push (S ∷ Rs) d = r-there (∋ʳ-push Rs d)
+
+-- Both readings leave the REPRESENTATION context of the morphism's own
+-- bind block; only the ordinary name map moves.
+interior-reps : ∀ {Θ : CtxMorph} → Γ ⊢ⁱ Θ ⇒ Γᵢ
+  → reps Γᵢ ≡ pushRepBinds (binds Θ) (reps Γ)
+interior-reps (interior cs) = refl
+
+conversion-reps : ∀ {Θ : CtxMorph} → Γ ⊢ᶜ Θ ⇒ Γᶜ
+  → reps Γᶜ ≡ pushRepBinds (binds Θ) (reps Γ)
+conversion-reps (conversion cs) = refl
 
 -- (iii) `wf-reps`. Both readings leave the representation context alone,
 -- so all that is needed is that the bind block itself is well formed

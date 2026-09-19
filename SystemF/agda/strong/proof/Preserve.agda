@@ -161,6 +161,52 @@ wf-same (wf-⇒ wA wB) | R , p | S , q = R ⇒ S , same-⇒ p q
 wf-same (wf-∀ wA) with wf-same wA
 wf-same (wf-∀ wA) | R , p = `∀ R , same-∀ p
 
+-- and back: a type that HAS a representation reading is well formed,
+-- because every leaf of a reading is a live ordinary name.
+same-wf : names Δ ⊢ A ~ R → Δ ⊢ᵗ A
+same-wf (same-var d) = wf-var (_ , d)
+same-wf same-ℕ = wf-ℕ
+same-wf same-𝔹 = wf-𝔹
+same-wf (same-⇒ p q) = wf-⇒ (same-wf p) (same-wf q)
+same-wf {Δ = Δ} (same-∀ p) = wf-∀ (same-wf {Δ = underΛ Δ} p)
+
+-- Type formation depends on the ordinary POSITIONS a context offers and
+-- on nothing else, so it transports along any map that keeps them.
+TvMono : Ctxᵗ → Ctxᵗ → Set
+TvMono Δ Δ′ = ∀ {X} → Δ ∋tv X → Δ′ ∋tv X
+
+tvMono-underΛ : ∀ (Δ Δ′ : Ctxᵗ) → TvMono Δ Δ′
+  → TvMono (underΛ Δ) (underΛ Δ′)
+tvMono-underΛ Δ Δ′ f (α , here) = zero , here
+tvMono-underΛ Δ Δ′ f (α , there d) with shiftNames-∋⁻ d
+tvMono-underΛ Δ Δ′ f (α , there d) | β , refl , d′ with f (β , d′)
+tvMono-underΛ Δ Δ′ f (α , there d) | β , refl , d′ | γ , d″ =
+  suc γ , there (shiftNames-∋ d″)
+
+wf-mono : ∀ {A} (Δ Δ′ : Ctxᵗ) → TvMono Δ Δ′ → Δ ⊢ᵗ A → Δ′ ⊢ᵗ A
+wf-mono Δ Δ′ f (wf-var tv) = wf-var (f tv)
+wf-mono Δ Δ′ f wf-ℕ = wf-ℕ
+wf-mono Δ Δ′ f wf-𝔹 = wf-𝔹
+wf-mono Δ Δ′ f (wf-⇒ wA wB) =
+  wf-⇒ (wf-mono Δ Δ′ f wA) (wf-mono Δ Δ′ f wB)
+wf-mono Δ Δ′ f (wf-∀ wA) =
+  wf-∀ (wf-mono (underΛ Δ) (underΛ Δ′) (tvMono-underΛ Δ Δ′ f) wA)
+
+-- A parallel bind block renumbers representation variables and leaves
+-- every ordinary position where it was.
+shiftRVars-∋ : (k : ℕ) → η ∋ˡ X := α → shiftRVars k η ∋ˡ X := k + α
+shiftRVars-∋ k here = here
+shiftRVars-∋ k (there d) = there (shiftRVars-∋ k d)
+
+tvMono-extendReps : (Rs : List Ty) (Γ : Ctxᵗ) → TvMono Γ (extendReps Rs Γ)
+tvMono-extendReps Rs Γ (α , d) =
+  length Rs + α , shiftRVars-∋ (length Rs) d
+
+-- A representation VARIABLE crosses a bind block by addition.
+shiftRep-var : (k : ℕ) (α : ℕ) → shiftRep k (` α) ≡ ` (k + α)
+shiftRep-var zero α = refl
+shiftRep-var (suc k) α rewrite shiftRep-var k α = refl
+
 ------------------------------------------------------------------------
 -- §1b. Refining an abstract representation variable
 ------------------------------------------------------------------------
@@ -1114,6 +1160,19 @@ AddLock0Typing = ∀ {Δ W Θ s A P}
           , `∀ (renᶜ (extᵗ suc) s) ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
+-- The THIRD such transport, identified by the stage-2 `Peel` port
+-- (2026-09-19).  `Peel` moves its argument from the boundary's exterior
+-- to that exterior under the boundary's own representation bind block —
+-- `dual-interior`, strong.CtxMorph §3a.  The ordinary name map is
+-- untouched, so the argument's TYPE is unchanged; only representation
+-- occurrences inside the argument's own frames move, which is what
+-- `renᴹ² (ren² idᵗ (wkN (length Rs)))` does.
+RepWeakenTyping : Set
+RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+  → Δ ∣ [] ⊢ W ⦂ A
+  → extendReps Rs Δ ∣ []
+      ⊢ renᴹ² (ren² (λ X → X) (wkN (length Rs))) W ⦂ A
+
 wf-underΛ : WfCtx Δ → WfCtx (underΛ Δ)
 wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
   wf-ctx (wf-abstR wr) valid (unique-underΛ {Γ = Δ} uq)
@@ -1325,6 +1384,24 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 ------------------------------------------------------------------------
 -- §4. Preservation assembled over the downstream crossing cases
 ------------------------------------------------------------------------
+
+-- The three crossing cases stay module parameters HERE because their
+-- proofs live downstream and import this module.  Stage 2 (2026-09-19)
+-- settled all three; `strong.Preservation` is where the settlements are
+-- plugged in.
+--
+--   PeelCase     PROVED — `strong.proof.PeelDual.preserve-Peel`, modulo
+--                the representation-only weakening `RepWeakenTyping`
+--                above, which it takes as a module parameter.
+--   IdPushCase   PROVED outright —
+--                `strong.proof.MoveScope.preserve-IdPush`.
+--   CancelRCase  REFUTED — `notes/CancelRShiftWall.agda` proves
+--                `¬ CancelRCase`.  The rule's `SameTy Δ⋉ᶜ A′ Δᶜ A`
+--                premise reads the inner layer's identity type in the
+--                OUTER conversion context, so it omits the `numBinds Θ₁`
+--                shift that the inner `env`'s `SameTyExt` demands.  A
+--                rule repair is Jeremy's call; until then the statement
+--                below is the one the rule generates, and it is false.
 
 PeelCase : Set
 PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}

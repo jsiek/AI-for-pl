@@ -11,9 +11,17 @@ module strong.TypeSafety where
 -- run), and their composition type-safety — are STAGE-1 PARAMETERIZED:
 -- the statements are final, and the proofs are complete modulo the
 -- reviewed-before-implementation statements collected by `Stage1` below
--- (`MergedReading` for progress; `CrossΛTyping`, `AddLock0Typing` and
--- the three crossing cases for preservation).  No postulates: a missing
--- proof is a module parameter, visible in the type of `Stage1`.
+-- (`MergedReading` for progress; `CrossΛTyping`, `AddLock0Typing`,
+-- `RepWeakenTyping` and the refuted `CancelRCase` for preservation).  No
+-- postulates: a missing proof is a module parameter, visible in the type
+-- of `Stage1`.
+--
+-- ONE PARAMETER IS KNOWN FALSE.  `CancelRCase` has no proof and cannot
+-- have one: `notes/CancelRShiftWall.agda` refutes it for the rule as it
+-- stands (`cancelR-case-false : ¬ CancelRCase`).  So `preservation` and
+-- `type-safety` are, today, conditional on a false hypothesis — which is
+-- exactly the finding stage 2 has to report, and why a rule repair is the
+-- next thing this development needs.
 --
 -- Two statements CHANGED with the port, each against the old surface:
 --
@@ -87,18 +95,17 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
 
 module Stage1
   (merged-reading : PP.MergedReading)
-  (crossΛ   : P.CrossΛTyping)
-  (addLock0 : P.AddLock0Typing)
-  (peel     : P.PeelCase)
-  (cancel   : P.CancelRCase)
-  (idpush   : P.IdPushCase)
+  (crossΛ    : P.CrossΛTyping)
+  (addLock0  : P.AddLock0Typing)
+  (repWeaken : P.RepWeakenTyping)
+  (cancel    : P.CancelRCase)
   where
 
   private
     module Pr1 = Pr.Stage1 merged-reading
-    module Pv1 = Pv.Stage1 crossΛ addLock0 peel cancel idpush
+    module Pv1 = Pv.Stage1 crossΛ addLock0 repWeaken cancel
     module TS1 = TS.Stage1 merged-reading crossΛ addLock0
-                           peel cancel idpush
+                           repWeaken cancel
 
   progress : Progress
   progress = Pr1.progress

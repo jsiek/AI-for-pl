@@ -302,7 +302,9 @@ parameterized interface described in immediate-plan item 1 below, and
 stage 2 (item 2) discharged two of its three crossing cases and REFUTED
 the third — `CancelR`'s contractum is untypeable whenever the cancelled
 inner boundary binds a representation variable and the cancelled binder's
-payload is open (notes/CancelRShiftWall.agda). Canonical
+payload is open (notes/CancelRShiftWall.agda), and that configuration is
+REACHABLE from a closed, plain source program
+(notes/CancelRReachabilityWitness.agda, 2026-09-19). Canonical
 forms now pass against the relational `env` interface as well. Stage-1
 progress passes too: its public logical statement stays premise-free, while
 the proof is parameterized by the new `MergedReading` invariant pending
@@ -504,6 +506,30 @@ is the review items and `CancelR`'s rule repair.
      context — `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ` with `Aᵢ` the cancelled `seal X`'s
      source, plus the reading `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` the rule does not yet
      carry. **A rule change is Jeremy's call; nothing was changed.**
+
+     **THE CONFIGURATION IS REACHABLE (2026-09-19), so the second repair
+     path is closed.** Jeremy asked for a source program that reduces to
+     it, and there is one:
+
+         Src = ((ΛP. λp:P. ((ΛX. λf:(∀Z. Z⇒X). f [ℕ] · 7) [P])
+                              · (ΛZ. λz:Z. p)) [ℕ]) · 7  :  ℕ
+
+     closed, plain, boundary-free. In nine steps it reaches a `CancelR`
+     redex with `numBinds Θ₁ ≡ 1` and a cancelled binder whose payload is
+     a representation VARIABLE; the tenth step is the `CancelR`, `eval`
+     records it as `broke`, and the contractum is refuted by an explicit
+     `¬`. The conversion context the run builds for `Θ₂` is
+     `notes/CancelRShiftWall.agda`'s hand-built `Δ*` on the nose. The
+     wall's reason for hoping otherwise — a bare `seal` is minted only on
+     a `Peel` dual frame — overlooked that `Peel` mints TWO boundaries and
+     leaves the CODOMAIN conversion on its own frame, which binds when
+     that boundary came from `TyPeelR`. Two controls (drop either
+     conjunct) run to a value. So there is no invariant `numBinds Θ₁ ≡ 0`
+     to carry, and repair (a) is the only path left; on this contractum
+     the shifted spelling repair (a) delivers — `mkId (` 2)` in place of
+     `mkId (` 1)` — retypes it, checked. See
+     `notes/CancelRReachabilityWitness.agda` and
+     `notes/CancelRReachability.md`.
 
    Consequently `strong.Preservation.Stage1` now takes `crossΛ`,
    `addLock0`, `repWeaken` and `cancel` — `peel` and `idpush` are gone —

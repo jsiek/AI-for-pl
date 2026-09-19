@@ -3646,3 +3646,82 @@ two-universe design rather than a display choice:
 that fired at each step (`ruleName` reports the rule INSIDE a
 congruence), which is what `scripts/render_term.sh` was always being
 used for by hand. That script needed no change.
+
+## 2026-09-19 — the `CancelR` configuration is REACHABLE, and path (b) dies
+
+THE QUESTION, Jeremy's, verbatim: "For the CancelR problem and repair, do
+you have an example source program that reduces to the problematic
+configuration?"  YES.  The program is
+
+    Src = ((ΛP. λp:P. ((ΛX. λf:(∀Z. Z⇒X). f [ℕ] · 7) [P])
+                         · (ΛZ. λz:Z. p)) [ℕ]) · 7  :  ℕ
+
+closed, plain System F: not a boundary, morphism or conversion anywhere in
+the source.  Nine steps — TyBeta, Peel, Beta, TyBeta, Peel, Beta,
+TyPeelR-Λ, Peel, Beta — reach
+
+    (((($ 7 ⟪ ↓X , seal X ⟫) ⟪ ↓Z , id X ⟫)
+        ⟪ ↑γ:=ℕ , ↥Z , ↓Y , seal Y ⟫)      -- Θ₁, numBinds ≡ 1
+       ⟪ ↑β:=α , ↥Y , unseal Y ⟫)          -- Θ₂, payload the rep VARIABLE α
+      ⟪ ↑α:=ℕ , ↥X , unseal X ⟫
+
+and the tenth step is the `CancelR`.  `eval` records it as `broke`, and
+`no-contractum` refutes the contractum outright — an explicit `¬`, not the
+checker's refusal.  BOTH conjuncts of the defect hold at once, which is
+what no earlier example achieved.  The conversion context the run builds
+for `Θ₂` is `notes/CancelRShiftWall.agda`'s hand-built `Δ*` ON THE NOSE:
+`(bindR (` 0) ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])`, with `Δ* ∋ 0 := ` 1` and
+`` ` 1 `` denoting representation `` ` 1 ``.  The wall was not a synthetic
+configuration after all.
+
+WHERE THE UNREACHABILITY ARGUMENT WENT WRONG.  The wall module said a bare
+`seal X` conversion "is minted by exactly one rule — `Peel`, on the
+crossing argument — whose frame is `dualMorph Θ`".  `Peel` mints TWO
+boundaries:
+
+    Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
+      -→ (V · (… ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫
+
+Only the ARGUMENT's carries the dual.  The RESULT keeps `Θ` and takes the
+CODOMAIN `t`, so a bare `seal` sits on `Θ` whenever `t` is one — and `Θ`
+binds when that boundary came from `TyPeelR`, whose mint is
+`instReveal 0 s` on `instantiate R Θ₀` and whose `instReveal X (seal Y) ≡
+seal Y` carries a `seal` leaf across untouched.  What was still needed was
+a `↦` with a bare `seal` CODOMAIN, i.e. a `conceal` at the abstracted
+variable to the RIGHT of an `⇒` and UNDER a `∀`:
+
+    conceal 0 (∀Z. Z ⇒ X) ≡ `∀ (id (` 0) ↦ seal 1)
+
+which is `TyBeta`'s mint at an argument of type `∀Z. Z ⇒ X`.  No program
+in the twelve-run suite or in `Examples.agda` ever passed an argument
+whose polymorphic type RETURNS the abstracted variable — example 9 has
+`∀Z. Z ⇒ X`, but as the PAYLOAD of a type application, so its seal leaf
+never meets a `TyPeelR`.  That was the gap.  The open representation is
+then the same trick `Examples.agda` §1c uses for `IdPush`: instantiate at
+an enclosing `Λ`'s variable, `[P]` and not `[ℕ]`.
+
+EACH CONJUNCT ALONE IS STILL HARMLESS, and now that is a regression rather
+than a remark.  Two controls, §7 of the witness module: the same program
+instantiated at `ℕ` (so `numBinds Θ₁ ≡ 1` but the payload is closed) runs
+to `5` in nine steps; the same program with a FIRST-ORDER crossing
+argument `ℕ ⇒ X` (so the payload is still α but the seal stays on the
+`Peel` dual, `numBinds Θ₁ ≡ 0`) runs to `7` in seventeen.
+
+THE CONSEQUENCE FOR THE REPAIR.  Path (b) — prove and carry the invariant
+`numBinds Θ₁ ≡ 0` — is CLOSED: the invariant is FALSE at a reachable
+redex.  Path (a) is what is left, and it is confirmed on this example:
+with the premise read against the inner boundary's own conversion context,
+`Δ₁ᶜ = conv Θ₁ (int Θ₂ Δ₉) = (bindR `ℕ ∷ bindR (` 0) ∷ bindR `ℕ ∷ []) ∣
+(0 ∷ 1 ∷ 2 ∷ [])`, the cancelled `seal 1`'s source is `Δ₁ᶜ ∋ 1 := ` 2`, so
+the repaired premise delivers `A′ ≡ ` 2` where the rule as stated delivers
+`A′ ≡ ` 1` — and the contractum built with `mkId (` 2)` IS well typed
+(`repaired-⊢`).  What is NOT answered here is whether that premise is
+always satisfiable, the analogue of `peel-premises` for `CancelR`.
+
+THE RULING: STILL NOTHING IS CHANGED.  `strong.Reduction` is untouched,
+`strong.proof.Preserve` keeps `CancelRCase` as the open parameter it was,
+and the public preservation and type-safety theorems stay conditional on a
+hypothesis now known false FOR A REACHABLE REDEX rather than only for a
+hand-built one.  The evidence is `notes/CancelRReachabilityWitness.agda`
+(in `All.agda`, which stays green) with the hunt log in
+`notes/CancelRReachability.md`.

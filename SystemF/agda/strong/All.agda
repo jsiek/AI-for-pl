@@ -23,6 +23,7 @@ open import strong.notes.ReUnlockWall
 open import strong.notes.ForallPayloadWall
 open import strong.notes.CrossingAudit
 open import strong.notes.CancelRShiftWall
+open import strong.notes.CancelRReachabilityWitness
 open import strong.notes.PeelPremise
 
 -- the main theorems

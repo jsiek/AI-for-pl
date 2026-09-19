@@ -65,11 +65,12 @@ open import strong.proof.Canonicity
 -- measure that makes the wrapper clause of TyPeelR terminate.
 open import strong.proof.ShiftAudit
 
--- THE FRONTIER (2026-09-19).  Everything above type-checks.  The
--- regression corpus and the renderer are the remaining old-design
--- modules; `Examples.agda` is the big one, and it is the same
--- transcription problem the reduction traces had — port it onto
--- `TypeCheck.agda` rather than rewriting its boundary typings by hand
--- (notes/PLAN.md item 6).  `Show.agda` follows it.
+-- THE LIVING REGRESSION AND THE RENDERER (ported 2026-09-19, closing the
+-- frontier).  `strong.Examples` is closed programs, their runs, their
+-- typings and the refutations that still hold, stated through
+-- `TypeCheck.agda`/`Eval.agda` rather than by hand-written boundary
+-- derivations; `strong.Show` renders de Bruijn terms with names, printing
+-- the two universes differently (X names α) and a whole run with the rule
+-- that fired at each step.
 open import strong.Examples
 open import strong.Show

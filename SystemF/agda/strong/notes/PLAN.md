@@ -306,9 +306,37 @@ payload is open (notes/CancelRShiftWall.agda). Canonical
 forms now pass against the relational `env` interface as well. Stage-1
 progress passes too: its public logical statement stays premise-free, while
 the proof is parameterized by the new `MergedReading` invariant pending
-review. The module sweep of item 6 is done: every remaining old-design proof
-script is either ported or deleted, and `All.agda`'s first failure is now
-`Examples.agda:128`, on the retired `unmasked` constructor.
+review.
+
+**THE FRONTIER IS CLOSED (2026-09-19).** The module sweep of item 6 is done
+— every old-design proof script is either ported or deleted — and so are the
+last two modules, `Examples.agda` and `Show.agda`.
+
+```
+agda --safe --no-allow-unsolved-metas -v0 All.agda    # exit 0
+make check                                            # exit 0
+```
+
+`make check` runs `agda --safe -v0 All.agda` plus `make postulate-check`,
+which is clean: no postulates, holes or unsafe pragmas anywhere in the
+development. A cold aggregate check is about 12s.
+
+`Examples.agda` went from 3763 lines of hand-written boundary derivations
+over the retired masked-entry design to about 540 lines stated through
+`TypeCheck.agda` and `Eval.agda`: eight closed programs with their runs and
+typings, three hand-built boundary runs at a NON-EMPTY ambient (the only
+place a state-by-state transcript is still written out), the three `substᵐ`
+crossing equations, and the refutations that survive. What was dropped, and
+where each verdict now lives, is in the module's header charter and in
+`notes/DECISIONS.md` (2026-09-19). `Show.agda` renders the two universes
+DIFFERENTLY — a representation variable as α, β, γ and the ordinary variable
+that names it as X, Y, Z at the same position — and renders a whole run,
+with the rule that fired at each step, through `showRun`.
+
+What is left on this branch is therefore not module porting. It is the
+three representation-only typing transports and `MergedReading` awaiting
+review (items 1, 2, 6), and `CancelR`'s refuted preservation case awaiting
+Jeremy's rule repair (item 2).
 
 ## Resuming on another machine
 
@@ -322,26 +350,36 @@ What compiles, from `SystemF/agda/strong/`:
 agda --safe --no-allow-unsolved-metas -v0 All.agda
 ```
 
-stops at the FIRST unported dependency, `Examples.agda`, at line 128 on the
-retired `unmasked` constructor. The core, `Reduction`, `TypeCheck`, `Eval`,
-the notes modules, canonical forms, stage-1 `proof/Preserve.agda`, stage-1
-`proof/Progress.agda`, their honest parameterized public wrappers, and the
-whole ported proof-script suite — `proof/Adversary.agda`,
-`proof/IdLayer.agda`, `proof/Canonicity.agda`, `proof/ShiftAudit.agda` —
-all pass before that frontier. Only `Examples.agda` and `Show.agda` remain.
+PASSES — every module, with exit code 0 — as does `make check`, which adds
+`make postulate-check`. There is no unported module left: the core,
+`Reduction`, `TypeCheck`, `Eval`, the notes modules, canonical forms,
+stage-1 `proof/Preserve.agda`, stage-1 `proof/Progress.agda`, their honest
+parameterized public wrappers, the whole ported proof-script suite —
+`proof/Adversary.agda`, `proof/IdLayer.agda`, `proof/Canonicity.agda`,
+`proof/ShiftAudit.agda` — and, since 2026-09-19, `Examples.agda` and
+`Show.agda`.
 
-The twelve-example suite alone is about 7.4s cold:
+The twelve-example suite alone is about 7.4s cold, the whole development
+about 12s:
 
 ```
 agda --safe -v0 notes/RepresentationReductionExamples.agda
+```
+
+To READ a term, a run or a type context rather than transcribe it:
+
+```
+scripts/render_term.sh 'showRun 0 11 Q₀-⊢' 'open import strong.Examples'
+scripts/render_term.sh 'showTCtx Δ₆'       'open import strong.Examples'
 ```
 
 Where the open threads are: item 1's stage-1 preservation port is done;
 stage 2 proved `IdPush` and `Peel` and REFUTED `CancelR` (item 2); three
 representation-only typing transports now await review;
 item 3's rewind transport and item 4's rule-set cleanup are done; canonical
-forms are done; item 6's progress port is done modulo `MergedReading`, its
-module sweep is done, and the frontier is now `Examples.agda`.
+forms are done; item 6's progress port is done modulo `MergedReading`, and
+its module sweep and the two remaining ports are done. The ONLY open work
+is the review items and `CancelR`'s rule repair.
 
 ## Immediate plans
 
@@ -576,17 +614,27 @@ module sweep is done, and the frontier is now `Examples.agda`.
    about masked entries, `_⊢ᵐ_`, `∋lk` and computed-context equalities.
    See notes/DECISIONS.md, 2026-09-19.
 
-   `All.agda` consequently reaches `Examples.agda:128`, on the retired
-   `unmasked` constructor.
-
-   `Examples.agda` is the big one, and it is the same transcription problem
-   the reduction traces had: port it onto `TypeCheck.agda` rather than
-   rewriting its boundary typings by hand. Note that it still imports
-   `strong.proof.PreserveObstruct` (twice), which no longer exists; those
-   two sections must be rebuilt or dropped in the port.
-7. Run `agda --no-allow-unsolved-metas -v0 All.agda` from
-   `SystemF/agda/strong/`, then update the design notes with the final
-   invariants and proof lessons.
+   **AND THE LAST TWO MODULES ARE DONE (2026-09-19).** `Examples.agda` was
+   ported the way the reduction traces were — onto `TypeCheck.agda` and
+   `Eval.agda`, one `Reaches` statement per run, rather than by rewriting
+   its boundary typings by hand. The old file's closed plain-source
+   programs survive as runs (`Q`, `D`, `L`, `R`, `G`, `H`, and the
+   base-typed wrapper `Bg`); its two programs that the twelve-run suite
+   already covers are cited, not duplicated; its hand-built stacks are
+   rebuilt at a non-empty ambient (`Tcancel`, `Tid`, `Tid₂`, the only
+   state-by-state transcripts left); its `substᵐ` regressions are kept,
+   including the one this branch turns on — an image crossing a `Λ` moves
+   in the REPRESENTATION universe only, so its `seal 0` is unchanged where
+   the one-universe design renamed it to `seal 1`; and everything about
+   masking, `⊳`, the retired rule shapes, `proof/PreserveObstruct` and
+   computed-context tightness is dropped, with the header charter saying
+   where each verdict now lives. `Show.agda` follows, rendering the two
+   universes differently and adding `showRun`.
+7. **DONE (2026-09-19).** `agda --safe --no-allow-unsolved-metas -v0
+   All.agda` passes from `SystemF/agda/strong/`, and so does `make check`
+   (`agda --safe -v0 All.agda` plus `make postulate-check`). See the
+   status section above; what remains is review and the `CancelR` repair,
+   not porting.
 
 This draft branch should remain experimental until the preservation proof
 succeeds. The fourth trace is done, and it shows that determinism plus the

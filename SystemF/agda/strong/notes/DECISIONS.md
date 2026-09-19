@@ -3532,3 +3532,117 @@ against the live rules or dropped when the corpus is ported. Several
 comments in `strong.Reduction` still name the four deleted modules; they
 are left as they stand because that file is not to be edited in this
 sweep.
+
+## 2026-09-19 — the regression corpus and the renderer: the frontier closes
+
+`All.agda` now passes end to end, and so does `make check`. The two
+modules that stood between it and the gate were `Examples.agda` (3763
+lines) and `Show.agda`; both are ported, and nothing in the development
+is postulated, holed or unported.
+
+THE RULE THE PORT FOLLOWED, section by section, is the branch's
+closed-world rule again: a section whose PROGRAM still makes sense is
+rebuilt as a run stated through `TypeCheck.agda`/`Eval.agda`; a section
+whose subject IS the retired design is dropped, with one line saying
+where its verdict lives; a section the twelve-run suite already covers is
+CITED rather than duplicated.
+
+WHAT WAS REBUILT AS A RUN. Each is one `Reaches k n ⊢M V`, so each run is
+evaluated once and every intermediate state is type-checked by `eval` at
+the type the run started with.
+
+* old §11 `Q` — `((ΛY. λx:Y. ((ΛZ. x) [ℕ])) [ℕ]) · 7`, the smallest
+  closed program that reaches `IdPush`, since a VACUOUS `Λ` is what makes
+  `TyBeta` mint an identity-at-a-variable layer. 11 steps to `7`, the
+  same length as in the old design.
+* old §11a `D` — two vacuous `Λ`s, so `IdPush` fires twice: 16 steps.
+* old §12 `L` — `Q` with the vacuous `Λ` instantiated at the OUTER
+  ordinary variable, which is the "wall" configuration: the chained
+  representation with a `Peel`-minted lock on the very name it was read
+  through. 11 steps, every state typed. The reading is unchanged by the
+  port: the wall CONTEXT is reachable, the wall CONFIGURATION is not,
+  because the blocked name is always in a `Θ₁` (inert) position.
+* old §11b `R` — the chained-representation variant, 21 steps.
+* old §11c `G` — the only closed source that reaches `TyPeelR` over a
+  frame that already has a bind, hence the only route to a two-bind
+  frame. In the old design its run stopped after 5 steps at a non-value;
+  here it runs to `7` in 14. Its `numBinds` table is kept and restated on
+  the live frames (`instantiate`, `dualMorph`, `addLock0 ∘ renᴮ²`, `_⋉_`,
+  `rewind`), because it is what explains why no example ever saw the
+  `CancelR` defect: `Peel`'s dual binds nothing.
+* old §13b `H` — the REVEAL mirror, where the `∀` crosses OUTWARD as a
+  result. Applied to an argument so that it ends at a numeral: 11 steps.
+* old §7's `Bg` — the base-typed crossing wrapper, 2 steps to `Λ 7`.
+
+WHAT WAS REBUILT AS A HAND-BUILT RUN AT A NON-EMPTY AMBIENT. Every run
+above starts at `empty`; old §§1–3 did not, and that coverage was worth
+keeping. At `Δ₆ = (bindR ℕ ∣ names 0)` the corpus now carries the cancel
+pair (3 steps), one transparent id-layer (5) and two (7) — the stack
+resolving one layer per step, outermost first, exactly as the old §3
+observed. These three are the ONLY places a state-by-state transcript is
+still written out; two of them are pinned with `evalTerms`, which is the
+old file's second, independent transcription kept where it costs nothing.
+
+WHAT WAS CITED, NOT DUPLICATED. Old §13a `J` is the twelve-run suite's
+§3 and old §14 `E` — the program that killed the per-variable design,
+v1's historical Example 8 — is its §4. Both run there; repeating them
+would only pay for the evaluation twice.
+
+WHAT WAS DROPPED, AND WHY EACH.
+
+* old §4 (`Tᵣ`/`Tₘ`, the adversaries the retired `⊳` could not clear) —
+  `⊳` does not exist. The gate is `proof/Adversary.agda`, which on this
+  branch refuses a conceal for two independent reasons.
+* old §5 (the three preservation BREAKS of the PREVIOUS design and the
+  shape-IV survivor) — hand-built redexes in `unmasked (bind …)`
+  contexts refuting rule shapes that are gone. The live verdicts are
+  `proof/Preserve.agda`, `proof/MoveScope.agda`, `proof/PeelDual.agda`,
+  and the one refutation that survives, `notes/CancelRShiftWall.agda`.
+* old §6 — `P₀`, which is the suite's §1; its hand-composed chain and
+  pinned `evalTerms` line are what the suite replaced.
+* old §8, §9 (progress and preservation along a run) — both theorems sit
+  inside parameterized modules today and one parameter is known FALSE,
+  so applying them to a run would state a conditional. The run-level
+  subject reduction in the corpus is the one `eval` CHECKS, state by
+  state, and `reaches-⦂` hands the endpoint's typing back.
+* old §12b, and the witnesses old §13a/§13b imported — they came from
+  `strong.proof.PreserveObstruct`, deleted in the module sweep.
+* old §15 (TIGHTNESS, RULE BY RULE) — its seven frame identities were
+  EQUATIONS BETWEEN COMPUTED CONTEXTS, and there are no computed
+  contexts here. They are now the relational transports `dual-interior`,
+  `rewind-interior`, `rewind-conversion` and `merged-interior`
+  (`strong.CtxMorph` §3a), and `proof/ShiftAudit.agda` is what consumes
+  them.
+
+WHAT WAS ADDED. A refutation section, because the port is only worth
+having if its checks bite: a boundary over an ACTIVE conversion is not a
+value; `infer` refuses `(ΛZ. z) [Z]`, an unbound ordinary type argument;
+and a wrong endpoint, a wrong step count and too little fuel are each
+rejected by `Reaches`.
+
+THE RENDERER NOW SHOWS THE TWO UNIVERSES DIFFERENTLY, which is the whole
+point of porting it rather than deleting it. A representation variable
+prints as α, β, γ (then α′, …) and the ORDINARY variable that names it
+prints as the Latin letter at the same counter — X names α, Y names β.
+So a boundary reads `⟪ ↑α:=ℕ , ↥X , (seal X ↦ unseal X) ⟫`, and a change
+whose letter does not match the representation it carries is visibly
+wrong, which is the defect class the 2026-09-18 repairs were about.
+Three further things the port had to get right, each a consequence of the
+two-universe design rather than a display choice:
+
+* the rendering environment IS the context: a representation context of
+  named entries plus the ordinary name map `names Γ`, so an ordinary
+  variable's name is a TWO-STEP lookup, a `lock` DELETES an entry of the
+  map and an `unlock` INSERTS one;
+* a boundary's body is rendered on the INTERIOR reading and its
+  conversion on the CONVERSION reading — locks skipped, a re-unlock of a
+  live name a no-op — because those two name maps genuinely differ;
+* the changes print IN THE ORDER THEY ACT, which is the list read
+  head-LAST, and a bind payload prints in the representation universe
+  over the EXTERIOR representation context, because the bind block is
+  parallel.
+
+`showRun` renders a whole `strong.Eval` trace with the name of the rule
+that fired at each step (`ruleName` reports the rule INSIDE a
+congruence), which is what `scripts/render_term.sh` was always being
+used for by hand. That script needed no change.

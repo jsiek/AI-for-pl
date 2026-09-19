@@ -563,10 +563,21 @@ is the review items and `CancelR`'s rule repair.
    context readings, lookup/re-spelling evidence and conversion typings
    the reduction rules retain. The twelve `Reaches` statements remain
    unchanged.
-5. Re-audit every rule that crosses a `Λ` or a morphism bind prefix. At each
-   crossing, state separately how ordinary indices and representation indices
-   move, AND in which of the two contexts each spelling is read — that last
-   question is what the 2026-09-18 defect turns on.
+5. **DISCHARGED BY THE PORT (2026-09-19).** Re-audit every rule that
+   crosses a `Λ` or a morphism bind prefix, stating separately how the two
+   index universes move and in which context each spelling is read. The
+   preservation and progress ports ARE that audit, rule by rule, and its
+   verdict is now machine-checked rather than narrated: every crossing
+   spelling is either PROVEN sound (`TyBeta`, `Beta` and `TyPeelR-⟪⟫`
+   modulo the three transports under review; `TyPeelR-Λ`, `Drop$`,
+   `Drop-true/false` outright; `IdPush` in `proof/MoveScope.agda`; `Peel`
+   in `proof/PeelDual.agda` modulo `RepWeakenTyping`) or REFUTED
+   (`CancelR`'s inner `mkId` reads its type UNSHIFTED where the inner
+   `env` demands `shiftBy (numBinds Θ₁)` — `notes/CancelRShiftWall.agda`,
+   the fourth crossing defect, exactly the read-context question this
+   item was written to ask). The per-site movement facts live in the
+   ported `proof/ShiftAudit.agda`; the headline is that every move but
+   TyBeta's is representation-only.
 6. **CANONICAL FORMS AND STAGE-1 PROGRESS DONE (2026-09-19); NEXT:
    `MergedReading` REVIEW, THEN TYPE SAFETY.** Canonical forms
    invert the exterior `SameTyExt` premise through its common representation

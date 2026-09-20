@@ -32,7 +32,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans; cong₂; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ;
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ;
          ⇑ᵗ)
 open import strong.Ctx
 open import strong.CtxMorph
@@ -118,7 +118,7 @@ data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
 -- 2b.  Two spellings of one conversion
 ------------------------------------------------------------------------
 
--- `SameTy` (strong.Ctx §5) relates two ordinary spellings of ONE
+-- `_⊢_≈_⊣_` (strong.Ctx §5) relates two ordinary spellings of ONE
 -- representation-universe type.  This is the same thing for a CONVERSION,
 -- and it exists for the same reason: a rule that carries a conversion
 -- from one name map to another cannot reuse the spelling, because the two

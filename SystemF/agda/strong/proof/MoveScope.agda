@@ -58,7 +58,8 @@ open import strong.proof.Preserve
 ------------------------------------------------------------------------
 
 -- Two ordinary spellings of ONE representation variable.  Both sides of a
--- `SameTy` between variables are `same-var`s, so the judgement is a pair
+-- `_⊢_≈_⊣_` between variables are `same-var`s, so the judgement is a
+-- pair
 -- of lookups at a common representation variable.
 sameTy-var : ∀ {η η′ : TyCtx} {X Y : ℕ}
   → ∃[ R ] ((η ⊢ ` X ~ R) × (η′ ⊢ ` Y ~ R))
@@ -219,7 +220,7 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
            (merged-interior (mw-interior mw₂) (mw-interior mw₁))
            r⋉
 
-  innerᵢ : SameTy Δ₁ᵢ B₁ Δ⋉ᶜ (` X′)
+  innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ ` X′ ⊣ Δ⋉ᶜ
   innerᵢ =
     ` αX
     , subst (λ a → names Δ₁ᵢ ⊢ B₁ ~ ` a)
@@ -238,7 +239,7 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   inner = env mw⋉ ⊢V (conv-unseal dA″) innerᵢ innerₑ
               (wf-mono Δ Δᵣᵢ (tvMono-extendReps (binds Θ₂) Δ) wE)
 
-  outerᵢ : SameTy Δᵣᵢ C Δᶜ A
+  outerᵢ : Δᵣᵢ ⊢ C ≈ A ⊣ Δᶜ
   outerᵢ = shiftBy m Rc , pCᵣ , pA
 
 ------------------------------------------------------------------------
@@ -415,7 +416,7 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
            (merged-interior (mw-interior mw₂) (mw-interior mw₁))
            r⋉
 
-  innerᵢ : SameTy Δ₁ᵢ B₁ Δ⋉ᶜ A′
+  innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ A′ ⊣ Δ⋉ᶜ
   innerᵢ =
     RA′
     , subst (λ T → names Δ₁ᵢ ⊢ B₁ ~ T)
@@ -434,5 +435,5 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   inner = env mw⋉ ⊢V (mkId-⊢ (same-wf qA′)) innerᵢ innerₑ
               (wf-mono Δ Δᵣᵢ (tvMono-extendReps (binds Θ₂) Δ) wE)
 
-  outerᵢ : SameTy Δᵣᵢ C Δᶜ A
+  outerᵢ : Δᵣᵢ ⊢ C ≈ A ⊣ Δᶜ
   outerᵢ = shiftBy m Rc , pCᵣ , pA

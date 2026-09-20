@@ -82,12 +82,12 @@ infix 4 _∣_⊢χᶜ°_⇒_
 data _∣_⊢χᶜ°_⇒_ (Ξ : RepCtx)
   : TyCtx → List Change → TyCtx → Set where
   conv°[] : ∀ {Δ} → Ξ ∣ Δ ⊢χᶜ° [] ⇒ Δ
-  conv°-lock : ∀ {Δ₁ Δ₂ χ X α} → ValidRVar Ξ α
+  conv°-lock : ∀ {Δ₁ Δ₂ χ X α} → Ξ ∋ʳ α
     → Ξ ∣ Δ₁ ⊢χᶜ° χ ⇒ Δ₂
     → Ξ ∣ Δ₁ ⊢χᶜ° lock X α ∷ χ ⇒ Δ₂
-  conv°-unlock : ∀ {Δ₁ Δ₂ Δ₃ χ X α} → ValidRVar Ξ α
+  conv°-unlock : ∀ {Δ₁ Δ₂ Δ₃ χ X α} → Ξ ∋ʳ α
     → Ξ ∣ Δ₁ ⊢χᶜ° χ ⇒ Δ₂
-    → Fresh α Δ₂
+    → Δ₂ ∌ʳ α
     → α ⊢+ Δ₂ at X ⇒ Δ₃
     → Ξ ∣ Δ₁ ⊢χᶜ° unlock X α ∷ χ ⇒ Δ₃
 

@@ -260,7 +260,7 @@ push-refines : (Rs : List Ty) → RepRefines Ξ Ξ′
 push-refines [] rr = rr
 push-refines (R ∷ Rs) rr = rr-bind (push-refines Rs rr)
 
-valid-refine : RepRefines Ξ Ξ′ → ValidRVar Ξ α → ValidRVar Ξ′ α
+valid-refine : RepRefines Ξ Ξ′ → Ξ ∋ʳ α → Ξ′ ∋ʳ α
 valid-refine rr (S , d) = lookup-refine rr d
 
 step-refine : RepRefines Ξ Ξ′ → Ξ ∣ η ⊢δ δ ⇒ η′
@@ -978,7 +978,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
   conv rewrite sym (subst-at-0 A B) =
     ⊢reveal (represented-lookup p) (wf-refine refine wB)
 
-  sameᵢ : SameTy ΔR B ΔR B
+  sameᵢ : ΔR ⊢ B ≈ B ⊣ ΔR
   sameᵢ with wf-same (wf-refine refine wB)
   sameᵢ | S , q = S , q , q
 
@@ -1057,7 +1057,7 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
 
   conv = ⊢instReveal 0 pᶜ ⊢s
 
-  sameᵢ′ : SameTy ΔRᵢ _ ΔRᶜ Bᵢ
+  sameᵢ′ : ΔRᵢ ⊢ _ ≈ Bᵢ ⊣ ΔRᶜ
   sameᵢ′ = sameTy-∀⁻ sameᵢ
 
   wFinal = wf-[]ᵗ (wf-∀⁻ wE) wA
@@ -1256,7 +1256,7 @@ wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
 ⇑ᴵ-⊢1 cross {Δ = Δ} wfΔ (⊢ival w ⊢W) =
   ⊢ival (wf-ren (WfRen-wk {Δ = Δ}) w) (cross wfΔ w ⊢W)
 
-⇑ᴵ-⊢ : CrossΛTyping → ∀ {σ : ℕ → Img} {Δ Γ Γ′}
+⇑ᴵ-⊢ : CrossΛTyping → ∀ {σ : Var → Img} {Δ Γ Γ′}
   → WfCtx Δ
   → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∣ Γ′ ⊢ⁱ σ x ⦂ B)
   → (∀ {x B} → ⤊ Γ ∋ x ⦂ B
@@ -1264,7 +1264,7 @@ wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
 ⇑ᴵ-⊢ cross wfΔ h d with ∋-map⁻ d
 ⇑ᴵ-⊢ cross wfΔ h d | A , refl , q = ⇑ᴵ-⊢1 cross wfΔ (h q)
 
-⊢substᴹ : CrossΛTyping → ∀ {σ : ℕ → Img} {Δ Γ Γ′ N B}
+⊢substᴹ : CrossΛTyping → ∀ {σ : Var → Img} {Δ Γ Γ′ N B}
   → WfCtx Δ
   → (∀ {x A} → Γ ∋ x ⦂ A → Δ ∣ Γ′ ⊢ⁱ σ x ⦂ A)
   → Δ ∣ Γ ⊢ N ⦂ B
@@ -1324,7 +1324,7 @@ preserve-TyPeelR-⟪⟫ : AddLock0Typing
       (underΛ
         (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′
   → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
-  → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+  → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢
       ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
@@ -1510,7 +1510,7 @@ CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → Δ₁ᶜ ∋ X := Aᵢ
   → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-  → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
+  → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
   → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
@@ -1523,7 +1523,7 @@ IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A C}
   → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-  → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X)
+  → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
   → Δ ∣ [] ⊢

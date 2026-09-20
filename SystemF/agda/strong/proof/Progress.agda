@@ -54,18 +54,18 @@ wf-same (wf-⇒ wA wB) | R , p | S , q = R ⇒ S , same-⇒ p q
 wf-same (wf-∀ wA) with wf-same wA
 wf-same (wf-∀ wA) | R , p = `∀ R , same-∀ p
 
-sameTy-base-src : Base A → SameTy Δ B Δ′ A → B ≡ A
+sameTy-base-src : Base A → Δ ⊢ B ≈ A ⊣ Δ′ → B ≡ A
 sameTy-base-src base-ℕ (`ℕ , same-ℕ , same-ℕ) = refl
 sameTy-base-src base-𝔹 (`𝔹 , same-𝔹 , same-𝔹) = refl
 
-sameTy-target-var⁻ : SameTy Δ A Δ′ (` X)
-  → Σ[ Y ∈ ℕ ] ((A ≡ ` Y) × SameTy Δ (` Y) Δ′ (` X))
+sameTy-target-var⁻ : Δ ⊢ A ≈ ` X ⊣ Δ′
+  → Σ[ Y ∈ ℕ ] ((A ≡ ` Y) × (Δ ⊢ ` Y ≈ ` X ⊣ Δ′))
 sameTy-target-var⁻ (` α , same-var p , same-var q) =
   _ , refl , (` α , same-var p , same-var q)
 
-sameTy-target-∀⁻ : SameTy Δ A Δ′ (`∀ B)
-  → Σ[ A₀ ∈ Ty ] ((A ≡ `∀ A₀) × SameTy (underΛ Δ) A₀
-                                                (underΛ Δ′) B)
+sameTy-target-∀⁻ : Δ ⊢ A ≈ `∀ B ⊣ Δ′
+  → Σ[ A₀ ∈ Ty ] ((A ≡ `∀ A₀)
+      × (underΛ Δ ⊢ A₀ ≈ B ⊣ underΛ Δ′))
 sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
   _ , refl , (R , p , q)
 
@@ -81,7 +81,7 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
 --   * `IdPush` moves a variable read at the same context.
 --
 -- `` ⊆ᵃ states only name availability.  strong.Conversion.respell-ty then
--- constructs the `SameTy` premise at the exact type being moved.
+-- constructs the `_⊢_≈_⊣_` premise at the exact type being moved.
 --
 -- NOTE, PENDING REVIEW.  With `CancelR` repaired, BOTH id-layer rules now
 -- read at `Δ₁ᶜ`, so this proof no longer consumes the outer
@@ -171,7 +171,7 @@ module Impl (merged-reading : MergedReading) where
     → Value M
     → MorphWf Δ Θ Δᵢ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
-    → SameTy Δᵢ Bᵢ Δᶜ (` Y)
+    → Δᵢ ⊢ Bᵢ ≈ ` Y ⊣ Δᶜ
     → Δᶜ ∋ Y := A
     → Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , unseal Y ⟫ -→ M′)
   progress-unseal {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v mwΘ ⊢M sameᵢ d
@@ -226,7 +226,7 @@ module Impl (merged-reading : MergedReading) where
     → MorphWf Δ Θ Δᵢ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
     → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
-    → SameTy Δᵢ Bᵢ Δᶜ Cᵢ
+    → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
     → Value (M ⟪ Θ , c ⟫)
       ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′))
   progress-env v mwΘ ⊢M ⊢c sameᵢ with act-or-inert ⊢c
@@ -258,7 +258,8 @@ module Impl (merged-reading : MergedReading) where
     | Δᵈ , s′ , rd , sc =
     _ , Peel vW vM (mw-conversion mwΘ) (mw-interior mwΘ) rd sc
 
-  -- The outer conversion's `SameTy` premise exposes the interior ∀ body and
+  -- The outer conversion's `_⊢_≈_⊣_` premise exposes the interior ∀
+  -- body and
   -- is exactly TyPeelR-⟪⟫'s re-spelling premise.
   progress-·[]-∀conv : ∀ {Δ V Θ s B A C}
     → Value V
@@ -292,7 +293,7 @@ module Impl (merged-reading : MergedReading) where
       → MorphWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ W ⟪ Θ′ , `∀ s′ ⟫ ⦂ `∀ Bᵢ′
       → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
-      → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+      → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
       → names Δ ⊢ A ~ R
       → Σ[ M ∈ Term ]
           (Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M)

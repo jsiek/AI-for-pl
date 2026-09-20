@@ -16,14 +16,14 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong
 -- Type variables and types
 ------------------------------------------------------------------------
 
-Var : Set
-Var = ℕ
+TyVar : Set
+TyVar = ℕ
 
 infixr 7 _⇒_
 infix 6 `∀
 
 data Ty : Set where
-  `_  : Var → Ty          -- X
+  `_  : TyVar → Ty        -- X
   `ℕ  : Ty                -- ℕ
   `𝔹  : Ty                -- 𝔹
   _⇒_ : Ty → Ty → Ty      -- A → B
@@ -34,10 +34,10 @@ data Ty : Set where
 ------------------------------------------------------------------------
 
 Renameᵗ : Set
-Renameᵗ = Var → Var
+Renameᵗ = TyVar → TyVar
 
 Substᵗ : Set
-Substᵗ = Var → Ty
+Substᵗ = TyVar → Ty
 
 renᵗ : Renameᵗ → Substᵗ
 renᵗ ρ X = ` (ρ X)
@@ -72,7 +72,7 @@ substᵗ σ (`∀ A)  = `∀ (substᵗ (extsᵗ σ) A)
 ------------------------------------------------------------------------
 
 substᵗ-cong : ∀ {σ τ : Substᵗ}
-  → ((X : Var) → σ X ≡ τ X)
+  → ((X : TyVar) → σ X ≡ τ X)
   → (A : Ty)
   → substᵗ σ A ≡ substᵗ τ A
 substᵗ-cong h (` X)   = h X
@@ -81,11 +81,12 @@ substᵗ-cong h `𝔹      = refl
 substᵗ-cong h (A ⇒ B) = cong₂ _⇒_ (substᵗ-cong h A) (substᵗ-cong h B)
 substᵗ-cong {σ} {τ} h (`∀ A) = cong `∀ (substᵗ-cong h-ext A)
   where
-  h-ext : (X : Var) → extsᵗ σ X ≡ extsᵗ τ X
+  h-ext : (X : TyVar) → extsᵗ σ X ≡ extsᵗ τ X
   h-ext zero    = refl
   h-ext (suc X) = cong (renameᵗ suc) (h X)
 
-extsᵗ-renᵗ : (ρ : Renameᵗ) → (X : Var) → extsᵗ (renᵗ ρ) X ≡ renᵗ (extᵗ ρ) X
+extsᵗ-renᵗ : (ρ : Renameᵗ) → (X : TyVar)
+  → extsᵗ (renᵗ ρ) X ≡ renᵗ (extᵗ ρ) X
 extsᵗ-renᵗ ρ zero    = refl
 extsᵗ-renᵗ ρ (suc X) = refl
 

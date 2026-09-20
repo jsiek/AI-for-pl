@@ -10,7 +10,7 @@ module strong.notes.RepresentationVariablesProbe where
 -- type variable in the usual way.  The relation `_⊢_~_` records the change of
 -- free-variable universe explicitly.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_; z≤n; s≤s)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.List using (List; []; _∷_; map; reverse; length)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -297,9 +297,3 @@ XY⇒YX = same-⇒ (same-var (there here)) (same-var here)
 -- does not add an entry to `RepCtx`.
 ∀-payload : zero ∷ [] ⊢ `∀ (` 0 ⇒ ` 1) ~ `∀ (` 0 ⇒ ` 1)
 ∀-payload = same-∀ (same-⇒ (same-var here) (same-var (there here)))
-
-∀-payload-wf : abstR ∷ [] ⊢ᴿ[ 0 ] `∀ (` 0 ⇒ ` 1)
-∀-payload-wf =
-  wfᴿ-∀
-    (wfᴿ-⇒ (wfᴿ-var (local-ref (s≤s z≤n)))
-           (wfᴿ-var (free-ref here)))

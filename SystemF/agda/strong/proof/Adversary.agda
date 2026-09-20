@@ -21,7 +21,7 @@ module strong.proof.Adversary where
 -- `unlock-claims-a-lock` and `unlock-mentions-no-rep`, statements about
 -- `∋lk`, `Nameable` and `applyChanges` — has no two-universe counterpart:
 -- an unlock no longer clears a bit at a retained entry, it INSERTS a name,
--- and what it claims is `ValidRVar` plus freshness, which is already the
+-- and what it claims is `Ξ ∋ʳ α` plus freshness, which is already the
 -- rule's own premise (`step-unlock`, strong.CtxMorph §2).
 
 open import Data.Nat using (ℕ; zero; suc)

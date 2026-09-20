@@ -10,7 +10,8 @@ module strong.Terms where
 --                  interior context Δᵢ and conversion context Δᶜ.
 --
 --   c : Conv       the conversion checked on Δᶜ. Its source is related to
---                  the interior term's type through `SameTy`; its target is
+--                  the interior term's type through `_⊢_≈_⊣_`; its
+--                  target is
 --                  related to the exterior type the same way.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -23,7 +24,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ;
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ;
          ⇑ᵗ; _[_]ᵗ)
 open import strong.Ctx
 open import strong.Conversion
@@ -39,6 +40,9 @@ private
 -- 1.  Terms
 ------------------------------------------------------------------------
 
+Var : Set
+Var = ℕ
+
 infix  9 `_
 infix  9 $_
 infixl 7 _·_
@@ -46,7 +50,7 @@ infix  6 ƛ_∙_
 infix  5 _⟪_,_⟫
 
 data Term : Set where
-  `_      : ℕ → Term
+  `_      : Var → Term
   $_      : ℕ → Term
   `true   : Term
   `false  : Term
@@ -60,7 +64,7 @@ Ctx : Set
 Ctx = List Ty
 
 infix 4 _∋_⦂_
-data _∋_⦂_ : Ctx → ℕ → Ty → Set where
+data _∋_⦂_ : Ctx → Var → Ty → Set where
   here  : ∀ {Γ A} → (A ∷ Γ) ∋ zero ⦂ A
   there : ∀ {Γ x A B} → Γ ∋ x ⦂ A → (B ∷ Γ) ∋ suc x ⦂ A
 
@@ -98,7 +102,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 
   -- (env). The morphism witness supplies both contexts. Since ordinary
   -- variables may be inserted and removed, the same semantic type can have
-  -- different ordinary de Bruijn spellings on the three sides. `SameTy`
+  -- different ordinary de Bruijn spellings on the three sides. `_⊢_≈_⊣_`
   -- compares the equal-depth interior and conversion contexts. `SameTyExt`
   -- additionally crosses the morphism's representation bind prefix when
   -- comparing the exterior and conversion contexts.
@@ -106,7 +110,7 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
       → MorphWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
       → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
-      → SameTy Δᵢ Bᵢ Δᶜ Cᵢ
+      → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
       → SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------

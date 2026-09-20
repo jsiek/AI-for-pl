@@ -105,14 +105,15 @@ delete-functional (del-there d) (del-there d′) =
 -- its input. Thus one representation variable never has two simultaneous
 -- ordinary names, and the two changes are exact inverses. The Ξ index makes
 -- the carried representation-variable occurrence well scoped.
-ValidRVar : RepCtx → RVar → Set
-ValidRVar Ξ α = ∃[ b ] Ξ ∋ˡ α := b
+infix 4 _∋ʳ_
+_∋ʳ_ : RepCtx → RVar → Set
+Ξ ∋ʳ α = ∃[ b ] Ξ ∋ˡ α := b
 
 infix 4 _∣_⊢δ_⇒_
 data _∣_⊢δ_⇒_ (Ξ : RepCtx) : TyCtx → Change → TyCtx → Set where
-  step-lock : ValidRVar Ξ α → α ⊢- Δ at X ⇒ Δ′ → Fresh α Δ′
+  step-lock : Ξ ∋ʳ α → α ⊢- Δ at X ⇒ Δ′ → Δ′ ∌ʳ α
     → Ξ ∣ Δ ⊢δ lock X α ⇒ Δ′
-  step-unlock : ValidRVar Ξ α → Fresh α Δ → α ⊢+ Δ at X ⇒ Δ′
+  step-unlock : Ξ ∋ʳ α → Δ ∌ʳ α → α ⊢+ Δ at X ⇒ Δ′
     → Ξ ∣ Δ ⊢δ unlock X α ⇒ Δ′
 
 insert-delete : α ⊢- Δ at X ⇒ Δ′ → α ⊢+ Δ′ at X ⇒ Δ
@@ -279,14 +280,14 @@ infix 4 _∣_⊢χᶜ_⇒_
 data _∣_⊢χᶜ_⇒_ (Ξ : RepCtx)
   : TyCtx → List Change → TyCtx → Set where
   conv[] : Ξ ∣ Δ ⊢χᶜ [] ⇒ Δ
-  conv-lock : ValidRVar Ξ α → Ξ ∣ Δ₁ ⊢χᶜ χ ⇒ Δ₂
+  conv-lock : Ξ ∋ʳ α → Ξ ∣ Δ₁ ⊢χᶜ χ ⇒ Δ₂
     → Ξ ∣ Δ₁ ⊢χᶜ lock X α ∷ χ ⇒ Δ₂
-  conv-unlock : ValidRVar Ξ α
+  conv-unlock : Ξ ∋ʳ α
     → Ξ ∣ Δ₁ ⊢χᶜ χ ⇒ Δ₂
-    → Fresh α Δ₂
+    → Δ₂ ∌ʳ α
     → α ⊢+ Δ₂ at X ⇒ Δ₃
     → Ξ ∣ Δ₁ ⊢χᶜ unlock X α ∷ χ ⇒ Δ₃
-  conv-unlock-live : ∀ {Y} → ValidRVar Ξ α
+  conv-unlock-live : ∀ {Y} → Ξ ∋ʳ α
     → Ξ ∣ Δ₁ ⊢χᶜ χ ⇒ Δ₂
     → Δ₂ ∋ˡ Y := α
     → Ξ ∣ Δ₁ ⊢χᶜ unlock X α ∷ χ ⇒ Δ₂
@@ -512,7 +513,7 @@ private
   shiftNames-lookup here = here
   shiftNames-lookup (there d) = there (shiftNames-lookup d)
 
-  valid-suc : ValidRVar Ξ α → ValidRVar (b ∷ Ξ) (suc α)
+  valid-suc : Ξ ∋ʳ α → (b ∷ Ξ) ∋ʳ suc α
   valid-suc (b′ , d) = b′ , there d
 
   insert-shift : α ⊢+ Δ at X ⇒ Δ′
@@ -615,15 +616,16 @@ rewind-conversion (interior cs) (conversion csᶜ) =
 
 -- (i) `name-fn`. A lock deletes and an unlock inserts a name its own
 -- premise says is fresh, so both readings preserve uniqueness.
-fresh→≢ : Fresh α Δ → Δ ∋ᵅ β → β ≢ α
+fresh→≢ : Δ ∌ʳ α → Δ ∋ᵅ β → β ≢ α
 fresh→≢ (fresh∷ ne fr) (zero , here) = λ eq → ne (sym eq)
 fresh→≢ (fresh∷ ne fr) (suc X , there d) = fresh→≢ fr (X , d)
 
-del-fresh : α ⊢- Δ at X ⇒ Δ′ → Fresh β Δ → Fresh β Δ′
+del-fresh : α ⊢- Δ at X ⇒ Δ′ → Δ ∌ʳ β → Δ′ ∌ʳ β
 del-fresh del-here (fresh∷ ne fr) = fr
 del-fresh (del-there dl) (fresh∷ ne fr) = fresh∷ ne (del-fresh dl fr)
 
-ins-fresh : α ⊢+ Δ at X ⇒ Δ′ → β ≢ α → Fresh β Δ → Fresh β Δ′
+ins-fresh : α ⊢+ Δ at X ⇒ Δ′ → β ≢ α
+  → Δ ∌ʳ β → Δ′ ∌ʳ β
 ins-fresh ins-here ne fr = fresh∷ ne fr
 ins-fresh (ins-there i) ne (fresh∷ ne′ fr) = fresh∷ ne′ (ins-fresh i ne fr)
 
@@ -632,7 +634,8 @@ del-unique del-here (unique∷ fr uq) = uq
 del-unique (del-there dl) (unique∷ fr uq) =
   unique∷ (del-fresh dl fr) (del-unique dl uq)
 
-ins-unique : α ⊢+ Δ at X ⇒ Δ′ → Fresh α Δ → Unique Δ → Unique Δ′
+ins-unique : α ⊢+ Δ at X ⇒ Δ′ → Δ ∌ʳ α
+  → Unique Δ → Unique Δ′
 ins-unique ins-here fr uq = unique∷ fr uq
 ins-unique (ins-there i) (fresh∷ ne fr) (unique∷ fr′ uq) =
   unique∷ (ins-fresh i (λ eq → ne (sym eq)) fr′) (ins-unique i fr uq)
@@ -644,7 +647,7 @@ int-unique uq (changes∷ cs (step-lock v dl fr)) =
 int-unique uq (changes∷ cs (step-unlock v fr i)) =
   ins-unique i fr (int-unique uq cs)
 
-fresh-shiftRVars : (n : ℕ) → Fresh α Δ → Fresh (n + α) (shiftRVars n Δ)
+fresh-shiftRVars : (n : ℕ) → Δ ∌ʳ α → shiftRVars n Δ ∌ʳ n + α
 fresh-shiftRVars n fresh[] = fresh[]
 fresh-shiftRVars n (fresh∷ ne fr) =
   fresh∷ (λ eq → ne (+-cancelˡ-≡ n _ _ eq)) (fresh-shiftRVars n fr)
@@ -660,7 +663,7 @@ shiftRVars-0 (α ∷ Δ) = cong (α ∷_) (shiftRVars-0 Δ)
 
 -- (ii) `wf-names`. Every name a reading leaves live is one the exterior
 -- already had, shifted past the bind block, or one an `unlock` brought
--- in — and an unlock carries its own `ValidRVar`.
+-- in — and an unlock carries its own `Ξ ∋ʳ α` premise.
 ∋ˡ-push : (Rs : List Ty) → Ξ ∋ˡ α := b
   → pushRepBinds Rs Ξ ∋ˡ (length Rs + α) := b
 ∋ˡ-push [] d = d
@@ -683,7 +686,7 @@ validNames-push {Δ = Δ} Rs vn d | α , d′ , refl | b , dr =
 del-valid : α ⊢- Δ at X ⇒ Δ′ → ValidNames Ξ Δ → ValidNames Ξ Δ′
 del-valid dl vn d = vn (proj₂ (del-inv dl (_ , d)))
 
-ins-valid : α ⊢+ Δ at X ⇒ Δ′ → ValidRVar Ξ α
+ins-valid : α ⊢+ Δ at X ⇒ Δ′ → Ξ ∋ʳ α
   → ValidNames Ξ Δ → ValidNames Ξ Δ′
 ins-valid i v vn d with ins-inv i (_ , d)
 ins-valid i v vn d | inj₁ refl = v
@@ -836,7 +839,7 @@ wfRepCtx-push (binds∷ {Rs = Rs} w bs) wr =
 
 -- The conversion reading preserves both, for the same reasons: it skips
 -- locks, and an unlock either inserts a name its own premise says is
--- fresh (carrying its `ValidRVar`) or does nothing at all.
+-- fresh (carrying its `Ξ ∋ʳ α` premise) or does nothing at all.
 conv-unique : Unique Δ → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′ → Unique Δ′
 conv-unique uq conv[] = uq
 conv-unique uq (conv-lock v cs) = conv-unique uq cs
@@ -1125,7 +1128,7 @@ _⊆ᵃ_ : TyCtx → TyCtx → Set
 -- 3c. The dual conversion context exists
 ------------------------------------------------------------------------
 
-live? : (α : RVar) (Δ : TyCtx) → Δ ∋ᵅ α ⊎ Fresh α Δ
+live? : (α : RVar) (Δ : TyCtx) → Δ ∋ᵅ α ⊎ Δ ∌ʳ α
 live? α [] = inj₂ fresh[]
 live? α (β ∷ Δ) with α ≟ β
 live? α (β ∷ Δ) | yes refl = inj₁ (zero , here)
@@ -1212,7 +1215,7 @@ conv-weaken uq uq₀ (conv-unlock-live v cs d) keep
   Δ₀′ , conv-unlock-live v cs′ (proj₂ (keep′ (_ , d))) , keep′
 
 -- Appending a lock makes it run first, and a conversion reading skips it.
-conv-snoc-lock : ValidRVar Ξ α → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
+conv-snoc-lock : Ξ ∋ʳ α → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
   → Ξ ∣ Δ ⊢χᶜ χ ++ (lock X α ∷ []) ⇒ Δ′
 conv-snoc-lock v conv[] = conv-lock v conv[]
 conv-snoc-lock v (conv-lock w cs) = conv-lock w (conv-snoc-lock v cs)
@@ -1580,7 +1583,7 @@ conversion-ren {Δ = Δ} {ρ = ρ} {Ξ′ = Ξ′} {Θ = Θ}
 -- insertion.
 addLock0-conversion-ren : ∀ {Ξ Ξ′ Δ Θ Γᶜ}
   → RepWk suc Ξ Ξ′
-  → ValidRVar Ξ′ zero
+  → Ξ′ ∋ʳ zero
   → Unique Δ
   → (Ξ ∣ Δ) ⊢ᶜ Θ ⇒ Γᶜ
   → Σ[ Γ′ᶜ ∈ Ctxᵗ ]
@@ -1607,10 +1610,11 @@ addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
   | Δ′ , cs′ , keep =
   _ , conversion (conv-snoc-lock valid cs′) , keep
   where
-  valid : ValidRVar
-            (pushRepBinds (map (renameᵗ suc) Rs) Ξ′)
-            (length (map (renameᵗ suc) Rs))
-  valid = subst (ValidRVar (pushRepBinds (map (renameᵗ suc) Rs) Ξ′))
+  valid : pushRepBinds (map (renameᵗ suc) Rs) Ξ′
+            ∋ʳ length (map (renameᵗ suc) Rs)
+  valid = subst
+                (λ α →
+                  pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∋ʳ α)
                 (+-identityʳ (length (map (renameᵗ suc) Rs)))
                 (_ , ∋ˡ-push (map (renameᵗ suc) Rs) (proj₂ v₀))
 
@@ -1623,7 +1627,7 @@ addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
 -- skipped and the fresh name has to be carried through the whole run.
 addLock0-interior-ren : ∀ {Ξ Ξ′ Δ Θ Γᵢ}
   → RepWk suc Ξ Ξ′
-  → ValidRVar Ξ′ zero
+  → Ξ′ ∋ʳ zero
   → (Ξ ∣ Δ) ⊢ⁱ Θ ⇒ Γᵢ
   → (Ξ′ ∣ (zero ∷ shiftNames Δ)) ⊢ⁱ addLock0 (renᴮᴿ suc Θ) ⇒
       (pushRepBinds (map (renameᵗ suc) (binds Θ)) Ξ′
@@ -1637,7 +1641,7 @@ addLock0-interior-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
           (subst (λ α → α ⊢- (n + zero) ∷ shiftRVars n (shiftNames Δ)
                           at zero ⇒ shiftRVars n (shiftNames Δ))
                  (+-identityʳ n) del-here)
-          (subst (λ α → Fresh α (shiftRVars n (shiftNames Δ)))
+          (subst (λ α → shiftRVars n (shiftNames Δ) ∌ʳ α)
                  (+-identityʳ n)
                  (fresh-shiftRVars n fresh-zero-shift))))
       (subst
@@ -1650,8 +1654,10 @@ addLock0-interior-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
   n : ℕ
   n = length (map (renameᵗ suc) Rs)
 
-  valid : ValidRVar (pushRepBinds (map (renameᵗ suc) Rs) Ξ′) n
-  valid = subst (ValidRVar (pushRepBinds (map (renameᵗ suc) Rs) Ξ′))
+  valid : pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∋ʳ n
+  valid = subst
+                (λ α →
+                  pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∋ʳ α)
                 (+-identityʳ n)
                 (_ , ∋ˡ-push (map (renameᵗ suc) Rs) (proj₂ v₀))
 

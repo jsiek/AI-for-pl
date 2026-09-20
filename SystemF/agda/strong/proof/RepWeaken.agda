@@ -221,7 +221,7 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   inner : Δᵢ ∣ [] ⊢ renᴹᴿ suc W ⦂ A
   inner = ⊢renᴿ repwk-abst₀ ⊢W
 
-  sameᵢ : SameTy Δᵢ A (underΛ (Ξ ∣ η)) (⇑ᵗ A)
+  sameᵢ : Δᵢ ⊢ A ≈ ⇑ᵗ A ⊣ underΛ (Ξ ∣ η)
   sameᵢ with wf-same wA
   sameᵢ | R , p = ⇑ᵗ R , same-ren suc p , same-weaken p
 

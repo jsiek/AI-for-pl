@@ -164,7 +164,8 @@ form of the wall's remark that each conjunct alone is harmless.
   name `` ` 1 `` denotes `` ` 1 ``. A representation reading is unique.
 * `repaired-⊢` — the same contractum with `mkId (` 2)` on the inner layer
   IS well typed, and `seal-source : Δ₁ᶜ ∋ 1 := ` 2` shows that `` ` 2 ``
-  is exactly what repair (a)'s premise `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ` delivers,
+  is exactly what repair (a)'s premise
+  `Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ` delivers,
   with `Δ₁ᶜ = conv Θ₁ (int Θ₂ Δ₉)`.
 
 Nothing is installed: `strong.Reduction` is untouched, and
@@ -194,7 +195,7 @@ lacked and re-spells at the inner boundary's own conversion context:
 
     CancelR : … → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → Δ₁ᶜ ∋ X := Aᵢ
       → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-      → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
+      → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
       → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A → …
 
 which is `IdPush`'s premise block with `Aᵢ` in place of `` ` X ``.

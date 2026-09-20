@@ -410,7 +410,7 @@ finalName out-of-fuel = "OUT OF FUEL"
 
 -- The ambient environment: `n` representation variables, ordinary name `i`
 -- denoting representation `i`, so ordinary slot 0 prints as X and names α.
--- Fresh allocation starts at `n`, so nothing a term binds collides with it.
+-- New names start at `n`, so term binders cannot collide with them.
 ambient : ℕ → Env
 ambient n = mkEnv (map newPair (count zero n)) (count zero n)
 

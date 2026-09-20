@@ -219,11 +219,11 @@ wkᴹ n = renᴹ (wkN n)
 -- 3. Term-variable renaming
 ------------------------------------------------------------------------
 
-extⁿ : (ℕ → ℕ) → ℕ → ℕ
+extⁿ : (Var → Var) → Var → Var
 extⁿ ρ zero    = zero
 extⁿ ρ (suc x) = suc (ρ x)
 
-renⁿ : (ℕ → ℕ) → Term → Term
+renⁿ : (Var → Var) → Term → Term
 renⁿ ρ (` x)          = ` (ρ x)
 renⁿ ρ ($ n)          = $ n
 renⁿ ρ `true           = `true
@@ -237,7 +237,7 @@ renⁿ ρ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 shiftᵐ : Term → Term
 shiftᵐ = renⁿ suc
 
-∋-extⁿ : ∀ {Γ Γ′ A x B} {ρ : ℕ → ℕ}
+∋-extⁿ : ∀ {Γ Γ′ A x B} {ρ : Var → Var}
   → (∀ {y C} → Γ ∋ y ⦂ C → Γ′ ∋ ρ y ⦂ C)
   → (A ∷ Γ) ∋ x ⦂ B
   → (A ∷ Γ′) ∋ extⁿ ρ x ⦂ B
@@ -260,13 +260,13 @@ shiftᵐ = renⁿ suc
 ∋-⤊ here      = here
 ∋-⤊ (there d) = there (∋-⤊ d)
 
-⤊-∋ⁿ : ∀ {ρ : ℕ → ℕ} {Γ Γ′}
+⤊-∋ⁿ : ∀ {ρ : Var → Var} {Γ Γ′}
   → (∀ {x A} → Γ ∋ x ⦂ A → Γ′ ∋ ρ x ⦂ A)
   → (∀ {x A} → ⤊ Γ ∋ x ⦂ A → ⤊ Γ′ ∋ ρ x ⦂ A)
 ⤊-∋ⁿ h d with ∋-map⁻ d
 ⤊-∋ⁿ h d | A , refl , q = ∋-⤊ (h q)
 
-⊢renⁿ : ∀ {Δ Γ Γ′ M A} {ρ : ℕ → ℕ}
+⊢renⁿ : ∀ {Δ Γ Γ′ M A} {ρ : Var → Var}
   → (∀ {x B} → Γ ∋ x ⦂ B → Γ′ ∋ ρ x ⦂ B)
   → Δ ∣ Γ ⊢ M ⦂ A
   → Δ ∣ Γ′ ⊢ renⁿ ρ M ⦂ A
@@ -281,7 +281,7 @@ shiftᵐ = renⁿ suc
 ⊢renⁿ h (env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
   env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
 
-renⁿ-id : (ρ : ℕ → ℕ) → (∀ x → ρ x ≡ x)
+renⁿ-id : (ρ : Var → Var) → (∀ x → ρ x ≡ x)
   → (M : Term) → renⁿ ρ M ≡ M
 renⁿ-id ρ h (` x) = cong `_ (h x)
 renⁿ-id ρ h ($ n) = refl
@@ -311,7 +311,7 @@ renⁿ-id ρ h (M ⟪ Θ , c ⟫) = refl
 ------------------------------------------------------------------------
 
 data Img : Set where
-  ivar : ℕ → Img
+  ivar : Var → Img
   ival : Term → Ty → Img
 
 imgTm : Img → Term
@@ -337,11 +337,11 @@ crossΛᴹ W A =
 ⇑ᴵ (ivar x)   = ivar x
 ⇑ᴵ (ival W A) = ival (crossΛᴹ W A) (⇑ᵗ A)
 
-extᴵ : (ℕ → Img) → ℕ → Img
+extᴵ : (Var → Img) → Var → Img
 extᴵ σ zero    = ivar zero
 extᴵ σ (suc x) = shiftᴵ (σ x)
 
-substᵐ : (ℕ → Img) → Term → Term
+substᵐ : (Var → Img) → Term → Term
 substᵐ σ (` x)          = imgTm (σ x)
 substᵐ σ ($ n)          = $ n
 substᵐ σ `true           = `true
@@ -379,7 +379,7 @@ shiftᴵ-⊢ : ∀ {Δ Γ i A B}
 shiftᴵ-⊢ (⊢ivar d) = ⊢ivar (there d)
 shiftᴵ-⊢ (⊢ival w ⊢W) = ⊢ival w ⊢W
 
-extᴵ-⊢ : ∀ {σ : ℕ → Img} {Δ Γ Γ′ A}
+extᴵ-⊢ : ∀ {σ : Var → Img} {Δ Γ Γ′ A}
   → (∀ {x B} → Γ ∋ x ⦂ B → Δ ∣ Γ′ ⊢ⁱ σ x ⦂ B)
   → (∀ {x B} → (A ∷ Γ) ∋ x ⦂ B
         → Δ ∣ (A ∷ Γ′) ⊢ⁱ extᴵ σ x ⦂ B)

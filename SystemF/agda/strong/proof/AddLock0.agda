@@ -31,7 +31,8 @@ module strong.proof.AddLock0 where
 --                  context through `renNameCtx`: that keeps the old
 --                  ordinary positions and takes the representation context
 --                  from the moved side.
---   the two SameTy premises come back FROM `respell-⊢`, paired with the old
+--   the two `_⊢_≈_⊣_` premises come back FROM `respell-⊢`, paired
+--                  with the old
 --                  readings; `same-ren` supplies the moved side and
 --                  `same-rep-unique` identifies the two representations.
 --   the exterior   `same-weaken` for the fresh ordinary name and
@@ -104,8 +105,10 @@ moved-conv : ∀ {Δᶜ Δ⁺ᶜ : Ctxᵗ} {ρ : Renameᵗ} {s s′ : Conv} {C�
   → underΛ Δᶜ ⊢ s ∶ Cᵢ ⇝ Cₑ
   → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
       ((Δ⁺ᶜ ⊢ `∀ s′ ∶ `∀ A′ ⇝ `∀ B′)
-        × SameTy (underΛ Δ⁺ᶜ) A′ (underΛ (renNameCtx ρ Δ⁺ᶜ Δᶜ)) Cᵢ
-        × SameTy (underΛ Δ⁺ᶜ) B′ (underΛ (renNameCtx ρ Δ⁺ᶜ Δᶜ)) Cₑ)
+        × (underΛ Δ⁺ᶜ ⊢ A′ ≈ Cᵢ ⊣
+            underΛ (renNameCtx ρ Δ⁺ᶜ Δᶜ))
+        × (underΛ Δ⁺ᶜ ⊢ B′ ≈ Cₑ ⊣
+            underΛ (renNameCtx ρ Δ⁺ᶜ Δᶜ)))
 moved-conv {Δᶜ = Δᶜ} {ρ = ρ} w keep (r , rd′ , rd) ⊢s
   with respell-⊢ refl (⊆ᵃ-underΛ keep) rd rd′
          (conv-cast (names-underΛ-ren ρ (names Δᶜ))
@@ -126,10 +129,10 @@ moved-conv′ : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : CtxMorph} {s s′ : Conv}
   → underΛ Δᶜ ⊢ s ∶ Cᵢ ⇝ Cₑ
   → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
       ((Δ⁺ᶜ ⊢ `∀ s′ ∶ `∀ A′ ⇝ `∀ B′)
-        × SameTy (underΛ Δ⁺ᶜ) A′
-            (underΛ (renNameCtx (extN (numBinds Θ) suc) Δ⁺ᶜ Δᶜ)) Cᵢ
-        × SameTy (underΛ Δ⁺ᶜ) B′
-            (underΛ (renNameCtx (extN (numBinds Θ) suc) Δ⁺ᶜ Δᶜ)) Cₑ)
+        × (underΛ Δ⁺ᶜ ⊢ A′ ≈ Cᵢ ⊣
+            underΛ (renNameCtx (extN (numBinds Θ) suc) Δ⁺ᶜ Δᶜ))
+        × (underΛ Δ⁺ᶜ ⊢ B′ ≈ Cₑ ⊣
+            underΛ (renNameCtx (extN (numBinds Θ) suc) Δ⁺ᶜ Δᶜ)))
 moved-conv′ {Δ = Δ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {Θ = Θ} {P = P}
             wfΔ wr rc r⁺ sc ⊢s =
   moved-conv wᶜ (moved-keep wfΔ wr rc r⁺) sc ⊢s
@@ -150,9 +153,10 @@ moved-conv′ {Δ = Δ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {Θ = Θ} {P = P}
 -- identified because a reading determines its representation.
 moved-sameᵢ : ∀ {Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Ξ : RepCtx} {ρ : Renameᵗ}
   {Bᵢ Cᵢ A′ : Ty}
-  → SameTy Δᵢ Bᵢ Δᶜ (`∀ Cᵢ)
-  → SameTy (underΛ Δ⁺ᶜ) A′ (underΛ (renNameCtx ρ Δ⁺ᶜ Δᶜ)) Cᵢ
-  → SameTy (Ξ ∣ map ρ (names Δᵢ)) Bᵢ Δ⁺ᶜ (`∀ A′)
+  → Δᵢ ⊢ Bᵢ ≈ `∀ Cᵢ ⊣ Δᶜ
+  → underΛ Δ⁺ᶜ ⊢ A′ ≈ Cᵢ ⊣
+      underΛ (renNameCtx ρ Δ⁺ᶜ Δᶜ)
+  → (Ξ ∣ map ρ (names Δᵢ)) ⊢ Bᵢ ≈ `∀ A′ ⊣ Δ⁺ᶜ
 moved-sameᵢ {Δᶜ = Δᶜ} {ρ = ρ} (R , pᵢ , same-∀ qᵢ) (S , a , b)
   with same-rep-unique b
          (same-cast (names-underΛ-ren ρ (names Δᶜ))
@@ -166,8 +170,8 @@ moved-sameᵢ {ρ = ρ} (R , pᵢ , same-∀ qᵢ) (S , a , b) | refl =
 moved-sameₑ : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Ξ : RepCtx} {k : ℕ}
   {A Cₑ B′ : Ty}
   → SameTyExt k Δ (`∀ A) Δᶜ (`∀ Cₑ)
-  → SameTy (underΛ Δ⁺ᶜ) B′
-      (underΛ (renNameCtx (extN k suc) Δ⁺ᶜ Δᶜ)) Cₑ
+  → underΛ Δ⁺ᶜ ⊢ B′ ≈ Cₑ ⊣
+      underΛ (renNameCtx (extN k suc) Δ⁺ᶜ Δᶜ)
   → SameTyExt k (Ξ ∣ (zero ∷ shiftNames (names Δ)))
       (`∀ (renameᵗ (extᵗ suc) A)) Δ⁺ᶜ (`∀ B′)
 moved-sameₑ {Δᶜ = Δᶜ} {k = k} (T , pₑ , qₑ) (S , a , b)
@@ -202,7 +206,7 @@ moved-env : ∀ {Δ Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {W : Term} {Θ : CtxMorph}
   → MorphWf Δ Θ Δᵢ Δᶜ
   → Δᵢ ∣ [] ⊢ W ⦂ Bᵢ
   → underΛ Δᶜ ⊢ s ∶ Cᵢ ⇝ Cₑ
-  → SameTy Δᵢ Bᵢ Δᶜ (`∀ Cᵢ)
+  → Δᵢ ⊢ Bᵢ ≈ `∀ Cᵢ ⊣ Δᶜ
   → SameTyExt (numBinds Θ) Δ (`∀ A) Δᶜ (`∀ Cₑ)
   → Δ ⊢ᵗ `∀ A
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
@@ -250,7 +254,7 @@ moved-env {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {W = W
   ⊢W⁺ : Δᵢ⁺ ∣ [] ⊢ renᴹᴿ ρ W ⦂ Bᵢ
   ⊢W⁺ = ⊢renᴿ wᵢ ⊢W
 
-  smᵢ : SameTy Δᵢ⁺ Bᵢ Δ⁺ᶜ (`∀ A′)
+  smᵢ : Δᵢ⁺ ⊢ Bᵢ ≈ `∀ A′ ⊣ Δ⁺ᶜ
   smᵢ = moved-sameᵢ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {Ξ = Ξᵢ⁺} {ρ = ρ}
                     sameᵢ smA
 

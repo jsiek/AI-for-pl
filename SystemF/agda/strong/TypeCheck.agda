@@ -24,7 +24,7 @@ module strong.TypeCheck where
 --
 -- WHY IT EXISTS (2026-09-17).  A boundary `M ⟪ Θ , c ⟫` is typed by `env`,
 -- whose six premises are of two very different kinds.  Three of them say
--- something about the PROGRAM: which conversion applies, which `SameTy`
+-- something about the PROGRAM: which conversion applies, which `_⊢_≈_⊣_`
 -- reading relates the three sides, what the interior term's type is.  The
 -- other three are MECHANICAL: the two contexts Θ induces, and the
 -- well-formedness of each.  A derivation of `Ξ ∣ Δ ⊢χ changes Θ ⇒ Δ′` is
@@ -62,8 +62,8 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ;
-         _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ;
+         extᵗ; ⇑ᵗ; _[_]ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
@@ -130,7 +130,7 @@ find? (β ∷ Δ) α | no  _    with find? Δ α
 find? (β ∷ Δ) α | no  _    | just (X , d) = just (suc X , there d)
 find? (β ∷ Δ) α | no  _    | nothing      = nothing
 
-fresh? : (α : RVar) (Δ : TyCtx) → Maybe (Fresh α Δ)
+fresh? : (α : RVar) (Δ : TyCtx) → Maybe (Δ ∌ʳ α)
 fresh? α []      = just fresh[]
 fresh? α (β ∷ Δ) with α ≟ β
 fresh? α (β ∷ Δ) | yes _  = nothing
@@ -164,7 +164,7 @@ ins? α (β ∷ Δ) (suc X) with ins? α Δ X
 ins? α (β ∷ Δ) (suc X) | just (Δ′ , i) = just (β ∷ Δ′ , ins-there i)
 ins? α (β ∷ Δ) (suc X) | nothing       = nothing
 
-validRVar? : (Ξ : RepCtx) (α : RVar) → Maybe (ValidRVar Ξ α)
+validRVar? : (Ξ : RepCtx) (α : RVar) → Maybe (Ξ ∋ʳ α)
 validRVar? Ξ α with lookupˡ? Ξ α
 validRVar? Ξ α | just v  = just v
 validRVar? Ξ α | nothing = nothing
@@ -418,7 +418,8 @@ unread? η (`∀ R) | just (A , p) = just (`∀ A , same-∀ p)
 unread? η (`∀ R) | nothing      = nothing
 
 -- RE-BASING.  `A` is read on the name map `η`; this finds its spelling on
--- `η′`, together with the `SameTy` that relates them.  It goes through the
+-- `η′`, together with the `_⊢_≈_⊣_` that relates them.  It goes
+-- through the
 -- REPRESENTATION, which is the only route there is: the two maps can
 -- reorder relative to each other, so no arithmetic on positions would do
 -- (notes/ForallPayloadWall §3).  It is partial, because `η′` need not name
@@ -485,7 +486,7 @@ respell? η η′ s | just (r , q) with unreadᶜ? η′ r
 respell? η η′ s | just (r , q) | just (s′ , p) = just (s′ , r , p , q)
 respell? η η′ s | just (r , q) | nothing = nothing
 
-sameTy? : (Γ Γ′ : Ctxᵗ) (A B : Ty) → Maybe (SameTy Γ A Γ′ B)
+sameTy? : (Γ Γ′ : Ctxᵗ) (A B : Ty) → Maybe (Γ ⊢ A ≈ B ⊣ Γ′)
 sameTy? Γ Γ′ A B with read? (names Γ) A
 sameTy? Γ Γ′ A B | nothing = nothing
 sameTy? Γ Γ′ A B | just (R , p) with read? (names Γ′) B
@@ -592,7 +593,7 @@ convTy? Γ (`∀ s) | nothing = nothing
 -- 9. Term typing
 ------------------------------------------------------------------------
 
-lookupTm? : (Γ : Ctx) (x : ℕ) → Maybe (∃[ A ] Γ ∋ x ⦂ A)
+lookupTm? : (Γ : Ctx) (x : Var) → Maybe (∃[ A ] Γ ∋ x ⦂ A)
 lookupTm? []      x       = nothing
 lookupTm? (A ∷ Γ) zero    = just (A , here)
 lookupTm? (A ∷ Γ) (suc x) with lookupTm? Γ x

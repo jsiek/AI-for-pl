@@ -51,7 +51,7 @@ open import strong.proof.Preserve using (shiftRep-var)
 -- conversion spells it `` ` X `` across Θ₁'s bind block, and the outer
 -- conversion spells it `` ` Y ``.  So X denotes `n + α` exactly when Y
 -- denotes α.
--- Stated on NAME MAPS: like `SameTy` itself, the judgement reaches a
+-- Stated on NAME MAPS: like `_⊢_≈_⊣_` itself, the judgement reaches a
 -- context only through the `names` projection, which does not determine
 -- it, so the contexts are not inferable from the two premises.
 push-rep : (n : ℕ) {ηᵢ η₁ᶜ ηᶜ : TyCtx} {B : Ty} {X Y : ℕ}

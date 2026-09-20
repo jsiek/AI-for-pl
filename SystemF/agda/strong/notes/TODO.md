@@ -1,10 +1,10 @@
-* Rename ValidRVar Ξ α to Ξ ∋ʳ α
+* DONE: Rename ValidRVar Ξ α to Ξ ∋ʳ α
 
-* Rename Fresh α Δ to Δ ∌ʳ α
+* DONE: Rename Fresh α Δ to Δ ∌ʳ α
 
-* Rename SameTy Γ A Γ′ B to Γ ⊢ A ≈ B ⊣ Γ′ 
+* DONE: Rename SameTy Γ A Γ′ B to Γ ⊢ A ≈ B ⊣ Γ′
 
-* Delete ∀-payload-wf
+* DONE: Delete ∀-payload-wf
 
 * Add file charters to 
   Types
@@ -36,9 +36,10 @@
   the notes/ directory, and the main All.agda can import just the notes/All.agda file.
   of those files in the notes/ directory.
   
-* Rename Var in Types.agda to TyVar
+* DONE: Rename Var in Types.agda to TyVar
 
-* In Terms, define Var to be ℕ and then change the term variable constructor's type:
+* DONE: In Terms, define Var to be ℕ and then change the term variable
+  constructor's type:
 
 data Term : Set where
   `_      : ℕ → Term
@@ -51,5 +52,4 @@ data Term : Set where
 * Move lemmas from Types.agda to a new file proof/Types.agda.
 
 * Move lemmas from Ctx.agda to a new file proof/Ctx.agda.
-
 

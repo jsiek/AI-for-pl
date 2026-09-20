@@ -73,7 +73,7 @@ private
     c s t r u : Conv
     L M M′ N W : Term
     i : Img
-    σ : ℕ → Img
+    σ : Var → Img
 
 ------------------------------------------------------------------------
 -- 1.  The canonical family
@@ -353,12 +353,12 @@ canon-wkᴹ n cM = canon-renᴹ (wkN n) cM
 CanonImg : Img → Set
 CanonImg i = CanonTm (imgTm i)
 
-CanonSub : (ℕ → Img) → Set
+CanonSub : (Var → Img) → Set
 CanonSub σ = ∀ x → CanonImg (σ x)
 
 -- Term-variable renaming touches no conversion (a wrapper is
 -- term-closed), so canonicity passes through renⁿ unconditionally.
-canon-renⁿ : (ρ : ℕ → ℕ) → CanonTm M → CanonTm (renⁿ ρ M)
+canon-renⁿ : (ρ : Var → Var) → CanonTm M → CanonTm (renⁿ ρ M)
 canon-renⁿ ρ ct-var        = ct-var
 canon-renⁿ ρ ct-lit        = ct-lit
 canon-renⁿ ρ ct-true       = ct-true
@@ -386,7 +386,7 @@ canon-⇑ᴵ (ivar x)   ci = ct-var
 canon-⇑ᴵ (ival W A) ci =
   ct-⟪⟫ (canon-renᴹ² (ren² idᵗ suc) ci) (canonC-mkId (⇑ᵗ A))
 
-canon-extᴵ : (σ : ℕ → Img) → CanonSub σ → CanonSub (extᴵ σ)
+canon-extᴵ : (σ : Var → Img) → CanonSub σ → CanonSub (extᴵ σ)
 canon-extᴵ σ cσ zero    = ct-var
 canon-extᴵ σ cσ (suc x) = canon-shiftᴵ (σ x) (cσ x)
 

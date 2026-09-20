@@ -19,7 +19,7 @@ module strong.Ctx where
 -- extend the representation universe and change the ordinary name map; those
 -- operations live in strong.CtxMorph.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_; z≤n; s≤s)
+open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.Nat.Properties using (suc-injective)
 open import Data.List using (List; []; _∷_; map)
 open import Data.Product using (_×_; _,_; ∃-syntax)
@@ -208,8 +208,9 @@ same-rep-unique (same-∀ a) (same-∀ a′) =
 -- Two ordinary types at the same representation depth denote the same
 -- representation-universe type. `lock` and `unlock` may give that type
 -- different ordinary de Bruijn spellings.
-SameTy : Ctxᵗ → Ty → Ctxᵗ → Ty → Set
-SameTy Γ A Γ′ B = ∃[ R ] ((Γ ⊢ᶜ A ~ R) × (Γ′ ⊢ᶜ B ~ R))
+infix 4 _⊢_≈_⊣_
+_⊢_≈_⊣_ : Ctxᵗ → Ty → Ty → Ctxᵗ → Set
+Γ ⊢ A ≈ B ⊣ Γ′ = ∃[ R ] ((Γ ⊢ᶜ A ~ R) × (Γ′ ⊢ᶜ B ~ R))
 
 shiftRep : ℕ → Ty → Ty
 shiftRep zero    R = R
@@ -234,15 +235,16 @@ _∋_:=_ : Ctxᵗ → ℕ → Ty → Set
 -- 6. Context well-formedness
 ------------------------------------------------------------------------
 
-data Fresh : RVar → TyCtx → Set where
-  fresh[] : Fresh α []
-  fresh∷  : α ≢ β → Fresh α Δ → Fresh α (β ∷ Δ)
+infix 4 _∌ʳ_
+data _∌ʳ_ : TyCtx → RVar → Set where
+  fresh[] : [] ∌ʳ α
+  fresh∷  : α ≢ β → Δ ∌ʳ α → (β ∷ Δ) ∌ʳ α
 
 data Unique : TyCtx → Set where
   unique[] : Unique []
-  unique∷  : Fresh α Δ → Unique Δ → Unique (α ∷ Δ)
+  unique∷  : Δ ∌ʳ α → Unique Δ → Unique (α ∷ Δ)
 
-fresh-not-lookup : Fresh α Δ → Δ ∋ˡ X := α → ⊥
+fresh-not-lookup : Δ ∌ʳ α → Δ ∋ˡ X := α → ⊥
 fresh-not-lookup (fresh∷ ne fresh) here = ne refl
 fresh-not-lookup (fresh∷ ne fresh) (there d) = fresh-not-lookup fresh d
 
@@ -255,12 +257,12 @@ unique-lookup (unique∷ fresh unique) (there d) here =
 unique-lookup (unique∷ fresh unique) (there d) (there d′) =
   cong suc (unique-lookup unique d d′)
 
-fresh-zero-shift : Fresh zero (shiftNames Δ)
+fresh-zero-shift : shiftNames Δ ∌ʳ zero
 fresh-zero-shift {Δ = []} = fresh[]
 fresh-zero-shift {Δ = α ∷ Δ} =
   fresh∷ (λ ()) fresh-zero-shift
 
-fresh-shift : Fresh α Δ → Fresh (suc α) (shiftNames Δ)
+fresh-shift : Δ ∌ʳ α → shiftNames Δ ∌ʳ suc α
 fresh-shift fresh[] = fresh[]
 fresh-shift (fresh∷ ne fresh) =
   fresh∷ (λ eq → ne (suc-injective eq)) (fresh-shift fresh)
@@ -290,10 +292,10 @@ same-target-unique unique (same-∀ a) (same-∀ a′) =
 -- A spelling CROSSES between the interior and the conversion context by
 -- the representation it denotes, never by arithmetic on its position: the
 -- two name maps can reorder relative to each other
--- (notes/ForallPayloadWall §3).  `SameTy` is that crossing, and on a
+-- (notes/ForallPayloadWall §3).  `_⊢_≈_⊣_` is that crossing, and on a
 -- unique name map it is a function — which is what determinism needs from
 -- the rules that carry it.
--- Stated on NAME MAPS: `SameTy`'s contexts reach the judgement only
+-- Stated on NAME MAPS: `_⊢_≈_⊣_`'s contexts reach the judgement only
 -- through `names`, which is a projection and so does not determine them.
 sameTy-src-unique : ∀ {η η′ A A₂ B} → Unique η
   → ∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ B ~ R))
@@ -337,13 +339,6 @@ empty = [] ∣ []
 
 wf-empty : WfCtx empty
 wf-empty = wf-ctx wf-reps[] (λ ()) unique[]
-
--- In `∀ Z. Z ⇒ α`, zero is the local Z and one is the free α.
-∀-payload-wf : abstR ∷ [] ⊢ᴿ `∀ (` 0 ⇒ ` 1)
-∀-payload-wf =
-  wfᴿ-∀
-    (wfᴿ-⇒ (wfᴿ-var (local-ref (s≤s z≤n)))
-           (wfᴿ-var (free-ref here)))
 
 ------------------------------------------------------------------------
 -- 8. Renaming the representation universe — the NAME MAP half
@@ -434,7 +429,7 @@ inj-extN (suc n) inj = inj-extᵗ (inj-extN n inj)
 ∋ˡ-ren⁻ ρ (α ∷ Δ) (there d) with ∋ˡ-ren⁻ ρ Δ d
 ∋ˡ-ren⁻ ρ (α ∷ Δ) (there d) | β , d′ , eq = β , there d′ , eq
 
-fresh-ren : ∀ {ρ} → Injᵗ ρ → Fresh α Δ → Fresh (ρ α) (map ρ Δ)
+fresh-ren : ∀ {ρ} → Injᵗ ρ → Δ ∌ʳ α → map ρ Δ ∌ʳ ρ α
 fresh-ren inj fresh[] = fresh[]
 fresh-ren inj (fresh∷ ne fr) =
   fresh∷ (λ eq → ne (inj eq)) (fresh-ren inj fr)

@@ -92,7 +92,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- two agree, `conv(dual Θ, int(Θ,Δ)) ≡ conv(Θ,Δ)`, is FALSE here, and
   -- `_⋉_` is what breaks it (notes/CrossingAudit §§4–6).  So the rule
   -- NAMES the dual's spelling `s′` and carries a `SameConv` relating it to
-  -- `s`, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry `SameTy`.
+  -- `s`, exactly as `TyPeelR-⟪⟫`, `IdPush` and `CancelR` carry
+  -- `_⊢_≈_⊣_`.
   --
   -- The premise never blocks a reduction.  The two contexts name the same
   -- representation variables — that is (Q), notes/PeelPremise §5 — and a
@@ -226,7 +227,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- typed; the pushed-in `·[ _ , ` 0 ]` is read by `⊢·[]` at the INTERIOR.
   -- Those are two different name maps, and they can even reorder relative
   -- to each other (notes/ForallPayloadWall §3), so the rule carries the
-  -- interior spelling `Bᵢ′` and a `SameTy` relating the two — the
+  -- interior spelling `Bᵢ′` and a `_⊢_≈_⊣_` relating the two — the
   -- crossing is by the REPRESENTATION a name denotes, never by
   -- arithmetic on its position.  Determinism for it is
   -- `sameTy-src-unique`; `det` reads the interior's `Unique` name map from
@@ -242,7 +243,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
         (underΛ
           (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
-    → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+    → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ ((renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W
@@ -318,7 +319,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
     → Δ₁ᶜ ∋ X := Aᵢ
     → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-    → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
+    → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
@@ -357,13 +358,14 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- THE RE-BASED NAME (2026-09-18).  `X` is read at the INNER frame's
   -- conversion context; the swap moves it into the MERGED frame's, which
   -- is a different name map.  So the rule carries the merged spelling
-  -- `X′` and a `SameTy` relating the two, exactly as `TyPeelR-⟪⟫` does
+  -- `X′` and a `_⊢_≈_⊣_` relating the two, exactly as `TyPeelR-⟪⟫`
+  -- does
   -- for its annotation.
   IdPush : ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A} → Value V
     → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
     → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
     → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-    → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X)
+    → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
     → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
     → Δᶜ ∋ Y := A
     → Δ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫

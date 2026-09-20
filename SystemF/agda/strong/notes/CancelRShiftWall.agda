@@ -71,11 +71,13 @@ module strong.notes.CancelRShiftWall where
 -- THE REPAIR, AS INSTALLED.  `IdPush` already carried the analogous
 -- premise against the INNER boundary's conversion context,
 --
---   IdPush  … → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → … → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X) → …
+--   IdPush  … → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → …
+--     → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ → …
 --
 -- and `Δ₁ᶜ` is exactly where the shifted reading lives.  `CancelR` now
 -- carries `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ`, `Δ₁ᶜ ∋ X := Aᵢ` and
--- `SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ`, with `Aᵢ` the source of the cancelled
+-- `Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ`, with `Aᵢ` the source of the
+-- cancelled
 -- `seal X` — a premise block premise-isomorphic to `IdPush`'s.
 
 open import Data.Nat using (ℕ; zero; suc)
@@ -217,13 +219,13 @@ r₂* = conversion conv[]
 -- representation 1 on Δ*; the merged frame's conversion context spells
 -- that representation `` ` 0 ``.  So the old premise HAD a witness, and
 -- the old rule FIRED.
-smA* : SameTy Δ₁* (` 0) Δ* (` 1)
+smA* : Δ₁* ⊢ ` 0 ≈ ` 1 ⊣ Δ*
 smA* = ` 1 , same-var here , same-var (there here)
 
 -- THE SAME PREMISE, REPAIRED.  Read from the cancelled seal's own source
 -- at `Δ₁*` instead, and the witness is `` ` 1 ``, which denotes
 -- representation 2 — the SHIFTED one.
-smAᵢ* : SameTy Δ₁* (` 1) Δ₁* (` 1)
+smAᵢ* : Δ₁* ⊢ ` 1 ≈ ` 1 ⊣ Δ₁*
 smAᵢ* = ` 2 , same-var (there here) , same-var (there here)
 
 ------------------------------------------------------------------------
@@ -302,7 +304,7 @@ CancelRCase° : Set
 CancelRCase° = ∀ {Δ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y A A′ C}
   → WfCtx Δ → Value V
   → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-  → SameTy Δ⋉ᶜ A′ Δᶜ A
+  → Δ⋉ᶜ ⊢ A′ ≈ A ⊣ Δᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
   → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C

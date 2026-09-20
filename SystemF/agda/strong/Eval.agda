@@ -128,7 +128,8 @@ BdyPremises : Ctxᵗ → CtxMorph → CtxMorph → Conv → Ty → Ty → Ctxᵗ
 BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Bᵢ′ ∈ Ty ] Σ[ Δ′ᶜ ∈ Ctxᵗ ] Σ[ Δᵢ⁺ ∈ Ctxᵗ ]
     Σ[ Δ″ᶜ ∈ Ctxᵗ ] Σ[ s″ ∈ Conv ]
-      ((Δ ⊢ⁱ Θ ⇒ Δᵢ) × SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+      ((Δ ⊢ⁱ Θ ⇒ Δᵢ)
+        × (underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
         × (Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
         × (Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺)
         × (Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ)
@@ -181,7 +182,7 @@ PushPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ X′ ∈ ℕ ]
     ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
       × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
-      × SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X))
+      × (Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ))
 
 pushPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (X : ℕ)
   → Maybe (PushPremises Δ Θ₁ Θ₂ X)
@@ -222,7 +223,7 @@ MergedPremises Δ Θ₁ Θ₂ X =
       ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
         × (Δ₁ᶜ ∋ X := Aᵢ)
         × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
-        × SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ)
+        × (Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ))
 
 mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (X : ℕ)
   → Maybe (MergedPremises Δ Θ₁ Θ₂ X)

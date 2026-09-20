@@ -56,12 +56,14 @@ open import strong.proof.Preserve
 ------------------------------------------------------------------------
 
 sameTy-⇒ : ∀ (Γ Γ′ : Ctxᵗ) {A B C D : Ty}
-  → SameTy Γ A Γ′ B → SameTy Γ C Γ′ D → SameTy Γ (A ⇒ C) Γ′ (B ⇒ D)
+  → Γ ⊢ A ≈ B ⊣ Γ′ → Γ ⊢ C ≈ D ⊣ Γ′
+  → Γ ⊢ A ⇒ C ≈ B ⇒ D ⊣ Γ′
 sameTy-⇒ Γ Γ′ (R , p , q) (S , p′ , q′) =
   R ⇒ S , same-⇒ p p′ , same-⇒ q q′
 
 sameTy-∀ : ∀ (Γ Γ′ : Ctxᵗ) {A B : Ty}
-  → SameTy (underΛ Γ) A (underΛ Γ′) B → SameTy Γ (`∀ A) Γ′ (`∀ B)
+  → underΛ Γ ⊢ A ≈ B ⊣ underΛ Γ′
+  → Γ ⊢ `∀ A ≈ `∀ B ⊣ Γ′
 sameTy-∀ Γ Γ′ (R , p , q) = `∀ R , same-∀ p , same-∀ q
 
 -- `respell` (strong.Conversion §2c) produces a conversion's other
@@ -70,7 +72,7 @@ sameTy-∀ Γ Γ′ (R , p , q) = `∀ R , same-∀ p , same-∀ q
 -- every leaf transports: a `seal`/`unseal` cites the SAME binder and only
 -- its ordinary spelling changes, and an identity's payload is re-spelled
 -- by `respell-ty`.  The source and target types come back paired with
--- `SameTy`s, which is what the crossing boundary's `env` consumes.
+-- `_⊢_≈_⊣_`s, which is what the crossing boundary's `env` consumes.
 respell-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
   → reps Γ′ ≡ reps Γ
   → (names Γ) ⊆ᵃ (names Γ′)
@@ -78,7 +80,8 @@ respell-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
   → names Γ′ ⊩ s′ ~ r
   → Γ ⊢ s ∶ A ⇝ B
   → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
-      ((Γ′ ⊢ s′ ∶ A′ ⇝ B′) × SameTy Γ′ A′ Γ A × SameTy Γ′ B′ Γ B)
+      ((Γ′ ⊢ s′ ∶ A′ ⇝ B′)
+        × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
 respell-⊢ eq f (sameᶜ-id same-ℕ) (sameᶜ-id same-ℕ) (conv-id base-ℕ) =
   `ℕ , `ℕ , conv-id base-ℕ
   , (`ℕ , same-ℕ , same-ℕ) , (`ℕ , same-ℕ , same-ℕ)
@@ -219,7 +222,7 @@ module _ (repWeaken : RepWeakenTyping) where
 
     -- the crossing argument's own exterior reading, lifted past the
     -- bind block, is the source spelling the dual's conversion wants
-    sameᵢ-d : SameTy (extendReps (binds Θ) Δ) _ Δᵈ P′
+    sameᵢ-d : extendReps (binds Θ) Δ ⊢ _ ≈ P′ ⊣ Δᵈ
     sameᵢ-d =
       shiftBy n Ra
       , same-shiftRVars n pA

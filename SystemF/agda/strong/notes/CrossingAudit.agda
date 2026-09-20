@@ -141,7 +141,7 @@ peel-used = refl
 -- the move — the defect `TyPeelR-⟪⟫`, `IdPush` and `CancelR` each had.
 --
 -- WHY IT IS NOT REPAIRED HERE.  The repair the other three took does not
--- transfer: they each carried a TYPE or a NAME, and `SameTy` relates
+-- transfer: they each carried a TYPE or a NAME, and `_⊢_≈_⊣_` relates
 -- those.  `s` is a CONVERSION, and there is no judgement yet that relates
 -- two conversions naming the same representations.  Inventing one is a
 -- larger step than the other three took, and it should be ruled rather
@@ -298,6 +298,6 @@ fix-stops-inverting = refl
 -- choice is between the two things `Peel` needs.  What is left is either
 -- a PREMISE on `Peel`, as the other three crossings got — but `Peel`
 -- carries a CONVERSION, and there is no judgement yet relating two
--- conversions that name the same representations, so `SameTy` does not
+-- conversions that name the same representations, so `_⊢_≈_⊣_` does not
 -- transfer — or a representation in which removing a name does not
 -- renumber the others, which is the question this branch exists to ask.

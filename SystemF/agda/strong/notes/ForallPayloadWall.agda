@@ -10,7 +10,7 @@ module strong.notes.ForallPayloadWall where
 --     the representation a name denotes, never through arithmetic on its
 --     position.
 --   * REPAIRED, unlike when this module was first written.  Both rules now
---     carry the interior spelling as a `SameTy` premise
+--     carry the interior spelling as a `_⊢_≈_⊣_` premise
 --     (strong.Reduction; notes/DECISIONS.md, 2026-09-18), and the two
 --     programs that found it run: they are §8 and §9 of
 --     notes/RepresentationReductionExamples.agda.
@@ -83,16 +83,18 @@ no-crossing = refl
 -- Because the crossing is a partial lookup rather than arithmetic, it
 -- cannot be a defined function inside a contractum: the rule would have to
 -- give a junk answer where there is none.  Both rules therefore NAME the
--- interior spelling and carry a `SameTy` relating it to the conversion
+-- interior spelling and carry a `_⊢_≈_⊣_` relating it to the conversion
 -- context's, which is the judgement `env` already uses for exactly this in
 -- three positions.  Determinism is `sameTy-src-unique` (strong.Ctx), which
 -- is why each rule also carries the interior name map's `Unique`.
 --
---   TyPeelR-⟪⟫   … → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ → …
+--   TyPeelR-⟪⟫   …
+--     → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
+--     → …
 --                   pushes `renameᵗ (extᵗ suc) Bᵢ′`
---   IdPush       … → SameTy Δ⋉ᶜ (` X′) Δ₁ᶜ (` X) → …
+--   IdPush       … → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ → …
 --                   mints `unseal X′`
---   CancelR      … → SameTy Δ⋉ᶜ A′ Δᶜ A → …
+--   CancelR      … → Δ⋉ᶜ ⊢ A′ ≈ A ⊣ Δᶜ → …
 --                   mints `mkId A′` on the inner layer
 --
 -- The seven runs that predated the repair are unchanged by it, because

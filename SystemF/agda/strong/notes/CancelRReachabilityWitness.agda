@@ -299,7 +299,7 @@ cancel-Θ₂ = proj₂ (conv! Δ₉ Θ₂)
 seal-source : Δ₁ᶜ ∋ 1 := ` 2
 seal-source = proj₂ (sq! Δ₁ᶜ 1)
 
-cancel-same : SameTy Δ⋉ᶜ (` 2) Δ₁ᶜ (` 2)
+cancel-same : Δ⋉ᶜ ⊢ ` 2 ≈ ` 2 ⊣ Δ₁ᶜ
 cancel-same = ` 2 , tr , tr
 
 -- and `` ` 2 `` at `Δ⋉ᶜ` denotes exactly what the inner `env` asks for:

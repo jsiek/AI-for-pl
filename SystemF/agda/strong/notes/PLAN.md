@@ -138,7 +138,8 @@ Testing has found and repaired these errors:
    `IdPush` each carried one across without re-basing. The two name maps can
    even reorder relative to each other, so the crossing is a partial lookup
    through the representation a name denotes, never arithmetic on positions.
-   Both rules now NAME the interior spelling and carry a `SameTy` relating
+   Both rules now NAME the interior spelling and carry a `_⊢_≈_⊣_`
+   relating
    it to the conversion context's; determinism is `sameTy-src-unique`.
    Found by examples 8 and 9, the first programs that instantiate at a
    polymorphic type. See `notes/DECISIONS.md` (2026-09-18) and
@@ -189,7 +190,7 @@ Testing has found and repaired these errors:
    `conversion-wf`; `notes/DECISIONS.md`, 2026-09-18). All three `WfCtx`
    fields transport: `Unique` because a lock deletes and an unlock inserts
    a name its own premise says is fresh; `ValidNames` because an unlock
-   carries its own `ValidRVar`; and `WfRepCtx` because neither reading
+   carries its own `Ξ ∋ʳ α`; and `WfRepCtx` because neither reading
    touches the representation context, leaving only a weakening of each
    bind payload past the block's tail (`wfᴿ-rename`, the one new proof).
    The former fields survive as functions of the same names, so use sites
@@ -624,7 +625,7 @@ one remaining parameter.
      `proof/PeelDual.agda` §1), which transports each leaf across the
      crossing: a `seal`/`unseal` cites the same binder and only changes
      ordinary spelling, an identity's payload goes through `respell-ty`,
-     and the source and target come back paired with `SameTy`s.
+     and the source and target come back paired with `_⊢_≈_⊣_`s.
 
      **PROVED (2026-09-20), AFTER ONE PREMISE REPAIR** — the third
      representation-only typing transport, beside `CrossΛTyping` and
@@ -715,7 +716,7 @@ one remaining parameter.
 
          CancelR : … → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → Δ₁ᶜ ∋ X := Aᵢ
            → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
-           → SameTy Δ⋉ᶜ A′ Δ₁ᶜ Aᵢ
+           → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
            → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A → …
 
      which is `IdPush`'s premise block with `Aᵢ` in place of `` ` X ``.
@@ -778,7 +779,8 @@ one remaining parameter.
 
    All eight `Unique` arguments came out: one each from `Peel` and
    `TyPeelR-Λ`, and two each from `TyPeelR-⟪⟫`, `CancelR` and `IdPush`.
-   The `SameTy`/`SameConv` premises and every interior/conversion-context
+   The `_⊢_≈_⊣_`/`SameConv` premises and every
+   interior/conversion-context
    reading stayed: those are what pin each contractum's spelling.
 
    `det` now inverts the redex typing to the boundary's `env`. For

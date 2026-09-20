@@ -35,6 +35,7 @@ open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ;
          ⇑ᵗ)
 open import strong.Ctx
+open import strong.proof.Ctx
 open import strong.CtxMorph
 
 private
@@ -288,7 +289,7 @@ peel-premises-env mwΘ ⊢s =
 -- and both of its types survive the move UNCHANGED; what moves is the
 -- context it is read on — the lookup square follows the same ordinary
 -- name to a renamed representation variable with a renamed payload
--- (`∋:=-ren`, strong.CtxMorph §3d).
+-- (`∋:=-ren`, strong.proof.Ctx §3).
 
 conv-cast : ∀ {Ξ : RepCtx} {c : Conv} → η ≡ η′
   → (Ξ ∣ η) ⊢ c ∶ A ⇝ B → (Ξ ∣ η′) ⊢ c ∶ A ⇝ B

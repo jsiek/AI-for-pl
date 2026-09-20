@@ -4364,3 +4364,63 @@ exports them unconditionally too, and its `Stage1` — like
 `strong.Progress.Stage1` and `strong.proof.TypeSafety.Stage1` — now takes
 exactly ONE parameter, `MergedReading`, which remains the single open,
 plausible obligation pending review.  Nothing is postulated anywhere.
+
+## 2026-09-20 — the context layer is split by SUBJECT: definitions, their
+## lemmas, and the morphism layer above them
+
+Three of Jeremy's cleanup items are one refactor: nothing is proved or
+restated, every declaration is byte-identical to the one it replaces, and
+only its ADDRESS changes.  The rule applied is SUBJECT, not size: a
+declaration whose statement mentions only `RepCtx`, `TyCtx` or `Ctxᵗ` is
+context material; one that mentions `Change` or `CtxMorph` is morphism
+material and stays where it was.  A declaration that mixes the two stays
+in `CtxMorph.agda`.
+
+The resulting module map, bottom up:
+
+  * `Types.agda` — `Ty`, `Renameᵗ`/`Substᵗ`, `renameᵗ`, `substᵗ`, the
+    single-substitution operations.  Definitions only.
+  * `proof/Types.agda` (NEW) — `substᵗ-cong`, `extsᵗ-renᵗ`,
+    `substᵗ-renᵗ`.  Imports `strong.Types` and the standard library, and
+    nothing else: it is the lowest proof module in the development.
+  * `Ctx.agda` — the two de Bruijn universes and every RELATION on them:
+    lookup (`_∋ˡ_:=_`, `_∋ʳ_:=_`, `_∋_:=_`, and the name-map queries
+    `_∋ʳ_`, `_∋ᵅ_`, `_⊆ᵃ_`), ordinary type formation, representation
+    payloads, the two readings of `Ty`, well-formedness, `extN`/`Injᵗ`,
+    and — new here, from `CtxMorph` §1/§2/§3d — the representation-binder
+    blocks (`shiftBy`, `pushRepBinds`, `shiftRVars`, `extendReps`,
+    `_⊢ᴮ_`, `shiftByᵇ`) as §9, the insert/delete relations
+    (`_⊢+_at_⇒_`, `_⊢-_at_⇒_`) as §10, and `RepWk` as §11.
+  * `proof/Ctx.agda` (NEW) — every lemma about the above, in two halves:
+    the ones that used to sit in `Ctx.agda` (§1–§2: `∋ˡ-det`,
+    `same-target-unique`, `sameTy-src-unique`, the `renameᵗ` algebra, the
+    `map ρ` transport of the name map, …) and the context-only ones that
+    used to sit in `CtxMorph.agda` (§3: `insert-functional`, the `∋ᵅ`
+    monotonicity family, `pigeon`, `live?`, `wfᴿ-rename`,
+    `wfRepCtx-push`, `validNames-push`, the `repwk-*` closure lemmas,
+    `wfctx-ren`, `∋:=-ren`, …).
+  * `CtxMorph.agda` — `Change`, the change judgements, `CtxMorph`, the
+    two induced readings, `dualMorph`/`rewind`/`_⋉_`/`addLock0`/
+    `instantiate`, `Q`, `dual-conv-exists`, `MorphWf`, and the renaming
+    of a morphism.  Its own lemmas stay with it; only the context layer
+    beneath them left.
+
+The layering stays acyclic and is now three-deep instead of two:
+`Types → proof/Types → Ctx → proof/Ctx → CtxMorph`.  `Ctx.agda` does not
+import `CtxMorph`, and `proof/Ctx.agda` imports only `Types`,
+`proof/Types` and `Ctx` — which is what lets a proof module sit that low
+at all.  Downstream, twelve files gained `open import strong.proof.Ctx`;
+the rest never used a lemma from either moved group, and the set of names
+in scope in every file is exactly what it was before.
+
+Two things did NOT move, and both are deliberate.  The `private` helper
+blocks of `CtxMorph` §3a/§3b (`shiftNames-lookup`, `insert-shift`,
+`delete-shift`, `shiftRVars-suc`, `del-shiftRVars`, `ins-shiftRVars`) are
+context-only but are proof script for `instantiate`/`step-lift`; moving
+them would have made them public, so they stay private where they are
+used.  `ΛXCtx` is `Ctxᵗ`-only but exists solely as the domain of `crossΛ`
+and `uncrossΛ`, so it stays with them in §4.
+
+`make check` is green, the thirteen-run suite and `Examples.agda` keep
+every step count and endpoint (they are typed equalities, so the check
+IS the verification), and no `postulate` or hole was introduced.

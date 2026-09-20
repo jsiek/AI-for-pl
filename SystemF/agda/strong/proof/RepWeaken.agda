@@ -19,7 +19,7 @@ module strong.proof.RepWeaken where
 -- stops being at the head of the representation context; and the name map
 -- stops being the exterior's.  Both are absorbed by abstracting the
 -- insertion into an arbitrary representation renaming ρ together with the
--- four facts it must supply — `RepWk ρ Ξ Ξ′`, strong.CtxMorph §3d — and
+-- four facts it must supply — `RepWk ρ Ξ Ξ′`, strong.Ctx §11 — and
 -- renaming the name map POINTWISE, as `map ρ`:
 --
 --   ⊢renᴿ : RepWk ρ Ξ Ξ′ → (Ξ ∣ η) ∣ Γ ⊢ M ⦂ A
@@ -32,7 +32,8 @@ module strong.proof.RepWeaken where
 -- (`repwk-push`), which is precisely how `renᴹᴿ` recurses.
 --
 -- THE HARD CASE IS `env`, and every one of its six premises transports
--- by a lemma of strong.CtxMorph §3d or strong.Conversion §2d: the
+-- by a lemma of strong.proof.Ctx §3, strong.CtxMorph §3d or
+-- strong.Conversion §2d: the
 -- exterior well-formedness by `wfctx-ren`, the bind block by
 -- `binds-ren`, the two readings by `interior-ren`/`conversion-ren`, the
 -- conversion's TYPING by `conv-ren` (the conversion and both of its types
@@ -68,6 +69,7 @@ open import Relation.Binary.PropositionalEquality
 open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
 open import strong.Ctx
+open import strong.proof.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms

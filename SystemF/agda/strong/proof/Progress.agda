@@ -27,6 +27,7 @@ open import Relation.Binary.PropositionalEquality
 open import strong.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; extᵗ)
 open import strong.Ctx
+open import strong.proof.Ctx
 open import strong.Conversion
 open import strong.Terms
 open import strong.CtxMorph

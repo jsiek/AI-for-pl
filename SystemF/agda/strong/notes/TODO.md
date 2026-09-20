@@ -20,7 +20,7 @@
   Progress
   TypeSafety
 
-* Refactor CtxMorph
+* DONE: Refactor CtxMorph
 
   Move stuff about RepCtx, TyCtx, and Ctxᵗ to Ctx.agda
   Keep suff about Change and CtxMorph in CtxMorph.agda
@@ -49,7 +49,7 @@ data Term : Set where
 
   and similarly, change uses of ℕ for term variables to Var.
   
-* Move lemmas from Types.agda to a new file proof/Types.agda.
+* DONE: Move lemmas from Types.agda to a new file proof/Types.agda.
 
-* Move lemmas from Ctx.agda to a new file proof/Ctx.agda.
+* DONE: Move lemmas from Ctx.agda to a new file proof/Ctx.agda.
 

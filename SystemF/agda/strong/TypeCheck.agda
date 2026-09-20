@@ -293,7 +293,7 @@ wfCtx? Γ | just wr | just vn | nothing = nothing
 wfCtx? Γ | just wr | just vn | just u  = just (wf-ctx wr vn u)
 
 -- Every bind payload is checked over the SAME exterior representation
--- context (the parallel-bind discipline, strong.CtxMorph §1).
+-- context (the parallel-bind discipline, strong.Ctx §9).
 binds? : (Ξ : RepCtx) (Rs : List Ty) → Maybe (Ξ ⊢ᴮ Rs)
 binds? Ξ []       = just binds[]
 binds? Ξ (R ∷ Rs) with wfᴿ? Ξ zero R

@@ -90,6 +90,7 @@ open import Relation.Binary.PropositionalEquality
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
+open import strong.proof.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms

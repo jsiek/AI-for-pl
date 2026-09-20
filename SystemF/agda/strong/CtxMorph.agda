@@ -6,21 +6,26 @@ module strong.CtxMorph where
 -- representation-variable binders. Its `changes` sequentially bind and
 -- anti-bind ordinary type variables. Every change carries both the ordinary
 -- de Bruijn position and the representation variable named at that position.
+--
+-- Everything here mentions `Change` or `CtxMorph`.  The context material it
+-- stands on — the representation-binder blocks of the old §1, the
+-- insert/delete relations, `RepWk` — is strong.Ctx, and the lemmas about
+-- that material are strong.proof.Ctx.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s)
-open import Data.Nat.Properties
-  using (_≟_; +-cancelˡ-≡; +-identityʳ; ≤-trans; suc-injective)
+open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; s≤s)
+open import Data.Nat.Properties using (_≟_; +-identityʳ; ≤-trans)
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
 open import Data.List.Properties using (unfold-reverse; map-++)
-open import Data.Product using (Σ; Σ-syntax; _,_; _×_; ∃-syntax; proj₂)
+open import Data.Product using (Σ-syntax; _,_; _×_; ∃-syntax; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
 open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; trans; cong; cong₂; subst)
+  using (_≡_; refl; sym; trans; cong; subst)
 
-open import strong.Types using (Ty; `ℕ; ⇑ᵗ; Renameᵗ; renameᵗ; extᵗ)
+open import strong.Types using (Ty; `ℕ; Renameᵗ; renameᵗ)
 open import strong.Ctx
+open import strong.proof.Ctx
 
 private
   variable
@@ -32,35 +37,6 @@ private
     b : RepBinding
     X : ℕ
     α β : RVar
-
-------------------------------------------------------------------------
--- 1. Representation-variable binders
-------------------------------------------------------------------------
-
-shiftBy : ℕ → Ty → Ty
-shiftBy zero    R = R
-shiftBy (suc n) R = ⇑ᵗ (shiftBy n R)
-
--- The bind block is parallel: every payload is written over the exterior
--- representation context. Earlier entries are shifted past their list tail.
-pushRepBinds : List Ty → RepCtx → RepCtx
-pushRepBinds []       Ξ = Ξ
-pushRepBinds (R ∷ Rs) Ξ =
-  bindR (shiftBy (length Rs) R) ∷ pushRepBinds Rs Ξ
-
-shiftRVars : ℕ → TyCtx → TyCtx
-shiftRVars n = map (n +_)
-
-extendReps : List Ty → Ctxᵗ → Ctxᵗ
-extendReps Rs (Ξ ∣ Δ) =
-  pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
-
--- Every bind payload is checked over the SAME exterior representation
--- context. This is the morphism's parallel-bind discipline.
-infix 4 _⊢ᴮ_
-data _⊢ᴮ_ (Ξ : RepCtx) : List Ty → Set where
-  binds[] : Ξ ⊢ᴮ []
-  binds∷  : Ξ ⊢ᴿ R → Ξ ⊢ᴮ Rs → Ξ ⊢ᴮ R ∷ Rs
 
 ------------------------------------------------------------------------
 -- 2. Ordinary-variable binders and anti-binders
@@ -75,54 +51,16 @@ private
     δ : Change
     χ : List Change
 
-infix 4 _⊢+_at_⇒_
-data _⊢+_at_⇒_ (α : RVar) : TyCtx → ℕ → TyCtx → Set where
-  ins-here  : α ⊢+ Δ at zero ⇒ α ∷ Δ
-  ins-there : α ⊢+ Δ at X ⇒ Δ′
-    → α ⊢+ β ∷ Δ at suc X ⇒ β ∷ Δ′
-
-infix 4 _⊢-_at_⇒_
-data _⊢-_at_⇒_ (α : RVar) : TyCtx → ℕ → TyCtx → Set where
-  del-here  : α ⊢- α ∷ Δ at zero ⇒ Δ
-  del-there : α ⊢- Δ at X ⇒ Δ′
-    → α ⊢- β ∷ Δ at suc X ⇒ β ∷ Δ′
-
-insert-functional : α ⊢+ Δ at X ⇒ Δ₁
-  → α ⊢+ Δ at X ⇒ Δ₂
-  → Δ₁ ≡ Δ₂
-insert-functional ins-here ins-here = refl
-insert-functional (ins-there i) (ins-there i′) =
-  cong (_ ∷_) (insert-functional i i′)
-
-delete-functional : α ⊢- Δ at X ⇒ Δ₁
-  → α ⊢- Δ at X ⇒ Δ₂
-  → Δ₁ ≡ Δ₂
-delete-functional del-here del-here = refl
-delete-functional (del-there d) (del-there d′) =
-  cong (_ ∷_) (delete-functional d d′)
-
 -- `lock` records freshness of the result and `unlock` demands freshness of
 -- its input. Thus one representation variable never has two simultaneous
 -- ordinary names, and the two changes are exact inverses. The Ξ index makes
 -- the carried representation-variable occurrence well scoped.
-infix 4 _∋ʳ_
-_∋ʳ_ : RepCtx → RVar → Set
-Ξ ∋ʳ α = ∃[ b ] Ξ ∋ˡ α := b
-
 infix 4 _∣_⊢δ_⇒_
 data _∣_⊢δ_⇒_ (Ξ : RepCtx) : TyCtx → Change → TyCtx → Set where
   step-lock : Ξ ∋ʳ α → α ⊢- Δ at X ⇒ Δ′ → Δ′ ∌ʳ α
     → Ξ ∣ Δ ⊢δ lock X α ⇒ Δ′
   step-unlock : Ξ ∋ʳ α → Δ ∌ʳ α → α ⊢+ Δ at X ⇒ Δ′
     → Ξ ∣ Δ ⊢δ unlock X α ⇒ Δ′
-
-insert-delete : α ⊢- Δ at X ⇒ Δ′ → α ⊢+ Δ′ at X ⇒ Δ
-insert-delete del-here = ins-here
-insert-delete (del-there d) = ins-there (insert-delete d)
-
-delete-insert : α ⊢+ Δ at X ⇒ Δ′ → α ⊢- Δ′ at X ⇒ Δ
-delete-insert ins-here = del-here
-delete-insert (ins-there i) = del-there (delete-insert i)
 
 dualChange : Change → Change
 dualChange (lock X α)   = unlock X α
@@ -343,25 +281,6 @@ conversion-functional (conversion cs) (conversion cs′) =
 -- the bind block checks. Each of `WfCtx`'s three fields transports
 -- separately, and none of them needs the term or the conversion.
 
--- `Δ ∋ᵅ α`: α has an ordinary name in Δ.
-infix 4 _∋ᵅ_
-_∋ᵅ_ : TyCtx → RVar → Set
-Δ ∋ᵅ α = ∃[ X ] Δ ∋ˡ X := α
-
-∋ᵅ-cons : Δ ∋ᵅ α → (β ∷ Δ) ∋ᵅ α
-∋ᵅ-cons (X , d) = suc X , there d
-
-ins-live : α ⊢+ Δ at X ⇒ Δ′ → Δ′ ∋ᵅ α
-ins-live ins-here = zero , here
-ins-live (ins-there i) with ins-live i
-ins-live (ins-there i) | X , d = suc X , there d
-
-ins-mono : α ⊢+ Δ at X ⇒ Δ′ → Δ ∋ᵅ β → Δ′ ∋ᵅ β
-ins-mono ins-here (X , d) = suc X , there d
-ins-mono (ins-there i) (zero , here) = zero , here
-ins-mono (ins-there i) (suc X , there d) with ins-mono i (X , d)
-ins-mono (ins-there i) (suc X , there d) | Y , d′ = suc Y , there d′
-
 -- A conversion reading only adds ordinary names: locks are skipped and an
 -- unlock either inserts its representation variable or finds it already
 -- live.  Preservation uses this to re-spell an exterior type in the
@@ -378,33 +297,6 @@ conversion-live (conversion cs) lv = conv-live cs lv
   conv-live (conv-lock v css) live = conv-live css live
   conv-live (conv-unlock v css fr i) live = ins-mono i (conv-live css live)
   conv-live (conv-unlock-live v css d) live = conv-live css live
-
-ins-inv : α ⊢+ Δ at X ⇒ Δ′ → Δ′ ∋ᵅ β → (β ≡ α) ⊎ Δ ∋ᵅ β
-ins-inv ins-here (zero , here) = inj₁ refl
-ins-inv ins-here (suc X , there d) = inj₂ (X , d)
-ins-inv (ins-there i) (zero , here) = inj₂ (zero , here)
-ins-inv (ins-there i) (suc X , there d) with ins-inv i (X , d)
-ins-inv (ins-there i) (suc X , there d) | inj₁ eq = inj₁ eq
-ins-inv (ins-there i) (suc X , there d) | inj₂ (Y , d′) =
-  inj₂ (suc Y , there d′)
-
-del-live : α ⊢- Δ at X ⇒ Δ′ → Δ ∋ᵅ α
-del-live del-here = zero , here
-del-live (del-there dl) with del-live dl
-del-live (del-there dl) | X , d = suc X , there d
-
-del-mono : α ⊢- Δ at X ⇒ Δ′ → β ≢ α → Δ ∋ᵅ β → Δ′ ∋ᵅ β
-del-mono del-here ne (zero , here) = ⊥-elim (ne refl)
-del-mono del-here ne (suc X , there d) = X , d
-del-mono (del-there dl) ne (zero , here) = zero , here
-del-mono (del-there dl) ne (suc X , there d) with del-mono dl ne (X , d)
-del-mono (del-there dl) ne (suc X , there d) | Y , d′ = suc Y , there d′
-
-del-inv : α ⊢- Δ at X ⇒ Δ′ → Δ′ ∋ᵅ β → Δ ∋ᵅ β
-del-inv del-here (X , d) = suc X , there d
-del-inv (del-there dl) (zero , here) = zero , here
-del-inv (del-there dl) (suc X , there d) with del-inv dl (X , d)
-del-inv (del-there dl) (suc X , there d) | Y , d′ = suc Y , there d′
 
 -- Rewinding a morphism.
 
@@ -616,30 +508,6 @@ rewind-conversion (interior cs) (conversion csᶜ) =
 
 -- (i) `name-fn`. A lock deletes and an unlock inserts a name its own
 -- premise says is fresh, so both readings preserve uniqueness.
-fresh→≢ : Δ ∌ʳ α → Δ ∋ᵅ β → β ≢ α
-fresh→≢ (fresh∷ ne fr) (zero , here) = λ eq → ne (sym eq)
-fresh→≢ (fresh∷ ne fr) (suc X , there d) = fresh→≢ fr (X , d)
-
-del-fresh : α ⊢- Δ at X ⇒ Δ′ → Δ ∌ʳ β → Δ′ ∌ʳ β
-del-fresh del-here (fresh∷ ne fr) = fr
-del-fresh (del-there dl) (fresh∷ ne fr) = fresh∷ ne (del-fresh dl fr)
-
-ins-fresh : α ⊢+ Δ at X ⇒ Δ′ → β ≢ α
-  → Δ ∌ʳ β → Δ′ ∌ʳ β
-ins-fresh ins-here ne fr = fresh∷ ne fr
-ins-fresh (ins-there i) ne (fresh∷ ne′ fr) = fresh∷ ne′ (ins-fresh i ne fr)
-
-del-unique : α ⊢- Δ at X ⇒ Δ′ → Unique Δ → Unique Δ′
-del-unique del-here (unique∷ fr uq) = uq
-del-unique (del-there dl) (unique∷ fr uq) =
-  unique∷ (del-fresh dl fr) (del-unique dl uq)
-
-ins-unique : α ⊢+ Δ at X ⇒ Δ′ → Δ ∌ʳ α
-  → Unique Δ → Unique Δ′
-ins-unique ins-here fr uq = unique∷ fr uq
-ins-unique (ins-there i) (fresh∷ ne fr) (unique∷ fr′ uq) =
-  unique∷ (ins-fresh i (λ eq → ne (sym eq)) fr′) (ins-unique i fr uq)
-
 int-unique : Unique Δ → Ξ ∣ Δ ⊢χ χ ⇒ Δ′ → Unique Δ′
 int-unique uq changes[] = uq
 int-unique uq (changes∷ cs (step-lock v dl fr)) =
@@ -647,51 +515,9 @@ int-unique uq (changes∷ cs (step-lock v dl fr)) =
 int-unique uq (changes∷ cs (step-unlock v fr i)) =
   ins-unique i fr (int-unique uq cs)
 
-fresh-shiftRVars : (n : ℕ) → Δ ∌ʳ α → shiftRVars n Δ ∌ʳ n + α
-fresh-shiftRVars n fresh[] = fresh[]
-fresh-shiftRVars n (fresh∷ ne fr) =
-  fresh∷ (λ eq → ne (+-cancelˡ-≡ n _ _ eq)) (fresh-shiftRVars n fr)
-
-unique-shiftRVars : (n : ℕ) → Unique Δ → Unique (shiftRVars n Δ)
-unique-shiftRVars n unique[] = unique[]
-unique-shiftRVars n (unique∷ fr uq) =
-  unique∷ (fresh-shiftRVars n fr) (unique-shiftRVars n uq)
-
-shiftRVars-0 : (Δ : TyCtx) → shiftRVars 0 Δ ≡ Δ
-shiftRVars-0 [] = refl
-shiftRVars-0 (α ∷ Δ) = cong (α ∷_) (shiftRVars-0 Δ)
-
 -- (ii) `wf-names`. Every name a reading leaves live is one the exterior
 -- already had, shifted past the bind block, or one an `unlock` brought
 -- in — and an unlock carries its own `Ξ ∋ʳ α` premise.
-∋ˡ-push : (Rs : List Ty) → Ξ ∋ˡ α := b
-  → pushRepBinds Rs Ξ ∋ˡ (length Rs + α) := b
-∋ˡ-push [] d = d
-∋ˡ-push (S ∷ Rs) d = there (∋ˡ-push Rs d)
-
-∋ˡ-shiftRVars : (n : ℕ) (Δ : TyCtx) {γ : RVar} → shiftRVars n Δ ∋ˡ X := γ
-  → ∃[ α ] ((Δ ∋ˡ X := α) × (γ ≡ n + α))
-∋ˡ-shiftRVars n (α ∷ Δ) here = α , here , refl
-∋ˡ-shiftRVars n (α ∷ Δ) (there d) with ∋ˡ-shiftRVars n Δ d
-∋ˡ-shiftRVars n (α ∷ Δ) (there d) | β , d′ , eq = β , there d′ , eq
-
-validNames-push : (Rs : List Ty) → ValidNames Ξ Δ
-  → ValidNames (pushRepBinds Rs Ξ) (shiftRVars (length Rs) Δ)
-validNames-push {Δ = Δ} Rs vn d
-  with ∋ˡ-shiftRVars (length Rs) Δ d
-validNames-push {Δ = Δ} Rs vn d | α , d′ , refl with vn d′
-validNames-push {Δ = Δ} Rs vn d | α , d′ , refl | b , dr =
-  b , ∋ˡ-push Rs dr
-
-del-valid : α ⊢- Δ at X ⇒ Δ′ → ValidNames Ξ Δ → ValidNames Ξ Δ′
-del-valid dl vn d = vn (proj₂ (del-inv dl (_ , d)))
-
-ins-valid : α ⊢+ Δ at X ⇒ Δ′ → Ξ ∋ʳ α
-  → ValidNames Ξ Δ → ValidNames Ξ Δ′
-ins-valid i v vn d with ins-inv i (_ , d)
-ins-valid i v vn d | inj₁ refl = v
-ins-valid i v vn d | inj₂ lv = vn (proj₂ lv)
-
 int-valid : ValidNames Ξ Δ → Ξ ∣ Δ ⊢χ χ ⇒ Δ′ → ValidNames Ξ Δ′
 int-valid vn changes[] = vn
 int-valid vn (changes∷ cs (step-lock v dl fr)) =
@@ -759,34 +585,6 @@ merged-interior : ∀ {Θ₁ Θ₂ : CtxMorph} {Γ₁ᵢ : Ctxᵗ}
 merged-interior {Θ₁ = Θ₁} (interior cs₂) (interior cs₁) =
   interior (changes-++ (changes-lift (binds Θ₁) cs₂) cs₁)
 
--- A representation payload looked up THROUGH a bind block is the payload
--- shifted past that block.
-∋ʳ-push : (Rs : List Ty) → Ξ ∋ʳ α := bindR R
-  → pushRepBinds Rs Ξ ∋ʳ (length Rs + α) := bindR (shiftBy (length Rs) R)
-∋ʳ-push [] d = d
-∋ʳ-push (S ∷ Rs) d = r-there (∋ʳ-push Rs d)
-
--- The same fact for an ABSTRACT binding as well: only the payload of a
--- represented one actually moves, but a rep-only weakening has to carry
--- both, so state the shift on bindings rather than on payloads.
-shiftByᵇ : ℕ → RepBinding → RepBinding
-shiftByᵇ zero    b = b
-shiftByᵇ (suc n) b = renRepBinding suc (shiftByᵇ n b)
-
-shiftByᵇ-abstR : (n : ℕ) → shiftByᵇ n abstR ≡ abstR
-shiftByᵇ-abstR zero    = refl
-shiftByᵇ-abstR (suc n) = cong (renRepBinding suc) (shiftByᵇ-abstR n)
-
-shiftByᵇ-bindR : (n : ℕ) (R : Ty)
-  → shiftByᵇ n (bindR R) ≡ bindR (shiftBy n R)
-shiftByᵇ-bindR zero    R = refl
-shiftByᵇ-bindR (suc n) R = cong (renRepBinding suc) (shiftByᵇ-bindR n R)
-
-∋ʳ-pushᵇ : (Rs : List Ty) → Ξ ∋ʳ α := b
-  → pushRepBinds Rs Ξ ∋ʳ (length Rs + α) := shiftByᵇ (length Rs) b
-∋ʳ-pushᵇ [] d = d
-∋ʳ-pushᵇ (S ∷ Rs) d = r-there (∋ʳ-pushᵇ Rs d)
-
 -- Both readings leave the REPRESENTATION context of the morphism's own
 -- bind block; only the ordinary name map moves.
 interior-reps : ∀ {Θ : CtxMorph} → Γ ⊢ⁱ Θ ⇒ Γᵢ
@@ -796,46 +594,6 @@ interior-reps (interior cs) = refl
 conversion-reps : ∀ {Θ : CtxMorph} → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → reps Γᶜ ≡ pushRepBinds (binds Θ) (reps Γ)
 conversion-reps (conversion cs) = refl
-
--- (iii) `wf-reps`. Both readings leave the representation context alone,
--- so all that is needed is that the bind block itself is well formed
--- where it lands — each payload weakened past the block's own tail.
-ref-suc : ∀ {n i} → Ξ ⊢ref[ n ] i → Ξ ⊢ref[ suc n ] suc i
-ref-suc (local-ref lt) = local-ref (s≤s lt)
-ref-suc (free-ref d) = free-ref d
-
-ref-ext : ∀ {Ξ′ n m} {ρ : Renameᵗ}
-  → (∀ {i} → Ξ ⊢ref[ n ] i → Ξ′ ⊢ref[ m ] ρ i)
-  → ∀ {i} → Ξ ⊢ref[ suc n ] i → Ξ′ ⊢ref[ suc m ] extᵗ ρ i
-ref-ext f (local-ref {i = zero} lt) = local-ref (s≤s z≤n)
-ref-ext f (local-ref {i = suc j} (s≤s lt)) = ref-suc (f (local-ref lt))
-ref-ext f (free-ref d) = ref-suc (f (free-ref d))
-
-wfᴿ-rename : ∀ {Ξ′ n m} {ρ : Renameᵗ}
-  → (∀ {i} → Ξ ⊢ref[ n ] i → Ξ′ ⊢ref[ m ] ρ i)
-  → Ξ ⊢ᴿ[ n ] R → Ξ′ ⊢ᴿ[ m ] renameᵗ ρ R
-wfᴿ-rename f (wfᴿ-var r) = wfᴿ-var (f r)
-wfᴿ-rename f wfᴿ-ℕ = wfᴿ-ℕ
-wfᴿ-rename f wfᴿ-𝔹 = wfᴿ-𝔹
-wfᴿ-rename f (wfᴿ-⇒ a c) = wfᴿ-⇒ (wfᴿ-rename f a) (wfᴿ-rename f c)
-wfᴿ-rename f (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-rename (ref-ext f) a)
-
-wfᴿ-⇑ : Ξ ⊢ᴿ R → (b ∷ Ξ) ⊢ᴿ ⇑ᵗ R
-wfᴿ-⇑ {Ξ = Ξ} {b = b} w = wfᴿ-rename step w
-  where
-  step : ∀ {i} → Ξ ⊢ref[ 0 ] i → (b ∷ Ξ) ⊢ref[ 0 ] suc i
-  step (local-ref ())
-  step (free-ref d) = free-ref (there d)
-
-wfᴿ-push : (Rs : List Ty) → Ξ ⊢ᴿ R
-  → pushRepBinds Rs Ξ ⊢ᴿ shiftBy (length Rs) R
-wfᴿ-push [] w = w
-wfᴿ-push (S ∷ Rs) w = wfᴿ-⇑ (wfᴿ-push Rs w)
-
-wfRepCtx-push : Ξ ⊢ᴮ Rs → WfRepCtx Ξ → WfRepCtx (pushRepBinds Rs Ξ)
-wfRepCtx-push binds[] wr = wr
-wfRepCtx-push (binds∷ {Rs = Rs} w bs) wr =
-  wf-bindR (wfᴿ-push Rs w) (wfRepCtx-push bs wr)
 
 -- The conversion reading preserves both, for the same reasons: it skips
 -- locks, and an unlock either inserts a name its own premise says is
@@ -1101,82 +859,9 @@ Q-inv {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
            (shiftRVars-0 _) dc)
     lv
 
-live-shift : Δ ∋ᵅ α → (shiftNames Δ) ∋ᵅ (suc α)
-live-shift (zero , here) = zero , here
-live-shift (suc X , there d) with live-shift (X , d)
-live-shift (suc X , there d) | Y , d′ = suc Y , there d′
-
-live-shift-inv : (Δ : TyCtx) → (shiftNames Δ) ∋ᵅ α
-  → ∃[ β ] (Δ ∋ᵅ β × (α ≡ suc β))
-live-shift-inv (γ ∷ Δ) (zero , here) = γ , (zero , here) , refl
-live-shift-inv (γ ∷ Δ) (suc X , there d) with live-shift-inv Δ (X , d)
-live-shift-inv (γ ∷ Δ) (suc X , there d) | β , lv , eq =
-  β , ∋ᵅ-cons lv , eq
-
-infix 4 _⊆ᵃ_
-_⊆ᵃ_ : TyCtx → TyCtx → Set
-Δ ⊆ᵃ Δ′ = ∀ {α} → Δ ∋ᵅ α → Δ′ ∋ᵅ α
-
-⊆ᵃ-underΛ : Δ ⊆ᵃ Δ′
-  → (zero ∷ shiftNames Δ) ⊆ᵃ (zero ∷ shiftNames Δ′)
-⊆ᵃ-underΛ f (zero , here) = zero , here
-⊆ᵃ-underΛ {Δ = Δ} f (suc X , there d) with live-shift-inv Δ (X , d)
-⊆ᵃ-underΛ {Δ = Δ} f (suc X , there d) | β , lv , refl =
-  ∋ᵅ-cons (live-shift (f lv))
-
 ------------------------------------------------------------------------
 -- 3c. The dual conversion context exists
 ------------------------------------------------------------------------
-
-live? : (α : RVar) (Δ : TyCtx) → Δ ∋ᵅ α ⊎ Δ ∌ʳ α
-live? α [] = inj₂ fresh[]
-live? α (β ∷ Δ) with α ≟ β
-live? α (β ∷ Δ) | yes refl = inj₁ (zero , here)
-live? α (β ∷ Δ) | no ne with live? α Δ
-live? α (β ∷ Δ) | no ne | inj₁ lv = inj₁ (∋ᵅ-cons lv)
-live? α (β ∷ Δ) | no ne | inj₂ fr = inj₂ (fresh∷ ne fr)
-
-del-length : α ⊢- Δ at X ⇒ Δ′ → length Δ ≡ suc (length Δ′)
-del-length del-here = refl
-del-length (del-there dl) = cong suc (del-length dl)
-
-del-lt : α ⊢- Δ at X ⇒ Δ′ → suc X ≤ length Δ
-del-lt del-here = s≤s z≤n
-del-lt (del-there dl) = s≤s (del-lt dl)
-
-lookup→del : Δ ∋ˡ X := α → ∃[ Δ′ ] (α ⊢- Δ at X ⇒ Δ′)
-lookup→del here = _ , del-here
-lookup→del (there d) with lookup→del d
-lookup→del (there d) | Δ′ , dl = _ , del-there dl
-
-ins-exists : (Δ : TyCtx) (X : ℕ) → X ≤ length Δ
-  → ∃[ Δ′ ] (α ⊢+ Δ at X ⇒ Δ′)
-ins-exists Δ zero le = _ , ins-here
-ins-exists (β ∷ Δ) (suc X) (s≤s le) with ins-exists Δ X le
-ins-exists (β ∷ Δ) (suc X) (s≤s le) | Δ′ , i =
-  β ∷ Δ′ , ins-there i
-
-pigeon : (xs ys : TyCtx) → Unique xs → xs ⊆ᵃ ys
-  → length xs ≤ length ys
-pigeon [] ys uq k = z≤n
-pigeon (α ∷ xs) ys (unique∷ fr uq) k with k (zero , here)
-pigeon (α ∷ xs) ys (unique∷ fr uq) k | X , d with lookup→del d
-pigeon (α ∷ xs) ys (unique∷ fr uq) k | X , d | ys′ , dl =
-  subst (λ n → suc (length xs) ≤ n) (sym (del-length dl))
-        (s≤s (pigeon xs ys′ uq k′))
-  where
-  k′ : xs ⊆ᵃ ys′
-  k′ lv = del-mono dl (fresh→≢ fr lv) (k (∋ᵅ-cons lv))
-
-ins-le : α ⊢+ Δ at X ⇒ Δ′ → X ≤ length Δ
-ins-le ins-here = z≤n
-ins-le (ins-there i) = s≤s (ins-le i)
-
-ins-cover : ∀ {Δ₀} → α ⊢+ Δ at X ⇒ Δ′ → Δ₀ ∋ᵅ α
-  → Δ ⊆ᵃ Δ₀ → Δ′ ⊆ᵃ Δ₀
-ins-cover i live k lv with ins-inv i lv
-ins-cover i live k lv | inj₁ refl = live
-ins-cover i live k lv | inj₂ lv′ = k lv′
 
 -- A conversion reading is monotone in its starting name set.  Locks are
 -- skipped; an unlock either finds its name already live in the larger set or
@@ -1226,12 +911,6 @@ conv-snoc-lock v (conv-unlock-live w cs d) =
 
 sucle : ∀ {a b} → suc a ≤ suc b → a ≤ b
 sucle (s≤s le) = le
-
-keeps-del : ∀ {Δ₀} → α ⊢- Δ at X ⇒ Δ′ → Δ₀ ∋ᵅ α
-  → Δ′ ⊆ᵃ Δ₀ → Δ ⊆ᵃ Δ₀
-keeps-del {α = α} dl lvα k {β} lv with β ≟ α
-keeps-del {α = α} dl lvα k {β} lv | yes refl = lvα
-keeps-del {α = α} dl lvα k {β} lv | no ne = k (del-mono dl ne lv)
 
 dual-conv-exists : (χ : List Change) {Δ Δᵢ : TyCtx} (Δ₀ : TyCtx)
   → Unique Δ → Unique Δ₀
@@ -1332,184 +1011,10 @@ mw-conversion-wf mwΘ =
 -- 3d. Renaming the representation universe — the CONTEXT half
 ------------------------------------------------------------------------
 
--- A REPRESENTATION-ONLY renaming ρ acts on a context by renaming the
--- representation context and renaming the name map POINTWISE (`map ρ`).
--- Ordinary positions never move, so the ordinary spelling of every type,
--- conversion and change is untouched — which is the whole point of
--- `renᴹᴿ`.  `RepWk ρ Ξ Ξ′` is what such a move must supply, and it is
--- exactly what the two induced readings, the conversion typing and the
--- typing judgement all consume.  Three fields are the three `WfCtx`
--- obligations one universe down; the fourth, injectivity, is what a
--- `lock`'s freshness record needs.
---
--- The base instances insert either one abstract binder (`repwk-abst₀`
--- below, for `crossΛᴹ`) or a bind block (`repwk-wkN`,
--- strong.proof.RepWeaken, for `Peel`).  `repwk-push` and `repwk-abst`
--- close either instance under the two ways the typing induction goes deeper.
-
-record RepWk (ρ : Renameᵗ) (Ξ Ξ′ : RepCtx) : Set where
-  constructor repwk
-  field
-    wk-inj  : Injᵗ ρ
-    wk-look : ∀ {α b} → Ξ ∋ˡ α := b → ∃[ b′ ] (Ξ′ ∋ˡ ρ α := b′)
-    wk-bind : ∀ {α b} → Ξ ∋ʳ α := b → Ξ′ ∋ʳ ρ α := renRepBinding ρ b
-    wk-reps : WfRepCtx Ξ → WfRepCtx Ξ′
-open RepWk public
-
-length-map : ∀ {A B : Set} (f : A → B) (xs : List A)
-  → length (map f xs) ≡ length xs
-length-map f []       = refl
-length-map f (x ∷ xs) = cong suc (length-map f xs)
-
-renameᵗ-shiftBy : (n : ℕ) (ρ : Renameᵗ) (R : Ty)
-  → renameᵗ (extN n ρ) (shiftBy n R) ≡ shiftBy n (renameᵗ ρ R)
-renameᵗ-shiftBy zero    ρ R = refl
-renameᵗ-shiftBy (suc n) ρ R =
-  trans (renameᵗ-⇑ (extN n ρ) (shiftBy n R))
-        (cong ⇑ᵗ (renameᵗ-shiftBy n ρ R))
-
-shiftRVars-ren : (n : ℕ) (ρ : Renameᵗ) (Δ : TyCtx)
-  → map (extN n ρ) (shiftRVars n Δ) ≡ shiftRVars n (map ρ Δ)
-shiftRVars-ren n ρ []      = refl
-shiftRVars-ren n ρ (α ∷ Δ) =
-  cong₂ _∷_ (extN-+ n ρ α) (shiftRVars-ren n ρ Δ)
-
--- A payload is checked at a local-binder depth m, so it moves by
--- `extN m ρ`; a reference at depth m is either local (untouched) or free
--- (renamed), which is exactly what `extN m ρ` does.
-wk-ref : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (m : ℕ) {i : ℕ}
-  → Ξ ⊢ref[ m ] i → Ξ′ ⊢ref[ m ] extN m ρ i
-wk-ref w zero (local-ref ())
-wk-ref w zero (free-ref d) with wk-look w d
-wk-ref w zero (free-ref d) | b′ , d′ = free-ref d′
-wk-ref w (suc m) r = ref-ext (wk-ref w m) r
-
-wk-wfᴿ : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (m : ℕ) {R : Ty}
-  → Ξ ⊢ᴿ[ m ] R → Ξ′ ⊢ᴿ[ m ] renameᵗ (extN m ρ) R
-wk-wfᴿ w m = wfᴿ-rename (wk-ref w m)
-
-binds-ren : ∀ {ρ Ξ Ξ′ Rs} → RepWk ρ Ξ Ξ′ → Ξ ⊢ᴮ Rs
-  → Ξ′ ⊢ᴮ map (renameᵗ ρ) Rs
-binds-ren w binds[] = binds[]
-binds-ren w (binds∷ x xs) = binds∷ (wk-wfᴿ w zero x) (binds-ren w xs)
-
--- Inserting ONE FRESH BINDING at the head, abstract or represented.
--- Three of the four fields do not look at the binding at all — a name
--- lookup only moves one place further in, and injectivity is `suc`'s —
--- so the only thing the insertion has to supply is the WEAKEST form of
--- its own well-formedness: the step `WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ)`,
--- which is `wf-abstR` for an abstract binder and `wf-bindR w` for a
--- represented one whose payload checks over Ξ.  This is the base move
--- made by a term crossing `Λ` (at `abstR`) and by one crossing a new
--- representation binder (at `bindR R`); `repwk-abst` below is the
--- recursion-closure move when an existing renaming itself goes under `Λ`.
-∋ˡ-cons : ∀ {Ξ : RepCtx} {b₀ : RepBinding} {α b} → Ξ ∋ˡ α := b
-  → ∃[ b′ ] ((b₀ ∷ Ξ) ∋ˡ suc α := b′)
-∋ˡ-cons d = _ , there d
-
-repwk-cons₀ : ∀ {Ξ : RepCtx} (b₀ : RepBinding)
-  → (WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ))
-  → RepWk suc Ξ (b₀ ∷ Ξ)
-repwk-cons₀ abstR     wr = repwk suc-injective ∋ˡ-cons r-there-abst wr
-repwk-cons₀ (bindR R) wr = repwk suc-injective ∋ˡ-cons r-there wr
-
-repwk-abst₀ : ∀ {Ξ : RepCtx} → RepWk suc Ξ (abstR ∷ Ξ)
-repwk-abst₀ = repwk-cons₀ abstR wf-abstR
-
--- Going under an abstract binder — the `Λ` case.
-repwk-abst : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′
-  → RepWk (extᵗ ρ) (abstR ∷ Ξ) (abstR ∷ Ξ′)
-repwk-abst {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} w =
-  repwk (inj-extᵗ (wk-inj w)) look bnd rps
-  where
-  look : ∀ {α b} → (abstR ∷ Ξ) ∋ˡ α := b
-    → ∃[ b′ ] ((abstR ∷ Ξ′) ∋ˡ extᵗ ρ α := b′)
-  look here = abstR , here
-  look (there d) with wk-look w d
-  look (there d) | b′ , d′ = b′ , there d′
-
-  bnd : ∀ {α b} → (abstR ∷ Ξ) ∋ʳ α := b
-    → (abstR ∷ Ξ′) ∋ʳ extᵗ ρ α := renRepBinding (extᵗ ρ) b
-  bnd r-here = r-here
-  bnd (r-there-abst {b = b} d) =
-    subst (λ c → (abstR ∷ Ξ′) ∋ʳ suc (ρ _) := c)
-          (sym (renRepBinding-⇑ ρ b))
-          (r-there-abst (wk-bind w d))
-
-  rps : WfRepCtx (abstR ∷ Ξ) → WfRepCtx (abstR ∷ Ξ′)
-  rps (wf-abstR wr) = wf-abstR (wk-reps w wr)
-
--- Going under a represented binder — one step of a bind block.
-repwk-bind : ∀ {ρ Ξ Ξ′ R} → RepWk ρ Ξ Ξ′
-  → RepWk (extᵗ ρ) (bindR R ∷ Ξ) (bindR (renameᵗ ρ R) ∷ Ξ′)
-repwk-bind {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} {R = R} w =
-  repwk (inj-extᵗ (wk-inj w)) look bnd rps
-  where
-  look : ∀ {α b} → (bindR R ∷ Ξ) ∋ˡ α := b
-    → ∃[ b′ ] ((bindR (renameᵗ ρ R) ∷ Ξ′) ∋ˡ extᵗ ρ α := b′)
-  look here = bindR (renameᵗ ρ R) , here
-  look (there d) with wk-look w d
-  look (there d) | b′ , d′ = b′ , there d′
-
-  bnd : ∀ {α b} → (bindR R ∷ Ξ) ∋ʳ α := b
-    → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ extᵗ ρ α
-        := renRepBinding (extᵗ ρ) b
-  bnd r-here =
-    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ zero := c)
-          (sym (renRepBinding-⇑ ρ (bindR R)))
-          r-here
-  bnd (r-there {b = b} d) =
-    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ suc (ρ _) := c)
-          (sym (renRepBinding-⇑ ρ b))
-          (r-there (wk-bind w d))
-
-  rps : WfRepCtx (bindR R ∷ Ξ) → WfRepCtx (bindR (renameᵗ ρ R) ∷ Ξ′)
-  rps (wf-bindR x wr) = wf-bindR (wk-wfᴿ w zero x) (wk-reps w wr)
-
--- Going under a whole PARALLEL bind block — the boundary case.  Each
--- payload was written over the exterior, so it moves by ρ; the block's
--- own shifts commute with that (`renameᵗ-shiftBy`).
-repwk-push : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (Rs : List Ty)
-  → RepWk (extN (length Rs) ρ) (pushRepBinds Rs Ξ)
-      (pushRepBinds (map (renameᵗ ρ) Rs) Ξ′)
-repwk-push w [] = w
-repwk-push {ρ = ρ} w (R ∷ Rs)
-  rewrite length-map (renameᵗ ρ) Rs
-        | sym (renameᵗ-shiftBy (length Rs) ρ R) =
-  repwk-bind (repwk-push w Rs)
-
--- The three `WfCtx` fields, and the conversion LOOKUP SQUARE.
-validNames-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → ValidNames Ξ Δ
-  → ValidNames Ξ′ (map ρ Δ)
-validNames-ren {Δ = Δ} {ρ = ρ} w vn d with ∋ˡ-ren⁻ ρ Δ d
-validNames-ren {Δ = Δ} {ρ = ρ} w vn d | α , d′ , refl with vn d′
-validNames-ren {Δ = Δ} {ρ = ρ} w vn d | α , d′ , refl | b , db =
-  wk-look w db
-
-wfctx-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → WfCtx (Ξ ∣ Δ)
-  → WfCtx (Ξ′ ∣ map ρ Δ)
-wfctx-ren w (wf-ctx wr vn uq) =
-  wf-ctx (wk-reps w wr) (validNames-ren w vn) (unique-ren (wk-inj w) uq)
-
-∋:=-ren : ∀ {ρ Ξ Ξ′ A} → RepWk ρ Ξ Ξ′ → (Ξ ∣ Δ) ∋ X := A
-  → (Ξ′ ∣ map ρ Δ) ∋ X := A
-∋:=-ren {ρ = ρ} w (α , R , dn , dr , sm) =
-  ρ α , renameᵗ ρ R , ∋ˡ-ren ρ dn , wk-bind w dr , same-ren ρ sm
-
 -- The change run and both readings.  A `lock` deletes at the same
 -- ordinary position and records freshness of the renamed name; an
 -- `unlock` inserts at the same position.  Nothing here is arithmetic on
 -- ordinary positions, which is why the ordinary spelling survives.
-del-ren : (ρ : Renameᵗ) → α ⊢- Δ at X ⇒ Δ′
-  → ρ α ⊢- map ρ Δ at X ⇒ map ρ Δ′
-del-ren ρ del-here = del-here
-del-ren ρ (del-there dl) = del-there (del-ren ρ dl)
-
-ins-ren : (ρ : Renameᵗ) → α ⊢+ Δ at X ⇒ Δ′
-  → ρ α ⊢+ map ρ Δ at X ⇒ map ρ Δ′
-ins-ren ρ ins-here = ins-here
-ins-ren ρ (ins-there i) = ins-there (ins-ren ρ i)
-
 step-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → Ξ ∣ Δ ⊢δ δ ⇒ Δ′
   → Ξ′ ∣ map ρ Δ ⊢δ renᶠᴿ ρ δ ⇒ map ρ Δ′
 step-ren {ρ = ρ} w (step-lock (b , v) dl fr) =
@@ -1533,17 +1038,6 @@ conv-changes-ren {ρ = ρ} w (conv-unlock (b , v) cs fr i) =
     (fresh-ren (wk-inj w) fr) (ins-ren ρ i)
 conv-changes-ren {ρ = ρ} w (conv-unlock-live (b , v) cs d) =
   conv-unlock-live (wk-look w v) (conv-changes-ren w cs) (∋ˡ-ren ρ d)
-
--- The renamed morphism's exterior name map, as the renaming of the
--- original one: the bind block keeps its width under renaming, and
--- `extN` at that width is what `shiftRVars` at it becomes.
-names-ren-push : (ρ : Renameᵗ) (Bs : List Ty) (Δ : TyCtx)
-  → map (extN (length Bs) ρ) (shiftRVars (length Bs) Δ)
-      ≡ shiftRVars (length (map (renameᵗ ρ) Bs)) (map ρ Δ)
-names-ren-push ρ Bs Δ =
-  trans (shiftRVars-ren (length Bs) ρ Δ)
-        (cong (λ n → shiftRVars n (map ρ Δ))
-              (sym (length-map (renameᵗ ρ) Bs)))
 
 -- The two readings of the RENAMED morphism are the renamed readings.
 interior-ren : ∀ {ρ Ξ Ξ′ Θ} {Γᵢ : Ctxᵗ} → RepWk ρ Ξ Ξ′

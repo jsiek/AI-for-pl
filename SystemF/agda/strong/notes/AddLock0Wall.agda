@@ -99,7 +99,7 @@ module strong.notes.AddLock0Wall where
 -- WHAT SURVIVED OF THE DECOMPOSITION, and still does: the representation
 -- half is fine and is proved elsewhere — the mover is
 -- `renᴹᴿ (extN (numBinds Θ′) suc)` by `renᴹ²-ord-id`/`renᴮ²-ord-id`, and
--- the head insertion is `repwk-cons₀` (strong.CtxMorph §3d) pushed through
+-- the head insertion is `repwk-cons₀` (strong.proof.Ctx §3) pushed through
 -- `repwk-push`.  The interior reading of `addLock0 Θ′` is the interior
 -- reading of Θ′, because the appended lock deletes the new name first.  It
 -- was the CONVERSION reading, and only it, that the rule got wrong.

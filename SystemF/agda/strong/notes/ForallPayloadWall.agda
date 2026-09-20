@@ -85,7 +85,8 @@ no-crossing = refl
 -- give a junk answer where there is none.  Both rules therefore NAME the
 -- interior spelling and carry a `_⊢_≈_⊣_` relating it to the conversion
 -- context's, which is the judgement `env` already uses for exactly this in
--- three positions.  Determinism is `sameTy-src-unique` (strong.Ctx), which
+-- three positions.  Determinism is `sameTy-src-unique`
+-- (strong.proof.Ctx), which
 -- is why each rule also carries the interior name map's `Unique`.
 --
 --   TyPeelR-⟪⟫   …

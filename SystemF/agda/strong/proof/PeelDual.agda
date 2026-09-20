@@ -241,5 +241,6 @@ module _ (repWeaken : RepWeakenTyping) where
     arg =
       subst (λ W′ → Δᵢ ∣ [] ⊢ W′ ⟪ dualMorph Θ , s′ ⟫ ⦂ Aᵢ)
             (sym (renᴹ²-ord-id (λ X → refl) W))
-            (env mwD (repWeaken (binds Θ) ⊢W) ⊢s′ sameᵢ-d sameₑ-d
+            (env mwD (repWeaken (binds Θ) (mw-binds mwΘ) ⊢W)
+                 ⊢s′ sameᵢ-d sameₑ-d
                  (same-wf (proj₁ (proj₂ smAᵢ))))

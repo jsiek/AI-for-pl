@@ -1134,13 +1134,14 @@ preserve-Drop-false {Θ = Θ} wfΔ
   rewrite sameTyExt-𝔹 {n = numBinds Θ} wfΔ sameₑ = ⊢false
 
 ------------------------------------------------------------------------
--- The two representation-only transport statements not yet developed
+-- The representation-only transport statements
 ------------------------------------------------------------------------
 
--- Both statements are the new-interface counterparts of the old
--- `⊢crossΛ` and `⊢addLock0-cross`.  They require a paired-renaming
--- metatheory for relational morphism readings, which is deliberately kept
--- outside this first-stage port.
+-- The first two are the new-interface counterparts of the old `⊢crossΛ`
+-- and `⊢addLock0-cross`, and are still awaiting review: each needs a
+-- BINDER (`underΛ`, `addLock0`) on top of the renaming, which the third
+-- does not.  The third, `RepWeakenTyping`, is pure renaming and is PROVED
+-- (2026-09-20, `strong.proof.RepWeaken`).
 CrossΛTyping : Set
 CrossΛTyping = ∀ {Δ W A}
   → WfCtx Δ
@@ -1161,14 +1162,24 @@ AddLock0Typing = ∀ {Δ W Θ s A P}
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
 -- The THIRD such transport, identified by the stage-2 `Peel` port
--- (2026-09-19).  `Peel` moves its argument from the boundary's exterior
--- to that exterior under the boundary's own representation bind block —
--- `dual-interior`, strong.CtxMorph §3a.  `renᴹᴿ` is representation-only
--- by construction, so the argument's TYPE and every ordinary spelling
--- are unchanged.  `renᴹ²-ord-id` connects this statement to the paired
--- identity-ordinary spelling retained by `Peel`'s contractum.
+-- (2026-09-19) and PROVED on 2026-09-20 in
+-- `strong.proof.RepWeaken.rep-weaken-⊢`.  `Peel` moves its argument from
+-- the boundary's exterior to that exterior under the boundary's own
+-- representation bind block — `dual-interior`, strong.CtxMorph §3a.
+-- `renᴹᴿ` is representation-only by construction, so the argument's TYPE
+-- and every ordinary spelling are unchanged.  `renᴹ²-ord-id` connects
+-- this statement to the paired identity-ordinary spelling retained by
+-- `Peel`'s contractum.
+--
+-- THE BIND BLOCK MUST BE WELL FORMED (2026-09-20).  Without the premise
+-- `reps Δ ⊢ᴮ Rs` the statement is FALSE — `notes/RepWeakenBindsWall.agda`
+-- refutes it from `β-seven` and the single open payload `` ` 0 ``, since
+-- a boundary's `env` stores a `MorphWf` whose `mw-exterior` demands a
+-- `WfCtx` of the weakened context.  The premise costs nothing: at the one
+-- call site it is `mw-binds` of the boundary being crossed.
 RepWeakenTyping : Set
 RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+  → reps Δ ⊢ᴮ Rs
   → Δ ∣ [] ⊢ W ⦂ A
   → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
 
@@ -1389,9 +1400,12 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 -- settled all three; `strong.Preservation` is where the settlements are
 -- plugged in.
 --
---   PeelCase     PROVED — `strong.proof.PeelDual.preserve-Peel`, modulo
---                the representation-only weakening `RepWeakenTyping`
---                above, which it takes as a module parameter.
+--   PeelCase     PROVED UNCONDITIONALLY (2026-09-20) —
+--                `strong.proof.PeelDual.preserve-Peel` applied to
+--                `strong.proof.RepWeaken.rep-weaken-⊢`, which proves the
+--                representation-only weakening `RepWeakenTyping` above.
+--                `preserve-Peel` keeps its `module _ (repWeaken : …)`
+--                shape; `strong.Preservation` plugs the theorem in.
 --   IdPushCase   PROVED outright —
 --                `strong.proof.MoveScope.preserve-IdPush`.
 --   CancelRCase  PROVED outright, on the rule REPAIRED 2026-09-19 —

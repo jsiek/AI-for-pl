@@ -33,6 +33,7 @@ open import strong.TypeSafety
 -- the proof scripts
 open import strong.proof.Preserve
 open import strong.proof.PeelDual
+open import strong.proof.RepWeaken
 open import strong.proof.MoveScope
 open import strong.proof.TypeSafety
 
@@ -42,6 +43,14 @@ open import strong.proof.TypeSafety
 -- `strong.proof.MoveScope.preserve-CancelR` — the preservation case the
 -- repaired rule generates.
 open import strong.notes.CancelRShiftWall
+
+-- THE REP-WEAKENING WALL AND ITS REPAIR (2026-09-20).  The simplified
+-- `RepWeakenTyping` was FALSE without a well-formed bind block: the
+-- weakened context has to be a `WfCtx`, because a boundary inside the
+-- crossing argument stores one.  The premise `reps Δ ⊢ᴮ Rs` repairs it,
+-- it is free at the one call site, and with it the statement is proved
+-- (strong.proof.RepWeaken).
+open import strong.notes.RepWeakenBindsWall
 
 -- progress (the canonical-forms suite, the proof script, the theorem)
 open import strong.proof.Canonical

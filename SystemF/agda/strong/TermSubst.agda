@@ -44,9 +44,11 @@ idᵗ X = X
 id² : TyRename
 id² = ren² idᵗ idᵗ
 
-extN : ℕ → Renameᵗ → Renameᵗ
-extN zero    ρ = ρ
-extN (suc n) ρ = extᵗ (extN n ρ)
+-- `extN` (renaming underneath n binders) and the representation-only
+-- `renᶠᴿ`/`renᴮᴿ` live one layer down — `extN` in strong.Ctx §8 and the
+-- two renamings in strong.CtxMorph §2/§3, beside the syntax they act on —
+-- because the representation-renaming metatheory of strong.CtxMorph §3d
+-- is stated over them and cannot import this module.
 
 underΛ-ren : TyRename → TyRename
 underΛ-ren (ren² ρᵗ ρʳ) = ren² (extᵗ ρᵗ) (extᵗ ρʳ)
@@ -58,10 +60,6 @@ renᶠ² : Renameᵗ → Renameᵗ → Change → Change
 renᶠ² ρᵗ ρʳ (lock X α)   = lock (ρᵗ X) (ρʳ α)
 renᶠ² ρᵗ ρʳ (unlock X α) = unlock (ρᵗ X) (ρʳ α)
 
-renᶠᴿ : Renameᵗ → Change → Change
-renᶠᴿ ρʳ (lock X α)   = lock X (ρʳ α)
-renᶠᴿ ρʳ (unlock X α) = unlock X (ρʳ α)
-
 renᶠ : Renameᵗ → Change → Change
 renᶠ ρ = renᶠ² ρ ρ
 
@@ -69,11 +67,6 @@ renᴮ² : TyRename → CtxMorph → CtxMorph
 renᴮ² (ren² ρᵗ ρʳ) Θ =
   morph (map (renameᵗ ρʳ) (binds Θ))
         (map (renᶠ² ρᵗ (extN (numBinds Θ) ρʳ)) (changes Θ))
-
-renᴮᴿ : Renameᵗ → CtxMorph → CtxMorph
-renᴮᴿ ρʳ Θ =
-  morph (map (renameᵗ ρʳ) (binds Θ))
-        (map (renᶠᴿ (extN (numBinds Θ) ρʳ)) (changes Θ))
 
 -- The one-map specialization is retained for callers where both universes
 -- move in lockstep, such as weakening under an ordinary `Λ`.

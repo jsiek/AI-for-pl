@@ -357,12 +357,22 @@ that names it as X, Y, Z at the same position — and renders a whole run,
 with the rule that fired at each step, through `showRun`.
 
 What is left on this branch is therefore not module porting, and no
-parameter is known false any more. It is the three representation-only
-typing transports and `MergedReading` awaiting review (items 1, 2, 6).
+parameter is known false any more. It is TWO representation-only typing
+transports and `MergedReading` awaiting review (items 1, 2, 6).
 On 2026-09-20 Jeremy simplified the FORM of `RepWeakenTyping`: it now uses
 the representation-only traversal `renᴹᴿ`, while `renᴹ²-ord-id` connects
 that statement to `Peel`'s unchanged identity-ordinary contractum spelling.
-The transport itself remains a review item and is not proved here.
+
+**AND `RepWeakenTyping` IS NOW PROVED (2026-09-20).** It left the review
+queue the same day it was simplified. The simplified form was FALSE as
+stated — a boundary inside the crossing argument must be retyped at the
+WEAKENED context, whose `MorphWf` demands a `WfCtx`, so the inserted
+payloads have to be well formed; the refutation is
+`notes/RepWeakenBindsWall.agda`, from `β-seven` and the single open
+payload `` ` 0 ``. With the one premise `reps Δ ⊢ᴮ Rs` — free at the only
+call site, where it is `mw-binds` of the boundary being crossed — the
+statement is proved in `proof/RepWeaken.agda`, and `PeelCase` is
+UNCONDITIONAL. See `notes/DECISIONS.md` (2026-09-20).
 
 ## Resuming on another machine
 
@@ -401,11 +411,12 @@ scripts/render_term.sh 'showTCtx Δ₆'       'open import strong.Examples'
 
 Where the open threads are: item 1's stage-1 preservation port is done;
 stage 2 proved `IdPush`, `Peel` and — after the rule repair of 2026-09-19
-— `CancelR` (item 2); three representation-only typing transports now
+— `CancelR` (item 2); of the three representation-only typing transports
+`RepWeakenTyping` is PROVED (2026-09-20, `proof/RepWeaken.agda`) and two
 await review; item 3's rewind transport and item 4's rule-set cleanup are
 done; canonical forms are done; item 6's progress port is done modulo
 `MergedReading`, and its module sweep and the two remaining ports are
-done. The ONLY open work is the four review items.
+done. The ONLY open work is the three review items.
 
 ## Immediate plans
 
@@ -429,7 +440,8 @@ done. The ONLY open work is the four review items.
    **REVIEW REQUIRED — NEW MAJOR LEMMA STATEMENTS.** The old development's
    `⊢crossΛ` and `⊢addLock0-cross` have no two-universe counterparts yet.
    Stage 1 exposes exactly the two required transports as parameters
-   (stage 2 added a third, `RepWeakenTyping`, in item 2 below):
+   (stage 2 added a third, `RepWeakenTyping`, in item 2 below; that one is
+   PROVED as of 2026-09-20, and these two are what is left):
 
        CrossΛTyping : Set
        CrossΛTyping = ∀ {Δ W A}
@@ -498,12 +510,13 @@ done. The ONLY open work is the four review items.
      ordinary spelling, an identity's payload goes through `respell-ty`,
      and the source and target come back paired with `SameTy`s.
 
-     **REVIEW REQUIRED — NEW MAJOR LEMMA STATEMENT** (the third
+     **PROVED (2026-09-20), AFTER ONE PREMISE REPAIR** — the third
      representation-only typing transport, beside `CrossΛTyping` and
-     `AddLock0Typing`; `proof/Preserve.agda` §4):
+     `AddLock0Typing` (`proof/Preserve.agda` §4):
 
          RepWeakenTyping : Set
          RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+           → reps Δ ⊢ᴮ Rs
            → Δ ∣ [] ⊢ W ⦂ A
            → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
 
@@ -511,6 +524,36 @@ done. The ONLY open work is the four review items.
      boundary's representation bind block. The ordinary name map is
      untouched by construction, so the argument's type does not change;
      `renᴹ²-ord-id` transports the result to the unchanged reduction rule.
+
+     The premise `reps Δ ⊢ᴮ Rs` is NECESSARY: without it the statement is
+     refuted by `β-seven` weakened with the single open payload `` ` 0 ``
+     (`notes/RepWeakenBindsWall.agda`), because `env` stores a `MorphWf`
+     whose `mw-exterior` is a `WfCtx` of the WEAKENED context and
+     `WfRepCtx` checks every stored payload. It costs nothing: at the one
+     call site it is `mw-binds` of the boundary being crossed.
+
+     The proof is `proof/RepWeaken.agda` `rep-weaken-⊢`, and its workhorse
+     is the generalisation to a CUT. Going under `Λ` pushes an `abstR` and
+     going under a boundary pushes a whole bind block, so the inserted
+     block stops being at the head; rather than carry an
+     insertion-at-depth-k operation, the insertion is abstracted into an
+     arbitrary representation renaming with the four facts it must supply
+     (`RepWk`, `CtxMorph.agda` §3d) and the name map is renamed
+     POINTWISE:
+
+         ⊢renᴿ : ∀ {Ξ Ξ′ η ρ Γ M A}
+           → RepWk ρ Ξ Ξ′
+           → (Ξ ∣ η) ∣ Γ ⊢ M ⦂ A
+           → (Ξ′ ∣ map ρ η) ∣ Γ ⊢ renᴹᴿ ρ M ⦂ A
+
+     `repwk-abst` and `repwk-push` carry `RepWk` across the two ways the
+     induction goes deeper — `extᵗ ρ` and `extN (numBinds Θ) ρ`, exactly
+     how `renᴹᴿ` recurses — and `repwk-wkN` is the head instance. `env`
+     is the hard case and every premise transports by a per-relation
+     lemma: `wfctx-ren`, `binds-ren`, `interior-ren`/`conversion-ren`,
+     `conv-ren` (`Conversion.agda` §2d), `same-ren`, `wf-ren-rep`.
+     `RepWk`'s injectivity field is the easily missed one: a `lock`
+     records freshness, which a non-injective renaming would break.
 
      The same identity-ordinary pattern remains in the concrete movers
      `crossΛᴹ W A = renᴹ² (ren² idᵗ suc) W ⟪ ... ⟫` (hence
@@ -579,11 +622,13 @@ done. The ONLY open work is the four review items.
      `notes/CancelRReachabilityWitness.agda` and
      `notes/CancelRReachability.md`.
 
-   Consequently `strong.Preservation.Stage1` now takes `crossΛ`,
-   `addLock0` and `repWeaken` — `peel`, `idpush` and `cancel` are all
-   gone — and `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda`
-   follow. No parameter is known false: the four that remain are open,
-   plausible obligations pending review.
+   Consequently `strong.Preservation.Stage1` takes `crossΛ` and
+   `addLock0` and nothing else — `peel`, `idpush` and `cancel` are all
+   gone, and `repWeaken` went with them on 2026-09-20 when
+   `RepWeakenTyping` was proved — and `strong.TypeSafety.Stage1` and
+   `proof/TypeSafety.agda` follow (they still take `merged-reading` for
+   progress). No parameter is known false: the three that remain are
+   open, plausible obligations pending review.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
    transport lemmas in `CtxMorph.agda` §3a:
@@ -642,9 +687,10 @@ done. The ONLY open work is the four review items.
    preservation and progress ports ARE that audit, rule by rule, and its
    verdict is now machine-checked rather than narrated: every crossing
    spelling is either PROVEN sound (`TyBeta`, `Beta` and `TyPeelR-⟪⟫`
-   modulo the three transports under review; `TyPeelR-Λ`, `Drop$`,
+   modulo the two transports under review; `TyPeelR-Λ`, `Drop$`,
    `Drop-true/false` outright; `IdPush` in `proof/MoveScope.agda`; `Peel`
-   in `proof/PeelDual.agda` modulo `RepWeakenTyping`) or was REFUTED and
+   in `proof/PeelDual.agda`, unconditionally since `RepWeakenTyping` was
+   proved on 2026-09-20) or was REFUTED and
    then REPAIRED (`CancelR`'s inner `mkId` read its type UNSHIFTED where
    the inner `env` demands `shiftBy (numBinds Θ₁)` —
    `notes/CancelRShiftWall.agda`, the fourth crossing defect, exactly the

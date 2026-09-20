@@ -5,13 +5,14 @@ module strong.Preservation where
 -- This module intentionally exposes no unconditional theorem.  Stage 2
 -- (2026-09-19) discharged ALL THREE crossing cases: `IdPush` and, after
 -- the `CancelR` rule repair of the same day, `CancelR` are proved
--- outright (strong.proof.MoveScope), and `Peel` is proved modulo the
--- representation-only weakening `RepWeakenTyping`
--- (strong.proof.PeelDual).  What remains a parameter is exactly
+-- outright (strong.proof.MoveScope), and `Peel` is proved in
+-- strong.proof.PeelDual — UNCONDITIONALLY since 2026-09-20, when
+-- `RepWeakenTyping` was proved (`strong.proof.RepWeaken.rep-weaken-⊢`,
+-- on the statement repaired that day with the premise `reps Δ ⊢ᴮ Rs`).
+-- What remains a parameter is exactly
 --
 --   * the two representation-only transports `CrossΛTyping` and
---     `AddLock0Typing`, and the new `RepWeakenTyping`, all three awaiting
---     review.
+--     `AddLock0Typing`, awaiting review.
 -- `CancelRCase` is no longer among them.  It WAS refuted — the old rule
 -- re-spelled the inner layer's identity type in the OUTER conversion
 -- context and so dropped the `numBinds Θ₁` shift that `env` demands, at a
@@ -41,6 +42,7 @@ open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 import strong.proof.Preserve as P
 import strong.proof.PeelDual as PD
 import strong.proof.MoveScope as MS
+import strong.proof.RepWeaken as RW
 
 ------------------------------------------------------------------------
 -- 1. Public statements
@@ -67,12 +69,11 @@ Preservation* = ∀ {Δ M M′ A}
 module Stage1
   (crossΛ    : P.CrossΛTyping)
   (addLock0  : P.AddLock0Typing)
-  (repWeaken : P.RepWeakenTyping)
   where
 
   private
     module I = P.Impl crossΛ addLock0
-                      (PD.preserve-Peel repWeaken)
+                      (PD.preserve-Peel RW.rep-weaken-⊢)
                       MS.preserve-CancelR
                       MS.preserve-IdPush
 

@@ -25,10 +25,10 @@ open import Data.List using (List; []; _∷_; map)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; cong; cong₂)
+  using (_≡_; _≢_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; ⇑ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
 
 ------------------------------------------------------------------------
 -- 1. The two de Bruijn universes
@@ -337,3 +337,149 @@ wf-empty = wf-ctx wf-reps[] (λ ()) unique[]
   wfᴿ-∀
     (wfᴿ-⇒ (wfᴿ-var (local-ref (s≤s z≤n)))
            (wfᴿ-var (free-ref here)))
+
+------------------------------------------------------------------------
+-- 8. Renaming the representation universe — the NAME MAP half
+------------------------------------------------------------------------
+
+-- A REPRESENTATION-ONLY renaming moves representation variables and
+-- leaves every ordinary POSITION exactly where it was.  On a name map
+-- that is `map ρ`: a lookup keeps its ordinary index and changes only the
+-- representation variable it names.  This section is everything that
+-- transport needs from the name map alone; the representation-CONTEXT
+-- half — where a payload must move too — is strong.CtxMorph §3d.
+
+-- `extN n ρ` renames underneath n binders.  It is used at two depths:
+-- `n` local `∀`s inside a representation payload, and the `n` parallel
+-- representation binders a morphism's bind block introduces.
+extN : ℕ → Renameᵗ → Renameᵗ
+extN zero    ρ = ρ
+extN (suc n) ρ = extᵗ (extN n ρ)
+
+extN-+ : (n : ℕ) (ρ : Renameᵗ) (α : ℕ) → extN n ρ (n + α) ≡ n + ρ α
+extN-+ zero    ρ α = refl
+extN-+ (suc n) ρ α = cong suc (extN-+ n ρ α)
+
+-- Renaming is a congruence, composes, and commutes with a shift.
+extᵗ-cong : ∀ {ρ ρ′ : Renameᵗ} → (∀ X → ρ X ≡ ρ′ X)
+  → ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
+extᵗ-cong h zero    = refl
+extᵗ-cong h (suc X) = cong suc (h X)
+
+renameᵗ-cong : ∀ {ρ ρ′ : Renameᵗ} → (∀ X → ρ X ≡ ρ′ X)
+  → ∀ A → renameᵗ ρ A ≡ renameᵗ ρ′ A
+renameᵗ-cong h (` X)   = cong `_ (h X)
+renameᵗ-cong h `ℕ      = refl
+renameᵗ-cong h `𝔹      = refl
+renameᵗ-cong h (A ⇒ B) =
+  cong₂ _⇒_ (renameᵗ-cong h A) (renameᵗ-cong h B)
+renameᵗ-cong h (`∀ A)  = cong `∀ (renameᵗ-cong (extᵗ-cong h) A)
+
+extᵗ-fuse : (ρ σ : Renameᵗ) (X : ℕ)
+  → extᵗ ρ (extᵗ σ X) ≡ extᵗ (λ Y → ρ (σ Y)) X
+extᵗ-fuse ρ σ zero    = refl
+extᵗ-fuse ρ σ (suc X) = refl
+
+renameᵗ-fuse : (ρ σ : Renameᵗ) (A : Ty)
+  → renameᵗ ρ (renameᵗ σ A) ≡ renameᵗ (λ X → ρ (σ X)) A
+renameᵗ-fuse ρ σ (` X)   = refl
+renameᵗ-fuse ρ σ `ℕ      = refl
+renameᵗ-fuse ρ σ `𝔹      = refl
+renameᵗ-fuse ρ σ (A ⇒ B) =
+  cong₂ _⇒_ (renameᵗ-fuse ρ σ A) (renameᵗ-fuse ρ σ B)
+renameᵗ-fuse ρ σ (`∀ A)  =
+  cong `∀ (trans (renameᵗ-fuse (extᵗ ρ) (extᵗ σ) A)
+                 (renameᵗ-cong (extᵗ-fuse ρ σ) A))
+
+renameᵗ-⇑ : (ρ : Renameᵗ) (A : Ty)
+  → renameᵗ (extᵗ ρ) (⇑ᵗ A) ≡ ⇑ᵗ (renameᵗ ρ A)
+renameᵗ-⇑ ρ A =
+  trans (renameᵗ-fuse (extᵗ ρ) suc A)
+        (sym (renameᵗ-fuse suc ρ A))
+
+renRepBinding-⇑ : (ρ : Renameᵗ) (b : RepBinding)
+  → renRepBinding (extᵗ ρ) (renRepBinding suc b)
+      ≡ renRepBinding suc (renRepBinding ρ b)
+renRepBinding-⇑ ρ abstR     = refl
+renRepBinding-⇑ ρ (bindR R) = cong bindR (renameᵗ-⇑ ρ R)
+
+-- An INJECTIVE renaming is what a name map needs: `lock` records that the
+-- name it deleted is now fresh, and freshness is not preserved by a map
+-- that identifies two representation variables.
+Injᵗ : Renameᵗ → Set
+Injᵗ ρ = ∀ {α β} → ρ α ≡ ρ β → α ≡ β
+
+inj-extᵗ : ∀ {ρ} → Injᵗ ρ → Injᵗ (extᵗ ρ)
+inj-extᵗ inj {zero}  {zero}  eq = refl
+inj-extᵗ inj {suc α} {suc β} eq = cong suc (inj (suc-injective eq))
+
+inj-extN : ∀ {ρ} (n : ℕ) → Injᵗ ρ → Injᵗ (extN n ρ)
+inj-extN zero    inj = inj
+inj-extN (suc n) inj = inj-extᵗ (inj-extN n inj)
+
+∋ˡ-ren : (ρ : Renameᵗ) → Δ ∋ˡ X := α → map ρ Δ ∋ˡ X := ρ α
+∋ˡ-ren ρ here      = here
+∋ˡ-ren ρ (there d) = there (∋ˡ-ren ρ d)
+
+∋ˡ-ren⁻ : (ρ : Renameᵗ) (Δ : TyCtx) {γ : RVar} → map ρ Δ ∋ˡ X := γ
+  → ∃[ α ] ((Δ ∋ˡ X := α) × (γ ≡ ρ α))
+∋ˡ-ren⁻ ρ (α ∷ Δ) here = α , here , refl
+∋ˡ-ren⁻ ρ (α ∷ Δ) (there d) with ∋ˡ-ren⁻ ρ Δ d
+∋ˡ-ren⁻ ρ (α ∷ Δ) (there d) | β , d′ , eq = β , there d′ , eq
+
+fresh-ren : ∀ {ρ} → Injᵗ ρ → Fresh α Δ → Fresh (ρ α) (map ρ Δ)
+fresh-ren inj fresh[] = fresh[]
+fresh-ren inj (fresh∷ ne fr) =
+  fresh∷ (λ eq → ne (inj eq)) (fresh-ren inj fr)
+
+unique-ren : ∀ {ρ} → Injᵗ ρ → Unique Δ → Unique (map ρ Δ)
+unique-ren inj unique[] = unique[]
+unique-ren inj (unique∷ fr uq) =
+  unique∷ (fresh-ren inj fr) (unique-ren inj uq)
+
+shiftNames-ren : (ρ : Renameᵗ) (Δ : TyCtx)
+  → map (extᵗ ρ) (shiftNames Δ) ≡ shiftNames (map ρ Δ)
+shiftNames-ren ρ []      = refl
+shiftNames-ren ρ (α ∷ Δ) = cong (suc (ρ α) ∷_) (shiftNames-ren ρ Δ)
+
+names-underΛ-ren : (ρ : Renameᵗ) (Δ : TyCtx)
+  → map (extᵗ ρ) (zero ∷ shiftNames Δ) ≡ zero ∷ shiftNames (map ρ Δ)
+names-underΛ-ren ρ Δ = cong (zero ∷_) (shiftNames-ren ρ Δ)
+
+-- The representation READING of an ordinary type moves with the map: the
+-- ordinary spelling is untouched and the representation it denotes is
+-- renamed.
+same-cast : ∀ {η η′ : TyCtx} {A R : Ty} → η ≡ η′ → η ⊢ A ~ R → η′ ⊢ A ~ R
+same-cast refl p = p
+
+same-ren : (ρ : Renameᵗ) → η ⊢ A ~ R → map ρ η ⊢ A ~ renameᵗ ρ R
+same-ren ρ (same-var d) = same-var (∋ˡ-ren ρ d)
+same-ren ρ same-ℕ = same-ℕ
+same-ren ρ same-𝔹 = same-𝔹
+same-ren ρ (same-⇒ p q) = same-⇒ (same-ren ρ p) (same-ren ρ q)
+same-ren {η = η} ρ (same-∀ p) =
+  same-∀ (same-cast (names-underΛ-ren ρ η) (same-ren (extᵗ ρ) p))
+
+-- Ordinary type formation reads the name map for POSITIONS only, so it
+-- transports along any representation renaming whatever.
+-- Stated on the NAME MAP: the source representation context plays no
+-- part in `∋tv`, so naming it would leave an unsolvable implicit.
+tv-ren : (ρ : Renameᵗ)
+  → ∃[ α ] (η ∋ˡ X := α) → ∃[ α ] (map ρ η ∋ˡ X := α)
+tv-ren ρ (α , d) = ρ α , ∋ˡ-ren ρ d
+
+wf-cast : ∀ {Ξ : RepCtx} {η η′ : TyCtx} {A : Ty} → η ≡ η′
+  → (Ξ ∣ η) ⊢ᵗ A → (Ξ ∣ η′) ⊢ᵗ A
+wf-cast refl w = w
+
+wf-ren-rep : ∀ {Ξ Ξ′ : RepCtx} {ρ} → (Ξ ∣ η) ⊢ᵗ A → (Ξ′ ∣ map ρ η) ⊢ᵗ A
+wf-ren-rep {ρ = ρ} (wf-var tv) = wf-var (tv-ren ρ tv)
+wf-ren-rep wf-ℕ = wf-ℕ
+wf-ren-rep wf-𝔹 = wf-𝔹
+wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} (wf-⇒ wA wB) =
+  wf-⇒ (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA)
+       (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wB)
+wf-ren-rep {η = η} {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} (wf-∀ wA) =
+  wf-∀ (wf-cast (names-underΛ-ren ρ η)
+                (wf-ren-rep {Ξ = abstR ∷ Ξ} {Ξ′ = abstR ∷ Ξ′}
+                            {ρ = extᵗ ρ} wA))

@@ -3898,3 +3898,131 @@ and the simplified obligation is
 boundary with `sym (renᴹ²-ord-id (λ X → refl) W)`, so its conclusion still
 matches the reduction rule verbatim.  No proof of `RepWeakenTyping` is added;
 only its form changes under Jeremy's instruction.
+
+## 2026-09-20 — `RepWeakenTyping` is PROVED, at a CUT, with one premise
+## added
+
+Jeremy's instruction was "first prove RepWeakenTyping".  It is proved,
+`strong.proof.RepWeaken.rep-weaken-⊢`, and `PeelCase` is therefore
+UNCONDITIONAL: `strong.Preservation.Stage1` now takes only `crossΛ` and
+`addLock0`, and the two `TypeSafety` stages follow.
+
+THE STATEMENT NEEDED A PREMISE, and the simplified form landed that
+morning is FALSE without it.  `extendReps Rs Δ` pushes the payloads `Rs`
+onto the representation context WITHOUT checking them, but a boundary
+inside the crossing argument has to be RETYPED at the weakened context,
+and `env` stores a `MorphWf` whose `mw-exterior` is a `WfCtx` of that
+context — which demands `WfRepCtx`, that is, that every stored payload be
+well formed where it is written.  The counterexample is as small as the
+development allows: `β-seven` at the EMPTY context, weakened by the single
+payload `` ` 0 ``.  The renamed term is `β-seven` itself — `renᴮᴿ (wkN 1)
+TyBetaMorph` IS `TyBetaMorph`, since the morphism's one change sits inside
+its own one-wide bind block and `extᵗ (wkN 1) 0 ≡ 0` — so the conclusion
+asks for the same term at a context whose only representation binding is
+`bindR (` 0)`, and `[] ⊢ᴿ ` 0` has no derivation.  Machine-checked:
+`no-rep-weaken : ¬ RepWeakenTyping₀`, `notes/RepWeakenBindsWall.agda`.
+
+The repair is one premise, and it costs nothing:
+
+    RepWeakenTyping : Set
+    RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+      → reps Δ ⊢ᴮ Rs
+      → Δ ∣ [] ⊢ W ⦂ A
+      → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
+
+At the one call site — `Peel`'s crossing argument,
+`strong.proof.PeelDual` §3 — the premise is `mw-binds mwΘ` of the very
+boundary being crossed, already stored in the redex's own typing
+derivation.  Nothing else about `preserve-Peel` changed, and the reduction
+rule is untouched.
+
+THE WORKHORSE IS THE CUT.  The induction goes under `Λ`, which pushes one
+`abstR`, and under a boundary, which pushes a whole bind block; so the
+inserted block stops being at the HEAD of the representation context and
+the name map stops being the exterior's.  Rather than carry an
+insertion-at-depth-k operation with its own arithmetic, the insertion is
+ABSTRACTED into an arbitrary representation renaming ρ together with the
+four facts it must supply, and the name map is renamed POINTWISE:
+
+    record RepWk (ρ : Renameᵗ) (Ξ Ξ′ : RepCtx) : Set where
+      field
+        wk-inj  : Injᵗ ρ
+        wk-look : ∀ {α b} → Ξ ∋ˡ α := b → ∃[ b′ ] (Ξ′ ∋ˡ ρ α := b′)
+        wk-bind : ∀ {α b} → Ξ ∋ʳ α := b
+                → Ξ′ ∋ʳ ρ α := renRepBinding ρ b
+        wk-reps : WfRepCtx Ξ → WfRepCtx Ξ′
+
+    ⊢renᴿ : ∀ {Ξ Ξ′ η ρ Γ M A}
+      → RepWk ρ Ξ Ξ′
+      → (Ξ ∣ η) ∣ Γ ⊢ M ⦂ A
+      → (Ξ′ ∣ map ρ η) ∣ Γ ⊢ renᴹᴿ ρ M ⦂ A
+
+Three fields are the three `WfCtx` obligations one universe down.  The
+fourth, INJECTIVITY, is the one that is easy to miss: a `lock` records
+that the name it deleted is now FRESH, and freshness is not preserved by a
+renaming that identifies two representation variables.
+
+The cut is then entirely in the closure lemmas, `strong.CtxMorph` §3d:
+`repwk-abst` takes `RepWk ρ` to `RepWk (extᵗ ρ)` across one `abstR`, and
+`repwk-push` takes it to `RepWk (extN (length Rs) ρ)` across a whole
+parallel bind block — which is exactly how `renᴹᴿ` recurses (`extᵗ ρ`
+under `Λ`, `extN (numBinds Θ) ρ` under a boundary).  The head insertion is
+one instance, `repwk-wkN Rs bs : RepWk (wkN (length Rs)) Ξ
+(pushRepBinds Rs Ξ)`, and the theorem is `⊢renᴿ` run at it, modulo
+`map (wkN n) η ≡ shiftRVars n η`.
+
+TWO DIRECTIONS OF GENERALISATION, as expected.  The term context Γ is
+arbitrary and passes through UNCHANGED — the variable rule does not read
+the type context at all, and no ordinary type spelling moves under a
+representation renaming — so the `⊢ƛ` case needs nothing.  The depth is
+the cut, above.
+
+THE HARD CASE IS `env`, and every one of its six premises transports by a
+per-relation lemma, in the style §3a already used:
+
+  * `mw-exterior` by `wfctx-ren` (the three `WfCtx` fields: `wk-reps`,
+    `validNames-ren`, `unique-ren`);
+  * `mw-binds` by `binds-ren`, which is `wfᴿ-rename` at the ref-level
+    transport `wk-ref` — a reference at local depth m is either local,
+    and then untouched, or free, and then renamed, which is precisely
+    what `extN m ρ` does;
+  * the two readings by `interior-ren` and `conversion-ren`, which are
+    `changes-ren`/`conv-changes-ren` over `del-ren`, `ins-ren`,
+    `fresh-ren` and `∋ˡ-ren`.  NOTHING here is arithmetic on ordinary
+    positions: a lock deletes at the SAME position and an unlock inserts
+    at the same position, which is why the ordinary spelling survives;
+  * the conversion's TYPING by `conv-ren` (strong.Conversion §2d).  A
+    conversion is REP-FREE, so the conversion and both of its types come
+    through UNCHANGED; what moves is the context it is read on, and the
+    lookup square it cites now reads a renamed representation variable
+    with a renamed payload (`∋:=-ren`);
+  * the two alignment premises by `same-ren` — `SameTy` at
+    `extN (numBinds Θ) ρ` on both sides, and `SameTyExt` at ρ on the
+    exterior side and `extN (numBinds Θ) ρ` on the conversion side, the
+    two related by `renameᵗ (extN n ρ) (shiftRep n R) ≡
+    shiftRep n (renameᵗ ρ R)`;
+  * `Δ ⊢ᵗ Bₑ` by `wf-ren-rep`, which is pure position-monotonicity.
+
+`TyBeta`-minted boundaries inside the argument, `instantiate` morphisms
+and lock/unlock change lists are NOT special-cased anywhere: they are
+`env`s and change runs like any other, and the generic transports cover
+them.
+
+THREE SMALL RELOCATIONS, in the closed-world spirit.  `extN` moved from
+`TermSubst.agda` to `strong.Ctx` §8, and `renᶠᴿ`/`renᴮᴿ` from
+`TermSubst.agda` to `strong.CtxMorph` §2/§3, because the renaming
+metatheory has to be stated below `Conversion.agda` (which `TermSubst`
+imports) and over exactly those operations.  No definition changed; the
+one `using (extN)` import, in `TypeCheck.agda`, was dropped since
+`strong.Ctx` is already opened there.  `strong.Ctx` §8 also gains the
+`renameᵗ` toolkit the transport needs — congruence, fusion, and
+`renameᵗ (extᵗ ρ) ∘ ⇑ᵗ ≡ ⇑ᵗ ∘ renameᵗ ρ` — which `Types.agda` did not
+have and which, by the branch's standing rule, does not go there.
+
+WHAT IS LEFT.  The review queue is now `CrossΛTyping`, `AddLock0Typing`
+(preservation) and `MergedReading` (progress).  The first two are the same
+shape as this one — `crossΛᴹ`'s `renᴹ² (ren² idᵗ suc) W` is
+`renᴹᴿ suc W` by `renᴹ²-ord-id`, and `AddLock0Typing`'s mover is
+`renᴹᴿ (extN (numBinds Θ) suc) W` — so `⊢renᴿ` is very likely most of
+both; what they add is a BINDER (`underΛ`, `addLock0`) on top of the
+renaming, which this lemma does not.  That is a separate landing.

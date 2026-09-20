@@ -68,7 +68,6 @@ open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms
-open import strong.TermSubst using (extN)
 
 ------------------------------------------------------------------------
 -- 1. Decidable equality on types

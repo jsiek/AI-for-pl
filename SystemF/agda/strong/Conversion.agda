@@ -26,7 +26,7 @@ module strong.Conversion where
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (yes; no)
-open import Data.List using (List; []; _∷_)
+open import Data.List using (List; []; _∷_; map)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; trans; cong₂; subst)
@@ -260,6 +260,33 @@ peel-premises-env : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
 peel-premises-env mwΘ ⊢s =
   peel-premises (name-fn (mw-exterior mwΘ)) (mw-interior mwΘ)
                 (mw-conversion mwΘ) ⊢s
+
+------------------------------------------------------------------------
+-- 2d. Renaming the representation universe
+------------------------------------------------------------------------
+
+-- A conversion is REP-FREE: every name it carries is ORDINARY, and a
+-- representation-only renaming moves no ordinary name.  So a conversion
+-- and both of its types survive the move UNCHANGED; what moves is the
+-- context it is read on — the lookup square follows the same ordinary
+-- name to a renamed representation variable with a renamed payload
+-- (`∋:=-ren`, strong.CtxMorph §3d).
+
+conv-cast : ∀ {Ξ : RepCtx} {c : Conv} → η ≡ η′
+  → (Ξ ∣ η) ⊢ c ∶ A ⇝ B → (Ξ ∣ η′) ⊢ c ∶ A ⇝ B
+conv-cast refl ⊢c = ⊢c
+
+conv-ren : ∀ {Ξ Ξ′ : RepCtx} {c : Conv} → RepWk ρ Ξ Ξ′
+  → (Ξ ∣ η) ⊢ c ∶ A ⇝ B
+  → (Ξ′ ∣ map ρ η) ⊢ c ∶ A ⇝ B
+conv-ren w (conv-id b) = conv-id b
+conv-ren {ρ = ρ} w (conv-idv tv) = conv-idv (tv-ren ρ tv)
+conv-ren w (conv-unseal d) = conv-unseal (∋:=-ren w d)
+conv-ren w (conv-seal d) = conv-seal (∋:=-ren w d)
+conv-ren w (conv-fun p q) = conv-fun (conv-ren w p) (conv-ren w q)
+conv-ren {ρ = ρ} {η = η} w (conv-all p) =
+  conv-all (conv-cast (names-underΛ-ren ρ η)
+                      (conv-ren (repwk-abst w) p))
 
 ------------------------------------------------------------------------
 -- 3.  The identity conversion at an arbitrary type

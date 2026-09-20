@@ -16,7 +16,7 @@ open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
 open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; _≢_; refl; sym; cong; subst)
+  using (_≡_; _≢_; refl; sym; trans; cong; cong₂; subst)
 
 open import strong.Types using (Ty; `ℕ; ⇑ᵗ; Renameᵗ; renameᵗ; extᵗ)
 open import strong.Ctx
@@ -170,6 +170,13 @@ underRepBinds : ℕ → Change → Change
 underRepBinds n (lock X α)   = lock X (n + α)
 underRepBinds n (unlock X α) = unlock X (n + α)
 
+-- A REPRESENTATION-ONLY renaming of a change. The ordinary position is
+-- untouched, which is what makes a rep-only weakening leave every
+-- ordinary de Bruijn spelling in a term exactly where it was.
+renᶠᴿ : Renameᵗ → Change → Change
+renᶠᴿ ρʳ (lock X α)   = lock X (ρʳ α)
+renᶠᴿ ρʳ (unlock X α) = unlock X (ρʳ α)
+
 ------------------------------------------------------------------------
 -- 3. Context morphisms and their two induced contexts
 ------------------------------------------------------------------------
@@ -183,6 +190,15 @@ open CtxMorph public
 
 numBinds : CtxMorph → ℕ
 numBinds Θ = length (binds Θ)
+
+-- The representation-only renaming of a morphism. Its bind payloads are
+-- written over the EXTERIOR representation context, so they move by ρ;
+-- its changes run INSIDE the bind block, so they move by `extN` of ρ at
+-- the block's width.
+renᴮᴿ : Renameᵗ → CtxMorph → CtxMorph
+renᴮᴿ ρʳ Θ =
+  morph (map (renameᵗ ρʳ) (binds Θ))
+        (map (renᶠᴿ (extN (numBinds Θ) ρʳ)) (changes Θ))
 
 -- A crossing argument is already inside the representation bind block of
 -- the boundary it crosses. Its dual therefore binds no new representation
@@ -745,6 +761,27 @@ merged-interior {Θ₁ = Θ₁} (interior cs₂) (interior cs₁) =
 ∋ʳ-push [] d = d
 ∋ʳ-push (S ∷ Rs) d = r-there (∋ʳ-push Rs d)
 
+-- The same fact for an ABSTRACT binding as well: only the payload of a
+-- represented one actually moves, but a rep-only weakening has to carry
+-- both, so state the shift on bindings rather than on payloads.
+shiftByᵇ : ℕ → RepBinding → RepBinding
+shiftByᵇ zero    b = b
+shiftByᵇ (suc n) b = renRepBinding suc (shiftByᵇ n b)
+
+shiftByᵇ-abstR : (n : ℕ) → shiftByᵇ n abstR ≡ abstR
+shiftByᵇ-abstR zero    = refl
+shiftByᵇ-abstR (suc n) = cong (renRepBinding suc) (shiftByᵇ-abstR n)
+
+shiftByᵇ-bindR : (n : ℕ) (R : Ty)
+  → shiftByᵇ n (bindR R) ≡ bindR (shiftBy n R)
+shiftByᵇ-bindR zero    R = refl
+shiftByᵇ-bindR (suc n) R = cong (renRepBinding suc) (shiftByᵇ-bindR n R)
+
+∋ʳ-pushᵇ : (Rs : List Ty) → Ξ ∋ʳ α := b
+  → pushRepBinds Rs Ξ ∋ʳ (length Rs + α) := shiftByᵇ (length Rs) b
+∋ʳ-pushᵇ [] d = d
+∋ʳ-pushᵇ (S ∷ Rs) d = r-there (∋ʳ-pushᵇ Rs d)
+
 -- Both readings leave the REPRESENTATION context of the morphism's own
 -- bind block; only the ordinary name map moves.
 interior-reps : ∀ {Θ : CtxMorph} → Γ ⊢ⁱ Θ ⇒ Γᵢ
@@ -1228,6 +1265,228 @@ mw-interior-wf mwΘ =
 mw-conversion-wf : ∀ {Θ} → MorphWf Γ Θ Γᵢ Γᶜ → WfCtx Γᶜ
 mw-conversion-wf mwΘ =
   conversion-wf (mw-exterior mwΘ) (mw-binds mwΘ) (mw-conversion mwΘ)
+
+------------------------------------------------------------------------
+-- 3d. Renaming the representation universe — the CONTEXT half
+------------------------------------------------------------------------
+
+-- A REPRESENTATION-ONLY renaming ρ acts on a context by renaming the
+-- representation context and renaming the name map POINTWISE (`map ρ`).
+-- Ordinary positions never move, so the ordinary spelling of every type,
+-- conversion and change is untouched — which is the whole point of
+-- `renᴹᴿ`.  `RepWk ρ Ξ Ξ′` is what such a move must supply, and it is
+-- exactly what the two induced readings, the conversion typing and the
+-- typing judgement all consume.  Three fields are the three `WfCtx`
+-- obligations one universe down; the fourth, injectivity, is what a
+-- `lock`'s freshness record needs.
+--
+-- The instance that matters is INSERTING a bind block: `repwk-wkN`
+-- (strong.proof.RepWeaken) for the exterior, `repwk-push` and
+-- `repwk-abst` for the two ways the induction goes deeper.
+
+record RepWk (ρ : Renameᵗ) (Ξ Ξ′ : RepCtx) : Set where
+  constructor repwk
+  field
+    wk-inj  : Injᵗ ρ
+    wk-look : ∀ {α b} → Ξ ∋ˡ α := b → ∃[ b′ ] (Ξ′ ∋ˡ ρ α := b′)
+    wk-bind : ∀ {α b} → Ξ ∋ʳ α := b → Ξ′ ∋ʳ ρ α := renRepBinding ρ b
+    wk-reps : WfRepCtx Ξ → WfRepCtx Ξ′
+open RepWk public
+
+length-map : ∀ {A B : Set} (f : A → B) (xs : List A)
+  → length (map f xs) ≡ length xs
+length-map f []       = refl
+length-map f (x ∷ xs) = cong suc (length-map f xs)
+
+renameᵗ-shiftBy : (n : ℕ) (ρ : Renameᵗ) (R : Ty)
+  → renameᵗ (extN n ρ) (shiftBy n R) ≡ shiftBy n (renameᵗ ρ R)
+renameᵗ-shiftBy zero    ρ R = refl
+renameᵗ-shiftBy (suc n) ρ R =
+  trans (renameᵗ-⇑ (extN n ρ) (shiftBy n R))
+        (cong ⇑ᵗ (renameᵗ-shiftBy n ρ R))
+
+shiftRVars-ren : (n : ℕ) (ρ : Renameᵗ) (Δ : TyCtx)
+  → map (extN n ρ) (shiftRVars n Δ) ≡ shiftRVars n (map ρ Δ)
+shiftRVars-ren n ρ []      = refl
+shiftRVars-ren n ρ (α ∷ Δ) =
+  cong₂ _∷_ (extN-+ n ρ α) (shiftRVars-ren n ρ Δ)
+
+-- A payload is checked at a local-binder depth m, so it moves by
+-- `extN m ρ`; a reference at depth m is either local (untouched) or free
+-- (renamed), which is exactly what `extN m ρ` does.
+wk-ref : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (m : ℕ) {i : ℕ}
+  → Ξ ⊢ref[ m ] i → Ξ′ ⊢ref[ m ] extN m ρ i
+wk-ref w zero (local-ref ())
+wk-ref w zero (free-ref d) with wk-look w d
+wk-ref w zero (free-ref d) | b′ , d′ = free-ref d′
+wk-ref w (suc m) r = ref-ext (wk-ref w m) r
+
+wk-wfᴿ : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (m : ℕ) {R : Ty}
+  → Ξ ⊢ᴿ[ m ] R → Ξ′ ⊢ᴿ[ m ] renameᵗ (extN m ρ) R
+wk-wfᴿ w m = wfᴿ-rename (wk-ref w m)
+
+binds-ren : ∀ {ρ Ξ Ξ′ Rs} → RepWk ρ Ξ Ξ′ → Ξ ⊢ᴮ Rs
+  → Ξ′ ⊢ᴮ map (renameᵗ ρ) Rs
+binds-ren w binds[] = binds[]
+binds-ren w (binds∷ x xs) = binds∷ (wk-wfᴿ w zero x) (binds-ren w xs)
+
+-- Going under an abstract binder — the `Λ` case.
+repwk-abst : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′
+  → RepWk (extᵗ ρ) (abstR ∷ Ξ) (abstR ∷ Ξ′)
+repwk-abst {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} w =
+  repwk (inj-extᵗ (wk-inj w)) look bnd rps
+  where
+  look : ∀ {α b} → (abstR ∷ Ξ) ∋ˡ α := b
+    → ∃[ b′ ] ((abstR ∷ Ξ′) ∋ˡ extᵗ ρ α := b′)
+  look here = abstR , here
+  look (there d) with wk-look w d
+  look (there d) | b′ , d′ = b′ , there d′
+
+  bnd : ∀ {α b} → (abstR ∷ Ξ) ∋ʳ α := b
+    → (abstR ∷ Ξ′) ∋ʳ extᵗ ρ α := renRepBinding (extᵗ ρ) b
+  bnd r-here = r-here
+  bnd (r-there-abst {b = b} d) =
+    subst (λ c → (abstR ∷ Ξ′) ∋ʳ suc (ρ _) := c)
+          (sym (renRepBinding-⇑ ρ b))
+          (r-there-abst (wk-bind w d))
+
+  rps : WfRepCtx (abstR ∷ Ξ) → WfRepCtx (abstR ∷ Ξ′)
+  rps (wf-abstR wr) = wf-abstR (wk-reps w wr)
+
+-- Going under a represented binder — one step of a bind block.
+repwk-bind : ∀ {ρ Ξ Ξ′ R} → RepWk ρ Ξ Ξ′
+  → RepWk (extᵗ ρ) (bindR R ∷ Ξ) (bindR (renameᵗ ρ R) ∷ Ξ′)
+repwk-bind {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} {R = R} w =
+  repwk (inj-extᵗ (wk-inj w)) look bnd rps
+  where
+  look : ∀ {α b} → (bindR R ∷ Ξ) ∋ˡ α := b
+    → ∃[ b′ ] ((bindR (renameᵗ ρ R) ∷ Ξ′) ∋ˡ extᵗ ρ α := b′)
+  look here = bindR (renameᵗ ρ R) , here
+  look (there d) with wk-look w d
+  look (there d) | b′ , d′ = b′ , there d′
+
+  bnd : ∀ {α b} → (bindR R ∷ Ξ) ∋ʳ α := b
+    → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ extᵗ ρ α
+        := renRepBinding (extᵗ ρ) b
+  bnd r-here =
+    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ zero := c)
+          (sym (renRepBinding-⇑ ρ (bindR R)))
+          r-here
+  bnd (r-there {b = b} d) =
+    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ suc (ρ _) := c)
+          (sym (renRepBinding-⇑ ρ b))
+          (r-there (wk-bind w d))
+
+  rps : WfRepCtx (bindR R ∷ Ξ) → WfRepCtx (bindR (renameᵗ ρ R) ∷ Ξ′)
+  rps (wf-bindR x wr) = wf-bindR (wk-wfᴿ w zero x) (wk-reps w wr)
+
+-- Going under a whole PARALLEL bind block — the boundary case.  Each
+-- payload was written over the exterior, so it moves by ρ; the block's
+-- own shifts commute with that (`renameᵗ-shiftBy`).
+repwk-push : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (Rs : List Ty)
+  → RepWk (extN (length Rs) ρ) (pushRepBinds Rs Ξ)
+      (pushRepBinds (map (renameᵗ ρ) Rs) Ξ′)
+repwk-push w [] = w
+repwk-push {ρ = ρ} w (R ∷ Rs)
+  rewrite length-map (renameᵗ ρ) Rs
+        | sym (renameᵗ-shiftBy (length Rs) ρ R) =
+  repwk-bind (repwk-push w Rs)
+
+-- The three `WfCtx` fields, and the conversion LOOKUP SQUARE.
+validNames-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → ValidNames Ξ Δ
+  → ValidNames Ξ′ (map ρ Δ)
+validNames-ren {Δ = Δ} {ρ = ρ} w vn d with ∋ˡ-ren⁻ ρ Δ d
+validNames-ren {Δ = Δ} {ρ = ρ} w vn d | α , d′ , refl with vn d′
+validNames-ren {Δ = Δ} {ρ = ρ} w vn d | α , d′ , refl | b , db =
+  wk-look w db
+
+wfctx-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → WfCtx (Ξ ∣ Δ)
+  → WfCtx (Ξ′ ∣ map ρ Δ)
+wfctx-ren w (wf-ctx wr vn uq) =
+  wf-ctx (wk-reps w wr) (validNames-ren w vn) (unique-ren (wk-inj w) uq)
+
+∋:=-ren : ∀ {ρ Ξ Ξ′ A} → RepWk ρ Ξ Ξ′ → (Ξ ∣ Δ) ∋ X := A
+  → (Ξ′ ∣ map ρ Δ) ∋ X := A
+∋:=-ren {ρ = ρ} w (α , R , dn , dr , sm) =
+  ρ α , renameᵗ ρ R , ∋ˡ-ren ρ dn , wk-bind w dr , same-ren ρ sm
+
+-- The change run and both readings.  A `lock` deletes at the same
+-- ordinary position and records freshness of the renamed name; an
+-- `unlock` inserts at the same position.  Nothing here is arithmetic on
+-- ordinary positions, which is why the ordinary spelling survives.
+del-ren : (ρ : Renameᵗ) → α ⊢- Δ at X ⇒ Δ′
+  → ρ α ⊢- map ρ Δ at X ⇒ map ρ Δ′
+del-ren ρ del-here = del-here
+del-ren ρ (del-there dl) = del-there (del-ren ρ dl)
+
+ins-ren : (ρ : Renameᵗ) → α ⊢+ Δ at X ⇒ Δ′
+  → ρ α ⊢+ map ρ Δ at X ⇒ map ρ Δ′
+ins-ren ρ ins-here = ins-here
+ins-ren ρ (ins-there i) = ins-there (ins-ren ρ i)
+
+step-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → Ξ ∣ Δ ⊢δ δ ⇒ Δ′
+  → Ξ′ ∣ map ρ Δ ⊢δ renᶠᴿ ρ δ ⇒ map ρ Δ′
+step-ren {ρ = ρ} w (step-lock (b , v) dl fr) =
+  step-lock (wk-look w v) (del-ren ρ dl) (fresh-ren (wk-inj w) fr)
+step-ren {ρ = ρ} w (step-unlock (b , v) fr i) =
+  step-unlock (wk-look w v) (fresh-ren (wk-inj w) fr) (ins-ren ρ i)
+
+changes-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → Ξ ∣ Δ ⊢χ χ ⇒ Δ′
+  → Ξ′ ∣ map ρ Δ ⊢χ map (renᶠᴿ ρ) χ ⇒ map ρ Δ′
+changes-ren w changes[] = changes[]
+changes-ren w (changes∷ cs st) =
+  changes∷ (changes-ren w cs) (step-ren w st)
+
+conv-changes-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
+  → Ξ′ ∣ map ρ Δ ⊢χᶜ map (renᶠᴿ ρ) χ ⇒ map ρ Δ′
+conv-changes-ren w conv[] = conv[]
+conv-changes-ren w (conv-lock (b , v) cs) =
+  conv-lock (wk-look w v) (conv-changes-ren w cs)
+conv-changes-ren {ρ = ρ} w (conv-unlock (b , v) cs fr i) =
+  conv-unlock (wk-look w v) (conv-changes-ren w cs)
+    (fresh-ren (wk-inj w) fr) (ins-ren ρ i)
+conv-changes-ren {ρ = ρ} w (conv-unlock-live (b , v) cs d) =
+  conv-unlock-live (wk-look w v) (conv-changes-ren w cs) (∋ˡ-ren ρ d)
+
+-- The renamed morphism's exterior name map, as the renaming of the
+-- original one: the bind block keeps its width under renaming, and
+-- `extN` at that width is what `shiftRVars` at it becomes.
+names-ren-push : (ρ : Renameᵗ) (Bs : List Ty) (Δ : TyCtx)
+  → map (extN (length Bs) ρ) (shiftRVars (length Bs) Δ)
+      ≡ shiftRVars (length (map (renameᵗ ρ) Bs)) (map ρ Δ)
+names-ren-push ρ Bs Δ =
+  trans (shiftRVars-ren (length Bs) ρ Δ)
+        (cong (λ n → shiftRVars n (map ρ Δ))
+              (sym (length-map (renameᵗ ρ) Bs)))
+
+-- The two readings of the RENAMED morphism are the renamed readings.
+interior-ren : ∀ {ρ Ξ Ξ′ Θ} {Γᵢ : Ctxᵗ} → RepWk ρ Ξ Ξ′
+  → (Ξ ∣ Δ) ⊢ⁱ Θ ⇒ Γᵢ
+  → (Ξ′ ∣ map ρ Δ) ⊢ⁱ renᴮᴿ ρ Θ ⇒
+      (pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′
+        ∣ map (extN (numBinds Θ) ρ) (names Γᵢ))
+interior-ren {Δ = Δ} {ρ = ρ} {Ξ′ = Ξ′} {Θ = Θ}
+             w (interior {Δ′ = Δ′} cs) =
+  interior
+    (subst (λ D → pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′ ∣ D
+                    ⊢χ map (renᶠᴿ (extN (numBinds Θ) ρ)) (changes Θ)
+                    ⇒ map (extN (numBinds Θ) ρ) Δ′)
+           (names-ren-push ρ (binds Θ) Δ)
+           (changes-ren (repwk-push w (binds Θ)) cs))
+
+conversion-ren : ∀ {ρ Ξ Ξ′ Θ} {Γᶜ : Ctxᵗ} → RepWk ρ Ξ Ξ′
+  → (Ξ ∣ Δ) ⊢ᶜ Θ ⇒ Γᶜ
+  → (Ξ′ ∣ map ρ Δ) ⊢ᶜ renᴮᴿ ρ Θ ⇒
+      (pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′
+        ∣ map (extN (numBinds Θ) ρ) (names Γᶜ))
+conversion-ren {Δ = Δ} {ρ = ρ} {Ξ′ = Ξ′} {Θ = Θ}
+               w (conversion {Δ′ = Δ′} cs) =
+  conversion
+    (subst (λ D → pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′ ∣ D
+                    ⊢χᶜ map (renᶠᴿ (extN (numBinds Θ) ρ)) (changes Θ)
+                    ⇒ map (extN (numBinds Θ) ρ) Δ′)
+           (names-ren-push ρ (binds Θ) Δ)
+           (conv-changes-ren (repwk-push w (binds Θ)) cs))
 
 ------------------------------------------------------------------------
 -- 4. Concrete boundary shapes

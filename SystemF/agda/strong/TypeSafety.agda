@@ -1,8 +1,35 @@
 module strong.TypeSafety where
 
--- TYPE SAFETY for Strong System F (the two-universe design).
+-- File Charter:
+--   * THE WHOLE PUBLIC THEOREM SURFACE, STATED EXPLICITLY IN ONE PLACE.
+--     `Progress`, `Preservation`, `Preservation*` and `TypeSafety` are
+--     written out here rather than re-exported, and `TypeSafety` is the
+--     COMPOSITION of the other two: from `WfCtx Δ`, `Δ ∣ [] ⊢ M ⦂ A`
+--     and `Δ ⊢ M -→* N`, N is a `Value` or N steps.  `preservation`
+--     and `preservation*` are unconditional (2026-09-20) and delegate
+--     to strong.Preservation; `progress` and `type-safety` sit inside
+--     `Stage1`, parameterized by the ONE statement held for review,
+--     `strong.proof.Progress.MergedReading`, so that assumption is
+--     visible in `Stage1`'s type.  `det` and `value-¬step` are
+--     re-stated here and delegate to strong.Reduction.
+--   * NO PROOFS AND NO DEFINITIONS.  Every right-hand side is a
+--     delegation: strong.Preservation, strong.Progress,
+--     strong.proof.TypeSafety and strong.Reduction.  The refutations
+--     that shaped these statements are the wall modules under notes/,
+--     and the dated record is notes/DECISIONS.md.
+--   * THE PREMISES ARE NOT UNIFORM, AND THAT IS THE POINT.
+--     `preservation` (and everything built on it, `type-safety`
+--     included) takes `WfCtx Δ`; the premise-free form is FALSE here,
+--     because at a duplicate name map a TyBeta contractum must mint a
+--     `MorphWf` that `Unique` refuses (notes/DECISIONS.md,
+--     2026-09-18).  `progress` takes NO such premise — a boundary case
+--     reads well-formedness off its own `env`.  `det` takes the
+--     REDEX'S TYPING DERIVATION, from which it recovers the name-map
+--     uniqueness the rules used to carry as premises (same entry).  The
+--     reduction relation is indexed by the type context Δ only; the
+--     term context is empty, as it must be.
 --
--- The public theorem surface.  FOUR theorems hold outright:
+-- FOUR theorems hold outright:
 --
 --   det            reduction is deterministic on well-typed terms
 --   value-¬step    values do not step
@@ -33,21 +60,6 @@ module strong.TypeSafety where
 -- on 2026-09-19 and proved,
 -- `strong.proof.MoveScope.preserve-CancelR`).  `MergedReading` remains the
 -- one open, plausible obligation pending review.
---
--- Two statements CHANGED with the port, each against the old surface:
---
---   * `preservation` (and everything built on it) takes `WfCtx Δ`.  The
---     premise-free statement is FALSE here: at a duplicate name map a
---     TyBeta contractum must mint a `MorphWf` that `Unique` refuses
---     (notes/DECISIONS.md, 2026-09-18).  `progress` needs no such
---     premise — a boundary case reads well-formedness off its own `env`.
---
---   * `det` takes the redex's typing derivation, from which it recovers
---     the name-map uniqueness the rules used to carry as premises
---     (notes/DECISIONS.md, 2026-09-18).
---
--- The reduction relation is indexed by the type context Δ only; the term
--- context is empty, as it must be (see strong.Preservation).
 
 open import Data.List using ([])
 open import Data.Sum using (_⊎_)

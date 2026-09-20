@@ -1,6 +1,39 @@
 module strong.TermSubst where
 
--- Strong System F -- renaming and term substitution.
+-- File Charter:
+--   * RENAMING AND SUBSTITUTION ON TERMS.  §1 is the PAIRED type-level
+--     renaming `TyRename = ren² ordinary represent` with `renᶠ²`,
+--     `renᴮ²` and the specializations `renᶠ`/`renᴮ`, plus
+--     `underΛ-ren`/`underReps-ren` and the arity facts
+--     `numBinds-ren²`/`numBinds-ren`.  §2 is `renᴹ²` on terms, the
+--     REPRESENTATION-ONLY traversal `renᴹᴿ`, their agreement
+--     (`renᴹ²-ord-id`, via `renᶠ²-ord-id`/`renᴮ²-ord-id`), and the
+--     derived `renᴹ`, `wkN`, `wkᴹ`, `⇑ᴹ`.  §3 is term-variable
+--     renaming `extⁿ`/`renⁿ`/`shiftᵐ` with `⊢renⁿ` and `⊢weakenⁿ`; §4
+--     the `⤊` transport lemmas; §5 substitution — `Img`, `crossΛᴹ`,
+--     `⇑ᴵ`, `extᴵ`, `substᵐ` and `_[_∶_]ᵐ`; §6 typed images
+--     `_∣_⊢ⁱ_⦂_` with `⊢imgTm`, `shiftᴵ-⊢`, `extᴵ-⊢`.
+--   * WHAT IS DELIBERATELY ONE LAYER DOWN.  `extN` is strong.Ctx §8 and
+--     the representation-only `renᶠᴿ`/`renᴮᴿ` are strong.CtxMorph
+--     §2/§3, beside the syntax they act on, because the
+--     representation-renaming metatheory of strong.CtxMorph §3d is
+--     stated over them and cannot import this module.  Reduction is
+--     strong.Reduction; the typing transport for `renᴹᴿ` and `crossΛᴹ`
+--     is strong.proof.RepWeaken (`rep-weaken-⊢`, `cross-Λ-⊢`), not
+--     here — §3's `⊢renⁿ` is the TERM-variable half only.
+--   * THREE LAWS A READER MUST KNOW.  (1) Boundaries are TERM-CLOSED
+--     (strong.Terms `env`), so `renⁿ` and `substᵐ` do NOT descend into
+--     `_⟪_,_⟫` and `⊢renⁿ` reuses the boundary's derivation unchanged.
+--     (2) A type renaming carries TWO independent maps, and the
+--     ordinary one never moves a representation occurrence:
+--     `TyBetaMorph-ren-Λ` is the concrete separation check, and
+--     `renᴹ²-ord-id` is the general statement that an
+--     ordinary-identity `renᴹ²` IS `renᴹᴿ` (notes/DECISIONS.md,
+--     2026-09-20, representation-only renaming is its own traversal).
+--     (3) Beta is FRAME-EXACT: a closed value image crossing a `Λ` is
+--     wrapped in that binder's DUAL with an identity conversion at the
+--     argument's type (`crossΛᴹ`, used by `⇑ᴵ`), which is why
+--     `_[_∶_]ᵐ` carries the `ƛ`'s own annotation instead of shifting.
 --
 -- Ordinary type variables and representation variables have distinct de
 -- Bruijn universes. Consequently, syntax-level type renaming carries two
@@ -10,9 +43,6 @@ module strong.TermSubst where
 --     names, and the positions carried by `lock` and `unlock`;
 --   * the representation map renames morphism payloads and the
 --     representation-variable occurrence carried by every change.
---
--- The term-variable operations remain ordinary. Boundaries are term-closed,
--- so term renaming and substitution do not descend into a wrapper.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; map; length)

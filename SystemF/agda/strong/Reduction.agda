@@ -1,6 +1,56 @@
 module strong.Reduction where
 
--- Strong System F — REDUCTION.
+-- File Charter:
+--   * THE RULE SET, AND THE TWO FACTS THAT NEED NO TYPING.  §1 is
+--     `_⊢_-→_` with FIFTEEN rules — TyBeta, Beta, Peel, TyPeelR-Λ,
+--     TyPeelR-⟪⟫, CancelR, Drop$, Drop-true, Drop-false, IdPush, and
+--     the five congruences ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫ — plus the
+--     multi-step `_⊢_-→*_` (`done`/`_then_`) and the concrete check
+--     `TyBeta-ℕ`.  §2 is `value-¬step`.  §3 is `det`, which takes the
+--     redex's TYPING DERIVATION (notes/DECISIONS.md, 2026-09-18:
+--     uniqueness comes from typing, not reduction) and reads the
+--     name-map `Unique`ness off it through `mw-exterior`,
+--     `mw-interior-wf` and `mw-conversion-wf`; NO rule carries a
+--     `Unique` premise any more.
+--   * NOT HERE.  The typing judgement is strong.Terms; the decision
+--     procedures that DISCHARGE these rules' side conditions are
+--     strong.TypeCheck, and the redex search that assembles them is
+--     strong.Eval.  Preservation, progress and canonical forms live
+--     under strong.proof with their public statements in
+--     strong.Preservation, strong.Progress and strong.TypeSafety.  The
+--     design record — what a rule said before a repair, and the
+--     machine-checked refutation of it — belongs in
+--     notes/DECISIONS.md and the wall modules, never in a rule comment
+--     that claims to describe the live rule.
+--   * THE CROSSING-SPELLING LAW.  When a rule MOVES a subterm between
+--     two name maps, the moved spelling is CARRIED by the rule as a
+--     named premise and PINNED by a `Same…` relation — `SameConv`
+--     (strong.Conversion) for a conversion, `_⊢_≈_⊣_` (strong.Ctx §5)
+--     for a type or a bare name — and is NEVER computed by a fixed
+--     renaming.  The crossing is by the REPRESENTATION a name denotes,
+--     never by arithmetic on its position, because the two contexts can
+--     reorder relative to each other.  Five such spellings are carried
+--     today, and each was installed only after a defect:
+--
+--       Peel        `s′`, `SameConv Δᵈ s′ Δᶜ s`        2026-09-18
+--                     notes/CrossingAudit, notes/PeelPremise
+--       TyPeelR-⟪⟫  `Bᵢ′`, `≈` at the interior          2026-09-18
+--                     notes/ForallPayloadWall
+--       IdPush      `X′`, `≈` at the merged frame       2026-09-18
+--                     notes/ForallPayloadWall
+--       CancelR     `A′`, `≈` at Θ₁'s OWN conv. ctx     2026-09-19
+--                     notes/CancelRShiftWall,
+--                     notes/CancelRReachabilityWitness
+--       TyPeelR-⟪⟫  `s″`, `SameConv` at `underΛ Δ″ᶜ`    2026-09-20
+--                     notes/AddLock0Wall
+--
+--     A sixth defect of the same reading discipline hit the CONVERSION
+--     CONTEXT itself rather than a spelling: the re-unlock clause
+--     `conv-unlock-live` (2026-09-17, notes/ReUnlockWall,
+--     strong.CtxMorph §3).  Determinism for the carried premises is
+--     `sameConv-src-unique`, `sameTy-src-unique`, `conv-src-unique` and
+--     `same-rep-unique`; for the lookup-carrying rules it is
+--     `∋:=-det`.
 --
 -- The rule set of the conversion-boundary design, with the repairs ruled in
 -- notes/DECISIONS.md ("Id-layer RULING", 2026-09-05) applied:
@@ -74,7 +124,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- BETA, FRAME-EXACT (2026-09-08).  The substitution CARRIES THE
   -- ARGUMENT'S TYPE — the ƛ's own annotation A — because every image that
   -- crosses a `Λ` in the body is wrapped in that binder's DUAL with an
-  -- IDENTITY conversion at the argument's type (strong.TermSubst §5b).
+  -- IDENTITY conversion at the argument's type (`crossΛᴹ`,
+  -- strong.TermSubst §5).
   -- Shifting alone (the old `N [ W ]ᵐ`) was sound but not frame-exact: the
   -- argument's frame silently gained the Λ's slot.  Determinism is
   -- unaffected — A is read off the redex, so the contractum is still a
@@ -99,7 +150,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- The premise never blocks a reduction.  The two contexts name the same
   -- representation variables — that is (Q), notes/PeelPremise §5 — and a
   -- well-typed conversion always has a reading to transport, so a witness
-  -- always exists (`peel-premises-env`, §8).  `t` needs no premise: it
+  -- always exists (`peel-premises-env`, strong.Conversion §2c).  `t`
+  -- needs no premise: it
   -- stays on the same boundary, at Δᶜ, where it was read.
   Peel : ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t} → Value V → Value W
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
@@ -125,7 +177,7 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   --   TyPeelR-⟪⟫   the interior is a boundary: PUSH THE TYPE APPLICATION
   --                INWARD one layer, exactly as the single rule did, and
   --                mask the new binder in the MOVED BOUNDARY'S OWN change
-  --                list (`addLock0`, strong.CtxMorph §5).
+  --                list (`addLock0`, strong.CtxMorph §3).
   --
   -- Together they are TOTAL over canonical `∀`-values, so the split
   -- REPLACES the single rule (`progress`, proof/Progress) rather than
@@ -138,8 +190,9 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- nor could use it (`wkᴹ 1` sends every index to ≥ 1), so the frame
   -- said more than the truth: the tight frame and the live one differed
   -- by exactly one `le-mu`, the RE-EXPOSURE clause — the one step `_⊑ᵃ_`,
-  -- the refinement a TERM may travel along, REFUSES (proof/ShiftAudit §3,
-  -- `TyPeelR-leak-⊑` / `TyPeelR-leak-¬⊑ᵃ`).  Every other rule masks what
+  -- the refinement a TERM may travel along, REFUSES (`TyPeelR-leak-⊑` /
+  -- `TyPeelR-leak-¬⊑ᵃ`, notes/ShiftAudit.md "The TyPeelR leak"; the
+  -- surviving Agda half is proof/ShiftAudit §3).  Every other rule masks what
   -- it introduces (Peel by (†), Beta by `crossΛ`), so this was the one
   -- exception, and the audit closed it.
   --
@@ -153,13 +206,14 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- WHY THE WRAPPER CLAUSE TERMINATES.  Its contractum's inner
   -- application is again a redex, but the `∀`-value's TOWER HEIGHT — the
   -- number of nested boundaries above the `Λ` — strictly DECREASES
-  -- (`TyPeelR-⟪⟫-height`, proof/ShiftAudit §5c₂), because the clause
+  -- (`TyPeelR-⟪⟫-height`, proof/ShiftAudit §4), because the clause
   -- CONSUMES a boundary that was already there.  The rejected repair
   -- (wrap the moved value in the new binder's dual) MINTS one instead, so
   -- its measure stalls and it loops: an identity conversion at a `∀` is
   -- necessarily a `` `∀ `` conversion, hence inert, hence the wrapped
-  -- value under `·[ … ]` is itself a redex (`fixA-height-stalls` and the
-  -- run `T₀ -→ᵃ T₁ -→ᵃ T₂`, proof/ShiftAudit §4/§4a). A tower
+  -- value under `·[ … ]` is itself a redex (`fixA-height-stalls`,
+  -- proof/ShiftAudit §4; the looping run is written out in
+  -- notes/ShiftAudit.md, candidate fix (a)). A tower
   -- height
   -- `h` therefore takes `h − 1` `TyPeelR-⟪⟫` steps and then exactly one
   -- `TyPeelR-Λ` step.
@@ -260,7 +314,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   --
   -- THE RESIDUE REPAIR (3a), AS RE-RULED (2026-09-05).  The mini-core
   -- appended `hideBinds (numBinds Θ₂)`, which masks EXTERIOR slots that need
-  -- not exist (proof/MaskFacts.agda, `¬⊢ᵐ-cancel-residue`); dropping the
+  -- not exist (refuted by the retired `¬⊢ᵐ-cancel-residue`, whose module
+  -- proof/MaskFacts.agda went with the masked-entry design); dropping the
   -- residue was not enough either, because `repsOf→bind (binds Θ₂)`
   -- DISCARDS
   -- Θ₁'s whole frame, and a `V` that names one of Θ₁'s own binders loses

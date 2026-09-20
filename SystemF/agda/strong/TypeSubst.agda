@@ -1,7 +1,26 @@
 module strong.TypeSubst where
 
--- Algebraic theory of type substitution for Strong System F.
--- Mirrors SystemF/agda/extrinsic/TypeSubst.agda.
+-- File Charter:
+--   * THE ALGEBRAIC THEORY OF TYPE SUBSTITUTION.  Composition `_⨟ᵗ_`
+--     and `cons-sub`; the congruences `rename-cong`/`subst-cong`; the
+--     fusion laws `rename-rename-commute`, `rename-subst-commute`,
+--     `rename-subst`, `exts-seq`, `sub-sub`, `subst-id`; and the two
+--     laws the metatheory uses pervasively, `substitution` and
+--     `exts-sub-cons`, together with `rename-[]ᵗ-commute` and
+--     `subst-[]ᵗ-commute`.
+--   * NO DEFINITIONS.  `Ty`, `Substᵗ`, `renameᵗ`, `substᵗ`, `extsᵗ`,
+--     `singleTyEnv` and `_[_]ᵗ` are strong.Types.  The few single-index
+--     facts the two-universe layer needs — `substᵗ-cong`,
+--     `extsᵗ-renᵗ`, `substᵗ-renᵗ` — are strong.proof.Types, kept apart
+--     so that strong.Ctx and everything above it can stand on a module
+--     that imports nothing but strong.Types.  Nothing here mentions a
+--     context, a universe, a conversion or a term.
+--   * IT IS A MIRROR, DELIBERATELY.  Same names and same statements as
+--     SystemF/agda/extrinsic/TypeSubst.agda, so the two developments
+--     can be diffed line for line; keep it that way when adding a law.
+--     Its only client inside this development is
+--     strong.proof.Preserve, so a law added here is not automatically
+--     reachable from the rest of the tree.
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)

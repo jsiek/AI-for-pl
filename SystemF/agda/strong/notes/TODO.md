@@ -6,7 +6,7 @@
 
 * DONE: Delete ∀-payload-wf
 
-* Add file charters to 
+* DONE: Add file charters to
   Types
   TypeSubst
   Ctx
@@ -19,6 +19,15 @@
   Preservation
   Progress
   TypeSafety
+
+  All twelve carry a `-- File Charter:` header in the house style of
+  notes/RepresentationReductionExamples.agda, notes/CancelRShiftWall.agda
+  and notes/RawRunProbe.agda: what the file holds, what does not belong
+  here and where it lives instead, and the one or two invariants a reader
+  must know first.  proof/Types.agda and proof/Ctx.agda got short
+  charters too, since batch B created them and they are the private half
+  of Types/Ctx.  TypeSubst.agda DOES still exist at strong/ and is still
+  imported by All.agda, so it was chartered as well.
 
 * DONE: Refactor CtxMorph
 

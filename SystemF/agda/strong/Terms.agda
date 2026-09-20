@@ -1,6 +1,38 @@
 module strong.Terms where
 
--- Strong System F — the TERMS, the typing judgement, and values.
+-- File Charter:
+--   * THE TERM SYNTAX, THE TYPING JUDGEMENT, AND VALUES.  §1 is `Var`
+--     (= ℕ) and `Term`, whose last constructor is the boundary
+--     `_⟪_,_⟫`, together with the ordinary term context `Ctx`, its
+--     lookup `_∋_⦂_` and the type-binder lift `⤊`.  §2 is
+--     `_∣_⊢_⦂_`, the typing judgement, whose boundary rule is `env`.
+--     §3 classifies a conversion as `Inert` or `Active`, with
+--     `act-or-inert` and `act-not-inert`.  §4 is `Value` and
+--     `value-var-visible`; §5 the concrete `β-seven`/`β-seven-⊢`.
+--   * NO OPERATIONS AND NO METATHEORY.  Renaming and substitution on
+--     terms are strong.TermSubst; reduction is strong.Reduction; the
+--     decision procedures that BUILD these derivations are
+--     strong.TypeCheck; canonical forms, preservation and progress are
+--     under strong.proof (the public theorem statements being
+--     strong.Preservation, strong.Progress, strong.TypeSafety).
+--   * THREE LAWS A READER MUST KNOW.  (1) `env` never COMPUTES the two
+--     contexts a morphism induces: it takes `MorphWf Δ Θ Δᵢ Δᶜ`
+--     (strong.CtxMorph) and the two contexts are its outputs — the
+--     retired `interior`/`convCtx` functions are gone.  (2) The three
+--     sides can spell the same semantic type differently, so `env`
+--     compares them by the REPRESENTATION each denotes:
+--     `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` at equal representation depth, and
+--     `SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ`, which additionally crosses
+--     the morphism's own bind prefix (strong.Ctx §5).  A boundary's
+--     interior is TERM-CLOSED — `Δᵢ ∣ [] ⊢ M ⦂ Bᵢ` — which is what lets
+--     strong.TermSubst leave wrappers alone.  (3) Classification in §3
+--     is by the CONVERSION CONSTRUCTOR alone: no source or target type
+--     is inspected and no slot arithmetic occurs, so `id` at a variable
+--     is inert and `id` at a base type is active.  `V-Λ` carries
+--     `Value N` because reduction goes UNDER `Λ` (`ξ-Λ`); without it
+--     both "values don't step" and determinism are false
+--     (notes/DECISIONS.md, the Id-layer RULING of 2026-09-05,
+--     repair 3).
 --
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --

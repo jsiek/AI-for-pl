@@ -1,12 +1,29 @@
 module strong.Types where
 
--- Strong System F — types and type-variable substitution.
---
--- Types are ordinary System F types in de Bruijn form; a type variable is a
--- natural-number index (` X).  Renaming and (parallel) substitution are the
--- standard operations, mirroring SystemF/agda/extrinsic/Types.agda.  Nothing
--- here knows about the binder/seal discipline — that lives in strong.Ctx.
--- The lemmas about these operations live in strong.proof.Types.
+-- File Charter:
+--   * THE TYPE SYNTAX AND ITS SUBSTITUTION OPERATIONS.  `TyVar` (= ℕ)
+--     and `Ty` (`` `_ ``, `` `ℕ ``, `` `𝔹 ``, `_⇒_`, `` `∀ ``);
+--     parallel renaming and substitution `renameᵗ`/`substᵗ` with
+--     `extᵗ`/`extsᵗ`/`⇑ᵗ`; single substitution `_[_]ᵗ` (via
+--     `singleTyEnv`), `idᵗ` and `_•ᵗ_`; and the two index-directed
+--     substitutions `single-at`/`_[_:=_]ᵗ` and `downTyEnv`.
+--     Mirrors SystemF/agda/extrinsic/Types.agda.
+--   * NO LEMMAS.  The equational facts about these operations live in
+--     strong.proof.Types (`substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`);
+--     the full algebraic theory — composition `_⨟ᵗ_`, `sub-sub`,
+--     `substitution`, `exts-sub-cons` — is strong.TypeSubst.  Nothing
+--     here knows about the binder/seal discipline or the two de Bruijn
+--     universes: that is strong.Ctx.
+--   * ONE SYNTAX, TWO READINGS.  A `Ty` carries no universe tag.  The
+--     same term is read either as an ORDINARY type or as a
+--     REPRESENTATION payload, and it is strong.Ctx §5 (`_⊢_~_`,
+--     `_⊢_≈_⊣_`, `SameTyExt`) that relates the two readings — never
+--     anything in this file (notes/DECISIONS.md, 2026-09-20, the
+--     context-layer split by subject).  The consequence for §4:
+--     `single-at` leaves every index but X alone, because a CONCEALED
+--     ordinary variable stays in the context, while `singleTyEnv`
+--     shifts the rest down because reveal/tapp ELIMINATE their
+--     variable.
 
 open import Data.Nat using (ℕ; zero; suc; _∸_)
 open import Data.Nat.Properties using (_≟_)
@@ -102,16 +119,18 @@ single-at X A Y with X ≟ Y
 ... | yes _ = A
 ... | no  _ = ` Y
 
--- B [ X := A ]ᵗ : substitute A for the general index X in B  (used by (conceal)).
+-- B [ X := A ]ᵗ : substitute A for the general index X in B.  Its
+-- substitution `single-at` is what strong.proof.Preserve reasons about
+-- (`single-at-hit`, `single-at-miss`, `single-at-ext`).
 infix 8 _[_:=_]ᵗ
 _[_:=_]ᵗ : Ty → ℕ → Ty → Ty
 B [ X := A ]ᵗ = substᵗ (single-at X A) B
 
--- downTyEnv X A : move a type from the ambient context Δ INTO the prefix Δ ↓ X
--- (which drops indices 0..X).  The concealed variable X becomes its
--- representation A; deeper variables Y > X shift down by X+1 to fill the dropped
--- slots.  (Used by TyWrapCncl to reindex a type argument into the conceal body's
--- prefix, where X is no longer visible and is replaced by its rep.)
+-- downTyEnv X A : move a type from the ambient context Δ INTO the prefix
+-- Δ ↓ X (which drops indices 0..X).  The concealed variable X becomes its
+-- representation A; deeper variables Y > X shift down by X+1 to fill the
+-- dropped slots.  It has NO caller in the live development: the rule it
+-- was written for, TyWrapCncl, went with the masked-entry design.
 downTyEnv : ℕ → Ty → Substᵗ
 downTyEnv X A Y with X ≟ Y
 ... | yes _ = A

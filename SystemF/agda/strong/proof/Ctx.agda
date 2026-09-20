@@ -1,14 +1,28 @@
 module strong.proof.Ctx where
 
--- Strong System F — lemmas about the two de Bruijn universes.
---
--- strong.Ctx holds the context definitions and relations; every
--- equational and propositional fact about them lives here.  The first
--- half follows strong.Ctx's own sections: lookup, the two readings of
--- `Ty`, well-formedness, and the name-map half of representation
--- renaming.  The second half is the context material that used to sit
--- in strong.CtxMorph: the binder blocks, the insert/delete relations,
--- and `RepWk`.
+-- File Charter:
+--   * EVERY FACT ABOUT THE TWO DE BRUIJN UNIVERSES.  §1 is the
+--     determinacy and uniqueness suite the reduction rules' `det`
+--     consumes — `∋ˡ-det`, `∋ʳ-det`, `same-rep-unique`,
+--     `same-target-unique`, `sameTy-src-unique`, `∋:=-det`,
+--     `unique-lookup`, `unique-underΛ`, `wf-empty`.  §2 is the NAME-MAP
+--     half of representation renaming (`extN-+`, `renameᵗ-fuse`,
+--     `inj-extN`, `∋ˡ-ren`, `fresh-ren`).  §3 is the binder blocks
+--     (`wfᴿ-push`, `wfRepCtx-push`, `∋ʳ-push`), the insert/delete
+--     relations (`lookup→del`, `ins-exists`, `pigeon`, `live?`), and
+--     `RepWk` — its base instance `repwk-abst₀` and the two closure
+--     lemmas `repwk-abst`/`repwk-push`, with `wfctx-ren` and `∋:=-ren`.
+--   * NOT THE DEFINITIONS.  Every judgement and relation named above is
+--     declared in strong.Ctx, which holds definitions only.  Anything
+--     mentioning `Change` or `CtxMorph` belongs in strong.CtxMorph —
+--     including `repwk-wkN`, whose home is strong.proof.RepWeaken.
+--   * WHY THE SPLIT IS BY SUBJECT, NOT BY LAYER (notes/DECISIONS.md,
+--     2026-09-20).  The second half is the context material that used
+--     to sit in strong.CtxMorph §1; moving it here is what lets
+--     strong.Ctx stay definition-only and lets strong.CtxMorph begin at
+--     its §2.  The import list is strong.Types, strong.proof.Types and
+--     strong.Ctx — keep it that way, since strong.CtxMorph imports this
+--     module and a cycle is one careless import away.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
 open import Data.Nat.Properties

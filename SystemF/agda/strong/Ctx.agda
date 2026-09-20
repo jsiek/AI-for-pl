@@ -1,6 +1,37 @@
 module strong.Ctx where
 
--- Strong System F -- ordinary type variables and representation variables.
+-- File Charter:
+--   * THE TWO DE BRUIJN UNIVERSES AND EVERY RELATION OVER THEM.  §1
+--     declares `RVar`, `RepBinding` (`abstR`/`bindR`), `RepCtx`,
+--     `TyCtx` and the pair `Ctxᵗ = reps ∣ names`.  §2 is the lookup
+--     family — `_∋ˡ_:=_`, `_∋ᵗ_:=_`, `_∋tv_`, `_∋ʳ_:=_`, `_∋rep_:=_`,
+--     `_∋_:=ᴿ_`, `_∋ʳ_`, `_∋ᵅ_`, `_⊆ᵃ_`.  §3 is ordinary type
+--     formation `_⊢ᵗ_` with `underΛ` and `Base`; §4 representation
+--     payloads `_⊢ref[_]_`, `_⊢ᴿ[_]_`, `WfRepCtx`; §5 the two readings
+--     of `Ty` — `_⊢_~_`, `_⊢ᶜ_~_`, `_⊢_≈_⊣_`, `SameTyExt`, `shiftRep`
+--     and the lookup square `_∋_:=_`; §6 well-formedness `_∌ʳ_`,
+--     `Unique`, `ValidNames`, `WfCtx`.  §§8–11 are the representation
+--     universe's machinery: `extN`/`Injᵗ`, `shiftBy`/`pushRepBinds`/
+--     `extendReps`/`_⊢ᴮ_`, the insert/delete relations
+--     `_⊢+_at_⇒_`/`_⊢-_at_⇒_`, and the renaming interface `RepWk`.
+--   * DEFINITIONS ONLY.  Every lemma about the above lives in
+--     strong.proof.Ctx (notes/DECISIONS.md, 2026-09-20).  Anything
+--     mentioning `Change` or `CtxMorph` — the morphism, its two induced
+--     contexts, `MorphWf` — is strong.CtxMorph; terms and the typing
+--     judgement are strong.Terms; conversions are strong.Conversion.
+--   * TWO INVARIANTS BEFORE TOUCHING ANYTHING HERE.  (1) `names Γ`
+--     holds EXACTLY the ordinary type variables currently in scope, and
+--     an entry is the representation variable named at that position —
+--     so a CONCEALED ordinary variable has no entry at all, and a
+--     represented payload's free indices live in the OTHER universe.
+--     (2) A representation-only renaming leaves every ordinary POSITION
+--     where it was (§8, §11): it renames `reps` and acts on the name
+--     map by `map ρ`, so no ordinary spelling in any type, conversion
+--     or change moves.  `RepWk` is exactly what such a move must
+--     supply — three fields for `WfCtx`'s three obligations one
+--     universe down, plus injectivity, which is what a `lock`'s
+--     freshness record needs — and it is what makes `renᴹᴿ`
+--     (strong.TermSubst) type-preserving.
 --
 -- The two uses of the old type-variable slots are split into distinct de
 -- Bruijn universes:
@@ -18,9 +49,6 @@ module strong.Ctx where
 -- variable and an ordinary type variable that names it. Context morphisms
 -- extend the representation universe and change the ordinary name map; those
 -- operations live in strong.CtxMorph.
---
--- This module holds the definitions and relations only; the lemmas
--- about them live in strong.proof.Ctx.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.List using (List; []; _∷_; map; length)

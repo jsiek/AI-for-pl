@@ -1,16 +1,27 @@
 module strong.Progress where
 
--- Public stage-1 progress interface for the two-universe design.
---
--- The logical statement remains premise-free: every boundary typing node
--- carries its own `MorphWf`, so the induction never needs a global `WfCtx Δ`.
--- The proof is complete once the merged-frame name-retention invariant
--- stated as `strong.proof.Progress.MergedReading` is supplied.  That
--- invariant is a new major statement and is deliberately left as a stage-1
--- parameter for review rather than proved here without approval.  It is
--- the ONLY one: the 2026-09-20 repair of `TyPeelR-⟪⟫` added no parameter,
--- its moved-boundary reading being proved as
--- `strong.proof.Progress.addLock0-reading`.
+-- File Charter:
+--   * THE PUBLIC PROGRESS SURFACE, AND NOTHING ELSE.  §1 states
+--     `Progress` explicitly: from `Δ ∣ [] ⊢ M ⦂ A` alone, M is a
+--     `Value` or there is an `M′` with `Δ ⊢ M -→ M′`.  The statement is
+--     PREMISE-FREE — no `WfCtx Δ`, unlike preservation — because every
+--     boundary typing node carries its own `MorphWf`, so the induction
+--     never needs a global one.  §2's `Stage1` supplies the theorem,
+--     `progress = strong.proof.Progress.Impl.progress`.
+--   * NO PROOF SCRIPT AND NO CANONICAL-FORMS SUITE HERE.  Those are
+--     strong.proof.Progress and strong.proof.Canonical.  Preservation
+--     is strong.Preservation; the composition of the two is
+--     strong.TypeSafety.
+--   * ONE PARAMETER, AND IT IS DELIBERATE.  `Stage1` abstracts over
+--     `strong.proof.Progress.MergedReading`, the merged-frame
+--     name-retention invariant.  It is a NEW MAJOR STATEMENT and is
+--     held for Jeremy's review rather than proved without approval
+--     (notes/DECISIONS.md, 2026-09-19).  It is the ONLY one: the
+--     2026-09-20 repair of `TyPeelR-⟪⟫` added no parameter, its
+--     moved-boundary reading being proved as
+--     `strong.proof.Progress.addLock0-reading`.  Anything that
+--     instantiates `Stage1` therefore states that assumption in its own
+--     type — do not hide it behind a wrapper.
 
 open import Data.List using ([])
 open import Data.Sum using (_⊎_)

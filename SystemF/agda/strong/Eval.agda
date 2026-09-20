@@ -1,22 +1,50 @@
 module strong.Eval where
 
--- Strong System F — THE STEP FUNCTION.
---
--- `step Δ M` searches for a redex in M and returns the contractum
--- TOGETHER WITH its `Δ ⊢ M -→ M′` derivation, or `nothing`.  It takes no
--- typing derivation and does not depend on progress or preservation, so it
--- runs on this branch while the metatheory is still being ported.
+-- File Charter:
+--   * THE STEP FUNCTION AND THE EVALUATOR BUILT ON IT.  §1 decides the
+--     classifications the rules guard on (`base?`, `inert?`, `value?`);
+--     §2 assembles each boundary rule's side conditions
+--     (`peelPremises?`, `crossPremises?`, `bdyPremises?`,
+--     `cancelPremises?`, `mergedPremises?`, `pushPremises?`); §3 is the
+--     redex search by head shape (`appRedex`, `tyAppRedex`,
+--     `bdyRedex`); §4 is `step`, leftmost-outermost, returning
+--     `StepResult Δ M = ∃[ M′ ] (Δ ⊢ M -→ M′)`; §5 forgets the
+--     derivation (`stepTo`, `Steps`); §6–§7 are `Trace` and `eval`;
+--     §8–§9 read a trace (`traceEnd`, `traceTerms`, `traceLen`,
+--     `evalTerms`, `trace-sound`, `Checked`, `trace-⦂`); §10 is
+--     `Report`/`report` and `Reaches` with `reaches-end`,
+--     `reaches-checked`, `reaches-run`, `reaches-⦂`.
+--   * NO METATHEORY IS NEEDED AND NONE IS CLAIMED.  `step` takes no
+--     typing derivation and RETURNS THE DERIVATION, so soundness is its
+--     type: there is no second rule table to transcribe and no
+--     `step-sound` theorem to prove.  What it does NOT give is the
+--     other half — that a well-typed term is a value or steps — so a
+--     `nothing` means only that this search found no redex; that is
+--     `progress`, and it lives in strong.Progress / strong.proof.
+--     The rules are strong.Reduction; the checkers every premise here
+--     comes from are strong.TypeCheck; the recorded runs are
+--     strong.Examples.
+--   * WHAT A RUN ASSERTS, AND THE ONE WAY IT CAN LOSE THE TYPE.  `eval`
+--     is `step ⨟ check⊢` iterated with fuel: preservation is not used
+--     to retype a contractum, the contractum is CHECKED instead, at the
+--     type the run started with.  A step whose contractum the checker
+--     rejected is recorded as `illtyped`, and that constructor is the
+--     ONLY way a type is lost along a `Trace`; `Checked tr` is the unit
+--     record exactly when no `illtyped` occurs, so Agda discharges it
+--     by eta at a concrete run.  That is subject reduction FOR THAT
+--     RUN, checked rather than proved.  `Reaches k n ⊢M V` states a
+--     whole run in ONE equation — endpoint, step count and "no state
+--     lost the type" — and mentions the run only once, because Agda
+--     shares nothing between occurrences of a term; the sharing and
+--     measurement story behind `Report`, `bump` and the datatype-rather
+--     -than-triple choice is in notes/PLAN.md and is not repeated here.
 --
 -- WHY THIS IS NOT A SECOND RULE TABLE.  v2's evaluator WAS progress
 -- (`step = progress`), on the argument that a `Maybe`-returning step
 -- function is a type-blind transcription of the rules that then needs a
 -- `step-sound` theorem tying it back to the relation.  That argument does
 -- not apply here: `step` returns the derivation, not the term, so
--- soundness is the type and there is nothing to transcribe and nothing to
--- prove.  What `step` does NOT give is the other half — that a well-typed
--- term is a value or steps.  That is progress, it is still owed, and this
--- module deliberately does not pretend to it: a `nothing` here means only
--- that this function found no redex.
+-- soundness is the type and there is nothing to transcribe.
 --
 -- On a well-typed term, determinism (`det`, strong.Reduction) is what makes
 -- "no soundness theorem" enough in practice.  Any redex `step` finds is THE

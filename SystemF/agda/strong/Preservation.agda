@@ -1,9 +1,31 @@
 module strong.Preservation where
 
--- Public preservation interface for the two-universe design.
+-- File Charter:
+--   * THE PUBLIC PRESERVATION SURFACE, AND NOTHING ELSE.  §1 states
+--     `Preservation` and `Preservation*` explicitly; §2 proves them as
+--     `preservation` and `preservation*`.  Both are UNCONDITIONAL
+--     THEOREMS as of 2026-09-20 — no `Stage1` module, no parameter.
+--     Each takes `WfCtx Δ`, a typing `Δ ∣ [] ⊢ M ⦂ A` and a step
+--     (respectively a `-→*` run), and returns `Δ ∣ [] ⊢ M′ ⦂ A`.
+--   * NO PROOF SCRIPT LIVES HERE.  The two theorems are thin wrappers
+--     around `strong.proof.Preserve.Impl`, instantiated with
+--     `RepWeaken.cross-Λ-⊢`, `AddLock0.addLock0-⊢`,
+--     `PeelDual.preserve-Peel RepWeaken.rep-weaken-⊢`,
+--     `MoveScope.preserve-CancelR` and `MoveScope.preserve-IdPush`.
+--     Progress is strong.Progress, their composition is
+--     strong.TypeSafety, and the refuted statements that shaped these
+--     rules are the wall modules under notes/.
+--   * WHY `WfCtx Δ` IS PART OF THE STATEMENT — the premise-free form is
+--     FALSE here (notes/DECISIONS.md, 2026-09-18).  The reduction
+--     relation is indexed by the type context Δ alone, the term context
+--     being empty; but a contractum can MINT a `MorphWf`, whose
+--     exterior field demands `WfCtx Δ`, from a redex that mentioned no
+--     ordinary type variable at all.  The counterexample is spelled out
+--     below.  `progress` needs no such premise, because every boundary
+--     typing node carries its own `MorphWf`.
 --
--- This module intentionally exposes no unconditional theorem.  Stage 2
--- (2026-09-19) discharged ALL THREE crossing cases: `IdPush` and, after
+-- HOW THE THREE CROSSING CASES LANDED.  Stage 2
+-- (2026-09-19) discharged ALL THREE: `IdPush` and, after
 -- the `CancelR` rule repair of the same day, `CancelR` are proved
 -- outright (strong.proof.MoveScope), and `Peel` is proved in
 -- strong.proof.PeelDual — UNCONDITIONALLY since 2026-09-20, when

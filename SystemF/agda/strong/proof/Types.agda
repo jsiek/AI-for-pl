@@ -1,10 +1,18 @@
 module strong.proof.Types where
 
--- Strong System F — lemmas about type renaming and substitution.
---
--- strong.Types holds the definitions; this module holds the equational
--- facts about them.  It sits at the bottom of the hierarchy: it imports
--- strong.Types and the standard library, and nothing else.
+-- File Charter:
+--   * THE LEMMAS ABOUT `renameᵗ` AND `substᵗ` that the two-universe
+--     layer needs: `substᵗ-cong`, `extsᵗ-renᵗ`, and the agreement of
+--     renaming with substitution, `substᵗ-renᵗ`.
+--   * NOT THE DEFINITIONS (strong.Types), and not the full algebraic
+--     theory — composition, `sub-sub`, `substitution`, the `_[_]ᵗ`
+--     commutation laws — which is strong.TypeSubst.  This module is
+--     the private half of strong.Types under the repo's public/private
+--     split (notes/DECISIONS.md, 2026-09-20).
+--   * IT IS THE BOTTOM OF THE HIERARCHY.  It imports strong.Types and
+--     the standard library and NOTHING else, which is what lets
+--     strong.Ctx, strong.proof.Ctx and strong.CtxMorph stand on it.
+--     Keep that import list closed when adding a lemma.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality

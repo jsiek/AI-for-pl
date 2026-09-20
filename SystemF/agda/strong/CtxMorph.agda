@@ -1,16 +1,56 @@
 module strong.CtxMorph where
 
--- Strong System F -- experimental two-universe context morphisms.
+-- File Charter:
+--   * THE CONTEXT MORPHISM AND ITS TWO INDUCED CONTEXTS.  §2 is
+--     `Change` (`lock`/`unlock`), its two running judgements
+--     `_∣_⊢δ_⇒_` and `_∣_⊢χ_⇒_`, the dual (`dualChange`, `dual`,
+--     `dual-step`) and the representation-only renaming `renᶠᴿ`.  §3 is
+--     `CtxMorph = morph binds changes` with `numBinds` and `renᴮᴿ`; the
+--     constructions `dualMorph`, `rewind`, `_⋉_`, `addLock0`,
+--     `instantiate`; and the two readings — `_⊢ⁱ_⇒_`, which PERFORMS
+--     every change, and `_⊢ᶜ_⇒_` (via `_∣_⊢χᶜ_⇒_`), which SKIPS locks —
+--     with `interior-functional` and `conversion-functional`.  §§3a–3d
+--     are transport: `interior-wf`/`conversion-wf`, the name-set
+--     invariant (Q) that `Peel` needs, `dual-conversion-exists`,
+--     `conv-weaken`, and the representation-renaming lemmas
+--     (`changes-ren`, `interior-ren`, `conversion-ren`,
+--     `addLock0-conversion-ren`, `addLock0-interior-ren`).  The witness
+--     `MorphWf` and its derived `mw-interior-wf`/`mw-conversion-wf`
+--     close §3d; §4 is the concrete shapes `TyBetaMorph`, `TyBeta-mw`,
+--     `crossΛ`/`uncrossΛ`.
+--   * EVERYTHING HERE MENTIONS `Change` OR `CtxMorph`.  The context
+--     material it stands on — the representation-binder blocks of the
+--     old §1, `extendReps`, the insert/delete relations, `RepWk` — is
+--     strong.Ctx, and the lemmas about that material are
+--     strong.proof.Ctx; that split (notes/DECISIONS.md, 2026-09-20) is
+--     why the sections here begin at 2, and other modules cite these
+--     numbers, so do not renumber them.  The renamings that pair the
+--     two universes (`renᴮ²`, `renᴹ²`, `renᴹᴿ`) are strong.TermSubst,
+--     one layer UP: §3d is stated over `renᶠᴿ`/`renᴮᴿ` precisely so
+--     that it need not import that module.  Conversions are
+--     strong.Conversion.
+--   * TWO LAWS A READER MUST KNOW.  (1) The CONVERSION context is the
+--     UNION of the names live anywhere along the morphism, not the name
+--     map at any one point of the run: `conv-lock` skips its lock, so a
+--     later `unlock` of the same α can meet a name that is already
+--     there, which is what forces the third clause `conv-unlock-live`
+--     (2026-09-17; without it `rewind Θ` and `Θ′ ⋉ Θ` have NO
+--     conversion context whenever Θ locks, and CancelR's and IdPush's
+--     contracta are untypeable).  A conversion reading only ADDS names
+--     (`conversion-live`).  (2) Both readings nevertheless stay
+--     FUNCTIONS of the change list — the two unlock clauses are
+--     mutually exclusive by `fresh-not-lookup` — and
+--     `conv-changes-functional`/`conversion-functional` are exactly
+--     what determinism for CancelR, IdPush and TyPeelR-⟪⟫ consumes.
+--     `MorphWf` stores only what cannot be recovered (the exterior's
+--     `WfCtx`, the bind block, the two readings); output
+--     well-formedness is DERIVED, not stored (notes/DECISIONS.md,
+--     2026-09-18).
 --
 -- A morphism remains a pair. Its `binds` are a parallel block of fresh
 -- representation-variable binders. Its `changes` sequentially bind and
 -- anti-bind ordinary type variables. Every change carries both the ordinary
 -- de Bruijn position and the representation variable named at that position.
---
--- Everything here mentions `Change` or `CtxMorph`.  The context material it
--- stands on — the representation-binder blocks of the old §1, the
--- insert/delete relations, `RepWk` — is strong.Ctx, and the lemmas about
--- that material are strong.proof.Ctx.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; s≤s)
 open import Data.Nat.Properties using (_≟_; +-identityʳ; ≤-trans)

@@ -1,6 +1,47 @@
 module strong.TypeCheck where
 
--- Strong System F — EXECUTABLE, DERIVATION-PRODUCING TYPE CHECKING.
+-- File Charter:
+--   * AN EXECUTABLE, DERIVATION-PRODUCING TYPE CHECKER FOR THE WHOLE
+--     DEVELOPMENT.  §1 `_≟Ty_`; §2–§3 the atoms a change carries and
+--     the two change-list readings (`runδ`, `runχ`, `runχᶜ`); §4
+--     representation payloads and context well-formedness (`wfᴿ?`,
+--     `wfRepCtx?`, `validNames?`, `unique?`, `wfCtx?`); §5 the two
+--     induced contexts `interior?`/`conversion?` and the complete
+--     witness `morphWf?`; §6 `strAt`, the inverse of `shiftRep`; §7 the
+--     readings between the universes (`read?`, `sameTy?`,
+--     `sameTyExt?`, `rebase?`, `respell?`); §8 the lookup square
+--     `∋:=?`, type formation `wfTy?` and conversion typing `convTy?`;
+--     §9 `infer`; §10 the checking forms `check⊢`, `checkConv`,
+--     `check~`; §11 the forcing family `IsJ`/`force` with the
+--     goal-directed `tc`, `tk`, `tu`, `tf`, `tr` and the inferring
+--     `int!`, `conv!`, `mw!`, `sq!`, `tv!`, `cv!`, `ty!`, `wf!`.
+--   * NOTHING HERE IS ASSUMED AND NOTHING IS TRUSTED.  Every checker
+--     returns a `Maybe` of the ORDINARY derivation, built from the
+--     constructors of the judgements in strong.Ctx, strong.CtxMorph,
+--     strong.Conversion and strong.Terms — never a bit, never a
+--     postulate, so there is no soundness theorem to owe.  The rules
+--     and judgements themselves belong in those modules; the redex
+--     search that consumes these checkers is strong.Eval; the
+--     metatheory is under strong.proof.  This module depends on none of
+--     it, which is why All.agda checks it before the theorems.
+--   * THREE THINGS TO KNOW BEFORE USING IT (notes/PLAN.md).  (1) It
+--     must INFER, not merely check: `⊢·` and `⊢·[]` need the head's
+--     type and a head can be a boundary, and inferring a boundary's
+--     exterior type means inverting `shiftRep`, since `env` reads that
+--     type across the morphism's representation-bind prefix.  That is
+--     `strAt` (§6) — the one place in the file that produces an
+--     equation instead of a derivation.  (2) A goal-directed form
+--     discharges a premise only when the goal fixes every input.  The
+--     lookup premise of `CancelR` and `IdPush` does not: both contracta
+--     mention the looked-up type only under `mkId`, which the unifier
+--     cannot invert, so the inferring `sq!` must be used there — and
+--     likewise wherever a rule mints a conversion from a looked-up
+--     type, including those two rules' preservation cases.  (3) A
+--     FAILURE IS A REJECTION, NOT AN ACCEPTANCE: the hidden argument's
+--     type becomes `⊥` and Agda reports an unsolved meta at the call
+--     site, which `--no-allow-unsolved-metas` and `make check` turn
+--     into an error.  It does not say why; `proj₂ (ty! Δ Γ M)` reports
+--     the type the checker did infer.
 --
 -- Every checker in this file returns a `Maybe` of the ORDINARY derivation
 -- it found, never a bit and never a postulate.  The caller states the
@@ -735,8 +776,10 @@ tc {Δ} {Γ} {M} {A} {w} = force (check⊢ Δ Γ M A) w
 tk : ∀ {Γ c A B} {w : IsJ (checkConv Γ c A B)} → Γ ⊢ c ∶ A ⇝ B
 tk {Γ} {c} {A} {B} {w} = force (checkConv Γ c A B) w
 
--- The name-uniqueness side condition that `CancelR`, `IdPush` and both
--- `TyPeelR` clauses carry.
+-- Name-uniqueness of a name map.  No REDUCTION rule carries this any
+-- more — since 2026-09-18 `det` recovers it from the redex's typing
+-- derivation (notes/DECISIONS.md) — but `WfCtx`'s `name-fn` field and
+-- the lemmas stated over `Unique` still ask for it.
 tu : ∀ {Δ} {w : IsJ (unique? Δ)} → Unique Δ
 tu {Δ} {w} = force (unique? Δ) w
 

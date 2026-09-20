@@ -25,6 +25,7 @@ module strong.notes.RepresentationReductionExamples where
 --  10. a function crosses          11 steps   7      : ℕ
 --  11. a function crosses twice    21 steps   7      : ℕ
 --  12. a function through a tower  38 steps   7      : ℕ
+--  13. the CancelR shift witness   19 steps   7      : ℕ
 --
 -- WHAT IS AND IS NOT WRITTEN OUT.  The intermediate states are not.
 -- `eval` (strong.Eval) produces them, and it calls the type checker on
@@ -373,3 +374,36 @@ C-eval = reaches refl V-$
 
 C-run : empty ⊢ C₀ -→* $ 7
 C-run = reaches-run C-eval
+
+------------------------------------------------------------------------
+-- 13. the CancelR shift witness
+--
+-- The program that found the CancelR re-spelling defect and, after
+-- repair (a), the run that certifies the repaired rule (2026-09-19; the
+-- before/after record is notes/CancelRReachabilityWitness.agda, the
+-- defect notes/CancelRShiftWall.agda and notes/DECISIONS.md).  Two
+-- choices make it bite where §§1–12 do not: the argument's polymorphic
+-- type RETURNS the abstracted variable, so a bare `seal` leaf reaches a
+-- `↦`'s codomain and `Peel`'s RESULT boundary installs it on a frame
+-- that binds; and the inner `Λ` is instantiated at the OUTER binder's
+-- own variable, so the cancelled binder's payload is a representation
+-- VARIABLE.  Its `CancelR` is the suite's only one with
+-- `numBinds Θ₁ ≢ 0` and an open representation.
+------------------------------------------------------------------------
+
+S₀ : Term
+S₀ = ((Λ (ƛ (` 0) ∙
+        (((Λ (ƛ (`∀ (` 0 ⇒ ` 1)) ∙
+             (((` 0) ·[ ` 0 ⇒ ` 1 , `ℕ ]) · ($ 7))))
+            ·[ (`∀ (` 0 ⇒ ` 1)) ⇒ ` 0 , ` 0 ])
+          · (Λ (ƛ ` 0 ∙ (` 1))))))
+       ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+
+S₀-⊢ : empty ∣ [] ⊢ S₀ ⦂ `ℕ
+S₀-⊢ = tc
+
+S-eval : Reaches 19 19 S₀-⊢ ($ 7)
+S-eval = reaches refl V-$
+
+S-run : empty ⊢ S₀ -→* $ 7
+S-run = reaches-run S-eval

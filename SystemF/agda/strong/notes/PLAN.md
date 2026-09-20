@@ -57,7 +57,7 @@ The following parts have been ported and typecheck:
 `Eval.agda` is rewritten from scratch rather than ported.
 
 The reduction tests are in `notes/RepresentationReductionExamples.agda`. All
-twelve closed programs reduce to first-order values:
+thirteen closed programs reduce to first-order values:
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;
@@ -82,7 +82,11 @@ twelve closed programs reduce to first-order values:
 - a function flowing through example 4's TOWER reduces in thirty-eight steps
   to `7 : ℕ`. This is the hardest case the suite puts to `Peel`: the
   identities the unwinding tower mints are at a function type, so they are
-  `_↦_`s and `Peel` fires on the composites `CancelR` and `IdPush` build.
+  `_↦_`s and `Peel` fires on the composites `CancelR` and `IdPush` build;
+- the CancelR shift witness reduces in nineteen steps to `7 : ℕ`. It is the
+  program that found the CancelR re-spelling defect (2026-09-19,
+  `notes/CancelRShiftWall.agda`) and, on the repaired rule, the suite's only
+  run whose `CancelR` has `numBinds Θ₁ ≢ 0` and an open representation.
 
 All fifteen reduction rules fire somewhere in those seven runs. The last three
 exist for the four that the first four reached once or not at all:
@@ -377,7 +381,7 @@ parameterized public wrappers, the whole ported proof-script suite —
 `proof/ShiftAudit.agda` — and, since 2026-09-19, `Examples.agda` and
 `Show.agda`.
 
-The twelve-example suite alone is about 7.4s cold, the whole development
+The example suite alone is about 7.4s cold, the whole development
 about 12s:
 
 ```

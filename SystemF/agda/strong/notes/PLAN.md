@@ -412,11 +412,13 @@ scripts/render_term.sh 'showTCtx Δ₆'       'open import strong.Examples'
 Where the open threads are: item 1's stage-1 preservation port is done;
 stage 2 proved `IdPush`, `Peel` and — after the rule repair of 2026-09-19
 — `CancelR` (item 2); of the three representation-only typing transports
-`RepWeakenTyping` is PROVED (2026-09-20, `proof/RepWeaken.agda`) and two
-await review; item 3's rewind transport and item 4's rule-set cleanup are
+`RepWeakenTyping` and `CrossΛTyping` are PROVED (2026-09-20,
+`proof/RepWeaken.agda`) and one awaits review; item 3's rewind transport
+and item 4's rule-set cleanup are
 done; canonical forms are done; item 6's progress port is done modulo
 `MergedReading`, and its module sweep and the two remaining ports are
-done. The ONLY open work is the three review items.
+done. The ONLY open work is the two review items: `AddLock0Typing` and
+`MergedReading`.
 
 ## Immediate plans
 
@@ -437,11 +439,11 @@ done. The ONLY open work is the three review items.
    requires the name map to be unique. Typing alone therefore cannot recover
    the well-formed context required by the new relational interface.
 
-   **REVIEW REQUIRED — NEW MAJOR LEMMA STATEMENTS.** The old development's
-   `⊢crossΛ` and `⊢addLock0-cross` have no two-universe counterparts yet.
-   Stage 1 exposes exactly the two required transports as parameters
-   (stage 2 added a third, `RepWeakenTyping`, in item 2 below; that one is
-   PROVED as of 2026-09-20, and these two are what is left):
+   **ONE PROVED; ONE REVIEW REQUIRED — NEW MAJOR LEMMA STATEMENTS.** The old
+   development's `⊢crossΛ` and `⊢addLock0-cross` needed two-universe
+   counterparts. Stage 1 exposed the two required transports as parameters
+   (stage 2 added a third, `RepWeakenTyping`, in item 2 below; it and
+   `CrossΛTyping` are PROVED as of 2026-09-20, leaving `AddLock0Typing`):
 
        CrossΛTyping : Set
        CrossΛTyping = ∀ {Δ W A}
@@ -465,8 +467,21 @@ done. The ONLY open work is the three review items.
    On the Beta redex `( ƛ A ∙ N) · W`, `CrossΛTyping` types each
    substituted image when it crosses a `Λ`. On the nested TyPeelR redex,
    `AddLock0Typing` types the moved inner boundary after the fresh lock and
-   paired ordinary/representation renaming. No proofs of these two new
-   statements are attempted in stage 1.
+   paired ordinary/representation renaming.
+
+   **`CrossΛTyping` IS PROVED (2026-09-20)** by
+   `proof/RepWeaken.agda` `cross-Λ-⊢`.  Its concrete wrapper has exterior
+
+       (abstR ∷ reps Δ) ∣ (0 ∷ shiftNames (names Δ))
+
+   and the `lock 0 0` interior deletes exactly that leading name, exposing
+   `(abstR ∷ reps Δ) ∣ shiftNames (names Δ)`.  There `⊢renᴿ` runs at the
+   new base instance `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The
+   conversion reading skips the lock and stays at `underΛ Δ`, so
+   `mkId (⇑ᵗ A)` is typed there.  The inner alignment is the common
+   representation `⇑ᵗ R`, obtained by `same-ren suc` on the moved `A`
+   reading and `same-weaken` on the conversion's `⇑ᵗ A` reading.  No new
+   premise was needed. `AddLock0Typing` remains under review.
 2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
    `Peel` names the dual's spelling `s′` and carries
    `SameConv Δᵈ s′ Δᶜ s`, with the morphism's two readings, the dual's
@@ -555,14 +570,13 @@ done. The ONLY open work is the three review items.
      `RepWk`'s injectivity field is the easily missed one: a `lock`
      records freshness, which a non-injective renaming would break.
 
-     The same identity-ordinary pattern remains in the concrete movers
-     `crossΛᴹ W A = renᴹ² (ren² idᵗ suc) W ⟪ ... ⟫` (hence
-     `CrossΛTyping`) and `AddLock0Typing`'s
+     The same identity-ordinary pattern occurs in the concrete movers
+     `crossΛᴹ W A = renᴹ² (ren² idᵗ suc) W ⟪ ... ⟫` and
+     `AddLock0Typing`'s
      `renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W`: on that same `W`,
      `renᴹ²-ord-id` exposes `renᴹᴿ suc W` and
-     `renᴹᴿ (extN (numBinds Θ) suc) W`, respectively. The same
-     simplification is available for both if Jeremy wants it; this is
-     flagged only, not done.
+     `renᴹᴿ (extN (numBinds Θ) suc) W`, respectively.  The first now feeds
+     `cross-Λ-⊢`; the second remains available for `AddLock0Typing`.
 
    - `CancelRCase` WAS **FALSE**, and machine-checked false:
      `notes/CancelRShiftWall.agda` proved `¬ CancelRCase` from a concrete
@@ -622,13 +636,11 @@ done. The ONLY open work is the three review items.
      `notes/CancelRReachabilityWitness.agda` and
      `notes/CancelRReachability.md`.
 
-   Consequently `strong.Preservation.Stage1` takes `crossΛ` and
-   `addLock0` and nothing else — `peel`, `idpush` and `cancel` are all
-   gone, and `repWeaken` went with them on 2026-09-20 when
-   `RepWeakenTyping` was proved — and `strong.TypeSafety.Stage1` and
-   `proof/TypeSafety.agda` follow (they still take `merged-reading` for
-   progress). No parameter is known false: the three that remain are
-   open, plausible obligations pending review.
+   Consequently `strong.Preservation.Stage1` takes ONLY `addLock0` —
+   `crossΛ`, `peel`, `idpush`, `cancel` and `repWeaken` are all proved and
+   plugged in — and `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda`
+   take `merged-reading` plus `addLock0`. No parameter is known false: the
+   two that remain are open, plausible obligations pending review.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
    transport lemmas in `CtxMorph.agda` §3a:

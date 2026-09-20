@@ -3,12 +3,14 @@ module strong.proof.TypeSafety where
 -- TYPE SAFETY for Strong System F: the composition of progress and
 -- preservation along a run.  The two theorems are stage-1 parameterized
 -- (strong.Progress, strong.Preservation), so their composition inherits
--- every parameter of both: `MergedReading` from progress, and the two
--- representation transports still open in preservation.  `CancelRCase`
+-- every parameter of both: `MergedReading` from progress, and the one
+-- representation transport still open in preservation.  `CancelRCase`
 -- is no longer among them: the rule repair of 2026-09-19 made it
 -- provable, and `strong.proof.MoveScope.preserve-CancelR` proves it.
 -- Neither is `RepWeakenTyping`: `strong.proof.RepWeaken.rep-weaken-⊢`
--- proves it (2026-09-20).  The public statement lives in
+-- proves it (2026-09-20).  Nor is `CrossΛTyping`:
+-- `strong.proof.RepWeaken.cross-Λ-⊢` proves it the same day.  The public
+-- statement lives in
 -- strong.TypeSafety.
 --
 -- The `WfCtx Δ` premise is preservation's (see notes/DECISIONS.md,
@@ -39,13 +41,12 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
 
 module Stage1
   (merged-reading : PP.MergedReading)
-  (crossΛ    : P.CrossΛTyping)
   (addLock0  : P.AddLock0Typing)
   where
 
   private
     module Pr1 = Pr.Stage1 merged-reading
-    module Pv1 = Pv.Stage1 crossΛ addLock0
+    module Pv1 = Pv.Stage1 addLock0
 
   type-safety : TypeSafety
   type-safety wfΔ ⊢M M-→*N =

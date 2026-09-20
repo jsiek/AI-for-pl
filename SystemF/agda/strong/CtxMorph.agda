@@ -8,7 +8,8 @@ module strong.CtxMorph where
 -- de Bruijn position and the representation variable named at that position.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s)
-open import Data.Nat.Properties using (_≟_; +-cancelˡ-≡; ≤-trans)
+open import Data.Nat.Properties
+  using (_≟_; +-cancelˡ-≡; ≤-trans; suc-injective)
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
 open import Data.List.Properties using (unfold-reverse; map-++)
 open import Data.Product using (_,_; _×_; ∃-syntax; proj₂)
@@ -1280,9 +1281,10 @@ mw-conversion-wf mwΘ =
 -- obligations one universe down; the fourth, injectivity, is what a
 -- `lock`'s freshness record needs.
 --
--- The instance that matters is INSERTING a bind block: `repwk-wkN`
--- (strong.proof.RepWeaken) for the exterior, `repwk-push` and
--- `repwk-abst` for the two ways the induction goes deeper.
+-- The base instances insert either one abstract binder (`repwk-abst₀`
+-- below, for `crossΛᴹ`) or a bind block (`repwk-wkN`,
+-- strong.proof.RepWeaken, for `Peel`).  `repwk-push` and `repwk-abst`
+-- close either instance under the two ways the typing induction goes deeper.
 
 record RepWk (ρ : Renameᵗ) (Ξ Ξ′ : RepCtx) : Set where
   constructor repwk
@@ -1329,6 +1331,16 @@ binds-ren : ∀ {ρ Ξ Ξ′ Rs} → RepWk ρ Ξ Ξ′ → Ξ ⊢ᴮ Rs
   → Ξ′ ⊢ᴮ map (renameᵗ ρ) Rs
 binds-ren w binds[] = binds[]
 binds-ren w (binds∷ x xs) = binds∷ (wk-wfᴿ w zero x) (binds-ren w xs)
+
+-- Inserting one fresh abstract representation binder at the head.  This is
+-- the base move made by a term crossing `Λ`; `repwk-abst` below is the
+-- recursion-closure move when an existing renaming itself goes under `Λ`.
+repwk-abst₀ : ∀ {Ξ : RepCtx} → RepWk suc Ξ (abstR ∷ Ξ)
+repwk-abst₀ = repwk suc-injective look r-there-abst wf-abstR
+  where
+  look : ∀ {Ξ : RepCtx} {α b} → Ξ ∋ˡ α := b
+    → ∃[ b′ ] ((abstR ∷ Ξ) ∋ˡ suc α := b′)
+  look d = _ , there d
 
 -- Going under an abstract binder — the `Λ` case.
 repwk-abst : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′

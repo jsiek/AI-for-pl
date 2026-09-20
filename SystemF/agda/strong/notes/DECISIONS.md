@@ -4026,3 +4026,59 @@ shape as this one — `crossΛᴹ`'s `renᴹ² (ren² idᵗ suc) W` is
 `renᴹᴿ (extN (numBinds Θ) suc) W` — so `⊢renᴿ` is very likely most of
 both; what they add is a BINDER (`underΛ`, `addLock0`) on top of the
 renaming, which this lemma does not.  That is a separate landing.
+
+## 2026-09-20 — `CrossΛTyping` is PROVED by one locked `env`
+
+THE CONCRETE CROSSING TERM is `Examples.agda` §5's image
+
+    Wsub = ($ 7) ⟪ morph [] [] , seal 0 ⟫
+
+at type `` ` 0 ``.  Crossing it through `Λ` produces
+
+    (($ 7) ⟪ morph [] [] , seal 0 ⟫)
+      ⟪ morph [] (lock 0 0 ∷ []) , id (` 1) ⟫ .
+
+The `seal 0` is an ORDINARY name and stays `seal 0`.  The new outer lock
+deletes ordinary name zero for the inner term, while its conversion reading
+skips that lock and retains the name needed by `id (` 1)`.  This is the
+exact term `cross-Λ-⊢` now types.
+
+THE STATEMENT HOLDS AS WRITTEN.  No premise and no conclusion changed:
+
+    CrossΛTyping = ∀ {Δ W A}
+      → WfCtx Δ
+      → Δ ⊢ᵗ A
+      → Δ ∣ [] ⊢ W ⦂ A
+      → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A .
+
+The proof is `strong.proof.RepWeaken.cross-Λ-⊢`, beside
+`rep-weaken-⊢`, because both use the same general typing transport
+`⊢renᴿ`.  First `renᴹ²-ord-id (λ X → refl) W` exposes the mover as
+`renᴹᴿ suc W`.  The new base instance
+
+    repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)
+
+then types that moved term at
+
+    (abstR ∷ reps Δ) ∣ shiftNames (names Δ) .
+
+One zero-bind boundary supplies the ordinary side of the crossing.  Its
+exterior and conversion context are
+
+    underΛ Δ
+      = (abstR ∷ reps Δ) ∣ (0 ∷ shiftNames (names Δ)) ,
+
+and its interior is the moved term's context above.  `mkId (⇑ᵗ A)` is
+well formed at the exterior by the ordinary `WfRen-wk` transport.  If `A`
+reads as `R` at `Δ` then the inner `A` reads as `⇑ᵗ R` by
+`same-ren suc`, while the conversion's `⇑ᵗ A` reads as the same `⇑ᵗ R`
+by `same-weaken`.  The exterior alignment is reflexive because the frame
+has zero representation binds.
+
+THE INTERFACE SHRANK.  `strong.Preservation.Stage1` now takes ONLY
+`addLock0`; it plugs `cross-Λ-⊢` into `proof/Preserve.Impl`, whose
+downstream-parameter shape stays unchanged just as it does for `Peel`,
+`CancelR` and `IdPush`.  `strong.TypeSafety.Stage1` and
+`strong.proof.TypeSafety.Stage1` now take `merged-reading` plus
+`addLock0`.  The review queue is exactly `AddLock0Typing` and
+`MergedReading`.

@@ -1,8 +1,10 @@
 module strong.proof.RepWeaken where
 
--- REPRESENTATION-ONLY WEAKENING OF A TYPING DERIVATION — the third
--- transport the stage-2 port needed, and the one `Peel` consumes
--- (strong.proof.PeelDual §3).  `Peel` moves its argument from the
+-- REPRESENTATION-ONLY MOVES OF A TYPING DERIVATION.  This module proves
+-- the two transports whose movers have an identity ordinary component:
+-- `RepWeakenTyping`, which `Peel` consumes (strong.proof.PeelDual §3),
+-- and `CrossΛTyping`, which term substitution consumes when an image
+-- crosses `Λ` (strong.proof.Preserve §3).  `Peel` moves its argument from the
 -- boundary's exterior Δ to that exterior UNDER the boundary's own
 -- representation bind block, `extendReps (binds Θ) Δ`.  The ordinary name
 -- map is only RENUMBERED there — every ordinary position survives — so
@@ -48,6 +50,13 @@ module strong.proof.RepWeaken where
 -- when each inserted payload is well formed where it is written.  At the
 -- one call site the premise is free — it is `mw-binds` of the very
 -- boundary being crossed.
+--
+-- `CrossΛTyping` runs the same induction at the base instance
+-- `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The moved term lands under
+-- the new abstract representation binder but outside its ordinary name.
+-- One `env` with `morph [] (lock 0 0 ∷ [])` then supplies exactly that
+-- missing ordinary boundary: its interior deletes name zero, while its
+-- conversion reading retains it for `mkId (⇑ᵗ A)`.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (+-cancelˡ-≡)
@@ -63,7 +72,9 @@ open import strong.Conversion
 open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst
-open import strong.proof.Preserve using (RepWeakenTyping)
+open import strong.proof.Preserve
+  using (CrossΛTyping; RepWeakenTyping; WfRen-wk; wf-ren; wf-same;
+         same-weaken; wf-underΛ)
 
 ------------------------------------------------------------------------
 -- §1  The renaming induction
@@ -175,3 +186,52 @@ repwk-wkN {Ξ = Ξ} Rs bs = repwk inj look bnd (wfRepCtx-push bs)
 rep-weaken-⊢ : RepWeakenTyping
 rep-weaken-⊢ {Δ = Ξ ∣ η} Rs bs ⊢W =
   ⊢cast (map-wkN (length Rs) η) (⊢renᴿ (repwk-wkN Rs bs) ⊢W)
+
+------------------------------------------------------------------------
+-- §3  Crossing one `Λ`
+------------------------------------------------------------------------
+
+cross-Λ-⊢ : CrossΛTyping
+cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
+  subst (λ M → underΛ (Ξ ∣ η) ∣ [] ⊢ M ⦂ ⇑ᵗ A) (sym term-eq)
+        (env mwΛ inner (mkId-⊢ w↑) sameᵢ sameₑ w↑)
+  where
+  Δᵢ : Ctxᵗ
+  Δᵢ = (abstR ∷ Ξ) ∣ shiftNames η
+
+  w↑ : underΛ (Ξ ∣ η) ⊢ᵗ ⇑ᵗ A
+  w↑ = wf-ren (WfRen-wk {Δ = Ξ ∣ η}) wA
+
+  mwΛ : MorphWf (underΛ (Ξ ∣ η))
+          (morph [] (lock 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
+  mwΛ =
+    mw (wf-underΛ wfΔ) binds[]
+       (interior
+         (subst (λ D → (abstR ∷ Ξ) ∣ D
+                          ⊢χ lock 0 0 ∷ [] ⇒ shiftNames η)
+                (sym (shiftRVars-0 (zero ∷ shiftNames η)))
+                (changes∷ changes[]
+                  (step-lock (_ , here) del-here fresh-zero-shift))))
+       (conversion
+         (subst (λ D → (abstR ∷ Ξ) ∣ D
+                          ⊢χᶜ lock 0 0 ∷ [] ⇒ zero ∷ shiftNames η)
+                (sym (shiftRVars-0 (zero ∷ shiftNames η)))
+                (conv-lock (_ , here) conv[])))
+
+  inner : Δᵢ ∣ [] ⊢ renᴹᴿ suc W ⦂ A
+  inner = ⊢renᴿ repwk-abst₀ ⊢W
+
+  sameᵢ : SameTy Δᵢ A (underΛ (Ξ ∣ η)) (⇑ᵗ A)
+  sameᵢ with wf-same wA
+  sameᵢ | R , p = ⇑ᵗ R , same-ren suc p , same-weaken p
+
+  sameₑ : SameTyExt zero (underΛ (Ξ ∣ η)) (⇑ᵗ A)
+                         (underΛ (Ξ ∣ η)) (⇑ᵗ A)
+  sameₑ with wf-same w↑
+  sameₑ | R , p = R , p , p
+
+  term-eq : crossΛᴹ W A
+    ≡ renᴹᴿ suc W ⟪ morph [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+  term-eq =
+    cong (λ M → M ⟪ morph [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+         (renᴹ²-ord-id (λ X → refl) W)

@@ -11,8 +11,11 @@ module strong.Preservation where
 -- on the statement repaired that day with the premise `reps Δ ⊢ᴮ Rs`).
 -- What remains a parameter is exactly
 --
---   * the two representation-only transports `CrossΛTyping` and
---     `AddLock0Typing`, awaiting review.
+--   * the representation-only transport `AddLock0Typing`, awaiting review.
+--
+-- `CrossΛTyping` was proved on 2026-09-20 by
+-- `strong.proof.RepWeaken.cross-Λ-⊢`, so Beta substitution is now
+-- unconditional too.
 -- `CancelRCase` is no longer among them.  It WAS refuted — the old rule
 -- re-spelled the inner layer's identity type in the OUTER conversion
 -- context and so dropped the `numBinds Θ₁` shift that `env` demands, at a
@@ -21,8 +24,7 @@ module strong.Preservation where
 -- the premise now reads the cancelled seal's own source at Θ₁'s
 -- conversion context.  `strong.proof.MoveScope.preserve-CancelR` proves
 -- the repaired case outright, so `Stage1` no longer takes a `cancel`
--- parameter and the remaining three are the representation-only
--- transports awaiting review.
+-- parameter.
 --
 -- `WfCtx Δ` is now part of the statement.  For example, let `names Δ` be
 -- `0 ∷ 0 ∷ []`.  The redex
@@ -67,12 +69,11 @@ Preservation* = ∀ {Δ M M′ A}
 ------------------------------------------------------------------------
 
 module Stage1
-  (crossΛ    : P.CrossΛTyping)
   (addLock0  : P.AddLock0Typing)
   where
 
   private
-    module I = P.Impl crossΛ addLock0
+    module I = P.Impl RW.cross-Λ-⊢ addLock0
                       (PD.preserve-Peel RW.rep-weaken-⊢)
                       MS.preserve-CancelR
                       MS.preserve-IdPush

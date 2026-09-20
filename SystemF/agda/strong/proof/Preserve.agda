@@ -5,9 +5,8 @@ module strong.proof.Preserve where
 -- §1 recovers type well-formedness from typing and supplies the ordinary
 -- type-substitution facts used by elimination. §2 types the conversions
 -- minted by TyBeta and TyPeelR. §3 proves the local reduction cases. §4
--- assembles preservation while leaving the three crossing cases to the
--- downstream developments that own them and exposing two new-design
--- representation transports for review.
+-- assembles preservation while leaving the downstream-owned crossing
+-- proofs as parameters.  All but `AddLock0Typing` now have implementations.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; z≤n; s≤s)
 open import Data.Nat.Properties using (_≟_; suc-injective)
@@ -1138,10 +1137,12 @@ preserve-Drop-false {Θ = Θ} wfΔ
 ------------------------------------------------------------------------
 
 -- The first two are the new-interface counterparts of the old `⊢crossΛ`
--- and `⊢addLock0-cross`, and are still awaiting review: each needs a
--- BINDER (`underΛ`, `addLock0`) on top of the renaming, which the third
--- does not.  The third, `RepWeakenTyping`, is pure renaming and is PROVED
--- (2026-09-20, `strong.proof.RepWeaken`).
+-- and `⊢addLock0-cross`: each needs a BINDER (`underΛ`, `addLock0`) on top
+-- of the renaming, which the third does not.  `CrossΛTyping` is PROVED
+-- (2026-09-20, `strong.proof.RepWeaken.cross-Λ-⊢`), using one zero-bind
+-- `env` around `⊢renᴿ` at `repwk-abst₀`.  `AddLock0Typing` remains under
+-- review.  The third, `RepWeakenTyping`, is pure renaming and is PROVED
+-- (2026-09-20, `strong.proof.RepWeaken.rep-weaken-⊢`).
 CrossΛTyping : Set
 CrossΛTyping = ∀ {Δ W A}
   → WfCtx Δ
@@ -1395,11 +1396,13 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 -- §4. Preservation assembled over the downstream crossing cases
 ------------------------------------------------------------------------
 
--- The three crossing cases stay module parameters HERE because their
--- proofs live downstream and import this module.  Stage 2 (2026-09-19)
--- settled all three; `strong.Preservation` is where the settlements are
--- plugged in.
+-- The downstream crossing cases and transports stay module parameters HERE
+-- because their proofs import this module.  `strong.Preservation` plugs in
+-- every implementation, including `CrossΛTyping`, and exposes only the
+-- still-open `AddLock0Typing` as a public parameter.
 --
+--   CrossΛTyping PROVED (2026-09-20) —
+--                `strong.proof.RepWeaken.cross-Λ-⊢`.
 --   PeelCase     PROVED UNCONDITIONALLY (2026-09-20) —
 --                `strong.proof.PeelDual.preserve-Peel` applied to
 --                `strong.proof.RepWeaken.rep-weaken-⊢`, which proves the

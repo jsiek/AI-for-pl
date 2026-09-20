@@ -11,18 +11,19 @@ module strong.TypeSafety where
 -- run), and their composition type-safety — are STAGE-1 PARAMETERIZED:
 -- the statements are final, and the proofs are complete modulo the
 -- reviewed-before-implementation statements collected by `Stage1` below
--- (`MergedReading` for progress; `CrossΛTyping` and `AddLock0Typing` for
--- preservation).  No postulates: a missing proof is a module parameter,
+-- (`MergedReading` for progress; `AddLock0Typing` for preservation).
+-- Missing proofs remain module parameters,
 -- visible in the type of `Stage1`.  `RepWeakenTyping` LEFT that list on
 -- 2026-09-20: `strong.proof.RepWeaken.rep-weaken-⊢` proves it, so
--- `PeelCase` is now unconditional.
+-- `PeelCase` is now unconditional.  `CrossΛTyping` left it the same day:
+-- `strong.proof.RepWeaken.cross-Λ-⊢` proves it, so Beta is unconditional.
 --
 -- NO PARAMETER IS KNOWN FALSE ANY MORE.  `CancelRCase` used to be one:
 -- `notes/CancelRShiftWall.agda` refuted it for the rule as it stood, and
 -- `notes/CancelRReachabilityWitness.agda` reached that configuration from
 -- a closed plain source program.  Repair (a) was approved by Jeremy and
 -- installed on 2026-09-19, and the repaired case is PROVED —
--- `strong.proof.MoveScope.preserve-CancelR`.  The three statements left
+-- `strong.proof.MoveScope.preserve-CancelR`.  The two statements left
 -- in `Stage1` are open, plausible obligations pending review, not known
 -- falsehoods.
 --
@@ -98,14 +99,13 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
 
 module Stage1
   (merged-reading : PP.MergedReading)
-  (crossΛ    : P.CrossΛTyping)
   (addLock0  : P.AddLock0Typing)
   where
 
   private
     module Pr1 = Pr.Stage1 merged-reading
-    module Pv1 = Pv.Stage1 crossΛ addLock0
-    module TS1 = TS.Stage1 merged-reading crossΛ addLock0
+    module Pv1 = Pv.Stage1 addLock0
+    module TS1 = TS.Stage1 merged-reading addLock0
 
   progress : Progress
   progress = Pr1.progress

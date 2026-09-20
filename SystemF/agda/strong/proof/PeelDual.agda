@@ -7,8 +7,9 @@ module strong.proof.PeelDual where
 --
 -- is `dual-interior`: the crossing argument's frame IS THE EXTERIOR, one
 -- bind block in.  So the argument, typed at Δ, crosses by a
--- REPRESENTATION-ONLY weakening — `renᴹ² (ren² idᵗ (wkN (numBinds Θ)))`
--- — and gains no ordinary scope whatever.
+-- REPRESENTATION-ONLY weakening — `renᴹᴿ (wkN (numBinds Θ))` — and gains
+-- no ordinary scope whatever.  `renᴹ²-ord-id` relates that construction
+-- to the identity-ordinary paired spelling retained by `Peel`.
 --
 -- The dual's CONVERSION context is the one thing the crossing does not
 -- get for free.  It is not `convCtx Θ Δ` renumbered: (P), the identity
@@ -43,7 +44,8 @@ open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
-open import strong.TermSubst using (renᴹ²; ren²; idᵗ; wkN)
+open import strong.TermSubst
+  using (renᴹ²; ren²; renᴹ²-ord-id; wkN)
 open import strong.CtxMorph
 open import strong.proof.Preserve
   using (PeelCase; RepWeakenTyping; same-shiftRVars; shiftRep-shiftBy;
@@ -170,11 +172,12 @@ sameTyExt-⇒⁻ n {η′ = η′} (R ⇒ S , same-⇒ p q , t)
 -- the same context with the boundary's representation bind block pushed
 -- on.  Its ordinary name map is untouched, so the argument's TYPE does
 -- not change; only representation occurrences inside its own frames move,
--- which is exactly what `renᴹ² (ren² idᵗ (wkN (numBinds Θ)))` does.  This
--- is the third representation-only typing transport the port has needed
--- (`CrossΛTyping`, `AddLock0Typing`, strong.proof.Preserve §4), and like
--- those it is a NEW MAJOR STATEMENT, deferred for review rather than
--- proved here.
+-- which is exactly what `renᴹᴿ (wkN (numBinds Θ))` does by construction.
+-- This is the third representation-only typing transport the port has
+-- needed (`CrossΛTyping`, `AddLock0Typing`, strong.proof.Preserve §4), and
+-- like those it is a NEW MAJOR STATEMENT, deferred for review rather than
+-- proved here.  The identity lemma below transports its result to the
+-- paired spelling in the reduction rule.
 module _ (repWeaken : RepWeakenTyping) where
 
   preserve-Peel : PeelCase
@@ -235,5 +238,8 @@ module _ (repWeaken : RepWeakenTyping) where
 
     arg : Δᵢ ∣ [] ⊢
         (renᴹ² (ren² (λ X → X) (wkN n)) W ⟪ dualMorph Θ , s′ ⟫) ⦂ Aᵢ
-    arg = env mwD (repWeaken (binds Θ) ⊢W) ⊢s′ sameᵢ-d sameₑ-d
-              (same-wf (proj₁ (proj₂ smAᵢ)))
+    arg =
+      subst (λ W′ → Δᵢ ∣ [] ⊢ W′ ⟪ dualMorph Θ , s′ ⟫ ⦂ Aᵢ)
+            (sym (renᴹ²-ord-id (λ X → refl) W))
+            (env mwD (repWeaken (binds Θ) ⊢W) ⊢s′ sameᵢ-d sameₑ-d
+                 (same-wf (proj₁ (proj₂ smAᵢ))))

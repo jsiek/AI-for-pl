@@ -359,6 +359,10 @@ with the rule that fired at each step, through `showRun`.
 What is left on this branch is therefore not module porting, and no
 parameter is known false any more. It is the three representation-only
 typing transports and `MergedReading` awaiting review (items 1, 2, 6).
+On 2026-09-20 Jeremy simplified the FORM of `RepWeakenTyping`: it now uses
+the representation-only traversal `renᴹᴿ`, while `renᴹ²-ord-id` connects
+that statement to `Peel`'s unchanged identity-ordinary contractum spelling.
+The transport itself remains a review item and is not proved here.
 
 ## Resuming on another machine
 
@@ -501,12 +505,21 @@ done. The ONLY open work is the four review items.
          RepWeakenTyping : Set
          RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
            → Δ ∣ [] ⊢ W ⦂ A
-           → extendReps Rs Δ ∣ []
-               ⊢ renᴹ² (ren² (λ X → X) (wkN (length Rs))) W ⦂ A
+           → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
 
      It is what retypes `Peel`'s argument when it crosses into the
      boundary's representation bind block. The ordinary name map is
-     untouched, so the argument's type does not change.
+     untouched by construction, so the argument's type does not change;
+     `renᴹ²-ord-id` transports the result to the unchanged reduction rule.
+
+     The same identity-ordinary pattern remains in the concrete movers
+     `crossΛᴹ W A = renᴹ² (ren² idᵗ suc) W ⟪ ... ⟫` (hence
+     `CrossΛTyping`) and `AddLock0Typing`'s
+     `renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W`: on that same `W`,
+     `renᴹ²-ord-id` exposes `renᴹᴿ suc W` and
+     `renᴹᴿ (extN (numBinds Θ) suc) W`, respectively. The same
+     simplification is available for both if Jeremy wants it; this is
+     flagged only, not done.
 
    - `CancelRCase` WAS **FALSE**, and machine-checked false:
      `notes/CancelRShiftWall.agda` proved `¬ CancelRCase` from a concrete

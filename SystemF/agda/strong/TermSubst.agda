@@ -18,10 +18,10 @@ open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; map; length)
 open import Data.Product using (_×_; _,_; ∃-syntax)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; cong; cong₂; subst)
+  using (_≡_; refl; cong; cong₂; trans; subst)
 
 open import strong.Types
-  using (Ty; `ℕ; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
@@ -58,6 +58,10 @@ renᶠ² : Renameᵗ → Renameᵗ → Change → Change
 renᶠ² ρᵗ ρʳ (lock X α)   = lock (ρᵗ X) (ρʳ α)
 renᶠ² ρᵗ ρʳ (unlock X α) = unlock (ρᵗ X) (ρʳ α)
 
+renᶠᴿ : Renameᵗ → Change → Change
+renᶠᴿ ρʳ (lock X α)   = lock X (ρʳ α)
+renᶠᴿ ρʳ (unlock X α) = unlock X (ρʳ α)
+
 renᶠ : Renameᵗ → Change → Change
 renᶠ ρ = renᶠ² ρ ρ
 
@@ -65,6 +69,11 @@ renᴮ² : TyRename → CtxMorph → CtxMorph
 renᴮ² (ren² ρᵗ ρʳ) Θ =
   morph (map (renameᵗ ρʳ) (binds Θ))
         (map (renᶠ² ρᵗ (extN (numBinds Θ) ρʳ)) (changes Θ))
+
+renᴮᴿ : Renameᵗ → CtxMorph → CtxMorph
+renᴮᴿ ρʳ Θ =
+  morph (map (renameᵗ ρʳ) (binds Θ))
+        (map (renᶠᴿ (extN (numBinds Θ) ρʳ)) (changes Θ))
 
 -- The one-map specialization is retained for callers where both universes
 -- move in lockstep, such as weakening under an ordinary `Λ`.
@@ -109,6 +118,94 @@ renᴹ² ρ (L ·[ B , A ]) =
 renᴹ² ρ (M ⟪ Θ , c ⟫) =
   renᴹ² (underReps-ren (numBinds Θ) ρ) M
     ⟪ renᴮ² ρ Θ , renᶜ (ordinary ρ) c ⟫
+
+renᴹᴿ : Renameᵗ → Term → Term
+renᴹᴿ ρ (` x)          = ` x
+renᴹᴿ ρ ($ n)          = $ n
+renᴹᴿ ρ `true           = `true
+renᴹᴿ ρ `false          = `false
+renᴹᴿ ρ (ƛ A ∙ N)      = ƛ A ∙ renᴹᴿ ρ N
+renᴹᴿ ρ (L · M)        = renᴹᴿ ρ L · renᴹᴿ ρ M
+renᴹᴿ ρ (Λ N)          = Λ (renᴹᴿ (extᵗ ρ) N)
+renᴹᴿ ρ (L ·[ B , A ]) = renᴹᴿ ρ L ·[ B , A ]
+renᴹᴿ ρ (M ⟪ Θ , c ⟫) =
+  renᴹᴿ (extN (numBinds Θ) ρ) M ⟪ renᴮᴿ ρ Θ , c ⟫
+
+extᵗ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
+  → ∀ X → extᵗ ρ X ≡ X
+extᵗ-pointwise-id h zero    = refl
+extᵗ-pointwise-id h (suc X) = cong suc (h X)
+
+renameᵗ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
+  → ∀ A → renameᵗ ρ A ≡ A
+renameᵗ-pointwise-id h (` X) = cong `_ (h X)
+renameᵗ-pointwise-id h `ℕ = refl
+renameᵗ-pointwise-id h `𝔹 = refl
+renameᵗ-pointwise-id h (A ⇒ B) =
+  cong₂ _⇒_ (renameᵗ-pointwise-id h A) (renameᵗ-pointwise-id h B)
+renameᵗ-pointwise-id h (`∀ A) =
+  cong `∀ (renameᵗ-pointwise-id (extᵗ-pointwise-id h) A)
+
+renᶜ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
+  → ∀ c → renᶜ ρ c ≡ c
+renᶜ-pointwise-id h (id A) = cong id (renameᵗ-pointwise-id h A)
+renᶜ-pointwise-id h (seal X) = cong seal (h X)
+renᶜ-pointwise-id h (unseal X) = cong unseal (h X)
+renᶜ-pointwise-id h (s ↦ t) =
+  cong₂ _↦_ (renᶜ-pointwise-id h s) (renᶜ-pointwise-id h t)
+renᶜ-pointwise-id h (`∀ s) =
+  cong `∀ (renᶜ-pointwise-id (extᵗ-pointwise-id h) s)
+
+renᶠ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X)
+  → ∀ δ → renᶠ² ρᵗ ρʳ δ ≡ renᶠᴿ ρʳ δ
+renᶠ²-ord-id {ρʳ = ρʳ} h (lock X α) =
+  cong (λ X′ → lock X′ (ρʳ α)) (h X)
+renᶠ²-ord-id {ρʳ = ρʳ} h (unlock X α) =
+  cong (λ X′ → unlock X′ (ρʳ α)) (h X)
+
+renᴮ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X)
+  → ∀ Θ → renᴮ² (ren² ρᵗ ρʳ) Θ ≡ renᴮᴿ ρʳ Θ
+renᴮ²-ord-id {ρᵗ} {ρʳ} h (morph Rs χ) =
+  cong (morph (map (renameᵗ ρʳ) Rs)) (changes-id χ)
+  where
+  changes-id : ∀ χ
+    → map (renᶠ² ρᵗ (extN (length Rs) ρʳ)) χ
+        ≡ map (renᶠᴿ (extN (length Rs) ρʳ)) χ
+  changes-id [] = refl
+  changes-id (δ ∷ χ) =
+    cong₂ _∷_ (renᶠ²-ord-id h δ) (changes-id χ)
+
+renᴹ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X) → ∀ M
+  → renᴹ² (ren² ρᵗ ρʳ) M ≡ renᴹᴿ ρʳ M
+renᴹ²-ord-id h (` x) = refl
+renᴹ²-ord-id h ($ n) = refl
+renᴹ²-ord-id h `true = refl
+renᴹ²-ord-id h `false = refl
+renᴹ²-ord-id h (ƛ A ∙ N) =
+  cong₂ ƛ_∙_ (renameᵗ-pointwise-id h A) (renᴹ²-ord-id h N)
+renᴹ²-ord-id h (L · M) =
+  cong₂ _·_ (renᴹ²-ord-id h L) (renᴹ²-ord-id h M)
+renᴹ²-ord-id h (Λ N) =
+  cong Λ_ (renᴹ²-ord-id (extᵗ-pointwise-id h) N)
+renᴹ²-ord-id {ρᵗ} {ρʳ} h (L ·[ B , A ]) =
+  trans
+    (cong₂ (λ L′ B′ → L′ ·[ B′ , renameᵗ ρᵗ A ])
+           (renᴹ²-ord-id h L)
+           (renameᵗ-pointwise-id (extᵗ-pointwise-id h) B))
+    (cong (λ A′ → renᴹᴿ ρʳ L ·[ B , A′ ])
+          (renameᵗ-pointwise-id h A))
+renᴹ²-ord-id {ρᵗ} {ρʳ} h (M ⟪ Θ , c ⟫) =
+  trans
+    (cong (λ M′ →
+             M′ ⟪ renᴮ² (ren² ρᵗ ρʳ) Θ , renᶜ ρᵗ c ⟫)
+          (renᴹ²-ord-id h M))
+    (trans
+      (cong (λ Θ′ → renᴹᴿ (extN (numBinds Θ) ρʳ) M
+                         ⟪ Θ′ , renᶜ ρᵗ c ⟫)
+            (renᴮ²-ord-id h Θ))
+      (cong (λ c′ → renᴹᴿ (extN (numBinds Θ) ρʳ) M
+                         ⟪ renᴮᴿ ρʳ Θ , c′ ⟫)
+            (renᶜ-pointwise-id h c)))
 
 renᴹ : Renameᵗ → Term → Term
 renᴹ ρ = renᴹ² (ren² ρ ρ)

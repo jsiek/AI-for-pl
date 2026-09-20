@@ -3861,3 +3861,40 @@ SHRINK — with both id-layer rules reading at `Δ₁ᶜ`, `proof/Progress.agda`
 no longer consumes its outer `Keeps (names Δᶜ) (names Δ⋉ᶜ)` component.
 The statement is under review and shrinking it is a separate decision, so
 it stands unchanged with a note at the definition.
+
+## 2026-09-20 — representation-only renaming is its own traversal
+
+THE CONCRETE `Peel` TERM.  The reduction rule still produces
+
+    (V · (renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W
+              ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫ .
+
+Its ordinary component is pointwise the identity: annotations, conversions
+and ordinary lock/unlock names do not move.  Jeremy's instruction was:
+"Regarding RepWeakenTyping, one of those renamings is with the identity. We
+should have a separate lemma about that. Then simplify the statement of
+RepWeakenTyping with the identity lemma."  The rule itself is unchanged.
+
+THE NEW OPERATION.  `renᴹᴿ : Renameᵗ → Term → Term` is a genuine
+representation-only traversal.  It leaves ordinary annotations, type
+arguments, conversions and ordinary change names untouched; it renames bind
+payloads, representation change names and recursively occurring
+representation material.  Its morphism and change actions are `renᴮᴿ` and
+`renᶠᴿ`.
+
+THE IDENTITY LEMMA AND THE REVIEW STATEMENT.  The bridge is
+
+    renᴹ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X) → ∀ M
+      → renᴹ² (ren² ρᵗ ρʳ) M ≡ renᴹᴿ ρʳ M
+
+and the simplified obligation is
+
+    RepWeakenTyping : Set
+    RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
+      → Δ ∣ [] ⊢ W ⦂ A
+      → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A .
+
+`preserve-Peel` applies this obligation and transports the resulting inner
+boundary with `sym (renᴹ²-ord-id (λ X → refl) W)`, so its conclusion still
+matches the reduction rule verbatim.  No proof of `RepWeakenTyping` is added;
+only its form changes under Jeremy's instruction.

@@ -1163,15 +1163,14 @@ AddLock0Typing = ∀ {Δ W Θ s A P}
 -- The THIRD such transport, identified by the stage-2 `Peel` port
 -- (2026-09-19).  `Peel` moves its argument from the boundary's exterior
 -- to that exterior under the boundary's own representation bind block —
--- `dual-interior`, strong.CtxMorph §3a.  The ordinary name map is
--- untouched, so the argument's TYPE is unchanged; only representation
--- occurrences inside the argument's own frames move, which is what
--- `renᴹ² (ren² idᵗ (wkN (length Rs)))` does.
+-- `dual-interior`, strong.CtxMorph §3a.  `renᴹᴿ` is representation-only
+-- by construction, so the argument's TYPE and every ordinary spelling
+-- are unchanged.  `renᴹ²-ord-id` connects this statement to the paired
+-- identity-ordinary spelling retained by `Peel`'s contractum.
 RepWeakenTyping : Set
 RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
   → Δ ∣ [] ⊢ W ⦂ A
-  → extendReps Rs Δ ∣ []
-      ⊢ renᴹ² (ren² (λ X → X) (wkN (length Rs))) W ⦂ A
+  → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
 
 wf-underΛ : WfCtx Δ → WfCtx (underΛ Δ)
 wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =

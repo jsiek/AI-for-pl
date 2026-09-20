@@ -72,12 +72,12 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
 --     read at Θ₁'s conversion context;
 --   * `IdPush` moves a variable read at the same context.
 --
--- `Keeps` states only name availability.  strong.Conversion.respell-ty then
+-- `` ⊆ᵃ states only name availability.  strong.Conversion.respell-ty then
 -- constructs the `SameTy` premise at the exact type being moved.
 --
 -- NOTE, PENDING REVIEW.  With `CancelR` repaired, BOTH id-layer rules now
 -- read at `Δ₁ᶜ`, so this proof no longer consumes the outer
--- `Keeps (names Δᶜ) (names Δ⋉ᶜ)` component.  The statement is NOT shrunk
+-- `(names Δᶜ) ⊆ᵃ (names Δ⋉ᶜ)` component.  The statement is NOT shrunk
 -- here: it is one of the statements awaiting Jeremy's review, and
 -- shrinking it is a separate decision.
 MergedReading : Set
@@ -86,8 +86,8 @@ MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
   → MorphWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
   → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
       ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
-        × Keeps (names Δᶜ) (names Δ⋉ᶜ)
-        × Keeps (names Δ₁ᶜ) (names Δ⋉ᶜ))
+        × (names Δᶜ) ⊆ᵃ (names Δ⋉ᶜ)
+        × (names Δ₁ᶜ) ⊆ᵃ (names Δ⋉ᶜ))
 
 ------------------------------------------------------------------------
 -- 3. Base identities

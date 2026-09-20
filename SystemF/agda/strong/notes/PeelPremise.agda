@@ -82,7 +82,7 @@ mixed-dual-conversion = proj₂ (conv! Γᵢ (dualMorph Mixed))
 
 -- (Q) transports the representation named by source position zero to the
 -- dual's position one.
-mixed-Q : Live 2 (names Γᵈ)
+mixed-Q : (names Γᵈ) ∋ᵅ 2
 mixed-Q = Q mixed-interior mixed-conversion mixed-dual-conversion
             (0 , here)
 

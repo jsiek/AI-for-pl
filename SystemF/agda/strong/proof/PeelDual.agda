@@ -73,7 +73,7 @@ sameTy-∀ Γ Γ′ (R , p , q) = `∀ R , same-∀ p , same-∀ q
 -- `SameTy`s, which is what the crossing boundary's `env` consumes.
 respell-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
   → reps Γ′ ≡ reps Γ
-  → Keeps (names Γ) (names Γ′)
+  → (names Γ) ⊆ᵃ (names Γ′)
   → names Γ ⊩ s ~ r
   → names Γ′ ⊩ s′ ~ r
   → Γ ⊢ s ∶ A ⇝ B
@@ -128,7 +128,7 @@ respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-fun a b) (sameᶜ-fun a′ b
 respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-all a) (sameᶜ-all a′)
           (conv-all ⊢x)
   with respell-⊢ {Γ = underΛ Γ} {Γ′ = underΛ Γ′}
-                 (cong (abstR ∷_) eq) (keeps-underΛ f) a a′ ⊢x
+                 (cong (abstR ∷_) eq) (⊆ᵃ-underΛ f) a a′ ⊢x
 respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-all a) (sameᶜ-all a′)
           (conv-all ⊢x)
   | A₀ , B₀ , ⊢x′ , smA , smB =

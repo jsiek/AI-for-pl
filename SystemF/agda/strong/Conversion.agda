@@ -185,7 +185,7 @@ sameConv-src-unique uq (r , p , q) (r′ , p′ , q′) | refl =
 -- context readings in strong.CtxMorph; this section transports the actual
 -- type and conversion spellings.
 
-respell-ty : Keeps η η′ → η ⊢ A ~ R
+respell-ty : η ⊆ᵃ η′ → η ⊢ A ~ R
   → ∃[ A′ ] (η′ ⊢ A′ ~ R)
 respell-ty f (same-var d) with f (_ , d)
 respell-ty f (same-var d) | X , d′ = ` X , same-var d′
@@ -195,10 +195,10 @@ respell-ty f (same-⇒ a b) with respell-ty f a
 respell-ty f (same-⇒ a b) | A′ , a′ with respell-ty f b
 respell-ty f (same-⇒ a b) | A′ , a′ | B′ , b′ =
   A′ ⇒ B′ , same-⇒ a′ b′
-respell-ty f (same-∀ a) with respell-ty (keeps-underΛ f) a
+respell-ty f (same-∀ a) with respell-ty (⊆ᵃ-underΛ f) a
 respell-ty f (same-∀ a) | A′ , a′ = `∀ A′ , same-∀ a′
 
-respell : Keeps η η′ → η ⊩ s ~ r → ∃[ s′ ] (η′ ⊩ s′ ~ r)
+respell : η ⊆ᵃ η′ → η ⊩ s ~ r → ∃[ s′ ] (η′ ⊩ s′ ~ r)
 respell f (sameᶜ-id a) with respell-ty f a
 respell f (sameᶜ-id a) | A′ , a′ = id A′ , sameᶜ-id a′
 respell f (sameᶜ-seal d) with f (_ , d)
@@ -209,7 +209,7 @@ respell f (sameᶜ-fun a b) with respell f a
 respell f (sameᶜ-fun a b) | s₁ , a′ with respell f b
 respell f (sameᶜ-fun a b) | s₁ , a′ | s₂ , b′ =
   s₁ ↦ s₂ , sameᶜ-fun a′ b′
-respell f (sameᶜ-all a) with respell (keeps-underΛ f) a
+respell f (sameᶜ-all a) with respell (⊆ᵃ-underΛ f) a
 respell f (sameᶜ-all a) | s₁ , a′ = `∀ s₁ , sameᶜ-all a′
 
 readable : ∀ {Γ : Ctxᵗ} {c} → Γ ⊢ c ∶ A ⇝ B

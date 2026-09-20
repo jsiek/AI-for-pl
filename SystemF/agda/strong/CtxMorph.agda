@@ -1332,15 +1332,28 @@ binds-ren : ∀ {ρ Ξ Ξ′ Rs} → RepWk ρ Ξ Ξ′ → Ξ ⊢ᴮ Rs
 binds-ren w binds[] = binds[]
 binds-ren w (binds∷ x xs) = binds∷ (wk-wfᴿ w zero x) (binds-ren w xs)
 
--- Inserting one fresh abstract representation binder at the head.  This is
--- the base move made by a term crossing `Λ`; `repwk-abst` below is the
+-- Inserting ONE FRESH BINDING at the head, abstract or represented.
+-- Three of the four fields do not look at the binding at all — a name
+-- lookup only moves one place further in, and injectivity is `suc`'s —
+-- so the only thing the insertion has to supply is the WEAKEST form of
+-- its own well-formedness: the step `WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ)`,
+-- which is `wf-abstR` for an abstract binder and `wf-bindR w` for a
+-- represented one whose payload checks over Ξ.  This is the base move
+-- made by a term crossing `Λ` (at `abstR`) and by one crossing a new
+-- representation binder (at `bindR R`); `repwk-abst` below is the
 -- recursion-closure move when an existing renaming itself goes under `Λ`.
+∋ˡ-cons : ∀ {Ξ : RepCtx} {b₀ : RepBinding} {α b} → Ξ ∋ˡ α := b
+  → ∃[ b′ ] ((b₀ ∷ Ξ) ∋ˡ suc α := b′)
+∋ˡ-cons d = _ , there d
+
+repwk-cons₀ : ∀ {Ξ : RepCtx} (b₀ : RepBinding)
+  → (WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ))
+  → RepWk suc Ξ (b₀ ∷ Ξ)
+repwk-cons₀ abstR     wr = repwk suc-injective ∋ˡ-cons r-there-abst wr
+repwk-cons₀ (bindR R) wr = repwk suc-injective ∋ˡ-cons r-there wr
+
 repwk-abst₀ : ∀ {Ξ : RepCtx} → RepWk suc Ξ (abstR ∷ Ξ)
-repwk-abst₀ = repwk suc-injective look r-there-abst wf-abstR
-  where
-  look : ∀ {Ξ : RepCtx} {α b} → Ξ ∋ˡ α := b
-    → ∃[ b′ ] ((abstR ∷ Ξ) ∋ˡ suc α := b′)
-  look d = _ , there d
+repwk-abst₀ = repwk-cons₀ abstR wf-abstR
 
 -- Going under an abstract binder — the `Λ` case.
 repwk-abst : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′

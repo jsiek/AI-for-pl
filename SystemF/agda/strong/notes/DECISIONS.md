@@ -4082,3 +4082,127 @@ downstream-parameter shape stays unchanged just as it does for `Peel`,
 `strong.proof.TypeSafety.Stage1` now take `merged-reading` plus
 `addLock0`.  The review queue is exactly `AddLock0Typing` and
 `MergedReading`.
+
+## 2026-09-20 — `AddLock0Typing` is REFUTED, and with it PRESERVATION:
+## `TyPeelR-⟪⟫` re-spells its moved conversion in the wrong name map
+
+Jeremy's instruction was "now prove AddLock0Typing, same approach, though
+consider decomposing into simpler and more general lemmas".  The
+decomposition is right and two of its three parts hold; the third does
+not, and it is the RULE that is wrong, not the statement's premises.  The
+wall is `notes/AddLock0Wall.agda`, and it is reached from a CLOSED, PLAIN
+System F program.
+
+THE DECOMPOSITION, AS PLANNED.  The move has three orthogonal parts.
+
+  (1) THE TERM'S MOVE IS REPRESENTATION-ONLY.
+      `renᴹ² (ren² idᵗ (extN (numBinds Θ) suc)) W` is
+      `renᴹᴿ (extN (numBinds Θ) suc) W` by `renᴹ²-ord-id`, and
+      `renᴮ² (ren² idᵗ suc) Θ` is `renᴮᴿ suc Θ` by `renᴮ²-ord-id` — the
+      boundary clause of the former already contains the latter, so no
+      new identity lemma was needed.  The new exterior inserts `bindR P`
+      at the HEAD of the representation context, which is
+      `repwk-cons₀` (below) pushed through `repwk-push` to the depth
+      `numBinds Θ` where the moved term lives.  `⊢renᴿ`
+      (`proof/RepWeaken.agda`) then types the moved term, exactly as it
+      does for `Peel` and for `crossΛ`.  THIS PART IS SOUND.
+
+  (2) THE CONVERSION AND THE TYPE MOVE IN THE ORDINARY UNIVERSE.
+      `` `∀ (renᶜ (extᵗ suc) s) `` is `renᶜ suc` of the whole
+      conversion and `` `∀ (renameᵗ (extᵗ suc) A) `` is `renameᵗ suc` of
+      the whole type: both say the new ordinary name is inserted at
+      POSITION ZERO of the map they are read on.  THIS IS WHERE IT
+      BREAKS — see below.
+
+  (3) THE MORPHISM READINGS.  The INTERIOR reading of
+      `addLock0 (renᴮᴿ suc Θ)` at the new exterior is the renamed
+      interior reading of Θ: `addLock0` APPENDS `lock 0 (numBinds Θ)`,
+      a change list acts head-LAST, so that lock runs FIRST and deletes
+      the new ordinary name before any of Θ's changes run.  The lock's
+      two premises are free — `ValidRVar` of the new head binding and
+      freshness of name zero in a shifted map.  THIS HALF IS SOUND.  The
+      CONVERSION reading is not: `conv-lock` SKIPS locks.
+
+WHY THE CONVERSION READING IS DIFFERENT.  A conversion context is the
+UNION of the names live anywhere along the morphism — that is what the
+2026-09-17 re-unlock clause settled — so the appended lock does NOT
+remove the new ordinary name there.  It stays in the map while Θ's own
+changes run, and every `unlock X α` of Θ inserts at position X of a map
+that already carries it.  The new name is therefore DISPLACED, by one
+place per unlock that inserts in front of it, and `renᶜ suc` — correct
+only if it landed at position zero — is then wrong at every position
+below it.
+
+ONE `TyBeta` IS ENOUGH.  `instantiate R Θ` appends `unlock 0 0`, so the
+smallest boundary the language mints already has the offending shape.  In
+the wall's run the moved boundary's conversion context goes
+
+    (bindR `ℕ ∷ abstR ∷ [])             ∣ (0 ∷ [])       -- before
+    (bindR `ℕ ∷ bindR `𝔹 ∷ abstR ∷ [])  ∣ (0 ∷ 1 ∷ [])   -- after
+
+(`conv-before`, `conv-after`, both machine-checked).  The new name is at
+position ONE; position zero still names the `TyBeta` binder.  `renᶜ suc`
+pushes the conversion's occurrences of position 0 onto position 1 — onto
+the NEW binder, whose payload is the type argument's representation.  So
+`seal 1 ↦ unseal 1`, which converted `` ` 1 ⇒ ` 1 `` to `` `ℕ ⇒ `ℕ ``,
+becomes `seal 2 ↦ unseal 2`, which converts `` ` 2 ⇒ ` 2 `` to
+`` `𝔹 ⇒ `𝔹 ``, and `env`'s exterior alignment `SameTyExt` has to relate
+`` `∀ (`ℕ ⇒ `ℕ) `` to `` `∀ (`𝔹 ⇒ `𝔹) ``.  It cannot.
+
+THE PROGRAM.  No boundary is written by hand:
+
+    Src = (λf : ∀X. ℕ⇒ℕ. ΛX. f [𝔹]) · ((ΛY. ΛZ. λx:Y. x) [ℕ])
+
+typed at `` `∀ (`ℕ ⇒ `ℕ) `` by `TypeCheck.agda`'s `tc`.  Its run is
+`TyBeta` (which packages `ΛZ. λx:Y. x` behind
+`` `∀ (seal 1 ↦ unseal 1) ``, a conversion that MENTIONS the binder
+being instantiated), then `Beta` (whose `crossΛᴹ` carries that value
+under the new `Λ` inside a SECOND `` `∀ `` boundary), then
+`TyPeelR-⟪⟫` on the resulting two-layer value.  The third contractum has
+NO typing derivation — the wall proves that, rather than relying on
+`check⊢`'s refusal, by `conversion-functional` (the conversion context is
+a function of the morphism and its exterior), `conv-types-unique` (the
+moved conversion's types are then forced) and the `SameTyExt` clash
+above.  Hence
+
+    no-addLock0     : ¬ AddLock0Typing
+    no-preservation : ¬ Preservation
+    no-preservation*: ¬ Preservation*
+
+WHY NO PREMISE REPAIRS IT, and what does.  The offending spelling is in
+the CONTRACTUM, so no hypothesis on the redex can change it; and there is
+no renaming to substitute, because where the new name lands depends on
+Θ's own unlocks.  This is the SAME defect the crossing audit found for
+`Peel` on 2026-09-18 — "not merely a renumbering of the same one" — and
+it wants the same repair: `TyPeelR-⟪⟫` should NAME the moved conversion
+and carry a `SameConv` relating it to the original across the two
+conversion contexts, with `respell`/`Q` (`Conversion.agda` §2b,
+`CtxMorph.agda` §3b) supplying the witness and `proof/Progress.agda`
+deriving the premise as it already does for `Peel`.  That is a rule
+change, so it is Jeremy's call; `Reduction.agda` and `Terms.agda` are
+untouched.
+
+THE ONE LEMMA THAT LANDED.  `repwk-cons₀` (`CtxMorph.agda` §3d)
+generalises `repwk-abst₀` from an abstract head binding to ANY head
+binding:
+
+    repwk-cons₀ : ∀ {Ξ : RepCtx} (b₀ : RepBinding)
+      → (WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ))
+      → RepWk suc Ξ (b₀ ∷ Ξ)
+
+Three of `RepWk`'s four fields do not look at the binding at all — a name
+lookup only moves one place further in, and injectivity is `suc`'s — so
+the only input is the WEAKEST form of the insertion's own
+well-formedness, the step `WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ)`, which is
+`wf-abstR` for `abstR` and `wf-bindR w` for `bindR R`.  `repwk-abst₀` is
+now its `abstR` instance, so nothing downstream changed.  The `bindR`
+instance is what part (1) above needs, and it is ready for the repaired
+rule.  The interior half of part (3) was NOT written: it has no consumer
+until the rule is repaired, and this branch does not keep dead code.
+
+WHAT THE PUBLIC SURFACE SAYS NOW.  `strong.Preservation.Stage1` and
+`strong.TypeSafety.Stage1` keep their `addLock0` parameter, but that
+parameter is KNOWN FALSE: they are conditional theorems with a refuted
+hypothesis, kept so that the assembled preservation proof survives the
+rule repair.  `MergedReading` is unaffected and remains an open,
+plausible obligation pending review.

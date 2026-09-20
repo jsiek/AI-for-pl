@@ -52,6 +52,16 @@ open import strong.notes.CancelRShiftWall
 -- (strong.proof.RepWeaken).
 open import strong.notes.RepWeakenBindsWall
 
+-- THE ADDLOCK0 WALL (2026-09-20).  `AddLock0Typing` is FALSE, and no
+-- premise repairs it: `TyPeelR-⟪⟫` re-spells the moved boundary's
+-- conversion with `renᶜ suc`, which is right for the INTERIOR reading and
+-- wrong for the CONVERSION reading — the latter SKIPS the appended lock,
+-- so the new ordinary name is displaced by the moved morphism's own
+-- unlocks.  The module runs a closed, plain System F program that loses
+-- its type at that step, and proves the reached state untypeable; hence
+-- `¬ Preservation`.  It sits here because it reads `strong.Preservation`.
+open import strong.notes.AddLock0Wall
+
 -- progress (the canonical-forms suite, the proof script, the theorem)
 open import strong.proof.Canonical
 open import strong.proof.Progress

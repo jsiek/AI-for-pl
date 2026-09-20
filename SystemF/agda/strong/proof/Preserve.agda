@@ -1140,8 +1140,9 @@ preserve-Drop-false {Θ = Θ} wfΔ
 -- and `⊢addLock0-cross`: each needs a BINDER (`underΛ`, `addLock0`) on top
 -- of the renaming, which the third does not.  `CrossΛTyping` is PROVED
 -- (2026-09-20, `strong.proof.RepWeaken.cross-Λ-⊢`), using one zero-bind
--- `env` around `⊢renᴿ` at `repwk-abst₀`.  `AddLock0Typing` remains under
--- review.  The third, `RepWeakenTyping`, is pure renaming and is PROVED
+-- `env` around `⊢renᴿ` at `repwk-abst₀`.  `AddLock0Typing` is REFUTED
+-- (2026-09-20) — see the note on it below.  The third,
+-- `RepWeakenTyping`, is pure renaming and is PROVED
 -- (2026-09-20, `strong.proof.RepWeaken.rep-weaken-⊢`).
 CrossΛTyping : Set
 CrossΛTyping = ∀ {Δ W A}
@@ -1150,6 +1151,21 @@ CrossΛTyping = ∀ {Δ W A}
   → Δ ∣ [] ⊢ W ⦂ A
   → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
 
+-- REFUTED (2026-09-20), and the RULE is what is wrong:
+-- `strong.notes.AddLock0Wall.no-addLock0`.  `TyPeelR-⟪⟫` re-spells the
+-- moved boundary's conversion by `renᶜ suc` (written
+-- `` `∀ (renᶜ (extᵗ suc) s) ``), which is the renaming that is correct
+-- for the INTERIOR reading — there `addLock0`'s appended lock, which
+-- acts FIRST, deletes the new ordinary name at once.  The conversion is
+-- checked at the CONVERSION reading, which SKIPS locks, so the new name
+-- survives and every `unlock X α` of Θ inserts around it: it does NOT
+-- land at position zero.  One `TyBeta`-minted `unlock 0 0` is enough.
+-- No premise on the redex can repair a contractum, and the correct
+-- re-spelling is not a renaming at all, so the rule needs the repair
+-- `Peel` got on 2026-09-18 — a NAMED moved conversion with a `SameConv`
+-- premise.  Preservation is therefore FALSE as the rules stand:
+-- `strong.notes.AddLock0Wall.no-preservation`, from a closed, plain
+-- System F program that loses its type in three steps.
 AddLock0Typing : Set
 AddLock0Typing = ∀ {Δ W Θ s A P}
   → WfCtx ((bindR P ∷ reps Δ) ∣
@@ -1398,8 +1414,10 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 
 -- The downstream crossing cases and transports stay module parameters HERE
 -- because their proofs import this module.  `strong.Preservation` plugs in
--- every implementation, including `CrossΛTyping`, and exposes only the
--- still-open `AddLock0Typing` as a public parameter.
+-- every implementation, including `CrossΛTyping`, and exposes only
+-- `AddLock0Typing` as a public parameter — which since 2026-09-20 is a
+-- REFUTED one: `Impl.preserve` is a conditional theorem with a false
+-- hypothesis until `TyPeelR-⟪⟫` is repaired (strong.notes.AddLock0Wall).
 --
 --   CrossΛTyping PROVED (2026-09-20) —
 --                `strong.proof.RepWeaken.cross-Λ-⊢`.

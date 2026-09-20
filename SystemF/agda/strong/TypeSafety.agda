@@ -18,14 +18,19 @@ module strong.TypeSafety where
 -- `PeelCase` is now unconditional.  `CrossΛTyping` left it the same day:
 -- `strong.proof.RepWeaken.cross-Λ-⊢` proves it, so Beta is unconditional.
 --
--- NO PARAMETER IS KNOWN FALSE ANY MORE.  `CancelRCase` used to be one:
--- `notes/CancelRShiftWall.agda` refuted it for the rule as it stood, and
--- `notes/CancelRReachabilityWitness.agda` reached that configuration from
--- a closed plain source program.  Repair (a) was approved by Jeremy and
--- installed on 2026-09-19, and the repaired case is PROVED —
--- `strong.proof.MoveScope.preserve-CancelR`.  The two statements left
--- in `Stage1` are open, plausible obligations pending review, not known
--- falsehoods.
+-- ONE PARAMETER IS KNOWN FALSE AGAIN (2026-09-20).  `AddLock0Typing` is
+-- REFUTED — `notes/AddLock0Wall.agda` — and so, at the same instance,
+-- are `Preservation` and `Preservation*` below: a closed, plain System F
+-- program loses its type three steps in, at `TyPeelR-⟪⟫`, whose
+-- contractum re-spells the moved boundary's conversion with `renᶜ suc`
+-- in a name map where the new ordinary name is not at position zero.
+-- This is the second rule defect of the same shape as `CancelRCase`'s
+-- (refuted by `notes/CancelRShiftWall.agda`, reached from source by
+-- `notes/CancelRReachabilityWitness.agda`, repaired by Jeremy's repair
+-- (a) on 2026-09-19 and now PROVED,
+-- `strong.proof.MoveScope.preserve-CancelR`) — and, like that one, it
+-- needs a RULE repair, not a premise.  `MergedReading` remains an open,
+-- plausible obligation pending review.
 --
 -- Two statements CHANGED with the port, each against the old surface:
 --

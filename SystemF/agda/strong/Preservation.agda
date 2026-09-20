@@ -11,7 +11,23 @@ module strong.Preservation where
 -- on the statement repaired that day with the premise `reps Δ ⊢ᴮ Rs`).
 -- What remains a parameter is exactly
 --
---   * the representation-only transport `AddLock0Typing`, awaiting review.
+--   * the representation-only transport `AddLock0Typing` — and since
+--     2026-09-20 that parameter is KNOWN FALSE.
+--
+-- PRESERVATION IS FALSE AS THE RULES STAND (2026-09-20).
+-- `strong.notes.AddLock0Wall` refutes `AddLock0Typing` and, at the same
+-- instance, `Preservation` and `Preservation*` below: a closed, plain
+-- System F program — no hand-written boundary — loses its type three
+-- steps in, at `TyPeelR-⟪⟫`.  That rule re-spells the moved boundary's
+-- conversion with `renᶜ suc`, the renaming that is correct for the
+-- INTERIOR reading (where `addLock0`'s appended lock, acting first,
+-- deletes the new ordinary name) and wrong for the CONVERSION reading
+-- (which SKIPS locks, so the new name survives and the moved morphism's
+-- own unlocks displace it).  No premise repairs a contractum; the rule
+-- needs the repair `Peel` got on 2026-09-18 — name the moved conversion
+-- and carry a `SameConv`.  `Stage1` below is therefore a conditional
+-- theorem with a refuted hypothesis, kept so that the assembled proof
+-- survives the rule repair.
 --
 -- `CrossΛTyping` was proved on 2026-09-20 by
 -- `strong.proof.RepWeaken.cross-Λ-⊢`, so Beta substitution is now

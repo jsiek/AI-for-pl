@@ -356,9 +356,10 @@ DIFFERENTLY — a representation variable as α, β, γ and the ordinary variabl
 that names it as X, Y, Z at the same position — and renders a whole run,
 with the rule that fired at each step, through `showRun`.
 
-What is left on this branch is therefore not module porting, and no
-parameter is known false any more. It is TWO representation-only typing
-transports and `MergedReading` awaiting review (items 1, 2, 6).
+What is left on this branch is therefore not module porting. It was TWO
+representation-only typing transports and `MergedReading` awaiting review
+(items 1, 2, 6); one of those transports is now REFUTED, see the next two
+blocks.
 On 2026-09-20 Jeremy simplified the FORM of `RepWeakenTyping`: it now uses
 the representation-only traversal `renᴹᴿ`, while `renᴹ²-ord-id` connects
 that statement to `Peel`'s unchanged identity-ordinary contractum spelling.
@@ -373,6 +374,43 @@ payload `` ` 0 ``. With the one premise `reps Δ ⊢ᴮ Rs` — free at the only
 call site, where it is `mw-binds` of the boundary being crossed — the
 statement is proved in `proof/RepWeaken.agda`, and `PeelCase` is
 UNCONDITIONAL. See `notes/DECISIONS.md` (2026-09-20).
+
+**AND `CrossΛTyping` IS PROVED (2026-09-20)**, by one locked `env` around
+the same renaming transport (`proof/RepWeaken.agda`, `cross-Λ-⊢`), so
+`Beta` is unconditional too.
+
+**BUT `AddLock0Typing` IS REFUTED, AND PRESERVATION IS FALSE AS THE RULES
+STAND (2026-09-20).** This is the branch's headline and it is a RULE
+defect, not a missing premise. `TyPeelR-⟪⟫`'s contractum re-spells the
+moved boundary's conversion with `renᶜ suc` (written
+`` `∀ (renᶜ (extᵗ suc) s′) ``). That is the renaming that is right for
+the INTERIOR reading — `addLock0` appends `lock 0 (numBinds Θ′)`, a
+change list acts head-LAST, so that lock runs FIRST and deletes the new
+ordinary name before Θ′'s own changes do anything. The conversion is
+checked at the CONVERSION reading, which SKIPS locks (`conv-lock`): the
+new name survives there, and every `unlock X α` of Θ′ inserts around it,
+so it does NOT land at position zero. One `TyBeta`-minted `unlock 0 0` is
+enough to displace it. The moved conversion then reads the NEW binder —
+the type argument's representation — instead of the binder it named, and
+`env`'s `SameTyExt` refuses the result.
+
+Machine-checked in `notes/AddLock0Wall.agda`, from a CLOSED, PLAIN System
+F program with no hand-written boundary,
+
+    (λf : ∀X. ℕ⇒ℕ. ΛX. f [𝔹]) · ((ΛY. ΛZ. λx:Y. x) [ℕ])
+
+which loses its type in three steps (`TyBeta`, `Beta`, `TyPeelR-⟪⟫`).
+The module proves the reached state UNTYPEABLE — not merely rejected by
+`check⊢` — and hence `¬ AddLock0Typing`, `¬ Preservation` and
+`¬ Preservation*`.
+
+THE REPAIR IS THE ONE `Peel` GOT on 2026-09-18: the rule must NAME the
+moved conversion and carry a `SameConv` relating it to the original
+across the two conversion contexts, since the correct re-spelling is not
+a renaming at all — where the new name lands depends on Θ′'s unlocks.
+`respell`/`Q` supply such a witness, and Progress would derive it as it
+does for `Peel`. That is a rule change and so Jeremy's call; `Reduction.agda`
+is untouched.
 
 ## Resuming on another machine
 
@@ -413,11 +451,14 @@ Where the open threads are: item 1's stage-1 preservation port is done;
 stage 2 proved `IdPush`, `Peel` and — after the rule repair of 2026-09-19
 — `CancelR` (item 2); of the three representation-only typing transports
 `RepWeakenTyping` and `CrossΛTyping` are PROVED (2026-09-20,
-`proof/RepWeaken.agda`) and one awaits review; item 3's rewind transport
+`proof/RepWeaken.agda`) and one, `AddLock0Typing`, is REFUTED together
+with the rule that asks for it; item 3's rewind transport
 and item 4's rule-set cleanup are
 done; canonical forms are done; item 6's progress port is done modulo
 `MergedReading`, and its module sweep and the two remaining ports are
-done. The ONLY open work is the two review items: `AddLock0Typing` and
+done. The open work is now (a) the `TyPeelR-⟪⟫` RULE REPAIR that
+`notes/AddLock0Wall.agda` forces, and the replacement for
+`AddLock0Typing` that the repaired rule needs, and (b) the review item
 `MergedReading`.
 
 ## Immediate plans
@@ -481,7 +522,9 @@ done. The ONLY open work is the two review items: `AddLock0Typing` and
    `mkId (⇑ᵗ A)` is typed there.  The inner alignment is the common
    representation `⇑ᵗ R`, obtained by `same-ren suc` on the moved `A`
    reading and `same-weaken` on the conversion's `⇑ᵗ A` reading.  No new
-   premise was needed. `AddLock0Typing` remains under review.
+   premise was needed. `AddLock0Typing` is REFUTED — and with it the
+   `TyPeelR-⟪⟫` rule and preservation itself — see the status section
+   above and `notes/AddLock0Wall.agda`.
 2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
    `Peel` names the dual's spelling `s′` and carries
    `SameConv Δᵈ s′ Δᶜ s`, with the morphism's two readings, the dual's
@@ -639,8 +682,12 @@ done. The ONLY open work is the two review items: `AddLock0Typing` and
    Consequently `strong.Preservation.Stage1` takes ONLY `addLock0` —
    `crossΛ`, `peel`, `idpush`, `cancel` and `repWeaken` are all proved and
    plugged in — and `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda`
-   take `merged-reading` plus `addLock0`. No parameter is known false: the
-   two that remain are open, plausible obligations pending review.
+   take `merged-reading` plus `addLock0`. ONE of those two parameters is
+   now KNOWN FALSE again: `addLock0` (2026-09-20,
+   `notes/AddLock0Wall.agda`), so both stages are conditional theorems
+   with a refuted hypothesis until `TyPeelR-⟪⟫` is repaired.
+   `merged-reading` remains an open, plausible obligation pending
+   review.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
    transport lemmas in `CtxMorph.agda` §3a:
@@ -698,11 +745,13 @@ done. The ONLY open work is the two review items: `AddLock0Typing` and
    index universes move and in which context each spelling is read. The
    preservation and progress ports ARE that audit, rule by rule, and its
    verdict is now machine-checked rather than narrated: every crossing
-   spelling is either PROVEN sound (`TyBeta`, `Beta` and `TyPeelR-⟪⟫`
-   modulo the two transports under review; `TyPeelR-Λ`, `Drop$`,
+   spelling is either PROVEN sound (`TyBeta`, `Beta`; `TyPeelR-Λ`,
+   `Drop$`,
    `Drop-true/false` outright; `IdPush` in `proof/MoveScope.agda`; `Peel`
    in `proof/PeelDual.agda`, unconditionally since `RepWeakenTyping` was
-   proved on 2026-09-20) or was REFUTED and
+   proved on 2026-09-20), or was REFUTED and still IS
+   (`TyPeelR-⟪⟫`'s moved conversion, 2026-09-20,
+   `notes/AddLock0Wall.agda`), or was REFUTED and
    then REPAIRED (`CancelR`'s inner `mkId` read its type UNSHIFTED where
    the inner `env` demands `shiftBy (numBinds Θ₁)` —
    `notes/CancelRShiftWall.agda`, the fourth crossing defect, exactly the

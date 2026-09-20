@@ -25,7 +25,7 @@
   Move stuff about RepCtx, TyCtx, and Ctxᵗ to Ctx.agda
   Keep suff about Change and CtxMorph in CtxMorph.agda
 
-* Cleanup All.agda
+* DONE: Cleanup All.agda
 
   It should not import a file if that file is already indirectly imported
   from one of the imported files that lives in the strong/ directory.
@@ -33,7 +33,8 @@
   directly imported from All.agda.
   Regarding the imports of files from the notes/ directory, 
   create a notes/All.agda file that imports all those files from
-  the notes/ directory, and the main All.agda can import just the notes/All.agda file.
+  the notes/ directory, and the main All.agda can import just the
+  notes/All.agda file.
   of those files in the notes/ directory.
   
 * DONE: Rename Var in Types.agda to TyVar
@@ -52,4 +53,3 @@ data Term : Set where
 * DONE: Move lemmas from Types.agda to a new file proof/Types.agda.
 
 * DONE: Move lemmas from Ctx.agda to a new file proof/Ctx.agda.
-

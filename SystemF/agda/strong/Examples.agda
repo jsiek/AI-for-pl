@@ -61,12 +61,12 @@ module strong.Examples where
 --     preservation verdicts are `proof/Preserve.agda`,
 --     `proof/MoveScope.agda`, `proof/PeelDual.agda` and the ONE refutation
 --     that survives the port, `notes/CancelRShiftWall.agda`.
---   * old §8, §9 (progress and preservation along a run) — both theorems
---     are today inside parameterized modules (`strong.Progress.Stage1`,
---     `strong.Preservation.Stage1`), and one of the parameters is known
---     FALSE (notes/PLAN.md item 2).  Applying them to a run would state a
---     conditional, so the run-level subject reduction here is the one
---     `eval` CHECKS, state by state.
+--   * old §8, §9 (progress and preservation along a run) —
+--     `strong.Preservation.preservation` is now UNCONDITIONAL
+--     (2026-09-20) and progress awaits only `MergedReading`, but the
+--     run-level subject reduction here stays the one `eval` CHECKS,
+--     state by state: it is cheaper than instantiating the theorem at
+--     every run and catches the same losses.
 --   * old §12b and the old §13a/§13b witnesses — they imported
 --     `strong.proof.PreserveObstruct`, which was deleted in the module
 --     sweep (notes/DECISIONS.md, 2026-09-19).  What they probed —

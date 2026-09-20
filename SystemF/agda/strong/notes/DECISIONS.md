@@ -4206,3 +4206,161 @@ parameter is KNOWN FALSE: they are conditional theorems with a refuted
 hypothesis, kept so that the assembled preservation proof survives the
 rule repair.  `MergedReading` is unaffected and remains an open,
 plausible obligation pending review.
+
+## 2026-09-20 — the `TyPeelR-⟪⟫` repair is APPROVED and INSTALLED: the moved
+## conversion is NAMED, pinned by `SameConv`, against the OLD context viewed
+## through the representation renaming
+
+Jeremy approved the repair the wall of the previous entry forces, on the
+condition that it be installed on a POSITIVE experiment.  It was, and it
+is installed.
+
+THE RULE, AS IT NOW READS (`Reduction.agda`):
+
+    TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ W Θ′ s′ s″ Θ s B A R
+                      Bᵢ Bᵢ′ Bₑ} → Value W
+      → Δ ⊢ⁱ Θ ⇒ Δᵢ
+      → Δ ⊢ᶜ Θ ⇒ Δᶜ
+      → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
+      → Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺
+      → Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ
+      → SameConv (underΛ Δ″ᶜ) s″
+          (underΛ
+            (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′
+      → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
+      → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+      → Δ ⊢ᶜ A ~ R
+      → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+          -→ ((renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W
+                 ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′)
+                 , `∀ s″ ⟫)
+                ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
+               ⟪ instantiate R Θ , instReveal 0 s ⟫
+
+Three premises are new and one spelling changed: the contractum's
+`` `∀ (renᶜ (extᵗ suc) s′) `` became `` `∀ s″ ``.  Everything else — the
+`addLock0` frame, the outer frame, the minted `instReveal 0 s`, the
+pushed-in annotation and the type argument `` ` 0 `` — is untouched.  This
+is exactly the shape `Peel` got on 2026-09-18.
+
+THE ONE DESIGN POINT THAT IS NOT `Peel`'s: `renNameCtx`.  The old
+conversion context `Δ′ᶜ` is read through
+
+    renNameCtx ρ target source = reps target ∣ map ρ (names source)
+
+at `ρ = extN (numBinds Θ′) suc` — the representation renaming the inserted
+binder makes.  The ordinary POSITIONS of `Δ′ᶜ` are kept; what each denotes
+moves, because Θ′'s own bind block stays at representation indices
+`0 … numBinds Θ′ - 1` and everything below it is pushed past the new
+binder.  Taking `reps` from the TARGET is what makes
+`proof/PeelDual.respell-⊢` applicable later: its premise is
+`reps Γ′ ≡ reps Γ`.
+
+The view is NOT optional.  Replacing `renNameCtx … Δ″ᶜ Δ′ᶜ` by plain `Δ′ᶜ`
+was measured: run 9 of `notes/RepresentationReductionExamples.agda` — the
+one whose payload `∀Z. Z ⇒ X` carries a FREE representation variable —
+then loses its type at step 8 (`traceLen ≡ 8`, `repKept ≡ false`), because
+a free representation index is compared against the newly inserted binder.
+
+THE MEASUREMENT.  The wall's own program,
+
+    Src = (λf : ∀X. ℕ⇒ℕ. ΛX. f [𝔹]) · ((ΛY. ΛZ. λx:Y. x) [ℕ])
+
+now runs `TyBeta`, `Beta`, `TyPeelR-⟪⟫`, `TyPeelR-Λ` to a VALUE with every
+state type-checked:
+
+    Src-eval : Reaches 4 4 Src-⊢ Dst
+
+Its third state is the state the wall refutes with ONE conversion leaf
+changed — `seal 1 ↦ unseal 1` where the old rule wrote
+`seal 2 ↦ unseal 2`; the frames are identical.  Here the correct
+re-spelling is the IDENTITY, which is precisely what no fixed renaming
+delivers.  `notes/AddLock0Wall.agda` checks all of that
+(`repaired-state`, `good≢bad`), keeps the retired statement as a LOCAL
+`AddLock0Typing°` and still refutes THAT, and states no refutation of
+anything live.
+
+THE SUITE IS BYTE-IDENTICAL.  `notes/RepresentationReductionExamples.agda`
+and `Examples.agda` are unchanged and green, at the same endpoints and the
+same step counts.  `TyPeelR-⟪⟫` fires in several of those runs; the
+carried premise is invisible there because `Eval.agda`'s
+`bdyPremises?` builds it by the same `respell?` search the checker already
+ran for `Peel`.
+
+PROGRESS TOOK NO NEW PARAMETER — the point at which the experiment and the
+install diverge.  The experiment left the moved boundary's reading as a
+second stage-1 parameter; it is PROVED here, as
+`proof/Progress.addLock0-reading`, from three pieces:
+
+  * `conv-weaken` and `conv-snoc-lock` (`CtxMorph.agda` §3, new): a
+    conversion reading is monotone in its starting name set, and an
+    APPENDED lock — which runs FIRST — is skipped by a conversion reading.
+  * `addLock0-conversion-ren` (`CtxMorph.agda` §3d, new): those two after
+    `conv-changes-ren`, giving
+    `map (extN (numBinds Θ) suc) (names Γᶜ) ⊆ᵃ names Γ′ᶜ`.  The RENAMED
+    inclusion is the true one; the unrenamed one is false exactly when the
+    old context names a representation below the insertion.
+  * `instantiate-morphwf` (`proof/Preserve.agda`, hoisted out of the two
+    `mwᵢ` blocks that already built it): the instantiated frame is again a
+    `MorphWf`, which supplies the `RepWk suc` witness
+    `repwk-cons₀ (bindR (shiftBy (numBinds Θ) R)) …`.
+
+THE ORDER OF THE TWO TRANSPORTS IS THE WHOLE KNOT.  `readable` reads the
+old conversion at `underΛ Δ′ᶜ`.  The rule wants it at
+`underΛ (renNameCtx ρ Δ″ᶜ Δ′ᶜ)`, whose name map is `map ρ (names Δ′ᶜ)`.
+So the reading is REPRESENTATION-SHIFTED FIRST — `sameᶜ-ren (extᵗ ρ)`,
+carried past the `Λ` by `names-underΛ-ren` — and only THEN respelled into
+the moved boundary's own context through `⊆ᵃ-underΛ keep`.  Respelling
+first, which is what the experiment did, leaves the reading in the
+UNRENAMED map and the goal unprovable; that was the one open hole the
+experiment reported.  `strong.Progress.Stage1` therefore still takes
+exactly one parameter, `MergedReading`.
+
+AND THE RESHAPED PARAMETER IS PROVED — PRESERVATION IS UNCONDITIONAL.
+`AddLock0Typing` (`proof/Preserve.agda`) was RESHAPED with the rule — it
+now receives `Δ ⊢ᶜ Θ ⇒ Δᶜ`, the moved reading and the `SameConv`, and names
+the moved spelling — and `proof/AddLock0.agda` proves it, the same day.  It
+is the `env`-to-`env` transport across one inserted representation binder
+and one fresh ordinary name, and each of the six `env` premises moves by a
+lemma that already existed or by one small new one:
+
+  * `mw-exterior` is the statement's own `WfCtx` premise;
+  * `mw-binds` by `binds-ren` at `repwk-cons₀ (bindR P) …`;
+  * `mw-interior` by `addLock0-interior-ren` (`CtxMorph.agda` §3d, NEW —
+    the interior half of `addLock0-conversion-ren`).  It is the SHORT half:
+    an interior reading PERFORMS the appended lock, which runs first and
+    deletes the fresh ordinary name, so what is left is exactly
+    `interior-ren` with no ordinary position moved.  The conversion half is
+    the long one precisely because it SKIPS that lock;
+  * `mw-conversion` is the rule's own premise;
+  * the interior TERM by `proof/RepWeaken.⊢renᴿ` at
+    `repwk-push (repwk-cons₀ (bindR P) …) (binds Θ)` — purely
+    representation, which is what `renᴹᴿ` was for;
+  * the CONVERSION by `conv-ren` (`Conversion.agda` §2d), which moves the
+    representation context, then `proof/PeelDual.respell-⊢`, which moves
+    the name map.  `respell-⊢` demands `reps Γ′ ≡ reps Γ`, and THAT is what
+    `renNameCtx` was shaped to satisfy: it keeps the old ordinary positions
+    and takes the representation context from the moved side.  Its
+    retention argument is the `keep` of `addLock0-conversion-ren`, pushed
+    onto the rule's own `Δ⁺ᶜ` by `conversion-functional`;
+  * the two `SameTy` premises come back FROM `respell-⊢`, paired with the
+    old readings; `same-ren` supplies the moved side and `same-rep-unique`
+    identifies the two representations;
+  * the exterior `SameTyExt` by `same-weaken` for the fresh ordinary name
+    and `renameᵗ-shiftBy` for the bind-block shift — the one place the
+    proof has to know that `shiftRep k` COMMUTES with the representation
+    renaming.
+
+One inversion was added, `same-∀⁻` (`proof/AddLock0.agda` §1): `SameTyExt`
+compares against `shiftRep n R`, stuck on a variable `n`, so a `` `∀ ``'s
+exterior reading cannot be matched directly.  It is `conv-all-inv`'s
+counterpart one universe up.  One definition was hoisted rather than
+written twice: `instantiate-morphwf` (`proof/Preserve.agda`), which was
+already built inline in both `preserve-TyPeelR` clauses.
+
+CONSEQUENTLY `strong.Preservation.Stage1` IS GONE.  `preservation` and
+`preservation*` are stated outright, unconditionally.  `strong.TypeSafety`
+exports them unconditionally too, and its `Stage1` — like
+`strong.Progress.Stage1` and `strong.proof.TypeSafety.Stage1` — now takes
+exactly ONE parameter, `MergedReading`, which remains the single open,
+plausible obligation pending review.  Nothing is postulated anywhere.

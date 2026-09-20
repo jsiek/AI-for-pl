@@ -2,35 +2,37 @@ module strong.TypeSafety where
 
 -- TYPE SAFETY for Strong System F (the two-universe design).
 --
--- The public theorem surface.  Two theorems hold outright:
+-- The public theorem surface.  FOUR theorems hold outright:
 --
---   det           reduction is deterministic on well-typed terms
---   value-¬step   values do not step
+--   det            reduction is deterministic on well-typed terms
+--   value-¬step    values do not step
+--   preservation   a well-typed term stays well typed  (2026-09-20)
+--   preservation*  and along a whole run                (2026-09-20)
 --
--- The other three — progress, preservation (and preservation* along a
--- run), and their composition type-safety — are STAGE-1 PARAMETERIZED:
--- the statements are final, and the proofs are complete modulo the
--- reviewed-before-implementation statements collected by `Stage1` below
--- (`MergedReading` for progress; `AddLock0Typing` for preservation).
--- Missing proofs remain module parameters,
--- visible in the type of `Stage1`.  `RepWeakenTyping` LEFT that list on
--- 2026-09-20: `strong.proof.RepWeaken.rep-weaken-⊢` proves it, so
--- `PeelCase` is now unconditional.  `CrossΛTyping` left it the same day:
--- `strong.proof.RepWeaken.cross-Λ-⊢` proves it, so Beta is unconditional.
+-- The other two — progress and its composition with preservation,
+-- type-safety — are STAGE-1 PARAMETERIZED by exactly ONE statement,
+-- `MergedReading`, which is held for review rather than implemented.  It
+-- is visible in the type of `Stage1`.
 --
--- ONE PARAMETER IS KNOWN FALSE AGAIN (2026-09-20).  `AddLock0Typing` is
--- REFUTED — `notes/AddLock0Wall.agda` — and so, at the same instance,
--- are `Preservation` and `Preservation*` below: a closed, plain System F
--- program loses its type three steps in, at `TyPeelR-⟪⟫`, whose
--- contractum re-spells the moved boundary's conversion with `renᶜ suc`
--- in a name map where the new ordinary name is not at position zero.
--- This is the second rule defect of the same shape as `CancelRCase`'s
+-- PRESERVATION BECAME UNCONDITIONAL ON 2026-09-20, in three steps of the
+-- same day.  `RepWeakenTyping` was proved
+-- (`strong.proof.RepWeaken.rep-weaken-⊢`), making `PeelCase`
+-- unconditional; `CrossΛTyping` was proved
+-- (`strong.proof.RepWeaken.cross-Λ-⊢`), making Beta unconditional; and
+-- `AddLock0Typing`, which `notes/AddLock0Wall.agda` had REFUTED that
+-- morning — a closed, plain System F program losing its type three steps
+-- in, at `TyPeelR-⟪⟫`, whose contractum re-spelled the moved boundary's
+-- conversion with `renᶜ suc` in a name map where the new ordinary name is
+-- not at position zero — was answered by the RULE repair Jeremy approved
+-- (the moved conversion is NAMED and pinned by `SameConv`) and then PROVED
+-- on the reshaped statement, `strong.proof.AddLock0.addLock0-⊢`.
+--
+-- That was the second rule defect of the shape `CancelRCase`'s had
 -- (refuted by `notes/CancelRShiftWall.agda`, reached from source by
--- `notes/CancelRReachabilityWitness.agda`, repaired by Jeremy's repair
--- (a) on 2026-09-19 and now PROVED,
--- `strong.proof.MoveScope.preserve-CancelR`) — and, like that one, it
--- needs a RULE repair, not a premise.  `MergedReading` remains an open,
--- plausible obligation pending review.
+-- `notes/CancelRReachabilityWitness.agda`, repaired by Jeremy's repair (a)
+-- on 2026-09-19 and proved,
+-- `strong.proof.MoveScope.preserve-CancelR`).  `MergedReading` remains the
+-- one open, plausible obligation pending review.
 --
 -- Two statements CHANGED with the port, each against the old surface:
 --
@@ -102,24 +104,22 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
 -- The stage-1 theorems, over the statements pending review
 ------------------------------------------------------------------------
 
+preservation : Preservation
+preservation = Pv.preservation
+
+preservation* : Preservation*
+preservation* = Pv.preservation*
+
 module Stage1
   (merged-reading : PP.MergedReading)
-  (addLock0  : P.AddLock0Typing)
   where
 
   private
     module Pr1 = Pr.Stage1 merged-reading
-    module Pv1 = Pv.Stage1 addLock0
-    module TS1 = TS.Stage1 merged-reading addLock0
+    module TS1 = TS.Stage1 merged-reading
 
   progress : Progress
   progress = Pr1.progress
-
-  preservation : Preservation
-  preservation = Pv1.preservation
-
-  preservation* : Preservation*
-  preservation* = Pv1.preservation*
 
   type-safety : TypeSafety
   type-safety = TS1.type-safety

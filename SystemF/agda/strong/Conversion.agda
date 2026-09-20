@@ -135,6 +135,19 @@ data _⊩_~_ (η : TyCtx) : Conv → Conv → Set where
   sameᶜ-fun    : η ⊩ s ~ r → η ⊩ t ~ u → η ⊩ s ↦ t ~ r ↦ u
   sameᶜ-all    : (zero ∷ shiftNames η) ⊩ s ~ r → η ⊩ `∀ s ~ `∀ r
 
+sameᶜ-cast : ∀ {η η′ : TyCtx} → η ≡ η′ → η ⊩ s ~ r → η′ ⊩ s ~ r
+sameᶜ-cast refl p = p
+
+sameᶜ-ren : (ρ : Renameᵗ) → η ⊩ s ~ r → map ρ η ⊩ s ~ renᶜ ρ r
+sameᶜ-ren ρ (sameᶜ-id p) = sameᶜ-id (same-ren ρ p)
+sameᶜ-ren ρ (sameᶜ-seal d) = sameᶜ-seal (∋ˡ-ren ρ d)
+sameᶜ-ren ρ (sameᶜ-unseal d) = sameᶜ-unseal (∋ˡ-ren ρ d)
+sameᶜ-ren ρ (sameᶜ-fun p q) =
+  sameᶜ-fun (sameᶜ-ren ρ p) (sameᶜ-ren ρ q)
+sameᶜ-ren {η = η} ρ (sameᶜ-all p) =
+  sameᶜ-all
+    (sameᶜ-cast (names-underΛ-ren ρ η) (sameᶜ-ren (extᵗ ρ) p))
+
 SameConv : Ctxᵗ → Conv → Ctxᵗ → Conv → Set
 SameConv Γ s Γ′ s′ = ∃[ r ] ((names Γ ⊩ s ~ r) × (names Γ′ ⊩ s′ ~ r))
 
@@ -174,6 +187,11 @@ sameConv-src-unique uq (r , p , q) (r′ , p′ , q′)
   with sameᶜ-rep-unique q q′
 sameConv-src-unique uq (r , p , q) (r′ , p′ , q′) | refl =
   sameᶜ-target-unique uq p p′
+
+sameConv-∀ : ∀ {Γ Γ′ : Ctxᵗ}
+  → SameConv (underΛ Γ) s (underΛ Γ′) s′
+  → SameConv Γ (`∀ s) Γ′ (`∀ s′)
+sameConv-∀ (r , p , q) = `∀ r , sameᶜ-all p , sameᶜ-all q
 
 ------------------------------------------------------------------------
 -- 2c. Re-spelling a conversion across a morphism crossing

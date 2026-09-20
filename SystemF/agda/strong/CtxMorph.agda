@@ -9,10 +9,10 @@ module strong.CtxMorph where
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_; _≤_; z≤n; s≤s)
 open import Data.Nat.Properties
-  using (_≟_; +-cancelˡ-≡; ≤-trans; suc-injective)
+  using (_≟_; +-cancelˡ-≡; +-identityʳ; ≤-trans; suc-injective)
 open import Data.List using (List; []; _∷_; _++_; map; reverse; length)
 open import Data.List.Properties using (unfold-reverse; map-++)
-open import Data.Product using (_,_; _×_; ∃-syntax; proj₂)
+open import Data.Product using (Σ; Σ-syntax; _,_; _×_; ∃-syntax; proj₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Empty using (⊥-elim)
 open import Relation.Nullary using (¬_; Dec; yes; no)
@@ -1165,6 +1165,62 @@ pigeon (α ∷ xs) ys (unique∷ fr uq) k | X , d | ys′ , dl =
   k′ : xs ⊆ᵃ ys′
   k′ lv = del-mono dl (fresh→≢ fr lv) (k (∋ᵅ-cons lv))
 
+ins-le : α ⊢+ Δ at X ⇒ Δ′ → X ≤ length Δ
+ins-le ins-here = z≤n
+ins-le (ins-there i) = s≤s (ins-le i)
+
+ins-cover : ∀ {Δ₀} → α ⊢+ Δ at X ⇒ Δ′ → Δ₀ ∋ᵅ α
+  → Δ ⊆ᵃ Δ₀ → Δ′ ⊆ᵃ Δ₀
+ins-cover i live k lv with ins-inv i lv
+ins-cover i live k lv | inj₁ refl = live
+ins-cover i live k lv | inj₂ lv′ = k lv′
+
+-- A conversion reading is monotone in its starting name set.  Locks are
+-- skipped; an unlock either finds its name already live in the larger set or
+-- inserts it at the same position.  The old output therefore remains
+-- available, although its ordinary positions may change.  This is the
+-- lock-skipping transport needed when `addLock0` carries a boundary across a
+-- newly inserted name.
+conv-weaken : ∀ {Δ₀ χ} → Unique Δ → Unique Δ₀
+  → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
+  → Δ ⊆ᵃ Δ₀
+  → ∃[ Δ₀′ ] ((Ξ ∣ Δ₀ ⊢χᶜ χ ⇒ Δ₀′) × (Δ′ ⊆ᵃ Δ₀′))
+conv-weaken uq uq₀ conv[] keep = _ , conv[] , keep
+conv-weaken uq uq₀ (conv-lock v cs) keep with conv-weaken uq uq₀ cs keep
+conv-weaken uq uq₀ (conv-lock v cs) keep | Δ₀′ , cs′ , keep′ =
+  Δ₀′ , conv-lock v cs′ , keep′
+conv-weaken uq uq₀ (conv-unlock v cs fr i) keep
+  with conv-weaken uq uq₀ cs keep
+conv-weaken uq uq₀ (conv-unlock v cs fr i) keep
+  | Δ₀′ , cs′ , keep′ with live? _ Δ₀′
+conv-weaken uq uq₀ (conv-unlock v cs fr i) keep
+  | Δ₀′ , cs′ , keep′ | inj₁ live =
+  Δ₀′ , conv-unlock-live v cs′ (proj₂ live)
+        , ins-cover i live keep′
+conv-weaken uq uq₀ (conv-unlock v cs fr i) keep
+  | Δ₀′ , cs′ , keep′ | inj₂ fresh
+  with ins-exists Δ₀′ _
+         (≤-trans (ins-le i) (pigeon _ _ (conv-unique uq cs) keep′))
+conv-weaken uq uq₀ (conv-unlock v cs fr i) keep
+  | Δ₀′ , cs′ , keep′ | inj₂ fresh | Δ₀″ , i′ =
+  Δ₀″ , conv-unlock v cs′ fresh i′
+        , ins-cover i (ins-live i′) (λ lv → ins-mono i′ (keep′ lv))
+conv-weaken uq uq₀ (conv-unlock-live v cs d) keep
+  with conv-weaken uq uq₀ cs keep
+conv-weaken uq uq₀ (conv-unlock-live v cs d) keep
+  | Δ₀′ , cs′ , keep′ =
+  Δ₀′ , conv-unlock-live v cs′ (proj₂ (keep′ (_ , d))) , keep′
+
+-- Appending a lock makes it run first, and a conversion reading skips it.
+conv-snoc-lock : ValidRVar Ξ α → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
+  → Ξ ∣ Δ ⊢χᶜ χ ++ (lock X α ∷ []) ⇒ Δ′
+conv-snoc-lock v conv[] = conv-lock v conv[]
+conv-snoc-lock v (conv-lock w cs) = conv-lock w (conv-snoc-lock v cs)
+conv-snoc-lock v (conv-unlock w cs fr i) =
+  conv-unlock w (conv-snoc-lock v cs) fr i
+conv-snoc-lock v (conv-unlock-live w cs d) =
+  conv-unlock-live w (conv-snoc-lock v cs) d
+
 sucle : ∀ {a b} → suc a ≤ suc b → a ≤ b
 sucle (s≤s le) = le
 
@@ -1514,6 +1570,90 @@ conversion-ren {Δ = Δ} {ρ = ρ} {Ξ′ = Ξ′} {Θ = Θ}
                     ⇒ map (extN (numBinds Θ) ρ) Δ′)
            (names-ren-push ρ (binds Θ) Δ)
            (conv-changes-ren (repwk-push w (binds Θ)) cs))
+
+-- The conversion half of moving a boundary across a fresh representation
+-- binder.  Representation renaming first transports the old reading.  The
+-- appended lock is skipped, so `conv-weaken` starts that transported run in
+-- the larger map containing the fresh ordinary name.  The result retains the
+-- REPRESENTATION-RENAMED old conversion names; retaining the unrenamed names
+-- is false when the old context names a free representation below the new
+-- insertion.
+addLock0-conversion-ren : ∀ {Ξ Ξ′ Δ Θ Γᶜ}
+  → RepWk suc Ξ Ξ′
+  → ValidRVar Ξ′ zero
+  → Unique Δ
+  → (Ξ ∣ Δ) ⊢ᶜ Θ ⇒ Γᶜ
+  → Σ[ Γ′ᶜ ∈ Ctxᵗ ]
+        (((Ξ′ ∣ (zero ∷ shiftNames Δ))
+          ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Γ′ᶜ)
+        × (map (extN (numBinds Θ) suc) (names Γᶜ)
+             ⊆ᵃ (names Γ′ᶜ)))
+addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
+                        w v₀ uq (conversion {Δ′ = Δᶜ} cs)
+  with conv-weaken
+         (unique-shiftRVars (length (map (renameᵗ suc) Rs))
+           (unique-shift uq))
+         (unique-shiftRVars (length (map (renameᵗ suc) Rs))
+           (unique∷ fresh-zero-shift (unique-shift uq)))
+         (subst
+           (λ D → pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∣ D
+             ⊢χᶜ map (renᶠᴿ (extN (length Rs) suc)) χ
+             ⇒ map (extN (length Rs) suc) Δᶜ)
+           (names-ren-push suc Rs Δ)
+           (conv-changes-ren (repwk-push w Rs) cs))
+         ∋ᵅ-cons
+addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
+                        w v₀ uq (conversion {Δ′ = Δᶜ} cs)
+  | Δ′ , cs′ , keep =
+  _ , conversion (conv-snoc-lock valid cs′) , keep
+  where
+  valid : ValidRVar
+            (pushRepBinds (map (renameᵗ suc) Rs) Ξ′)
+            (length (map (renameᵗ suc) Rs))
+  valid = subst (ValidRVar (pushRepBinds (map (renameᵗ suc) Rs) Ξ′))
+                (+-identityʳ (length (map (renameᵗ suc) Rs)))
+                (_ , ∋ˡ-push (map (renameᵗ suc) Rs) (proj₂ v₀))
+
+-- The INTERIOR half of the same move, and the reason the moved term needs
+-- no ordinary renaming.  The appended lock runs FIRST here too, but an
+-- interior reading PERFORMS a lock: it deletes the fresh ordinary name
+-- before any of Θ's own changes run, so what remains is exactly the
+-- representation-renamed old interior — `interior-ren`, with no ordinary
+-- position moved.  Contrast `addLock0-conversion-ren`, where the lock is
+-- skipped and the fresh name has to be carried through the whole run.
+addLock0-interior-ren : ∀ {Ξ Ξ′ Δ Θ Γᵢ}
+  → RepWk suc Ξ Ξ′
+  → ValidRVar Ξ′ zero
+  → (Ξ ∣ Δ) ⊢ⁱ Θ ⇒ Γᵢ
+  → (Ξ′ ∣ (zero ∷ shiftNames Δ)) ⊢ⁱ addLock0 (renᴮᴿ suc Θ) ⇒
+      (pushRepBinds (map (renameᵗ suc) (binds Θ)) Ξ′
+        ∣ map (extN (numBinds Θ) suc) (names Γᵢ))
+addLock0-interior-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
+                      w v₀ (interior {Δ′ = Δᵢ} cs) =
+  interior
+    (changes-++
+      (changes∷ changes[]
+        (step-lock valid
+          (subst (λ α → α ⊢- (n + zero) ∷ shiftRVars n (shiftNames Δ)
+                          at zero ⇒ shiftRVars n (shiftNames Δ))
+                 (+-identityʳ n) del-here)
+          (subst (λ α → Fresh α (shiftRVars n (shiftNames Δ)))
+                 (+-identityʳ n)
+                 (fresh-shiftRVars n fresh-zero-shift))))
+      (subst
+        (λ D → pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∣ D
+          ⊢χ map (renᶠᴿ (extN (length Rs) suc)) χ
+          ⇒ map (extN (length Rs) suc) Δᵢ)
+        (names-ren-push suc Rs Δ)
+        (changes-ren (repwk-push w Rs) cs)))
+  where
+  n : ℕ
+  n = length (map (renameᵗ suc) Rs)
+
+  valid : ValidRVar (pushRepBinds (map (renameᵗ suc) Rs) Ξ′) n
+  valid = subst (ValidRVar (pushRepBinds (map (renameᵗ suc) Rs) Ξ′))
+                (+-identityʳ n)
+                (_ , ∋ˡ-push (map (renameᵗ suc) Rs) (proj₂ v₀))
 
 ------------------------------------------------------------------------
 -- 4. Concrete boundary shapes

@@ -11,14 +11,21 @@ module strong.proof.Progress where
 -- has a conversion reading that retains every name available in both the
 -- outer and inner conversion contexts.  `MergedReading` states that fact
 -- directly; `Impl` proves progress from it.  Nothing is postulated.
+--
+-- The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
+-- boundary's conversion reading and the retention that names the moved
+-- spelling are PROVED here as `addLock0-reading`, from the lock-skipping
+-- transport `strong.CtxMorph.addLock0-conversion-ren`.
 
 open import Data.Nat using (ℕ; zero; suc)
-open import Data.List using ([]; _∷_)
+open import Data.List using ([]; _∷_; map)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Relation.Binary.PropositionalEquality
+  using (_≡_; refl; sym; subst)
 
-open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
+open import strong.Types
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; extᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.Terms
@@ -26,6 +33,7 @@ open import strong.CtxMorph
 open import strong.TermSubst
 open import strong.Reduction
 open import strong.proof.Canonical
+open import strong.proof.Preserve using (instantiate-morphwf)
 
 private
   variable
@@ -88,6 +96,49 @@ MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
       ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
         × (names Δᶜ) ⊆ᵃ (names Δ⋉ᶜ)
         × (names Δ₁ᶜ) ⊆ᵃ (names Δ⋉ᶜ))
+
+-- THE MOVED BOUNDARY'S OWN READING (2026-09-20, the repair's progress
+-- obligation).  The repaired `TyPeelR-⟪⟫` carries the moved boundary's
+-- conversion reading and a `SameConv` pinning the moved spelling, so
+-- progress must CONSTRUCT that reading.  It is not a new assumption: the
+-- lock-skipping transport `conv-weaken`/`conv-snoc-lock` and the
+-- representation renaming are assembled by
+-- `strong.CtxMorph.addLock0-conversion-ren`, and all this wrapper adds is
+-- the `MorphWf` packaging and the `RepWk suc` witness for the binder
+-- `instantiate R Θ` mints.
+--
+-- THE RENAMING IS THE WHOLE POINT.  The retained names are
+-- `map (extN (numBinds Θ′) suc) (names Δ′ᶜ)`, NOT `names Δ′ᶜ`: the
+-- insertion moves every representation index the old conversion context
+-- named from below the new binder.  The unrenamed inclusion is false, and
+-- run 9 of notes/RepresentationReductionExamples is the witness.
+--
+-- It lives here rather than in strong.CtxMorph because the rule spells the
+-- moved frame with `renᴮ²` (strong.TermSubst), one layer above.
+addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
+  → MorphWf Δ Θ Δᵢ Δᶜ
+  → MorphWf Δᵢ Θ′ Δ′ᵢ Δ′ᶜ
+  → names Δ ⊢ A ~ R
+  → Σ[ Δ″ᶜ ∈ Ctxᵗ ]
+      ((((bindR (shiftBy (numBinds Θ) R) ∷ reps Δᵢ)
+           ∣ (zero ∷ shiftNames (names Δᵢ)))
+          ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ)
+        × (map (extN (numBinds Θ′) suc) (names Δ′ᶜ) ⊆ᵃ (names Δ″ᶜ)))
+addLock0-reading {Θ = Θ} {Θ′ = Θ′} {R = R} mwΘ mw′ p
+  with addLock0-conversion-ren
+         (repwk-cons₀ (bindR (shiftBy (numBinds Θ) R))
+           (λ _ → wf-reps (mw-interior-wf (instantiate-morphwf mwΘ p))))
+         (_ , here)
+         (name-fn (mw-interior-wf mwΘ))
+         (mw-conversion mw′)
+-- the rule's frame spelling, `renᴮ² (ren² idᵗ suc)`, IS the
+-- representation-only renaming `renᴮᴿ suc` that the transport produces
+addLock0-reading {Θ = Θ} {Θ′ = Θ′} {R = R} mwΘ mw′ p
+  | Δ″ᶜ , r″ , keep =
+  Δ″ᶜ
+  , subst (λ Θ₀ → _ ⊢ᶜ addLock0 Θ₀ ⇒ Δ″ᶜ)
+      (sym (renᴮ²-ord-id (λ X → refl) Θ′)) r″
+  , keep
 
 ------------------------------------------------------------------------
 -- 3. Base identities
@@ -234,8 +285,53 @@ module Impl (merged-reading : MergedReading) where
     (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
     | inj₂ (W , Θ′ , s′ , vW , refl) | R , p =
-    _ , TyPeelR-⟪⟫ vW (mw-interior mwΘ) (mw-conversion mwΘ)
-                      ⊢s sameD p
+    tyPeelR-⟪⟫ vW mwΘ ⊢V ⊢s sameD p
+    where
+    tyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bᵢ′ Bₑ}
+      → Value W
+      → MorphWf Δ Θ Δᵢ Δᶜ
+      → Δᵢ ∣ [] ⊢ W ⟪ Θ′ , `∀ s′ ⟫ ⦂ `∀ Bᵢ′
+      → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
+      → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+      → names Δ ⊢ A ~ R
+      → Σ[ M ∈ Term ]
+          (Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M)
+    -- THE MOVED READING IS REPRESENTATION-SHIFTED FIRST.  `readable` reads
+    -- the old conversion at `underΛ Δ′ᶜ`; the rule wants it at
+    -- `underΛ (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)`, whose name
+    -- map is `map (extN (numBinds Θ′) suc) (names Δ′ᶜ)`.  So the reading
+    -- is transported along the REPRESENTATION renaming the fresh binder
+    -- induces (`sameᶜ-ren`, past the `Λ` by `names-underΛ-ren`), and only
+    -- then respelled into the moved boundary's own context by the
+    -- retention `addLock0-reading` supplies.  Doing the respell first —
+    -- the 2026-09-20 dead end — leaves the reading in the unrenamed map.
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+      (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
+      ⊢s sameD p
+      with addLock0-reading mwΘ mw′ p
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+      (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
+      ⊢s sameD p
+      | Δ″ᶜ , r″ , keep with readable ⊢s′
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+      (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
+      ⊢s sameD p
+      | Δ″ᶜ , r″ , keep | r , rd
+      with sameᶜ-cast
+             (names-underΛ-ren (extN (numBinds Θ′) suc) (names Δ′ᶜ))
+             (sameᶜ-ren (extᵗ (extN (numBinds Θ′) suc)) rd)
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+      (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
+      ⊢s sameD p
+      | Δ″ᶜ , r″ , keep | r , rd | rdᴿ
+      with respell (⊆ᵃ-underΛ keep) rdᴿ
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+      (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
+      ⊢s sameD p
+      | Δ″ᶜ , r″ , keep | r , rd | rdᴿ | s″ , rd″ =
+      _ , TyPeelR-⟪⟫ vW (mw-interior mwΘ) (mw-conversion mwΘ)
+            (mw-conversion mw′) (instantiate-interior (mw-interior mwΘ))
+            r″ (_ , rd″ , rdᴿ) ⊢s sameD p
 
   ----------------------------------------------------------------------
   -- 5. The induction

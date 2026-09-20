@@ -197,20 +197,30 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ N ⟪ instantiate R Θ , instReveal 0 s ⟫
 
-  -- The moved boundary crosses a binder that its appended `lock 0` removes.
-  -- Its ordinary indices therefore retain their positions after deletion;
-  -- only representation occurrences move past the new representation binder.
-  -- Thus the interior and frame use paired, rep-only renamings, while the
-  -- conversion and annotation (which can see the new ordinary binder) retain
-  -- their ordinary weakening.
-  -- `renᶜ (extᵗ (extN (numBinds Θ′) suc))` on its `∀`-conversion
-  -- body —
-  -- and then `lock 0` is APPENDED to its own (shifted) change list.  So
-  -- the contractum is the single rule's, with `addLock0` on the moved
-  -- boundary and nothing else changed: same outer frame, same minted
-  -- conversion `instReveal 0 s`, same pushed-in annotation, same type
-  -- argument `` ` 0 `` (`TyPeelR-⟪⟫-wkᴹ`,
-  -- `TyPeelR-⟪⟫-outer-unchanged`, proof/ShiftAudit §5c).
+  -- The moved boundary crosses a binder that its appended `lock 0` removes
+  -- from the INTERIOR reading.  Its ordinary term indices therefore retain
+  -- their positions after deletion; only representation occurrences move past
+  -- the new representation binder.  Thus the interior term and frame use
+  -- paired, representation-only renamings, and the pushed-in annotation is
+  -- re-spelled separately at the outer frame's interior.
+  --
+  -- THE CONVERSION WALL AND REPAIR (2026-09-20).  The conversion reading
+  -- SKIPS locks.  Hence the new ordinary name survives there while every
+  -- `unlock X α` in Θ′ inserts around it; where that name ends up depends on
+  -- Θ′.  In the closed witness of notes/AddLock0Wall, one `unlock 0 0`
+  -- displaces it to position one, so the old fixed
+  -- `renᶜ (extᵗ suc) s′` points at the wrong representation and the third
+  -- state loses its type.  No fixed renaming can be right for all Θ′.
+  --
+  -- The rule therefore NAMES the carried spelling `s″`, carries both the old
+  -- and moved conversion readings, and pins the spellings with `SameConv`, in
+  -- the same pattern as `Peel`.  The old context is viewed through the
+  -- representation renaming made by the insertion: without that view, run 9
+  -- of notes/RepresentationReductionExamples loses its type at step 8 because
+  -- a free representation index is compared to the newly inserted binder.
+  -- The contractum is otherwise unchanged: same `addLock0` frame, outer
+  -- frame, minted `instReveal 0 s`, pushed-in annotation and type argument
+  -- `` ` 0 ``.
   -- THE RE-BASED ANNOTATION (2026-09-18).  `Bᵢ` is read at the CONVERSION
   -- context, because that is where the crossed boundary's conversion is
   -- typed; the pushed-in `·[ _ , ` 0 ]` is read by `⊢·[]` at the INTERIOR.
@@ -221,16 +231,23 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- arithmetic on its position.  Determinism for it is
   -- `sameTy-src-unique`; `det` reads the interior's `Unique` name map from
   -- the redex typing derivation.
-  TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bᵢ′ Bₑ} → Value W
+  TyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ W Θ′ s′ s″ Θ s B A R
+                    Bᵢ Bᵢ′ Bₑ} → Value W
     → Δ ⊢ⁱ Θ ⇒ Δᵢ
     → Δ ⊢ᶜ Θ ⇒ Δᶜ
+    → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
+    → Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺
+    → Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ
+    → SameConv (underΛ Δ″ᶜ) s″
+        (underΛ
+          (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′
     → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
     → SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
         -→ ((renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W
                ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′)
-               , `∀ (renᶜ (extᵗ suc) s′) ⟫)
+               , `∀ s″ ⟫)
               ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
              ⟪ instantiate R Θ , instReveal 0 s ⟫
 
@@ -457,42 +474,78 @@ det _ (TyPeelR-Λ v rel ⊢s same) (ξ-·[] st) =
 det _ (ξ-·[] st) (TyPeelR-Λ v rel ⊢s same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-Λ v) I-all) st)
 
--- The wrapper clause's two contracta agree because the SOURCE type is a
--- function of the conversion and the type context (`conv-src-unique`), so
--- the two premises determine the SAME pushed-in annotation.
+-- The wrapper clause's two contracta agree after all five carried readings
+-- have been identified.  The SOURCE type determines the pushed-in annotation;
+-- the type argument determines the instantiated frame; and the moved
+-- conversion spelling is pinned by `sameConv-src-unique`.  Its `Unique` map is
+-- recovered from the redex typing's exterior and the carried instantiated
+-- interior/moved-conversion readings, just as `Peel` recovers the dual map.
 det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
   with interior-functional ri ri′ | conversion-functional rc rc′
 det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′) | refl | refl
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl
   with interior-functional ri (mw-interior mwΘ)
      | conversion-functional rc (mw-conversion mwΘ)
 det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
     | refl | refl | refl | refl
+  with conversion-functional r′ r′′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl
   with conv-src-unique
          (unique-underΛ {Γ = Δᶜ} (name-fn (mw-conversion-wf mwΘ))) ⊢s ⊢s′
 det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl
   with sameTy-src-unique
          (unique-underΛ {Γ = Δᵢ} (name-fn (mw-interior-wf mwΘ))) sm sm′
 det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl | refl
   with same-rep-unique same same′
 det (⊢·[] (env mwΘ _ _ _ _ _) _)
-    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v ri rc ⊢s sm same)
-    (TyPeelR-⟪⟫ v′ ri′ rc′ ⊢s′ sm′ same′)
-    | refl | refl | refl | refl | refl | refl | refl = refl
-det _ (TyPeelR-⟪⟫ v ri rc ⊢s sm same) (ξ-·[] st) =
+    (TyPeelR-⟪⟫ {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
+      v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl | refl | refl
+  with interior-functional ri⁺ ri⁺′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl | refl | refl | refl
+  with conversion-functional r″ r″′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ {Δ″ᶜ = Δ″ᶜ} v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl
+  with sameConv-src-unique
+         (unique-underΛ {Γ = Δ″ᶜ}
+           (conversion-unique
+             (interior-unique (name-fn (mw-exterior mwΘ)) ri⁺) r″))
+         sc sc′
+det (⊢·[] (env mwΘ _ _ _ _ _) _)
+    (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same)
+    (TyPeelR-⟪⟫ v′ ri′ rc′ r′′ ri⁺′ r″′ sc′ ⊢s′ sm′ same′)
+    | refl | refl | refl | refl | refl | refl | refl | refl | refl | refl
+    | refl = refl
+det _ (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) (ξ-·[] st) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
-det _ (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc ⊢s sm same) =
+det _ (ξ-·[] st) (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm same) =
   ⊥-elim (value-¬step (V-⟪⟫ (V-⟪⟫ v I-all) I-all) st)
 
 -- CancelR — both looked-up types and the re-spelling are functional.  The

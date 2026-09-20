@@ -2,9 +2,10 @@ module strong.proof.TypeSafety where
 
 -- TYPE SAFETY for Strong System F: the composition of progress and
 -- preservation along a run.  The two theorems are stage-1 parameterized
--- (strong.Progress, strong.Preservation), so their composition inherits
--- every parameter of both: `MergedReading` from progress, and the one
--- representation transport still open in preservation.  `CancelRCase`
+-- (strong.Progress), so their composition inherits its one parameter:
+-- `MergedReading`, from progress.  PRESERVATION IS UNCONDITIONAL since
+-- 2026-09-20, when the reshaped `AddLock0Typing` was proved
+-- (strong.proof.AddLock0), so it contributes no parameter.  `CancelRCase`
 -- is no longer among them: the rule repair of 2026-09-19 made it
 -- provable, and `strong.proof.MoveScope.preserve-CancelR` proves it.
 -- Neither is `RepWeakenTyping`: `strong.proof.RepWeaken.rep-weaken-⊢`
@@ -41,13 +42,11 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
 
 module Stage1
   (merged-reading : PP.MergedReading)
-  (addLock0  : P.AddLock0Typing)
   where
 
   private
     module Pr1 = Pr.Stage1 merged-reading
-    module Pv1 = Pv.Stage1 addLock0
 
   type-safety : TypeSafety
   type-safety wfΔ ⊢M M-→*N =
-    Pr1.progress (Pv1.preservation* wfΔ ⊢M M-→*N)
+    Pr1.progress (Pv.preservation* wfΔ ⊢M M-→*N)

@@ -233,12 +233,12 @@ towerHeight-renᴹ² ρ (M ⟪ Θ , c ⟫)  =
 -- THE MEASURE STRICTLY DECREASES.  The ∀-value the contractum's inner
 -- `·[]` instantiates is ONE BOUNDARY SHORTER than the one the redex's
 -- `·[]` instantiated.
-TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : CtxMorph) (s′ s : Conv)
+TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : CtxMorph) (s′ s″ s : Conv)
   → towerHeight (renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W
                    ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′)
-                   , `∀ (renᶜ (extᵗ suc) s′) ⟫)
+                   , `∀ s″ ⟫)
       ≡ towerHeight ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ∸ 1
-TyPeelR-⟪⟫-height W Θ′ Θ s′ s =
+TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
   cong suc (towerHeight-renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W)
 
 -- THE REJECTED REPAIR STALLS AT THE SAME MEASURE.  Fix (a) — wrap the
@@ -429,7 +429,7 @@ Drop$-only-numerals (TyBeta v p)            ()
 Drop$-only-numerals (Beta w)                ()
 Drop$-only-numerals (Peel v w rc ri rd sc)  ()
 Drop$-only-numerals (TyPeelR-Λ v rc ⊢s p)   ()
-Drop$-only-numerals (TyPeelR-⟪⟫ v ri rc ⊢s sm p) ()
+Drop$-only-numerals (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) ()
 Drop$-only-numerals (CancelR v ri r₁ d₁ r⋉ sm rc d) ()
 Drop$-only-numerals (Drop$ b)               refl = refl
 Drop$-only-numerals Drop-true               ()

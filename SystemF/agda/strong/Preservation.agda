@@ -9,25 +9,31 @@ module strong.Preservation where
 -- strong.proof.PeelDual — UNCONDITIONALLY since 2026-09-20, when
 -- `RepWeakenTyping` was proved (`strong.proof.RepWeaken.rep-weaken-⊢`,
 -- on the statement repaired that day with the premise `reps Δ ⊢ᴮ Rs`).
--- What remains a parameter is exactly
+-- NOTHING REMAINS A PARAMETER (2026-09-20).  The last one,
+-- `AddLock0Typing`, is proved by `strong.proof.AddLock0.addLock0-⊢`, so
+-- `preservation` and `preservation*` below are UNCONDITIONAL theorems.
 --
---   * the representation-only transport `AddLock0Typing` — and since
---     2026-09-20 that parameter is KNOWN FALSE.
+-- THE WALL OF 2026-09-20, AND ITS REPAIR.  `strong.notes.AddLock0Wall`
+-- refuted the OLD `AddLock0Typing` and, at the same instance, `Preservation`
+-- and `Preservation*` below: a closed, plain System F program — no
+-- hand-written boundary — lost its type three steps in, at `TyPeelR-⟪⟫`.
+-- That rule re-spelled the moved boundary's conversion with `renᶜ suc`, the
+-- renaming that is correct for the INTERIOR reading (where `addLock0`'s
+-- appended lock, acting first, deletes the new ordinary name) and wrong for
+-- the CONVERSION reading (which SKIPS locks, so the new name survives and
+-- the moved morphism's own unlocks displace it).  No premise repairs a
+-- contractum, so the RULE was repaired, with Jeremy's approval and in the
+-- pattern `Peel` got on 2026-09-18: the moved conversion is NAMED and
+-- pinned by a `SameConv`, against the old conversion context viewed through
+-- the representation renaming the inserted binder makes.  The wall's
+-- program now runs to a value in four steps with every state typed, and the
+-- wall module refutes only its own LOCAL copy of the retired statement.
 --
--- PRESERVATION IS FALSE AS THE RULES STAND (2026-09-20).
--- `strong.notes.AddLock0Wall` refutes `AddLock0Typing` and, at the same
--- instance, `Preservation` and `Preservation*` below: a closed, plain
--- System F program — no hand-written boundary — loses its type three
--- steps in, at `TyPeelR-⟪⟫`.  That rule re-spells the moved boundary's
--- conversion with `renᶜ suc`, the renaming that is correct for the
--- INTERIOR reading (where `addLock0`'s appended lock, acting first,
--- deletes the new ordinary name) and wrong for the CONVERSION reading
--- (which SKIPS locks, so the new name survives and the moved morphism's
--- own unlocks displace it).  No premise repairs a contractum; the rule
--- needs the repair `Peel` got on 2026-09-18 — name the moved conversion
--- and carry a `SameConv`.  `Stage1` below is therefore a conditional
--- theorem with a refuted hypothesis, kept so that the assembled proof
--- survives the rule repair.
+-- `AddLock0Typing` in that reshaped form IS PROVED, the same day
+-- (`strong.proof.AddLock0`): the `env`-to-`env` transport across one
+-- inserted representation binder and one fresh ordinary name, with the
+-- moved conversion supplied by the rule.  The `Stage1` module that carried
+-- it is gone; the theorems below are stated outright.
 --
 -- `CrossΛTyping` was proved on 2026-09-20 by
 -- `strong.proof.RepWeaken.cross-Λ-⊢`, so Beta substitution is now
@@ -61,6 +67,7 @@ import strong.proof.Preserve as P
 import strong.proof.PeelDual as PD
 import strong.proof.MoveScope as MS
 import strong.proof.RepWeaken as RW
+import strong.proof.AddLock0 as AL
 
 ------------------------------------------------------------------------
 -- 1. Public statements
@@ -81,21 +88,17 @@ Preservation* = ∀ {Δ M M′ A}
   → Δ ∣ [] ⊢ M′ ⦂ A
 
 ------------------------------------------------------------------------
--- 2. The parameterized theorem
+-- 2. The theorems
 ------------------------------------------------------------------------
 
-module Stage1
-  (addLock0  : P.AddLock0Typing)
-  where
+private
+  module I = P.Impl RW.cross-Λ-⊢ AL.addLock0-⊢
+                    (PD.preserve-Peel RW.rep-weaken-⊢)
+                    MS.preserve-CancelR
+                    MS.preserve-IdPush
 
-  private
-    module I = P.Impl RW.cross-Λ-⊢ addLock0
-                      (PD.preserve-Peel RW.rep-weaken-⊢)
-                      MS.preserve-CancelR
-                      MS.preserve-IdPush
+preservation : Preservation
+preservation = I.preserve
 
-  preservation : Preservation
-  preservation = I.preserve
-
-  preservation* : Preservation*
-  preservation* = I.preserve*
+preservation* : Preservation*
+preservation* = I.preserve*

@@ -54,6 +54,13 @@ record Ctxᵗ : Set where
     names : TyCtx
 open Ctxᵗ public
 
+-- View one context's ordinary names after a representation renaming, using a
+-- second context's representation store.  Crossings use this when the same
+-- ordinary spelling is carried across an inserted representation binder: the
+-- positions stay fixed, but the representation indices they denote move.
+renNameCtx : Renameᵗ → Ctxᵗ → Ctxᵗ → Ctxᵗ
+renNameCtx ρ target source = reps target ∣ map ρ (names source)
+
 private
   variable
     Γ Γ′ : Ctxᵗ

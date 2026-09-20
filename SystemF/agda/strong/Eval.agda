@@ -119,22 +119,60 @@ peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
 peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
 
--- The wrapper clause's extra two: the interior context and the crossing
--- itself.
-BdyPremises : Ctxᵗ → CtxMorph → Ty → Ctxᵗ → Set
-BdyPremises Δ Θ Bᵢ Δᶜ =
-  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Bᵢ′ ∈ Ty ]
-    ((Δ ⊢ⁱ Θ ⇒ Δᵢ) × SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ)
+-- The wrapper clause's remaining premises.  Besides re-spelling the pushed-in
+-- annotation, it reads the old inner boundary, the instantiated outer frame,
+-- and the moved inner boundary, then re-spells the inner conversion between
+-- those two conversion contexts.  In particular, no arithmetic renaming is
+-- used for the carried conversion.
+BdyPremises : Ctxᵗ → CtxMorph → CtxMorph → Conv → Ty → Ty → Ctxᵗ → Set
+BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
+  Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Bᵢ′ ∈ Ty ] Σ[ Δ′ᶜ ∈ Ctxᵗ ] Σ[ Δᵢ⁺ ∈ Ctxᵗ ]
+    Σ[ Δ″ᶜ ∈ Ctxᵗ ] Σ[ s″ ∈ Conv ]
+      ((Δ ⊢ⁱ Θ ⇒ Δᵢ) × SameTy (underΛ Δᵢ) Bᵢ′ (underΛ Δᶜ) Bᵢ
+        × (Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
+        × (Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺)
+        × (Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ)
+        × SameConv (underΛ Δ″ᶜ) s″
+            (underΛ
+              (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′)
 
-bdyPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (Bᵢ : Ty) (Δᶜ : Ctxᵗ)
-  → Maybe (BdyPremises Δ Θ Bᵢ Δᶜ)
-bdyPremises? Δ Θ Bᵢ Δᶜ with interior? Δ Θ
-bdyPremises? Δ Θ Bᵢ Δᶜ | nothing = nothing
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri)
+bdyPremises? : (Δ : Ctxᵗ) (Θ Θ′ : CtxMorph) (s′ : Conv)
+  (R Bᵢ : Ty) (Δᶜ : Ctxᵗ) → Maybe (BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ)
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ with interior? Δ Θ
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | nothing = nothing
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   with rebase? (names (underΛ Δᶜ)) (names (underΛ Δᵢ)) Bᵢ
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | nothing = nothing
-bdyPremises? Δ Θ Bᵢ Δᶜ | just (Δᵢ , ri) | just (Bᵢ′ , sm) =
-  just (Δᵢ , Bᵢ′ , ri , sm)
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri) | nothing = nothing
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) with conversion? Δᵢ Θ′
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | nothing = nothing
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′)
+  with interior? Δ (instantiate R Θ)
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | nothing = nothing
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
+  with conversion? Δᵢ⁺ (addLock0 (renᴮ² (ren² idᵗ suc) Θ′))
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
+  | nothing = nothing
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
+  | just (Δ″ᶜ , r″)
+  with respell?
+         (names (underΛ
+           (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)))
+         (names (underΛ Δ″ᶜ)) s′
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
+  | just (Δ″ᶜ , r″) | nothing = nothing
+bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
+  | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
+  | just (Δ″ᶜ , r″) | just (s″ , sc) =
+  just (Δᵢ , Bᵢ′ , Δ′ᶜ , Δᵢ⁺ , Δ″ᶜ , s″
+       , ri , sm , r′ , ri⁺ , r″ , sc)
 
 -- `IdPush` re-bases the name it pushes into the merged frame, the same
 -- way `TyPeelR-⟪⟫` re-bases its annotation.
@@ -294,18 +332,24 @@ tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) =
   just (_ , TyPeelR-Λ vN rel ⊢s same)
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s})) | nothing = nothing
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
+tyAppRedex Δ B A
+  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   with peelPremises? Δ Θ s A
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
+tyAppRedex Δ B A
+  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | nothing = nothing
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
+tyAppRedex Δ B A
+  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
-  with bdyPremises? Δ Θ Bᵢ Δᶜ
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
+  with bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ
+tyAppRedex Δ B A
+  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
-  | just (Δᵢ , Bᵢ′ , ri , sm) =
-  just (_ , TyPeelR-⟪⟫ vW ri rel ⊢s sm same)
-tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-⟪⟫ vW I-all) (I-all {s}))
+  | just (Δᵢ , Bᵢ′ , Δ′ᶜ , Δᵢ⁺ , Δ″ᶜ , s″
+         , ri , sm , r′ , ri⁺ , r″ , sc) =
+  just (_ , TyPeelR-⟪⟫ vW ri rel r′ ri⁺ r″ sc ⊢s sm same)
+tyAppRedex Δ B A
+  (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) | nothing = nothing
 tyAppRedex Δ B A _ = nothing
 

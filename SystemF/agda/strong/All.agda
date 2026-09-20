@@ -35,6 +35,14 @@ open import strong.proof.Preserve
 open import strong.proof.PeelDual
 open import strong.proof.RepWeaken
 open import strong.proof.MoveScope
+
+-- THE LAST PRESERVATION TRANSPORT (2026-09-20).  `AddLock0Typing`, on the
+-- statement the `TyPeelR-⟪⟫` repair of that day gave it: the moved
+-- boundary's typing across one inserted representation binder and one
+-- fresh ordinary name.  It reads `RepWeaken` (the representation half) and
+-- `PeelDual` (the conversion re-spelling), so it sits after both.  With
+-- it, `strong.Preservation` takes NO parameters.
+open import strong.proof.AddLock0
 open import strong.proof.TypeSafety
 
 -- THE CANCELR WALL AND ITS REPAIR (2026-09-19).  This one notes module
@@ -52,14 +60,21 @@ open import strong.notes.CancelRShiftWall
 -- (strong.proof.RepWeaken).
 open import strong.notes.RepWeakenBindsWall
 
--- THE ADDLOCK0 WALL (2026-09-20).  `AddLock0Typing` is FALSE, and no
--- premise repairs it: `TyPeelR-⟪⟫` re-spells the moved boundary's
--- conversion with `renᶜ suc`, which is right for the INTERIOR reading and
--- wrong for the CONVERSION reading — the latter SKIPS the appended lock,
--- so the new ordinary name is displaced by the moved morphism's own
--- unlocks.  The module runs a closed, plain System F program that loses
--- its type at that step, and proves the reached state untypeable; hence
--- `¬ Preservation`.  It sits here because it reads `strong.Preservation`.
+-- THE ADDLOCK0 WALL AND ITS REPAIR (2026-09-20).  The OLD `TyPeelR-⟪⟫`
+-- re-spelled the moved boundary's conversion with `renᶜ suc`, which is
+-- right for the INTERIOR reading and wrong for the CONVERSION reading —
+-- the latter SKIPS the appended lock, so the new ordinary name is
+-- displaced by the moved morphism's own unlocks.  A closed, plain System F
+-- program lost its type at that step, which refuted the old
+-- `AddLock0Typing` and `Preservation` outright.  No premise repairs a
+-- contractum, so the RULE was repaired, in `Peel`'s pattern: the moved
+-- conversion is NAMED and pinned by a `SameConv`, and the reshaped
+-- statement is PROVED (strong.proof.AddLock0).  The module keeps the old
+-- statement locally and still refutes it, checks the untypeable state the
+-- old rule reached, and MEASURES the repaired run — four steps to a value,
+-- every state typed.  It no longer reads `strong.Preservation` — there is
+-- nothing live left for it to refute — but it stays here, below the proof
+-- scripts, with the other wall-and-repair modules.
 open import strong.notes.AddLock0Wall
 
 -- progress (the canonical-forms suite, the proof script, the theorem)

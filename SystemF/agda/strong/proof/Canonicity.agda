@@ -474,9 +474,16 @@ canon-step uq tp (ct-· (ct-⟪⟫ cV cst) cW) (Peel _ _ rc ri rd sc) =
 canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-Λ cN) cs)) (TyPeelR-Λ _ _ _ _) =
   ct-⟪⟫ cN (tp cs)
 canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-⟪⟫ cW cs′) cs))
-              (TyPeelR-⟪⟫ {Θ′ = Θ′} _ _ _ _ _ _) =
+              (TyPeelR-⟪⟫ {Δ′ᶜ = Δ′ᶜ} {Δ″ᶜ = Δ″ᶜ} {Θ′ = Θ′}
+                _ _ _ _ ri⁺ r″ sc _ _ _) =
   ct-⟪⟫ (ct-·[] (ct-⟪⟫ (canon-renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) cW)
-                       (canonC-ren suc cs′)))
+                       (canonC-respell
+                         (conversion-unique
+                           (interior-unique uq ri⁺) r″)
+                         (sameConv-∀ {Γ = Δ″ᶜ}
+                           {Γ′ = renNameCtx
+                             (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ} sc)
+                         cs′)))
         (tp cs)
 canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
               (CancelR {A = A} {A′ = A′} _ _ _ _ _ _ _ _) =

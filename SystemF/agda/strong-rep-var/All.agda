@@ -34,6 +34,12 @@ open import strong-rep-var.TypeSafety
 -- the two universes differently (X names α) and a whole run with the rule
 -- that fired at each step.
 open import strong-rep-var.Examples
+
+-- COLOR PRESERVATION (2026-09-21): the one-hole-context/residual layer
+-- and the theorem STATEMENT.  The proof follows Jeremy's review of the
+-- statement (notes/TODO.md).
+open import strong-rep-var.Residual
+open import strong-rep-var.ColorPreservation
 open import strong-rep-var.Show
 
 -- THE SOUNDNESS GATE.  A conceal must cite a REPRESENTED binder, and the

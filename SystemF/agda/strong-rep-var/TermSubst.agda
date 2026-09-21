@@ -386,10 +386,18 @@ substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
 substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
 substᵐ σ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 
+-- The substitution `Beta` performs: the argument, carrying the ƛ's
+-- annotation, for variable zero; every other variable steps down.  It is
+-- a named function, not a pattern lambda, so that strong-rep-var.Residual
+-- can cite the very same substitution when it follows a position through
+-- `Beta`.
+betaEnv : Term → Ty → Var → Img
+betaEnv W A zero    = ival W A
+betaEnv W A (suc x) = ivar x
+
 infix 8 _[_∶_]ᵐ
 _[_∶_]ᵐ : Term → Term → Ty → Term
-N [ W ∶ A ]ᵐ =
-  substᵐ (λ { zero → ival W A ; (suc x) → ivar x }) N
+N [ W ∶ A ]ᵐ = substᵐ (betaEnv W A) N
 
 ------------------------------------------------------------------------
 -- 6. Typed images away from type-context transport

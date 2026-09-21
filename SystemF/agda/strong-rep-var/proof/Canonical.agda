@@ -37,7 +37,7 @@ open import strong-rep-var.Types
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 
 private
   variable
@@ -225,7 +225,7 @@ canon-ℕ {Δ = Δ} (V-⟪⟫ v ic)
 -- premise.
 canon-⇒ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ (A ⇒ B)
   → (Σ[ N ∈ Term ] (V ≡ ƛ A ∙ N))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
+  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ] Σ[ t ∈ Conv ]
        (Value W × (V ≡ W ⟪ Θ , s ↦ t ⟫)))
 canon-⇒ V-$     ()
 canon-⇒ V-true  ()
@@ -248,7 +248,7 @@ canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
 -- exactly TyBeta's premise) or a wrapper with a ∀ CONVERSION (TyPeelR's).
 canon-∀ : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ `∀ C
   → (Σ[ N ∈ Term ] (Value N × (V ≡ Λ N)))
-  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ s ∈ Conv ]
+  ⊎ (Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ s ∈ Conv ]
        (Value W × (V ≡ W ⟪ Θ , `∀ s ⟫)))
 canon-∀ V-$      ()
 canon-∀ V-true   ()
@@ -274,7 +274,7 @@ canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
 -- visibility of the named slot is a separate, and independently available,
 -- fact.)
 canon-var : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
-  → Σ[ W ∈ Term ] Σ[ Θ ∈ CtxMorph ] Σ[ Y ∈ ℕ ]
+  → Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ Y ∈ ℕ ]
       (Value W
        × ((V ≡ W ⟪ Θ , seal Y ⟫) ⊎ (V ≡ W ⟪ Θ , id (` Y) ⟫)))
 canon-var V-$     ()

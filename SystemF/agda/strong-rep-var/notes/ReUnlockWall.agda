@@ -11,13 +11,13 @@ module strong-rep-var.notes.ReUnlockWall where
 --     conversion context.
 --   * Nothing here runs a program.  The reasoning is in
 --     notes/DECISIONS.md (2026-09-17); the rule that changed is
---     `conv-unlock-live` in strong-rep-var.CtxMorph §3.
+--     `conv-unlock-live` in strong-rep-var.Boundary §3.
 --
 -- HOW THIS WAS FOUND.  By finishing the tower example
 -- (strong-rep-var.Examples §5a).  The eleventh step of that
 -- run is `CancelR`, whose contractum wraps the cancelled value in
 -- `rewind Θ₂` and in `Θ₁ ⋉ Θ₂`, where Θ₁ is the argument's
--- `dualMorph Θ₂` from the `Peel` that sent it across.  Every state up to
+-- `dualBoundary Θ₂` from the `Peel` that sent it across.  Every state up to
 -- and including the redex is well typed, so this is a defect in the rules
 -- and not in the example.
 --
@@ -34,7 +34,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong-rep-var.Types using (Ty; `_; `ℕ; `𝔹)
 open import strong-rep-var.Ctx
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TypeCheck using (conv!)
 
 ------------------------------------------------------------------------
@@ -43,11 +43,11 @@ open import strong-rep-var.TypeCheck using (conv!)
 
 -- Θ₂ LOCKS: it is `TyPeelR-Λ`'s `instantiate` over a frame that had
 -- already crossed two `Λ`s.
-Θlock : CtxMorph
-Θlock = instantiate (` 0) (morph [] (lock 0 2 ∷ lock 0 0 ∷ []))
+Θlock : Boundary
+Θlock = instantiate (` 0) (boundary [] (lock 0 2 ∷ lock 0 0 ∷ []))
 
 Θlock-explicit :
-  Θlock ≡ morph (` 0 ∷ []) (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
+  Θlock ≡ boundary (` 0 ∷ []) (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
 Θlock-explicit = refl
 
 repsW : RepCtx
@@ -117,6 +117,6 @@ rewind-conv-repaired = proj₂ (conv! Δ-out (rewind Θlock))
 -- The same wall stands in front of `CancelR`'s OTHER frame, `Θ₁ ⋉ Θ₂`,
 -- whenever the crossing argument acquired Θ₂'s dual at a `Peel`.
 cancel-inner-conv-repaired :
-  Δ-arg ⊢ᶜ dualMorph Θlock ⋉ Θlock ⇒ Δ-conv
+  Δ-arg ⊢ᶜ dualBoundary Θlock ⋉ Θlock ⇒ Δ-conv
 cancel-inner-conv-repaired =
-  proj₂ (conv! Δ-arg (dualMorph Θlock ⋉ Θlock))
+  proj₂ (conv! Δ-arg (dualBoundary Θlock ⋉ Θlock))

@@ -16,11 +16,11 @@ module strong-rep-var.proof.AddLock0 where
 --
 -- So the six `env` premises transport in two different ways:
 --
---   mw-exterior    the statement's own `WfCtx` premise
---   mw-binds       `binds-ren` at `repwk-cons₀ (bindR P) …`
---   mw-interior    `addLock0-interior-ren` — the lock deletes the fresh
+--   bw-exterior    the statement's own `WfCtx` premise
+--   bw-binds       `binds-ren` at `repwk-cons₀ (bindR P) …`
+--   bw-interior    `addLock0-interior-ren` — the lock deletes the fresh
 --                  name, leaving `interior-ren`
---   mw-conversion  the rule's own premise
+--   bw-conversion  the rule's own premise
 --   the interior   `strong-rep-var.proof.RepWeaken.⊢renᴿ` at `repwk-push` of
 -- the
 --                  same insertion: purely representation
@@ -41,7 +41,7 @@ module strong-rep-var.proof.AddLock0 where
 --                  `renameᵗ-shiftBy` for the bind-block shift `shiftRep k`.
 --
 -- The retention `respell-⊢` consumes is NOT a new assumption: it is the
--- `keep` component of `strong-rep-var.CtxMorph.addLock0-conversion-ren`,
+-- `keep` component of `strong-rep-var.Boundary.addLock0-conversion-ren`,
 -- transported
 -- onto the rule's own `Δ⁺ᶜ` by `conversion-functional`.  Nothing is
 -- postulated.
@@ -59,7 +59,7 @@ open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
 open import strong-rep-var.proof.Preserve
@@ -84,7 +84,7 @@ same-∀⁻ (same-∀ q) = _ , refl , q
 -- The retention the moved conversion is re-spelled along.  `Δ⁺ᶜ` is the
 -- rule's own reading, so the transport's output context is identified with
 -- it by `conversion-functional`.
-moved-keep : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : CtxMorph} {P : Ty}
+moved-keep : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : Boundary} {P : Ty}
   → WfCtx Δ
   → WfRepCtx (bindR P ∷ reps Δ)
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
@@ -121,7 +121,7 @@ moved-conv w keep (r , rd′ , rd) ⊢s | A′ , B′ , ⊢s′ , smA , smB =
   A′ , B′ , conv-all ⊢s′ , smA , smB
 
 -- and the same, on the premises the rule actually carries
-moved-conv′ : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : CtxMorph} {s s′ : Conv}
+moved-conv′ : ∀ {Δ Δᶜ Δ⁺ᶜ : Ctxᵗ} {Θ : Boundary} {s s′ : Conv}
   {Cᵢ Cₑ P : Ty}
   → WfCtx Δ
   → WfRepCtx (bindR P ∷ reps Δ)
@@ -204,10 +204,10 @@ moved-sameₑ {Δ = Δ} {Δ⁺ᶜ = Δ⁺ᶜ} {k = k} {B′ = B′} (T , pₑ , 
 -- Everything is stated here in the REPRESENTATION-ONLY spellings `renᴹᴿ`
 -- and `renᴮᴿ`; §4 connects them to the rule's paired `renᴹ²`/`renᴮ²` by
 -- `renᴹ²-ord-id`/`renᴮ²-ord-id`.
-moved-env : ∀ {Δ Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {W : Term} {Θ : CtxMorph}
+moved-env : ∀ {Δ Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {W : Term} {Θ : Boundary}
   {s s′ : Conv} {A P Bᵢ Cᵢ Cₑ : Ty}
   → WfCtx ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
-  → MorphWf Δ Θ Δᵢ Δᶜ
+  → BoundaryWf Δ Θ Δᵢ Δᶜ
   → Δᵢ ∣ [] ⊢ W ⦂ Bᵢ
   → underΛ Δᶜ ⊢ s ∶ Cᵢ ⇝ Cₑ
   → Δᵢ ⊢ Bᵢ ≈ `∀ Cᵢ ⊣ Δᶜ
@@ -223,7 +223,7 @@ moved-env : ∀ {Δ Δᵢ Δᶜ Δ⁺ᶜ : Ctxᵗ} {W : Term} {Θ : CtxMorph}
         ⟪ addLock0 (renᴮᴿ suc Θ) , `∀ s′ ⟫)
       ⦂ `∀ (renameᵗ (extᵗ suc) A)
 moved-env wf⁺ mwΘ ⊢W ⊢s sameᵢ sameₑ wE rc r⁺ sc
-  with moved-conv′ (mw-exterior mwΘ) (wf-reps wf⁺) rc r⁺ sc ⊢s
+  with moved-conv′ (bw-exterior mwΘ) (wf-reps wf⁺) rc r⁺ sc ⊢s
 moved-env {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {W = W} {Θ = Θ}
           {A = A} {P = P} {Bᵢ = Bᵢ}
   wf⁺ mwΘ ⊢W ⊢s sameᵢ sameₑ wE rc r⁺ sc
@@ -247,12 +247,12 @@ moved-env {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {W = W
 
   wᵢ : RepWk ρ (reps Δᵢ) Ξᵢ⁺
   wᵢ = subst (λ Ξ → RepWk ρ Ξ Ξᵢ⁺)
-             (sym (interior-reps (mw-interior mwΘ)))
+             (sym (interior-reps (bw-interior mwΘ)))
              (repwk-push w₀ (binds Θ))
 
-  mw⁺ : MorphWf Δ⁺ (addLock0 (renᴮᴿ suc Θ)) Δᵢ⁺ Δ⁺ᶜ
-  mw⁺ = mw wf⁺ (binds-ren w₀ (mw-binds mwΘ))
-           (addLock0-interior-ren w₀ (_ , here) (mw-interior mwΘ))
+  mw⁺ : BoundaryWf Δ⁺ (addLock0 (renᴮᴿ suc Θ)) Δᵢ⁺ Δ⁺ᶜ
+  mw⁺ = bw wf⁺ (binds-ren w₀ (bw-binds mwΘ))
+           (addLock0-interior-ren w₀ (_ , here) (bw-interior mwΘ))
            r⁺
 
   ⊢W⁺ : Δᵢ⁺ ∣ [] ⊢ renᴹᴿ ρ W ⦂ Bᵢ
@@ -283,7 +283,7 @@ moved-env {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δ⁺ᶜ = Δ⁺ᶜ} {W = W
 
 addLock0-⊢ : AddLock0Typing
 addLock0-⊢ wf⁺ (env mwΘ ⊢W ⊢c sameᵢ sameₑ wE) rc r⁺ sc
-  with conversion-functional (mw-conversion mwΘ) rc
+  with conversion-functional (bw-conversion mwΘ) rc
 addLock0-⊢ wf⁺ (env mwΘ ⊢W ⊢c sameᵢ sameₑ wE) rc r⁺ sc | refl
   with conv-all-inv ⊢c
 addLock0-⊢ {Δ = Δ} {W = W} {Θ = Θ} {s′ = s′} {A = A} {P = P}

@@ -15,9 +15,9 @@ module strong-rep-var.TermSubst where
 --     `_∣_⊢ⁱ_⦂_` with `⊢imgTm`, `shiftᴵ-⊢`, `extᴵ-⊢`.
 --   * WHAT IS DELIBERATELY ONE LAYER DOWN.  `extN` is strong-rep-var.Ctx §8
 -- and
---     the representation-only `renᶠᴿ`/`renᴮᴿ` are strong-rep-var.CtxMorph
+--     the representation-only `renᶠᴿ`/`renᴮᴿ` are strong-rep-var.Boundary
 --     §2/§3, beside the syntax they act on, because the
---     representation-renaming metatheory of strong-rep-var.CtxMorph §3d is
+--     representation-renaming metatheory of strong-rep-var.Boundary §3d is
 --     stated over them and cannot import this module.  Reduction is
 --     strong-rep-var.Reduction; the typing transport for `renᴹᴿ` and `crossΛᴹ`
 --     is strong-rep-var.proof.RepWeaken (`rep-weaken-⊢`, `cross-Λ-⊢`), not
@@ -27,7 +27,7 @@ module strong-rep-var.TermSubst where
 --     `_⟪_,_⟫` and `⊢renⁿ` reuses the boundary's derivation unchanged.
 --     (2) A type renaming carries TWO independent maps, and the
 --     ordinary one never moves a representation occurrence:
---     `TyBetaMorph-ren-Λ` is the concrete separation check, and
+--     `TyBetaBoundary-ren-Λ` is the concrete separation check, and
 --     `renᴹ²-ord-id` is the general statement that an
 --     ordinary-identity `renᴹ²` IS `renᴹᴿ` (notes/DECISIONS.md,
 --     2026-09-20, representation-only renaming is its own traversal).
@@ -42,7 +42,7 @@ module strong-rep-var.TermSubst where
 --
 --   * the ordinary map renames term annotations, type arguments, conversion
 --     names, and the positions carried by `lock` and `unlock`;
---   * the representation map renames morphism payloads and the
+--   * the representation map renames boundary scope payloads and the
 --     representation-variable occurrence carried by every change.
 
 open import Data.Nat using (ℕ; zero; suc)
@@ -55,7 +55,7 @@ open import strong-rep-var.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 
 ------------------------------------------------------------------------
@@ -78,9 +78,9 @@ id² = ren² idᵗ idᵗ
 -- `extN` (renaming underneath n binders) and the representation-only
 -- `renᶠᴿ`/`renᴮᴿ` live one layer down — `extN` in strong-rep-var.Ctx §8 and
 -- the
--- two renamings in strong-rep-var.CtxMorph §2/§3, beside the syntax they act
+-- two renamings in strong-rep-var.Boundary §2/§3, beside the syntax they act
 -- on —
--- because the representation-renaming metatheory of strong-rep-var.CtxMorph
+-- because the representation-renaming metatheory of strong-rep-var.Boundary
 -- §3d
 -- is stated over them and cannot import this module.
 
@@ -97,17 +97,17 @@ renᶠ² ρᵗ ρʳ (unlock X α) = unlock (ρᵗ X) (ρʳ α)
 renᶠ : Renameᵗ → Change → Change
 renᶠ ρ = renᶠ² ρ ρ
 
-renᴮ² : TyRename → CtxMorph → CtxMorph
+renᴮ² : TyRename → Boundary → Boundary
 renᴮ² (ren² ρᵗ ρʳ) Θ =
-  morph (map (renameᵗ ρʳ) (binds Θ))
+  boundary (map (renameᵗ ρʳ) (binds Θ))
         (map (renᶠ² ρᵗ (extN (numBinds Θ) ρʳ)) (changes Θ))
 
 -- The one-map specialization is retained for callers where both universes
 -- move in lockstep, such as weakening under an ordinary `Λ`.
-renᴮ : Renameᵗ → CtxMorph → CtxMorph
+renᴮ : Renameᵗ → Boundary → Boundary
 renᴮ ρ = renᴮ² (ren² ρ ρ)
 
-numBinds-ren² : (ρ : TyRename) (Θ : CtxMorph)
+numBinds-ren² : (ρ : TyRename) (Θ : Boundary)
   → numBinds (renᴮ² ρ Θ) ≡ numBinds Θ
 numBinds-ren² ρ Θ = map-length (binds Θ)
   where
@@ -116,16 +116,16 @@ numBinds-ren² ρ Θ = map-length (binds Θ)
   map-length []       = refl
   map-length (_ ∷ xs) = cong suc (map-length xs)
 
-numBinds-ren : (ρ : Renameᵗ) (Θ : CtxMorph)
+numBinds-ren : (ρ : Renameᵗ) (Θ : Boundary)
   → numBinds (renᴮ ρ Θ) ≡ numBinds Θ
 numBinds-ren ρ Θ = numBinds-ren² (ren² ρ ρ) Θ
 
 -- Concrete separation check. Weakening TyBeta under `Λ` moves its ordinary
 -- insertion point from 0 to 1, but its representation occurrence stays 0
 -- because that occurrence is bound by TyBeta's own `bindR`.
-TyBetaMorph-ren-Λ : renᴮ² (ren² suc suc) TyBetaMorph
-  ≡ morph (`ℕ ∷ []) (unlock 1 0 ∷ [])
-TyBetaMorph-ren-Λ = refl
+TyBetaBoundary-ren-Λ : renᴮ² (ren² suc suc) TyBetaBoundary
+  ≡ boundary (`ℕ ∷ []) (unlock 1 0 ∷ [])
+TyBetaBoundary-ren-Λ = refl
 
 ------------------------------------------------------------------------
 -- 2. Renaming terms
@@ -192,8 +192,8 @@ renᶠ²-ord-id {ρʳ = ρʳ} h (unlock X α) =
 
 renᴮ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X)
   → ∀ Θ → renᴮ² (ren² ρᵗ ρʳ) Θ ≡ renᴮᴿ ρʳ Θ
-renᴮ²-ord-id {ρᵗ} {ρʳ} h (morph Rs χ) =
-  cong (morph (map (renameᵗ ρʳ) Rs)) (changes-id χ)
+renᴮ²-ord-id {ρᵗ} {ρʳ} h (boundary Rs χ) =
+  cong (boundary (map (renameᵗ ρʳ) Rs)) (changes-id χ)
   where
   changes-id : ∀ χ
     → map (renᶠ² ρᵗ (extN (length Rs) ρʳ)) χ
@@ -363,7 +363,7 @@ shiftᴵ (ival W A) = ival W A
 crossΛᴹ : Term → Ty → Term
 crossΛᴹ W A =
   renᴹ² (ren² idᵗ suc) W
-    ⟪ morph [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+    ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
 
 -- Variables cross a type binder unchanged. Closed value images acquire the
 -- frame-exact wrapper above, and their ordinary type spelling is weakened.
@@ -386,10 +386,18 @@ substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
 substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
 substᵐ σ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 
+-- The substitution `Beta` performs: the argument, carrying the ƛ's
+-- annotation, for variable zero; every other variable steps down.  It is
+-- a named function, not a pattern lambda, so that strong-rep-var.Residual
+-- can cite the very same substitution when it follows a position through
+-- `Beta`.
+betaEnv : Term → Ty → Var → Img
+betaEnv W A zero    = ival W A
+betaEnv W A (suc x) = ivar x
+
 infix 8 _[_∶_]ᵐ
 _[_∶_]ᵐ : Term → Term → Ty → Term
-N [ W ∶ A ]ᵐ =
-  substᵐ (λ { zero → ival W A ; (suc x) → ivar x }) N
+N [ W ∶ A ]ᵐ = substᵐ (betaEnv W A) N
 
 ------------------------------------------------------------------------
 -- 6. Typed images away from type-context transport

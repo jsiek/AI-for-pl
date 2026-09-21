@@ -4,7 +4,7 @@
 
 System F with type abstraction enforced **at run time**.  Instantiating
 `(ΛX. N) [A]` does not substitute `A` into `N`; it installs a
-**boundary** `M ⟪ Θ , c ⟫` whose context morphism `Θ` stores `A` as the
+**boundary** `M ⟪ Θ , c ⟫` whose boundary scope `Θ` stores `A` as the
 representation of a fresh variable, and whose conversion `c` says leaf
 by leaf which side of the boundary may see that representation.
 
@@ -20,7 +20,7 @@ universes (`Ctx.agda`).
   every type annotation.  A name map `Γ` holds exactly the live
   ordinary names and says which α each one names.
 
-A type context is the pair `Ctxᵗ = Ξ ∣ Γ`.  A morphism's changes,
+A type context is the pair `Ctxᵗ = Ξ ∣ Γ`.  A boundary scope's changes,
 `lock X α` and `unlock X α`, delete and insert **ordinary names**; no
 change ever removes or re-spells a representation entry, so weakening
 with respect to type variables is never used — that is what "strong"
@@ -49,12 +49,12 @@ postulates, no holes**, under `agda --safe`:
 
 The premises are deliberately **not uniform**.  `preservation`,
 `preservation*` and `type-safety` take `WfCtx Δ`; the premise-free form
-is false, because a contractum can mint a `MorphWf` whose exterior
+is false, because a contractum can mint a `BoundaryWf` whose exterior
 field demands well-formedness from a redex that mentioned no ordinary
 type variable at all (the counterexample is written out in
 `Preservation.agda`'s charter and in `notes/notes.md`, "Metatheory").
 `progress` takes no such premise — every boundary typing node carries
-its own `MorphWf`.  `det` takes the **redex's typing derivation**, from
+its own `BoundaryWf`.  `det` takes the **redex's typing derivation**, from
 which it reads the name-map uniqueness the rules used to carry as
 premises (`notes/DECISIONS.md`, 2026-09-18, "uniqueness comes from
 typing, not reduction").
@@ -64,7 +64,7 @@ Preservation became unconditional on **2026-09-20**, when
 (`proof/RepWeaken.agda`, `proof/AddLock0.agda`); progress and type
 safety became unconditional on **2026-09-21**, when the last parameter,
 `MergedReading`, was shrunk to the retention `CancelR` and `IdPush`
-actually consume and then proved by `CtxMorph.merged-conversion-exists`
+actually consume and then proved by `Boundary.merged-conversion-exists`
 (`notes/DECISIONS.md`, 2026-09-21; `notes/PLAN.md`, "Current status").
 
 The gate, run **cold**, from `SystemF/agda`:
@@ -108,7 +108,7 @@ The sixth defect of the same reading discipline hit the **conversion
 context** itself rather than a spelling: a conversion reading skips
 locks, so a later `unlock` can meet a name that is already live, which
 is the clause `conv-unlock-live` (2026-09-17, `notes/ReUnlockWall.agda`,
-`CtxMorph.agda` §3).  The six are tabulated against what the named
+`Boundary.agda` §3).  The six are tabulated against what the named
 presentation hides in `notes/notes.md`, "The six re-spelling repairs".
 
 **Frame exactness.**  Beyond the six theorems the development carries
@@ -121,7 +121,7 @@ It is not a single theorem statement but a site-by-site check —
 §4's tower measure for termination, §5 `Beta`, §6 `CancelR`/`IdPush`,
 §7 the drops, §8 the congruences — resting on the relational transport
 lemmas `dual-interior`, `rewind-interior` and `merged-interior` of
-`CtxMorph.agda` §3a.  Its headline here is that at every site but
+`Boundary.agda` §3a.  Its headline here is that at every site but
 `TyBeta`'s the ordinary component of the move is the identity.  The
 verdict table and the rejected repairs are `notes/ShiftAudit.md`.
 
@@ -145,17 +145,19 @@ that older calculus, not this one.
 |------|----------|
 | `Types.agda` | the type syntax `Ty` and its substitution operations — `renameᵗ`/`substᵗ` with `extᵗ`/`extsᵗ`/`⇑ᵗ`, `_[_]ᵗ`, and the index-directed `single-at`/`_[_:=_]ᵗ`.  Definitions only, and no universe tag: the same `Ty` is read either as an ordinary type or as a representation payload |
 | `Ctx.agda` | **the two de Bruijn universes and every relation over them**: `RepBinding` (`abstR`/`bindR R`), `RepCtx`, `TyCtx` and the pair `Ctxᵗ = reps ∣ names`; the lookup family up to the square `_∋_:=_`; ordinary type formation `_⊢ᵗ_` and payload formation `_⊢ᴿ[_]_`; the two readings of a `Ty` (`_⊢_~_`, `_⊢_≈_⊣_`, `SameTyExt`); well-formedness `WfCtx` with `Unique`/`ValidNames`/`WfRepCtx`; the binder blocks `pushRepBinds`/`extendReps`, the insert/delete relations, and the renaming interface `RepWk`.  Definitions only |
-| `CtxMorph.agda` | the context morphism `record CtxMorph = morph (binds : List Ty) (changes : List Change)` — a PARALLEL bind block and a SEQUENTIAL list of `lock X α`/`unlock X α` — with its two RELATIONAL readings, `_⊢ⁱ_⇒_`, which performs every change, and `_⊢ᶜ_⇒_`, which SKIPS locks (hence `conv-unlock-live`); their functionality and the §3a–§3d transports (`dual-interior`, `rewind-interior`, `merged-interior`, `merged-conversion-exists`, the representation-renaming lemmas); the witness `MorphWf`; and the derived morphisms `dualMorph`, `rewind`, `_⋉_`, `addLock0`, `instantiate` |
+| `Boundary.agda` | the boundary scope `record Boundary = boundary (binds : List Ty) (changes : List Change)` — a PARALLEL bind block and a SEQUENTIAL list of `lock X α`/`unlock X α` — with its two RELATIONAL readings, `_⊢ⁱ_⇒_`, which performs every change, and `_⊢ᶜ_⇒_`, which SKIPS locks (hence `conv-unlock-live`); their functionality and the §3a–§3d transports (`dual-interior`, `rewind-interior`, `merged-interior`, `merged-conversion-exists`, the representation-renaming lemmas); the witness `BoundaryWf`; and the derived boundary scopes `dualBoundary`, `rewind`, `_⋉_`, `addLock0`, `instantiate` |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B` with NO polarity index, `mkId`, the canonical mints at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`), the re-spelling relation `SameConv` with its uniqueness and `respell` lemmas, `conv-ren`, the inversions and `conv-types-unique` |
-| `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the typing judgment `_∣_⊢_⦂_`, whose boundary rule `env` TAKES a `MorphWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares the three sides by the representation each denotes; the `Inert`/`Active` split with `act-or-inert`; and `Value` |
+| `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the typing judgment `_∣_⊢_⦂_`, whose boundary rule `env` TAKES a `BoundaryWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares the three sides by the representation each denotes; the `Inert`/`Active` split with `act-or-inert`; and `Value` |
 | `TermSubst.agda` | the PAIRED type renaming (`ren²`, `renᴹ²`) and its representation-only traversal `renᴹᴿ`, related by `renᴹ²-ord-id`; term-variable renaming `renⁿ` with `⊢renⁿ`/`⊢weakenⁿ`; and FRAME-EXACT substitution — `Img`, `crossΛᴹ`, `substᵐ`, `_[_∶_]ᵐ` — which wraps a value crossing a `Λ` in that binder's dual rather than shifting it |
 | `Reduction.agda` | `_⊢_-→_` with **fifteen** rules — `TyBeta`, `Beta`, `Peel`, `TyPeelR-Λ`, `TyPeelR-⟪⟫`, `CancelR`, `Drop$`, `Drop-true`, `Drop-false`, `IdPush` and the five congruences `ξ-·-l`, `ξ-·-r`, `ξ-·[]`, `ξ-Λ`, `ξ-⟪⟫` — the multi-step `_⊢_-→*_`, `value-¬step`, and `det`, which takes the redex's typing derivation.  Its charter states the crossing-spelling law and lists the five carried spellings |
-| `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`morphWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`respell?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
+| `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`boundaryWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`respell?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
 | `Eval.agda` | the evaluator: `step`, leftmost-outermost, RETURNS the derivation it found, so soundness is its type; `eval` iterates it with fuel and CHECKS every contractum at the run's type; `Trace` with `illtyped` as the one way a type is lost, `Checked`, `traceEnd`/`traceTerms`/`traceLen`/`evalTerms`, `trace-sound`, and `Reaches k n ⊢M V`, which states endpoint, step count, "no state lost the type" and value in ONE equation |
 | `Progress.agda` | the statement `Progress`, stated premise-free, and `progress`, a one-line wrapper around `proof.Progress.Impl.progress`; unconditional since 2026-09-21 |
 | `Preservation.agda` | `Preservation` and `Preservation*` stated in full and proved by instantiating `proof.Preserve.Impl` at `RepWeaken.cross-Λ-⊢`, `AddLock0.addLock0-⊢`, `PeelDual.preserve-Peel`, `MoveScope.preserve-CancelR` and `MoveScope.preserve-IdPush`; the charter explains why `WfCtx Δ` is part of the statement |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full in one place rather than re-exported, every right-hand side a delegation |
 | `Examples.agda` | the living regression: **eleven sections** (§1 baseline runs, §2 the vacuous-Λ family, §3 `TyPeelR` from closed plain source, §4 the reveal mirror, §5 the tower, §6 polymorphic payloads, §7 functions that cross, §8 the `CancelR` shift witness, §9 hand-built boundaries at a non-empty ambient, §10 what substitution does at a crossing, §11 refutations and non-vacuity) and **23 `Reaches` runs**, merged into one file on 2026-09-21.  All fifteen reduction rules fire in §§1–8; §9a and §9b are the only two runs pinned state by state, by `evalTerms` |
+| `Residual.agda` | **the color-preservation statement layer** (2026-09-21): one-hole contexts `TermCtx`/`plug`; the type context AT THE HOLE `Δ ⊢C C ⊣ Δ′`, whose `names` is the hole's SCOPE MAP; `renCtx²`/`holeRen²` and `substCtx`/`holeEnv` (renaming and `Beta`-substitution through a context, and what reaches the hole); `Residual r C M ρ D N`/`Residuals`, indexed by the representation renaming ρ the move delivers to the hole.  Redex nodes are consumed; the `Drop` rules consume their literal; a substituted variable's position becomes the argument copy's (`CopyResidual`) |
+| `ColorPreservation.agda` | TWO theorems.  `color-preservation : ColorPreservation` is the color theorem proper — color is about type variables only, so a residual position's lexical type-variable scope keeps its size: `length (names Δ₂) ≡ length (names Δ₁)`.  It is a corollary of the stronger `scope-map-preservation : ScopeMapPreservation` — the whole scope map is the old one under the run's representation renaming: `names Δ₂ ≡ map ρ (names Δ₁)`.  Both carry `WfCtx Δ` (spent re-typing the run's middle terms by `preservation`) and have premise-free closed forms at `empty`.  Proofs in `proof/ColorPreservation.agda`; the concrete instance is `notes/ColorPreservationProbe.agda` |
 | `Show.agda` | de Bruijn → named renderer, printing the two universes differently — α, β, γ for representation variables, X, Y, Z for the ordinary names that denote them (see **Tools**) |
 | `All.agda` | aggregate driver: type-checking it type-checks the whole development |
 
@@ -177,12 +179,14 @@ that older calculus, not this one.
 | `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing already forces the two names to denote ONE representation variable (`idpush-name`, `cancel-name`), `unseal` is the only active conversion an id-layer can meet, and the naked drop is sound exactly at a frame that changes nothing |
 | `Adversary.agda` | the soundness gate: a conceal must cite a REPRESENTED binder, and the two universes refuse it twice over — the name may be absent from the map, or the representation variable it names may be `abstR` |
 | `ShiftAudit.agda` | **the shift audit**: every rule that moves a subterm, checked site by site against frame exactness, plus the tower measure that makes `TyPeelR-⟪⟫` terminate and the refutation of the rejected wrap repair |
+| `Residual.agda` | soundness of the residual layer: `plug C M` is the step's source and `plug D N` its contractum (`residual-source`, `residual-sound`, `residuals-sound`), via `plug-renCtx²` and `plug-substCtx` — the sanity gate on the statement's data |
+| `ColorPreservation.agda` | **the color-preservation proof**: `⊢C-ren` transports a frame derivation along a representation-only renaming (`interior-ren`/`RepWk` at boundary frames), `⊢C-len` transports it across the `abstR → bindR R` slot refinement, `residual-frame` constructs the target frame per step (minted frames read by `instantiate-interior`/`dual-interior`/`rewind-interior`/`merged-interior`/`addLock0-interior-ren`/`crossΛ-interior`), and `residuals-color` composes along `ρ′ ∘ ρ`, re-typing by `preservation`; `residuals-color-length` is the color corollary |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 ## Tools
 
 `Show.agda` renders de Bruijn terms, types, representation payloads,
-conversions, context morphisms, type contexts and whole evaluator
+conversions, boundary scopes, type contexts and whole evaluator
 traces into named notation, driven non-interactively by
 `scripts/render_term.sh` (which uses the type-error trick:
 `oops : e ≡ ""; oops = refl` makes Agda print `e`'s normal form).  Run
@@ -229,7 +233,7 @@ arrive escaped — hence the `sed`).
 Conventions: representation variables cycle `α`, `β`, `γ`, `α′`, …, and
 the ordinary name at the same position cycles `X`, `Y`, `Z`, `X′`, …,
 so `X` is by construction the ordinary name of `α`.  Term binders cycle
-`x`, `y`, `z`, `f`, `g`, `h`, then primes.  A morphism's binds print
+`x`, `y`, `z`, `f`, `g`, `h`, then primes.  A boundary scope's binds print
 first as `↑α:=R`, then its changes IN THE ORDER THEY ACT — `↓X` for a
 `lock`, `↥X` for an `unlock` — and the conversion last, read on the
 conversion context rather than the interior's.  If a rendered change
@@ -246,7 +250,8 @@ it.
 |------|----------|
 | `notes.md` | the mathematical presentation of the current calculus, named-variable notation |
 | `PLAN.md` | the experiment's plan and running status block, the port's history, and a resume section for another machine |
-| `TODO.md` | the live handoff queue — currently the port of the COLOR PRESERVATION theorem, whose statement goes to Jeremy before the proof is attempted |
+| `TODO.md` | the live handoff queue — empty: the COLOR PRESERVATION port is complete (statement approved and proof landed 2026-09-21); the file records the two deltas flagged for Jeremy |
+| `ColorPreservationProbe.agda` | the color-preservation statement on ONE RUN — `ΛX. ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)`, three steps (TyBeta, Peel, Beta), the argument's `Residuals` derivation, its `⊢C` contexts at both ends, and `names Δ₃ ≡ map ρ★ (names Δ₀)` by `refl`: the Peel moves it past one bind, so α's index shifts by one and the map is otherwise unchanged |
 | `DECISIONS.md` | **the design log**, in date order: decisions stated as definitions, worked examples, probe verdicts, and Jeremy's rulings.  Start at the end |
 | `DesignSpace.md` | **the map**: a mermaid graph of the fifty-one design points explored 2026-09-01…06, edges labelled with the evidence that moved the design, plus the legend and the through line |
 | `DesignPoints.md` | the map's glossary: one entry per node id, same order, each with a pointer into `DECISIONS.md`, `Design.md`, `Examples.agda` or a commit |
@@ -283,7 +288,7 @@ Three PDFs sit at the top level for the digests above:
 ## Where to go next
 
 * **`notes/notes.md`** — the calculus itself, in named-variable
-  notation: syntax, the two context universes, the morphism readings,
+  notation: syntax, the two context universes, the boundary scope readings,
   conversion and term typing, all fifteen reduction rules, a worked
   `CancelR` run, the metatheory with its premises argued, the six
   re-spelling repairs, and a notes ↔ Agda correspondence table that
@@ -292,8 +297,8 @@ Three PDFs sit at the top level for the digests above:
   rewritten, the errors testing found, and the completed plan record.
 * **`notes/DECISIONS.md`** — why it is that calculus and not another,
   in date order.  Start at the end.
-* **`notes/TODO.md`** — what is open: the COLOR PRESERVATION port,
-  with the v7 statement, the commits it lived at, and the porting notes.
+* **`notes/TODO.md`** — what is open: nothing — the COLOR PRESERVATION
+  port is complete; the file records the two deltas flagged for Jeremy.
 * **`Design.md`** — carried over from `SystemF/agda/strong/` and **not
   updated**: it describes the masked-entry calculus (`masked b`, the
   computed `interior Θ Δ`), not this one.  `notes/notes.md` supersedes

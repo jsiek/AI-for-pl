@@ -7,10 +7,10 @@ module strong-rep-var.proof.Progress where
 -- the
 -- relational context readings and re-spellings carried by the new rules.
 -- `Peel`'s package is proved in
--- strong-rep-var.CtxMorph/strong-rep-var.Conversion.
+-- strong-rep-var.Boundary/strong-rep-var.Conversion.
 --
 -- The merged-frame reading needed by CancelR and IdPush is proved here
--- from `strong-rep-var.CtxMorph.merged-conversion-exists`.  Its statement
+-- from `strong-rep-var.Boundary.merged-conversion-exists`.  Its statement
 -- retains
 -- the INNER conversion context only: both rules read the spelling they move
 -- at that context, so the former outer-retention component had no consumer.
@@ -18,7 +18,7 @@ module strong-rep-var.proof.Progress where
 -- The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
 -- boundary's conversion reading and the retention that names the moved
 -- spelling are PROVED here as `addLock0-reading`, from the lock-skipping
--- transport `strong-rep-var.CtxMorph.addLock0-conversion-ren`.
+-- transport `strong-rep-var.Boundary.addLock0-conversion-ren`.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using ([]; _∷_; map)
@@ -33,11 +33,11 @@ open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
 open import strong-rep-var.proof.Canonical
-open import strong-rep-var.proof.Preserve using (instantiate-morphwf)
+open import strong-rep-var.proof.Preserve using (instantiate-boundarywf)
 
 private
   variable
@@ -89,8 +89,8 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
 -- constructs the `_⊢_≈_⊣_` premise at the exact type being moved.
 MergedReading : Set
 MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
-  → MorphWf Δ Θ₂ Δᵢ Δᶜ
-  → MorphWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
+  → BoundaryWf Δ Θ₂ Δᵢ Δᶜ
+  → BoundaryWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
   → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
       ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
         × (names Δ₁ᶜ) ⊆ᵃ (names Δ⋉ᶜ))
@@ -104,9 +104,9 @@ merged-reading = merged-conversion-exists
 -- progress must CONSTRUCT that reading.  It is not a new assumption: the
 -- lock-skipping transport `conv-weaken`/`conv-snoc-lock` and the
 -- representation renaming are assembled by
--- `strong-rep-var.CtxMorph.addLock0-conversion-ren`, and all this wrapper adds
+-- `strong-rep-var.Boundary.addLock0-conversion-ren`, and all this wrapper adds
 -- is
--- the `MorphWf` packaging and the `RepWk suc` witness for the binder
+-- the `BoundaryWf` packaging and the `RepWk suc` witness for the binder
 -- `instantiate R Θ` mints.
 --
 -- THE RENAMING IS THE WHOLE POINT.  The retained names are
@@ -115,12 +115,12 @@ merged-reading = merged-conversion-exists
 -- named from below the new binder.  The unrenamed inclusion is false, and
 -- §6b of strong-rep-var.Examples is the witness.
 --
--- It lives here rather than in strong-rep-var.CtxMorph because the rule spells
+-- It lives here rather than in strong-rep-var.Boundary because the rule spells
 -- the
 -- moved frame with `renᴮ²` (strong-rep-var.TermSubst), one layer above.
 addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
-  → MorphWf Δ Θ Δᵢ Δᶜ
-  → MorphWf Δᵢ Θ′ Δ′ᵢ Δ′ᶜ
+  → BoundaryWf Δ Θ Δᵢ Δᶜ
+  → BoundaryWf Δᵢ Θ′ Δ′ᵢ Δ′ᶜ
   → names Δ ⊢ A ~ R
   → Σ[ Δ″ᶜ ∈ Ctxᵗ ]
       ((((bindR (shiftBy (numBinds Θ) R) ∷ reps Δᵢ)
@@ -130,10 +130,10 @@ addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
 addLock0-reading {Θ = Θ} {Θ′ = Θ′} {R = R} mwΘ mw′ p
   with addLock0-conversion-ren
          (repwk-cons₀ (bindR (shiftBy (numBinds Θ) R))
-           (λ _ → wf-reps (mw-interior-wf (instantiate-morphwf mwΘ p))))
+           (λ _ → wf-reps (bw-interior-wf (instantiate-boundarywf mwΘ p))))
          (_ , here)
-         (name-fn (mw-interior-wf mwΘ))
-         (mw-conversion mw′)
+         (name-fn (bw-interior-wf mwΘ))
+         (bw-conversion mw′)
 -- the rule's frame spelling, `renᴮ² (ren² idᵗ suc)`, IS the
 -- representation-only renaming `renᴮᴿ suc` that the transport produces
 addLock0-reading {Θ = Θ} {Θ′ = Θ′} {R = R} mwΘ mw′ p
@@ -168,11 +168,11 @@ progress-id-base v base-𝔹 ⊢M | inj₂ (inj₂ refl) = `false , Drop-false
 module Impl where
 
   -- An active `unseal` sees a value at a variable type.  `canon-var`
-  -- exposes either CancelR's or IdPush's inner layer; the two `MorphWf`
+  -- exposes either CancelR's or IdPush's inner layer; the two `BoundaryWf`
   -- witnesses then feed the proved merged-reading theorem.
   progress-unseal : ∀ {Δ Δᵢ Δᶜ Θ Y M Bᵢ A}
     → Value M
-    → MorphWf Δ Θ Δᵢ Δᶜ
+    → BoundaryWf Δ Θ Δᵢ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
     → Δᵢ ⊢ Bᵢ ≈ ` Y ⊣ Δᶜ
     → Δᶜ ∋ Y := A
@@ -201,9 +201,9 @@ module Impl where
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
     | Δ⋉ᶜ , r⋉ , keep₁
     | α , R , nameX , repX , sameA | A′ , sameA′ =
-    _ , CancelR vW (mw-interior mwΘ) (mw-conversion mw₁)
+    _ , CancelR vW (bw-interior mwΘ) (bw-conversion mw₁)
                 (α , R , nameX , repX , sameA)
-                r⋉ (R , sameA′ , sameA) (mw-conversion mwΘ) d
+                r⋉ (R , sameA′ , sameA) (bw-conversion mwΘ) d
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₂ refl with ⊢M
   progress-unseal v mwΘ ⊢M sameᵢ d
@@ -218,15 +218,15 @@ module Impl where
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₂ refl
     | env mw₁ ⊢W (conv-idv (α , nameX)) same₁ sameₑ₁ wE₁
     | Δ⋉ᶜ , r⋉ , keep₁ | X′ , nameX′ =
-    _ , IdPush vW (mw-interior mwΘ) (mw-conversion mw₁) r⋉
+    _ , IdPush vW (bw-interior mwΘ) (bw-conversion mw₁) r⋉
                (` α , same-var nameX′ , same-var nameX)
-               (mw-conversion mwΘ) d
+               (bw-conversion mwΘ) d
 
   -- Once the interior is a value, conversion classification decides whether
   -- the whole boundary is a value or one of the four active redex shapes.
   progress-env : ∀ {Δ Δᵢ Δᶜ Θ c M Bᵢ Cᵢ Cₑ}
     → Value M
-    → MorphWf Δ Θ Δᵢ Δᶜ
+    → BoundaryWf Δ Θ Δᵢ Δᶜ
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
     → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
     → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
@@ -246,7 +246,7 @@ module Impl where
     inj₂ (progress-unseal v mwΘ ⊢M sameᵢ
              (unseal-target-is-rep ⊢c))
 
-  -- A function-conversion wrapper carries its own MorphWf and the domain
+  -- A function-conversion wrapper carries its own BoundaryWf and the domain
   -- conversion typing needed by the core `peel-premises-env` theorem.
   progress-peel : ∀ {Δ W M Θ s t A B}
     → Value W
@@ -259,7 +259,7 @@ module Impl where
   progress-peel vW vM
     (env mwΘ ⊢W (conv-fun ⊢s ⊢t) sameᵢ sameₑ wE)
     | Δᵈ , s′ , rd , sc =
-    _ , Peel vW vM (mw-conversion mwΘ) (mw-interior mwΘ) rd sc
+    _ , Peel vW vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
 
   -- The outer conversion's `_⊢_≈_⊣_` premise exposes the interior ∀
   -- body and
@@ -284,7 +284,7 @@ module Impl where
     (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
     | inj₁ (N , vN , refl) | R , p =
-    _ , TyPeelR-Λ vN (mw-conversion mwΘ) ⊢s p
+    _ , TyPeelR-Λ vN (bw-conversion mwΘ) ⊢s p
   progress-·[]-∀conv v
     (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
@@ -293,7 +293,7 @@ module Impl where
     where
     tyPeelR-⟪⟫ : ∀ {Δ Δᵢ Δᶜ W Θ′ s′ Θ s B A R Bᵢ Bᵢ′ Bₑ}
       → Value W
-      → MorphWf Δ Θ Δᵢ Δᶜ
+      → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ W ⟪ Θ′ , `∀ s′ ⟫ ⦂ `∀ Bᵢ′
       → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
       → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
@@ -333,8 +333,8 @@ module Impl where
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd | rdᴿ | s″ , rd″ =
-      _ , TyPeelR-⟪⟫ vW (mw-interior mwΘ) (mw-conversion mwΘ)
-            (mw-conversion mw′) (instantiate-interior (mw-interior mwΘ))
+      _ , TyPeelR-⟪⟫ vW (bw-interior mwΘ) (bw-conversion mwΘ)
+            (bw-conversion mw′) (instantiate-interior (bw-interior mwΘ))
             r″ (_ , rd″ , rdᴿ) ⊢s sameD p
 
   ----------------------------------------------------------------------
@@ -376,6 +376,6 @@ module Impl where
     inj₂ (progress-·[]-∀conv vW (⊢·[] ⊢L wA))
   progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) with progress ⊢M
   progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₂ (M′ , st) =
-    inj₂ (M′ ⟪ _ , _ ⟫ , ξ-⟪⟫ (mw-interior mwΘ) st)
+    inj₂ (M′ ⟪ _ , _ ⟫ , ξ-⟪⟫ (bw-interior mwΘ) st)
   progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₁ vM =
     progress-env vM mwΘ ⊢M ⊢c sameᵢ

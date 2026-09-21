@@ -5,7 +5,7 @@ module strong-rep-var.notes.CancelRReachabilityWitness where
 --   * BEFORE (2026-09-19, morning).  This module answered Jeremy's
 --     question — "do you have an example source program that reduces to
 --     the problematic configuration?" — with YES.  One CLOSED, PLAIN
---     System F program (no boundary, no morphism, no conversion anywhere
+--     System F program (no boundary, no boundary scope, no conversion anywhere
 --     in the source) reduces in NINE steps to a `CancelR` redex whose
 --     inner frame BINDS a representation variable (`numBinds Θ₁ ≡ 1`) and
 --     whose cancelled binder's representation is OPEN.  Under the OLD
@@ -30,12 +30,12 @@ module strong-rep-var.notes.CancelRReachabilityWitness where
 --
 -- WHERE THE WALL'S UNREACHABILITY ARGUMENT WENT WRONG.  It said a bare
 -- `seal X` conversion "is minted by exactly one rule — `Peel`, on the
--- crossing ARGUMENT — whose frame is `dualMorph Θ`", and
--- `binds (dualMorph Θ) ≡ []`.  `Peel` mints TWO boundaries, and only the
+-- crossing ARGUMENT — whose frame is `dualBoundary Θ`", and
+-- `binds (dualBoundary Θ) ≡ []`.  `Peel` mints TWO boundaries, and only the
 -- argument's carries the dual:
 --
 --       Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
---         -→ (V · (… ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫
+--         -→ (V · (… ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫
 --                   ^^^^^^^^^^^^^ binds nothing     ^^^ the ORIGINAL frame
 --
 -- The RESULT boundary keeps `Θ` and takes the CODOMAIN `t`.  If `t` is a
@@ -68,7 +68,7 @@ open import Relation.Binary.PropositionalEquality
 open import strong-rep-var.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 open import strong-rep-var.Reduction
 open import strong-rep-var.TypeCheck using (tc; int!; conv!; sq!; tr)
@@ -97,7 +97,7 @@ numBinds-instantiate = refl
 
 -- whereas `Peel`'s ARGUMENT frame — the one the wall module looked at —
 -- binds nothing
-numBinds-dual : ∀ {Θ} → numBinds (dualMorph Θ) ≡ 0
+numBinds-dual : ∀ {Θ} → numBinds (dualBoundary Θ) ≡ 0
 numBinds-dual = refl
 
 ------------------------------------------------------------------------
@@ -175,15 +175,15 @@ Src-run = reaches-run Src-eval
 -- and `↑β:=α` is the OPEN payload: the binder `Y` names is represented by
 -- the representation VARIABLE α, not by a closed type.
 
-Θout Θ₁ Θ₂ : CtxMorph
-Θout = morph (`ℕ ∷ []) (unlock 0 0 ∷ [])
-Θ₁   = morph (`ℕ ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
-Θ₂   = morph (` 0 ∷ []) (unlock 0 0 ∷ [])
+Θout Θ₁ Θ₂ : Boundary
+Θout = boundary (`ℕ ∷ []) (unlock 0 0 ∷ [])
+Θ₁   = boundary (`ℕ ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
+Θ₂   = boundary (` 0 ∷ []) (unlock 0 0 ∷ [])
 
 -- the cancelled value: 7 under two lock-only, bind-free layers
 Vcr : Term
-Vcr = (($ 7) ⟪ morph [] (lock 0 2 ∷ []) , seal 0 ⟫)
-        ⟪ morph [] (lock 0 0 ∷ []) , id (` 1) ⟫
+Vcr = (($ 7) ⟪ boundary [] (lock 0 2 ∷ []) , seal 0 ⟫)
+        ⟪ boundary [] (lock 0 0 ∷ []) , id (` 1) ⟫
 
 Redex Contractum : Term
 Redex      = ((Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫) ⟪ Θout , unseal 0 ⟫

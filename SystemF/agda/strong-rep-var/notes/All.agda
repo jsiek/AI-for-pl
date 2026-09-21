@@ -16,3 +16,7 @@ open import strong-rep-var.notes.RepresentationVariablesProbe
 open import strong-rep-var.notes.RepWeakenBindsWall
 open import strong-rep-var.notes.AddLock0Wall
 open import strong-rep-var.notes.CancelRShiftWall
+
+-- COLOR PRESERVATION on one run (2026-09-21): the statement layer of
+-- strong-rep-var.Residual exercised end to end on a Peel under a Λ.
+open import strong-rep-var.notes.ColorPreservationProbe

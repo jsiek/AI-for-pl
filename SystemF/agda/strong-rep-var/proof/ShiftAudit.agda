@@ -21,8 +21,8 @@ module strong-rep-var.proof.ShiftAudit where
 --
 -- FIRST, the frame identities are no longer EQUATIONS BETWEEN COMPUTED
 -- CONTEXTS.  There is no `interior Θ Δ` to write an equation about: a
--- morphism RELATES an exterior to an interior, and the audit's per-site
--- facts are exactly the transport lemmas of `strong-rep-var.CtxMorph` §3a —
+-- boundary scope RELATES an exterior to an interior, and the audit's per-site
+-- facts are exactly the transport lemmas of `strong-rep-var.Boundary` §3a —
 -- `dual-interior` for Peel, `rewind-interior`/`merged-interior` for
 -- CancelR and IdPush.  So §2 and §6 below CITE them rather than restating
 -- them, and the masked-entry sections of the old module (the `⊑ᵃ`
@@ -66,7 +66,7 @@ open import strong-rep-var.Types
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
 open import strong-rep-var.proof.Canonical using (canon-∀)
@@ -77,7 +77,7 @@ private
     Γ : Ctx
     A B C : Ty
     X Y : ℕ
-    Θ Θ₁ Θ₂ : CtxMorph
+    Θ Θ₁ Θ₂ : Boundary
 
 ------------------------------------------------------------------------
 -- §1  THE SITES
@@ -87,13 +87,14 @@ private
 -- substituted (`grep renᴹ² renᴹ wkᴹ ⇑ᴹ renⁿ shiftᵐ crossΛᴹ substᵐ`):
 --
 --   RULES that move a subterm
---     Peel        `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W ⟪ dualMorph Θ , s′ ⟫`
+--     Peel        `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W` inside the
+--                 frame `⟪ dualBoundary Θ , s′ ⟫`
 --                                                            §2  EXACT
 --     TyPeelR-Λ   `N ⟪ instantiate R Θ , instReveal 0 s ⟫`    §3  EXACT
 --     TyPeelR-⟪⟫  `renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc))` on the moved
 --                 boundary, plus `addLock0` on its own change list
 --                                                            §3  EXACT
---     TyBeta      `N ⟪ instantiate R (morph [] []) , reveal 0 B ⟫`
+--     TyBeta      `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫`
 --                                                            §3  refinement
 --     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛᴹ`     §5  EXACT
 --     CancelR     `V ⟪ Θ₁ ⋉ Θ₂ , … ⟫ ⟪ rewind Θ₂ , … ⟫`       §6  EXACT
@@ -116,20 +117,20 @@ private
 -- `dual-interior` says is `extendReps (binds Θ) Δ` — `Δ` with the
 -- boundary's representation binders in front and NOT ONE ORDINARY NAME
 -- ADDED OR REMOVED.  Criterion (i), nothing else: EXACT.
-Peel-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : CtxMorph) (Γ : Ctxᵗ)
+Peel-frame : ∀ {Γᵢ : Ctxᵗ} (Θ : Boundary) (Γ : Ctxᵗ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γᵢ ⊢ⁱ dualMorph Θ ⇒ extendReps (binds Θ) Γ
+  → Γᵢ ⊢ⁱ dualBoundary Θ ⇒ extendReps (binds Θ) Γ
 Peel-frame Θ Γ = dual-interior
 
 -- … and the movement the rule applies to W matches that frame EXACTLY:
 -- its ORDINARY component is the identity, so no ordinary index moves, and
 -- its REPRESENTATION component is `wkN (numBinds Θ)`, which is the shift
 -- past the bind block `extendReps (binds Θ)` installs.
-Peel-move-ordinary : (Θ : CtxMorph)
+Peel-move-ordinary : (Θ : Boundary)
   → ordinary (ren² idᵗ (wkN (numBinds Θ))) ≡ idᵗ
 Peel-move-ordinary Θ = refl
 
-Peel-move-represent : (Θ : CtxMorph)
+Peel-move-represent : (Θ : Boundary)
   → represent (ren² idᵗ (wkN (numBinds Θ))) ≡ wkN (numBinds Θ)
 Peel-move-represent Θ = refl
 
@@ -141,7 +142,7 @@ Peel-frame-names Rs Γ = refl
 
 -- The dual adds no representation binder of its own: the crossing
 -- argument is already inside the boundary's block.
-Peel-dual-numBinds : (Θ : CtxMorph) → numBinds (dualMorph Θ) ≡ 0
+Peel-dual-numBinds : (Θ : Boundary) → numBinds (dualBoundary Θ) ≡ 0
 Peel-dual-numBinds Θ = refl
 
 ------------------------------------------------------------------------
@@ -153,22 +154,22 @@ Peel-dual-numBinds Θ = refl
 -- restoring its ordinary name at position 0 (the appended `unlock 0 0`).
 -- So the frame move is criterion (ii) and there is no renaming at all —
 -- the contractum does not mention a `renᴹ²`.
-TyPeelR-Λ-refinement : (R : Ty) (Θ : CtxMorph)
+TyPeelR-Λ-refinement : (R : Ty) (Θ : Boundary)
   → binds (instantiate R Θ) ≡ R ∷ binds Θ
 TyPeelR-Λ-refinement R Θ = refl
 
-TyPeelR-Λ-numBinds : (R : Ty) (Θ : CtxMorph)
+TyPeelR-Λ-numBinds : (R : Ty) (Θ : Boundary)
   → numBinds (instantiate R Θ) ≡ suc (numBinds Θ)
 TyPeelR-Λ-numBinds R Θ = refl
 
--- TyBeta is the same refinement one `∀` out: `instantiate R (morph [] [])`
+-- TyBeta is the same refinement one `∀` out: `instantiate R (boundary [] [])`
 -- turns the `Λ`'s own abstract binder into the event's represented one.
 TyBeta-refinement : (R : Ty)
-  → binds (instantiate R (morph [] [])) ≡ R ∷ []
+  → binds (instantiate R (boundary [] [])) ≡ R ∷ []
 TyBeta-refinement R = refl
 
 TyBeta-restores-name-0 : (R : Ty)
-  → changes (instantiate R (morph [] [])) ≡ unlock 0 0 ∷ []
+  → changes (instantiate R (boundary [] [])) ≡ unlock 0 0 ∷ []
 TyBeta-restores-name-0 R = refl
 
 -- THE WRAPPER CLAUSE.  The moved boundary crosses ONE fresh binder, and
@@ -177,20 +178,20 @@ TyBeta-restores-name-0 R = refl
 -- representation component `extN (numBinds Θ′) suc` — and the moved
 -- boundary's ordinary indices keep their positions.  That is the whole of
 -- the 2026-09-08 repair, restated in the universe that now carries it.
-TyPeelR-⟪⟫-move-ordinary : (Θ′ : CtxMorph)
+TyPeelR-⟪⟫-move-ordinary : (Θ′ : Boundary)
   → ordinary (ren² idᵗ (extN (numBinds Θ′) suc)) ≡ idᵗ
 TyPeelR-⟪⟫-move-ordinary Θ′ = refl
 
 -- The appended lock names position 0 and the representation variable
 -- immediately outside the moved boundary's own bind prefix — and it is
 -- APPENDED, so it acts FIRST (the change list is read head-last).
-TyPeelR-⟪⟫-addLock0 : (Θ′ : CtxMorph)
+TyPeelR-⟪⟫-addLock0 : (Θ′ : Boundary)
   → changes (addLock0 Θ′)
       ≡ changes Θ′ ++ (lock 0 (numBinds Θ′) ∷ [])
 TyPeelR-⟪⟫-addLock0 Θ′ = refl
 
 -- … and the moved boundary's own bind block is untouched by the lock.
-TyPeelR-⟪⟫-addLock0-binds : (Θ′ : CtxMorph)
+TyPeelR-⟪⟫-addLock0-binds : (Θ′ : Boundary)
   → binds (addLock0 Θ′) ≡ binds Θ′
 TyPeelR-⟪⟫-addLock0-binds Θ′ = refl
 
@@ -233,7 +234,7 @@ towerHeight-renᴹ² ρ (M ⟪ Θ , c ⟫)  =
 -- THE MEASURE STRICTLY DECREASES.  The ∀-value the contractum's inner
 -- `·[]` instantiates is ONE BOUNDARY SHORTER than the one the redex's
 -- `·[]` instantiated.
-TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : CtxMorph) (s′ s″ s : Conv)
+TyPeelR-⟪⟫-height : (W : Term) (Θ′ Θ : Boundary) (s′ s″ s : Conv)
   → towerHeight (renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W
                    ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′)
                    , `∀ s″ ⟫)
@@ -247,9 +248,9 @@ TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
 -- height is the redex's height again: nothing is consumed.  THIS is the
 -- difference between (a) and the installed clause: `TyPeelR-⟪⟫` CONSUMES
 -- a boundary that was already there, (a) MINTS a new one.
-fixA-height-stalls : (V : Term) (Θ : CtxMorph) (s : Conv) (Bᵢ : Ty)
+fixA-height-stalls : (V : Term) (Θ : Boundary) (s : Conv) (Bᵢ : Ty)
   → towerHeight (renᴹ² (ren² idᵗ suc) V
-                   ⟪ morph [] (lock 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
+                   ⟪ boundary [] (lock 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
       ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
 fixA-height-stalls V Θ s Bᵢ =
   cong suc (towerHeight-renᴹ² (ren² idᵗ suc) V)
@@ -315,7 +316,7 @@ progress-Λ-at-0 v (⊢·[] (env mwᵥ ⊢V ⊢c smᵢ smₑ wE) wA) rc pA eq
   with conv-all-inv ⊢c
 ... | A₀ , B₀ , refl , eqₑ , ⊢s with smᵢ
 ... | _ , same-∀ pᵢ , same-∀ qᵢ
-  with conversion-functional (mw-conversion mwᵥ) rc
+  with conversion-functional (bw-conversion mwᵥ) rc
 ... | refl with canon-∀-height v ⊢V eq
 ... | N , vN , refl = N , refl , TyPeelR-Λ vN rc ⊢s pA
 
@@ -344,13 +345,13 @@ Beta-ƛ-crossed-no-shift = refl
 
 -- THE `Λ` CROSSING IS REP-ONLY, AND ITS LOCK IS WHAT MAKES IT SO.  A
 -- value image crossing a `Λ` is weakened in the representation universe
--- and wrapped in `morph [] (lock 0 0 ∷ [])`, whose lock deletes the
+-- and wrapped in `boundary [] (lock 0 0 ∷ [])`, whose lock deletes the
 -- ordinary name the `Λ` just bound.  So the image's ordinary indices keep
 -- their positions — criterion (i) with nothing to shift.
 Beta-Λ-crossing : ∀ {W A}
   → ⇑ᴵ (ival W A)
       ≡ ival (renᴹ² (ren² idᵗ suc) W
-                ⟪ morph [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+                ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
              (⇑ᵗ A)
 Beta-Λ-crossing = refl
 
@@ -360,7 +361,7 @@ Beta-Λ-crossing = refl
 
 -- THE INNER FRAME (the one V lives in) is preserved ON THE NOSE: the
 -- merged frame's interior IS the inner frame's own.
-Move-inner-frame : ∀ {Γ Γᵢ Γ₁ᵢ : Ctxᵗ} (Θ₁ Θ₂ : CtxMorph)
+Move-inner-frame : ∀ {Γ Γᵢ Γ₁ᵢ : Ctxᵗ} (Θ₁ Θ₂ : Boundary)
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
   → extendReps (binds Θ₂) Γ ⊢ⁱ Θ₁ ⋉ Θ₂ ⇒ Γ₁ᵢ
@@ -373,14 +374,14 @@ Move-inner-frame Θ₁ Θ₂ = merged-interior
 -- of Θ₁'s, where the reading runs it FIRST), which is exactly why the
 -- composite above holds.  Nothing else moves: both conversions are
 -- RE-MINTED (`mkId` / `unseal`), not transported.
-Move-outer-frame : ∀ {Γ Γᵢ : Ctxᵗ} (Θ₂ : CtxMorph)
+Move-outer-frame : ∀ {Γ Γᵢ : Ctxᵗ} (Θ₂ : Boundary)
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γ ⊢ⁱ rewind Θ₂ ⇒ extendReps (binds Θ₂) Γ
 Move-outer-frame Θ₂ = rewind-interior
 
 -- … and the outer frame's CONVERSION context is Θ₂'s own, which is where
 -- the redex's outer conversion was read.
-Move-outer-conversion : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} (Θ₂ : CtxMorph)
+Move-outer-conversion : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} (Θ₂ : Boundary)
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ₂ ⇒ Γᶜ
   → Γ ⊢ᶜ rewind Θ₂ ⇒ Γᶜ
@@ -388,10 +389,10 @@ Move-outer-conversion Θ₂ = rewind-conversion
 
 -- Neither frame adds a representation binder beyond the ones the redex
 -- already had.
-Move-outer-numBinds : (Θ₂ : CtxMorph) → numBinds (rewind Θ₂) ≡ numBinds Θ₂
+Move-outer-numBinds : (Θ₂ : Boundary) → numBinds (rewind Θ₂) ≡ numBinds Θ₂
 Move-outer-numBinds Θ₂ = refl
 
-Move-inner-numBinds : (Θ₁ Θ₂ : CtxMorph) → numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁
+Move-inner-numBinds : (Θ₁ Θ₂ : Boundary) → numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁
 Move-inner-numBinds Θ₁ Θ₂ = refl
 
 -- V is not renamed at all — it retypes exactly where it was.  That is why
@@ -402,7 +403,7 @@ Move-inner-numBinds Θ₁ Θ₂ = refl
 --     it is vacuous
 ------------------------------------------------------------------------
 
--- `($ n) ⟪ Θ , id A ⟫ → $ n` moves the literal from the morphism's
+-- `($ n) ⟪ Θ , id A ⟫ → $ n` moves the literal from the boundary scope's
 -- interior OUT to Δ: the bind block disappears and Θ's locks are undone,
 -- so the new frame can be STRICTLY MORE NAMEABLE.  That is a frame gain
 -- in the direction the criterion also forbids — but it is VACUOUS,
@@ -453,7 +454,7 @@ Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
 -- the corresponding TYPING rule reads it on:
 --
 --   ξ-Λ    premise at `underΛ Δ`             =  `⊢Λ`'s premise context
---   ξ-⟪⟫   premise at the morphism's INTERIOR =  `env`'s premise context
+--   ξ-⟪⟫   premise at the boundary scope's INTERIOR =  `env`'s premise context
 --
 -- (`ξ-·-l`, `ξ-·-r`, `ξ-·[]` do not change the context at all.)  The
 -- second is no longer an equation: `ξ-⟪⟫` CARRIES the interior reading,
@@ -462,7 +463,7 @@ Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
 ξ-Λ-frame : (Δ : Ctxᵗ) → underΛ Δ ≡ underΛ Δ
 ξ-Λ-frame Δ = refl
 
-ξ-⟪⟫-frame : ∀ {Γ Γᵢ Γᵢ′ : Ctxᵗ} {Θ : CtxMorph}
+ξ-⟪⟫-frame : ∀ {Γ Γᵢ Γᵢ′ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ → Γ ⊢ⁱ Θ ⇒ Γᵢ′ → Γᵢ ≡ Γᵢ′
 ξ-⟪⟫-frame = interior-functional
 

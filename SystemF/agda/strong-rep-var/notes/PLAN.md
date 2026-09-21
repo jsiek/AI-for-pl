@@ -6,8 +6,8 @@ This branch investigates a two-universe design for Strong System F. In the
 main-branch design, ordinary System F type variables serve two roles:
 
 1. variables bound by `∀` and used as parameters inside ordinary types; and
-2. names that connect `seal`/`unseal` changes in a context morphism to the
-   representation types bound by that morphism.
+2. names that connect `seal`/`unseal` changes in a boundary scope to the
+   representation types bound by that boundary scope.
 
 The experiment separates the second role into a distinct universe of
 representation variables, with its own de Bruijn indices. Ordinary types and
@@ -22,7 +22,7 @@ In the new design:
   (`bindR R`).
 - `Λ` binds both an ordinary type variable and an abstract representation
   variable.
-- A context morphism's `binds` introduce representation variables.
+- A boundary scope's `binds` introduce representation variables.
 - `lock X α` removes ordinary name `X`, recording that it named
   representation variable `α`.
 - `unlock X α` restores that ordinary name.
@@ -45,14 +45,14 @@ Preservation, progress, type safety and determinism are all unconditional
 theorems under `--safe`, with no postulates or holes. `MergedReading`, the
 last parameter in the development, was first shrunk to the inner retention
 that CancelR and IdPush actually consume and then proved by
-`CtxMorph.merged-conversion-exists`. The review queue is EMPTY.
+`Boundary.merged-conversion-exists`. The review queue is EMPTY.
 
 The following parts have been ported and typecheck:
 
 - contexts, representation bindings, lookups, and well-formedness in
   `Ctx.agda`;
-- context morphisms and relational interior/conversion contexts in
-  `CtxMorph.agda`;
+- boundary scopes and relational interior/conversion contexts in
+  `Boundary.agda`;
 - conversions in `Conversion.agda`;
 - terms and typing in `Terms.agda`;
 - paired ordinary/representation renaming and term substitution in
@@ -106,8 +106,8 @@ fires three times and `IdPush` twenty-one. What is still thin is depth: the
 deepest seal tower any run builds is four, and unwinding is quadratic in that
 depth, so a defect needing five boundaries would not show up.
 
-Examples 8 and 9 instantiate at a polymorphic type, so their morphisms bind a
-representation payload with a `∀` in it. They did not run when they were
+Examples 8 and 9 instantiate at a polymorphic type, so their boundary scopes
+bind a representation payload with a `∀` in it. They did not run when they were
 written, and finding that is what produced the sixth repair below.
 
 The fourth run is the only one that puts the boundary rules under real load,
@@ -123,7 +123,7 @@ last `CancelR`, and six `Drop-true`s.
 Testing has found and repaired these errors:
 
 1. Exterior type alignment must use `SameTyExt (numBinds Θ)` because a
-   representation type crosses the morphism's representation-bind prefix.
+   representation type crosses the boundary scope's representation-bind prefix.
 2. `Peel` shifts the argument only in the representation-variable universe.
 3. Substitution across `Λ` shifts a value only in the representation-variable
    universe before adding the binder's lock. Since that lock deletes the new
@@ -140,11 +140,11 @@ Testing has found and repaired these errors:
    cancelled boundary locked, which made its contractum untypeable. The
    repair is `conv-unlock-live`: an `unlock` of an already-live name is a
    no-op, which is what reading the conversion context as the union of the
-   names live along the morphism already meant. See
+   names live along the boundary scope already meant. See
    `notes/DECISIONS.md` (2026-09-17) and the machine-checked
    `no-old-rewind-conv` in `notes/ReUnlockWall.agda`.
-6. A spelling — an ordinary de Bruijn index — that is valid in a morphism's
-   conversion context is not valid in its interior, and `TyPeelR-⟪⟫` and
+6. A spelling — an ordinary de Bruijn index — that is valid in a boundary
+   scope's conversion context is not valid in its interior, and `TyPeelR-⟪⟫` and
    `IdPush` each carried one across without re-basing. The two name maps can
    even reorder relative to each other, so the crossing is a partial lookup
    through the representation a name denotes, never arithmetic on positions.
@@ -175,13 +175,13 @@ Testing has found and repaired these errors:
    conversion contexts `Peel` straddles name the same representation
    variables — both being Δ with the unlocked names added. (P) said they
    are the same LIST; (Q) says only the same SET, and a premise on `Peel`
-   absorbs the difference. (Q) holds for every well-formed morphism, with
+   absorbs the difference. (Q) holds for every well-formed boundary scope, with
    no restriction on the change list and no `Unique`, so it holds exactly
    where (P) fails. With it, the premise always has a witness, so
    installing it would cost no reduction. The third context those claims
    are stated over — the dual's conversion context, which typing the redex
    does NOT supply — always exists: `dual-conversion-exists`, for every
-   morphism, needing only that the exterior name map is `Unique`. The one
+   boundary scope, needing only that the exterior name map is `Unique`. The one
    position obligation is a lock's, and `pigeon` discharges it: everything
    live just before the lock is either still live at the end or is the
    locked name itself, so the recorded position is still in range. The
@@ -189,14 +189,14 @@ Testing has found and repaired these errors:
    are all in `notes/PeelPremise.agda`, with `peel-premises` putting them
    together; nothing is installed, and `strong-rep-var.Reduction` is unchanged.
    Nothing is assumed: `Unique (names Γ)` is `WfCtx.name-fn`, and `env`
-   carries a `MorphWf` whose `mw-exterior` is a `WfCtx` of the crossed
+   carries a `BoundaryWf` whose `bw-exterior` is a `WfCtx` of the crossed
    boundary's exterior, so `peel-premises-env` takes the redex's own
    typing and returns the rule premises plus the `Unique` fact determinism
    derives via `dual-unique`. None of the five boundary rules now carries
    a `Unique` premise.
 
-   `MorphWf`'s two OUTPUT well-formedness fields are now DERIVED and have
-   been dropped from the record (`CtxMorph.agda` §3a, `interior-wf` and
+   `BoundaryWf`'s two OUTPUT well-formedness fields are now DERIVED and have
+   been dropped from the record (`Boundary.agda` §3a, `interior-wf` and
    `conversion-wf`; `notes/DECISIONS.md`, 2026-09-18). All three `WfCtx`
    fields transport: `Unique` because a lock deletes and an unlock inserts
    a name its own premise says is fresh; `ValidNames` because an unlock
@@ -204,7 +204,7 @@ Testing has found and repaired these errors:
    touches the representation context, leaving only a weakening of each
    bind payload past the block's tail (`wfᴿ-rename`, the one new proof).
    The former fields survive as functions of the same names, so use sites
-   are unchanged, and `morphWf?` no longer re-runs `wfCtx?` on both
+   are unchanged, and `boundaryWf?` no longer re-runs `wfCtx?` on both
    derived contexts at every boundary.
 
    (P) is a theorem on `main` — `convCtx-dual` in `proof/PeelDual.agda`,
@@ -235,8 +235,8 @@ Testing has found and repaired these errors:
    `notes/CancelRReachabilityWitness.agda`.
 
 `TypeCheck.agda` is an executable, derivation-producing type checker for the
-whole development: decidable equality on types, the two contexts a morphism
-induces, context and type well-formedness, the lookup square, conversion
+whole development: decidable equality on types, the two contexts a boundary
+scope induces, context and type well-formedness, the lookup square, conversion
 typing, and `infer`/`check⊢` for terms. Every checker returns a `Maybe` of
 the ORDINARY derivation, so nothing is postulated and nothing is trusted; the
 caller states the answer and the checker is forced at it, so a failure or a
@@ -253,7 +253,7 @@ Three things about it are worth knowing before using it.
 
 The checker has to INFER, not just check: `⊢·` and `⊢·[]` need the head's type
 and a head can be a boundary. Inferring a boundary's exterior type means
-inverting `shiftRep`, since `env` reads that type across the morphism's
+inverting `shiftRep`, since `env` reads that type across the boundary scope's
 representation-bind prefix; that is `strAt`, strengthening at a binder depth,
 and it is the only place in the checker that produces an equation rather than a
 derivation.
@@ -378,11 +378,11 @@ that statement to `Peel`'s unchanged identity-ordinary contractum spelling.
 **AND `RepWeakenTyping` IS NOW PROVED (2026-09-20).** It left the review
 queue the same day it was simplified. The simplified form was FALSE as
 stated — a boundary inside the crossing argument must be retyped at the
-WEAKENED context, whose `MorphWf` demands a `WfCtx`, so the inserted
+WEAKENED context, whose `BoundaryWf` demands a `WfCtx`, so the inserted
 payloads have to be well formed; the refutation is
 `notes/RepWeakenBindsWall.agda`, from `β-seven` and the single open
 payload `` ` 0 ``. With the one premise `reps Δ ⊢ᴮ Rs` — free at the only
-call site, where it is `mw-binds` of the boundary being crossed — the
+call site, where it is `bw-binds` of the boundary being crossed — the
 statement is proved in `proof/RepWeaken.agda`, and `PeelCase` is
 UNCONDITIONAL. See `notes/DECISIONS.md` (2026-09-20).
 
@@ -442,7 +442,7 @@ fires.
 
 **PROGRESS TOOK NO NEW PARAMETER.** The repaired rule's premises are
 CONSTRUCTED in `proof/Progress.agda` (`addLock0-reading`), from the new
-lock-skipping transport `strong-rep-var.CtxMorph.addLock0-conversion-ren`
+lock-skipping transport `strong-rep-var.Boundary.addLock0-conversion-ren`
 (`conv-weaken` + `conv-snoc-lock` + the representation renaming). The
 moved reading is representation-shifted FIRST (`sameᶜ-ren`, past the `Λ`
 by `names-underΛ-ren`) and only then respelled through `⊆ᵃ-underΛ keep`;
@@ -454,8 +454,8 @@ doing it the other way round leaves the reading in the unrenamed map.
 in its RESHAPED form — it receives the two conversion readings and the
 `SameConv` from the rule — is PROVED, `proof/AddLock0.agda`
 `addLock0-⊢`. It is the `env`-to-`env` transport across one inserted
-representation binder and one fresh ordinary name: `mw-binds` by
-`binds-ren`, the interior reading by `CtxMorph.addLock0-interior-ren` (NEW:
+representation binder and one fresh ordinary name: `bw-binds` by
+`binds-ren`, the interior reading by `Boundary.addLock0-interior-ren` (NEW:
 the interior half, where the appended lock DELETES the fresh name and what
 is left is `interior-ren`), the interior term by `proof/RepWeaken.⊢renᴿ` at
 `repwk-push (repwk-cons₀ (bindR P) …) (binds Θ)`, and the conversion by
@@ -534,7 +534,7 @@ items remain below as the implementation record.
        (Λ ($ 0)) ·[ `ℕ , `ℕ ] .
 
    The redex types without inspecting either duplicate ordinary name, but
-   TyBeta's contractum must construct a `MorphWf`, whose exterior field
+   TyBeta's contractum must construct a `BoundaryWf`, whose exterior field
    requires the name map to be unique. Typing alone therefore cannot recover
    the well-formed context required by the new relational interface.
 
@@ -596,7 +596,7 @@ items remain below as the implementation record.
    `notes/AddLock0Wall.agda`.
 2. Preservation for `Peel`. The RULE repair is INSTALLED (2026-09-18):
    `Peel` names the dual's spelling `s′` and carries
-   `SameConv Δᵈ s′ Δᶜ s`, with the morphism's two readings, the dual's
+   `SameConv Δᵈ s′ Δᶜ s`, with the boundary scope's two readings, the dual's
    conversion context beside it. `SameConv` lives
    in `Conversion.agda` §2b, `det` closes on `sameConv-src-unique`,
    `respell?` decides it in `TypeCheck.agda`, `crossPremises?` builds the
@@ -605,11 +605,11 @@ items remain below as the implementation record.
 
    The argument that it costs no reduction is in `notes/PeelPremise.agda`
    and is complete: (Q) — the two contexts name the same representation
-   variables — is proved for every morphism (§5); a well-typed conversion
+   variables — is proved for every boundary scope (§5); a well-typed conversion
    always has a reading to transport (§6); the dual's conversion context
    always exists, the position obligation being discharged by a pigeonhole
    argument (§7); and `peel-premises-env` assembles all of it from the
-   `MorphWf` that `env` already stores (§8). `det` now takes that typing
+   `BoundaryWf` that `env` already stores (§8). `det` now takes that typing
    derivation and obtains the dual context's uniqueness with the core
    `dual-unique`, so the rule does not carry it.
 
@@ -619,7 +619,7 @@ items remain below as the implementation record.
    - `IdPushCase` is PROVED outright, `proof/MoveScope.agda`
      `preserve-IdPush`. Nothing new was assumed. The merged frame's
      interior is the inner frame's own (`merged-interior`, new in
-     `CtxMorph.agda` §3a — the relational form of the retired
+     `Boundary.agda` §3a — the relational form of the retired
      `interior-⋉-rewind` equality); the outer frame's two readings are
      `rewind-interior`/`rewind-conversion`; the exterior type's
      re-spelling into the merged conversion context comes free from
@@ -655,10 +655,10 @@ items remain below as the implementation record.
 
      The premise `reps Δ ⊢ᴮ Rs` is NECESSARY: without it the statement is
      refuted by `β-seven` weakened with the single open payload `` ` 0 ``
-     (`notes/RepWeakenBindsWall.agda`), because `env` stores a `MorphWf`
-     whose `mw-exterior` is a `WfCtx` of the WEAKENED context and
+     (`notes/RepWeakenBindsWall.agda`), because `env` stores a `BoundaryWf`
+     whose `bw-exterior` is a `WfCtx` of the WEAKENED context and
      `WfRepCtx` checks every stored payload. It costs nothing: at the one
-     call site it is `mw-binds` of the boundary being crossed.
+     call site it is `bw-binds` of the boundary being crossed.
 
      The proof is `proof/RepWeaken.agda` `rep-weaken-⊢`, and its workhorse
      is the generalisation to a CUT. Going under `Λ` pushes an `abstR` and
@@ -666,7 +666,7 @@ items remain below as the implementation record.
      block stops being at the head; rather than carry an
      insertion-at-depth-k operation, the insertion is abstracted into an
      arbitrary representation renaming with the four facts it must supply
-     (`RepWk`, `CtxMorph.agda` §3d) and the name map is renamed
+     (`RepWk`, `Boundary.agda` §3d) and the name map is renamed
      POINTWISE:
 
          ⊢renᴿ : ∀ {Ξ Ξ′ η ρ Γ M A}
@@ -701,7 +701,7 @@ items remain below as the implementation record.
      demands that it denote `shiftBy (numBinds Θ₁)` of it. The two agree
      only when `numBinds Θ₁ ≡ 0` or the representation is closed — which
      is why no example saw it: every `CancelR` in the twelve runs cancels
-     a boundary `Peel` minted, and `binds (dualMorph Θ) ≡ []`.
+     a boundary `Peel` minted, and `binds (dualBoundary Θ) ≡ []`.
 
      **THE CONFIGURATION IS REACHABLE (2026-09-19), so path (b) — prove
      and carry the invariant `numBinds Θ₁ ≡ 0` — died.** Jeremy asked for
@@ -758,20 +758,20 @@ items remain below as the implementation record.
    `TyPeelR-⟪⟫` repair added no progress parameter.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
-   transport lemmas in `CtxMorph.agda` §3a:
+   transport lemmas in `Boundary.agda` §3a:
 
-       rewind-interior : ∀ {Θ : CtxMorph}
+       rewind-interior : ∀ {Θ : Boundary}
          → Γ ⊢ⁱ Θ ⇒ Γᵢ
          → Γ ⊢ⁱ rewind Θ ⇒ extendReps (binds Θ) Γ
 
-       rewind-conversion : ∀ {Θ : CtxMorph}
+       rewind-conversion : ∀ {Θ : Boundary}
          → Γ ⊢ⁱ Θ ⇒ Γᵢ
          → Γ ⊢ᶜ Θ ⇒ Γᶜ
          → Γ ⊢ᶜ rewind Θ ⇒ Γᶜ
 
    Both take the original interior reading; the second also takes the
    original conversion reading. No `WfCtx`, bind-well-formedness or
-   `MorphWf` hypothesis is needed. The interior reading is genuinely
+   `BoundaryWf` hypothesis is needed. The interior reading is genuinely
    necessary for the second lemma because the raw conversion relation
    permits a `conv-lock` whose name is absent; it proves that every inverse
    unlock corresponds to a name the original change run could actually
@@ -795,12 +795,12 @@ items remain below as the implementation record.
 
    `det` now inverts the redex typing to the boundary's `env`. For
    `TyPeelR-⟪⟫` it reads the induced contexts' `name-fn` fields through
-   `mw-interior-wf` and `mw-conversion-wf`, then uses `unique-underΛ`.
+   `bw-interior-wf` and `bw-conversion-wf`, then uses `unique-underΛ`.
    `CancelR` and `IdPush` read the outer conversion context the same way
    and obtain the merged context's uniqueness by transporting the
    exterior `name-fn` through its conversion reading. `Peel` uses
    `dual-unique`, moved from `notes/PeelPremise.agda` into
-   `CtxMorph.agda` §3a beside the new lifted `interior-unique` and
+   `Boundary.agda` §3a beside the new lifted `interior-unique` and
    `conversion-unique` lemmas. The ξ cases invert their source typing and
    pass the corresponding subterm derivation to the recursive call.
 
@@ -810,7 +810,7 @@ items remain below as the implementation record.
    the reduction rules retain. The twelve `Reaches` statements remain
    unchanged.
 5. **DISCHARGED BY THE PORT (2026-09-19).** Re-audit every rule that
-   crosses a `Λ` or a morphism bind prefix, stating separately how the two
+   crosses a `Λ` or a boundary scope bind prefix, stating separately how the two
    index universes move and in which context each spelling is read. The
    preservation and progress ports ARE that audit, rule by rule, and its
    verdict is now machine-checked rather than narrated: every crossing
@@ -844,14 +844,14 @@ items remain below as the implementation record.
 
    Progress now constructs the carried readings and re-spellings for Peel,
    both TyPeelR clauses, CancelR, and IdPush. The proved Peel package moved
-   from `notes/PeelPremise.agda` into `CtxMorph.agda` §3b/§3c and
+   from `notes/PeelPremise.agda` into `Boundary.agda` §3b/§3c and
    `Conversion.agda` §2c; the note now checks the moved facts on its original
    mixed-frame witness. The corrected `canon-base` branches go directly to
    `Drop$`, `Drop-true`, and `Drop-false`.
 
    The public statement remains premise-free: recursive calls under `Λ` need
    no well-formedness, and every boundary case gets `WfCtx` from its own
-   `MorphWf`. The former `MergedReading` parameter is now proved. Its shrunk
+   `BoundaryWf`. The former `MergedReading` parameter is now proved. Its shrunk
    statement says that the conversion reading of `Θ₁ ⋉ Θ₂` exists and retains
    every representation name available in Θ₁'s conversion context — exactly
    the context from which both CancelR and IdPush move a spelling.
@@ -867,7 +867,7 @@ items remain below as the implementation record.
    of that day added three premises to the rule, and progress CONSTRUCTS
    all three: `proof/Progress.addLock0-reading` gets the moved boundary's
    conversion reading and the retention `map (extN (numBinds Θ′) suc)
-   (names Δ′ᶜ) ⊆ᵃ names Δ″ᶜ` from `CtxMorph.addLock0-conversion-ren`, and
+   (names Δ′ᶜ) ⊆ᵃ names Δ″ᶜ` from `Boundary.addLock0-conversion-ren`, and
    the moved spelling then comes from `sameᶜ-ren` followed by `respell`.
    No second parameter was introduced. The one parameter that remained was
    discharged on 2026-09-21.

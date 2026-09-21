@@ -14,7 +14,7 @@ module strong-rep-var.proof.MoveScope where
 --
 -- In the two-universe design the frame algebra is RELATIONAL, and the
 -- three readings the contractum needs are theorems of
--- `strong-rep-var.CtxMorph`
+-- `strong-rep-var.Boundary`
 -- §3a:
 --
 --   rewind-interior    the outer frame's interior IS the plain exterior
@@ -50,7 +50,7 @@ open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.proof.Preserve
   using (CancelRCase; IdPushCase; same-shiftRVars; shiftRep-shiftBy;
          shiftRep-var; same-wf; wf-mono; tvMono-extendReps)
@@ -120,8 +120,8 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
                 (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-idv tvX)
                               sm₁ se₁ wB)
                      (conv-unseal dY) sm₂ se₂ wE)
-  with interior-functional (mw-interior mw₂) ri
-     | conversion-functional (mw-conversion mw₂) r₂
+  with interior-functional (bw-interior mw₂) ri
+     | conversion-functional (bw-conversion mw₂) r₂
 preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {X′ = X′}
                 {Y = Y} {A = A} {C = C}
@@ -130,8 +130,8 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
                               sm₁ se₁ wB)
                      (conv-unseal dY) sm₂ se₂ wE)
   | refl | refl
-  with conversion-functional (mw-conversion mw₁) r₁
-     | ∋:=-det (name-fn (mw-conversion-wf mw₂)) dY d
+  with conversion-functional (bw-conversion mw₁) r₁
+     | ∋:=-det (name-fn (bw-conversion-wf mw₂)) dY d
 preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {X′ = X′}
                 {Y = Y} {A = A} {C = C}
@@ -152,8 +152,8 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   Δᵣᵢ : Ctxᵗ
   Δᵣᵢ = extendReps (binds Θ₂) Δ
 
-  mwR : MorphWf Δ (rewind Θ₂) Δᵣᵢ Δᶜ
-  mwR = mw wfΔ (mw-binds mw₂)
+  mwR : BoundaryWf Δ (rewind Θ₂) Δᵣᵢ Δᶜ
+  mwR = bw wfΔ (bw-binds mw₂)
            (rewind-interior ri) (rewind-conversion ri r₂)
 
   -- THE BINDER Y NAMES, and the exterior type it represents
@@ -216,10 +216,10 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
                (sym eqX) (∋ʳ-push (binds Θ₁) dYrep))
     , qA″
 
-  mw⋉ : MorphWf Δᵣᵢ (Θ₁ ⋉ Θ₂) Δ₁ᵢ Δ⋉ᶜ
-  mw⋉ = mw (mw-interior-wf mwR)
-           (subst (λ Ξ → Ξ ⊢ᴮ binds Θ₁) (interior-reps ri) (mw-binds mw₁))
-           (merged-interior (mw-interior mw₂) (mw-interior mw₁))
+  mw⋉ : BoundaryWf Δᵣᵢ (Θ₁ ⋉ Θ₂) Δ₁ᵢ Δ⋉ᶜ
+  mw⋉ = bw (bw-interior-wf mwR)
+           (subst (λ Ξ → Ξ ⊢ᴮ binds Θ₁) (interior-reps ri) (bw-binds mw₁))
+           (merged-interior (bw-interior mw₂) (bw-interior mw₁))
            r⋉
 
   innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ ` X′ ⊣ Δ⋉ᶜ
@@ -291,8 +291,8 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
                  (env mw₂ (env {Δᵢ = Δ₁ᵢ} {Bᵢ = B₁} mw₁ ⊢V (conv-seal dX)
                                sm₁ se₁ wB)
                       (conv-unseal dY) sm₂ se₂ wE)
-  with interior-functional (mw-interior mw₂) ri
-     | conversion-functional (mw-conversion mw₂) r₂
+  with interior-functional (bw-interior mw₂) ri
+     | conversion-functional (bw-conversion mw₂) r₂
 preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
                  {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
@@ -301,8 +301,8 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
                                sm₁ se₁ wB)
                       (conv-unseal dY) sm₂ se₂ wE)
   | refl | refl
-  with conversion-functional (mw-conversion mw₁) r₁
-     | ∋:=-det (name-fn (mw-conversion-wf mw₂)) dY d
+  with conversion-functional (bw-conversion mw₁) r₁
+     | ∋:=-det (name-fn (bw-conversion-wf mw₂)) dY d
 preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
                  {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
@@ -311,7 +311,7 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
                                sm₁ se₁ wB)
                       (conv-unseal dY) sm₂ se₂ wE)
   | refl | refl | refl | refl
-  with ∋:=-det (name-fn (mw-conversion-wf mw₁)) dX d₁
+  with ∋:=-det (name-fn (bw-conversion-wf mw₁)) dX d₁
 preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}
                  {A = A} {A′ = A′} {Aᵢ = Aᵢ} {C = C}
@@ -332,8 +332,8 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   Δᵣᵢ : Ctxᵗ
   Δᵣᵢ = extendReps (binds Θ₂) Δ
 
-  mwR : MorphWf Δ (rewind Θ₂) Δᵣᵢ Δᶜ
-  mwR = mw wfΔ (mw-binds mw₂)
+  mwR : BoundaryWf Δ (rewind Θ₂) Δᵣᵢ Δᶜ
+  mwR = bw wfΔ (bw-binds mw₂)
            (rewind-interior ri) (rewind-conversion ri r₂)
 
   -- THE BINDER Y NAMES, and the exterior type it represents
@@ -412,10 +412,10 @@ preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
   eqA′ : RA′ ≡ RB
   eqA′ = same-rep-unique (proj₂ (proj₂ sm)) pAᵢ
 
-  mw⋉ : MorphWf Δᵣᵢ (Θ₁ ⋉ Θ₂) Δ₁ᵢ Δ⋉ᶜ
-  mw⋉ = mw (mw-interior-wf mwR)
-           (subst (λ Ξ → Ξ ⊢ᴮ binds Θ₁) (interior-reps ri) (mw-binds mw₁))
-           (merged-interior (mw-interior mw₂) (mw-interior mw₁))
+  mw⋉ : BoundaryWf Δᵣᵢ (Θ₁ ⋉ Θ₂) Δ₁ᵢ Δ⋉ᶜ
+  mw⋉ = bw (bw-interior-wf mwR)
+           (subst (λ Ξ → Ξ ⊢ᴮ binds Θ₁) (interior-reps ri) (bw-binds mw₁))
+           (merged-interior (bw-interior mw₂) (bw-interior mw₁))
            r⋉
 
   innerᵢ : Δ₁ᵢ ⊢ B₁ ≈ A′ ⊣ Δ⋉ᶜ

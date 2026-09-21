@@ -195,7 +195,7 @@ In the following equations, change sequences are written in acting order.
 Named variables make the definitions clearer wrt. de Bruijn because representation
 indices do not have to shift past a bind block.
 
-    dualMorph Θ
+    dual Θ
       binds no representations and performs the inverse changes
       in reverse acting order
 
@@ -208,7 +208,7 @@ indices do not have to shift past a bind block.
     addLock(X,α,Θ)
       keeps binds(Θ), performs lock X α first, then changes(Θ)
 
-    instantiate(X,α,R,Θ)
+    inst(X,α,R,Θ)
       prepends α := R, unlocks X α first, then performs changes(Θ)
 
 Agda's `_ ⋉ _`, `addLock0`, and `instantiate` additionally shift de
@@ -351,7 +351,7 @@ does not descend into a boundary.
 Mechanization note.  Agda allows distinct index spellings `Bᵢ/Cᵢ` and
 `Bₑ/Cₑ`.  Its fourth premise is `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ`; its fifth is
 `SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ`, which also crosses the
-morphism's representation-bind prefix.  Named variables turn these into
+boundary scope's representation-bind prefix.  Named variables turn these into
 the two paired scope conditions above; the interior/conversion/exterior
 contexts do not disappear.
 
@@ -396,7 +396,7 @@ redex's typing can reconstruct them.
     (TyBeta)    Value N    Δ ⊢ᶜ A ~ R
                 -----------------------------------------------
                 Δ ⊢ (ΛX.N) [B,A]
-                    -→ N ⟪ instantiate(X,α,R,∅), revealₓ(B) ⟫
+                    -→ N ⟪ inst(X,α,R,∅), revealₓ(B) ⟫
 
 `X` and `α` are the ordinary and representation binders of the event.
 The second premise is genuine: it translates the ordinary argument `A`
@@ -408,19 +408,19 @@ to the representation type stored at `α`.
 
 For `Peel`, suppose the carried readings are
 
-    Δ  ⊢ⁱ Θ             ⇒ Δᵢ
-    Δ  ⊢ᶜ Θ             ⇒ Δᶜ
-    Δᵢ ⊢ᶜ dualMorph Θ   ⇒ Δᵈ
+    Δ  ⊢ⁱ Θ      ⇒ Δᵢ
+    Δ  ⊢ᶜ Θ       ⇒ Δᶜ
+    Δᵢ ⊢ᶜ dual Θ   ⇒ Δᵈ
 
 Then:
 
     (Peel)      Value V    Value W
                 Δ ⊢ᶜ Θ ⇒ Δᶜ    Δ ⊢ⁱ Θ ⇒ Δᵢ
-                Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ
+                Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
                 c is in scope in both Δᶜ and Δᵈ
                 ------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ , c ↦ d ⟫) · W
-                    -→ (V · (W ⟪ dualMorph Θ , c ⟫)) ⟪ Θ , d ⟫
+                    -→ (V · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫
 
 Mechanization note.  Agda names the dual spelling `c′`, requires
 `SameConv Δᵈ c′ Δᶜ c`, and shifts `W` past `numBinds Θ`; named variables
@@ -431,13 +431,12 @@ that they name the same representation variables.
 For `TyPeelR-Λ`, let `Δ ⊢ᶜ Θ ⇒ Δᶜ`:
 
     (TyPeelR-Λ)
-                Value N
                 Δ ⊢ᶜ Θ ⇒ Δᶜ
                 under(X,α,Δᶜ) ⊢ c : Bᵢ ⇝ Bₑ
                 Δ ⊢ᶜ A ~ R
                 --------------------------------------------------
-                Δ ⊢ ((ΛX.N) ⟪ Θ , ∀X.c ⟫) [B,A]
-                    -→ N ⟪ instantiate(X,α,R,Θ), instRevealₓ(c) ⟫
+                Δ ⊢ ((ΛX.V) ⟪ Θ , ∀X.c ⟫) [B,A]
+                    -→ V ⟪ inst(X,α,R,Θ), instRevealₓ(c) ⟫
 
 No term moves in this clause: the `Λ` binder becomes the represented
 binder introduced by `instantiate`.
@@ -447,7 +446,7 @@ For `TyPeelR-⟪⟫`, let the readings named in the premises be:
     Δ     ⊢ⁱ Θ                         ⇒ Δᵢ
     Δ     ⊢ᶜ Θ                         ⇒ Δᶜ
     Δᵢ    ⊢ᶜ Θ′                        ⇒ Δ′ᶜ
-    Δ     ⊢ⁱ instantiate(X,α,R,Θ)     ⇒ Δᵢ⁺
+    Δ     ⊢ⁱ inst(X,α,R,Θ)     ⇒ Δᵢ⁺
     Δᵢ⁺   ⊢ᶜ addLock(X,α,Θ′)          ⇒ Δ″ᶜ
 
 The named rule is:
@@ -459,7 +458,7 @@ literal.
     (TyPeelR-⟪⟫)
                 Value W
                 Δ ⊢ⁱ Θ ⇒ Δᵢ    Δ ⊢ᶜ Θ ⇒ Δᶜ    Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
-                Δ ⊢ⁱ instantiate(X,α,R,Θ) ⇒ Δᵢ⁺
+                Δ ⊢ⁱ inst(X,α,R,Θ) ⇒ Δᵢ⁺
                 Δᵢ⁺ ⊢ᶜ addLock(X,α,Θ′) ⇒ Δ″ᶜ
                 c′ is in scope under X in both the old view of Δ′ᶜ
                    after adding α, and Δ″ᶜ
@@ -469,7 +468,7 @@ literal.
                 ----------------------------------------------------------
                 Δ ⊢ ((W ⟪ Θ′ , ∀X.c′ ⟫) ⟪ Θ , ∀X.c ⟫) [B,A]
                     -→ ((W ⟪ addLock(X,α,Θ′), ∀X.c′ ⟫) [Bᵢ,X])
-                         ⟪ instantiate(X,α,R,Θ), instRevealₓ(c) ⟫
+                         ⟪ inst(X,α,R,Θ), instRevealₓ(c) ⟫
 
 Mechanization note.  Agda calls the annotation `Bᵢ′`, carries
 `underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ`, and renames it past the inserted
@@ -483,8 +482,7 @@ For the scope-move rules, `binds(Θ₂)·Δ` means the exterior context
 with `Θ₂`'s parallel representation bind block added.  It does not apply
 `Θ₂`'s ordinary-name changes.
 
-    (CancelR)   Value V
-                Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+    (CancelR)   Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
                 Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
                 Δ₁ᶜ ∋ X := Aᵢ
                 binds(Θ₂)·Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
@@ -493,8 +491,7 @@ with `Θ₂`'s parallel representation bind block added.  It does not apply
                 Δᶜ ∋ Y := Aₒ
                 -------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-                    -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId Aᵢ ⟫)
-                         ⟪ rewind Θ₂ , mkId Aₒ ⟫
+                    -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId Aᵢ ⟫) ⟪ rewind Θ₂ , mkId Aₒ ⟫
 
 `X` and `Y`, and `Aᵢ` and `Aₒ`, remain distinct metavariables in the
 rule.  Typing a redex forces the seal and unseal to meet at the same
@@ -694,7 +691,7 @@ The rule names below are the Agda constructor names.
 | `lock`, `unlock` | `step-lock`, `step-unlock` | membership/freshness replaces positional insert/delete evidence |
 | interior changes | `changes[]`, `changes∷` | named sequences suppress index shifts only |
 | conversion changes | `conv[]`, `conv-lock`, `conv-unlock`, `conv-unlock-live` | the no-op re-unlock remains semantically visible |
-| `BoundaryWf` | `mw` | output well-formedness is derived in both presentations |
+| `BoundaryWf` | `bw` | output well-formedness is derived in both presentations |
 | `conv-id`, `conv-idv`, `conv-unseal`, `conv-seal`, `conv-fun`, `conv-all` | same names in `Conversion.agda` | none beyond named lookup and binders |
 | `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢·[]` | same constructors in `Terms.agda` | named binders replace term/type indices |
 | `env` | `env` | Agda has `Bᵢ/Cᵢ` related by `_⊢_≈_⊣_` and `Bₑ/Cₑ` related by `SameTyExt`; notes use one named endpoint plus paired scope conditions |
@@ -706,10 +703,10 @@ The rule names below are the Agda constructor names.
 
 | notes rule | Agda constructor | presentation/mechanization gap |
 |---|---|---|
-| `TyBeta` | `TyBeta` | `instantiate` shifts old representation indices; names stay fixed |
+| `TyBeta` | `TyBeta` | `inst` shifts old representation indices; names stay fixed |
 | `Beta` | `Beta` | named frame-exact substitution hides the representation-only weakening under `Λ`, not the crossing boundary |
 | `Peel` | `Peel` | `c′`/`SameConv` becomes one `c` plus scope in `Δᶜ,Δᵈ`; `W` is representation-weakened in Agda |
-| `TyPeelR-Λ` | `TyPeelR-Λ` | `instantiate` shifts indices; no re-spelling premise is removed |
+| `TyPeelR-Λ` | `TyPeelR-Λ` | `inst` shifts indices; no re-spelling premise is removed |
 | `TyPeelR-⟪⟫` | `TyPeelR-⟪⟫` | `Bᵢ′` and `c″` collapse to named `Bᵢ` and `c′` with four scope readings; Agda representation-renames `W`, `Θ′`, and the annotation |
 | `CancelR` | `CancelR` | `A′` collapses to named `Aᵢ` with scope at `Δ⋉ᶜ,Δ₁ᶜ`; distinct raw-rule `X,Y,Aᵢ,Aₒ` are retained |
 | `Drop$` | `Drop$` | none; the `Base A` premise is retained |

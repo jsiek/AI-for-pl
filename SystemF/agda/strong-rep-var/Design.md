@@ -46,7 +46,7 @@ Two consequences shape everything else:
   moves its names coherently, and knowledge transport is *definitional*:
   `ren-kn r d = ren∋ r d` in `strong-rep-var.Ctx`.
 
-### The pre-boundary counterexample (why boundaries carry a context morphism)
+### The pre-boundary counterexample (why boundaries carry a boundary scope)
 
 Before either v1 or v2 there was a **pre-boundary** design: one wrapper
 per revealed or concealed variable, `M ↑[X:=A]` and `M ↓[X:=A]`, with the
@@ -92,7 +92,7 @@ not typeable at any type.
    records it as a **new bind** on the boundary (one bind prepended), and
    instantiates the interior at the fresh *name* `` ` 0 `` (§6.4).  So a
    boundary has to carry a bind and a lock at the same time: it is a
-   **list** — a context morphism — and not a single reveal-or-conceal.
+   **list** — a boundary scope — and not a single reveal-or-conceal.
 
 **The same program today.**  `Examples` §14 runs it, machine-rendered;
 `run-E` is the run, `⊢E₅` types the answer by `preservation*`, and
@@ -200,9 +200,9 @@ makes exactly one frame change, described by `Θ`, and carries exactly one
 conversion `c`.  Its interior `M` is **term-closed**: `env` types it at
 the empty term context.
 
-### Context morphisms (`strong-rep-var.CtxMorph`)
+### Boundary scopes (`strong-rep-var.Boundary`)
 
-`Θ : CtxMorph` is Jeremy's *context morphism*: it maps the type context
+`Θ : Boundary` is Jeremy's *boundary scope*: it maps the type context
 outside the boundary to the type context inside it.  **It is a PAIR**
 (2026-09-06), because its two halves are not the same kind of thing:
 
@@ -210,8 +210,8 @@ outside the boundary to the type context inside it.  **It is a PAIR**
 data Change : Set where
   lock unlock : ℕ → Change          -- EXTERIOR indices, name only
 
-record CtxMorph : Set where
-  constructor morph
+record Boundary : Set where
+  constructor boundary
   field
     binds   : List Ty               -- PARALLEL block of binders
     changes : List Change           -- SEQUENTIAL, applied head-LAST
@@ -234,7 +234,7 @@ frame's own locks (§8, simultaneity).
 
 **The changes are SEQUENTIAL.**  They carry a name and nothing else, and
 the list is applied **head-last**: in `↥Y , ↓Y` the `↓Y` acts first.  A
-change's index is an *exterior* index, unshifted by the morphism's own
+change's index is an *exterior* index, unshifted by the boundary scope's own
 binds.
 
 The old shape was one interleaved `List MorphEnt` with a `bind`
@@ -242,9 +242,9 @@ constructor mixed in among `lock`/`unlock`.  It said neither thing: it
 made the binds look sequential (a rep was read past its own *tail* only)
 and it let a lock sit between two binds, where a lock has no meaning.
 
-One derived number, in `strong-rep-var.CtxMorph`:
+One derived number, in `strong-rep-var.Boundary`:
 
-    numBinds : CtxMorph → ℕ            -- numBinds Θ = length (binds Θ)
+    numBinds : Boundary → ℕ            -- numBinds Θ = length (binds Θ)
 
 `numBinds Θ` is the boundary's **frame extension**: the number of binders
 it adds.  It is the only list arithmetic that survives from v1.  (The
@@ -287,9 +287,9 @@ the exterior side — and `env` already enforces exactly that with its two
 type contexts.  A locked `X` is masked in the interior context, so it
 cannot appear on the interior side of a leaf; a bound `X` is not in the
 image of `shiftBy`, so it cannot appear on the exterior side.  A single
-global `p` is uniform only for single-kind morphisms, and it breaks the
+global `p` is uniform only for single-kind boundary scopes, and it breaks the
 first time a rule mints a mixed one: `TyPeelR-Λ`'s frame, one bind
-prepended to `Θ = morph [] (lock 0 ∷ [])`, produces the conversion
+prepended to `Θ = boundary [] (lock 0 ∷ [])`, produces the conversion
 `seal 0 ↦ seal 1`, whose two
 leaves cite *different* binders and demand opposite values of one `p`
 (`Examples` §13a, `¬seal↦seal` in the record).  Dropping `p` is what
@@ -358,7 +358,7 @@ are unchanged: `X := A`, `X Λ-bound`, `⌷[…]`).
 Note the distinction the mask discipline forces: `↓X` and `↥X` **name**
 a possibly masked index — that is an entry, not a type — whereas
 `` Δ ⊢ᵗ ` X `` at a masked slot is refused.  Tightness is about *use in a
-type*, not about mentioning the index in a context morphism.
+type*, not about mentioning the index in a boundary scope.
 
 ### Refinement
 
@@ -456,7 +456,7 @@ the question this section answers, on `Examples` §13a's inner boundary
 
     ((ΛZ. λx:Z. 3) [Y]) ⟪ ↑Y:=X , ↓X , (seal Y ↦ seal X) ⟫
 
-over the exterior `Δ = X := ℕ`.  The morphism binds a fresh `Y` at the
+over the exterior `Δ = X := ℕ`.  The boundary scope binds a fresh `Y` at the
 representation `X` and locks `X`; the conversion is `seal Y ↦ seal X`.
 
 **The exterior cannot check it.**  `seal Y` names `Y` — a slot the
@@ -528,7 +528,7 @@ polarity index could type the tree.
 Indices: everything inside the boundary is `numBinds Θ` slots deeper than
 outside, so an exterior type `Bₑ` is read inside as `shiftBy (numBinds Θ) Bₑ`.
 `lock X` / `unlock X` name **exterior** slots, and the rules that move a
-morphism inward lift those names by the bind count (`shiftScope`, §6.7).
+boundary scope inward lift those names by the bind count (`shiftScope`, §6.7).
 
 ### What the one-mask entry costs, and what it buys
 
@@ -583,7 +583,7 @@ block of representations*, `changes` = *the sequential lock/unlock list*,
 *shift past n binders*.
 
 
-## 4. Typing (`strong-rep-var.CtxMorph`, `strong-rep-var.Terms`, `strong-rep-var.Conversion`)
+## 4. Typing (`strong-rep-var.Boundary`, `strong-rep-var.Terms`, `strong-rep-var.Conversion`)
 
 ### 4.1 Well-formed types
 
@@ -595,11 +595,11 @@ block of representations*, `changes` = *the sequential lock/unlock list*,
 The only interesting clause is `wf-var`: it asks for **visibility**, so a
 masked slot is unnameable, and a `∀` pushes `abst`, never a `bind`.
 
-### 4.2 Well-formed context morphisms — `Δ ⊢ᵐ Θ`
+### 4.2 Well-formed boundary scopes — `Δ ⊢ᵐ Θ`
 
-Read "the context morphism `Θ` is well formed over `Δ`"; an infix
+Read "the boundary scope `Θ` is well formed over `Δ`"; an infix
 judgement in the family of `Δ ⊢ᵗ A` and `Δ ⊢ c ∶ A ⇝ B`.  **It is a pair,
-because the morphism is** — one judgement per half:
+because the boundary scope is** — one judgement per half:
 
 ```agda
 data _⊢ʳ_ : Ctxᵗ → List Ty → Set where        -- the PARALLEL reps
@@ -611,8 +611,8 @@ data _⊢ˢ_ : Ctxᵗ → List Change → Set where    -- the SEQUENTIAL changes
   sw-l : applyChanges S Δ ∋tv X → Δ ⊢ˢ S → Δ ⊢ˢ (lock X ∷ S)
   sw-u : applyChanges S Δ ∋lk X → Δ ⊢ˢ S → Δ ⊢ˢ (unlock X ∷ S)
 
-record _⊢ᵐ_ (Δ : Ctxᵗ) (Θ : CtxMorph) : Set where
-  constructor mw
+record _⊢ᵐ_ (Δ : Ctxᵗ) (Θ : Boundary) : Set where
+  constructor bw
   field
     mw-reps    : unlockedScope Θ Δ ⊢ʳ binds Θ
     mw-changes : Δ ⊢ˢ changes Θ
@@ -654,7 +654,7 @@ forced from both sides:
   reps were read past that enclosing frame's *unlocks*.  With a
   plain-`Δ` rep half the merged frame has no derivation
   (`proof/MwUObstruct` §4, at
-  `Θ₁ ⋉ Θ₂ = morph (` 0 ∷ []) (unlock 0 ∷ [])` over an exterior that
+  `Θ₁ ⋉ Θ₂ = boundary (` 0 ∷ []) (unlock 0 ∷ [])` over an exterior that
   masks slot 0).
 
 **The one semantic move the pair makes.**  The interleaved list read a
@@ -700,8 +700,8 @@ and the boundary rule, in full:
 
 Premise by premise:
 
-1. **`Δ ⊢ᵐ Θ`** — the morphism is well formed over the exterior
-   (§4.2).  This is the only place the morphism's own halves are
+1. **`Δ ⊢ᵐ Θ`** — the boundary scope is well formed over the exterior
+   (§4.2).  This is the only place the boundary scope's own halves are
    checked: the binds *simultaneously*, against `unlockedScope Θ Δ`; the
    changes *sequentially*, each against the frame it acts on.
 2. **`interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ`** — the interior is typed in the interior
@@ -869,18 +869,18 @@ unconditionally (`proof/PeelDual.agda`).
     shiftScope n (unlock X , S) = unlock (n+X) , shiftScope n S
     shiftScope n (lock X , S)   = lock   (n+X) , shiftScope n S
 
-    rewind Θ = morph (binds Θ)           -- Θ with its own CHANGES undone
+    rewind Θ = boundary (binds Θ)           -- Θ with its own CHANGES undone
                      (dualScope 0 (changes Θ) ++ changes Θ)
 
-    Θ₁ ⋉ Θ₂ = morph (binds Θ₁)
+    Θ₁ ⋉ Θ₂ = boundary (binds Θ₁)
                     (changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂))
 
 Note `numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁` and
 `numBinds (rewind Θ) ≡ numBinds Θ`: neither operation carries a binder.
 
-**The appended lock** (§6.4, `strong-rep-var.CtxMorph` §5):
+**The appended lock** (§6.4, `strong-rep-var.Boundary` §5):
 
-    addLock0 Θ = morph (binds Θ) (changes Θ ++ [ lock 0 ])
+    addLock0 Θ = boundary (binds Θ) (changes Θ ++ [ lock 0 ])
 
 one `lock 0` at the **tail** of a boundary's own change list, where
 `applyChanges` runs it **first** — exactly the position `_⋉_` puts its
@@ -898,7 +898,7 @@ frame instead of under a minted wrapper.
 ### 6.1 `TyBeta` — the boundary is born
 
     TyBeta : Value N
-      → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫
+      → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ boundary (A ∷ []) [] , reveal 0 B ⟫
 
 Named:  `(ΛX. N) [B, A]  →  N ⟪ ↑X:=A , reveal X B ⟫`, `N` a value.
 
@@ -940,15 +940,15 @@ Every other rule in the table is exact (see the frame identities in §7);
 
 **The repair: what crosses a binder is wrapped in the binder's dual.**  A
 `Λ` is an `abst` binder occupying slot 0 inside, so its dual is
-`morph [] (lock 0 ∷ [])` — no binds, one lock, exactly what
-`dual (morph (A ∷ []) [])` is — and the conversion is the identity at the
+`boundary [] (lock 0 ∷ [])` — no binds, one lock, exactly what
+`dual (boundary (A ∷ []) [])` is — and the conversion is the identity at the
 value's own type, shifted past the binder:
 
-    crossΛ W A = ⇑ᴹ W ⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+    crossΛ W A = ⇑ᴹ W ⟪ boundary [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫
 
 The frame identity is then DEFINITIONAL:
 
-    interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ
+    interior (boundary [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ
 
 — the image's BIRTH frame `Δ` with the crossed binder masked: nothing
 gained, nothing lost (`Examples.interior-Beta-Λ`).  It is the same shape
@@ -1012,7 +1012,7 @@ outside, where they were nameable).  `wkᴹ (numBinds Θ)` re-indexes the
 argument one bind frame deeper.
 
 Example (`Examples` §6, `P₁ → P₂`), with
-`dual (morph (ℕ ∷ []) []) ≡ morph [] (lock 0 ∷ [])`:
+`dual (boundary (ℕ ∷ []) []) ≡ boundary [] (lock 0 ∷ [])`:
 
     (((λx:X. x) ⟪ ↑X:=ℕ , (seal X ↦ unseal X) ⟫) · 7)
       →  (((λx:X. x) · (7 ⟪ ↓X , seal X ⟫)) ⟪ ↑X:=ℕ , unseal X ⟫)
@@ -1058,7 +1058,7 @@ rather than supplementing it.
     TyPeelR-Λ : Value N
       → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-          -→ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+          -→ N ⟪ boundary (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
     TyPeelR-⟪⟫ : Value W
       → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
@@ -1067,7 +1067,7 @@ rather than supplementing it.
                  ⟪ addLock0 (renᴮ suc Θ′)
                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
                 ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+               ⟪ boundary (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
 Named: the `Λ` clause is
 `((ΛX. N) ⟪ Θ , ∀X. s ⟫) [B, A] → N ⟪ ↑X:=A , Θ , instReveal X s ⟫`, and
@@ -1079,10 +1079,10 @@ where `Bᵢ` is the interior `∀`-body determined by the premise.
 **Bookkeeping**, shared by both clauses:
 
 1. **A new binder is prepended.**  The frame becomes
-   `morph (A ∷ binds Θ) (changes Θ)` — plain
+   `boundary (A ∷ binds Θ) (changes Θ)` — plain
    `Θ`, not shifted, because `interior` already lifts `Θ`'s representations
    past the prepended binder:
-   `interior (morph (A ∷ binds Θ) (changes Θ)) Δ
+   `interior (boundary (A ∷ binds Θ) (changes Θ)) Δ
     ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ`.
 2. **The conversion is re-minted at the new slot.**  Slot 0 of `s`'s body
    was `abst` and is now the binder this rule introduces, so every leaf
@@ -1211,7 +1211,7 @@ which is the `∋:=-det` fact the whole binder design was chosen for.
 Both **frames are kept** and both conversions are **neutralised** to
 identities at the looked-up representation; composition happens only on
 the conversions, where `unseal ∘ seal = id` is algebra we already trust,
-so no context-morphism arithmetic returns.  The two names need no
+so no boundary-scope arithmetic returns.  The two names need no
 relating premise: typing already forces `X ≡ numBinds Θ₁ + Y`
 (`proof/IdLayer.cancel-name`).  The lookup premise is there because the
 rule mints identity conversions *at a looked-up representation*, and
@@ -1269,7 +1269,7 @@ The representation is then presented outside the locks, where it is
 nameable, and the locks still stand between the value and the world.
 
 **Why `rewind`, and not the two cheaper frames.**  All three of
-`rewind Θ₂`, `dropLocks Θ₂` and `morph (binds Θ₂) []` (delete the changes
+`rewind Θ₂`, `dropLocks Θ₂` and `boundary (binds Θ₂) []` (delete the changes
 outright) leave the same type context.  Only `rewind` keeps its own
 `_⊢ᵐ_`, and both alternatives are refuted on ONE configuration
 (`proof/MwUObstruct`): `Δ₆ = ↓U`, `Θ₂ = ↥U`, `Θ₁ = ↑V:=U`, so that
@@ -1278,8 +1278,8 @@ outright) leave the same type context.  Only `rewind` keeps its own
 * `dropLocks Θ₂` KEEPS `Θ₂`'s unlocks, so the *moved copy* of the same
   unlock lands where the slot is already nameable — a vacuous unlock,
   which `sw-u` refuses (`¬⊢ᵐ-dropLocks`);
-* `morph (binds Θ₂) []` DELETES them, and then `Θ₂`'s *own* bind representation
-  — read on `unlockedScope Θ₂ Δ`, i.e. past that very unlock — is
+* `boundary (binds Θ₂) []` DELETES them, and then `Θ₂`'s *own* bind
+  representation — read on `unlockedScope Θ₂ Δ`, i.e. past that very unlock — is
   stranded on the plain exterior (`¬⊢ᵐ-bindsOnly`);
 * `rewind Θ₂` keeps every entry and rewinds it, so every premise is read
   exactly where the redex read it (`⊢ᵐ-rewind`).
@@ -1322,7 +1322,7 @@ reorders a mask/unmask pair, and the value's frame is then not refined
 but **corrupted** — a slot it may name in the redex is masked in the
 contractum.  The refutation is in tree
 (`proof/MoveScope` §4b, `¬frame-locksOnly`) at the `_⊢ᵐ_`-legal witness
-`Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])` over `Δ✗ = unmasked (bind ℕ) ∷ []`,
+`Θ✗ = boundary [] (unlock 0 ∷ lock 0 ∷ [])` over `Δ✗ = unmasked (bind ℕ) ∷ []`,
 where `interior Θ✗ Δ✗ ≡ unmasked (bind ℕ) ∷ []` but the lock-only
 contractum's interior is `masked (bind ℕ) ∷ []`.  Moving the whole scope keeps the order, and then
 the value's frame is preserved **on the nose**: with `rewind` outside,
@@ -1437,7 +1437,7 @@ Induction on the step, with the rule cases distributed:
   `Λ`'s own slot (`la-uu le-ab`), so the interior retypes by `⊢retag`; the minted conversion
   types by `⊢reveal`/`⊢conceal`, and its exterior type is the
   instantiated body by `subst-at-0`.  The exterior premise is `⊢·[]`'s
-  own two premises through `wf-[]ᵗ`, and `interior (morph (A ∷ []) []) Δ` is
+  own two premises through `wf-[]ᵗ`, and `interior (boundary (A ∷ []) []) Δ` is
   definitional.
 * **`Beta`** — `⊢subst` (`strong-rep-var.TermSubst`).
 * **`Peel`** (`proof/PeelDual.preserve-Peel`) — the two context
@@ -1522,13 +1522,13 @@ is a known function of the old one:
 
 | rule | the moved subterm's new frame |
 |------|-------------------------------|
-| `TyBeta` | `interior (morph (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` — `Δ` on the nose, one refinement (`unmasked abst ⊑ᵃᵉ unmasked (bind A)`, i.e. `la-uu le-ab`) at the slot the rule reveals |
-| `TyPeelR-Λ` | `interior (morph (A ∷ binds Θ) (changes Θ)) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ` — the redex's frame, one binder in, and the body is **not moved**: its slot 0 was `unmasked abst` and is now `unmasked (bind …)`, the same `la-uu le-ab` refinement `TyBeta` performs, at a slot it could already name.  No shift at all (`proof/ShiftAudit.TyPeelR-Λ-refinement`, `TyPeelR-Λ-no-shift`) |
-| `TyPeelR-⟪⟫` | `interior (addLock0 (renᴮ suc Θ′)) (interior (morph (A ∷ binds Θ) (changes Θ)) Δ) ≡ pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind (shiftBy (numBinds Θ) A)) ∷ scope Θ′ (interior Θ Δ))` — the moved boundary's **birth frame** with the new binder inserted **masked** below its bind prefix, the same shape `(†)` gives `Peel` and `interior-Beta-Λ` gives `Beta` (`proof/ShiftAudit.TyPeelR-⟪⟫-frame` and `-slot-locked`, from `strong-rep-var.TermSubst.interior-addLock0-cross`); it crosses by `⊢rename` alone, at `Ren-addLock0` |
+| `TyBeta` | `interior (boundary (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` — `Δ` on the nose, one refinement (`unmasked abst ⊑ᵃᵉ unmasked (bind A)`, i.e. `la-uu le-ab`) at the slot the rule reveals |
+| `TyPeelR-Λ` | `interior (boundary (A ∷ binds Θ) (changes Θ)) Δ ≡ bind (shiftBy (numBinds Θ) A) ∷ interior Θ Δ` — the redex's frame, one binder in, and the body is **not moved**: its slot 0 was `unmasked abst` and is now `unmasked (bind …)`, the same `la-uu le-ab` refinement `TyBeta` performs, at a slot it could already name.  No shift at all (`proof/ShiftAudit.TyPeelR-Λ-refinement`, `TyPeelR-Λ-no-shift`) |
+| `TyPeelR-⟪⟫` | `interior (addLock0 (renᴮ suc Θ′)) (interior (boundary (A ∷ binds Θ) (changes Θ)) Δ) ≡ pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind (shiftBy (numBinds Θ) A)) ∷ scope Θ′ (interior Θ Δ))` — the moved boundary's **birth frame** with the new binder inserted **masked** below its bind prefix, the same shape `(†)` gives `Peel` and `interior-Beta-Λ` gives `Beta` (`proof/ShiftAudit.TyPeelR-⟪⟫-frame` and `-slot-locked`, from `strong-rep-var.TermSubst.interior-addLock0-cross`); it crosses by `⊢rename` alone, at `Ren-addLock0` |
 | `Peel` | (†) `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ`, given `Δ ⊢ᵐ Θ` (`proof/PeelDual.interior-dual`) |
 | `CancelR`, `IdPush` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)`, given `Δ ⊢ᵐ Θ₂` (`proof/MoveScope.interior-⋉-rewind`) |
 | `Beta` | `Δ` where no binder is crossed — no frame changes |
-| `Beta`, under a `Λ` | `interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` — the image's BIRTH frame with the crossed `Λ`'s slot masked (`Examples.interior-Beta-Λ`) |
+| `Beta`, under a `Λ` | `interior (boundary [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` — the image's BIRTH frame with the crossed `Λ`'s slot masked (`Examples.interior-Beta-Λ`) |
 
 The `Beta` row used to read `Δ` and nothing else, and it was the one
 INEXACT row: `substᵐ` shifted the image under the `Λ` without recording
@@ -1539,7 +1539,7 @@ test on the closed case.
 
 The first two rows and the last are `refl` (`Examples.interior-TyBeta`,
 `interior-TyPeelR`, `interior-Beta-Λ`); the `TyPeelR-⟪⟫` row is
-`applyChanges-++` plus `applyChanges-shiftScope1` (`strong-rep-var.CtxMorph` §5,
+`applyChanges-++` plus `applyChanges-shiftScope1` (`strong-rep-var.Boundary` §5,
 `strong-rep-var.TermSubst`), and the `Peel` and scope-move rows are the theorems
 whose `Δ ⊢ᵐ Θ` premise is where the sequential judgement pays for itself
 (§4.2).  `Drop$` and the five congruences move nothing into a new frame.
@@ -1648,7 +1648,7 @@ machine-checked consequence in tree.
    changed so that the fact follows from `env`'s own last premise.
 2. **Tightness, for terms and for scope.**  A masked slot may not be
    named in any type; `Nameable` and `wf-var` are the whole enforcement.
-   *Mentioning* a masked index in a morphism entry (`↓X`, `↥X`) is not a
+   *Mentioning* a masked index in a boundary scope entry (`↓X`, `↥X`) is not a
    use, and `_⊢ᵐ_` permits it — but it must be TRUE: `↓X` needs `X`
    nameable and `↥X` needs `X` LOCKED, where the entry acts.  The law
    held for typing all along and was **broken for the reduction
@@ -1669,8 +1669,8 @@ machine-checked consequence in tree.
    Frame-exact `Beta` (§6.2) does not change this: the shift a substituted
    image undergoes when it crosses a `Λ` is still `⇑ᴹ = renᴹ suc`, one
    binder, applied AT that binder — what the repair adds is a WRAPPER
-   beside the shift, not more arithmetic.  The wrapper's morphism
-   `morph [] (lock 0 ∷ [])` names slot 0 and carries no representation,
+   beside the shift, not more arithmetic.  The wrapper's boundary scope
+   `boundary [] (lock 0 ∷ [])` names slot 0 and carries no representation,
    and its conversion `mkId (⇑ᵗ A)` is derived from the type the redex
    already carries.  The rule of thumb survives: every shift in the
    development sits at a binder, and no shift is ever applied to a
@@ -1777,7 +1777,7 @@ is `notes/DesignSpace.md`, with `notes/DesignPoints.md` as its glossary.
 * **The pair** (Jeremy, 2026-09-06; PR #195, `3f080fdb`).  The
   ratification left `_⊢ᵐ_` reading a rep past its own TAIL's unlocks,
   which is a sequential statement about something that is not sequential.
-  The morphism became a PAIR — `morph (binds : List Ty)
+  The boundary scope became a PAIR — `boundary (binds : List Ty)
   (changes : List Change)` — so the type says what is true: the binds are
   a parallel block, the changes a sequential list.  The rep reading loses
   its tail dependence (every rep past the WHOLE change list); no
@@ -1807,7 +1807,7 @@ is `notes/DesignSpace.md`, with `notes/DesignPoints.md` as its glossary.
   the spot (no shift at all; the `Λ`'s slot becomes the boundary's
   binder, `TyBeta`'s own refinement one `∀` inside) and `TyPeelR-⟪⟫`
   pushes inward past a boundary interior, masking the new binder in the
-  moved boundary's **own** change list (`addLock0`, `strong-rep-var.CtxMorph`
+  moved boundary's **own** change list (`addLock0`, `strong-rep-var.Boundary`
   §5).  No premise was added; the pair is total over canonical
   `∀`-values, so it replaces the single rule.  Its descent terminates on
   the `∀`-value's tower height, the measure the wrap repair leaves fixed.
@@ -1820,9 +1820,9 @@ is `notes/DesignSpace.md`, with `notes/DesignPoints.md` as its glossary.
 
 Jeremy ruled on the helper names on 2026-09-06 and the Agda now spells
 them out in full.  Names ruled on earlier and kept as they were:
-`Θ` = *context morphism*; the change constructors `lock` / `unlock`;
+`Θ` = *boundary scope*; the change constructors `lock` / `unlock`;
 the type-context entries `abst` / `bind` / `masked`; `dual`; `Inj`.
-The morphism's `bind` entry became the `binds` field on 2026-09-06.
+The boundary scope's `bind` entry became the `binds` field on 2026-09-06.
 
 | name | reading |
 |------|---------|
@@ -1845,7 +1845,7 @@ The morphism's `bind` entry became the `binds` field on 2026-09-06.
 | `unmaskEnt E` | clear the lock (total, idempotent) |
 | `Nameable E` | the entry is `unmasked` — may be named in a type |
 | `b ⊑ᵇ b′` | refinement at the BINDING layer (`le-aa`/`le-ab`/`le-bb`) |
-| `Δ ⊢ᵐ Θ` | the morphism is well formed over Δ — a PAIR of halves |
+| `Δ ⊢ᵐ Θ` | the boundary scope is well formed over Δ — a PAIR of halves |
 | `Δ ⊢ʳ Bs` | the parallel rep half: every rep well formed on ONE Δ |
 | `Δ ⊢ˢ S` | the sequential change half |
 | `mkId A` | the identity conversion at any type |

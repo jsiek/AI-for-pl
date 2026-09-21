@@ -89,7 +89,7 @@ CancelR : ∀ {Δ V Θ₁ Θ₂ X Y A} → Value V → convCtx Θ₂ Δ ∋ Y :=
 
 Composition happens only on the CONVERSIONS, where `unseal ∘ seal = id`
 is the
-algebra we already trust; the context morphisms stay put, so no `⊕`
+algebra we already trust; the boundary scopes stay put, so no `⊕`
 returns:
 
 ```agda

@@ -18,17 +18,17 @@ module strong-rep-var.Terms where
 --     strong-rep-var.Preservation, strong-rep-var.Progress,
 -- strong-rep-var.TypeSafety).
 --   * THREE LAWS A READER MUST KNOW.  (1) `env` never COMPUTES the two
---     contexts a morphism induces: it takes `MorphWf Δ Θ Δᵢ Δᶜ`
---     (strong-rep-var.CtxMorph) and the two contexts are its outputs — the
+--     contexts a boundary scope induces: it takes `BoundaryWf Δ Θ Δᵢ Δᶜ`
+--     (strong-rep-var.Boundary) and the two contexts are its outputs — the
 --     retired `interior`/`convCtx` functions are gone.  (2) The three
 --     sides can spell the same semantic type differently, so `env`
 --     compares them by the REPRESENTATION each denotes:
 --     `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` at equal representation depth, and
 --     `SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ`, which additionally crosses
---     the morphism's own bind prefix (strong-rep-var.Ctx §5).  A boundary's
---     interior is TERM-CLOSED — `Δᵢ ∣ [] ⊢ M ⦂ Bᵢ` — which is what lets
---     strong-rep-var.TermSubst leave wrappers alone.  (3) Classification in §3
---     is by the CONVERSION CONSTRUCTOR alone: no source or target type
+--     the boundary scope's own bind prefix (strong-rep-var.Ctx §5).  A
+--     boundary's interior is TERM-CLOSED — `Δᵢ ∣ [] ⊢ M ⦂ Bᵢ` — which is what
+--     lets strong-rep-var.TermSubst leave wrappers alone.  (3) Classification
+--     in §3 is by the CONVERSION CONSTRUCTOR alone: no source or target type
 --     is inspected and no slot arithmetic occurs, so `id` at a variable
 --     is inert and `id` at a base type is active.  `V-Λ` carries
 --     `Value N` because reduction goes UNDER `Λ` (`ξ-Λ`); without it
@@ -38,9 +38,9 @@ module strong-rep-var.Terms where
 --
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --
---   Θ : CtxMorph   a parallel block of representation-variable binders and
+--   Θ : Boundary   a parallel block of representation-variable binders and
 --                  a sequential list of ordinary-variable binders and
---                  anti-binders. `MorphWf Δ Θ Δᵢ Δᶜ` produces the
+--                  anti-binders. `BoundaryWf Δ Θ Δᵢ Δᶜ` produces the
 --                  interior context Δᵢ and conversion context Δᶜ.
 --
 --   c : Conv       the conversion checked on Δᶜ. Its source is related to
@@ -62,7 +62,7 @@ open import strong-rep-var.Types
          ⇑ᵗ; _[_]ᵗ)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 
 private
   variable
@@ -92,7 +92,7 @@ data Term : Set where
   _·_     : Term → Term → Term
   Λ_      : Term → Term
   _·[_,_] : Term → Ty → Ty → Term
-  _⟪_,_⟫  : Term → CtxMorph → Conv → Term
+  _⟪_,_⟫  : Term → Boundary → Conv → Term
 
 Ctx : Set
 Ctx = List Ty
@@ -134,14 +134,14 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   ⊢·[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
        → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
 
-  -- (env). The morphism witness supplies both contexts. Since ordinary
+  -- (env). The boundary scope witness supplies both contexts. Since ordinary
   -- variables may be inserted and removed, the same semantic type can have
   -- different ordinary de Bruijn spellings on the three sides. `_⊢_≈_⊣_`
   -- compares the equal-depth interior and conversion contexts. `SameTyExt`
-  -- additionally crosses the morphism's representation bind prefix when
+  -- additionally crosses the boundary scope's representation bind prefix when
   -- comparing the exterior and conversion contexts.
   env : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Cᵢ Cₑ Bₑ}
-      → MorphWf Δ Θ Δᵢ Δᶜ
+      → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
       → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
       → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
@@ -211,11 +211,11 @@ value-var-visible (V-⟪⟫ _ _) (env _ _ _ _ _ (wf-var tv)) = tv
 ------------------------------------------------------------------------
 
 β-seven : Term
-β-seven = ($ 7) ⟪ TyBetaMorph , id `ℕ ⟫
+β-seven = ($ 7) ⟪ TyBetaBoundary , id `ℕ ⟫
 
 β-seven-⊢ : empty ∣ [] ⊢ β-seven ⦂ `ℕ
 β-seven-⊢ =
-  env TyBeta-mw ⊢$ (conv-id base-ℕ)
+  env TyBeta-bw ⊢$ (conv-id base-ℕ)
       (`ℕ , same-ℕ , same-ℕ)
       (`ℕ , same-ℕ , same-ℕ)
       wf-ℕ

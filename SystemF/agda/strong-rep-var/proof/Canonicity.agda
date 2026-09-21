@@ -61,7 +61,7 @@ open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
 
@@ -305,7 +305,7 @@ canonC-respell uq (r , p , q) (X , ct)
 ------------------------------------------------------------------------
 
 -- `CanonTm M` — every wrapper in M carries a canonical conversion.
--- Structural, with no condition on the context morphisms: canonicity is a
+-- Structural, with no condition on the boundary scopes: canonicity is a
 -- property of CONVERSIONS.
 data CanonTm : Term → Set where
   ct-var   : ∀ {x} → CanonTm (` x)

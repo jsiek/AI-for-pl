@@ -6,7 +6,7 @@ module strong-rep-var.All where
 -- the core
 open import strong-rep-var.Types
 open import strong-rep-var.Ctx
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
 open import strong-rep-var.TermSubst
@@ -34,6 +34,16 @@ open import strong-rep-var.TypeSafety
 -- the two universes differently (X names α) and a whole run with the rule
 -- that fired at each step.
 open import strong-rep-var.Examples
+
+-- COLOR PRESERVATION (2026-09-21): the one-hole-context/residual layer,
+-- the theorem, and its proof (reached through the public module).
+open import strong-rep-var.Residual
+open import strong-rep-var.ColorPreservation
+
+-- Soundness of the residual layer: a residual names a position in the
+-- contractum (`residual-sound`, `residuals-sound`).  Direct gate: the
+-- theorem does not depend on it.
+open import strong-rep-var.proof.Residual
 open import strong-rep-var.Show
 
 -- THE SOUNDNESS GATE.  A conceal must cite a REPRESENTED binder, and the
@@ -59,7 +69,7 @@ open import strong-rep-var.proof.Canonicity
 
 -- THE SHIFT AUDIT (2026-09-08, ported 2026-09-19).  Every rule that MOVES
 -- a subterm, checked against frame exactness — now the relational
--- transport lemmas of strong-rep-var.CtxMorph §3a plus the observation that
+-- transport lemmas of strong-rep-var.Boundary §3a plus the observation that
 -- every
 -- move but TyBeta's is REPRESENTATION-ONLY — together with the tower
 -- measure that makes the wrapper clause of TyPeelR terminate.

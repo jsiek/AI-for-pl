@@ -126,12 +126,12 @@ data WfRepCtx : RepCtx → Set where
   wf-bindR  : Ξ ⊢ᴿ[ zero ] R → WfRepCtx Ξ → WfRepCtx (bindR R ∷ Ξ)
 
 ------------------------------------------------------------------------
--- 3. Morphism representation binders
+-- 3. Boundary scope representation binders
 ------------------------------------------------------------------------
 
--- A morphism's `binds` are PARALLEL representation-variable binders.  Their
--- payloads are read outside the whole block, so the earlier list entries are
--- shifted past the entries in their tail, as in the live `pushBinds`.
+-- A boundary scope's `binds` are PARALLEL representation-variable binders.
+-- Their payloads are read outside the whole block, so the earlier list entries
+-- are shifted past the entries in their tail, as in the live `pushBinds`.
 shiftBy : ℕ → Ty → Ty
 shiftBy zero    R = R
 shiftBy (suc n) R = ⇑ᵗ (shiftBy n R)
@@ -206,23 +206,23 @@ dual : List Change → List Change
 dual χ = map dualChange (reverse χ)
 
 ------------------------------------------------------------------------
--- 5. Context morphisms
+-- 5. Boundary scopes
 ------------------------------------------------------------------------
 
-record CtxMorph : Set where
-  constructor morph
+record Boundary : Set where
+  constructor boundary
   field
     binds   : List Ty
     changes : List Change
-open CtxMorph public
+open Boundary public
 
 -- The bind block extends only the representation-variable universe.  Its
 -- existing ordinary-name references shift by the size of that block.  The
 -- changes then insert and remove ordinary names while leaving the resulting
 -- representation context fixed.
 infix 4 _⊢ᵐ_⇒_
-data _⊢ᵐ_⇒_ (Γ : Ctxᵗ) (Θ : CtxMorph) : Ctxᵗ → Set where
-  apply-morph : ∀ {Δ′}
+data _⊢ᵐ_⇒_ (Γ : Ctxᵗ) (Θ : Boundary) : Ctxᵗ → Set where
+  apply-boundary : ∀ {Δ′}
     → names (extendReps (binds Θ) Γ) ⊢χ changes Θ ⇒ Δ′
     → Γ ⊢ᵐ Θ ⇒ (reps (extendReps (binds Θ) Γ) ∣ Δ′)
 
@@ -264,14 +264,14 @@ _ = refl
 β-name : names β-reps ⊢δ unlock 0 0 ⇒ zero ∷ []
 β-name = step-unlock ins-here
 
-TyBetaMorph : CtxMorph
-TyBetaMorph = morph (`ℕ ∷ []) (unlock 0 0 ∷ [])
+TyBetaBoundary : Boundary
+TyBetaBoundary = boundary (`ℕ ∷ []) (unlock 0 0 ∷ [])
 
 TyBetaCtx : Ctxᵗ
 TyBetaCtx = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
 
-TyBetaCtx-ok : empty ⊢ᵐ TyBetaMorph ⇒ TyBetaCtx
-TyBetaCtx-ok = apply-morph (changes∷ changes[] (step-unlock ins-here))
+TyBetaCtx-ok : empty ⊢ᵐ TyBetaBoundary ⇒ TyBetaCtx
+TyBetaCtx-ok = apply-boundary (changes∷ changes[] (step-unlock ins-here))
 
 -- With X older than Y, the name map is [Y↦β, X↦α] = [0,1].  Locking X
 -- removes ordinary slot 1.  Y consequently remains as ordinary slot 0;

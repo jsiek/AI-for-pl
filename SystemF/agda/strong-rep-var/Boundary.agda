@@ -1,12 +1,12 @@
-module strong-rep-var.CtxMorph where
+module strong-rep-var.Boundary where
 
 -- File Charter:
---   * THE CONTEXT MORPHISM AND ITS TWO INDUCED CONTEXTS.  §2 is
+--   * THE BOUNDARY SCOPE AND ITS TWO INDUCED CONTEXTS.  §2 is
 --     `Change` (`lock`/`unlock`), its two running judgements
 --     `_∣_⊢δ_⇒_` and `_∣_⊢χ_⇒_`, the dual (`dualChange`, `dual`,
 --     `dual-step`) and the representation-only renaming `renᶠᴿ`.  §3 is
---     `CtxMorph = morph binds changes` with `numBinds` and `renᴮᴿ`; the
---     constructions `dualMorph`, `rewind`, `_⋉_`, `addLock0`,
+--     `Boundary = boundary binds changes` with `numBinds` and `renᴮᴿ`; the
+--     constructions `dualBoundary`, `rewind`, `_⋉_`, `addLock0`,
 --     `instantiate`; and the two readings — `_⊢ⁱ_⇒_`, which PERFORMS
 --     every change, and `_⊢ᶜ_⇒_` (via `_∣_⊢χᶜ_⇒_`), which SKIPS locks —
 --     with `interior-functional` and `conversion-functional`.  §§3a–3d
@@ -16,10 +16,10 @@ module strong-rep-var.CtxMorph where
 --     representation-renaming lemmas
 --     (`changes-ren`, `interior-ren`, `conversion-ren`,
 --     `addLock0-conversion-ren`, `addLock0-interior-ren`).  The witness
---     `MorphWf` and its derived `mw-interior-wf`/`mw-conversion-wf`
---     close §3d; §4 is the concrete shapes `TyBetaMorph`, `TyBeta-mw`,
+--     `BoundaryWf` and its derived `bw-interior-wf`/`bw-conversion-wf`
+--     close §3d; §4 is the concrete shapes `TyBetaBoundary`, `TyBeta-bw`,
 --     `crossΛ`/`uncrossΛ`.
---   * EVERYTHING HERE MENTIONS `Change` OR `CtxMorph`.  The context
+--   * EVERYTHING HERE MENTIONS `Change` OR `Boundary`.  The context
 --     material it stands on — the representation-binder blocks of the
 --     old §1, `extendReps`, the insert/delete relations, `RepWk` — is
 --     strong-rep-var.Ctx, and the lemmas about that material are
@@ -31,7 +31,7 @@ module strong-rep-var.CtxMorph where
 --     that it need not import that module.  Conversions are
 --     strong-rep-var.Conversion.
 --   * TWO LAWS A READER MUST KNOW.  (1) The CONVERSION context is the
---     UNION of the names live anywhere along the morphism, not the name
+--     UNION of the names live anywhere along the boundary scope, not the name
 --     map at any one point of the run: `conv-lock` skips its lock, so a
 --     later `unlock` of the same α can meet a name that is already
 --     there, which is what forces the third clause `conv-unlock-live`
@@ -43,12 +43,12 @@ module strong-rep-var.CtxMorph where
 --     mutually exclusive by `fresh-not-lookup` — and
 --     `conv-changes-functional`/`conversion-functional` are exactly
 --     what determinism for CancelR, IdPush and TyPeelR-⟪⟫ consumes.
---     `MorphWf` stores only what cannot be recovered (the exterior's
+--     `BoundaryWf` stores only what cannot be recovered (the exterior's
 --     `WfCtx`, the bind block, the two readings); output
 --     well-formedness is DERIVED, not stored (notes/DECISIONS.md,
 --     2026-09-18).
 --
--- A morphism remains a pair. Its `binds` are a parallel block of fresh
+-- A boundary scope remains a pair. Its `binds` are a parallel block of fresh
 -- representation-variable binders. Its `changes` sequentially bind and
 -- anti-bind ordinary type variables. Every change carries both the ordinary
 -- de Bruijn position and the representation variable named at that position.
@@ -159,53 +159,53 @@ renᶠᴿ ρʳ (lock X α)   = lock X (ρʳ α)
 renᶠᴿ ρʳ (unlock X α) = unlock X (ρʳ α)
 
 ------------------------------------------------------------------------
--- 3. Context morphisms and their two induced contexts
+-- 3. Boundary scopes and their two induced contexts
 ------------------------------------------------------------------------
 
-record CtxMorph : Set where
-  constructor morph
+record Boundary : Set where
+  constructor boundary
   field
     binds   : List Ty
     changes : List Change
-open CtxMorph public
+open Boundary public
 
-numBinds : CtxMorph → ℕ
+numBinds : Boundary → ℕ
 numBinds Θ = length (binds Θ)
 
--- The representation-only renaming of a morphism. Its bind payloads are
+-- The representation-only renaming of a boundary scope. Its bind payloads are
 -- written over the EXTERIOR representation context, so they move by ρ;
 -- its changes run INSIDE the bind block, so they move by `extN` of ρ at
 -- the block's width.
-renᴮᴿ : Renameᵗ → CtxMorph → CtxMorph
+renᴮᴿ : Renameᵗ → Boundary → Boundary
 renᴮᴿ ρʳ Θ =
-  morph (map (renameᵗ ρʳ) (binds Θ))
+  boundary (map (renameᵗ ρʳ) (binds Θ))
         (map (renᶠᴿ (extN (numBinds Θ) ρʳ)) (changes Θ))
 
 -- A crossing argument is already inside the representation bind block of
 -- the boundary it crosses. Its dual therefore binds no new representation
 -- variables and simply reverses the ordinary-variable changes.
-dualMorph : CtxMorph → CtxMorph
-dualMorph Θ = morph [] (dual (changes Θ))
+dualBoundary : Boundary → Boundary
+dualBoundary Θ = boundary [] (dual (changes Θ))
 
 -- Rewind retains the bind block and performs the inverse changes before the
 -- original changes. This is the syntax used by CancelR and IdPush.
-rewind : CtxMorph → CtxMorph
-rewind Θ = morph (binds Θ) (dual (changes Θ) ++ changes Θ)
+rewind : Boundary → Boundary
+rewind Θ = boundary (binds Θ) (dual (changes Θ) ++ changes Θ)
 
--- Move the outer morphism's ordinary-variable effects into the inner one.
+-- Move the outer boundary scope's ordinary-variable effects into the inner one.
 -- The outer binders already occur in the exterior of the resulting inner
 -- boundary; the inner bind block shifts their representation occurrences.
 infixl 5 _⋉_
-_⋉_ : CtxMorph → CtxMorph → CtxMorph
+_⋉_ : Boundary → Boundary → Boundary
 Θ₁ ⋉ Θ₂ =
-  morph (binds Θ₁)
+  boundary (binds Θ₁)
         (changes Θ₁ ++ map (underRepBinds (numBinds Θ₁)) (changes Θ₂))
 
 -- When a boundary crosses a fresh `Λ` binder, ordinary position zero names
 -- the representation variable immediately outside its own bind prefix.
-addLock0 : CtxMorph → CtxMorph
+addLock0 : Boundary → Boundary
 addLock0 Θ =
-  morph (binds Θ) (changes Θ ++ (lock 0 (numBinds Θ) ∷ []))
+  boundary (binds Θ) (changes Θ ++ (lock 0 (numBinds Θ) ∷ []))
 
 -- Instantiation prepends a represented binder and gives it ordinary name 0.
 -- The unlock acts first (head-LAST order); every pre-existing change then
@@ -215,14 +215,14 @@ private
   shiftChange (lock X α)   = lock (suc X) (suc α)
   shiftChange (unlock X α) = unlock (suc X) (suc α)
 
-instantiate : Ty → CtxMorph → CtxMorph
+instantiate : Ty → Boundary → Boundary
 instantiate R Θ =
-  morph (R ∷ binds Θ)
+  boundary (R ∷ binds Θ)
         (map shiftChange (changes Θ) ++ (unlock 0 0 ∷ []))
 
 -- The interior performs every change.
 infix 4 _⊢ⁱ_⇒_
-data _⊢ⁱ_⇒_ (Γ : Ctxᵗ) (Θ : CtxMorph) : Ctxᵗ → Set where
+data _⊢ⁱ_⇒_ (Γ : Ctxᵗ) (Θ : Boundary) : Ctxᵗ → Set where
   interior : ∀ {Δ′}
     → reps (extendReps (binds Θ) Γ)
       ∣ names (extendReps (binds Θ) Γ) ⊢χ changes Θ ⇒ Δ′
@@ -230,12 +230,12 @@ data _⊢ⁱ_⇒_ (Γ : Ctxᵗ) (Θ : CtxMorph) : Ctxᵗ → Set where
 
 -- The conversion context performs `unlock`s but skips `lock`s, so both the
 -- concealed variable and its representation are available to the conversion.
--- It is therefore the UNION of the names live anywhere along the morphism,
--- not the name map at any one point of the run.
+-- It is therefore the UNION of the names live anywhere along the boundary
+-- scope, not the name map at any one point of the run.
 --
 -- THE RE-UNLOCK CLAUSE (2026-09-17).  Reading it as a union forces a third
 -- clause.  Skipping a `lock X α` leaves α live, so a LATER `unlock` of that
--- same α — the shape every `dualMorph`/`rewind` composite has, since a dual
+-- same α — the shape every `dualBoundary`/`rewind` composite has, since a dual
 -- inverts each lock with an unlock — meets a name that is already there and
 -- the freshness premise of `conv-unlock` fails.  Without this clause
 -- `rewind Θ` and `Θ′ ⋉ Θ` have NO conversion context whenever Θ locks, so
@@ -298,24 +298,24 @@ conv-changes-functional (conv-unlock-live valid cs d)
 ... | refl = ⊥-elim (fresh-not-lookup fresh′ d)
 
 infix 4 _⊢ᶜ_⇒_
-data _⊢ᶜ_⇒_ (Γ : Ctxᵗ) (Θ : CtxMorph) : Ctxᵗ → Set where
+data _⊢ᶜ_⇒_ (Γ : Ctxᵗ) (Θ : Boundary) : Ctxᵗ → Set where
   conversion : ∀ {Δ′}
     → reps (extendReps (binds Θ) Γ)
       ∣ names (extendReps (binds Θ) Γ) ⊢χᶜ changes Θ ⇒ Δ′
     → Γ ⊢ᶜ Θ ⇒ (reps (extendReps (binds Θ) Γ) ∣ Δ′)
 
-interior-functional : ∀ {Θ : CtxMorph}
+interior-functional : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ → Γ ⊢ⁱ Θ ⇒ Γᶜ → Γᵢ ≡ Γᶜ
 interior-functional (interior cs) (interior cs′) =
   cong (_ ∣_) (changes-functional cs cs′)
 
-conversion-functional : ∀ {Θ : CtxMorph}
+conversion-functional : ∀ {Θ : Boundary}
   → Γ ⊢ᶜ Θ ⇒ Γᵢ → Γ ⊢ᶜ Θ ⇒ Γᶜ → Γᵢ ≡ Γᶜ
 conversion-functional (conversion cs) (conversion cs′) =
   cong (_ ∣_) (conv-changes-functional cs cs′)
 
 ------------------------------------------------------------------------
--- 3a. Transport across a morphism
+-- 3a. Transport across a boundary scope
 ------------------------------------------------------------------------
 
 -- The two induced contexts are WELL FORMED whenever the exterior is and
@@ -326,7 +326,7 @@ conversion-functional (conversion cs) (conversion cs′) =
 -- unlock either inserts its representation variable or finds it already
 -- live.  Preservation uses this to re-spell an exterior type in the
 -- conversion context selected by the relational reading.
-conversion-live : ∀ {Θ : CtxMorph}
+conversion-live : ∀ {Θ : Boundary}
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → (names (extendReps (binds Θ) Γ)) ∋ᵅ α
   → (names Γᶜ) ∋ᵅ α
@@ -339,9 +339,9 @@ conversion-live (conversion cs) lv = conv-live cs lv
   conv-live (conv-unlock v css fr i) live = ins-mono i (conv-live css live)
   conv-live (conv-unlock-live v css d) live = conv-live css live
 
--- Rewinding a morphism.
+-- Rewinding a boundary scope.
 
--- A rewound morphism performs the original changes and then their exact
+-- A rewound boundary scope performs the original changes and then their exact
 -- inverse.  Its interior is therefore just the exterior under the original
 -- bind block.  Its conversion context is the original conversion context:
 -- locks are skipped in both halves, and each inverse unlock is a no-op
@@ -497,15 +497,15 @@ private
   shiftRVars-suc n (α ∷ Δ) =
     cong (suc (n + α) ∷_) (shiftRVars-suc n Δ)
 
--- Instantiating a morphism replaces the abstract context in which its
+-- Instantiating a boundary scope replaces the abstract context in which its
 -- `∀` conversion body was read by a represented binder. The old changes
 -- run underneath the fresh ordinary name, in both induced readings.
-instantiate-interior : ∀ {R : Ty} {Γ Γᵢ : Ctxᵗ} {Θ : CtxMorph}
+instantiate-interior : ∀ {R : Ty} {Γ Γᵢ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ⁱ instantiate R Θ ⇒
       ((bindR (shiftBy (numBinds Θ) R) ∷ reps Γᵢ)
         ∣ (zero ∷ shiftNames (names Γᵢ)))
-instantiate-interior {Γ = Ξ ∣ Δ} {Θ = morph Rs χ}
+instantiate-interior {Γ = Ξ ∣ Δ} {Θ = boundary Rs χ}
                      (interior cs) =
   interior
     (subst (λ Δ₀ →
@@ -517,12 +517,12 @@ instantiate-interior {Γ = Ξ ∣ Δ} {Θ = morph Rs χ}
                (step-unlock (_ , here) fresh-zero-shift ins-here))
              (changes-shift cs)))
 
-instantiate-conversion : ∀ {R : Ty} {Γ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
+instantiate-conversion : ∀ {R : Ty} {Γ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → Γ ⊢ᶜ instantiate R Θ ⇒
       ((bindR (shiftBy (numBinds Θ) R) ∷ reps Γᶜ)
         ∣ (zero ∷ shiftNames (names Γᶜ)))
-instantiate-conversion {Γ = Ξ ∣ Δ} {Θ = morph Rs χ}
+instantiate-conversion {Γ = Ξ ∣ Δ} {Θ = boundary Rs χ}
                        (conversion cs) =
   conversion
     (subst (λ Δ₀ →
@@ -533,13 +533,13 @@ instantiate-conversion {Γ = Ξ ∣ Δ} {Θ = morph Rs χ}
              (conv-unlock (_ , here) conv[] fresh-zero-shift ins-here)
              (conv-changes-shift cs)))
 
-rewind-interior : ∀ {Θ : CtxMorph}
+rewind-interior : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ⁱ rewind Θ ⇒ extendReps (binds Θ) Γ
 rewind-interior (interior cs) =
   interior (changes-++ cs (dual-changes cs))
 
-rewind-conversion : ∀ {Θ : CtxMorph}
+rewind-conversion : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → Γ ⊢ᶜ rewind Θ ⇒ Γᶜ
@@ -570,10 +570,10 @@ int-valid vn (changes∷ cs (step-unlock v fr i)) =
 -- exterior UNDER THE ORIGINAL BIND BLOCK: a crossing argument is already
 -- inside the boundary's representation binders, and the dual returns it
 -- to the ordinary name map the boundary was read on.  This is `Peel`'s
--- counterpart of `rewind-interior`, and it needs no `MorphWf` either.
-dual-interior : ∀ {Θ : CtxMorph}
+-- counterpart of `rewind-interior`, and it needs no `BoundaryWf` either.
+dual-interior : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γᵢ ⊢ⁱ dualMorph Θ ⇒ extendReps (binds Θ) Γ
+  → Γᵢ ⊢ⁱ dualBoundary Θ ⇒ extendReps (binds Θ) Γ
 dual-interior {Θ = Θ} (interior cs) =
   interior
     (subst (λ D → _ ∣ D ⊢χ dual (changes Θ) ⇒ _)
@@ -583,7 +583,7 @@ dual-interior {Θ = Θ} (interior cs) =
 -- Lifting a reading past a PARALLEL BIND BLOCK.  `underRepBinds k` keeps
 -- every ordinary POSITION and moves every representation occurrence past
 -- k binders; `shiftRVars k` does the same to the name map.  This is what
--- `_⋉_` does to the outer morphism's change list.
+-- `_⋉_` does to the outer boundary scope's change list.
 private
   del-shiftRVars : (k : ℕ) → α ⊢- Δ at X ⇒ Δ′
     → (k + α) ⊢- shiftRVars k Δ at X ⇒ shiftRVars k Δ′
@@ -631,23 +631,23 @@ private
 
 -- The MERGED frame's interior is the inner frame's own interior.  The
 -- lifted copy of the outer changes re-creates the outer interior one bind
--- block in, which is exactly where the inner morphism's reading starts.
+-- block in, which is exactly where the inner boundary scope's reading starts.
 -- This is the relational form of the old development's
 -- `interior-⋉-rewind` equality (retired proof/MoveScope §4).
-merged-interior : ∀ {Θ₁ Θ₂ : CtxMorph} {Γ₁ᵢ : Ctxᵗ}
+merged-interior : ∀ {Θ₁ Θ₂ : Boundary} {Γ₁ᵢ : Ctxᵗ}
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
   → extendReps (binds Θ₂) Γ ⊢ⁱ Θ₁ ⋉ Θ₂ ⇒ Γ₁ᵢ
 merged-interior {Θ₁ = Θ₁} (interior cs₂) (interior cs₁) =
   interior (changes-++ (changes-lift (binds Θ₁) cs₂) cs₁)
 
--- Both readings leave the REPRESENTATION context of the morphism's own
+-- Both readings leave the REPRESENTATION context of the boundary scope's own
 -- bind block; only the ordinary name map moves.
-interior-reps : ∀ {Θ : CtxMorph} → Γ ⊢ⁱ Θ ⇒ Γᵢ
+interior-reps : ∀ {Θ : Boundary} → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → reps Γᵢ ≡ pushRepBinds (binds Θ) (reps Γ)
 interior-reps (interior cs) = refl
 
-conversion-reps : ∀ {Θ : CtxMorph} → Γ ⊢ᶜ Θ ⇒ Γᶜ
+conversion-reps : ∀ {Θ : Boundary} → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → reps Γᶜ ≡ pushRepBinds (binds Θ) (reps Γ)
 conversion-reps (conversion cs) = refl
 
@@ -668,30 +668,30 @@ conv-valid vn (conv-unlock-live v cs d) = conv-valid vn cs
 
 -- The lifted readings preserve name-map functionality independently of the
 -- other two `WfCtx` fields.  `dual-unique` is the instance needed when a
--- crossed argument is wrapped in a morphism's dual.
-interior-unique : ∀ {Θ : CtxMorph}
+-- crossed argument is wrapped in a boundary scope's dual.
+interior-unique : ∀ {Θ : Boundary}
   → Unique (names Γ) → Γ ⊢ⁱ Θ ⇒ Γᵢ → Unique (names Γᵢ)
 interior-unique {Θ = Θ} uq (interior cs) =
   int-unique (unique-shiftRVars (numBinds Θ) uq) cs
 
-conversion-unique : ∀ {Θ : CtxMorph}
+conversion-unique : ∀ {Θ : Boundary}
   → Unique (names Γ) → Γ ⊢ᶜ Θ ⇒ Γᶜ → Unique (names Γᶜ)
 conversion-unique {Θ = Θ} uq (conversion cs) =
   conv-unique (unique-shiftRVars (numBinds Θ) uq) cs
 
-dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Unique (names Γ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ
   → Unique (names Γᵈ)
 dual-unique uq int dconv =
   conversion-unique (interior-unique uq int) dconv
 
 ------------------------------------------------------------------------
--- 3b. The name-set invariant for a crossed morphism
+-- 3b. The name-set invariant for a crossed boundary scope
 ------------------------------------------------------------------------
 
--- `Peel` reads its domain conversion at a morphism's conversion context,
+-- `Peel` reads its domain conversion at a boundary scope's conversion context,
 -- then uses a re-spelling of it at the dual's conversion context.  Those
 -- contexts need not have the same name LIST, but they name the same
 -- representation variables.  The following development was proved first in
@@ -893,10 +893,10 @@ Q-changes-conv χ int conv dconv lv | inj₂ iud | inj₂ iu =
 
 -- (Q): the two conversion contexts straddled by `Peel` name the same
 -- representation variables, although their ordinary positions may differ.
-Q : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+Q : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ
   → (names Γᶜ) ∋ᵅ α → (names Γᵈ) ∋ᵅ α
 Q {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
   Q-changes (changes Θ) cs cc
@@ -904,10 +904,10 @@ Q {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
            (shiftRVars-0 _) dc)
     lv
 
-Q-inv : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+Q-inv : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ
   → (names Γᵈ) ∋ᵅ α → (names Γᶜ) ∋ᵅ α
 Q-inv {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
   Q-changes-conv (changes Θ) cs cc
@@ -1011,10 +1011,10 @@ dual-conv-exists (lock X α ∷ χ) Δ₀ uqΔ uq₀
              (sym (dual-∷ (lock X α) χ))
              (conv-changes-++ (conv-unlock v conv[] frα i) dc)
 
-dual-conversion-exists : ∀ {Γ Γᵢ : Ctxᵗ} {Θ : CtxMorph}
+dual-conversion-exists : ∀ {Γ Γᵢ : Ctxᵗ} {Θ : Boundary}
   → Unique (names Γ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → ∃[ Γᵈ ] (Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ)
+  → ∃[ Γᵈ ] (Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ)
 dual-conversion-exists {Θ = Θ} uq (interior cs)
   with dual-conv-exists (changes Θ) _ (unique-shiftRVars _ uq)
          (int-unique (unique-shiftRVars _ uq) cs) cs (λ lv → lv)
@@ -1023,45 +1023,45 @@ dual-conversion-exists {Θ = Θ} uq (interior cs) | Δᵈ , dc =
         (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ Δᵈ)
                (sym (shiftRVars-0 _)) dc)
 
--- THE TWO TRANSPORT THEOREMS.  These are what `MorphWf` used to take as
+-- THE TWO TRANSPORT THEOREMS.  These are what `BoundaryWf` used to take as
 -- explicit obligations.
-interior-wf : ∀ {Θ : CtxMorph} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
+interior-wf : ∀ {Θ : Boundary} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
   → Γ ⊢ⁱ Θ ⇒ Γᵢ → WfCtx Γᵢ
 interior-wf {Θ = Θ} w bs (interior cs) =
   wf-ctx (wfRepCtx-push bs (wf-reps w))
          (int-valid (validNames-push (binds Θ) (wf-names w)) cs)
          (int-unique (unique-shiftRVars _ (name-fn w)) cs)
 
-conversion-wf : ∀ {Θ : CtxMorph} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
+conversion-wf : ∀ {Θ : Boundary} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ → WfCtx Γᶜ
 conversion-wf {Θ = Θ} w bs (conversion cs) =
   wf-ctx (wfRepCtx-push bs (wf-reps w))
          (conv-valid (validNames-push (binds Θ) (wf-names w)) cs)
          (conv-unique (unique-shiftRVars _ (name-fn w)) cs)
 
--- A complete morphism witness names both induced contexts. The output
+-- A complete boundary scope witness names both induced contexts. The output
 -- well-formedness is DERIVED (§3a), not stored: a witness carries only
 -- what cannot be recovered — the exterior's well-formedness, the bind
 -- block, and the two readings.
-record MorphWf (Γ : Ctxᵗ) (Θ : CtxMorph)
+record BoundaryWf (Γ : Ctxᵗ) (Θ : Boundary)
                (Γᵢ Γᶜ : Ctxᵗ) : Set where
-  constructor mw
+  constructor bw
   field
-    mw-exterior  : WfCtx Γ
-    mw-binds     : reps Γ ⊢ᴮ binds Θ
-    mw-interior  : Γ ⊢ⁱ Θ ⇒ Γᵢ
-    mw-conversion : Γ ⊢ᶜ Θ ⇒ Γᶜ
-open MorphWf public
+    bw-exterior  : WfCtx Γ
+    bw-binds     : reps Γ ⊢ᴮ binds Θ
+    bw-interior  : Γ ⊢ⁱ Θ ⇒ Γᵢ
+    bw-conversion : Γ ⊢ᶜ Θ ⇒ Γᶜ
+open BoundaryWf public
 
 -- The two former fields, now theorems. They keep the names they had, so
 -- every USE site reads the same; only the construction sites shrink.
-mw-interior-wf : ∀ {Θ} → MorphWf Γ Θ Γᵢ Γᶜ → WfCtx Γᵢ
-mw-interior-wf mwΘ =
-  interior-wf (mw-exterior mwΘ) (mw-binds mwΘ) (mw-interior mwΘ)
+bw-interior-wf : ∀ {Θ} → BoundaryWf Γ Θ Γᵢ Γᶜ → WfCtx Γᵢ
+bw-interior-wf mwΘ =
+  interior-wf (bw-exterior mwΘ) (bw-binds mwΘ) (bw-interior mwΘ)
 
-mw-conversion-wf : ∀ {Θ} → MorphWf Γ Θ Γᵢ Γᶜ → WfCtx Γᶜ
-mw-conversion-wf mwΘ =
-  conversion-wf (mw-exterior mwΘ) (mw-binds mwΘ) (mw-conversion mwΘ)
+bw-conversion-wf : ∀ {Θ} → BoundaryWf Γ Θ Γᵢ Γᶜ → WfCtx Γᶜ
+bw-conversion-wf mwΘ =
+  conversion-wf (bw-exterior mwΘ) (bw-binds mwΘ) (bw-conversion mwΘ)
 
 -- The MERGED frame's conversion reading exists and retains every name
 -- available at the inner frame's conversion context.  The lifted outer
@@ -1069,24 +1069,24 @@ mw-conversion-wf mwΘ =
 -- so `conv-weaken` runs the inner conversion from that larger map and
 -- retains the inner output in the merged output.
 merged-conversion-exists : ∀ {Γ Γᵢ Γᶜ Γ₁ᵢ Γ₁ᶜ : Ctxᵗ}
-    {Θ₁ Θ₂ : CtxMorph}
-  → MorphWf Γ Θ₂ Γᵢ Γᶜ
-  → MorphWf Γᵢ Θ₁ Γ₁ᵢ Γ₁ᶜ
+    {Θ₁ Θ₂ : Boundary}
+  → BoundaryWf Γ Θ₂ Γᵢ Γᶜ
+  → BoundaryWf Γᵢ Θ₁ Γ₁ᵢ Γ₁ᶜ
   → Σ[ Γ⋉ᶜ ∈ Ctxᵗ ]
       ((extendReps (binds Θ₂) Γ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Γ⋉ᶜ)
         × (names Γ₁ᶜ ⊆ᵃ names Γ⋉ᶜ))
-merged-conversion-exists {Θ₁ = morph Rs₁ χ₁}
-    (mw wf₂ bs₂ (interior cs₂) (conversion cc₂))
-    (mw wf₁ bs₁ (interior cs₁) (conversion cc₁))
+merged-conversion-exists {Θ₁ = boundary Rs₁ χ₁}
+    (bw wf₂ bs₂ (interior cs₂) (conversion cc₂))
+    (bw wf₁ bs₁ (interior cs₁) (conversion cc₁))
   with conv-weaken
          (unique-shiftRVars (length Rs₁) (name-fn wf₁))
          (unique-shiftRVars (length Rs₁)
            (name-fn (conversion-wf wf₂ bs₂ (conversion cc₂))))
          cc₁
          (⊆ᵃ-shiftRVars (length Rs₁) (int⇒conv-live cs₂ cc₂))
-merged-conversion-exists {Θ₁ = morph Rs₁ χ₁}
-    (mw wf₂ bs₂ (interior cs₂) (conversion cc₂))
-    (mw wf₁ bs₁ (interior cs₁) (conversion cc₁))
+merged-conversion-exists {Θ₁ = boundary Rs₁ χ₁}
+    (bw wf₂ bs₂ (interior cs₂) (conversion cc₂))
+    (bw wf₁ bs₁ (interior cs₁) (conversion cc₁))
   | Δ⋉ᶜ , cc₁′ , keep =
   _ , conversion
         (conv-changes-++ (conv-changes-lift Rs₁ cc₂) cc₁′)
@@ -1124,7 +1124,7 @@ conv-changes-ren {ρ = ρ} w (conv-unlock (b , v) cs fr i) =
 conv-changes-ren {ρ = ρ} w (conv-unlock-live (b , v) cs d) =
   conv-unlock-live (wk-look w v) (conv-changes-ren w cs) (∋ˡ-ren ρ d)
 
--- The two readings of the RENAMED morphism are the renamed readings.
+-- The two readings of the RENAMED boundary scope are the renamed readings.
 interior-ren : ∀ {ρ Ξ Ξ′ Θ} {Γᵢ : Ctxᵗ} → RepWk ρ Ξ Ξ′
   → (Ξ ∣ Δ) ⊢ⁱ Θ ⇒ Γᵢ
   → (Ξ′ ∣ map ρ Δ) ⊢ⁱ renᴮᴿ ρ Θ ⇒
@@ -1170,7 +1170,7 @@ addLock0-conversion-ren : ∀ {Ξ Ξ′ Δ Θ Γᶜ}
           ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Γ′ᶜ)
         × (map (extN (numBinds Θ) suc) (names Γᶜ)
              ⊆ᵃ (names Γ′ᶜ)))
-addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
+addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = boundary Rs χ}
                         w v₀ uq (conversion {Δ′ = Δᶜ} cs)
   with conv-weaken
          (unique-shiftRVars (length (map (renameᵗ suc) Rs))
@@ -1184,7 +1184,7 @@ addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
            (names-ren-push suc Rs Δ)
            (conv-changes-ren (repwk-push w Rs) cs))
          ∋ᵅ-cons
-addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
+addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = boundary Rs χ}
                         w v₀ uq (conversion {Δ′ = Δᶜ} cs)
   | Δ′ , cs′ , keep =
   _ , conversion (conv-snoc-lock valid cs′) , keep
@@ -1211,7 +1211,7 @@ addLock0-interior-ren : ∀ {Ξ Ξ′ Δ Θ Γᵢ}
   → (Ξ′ ∣ (zero ∷ shiftNames Δ)) ⊢ⁱ addLock0 (renᴮᴿ suc Θ) ⇒
       (pushRepBinds (map (renameᵗ suc) (binds Θ)) Ξ′
         ∣ map (extN (numBinds Θ) suc) (names Γᵢ))
-addLock0-interior-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
+addLock0-interior-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = boundary Rs χ}
                       w v₀ (interior {Δ′ = Δᵢ} cs) =
   interior
     (changes-++
@@ -1244,18 +1244,18 @@ addLock0-interior-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = morph Rs χ}
 -- 4. Concrete boundary shapes
 ------------------------------------------------------------------------
 
-TyBetaMorph : CtxMorph
-TyBetaMorph = morph (`ℕ ∷ []) (unlock 0 0 ∷ [])
+TyBetaBoundary : Boundary
+TyBetaBoundary = boundary (`ℕ ∷ []) (unlock 0 0 ∷ [])
 
 TyBetaCtx : Ctxᵗ
 TyBetaCtx = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
 
-TyBeta-interior : empty ⊢ⁱ TyBetaMorph ⇒ TyBetaCtx
+TyBeta-interior : empty ⊢ⁱ TyBetaBoundary ⇒ TyBetaCtx
 TyBeta-interior =
   interior
     (changes∷ changes[] (step-unlock (_ , here) fresh[] ins-here))
 
-TyBeta-conversion : empty ⊢ᶜ TyBetaMorph ⇒ TyBetaCtx
+TyBeta-conversion : empty ⊢ᶜ TyBetaBoundary ⇒ TyBetaCtx
 TyBeta-conversion =
   conversion
     (conv-unlock (_ , here) conv[] fresh[] ins-here)
@@ -1266,9 +1266,9 @@ TyBetaCtx-wf =
          (λ { here → _ , here })
          (unique∷ fresh[] unique[])
 
-TyBeta-mw : MorphWf empty TyBetaMorph TyBetaCtx TyBetaCtx
-TyBeta-mw =
-  mw wf-empty (binds∷ wfᴿ-ℕ binds[]) TyBeta-interior TyBeta-conversion
+TyBeta-bw : BoundaryWf empty TyBetaBoundary TyBetaCtx TyBetaCtx
+TyBeta-bw =
+  bw wf-empty (binds∷ wfᴿ-ℕ binds[]) TyBeta-interior TyBeta-conversion
 
 -- Crossing an argument under `ΛX` removes only ordinary X. Its abstract
 -- representation variable remains, and the dual restores X exactly.

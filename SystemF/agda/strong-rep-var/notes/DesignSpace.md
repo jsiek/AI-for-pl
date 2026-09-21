@@ -74,7 +74,7 @@ subgraph Dv2["D. v2 — conversion boundaries — 2026-09-05/06"]
   D48["D48 masked-only mw-u, unconditional relock, bindsOnly"]
   D49["D49 Δ-dependent dual: relock on scope Θ′ Δ"]
   D50["D50 sequential ⊢ᵐ, exact dual, rewind, reps on unlockedScope"]
-  D51["D51 the morphism is a pair: parallel binds, sequential changes"]
+  D51["D51 the boundary scope is a pair: parallel binds, sequential changes"]
 end
 
 D01 -->|"Example 6: revealing Y:=X⇒X injects X into Γ₂, so L2 fails"| D02

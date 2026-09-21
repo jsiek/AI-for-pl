@@ -1,4 +1,4 @@
-# PR body draft — the context morphism becomes a PAIR
+# PR body draft — the boundary scope becomes a PAIR
 
 Branch `morph-pair`, on top of `main` @ `2c092f1e`.
 Gate: `make -C SystemF/agda/strong check` passes, cold, exit 0
@@ -6,7 +6,7 @@ Gate: `make -C SystemF/agda/strong check` passes, cold, exit 0
 
 ## What changed
 
-Jeremy's ruling (2026-09-06): the boundary's context morphism is not one
+Jeremy's ruling (2026-09-06): the boundary's boundary scope is not one
 interleaved list.  Its two halves are different kinds of thing —
 **binds are PARALLEL** (a block of binders whose representations are read
 outside all of them) and **lock/unlock are SEQUENTIAL** — so the type
@@ -16,15 +16,15 @@ now says so.
 data Change : Set where
   lock unlock : ℕ → Change          -- EXTERIOR indices, name only
 
-record CtxMorph : Set where
-  constructor morph
+record Boundary : Set where
+  constructor boundary
   field
     binds   : List Ty               -- PARALLEL block of binders
     changes : List Change           -- SEQUENTIAL, applied head-LAST
 ```
 
 Field names are Jeremy's (`binds` / `changes`); the constructor is
-`morph`.  The two *induced contexts* keep their old names because
+`boundary`.  The two *induced contexts* keep their old names because
 `Design.md` and the lemma names use them:
 
 ```agda
@@ -38,19 +38,19 @@ convCtx       Θ Δ = pushBinds (binds Θ) (unlockedScope Θ Δ)
 ```
 
 `repsOf` is gone — it *is* the field `binds`.  `scopeOf` became
-`shiftScope`.  The derived morphisms are re-expressed at the pair:
+`shiftScope`.  The derived boundary scopes are re-expressed at the pair:
 
 ```agda
-dual   Θ = morph [] (hideBinds (numBinds Θ)
+dual   Θ = boundary [] (hideBinds (numBinds Θ)
                        ++ dualScope (numBinds Θ) (changes Θ))
-rewind Θ = morph (binds Θ) (dualScope 0 (changes Θ) ++ changes Θ)
-Θ₁ ⋉ Θ₂  = morph (binds Θ₁)
+rewind Θ = boundary (binds Θ) (dualScope 0 (changes Θ) ++ changes Θ)
+Θ₁ ⋉ Θ₂  = boundary (binds Θ₁)
                  (changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂))
 ```
 
-and the two minting rules: `TyBeta` mints `morph (A ∷ []) []`, `TyPeelR`
-mints `morph (A ∷ binds Θ) (changes Θ)` (change indices are exterior and
-stay unshifted by the morphism's own binds — unchanged).
+and the two minting rules: `TyBeta` mints `boundary (A ∷ []) []`, `TyPeelR`
+mints `boundary (A ∷ binds Θ) (changes Θ)` (change indices are exterior and
+stay unshifted by the boundary scope's own binds — unchanged).
 
 `Δ ⊢ᵐ Θ` is a **pair of judgements**, one per half:
 
@@ -64,8 +64,8 @@ data _⊢ˢ_ : Ctxᵗ → List Change → Set where    -- the SEQUENTIAL changes
   sw-l : applyChanges S Δ ∋tv X → Δ ⊢ˢ S → Δ ⊢ˢ (lock X ∷ S)
   sw-u : applyChanges S Δ ∋lk X → Δ ⊢ˢ S → Δ ⊢ˢ (unlock X ∷ S)
 
-record _⊢ᵐ_ (Δ : Ctxᵗ) (Θ : CtxMorph) : Set where
-  constructor mw
+record _⊢ᵐ_ (Δ : Ctxᵗ) (Θ : Boundary) : Set where
+  constructor bw
   field
     mw-reps    : unlockedScope Θ Δ ⊢ʳ binds Θ
     mw-changes : Δ ⊢ˢ changes Θ
@@ -84,12 +84,12 @@ parallel block has no left and no right.
 Consequences observed, in full:
 
 * **No `⊢ᵐ` derivation in the development needed the tighter reading, and
-  none needed the looser one.**  Exactly one morphism in the whole tree
+  none needed the looser one.**  Exactly one boundary scope in the whole tree
   had a change to the left of a bind under the old order —
   `rewind Θ₆ = lock 0 ∷ bind (` 0) ∷ unlock 0 ∷ []` in
   `proof/MwUObstruct` §4 — and there the two readings *coincide*, because
   the entry to the left is a `lock` and `applyUnlocks` skips locks.
-  Every other morphism has all its binds before all its changes, where
+  Every other boundary scope has all its binds before all its changes, where
   the two readings are the same.  So: no example was refused, and none
   needed the extra permissiveness.
 * **One lemma pays for it:** `proof/MoveScope.⊢ᵐ-rewind`.  A rewound
@@ -151,8 +151,8 @@ and the new one has no rep in it at all.  `⊢ᵐ-hideBinds`/`⊢ᵐ-dualScope`/
 `⊢ᵐ-scopeOf` became `⊢ˢ-hideBinds`/`⊢ˢ-dualScope`/`⊢ˢ-shiftScope` and
 likewise lost their `bind` cases.
 
-Per-module declaration counts (old → new): `CtxMorph` 23 → 30 (five of
-the seven additions are one-line morphism-level wrappers kept so
+Per-module declaration counts (old → new): `Boundary` 23 → 30 (five of
+the seven additions are one-line boundary scope-level wrappers kept so
 `scope Θ Δ`/`unlockedScope Θ Δ` and their transports keep their names),
 `proof/PeelDual` 33 → 29, `proof/MoveScope` 34 → 32, `TermSubst` 35 → 39
 (the four additions are the two `renᶠ`-level list functions and the two
@@ -175,16 +175,16 @@ None.  `Show.agda` renders the pair in its own order — all binds, then
 all changes, then the conversion: `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`.  Every one
 of `Examples`' 26 pinned rendering traces is byte-identical (they are
 `refl` proofs and the module type-checks unchanged); the diff touches no
-`showTmIn` line.  The only morphism in the tree whose old list order
+`showTmIn` line.  The only boundary scope in the tree whose old list order
 differed from binds-then-changes is `rewind Θ₆` in `proof/MwUObstruct`,
 which is never rendered.
 
 `scripts/render_term.sh` still works unchanged, e.g.
 
     scripts/render_term.sh \
-      'showBndIn 1 (morph (`ℕ ∷ []) (lock 0 ∷ unlock 0 ∷ [])) (id `ℕ)' \
+      'showBndIn 1 (boundary (`ℕ ∷ []) (lock 0 ∷ unlock 0 ∷ [])) (id `ℕ)' \
       'open import strong-rep-var.Types' 'open import strong-rep-var.Conversion' \
-      'open import strong-rep-var.CtxMorph' 'open import Data.List using ([]; _∷_)'
+      'open import strong-rep-var.Boundary' 'open import Data.List using ([]; _∷_)'
     ⟪ ↑Y:=ℕ , ↓X , ↥X , id ℕ ⟫
 
 ## What was re-proved
@@ -194,7 +194,7 @@ Everything, with statements unchanged: `proof/PeelDual`
 `proof/MoveScope` (the frame equalities, `⊢ᵐ-⋉`, `⊢ᵐ-rewind`,
 `preserve-IdPush`, `preserve-CancelR`, and the lock-only refutation
 `¬frame-locksOnly` on the pair witness
-`Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])`), `proof/Preserve`,
+`Θ✗ = boundary [] (unlock 0 ∷ lock 0 ∷ [])`), `proof/Preserve`,
 `strong-rep-var.Preservation`, `strong-rep-var.Progress`, `det`, `value-¬step`,
 `proof/Canonicity`, `proof/Adversary`, `proof/IdLayer`,
 `proof/MaskFacts`, `proof/DualTightness`, `proof/MwUObstruct` (its
@@ -210,4 +210,4 @@ paired judgement, verbatim, and the one semantic move), §4.3 (what
 `env`'s first premise checks), §6.3/§6.7 (`dual`, `rewind`, `⋉`,
 `shiftScope`), §8 law 4 (simultaneity, now stated exactly), §9 (a new
 bullet, *The pair*), Appendix A (names).  `README.md`: the module map
-lines for `CtxMorph.agda`, `MoveScope.agda`, `MwUObstruct.agda`.
+lines for `Boundary.agda`, `MoveScope.agda`, `MwUObstruct.agda`.

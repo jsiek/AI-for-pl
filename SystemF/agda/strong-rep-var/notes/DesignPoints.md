@@ -8,7 +8,7 @@ uses today's vocabulary — a boundary's **interior**, its **exterior**
 (the plain `Δ`), its **conversion context** `convCtx Θ Δ`, its
 **conversion** `c` with a **source** and a **target** type, a variable's
 **binder** (the `bind` entry that carries its representation), and the
-context-morphism entries **bind / lock / unlock**.
+boundary-scope entries **bind / lock / unlock**.
 
 Where a section title is quoted it is a heading of `notes/DECISIONS.md`
 unless stated otherwise.  "Gauntlet §9x" refers to the numbered sections
@@ -382,7 +382,7 @@ mask/unmask be functions (`THE REDESIGN PROBE VERDICT`, obligation 2;
 (`⊑-kn`).
 
 **D35 — the conversion boundary `M ⟪Θ, c⟫`.**  One boundary form carrying
-a context morphism `Θ` (entries `bind A` / `lock X` / `unlock X`) and a
+a boundary scope `Θ` (entries `bind A` / `lock X` / `unlock X`) and a
 representation-free **conversion** `c` (`id` / `seal X` / `unseal X` /
 `_↦_` / `` `∀ ``) checked by `Δ ⊢ c ∶ A ⇝ B` in the boundary's own
 **conversion context** `convCtx Θ Δ`.  The probe was green on the
@@ -435,7 +435,7 @@ determinism is bought ("Id-layer RULING"; commit `92ede193`;
 `Show`, `proof/`), v1 deleted, all five ruled repairs in the rules, and
 `det` + `values-don't-step` proven; `1caf9b27` then proved **progress
 with zero parameters**.  Jeremy's vocabulary rulings landed on top
-("skeleton" → context morphism, "spine" → type context, `own`/`ali`/`cnc`
+("skeleton" → boundary scope, "spine" → type context, `own`/`ali`/`cnc`
 → `bind`/`unlock`/`lock`), and `TyBeta`'s `Value N` premise was confirmed
 as the fifth determinism repair.
 
@@ -449,7 +449,7 @@ shift, `CancelR`'s residue) and `IdPush` as a possible design question
 definition, not a proof gap.
 
 **D42 — the dual repaired (half of it).**  `dualScope` had mapped a no-op
-`unlock X` to a real `lock` and replayed the morphism in `Θ`-order, so a
+`unlock X` to a real `lock` and replayed the boundary scope in `Θ`-order, so a
 same-slot mask/unmask pair failed to cancel; **dropping** the `unlock`
 case fixes both defects, and `interior-dual` / `convCtx-dual` are then
 proven in general, discharging `PeelCase` (commit `7e9c4109`,
@@ -508,7 +508,7 @@ conversion names the boundary's own binds and cites locked binders, so it
 types in neither the interior nor the exterior), "exterior" meaning the
 plain `Δ` and nothing else, **"face" retired** in favour of
 conversion / source / target, **"binder" instead of "owner"**, and
-`MorphWf Δ Θ` becoming the infix judgment `Δ ⊢ᵐ Θ` (commits `390c5723`,
+`BoundaryWf Δ Θ` becoming the infix judgment `Δ ⊢ᵐ Θ` (commits `390c5723`,
 `a6ed7232`, `505f6ad9`, `9c7c6f9d`; `Design.md` Appendix A).
 
 **D47 — `dual` drops `unlock` entries: the scope leak.**  The design
@@ -604,7 +604,7 @@ tests that came out of the episode are `proof/DualTightness` (the
 a subterm into a new frame, with the five frame identities collected in
 §15f and tabulated in `Design.md` §7).
 
-**D51 — the morphism is a pair: parallel binds, sequential changes.**
+**D51 — the boundary scope is a pair: parallel binds, sequential changes.**
 Jeremy, reading `dual`, asked whether treating binds specially
 (`hideBinds` at the front, reps read outside all of them) while
 lock/unlock are sequential was essential, and whether the binds should
@@ -612,10 +612,10 @@ then live in their own list.  The special treatment is essential — it is
 the half of simultaneity that survived `D18`, and the fully sequential
 composition was the first design (`D02`) — but the interleaving was not:
 only `mw-b`'s tail-dependent rep frame ever looked at bind-vs-change
-order.  `CtxMorph` became `record morph { binds : List Ty ; changes :
+order.  `Boundary` became `record boundary { binds : List Ty ; changes :
 List Change }` with `Δ ⊢ᵐ Θ` a record of `unlockedScope Θ Δ ⊢ʳ binds Θ`
-and `Δ ⊢ˢ changes Θ`; a rep is now read past all of the morphism's
+and `Δ ⊢ˢ changes Θ`; a rep is now read past all of the boundary scope's
 unlocks, which no example needed and no theorem felt, and `repsOf`,
 eight filtering lemmas and `⊢ᵐ-++` vanished.  Rendering unchanged.  PR
-#195 (`3f080fdb`); `notes/DECISIONS.md` "The context morphism becomes a
+#195 (`3f080fdb`); `notes/DECISIONS.md` "The boundary scope becomes a
 PAIR".

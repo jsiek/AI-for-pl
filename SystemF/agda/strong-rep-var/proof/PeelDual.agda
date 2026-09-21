@@ -1,9 +1,9 @@
 module strong-rep-var.proof.PeelDual where
 
 -- THE PEEL CROSSING — the dual is an INVERSE, and both of its readings
--- are theorems of `strong-rep-var.CtxMorph` §3a.
+-- are theorems of `strong-rep-var.Boundary` §3a.
 --
---   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dualMorph Θ ⇒ extendReps (binds Θ) Δ
+--   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dualBoundary Θ ⇒ extendReps (binds Θ) Δ
 --
 -- is `dual-interior`: the crossing argument's frame IS THE EXTERIOR, one
 -- bind block in.  So the argument, typed at Δ, crosses by a
@@ -16,7 +16,7 @@ module strong-rep-var.proof.PeelDual where
 -- `conv(dual Θ, int(Θ, Δ)) ≡ conv(Θ, Δ)`, is a theorem on `main` and is
 -- FALSE here, because deleting a name from a SEQUENCE renumbers the rest
 -- (notes/CrossingAudit §§4–6).  What survives is (Q) — the two contexts
--- name the same representation VARIABLES (`Q`, strong-rep-var.CtxMorph §3b) —
+-- name the same representation VARIABLES (`Q`, strong-rep-var.Boundary §3b) —
 -- and `Peel` therefore carries the dual's own spelling `s′` together with
 -- a `SameConv` relating it to `s`.  §1 below is what turns that premise
 -- into the dual boundary's conversion typing.
@@ -47,7 +47,7 @@ open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
 open import strong-rep-var.TermSubst
   using (renᴹ²; ren²; renᴹ²-ord-id; wkN)
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.proof.Preserve
   using (PeelCase; RepWeakenTyping; same-shiftRVars; shiftRep-shiftBy;
          same-wf)
@@ -191,8 +191,8 @@ module _ (repWeaken : RepWeakenTyping) where
                 wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
                 (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
                          (wf-⇒ wA wC)) ⊢W)
-    with interior-functional (mw-interior mwΘ) ri
-       | conversion-functional (mw-conversion mwΘ) rc
+    with interior-functional (bw-interior mwΘ) ri
+       | conversion-functional (bw-conversion mwΘ) rc
   preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
                 {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
                 wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
@@ -219,8 +219,8 @@ module _ (repWeaken : RepWeakenTyping) where
     n = numBinds Θ
 
     -- the dual's frame: the exterior, one bind block in
-    mwD : MorphWf Δᵢ (dualMorph Θ) (extendReps (binds Θ) Δ) Δᵈ
-    mwD = mw (mw-interior-wf mwΘ) binds[] (dual-interior ri) rd
+    mwD : BoundaryWf Δᵢ (dualBoundary Θ) (extendReps (binds Θ) Δ) Δᵈ
+    mwD = bw (bw-interior-wf mwΘ) binds[] (dual-interior ri) rd
 
     -- the crossing argument's own exterior reading, lifted past the
     -- bind block, is the source spelling the dual's conversion wants
@@ -233,7 +233,7 @@ module _ (repWeaken : RepWeakenTyping) where
                      (shiftRep-shiftBy n Ra))
               (proj₁ (proj₂ smP))
 
-    sameₑ-d : SameTyExt (numBinds (dualMorph Θ)) Δᵢ Aᵢ Δᵈ Q′
+    sameₑ-d : SameTyExt (numBinds (dualBoundary Θ)) Δᵢ Aᵢ Δᵈ Q′
     sameₑ-d =
       proj₁ smAᵢ , proj₁ (proj₂ smAᵢ)
       , subst (λ T → names Δᵈ ⊢ Q′ ~ T)
@@ -242,10 +242,10 @@ module _ (repWeaken : RepWeakenTyping) where
               (proj₁ (proj₂ smQ))
 
     arg : Δᵢ ∣ [] ⊢
-        (renᴹ² (ren² (λ X → X) (wkN n)) W ⟪ dualMorph Θ , s′ ⟫) ⦂ Aᵢ
+        (renᴹ² (ren² (λ X → X) (wkN n)) W ⟪ dualBoundary Θ , s′ ⟫) ⦂ Aᵢ
     arg =
-      subst (λ W′ → Δᵢ ∣ [] ⊢ W′ ⟪ dualMorph Θ , s′ ⟫ ⦂ Aᵢ)
+      subst (λ W′ → Δᵢ ∣ [] ⊢ W′ ⟪ dualBoundary Θ , s′ ⟫ ⦂ Aᵢ)
             (sym (renᴹ²-ord-id (λ X → refl) W))
-            (env mwD (repWeaken (binds Θ) (mw-binds mwΘ) ⊢W)
+            (env mwD (repWeaken (binds Θ) (bw-binds mwΘ) ⊢W)
                  ⊢s′ sameᵢ-d sameₑ-d
                  (same-wf (proj₁ (proj₂ smAᵢ))))

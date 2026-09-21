@@ -23,7 +23,7 @@ module strong-rep-var.proof.IdLayer where
 -- WHAT WAS DELETED.  `convCtx-lock` — "a conceal is invisible to the
 -- conversion context" as an EQUALITY between computed contexts — has no
 -- two-universe counterpart.  The relational statement of the same fact is
--- `conv-lock` itself (strong-rep-var.CtxMorph §3), which skips a lock
+-- `conv-lock` itself (strong-rep-var.Boundary §3), which skips a lock
 -- outright.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
@@ -39,7 +39,7 @@ open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.proof.Canonical
   using (same-base-target; sameTyExt-base-target)
 open import strong-rep-var.proof.Preserve using (shiftRep-var)
@@ -84,7 +84,7 @@ idpush-name {Θ₁ = Θ₁}
   with push-rep (numBinds Θ₁) se₁ sm₂
 ... | α , d , d′ =
   _ , _ , _ , α
-  , mw-interior mw₂ , mw-conversion mw₂ , mw-conversion mw₁
+  , bw-interior mw₂ , bw-conversion mw₂ , bw-conversion mw₁
   , d , d′
 
 -- THE SAME FACT FOR CANCEL.  The inner `seal X` has the same TARGET
@@ -103,7 +103,7 @@ cancel-name {Θ₁ = Θ₁}
   with push-rep (numBinds Θ₁) se₁ sm₂
 ... | α , d , d′ =
   _ , _ , _ , α
-  , mw-interior mw₂ , mw-conversion mw₂ , mw-conversion mw₁
+  , bw-interior mw₂ , bw-conversion mw₂ , bw-conversion mw₁
   , d , d′
 
 ------------------------------------------------------------------------
@@ -146,7 +146,7 @@ outer-id-base-untypeable () (env _ (env _ _ (conv-idv _) _ _ _)
 -- §3  THE NAKED DROP — the door, closed
 ------------------------------------------------------------------------
 
--- `V ⟪ Θ , id A ⟫ -→ V` is unsound because V is typed on the morphism's
+-- `V ⟪ Θ , id A ⟫ -→ V` is unsound because V is typed on the boundary scope's
 -- INTERIOR, not on Δ.  A concrete failing instance: the boundary's
 -- conversion cites an ordinary name that Δ does not have at all.
 
@@ -157,9 +157,9 @@ outer-id-base-untypeable () (env _ (env _ _ (conv-idv _) _ _ _)
 Δₑ-no-1 (there ())
 
 naked-drop-trap : ∀ {C} →
-  ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ morph [] [] , seal 1 ⟫ ⦂ C)
+  ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ boundary [] [] , seal 1 ⟫ ⦂ C)
 naked-drop-trap (env mwᵥ ⊢$ ⊢c smᵢ smₑ wE)
-  with mw-conversion mwᵥ
+  with bw-conversion mwᵥ
 naked-drop-trap (env mwᵥ ⊢$ (conv-seal (α , R , name , rep , same)) smᵢ smₑ wE)
   | conversion conv[] = Δₑ-no-1 name
 
@@ -174,25 +174,25 @@ naked-drop-trap (env mwᵥ ⊢$ (conv-seal (α , R , name , rep , same)) smᵢ s
 extendReps-[] : (Γ : Ctxᵗ) → extendReps [] Γ ≡ Γ
 extendReps-[] (Ξ ∣ Δ) = cong (Ξ ∣_) (shiftRVars-0 Δ)
 
-empty-interior : (Γ : Ctxᵗ) → Γ ⊢ⁱ morph [] [] ⇒ extendReps [] Γ
+empty-interior : (Γ : Ctxᵗ) → Γ ⊢ⁱ boundary [] [] ⇒ extendReps [] Γ
 empty-interior Γ = interior changes[]
 
-empty-conversion : (Γ : Ctxᵗ) → Γ ⊢ᶜ morph [] [] ⇒ extendReps [] Γ
+empty-conversion : (Γ : Ctxᵗ) → Γ ⊢ᶜ boundary [] [] ⇒ extendReps [] Γ
 empty-conversion Γ = conversion conv[]
 
 drop-empty-frame : ∀ {Δ Γ V A B}
-  → Δ ∣ Γ ⊢ V ⟪ morph [] [] , id A ⟫ ⦂ B
+  → Δ ∣ Γ ⊢ V ⟪ boundary [] [] , id A ⟫ ⦂ B
     ------------------------------------
   → Δ ∣ [] ⊢ V ⦂ B
 drop-empty-frame {Δ = Δ} {V = V} (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)
-  with trans (interior-functional (mw-interior mwᵥ) (empty-interior Δ))
+  with trans (interior-functional (bw-interior mwᵥ) (empty-interior Δ))
              (extendReps-[] Δ)
-     | trans (conversion-functional (mw-conversion mwᵥ) (empty-conversion Δ))
+     | trans (conversion-functional (bw-conversion mwᵥ) (empty-conversion Δ))
              (extendReps-[] Δ)
 ... | refl | refl
   with same-rep-unique qᵢ (subst (λ T → names Δ ⊢ T ~ S)
                                  (sym (conv-id-refl ⊢c)) qₑ)
 ... | refl =
   subst (λ T → Δ ∣ [] ⊢ V ⦂ T)
-        (same-target-unique (name-fn (mw-exterior mwᵥ)) pᵢ pₑ)
+        (same-target-unique (name-fn (bw-exterior mwᵥ)) pᵢ pₑ)
         ⊢V

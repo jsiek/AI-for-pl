@@ -1,33 +1,32 @@
-* Rename context morphism to boundary scope, so change
-  CtxMorph to Boundary, and MorphWf to BoundaryWf.
-  Also, look for uses of "context morphism" or just "morphism"
-  in notes, documentation, agda code, etc. and update them
-  to the new terminology.
-  
-* Port the COLOR PRESERVATION theorem to strong-rep-var.
+* (Empty.  The color preservation port is COMPLETE — statement approved
+  and proof landed 2026-09-21, PR #207.  Per Jeremy's follow-up ruling,
+  color is about TYPE variables only, so `ColorPreservation` proper
+  concludes `length (names Δ₂) ≡ length (names Δ₁)` and is a corollary
+  of the stronger scope-map theorem, kept as `ScopeMapPreservation`.
+  Two deltas against the reviewed material, both flagged on the PR for
+  Jeremy:
 
-  The original is on branch strong-v3-design, proved 2026-09-12
-  (commit 31fa0918, "proof of color preservation") and retired
-  2026-09-15 by the v8 sweep (309ad95a); it was never on main.  The
-  last fully-alive version is commit db3d7fb8:
+    1. `CopyResidual`/`ImageResidual` regained v7's DEPTH INDEX: without
+       it, when a β-redex's argument is itself a `crossΛᴹ`-shaped
+       wrapper, a depth-1 occurrence can match `image-here` and claim
+       the unwrapped source position one `Λ` in — a derivation for which
+       the color equation is FALSE.  The index pins the leaf to the
+       walk's depth (`Residual.agda` §5's comment).
+    2. `ColorPreservation` gained a `WfCtx Δ` premise: the run's
+       intermediate terms are re-typed by `preservation`, which is
+       conditional on `WfCtx Δ`.  It is the price of stating over any Δ;
+       `ColorPreservationClosed` is the v7-faithful closed form without
+       it.
 
-    git show db3d7fb8:SystemF/agda/strong/ColorPreservation.agda
-    git show db3d7fb8:SystemF/agda/strong/proof/ColorPreservation.agda
-    git show db3d7fb8:SystemF/agda/strong/Residual.agda
-
-  The v7 statement: for a well-typed plug C M reducing to plug D N with
-  N the residual of M along the run, the two holes' contexts have equal
-  lexical type-variable scope (scopeᵗ Δ₁ ≡ scopeᵗ Δ₂) — "a non-boundary
-  term's color never changes during reduction" (design law, commit
-  5214b055).  The proof factors through a push/pop balance for one-hole
-  contexts.
-
-  Porting notes: the v7 vocabulary (merged entries, computed contexts)
-  is gone here, so this is a restatement, not a transcription.  "Color"
-  becomes the SCOPE MAP around a residual position (which ordinary
-  names are live, and which α each denotes).  The engine should be the
-  fact proof/ShiftAudit.agda already records — every move except
-  TyBeta's is representation-only, so ordinary scope never moves — plus
-  a Residual/one-hole-context layer that does not exist in this tree
-  yet and must be rebuilt.  Per the standing protocol, the STATEMENT
-  goes to Jeremy for review before the proof is attempted.
+  The proof (`proof/ColorPreservation.agda`): `residual-frame`
+  constructs the target position's frame derivation per step —
+  frame-for-frame everywhere except the three movers, which go through
+  `⊢C-ren`, the transport of `Δ ⊢C C ⊣ Δ′` along a representation-only
+  renaming built on `interior-ren`/`RepWk`; the minted boundary frames
+  read by `instantiate-interior`, `dual-interior`, `rewind-interior`,
+  `merged-interior`, `addLock0-interior-ren`, `crossΛ-interior`.
+  `residuals-color` composes along `ρ′ ∘ ρ` re-typing by
+  `preservation`.  The typing premise is spent at exactly two sites:
+  Peel's argument (`bw-binds` of the redex's own `env`, feeding
+  `repwk-wkN`) and TyPeelR-⟪⟫ (`instantiate-boundarywf` for the
+  refined store's well-formedness).)

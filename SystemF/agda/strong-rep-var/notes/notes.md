@@ -703,10 +703,10 @@ The rule names below are the Agda constructor names.
 
 | notes rule | Agda constructor | presentation/mechanization gap |
 |---|---|---|
-| `TyBeta` | `TyBeta` | `instantiate` shifts old representation indices; names stay fixed |
+| `TyBeta` | `TyBeta` | `inst` shifts old representation indices; names stay fixed |
 | `Beta` | `Beta` | named frame-exact substitution hides the representation-only weakening under `Λ`, not the crossing boundary |
 | `Peel` | `Peel` | `c′`/`SameConv` becomes one `c` plus scope in `Δᶜ,Δᵈ`; `W` is representation-weakened in Agda |
-| `TyPeelR-Λ` | `TyPeelR-Λ` | `instantiate` shifts indices; no re-spelling premise is removed |
+| `TyPeelR-Λ` | `TyPeelR-Λ` | `inst` shifts indices; no re-spelling premise is removed |
 | `TyPeelR-⟪⟫` | `TyPeelR-⟪⟫` | `Bᵢ′` and `c″` collapse to named `Bᵢ` and `c′` with four scope readings; Agda representation-renames `W`, `Θ′`, and the annotation |
 | `CancelR` | `CancelR` | `A′` collapses to named `Aᵢ` with scope at `Δ⋉ᶜ,Δ₁ᶜ`; distinct raw-rule `X,Y,Aᵢ,Aₒ` are retained |
 | `Drop$` | `Drop$` | none; the `Base A` premise is retained |

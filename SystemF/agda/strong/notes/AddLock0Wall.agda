@@ -93,8 +93,8 @@ module strong.notes.AddLock0Wall where
 -- positions of `Δ′ᶜ` are kept, but each denotes `extN (numBinds Θ′) suc`
 -- of the representation it denoted.  Without that view the premise is
 -- unsatisfiable as soon as the old conversion context names a free
--- representation below the insertion — run 9 of
--- notes/RepresentationReductionExamples is the witness.
+-- representation below the insertion — §6b of strong.Examples is the
+-- witness.
 --
 -- WHAT SURVIVED OF THE DECOMPOSITION, and still does: the representation
 -- half is fine and is proved elsewhere — the mover is

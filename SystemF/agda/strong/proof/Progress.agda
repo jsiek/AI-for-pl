@@ -108,7 +108,7 @@ merged-reading = merged-conversion-exists
 -- `map (extN (numBinds Θ′) suc) (names Δ′ᶜ)`, NOT `names Δ′ᶜ`: the
 -- insertion moves every representation index the old conversion context
 -- named from below the new binder.  The unrenamed inclusion is false, and
--- run 9 of notes/RepresentationReductionExamples is the witness.
+-- §6b of strong.Examples is the witness.
 --
 -- It lives here rather than in strong.CtxMorph because the rule spells the
 -- moved frame with `renᴮ²` (strong.TermSubst), one layer above.

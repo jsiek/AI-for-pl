@@ -12,13 +12,13 @@ module strong.notes.ForallPayloadWall where
 --   * REPAIRED, unlike when this module was first written.  Both rules now
 --     carry the interior spelling as a `_⊢_≈_⊣_` premise
 --     (strong.Reduction; notes/DECISIONS.md, 2026-09-18), and the two
---     programs that found it run: they are §8 and §9 of
---     notes/RepresentationReductionExamples.agda.
+--     programs that found it run: they are §6a and §6b of
+--     strong.Examples.
 --
 -- HOW IT WAS FOUND.  By the first programs that instantiate at a
 -- POLYMORPHIC type.  A morphism's `binds` hold the representation reading
 -- of a type ARGUMENT, so a payload has a `∀` in it exactly when a type
--- application is impredicative; nothing else in the suite did that, and
+-- application is impredicative; nothing else in the corpus did that, and
 -- `wfᴿ-∀` and `local-ref` fired nowhere.  Both programs were well typed,
 -- both reached a redex at every step, and in both it was the CONTRACTUM
 -- that failed to typecheck — `TyPeelR-⟪⟫` at the ninth step of one,

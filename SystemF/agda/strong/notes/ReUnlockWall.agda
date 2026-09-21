@@ -13,8 +13,8 @@ module strong.notes.ReUnlockWall where
 --     notes/DECISIONS.md (2026-09-17); the rule that changed is
 --     `conv-unlock-live` in strong.CtxMorph §3.
 --
--- HOW THIS WAS FOUND.  By finishing the fourth reduction example
--- (notes/RepresentationReductionExamples §4).  The eleventh step of that
+-- HOW THIS WAS FOUND.  By finishing the tower example
+-- (strong.Examples §5a).  The eleventh step of that
 -- run is `CancelR`, whose contractum wraps the cancelled value in
 -- `rewind Θ₂` and in `Θ₁ ⋉ Θ₂`, where Θ₁ is the argument's
 -- `dualMorph Θ₂` from the `Peel` that sent it across.  Every state up to

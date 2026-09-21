@@ -1186,8 +1186,8 @@ CrossΛTyping = ∀ {Δ W A}
 -- reading, the moved one, and a `SameConv` pinning the two; those are the
 -- three premises added below.  The old context is read through
 -- `renNameCtx (extN (numBinds Θ) suc)`, the representation renaming the
--- inserted binder makes — dropping that view loses run 9 of
--- notes/RepresentationReductionExamples at step 8 (measured).  No fixed
+-- inserted binder makes — dropping that view loses §6b of
+-- strong.Examples at step 8 (measured).  No fixed
 -- conversion renaming appears here any more.
 --
 -- AND PROVED (2026-09-20), `strong.proof.AddLock0.addLock0-⊢`.  It is the

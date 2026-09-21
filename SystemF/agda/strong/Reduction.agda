@@ -271,8 +271,8 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
   -- The rule therefore NAMES the carried spelling `s″`, carries both the old
   -- and moved conversion readings, and pins the spellings with `SameConv`, in
   -- the same pattern as `Peel`.  The old context is viewed through the
-  -- representation renaming made by the insertion: without that view, run 9
-  -- of notes/RepresentationReductionExamples loses its type at step 8 because
+  -- representation renaming made by the insertion: without that view, §6b
+  -- of strong.Examples loses its type at step 8 because
   -- a free representation index is compared to the newly inserted binder.
   -- The contractum is otherwise unchanged: same `addLock0` frame, outer
   -- frame, minted `instReveal 0 s`, pushed-in annotation and type argument

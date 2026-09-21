@@ -3424,8 +3424,9 @@ WHAT WAS DELETED, AND WHY EACH.
   have since changed shape again on this branch, and `CancelR` is refuted
   outright (notes/CancelRShiftWall.agda). The positive content is now
   theorems — `preserve-TyPeelR-Λ`, `preserve-IdPush` — and the twelve
-  closed runs in `notes/RepresentationReductionExamples.agda`, which
-  exercise them from plain source rather than from hand-built derivations.
+  closed runs in `notes/RepresentationReductionExamples.agda` (now merged
+  into `strong.Examples`), which exercise them from plain source rather
+  than from hand-built derivations.
 
 * `proof/DualTightness.agda` — Jeremy's 2026-09-06 tightness test, stated
   as `interior (dual Θ) (interior Θ Δ) ≡ map maskEnt (bind prefix) ++ Δ`
@@ -4482,3 +4483,54 @@ progress, type safety, determinism and the no-step property for values are
 therefore all unconditional under `--safe`, with no postulates. The review
 queue is empty: the two-universe experiment's complete theorem surface is
 now proved.
+
+## 2026-09-21 — the reduction suite is MERGED into `Examples.agda`; the
+## corpus is one file and its runs are the acceptance test
+
+`notes/RepresentationReductionExamples.agda` (thirteen closed runs) is
+merged into `Examples.agda` and DELETED. The two files had grown into one
+corpus that cited itself across a module boundary: `Examples.agda` did not
+repeat the suite's `J` and `E` but pointed at them, and the suite's
+coverage note counted rules fired in both. One file, one map, one gate.
+
+EVERY RUN CARRIES OVER UNCHANGED — same program, same fuel, same step
+count, same endpoint. That table is the acceptance test and is now the
+head comment of `Examples.agda`. `make check` is green and cold-checking
+`Examples.agda` alone is about 4s.
+
+THREE COLLISION RENAMES, all on the incoming side (`Examples.agda` keeps
+its names), staying in the suite's own one-letter style:
+
+| suite | was | now | why |
+|---|---|---|---|
+| run 6, argument still reducing | `R₀` | `U₀` | `R` is the chained representation, §2c |
+| run 7, two later binders | `G₀`/`GBod`/`Gbody`/`Gfun` | `V₀`/`VBod`/`Vbody`/`Vfun` | `G` is the two-bind frame, §3 |
+| run 8, impredicative identity | `H₀` | `I₀` | `H` is the reveal mirror, §4 |
+
+with `-⊢`, `-eval` and `-run` following each.
+
+THE SECTIONS WERE RENUMBERED so the file reads from the plainest run to
+the hardest and ends with the equations and the refutations. Old pointers
+resolve through this map:
+
+| old | new |
+|---|---|
+| suite 1, 2, 3, 5, 6 | §1a `P`, §1b `K`, §1c `J`, §1d `F`, §1e `U` |
+| suite 4, 7 | §5a `E`, §5b `V` |
+| suite 8, 9 | §6a `I`, §6b `N` |
+| suite 10, 11, 12 | §7a `A`, §7b `B`, §7c `C` |
+| suite 13 | §8 `S` |
+| `Examples` §1, §1a, §1b, §1c | §2, §2a, §2b, §2c |
+| `Examples` §2, §3 | §3, §4 |
+| `Examples` §4, §4a–c | §9, §9a–c |
+| `Examples` §5, §6 | §10, §11 |
+
+Comments elsewhere that cited the suite by module name or run number were
+retargeted: `Reduction.agda`, `CtxMorph.agda`, `proof/Progress.agda`,
+`proof/Preserve.agda`, `notes/AddLock0Wall.agda`,
+`notes/ForallPayloadWall.agda`, `notes/ReUnlockWall.agda`,
+`notes/CrossingAudit.agda`, `notes/CancelRReachabilityWitness.agda`,
+`notes/PLAN.md`, `notes/CancelRReachability.md`. Dated entries above keep
+the old names: they describe the past. `notes/All.agda` lost the import;
+`strong.All` already reached `strong.Examples`, so the checked set loses
+exactly the deleted module and gains nothing.

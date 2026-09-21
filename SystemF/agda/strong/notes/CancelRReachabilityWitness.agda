@@ -48,13 +48,13 @@ module strong.notes.CancelRReachabilityWitness where
 -- Both fire in this run, in that order (steps 7 and 8).  The `seal` leaf
 -- itself is `TyBeta`'s `conceal 0` at the argument type `∀Z. Z ⇒ X`:
 -- `conceal 0 (`∀ (` 0 ⇒ ` 1)) ≡ `∀ (id (` 0) ↦ seal 1)`.  No program in
--- the twelve-run suite or in `strong.Examples` passes a `∀Z. … ⇒ X` — an
--- argument whose polymorphic type RETURNS the abstracted variable — so no
--- run ever produced the leaf.
+-- `strong.Examples` §§1–7 passes a `∀Z. … ⇒ X` — an argument whose
+-- polymorphic type RETURNS the abstracted variable — so no run there ever
+-- produced the leaf; `strong.Examples` §8 is this program, merged in.
 --
 -- AND WHY THE OPEN REPRESENTATION.  The instantiation that mints the
 -- cancelled binder is at a type VARIABLE of an ENCLOSING `Λ` (`[P]`, not
--- `[ℕ]`), which is what `strong.Examples` §1c already does for `IdPush`.
+-- `[ℕ]`), which is what `strong.Examples` §2c already does for `IdPush`.
 -- Its payload is then a representation VARIABLE, and `shiftBy 1` moves it.
 
 open import Data.Nat using (ℕ; zero; suc)

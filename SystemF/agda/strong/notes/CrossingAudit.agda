@@ -219,8 +219,8 @@ push-shape-conv = refl
 -- form `Θ₁ ⋉ Θ₂` that `IdPush` builds, but no run is known to build one
 -- from these ingredients, and no reachable frame violating (P) has been
 -- exhibited.  What the disproof rules out is the PROOF STRATEGY, not
--- `Peel`.  Example 12 is the hardest case the suite puts to it — a
--- function flowing through §4's tower, so the identities the tower mints
+-- `Peel`.  `strong.Examples` §7c is the hardest case the corpus puts to
+-- it — a function through §5a's tower, so the identities the tower mints
 -- are `_↦_`s and `Peel` fires on composites `CancelR` and `IdPush` built —
 -- and it passes.  That is testing, not proof.
 

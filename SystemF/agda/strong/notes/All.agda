@@ -3,7 +3,8 @@ module strong.notes.All where
 -- Aggregate driver for the gated investigation and regression notes.
 -- Deliberately ungated scratch probes are omitted.
 
-open import strong.notes.RepresentationReductionExamples
+-- (The thirteen-run reduction suite that used to head this list was
+-- merged into strong.Examples on 2026-09-21; strong.All checks it.)
 open import strong.notes.ReUnlockWall
 open import strong.notes.ForallPayloadWall
 open import strong.notes.CrossingAudit

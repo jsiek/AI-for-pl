@@ -63,8 +63,10 @@ The following parts have been ported and typecheck:
 `TypeCheck.agda` is new on this branch and has no main-branch counterpart, and
 `Eval.agda` is rewritten from scratch rather than ported.
 
-The reduction tests are in `notes/RepresentationReductionExamples.agda`. All
-thirteen closed programs reduce to first-order values:
+The reduction tests are in `Examples.agda` (§§1–8; the thirteen-run suite
+that used to be `notes/RepresentationReductionExamples.agda` was merged
+there on 2026-09-21). All thirteen closed programs reduce to first-order
+values:
 
 - `( ΛX. λx:X. x ) [ℕ] · 7` reduces in six steps to `7 : ℕ`;
 - the polymorphic Boolean example reduces in nine steps to `true : 𝔹`;
@@ -87,18 +89,19 @@ thirteen closed programs reduce to first-order values:
   value that crosses is first-order, so the composites only ever carry an
   identity conversion rather than a `_↦_`;
 - a function flowing through example 4's TOWER reduces in thirty-eight steps
-  to `7 : ℕ`. This is the hardest case the suite puts to `Peel`: the
+  to `7 : ℕ`. This is the hardest case the corpus puts to `Peel`: the
   identities the unwinding tower mints are at a function type, so they are
   `_↦_`s and `Peel` fires on the composites `CancelR` and `IdPush` build;
 - the CancelR shift witness reduces in nineteen steps to `7 : ℕ`. It is the
   program that found the CancelR re-spelling defect (2026-09-19,
-  `notes/CancelRShiftWall.agda`) and, on the repaired rule, the suite's only
-  run whose `CancelR` has `numBinds Θ₁ ≢ 0` and an open representation.
+  `notes/CancelRShiftWall.agda`) and, on the repaired rule, the corpus's
+  only run whose `CancelR` has `numBinds Θ₁ ≢ 0` and an open
+  representation.
 
 All fifteen reduction rules fire somewhere in those seven runs. The last three
 exist for the four that the first four reached once or not at all:
 `Drop-false` and `ξ-·-r` fired nowhere, and `TyPeelR-⟪⟫` and `IdPush` only in
-the fourth — `TyPeelR-⟪⟫` exactly once. Across the suite `TyPeelR-⟪⟫` now
+the fourth — `TyPeelR-⟪⟫` exactly once. Across the corpus `TyPeelR-⟪⟫` now
 fires three times and `IdPush` twenty-one. What is still thin is depth: the
 deepest seal tower any run builds is four, and unwinding is quadratic in that
 depth, so a defect needing five boundaries would not show up.
@@ -224,8 +227,8 @@ Testing has found and repaired these errors:
    the premise now reads the cancelled `seal X`'s own source `Aᵢ` at Θ₁'s
    conversion context `Δ₁ᶜ`, with `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ` and
    `Δ₁ᶜ ∋ X := Aᵢ` as new premises — the same block `IdPush` carries. The
-   witness program now runs to `7` in nineteen fully checked steps; the
-   twelve-run suite and `Examples.agda` are unchanged and green. The
+   witness program now runs to `7` in nineteen fully checked steps;
+   `Examples.agda`'s runs keep their step counts and endpoints. The
    preservation case `CancelRCase` is PROVED,
    `proof/MoveScope.agda` `preserve-CancelR`. See `notes/DECISIONS.md`
    (2026-09-19), `notes/CancelRShiftWall.agda`,
@@ -427,14 +430,13 @@ the new name lands depends on Θ′'s unlocks. `Reduction.agda` now reads
       → … -→ … ⟪ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) , `∀ s″ ⟫ …
 
 The old conversion context is read through `renNameCtx`, i.e. through the
-REPRESENTATION renaming the inserted binder makes; without that view, run
-9 of `notes/RepresentationReductionExamples.agda` loses its type at step 8
-(measured). The wall program now runs to a VALUE in four steps with every
+REPRESENTATION renaming the inserted binder makes; without that view, §6b
+of `Examples.agda` loses its type at step 8 (measured). The wall program now runs to a VALUE in four steps with every
 state typed (`Src-eval : Reaches 4 4 Src-⊢ Dst`), and
 `notes/AddLock0Wall.agda` keeps the retired statement as a LOCAL
 `AddLock0Typing°` and still refutes that.
 
-The thirteen-run suite and `Examples.agda` are BYTE-IDENTICAL across the
+`Examples.agda`'s runs keep their step counts and endpoints across the
 repair: the carried premise is invisible in every run where `TyPeelR-⟪⟫`
 fires.
 
@@ -487,11 +489,11 @@ parameterized public wrappers, the whole ported proof-script suite —
 `proof/ShiftAudit.agda` — and, since 2026-09-19, `Examples.agda` and
 `Show.agda`.
 
-The example suite alone is about 7.4s cold, the whole development
+The example corpus alone is about 4s cold, the whole development
 about 12s:
 
 ```
-agda --safe -v0 notes/RepresentationReductionExamples.agda
+agda --safe -v0 Examples.agda
 ```
 
 To READ a term, a run or a type context rather than transcribe it:
@@ -731,8 +733,8 @@ items remain below as the implementation record.
      which is `IdPush`'s premise block with `Aᵢ` in place of `` ` X ``.
      `Src` now runs to `7` in NINETEEN steps with every state checked
      (`Reaches 19 19 Src-⊢ ($ 7)`), the raw machine agrees exactly, and
-     the twelve-run suite and `Examples.agda` are byte-identical, green,
-     and at the same step counts — every `CancelR` they reach has
+     `Examples.agda`'s runs keep their step counts and endpoints and are
+     green — every `CancelR` they reach has
      `numBinds Θ₁ ≡ 0`, where the old and the new premise agree.
 
      **AND `CancelRCase` IS PROVED**, `proof/MoveScope.agda`

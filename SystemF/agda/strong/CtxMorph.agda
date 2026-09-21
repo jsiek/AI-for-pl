@@ -240,8 +240,8 @@ data _⊢ⁱ_⇒_ (Γ : Ctxᵗ) (Θ : CtxMorph) : Ctxᵗ → Set where
 -- the freshness premise of `conv-unlock` fails.  Without this clause
 -- `rewind Θ` and `Θ′ ⋉ Θ` have NO conversion context whenever Θ locks, so
 -- CancelR's and IdPush's contracta are untypeable: that is the wall the
--- fourth reduction example walked into (notes/RepresentationReductionExamples
--- §4, `no-rewind-conv` / `no-cancel-inner-conv`).
+-- tower example walked into (strong.Examples §5a, `no-rewind-conv` /
+-- `no-cancel-inner-conv`).
 --
 -- The clause does not widen the judgement where the old one applied: the two
 -- unlock clauses are mutually exclusive (`fresh-not-lookup`), so the

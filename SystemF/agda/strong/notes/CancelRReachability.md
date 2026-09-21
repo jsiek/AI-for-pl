@@ -125,7 +125,7 @@ type APPLICATION, not the argument type of the function that abstracts `X`,
 so its seal leaf never meets a `TyPeelR`. That is the gap the suite had.
 
 Then `[P]` instead of `[ℕ]` for the instantiation that mints the cancelled
-binder, exactly as `Examples.agda` §1c (`R`) already does for `IdPush`,
+binder, exactly as `Examples.agda` §2c (`R`) already does for `IdPush`,
 makes the payload a representation variable.
 
 ## 4. The candidate table

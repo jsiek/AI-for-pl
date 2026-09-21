@@ -1,66 +1,138 @@
 module strong.Examples where
 
--- THE LIVING REGRESSION for the two-universe (representation-variable)
--- design.  Everything here is about the rules as they stand today: closed
--- programs, the runs they perform, the typings those runs keep, the two
--- equations term substitution owes at a crossing, and the refutations that
--- still hold.
+-- File Charter:
+--   * THE LIVING REGRESSION for the two-universe (representation-
+--     variable) design: closed programs, their typing derivations, the
+--     runs they perform, the two equations term substitution owes at a
+--     crossing, and the refutations that still hold.  Everything here is
+--     about the rules as they stand today.
+--   * EXAMPLES ONLY.  Nothing here records a design decision, a defect or
+--     a repair.  Those go in notes/DECISIONS.md, and a machine-checked
+--     witness for one goes in its own notes/ module — see
+--     notes/ReUnlockWall.agda, notes/ForallPayloadWall.agda and
+--     notes/CancelRShiftWall.agda, each of which these runs produced.
+--   * AN EXAMPLE IS FOUR LINES, so the corpus is meant to grow.  Adding
+--     one should not require touching anything else in this file.
+--   * ONE EQUATION PER RUN.  A program is evaluated once, by its one
+--     `Reaches`; a second statement about the same program evaluates it
+--     a second time, so the cost of this file stays linear in the number
+--     of runs only as long as that discipline holds.
 --
---   §1  THE VACUOUS-Λ FAMILY — four closed, plain System F programs whose
---       runs are born with an IDENTITY LAYER and therefore land on
---       `IdPush`: `Q` (once), `D` (twice), `L` (the "wall" context), `R`
---       (a chained representation).
---   §2  TYPEELR FROM CLOSED PLAIN SOURCE — `G`, whose second inner
---       instantiation is a `TyPeelR` redex over a one-bind frame, and the
---       machine-checked table of which rule can mint a frame with two
---       binds at all.
---   §3  THE REVEAL MIRROR — `H`, where the `∀` crosses the boundary
---       OUTWARD as a result rather than inward as an argument.
---   §4  HAND-BUILT BOUNDARIES AT A NON-EMPTY AMBIENT — the cancel pair and
---       the id-layer stack, written down rather than reached, at a Δ that
---       is not `empty`.  Two of these runs are pinned state by state; they
---       are the only EXACT transcripts in the corpus.
---   §5  WHAT SUBSTITUTION DOES AT A CROSSING — the three `substᵐ`
---       regressions, including the one this branch's design turns on: a
---       value crossing a `Λ` moves in the REPRESENTATION universe only.
---   §6  REFUTATIONS AND NON-VACUITY — a boundary over an active conversion
---       is not a value, the checker refuses an unbound type argument, and
---       a wrong endpoint, a wrong step count and too little fuel are each
---       rejected by `Reaches`.
+-- THE MAP.
 --
--- WHAT A RUN HERE ASSERTS.  Exactly what the twelve runs of
--- notes/RepresentationReductionExamples.agda assert, by the same
--- machinery: one `Reaches k n ⊢M V` says that with fuel `k` the evaluator
--- reaches `V` in exactly `n` steps, that `V` is a value, and that NO state
--- along the way lost the type — `eval` (strong.Eval) calls `check⊢` on
--- every contractum at the type the run started with, and a rejected one is
--- an `illtyped`, which makes the statement false.  The intermediate states are
--- one `evalTerms` away; §4 is the only place they are written out.
+--   §1   THE BASELINE RUNS — five closed, plain System F programs with
+--        no boundary anywhere in the source: `P` (the polymorphic
+--        identity), `K` (a polymorphic Boolean use), `J` (a polymorphic
+--        constant), `F` (the identity at 𝔹, for `Drop-false`) and `U`
+--        (an argument still reducing, for `ξ-·-r`).
+--   §2   THE VACUOUS-Λ FAMILY — four programs whose runs are born with
+--        an IDENTITY LAYER and therefore land on `IdPush`: `Q` (once),
+--        `D` (twice), `L` (the "wall" context), `R` (a chained
+--        representation).
+--   §3   TYPEELR FROM CLOSED PLAIN SOURCE — `G`, whose second inner
+--        instantiation is a `TyPeelR` redex over a one-bind frame, and
+--        the machine-checked table of which rule can mint a frame with
+--        two binds at all.
+--   §4   THE REVEAL MIRROR — `H`, where the `∀` crosses the boundary
+--        OUTWARD as a result rather than inward as an argument.
+--   §5   CROSSINGS UNDER LATER BINDERS: THE TOWER — `E` and `V`, whose
+--        argument is instantiated beneath LATER `Λ`s, so the value that
+--        arrives has crossed several boundaries and carries a seal for
+--        each.  These are the runs that put the boundary rules under
+--        real load.
+--   §6   POLYMORPHIC PAYLOADS — `I` (impredicative) and `N` (a payload
+--        with a free representation variable under its own binder).
+--   §7   FUNCTIONS THAT CROSS — `A`, `B` and `C`: a `_↦_` conversion
+--        drives `Peel` on frames that are `_⋉_`/`rewind` composites,
+--        `C` doing it through §5's tower.
+--   §8   THE CANCELR SHIFT WITNESS — `S`, the run that certifies the
+--        repaired `CancelR`; the only run whose `CancelR` has
+--        `numBinds Θ₁ ≢ 0` and an open representation.
+--   §9   HAND-BUILT BOUNDARIES AT A NON-EMPTY AMBIENT — the cancel pair
+--        and the id-layer stack, written down rather than reached, at a
+--        Δ that is not `empty`.  Two of these runs are pinned state by
+--        state; they are the only EXACT transcripts in the corpus.
+--   §10  WHAT SUBSTITUTION DOES AT A CROSSING — the three `substᵐ`
+--        regressions, including the one this branch's design turns on: a
+--        value crossing a `Λ` moves in the REPRESENTATION universe only.
+--   §11  REFUTATIONS AND NON-VACUITY — a boundary over an active
+--        conversion is not a value, the checker refuses an unbound type
+--        argument, and a wrong endpoint, a wrong step count and too
+--        little fuel are each rejected by `Reaches`.
 --
--- WHAT IS NOT DUPLICATED.  `notes/RepresentationReductionExamples.agda`
--- already runs twelve closed programs, and two of the old sections of this
--- file were the same programs: the old §13a `J` is that suite's §3, and
--- the old §14 `E` — the program that killed the per-variable design, v1's
--- historical Example 8 — is its §4.  Neither is repeated here; the suite
--- is where they live, and §4 of the suite is the run that puts the
--- boundary rules under real load.
+-- THE RUNS, AND WHAT THEY REACH.  This table is the acceptance test: a
+-- change to the rules that moves a step count or an endpoint is a change
+-- that has to be argued for.
+--
+--   §1a  P     6 steps   7      : ℕ    the polymorphic identity
+--   §1b  K     9 steps   true   : 𝔹    a polymorphic Boolean use
+--   §1c  J    11 steps   3      : ℕ    a polymorphic constant
+--   §1d  F     6 steps   false  : 𝔹    the identity at 𝔹
+--   §1e  U     7 steps   5      : ℕ    an argument still reducing
+--   §2   Q    11 steps   7      : ℕ    one identity layer
+--   §2a  D    16 steps   7      : ℕ    two identity layers
+--   §2b  L    11 steps   7      : ℕ    the wall context
+--   §2c  R    21 steps   7      : ℕ    a chained representation
+--   §3   G    14 steps   7      : ℕ    a two-bind frame
+--   §4   H    11 steps   7      : ℕ    the reveal mirror
+--   §5a  E    25 steps   true   : 𝔹    one later binder
+--   §5b  V    37 steps   true   : 𝔹    two later binders
+--   §6a  I    17 steps   true   : 𝔹    impredicative identity
+--   §6b  N    23 steps   7      : ℕ    ∀-payload over a free var
+--   §7a  A    11 steps   7      : ℕ    a function crosses
+--   §7b  B    21 steps   7      : ℕ    a function crosses twice
+--   §7c  C    38 steps   7      : ℕ    a function through the tower
+--   §8   S    19 steps   7      : ℕ    the CancelR shift witness
+--   §9a  T     3 steps   7      : ℕ    the cancel pair
+--   §9b  Tid   5 steps   7      : ℕ    one transparent layer
+--   §9c  Tid₂  7 steps   7      : ℕ    a stack of layers
+--   §10  Bg    2 steps   Λ 7    : ∀ℕ   the base-typed wrapper
+--
+-- WHAT A RUN HERE ASSERTS.  One `Reaches k n ⊢M V` says that with fuel
+-- `k` the evaluator reaches `V` in exactly `n` steps, that `V` is a
+-- value, and that NO state along the way lost the type — `eval`
+-- (strong.Eval) calls `check⊢` on every contractum at the type the run
+-- started with, and a rejected one is an `illtyped`, which makes the
+-- statement false.  So an example asserts the endpoint, the step count,
+-- that no state on the way was ill-typed, and that the endpoint is a
+-- value — all in ONE statement, which is what keeps the run from being
+-- evaluated several times over.
+--
+-- That is a deliberate trade.  Hand-written states were a SECOND,
+-- independent transcription that `step` could be checked against, and
+-- they are gone everywhere but §9, where the run is short enough that
+-- writing them out costs nothing; what replaces them is the per-state
+-- type check, which catches strictly more than the endpoint alone and
+-- strictly less than an exact transcript.  The states of any other run
+-- are one `evalTerms` away whenever a reader wants to look at one.
+--
+-- COVERAGE.  All fifteen reduction rules fire somewhere in §§1–8.  §1d,
+-- §1e and §5b are here for the four that the rest of §1 and §5a reached
+-- once or not at all: `Drop-false` and `ξ-·-r` fired nowhere, and
+-- `TyPeelR-⟪⟫` and `IdPush` fired only in §5a — `TyPeelR-⟪⟫` exactly
+-- once.  Counting across §§1–8, `TyPeelR-⟪⟫` fires three times and
+-- `IdPush` twenty-one.
+--
+-- WHAT IS STILL THIN.  Depth.  The deepest seal tower any run builds is
+-- four (§5b), and unwinding is quadratic in that depth, so a defect that
+-- needs five boundaries would not show up here.
 --
 -- WHAT WAS DROPPED IN THE 2026-09-19 PORT, AND WHERE ITS VERDICT LIVES.
 -- The old file was written against the masked-entry design, in which a
--- type-context slot was a `Binding` under a lock BIT and the two contexts a
--- morphism induces were COMPUTED (`interior Θ Δ`, `convCtx Θ Δ`).  Neither
--- exists here: a lock DELETES an ordinary name, an unlock INSERTS one, and
--- both contexts are RELATIONS.  So:
+-- type-context slot was a `Binding` under a lock BIT and the two contexts
+-- a morphism induces were COMPUTED (`interior Θ Δ`, `convCtx Θ Δ`).
+-- Neither exists here: a lock DELETES an ordinary name, an unlock INSERTS
+-- one, and both contexts are RELATIONS.  So:
 --
 --   * old §4 (`Tᵣ`/`Tₘ`, the two adversaries the retired `⊳` could not
 --     clear) — `⊳` is gone; the soundness gate is `proof/Adversary.agda`,
 --     which now refuses a conceal for TWO reasons rather than one.
---   * old §5 (the three preservation BREAKS of the PREVIOUS design and the
---     shape-IV survivor) — those redexes are written in `unmasked (bind …)`
---     contexts and refute rule shapes that no longer exist.  The live
---     preservation verdicts are `proof/Preserve.agda`,
---     `proof/MoveScope.agda`, `proof/PeelDual.agda` and the ONE refutation
---     that survives the port, `notes/CancelRShiftWall.agda`.
+--   * old §5 (the three preservation BREAKS of the PREVIOUS design and
+--     the shape-IV survivor) — those redexes are written in
+--     `unmasked (bind …)` contexts and refute rule shapes that no longer
+--     exist.  The live preservation verdicts are `proof/Preserve.agda`,
+--     `proof/MoveScope.agda`, `proof/PeelDual.agda` and the ONE
+--     refutation that survives the port, `notes/CancelRShiftWall.agda`.
 --   * old §8, §9 (progress and preservation along a run) —
 --     `strong.Preservation.preservation` (2026-09-20) and
 --     `strong.Progress.progress` (2026-09-21) are UNCONDITIONAL, but the
@@ -70,8 +142,8 @@ module strong.Examples where
 --   * old §12b and the old §13a/§13b witnesses — they imported
 --     `strong.proof.PreserveObstruct`, which was deleted in the module
 --     sweep (notes/DECISIONS.md, 2026-09-19).  What they probed —
---     whether the wall CONTEXT is reachable from closed source — is §1's
---     `L`, which still reaches it and still runs to a value.
+--     whether the wall CONTEXT is reachable from closed source — is
+--     §2b's `L`, which still reaches it and still runs to a value.
 --   * old §15 (TIGHTNESS, RULE BY RULE) — its seven frame identities were
 --     EQUATIONS between computed contexts.  They are now the relational
 --     transports `dual-interior`, `rewind-interior`, `rewind-conversion`
@@ -79,6 +151,11 @@ module strong.Examples where
 --     consumes them is `proof/ShiftAudit.agda`.
 --
 -- See notes/DECISIONS.md, 2026-09-19, for the section-by-section record.
+-- The old §13a `J` and the old §14 `E` — the program that killed the
+-- per-variable design, v1's historical Example 8 — survived the port in
+-- the separate thirteen-run suite and are §1c and §5a here; that suite,
+-- notes/RepresentationReductionExamples.agda, was merged into this file
+-- on 2026-09-21 and deleted.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -99,7 +176,114 @@ open import strong.Eval
   using (eval; evalTerms; Reaches; reaches; reaches-run; reaches-⦂; ran)
 
 ------------------------------------------------------------------------
--- §1  THE VACUOUS-Λ FAMILY — id-layers from closed, plain source
+-- §1  THE BASELINE RUNS — closed, plain System F, no boundary written
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+-- §1a  (ΛX. λx:X. x) [ℕ] · 7
+------------------------------------------------------------------------
+
+P₀ : Term
+P₀ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ] · $ 7
+
+P₀-⊢ : empty ∣ [] ⊢ P₀ ⦂ `ℕ
+P₀-⊢ = tc
+
+P-eval : Reaches 6 6 P₀-⊢ ($ 7)
+P-eval = reaches refl V-$
+
+P-run : empty ⊢ P₀ -→* $ 7
+P-run = reaches-run P-eval
+
+------------------------------------------------------------------------
+-- §1b  ((ΛX. λf:(∀Y. Y⇒𝔹). f[X]) [𝔹] · (ΛZ. λz:Z. true)) · false
+------------------------------------------------------------------------
+
+GT FB : Ty
+GT = `∀ (` 0 ⇒ `𝔹)
+FB = GT ⇒ (` 0 ⇒ `𝔹)
+
+truePoly Fbody Ffun K₀ : Term
+truePoly = Λ (ƛ ` 0 ∙ `true)
+Fbody = ƛ GT ∙ ((` 0) ·[ ` 0 ⇒ `𝔹 , ` 0 ])
+Ffun = Λ Fbody
+K₀ = ((Ffun ·[ FB , `𝔹 ]) · truePoly) · `false
+
+K₀-⊢ : empty ∣ [] ⊢ K₀ ⦂ `𝔹
+K₀-⊢ = tc
+
+K-eval : Reaches 9 9 K₀-⊢ `true
+K-eval = reaches refl V-true
+
+K-run : empty ⊢ K₀ -→* `true
+K-run = reaches-run K-eval
+
+------------------------------------------------------------------------
+-- §1c  ((ΛX. λx:X. λf:(∀Y. Y⇒X). f[X]·x) [ℕ]) · 7 · const3
+------------------------------------------------------------------------
+
+JT JB : Ty
+JT = `∀ (` 0 ⇒ ` 1)
+JB = ` 0 ⇒ (JT ⇒ ` 0)
+
+const3 Jbody Jfun J₀ : Term
+const3 = Λ (ƛ ` 0 ∙ $ 3)
+Jbody = ƛ JT ∙ (((` 0) ·[ ` 0 ⇒ ` 1 , ` 0 ]) · ` 1)
+Jfun = Λ (ƛ ` 0 ∙ Jbody)
+J₀ = ((Jfun ·[ JB , `ℕ ]) · $ 7) · const3
+
+J₀-⊢ : empty ∣ [] ⊢ J₀ ⦂ `ℕ
+J₀-⊢ = tc
+
+J-eval : Reaches 11 11 J₀-⊢ ($ 3)
+J-eval = reaches refl V-$
+
+J-run : empty ⊢ J₀ -→* $ 3
+J-run = reaches-run J-eval
+
+------------------------------------------------------------------------
+-- §1d  (ΛX. λx:X. x) [𝔹] · false
+--
+-- §1a at the other base type.  It is here for `Drop-false`, which no
+-- other run reaches: every other example that ends in a Boolean ends at
+-- `true`.
+------------------------------------------------------------------------
+
+F₀ : Term
+F₀ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `false
+
+F₀-⊢ : empty ∣ [] ⊢ F₀ ⦂ `𝔹
+F₀-⊢ = tc
+
+F-eval : Reaches 6 6 F₀-⊢ `false
+F-eval = reaches refl V-false
+
+F-run : empty ⊢ F₀ -→* `false
+F-run = reaches-run F-eval
+
+------------------------------------------------------------------------
+-- §1e  (λf:ℕ⇒ℕ. f · 5) · ((ΛX. λx:X. x) [ℕ])
+--
+-- Here for `ξ-·-r`: the function is already a value while the argument
+-- still has to reduce, which is the one congruence no other run enters —
+-- everywhere else an argument is a value by the time it is applied.
+------------------------------------------------------------------------
+
+U₀ : Term
+U₀ = (ƛ (`ℕ ⇒ `ℕ) ∙ ((` 0) · $ 5))
+       · ((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ])
+
+U₀-⊢ : empty ∣ [] ⊢ U₀ ⦂ `ℕ
+U₀-⊢ = tc
+
+U-eval : Reaches 7 7 U₀-⊢ ($ 5)
+U-eval = reaches refl V-$
+
+U-run : empty ⊢ U₀ -→* $ 5
+U-run = reaches-run U-eval
+
+------------------------------------------------------------------------
+-- §2  THE VACUOUS-Λ FAMILY — id-layers from closed, plain source
 ------------------------------------------------------------------------
 
 -- WHAT MAKES AN ID-LAYER.  `TyBeta`'s minted conversion is
@@ -133,13 +317,12 @@ Q-run : empty ⊢ Q₀ -→* $ 7
 Q-run = reaches-run Q-eval
 
 -- SUBJECT REDUCTION FOR THIS RUN, read off the same statement: no second
--- pass over the program, and no appeal to the preservation theorem (which
--- is today conditional — notes/PLAN.md item 2).
+-- pass over the program, and no appeal to the preservation theorem.
 Q-⦂ : empty ∣ [] ⊢ $ 7 ⦂ `ℕ
 Q-⦂ = reaches-⦂ Q-eval
 
 ------------------------------------------------------------------------
--- §1a  TWO LAYERS — `IdPush` firing twice in one run
+-- §2a  TWO LAYERS — `IdPush` firing twice in one run
 ------------------------------------------------------------------------
 
 --   D = ((ΛY. λx:Y. ((ΛZ. ((ΛW. x) [ℕ])) [ℕ])) [ℕ]) · 7
@@ -165,7 +348,7 @@ D-run : empty ⊢ D₀ -→* $ 7
 D-run = reaches-run D-eval
 
 ------------------------------------------------------------------------
--- §1b  THE WALL CONTEXT, REACHED FROM CLOSED SOURCE
+-- §2b  THE WALL CONTEXT, REACHED FROM CLOSED SOURCE
 ------------------------------------------------------------------------
 
 -- `L` is `Q` with ONE character changed: the vacuous `ΛZ` is instantiated
@@ -198,7 +381,7 @@ L-run : empty ⊢ L₀ -→* $ 7
 L-run = reaches-run L-eval
 
 ------------------------------------------------------------------------
--- §1c  A CHAINED REPRESENTATION
+-- §2c  A CHAINED REPRESENTATION
 ------------------------------------------------------------------------
 
 -- The `Θ₂` of `Q`'s `IdPush` redex binds the representation `ℕ`, which
@@ -227,7 +410,7 @@ R-run : empty ⊢ R₀ -→* $ 7
 R-run = reaches-run R-eval
 
 ------------------------------------------------------------------------
--- §2  TYPEELR FROM CLOSED PLAIN SOURCE, AND THE MULTI-BIND FRAME
+-- §3  TYPEELR FROM CLOSED PLAIN SOURCE, AND THE MULTI-BIND FRAME
 ------------------------------------------------------------------------
 
 --   G = ((ΛX. λx:X. ((ΛY. ΛZ. x) [ℕ]) [ℕ]) [ℕ]) · 7
@@ -256,8 +439,8 @@ G-run = reaches-run G-eval
 -- WHICH RULE CAN MINT A FRAME WITH TWO BINDS?  Every frame any rule writes
 -- is one of these six, and only the `TyPeelR` pair grows the bind block.
 -- `Peel`'s dual binds nothing at all, which is why every `CancelR` the
--- twelve-run suite reaches has `numBinds Θ₁ ≡ 0` — the observation that
--- explains why no example saw the `CancelR` defect
+-- runs of §§1–7 reach has `numBinds Θ₁ ≡ 0` — the observation that
+-- explains why no example saw the `CancelR` defect until §8 was written
 -- (notes/CancelRShiftWall.agda, notes/DECISIONS.md 2026-09-19).
 
 numBinds-TyBeta : ∀ {R} → numBinds (instantiate R (morph [] [])) ≡ 1
@@ -282,14 +465,14 @@ numBinds-rewind : ∀ {Θ₂} → numBinds (rewind Θ₂) ≡ numBinds Θ₂
 numBinds-rewind = refl
 
 ------------------------------------------------------------------------
--- §3  THE REVEAL MIRROR
+-- §4  THE REVEAL MIRROR
 ------------------------------------------------------------------------
 
 --   H = ((((ΛX. λx:X. ΛY. λy:Y. x) [ℕ]) · 7) [ℕ]) · 5
 --
--- §1's programs send the `∀` INWARD, as an argument; here it goes OUTWARD,
+-- §2's programs send the `∀` INWARD, as an argument; here it goes OUTWARD,
 -- as the result, so the conversion `TyBeta` mints reveals on the codomain
--- where §1's conceals on the domain.  Under the retired polarity index
+-- where §2's conceals on the domain.  Under the retired polarity index
 -- that difference decided TYPEABILITY; now it decides only which binder
 -- each minted leaf cites, and the mirror runs to the same numeral.
 
@@ -310,7 +493,251 @@ H-run : empty ⊢ H₀ -→* $ 7
 H-run = reaches-run H-eval
 
 ------------------------------------------------------------------------
--- §4  HAND-BUILT BOUNDARIES AT A NON-EMPTY AMBIENT
+-- §5  CROSSINGS UNDER LATER BINDERS: THE TOWER
+------------------------------------------------------------------------
+
+-- These are the runs that put the boundary rules under load: their
+-- argument is instantiated beneath LATER `Λ`s, so the value that reaches
+-- `true` has crossed several boundaries and carries a seal for each, and
+-- unwinding that tower drives `CancelR` and `IdPush` through frames that
+-- are COMPOSITES (`_⋉_`, `rewind`).  Finishing §5a is what found the
+-- defect recorded in notes/ReUnlockWall.agda.
+
+------------------------------------------------------------------------
+-- §5a  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. f [Y] ) [ℕ] · (ΛZ. λz:Z. z),
+--      at [𝔹] · true
+--
+-- The argument is instantiated beneath the LATER binder `ΛY`, so `f [Y]`
+-- crosses `Y`'s boundary as well as `X`'s and the identity that finally
+-- receives `true` sits under three seals.  Unwinding them is what drives
+-- `CancelR` and `IdPush` through `_⋉_`/`rewind` composites, and what
+-- makes the tail of this run quadratic in the tower depth: `CancelR`
+-- leaves two identity layers and `IdPush` walks each outward one layer
+-- before the next `CancelR` can fire.
+------------------------------------------------------------------------
+
+EID EBod : Ty
+EID = `∀ (` 0 ⇒ ` 0)
+EBod = EID ⇒ EID
+
+Earg Ebody Efun E₀ E₀ᴮ : Term
+Earg = Λ (ƛ ` 0 ∙ ` 0)
+Ebody = Λ ((` 0) ·[ ` 0 ⇒ ` 0 , ` 0 ])
+Efun = Λ (ƛ EID ∙ Ebody)
+E₀ = (Efun ·[ EBod , `ℕ ]) · Earg
+E₀ᴮ = (E₀ ·[ ` 0 ⇒ ` 0 , `𝔹 ]) · `true
+
+-- Uncontinued, the program is already a run: it reaches a VALUE at
+-- `∀Y. Y ⇒ Y`, which is where the design was first parked.
+E₀-⊢ : empty ∣ [] ⊢ E₀ ⦂ EID
+E₀-⊢ = tc
+
+E₀ᴮ-⊢ : empty ∣ [] ⊢ E₀ᴮ ⦂ `𝔹
+E₀ᴮ-⊢ = tc
+
+E-eval : Reaches 25 25 E₀ᴮ-⊢ `true
+E-eval = reaches refl V-true
+
+E-run : empty ⊢ E₀ᴮ -→* `true
+E-run = reaches-run E-eval
+
+------------------------------------------------------------------------
+-- §5b  ( ΛX. λf:(∀Z. Z⇒Z). ΛY. ΛW. f [W] ) [ℕ] · (ΛZ. λz:Z. z),
+--      at [𝔹] [𝔹] · true
+--
+-- §5a with one more later binder, which is what puts weight on the two
+-- rules §5a barely touches.  The argument now crosses THREE boundaries
+-- before it is instantiated, so the `∀`-value the type application meets
+-- is two boundaries deep and `TyPeelR-⟪⟫` fires twice rather than once;
+-- the seal tower it leaves is four deep, and unwinding it is quadratic,
+-- so `IdPush` fires fifteen times rather than six.
+------------------------------------------------------------------------
+
+VBod : Ty
+VBod = EID ⇒ `∀ (`∀ (` 0 ⇒ ` 0))
+
+Vbody Vfun V₀ : Term
+Vbody = Λ (Λ ((` 0) ·[ ` 0 ⇒ ` 0 , ` 0 ]))
+Vfun = Λ (ƛ EID ∙ Vbody)
+V₀ = (((Vfun ·[ VBod , `ℕ ]) · Earg) ·[ `∀ (` 0 ⇒ ` 0) , `𝔹 ])
+       ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `true
+
+V₀-⊢ : empty ∣ [] ⊢ V₀ ⦂ `𝔹
+V₀-⊢ = tc
+
+V-eval : Reaches 37 37 V₀-⊢ `true
+V-eval = reaches refl V-true
+
+V-run : empty ⊢ V₀ -→* `true
+V-run = reaches-run V-eval
+
+------------------------------------------------------------------------
+-- §6  POLYMORPHIC PAYLOADS
+------------------------------------------------------------------------
+
+-- Both programs here instantiate at a POLYMORPHIC type, so their
+-- morphisms bind a representation payload with a `∀` in it.  They did not
+-- run when they were written: `TyPeelR-⟪⟫` and `IdPush` each carried a
+-- spelling from the conversion context into the interior without
+-- re-basing it, and the two contexts disagree exactly when a lock and an
+-- unlock have moved the name.  Both rules now carry the interior spelling
+-- as a premise (notes/ForallPayloadWall.agda, notes/DECISIONS.md
+-- 2026-09-18).
+
+------------------------------------------------------------------------
+-- §6a  (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z), at [𝔹] · true
+--
+-- IMPREDICATIVE: the type argument is itself a `∀`, so the morphism binds
+-- a representation payload with a `∀` in it and `wfᴿ-∀` fires.  No other
+-- run here instantiates at a polymorphic type.
+------------------------------------------------------------------------
+
+I₀ : Term
+I₀ = (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , EID ]) · Earg)
+       ·[ ` 0 ⇒ ` 0 , `𝔹 ] · `true
+
+I₀-⊢ : empty ∣ [] ⊢ I₀ ⦂ `𝔹
+I₀-⊢ = tc
+
+I-eval : Reaches 17 17 I₀-⊢ `true
+I-eval = reaches refl V-true
+
+I-run : empty ⊢ I₀ -→* `true
+I-run = reaches-run I-eval
+
+------------------------------------------------------------------------
+-- §6b  (ΛX. λx:X. ((ΛY. λy:Y. y) [∀Z. Z⇒X]) · (ΛZ. λz:Z. x)) [ℕ] · 7,
+--      at [𝔹] · true
+--
+-- The payload is `∀Z. Z ⇒ X`, formed under `ΛX`, so it carries a
+-- payload-LOCAL reference and a FREE representation variable under the
+-- same binder — the mixed reading `_⊢ref[_]_` exists for.  §6a and §6b
+-- are the two programs that found the 2026-09-18 defect.
+------------------------------------------------------------------------
+
+N₀ : Term
+N₀ =
+  ((Λ (ƛ ` 0 ∙
+        (((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `∀ (` 0 ⇒ ` 1) ])
+          · (Λ (ƛ ` 0 ∙ ` 1)))))
+     ·[ ` 0 ⇒ `∀ (` 0 ⇒ ` 1) , `ℕ ] · $ 7)
+    ·[ ` 0 ⇒ `ℕ , `𝔹 ] · `true
+
+N₀-⊢ : empty ∣ [] ⊢ N₀ ⦂ `ℕ
+N₀-⊢ = tc
+
+N-eval : Reaches 23 23 N₀-⊢ ($ 7)
+N-eval = reaches refl V-$
+
+N-run : empty ⊢ N₀ -→* $ 7
+N-run = reaches-run N-eval
+
+------------------------------------------------------------------------
+-- §7  FUNCTIONS THAT CROSS
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+-- §7a  (ΛX. λx:X. x) [ℕ⇒ℕ] · (λn:ℕ. n) · 7
+--
+-- A FUNCTION crosses a boundary and is then applied.  `CancelR` leaves it
+-- under a `_⋉_` frame whose conversion is `mkId (ℕ⇒ℕ)` — which is a
+-- `_↦_` — so `Peel` fires on a COMPOSITE frame, three times in all.  No
+-- earlier run does that: everywhere else the value that crosses is
+-- first-order and the composite frames only ever carry an identity.
+------------------------------------------------------------------------
+
+A₀ : Term
+A₀ = ((Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ] · (ƛ `ℕ ∙ ` 0)) · $ 7
+
+A₀-⊢ : empty ∣ [] ⊢ A₀ ⦂ `ℕ
+A₀-⊢ = tc
+
+A-eval : Reaches 11 11 A₀-⊢ ($ 7)
+A-eval = reaches refl V-$
+
+A-run : empty ⊢ A₀ -→* $ 7
+A-run = reaches-run A-eval
+
+------------------------------------------------------------------------
+-- §7b  the same, with the function crossing TWICE
+--
+-- Stacked composites: `Peel` fires five times, on frames that are `_⋉_`
+-- and `rewind` of each other.
+------------------------------------------------------------------------
+
+idℕℕ B₀ : Term
+idℕℕ = (Λ (ƛ ` 0 ∙ ` 0)) ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ]
+B₀ = (idℕℕ · (idℕℕ · (ƛ `ℕ ∙ ` 0))) · $ 7
+
+B₀-⊢ : empty ∣ [] ⊢ B₀ ⦂ `ℕ
+B₀-⊢ = tc
+
+B-eval : Reaches 21 21 B₀-⊢ ($ 7)
+B-eval = reaches refl V-$
+
+B-run : empty ⊢ B₀ -→* $ 7
+B-run = reaches-run B-eval
+
+------------------------------------------------------------------------
+-- §7c  §5a's tower, with a FUNCTION flowing through it
+--
+-- The hardest case the corpus puts to `Peel`.  Because the value that
+-- crosses is a function, every identity the unwinding tower mints is a
+-- `mkId` at a function type — that is, a `_↦_` — so `Peel` fires on the
+-- composite frames `CancelR` and `IdPush` build, rather than only on the
+-- ones born at a `TyBeta`.  `notes/CrossingAudit` §5 shows that those
+-- composites are not structurally guaranteed to be safe; this run is the
+-- evidence that they are safe in practice, which is testing and not
+-- proof.
+------------------------------------------------------------------------
+
+C₀ : Term
+C₀ = ((E₀ ·[ ` 0 ⇒ ` 0 , `ℕ ⇒ `ℕ ]) · (ƛ `ℕ ∙ ` 0)) · $ 7
+
+C₀-⊢ : empty ∣ [] ⊢ C₀ ⦂ `ℕ
+C₀-⊢ = tc
+
+C-eval : Reaches 38 38 C₀-⊢ ($ 7)
+C-eval = reaches refl V-$
+
+C-run : empty ⊢ C₀ -→* $ 7
+C-run = reaches-run C-eval
+
+------------------------------------------------------------------------
+-- §8  THE CANCELR SHIFT WITNESS
+------------------------------------------------------------------------
+
+-- The program that found the CancelR re-spelling defect and, after
+-- repair (a), the run that certifies the repaired rule (2026-09-19; the
+-- before/after record is notes/CancelRReachabilityWitness.agda, the
+-- defect notes/CancelRShiftWall.agda and notes/DECISIONS.md).  Two
+-- choices make it bite where §§1–7 do not: the argument's polymorphic
+-- type RETURNS the abstracted variable, so a bare `seal` leaf reaches a
+-- `↦`'s codomain and `Peel`'s RESULT boundary installs it on a frame
+-- that binds; and the inner `Λ` is instantiated at the OUTER binder's
+-- own variable, so the cancelled binder's payload is a representation
+-- VARIABLE.  Its `CancelR` is the corpus's only one with
+-- `numBinds Θ₁ ≢ 0` and an open representation.
+
+S₀ : Term
+S₀ = ((Λ (ƛ (` 0) ∙
+        (((Λ (ƛ (`∀ (` 0 ⇒ ` 1)) ∙
+             (((` 0) ·[ ` 0 ⇒ ` 1 , `ℕ ]) · ($ 7))))
+            ·[ (`∀ (` 0 ⇒ ` 1)) ⇒ ` 0 , ` 0 ])
+          · (Λ (ƛ ` 0 ∙ (` 1))))))
+       ·[ ` 0 ⇒ ` 0 , `ℕ ]) · ($ 7)
+
+S₀-⊢ : empty ∣ [] ⊢ S₀ ⦂ `ℕ
+S₀-⊢ = tc
+
+S-eval : Reaches 19 19 S₀-⊢ ($ 7)
+S-eval = reaches refl V-$
+
+S-run : empty ⊢ S₀ -→* $ 7
+S-run = reaches-run S-eval
+
+------------------------------------------------------------------------
+-- §9  HAND-BUILT BOUNDARIES AT A NON-EMPTY AMBIENT
 ------------------------------------------------------------------------
 
 -- Every run above starts at `empty`.  These three start at an ambient
@@ -327,7 +754,7 @@ Wseal : Term
 Wseal = ($ 7) ⟪ morph [] [] , seal 0 ⟫
 
 ------------------------------------------------------------------------
--- §4a  THE CANCEL PAIR
+-- §9a  THE CANCEL PAIR
 ------------------------------------------------------------------------
 
 -- The outer conversion is ACTIVE (`unseal`), the inner INERT (`seal`), and
@@ -349,11 +776,12 @@ Tcancel-run : Δ₆ ⊢ Tcancel -→* $ 7
 Tcancel-run = reaches-run Tcancel-eval
 
 -- THE ONE EXACT TRANSCRIPT, state by state.  Hand-written states were the
--- old file's second, independent transcription of the rules; the suite
--- gave them up for the per-state type check (notes/DECISIONS.md), and this
--- is the smallest run where writing them out still costs nothing.  Note
--- that `Θ₁ ⋉ Θ₂` here is the empty morphism and `rewind Θ₂` is `Θ₂` — the
--- inner frame locks nothing, so the rewind has nothing to undo.
+-- old file's second, independent transcription of the rules; the runs of
+-- §§1–8 gave them up for the per-state type check
+-- (notes/DECISIONS.md), and this is the smallest run where writing them
+-- out still costs nothing.  Note that `Θ₁ ⋉ Θ₂` here is the empty
+-- morphism and `rewind Θ₂` is `Θ₂` — the inner frame locks nothing, so
+-- the rewind has nothing to undo.
 _ : evalTerms 3 Tcancel-⊢
       ≡ Tcancel
       ∷ ((($ 7) ⟪ morph [] [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
@@ -363,7 +791,7 @@ _ : evalTerms 3 Tcancel-⊢
 _ = refl
 
 ------------------------------------------------------------------------
--- §4b  ONE TRANSPARENT LAYER — `IdPush`
+-- §9b  ONE TRANSPARENT LAYER — `IdPush`
 ------------------------------------------------------------------------
 
 -- The same pair with an IDENTITY-AT-A-VARIABLE layer between them: the
@@ -409,12 +837,12 @@ _ : evalTerms 5 Tid-⊢
 _ = refl
 
 ------------------------------------------------------------------------
--- §4c  A STACK OF LAYERS
+-- §9c  A STACK OF LAYERS
 ------------------------------------------------------------------------
 
 -- Two identity layers.  The stack resolves ONE LAYER PER STEP, outermost
 -- first: each `IdPush` moves the active conversion one layer inward toward
--- the seal, so a stack of any depth terminates.  Against §4b the run is
+-- the seal, so a stack of any depth terminates.  Against §9b the run is
 -- two steps longer, which is exactly one `IdPush` and one `Drop$` per
 -- extra layer.
 
@@ -433,7 +861,7 @@ Tid₂-run : Δ₆ ⊢ Tid₂ -→* $ 7
 Tid₂-run = reaches-run Tid₂-eval
 
 ------------------------------------------------------------------------
--- §5  WHAT SUBSTITUTION DOES AT A CROSSING
+-- §10  WHAT SUBSTITUTION DOES AT A CROSSING
 ------------------------------------------------------------------------
 
 -- ── the Λ clause: REPRESENTATION-ONLY MOVEMENT ────────────────────────
@@ -510,13 +938,13 @@ Bg-run = reaches-run Bg-eval
 ¬val-wrapper (V-⟪⟫ _ ())
 
 ------------------------------------------------------------------------
--- §6  REFUTATIONS AND NON-VACUITY
+-- §11  REFUTATIONS AND NON-VACUITY
 ------------------------------------------------------------------------
 
 -- THE CHECKER REFUSES AN UNBOUND TYPE ARGUMENT.  `(ΛZ. z) [Z]` writes an
 -- ordinary type variable that no name map has, so neither the argument's
 -- well-formedness nor its representation reading exists.  A `just` here
--- would be a soundness bug in `strong.TypeCheck`; the run of §1b is the
+-- would be a soundness bug in `strong.TypeCheck`; the run of §2b is the
 -- positive companion, where the argument IS a live name.
 _ : infer empty [] ((Λ (` 0)) ·[ ` 0 , ` 0 ]) ≡ nothing
 _ = refl

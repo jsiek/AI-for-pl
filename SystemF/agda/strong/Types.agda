@@ -11,7 +11,7 @@ module strong.Types where
 --   * NO LEMMAS.  The equational facts about these operations live in
 --     strong.proof.Types (`substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`);
 --     the full algebraic theory — composition `_⨟ᵗ_`, `sub-sub`,
---     `substitution`, `exts-sub-cons` — is strong.TypeSubst.  Nothing
+--     `substitution`, `exts-sub-cons` — is strong.proof.TypeSubst.  Nothing
 --     here knows about the binder/seal discipline or the two de Bruijn
 --     universes: that is strong.Ctx.
 --   * ONE SYNTAX, TWO READINGS.  A `Ty` carries no universe tag.  The

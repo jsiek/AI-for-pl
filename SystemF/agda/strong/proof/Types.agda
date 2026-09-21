@@ -6,7 +6,7 @@ module strong.proof.Types where
 --     renaming with substitution, `substᵗ-renᵗ`.
 --   * NOT THE DEFINITIONS (strong.Types), and not the full algebraic
 --     theory — composition, `sub-sub`, `substitution`, the `_[_]ᵗ`
---     commutation laws — which is strong.TypeSubst.  This module is
+--     commutation laws — which is strong.proof.TypeSubst.  This module is
 --     the private half of strong.Types under the repo's public/private
 --     split (notes/DECISIONS.md, 2026-09-20).
 --   * IT IS THE BOTTOM OF THE HIERARCHY.  It imports strong.Types and

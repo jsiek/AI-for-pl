@@ -23,7 +23,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; _≢_; refl; sym; cong; cong₂; trans; subst)
 
 open import strong.Types
-open import strong.TypeSubst
+open import strong.proof.TypeSubst
 open import strong.Ctx
 open import strong.proof.Ctx
 open import strong.Conversion

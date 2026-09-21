@@ -5,7 +5,6 @@ module strong.All where
 
 -- the core
 open import strong.Types
-open import strong.TypeSubst
 open import strong.Ctx
 open import strong.CtxMorph
 open import strong.Conversion

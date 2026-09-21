@@ -1,4 +1,4 @@
-module strong.TypeSubst where
+module strong.proof.TypeSubst where
 
 -- File Charter:
 --   * THE ALGEBRAIC THEORY OF TYPE SUBSTITUTION.  Composition `_⨟ᵗ_`

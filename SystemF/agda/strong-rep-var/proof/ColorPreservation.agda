@@ -417,3 +417,28 @@ residuals-color wf ⊢L
   let (Δmid , dmid , e₁) = residual-frame ⊢L res dC
       e₂ = residuals-color wf (preservation wf ⊢L r) rss dmid dD
   in trans e₂ (trans (cong (map ρ′) e₁) (sym (map-∘ᵣ ρ′ _ _)))
+
+------------------------------------------------------------------------
+-- 10. THE COLOR THEOREM proper (Jeremy, 2026-09-21): color is about
+--     TYPE variables only — which ordinary names are live at the hole —
+--     not the representation variables they denote.  `map ρ` moves only
+--     the entries, never a position, so the corollary is the length
+--     equation.
+------------------------------------------------------------------------
+
+map-length : (f : Renameᵗ) (Δn : TyCtx)
+  → length (map f Δn) ≡ length Δn
+map-length f []       = refl
+map-length f (α ∷ Δn) = cong suc (map-length f Δn)
+
+residuals-color-length : ∀ {Δ L L′ A₀ C M ρ D N Δ₁ Δ₂}
+  {rs : Δ ⊢ L -→* L′}
+  → WfCtx Δ
+  → Δ ∣ [] ⊢ L ⦂ A₀
+  → Residuals rs C M ρ D N
+  → Δ ⊢C C ⊣ Δ₁
+  → Δ ⊢C D ⊣ Δ₂
+  → length (names Δ₂) ≡ length (names Δ₁)
+residuals-color-length {ρ = ρ} {Δ₁ = Δ₁} wf ⊢L rs dC dD =
+  trans (cong length (residuals-color wf ⊢L rs dC dD))
+        (map-length ρ (names Δ₁))

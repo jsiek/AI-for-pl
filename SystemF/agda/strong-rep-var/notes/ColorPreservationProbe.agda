@@ -31,7 +31,7 @@ module strong-rep-var.notes.ColorPreservationProbe where
 -- the two `⊢C` derivations, and the equation, by `refl`.
 
 open import Data.Nat using (ℕ)
-open import Data.List using ([]; _∷_; map)
+open import Data.List using ([]; _∷_; map; length)
 open import Data.Product using (_,_; proj₁; proj₂)
 open import Data.Unit using (tt)
 open import Function.Base using (_∘_)
@@ -185,6 +185,11 @@ reps-before = refl
 reps-after : reps Δ₃ ≡ bindR (` 0) ∷ abstR ∷ []
 reps-after = refl
 
--- … and the same equation through the THEOREM, now that it is proved.
-color-preserved-thm : names Δ₃ ≡ map ρ★ (names Δ₀)
+-- … and the same equations through the THEOREMS, now that they are
+-- proved: the scope map moves by ρ★, so the COLOR — how many type
+-- variables are live — is unchanged.
+scope-map-thm : names Δ₃ ≡ map ρ★ (names Δ₀)
+scope-map-thm = scope-map-preservation wf-empty Ex-⊢ res before after
+
+color-preserved-thm : length (names Δ₃) ≡ length (names Δ₀)
 color-preserved-thm = color-preservation wf-empty Ex-⊢ res before after

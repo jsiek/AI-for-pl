@@ -1,8 +1,17 @@
 module strong-rep-var.ColorPreservation where
 
--- COLOR PRESERVATION — statement and theorem (statement approved by
--- Jeremy and proved 2026-09-21; the proof is
--- strong-rep-var.proof.ColorPreservation).
+-- COLOR PRESERVATION — the theorem and the stronger scope-map form it
+-- is a corollary of (statement approved by Jeremy and proved
+-- 2026-09-21; the proof is strong-rep-var.proof.ColorPreservation).
+--
+-- TWO THEOREMS (Jeremy's ruling, 2026-09-21).  Color is about TYPE
+-- variables only — which ordinary names are live at a hole — not about
+-- the representation variables they denote.  So the COLOR THEOREM
+-- proper, `ColorPreservation`, concludes
+-- `length (names Δ₂) ≡ length (names Δ₁)`, and it is a corollary of
+-- the stronger `ScopeMapPreservation`, which pins the whole scope map:
+-- `names Δ₂ ≡ map ρ (names Δ₁)` — same positions, each denoting the
+-- same representation variable read through the run's renaming ρ.
 --
 -- THE DESIGN LAW (Jeremy, 2026-09-04, notes/DECISIONS.md): "the color of a
 -- non-boundary term should never change during reduction" — reduction
@@ -29,7 +38,7 @@ module strong-rep-var.ColorPreservation where
 -- α — up to the α-renaming of the representation universe that the
 -- crossed binders impose.
 
-open import Data.List using ([]; map)
+open import Data.List using ([]; map; length)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong-rep-var.Types using (Ty)
@@ -48,8 +57,8 @@ import strong-rep-var.proof.ColorPreservation as Proof
 -- than `empty`); `ColorPreservationClosed` below is the v7-faithful
 -- closed form, premise-free beyond the typing.
 
-ColorPreservation : Set
-ColorPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}
+ScopeMapPreservation : Set
+ScopeMapPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}
   {rs : Δ ⊢ L -→* L′} {C M ρ D N}
   → WfCtx Δ
   → Δ ∣ [] ⊢ L ⦂ A
@@ -59,9 +68,41 @@ ColorPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}
   → Δ ⊢C D ⊣ Δ₂
   → names Δ₂ ≡ map ρ (names Δ₁)
 
+scope-map-preservation : ScopeMapPreservation
+scope-map-preservation wf ⊢L rs dC dD =
+  Proof.residuals-color wf ⊢L rs dC dD
+
+-- The color theorem: a residual position's lexical type-variable scope
+-- keeps its size — the v7 reading of `scopeᵗ Δ₁ ≡ scopeᵗ Δ₂`.
+ColorPreservation : Set
+ColorPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}
+  {rs : Δ ⊢ L -→* L′} {C M ρ D N}
+  → WfCtx Δ
+  → Δ ∣ [] ⊢ L ⦂ A
+  → Residuals rs C M ρ D N
+  → ∀ {Δ₁ Δ₂ : Ctxᵗ}
+  → Δ ⊢C C ⊣ Δ₁
+  → Δ ⊢C D ⊣ Δ₂
+  → length (names Δ₂) ≡ length (names Δ₁)
+
 color-preservation : ColorPreservation
 color-preservation wf ⊢L rs dC dD =
-  Proof.residuals-color wf ⊢L rs dC dD
+  Proof.residuals-color-length wf ⊢L rs dC dD
+
+-- Both, at the empty ambient — the v7-faithful closed forms, premise-
+-- free beyond the typing.
+ScopeMapPreservationClosed : Set
+ScopeMapPreservationClosed = ∀ {L L′ : Term} {A : Ty}
+  {rs : empty ⊢ L -→* L′} {C M ρ D N}
+  → empty ∣ [] ⊢ L ⦂ A
+  → Residuals rs C M ρ D N
+  → ∀ {Δ₁ Δ₂ : Ctxᵗ}
+  → empty ⊢C C ⊣ Δ₁
+  → empty ⊢C D ⊣ Δ₂
+  → names Δ₂ ≡ map ρ (names Δ₁)
+
+scope-map-preservation-closed : ScopeMapPreservationClosed
+scope-map-preservation-closed = scope-map-preservation wf-empty
 
 ColorPreservationClosed : Set
 ColorPreservationClosed = ∀ {L L′ : Term} {A : Ty}
@@ -71,7 +112,7 @@ ColorPreservationClosed = ∀ {L L′ : Term} {A : Ty}
   → ∀ {Δ₁ Δ₂ : Ctxᵗ}
   → empty ⊢C C ⊣ Δ₁
   → empty ⊢C D ⊣ Δ₂
-  → names Δ₂ ≡ map ρ (names Δ₁)
+  → length (names Δ₂) ≡ length (names Δ₁)
 
 color-preservation-closed : ColorPreservationClosed
 color-preservation-closed = color-preservation wf-empty

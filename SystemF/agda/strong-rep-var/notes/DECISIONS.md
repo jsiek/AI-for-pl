@@ -4654,3 +4654,24 @@ frame and one `moveᴿ suc` transport per `Λ`, composing to the
 residual's `holeᴿ suc D ∘ ρ`.  `residuals-color` chains the equations
 by `map-∘`.  The probe now also checks the run's equation THROUGH the
 theorem (`color-preserved-thm`).
+
+## 2026-09-21 — RULED (Jeremy): the COLOR THEOREM concludes with the
+## SIZE of the scope map; the pointwise form is kept, stronger, as
+## `ScopeMapPreservation`
+
+"Color is just about type variables and not representation variables" —
+so the color theorem proper says a residual position's lexical
+type-variable scope keeps its size,
+
+    ColorPreservation      … → length (names Δ₂) ≡ length (names Δ₁)
+
+a corollary (`residuals-color-length`, by `map-length`) of the proved
+
+    ScopeMapPreservation   … → names Δ₂ ≡ map ρ (names Δ₁)
+
+which additionally pins WHICH representation variable each surviving
+name denotes, transported along the run's renaming ρ.  Jeremy: "don't
+get rid of the current theorem, it's valuable and stronger."  Both have
+closed forms at `empty`; the probe checks its run through both.  The
+NAME `ColorPreservation` moved to the corollary — flagged on PR #207
+for veto.

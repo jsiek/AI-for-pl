@@ -175,6 +175,7 @@ prints as `⌷[…]`.
 
 | file | one line |
 |------|----------|
+| `notes.md` | the mathematical presentation of the current calculus, named-variable notation |
 | `DECISIONS.md` | **the design log**, in date order: decisions stated as definitions, worked examples, probe verdicts, and Jeremy's rulings.  Start at the end |
 | `DesignSpace.md` | **the map**: a mermaid graph of the fifty design points explored 2026-09-01…06, edges labelled with the evidence that moved the design, plus the legend and the through line |
 | `DesignPoints.md` | the map's glossary: one entry per node id, same order, each with a pointer into `DECISIONS.md`, `Design.md`, `Examples.agda` or a commit |
@@ -190,6 +191,7 @@ prints as `⌷[…]`.
 | `SyntacticTypeAbstraction.md` | digest of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) |
 | `TypeAbstractionComparison.md` | the FINAL design set against the polymorphism of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) — centred on **tightness**: they have no out-of-scope type variable, and §8 shows why — their type variables are global allocated names in a monotone knowledge base, not lexically scoped binders (the `D33` fork we did not take), so tightness is vacuous there whatever the evaluation order |
 | `old/notes-v1.md` | the **refuted** v1 design note |
+| `old/notes-v3.md` | the superseded short predecessor of `notes.md`, kept for history |
 | `old/PLAN-v1.md` | the v1 plan, retired with the invariant hunt |
 
 `notes/` now holds **`.md` only**.  The v1 Agda probes that accompanied

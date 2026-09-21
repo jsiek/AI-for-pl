@@ -2,8 +2,9 @@
   and proof landed 2026-09-21, PR #207.  Per Jeremy's follow-up ruling,
   color is about TYPE variables only, so `ColorPreservation` proper
   concludes `length (names Δ₂) ≡ length (names Δ₁)` and is a corollary
-  of the stronger scope-map theorem, kept as `ScopeMapPreservation`.  Two deltas against the reviewed
-  material, both flagged on the PR for Jeremy:
+  of the stronger scope-map theorem, kept as `ScopeMapPreservation`.
+  Two deltas against the reviewed material, both flagged on the PR for
+  Jeremy:
 
     1. `CopyResidual`/`ImageResidual` regained v7's DEPTH INDEX: without
        it, when a β-redex's argument is itself a `crossΛᴹ`-shaped

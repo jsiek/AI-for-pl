@@ -5,64 +5,59 @@ module strong.All where
 
 -- the core
 open import strong.Types
+open import strong.TypeSubst
 open import strong.Ctx
-open import strong.CtxMorph
 open import strong.Conversion
+open import strong.CtxMorph
 open import strong.Terms
 open import strong.TermSubst
 open import strong.Reduction
 
--- executable, derivation-producing type checking, and the step function
--- that searches for a redex.  Neither depends on the metatheory below, so
--- both are checked here, before it.
-open import strong.TypeCheck
-open import strong.Eval
-
 -- the main theorems
 open import strong.Preservation
-
--- progress (the canonical-forms suite, the proof script, the theorem)
-open import strong.Progress
 open import strong.TypeSafety
 
--- THE LIVING REGRESSION AND THE RENDERER (ported 2026-09-19, closing the
--- frontier).  `strong.Examples` is closed programs, their runs, their
--- typings and the refutations that still hold, stated through
--- `TypeCheck.agda`/`Eval.agda` rather than by hand-written boundary
--- derivations; `strong.Show` renders de Bruijn terms with names, printing
--- the two universes differently (X names α) and a whole run with the rule
--- that fired at each step.
+-- the proof scripts
+open import strong.proof.Adversary
+open import strong.proof.MaskFacts
+open import strong.proof.IdLayer
+open import strong.proof.Preserve
+open import strong.proof.PeelDual
+open import strong.proof.MoveScope
+open import strong.proof.TypeSafety
+open import strong.proof.PreserveObstruct
+
+-- the TIGHTNESS OF THE DUAL: the defect (`Peel` gained scope), its
+-- repair, and the frame choice the repair forced
+open import strong.proof.DualTightness
+open import strong.proof.MwUObstruct
+
+-- the regression corpus and the renderer
 open import strong.Examples
 open import strong.Show
-
--- THE SOUNDNESS GATE.  A conceal must cite a REPRESENTED binder, and the
--- two-universe design refuses it twice over: the name may be absent from
--- the map, or the representation variable it names may be `abstR`.
--- Direct gate: no top-level module reaches this soundness audit.
-open import strong.proof.Adversary
-
--- THE ID-LAYER FACTS.  What makes IdPush and CancelR legitimate: the
--- pushed name is already written in the inner conversion (one universe
--- up, on the representation variable), `unseal` is the only active
--- conversion an id-layer can meet, and the naked drop is unsound except
--- at an empty frame.
--- Direct gate: no top-level module reaches this id-layer audit.
-open import strong.proof.IdLayer
-
--- CANONICITY.  Every conversion reduction writes is in the canonical
--- family, and the family survives reduction — including `Peel`'s
--- re-spelling onto the dual's name map, which is what the two universes
--- added.
--- Direct gate: no top-level module reaches this canonicity audit.
 open import strong.proof.Canonicity
 
--- THE SHIFT AUDIT (2026-09-08, ported 2026-09-19).  Every rule that MOVES
--- a subterm, checked against frame exactness — now the relational
--- transport lemmas of strong.CtxMorph §3a plus the observation that every
--- move but TyBeta's is REPRESENTATION-ONLY — together with the tower
--- measure that makes the wrapper clause of TyPeelR terminate.
--- Direct gate: no top-level module reaches this shift audit.
+-- progress (the canonical-forms suite, the proof script, the theorem)
+open import strong.proof.Canonical
+open import strong.proof.Progress
+open import strong.Progress
+
+-- the evaluator: `step` IS progress, `eval` iterates it under
+-- preservation, and a Trace stores the step derivations it took
+open import strong.Eval
+
+-- THE SHIFT AUDIT (2026-09-08).  Every rule that MOVES a subterm,
+-- checked against frame exactness: the frame identity per site, the ONE
+-- LEAK it found (the single TyPeelR's moved value gained the new
+-- binder's slot, UNMASKED) with its witness, the refutation of the wrap
+-- repair (it LOOPS), and — for the two clauses that replaced the rule —
+-- their frame exactness and the tower measure that makes the wrapper
+-- clause terminate.  The repair is INSTALLED (strong.Reduction).
 open import strong.proof.ShiftAudit
 
--- The checked notes come last because CancelRShiftWall reaches MoveScope.
-open import strong.notes.All
+-- THE WALL.  The search for an INVARIANT grounding the premise
+-- `interior Θ₂ Δ ⊢ᵗ A` — the one the old CancelR/IdPush contracta needed —
+-- is recorded in notes/DECISIONS.md (2026-09-06 entries).  The SCOPE MOVE
+-- (strong.CtxMorph §4) removes the need, so the development carries no
+-- module for it; the two surviving artifacts are proof/MaskFacts.mask-only
+-- and Examples §12/§12b.

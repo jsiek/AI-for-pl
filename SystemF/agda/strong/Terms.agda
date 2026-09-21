@@ -1,50 +1,21 @@
 module strong.Terms where
 
--- File Charter:
---   * THE TERM SYNTAX, THE TYPING JUDGEMENT, AND VALUES.  §1 is `Var`
---     (= ℕ) and `Term`, whose last constructor is the boundary
---     `_⟪_,_⟫`, together with the ordinary term context `Ctx`, its
---     lookup `_∋_⦂_` and the type-binder lift `⤊`.  §2 is
---     `_∣_⊢_⦂_`, the typing judgement, whose boundary rule is `env`.
---     §3 classifies a conversion as `Inert` or `Active`, with
---     `act-or-inert` and `act-not-inert`.  §4 is `Value` and
---     `value-var-visible`; §5 the concrete `β-seven`/`β-seven-⊢`.
---   * NO OPERATIONS AND NO METATHEORY.  Renaming and substitution on
---     terms are strong.TermSubst; reduction is strong.Reduction; the
---     decision procedures that BUILD these derivations are
---     strong.TypeCheck; canonical forms, preservation and progress are
---     under strong.proof (the public theorem statements being
---     strong.Preservation, strong.Progress, strong.TypeSafety).
---   * THREE LAWS A READER MUST KNOW.  (1) `env` never COMPUTES the two
---     contexts a morphism induces: it takes `MorphWf Δ Θ Δᵢ Δᶜ`
---     (strong.CtxMorph) and the two contexts are its outputs — the
---     retired `interior`/`convCtx` functions are gone.  (2) The three
---     sides can spell the same semantic type differently, so `env`
---     compares them by the REPRESENTATION each denotes:
---     `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` at equal representation depth, and
---     `SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ`, which additionally crosses
---     the morphism's own bind prefix (strong.Ctx §5).  A boundary's
---     interior is TERM-CLOSED — `Δᵢ ∣ [] ⊢ M ⦂ Bᵢ` — which is what lets
---     strong.TermSubst leave wrappers alone.  (3) Classification in §3
---     is by the CONVERSION CONSTRUCTOR alone: no source or target type
---     is inspected and no slot arithmetic occurs, so `id` at a variable
---     is inert and `id` at a base type is active.  `V-Λ` carries
---     `Value N` because reduction goes UNDER `Λ` (`ξ-Λ`); without it
---     both "values don't step" and determinism are false
---     (notes/DECISIONS.md, the Id-layer RULING of 2026-09-05,
---     repair 3).
+-- Strong System F — the TERMS, the typing judgement, and values.
 --
 -- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
 --
---   Θ : CtxMorph   a parallel block of representation-variable binders and
---                  a sequential list of ordinary-variable binders and
---                  anti-binders. `MorphWf Δ Θ Δᵢ Δᶜ` produces the
---                  interior context Δᵢ and conversion context Δᶜ.
+--   Θ : CtxMorph   the context morphism (strong.CtxMorph, re-exported
+--                here), a PAIR `morph B S`: each entry of the PARALLEL
+--                block B binds a fresh interior slot at that
+--                representation, and the SEQUENTIAL change list S masks
+--                (`lock X`) and unmasks (`unlock X`) exterior slots.
+--                `interior Θ Δ` is the type context the interior is
+--                typed in, `convCtx Θ Δ` the one the conversion is
+--                checked in, `Δ ⊢ᵐ Θ` its well-formedness.
+--   c : Conv     the CONVERSION (strong.Conversion), from the interior
+--                type to the exterior type shifted past Θ's binders.
 --
---   c : Conv       the conversion checked on Δᶜ. Its source is related to
---                  the interior term's type through `_⊢_≈_⊣_`; its
---                  target is
---                  related to the exterior type the same way.
+-- Frames change ONLY at binders: there is no dropN, no cmax, no swapᵇ.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -56,8 +27,7 @@ open import Relation.Binary.PropositionalEquality
   using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
 open import strong.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ; extᵗ;
-         ⇑ᵗ; _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; Var; Renameᵗ; renameᵗ; extᵗ; ⇑ᵗ; _[_]ᵗ)
 open import strong.Ctx
 open import strong.Conversion
 open import strong.CtxMorph
@@ -72,9 +42,6 @@ private
 -- 1.  Terms
 ------------------------------------------------------------------------
 
-Var : Set
-Var = ℕ
-
 infix  9 `_
 infix  9 $_
 infixl 7 _·_
@@ -82,10 +49,8 @@ infix  6 ƛ_∙_
 infix  5 _⟪_,_⟫
 
 data Term : Set where
-  `_      : Var → Term
+  `_      : ℕ → Term
   $_      : ℕ → Term
-  `true   : Term
-  `false  : Term
   ƛ_∙_    : Ty → Term → Term
   _·_     : Term → Term → Term
   Λ_      : Term → Term
@@ -96,7 +61,7 @@ Ctx : Set
 Ctx = List Ty
 
 infix 4 _∋_⦂_
-data _∋_⦂_ : Ctx → Var → Ty → Set where
+data _∋_⦂_ : Ctx → ℕ → Ty → Set where
   here  : ∀ {Γ A} → (A ∷ Γ) ∋ zero ⦂ A
   there : ∀ {Γ x A B} → Γ ∋ x ⦂ A → (B ∷ Γ) ∋ suc x ⦂ A
 
@@ -114,36 +79,26 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
 
   ⊢$ : ∀ {Δ Γ n} → Δ ∣ Γ ⊢ $ n ⦂ `ℕ
 
-  ⊢true : ∀ {Δ Γ} → Δ ∣ Γ ⊢ `true ⦂ `𝔹
-
-  ⊢false : ∀ {Δ Γ} → Δ ∣ Γ ⊢ `false ⦂ `𝔹
-
   ⊢ƛ : ∀ {Δ Γ A B N} → Δ ⊢ᵗ A → Δ ∣ A ∷ Γ ⊢ N ⦂ B
      → Δ ∣ Γ ⊢ ƛ A ∙ N ⦂ (A ⇒ B)
 
-  ⊢· : ∀ {Δ Γ A B L M}
-    → Δ ∣ Γ ⊢ L ⦂ (A ⇒ B)
-    → Δ ∣ Γ ⊢ M ⦂ A
-    → Δ ∣ Γ ⊢ L · M ⦂ B
+  ⊢· : ∀ {Δ Γ A B L M} → Δ ∣ Γ ⊢ L ⦂ (A ⇒ B) → Δ ∣ Γ ⊢ M ⦂ A
+     → Δ ∣ Γ ⊢ L · M ⦂ B
 
-  ⊢Λ : ∀ {Δ Γ C N} → underΛ Δ ∣ ⤊ Γ ⊢ N ⦂ C
-    → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
+  ⊢Λ : ∀ {Δ Γ C N} → (unmasked abst ∷ Δ) ∣ ⤊ Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
 
   ⊢·[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
        → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
 
-  -- (env). The morphism witness supplies both contexts. Since ordinary
-  -- variables may be inserted and removed, the same semantic type can have
-  -- different ordinary de Bruijn spellings on the three sides. `_⊢_≈_⊣_`
-  -- compares the equal-depth interior and conversion contexts. `SameTyExt`
-  -- additionally crosses the morphism's representation bind prefix when
-  -- comparing the exterior and conversion contexts.
-  env : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Cᵢ Cₑ Bₑ}
-      → MorphWf Δ Θ Δᵢ Δᶜ
-      → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
-      → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
-      → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
-      → SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ
+  -- (env).  ONE frame change.  The interior is term-closed and typed on the
+  -- interior type context; the conversion is checked on the CONVERSION
+  -- CONTEXT, where the boundary's binders and the slots it masks are both
+  -- live; and its target type is the exterior type shifted past the
+  -- boundary's binders.  Interior and conversion are both on the wrapper.
+  env : ∀ {Δ Γ Θ c M Bᵢ Bₑ}
+      → Δ ⊢ᵐ Θ
+      → interior Θ Δ ∣ [] ⊢ M ⦂ Bᵢ
+      → convCtx Θ Δ ⊢ c ∶ Bᵢ ⇝ shiftBy (numBinds Θ) Bₑ
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
@@ -190,8 +145,6 @@ act-not-inert A-unseal ()
 -- IdLayerProbe machine-checked (notes/DECISIONS.md, repair 3).
 data Value : Term → Set where
   V-$  : ∀ {n} → Value ($ n)
-  V-true : Value `true
-  V-false : Value `false
   V-ƛ  : ∀ {A N} → Value (ƛ A ∙ N)
   V-Λ  : ∀ {N} → Value N → Value (Λ N)
   V-⟪⟫ : ∀ {M Θ c} → Value M → Inert c → Value (M ⟪ Θ , c ⟫)
@@ -199,20 +152,5 @@ data Value : Term → Set where
 -- A value's variable type is VISIBLE on the value's bind type context, because
 -- `env`'s last conjunct checks it there.  So a boundary can never conceal
 -- the slot its bind conversion names.
-value-var-visible : ∀ {Δ V X}
-  → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
-value-var-visible (V-⟪⟫ _ _) (env _ _ _ _ _ (wf-var tv)) = tv
-
-------------------------------------------------------------------------
--- 5. Concrete boundary typing
-------------------------------------------------------------------------
-
-β-seven : Term
-β-seven = ($ 7) ⟪ TyBetaMorph , id `ℕ ⟫
-
-β-seven-⊢ : empty ∣ [] ⊢ β-seven ⦂ `ℕ
-β-seven-⊢ =
-  env TyBeta-mw ⊢$ (conv-id base-ℕ)
-      (`ℕ , same-ℕ , same-ℕ)
-      (`ℕ , same-ℕ , same-ℕ)
-      wf-ℕ
+value-var-visible : ∀ {Δ V X} → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
+value-var-visible (V-⟪⟫ _ _) (env _ _ _ (wf-var tv)) = tv

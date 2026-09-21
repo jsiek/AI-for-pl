@@ -1,80 +1,59 @@
 module strong.Show where
 
--- de Bruijn → NAMED rendering for the two-universe Strong System F: terms,
--- ordinary types, representation payloads, conversions, context morphisms,
--- type contexts, and whole evaluator traces.  DISPLAY ONLY — there is no
--- theorem here, and nothing in the development depends on it.
+-- de Bruijn → NAMED rendering for strong System F terms, types, boundary
+-- context morphisms, conversions and type contexts — adapted from the name-supply
+-- infrastructure of GTSFImp/proof/DGG/ImpLadder.agda (Jeremy's request,
+-- 2026-09-05, after a hand-transcription error read an interior ` 0 in the
+-- exterior frame), and PORTED to the conversion-boundary design.
 --
--- WHY IT EXISTS (Jeremy, 2026-09-05): a hand-transcription error read an
--- interior `` ` 0 `` in the exterior frame.  Nothing in this development
--- should ever be transcribed by hand; it should be rendered.
+-- CONVENTIONS (Jeremy's): type variables are X, Y, Z (then X′, Y′, Z′, …);
+-- term binders are x, y, z, f, g, h (then primes).  V and W are reserved
+-- for metavariables over term VALUES and never generated here.
 --
--- THE TWO UNIVERSES ARE RENDERED DIFFERENTLY, and that is the point of the
--- 2026-09-19 port.
---
---   * a REPRESENTATION variable prints as a Greek letter — α, β, γ, then
---     α′, β′, γ′, …;
---   * the ORDINARY type variable that NAMES it prints as the Latin letter
---     at the same position — X, Y, Z, then X′, Y′, Z′, ….
---
--- So `X` is by construction the ordinary name of `α`, `Y` of `β`, and a
--- boundary that binds α and then unlocks it at ordinary position 0 prints
--- as `⟪ ↑α:=ℕ , ↥X , … ⟫`.  Reading a change's letter therefore says which
--- representation it is about; if a rendered `↓` shows a letter other than
--- the one its representation was allocated with, the name map and the
--- representation it is supposed to denote have come apart, which is the
--- defect class the 2026-09-18 repairs were about.
---
--- WHAT A BOUNDARY `M ⟪ Θ , c ⟫` RENDERS AS, under an exterior environment:
---
---   * `Θ`'s BINDS come first, `↑α:=R`.  A payload is read in the
---     representation universe over the EXTERIOR representation context —
---     the bind block is parallel — and an ordinary `∀` inside a payload
---     binds a payload-LOCAL variable, printed with a Latin letter.
---   * `Θ`'s CHANGES come next, IN THE ORDER THEY ACT — that is, the list
---     is walked head-LAST, which is the order `_∣_⊢χ_⇒_` uses.  A `lock`
---     prints as `↓X` naming the ordinary variable it deletes, an `unlock`
---     as `↥X` naming the ordinary variable it inserts.
---   * the CONVERSION comes last and is read on the CONVERSION context —
---     unlocks performed, locks SKIPPED, a re-unlock of a live name a
---     no-op — which is a different name map from the interior's whenever
---     the morphism locks.  `showBnd` computes both; the body is rendered
---     on the interior, `c` on the conversion context.
+-- THE POINT of the adaptation: a boundary changes the type-variable frame.
+-- Rendering M ⟪ Θ , c ⟫ under an exterior supply `ext`:
+--   * Θ's BINDS bind fresh interior slots; the interior supply is
+--     [fresh names for the binders] then ext SHIFTED past them.  Nothing is
+--     dropped any more (conceal masks in place), so there is exactly ONE
+--     inner supply — the old `cmax` correction has no analogue, and the
+--     interior supply and the CONVERSION-CONTEXT supply coincide
+--     (`interior` and `convCtx` differ in blocking, not in slot layout).
+--   * a BINDER's rep is shown under `ext` — a rep uses the exterior's
+--     slots (the judgement reads it on `unlockedScope Θ Δ`, which has the
+--     same slot layout as Δ);
+--   * a `lock X` / `unlock X` names an EXTERIOR slot, so it is shown under
+--     `ext`; neither carries a rep, which is the whole point of the
+--     redesign.  THE PAIR IS RENDERED IN ITS OWN ORDER: all the binds,
+--     then all the changes, then the conversion —
+--     `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`;
+--   * the CONVERSION `c` is shown under that same supply, and its
+--     `seal`/`unseal` names are read there — by their type context, not by a
+--     stored spelling.
 --
 -- USED AS A TOOL non-interactively via scripts/render_term.sh, which
 -- exploits the type-error trick: `oops : e ≡ ""; oops = refl` makes Agda
--- print e's normal form in the mismatch error.  The entry points it calls
--- are at the bottom: `showTyIn`, `showRepIn`, `showTmIn`, `showConvIn`,
--- `showBndIn`, `showTCtx`, `showTermsIn`, and `showRun`, which renders a
--- whole `strong.Eval` run with the name of the rule that fired at each
--- step.
+-- print e's normal form in the mismatch error.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _<ᵇ_; _≡ᵇ_)
+open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _<ᵇ_)
 open import Data.Nat.Show using (show)
-open import Data.Bool using (Bool; true; false; if_then_else_; _∨_)
-open import Data.List using (List; []; _∷_; length; map)
+open import Data.Bool using (Bool; true; false; if_then_else_)
+open import Data.List using (List; []; _∷_; length)
 open import Data.List using () renaming (_++_ to _l++_)
 open import Data.String using (String; _++_)
-open import Data.Product using (_×_; _,_; proj₁; proj₂)
+open import Data.Product using (_×_; _,_; proj₁)
 
 open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong.Ctx
-  using (Ctxᵗ; RepCtx; RepBinding; abstR; bindR; reps; names; RVar)
+  using (Ent; Binding; unmasked; masked; abst; bind; Ctxᵗ)
 open import strong.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
-open import strong.Terms
-  using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
-         _∣_⊢_⦂_)
+open import strong.Terms using (Term; `_; $_; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫)
 open import strong.CtxMorph
-  using (CtxMorph; morph; binds; changes; numBinds; Change; lock; unlock)
-open import strong.Reduction using (_⊢_-→_; TyBeta; Beta; Peel; TyPeelR-Λ;
-  TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
-  ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫)
-open import strong.Eval
-  using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
-         eval)
+
+Supply : Set
+Supply = ℕ → String
 
 ------------------------------------------------------------------------
--- 1. Name supplies
+-- binder names
 ------------------------------------------------------------------------
 
 primes : ℕ → String
@@ -87,14 +66,8 @@ cyc3 (suc zero)          a b c p = b ++ primes p
 cyc3 (suc (suc zero))    a b c p = c ++ primes p
 cyc3 (suc (suc (suc n))) a b c p = cyc3 n a b c (suc p)
 
--- the ORDINARY type variable allocated at counter n
 tyBinder : ℕ → String
 tyBinder n = cyc3 n "X" "Y" "Z" zero
-
--- the REPRESENTATION variable allocated at the same counter.  The pairing
--- is the whole convention: X names α, Y names β, X′ names α′.
-repBinder : ℕ → String
-repBinder n = cyc3 n "α" "β" "γ" zero
 
 cyc6 : ℕ → ℕ → String
 cyc6 zero p = "x" ++ primes p
@@ -108,341 +81,198 @@ cyc6 (suc (suc (suc (suc (suc (suc n)))))) p = cyc6 n (suc p)
 tmBinder : ℕ → String
 tmBinder n = cyc6 n zero
 
-------------------------------------------------------------------------
--- 2. de Bruijn indexed string lists
-------------------------------------------------------------------------
-
-nthS : List String → ℕ → String
-nthS []       k       = "?"
-nthS (s ∷ ss) zero    = s
-nthS (s ∷ ss) (suc k) = nthS ss k
-
-Pairs : Set
-Pairs = List (String × String)
-
-nthP : Pairs → ℕ → String × String
-nthP []       k       = "?" , "?"
-nthP (p ∷ ps) zero    = p
-nthP (p ∷ ps) (suc k) = nthP ps k
-
-dropL : ℕ → Pairs → Pairs
-dropL zero    ps       = ps
-dropL (suc n) []       = []
-dropL (suc n) (p ∷ ps) = dropL n ps
-
-deleteAt : ℕ → List ℕ → List ℕ
-deleteAt k       []       = []
-deleteAt zero    (α ∷ αs) = αs
-deleteAt (suc k) (α ∷ αs) = α ∷ deleteAt k αs
-
-insertAt : ℕ → ℕ → List ℕ → List ℕ
-insertAt zero    β αs       = β ∷ αs
-insertAt (suc k) β []       = β ∷ []
-insertAt (suc k) β (α ∷ αs) = α ∷ insertAt k β αs
-
-memberN : ℕ → List ℕ → Bool
-memberN β []       = false
-memberN β (α ∷ αs) = (β ≡ᵇ α) ∨ memberN β αs
-
-count : ℕ → ℕ → List ℕ
-count i zero    = []
-count i (suc n) = i ∷ count (suc i) n
+extS : Supply → String → Supply
+extS sup b zero    = b
+extS sup b (suc k) = sup k
 
 ------------------------------------------------------------------------
--- 3. The rendering environment
+-- types
 ------------------------------------------------------------------------
 
--- `eReps` is the representation context, de Bruijn indexed, each entry
--- carrying BOTH names allocated for that representation variable: the
--- Greek one it prints as, and the Latin one any ordinary variable naming
--- it prints as.  `eNames` is the ordinary name map itself — exactly
--- `names Γ`, a list of representation-variable indices — so an ordinary
--- variable's rendered name is a two-step lookup, which is what the design
--- says it is.
-record Env : Set where
-  constructor mkEnv
-  field
-    eReps  : Pairs
-    eNames : List ℕ
-open Env
-
-repNm : Env → ℕ → String
-repNm e α = proj₁ (nthP (eReps e) α)
-
-ordOf : Env → ℕ → String
-ordOf e α = proj₂ (nthP (eReps e) α)
-
-ordNm : Env → ℕ → String
-ordNm e X = go (eNames e) X
-  where
-  go : List ℕ → ℕ → String
-  go []       k       = "?"
-  go (α ∷ αs) zero    = ordOf e α
-  go (α ∷ αs) (suc k) = go αs k
-
--- the two flat supplies the type, payload and conversion printers use
-onames : Env → List String
-onames e = map (ordOf e) (eNames e)
-
-rnames : Env → List String
-rnames e = map proj₁ (eReps e)
-
-newPair : ℕ → String × String
-newPair n = repBinder n , tyBinder n
-
--- One fresh representation variable per bind, NAMED OLDEST FIRST: the last
--- entry of the bind list gets counter `f`, so an older bind keeps its name
--- when a newer one is prepended (`instantiate` prepends exactly one).
-newPairs : ℕ → ℕ → Pairs
-newPairs f zero    = []
-newPairs f (suc k) = newPair (f + k) ∷ newPairs f k
-
--- `extendReps`: the bind block is prepended and every ordinary name's
--- representation index moves past it.
-pushReps : ℕ → ℕ → Env → Env
-pushReps f k e = mkEnv (newPairs f k l++ eReps e) (map (k +_) (eNames e))
-
--- `underΛ`: one abstract representation variable, and ordinary name 0 for
--- it.
-underΛE : ℕ → Env → Env
-underΛE f e =
-  mkEnv (newPair f ∷ eReps e) (zero ∷ map suc (eNames e))
+showTy : ℕ → Supply → Ty → String
+showTy d sup (` X)   = sup X
+showTy d sup `ℕ      = "ℕ"
+showTy d sup `𝔹      = "𝔹"
+showTy d sup (A ⇒ B) =
+  "(" ++ showTy d sup A ++ "⇒" ++ showTy d sup B ++ ")"
+showTy d sup (`∀ A)  =
+  "(∀" ++ tyBinder d ++ ". "
+      ++ showTy (suc d) (extS sup (tyBinder d)) A ++ ")"
 
 ------------------------------------------------------------------------
--- 4. Ordinary types, representation payloads, conversions
+-- conversions
 ------------------------------------------------------------------------
 
-showTy : List String → Ty → String
-showTy ns (` X)   = nthS ns X
-showTy ns `ℕ      = "ℕ"
-showTy ns `𝔹      = "𝔹"
-showTy ns (A ⇒ B) = "(" ++ showTy ns A ++ "⇒" ++ showTy ns B ++ ")"
-showTy ns (`∀ A)  =
-  "(∀" ++ tyBinder (length ns) ++ ". "
-       ++ showTy (tyBinder (length ns) ∷ ns) A ++ ")"
-
--- A PAYLOAD is read in the representation universe, with a LOCAL prefix:
--- `Ξ ⊢ref[ n ] i` says index `i < n` is bound by an enclosing payload `∀`
--- and index `n + α` is the free representation variable α.  The locals are
--- ordinary variables, so they print with Latin letters and the free ones
--- with Greek.
-showRep : List String → List String → Ty → String
-showRep ls rs (` i)   =
-  if i <ᵇ length ls then nthS ls i else nthS rs (i ∸ length ls)
-showRep ls rs `ℕ      = "ℕ"
-showRep ls rs `𝔹      = "𝔹"
-showRep ls rs (R ⇒ S) =
-  "(" ++ showRep ls rs R ++ "⇒" ++ showRep ls rs S ++ ")"
-showRep ls rs (`∀ R)  =
-  "(∀" ++ tyBinder (length ls) ++ ". "
-       ++ showRep (tyBinder (length ls) ∷ ls) rs R ++ ")"
-
--- `seal` and `unseal` name ORDINARY variables, read on the conversion
--- context; `` `∀ `` binds one.
-showConv : List String → Conv → String
-showConv ns (id A)     = "id " ++ showTy ns A
-showConv ns (seal X)   = "seal " ++ nthS ns X
-showConv ns (unseal X) = "unseal " ++ nthS ns X
-showConv ns (s ↦ t)    =
-  "(" ++ showConv ns s ++ " ↦ " ++ showConv ns t ++ ")"
-showConv ns (`∀ s)     =
-  "(∀" ++ tyBinder (length ns) ++ ". "
-       ++ showConv (tyBinder (length ns) ∷ ns) s ++ ")"
+showConv : ℕ → Supply → Conv → String
+showConv d sup (id A)     = "id " ++ showTy d sup A
+showConv d sup (seal X)   = "seal " ++ sup X
+showConv d sup (unseal X) = "unseal " ++ sup X
+showConv d sup (s ↦ t)    =
+  "(" ++ showConv d sup s ++ " ↦ " ++ showConv d sup t ++ ")"
+showConv d sup (`∀ s)     =
+  "(∀" ++ tyBinder d ++ ". "
+      ++ showConv (suc d) (extS sup (tyBinder d)) s ++ ")"
 
 ------------------------------------------------------------------------
--- 5. Context morphisms
+-- the supply a boundary induces
 ------------------------------------------------------------------------
 
--- the interior reading: every change acts
-applyChI : Change → Env → Env
-applyChI (lock X α)   e = mkEnv (eReps e) (deleteAt X (eNames e))
-applyChI (unlock X α) e = mkEnv (eReps e) (insertAt X α (eNames e))
+-- one fresh name per BINDER, newest first (binder 0 is interior slot 0)
+bindNames : ℕ → List Ty → List String
+bindNames d []       = []
+bindNames d (A ∷ Bs) = tyBinder d ∷ bindNames (suc d) Bs
 
-applyChsI : List Change → Env → Env
-applyChsI []      e = e
-applyChsI (δ ∷ χ) e = applyChI δ (applyChsI χ e)
+nth : List String → ℕ → String
+nth []       k       = "?"
+nth (s ∷ ss) zero    = s
+nth (s ∷ ss) (suc k) = nth ss k
 
--- the conversion reading: a `lock` is SKIPPED, and an `unlock` of a name
--- that is already live is a no-op (`conv-unlock-live`, strong.CtxMorph §3)
-applyChC : Change → Env → Env
-applyChC (lock X α)   e = e
-applyChC (unlock X α) e =
-  if memberN α (eNames e) then e
-  else mkEnv (eReps e) (insertAt X α (eNames e))
+-- interior (= conversion-context) supply: bind names, then ext shifted
+-- past them.  No `cmax` correction: conceal masks in place, so no slot
+-- is dropped.
+intSup : CtxMorph → List String → Supply → Supply
+intSup Θ on ext k =
+  if k <ᵇ numBinds Θ then nth on k else ext (k ∸ numBinds Θ)
 
-applyChsC : List Change → Env → Env
-applyChsC []      e = e
-applyChsC (δ ∷ χ) e = applyChC δ (applyChsC χ e)
+------------------------------------------------------------------------
+-- boundary context morphisms
+------------------------------------------------------------------------
 
-changePiece : Env → Change → String
-changePiece e (lock X α)   = "↓" ++ ordNm e X
-changePiece e (unlock X α) = "↥" ++ ordOf e α
+tl : List String → List String
+tl []       = []
+tl (s ∷ ss) = ss
 
--- IN ACTING ORDER: the tail acts first, so it prints first.
-changePieces : Env → List Change → List String
-changePieces e []      = []
-changePieces e (δ ∷ χ) =
-  changePieces e χ l++ (changePiece (applyChsI χ e) δ ∷ [])
+-- THE PAIR IS RENDERED IN ITS OWN ORDER: the BINDS first (`↑X:=A`), then
+-- the CHANGES (`↓Y`, `↥Z`), then the conversion — `⟪ ↑X:=A , ↓Y , ↥Z , c ⟫`.
+-- `on` is the binder-name list still to be consumed; `ext` names exterior
+-- slots.  A binder's rep uses the exterior's slots; `lock`/`unlock` carry
+-- a name only.
+bindPieces : ℕ → List String → Supply → List Ty → List String
+bindPieces d on ext []       = []
+bindPieces d on ext (A ∷ Bs) =
+  ("↑" ++ nth on 0 ++ ":=" ++ showTy d ext A) ∷ bindPieces d (tl on) ext Bs
 
-bindPieces : Pairs → List String → List Ty → List String
-bindPieces ps       ext []       = []
-bindPieces []       ext (R ∷ Rs) =
-  ("↑?:=" ++ showRep [] ext R) ∷ bindPieces [] ext Rs
-bindPieces (p ∷ ps) ext (R ∷ Rs) =
-  ("↑" ++ proj₁ p ++ ":=" ++ showRep [] ext R) ∷ bindPieces ps ext Rs
+changePieces : Supply → List Change → List String
+changePieces ext []             = []
+changePieces ext (lock X ∷ S)   = ("↓" ++ ext X) ∷ changePieces ext S
+changePieces ext (unlock X ∷ S) = ("↥" ++ ext X) ∷ changePieces ext S
 
 joinC : List String → String
-joinC []               = ""
-joinC (s ∷ [])         = s
-joinC (s ∷ ss@(_ ∷ _)) = s ++ " , " ++ joinC ss
+joinC []                 = ""
+joinC (s ∷ [])           = s
+joinC (s ∷ ss@(_ ∷ _))   = s ++ " , " ++ joinC ss
 
--- the entry block with its trailing separator — empty for an empty
--- morphism, so `⟪ c ⟫` renders with no leading comma
+showEnts : ℕ → List String → Supply → CtxMorph → String
+showEnts d on ext Θ =
+  joinC (bindPieces d on ext (binds Θ) l++ changePieces ext (changes Θ))
+
+-- the entry block, with its trailing separator — empty for an empty
+-- morphism, so `⟪ c ⟫` still renders with no leading comma
 entBlock : List String → String
-entBlock []         = ""
-entBlock ps@(_ ∷ _) = joinC ps ++ " , "
+entBlock []             = ""
+entBlock ps@(_ ∷ _)     = joinC ps ++ " , "
 
-showBnd : Env → ℕ → CtxMorph → Conv → String
-showBnd e f Θ c =
-  "⟪ " ++ entBlock (bindPieces (newPairs f (numBinds Θ)) (rnames e)
-                               (binds Θ)
-                      l++ changePieces eB (changes Θ))
-       ++ showConv (onames (applyChsC (changes Θ) eB)) c ++ " ⟫"
-  where
-  eB : Env
-  eB = pushReps f (numBinds Θ) e
+showBnd : ℕ → Supply → CtxMorph → Conv → String
+showBnd d ext Θ c =
+  "⟪ " ++ entBlock (bindPieces d on ext (binds Θ)
+                      l++ changePieces ext (changes Θ))
+       ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
+  where on = bindNames d (binds Θ)
 
 ------------------------------------------------------------------------
--- 6. Terms
+-- terms
 ------------------------------------------------------------------------
 
 -- Binder names are GLOBALLY UNIQUE across one rendered term (Jeremy,
--- 2026-09-06: two sibling `Λ`s must not both print as ΛX).  The
--- type/representation counter `f` is threaded left to right through the
--- whole term; the term-binder counter is the λ-depth, restored after each
--- body, because term names are stable across steps and sibling λs may
--- share one.
-showTmF : Env → List String → ℕ → ℕ → Term → String × ℕ
-showTmF e tms f x (` k)   = nthS tms k , f
-showTmF e tms f x ($ n)   = show n , f
-showTmF e tms f x `true   = "true" , f
-showTmF e tms f x `false  = "false" , f
-showTmF e tms f x (ƛ A ∙ N)
-  with showTmF e (tmBinder x ∷ tms) f (suc x) N
-... | body , f′ =
-  "(λ" ++ tmBinder x ++ ":" ++ showTy (onames e) A ++ ". " ++ body ++ ")"
-    , f′
-showTmF e tms f x (L · M) with showTmF e tms f x L
-... | l , f₁ with showTmF e tms f₁ x M
-... | m , f₂ = "(" ++ l ++ " · " ++ m ++ ")" , f₂
-showTmF e tms f x (Λ N) with showTmF (underΛE f e) tms (suc f) x N
-... | body , f′ = "(Λ" ++ tyBinder f ++ ". " ++ body ++ ")" , f′
-showTmF e tms f x (L ·[ B , A ]) with showTmF e tms f x L
-... | l , f′ = l ++ " [" ++ showTy (onames e) A ++ "]" , f′
-showTmF e tms f x (M ⟪ Θ , c ⟫)
-  with showTmF (applyChsI (changes Θ) (pushReps f (numBinds Θ) e))
-               tms (f + numBinds Θ) x M
-... | body , f′ = "(" ++ body ++ " " ++ showBnd e f Θ c ++ ")" , f′
+-- 2026-09-06: two sibling Λs must not both print as ΛX).  Two counters
+-- are threaded left to right through the term: `tf` for type binders (Λ
+-- and boundary binds) is a global counter; `xf` for term binders is the
+-- λ-depth (restored after each body: term names are stable across steps
+-- and sibling λs may share a name).  Type-level ∀ binders inside type
+-- annotations stay depth-named: they are local to their type.
+-- The ambient supply names the free slots 0..n-1, so `tf` starts at n.
+
+record St : Set where
+  constructor mkSt
+  field tf xf : ℕ
+open St
+
+-- one fresh name per BINDER (bind), listed newest first (slot 0 first) but
+-- NAMED oldest first, so an older bind keeps its name when a newer one is
+-- prepended (TyPeelR prepends one): the last bind gets tyBinder f.
+bindNamesF : ℕ → List Ty → List String
+bindNamesF f []       = []
+bindNamesF f (A ∷ Bs) = tyBinder (f + length Bs) ∷ bindNamesF f Bs
+
+showBndF : ℕ → ℕ → Supply → CtxMorph → Conv → String
+showBndF d f ext Θ c =
+  "⟪ " ++ entBlock (bindPieces d on ext (binds Θ)
+                      l++ changePieces ext (changes Θ))
+       ++ showConv (d + numBinds Θ) (intSup Θ on ext) c ++ " ⟫"
+  where on = bindNamesF f (binds Θ)
+
+showTmF : ℕ → Supply → Supply → St → Term → String × St
+showTmF td tys tms σ (` x)      = tms x , σ
+showTmF td tys tms σ ($ n)      = show n , σ
+showTmF td tys tms σ (ƛ A ∙ N)
+  with showTmF td tys (extS tms (tmBinder (xf σ))) (mkSt (tf σ) (suc (xf σ))) N
+... | body , σ′ =
+  "(λ" ++ tmBinder (xf σ) ++ ":" ++ showTy td tys A ++ ". " ++ body ++ ")"
+    , mkSt (tf σ′) (xf σ)          -- term binders stay depth-named
+showTmF td tys tms σ (L · M) with showTmF td tys tms σ L
+... | l , σ₁ with showTmF td tys tms σ₁ M
+... | m , σ₂ = "(" ++ l ++ " · " ++ m ++ ")" , σ₂
+showTmF td tys tms σ (Λ N) with showTmF (suc td) (extS tys (tyBinder (tf σ))) tms (mkSt (suc (tf σ)) (xf σ)) N
+... | body , σ′ = "(Λ" ++ tyBinder (tf σ) ++ ". " ++ body ++ ")" , σ′
+showTmF td tys tms σ (L ·[ B , A ]) with showTmF td tys tms σ L
+... | l , σ′ = l ++ " [" ++ showTy td tys A ++ "]" , σ′
+showTmF td tys tms σ (M ⟪ Θ , c ⟫)
+  with showTmF (td + numBinds Θ) (intSup Θ (bindNamesF (tf σ) (binds Θ)) tys) tms
+               (mkSt (tf σ + numBinds Θ) (xf σ)) M
+... | body , σ′ =
+  "(" ++ body ++ " " ++ showBndF td (tf σ) tys Θ c ++ ")" , σ′
+
+showTm : ℕ → ℕ → Supply → Supply → Term → String
+showTm td xd tys tms M = proj₁ (showTmF td tys tms (mkSt td xd) M)
 
 ------------------------------------------------------------------------
--- 7. Type contexts
+-- type contexts (entries named newest-first: slot 0 = X)
 ------------------------------------------------------------------------
 
--- A representation payload is stored OUTSIDE its own binder (`∋ʳ` shifts
--- it on lookup), so the entry at index i is read on the names from i+1 on.
-showRepEntries : ℕ → Pairs → RepCtx → List String
-showRepEntries i ps []             = []
-showRepEntries i ps (abstR ∷ Ξ)    =
-  (proj₁ (nthP ps i) ++ " abst") ∷ showRepEntries (suc i) ps Ξ
-showRepEntries i ps (bindR R ∷ Ξ)  =
-  (proj₁ (nthP ps i) ++ " := " ++ showRep [] (map proj₁ (dropL (suc i) ps)) R)
-    ∷ showRepEntries (suc i) ps Ξ
+-- The binding layer renders the slot; the lock layer wraps it in `⌷[…]`.
+-- The rendered strings are exactly as before — `X := A`, `X Λ-bound`,
+-- `⌷[…]` — but the recursion is gone: one lock, one wrap.
+showBinding : ℕ → Supply → String → Binding → String
+showBinding d sup nm abst     = nm ++ " Λ-bound"
+showBinding d sup nm (bind A) = nm ++ " := " ++ showTy d sup A
 
-showNameEntries : Pairs → List ℕ → List String
-showNameEntries ps []       = []
-showNameEntries ps (α ∷ αs) =
-  (proj₂ (nthP ps α) ++ "↦" ++ proj₁ (nthP ps α)) ∷ showNameEntries ps αs
+showEntry : ℕ → Supply → String → Ent → String
+showEntry d sup nm (unmasked b) = showBinding d sup nm b
+showEntry d sup nm (masked b)   = "⌷[" ++ showBinding d sup nm b ++ "]"
 
-nonEmpty : List String → String
-nonEmpty []         = "·"
-nonEmpty ps@(_ ∷ _) = joinC ps
-
-showTCtx : Ctxᵗ → String
-showTCtx Γ =
-  nonEmpty (showRepEntries zero ps (reps Γ))
-    ++ " ∣ " ++ nonEmpty (showNameEntries ps (names Γ))
-  where
-  ps : Pairs
-  ps = map newPair (count zero (length (reps Γ)))
+showTCtxAt : ℕ → ℕ → Supply → Ctxᵗ → String
+showTCtxAt d i sup [] = "·"
+showTCtxAt d i sup (E ∷ []) =
+  showEntry d (λ k → sup (suc (k + i))) (sup i) E
+showTCtxAt d i sup (E ∷ Δ@(_ ∷ _)) =
+  showEntry d (λ k → sup (suc (k + i))) (sup i) E
+    ++ " , " ++ showTCtxAt d (suc i) sup Δ
 
 ------------------------------------------------------------------------
--- 8. Runs
+-- conveniences: n = ambient context length; slot 0 is named X
 ------------------------------------------------------------------------
-
--- The rule that actually fired: a congruence reports the rule inside it,
--- which is what a reader of a trace wants to see.
-ruleName : ∀ {Δ M N} → Δ ⊢ M -→ N → String
-ruleName (TyBeta v same)             = "TyBeta"
-ruleName (Beta v)                    = "Beta"
-ruleName (Peel v w rc ri rd sc)      = "Peel"
-ruleName (TyPeelR-Λ v rel ⊢s same)   = "TyPeelR-Λ"
-ruleName (TyPeelR-⟪⟫ v ri rel r′ ri⁺ r″ sc ⊢s sm same) =
-  "TyPeelR-⟪⟫"
-ruleName (CancelR v ri r₁ d₁ r⋉ sm rel d) = "CancelR"
-ruleName (IdPush v ri r₁ r⋉ sm rel d) = "IdPush"
-ruleName (Drop$ b)                   = "Drop$"
-ruleName Drop-true                   = "Drop-true"
-ruleName Drop-false                  = "Drop-false"
-ruleName (ξ-·-l st)                  = ruleName st
-ruleName (ξ-·-r v st)                = ruleName st
-ruleName (ξ-·[] st)                  = ruleName st
-ruleName (ξ-Λ st)                    = ruleName st
-ruleName (ξ-⟪⟫ rel st)               = ruleName st
-
-finalName : ∀ {M} → Final M → String
-finalName (value v)  = "VALUE"
-finalName no-redex   = "NO REDEX FOUND"
-finalName out-of-fuel = "OUT OF FUEL"
-
-------------------------------------------------------------------------
--- 9. Entry points — `n` is the number of ambient ordinary names
-------------------------------------------------------------------------
-
--- The ambient environment: `n` representation variables, ordinary name `i`
--- denoting representation `i`, so ordinary slot 0 prints as X and names α.
--- New names start at `n`, so term binders cannot collide with them.
-ambient : ℕ → Env
-ambient n = mkEnv (map newPair (count zero n)) (count zero n)
 
 showTyIn : ℕ → Ty → String
-showTyIn n A = showTy (onames (ambient n)) A
-
-showRepIn : ℕ → Ty → String
-showRepIn n R = showRep [] (rnames (ambient n)) R
-
-showConvIn : ℕ → Conv → String
-showConvIn n c = showConv (onames (ambient n)) c
-
-showBndIn : ℕ → CtxMorph → Conv → String
-showBndIn n Θ c = showBnd (ambient n) n Θ c
+showTyIn n A = showTy n tyBinder A
 
 showTmIn : ℕ → Term → String
-showTmIn n M = proj₁ (showTmF (ambient n) [] n zero M)
+showTmIn n M = showTm n zero tyBinder tmBinder M
 
-showTermsIn : ℕ → List Term → String
-showTermsIn n []       = ""
-showTermsIn n (M ∷ []) = showTmIn n M
-showTermsIn n (M ∷ Ms@(_ ∷ _)) =
-  showTmIn n M ++ "\n  -->\n" ++ showTermsIn n Ms
+showConvIn : ℕ → Conv → String
+showConvIn n c = showConv n tyBinder c
 
-showTrace : ∀ {Δ A M} → ℕ → Trace Δ A M → String
-showTrace {M = M} n (stop fin) =
-  showTmIn n M ++ "\n    -- " ++ finalName fin
-showTrace {M = M} n (illtyped r) =
-  showTmIn n M ++ "\n  --[" ++ ruleName r ++ "]-->  -- TYPE LOST"
-showTrace {M = M} n (r ◅⟨ ⊢M′ ⟩ tr) =
-  showTmIn n M ++ "\n  --[" ++ ruleName r ++ "]-->\n" ++ showTrace n tr
+showBndIn : ℕ → CtxMorph → Conv → String
+showBndIn n Θ c = showBnd n tyBinder Θ c
 
--- the whole run, rendered: `showRun 0 11 Q₀-⊢` for a closed program
-showRun : ∀ {Δ A M} → ℕ → ℕ → Δ ∣ [] ⊢ M ⦂ A → String
-showRun n k ⊢M = showTrace n (eval k _ ⊢M)
+showTCtx : Ctxᵗ → String
+showTCtx Δ = showTCtxAt 99 zero tyBinder Δ

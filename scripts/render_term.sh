@@ -1,17 +1,17 @@
 #!/bin/bash
-# Render a strong-System-F de Bruijn term/type/boundary to NAMED notation.
-# Uses strong/Show.agda via the type-error trick: `oops : e ≡ ""` makes
+# Render a strong-rep-var System-F de Bruijn term/type/boundary to NAMED notation.
+# Uses strong-rep-var/Show.agda via the type-error trick: `oops : e ≡ ""` makes
 # Agda print e's normal form in the mismatch error.
 #   usage: scripts/render_term.sh '<String expr>' ['<import line>' ...]
 #   example: scripts/render_term.sh 'showTmIn 1 T₆' \
-#              'open import strong.Examples'
+#              'open import strong-rep-var.Examples'
 set -u
 cd "$(dirname "$0")/../SystemF/agda" || exit 1
 EXPR="$1"; shift
 { echo "module RenderTmp where"
   echo "open import Relation.Binary.PropositionalEquality using (_≡_)"
   echo "open import Data.String using (String)"
-  echo "open import strong.Show"
+  echo "open import strong-rep-var.Show"
   for imp in "$@"; do echo "$imp"; done
   echo "oops : ($EXPR) ≡ \"\""
   echo "oops = _≡_.refl"

@@ -1,250 +1,390 @@
 module strong.proof.PeelDual where
 
--- THE PEEL CROSSING — the dual is an INVERSE, and both of its readings
--- are theorems of `strong.CtxMorph` §3a.
+-- THE PEEL CROSSING — the dual is an INVERSE, and the frame identity is
+-- EXACT.
 --
---   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dualMorph Θ ⇒ extendReps (binds Θ) Δ
+--   interior (dual Θ) (interior Θ Δ)
+--     ≡ map masked (pushBinds (binds Θ) []) ++ Δ         (given Δ ⊢ᵐ Θ)
+--   convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ
 --
--- is `dual-interior`: the crossing argument's frame IS THE EXTERIOR, one
--- bind block in.  So the argument, typed at Δ, crosses by a
--- REPRESENTATION-ONLY weakening — `renᴹᴿ (wkN (numBinds Θ))` — and gains
--- no ordinary scope whatever.  `renᴹ²-ord-id` relates that construction
--- to the identity-ordinary paired spelling retained by `Peel`.
+-- The first is (†): the crossing argument's frame IS THE EXTERIOR, one
+-- bind prefix in, with the prefix masked.  So the argument (typed at Δ)
+-- crosses by `⊢rename (wkN (numBinds Θ))` ALONE — no `⊢retag`, no
+-- `le-mu`, and no scope is gained.  Under the old dual the right-hand
+-- side was `… ++ unlockedScope Θ Δ`, strictly more nameable than Δ
+-- whenever Θ unlocked a slot Δ masked, and `Peel` related a term the
+-- exterior REFUSES to one it accepts (proof/DualTightness).
 --
--- The dual's CONVERSION context is the one thing the crossing does not
--- get for free.  It is not `convCtx Θ Δ` renumbered: (P), the identity
--- `conv(dual Θ, int(Θ, Δ)) ≡ conv(Θ, Δ)`, is a theorem on `main` and is
--- FALSE here, because deleting a name from a SEQUENCE renumbers the rest
--- (notes/CrossingAudit §§4–6).  What survives is (Q) — the two contexts
--- name the same representation VARIABLES (`Q`, strong.CtxMorph §3b) —
--- and `Peel` therefore carries the dual's own spelling `s′` together with
--- a `SameConv` relating it to `s`.  §1 below is what turns that premise
--- into the dual boundary's conversion typing.
+-- The two repairs (strong.CtxMorph §3) that buy it:
+--   `unlock X ↦ lock (n + X)`  the dual RESTORES what Θ unlocked, sound
+--                              because `sw-u` refuses a vacuous unlock
+--                              (`mask-unmask`, strong.Ctx §6b);
+--   the list is REVERSED        because `applyChanges` applies HEAD-LAST.
 --
---   §1  re-spelling a TYPED conversion across the crossing
---   §2  the ⇒-splittings the redex's `env` premises need
---   §3  the crossing, and `preserve-Peel`
+-- WITH THE PAIR the dual is entirely a CHANGE-LIST construction: it binds
+-- nothing, so `binds (dual Θ) ≡ []` and `numBinds (dual Θ) ≡ 0` hold by
+-- REFLEXIVITY and the four `repsOf-…` filtering lemmas this module used
+-- to need are gone.
 --
--- WHAT WAS DELETED (2026-09-19).  The whole masked-entry development:
--- `applyChanges-dualScope`, `⊢ˢ-dualScope`, `applyUnlocks-dualScope` and
--- their `updateAt` commutations (old §2); `interior-dual`, `convCtx-dual`
--- — which was (P) — and `applyUnlocks-hideBinds` (old §3); and the
--- `Ren`/`wkN` crossing machinery `⊢ᵐ-dual`, `Ren-wkN`, `crossing` (old
--- §4).  None of them has a two-universe counterpart: there is no computed
--- context to state an equality between, (P) is refuted, and the frame
--- identity is `dual-interior`.
+--   §2  the dual's change list: the frame identity, its `⊢ˢ`, and the
+--       conversion-context identity
+--   §3  (†) and `convCtx-dual`
+--   §4  the crossing, and `preserve-Peel`
 
-open import Data.Nat using (ℕ; zero; suc; _+_)
-open import Data.List using (List; []; _∷_; length)
-open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax; proj₁; proj₂)
+open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; _<_; s≤s; z≤n)
+open import Data.Nat.Properties using (≤-refl; ≤-trans; n≤1+n; m≤n⇒m≤1+n; <⇒≢)
+open import Data.List using (List; []; _∷_; _++_; map; length)
+open import Data.Product using (Σ; Σ-syntax; _×_; _,_; ∃-syntax)
+open import Data.Empty using (⊥; ⊥-elim)
+open import Relation.Nullary using (¬_; yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; cong; trans; subst)
+  using (_≡_; refl; sym; cong; cong₂; trans; subst)
 
-open import strong.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; ⇑ᵗ)
+open import strong.Types
+open import strong.TypeSubst using (rename-cong; rename-rename-commute)
 open import strong.Ctx
-open import strong.proof.Ctx
 open import strong.Conversion
 open import strong.Terms
 open import strong.TermSubst
-  using (renᴹ²; ren²; renᴹ²-ord-id; wkN)
 open import strong.CtxMorph
-open import strong.proof.Preserve
-  using (PeelCase; RepWeakenTyping; same-shiftRVars; shiftRep-shiftBy;
-         same-wf)
+open import strong.proof.Preserve using (PeelCase; ⊢ᵗ-of; CtxWf-[])
+open import strong.proof.Canonical using (shiftBy-⇒; conv-tgt≡)
 
 ------------------------------------------------------------------------
--- §1  Re-spelling a TYPED conversion
+-- Structural helpers
 ------------------------------------------------------------------------
 
-sameTy-⇒ : ∀ (Γ Γ′ : Ctxᵗ) {A B C D : Ty}
-  → Γ ⊢ A ≈ B ⊣ Γ′ → Γ ⊢ C ≈ D ⊣ Γ′
-  → Γ ⊢ A ⇒ C ≈ B ⇒ D ⊣ Γ′
-sameTy-⇒ Γ Γ′ (R , p , q) (S , p′ , q′) =
-  R ⇒ S , same-⇒ p p′ , same-⇒ q q′
+pushBinds-++ : (As : List Ty) (Δ : Ctxᵗ) → pushBinds As Δ ≡ pushBinds As [] ++ Δ
+pushBinds-++ []       Δ = refl
+pushBinds-++ (A ∷ As) Δ rewrite pushBinds-++ As Δ | pushBinds-++ As [] = refl
 
-sameTy-∀ : ∀ (Γ Γ′ : Ctxᵗ) {A B : Ty}
-  → underΛ Γ ⊢ A ≈ B ⊣ underΛ Γ′
-  → Γ ⊢ `∀ A ≈ `∀ B ⊣ Γ′
-sameTy-∀ Γ Γ′ (R , p , q) = `∀ R , same-∀ p , same-∀ q
+length-pushBinds : (As : List Ty) → length (pushBinds As []) ≡ length As
+length-pushBinds []       = refl
+length-pushBinds (A ∷ As) = cong suc (length-pushBinds As)
 
--- `respell` (strong.Conversion §2c) produces a conversion's other
--- spelling; this produces its TYPING.  The two contexts share a
--- representation context and differ only in their ordinary name map, so
--- every leaf transports: a `seal`/`unseal` cites the SAME binder and only
--- its ordinary spelling changes, and an identity's payload is re-spelled
--- by `respell-ty`.  The source and target types come back paired with
--- `_⊢_≈_⊣_`s, which is what the crossing boundary's `env` consumes.
-respell-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
-  → reps Γ′ ≡ reps Γ
-  → (names Γ) ⊆ᵃ (names Γ′)
-  → names Γ ⊩ s ~ r
-  → names Γ′ ⊩ s′ ~ r
-  → Γ ⊢ s ∶ A ⇝ B
-  → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ]
-      ((Γ′ ⊢ s′ ∶ A′ ⇝ B′)
-        × (Γ′ ⊢ A′ ≈ A ⊣ Γ) × (Γ′ ⊢ B′ ≈ B ⊣ Γ))
-respell-⊢ eq f (sameᶜ-id same-ℕ) (sameᶜ-id same-ℕ) (conv-id base-ℕ) =
-  `ℕ , `ℕ , conv-id base-ℕ
-  , (`ℕ , same-ℕ , same-ℕ) , (`ℕ , same-ℕ , same-ℕ)
-respell-⊢ eq f (sameᶜ-id same-𝔹) (sameᶜ-id same-𝔹) (conv-id base-𝔹) =
-  `𝔹 , `𝔹 , conv-id base-𝔹
-  , (`𝔹 , same-𝔹 , same-𝔹) , (`𝔹 , same-𝔹 , same-𝔹)
-respell-⊢ eq f (sameᶜ-id (same-var d)) (sameᶜ-id (same-var d′))
-          (conv-idv tv) =
-  _ , _ , conv-idv (_ , d′)
-  , (` _ , same-var d′ , same-var d) , (` _ , same-var d′ , same-var d)
-respell-⊢ {Γ′ = Γ′} eq f (sameᶜ-seal d) (sameᶜ-seal d′)
-          (conv-seal (α , R , dn , dr , pA))
-  with respell-ty f pA
-respell-⊢ {Γ′ = Γ′} eq f (sameᶜ-seal d) (sameᶜ-seal d′)
-          (conv-seal (α , R , dn , dr , pA))
-  | A′ , qA′ =
-  A′ , _
-  , conv-seal (α
-              , R
-              , subst (λ a → names Γ′ ∋ˡ _ := a) (∋ˡ-det d dn) d′
-              , subst (λ Ξ → Ξ ∋ʳ α := bindR R) (sym eq) dr
-              , qA′)
-  , (R , qA′ , pA)
-  , (` _ , same-var d′ , same-var d)
-respell-⊢ {Γ′ = Γ′} eq f (sameᶜ-unseal d) (sameᶜ-unseal d′)
-          (conv-unseal (α , R , dn , dr , pA))
-  with respell-ty f pA
-respell-⊢ {Γ′ = Γ′} eq f (sameᶜ-unseal d) (sameᶜ-unseal d′)
-          (conv-unseal (α , R , dn , dr , pA))
-  | A′ , qA′ =
-  _ , A′
-  , conv-unseal (α
-                , R
-                , subst (λ a → names Γ′ ∋ˡ _ := a) (∋ˡ-det d dn) d′
-                , subst (λ Ξ → Ξ ∋ʳ α := bindR R) (sym eq) dr
-                , qA′)
-  , (` _ , same-var d′ , same-var d)
-  , (R , qA′ , pA)
-respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
-          (conv-fun ⊢x ⊢y)
-  with respell-⊢ eq f a a′ ⊢x | respell-⊢ eq f b b′ ⊢y
-respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-fun a b) (sameᶜ-fun a′ b′)
-          (conv-fun ⊢x ⊢y)
-  | P₁ , Q₁ , ⊢x′ , smP₁ , smQ₁ | P₂ , Q₂ , ⊢y′ , smP₂ , smQ₂ =
-  Q₁ ⇒ P₂ , P₁ ⇒ Q₂ , conv-fun ⊢x′ ⊢y′
-  , sameTy-⇒ Γ′ Γ smQ₁ smP₂ , sameTy-⇒ Γ′ Γ smP₁ smQ₂
-respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-all a) (sameᶜ-all a′)
-          (conv-all ⊢x)
-  with respell-⊢ {Γ = underΛ Γ} {Γ′ = underΛ Γ′}
-                 (cong (abstR ∷_) eq) (⊆ᵃ-underΛ f) a a′ ⊢x
-respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-all a) (sameᶜ-all a′)
-          (conv-all ⊢x)
-  | A₀ , B₀ , ⊢x′ , smA , smB =
-  `∀ A₀ , `∀ B₀ , conv-all ⊢x′
-  , sameTy-∀ Γ′ Γ smA , sameTy-∀ Γ′ Γ smB
+-- Two in-place updates commute.
+updateAt-updateAt-comm : (f : Ent → Ent) (a b : ℕ) (Δ : Ctxᵗ)
+  → updateAt f a (updateAt f b Δ) ≡ updateAt f b (updateAt f a Δ)
+updateAt-updateAt-comm f a       b       []      = refl
+updateAt-updateAt-comm f zero    zero    (E ∷ Δ) = refl
+updateAt-updateAt-comm f zero    (suc b) (E ∷ Δ) = refl
+updateAt-updateAt-comm f (suc a) zero    (E ∷ Δ) = refl
+updateAt-updateAt-comm f (suc a) (suc b) (E ∷ Δ) =
+  cong (E ∷_) (updateAt-updateAt-comm f a b Δ)
+
+-- mask/unmask at a position ≥ |Ow| only touches the tail.
+updateAt-app-tail : (f : Ent → Ent) (Ow : Ctxᵗ) (X : ℕ) (Δ : Ctxᵗ)
+  → updateAt f (length Ow + X) (Ow ++ Δ) ≡ Ow ++ updateAt f X Δ
+updateAt-app-tail f []       X Δ = refl
+updateAt-app-tail f (E ∷ Ow) X Δ = cong (E ∷_) (updateAt-app-tail f Ow X Δ)
 
 ------------------------------------------------------------------------
--- §2  Splitting the redex's premises at the arrow
+-- §2  The dual's change list
 ------------------------------------------------------------------------
 
-shiftRep-⇒ : (n : ℕ) (R S : Ty)
-  → shiftRep n (R ⇒ S) ≡ shiftRep n R ⇒ shiftRep n S
-shiftRep-⇒ zero R S = refl
-shiftRep-⇒ (suc n) R S rewrite shiftRep-⇒ n R S = refl
+-- THE FRAME IDENTITY.  `dualScope` undoes `applyChanges` on the nose —
+-- and this is where the two repairs are paid for: the `unlock` case needs
+-- `mask ∘ unmask = id`, which holds AT A LOCKED SLOT AND NOWHERE ELSE
+-- (`mask-unmask`), and the reversal is what puts each inverse entry where
+-- `applyChanges` will apply it.
+applyChanges-dualScope : (As : List Ty) (S : List Change) {Δ : Ctxᵗ} → Δ ⊢ˢ S
+  → applyChanges (dualScope (length As) S) (pushBinds As (applyChanges S Δ))
+      ≡ pushBinds As Δ
+applyChanges-dualScope As []             sw[]         = refl
+applyChanges-dualScope As (lock X ∷ S)   {Δ = Δ} (sw-l tv b)
+  rewrite applyChanges-++ (dualScope (length As) S)
+                          (unlock (length As + X) ∷ [])
+                          (pushBinds As (mask X (applyChanges S Δ)))
+        | updateAt-pushBinds unmaskEnt As X (mask X (applyChanges S Δ))
+        | unmask-mask tv = applyChanges-dualScope As S b
+applyChanges-dualScope As (unlock X ∷ S) {Δ = Δ} (sw-u lk b)
+  rewrite applyChanges-++ (dualScope (length As) S)
+                          (lock (length As + X) ∷ [])
+                          (pushBinds As (unmask X (applyChanges S Δ)))
+        | updateAt-pushBinds maskEnt As X (unmask X (applyChanges S Δ))
+        | mask-unmask lk = applyChanges-dualScope As S b
 
--- The interior type of a boundary whose conversion is a `_↦_` is an
--- arrow, because its reading is.
-sameTy-⇒⁻ : ∀ {η η′ : TyCtx} {B A₁ B₁ : Ty}
-  → ∃[ R ] ((η ⊢ B ~ R) × (η′ ⊢ A₁ ⇒ B₁ ~ R))
-  → Σ[ Aᵢ ∈ Ty ] Σ[ Bᵢ ∈ Ty ] ((B ≡ Aᵢ ⇒ Bᵢ)
-      × (∃[ R ] ((η ⊢ Aᵢ ~ R) × (η′ ⊢ A₁ ~ R)))
-      × (∃[ S ] ((η ⊢ Bᵢ ~ S) × (η′ ⊢ B₁ ~ S))))
-sameTy-⇒⁻ (R ⇒ S , same-⇒ p q , same-⇒ p′ q′) =
-  _ , _ , refl , (R , p , p′) , (S , q , q′)
+-- … AND IT IS WELL FORMED WHERE IT LANDS.  S's `lock X` becomes an
+-- `unlock` at a slot the lock itself just masked (`mask-∋lk`); S's
+-- `unlock X` becomes a `lock` at a slot the unlock itself just exposed
+-- (`unmask-∋tv`).  Both premises come straight out of S's own.
+⊢ˢ-dualScope : (As : List Ty) (S : List Change) {Δ : Ctxᵗ} → Δ ⊢ˢ S
+  → pushBinds As (applyChanges S Δ) ⊢ˢ dualScope (length As) S
+⊢ˢ-dualScope As []             sw[]       = sw[]
+⊢ˢ-dualScope As (lock X ∷ S)   {Δ = Δ} (sw-l tv b) =
+  ⊢ˢ-++ (dualScope (length As) S) (unlock (length As + X) ∷ [])
+        (subst (λ Ξ → Ξ ⊢ˢ dualScope (length As) S) (sym eq)
+               (⊢ˢ-dualScope As S b))
+        (sw-u (pushBinds-∋lk As (mask-∋lk tv)) sw[])
+  where
+  eq : unmask (length As + X) (pushBinds As (mask X (applyChanges S Δ)))
+         ≡ pushBinds As (applyChanges S Δ)
+  eq = trans (updateAt-pushBinds unmaskEnt As X (mask X (applyChanges S Δ)))
+             (cong (pushBinds As) (unmask-mask tv))
+⊢ˢ-dualScope As (unlock X ∷ S) {Δ = Δ} (sw-u lk b) =
+  ⊢ˢ-++ (dualScope (length As) S) (lock (length As + X) ∷ [])
+        (subst (λ Ξ → Ξ ⊢ˢ dualScope (length As) S) (sym eq)
+               (⊢ˢ-dualScope As S b))
+        (sw-l (pushBinds-∋tv As (unmask-∋tv lk)) sw[])
+  where
+  eq : mask (length As + X) (pushBinds As (unmask X (applyChanges S Δ)))
+         ≡ pushBinds As (applyChanges S Δ)
+  eq = trans (updateAt-pushBinds maskEnt As X (unmask X (applyChanges S Δ)))
+             (cong (pushBinds As) (mask-unmask lk))
 
-sameTyExt-⇒⁻ : ∀ (n : ℕ) {η η′ : TyCtx} {A C A₁ B₁ : Ty}
-  → ∃[ R ] ((η ⊢ A ⇒ C ~ R) × (η′ ⊢ A₁ ⇒ B₁ ~ shiftRep n R))
-  → (∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ A₁ ~ shiftRep n R)))
-    × (∃[ S ] ((η ⊢ C ~ S) × (η′ ⊢ B₁ ~ shiftRep n S)))
-sameTyExt-⇒⁻ n {η′ = η′} (R ⇒ S , same-⇒ p q , t)
-  with subst (λ T → η′ ⊢ _ ~ T) (shiftRep-⇒ n R S) t
-sameTyExt-⇒⁻ n {η′ = η′} (R ⇒ S , same-⇒ p q , t)
-  | same-⇒ p′ q′ = (R , p , p′) , (S , q , q′)
+-- THE CONVERSION CONTEXT sees only the dual's UNLOCKS, i.e. only S's
+-- LOCKS undone — so it is the original conversion context, with no
+-- premise at all.  (A composition of unmasks commutes, which is why the
+-- reversal is invisible here.)
+dualScope-unmask-comm : (m : ℕ) (S : List Change) (Y : ℕ) (Ξ : Ctxᵗ)
+  → applyUnlocks (dualScope m S) (unmask Y Ξ)
+      ≡ unmask Y (applyUnlocks (dualScope m S) Ξ)
+dualScope-unmask-comm m []             Y Ξ = refl
+dualScope-unmask-comm m (unlock X ∷ S) Y Ξ
+  rewrite applyUnlocks-++ (dualScope m S) (lock (m + X) ∷ []) (unmask Y Ξ)
+        | applyUnlocks-++ (dualScope m S) (lock (m + X) ∷ []) Ξ =
+  dualScope-unmask-comm m S Y Ξ
+dualScope-unmask-comm m (lock X ∷ S)   Y Ξ
+  rewrite applyUnlocks-++ (dualScope m S) (unlock (m + X) ∷ []) (unmask Y Ξ)
+        | applyUnlocks-++ (dualScope m S) (unlock (m + X) ∷ []) Ξ
+        | updateAt-updateAt-comm unmaskEnt (m + X) Y Ξ =
+  dualScope-unmask-comm m S Y (unmask (m + X) Ξ)
+
+-- THE ONE PLACE THE ONE-LOCK ENTRY COSTS A PREMISE.  `unmask ∘ mask` is
+-- the identity only AT A NAMEABLE SLOT (`unmask-mask`, strong.Ctx §6b) —
+-- with a stack of masks it held everywhere — so the `lock X` case needs
+-- S's own `sw-l` premise, which is exactly where the nameability of X in
+-- `applyChanges S Δ` is recorded.  Nothing else changes: the premise was
+-- already threaded through `applyChanges-dualScope` next door.
+applyUnlocks-dualScope : (As : List Ty) (S : List Change) (Δ : Ctxᵗ) → Δ ⊢ˢ S
+  → applyUnlocks (dualScope (length As) S) (pushBinds As (applyChanges S Δ))
+      ≡ pushBinds As (applyUnlocks S Δ)
+applyUnlocks-dualScope As []             Δ sw[]        = refl
+applyUnlocks-dualScope As (lock X ∷ S)   Δ (sw-l tv b)
+  rewrite applyUnlocks-++ (dualScope (length As) S)
+                          (unlock (length As + X) ∷ [])
+                          (pushBinds As (mask X (applyChanges S Δ)))
+        | updateAt-pushBinds unmaskEnt As X (mask X (applyChanges S Δ))
+        | unmask-mask tv = applyUnlocks-dualScope As S Δ b
+applyUnlocks-dualScope As (unlock X ∷ S) Δ (sw-u lk b)
+  rewrite applyUnlocks-++ (dualScope (length As) S)
+                          (lock (length As + X) ∷ [])
+                          (pushBinds As (unmask X (applyChanges S Δ)))
+        | sym (updateAt-pushBinds unmaskEnt As X (applyChanges S Δ))
+        | dualScope-unmask-comm (length As) S (length As + X)
+                                (pushBinds As (applyChanges S Δ))
+        | applyUnlocks-dualScope As S Δ b =
+  updateAt-pushBinds unmaskEnt As X (applyUnlocks S Δ)
 
 ------------------------------------------------------------------------
--- §3  The crossing
+-- §3  (†) and `convCtx-dual`
 ------------------------------------------------------------------------
 
--- THE ONE THING THE CASE CANNOT BUILD.  The argument W is typed on the
--- exterior Δ and must be retyped on `extendReps (binds Θ) Δ`, which is
--- the same context with the boundary's representation bind block pushed
--- on.  Its ordinary name map is untouched, so the argument's TYPE does
--- not change; only representation occurrences inside its own frames move,
--- which is exactly what `renᴹᴿ (wkN (numBinds Θ))` does by construction.
--- This is the third representation-only typing transport the port has
--- needed (`CrossΛTyping`, `AddLock0Typing`, strong.proof.Preserve §4), and
--- like those it is a NEW MAJOR STATEMENT, deferred for review rather than
--- proved here.  The identity lemma below transports its result to the
--- paired spelling in the reduction rule.
-module _ (repWeaken : RepWeakenTyping) where
+-- `hideBinds` masks the whole bind prefix.
+hideBinds-cons : (k : ℕ) (E : Ent) (Ξ : Ctxᵗ)
+  → applyChanges (hideBinds (suc k)) (E ∷ Ξ)
+      ≡ maskEnt E ∷ applyChanges (hideBinds k) Ξ
+hideBinds-cons zero    E Ξ = refl
+hideBinds-cons (suc k) E Ξ
+  rewrite hideBinds-cons k E Ξ = refl
 
-  preserve-Peel : PeelCase
-  preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-                {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-                wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-                (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
-                         (wf-⇒ wA wC)) ⊢W)
-    with interior-functional (mw-interior mwΘ) ri
-       | conversion-functional (mw-conversion mwΘ) rc
-  preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-                {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-                wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-                (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
-                         (wf-⇒ wA wC)) ⊢W)
-    | refl | refl
-    with sameTy-⇒⁻ sameᵢ | sameTyExt-⇒⁻ (numBinds Θ) sameₑ
-       | respell-⊢ (trans (conversion-reps rd)
-                     (trans (interior-reps ri)
-                            (sym (conversion-reps rc))))
-                   (Q ri rc rd) rcᶜ rdᶜ ⊢s
-  preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-                {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-                wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-                (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
-                         (wf-⇒ wA wC)) ⊢W)
-    | refl | refl
-    | Aᵢ , Bᵢ , refl , smAᵢ , smBᵢ
-    | (Ra , pA , qA) , (Rc , pC , qC)
-    | P′ , Q′ , ⊢s′ , smP , smQ =
-    env mwΘ (⊢· ⊢V arg) ⊢t smBᵢ (Rc , pC , qC) wC
-    where
-    n : ℕ
-    n = numBinds Θ
+stepB : (Ow Δ : Ctxᵗ)
+  → applyChanges (hideBinds (length Ow)) (Ow ++ Δ) ≡ map maskEnt Ow ++ Δ
+stepB []       Δ = refl
+stepB (E ∷ Ow) Δ
+  rewrite hideBinds-cons (length Ow) E (Ow ++ Δ)
+        | stepB Ow Δ = refl
 
-    -- the dual's frame: the exterior, one bind block in
-    mwD : MorphWf Δᵢ (dualMorph Θ) (extendReps (binds Θ) Δ) Δᵈ
-    mwD = mw (mw-interior-wf mwΘ) binds[] (dual-interior ri) rd
+-- THE DUAL CARRIES NO BINDS, and with the pair that is a fact about the
+-- constructor: it holds BY REFLEXIVITY.  The interleaved list needed four
+-- filtering lemmas to say it (`repsOf-hideBinds`, `repsOf-++`,
+-- `repsOf-dualScope`, `repsOf-dual`) and they are all gone.
+numBinds-dual : (Θ : CtxMorph) → numBinds (dual Θ) ≡ 0
+numBinds-dual Θ = refl
 
-    -- the crossing argument's own exterior reading, lifted past the
-    -- bind block, is the source spelling the dual's conversion wants
-    sameᵢ-d : extendReps (binds Θ) Δ ⊢ _ ≈ P′ ⊣ Δᵈ
-    sameᵢ-d =
-      shiftBy n Ra
-      , same-shiftRVars n pA
-      , subst (λ T → names Δᵈ ⊢ P′ ~ T)
-              (trans (same-rep-unique (proj₂ (proj₂ smP)) qA)
-                     (shiftRep-shiftBy n Ra))
-              (proj₁ (proj₂ smP))
+-- (†) THE CROSSING FRAME IS THE EXTERIOR, ONE BIND PREFIX IN.
+interior-dual : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊢ᵐ Θ
+  → interior (dual Θ) (interior Θ Δ)
+      ≡ map maskEnt (pushBinds (binds Θ) []) ++ Δ
+interior-dual Θ Δ mwΘ = go
+  where
+  Ow : Ctxᵗ
+  Ow = pushBinds (binds Θ) []
+  lenOw : length Ow ≡ numBinds Θ
+  lenOw = length-pushBinds (binds Θ)
+  go : applyChanges (changes (dual Θ)) (pushBinds (binds Θ) (scope Θ Δ))
+         ≡ map maskEnt Ow ++ Δ
+  go rewrite applyChanges-++ (hideBinds (numBinds Θ))
+                             (dualScope (numBinds Θ) (changes Θ))
+                             (pushBinds (binds Θ) (scope Θ Δ))
+           | applyChanges-dualScope (binds Θ) (changes Θ) (mw-changes mwΘ)
+           | pushBinds-++ (binds Θ) Δ
+           | sym lenOw = stepB Ow Δ
 
-    sameₑ-d : SameTyExt (numBinds (dualMorph Θ)) Δᵢ Aᵢ Δᵈ Q′
-    sameₑ-d =
-      proj₁ smAᵢ , proj₁ (proj₂ smAᵢ)
-      , subst (λ T → names Δᵈ ⊢ Q′ ~ T)
-              (same-rep-unique (proj₂ (proj₂ smQ))
-                               (proj₂ (proj₂ smAᵢ)))
-              (proj₁ (proj₂ smQ))
+-- `applyUnlocks` skips locks, so `hideBinds` is invisible to the
+-- conversion context.
+applyUnlocks-hideBinds : (k : ℕ) (Ξ : Ctxᵗ) → applyUnlocks (hideBinds k) Ξ ≡ Ξ
+applyUnlocks-hideBinds zero    Ξ = refl
+applyUnlocks-hideBinds (suc k) Ξ = applyUnlocks-hideBinds k Ξ
 
-    arg : Δᵢ ∣ [] ⊢
-        (renᴹ² (ren² (λ X → X) (wkN n)) W ⟪ dualMorph Θ , s′ ⟫) ⦂ Aᵢ
-    arg =
-      subst (λ W′ → Δᵢ ∣ [] ⊢ W′ ⟪ dualMorph Θ , s′ ⟫ ⦂ Aᵢ)
-            (sym (renᴹ²-ord-id (λ X → refl) W))
-            (env mwD (repWeaken (binds Θ) (mw-binds mwΘ) ⊢W)
-                 ⊢s′ sameᵢ-d sameₑ-d
-                 (same-wf (proj₁ (proj₂ smAᵢ))))
+convCtx-dual : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊢ˢ changes Θ
+  → convCtx (dual Θ) (interior Θ Δ) ≡ convCtx Θ Δ
+convCtx-dual Θ Δ b
+  rewrite applyUnlocks-++ (hideBinds (numBinds Θ))
+                          (dualScope (numBinds Θ) (changes Θ))
+                          (pushBinds (binds Θ) (scope Θ Δ))
+        | applyUnlocks-hideBinds (numBinds Θ)
+            (applyUnlocks (dualScope (numBinds Θ) (changes Θ))
+                          (pushBinds (binds Θ) (scope Θ Δ))) =
+  applyUnlocks-dualScope (binds Θ) (changes Θ) Δ b
+
+------------------------------------------------------------------------
+-- §4  The crossing, and `preserve-Peel`
+------------------------------------------------------------------------
+
+-- binder slots of a pushBinds are visible
+pushBinds-∋tv-lt : (As : List Ty) (Ξ : Ctxᵗ) (j : ℕ)
+  → j < length As → pushBinds As Ξ ∋tv j
+pushBinds-∋tv-lt (A ∷ As) Ξ zero    (s≤s _)  = unmasked (bind _) , ez , nameable
+pushBinds-∋tv-lt (A ∷ As) Ξ (suc j) (s≤s lt) with pushBinds-∋tv-lt As Ξ j lt
+... | E , d , v = _ , es d , renᵉ-Nameable v
+
+-- `hideBinds k` masks slots 0 … k-1, so it misses every slot ≥ k.
+hideBinds-∋tv : (k : ℕ) {Ξ : Ctxᵗ} {Y : ℕ} → k ≤ Y → Ξ ∋tv Y
+  → applyChanges (hideBinds k) Ξ ∋tv Y
+hideBinds-∋tv zero    le tv = tv
+hideBinds-∋tv (suc k) le tv with hideBinds-∋tv k (≤-trans (n≤1+n k) le) tv
+... | E , d , v = E , updateAt-miss maskEnt maskEnt-comm (<⇒≢ le) d , v
+
+⊢ˢ-hideBinds : (k : ℕ) (Ξ : Ctxᵗ)
+  → ((j : ℕ) → j < k → Ξ ∋tv j) → Ξ ⊢ˢ hideBinds k
+⊢ˢ-hideBinds zero    Ξ h = sw[]
+⊢ˢ-hideBinds (suc k) Ξ h =
+  sw-l (hideBinds-∋tv k ≤-refl (h k ≤-refl))
+       (⊢ˢ-hideBinds k Ξ (λ j lt → h j (m≤n⇒m≤1+n lt)))
+
+-- THE DUAL'S OWN `⊢ᵐ`.  Its REP half is EMPTY (`rw[]`) — the dual binds
+-- nothing — so the whole content is the change half.
+⊢ᵐ-dual : (Θ : CtxMorph) (Δ : Ctxᵗ) → Δ ⊢ᵐ Θ → interior Θ Δ ⊢ᵐ dual Θ
+⊢ᵐ-dual Θ Δ mwΘ =
+  mw rw[]
+     (⊢ˢ-++ (hideBinds (numBinds Θ)) (dualScope (numBinds Θ) (changes Θ))
+        (subst (λ Ξ → Ξ ⊢ˢ hideBinds (numBinds Θ))
+               (sym (applyChanges-dualScope (binds Θ) (changes Θ)
+                       (mw-changes mwΘ)))
+               (⊢ˢ-hideBinds (numBinds Θ) (pushBinds (binds Θ) Δ)
+                  (λ j lt → pushBinds-∋tv-lt (binds Θ) Δ j lt)))
+        (⊢ˢ-dualScope (binds Θ) (changes Θ) (mw-changes mwΘ)))
+
+------------------------------------------------------------------------
+-- Renaming identity/composition and wkN = shiftBy
+------------------------------------------------------------------------
+
+renameᵗ-id : (a : Ty) → renameᵗ (λ X → X) a ≡ a
+renameᵗ-id (` X)   = refl
+renameᵗ-id `ℕ      = refl
+renameᵗ-id `𝔹      = refl
+renameᵗ-id (a ⇒ b) = cong₂ _⇒_ (renameᵗ-id a) (renameᵗ-id b)
+renameᵗ-id (`∀ a)  =
+  cong `∀ (trans (rename-cong ext-id a) (renameᵗ-id a))
+  where
+  ext-id : (X : ℕ) → extᵗ (λ Y → Y) X ≡ X
+  ext-id zero    = refl
+  ext-id (suc X) = refl
+
+-- Both facts are BINDING facts, lifted through the lock layer: the two
+-- `Ent` clauses just re-apply the constructor they matched.
+renᵇ-id : (b : Binding) → renᵇ (λ X → X) b ≡ b
+renᵇ-id abst     = refl
+renᵇ-id (bind A) = cong bind (renameᵗ-id A)
+
+renᵉ-id : (E : Ent) → renᵉ (λ X → X) E ≡ E
+renᵉ-id (unmasked b) = cong unmasked (renᵇ-id b)
+renᵉ-id (masked b)   = cong masked (renᵇ-id b)
+
+renᵇ-comp : (ρ₁ ρ₂ : Renameᵗ) (b : Binding)
+  → renᵇ ρ₂ (renᵇ ρ₁ b) ≡ renᵇ (λ X → ρ₂ (ρ₁ X)) b
+renᵇ-comp ρ₁ ρ₂ abst     = refl
+renᵇ-comp ρ₁ ρ₂ (bind A) = cong bind (rename-rename-commute ρ₁ ρ₂ A)
+
+renᵉ-comp : (ρ₁ ρ₂ : Renameᵗ) (E : Ent)
+  → renᵉ ρ₂ (renᵉ ρ₁ E) ≡ renᵉ (λ X → ρ₂ (ρ₁ X)) E
+renᵉ-comp ρ₁ ρ₂ (unmasked b) = cong unmasked (renᵇ-comp ρ₁ ρ₂ b)
+renᵉ-comp ρ₁ ρ₂ (masked b)   = cong masked (renᵇ-comp ρ₁ ρ₂ b)
+
+renᵗ-wkN : (n : ℕ) (A : Ty) → renameᵗ (wkN n) A ≡ shiftBy n A
+renᵗ-wkN zero    A = renameᵗ-id A
+renᵗ-wkN (suc m) A =
+  trans (sym (rename-rename-commute (wkN m) suc A))
+        (cong ⇑ᵗ (renᵗ-wkN m A))
+
+------------------------------------------------------------------------
+-- Ren (wkN (length Ξ)) Δ (Ξ ++ Δ)
+------------------------------------------------------------------------
+
+ren∋-wkN : (Ξ : Ctxᵗ) {Δ : Ctxᵗ} {X : ℕ} {E : Ent}
+  → Δ ∋e X , E → (Ξ ++ Δ) ∋e (length Ξ + X) , renᵉ (wkN (length Ξ)) E
+ren∋-wkN []      {E = E} d =
+  subst (λ e → _ ∋e _ , e) (sym (renᵉ-id E)) d
+ren∋-wkN (F ∷ Ξ) {E = E} d =
+  subst (λ e → _ ∋e _ , e)
+        (trans (renᵉ-comp (wkN (length Ξ)) suc E) refl)
+        (es (ren∋-wkN Ξ d))
+
+Ren-wkN : (Ξ : Ctxᵗ) {Δ : Ctxᵗ} → Ren (wkN (length Ξ)) Δ (Ξ ++ Δ)
+Ren-wkN Ξ = mkRen (ren∋-wkN Ξ)
+
+------------------------------------------------------------------------
+-- The crossing argument retypes inside the dual — BY RENAMING ALONE
+------------------------------------------------------------------------
+
+-- THIS IS TIGHTNESS.  The argument was typed at Δ and is typed inside at
+-- Δ, shifted past the crossed boundary's (masked) binders.  Nothing is
+-- relaxed; no slot the exterior refuses becomes nameable.
+crossing : (Θ : CtxMorph) {Δ : Ctxᵗ} {W : Term} {A : Ty} → Δ ⊢ᵐ Θ
+  → Δ ∣ [] ⊢ W ⦂ A
+  → interior (dual Θ) (interior Θ Δ) ∣ []
+      ⊢ wkᴹ (numBinds Θ) W ⦂ shiftBy (numBinds Θ) A
+crossing Θ {Δ} {W} {A} mwΘ ⊢W =
+  subst (λ C → C ∣ [] ⊢ wkᴹ (numBinds Θ) W ⦂ shiftBy (numBinds Θ) A)
+        (sym (interior-dual Θ Δ mwΘ))
+        step2
+  where
+  Ow : Ctxᵗ
+  Ow = pushBinds (binds Θ) []
+  Ξ : Ctxᵗ
+  Ξ = map maskEnt Ow
+  len-eq : length Ξ ≡ numBinds Θ
+  len-eq = trans (map-length maskEnt Ow) (length-pushBinds (binds Θ))
+  step0 : (Ξ ++ Δ) ∣ [] ⊢ renᴹ (wkN (length Ξ)) W ⦂ renameᵗ (wkN (length Ξ)) A
+  step0 = ⊢rename (Ren-wkN Ξ) (Inj-wkN (length Ξ)) ⊢W
+  step1 : (Ξ ++ Δ) ∣ [] ⊢ renᴹ (wkN (length Ξ)) W ⦂ shiftBy (length Ξ) A
+  step1 = subst (λ B → (Ξ ++ Δ) ∣ [] ⊢ renᴹ (wkN (length Ξ)) W ⦂ B)
+                (renᵗ-wkN (length Ξ) A) step0
+  step2 : (Ξ ++ Δ) ∣ [] ⊢ wkᴹ (numBinds Θ) W ⦂ shiftBy (numBinds Θ) A
+  step2 rewrite sym len-eq = step1
+
+------------------------------------------------------------------------
+-- PeelCase, PROVEN for dual
+------------------------------------------------------------------------
+
+preserve-Peel : PeelCase
+preserve-Peel {Δ} {V} {W} {Θ} {s} {t} {C} vV vW
+         (⊢· (env {Bᵢ = Bᵢ} {Bₑ = Aarg⇒C} mwᵥ ⊢V ⊢c wE) ⊢W)
+  with wE
+... | wf-⇒ wAarg wC
+  with conv-tgt≡ (shiftBy-⇒ (numBinds Θ) _ _) ⊢c
+...  | conv-fun ⊢s ⊢t
+  with ⊢ᵗ-of CtxWf-[] ⊢V
+...   | wf-⇒ wAᵈ wBᶜ =
+  env mwᵥ (⊢· ⊢V ⊢argcross) ⊢t wC
+  where
+  -- `numBinds (dual Θ)` REDUCES to 0, so no rewrite is needed here any
+  -- more (the interleaved list had to `rewrite numBinds-dual Θ`).
+  ⊢s-tr : convCtx (dual Θ) (interior Θ Δ) ⊢ s
+            ∶ shiftBy (numBinds Θ) _ ⇝ shiftBy (numBinds (dual Θ)) _
+  ⊢s-tr = subst (λ Ct → Ct ⊢ s ∶ shiftBy (numBinds Θ) _ ⇝ _)
+                (sym (convCtx-dual Θ Δ (mw-changes mwᵥ))) ⊢s
+  ⊢argcross : interior Θ Δ ∣ [] ⊢ wkᴹ (numBinds Θ) W ⟪ dual Θ , s ⟫ ⦂ _
+  ⊢argcross = env (⊢ᵐ-dual Θ Δ mwᵥ)
+                  (crossing Θ mwᵥ ⊢W) ⊢s-tr wAᵈ

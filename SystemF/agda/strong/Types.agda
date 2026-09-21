@@ -1,46 +1,29 @@
 module strong.Types where
 
--- File Charter:
---   * THE TYPE SYNTAX AND ITS SUBSTITUTION OPERATIONS.  `TyVar` (= ℕ)
---     and `Ty` (`` `_ ``, `` `ℕ ``, `` `𝔹 ``, `_⇒_`, `` `∀ ``);
---     parallel renaming and substitution `renameᵗ`/`substᵗ` with
---     `extᵗ`/`extsᵗ`/`⇑ᵗ`; single substitution `_[_]ᵗ` (via
---     `singleTyEnv`), `idᵗ` and `_•ᵗ_`; and the two index-directed
---     substitutions `single-at`/`_[_:=_]ᵗ` and `downTyEnv`.
---     Mirrors SystemF/agda/extrinsic/Types.agda.
---   * NO LEMMAS.  The equational facts about these operations live in
---     strong.proof.Types (`substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`);
---     the full algebraic theory — composition `_⨟ᵗ_`, `sub-sub`,
---     `substitution`, `exts-sub-cons` — is strong.proof.TypeSubst.  Nothing
---     here knows about the binder/seal discipline or the two de Bruijn
---     universes: that is strong.Ctx.
---   * ONE SYNTAX, TWO READINGS.  A `Ty` carries no universe tag.  The
---     same term is read either as an ORDINARY type or as a
---     REPRESENTATION payload, and it is strong.Ctx §5 (`_⊢_~_`,
---     `_⊢_≈_⊣_`, `SameTyExt`) that relates the two readings — never
---     anything in this file (notes/DECISIONS.md, 2026-09-20, the
---     context-layer split by subject).  The consequence for §4:
---     `single-at` leaves every index but X alone, because a CONCEALED
---     ordinary variable stays in the context, while `singleTyEnv`
---     shifts the rest down because reveal/tapp ELIMINATE their
---     variable.
+-- Strong System F — types and type-variable substitution.
+--
+-- Types are ordinary System F types in de Bruijn form; a type variable is a
+-- natural-number index (` X).  Renaming and (parallel) substitution are the
+-- standard operations, mirroring SystemF/agda/extrinsic/Types.agda.  Nothing
+-- here knows about the binder/seal discipline — that lives in strong.Ctx.
 
 open import Data.Nat using (ℕ; zero; suc; _∸_)
 open import Data.Nat.Properties using (_≟_)
 open import Relation.Nullary using (yes; no)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong₂; trans)
 
 ------------------------------------------------------------------------
 -- Type variables and types
 ------------------------------------------------------------------------
 
-TyVar : Set
-TyVar = ℕ
+Var : Set
+Var = ℕ
 
 infixr 7 _⇒_
 infix 6 `∀
 
 data Ty : Set where
-  `_  : TyVar → Ty        -- X
+  `_  : Var → Ty          -- X
   `ℕ  : Ty                -- ℕ
   `𝔹  : Ty                -- 𝔹
   _⇒_ : Ty → Ty → Ty      -- A → B
@@ -51,10 +34,10 @@ data Ty : Set where
 ------------------------------------------------------------------------
 
 Renameᵗ : Set
-Renameᵗ = TyVar → TyVar
+Renameᵗ = Var → Var
 
 Substᵗ : Set
-Substᵗ = TyVar → Ty
+Substᵗ = Var → Ty
 
 renᵗ : Renameᵗ → Substᵗ
 renᵗ ρ X = ` (ρ X)
@@ -83,6 +66,38 @@ substᵗ σ `ℕ      = `ℕ
 substᵗ σ `𝔹      = `𝔹
 substᵗ σ (A ⇒ B) = substᵗ σ A ⇒ substᵗ σ B
 substᵗ σ (`∀ A)  = `∀ (substᵗ (extsᵗ σ) A)
+
+------------------------------------------------------------------------
+-- Congruence and rename/subst agreement
+------------------------------------------------------------------------
+
+substᵗ-cong : ∀ {σ τ : Substᵗ}
+  → ((X : Var) → σ X ≡ τ X)
+  → (A : Ty)
+  → substᵗ σ A ≡ substᵗ τ A
+substᵗ-cong h (` X)   = h X
+substᵗ-cong h `ℕ      = refl
+substᵗ-cong h `𝔹      = refl
+substᵗ-cong h (A ⇒ B) = cong₂ _⇒_ (substᵗ-cong h A) (substᵗ-cong h B)
+substᵗ-cong {σ} {τ} h (`∀ A) = cong `∀ (substᵗ-cong h-ext A)
+  where
+  h-ext : (X : Var) → extsᵗ σ X ≡ extsᵗ τ X
+  h-ext zero    = refl
+  h-ext (suc X) = cong (renameᵗ suc) (h X)
+
+extsᵗ-renᵗ : (ρ : Renameᵗ) → (X : Var) → extsᵗ (renᵗ ρ) X ≡ renᵗ (extᵗ ρ) X
+extsᵗ-renᵗ ρ zero    = refl
+extsᵗ-renᵗ ρ (suc X) = refl
+
+substᵗ-renᵗ : (ρ : Renameᵗ) (A : Ty) → substᵗ (renᵗ ρ) A ≡ renameᵗ ρ A
+substᵗ-renᵗ ρ (` X)   = refl
+substᵗ-renᵗ ρ `ℕ      = refl
+substᵗ-renᵗ ρ `𝔹      = refl
+substᵗ-renᵗ ρ (A ⇒ B) = cong₂ _⇒_ (substᵗ-renᵗ ρ A) (substᵗ-renᵗ ρ B)
+substᵗ-renᵗ ρ (`∀ A)  =
+  cong `∀
+    (trans (substᵗ-cong (extsᵗ-renᵗ ρ) A)
+           (substᵗ-renᵗ (extᵗ ρ) A))
 
 ------------------------------------------------------------------------
 -- Single substitution and cons
@@ -119,18 +134,16 @@ single-at X A Y with X ≟ Y
 ... | yes _ = A
 ... | no  _ = ` Y
 
--- B [ X := A ]ᵗ : substitute A for the general index X in B.  Its
--- substitution `single-at` is what strong.proof.Preserve reasons about
--- (`single-at-hit`, `single-at-miss`, `single-at-ext`).
+-- B [ X := A ]ᵗ : substitute A for the general index X in B  (used by (conceal)).
 infix 8 _[_:=_]ᵗ
 _[_:=_]ᵗ : Ty → ℕ → Ty → Ty
 B [ X := A ]ᵗ = substᵗ (single-at X A) B
 
--- downTyEnv X A : move a type from the ambient context Δ INTO the prefix
--- Δ ↓ X (which drops indices 0..X).  The concealed variable X becomes its
--- representation A; deeper variables Y > X shift down by X+1 to fill the
--- dropped slots.  It has NO caller in the live development: the rule it
--- was written for, TyWrapCncl, went with the masked-entry design.
+-- downTyEnv X A : move a type from the ambient context Δ INTO the prefix Δ ↓ X
+-- (which drops indices 0..X).  The concealed variable X becomes its
+-- representation A; deeper variables Y > X shift down by X+1 to fill the dropped
+-- slots.  (Used by TyWrapCncl to reindex a type argument into the conceal body's
+-- prefix, where X is no longer visible and is replaced by its rep.)
 downTyEnv : ℕ → Ty → Substᵗ
 downTyEnv X A Y with X ≟ Y
 ... | yes _ = A

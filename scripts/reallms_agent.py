@@ -19,7 +19,7 @@ Tools exposed to the model:
                                        run agda, return ok + trimmed errors
                                        (repeatable: this IS the feedback loop)
 
-Key is read from $REALLMS_API_KEY or ~/.zshrc; never printed.
+Key is read only from ~/.reallms_key (a file holding just the key); never printed.
 """
 import argparse
 import json
@@ -34,33 +34,15 @@ BASE_URL = "https://reallms.rescloud.iu.edu/direct/v1"
 
 
 def read_key() -> str:
-    # 1. explicit env override
-    k = os.environ.get("REALLMS_API_KEY")
-    if k and k.strip():
-        return k.strip()
-    # 2. an `export REALLMS_API_KEY=...` line in ~/.zshrc
-    try:
-        with open(os.path.expanduser("~/.zshrc")) as f:
-            for line in f:
-                m = re.match(r'\s*export\s+REALLMS_API_KEY=(.*)', line)
-                if m:
-                    v = m.group(1).strip().strip('"').strip("'")
-                    if v:
-                        return v
-    except FileNotFoundError:
-        pass
-    # 3. a ~/.reallms_key file holding just the key (handy on a host without
-    #    the export, e.g. copied over to another machine). Ordered last so a
-    #    working zshrc export is never shadowed by a stale file.
+    # The key is read only from ~/.reallms_key (a file holding just the key).
     try:
         with open(os.path.expanduser("~/.reallms_key")) as f:
             v = f.read().strip()
-            if v:
-                return v
     except FileNotFoundError:
-        pass
-    sys.exit("No REALLMS_API_KEY found (checked $REALLMS_API_KEY, ~/.zshrc, "
-             "~/.reallms_key)")
+        sys.exit("No REALLMS key: create ~/.reallms_key holding just the key.")
+    if not v:
+        sys.exit("~/.reallms_key is empty.")
+    return v
 
 
 def detect_agda_root(file_path: str) -> str:

@@ -7,9 +7,7 @@ replacement code, splice it in, type-check with the real `agda` binary, then
 restore the original file. Agda is the oracle: a clause succeeds iff type-check
 reports no errors and no "Unsolved interaction metas".
 
-The API key is read from (in priority order):
-  1. $REALLMS_API_KEY
-  2. the `export REALLMS_API_KEY=...` line in ~/.zshrc
+The API key is read only from ~/.reallms_key (a file holding just the key).
 The key is never printed.
 
 Usage:
@@ -29,30 +27,15 @@ BASE_URL = "https://reallms.rescloud.iu.edu/direct/v1"
 
 
 def read_key() -> str:
-    # env override, then an export in ~/.zshrc, then a ~/.reallms_key file
-    # (last, so a working zshrc export is never shadowed by a stale file).
-    k = os.environ.get("REALLMS_API_KEY")
-    if k and k.strip():
-        return k.strip()
-    try:
-        with open(os.path.expanduser("~/.zshrc")) as f:
-            for line in f:
-                m = re.match(r'\s*export\s+REALLMS_API_KEY=(.*)', line)
-                if m:
-                    v = m.group(1).strip().strip('"').strip("'")
-                    if v:
-                        return v
-    except FileNotFoundError:
-        pass
+    # The key is read only from ~/.reallms_key (a file holding just the key).
     try:
         with open(os.path.expanduser("~/.reallms_key")) as f:
             v = f.read().strip()
-            if v:
-                return v
     except FileNotFoundError:
-        pass
-    sys.exit("No REALLMS_API_KEY found (checked $REALLMS_API_KEY, ~/.zshrc, "
-             "~/.reallms_key)")
+        sys.exit("No REALLMS key: create ~/.reallms_key holding just the key.")
+    if not v:
+        sys.exit("~/.reallms_key is empty.")
+    return v
 
 
 def chat(model: str, messages: list, key: str, temperature: float = 0.2):

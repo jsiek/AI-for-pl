@@ -11,7 +11,7 @@ module strong-rep-var.notes.RepWeakenBindsWall where
 -- and in that form it is FALSE.  `extendReps Rs Δ` pushes the payloads
 -- `Rs` onto the representation context WITHOUT checking them, but a
 -- boundary inside `W` has to be RETYPED at the weakened context, and the
--- `env` rule stores a `MorphWf` whose `mw-exterior` field is a `WfCtx` of
+-- `env` rule stores a `BoundaryWf` whose `bw-exterior` field is a `WfCtx` of
 -- that context — which demands `WfRepCtx`, i.e. that every stored payload
 -- be well formed where it is written.
 --
@@ -20,8 +20,8 @@ module strong-rep-var.notes.RepWeakenBindsWall where
 -- EMPTY
 -- context, and insert the single payload `` ` 0 `` — a representation
 -- variable that the empty representation context does not have.  The
--- renamed term is `β-seven` itself: `renᴮᴿ (wkN 1) TyBetaMorph` is
--- `TyBetaMorph`, because the morphism's one change sits inside its own
+-- renamed term is `β-seven` itself: `renᴮᴿ (wkN 1) TyBetaBoundary` is
+-- `TyBetaBoundary`, because the boundary scope's one change sits inside its own
 -- one-wide bind block and `extᵗ (wkN 1) 0 ≡ 0`.  So the conclusion asks
 -- for the SAME term to be typed at a context whose only representation
 -- binding is `bindR (` 0)`, and `[] ⊢ᴿ ` 0` has no derivation: index 0 is
@@ -31,7 +31,7 @@ module strong-rep-var.notes.RepWeakenBindsWall where
 -- THE REPAIR is the premise `reps Δ ⊢ᴮ Rs`, and it costs nothing: at the
 -- one call site — `Peel`'s crossing argument, strong-rep-var.proof.PeelDual §3
 -- —
--- it is `mw-binds` of the very boundary being crossed, already stored in
+-- it is `bw-binds` of the very boundary being crossed, already stored in
 -- the redex's own typing derivation.  With it the statement is PROVED:
 -- `strong-rep-var.proof.RepWeaken.rep-weaken-⊢`.
 
@@ -42,7 +42,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong-rep-var.Types using (Ty; `_; `ℕ)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 open import strong-rep-var.TermSubst using (renᴹᴿ; wkN)
 
@@ -71,6 +71,6 @@ renamed-is-the-same = refl
 no-rep-weaken : ¬ RepWeakenTyping₀
 no-rep-weaken rw with rw openPayload β-seven-⊢
 no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
-  with wf-reps (mw-exterior mwΘ)
+  with wf-reps (bw-exterior mwΘ)
 no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
   | wf-bindR (wfᴿ-var (local-ref ())) wr

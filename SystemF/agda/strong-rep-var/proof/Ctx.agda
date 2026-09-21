@@ -15,16 +15,16 @@ module strong-rep-var.proof.Ctx where
 --     lemmas `repwk-abst`/`repwk-push`, with `wfctx-ren` and `∋:=-ren`.
 --   * NOT THE DEFINITIONS.  Every judgement and relation named above is
 --     declared in strong-rep-var.Ctx, which holds definitions only.  Anything
---     mentioning `Change` or `CtxMorph` belongs in strong-rep-var.CtxMorph —
+--     mentioning `Change` or `Boundary` belongs in strong-rep-var.Boundary —
 --     including `repwk-wkN`, whose home is strong-rep-var.proof.RepWeaken.
 --   * WHY THE SPLIT IS BY SUBJECT, NOT BY LAYER (notes/DECISIONS.md,
 --     2026-09-20).  The second half is the context material that used
---     to sit in strong-rep-var.CtxMorph §1; moving it here is what lets
---     strong-rep-var.Ctx stay definition-only and lets strong-rep-var.CtxMorph
+--     to sit in strong-rep-var.Boundary §1; moving it here is what lets
+--     strong-rep-var.Ctx stay definition-only and lets strong-rep-var.Boundary
 -- begin at
 --     its §2.  The import list is strong-rep-var.Types,
 -- strong-rep-var.proof.Types and
---     strong-rep-var.Ctx — keep it that way, since strong-rep-var.CtxMorph
+--     strong-rep-var.Ctx — keep it that way, since strong-rep-var.Boundary
 -- imports this
 --     module and a cycle is one careless import away.
 
@@ -709,7 +709,7 @@ ins-ren : (ρ : Renameᵗ) → α ⊢+ Δ at X ⇒ Δ′
 ins-ren ρ ins-here = ins-here
 ins-ren ρ (ins-there i) = ins-there (ins-ren ρ i)
 
--- The renamed morphism's exterior name map, as the renaming of the
+-- The renamed boundary scope's exterior name map, as the renaming of the
 -- original one: the bind block keeps its width under renaming, and
 -- `extN` at that width is what `shiftRVars` at it becomes.
 names-ren-push : (ρ : Renameᵗ) (Bs : List Ty) (Δ : TyCtx)

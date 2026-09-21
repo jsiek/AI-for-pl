@@ -23,7 +23,7 @@ module strong-rep-var.proof.Adversary where
 -- `∋lk`, `Nameable` and `applyChanges` — has no two-universe counterpart:
 -- an unlock no longer clears a bit at a retained entry, it INSERTS a name,
 -- and what it claims is `Ξ ∋ʳ α` plus freshness, which is already the
--- rule's own premise (`step-unlock`, strong-rep-var.CtxMorph §2).
+-- rule's own premise (`step-unlock`, strong-rep-var.Boundary §2).
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -37,7 +37,7 @@ open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 
 ------------------------------------------------------------------------
 -- 1.  The gate
@@ -77,18 +77,18 @@ seal-cites-representation (conv-seal d) = d
 ¬seal-adv : ∀ {A B} → Δadv ⊢ seal 0 ∶ A ⇝ B → ⊥
 ¬seal-adv (conv-seal d) = ¬know-adv d
 
--- The morphism the adversary used to hide behind: it locks the very name
+-- The boundary scope the adversary used to hide behind: it locks the very name
 -- its conversion cites.  A conversion context SKIPS a lock, so the lock
 -- buys nothing — the seal is still read where the slot is abstract.
-Θadv : CtxMorph
-Θadv = morph [] (lock 0 zero ∷ [])
+Θadv : Boundary
+Θadv = boundary [] (lock 0 zero ∷ [])
 
 conv-Θadv : ∀ {Δᶜ} → Δadv ⊢ᶜ Θadv ⇒ Δᶜ → Δᶜ ≡ Δadv
 conv-Θadv (conversion (conv-lock valid conv[])) = refl
 
 ¬⊢adv : ∀ {Γ} → ¬ (Δadv ∣ Γ ⊢ ($ 7) ⟪ Θadv , seal 0 ⟫ ⦂ ` 0)
 ¬⊢adv (env mwᵥ ⊢M ⊢c smᵢ smₑ wE)
-  with conv-Θadv (mw-conversion mwᵥ)
+  with conv-Θadv (bw-conversion mwᵥ)
 ... | refl = ¬seal-adv ⊢c
 
 ------------------------------------------------------------------------
@@ -149,7 +149,7 @@ seal-bad-conv (conv-seal (α , R , here , rep , same))
 ¬⊢bad : ∀ {Γ Θ} → Δbad ⊢ᶜ Θ ⇒ Δbad
   → ¬ (Δbad ∣ Γ ⊢ ($ 7) ⟪ Θ , seal 0 ⟫ ⦂ ` 0)
 ¬⊢bad rc (env mwᵥ ⊢$ ⊢c (R , pᵢ , qᵢ) smₑ wE)
-  with conversion-functional (mw-conversion mwᵥ) rc
+  with conversion-functional (bw-conversion mwᵥ) rc
 ... | refl with seal-bad-conv ⊢c
 ...   | refl = ¬same-ℕ-∀ pᵢ qᵢ
 
@@ -160,7 +160,7 @@ seal-bad-conv (conv-seal (α , R , here , rep , same))
 -- At a cancel the inner conceal's SOURCE type and the outer reveal's
 -- TARGET type are the SAME lookup square on the SAME conversion context,
 -- hence equal — once the name map is a function, which is exactly what
--- `WfCtx.name-fn` says and what every `MorphWf` supplies.  This one lemma
+-- `WfCtx.name-fn` says and what every `BoundaryWf` supplies.  This one lemma
 -- replaces cancel-agree + Reversal≈ + SkelEq + xrep-stored + MergeOK's two
 -- type equations.
 cancel-types-agree : ∀ {Δ X A B A′ B′}

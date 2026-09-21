@@ -16,8 +16,8 @@ module strong-rep-var.Ctx where
 --     `_⊢+_at_⇒_`/`_⊢-_at_⇒_`, and the renaming interface `RepWk`.
 --   * DEFINITIONS ONLY.  Every lemma about the above lives in
 --     strong-rep-var.proof.Ctx (notes/DECISIONS.md, 2026-09-20).  Anything
---     mentioning `Change` or `CtxMorph` — the morphism, its two induced
---     contexts, `MorphWf` — is strong-rep-var.CtxMorph; terms and the typing
+--     mentioning `Change` or `Boundary` — the boundary scope, its two induced
+--     contexts, `BoundaryWf` — is strong-rep-var.Boundary; terms and the typing
 --     judgement are strong-rep-var.Terms; conversions are
 -- strong-rep-var.Conversion.
 --   * TWO INVARIANTS BEFORE TOUCHING ANYTHING HERE.  (1) `names Γ`
@@ -47,9 +47,9 @@ module strong-rep-var.Ctx where
 --     ordinary local type variable in the usual way.
 --
 -- A term-level `Λ` extends both universes: it binds an abstract representation
--- variable and an ordinary type variable that names it. Context morphisms
+-- variable and an ordinary type variable that names it. Boundary scopes
 -- extend the representation universe and change the ordinary name map; those
--- operations live in strong-rep-var.CtxMorph.
+-- operations live in strong-rep-var.Boundary.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -240,7 +240,7 @@ shiftRep : ℕ → Ty → Ty
 shiftRep zero    R = R
 shiftRep (suc n) R = ⇑ᵗ (shiftRep n R)
 
--- A morphism's representation binders occur in its conversion context but
+-- A boundary scope's representation binders occur in its conversion context but
 -- not in its exterior context. Thus an exterior representation reading must
 -- cross that bind prefix before it can be compared with a conversion type.
 SameTyExt : ℕ → Ctxᵗ → Ty → Ctxᵗ → Ty → Set
@@ -299,7 +299,7 @@ empty = [] ∣ []
 
 -- `extN n ρ` renames underneath n binders.  It is used at two depths:
 -- `n` local `∀`s inside a representation payload, and the `n` parallel
--- representation binders a morphism's bind block introduces.
+-- representation binders a boundary scope's bind block introduces.
 extN : ℕ → Renameᵗ → Renameᵗ
 extN zero    ρ = ρ
 extN (suc n) ρ = extᵗ (extN n ρ)
@@ -333,7 +333,7 @@ extendReps Rs (Ξ ∣ Δ) =
   pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
 
 -- Every bind payload is checked over the SAME exterior representation
--- context. This is the morphism's parallel-bind discipline.
+-- context. This is the boundary scope's parallel-bind discipline.
 infix 4 _⊢ᴮ_
 data _⊢ᴮ_ (Ξ : RepCtx) : List Ty → Set where
   binds[] : Ξ ⊢ᴮ []

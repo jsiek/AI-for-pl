@@ -20,7 +20,7 @@ module strong-rep-var.TypeSafety where
 --     `preservation` (and everything built on it, `type-safety`
 --     included) takes `WfCtx Δ`; the premise-free form is FALSE here,
 --     because at a duplicate name map a TyBeta contractum must mint a
---     `MorphWf` that `Unique` refuses (notes/DECISIONS.md,
+--     `BoundaryWf` that `Unique` refuses (notes/DECISIONS.md,
 --     2026-09-18).  `progress` takes NO such premise — a boundary case
 --     reads well-formedness off its own `env`.  `det` takes the
 --     REDEX'S TYPING DERIVATION, from which it recovers the name-map

@@ -28,7 +28,7 @@ open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
 open import strong-rep-var.Terms
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
 
@@ -333,23 +333,23 @@ conv-refine rr (conv-fun p q) =
   conv-fun (conv-refine rr p) (conv-refine rr q)
 conv-refine rr (conv-all p) = conv-all (conv-refine (rr-abst rr) p)
 
-interior-refine : ∀ {Θ : CtxMorph} → RepRefines Ξ Ξ′
+interior-refine : ∀ {Θ : Boundary} → RepRefines Ξ Ξ′
   → (Ξ ∣ η) ⊢ⁱ Θ ⇒ Ω
   → (Ξ′ ∣ η) ⊢ⁱ Θ ⇒
       (pushRepBinds (binds Θ) Ξ′ ∣ names Ω)
-interior-refine {Θ = morph Rs χ} rr (interior cs) =
+interior-refine {Θ = boundary Rs χ} rr (interior cs) =
   interior (changes-refine (push-refines Rs rr) cs)
 
-conversion-refine : ∀ {Θ : CtxMorph} → RepRefines Ξ Ξ′
+conversion-refine : ∀ {Θ : Boundary} → RepRefines Ξ Ξ′
   → (Ξ ∣ η) ⊢ᶜ Θ ⇒ Ω
   → (Ξ′ ∣ η) ⊢ᶜ Θ ⇒
       (pushRepBinds (binds Θ) Ξ′ ∣ names Ω)
-conversion-refine {Θ = morph Rs χ} rr (conversion cs) =
+conversion-refine {Θ = boundary Rs χ} rr (conversion cs) =
   conversion (conv-changes-refine (push-refines Rs rr) cs)
 
 -- The target well-formedness is explicit: the only refinement that creates
 -- a concrete binding is supplied by the caller together with its payload
--- proof. All output well-formedness is then derived by `MorphWf`.
+-- proof. All output well-formedness is then derived by `BoundaryWf`.
 ⊢refine : ∀ {Ξ Ξ′ η Γ M A}
   → RepRefines Ξ Ξ′
   → WfCtx (Ξ′ ∣ η)
@@ -379,19 +379,19 @@ conversion-refine {Θ = morph Rs χ} rr (conversion cs) =
 ⊢refine rr w′ (⊢·[] ⊢L w) =
   ⊢·[] (⊢refine rr w′ ⊢L) (wf-refine rr w)
 ⊢refine {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} rr w′
-        (env {Θ = morph Rs χ}
-             (mw w bs (interior cs) (conversion csᶜ))
+        (env {Θ = boundary Rs χ}
+             (bw w bs (interior cs) (conversion csᶜ))
              ⊢M ⊢c sameᵢ sameₑ wE) =
   env mw′
-      (⊢refine (push-refines Rs rr) (mw-interior-wf mw′) ⊢M)
+      (⊢refine (push-refines Rs rr) (bw-interior-wf mw′) ⊢M)
       (conv-refine (push-refines Rs rr) ⊢c)
       sameᵢ sameₑ (wf-refine rr wE)
   where
-  mw′ : MorphWf (Ξ′ ∣ η) (morph Rs χ)
+  mw′ : BoundaryWf (Ξ′ ∣ η) (boundary Rs χ)
           (pushRepBinds Rs Ξ′ ∣ _)
           (pushRepBinds Rs Ξ′ ∣ _)
   mw′ =
-    mw w′ (binds-refine rr bs)
+    bw w′ (binds-refine rr bs)
        (interior (changes-refine (push-refines Rs rr) cs))
        (conversion (conv-changes-refine (push-refines Rs rr) csᶜ))
 
@@ -579,7 +579,7 @@ represented-wf {Δ = Δ} {R = R} w p =
   valid (there d) | α , refl , d′ with wf-names w d′
   valid (there d) | α , refl , d′ | b , db = b , there db
 
--- THE INSTANTIATED FRAME IS AGAIN A MORPHISM WITNESS.  `TyBeta` and both
+-- THE INSTANTIATED FRAME IS AGAIN A BOUNDARY SCOPE WITNESS.  `TyBeta` and both
 -- `TyPeelR` clauses replace the abstract binder the `∀` conversion was read
 -- under by a REPRESENTED one carrying the type argument's representation,
 -- and append `unlock 0 0`.  The bind block therefore grows by exactly that
@@ -589,19 +589,19 @@ represented-wf {Δ = Δ} {R = R} w p =
 -- boundary's exterior; `strong-rep-var.proof.Progress.addLock0-reading` uses
 -- it for
 -- the `RepWk suc` that the same insertion induces.
-instantiate-morphwf : ∀ {Δ Δᵢ Δᶜ Θ A R}
-  → MorphWf Δ Θ Δᵢ Δᶜ
+instantiate-boundarywf : ∀ {Δ Δᵢ Δᶜ Θ A R}
+  → BoundaryWf Δ Θ Δᵢ Δᶜ
   → names Δ ⊢ A ~ R
-  → MorphWf Δ (instantiate R Θ)
+  → BoundaryWf Δ (instantiate R Θ)
       ((bindR (shiftBy (numBinds Θ) R) ∷ reps Δᵢ)
         ∣ (zero ∷ shiftNames (names Δᵢ)))
       ((bindR (shiftBy (numBinds Θ) R) ∷ reps Δᶜ)
         ∣ (zero ∷ shiftNames (names Δᶜ)))
-instantiate-morphwf mwΘ p =
-  mw (mw-exterior mwΘ)
-     (binds∷ (same-wfᴿ (mw-exterior mwΘ) p) (mw-binds mwΘ))
-     (instantiate-interior (mw-interior mwΘ))
-     (instantiate-conversion (mw-conversion mwΘ))
+instantiate-boundarywf mwΘ p =
+  bw (bw-exterior mwΘ)
+     (binds∷ (same-wfᴿ (bw-exterior mwΘ) p) (bw-binds mwΘ))
+     (instantiate-interior (bw-interior mwΘ))
+     (instantiate-conversion (bw-conversion mwΘ))
 
 represented-lookup : names Δ ⊢ A ~ R
   → ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
@@ -891,13 +891,13 @@ mutual
 -- §3. The local reduction cases
 ------------------------------------------------------------------------
 
-empty-interior : Δ ⊢ⁱ morph [] [] ⇒ Δ
+empty-interior : Δ ⊢ⁱ boundary [] [] ⇒ Δ
 empty-interior {Δ = Ξ ∣ η} =
   interior
     (subst (λ η′ → Ξ ∣ η′ ⊢χ [] ⇒ η)
            (sym (shiftRVars-0 η)) changes[])
 
-empty-conversion : Δ ⊢ᶜ morph [] [] ⇒ Δ
+empty-conversion : Δ ⊢ᶜ boundary [] [] ⇒ Δ
 empty-conversion {Δ = Ξ ∣ η} =
   conversion
     (subst (λ η′ → Ξ ∣ η′ ⊢χᶜ [] ⇒ η)
@@ -956,7 +956,7 @@ preserve-TyBeta : ∀ {Δ N B A R C}
   → WfCtx Δ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ N ⟪ instantiate R (morph [] []) , reveal 0 B ⟫ ⦂ C
+  → Δ ∣ [] ⊢ N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫ ⦂ C
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
                 wfΔ p (⊢·[] (⊢Λ ⊢N) wA)
   with ⊢ᵗ-of CtxWf-[] (⊢Λ ⊢N)
@@ -991,9 +991,9 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
   sameₑ with wf-same wE
   sameₑ | S , q = S , q , same-weaken q
 
-  mwβ : MorphWf Δ (instantiate R (morph [] [])) ΔR ΔR
+  mwβ : BoundaryWf Δ (instantiate R (boundary [] [])) ΔR ΔR
   mwβ =
-    mw wfΔ (binds∷ (same-wfᴿ wfΔ p) binds[])
+    bw wfΔ (binds∷ (same-wfᴿ wfΔ p) binds[])
        (instantiate-interior {R = R} empty-interior)
        (instantiate-conversion {R = R} empty-conversion)
 
@@ -1010,7 +1010,7 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     wfΔ v rc ⊢s p
                     (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ ⊢N)
                                  ⊢c sameᵢ sameₑ wE) wA)
-  with conversion-functional rc (mw-conversion mwΘ)
+  with conversion-functional rc (bw-conversion mwΘ)
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
@@ -1024,7 +1024,7 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                                  ⊢c sameᵢ sameₑ wE) wA)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀
   with conv-types-unique
-         (unique-underΛ {Γ = Δᶜ} (name-fn (mw-conversion-wf mwΘ)))
+         (unique-underΛ {Γ = Δᶜ} (name-fn (bw-conversion-wf mwΘ)))
          ⊢s ⊢s₀
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
@@ -1052,10 +1052,10 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
   ΔRᶜ = (bindR (shiftBy k R) ∷ reps Δᶜ)
           ∣ (zero ∷ shiftNames (names Δᶜ))
 
-  mwᵢ : MorphWf Δ (instantiate R Θ) ΔRᵢ ΔRᶜ
-  mwᵢ = instantiate-morphwf mwΘ p
+  mwᵢ : BoundaryWf Δ (instantiate R Θ) ΔRᵢ ΔRᶜ
+  mwᵢ = instantiate-boundarywf mwΘ p
 
-  inner = ⊢refine (rr-represent rr-refl) (mw-interior-wf mwᵢ) ⊢N
+  inner = ⊢refine (rr-represent rr-refl) (bw-interior-wf mwᵢ) ⊢N
 
   conv = ⊢instReveal 0 pᶜ ⊢s
 
@@ -1196,8 +1196,8 @@ CrossΛTyping = ∀ {Δ W A}
 -- AND PROVED (2026-09-20), `strong-rep-var.proof.AddLock0.addLock0-⊢`.  It is
 -- the
 -- `env`-to-`env` transport across one inserted representation binder and
--- one fresh ordinary name: `mw-binds` by `binds-ren`, the interior reading
--- by `strong-rep-var.CtxMorph.addLock0-interior-ren` (where the appended lock
+-- one fresh ordinary name: `bw-binds` by `binds-ren`, the interior reading
+-- by `strong-rep-var.Boundary.addLock0-interior-ren` (where the appended lock
 -- DELETES the fresh name, so what is left is `interior-ren`), the interior
 -- term by `strong-rep-var.proof.RepWeaken.⊢renᴿ` at
 -- `repwk-push (repwk-cons₀ (bindR P) …) (binds Θ)`, and the conversion by
@@ -1228,7 +1228,7 @@ AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
 -- `strong-rep-var.proof.RepWeaken.rep-weaken-⊢`.  `Peel` moves its argument
 -- from
 -- the boundary's exterior to that exterior under the boundary's own
--- representation bind block — `dual-interior`, strong-rep-var.CtxMorph §3a.
+-- representation bind block — `dual-interior`, strong-rep-var.Boundary §3a.
 -- `renᴹᴿ` is representation-only by construction, so the argument's TYPE
 -- and every ordinary spelling are unchanged.  `renᴹ²-ord-id` connects
 -- this statement to the paired identity-ordinary spelling retained by
@@ -1237,9 +1237,9 @@ AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
 -- THE BIND BLOCK MUST BE WELL FORMED (2026-09-20).  Without the premise
 -- `reps Δ ⊢ᴮ Rs` the statement is FALSE — `notes/RepWeakenBindsWall.agda`
 -- refutes it from `β-seven` and the single open payload `` ` 0 ``, since
--- a boundary's `env` stores a `MorphWf` whose `mw-exterior` demands a
+-- a boundary's `env` stores a `BoundaryWf` whose `bw-exterior` demands a
 -- `WfCtx` of the weakened context.  The premise costs nothing: at the one
--- call site it is `mw-binds` of the boundary being crossed.
+-- call site it is `bw-binds` of the boundary being crossed.
 RepWeakenTyping : Set
 RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
   → reps Δ ⊢ᴮ Rs
@@ -1348,8 +1348,8 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
-  with interior-functional ri (mw-interior mwΘ)
-     | conversion-functional rc (mw-conversion mwΘ)
+  with interior-functional ri (bw-interior mwΘ)
+     | conversion-functional rc (bw-conversion mwΘ)
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
@@ -1357,8 +1357,8 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl
-  with conversion-functional r′ (mw-conversion mw′)
-     | interior-functional ri⁺ (instantiate-interior (mw-interior mwΘ))
+  with conversion-functional r′ (bw-conversion mw′)
+     | interior-functional ri⁺ (instantiate-interior (bw-interior mwΘ))
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
@@ -1374,7 +1374,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
   with conv-types-unique
-         (unique-underΛ {Γ = Δᶜ} (name-fn (mw-conversion-wf mwΘ)))
+         (unique-underΛ {Γ = Δᶜ} (name-fn (bw-conversion-wf mwΘ)))
          ⊢s ⊢s₀
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
@@ -1393,7 +1393,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
   | refl , refl | D , refl , sameD
   with sameTy-src-unique
-         (name-fn (wf-underΛ (mw-interior-wf mwΘ))) sameD sm
+         (name-fn (wf-underΛ (bw-interior-wf mwΘ))) sameD sm
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
@@ -1424,14 +1424,14 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
   ΔRᶜ = (bindR (shiftBy k R) ∷ reps Δᶜ)
           ∣ (zero ∷ shiftNames (names Δᶜ))
 
-  mwᵢ : MorphWf Δ (instantiate R Θ) ΔRᵢ ΔRᶜ
-  mwᵢ = instantiate-morphwf mwΘ p
+  mwᵢ : BoundaryWf Δ (instantiate R Θ) ΔRᵢ ΔRᶜ
+  mwᵢ = instantiate-boundarywf mwΘ p
 
   moved : ΔRᵢ ∣ [] ⊢
       (renᴹ² (ren² (λ X → X) (extN (numBinds Θ′) suc)) W
         ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ′) , `∀ s″ ⟫)
       ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ′)
-  moved = addlock (mw-interior-wf mwᵢ)
+  moved = addlock (bw-interior-wf mwᵢ)
                   (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′) r′ r″ sc
 
   int : ΔRᵢ ∣ [] ⊢
@@ -1510,11 +1510,11 @@ PeelCase : Set
 PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
   → WfCtx Δ → Value V → Value W
   → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ
-  → Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
+  → Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
   → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
   → Δ ∣ [] ⊢
       (V · (renᴹ² (ren² (λ X → X) (wkN (numBinds Θ))) W
-              ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
+              ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 CancelRCase : Set
 CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
@@ -1578,9 +1578,9 @@ module Impl
   preserve wfΔ (⊢Λ ⊢N) (ξ-Λ st) =
     ⊢Λ (preserve (wf-underΛ wfΔ) ⊢N st)
   preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
-    with interior-functional ri (mw-interior mwΘ)
+    with interior-functional ri (bw-interior mwΘ)
   preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
-    | refl = env mwΘ (preserve (mw-interior-wf mwΘ) ⊢M st)
+    | refl = env mwΘ (preserve (bw-interior-wf mwΘ) ⊢M st)
                     ⊢c sameᵢ sameₑ wE
 
   preserve* : ∀ {Δ M M′ A} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A

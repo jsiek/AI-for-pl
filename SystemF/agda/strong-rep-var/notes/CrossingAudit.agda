@@ -11,7 +11,7 @@ module strong-rep-var.notes.CrossingAudit where
 --   * §6 compares with `main`, where that same invariant IS a theorem,
 --     and locates what this branch's design gave up to lose it.
 --
--- THE QUESTION.  A morphism induces two name maps: the INTERIOR, which
+-- THE QUESTION.  A boundary scope induces two name maps: the INTERIOR, which
 -- performs every change, and the CONVERSION context, which skips `lock`s
 -- so that a conversion can still name what the interior concealed.  An
 -- ordinary de Bruijn index means different things in the two, and they
@@ -33,7 +33,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong-rep-var.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-var.Ctx
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TypeCheck
 
 ------------------------------------------------------------------------
@@ -48,22 +48,22 @@ open import strong-rep-var.TypeCheck
 Δ₀ : Ctxᵗ
 Δ₀ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
-Θ₀ : CtxMorph
-Θ₀ = morph [] (unlock 1 0 ∷ lock 0 0 ∷ [])
+Θ₀ : Boundary
+Θ₀ = boundary [] (unlock 1 0 ∷ lock 0 0 ∷ [])
 
-nmConv : Ctxᵗ → CtxMorph → Maybe TyCtx
+nmConv : Ctxᵗ → Boundary → Maybe TyCtx
 nmConv Γ Θ with conversion? Γ Θ
 nmConv Γ Θ | just (Γᶜ , _) = just (names Γᶜ)
 nmConv Γ Θ | nothing = nothing
 
-nmInt : Ctxᵗ → CtxMorph → Maybe TyCtx
+nmInt : Ctxᵗ → Boundary → Maybe TyCtx
 nmInt Γ Θ with interior? Γ Θ
 nmInt Γ Θ | just (Γᵢ , _) = just (names Γᵢ)
 nmInt Γ Θ | nothing = nothing
 
-nmDual : Ctxᵗ → CtxMorph → Maybe TyCtx
+nmDual : Ctxᵗ → Boundary → Maybe TyCtx
 nmDual Γ Θ with interior? Γ Θ
-nmDual Γ Θ | just (Γᵢ , _) = nmConv Γᵢ (dualMorph Θ)
+nmDual Γ Θ | just (Γᵢ , _) = nmConv Γᵢ (dualBoundary Θ)
 nmDual Γ Θ | nothing = nothing
 
 Δᵢ Δᶜ : Ctxᵗ
@@ -81,12 +81,12 @@ conversion-did-not = refl
 ------------------------------------------------------------------------
 
 -- `reveal 0 B` is minted from the redex's annotation `B`, read at
--- `underΛ Δ`, and lands on `instantiate R (morph [] [])`.  That frame has
+-- `underΛ Δ`, and lands on `instantiate R (boundary [] [])`.  That frame has
 -- ONE change and it is an `unlock`, so its conversion context and its
 -- interior are the same map, and both are `underΛ Δ`.  A rule whose frame
 -- never locks cannot cross wrongly.
 tybeta-used :
-  names (proj₁ (from-just (conversion? Δ₀ (instantiate `ℕ (morph [] [])))))
+  names (proj₁ (from-just (conversion? Δ₀ (instantiate `ℕ (boundary [] [])))))
     ≡ names (underΛ Δ₀)
 tybeta-used = refl
 
@@ -95,13 +95,13 @@ tybeta-used = refl
 ------------------------------------------------------------------------
 
 -- A value crossing a `Λ` is wrapped by `crossΛᴹ` in `mkId (⇑ᵗ A)` over
--- the frame `morph [] (lock 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
+-- the frame `boundary [] (lock 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
 -- the right spelling at `underΛ Δ`; the frame's only change is the lock,
 -- which the conversion context SKIPS, so the conversion context IS
 -- `underΛ Δ`.  Nothing moves, so nothing can be misspelled.
 beta-used :
   names (proj₁ (from-just
-    (conversion? (underΛ Δ₀) (morph [] (lock 0 0 ∷ [])))))
+    (conversion? (underΛ Δ₀) (boundary [] (lock 0 0 ∷ [])))))
     ≡ names (underΛ Δ₀)
 beta-used = refl
 
@@ -125,13 +125,13 @@ typeelrΛ-used = refl
 ------------------------------------------------------------------------
 
 -- `Peel` splits the redex's conversion `s ↦ t`.  `t` stays on Θ, so it is
--- still read where it was.  `s` moves onto `dualMorph Θ`, whose
+-- still read where it was.  `s` moves onto `dualBoundary Θ`, whose
 -- conversion context is taken at the INTERIOR — and that is a different
 -- map from Θ's own conversion context, where `s` was read:
 peel-read : names Δᶜ ≡ 0 ∷ 1 ∷ []
 peel-read = refl
 
-peel-used : names (proj₁ (from-just (conversion? Δᵢ (dualMorph Θ₀))))
+peel-used : names (proj₁ (from-just (conversion? Δᵢ (dualBoundary Θ₀))))
   ≡ 1 ∷ 0 ∷ []
 peel-used = refl
 
@@ -152,14 +152,14 @@ peel-used = refl
 ------------------------------------------------------------------------
 
 -- Write I⟦Θ⟧Δ for the interior name map and C⟦Θ⟧Δ for the conversion
--- one.  `Peel` reads `s` at C⟦Θ⟧Δ and uses it at C⟦dualMorph Θ⟧(I⟦Θ⟧Δ),
+-- one.  `Peel` reads `s` at C⟦Θ⟧Δ and uses it at C⟦dualBoundary Θ⟧(I⟦Θ⟧Δ),
 -- so what it needs, for the frame it fires on, is
 --
---     (P)    C⟦dualMorph Θ⟧(I⟦Θ⟧Δ)  ≡  C⟦Θ⟧Δ
+--     (P)    C⟦dualBoundary Θ⟧(I⟦Θ⟧Δ)  ≡  C⟦Θ⟧Δ
 --
 -- and that is `Ok` below.  §4 showed (P) failing on a hand-built frame.
 -- The three facts that say when it holds are these.
-Ok : Ctxᵗ → CtxMorph → Set
+Ok : Ctxᵗ → Boundary → Set
 Ok Γ Θ = nmDual Γ Θ ≡ nmConv Γ Θ
 
 reps₃ : RepCtx
@@ -168,15 +168,15 @@ reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 Δ₃ : Ctxᵗ
 Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
 
-Lock Unlock : CtxMorph
-Lock = morph [] (lock 0 0 ∷ [])
-Unlock = morph [] (unlock 0 2 ∷ [])
+Lock Unlock : Boundary
+Lock = boundary [] (lock 0 0 ∷ [])
+Unlock = boundary [] (unlock 0 2 ∷ [])
 
 -- FACT 1.  A change list with NO UNLOCKS has (P).  The conversion context
 -- skips every lock, so C⟦Θ⟧Δ = Δ; the interior deletes the locked names;
 -- the dual is all unlocks, at the positions the locks recorded, and each
 -- is fresh at the interior, so running them restores Δ exactly.
-locks-only-ok : Ok Δ₃ (morph [] (lock 0 1 ∷ lock 0 0 ∷ []))
+locks-only-ok : Ok Δ₃ (boundary [] (lock 0 1 ∷ lock 0 0 ∷ []))
 locks-only-ok = refl
 
 -- FACT 2.  A change list with NO LOCKS has (P).  Nothing is skipped, so
@@ -195,11 +195,11 @@ unlocks-only-ok = refl
 -- has already made different, so 2 lands before 1 in one and before 0 in
 -- the other.  The dual then restores 0 at the front of the interior's
 -- result, and the two maps hold the same names in different orders.
-mixed-dual : nmDual Δ₃ (morph [] (unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-dual : nmDual Δ₃ (boundary [] (unlock 0 2 ∷ lock 0 0 ∷ []))
   ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 mixed-dual = refl
 
-mixed-conv : nmConv Δ₃ (morph [] (unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-conv : nmConv Δ₃ (boundary [] (unlock 0 2 ∷ lock 0 0 ∷ []))
   ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 mixed-conv = refl
 
@@ -262,8 +262,8 @@ push-shape-conv = refl
 -- ones the locks recorded.  It does not work, because `dual` is asked to
 -- do TWO jobs and, once positions move, they want different numbers.
 -- On §5's mixed frame — `lock 0 0` then `unlock 0 2` over Δ₃:
-Mixed : CtxMorph
-Mixed = morph [] (unlock 0 2 ∷ lock 0 0 ∷ [])
+Mixed : Boundary
+Mixed = boundary [] (unlock 0 2 ∷ lock 0 0 ∷ [])
 
 mixed-int : nmInt Δ₃ Mixed ≡ just (2 ∷ 1 ∷ [])
 mixed-int = refl
@@ -274,10 +274,10 @@ mixed-target = refl
 Δᵐ : Ctxᵗ
 Δᵐ = reps₃ ∣ (2 ∷ 1 ∷ [])
 
--- `dualMorph Mixed`, as defined.  It INVERTS the interior, which is the
+-- `dualBoundary Mixed`, as defined.  It INVERTS the interior, which is the
 -- job the crossing frame identity needs — and misses (P).
-Dsyn : CtxMorph
-Dsyn = morph [] (unlock 0 0 ∷ lock 0 2 ∷ [])
+Dsyn : Boundary
+Dsyn = boundary [] (unlock 0 0 ∷ lock 0 2 ∷ [])
 
 syn-inverts : nmInt Δᵐ Dsyn ≡ just (0 ∷ 1 ∷ [])
 syn-inverts = refl
@@ -287,8 +287,8 @@ syn-misses = refl
 
 -- The same list with the restoring unlock moved to the position the
 -- CONVERSION reading wants.  It has (P) — and stops inverting.
-Dfix : CtxMorph
-Dfix = morph [] (unlock 1 0 ∷ lock 0 2 ∷ [])
+Dfix : Boundary
+Dfix = boundary [] (unlock 1 0 ∷ lock 0 2 ∷ [])
 
 fix-has-P : nmConv Δᵐ Dfix ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 fix-has-P = refl

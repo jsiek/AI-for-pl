@@ -35,22 +35,22 @@ already exact — `(†) interior-dual`, `proof/PeelDual`.
 ## The repair
 
 Every substituted image that crosses a binder is WRAPPED in a boundary
-whose morphism is the DUAL of what it crossed, with an identity conversion
+whose boundary scope is the DUAL of what it crossed, with an identity conversion
 at the value's type:
 
 ```agda
 crossΛ : Term → Ty → Term
-crossΛ W A = ⇑ᴹ W ⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+crossΛ W A = ⇑ᴹ W ⟪ boundary [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫
 ```
 
 A `Λ` is an `abst` binder occupying slot 0 inside, so its dual is
-`morph [] (lock 0 ∷ [])` — no binds, one lock — which is exactly
-`dual (morph (A ∷ []) [])`, the morphism `Peel` mints.  The frame identity
-is then DEFINITIONAL:
+`boundary [] (lock 0 ∷ [])` — no binds, one lock — which is exactly
+`dual (boundary (A ∷ []) [])`, the boundary scope `Peel` mints.  The frame
+identity is then DEFINITIONAL:
 
 ```agda
 interior-Beta-Λ : (Δ : Ctxᵗ)
-  → interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ)
+  → interior (boundary [] (lock 0 ∷ [])) (unmasked abst ∷ Δ)
       ≡ masked abst ∷ Δ
 interior-Beta-Λ Δ = refl
 ```
@@ -134,7 +134,7 @@ The whole content of the repair is one lemma, and every premise of its
     -----------------------------------------------
   → (unmasked abst ∷ Δ) ∣ [] ⊢ crossΛ W A ⦂ ⇑ᵗ A
 ⊢crossΛ w ⊢W =
-  env (mw rw[] (sw-l (unmasked abst , ez , nameable) sw[]))
+  env (bw rw[] (sw-l (unmasked abst , ez , nameable) sw[]))
       (⊢rename Ren-wk Inj-suc ⊢W)
       (mkId-⊢ (wf-ren Ren-wk w))
       (wf-ren Ren-wk w)
@@ -180,7 +180,7 @@ contractum is a wrapper.)
 compile **untouched**.  The rule set is the same; only `Beta`'s contractum
 moved, and it moved as a function of the same redex.  In particular:
 
-* `W ⟪ morph [] (lock 0 ∷ []) , mkId A′ ⟫` is a value iff `mkId A′` is
+* `W ⟪ boundary [] (lock 0 ∷ []) , mkId A′ ⟫` is a value iff `mkId A′` is
   inert — at a variable, a function type and a `∀` it is (`I-idv`,
   `I-fun`, `I-all`), so the wrapper is a value; at a BASE type `mkId` is
   `id ℕ`, which is ACTIVE, and `7 ⟪ ↓Y , id ℕ ⟫` takes one `Drop$`.  That
@@ -267,9 +267,9 @@ count.
 composed dual of everything crossed (`hideBinds k` for `k` `Λ`s, `dual Θ`
 shifted for a boundary).  Rejected for now, but it is the cheaper
 variant if the step counts ever matter: for a single `Λ` it IS (i), and
-for `k` `Λ`s it gives one `morph [] (lock 0 ∷ … ∷ lock (k−1) ∷ [])` layer
+for `k` `Λ`s it gives one `boundary [] (lock 0 ∷ … ∷ lock (k−1) ∷ [])` layer
 instead of `k`, with `mkId (shiftBy k A)`.  The cost is that `substᵐ` must
-then thread the accumulated dual (a `CtxMorph` and a shift count) through
+then thread the accumulated dual (a `Boundary` and a shift count) through
 its own recursion rather than composing one binder at a time, and the
 frame identity becomes `applyChanges (hideBinds k) …`, a `stepB`-style
 induction rather than `refl`.  Worth revisiting only if a deep crossing

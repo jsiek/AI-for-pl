@@ -1,7 +1,7 @@
 module strong-rep-var.Show where
 
 -- de Bruijn → NAMED rendering for the two-universe Strong System F: terms,
--- ordinary types, representation payloads, conversions, context morphisms,
+-- ordinary types, representation payloads, conversions, boundary scopes,
 -- type contexts, and whole evaluator traces.  DISPLAY ONLY — there is no
 -- theorem here, and nothing in the development depends on it.
 --
@@ -38,7 +38,7 @@ module strong-rep-var.Show where
 --   * the CONVERSION comes last and is read on the CONVERSION context —
 --     unlocks performed, locks SKIPPED, a re-unlock of a live name a
 --     no-op — which is a different name map from the interior's whenever
---     the morphism locks.  `showBnd` computes both; the body is rendered
+--     the boundary scope locks.  `showBnd` computes both; the body is rendered
 --     on the interior, `c` on the conversion context.
 --
 -- USED AS A TOOL non-interactively via scripts/render_term.sh, which
@@ -64,8 +64,8 @@ open import strong-rep-var.Conversion using (Conv; id; seal; unseal; _↦_; `∀
 open import strong-rep-var.Terms
   using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
          _∣_⊢_⦂_)
-open import strong-rep-var.CtxMorph
-  using (CtxMorph; morph; binds; changes; numBinds; Change; lock; unlock)
+open import strong-rep-var.Boundary
+  using (Boundary; boundary; binds; changes; numBinds; Change; lock; unlock)
 open import strong-rep-var.Reduction using (_⊢_-→_; TyBeta; Beta; Peel;
   TyPeelR-Λ; TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
   ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫)
@@ -250,7 +250,7 @@ showConv ns (`∀ s)     =
        ++ showConv (tyBinder (length ns) ∷ ns) s ++ ")"
 
 ------------------------------------------------------------------------
--- 5. Context morphisms
+-- 5. Boundary scopes
 ------------------------------------------------------------------------
 
 -- the interior reading: every change acts
@@ -263,7 +263,7 @@ applyChsI []      e = e
 applyChsI (δ ∷ χ) e = applyChI δ (applyChsI χ e)
 
 -- the conversion reading: a `lock` is SKIPPED, and an `unlock` of a name
--- that is already live is a no-op (`conv-unlock-live`, strong-rep-var.CtxMorph
+-- that is already live is a no-op (`conv-unlock-live`, strong-rep-var.Boundary
 -- §3)
 applyChC : Change → Env → Env
 applyChC (lock X α)   e = e
@@ -298,12 +298,12 @@ joinC (s ∷ [])         = s
 joinC (s ∷ ss@(_ ∷ _)) = s ++ " , " ++ joinC ss
 
 -- the entry block with its trailing separator — empty for an empty
--- morphism, so `⟪ c ⟫` renders with no leading comma
+-- boundary scope, so `⟪ c ⟫` renders with no leading comma
 entBlock : List String → String
 entBlock []         = ""
 entBlock ps@(_ ∷ _) = joinC ps ++ " , "
 
-showBnd : Env → ℕ → CtxMorph → Conv → String
+showBnd : Env → ℕ → Boundary → Conv → String
 showBnd e f Θ c =
   "⟪ " ++ entBlock (bindPieces (newPairs f (numBinds Θ)) (rnames e)
                                (binds Θ)
@@ -424,7 +424,7 @@ showRepIn n R = showRep [] (rnames (ambient n)) R
 showConvIn : ℕ → Conv → String
 showConvIn n c = showConv (onames (ambient n)) c
 
-showBndIn : ℕ → CtxMorph → Conv → String
+showBndIn : ℕ → Boundary → Conv → String
 showBndIn n Θ c = showBnd (ambient n) n Θ c
 
 showTmIn : ℕ → Term → String

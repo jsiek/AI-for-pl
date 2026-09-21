@@ -11,7 +11,7 @@ module strong-rep-var.proof.RepWeaken where
 -- map is only RENUMBERED there — every ordinary position survives — so
 -- the argument's type does not change and no ordinary spelling inside it
 -- moves.  What moves is every representation occurrence: the payloads of
--- the morphisms in its own frames and the representation variable each of
+-- the boundary scopes in its own frames and the representation variable each of
 -- their changes carries.  `renᴹᴿ` is exactly that traversal.
 --
 -- THE WORKHORSE is not the statement itself but its generalisation to a
@@ -33,7 +33,7 @@ module strong-rep-var.proof.RepWeaken where
 -- (`repwk-push`), which is precisely how `renᴹᴿ` recurses.
 --
 -- THE HARD CASE IS `env`, and every one of its six premises transports
--- by a lemma of strong-rep-var.proof.Ctx §3, strong-rep-var.CtxMorph §3d or
+-- by a lemma of strong-rep-var.proof.Ctx §3, strong-rep-var.Boundary §3d or
 -- strong-rep-var.Conversion §2d: the
 -- exterior well-formedness by `wfctx-ren`, the bind block by
 -- `binds-ren`, the two readings by `interior-ren`/`conversion-ren`, the
@@ -47,16 +47,16 @@ module strong-rep-var.proof.RepWeaken where
 --
 -- THE PREMISE `reps Δ ⊢ᴮ Rs` IS NECESSARY.  Without it the statement is
 -- FALSE, machine-checked in notes/RepWeakenBindsWall.agda: `env` stores a
--- `MorphWf` whose `mw-exterior` is a `WfCtx`, so the WEAKENED context must
+-- `BoundaryWf` whose `bw-exterior` is a `WfCtx`, so the WEAKENED context must
 -- be well formed, and `WfRepCtx (pushRepBinds Rs (reps Δ))` holds only
 -- when each inserted payload is well formed where it is written.  At the
--- one call site the premise is free — it is `mw-binds` of the very
+-- one call site the premise is free — it is `bw-binds` of the very
 -- boundary being crossed.
 --
 -- `CrossΛTyping` runs the same induction at the base instance
 -- `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The moved term lands under
 -- the new abstract representation binder but outside its ordinary name.
--- One `env` with `morph [] (lock 0 0 ∷ [])` then supplies exactly that
+-- One `env` with `boundary [] (lock 0 0 ∷ [])` then supplies exactly that
 -- missing ordinary boundary: its interior deletes name zero, while its
 -- conversion reading retains it for `mkId (⇑ᵗ A)`.
 
@@ -72,7 +72,7 @@ open import strong-rep-var.Types
 open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 open import strong-rep-var.TermSubst
 open import strong-rep-var.proof.Preserve
@@ -112,9 +112,9 @@ renameᵗ-shiftRep (suc n) ρ R =
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢·[] ⊢L wA) =
   ⊢·[] (⊢renᴿ w ⊢L) (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA)
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} {ρ = ρ} w
-      (env {Θ = Θ} (mw wΔ bs (interior cs) (conversion csᶜ))
+      (env {Θ = Θ} (bw wΔ bs (interior cs) (conversion csᶜ))
            ⊢M ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE) =
-  env (mw (wfctx-ren w wΔ) (binds-ren w bs)
+  env (bw (wfctx-ren w wΔ) (binds-ren w bs)
           (interior-ren w (interior cs))
           (conversion-ren w (conversion csᶜ)))
       (⊢renᴿ (repwk-push w (binds Θ)) ⊢M)
@@ -205,10 +205,10 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   w↑ : underΛ (Ξ ∣ η) ⊢ᵗ ⇑ᵗ A
   w↑ = wf-ren (WfRen-wk {Δ = Ξ ∣ η}) wA
 
-  mwΛ : MorphWf (underΛ (Ξ ∣ η))
-          (morph [] (lock 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
+  mwΛ : BoundaryWf (underΛ (Ξ ∣ η))
+          (boundary [] (lock 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
   mwΛ =
-    mw (wf-underΛ wfΔ) binds[]
+    bw (wf-underΛ wfΔ) binds[]
        (interior
          (subst (λ D → (abstR ∷ Ξ) ∣ D
                           ⊢χ lock 0 0 ∷ [] ⇒ shiftNames η)
@@ -234,7 +234,7 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   sameₑ | R , p = R , p , p
 
   term-eq : crossΛᴹ W A
-    ≡ renᴹᴿ suc W ⟪ morph [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+    ≡ renᴹᴿ suc W ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
   term-eq =
-    cong (λ M → M ⟪ morph [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+    cong (λ M → M ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
          (renᴹ²-ord-id (λ X → refl) W)

@@ -18,7 +18,7 @@ module strong-rep-var.TypeCheck where
 --   * NOTHING HERE IS ASSUMED AND NOTHING IS TRUSTED.  Every checker
 --     returns a `Maybe` of the ORDINARY derivation, built from the
 --     constructors of the judgements in strong-rep-var.Ctx,
--- strong-rep-var.CtxMorph,
+-- strong-rep-var.Boundary,
 --     strong-rep-var.Conversion and strong-rep-var.Terms — never a bit, never
 -- a
 --     postulate, so there is no soundness theorem to owe.  The rules
@@ -31,7 +31,7 @@ module strong-rep-var.TypeCheck where
 --     must INFER, not merely check: `⊢·` and `⊢·[]` need the head's
 --     type and a head can be a boundary, and inferring a boundary's
 --     exterior type means inverting `shiftRep`, since `env` reads that
---     type across the morphism's representation-bind prefix.  That is
+--     type across the boundary scope's representation-bind prefix.  That is
 --     `strAt` (§6) — the one place in the file that produces an
 --     equation instead of a derivation.  (2) A goal-directed form
 --     discharges a premise only when the goal fixes every input.  The
@@ -52,7 +52,7 @@ module strong-rep-var.TypeCheck where
 -- different answer is a type error rather than a silently accepted
 -- witness.  Nothing here is assumed and nothing here is trusted: the
 -- derivations are built from the constructors of the judgements in
--- strong-rep-var.Ctx, strong-rep-var.CtxMorph, strong-rep-var.Conversion and
+-- strong-rep-var.Ctx, strong-rep-var.Boundary, strong-rep-var.Conversion and
 -- strong-rep-var.Terms.
 --
 -- USAGE.  `tc` IS a typing derivation — it reads its four arguments off
@@ -64,7 +64,7 @@ module strong-rep-var.TypeCheck where
 -- is the whole thing.  `tk`, `tu`, `tf` and `tr` do the same for the
 -- conversion, uniqueness, type-formation and representation-reading
 -- judgements.  Where the answer is an OUTPUT the goal does not fix — a
--- morphism's two induced contexts, a lookup's type — the `!` family is
+-- boundary scope's two induced contexts, a lookup's type — the `!` family is
 -- used instead and the input is written out.
 --
 -- WHY IT EXISTS (2026-09-17).  A boundary `M ⟪ Θ , c ⟫` is typed by `env`,
@@ -111,7 +111,7 @@ open import strong-rep-var.Types
          extᵗ; ⇑ᵗ; _[_]ᵗ)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 
 ------------------------------------------------------------------------
@@ -246,7 +246,7 @@ runδ Ξ Δ (unlock X α) | just v  | just f | nothing = nothing
 runδ Ξ Δ (unlock X α) | just v  | just f | just (Δ′ , i) =
   just (Δ′ , step-unlock v f i)
 
--- The tail acts first (head-LAST order, strong-rep-var.CtxMorph §2).
+-- The tail acts first (head-LAST order, strong-rep-var.Boundary §2).
 runχ : (Ξ : RepCtx) (Δ : TyCtx) (χ : List Change)
   → Maybe (∃[ Δ′ ] Ξ ∣ Δ ⊢χ χ ⇒ Δ′)
 runχ Ξ Δ []      = just (Δ , changes[])
@@ -258,7 +258,7 @@ runχ Ξ Δ (δ ∷ χ) | just (Δ₂ , cs) | just (Δ₃ , st) =
   just (Δ₃ , changes∷ cs st)
 
 -- The conversion reading: a `lock` is skipped, and an `unlock` of a name
--- the skipped locks left live is a no-op (strong-rep-var.CtxMorph §3).
+-- the skipped locks left live is a no-op (strong-rep-var.Boundary §3).
 runχᶜ : (Ξ : RepCtx) (Δ : TyCtx) (χ : List Change)
   → Maybe (∃[ Δ′ ] Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′)
 runχᶜ Ξ Δ [] = just (Δ , conv[])
@@ -348,28 +348,28 @@ binds? Ξ (R ∷ Rs) | just wR | just bs = just (binds∷ wR bs)
 binds? Ξ (R ∷ Rs) | just wR | nothing = nothing
 
 ------------------------------------------------------------------------
--- 5. The two induced contexts, and a complete morphism witness
+-- 5. The two induced contexts, and a complete boundary scope witness
 ------------------------------------------------------------------------
 
-interior? : (Γ : Ctxᵗ) (Θ : CtxMorph) → Maybe (∃[ Γᵢ ] Γ ⊢ⁱ Θ ⇒ Γᵢ)
+interior? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (∃[ Γᵢ ] Γ ⊢ⁱ Θ ⇒ Γᵢ)
 interior? Γ Θ
   with runχ (reps (extendReps (binds Θ) Γ))
             (names (extendReps (binds Θ) Γ)) (changes Θ)
 interior? Γ Θ | nothing        = nothing
 interior? Γ Θ | just (Δ′ , cs) = just (_ , interior cs)
 
-conversion? : (Γ : Ctxᵗ) (Θ : CtxMorph) → Maybe (∃[ Γᶜ ] Γ ⊢ᶜ Θ ⇒ Γᶜ)
+conversion? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (∃[ Γᶜ ] Γ ⊢ᶜ Θ ⇒ Γᶜ)
 conversion? Γ Θ
   with runχᶜ (reps (extendReps (binds Θ) Γ))
              (names (extendReps (binds Θ) Γ)) (changes Θ)
 conversion? Γ Θ | nothing        = nothing
 conversion? Γ Θ | just (Δ′ , cs) = just (_ , conversion cs)
 
-MorphWfResult : Ctxᵗ → CtxMorph → Set
-MorphWfResult Γ Θ =
-  Σ[ Γᵢ ∈ Ctxᵗ ] Σ[ Γᶜ ∈ Ctxᵗ ] MorphWf Γ Θ Γᵢ Γᶜ
+BoundaryWfResult : Ctxᵗ → Boundary → Set
+BoundaryWfResult Γ Θ =
+  Σ[ Γᵢ ∈ Ctxᵗ ] Σ[ Γᶜ ∈ Ctxᵗ ] BoundaryWf Γ Θ Γᵢ Γᶜ
 
-morphWf? : (Γ : Ctxᵗ) (Θ : CtxMorph) → Maybe (MorphWfResult Γ Θ)
+morphWf? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (BoundaryWfResult Γ Θ)
 morphWf? Γ Θ with wfCtx? Γ
 morphWf? Γ Θ | nothing = nothing
 morphWf? Γ Θ | just wΓ with binds? (reps Γ) (binds Θ)
@@ -379,7 +379,7 @@ morphWf? Γ Θ | just wΓ | just bs | nothing = nothing
 morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) with conversion? Γ Θ
 morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | nothing = nothing
 morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv) =
-  just (Γᵢ , Γᶜ , mw wΓ bs int cnv)
+  just (Γᵢ , Γᶜ , bw wΓ bs int cnv)
 
 ------------------------------------------------------------------------
 -- 6. Strengthening: the inverse of `shiftRep`
@@ -388,7 +388,7 @@ morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv) =
 -- `extN k suc` is the identity below k and `suc` at or above it, so its
 -- image misses exactly k.  Inverting it is what lets an exterior type be
 -- INFERRED from a conversion's target, which `env` presents through the
--- morphism's representation-bind prefix.
+-- boundary scope's representation-bind prefix.
 strVar : (k X : ℕ) → Maybe (∃[ Y ] extN k suc Y ≡ X)
 strVar zero    zero    = nothing
 strVar zero    (suc X) = just (X , refl)
@@ -799,14 +799,14 @@ tr {η} {A} {R} {w} = force (check~ η A R) w
 -- `from-just` turns a checker into what it found; the caller's type
 -- signature is what pins the answer, because a different one does not
 -- typecheck.  These are used where the answer is an OUTPUT the goal does
--- not already fix — a morphism's induced contexts, a lookup's type.
-int! : (Γ : Ctxᵗ) (Θ : CtxMorph) → From-just (interior? Γ Θ)
+-- not already fix — a boundary scope's induced contexts, a lookup's type.
+int! : (Γ : Ctxᵗ) (Θ : Boundary) → From-just (interior? Γ Θ)
 int! Γ Θ = from-just (interior? Γ Θ)
 
-conv! : (Γ : Ctxᵗ) (Θ : CtxMorph) → From-just (conversion? Γ Θ)
+conv! : (Γ : Ctxᵗ) (Θ : Boundary) → From-just (conversion? Γ Θ)
 conv! Γ Θ = from-just (conversion? Γ Θ)
 
-mw! : (Γ : Ctxᵗ) (Θ : CtxMorph) → From-just (morphWf? Γ Θ)
+mw! : (Γ : Ctxᵗ) (Θ : Boundary) → From-just (morphWf? Γ Θ)
 mw! Γ Θ = from-just (morphWf? Γ Θ)
 
 wf! : (Γ : Ctxᵗ) → From-just (wfCtx? Γ)

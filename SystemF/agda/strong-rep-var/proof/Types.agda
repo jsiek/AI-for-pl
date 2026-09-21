@@ -12,7 +12,7 @@ module strong-rep-var.proof.Types where
 --     split (notes/DECISIONS.md, 2026-09-20).
 --   * IT IS THE BOTTOM OF THE HIERARCHY.  It imports strong-rep-var.Types and
 --     the standard library and NOTHING else, which is what lets
---     strong-rep-var.Ctx, strong-rep-var.proof.Ctx and strong-rep-var.CtxMorph
+--     strong-rep-var.Ctx, strong-rep-var.proof.Ctx and strong-rep-var.Boundary
 -- stand on it.
 --     Keep that import list closed when adding a lemma.
 

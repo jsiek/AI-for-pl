@@ -18,11 +18,11 @@ module strong-rep-var.Preservation where
 --   * WHY `WfCtx Δ` IS PART OF THE STATEMENT — the premise-free form is
 --     FALSE here (notes/DECISIONS.md, 2026-09-18).  The reduction
 --     relation is indexed by the type context Δ alone, the term context
---     being empty; but a contractum can MINT a `MorphWf`, whose
+--     being empty; but a contractum can MINT a `BoundaryWf`, whose
 --     exterior field demands `WfCtx Δ`, from a redex that mentioned no
 --     ordinary type variable at all.  The counterexample is spelled out
 --     below.  `progress` needs no such premise, because every boundary
---     typing node carries its own `MorphWf`.
+--     typing node carries its own `BoundaryWf`.
 --
 -- HOW THE THREE CROSSING CASES LANDED.  Stage 2
 -- (2026-09-19) discharged ALL THREE: `IdPush` and, after
@@ -44,7 +44,7 @@ module strong-rep-var.Preservation where
 -- renaming that is correct for the INTERIOR reading (where `addLock0`'s
 -- appended lock, acting first, deletes the new ordinary name) and wrong for
 -- the CONVERSION reading (which SKIPS locks, so the new name survives and
--- the moved morphism's own unlocks displace it).  No premise repairs a
+-- the moved boundary scope's own unlocks displace it).  No premise repairs a
 -- contractum, so the RULE was repaired, with Jeremy's approval and in the
 -- pattern `Peel` got on 2026-09-18: the moved conversion is NAMED and
 -- pinned by a `SameConv`, against the old conversion context viewed through
@@ -79,7 +79,7 @@ module strong-rep-var.Preservation where
 --     (Λ ($ 0)) ·[ `ℕ , `ℕ ]
 --
 -- can be typed because it mentions no ordinary type variable.  TyBeta's
--- contractum, however, contains a newly minted `MorphWf`, whose exterior
+-- contractum, however, contains a newly minted `BoundaryWf`, whose exterior
 -- field requires `WfCtx Δ`; uniqueness fails for that duplicate name map.
 
 open import Data.List using ([])

@@ -9,7 +9,7 @@
 
 System F with type abstraction enforced at run time.  `(ΛX. N) [A]` does
 not substitute; it installs a boundary `M ⟪ Θ , c ⟫` whose **context
-morphism** `Θ` binds `X` to the representation `A`, masks in place
+boundary scope** `Θ` binds `X` to the representation `A`, masks in place
 whatever the interior may not name, and whose **conversion** `c` converts
 the interior type to the exterior type, leaf by leaf.  A representation
 is stored exactly once, at the entry that binds it; every other mention
@@ -93,7 +93,7 @@ All six, with **no module parameters, no postulates, no holes**, under
   out.
 * **The restructure.**  `4c4c44c6` (v2 layout, v1 deleted, `det` and
   values-don't-step proven), `8e933017` / `85171c82` / `eb1deb47`
-  (Jeremy's vocabulary: context morphism, `bind`/`lock`/`unlock`,
+  (Jeremy's vocabulary: boundary scope, `bind`/`lock`/`unlock`,
   `numBinds`), `13836d87` + `c2a39c02` (`⊢subst`, first end-to-end v2 run),
   `1caf9b27` (**progress proven, zero parameters**).
 * **Rule repairs.**  `5554c6b2` + `b167f622` (v2 preservation verdict:
@@ -186,7 +186,7 @@ All six, with **no module parameters, no postulates, no holes**, under
   `unsealAtᶜ`/`sealAtᶜ` → `instReveal`/`instConceal`, `dualS` →
   `dualScope`, `lockBinds` → `hideBinds`, `moveS` → `scopeOf`,
   `unlocked` → `dropLocks`, `_◃_` → `_⋉_`.  `dual`, `Inj`, `Θ`, `bind`,
-  `lock`, `unlock`, `abst`, `mask`, `unmask`, `Ent`, `Ctxᵗ`, `CtxMorph`
+  `lock`, `unlock`, `abst`, `mask`, `unmask`, `Ent`, `Ctxᵗ`, `Boundary`
   and `MorphEnt` are unchanged.  The `_⊑ᵉ_` constructors were relettered
   to spell the entries they relate: `le-ao` → `le-ab`, `le-oo` → `le-bb`,
   `le-bb` → `le-mm`, `le-bu` → `le-mu` (`le-aa` unchanged).

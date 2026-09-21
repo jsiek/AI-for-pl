@@ -74,7 +74,7 @@ open import Relation.Binary.PropositionalEquality
 open import strong-rep-var.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
@@ -130,13 +130,13 @@ value? (M ⟪ Θ , c ⟫) | just v | nothing = nothing
 -- `TyPeelR-Λ` asks for three things of the crossed frame and the type
 -- argument; `TyPeelR-⟪⟫` asks for those and, since 2026-09-18, for the
 -- interior spelling of the annotation it pushes in.
-PeelPremises : Ctxᵗ → CtxMorph → Conv → Ty → Set
+PeelPremises : Ctxᵗ → Boundary → Conv → Ty → Set
 PeelPremises Δ Θ s A =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ] Σ[ R ∈ Ty ]
     ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
       × (Δ ⊢ᶜ A ~ R))
 
-peelPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (s : Conv) (A : Ty)
+peelPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (s : Conv) (A : Ty)
   → Maybe (PeelPremises Δ Θ s A)
 peelPremises? Δ Θ s A with conversion? Δ Θ
 peelPremises? Δ Θ s A | nothing = nothing
@@ -154,7 +154,7 @@ peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
 -- and the moved inner boundary, then re-spells the inner conversion between
 -- those two conversion contexts.  In particular, no arithmetic renaming is
 -- used for the carried conversion.
-BdyPremises : Ctxᵗ → CtxMorph → CtxMorph → Conv → Ty → Ty → Ctxᵗ → Set
+BdyPremises : Ctxᵗ → Boundary → Boundary → Conv → Ty → Ty → Ctxᵗ → Set
 BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Bᵢ′ ∈ Ty ] Σ[ Δ′ᶜ ∈ Ctxᵗ ] Σ[ Δᵢ⁺ ∈ Ctxᵗ ]
     Σ[ Δ″ᶜ ∈ Ctxᵗ ] Σ[ s″ ∈ Conv ]
@@ -167,7 +167,7 @@ BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
             (underΛ
               (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′)
 
-bdyPremises? : (Δ : Ctxᵗ) (Θ Θ′ : CtxMorph) (s′ : Conv)
+bdyPremises? : (Δ : Ctxᵗ) (Θ Θ′ : Boundary) (s′ : Conv)
   (R Bᵢ : Ty) (Δᶜ : Ctxᵗ) → Maybe (BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ)
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ with interior? Δ Θ
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | nothing = nothing
@@ -207,14 +207,14 @@ bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
 
 -- `IdPush` re-bases the name it pushes into the merged frame, the same
 -- way `TyPeelR-⟪⟫` re-bases its annotation.
-PushPremises : Ctxᵗ → CtxMorph → CtxMorph → ℕ → Set
+PushPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
 PushPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ X′ ∈ ℕ ]
     ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
       × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
       × (Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ))
 
-pushPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (X : ℕ)
+pushPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
   → Maybe (PushPremises Δ Θ₁ Θ₂ X)
 pushPremises? Δ Θ₁ Θ₂ X with interior? Δ Θ₂
 pushPremises? Δ Θ₁ Θ₂ X | nothing = nothing
@@ -246,7 +246,7 @@ pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
 -- (2026-09-19): the type re-spelled is the cancelled `seal X`'s OWN
 -- source, read at Θ₁'s conversion context — the same context-reading
 -- block `pushPremises?` builds for `IdPush`.
-MergedPremises : Ctxᵗ → CtxMorph → CtxMorph → ℕ → Set
+MergedPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
 MergedPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Aᵢ ∈ Ty ]
     Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
@@ -255,7 +255,7 @@ MergedPremises Δ Θ₁ Θ₂ X =
         × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
         × (Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ))
 
-mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : CtxMorph) (X : ℕ)
+mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
   → Maybe (MergedPremises Δ Θ₁ Θ₂ X)
 mergedPremises? Δ Θ₁ Θ₂ X with interior? Δ Θ₂
 mergedPremises? Δ Θ₁ Θ₂ X | nothing = nothing
@@ -281,24 +281,24 @@ mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
        , ri , r₁ , d₁ , r⋉ , sm)
 
--- `Peel`'s crossing premises (2026-09-18).  The morphism's two readings,
+-- `Peel`'s crossing premises (2026-09-18).  The boundary scope's two readings,
 -- the DUAL's conversion context — which typing the redex does not supply,
 -- so it is built here — and the dual's spelling of the domain half.  The
 -- redex fixes only Δ, Θ and `s`.
-CrossPremises : Ctxᵗ → CtxMorph → Conv → Set
+CrossPremises : Ctxᵗ → Boundary → Conv → Set
 CrossPremises Δ Θ s =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ] Σ[ s′ ∈ Conv ]
-    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ)
+    ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δ ⊢ⁱ Θ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ)
       × SameConv Δᵈ s′ Δᶜ s)
 
-crossPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (s : Conv)
+crossPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (s : Conv)
   → Maybe (CrossPremises Δ Θ s)
 crossPremises? Δ Θ s with conversion? Δ Θ
 crossPremises? Δ Θ s | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) with interior? Δ Θ
 crossPremises? Δ Θ s | just (Δᶜ , rc) | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
-  with conversion? Δᵢ (dualMorph Θ)
+  with conversion? Δᵢ (dualBoundary Θ)
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri)
   | nothing = nothing
 crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , rd)
@@ -310,12 +310,12 @@ crossPremises? Δ Θ s | just (Δᶜ , rc) | just (Δᵢ , ri) | just (Δᵈ , r
 
 -- The looked-up type is an output: the contracta mention it only under
 -- `mkId`, which the unifier cannot invert.
-CancelPremises : Ctxᵗ → CtxMorph → ℕ → Set
+CancelPremises : Ctxᵗ → Boundary → ℕ → Set
 CancelPremises Δ Θ Y =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ A ∈ Ty ]
     ((Δ ⊢ᶜ Θ ⇒ Δᶜ) × (Δᶜ ∋ Y := A))
 
-cancelPremises? : (Δ : Ctxᵗ) (Θ : CtxMorph) (Y : ℕ)
+cancelPremises? : (Δ : Ctxᵗ) (Θ : Boundary) (Y : ℕ)
   → Maybe (CancelPremises Δ Θ Y)
 cancelPremises? Δ Θ Y with conversion? Δ Θ
 cancelPremises? Δ Θ Y | nothing = nothing
@@ -388,7 +388,7 @@ tyAppRedex Δ B A _ = nothing
 -- type; `CancelR` and `IdPush` fire at a REVEALING boundary over an inert
 -- one, and are told apart by the inner conversion.  Everything else is
 -- either a congruence or stuck, which is the caller's business.
-bdyRedex : (Δ : Ctxᵗ) (M : Term) (Θ : CtxMorph) (c : Conv)
+bdyRedex : (Δ : Ctxᵗ) (M : Term) (Θ : Boundary) (c : Conv)
   → Maybe (∃[ N ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ N))
 bdyRedex Δ ($ n) Θ (id A) with base? A
 bdyRedex Δ ($ n) Θ (id A) | just b  = just (_ , Drop$ b)

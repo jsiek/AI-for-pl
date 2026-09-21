@@ -36,7 +36,7 @@ open import strong-rep-var.Types
          ⇑ᵗ)
 open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 
 private
   variable
@@ -196,13 +196,13 @@ sameConv-∀ : ∀ {Γ Γ′ : Ctxᵗ}
 sameConv-∀ (r , p , q) = `∀ r , sameᶜ-all p , sameᶜ-all q
 
 ------------------------------------------------------------------------
--- 2c. Re-spelling a conversion across a morphism crossing
+-- 2c. Re-spelling a conversion across a boundary scope crossing
 ------------------------------------------------------------------------
 
 -- These facts were proved first in notes/PeelPremise.agda.  They are core
 -- infrastructure now because Progress must construct every premise carried
 -- by `Peel`.  `Q` and `dual-conversion-exists` live with the relational
--- context readings in strong-rep-var.CtxMorph; this section transports the
+-- context readings in strong-rep-var.Boundary; this section transports the
 -- actual
 -- type and conversion spellings.
 
@@ -248,10 +248,10 @@ readable (conv-fun a b) | r₁ , a′ | r₂ , b′ =
 readable (conv-all a) with readable a
 readable (conv-all a) | r₁ , a′ = `∀ r₁ , sameᶜ-all a′
 
-premise-exists : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : CtxMorph}
+premise-exists : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ
+  → Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ s′ ] SameConv Γᵈ s′ Γᶜ s
 premise-exists int conv dconv ⊢s with readable ⊢s
@@ -260,27 +260,27 @@ premise-exists int conv dconv ⊢s | r , rd
 premise-exists int conv dconv ⊢s | r , rd | s′ , rd′ =
   s′ , (r , rd′ , rd)
 
-peel-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
+peel-premises : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → Unique (names Γ)
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
+      ((Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
 peel-premises uq int conv ⊢s with dual-conversion-exists uq int
 peel-premises uq int conv ⊢s | Γᵈ , dconv
   with premise-exists int conv dconv ⊢s
 peel-premises uq int conv ⊢s | Γᵈ , dconv | s′ , sc =
   Γᵈ , s′ , dconv , sc
 
-peel-premises-env : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : CtxMorph}
-  → MorphWf Γ Θ Γᵢ Γᶜ
+peel-premises-env : ∀ {Γ Γᵢ Γᶜ : Ctxᵗ} {Θ : Boundary}
+  → BoundaryWf Γ Θ Γᵢ Γᶜ
   → Γᶜ ⊢ s ∶ A ⇝ B
   → ∃[ Γᵈ ] ∃[ s′ ]
-      ((Γᵢ ⊢ᶜ dualMorph Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
+      ((Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ) × SameConv Γᵈ s′ Γᶜ s)
 peel-premises-env mwΘ ⊢s =
-  peel-premises (name-fn (mw-exterior mwΘ)) (mw-interior mwΘ)
-                (mw-conversion mwΘ) ⊢s
+  peel-premises (name-fn (bw-exterior mwΘ)) (bw-interior mwΘ)
+                (bw-conversion mwΘ) ⊢s
 
 ------------------------------------------------------------------------
 -- 2d. Renaming the representation universe
@@ -455,7 +455,7 @@ conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 
 -- The new premise is the exact invariant used at `seal` and `unseal`: one
 -- representation variable has at most one ordinary name. All contexts
--- produced by well-formed morphisms preserve this invariant.
+-- produced by well-formed boundary scopes preserve this invariant.
 conv-types-unique : ∀ {c A A′ B B′}
   → Unique (names Δ)
   → Δ ⊢ c ∶ A  ⇝ B

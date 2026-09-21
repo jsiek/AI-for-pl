@@ -25,8 +25,8 @@ Outer = ΛP. λp:P. (Inner [P]) · (ΛZ. λz:Z. p)  : ∀P. P ⇒ P
 Src   = (Outer [ℕ]) · 7                        : ℕ
 ```
 
-Closed, plain System F: no boundary, no morphism, no conversion anywhere in
-the source. It is nine steps from the `CancelR` redex; the tenth step is
+Closed, plain System F: no boundary, no boundary scope, no conversion anywhere
+in the source. It is nine steps from the `CancelR` redex; the tenth step is
 the `CancelR`, and `eval` records it as `broke` — the contractum has no
 typing derivation, and the witness module proves that with an explicit `¬`,
 not only with the checker's refusal.
@@ -76,8 +76,8 @@ In de Bruijn, with `Δ₉ = (bindR ℕ ∷ []) ∣ (0 ∷ [])` the ambient of th
 `CancelR`:
 
 ```
-Θ₁ = morph (ℕ ∷ [])   (lock 1 1 ∷ unlock 0 0 ∷ [])   numBinds Θ₁ ≡ 1
-Θ₂ = morph (` 0 ∷ []) (unlock 0 0 ∷ [])              payload ` 0 — a rep VARIABLE
+Θ₁ = boundary (ℕ ∷ [])   (lock 1 1 ∷ unlock 0 0 ∷ [])   numBinds Θ₁ ≡ 1
+Θ₂ = boundary (` 0 ∷ []) (unlock 0 0 ∷ [])              payload ` 0 — a rep VARIABLE
 Δᶜ = conv Θ₂ Δ₉ = (bindR (` 0) ∷ bindR ℕ ∷ []) ∣ (0 ∷ 1 ∷ [])
 ```
 
@@ -92,14 +92,14 @@ The wall module's reason for believing the configuration might be
 unreachable is:
 
 > A bare `seal X` conversion is minted by exactly one rule — `Peel`, on the
-> crossing argument — whose frame is `dualMorph Θ`, and
-> `binds (dualMorph Θ) ≡ []`.
+> crossing argument — whose frame is `dualBoundary Θ`, and
+> `binds (dualBoundary Θ) ≡ []`.
 
 `Peel` mints **two** boundaries, and only the argument's carries the dual:
 
 ```
 Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-  -→ (V · (… ⟪ dualMorph Θ , s′ ⟫)) ⟪ Θ , t ⟫
+  -→ (V · (… ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫
             ^^^^^^^^^^^^^ binds nothing     ^^^ the ORIGINAL frame
 ```
 

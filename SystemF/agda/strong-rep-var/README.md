@@ -4,7 +4,7 @@
 
 System F with type abstraction enforced **at run time**.  Instantiating
 `(ΛX. N) [A]` does not substitute `A` into `N`; it installs a
-**boundary** `M ⟪ Θ , c ⟫` whose context morphism `Θ` stores `A` as the
+**boundary** `M ⟪ Θ , c ⟫` whose boundary scope `Θ` stores `A` as the
 representation of a fresh variable, and whose conversion `c` says leaf
 by leaf which side of the boundary may see that representation.
 
@@ -20,7 +20,7 @@ universes (`Ctx.agda`).
   every type annotation.  A name map `Γ` holds exactly the live
   ordinary names and says which α each one names.
 
-A type context is the pair `Ctxᵗ = Ξ ∣ Γ`.  A morphism's changes,
+A type context is the pair `Ctxᵗ = Ξ ∣ Γ`.  A boundary scope's changes,
 `lock X α` and `unlock X α`, delete and insert **ordinary names**; no
 change ever removes or re-spells a representation entry, so weakening
 with respect to type variables is never used — that is what "strong"
@@ -49,12 +49,12 @@ postulates, no holes**, under `agda --safe`:
 
 The premises are deliberately **not uniform**.  `preservation`,
 `preservation*` and `type-safety` take `WfCtx Δ`; the premise-free form
-is false, because a contractum can mint a `MorphWf` whose exterior
+is false, because a contractum can mint a `BoundaryWf` whose exterior
 field demands well-formedness from a redex that mentioned no ordinary
 type variable at all (the counterexample is written out in
 `Preservation.agda`'s charter and in `notes/notes.md`, "Metatheory").
 `progress` takes no such premise — every boundary typing node carries
-its own `MorphWf`.  `det` takes the **redex's typing derivation**, from
+its own `BoundaryWf`.  `det` takes the **redex's typing derivation**, from
 which it reads the name-map uniqueness the rules used to carry as
 premises (`notes/DECISIONS.md`, 2026-09-18, "uniqueness comes from
 typing, not reduction").
@@ -64,7 +64,7 @@ Preservation became unconditional on **2026-09-20**, when
 (`proof/RepWeaken.agda`, `proof/AddLock0.agda`); progress and type
 safety became unconditional on **2026-09-21**, when the last parameter,
 `MergedReading`, was shrunk to the retention `CancelR` and `IdPush`
-actually consume and then proved by `CtxMorph.merged-conversion-exists`
+actually consume and then proved by `Boundary.merged-conversion-exists`
 (`notes/DECISIONS.md`, 2026-09-21; `notes/PLAN.md`, "Current status").
 
 The gate, run **cold**, from `SystemF/agda`:
@@ -108,7 +108,7 @@ The sixth defect of the same reading discipline hit the **conversion
 context** itself rather than a spelling: a conversion reading skips
 locks, so a later `unlock` can meet a name that is already live, which
 is the clause `conv-unlock-live` (2026-09-17, `notes/ReUnlockWall.agda`,
-`CtxMorph.agda` §3).  The six are tabulated against what the named
+`Boundary.agda` §3).  The six are tabulated against what the named
 presentation hides in `notes/notes.md`, "The six re-spelling repairs".
 
 **Frame exactness.**  Beyond the six theorems the development carries
@@ -121,7 +121,7 @@ It is not a single theorem statement but a site-by-site check —
 §4's tower measure for termination, §5 `Beta`, §6 `CancelR`/`IdPush`,
 §7 the drops, §8 the congruences — resting on the relational transport
 lemmas `dual-interior`, `rewind-interior` and `merged-interior` of
-`CtxMorph.agda` §3a.  Its headline here is that at every site but
+`Boundary.agda` §3a.  Its headline here is that at every site but
 `TyBeta`'s the ordinary component of the move is the identity.  The
 verdict table and the rejected repairs are `notes/ShiftAudit.md`.
 
@@ -145,9 +145,9 @@ that older calculus, not this one.
 |------|----------|
 | `Types.agda` | the type syntax `Ty` and its substitution operations — `renameᵗ`/`substᵗ` with `extᵗ`/`extsᵗ`/`⇑ᵗ`, `_[_]ᵗ`, and the index-directed `single-at`/`_[_:=_]ᵗ`.  Definitions only, and no universe tag: the same `Ty` is read either as an ordinary type or as a representation payload |
 | `Ctx.agda` | **the two de Bruijn universes and every relation over them**: `RepBinding` (`abstR`/`bindR R`), `RepCtx`, `TyCtx` and the pair `Ctxᵗ = reps ∣ names`; the lookup family up to the square `_∋_:=_`; ordinary type formation `_⊢ᵗ_` and payload formation `_⊢ᴿ[_]_`; the two readings of a `Ty` (`_⊢_~_`, `_⊢_≈_⊣_`, `SameTyExt`); well-formedness `WfCtx` with `Unique`/`ValidNames`/`WfRepCtx`; the binder blocks `pushRepBinds`/`extendReps`, the insert/delete relations, and the renaming interface `RepWk`.  Definitions only |
-| `CtxMorph.agda` | the context morphism `record CtxMorph = morph (binds : List Ty) (changes : List Change)` — a PARALLEL bind block and a SEQUENTIAL list of `lock X α`/`unlock X α` — with its two RELATIONAL readings, `_⊢ⁱ_⇒_`, which performs every change, and `_⊢ᶜ_⇒_`, which SKIPS locks (hence `conv-unlock-live`); their functionality and the §3a–§3d transports (`dual-interior`, `rewind-interior`, `merged-interior`, `merged-conversion-exists`, the representation-renaming lemmas); the witness `MorphWf`; and the derived morphisms `dualMorph`, `rewind`, `_⋉_`, `addLock0`, `instantiate` |
+| `Boundary.agda` | the boundary scope `record Boundary = boundary (binds : List Ty) (changes : List Change)` — a PARALLEL bind block and a SEQUENTIAL list of `lock X α`/`unlock X α` — with its two RELATIONAL readings, `_⊢ⁱ_⇒_`, which performs every change, and `_⊢ᶜ_⇒_`, which SKIPS locks (hence `conv-unlock-live`); their functionality and the §3a–§3d transports (`dual-interior`, `rewind-interior`, `merged-interior`, `merged-conversion-exists`, the representation-renaming lemmas); the witness `BoundaryWf`; and the derived boundary scopes `dualBoundary`, `rewind`, `_⋉_`, `addLock0`, `instantiate` |
 | `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B` with NO polarity index, `mkId`, the canonical mints at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`), the re-spelling relation `SameConv` with its uniqueness and `respell` lemmas, `conv-ren`, the inversions and `conv-types-unique` |
-| `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the typing judgment `_∣_⊢_⦂_`, whose boundary rule `env` TAKES a `MorphWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares the three sides by the representation each denotes; the `Inert`/`Active` split with `act-or-inert`; and `Value` |
+| `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the typing judgment `_∣_⊢_⦂_`, whose boundary rule `env` TAKES a `BoundaryWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares the three sides by the representation each denotes; the `Inert`/`Active` split with `act-or-inert`; and `Value` |
 | `TermSubst.agda` | the PAIRED type renaming (`ren²`, `renᴹ²`) and its representation-only traversal `renᴹᴿ`, related by `renᴹ²-ord-id`; term-variable renaming `renⁿ` with `⊢renⁿ`/`⊢weakenⁿ`; and FRAME-EXACT substitution — `Img`, `crossΛᴹ`, `substᵐ`, `_[_∶_]ᵐ` — which wraps a value crossing a `Λ` in that binder's dual rather than shifting it |
 | `Reduction.agda` | `_⊢_-→_` with **fifteen** rules — `TyBeta`, `Beta`, `Peel`, `TyPeelR-Λ`, `TyPeelR-⟪⟫`, `CancelR`, `Drop$`, `Drop-true`, `Drop-false`, `IdPush` and the five congruences `ξ-·-l`, `ξ-·-r`, `ξ-·[]`, `ξ-Λ`, `ξ-⟪⟫` — the multi-step `_⊢_-→*_`, `value-¬step`, and `det`, which takes the redex's typing derivation.  Its charter states the crossing-spelling law and lists the five carried spellings |
 | `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`morphWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`respell?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
@@ -182,7 +182,7 @@ that older calculus, not this one.
 ## Tools
 
 `Show.agda` renders de Bruijn terms, types, representation payloads,
-conversions, context morphisms, type contexts and whole evaluator
+conversions, boundary scopes, type contexts and whole evaluator
 traces into named notation, driven non-interactively by
 `scripts/render_term.sh` (which uses the type-error trick:
 `oops : e ≡ ""; oops = refl` makes Agda print `e`'s normal form).  Run
@@ -229,7 +229,7 @@ arrive escaped — hence the `sed`).
 Conventions: representation variables cycle `α`, `β`, `γ`, `α′`, …, and
 the ordinary name at the same position cycles `X`, `Y`, `Z`, `X′`, …,
 so `X` is by construction the ordinary name of `α`.  Term binders cycle
-`x`, `y`, `z`, `f`, `g`, `h`, then primes.  A morphism's binds print
+`x`, `y`, `z`, `f`, `g`, `h`, then primes.  A boundary scope's binds print
 first as `↑α:=R`, then its changes IN THE ORDER THEY ACT — `↓X` for a
 `lock`, `↥X` for an `unlock` — and the conversion last, read on the
 conversion context rather than the interior's.  If a rendered change
@@ -283,7 +283,7 @@ Three PDFs sit at the top level for the digests above:
 ## Where to go next
 
 * **`notes/notes.md`** — the calculus itself, in named-variable
-  notation: syntax, the two context universes, the morphism readings,
+  notation: syntax, the two context universes, the boundary scope readings,
   conversion and term typing, all fifteen reduction rules, a worked
   `CancelR` run, the metatheory with its premises argued, the six
   re-spelling repairs, and a notes ↔ Agda correspondence table that

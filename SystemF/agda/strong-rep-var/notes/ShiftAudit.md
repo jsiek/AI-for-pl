@@ -38,12 +38,12 @@ The frame must *say the truth* about what the subterm may name.
 | **Peel** | `wkᴹ (numBinds Θ) W` under `dual Θ` | `Δ` | `map maskEnt (pushBinds (binds Θ) []) ++ Δ` — (†) `proof/PeelDual.interior-dual` | **exact**.  Every new slot is `masked` (`Peel-slot0-locked`), and `wkᴹ (numBinds Θ)` lands past exactly them.  Criterion 1 alone. |
 | **Peel** (`V`) | nothing | `interior Θ Δ` | `interior Θ Δ` | **exact** — identical context, no shift. |
 | **TyPeelR** (`V`), the SINGLE rule — *replaced* | `wkᴹ 1 V` | `interior Θ Δ` | `unmasked (bind (shiftBy (numBinds Θ) A)) ∷ interior Θ Δ` — `interior-TyPeelR` | ****LEAK****.  The new slot 0 was offered **unmasked**; `V` neither had it nor uses it.  This is the rule the split replaced; the record of the leak is `proof/ShiftAudit` §3/§3a. |
-| **TyPeelR-Λ** (`N`) | nothing | `unmasked abst ∷ interior Θ Δ` | `interior (morph (A ∷ binds Θ) (changes Θ)) Δ` — `interior-TyPeelR` | **exact up to refinement**.  The `Λ`'s abst slot BECOMES the boundary's bind slot: `la-uu le-ab` at a slot `N` could already name, criterion 2, `⊑ᵃ`-legal (`TyPeelR-Λ-refinement`).  **No shift at all** — no `wkᴹ`, no `⊢rename`. |
+| **TyPeelR-Λ** (`N`) | nothing | `unmasked abst ∷ interior Θ Δ` | `interior (boundary (A ∷ binds Θ) (changes Θ)) Δ` — `interior-TyPeelR` | **exact up to refinement**.  The `Λ`'s abst slot BECOMES the boundary's bind slot: `la-uu le-ab` at a slot `N` could already name, criterion 2, `⊑ᵃ`-legal (`TyPeelR-Λ-refinement`).  **No shift at all** — no `wkᴹ`, no `⊢rename`. |
 | **TyPeelR-⟪⟫** (the moved boundary) | `wkᴹ 1`, plus `lock 0` appended to its own change list | `interior Θ′ (interior Θ Δ)` | `pushBinds (map ⇑ᵗ (binds Θ′)) (masked (bind (shiftBy (numBinds Θ) A)) ∷ scope Θ′ (interior Θ Δ))` — `TyPeelR-⟪⟫-frame`, from `strong-rep-var.TermSubst.interior-addLock0-cross` | **exact**.  The moved boundary's BIRTH frame with the new binder inserted **masked** below its bind prefix — the shape (†) gives Peel and `interior-Beta-Λ` gives Beta.  Criterion 1 alone; the new slot is unnameable there (`TyPeelR-⟪⟫-slot-locked`), and it crosses by `⊢rename` at `Ren-addLock0` **alone**. |
 | **TyBeta** | nothing (`N` stays) | `unmasked abst ∷ Δ` (`⊢Λ`) | `unmasked (bind A) ∷ Δ` — `interior-TyBeta` | **exact up to refinement**.  `la-uu le-ab` at a slot `N` could already name: criterion 2, `⊑ᵃ`-legal. |
-| **TyBeta** (the type `B`) | nothing | `unmasked abst ∷ Δ` | `convCtx (morph (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` | **exact up to refinement** — same step. |
+| **TyBeta** (the type `B`) | nothing | `unmasked abst ∷ Δ` | `convCtx (boundary (A ∷ []) []) Δ ≡ unmasked (bind A) ∷ Δ` | **exact up to refinement** — same step. |
 | **Beta**, no binder crossed | `substᵐ` | `Δ` | `Δ` | **exact**.  (The one recorded exception is **erasure** — a dropped argument crosses nowhere; `Examples` §15d.) |
-| **Beta**, crossing a `Λ` | `crossΛ W A = ⇑ᴹ W ⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫` | `Δ` | `interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` — `interior-Beta-Λ` | **exact** (PR #199).  Slot 0 is refused (`Beta-Λ-slot0-locked`). |
+| **Beta**, crossing a `Λ` | `crossΛ W A = ⇑ᴹ W ⟪ boundary [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫` | `Δ` | `interior (boundary [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡ masked abst ∷ Δ` — `interior-Beta-Λ` | **exact** (PR #199).  Slot 0 is refused (`Beta-Λ-slot0-locked`). |
 | **Beta**, crossing a `ƛ` | `shiftᴵ` | `Δ` | `Δ` | **exact, vacuous**.  A `ƛ` binds a *term* variable; `shiftᴵ` is the identity on a value image because the image is **term-closed**, and it stays term-closed after #199 (`crossΛ W A` is a boundary, and `env` types its interior at `Γ = []`).  The two crossings commute on the nose (`⇑ᴵ-shiftᴵ-comm`) — the no-interference law. |
 | **CancelR / IdPush** (`V`) | nothing | `interior Θ₁ (interior Θ₂ Δ)` | `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ)` — `proof/MoveScope.interior-⋉-rewind` | **exact** — an *equality*, which is why neither case needs `⊢retag`. |
 | **CancelR / IdPush** (outer) | nothing | `interior Θ₂ Δ` | `interior (rewind Θ₂) Δ ≡ pushBinds (binds Θ₂) Δ` | **exact**.  Only the inner boundary node sits there, and `_⋉_` **reapplies** Θ₂'s whole change list at the tail, where `applyChanges` runs it first.  Both conversions are **re-minted** (`mkId`/`unseal`), not transported.  `numBinds` is unchanged on both sides (`refl`). |
@@ -73,10 +73,10 @@ The rule, as it stood:
       → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
           -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+               ⟪ boundary (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
 `V` moved from `interior Θ Δ` to
-`interior (morph (A ∷ binds Θ) (changes Θ)) Δ`, which `interior-TyPeelR`
+`interior (boundary (A ∷ binds Θ) (changes Θ)) Δ`, which `interior-TyPeelR`
 says is that same context with **one new entry at slot 0** — and the entry
 was `unmasked (bind (shiftBy (numBinds Θ) A))`.
 
@@ -101,7 +101,7 @@ statements about frames:
   frame change that is `⊑` but not `⊑ᵃ`.
 
 **The witness** (`§3a`, Examples-style, at `Δᵃ = unmasked (bind ℕ) ∷ []`,
-`Θᵃ = morph [] (lock 0 ∷ [])`).  V's frames were
+`Θᵃ = boundary [] (lock 0 ∷ [])`).  V's frames were
 
     Ξold   = masked (bind ℕ) ∷ []
     Ξnew   = unmasked (bind ℕ) ∷ masked (bind ℕ) ∷ []      (the single rule)
@@ -127,10 +127,10 @@ introduces no new slot at all.
 
 ### (a) Wrap V in the new binder's dual — **REFUTED, it loops**
 
-    (wkᴹ 1 V ⟪ morph [] (lock 0 ∷ []) , mkId (`∀ Bᵢ↑) ⟫) ·[ Bᵢ↑ , ` 0 ]
+    (wkᴹ 1 V ⟪ boundary [] (lock 0 ∷ []) , mkId (`∀ Bᵢ↑) ⟫) ·[ Bᵢ↑ , ` 0 ]
 
-The frame identity would be exact (`morph [] (lock 0 ∷ [])` *is*
-`dual (morph (A ∷ []) [])`, the shape `crossΛ` mints), and the node keeps
+The frame identity would be exact (`boundary [] (lock 0 ∷ [])` *is*
+`dual (boundary (A ∷ []) [])`, the shape `crossΛ` mints), and the node keeps
 its nameable slot.
 
 **The hazard is structural.**  An identity conversion at a `∀` type is
@@ -152,7 +152,7 @@ is **kept** in `proof/ShiftAudit.agda` as a refutation record:
   formed, which the wrapper's own `env` premise guarantees.
 * `T₀ -→ᵃ T₁ -→ᵃ T₂` on the closed instance
   `((ΛY. 3) ⟪ · , (∀Y. id ℕ) ⟫) [ℕ]`: the `Λ` is still buried under a
-  fresh `morph [] (lock 0 ∷ [])` layer at `T₂`, so `TyBeta` never fires
+  fresh `boundary [] (lock 0 ∷ [])` layer at `T₂`, so `TyBeta` never fires
   and the term grows by one boundary per step.
 
 Excluding identity conversions from TyPeelR is not an option: the
@@ -169,12 +169,12 @@ splits, and the `Λ` half is now the live rule:
     TyPeelR-Λ  : Value N
       → (unmasked abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-          -→ N ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+          -→ N ⟪ boundary (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
 **Frame verdict: exact up to refinement — TyBeta's own step.**  `N`
 already lives one `abst` binder in (`⊢Λ`), so the new `bind` slot is a slot
 `N` **could already name**: the move is
-`TyPeelR-Λ-refinement : (unmasked abst ∷ interior Θ Δ) ⊑ᵃ interior (morph (A ∷ binds Θ) (changes Θ)) Δ`
+`TyPeelR-Λ-refinement : (unmasked abst ∷ interior Θ Δ) ⊑ᵃ interior (boundary (A ∷ binds Θ) (changes Θ)) Δ`
 — `la-uu le-ab`, **`⊑ᵃ`-legal**, in flat contrast to the old rule's
 `le-mu`.  And **there is no shift at all**: no `wkᴹ`, no `⊢rename`, no
 `ren-suc-[0]`.
@@ -209,11 +209,11 @@ and a boundary carries its own change list.  So mask the new binder in the
 moved boundary's **own** frame — no second wrapper (which loops), nothing
 resolved (which is (c)'s price):
 
-    addLock0 Θ = morph (binds Θ) (changes Θ ++ (lock 0 ∷ []))
+    addLock0 Θ = boundary (binds Θ) (changes Θ ++ (lock 0 ∷ []))
 
 appended at the **tail**, where `applyChanges` runs it **first** — exactly
 the position the scope move `_⋉_` puts its travelling changes in.  It
-lives in `strong-rep-var.CtxMorph` §5, with its induced-context identities:
+lives in `strong-rep-var.Boundary` §5, with its induced-context identities:
 `interior (addLock0 Θ) Δ ≡ interior Θ (mask 0 Δ)` and
 `convCtx (addLock0 Θ) Δ ≡ convCtx Θ Δ` (the lock is **lifted** on the
 conversion context, which is what makes the repair free).  At the shift
@@ -243,7 +243,7 @@ leak's own slot is what authorizes the lock that closes it*.
                  ⟪ addLock0 (renᴮ suc Θ′)
                  , `∀ (renᶜ (extᵗ (extN (numBinds Θ′) suc)) s′) ⟫)
                 ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+               ⟪ boundary (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
 **No extra premise.**  `Value W` and the conversion typing are the old
 rule's own two premises, and `Value W` is what `canon-∀` hands progress.
@@ -258,7 +258,7 @@ change-list append lifted to a term (`addLock0ᵛ (M ⟪ Θ , c ⟫) = M ⟪ add
 
 is `refl`, and `TyPeelR-⟪⟫-outer-unchanged` says the whole contractum is
 the old contractum with `addLock0ᵛ` applied to the moved value: same outer
-frame `morph (A ∷ binds Θ) (changes Θ)`, same minted conversion
+frame `boundary (A ∷ binds Θ) (changes Θ)`, same minted conversion
 `instReveal 0 s`, same pushed-in annotation `renameᵗ (extᵗ suc) Bᵢ`, same
 type argument `` ` 0 ``.
 
@@ -295,7 +295,7 @@ all.
 
 | lemma | where | claim |
 |-------|-------|-------|
-| `addLock0`, `interior-addLock0`, `unlockedScope-addLock0`, `convCtx-addLock0`, `numBinds-addLock0` | `strong-rep-var.CtxMorph` §5 | the appended lock is `mask 0` on the interior and **invisible** on the conversion context |
+| `addLock0`, `interior-addLock0`, `unlockedScope-addLock0`, `convCtx-addLock0`, `numBinds-addLock0` | `strong-rep-var.Boundary` §5 | the appended lock is `mask 0` on the interior and **invisible** on the conversion context |
 | `Ren-addLock0`, `interior-addLock0-cross`, `map-renᶠ-shiftScope` | `strong-rep-var.TermSubst` | the crossing renaming and the frame identity at the shift the rule performs |
 | `⊢addLock0-cross` | `strong-rep-var.TermSubst` §6 | **the crossing lemma** — a boundary crosses one new bind slot, masking it in its own frame.  Reps by `⊢ʳ-ren`, changes by `⊢ˢ-++` (`⊢ˢ-ren` over the frame the lock leaves, `sw-l` for the lock), interior by `⊢rename` at `Ren-addLock0` **alone**, conversion by `conv-ren` at `ren-convCtx`.  The (b′) analogue of `⊢crossΛ` |
 | `preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫` | `proof/Preserve` §3 | **preservation** for the two clauses — the Λ clause is the old proof with `⊢retag` for `int`, the wrapper clause is the old proof with `⊢addLock0-cross` for `⊢wkV`; the outer `env` is verbatim in both |
@@ -341,8 +341,8 @@ third shape), and `TyPeelR-Λ` neither shifts nor locks anything.
 The outer frame binds `X := ℕ` and the inner frame locks it, so the moved
 boundary really does carry a change list for the appended lock to join:
 
-    Θᵈ  = morph (`ℕ ∷ []) []        the OUTER frame
-    Θᵈ′ = morph [] (lock 0 ∷ [])    the INNER frame
+    Θᵈ  = boundary (`ℕ ∷ []) []        the OUTER frame
+    Θᵈ′ = boundary [] (lock 0 ∷ [])    the INNER frame
 
 Machine-rendered:
 

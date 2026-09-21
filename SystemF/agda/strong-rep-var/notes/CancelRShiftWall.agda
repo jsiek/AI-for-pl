@@ -4,7 +4,7 @@ module strong-rep-var.notes.CancelRShiftWall where
 --   * THE WALL, and the record of the repair that answered it.  Found by
 --     the stage-2 preservation port (2026-09-19): `CancelR`'s re-spelling
 --     premise was read in the WRONG conversion context, and consequently
---     omitted the morphism's own representation-bind shift.
+--     omitted the boundary scope's own representation-bind shift.
 --   * REPAIRED THE SAME DAY, with Jeremy's approval — repair (a), the
 --     premise read at Θ₁'s own conversion context.  `strong-rep-var.Reduction`
 --     carries the repaired rule and
@@ -46,8 +46,8 @@ module strong-rep-var.notes.CancelRShiftWall where
 -- `Δ*`.
 --
 -- WHY NO EXAMPLE SAW IT.  Every `CancelR` in the twelve runs cancels a
--- boundary minted by `Peel`, whose morphism is `dualMorph Θ` — and
--- `binds (dualMorph Θ) ≡ []`, so n is 0 there.  The identities the
+-- boundary minted by `Peel`, whose boundary scope is `dualBoundary Θ` — and
+-- `binds (dualBoundary Θ) ≡ []`, so n is 0 there.  The identities the
 -- unwinding tower mints are moreover at first-order types, where R is
 -- closed and the shift is invisible a second time.
 --
@@ -62,7 +62,7 @@ module strong-rep-var.notes.CancelRShiftWall where
 -- THE TWO REPAIR PATHS, AND WHY (a) WON.  Path (b) was to prove and carry
 -- the invariant `numBinds Θ₁ ≡ 0` — the hope being that a REACHABLE
 -- `CancelR` redex always has it, since a bare `seal X` is minted by
--- `Peel` on the crossing argument, whose frame is `dualMorph Θ`.  That
+-- `Peel` on the crossing argument, whose frame is `dualBoundary Θ`.  That
 -- hope was wrong: `Peel` mints TWO boundaries and only the ARGUMENT's
 -- carries the dual, so `notes/CancelRReachabilityWitness.agda` reaches
 -- this configuration in nine steps from a closed, plain source program.
@@ -93,7 +93,7 @@ open import strong-rep-var.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-var.Ctx
 open import strong-rep-var.proof.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 open import strong-rep-var.Reduction
 open import strong-rep-var.proof.MoveScope using (preserve-CancelR)
@@ -126,16 +126,16 @@ wfΔ* = wf-ctx reps* names* unique*
   unique* : Unique (0 ∷ 1 ∷ [])
   unique* = unique∷ (fresh∷ (λ ()) fresh[]) (unique∷ fresh[] unique[])
 
--- The OUTER morphism is trivial: it is the inner morphism's bind block
--- that the rule mis-crossed, and a trivial outer one keeps every context
+-- The OUTER boundary scope is trivial: it is the inner boundary scope's bind
+-- block that the rule mis-crossed, and a trivial outer one keeps every context
 -- in the example computable.
-Θ₂* : CtxMorph
-Θ₂* = morph [] []
+Θ₂* : Boundary
+Θ₂* = boundary [] []
 
--- The INNER morphism binds ONE representation variable.  This is the only
+-- The INNER boundary scope binds ONE representation variable.  This is the only
 -- thing the twelve runs never do at a `CancelR`.
-Θ₁* : CtxMorph
-Θ₁* = morph (`ℕ ∷ []) []
+Θ₁* : Boundary
+Θ₁* = boundary (`ℕ ∷ []) []
 
 -- `Δ₁*` is at once the inner boundary's conversion context, its interior,
 -- and — since Θ₂* is trivial — the merged frame's conversion context.
@@ -149,11 +149,11 @@ wfΔ* = wf-ctx reps* names* unique*
 -- A closed value at the abstract name `` ` 1 `` of Δ₁*: a numeral sealed
 -- at the binder that name denotes.
 V* : Term
-V* = ($ 7) ⟪ morph [] [] , seal 1 ⟫
+V* = ($ 7) ⟪ boundary [] [] , seal 1 ⟫
 
 ⊢V* : Δ₁* ∣ [] ⊢ V* ⦂ ` 1
 ⊢V* =
-  env (mw wfΔ₁* binds[] (interior changes[]) (conversion conv[]))
+  env (bw wfΔ₁* binds[] (interior changes[]) (conversion conv[]))
       ⊢$
       (conv-seal (2 , `ℕ , there here , r-there (r-there r-here) , same-ℕ))
       (`ℕ , same-ℕ , same-ℕ)
@@ -172,12 +172,12 @@ V* = ($ 7) ⟪ morph [] [] , seal 1 ⟫
 v* : Value V*
 v* = V-⟪⟫ V-$ I-seal
 
-mw₁* : MorphWf Δ* Θ₁* Δ₁* Δ₁*
-mw₁* = mw wfΔ* (binds∷ wfᴿ-ℕ binds[])
+mw₁* : BoundaryWf Δ* Θ₁* Δ₁* Δ₁*
+mw₁* = bw wfΔ* (binds∷ wfᴿ-ℕ binds[])
           (interior changes[]) (conversion conv[])
 
-mw₂* : MorphWf Δ* Θ₂* Δ* Δ*
-mw₂* = mw wfΔ* binds[] (interior changes[]) (conversion conv[])
+mw₂* : BoundaryWf Δ* Θ₂* Δ* Δ*
+mw₂* = bw wfΔ* binds[] (interior changes[]) (conversion conv[])
 
 -- `Δ₁* ∋ 0 := ` 1`: ordinary 0 names representation 1, whose payload is
 -- `` ` 2 ``, which is `` ` 1 `` read on Δ₁*'s name map.
@@ -266,12 +266,12 @@ no-cancel-contractum :
        ⦂ ` 1)
 no-cancel-contractum
   (env mwR (env mw⋉ ⊢V′ ⊢c′ sameᵢ′ sameₑ′ wE′) ⊢c sameᵢ sameₑ wE)
-  with interior-functional (mw-interior mwR) (interior changes[])
-     | conversion-functional (mw-conversion mwR) (conversion conv[])
+  with interior-functional (bw-interior mwR) (interior changes[])
+     | conversion-functional (bw-conversion mwR) (conversion conv[])
 no-cancel-contractum
   (env mwR (env mw⋉ ⊢V′ ⊢c′ sameᵢ′ sameₑ′ wE′) ⊢c sameᵢ sameₑ wE)
   | refl | refl
-  with conversion-functional (mw-conversion mw⋉) r⋉* | ⊢c | ⊢c′
+  with conversion-functional (bw-conversion mw⋉) r⋉* | ⊢c | ⊢c′
 no-cancel-contractum
   (env mwR (env mw⋉ ⊢V′ ⊢c′ sameᵢ′ sameₑ′ wE′) ⊢c sameᵢ sameₑ wE)
   | refl | refl | refl | conv-idv _ | conv-idv _

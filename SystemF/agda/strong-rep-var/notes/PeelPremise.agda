@@ -5,10 +5,10 @@ module strong-rep-var.notes.PeelPremise where
 -- The proof formerly lived in this notes module.  Its reusable pieces have
 -- moved into the core:
 --
---   * strong-rep-var.CtxMorph §3b proves (Q): the conversion contexts on the
+--   * strong-rep-var.Boundary §3b proves (Q): the conversion contexts on the
 -- two
 --     sides of a crossing name the same representation variables;
---   * strong-rep-var.CtxMorph §3c constructs the dual's conversion context;
+--   * strong-rep-var.Boundary §3c constructs the dual's conversion context;
 --   * strong-rep-var.Conversion §2c re-spells a well-typed conversion and
 -- exports
 --     `peel-premises` / `peel-premises-env`.
@@ -24,7 +24,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong-rep-var.Types using (`ℕ; `𝔹)
 open import strong-rep-var.Ctx
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Conversion
 open import strong-rep-var.TypeCheck
 
@@ -38,10 +38,10 @@ reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 Δ₃ : Ctxᵗ
 Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
 
-Mixed : CtxMorph
-Mixed = morph [] (unlock 0 2 ∷ lock 0 0 ∷ [])
+Mixed : Boundary
+Mixed = boundary [] (unlock 0 2 ∷ lock 0 0 ∷ [])
 
-nmI nmC : Ctxᵗ → CtxMorph → Maybe TyCtx
+nmI nmC : Ctxᵗ → Boundary → Maybe TyCtx
 nmI Γ Θ with interior? Γ Θ
 nmI Γ Θ | just (Γᵢ , _) = just (names Γᵢ)
 nmI Γ Θ | nothing = nothing
@@ -63,7 +63,7 @@ is-Γᶜ = refl
 
 -- The dual spelling is used here.  The map is a permutation of Γᶜ's map,
 -- not the same list.
-is-Γᵈ : nmC Γᵢ (dualMorph Mixed) ≡ just (names Γᵈ)
+is-Γᵈ : nmC Γᵢ (dualBoundary Mixed) ≡ just (names Γᵈ)
 is-Γᵈ = refl
 
 respelled : SameConv Γᵈ (unseal 1) Γᶜ (unseal 0)
@@ -79,8 +79,8 @@ mixed-interior = proj₂ (int! Δ₃ Mixed)
 mixed-conversion : Δ₃ ⊢ᶜ Mixed ⇒ Γᶜ
 mixed-conversion = proj₂ (conv! Δ₃ Mixed)
 
-mixed-dual-conversion : Γᵢ ⊢ᶜ dualMorph Mixed ⇒ Γᵈ
-mixed-dual-conversion = proj₂ (conv! Γᵢ (dualMorph Mixed))
+mixed-dual-conversion : Γᵢ ⊢ᶜ dualBoundary Mixed ⇒ Γᵈ
+mixed-dual-conversion = proj₂ (conv! Γᵢ (dualBoundary Mixed))
 
 -- (Q) transports the representation named by source position zero to the
 -- dual's position one.

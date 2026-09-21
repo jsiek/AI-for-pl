@@ -120,7 +120,7 @@ module strong-rep-var.Examples where
 -- WHAT WAS DROPPED IN THE 2026-09-19 PORT, AND WHERE ITS VERDICT LIVES.
 -- The old file was written against the masked-entry design, in which a
 -- type-context slot was a `Binding` under a lock BIT and the two contexts
--- a morphism induces were COMPUTED (`interior Θ Δ`, `convCtx Θ Δ`).
+-- a boundary scope induces were COMPUTED (`interior Θ Δ`, `convCtx Θ Δ`).
 -- Neither exists here: a lock DELETES an ordinary name, an unlock INSERTS
 -- one, and both contexts are RELATIONS.  So:
 --
@@ -148,7 +148,7 @@ module strong-rep-var.Examples where
 --   * old §15 (TIGHTNESS, RULE BY RULE) — its seven frame identities were
 --     EQUATIONS between computed contexts.  They are now the relational
 --     transports `dual-interior`, `rewind-interior`, `rewind-conversion`
---     and `merged-interior` (`strong-rep-var.CtxMorph` §3a), and the audit
+--     and `merged-interior` (`strong-rep-var.Boundary` §3a), and the audit
 -- that
 --     consumes them is `proof/ShiftAudit.agda`.
 --
@@ -169,7 +169,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import strong-rep-var.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
@@ -445,10 +445,10 @@ G-run = reaches-run G-eval
 -- explains why no example saw the `CancelR` defect until §8 was written
 -- (notes/CancelRShiftWall.agda, notes/DECISIONS.md 2026-09-19).
 
-numBinds-TyBeta : ∀ {R} → numBinds (instantiate R (morph [] [])) ≡ 1
+numBinds-TyBeta : ∀ {R} → numBinds (instantiate R (boundary [] [])) ≡ 1
 numBinds-TyBeta = refl
 
-numBinds-Peel : ∀ {Θ} → numBinds (dualMorph Θ) ≡ 0
+numBinds-Peel : ∀ {Θ} → numBinds (dualBoundary Θ) ≡ 0
 numBinds-Peel = refl
 
 numBinds-TyPeelR : ∀ {R Θ} → numBinds (instantiate R Θ) ≡ suc (numBinds Θ)
@@ -578,7 +578,7 @@ V-run = reaches-run V-eval
 ------------------------------------------------------------------------
 
 -- Both programs here instantiate at a POLYMORPHIC type, so their
--- morphisms bind a representation payload with a `∀` in it.  They did not
+-- boundary scopes bind a representation payload with a `∀` in it.  They did not
 -- run when they were written: `TyPeelR-⟪⟫` and `IdPush` each carried a
 -- spelling from the conversion context into the interior without
 -- re-basing it, and the two contexts disagree exactly when a lock and an
@@ -589,7 +589,7 @@ V-run = reaches-run V-eval
 ------------------------------------------------------------------------
 -- §6a  (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z), at [𝔹] · true
 --
--- IMPREDICATIVE: the type argument is itself a `∀`, so the morphism binds
+-- IMPREDICATIVE: the type argument is itself a `∀`, so the boundary scope binds
 -- a representation payload with a `∀` in it and `wfᴿ-∀` fires.  No other
 -- run here instantiates at a polymorphic type.
 ------------------------------------------------------------------------
@@ -753,7 +753,7 @@ S-run = reaches-run S-eval
 
 -- the concealing layer these three share: 7, sealed at the ambient name
 Wseal : Term
-Wseal = ($ 7) ⟪ morph [] [] , seal 0 ⟫
+Wseal = ($ 7) ⟪ boundary [] [] , seal 0 ⟫
 
 ------------------------------------------------------------------------
 -- §9a  THE CANCEL PAIR
@@ -766,7 +766,7 @@ Wseal = ($ 7) ⟪ morph [] [] , seal 0 ⟫
 -- walked off a numeral by `Drop$`.
 
 Tcancel : Term
-Tcancel = Wseal ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+Tcancel = Wseal ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫
 
 Tcancel-⊢ : Δ₆ ∣ [] ⊢ Tcancel ⦂ `ℕ
 Tcancel-⊢ = tc
@@ -782,12 +782,12 @@ Tcancel-run = reaches-run Tcancel-eval
 -- §§1–8 gave them up for the per-state type check
 -- (notes/DECISIONS.md), and this is the smallest run where writing them
 -- out still costs nothing.  Note that `Θ₁ ⋉ Θ₂` here is the empty
--- morphism and `rewind Θ₂` is `Θ₂` — the inner frame locks nothing, so
+-- boundary scope and `rewind Θ₂` is `Θ₂` — the inner frame locks nothing, so
 -- the rewind has nothing to undo.
 _ : evalTerms 3 Tcancel-⊢
       ≡ Tcancel
-      ∷ ((($ 7) ⟪ morph [] [] , id `ℕ ⟫) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ (($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ ((($ 7) ⟪ boundary [] [] , id `ℕ ⟫) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -802,8 +802,8 @@ _ = refl
 -- bringing the reveal down onto the seal, and the pair then cancels.
 
 Tid : Term
-Tid = (Wseal ⟪ morph (`ℕ ∷ []) [] , id (` 0) ⟫)
-        ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+Tid = (Wseal ⟪ boundary (`ℕ ∷ []) [] , id (` 0) ⟫)
+        ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫
 
 Tid-⊢ : Δ₆ ∣ [] ⊢ Tid ⦂ `ℕ
 Tid-⊢ = tc
@@ -826,14 +826,14 @@ Tid-run = reaches-run Tid-eval
 -- bind block (`∋ʳ-push`, notes/DECISIONS.md 2026-09-19).
 _ : evalTerms 5 Tid-⊢
       ≡ Tid
-      ∷ ((Wseal ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫)
-           ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ (((($ 7) ⟪ morph [] [] , id `ℕ ⟫)
-             ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
-           ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ ((($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
-           ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ (($ 7) ⟪ morph (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ ((Wseal ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫)
+           ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ (((($ 7) ⟪ boundary [] [] , id `ℕ ⟫)
+             ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+           ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ ((($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+           ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -849,9 +849,9 @@ _ = refl
 -- extra layer.
 
 Tid₂ : Term
-Tid₂ = ((Wseal ⟪ morph (`ℕ ∷ []) [] , id (` 0) ⟫)
-          ⟪ morph (`ℕ ∷ []) [] , id (` 0) ⟫)
-         ⟪ morph (`ℕ ∷ []) [] , unseal 0 ⟫
+Tid₂ = ((Wseal ⟪ boundary (`ℕ ∷ []) [] , id (` 0) ⟫)
+          ⟪ boundary (`ℕ ∷ []) [] , id (` 0) ⟫)
+         ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫
 
 Tid₂-⊢ : Δ₆ ∣ [] ⊢ Tid₂ ⦂ `ℕ
 Tid₂-⊢ = tc
@@ -880,20 +880,20 @@ Tid₂-run = reaches-run Tid₂-eval
 -- `⇑ᵗ (` 0)` is `` ` 1 ``, read outside the lock.
 
 Wsub Nsub : Term
-Wsub = ($ 7) ⟪ morph [] [] , seal 0 ⟫
+Wsub = ($ 7) ⟪ boundary [] [] , seal 0 ⟫
 Nsub = Λ (` 0)
 
 _ : Nsub [ Wsub ∶ ` 0 ]ᵐ
-      ≡ Λ ((($ 7) ⟪ morph [] [] , seal 0 ⟫)
-             ⟪ morph [] (lock 0 0 ∷ []) , id (` 1) ⟫)
+      ≡ Λ ((($ 7) ⟪ boundary [] [] , seal 0 ⟫)
+             ⟪ boundary [] (lock 0 0 ∷ []) , id (` 1) ⟫)
 _ = refl
 
 -- the lock is at ordinary position 0 and names representation variable 0 —
 -- the abstract binding the `Λ` just introduced, immediately outside the
 -- image's own (empty) bind prefix
 _ : crossΛᴹ Wsub (` 0)
-      ≡ (($ 7) ⟪ morph [] [] , seal 0 ⟫)
-          ⟪ morph [] (lock 0 0 ∷ []) , id (` 1) ⟫
+      ≡ (($ 7) ⟪ boundary [] [] , seal 0 ⟫)
+          ⟪ boundary [] (lock 0 0 ∷ []) , id (` 1) ⟫
 _ = refl
 
 -- ── the ƛ clause: the bound slot is protected, the image is not ────────
@@ -926,7 +926,7 @@ Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `∀ `ℕ
 Bg-⊢ = tc
 
 _ : (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
-      ≡ Λ (($ 7) ⟪ morph [] (lock 0 0 ∷ []) , id `ℕ ⟫)
+      ≡ Λ (($ 7) ⟪ boundary [] (lock 0 0 ∷ []) , id `ℕ ⟫)
 _ = refl
 
 Bg-eval : Reaches 2 2 Bg-⊢ (Λ ($ 7))
@@ -936,7 +936,7 @@ Bg-run : empty ⊢ Bg -→* Λ ($ 7)
 Bg-run = reaches-run Bg-eval
 
 -- the wrapper itself is not a value: its conversion is the ACTIVE `id ℕ`
-¬val-wrapper : ¬ Value (($ 7) ⟪ morph [] (lock 0 0 ∷ []) , id `ℕ ⟫)
+¬val-wrapper : ¬ Value (($ 7) ⟪ boundary [] (lock 0 0 ∷ []) , id `ℕ ⟫)
 ¬val-wrapper (V-⟪⟫ _ ())
 
 ------------------------------------------------------------------------

@@ -5,11 +5,11 @@ module strong-rep-var.Progress where
 --     `Progress` explicitly: from `Δ ∣ [] ⊢ M ⦂ A` alone, M is a
 --     `Value` or there is an `M′` with `Δ ⊢ M -→ M′`.  The statement is
 --     PREMISE-FREE — no `WfCtx Δ`, unlike preservation — because every
---     boundary typing node carries its own `MorphWf`, so the induction
+--     boundary typing node carries its own `BoundaryWf`, so the induction
 --     never needs a global one.  §2 supplies the theorem outright,
 --     `progress = strong-rep-var.proof.Progress.Impl.progress`.  It is
 --     UNCONDITIONAL as of 2026-09-21: the merged-frame reading is proved
---     by `strong-rep-var.CtxMorph.merged-conversion-exists`.
+--     by `strong-rep-var.Boundary.merged-conversion-exists`.
 --   * NO PROOF SCRIPT AND NO CANONICAL-FORMS SUITE HERE.  Those are
 --     strong-rep-var.proof.Progress and strong-rep-var.proof.Canonical. 
 -- Preservation

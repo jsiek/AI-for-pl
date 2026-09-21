@@ -48,9 +48,9 @@ module strong-rep-var.notes.AddLock0Wall where
 --
 -- THE CONVERSION IS READ SOMEWHERE ELSE.  `env` checks it at the
 -- boundary's CONVERSION context, and the conversion reading SKIPS locks
--- (`conv-lock`, strong-rep-var.CtxMorph §3) — that is the whole point of a
+-- (`conv-lock`, strong-rep-var.Boundary §3) — that is the whole point of a
 -- conversion context: it is the union of the names live anywhere along
--- the morphism.  So the new name is NOT deleted there, and every
+-- the boundary scope.  So the new name is NOT deleted there, and every
 -- `unlock X α` of Θ′ then inserts at position X of a map that already
 -- carries it.  The new name is therefore DISPLACED by Θ′'s unlocks, while
 -- `renᶜ (extᵗ suc) s′` — which is `renᶜ suc` on the whole `` `∀ ``
@@ -117,7 +117,7 @@ open import strong-rep-var.Types
   using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; renameᵗ; extᵗ)
 open import strong-rep-var.Ctx
 open import strong-rep-var.Conversion
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.Terms
 open import strong-rep-var.TermSubst
 open import strong-rep-var.Reduction
@@ -160,10 +160,10 @@ Src-⊢ = tc
 Dst : Term
 Dst =
   Λ (((ƛ (` 1) ∙ ` 0)
-        ⟪ morph ((` 0) ∷ `ℕ ∷ [])
+        ⟪ boundary ((` 0) ∷ `ℕ ∷ [])
             (unlock 1 1 ∷ lock 1 2 ∷ unlock 0 0 ∷ [])
         , seal 1 ↦ unseal 1 ⟫)
-      ⟪ morph (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
+      ⟪ boundary (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
       , id `ℕ ↦ id `ℕ ⟫)
 
 Src-eval : Reaches 4 4 Src-⊢ Dst
@@ -178,8 +178,8 @@ run-keeps-the-type = refl
 ------------------------------------------------------------------------
 
 -- the inner boundary `TyBeta` minted, carried under the `Λ` by `Beta`
-Θ′ : CtxMorph
-Θ′ = renᴮ² (ren² (λ X → X) suc) TyBetaMorph
+Θ′ : Boundary
+Θ′ = renᴮ² (ren² (λ X → X) suc) TyBetaBoundary
 
 inner : Term
 inner = Vfun ⟪ Θ′ , `∀ (seal 1 ↦ unseal 1) ⟫
@@ -218,7 +218,7 @@ conv-before : Δᵢ ⊢ᶜ Θ′ ⇒ Δᶜ′
 conv-before =
   conversion (conv-unlock (bindR `ℕ , here) conv[] fresh[] ins-here)
 
-AL : CtxMorph
+AL : Boundary
 AL = addLock0 Θ′
 
 conv-after : Δ⁺ ⊢ᶜ AL ⇒ Δᶜ⁺
@@ -236,7 +236,7 @@ conv-after =
 moved bad : Term
 moved = Vfun ⟪ AL , `∀ (seal 2 ↦ unseal 2) ⟫
 bad = (moved ·[ `ℕ ⇒ `ℕ , ` 0 ])
-        ⟪ morph (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
+        ⟪ boundary (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
         , id `ℕ ↦ id `ℕ ⟫
 
 ------------------------------------------------------------------------
@@ -254,13 +254,13 @@ sq2 = 2 , `𝔹 , there (there here) , r-there-abst (r-there r-here)
 uq⁺ : Unique (names Δᶜ⁺)
 uq⁺ = unique∷ (fresh∷ (λ ()) fresh[]) (unique∷ fresh[] unique[])
 
--- The conversion context is a FUNCTION of the morphism and its exterior,
+-- The conversion context is a FUNCTION of the boundary scope and its exterior,
 -- so `conv-after` IS the one `env` stored; the conversion's types are
 -- then unique on it; and the exterior alignment asks for `` `ℕ ⇒ `ℕ ``
 -- to read as the representation `` `𝔹 ⇒ `𝔹 ``.
 no-moved : ¬ (Δ⁺ ∣ [] ⊢ moved ⦂ `∀ (`ℕ ⇒ `ℕ))
 no-moved (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE)
-  with conversion-functional (mw-conversion mwΘ) conv-after
+  with conversion-functional (bw-conversion mwΘ) conv-after
 no-moved (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | refl
   with conv-types-unique uq⁺ ⊢c ⊢c⁺
 no-moved (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | refl | refl , refl
@@ -271,7 +271,7 @@ no-moved (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | refl | refl , refl
 -- The pushed-in type application demands exactly the type the moved
 -- boundary cannot have: its annotation is `renameᵗ (extᵗ suc) Bᵢ′`,
 -- which here is `` `ℕ ⇒ `ℕ ``.
-int⁺ : underΛ empty ⊢ⁱ morph (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
+int⁺ : underΛ empty ⊢ⁱ boundary (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
          ⇒ Δ⁺
 int⁺ =
   interior
@@ -283,7 +283,7 @@ int⁺ =
 
 no-bad : ¬ (underΛ empty ∣ [] ⊢ bad ⦂ `ℕ ⇒ `ℕ)
 no-bad (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE)
-  with interior-functional (mw-interior mwΘ) int⁺
+  with interior-functional (bw-interior mwΘ) int⁺
 no-bad (env mwΘ (⊢·[] ⊢L wA) ⊢c sameᵢ sameₑ wE) | refl = no-moved ⊢L
 
 no-state : ¬ (empty ∣ [] ⊢ Λ bad ⦂ `∀ (`ℕ ⇒ `ℕ))
@@ -340,12 +340,12 @@ no-addLock0° al =
 -- `seal 2 ↦ unseal 2`.  Position 1 of `underΛ Δᶜ⁺` still names the
 -- `TyBeta` binder `bindR `ℕ` (§2), so the correct re-spelling here is the
 -- IDENTITY on the conversion — which no fixed renaming delivers, because
--- `renᶜ suc` was forced on a morphism whose unlocks happen to insert
+-- `renᶜ suc` was forced on a boundary scope whose unlocks happen to insert
 -- nothing in front of the new name.
 moved-repaired good : Term
 moved-repaired = Vfun ⟪ AL , `∀ (seal 1 ↦ unseal 1) ⟫
 good = (moved-repaired ·[ `ℕ ⇒ `ℕ , ` 0 ])
-         ⟪ morph (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
+         ⟪ boundary (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
          , id `ℕ ↦ id `ℕ ⟫
 
 -- THE THIRD STATE OF THE RUN, MEASURED.  This is the state §3 refutes,

@@ -2,7 +2,7 @@ module strong-rep-var.notes.ForallPayloadWall where
 
 -- File Charter:
 --   * The record of a SECOND defect and its repair: a spelling — an
---     ordinary de Bruijn index — that is valid in a morphism's conversion
+--     ordinary de Bruijn index — that is valid in a boundary scope's conversion
 --     context is not valid in its interior, and `TyPeelR-⟪⟫` and `IdPush`
 --     each carried one across without re-basing it.
 --   * It holds the fact that CONSTRAINS the repair: the two name maps can
@@ -16,7 +16,7 @@ module strong-rep-var.notes.ForallPayloadWall where
 --     strong-rep-var.Examples.
 --
 -- HOW IT WAS FOUND.  By the first programs that instantiate at a
--- POLYMORPHIC type.  A morphism's `binds` hold the representation reading
+-- POLYMORPHIC type.  A boundary scope's `binds` hold the representation reading
 -- of a type ARGUMENT, so a payload has a `∀` in it exactly when a type
 -- application is impredicative; nothing else in the corpus did that, and
 -- `wfᴿ-∀` and `local-ref` fired nowhere.  Both programs were well typed,
@@ -36,7 +36,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 open import strong-rep-var.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-var.Ctx
-open import strong-rep-var.CtxMorph
+open import strong-rep-var.Boundary
 open import strong-rep-var.TypeCheck
 
 ------------------------------------------------------------------------
@@ -50,8 +50,8 @@ open import strong-rep-var.TypeCheck
 Δ↔ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
 -- lock representation variable 0 away, then bring it back at the END
-Θ↔ : CtxMorph
-Θ↔ = morph [] (unlock 1 0 ∷ lock 0 0 ∷ [])
+Θ↔ : Boundary
+Θ↔ = boundary [] (unlock 1 0 ∷ lock 0 0 ∷ [])
 
 reorder-interior : names (proj₁ (from-just (interior? Δ↔ Θ↔))) ≡ 1 ∷ 0 ∷ []
 reorder-interior = refl

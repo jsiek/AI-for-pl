@@ -1,6 +1,6 @@
-* Rename context morphism to boundary scope, so change
-  CtxMorph to Boundary, and MorphWf to BoundaryWf.
-  Also, look for uses of "context morphism" or just "morphism"
+* Rename boundary scope to boundary scope, so change
+  Boundary to Boundary, and BoundaryWf to BoundaryWf.
+  Also, look for uses of "boundary scope" or just "boundary scope"
   in notes, documentation, agda code, etc. and update them
   to the new terminology.
   

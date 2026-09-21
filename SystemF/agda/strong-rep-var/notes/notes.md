@@ -195,7 +195,7 @@ In the following equations, change sequences are written in acting order.
 Named variables make the definitions clearer wrt. de Bruijn because representation
 indices do not have to shift past a bind block.
 
-    dualMorph Θ
+    dualBoundary Θ
       binds no representations and performs the inverse changes
       in reverse acting order
 
@@ -351,7 +351,7 @@ does not descend into a boundary.
 Mechanization note.  Agda allows distinct index spellings `Bᵢ/Cᵢ` and
 `Bₑ/Cₑ`.  Its fourth premise is `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ`; its fifth is
 `SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ`, which also crosses the
-morphism's representation-bind prefix.  Named variables turn these into
+boundary scope's representation-bind prefix.  Named variables turn these into
 the two paired scope conditions above; the interior/conversion/exterior
 contexts do not disappear.
 
@@ -410,17 +410,17 @@ For `Peel`, suppose the carried readings are
 
     Δ  ⊢ⁱ Θ             ⇒ Δᵢ
     Δ  ⊢ᶜ Θ             ⇒ Δᶜ
-    Δᵢ ⊢ᶜ dualMorph Θ   ⇒ Δᵈ
+    Δᵢ ⊢ᶜ dualBoundary Θ   ⇒ Δᵈ
 
 Then:
 
     (Peel)      Value V    Value W
                 Δ ⊢ᶜ Θ ⇒ Δᶜ    Δ ⊢ⁱ Θ ⇒ Δᵢ
-                Δᵢ ⊢ᶜ dualMorph Θ ⇒ Δᵈ
+                Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ
                 c is in scope in both Δᶜ and Δᵈ
                 ------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ , c ↦ d ⟫) · W
-                    -→ (V · (W ⟪ dualMorph Θ , c ⟫)) ⟪ Θ , d ⟫
+                    -→ (V · (W ⟪ dualBoundary Θ , c ⟫)) ⟪ Θ , d ⟫
 
 Mechanization note.  Agda names the dual spelling `c′`, requires
 `SameConv Δᵈ c′ Δᶜ c`, and shifts `W` past `numBinds Θ`; named variables
@@ -694,7 +694,7 @@ The rule names below are the Agda constructor names.
 | `lock`, `unlock` | `step-lock`, `step-unlock` | membership/freshness replaces positional insert/delete evidence |
 | interior changes | `changes[]`, `changes∷` | named sequences suppress index shifts only |
 | conversion changes | `conv[]`, `conv-lock`, `conv-unlock`, `conv-unlock-live` | the no-op re-unlock remains semantically visible |
-| `BoundaryWf` | `mw` | output well-formedness is derived in both presentations |
+| `BoundaryWf` | `bw` | output well-formedness is derived in both presentations |
 | `conv-id`, `conv-idv`, `conv-unseal`, `conv-seal`, `conv-fun`, `conv-all` | same names in `Conversion.agda` | none beyond named lookup and binders |
 | `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢·[]` | same constructors in `Terms.agda` | named binders replace term/type indices |
 | `env` | `env` | Agda has `Bᵢ/Cᵢ` related by `_⊢_≈_⊣_` and `Bₑ/Cₑ` related by `SameTyExt`; notes use one named endpoint plus paired scope conditions |

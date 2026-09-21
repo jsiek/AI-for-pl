@@ -60,11 +60,11 @@ order.
 | `⊢ τ ≲_ℓ τ′` (Fig. 13, p.1051) | `Δ ⊢ c ∶ A ⇝ B` (`Conversion.agda`) |
 | oblivious (Def. 3.10, p.1054) | `Nameable` / `wf-var` (`Ctx.agda`) |
 
-Ours in Jeremy's words: a boundary `M ⟪ Θ , c ⟫` carries a **context
-morphism** `Θ = morph binds changes` with **parallel binds** `↑X:=A` and
+Ours in Jeremy's words: a boundary `M ⟪ Θ , c ⟫` carries a **boundary
+scope** `Θ = boundary binds changes` with **parallel binds** `↑X:=A` and
 **sequential changes** `↓X` (lock) and `↥X` (unlock), and a
 **conversion** `c` whose **source type** is the interior type and whose
-**target type** is the exterior type read inside.  The morphism induces
+**target type** is the exterior type read inside.  The boundary scope induces
 `interior Θ Δ` (where `M` is typed) and `convCtx Θ Δ` (where `c` is
 typed); `Δ` itself is the **exterior**.  A `bind` entry names the
 variable's **binder**, which stores its **representation** once.
@@ -128,7 +128,7 @@ Three observations that set up everything below.
    `Inert`, the boundary is a value, and `Peel` fires at the
    application.  Both rules do the same bookkeeping — the domain
    component crosses inward under the reversed frame.  Theirs reverses
-   the *agent list*, `rev(ℓ)`; ours reverses the *morphism*, `dual Θ`.
+   the *agent list*, `rev(ℓ)`; ours reverses the *boundary scope*, `dual Θ`.
 3. **`[9]`'s side condition `τ′→τ″ = Δ̄ᵢ(τ′→τ″)`** is exactly our
    determinism discipline (law 5): it exists "to preserve the
    determinism of the semantics" (p.1049), not for soundness — the
@@ -261,13 +261,13 @@ reason for reversing is worth quoting next to our `dualScope`
 > successively provided the function-argument type to `i` must undo
 > their work in the body of the function.
 
-That is exactly the argument in `CtxMorph.agda` for reversing
+That is exactly the argument in `Boundary.agda` for reversing
 `dualScope` — *"an inverse runs backwards"* — except that ours is
 reversing a list of **frame changes** and theirs a list of **agents**:
 
     dualScope n (unlock X ∷ S) = dualScope n S ++ (lock   (n + X) ∷ [])
     dualScope n (lock   X ∷ S) = dualScope n S ++ (unlock (n + X) ∷ [])
-    dual Θ = morph [] (hideBinds (numBinds Θ) ++ dualScope (numBinds Θ)
+    dual Θ = boundary [] (hideBinds (numBinds Θ) ++ dualScope (numBinds Θ)
                                                            (changes Θ))
 
 **Bind block (fresh binders introduced by a boundary).**  No
@@ -297,13 +297,13 @@ substitution of `τ` for `α` only in terms colored `i`, including
 Ours (`Reduction.agda`):
 
     TyBeta : Value N
-      → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ morph (A ∷ []) [] , reveal 0 B ⟫
+      → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ boundary (A ∷ []) [] , reveal 0 B ⟫
 
     TyPeelR : Value V
       → (abst ∷ convCtx Θ Δ) ⊢ s ∶ Bᵢ ⇝ Bₑ
       → Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ]
           -→ (wkᴹ 1 V ·[ renameᵗ (extᵗ suc) Bᵢ , ` 0 ])
-               ⟪ morph (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
+               ⟪ boundary (A ∷ binds Θ) (changes Θ) , instReveal 0 s ⟫
 
 Named: `(ΛX. N) [B, A] → N ⟪ ↑X:=A , reveal X B ⟫`, and
 `(V ⟪ Θ , ∀X. s ⟫) [B, A] → (V [Bᵢ, X]) ⟪ ↑X:=A , Θ , instReveal X s ⟫`.
@@ -462,15 +462,15 @@ counterexample; ours is a frame counterexample in `proof/MoveScope` §4b,
 where moving only the *locks* out of `Θ₂` past a same-slot `unlock`
 corrupts the value's frame:
 
-    Θ✗ = morph [] (unlock 0 ∷ lock 0 ∷ [])   over   Δ✗ = bind ℕ ∷ []
+    Θ✗ = boundary [] (unlock 0 ∷ lock 0 ∷ [])   over   Δ✗ = bind ℕ ∷ []
     interior Θ✗ Δ✗ ≡ bind ℕ ∷ []
     lock-only contractum's interior ≡ masked (bind ℕ) ∷ []   -- corrupted
 
 Their answer is `rev(ℓ)` and list append; ours is the scope move
 
-    Θ₁ ⋉ Θ₂ = morph (binds Θ₁)
+    Θ₁ ⋉ Θ₂ = boundary (binds Θ₁)
                     (changes Θ₁ ++ shiftScope (numBinds Θ₂) (changes Θ₂))
-    rewind Θ = morph (binds Θ) (dualScope 0 (changes Θ) ++ changes Θ)
+    rewind Θ = boundary (binds Θ) (dualScope 0 (changes Θ) ++ changes Θ)
 
 with the frame preserved on the nose,
 `interior (Θ₁ ⋉ Θ₂) (interior (rewind Θ₂) Δ) ≡ interior Θ₁ (interior Θ₂ Δ)`
@@ -836,7 +836,7 @@ knowledge base cannot have the wall, and cannot have tightness either.**
 
 | aspect | STA | Strong System F |
 |--------|-----|-----------------|
-| boundary syntax | `⌈eⱼ⌉^τ_ℓ` — one annotation, one agent list | `M ⟪ Θ , c ⟫` — a context morphism and a conversion tree |
+| boundary syntax | `⌈eⱼ⌉^τ_ℓ` — one annotation, one agent list | `M ⟪ Θ , c ⟫` — a boundary scope and a conversion tree |
 | what the boundary knows about scope | nothing | `interior Θ Δ` and `convCtx Θ Δ`, both computed from the ambient `Δ` |
 | where an instantiation is recorded | ambient `{Δ} ⊎ᵢ {α = τ}`, global and monotone (Def. 5.4, p.1073) | a `bind A` entry on a boundary in the term |
 | reduction judgement | `⟨{Δ}, eᵢ⟩ ↦→ ⟨{Δ′}, e′ᵢ⟩`, `{Δ}` may grow | `Δ ⊢ M -→ M′`, same `Δ` throughout |

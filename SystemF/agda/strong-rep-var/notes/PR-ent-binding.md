@@ -177,7 +177,7 @@ position, `masked (bind A)` unchanged (its argument is now a `Binding`),
 about 290 lines mentioning an entry constructor, most of them lookup
 triples of the form `(unmasked (bind ℕ) , ez , nameable)`; ~30 of them
 then had to be re-wrapped to stay under 80 columns.  Files touched: `Ctx`,
-`Conversion`, `CtxMorph`, `Terms`, `TermSubst`, `Reduction`, `Progress`,
+`Conversion`, `Boundary`, `Terms`, `TermSubst`, `Reduction`, `Progress`,
 `Preservation`, `Show`, `Examples`, and `proof/{Adversary, DualTightness,
 IdLayer, MaskFacts, MoveScope, MwUObstruct, PeelDual, Preserve,
 PreserveObstruct, Progress}`.

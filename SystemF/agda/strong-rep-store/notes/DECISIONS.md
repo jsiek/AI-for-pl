@@ -4675,3 +4675,42 @@ get rid of the current theorem, it's valuable and stronger."  Both have
 closed forms at `empty`; the probe checks its run through both.  The
 NAME `ColorPreservation` moved to the corollary — flagged on PR #207
 for veto.
+
+## 2026-09-21 — strong-rep-store FORKED from strong-rep-var: the VALUE
+## RESTRICTION on `⊢Λ`, and no `ξ-Λ`
+
+Jeremy: "we are going to build a variant of SystemF/agda/strong-rep-var,
+in a new directory SystemF/agda/strong-rep-store.  The first change to
+the design I want to experiment with is changing the ⊢Λ typing rule to
+require the term N to be a Value and removing the ξ-Λ reduction rule.
+Everything else should stay the same for now."
+
+    ⊢Λ : Value N → underΛ Δ ∣ ⤊ Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
+    (ξ-Λ deleted)
+
+WHAT IT TOUCHED.  `Value` moved above the typing judgement in Terms.
+`TermSubst` gained `inert-renᶜ` (from `proof/ShiftAudit`), `value-renᴹ²`
+(same), `value-renᴹᴿ`, `value-renⁿ`, `value-substᵐ`: every
+typing-transport lemma (`⊢renⁿ`, `⊢renᴿ`, `⊢refine`, `⊢substᴹ`) has to
+rebuild the `Value N` premise for the term it produces.  `value?` and
+`inert?` moved from `Eval` to `TypeCheck` so that `infer` can decide the
+premise.  `progress (⊢Λ vN ⊢N) = inj₁ (V-Λ vN)`.  The `ξ-Λ` cases of
+`value-¬step`, `det`, `preserve`, `canon-step`, `Drop$-only-numerals`,
+`ruleName`, `step`, and the residual `residual-ξ-Λ` with its
+`residual-source`/`residual-sound`/`residual-frame` cases, are gone.
+`V-Λ` KEEPS `Value N` — redundant on well-typed terms, kept so that
+`Value` and the untyped relation stay strong-rep-var's verbatim.
+
+WHAT IT COST IN THE CORPUS.  A closed program is rejected whenever some
+`Λ` body is a variable or an application.  Of the 21 closed programs in
+Examples, 11 were untouched (P K J F U H I N A B S — identical runs and
+step counts, since none of them ever stepped under a `Λ`) and 10 were
+rejected (Q D L R G E E-B V C Bg), as were the ColorPreservation probe's
+run (a Peel UNDER a Λ) and the AddLock0 wall program.  Jeremy's
+repair recipe: "insert a lambda to turn the body of the Λ's into a
+value, and then also insert extra applications to eliminate those
+lambdas" — `ΛZ. x` becomes `ΛZ. λy:ℕ. x` and `(ΛZ. x)[ℕ]` becomes
+`((ΛZ. λy:ℕ. x)[ℕ]) · 0`.  The wall program's run grows from 4 steps to
+8 and reaches the same `TyPeelR-⟪⟫` state at the top level, inside the
+outer `TyBeta` boundary, instead of under the `Λ`; the probe runs its
+body at the ambient `underΛ empty` instead of under an outer `Λ`.

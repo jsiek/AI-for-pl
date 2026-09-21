@@ -28,3 +28,12 @@ and out of scope instead of marking them.  Type safety is proved
 (progress, preservation, determinism — unconditional, --safe, no
 postulates).  See strong-rep-var/notes/PLAN.md for the experiment's
 record.
+
+# strong-rep-store
+
+A variant of strong-rep-var for design experiments (2026-09-21).  First
+change: the VALUE RESTRICTION on type abstraction — `⊢Λ` requires the
+body to be a value and the congruence `ξ-Λ` is removed, so nothing
+reduces under a type binder.  Everything else is strong-rep-var's; the
+whole development, examples included, checks.  See the first section of
+strong-rep-store/README.md.

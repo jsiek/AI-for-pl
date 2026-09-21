@@ -158,6 +158,32 @@ renᴹᴿ ρ (L ·[ B , A ]) = renᴹᴿ ρ L ·[ B , A ]
 renᴹᴿ ρ (M ⟪ Θ , c ⟫) =
   renᴹᴿ (extN (numBinds Θ) ρ) M ⟪ renᴮᴿ ρ Θ , c ⟫
 
+-- VALUES SURVIVE EVERY RENAMING AND SUBSTITUTION.  Needed because `⊢Λ`
+-- carries `Value N` (the value restriction, strong-rep-store.Terms §4):
+-- each typing-transport lemma below must rebuild that premise.  Inertness
+-- is by conversion constructor, which no renaming changes.
+inert-renᶜ : ∀ {c} (ρ : Renameᵗ) → Inert c → Inert (renᶜ ρ c)
+inert-renᶜ ρ I-idv  = I-idv
+inert-renᶜ ρ I-seal = I-seal
+inert-renᶜ ρ I-fun  = I-fun
+inert-renᶜ ρ I-all  = I-all
+
+value-renᴹ² : ∀ {M} (ρ : TyRename) → Value M → Value (renᴹ² ρ M)
+value-renᴹ² ρ V-$         = V-$
+value-renᴹ² ρ V-true      = V-true
+value-renᴹ² ρ V-false     = V-false
+value-renᴹ² ρ V-ƛ         = V-ƛ
+value-renᴹ² ρ (V-Λ v)     = V-Λ (value-renᴹ² (underΛ-ren ρ) v)
+value-renᴹ² ρ (V-⟪⟫ v ic) = V-⟪⟫ (value-renᴹ² _ v) (inert-renᶜ _ ic)
+
+value-renᴹᴿ : ∀ {M} (ρ : Renameᵗ) → Value M → Value (renᴹᴿ ρ M)
+value-renᴹᴿ ρ V-$         = V-$
+value-renᴹᴿ ρ V-true      = V-true
+value-renᴹᴿ ρ V-false     = V-false
+value-renᴹᴿ ρ V-ƛ         = V-ƛ
+value-renᴹᴿ ρ (V-Λ v)     = V-Λ (value-renᴹᴿ (extᵗ ρ) v)
+value-renᴹᴿ ρ (V-⟪⟫ v ic) = V-⟪⟫ (value-renᴹᴿ _ v) ic
+
 extᵗ-pointwise-id : ∀ {ρ} → (∀ X → ρ X ≡ X)
   → ∀ X → extᵗ ρ X ≡ X
 extᵗ-pointwise-id h zero    = refl
@@ -271,6 +297,16 @@ renⁿ ρ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 shiftᵐ : Term → Term
 shiftᵐ = renⁿ suc
 
+-- Ordinary-variable renaming never enters a boundary and a variable is
+-- never a value, so values are preserved on the nose.
+value-renⁿ : ∀ {M} {ρ : Var → Var} → Value M → Value (renⁿ ρ M)
+value-renⁿ V-$         = V-$
+value-renⁿ V-true      = V-true
+value-renⁿ V-false     = V-false
+value-renⁿ V-ƛ         = V-ƛ
+value-renⁿ (V-Λ v)     = V-Λ (value-renⁿ v)
+value-renⁿ (V-⟪⟫ v ic) = V-⟪⟫ v ic
+
 ∋-extⁿ : ∀ {Γ Γ′ A x B} {ρ : Var → Var}
   → (∀ {y C} → Γ ∋ y ⦂ C → Γ′ ∋ ρ y ⦂ C)
   → (A ∷ Γ) ∋ x ⦂ B
@@ -310,7 +346,7 @@ shiftᵐ = renⁿ suc
 ⊢renⁿ h ⊢false = ⊢false
 ⊢renⁿ h (⊢ƛ w ⊢N) = ⊢ƛ w (⊢renⁿ (∋-extⁿ h) ⊢N)
 ⊢renⁿ h (⊢· ⊢L ⊢M) = ⊢· (⊢renⁿ h ⊢L) (⊢renⁿ h ⊢M)
-⊢renⁿ h (⊢Λ ⊢N) = ⊢Λ (⊢renⁿ (⤊-∋ⁿ h) ⊢N)
+⊢renⁿ h (⊢Λ vN ⊢N) = ⊢Λ (value-renⁿ vN) (⊢renⁿ (⤊-∋ⁿ h) ⊢N)
 ⊢renⁿ h (⊢·[] ⊢L w) = ⊢·[] (⊢renⁿ h ⊢L) w
 ⊢renⁿ h (env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
   env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE
@@ -385,6 +421,16 @@ substᵐ σ (L · M)        = substᵐ σ L · substᵐ σ M
 substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
 substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
 substᵐ σ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
+
+-- Likewise for substitution: a value contains no free ordinary variable
+-- at a value position, and boundaries are left alone.
+value-substᵐ : ∀ {M} {σ : Var → Img} → Value M → Value (substᵐ σ M)
+value-substᵐ V-$         = V-$
+value-substᵐ V-true      = V-true
+value-substᵐ V-false     = V-false
+value-substᵐ V-ƛ         = V-ƛ
+value-substᵐ (V-Λ v)     = V-Λ (value-substᵐ v)
+value-substᵐ (V-⟪⟫ v ic) = V-⟪⟫ v ic
 
 -- The substitution `Beta` performs: the argument, carrying the ƛ's
 -- annotation, for variable zero; every other variable steps down.  It is

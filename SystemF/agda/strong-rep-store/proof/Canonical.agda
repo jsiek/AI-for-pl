@@ -197,7 +197,7 @@ canon-base V-$       b       ⊢$     = inj₁ (_ , refl)
 canon-base V-true    base-𝔹 ⊢true  = inj₂ (inj₁ refl)
 canon-base V-false   base-𝔹 ⊢false = inj₂ (inj₂ refl)
 canon-base V-ƛ       ()      (⊢ƛ _ _)
-canon-base (V-Λ _)   ()      (⊢Λ _)
+canon-base (V-Λ _)   ()      (⊢Λ _ _)
 canon-base {Δ = Δ} (V-⟪⟫ v ic) b
     (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _) =
   ⊥-elim
@@ -254,7 +254,7 @@ canon-∀ V-$      ()
 canon-∀ V-true   ()
 canon-∀ V-false  ()
 canon-∀ V-ƛ      ()
-canon-∀ (V-Λ vN) (⊢Λ _) = inj₁ (_ , vN , refl)
+canon-∀ (V-Λ vN) (⊢Λ _ _) = inj₁ (_ , vN , refl)
 canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
     (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
   with sameTyExt-∀-target {n = numBinds Θ} {Δ = Δ} {Δ′ = Δᶜ} sameₑ

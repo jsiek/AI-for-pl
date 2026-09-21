@@ -386,8 +386,6 @@ residual-frame ⊢L (residual-ξ-·-r-sib v r) (frame-·L h) =
   _ , frame-·L h , sym (map-idᵗ _)
 residual-frame (⊢·[] ⊢f wA) (residual-ξ-·[] r) (frame-·[] h) =
   let (Δ₂ , d , e) = residual-frame ⊢f r h in Δ₂ , frame-·[] d , e
-residual-frame (⊢Λ ⊢N) (residual-ξ-Λ r) (frame-Λ h) =
-  let (Δ₂ , d , e) = residual-frame ⊢N r h in Δ₂ , frame-Λ d , e
 residual-frame (env mwΘ ⊢N ⊢c smᵢ smₑ wE)
     (residual-ξ-⟪⟫ ri r) (frame-⟪⟫ riᶠ h)
   with interior-functional riᶠ (bw-interior mwΘ)

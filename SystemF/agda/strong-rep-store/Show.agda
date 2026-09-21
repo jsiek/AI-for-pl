@@ -68,7 +68,7 @@ open import strong-rep-store.Boundary
   using (Boundary; boundary; binds; changes; numBinds; Change; lock; unlock)
 open import strong-rep-store.Reduction using (_⊢_-→_; TyBeta; Beta; Peel;
   TyPeelR-Λ; TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
-  ξ-·-l; ξ-·-r; ξ-·[]; ξ-Λ; ξ-⟪⟫)
+  ξ-·-l; ξ-·-r; ξ-·[]; ξ-⟪⟫)
 open import strong-rep-store.Eval
   using (Trace; stop; illtyped; _◅⟨_⟩_; Final; value; no-redex; out-of-fuel;
          eval)
@@ -397,7 +397,6 @@ ruleName Drop-false                  = "Drop-false"
 ruleName (ξ-·-l st)                  = ruleName st
 ruleName (ξ-·-r v st)                = ruleName st
 ruleName (ξ-·[] st)                  = ruleName st
-ruleName (ξ-Λ st)                    = ruleName st
 ruleName (ξ-⟪⟫ rel st)               = ruleName st
 
 finalName : ∀ {M} → Final M → String

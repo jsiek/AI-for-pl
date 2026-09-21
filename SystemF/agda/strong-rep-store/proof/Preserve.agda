@@ -150,7 +150,7 @@ CtxWf-⤊ {Δ = Δ} h d | A , refl , q =
 ⊢ᵗ-of h (⊢ƛ w ⊢N) = wf-⇒ w (⊢ᵗ-of (CtxWf-∷ w h) ⊢N)
 ⊢ᵗ-of h (⊢· ⊢L ⊢M) with ⊢ᵗ-of h ⊢L
 ⊢ᵗ-of h (⊢· ⊢L ⊢M) | wf-⇒ wA wB = wB
-⊢ᵗ-of h (⊢Λ ⊢N) = wf-∀ (⊢ᵗ-of (CtxWf-⤊ h) ⊢N)
+⊢ᵗ-of h (⊢Λ _ ⊢N) = wf-∀ (⊢ᵗ-of (CtxWf-⤊ h) ⊢N)
 ⊢ᵗ-of h (⊢·[] ⊢L w) with ⊢ᵗ-of h ⊢L
 ⊢ᵗ-of h (⊢·[] ⊢L w) | wf-∀ wB = wf-[]ᵗ wB w
 ⊢ᵗ-of h (env _ _ _ _ _ wE) = wE
@@ -363,8 +363,8 @@ conversion-refine {Θ = boundary Rs χ} rr (conversion cs) =
   ⊢ƛ (wf-refine rr w) (⊢refine rr w′ ⊢N)
 ⊢refine rr w′ (⊢· ⊢L ⊢M) =
   ⊢· (⊢refine rr w′ ⊢L) (⊢refine rr w′ ⊢M)
-⊢refine rr w′ (⊢Λ ⊢N) =
-  ⊢Λ (⊢refine (rr-abst rr) (underΛ-wf w′) ⊢N)
+⊢refine rr w′ (⊢Λ vN ⊢N) =
+  ⊢Λ vN (⊢refine (rr-abst rr) (underΛ-wf w′) ⊢N)
   where
   underΛ-wf : ∀ {Γ : Ctxᵗ} → WfCtx Γ → WfCtx (underΛ Γ)
   underΛ-wf {Γ = Δ₀} (wf-ctx wr vn uq) =
@@ -958,10 +958,10 @@ preserve-TyBeta : ∀ {Δ N B A R C}
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
   → Δ ∣ [] ⊢ N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫ ⦂ C
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
-                wfΔ p (⊢·[] (⊢Λ ⊢N) wA)
-  with ⊢ᵗ-of CtxWf-[] (⊢Λ ⊢N)
+                wfΔ p (⊢·[] (⊢Λ vN ⊢N) wA)
+  with ⊢ᵗ-of CtxWf-[] (⊢Λ vN ⊢N)
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
-                wfΔ p (⊢·[] (⊢Λ ⊢N) wA) | wf-∀ wB =
+                wfΔ p (⊢·[] (⊢Λ vN ⊢N) wA) | wf-∀ wB =
   env mwβ inner conv sameᵢ sameₑ wE
   where
   ΔR : Ctxᵗ
@@ -1008,19 +1008,19 @@ preserve-TyPeelR-Λ : ∀ {Δ Δᶜ N Θ s B A R Bᵢ Bₑ C}
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
-                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ ⊢N)
+                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ _ ⊢N)
                                  ⊢c sameᵢ sameₑ wE) wA)
   with conversion-functional rc (bw-conversion mwΘ)
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
-                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ ⊢N)
+                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ _ ⊢N)
                                  ⊢c sameᵢ sameₑ wE) wA)
   | refl with conv-all-inv ⊢c
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
-                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ ⊢N)
+                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ _ ⊢N)
                                  ⊢c sameᵢ sameₑ wE) wA)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀
   with conv-types-unique
@@ -1029,14 +1029,14 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
-                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ ⊢N)
+                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ _ ⊢N)
                                  ⊢c sameᵢ sameₑ wE) wA)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀ | refl , refl
   with respell-ty (conversion-live rc) (same-shiftRVars (numBinds Θ) p)
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
-                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ ⊢N)
+                    (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ _ ⊢N)
                                  ⊢c sameᵢ sameₑ wE) wA)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀ | refl , refl | Aᶜ , pᶜ =
   env mwᵢ inner conv sameᵢ′ sameₑ′ wFinal
@@ -1286,8 +1286,9 @@ wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
   ⊢ƛ w (⊢substᴹ cross wfΔ (extᴵ-⊢ h) ⊢N)
 ⊢substᴹ cross wfΔ h (⊢· ⊢L ⊢M) =
   ⊢· (⊢substᴹ cross wfΔ h ⊢L) (⊢substᴹ cross wfΔ h ⊢M)
-⊢substᴹ cross wfΔ h (⊢Λ ⊢N) =
-  ⊢Λ (⊢substᴹ cross (wf-underΛ wfΔ) (⇑ᴵ-⊢ cross wfΔ h) ⊢N)
+⊢substᴹ cross wfΔ h (⊢Λ vN ⊢N) =
+  ⊢Λ (value-substᵐ vN)
+     (⊢substᴹ cross (wf-underΛ wfΔ) (⇑ᴵ-⊢ cross wfΔ h) ⊢N)
 ⊢substᴹ cross wfΔ h (⊢·[] ⊢L w) =
   ⊢·[] (⊢substᴹ cross wfΔ h ⊢L) w
 ⊢substᴹ cross wfΔ h (env mwᵥ ⊢M ⊢c sameᵢ sameₑ wE) =
@@ -1575,8 +1576,6 @@ module Impl
     ⊢· ⊢L (preserve wfΔ ⊢M st)
   preserve wfΔ (⊢·[] ⊢L w) (ξ-·[] st) =
     ⊢·[] (preserve wfΔ ⊢L st) w
-  preserve wfΔ (⊢Λ ⊢N) (ξ-Λ st) =
-    ⊢Λ (preserve (wf-underΛ wfΔ) ⊢N st)
   preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
     with interior-functional ri (bw-interior mwΘ)
   preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)

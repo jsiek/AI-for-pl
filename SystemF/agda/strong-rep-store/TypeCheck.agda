@@ -648,6 +648,40 @@ lookupTm? (A ∷ Γ) (suc x) | nothing      = nothing
 InferResult : Ctxᵗ → Ctx → Term → Set
 InferResult Δ Γ M = Σ[ A ∈ Ty ] Δ ∣ Γ ⊢ M ⦂ A
 
+-- Deciding the classifications `Value` guards on.  `V-Λ` carries
+-- `Value N` and `V-⟪⟫` carries `Inert c`, so this is a recursion, not a
+-- shape test.  `infer` needs `value?` for `⊢Λ`'s value restriction;
+-- strong-rep-store.Eval reuses both for the rules' side conditions.
+inert? : (c : Conv) → Maybe (Inert c)
+inert? (id (` X))   = just I-idv
+inert? (id `ℕ)      = nothing
+inert? (id `𝔹)      = nothing
+inert? (id (A ⇒ B)) = nothing
+inert? (id (`∀ A))  = nothing
+inert? (seal X)     = just I-seal
+inert? (unseal X)   = nothing
+inert? (s ↦ t)      = just I-fun
+inert? (`∀ s)       = just I-all
+
+-- `V-Λ` carries `Value N` and `V-⟪⟫` carries `Inert c`, so this is a
+-- recursion, not a shape test.
+value? : (M : Term) → Maybe (Value M)
+value? (` x)          = nothing
+value? ($ n)          = just V-$
+value? `true          = just V-true
+value? `false         = just V-false
+value? (ƛ A ∙ N)      = just V-ƛ
+value? (L · M)        = nothing
+value? (L ·[ B , A ]) = nothing
+value? (Λ N) with value? N
+value? (Λ N) | just v  = just (V-Λ v)
+value? (Λ N) | nothing = nothing
+value? (M ⟪ Θ , c ⟫) with value? M
+value? (M ⟪ Θ , c ⟫) | nothing = nothing
+value? (M ⟪ Θ , c ⟫) | just v with inert? c
+value? (M ⟪ Θ , c ⟫) | just v | just ic = just (V-⟪⟫ v ic)
+value? (M ⟪ Θ , c ⟫) | just v | nothing = nothing
+
 infer : (Δ : Ctxᵗ) (Γ : Ctx) (M : Term) → Maybe (InferResult Δ Γ M)
 infer Δ Γ (` x) with lookupTm? Γ x
 infer Δ Γ (` x) | just (A , d) = just (A , ⊢` d)
@@ -674,9 +708,11 @@ infer Δ Γ (L · M) | just (A ⇒ B , ⊢L) | just (A′ , ⊢M) | just refl =
   just (B , ⊢· ⊢L ⊢M)
 infer Δ Γ (L · M) | just (A ⇒ B , ⊢L) | just (A′ , ⊢M) | nothing =
   nothing
-infer Δ Γ (Λ N) with infer (underΛ Δ) (⤊ Γ) N
-infer Δ Γ (Λ N) | just (C , ⊢N) = just (`∀ C , ⊢Λ ⊢N)
+infer Δ Γ (Λ N) with value? N
 infer Δ Γ (Λ N) | nothing = nothing
+infer Δ Γ (Λ N) | just vN with infer (underΛ Δ) (⤊ Γ) N
+infer Δ Γ (Λ N) | just vN | just (C , ⊢N) = just (`∀ C , ⊢Λ vN ⊢N)
+infer Δ Γ (Λ N) | just vN | nothing = nothing
 infer Δ Γ (L ·[ B , A ]) with wfTy? Δ A
 infer Δ Γ (L ·[ B , A ]) | nothing = nothing
 infer Δ Γ (L ·[ B , A ]) | just wA with infer Δ Γ L

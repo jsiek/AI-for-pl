@@ -107,8 +107,9 @@ renameᵗ-shiftRep (suc n) ρ R =
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢ƛ wA ⊢N) =
   ⊢ƛ (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA) (⊢renᴿ w ⊢N)
 ⊢renᴿ w (⊢· ⊢L ⊢M) = ⊢· (⊢renᴿ w ⊢L) (⊢renᴿ w ⊢M)
-⊢renᴿ {η = η} {ρ = ρ} w (⊢Λ ⊢N) =
-  ⊢Λ (⊢cast (names-underΛ-ren ρ η) (⊢renᴿ (repwk-abst w) ⊢N))
+⊢renᴿ {η = η} {ρ = ρ} w (⊢Λ vN ⊢N) =
+  ⊢Λ (value-renᴹᴿ (extᵗ ρ) vN)
+     (⊢cast (names-underΛ-ren ρ η) (⊢renᴿ (repwk-abst w) ⊢N))
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢·[] ⊢L wA) =
   ⊢·[] (⊢renᴿ w ⊢L) (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA)
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} {ρ = ρ} w

@@ -357,9 +357,6 @@ data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
     → Residual r C M ρ D N
     → Residual (ξ-·[] {B = B} {A = A} r)
         (C ·C[ B , A ]) M ρ (D ·C[ B , A ]) N
-  residual-ξ-Λ : ∀ {N′ C M D O} {r : underΛ Δ ⊢ N -→ N′}
-    → Residual r C M ρ D O
-    → Residual (ξ-Λ r) (ΛC C) M ρ (ΛC D) O
   residual-ξ-⟪⟫ : ∀ {M′ C O D O′} {r : Δᵢ ⊢ N -→ M′}
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) → Residual r C O ρ D O′
     → Residual (ξ-⟪⟫ {c = c} ri r) (C ⟪C Θ , c ⟫) O ρ (D ⟪C Θ , c ⟫) O′

@@ -120,7 +120,6 @@ residual-source (residual-ξ-·-l-sib r)  = refl
 residual-source (residual-ξ-·-r v r)    = cong (_ ·_) (residual-source r)
 residual-source (residual-ξ-·-r-sib v r) = refl
 residual-source (residual-ξ-·[] r) = cong (_·[ _ , _ ]) (residual-source r)
-residual-source (residual-ξ-Λ r)        = cong Λ_ (residual-source r)
 residual-source (residual-ξ-⟪⟫ ri r) = cong (_⟪ _ , _ ⟫) (residual-source r)
 
 residual-sound : ∀ {Δ L L′ C M ρ D N} {r : Δ ⊢ L -→ L′}
@@ -152,7 +151,6 @@ residual-sound (residual-ξ-·-l-sib r)  = refl
 residual-sound (residual-ξ-·-r v r)    = cong (_ ·_) (residual-sound r)
 residual-sound (residual-ξ-·-r-sib v r) = refl
 residual-sound (residual-ξ-·[] r) = cong (_·[ _ , _ ]) (residual-sound r)
-residual-sound (residual-ξ-Λ r)        = cong Λ_ (residual-sound r)
 residual-sound (residual-ξ-⟪⟫ ri r) = cong (_⟪ _ , _ ⟫) (residual-sound r)
 
 residuals-sound : ∀ {Δ L L′ C M ρ D N} {rs : Δ ⊢ L -→* L′}

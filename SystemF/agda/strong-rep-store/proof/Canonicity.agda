@@ -504,8 +504,6 @@ canon-step uq tp (ct-· cV cM)  (ξ-·-r _ st) =
   ct-· cV (canon-step uq tp cM st)
 canon-step uq tp (ct-·[] cL)   (ξ-·[] st)   =
   ct-·[] (canon-step uq tp cL st)
-canon-step {Δ = Δ} uq tp (ct-Λ cN) (ξ-Λ st) =
-  ct-Λ (canon-step (unique-underΛ {Γ = Δ} uq) tp cN st)
 canon-step uq tp (ct-⟪⟫ cM cc) (ξ-⟪⟫ ri st) =
   ct-⟪⟫ (canon-step (interior-unique uq ri) tp cM st) cc
 

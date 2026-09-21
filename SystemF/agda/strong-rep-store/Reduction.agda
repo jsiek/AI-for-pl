@@ -2,9 +2,10 @@ module strong-rep-store.Reduction where
 
 -- File Charter:
 --   * THE RULE SET, AND THE TWO FACTS THAT NEED NO TYPING.  §1 is
---     `_⊢_-→_` with FIFTEEN rules — TyBeta, Beta, Peel, TyPeelR-Λ,
+--     `_⊢_-→_` with FOURTEEN rules — TyBeta, Beta, Peel, TyPeelR-Λ,
 --     TyPeelR-⟪⟫, CancelR, Drop$, Drop-true, Drop-false, IdPush, and
---     the five congruences ξ-·-l, ξ-·-r, ξ-·[], ξ-Λ, ξ-⟪⟫ — plus the
+--     the four congruences ξ-·-l, ξ-·-r, ξ-·[], ξ-⟪⟫ (NO ξ-Λ: this is
+--     the strong-rep-store experiment, see `⊢Λ` in Terms) — plus the
 --     multi-step `_⊢_-→*_` (`done`/`_then_`) and the concrete check
 --     `TyBeta-ℕ`.  §2 is `value-¬step`.  §3 is `det`, which takes the
 --     redex's TYPING DERIVATION (notes/DECISIONS.md, 2026-09-18:
@@ -57,8 +58,9 @@ module strong-rep-store.Reduction where
 -- The rule set of the conversion-boundary design, with the repairs ruled in
 -- notes/DECISIONS.md ("Id-layer RULING", 2026-09-05) applied:
 --
---   (1) V-Λ carries `Value N` (in strong-rep-store.Terms) — reduction goes under
--- Λ.
+--   (1) V-Λ carries `Value N` (in strong-rep-store.Terms).  In
+--       strong-rep-var this was because reduction went under Λ; here
+--       `⊢Λ` itself demands `Value N` and ξ-Λ is gone.
 --   (2) TyPeelR shifts its type annotation.  It is also SPLIT IN TWO —
 --       `TyPeelR-Λ` and `TyPeelR-⟪⟫` — by the shift audit
 --       (notes/ShiftAudit.md, 2026-09-08), so that no moved subterm is
@@ -71,10 +73,9 @@ module strong-rep-store.Reduction where
 --       instead of the two frames being merged, so no boundary scope
 --       arithmetic (`⊳`) is needed and the no-⊕ test is passed by
 --       construction.
---   (5) TyBeta carries `Value N` — see the note on the rule.  Without it
---       TyBeta and ξ-·[] ⨟ ξ-Λ are a genuine overlap (repair (1) alone
---       does
---       not close it), so determinism would still be false.
+--   (5) TyBeta carries `Value N` — see the note on the rule.  (In
+--       strong-rep-var it closed the TyBeta / ξ-·[] ⨟ ξ-Λ overlap; here
+--       it is implied by `⊢Λ`.)
 --
 -- The principle behind (3)/(4): EVERY rule that mints an identity
 -- conversion at a looked-up rep carries the binder-lookup premise, and
@@ -115,10 +116,11 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
 
   -- A boundary is BORN: the ∀-elimination mints THE BINDER of the event.
   --
-  -- THE VALUE PREMISE (repair (5)).  This calculus reduces under Λ (ξ-Λ),
-  -- so `Λ N` is a value only when N is one (V-Λ).  Without `Value N` here,
-  -- `(Λ N) ·[ B , A ]` with N a redex has TWO distinct steps — this one and
-  -- ξ-·[] ⨟ ξ-Λ — and determinism fails.  The premise mirrors Beta's.
+  -- THE VALUE PREMISE (repair (5) in strong-rep-var, where reduction went
+  -- under Λ and the premise kept TyBeta from overlapping ξ-·[] ⨟ ξ-Λ).
+  -- strong-rep-store has no ξ-Λ, and `⊢Λ` demands `Value N`, so on a
+  -- well-typed redex the premise is supplied by the typing derivation.
+  -- It is kept verbatim so that the untyped relation is unchanged.
   TyBeta : ∀ {Δ B A R N} → Value N
     → Δ ⊢ᶜ A ~ R
     → Δ ⊢ (Λ N) ·[ B , A ] -→ N ⟪ instantiate R (boundary [] [])
@@ -438,8 +440,10 @@ data _⊢_-→_ : Ctxᵗ → Term → Term → Set where
     → Δ ⊢ V · M -→ V · M′
   ξ-·[] : ∀ {Δ L L′ B A} → Δ ⊢ L -→ L′
     → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]
-  ξ-Λ   : ∀ {Δ N N′} → underΛ Δ ⊢ N -→ N′
-    → Δ ⊢ Λ N -→ Λ N′
+  -- (NO ξ-Λ.)  strong-rep-store does not reduce under a type binder:
+  -- `⊢Λ` (strong-rep-store.Terms) requires the body to be a value, so a
+  -- well-typed `Λ N` is already a value (V-Λ) and there is nothing for a
+  -- congruence to do.  strong-rep-var had `ξ-Λ` here.
   ξ-⟪⟫  : ∀ {Δ Δᵢ M M′ Θ c} → Δ ⊢ⁱ Θ ⇒ Δᵢ
         → Δᵢ ⊢ M -→ M′
         → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ Θ , c ⟫
@@ -462,12 +466,12 @@ infixr 2 _then_
 -- 2.  VALUES DON'T STEP
 ------------------------------------------------------------------------
 
--- With V-Λ's `Value N` premise this holds on the nose.  (In the mini-core it
--- was false: `Λ N` was a value for every N while ξ-Λ reduced under it.)
+-- Nothing reduces under Λ (there is no ξ-Λ), so the `V-Λ` case is
+-- absurd outright; the boundary case recurses through ξ-⟪⟫.
 value-¬step : ∀ {Δ M M′} → Value M → Δ ⊢ M -→ M′ → ⊥
 value-¬step (V-⟪⟫ v I-idv) (Drop$ ())
 value-¬step (V-⟪⟫ v ic)    (ξ-⟪⟫ rel st) = value-¬step v st
-value-¬step (V-Λ v)        (ξ-Λ st)  = value-¬step v st
+value-¬step (V-Λ v)        ()
 
 ------------------------------------------------------------------------
 -- 3.  DETERMINISM
@@ -711,7 +715,6 @@ det (⊢· ⊢L ⊢M) (ξ-·-r v st) (ξ-·-r u st′) =
   cong (_ ·_) (det ⊢M st st′)
 det (⊢·[] ⊢L ⊢A) (ξ-·[] st) (ξ-·[] st′) =
   cong (λ L → L ·[ _ , _ ]) (det ⊢L st st′)
-det (⊢Λ ⊢N) (ξ-Λ st) (ξ-Λ st′) = cong Λ_ (det ⊢N st st′)
 det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)
   with interior-functional rel rel′
 det (env mwΘ ⊢M ⊢c smi sme wf) (ξ-⟪⟫ rel st) (ξ-⟪⟫ rel′ st′)

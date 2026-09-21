@@ -1,5 +1,14 @@
 # Strong System F v2 — the conversion-boundary calculus
 
+> **strong-rep-store (2026-09-21).**  This directory is a variant of
+> `strong-rep-var`, and this document is strong-rep-var's design note
+> with the module prefix renamed.  The one difference so far is the
+> **value restriction on type abstraction**: `⊢Λ` requires `Value N`
+> and there is no `ξ-Λ` (§4.3, §5, §6.1, §6.8 below carry the change;
+> the README's first section lists every consequence).  Where this
+> document's prose about reducing under `Λ` survives elsewhere, read it
+> as describing strong-rep-var.
+
 The informal definition of the calculus mechanized in
 `SystemF/agda/strong-rep-store/`.  It replaces the v1 note (now
 `notes/old/notes-v1.md`), whose single combined boundary
@@ -686,7 +695,7 @@ them.  Two further consequences:
     ⊢$  : Δ ∣ Γ ⊢ n ⦂ ℕ
     ⊢ƛ  : Δ ⊢ᵗ A → Δ ∣ A , Γ ⊢ N ⦂ B → Δ ∣ Γ ⊢ λx:A. N ⦂ (A ⇒ B)
     ⊢·  : Δ ∣ Γ ⊢ L ⦂ (A ⇒ B) → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ ⊢ L · M ⦂ B
-    ⊢Λ  : (abst , Δ) ∣ ⤊Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ ΛX. N ⦂ ∀X. C
+    ⊢Λ  : Value N → (abst , Δ) ∣ ⤊Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ ΛX. N ⦂ ∀X. C
     ⊢·[]: Δ ∣ Γ ⊢ L ⦂ ∀X. B → Δ ⊢ᵗ A → Δ ∣ Γ ⊢ L [B, A] ⦂ B[X:=A]
 
 and the boundary rule, in full:
@@ -779,11 +788,15 @@ Values:
     V-Λ  : Value N → Value (ΛX. N)
     V-⟪⟫ : Value M → Inert c → Value (M ⟪ Θ , c ⟫)
 
-`V-Λ` carries `Value N` because reduction goes **under `Λ`** (`ξ-Λ`).
-Without the premise, `ΛX. N` would be a value for every `N` while `ξ-Λ`
-reduced under it, and both "values don't step" and determinism would be
-false — machine-checked in the id-layer probe
-(`notes/DECISIONS.md`, repair 3).
+In strong-rep-var `V-Λ` carries `Value N` because reduction goes
+**under `Λ`** (`ξ-Λ`): without the premise, `ΛX. N` would be a value for
+every `N` while `ξ-Λ` reduced under it, and both "values don't step" and
+determinism would be false — machine-checked in the id-layer probe
+(`notes/DECISIONS.md`, repair 3).  **strong-rep-store** keeps `V-Λ`
+verbatim but makes the premise redundant on well-typed terms: `⊢Λ`
+itself demands `Value N` (the value restriction, §4.3) and `ξ-Λ` is
+gone, so a well-typed `ΛX. N` is a value outright and `value-¬step`'s
+`V-Λ` case is absurd.
 
 The split is Siek and Chen's, transplanted:
 `notes/ParameterizedCastCalculi.md` digests *Parameterized Cast Calculi
@@ -906,9 +919,11 @@ Named:  `(ΛX. N) [B, A]  →  N ⟪ ↑X:=A , reveal X B ⟫`, `N` a value.
 does *not* substitute: `N` keeps running at the abstract `X`, the new
 `bind` becomes `X`'s binder, and the conversion is derived from the body
 type `B` by `reveal` — reveal `X` on the way out, conceal it on the way
-in.  The `Value N` premise is a determinism repair: this calculus reduces
-under `Λ`, so `(Λ N) ·[ B , A ]` with `N` a redex would otherwise have
-two distinct steps, this one and `ξ-·[] ⨟ ξ-Λ`.
+in.  The `Value N` premise was, in strong-rep-var, a determinism repair:
+that calculus reduces under `Λ`, so `(Λ N) ·[ B , A ]` with `N` a redex
+would otherwise have two distinct steps, this one and `ξ-·[] ⨟ ξ-Λ`.  In
+strong-rep-store `⊢Λ` supplies it, and the premise is kept only so that
+the untyped relation is unchanged.
 
 Example (`Examples` §6, `P₀ → P₁`, under `ξ-·-l`):
 
@@ -957,7 +972,7 @@ gained, nothing lost (`Examples.interior-Beta-Λ`).  It is the same shape
 `suc` (`Ren-wk`, `Inj-suc`) for the interior, `mkId-⊢` for the
 conversion.  A `ƛ` needs no wrapper — a term binder changes no type
 frame — and reduction under binders is by the frame-indexed relation
-already, so `ξ-Λ`/`ξ-⟪⟫` are untouched.
+already, so `ξ-⟪⟫` is untouched (strong-rep-store has no `ξ-Λ`).
 
 **Which is why the rule carries `A`.**  `mkId` needs the value's type, and
 `env` needs the value TERM-CLOSED (it types an interior at `Γ = []`).
@@ -1355,24 +1370,27 @@ and three `Drop$` steps finish.
     ξ-·-l : Δ ⊢ L -→ L′            → Δ ⊢ L · M -→ L′ · M
     ξ-·-r : Value V → Δ ⊢ M -→ M′  → Δ ⊢ V · M -→ V · M′
     ξ-·[] : Δ ⊢ L -→ L′            → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ]
-    ξ-Λ   : (unmasked abst ∷ Δ) ⊢ N -→ N′   → Δ ⊢ Λ N -→ Λ N′
     ξ-⟪⟫  : interior Θ Δ ⊢ M -→ M′     → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ Θ , c ⟫
 
-Left-to-right, call-by-value, and **under `Λ`** — which is why `V-Λ` and
-`TyBeta` both carry `Value N`.  Note the two index changes: `ξ-Λ` steps
-in `unmasked abst ∷ Δ`, and `ξ-⟪⟫` steps in the *interior* type context
-`interior Θ Δ`.  A boundary is not a barrier to reduction; it is a barrier to
-*naming*.
+Left-to-right, call-by-value, and **not under `Λ`**: strong-rep-store
+has no `ξ-Λ`.  The value restriction (§4.3) makes a well-typed `ΛX. N` a
+value, so a congruence for `Λ` would have nothing to do; strong-rep-var
+had `ξ-Λ : (unmasked abst ∷ Δ) ⊢ N -→ N′ → Δ ⊢ Λ N -→ Λ N′`, and that is
+why its `V-Λ` and `TyBeta` carry `Value N`.  Note the index change:
+`ξ-⟪⟫` steps in the *interior* type context `interior Θ Δ`.  A boundary
+is not a barrier to reduction; it is a barrier to *naming*.
 
-Example of `ξ-Λ` and `ξ-·[]` together (`Examples` §3, `run-Ωt` — the
-witness for `TyBeta`'s `Value` premise):
+A source program that wants to compute under a type binder writes a
+dummy `λ` there and eliminates it after instantiating (the `Examples`
+§2/§3/§5/§7c/§10 programs and `notes/AddLock0Wall.agda` do this):
 
-    (ΛX. ((λx:ℕ. 1) · 2)) [ℕ]  →  (ΛX. 1) [ℕ]  →  (1 ⟪ ↑X:=ℕ , id ℕ ⟫)
+    (ΛX. λy:ℕ. ((λx:ℕ. 1) · 2)) [ℕ] · 0
+      →  ((λy:ℕ. ((λx:ℕ. 1) · 2)) ⟪ ↑X:=ℕ , id ℕ ↦ id ℕ ⟫) · 0
+      →  …  (`Peel`, `Drop$`, `Beta`, `Beta`)
 
-The first step is `ξ-·[] ⨟ ξ-Λ ⨟ Beta`; only then is the now-valuable
-package instantiated.  `ξ-·-l` is `P₀ → P₁` (§6.1) and `ξ-⟪⟫` is
-`P₂ → P₃` (§6.2); `ξ-·-r` is the mirror of `ξ-·-l` and has no instance in
-the corpus, because every argument in it is already a value.
+`ξ-·-l` is `P₀ → P₁` (§6.1) and `ξ-⟪⟫` is `P₂ → P₃` (§6.2); `ξ-·-r` is
+the mirror of `ξ-·-l` and has no instance in the corpus, because every
+argument in it is already a value.
 
 
 ## 7. Metatheory (`strong-rep-store.TypeSafety`)

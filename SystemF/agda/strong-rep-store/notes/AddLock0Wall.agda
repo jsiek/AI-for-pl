@@ -129,8 +129,8 @@ open import strong-rep-store.Eval
 -- §1  A closed, plain source program, and its run
 ------------------------------------------------------------------------
 
---   Src = (λf : ∀X. ℕ⇒ℕ. ΛX. f [𝔹])
---           · ((ΛY. ΛZ. λx:Y. x) [ℕ])
+--   Src = (((λf : ∀X. ℕ⇒ℕ. ΛX. λy:ℕ. f [𝔹])
+--             · ((ΛY. ΛZ. λx:Y. x) [ℕ])) [ℕ]) · 0
 --
 -- The argument packages a polymorphic identity whose type MENTIONS the
 -- outer binder, so `TyBeta` mints a `` `∀ `` conversion with a real
@@ -138,15 +138,30 @@ open import strong-rep-store.Eval
 -- under a `Λ`, which wraps it in the binder's dual (`crossΛᴹ`) — a
 -- SECOND `` `∀ `` boundary — and applies it to a type.  That application
 -- is the `TyPeelR-⟪⟫` redex.
+--
+-- THE VALUE RESTRICTION (strong-rep-store).  In strong-rep-var the body
+-- of the `ΛX` was `f [𝔹]` itself and the redex fired UNDER the `Λ` by
+-- `ξ-Λ`.  Here `⊢Λ` demands a value body and there is no `ξ-Λ`, so the
+-- body is wrapped in a dummy `λy:ℕ`, and the program instantiates the
+-- `Λ` at `ℕ` and applies the dummy to `0` to get the redex out from
+-- under the binder.  The run is therefore eight steps, not four, and the
+-- `TyPeelR-⟪⟫` redex is reached at the TOP LEVEL, inside the outer
+-- `TyBeta` boundary, instead of under a `Λ`.  §2–§4 are unchanged: they
+-- speak about the moved boundary and the state `bad`, which are the same
+-- terms.
 
 Vfun Pkg Use Src : Term
 Vfun = Λ (ƛ (` 1) ∙ ` 0)
 Pkg  = (Λ Vfun) ·[ `∀ (` 1 ⇒ ` 1) , `ℕ ]
-Use  = ƛ (`∀ (`ℕ ⇒ `ℕ)) ∙ Λ ((` 0) ·[ `ℕ ⇒ `ℕ , `𝔹 ])
-Src  = Use · Pkg
+Use  = ƛ (`∀ (`ℕ ⇒ `ℕ)) ∙ Λ (ƛ `ℕ ∙ ((` 1) ·[ `ℕ ⇒ `ℕ , `𝔹 ]))
+Src  = ((Use · Pkg) ·[ `ℕ ⇒ (`ℕ ⇒ `ℕ) , `ℕ ]) · ($ 0)
 
-Src-⊢ : empty ∣ [] ⊢ Src ⦂ `∀ (`ℕ ⇒ `ℕ)
+Src-⊢ : empty ∣ [] ⊢ Src ⦂ `ℕ ⇒ `ℕ
 Src-⊢ = tc
+
+-- the outer `TyBeta` boundary, which every later state sits inside
+Outer : Boundary
+Outer = boundary (`ℕ ∷ []) (unlock 0 0 ∷ [])
 
 -- THE RUN, BEFORE (2026-09-20, the wall): `TyBeta`, then `Beta`, then
 -- `TyPeelR-⟪⟫` — and the evaluator's own per-state check REJECTED the
@@ -154,20 +169,25 @@ Src-⊢ = tc
 -- verdict; §3 proves the state it stopped at untypeable, and §4 turns
 -- that into the refutation of the transport statement.
 --
--- THE RUN, AFTER: the same three rules, then `TyPeelR-Λ`, then a value —
--- and every state type-checks.  The `true` inside `Reaches` IS that
--- record, and the `4 4` says: with fuel 4, exactly 4 steps to `Dst`.
+-- THE RUN, AFTER: `TyBeta`, `Beta` (the crossing), then — the value
+-- restriction's detour — `TyBeta`, `Peel`, `Drop$`, `Beta` to get the
+-- redex out from under the `Λ`, then `TyPeelR-⟪⟫`, `TyPeelR-Λ`, and a
+-- value — and every state type-checks.  The `true` inside `Reaches` IS
+-- that record, and the `8 8` says: with fuel 8, exactly 8 steps to `Dst`.
+-- `Dst` is strong-rep-var's endpoint with the `Λ` gone and the outer
+-- `TyBeta` boundary around it.
 Dst : Term
 Dst =
-  Λ (((ƛ (` 1) ∙ ` 0)
+  (((ƛ (` 1) ∙ ` 0)
         ⟪ boundary ((` 0) ∷ `ℕ ∷ [])
             (unlock 1 1 ∷ lock 1 2 ∷ unlock 0 0 ∷ [])
         , seal 1 ↦ unseal 1 ⟫)
       ⟪ boundary (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
       , id `ℕ ↦ id `ℕ ⟫)
+    ⟪ Outer , id `ℕ ↦ id `ℕ ⟫
 
-Src-eval : Reaches 4 4 Src-⊢ Dst
-Src-eval = reaches refl (V-Λ (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun))
+Src-eval : Reaches 8 8 Src-⊢ Dst
+Src-eval = reaches refl (V-⟪⟫ (V-⟪⟫ (V-⟪⟫ V-ƛ I-fun) I-fun) I-fun)
 
 -- the same fact at the fuel the wall was measured with
 run-keeps-the-type : repKept (report (eval 10 Src Src-⊢)) ≡ true
@@ -287,7 +307,7 @@ no-bad (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE)
 no-bad (env mwΘ (⊢·[] ⊢L wA) ⊢c sameᵢ sameₑ wE) | refl = no-moved ⊢L
 
 no-state : ¬ (empty ∣ [] ⊢ Λ bad ⦂ `∀ (`ℕ ⇒ `ℕ))
-no-state (⊢Λ ⊢N) = no-bad ⊢N
+no-state (⊢Λ _ ⊢N) = no-bad ⊢N
 
 ------------------------------------------------------------------------
 -- §4  The RETIRED transport statement, refuted — a LOCAL statement
@@ -348,9 +368,11 @@ good = (moved-repaired ·[ `ℕ ⇒ `ℕ , ` 0 ])
          ⟪ boundary (`𝔹 ∷ []) (lock 1 1 ∷ unlock 0 0 ∷ [])
          , id `ℕ ↦ id `ℕ ⟫
 
--- THE THIRD STATE OF THE RUN, MEASURED.  This is the state §3 refutes,
--- with that one leaf repaired.
-repaired-state : traceEnd (eval 3 Src Src-⊢) ≡ Λ good
+-- THE SEVENTH STATE OF THE RUN, MEASURED (the third, in strong-rep-var).
+-- This is the state §3 refutes, with that one leaf repaired, sitting in
+-- the outer `TyBeta` boundary instead of under the `Λ`.
+repaired-state : traceEnd (eval 7 Src Src-⊢)
+  ≡ good ⟪ Outer , id `ℕ ↦ id `ℕ ⟫
 repaired-state = refl
 
 -- and it is not the state §3 refutes
@@ -360,8 +382,8 @@ good≢bad ()
 -- THE WALL NO LONGER REFUTES ANYTHING LIVE.  The retired §4(ii) went
 -- `Preservation → Preservation* → no-state (pres* wf-empty Src-⊢ the-run)`
 -- with `the-run : empty ⊢ Src -→* Λ bad` supplied by `eval-sound 10 Src-⊢`.
--- Under the repaired rule that run does not reach `Λ bad`: it reaches
--- `Dst`, through `Λ good`, and every state along the way type-checks
+-- Under the repaired rule that run does not reach `bad`: it reaches
+-- `Dst`, through `good`, and every state along the way type-checks
 -- (`Src-eval`, §1).  So there is no closed program here refuting
 -- `strong-rep-store.Preservation.Preservation` — which is now an UNCONDITIONAL
 -- theorem — and this file states none; the multi-step run below ends where

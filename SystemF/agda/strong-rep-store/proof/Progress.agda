@@ -348,9 +348,8 @@ module Impl where
   progress ⊢true = inj₁ V-true
   progress ⊢false = inj₁ V-false
   progress (⊢ƛ _ _) = inj₁ V-ƛ
-  progress (⊢Λ ⊢N) with progress ⊢N
-  progress (⊢Λ ⊢N) | inj₁ vN = inj₁ (V-Λ vN)
-  progress (⊢Λ ⊢N) | inj₂ (N′ , st) = inj₂ (Λ N′ , ξ-Λ st)
+  -- the value restriction: `⊢Λ` hands us the body's value proof
+  progress (⊢Λ vN ⊢N) = inj₁ (V-Λ vN)
   progress (⊢· ⊢L ⊢M) with progress ⊢L
   progress (⊢· ⊢L ⊢M) | inj₂ (L′ , st) =
     inj₂ (L′ · _ , ξ-·-l st)

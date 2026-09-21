@@ -80,7 +80,7 @@ open import strong-rep-store.TermSubst
 open import strong-rep-store.Reduction
 open import strong-rep-store.TypeCheck
   using (interior?; conversion?; ∋:=?; read?; convTy?;
-         rebase?; respell?; check⊢)
+         rebase?; respell?; check⊢; inert?; value?)
 
 ------------------------------------------------------------------------
 -- 1. Deciding the classifications the rules guard on
@@ -93,35 +93,9 @@ base? `𝔹      = just base-𝔹
 base? (A ⇒ B) = nothing
 base? (`∀ A)  = nothing
 
-inert? : (c : Conv) → Maybe (Inert c)
-inert? (id (` X))   = just I-idv
-inert? (id `ℕ)      = nothing
-inert? (id `𝔹)      = nothing
-inert? (id (A ⇒ B)) = nothing
-inert? (id (`∀ A))  = nothing
-inert? (seal X)     = just I-seal
-inert? (unseal X)   = nothing
-inert? (s ↦ t)      = just I-fun
-inert? (`∀ s)       = just I-all
-
--- `V-Λ` carries `Value N` and `V-⟪⟫` carries `Inert c`, so this is a
--- recursion, not a shape test.
-value? : (M : Term) → Maybe (Value M)
-value? (` x)          = nothing
-value? ($ n)          = just V-$
-value? `true          = just V-true
-value? `false         = just V-false
-value? (ƛ A ∙ N)      = just V-ƛ
-value? (L · M)        = nothing
-value? (L ·[ B , A ]) = nothing
-value? (Λ N) with value? N
-value? (Λ N) | just v  = just (V-Λ v)
-value? (Λ N) | nothing = nothing
-value? (M ⟪ Θ , c ⟫) with value? M
-value? (M ⟪ Θ , c ⟫) | nothing = nothing
-value? (M ⟪ Θ , c ⟫) | just v with inert? c
-value? (M ⟪ Θ , c ⟫) | just v | just ic = just (V-⟪⟫ v ic)
-value? (M ⟪ Θ , c ⟫) | just v | nothing = nothing
+-- `inert?` and `value?` live in strong-rep-store.TypeCheck now: `infer`
+-- needs `value?` to discharge `⊢Λ`'s value restriction.  They are
+-- re-exported here through the `open import ... TypeCheck`.
 
 ------------------------------------------------------------------------
 -- 2. The side conditions the boundary rules carry
@@ -442,9 +416,7 @@ step Δ ($ n)     = nothing
 step Δ `true     = nothing
 step Δ `false    = nothing
 step Δ (ƛ A ∙ N) = nothing
-step Δ (Λ N) with step (underΛ Δ) N
-step Δ (Λ N) | just (N′ , st) = just (Λ N′ , ξ-Λ st)
-step Δ (Λ N) | nothing        = nothing
+step Δ (Λ N)     = nothing        -- no ξ-Λ: a type abstraction is a value
 step Δ (L · M) with step Δ L
 step Δ (L · M) | just (L′ , st) = just (L′ · M , ξ-·-l st)
 step Δ (L · M) | nothing with value? L

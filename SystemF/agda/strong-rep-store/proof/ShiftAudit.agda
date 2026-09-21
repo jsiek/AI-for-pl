@@ -270,19 +270,8 @@ mkId-∀-inert B = I-all
 -- Values and inertness survive the renamings the rules perform, which is
 -- what makes fix (a)'s regress feed itself and what lets the installed
 -- clause fire again on its own contractum.
-inert-renᶜ : ∀ {c} (ρ : Renameᵗ) → Inert c → Inert (renᶜ ρ c)
-inert-renᶜ ρ I-idv  = I-idv
-inert-renᶜ ρ I-seal = I-seal
-inert-renᶜ ρ I-fun  = I-fun
-inert-renᶜ ρ I-all  = I-all
-
-value-renᴹ² : ∀ {M} (ρ : TyRename) → Value M → Value (renᴹ² ρ M)
-value-renᴹ² ρ V-$         = V-$
-value-renᴹ² ρ V-true      = V-true
-value-renᴹ² ρ V-false     = V-false
-value-renᴹ² ρ V-ƛ         = V-ƛ
-value-renᴹ² ρ (V-Λ v)     = V-Λ (value-renᴹ² (underΛ-ren ρ) v)
-value-renᴹ² ρ (V-⟪⟫ v ic) = V-⟪⟫ (value-renᴹ² _ v) (inert-renᶜ _ ic)
+-- (`inert-renᶜ` and `value-renᴹ²` moved to strong-rep-store.TermSubst §2,
+-- where the typing-transport lemmas need them for `⊢Λ`'s value premise.)
 
 value-wkᴹ : ∀ {M} (n : ℕ) → Value M → Value (wkᴹ n M)
 value-wkᴹ n v = value-renᴹ² (ren² (wkN n) (wkN n)) v
@@ -439,7 +428,6 @@ Drop$-only-numerals (IdPush v ri r₁ r⋉ sm rc d) ()
 Drop$-only-numerals (ξ-·-l st)              ()
 Drop$-only-numerals (ξ-·-r v st)            ()
 Drop$-only-numerals (ξ-·[] st)              ()
-Drop$-only-numerals (ξ-Λ st)                ()
 Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
   ⊥-elim (numeral-¬step st)
   where
@@ -453,16 +441,13 @@ Drop$-only-numerals (ξ-⟪⟫ ri st)            refl =
 -- Each congruence reduces a subterm IN PLACE, at the very type context
 -- the corresponding TYPING rule reads it on:
 --
---   ξ-Λ    premise at `underΛ Δ`             =  `⊢Λ`'s premise context
 --   ξ-⟪⟫   premise at the boundary scope's INTERIOR =  `env`'s premise context
 --
--- (`ξ-·-l`, `ξ-·-r`, `ξ-·[]` do not change the context at all.)  The
--- second is no longer an equation: `ξ-⟪⟫` CARRIES the interior reading,
--- which is the same object `env` carries, so the two contexts are
--- identified by `interior-functional` rather than by `refl`.
-ξ-Λ-frame : (Δ : Ctxᵗ) → underΛ Δ ≡ underΛ Δ
-ξ-Λ-frame Δ = refl
-
+-- (`ξ-·-l`, `ξ-·-r`, `ξ-·[]` do not change the context at all, and there
+-- is no ξ-Λ: strong-rep-store never reduces under a type binder.)  This
+-- is not an equation: `ξ-⟪⟫` CARRIES the interior reading, which is the
+-- same object `env` carries, so the two contexts are identified by
+-- `interior-functional` rather than by `refl`.
 ξ-⟪⟫-frame : ∀ {Γ Γᵢ Γᵢ′ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ → Γ ⊢ⁱ Θ ⇒ Γᵢ′ → Γᵢ ≡ Γᵢ′
 ξ-⟪⟫-frame = interior-functional

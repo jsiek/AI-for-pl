@@ -8,32 +8,39 @@ the contexts in which types and conversions are read.
 
 The distinction at the center of the development is:
 
-    X, Y, Z       ordinary type variables
+    X, Y, Z       type variables
     α, β, γ       representation variables
 
-An ordinary variable is lexical: `∀X.A`, `ΛX.M`, and types mention `X`.
-A representation variable is runtime storage: a representation context
-binds `α` abstractly or to a payload, while a morphism's bind block
-introduces only the represented form.  A live ordinary name `X` names that
-`α`.  The renderer pairs the supplies (`X` names `α`, `Y` names `β`, and
-so on), but the two universes remain different.
+A type variable is lexical: `∀X.A`, `ΛX.M`, and types mention `X`.  A
+representation variable is runtime storage: a representation context
+binds `α` abstractly or to a representation type, while a boundary
+introduces only the represented form.  A live type variable `X` is
+associated with that `α`.  The renderer pairs the supplies (`X` to
+`α`, `Y` to `β`, and so on), but the two universes remain different.
 
 # Syntax
 
-## Types and representation payloads
+## Types and representation types
 
     A, B ::= X | ℕ | 𝔹 | A ⇒ B | ∀X.A
 
-Ordinary types contain free ordinary variables.  A representation payload
-has the same tree grammar, but its free variables are representation
-variables:
+Types contain free type variables.  A representation type has the same
+tree grammar, but its free variables are representation variables:
 
     R, S ::= α | X | ℕ | 𝔹 | R ⇒ S | ∀X.R
 
-An `X` occurrence in a payload is legal only under its payload-local
-`∀X`; every free payload variable is a representation variable such as
+An `X` occurrence in a representation type is legal only under its representation-local
+`∀X`; every free representation type variable is a representation variable such as
 `α`.  This is the named reading of Agda's one datatype `Ty` with its mixed
 `_ ⊢ᴿ[ n ]_` formation judgment.
+
+## Conversions
+
+    c, d ::= id A | seal X | unseal X | c ↦ d | ∀X.c
+
+`seal X` and `unseal X` carry an type variable.  They find its
+representation through the context; they never contain a representation
+variable directly.  Function conversions are contravariant on the left.
 
 ## Terms
 
@@ -50,33 +57,25 @@ annotation carried by the Agda constructor `_ ·[_,_]`.  The renderer writes
 only `L [A]` because `B` is an annotation, not source syntax.
 
 `M ⟪ Θ , c ⟫` is a runtime boundary.  Its body is term-closed.
-The morphism `Θ` determines its contexts, and `c` converts the body's
+The boundary scope `Θ` determines its contexts, and `c` converts the body's
 interior type to the boundary's exterior type.
 
-## Conversions
+## Boundary Scope
 
-    c, d ::= id A | seal X | unseal X | c ↦ d | ∀X.c
-
-`seal X` and `unseal X` carry an ordinary name.  They find its
-representation through the context; they never contain a representation
-variable directly.  Function conversions are contravariant on the left.
-
-## Context morphisms
-
-    b ::= α abstract | α := R
     δ ::= lock X α | unlock X α
-    Θ ::= morph [α₁ := R₁, ..., αₙ := Rₙ]
-                    [δ₁, ..., δₘ]
+    Θ ::= ⟨ α₁ := R₁, ..., αₙ := Rₙ,  δ₁, ..., δₘ ⟩
 
-The bind block is parallel: every `Rᵢ` is read in the exterior
-representation context.  The change list is sequential and stored
+The representation bindings are parallel: every `Rᵢ` is read in the exterior
+representation context.  The changes `δᵢ` are sequential and stored
 head-last in Agda, so its tail acts first.
+We write `binds(Θ)` for all the representation bindings
+and `changes(Δ)` for the list of changes.
 
 The displayed boundary notation follows `Show.agda`:
 
     ↑α:=R      bind the fresh representation variable α to R
     ↓X         lock X, recording that it names α
-    ↥X         unlock the ordinary name X for α
+    ↥X         unlock the type variable X for α
 
 Thus `M ⟪ ↑α:=R , ↓Y , ↥Z , c ⟫` displays binds first, changes in
 the order in which they act, and the conversion last.  The full change
@@ -89,32 +88,30 @@ A type context is presented as
 
     Ξ ∣ Γ
 
-where `Ξ` is a representation context and `Γ` is a finite scope map:
+where `Ξ` is a representation context and `Γ` maps type variables to representation variables:
 
     Ξ ::= · | Ξ, α abstract | Ξ, α := R
     Γ ::= · | Γ, X ↦ α
 
-The map contains exactly the live ordinary type names.  A locked ordinary
+The Γ context contains exactly the live type variales.  A locked type
 variable has no entry in `Γ`, but its representation variable remains in
-`Ξ`.  In a well-formed context every payload is well formed outside its
-own binder, every name points into `Ξ`, and no representation variable has
-two simultaneous ordinary names.  We use the Barendregt convention, so
-ordinary and representation binders are chosen fresh.
+`Ξ`.  In a well-formed context every representation type is well formed outside its
+own binder, every type variable points into `Ξ`, and no representation variable has
+two simultaneous type variables.  We use the Barendregt convention, so
+type variables and representation variables are chosen fresh.
 
 The main lookups are:
 
-    Ξ ∣ Γ ∋ X ↦ α       X is live and names α
+    Ξ ∣ Γ ∋ X ↦ α       X is live and α points to its representation type
     Ξ ∣ Γ ∋ α := R      α's stored representation is R
-    Ξ ∣ Γ ∋ X := A      X names α, α stores R, and A reads R
+    Ξ ∣ Γ ∋ X := A      X is live and A is its representation type
 
-The last judgment is the conversion lookup square.  Its ordinary type `A`
-and stored payload `R` are different syntactic objects in different
-universes.
+The definition of lookup Ξ ∣ Γ ∋ X := A is derived form the other forms.
 
-## Type formation
+## Well-formed Types
 
 Write `Δ = Ξ ∣ Γ`.  Extending under an ordinary type binder allocates a
-fresh abstract representation variable and a name for it:
+fresh abstract representation variable and a type variable for it:
 
     under(X,α,Δ) = (Ξ, α abstract) ∣ (Γ, X ↦ α)
 
@@ -136,7 +133,7 @@ The ordinary formation rules are:
                Δ ⊢ᵗ ∀X.A
 
 Representation formation has the same structural rules.  Its free-variable
-rule asks for `α ∈ Ξ`; under payload `∀X` it adds only the payload-local
+rule asks for `α ∈ Ξ`; under representation type `∀X` it adds only the representation-local
 ordinary binder `X`, not a new free representation variable.
 
 ## One representation, two ordinary spellings
@@ -149,30 +146,30 @@ through scope map `Γ`, denotes representation type `R`.  Consequently
 says that `A` in `Δ` and `B` in `Δ′` denote the same representation
 type.  `SameConv Δ c Δ′ c′` is the structural analogue for conversions.
 
-With names, the ordinary name of a representation does not change merely
+With names, the type variable of a representation does not change merely
 because another name is locked or unlocked.  Therefore a re-spelling
 premise normally becomes:
 
-  * use the same named type or conversion on both sides; and
-  * require every name in it to be in scope in each context where it is
+  * use the same type variable or conversion on both sides; and
+  * require every variable in it to be in scope in each context where it is
     read.
 
 This simplification does not identify the interior and conversion contexts.
 Which context reads a premise remains genuine semantic content.
 
-# Morphism readings
+# Boundaries and Generating the Interior and Conversion Scopes 
 
-The bind block first extends `Ξ` with fresh represented variables.  It does
-not change any existing named variable.  The two readings then treat
-changes differently.
+The representation bindings first extend `Ξ` with fresh represented
+variables.  It does not change any existing type variable.  The two
+readings then treat changes differently.
 
-The interior reading, written `Δ ⊢ⁱ Θ ⇒ Δᵢ`, performs every change:
+The **interior scope** generation, written `Δ ⊢ⁱ Θ ⇒ Δᵢ`, performs every change:
 
-    lock X α       removes X ↦ α from the scope map
-    unlock X α     adds X ↦ α, provided α has no live name
+    lock X α       removes X ↦ α
+    unlock X α     adds X ↦ α, provided α has no live type variable
 
-The conversion reading, written `Δ ⊢ᶜ Θ ⇒ Δᶜ`, is the union of
-the names live anywhere along the morphism:
+The **conversion scope** generation, written `Δ ⊢ᶜ Θ ⇒ Δᶜ`, is the union of
+the variable live anywhere in the boundary:
 
     lock X α       is skipped
     unlock X α     adds X ↦ α if α is not live
@@ -184,18 +181,18 @@ be a no-op, not a failed freshness check.  `notes/ReUnlockWall.agda`
 machine-checks the old failure and the repaired readings.
 
 Both readings are relations, but each is functional.  A well-formed
-morphism witness is:
+boundary witness is:
 
-    MorphWf Δ Θ Δᵢ Δᶜ
+    BoundaryWf Δ Θ Δᵢ Δᶜ
 
 It carries `WfCtx Δ`, well-formedness of the parallel bind block, and the
 two readings `Δ ⊢ⁱ Θ ⇒ Δᵢ` and `Δ ⊢ᶜ Θ ⇒ Δᶜ`.  Well-formedness
 of the two outputs is derived.
 
-## Derived morphisms
+## Derived Boundary Scopes
 
 In the following equations, change sequences are written in acting order.
-Named variables make the definitions clearer because representation
+Named variables make the definitions clearer wrt. de Bruijn because representation
 indices do not have to shift past a bind block.
 
     dualMorph Θ
@@ -217,7 +214,7 @@ indices do not have to shift past a bind block.
 Agda's `_ ⋉ _`, `addLock0`, and `instantiate` additionally shift de
 Bruijn representation indices.  Those shifts change no named occurrence.
 
-## A concrete pair of readings
+## A concrete boundary 
 
 Let
 
@@ -232,9 +229,9 @@ where `Z` names the new `γ`.  Then
     Δᶜ = (α := ℕ, β abstract, γ := α)
          ∣ (X ↦ α, Y ↦ β, Z ↦ γ)
 
-The interior really loses `X`; the conversion context really keeps it.
+The interior scope loses `X`; the conversion scope keeps it.
 At `Δᶜ`, `unseal Z` converts `Z` to `X`, because `Z` names `γ`,
-`γ` stores the payload `α`, and `X` is the live ordinary name of `α`.
+`γ` stores the representation type `α`, and `X` is the live type variable of `α`.
 Thus an `env` instance can type
 
     Δᵢ ∣ · ⊢ M : Z
@@ -337,10 +334,9 @@ context `Γₜ`.
 Here `⇑Γₜ` weakens every type in the term context through the fresh
 type binder.
 
-The boundary rule is the only non-System-F rule.  In named notation one
-type spelling suffices at each endpoint:
+The boundary rule is the only non-System-F rule:
 
-    (env)      MorphWf Δ Θ Δᵢ Δᶜ
+    (boundary) BoundaryWf Δ Θ Δᵢ Δᶜ
                Δᵢ ∣ · ⊢ M : Bᵢ
                Δᶜ ⊢ c : Bᵢ ⇝ Bₑ
                Bᵢ is in scope in both Δᵢ and Δᶜ
@@ -404,7 +400,7 @@ redex's typing can reconstruct them.
 
 `X` and `α` are the ordinary and representation binders of the event.
 The second premise is genuine: it translates the ordinary argument `A`
-to the representation payload stored at `α`.
+to the representation type stored at `α`.
 
     (Beta)      Value W
                 --------------------------------
@@ -608,7 +604,7 @@ the repaired open-representation case (`↑β:=α`):
       ⟪ ↑α:=ℕ, ↥X, ↓X, id ℕ ⟫
 
 The trace makes the two universes visible: `↑β:=α` stores an open
-representation payload, while `↥Y` gives `β` an ordinary name.  `CancelR`
+representation type, while `↥Y` gives `β` an type variable.  `CancelR`
 keeps both frames and replaces the matched `seal`/`unseal` conversions by
 identities; the following `IdPush` steps move the remaining active
 conversion inward without merging those frames.
@@ -655,7 +651,7 @@ The public surface is in `TypeSafety.agda`.
       there is no V′ with Δ ⊢ V -→ V′
 
 Progress needs no global `WfCtx` premise: each boundary typing derivation
-already contains its `MorphWf`.  Determinism does need the redex's typing
+already contains its `BoundaryWf`.  Determinism does need the redex's typing
 derivation, from which it recovers uniqueness of all relevant name maps.
 
 Preservation needs `WfCtx Δ`.  Here is the counterexample to the
@@ -666,8 +662,8 @@ premise-free statement.  Take
 
 and the redex `( ΛZ.0 ) [ℕ,ℕ]`.  It mentions neither `X` nor `Y`, so it
 can be typed despite the duplicate naming of `α`.  `TyBeta` must mint a
-boundary whose `MorphWf` contains `WfCtx (Ξ ∣ Γ)`, and that is impossible:
-one representation variable has two live ordinary names.  In the named
+boundary whose `BoundaryWf` contains `WfCtx (Ξ ∣ Γ)`, and that is impossible:
+one representation variable has two live type variables.  In the named
 presentation `WfCtx` therefore reads as distinct-name, no-alias hygiene;
 in ordinary mathematical practice it is maintained by alpha-conversion.
 
@@ -698,7 +694,7 @@ The rule names below are the Agda constructor names.
 | `lock`, `unlock` | `step-lock`, `step-unlock` | membership/freshness replaces positional insert/delete evidence |
 | interior changes | `changes[]`, `changes∷` | named sequences suppress index shifts only |
 | conversion changes | `conv[]`, `conv-lock`, `conv-unlock`, `conv-unlock-live` | the no-op re-unlock remains semantically visible |
-| `MorphWf` | `mw` | output well-formedness is derived in both presentations |
+| `BoundaryWf` | `mw` | output well-formedness is derived in both presentations |
 | `conv-id`, `conv-idv`, `conv-unseal`, `conv-seal`, `conv-fun`, `conv-all` | same names in `Conversion.agda` | none beyond named lookup and binders |
 | `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢·[]` | same constructors in `Terms.agda` | named binders replace term/type indices |
 | `env` | `env` | Agda has `Bᵢ/Cᵢ` related by `_⊢_≈_⊣_` and `Bₑ/Cₑ` related by `SameTyExt`; notes use one named endpoint plus paired scope conditions |

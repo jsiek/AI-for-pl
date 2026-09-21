@@ -1,8 +1,9 @@
-* DONE: Move strong-rep-var/TypeSubst.agda to strong-rep-var/proof/
-
-* DONE: Merge the examples in notes/RepresentationReductionExamples.agda
-  into the file strong-rep-var/Examples.agda
-
+* Rename context morphism to boundary scope, so change
+  CtxMorph to Boundary, and MorphWf to BoundaryWf.
+  Also, look for uses of "context morphism" or just "morphism"
+  in notes, documentation, agda code, etc. and update them
+  to the new terminology.
+  
 * Port the COLOR PRESERVATION theorem to strong-rep-var.
 
   The original is on branch strong-v3-design, proved 2026-09-12

@@ -204,7 +204,7 @@ Testing has found and repaired these errors:
    touches the representation context, leaving only a weakening of each
    bind payload past the block's tail (`wfᴿ-rename`, the one new proof).
    The former fields survive as functions of the same names, so use sites
-   are unchanged, and `morphWf?` no longer re-runs `wfCtx?` on both
+   are unchanged, and `boundaryWf?` no longer re-runs `wfCtx?` on both
    derived contexts at every boundary.
 
    (P) is a theorem on `main` — `convCtx-dual` in `proof/PeelDual.agda`,

@@ -7,7 +7,7 @@ module strong-rep-var.TypeCheck where
 --     representation payloads and context well-formedness (`wfᴿ?`,
 --     `wfRepCtx?`, `validNames?`, `unique?`, `wfCtx?`); §5 the two
 --     induced contexts `interior?`/`conversion?` and the complete
---     witness `morphWf?`; §6 `strAt`, the inverse of `shiftRep`; §7 the
+--     witness `boundaryWf?`; §6 `strAt`, the inverse of `shiftRep`; §7 the
 --     readings between the universes (`read?`, `sameTy?`,
 --     `sameTyExt?`, `rebase?`, `respell?`); §8 the lookup square
 --     `∋:=?`, type formation `wfTy?` and conversion typing `convTy?`;
@@ -369,16 +369,16 @@ BoundaryWfResult : Ctxᵗ → Boundary → Set
 BoundaryWfResult Γ Θ =
   Σ[ Γᵢ ∈ Ctxᵗ ] Σ[ Γᶜ ∈ Ctxᵗ ] BoundaryWf Γ Θ Γᵢ Γᶜ
 
-morphWf? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (BoundaryWfResult Γ Θ)
-morphWf? Γ Θ with wfCtx? Γ
-morphWf? Γ Θ | nothing = nothing
-morphWf? Γ Θ | just wΓ with binds? (reps Γ) (binds Θ)
-morphWf? Γ Θ | just wΓ | nothing = nothing
-morphWf? Γ Θ | just wΓ | just bs with interior? Γ Θ
-morphWf? Γ Θ | just wΓ | just bs | nothing = nothing
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) with conversion? Γ Θ
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | nothing = nothing
-morphWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv) =
+boundaryWf? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (BoundaryWfResult Γ Θ)
+boundaryWf? Γ Θ with wfCtx? Γ
+boundaryWf? Γ Θ | nothing = nothing
+boundaryWf? Γ Θ | just wΓ with binds? (reps Γ) (binds Θ)
+boundaryWf? Γ Θ | just wΓ | nothing = nothing
+boundaryWf? Γ Θ | just wΓ | just bs with interior? Γ Θ
+boundaryWf? Γ Θ | just wΓ | just bs | nothing = nothing
+boundaryWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) with conversion? Γ Θ
+boundaryWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | nothing = nothing
+boundaryWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv) =
   just (Γᵢ , Γᶜ , bw wΓ bs int cnv)
 
 ------------------------------------------------------------------------
@@ -693,7 +693,7 @@ infer Δ Γ (L ·[ B , A ]) | just wA | just (`∀ C , ⊢L) | nothing =
 -- The boundary.  `env`'s mechanical premises come from §5; its three
 -- informative ones are the interior term's type, the conversion's two
 -- types, and the two readings that relate them.
-infer Δ Γ (M ⟪ Θ , c ⟫) with morphWf? Δ Θ
+infer Δ Γ (M ⟪ Θ , c ⟫) with boundaryWf? Δ Θ
 infer Δ Γ (M ⟪ Θ , c ⟫) | nothing = nothing
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) with infer Δᵢ [] M
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | nothing = nothing
@@ -806,8 +806,8 @@ int! Γ Θ = from-just (interior? Γ Θ)
 conv! : (Γ : Ctxᵗ) (Θ : Boundary) → From-just (conversion? Γ Θ)
 conv! Γ Θ = from-just (conversion? Γ Θ)
 
-mw! : (Γ : Ctxᵗ) (Θ : Boundary) → From-just (morphWf? Γ Θ)
-mw! Γ Θ = from-just (morphWf? Γ Θ)
+mw! : (Γ : Ctxᵗ) (Θ : Boundary) → From-just (boundaryWf? Γ Θ)
+mw! Γ Θ = from-just (boundaryWf? Γ Θ)
 
 wf! : (Γ : Ctxᵗ) → From-just (wfCtx? Γ)
 wf! Γ = from-just (wfCtx? Γ)

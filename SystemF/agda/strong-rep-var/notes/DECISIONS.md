@@ -2929,7 +2929,7 @@ WHAT IT TOOK.  `WfCtx` has three fields and each transports separately
 
 WHY THIS SHAPE.  The two former fields keep their names, as functions of
 a `BoundaryWf`, so every USE site is unchanged and only the two construction
-sites shrink. `morphWf?` no longer re-runs `wfCtx?` on both derived
+sites shrink. `boundaryWf?` no longer re-runs `wfCtx?` on both derived
 contexts at every boundary; that re-check was measured at about 0.3s of
 the 7.4s example suite, so the gain is the obligation, not the clock.
 
@@ -4561,3 +4561,41 @@ Unchanged: the branch name recorded in `notes/PR-morph-pair.md` and
 the word "boundary" alone still means that term in prose, so the
 two-word "boundary scope" is used wherever `Θ` is meant.  `make check`
 passes unchanged in content: the rename is exact, no proof moved.
+
+## 2026-09-21 — COLOR PRESERVATION is RESTATED for the two universes:
+## the scope map at a residual position is the old one under the move's
+## representation renaming
+
+The v7 theorem (strong-v3-design, 31fa0918; retired by the v8 sweep) said
+`scopeᵗ Δ₁ ≡ scopeᵗ Δ₂` for the contexts at a hole and at its residual,
+and proved it by a push/pop BALANCE on one-hole contexts.  Neither side
+of that equation exists here — there is no `scopeᵗ`, and a move can
+rename the representation universe.  The restatement
+(`ColorPreservation.agda`, layer in `Residual.agda`):
+
+    ColorPreservation = ∀ {Δ L L′ A} {rs : Δ ⊢ L -→* L′} {C M ρ D N}
+      → Δ ∣ [] ⊢ L ⦂ A
+      → Residuals rs C M ρ D N
+      → ∀ {Δ₁ Δ₂} → Δ ⊢C C ⊣ Δ₁ → Δ ⊢C D ⊣ Δ₂
+      → names Δ₂ ≡ map ρ (names Δ₁)
+
+A hole's COLOR is its scope map `names Δ₁` — which ordinary names are
+live, and which representation variable each denotes.  `Residual r C M ρ
+D N` carries the representation renaming ρ the move delivers to the hole
+(`holeRen²`); every move but TyBeta's `abstR → bindR R` refinement is
+representation-only (proof/ShiftAudit §3), so ρ replaces v7's balance
+counting: ordinary POSITIONS never move, only the representation indices
+they denote are transported.  Redex nodes are consumed, the `Drop` rules
+consume their literal, and `Beta` splits into a `Stable` body residual
+and one `CopyResidual` per occurrence that receives the argument — each
+`Λ` crossed inside `crossΛᴹ`'s dual adds one boundary frame and one
+`suc` to ρ.
+
+Checked today: the layer and statement type-check; the statement holds by
+`refl` on a three-step run (TyBeta, Peel, Beta under a Λ) with its full
+`Residuals` and `⊢C` derivations — `notes/ColorPreservationProbe.agda`;
+and the layer is SOUND — `plug C M` is the step's source and `plug D N`
+its contractum (`proof/Residual.agda`, via `plug-renCtx²`,
+`plug-substCtx` and `substᵐ-ivar`).  Per the standing protocol the proof
+waits on Jeremy's review of the statement; the five decisions embedded in
+it are listed in `notes/TODO.md` and on PR #207.

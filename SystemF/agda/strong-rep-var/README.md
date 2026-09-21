@@ -150,12 +150,14 @@ that older calculus, not this one.
 | `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the typing judgment `_∣_⊢_⦂_`, whose boundary rule `env` TAKES a `BoundaryWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares the three sides by the representation each denotes; the `Inert`/`Active` split with `act-or-inert`; and `Value` |
 | `TermSubst.agda` | the PAIRED type renaming (`ren²`, `renᴹ²`) and its representation-only traversal `renᴹᴿ`, related by `renᴹ²-ord-id`; term-variable renaming `renⁿ` with `⊢renⁿ`/`⊢weakenⁿ`; and FRAME-EXACT substitution — `Img`, `crossΛᴹ`, `substᵐ`, `_[_∶_]ᵐ` — which wraps a value crossing a `Λ` in that binder's dual rather than shifting it |
 | `Reduction.agda` | `_⊢_-→_` with **fifteen** rules — `TyBeta`, `Beta`, `Peel`, `TyPeelR-Λ`, `TyPeelR-⟪⟫`, `CancelR`, `Drop$`, `Drop-true`, `Drop-false`, `IdPush` and the five congruences `ξ-·-l`, `ξ-·-r`, `ξ-·[]`, `ξ-Λ`, `ξ-⟪⟫` — the multi-step `_⊢_-→*_`, `value-¬step`, and `det`, which takes the redex's typing derivation.  Its charter states the crossing-spelling law and lists the five carried spellings |
-| `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`morphWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`respell?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
+| `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`boundaryWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`respell?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
 | `Eval.agda` | the evaluator: `step`, leftmost-outermost, RETURNS the derivation it found, so soundness is its type; `eval` iterates it with fuel and CHECKS every contractum at the run's type; `Trace` with `illtyped` as the one way a type is lost, `Checked`, `traceEnd`/`traceTerms`/`traceLen`/`evalTerms`, `trace-sound`, and `Reaches k n ⊢M V`, which states endpoint, step count, "no state lost the type" and value in ONE equation |
 | `Progress.agda` | the statement `Progress`, stated premise-free, and `progress`, a one-line wrapper around `proof.Progress.Impl.progress`; unconditional since 2026-09-21 |
 | `Preservation.agda` | `Preservation` and `Preservation*` stated in full and proved by instantiating `proof.Preserve.Impl` at `RepWeaken.cross-Λ-⊢`, `AddLock0.addLock0-⊢`, `PeelDual.preserve-Peel`, `MoveScope.preserve-CancelR` and `MoveScope.preserve-IdPush`; the charter explains why `WfCtx Δ` is part of the statement |
 | `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full in one place rather than re-exported, every right-hand side a delegation |
 | `Examples.agda` | the living regression: **eleven sections** (§1 baseline runs, §2 the vacuous-Λ family, §3 `TyPeelR` from closed plain source, §4 the reveal mirror, §5 the tower, §6 polymorphic payloads, §7 functions that cross, §8 the `CancelR` shift witness, §9 hand-built boundaries at a non-empty ambient, §10 what substitution does at a crossing, §11 refutations and non-vacuity) and **23 `Reaches` runs**, merged into one file on 2026-09-21.  All fifteen reduction rules fire in §§1–8; §9a and §9b are the only two runs pinned state by state, by `evalTerms` |
+| `Residual.agda` | **the color-preservation statement layer** (2026-09-21): one-hole contexts `TermCtx`/`plug`; the type context AT THE HOLE `Δ ⊢C C ⊣ Δ′`, whose `names` is the hole's SCOPE MAP; `renCtx²`/`holeRen²` and `substCtx`/`holeEnv` (renaming and `Beta`-substitution through a context, and what reaches the hole); `Residual r C M ρ D N`/`Residuals`, indexed by the representation renaming ρ the move delivers to the hole.  Redex nodes are consumed; the `Drop` rules consume their literal; a substituted variable's position becomes the argument copy's (`CopyResidual`) |
+| `ColorPreservation.agda` | the STATEMENT `ColorPreservation` — at a residual position the scope map is the old one under ρ: `names Δ₂ ≡ map ρ (names Δ₁)`.  Unproved: per the standing protocol it goes to Jeremy first (`notes/TODO.md`); the concrete instance is `notes/ColorPreservationProbe.agda` |
 | `Show.agda` | de Bruijn → named renderer, printing the two universes differently — α, β, γ for representation variables, X, Y, Z for the ordinary names that denote them (see **Tools**) |
 | `All.agda` | aggregate driver: type-checking it type-checks the whole development |
 
@@ -177,6 +179,7 @@ that older calculus, not this one.
 | `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing already forces the two names to denote ONE representation variable (`idpush-name`, `cancel-name`), `unseal` is the only active conversion an id-layer can meet, and the naked drop is sound exactly at a frame that changes nothing |
 | `Adversary.agda` | the soundness gate: a conceal must cite a REPRESENTED binder, and the two universes refuse it twice over — the name may be absent from the map, or the representation variable it names may be `abstR` |
 | `ShiftAudit.agda` | **the shift audit**: every rule that moves a subterm, checked site by site against frame exactness, plus the tower measure that makes `TyPeelR-⟪⟫` terminate and the refutation of the rejected wrap repair |
+| `Residual.agda` | soundness of the residual layer: `plug C M` is the step's source and `plug D N` its contractum (`residual-source`, `residual-sound`, `residuals-sound`), via `plug-renCtx²` and `plug-substCtx` — the sanity gate on the statement's data |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
 
 ## Tools
@@ -246,7 +249,8 @@ it.
 |------|----------|
 | `notes.md` | the mathematical presentation of the current calculus, named-variable notation |
 | `PLAN.md` | the experiment's plan and running status block, the port's history, and a resume section for another machine |
-| `TODO.md` | the live handoff queue — currently the port of the COLOR PRESERVATION theorem, whose statement goes to Jeremy before the proof is attempted |
+| `TODO.md` | the live handoff queue — currently the COLOR PRESERVATION port: the statement and its layer are written (`Residual.agda`, `ColorPreservation.agda`, `proof/Residual.agda`) and await Jeremy's review before the proof |
+| `ColorPreservationProbe.agda` | the color-preservation statement on ONE RUN — `ΛX. ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)`, three steps (TyBeta, Peel, Beta), the argument's `Residuals` derivation, its `⊢C` contexts at both ends, and `names Δ₃ ≡ map ρ★ (names Δ₀)` by `refl`: the Peel moves it past one bind, so α's index shifts by one and the map is otherwise unchanged |
 | `DECISIONS.md` | **the design log**, in date order: decisions stated as definitions, worked examples, probe verdicts, and Jeremy's rulings.  Start at the end |
 | `DesignSpace.md` | **the map**: a mermaid graph of the fifty-one design points explored 2026-09-01…06, edges labelled with the evidence that moved the design, plus the legend and the through line |
 | `DesignPoints.md` | the map's glossary: one entry per node id, same order, each with a pointer into `DECISIONS.md`, `Design.md`, `Examples.agda` or a commit |
@@ -292,8 +296,9 @@ Three PDFs sit at the top level for the digests above:
   rewritten, the errors testing found, and the completed plan record.
 * **`notes/DECISIONS.md`** — why it is that calculus and not another,
   in date order.  Start at the end.
-* **`notes/TODO.md`** — what is open: the COLOR PRESERVATION port,
-  with the v7 statement, the commits it lived at, and the porting notes.
+* **`notes/TODO.md`** — what is open: the COLOR PRESERVATION port —
+  statement, probe and soundness written; the proof waits on Jeremy's
+  review of the statement.
 * **`Design.md`** — carried over from `SystemF/agda/strong/` and **not
   updated**: it describes the masked-entry calculus (`masked b`, the
   computed `interior Θ Δ`), not this one.  `notes/notes.md` supersedes

@@ -40,6 +40,11 @@ open import strong-rep-var.Examples
 -- statement (notes/TODO.md).
 open import strong-rep-var.Residual
 open import strong-rep-var.ColorPreservation
+
+-- Soundness of the residual layer: a residual names a position in the
+-- contractum (`residual-sound`, `residuals-sound`).  Direct gate: no
+-- top-level module reaches it until the theorem is proved.
+open import strong-rep-var.proof.Residual
 open import strong-rep-var.Show
 
 -- THE SOUNDNESS GATE.  A conceal must cite a REPRESENTED binder, and the

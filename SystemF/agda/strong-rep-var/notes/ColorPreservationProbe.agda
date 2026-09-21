@@ -47,6 +47,8 @@ open import strong-rep-var.Reduction
 open import strong-rep-var.TypeCheck
 open import strong-rep-var.Eval
 open import strong-rep-var.Residual
+open import strong-rep-var.ColorPreservation
+open import strong-rep-var.proof.Ctx using (wf-empty)
 
 ------------------------------------------------------------------------
 -- The program and its three states
@@ -182,3 +184,7 @@ reps-before = refl
 
 reps-after : reps Δ₃ ≡ bindR (` 0) ∷ abstR ∷ []
 reps-after = refl
+
+-- … and the same equation through the THEOREM, now that it is proved.
+color-preserved-thm : names Δ₃ ≡ map ρ★ (names Δ₀)
+color-preserved-thm = color-preservation wf-empty Ex-⊢ res before after

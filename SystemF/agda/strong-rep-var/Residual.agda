@@ -48,6 +48,7 @@ open import strong-rep-var.Reduction
 
 private
   variable
+    k : ℕ
     Δ Δ′ Δᵢ : Ctxᵗ
     A B : Ty
     L N P W : Term
@@ -179,13 +180,22 @@ data Stable (σ : Var → Img) : Term → Set where
 -- occurrence sits under wraps the copy in that binder's dual
 -- (`crossΛᴹ`, strong-rep-var.TermSubst §5): the position moves inside
 -- one more boundary frame and one more representation-only `suc`.
-data ImageResidual : Img → TermCtx → Term → Renameᵗ → TermCtx → Term
-                   → Set where
+--
+-- THE DEPTH INDEX (2026-09-21, restored from v7 during the proof).  The
+-- ℕ counts the `Λ`s the copy walk has descended, and `image-here`
+-- demands it be zero.  Without it the relation admits a WRONG-POSITION
+-- derivation: when the β-redex's argument is itself a `crossΛᴹ`-shaped
+-- wrapper, `⇑ᴵ (ival V A)` is again an `ival`, so a depth-1 occurrence
+-- could match `image-here` and claim the UNWRAPPED source position at
+-- the ambient one `Λ` in — and for that derivation the color equation
+-- is false.  The index pins the leaf to the walk's actual depth.
+data ImageResidual : ℕ → Img → TermCtx → Term → Renameᵗ → TermCtx
+                   → Term → Set where
   image-here : ∀ {C M}
-    → ImageResidual (ival (plug C M) A) C M idᵗ C M
-  image-Λ : ∀ {V C M D N}
-    → ImageResidual (ival V A) C M ρ D N
-    → ImageResidual (⇑ᴵ (ival V A)) C M (holeᴿ suc D ∘ ρ)
+    → ImageResidual zero (ival (plug C M) A) C M idᵗ C M
+  image-Λ : ∀ {k V C M D N}
+    → ImageResidual k (ival V A) C M ρ D N
+    → ImageResidual (suc k) (⇑ᴵ (ival V A)) C M (holeᴿ suc D ∘ ρ)
         (renCtx² (moveᴿ suc) D
            ⟪C boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
         (renᴹ² (holeRen² (moveᴿ suc) D) N)
@@ -194,26 +204,26 @@ data ImageResidual : Img → TermCtx → Term → Renameᵗ → TermCtx → Term
 -- to the occurrence that receives it.  The body's binders extend the
 -- substitution exactly as `substᵐ` does; a boundary in the body receives
 -- no copy.
-data CopyResidual (σ : Var → Img)
+data CopyResidual (k : ℕ) (σ : Var → Img)
   : Term → TermCtx → Term → Renameᵗ → TermCtx → Term → Set where
   copy-var : ∀ {x C M D N}
-    → ImageResidual (σ x) C M ρ D N
-    → CopyResidual σ (` x) C M ρ D N
+    → ImageResidual k (σ x) C M ρ D N
+    → CopyResidual k σ (` x) C M ρ D N
   copy-ƛ : ∀ {C M D N}
-    → CopyResidual (extᴵ σ) P C M ρ D N
-    → CopyResidual σ (ƛ A ∙ P) C M ρ (ƛC A ∙ D) N
+    → CopyResidual k (extᴵ σ) P C M ρ D N
+    → CopyResidual k σ (ƛ A ∙ P) C M ρ (ƛC A ∙ D) N
   copy-·L : ∀ {C M D N}
-    → CopyResidual σ L C M ρ D N
-    → CopyResidual σ (L · P) C M ρ (D ·L substᵐ σ P) N
+    → CopyResidual k σ L C M ρ D N
+    → CopyResidual k σ (L · P) C M ρ (D ·L substᵐ σ P) N
   copy-·R : ∀ {C M D N}
-    → CopyResidual σ P C M ρ D N
-    → CopyResidual σ (L · P) C M ρ (substᵐ σ L ·R D) N
+    → CopyResidual k σ P C M ρ D N
+    → CopyResidual k σ (L · P) C M ρ (substᵐ σ L ·R D) N
   copy-Λ : ∀ {C M D N}
-    → CopyResidual (λ x → ⇑ᴵ (σ x)) P C M ρ D N
-    → CopyResidual σ (Λ P) C M ρ (ΛC D) N
+    → CopyResidual (suc k) (λ x → ⇑ᴵ (σ x)) P C M ρ D N
+    → CopyResidual k σ (Λ P) C M ρ (ΛC D) N
   copy-·[] : ∀ {C M D N}
-    → CopyResidual σ L C M ρ D N
-    → CopyResidual σ (L ·[ B , A ]) C M ρ (D ·C[ B , A ]) N
+    → CopyResidual k σ L C M ρ D N
+    → CopyResidual k σ (L ·[ B , A ]) C M ρ (D ·C[ B , A ]) N
 
 ------------------------------------------------------------------------
 -- 5. Residuals of one step.  `Residual r C M ρ D N`: the step `r` moves
@@ -245,7 +255,7 @@ data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
   -- Beta, the argument: one residual per occurrence that receives it.
   residual-Beta-arg : ∀ {C M D N}
     (vW : Value (plug C M))
-    → CopyResidual (betaEnv (plug C M) A) P C M ρ D N
+    → CopyResidual zero (betaEnv (plug C M) A) P C M ρ D N
     → Residual (Beta {Δ = Δ} {A = A} {N = P} {W = plug C M} vW)
         ((ƛ A ∙ P) ·R C) M ρ D N
 

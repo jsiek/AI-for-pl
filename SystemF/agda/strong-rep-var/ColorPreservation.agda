@@ -1,7 +1,8 @@
 module strong-rep-var.ColorPreservation where
 
--- COLOR PRESERVATION — the statement (2026-09-21; proof pending Jeremy's
--- review of the statement, per the standing protocol).
+-- COLOR PRESERVATION — statement and theorem (statement approved by
+-- Jeremy and proved 2026-09-21; the proof is
+-- strong-rep-var.proof.ColorPreservation).
 --
 -- THE DESIGN LAW (Jeremy, 2026-09-04, notes/DECISIONS.md): "the color of a
 -- non-boundary term should never change during reduction" — reduction
@@ -32,17 +33,45 @@ open import Data.List using ([]; map)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong-rep-var.Types using (Ty)
-open import strong-rep-var.Ctx using (Ctxᵗ; names)
+open import strong-rep-var.Ctx using (Ctxᵗ; names; WfCtx; empty)
 open import strong-rep-var.Terms using (Term; _∣_⊢_⦂_)
 open import strong-rep-var.Reduction using (_⊢_-→*_)
 open import strong-rep-var.Residual
+open import strong-rep-var.proof.Ctx using (wf-empty)
+import strong-rep-var.proof.ColorPreservation as Proof
+
+-- THE WELL-FORMEDNESS PREMISE (2026-09-21, added with the proof; the
+-- one delta against the reviewed statement).  The run's intermediate
+-- terms are re-typed by `preservation`, which is conditional on
+-- `WfCtx Δ` — so a run under an arbitrary ambient Δ inherits that
+-- premise.  It is the price of decision 5 (stating over any Δ rather
+-- than `empty`); `ColorPreservationClosed` below is the v7-faithful
+-- closed form, premise-free beyond the typing.
 
 ColorPreservation : Set
 ColorPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}
   {rs : Δ ⊢ L -→* L′} {C M ρ D N}
+  → WfCtx Δ
   → Δ ∣ [] ⊢ L ⦂ A
   → Residuals rs C M ρ D N
   → ∀ {Δ₁ Δ₂ : Ctxᵗ}
   → Δ ⊢C C ⊣ Δ₁
   → Δ ⊢C D ⊣ Δ₂
   → names Δ₂ ≡ map ρ (names Δ₁)
+
+color-preservation : ColorPreservation
+color-preservation wf ⊢L rs dC dD =
+  Proof.residuals-color wf ⊢L rs dC dD
+
+ColorPreservationClosed : Set
+ColorPreservationClosed = ∀ {L L′ : Term} {A : Ty}
+  {rs : empty ⊢ L -→* L′} {C M ρ D N}
+  → empty ∣ [] ⊢ L ⦂ A
+  → Residuals rs C M ρ D N
+  → ∀ {Δ₁ Δ₂ : Ctxᵗ}
+  → empty ⊢C C ⊣ Δ₁
+  → empty ⊢C D ⊣ Δ₂
+  → names Δ₂ ≡ map ρ (names Δ₁)
+
+color-preservation-closed : ColorPreservationClosed
+color-preservation-closed = color-preservation wf-empty

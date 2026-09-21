@@ -84,16 +84,16 @@ plug-substCtx σ (C ·C[ B , A ]) M =
 plug-substCtx σ (C ⟪C Θ , c ⟫) M =
   cong (λ z → plug C z ⟪ Θ , c ⟫) (substᵐ-ivar ivar (λ x → refl) M)
 
-image-sound : ∀ {I C M ρ D N}
-  → ImageResidual I C M ρ D N → plug D N ≡ imgTm I
+image-sound : ∀ {k I C M ρ D N}
+  → ImageResidual k I C M ρ D N → plug D N ≡ imgTm I
 image-sound image-here = refl
 image-sound (image-Λ {A = A} {D = D} {N = N} r) =
   cong (_⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
     (trans (plug-renCtx² (moveᴿ suc) D N)
            (cong (renᴹ² (moveᴿ suc)) (image-sound r)))
 
-copy-sound : ∀ {σ P C M ρ D N}
-  → CopyResidual σ P C M ρ D N → plug D N ≡ substᵐ σ P
+copy-sound : ∀ {k σ P C M ρ D N}
+  → CopyResidual k σ P C M ρ D N → plug D N ≡ substᵐ σ P
 copy-sound (copy-var i)   = image-sound i
 copy-sound (copy-ƛ r)     = cong₂ ƛ_∙_ refl (copy-sound r)
 copy-sound (copy-·L r)    = cong₂ _·_ (copy-sound r) refl

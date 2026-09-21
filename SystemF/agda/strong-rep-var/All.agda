@@ -35,15 +35,14 @@ open import strong-rep-var.TypeSafety
 -- that fired at each step.
 open import strong-rep-var.Examples
 
--- COLOR PRESERVATION (2026-09-21): the one-hole-context/residual layer
--- and the theorem STATEMENT.  The proof follows Jeremy's review of the
--- statement (notes/TODO.md).
+-- COLOR PRESERVATION (2026-09-21): the one-hole-context/residual layer,
+-- the theorem, and its proof (reached through the public module).
 open import strong-rep-var.Residual
 open import strong-rep-var.ColorPreservation
 
 -- Soundness of the residual layer: a residual names a position in the
--- contractum (`residual-sound`, `residuals-sound`).  Direct gate: no
--- top-level module reaches it until the theorem is proved.
+-- contractum (`residual-sound`, `residuals-sound`).  Direct gate: the
+-- theorem does not depend on it.
 open import strong-rep-var.proof.Residual
 open import strong-rep-var.Show
 

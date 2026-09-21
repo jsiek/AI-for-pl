@@ -4599,3 +4599,58 @@ its contractum (`proof/Residual.agda`, via `plug-renCtx²`,
 `plug-substCtx` and `substᵐ-ivar`).  Per the standing protocol the proof
 waits on Jeremy's review of the statement; the five decisions embedded in
 it are listed in `notes/TODO.md` and on PR #207.
+
+## 2026-09-21 — COLOR PRESERVATION is PROVED; the copy depth index is
+## RESTORED; the theorem carries `WfCtx Δ`
+
+Jeremy approved the statement and the constructor name `boundary`
+(PR #207); the proof landed the same day.  Two deltas, both flagged on
+the PR:
+
+**The depth index (a repair to the reviewed layer).**  Writing
+`copy-frame` exposed that `CopyResidual`/`ImageResidual` without v7's
+ℕ index admit a WRONG-POSITION derivation: `⇑ᴵ (ival V A)` is again an
+`ival`, so when the β-redex's argument is itself a `crossΛᴹ`-shaped
+wrapper (reachable: `crossΛᴹ W (` X)` is a value), a depth-1 occurrence
+can match `image-here` and claim the UNWRAPPED source position at the
+ambient one `Λ` in — take `C₀ = □ ⟪C boundary [] (lock 0 0 ∷ []) ,
+mkId (⇑ᵗ A) ⟫`: the source reading of `C₀` at Δ deletes Δ's name 0,
+the target reading at `underΛ Δ` deletes the new binder, and
+`names Δ₂ ≡ map idᵗ (names Δ₁)` is FALSE.  The index pins `image-here`
+to depth zero, and the copy walk keeps it in sync (`copy-Λ` recurses at
+`suc k`); soundness (`proof/Residual.agda`) was index-blind and did not
+change.
+
+**`WfCtx Δ` (a premise added to the statement).**  `residuals-color`
+re-types each intermediate term by `preservation`, which is conditional
+on `WfCtx Δ` — the price of decision 5 (any Δ, since ξ-Λ reduces under
+Λ).  `ColorPreservationClosed` at `empty` is the v7-faithful form,
+premise-free beyond the typing.  Decision 4 is resolved the other way
+too: the typing premise IS needed, at exactly two sites — Peel's
+argument (the crossed bind block's `⊢ᴮ`, from the redex's own `env` via
+`bw-binds`, feeding `repwk-wkN`) and TyPeelR-⟪⟫ (the refined store's
+well-formedness via `instantiate-boundarywf`).
+
+**The proof's shape** (proof/ColorPreservation.agda): per step,
+`residual-frame` CONSTRUCTS the target position's frame derivation
+together with `names Δ₂ ≡ map ρ (names Δ₁)` — frame-for-frame at every
+rule except the three movers; the minted boundary frames' readings are
+exactly the §3a interior lemmas (`instantiate-interior` for
+TyBeta/TyPeelR-Λ, `dual-interior` for Peel, `rewind-interior` +
+`merged-interior` for CancelR/IdPush — for these two the inner
+derivation is reused VERBATIM, ShiftAudit's "exact" made literal), plus
+the new `crossΛ-interior` for the dual `crossΛᴹ` mints.  The movers go
+through the new `⊢C-ren`: transport of `Γ ⊢C C ⊣ Δ₁` along a
+`TyRename` with pointwise-id ordinary component, producing
+`renCtx² ρ² C`'s derivation with the scope map moved by exactly
+`represent (holeRen² ρ² C)` — the boundary case is `interior-ren` over
+`RepWk` (§3d), closed under frames by `repwk-abst`/`repwk-push`.  The
+slot refinement `abstR → bindR R` at TyBeta/TyPeelR-Λ is `⊢C-len`: the
+frame judgment reads the representation store only through `∋ʳ`, i.e.
+its length.  `Beta`'s body is `⊢C-substCtx` (boundary frames are
+term-closed, so the substitution never moves a frame); its argument is
+`copy-frame`/`image-frame` over the depth index, one `crossΛ-interior`
+frame and one `moveᴿ suc` transport per `Λ`, composing to the
+residual's `holeᴿ suc D ∘ ρ`.  `residuals-color` chains the equations
+by `map-∘`.  The probe now also checks the run's equation THROUGH the
+theorem (`color-preserved-thm`).

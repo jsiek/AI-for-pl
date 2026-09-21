@@ -62,8 +62,8 @@ module strong.Examples where
 --     `proof/MoveScope.agda`, `proof/PeelDual.agda` and the ONE refutation
 --     that survives the port, `notes/CancelRShiftWall.agda`.
 --   * old §8, §9 (progress and preservation along a run) —
---     `strong.Preservation.preservation` is now UNCONDITIONAL
---     (2026-09-20) and progress awaits only `MergedReading`, but the
+--     `strong.Preservation.preservation` (2026-09-20) and
+--     `strong.Progress.progress` (2026-09-21) are UNCONDITIONAL, but the
 --     run-level subject reduction here stays the one `eval` CHECKS,
 --     state by state: it is cheaper than instantiating the theorem at
 --     every run and catches the same losses.

@@ -40,6 +40,13 @@ preservation argument cleaner without otherwise redesigning Strong System F.
 The branch is `codex/strong-system-f-representation-vars` and was created from
 the latest `main` available when the experiment began.
 
+**THE EXPERIMENT'S THEOREM SURFACE IS COMPLETE (2026-09-21).**
+Preservation, progress, type safety and determinism are all unconditional
+theorems under `--safe`, with no postulates or holes. `MergedReading`, the
+last parameter in the development, was first shrunk to the inner retention
+that CancelR and IdPush actually consume and then proved by
+`CtxMorph.merged-conversion-exists`. The review queue is EMPTY.
+
 The following parts have been ported and typecheck:
 
 - contexts, representation bindings, lookups, and well-formedness in
@@ -158,7 +165,7 @@ Testing has found and repaired these errors:
    conv(Θ, Δ)` — is FALSE: lock-free and unlock-free change lists have it,
    mixed ones need not, and `_⋉_` mixes. No REACHABLE frame violating (P)
    has been exhibited; what the disproof rules out is the proof strategy,
-   not the rule. See the immediate plans. Machine-checked in
+   not the rule. See the completed plan record. Machine-checked in
    `notes/CrossingAudit.agda`.
 
    The invariant that REPLACES (P) is proved. Write (Q) for: the two
@@ -328,9 +335,8 @@ REACHABLE from a closed, plain source program
 2026-09-19, it is installed in `Reduction.agda`, and the preservation case
 it generates is proved in `proof/MoveScope.agda`. Canonical
 forms now pass against the relational `env` interface as well. Stage-1
-progress passes too: its public logical statement stays premise-free, while
-the proof is parameterized by the new `MergedReading` invariant pending
-review.
+progress passes too, and its public logical statement stays premise-free.
+As of 2026-09-21 its former `MergedReading` parameter is proved and gone.
 
 **THE FRONTIER IS CLOSED (2026-09-19).** The module sweep of item 6 is done
 — every old-design proof script is either ported or deleted — and so are the
@@ -357,11 +363,11 @@ DIFFERENTLY — a representation variable as α, β, γ and the ordinary variabl
 that names it as X, Y, Z at the same position — and renders a whole run,
 with the rule that fired at each step, through `showRun`.
 
-What is left on this branch is therefore not module porting. It was TWO
-representation-only typing transports and `MergedReading` awaiting review
-(items 1, 2, 6); one of those transports refuted the RULE that asks for it,
-which was repaired on 2026-09-20 and whose transport was then proved — so
-only `MergedReading` is left. See the next two blocks.
+What was left after module porting was two representation-only typing
+transports and `MergedReading` (items 1, 2, 6). One transport refuted the
+RULE that asked for it; that rule was repaired on 2026-09-20 and its reshaped
+transport was proved. `MergedReading` was proved on 2026-09-21. No theorem
+obligation remains.
 On 2026-09-20 Jeremy simplified the FORM of `RepWeakenTyping`: it now uses
 the representation-only traversal `renᴹᴿ`, while `renᴹ²-ord-id` connects
 that statement to `Peel`'s unchanged identity-ordinary contractum spelling.
@@ -439,8 +445,8 @@ lock-skipping transport `strong.CtxMorph.addLock0-conversion-ren`
 moved reading is representation-shifted FIRST (`sameᶜ-ren`, past the `Λ`
 by `names-underΛ-ren`) and only then respelled through `⊆ᵃ-underΛ keep`;
 doing it the other way round leaves the reading in the unrenamed map.
-`proof/Progress.agda` and `Progress.agda` therefore still take exactly one
-parameter, `MergedReading`.
+`proof/Progress.agda` now packages that construction outright, and
+`Progress.agda` exports `progress : Progress` with no parameter.
 
 **AND PRESERVATION IS NOW UNCONDITIONAL (2026-09-20).** `AddLock0Typing`,
 in its RESHAPED form — it receives the two conversion readings and the
@@ -456,9 +462,9 @@ is left is `interior-ren`), the interior term by `proof/RepWeaken.⊢renᴿ` at
 
 `strong.Preservation.Stage1` is therefore GONE: `preservation` and
 `preservation*` are stated outright. `strong.TypeSafety` exports them
-outright too. `strong.Progress.Stage1`, `strong.TypeSafety.Stage1` and
-`proof/TypeSafety.Stage1` now take exactly ONE parameter, `MergedReading`
-— the single open obligation left on this branch.
+outright too. As of 2026-09-21 `strong.Progress.Stage1`,
+`strong.TypeSafety.Stage1` and `proof/TypeSafety.Stage1` are GONE as well:
+the merged reading is proved, so progress and type safety are stated outright.
 
 ## Resuming on another machine
 
@@ -503,13 +509,15 @@ stage 2 proved `IdPush`, `Peel` and — after the rule repair of 2026-09-19
 together with the rule that asked for it — the rule was REPAIRED, the
 statement RESHAPED and then PROVED (`proof/AddLock0.agda`), all the same
 day; item 3's rewind transport and item 4's rule-set cleanup are
-done; canonical forms are done; item 6's progress port is done modulo
-`MergedReading`, and its module sweep and the two remaining ports are
-done. PRESERVATION IS UNCONDITIONAL. The only open work left on this
-branch is the review item `MergedReading` — progress's, and type safety's,
-one remaining parameter.
+done; canonical forms are done; item 6's progress port and its module sweep
+are done. Preservation, progress and type safety are UNCONDITIONAL. The
+review queue is EMPTY.
 
-## Immediate plans
+## Completed plan record
+
+There are no immediate proof, rule or porting items. The theorem surface is
+complete; anything further on this branch is polish only. The completed
+items remain below as the implementation record.
 
 1. **STAGE 1 DONE (2026-09-18).** `proof/Preserve.agda` now uses relational
    interior and conversion readings throughout. It proves TyBeta, Beta,
@@ -616,7 +624,8 @@ one remaining parameter.
      `conversion-live`, because a conversion reading only ADDS names; and
      the minted `unseal X′`'s type is a LOOKUP, which shifts itself past
      Θ₁'s bind block (`∋ʳ-push`, also new in §3a). So `MergedReading` was
-     NOT needed for preservation — only Progress asks for it.
+     NOT needed for preservation — only Progress needed it, and its proof
+     landed on 2026-09-21.
 
    - `PeelCase` is PROVED, `proof/PeelDual.agda` `preserve-Peel`, modulo
      ONE new parameter. The dual's interior is `dual-interior` (new in
@@ -741,10 +750,9 @@ one remaining parameter.
    Consequently `strong.Preservation` HAS NO `Stage1` MODULE at all —
    `crossΛ`, `peel`, `idpush`, `cancel`, `repWeaken` and, since
    2026-09-20, `addLock0` are all proved and plugged in — and
-   `strong.TypeSafety.Stage1` and `proof/TypeSafety.agda` take
-   `merged-reading` alone. That is the WHOLE parameter surface of the
-   development: one statement, `MergedReading`, open and plausible,
-   pending review. Progress takes the same one and nothing else — the
+   `strong.TypeSafety` exports preservation outright. As of 2026-09-21,
+   `strong.Progress` and both type-safety modules have no `Stage1` either:
+   `MergedReading` is proved, so the WHOLE parameter surface is empty. The
    `TyPeelR-⟪⟫` repair added no progress parameter.
 
 3. **DONE (2026-09-18).** The two rewind invariants are now relational
@@ -822,8 +830,8 @@ one remaining parameter.
    movement facts live in the
    ported `proof/ShiftAudit.agda`; the headline is that every move but
    TyBeta's is representation-only.
-6. **CANONICAL FORMS AND STAGE-1 PROGRESS DONE (2026-09-19); NEXT:
-   `MergedReading` REVIEW, THEN TYPE SAFETY.** Canonical forms
+6. **CANONICAL FORMS, PROGRESS AND TYPE SAFETY DONE (2026-09-21).**
+   Canonical forms
    invert the exterior `SameTyExt` premise through its common representation
    type, then use `shiftRep` head preservation to recover the conversion
    target's base, variable, arrow, or `∀` shape. The old `canon-base` statement
@@ -841,26 +849,26 @@ one remaining parameter.
 
    The public statement remains premise-free: recursive calls under `Λ` need
    no well-formedness, and every boundary case gets `WfCtx` from its own
-   `MorphWf`. The proof is honestly parameterized by one NEW MAJOR statement,
-   `MergedReading`, which says the conversion reading of `Θ₁ ⋉ Θ₂` exists and
-   retains every representation name available in both Θ₂'s conversion
-   context and Θ₁'s. Those are exactly the two re-spellings that CancelR and
-   IdPush mint. It is deferred for review rather than implemented in stage 1.
+   `MorphWf`. The former `MergedReading` parameter is now proved. Its shrunk
+   statement says that the conversion reading of `Θ₁ ⋉ Θ₂` exists and retains
+   every representation name available in Θ₁'s conversion context — exactly
+   the context from which both CancelR and IdPush move a spelling.
 
-   **A NOTE FOR THAT REVIEW (2026-09-19).** With `CancelR` repaired, BOTH
+   **THE SHRINK, RESOLVED (2026-09-21).** With `CancelR` repaired, BOTH
    id-layer rules re-spell from `Δ₁ᶜ`, so `proof/Progress.agda` no longer
    consumes `MergedReading`'s outer `Keeps (names Δᶜ) (names Δ⋉ᶜ)`
-   component and the statement could SHRINK. It was deliberately NOT
-   shrunk: the statement is under review, and that is a separate
-   decision.
+   component. Jeremy instructed that it be shrunk, and it was deleted before
+   the proof. The retained inner inclusion is unrenamed: both contexts already
+   live under the same representation bind prefixes.
 
-   **AND IT IS STILL THE ONLY ONE (2026-09-20).** The `TyPeelR-⟪⟫` repair
+   **THE PREVIOUS FINAL PARAMETER (2026-09-20).** The `TyPeelR-⟪⟫` repair
    of that day added three premises to the rule, and progress CONSTRUCTS
    all three: `proof/Progress.addLock0-reading` gets the moved boundary's
    conversion reading and the retention `map (extN (numBinds Θ′) suc)
    (names Δ′ᶜ) ⊆ᵃ names Δ″ᶜ` from `CtxMorph.addLock0-conversion-ren`, and
    the moved spelling then comes from `sameᶜ-ren` followed by `respell`.
-   No second parameter was introduced.
+   No second parameter was introduced. The one parameter that remained was
+   discharged on 2026-09-21.
 
    **THE MODULE SWEEP IS DONE (2026-09-19).** Every remaining old-design
    proof script between the frontier and `Examples.agda` has been ported or
@@ -903,10 +911,11 @@ one remaining parameter.
 7. **DONE (2026-09-19).** `agda --safe --no-allow-unsolved-metas -v0
    All.agda` passes from `SystemF/agda/strong/`, and so does `make check`
    (`agda --safe -v0 All.agda` plus `make postulate-check`). See the
-   status section above; what remains is review and the `CancelR` repair,
-   not porting.
+   status section above. The later `CancelR` and `TyPeelR-⟪⟫` repairs are
+   installed and proved, and the 2026-09-21 merged-reading proof closes the
+   final review item.
 
-This draft branch should remain experimental until the preservation proof
-succeeds. The fourth trace is done, and it shows that determinism plus the
-first three examples were not enough evidence: the rule set was wrong at
-exactly the configuration none of them reached.
+The experiment's proof objective is complete. The fourth trace showed why
+determinism plus the first three examples were not enough evidence: the rule
+set was wrong at exactly the configuration none of them reached. Any further
+work on this branch is polish, not unfinished metatheory.

@@ -10,7 +10,8 @@ module strong.proof.Ctx where
 --     `inj-extN`, `∋ˡ-ren`, `fresh-ren`).  §3 is the binder blocks
 --     (`wfᴿ-push`, `wfRepCtx-push`, `∋ʳ-push`), the insert/delete
 --     relations (`lookup→del`, `ins-exists`, `pigeon`, `live?`), and
---     `RepWk` — its base instance `repwk-abst₀` and the two closure
+--     name-set transport `⊆ᵃ-shiftRVars`; `RepWk` — its base instance
+--     `repwk-abst₀` and the two closure
 --     lemmas `repwk-abst`/`repwk-push`, with `wfctx-ren` and `∋:=-ren`.
 --   * NOT THE DEFINITIONS.  Every judgement and relation named above is
 --     declared in strong.Ctx, which holds definitions only.  Anything
@@ -393,6 +394,14 @@ shiftRVars-0 (α ∷ Δ) = cong (α ∷_) (shiftRVars-0 Δ)
 ∋ˡ-shiftRVars n (α ∷ Δ) here = α , here , refl
 ∋ˡ-shiftRVars n (α ∷ Δ) (there d) with ∋ˡ-shiftRVars n Δ d
 ∋ˡ-shiftRVars n (α ∷ Δ) (there d) | β , d′ , eq = β , there d′ , eq
+
+⊆ᵃ-shiftRVars : (n : ℕ) → Δ ⊆ᵃ Δ′
+  → shiftRVars n Δ ⊆ᵃ shiftRVars n Δ′
+⊆ᵃ-shiftRVars {Δ = Δ} n keep (X , d)
+  with ∋ˡ-shiftRVars n Δ d
+⊆ᵃ-shiftRVars n keep (X , d) | α , d′ , refl with keep (X , d′)
+⊆ᵃ-shiftRVars n keep (X , d) | α , d′ , refl | Y , d″ =
+  Y , ∋ˡ-ren (n +_) d″
 
 validNames-push : (Rs : List Ty) → ValidNames Ξ Δ
   → ValidNames (pushRepBinds Rs Ξ) (shiftRVars (length Rs) Δ)

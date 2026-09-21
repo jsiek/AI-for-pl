@@ -1157,7 +1157,7 @@ preserve-Drop-false {Θ = Θ} wfΔ
   rewrite sameTyExt-𝔹 {n = numBinds Θ} wfΔ sameₑ = ⊢false
 
 ------------------------------------------------------------------------
--- The representation-only transport statements
+-- The proved representation-only transport statements
 ------------------------------------------------------------------------
 
 -- The first two are the new-interface counterparts of the old `⊢crossΛ`
@@ -1169,6 +1169,8 @@ preserve-Drop-false {Θ = Θ} wfΔ
 -- third,
 -- `RepWeakenTyping`, is pure renaming and is PROVED
 -- (2026-09-20, `strong.proof.RepWeaken.rep-weaken-⊢`).
+-- All three are internal staging interfaces only: `strong.Preservation`
+-- instantiates them with their proofs, so preservation has no parameter.
 CrossΛTyping : Set
 CrossΛTyping = ∀ {Δ W A}
   → WfCtx Δ

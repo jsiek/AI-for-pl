@@ -1,18 +1,10 @@
 module strong.proof.TypeSafety where
 
 -- TYPE SAFETY for Strong System F: the composition of progress and
--- preservation along a run.  The two theorems are stage-1 parameterized
--- (strong.Progress), so their composition inherits its one parameter:
--- `MergedReading`, from progress.  PRESERVATION IS UNCONDITIONAL since
--- 2026-09-20, when the reshaped `AddLock0Typing` was proved
--- (strong.proof.AddLock0), so it contributes no parameter.  `CancelRCase`
--- is no longer among them: the rule repair of 2026-09-19 made it
--- provable, and `strong.proof.MoveScope.preserve-CancelR` proves it.
--- Neither is `RepWeakenTyping`: `strong.proof.RepWeaken.rep-weaken-⊢`
--- proves it (2026-09-20).  Nor is `CrossΛTyping`:
--- `strong.proof.RepWeaken.cross-Λ-⊢` proves it the same day.  The public
--- statement lives in
--- strong.TypeSafety.
+-- preservation along a run.  Both component theorems are unconditional:
+-- preservation since 2026-09-20, and progress since 2026-09-21, when the
+-- last parameter `MergedReading` was proved.  The public statement lives
+-- in strong.TypeSafety.
 --
 -- The `WfCtx Δ` premise is preservation's (see notes/DECISIONS.md,
 -- 2026-09-18): progress needs none, but safety retypes every state the
@@ -26,8 +18,6 @@ open import strong.Types using (Ty)
 open import strong.Ctx using (Ctxᵗ; WfCtx)
 open import strong.Terms using (Term; Value; _∣_⊢_⦂_)
 open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
-import strong.proof.Preserve as P
-import strong.proof.Progress as PP
 import strong.Progress as Pr
 import strong.Preservation as Pv
 
@@ -40,13 +30,6 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
   → Δ ⊢ M -→* N
   → Value N ⊎ (Σ[ N′ ∈ Term ] (Δ ⊢ N -→ N′))
 
-module Stage1
-  (merged-reading : PP.MergedReading)
-  where
-
-  private
-    module Pr1 = Pr.Stage1 merged-reading
-
-  type-safety : TypeSafety
-  type-safety wfΔ ⊢M M-→*N =
-    Pr1.progress (Pv.preservation* wfΔ ⊢M M-→*N)
+type-safety : TypeSafety
+type-safety wfΔ ⊢M M-→*N =
+  Pr.progress (Pv.preservation* wfΔ ⊢M M-→*N)

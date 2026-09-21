@@ -4424,3 +4424,61 @@ and `uncrossΛ`, so it stays with them in §4.
 `make check` is green, the thirteen-run suite and `Examples.agda` keep
 every step count and endpoint (they are typed equalities, so the check
 IS the verification), and no `postulate` or hole was introduced.
+
+## 2026-09-21 — `MergedReading` is SHRUNK AND PROVED; the theorem surface
+## is unconditional
+
+THE CONCRETE CONSUMERS FIRST. In `progress-unseal`, repaired `CancelR`
+reads the cancelled seal's source at the inner conversion context `Δ₁ᶜ`,
+and `IdPush` reads its identity variable there too. Both branches use only
+
+    names Δ₁ᶜ ⊆ᵃ names Δ⋉ᶜ
+
+to re-spell that source in the merged conversion context. Neither branch
+uses the former outer component
+
+    names Δᶜ ⊆ᵃ names Δ⋉ᶜ .
+
+Jeremy's instruction was "now prove MergedReading, shrinking it first since
+the outer half is unconsumed". The grep audit found exactly one consumer of
+`MergedReading`, those two branches of `progress-unseal`, and confirmed that
+their bound outer witness was never read. The statement was therefore
+shrunk before proof to
+
+    MergedReading : Set
+    MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
+      → MorphWf Δ Θ₂ Δᵢ Δᶜ
+      → MorphWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
+      → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
+          ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+            × (names Δ₁ᶜ) ⊆ᵃ (names Δ⋉ᶜ))
+
+THE INNER INCLUSION IS NOT RENAMED. This is unlike
+`addLock0-reading`: no new representation binder is inserted between
+`Δ₁ᶜ` and the merged output. Both already live under Θ₂'s bind block
+followed by Θ₁'s, so the consumer's direct `names Δ₁ᶜ` inclusion is the
+true statement and is what the proof delivers.
+
+THE PROOF IS THE CHANGE-LIST CONCATENATION. The merged changes are
+
+    changes Θ₁ ++ map (underRepBinds (numBinds Θ₁)) (changes Θ₂) .
+
+Because change lists act tail first, the scope-moved Θ₂ conversion runs
+first. `conv-changes-lift` transports that reading under Θ₁'s bind block;
+`⊆ᵃ-shiftRVars` transports the fact that Θ₂'s conversion reading contains
+its interior output. `conv-weaken` then runs Θ₁'s existing conversion
+reading from this larger name map and retains its old output. Its fresh
+unlock branch uses `pigeon`, `ins-le` and `ins-cover` to prove that the
+recorded insertion position is still in range; the other branches transport
+freshness or reuse an already-live name. `conv-changes-++` concatenates the
+two runs. The packaged theorem is
+`strong.CtxMorph.merged-conversion-exists`; no premise was added.
+
+THE MILESTONE. `strong.proof.Progress.Impl` now consumes the proved
+`merged-reading`, and `strong.Progress.progress` is stated outright.
+`Stage1` is deleted from `strong.Progress`, `strong.proof.TypeSafety` and
+`strong.TypeSafety`; `type-safety` is stated outright. Preservation,
+progress, type safety, determinism and the no-step property for values are
+therefore all unconditional under `--safe`, with no postulates. The review
+queue is empty: the two-universe experiment's complete theorem surface is
+now proved.

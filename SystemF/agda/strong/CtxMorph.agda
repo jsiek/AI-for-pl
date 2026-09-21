@@ -12,7 +12,8 @@ module strong.CtxMorph where
 --     with `interior-functional` and `conversion-functional`.  §§3a–3d
 --     are transport: `interior-wf`/`conversion-wf`, the name-set
 --     invariant (Q) that `Peel` needs, `dual-conversion-exists`,
---     `conv-weaken`, and the representation-renaming lemmas
+--     `conv-weaken`, `merged-conversion-exists`, and the
+--     representation-renaming lemmas
 --     (`changes-ren`, `interior-ren`, `conversion-ren`,
 --     `addLock0-conversion-ren`, `addLock0-interior-ren`).  The witness
 --     `MorphWf` and its derived `mw-interior-wf`/`mw-conversion-wf`
@@ -613,6 +614,21 @@ private
   changes-lift Rs (changes∷ cs st) =
     changes∷ (changes-lift Rs cs) (step-lift Rs st)
 
+  conv-changes-lift : (Rs : List Ty) → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
+    → pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
+        ⊢χᶜ map (underRepBinds (length Rs)) χ
+        ⇒ shiftRVars (length Rs) Δ′
+  conv-changes-lift Rs conv[] = conv[]
+  conv-changes-lift Rs (conv-lock (b , v) cs) =
+    conv-lock (b , ∋ˡ-push Rs v) (conv-changes-lift Rs cs)
+  conv-changes-lift Rs (conv-unlock (b , v) cs fr i) =
+    conv-unlock (b , ∋ˡ-push Rs v) (conv-changes-lift Rs cs)
+      (fresh-shiftRVars (length Rs) fr)
+      (ins-shiftRVars (length Rs) i)
+  conv-changes-lift Rs (conv-unlock-live (b , v) cs d) =
+    conv-unlock-live (b , ∋ˡ-push Rs v) (conv-changes-lift Rs cs)
+      (∋ˡ-ren (length Rs +_) d)
+
 -- The MERGED frame's interior is the inner frame's own interior.  The
 -- lifted copy of the outer changes re-creates the outer interior one bind
 -- block in, which is exactly where the inner morphism's reading starts.
@@ -1046,6 +1062,35 @@ mw-interior-wf mwΘ =
 mw-conversion-wf : ∀ {Θ} → MorphWf Γ Θ Γᵢ Γᶜ → WfCtx Γᶜ
 mw-conversion-wf mwΘ =
   conversion-wf (mw-exterior mwΘ) (mw-binds mwΘ) (mw-conversion mwΘ)
+
+-- The MERGED frame's conversion reading exists and retains every name
+-- available at the inner frame's conversion context.  The lifted outer
+-- conversion runs first.  Its output contains the lifted outer interior,
+-- so `conv-weaken` runs the inner conversion from that larger map and
+-- retains the inner output in the merged output.
+merged-conversion-exists : ∀ {Γ Γᵢ Γᶜ Γ₁ᵢ Γ₁ᶜ : Ctxᵗ}
+    {Θ₁ Θ₂ : CtxMorph}
+  → MorphWf Γ Θ₂ Γᵢ Γᶜ
+  → MorphWf Γᵢ Θ₁ Γ₁ᵢ Γ₁ᶜ
+  → Σ[ Γ⋉ᶜ ∈ Ctxᵗ ]
+      ((extendReps (binds Θ₂) Γ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Γ⋉ᶜ)
+        × (names Γ₁ᶜ ⊆ᵃ names Γ⋉ᶜ))
+merged-conversion-exists {Θ₁ = morph Rs₁ χ₁}
+    (mw wf₂ bs₂ (interior cs₂) (conversion cc₂))
+    (mw wf₁ bs₁ (interior cs₁) (conversion cc₁))
+  with conv-weaken
+         (unique-shiftRVars (length Rs₁) (name-fn wf₁))
+         (unique-shiftRVars (length Rs₁)
+           (name-fn (conversion-wf wf₂ bs₂ (conversion cc₂))))
+         cc₁
+         (⊆ᵃ-shiftRVars (length Rs₁) (int⇒conv-live cs₂ cc₂))
+merged-conversion-exists {Θ₁ = morph Rs₁ χ₁}
+    (mw wf₂ bs₂ (interior cs₂) (conversion cc₂))
+    (mw wf₁ bs₁ (interior cs₁) (conversion cc₁))
+  | Δ⋉ᶜ , cc₁′ , keep =
+  _ , conversion
+        (conv-changes-++ (conv-changes-lift Rs₁ cc₂) cc₁′)
+    , keep
 
 ------------------------------------------------------------------------
 -- 3d. Renaming the representation universe — the CONTEXT half

@@ -7,10 +7,10 @@ module strong.proof.Progress where
 -- relational context readings and re-spellings carried by the new rules.
 -- `Peel`'s package is proved in strong.CtxMorph/strong.Conversion.
 --
--- One new major invariant remains for review: a merged frame `Θ₁ ⋉ Θ₂`
--- has a conversion reading that retains every name available in both the
--- outer and inner conversion contexts.  `MergedReading` states that fact
--- directly; `Impl` proves progress from it.  Nothing is postulated.
+-- The merged-frame reading needed by CancelR and IdPush is proved here
+-- from `strong.CtxMorph.merged-conversion-exists`.  Its statement retains
+-- the INNER conversion context only: both rules read the spelling they move
+-- at that context, so the former outer-retention component had no consumer.
 --
 -- The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
 -- boundary's conversion reading and the retention that names the moved
@@ -71,11 +71,11 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
   _ , refl , (R , p , q)
 
 ------------------------------------------------------------------------
--- 2. The reviewed boundary package and the deferred merged invariant
+-- 2. The boundary reading packages
 ------------------------------------------------------------------------
 
--- The conversion reading of `Θ₁ ⋉ Θ₂` must retain both sources whose
--- spellings the two id-layer rules move into that merged frame:
+-- The conversion reading of `Θ₁ ⋉ Θ₂` retains the source whose spelling
+-- both id-layer rules move into that merged frame:
 --
 --   * repaired `CancelR` (2026-09-19) moves the cancelled seal's source,
 --     read at Θ₁'s conversion context;
@@ -83,20 +83,16 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
 --
 -- `` ⊆ᵃ states only name availability.  strong.Conversion.respell-ty then
 -- constructs the `_⊢_≈_⊣_` premise at the exact type being moved.
---
--- NOTE, PENDING REVIEW.  With `CancelR` repaired, BOTH id-layer rules now
--- read at `Δ₁ᶜ`, so this proof no longer consumes the outer
--- `(names Δᶜ) ⊆ᵃ (names Δ⋉ᶜ)` component.  The statement is NOT shrunk
--- here: it is one of the statements awaiting Jeremy's review, and
--- shrinking it is a separate decision.
 MergedReading : Set
 MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
   → MorphWf Δ Θ₂ Δᵢ Δᶜ
   → MorphWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
   → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
       ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
-        × (names Δᶜ) ⊆ᵃ (names Δ⋉ᶜ)
         × (names Δ₁ᶜ) ⊆ᵃ (names Δ⋉ᶜ))
+
+merged-reading : MergedReading
+merged-reading = merged-conversion-exists
 
 -- THE MOVED BOUNDARY'S OWN READING (2026-09-20, the repair's progress
 -- obligation).  The repaired `TyPeelR-⟪⟫` carries the moved boundary's
@@ -160,14 +156,14 @@ progress-id-base v base-ℕ ⊢M | inj₂ (inj₂ refl) | ()
 progress-id-base v base-𝔹 ⊢M | inj₂ (inj₂ refl) = `false , Drop-false
 
 ------------------------------------------------------------------------
--- 4. Progress from the merged-reading invariant
+-- 4. Progress
 ------------------------------------------------------------------------
 
-module Impl (merged-reading : MergedReading) where
+module Impl where
 
   -- An active `unseal` sees a value at a variable type.  `canon-var`
   -- exposes either CancelR's or IdPush's inner layer; the two `MorphWf`
-  -- witnesses then feed the deferred merged-reading invariant.
+  -- witnesses then feed the proved merged-reading theorem.
   progress-unseal : ∀ {Δ Δᵢ Δᶜ Θ Y M Bᵢ A}
     → Value M
     → MorphWf Δ Θ Δᵢ Δᶜ
@@ -188,16 +184,16 @@ module Impl (merged-reading : MergedReading) where
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₁ refl
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
-    | Δ⋉ᶜ , r⋉ , keep₂ , keep₁ with dX
+    | Δ⋉ᶜ , r⋉ , keep₁ with dX
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₁ refl
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
-    | Δ⋉ᶜ , r⋉ , keep₂ , keep₁
+    | Δ⋉ᶜ , r⋉ , keep₁
     | α , R , nameX , repX , sameA with respell-ty keep₁ sameA
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₁ refl
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
-    | Δ⋉ᶜ , r⋉ , keep₂ , keep₁
+    | Δ⋉ᶜ , r⋉ , keep₁
     | α , R , nameX , repX , sameA | A′ , sameA′ =
     _ , CancelR vW (mw-interior mwΘ) (mw-conversion mw₁)
                 (α , R , nameX , repX , sameA)
@@ -211,11 +207,11 @@ module Impl (merged-reading : MergedReading) where
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₂ refl
     | env mw₁ ⊢W (conv-idv (α , nameX)) same₁ sameₑ₁ wE₁
-    | Δ⋉ᶜ , r⋉ , keep₂ , keep₁ with keep₁ (_ , nameX)
+    | Δ⋉ᶜ , r⋉ , keep₁ with keep₁ (_ , nameX)
   progress-unseal v mwΘ ⊢M sameᵢ d
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₂ refl
     | env mw₁ ⊢W (conv-idv (α , nameX)) same₁ sameₑ₁ wE₁
-    | Δ⋉ᶜ , r⋉ , keep₂ , keep₁ | X′ , nameX′ =
+    | Δ⋉ᶜ , r⋉ , keep₁ | X′ , nameX′ =
     _ , IdPush vW (mw-interior mwΘ) (mw-conversion mw₁) r⋉
                (` α , same-var nameX′ , same-var nameX)
                (mw-conversion mwΘ) d

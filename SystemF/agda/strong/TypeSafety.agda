@@ -6,11 +6,9 @@ module strong.TypeSafety where
 --     written out here rather than re-exported, and `TypeSafety` is the
 --     COMPOSITION of the other two: from `WfCtx Δ`, `Δ ∣ [] ⊢ M ⦂ A`
 --     and `Δ ⊢ M -→* N`, N is a `Value` or N steps.  `preservation`
---     and `preservation*` are unconditional (2026-09-20) and delegate
---     to strong.Preservation; `progress` and `type-safety` sit inside
---     `Stage1`, parameterized by the ONE statement held for review,
---     `strong.proof.Progress.MergedReading`, so that assumption is
---     visible in `Stage1`'s type.  `det` and `value-¬step` are
+--     and `preservation*` are unconditional (2026-09-20), and `progress`
+--     and `type-safety` are unconditional (2026-09-21), after the last
+--     merged-reading parameter was proved.  `det` and `value-¬step` are
 --     re-stated here and delegate to strong.Reduction.
 --   * NO PROOFS AND NO DEFINITIONS.  Every right-hand side is a
 --     delegation: strong.Preservation, strong.Progress,
@@ -29,17 +27,14 @@ module strong.TypeSafety where
 --     reduction relation is indexed by the type context Δ only; the
 --     term context is empty, as it must be.
 --
--- FOUR theorems hold outright:
+-- THE WHOLE SURFACE HOLDS OUTRIGHT:
 --
 --   det            reduction is deterministic on well-typed terms
 --   value-¬step    values do not step
 --   preservation   a well-typed term stays well typed  (2026-09-20)
 --   preservation*  and along a whole run                (2026-09-20)
---
--- The other two — progress and its composition with preservation,
--- type-safety — are STAGE-1 PARAMETERIZED by exactly ONE statement,
--- `MergedReading`, which is held for review rather than implemented.  It
--- is visible in the type of `Stage1`.
+--   progress        a well-typed closed term is a value or steps
+--   type-safety     every state reached is a value or steps
 --
 -- PRESERVATION BECAME UNCONDITIONAL ON 2026-09-20, in three steps of the
 -- same day.  `RepWeakenTyping` was proved
@@ -58,8 +53,10 @@ module strong.TypeSafety where
 -- (refuted by `notes/CancelRShiftWall.agda`, reached from source by
 -- `notes/CancelRReachabilityWitness.agda`, repaired by Jeremy's repair (a)
 -- on 2026-09-19 and proved,
--- `strong.proof.MoveScope.preserve-CancelR`).  `MergedReading` remains the
--- one open, plausible obligation pending review.
+-- `strong.proof.MoveScope.preserve-CancelR`).  The final progress
+-- obligation, `MergedReading`, was proved on 2026-09-21 by lifting Θ₂'s
+-- conversion reading, weakening Θ₁'s reading from the resulting larger
+-- name map, and concatenating the two change runs.
 
 open import Data.List using ([])
 open import Data.Sum using (_⊎_)
@@ -72,8 +69,6 @@ open import strong.Ctx using (Ctxᵗ; WfCtx)
 open import strong.Terms using (Term; Ctx; Value; _∣_⊢_⦂_)
 open import strong.Reduction using (_⊢_-→_; _⊢_-→*_)
 import strong.Reduction as R
-import strong.proof.Preserve as P
-import strong.proof.Progress as PP
 import strong.Progress as Pr
 import strong.Preservation as Pv
 import strong.proof.TypeSafety as TS
@@ -113,7 +108,7 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
   → Value N ⊎ (Σ[ N′ ∈ Term ] (Δ ⊢ N -→ N′))
 
 ------------------------------------------------------------------------
--- The stage-1 theorems, over the statements pending review
+-- The theorems
 ------------------------------------------------------------------------
 
 preservation : Preservation
@@ -122,19 +117,11 @@ preservation = Pv.preservation
 preservation* : Preservation*
 preservation* = Pv.preservation*
 
-module Stage1
-  (merged-reading : PP.MergedReading)
-  where
+progress : Progress
+progress = Pr.progress
 
-  private
-    module Pr1 = Pr.Stage1 merged-reading
-    module TS1 = TS.Stage1 merged-reading
-
-  progress : Progress
-  progress = Pr1.progress
-
-  type-safety : TypeSafety
-  type-safety = TS1.type-safety
+type-safety : TypeSafety
+type-safety = TS.type-safety
 
 ------------------------------------------------------------------------
 -- Determinism, and values do not step — unconditional

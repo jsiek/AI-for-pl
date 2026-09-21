@@ -4,29 +4,39 @@
 
 System F with type abstraction enforced **at run time**.  Instantiating
 `(ΛX. N) [A]` does not substitute `A` into `N`; it installs a
-**boundary** `M ⟪ Θ , c ⟫` whose context morphism `Θ` binds `X` to the
-representation `A`, masks whatever the interior may not name, and whose
-conversion `c` says leaf by leaf which side of the boundary may see the
-representation.  A variable's representation is stored exactly once, at
-the entry that binds it, and every other mention resolves it by looking
-the **name** up along the enclosing type context.  A masked slot is never
-dropped or re-spelled — its binding is retained (`masked b`), so weakening with
-respect to type variables is never used; that is what "strong" means.
-This is **v2**, the conversion-boundary design.  **v1** — one combined
-boundary `M ⟪ Θ , B₀ ⟫` carrying a list of reveals and conceals together
-with a single boundary type, with representations *copied* into every
-boundary that mentioned them — is on `main` and its note is
-`notes/old/notes-v1.md`; it is **refuted** (subject reduction is false;
-`notes/DECISIONS.md`, "THE PRESERVATION VERDICT (2026-09-05)").
+**boundary** `M ⟪ Θ , c ⟫` whose context morphism `Θ` stores `A` as the
+representation of a fresh variable, and whose conversion `c` says leaf
+by leaf which side of the boundary may see that representation.
 
-The informal definition of the live calculus is **`Design.md`**.  The
-design log — decisions as definitions, examples, probe verdicts — is
+What this directory adds is the **two-universe redesign**: the two jobs
+the old type-variable slot did at once are split into two de Bruijn
+universes (`Ctx.agda`).
+
+* a **representation variable** α is runtime storage.  A representation
+  context `Ξ` binds it abstractly (`abstR`) or to a payload
+  (`bindR R`), and a payload's free variables are representation
+  variables.
+* an **ordinary type variable** X is lexical — `∀X.A`, `ΛX. N`, and
+  every type annotation.  A name map `Γ` holds exactly the live
+  ordinary names and says which α each one names.
+
+A type context is the pair `Ctxᵗ = Ξ ∣ Γ`.  A morphism's changes,
+`lock X α` and `unlock X α`, delete and insert **ordinary names**; no
+change ever removes or re-spells a representation entry, so weakening
+with respect to type variables is never used — that is what "strong"
+means.  Everywhere but `TyBeta`, a subterm a rule moves is renamed in
+the representation universe alone (`renᴹᴿ`), so its ordinary positions
+do not move at all.
+
+The mathematical presentation of the live calculus, in named-variable
+notation, is **`notes/notes.md`**.  The design log — decisions as
+definitions, worked examples, probe verdicts — is
 **`notes/DECISIONS.md`**.
 
 ## Status
 
-All six public theorems hold with **no module parameters, no postulates,
-no holes**, under `agda --safe`:
+All six public theorems hold with **no module parameters, no
+postulates, no holes**, under `agda --safe`:
 
 | theorem | statement (`strong-rep-var.TypeSafety`) |
 |---------|----------------------------------|
@@ -37,46 +47,95 @@ no holes**, under `agda --safe`:
 | `det` | reduction is deterministic |
 | `value-¬step` | values do not step |
 
-Beyond the six, the development carries a **tightness** result about the
-reduction relation itself — reduction never takes a term the exterior
-refuses to one it accepts (design law 2, `Design.md` §8).  It is not a
-theorem statement but a rule-by-rule check backed by seven frame
-identities: `proof/DualTightness` for `Peel`'s `unlock` half, `Examples`
-§15 for every other rule that moves a subterm into a new frame, and the
-frame-identity table in `Design.md` §7.  Every rule passes; the one
-recorded exception, `Beta` at an *erasing* body, is a dropped argument
-rather than a scope gain.
+The premises are deliberately **not uniform**.  `preservation`,
+`preservation*` and `type-safety` take `WfCtx Δ`; the premise-free form
+is false, because a contractum can mint a `MorphWf` whose exterior
+field demands well-formedness from a redex that mentioned no ordinary
+type variable at all (the counterexample is written out in
+`Preservation.agda`'s charter and in `notes/notes.md`, "Metatheory").
+`progress` takes no such premise — every boundary typing node carries
+its own `MorphWf`.  `det` takes the **redex's typing derivation**, from
+which it reads the name-map uniqueness the rules used to carry as
+premises (`notes/DECISIONS.md`, 2026-09-18, "uniqueness comes from
+typing, not reduction").
 
-Since 2026-09-08 the identities are also **exact**, not merely sound.
-`Beta` used to plant its argument under a `Λ` by shifting it, which left
-the argument's frame one entry wider than the frame it was born in.  It
-now wraps every image that crosses a `Λ` in that binder's DUAL —
-`⟪ morph [] (lock 0 ∷ []) , mkId (⇑ᵗ A) ⟫`, the same shape `Peel` mints —
-so the substitution carries the argument's type (`N [ W ∶ A ]ᵐ`) and the
-frame identity `interior (morph [] (lock 0 ∷ [])) (unmasked abst ∷ Δ) ≡
-masked abst ∷ Δ` holds by `refl` (`Design.md` §6.2, `Examples` §15d₂).
-
-The **shift audit** that followed (`notes/ShiftAudit.md`,
-`proof/ShiftAudit`) re-read every site against the sharper question —
-does the frame say the truth about what the moved subterm may *name*? —
-and found one leak, which is now closed: `TyPeelR` is **two clauses**,
-`TyPeelR-Λ` (a `Λ` interior is instantiated on the spot, with no shift at
-all) and `TyPeelR-⟪⟫` (a boundary interior is pushed inward one layer,
-with the new binder masked in the moved boundary's own change list,
-`addLock0`).  Every rule that moves a subterm now masks what it
-introduces, and the §7 table has no exceptions (`Design.md` §6.4,
-`Examples` §15b).
+Preservation became unconditional on **2026-09-20**, when
+`RepWeakenTyping`, `CrossΛTyping` and `AddLock0Typing` were all proved
+(`proof/RepWeaken.agda`, `proof/AddLock0.agda`); progress and type
+safety became unconditional on **2026-09-21**, when the last parameter,
+`MergedReading`, was shrunk to the retention `CancelR` and `IdPush`
+actually consume and then proved by `CtxMorph.merged-conversion-exists`
+(`notes/DECISIONS.md`, 2026-09-21; `notes/PLAN.md`, "Current status").
 
 The gate, run **cold**, from `SystemF/agda`:
 
-    make -C strong check
+    make -C strong-rep-var check
 
-which is `agda --safe -v0 All.agda` plus a hygiene grep for
-`postulate` / `{!` / `TERMINATING` / `NON_TERMINATING` /
-`NO_POSITIVITY_CHECK` / `NO_UNIVERSE_CHECK` in every `.agda` under
-`strong-rep-var/` — which, since the v1 probes were deleted, is exactly the
-development (`notes/` is `.md` only).  `All.agda` is the aggregate
-driver: type-checking it type-checks the whole thing.
+`check` is `agda` plus `postulate-check`.  `agda` is
+`agda --safe -v0 All.agda`: `All.agda` is the aggregate driver, so
+type-checking it type-checks the core, `TypeCheck.agda`, `Eval.agda`,
+the three theorem modules, `Examples.agda`, `Show.agda`, the four
+audits no other top-level module reaches (`proof.Adversary`,
+`proof.IdLayer`, `proof.Canonicity`, `proof.ShiftAudit`) and
+`notes.All`, which gates the ten checked wall and probe modules under
+`notes/`.  `postulate-check` is a recursive grep for `postulate`,
+`{!`, `TERMINATING`, `NON_TERMINATING`, `NO_POSITIVITY_CHECK` and
+`NO_UNIVERSE_CHECK` over **every** `.agda` under the directory —
+top level, `proof/` and `notes/` alike — discarding matches on lines
+whose first non-blank characters are `--`, so a mention in a
+whole-line comment is allowed and a live one fails the build.
+
+**The crossing-spelling defects.**  Six defects of one kind were found
+and repaired, and they are the reason the rules look the way they do.
+The law they left behind is stated in `Reduction.agda`'s charter: when
+a rule **moves a subterm between two name maps**, the moved spelling is
+**carried by the rule as a named premise** and pinned by a `Same…`
+relation — `SameConv` for a conversion, `_⊢_≈_⊣_` for a type or a bare
+name — and is **never computed by a fixed renaming**, because the two
+contexts can reorder relative to each other.  Five carried spellings
+are live today, each installed after its own machine-checked
+refutation:
+
+| spelling | rule | date | wall module |
+|---|---|---|---|
+| `s′` | `Peel` | 2026-09-18 | `notes/CrossingAudit.agda`, `notes/PeelPremise.agda` |
+| `Bᵢ′` | `TyPeelR-⟪⟫` | 2026-09-18 | `notes/ForallPayloadWall.agda` |
+| `X′` | `IdPush` | 2026-09-18 | `notes/ForallPayloadWall.agda` |
+| `A′` | `CancelR` | 2026-09-19 | `notes/CancelRShiftWall.agda`, `notes/CancelRReachabilityWitness.agda` |
+| `s″` | `TyPeelR-⟪⟫` | 2026-09-20 | `notes/AddLock0Wall.agda` |
+
+The sixth defect of the same reading discipline hit the **conversion
+context** itself rather than a spelling: a conversion reading skips
+locks, so a later `unlock` can meet a name that is already live, which
+is the clause `conv-unlock-live` (2026-09-17, `notes/ReUnlockWall.agda`,
+`CtxMorph.agda` §3).  The six are tabulated against what the named
+presentation hides in `notes/notes.md`, "The six re-spelling repairs".
+
+**Frame exactness.**  Beyond the six theorems the development carries
+the *shift audit*: every rule that moves a subterm, checked against the
+criterion that the subterm's type context at the new position be
+exactly its context at the old one, up to the binders it crossed and
+the refinement `abstR → bindR R` of a variable it could already name.
+It is not a single theorem statement but a site-by-site check —
+`proof/ShiftAudit.agda`, §2 `Peel`, §3 the two `TyPeelR` clauses with
+§4's tower measure for termination, §5 `Beta`, §6 `CancelR`/`IdPush`,
+§7 the drops, §8 the congruences — resting on the relational transport
+lemmas `dual-interior`, `rewind-interior` and `merged-interior` of
+`CtxMorph.agda` §3a.  Its headline here is that at every site but
+`TyBeta`'s the ordinary component of the move is the identity.  The
+verdict table and the rejected repairs are `notes/ShiftAudit.md`.
+
+**Relation to `SystemF/agda/strong/`.**  That directory is the earlier
+**masked-entry** design, in which a type-context slot was a `Binding`
+under a lock bit (`unmasked b` / `masked b`) and the two contexts a
+boundary induces were *computed* (`interior Θ Δ`, `convCtx Θ Δ`).  It
+is untouched by this branch and remains the `main`-branch development.
+This directory is the redesign that replaced the lock bit with the two
+universes: a lock **deletes** an ordinary name, an unlock **inserts**
+one, and both induced contexts are **relations**, not functions of the
+exterior.  Nothing here imports anything there.  `Design.md` in this
+directory is a carried-over copy of `strong/Design.md` and describes
+that older calculus, not this one.
 
 ## Module map
 
@@ -84,124 +143,138 @@ driver: type-checking it type-checks the whole thing.
 
 | file | one line |
 |------|----------|
-| `Types.agda` | System F types in de Bruijn form; renaming and parallel substitution; `_[_]ᵗ` and the at-a-slot substitution `_[_:=_]ᵗ` |
-| `TypeSubst.agda` | the type-level renaming/substitution algebra (`rename-cong`, `rename-rename-commute`, and friends) |
-| `Ctx.agda` | **the type context**: entries in two layers — a `Binding` (`abst` / `bind A`) under at most one lock (`unmasked b` / `masked b`), so `Nameable`/`Locked` are one-clause discriminations and double masking is unrepresentable — lookup (`∋e`, `∋tv`, `∋ X := A`), well-formed types, the two transports (`Ren`, `⊑` over `⊑ᵇ`), injective renamings, in-place `mask`/`unmask` (`maskEnt`/`unmaskEnt`, total and idempotent), and the bind prefix `pushBinds` with `shiftBy` |
-| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B`, `mkId`, both transports, the inversions, `conv-types-unique`, and the canonical conversions minted at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`) |
-| `CtxMorph.agda` | the context morphism as a **pair** — `record CtxMorph = morph (binds : List Ty) (changes : List Change)`, the binds a PARALLEL block and the changes a SEQUENTIAL `lock`/`unlock` list — with `numBinds`, the type contexts it induces (`applyChanges`/`applyUnlocks` at the list, with their append lemmas and `⊢ˢ-++`; `scope`/`unlockedScope`/`interior`/`convCtx` at the morphism) and their refinement transports, the well-formedness judgement `Δ ⊢ᵐ Θ` as a pair of halves (`_⊢ʳ_` reps, `_⊢ˢ_` changes), and the derived morphisms `dual` (Peel), `rewind`/`_⋉_` (the scope move) and `addLock0` (`TyPeelR-⟪⟫`) |
-| `Terms.agda` | terms, the typing judgment with `env`, `Inert`/`Active` + `act-or-inert`, and `Value` (re-exports `CtxMorph`) |
-| `TermSubst.agda` | `renᴮ`/`renᴹ`/`wkᴹ`, `⊢rename` (with `Inj ρ`), `⊢retag` (along `⊑`), FRAME-EXACT term substitution (`Img`, `crossΛ`, `substᵐ`, `_[_∶_]ᵐ`), `⊢weakenⁿ`, the two crossings of one new bind slot — `⊢crossΛ` (a value under the binder's dual) and `⊢addLock0-cross` (a boundary masking the binder in its own frame, at `Ren-addLock0` / `interior-addLock0-cross`) — `⊢substᵐ`, `⊢subst`, `preserve-Beta` |
-| `Reduction.agda` | the eight rules plus five congruences, `_-→*_`, `value-¬step`, `det` |
-| `Progress.agda` | the statement `Progress` and `progress`, a one-line wrapper around `proof.Progress.progress` |
-| `Preservation.agda` | `preservation` / `preservation*` as `proof.Preserve.Impl` instantiated at the three downstream cases, plus the per-rule statements and `⊢ᵗ-of-closed` |
-| `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full |
-| `Eval.agda` | the evaluator: `step` **is** `progress`, `eval` iterates it with fuel under `preservation`, `Trace` stores the step derivations, `trace-sound` / `traceFinal` / `trace-unique`, `evalTerms`, and `showTrace` / `ruleName` |
-| `All.agda` | aggregate driver |
-| `Examples.agda` | the regression corpus, **15 sections**: §§1–9 and §§11–14 of runs and refutations, most from closed plain System F source, §14 being the pre-boundary counterexample run in v2, and §15 the **tightness tests, rule by rule** (§10 was deleted with the invariant hunt; later numbers are unchanged).  Seven of the runs are additionally pinned against the **generated** trace, `evalTerms n ⊢X₀ ≡ …` by `refl`.  See `Design.md` for which example illustrates which rule |
-| `Show.agda` | de Bruijn → named renderer (see **Tools**) |
+| `Types.agda` | the type syntax `Ty` and its substitution operations — `renameᵗ`/`substᵗ` with `extᵗ`/`extsᵗ`/`⇑ᵗ`, `_[_]ᵗ`, and the index-directed `single-at`/`_[_:=_]ᵗ`.  Definitions only, and no universe tag: the same `Ty` is read either as an ordinary type or as a representation payload |
+| `Ctx.agda` | **the two de Bruijn universes and every relation over them**: `RepBinding` (`abstR`/`bindR R`), `RepCtx`, `TyCtx` and the pair `Ctxᵗ = reps ∣ names`; the lookup family up to the square `_∋_:=_`; ordinary type formation `_⊢ᵗ_` and payload formation `_⊢ᴿ[_]_`; the two readings of a `Ty` (`_⊢_~_`, `_⊢_≈_⊣_`, `SameTyExt`); well-formedness `WfCtx` with `Unique`/`ValidNames`/`WfRepCtx`; the binder blocks `pushRepBinds`/`extendReps`, the insert/delete relations, and the renaming interface `RepWk`.  Definitions only |
+| `CtxMorph.agda` | the context morphism `record CtxMorph = morph (binds : List Ty) (changes : List Change)` — a PARALLEL bind block and a SEQUENTIAL list of `lock X α`/`unlock X α` — with its two RELATIONAL readings, `_⊢ⁱ_⇒_`, which performs every change, and `_⊢ᶜ_⇒_`, which SKIPS locks (hence `conv-unlock-live`); their functionality and the §3a–§3d transports (`dual-interior`, `rewind-interior`, `merged-interior`, `merged-conversion-exists`, the representation-renaming lemmas); the witness `MorphWf`; and the derived morphisms `dualMorph`, `rewind`, `_⋉_`, `addLock0`, `instantiate` |
+| `Conversion.agda` | conversions `id` / `seal` / `unseal` / `_↦_` / `` `∀ ``, the judgment `Δ ⊢ c ∶ A ⇝ B` with NO polarity index, `mkId`, the canonical mints at a slot (`reveal`/`conceal`, `instReveal`/`instConceal`), the re-spelling relation `SameConv` with its uniqueness and `respell` lemmas, `conv-ren`, the inversions and `conv-types-unique` |
+| `Terms.agda` | terms, whose last constructor is the boundary `_⟪_,_⟫`; the typing judgment `_∣_⊢_⦂_`, whose boundary rule `env` TAKES a `MorphWf Δ Θ Δᵢ Δᶜ` instead of computing contexts and compares the three sides by the representation each denotes; the `Inert`/`Active` split with `act-or-inert`; and `Value` |
+| `TermSubst.agda` | the PAIRED type renaming (`ren²`, `renᴹ²`) and its representation-only traversal `renᴹᴿ`, related by `renᴹ²-ord-id`; term-variable renaming `renⁿ` with `⊢renⁿ`/`⊢weakenⁿ`; and FRAME-EXACT substitution — `Img`, `crossΛᴹ`, `substᵐ`, `_[_∶_]ᵐ` — which wraps a value crossing a `Λ` in that binder's dual rather than shifting it |
+| `Reduction.agda` | `_⊢_-→_` with **fifteen** rules — `TyBeta`, `Beta`, `Peel`, `TyPeelR-Λ`, `TyPeelR-⟪⟫`, `CancelR`, `Drop$`, `Drop-true`, `Drop-false`, `IdPush` and the five congruences `ξ-·-l`, `ξ-·-r`, `ξ-·[]`, `ξ-Λ`, `ξ-⟪⟫` — the multi-step `_⊢_-→*_`, `value-¬step`, and `det`, which takes the redex's typing derivation.  Its charter states the crossing-spelling law and lists the five carried spellings |
+| `TypeCheck.agda` | an executable, DERIVATION-PRODUCING checker for every judgment above: `wfCtx?`, `interior?`/`conversion?`/`morphWf?`, the readings `read?`/`sameTy?`/`sameTyExt?`/`respell?`, `∋:=?`, `wfTy?`, `convTy?`, `infer`, `check⊢`, and the forcing family `tc`/`tk`/`tu`/`tf`/`tr` with the inferring `sq!`, `mw!`, `ty!`.  Every result is a `Maybe` of the ORDINARY derivation, so there is no soundness theorem to owe |
+| `Eval.agda` | the evaluator: `step`, leftmost-outermost, RETURNS the derivation it found, so soundness is its type; `eval` iterates it with fuel and CHECKS every contractum at the run's type; `Trace` with `illtyped` as the one way a type is lost, `Checked`, `traceEnd`/`traceTerms`/`traceLen`/`evalTerms`, `trace-sound`, and `Reaches k n ⊢M V`, which states endpoint, step count, "no state lost the type" and value in ONE equation |
+| `Progress.agda` | the statement `Progress`, stated premise-free, and `progress`, a one-line wrapper around `proof.Progress.Impl.progress`; unconditional since 2026-09-21 |
+| `Preservation.agda` | `Preservation` and `Preservation*` stated in full and proved by instantiating `proof.Preserve.Impl` at `RepWeaken.cross-Λ-⊢`, `AddLock0.addLock0-⊢`, `PeelDual.preserve-Peel`, `MoveScope.preserve-CancelR` and `MoveScope.preserve-IdPush`; the charter explains why `WfCtx Δ` is part of the statement |
+| `TypeSafety.agda` | the public theorem surface: the six theorems above, stated in full in one place rather than re-exported, every right-hand side a delegation |
+| `Examples.agda` | the living regression: **eleven sections** (§1 baseline runs, §2 the vacuous-Λ family, §3 `TyPeelR` from closed plain source, §4 the reveal mirror, §5 the tower, §6 polymorphic payloads, §7 functions that cross, §8 the `CancelR` shift witness, §9 hand-built boundaries at a non-empty ambient, §10 what substitution does at a crossing, §11 refutations and non-vacuity) and **23 `Reaches` runs**, merged into one file on 2026-09-21.  All fifteen reduction rules fire in §§1–8; §9a and §9b are the only two runs pinned state by state, by `evalTerms` |
+| `Show.agda` | de Bruijn → named renderer, printing the two universes differently — α, β, γ for representation variables, X, Y, Z for the ordinary names that denote them (see **Tools**) |
+| `All.agda` | aggregate driver: type-checking it type-checks the whole development |
 
 ### The proofs (`proof/`)
 
 | file | one line |
 |------|----------|
-| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (which replaces a context well-formedness premise), the minted-conversion typings `⊢reveal`/`⊢conceal`/`⊢instReveal`/`⊢instConceal`, `preserve-TyBeta`, `preserve-Drop$`, `preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫`, the three case statements, and `module Impl` |
-| `PeelDual.agda` | the `Peel` case: `interior-dual` and `convCtx-dual` in general, and `preserve-Peel` |
-| `MoveScope.agda` | **the scope move**: the list algebra of `shiftScope`/`rewind`/`_⋉_`, `interior-rewind`, the frame **equalities** `interior-⋉-rewind`/`convCtx-⋉-rewind` (with `convCtx-move` the one surviving `⊑`), `move-∋`, `⊢ᵐ-rewind`, `⊢ᵐ-⋉`, the lock-only refutation `¬frame-locksOnly`, and `preserve-CancelR` / `preserve-IdPush` |
-| `Progress.agda` | the progress induction: the boundary case split out as `progress-env`, the TyPeelR split decided by a second `canon-∀` on the boundary's interior (`progress-·[]-∀conv`, which also reads the clauses' conversion premise off the redex), and `progress` itself |
-| `Canonical.agda` | canonical forms: `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` |
-| `Canonicity.agda` | the canonical conversion family (`reveal`/`conceal`/`mkId` subtrees) and its closure under the rules |
-| `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing forces `X ≡ numBinds Θ₁ + Y` (`idpush-name`, `cancel-name`), and `unseal` is the only active conversion those left-hand sides meet |
-| `MaskFacts.agda` | no boundary operation can take a binder away (masking retains, unlocking recovers); the old cancel residue is not well formed |
-| `Adversary.agda` | the soundness gate: a conceal must cite a live binder, and v1's adversaries refuted by that one inversion |
-| `PreserveObstruct.agda` | the four refutation witnesses, three of which now record the **positive** fact after the repairs (§2 `TyPeelR`, §4 the wall witness) |
-| `DualTightness.agda` | **tightness of the crossing**, Jeremy's test (2026-09-06) and its repair: the redex that is ill typed at the exterior now has an ill-typed contractum too (`¬⊢Contractum`), (†) `interior (dual Θᵤ) (interior Θᵤ Δᵤ) ≡ Δᵤ`, the positive control at a `lock`, and the VACUOUS UNLOCK refused (`¬⊢ᵐΘᵥ`).  The same test at every other rule that moves a subterm is `Examples` §15 |
-| `MwUObstruct.agda` | which outer frame the scope move may use, on one configuration: `dropLocks Θ₂` **refuted** (the moved unlock goes vacuous), `bindsOnly Θ₂` **refuted** (the frame's own rep loses its unlock), `rewind Θ₂` does both jobs — and why the rep half reads its reps on `unlockedScope Θ Δ` rather than on the plain exterior |
-| `ShiftAudit.agda` | **the shift audit** (2026-09-08): every rule that moves a subterm, checked against frame exactness — the frame identity per site, the witness of the ONE leak the audit found (the old single `TyPeelR`), the machine refutation of the wrap repair (it **loops**, `-→ᵃ` and the run `T₀ -→ᵃ T₁ -→ᵃ T₂`), and, for the two clauses that replaced it, `TyPeelR-Λ-refinement`, `TyPeelR-⟪⟫-frame`/`-slot-locked`, the tower measure `towerHeight` with `TyPeelR-⟪⟫-height` against `fixA-height-stalls`, and a closed two-deep run with every state typed |
+| `Types.agda` | the bottom of the hierarchy: `substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`.  It imports `strong-rep-var.Types` and the standard library and nothing else |
+| `TypeSubst.agda` | the algebraic theory of type substitution — `_⨟ᵗ_`, the congruences, the fusion laws, `sub-sub`, `substitution`, `exts-sub-cons` — a deliberate mirror of `SystemF/agda/extrinsic/TypeSubst.agda`.  Its only client here is `proof.Preserve` |
+| `Ctx.agda` | every fact about the two universes: the determinacy suite `det` consumes (`∋ˡ-det`, `∋ʳ-det`, `same-rep-unique`, `sameTy-src-unique`, `∋:=-det`, `unique-lookup`), the name-map half of representation renaming, the binder blocks and insert/delete relations, and `RepWk`'s instances `repwk-abst₀`/`repwk-abst`/`repwk-push` with `wfctx-ren` and `∋:=-ren` |
+| `Preserve.agda` | the preservation induction: `⊢ᵗ-of` (type well-formedness recovered from typing), the minted-conversion typings `⊢reveal`/`⊢conceal`, `preserve-TyBeta`, the three drops, `preserve-Beta`, `preserve-TyPeelR-Λ`, `preserve-TyPeelR-⟪⟫`, the crossing-case statements, and `module Impl`, which assembles them |
+| `Progress.agda` | the progress induction, `module Impl`: the ordinary cases over `proof.Canonical`, the boundary cases constructing the relational readings and re-spellings the rules carry, and `addLock0-reading`, which proves the moved boundary's conversion reading for `TyPeelR-⟪⟫` |
+| `Canonical.agda` | canonical forms — `canon-base`, `canon-ℕ`, `canon-⇒`, `canon-∀`, `canon-var` — all driven by the observation that an INERT conversion's target type determines the head constructor, so no inert conversion has a base target |
+| `Canonicity.agda` | the canonical conversion family `CanonAt X c` (subtrees, re-spellings and mints of `reveal`/`conceal`/`mkId`/`unseal`), its four closure facts, its representation-level twin `CanonAtᴿ` for the `SameConv` transports, and `canon-step`: the family survives reduction |
+| `PeelDual.agda` | the `Peel` crossing: the dual is an INVERSE (`dual-interior`), so the argument crosses by a representation-only weakening; §1 re-spells a TYPED conversion across the crossing (`respell-⊢`), and §3 is `preserve-Peel` |
+| `RepWeaken.agda` | the two transports with an identity ordinary component, proved at a CUT over an arbitrary `RepWk ρ Ξ Ξ′`: `⊢renᴿ`, and from it `rep-weaken-⊢` (what `Peel` consumes) and `cross-Λ-⊢` (what `Beta`'s crossing consumes).  The hard case is `env`, whose six premises transport one lemma apiece |
+| `AddLock0.agda` | `addLock0-⊢`, preservation's last parameter, on the statement the 2026-09-20 `TyPeelR-⟪⟫` repair gave it: the moved boundary's typing, whose six `env` premises split into a representation-only half and a conversion half that must be re-spelled because a conversion reading skips the appended lock |
+| `MoveScope.agda` | **the scope move**: both `CancelR` and `IdPush` swap a two-layer wrapper's conversions, so the frames move with them (`Θ₁ ⋉ Θ₂` inside, `rewind Θ₂` outside).  §1 the shared inversions, §2 `preserve-IdPush`, §3 `preserve-CancelR` on the rule repaired 2026-09-19 |
+| `IdLayer.agda` | why `IdPush` and `CancelR` need no name-relating premise: typing already forces the two names to denote ONE representation variable (`idpush-name`, `cancel-name`), `unseal` is the only active conversion an id-layer can meet, and the naked drop is sound exactly at a frame that changes nothing |
+| `Adversary.agda` | the soundness gate: a conceal must cite a REPRESENTED binder, and the two universes refuse it twice over — the name may be absent from the map, or the representation variable it names may be `abstR` |
+| `ShiftAudit.agda` | **the shift audit**: every rule that moves a subterm, checked site by site against frame exactness, plus the tower measure that makes `TyPeelR-⟪⟫` terminate and the refutation of the rejected wrap repair |
 | `TypeSafety.agda` | `type-safety` = `progress ∘ preservation*` |
-
-**The invariant hunt** — the search for a side condition that would
-ground the premise `interior Θ₂ Δ ⊢ᵗ A` for the old `CancelR`/`IdPush`
-contracta — carried four record modules (`WallReach`, `WallGrounding`,
-`ChainScoped`, `IdPushReach`).  The scope move removed the need for the
-premise entirely and every candidate side condition was refuted, so the
-four were **deleted** (Jeremy, 2026-09-06; closed-world repo).  The record
-itself lives in `notes/DECISIONS.md` (2026-09-06 entries); the two
-artifacts worth keeping survived the deletion as
-`proof/MaskFacts.mask-only` (the mask-only fact, once an interface) and
-`Examples` §12/§12b (the wall context reached from closed source, and the
-wall witness stepping after the move).
 
 ## Tools
 
-`Show.agda` renders de Bruijn terms, types, conversions, context
-morphisms and type contexts into named notation, driven
-non-interactively by `scripts/render_term.sh` (which uses the type-error
-trick: `oops : e ≡ ""; oops = refl` makes Agda print `e`'s normal form).
-Run it from the repo root:
+`Show.agda` renders de Bruijn terms, types, representation payloads,
+conversions, context morphisms, type contexts and whole evaluator
+traces into named notation, driven non-interactively by
+`scripts/render_term.sh` (which uses the type-error trick:
+`oops : e ≡ ""; oops = refl` makes Agda print `e`'s normal form).  Run
+it from the repo root.  A term:
 
-    scripts/render_term.sh 'showTmIn 0 P₀' 'open import strong-rep-var.Examples'
-    scripts/render_term.sh 'showTCtx Δi' \
-        'open import strong-rep-var.proof.PreserveObstruct'
+    scripts/render_term.sh 'showTmIn 0 Q₀' \
+        'open import strong-rep-var.Examples'
+    ((ΛX. (λx:X. (ΛY. x) [ℕ])) [ℕ] · 7)
 
-The first argument is any `String` expression; the rest are extra import
-lines.  Entry points: `showTmIn n M`, `showTyIn n A`, `showConvIn n c`,
-`showBndIn n Θ c`, `showTCtx Δ`, and `showTCtxAt d i sup Δ` when you want
-to supply your own names for the free slots.  `n` is the ambient type
-context's length; slot 0 is named `X`.
+a type context — `Δ₆` is the non-empty ambient of `Examples` §9:
 
-To render a whole **run** rather than a state, evaluate it first
-(`Eval.agda`) and print the trace — one state per line, each arrow
-labelled by the redex rule that fired:
+    scripts/render_term.sh 'showTCtx Δ₆' \
+        'open import strong-rep-var.Examples'
+    α := ℕ ∣ X↦α
 
-    scripts/render_term.sh 'showTrace 0 (eval 6 ⊢P₀)' \
-        'open import strong-rep-var.Examples' 'open import strong-rep-var.Eval' \
-      | sed 's/\\n/\n/g'
+The first argument is any `String` expression; the rest are extra
+import lines, and the script picks the renderer to match them — an
+import line mentioning `strong.` selects the OLD development's
+`strong.Show`, and anything else gets `strong-rep-var.Show`.  Entry
+points: `showTmIn n M`, `showTyIn n A`, `showRepIn n R`,
+`showConvIn n c`, `showBndIn n Θ c`, `showTermsIn n Ms` and
+`showTCtx Δ`.  `n` is the number of ambient ordinary names; ordinary
+slot 0 is named `X` and denotes representation variable `α`.
+
+To render a whole **run** rather than a state, use `showRun n k ⊢M`,
+which evaluates with fuel `k` and prints one state per line, each arrow
+labelled by the rule that fired (`showTrace n tr` does the same for a
+`Trace` you already have):
+
+    scripts/render_term.sh 'showRun 1 3 Tcancel-⊢' \
+        'open import strong-rep-var.Examples' | sed 's/\\n/\n/g'
+    ((7 ⟪ seal X ⟫) ⟪ ↑β:=ℕ , unseal X ⟫)
+      --[CancelR]-->
+    ((7 ⟪ id ℕ ⟫) ⟪ ↑β:=ℕ , id ℕ ⟫)
+      --[Drop$]-->
+    (7 ⟪ ↑β:=ℕ , id ℕ ⟫)
+      --[Drop$]-->
+    7
+        -- VALUE
 
 (the script reads the string out of an Agda type error, so the newlines
 arrive escaped — hence the `sed`).
 
-Conventions: type variables cycle `X`, `Y`, `Z`, `X′`, …; term binders
-cycle `x`, `y`, `z`, `f`, `g`, `h`, then primes; `V` and `W` are reserved
-for value metavariables and never generated.  Type binder names are
-**globally unique across one rendered term** — two sibling `Λ`s never
-both print as `ΛX` — and binds are named oldest-first so an older bind
-keeps its name when a `TyPeelR` clause prepends a newer one.  Morphism entries
-print as `↑X:=A` (`bind`), `↓X` (`lock`), `↥X` (`unlock`); a `masked` entry
-prints as `⌷[…]`.
+Conventions: representation variables cycle `α`, `β`, `γ`, `α′`, …, and
+the ordinary name at the same position cycles `X`, `Y`, `Z`, `X′`, …,
+so `X` is by construction the ordinary name of `α`.  Term binders cycle
+`x`, `y`, `z`, `f`, `g`, `h`, then primes.  A morphism's binds print
+first as `↑α:=R`, then its changes IN THE ORDER THEY ACT — `↓X` for a
+`lock`, `↥X` for an `unlock` — and the conversion last, read on the
+conversion context rather than the interior's.  If a rendered change
+shows a Latin letter other than the one its representation was
+allocated with, the name map and the representation have come apart,
+which is the defect class the six repairs were about.
 
-**Never hand-transcribe de Bruijn** into a note or a report — render it.
+**Never hand-transcribe de Bruijn** into a note or a report — render
+it.
 
 ## `notes/` index
 
 | file | one line |
 |------|----------|
 | `notes.md` | the mathematical presentation of the current calculus, named-variable notation |
+| `PLAN.md` | the experiment's plan and running status block, the port's history, and a resume section for another machine |
+| `TODO.md` | the live handoff queue — currently the port of the COLOR PRESERVATION theorem, whose statement goes to Jeremy before the proof is attempted |
 | `DECISIONS.md` | **the design log**, in date order: decisions stated as definitions, worked examples, probe verdicts, and Jeremy's rulings.  Start at the end |
-| `DesignSpace.md` | **the map**: a mermaid graph of the fifty design points explored 2026-09-01…06, edges labelled with the evidence that moved the design, plus the legend and the through line |
+| `DesignSpace.md` | **the map**: a mermaid graph of the fifty-one design points explored 2026-09-01…06, edges labelled with the evidence that moved the design, plus the legend and the through line |
 | `DesignPoints.md` | the map's glossary: one entry per node id, same order, each with a pointer into `DECISIONS.md`, `Design.md`, `Examples.agda` or a commit |
-| `BoundarySurvey.md` | the empirical record of v1's boundary bookkeeping: the master table plus the bookkeeping-independent requirements the redesign had to meet |
+| `BoundarySurvey.md` | the empirical record of the earlier boundary bookkeeping: the master table plus the bookkeeping-independent requirements the redesign had to meet |
 | `RedesignAdvice.md` | survey data → design advice; the four answers (central rep storage, keep simultaneity, use Conversion, definitional cancel) |
 | `RuleRepairs-TyPeelR-CancelR.md` | the proposed repairs to those two rules, before/after, run on the breaking examples |
-| `ShiftAudit.md` | **the shift audit** (Jeremy, 2026-09-08): the criterion, the site-by-site verdict table, the one leak in detail with its witness, the four candidate fixes with their hazards, and the verdict — the `canon-∀` split, now INSTALLED as `TyPeelR-Λ` / `TyPeelR-⟪⟫` |
-| `BoundaryRules.md` | the earlier decision memo on boundary-manipulation rules (v1-era) |
-| `DualLicenseDesign.md` | the v1 dual-conceal licence, fully ruled (v1-era) |
-| `PreservationEndgame.md` | the v1 preservation endgame plan (v1-era) |
+| `ShiftAudit.md` | **the shift audit** (Jeremy, 2026-09-08): the criterion, the site-by-site verdict table, the leak in detail with its witness, the four candidate fixes with their hazards, and the verdict — the `canon-∀` split, installed as `TyPeelR-Λ` / `TyPeelR-⟪⟫` |
+| `CancelRReachability.md` | is the `CancelR` defect REACHABLE from closed source?  Yes (2026-09-19) — the witness (`notes/CancelRReachabilityWitness.agda`), the two controls, and the repair path it settled |
+| `BoundaryRules.md` | the earlier decision memo on boundary-manipulation rules |
+| `DualLicenseDesign.md` | the dual-conceal licence of the first design, fully ruled |
+| `PreservationEndgame.md` | the preservation endgame plan of the first design |
 | `ParameterizedCastCalculi.md` | digest of Siek & Chen, *Parameterized Cast Calculi and Reusable Meta-theory for Gradually Typed Lambda Calculi* (JFP 31(e30), 2021) — the source of the active/inert methodology |
 | `Zdancewic-embeddings.md` | digest of Zdancewic, Grossman & Morrisett, *Principals in Programming Languages* (ICFP'99) |
 | `SyntacticTypeAbstraction.md` | digest of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) |
-| `TypeAbstractionComparison.md` | the FINAL design set against the polymorphism of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) — centred on **tightness**: they have no out-of-scope type variable, and §8 shows why — their type variables are global allocated names in a monotone knowledge base, not lexically scoped binders (the `D33` fork we did not take), so tightness is vacuous there whatever the evaluation order |
-| `old/notes-v1.md` | the **refuted** v1 design note |
+| `TypeAbstractionComparison.md` | the design set against the polymorphism of Grossman, Morrisett & Zdancewic, *Syntactic Type Abstraction* (TOPLAS 22(6)) — centred on **tightness**: they have no out-of-scope type variable, because their type variables are global allocated names in a monotone knowledge base, not lexically scoped binders, so tightness is vacuous there whatever the evaluation order |
+| `old/notes-v1.md` | the **refuted** first design note |
 | `old/notes-v3.md` | the superseded short predecessor of `notes.md`, kept for history |
-| `old/PLAN-v1.md` | the v1 plan, retired with the invariant hunt |
+| `old/PLAN-v1.md` | the first design's plan, retired with the invariant hunt |
 
-`notes/` now holds **`.md` only**.  The v1 Agda probes that accompanied
-`old/notes-v1.md` (the retired v1 `Reduction`/`Terms`/`Typing` and fifteen
-probe and scratch files) imported v1 modules — `strong-rep-var.Context`,
-`strong-rep-var.Boundary`, `strong-rep-var.BReduction`, `strong-rep-var.Weakening`,
-`strong-rep-var.Unfold` — and so could not type-check on this branch at all.  They
-were **deleted** (2026-09-06); they are preserved on `main`, the v1 tree,
-at commit `c5db9f59` under `SystemF/agda/strong-rep-var/notes/old/`, where they
-compile.
+`notes/` also holds the **checked wall and probe modules** — the
+machine-checked refutations and witnesses behind the repairs above.
+All ten are gated by `notes/All.agda`, which `All.agda` opens last, so
+`make check` type-checks them with everything else:
+`ReUnlockWall`, `ForallPayloadWall`, `CrossingAudit`, `PeelPremise`,
+`CancelRReachabilityWitness`, `RawRunProbe`,
+`RepresentationVariablesProbe`, `RepWeakenBindsWall`, `AddLock0Wall`
+and `CancelRShiftWall`.  The index above lists the main notes, not
+every file in the directory.
 
 Three PDFs sit at the top level for the digests above:
 `parameterized-cast-calculi-…pdf`, `p197-zdancewic.pdf`,
@@ -209,9 +282,19 @@ Three PDFs sit at the top level for the digests above:
 
 ## Where to go next
 
-* **`Design.md`** — the calculus: syntax, the two type contexts a
-  boundary induces, all typing rules with `env` explained premise by
-  premise, all reduction rules with a rendered example each, the
-  metatheory's proof shape, the design laws, and (Appendix A) the full
-  list of helper names.
-* **`notes/DECISIONS.md`** — why it is that calculus and not another.
+* **`notes/notes.md`** — the calculus itself, in named-variable
+  notation: syntax, the two context universes, the morphism readings,
+  conversion and term typing, all fifteen reduction rules, a worked
+  `CancelR` run, the metatheory with its premises argued, the six
+  re-spelling repairs, and a notes ↔ Agda correspondence table that
+  names the gap at every rule.
+* **`notes/PLAN.md`** — how it got here: what was ported, what was
+  rewritten, the errors testing found, and the completed plan record.
+* **`notes/DECISIONS.md`** — why it is that calculus and not another,
+  in date order.  Start at the end.
+* **`notes/TODO.md`** — what is open: the COLOR PRESERVATION port,
+  with the v7 statement, the commits it lived at, and the porting notes.
+* **`Design.md`** — carried over from `SystemF/agda/strong/` and **not
+  updated**: it describes the masked-entry calculus (`masked b`, the
+  computed `interior Θ Δ`), not this one.  `notes/notes.md` supersedes
+  it here.

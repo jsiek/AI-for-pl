@@ -8,10 +8,17 @@
 set -u
 cd "$(dirname "$0")/../SystemF/agda" || exit 1
 EXPR="$1"; shift
+# Pick the renderer to match the development the caller imports from:
+# an import line mentioning `strong.` selects the old development's
+# renderer; the default is the strong-rep-var one.
+SHOW="strong-rep-var.Show"
+for imp in "$@"; do
+  case "$imp" in *"import strong."*) SHOW="strong.Show";; esac
+done
 { echo "module RenderTmp where"
   echo "open import Relation.Binary.PropositionalEquality using (_≡_)"
   echo "open import Data.String using (String)"
-  echo "open import strong-rep-var.Show"
+  echo "open import $SHOW"
   for imp in "$@"; do echo "$imp"; done
   echo "oops : ($EXPR) ≡ \"\""
   echo "oops = _≡_.refl"

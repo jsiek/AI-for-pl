@@ -12,6 +12,7 @@ open import strong-rep-var.notes.CrossingAudit
 open import strong-rep-var.notes.PeelPremise
 open import strong-rep-var.notes.CancelRReachabilityWitness
 open import strong-rep-var.notes.RawRunProbe
+open import strong-rep-var.notes.RepresentationVariablesProbe
 open import strong-rep-var.notes.RepWeakenBindsWall
 open import strong-rep-var.notes.AddLock0Wall
 open import strong-rep-var.notes.CancelRShiftWall

@@ -212,28 +212,29 @@ are applied: in every congruence, to the redex's siblings.
 ## 3. Reduction — a step returns the CHANGE to the store
 
 ```agda
-Alloc : Set                   -- what a step did to the store, newest first
-Alloc = List Ty               -- [] or R ∷ [] for one step; ++ over runs
+data Alloc : Set where        -- what a step did to the store: nothing,
+  none : Alloc                -- or exactly one cell (Jeremy: a step
+  new  : Ty → Alloc           -- allocates 0 or 1 addresses, never more)
 
 apply : Alloc → Ctxᵗ → Ctxᵗ
-apply []      Δ = Δ
-apply (R ∷ δ) Δ = allocate R (apply δ Δ)
+apply none    Δ = Δ
+apply (new R) Δ = allocate R Δ
 
-↑[_] : Alloc → Term → Term    -- the sibling shift, by the number of cells
-↑[ δ ] = renᴹᴿ (wkN (length δ))       -- likewise renᴮᴿ/renᶜ (wkN (length δ))
+↑[_] : Alloc → Term → Term    -- the sibling shift
+↑[ none  ] = id
+↑[ new R ] = renᴹᴿ suc        -- likewise renᴮᴿ suc / renᶜ suc on Θ and c
 
 _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set
 -- Δ ⊢ M -→ M′ ∣ δ : the contractum M′ lives at apply δ Δ
 ```
 
-`Alloc` rather than `Maybe Ty` so that runs compose: `_then_` below
-returns `δ₂ ++ δ₁`, `Reaches` records one list, and `preserve*` is a
-fold.  No context is ever subtracted from another.
+No context is ever subtracted from another, and no counting: every
+lemma is stated once at `none` (identity) and once at `new R` (`suc`).
 
 ```agda
 TyBeta : Value N → Δ ⊢ᶜ A ~ R
   → Δ ⊢ (Λ N) ·[ B , A ]
-      -→ N ⟪ unlock 0 0 ∷ [] , reveal 0 B ⟫ ∣ R ∷ []
+      -→ N ⟪ unlock 0 0 ∷ [] , reveal 0 B ⟫ ∣ new R
 ```
 
 (today: `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫` — the
@@ -245,7 +246,7 @@ SAME contractum with the bind moved from the boundary to the context.
 
 ```agda
 Beta : Value W → Δ ⊢ᶜ A ~ R
-  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ R ]ᵐ ∣ []
+  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ R ]ᵐ ∣ none
 -- crossΛᴹ unchanged in shape: renᴹ² (ren² idᵗ suc) W ⟪ lock 0 0 ∷ [] , mkId (⇑ᵗ R) ⟫
 ```
 
@@ -255,7 +256,7 @@ the argument type as a representation; under R2-b it is today's rule.)
 ```agda
 Peel : Value V → Value W
   → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-      -→ (V · (W ⟪ dualBoundary Θ , s ⟫)) ⟪ Θ , t ⟫ ∣ []
+      -→ (V · (W ⟪ dualBoundary Θ , s ⟫)) ⟪ Θ , t ⟫ ∣ none
 ```
 
 (today: `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W`, `s′` with
@@ -266,14 +267,14 @@ under R2 `s` means the same thing in `Δᵈ`.)
 ```agda
 TyPeelR-Λ : Value N → Δ ⊢ᶜ A ~ R
   → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-      -→ N ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ R ∷ []
+      -→ N ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ new R
 
 TyPeelR-⟪⟫ : Value W → Δ ⊢ᶜ A ~ R → (the Bᵢ′ reading, as today)
   → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
       -→ ((↑ᴿ W ⟪ addLock0 (renᴮᴿ suc (map shiftX Θ′)) , `∀ (renᶜ suc s′) ⟫)
             ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
            ⟪ instantiate Θ , instReveal 0 s ⟫
-      ∣ R ∷ []
+      ∣ new R
 ```
 
 In `TyPeelR-⟪⟫` the inner boundary is a SIBLING of the redex's `Λ`
@@ -286,11 +287,11 @@ exact `renᶜ suc s′`.
 ```agda
 CancelR : Value V → Δ ∋rep α := R
   → Δ ⊢ (V ⟪ Θ₁ , seal α ⟫) ⟪ Θ₂ , unseal α ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId R ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ []
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId R ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ none
 
 IdPush : Value V → Δ ∋rep β := R
   → Δ ⊢ (V ⟪ Θ₁ , id (` α) ⟫) ⟪ Θ₂ , unseal β ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal β ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ []
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal β ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ none
 ```
 
 Today `CancelR` has eight premises (`seal X` at `Δ₁ᶜ`, `unseal Y` at
@@ -299,7 +300,7 @@ two conversions spell one fact in two name maps.  Under R2 typing forces
 the SAME `α` on both sides (`Δᵢ ⊢ ` X ≈ ` Y ⊣ Δᶜ` is `α ≡ β`) and the
 minted identities are read off the context.  `IdPush` loses its
 `` Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ `` re-spelling for the same reason.  `Drop$`,
-`Drop-true`, `Drop-false` return `[]`.
+`Drop-true`, `Drop-false` return `none`.
 
 THE CONGRUENCES pass the change up and shift the siblings by it:
 
@@ -313,15 +314,20 @@ THE CONGRUENCES pass the change up and shift the siblings by it:
 
 `ξ-·[]`'s type annotations are ordinary and do not shift.  In `ξ-⟪⟫`
 the interior's contractum lives at `apply δ Δᵢ`, and `interior-ren` at
-`wkN (length δ)` says that is exactly what `apply δ Δ ⊢ⁱ ↑[ δ ] Θ ⇒ _`
+`suc` says that is exactly what `apply (new R) Δ ⊢ⁱ ↑[ new R ] Θ ⇒ _`
 reads — the fact `preserve`'s `ξ-⟪⟫` case needs.  The rules never
 mention `apply`; only the theorems do.
 
+The multi-step relation needs no store index: each step's change is
+applied to the context the tail runs at, and the endpoint's context is
+whatever the last step left.
+
 ```agda
-data _⊢_-→*_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
-  done   : Δ ⊢ M -→* M ∣ []
-  _then_ : Δ ⊢ L -→ M ∣ δ₁ → apply δ₁ Δ ⊢ M -→* N ∣ δ₂
-         → Δ ⊢ L -→* N ∣ δ₂ ++ δ₁
+data _⊢_-→*_ : Ctxᵗ → Term → Term → Set where
+  done   : Δ ⊢ M -→* M
+  _then_ : Δ ⊢ L -→ M ∣ δ → apply δ Δ ⊢ M -→* N → Δ ⊢ L -→* N
+-- the run's final context is read off the derivation (`runCtx`);
+-- `Reaches` states it alongside the endpoint
 ```
 
 `value-¬step` is unchanged.  `det` concludes `M′ ≡ M″ × δ′ ≡ δ″`.
@@ -412,7 +418,7 @@ Preservation = ∀ {Δ δ M M′ A} → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ δ
   → WfCtx (apply δ Δ) × (apply δ Δ ∣ [] ⊢ M′ ⦂ A)
 
-Preservation* likewise, by folding apply along _then_
+Preservation* : … → Δ ⊢ M -→* M′ → WfCtx (runCtx r) × (runCtx r ∣ [] ⊢ M′ ⦂ A)
 
 Progress      = ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
   → Value M ⊎ ∃[ M′ ] ∃[ δ ] (Δ ⊢ M -→ M′ ∣ δ)
@@ -422,14 +428,14 @@ det : Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ δ′ → Δ ⊢ M -→ M
 ```
 
 `Preservation` needs no `⊑` and no subtraction: the new context is
-`apply δ Δ`, and `⊢↑ᴿ` is stated at `wkN (length δ)` — `repwk-wkN`
-already takes a list.  Its congruence cases are `⊢↑ᴿ` on the sibling
-plus the IH.
+`apply δ Δ`, and `⊢↑ᴿ` is stated at `none` (nothing to do) and at
+`new R` (`⊢renᴿ (repwk-alloc wR)`).  Its congruence cases are `⊢↑ᴿ` on
+the sibling plus the IH.
 
 Color/scope-map preservation: the residual renaming `ρ` a step delivers
-is now `wkN (length δ)`, uniformly for every position — the theorem's
-shape (`names Δ₂ ≡ map ρ (names Δ₁)`) is unchanged and `ρ` is read off
-`δ`.
+is now `id` or `suc` by `δ`, uniformly for every position — the
+theorem's shape (`names Δ₂ ≡ map ρ (names Δ₁)`) is unchanged and `ρ`
+is read off `δ`.
 
 ## 6. Decision points, collected
 
@@ -445,8 +451,9 @@ shape (`names Δ₂ ≡ map ρ (names Δ₁)`) is unchanged and `ρ` is read off
 - **R5** the ambient abstract entries stay in `Ξ` (needed to type `Λ`
   bodies and to state reduction at the probes' `underΛ empty`).
 - ~~R6~~ RULED (Jeremy): a step returns the CHANGE `δ : Alloc`, not the
-  new context; the shift is `wkN (length δ)` and the new context is
-  `apply δ Δ`.  No subtraction anywhere.
+  new context, and `Alloc` is `none | new R` — a step allocates 0 or 1
+  addresses, never more.  The shift is `id`/`suc`, the new context is
+  `apply δ Δ`.  No subtraction, no counting.
 
 ## 7. Suggested order of work
 
@@ -455,11 +462,11 @@ shape (`names Δ₂ ≡ map ρ (names Δ₁)`) is unchanged and `ρ` is read off
    `Conversion.agda` on `RVar` (R2).  Statements only, then `Terms.agda`'s
    `env` and `allocate` in `Ctx.agda`.
 2. `Reduction.agda` with the `∣ δ` index and `↑[ δ ]` in the
-   congruences; `_-→*_` accumulating `δ₂ ++ δ₁`; `det` and
-   `value-¬step`.
+   congruences; `_-→*_` applying each step's `δ` to the tail's context;
+   `det` and `value-¬step`.
 3. `TypeCheck.agda`/`Eval.agda`: `step` returns `δ` and applies the
-   sibling shift; `eval` threads `apply δ`; `Reaches` records the run's
-   `δ`.  Rerun the 23 runs — their step counts should be
+   sibling shift; `eval` threads `apply δ`; `Reaches` records the
+   final context.  Rerun the 23 runs — their step counts should be
    UNCHANGED (no rule was added or split).
 4. `proof/Preserve.agda`: congruences by `⊢↑ᴿ`, `TyBeta` by today's
    `⊢refine`, then rule by rule; `TyPeelR-⟪⟫` should be the big win.

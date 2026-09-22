@@ -218,29 +218,27 @@ derived.
 
 ## Derived Boundary Scopes
 
-Change sequences are written in ACTING order, `⟨δ₁, …, δₙ⟩` acting
-`δ₁` first, and `⟨Θ₁, Θ₂⟩` is concatenation (Θ₁ acts first).  The inverse
-of a change swaps lock and unlock:
+Change sequences are written in ACTING order (the head acts first).  The
+inverse of a change swaps lock and unlock:
 
     (lock X α)⁻¹    = unlock X α
     (unlock X α)⁻¹  = lock X α
 
-    dual ⟨⟩          = ⟨⟩
-    dual ⟨δ, Θ⟩      = ⟨dual Θ, δ⁻¹⟩          -- inverses, in reverse order
+    dual []          = []
+    dual (δ ∷ Θ)     = dual Θ ++ [ δ⁻¹ ]      -- inverses, in reverse order
 
-    rewind Θ         = ⟨Θ, dual Θ⟩
+    rewind Θ         = Θ ++ dual Θ
 
-    Θ₁ ++ Θ₂         = ⟨Θ₂, Θ₁⟩               -- the outer scope Θ₂ acts first
+    addLock(X,α,Θ)   = lock X α ∷ Θ
 
-    addLock(X,α,Θ)   = ⟨lock X α, Θ⟩
+    inst(X,α,Θ)      = unlock X α ∷ Θ
 
-    inst(X,α,Θ)      = ⟨unlock X α, Θ⟩
-
-Agda's change lists are head-LAST (the tail acts first), so its
-spellings are the mirror images: `dual χ = map dualChange (reverse χ)`,
-`rewind Θ = dual Θ ++ Θ`, merging is literally `Θ₁ ++ Θ₂`, `addLock` is
-the snoc `Θ ++ (lock 0 0 ∷ [])`, and
-`inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`.  Nothing shifts a
+Merging two scopes needs no operation: the merged scope of CancelR and
+IdPush is `Θ₂ ++ Θ₁`, the outer scope acting first.  Agda's change lists
+are head-LAST (the tail acts first), so its spellings are the mirror
+images: `dual χ = map dualChange (reverse χ)`, `rewind Θ = dual Θ ++ Θ`,
+the merge is `Θ₁ ++ Θ₂`, `addLock` is the snoc `Θ ++ (lock 0 0 ∷ [])`,
+and `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`.  Nothing shifts a
 representation when two scopes merge, because both were spelled at the
 same store; `inst` shifts in both universes because it is read one
 allocation later — with names that shift is invisible, which is why the
@@ -537,7 +535,7 @@ annotation is wrong; `notes/AddLock0Wall.agda` shows why the skipped lock
 and old unlocks defeat every fixed conversion renaming.
 
     (CancelR)   Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-                    -→ (V ⟪ Θ₁ ++ Θ₂ , mkId Aᵢ ⟫)
+                    -→ (V ⟪ Θ₂ ++ Θ₁ , mkId Aᵢ ⟫)
                          ⟪ rewind Θ₂ , mkId Aₒ ⟫ ∣ none
                 where Δ₁ᶜ ∋ X := Aᵢ   (Δ ⊢ⁱ Θ₂ ⇒ Δᵢ , Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
                   and Δᶜ ∋ Y := Aₒ   (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ)
@@ -548,8 +546,9 @@ and `Aᵢ` and `Aₒ`, remain distinct metavariables: typing a redex forces
 the seal and unseal to meet at the same representation, but the untyped
 reduction constructor does not carry that equation.
 
-Mechanization note.  Agda also carries `Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ` — read at
-the **plain exterior** `Δ`, since both scopes were spelled at the same
+Mechanization note.  Agda spells the merged scope `Θ₁ ++ Θ₂` (its lists
+are head-last).  It also carries `Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ` — read at the
+**plain exterior** `Δ`, since both scopes were spelled at the same
 store — and the re-spelling `Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ`, using `mkId A′`; with
 names `Aᵢ` is in scope in the merged context because
 `Δ₁ᶜ ⊆ Δ⋉ᶜ` (`merged-conversion-exists`).  `notes/CancelRShiftWall.agda`
@@ -569,7 +568,7 @@ representation shift between the two readings at all (`no-shift`);
                 Δ ⊢ false ⟪ Θ , id 𝔹 ⟫ -→ false ∣ none
 
     (IdPush)    Δ ⊢ (V ⟪ Θ₁ , id X ⟫) ⟪ Θ₂ , unseal Y ⟫
-                    -→ (V ⟪ Θ₁ ++ Θ₂ , unseal X ⟫)
+                    -→ (V ⟪ Θ₂ ++ Θ₁ , unseal X ⟫)
                          ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
                 where Δᶜ ∋ Y := A   (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ)
 

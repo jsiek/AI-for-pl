@@ -454,129 +454,114 @@ reduction relation even when the redex's typing can reconstruct them.
 
 ## Computational rules
 
-    (TyBeta)    Value N    Δ ⊢ᶜ A ~ R
+Each rule is stated for a **well-typed redex** with variables as names.
+Under that reading only the `Value` premises are genuine side conditions:
+they fix the evaluation order and are what determinism rests on.  Every
+type the contractum writes (`R`, `Aᵢ`, `Aₒ`, `A`, `Bᵢ`) is determined by
+the redex, so it appears as a `where` clause, and every "is in scope in
+both" condition the Agda rules carry is a consequence of the readings'
+inclusions (`Δᵢ ⊆ Δᶜ`, `Δ ⊆ Δᶜ`, `Δᶜ ≈ Δᵈ`, `Δ₁ᶜ ⊆ Δ⋉ᶜ`, `Δ′ᶜ ⊆ Δ″ᶜ`) and
+of typing, and is omitted.  The mechanization notes say which Agda
+premises these were.
+
+    (TyBeta)    Value N
                 -----------------------------------------------
                 Δ ⊢ (ΛX.N) [B,A]
                     -→ N ⟪ inst(X,α,⟨⟩) , revealₓ(B) ⟫ ∣ new R
+                where Δ ⊢ᶜ A ~ R
 
 `X` and `α` are the ordinary and representation binders of the event.
-The second premise is genuine: it translates the ordinary argument `A`
-to the representation type `R` the step allocates at `α`.  The allocation
-is the step's store change, not part of the boundary.
+`R` is the ordinary argument `A` read as a representation type; the
+step allocates it at `α` — the allocation is the step's store change,
+not part of the boundary.
 
     (Beta)      Value W
                 ---------------------------------------
                 Δ ⊢ (λx:A.N) · W -→ N[x:=W:A] ∣ none
 
-For `Peel`, suppose the carried readings are
-
-    Δ  ⊢ⁱ Θ        ⇒ Δᵢ
-    Δ  ⊢ᶜ Θ        ⇒ Δᶜ
-    Δᵢ ⊢ᶜ dual Θ   ⇒ Δᵈ
-
-Then:
-
     (Peel)      Value V    Value W
-                Δ ⊢ᶜ Θ ⇒ Δᶜ    Δ ⊢ⁱ Θ ⇒ Δᵢ
-                Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ
-                c is in scope in both Δᶜ and Δᵈ
                 ------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ , c ↦ d ⟫) · W
                     -→ (V · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫ ∣ none
 
-Mechanization note.  Agda writes the pair `s ↦ t`, names the dual
-spelling `s′` and requires `SameConv Δᵈ s′ Δᶜ s`; named variables leave
-`c` textually unchanged.  `W` **moves verbatim** — a boundary changes
-names only, so the crossing argument lands at the very store it was
-spelled at, and the bind-block weakening this rule used to perform is
-gone.  `notes/CrossingAudit.agda` refutes equality of the de Bruijn name
-maps, while `notes/PeelPremise.agda` proves that they name the same
-representation variables.
+Mechanization note.  Agda's `Peel` carries the readings `Δ ⊢ᶜ Θ ⇒ Δᶜ`,
+`Δ ⊢ⁱ Θ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ dual Θ ⇒ Δᵈ` and `SameConv Δᵈ s′ Δᶜ s`: the domain
+conversion is re-spelled from Θ's conversion context to the dual's.
+With names `c` is textually unchanged, and that the two contexts name
+the same representation variables is `Q`/`Q-inv` (Boundary.agda §3b), so
+none of these is a premise here.  `W` **moves verbatim** — a boundary
+changes names only, so the crossing argument lands at the very store it
+was spelled at.  `notes/CrossingAudit.agda` refutes equality of the de
+Bruijn name maps, while `notes/PeelPremise.agda` proves that they name
+the same representation variables.
 
-For `TyPeelR-Λ`, let `Δ ⊢ᶜ Θ ⇒ Δᶜ`:
-
-    (TyPeelR-Λ)
-                Value V
-                Δ ⊢ᶜ Θ ⇒ Δᶜ
-                under(X,α,Δᶜ) ⊢ c : Bᵢ ⇝ Bₑ
-                Δ ⊢ᶜ A ~ R
+    (TyPeelR-Λ) Value V
                 --------------------------------------------------
                 Δ ⊢ ((ΛX.V) ⟪ Θ , ∀X.c ⟫) [B,A]
                     -→ V ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
+                where Δ ⊢ᶜ A ~ R
 
 No term moves in this clause: the `Λ` binder becomes the binder the
 allocation introduces, and `inst` unlocks it.
 
-For `TyPeelR-⟪⟫`, let the readings named in the premises be:
-
-    Δ                     ⊢ⁱ Θ                  ⇒ Δᵢ
-    Δ                     ⊢ᶜ Θ                  ⇒ Δᶜ
-    Δᵢ                    ⊢ᶜ Θ′                 ⇒ Δ′ᶜ
-    allocate(α:=R,Δ)      ⊢ⁱ inst(X,α,Θ)        ⇒ Δᵢ⁺
-    Δᵢ⁺                   ⊢ᶜ addLock(X,α,Θ′)    ⇒ Δ″ᶜ
-
-The fourth reading is taken at the **allocated** context: the cell this
-step mints is ambient, so every later reading sees it.
-
-The two displayed universal binders have separate lexical scopes; they
-have been alpha-renamed to the same `X` so the named correspondence is
-literal.
+Mechanization note.  Agda also carries `Δ ⊢ᶜ Θ ⇒ Δᶜ` and
+`underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ`; both are recoverable from the redex typing
+(`conv-all-inv`), and the contractum does not mention `Bᵢ`.
 
     (TyPeelR-⟪⟫)
                 Value W
-                Δ ⊢ⁱ Θ ⇒ Δᵢ    Δ ⊢ᶜ Θ ⇒ Δᶜ    Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
-                allocate(α:=R,Δ) ⊢ⁱ inst(X,α,Θ) ⇒ Δᵢ⁺
-                Δᵢ⁺ ⊢ᶜ addLock(X,α,Θ′) ⇒ Δ″ᶜ
-                c′ is in scope under X in both the old view of Δ′ᶜ
-                   after adding α, and Δ″ᶜ
-                under(X,α,Δᶜ) ⊢ c : Bᵢ ⇝ Bₑ
-                Bᵢ is in scope under X in both Δᵢ and Δᶜ
-                Δ ⊢ᶜ A ~ R
                 ----------------------------------------------------------
                 Δ ⊢ ((W ⟪ Θ′ , ∀X.c′ ⟫) ⟪ Θ , ∀X.c ⟫) [B,A]
                     -→ ((W ⟪ addLock(X,α,Θ′) , ∀X.c′ ⟫) [Bᵢ,X])
                          ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
+                where Δ ⊢ᶜ A ~ R
+                  and under(X,α,Δᶜ) ⊢ c : Bᵢ ⇝ Bₑ   (Δ ⊢ᶜ Θ ⇒ Δᶜ)
 
-Mechanization note.  Both the moved value and the moved boundary take the
-**sibling shift** of the allocation: Agda writes `renᴹᴿ suc W` and
-`renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])`, which is `addLock` after that shift.
-Agda calls the annotation `Bᵢ′`, carries
-`underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ`, and renames it past the inserted
-representation binder; `notes/ForallPayloadWall.agda` shows why a fixed
-position is wrong.  It also calls the moved conversion `s″`, relates it
-to `s′` by `SameConv` at the two conversion readings — the old reading
-viewed through the insertion's representation renaming;
-`notes/AddLock0Wall.agda` shows why the skipped lock and old unlocks
-defeat every fixed conversion renaming.
+The two displayed universal binders have separate lexical scopes; they
+have been alpha-renamed to the same `X` so the named correspondence is
+literal.  `Bᵢ`, the source type of the outer conversion, is the one type
+this rule WRITES into the term: the pushed-in type application
+instantiates the inner package at `X`, and its annotation must be the
+inner package's body type, which typing identifies with `Bᵢ`.
+
+Mechanization note.  Agda's rule carries five readings — `Δ ⊢ⁱ Θ ⇒ Δᵢ`,
+`Δ ⊢ᶜ Θ ⇒ Δᶜ`, `Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ`, `allocate R Δ ⊢ⁱ inst Θ ⇒ Δᵢ⁺` (at the
+ALLOCATED context: the cell this step mints is ambient) and
+`Δᵢ⁺ ⊢ᶜ renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ []) ⇒ Δ″ᶜ` — and two re-spellings:
+the annotation is `Bᵢ′` with `underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ` (the
+source type spelled in the interior, where the annotation sits), and the
+moved conversion is `s″` with `SameConv` at the two conversion readings.
+Both the moved value and the moved boundary take the **sibling shift** of
+the allocation: `renᴹᴿ suc W` and `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])`,
+which is `addLock` after that shift.  With names `c′` is unchanged
+(`Δ′ᶜ ⊆ Δ″ᶜ` after the shift, `snoc-lock0-conversion-ren`) and `Bᵢ` is in
+scope in the interior because the outer `env` compares the inner
+package's type with `∀Bᵢ` across `Δᵢ`/`Δᶜ`.
+`notes/ForallPayloadWall.agda` shows why a fixed position for the
+annotation is wrong; `notes/AddLock0Wall.agda` shows why the skipped lock
+and old unlocks defeat every fixed conversion renaming.
 
     (CancelR)   Value V
-                Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
-                Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-                Δ₁ᶜ ∋ X := Aᵢ
-                Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-                Aᵢ is in scope in both Δ⋉ᶜ and Δ₁ᶜ
-                Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
-                Δᶜ ∋ Y := Aₒ
                 -------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
                     -→ (V ⟪ Θ₁ ++ Θ₂ , mkId Aᵢ ⟫)
                          ⟪ rewind Θ₂ , mkId Aₒ ⟫ ∣ none
+                where Δ₁ᶜ ∋ X := Aᵢ   (Δ ⊢ⁱ Θ₂ ⇒ Δᵢ , Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
+                  and Δᶜ ∋ Y := Aₒ   (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ)
 
-The merged reading is taken at the **plain exterior** `Δ`: there is no
-bind prefix to add, because the merge is `Θ₁ ++ Θ₂` and both scopes were
-spelled at the same store.
+`Aᵢ` is the type the inner seal conceals, looked up in Θ₁'s own
+conversion context; `Aₒ` the type the outer unseal reveals.  `X` and `Y`,
+and `Aᵢ` and `Aₒ`, remain distinct metavariables: typing a redex forces
+the seal and unseal to meet at the same representation, but the untyped
+reduction constructor does not carry that equation.
 
-`X` and `Y`, and `Aᵢ` and `Aₒ`, remain distinct metavariables in the
-rule.  Typing a redex forces the seal and unseal to meet at the same
-representation, but the untyped reduction constructor does not carry that
-equation as a premise.
-
-Mechanization note.  Agda calls the merged spelling `A′`, carries
-`Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ`, and uses `mkId A′`; named notation keeps
-`Aᵢ` with the paired scope condition.  `notes/CancelRShiftWall.agda`
+Mechanization note.  Agda also carries `Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ` — read at
+the **plain exterior** `Δ`, since both scopes were spelled at the same
+store — and the re-spelling `Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ`, using `mkId A′`; with
+names `Aᵢ` is in scope in the merged context because
+`Δ₁ᶜ ⊆ Δ⋉ᶜ` (`merged-conversion-exists`).  `notes/CancelRShiftWall.agda`
 records the wall and its dissolution — with the store there is no
-representation shift between the two readings at all (`no-shift`), and
-the premise survives because the two **name maps** still differ;
+representation shift between the two readings at all (`no-shift`);
 `notes/CancelRReachabilityWitness.agda` reaches that case from source.
 
     (Drop$)     Base A
@@ -591,22 +576,17 @@ the premise survives because the two **name maps** still differ;
                 Δ ⊢ false ⟪ Θ , id 𝔹 ⟫ -→ false ∣ none
 
     (IdPush)    Value V
-                Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
-                Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-                Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
-                X is in scope in both Δ⋉ᶜ and Δ₁ᶜ
-                Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
-                Δᶜ ∋ Y := A
                 -------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ₁ , id X ⟫) ⟪ Θ₂ , unseal Y ⟫
                     -→ (V ⟪ Θ₁ ++ Θ₂ , unseal X ⟫)
                          ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
+                where Δᶜ ∋ Y := A   (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ)
 
-Mechanization note.  Agda names the merged spelling `X′`, carries
-`Δ⋉ᶜ ⊢ X′ ≈ X ⊣ Δ₁ᶜ`, and uses `unseal X′`; named notation keeps `X`
-live in both contexts.  `notes/ForallPayloadWall.agda` exhibits the
-reordering that defeats a fixed index calculation, and the raw rule's
-outer `Y` remains distinct.
+Mechanization note.  Agda carries `Δ ⊢ⁱ Θ₂ ⇒ Δᵢ`, `Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ`,
+`Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ` and the re-spelling `Δ⋉ᶜ ⊢ X′ ≈ X ⊣ Δ₁ᶜ`, using
+`unseal X′`; with names `X` stays live in the merged context for the
+same reason as CancelR's `Aᵢ`.  `notes/ForallPayloadWall.agda` exhibits
+the reordering that defeats a fixed index calculation.
 
 ## Congruence rules
 

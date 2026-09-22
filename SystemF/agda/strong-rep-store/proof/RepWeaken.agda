@@ -56,7 +56,7 @@ module strong-rep-store.proof.RepWeaken where
 -- `CrossΛTyping` runs the same induction at the base instance
 -- `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The moved term lands under
 -- the new abstract representation binder but outside its ordinary name.
--- One `env` with `boundary [] (lock 0 0 ∷ [])` then supplies exactly that
+-- One `env` with `boundary (lock 0 0 ∷ [])` then supplies exactly that
 -- missing ordinary boundary: its interior deletes name zero, while its
 -- conversion reading retains it for `mkId (⇑ᵗ A)`.
 
@@ -207,7 +207,7 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   w↑ = wf-ren (WfRen-wk {Δ = Ξ ∣ η}) wA
 
   mwΛ : BoundaryWf (underΛ (Ξ ∣ η))
-          (boundary [] (lock 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
+          (boundary (lock 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
   mwΛ =
     bw (wf-underΛ wfΔ) binds[]
        (interior
@@ -235,7 +235,7 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   sameₑ | R , p = R , p , p
 
   term-eq : crossΛᴹ W A
-    ≡ renᴹᴿ suc W ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+    ≡ renᴹᴿ suc W ⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
   term-eq =
-    cong (λ M → M ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+    cong (λ M → M ⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
          (renᴹ²-ord-id (λ X → refl) W)

@@ -5,7 +5,8 @@ module strong-rep-store.Boundary where
 --     `Change` (`lock`/`unlock`), its two running judgements
 --     `_∣_⊢δ_⇒_` and `_∣_⊢χ_⇒_`, the dual (`dualChange`, `dual`,
 --     `dual-step`) and the representation-only renaming `renᶠᴿ`.  §3 is
---     `Boundary = boundary binds changes` with `numBinds` and `renᴮᴿ`; the
+--     `Boundary = boundary changes` (ONE field since experiment 2, the
+--     store; notes/RepStoreSketch.md) with `renᴮᴿ`; the
 --     constructions `dualBoundary`, `rewind`, `_⋉_`, `addLock0`,
 --     `instantiate`; and the two readings — `_⊢ⁱ_⇒_`, which PERFORMS
 --     every change, and `_⊢ᶜ_⇒_` (via `_∣_⊢χᶜ_⇒_`), which SKIPS locks —
@@ -48,10 +49,12 @@ module strong-rep-store.Boundary where
 --     well-formedness is DERIVED, not stored (notes/DECISIONS.md,
 --     2026-09-18).
 --
--- A boundary scope remains a pair. Its `binds` are a parallel block of fresh
--- representation-variable binders. Its `changes` sequentially bind and
--- anti-bind ordinary type variables. Every change carries both the ordinary
--- de Bruijn position and the representation variable named at that position.
+-- A boundary scope is its `changes`, which sequentially bind and anti-bind
+-- ordinary type variables. Every change carries both the ordinary de Bruijn
+-- position and the representation variable named at that position.  The
+-- representation binders a scope used to carry (`binds`) are allocated in
+-- the ambient representation context instead (strong-rep-store.Ctx,
+-- `allocate`): a boundary changes NAMES only.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; s≤s)
 open import Data.Nat.Properties using (_≟_; +-identityʳ; ≤-trans)
@@ -162,71 +165,63 @@ renᶠᴿ ρʳ (unlock X α) = unlock X (ρʳ α)
 -- 3. Boundary scopes and their two induced contexts
 ------------------------------------------------------------------------
 
+-- A boundary scope is now ONLY its change list.  (Experiment 2,
+-- 2026-09-22, notes/RepStoreSketch.md: the bind block it used to carry
+-- lives in the ambient representation context, pushed there at index 0
+-- by the ∀-elimination that mints it — `allocate` in strong-rep-store.Ctx.)
+-- The record is kept, one field wide, so that every `changes Θ` and
+-- every `boundary χ` reads as before.
 record Boundary : Set where
   constructor boundary
   field
-    binds   : List Ty
     changes : List Change
 open Boundary public
 
-numBinds : Boundary → ℕ
-numBinds Θ = length (binds Θ)
-
--- The representation-only renaming of a boundary scope. Its bind payloads are
--- written over the EXTERIOR representation context, so they move by ρ;
--- its changes run INSIDE the bind block, so they move by `extN` of ρ at
--- the block's width.
+-- Representation-only renaming of a scope: every change's representation
+-- variable, no ordinary position.  There is no bind prefix to skip.
 renᴮᴿ : Renameᵗ → Boundary → Boundary
-renᴮᴿ ρʳ Θ =
-  boundary (map (renameᵗ ρʳ) (binds Θ))
-        (map (renᶠᴿ (extN (numBinds Θ) ρʳ)) (changes Θ))
+renᴮᴿ ρʳ Θ = boundary (map (renᶠᴿ ρʳ) (changes Θ))
 
--- A crossing argument is already inside the representation bind block of
--- the boundary it crosses. Its dual therefore binds no new representation
--- variables and simply reverses the ordinary-variable changes.
+-- The dual scope: the same changes, reversed and inverted.
 dualBoundary : Boundary → Boundary
-dualBoundary Θ = boundary [] (dual (changes Θ))
+dualBoundary Θ = boundary (dual (changes Θ))
 
--- Rewind retains the bind block and performs the inverse changes before the
--- original changes. This is the syntax used by CancelR and IdPush.
+-- Rewinding: the changes, then their exact inverse.
 rewind : Boundary → Boundary
-rewind Θ = boundary (binds Θ) (dual (changes Θ) ++ changes Θ)
+rewind Θ = boundary (dual (changes Θ) ++ changes Θ)
 
--- Move the outer boundary scope's ordinary-variable effects into the inner one.
--- The outer binders already occur in the exterior of the resulting inner
--- boundary; the inner bind block shifts their representation occurrences.
+-- Merging: the outer scope's changes run first (head-last), then the
+-- inner's.  Nothing shifts — both were spelled at the same store.
 infixl 5 _⋉_
 _⋉_ : Boundary → Boundary → Boundary
-Θ₁ ⋉ Θ₂ =
-  boundary (binds Θ₁)
-        (changes Θ₁ ++ map (underRepBinds (numBinds Θ₁)) (changes Θ₂))
+Θ₁ ⋉ Θ₂ = boundary (changes Θ₁ ++ changes Θ₂)
 
--- When a boundary crosses a fresh `Λ` binder, ordinary position zero names
--- the representation variable immediately outside its own bind prefix.
+-- Appending `lock 0 0` (it acts FIRST): the NEW ordinary name 0, which
+-- names the NEW cell 0, is deleted before the scope's own changes run.
 addLock0 : Boundary → Boundary
-addLock0 Θ =
-  boundary (binds Θ) (changes Θ ++ (lock 0 (numBinds Θ) ∷ []))
+addLock0 Θ = boundary (changes Θ ++ (lock 0 0 ∷ []))
 
--- Instantiation prepends a represented binder and gives it ordinary name 0.
--- The unlock acts first (head-LAST order); every pre-existing change then
--- moves past both the new ordinary name and the new representation binder.
 private
   shiftChange : Change → Change
   shiftChange (lock X α)   = lock (suc X) (suc α)
   shiftChange (unlock X α) = unlock (suc X) (suc α)
 
-instantiate : Ty → Boundary → Boundary
-instantiate R Θ =
-  boundary (R ∷ binds Θ)
-        (map shiftChange (changes Θ) ++ (unlock 0 0 ∷ []))
+-- Instantiating a scope.  Read at `allocate R Γ`: the fresh cell is
+-- representation index 0, the appended `unlock 0 0` (acting first) gives
+-- it ordinary name 0, and the old changes — spelled at Γ — run
+-- underneath both, hence one shift in each universe.
+instantiate : Boundary → Boundary
+instantiate Θ =
+  boundary (map shiftChange (changes Θ) ++ (unlock 0 0 ∷ []))
 
--- The interior performs every change.
+-- The interior reading PERFORMS every change on the name map.  The
+-- representation context is untouched: a boundary changes NAMES only.
 infix 4 _⊢ⁱ_⇒_
 data _⊢ⁱ_⇒_ (Γ : Ctxᵗ) (Θ : Boundary) : Ctxᵗ → Set where
   interior : ∀ {Δ′}
-    → reps (extendReps (binds Θ) Γ)
-      ∣ names (extendReps (binds Θ) Γ) ⊢χ changes Θ ⇒ Δ′
-    → Γ ⊢ⁱ Θ ⇒ (reps (extendReps (binds Θ) Γ) ∣ Δ′)
+    → reps Γ ∣ names Γ ⊢χ changes Θ ⇒ Δ′
+    → Γ ⊢ⁱ Θ ⇒ (reps Γ ∣ Δ′)
+
 
 -- The conversion context performs `unlock`s but skips `lock`s, so both the
 -- concealed variable and its representation are available to the conversion.
@@ -300,9 +295,9 @@ conv-changes-functional (conv-unlock-live valid cs d)
 infix 4 _⊢ᶜ_⇒_
 data _⊢ᶜ_⇒_ (Γ : Ctxᵗ) (Θ : Boundary) : Ctxᵗ → Set where
   conversion : ∀ {Δ′}
-    → reps (extendReps (binds Θ) Γ)
-      ∣ names (extendReps (binds Θ) Γ) ⊢χᶜ changes Θ ⇒ Δ′
-    → Γ ⊢ᶜ Θ ⇒ (reps (extendReps (binds Θ) Γ) ∣ Δ′)
+    → reps Γ ∣ names Γ ⊢χᶜ changes Θ ⇒ Δ′
+    → Γ ⊢ᶜ Θ ⇒ (reps Γ ∣ Δ′)
+
 
 interior-functional : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ → Γ ⊢ⁱ Θ ⇒ Γᶜ → Γᵢ ≡ Γᶜ
@@ -328,7 +323,7 @@ conversion-functional (conversion cs) (conversion cs′) =
 -- conversion context selected by the relational reading.
 conversion-live : ∀ {Θ : Boundary}
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → (names (extendReps (binds Θ) Γ)) ∋ᵅ α
+  → (names Γ) ∋ᵅ α
   → (names Γᶜ) ∋ᵅ α
 conversion-live (conversion cs) lv = conv-live cs lv
   where
@@ -491,51 +486,33 @@ private
     conv-unlock-live (valid-suc valid) (conv-changes-shift cs)
       (there (shiftNames-lookup d))
 
-  shiftRVars-suc : (n : ℕ) (Δ : TyCtx)
-    → shiftRVars (suc n) Δ ≡ shiftNames (shiftRVars n Δ)
-  shiftRVars-suc n [] = refl
-  shiftRVars-suc n (α ∷ Δ) =
-    cong (suc (n + α) ∷_) (shiftRVars-suc n Δ)
-
--- Instantiating a boundary scope replaces the abstract context in which its
--- `∀` conversion body was read by a represented binder. The old changes
+-- Instantiating a scope, read at the ALLOCATED context: the old changes
 -- run underneath the fresh ordinary name, in both induced readings.
 instantiate-interior : ∀ {R : Ty} {Γ Γᵢ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γ ⊢ⁱ instantiate R Θ ⇒
-      ((bindR (shiftBy (numBinds Θ) R) ∷ reps Γᵢ)
-        ∣ (zero ∷ shiftNames (names Γᵢ)))
-instantiate-interior {Γ = Ξ ∣ Δ} {Θ = boundary Rs χ}
-                     (interior cs) =
+  → allocate R Γ ⊢ⁱ instantiate Θ ⇒
+      ((bindR R ∷ reps Γ) ∣ (zero ∷ shiftNames (names Γᵢ)))
+instantiate-interior {Γ = Ξ ∣ Δ} (interior cs) =
   interior
-    (subst (λ Δ₀ →
-             _ ∣ Δ₀ ⊢χ map shiftChange χ ++ (unlock 0 0 ∷ [])
-               ⇒ (zero ∷ shiftNames _))
-           (sym (shiftRVars-suc (length Rs) Δ))
-           (changes-++
-             (changes∷ changes[]
-               (step-unlock (_ , here) fresh-zero-shift ins-here))
-             (changes-shift cs)))
+    (changes-++
+      (changes∷ changes[]
+        (step-unlock (_ , here) fresh-zero-shift ins-here))
+      (changes-shift cs))
 
 instantiate-conversion : ∀ {R : Ty} {Γ Γᶜ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → Γ ⊢ᶜ instantiate R Θ ⇒
-      ((bindR (shiftBy (numBinds Θ) R) ∷ reps Γᶜ)
-        ∣ (zero ∷ shiftNames (names Γᶜ)))
-instantiate-conversion {Γ = Ξ ∣ Δ} {Θ = boundary Rs χ}
-                       (conversion cs) =
+  → allocate R Γ ⊢ᶜ instantiate Θ ⇒
+      ((bindR R ∷ reps Γ) ∣ (zero ∷ shiftNames (names Γᶜ)))
+instantiate-conversion {Γ = Ξ ∣ Δ} (conversion cs) =
   conversion
-    (subst (λ Δ₀ →
-             _ ∣ Δ₀ ⊢χᶜ map shiftChange χ ++ (unlock 0 0 ∷ [])
-               ⇒ (zero ∷ shiftNames _))
-           (sym (shiftRVars-suc (length Rs) Δ))
-           (conv-changes-++
-             (conv-unlock (_ , here) conv[] fresh-zero-shift ins-here)
-             (conv-changes-shift cs)))
+    (conv-changes-++
+      (conv-unlock (_ , here) conv[] fresh-zero-shift ins-here)
+      (conv-changes-shift cs))
 
+-- A rewound scope's interior is the exterior itself.
 rewind-interior : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γ ⊢ⁱ rewind Θ ⇒ extendReps (binds Θ) Γ
+  → Γ ⊢ⁱ rewind Θ ⇒ Γ
 rewind-interior (interior cs) =
   interior (changes-++ cs (dual-changes cs))
 
@@ -573,82 +550,24 @@ int-valid vn (changes∷ cs (step-unlock v fr i)) =
 -- counterpart of `rewind-interior`, and it needs no `BoundaryWf` either.
 dual-interior : ∀ {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → Γᵢ ⊢ⁱ dualBoundary Θ ⇒ extendReps (binds Θ) Γ
-dual-interior {Θ = Θ} (interior cs) =
-  interior
-    (subst (λ D → _ ∣ D ⊢χ dual (changes Θ) ⇒ _)
-           (sym (shiftRVars-0 _))
-           (dual-changes cs))
+  → Γᵢ ⊢ⁱ dualBoundary Θ ⇒ Γ
+dual-interior (interior cs) = interior (dual-changes cs)
 
--- Lifting a reading past a PARALLEL BIND BLOCK.  `underRepBinds k` keeps
--- every ordinary POSITION and moves every representation occurrence past
--- k binders; `shiftRVars k` does the same to the name map.  This is what
--- `_⋉_` does to the outer boundary scope's change list.
-private
-  del-shiftRVars : (k : ℕ) → α ⊢- Δ at X ⇒ Δ′
-    → (k + α) ⊢- shiftRVars k Δ at X ⇒ shiftRVars k Δ′
-  del-shiftRVars k del-here = del-here
-  del-shiftRVars k (del-there dl) = del-there (del-shiftRVars k dl)
-
-  ins-shiftRVars : (k : ℕ) → α ⊢+ Δ at X ⇒ Δ′
-    → (k + α) ⊢+ shiftRVars k Δ at X ⇒ shiftRVars k Δ′
-  ins-shiftRVars k ins-here = ins-here
-  ins-shiftRVars k (ins-there i) = ins-there (ins-shiftRVars k i)
-
-  step-lift : (Rs : List Ty) → Ξ ∣ Δ ⊢δ δ ⇒ Δ′
-    → pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
-        ⊢δ underRepBinds (length Rs) δ ⇒ shiftRVars (length Rs) Δ′
-  step-lift Rs (step-lock (b , v) dl fr) =
-    step-lock (b , ∋ˡ-push Rs v)
-              (del-shiftRVars (length Rs) dl)
-              (fresh-shiftRVars (length Rs) fr)
-  step-lift Rs (step-unlock (b , v) fr i) =
-    step-unlock (b , ∋ˡ-push Rs v)
-                (fresh-shiftRVars (length Rs) fr)
-                (ins-shiftRVars (length Rs) i)
-
-  changes-lift : (Rs : List Ty) → Ξ ∣ Δ ⊢χ χ ⇒ Δ′
-    → pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
-        ⊢χ map (underRepBinds (length Rs)) χ ⇒ shiftRVars (length Rs) Δ′
-  changes-lift Rs changes[] = changes[]
-  changes-lift Rs (changes∷ cs st) =
-    changes∷ (changes-lift Rs cs) (step-lift Rs st)
-
-  conv-changes-lift : (Rs : List Ty) → Ξ ∣ Δ ⊢χᶜ χ ⇒ Δ′
-    → pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
-        ⊢χᶜ map (underRepBinds (length Rs)) χ
-        ⇒ shiftRVars (length Rs) Δ′
-  conv-changes-lift Rs conv[] = conv[]
-  conv-changes-lift Rs (conv-lock (b , v) cs) =
-    conv-lock (b , ∋ˡ-push Rs v) (conv-changes-lift Rs cs)
-  conv-changes-lift Rs (conv-unlock (b , v) cs fr i) =
-    conv-unlock (b , ∋ˡ-push Rs v) (conv-changes-lift Rs cs)
-      (fresh-shiftRVars (length Rs) fr)
-      (ins-shiftRVars (length Rs) i)
-  conv-changes-lift Rs (conv-unlock-live (b , v) cs d) =
-    conv-unlock-live (b , ∋ˡ-push Rs v) (conv-changes-lift Rs cs)
-      (∋ˡ-ren (length Rs +_) d)
-
--- The MERGED frame's interior is the inner frame's own interior.  The
--- lifted copy of the outer changes re-creates the outer interior one bind
--- block in, which is exactly where the inner boundary scope's reading starts.
--- This is the relational form of the old development's
--- `interior-⋉-rewind` equality (retired proof/MoveScope §4).
+-- Merging two scopes: the outer's changes run first, then the inner's,
+-- on one and the same store.  (The parallel-bind lifting this used to
+-- need — `underRepBinds`, `shiftRVars` — is gone with the bind block.)
 merged-interior : ∀ {Θ₁ Θ₂ : Boundary} {Γ₁ᵢ : Ctxᵗ}
   → Γ ⊢ⁱ Θ₂ ⇒ Γᵢ
   → Γᵢ ⊢ⁱ Θ₁ ⇒ Γ₁ᵢ
-  → extendReps (binds Θ₂) Γ ⊢ⁱ Θ₁ ⋉ Θ₂ ⇒ Γ₁ᵢ
-merged-interior {Θ₁ = Θ₁} (interior cs₂) (interior cs₁) =
-  interior (changes-++ (changes-lift (binds Θ₁) cs₂) cs₁)
+  → Γ ⊢ⁱ Θ₁ ⋉ Θ₂ ⇒ Γ₁ᵢ
+merged-interior (interior cs₂) (interior cs₁) =
+  interior (changes-++ cs₂ cs₁)
 
--- Both readings leave the REPRESENTATION context of the boundary scope's own
--- bind block; only the ordinary name map moves.
-interior-reps : ∀ {Θ : Boundary} → Γ ⊢ⁱ Θ ⇒ Γᵢ
-  → reps Γᵢ ≡ pushRepBinds (binds Θ) (reps Γ)
+-- A boundary changes names only: both readings keep the store.
+interior-reps : ∀ {Θ : Boundary} → Γ ⊢ⁱ Θ ⇒ Γᵢ → reps Γᵢ ≡ reps Γ
 interior-reps (interior cs) = refl
 
-conversion-reps : ∀ {Θ : Boundary} → Γ ⊢ᶜ Θ ⇒ Γᶜ
-  → reps Γᶜ ≡ pushRepBinds (binds Θ) (reps Γ)
+conversion-reps : ∀ {Θ : Boundary} → Γ ⊢ᶜ Θ ⇒ Γᶜ → reps Γᶜ ≡ reps Γ
 conversion-reps (conversion cs) = refl
 
 -- The conversion reading preserves both, for the same reasons: it skips
@@ -671,13 +590,11 @@ conv-valid vn (conv-unlock-live v cs d) = conv-valid vn cs
 -- crossed argument is wrapped in a boundary scope's dual.
 interior-unique : ∀ {Θ : Boundary}
   → Unique (names Γ) → Γ ⊢ⁱ Θ ⇒ Γᵢ → Unique (names Γᵢ)
-interior-unique {Θ = Θ} uq (interior cs) =
-  int-unique (unique-shiftRVars (numBinds Θ) uq) cs
+interior-unique uq (interior cs) = int-unique uq cs
 
 conversion-unique : ∀ {Θ : Boundary}
   → Unique (names Γ) → Γ ⊢ᶜ Θ ⇒ Γᶜ → Unique (names Γᶜ)
-conversion-unique {Θ = Θ} uq (conversion cs) =
-  conv-unique (unique-shiftRVars (numBinds Θ) uq) cs
+conversion-unique uq (conversion cs) = conv-unique uq cs
 
 dual-unique : ∀ {Γ Γᵢ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Unique (names Γ)
@@ -899,10 +816,7 @@ Q : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ
   → (names Γᶜ) ∋ᵅ α → (names Γᵈ) ∋ᵅ α
 Q {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
-  Q-changes (changes Θ) cs cc
-    (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ _)
-           (shiftRVars-0 _) dc)
-    lv
+  Q-changes (changes Θ) cs cc dc lv
 
 Q-inv : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
@@ -910,10 +824,7 @@ Q-inv : ∀ {Γ Γᵢ Γᶜ Γᵈ : Ctxᵗ} {Θ : Boundary}
   → Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ
   → (names Γᵈ) ∋ᵅ α → (names Γᶜ) ∋ᵅ α
 Q-inv {Θ = Θ} (interior cs) (conversion cc) (conversion dc) lv =
-  Q-changes-conv (changes Θ) cs cc
-    (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ _)
-           (shiftRVars-0 _) dc)
-    lv
+  Q-changes-conv (changes Θ) cs cc dc lv
 
 ------------------------------------------------------------------------
 -- 3c. The dual conversion context exists
@@ -1016,39 +927,31 @@ dual-conversion-exists : ∀ {Γ Γᵢ : Ctxᵗ} {Θ : Boundary}
   → Γ ⊢ⁱ Θ ⇒ Γᵢ
   → ∃[ Γᵈ ] (Γᵢ ⊢ᶜ dualBoundary Θ ⇒ Γᵈ)
 dual-conversion-exists {Θ = Θ} uq (interior cs)
-  with dual-conv-exists (changes Θ) _ (unique-shiftRVars _ uq)
-         (int-unique (unique-shiftRVars _ uq) cs) cs (λ lv → lv)
+  with dual-conv-exists (changes Θ) _ uq (int-unique uq cs) cs (λ lv → lv)
 dual-conversion-exists {Θ = Θ} uq (interior cs) | Δᵈ , dc =
-  _ , conversion
-        (subst (λ D → _ ∣ D ⊢χᶜ dual (changes Θ) ⇒ Δᵈ)
-               (sym (shiftRVars-0 _)) dc)
+  _ , conversion dc
 
 -- THE TWO TRANSPORT THEOREMS.  These are what `BoundaryWf` used to take as
 -- explicit obligations.
-interior-wf : ∀ {Θ : Boundary} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
+interior-wf : ∀ {Θ : Boundary} → WfCtx Γ
   → Γ ⊢ⁱ Θ ⇒ Γᵢ → WfCtx Γᵢ
-interior-wf {Θ = Θ} w bs (interior cs) =
-  wf-ctx (wfRepCtx-push bs (wf-reps w))
-         (int-valid (validNames-push (binds Θ) (wf-names w)) cs)
-         (int-unique (unique-shiftRVars _ (name-fn w)) cs)
+interior-wf w (interior cs) =
+  wf-ctx (wf-reps w) (int-valid (wf-names w) cs) (int-unique (name-fn w) cs)
 
-conversion-wf : ∀ {Θ : Boundary} → WfCtx Γ → reps Γ ⊢ᴮ binds Θ
+conversion-wf : ∀ {Θ : Boundary} → WfCtx Γ
   → Γ ⊢ᶜ Θ ⇒ Γᶜ → WfCtx Γᶜ
-conversion-wf {Θ = Θ} w bs (conversion cs) =
-  wf-ctx (wfRepCtx-push bs (wf-reps w))
-         (conv-valid (validNames-push (binds Θ) (wf-names w)) cs)
-         (conv-unique (unique-shiftRVars _ (name-fn w)) cs)
+conversion-wf w (conversion cs) =
+  wf-ctx (wf-reps w) (conv-valid (wf-names w) cs) (conv-unique (name-fn w) cs)
 
--- A complete boundary scope witness names both induced contexts. The output
--- well-formedness is DERIVED (§3a), not stored: a witness carries only
--- what cannot be recovered — the exterior's well-formedness, the bind
--- block, and the two readings.
+-- A complete boundary scope witness names both induced contexts.  The
+-- output well-formedness is DERIVED (§3a), not stored: a witness carries
+-- only what cannot be recovered — the exterior's well-formedness and the
+-- two readings.  (The bind-block field went with the bind block.)
 record BoundaryWf (Γ : Ctxᵗ) (Θ : Boundary)
                (Γᵢ Γᶜ : Ctxᵗ) : Set where
   constructor bw
   field
     bw-exterior  : WfCtx Γ
-    bw-binds     : reps Γ ⊢ᴮ binds Θ
     bw-interior  : Γ ⊢ⁱ Θ ⇒ Γᵢ
     bw-conversion : Γ ⊢ᶜ Θ ⇒ Γᶜ
 open BoundaryWf public
@@ -1056,12 +959,10 @@ open BoundaryWf public
 -- The two former fields, now theorems. They keep the names they had, so
 -- every USE site reads the same; only the construction sites shrink.
 bw-interior-wf : ∀ {Θ} → BoundaryWf Γ Θ Γᵢ Γᶜ → WfCtx Γᵢ
-bw-interior-wf mwΘ =
-  interior-wf (bw-exterior mwΘ) (bw-binds mwΘ) (bw-interior mwΘ)
+bw-interior-wf mwΘ = interior-wf (bw-exterior mwΘ) (bw-interior mwΘ)
 
 bw-conversion-wf : ∀ {Θ} → BoundaryWf Γ Θ Γᵢ Γᶜ → WfCtx Γᶜ
-bw-conversion-wf mwΘ =
-  conversion-wf (bw-exterior mwΘ) (bw-binds mwΘ) (bw-conversion mwΘ)
+bw-conversion-wf mwΘ = conversion-wf (bw-exterior mwΘ) (bw-conversion mwΘ)
 
 -- The MERGED frame's conversion reading exists and retains every name
 -- available at the inner frame's conversion context.  The lifted outer
@@ -1073,25 +974,18 @@ merged-conversion-exists : ∀ {Γ Γᵢ Γᶜ Γ₁ᵢ Γ₁ᶜ : Ctxᵗ}
   → BoundaryWf Γ Θ₂ Γᵢ Γᶜ
   → BoundaryWf Γᵢ Θ₁ Γ₁ᵢ Γ₁ᶜ
   → Σ[ Γ⋉ᶜ ∈ Ctxᵗ ]
-      ((extendReps (binds Θ₂) Γ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Γ⋉ᶜ)
-        × (names Γ₁ᶜ ⊆ᵃ names Γ⋉ᶜ))
-merged-conversion-exists {Θ₁ = boundary Rs₁ χ₁}
-    (bw wf₂ bs₂ (interior cs₂) (conversion cc₂))
-    (bw wf₁ bs₁ (interior cs₁) (conversion cc₁))
-  with conv-weaken
-         (unique-shiftRVars (length Rs₁) (name-fn wf₁))
-         (unique-shiftRVars (length Rs₁)
-           (name-fn (conversion-wf wf₂ bs₂ (conversion cc₂))))
-         cc₁
-         (⊆ᵃ-shiftRVars (length Rs₁) (int⇒conv-live cs₂ cc₂))
-merged-conversion-exists {Θ₁ = boundary Rs₁ χ₁}
-    (bw wf₂ bs₂ (interior cs₂) (conversion cc₂))
-    (bw wf₁ bs₁ (interior cs₁) (conversion cc₁))
+      ((Γ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Γ⋉ᶜ) × (names Γ₁ᶜ ⊆ᵃ names Γ⋉ᶜ))
+merged-conversion-exists
+    (bw wf₂ (interior cs₂) (conversion cc₂))
+    (bw wf₁ (interior cs₁) (conversion cc₁))
+  with conv-weaken (name-fn wf₁)
+         (name-fn (conversion-wf wf₂ (conversion cc₂)))
+         cc₁ (int⇒conv-live cs₂ cc₂)
+merged-conversion-exists
+    (bw wf₂ (interior cs₂) (conversion cc₂))
+    (bw wf₁ (interior cs₁) (conversion cc₁))
   | Δ⋉ᶜ , cc₁′ , keep =
-  _ , conversion
-        (conv-changes-++ (conv-changes-lift Rs₁ cc₂) cc₁′)
-    , keep
-
+  _ , conversion (conv-changes-++ cc₂ cc₁′) , keep
 ------------------------------------------------------------------------
 -- 3d. Renaming the representation universe — the CONTEXT half
 ------------------------------------------------------------------------
@@ -1123,43 +1017,24 @@ conv-changes-ren {ρ = ρ} w (conv-unlock (b , v) cs fr i) =
     (fresh-ren (wk-inj w) fr) (ins-ren ρ i)
 conv-changes-ren {ρ = ρ} w (conv-unlock-live (b , v) cs d) =
   conv-unlock-live (wk-look w v) (conv-changes-ren w cs) (∋ˡ-ren ρ d)
-
--- The two readings of the RENAMED boundary scope are the renamed readings.
+-- Both readings, under a representation renaming: the scope is renamed
+-- by `renᴮᴿ ρ`, the name maps by `map ρ`, and the store is whatever the
+-- `RepWk` says.  No bind prefix, no `extN` offset.
 interior-ren : ∀ {ρ Ξ Ξ′ Θ} {Γᵢ : Ctxᵗ} → RepWk ρ Ξ Ξ′
   → (Ξ ∣ Δ) ⊢ⁱ Θ ⇒ Γᵢ
-  → (Ξ′ ∣ map ρ Δ) ⊢ⁱ renᴮᴿ ρ Θ ⇒
-      (pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′
-        ∣ map (extN (numBinds Θ) ρ) (names Γᵢ))
-interior-ren {Δ = Δ} {ρ = ρ} {Ξ′ = Ξ′} {Θ = Θ}
-             w (interior {Δ′ = Δ′} cs) =
-  interior
-    (subst (λ D → pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′ ∣ D
-                    ⊢χ map (renᶠᴿ (extN (numBinds Θ) ρ)) (changes Θ)
-                    ⇒ map (extN (numBinds Θ) ρ) Δ′)
-           (names-ren-push ρ (binds Θ) Δ)
-           (changes-ren (repwk-push w (binds Θ)) cs))
+  → (Ξ′ ∣ map ρ Δ) ⊢ⁱ renᴮᴿ ρ Θ ⇒ (Ξ′ ∣ map ρ (names Γᵢ))
+interior-ren w (interior cs) = interior (changes-ren w cs)
 
 conversion-ren : ∀ {ρ Ξ Ξ′ Θ} {Γᶜ : Ctxᵗ} → RepWk ρ Ξ Ξ′
   → (Ξ ∣ Δ) ⊢ᶜ Θ ⇒ Γᶜ
-  → (Ξ′ ∣ map ρ Δ) ⊢ᶜ renᴮᴿ ρ Θ ⇒
-      (pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′
-        ∣ map (extN (numBinds Θ) ρ) (names Γᶜ))
-conversion-ren {Δ = Δ} {ρ = ρ} {Ξ′ = Ξ′} {Θ = Θ}
-               w (conversion {Δ′ = Δ′} cs) =
-  conversion
-    (subst (λ D → pushRepBinds (map (renameᵗ ρ) (binds Θ)) Ξ′ ∣ D
-                    ⊢χᶜ map (renᶠᴿ (extN (numBinds Θ) ρ)) (changes Θ)
-                    ⇒ map (extN (numBinds Θ) ρ) Δ′)
-           (names-ren-push ρ (binds Θ) Δ)
-           (conv-changes-ren (repwk-push w (binds Θ)) cs))
+  → (Ξ′ ∣ map ρ Δ) ⊢ᶜ renᴮᴿ ρ Θ ⇒ (Ξ′ ∣ map ρ (names Γᶜ))
+conversion-ren w (conversion cs) = conversion (conv-changes-ren w cs)
 
--- The conversion half of moving a boundary across a fresh representation
--- binder.  Representation renaming first transports the old reading.  The
--- appended lock is skipped, so `conv-weaken` starts that transported run in
--- the larger map containing the fresh ordinary name.  The result retains the
--- REPRESENTATION-RENAMED old conversion names; retaining the unrenamed names
--- is false when the old context names a free representation below the new
--- insertion.
+-- `addLock0` carries a scope past one fresh cell and one fresh ordinary
+-- name (`TyPeelR-⟪⟫`).  The conversion reading: representation renaming
+-- transports the old reading, the appended lock is skipped, and
+-- `conv-weaken` restarts the transported run in the map that also holds
+-- the fresh name; it retains the REPRESENTATION-RENAMED old names.
 addLock0-conversion-ren : ∀ {Ξ Ξ′ Δ Θ Γᶜ}
   → RepWk suc Ξ Ξ′
   → Ξ′ ∋ʳ zero
@@ -1168,94 +1043,46 @@ addLock0-conversion-ren : ∀ {Ξ Ξ′ Δ Θ Γᶜ}
   → Σ[ Γ′ᶜ ∈ Ctxᵗ ]
         (((Ξ′ ∣ (zero ∷ shiftNames Δ))
           ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Γ′ᶜ)
-        × (map (extN (numBinds Θ) suc) (names Γᶜ)
-             ⊆ᵃ (names Γ′ᶜ)))
-addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = boundary Rs χ}
-                        w v₀ uq (conversion {Δ′ = Δᶜ} cs)
-  with conv-weaken
-         (unique-shiftRVars (length (map (renameᵗ suc) Rs))
-           (unique-shift uq))
-         (unique-shiftRVars (length (map (renameᵗ suc) Rs))
-           (unique∷ fresh-zero-shift (unique-shift uq)))
-         (subst
-           (λ D → pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∣ D
-             ⊢χᶜ map (renᶠᴿ (extN (length Rs) suc)) χ
-             ⇒ map (extN (length Rs) suc) Δᶜ)
-           (names-ren-push suc Rs Δ)
-           (conv-changes-ren (repwk-push w Rs) cs))
-         ∋ᵅ-cons
-addLock0-conversion-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = boundary Rs χ}
-                        w v₀ uq (conversion {Δ′ = Δᶜ} cs)
-  | Δ′ , cs′ , keep =
-  _ , conversion (conv-snoc-lock valid cs′) , keep
-  where
-  valid : pushRepBinds (map (renameᵗ suc) Rs) Ξ′
-            ∋ʳ length (map (renameᵗ suc) Rs)
-  valid = subst
-                (λ α →
-                  pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∋ʳ α)
-                (+-identityʳ (length (map (renameᵗ suc) Rs)))
-                (_ , ∋ˡ-push (map (renameᵗ suc) Rs) (proj₂ v₀))
+        × (map suc (names Γᶜ) ⊆ᵃ (names Γ′ᶜ)))
+addLock0-conversion-ren w v₀ uq (conversion cs)
+  with conv-weaken (unique-shift uq)
+         (unique∷ fresh-zero-shift (unique-shift uq))
+         (conv-changes-ren w cs) ∋ᵅ-cons
+addLock0-conversion-ren w v₀ uq (conversion cs) | Δ′ , cs′ , keep =
+  _ , conversion (conv-snoc-lock v₀ cs′) , keep
 
--- The INTERIOR half of the same move, and the reason the moved term needs
--- no ordinary renaming.  The appended lock runs FIRST here too, but an
--- interior reading PERFORMS a lock: it deletes the fresh ordinary name
--- before any of Θ's own changes run, so what remains is exactly the
--- representation-renamed old interior — `interior-ren`, with no ordinary
--- position moved.  Contrast `addLock0-conversion-ren`, where the lock is
--- skipped and the fresh name has to be carried through the whole run.
+-- The interior reading: the appended lock acts first and deletes the
+-- fresh name, after which the renamed old changes run as before.
 addLock0-interior-ren : ∀ {Ξ Ξ′ Δ Θ Γᵢ}
   → RepWk suc Ξ Ξ′
   → Ξ′ ∋ʳ zero
   → (Ξ ∣ Δ) ⊢ⁱ Θ ⇒ Γᵢ
   → (Ξ′ ∣ (zero ∷ shiftNames Δ)) ⊢ⁱ addLock0 (renᴮᴿ suc Θ) ⇒
-      (pushRepBinds (map (renameᵗ suc) (binds Θ)) Ξ′
-        ∣ map (extN (numBinds Θ) suc) (names Γᵢ))
-addLock0-interior-ren {Ξ′ = Ξ′} {Δ = Δ} {Θ = boundary Rs χ}
-                      w v₀ (interior {Δ′ = Δᵢ} cs) =
+      (Ξ′ ∣ map suc (names Γᵢ))
+addLock0-interior-ren w v₀ (interior cs) =
   interior
     (changes-++
-      (changes∷ changes[]
-        (step-lock valid
-          (subst (λ α → α ⊢- (n + zero) ∷ shiftRVars n (shiftNames Δ)
-                          at zero ⇒ shiftRVars n (shiftNames Δ))
-                 (+-identityʳ n) del-here)
-          (subst (λ α → shiftRVars n (shiftNames Δ) ∌ʳ α)
-                 (+-identityʳ n)
-                 (fresh-shiftRVars n fresh-zero-shift))))
-      (subst
-        (λ D → pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∣ D
-          ⊢χ map (renᶠᴿ (extN (length Rs) suc)) χ
-          ⇒ map (extN (length Rs) suc) Δᵢ)
-        (names-ren-push suc Rs Δ)
-        (changes-ren (repwk-push w Rs) cs)))
-  where
-  n : ℕ
-  n = length (map (renameᵗ suc) Rs)
-
-  valid : pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∋ʳ n
-  valid = subst
-                (λ α →
-                  pushRepBinds (map (renameᵗ suc) Rs) Ξ′ ∋ʳ α)
-                (+-identityʳ n)
-                (_ , ∋ˡ-push (map (renameᵗ suc) Rs) (proj₂ v₀))
+      (changes∷ changes[] (step-lock v₀ del-here fresh-zero-shift))
+      (changes-ren w cs))
 
 ------------------------------------------------------------------------
 -- 4. Concrete boundary shapes
 ------------------------------------------------------------------------
 
+-- `TyBeta` on `(Λ N) ·[ B , ℕ ]` at `empty`: the cell is allocated and
+-- the scope unlocks name 0 for it.
 TyBetaBoundary : Boundary
-TyBetaBoundary = boundary (`ℕ ∷ []) (unlock 0 0 ∷ [])
+TyBetaBoundary = boundary (unlock 0 0 ∷ [])
 
 TyBetaCtx : Ctxᵗ
 TyBetaCtx = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
 
-TyBeta-interior : empty ⊢ⁱ TyBetaBoundary ⇒ TyBetaCtx
+TyBeta-interior : allocate `ℕ empty ⊢ⁱ TyBetaBoundary ⇒ TyBetaCtx
 TyBeta-interior =
   interior
     (changes∷ changes[] (step-unlock (_ , here) fresh[] ins-here))
 
-TyBeta-conversion : empty ⊢ᶜ TyBetaBoundary ⇒ TyBetaCtx
+TyBeta-conversion : allocate `ℕ empty ⊢ᶜ TyBetaBoundary ⇒ TyBetaCtx
 TyBeta-conversion =
   conversion
     (conv-unlock (_ , here) conv[] fresh[] ins-here)
@@ -1266,12 +1093,12 @@ TyBetaCtx-wf =
          (λ { here → _ , here })
          (unique∷ fresh[] unique[])
 
-TyBeta-bw : BoundaryWf empty TyBetaBoundary TyBetaCtx TyBetaCtx
-TyBeta-bw =
-  bw wf-empty (binds∷ wfᴿ-ℕ binds[]) TyBeta-interior TyBeta-conversion
+allocℕ-wf : WfCtx (allocate `ℕ empty)
+allocℕ-wf = wf-ctx (wf-bindR wfᴿ-ℕ wf-reps[]) (λ ()) unique[]
 
--- Crossing an argument under `ΛX` removes only ordinary X. Its abstract
--- representation variable remains, and the dual restores X exactly.
+TyBeta-bw : BoundaryWf (allocate `ℕ empty) TyBetaBoundary TyBetaCtx TyBetaCtx
+TyBeta-bw = bw allocℕ-wf TyBeta-interior TyBeta-conversion
+
 ΛXCtx : Ctxᵗ
 ΛXCtx = underΛ empty
 

@@ -458,7 +458,7 @@ G-run = reaches-run G-eval
 -- explains why no example saw the `CancelR` defect until §8 was written
 -- (notes/CancelRShiftWall.agda, notes/DECISIONS.md 2026-09-19).
 
-numBinds-TyBeta : ∀ {R} → numBinds (instantiate R (boundary [] [])) ≡ 1
+numBinds-TyBeta : ∀ {R} → numBinds (instantiate R (boundary [])) ≡ 1
 numBinds-TyBeta = refl
 
 numBinds-Peel : ∀ {Θ} → numBinds (dualBoundary Θ) ≡ 0
@@ -771,7 +771,7 @@ S-run = reaches-run S-eval
 
 -- the concealing layer these three share: 7, sealed at the ambient name
 Wseal : Term
-Wseal = ($ 7) ⟪ boundary [] [] , seal 0 ⟫
+Wseal = ($ 7) ⟪ boundary [] , seal 0 ⟫
 
 ------------------------------------------------------------------------
 -- §9a  THE CANCEL PAIR
@@ -804,7 +804,7 @@ Tcancel-run = reaches-run Tcancel-eval
 -- the rewind has nothing to undo.
 _ : evalTerms 3 Tcancel-⊢
       ≡ Tcancel
-      ∷ ((($ 7) ⟪ boundary [] [] , id `ℕ ⟫) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ ((($ 7) ⟪ boundary [] , id `ℕ ⟫) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
       ∷ (($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
@@ -846,7 +846,7 @@ _ : evalTerms 5 Tid-⊢
       ≡ Tid
       ∷ ((Wseal ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫)
            ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ (((($ 7) ⟪ boundary [] [] , id `ℕ ⟫)
+      ∷ (((($ 7) ⟪ boundary [] , id `ℕ ⟫)
              ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
            ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
       ∷ ((($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
@@ -898,20 +898,20 @@ Tid₂-run = reaches-run Tid₂-eval
 -- `⇑ᵗ (` 0)` is `` ` 1 ``, read outside the lock.
 
 Wsub Nsub : Term
-Wsub = ($ 7) ⟪ boundary [] [] , seal 0 ⟫
+Wsub = ($ 7) ⟪ boundary [] , seal 0 ⟫
 Nsub = Λ (` 0)
 
 _ : Nsub [ Wsub ∶ ` 0 ]ᵐ
-      ≡ Λ ((($ 7) ⟪ boundary [] [] , seal 0 ⟫)
-             ⟪ boundary [] (lock 0 0 ∷ []) , id (` 1) ⟫)
+      ≡ Λ ((($ 7) ⟪ boundary [] , seal 0 ⟫)
+             ⟪ boundary (lock 0 0 ∷ []) , id (` 1) ⟫)
 _ = refl
 
 -- the lock is at ordinary position 0 and names representation variable 0 —
 -- the abstract binding the `Λ` just introduced, immediately outside the
 -- image's own (empty) bind prefix
 _ : crossΛᴹ Wsub (` 0)
-      ≡ (($ 7) ⟪ boundary [] [] , seal 0 ⟫)
-          ⟪ boundary [] (lock 0 0 ∷ []) , id (` 1) ⟫
+      ≡ (($ 7) ⟪ boundary [] , seal 0 ⟫)
+          ⟪ boundary (lock 0 0 ∷ []) , id (` 1) ⟫
 _ = refl
 
 -- ── the ƛ clause: the bound slot is protected, the image is not ────────
@@ -940,7 +940,7 @@ _ = tc
 --   Bg = ((λx:ℕ. ΛZ. λ_:ℕ. x) · 7) [ℕ] · 0
 --
 -- Its first `Beta` reaches
--- `ΛZ. λ_:ℕ. 7 ⟪ boundary [] (lock 0 0 ∷ []) , id ℕ ⟫`.
+-- `ΛZ. λ_:ℕ. 7 ⟪ boundary (lock 0 0 ∷ []) , id ℕ ⟫`.
 -- Instantiating that value and applying its dummy exposes the wrapper;
 -- the sixth step is the `Drop$` that removes it.
 
@@ -952,7 +952,7 @@ Bg-⊢ : empty ∣ [] ⊢ Bg ⦂ `ℕ
 Bg-⊢ = tc
 
 _ : (Λ (` 0)) [ $ 7 ∶ `ℕ ]ᵐ
-      ≡ Λ (($ 7) ⟪ boundary [] (lock 0 0 ∷ []) , id `ℕ ⟫)
+      ≡ Λ (($ 7) ⟪ boundary (lock 0 0 ∷ []) , id `ℕ ⟫)
 _ = refl
 
 Bg-eval : Reaches 7 7 Bg-⊢ ($ 7)
@@ -962,7 +962,7 @@ Bg-run : empty ⊢ Bg -→* $ 7
 Bg-run = reaches-run Bg-eval
 
 -- the wrapper itself is not a value: its conversion is the ACTIVE `id ℕ`
-¬val-wrapper : ¬ Value (($ 7) ⟪ boundary [] (lock 0 0 ∷ []) , id `ℕ ⟫)
+¬val-wrapper : ¬ Value (($ 7) ⟪ boundary (lock 0 0 ∷ []) , id `ℕ ⟫)
 ¬val-wrapper (V-⟪⟫ _ ())
 
 ------------------------------------------------------------------------

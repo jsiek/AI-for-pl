@@ -891,13 +891,13 @@ mutual
 -- §3. The local reduction cases
 ------------------------------------------------------------------------
 
-empty-interior : Δ ⊢ⁱ boundary [] [] ⇒ Δ
+empty-interior : Δ ⊢ⁱ boundary [] ⇒ Δ
 empty-interior {Δ = Ξ ∣ η} =
   interior
     (subst (λ η′ → Ξ ∣ η′ ⊢χ [] ⇒ η)
            (sym (shiftRVars-0 η)) changes[])
 
-empty-conversion : Δ ⊢ᶜ boundary [] [] ⇒ Δ
+empty-conversion : Δ ⊢ᶜ boundary [] ⇒ Δ
 empty-conversion {Δ = Ξ ∣ η} =
   conversion
     (subst (λ η′ → Ξ ∣ η′ ⊢χᶜ [] ⇒ η)
@@ -956,7 +956,7 @@ preserve-TyBeta : ∀ {Δ N B A R C}
   → WfCtx Δ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫ ⦂ C
+  → Δ ∣ [] ⊢ N ⟪ instantiate R (boundary []) , reveal 0 B ⟫ ⦂ C
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
                 wfΔ p (⊢·[] (⊢Λ vN ⊢N) wA)
   with ⊢ᵗ-of CtxWf-[] (⊢Λ vN ⊢N)
@@ -991,7 +991,7 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
   sameₑ with wf-same wE
   sameₑ | S , q = S , q , same-weaken q
 
-  mwβ : BoundaryWf Δ (instantiate R (boundary [] [])) ΔR ΔR
+  mwβ : BoundaryWf Δ (instantiate R (boundary [])) ΔR ΔR
   mwβ =
     bw wfΔ (binds∷ (same-wfᴿ wfΔ p) binds[])
        (instantiate-interior {R = R} empty-interior)

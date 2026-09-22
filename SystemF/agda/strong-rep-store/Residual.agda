@@ -197,7 +197,7 @@ data ImageResidual : ℕ → Img → TermCtx → Term → Renameᵗ → TermCtx
     → ImageResidual k (ival V A) C M ρ D N
     → ImageResidual (suc k) (⇑ᴵ (ival V A)) C M (holeᴿ suc D ∘ ρ)
         (renCtx² (moveᴿ suc) D
-           ⟪C boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+           ⟪C boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
         (renᴹ² (holeRen² (moveᴿ suc) D) N)
 
 -- Positions inside a copy of the argument, followed through the body
@@ -241,7 +241,7 @@ data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
     (vN : Value (plug C M)) (pA : Δ ⊢ᶜ A ~ R)
     → Residual (TyBeta {Δ = Δ} {B = B} {A = A} {N = plug C M} vN pA)
         ((ΛC C) ·C[ B , A ]) M idᵗ
-        (C ⟪C instantiate R (boundary [] []) , reveal 0 B ⟫) M
+        (C ⟪C instantiate R (boundary []) , reveal 0 B ⟫) M
 
   -- Beta, the body: a node the substitution does not replace.
   residual-Beta-body : ∀ {C M}

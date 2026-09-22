@@ -49,7 +49,7 @@ open import strong-rep-store.TypeCheck
 Δ₀ = (bindR `ℕ ∷ bindR `𝔹 ∷ []) ∣ (0 ∷ 1 ∷ [])
 
 Θ₀ : Boundary
-Θ₀ = boundary [] (unlock 1 0 ∷ lock 0 0 ∷ [])
+Θ₀ = boundary (unlock 1 0 ∷ lock 0 0 ∷ [])
 
 nmConv : Ctxᵗ → Boundary → Maybe TyCtx
 nmConv Γ Θ with conversion? Γ Θ
@@ -81,12 +81,12 @@ conversion-did-not = refl
 ------------------------------------------------------------------------
 
 -- `reveal 0 B` is minted from the redex's annotation `B`, read at
--- `underΛ Δ`, and lands on `instantiate R (boundary [] [])`.  That frame has
+-- `underΛ Δ`, and lands on `instantiate R (boundary [])`.  That frame has
 -- ONE change and it is an `unlock`, so its conversion context and its
 -- interior are the same map, and both are `underΛ Δ`.  A rule whose frame
 -- never locks cannot cross wrongly.
 tybeta-used :
-  names (proj₁ (from-just (conversion? Δ₀ (instantiate `ℕ (boundary [] [])))))
+  names (proj₁ (from-just (conversion? Δ₀ (instantiate `ℕ (boundary [])))))
     ≡ names (underΛ Δ₀)
 tybeta-used = refl
 
@@ -95,13 +95,13 @@ tybeta-used = refl
 ------------------------------------------------------------------------
 
 -- A value crossing a `Λ` is wrapped by `crossΛᴹ` in `mkId (⇑ᵗ A)` over
--- the frame `boundary [] (lock 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
+-- the frame `boundary (lock 0 0 ∷ [])`.  `A` is read at Δ and `⇑ᵗ A` is
 -- the right spelling at `underΛ Δ`; the frame's only change is the lock,
 -- which the conversion context SKIPS, so the conversion context IS
 -- `underΛ Δ`.  Nothing moves, so nothing can be misspelled.
 beta-used :
   names (proj₁ (from-just
-    (conversion? (underΛ Δ₀) (boundary [] (lock 0 0 ∷ [])))))
+    (conversion? (underΛ Δ₀) (boundary (lock 0 0 ∷ [])))))
     ≡ names (underΛ Δ₀)
 beta-used = refl
 
@@ -169,14 +169,14 @@ reps₃ = bindR `ℕ ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 Δ₃ = reps₃ ∣ (0 ∷ 1 ∷ [])
 
 Lock Unlock : Boundary
-Lock = boundary [] (lock 0 0 ∷ [])
-Unlock = boundary [] (unlock 0 2 ∷ [])
+Lock = boundary (lock 0 0 ∷ [])
+Unlock = boundary (unlock 0 2 ∷ [])
 
 -- FACT 1.  A change list with NO UNLOCKS has (P).  The conversion context
 -- skips every lock, so C⟦Θ⟧Δ = Δ; the interior deletes the locked names;
 -- the dual is all unlocks, at the positions the locks recorded, and each
 -- is fresh at the interior, so running them restores Δ exactly.
-locks-only-ok : Ok Δ₃ (boundary [] (lock 0 1 ∷ lock 0 0 ∷ []))
+locks-only-ok : Ok Δ₃ (boundary (lock 0 1 ∷ lock 0 0 ∷ []))
 locks-only-ok = refl
 
 -- FACT 2.  A change list with NO LOCKS has (P).  Nothing is skipped, so
@@ -195,11 +195,11 @@ unlocks-only-ok = refl
 -- has already made different, so 2 lands before 1 in one and before 0 in
 -- the other.  The dual then restores 0 at the front of the interior's
 -- result, and the two maps hold the same names in different orders.
-mixed-dual : nmDual Δ₃ (boundary [] (unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-dual : nmDual Δ₃ (boundary (unlock 0 2 ∷ lock 0 0 ∷ []))
   ≡ just (0 ∷ 2 ∷ 1 ∷ [])
 mixed-dual = refl
 
-mixed-conv : nmConv Δ₃ (boundary [] (unlock 0 2 ∷ lock 0 0 ∷ []))
+mixed-conv : nmConv Δ₃ (boundary (unlock 0 2 ∷ lock 0 0 ∷ []))
   ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 mixed-conv = refl
 
@@ -263,7 +263,7 @@ push-shape-conv = refl
 -- do TWO jobs and, once positions move, they want different numbers.
 -- On §5's mixed frame — `lock 0 0` then `unlock 0 2` over Δ₃:
 Mixed : Boundary
-Mixed = boundary [] (unlock 0 2 ∷ lock 0 0 ∷ [])
+Mixed = boundary (unlock 0 2 ∷ lock 0 0 ∷ [])
 
 mixed-int : nmInt Δ₃ Mixed ≡ just (2 ∷ 1 ∷ [])
 mixed-int = refl
@@ -277,7 +277,7 @@ mixed-target = refl
 -- `dualBoundary Mixed`, as defined.  It INVERTS the interior, which is the
 -- job the crossing frame identity needs — and misses (P).
 Dsyn : Boundary
-Dsyn = boundary [] (unlock 0 0 ∷ lock 0 2 ∷ [])
+Dsyn = boundary (unlock 0 0 ∷ lock 0 2 ∷ [])
 
 syn-inverts : nmInt Δᵐ Dsyn ≡ just (0 ∷ 1 ∷ [])
 syn-inverts = refl
@@ -288,7 +288,7 @@ syn-misses = refl
 -- The same list with the restoring unlock moved to the position the
 -- CONVERSION reading wants.  It has (P) — and stops inverting.
 Dfix : Boundary
-Dfix = boundary [] (unlock 1 0 ∷ lock 0 2 ∷ [])
+Dfix = boundary (unlock 1 0 ∷ lock 0 2 ∷ [])
 
 fix-has-P : nmConv Δᵐ Dfix ≡ just (2 ∷ 0 ∷ 1 ∷ [])
 fix-has-P = refl

@@ -181,7 +181,7 @@ pushRepBinds-len (R ∷ Rs) eq = cong suc (pushRepBinds-len Rs eq)
 ------------------------------------------------------------------------
 
 crossΛ-interior : (Γ : Ctxᵗ)
-  → underΛ Γ ⊢ⁱ boundary [] (lock 0 0 ∷ [])
+  → underΛ Γ ⊢ⁱ boundary (lock 0 0 ∷ [])
       ⇒ ((abstR ∷ reps Γ) ∣ shiftNames (names Γ))
 crossΛ-interior Γ =
   interior (changes∷ changes[]

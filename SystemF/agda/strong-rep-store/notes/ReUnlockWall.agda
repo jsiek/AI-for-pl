@@ -44,7 +44,7 @@ open import strong-rep-store.TypeCheck using (conv!)
 -- Θ₂ LOCKS: it is `TyPeelR-Λ`'s `instantiate` over a frame that had
 -- already crossed two `Λ`s.
 Θlock : Boundary
-Θlock = instantiate (` 0) (boundary [] (lock 0 2 ∷ lock 0 0 ∷ []))
+Θlock = instantiate (` 0) (boundary (lock 0 2 ∷ lock 0 0 ∷ []))
 
 Θlock-explicit :
   Θlock ≡ boundary (` 0 ∷ []) (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])

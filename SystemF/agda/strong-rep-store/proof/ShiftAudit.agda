@@ -94,7 +94,7 @@ private
 --     TyPeelR-⟪⟫  `renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc))` on the moved
 --                 boundary, plus `addLock0` on its own change list
 --                                                            §3  EXACT
---     TyBeta      `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫`
+--     TyBeta      `N ⟪ instantiate R (boundary []) , reveal 0 B ⟫`
 --                                                            §3  refinement
 --     Beta        `N [ W ∶ A ]ᵐ`, i.e. `substᵐ`/`crossΛᴹ`     §5  EXACT
 --     CancelR     `V ⟪ Θ₁ ⋉ Θ₂ , … ⟫ ⟪ rewind Θ₂ , … ⟫`       §6  EXACT
@@ -162,14 +162,14 @@ TyPeelR-Λ-numBinds : (R : Ty) (Θ : Boundary)
   → numBinds (instantiate R Θ) ≡ suc (numBinds Θ)
 TyPeelR-Λ-numBinds R Θ = refl
 
--- TyBeta is the same refinement one `∀` out: `instantiate R (boundary [] [])`
+-- TyBeta is the same refinement one `∀` out: `instantiate R (boundary [])`
 -- turns the `Λ`'s own abstract binder into the event's represented one.
 TyBeta-refinement : (R : Ty)
-  → binds (instantiate R (boundary [] [])) ≡ R ∷ []
+  → binds (instantiate R (boundary [])) ≡ R ∷ []
 TyBeta-refinement R = refl
 
 TyBeta-restores-name-0 : (R : Ty)
-  → changes (instantiate R (boundary [] [])) ≡ unlock 0 0 ∷ []
+  → changes (instantiate R (boundary [])) ≡ unlock 0 0 ∷ []
 TyBeta-restores-name-0 R = refl
 
 -- THE WRAPPER CLAUSE.  The moved boundary crosses ONE fresh binder, and
@@ -250,7 +250,7 @@ TyPeelR-⟪⟫-height W Θ′ Θ s′ s″ s =
 -- a boundary that was already there, (a) MINTS a new one.
 fixA-height-stalls : (V : Term) (Θ : Boundary) (s : Conv) (Bᵢ : Ty)
   → towerHeight (renᴹ² (ren² idᵗ suc) V
-                   ⟪ boundary [] (lock 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
+                   ⟪ boundary (lock 0 0 ∷ []) , mkId (`∀ Bᵢ) ⟫)
       ≡ towerHeight (V ⟪ Θ , `∀ s ⟫)
 fixA-height-stalls V Θ s Bᵢ =
   cong suc (towerHeight-renᴹ² (ren² idᵗ suc) V)
@@ -334,13 +334,13 @@ Beta-ƛ-crossed-no-shift = refl
 
 -- THE `Λ` CROSSING IS REP-ONLY, AND ITS LOCK IS WHAT MAKES IT SO.  A
 -- value image crossing a `Λ` is weakened in the representation universe
--- and wrapped in `boundary [] (lock 0 0 ∷ [])`, whose lock deletes the
+-- and wrapped in `boundary (lock 0 0 ∷ [])`, whose lock deletes the
 -- ordinary name the `Λ` just bound.  So the image's ordinary indices keep
 -- their positions — criterion (i) with nothing to shift.
 Beta-Λ-crossing : ∀ {W A}
   → ⇑ᴵ (ival W A)
       ≡ ival (renᴹ² (ren² idᵗ suc) W
-                ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+                ⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
              (⇑ᵗ A)
 Beta-Λ-crossing = refl
 

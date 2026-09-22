@@ -4,8 +4,7 @@ module strong-rep-store.TermSubst where
 --   * RENAMING AND SUBSTITUTION ON TERMS.  §1 is the PAIRED type-level
 --     renaming `TyRename = ren² ordinary represent` with `renᶠ²`,
 --     `renᴮ²` and the specializations `renᶠ`/`renᴮ`, plus
---     `underΛ-ren`/`underReps-ren` and the arity facts
---     `numBinds-ren²`/`numBinds-ren`.  §2 is `renᴹ²` on terms, the
+--     `underΛ-ren`.  §2 is `renᴹ²` on terms, the
 --     REPRESENTATION-ONLY traversal `renᴹᴿ`, their agreement
 --     (`renᴹ²-ord-id`, via `renᶠ²-ord-id`/`renᴮ²-ord-id`), and the
 --     derived `renᴹ`, `wkN`, `wkᴹ`, `⇑ᴹ`.  §3 is term-variable
@@ -87,8 +86,6 @@ id² = ren² idᵗ idᵗ
 underΛ-ren : TyRename → TyRename
 underΛ-ren (ren² ρᵗ ρʳ) = ren² (extᵗ ρᵗ) (extᵗ ρʳ)
 
-underReps-ren : ℕ → TyRename → TyRename
-underReps-ren n (ren² ρᵗ ρʳ) = ren² ρᵗ (extN n ρʳ)
 
 renᶠ² : Renameᵗ → Renameᵗ → Change → Change
 renᶠ² ρᵗ ρʳ (lock X α)   = lock (ρᵗ X) (ρʳ α)
@@ -98,33 +95,18 @@ renᶠ : Renameᵗ → Change → Change
 renᶠ ρ = renᶠ² ρ ρ
 
 renᴮ² : TyRename → Boundary → Boundary
-renᴮ² (ren² ρᵗ ρʳ) Θ =
-  boundary (map (renameᵗ ρʳ) (binds Θ))
-        (map (renᶠ² ρᵗ (extN (numBinds Θ) ρʳ)) (changes Θ))
+renᴮ² (ren² ρᵗ ρʳ) Θ = boundary (map (renᶠ² ρᵗ ρʳ) (changes Θ))
 
 -- The one-map specialization is retained for callers where both universes
 -- move in lockstep, such as weakening under an ordinary `Λ`.
 renᴮ : Renameᵗ → Boundary → Boundary
 renᴮ ρ = renᴮ² (ren² ρ ρ)
 
-numBinds-ren² : (ρ : TyRename) (Θ : Boundary)
-  → numBinds (renᴮ² ρ Θ) ≡ numBinds Θ
-numBinds-ren² ρ Θ = map-length (binds Θ)
-  where
-  map-length : ∀ {A B : Set} (xs : List A) {f : A → B}
-    → length (map f xs) ≡ length xs
-  map-length []       = refl
-  map-length (_ ∷ xs) = cong suc (map-length xs)
-
-numBinds-ren : (ρ : Renameᵗ) (Θ : Boundary)
-  → numBinds (renᴮ ρ Θ) ≡ numBinds Θ
-numBinds-ren ρ Θ = numBinds-ren² (ren² ρ ρ) Θ
-
--- Concrete separation check. Weakening TyBeta under `Λ` moves its ordinary
--- insertion point from 0 to 1, but its representation occurrence stays 0
--- because that occurrence is bound by TyBeta's own `bindR`.
+-- Concrete separation check. Weakening TyBeta's scope under `Λ` moves
+-- both its ordinary insertion point and its representation occurrence
+-- from 0 to 1: the cell it names is in the ambient store, one binder out.
 TyBetaBoundary-ren-Λ : renᴮ² (ren² suc suc) TyBetaBoundary
-  ≡ boundary (`ℕ ∷ []) (unlock 1 0 ∷ [])
+  ≡ boundary (unlock 1 1 ∷ [])
 TyBetaBoundary-ren-Λ = refl
 
 ------------------------------------------------------------------------
@@ -143,8 +125,7 @@ renᴹ² ρ (L ·[ B , A ]) =
   renᴹ² ρ L ·[ renameᵗ (extᵗ (ordinary ρ)) B
              , renameᵗ (ordinary ρ) A ]
 renᴹ² ρ (M ⟪ Θ , c ⟫) =
-  renᴹ² (underReps-ren (numBinds Θ) ρ) M
-    ⟪ renᴮ² ρ Θ , renᶜ (ordinary ρ) c ⟫
+  renᴹ² ρ M ⟪ renᴮ² ρ Θ , renᶜ (ordinary ρ) c ⟫
 
 renᴹᴿ : Renameᵗ → Term → Term
 renᴹᴿ ρ (` x)          = ` x
@@ -155,8 +136,18 @@ renᴹᴿ ρ (ƛ A ∙ N)      = ƛ A ∙ renᴹᴿ ρ N
 renᴹᴿ ρ (L · M)        = renᴹᴿ ρ L · renᴹᴿ ρ M
 renᴹᴿ ρ (Λ N)          = Λ (renᴹᴿ (extᵗ ρ) N)
 renᴹᴿ ρ (L ·[ B , A ]) = renᴹᴿ ρ L ·[ B , A ]
-renᴹᴿ ρ (M ⟪ Θ , c ⟫) =
-  renᴹᴿ (extN (numBinds Θ) ρ) M ⟪ renᴮᴿ ρ Θ , c ⟫
+renᴹᴿ ρ (M ⟪ Θ , c ⟫) = renᴹᴿ ρ M ⟪ renᴮᴿ ρ Θ , c ⟫
+
+-- THE SIBLING SHIFT (experiment 2).  When a step allocates a cell, every
+-- representation variable of the redex's siblings — terms and boundary
+-- scopes alike — moves up by one; when it does not, nothing moves.
+↑ᴹ[_] : Alloc → Term → Term
+↑ᴹ[ none  ] M = M
+↑ᴹ[ new R ] M = renᴹᴿ suc M
+
+↑ᴮ[_] : Alloc → Boundary → Boundary
+↑ᴮ[ none  ] Θ = Θ
+↑ᴮ[ new R ] Θ = renᴮᴿ suc Θ
 
 -- VALUES SURVIVE EVERY RENAMING AND SUBSTITUTION.  Needed because `⊢Λ`
 -- carries `Value N` (the value restriction, strong-rep-store.Terms §4):
@@ -218,12 +209,9 @@ renᶠ²-ord-id {ρʳ = ρʳ} h (unlock X α) =
 
 renᴮ²-ord-id : ∀ {ρᵗ ρʳ} → (∀ X → ρᵗ X ≡ X)
   → ∀ Θ → renᴮ² (ren² ρᵗ ρʳ) Θ ≡ renᴮᴿ ρʳ Θ
-renᴮ²-ord-id {ρᵗ} {ρʳ} h (boundary Rs χ) =
-  cong (boundary (map (renameᵗ ρʳ) Rs)) (changes-id χ)
+renᴮ²-ord-id {ρᵗ} {ρʳ} h (boundary χ) = cong boundary (changes-id χ)
   where
-  changes-id : ∀ χ
-    → map (renᶠ² ρᵗ (extN (length Rs) ρʳ)) χ
-        ≡ map (renᶠᴿ (extN (length Rs) ρʳ)) χ
+  changes-id : ∀ χ → map (renᶠ² ρᵗ ρʳ) χ ≡ map (renᶠᴿ ρʳ) χ
   changes-id [] = refl
   changes-id (δ ∷ χ) =
     cong₂ _∷_ (renᶠ²-ord-id h δ) (changes-id χ)
@@ -253,10 +241,10 @@ renᴹ²-ord-id {ρᵗ} {ρʳ} h (M ⟪ Θ , c ⟫) =
              M′ ⟪ renᴮ² (ren² ρᵗ ρʳ) Θ , renᶜ ρᵗ c ⟫)
           (renᴹ²-ord-id h M))
     (trans
-      (cong (λ Θ′ → renᴹᴿ (extN (numBinds Θ) ρʳ) M
+      (cong (λ Θ′ → renᴹᴿ ρʳ M
                          ⟪ Θ′ , renᶜ ρᵗ c ⟫)
             (renᴮ²-ord-id h Θ))
-      (cong (λ c′ → renᴹᴿ (extN (numBinds Θ) ρʳ) M
+      (cong (λ c′ → renᴹᴿ ρʳ M
                          ⟪ renᴮᴿ ρʳ Θ , c′ ⟫)
             (renᶜ-pointwise-id h c)))
 
@@ -399,7 +387,7 @@ shiftᴵ (ival W A) = ival W A
 crossΛᴹ : Term → Ty → Term
 crossΛᴹ W A =
   renᴹ² (ren² idᵗ suc) W
-    ⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
+    ⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫
 
 -- Variables cross a type binder unchanged. Closed value images acquire the
 -- frame-exact wrapper above, and their ordinary type spelling is weakened.

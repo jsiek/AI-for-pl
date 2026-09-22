@@ -88,7 +88,7 @@ image-sound : ∀ {k I C M ρ D N}
   → ImageResidual k I C M ρ D N → plug D N ≡ imgTm I
 image-sound image-here = refl
 image-sound (image-Λ {A = A} {D = D} {N = N} r) =
-  cong (_⟪ boundary [] (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+  cong (_⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
     (trans (plug-renCtx² (moveᴿ suc) D N)
            (cong (renᴹ² (moveᴿ suc)) (image-sound r)))
 

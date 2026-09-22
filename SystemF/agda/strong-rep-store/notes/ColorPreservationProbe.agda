@@ -74,7 +74,7 @@ Ex-⊢ : Δ₀ ∣ [] ⊢ Ex ⦂ ` 0 ⇒ ` 0
 Ex-⊢ = tc
 
 Θ₀ : Boundary                  -- X := Y, minted by TyBeta
-Θ₀ = instantiate (` 0) (boundary [] [])
+Θ₀ = instantiate (` 0) (boundary [])
 
 s t : Conv                     -- TyBeta's reveal, split at its arrow
 s = id (` 1) ↦ id (` 1)

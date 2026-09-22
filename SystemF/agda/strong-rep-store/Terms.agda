@@ -199,15 +199,16 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
   -- (env). The boundary scope witness supplies both contexts. Since ordinary
   -- variables may be inserted and removed, the same semantic type can have
   -- different ordinary de Bruijn spellings on the three sides. `_⊢_≈_⊣_`
-  -- compares the equal-depth interior and conversion contexts. `SameTyExt`
-  -- additionally crosses the boundary scope's representation bind prefix when
-  -- comparing the exterior and conversion contexts.
+  -- compares them by the representation each denotes.  (Since experiment
+  -- 2 a boundary carries no bind block, so the exterior and the conversion
+  -- context share one store and the exterior comparison is the same
+  -- relation — `SameTyExt` is gone.)
   env : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Cᵢ Cₑ Bₑ}
       → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
       → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
       → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
-      → SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ
+      → Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ
       → Δ ⊢ᵗ Bₑ
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
@@ -226,7 +227,8 @@ value-var-visible (V-⟪⟫ _ _) (env _ _ _ _ _ (wf-var tv)) = tv
 β-seven : Term
 β-seven = ($ 7) ⟪ TyBetaBoundary , id `ℕ ⟫
 
-β-seven-⊢ : empty ∣ [] ⊢ β-seven ⦂ `ℕ
+-- typed at the context TyBeta LEAVES: the cell for ℕ has been allocated
+β-seven-⊢ : allocate `ℕ empty ∣ [] ⊢ β-seven ⦂ `ℕ
 β-seven-⊢ =
   env TyBeta-bw ⊢$ (conv-id base-ℕ)
       (`ℕ , same-ℕ , same-ℕ)

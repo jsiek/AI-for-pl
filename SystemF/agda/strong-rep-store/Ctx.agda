@@ -334,6 +334,23 @@ extendReps Rs (Ξ ∣ Δ) =
 
 -- Every bind payload is checked over the SAME exterior representation
 -- context. This is the boundary scope's parallel-bind discipline.
+-- THE STORE (experiment 2, 2026-09-22; notes/RepStoreSketch.md).  A
+-- boundary no longer carries a bind block: the representation a
+-- ∀-elimination mints is pushed onto the AMBIENT representation context
+-- at index 0, and every existing representation variable — in the
+-- context's name map and in every sibling term — moves up by one.
+allocate : Ty → Ctxᵗ → Ctxᵗ
+allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ
+
+-- What one reduction step did to the store: nothing, or one cell.
+data Alloc : Set where
+  none : Alloc
+  new  : Ty → Alloc
+
+apply : Alloc → Ctxᵗ → Ctxᵗ
+apply none    Γ = Γ
+apply (new R) Γ = allocate R Γ
+
 infix 4 _⊢ᴮ_
 data _⊢ᴮ_ (Ξ : RepCtx) : List Ty → Set where
   binds[] : Ξ ⊢ᴮ []

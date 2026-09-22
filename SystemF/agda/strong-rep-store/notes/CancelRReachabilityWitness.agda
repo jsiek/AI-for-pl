@@ -182,8 +182,8 @@ Src-run = reaches-run Src-eval
 
 -- the cancelled value: 7 under two lock-only, bind-free layers
 Vcr : Term
-Vcr = (($ 7) ⟪ boundary [] (lock 0 2 ∷ []) , seal 0 ⟫)
-        ⟪ boundary [] (lock 0 0 ∷ []) , id (` 1) ⟫
+Vcr = (($ 7) ⟪ boundary (lock 0 2 ∷ []) , seal 0 ⟫)
+        ⟪ boundary (lock 0 0 ∷ []) , id (` 1) ⟫
 
 Redex Contractum : Term
 Redex      = ((Vcr ⟪ Θ₁ , seal 1 ⟫) ⟪ Θ₂ , unseal 0 ⟫) ⟪ Θout , unseal 0 ⟫

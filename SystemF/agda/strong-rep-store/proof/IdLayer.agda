@@ -157,7 +157,7 @@ outer-id-base-untypeable () (env _ (env _ _ (conv-idv _) _ _ _)
 Δₑ-no-1 (there ())
 
 naked-drop-trap : ∀ {C} →
-  ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ boundary [] [] , seal 1 ⟫ ⦂ C)
+  ¬ (Δₑ ∣ [] ⊢ ($ 7) ⟪ boundary [] , seal 1 ⟫ ⦂ C)
 naked-drop-trap (env mwᵥ ⊢$ ⊢c smᵢ smₑ wE)
   with bw-conversion mwᵥ
 naked-drop-trap (env mwᵥ ⊢$ (conv-seal (α , R , name , rep , same)) smᵢ smₑ wE)
@@ -174,14 +174,14 @@ naked-drop-trap (env mwᵥ ⊢$ (conv-seal (α , R , name , rep , same)) smᵢ s
 extendReps-[] : (Γ : Ctxᵗ) → extendReps [] Γ ≡ Γ
 extendReps-[] (Ξ ∣ Δ) = cong (Ξ ∣_) (shiftRVars-0 Δ)
 
-empty-interior : (Γ : Ctxᵗ) → Γ ⊢ⁱ boundary [] [] ⇒ extendReps [] Γ
+empty-interior : (Γ : Ctxᵗ) → Γ ⊢ⁱ boundary [] ⇒ extendReps [] Γ
 empty-interior Γ = interior changes[]
 
-empty-conversion : (Γ : Ctxᵗ) → Γ ⊢ᶜ boundary [] [] ⇒ extendReps [] Γ
+empty-conversion : (Γ : Ctxᵗ) → Γ ⊢ᶜ boundary [] ⇒ extendReps [] Γ
 empty-conversion Γ = conversion conv[]
 
 drop-empty-frame : ∀ {Δ Γ V A B}
-  → Δ ∣ Γ ⊢ V ⟪ boundary [] [] , id A ⟫ ⦂ B
+  → Δ ∣ Γ ⊢ V ⟪ boundary [] , id A ⟫ ⦂ B
     ------------------------------------
   → Δ ∣ [] ⊢ V ⦂ B
 drop-empty-frame {Δ = Δ} {V = V} (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)

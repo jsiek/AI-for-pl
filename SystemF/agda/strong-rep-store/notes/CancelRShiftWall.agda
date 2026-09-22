@@ -130,7 +130,7 @@ wfΔ* = wf-ctx reps* names* unique*
 -- block that the rule mis-crossed, and a trivial outer one keeps every context
 -- in the example computable.
 Θ₂* : Boundary
-Θ₂* = boundary [] []
+Θ₂* = boundary []
 
 -- The INNER boundary scope binds ONE representation variable.  This is the only
 -- thing the twelve runs never do at a `CancelR`.
@@ -149,7 +149,7 @@ wfΔ* = wf-ctx reps* names* unique*
 -- A closed value at the abstract name `` ` 1 `` of Δ₁*: a numeral sealed
 -- at the binder that name denotes.
 V* : Term
-V* = ($ 7) ⟪ boundary [] [] , seal 1 ⟫
+V* = ($ 7) ⟪ boundary [] , seal 1 ⟫
 
 ⊢V* : Δ₁* ∣ [] ⊢ V* ⦂ ` 1
 ⊢V* =

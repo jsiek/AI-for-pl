@@ -1197,7 +1197,7 @@ every step's change applied in order.
 Nothing reduces under `Λ` (there is no `ξ-Λ`), so the `V-Λ` case is
 absurd outright; the boundary case recurses through `ξ-⟪⟫`.
 
-### `det`
+### `det` (moved to proof/Determinism.agda)
 
 `det` takes the redex's TYPING DERIVATION (`notes/DECISIONS.md`,
 2026-09-18: uniqueness comes from typing, not reduction) and reads the

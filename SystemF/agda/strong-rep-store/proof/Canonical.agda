@@ -48,50 +48,15 @@ private
     c : Conv
 
 ------------------------------------------------------------------------
--- §1  `SameTyExt` preserves the exterior type's head constructor
+-- §1  `≈` preserves the exterior type's head constructor
 ------------------------------------------------------------------------
 
 -- The old `env` exposed `shiftBy (numBinds Θ) Bₑ` directly.  The relational
 -- rule instead factors both spellings through a representation type and uses
--- `shiftRep` on the conversion side.  These are the local head-constructor
--- inversions needed below.
-
-shiftBy-⇒ : (n : ℕ) (A B : Ty)
-  → shiftBy n (A ⇒ B) ≡ shiftBy n A ⇒ shiftBy n B
-shiftBy-⇒ zero    A B = refl
-shiftBy-⇒ (suc n) A B = cong ⇑ᵗ (shiftBy-⇒ n A B)
-
-shiftBy-∀ : (n : ℕ) (C : Ty)
-  → Σ[ C′ ∈ Ty ] (shiftBy n (`∀ C) ≡ `∀ C′)
-shiftBy-∀ zero    C = C , refl
-shiftBy-∀ (suc n) C with shiftBy-∀ n C
-... | C′ , eq = renameᵗ (extᵗ suc) C′ , cong ⇑ᵗ eq
-
-shiftRep-⇒ : (n : ℕ) (A B : Ty)
-  → shiftRep n (A ⇒ B) ≡ shiftRep n A ⇒ shiftRep n B
-shiftRep-⇒ zero A B = refl
-shiftRep-⇒ (suc n) A B = cong ⇑ᵗ (shiftRep-⇒ n A B)
-
-shiftRep-∀ : (n : ℕ) (C : Ty)
-  → Σ[ C′ ∈ Ty ] (shiftRep n (`∀ C) ≡ `∀ C′)
-shiftRep-∀ zero C = C , refl
-shiftRep-∀ (suc n) C with shiftRep-∀ n C
-shiftRep-∀ (suc n) C | C′ , eq =
-  renameᵗ (extᵗ suc) C′ , cong ⇑ᵗ eq
-
-shiftRep-var : (n X : ℕ)
-  → Σ[ Y ∈ ℕ ] (shiftRep n (` X) ≡ ` Y)
-shiftRep-var zero X = X , refl
-shiftRep-var (suc n) X with shiftRep-var n X
-shiftRep-var (suc n) X | Y , eq = suc Y , cong ⇑ᵗ eq
-
-shiftRep-base : (n : ℕ) → Base A → shiftRep n A ≡ A
-shiftRep-base zero b = refl
-shiftRep-base (suc n) base-ℕ rewrite shiftRep-base n base-ℕ = refl
-shiftRep-base (suc n) base-𝔹 rewrite shiftRep-base n base-𝔹 = refl
-
-same-rep≡ : η ⊢ A ~ R → R ≡ S → η ⊢ A ~ S
-same-rep≡ p refl = p
+-- `shiftRep` on the conversion side.  With the store design (experiment 2)
+-- there is no bind prefix to cross, so `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` relates the two
+-- spellings at equal representation depth — `shiftRep 0 R ≡ R` — and the
+-- head-constructor inversions simplify accordingly.
 
 same-base-target : η ⊢ A ~ R → Base R → Base A
 same-base-target same-ℕ base-ℕ = base-ℕ
@@ -107,35 +72,31 @@ same-∀-target (same-∀ p) = _ , refl
 same-var-target : η ⊢ A ~ ` α → Σ[ X ∈ ℕ ] (A ≡ ` X)
 same-var-target (same-var d) = _ , refl
 
-sameTyExt-base-target : ∀ {n Δ Δ′ A B}
-  → Base A → SameTyExt n Δ A Δ′ B
+≈-base-target : ∀ {Δ Δ′ A B}
+  → Base A → Δ ⊢ A ≈ B ⊣ Δ′
   → Base B
-sameTyExt-base-target {n = n} base-ℕ (`ℕ , same-ℕ , q) =
-  same-base-target (same-rep≡ q (shiftRep-base n base-ℕ)) base-ℕ
-sameTyExt-base-target {n = n} base-𝔹 (`𝔹 , same-𝔹 , q) =
-  same-base-target (same-rep≡ q (shiftRep-base n base-𝔹)) base-𝔹
+≈-base-target base-ℕ (`ℕ , same-ℕ , q) =
+  same-base-target q base-ℕ
+≈-base-target base-𝔹 (`𝔹 , same-𝔹 , q) =
+  same-base-target q base-𝔹
 
-sameTyExt-⇒-target : ∀ {n Δ Δ′ A B C}
-  → SameTyExt n Δ (A ⇒ B) Δ′ C
+≈-⇒-target : ∀ {Δ Δ′ A B C}
+  → Δ ⊢ (A ⇒ B) ≈ C ⊣ Δ′
   → Σ[ A′ ∈ Ty ] Σ[ B′ ∈ Ty ] (C ≡ A′ ⇒ B′)
-sameTyExt-⇒-target {n = n} (_ , same-⇒ {R = R} {S = S} p q , r) =
-  same-⇒-target (same-rep≡ r (shiftRep-⇒ n R S))
+≈-⇒-target (_ , same-⇒ p q , r) =
+  same-⇒-target r
 
-sameTyExt-∀-target : ∀ {n Δ Δ′ A B}
-  → SameTyExt n Δ (`∀ A) Δ′ B
+≈-∀-target : ∀ {Δ Δ′ A B}
+  → Δ ⊢ `∀ A ≈ B ⊣ Δ′
   → Σ[ A′ ∈ Ty ] (B ≡ `∀ A′)
-sameTyExt-∀-target {n = n} (_ , same-∀ {R = R} p , q)
-  with shiftRep-∀ n R
-sameTyExt-∀-target {n = n} (_ , same-∀ p , q) | R′ , eq =
-  same-∀-target (same-rep≡ q eq)
+≈-∀-target (_ , same-∀ p , q) =
+  same-∀-target q
 
-sameTyExt-var-target : ∀ {n Δ Δ′ X A}
-  → SameTyExt n Δ (` X) Δ′ A
+≈-var-target : ∀ {Δ Δ′ X A}
+  → Δ ⊢ ` X ≈ A ⊣ Δ′
   → Σ[ Y ∈ ℕ ] (A ≡ ` Y)
-sameTyExt-var-target {n = n} (_ , same-var {α = α} d , q)
-  with shiftRep-var n α
-sameTyExt-var-target {n = n} (_ , same-var d , q) | β , eq =
-  same-var-target (same-rep≡ q eq)
+≈-var-target (_ , same-var {α = α} d , q) =
+  same-var-target q
 
 -- Retype a conversion along an equality of its target type.
 conv-tgt≡ : ∀ {B′} → B ≡ B′
@@ -199,10 +160,10 @@ canon-base V-false   base-𝔹 ⊢false = inj₂ (inj₂ refl)
 canon-base V-ƛ       ()      (⊢ƛ _ _)
 canon-base (V-Λ _)   ()      (⊢Λ _ _)
 canon-base {Δ = Δ} (V-⟪⟫ v ic) b
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _) =
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _) =
   ⊥-elim
     (inert-¬base ic ⊢c
-      (sameTyExt-base-target {n = numBinds Θ} {Δ = Δ} {Δ′ = Δᶜ}
+      (≈-base-target {Δ = Δ} {Δ′ = Δᶜ}
         b sameₑ))
 
 canon-ℕ : ∀ {V}
@@ -213,10 +174,10 @@ canon-ℕ V-false   ()
 canon-ℕ V-ƛ       ()
 canon-ℕ (V-Λ _)   ()
 canon-ℕ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _) =
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _) =
   ⊥-elim
     (inert-¬base ic ⊢c
-      (sameTyExt-base-target {n = numBinds Θ} {Δ = Δ} {Δ′ = Δᶜ}
+      (≈-base-target {Δ = Δ} {Δ′ = Δᶜ}
         base-ℕ sameₑ))
 
 -- ARROW.  A closed value at an arrow type is a λ or a wrapper with a
@@ -233,14 +194,14 @@ canon-⇒ V-false ()
 canon-⇒ V-ƛ     (⊢ƛ _ _) = inj₁ (_ , refl)
 canon-⇒ (V-Λ _) ()
 canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
-  with sameTyExt-⇒-target {n = numBinds Θ} {Δ = Δ} {Δ′ = Δᶜ} sameₑ
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+  with ≈-⇒-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
 canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | A′ , B′ , eq
   with inert-fun-conv ic (conv-tgt≡ eq ⊢c)
 canon-⇒ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | A′ , B′ , eq | s , t , refl =
   inj₂ (_ , _ , s , t , v , refl)
 
@@ -256,14 +217,14 @@ canon-∀ V-false  ()
 canon-∀ V-ƛ      ()
 canon-∀ (V-Λ vN) (⊢Λ _ _) = inj₁ (_ , vN , refl)
 canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
-  with sameTyExt-∀-target {n = numBinds Θ} {Δ = Δ} {Δ′ = Δᶜ} sameₑ
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+  with ≈-∀-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
 canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | C′ , eq
   with inert-all-conv ic (conv-tgt≡ eq ⊢c)
 canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | C′ , eq | s , refl =
   inj₂ (_ , _ , s , v , refl)
 
@@ -283,17 +244,18 @@ canon-var V-false ()
 canon-var V-ƛ     ()
 canon-var (V-Λ _) ()
 canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
-  with sameTyExt-var-target {n = numBinds Θ} {Δ = Δ} {Δ′ = Δᶜ} sameₑ
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
+  with ≈-var-target {Δ = Δ} {Δ′ = Δᶜ} sameₑ
 canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | Y , eq
   with inert-var-conv ic (conv-tgt≡ eq ⊢c)
 canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | Y , eq | inj₁ refl =
   _ , _ , _ , v , inj₁ refl
 canon-var {Δ = Δ} (V-⟪⟫ v ic)
-    (env {Δᶜ = Δᶜ} {Θ = Θ} _ _ ⊢c _ sameₑ _)
+    (env {Δᶜ = Δᶜ} _ _ ⊢c _ sameₑ _)
   | Y , eq | inj₂ refl =
   _ , _ , _ , v , inj₂ refl
+

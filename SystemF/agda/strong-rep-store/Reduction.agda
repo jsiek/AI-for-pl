@@ -469,6 +469,11 @@ data _⊢_-→*_ : Ctxᵗ → Term → Term → Set where
 
 infixr 2 _then_
 
+-- The context a run ENDS at: every step's change applied in order.
+runCtx : ∀ {Δ M N} → Δ ⊢ M -→* N → Ctxᵗ
+runCtx {Δ = Δ} done = Δ
+runCtx (_then_ {δ = δ} st sts) = runCtx sts
+
 ------------------------------------------------------------------------
 -- 2.  VALUES DON'T STEP
 ------------------------------------------------------------------------

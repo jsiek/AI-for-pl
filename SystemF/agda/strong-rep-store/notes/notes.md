@@ -379,22 +379,30 @@ The boundary rule is the only non-System-F rule:
     (boundary) BoundaryWf Δ Θ Δᵢ Δᶜ
                Δᵢ ∣ · ⊢ M : Bᵢ
                Δᶜ ⊢ c : Bᵢ ⇝ Bₑ
-               Bᵢ is in scope in both Δᵢ and Δᶜ
                Bₑ is in scope in both Δ and Δᶜ
                Δ ⊢ᵗ Bₑ
                --------------------------------
                Δ ∣ Γₜ ⊢ M ⟪ Θ , c ⟫ : Bₑ
 
+With variables as names no premise about `Bᵢ`'s scope is needed: the
+typing premise puts `Bᵢ` in scope in `Δᵢ`, and every name live in the
+interior is live in the conversion context — a lock is the only thing
+that removes a name and the conversion reading skips locks
+(`int⇒conv-live`, Boundary.agda §3a) — so `Bᵢ` is in scope in `Δᶜ` too.
+
 The empty term context in the second premise is load-bearing: substitution
 does not descend into a boundary.
 
-Mechanization note.  Agda allows distinct index spellings `Bᵢ/Cᵢ` and
-`Bₑ/Cₑ`.  Its fourth premise is `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` and its fifth is
-`Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` — **the same relation on both sides**, since the
-exterior and the conversion context now share one store.  (The
-bind-prefix-crossing `SameTyExt` went with the bind block.)  Named
-variables turn these into the two paired scope conditions above; the
-interior/conversion/exterior contexts do not disappear.
+Mechanization note.  In de Bruijn form the same variable can have
+different indices in the three name maps, so Agda's `env` carries two
+re-spelling premises, `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` and `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` —
+**the same relation on both sides**, since the exterior and the
+conversion context now share one store (the bind-prefix-crossing
+`SameTyExt` went with the bind block).  Their job is to pin the
+conversion's endpoints `Cᵢ`/`Cₑ` to the spellings of `Bᵢ`/`Bₑ` in `Δᶜ`,
+not to put anything in scope; with names they are the identifications
+`Cᵢ = Bᵢ`, `Cₑ = Bₑ` already written into the rule above.  A worked
+instance with all three maps distinct is notes/TwoSpellings.md.
 
 # Values and conversion classification
 

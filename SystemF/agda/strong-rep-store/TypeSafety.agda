@@ -28,6 +28,7 @@ open import strong-rep-store.Terms using (Term; Ctx; Value; _∣_⊢_⦂_)
 open import strong-rep-store.Reduction
   using (_⊢_-→_∣_; _⊢_-→*_; runCtx)
 import strong-rep-store.Reduction as R
+import strong-rep-store.proof.Determinism as D
 import strong-rep-store.Progress as Pr
 import strong-rep-store.Preservation as Pv
 import strong-rep-store.proof.TypeSafety as TS
@@ -104,7 +105,7 @@ det : ∀ {Δ : Ctxᵗ} {Γ : Ctx} {M M₁ M₂ : Term} {A : Ty} {δ₁ δ₂ : 
   → Δ ⊢ M -→ M₂ ∣ δ₂
     -------------------------
   → (M₁ ≡ M₂) × (δ₁ ≡ δ₂)
-det = R.det
+det = D.det
 
 value-¬step : ∀ {Δ : Ctxᵗ} {M M′ : Term} {δ : Alloc}
   → Value M

@@ -2,91 +2,21 @@ module strong-rep-store.TypeCheck where
 
 -- File Charter:
 --   * AN EXECUTABLE, DERIVATION-PRODUCING TYPE CHECKER FOR THE WHOLE
---     DEVELOPMENT.  §1 `_≟Ty_`; §2–§3 the atoms a change carries and
---     the two change-list readings (`runδ`, `runχ`, `runχᶜ`); §4
---     representation payloads and context well-formedness (`wfᴿ?`,
---     `wfRepCtx?`, `validNames?`, `unique?`, `wfCtx?`); §5 the two
---     induced contexts `interior?`/`conversion?` and the complete
---     witness `boundaryWf?`; §6 the readings between the universes
---     (`read?`, `sameTy?`, `rebase?`, `respell?`); §7 the lookup square
---     `∋:=?`, type formation `wfTy?` and conversion typing `convTy?`;
---     §8 `infer`; §9 the checking forms `check⊢`, `checkConv`,
---     `check~`; §10 the forcing family `IsJ`/`force` with the
---     goal-directed `tc`, `tk`, `tu`, `tf`, `tr` and the inferring
---     `int!`, `conv!`, `mw!`, `sq!`, `tv!`, `cv!`, `ty!`, `wf!`.
---   * NOTHING HERE IS ASSUMED AND NOTHING IS TRUSTED.  Every checker
---     returns a `Maybe` of the ORDINARY derivation, built from the
---     constructors of the judgements in strong-rep-store.Ctx,
---     strong-rep-store.Boundary,
---     strong-rep-store.Conversion and strong-rep-store.Terms — never a bit,
---     never a postulate, so there is no soundness theorem to owe.  The rules
---     and judgements themselves belong in those modules; the redex
---     search that consumes these checkers is strong-rep-store.Eval; the
---     metatheory is under strong-rep-store.proof.  This module depends on
---     none of it, which is why All.agda checks it before the theorems.
---   * THREE THINGS TO KNOW BEFORE USING IT (notes/PLAN.md).  (1) It
---     must INFER, not merely check: `⊢·` and `⊢·[]` need the head's
---     type and a head can be a boundary, and inferring a boundary's
---     exterior type means re-spelling the conversion target at the ambient
---     name map.  `rebase?` (§6) supplies that spelling through the common
---     representation.  (2) A goal-directed form
---     discharges a premise only when the goal fixes every input.  The
---     lookup premise of `CancelR` and `IdPush` does not: both contracta
---     mention the looked-up type only under `mkId`, which the unifier
---     cannot invert, so the inferring `sq!` must be used there — and
---     likewise wherever a rule mints a conversion from a looked-up
---     type, including those two rules' preservation cases.  (3) A
---     FAILURE IS A REJECTION, NOT AN ACCEPTANCE: the hidden argument's
---     type becomes `⊥` and Agda reports an unsolved meta at the call
---     site, which `--no-allow-unsolved-metas` and `make check` turn
---     into an error.  It does not say why; `proj₂ (ty! Δ Γ M)` reports
---     the type the checker did infer.
---
--- Every checker in this file returns a `Maybe` of the ORDINARY derivation
--- it found, never a bit and never a postulate.  The caller states the
--- answer it expects and §10 forces the checker at it, so a failure or a
--- different answer is a type error rather than a silently accepted
--- witness.  Nothing here is assumed and nothing here is trusted: the
--- derivations are built from the constructors of the judgements in
--- strong-rep-store.Ctx, strong-rep-store.Boundary,
--- strong-rep-store.Conversion and strong-rep-store.Terms.
---
--- USAGE.  `tc` IS a typing derivation — it reads its four arguments off
--- the goal, so
---
---     P₀-⊢ : empty ∣ [] ⊢ P₀ ⦂ `ℕ
---     P₀-⊢ = tc
---
--- is the whole thing.  `tk`, `tu`, `tf` and `tr` do the same for the
--- conversion, uniqueness, type-formation and representation-reading
--- judgements.  Where the answer is an OUTPUT the goal does not fix — a
--- boundary scope's two induced contexts, a lookup's type — the `!` family is
--- used instead and the input is written out.
---
--- WHY IT EXISTS (2026-09-17).  A boundary `M ⟪ Θ , c ⟫` is typed by `env`,
--- whose six premises are of two very different kinds.  Three of them say
--- something about the PROGRAM: which conversion applies, which `_⊢_≈_⊣_`
--- reading relates the three sides, what the interior term's type is.  The
--- other three are MECHANICAL: the two contexts Θ induces, and the
--- well-formedness of each.  A derivation of `Ξ ∣ Δ ⊢χ Θ ⇒ Δ′` is
--- one line per change and contains nothing the change list does not
--- already determine.
---
--- That became unworkable when the fourth reduction example was finished.
--- `CancelR` and `IdPush` replace their frames by the COMPOSITES `Θ₁ ++ Θ₂`
--- and `rewind Θ₂`, whose change lists are the concatenations of their
--- arguments', so unwinding an n-deep tower of boundaries reaches frames
--- carrying tens of changes each.  The checker removes that transcription
--- entirely, and — since it decides the term judgement too — an example's
--- typing derivation becomes a statement of the type and nothing else.
---
--- The one genuinely non-obvious checker is `rebase?` (§6).  It is also the
--- reason `infer` is an inference and not a check: `env` exposes the
--- conversion target at the conversion context, while the result type must
--- be spelled at the ambient context.  `rebase?` reads the target to its
--- representation and writes that representation back at the ambient name
--- map.  Checking mode would avoid the synthesis, but `⊢·` and `⊢·[]` have
--- to infer the head's type and a head can be a boundary.
+--     DEVELOPMENT.  §1 `_≟Ty_`; §2–§3 the change atoms and the two
+--     change-list readings; §4 payloads and context well-formedness;
+--     §5 `interior?`/`conversion?`/`boundaryWf?`; §6 the readings
+--     between the universes (`read?`, `sameTy?`, `rebase?`,
+--     `respell?`); §7 `∋:=?`, `wfTy?`, `convTy?`; §8 `infer`;
+--     §9 `check⊢`/`checkConv`/`check~`; §10 the forcing family.
+--   * NOTHING HERE IS ASSUMED AND NOTHING IS TRUSTED: every checker
+--     returns a `Maybe` of the ORDINARY derivation, so there is no
+--     soundness theorem to owe.  It depends on no metatheory.
+--   * USING IT.  `tc` IS a typing derivation, read off the goal; where
+--     the answer is an OUTPUT the goal does not fix, use the `!`
+--     family (notably `sq!` for `CancelR`/`IdPush`).  A FAILURE IS A
+--     REJECTION: Agda reports an unsolved meta, which `make check`
+--     turns into an error; `proj₂ (ty! Δ Γ M)` says what it inferred.
+-- Commentary: Commentary.md § TypeCheck.agda
 
 open import Data.Nat using (ℕ; zero; suc; _∸_; _<_)
 open import Data.Nat.Properties using (_≟_; _<?_; ≮⇒≥; m+[n∸m]≡n)
@@ -283,10 +213,9 @@ runχᶜ Ξ Δ (unlock X α ∷ χ) | just v | just (Δ₂ , cs) | nothing
 -- 4. Representation payloads and context well-formedness
 ------------------------------------------------------------------------
 
--- A payload index below the local binder depth is a payload-local
--- variable; otherwise it is `n + α` for a free representation variable α,
--- and the subtraction has to be proved to put the index back in
--- constructor form.
+-- An index below the local binder depth is payload-local; otherwise it
+-- is `n + α`, and the subtraction has to be PROVED to put the index
+-- back in constructor form.
 ref? : (Ξ : RepCtx) (n i : ℕ) → Maybe (Ξ ⊢ref[ n ] i)
 ref? Ξ n i with i <? n
 ref? Ξ n i | yes i<n = just (local-ref i<n)
@@ -399,14 +328,10 @@ unread? η (`∀ R) with unread? (zero ∷ shiftNames η) R
 unread? η (`∀ R) | just (A , p) = just (`∀ A , same-∀ p)
 unread? η (`∀ R) | nothing      = nothing
 
--- RE-BASING.  `A` is read on the name map `η`; this finds its spelling on
--- `η′`, together with the `_⊢_≈_⊣_` that relates them.  It goes
--- through the
--- REPRESENTATION, which is the only route there is: the two maps can
--- reorder relative to each other, so no arithmetic on positions would do
--- (notes/ForallPayloadWall §3).  It is partial, because `η′` need not name
--- everything `η` does — which is why the rules that cross carry this as a
--- premise rather than computing it.
+-- RE-BASING.  `A` is read on the name map `η`; this finds its spelling
+-- on `η′` through the REPRESENTATION, with the `_⊢_≈_⊣_` relating
+-- them.  Partial, which is why crossing rules carry it as a premise.
+-- Commentary.md § TypeCheck.agda / §6
 rebase? : (η η′ : TyCtx) (A : Ty)
   → Maybe (∃[ A′ ] (∃[ R ] ((η′ ⊢ A′ ~ R) × (η ⊢ A ~ R))))
 rebase? η η′ A with read? η A
@@ -568,10 +493,9 @@ lookupTm? (A ∷ Γ) (suc x) | nothing      = nothing
 InferResult : Ctxᵗ → Ctx → Term → Set
 InferResult Δ Γ M = Σ[ A ∈ Ty ] Δ ∣ Γ ⊢ M ⦂ A
 
--- Deciding the classifications `Value` guards on.  `V-Λ` carries
--- `Value N` and `V-⟪⟫` carries `Inert c`, so this is a recursion, not a
--- shape test.  `infer` needs `value?` for `⊢Λ`'s value restriction;
--- strong-rep-store.Eval reuses both for the rules' side conditions.
+-- Deciding the classifications `Value` guards on.  `infer` needs
+-- `value?` for `⊢Λ`'s value restriction; strong-rep-store.Eval reuses
+-- both for the rules' side conditions.
 inert? : (c : Conv) → Maybe (Inert c)
 inert? (id (` X))   = just I-idv
 inert? (id `ℕ)      = nothing
@@ -708,18 +632,10 @@ check~ η A R | just (S , p) | nothing   = nothing
 -- 10. Forcing a checker
 ------------------------------------------------------------------------
 
--- `IsJ m` is the unit RECORD when the checker succeeded, so Agda solves a
--- hidden argument of that type by eta on its own.  A checker whose inputs
--- are all determined by the goal therefore needs no arguments written at
--- all: `tc` below IS a typing derivation.
---
--- HOW A FAILURE LOOKS.  When the checker says `nothing` the hidden
--- argument's type is `⊥`, which nothing solves, so Agda reports an
--- UNSOLVED META at the `tc`.  That is a rejection, not an acceptance —
--- `--no-allow-unsolved-metas` (and `make check`) turn it into an error —
--- but it does not say WHY.  To see why, replace `tc` by
--- `proj₂ (ty! Δ Γ M)`, which reports the type the checker did infer, or
--- call the failing sub-checker directly.
+-- `IsJ m` is the unit RECORD when the checker succeeded, so Agda solves
+-- a hidden argument of that type by eta on its own; on `nothing` its
+-- type is `⊥`, and the unsolved meta IS the rejection.
+-- Commentary.md § TypeCheck.agda / §10
 IsJ : ∀ {A : Set} → Maybe A → Set
 IsJ (just _) = ⊤
 IsJ nothing  = ⊥
@@ -737,9 +653,7 @@ tk : ∀ {Γ c A B} {w : IsJ (checkConv Γ c A B)} → Γ ⊢ c ∶ A ⇝ B
 tk {Γ} {c} {A} {B} {w} = force (checkConv Γ c A B) w
 
 -- Name-uniqueness of a name map.  No REDUCTION rule carries this any
--- more — since 2026-09-18 `det` recovers it from the redex's typing
--- derivation (notes/DECISIONS.md) — but `WfCtx`'s `name-fn` field and
--- the lemmas stated over `Unique` still ask for it.
+-- more, but `WfCtx`'s `name-fn` field still asks for it.
 tu : ∀ {Δ} {w : IsJ (unique? Δ)} → Unique Δ
 tu {Δ} {w} = force (unique? Δ) w
 
@@ -753,9 +667,7 @@ tr : ∀ {η A R} {w : IsJ (check~ η A R)} → η ⊢ A ~ R
 tr {η} {A} {R} {w} = force (check~ η A R) w
 
 -- `from-just` turns a checker into what it found; the caller's type
--- signature is what pins the answer, because a different one does not
--- typecheck.  These are used where the answer is an OUTPUT the goal does
--- not already fix — a boundary scope's induced contexts, a lookup's type.
+-- signature pins the answer.  Used where the goal does not fix it.
 int! : (Γ : Ctxᵗ) (Θ : Boundary) → From-just (interior? Γ Θ)
 int! Γ Θ = from-just (interior? Γ Θ)
 
@@ -768,10 +680,8 @@ mw! Γ Θ = from-just (boundaryWf? Γ Θ)
 wf! : (Γ : Ctxᵗ) → From-just (wfCtx? Γ)
 wf! Γ = from-just (wfCtx? Γ)
 
--- The lookup square.  `CancelR` and `IdPush` need the INFERRING form:
--- their contracta mention the looked-up type only under `mkId`, which the
--- unifier cannot invert, so the rules' `A` is fixed by this premise and by
--- nothing else.
+-- The lookup square, in the INFERRING form `CancelR` and `IdPush` need
+-- (their contracta mention the type only under `mkId`).
 sq! : (Γ : Ctxᵗ) (X : ℕ) → From-just (∋:=? Γ X)
 sq! Γ X = from-just (∋:=? Γ X)
 

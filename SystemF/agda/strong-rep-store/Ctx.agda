@@ -1,59 +1,19 @@
 module strong-rep-store.Ctx where
 
 -- File Charter:
---   * THE TWO DE BRUIJN UNIVERSES AND EVERY RELATION OVER THEM.  §1
---     declares `RVar`, `RepBinding` (`abstR`/`bindR`), `RepCtx`,
---     `TyCtx` and the pair `Ctxᵗ = reps ∣ names`.  §2 is the lookup
---     family — `_∋ˡ_:=_`, `_∋ᵗ_:=_`, `_∋tv_`, `_∋ʳ_:=_`, `_∋rep_:=_`,
---     `_∋_:=ᴿ_`, `_∋ʳ_`, `_∋ᵅ_`, `_⊆ᵃ_`.  §3 is ordinary type
---     formation `_⊢ᵗ_` with `underΛ` and `Base`; §4 representation
---     payloads `_⊢ref[_]_`, `_⊢ᴿ[_]_`, `WfRepCtx`; §5 the two readings
---     of `Ty` — `_⊢_~_`, `_⊢ᶜ_~_`, `_⊢_≈_⊣_` — and the lookup square
---     `_∋_:=_`; §6 well-formedness `_∌ʳ_`, `Unique`, `ValidNames`,
---     `WfCtx`.  §§8–11 are the representation universe's machinery:
---     `extN`/`Injᵗ`, `shiftBy`, THE STORE (`allocate`, `Alloc`,
---     `apply`), the insert/delete relations
---     `_⊢+_at_⇒_`/`_⊢-_at_⇒_`, and the renaming interface `RepWk`.
---     (The bind-block machinery — `pushRepBinds`, `shiftRVars`,
---     `extendReps`, `_⊢ᴮ_`, `shiftByᵇ`, `shiftRep`, `SameTyExt` — went
---     with the bind block on 2026-09-22, experiment 2,
---     notes/RepStoreSketch.md.)
---   * DEFINITIONS ONLY.  Every lemma about the above lives in
---     strong-rep-store.proof.Ctx (notes/DECISIONS.md, 2026-09-20).  Anything
---     mentioning `Change` or `Boundary` — the boundary scope, its two induced
---     contexts, `BoundaryWf` — is strong-rep-store.Boundary; terms and the typing
---     judgement are strong-rep-store.Terms; conversions are
--- strong-rep-store.Conversion.
---   * TWO INVARIANTS BEFORE TOUCHING ANYTHING HERE.  (1) `names Γ`
---     holds EXACTLY the ordinary type variables currently in scope, and
---     an entry is the representation variable named at that position —
---     so a CONCEALED ordinary variable has no entry at all, and a
---     represented payload's free indices live in the OTHER universe.
---     (2) A representation-only renaming leaves every ordinary POSITION
---     where it was (§8, §11): it renames `reps` and acts on the name
---     map by `map ρ`, so no ordinary spelling in any type, conversion
---     or change moves.  `RepWk` is exactly what such a move must
---     supply — three fields for `WfCtx`'s three obligations one
---     universe down, plus injectivity, which is what a `lock`'s
---     freshness record needs — and it is what makes `renᴹᴿ`
---     (strong-rep-store.TermSubst) type-preserving.
---
--- The two uses of the old type-variable slots are split into distinct de
--- Bruijn universes:
---
---   * `names Γ` contains exactly the ordinary type variables currently in
---     scope. An entry is the representation variable named by that ordinary
---     variable. A concealed ordinary variable has no entry here.
---
---   * `reps Γ` contains abstract and represented representation variables.
---     A represented payload is a `Ty` whose FREE indices range over this
---     representation-variable universe. A `∀` inside the payload binds an
---     ordinary local type variable in the usual way.
---
--- A term-level `Λ` extends both universes: it binds an abstract representation
--- variable and an ordinary type variable that names it. Boundary scopes
--- extend the representation universe and change the ordinary name map; those
--- operations live in strong-rep-store.Boundary.
+--   * THE TWO DE BRUIJN UNIVERSES AND EVERY RELATION OVER THEM.
+--     §1 `RVar`/`RepBinding`/`RepCtx`/`TyCtx`/`Ctxᵗ = reps ∣ names`;
+--     §2 the lookup family; §3 ordinary type formation `_⊢ᵗ_` with
+--     `underΛ`; §4 representation payloads; §5 the two readings of a
+--     `Ty` (`_⊢_~_`, `_⊢_≈_⊣_`) and the lookup square `_∋_:=_`;
+--     §6 `WfCtx`; §§8–11 `extN`/`Injᵗ`, `shiftBy`, THE STORE
+--     (`allocate`/`Alloc`/`apply`), insert/delete, and `RepWk`.
+--   * DEFINITIONS ONLY: every lemma lives in proof/Ctx.agda.
+--   * THE INVARIANT.  `names Γ` holds EXACTLY the ordinary type
+--     variables in scope, each entry the representation variable it
+--     names; a representation-only renaming leaves every ordinary
+--     POSITION where it was, acting on the name map by `map ρ`.
+-- Commentary: Commentary.md § Ctx.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _<_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -87,10 +47,9 @@ record Ctxᵗ : Set where
     names : TyCtx
 open Ctxᵗ public
 
--- View one context's ordinary names after a representation renaming, using a
--- second context's representation store.  Crossings use this when the same
--- ordinary spelling is carried across an inserted representation binder: the
--- positions stay fixed, but the representation indices they denote move.
+-- one context's ordinary names read through a representation renaming,
+-- against a second context's store
+-- Commentary.md § Ctx.agda / renNameCtx
 renNameCtx : Renameᵗ → Ctxᵗ → Ctxᵗ → Ctxᵗ
 renNameCtx ρ target source = reps target ∣ map ρ (names source)
 
@@ -283,23 +242,17 @@ empty = [] ∣ []
 -- 8. Renaming the representation universe — the NAME MAP half
 ------------------------------------------------------------------------
 
--- A REPRESENTATION-ONLY renaming moves representation variables and
--- leaves every ordinary POSITION exactly where it was.  On a name map
--- that is `map ρ`: a lookup keeps its ordinary index and changes only the
--- representation variable it names.  This section is everything that
--- transport needs from the name map alone; the representation-CONTEXT
--- half — where a payload must move too — is §11 below.
+-- §8 is what transport needs from the NAME MAP alone; §11 is the
+-- representation-context half.
+-- Commentary.md § Ctx.agda / extN, Injᵗ
 
--- `extN n ρ` renames underneath n binders.  It is used at two depths:
--- `n` local `∀`s inside a representation payload, and the `n` parallel
--- representation binders a boundary scope's bind block introduces.
+-- `extN n ρ` renames underneath n binders: the n local `∀`s inside a
+-- representation payload.
 extN : ℕ → Renameᵗ → Renameᵗ
 extN zero    ρ = ρ
 extN (suc n) ρ = extᵗ (extN n ρ)
 
--- An INJECTIVE renaming is what a name map needs: `lock` records that the
--- name it deleted is now fresh, and freshness is not preserved by a map
--- that identifies two representation variables.
+-- injectivity is what a `lock`'s freshness record needs
 Injᵗ : Renameᵗ → Set
 Injᵗ ρ = ∀ {α β} → ρ α ≡ ρ β → α ≡ β
 
@@ -310,11 +263,10 @@ Injᵗ ρ = ∀ {α β} → ρ α ≡ ρ β → α ≡ β
 shiftBy : ℕ → Ty → Ty
 shiftBy zero    R = R
 shiftBy (suc n) R = ⇑ᵗ (shiftBy n R)
--- THE STORE (experiment 2, 2026-09-22; notes/RepStoreSketch.md).  A
--- boundary no longer carries a bind block: the representation a
--- ∀-elimination mints is pushed onto the AMBIENT representation context
--- at index 0, and every existing representation variable — in the
--- context's name map and in every sibling term — moves up by one.
+-- THE STORE (experiment 2, 2026-09-22; notes/RepStoreSketch.md): a
+-- ∀-elimination's representation is pushed onto the AMBIENT
+-- representation context at index 0, and everything else moves up one.
+-- Commentary.md § Ctx.agda / THE STORE
 allocate : Ty → Ctxᵗ → Ctxᵗ
 allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ
 
@@ -347,22 +299,11 @@ data _⊢-_at_⇒_ (α : RVar) : TyCtx → ℕ → TyCtx → Set where
 -- 11. Renaming the representation universe — the CONTEXT half
 ------------------------------------------------------------------------
 
--- A REPRESENTATION-ONLY renaming ρ acts on a context by renaming the
--- representation context and renaming the name map POINTWISE (`map ρ`).
--- Ordinary positions never move, so the ordinary spelling of every type,
--- conversion and change is untouched — which is the whole point of
--- `renᴹᴿ`.  `RepWk ρ Ξ Ξ′` is what such a move must supply, and it is
--- exactly what the two induced readings, the conversion typing and the
--- typing judgement all consume.  Three fields are the three `WfCtx`
--- obligations one universe down; the fourth, injectivity, is what a
--- `lock`'s freshness record needs.
---
--- The base instances insert either one abstract binder (`repwk-abst₀`,
--- strong-rep-store.proof.Ctx, for `crossΛᴹ`) or a bind block (`repwk-wkN`,
--- strong-rep-store.proof.RepWeaken, at the allocation).  `repwk-abst`
--- closes either instance under the one way the typing induction goes
--- deeper: a `Λ`.  (`repwk-push`, which closed it under a bind block,
--- went with the bind block.)
+-- `RepWk ρ Ξ Ξ′` is what a representation-only move must supply:
+-- three fields for `WfCtx`'s three obligations one universe down,
+-- plus injectivity.  Instances: `repwk-abst₀`, `repwk-cons₀`,
+-- `repwk-abst` (proof/Ctx.agda).
+-- Commentary.md § Ctx.agda / RepWk
 
 record RepWk (ρ : Renameᵗ) (Ξ Ξ′ : RepCtx) : Set where
   constructor repwk

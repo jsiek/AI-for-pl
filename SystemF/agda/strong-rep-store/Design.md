@@ -26,6 +26,11 @@
 > prose below writes a boundary scope as `boundary (binds) (changes)`
 > or shifts a representation by `numBinds`, read it as describing
 > strong-rep-var.
+>
+> **Where the per-file commentary lives.**  The design, history and
+> rationale notes that used to be inline in the `.agda` files are
+> `Commentary.md`, keyed by module and definition; each source file
+> keeps only a short charter and one-line pointers into it.
 
 The informal definition of the calculus mechanized in
 `SystemF/agda/strong-rep-store/`.  It replaces the v1 note (now

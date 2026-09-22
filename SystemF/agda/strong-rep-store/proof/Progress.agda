@@ -1,30 +1,19 @@
 module strong-rep-store.proof.Progress where
 
--- PROGRESS for the two-universe conversion-boundary calculus.
---
--- The ordinary cases are the standard induction, using
--- strong-rep-store.proof.Canonical.  Boundary reductions additionally construct
--- the
--- relational context readings and re-spellings carried by the new rules.
--- `Peel`'s package is proved in
--- strong-rep-store.Boundary/strong-rep-store.Conversion.
---
--- The merged-frame reading needed by CancelR and IdPush is proved here
--- from `strong-rep-store.Boundary.merged-conversion-exists`.  Its
--- statement retains the INNER conversion context only: both rules read
--- the spelling they move at that context, so the former outer-retention
--- component had no consumer.  Since the store experiment it is read over
--- Δ ITSELF — `Θ₂` has no binds to push first.
---
--- PROGRESS RETURNS THE STORE CHANGE TOO.  A step is `Δ ⊢ M -→ M′ ∣ δ`,
--- so every clause names the `δ` its rule makes: `new R` for the three
--- ∀-eliminations, `none` everywhere else, and the congruences pass up
--- whatever the premise returned while shifting the sibling by `↑ᴹ[ δ ]`.
---
--- The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
--- boundary's conversion reading and the retention that names the moved
--- spelling are PROVED here as `addLock0-reading`, from the lock-skipping
--- transport `strong-rep-store.Boundary.snoc-lock0-conversion-ren`.
+-- File Charter:
+--   * PROGRESS for the two-universe conversion-boundary calculus.
+--     §1 local inversions and representation readings; §2 the boundary
+--     reading packages (`MergedReading`, `addLock0-reading`); §3 base
+--     identities; §4 the boundary cases; §5 the induction.
+--   * The ordinary cases are the standard induction over
+--     strong-rep-store.proof.Canonical; the boundary cases additionally
+--     CONSTRUCT the relational readings and re-spellings the rules
+--     carry.  Nothing is a parameter: `MergedReading` comes from
+--     `merged-conversion-exists` and `addLock0-reading` from
+--     `snoc-lock0-conversion-ren`.
+--   * PROGRESS RETURNS THE STORE CHANGE TOO: every clause names the
+--     `δ` its rule makes.
+-- Commentary: Commentary.md § proof/Progress.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using ([]; _∷_; _++_; map)
@@ -83,16 +72,11 @@ sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
 -- 2. The boundary reading packages
 ------------------------------------------------------------------------
 
--- The conversion reading of `Θ₁ ++ Θ₂` retains the source whose spelling
--- both id-layer rules move into that merged frame:
---
---   * repaired `CancelR` (2026-09-19) moves the cancelled seal's source,
---     read at Θ₁'s conversion context;
---   * `IdPush` moves a variable read at the same context.
---
--- `` ⊆ᵃ states only name availability.  strong-rep-store.Conversion.respell-ty
--- then
--- constructs the `_⊢_≈_⊣_` premise at the exact type being moved.
+-- The conversion reading of `Θ₁ ++ Θ₂` retains the source whose
+-- spelling both id-layer rules move into that merged frame.  `` ⊆ᵃ
+-- states only NAME availability; `respell-ty` then constructs the
+-- `_⊢_≈_⊣_` premise at the exact type being moved.
+-- Commentary.md § proof/Progress.agda / §2
 MergedReading : Set
 MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
   → BoundaryWf Δ Θ₂ Δᵢ Δᶜ
@@ -105,20 +89,10 @@ merged-reading : MergedReading
 merged-reading = merged-conversion-exists
 
 -- THE MOVED BOUNDARY'S OWN READING (2026-09-20, the repair's progress
--- obligation).  The repaired `TyPeelR-⟪⟫` carries the moved boundary's
--- conversion reading and a `SameConv` pinning the moved spelling, so
--- progress must CONSTRUCT that reading.  It is not a new assumption: the
--- lock-skipping transport `conv-weaken`/`conv-snoc-lock` and the
--- representation renaming are assembled by
--- `strong-rep-store.Boundary.snoc-lock0-conversion-ren`, and all this
--- wrapper adds is the `RepWk suc` witness for the cell `inst Θ`
--- mints, read off `inst-boundarywf`.
---
--- THE RENAMING IS THE WHOLE POINT.  The retained names are
--- `map suc (names Δ′ᶜ)`, NOT `names Δ′ᶜ`: the allocation moves every
--- representation index the old conversion context named up by one.  The
--- unrenamed inclusion is false, and §6b of strong-rep-store.Examples is
--- the witness.
+-- obligation).  THE RENAMING IS THE WHOLE POINT: the retained names
+-- are `map suc (names Δ′ᶜ)`, not `names Δ′ᶜ`; the unrenamed inclusion
+-- is FALSE, and §6b of strong-rep-store.Examples is the witness.
+-- Commentary.md § proof/Progress.agda / §2
 addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → BoundaryWf Δᵢ Θ′ Δ′ᵢ Δ′ᶜ
@@ -298,16 +272,11 @@ module Impl where
       → names Δ ⊢ A ~ R
       → Σ[ M ∈ Term ] Σ[ δ ∈ Alloc ]
           (Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M ∣ δ)
-    -- THE MOVED READING IS REPRESENTATION-SHIFTED FIRST.  `readable` reads
-    -- the old conversion at `underΛ Δ′ᶜ`; the rule wants it at
-    -- `underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)`, whose name map is
-    -- `map suc (names Δ′ᶜ)` — the SIBLING SHIFT, with no bind-block
-    -- offset to compute since the store experiment.  So the reading is
-    -- transported along the representation renaming the allocation makes
-    -- (`sameᶜ-ren`, past the `Λ` by `names-underΛ-ren`), and only then
-    -- respelled into the moved boundary's own context by the retention
-    -- `addLock0-reading` supplies.  Doing the respell first — the
-    -- 2026-09-20 dead end — leaves the reading in the unrenamed map.
+    -- THE MOVED READING IS REPRESENTATION-SHIFTED FIRST, and only
+    -- then respelled into the moved boundary's own context.  Doing the
+    -- respell first — the 2026-09-20 dead end — leaves the reading in
+    -- the unrenamed map.
+    -- Commentary.md § proof/Progress.agda / §4
     tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p

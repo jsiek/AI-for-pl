@@ -1,36 +1,21 @@
 module strong-rep-store.proof.TermSubst where
 
 -- File Charter:
---   * THE PROOF HALF OF strong-rep-store.TermSubst (2026-09-22, the
---     AGENTS.md public/private mandate): every renaming/substitution
---     definition and lemma that NO top-level module mentions.  The
---     section numbers are the ones this material had in the public file,
---     because other modules cite them.  §1 is `id²` and the
---     single-map `renᶠ`; §2 is values under a type renaming
---     (`inert-renᶜ`, `value-renᴹ²`, `value-renᴹᴿ`), the
---     ordinary-identity agreement `renᴹ²-ord-id` with its
---     `-pointwise-id`/`-ord-id` helpers, and the derived `renᴹ`, `wkN`,
---     `wkᴹ`, `⇑ᴹ`.  §3 is TERM-VARIABLE renaming `extⁿ`/`renⁿ`/`shiftᵐ`
---     with `value-renⁿ` and `∋-extⁿ`; §4 the `⤊` transports and the
---     typing lemmas `⊢renⁿ`, `renⁿ-id`, `⊢weakenⁿ`; §5 `value-substᵐ`;
---     §6 the typed images `_∣_⊢ⁱ_⦂_` with `⊢imgTm`, `shiftᴵ-⊢`,
---     `extᴵ-⊢`.
---   * WHAT IS PUBLIC AND WHY.  strong-rep-store.TermSubst keeps exactly
---     what a top-level module names: `TyRename`/`idᵗ`/`renᴮ²`/`renᴹ²`
---     and `renᴹᴿ` (Reduction, Residual), `↑ᴹ[_]`/`↑ᴮ[_]` (Eval,
---     Reduction, Residual), and the substitution `Img`, `crossΛᴹ`,
---     `⇑ᴵ`, `extᴵ`, `substᵐ`, `betaEnv`, `_[_∶_]ᵐ` (Reduction,
---     Residual, Examples).  Nothing here may be cited from a top-level
---     file: the audit principle is that the top level plus the theorem
---     statements can be read alone.
---   * TWO LAWS A READER MUST KNOW.  (1) Boundaries are TERM-CLOSED
---     (strong-rep-store.Terms `env`), so `renⁿ` does NOT descend into
---     `_⟪_,_⟫` and `⊢renⁿ` reuses the boundary's derivation unchanged.
---     (2) A type renaming carries TWO independent maps, and the ordinary
---     one never moves a representation occurrence: `renᴹ²-ord-id` is the
---     general statement that an ordinary-identity `renᴹ²` IS `renᴹᴿ`
---     (notes/DECISIONS.md, 2026-09-20, representation-only renaming is
---     its own traversal).
+--   * THE PROOF HALF OF strong-rep-store.TermSubst: every
+--     renaming/substitution definition and lemma that NO top-level
+--     module mentions.  The section numbers are the ones this material
+--     had in the public file, because other modules cite them.
+--     §1 `id²`/`renᶠ`; §2 values under a type renaming, the
+--     ordinary-identity agreement `renᴹ²-ord-id`, and the derived
+--     `renᴹ`/`wkN`/`wkᴹ`/`⇑ᴹ`; §3 TERM-VARIABLE renaming; §4 the `⤊`
+--     transports and `⊢renⁿ`/`renⁿ-id`/`⊢weakenⁿ`; §5 `value-substᵐ`;
+--     §6 the typed images `_∣_⊢ⁱ_⦂_`.
+--   * NOTHING HERE MAY BE CITED FROM A TOP-LEVEL FILE: the top level
+--     plus the theorem statements must be readable alone.
+--   * TWO LAWS.  (1) Boundaries are TERM-CLOSED, so `renⁿ` does NOT
+--     descend into `_⟪_,_⟫`.  (2) An ordinary-identity `renᴹ²` IS
+--     `renᴹᴿ` (`renᴹ²-ord-id`).
+-- Commentary: Commentary.md § proof/TermSubst.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; map)
@@ -60,10 +45,8 @@ renᶠ ρ = renᶠ² ρ ρ
 -- 2. Renaming terms — values, agreement, derived renamings
 ------------------------------------------------------------------------
 
--- VALUES SURVIVE EVERY RENAMING AND SUBSTITUTION.  Needed because `⊢Λ`
--- carries `Value N` (the value restriction, strong-rep-store.Terms §4):
--- each typing-transport lemma below must rebuild that premise.  Inertness
--- is by conversion constructor, which no renaming changes.
+-- VALUES SURVIVE EVERY RENAMING AND SUBSTITUTION, because `⊢Λ` carries
+-- `Value N` and every typing-transport lemma must rebuild it.
 inert-renᶜ : ∀ {c} (ρ : Renameᵗ) → Inert c → Inert (renᶜ ρ c)
 inert-renᶜ ρ I-idv  = I-idv
 inert-renᶜ ρ I-seal = I-seal

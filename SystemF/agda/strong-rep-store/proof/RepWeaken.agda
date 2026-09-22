@@ -1,63 +1,19 @@
 module strong-rep-store.proof.RepWeaken where
 
--- REPRESENTATION-ONLY MOVES OF A TYPING DERIVATION.  This module proves
--- the two transports whose movers have an identity ordinary component:
--- `ShiftTyping` — THE SIBLING SHIFT of the store experiment
--- (notes/RepStoreSketch.md), which every congruence of `preserve`
--- consumes — and `CrossΛTyping`, which term substitution consumes when an
--- image crosses `Λ` (strong-rep-store.proof.Preserve §3).  When a step
--- allocates a cell the whole program lives under one more representation
--- binder, so the redex's SIBLINGS move up by one: `allocate R Δ` only
--- RENUMBERS the ordinary name map — every ordinary position survives — so
--- a sibling's type does not change and no ordinary spelling inside it
--- moves.  What moves is every representation occurrence: the payloads its
--- own boundary scopes cite and the representation variable each of their
--- changes carries.  `renᴹᴿ` is exactly that traversal.
---
--- THE WORKHORSE is not the statement itself but its generalisation to a
--- CUT.  The induction goes under `Λ`, which pushes one `abstR`, so the
--- inserted cell stops being at the head of the representation context and
--- the name map stops being the exterior's.  Both are absorbed by
--- abstracting the insertion into an arbitrary representation renaming ρ
--- together with the four facts it must supply — `RepWk ρ Ξ Ξ′`,
--- strong-rep-store.Ctx §11 — and renaming the name map POINTWISE, as
--- `map ρ`:
---
---   ⊢renᴿ : RepWk ρ Ξ Ξ′ → (Ξ ∣ η) ∣ Γ ⊢ M ⦂ A
---         → (Ξ′ ∣ map ρ η) ∣ Γ ⊢ renᴹᴿ ρ M ⦂ A
---
--- The term context Γ passes through UNCHANGED: `⊢`'s variable rule does
--- not read the type context at all, and an ordinary type spelling is
--- untouched by a representation renaming.  Under `Λ` the renaming becomes
--- `extᵗ ρ` (`repwk-abst`), which is precisely how `renᴹᴿ` recurses.
--- CROSSING A BOUNDARY CHANGES NOTHING any more: since the store
--- experiment a boundary scope carries no bind block, so the SAME ρ runs
--- inside it (`interior-ren`/`conversion-ren` at ρ, no `extN` offset).
---
--- THE HARD CASE IS `env`, and every one of its premises transports by a
--- lemma of strong-rep-store.proof.Ctx §3, strong-rep-store.Boundary §3d or
--- strong-rep-store.Conversion §2d: the exterior well-formedness by
--- `wfctx-ren`, the two readings by `interior-ren`/`conversion-ren`, the
--- conversion's TYPING by `conv-ren` (the conversion and both of its types
--- are unchanged — a conversion is rep-free — but the lookup square it
--- cites now reads a renamed payload), the two alignment premises by
--- `same-ren`, and the exterior type's well-formedness by `wf-ren-rep`.
--- The two alignment premises are now the SAME relation at the same depth,
--- which is what retired the old `shiftRep` bookkeeping here.
---
--- THE PAYLOAD MUST BE WELL FORMED.  `repwk-alloc` (Preserve §2) demands
--- `Ξ ⊢ᴿ R`, and without it the shift is FALSE: `env` stores a
--- `BoundaryWf` whose `bw-exterior` is a `WfCtx`, so the ALLOCATED context
--- must be well formed, and `WfRepCtx (bindR R ∷ Ξ)` holds only when R
--- checks over Ξ.  At every call site it is `same-wfᴿ` of the allocating
--- rule's own reading premise (`step-alloc`).
---
--- `CrossΛTyping` runs the same induction at the base instance
--- `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The moved term lands under
--- the new abstract representation binder but outside its ordinary name.
--- One `env` with `(lock 0 0 ∷ [])` then supplies exactly that
--- missing ordinary boundary: its interior deletes name zero, while its
--- conversion reading retains it for `mkId (⇑ᵗ A)`.
+-- File Charter:
+--   * REPRESENTATION-ONLY MOVES OF A TYPING DERIVATION — the two
+--     transports whose movers have an IDENTITY ordinary component:
+--     `ShiftTyping` (§2, THE SIBLING SHIFT every congruence of
+--     `preserve` consumes) and `CrossΛTyping` (§3, what substitution
+--     consumes when an image crosses `Λ`).  §1 is the renaming
+--     induction they are both instances of.
+--   * THE WORKHORSE IS THE CUT `⊢renᴿ`: the insertion is abstracted
+--     into an arbitrary `RepWk ρ Ξ Ξ′` and the name map is renamed
+--     POINTWISE, so going under `Λ` is just `extᵗ ρ`.  The term
+--     context passes through UNCHANGED, and crossing a boundary runs
+--     the SAME ρ — there is no bind block to offset.
+--   * THE PAYLOAD MUST BE WELL FORMED, or the shift is FALSE.
+-- Commentary: Commentary.md § proof/RepWeaken.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (+-cancelˡ-≡)
@@ -120,13 +76,9 @@ open import strong-rep-store.proof.Preserve
 -- §2  The sibling shift
 ------------------------------------------------------------------------
 
--- THE INSTANCE THE STORE RUNS AT.  Allocating a cell pushes `bindR R`
--- onto the head of the representation context and moves every existing
--- representation variable — and every name-map entry — up by one; that
--- is `RepWk suc` (`repwk-alloc`, strong-rep-store.proof.Preserve §2), and
--- `map suc` IS `shiftNames`, so `allocate R (Ξ ∣ η)` is literally
--- `(bindR R ∷ Ξ) ∣ map suc η`.  Hence THE ONE NEW LEMMA of the store
--- experiment is `⊢renᴿ` at that instance, with no cast at all.
+-- THE INSTANCE THE STORE RUNS AT: `allocate R (Ξ ∣ η)` is literally
+-- `(bindR R ∷ Ξ) ∣ map suc η`, so the one new lemma of the store
+-- experiment is `⊢renᴿ` at `repwk-alloc`, with no cast at all.
 shift-⊢ : ShiftTyping
 shift-⊢ wR ⊢M = ⊢renᴿ (repwk-alloc wR) ⊢M
 

@@ -1,49 +1,20 @@
 module strong-rep-store.proof.Canonicity where
 
--- THE CANONICITY INVARIANT — the BINDER-NAME reading.
---
--- Every conversion that reduction ever writes on a wrapper is a member of
--- the CANONICAL FAMILY: it is a subtree, a re-spelling, or a mint of
--- `reveal X B`, `conceal X B`, `mkId A`, or `unseal X`.  This file states
--- that family as an inductive predicate, proves the four closure facts the
--- rules need (MINT / DECOMPOSE / RENAME / RE-SPELL), lifts it to terms, and
--- proves it PRESERVED BY REDUCTION (`canon-step`).
---
--- WHAT THE FAMILY SAYS.  It used to say two things at once: a POLARITY
--- SHAPE (`unseal` leaves covariant, `seal` leaves contravariant) and a
--- NAME (every non-identity leaf cites the SAME binder X, shifted under each
--- `` `∀ `` exactly as `reveal`/`conceal` shift it).  The first half was a
--- restatement of what the indexed typing judgment already forced, and it
--- went with the index (Jeremy's ruling, strong-rep-store.Conversion): a mixed
--- tree
--- like `seal 0 ↦ seal 1` is now perfectly typeable, and TyPeelR's
--- contractum IS one.  The SECOND half is the content that survives, and it
--- is what `CanonAt X c` states below.
---
--- WHAT THE TWO UNIVERSES ADD (2026-09-19).  `Peel` no longer carries its
--- crossing argument's conversion `s` onto the dual: the dual's conversion
--- context is a DIFFERENT name map, so the rule carries the dual's own
--- spelling `s′` with a `SameConv` relating the two (strong-rep-store.Reduction).
--- Canonicity must therefore RE-SPELL, and that is §5.  The family is
--- stated a second time one universe up — `CanonAtᴿ`, on REPRESENTATION
--- variables — `SameConv` transports it down and back, and the way back
--- needs the target name map to be a FUNCTION.  So `canon-step` takes
--- `Unique (names Δ)`, for the same reason `det` takes a typing derivation
--- (notes/DECISIONS.md, 2026-09-18): uniqueness is a property of the
--- context, not a premise of a rule.  Every other rule's mint is a subtree,
--- a `mkId`, or an `unseal` at a name the rule already carries.
---
--- The re-spelling needs one more distinction the one-universe design did
--- not: a conversion all of whose leaves are identities (`AllId`) names no
--- binder at all, so it is canonical at EVERY name and its re-spelling has
--- no name to inherit.  Both transports therefore return a SUM.
---
--- The term-level invariant (`CanonC`) quantifies the name existentially,
--- because a term's wrappers name different binders.
---
--- The old §10 validated the invariant on the regression corpus.  It is
--- dropped while `strong-rep-store.Examples` is unported on this branch; the
--- ground-level mint checks it sat beside are kept as §10.
+-- File Charter:
+--   * THE CANONICITY INVARIANT — the BINDER-NAME reading.  Every
+--     conversion reduction writes on a wrapper is a subtree, a
+--     re-spelling, or a mint of `reveal X B`, `conceal X B`, `mkId A`
+--     or `unseal X`.  §1 the family `CanonAt`/`CanonC`/`AllId`;
+--     §2 MINT; §3 DECOMPOSE; §4 RENAME; §5 RE-SPELL (the family one
+--     universe up, `CanonAtᴿ`); §6 lifting to terms; §7 substitution;
+--     §8 `canon-step`, the invariant, with `CanonTyPeelR` REFUTED;
+--     §9 sources; §10 the mint lemmas on the ground.
+--   * WHAT THE FAMILY SAYS is the NAME, not a polarity shape: every
+--     non-identity leaf cites the SAME binder, shifted under each
+--     `` `∀ `` as `reveal`/`conceal` shift it.
+--   * `canon-step` takes `Unique (names Δ)`, because the way back up
+--     from a `SameConv` needs the target name map to be a FUNCTION.
+-- Commentary: Commentary.md § proof/Canonicity.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (_≟_)
@@ -93,11 +64,8 @@ data CanonAt : ℕ → Conv → Set where
   ca-fun    : CanonAt X s → CanonAt X t → CanonAt X (s ↦ t)
   ca-all    : CanonAt (suc X) s → CanonAt X (`∀ s)
 
--- The term-level reading: a wrapper's conversion cites SOME single binder.
--- It has to be existential and it has to be single-name: TyPeelR's minted
--- conversion `instReveal 0 s` reads TWO binders in one wrapper — the
--- conversion's own, and the one the instantiation just bound at slot 0 —
--- which is exactly what `¬CanonTyPeelR` (§8) records.
+-- The term-level reading: a wrapper's conversion cites SOME single
+-- binder — existential, and single-name (see §8's `¬CanonTyPeelR`).
 CanonC : Conv → Set
 CanonC c = ∃[ X ] CanonAt X c
 
@@ -209,10 +177,9 @@ canonC-ren ρ (X , cc) = ρ X , canonAt-ren ρ cc
 -- 5.  RE-SPELL — canonicity crosses a `SameConv`
 ------------------------------------------------------------------------
 
--- THE FAMILY ONE UNIVERSE UP.  A representation-universe conversion is
--- canonical at a REPRESENTATION VARIABLE.  `_⊩_~_` shifts that variable
--- under a `` `∀ `` exactly as `CanonAt` shifts the ordinary name, because
--- its `` `∀ `` clause reads the body at `zero ∷ shiftNames η`.
+-- THE FAMILY ONE UNIVERSE UP: canonical at a REPRESENTATION VARIABLE,
+-- which `_⊩_~_` shifts under a `` `∀ `` exactly as `CanonAt` shifts
+-- the ordinary name.  Commentary.md § proof/Canonicity.agda / §5
 data CanonAtᴿ : RVar → Conv → Set where
   car-id     : CanonAtᴿ α (id R)
   car-unseal : CanonAtᴿ α (unseal α)
@@ -361,13 +328,10 @@ canon-wkᴹ n cM = canon-renᴹ (wkN n) cM
 -- 7.  Term substitution
 ------------------------------------------------------------------------
 
--- Boundaries are TERM-CLOSED: `shiftᵐ` and `substᵐ` return a wrapper
--- untouched (strong-rep-store.TermSubst).  So no conversion is ever renamed by
--- term
--- substitution, and canonicity is preserved for free — the only wrappers
--- in the result are those already in N, those carried in by σ, and THE
--- DUAL WRAPPER FRAME-EXACT BETA MINTS AT EACH CROSSED Λ, whose conversion
--- is `mkId` — the name-free half of the family (`allId-mkId`).
+-- Boundaries are TERM-CLOSED, so no conversion is ever renamed by term
+-- substitution.  The one new wrapper is the DUAL frame-exact Beta mints
+-- at each crossed Λ, whose conversion is `mkId` — name-free.
+-- Commentary.md § proof/Canonicity.agda / §7
 CanonImg : Img → Set
 CanonImg i = CanonTm (imgTm i)
 
@@ -430,44 +394,20 @@ canon-subst cN cW =
 -- 8.  THE INVARIANT — canonicity is preserved by reduction
 ------------------------------------------------------------------------
 
--- One case per rule.  The story:
---
---   TyBeta   MINTS `reveal 0 B` at the binder it just bound (name 0).
---   Beta     substitutes — §7, wrappers are opaque to `substᵐ`.
---   Peel     DECOMPOSES `s ↦ t` and RE-SPELLS the domain onto the dual's
---            name map (§5); the argument is rep-only renamed (§6), which
---            touches no conversion name.
---   TyPeelR-Λ / TyPeelR-⟪⟫
---            both DECOMPOSE `∀ s` and MINT `instReveal 0 s` on the body —
---            the ONE case that is not unconditional, because the mint
---            puts leaves at slot 0 ALONGSIDE the conversion's own, so the
---            result cites TWO binders; hence the hypothesis
---            `CanonTyPeelR` below, which is REFUTED.  (This is NOT a
---            leftover of the polarity index: it survives the index's
---            retirement, for the two-binder reason.)  The Λ clause moves
---            nothing; the wrapper clause renames the moved boundary and
---            appends a lock to its frame, which touches no conversion.
---   CancelR  MINTS `mkId A′` and `mkId A` — name-free leaves of the family.
---   IdPush   MINTS BOTH conversions: the pushed `unseal X′` (binder X′,
---            which the rule carries) and the residue `mkId A`.
---   Drop$ / Drop-true / Drop-false
---            contract to a literal; no wrappers at all.
---   ξ-*      structural; ξ-Λ and ξ-⟪⟫ transport `Unique` through
---            `unique-underΛ` and `interior-unique`.
+-- One case per rule; the rule-by-rule story is
+-- Commentary.md § proof/Canonicity.agda / §8.  The ONE case that is
+-- not unconditional is TyPeelR's mint, which puts leaves at slot 0
+-- ALONGSIDE the conversion's own, so the result cites TWO binders —
+-- hence the hypothesis `CanonTyPeelR` below, which is REFUTED.
 
 -- WHAT TYPEELR'S MINT OWES THE FAMILY, as a statement.
 CanonTyPeelR : Set
 CanonTyPeelR = ∀ {s : Conv} → CanonC (`∀ s) → CanonC (instReveal 0 s)
 
--- IT FAILS on the ∀ conversion `∀ (id (` 0) ↦ seal 1)` — a polymorphic
--- ARGUMENT that crossed a Peel, `conceal 0 (∀Y. Y ⇒ X)`.  That
--- conversion cites the ONE binder X (slot 1 under the `` `∀ ``), but its
--- mint `seal 0 ↦ seal 1` cites TWO: the binder TyPeelR just bound at slot 0
--- and the crossed boundary's at slot 1.  The mint TYPES
--- (strong-rep-store.proof.Preserve, `preserve-TyPeelR-Λ`; the tree was
--- untypeable
--- only under the retired index) — it is the SINGLE-BINDER reading that it
--- leaves.
+-- IT FAILS on `` `∀ (id (` 0) ↦ seal 1) `` — a polymorphic ARGUMENT
+-- that crossed a Peel.  The mint TYPES; it is the SINGLE-BINDER
+-- reading that it leaves.
+-- Commentary.md § proof/Canonicity.agda / §8
 canonC-∀conv : CanonC (`∀ (id (` 0) ↦ seal 1))
 canonC-∀conv = 0 , ca-all (ca-fun ca-id ca-seal)
 
@@ -573,9 +513,7 @@ _ : ∀ {W A} → CanonTm W → CanonTm (crossΛᴹ W A)
 _ = λ cW →
   ct-⟪⟫ (canon-renᴹ² (ren² idᵗ suc) cW) (canonC-mkId _)
 
--- A TWO-BINDER tree — `seal` leaves at two different names — is outside
--- the family, though (unlike under the retired polarity index) it is
--- perfectly TYPEABLE: it is what TyPeelR mints, and the frames, not a
--- global index, are what keep the two binders apart.
+-- A TWO-BINDER tree is outside the family, though perfectly TYPEABLE:
+-- the FRAMES, not a global index, keep the two binders apart.
 ¬canonC-two-binders : ¬ CanonC (seal 0 ↦ seal 1)
 ¬canonC-two-binders = ¬canonC-seal↦seal

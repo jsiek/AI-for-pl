@@ -1,48 +1,20 @@
 module strong-rep-store.Show where
 
--- de Bruijn → NAMED rendering for the two-universe Strong System F: terms,
--- ordinary types, representation payloads, conversions, boundary scopes,
--- type contexts, and whole evaluator traces.  DISPLAY ONLY — there is no
--- theorem here, and nothing in the development depends on it.
---
--- WHY IT EXISTS (Jeremy, 2026-09-05): a hand-transcription error read an
--- interior `` ` 0 `` in the exterior frame.  Nothing in this development
--- should ever be transcribed by hand; it should be rendered.
---
--- THE TWO UNIVERSES ARE RENDERED DIFFERENTLY, and that is the point of the
--- 2026-09-19 port.
---
---   * a REPRESENTATION variable prints as a Greek letter — α, β, γ, then
---     α′, β′, γ′, …;
---   * the ORDINARY type variable that NAMES it prints as the Latin letter
---     at the same position — X, Y, Z, then X′, Y′, Z′, ….
---
--- So `X` is by construction the ordinary name of `α`, `Y` of `β`, and a
--- boundary that unlocks cell α at ordinary position 0 prints as
--- `⟪ ↥X , … ⟫`.  Reading a change's letter therefore says which
--- representation it is about; if a rendered `↓` shows a letter other than
--- the one its representation was allocated with, the name map and the
--- representation it is supposed to denote have come apart, which is the
--- defect class the 2026-09-18 repairs were about.
---
--- WHAT A BOUNDARY `M ⟪ Θ , c ⟫` RENDERS AS, under an exterior environment:
---
---   * `Θ`'s CHANGES appear IN THE ORDER THEY ACT — that is, the list
---     is walked head-LAST, which is the order `_∣_⊢χ_⇒_` uses.  A `lock`
---     prints as `↓X` naming the ordinary variable it deletes, an `unlock`
---     as `↥X` naming the ordinary variable it inserts.
---   * the CONVERSION comes last and is read on the CONVERSION context —
---     unlocks performed, locks SKIPPED, a re-unlock of a live name a
---     no-op — which is a different name map from the interior's whenever
---     the boundary scope locks.  `showBnd` computes both; the body is rendered
---     on the interior, `c` on the conversion context.
---
--- USED AS A TOOL non-interactively via scripts/render_term.sh, which
--- exploits the type-error trick: `oops : e ≡ ""; oops = refl` makes Agda
--- print e's normal form in the mismatch error.  The entry points it calls
--- are at the bottom: `showTyIn`, `showRepIn`, `showTmIn`, `showConvIn`,
--- `showBndIn`, `showTCtx`, `showTermsIn`, and `showRun`, which renders a
--- whole evaluator run with the store and the rule that fired at each step.
+-- File Charter:
+--   * de Bruijn → NAMED rendering for the two-universe Strong System F:
+--     terms, types, payloads, conversions, boundary scopes, type
+--     contexts and whole evaluator traces.  §1 name supplies;
+--     §2 indexed string lists; §3 the rendering `Env`; §4 types,
+--     payloads, conversions; §5 boundary scopes; §6 terms;
+--     §7 type contexts; §8 runs; §9 the entry points.
+--   * DISPLAY ONLY — no theorem, and nothing depends on it.
+--   * THE TWO UNIVERSES PRINT DIFFERENTLY: a REPRESENTATION variable
+--     is a Greek letter (α, β, γ, α′, …) and the ORDINARY name that
+--     denotes it is the Latin letter at the same position (X, Y, Z,
+--     X′, …).  A `lock` prints `↓X`, an `unlock` `↥X`, in ACTING
+--     order; the conversion is rendered on the CONVERSION context.
+--   * Driven non-interactively by scripts/render_term.sh.
+-- Commentary: Commentary.md § Show.agda
 
 open import Data.Nat using (ℕ; zero; suc; _∸_; _<ᵇ_; _≡ᵇ_)
 open import Data.Nat.Show using (show)
@@ -147,13 +119,10 @@ count i (suc n) = i ∷ count (suc i) n
 -- 3. The rendering environment
 ------------------------------------------------------------------------
 
--- `eReps` is the representation context, de Bruijn indexed, each entry
--- carrying BOTH names allocated for that representation variable: the
--- Greek one it prints as, and the Latin one any ordinary variable naming
--- it prints as.  `eNames` is the ordinary name map itself — exactly
--- `names Γ`, a list of representation-variable indices — so an ordinary
--- variable's rendered name is a two-step lookup, which is what the design
--- says it is.
+-- `eReps` carries BOTH names allocated for each representation
+-- variable; `eNames` is the ordinary name map itself, so rendering an
+-- ordinary variable is a TWO-STEP lookup.
+-- Commentary.md § Show.agda / §3
 record Env : Set where
   constructor mkEnv
   field
@@ -288,12 +257,10 @@ showBnd e f Θ c =
 -- 6. Terms
 ------------------------------------------------------------------------
 
--- Binder names are GLOBALLY UNIQUE across one rendered term (Jeremy,
--- 2026-09-06: two sibling `Λ`s must not both print as ΛX).  The
--- type/representation counter `f` is threaded left to right through the
--- whole term; the term-binder counter is the λ-depth, restored after each
--- body, because term names are stable across steps and sibling λs may
--- share one.
+-- Binder names are GLOBALLY UNIQUE across one rendered term: the
+-- type/representation counter is threaded left to right, the term
+-- counter is the λ-depth.
+-- Commentary.md § Show.agda / §6
 showTmF : Env → List String → ℕ → ℕ → Term → String × ℕ
 showTmF e tms f x (` k)   = nthS tms k , f
 showTmF e tms f x ($ n)   = show n , f

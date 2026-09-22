@@ -1,18 +1,14 @@
 module strong-rep-store.proof.TypeSafety where
 
--- TYPE SAFETY for Strong System F: the composition of progress and
--- preservation along a run.  Both component theorems are unconditional:
--- preservation since 2026-09-20, and progress since 2026-09-21, when the
--- last parameter `MergedReading` was proved.  The public statement lives
--- in strong-rep-store.TypeSafety.
---
--- SINCE THE STORE (2026-09-22) THE RUN MOVES THE CONTEXT.  Every step
--- returns the change it made, so the state a run reaches is typed at
--- `runCtx r`, not at Δ, and progress is applied THERE.
---
--- The `WfCtx Δ` premise is preservation's (see notes/DECISIONS.md,
--- 2026-09-18): progress needs none, but safety retypes every state the
--- run reaches, and retyping is what a duplicate name map breaks.
+-- File Charter:
+--   * TYPE SAFETY: progress composed with preservation along a run.
+--     Both components are unconditional.  The public statement is
+--     strong-rep-store.TypeSafety.
+--   * SINCE THE STORE THE RUN MOVES THE CONTEXT: the state a run
+--     reaches is typed at `runCtx r`, and progress is applied THERE.
+--   * The `WfCtx Δ` premise is preservation's — safety RETYPES every
+--     state the run reaches.
+-- Commentary: Commentary.md § proof/TypeSafety.agda
 
 open import Data.List using ([])
 open import Data.Sum using (_⊎_)

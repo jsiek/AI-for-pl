@@ -1,27 +1,16 @@
 module strong-rep-store.proof.TypeSubst where
 
 -- File Charter:
---   * THE ALGEBRAIC THEORY OF TYPE SUBSTITUTION.  Composition `_⨟ᵗ_`
---     and `cons-sub`; the congruences `rename-cong`/`subst-cong`; the
---     fusion laws `rename-rename-commute`, `rename-subst-commute`,
---     `rename-subst`, `exts-seq`, `sub-sub`, `subst-id`; and the two
+--   * THE ALGEBRAIC THEORY OF TYPE SUBSTITUTION: `_⨟ᵗ_`, the
+--     congruences, the fusion laws, `sub-sub`, `subst-id`, and the two
 --     laws the metatheory uses pervasively, `substitution` and
---     `exts-sub-cons`, together with `rename-[]ᵗ-commute` and
---     `subst-[]ᵗ-commute`.
---   * NO DEFINITIONS.  `Ty`, `Substᵗ`, `renameᵗ`, `substᵗ`, `extsᵗ`,
---     `singleTyEnv` and `_[_]ᵗ` are strong-rep-store.Types.  The few
--- single-index
---     facts the two-universe layer needs — `substᵗ-cong`,
---     `extsᵗ-renᵗ`, `substᵗ-renᵗ` — are strong-rep-store.proof.Types, kept apart
---     so that strong-rep-store.Ctx and everything above it can stand on a module
---     that imports nothing but strong-rep-store.Types.  Nothing here mentions a
+--     `exts-sub-cons`.
+--   * NO DEFINITIONS (strong-rep-store.Types), and no single-index
+--     facts (strong-rep-store.proof.Types).  Nothing here mentions a
 --     context, a universe, a conversion or a term.
---   * IT IS A MIRROR, DELIBERATELY.  Same names and same statements as
---     SystemF/agda/extrinsic/TypeSubst.agda, so the two developments
---     can be diffed line for line; keep it that way when adding a law.
---     Its only client inside this development is
---     strong-rep-store.proof.Preserve, so a law added here is not automatically
---     reachable from the rest of the tree.
+--   * IT IS A MIRROR of SystemF/agda/extrinsic/TypeSubst.agda, so the
+--     two can be diffed line for line; keep it that way.
+-- Commentary: Commentary.md § proof/TypeSubst.agda
 
 open import Agda.Builtin.Equality using (_≡_; refl)
 open import Relation.Binary.PropositionalEquality using (cong; cong₂; sym; trans)

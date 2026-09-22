@@ -1,33 +1,19 @@
 module strong-rep-store.proof.Ctx where
 
 -- File Charter:
---   * EVERY FACT ABOUT THE TWO DE BRUIJN UNIVERSES.  §1 is the
---     determinacy and uniqueness suite the reduction rules' `det`
---     consumes — `∋ˡ-det`, `∋ʳ-det`, `same-rep-unique`,
---     `same-target-unique`, `sameTy-src-unique`, `∋:=-det`,
---     `unique-lookup`, `unique-underΛ`, `wf-empty`.  §2 is the NAME-MAP
---     half of representation renaming (`renameᵗ-fuse`, `∋ˡ-ren`,
---     `fresh-ren`).  §3 is the insert/delete relations (`lookup→del`,
---     `ins-exists`, `pigeon`, `live?`) and `RepWk` — its base instance
---     `repwk-abst₀`/`repwk-cons₀` and the closure lemma `repwk-abst`,
---     with `wfctx-ren` and `∋:=-ren`.  (The bind-block lemmas —
---     `wfᴿ-push`, `wfRepCtx-push`, `∋ʳ-push`, `⊆ᵃ-shiftRVars`,
---     `repwk-push` and the `shiftRVars` family — went with the bind
---     block on 2026-09-22, experiment 2.)
---   * NOT THE DEFINITIONS.  Every judgement and relation named above is
---     declared in strong-rep-store.Ctx, which holds definitions only.  Anything
---     mentioning `Change` or `Boundary` belongs in strong-rep-store.Boundary —
---     including `repwk-wkN`, whose home is strong-rep-store.proof.RepWeaken.
---   * WHY THE SPLIT IS BY SUBJECT, NOT BY LAYER (notes/DECISIONS.md,
---     2026-09-20).  The second half is the context material that used
---     to sit in strong-rep-store.Boundary §1; moving it here is what lets
---     strong-rep-store.Ctx stay definition-only and lets strong-rep-store.Boundary
--- begin at
---     its §2.  The import list is strong-rep-store.Types,
--- strong-rep-store.proof.Types and
---     strong-rep-store.Ctx — keep it that way, since strong-rep-store.Boundary
--- imports this
---     module and a cycle is one careless import away.
+--   * EVERY FACT ABOUT THE TWO DE BRUIJN UNIVERSES.  §1 the
+--     determinacy and uniqueness suite `det` consumes; §2 the NAME-MAP
+--     half of representation renaming; §3 the insert/delete relations
+--     and `RepWk`, with `wfctx-ren` and `∋:=-ren`.
+--   * NOT THE DEFINITIONS: those are strong-rep-store.Ctx, which holds
+--     definitions only.  Anything mentioning `Change` or `Boundary`
+--     belongs in strong-rep-store.Boundary.
+--   * THE SPLIT IS BY SUBJECT, NOT BY LAYER (notes/DECISIONS.md,
+--     2026-09-20).  The import list is strong-rep-store.Types,
+--     .proof.Types and .Ctx — keep it that way, since
+--     strong-rep-store.Boundary imports this module and a cycle is one
+--     careless import away.
+-- Commentary: Commentary.md § proof/Ctx.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _≤_; z≤n; s≤s)
 open import Data.Nat.Properties
@@ -124,14 +110,10 @@ same-target-unique unique (same-∀ a) (same-∀ a′) =
   cong `∀ (same-target-unique
     (unique∷ fresh-zero-shift (unique-shift unique)) a a′)
 
--- A spelling CROSSES between the interior and the conversion context by
--- the representation it denotes, never by arithmetic on its position: the
--- two name maps can reorder relative to each other
--- (notes/ForallPayloadWall §3).  `_⊢_≈_⊣_` is that crossing, and on a
--- unique name map it is a function — which is what determinism needs from
--- the rules that carry it.
--- Stated on NAME MAPS: `_⊢_≈_⊣_`'s contexts reach the judgement only
--- through `names`, which is a projection and so does not determine them.
+-- A spelling CROSSES by the REPRESENTATION it denotes, never by
+-- arithmetic on its position; on a unique name map that crossing is a
+-- FUNCTION.  Stated on NAME MAPS, which do not determine the contexts.
+-- Commentary.md § proof/Ctx.agda / §1
 sameTy-src-unique : ∀ {η η′ A A₂ B} → Unique η
   → ∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ B ~ R))
   → ∃[ R ] ((η ⊢ A₂ ~ R) × (η′ ⊢ B ~ R))
@@ -375,9 +357,8 @@ ins-valid i v vn d with ins-inv i (_ , d)
 ins-valid i v vn d | inj₁ refl = v
 ins-valid i v vn d | inj₂ lv = vn (proj₂ lv)
 
--- (iii) `wf-reps`. Both readings leave the representation context alone,
--- so all that is needed is that the bind block itself is well formed
--- where it lands — each payload weakened past the block's own tail.
+-- (iii) `wf-reps`. Both readings leave the representation context
+-- alone, so it transports unchanged.
 ref-suc : ∀ {n i} → Ξ ⊢ref[ n ] i → Ξ ⊢ref[ suc n ] suc i
 ref-suc (local-ref lt) = local-ref (s≤s lt)
 ref-suc (free-ref d) = free-ref d
@@ -488,15 +469,9 @@ wk-wfᴿ : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (m : ℕ) {R : Ty}
 wk-wfᴿ w m = wfᴿ-rename (wk-ref w m)
 
 -- Inserting ONE FRESH BINDING at the head, abstract or represented.
--- Three of the four fields do not look at the binding at all — a name
--- lookup only moves one place further in, and injectivity is `suc`'s —
--- so the only thing the insertion has to supply is the WEAKEST form of
--- its own well-formedness: the step `WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ)`,
--- which is `wf-abstR` for an abstract binder and `wf-bindR w` for a
--- represented one whose payload checks over Ξ.  This is the base move
--- made by a term crossing `Λ` (at `abstR`) and by one crossing a new
--- representation binder (at `bindR R`); `repwk-abst` below is the
--- recursion-closure move when an existing renaming itself goes under `Λ`.
+-- Three of the four fields do not look at the binding at all, so all
+-- the insertion supplies is the step `WfRepCtx Ξ → WfRepCtx (b₀ ∷ Ξ)`.
+-- Commentary.md § proof/Ctx.agda / §3
 ∋ˡ-cons : ∀ {Ξ : RepCtx} {b₀ : RepBinding} {α b} → Ξ ∋ˡ α := b
   → ∃[ b′ ] ((b₀ ∷ Ξ) ∋ˡ suc α := b′)
 ∋ˡ-cons d = _ , there d

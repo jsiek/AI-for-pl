@@ -1,27 +1,19 @@
 module strong-rep-store.Conversion where
 
--- Strong System F — CONVERSIONS, the `c` of a boundary `M ⟪ Θ , c ⟫`.
---
--- The grammar and the names are GTSF's (see GTSF/Conversion.agda,
--- GTSF/Coercions.agda): id / seal / unseal / _↦_ / `∀.  The echo is
--- deliberate — Jeremy's Q3 answer was "use Conversion for relating the
--- interior type to the exterior type", and this is that judgement, with
--- GTSF's two mutually defined directions merged into ONE family.
---
--- NO POLARITY (Jeremy's ruling, 2026-09-06).  The judgement carried a
--- global index `p` that fixed `unseal` to a REVEAL position and `seal` to
--- a CONCEAL one, flipping on `conv-fun`'s domain.  It is REDUNDANT: the
--- discipline it enforced is PER TYPE VARIABLE, and `env` already enforces
--- it with the FRAMES — a LOCKED X is masked in `interior`, so it cannot sit
--- on the interior side of a leaf, and a BOUND X is not in the image of
--- `shiftBy`, so it cannot sit on the exterior side.  Dropping `p` is what
--- makes TyPeelR's preservation case a theorem at every ∀ conversion
--- rather than only at a reveal one (proof/Preserve.preserve-TyPeelR-Λ).
---
--- Conversions are REP-FREE by construction: `seal` and `unseal` carry an
--- ordinary type-variable NAME, never a representation spelling. The lookup
--- square `Δ ∋ X := A` follows that name to its representation variable and
--- relates the stored representation payload back to ordinary type A.
+-- File Charter:
+--   * CONVERSIONS, the `c` of a boundary `M ⟪ Θ , c ⟫`: §1 the grammar
+--     (`id`/`seal`/`unseal`/`_↦_`/`` `∀ ``, the names are GTSF's),
+--     §2 the typing judgement `Δ ⊢ c ∶ A ⇝ B` with NO polarity index,
+--     §2b the re-spelling relation `SameConv`, §2c re-spelling across
+--     a crossing, §2d representation renaming, §3 `mkId`, §4 the
+--     canonical mints at a slot, §5 the inversions,
+--     §6 `conv-types-unique`, §7 concrete lookup-square checks.
+--   * CONVERSIONS ARE REP-FREE.  `seal` and `unseal` carry an ordinary
+--     type-variable NAME, never a representation spelling; the lookup
+--     square `Δ ∋ X := A` follows that name to its representation
+--     variable.  Hence a representation-only renaming leaves a
+--     conversion and both of its types UNCHANGED (§2d).
+-- Commentary: Commentary.md § Conversion.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.Nat.Properties using (_≟_)
@@ -47,15 +39,9 @@ private
     α : RVar
     ρ : Renameᵗ
 
-------------------------------------------------------------------------
--- 1.  The grammar
-------------------------------------------------------------------------
-
--- `id A` is restricted to BASE TYPES AND VARIABLES by the typing judgment
--- (conv-id / conv-idv) and by the classification in strong-rep-store.Terms
--- (A-idb
--- needs Base A, I-idv needs a variable payload); compound identities stay
--- structural (`mkId` below).
+-- `id A` is restricted to BASE TYPES AND VARIABLES by the typing
+-- judgment (conv-id / conv-idv); compound identities stay structural
+-- (`mkId`, §3).
 data Conv : Set where
   id     : Ty → Conv          -- ACTIVE at a base type, INERT at a variable
   seal   : ℕ → Conv           -- seal   at the binder named       INERT
@@ -76,15 +62,10 @@ renᶜ ρ (unseal X)  = unseal (ρ X)
 renᶜ ρ (s ↦ t)     = renᶜ ρ s ↦ renᶜ ρ t
 renᶜ ρ (`∀ s)      = `∀ (renᶜ (extᵗ ρ) s)
 
-------------------------------------------------------------------------
--- 2.  The typing judgment
-------------------------------------------------------------------------
-
--- Δ ⊢ c ∶ A ⇝ B   —   c converts the SOURCE type A to the TARGET type
--- B, both read on the type context Δ (the CONVERSION CONTEXT: the type
--- context at which the boundary's binders are live).  Every rep is read by
--- NAME from Δ.  `conv-fun` is CONTRAVARIANT in its domain — that is the
--- only trace the retired polarity index leaves.
+-- Δ ⊢ c ∶ A ⇝ B — c converts the SOURCE type A to the TARGET type B,
+-- both read on the CONVERSION CONTEXT Δ.  `conv-fun` is CONTRAVARIANT
+-- in its domain — the only trace the retired polarity index leaves.
+-- Commentary.md § Conversion.agda / §2
 infix 4 _⊢_∶_⇝_
 data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
 
@@ -120,15 +101,10 @@ data _⊢_∶_⇝_ : Ctxᵗ → Conv → Ty → Ty → Set where
 -- 2b.  Two spellings of one conversion
 ------------------------------------------------------------------------
 
--- `_⊢_≈_⊣_` (strong-rep-store.Ctx §5) relates two ordinary spellings of ONE
--- representation-universe type.  This is the same thing for a CONVERSION,
--- and it exists for the same reason: a rule that carries a conversion
--- from one name map to another cannot reuse the spelling, because the two
--- maps can reorder relative to each other.
---
--- A conversion mentions ordinary names at exactly three leaves — `seal`,
--- `unseal`, and the type under `id` — so the judgement is `_⊢_~_` one
--- universe up, structural everywhere else.
+-- `SameConv` is `_⊢_≈_⊣_` (strong-rep-store.Ctx §5) for a CONVERSION:
+-- a conversion mentions ordinary names at exactly three leaves, so the
+-- judgement is `_⊢_~_` one universe up, structural everywhere else.
+-- Commentary.md § Conversion.agda / §2b
 infix 4 _⊩_~_
 data _⊩_~_ (η : TyCtx) : Conv → Conv → Set where
   sameᶜ-id     : η ⊢ A ~ R → η ⊩ id A ~ id R
@@ -199,12 +175,10 @@ sameConv-∀ (r , p , q) = `∀ r , sameᶜ-all p , sameᶜ-all q
 -- 2c. Re-spelling a conversion across a boundary scope crossing
 ------------------------------------------------------------------------
 
--- These facts were proved first in notes/PeelPremise.agda.  They are core
--- infrastructure now because Progress must construct every premise carried
--- by `Peel`.  `Q` and `dual-conversion-exists` live with the relational
--- context readings in strong-rep-store.Boundary; this section transports the
--- actual
--- type and conversion spellings.
+-- `Q` and `dual-conversion-exists` live with the relational context
+-- readings in strong-rep-store.Boundary; this section transports the
+-- actual type and conversion spellings.
+-- Commentary.md § Conversion.agda / §2c
 
 respell-ty : η ⊆ᵃ η′ → η ⊢ A ~ R
   → ∃[ A′ ] (η′ ⊢ A′ ~ R)
@@ -286,12 +260,9 @@ peel-premises-env mwΘ ⊢s =
 -- 2d. Renaming the representation universe
 ------------------------------------------------------------------------
 
--- A conversion is REP-FREE: every name it carries is ORDINARY, and a
--- representation-only renaming moves no ordinary name.  So a conversion
--- and both of its types survive the move UNCHANGED; what moves is the
--- context it is read on — the lookup square follows the same ordinary
--- name to a renamed representation variable with a renamed payload
--- (`∋:=-ren`, strong-rep-store.proof.Ctx §3).
+-- A conversion and both of its types survive a representation-only
+-- renaming UNCHANGED; what moves is the context it is read on.
+-- Commentary.md § Conversion.agda / §2d
 
 conv-cast : ∀ {Ξ : RepCtx} {c : Conv} → η ≡ η′
   → (Ξ ∣ η) ⊢ c ∶ A ⇝ B → (Ξ ∣ η′) ⊢ c ∶ A ⇝ B
@@ -331,10 +302,9 @@ mkId-⊢ (wf-∀ wA)    = conv-all (mkId-⊢ wA)
 -- 4.  The canonical conversions at a slot
 ------------------------------------------------------------------------
 
--- Unseal every occurrence of X where the conversion runs covariantly /
--- seal it back where it runs contravariantly.  These are what the
--- boundary rules mint at a fresh binder; they are DERIVED FROM THE TYPE,
--- not from stored knowledge, and they carry only the NAME X.
+-- Unseal every occurrence of X where the conversion runs covariantly,
+-- seal it back where it runs contravariantly.  DERIVED FROM THE TYPE.
+-- Commentary.md § Conversion.agda / §4
 mutual
   reveal : ℕ → Ty → Conv
   reveal X (` Y) with X ≟ Y
@@ -354,17 +324,10 @@ mutual
   conceal X (A ⇒ B) = reveal X A ↦ conceal X B
   conceal X (`∀ A)  = `∀ (conceal (suc X) A)
 
--- THE SAME MINT, APPLIED TO A CONVERSION (the TyPeelR repair,
--- notes/RuleRepairs-TyPeelR-CancelR.md §1).  When a boundary whose
--- conversion is a `` `∀ `` is instantiated, the boundary's frame gains
--- a BINDER at slot 0 — the slot the conversion's `` `∀ `` had left
--- ABSTRACT.  Every leaf of the conversion that reads that slot is an
--- identity (`id (` 0)`, because an abstract slot has no binder to seal or
--- unseal at), and each such leaf must become the instantiation step:
--- `unseal 0` where the conversion runs covariantly, `seal 0` where it
--- runs contravariantly.  That is exactly `reveal`/`conceal`, pushed
--- through a CONVERSION instead of through a type — and on an identity
--- conversion the two agree (`instReveal-mkId` below).
+-- THE SAME MINT, APPLIED TO A CONVERSION: each leaf of a `` `∀ ``
+-- conversion that reads the newly bound slot 0 becomes the
+-- instantiation step.
+-- Commentary.md § Conversion.agda / §4
 mutual
   instReveal : ℕ → Conv → Conv
   instReveal X (id A)     = reveal X A
@@ -381,11 +344,7 @@ mutual
   instConceal X (`∀ s)     = `∀ (instConceal (suc X) s)
 
 -- TyBeta's minted conversion IS this operation at an identity
--- conversion: the type version is the conversion version on `mkId`.  (So
--- TyPeelR's reveal case really is TyBeta's mint, one ∀ inside — and
--- since the 2026-09-08 split that is literal: `TyPeelR-Λ` moves nothing
--- and refines the `Λ`'s own slot into the boundary's binder, exactly as
--- TyBeta does.)
+-- conversion: the type version is the conversion version on `mkId`.
 mutual
   instReveal-mkId : (X : ℕ) (B : Ty) → instReveal X (mkId B) ≡ reveal X B
   instReveal-mkId X (` Y)   = refl
@@ -408,8 +367,8 @@ mutual
 -- 5. Conversion inversions
 ------------------------------------------------------------------------
 
--- Every rep a conversion mentions IS the binder's rep — there is no second
--- spelling, which is why the §9m ≡/≈ gap cannot arise.
+-- Every rep a conversion mentions IS the binder's rep — there is no
+-- second spelling.
 seal-source-is-rep :
   Δ ⊢ seal X ∶ A ⇝ B → Δ ∋ X := A
 seal-source-is-rep (conv-seal d) = d
@@ -438,10 +397,10 @@ conv-id-refl : ∀ {C} → Δ ⊢ id A ∶ B ⇝ C → B ≡ C
 conv-id-refl (conv-id _)  = refl
 conv-id-refl (conv-idv _) = refl
 
--- A ∀ conversion's body, as an inversion that does NOT have to see
--- through `shiftBy`: `env` pins the target type to
--- `shiftBy (numBinds Θ) Bₑ`, which is a stuck term, so TyPeelR's premise is
--- recovered by this lemma rather than by matching `conv-all` directly.
+-- A ∀ conversion's body, as an inversion returning the two `∀` shapes
+-- AS EQUATIONS: at the use sites `env` constrains the conversion's
+-- types only relationally, so `conv-all` does not unify directly.
+-- Commentary.md § Conversion.agda / §5
 conv-all-inv : ∀ {s A B} → Δ ⊢ `∀ s ∶ A ⇝ B
   → Σ[ A₀ ∈ Ty ] Σ[ B₀ ∈ Ty ]
       ((A ≡ `∀ A₀) ×
@@ -453,9 +412,8 @@ conv-all-inv (conv-all ⊢s) = _ , _ , refl , refl , ⊢s
 -- 6. Conversion types are unique on a well-formed name map
 ------------------------------------------------------------------------
 
--- The new premise is the exact invariant used at `seal` and `unseal`: one
--- representation variable has at most one ordinary name. All contexts
--- produced by well-formed boundary scopes preserve this invariant.
+-- The premise is the invariant used at `seal` and `unseal`: one
+-- representation variable has at most one ordinary name.
 conv-types-unique : ∀ {c A A′ B B′}
   → Unique (names Δ)
   → Δ ⊢ c ∶ A  ⇝ B

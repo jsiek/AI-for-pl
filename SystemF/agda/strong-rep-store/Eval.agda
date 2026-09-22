@@ -2,64 +2,21 @@ module strong-rep-store.Eval where
 
 -- File Charter:
 --   * THE STEP FUNCTION AND THE EVALUATOR BUILT ON IT.  §1 decides the
---     classifications the rules guard on (`base?`, `inert?`, `value?`);
---     §2 assembles each boundary rule's side conditions
---     (`peelPremises?`, `crossPremises?`, `bdyPremises?`,
---     `cancelPremises?`, `mergedPremises?`, `pushPremises?`); §3 is the
---     redex search by head shape (`appRedex`, `tyAppRedex`,
---     `bdyRedex`); §4 is `step`, leftmost-outermost, returning
---     the contractum, allocation, and step derivation; §5 forgets the
---     derivation (`stepTo`, `Steps`); §6–§7 are `Trace` and `eval`;
---     §8–§9 read a trace (`traceEnd`, `traceTerms`, `traceLen`,
---     `evalTerms`, `trace-sound`, `Checked`, `trace-⦂`); §10 is
---     `Report`/`report` and `Reaches` with `reaches-end`,
---     `reaches-checked`, `reaches-run`, `reaches-⦂`.
---   * NO METATHEORY IS NEEDED AND NONE IS CLAIMED.  `step` takes no
---     typing derivation and RETURNS THE DERIVATION, so soundness is its
---     type: there is no second rule table to transcribe and no
---     `step-sound` theorem to prove.  What it does NOT give is the
---     other half — that a well-typed term is a value or steps — so a
---     `nothing` means only that this search found no redex; that is
---     `progress`, and it lives in strong-rep-store.Progress /
---     strong-rep-store.proof.  The rules are strong-rep-store.Reduction;
---     the checkers every premise here comes from are
---     strong-rep-store.TypeCheck; the recorded runs are
---     strong-rep-store.Examples.
---   * WHAT A RUN ASSERTS, AND THE ONE WAY IT CAN LOSE THE TYPE.  `eval`
---     is `step ⨟ check⊢` iterated with fuel: preservation is not used
---     to retype a contractum, the contractum is CHECKED instead, at the
---     type the run started with and the context after that step's
---     allocation.  A step whose contractum the checker rejected is
---     recorded as `illtyped`, and that constructor is the
---     ONLY way a type is lost along a `Trace`; `Checked tr` is the unit
---     record exactly when no `illtyped` occurs, so Agda discharges it
---     by eta at a concrete run.  That is subject reduction FOR THAT
---     RUN, checked rather than proved.  `Reaches k n ⊢M V` states a
---     whole run in ONE equation — endpoint, step count and "no state
---     lost the type" — and mentions the run only once, because Agda
---     shares nothing between occurrences of a term; the sharing and
---     measurement story behind `Report`, `bump` and the datatype-rather
---     -than-triple choice is in notes/PLAN.md and is not repeated here.
---
--- WHY THIS IS NOT A SECOND RULE TABLE.  v2's evaluator WAS progress
--- (`step = progress`), on the argument that a `Maybe`-returning step
--- function is a type-blind transcription of the rules that then needs a
--- `step-sound` theorem tying it back to the relation.  That argument does
--- not apply here: `step` returns the derivation, not the term, so
--- soundness is the type and there is nothing to transcribe.
---
--- On a well-typed term, determinism (`det`, strong-rep-store.Reduction) is
--- what makes
--- "no soundness theorem" enough in practice.  Any redex `step` finds is THE
--- redex, so a run it produces is THE run, and an example has only to say
--- where that run ends (`Reaches`, §10).
---
--- WHERE THE PREMISES COME FROM.  The boundary rules carry side conditions
--- not read off the redex — induced contexts, conversion typing, lookup
--- squares, re-spellings and the representation reading of a type argument.
--- Those are decided by strong-rep-store.TypeCheck, which returns the ordinary
--- derivations, so this module assumes nothing either.  Name uniqueness is
--- no longer a reduction premise and is not decided here.
+--     classifications the rules guard on; §2 assembles each boundary
+--     rule's side conditions; §3 is the redex search by head shape;
+--     §4 `step`, leftmost-outermost, returning the contractum, the
+--     allocation and the step derivation; §5 `stepTo`/`Steps`;
+--     §6–§7 `Trace` and `eval`; §8–§9 reading a trace; §10 `Report`
+--     and `Reaches`.
+--   * NO METATHEORY IS NEEDED AND NONE IS CLAIMED.  `step` RETURNS THE
+--     DERIVATION, so soundness is its type; a `nothing` means only
+--     that this search found no redex — that other half is `progress`.
+--   * WHAT A RUN ASSERTS.  `eval` is `step ⨟ check⊢` iterated with
+--     fuel: the contractum is CHECKED, not retyped by preservation.
+--     `illtyped` is the ONLY way a type is lost along a `Trace`, and
+--     `Checked tr` is the unit record exactly when none occurs — so a
+--     concrete run's subject reduction is checked, not proved.
+-- Commentary: Commentary.md § Eval.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; _++_)
@@ -94,17 +51,14 @@ base? `𝔹      = just base-𝔹
 base? (A ⇒ B) = nothing
 base? (`∀ A)  = nothing
 
--- `inert?` and `value?` live in strong-rep-store.TypeCheck now: `infer`
--- needs `value?` to discharge `⊢Λ`'s value restriction.  They are
--- re-exported here through the `open import ... TypeCheck`.
+-- `inert?` and `value?` live in strong-rep-store.TypeCheck now and are
+-- re-exported here through its `open import`.
 
 ------------------------------------------------------------------------
 -- 2. The side conditions the boundary rules carry
 ------------------------------------------------------------------------
 
--- `TyPeelR-Λ` asks for three things of the crossed frame and the type
--- argument; `TyPeelR-⟪⟫` asks for those and, since 2026-09-18, for the
--- interior spelling of the annotation it pushes in.
+-- Commentary.md § Eval.agda / §1–§2
 PeelPremises : Ctxᵗ → Boundary → Conv → Ty → Set
 PeelPremises Δ Θ s A =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Bᵢ ∈ Ty ] Σ[ Bₑ ∈ Ty ] Σ[ R ∈ Ty ]
@@ -124,10 +78,7 @@ peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
 peelPremises? Δ Θ s A | just (Δᶜ , rel) | just (Bᵢ , Bₑ , ⊢s)
   | just (R , same) = just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
 
--- The wrapper clause's remaining premises.  Besides re-spelling the pushed-in
--- annotation, it reads the old inner boundary, the instantiated outer frame,
--- and the moved inner boundary, then re-spells the inner conversion between
--- those two conversion contexts.  In particular, no arithmetic renaming is
+-- The wrapper clause's remaining premises.  No arithmetic renaming is
 -- used for the carried conversion.
 BdyPremises : Ctxᵗ → Boundary → Boundary → Conv → Ty → Ty → Ctxᵗ → Set
 BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
@@ -215,10 +166,8 @@ pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Δ⋉ᶜ , r⋉) | just (`∀ C , sm) = nothing
 
 -- `CancelR`'s inner layer is checked at the MERGED frame's conversion
--- context, so its `mkId` needs a type spelled there.  Repaired
--- (2026-09-19): the type re-spelled is the cancelled `seal X`'s OWN
--- source, read at Θ₁'s conversion context — the same context-reading
--- block `pushPremises?` builds for `IdPush`.
+-- context.  Repaired 2026-09-19: the re-spelled type is the cancelled
+-- `seal X`'s OWN source, read at Θ₁'s conversion context.
 MergedPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
 MergedPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Aᵢ ∈ Ty ]
@@ -254,10 +203,8 @@ mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
        , ri , r₁ , d₁ , r⋉ , sm)
 
--- `Peel`'s crossing premises (2026-09-18).  The boundary scope's two readings,
--- the DUAL's conversion context — which typing the redex does not supply,
--- so it is built here — and the dual's spelling of the domain half.  The
--- redex fixes only Δ, Θ and `s`.
+-- `Peel`'s crossing premises (2026-09-18).  The redex fixes only Δ, Θ
+-- and `s`; the dual's conversion context is built here.
 CrossPremises : Ctxᵗ → Boundary → Conv → Set
 CrossPremises Δ Θ s =
   Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᵈ ∈ Ctxᵗ ] Σ[ s′ ∈ Conv ]
@@ -495,16 +442,9 @@ data Trace (Δ : Ctxᵗ) (A : Ty) : Term → Set where
 -- 7. The evaluator
 ------------------------------------------------------------------------
 
--- `step ⨟ check⊢`, iterated with fuel.  The type checker is what closes
--- the loop: preservation is not available to retype the contractum, so
--- the contractum is CHECKED instead, at the type the run started with.
---
--- That is not preservation and does not pretend to be — it says nothing
--- about runs it was not pointed at.  What it is, is the executable form
--- of subject reduction, and it is the check that would have caught the
--- `rewind` defect by itself: the eleventh state of the fourth example was
--- the first one `check⊢` would have rejected (notes/DECISIONS.md,
--- 2026-09-17).
+-- `step ⨟ check⊢`, iterated with fuel.  The contractum is CHECKED, not
+-- retyped by preservation — the executable form of subject reduction.
+-- Commentary.md § Eval.agda / What a run asserts
 eval : ∀ {Δ A} (k : ℕ) (M : Term) → Δ ∣ [] ⊢ M ⦂ A → Trace Δ A M
 eval {Δ} {A} zero M ⊢M with value? M
 eval {Δ} {A} zero M ⊢M | just v  = stop (value v)
@@ -596,23 +536,11 @@ illtyped-unchecked r c = c
 -- 10. What a recorded example asserts
 ------------------------------------------------------------------------
 
--- ONE PASS OVER THE RUN.  Agda shares nothing between the occurrences of
--- a term, so a statement that mentions `eval k M ⊢M` three times RUNS THE
--- PROGRAM THREE TIMES — measured, on the 25-step example, at about 0.12s
--- an occurrence.  `report` therefore walks the trace once and returns
--- everything an example asserts about it: where the run ended, how many
--- steps it took, and whether every state kept its type.  `Reaches` then
--- mentions the run ONCE.
---
--- `bump` matches on the triple rather than projecting out of it, which is
--- what keeps that one pass one pass: projections would put three copies
--- of the recursive call back in.  The price is that `report` is stuck on
--- a variable trace, so the two lemmas below have to `with` their way past
--- it; that is paid once, here, and not per example.
--- A DATA type, not a triple: a triple has eta, so comparing one against
--- a literal splits into three independent projections and walks the run
--- three times anyway (measured).  Forcing a datatype to weak head normal
--- form walks it once and leaves the three components computed.
+-- ONE PASS OVER THE RUN: Agda shares nothing between occurrences of a
+-- term, so `report` walks the trace once and `Reaches` mentions the run
+-- ONCE.  `bump` matches on the triple rather than projecting out of it,
+-- and `Report` is a DATA type rather than a triple, for the same reason.
+-- Commentary.md § Eval.agda / §10
 data Report : Set where
   reported : Term → ℕ → Bool → Report
 
@@ -645,15 +573,9 @@ report-kept (r ◅⟨ ⊢M′ ⟩ tr) eq with report tr | report-kept tr
 report-kept (r ◅⟨ ⊢M′ ⟩ tr) eq | reported V n b | h = h eq
 
 -- One statement per example: with fuel `k` the evaluator reaches `V` in
--- exactly `n` steps, no state along the way lost the type, and `V` is a
--- value.  Only the first component mentions the run.
---
--- The intermediate states are deliberately not part of this.  They are
--- what `eval` type-checked on the way — the `true` is the record of that
--- — and `evalTerms` hands them back whenever a reader wants to see one.
--- A RECORD, not a product, so that `k`, `n` and `⊢M` are recoverable
--- from the type: the accessors below are applied to an example's
--- `Reaches` and have to read them off it.
+-- exactly `n` steps, no state lost the type, and `V` is a value.  A
+-- RECORD, so that `k`, `n` and `⊢M` are recoverable from the type.
+-- Commentary.md § Eval.agda / §10
 record Reaches {Δ A M} (k n : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A) (V : Term)
   : Set where
   constructor reaches
@@ -662,8 +584,7 @@ record Reaches {Δ A M} (k n : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A) (V : Term)
     endValue : Value V
 open Reaches public
 
--- What an example's `Reaches` yields.  None of these re-runs the program:
--- they are equational, so the trace stays unevaluated.
+-- What an example's `Reaches` yields.  None of these re-runs the term.
 reaches-end : ∀ {Δ A M V k n} {⊢M : Δ ∣ [] ⊢ M ⦂ A}
   → Reaches k n ⊢M V → traceEnd (eval k M ⊢M) ≡ V
 reaches-end {k = k} {⊢M = ⊢M} r =

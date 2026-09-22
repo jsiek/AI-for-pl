@@ -1,43 +1,19 @@
 module strong-rep-store.proof.PeelDual where
 
--- THE PEEL CROSSING — the dual is an INVERSE, and both of its readings
--- are theorems of `strong-rep-store.Boundary` §3a.
---
---   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dual Θ ⇒ Δ
---
--- is `dual-interior`: the crossing argument's frame IS THE EXTERIOR.
--- Since the store experiment (2026-09-22) a boundary scope carries no
--- bind block, so that is the exterior ON THE NOSE — the argument, typed
--- at Δ, crosses VERBATIM and gains neither ordinary scope nor a
--- representation binder.  The rule's old
--- `renᴹ² (ren² idᵗ (wkN (numBinds Θ)))`, and with it this module's
--- `RepWeakenTyping` parameter and the `renᴹ²-ord-id` bridge, are gone.
---
--- The dual's CONVERSION context is the one thing the crossing does not
--- get for free.  It is not `convCtx Θ Δ` renumbered: (P), the identity
--- `conv(dual Θ, int(Θ, Δ)) ≡ conv(Θ, Δ)`, is a theorem on `main` and is
--- FALSE here, because deleting a name from a SEQUENCE renumbers the rest
--- (notes/CrossingAudit §§4–6).  What survives is (Q) — the two contexts
--- name the same representation VARIABLES (`Q`,
--- strong-rep-store.Boundary §3b) — and `Peel` therefore carries the
--- dual's own spelling `s′` together with a `SameConv` relating it to
--- `s`.  §1 below is what turns that premise into the dual boundary's
--- conversion typing.
---
---   §1  re-spelling a TYPED conversion across the crossing
---   §2  the ⇒-splitting the redex's `env` premises need
---   §3  the crossing, and `preserve-Peel`
---
--- WHAT WAS DELETED (2026-09-19).  The whole masked-entry development:
--- `applyChanges-dualScope`, `⊢ˢ-dualScope`, `applyUnlocks-dualScope` and
--- their `updateAt` commutations (old §2); `interior-dual`, `convCtx-dual`
--- — which was (P) — and `applyUnlocks-hideBinds` (old §3); and the
--- `Ren`/`wkN` crossing machinery `⊢ᵐ-dual`, `Ren-wkN`, `crossing` (old
--- §4).  None of them has a two-universe counterpart: there is no computed
--- context to state an equality between, (P) is refuted, and the frame
--- identity is `dual-interior`.  AND (2026-09-22) `shiftRep-⇒` and
--- `sameTyExt-⇒⁻`: the exterior comparison is now the same relation at the
--- same depth, so `sameTy-⇒⁻` serves both `env` premises.
+-- File Charter:
+--   * THE PEEL CROSSING — the dual is an INVERSE, and both of its
+--     readings are theorems of strong-rep-store.Boundary §3a.  §1
+--     re-spells a TYPED conversion across the crossing (`respell-⊢`);
+--     §2 splits the redex's `env` premises at the arrow; §3 is
+--     `preserve-Peel`.
+--   * THE ARGUMENT DOES NOT MOVE.  `dual-interior` says the dual's
+--     interior IS the exterior, and since the store there is no bind
+--     block, so it is the exterior ON THE NOSE — `⊢W` is reused
+--     verbatim.
+--   * THE DUAL'S CONVERSION CONTEXT is not free: (P) is FALSE here,
+--     (Q) is what survives, and `Peel` therefore carries the dual's
+--     own spelling `s′` with a `SameConv`.
+-- Commentary: Commentary.md § proof/PeelDual.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; length)
@@ -68,13 +44,10 @@ sameTy-∀ : ∀ (Γ Γ′ : Ctxᵗ) {A B : Ty}
   → Γ ⊢ `∀ A ≈ `∀ B ⊣ Γ′
 sameTy-∀ Γ Γ′ (R , p , q) = `∀ R , same-∀ p , same-∀ q
 
--- `respell` (strong-rep-store.Conversion §2c) produces a conversion's other
--- spelling; this produces its TYPING.  The two contexts share a
--- representation context and differ only in their ordinary name map, so
--- every leaf transports: a `seal`/`unseal` cites the SAME binder and only
--- its ordinary spelling changes, and an identity's payload is re-spelled
--- by `respell-ty`.  The source and target types come back paired with
--- `_⊢_≈_⊣_`s, which is what the crossing boundary's `env` consumes.
+-- `respell` (strong-rep-store.Conversion §2c) produces a conversion's
+-- other spelling; this produces its TYPING.  The two contexts share a
+-- representation context and differ only in their ordinary name map.
+-- Commentary.md § proof/PeelDual.agda / §1
 respell-⊢ : ∀ {Γ Γ′ : Ctxᵗ} {s s′ r : Conv} {A B : Ty}
   → reps Γ′ ≡ reps Γ
   → (names Γ) ⊆ᵃ (names Γ′)
@@ -144,10 +117,9 @@ respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-all a) (sameᶜ-all a′)
 -- §2  Splitting the redex's premises at the arrow
 ------------------------------------------------------------------------
 
--- The interior type of a boundary whose conversion is a `_↦_` is an
--- arrow, because its reading is.  Since the store experiment the
--- EXTERIOR comparison is the same relation at the same depth, so this
--- one inversion serves both `env` premises.
+-- The interior type of a `_↦_` boundary is an arrow, because its
+-- reading is.  Since the store this ONE inversion serves BOTH `env`
+-- premises.
 sameTy-⇒⁻ : ∀ {η η′ : TyCtx} {B A₁ B₁ : Ty}
   → ∃[ R ] ((η ⊢ B ~ R) × (η′ ⊢ A₁ ⇒ B₁ ~ R))
   → Σ[ Aᵢ ∈ Ty ] Σ[ Bᵢ ∈ Ty ] ((B ≡ Aᵢ ⇒ Bᵢ)
@@ -160,13 +132,8 @@ sameTy-⇒⁻ (R ⇒ S , same-⇒ p q , same-⇒ p′ q′) =
 -- §3  The crossing
 ------------------------------------------------------------------------
 
--- THE ARGUMENT DOES NOT MOVE ANY MORE.  W is typed on the exterior Δ,
--- and the dual's interior IS Δ (`dual-interior`, strong-rep-store.Boundary
--- §3a): since the store experiment a boundary scope carries no bind
--- block, so there is nothing for the crossing argument to be shifted
--- past.  The rule's old `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W` — and
--- with it the whole `RepWeakenTyping` parameter this module used to take
--- — is gone; `⊢W` is reused verbatim.
+-- THE ARGUMENT DOES NOT MOVE ANY MORE: `⊢W` is reused verbatim.
+-- Commentary.md § proof/PeelDual.agda / §3
 preserve-Peel : PeelCase
 preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
               {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}

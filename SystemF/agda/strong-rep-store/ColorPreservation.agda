@@ -1,49 +1,19 @@
 module strong-rep-store.ColorPreservation where
 
--- COLOR PRESERVATION — the theorem and the stronger scope-map form it
--- is a corollary of (statement approved by Jeremy and proved
--- 2026-09-21; the proof is strong-rep-store.proof.ColorPreservation).
---
--- TWO THEOREMS (Jeremy's ruling, 2026-09-21).  Color is about TYPE
--- variables only — which ordinary names are live at a hole — not about
--- the representation variables they denote.  So the COLOR THEOREM
--- proper, `ColorPreservation`, concludes
--- `length (names Δ₂) ≡ length (names Δ₁)`, and it is a corollary of
--- the stronger `ScopeMapPreservation`, which pins the whole scope map:
--- `names Δ₂ ≡ map ρ (names Δ₁)` — same positions, each denoting the
--- same representation variable read through the run's renaming ρ.
---
--- THE DESIGN LAW (Jeremy, 2026-09-04, notes/DECISIONS.md): "the color of a
--- non-boundary term should never change during reduction" — reduction
--- never changes which type variables a subterm can see; only boundary
--- syntax moves.  The v7 theorem (strong-v3-design, commit 31fa0918) said
--- it as `scopeᵗ Δ₁ ≡ scopeᵗ Δ₂` for the contexts at a hole and at its
--- residual.
---
--- THE RESTATEMENT.  A hole's COLOR is its SCOPE MAP, `names Δ` at that
--- hole (strong-rep-store.Residual §2): which ordinary type variables are
--- live there and which representation variable each denotes.  A move
--- can rename the representation universe — an allocating step shifts
--- the redex's siblings by one, `TyPeelR-⟪⟫` shifts the boundary it
--- pushes in, `Beta` sends a copy past a `Λ`'s dual — so the scope map
--- is transported along the representation renaming `ρ` the run
--- delivered to the hole, which `Residuals` records.  Everything
--- else is EQUAL: no ordinary position is added, removed or moved, and a
--- name denotes the same representation variable, read through `ρ`.
--- `TyBeta`/`TyPeelR-Λ`'s refinement of an `abstR` slot to `bindR R`
--- changes what a representation variable IS BOUND TO, not which one a
--- name denotes, so it is invisible to the scope map (and `ρ` is `idᵗ`).
---
--- THE TARGET IS READ AT THE RUN'S OWN CONTEXT (experiment 2,
--- 2026-09-22).  A step returns the change it made to the store, so the
--- run's positions live at `runCtx rs` (strong-rep-store.Reduction), not
--- at Δ: allocating a cell renumbers the ambient name map, which is
--- exactly the `map ρ` the equation already reports.
---
--- In the named presentation (notes/notes.md): a residual position sees
--- exactly the type variables X it saw before, each standing for the same
--- α — up to the α-renaming of the representation universe that the
--- crossed binders impose.
+-- File Charter:
+--   * COLOR PRESERVATION — TWO THEOREMS (Jeremy's ruling, 2026-09-21).
+--     Color is about TYPE variables only, so `ColorPreservation`
+--     concludes `length (names Δ₂) ≡ length (names Δ₁)`, and it is a
+--     COROLLARY of `ScopeMapPreservation`, which pins the whole map:
+--     `names Δ₂ ≡ map ρ (names Δ₁)` — same positions, each denoting
+--     the same representation variable read through the run's ρ.
+--   * A hole's COLOR is its SCOPE MAP, `names Δ` at that hole
+--     (strong-rep-store.Residual §2).  The source is read at Δ and the
+--     target at `runCtx rs`, the context the run ENDS at.
+--   * Both carry `WfCtx Δ` (spent re-typing the run's middle terms);
+--     the `…Closed` forms at `empty` are premise-free beyond the
+--     typing.  The proofs are strong-rep-store.proof.ColorPreservation.
+-- Commentary: Commentary.md § ColorPreservation.agda
 
 open import Data.List using ([]; map; length)
 open import Relation.Binary.PropositionalEquality using (_≡_)
@@ -56,13 +26,9 @@ open import strong-rep-store.Residual
 open import strong-rep-store.proof.Ctx using (wf-empty)
 import strong-rep-store.proof.ColorPreservation as Proof
 
--- THE WELL-FORMEDNESS PREMISE (2026-09-21, added with the proof; the
--- one delta against the reviewed statement).  The run's intermediate
+-- THE WELL-FORMEDNESS PREMISE (2026-09-21): the run's intermediate
 -- terms are re-typed by `preservation`, which is conditional on
--- `WfCtx Δ` — so a run under an arbitrary ambient Δ inherits that
--- premise.  It is the price of decision 5 (stating over any Δ rather
--- than `empty`); `ColorPreservationClosed` below is the v7-faithful
--- closed form, premise-free beyond the typing.
+-- `WfCtx Δ`.  Commentary.md § ColorPreservation.agda
 
 ScopeMapPreservation : Set
 ScopeMapPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}

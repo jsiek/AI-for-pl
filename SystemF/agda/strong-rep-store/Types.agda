@@ -18,7 +18,7 @@ module strong-rep-store.Types where
 --   * ONE SYNTAX, TWO READINGS.  A `Ty` carries no universe tag.  The
 --     same term is read either as an ORDINARY type or as a
 --     REPRESENTATION payload, and it is strong-rep-store.Ctx §5 (`_⊢_~_`,
---     `_⊢_≈_⊣_`, `SameTyExt`) that relates the two readings — never
+--     `_⊢_≈_⊣_`) that relates the two readings — never
 --     anything in this file (notes/DECISIONS.md, 2026-09-20, the
 --     context-layer split by subject).  The consequence for §4:
 --     `single-at` leaves every index but X alone, because a CONCEALED

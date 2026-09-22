@@ -1,49 +1,28 @@
 module strong-rep-store.TermSubst where
 
 -- File Charter:
---   * RENAMING AND SUBSTITUTION ON TERMS — THE PUBLIC HALF.  §1 is the
+--   * RENAMING AND SUBSTITUTION ON TERMS — THE PUBLIC HALF.  §1 the
 --     PAIRED type-level renaming `TyRename = ren² ordinary represent`
---     with `idᵗ`, `renᶠ²`, the scope-level
---     `renᴮ² ρ Θ = map (renᶠ² …) Θ` (a boundary IS its change list,
---     strong-rep-store.Boundary §3) and `underΛ-ren`.  §2 is `renᴹ²` on
---     terms, the REPRESENTATION-ONLY traversal `renᴹᴿ`, and the sibling
---     shifts `↑ᴹ[_]`/`↑ᴮ[_]`.  §5 is substitution — `Img`, `imgTm`,
---     `shiftᴵ`, `crossΛᴹ`, `⇑ᴵ`, `extᴵ`, `substᵐ`, `betaEnv` and
---     `_[_∶_]ᵐ`, the substitution `Beta` performs.
---   * ONLY WHAT A PUBLIC FILE NEEDS IS HERE (2026-09-22, the AGENTS.md
---     public/private mandate).  Every lemma about these operations, and
---     every definition no top-level module mentions — the derived
---     `renᴹ`/`wkN`/`wkᴹ`/`⇑ᴹ`/`id²`/`renᶠ`, the value-preservation and
---     ordinary-identity families, TERM-VARIABLE renaming
---     `extⁿ`/`renⁿ`/`shiftᵐ` with `⊢renⁿ`/`⊢weakenⁿ`, the `⤊`
---     transports, and the typed images `_∣_⊢ⁱ_⦂_` — is
---     strong-rep-store.proof.TermSubst.  That file KEEPS the section
---     numbers its material had here (§1, §2, §3, §4, §5, §6), and the
---     numbers below are unchanged for the same reason: other modules
---     cite them, so do not renumber either file.
---   * WHAT IS DELIBERATELY ONE LAYER DOWN.  `extN` is
---     strong-rep-store.Ctx §8 and the representation-only
---     `renᶠᴿ`/`renᴮᴿ` are strong-rep-store.Boundary §2/§3, beside the
---     syntax they act on, because the representation-renaming metatheory
---     of strong-rep-store.Boundary §3d is stated over them and cannot
---     import this module.  Reduction is strong-rep-store.Reduction; the
---     typing transport for `renᴹᴿ` and `crossΛᴹ` is
---     strong-rep-store.proof.RepWeaken (`rep-weaken-⊢`, `cross-Λ-⊢`).
---   * TWO LAWS A READER MUST KNOW.  (1) Boundaries are TERM-CLOSED
---     (strong-rep-store.Terms `env`), so `substᵐ` does NOT descend into
---     `_⟪_,_⟫`.  (2) Beta is FRAME-EXACT: a closed value image crossing
---     a `Λ` is wrapped in that binder's DUAL with an identity conversion
---     at the argument's type (`crossΛᴹ`, used by `⇑ᴵ`), which is why
---     `_[_∶_]ᵐ` carries the `ƛ`'s own annotation instead of shifting.
+--     with `idᵗ`, `renᶠ²`, `renᴮ²` and `underΛ-ren`.  §2 `renᴹ²`, the
+--     REPRESENTATION-ONLY traversal `renᴹᴿ`, and the sibling shifts
+--     `↑ᴹ[_]`/`↑ᴮ[_]`.  §5 substitution — `Img`, `imgTm`, `shiftᴵ`,
+--     `crossΛᴹ`, `⇑ᴵ`, `extᴵ`, `substᵐ`, `betaEnv`, `_[_∶_]ᵐ`.
+--   * ONLY WHAT A PUBLIC FILE NEEDS IS HERE; every lemma and every
+--     private definition is strong-rep-store.proof.TermSubst, which
+--     KEEPS the section numbers its material had here.  Do not
+--     renumber either file.  `extN` (strong-rep-store.Ctx §8) and
+--     `renᶠᴿ`/`renᴮᴿ` (strong-rep-store.Boundary §2/§3) are one layer
+--     DOWN, beside the syntax they act on.
+--   * TWO LAWS.  (1) Boundaries are TERM-CLOSED, so `substᵐ` does NOT
+--     descend into `_⟪_,_⟫`.  (2) Beta is FRAME-EXACT: a value image
+--     crossing a `Λ` is wrapped in that binder's DUAL (`crossΛᴹ`).
+-- Commentary: Commentary.md § TermSubst.agda
 --
 -- Ordinary type variables and representation variables have distinct de
--- Bruijn universes. Consequently, syntax-level type renaming carries two
--- maps:
---
---   * the ordinary map renames term annotations, type arguments, conversion
---     names, and the positions carried by `lock` and `unlock`;
---   * the representation map renames boundary scope payloads and the
---     representation-variable occurrence carried by every change.
+-- Bruijn universes, so a type renaming carries two maps: the ordinary
+-- one renames annotations, type arguments, conversion names and change
+-- positions; the representation one renames payloads and the
+-- representation-variable occurrence carried by every change.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; map)
@@ -68,13 +47,6 @@ open TyRename public
 
 idᵗ : Renameᵗ
 idᵗ X = X
-
--- `extN` (renaming underneath n binders) and the representation-only
--- `renᶠᴿ`/`renᴮᴿ` live one layer down — `extN` in strong-rep-store.Ctx
--- §8 and the two renamings in strong-rep-store.Boundary §2/§3, beside
--- the syntax they act on — because the representation-renaming
--- metatheory of strong-rep-store.Boundary §3d is stated over them and
--- cannot import this module.
 
 underΛ-ren : TyRename → TyRename
 underΛ-ren (ren² ρᵗ ρʳ) = ren² (extᵗ ρᵗ) (extᵗ ρʳ)
@@ -115,9 +87,8 @@ renᴹᴿ ρ (Λ N)          = Λ (renᴹᴿ (extᵗ ρ) N)
 renᴹᴿ ρ (L ·[ B , A ]) = renᴹᴿ ρ L ·[ B , A ]
 renᴹᴿ ρ (M ⟪ Θ , c ⟫) = renᴹᴿ ρ M ⟪ renᴮᴿ ρ Θ , c ⟫
 
--- THE SIBLING SHIFT (experiment 2).  When a step allocates a cell, every
--- representation variable of the redex's siblings — terms and boundary
--- scopes alike — moves up by one; when it does not, nothing moves.
+-- THE SIBLING SHIFT (experiment 2): `renᴹᴿ suc` when the step
+-- allocated a cell, the identity when it did not.
 ↑ᴹ[_] : Alloc → Term → Term
 ↑ᴹ[ none  ] M = M
 ↑ᴹ[ new R ] M = renᴹᴿ suc M
@@ -143,9 +114,8 @@ shiftᴵ (ivar x)   = ivar (suc x)
 shiftᴵ (ival W A) = ival W A
 
 -- A value crossing `Λ` is weakened only in the free representation
--- universe and wrapped in the binder's dual. The lock removes the fresh
--- ordinary variable, so the surviving ordinary indices retain their old
--- positions; representation occurrences move past the new abstract binder.
+-- universe and wrapped in the binder's dual.
+-- Commentary.md § TermSubst.agda / §5 — crossΛᴹ, ⇑ᴵ
 crossΛᴹ : Term → Ty → Term
 crossΛᴹ W A =
   renᴹ² (ren² idᵗ suc) W
@@ -172,11 +142,8 @@ substᵐ σ (Λ N)          = Λ (substᵐ (λ x → ⇑ᴵ (σ x)) N)
 substᵐ σ (L ·[ B , A ]) = substᵐ σ L ·[ B , A ]
 substᵐ σ (M ⟪ Θ , c ⟫)  = M ⟪ Θ , c ⟫
 
--- The substitution `Beta` performs: the argument, carrying the ƛ's
--- annotation, for variable zero; every other variable steps down.  It is
--- a named function, not a pattern lambda, so that strong-rep-store.Residual
--- can cite the very same substitution when it follows a position through
--- `Beta`.
+-- The substitution `Beta` performs.  A NAMED function, not a pattern
+-- lambda, so that strong-rep-store.Residual can cite the same one.
 betaEnv : Term → Ty → Var → Img
 betaEnv W A zero    = ival W A
 betaEnv W A (suc x) = ivar x

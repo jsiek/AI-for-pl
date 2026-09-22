@@ -1,47 +1,19 @@
 module strong-rep-store.proof.MoveScope where
 
--- THE SCOPE MOVE — the two-layer contractum `CancelR` and `IdPush` build,
--- and the preservation cases they owe.
---
--- THE MOVE.  Both rules SWAP the two conversions of a two-layer wrapper,
--- so the INNER boundary stops presenting the abstract name `` ` Y `` and
--- starts presenting Y's REP.  A rep is a type over the exterior; inside
--- Θ₂'s LOCKS it need not be nameable at all, and `env`'s last premise
--- would then fail.  So the frames move with the conversions:
---
---   (V ⟪ Θ₁ , c ⟫) ⟪ Θ₂ , unseal Y ⟫
---     -→ (V ⟪ Θ₁ ++ Θ₂ , c′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫
---
--- In the two-universe design the frame algebra is RELATIONAL, and the
--- three readings the contractum needs are theorems of
--- `strong-rep-store.Boundary` §3a:
---
---   rewind-interior    the outer frame's interior IS the plain exterior;
---   rewind-conversion  the outer frame's conversion context IS Θ₂'s;
---   merged-interior    the merged frame's interior IS the inner frame's.
---
--- The merged frame's CONVERSION context is not a theorem of the readings
--- the redex carries — it is a rule premise, and both rules carry it.
---
---   §1  the small inversions the two cases share
---   §2  IDPUSH — PROVED
---   §3  CANCELR — PROVED, on the rule repaired 2026-09-19
---
--- WHAT THE STORE DELETED (2026-09-22).  Every `shiftBy`/`shiftRep`
--- occurrence, and with them `ext-lookup`, `same-shiftRVars`,
--- `shiftRep-shiftBy`, `tvMono-extendReps` and `wf-mono`.  A boundary
--- scope carries no bind block, so `rewind Θ₂`'s interior is Δ ITSELF
--- rather than `extendReps (binds Θ₂) Δ`; the cancelled binder's
--- representation variable IS the outer binder's, not `numBinds Θ₁ +` it;
--- and the two `env` comparisons are the SAME relation at the same depth.
--- Both cases lost about a third of their lines to that.
---
--- WHAT WAS DELETED EARLIER (2026-09-19).  Everything this module used to
--- hold about the retired masked-entry design: `applyUnlocks`/
--- `applyChanges` lookup transports (§1), the `shiftScope`/`rewind`/`_++_`
--- list algebra (§2), the `scope`/`interior` context identities (§3), the
--- frame lemmas as EQUALITIES and the lock-only refutation (§4, §4b), and
--- `_⊢ᵐ_` for the two new frames (§5).
+-- File Charter:
+--   * THE SCOPE MOVE — the two-layer contractum `CancelR` and `IdPush`
+--     build, and the preservation cases they owe.  §1 the small
+--     inversions both cases share; §2 IDPUSH, PROVED; §3 CANCELR,
+--     PROVED on the rule repaired 2026-09-19.
+--   * THE MOVE.  Both rules SWAP the two conversions, so the INNER
+--     boundary starts presenting Y's REPRESENTATION — which inside
+--     Θ₂'s locks need not be nameable.  So the frames move too:
+--     `Θ₁ ++ Θ₂` inside, `rewind Θ₂` outside.
+--   * The three readings the contractum needs are theorems of
+--     strong-rep-store.Boundary §3a (`rewind-interior`,
+--     `rewind-conversion`, `merged-interior`); the MERGED frame's
+--     conversion context is not, so both rules carry it as a premise.
+-- Commentary: Commentary.md § proof/MoveScope.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; length)
@@ -89,26 +61,11 @@ var-inj refl = refl
 ------------------------------------------------------------------------
 
 -- The swap makes the INNER boundary the revealing one, so its exterior
--- type becomes the redex's own exterior type C, presented OUTSIDE Θ₂'s
--- locks — `rewind Θ₂`'s interior is exactly the plain exterior, which is
--- where C is nameable.  That is what retires the old wall: the case needs
--- no scoping invariant.
---
--- FOUR MOVES, one per premise of the contractum's inner `env`:
---
---   FRAME       `Θ₁ ++ Θ₂`, whose interior is the inner frame's own
---               (`merged-interior`) and whose conversion context the rule
---               carries.
---   INTERIOR    `V`, retyped EXACTLY where it was.
---   CONVERSION  `unseal X′`.  Its rep IS the OUTER binder's — with the
---               store there is no bind block to shift it past, which is
---               the `idpush-name` equation of proof/IdLayer.agda in its
---               store form.  Its ordinary spelling is the rule-carried
---               `X′`.
---   EXTERIOR    C, re-spelled into the merged conversion context.  The
---               re-spelling exists because a conversion reading only ADDS
---               names (`conversion-live`), so every name of the merged
---               frame's OWN exterior survives into it.
+-- type becomes the redex's own C, presented OUTSIDE Θ₂'s locks — where
+-- `rewind Θ₂`'s interior is, so C is nameable there.  That retires the
+-- old wall: the case needs no scoping invariant.
+-- The four moves, one per premise of the inner `env`:
+-- Commentary.md § proof/MoveScope.agda / §2
 preserve-IdPush : IdPushCase
 preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
                 {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {X′ = X′}
@@ -222,28 +179,11 @@ preserve-IdPush {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ�
 -- §3  CANCELR — PROVED, on the repaired rule
 ------------------------------------------------------------------------
 
--- WHAT THE 2026-09-19 REPAIR BOUGHT.  The old rule re-spelled the inner
--- layer's identity type FROM the OUTER conversion context and so asserted
--- that `A′` denotes the SAME representation as `A`, where the inner
--- `env`'s `SameTyExt (numBinds Θ₁)` demanded `shiftBy (numBinds Θ₁)` of
--- it.  That was refuted at a reachable redex
--- (notes/CancelRShiftWall.agda, notes/CancelRReachabilityWitness.agda).
--- The repaired premise reads the cancelled `seal X`'s OWN source `Aᵢ` at
--- Θ₁'s conversion context `Δ₁ᶜ`.
---
--- WITH THE STORE the two readings that had to be reconciled are the same
--- reading: there is no bind block, so the shift the old proof had to
--- recover (`∋ʳ-push`, `eqRB`) is the identity, and the cancelled binder's
--- representation variable IS the outer binder's.  The premise is still
--- read at `Δ₁ᶜ` — a different NAME MAP, which is what `_⊢_≈_⊣_` is for —
--- so the rule is unchanged; only its proof shrinks.
---
--- THE PROOF IS `preserve-IdPush`'s, and the outer layer is LITERALLY it.
--- The inner layer diverges: `IdPush` mints `unseal X′`, whose SOURCE is a
--- variable and whose TARGET is a LOOKUP; `CancelR` mints `mkId A′`, whose
--- source and target are the SAME type, so ONE type must satisfy both
--- premises of the inner `env` — and the two meet because the rep the
--- seal's source names at `Δ₁ᶜ` is the outer binder's payload `Rc`.
+-- THE PROOF IS `preserve-IdPush`'s, and the outer layer is LITERALLY
+-- it.  The inner layer diverges: `mkId A′`'s source and target are the
+-- SAME type, so ONE type must satisfy both premises of the inner `env`.
+-- What the 2026-09-19 repair bought, and what the store shrank:
+-- Commentary.md § proof/MoveScope.agda / §3
 preserve-CancelR : CancelRCase
 preserve-CancelR {Δ = Δ} {Δᵢ = Δᵢ} {Δ₁ᶜ = Δ₁ᶜ} {Δ⋉ᶜ = Δ⋉ᶜ} {Δᶜ = Δᶜ}
                  {V = V} {Θ₁ = Θ₁} {Θ₂ = Θ₂} {X = X} {Y = Y}

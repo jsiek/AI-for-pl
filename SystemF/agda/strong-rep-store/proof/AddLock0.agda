@@ -1,50 +1,19 @@
 module strong-rep-store.proof.AddLock0 where
 
--- THE MOVED BOUNDARY'S TYPING — `AddLock0Typing`, preservation's last
--- parameter, on the statement the 2026-09-20 `TyPeelR-⟪⟫` repair gave it
--- and the 2026-09-22 store experiment simplified.
---
--- `TyPeelR-⟪⟫` moves the inner boundary out across ONE freshly allocated
--- cell (the type argument's representation, minted by `inst`) and
--- ONE fresh ordinary name for it, and appends `lock 0 0` to the scope.
--- The move is the plain SIBLING SHIFT on the TERM — `renᴹᴿ suc` — because
--- the appended lock acts FIRST in the interior reading and deletes the
--- fresh ordinary name before any of Θ's own changes run.  It is NOT
--- representation-only on the CONVERSION, because a conversion reading
--- SKIPS locks: the fresh name survives there and Θ's own unlocks displace
--- it.  That is the content of notes/AddLock0Wall.agda, and it is why the
--- rule carries the moved spelling `s′` with a `SameConv` instead of
--- renaming for it.
---
--- So the `env` premises transport in two different ways:
---
---   bw-exterior    the statement's own `WfCtx` premise
---   bw-interior    `snoc-lock0-interior-ren` — the lock deletes the fresh
---                  name, leaving `interior-ren` at `suc`
---   bw-conversion  the rule's own premise
---   the interior   `strong-rep-store.proof.RepWeaken.⊢renᴿ` at
---                  `repwk-cons₀ (bindR P) …`: purely representation
---   the conversion `conv-ren` to move the OLD typing onto the new
---                  representation context, then
---                  `strong-rep-store.proof.PeelDual.respell-⊢` to move it
---                  onto the new NAME map.  `respell-⊢` demands
---                  `reps Γ′ ≡ reps Γ`, which is exactly why the rule's
---                  `SameConv` reads the old context through
---                  `renNameCtx`: that keeps the old ordinary positions
---                  and takes the representation context from the moved
---                  side.
---   the two `_⊢_≈_⊣_` premises come back FROM `respell-⊢`, paired with
---                  the old readings; `same-ren` supplies the moved side
---                  and `same-rep-unique` identifies the two
---                  representations.
---   the exterior   `same-weaken` for the fresh ordinary name.  There is
---                  no bind-block shift left to commute with: the
---                  exterior comparison is `≈` at equal depth.
---
--- The retention `respell-⊢` consumes is NOT a new assumption: it is the
--- `keep` component of `strong-rep-store.Boundary.snoc-lock0-conversion-ren`,
--- transported onto the rule's own `Δ⁺ᶜ` by `conversion-functional`.
--- Nothing is postulated.
+-- File Charter:
+--   * THE MOVED BOUNDARY'S TYPING — `AddLock0Typing`, preservation's
+--     last parameter.  §1 one inversion for the moved exterior
+--     reading; §2 the three pieces (`moved-keep`, `moved-conv`,
+--     `moved-sameᵢ`, `moved-sameₑ`); §3 the assembled `env`;
+--     §4 `addLock0-⊢`.
+--   * THE MOVE IS THE SIBLING SHIFT ON THE TERM (`renᴹᴿ suc`, because
+--     the appended `lock 0 0` acts FIRST and deletes the fresh
+--     ordinary name) but NOT on the CONVERSION, because a conversion
+--     reading SKIPS locks — which is why the rule carries the moved
+--     spelling `s′` with a `SameConv` (notes/AddLock0Wall.agda).
+--   * Nothing is postulated: the retention `respell-⊢` consumes is the
+--     `keep` component of `snoc-lock0-conversion-ren`.
+-- Commentary: Commentary.md § proof/AddLock0.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; _++_; map; length)

@@ -1,10 +1,13 @@
 module strong-rep-store.proof.Residual where
 
--- SOUNDNESS OF THE RESIDUAL LAYER (strong-rep-store.Residual): a residual
--- names a position IN THE CONTRACTUM — `plug D N` is the step's target
--- and `plug C M` its source.  These are the sanity lemmas for the
--- statement of color preservation; the theorem itself is
--- proof/ColorPreservation, after Jeremy's review of the statement.
+-- File Charter:
+--   * SOUNDNESS OF THE RESIDUAL LAYER: a residual names a position IN
+--     THE CONTRACTUM — `plug D N` is the step's target and `plug C M`
+--     its source (`residual-source`, `residual-sound`,
+--     `residuals-sound`), via `plug-renCtxᴿ`, `plug-↑` and
+--     `plug-substCtx`.  Sanity lemmas for the color-preservation
+--     STATEMENT; the theorem is strong-rep-store.proof.ColorPreservation.
+-- Commentary: Commentary.md § proof/Residual.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; _++_)

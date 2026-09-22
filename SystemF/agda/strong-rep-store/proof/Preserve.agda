@@ -1,35 +1,19 @@
 module strong-rep-store.proof.Preserve where
 
--- Preservation for the two-universe representation-variable design, on
--- the GLOBAL REPRESENTATION STORE (experiment 2,
--- notes/RepStoreSketch.md).
---
--- §1 recovers type well-formedness from typing and supplies the ordinary
--- type-substitution facts used by elimination.  §1b is `RepRefines` —
--- the `abstR → bindR R` refinement a ∀-elimination performs in place.
--- §2 is `alloc-wf`/`repwk-alloc`/`inst-boundarywf`, everything the
--- ALLOCATION of a cell needs, and the conversions TyBeta and TyPeelR
--- mint.  §3 proves the local reduction cases.  §4 states the four
--- transports that are proved downstream — `CrossΛTyping`,
--- `AddLock0Typing`, `ShiftTyping` and the three crossing cases — and
--- supplies the `AllocWf`/`env-apply` machinery the congruences consume.
--- §5 reads off a step what it did to the store (`step-alloc`), proves
--- `preserve-wf`, and assembles `preserve`/`preserve*` in `Impl`.  (§4b
--- is the crossing cases the downstream modules own.)
---
--- A STEP RETURNS THE CHANGE IT MADE, so the contractum is typed at
--- `apply δ Δ` and the congruences must SHIFT THE REDEX'S SIBLINGS by
--- `↑ᴹ[ δ ]`.  That shift, `ShiftTyping`, is the one lemma the store
--- experiment added; it is today's representation weakening at `ρ = suc`
--- (`strong-rep-store.proof.RepWeaken.shift-⊢`).  What it replaced —
--- `RepWeakenTyping`, the bind-block weakening `Peel` used to need — is
--- gone: the dual's interior is now the exterior itself, so `Peel` moves
--- its argument verbatim.
---
--- ALL FOUR TRANSPORTS have implementations, the last being
--- `AddLock0Typing` — reshaped with the 2026-09-20 `TyPeelR-⟪⟫` repair
--- and proved the same day in `strong-rep-store.proof.AddLock0` — so
--- `strong-rep-store.Preservation` exposes no parameter at all.
+-- File Charter:
+--   * PRESERVATION on the GLOBAL REPRESENTATION STORE.  §1 type
+--     well-formedness from typing and the ordinary type-substitution
+--     facts; §1b `RepRefines`, the in-place `abstR → bindR R`
+--     refinement; §2/§2b the allocation and the minted conversions;
+--     §3 the local reduction cases; §4/§4b the transports and crossing
+--     cases proved downstream, with the `AllocWf`/`env-apply`
+--     machinery; §5 `step-alloc`, `preserve-wf`, and `Impl`.
+--   * A STEP RETURNS THE CHANGE IT MADE, so the contractum is typed at
+--     `apply δ Δ` and the congruences SHIFT THE REDEX'S SIBLINGS
+--     (`ShiftTyping`, the one lemma the store experiment added).
+--   * ALL FOUR TRANSPORTS have implementations, so
+--     strong-rep-store.Preservation exposes no parameter at all.
+-- Commentary: Commentary.md § proof/Preserve.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_; z≤n; s≤s)
 open import Data.Nat.Properties using (_≟_; suc-injective)
@@ -538,15 +522,10 @@ alloc-wf {Δ = Δ} {R = R} w wR =
 repwk-alloc : ∀ {Ξ R} → Ξ ⊢ᴿ R → RepWk suc Ξ (bindR R ∷ Ξ)
 repwk-alloc {R = R} wR = repwk-cons₀ (bindR R) (wf-bindR wR)
 
--- THE INSTANTIATED SCOPE IS AGAIN A BOUNDARY SCOPE WITNESS, read at the
--- ALLOCATED context.  `TyBeta` and both `TyPeelR` clauses mint the cell
--- for the type argument's representation at index 0 and append
--- `unlock 0 0`, which names it; the old changes run underneath, in both
--- universes.  The two readings are `inst-interior` and
+-- THE INSTANTIATED SCOPE IS AGAIN A BOUNDARY SCOPE WITNESS, read at
+-- the ALLOCATED context; the two readings are `inst-interior` and
 -- `inst-conversion` (strong-rep-store.Boundary §3a).
--- `preserve-TyPeelR-⟪⟫` uses it for the moved boundary's exterior;
--- `strong-rep-store.proof.Progress.addLock0-reading` uses it for the
--- `RepWk suc` that the same allocation induces.
+-- Commentary.md § proof/Preserve.agda / §2
 inst-boundarywf : ∀ {Δ Δᵢ Δᶜ Θ A R}
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → names Δ ⊢ A ~ R
@@ -1051,23 +1030,9 @@ preserve-Drop-false wfΔ
 ------------------------------------------------------------------------
 
 -- THREE TRANSPORTS, all PROVED downstream, all internal staging
--- interfaces only: `strong-rep-store.Preservation` instantiates each with
--- its proof, so preservation has no parameter.  The first two need a
--- BINDER (`underΛ`, the appended `lock 0 0`) on top of the renaming; the
--- third, the SIBLING SHIFT, is pure renaming.
---
---   CrossΛTyping   PROVED 2026-09-20,
---                  `strong-rep-store.proof.RepWeaken.cross-Λ-⊢`, as one
---                  `env` around `⊢renᴿ` at `repwk-abst₀`.
---   AddLock0Typing REFUTED, RESHAPED and PROVED, all on 2026-09-20 — see
---                  the note on it below — and reshaped again by the
---                  store, which removed its `numBinds` arithmetic.
---   ShiftTyping    NEW with the store (2026-09-22),
---                  `strong-rep-store.proof.RepWeaken.shift-⊢`.  It
---                  REPLACES `RepWeakenTyping`, the bind-block weakening
---                  `Peel` used to consume: `Peel` moves its argument
---                  verbatim now, and what needs a shift instead is every
---                  congruence's SIBLING.
+-- interfaces only.  The first two need a BINDER on top of the
+-- renaming; the third, the SIBLING SHIFT, is pure renaming.
+-- Commentary.md § proof/Preserve.agda / §4
 CrossΛTyping : Set
 CrossΛTyping = ∀ {Δ W A}
   → WfCtx Δ
@@ -1076,26 +1041,13 @@ CrossΛTyping = ∀ {Δ W A}
   → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
 
 -- RESHAPED WITH THE RULE (2026-09-20) AND AGAIN WITH THE STORE
--- (2026-09-22).  The moved boundary crosses ONE fresh cell and ONE fresh
--- ordinary name for it, so its interior term and its scope get exactly
--- the SIBLING SHIFT — `renᴹᴿ suc` and `renᴮᴿ suc`, with no bind-block
--- offset to compute, since a boundary carries no binds any more.  The
--- moved conversion is still NAMED (`s′`) and pinned by a `SameConv`
--- against the old conversion context viewed through the representation
--- renaming the allocation makes (`renNameCtx suc`) — that was the
--- 2026-09-20 repair (strong-rep-store.notes.AddLock0Wall), and it stays.
---
--- PROVED in `strong-rep-store.proof.AddLock0.addLock0-⊢`: the
--- `env`-to-`env` transport across one allocated cell and one fresh
--- ordinary name.  The interior reading is
--- `strong-rep-store.Boundary.snoc-lock0-interior-ren` (the appended lock
--- DELETES the fresh name, so what is left is `interior-ren`), the
--- interior term is `strong-rep-store.proof.RepWeaken.⊢renᴿ` at
--- `repwk-alloc`, and the conversion is `conv-ren`
--- (strong-rep-store.Conversion §2d) followed by
--- `strong-rep-store.proof.PeelDual.respell-⊢` — whose `reps Γ′ ≡ reps Γ`
--- premise is exactly what `renNameCtx` arranges.  It stays a PARAMETER of
--- `Impl` here only because its proof imports this module.
+-- (2026-09-22): the moved boundary's interior term and scope get
+-- exactly the SIBLING SHIFT, and the moved conversion is NAMED and
+-- pinned by a `SameConv` against `renNameCtx suc` of the old
+-- conversion context.  PROVED in
+-- strong-rep-store.proof.AddLock0.addLock0-⊢; it stays a PARAMETER of
+-- `Impl` here only because that proof imports this module.
+-- Commentary.md § proof/Preserve.agda / §4
 AddLock0Typing : Set
 AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
   → WfCtx ((bindR P ∷ reps Δ) ∣
@@ -1111,20 +1063,11 @@ AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
         (renᴹᴿ suc W ⟪ (renᴮᴿ suc Θ ++ (lock 0 0 ∷ [])) , `∀ s′ ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
--- THE SIBLING SHIFT — the one new lemma of the store experiment
--- (notes/RepStoreSketch.md §2).  When a step allocates a cell, the whole
--- program lives under one more representation binder, so every SIBLING of
--- the redex moves up by one.  `renᴹᴿ` is representation-only by
--- construction, so the sibling's TYPE and every ordinary spelling are
--- unchanged.  It is today's rep-weakening at `ρ = suc`, PROVED in
--- `strong-rep-store.proof.RepWeaken.shift-⊢` as
--- `⊢renᴿ (repwk-alloc wR)`.
---
--- THE PAYLOAD MUST BE WELL FORMED.  Without `reps Δ ⊢ᴿ R` the statement
--- is FALSE: a boundary's `env` stores a `BoundaryWf` whose `bw-exterior`
--- demands a `WfCtx` of the allocated context, and `WfRepCtx (bindR R ∷ Ξ)`
--- holds only when R checks over Ξ.  At every call site it is
--- `same-wfᴿ` of the rule's own `Δ ⊢ᶜ A ~ R` premise (`step-alloc`).
+-- THE SIBLING SHIFT — the one new lemma of the store experiment.
+-- THE PAYLOAD MUST BE WELL FORMED: without `reps Δ ⊢ᴿ R` the statement
+-- is FALSE, and at every call site it is `same-wfᴿ` of the rule's own
+-- `Δ ⊢ᶜ A ~ R` premise (`step-alloc`).
+-- Commentary.md § proof/Preserve.agda / §4
 ShiftTyping : Set
 ShiftTyping = ∀ {Δ Γ M A R}
   → reps Δ ⊢ᴿ R
@@ -1158,11 +1101,9 @@ apply-wf w (aw-new wR) = alloc-wf w wR
 ⊢↑ shift aw-none ⊢M = ⊢M
 ⊢↑ shift (aw-new wR) ⊢M = shift wR ⊢M
 
--- THE BOUNDARY CASE OF THE CONGRUENCE.  The interior stepped at Δᵢ and
--- its contractum lives at `apply δ Δᵢ`; the new boundary is read at
--- `apply δ Δ` by `interior-ren`/`conversion-ren` at `suc`, and that
--- reading's interior IS `apply δ Δᵢ` — a boundary keeps the store, so
--- `reps Δᵢ ≡ reps Δ`.  Everything else transports by rep weakening.
+-- THE BOUNDARY CASE OF THE CONGRUENCE: the new boundary's reading at
+-- `apply δ Δ` has interior `apply δ Δᵢ`, because a boundary keeps the
+-- store.  Commentary.md § proof/Preserve.agda / §4
 env-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Cᵢ Cₑ Bₑ} {δ : Alloc}
   → AllocWf δ Δ
   → BoundaryWf Δ Θ Δᵢ Δᶜ
@@ -1397,36 +1338,10 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 -- §4b. Preservation assembled over the downstream crossing cases
 ------------------------------------------------------------------------
 
--- The downstream crossing cases and transports stay module parameters HERE
--- because their proofs import this module.  `strong-rep-store.Preservation`
--- plugs in
--- every implementation, including `CrossΛTyping` and `AddLock0Typing`, and
--- exposes NO public parameter at all.  Until 2026-09-20 `AddLock0Typing` was
--- REFUTED and `Impl.preserve` a conditional theorem with a false
--- hypothesis; the `TyPeelR-⟪⟫` repair installed that day reshaped it
--- (strong-rep-store.notes.AddLock0Wall), and
--- `strong-rep-store.proof.AddLock0.addLock0-⊢`
--- proved the reshaped statement, which made preservation UNCONDITIONAL.
---
---   CrossΛTyping PROVED (2026-09-20) —
---                `strong-rep-store.proof.RepWeaken.cross-Λ-⊢`.
---   AddLock0Typing PROVED (2026-09-20), on the statement RESHAPED with the
---                `TyPeelR-⟪⟫` repair of the same day —
---                `strong-rep-store.proof.AddLock0.addLock0-⊢`.  The old
--- statement
---                fixed the moved conversion at `renᶜ (extᵗ suc) s` and was
---                REFUTED from a closed, plain source program
---                (notes/AddLock0Wall.agda, which keeps that statement
---                locally and still refutes it).
---   PeelCase     PROVED UNCONDITIONALLY (2026-09-20), and SHRUNK by the
---                store (2026-09-22) — `strong-rep-store.proof.PeelDual`.
---                The dual's interior IS the exterior (`dual-interior`),
---                so the crossing argument moves VERBATIM and the rule's
---                old `renᴹ² (wkN (numBinds Θ))` is gone with the binds.
---   IdPushCase   PROVED outright —
---                `strong-rep-store.proof.MoveScope.preserve-IdPush`.
---   CancelRCase  PROVED outright, on the rule REPAIRED 2026-09-19 —
---                `strong-rep-store.proof.MoveScope.preserve-CancelR`.
+-- These stay module parameters HERE because their proofs import this
+-- module; strong-rep-store.Preservation plugs in every implementation
+-- and exposes NO public parameter at all.  Who proves what, and when:
+-- Commentary.md § proof/Preserve.agda / §4b
 
 PeelCase : Set
 PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
@@ -1469,9 +1384,7 @@ IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A C}
 ------------------------------------------------------------------------
 
 -- ONLY THE THREE ∀-ELIMINATIONS ALLOCATE, and each carries the reading
--- `Δ ⊢ᶜ A ~ R` that makes the minted cell well formed (`same-wfᴿ`).  The
--- congruences pass the change up; `ξ-⟪⟫` passes it across a boundary,
--- which keeps the store (`interior-reps`).  NO TYPING DERIVATION IS
+-- that makes the minted cell well formed.  NO TYPING DERIVATION IS
 -- NEEDED — the rule premises and `WfCtx Δ` are enough.
 step-alloc : ∀ {Δ M M′ δ} → WfCtx Δ → Δ ⊢ M -→ M′ ∣ δ → AllocWf δ Δ
 step-alloc wfΔ (TyBeta v p) = aw-new (same-wfᴿ wfΔ p)

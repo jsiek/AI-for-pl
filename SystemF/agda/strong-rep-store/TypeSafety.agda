@@ -1,64 +1,20 @@
 module strong-rep-store.TypeSafety where
 
 -- File Charter:
---   * THE WHOLE PUBLIC THEOREM SURFACE, STATED EXPLICITLY IN ONE PLACE.
---     `Progress`, `Preservation`, `PreservationWf`, `Preservation*` and
---     `TypeSafety` are written out here rather than re-exported, and
---     `TypeSafety` is the COMPOSITION of progress and preservation: from
---     `WfCtx Δ`, `Δ ∣ [] ⊢ M ⦂ A` and a run `r : Δ ⊢ M -→* N`, N is a
---     `Value` or N steps — at `runCtx r`, the context the run ENDS at.
---     `det` and `value-¬step` are re-stated here and delegate to
---     strong-rep-store.Reduction.
---   * NO PROOFS AND NO DEFINITIONS.  Every right-hand side is a
---     delegation: strong-rep-store.Preservation, strong-rep-store.Progress,
---     strong-rep-store.proof.TypeSafety and strong-rep-store.Reduction.
---     The refutations that shaped these statements are the wall modules
---     under notes/, and the dated record is notes/DECISIONS.md.
---   * A STEP RETURNS THE CHANGE IT MADE TO THE STORE.  `_⊢_-→_∣_` is
---     indexed by an `Alloc` — `none`, or `new R` when a ∀-elimination
---     allocated the cell for R — and the contractum lives at
---     `apply δ Δ` (experiment 2, notes/RepStoreSketch.md).  So
---     preservation MOVES the context, `PreservationWf` keeps it well
---     formed, and `det` concludes that the PAIR `(M′ , δ)` is unique.
+--   * THE WHOLE PUBLIC THEOREM SURFACE, STATED EXPLICITLY IN ONE
+--     PLACE: `Progress`, `Preservation`, `PreservationWf`,
+--     `Preservation*` and `TypeSafety`, the last being the
+--     COMPOSITION of progress and preservation at `runCtx r`.  `det`
+--     and `value-¬step` are re-stated here too.
+--   * NO PROOFS AND NO DEFINITIONS: every right-hand side delegates.
+--   * A STEP RETURNS THE CHANGE IT MADE TO THE STORE, so preservation
+--     MOVES the context and `det` concludes the PAIR `(M′ , δ)` is
+--     unique.
 --   * THE PREMISES ARE NOT UNIFORM, AND THAT IS THE POINT.
---     `preservation` (and everything built on it, `type-safety`
---     included) takes `WfCtx Δ`; the premise-free form is FALSE here,
---     because at a duplicate name map a TyBeta contractum must mint a
---     `BoundaryWf` that `Unique` refuses (notes/DECISIONS.md,
---     2026-09-18).  `progress` takes NO such premise — a boundary case
---     reads well-formedness off its own `env`.  `det` takes the
---     REDEX'S TYPING DERIVATION, from which it recovers the name-map
---     uniqueness the rules used to carry as premises (same entry).  The
---     reduction relation is indexed by the type context Δ only; the
---     term context is empty, as it must be.
---
--- THE WHOLE SURFACE HOLDS OUTRIGHT:
---
---   det            reduction is deterministic on well-typed terms —
---                  contractum AND store change
---   value-¬step    values do not step
---   preservation   a well-typed term stays well typed, at `apply δ Δ`
---   preservation-wf  and that context stays well formed
---   preservation*  and along a whole run, at `runCtx r`
---   progress       a well-typed closed term is a value or steps
---   type-safety    every state reached is a value or steps
---
--- PRESERVATION BECAME UNCONDITIONAL ON 2026-09-20, in three steps of the
--- same day: `RepWeakenTyping` was proved, making `PeelCase`
--- unconditional; `CrossΛTyping` was proved, making Beta unconditional;
--- and `AddLock0Typing`, which `notes/AddLock0Wall.agda` had REFUTED that
--- morning, was answered by the RULE repair Jeremy approved (the moved
--- conversion is NAMED and pinned by `SameConv`) and then PROVED on the
--- reshaped statement.  That was the second rule defect of the shape
--- `CancelRCase`'s had (refuted by `notes/CancelRShiftWall.agda`,
--- reached from source by `notes/CancelRReachabilityWitness.agda`,
--- repaired by Jeremy's repair (a) on 2026-09-19 and proved).  The final
--- progress obligation, `MergedReading`, was proved on 2026-09-21.
---
--- THE STORE EXPERIMENT (2026-09-22) kept every one of those statements
--- and retired one of the lemmas behind them: `Peel` no longer moves its
--- argument at all, so `RepWeakenTyping` is gone, replaced by the SIBLING
--- SHIFT `ShiftTyping` that the four congruences consume.
+--     `preservation` takes `WfCtx Δ` (the premise-free form is FALSE);
+--     `progress` takes none; `det` takes the REDEX'S TYPING
+--     DERIVATION.
+-- Commentary: Commentary.md § TypeSafety.agda
 
 open import Data.List using ([])
 open import Data.Sum using (_⊎_)

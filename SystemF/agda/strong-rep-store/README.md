@@ -164,6 +164,10 @@ that older calculus, not this one.
 
 ## Module map
 
+Each file keeps a short charter at its top; the design, history and
+rationale commentary that used to sit inline is **`Commentary.md`**,
+keyed by module and definition in source order.
+
 ### The calculus (top level)
 
 | file | one line |

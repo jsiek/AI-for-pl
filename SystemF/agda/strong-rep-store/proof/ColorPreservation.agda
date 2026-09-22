@@ -1,35 +1,20 @@
 module strong-rep-store.proof.ColorPreservation where
 
--- COLOR PRESERVATION — the proof (statement approved by Jeremy,
--- 2026-09-21; strong-rep-store.ColorPreservation states it publicly).
---
--- THE SHAPE.  `residual-frame` is the per-step theorem: from the source
--- position's frame derivation it CONSTRUCTS the target position's, at
--- the context `apply δ Δ` the step's store change left, with the
--- scope-map equation `names Δ₂ ≡ map ρ (names Δ₁)`.  Every rule but the
--- movers is frame-for-frame (the interior lemmas of
--- strong-rep-store.Boundary §3a supply the new boundary frames'
--- readings: `inst-interior`, `dual-interior`, `rewind-interior`,
--- `merged-interior`); the movers — TyPeelR-⟪⟫'s inner boundary, the
--- siblings an allocating congruence shifts, and Beta's copies under
--- `crossΛᴹ` — go through `⊢C-ren`, the transport of a frame derivation
--- along a representation-only renaming, whose boundary case is
--- `interior-ren`/`RepWk` (Boundary §3d) and whose conclusion is exactly
--- the `holeᴿ` the residual's ρ index records.  `residuals-color`
--- composes the per-step equations along `ρ′ ∘ ρ`, re-typing each
--- intermediate term by `preservation` and carrying its context's
--- well-formedness by `preservation-wf` — which is where the theorem's
--- `WfCtx Δ` premise is spent.
---
--- WHAT THE STORE CHANGED (experiment 2, 2026-09-22).  `Peel`'s argument
--- no longer crosses a bind block — `dual-interior` lands it at the
--- exterior itself — so `repwk-wkN`/`wkN-+` are gone from this proof, and
--- with them the last use of the typing premise inside `residual-frame`:
--- what the per-step theorem needs now is the AMBIENT's well-formedness,
--- because the sibling shift is `repwk-alloc` at the allocated payload
--- (`same-wfᴿ`, `step-alloc`).  The three Alloc-indexed transports
--- `⊢C-shift`, `interior-apply` and `⊢C-len` are the whole store
--- bookkeeping.
+-- File Charter:
+--   * COLOR PRESERVATION — the proof.  §1 map bookkeeping; §2 the
+--     frame judgement ignores the store beyond its LENGTH; §3 it is
+--     functional; §4 `Beta`'s substitution never moves a frame;
+--     §5 the `crossΛᴹ` dual has a reading everywhere; §6 `⊢C-ren`, THE
+--     TRANSPORT; §6a the store change on a frame; §7 the copies;
+--     §8 `residual-frame`, the PER-STEP theorem; §9 `residuals-color`;
+--     §10 the COLOR corollary.
+--   * THE SHAPE.  `residual-frame` CONSTRUCTS the target position's
+--     frame at `apply δ Δ` with `names Δ₂ ≡ map ρ (names Δ₁)`.  Every
+--     rule but the movers is frame-for-frame (Boundary §3a's interior
+--     lemmas); the movers go through `⊢C-ren`.  `residuals-color`
+--     composes along `ρ′ ∘ ρ`, spending the `WfCtx Δ` premise on
+--     `preservation`/`preservation-wf`.
+-- Commentary: Commentary.md § proof/ColorPreservation.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.Nat.Properties using (suc-injective)

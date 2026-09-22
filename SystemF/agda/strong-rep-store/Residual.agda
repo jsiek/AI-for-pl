@@ -1,52 +1,22 @@
 module strong-rep-store.Residual where
 
 -- File Charter:
---   * ONE-HOLE TERM CONTEXTS, THE SCOPE MAP AT A HOLE, AND RESIDUALS.
---     This is the layer the COLOR PRESERVATION theorem
---     (strong-rep-store.ColorPreservation) is stated in.  §1 is `TermCtx`
---     with `plug`; §2 is `_⊢C_⊣_`, the type context AT THE HOLE — the
---     hole's SCOPE MAP is its `names`; §3 renames a context in the
---     REPRESENTATION UNIVERSE exactly as `renᴹᴿ` renames a term, and
---     reads off the renaming that reaches the hole; §4 pushes `Beta`'s
---     substitution through a context; §5 is `Residual`, ONE STEP, and §6
---     `Residuals`, a whole run.
---   * WHAT A RESIDUAL RECORDS (2026-09-21, the v7 restatement).  A
---     position is a pair `(C , M)`, the hole and the node in it.  A step
---     moves a retained node to a new position `(D , N)`, and every move
---     in this calculus except `TyBeta`'s refinement is
---     REPRESENTATION-ONLY (proof/ShiftAudit §3): the node is `M` renamed
---     by some `renᴹᴿ ρ`, so the residual relation carries that `ρ` — the
---     representation renaming that reaches the hole — as an index.
---     `Residuals` composes them along a run.  The theorem then says the
---     scope map at `D` is the scope map at `C` under `ρ`.
---   * WHAT THE STORE CHANGED (experiment 2, 2026-09-22,
---     notes/RepStoreSketch.md).  A boundary no longer carries a bind
---     block, so NO rule moves a subterm past one: the only
---     representation move left is the UNIFORM SIBLING SHIFT a step's
---     allocation imposes — `suc` when the step returns `new R`, the
---     identity when it returns `none` (`↑ᶜ[_]`/`↑ᴴ[_]`/`↑ʳ[_]` in §3).
---     `Peel`'s argument therefore moves VERBATIM (`dual-interior` lands
---     it at the exterior itself), and the redex's own contractum keeps
---     `idᵗ`: `TyBeta`'s and `TyPeelR-Λ`'s body sits under the `Λ` binder
---     that BECOMES the allocated cell, so its indices are already right.
---     The one position that still moves inside a redex is
---     `TyPeelR-⟪⟫`'s inner boundary, a SIBLING of that `Λ`, which gets
---     exactly `suc`.  What went with the bind block: the paired
---     `renCtx²`/`holeRen²`, whose boundary clause stepped past
---     `numBinds Θ` representation binders, and the `moveᴿ` wrapper —
---     §3 is now the representation-only `renCtxᴿ`/`holeᴿ`.
---   * WHICH NODES HAVE RESIDUALS.  The nodes of the redex itself are
---     CONSUMED — the application node `Peel` pushes through a boundary,
---     the `Λ` and `·[]` nodes `TyBeta` eliminates, the `ƛ` and `·` nodes
---     of `Beta`, the boundary nodes every boundary rule re-mints.  Every
---     node strictly inside a retained subterm has exactly one residual,
---     except that a term variable `Beta` substitutes is replaced by a copy
---     of the argument (`CopyResidual`), and `Drop$`/`Drop-true`/
---     `Drop-false` consume their literal with its boundary — a literal
---     has no scope to preserve (proof/ShiftAudit §7, "vacuous").
---   * THIS MODULE PROVES NOTHING.  The sanity lemma that `plug D N` is the
---     step's contractum is strong-rep-store.proof.Residual, and the
---     theorem is strong-rep-store.proof.ColorPreservation.
+--   * ONE-HOLE TERM CONTEXTS, THE SCOPE MAP AT A HOLE, AND RESIDUALS —
+--     the layer strong-rep-store.ColorPreservation is stated in.
+--     §1 `TermCtx`/`plug`; §2 `_⊢C_⊣_`, the type context AT THE HOLE,
+--     whose `names` IS the hole's scope map; §3 representation-only
+--     renaming of a context (`renCtxᴿ`/`holeᴿ`) and the sibling shift
+--     `↑ᶜ[_]`/`↑ᴴ[_]`/`↑ʳ[_]`; §4 `Beta`'s substitution through a
+--     context; §5 `Residual`, ONE step; §6 `Residuals`, a whole run.
+--   * WHAT A RESIDUAL RECORDS.  A position is a pair `(C , M)`.  Every
+--     move but `TyBeta`'s refinement is REPRESENTATION-ONLY, so the
+--     relation carries as an INDEX the renaming ρ that reaches the
+--     hole.  Since experiment 2 ρ is `idᵗ` everywhere but in
+--     `TyPeelR-⟪⟫`'s pushed-in boundary and in a shifted sibling.
+--   * THE REDEX'S OWN NODES ARE CONSUMED; a substituted variable's
+--     position becomes the argument copy's (`CopyResidual`).
+--   * THIS MODULE PROVES NOTHING.
+-- Commentary: Commentary.md § Residual.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_; _++_)
@@ -100,12 +70,7 @@ plug (C ·C[ B , A ]) M   = plug C M ·[ B , A ]
 plug (C ⟪C Θ , c ⟫) M    = plug C M ⟪ Θ , c ⟫
 
 ------------------------------------------------------------------------
--- 2. The type context at the hole.  Its `names` is the hole's SCOPE MAP:
---    which ordinary type variables are live there (the positions) and
---    which representation variable each denotes (the entries).  `ƛ`, `·`
---    and `·[]` frames bind no type variable; `Λ` binds one in both
---    universes; a boundary frame moves to the INTERIOR its boundary scope
---    relates the frame's context to.
+-- 2. The type context at the hole.  Its `names` is the hole's SCOPE MAP.
 ------------------------------------------------------------------------
 
 infix 3 _⊢C_⊣_
@@ -121,9 +86,7 @@ data _⊢C_⊣_ : Ctxᵗ → TermCtx → Ctxᵗ → Set where
 
 ------------------------------------------------------------------------
 -- 3. Renaming a context in the REPRESENTATION universe, clause for
---    clause with `renᴹᴿ`, and the renaming that reaches its hole: only a
---    `Λ` frame changes it, and a boundary frame does not — crossing a
---    boundary no longer crosses a bind block.
+--    clause with `renᴹᴿ`, and the renaming that reaches its hole.
 ------------------------------------------------------------------------
 
 renCtxᴿ : Renameᵗ → TermCtx → TermCtx
@@ -144,13 +107,10 @@ holeᴿ ρ (ΛC C)          = holeᴿ (extᵗ ρ) C
 holeᴿ ρ (C ·C[ B , A ]) = holeᴿ ρ C
 holeᴿ ρ (C ⟪C Θ , c ⟫)  = holeᴿ ρ C
 
--- THE SIBLING SHIFT AT A POSITION.  A step returns the change `δ` it
--- made to the store and the congruences shift the redex's siblings by
--- `↑ᴹ[ δ ]` (strong-rep-store.TermSubst §2).  A position inside such a
--- sibling therefore moves by the same shift, split into its three
--- halves: the context around it, the node in it, and the renaming that
--- reaches the hole.  At `none` all three are the identity ON THE NOSE,
--- which is what keeps the `_-→_∣ none` rules' residuals `idᵗ`.
+-- THE SIBLING SHIFT AT A POSITION, split into its three halves: the
+-- context, the node, and the renaming that reaches the hole.  At `none`
+-- all three are the identity ON THE NOSE.
+-- Commentary.md § Residual.agda / §3
 ↑ᶜ[_] : Alloc → TermCtx → TermCtx
 ↑ᶜ[ none  ] C = C
 ↑ᶜ[ new R ] C = renCtxᴿ suc C
@@ -165,10 +125,8 @@ holeᴿ ρ (C ⟪C Θ , c ⟫)  = holeᴿ ρ C
 
 ------------------------------------------------------------------------
 -- 4. `Beta`'s substitution through a context, clause for clause with
---    `substᵐ`: a boundary frame is term-closed, so the substitution stops
---    there.  `holeEnv` is the substitution that reaches the hole, and
---    `Stable` says the node in the hole SURVIVES it — every node but a
---    substituted variable.
+--    `substᵐ`: a boundary frame is term-closed, so it stops there.
+--    `Stable` says the node in the hole SURVIVES the substitution.
 ------------------------------------------------------------------------
 
 substCtx : (Var → Img) → TermCtx → TermCtx
@@ -200,19 +158,11 @@ data Stable (σ : Var → Img) : Term → Set where
   stable-·[]   : Stable σ (L ·[ B , A ])
   stable-⟪⟫    : Stable σ (N ⟪ Θ , c ⟫)
 
--- A copy of the argument, at one substituted occurrence.  Each `Λ` the
--- occurrence sits under wraps the copy in that binder's dual
--- (`crossΛᴹ`, strong-rep-store.TermSubst §5): the position moves inside
--- one more boundary frame and one more representation-only `suc`.
---
--- THE DEPTH INDEX (2026-09-21, restored from v7 during the proof).  The
--- ℕ counts the `Λ`s the copy walk has descended, and `image-here`
--- demands it be zero.  Without it the relation admits a WRONG-POSITION
--- derivation: when the β-redex's argument is itself a `crossΛᴹ`-shaped
--- wrapper, `⇑ᴵ (ival V A)` is again an `ival`, so a depth-1 occurrence
--- could match `image-here` and claim the UNWRAPPED source position at
--- the ambient one `Λ` in — and for that derivation the color equation
--- is false.  The index pins the leaf to the walk's actual depth.
+-- A copy of the argument, at one substituted occurrence; each `Λ` it
+-- sits under wraps the copy in that binder's dual.  THE DEPTH INDEX
+-- counts those `Λ`s and pins `image-here` to depth zero — without it
+-- the relation admits a wrong-position derivation.
+-- Commentary.md § Residual.agda / ImageResidual
 data ImageResidual : ℕ → Img → TermCtx → Term → Renameᵗ → TermCtx
                    → Term → Set where
   image-here : ∀ {C M}
@@ -223,10 +173,8 @@ data ImageResidual : ℕ → Img → TermCtx → Term → Renameᵗ → TermCtx
         (renCtxᴿ suc D ⟪C (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
         (renᴹᴿ (holeᴿ suc D) N)
 
--- Positions inside a copy of the argument, followed through the body
--- to the occurrence that receives it.  The body's binders extend the
--- substitution exactly as `substᵐ` does; a boundary in the body receives
--- no copy.
+-- Positions inside a copy of the argument, followed through the body to
+-- the occurrence that receives it.
 data CopyResidual (k : ℕ) (σ : Var → Img)
   : Term → TermCtx → Term → Renameᵗ → TermCtx → Term → Set where
   copy-var : ∀ {x C M D N}
@@ -250,20 +198,15 @@ data CopyResidual (k : ℕ) (σ : Var → Img)
 
 ------------------------------------------------------------------------
 -- 5. Residuals of one step.  `Residual r C M ρ D N`: the step `r` moves
---    the node `M` in hole `C` to hole `D` as `N`, and the representation
---    renaming that reaches the hole is `ρ`.  The site-by-site moves are
---    proof/ShiftAudit §1's table; `ρ` is that table's third column, and
---    since the store it is `idᵗ` everywhere but in `TyPeelR-⟪⟫`'s moved
---    boundary and in a sibling the allocating step shifted.
+--    the node `M` in hole `C` to hole `D` as `N`, with representation
+--    renaming `ρ` reaching the hole (proof/ShiftAudit §1's table).
 ------------------------------------------------------------------------
 
 data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
               → TermCtx → Term → Renameᵗ → TermCtx → Term → Set where
 
-  -- TyBeta: the body stays where it is; its `Λ` slot BECOMES the
-  -- allocated cell (refinement `abstR → bindR R`, no move), and the
-  -- scope `inst []` re-unlocks the body's own name for
-  -- it — so the body's indices are already right and ρ is `idᵗ`.
+  -- TyBeta: the body stays where it is — its `Λ` slot BECOMES the
+  -- allocated cell — so ρ is `idᵗ`.
   residual-TyBeta : ∀ {R C M}
     (vN : Value (plug C M)) (pA : Δ ⊢ᶜ A ~ R)
     → Residual (TyBeta {Δ = Δ} {B = B} {A = A} {N = plug C M} vN pA)
@@ -295,9 +238,7 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
         ((C ⟪C Θ , s ↦ t ⟫) ·L W) M idᵗ
         ((C ·L (W ⟪ dual Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
-  -- Peel, the argument: it crosses into the dual VERBATIM.  There is no
-  -- bind block to cross any more, and `dual-interior` lands the dual's
-  -- interior at the exterior itself, so ρ is `idᵗ`.
+  -- Peel, the argument: it crosses into the dual VERBATIM.
   residual-Peel-arg : ∀ {Δᶜ Δᵈ V C M s s′ t}
     (vV : Value V) (vW : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
@@ -316,9 +257,9 @@ data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
         (((ΛC C) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M idᵗ
         (C ⟪C inst Θ , instReveal 0 s ⟫) M
 
-  -- TyPeelR-⟪⟫: the inner boundary is a SIBLING of the `Λ` slot the
-  -- allocation consumes, so its interior gets exactly the sibling shift
-  -- `suc` — the one non-identity ρ a redex still produces.
+  -- TyPeelR-⟪⟫: the inner boundary is a SIBLING of the consumed `Λ`
+  -- slot, so it gets exactly `suc` — the one non-identity ρ a redex
+  -- still produces.
   residual-TyPeelR-⟪⟫ : ∀ {Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ C M Θ′ s′ s″ s R Bᵢ Bᵢ′ Bₑ}
     (vW : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ)

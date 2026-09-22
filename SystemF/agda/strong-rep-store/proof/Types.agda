@@ -1,20 +1,14 @@
 module strong-rep-store.proof.Types where
 
 -- File Charter:
---   * THE LEMMAS ABOUT `renameᵗ` AND `substᵗ` that the two-universe
---     layer needs: `substᵗ-cong`, `extsᵗ-renᵗ`, and the agreement of
---     renaming with substitution, `substᵗ-renᵗ`.
---   * NOT THE DEFINITIONS (strong-rep-store.Types), and not the full algebraic
---     theory — composition, `sub-sub`, `substitution`, the `_[_]ᵗ`
---     commutation laws — which is strong-rep-store.proof.TypeSubst.  This module
--- is
---     the private half of strong-rep-store.Types under the repo's public/private
---     split (notes/DECISIONS.md, 2026-09-20).
---   * IT IS THE BOTTOM OF THE HIERARCHY.  It imports strong-rep-store.Types and
---     the standard library and NOTHING else, which is what lets
---     strong-rep-store.Ctx, strong-rep-store.proof.Ctx and strong-rep-store.Boundary
--- stand on it.
---     Keep that import list closed when adding a lemma.
+--   * THE LEMMAS ABOUT `renameᵗ` AND `substᵗ` the two-universe layer
+--     needs: `substᵗ-cong`, `extsᵗ-renᵗ`, `substᵗ-renᵗ`.
+--   * NOT THE DEFINITIONS (strong-rep-store.Types) and not the full
+--     algebraic theory (strong-rep-store.proof.TypeSubst).
+--   * IT IS THE BOTTOM OF THE HIERARCHY: it imports
+--     strong-rep-store.Types and the standard library and NOTHING
+--     else.  Keep that import list closed when adding a lemma.
+-- Commentary: Commentary.md § proof/Types.agda
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Relation.Binary.PropositionalEquality

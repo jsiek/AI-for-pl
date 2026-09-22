@@ -1,27 +1,18 @@
 module strong-rep-store.proof.Canonical where
 
--- CANONICAL FORMS for the conversion-boundary calculus.
---
--- A closed value is one of five shapes, and its EXTERIOR TYPE decides
--- which.  The whole suite is driven by ONE observation: for a wrapper
--- value `V ⟪ Θ , c ⟫` the `env` rule relates the EXTERIOR TYPE and the
--- TARGET TYPE of `c` through `SameTyExt`.  Its common representation type is
--- shifted past Θ's representation binders on the conversion side, and an
--- INERT `c` determines that target type's head constructor outright:
---
---   id (` X)  ⇝  ` X          I-idv
---   seal X    ⇝  ` X          I-seal
---   s ↦ t     ⇝  A′ ⇒ B′      I-fun
---   `∀ s      ⇝  `∀ B         I-all
---
--- Neither ACTIVE conversion can occur under `V-⟪⟫`, so no inert
--- conversion has a BASE target at all — which is why `canon-base` returns
--- a numeral OUTRIGHT (§3), with no wrapper escape hatch.  Dually, the two
--- conversions with a VARIABLE target are exactly `seal` and the
--- id-at-a-variable — the two left-hand sides of CancelR and IdPush (§3,
--- canon-var).  This is the v1 "canon-var nightmare", dissolved: it is a
--- two-way case split on a conversion constructor, with no rep comparison
--- anywhere.
+-- File Charter:
+--   * CANONICAL FORMS.  §1 `≈` preserves the exterior type's head
+--     constructor; §2 what an INERT conversion can look like, read off
+--     its TARGET type; §3 `canon-base`, `canon-ℕ`, `canon-⇒`,
+--     `canon-∀`, `canon-var`.
+--   * ONE OBSERVATION DRIVES THE SUITE: for a wrapper value
+--     `V ⟪ Θ , c ⟫`, `env` relates the EXTERIOR type and the TARGET
+--     type of `c` by `_⊢_≈_⊣_`, and an INERT `c` determines that
+--     target's head constructor outright (`id (` X)`/`seal X` ⇝ a
+--     variable, `s ↦ t` ⇝ an arrow, `` `∀ s `` ⇝ a `∀`).  So no inert
+--     conversion has a BASE target, and the two with a VARIABLE target
+--     are exactly CancelR's and IdPush's left-hand sides.
+-- Commentary: Commentary.md § proof/Canonical.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_)
@@ -51,12 +42,9 @@ private
 -- §1  `≈` preserves the exterior type's head constructor
 ------------------------------------------------------------------------
 
--- The old `env` exposed `shiftBy (numBinds Θ) Bₑ` directly.  The relational
--- rule instead factors both spellings through a representation type and uses
--- `shiftRep` on the conversion side.  With the store design (experiment 2)
--- there is no bind prefix to cross, so `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` relates the two
--- spellings at equal representation depth — `shiftRep 0 R ≡ R` — and the
--- head-constructor inversions simplify accordingly.
+-- Since the store design the exterior comparison relates the two
+-- spellings at EQUAL representation depth, so these inversions are
+-- direct.  Commentary.md § proof/Canonical.agda / §1
 
 same-base-target : η ⊢ A ~ R → Base R → Base A
 same-base-target same-ℕ base-ℕ = base-ℕ
@@ -103,11 +91,9 @@ conv-tgt≡ : ∀ {B′} → B ≡ B′
   → Δ ⊢ c ∶ A ⇝ B → Δ ⊢ c ∶ A ⇝ B′
 conv-tgt≡ refl ⊢c = ⊢c
 
--- Retype a term along an equality of its type.  Used to move an interior
--- derivation along the conversion inversions of strong-rep-store.Conversion
--- (which
--- name the SOURCE type of an `id`/`unseal`), so that the canonical-forms
--- lemmas can be applied to it.
+-- Retype a term along an equality of its type — used to move an
+-- interior derivation along the conversion inversions, which name the
+-- SOURCE type of an `id`/`unseal`.
 ⊢ty≡ : ∀ {Γ M}
   → A ≡ B → Δ ∣ Γ ⊢ M ⦂ A → Δ ∣ Γ ⊢ M ⦂ B
 ⊢ty≡ refl ⊢M = ⊢M
@@ -228,12 +214,9 @@ canon-∀ {Δ = Δ} (V-⟪⟫ v ic)
   | C′ , eq | s , refl =
   inj₂ (_ , _ , s , v , refl)
 
--- VARIABLE — the v2 canon-var.  A closed value at an abstract type is a
--- wrapper whose conversion is `seal Y` or `id (` Y)`, nothing else: the
--- two left-hand sides of CancelR and IdPush.  (`value-var-visible` is NOT
--- needed here — the conversion inversion already decides the shape;
--- visibility of the named slot is a separate, and independently available,
--- fact.)
+-- VARIABLE — the v2 canon-var, dissolved into a two-way case split on
+-- a conversion constructor: `seal Y` or `id (` Y)`, nothing else.
+-- Commentary.md § proof/Canonical.agda / §3
 canon-var : ∀ {V} → Value V → Δ ∣ [] ⊢ V ⦂ ` X
   → Σ[ W ∈ Term ] Σ[ Θ ∈ Boundary ] Σ[ Y ∈ ℕ ]
       (Value W

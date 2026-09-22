@@ -1,37 +1,17 @@
 module strong-rep-store.proof.IdLayer where
 
--- THE ID-LAYER FACTS — what makes IdPush and CancelR legitimate.
---
--- §1  the pushed name is ALREADY WRITTEN in the inner `id (` X)`
---     conversion (idpush-name), and the same argument fixes CancelR's
---     two names (cancel-name): typing forces X and Y to name ONE
---     representation variable.  Neither rule invents a variable, and
---     neither needs an equation as a premise.
--- §2  `unseal` is the ONLY active conversion an id-(` X) layer can ever
---     meet, so the id-base branch of `Active` is vacuous for these rules.
--- §3  the naked drop `V ⟪ Θ , id A ⟫ -→ V` — the door, closed: it is sound
---     exactly when the boundary changes NO FRAME.
---
--- WHAT THE TWO UNIVERSES CHANGE (2026-09-19).  §1 used to be an EQUATION
--- between ordinary de Bruijn indices, `X ≡ numBinds Θ₁ + Y`, because one
--- universe carried both roles and `shiftBy` moved a name.  Here the two
--- conversions are read on DIFFERENT name maps that can reorder relative to
--- each other, so no equation between X and Y is available or wanted: the
--- fact is one universe up, about the REPRESENTATION VARIABLE each name
--- denotes.  That is the form `proof/MoveScope.preserve-IdPush` consumes.
---
--- WHAT THE STORE CHANGES (2026-09-22).  The two names denote the SAME
--- representation variable, not one `numBinds Θ₁` above the other: a
--- boundary scope carries no bind block, so there is no prefix between the
--- inner conversion context and the outer one.  `push-rep` therefore lost
--- its depth argument and its `shiftRep` bookkeeping, and both `env`
--- comparisons it reads are the one relation `_⊢_≈_⊣_` at equal depth.
---
--- WHAT WAS DELETED.  `convCtx-lock` — "a conceal is invisible to the
--- conversion context" as an EQUALITY between computed contexts — has no
--- two-universe counterpart.  The relational statement of the same fact is
--- `conv-lock` itself (strong-rep-store.Boundary §3), which skips a lock
--- outright.
+-- File Charter:
+--   * THE ID-LAYER FACTS — what makes IdPush and CancelR legitimate.
+--     §1 typing FORCES the inner conversion's name and the outer's to
+--     denote ONE representation variable (`idpush-name`,
+--     `cancel-name`), so neither rule invents a variable and neither
+--     needs an equation as a premise.  §2 `unseal` is the ONLY active
+--     conversion an id-(` X) layer can meet.  §3 the naked drop is
+--     sound exactly when the boundary changes NO FRAME.
+--   * §1 used to be an EQUATION between ordinary indices; with two
+--     universes the fact is one universe UP, and with the store the
+--     two names denote the same variable outright.
+-- Commentary: Commentary.md § proof/IdLayer.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_)
@@ -54,15 +34,10 @@ open import strong-rep-store.proof.Canonical
 -- §1  THE NAMES ARE FORCED
 ------------------------------------------------------------------------
 
--- The heart of both cases, on the two `env` premises alone.  The inner
--- boundary's exterior type B is read at the OUTER interior; its own
--- conversion spells it `` ` X `` and the outer conversion spells it
--- `` ` Y ``.  Since the store experiment there is no bind prefix between
--- the two readings, so the two names denote the SAME representation
--- variable — the old `X ↦ numBinds Θ₁ + α` offset is gone with the binds.
--- Stated on NAME MAPS: like `_⊢_≈_⊣_` itself, the judgement reaches a
--- context only through the `names` projection, which does not determine
--- it, so the contexts are not inferable from the two premises.
+-- The heart of both cases, on the two `env` premises alone.  Stated on
+-- NAME MAPS, because the judgement reaches a context only through the
+-- `names` projection, which does not determine it.
+-- Commentary.md § proof/IdLayer.agda / §1
 push-rep : {ηᵢ η₁ᶜ ηᶜ : TyCtx} {B : Ty} {X Y : ℕ}
   → ∃[ R ] ((ηᵢ ⊢ B ~ R) × (η₁ᶜ ⊢ ` X ~ R))
   → ∃[ R ] ((ηᵢ ⊢ B ~ R) × (ηᶜ ⊢ ` Y ~ R))
@@ -126,15 +101,10 @@ same-base-source : ∀ {η A R} → η ⊢ A ~ R → Base A → Base R
 same-base-source same-ℕ base-ℕ = base-ℕ
 same-base-source same-𝔹 base-𝔹 = base-𝔹
 
--- A wrapper whose conversion is `id (` X)` has a VARIABLE exterior type,
--- and an outer `id A` conversion at a BASE type demands a base interior.
--- So the id-base branch of `Active` is unreachable over this LHS.
---
--- The argument runs through the representation universe: the outer `id A`
--- forces the inner boundary's exterior type to be a base type, and
--- `≈-base-target` (proof/Canonical) carries a base type to a base type
--- across the exterior comparison — but the inner conversion's target is a
--- variable.
+-- A wrapper whose conversion is `id (` X)` has a VARIABLE exterior
+-- type, and an outer `id A` at a BASE type demands a base interior — so
+-- the id-base branch of `Active` is unreachable over this LHS.
+-- Commentary.md § proof/IdLayer.agda / §2
 outer-id-base-untypeable : ∀ {Δ Γ V Θ₁ Θ₂ X A C} → Base A
   → ¬ (Δ ∣ Γ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , id A ⟫ ⦂ C)
 outer-id-base-untypeable bA
@@ -150,19 +120,16 @@ outer-id-base-untypeable bA
 outer-id-base-untypeable () (env _ (env _ _ (conv-idv _) _ _ _)
                                  (conv-idv _) _ _ _)
 
--- A boundary can never conceal the name its OWN conversion cites —
--- `value-var-visible` (strong-rep-store.Terms) says a value's variable type is
--- visible on the value's exterior context, because `env`'s last conjunct
--- checks it there.  So "Θ₁ locks Y while the conversion cites Y" is
--- untypeable.
+-- A boundary can never conceal the name its OWN conversion cites
+-- (`value-var-visible`, strong-rep-store.Terms).
 
 ------------------------------------------------------------------------
 -- §3  THE NAKED DROP — the door, closed
 ------------------------------------------------------------------------
 
--- `V ⟪ Θ , id A ⟫ -→ V` is unsound because V is typed on the boundary scope's
--- INTERIOR, not on Δ.  A concrete failing instance: the boundary's
--- conversion cites an ordinary name that Δ does not have at all.
+-- Unsound, because V is typed on the boundary scope's INTERIOR, not on
+-- Δ.  The concrete failing instance follows.
+-- Commentary.md § proof/IdLayer.agda / §3
 
 Δₑ : Ctxᵗ
 Δₑ = (bindR `ℕ ∷ []) ∣ (zero ∷ [])
@@ -181,9 +148,8 @@ naked-drop-trap (env mwᵥ ⊢$ (conv-seal (α , R , name , rep , same)) smᵢ s
 -- §3b  THE SOUND SIDE CONDITION
 ------------------------------------------------------------------------
 
--- The drop is sound exactly when the boundary changes NO FRAME.  Then both
--- induced contexts are the exterior itself and the identity conversion
--- fixes the type, so the interior derivation IS the exterior one.
+-- Sound exactly when the boundary changes NO FRAME: both induced
+-- contexts are then the exterior itself.
 
 empty-interior : (Γ : Ctxᵗ) → Γ ⊢ⁱ [] ⇒ Γ
 empty-interior Γ = interior changes[]

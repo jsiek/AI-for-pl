@@ -1,57 +1,21 @@
 module strong-rep-store.Terms where
 
 -- File Charter:
---   * THE TERM SYNTAX, THE TYPING JUDGEMENT, AND VALUES.  §1 is `Var`
---     (= ℕ) and `Term`, whose last constructor is the boundary
---     `_⟪_,_⟫`, together with the ordinary term context `Ctx`, its
---     lookup `_∋_⦂_` and the type-binder lift `⤊`.  §2 is
---     classifies a conversion as `Inert` or `Active`, with
---     `act-or-inert` and `act-not-inert`; §3 is `Value`, which comes
---     BEFORE the typing judgement because `⊢Λ` reads it.  §4 is
---     `_∣_⊢_⦂_`, the typing judgement, whose boundary rule is `env` and
---     whose `⊢Λ` rule carries the VALUE RESTRICTION `Value N` (the
---     strong-rep-store experiment), and `value-var-visible`; §5 the
---     concrete `β-seven`/`β-seven-⊢`.
---   * NO OPERATIONS AND NO METATHEORY.  Renaming and substitution on
---     terms are strong-rep-store.TermSubst; reduction is
--- strong-rep-store.Reduction; the
---     decision procedures that BUILD these derivations are
---     strong-rep-store.TypeCheck; canonical forms, preservation and progress are
---     under strong-rep-store.proof (the public theorem statements being
---     strong-rep-store.Preservation, strong-rep-store.Progress,
--- strong-rep-store.TypeSafety).
---   * FOUR LAWS A READER MUST KNOW.  (1) `env` never COMPUTES the two
---     contexts a boundary scope induces: it takes `BoundaryWf Δ Θ Δᵢ Δᶜ`
---     (strong-rep-store.Boundary) and the two contexts are its outputs — the
---     retired `interior`/`convCtx` functions are gone.  (2) The three
---     sides can spell the same semantic type differently, so `env`
---     compares them by the REPRESENTATION each denotes, by one and the
---     same relation on both sides: `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` inside and
---     `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` outside (strong-rep-store.Ctx §5; the bind-prefix
---     crossing `SameTyExt` went with the bind block).  A
---     boundary's interior is TERM-CLOSED — `Δᵢ ∣ [] ⊢ M ⦂ Bᵢ` — which is what
---     lets strong-rep-store.TermSubst leave wrappers alone.  (3) Classification
---     in §3 is by the CONVERSION CONSTRUCTOR alone: no source or target type
---     is inspected and no slot arithmetic occurs, so `id` at a variable
---     is inert and `id` at a base type is active.  (4) THE VALUE
---     RESTRICTION: `⊢Λ` requires `Value N`, and there is NO `ξ-Λ` —
---     reduction never goes under a `Λ`.  This is where
---     strong-rep-store departs from strong-rep-var, whose `⊢Λ` accepted
---     any body and whose `ξ-Λ` reduced under the binder (the reason
---     `V-Λ` carries `Value N` there; notes/DECISIONS.md, repair 3).
---
--- A boundary is  M ⟪ Θ , c ⟫  with ONE frame change:
---
---   Θ : Boundary   a sequential list of ordinary-variable binders and
---                  anti-binders — `Boundary = List Change`, nothing else
---                  since the representation binders moved to the ambient
---                  store. `BoundaryWf Δ Θ Δᵢ Δᶜ` produces the interior
---                  context Δᵢ and conversion context Δᶜ.
---
---   c : Conv       the conversion checked on Δᶜ. Its source is related to
---                  the interior term's type through `_⊢_≈_⊣_`; its
---                  target is
---                  related to the exterior type the same way.
+--   * THE TERM SYNTAX, THE TYPING JUDGEMENT, AND VALUES.  §1 `Var` and
+--     `Term` (last constructor: the boundary `_⟪_,_⟫`), `Ctx`, `_∋_⦂_`,
+--     `⤊`.  §2 `Inert`/`Active`.  §3 `Value`, stated BEFORE the typing
+--     judgement because `⊢Λ` reads it.  §4 `_∣_⊢_⦂_` with `env` and
+--     `⊢Λ`, plus `value-var-visible`.  §5 `β-seven`.
+--   * NO OPERATIONS AND NO METATHEORY: see strong-rep-store.TermSubst,
+--     .Reduction, .TypeCheck and the proof/ tree.
+--   * FOUR LAWS.  (1) `env` TAKES `BoundaryWf Δ Θ Δᵢ Δᶜ`; the two
+--     induced contexts are its outputs, never computed.  (2) It
+--     compares all three sides by the REPRESENTATION each denotes
+--     (`_⊢_≈_⊣_`), and a boundary's interior is TERM-CLOSED.
+--     (3) Classification is by the CONVERSION CONSTRUCTOR alone.
+--     (4) THE VALUE RESTRICTION: `⊢Λ` requires `Value N`, and there is
+--     no ξ-Λ.
+-- Commentary: Commentary.md § Terms.agda
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; map; length)
@@ -116,7 +80,6 @@ data _∋_⦂_ : Ctx → Var → Ty → Set where
 
 -- Inert  = { s ↦ t , ∀ s , seal X , id-at-a-variable }
 -- Active = { unseal X , id-at-base }
--- No source or target type is inspected and no slot arithmetic occurs.
 data Inert : Conv → Set where
   I-idv  : ∀ {X}   → Inert (id (` X))
   I-seal : ∀ {X}   → Inert (seal X)
@@ -127,9 +90,8 @@ data Active : Conv → Set where
   A-idb    : ∀ {A} → Base A → Active (id A)
   A-unseal : ∀ {X} → Active (unseal X)
 
--- Totality over TYPED conversions: the payload restriction on `id` makes
--- classification a match on the TYPING derivation (the untypeable compound
--- identities are never classified at all).
+-- Totality over TYPED conversions: the payload restriction on `id`
+-- makes classification a match on the TYPING derivation.
 act-or-inert : ∀ {Δ c A B} → Δ ⊢ c ∶ A ⇝ B → Active c ⊎ Inert c
 act-or-inert (conv-id b)      = inj₁ (A-idb b)
 act-or-inert (conv-idv tv)    = inj₂ I-idv
@@ -146,14 +108,9 @@ act-not-inert A-unseal ()
 -- 3.  Values
 ------------------------------------------------------------------------
 
--- V-Λ carries `Value N`.  In strong-rep-var it was FORCED: reduction
--- went under Λ (ξ-Λ), so without the premise `Λ N` was a value for
--- every N and both "values don't step" and determinism failed
--- (notes/DECISIONS.md, repair 3).  strong-rep-store has no ξ-Λ and its
--- ⊢Λ rule (§4) demands `Value N` OUTRIGHT, so on well-typed terms the
--- premise is automatic; it is kept so that `Value` stays the
--- strong-rep-var relation verbatim and so that `TyBeta`'s premise keeps
--- meaning the same thing on untyped terms.
+-- V-Λ carries `Value N`, which `⊢Λ` makes automatic here; it is kept so
+-- that `Value` stays strong-rep-var's relation verbatim.
+-- Commentary.md § Terms.agda / §3
 data Value : Term → Set where
   V-$  : ∀ {n} → Value ($ n)
   V-true : Value `true
@@ -185,25 +142,18 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
     → Δ ∣ Γ ⊢ M ⦂ A
     → Δ ∣ Γ ⊢ L · M ⦂ B
 
-  -- THE VALUE RESTRICTION (strong-rep-store's first experiment).  A type
-  -- abstraction's body must ALREADY be a value: there is no ξ-Λ rule in
-  -- strong-rep-store.Reduction, so a `Λ` over a redex would be stuck.
-  -- With the premise, `Λ N` is a value the moment it is well typed
-  -- (V-Λ, §3), and `TyBeta`'s own `Value N` premise is discharged by the
-  -- typing derivation.
+  -- THE VALUE RESTRICTION (strong-rep-store's first experiment): a type
+  -- abstraction's body must ALREADY be a value.
+  -- Commentary.md § Terms.agda / §4 — ⊢Λ
   ⊢Λ : ∀ {Δ Γ C N} → Value N → underΛ Δ ∣ ⤊ Γ ⊢ N ⦂ C
     → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
 
   ⊢·[] : ∀ {Δ Γ A B L} → Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A
        → Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
 
-  -- (env). The boundary scope witness supplies both contexts. Since ordinary
-  -- variables may be inserted and removed, the same semantic type can have
-  -- different ordinary de Bruijn spellings on the three sides. `_⊢_≈_⊣_`
-  -- compares them by the representation each denotes.  (Since experiment
-  -- 2 a boundary carries no bind block, so the exterior and the conversion
-  -- context share one store and the exterior comparison is the same
-  -- relation — `SameTyExt` is gone.)
+  -- (env). The boundary scope witness supplies both contexts, and the
+  -- three sides are compared by the representation each denotes.
+  -- Commentary.md § Terms.agda / §4 — env
   env : ∀ {Δ Δᵢ Δᶜ Γ Θ c M Bᵢ Cᵢ Cₑ Bₑ}
       → BoundaryWf Δ Θ Δᵢ Δᶜ
       → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
@@ -214,9 +164,8 @@ data _∣_⊢_⦂_ : Ctxᵗ → Ctx → Term → Ty → Set where
         --------------------------------------------
       → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
 
--- A value's variable type is VISIBLE on the value's bind type context, because
--- `env`'s last conjunct checks it there.  So a boundary can never conceal
--- the slot its bind conversion names.
+-- A value's variable type is VISIBLE on its own type context, so a
+-- boundary can never conceal the slot its conversion names.
 value-var-visible : ∀ {Δ V X}
   → Value V → Δ ∣ [] ⊢ V ⦂ ` X → Δ ∋tv X
 value-var-visible (V-⟪⟫ _ _) (env _ _ _ _ _ (wf-var tv)) = tv

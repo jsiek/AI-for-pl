@@ -1,9 +1,19 @@
-* Audit the notes/notes.md file to make sure it is synchronized
-  with the Agda development.
-
 ## Completed
 
 ### 2026-09-22
+
+* Audit the notes/notes.md file to make sure it is synchronized
+  with the Agda development.
+  Brought up to date with both landed experiments: the value restriction
+  (`⊢Λ : Value N → …`, no `ξ-Λ`) and the store (`Boundary = List Change`,
+  ambient `allocate`/`Alloc`/`apply`/`runCtx`, `Θ₁ ++ Θ₂`, the snoc
+  `lock 0 0`, `inst`, `dual`, the sibling shifts `↑ᴹ[ δ ]`/`↑ᴮ[ δ ]`,
+  `env`'s exterior premise as plain `_⊢_≈_⊣_`).  Every rule, judgement
+  form and theorem statement re-checked against `Terms.agda`,
+  `Boundary.agda`, `Ctx.agda`, `Conversion.agda`, `TermSubst.agda`,
+  `Reduction.agda`, `TypeSafety.agda` and `ColorPreservation.agda`; the
+  CancelR run excerpt was re-derived from `Show.showRun` on
+  `Examples.agda` §8, and the correspondence tables were rewritten.
 
 * Replace the Boundary record with an alias to List Change.
   `Boundary = List Change`; `Θ₁ ⋉ Θ₂` is now `Θ₁ ++ Θ₂` (`_⋉_` deleted)

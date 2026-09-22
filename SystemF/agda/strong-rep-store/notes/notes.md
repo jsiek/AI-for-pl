@@ -1,10 +1,27 @@
 # Strong System F with representation variables
 
 This is the mathematical presentation of the calculus in
-`SystemF/agda/strong-rep-store/` at commit `e6171412`.  The Agda uses de
+`SystemF/agda/strong-rep-store/` at commit `463d83be`.  The Agda uses de
 Bruijn indices; this note uses names.  The named presentation is not a
 different calculus: it suppresses index shifts and re-spellings, but keeps
 the contexts in which types and conversions are read.
+
+## What changed and why
+
+Two experiments have landed since the first draft of this note, and both
+are visible in every section below.
+
+  1. **The value restriction** (2026-09-21).  `⊢Λ` requires its body to
+     be a value and there is no `ξ-Λ`: nothing reduces under a type
+     binder.
+  2. **The store** (2026-09-22).  A boundary no longer carries a block of
+     representation bindings.  The representation a ∀-elimination mints is
+     allocated on the **ambient** representation context, and a reduction
+     step reports the change it made to that context.  A boundary scope is
+     now its change list alone, and a boundary changes **names** only.
+
+The design note for the second is `notes/RepStoreSketch.md`; the dated
+record for both is the last two entries of `notes/DECISIONS.md`.
 
 The distinction at the center of the development is:
 
@@ -14,7 +31,7 @@ The distinction at the center of the development is:
 A type variable is lexical: `∀X.A`, `ΛX.M`, and types mention `X`.  A
 representation variable is runtime storage: a representation context
 binds `α` abstractly or to a representation type, while a boundary
-introduces only the represented form.  A live type variable `X` is
+only says which type variables may name it.  A live type variable `X` is
 associated with that `α`.  The renderer pairs the supplies (`X` to
 `α`, `Y` to `β`, and so on), but the two universes remain different.
 
@@ -41,6 +58,7 @@ An `X` occurrence in a representation type is legal only under its representatio
 `seal X` and `unseal X` carry an type variable.  They find its
 representation through the context; they never contain a representation
 variable directly.  Function conversions are contravariant on the left.
+Agda writes a function conversion's components `s ↦ t`.
 
 ## Terms
 
@@ -63,24 +81,24 @@ interior type to the boundary's exterior type.
 ## Boundary Scope
 
     δ ::= lock X α | unlock X α
-    Θ ::= ⟨ α₁ := R₁, ..., αₙ := Rₙ,  δ₁, ..., δₘ ⟩
+    Θ ::= ⟨ δ₁, ..., δₘ ⟩
 
-The representation bindings are parallel: every `Rᵢ` is read in the exterior
-representation context.  The changes `δᵢ` are sequential and stored
-head-last in Agda, so its tail acts first.
-We write `binds(Θ)` for all the representation bindings
-and `changes(Δ)` for the list of changes.
+A boundary scope **is** its change sequence: `Boundary = List Change` in
+Agda, an alias and nothing more.  The changes are sequential and stored
+head-last, so the tail acts first.  We write `changes(Θ)` for the list.
+No boundary binds a representation: representations live in the ambient
+store (below), so a boundary changes **names** only, and `Θ` never shifts
+a representation index.
 
 The displayed boundary notation follows `Show.agda`:
 
-    ↑α:=R      bind the fresh representation variable α to R
     ↓X         lock X, recording that it names α
     ↥X         unlock the type variable X for α
 
-Thus `M ⟪ ↑α:=R , ↓Y , ↥Z , c ⟫` displays binds first, changes in
-the order in which they act, and the conversion last.  The full change
-syntax remains `lock Y β` and `unlock Z γ`; the Greek argument is
-recoverable from the displayed Latin name.
+Thus `M ⟪ ↓Y , ↥Z , c ⟫` displays changes in the order in which they act,
+and the conversion last.  The full change syntax remains `lock Y β` and
+`unlock Z γ`; the Greek argument is recoverable from the displayed Latin
+name.
 
 # The two context universes
 
@@ -93,7 +111,9 @@ where `Ξ` is a representation context and `Γ` maps type variables to represent
     Ξ ::= · | Ξ, α abstract | Ξ, α := R
     Γ ::= · | Γ, X ↦ α
 
-The Γ context contains exactly the live type variales.  A locked type
+`Ξ` is the **store**: it holds every representation cell the run has
+minted, interleaved with the abstract cells the `Λ`s introduced.  The Γ
+context contains exactly the live type variables.  A locked type
 variable has no entry in `Γ`, but its representation variable remains in
 `Ξ`.  In a well-formed context every representation type is well formed outside its
 own binder, every type variable points into `Ξ`, and no representation variable has
@@ -107,6 +127,17 @@ The main lookups are:
     Ξ ∣ Γ ∋ X := A      X is live and A is its representation type
 
 The definition of lookup Ξ ∣ Γ ∋ X := A is derived form the other forms.
+
+## Allocation
+
+A ∀-elimination mints a representation cell on the ambient store:
+
+    allocate(α:=R, (Ξ ∣ Γ))  =  (Ξ, α := R) ∣ Γ
+
+This is Agda's `allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ`: the
+fresh cell takes index `0` and every existing representation index — in
+the name map and in every sibling term — moves up by one.  With names
+nothing moves; the new `α` is simply fresh, and `Γ` is unchanged.
 
 ## Well-formed Types
 
@@ -157,11 +188,11 @@ premise normally becomes:
 This simplification does not identify the interior and conversion contexts.
 Which context reads a premise remains genuine semantic content.
 
-# Boundaries and Generating the Interior and Conversion Scopes 
+# Boundaries and Generating the Interior and Conversion Scopes
 
-The representation bindings first extend `Ξ` with fresh represented
-variables.  It does not change any existing type variable.  The two
-readings then treat changes differently.
+A boundary scope does not touch the store: both readings leave `Ξ`
+exactly as it was, and differ only in what they do to `Γ`.  (This is
+Agda's `interior-reps`/`conversion-reps`: `reps Δᵢ ≡ reps Δ ≡ reps Δᶜ`.)
 
 The **interior scope** generation, written `Δ ⊢ⁱ Θ ⇒ Δᵢ`, performs every change:
 
@@ -185,43 +216,50 @@ boundary witness is:
 
     BoundaryWf Δ Θ Δᵢ Δᶜ
 
-It carries `WfCtx Δ`, well-formedness of the parallel bind block, and the
-two readings `Δ ⊢ⁱ Θ ⇒ Δᵢ` and `Δ ⊢ᶜ Θ ⇒ Δᶜ`.  Well-formedness
-of the two outputs is derived.
+It carries `WfCtx Δ` and the two readings `Δ ⊢ⁱ Θ ⇒ Δᵢ` and
+`Δ ⊢ᶜ Θ ⇒ Δᶜ`, and nothing else.  Well-formedness of the two outputs is
+derived.
 
 ## Derived Boundary Scopes
 
 In the following equations, change sequences are written in acting order.
-Named variables make the definitions clearer wrt. de Bruijn because representation
-indices do not have to shift past a bind block.
 
     dual Θ
-      binds no representations and performs the inverse changes
-      in reverse acting order
+      performs the inverse changes in reverse acting order
 
     rewind Θ
-      keeps binds(Θ), performs changes(Θ), then their inverses
+      performs changes(Θ), then their inverses
 
-    Θ₁ ⋉ Θ₂
-      keeps binds(Θ₁), performs changes(Θ₂), then changes(Θ₁)
+    Θ₁ ++ Θ₂
+      performs changes(Θ₂), then changes(Θ₁)
 
     addLock(X,α,Θ)
-      keeps binds(Θ), performs lock X α first, then changes(Θ)
+      performs lock X α first, then changes(Θ)
 
-    inst(X,α,R,Θ)
-      prepends α := R, unlocks X α first, then performs changes(Θ)
+    inst(X,α,Θ)
+      unlocks X α first, then performs changes(Θ)
 
-Agda's `_ ⋉ _`, `addLock0`, and `instantiate` additionally shift de
-Bruijn representation indices.  Those shifts change no named occurrence.
+In Agda these are list expressions on the change list, not operations on
+a record: `dual`, `rewind Θ = dual Θ ++ Θ`, merging is `Θ₁ ++ Θ₂`,
+`addLock` is the snoc `Θ ++ (lock 0 0 ∷ [])`, and
+`inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`.  Nothing shifts a
+representation when two scopes merge, because both were spelled at the
+same store; `inst` shifts in both universes because it is read one
+allocation later.
 
-## A concrete boundary 
+## A concrete boundary
 
 Let
 
     Δ = (α := ℕ, β abstract) ∣ (X ↦ α, Y ↦ β)
-    Θ = ⟨ ↑γ:=α, ↓X, ↥Z ⟩
+    Θ = ⟨ ↓X, ↥Z ⟩
 
-where `Z` names the new `γ`.  Then
+where `Z` names `γ`, a cell the enclosing ∀-elimination just allocated:
+the boundary is read at `allocate(γ:=α, Δ)`, so
+
+    Δ₀ = (α := ℕ, β abstract, γ := α) ∣ (X ↦ α, Y ↦ β)
+
+Then
 
     Δᵢ = (α := ℕ, β abstract, γ := α)
          ∣ (Y ↦ β, Z ↦ γ)
@@ -229,7 +267,8 @@ where `Z` names the new `γ`.  Then
     Δᶜ = (α := ℕ, β abstract, γ := α)
          ∣ (X ↦ α, Y ↦ β, Z ↦ γ)
 
-The interior scope loses `X`; the conversion scope keeps it.
+The interior scope loses `X`; the conversion scope keeps it.  Both keep
+`Δ₀`'s store, unchanged.
 At `Δᶜ`, `unseal Z` converts `Z` to `X`, because `Z` names `γ`,
 `γ` stores the representation type `α`, and `X` is the live type variable of `α`.
 Thus an `env` instance can type
@@ -237,7 +276,7 @@ Thus an `env` instance can type
     Δᵢ ∣ · ⊢ M : Z
     Δᶜ ⊢ unseal Z : Z ⇝ X
     ----------------------------------------
-    Δ ∣ Γₜ ⊢ M ⟪ ↑γ:=α, ↓X, ↥Z, unseal Z ⟫ : X
+    Δ₀ ∣ Γₜ ⊢ M ⟪ ↓X, ↥Z, unseal Z ⟫ : X
 
 The body type is read in the interior and conversion contexts.  The result
 type is read in the conversion and exterior contexts.  Naming removes the
@@ -323,8 +362,8 @@ context `Γₜ`.
                -----------------------------------
                Δ ∣ Γₜ ⊢ L · M : B
 
-    (⊢Λ)       under(X,α,Δ) ∣ ⇑Γₜ ⊢ N : C
-               ------------------------------
+    (⊢Λ)       Value N    under(X,α,Δ) ∣ ⇑Γₜ ⊢ N : C
+               -------------------------------------
                Δ ∣ Γₜ ⊢ ΛX.N : ∀X.C
 
     (⊢·[])     Δ ∣ Γₜ ⊢ L : ∀X.B    Δ ⊢ᵗ A
@@ -333,6 +372,11 @@ context `Γₜ`.
 
 Here `⇑Γₜ` weakens every type in the term context through the fresh
 type binder.
+
+`⊢Λ`'s `Value N` premise is **the value restriction**, the first of the two
+experiments.  It is what licenses the absence of `ξ-Λ`: a well-typed
+`ΛX.N` is already a value, so there is nothing a congruence under the
+binder could do.
 
 The boundary rule is the only non-System-F rule:
 
@@ -349,11 +393,12 @@ The empty term context in the second premise is load-bearing: substitution
 does not descend into a boundary.
 
 Mechanization note.  Agda allows distinct index spellings `Bᵢ/Cᵢ` and
-`Bₑ/Cₑ`.  Its fourth premise is `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ`; its fifth is
-`SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ`, which also crosses the
-boundary scope's representation-bind prefix.  Named variables turn these into
-the two paired scope conditions above; the interior/conversion/exterior
-contexts do not disappear.
+`Bₑ/Cₑ`.  Its fourth premise is `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` and its fifth is
+`Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` — **the same relation on both sides**, since the
+exterior and the conversion context now share one store.  (The
+bind-prefix-crossing `SameTyExt` went with the bind block.)  Named
+variables turn these into the two paired scope conditions above; the
+interior/conversion/exterior contexts do not disappear.
 
 # Values and conversion classification
 
@@ -368,7 +413,9 @@ The two classes are total on typed conversions and disjoint.
             | ΛX.V
             | V ⟪ Θ , c ⟫       if c is inert
 
-Reduction goes under `Λ`, so `ΛX.N` is a value only if `N` is a value.
+`ΛX.N` is a value only if `N` is a value.  On well-typed terms that is
+automatic, because `⊢Λ` demands it; the premise is kept on the value
+constructor so that `Value` remains the same relation on untyped terms.
 A boundary with an active conversion is not a value.
 
 # Frame-exact term substitution
@@ -387,29 +434,39 @@ frame-exact.
 
 # Reduction
 
-The judgment is `Δ ⊢ M -→ M′`.  The premises naming interior and
-conversion contexts are part of the reduction relation even when the
-redex's typing can reconstruct them.
+The judgment is
+
+    Δ ⊢ M -→ M′ ∣ δ            δ ::= none | new R
+
+where `δ` is the change the step made to the **store**, the second
+experiment.  The contractum is read one context later:
+
+    apply none Δ      = Δ
+    apply (new R) Δ   = allocate(α:=R, Δ)
+
+The premises naming interior and conversion contexts are part of the
+reduction relation even when the redex's typing can reconstruct them.
 
 ## Computational rules
 
     (TyBeta)    Value N    Δ ⊢ᶜ A ~ R
                 -----------------------------------------------
                 Δ ⊢ (ΛX.N) [B,A]
-                    -→ N ⟪ inst(X,α,R,∅), revealₓ(B) ⟫
+                    -→ N ⟪ inst(X,α,⟨⟩) , revealₓ(B) ⟫ ∣ new R
 
 `X` and `α` are the ordinary and representation binders of the event.
 The second premise is genuine: it translates the ordinary argument `A`
-to the representation type stored at `α`.
+to the representation type `R` the step allocates at `α`.  The allocation
+is the step's store change, not part of the boundary.
 
     (Beta)      Value W
-                --------------------------------
-                Δ ⊢ (λx:A.N) · W -→ N[x:=W:A]
+                ---------------------------------------
+                Δ ⊢ (λx:A.N) · W -→ N[x:=W:A] ∣ none
 
 For `Peel`, suppose the carried readings are
 
-    Δ  ⊢ⁱ Θ      ⇒ Δᵢ
-    Δ  ⊢ᶜ Θ       ⇒ Δᶜ
+    Δ  ⊢ⁱ Θ        ⇒ Δᵢ
+    Δ  ⊢ᶜ Θ        ⇒ Δᶜ
     Δᵢ ⊢ᶜ dual Θ   ⇒ Δᵈ
 
 Then:
@@ -420,36 +477,41 @@ Then:
                 c is in scope in both Δᶜ and Δᵈ
                 ------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ , c ↦ d ⟫) · W
-                    -→ (V · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫
+                    -→ (V · (W ⟪ dual Θ , c ⟫)) ⟪ Θ , d ⟫ ∣ none
 
-Mechanization note.  Agda names the dual spelling `c′`, requires
-`SameConv Δᵈ c′ Δᶜ c`, and shifts `W` past `numBinds Θ`; named variables
-leave `c` and `W` textually unchanged.  `notes/CrossingAudit.agda` refutes
-equality of the de Bruijn name maps, while `notes/PeelPremise.agda` proves
-that they name the same representation variables.
+Mechanization note.  Agda writes the pair `s ↦ t`, names the dual
+spelling `s′` and requires `SameConv Δᵈ s′ Δᶜ s`; named variables leave
+`c` textually unchanged.  `W` **moves verbatim** — a boundary changes
+names only, so the crossing argument lands at the very store it was
+spelled at, and the bind-block weakening this rule used to perform is
+gone.  `notes/CrossingAudit.agda` refutes equality of the de Bruijn name
+maps, while `notes/PeelPremise.agda` proves that they name the same
+representation variables.
 
 For `TyPeelR-Λ`, let `Δ ⊢ᶜ Θ ⇒ Δᶜ`:
 
     (TyPeelR-Λ)
+                Value V
                 Δ ⊢ᶜ Θ ⇒ Δᶜ
                 under(X,α,Δᶜ) ⊢ c : Bᵢ ⇝ Bₑ
                 Δ ⊢ᶜ A ~ R
                 --------------------------------------------------
                 Δ ⊢ ((ΛX.V) ⟪ Θ , ∀X.c ⟫) [B,A]
-                    -→ V ⟪ inst(X,α,R,Θ), instRevealₓ(c) ⟫
+                    -→ V ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
 
-No term moves in this clause: the `Λ` binder becomes the represented
-binder introduced by `instantiate`.
+No term moves in this clause: the `Λ` binder becomes the binder the
+allocation introduces, and `inst` unlocks it.
 
 For `TyPeelR-⟪⟫`, let the readings named in the premises be:
 
-    Δ     ⊢ⁱ Θ                         ⇒ Δᵢ
-    Δ     ⊢ᶜ Θ                         ⇒ Δᶜ
-    Δᵢ    ⊢ᶜ Θ′                        ⇒ Δ′ᶜ
-    Δ     ⊢ⁱ inst(X,α,R,Θ)     ⇒ Δᵢ⁺
-    Δᵢ⁺   ⊢ᶜ addLock(X,α,Θ′)          ⇒ Δ″ᶜ
+    Δ                     ⊢ⁱ Θ                  ⇒ Δᵢ
+    Δ                     ⊢ᶜ Θ                  ⇒ Δᶜ
+    Δᵢ                    ⊢ᶜ Θ′                 ⇒ Δ′ᶜ
+    allocate(α:=R,Δ)      ⊢ⁱ inst(X,α,Θ)        ⇒ Δᵢ⁺
+    Δᵢ⁺                   ⊢ᶜ addLock(X,α,Θ′)    ⇒ Δ″ᶜ
 
-The named rule is:
+The fourth reading is taken at the **allocated** context: the cell this
+step mints is ambient, so every later reading sees it.
 
 The two displayed universal binders have separate lexical scopes; they
 have been alpha-renamed to the same `X` so the named correspondence is
@@ -458,7 +520,7 @@ literal.
     (TyPeelR-⟪⟫)
                 Value W
                 Δ ⊢ⁱ Θ ⇒ Δᵢ    Δ ⊢ᶜ Θ ⇒ Δᶜ    Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
-                Δ ⊢ⁱ inst(X,α,R,Θ) ⇒ Δᵢ⁺
+                allocate(α:=R,Δ) ⊢ⁱ inst(X,α,Θ) ⇒ Δᵢ⁺
                 Δᵢ⁺ ⊢ᶜ addLock(X,α,Θ′) ⇒ Δ″ᶜ
                 c′ is in scope under X in both the old view of Δ′ᶜ
                    after adding α, and Δ″ᶜ
@@ -467,31 +529,37 @@ literal.
                 Δ ⊢ᶜ A ~ R
                 ----------------------------------------------------------
                 Δ ⊢ ((W ⟪ Θ′ , ∀X.c′ ⟫) ⟪ Θ , ∀X.c ⟫) [B,A]
-                    -→ ((W ⟪ addLock(X,α,Θ′), ∀X.c′ ⟫) [Bᵢ,X])
-                         ⟪ inst(X,α,R,Θ), instRevealₓ(c) ⟫
+                    -→ ((W ⟪ addLock(X,α,Θ′) , ∀X.c′ ⟫) [Bᵢ,X])
+                         ⟪ inst(X,α,Θ) , instRevealₓ(c) ⟫ ∣ new R
 
-Mechanization note.  Agda calls the annotation `Bᵢ′`, carries
+Mechanization note.  Both the moved value and the moved boundary take the
+**sibling shift** of the allocation: Agda writes `renᴹᴿ suc W` and
+`renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])`, which is `addLock` after that shift.
+Agda calls the annotation `Bᵢ′`, carries
 `underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ`, and renames it past the inserted
 representation binder; `notes/ForallPayloadWall.agda` shows why a fixed
-position is wrong.  It also calls the moved conversion `c″`, relates it
-to `c′` by `SameConv` at the two conversion readings, and representation-
-renames `W` and `Θ′`; `notes/AddLock0Wall.agda` shows why the skipped lock
-and old unlocks defeat every fixed conversion renaming.
+position is wrong.  It also calls the moved conversion `s″`, relates it
+to `s′` by `SameConv` at the two conversion readings — the old reading
+viewed through the insertion's representation renaming;
+`notes/AddLock0Wall.agda` shows why the skipped lock and old unlocks
+defeat every fixed conversion renaming.
 
-For the scope-move rules, `binds(Θ₂)·Δ` means the exterior context
-with `Θ₂`'s parallel representation bind block added.  It does not apply
-`Θ₂`'s ordinary-name changes.
-
-    (CancelR)   Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
+    (CancelR)   Value V
+                Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
                 Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
                 Δ₁ᶜ ∋ X := Aᵢ
-                binds(Θ₂)·Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+                Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
                 Aᵢ is in scope in both Δ⋉ᶜ and Δ₁ᶜ
                 Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
                 Δᶜ ∋ Y := Aₒ
                 -------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
-                    -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId Aᵢ ⟫) ⟪ rewind Θ₂ , mkId Aₒ ⟫
+                    -→ (V ⟪ Θ₁ ++ Θ₂ , mkId Aᵢ ⟫)
+                         ⟪ rewind Θ₂ , mkId Aₒ ⟫ ∣ none
+
+The merged reading is taken at the **plain exterior** `Δ`: there is no
+bind prefix to add, because the merge is `Θ₁ ++ Θ₂` and both scopes were
+spelled at the same store.
 
 `X` and `Y`, and `Aᵢ` and `Aₒ`, remain distinct metavariables in the
 rule.  Typing a redex forces the seal and unseal to meet at the same
@@ -501,31 +569,33 @@ equation as a premise.
 Mechanization note.  Agda calls the merged spelling `A′`, carries
 `Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ`, and uses `mkId A′`; named notation keeps
 `Aᵢ` with the paired scope condition.  `notes/CancelRShiftWall.agda`
-refutes reading it anywhere but `Θ₁`'s own conversion context, and
+records the wall and its dissolution — with the store there is no
+representation shift between the two readings at all (`no-shift`), and
+the premise survives because the two **name maps** still differ;
 `notes/CancelRReachabilityWitness.agda` reaches that case from source.
 
     (Drop$)     Base A
-                ------------------------------
-                Δ ⊢ n ⟪ Θ , id A ⟫ -→ n
+                --------------------------------------
+                Δ ⊢ n ⟪ Θ , id A ⟫ -→ n ∣ none
 
-    (Drop-true) --------------------------------
-                Δ ⊢ true ⟪ Θ , id 𝔹 ⟫ -→ true
+    (Drop-true) --------------------------------------------
+                Δ ⊢ true ⟪ Θ , id 𝔹 ⟫ -→ true ∣ none
 
     (Drop-false)
-                ----------------------------------
-                Δ ⊢ false ⟪ Θ , id 𝔹 ⟫ -→ false
+                ----------------------------------------------
+                Δ ⊢ false ⟪ Θ , id 𝔹 ⟫ -→ false ∣ none
 
     (IdPush)    Value V
                 Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
                 Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-                binds(Θ₂)·Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+                Δ ⊢ᶜ Θ₁ ++ Θ₂ ⇒ Δ⋉ᶜ
                 X is in scope in both Δ⋉ᶜ and Δ₁ᶜ
                 Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
                 Δᶜ ∋ Y := A
                 -------------------------------------------------------
                 Δ ⊢ (V ⟪ Θ₁ , id X ⟫) ⟪ Θ₂ , unseal Y ⟫
-                    -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal X ⟫)
-                         ⟪ rewind Θ₂ , mkId A ⟫
+                    -→ (V ⟪ Θ₁ ++ Θ₂ , unseal X ⟫)
+                         ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
 
 Mechanization note.  Agda names the merged spelling `X′`, carries
 `Δ⋉ᶜ ⊢ X′ ≈ X ⊣ Δ₁ᶜ`, and uses `unseal X′`; named notation keeps `X`
@@ -535,38 +605,48 @@ outer `Y` remains distinct.
 
 ## Congruence rules
 
-    (ξ-·-l)     Δ ⊢ L -→ L′
-                ---------------------
-                Δ ⊢ L · M -→ L′ · M
+A congruence passes the store change up and applies it to the redex's
+**siblings**: after an allocation the whole program lives under one more
+representation cell, so every representation occurrence in a sibling moves
+up by one.  Agda writes that `↑ᴹ[ δ ]` on a term and `↑ᴮ[ δ ]` on a
+boundary scope; with names it is the identity, exactly like the other
+index shifts this note suppresses.  Ordinary positions never move, so no
+type annotation and no conversion is touched.
 
-    (ξ-·-r)     Value V    Δ ⊢ M -→ M′
-                --------------------------
-                Δ ⊢ V · M -→ V · M′
+    (ξ-·-l)     Δ ⊢ L -→ L′ ∣ δ
+                ----------------------------------
+                Δ ⊢ L · M -→ L′ · ↑ᴹ[δ]M ∣ δ
 
-    (ξ-·[])      Δ ⊢ L -→ L′
-                --------------------------
-                Δ ⊢ L [B,A] -→ L′ [B,A]
+    (ξ-·-r)     Value V    Δ ⊢ M -→ M′ ∣ δ
+                ----------------------------------
+                Δ ⊢ V · M -→ ↑ᴹ[δ]V · M′ ∣ δ
 
-    (ξ-Λ)       under(X,α,Δ) ⊢ N -→ N′
-                ---------------------------
-                Δ ⊢ ΛX.N -→ ΛX.N′
+    (ξ-·[])     Δ ⊢ L -→ L′ ∣ δ
+                ----------------------------------
+                Δ ⊢ L [B,A] -→ L′ [B,A] ∣ δ
 
-    (ξ-⟪⟫)      Δ ⊢ⁱ Θ ⇒ Δᵢ    Δᵢ ⊢ M -→ M′
-                -----------------------------------
-                Δ ⊢ M ⟪ Θ,c ⟫ -→ M′ ⟪ Θ,c ⟫
+    (ξ-⟪⟫)      Δ ⊢ⁱ Θ ⇒ Δᵢ    Δᵢ ⊢ M -→ M′ ∣ δ
+                --------------------------------------
+                Δ ⊢ M ⟪ Θ,c ⟫ -→ M′ ⟪ ↑ᴮ[δ]Θ , c ⟫ ∣ δ
 
-There is no reduction under a term lambda.  Reduction is call-by-value,
-left-to-right, but it does proceed under a type abstraction and inside a
-boundary at that boundary's interior context.
+There is **no `ξ-Λ`**: reduction does not go under a type abstraction,
+because the value restriction leaves nothing there to reduce.  There is
+no reduction under a term lambda either.  Reduction is call-by-value,
+left-to-right, and it does proceed inside a boundary at that boundary's
+interior context.
 
-The reflexive-transitive closure used by preservation and type safety is:
+The reflexive-transitive closure used by preservation and type safety
+threads the store change through:
 
     (done)      ----------------
                 Δ ⊢ M -→* M
 
-    (then)      Δ ⊢ L -→ M    Δ ⊢ M -→* N
-                ---------------------------
+    (then)      Δ ⊢ L -→ M ∣ δ    apply δ Δ ⊢ M -→* N
+                ---------------------------------------
                 Δ ⊢ L -→* N
+
+`runCtx r` is the context a run `r` **ends** at: every step's change
+applied in order.
 
 # A CancelR run excerpt
 
@@ -577,75 +657,90 @@ The reflexive-transitive closure used by preservation and type safety is:
           · (ΛZ. λy:Z. x))) [ℕ]) · 7
 
 and proves that it reaches `7` in nineteen steps.  The following excerpt
-was generated by `Show.showTrace`, not transcribed from indices.  Let
+was generated by `Show.showTrace`, not transcribed from indices.  The
+renderer prints the store as `Ξ = [...]` with the **newest** cell first,
+so `α` is the most recently allocated one.  Let
 
-    V = (7 ⟪ ↓X, seal X ⟫) ⟪ ↓Z, id X ⟫
+    V = (7 ⟪ ↓Z , seal Z ⟫) ⟪ ↓X , id Z ⟫
 
-The ninth through twelfth states are whole terms; the first `CancelR` is
-the repaired open-representation case (`↑β:=α`):
+The tenth through thirteenth states are whole terms, at the store
 
-    ((V ⟪ ↑γ:=ℕ, ↥Z, ↓Y, seal Y ⟫)
-         ⟪ ↑β:=α, ↥Y, unseal Y ⟫)
-      ⟪ ↑α:=ℕ, ↥X, unseal X ⟫
+    Ξ = [ α := ℕ , β := γ , γ := ℕ ]
+
+which the four steps leave alone — none of them allocates.  The first
+`CancelR` is the open-representation case: the cancelled cell is `β`, and
+its stored representation is the representation *variable* `γ`.
+
+    ((V ⟪ ↥X , ↓Y , seal Y ⟫) ⟪ ↥Y , unseal Y ⟫) ⟪ ↥Z , unseal Z ⟫
     -→ CancelR
-    ((V ⟪ ↑γ:=ℕ, ↥Y, ↥Z, ↓Y, id X ⟫)
-         ⟪ ↑β:=α, ↥Y, ↓Y, id X ⟫)
-      ⟪ ↑α:=ℕ, ↥X, unseal X ⟫
+    ((V ⟪ ↥Y , ↥X , ↓Y , id Z ⟫) ⟪ ↥Y , ↓Y , id Z ⟫) ⟪ ↥Z , unseal Z ⟫
     -→ IdPush
-    ((V ⟪ ↑γ:=ℕ, ↥Y, ↥Z, ↓Y, id X ⟫)
-         ⟪ ↑β:=α, ↥X, ↥Y, ↓Y, unseal X ⟫)
-      ⟪ ↑α:=ℕ, ↥X, ↓X, id ℕ ⟫
+    ((V ⟪ ↥Y , ↥X , ↓Y , id Z ⟫) ⟪ ↥Z , ↥Y , ↓Y , unseal Z ⟫)
+      ⟪ ↥Z , ↓Z , id ℕ ⟫
     -→ IdPush
-    ((V ⟪ ↑γ:=ℕ, ↥X, ↥Y, ↓Y, ↥Y, ↥Z, ↓Y, unseal X ⟫)
-         ⟪ ↑β:=α, ↥X, ↥Y, ↓Y, ↥Y, ↓Y, ↓X, id ℕ ⟫)
-      ⟪ ↑α:=ℕ, ↥X, ↓X, id ℕ ⟫
+    ((V ⟪ ↥Z , ↥Y , ↓Y , ↥Y , ↥X , ↓Y , unseal Z ⟫)
+       ⟪ ↥Z , ↥Y , ↓Y , ↥Y , ↓Y , ↓Z , id ℕ ⟫)
+      ⟪ ↥Z , ↓Z , id ℕ ⟫
 
-The trace makes the two universes visible: `↑β:=α` stores an open
-representation type, while `↥Y` gives `β` an type variable.  `CancelR`
-keeps both frames and replaces the matched `seal`/`unseal` conversions by
-identities; the following `IdPush` steps move the remaining active
-conversion inward without merging those frames.
+The trace makes the two universes visible: the store cell `β := γ` holds
+an open representation, while `↥Y` gives `β` a type variable.  Every
+boundary is changes-only — the representations they used to carry are in
+`Ξ`.  `CancelR` keeps both frames and replaces the matched
+`seal`/`unseal` conversions by identities; the following `IdPush` steps
+move the remaining active conversion inward without merging those frames.
 
 # Metatheory
 
-The public surface is in `TypeSafety.agda`.
+The public surface is in `TypeSafety.agda`, and every statement is read
+against the store: a step's contractum lives at `apply δ Δ`, and a run's
+final term lives at `runCtx r`.
 
     Progress
       Δ ∣ · ⊢ M : A
-      -----------------------------------------------
-      Value M  or  there exists M′ with Δ ⊢ M -→ M′
+      -----------------------------------------------------
+      Value M  or  there exist M′ and δ with Δ ⊢ M -→ M′ ∣ δ
 
     Preservation
       WfCtx Δ
       Δ ∣ · ⊢ M : A
-      Δ ⊢ M -→ M′
+      Δ ⊢ M -→ M′ ∣ δ
+      ------------------------
+      apply δ Δ ∣ · ⊢ M′ : A
+
+    PreservationWf
+      WfCtx Δ
+      Δ ∣ · ⊢ M : A
+      Δ ⊢ M -→ M′ ∣ δ
       ----------------
-      Δ ∣ · ⊢ M′ : A
+      WfCtx (apply δ Δ)
 
     Preservation*
       WfCtx Δ
       Δ ∣ · ⊢ M : A
-      Δ ⊢ M -→* M′
-      -----------------
-      Δ ∣ · ⊢ M′ : A
+      r : Δ ⊢ M -→* M′
+      ------------------------
+      runCtx r ∣ · ⊢ M′ : A
 
     TypeSafety
       WfCtx Δ
       Δ ∣ · ⊢ M : A
-      Δ ⊢ M -→* N
-      -----------------------------------------------
-      Value N  or  there exists N′ with Δ ⊢ N -→ N′
+      r : Δ ⊢ M -→* N
+      ---------------------------------------------------------
+      Value N  or  there exist N′ and δ with runCtx r ⊢ N -→ N′ ∣ δ
 
     Determinism
       Δ ∣ Γₜ ⊢ M : A
-      Δ ⊢ M -→ M₁    Δ ⊢ M -→ M₂
-      --------------------------------
-      M₁ = M₂
+      Δ ⊢ M -→ M₁ ∣ δ₁    Δ ⊢ M -→ M₂ ∣ δ₂
+      -------------------------------------
+      M₁ = M₂  and  δ₁ = δ₂
 
     Values do not step
       Value V
-      --------------------------
-      there is no V′ with Δ ⊢ V -→ V′
+      ----------------------------------------------
+      there are no V′, δ with Δ ⊢ V -→ V′ ∣ δ
+
+Determinism concludes the **pair**: the contractum and the store change
+are both functions of the redex.
 
 Progress needs no global `WfCtx` premise: each boundary typing derivation
 already contains its `BoundaryWf`.  Determinism does need the redex's typing
@@ -658,11 +753,45 @@ premise-free statement.  Take
     Γ = (X ↦ α, Y ↦ α)
 
 and the redex `( ΛZ.0 ) [ℕ,ℕ]`.  It mentions neither `X` nor `Y`, so it
-can be typed despite the duplicate naming of `α`.  `TyBeta` must mint a
+can be typed despite the duplicate naming of `α`.  (Its body is a
+numeral, so the value restriction accepts it.)  `TyBeta` must mint a
 boundary whose `BoundaryWf` contains `WfCtx (Ξ ∣ Γ)`, and that is impossible:
 one representation variable has two live type variables.  In the named
 presentation `WfCtx` therefore reads as distinct-name, no-alias hygiene;
 in ordinary mathematical practice it is maintained by alpha-conversion.
+
+The four congruences all rest on one lemma, the **sibling shift**
+(`ShiftTyping`, `proof/RepWeaken.agda`): if `Δ ∣ Γₜ ⊢ M : A` and `R` is a
+well-formed representation at `Δ`'s store, then
+`allocate(α:=R,Δ) ∣ Γₜ ⊢ ↑ᴹ[new R]M : A`.  The type does not change,
+because an allocation only renumbers the representation universe.  It is
+what replaced the bind-block weakening the old `Peel` consumed.
+
+## Color preservation
+
+`ColorPreservation.agda` states the design law that reduction never
+changes which type variables a subterm can see.  A hole's **color** is
+the scope map `Γ` at that hole, and `Residuals` follows a position
+through a run, recording the representation renaming `ρ` the run
+delivered to it.
+
+    ScopeMapPreservation
+      WfCtx Δ
+      Δ ∣ · ⊢ L : A
+      Residuals rs C M ρ D N
+      Δ ⊢C C ⊣ Δ₁        runCtx rs ⊢C D ⊣ Δ₂
+      ---------------------------------------
+      Γ of Δ₂  =  ρ applied to Γ of Δ₁
+
+    ColorPreservation
+      same premises
+      ------------------------------------
+      |Γ of Δ₂|  =  |Γ of Δ₁|
+
+The target position is read at `runCtx rs`, the context the run ends at,
+not at `Δ`: allocating a cell renumbers the ambient name map, which is
+exactly the `ρ` the equation already reports.  Both statements have
+closed forms at the empty ambient, premise-free beyond the typing.
 
 # The six re-spelling repairs
 
@@ -674,13 +803,30 @@ does not hide why the Agda carries relational witnesses.
 | `notes/ReUnlockWall.agda` | `conv-unlock-live` | a repeated insertion position | the conversion reading is a union and differs from the interior |
 | `notes/ForallPayloadWall.agda`, `TyPeelR-⟪⟫` | carry `Bᵢ′` with `_⊢_≈_⊣_` | reindexing the interior annotation | it must be readable in both the interior and conversion contexts |
 | `notes/ForallPayloadWall.agda`, `IdPush` | carry `X′` with `_⊢_≈_⊣_` | reindexing the pushed name | the name must be live at the inner and merged conversion contexts |
-| `notes/CancelRShiftWall.agda` | carry `A′` from `Θ₁`'s own conversion context | the bind-prefix shift of the representation | the type is read at `Θ₁`'s context and at the merged context |
-| `notes/CrossingAudit.agda` and `notes/PeelPremise.agda` | carry `c′` with `SameConv` | reindexing the domain conversion across the dual | the original and dual conversion contexts remain different |
-| `notes/AddLock0Wall.agda` | carry `c″` with `SameConv` | reindexing through the new lock and old unlocks | both conversion readings and the old context's representation-rebased view remain premises |
+| `notes/CancelRShiftWall.agda` (dissolved by the store, kept as a record) | carry `A′` from `Θ₁`'s own conversion context | the bind-prefix shift, which no longer exists (`no-shift`) | the type is still read at two different NAME MAPS, `Θ₁`'s and the merged one |
+| `notes/CrossingAudit.agda` and `notes/PeelPremise.agda` | carry `s′` with `SameConv` | reindexing the domain conversion across the dual | the original and dual conversion contexts remain different |
+| `notes/AddLock0Wall.agda` | carry `s″` with `SameConv` | reindexing through the new lock and old unlocks | both conversion readings and the old context's representation-rebased view remain premises |
 
 # Notes ↔ Agda correspondence
 
 The rule names below are the Agda constructor names.
+
+## Contexts, the store, and boundary scopes
+
+| notes | Agda | presentation/mechanization gap |
+|---|---|---|
+| `Ξ ∣ Γ` | `Ctxᵗ = reps ∣ names` | none |
+| `allocate(α:=R,Δ)` | `allocate R Δ` | the fresh cell is index 0 and everything else shifts; with names nothing moves |
+| `δ ::= none \| new R` | `Alloc`, `none`/`new` | none |
+| `apply δ Δ` | `apply` | none |
+| `runCtx r` | `runCtx` | none |
+| `↑ᴹ[δ]M`, `↑ᴮ[δ]Θ` | `↑ᴹ[_]`, `↑ᴮ[_]` (`renᴹᴿ suc`, `renᴮᴿ suc`) | the named shift is the identity: ordinary positions never move |
+| `Θ = ⟨ δ₁,…,δₘ ⟩` | `Boundary = List Change` | an alias; a scope IS its change list |
+| `dual Θ` | `dual` | none |
+| `rewind Θ` | `rewind Θ = dual Θ ++ Θ` | none |
+| `Θ₁ ++ Θ₂` | `_++_` | nothing shifts: both scopes are spelled at the same store |
+| `addLock(X,α,Θ)` | the snoc `Θ ++ (lock 0 0 ∷ [])` | written out at its use sites |
+| `inst(X,α,Θ)` | `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])` | one shift in each universe, because it is read one allocation later |
 
 ## Formation, conversion, and term typing
 
@@ -691,10 +837,11 @@ The rule names below are the Agda constructor names.
 | `lock`, `unlock` | `step-lock`, `step-unlock` | membership/freshness replaces positional insert/delete evidence |
 | interior changes | `changes[]`, `changes∷` | named sequences suppress index shifts only |
 | conversion changes | `conv[]`, `conv-lock`, `conv-unlock`, `conv-unlock-live` | the no-op re-unlock remains semantically visible |
-| `BoundaryWf` | `bw` | output well-formedness is derived in both presentations |
+| `BoundaryWf` | `bw` | three fields only — exterior `WfCtx` and the two readings; output well-formedness is derived in both presentations |
 | `conv-id`, `conv-idv`, `conv-unseal`, `conv-seal`, `conv-fun`, `conv-all` | same names in `Conversion.agda` | none beyond named lookup and binders |
-| `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢·[]` | same constructors in `Terms.agda` | named binders replace term/type indices |
-| `env` | `env` | Agda has `Bᵢ/Cᵢ` related by `_⊢_≈_⊣_` and `Bₑ/Cₑ` related by `SameTyExt`; notes use one named endpoint plus paired scope conditions |
+| `mkId`, `revealₓ`, `concealₓ`, `instRevealₓ`, `instConcealₓ` | `mkId`, `reveal`, `conceal`, `instReveal`, `instConceal` | the Agda operations carry the slot as an index, not a name |
+| `⊢\``, `⊢$`, `⊢true`, `⊢false`, `⊢ƛ`, `⊢·`, `⊢Λ`, `⊢·[]` | same constructors in `Terms.agda` | named binders replace term/type indices; `⊢Λ`'s `Value N` is the value restriction |
+| `env` | `env` | Agda has `Bᵢ/Cᵢ` and `Bₑ/Cₑ`, both related by `_⊢_≈_⊣_`; notes use one named endpoint plus paired scope conditions |
 | inert identities, seals, arrows, universals | `I-idv`, `I-seal`, `I-fun`, `I-all` | none |
 | active base identities and unseals | `A-idb`, `A-unseal` | none |
 | values | `V-$`, `V-true`, `V-false`, `V-ƛ`, `V-Λ`, `V-⟪⟫` | named binders only |
@@ -703,39 +850,43 @@ The rule names below are the Agda constructor names.
 
 | notes rule | Agda constructor | presentation/mechanization gap |
 |---|---|---|
-| `TyBeta` | `TyBeta` | `inst` shifts old representation indices; names stay fixed |
-| `Beta` | `Beta` | named frame-exact substitution hides the representation-only weakening under `Λ`, not the crossing boundary |
-| `Peel` | `Peel` | `c′`/`SameConv` becomes one `c` plus scope in `Δᶜ,Δᵈ`; `W` is representation-weakened in Agda |
-| `TyPeelR-Λ` | `TyPeelR-Λ` | `inst` shifts indices; no re-spelling premise is removed |
-| `TyPeelR-⟪⟫` | `TyPeelR-⟪⟫` | `Bᵢ′` and `c″` collapse to named `Bᵢ` and `c′` with four scope readings; Agda representation-renames `W`, `Θ′`, and the annotation |
-| `CancelR` | `CancelR` | `A′` collapses to named `Aᵢ` with scope at `Δ⋉ᶜ,Δ₁ᶜ`; distinct raw-rule `X,Y,Aᵢ,Aₒ` are retained |
-| `Drop$` | `Drop$` | none; the `Base A` premise is retained |
-| `Drop-true` | `Drop-true` | none |
-| `Drop-false` | `Drop-false` | none |
-| `IdPush` | `IdPush` | `X′` collapses to named `X` with scope at `Δ⋉ᶜ,Δ₁ᶜ`; distinct raw-rule outer `Y` is retained |
-| `ξ-·-l` | `ξ-·-l` | none |
-| `ξ-·-r` | `ξ-·-r` | none; `Value V` is retained |
-| `ξ-·[]` | `ξ-·[]` | none |
-| `ξ-Λ` | `ξ-Λ` | `underΛ` is written as a fresh named `X ↦ α` plus abstract `α` |
-| `ξ-⟪⟫` | `ξ-⟪⟫` | none; the explicit interior-reading premise is retained |
+| `TyBeta` | `TyBeta` | `inst` shifts old representation indices; names stay fixed.  Store change `new R` |
+| `Beta` | `Beta` | named frame-exact substitution hides the representation-only weakening under `Λ`, not the crossing boundary.  `none` |
+| `Peel` | `Peel` | `s′`/`SameConv` becomes one `c` plus scope in `Δᶜ,Δᵈ`; `W` moves verbatim.  `none` |
+| `TyPeelR-Λ` | `TyPeelR-Λ` | `inst` shifts indices; no re-spelling premise is removed.  `new R` |
+| `TyPeelR-⟪⟫` | `TyPeelR-⟪⟫` | `Bᵢ′` and `s″` collapse to named `Bᵢ` and `c′` with four scope readings; Agda sibling-shifts `W` and `Θ′` by the allocation and renames the annotation.  `new R` |
+| `CancelR` | `CancelR` | `A′` collapses to named `Aᵢ` with scope at `Δ⋉ᶜ,Δ₁ᶜ`; the merged reading is at the plain exterior; distinct raw-rule `X,Y,Aᵢ,Aₒ` are retained.  `none` |
+| `Drop$` | `Drop$` | none; the `Base A` premise is retained.  `none` |
+| `Drop-true` | `Drop-true` | none.  `none` |
+| `Drop-false` | `Drop-false` | none.  `none` |
+| `IdPush` | `IdPush` | `X′` collapses to named `X` with scope at `Δ⋉ᶜ,Δ₁ᶜ`; the merged reading is at the plain exterior; distinct raw-rule outer `Y` is retained.  `none` |
+| `ξ-·-l` | `ξ-·-l` | the sibling shift `↑ᴹ[δ]` is the named identity |
+| `ξ-·-r` | `ξ-·-r` | same; `Value V` is retained |
+| `ξ-·[]` | `ξ-·[]` | none; annotations are ordinary and never shift |
+| `ξ-⟪⟫` | `ξ-⟪⟫` | the scope shift `↑ᴮ[δ]` is the named identity; the explicit interior-reading premise is retained |
+| — | (no `ξ-Λ`) | the value restriction removed it |
+| `done`, `then` | `done`, `_then_` | the tail runs at `apply δ Δ` |
 
 For completeness, the named rules render differently from their Agda
 premises only at these sites:
 
   1. `env`: `Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ` becomes one `Bᵢ` readable in
-     both contexts; `SameTyExt ... Bₑ ... Cₑ` becomes one `Bₑ`
+     both contexts; `Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ` becomes one `Bₑ`
      readable in the exterior and conversion contexts.
-  2. `Peel`: `SameConv Δᵈ c′ Δᶜ c` becomes one `c` readable in
+  2. `Peel`: `SameConv Δᵈ s′ Δᶜ s` becomes one `c` readable in
      both contexts.
   3. `TyPeelR-⟪⟫`: the moved-reading premise uses
-     `addLock0 (renᴮ² ... Θ′)` in Agda and `addLock(X,α,Θ′)` here;
-     its `SameConv ... c″ ... c′` becomes one `c′` readable in both
+     `renᴮᴿ suc Θ′ ++ (lock 0 0 ∷ [])` in Agda and `addLock(X,α,Θ′)`
+     here; its `SameConv … s″ … s′` becomes one `c′` readable in both
      conversion contexts; and `underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ`
      becomes one `Bᵢ` readable in both contexts.
   4. `CancelR`: `Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ` becomes one `Aᵢ`
      readable in both contexts.  Both lookup premises remain separate.
-  5. `IdPush`: `Δ⋉ᶜ ⊢ X′ ≈ X ⊣ Δ₁ᶜ` becomes one `X`
+  5. `IdPush`: the merged-name premise, which relates the variable
+     spellings X′ and X at Δ⋉ᶜ and Δ₁ᶜ, becomes one `X`
      live in both contexts.  The outer lookup premise remains separate.
+  6. The congruences: `↑ᴹ[ δ ]` and `↑ᴮ[ δ ]` become the identity,
+     because with names an allocation renumbers nothing.
 
 Every other premise in the displayed typing and reduction rules is present
 with the same mathematical content as in `Terms.agda` or `Reduction.agda`.

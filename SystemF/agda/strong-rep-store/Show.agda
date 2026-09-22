@@ -60,7 +60,7 @@ open import strong-rep-store.Terms
   using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
          _∣_⊢_⦂_)
 open import strong-rep-store.Boundary
-  using (Boundary; changes; Change; lock; unlock)
+  using (Boundary; Change; lock; unlock)
 open import strong-rep-store.Reduction using (_⊢_-→_∣_; TyBeta; Beta; Peel;
   TyPeelR-Λ; TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
   ξ-·-l; ξ-·-r; ξ-·[]; ξ-⟪⟫)

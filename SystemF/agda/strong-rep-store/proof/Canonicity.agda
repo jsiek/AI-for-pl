@@ -319,8 +319,7 @@ data CanonTm : Term → Set where
   ct-⟪⟫    : ∀ {Θ} → CanonTm M → CanonC c → CanonTm (M ⟪ Θ , c ⟫)
 
 -- Renaming a term renames its conversions with the renaming's ORDINARY
--- component; §4 covers them.  A rep-only renaming — `ren² idᵗ _`, which
--- is what `Peel`, `TyPeelR-⟪⟫` and `crossΛᴹ` perform — leaves every
+-- component; §4 covers them.  A representation-only renaming leaves every
 -- conversion name where it was.
 canon-renᴹ² : (ρ : TyRename) → CanonTm M → CanonTm (renᴹ² ρ M)
 canon-renᴹ² ρ ct-var           = ct-var
@@ -332,9 +331,24 @@ canon-renᴹ² ρ (ct-· cL cM)     =
   ct-· (canon-renᴹ² ρ cL) (canon-renᴹ² ρ cM)
 canon-renᴹ² ρ (ct-Λ cN)        = ct-Λ (canon-renᴹ² (underΛ-ren ρ) cN)
 canon-renᴹ² ρ (ct-·[] cL)      = ct-·[] (canon-renᴹ² ρ cL)
-canon-renᴹ² ρ (ct-⟪⟫ {Θ = Θ} cM cc) =
-  ct-⟪⟫ (canon-renᴹ² (underReps-ren (numBinds Θ) ρ) cM)
-        (canonC-ren (ordinary ρ) cc)
+canon-renᴹ² ρ (ct-⟪⟫ cM cc) =
+  ct-⟪⟫ (canon-renᴹ² ρ cM) (canonC-ren (ordinary ρ) cc)
+
+canon-renᴹᴿ : (ρ : Renameᵗ) → CanonTm M → CanonTm (renᴹᴿ ρ M)
+canon-renᴹᴿ ρ ct-var        = ct-var
+canon-renᴹᴿ ρ ct-lit        = ct-lit
+canon-renᴹᴿ ρ ct-true       = ct-true
+canon-renᴹᴿ ρ ct-false      = ct-false
+canon-renᴹᴿ ρ (ct-ƛ cN)     = ct-ƛ (canon-renᴹᴿ ρ cN)
+canon-renᴹᴿ ρ (ct-· cL cM)  =
+  ct-· (canon-renᴹᴿ ρ cL) (canon-renᴹᴿ ρ cM)
+canon-renᴹᴿ ρ (ct-Λ cN)     = ct-Λ (canon-renᴹᴿ (extᵗ ρ) cN)
+canon-renᴹᴿ ρ (ct-·[] cL)   = ct-·[] (canon-renᴹᴿ ρ cL)
+canon-renᴹᴿ ρ (ct-⟪⟫ cM cc) = ct-⟪⟫ (canon-renᴹᴿ ρ cM) cc
+
+canon-↑ : (δ : Alloc) → CanonTm M → CanonTm (↑ᴹ[ δ ] M)
+canon-↑ none    cM = cM
+canon-↑ (new R) cM = canon-renᴹᴿ suc cM
 
 canon-renᴹ : (ρ : Renameᵗ) → CanonTm M → CanonTm (renᴹ ρ M)
 canon-renᴹ ρ cM = canon-renᴹ² (ren² ρ ρ) cM
@@ -465,13 +479,13 @@ _ = refl
 ¬CanonTyPeelR : ¬ CanonTyPeelR
 ¬CanonTyPeelR tp = ¬canonC-seal↦seal (tp canonC-∀conv)
 
-canon-step : ∀ {Δ} → Unique (names Δ) → CanonTyPeelR
-  → CanonTm M → Δ ⊢ M -→ M′ → CanonTm M′
+canon-step : ∀ {Δ M M′ δ} → Unique (names Δ) → CanonTyPeelR
+  → CanonTm M → Δ ⊢ M -→ M′ ∣ δ → CanonTm M′
 canon-step uq tp (ct-·[] (ct-Λ cN)) (TyBeta {B = B} _ _) =
   ct-⟪⟫ cN (canonC-reveal 0 B)
 canon-step uq tp (ct-· (ct-ƛ cN) cW) (Beta _) = canon-subst cN cW
 canon-step uq tp (ct-· (ct-⟪⟫ cV cst) cW) (Peel _ _ rc ri rd sc) =
-  ct-⟪⟫ (ct-· cV (ct-⟪⟫ (canon-renᴹ² (ren² idᵗ (wkN _)) cW)
+  ct-⟪⟫ (ct-· cV (ct-⟪⟫ cW
                         (canonC-respell (dual-unique uq ri rd) sc
                                         (canonC-fun-dom cst))))
         (canonC-fun-cod cst)
@@ -480,13 +494,12 @@ canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-Λ cN) cs)) (TyPeelR-Λ _ _ _ _) =
 canon-step uq tp (ct-·[] (ct-⟪⟫ (ct-⟪⟫ cW cs′) cs))
               (TyPeelR-⟪⟫ {Δ′ᶜ = Δ′ᶜ} {Δ″ᶜ = Δ″ᶜ} {Θ′ = Θ′}
                 _ _ _ _ ri⁺ r″ sc _ _ _) =
-  ct-⟪⟫ (ct-·[] (ct-⟪⟫ (canon-renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) cW)
+  ct-⟪⟫ (ct-·[] (ct-⟪⟫ (canon-renᴹᴿ suc cW)
                        (canonC-respell
                          (conversion-unique
-                           (interior-unique uq ri⁺) r″)
+                           (interior-unique (unique-shift uq) ri⁺) r″)
                          (sameConv-∀ {Γ = Δ″ᶜ}
-                           {Γ′ = renNameCtx
-                             (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ} sc)
+                           {Γ′ = renNameCtx suc Δ″ᶜ Δ′ᶜ} sc)
                          cs′)))
         (tp cs)
 canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
@@ -498,20 +511,22 @@ canon-step uq tp (ct-⟪⟫ _ _) Drop-false    = ct-false
 canon-step uq tp (ct-⟪⟫ (ct-⟪⟫ cV _) _)
               (IdPush {X′ = X′} {A = A} _ _ _ _ _ _ _) =
   ct-⟪⟫ (ct-⟪⟫ cV (canonC-unseal X′)) (canonC-mkId A)
-canon-step uq tp (ct-· cL cM)  (ξ-·-l st)   =
-  ct-· (canon-step uq tp cL st) cM
-canon-step uq tp (ct-· cV cM)  (ξ-·-r _ st) =
-  ct-· cV (canon-step uq tp cM st)
+canon-step uq tp (ct-· cL cM) (ξ-·-l {δ = δ} st) =
+  ct-· (canon-step uq tp cL st) (canon-↑ δ cM)
+canon-step uq tp (ct-· cV cM) (ξ-·-r {δ = δ} _ st) =
+  ct-· (canon-↑ δ cV) (canon-step uq tp cM st)
 canon-step uq tp (ct-·[] cL)   (ξ-·[] st)   =
   ct-·[] (canon-step uq tp cL st)
 canon-step uq tp (ct-⟪⟫ cM cc) (ξ-⟪⟫ ri st) =
   ct-⟪⟫ (canon-step (interior-unique uq ri) tp cM st) cc
 
-canon-steps : ∀ {Δ} → Unique (names Δ) → CanonTyPeelR
+canon-steps : ∀ {Δ M M′} → Unique (names Δ) → CanonTyPeelR
   → CanonTm M → Δ ⊢ M -→* M′ → CanonTm M′
-canon-steps uq tp cM done          = cM
-canon-steps uq tp cM (st then sts) =
+canon-steps uq tp cM done = cM
+canon-steps uq tp cM (_then_ {δ = none} st sts) =
   canon-steps uq tp (canon-step uq tp cM st) sts
+canon-steps uq tp cM (_then_ {δ = new R} st sts) =
+  canon-steps (unique-shift uq) tp (canon-step uq tp cM st) sts
 
 ------------------------------------------------------------------------
 -- 9.  SOURCES — plain System F terms are canonical, vacuously
@@ -554,7 +569,8 @@ _ = canonC-reveal 0 (` 0 ⇒ ` 0)
 
 -- The wrapper frame-exact Beta mints at a crossed `Λ` is name-free.
 _ : ∀ {W A} → CanonTm W → CanonTm (crossΛᴹ W A)
-_ = λ cW → ct-⟪⟫ (canon-renᴹ² (ren² idᵗ suc) cW) (canonC-mkId _)
+_ = λ cW →
+  ct-⟪⟫ (canon-renᴹ² (ren² idᵗ suc) cW) (canonC-mkId _)
 
 -- A TWO-BINDER tree — `seal` leaves at two different names — is outside
 -- the family, though (unlike under the retired polarity index) it is

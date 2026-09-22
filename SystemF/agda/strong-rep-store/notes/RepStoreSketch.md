@@ -1,8 +1,10 @@
 # Experiment 2 — a GLOBAL REPRESENTATION STORE instead of `binds`
 
-Sketch, 2026-09-22.  Jeremy: "removing the binds field from Boundary and
-instead make that a global representation type store.  For example,
-TyBeta would add the representation R to the type store."
+Sketch, 2026-09-22 (revised the same day after Jeremy's remark that
+addresses need not be a separate sort: "the addresses can just be
+larger de Bruijn indices").  Jeremy: "removing the binds field from
+Boundary and instead make that a global representation type store.  For
+example, TyBeta would add the representation R to the type store."
 
 Nothing here is implemented.  Every `Agda` block is the intended
 statement, written against the current strong-rep-store names so that
@@ -11,88 +13,94 @@ the diff is readable rule by rule.  Decision points are marked **ASK**.
 ## 0. What moves where — one sentence
 
 Today a boundary `M ⟪ boundary Rs χ , c ⟫` carries its own bind block
-`Rs`, pushed as `bindR` entries onto the representation context on the
-way in (`extendReps`), so every representation variable is a de Bruijn
-index RELATIVE to the boundaries and `Λ`s that enclose it, and every
-rule that moves a subterm across a boundary re-indexes it (`renᴹ²`,
-`renᴹᴿ`, `underRepBinds`, `SameConv`, `SameTyExt`).  The experiment
-puts the bound representations in ONE append-only store `Σ`, addressed
-globally, so that a moved subterm is moved VERBATIM and a representation
-is written exactly once, by the `TyBeta` that mints it.
+`Rs`, pushed as `bindR` entries onto the FRONT of the representation
+context on the way in (`extendReps`), so every representation variable
+is a de Bruijn index RELATIVE to the boundaries that enclose it, and
+every rule that moves a subterm across a boundary re-indexes it
+(`renᴹ²`, `renᴹᴿ`, `underRepBinds`, `SameConv`, `SameTyExt`).  The
+experiment appends the bound representations at the END of the
+representation context instead — the store is the `bindR` suffix of
+`Ξ`, an address is just an index beyond the abstract prefix — so a
+moved subterm is moved VERBATIM and a representation is written exactly
+once, by the `TyBeta` that mints it.
 
 The NAME MAP `names Δ : List RVar` (ordinary `X` ↦ its representation
 variable) and the `lock`/`unlock` changes on it are UNCHANGED.  This is
 the answer to the 2026-09-05 objection recorded at `DesignSpace.md` D33 →
 D34 ("a global Σ-store, NOT taken — lexical scope is needed for lock
 blocking"): that proposal stored the whole context; this one stores
-only what `bindR` held.  `Σ` says WHAT a representation is; `Δ` says
-WHETHER this position may name it.  Lock blocking is still lexical.
+only what `bindR` held.  The store says WHAT a representation is; `Δ`
+says WHETHER this position may name it.  Lock blocking is still lexical.
 
 **Why experiment 1 had to come first.**  With `ξ-Λ`, a `TyBeta` under a
-`Λ` would append to `Σ` a payload mentioning the `Λ`'s own abstract
-variable, and a later instantiation of that `Λ` would leave the store
-entry pointing at a binder that no longer exists.  With the value
-restriction nothing reduces under `Λ`, so at every redex the abstract
-variables in scope are exactly the AMBIENT ones, fixed for the run.
+`Λ` would append a payload mentioning the `Λ`'s own abstract variable,
+and a later instantiation of that `Λ` would leave the cell pointing at a
+binder that no longer exists.  With the value restriction nothing
+reduces under `Λ`, so at every redex the abstract prefix of `Ξ` is the
+AMBIENT one, fixed for the run — which is exactly what makes an
+appended address stable.
 
 ## 1. Definitions
 
-### 1.1 Representation variables are two-sorted
+### 1.1 One sort of representation variable; the store is a suffix
+
+`RVar = ℕ`, `Rep = Ty`, `RepCtx = List RepBinding` with `abstR`/`bindR`
+— ALL AS TODAY.  What changes is the discipline on `Ξ`:
 
 ```agda
-data RVar : Set where
-  var : ℕ → RVar   -- de Bruijn: a payload's own ∀ binders, then the
-                   --   ambient Λ binders (today's abstR entries)
-  loc : ℕ → RVar   -- an ADDRESS in the global store Σ (today's bindR)
+-- abstract binders are pushed at the FRONT (typing, under Λ);
+-- cells are appended at the END (reduction, TyBeta):
+--
+--   Ξ = abstR ∷ … ∷ abstR ∷ bindR R₀ ∷ bindR R₁ ∷ … ∷ bindR Rₖ₋₁
+--       └── n ambient Λ ──┘ └────────── the store ──────────┘
+--                            address of cell j  =  n + j
 
-Rep : Set          -- representation payloads: types over RVar
-Rep = Ty RVar      -- Types.agda parameterised by the variable sort;
-                   -- the ordinary Ty is Ty ℕ
-
-Store : Set
-Store = List Rep   -- Σ.  Address ℓ = position ℓ.  Only ever EXTENDED
-                   -- at the end (Σ ∷ʳ R), so addresses never move.
-
-Σ ∋ loc ℓ := R  iff  Σ ∋ˡ ℓ := R     -- var i has NO representation
-                                       -- (abstract), exactly as abstR
+allocate : RepCtx → Ty → RepCtx
+allocate Ξ R = Ξ ∷ʳ bindR R        -- the fresh address is length Ξ
 ```
 
-`shiftVar (var i) = var (suc i)`, `shiftVar (loc ℓ) = loc ℓ`: crossing a
-`Λ` moves abstract indices and leaves addresses alone.  **ASK (R1):**
-`Rep = Ty RVar` by parameterising `Types.agda`, or a separate `Rep`
-datatype mirroring `Ty`?  Parameterising is one mechanical refactor and
-keeps `renameᵗ`/`_[_]ᵗ` shared; a separate type keeps `Ty` untouched.
+Nothing in the TYPE of `Ξ` enforces the shape; it holds because
+`underΛ` is the only producer of `abstR` and `allocate` the only
+producer of `bindR` (today `extendReps` was the other one).
 
-### 1.2 Type contexts
+**Payloads are spelled at the front.**  Today `_∋ʳ_:=_` shifts the
+payload it finds on the way out (`r-here : (b ∷ Ξ) ∋ʳ zero :=
+renRepBinding suc b`, one `suc` per `r-there`): each entry is spelled in
+its own TAIL, the standard right-referring telescope.  A cell refers the
+other way — to the ambient abstract prefix and to EARLIER cells, all to
+its LEFT — so the lazy shift must go.  Every payload is spelled in the
+whole `Ξ` it lives in, lookup returns it unchanged, and the one
+operation that re-indexes `Ξ` — pushing a binder at the front — shifts
+the stored payloads eagerly:
 
 ```agda
-record Ctxᵗ : Set where
-  constructor _∣_
-  field
-    abst  : ℕ           -- the number of enclosing Λ binders
-    names : List RVar   -- the name map, unchanged in role
+_∋ʳ_:=_ : RepCtx → RVar → RepBinding → Set
+Ξ ∋ʳ α := b  =  Ξ ∋ˡ α := b                         -- no renRepBinding
 
-underΛ (n ∣ Δ) = suc n ∣ (var 0 ∷ map shiftVar Δ)
-empty          = 0 ∣ []
+underΛ : Ctxᵗ → Ctxᵗ
+underΛ (Ξ ∣ Δ) = (abstR ∷ map (renRepBinding suc) Ξ) ∣ (zero ∷ shiftNames Δ)
 ```
 
-`RepCtx`, `RepBinding`, `pushRepBinds`, `extendReps`, `shiftRVars`,
-`_⊢ᴮ_` are gone.  `WfCtx` becomes store-relative:
+`underΛ` is applied only by `⊢Λ` and by `conv-all`, i.e. in typing;
+a run never shifts its store.  `crossΛᴹ`'s `renᴹ² (ren² idᵗ suc)` stays
+exactly as it is: a value moving under a `Λ` shifts every representation
+index by one, cells included, matching the eager shift of `Ξ`.
 
 ```agda
-record WfCtx (Σ : Store) (Γ : Ctxᵗ) : Set where
-  field
-    wf-names : ∀ {X α} → names Γ ∋ˡ X := α → Σ ∣ abst Γ ⊢ʳ α
-               -- var i : i < abst Γ ;  loc ℓ : ℓ < length Σ
-    name-fn  : Unique (names Γ)
+-- acyclic by construction: a cell may cite only what is to its left
+WfRepCtx : RepCtx → Set
+WfRepCtx Ξ = ∀ {i R} → Ξ ∋ˡ i := bindR R → take i Ξ ⊢ᴿ R
+-- (abstR entries carry nothing; ValidNames and Unique are unchanged)
 
-data _⊢Σ_ : ℕ → Store → Set where          -- the store is a TELESCOPE
-  wfΣ[]  : n ⊢Σ []
-  wfΣ∷ʳ  : n ⊢Σ Σ → (Σ ∣ n) ⊢ᴿ R → n ⊢Σ Σ ∷ʳ R
-             -- R's loc's are EARLIER addresses, its var's are ambient
+_⊑_ : RepCtx → RepCtx → Set            -- store extension, cells only
+Ξ ⊑ Ξ′ = ∃[ Rs ] Ξ′ ≡ Ξ ++ map bindR Rs
 ```
 
-### 1.3 Boundaries: changes only
+`Ctxᵗ = Ξ ∣ Δ`, `empty`, `_⊢ᵗ_`, `_⊢ᴿ[_]_`, `_⊢_~_`, `_∋_:=_` all keep
+their statements.  `pushRepBinds`, `extendReps`, `shiftRVars`, `_⊢ᴮ_`,
+`RepRefines` are gone.
+
+### 1.2 Boundaries: changes only
 
 ```agda
 data Change : Set where
@@ -105,38 +113,38 @@ Boundary = List Change
 dualBoundary Θ  = map dualChange (reverse Θ)             -- as today
 rewind Θ        = dualBoundary Θ ++ Θ                     -- as today
 Θ₁ ⋉ Θ₂         = Θ₁ ++ Θ₂           -- no underRepBinds: nothing shifts
-addLock0 ℓ Θ    = Θ ++ (lock 0 (loc ℓ) ∷ [])   -- was lock 0 (numBinds Θ)
-instantiate ℓ Θ = map shiftX Θ ++ (unlock 0 (loc ℓ) ∷ [])
+addLock0 ℓ Θ    = Θ ++ (lock 0 ℓ ∷ [])         -- was lock 0 (numBinds Θ)
+instantiate ℓ Θ = map shiftX Θ ++ (unlock 0 ℓ ∷ [])
                   -- shiftX bumps the ORDINARY index only; the new name 0
-                  -- names the store cell, not a bind slot
+                  -- names the cell ℓ, not a bind slot
 ```
 
-`numBinds` is gone.  The two readings lose their `extendReps` prefix and
-become plain name-map transformers:
+`numBinds`, `renᴮ²`, `renᴮᴿ` are gone.  The two readings lose their
+`extendReps` prefix and become plain name-map transformers:
 
 ```agda
-Σ ∣ Δ ⊢ⁱ Θ ⇒ Δᵢ     -- every change applied     (interior)
-Σ ∣ Δ ⊢ᶜ Θ ⇒ Δᶜ     -- locks skipped            (conversion context)
--- step-unlock : Σ ∣ n ⊢ʳ α → Δ ∌ʳ α → α ⊢+ Δ at X ⇒ Δ′ → …
+Δ ⊢ⁱ Θ ⇒ Δᵢ     -- every change applied     (interior)
+Δ ⊢ᶜ Θ ⇒ Δᶜ     -- locks skipped            (conversion context)
+-- step-unlock : reps Δ ∋ʳ α → names Δ ∌ʳ α → α ⊢+ names Δ at X ⇒ Δ′ → …
+-- and  reps Δᵢ ≡ reps Δ ≡ reps Δᶜ : a boundary changes NAMES only
 ```
 
-The interior and the exterior now share the same `abst`; the only
-thing a boundary changes is `names`.  Consequently
+Consequently
 
 ```agda
-Δ ⊢ A ≈ B ⊣ Δ′  =  ∃[ R ] (Δ ⊢ A ~ R × Δ′ ⊢ B ~ R)
+Δ ⊢ A ≈ B ⊣ Δ′  =  ∃[ R ] (Δ ⊢ᶜ A ~ R × Δ′ ⊢ᶜ B ~ R)
 ```
 
 is the ONLY cross-context type comparison: `SameTyExt (numBinds Θ) …`
 collapses into it, because there is no bind prefix to cross.
 
-### 1.4 Conversions cite representation variables  — **ASK (R2)**
+### 1.3 Conversions cite representation variables  — **ASK (R2)**
 
 ```agda
-data Conv : Set where
-  id     : Rep → Conv          -- ACTIVE at a base, INERT at ` α
-  seal   : RVar → Conv         -- INERT
-  unseal : RVar → Conv         -- ACTIVE
+data Conv : Set where          -- the DATATYPE is unchanged …
+  id     : Ty → Conv           -- … but id's payload is a Rep (` α, or a base)
+  seal   : RVar → Conv         -- … and seal/unseal cite the CELL, not the name
+  unseal : RVar → Conv
   _↦_    : Conv → Conv → Conv
   `∀     : Conv → Conv
 ```
@@ -145,115 +153,122 @@ Today `seal X`, `unseal X`, `id (` X)` cite ORDINARY names, which is why
 a conversion read in another name map must be RE-SPELLED (`SameConv`,
 `respell`, the `s′`/`s″` premises of `Peel` and `TyPeelR-⟪⟫`, the
 `≈`-premises of `CancelR`/`IdPush`).  With the payload in the
-representation universe, a conversion means the same thing in every
-name map, and all of that respelling machinery is deleted.  This is
-GTSF's `Conversion.agda` shape (`unseal α A` with `(α , A) ∈ Σ`), as
-`RedesignAdvice.md` Q3 already noted.
+representation universe a conversion means the same thing in every name
+map, and all of that respelling machinery is deleted.  This is GTSF's
+`Conversion.agda` shape (`unseal α A` with `(α , A) ∈ Σ`), as
+`RedesignAdvice.md` Q3 already noted.  `mkId : Ty → Conv` is UNCHANGED
+as a function; the rules simply hand it the representation `R` instead
+of the ordinary `A`.
 
-The fallback R2-b keeps `seal X`/`unseal X` and keeps `SameConv`; the
-store still removes every SHIFT, but not the respelling.
+The fallback R2-b keeps ordinary names and `SameConv`; the store still
+removes every SHIFT, but not the respelling.
 
 ```agda
-Σ ; Δ ⊢ c ∶ A ⇝ B
+Δ ⊢ c ∶ A ⇝ B                       -- Δ = Ξ ∣ names, as today
 
-conv-id     : Base R                → Σ ; Δ ⊢ id R ∶ ⌜R⌝ ⇝ ⌜R⌝
-conv-idv    : Δ ∋ᵗ X := α           → Σ ; Δ ⊢ id (` α) ∶ ` X ⇝ ` X
-conv-seal   : Δ ∋ᵗ X := α → Σ ∋ α := R → Δ ⊢ A ~ R
-                                    → Σ ; Δ ⊢ seal α ∶ A ⇝ ` X
-conv-unseal : Δ ∋ᵗ X := α → Σ ∋ α := R → Δ ⊢ A ~ R
-                                    → Σ ; Δ ⊢ unseal α ∶ ` X ⇝ A
+conv-id     : Base A                → Δ ⊢ id A ∶ A ⇝ A
+conv-idv    : Δ ∋ᵗ X := α           → Δ ⊢ id (` α) ∶ ` X ⇝ ` X
+conv-seal   : Δ ∋ᵗ X := α → Δ ∋rep α := R → Δ ⊢ᶜ A ~ R
+                                    → Δ ⊢ seal α ∶ A ⇝ ` X
+conv-unseal : Δ ∋ᵗ X := α → Δ ∋rep α := R → Δ ⊢ᶜ A ~ R
+                                    → Δ ⊢ unseal α ∶ ` X ⇝ A
 conv-fun, conv-all : as today
 ```
 
-`conv-seal`/`conv-unseal` still demand `Δ ∋ᵗ X := α`: the address must
-be NAMED in the conversion context.  A boundary whose changes lock `X`
-cannot unseal `α` however many store cells exist — abstraction is
-enforced by the name map, the store only stores.
+`conv-seal`/`conv-unseal` still demand `Δ ∋ᵗ X := α`: the cell must be
+NAMED in the conversion context.  A boundary whose changes lock `X`
+cannot unseal `α` however many cells exist — abstraction is enforced by
+the name map; the store only stores.  (Compare today's `Δ ∋ X := A`,
+which bundles the same three facts keyed by `X`.)
 
-Helpers: `mkIdᴿ : Rep → Conv` (structural, `mkIdᴿ (` α) = id (` α)`),
-`reveal ℓ : Rep → Conv` (the body type read as a `Rep` with `loc ℓ` at
-the instantiated leaves; `unseal (loc ℓ)`/`seal (loc ℓ)` by polarity,
-`id` elsewhere), `instReveal ℓ` likewise composed with `s`.
+Helpers: `reveal ℓ : Ty → Conv` (the body type read as a `Rep`, with
+`unseal ℓ`/`seal ℓ` by polarity at the leaves that are `` ` ℓ ``, `id`
+elsewhere), `instReveal ℓ` likewise composed with `s`.
 
 ## 2. Typing
 
+The judgement keeps its shape, `Δ ∣ Γ ⊢ M ⦂ A` with `Δ = Ξ ∣ names`;
+the store is `reps Δ`'s suffix.
+
 ```agda
-Σ ; Δ ∣ Γ ⊢ M ⦂ A
+⊢Λ   : Value N → underΛ Δ ∣ ⤊ Γ ⊢ N ⦂ C → Δ ∣ Γ ⊢ Λ N ⦂ `∀ C      -- as today
+⊢·[] : as today
 
-⊢Λ   : Value N → Σ ; underΛ Δ ∣ ⤊ Γ ⊢ N ⦂ C → Σ ; Δ ∣ Γ ⊢ Λ N ⦂ `∀ C
-⊢·[] : Σ ; Δ ∣ Γ ⊢ L ⦂ `∀ B → Δ ⊢ᵗ A → Σ ; Δ ∣ Γ ⊢ L ·[ B , A ] ⦂ B [ A ]ᵗ
-
-env : Σ ∣ Δ ⊢ⁱ Θ ⇒ Δᵢ
-    → Σ ∣ Δ ⊢ᶜ Θ ⇒ Δᶜ
-    → Σ ; Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
-    → Σ ; Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
+env : Δ ⊢ⁱ Θ ⇒ Δᵢ
+    → Δ ⊢ᶜ Θ ⇒ Δᶜ
+    → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
+    → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
     → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
     → Δ  ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ          -- was SameTyExt (numBinds Θ) Δ Bₑ Δᶜ Cₑ
     → Δ ⊢ᵗ Bₑ
-    → Σ ; Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
+    → Δ ∣ Γ ⊢ M ⟪ Θ , c ⟫ ⦂ Bₑ
 ```
 
-`BoundaryWf Δ Θ Δᵢ Δᶜ` shrinks to the two readings (its `bw-binds` field
-has nothing to say).  Ordinary type formation `Δ ⊢ᵗ A` is unchanged.
+`BoundaryWf Δ Θ Δᵢ Δᶜ` shrinks to `WfCtx Δ` plus the two readings (its
+`bw-binds` field has nothing to say).
 
 Two lemma families replace `RepWeaken`/`RepRefines`:
 
 ```agda
-_⊑_ : Store → Store → Set          -- prefix: Σ ⊑ Σ ∷ʳ R
+⊢-⊑  : reps Δ ⊑ Ξ′ → Δ ∣ Γ ⊢ M ⦂ A → (Ξ′ ∣ names Δ) ∣ Γ ⊢ M ⦂ A
+      -- and for ∶⇝, ⊢ⁱ/⊢ᶜ, ~, WfCtx: every judgement is monotone in the
+      -- store, because nothing is ever read by "the last address".
+      -- underΛ commutes with ⊑ (eager shift of the appended cells).
 
-⊢-⊑  : Σ ⊑ Σ′ → Σ ; Δ ∣ Γ ⊢ M ⦂ A → Σ′ ; Δ ∣ Γ ⊢ M ⦂ A   -- and for
-      -- ∶⇝, ⊢ⁱ/⊢ᶜ, WfCtx: every judgement is monotone in Σ, because
-      -- nothing is ever read by "the last address"
-
-_[_]ᴿ : Term → ℕ → Term
--- N [ ℓ ]ᴿ : var 0 ↦ loc ℓ, var (suc i) ↦ var i, in every lock/unlock
--- and every id/seal/unseal inside N.  Ordinary types in N are untouched.
-⊢[]ᴿ : Σ ∋ loc ℓ := R
-     → Σ ; (suc n ∣ var 0 ∷ map shiftVar Δ) ∣ ⤊ Γ ⊢ N ⦂ C
-     → Σ ; (n ∣ loc ℓ ∷ Δ) ∣ ⤊ Γ ⊢ N [ ℓ ]ᴿ ⦂ C
+_[_]ᴿ : Term → RVar → Term
+-- N [ ℓ ]ᴿ : representation index 0 ↦ ℓ, suc i ↦ i, in every
+-- lock/unlock and every id/seal/unseal inside N.  Ordinary types in N
+-- are untouched.  (It is renᴹ² (ren² idᵗ σ) for the non-injective
+-- σ 0 = ℓ, σ (suc i) = i — the represent half of the paired renaming,
+-- now a substitution.)
+⊢[]ᴿ : Ξ′ ≡ Ξ ∷ʳ bindR R                -- ℓ = length Ξ
+     → underΛ (Ξ ∣ Δ) ∣ ⤊ Γ ⊢ N ⦂ C
+     → (Ξ′ ∣ (ℓ ∷ Δ)) ∣ ⤊ Γ ⊢ N [ ℓ ]ᴿ ⦂ C
 ```
 
-`⊢[]ᴿ` is today's `⊢refine (rr-represent …)`: the abstract binder is
-REPLACED by the cell instead of being re-tagged in place.  **ASK (R3):**
-this makes `TyBeta` substitute — in the REPRESENTATION universe only.
-The design law "TyBeta does not substitute" (Design.md §6.1) survives as
-"does not substitute TYPES": `N` keeps running at the ordinary `X`;
-only its pointers learn `ℓ`.  Since `N` is a value (experiment 1), the
-substitution never walks a redex.
+`⊢[]ᴿ` is today's `⊢refine (rr-represent …)`: the abstract binder at
+index 0 is REPLACED by the cell at the top index instead of being
+re-tagged in place.  **ASK (R3):** this makes `TyBeta` substitute — in
+the REPRESENTATION universe only.  The design law "TyBeta does not
+substitute" (Design.md §6.1) survives as "does not substitute TYPES":
+`N` keeps running at the ordinary `X`; only its pointers learn `ℓ`.
+Since `N` is a value (experiment 1) the substitution never walks a
+redex.
 
-## 3. Reduction — store-passing
+## 3. Reduction — the store is the context's suffix
 
 ```agda
-Σ ∣ Δ ⊢ M -→ M′ ∣ Σ′        -- Σ′ = Σ except in the three ∀-eliminations
+Δ ⊢ M -→ M′ ∣ Ξ′        -- Ξ′ : the representation context AFTER the step;
+                        -- Ξ′ = reps Δ except in the three ∀-eliminations
 ```
 
-Below, `ℓ = length Σ` is the fresh address.
+Below, `ℓ = length (reps Δ)` is the fresh address and
+`Δ⁺ = allocate (reps Δ) R ∣ names Δ`.
 
 ```agda
 TyBeta : Value N → Δ ⊢ᶜ A ~ R → underΛ Δ ⊢ᶜ B ~ Rᴮ
-  → Σ ∣ Δ ⊢ (Λ N) ·[ B , A ]
-      -→ N [ ℓ ]ᴿ ⟪ unlock 0 (loc ℓ) ∷ [] , reveal ℓ (Rᴮ [ ℓ ]ᴿ) ⟫
-      ∣ Σ ∷ʳ R
+  → Δ ⊢ (Λ N) ·[ B , A ]
+      -→ N [ ℓ ]ᴿ ⟪ unlock 0 ℓ ∷ [] , reveal ℓ (Rᴮ [ ℓ ]ᴿ) ⟫
+      ∣ allocate (reps Δ) R
 ```
 
 (today: `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫`, the bind
-`R` living in the boundary.)
+`R` riding on the boundary.)
 
 ```agda
 Beta : Value W → Δ ⊢ᶜ A ~ R
-  → Σ ∣ Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ R ]ᵐ ∣ Σ
--- crossΛᴹ W R = shiftVarᴹ W ⟪ lock 0 (var 0) ∷ [] , mkIdᴿ (shiftVar R) ⟫
--- the only surviving representation renaming: abstract indices move
--- past the new Λ; addresses do not
+  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ R ]ᵐ ∣ reps Δ
+-- crossΛᴹ W R = renᴹ² (ren² idᵗ suc) W ⟪ lock 0 0 ∷ [] , mkId (⇑ᵗ R) ⟫
+-- unchanged in shape; the wrapper's identity is built from the REP
 ```
 
-`Beta` gains the reading premise because `mkIdᴿ` needs the argument
-type as a `Rep` (under R2).  Under R2-b it stays exactly as today.
+`Beta` gains the reading premise because `mkId` needs the argument type
+as a representation (under R2).  Under R2-b it stays exactly as today.
 
 ```agda
 Peel : Value V → Value W
-  → Σ ∣ Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-      -→ (V · (W ⟪ dualBoundary Θ , s ⟫)) ⟪ Θ , t ⟫ ∣ Σ
+  → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
+      -→ (V · (W ⟪ dualBoundary Θ , s ⟫)) ⟪ Θ , t ⟫ ∣ reps Δ
 ```
 
 (today: `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W`, `s′` with
@@ -262,16 +277,16 @@ gone: `W` moves verbatim and `s` means the same thing in `Δᵈ`.)
 
 ```agda
 TyPeelR-Λ : Value N → Δ ⊢ᶜ A ~ R
-  → Σ ∣ Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+  → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
       -→ N [ ℓ ]ᴿ ⟪ instantiate ℓ Θ , instReveal ℓ (s [ ℓ ]ᶜ) ⟫
-      ∣ Σ ∷ʳ R
+      ∣ allocate (reps Δ) R
 
-TyPeelR-⟪⟫ : Value W → Δ ⊢ᶜ A ~ R → Δᶜ-reading of Bᵢ′ as today
-  → Σ ∣ Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
+TyPeelR-⟪⟫ : Value W → Δ ⊢ᶜ A ~ R → (the Bᵢ′ reading, as today)
+  → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
       -→ ((W ⟪ addLock0 ℓ (map shiftX Θ′) , `∀ s′ ⟫)
             ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
            ⟪ instantiate ℓ Θ , instReveal ℓ (s [ ℓ ]ᶜ) ⟫
-      ∣ Σ ∷ʳ R
+      ∣ allocate (reps Δ) R
 ```
 
 `s [ ℓ ]ᶜ` is `_[_]ᴿ` on a conversion.  In `TyPeelR-⟪⟫` the inner
@@ -282,13 +297,13 @@ has nothing left to misspell.  `addLock0 ℓ` locks the NEW name `0`
 (which names the cell `ℓ`) out of the moved interior, as today.
 
 ```agda
-CancelR : Value V → Σ ∋ α := R
-  → Σ ∣ Δ ⊢ (V ⟪ Θ₁ , seal α ⟫) ⟪ Θ₂ , unseal α ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkIdᴿ R ⟫) ⟪ rewind Θ₂ , mkIdᴿ R ⟫ ∣ Σ
+CancelR : Value V → Δ ∋rep α := R
+  → Δ ⊢ (V ⟪ Θ₁ , seal α ⟫) ⟪ Θ₂ , unseal α ⟫
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId R ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ reps Δ
 
-IdPush : Value V → Σ ∋ β := R
-  → Σ ∣ Δ ⊢ (V ⟪ Θ₁ , id (` α) ⟫) ⟪ Θ₂ , unseal β ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal β ⟫) ⟪ rewind Θ₂ , mkIdᴿ R ⟫ ∣ Σ
+IdPush : Value V → Δ ∋rep β := R
+  → Δ ⊢ (V ⟪ Θ₁ , id (` α) ⟫) ⟪ Θ₂ , unseal β ⟫
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal β ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ reps Δ
 ```
 
 Today `CancelR` has eight premises (`seal X` at `Δ₁ᶜ`, `unseal Y` at
@@ -299,9 +314,10 @@ minted identities are read off the store.  `IdPush` loses its
 `` Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ `` re-spelling for the same reason.
 
 `Drop$`/`Drop-true`/`Drop-false` and the four congruences are unchanged
-(they pass `Σ` through).  `value-¬step` is unchanged.  `det` gains the
-conclusion `Σ′ ≡ Σ″`; it holds because the only allocation is at
-`length Σ` and `_~_` readings are functional.
+(they pass the store through; `ξ-⟪⟫` runs the interior at the SAME
+`reps`).  `value-¬step` is unchanged.  `det` gains the conclusion
+`Ξ′ ≡ Ξ″`; it holds because the only allocation is at `length Ξ` and
+`_~_` readings are functional.
 
 ## 4. The same programs, on the store
 
@@ -318,26 +334,26 @@ conclusion `Σ′ ≡ Σ″`; it holds because the only allocation is at
  --Drop$-->   7
 ```
 
-With the store (`Σ` on the left; `↥X:=ℓ₀` is `unlock 0 (loc ℓ₀)`):
+With the store (`Ξ` on the left, `α` = cell 0; `↥X:=α` is `unlock 0 α`):
 
 ```
-Σ = []          ((ΛX. λx:X. x) [ℕ] · 7)
+Ξ = []            ((ΛX. λx:X. x) [ℕ] · 7)
  --TyBeta-->
-Σ = [ℓ₀ ↦ ℕ]    ((λx:X. x) ⟪ ↥X:=ℓ₀ , seal ℓ₀ ↦ unseal ℓ₀ ⟫) · 7
- --Peel---->    ((λx:X. x) · (7 ⟪ ↓X , seal ℓ₀ ⟫)) ⟪ ↥X:=ℓ₀ , unseal ℓ₀ ⟫
- --Beta---->    (7 ⟪ ↓X , seal ℓ₀ ⟫) ⟪ ↥X:=ℓ₀ , unseal ℓ₀ ⟫
- --CancelR->    (7 ⟪ ↓X , ↥X:=ℓ₀ , id ℕ ⟫) ⟪ ↥X:=ℓ₀ , ↓X , id ℕ ⟫
- --Drop$-->     7 ⟪ ↥X:=ℓ₀ , ↓X , id ℕ ⟫
- --Drop$-->     7
+Ξ = [α:=ℕ]        ((λx:X. x) ⟪ ↥X:=α , seal α ↦ unseal α ⟫) · 7
+ --Peel---->      ((λx:X. x) · (7 ⟪ ↓X , seal α ⟫)) ⟪ ↥X:=α , unseal α ⟫
+ --Beta---->      (7 ⟪ ↓X , seal α ⟫) ⟪ ↥X:=α , unseal α ⟫
+ --CancelR->      (7 ⟪ ↓X , ↥X:=α , id ℕ ⟫) ⟪ ↥X:=α , ↓X , id ℕ ⟫
+ --Drop$-->       7 ⟪ ↥X:=α , ↓X , id ℕ ⟫
+ --Drop$-->       7
 ```
 
 Same six rules, same shape.  What changed is invisible in the trace and
-visible in the rule: `Peel` moved `7` without `renᴹ²` and reused `seal ℓ₀`
-without `SameConv`; `CancelR` fired on `Σ ∋ ℓ₀ := ℕ` alone; the bind
-`ℕ` was written once, in `Σ`, instead of being carried by every frame
-the value later passes through.
+visible in the rule: `Peel` moved `7` without `renᴹ²` and reused `seal α`
+without `SameConv`; `CancelR` fired on `Ξ ∋ α := ℕ` alone; the bind `ℕ`
+was written once, in `Ξ`, instead of being carried by every frame the
+value later passes through.
 
-`Q₀` (`Examples` §2, the id-layer program) — the two `IdPush` steps,
+`Q₀` (`Examples` §2, the id-layer program) — the first `IdPush` step,
 today:
 
 ```
@@ -346,83 +362,85 @@ today:
 (((7 ⟪ ↓X , seal X ⟫) ⟪ ↓Y , id X ⟫) ⟪ ↑β:=ℕ , ↥X , ↥Y , unseal X ⟫) ⟪ ↑α:=ℕ , ↥X , ↓X , id ℕ ⟫
 ```
 
-and with the store, `Σ = [ℓ₀ ↦ ℕ , ℓ₁ ↦ ℕ]`:
+and with the store, `Ξ = [α:=ℕ , β:=ℕ]`:
 
 ```
-(((7 ⟪ ↓X , seal ℓ₀ ⟫) ⟪ ↓Y , id ℓ₀ ⟫) ⟪ ↥Y:=ℓ₁ , unseal ℓ₀ ⟫) ⟪ ↥X:=ℓ₀ , unseal ℓ₀ ⟫
+(((7 ⟪ ↓X , seal α ⟫) ⟪ ↓Y , id α ⟫) ⟪ ↥Y:=β , unseal α ⟫) ⟪ ↥X:=α , unseal α ⟫
  --IdPush-->
-(((7 ⟪ ↓X , seal ℓ₀ ⟫) ⟪ ↓Y , id ℓ₀ ⟫) ⟪ ↥Y:=ℓ₁ , ↥X:=ℓ₀ , unseal ℓ₀ ⟫) ⟪ ↓X , ↥X:=ℓ₀ , id ℕ ⟫
+(((7 ⟪ ↓X , seal α ⟫) ⟪ ↓Y , id α ⟫) ⟪ ↥Y:=β , ↥X:=α , unseal α ⟫) ⟪ ↓X , ↥X:=α , id ℕ ⟫
 ```
 
-Note `id ℓ₀`: today's `id X` had to be re-spelled as `id X′` when pushed
-into the merged frame (the `` ` X′ ≈ ` X `` premise); the address needs
-no spelling.  The `↑β:=ℕ` bind that today rides on the middle frame is
-the store cell `ℓ₁`, allocated by the inner `TyBeta`, and is never
-mentioned again — the `↥Y:=ℓ₁` unlock is the only trace of it, exactly
-as `↑β` today is only ever reached through `↥Y`.
+Note `id α`: today's `id X` had to be re-spelled as `id X′` when pushed
+into the merged frame (the `` ` X′ ≈ ` X `` premise); the cell needs no
+spelling.  The `↑β:=ℕ` bind that today rides on the middle frame is the
+cell `β`, allocated by the inner `TyBeta`, and is never mentioned again
+— the `↥Y:=β` unlock is the only trace of it, exactly as `↑β` today is
+only ever reached through `↥Y`.
 
 ## 5. What the metatheory loses and gains
 
 Retired outright: `RepWeaken.agda` (`renᴹᴿ`, `RepWk`, `⊢renᴿ`,
-`cross-Λ-⊢`), `RepRefines`/`⊢refine`, `SameConv`/`respell`/`SameTyExt`,
-`pushRepBinds`/`extendReps`/`numBinds` arithmetic, `underRepBinds`,
-`renᴮ²`, the represent-half of `ren²` except `shiftVar`, and the
-`ShiftAudit` frame-exactness obligations of `Peel`/`TyPeelR-⟪⟫` (no
-representation is ever moved).  `MoveScope.agda`'s
-`preserve-CancelR`/`preserve-IdPush` reduce to the store lookup.
+`cross-Λ-⊢`), `RepRefines`/`⊢refine` (47 uses in `proof/Preserve.agda`),
+`SameConv`/`respell`/`SameTyExt`, `pushRepBinds`/`extendReps`/`numBinds`
+arithmetic, `underRepBinds`, `renᴮ²`/`renᴮᴿ`, the lazy shift in
+`_∋ʳ_:=_` (56 uses of `renRepBinding`/`r-there` in `proof/Ctx.agda`
+become plain `∋ˡ` facts), and the `ShiftAudit` frame-exactness
+obligations of `Peel`/`TyPeelR-⟪⟫` (no representation is ever moved).
+`MoveScope.agda`'s `preserve-CancelR`/`preserve-IdPush` reduce to the
+store lookup.
 
-New: `Store`, `_⊑_` and the monotonicity family `⊢-⊑` (the STLCRef
-store-typing pattern, already in this repo), the telescope `_⊢Σ_`,
-`_[_]ᴿ` with `⊢[]ᴿ` (a positional substitution on pointers — the same
-shape as today's `renᴹ²` on the represent side), `reveal ℓ`, `mkIdᴿ`.
+New: `allocate`, `_⊑_` and the monotonicity family `⊢-⊑` (the STLCRef
+store-typing pattern, already in this repo), the leftward `WfRepCtx`,
+`_[_]ᴿ` with `⊢[]ᴿ` (the represent half of `renᴹ²` at a non-injective
+map), the eager shift in `underΛ`, `reveal ℓ`.
 
 The theorem statements:
 
 ```agda
-Preservation = ∀ {Σ Σ′ Δ M M′ A} → n ⊢Σ Σ → WfCtx Σ Δ
-  → Σ ; Δ ∣ [] ⊢ M ⦂ A → Σ ∣ Δ ⊢ M -→ M′ ∣ Σ′
-  → (Σ ⊑ Σ′) × (n ⊢Σ Σ′) × (Σ′ ; Δ ∣ [] ⊢ M′ ⦂ A)
+Preservation = ∀ {Δ Ξ′ M M′ A} → WfCtx Δ
+  → Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ Ξ′
+  → (reps Δ ⊑ Ξ′) × WfCtx (Ξ′ ∣ names Δ) × ((Ξ′ ∣ names Δ) ∣ [] ⊢ M′ ⦂ A)
 
-Progress      = ∀ {Σ Δ M A} → Σ ; Δ ∣ [] ⊢ M ⦂ A
-  → Value M ⊎ ∃[ M′ ] ∃[ Σ′ ] (Σ ∣ Δ ⊢ M -→ M′ ∣ Σ′)
+Progress      = ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
+  → Value M ⊎ ∃[ M′ ] ∃[ Ξ′ ] (Δ ⊢ M -→ M′ ∣ Ξ′)
 
-det : Σ ; Δ ∣ [] ⊢ M ⦂ A → Σ ∣ Δ ⊢ M -→ M′ ∣ Σ′ → Σ ∣ Δ ⊢ M -→ M″ ∣ Σ″
-  → M′ ≡ M″ × Σ′ ≡ Σ″
+det : Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ Ξ′ → Δ ⊢ M -→ M″ ∣ Ξ″
+  → M′ ≡ M″ × Ξ′ ≡ Ξ″
 ```
 
 Color/scope-map preservation: the residual renaming `ρ` a move delivers
-becomes the identity on `loc` and `shiftVar` on `var`, so
-`ScopeMapPreservation` should become `names Δ₂ ≡ names Δ₁` up to the
-unlock the boundary itself performs — worth re-stating once the core is
-in.
+becomes the identity, so `ScopeMapPreservation` should become
+`names Δ₂ ≡ names Δ₁` up to the unlock the boundary itself performs —
+worth re-stating once the core is in.
 
 ## 6. Decision points, collected
 
-- **R1** `Rep = Ty RVar` (parameterise `Types.agda`) vs a separate `Rep`
-  datatype.  Recommendation: parameterise.
+- ~~R1~~ dissolved (2026-09-22): `RVar = ℕ`, `Rep = Ty`, `RepCtx`
+  unchanged; cells are the indices beyond the abstract prefix.  The
+  price is the spelling convention of §1.1 — payloads at the front,
+  eager shift in `underΛ`, no lazy shift in lookup.
 - **R2** conversions cite `RVar` (recommended; deletes all respelling)
   vs keep ordinary names and `SameConv` (R2-b; deletes only the shifts).
 - **R3** `TyBeta`/`TyPeelR` perform `N [ ℓ ]ᴿ` — pointer substitution in
   the body.  The alternative, keeping the `Λ`'s slot as a lexical
   `abstR` and refining it in place, is today's design and is what the
   store is replacing; I see no third option.
-- **R4** `Σ ∷ʳ R` (addresses are levels, stable under extension).  With
-  `R ∷ Σ` every extension would re-index every address — the shift we
-  are trying to eliminate.
-- **R5** keep `abst : ℕ` in `Ctxᵗ` (needed to type `Λ` bodies and to
-  state reduction at the probes' `underΛ empty`), or fix reduction at
-  `abst = 0`.  Recommendation: keep; it costs one field.
+- **R4** append at the END (`Ξ ∷ʳ bindR R`), so addresses are stable
+  under allocation.  Pushing at the front would re-index every address
+  on every allocation — the shift we are trying to eliminate.
+- **R5** the ambient abstract prefix stays (needed to type `Λ` bodies
+  and to state reduction at the probes' `underΛ empty`).
 
 ## 7. Suggested order of work
 
-1. `Types.agda` parameterised; `Ctx.agda` with `RVar`, `Store`,
-   `_⊢Σ_`, `WfCtx Σ`; `Boundary.agda` as `List Change` with the two
-   readings; `Conversion.agda` on `RVar` (R2).  Statements only, then
-   `Terms.agda`'s `env`.
-2. `Reduction.agda` store-passing, with `_[_]ᴿ` in `TermSubst.agda`.
+1. `Ctx.agda`: `_∋ʳ_:=_` without the lazy shift, eager `underΛ`,
+   leftward `WfRepCtx`, `allocate`, `_⊑_`; `Boundary.agda` as
+   `List Change` with the two readings; `Conversion.agda` on `RVar`
+   (R2).  Statements only, then `Terms.agda`'s `env`.
+2. `Reduction.agda` with the `∣ Ξ′` index, `_[_]ᴿ` in `TermSubst.agda`.
    `det` and `value-¬step`.
-3. `TypeCheck.agda`/`Eval.agda`: `infer` takes `Σ`; `step` returns
-   `Σ′`; `Reaches` records the final store.  Rerun the 23 runs — their
+3. `TypeCheck.agda`/`Eval.agda`: `step` returns `Ξ′`; `eval` threads
+   it; `Reaches` records the final store.  Rerun the 23 runs — their
    step counts should be UNCHANGED (no rule was added or split).
 4. `proof/Preserve.agda`: the `⊢-⊑` family first, then rule by rule;
    `TyPeelR-⟪⟫` should be the big win.

@@ -799,7 +799,7 @@ The rule names below are the Agda constructor names.
 | `Θ = ⟨ δ₁,…,δₘ ⟩` | `Boundary = List Change` | an alias; a scope IS its change list |
 | `dual Θ` | `dual` | none |
 | `rewind Θ` | `rewind Θ = dual Θ ++ Θ` | none |
-| `Θ₁ ++ Θ₂` | `_++_` | nothing shifts: both scopes are spelled at the same store |
+| `Θ₂ ++ Θ₁` (acting order) | `Θ₁ ++ Θ₂` (head-last) | nothing shifts: both scopes are spelled at the same store |
 | `addLock(X,α,Θ)` | the snoc `Θ ++ (lock 0 0 ∷ [])` | written out at its use sites |
 | `inst(X,α,Θ)` | `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])` | one shift in each universe, because it is read one allocation later |
 

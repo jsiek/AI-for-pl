@@ -1,6 +1,20 @@
 module strong-rep-store.notes.RepWeakenBindsWall where
 
--- THE REP-WEAKENING STATEMENT NEEDS ITS BIND BLOCK (2026-09-20).
+-- THE REP-WEAKENING STATEMENT NEEDED ITS BIND BLOCK (2026-09-20).
+--
+-- WHAT THE STORE CHANGED (experiment 2, 2026-09-22,
+-- notes/RepStoreSketch.md).  `RepWeakenTyping` is RETIRED: it was the
+-- bind-block weakening `Peel`'s crossing argument consumed, and a
+-- boundary no longer HAS a bind block — `dual-interior` lands the
+-- argument at the exterior itself, so `Peel` moves it verbatim
+-- (strong-rep-store.proof.PeelDual).  The one weakening left is the
+-- SIBLING SHIFT `⊢renᴿ` at `ρ = suc`, whose payload premise
+-- (`repwk-alloc`, `Ξ ⊢ᴿ R`) is exactly the discipline this wall argued
+-- for, now carried by the allocating rule's own `Δ ⊢ᶜ A ~ R`.
+--
+-- The wall is therefore kept as a RECORD, with LOCAL COPIES of the
+-- retired bind-block machinery (§0) so that it states what it refuted
+-- and nothing else depends on it.
 --
 -- `RepWeakenTyping` was simplified on 2026-09-20 to read
 --
@@ -11,31 +25,29 @@ module strong-rep-store.notes.RepWeakenBindsWall where
 -- and in that form it is FALSE.  `extendReps Rs Δ` pushes the payloads
 -- `Rs` onto the representation context WITHOUT checking them, but a
 -- boundary inside `W` has to be RETYPED at the weakened context, and the
--- `env` rule stores a `BoundaryWf` whose `bw-exterior` field is a `WfCtx` of
--- that context — which demands `WfRepCtx`, i.e. that every stored payload
--- be well formed where it is written.
+-- `env` rule stores a `BoundaryWf` whose `bw-exterior` field is a `WfCtx`
+-- of that context — which demands `WfRepCtx`, i.e. that every stored
+-- payload be well formed where it is written.
 --
 -- The counterexample is as small as the development allows.  Take the
--- closed, one-boundary program `β-seven` (strong-rep-store.Terms §5) at the
--- EMPTY
--- context, and insert the single payload `` ` 0 `` — a representation
--- variable that the empty representation context does not have.  The
--- renamed term is `β-seven` itself: `renᴮᴿ (wkN 1) TyBetaBoundary` is
--- `TyBetaBoundary`, because the boundary scope's one change sits inside its own
--- one-wide bind block and `extᵗ (wkN 1) 0 ≡ 0`.  So the conclusion asks
--- for the SAME term to be typed at a context whose only representation
--- binding is `bindR (` 0)`, and `[] ⊢ᴿ ` 0` has no derivation: index 0 is
--- neither local (there are no local binders) nor free (the context is
--- empty).
+-- closed, one-boundary program `β-seven` (strong-rep-store.Terms §5) at
+-- the context `TyBeta` leaves — `allocate `ℕ empty`, whose store holds
+-- the one cell — and insert the single payload `` ` 1 ``, a
+-- representation variable that one-cell store does not have.  (Before
+-- the store the open payload was `` ` 0 `` at `empty`; the allocation
+-- moved every index up by one, which is the whole experiment in one
+-- character.)  The conclusion then asks for a term to be typed at a
+-- context whose head binding is `bindR (` 1)`, and
+-- `bindR `ℕ ∷ [] ⊢ᴿ ` 1` has no derivation: index 1 is neither local
+-- (there are no local binders) nor free (the store has one entry).
 --
--- THE REPAIR is the premise `reps Δ ⊢ᴮ Rs`, and it costs nothing: at the
--- one call site — `Peel`'s crossing argument, strong-rep-store.proof.PeelDual §3
--- —
--- it is `bw-binds` of the very boundary being crossed, already stored in
--- the redex's own typing derivation.  With it the statement is PROVED:
--- `strong-rep-store.proof.RepWeaken.rep-weaken-⊢`.
+-- THE REPAIR was the premise `reps Δ ⊢ᴮ Rs`, discharged at the one call
+-- site — `Peel`'s crossing argument — by `bw-binds` of the very boundary
+-- being crossed.  Both the premise and that field went with the bind
+-- block; the surviving discipline is `repwk-alloc`'s `Ξ ⊢ᴿ R`.
 
-open import Data.List using (List; []; _∷_; length)
+open import Data.List using (List; []; _∷_; length; map)
+open import Data.Nat using (_+_)
 open import Relation.Nullary using (¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
@@ -47,26 +59,46 @@ open import strong-rep-store.Terms
 open import strong-rep-store.TermSubst using (renᴹᴿ; wkN)
 
 ------------------------------------------------------------------------
+-- 0. Local copies of the retired bind-block machinery
+------------------------------------------------------------------------
+
+-- What `strong-rep-store.Ctx` §9 held until the store landed: a bind
+-- block pushed onto the representation context, earlier payloads
+-- shifted past their tail, with every name-map entry moved up by the
+-- block's width.
+pushRepBinds₀ : List Ty → RepCtx → RepCtx
+pushRepBinds₀ []       Ξ = Ξ
+pushRepBinds₀ (R ∷ Rs) Ξ =
+  bindR (shiftBy (length Rs) R) ∷ pushRepBinds₀ Rs Ξ
+
+extendReps₀ : List Ty → Ctxᵗ → Ctxᵗ
+extendReps₀ Rs (Ξ ∣ Δ) = pushRepBinds₀ Rs Ξ ∣ map (length Rs +_) Δ
+
+------------------------------------------------------------------------
 -- 1. The statement as it stood, without the bind-block premise
 ------------------------------------------------------------------------
 
 RepWeakenTyping₀ : Set
 RepWeakenTyping₀ = ∀ {Δ W A} (Rs : List Ty)
   → Δ ∣ [] ⊢ W ⦂ A
-  → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
+  → extendReps₀ Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
 
 ------------------------------------------------------------------------
 -- 2. The refutation
 ------------------------------------------------------------------------
 
--- One open payload: the representation variable 0, which `empty` lacks.
+-- One open payload: the representation variable 1, which the one-cell
+-- store `allocate `ℕ empty` lacks.
 openPayload : List Ty
-openPayload = ` 0 ∷ []
+openPayload = ` 1 ∷ []
 
--- The renaming really is the identity on this program's frame, so the
--- refutation is about the CONTEXT and nothing else.
-renamed-is-the-same : renᴹᴿ (wkN 1) β-seven ≡ β-seven
-renamed-is-the-same = refl
+-- WHAT THE STORE CHANGED, in one equation.  The weakening used to be
+-- the IDENTITY on this program's frame — its one change sat inside the
+-- boundary's own one-wide bind block, so `extᵗ (wkN 1) 0 ≡ 0`.  With the
+-- store the change names an AMBIENT cell, and the weakening moves it.
+renamed-frame : renᴹᴿ (wkN 1) β-seven
+  ≡ ($ 7) ⟪ boundary (unlock 0 1 ∷ []) , id `ℕ ⟫
+renamed-frame = refl
 
 no-rep-weaken : ¬ RepWeakenTyping₀
 no-rep-weaken rw with rw openPayload β-seven-⊢
@@ -74,3 +106,5 @@ no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
   with wf-reps (bw-exterior mwΘ)
 no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
   | wf-bindR (wfᴿ-var (local-ref ())) wr
+no-rep-weaken rw | env mwΘ ⊢M ⊢c sameᵢ sameₑ wE
+  | wf-bindR (wfᴿ-var (free-ref (there ()))) wr

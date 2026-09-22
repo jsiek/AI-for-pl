@@ -8,12 +8,16 @@ module strong-rep-store.Ctx where
 --     `_∋_:=ᴿ_`, `_∋ʳ_`, `_∋ᵅ_`, `_⊆ᵃ_`.  §3 is ordinary type
 --     formation `_⊢ᵗ_` with `underΛ` and `Base`; §4 representation
 --     payloads `_⊢ref[_]_`, `_⊢ᴿ[_]_`, `WfRepCtx`; §5 the two readings
---     of `Ty` — `_⊢_~_`, `_⊢ᶜ_~_`, `_⊢_≈_⊣_`, `SameTyExt`, `shiftRep`
---     and the lookup square `_∋_:=_`; §6 well-formedness `_∌ʳ_`,
---     `Unique`, `ValidNames`, `WfCtx`.  §§8–11 are the representation
---     universe's machinery: `extN`/`Injᵗ`, `shiftBy`/`pushRepBinds`/
---     `extendReps`/`_⊢ᴮ_`, the insert/delete relations
+--     of `Ty` — `_⊢_~_`, `_⊢ᶜ_~_`, `_⊢_≈_⊣_` — and the lookup square
+--     `_∋_:=_`; §6 well-formedness `_∌ʳ_`, `Unique`, `ValidNames`,
+--     `WfCtx`.  §§8–11 are the representation universe's machinery:
+--     `extN`/`Injᵗ`, `shiftBy`, THE STORE (`allocate`, `Alloc`,
+--     `apply`), the insert/delete relations
 --     `_⊢+_at_⇒_`/`_⊢-_at_⇒_`, and the renaming interface `RepWk`.
+--     (The bind-block machinery — `pushRepBinds`, `shiftRVars`,
+--     `extendReps`, `_⊢ᴮ_`, `shiftByᵇ`, `shiftRep`, `SameTyExt` — went
+--     with the bind block on 2026-09-22, experiment 2,
+--     notes/RepStoreSketch.md.)
 --   * DEFINITIONS ONLY.  Every lemma about the above lives in
 --     strong-rep-store.proof.Ctx (notes/DECISIONS.md, 2026-09-20).  Anything
 --     mentioning `Change` or `Boundary` — the boundary scope, its two induced
@@ -236,17 +240,6 @@ infix 4 _⊢_≈_⊣_
 _⊢_≈_⊣_ : Ctxᵗ → Ty → Ty → Ctxᵗ → Set
 Γ ⊢ A ≈ B ⊣ Γ′ = ∃[ R ] ((Γ ⊢ᶜ A ~ R) × (Γ′ ⊢ᶜ B ~ R))
 
-shiftRep : ℕ → Ty → Ty
-shiftRep zero    R = R
-shiftRep (suc n) R = ⇑ᵗ (shiftRep n R)
-
--- A boundary scope's representation binders occur in its conversion context but
--- not in its exterior context. Thus an exterior representation reading must
--- cross that bind prefix before it can be compared with a conversion type.
-SameTyExt : ℕ → Ctxᵗ → Ty → Ctxᵗ → Ty → Set
-SameTyExt n Γ A Γ′ B =
-  ∃[ R ] ((Γ ⊢ᶜ A ~ R) × (Γ′ ⊢ᶜ B ~ shiftRep n R))
-
 -- The conversion lookup square. Ordinary X names α; α is represented by R;
 -- and ordinary A is R read through the current ordinary-name assignment.
 infix 4 _∋_:=_
@@ -317,23 +310,6 @@ Injᵗ ρ = ∀ {α β} → ρ α ≡ ρ β → α ≡ β
 shiftBy : ℕ → Ty → Ty
 shiftBy zero    R = R
 shiftBy (suc n) R = ⇑ᵗ (shiftBy n R)
-
--- The bind block is parallel: every payload is written over the exterior
--- representation context. Earlier entries are shifted past their list tail.
-pushRepBinds : List Ty → RepCtx → RepCtx
-pushRepBinds []       Ξ = Ξ
-pushRepBinds (R ∷ Rs) Ξ =
-  bindR (shiftBy (length Rs) R) ∷ pushRepBinds Rs Ξ
-
-shiftRVars : ℕ → TyCtx → TyCtx
-shiftRVars n = map (n +_)
-
-extendReps : List Ty → Ctxᵗ → Ctxᵗ
-extendReps Rs (Ξ ∣ Δ) =
-  pushRepBinds Rs Ξ ∣ shiftRVars (length Rs) Δ
-
--- Every bind payload is checked over the SAME exterior representation
--- context. This is the boundary scope's parallel-bind discipline.
 -- THE STORE (experiment 2, 2026-09-22; notes/RepStoreSketch.md).  A
 -- boundary no longer carries a bind block: the representation a
 -- ∀-elimination mints is pushed onto the AMBIENT representation context
@@ -350,18 +326,6 @@ data Alloc : Set where
 apply : Alloc → Ctxᵗ → Ctxᵗ
 apply none    Γ = Γ
 apply (new R) Γ = allocate R Γ
-
-infix 4 _⊢ᴮ_
-data _⊢ᴮ_ (Ξ : RepCtx) : List Ty → Set where
-  binds[] : Ξ ⊢ᴮ []
-  binds∷  : Ξ ⊢ᴿ R → Ξ ⊢ᴮ Rs → Ξ ⊢ᴮ R ∷ Rs
-
--- The same fact for an ABSTRACT binding as well: only the payload of a
--- represented one actually moves, but a rep-only weakening has to carry
--- both, so state the shift on bindings rather than on payloads.
-shiftByᵇ : ℕ → RepBinding → RepBinding
-shiftByᵇ zero    b = b
-shiftByᵇ (suc n) b = renRepBinding suc (shiftByᵇ n b)
 
 ------------------------------------------------------------------------
 -- 10. Inserting and deleting an ordinary name
@@ -395,8 +359,10 @@ data _⊢-_at_⇒_ (α : RVar) : TyCtx → ℕ → TyCtx → Set where
 --
 -- The base instances insert either one abstract binder (`repwk-abst₀`,
 -- strong-rep-store.proof.Ctx, for `crossΛᴹ`) or a bind block (`repwk-wkN`,
--- strong-rep-store.proof.RepWeaken, for `Peel`).  `repwk-push` and `repwk-abst`
--- close either instance under the two ways the typing induction goes deeper.
+-- strong-rep-store.proof.RepWeaken, at the allocation).  `repwk-abst`
+-- closes either instance under the one way the typing induction goes
+-- deeper: a `Λ`.  (`repwk-push`, which closed it under a bind block,
+-- went with the bind block.)
 
 record RepWk (ρ : Renameᵗ) (Ξ Ξ′ : RepCtx) : Set where
   constructor repwk

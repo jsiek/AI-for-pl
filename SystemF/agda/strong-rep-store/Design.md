@@ -2,12 +2,30 @@
 
 > **strong-rep-store (2026-09-21).**  This directory is a variant of
 > `strong-rep-var`, and this document is strong-rep-var's design note
-> with the module prefix renamed.  The one difference so far is the
+> with the module prefix renamed.  The first difference is the
 > **value restriction on type abstraction**: `⊢Λ` requires `Value N`
 > and there is no `ξ-Λ` (§4.3, §5, §6.1, §6.8 below carry the change;
 > the README's first section lists every consequence).  Where this
 > document's prose about reducing under `Λ` survives elsewhere, read it
 > as describing strong-rep-var.
+>
+> **EXPERIMENT 2 LANDED (2026-09-22): the store.**  A boundary no longer
+> carries a bind block.  The representation a ∀-elimination mints is
+> ALLOCATED on the ambient representation context at address 0
+> (`allocate`, `Ctx.agda`), every existing representation variable — in
+> the name map and in every sibling term — moves up by one, and a step
+> returns the change it made, `δ : Alloc = none | new R`, so the
+> contractum lives at `apply δ Δ` and each congruence shifts the
+> redex's siblings by `↑ᴹ[ δ ]`.  A boundary scope is now its change
+> list alone and changes NAMES only.  Retired with the bind block:
+> `binds`/`numBinds`/`extendReps`/`pushRepBinds`/`_⊢ᴮ_`/`shiftRVars`,
+> `underRepBinds`, `SameTyExt`/`shiftRep`, and the frame-exactness
+> obligations for moves across binds — `Peel` now moves its crossing
+> argument VERBATIM.  The design note is `notes/RepStoreSketch.md`; the
+> decision record is `notes/DECISIONS.md`, 2026-09-22.  Wherever the
+> prose below writes a boundary scope as `boundary (binds) (changes)`
+> or shifts a representation by `numBinds`, read it as describing
+> strong-rep-var.
 
 The informal definition of the calculus mechanized in
 `SystemF/agda/strong-rep-store/`.  It replaces the v1 note (now

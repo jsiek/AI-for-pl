@@ -21,8 +21,8 @@ module strong-rep-store.Boundary where
 --     close §3d; §4 is the concrete shapes `TyBetaBoundary`, `TyBeta-bw`,
 --     `crossΛ`/`uncrossΛ`.
 --   * EVERYTHING HERE MENTIONS `Change` OR `Boundary`.  The context
---     material it stands on — the representation-binder blocks of the
---     old §1, `extendReps`, the insert/delete relations, `RepWk` — is
+--     material it stands on — the store (`allocate`/`Alloc`/`apply`),
+--     the insert/delete relations, `RepWk` — is
 --     strong-rep-store.Ctx, and the lemmas about that material are
 --     strong-rep-store.proof.Ctx; that split (notes/DECISIONS.md, 2026-09-20) is
 --     why the sections here begin at 2, and other modules cite these
@@ -147,12 +147,6 @@ changes-functional (changes∷ cs st) (changes∷ cs′ st′) | refl =
 
 dual : List Change → List Change
 dual χ = map dualChange (reverse χ)
-
--- Move a change underneath `n` representation binders. Ordinary positions
--- do not move; only the carried representation-variable occurrence does.
-underRepBinds : ℕ → Change → Change
-underRepBinds n (lock X α)   = lock X (n + α)
-underRepBinds n (unlock X α) = unlock X (n + α)
 
 -- A REPRESENTATION-ONLY renaming of a change. The ordinary position is
 -- untouched, which is what makes a rep-only weakening leave every

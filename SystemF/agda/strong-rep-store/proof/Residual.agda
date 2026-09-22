@@ -22,24 +22,30 @@ open import strong-rep-store.TermSubst
 open import strong-rep-store.Reduction
 open import strong-rep-store.Residual
 
--- Renaming through a context is renaming the plugged term.
-plug-renCtx² : ∀ (ρ : TyRename) (C : TermCtx) (M : Term)
-  → plug (renCtx² ρ C) (renᴹ² (holeRen² ρ C) M) ≡ renᴹ² ρ (plug C M)
-plug-renCtx² ρ □ M = refl
-plug-renCtx² ρ (ƛC A ∙ C) M =
-  cong (ƛ renameᵗ (ordinary ρ) A ∙_) (plug-renCtx² ρ C M)
-plug-renCtx² ρ (C ·L N) M =
-  cong (_· renᴹ² ρ N) (plug-renCtx² ρ C M)
-plug-renCtx² ρ (L ·R C) M =
-  cong (renᴹ² ρ L ·_) (plug-renCtx² ρ C M)
-plug-renCtx² ρ (ΛC C) M =
-  cong Λ_ (plug-renCtx² (underΛ-ren ρ) C M)
-plug-renCtx² ρ (C ·C[ B , A ]) M =
-  cong (_·[ renameᵗ (extᵗ (ordinary ρ)) B , renameᵗ (ordinary ρ) A ])
-    (plug-renCtx² ρ C M)
-plug-renCtx² ρ (C ⟪C Θ , c ⟫) M =
-  cong (_⟪ renᴮ² ρ Θ , renᶜ (ordinary ρ) c ⟫)
-    (plug-renCtx² (underReps-ren (numBinds Θ) ρ) C M)
+-- Renaming through a context is renaming the plugged term.  Since the
+-- store there is only ONE renaming: the representation-only `renᴹᴿ`.
+plug-renCtxᴿ : ∀ (ρ : Renameᵗ) (C : TermCtx) (M : Term)
+  → plug (renCtxᴿ ρ C) (renᴹᴿ (holeᴿ ρ C) M) ≡ renᴹᴿ ρ (plug C M)
+plug-renCtxᴿ ρ □ M = refl
+plug-renCtxᴿ ρ (ƛC A ∙ C) M =
+  cong (ƛ A ∙_) (plug-renCtxᴿ ρ C M)
+plug-renCtxᴿ ρ (C ·L N) M =
+  cong (_· renᴹᴿ ρ N) (plug-renCtxᴿ ρ C M)
+plug-renCtxᴿ ρ (L ·R C) M =
+  cong (renᴹᴿ ρ L ·_) (plug-renCtxᴿ ρ C M)
+plug-renCtxᴿ ρ (ΛC C) M =
+  cong Λ_ (plug-renCtxᴿ (extᵗ ρ) C M)
+plug-renCtxᴿ ρ (C ·C[ B , A ]) M =
+  cong (_·[ B , A ]) (plug-renCtxᴿ ρ C M)
+plug-renCtxᴿ ρ (C ⟪C Θ , c ⟫) M =
+  cong (_⟪ renᴮᴿ ρ Θ , c ⟫) (plug-renCtxᴿ ρ C M)
+
+-- The SIBLING SHIFT through a context: the three halves of `↑ᴹ[ δ ]`
+-- (strong-rep-store.Residual §3) rebuild exactly the shifted term.
+plug-↑ : ∀ (δ : Alloc) (C : TermCtx) (M : Term)
+  → plug (↑ᶜ[ δ ] C) (↑ᴴ[ δ ] C M) ≡ ↑ᴹ[ δ ] (plug C M)
+plug-↑ none    C M = refl
+plug-↑ (new R) C M = plug-renCtxᴿ suc C M
 
 -- A pointwise-identity substitution is the identity.
 substᵐ-ivar : ∀ (σ : Var → Img) → (∀ x → σ x ≡ ivar x)
@@ -87,10 +93,13 @@ plug-substCtx σ (C ⟪C Θ , c ⟫) M =
 image-sound : ∀ {k I C M ρ D N}
   → ImageResidual k I C M ρ D N → plug D N ≡ imgTm I
 image-sound image-here = refl
+-- `crossΛᴹ` is written with the paired renaming, whose ordinary half is
+-- the identity; `renᴹ²-ord-id` is what identifies it with `renᴹᴿ suc`.
 image-sound (image-Λ {A = A} {D = D} {N = N} r) =
   cong (_⟪ boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
-    (trans (plug-renCtx² (moveᴿ suc) D N)
-           (cong (renᴹ² (moveᴿ suc)) (image-sound r)))
+    (trans (trans (plug-renCtxᴿ suc D N)
+                  (cong (renᴹᴿ suc) (image-sound r)))
+           (sym (renᴹ²-ord-id (λ X → refl) _)))
 
 copy-sound : ∀ {k σ P C M ρ D N}
   → CopyResidual k σ P C M ρ D N → plug D N ≡ substᵐ σ P
@@ -101,7 +110,7 @@ copy-sound (copy-·R r)    = cong₂ _·_ refl (copy-sound r)
 copy-sound (copy-Λ r)     = cong Λ_ (copy-sound r)
 copy-sound (copy-·[] r)   = cong (_·[ _ , _ ]) (copy-sound r)
 
-residual-source : ∀ {Δ L L′ C M ρ D N} {r : Δ ⊢ L -→ L′}
+residual-source : ∀ {Δ L L′ δ C M ρ D N} {r : Δ ⊢ L -→ L′ ∣ δ}
   → Residual r C M ρ D N → plug C M ≡ L
 residual-source (residual-TyBeta vN pA)          = refl
 residual-source (residual-Beta-body vW st)       = refl
@@ -122,34 +131,32 @@ residual-source (residual-ξ-·-r-sib v r) = refl
 residual-source (residual-ξ-·[] r) = cong (_·[ _ , _ ]) (residual-source r)
 residual-source (residual-ξ-⟪⟫ ri r) = cong (_⟪ _ , _ ⟫) (residual-source r)
 
-residual-sound : ∀ {Δ L L′ C M ρ D N} {r : Δ ⊢ L -→ L′}
+residual-sound : ∀ {Δ L L′ δ C M ρ D N} {r : Δ ⊢ L -→ L′ ∣ δ}
   → Residual r C M ρ D N → plug D N ≡ L′
 residual-sound (residual-TyBeta vN pA) = refl
 residual-sound (residual-Beta-body {W = W} {A = A} {C = C} {M = M} vW st) =
   plug-substCtx (betaEnv W A) C M
 residual-sound (residual-Beta-arg vW cr) = copy-sound cr
 residual-sound (residual-Peel-fun vV vW rc ri rd sc) = refl
-residual-sound
-  (residual-Peel-arg {Θ = Θ} {V = V} {C = C} {M = M} {s′ = s′} {t = t}
-    vV vW rc ri rd sc) =
-  cong (λ z → (V · (z ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫)
-    (plug-renCtx² (moveᴿ (wkN (numBinds Θ))) C M)
+residual-sound (residual-Peel-arg vV vW rc ri rd sc) = refl
 residual-sound (residual-TyPeelR-Λ vN rc ⊢s pA) = refl
 residual-sound
   (residual-TyPeelR-⟪⟫ {Θ = Θ} {C = C} {M = M} {Θ′ = Θ′} {s″ = s″}
-    {s = s} {R = R} {Bᵢ′ = Bᵢ′} vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) =
-  cong (λ z → ((z ⟪ addLock0 (renᴮ² (moveᴿ suc) Θ′) , `∀ s″ ⟫)
+    {s = s} {Bᵢ′ = Bᵢ′} vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA) =
+  cong (λ z → ((z ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
                   ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-                ⟪ instantiate R Θ , instReveal 0 s ⟫)
-    (plug-renCtx² (moveᴿ (extN (numBinds Θ′) suc)) C M)
+                ⟪ instantiate Θ , instReveal 0 s ⟫)
+    (plug-renCtxᴿ suc C M)
 residual-sound
   (residual-CancelR vV ri rc₁ lX rc⋉ sm rc₂ lY) = refl
 residual-sound
   (residual-IdPush vV ri rc₁ rc⋉ sm rc₂ lY)     = refl
 residual-sound (residual-ξ-·-l r)      = cong (_· _) (residual-sound r)
-residual-sound (residual-ξ-·-l-sib r)  = refl
+residual-sound (residual-ξ-·-l-sib {δ = δ} {C = C} {M = M} r) =
+  cong (_ ·_) (plug-↑ δ C M)
 residual-sound (residual-ξ-·-r v r)    = cong (_ ·_) (residual-sound r)
-residual-sound (residual-ξ-·-r-sib v r) = refl
+residual-sound (residual-ξ-·-r-sib {δ = δ} {C = C} {M = M} v r) =
+  cong (_· _) (plug-↑ δ C M)
 residual-sound (residual-ξ-·[] r) = cong (_·[ _ , _ ]) (residual-sound r)
 residual-sound (residual-ξ-⟪⟫ ri r) = cong (_⟪ _ , _ ⟫) (residual-sound r)
 

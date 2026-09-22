@@ -23,15 +23,22 @@ module strong-rep-store.ColorPreservation where
 -- THE RESTATEMENT.  A hole's COLOR is its SCOPE MAP, `names Δ` at that
 -- hole (strong-rep-store.Residual §2): which ordinary type variables are
 -- live there and which representation variable each denotes.  A move
--- can rename the representation universe — `Peel` sends its argument
--- past a bind block, `Beta` sends a copy past a `Λ`'s dual — so the
--- scope map is transported along the representation renaming `ρ` the
--- run delivered to the hole, which `Residuals` records.  Everything
+-- can rename the representation universe — an allocating step shifts
+-- the redex's siblings by one, `TyPeelR-⟪⟫` shifts the boundary it
+-- pushes in, `Beta` sends a copy past a `Λ`'s dual — so the scope map
+-- is transported along the representation renaming `ρ` the run
+-- delivered to the hole, which `Residuals` records.  Everything
 -- else is EQUAL: no ordinary position is added, removed or moved, and a
 -- name denotes the same representation variable, read through `ρ`.
 -- `TyBeta`/`TyPeelR-Λ`'s refinement of an `abstR` slot to `bindR R`
 -- changes what a representation variable IS BOUND TO, not which one a
 -- name denotes, so it is invisible to the scope map (and `ρ` is `idᵗ`).
+--
+-- THE TARGET IS READ AT THE RUN'S OWN CONTEXT (experiment 2,
+-- 2026-09-22).  A step returns the change it made to the store, so the
+-- run's positions live at `runCtx rs` (strong-rep-store.Reduction), not
+-- at Δ: allocating a cell renumbers the ambient name map, which is
+-- exactly the `map ρ` the equation already reports.
 --
 -- In the named presentation (notes/notes.md): a residual position sees
 -- exactly the type variables X it saw before, each standing for the same
@@ -44,7 +51,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 open import strong-rep-store.Types using (Ty)
 open import strong-rep-store.Ctx using (Ctxᵗ; names; WfCtx; empty)
 open import strong-rep-store.Terms using (Term; _∣_⊢_⦂_)
-open import strong-rep-store.Reduction using (_⊢_-→*_)
+open import strong-rep-store.Reduction using (_⊢_-→*_; runCtx)
 open import strong-rep-store.Residual
 open import strong-rep-store.proof.Ctx using (wf-empty)
 import strong-rep-store.proof.ColorPreservation as Proof
@@ -65,7 +72,7 @@ ScopeMapPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}
   → Residuals rs C M ρ D N
   → ∀ {Δ₁ Δ₂ : Ctxᵗ}
   → Δ ⊢C C ⊣ Δ₁
-  → Δ ⊢C D ⊣ Δ₂
+  → runCtx rs ⊢C D ⊣ Δ₂
   → names Δ₂ ≡ map ρ (names Δ₁)
 
 scope-map-preservation : ScopeMapPreservation
@@ -82,7 +89,7 @@ ColorPreservation = ∀ {Δ : Ctxᵗ} {L L′ : Term} {A : Ty}
   → Residuals rs C M ρ D N
   → ∀ {Δ₁ Δ₂ : Ctxᵗ}
   → Δ ⊢C C ⊣ Δ₁
-  → Δ ⊢C D ⊣ Δ₂
+  → runCtx rs ⊢C D ⊣ Δ₂
   → length (names Δ₂) ≡ length (names Δ₁)
 
 color-preservation : ColorPreservation
@@ -98,7 +105,7 @@ ScopeMapPreservationClosed = ∀ {L L′ : Term} {A : Ty}
   → Residuals rs C M ρ D N
   → ∀ {Δ₁ Δ₂ : Ctxᵗ}
   → empty ⊢C C ⊣ Δ₁
-  → empty ⊢C D ⊣ Δ₂
+  → runCtx rs ⊢C D ⊣ Δ₂
   → names Δ₂ ≡ map ρ (names Δ₁)
 
 scope-map-preservation-closed : ScopeMapPreservationClosed
@@ -111,7 +118,7 @@ ColorPreservationClosed = ∀ {L L′ : Term} {A : Ty}
   → Residuals rs C M ρ D N
   → ∀ {Δ₁ Δ₂ : Ctxᵗ}
   → empty ⊢C C ⊣ Δ₁
-  → empty ⊢C D ⊣ Δ₂
+  → runCtx rs ⊢C D ⊣ Δ₂
   → length (names Δ₂) ≡ length (names Δ₁)
 
 color-preservation-closed : ColorPreservationClosed

@@ -26,7 +26,6 @@ module strong-rep-store.TermSubst where
 --     `_⟪_,_⟫` and `⊢renⁿ` reuses the boundary's derivation unchanged.
 --     (2) A type renaming carries TWO independent maps, and the
 --     ordinary one never moves a representation occurrence:
---     `TyBetaBoundary-ren-Λ` is the concrete separation check, and
 --     `renᴹ²-ord-id` is the general statement that an
 --     ordinary-identity `renᴹ²` IS `renᴹᴿ` (notes/DECISIONS.md,
 --     2026-09-20, representation-only renaming is its own traversal).
@@ -96,18 +95,6 @@ renᶠ ρ = renᶠ² ρ ρ
 
 renᴮ² : TyRename → Boundary → Boundary
 renᴮ² (ren² ρᵗ ρʳ) Θ = boundary (map (renᶠ² ρᵗ ρʳ) (changes Θ))
-
--- The one-map specialization is retained for callers where both universes
--- move in lockstep, such as weakening under an ordinary `Λ`.
-renᴮ : Renameᵗ → Boundary → Boundary
-renᴮ ρ = renᴮ² (ren² ρ ρ)
-
--- Concrete separation check. Weakening TyBeta's scope under `Λ` moves
--- both its ordinary insertion point and its representation occurrence
--- from 0 to 1: the cell it names is in the ambient store, one binder out.
-TyBetaBoundary-ren-Λ : renᴮ² (ren² suc suc) TyBetaBoundary
-  ≡ boundary (unlock 1 1 ∷ [])
-TyBetaBoundary-ren-Λ = refl
 
 ------------------------------------------------------------------------
 -- 2. Renaming terms

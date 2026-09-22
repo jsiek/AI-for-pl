@@ -5,20 +5,36 @@ module strong-rep-store.Residual where
 --     This is the layer the COLOR PRESERVATION theorem
 --     (strong-rep-store.ColorPreservation) is stated in.  §1 is `TermCtx`
 --     with `plug`; §2 is `_⊢C_⊣_`, the type context AT THE HOLE — the
---     hole's SCOPE MAP is its `names`; §3 renames a context in the two
---     universes exactly as `renᴹ²` renames a term, and reads off the
---     renaming that reaches the hole; §4 pushes `Beta`'s substitution
---     through a context; §5 is `Residual`, ONE STEP, and §6 `Residuals`,
---     a whole run.
+--     hole's SCOPE MAP is its `names`; §3 renames a context in the
+--     REPRESENTATION UNIVERSE exactly as `renᴹᴿ` renames a term, and
+--     reads off the renaming that reaches the hole; §4 pushes `Beta`'s
+--     substitution through a context; §5 is `Residual`, ONE STEP, and §6
+--     `Residuals`, a whole run.
 --   * WHAT A RESIDUAL RECORDS (2026-09-21, the v7 restatement).  A
 --     position is a pair `(C , M)`, the hole and the node in it.  A step
 --     moves a retained node to a new position `(D , N)`, and every move
 --     in this calculus except `TyBeta`'s refinement is
 --     REPRESENTATION-ONLY (proof/ShiftAudit §3): the node is `M` renamed
---     by some `ren² idᵗ ρ`, so the residual relation carries that `ρ` —
---     the representation renaming that reaches the hole — as an index.
+--     by some `renᴹᴿ ρ`, so the residual relation carries that `ρ` — the
+--     representation renaming that reaches the hole — as an index.
 --     `Residuals` composes them along a run.  The theorem then says the
 --     scope map at `D` is the scope map at `C` under `ρ`.
+--   * WHAT THE STORE CHANGED (experiment 2, 2026-09-22,
+--     notes/RepStoreSketch.md).  A boundary no longer carries a bind
+--     block, so NO rule moves a subterm past one: the only
+--     representation move left is the UNIFORM SIBLING SHIFT a step's
+--     allocation imposes — `suc` when the step returns `new R`, the
+--     identity when it returns `none` (`↑ᶜ[_]`/`↑ᴴ[_]`/`↑ʳ[_]` in §3).
+--     `Peel`'s argument therefore moves VERBATIM (`dual-interior` lands
+--     it at the exterior itself), and the redex's own contractum keeps
+--     `idᵗ`: `TyBeta`'s and `TyPeelR-Λ`'s body sits under the `Λ` binder
+--     that BECOMES the allocated cell, so its indices are already right.
+--     The one position that still moves inside a redex is
+--     `TyPeelR-⟪⟫`'s inner boundary, a SIBLING of that `Λ`, which gets
+--     exactly `suc`.  What went with the bind block: the paired
+--     `renCtx²`/`holeRen²`, whose boundary clause stepped past
+--     `numBinds Θ` representation binders, and the `moveᴿ` wrapper —
+--     §3 is now the representation-only `renCtxᴿ`/`holeᴿ`.
 --   * WHICH NODES HAVE RESIDUALS.  The nodes of the redex itself are
 --     CONSUMED — the application node `Peel` pushes through a boundary,
 --     the `Λ` and `·[]` nodes `TyBeta` eliminates, the `ƛ` and `·` nodes
@@ -29,8 +45,8 @@ module strong-rep-store.Residual where
 --     `Drop-false` consume their literal with its boundary — a literal
 --     has no scope to preserve (proof/ShiftAudit §7, "vacuous").
 --   * THIS MODULE PROVES NOTHING.  The sanity lemma that `plug D N` is the
---     step's contractum, and the theorem, are strong-rep-store.proof.
---     ColorPreservation once the statement is approved.
+--     step's contractum is strong-rep-store.proof.Residual, and the
+--     theorem is strong-rep-store.proof.ColorPreservation.
 
 open import Data.Nat using (ℕ; zero; suc)
 open import Data.List using (List; []; _∷_)
@@ -55,6 +71,7 @@ private
     Θ : Boundary
     c : Conv
     ρ : Renameᵗ
+    δ : Alloc
 
 ------------------------------------------------------------------------
 -- 1. One-hole contexts
@@ -103,41 +120,48 @@ data _⊢C_⊣_ : Ctxᵗ → TermCtx → Ctxᵗ → Set where
     → Δ ⊢C C ⟪C Θ , c ⟫ ⊣ Δ′
 
 ------------------------------------------------------------------------
--- 3. Renaming a context in the two universes, clause for clause with
---    `renᴹ²`, and the renaming that reaches its hole: `Λ` frames extend
---    both components, a boundary frame extends the representation
---    component past its bind block.
+-- 3. Renaming a context in the REPRESENTATION universe, clause for
+--    clause with `renᴹᴿ`, and the renaming that reaches its hole: only a
+--    `Λ` frame changes it, and a boundary frame does not — crossing a
+--    boundary no longer crosses a bind block.
 ------------------------------------------------------------------------
 
-renCtx² : TyRename → TermCtx → TermCtx
-renCtx² ρ □               = □
-renCtx² ρ (ƛC A ∙ C)      = ƛC renameᵗ (ordinary ρ) A ∙ renCtx² ρ C
-renCtx² ρ (C ·L N)        = renCtx² ρ C ·L renᴹ² ρ N
-renCtx² ρ (L ·R C)        = renᴹ² ρ L ·R renCtx² ρ C
-renCtx² ρ (ΛC C)          = ΛC (renCtx² (underΛ-ren ρ) C)
-renCtx² ρ (C ·C[ B , A ]) =
-  renCtx² ρ C ·C[ renameᵗ (extᵗ (ordinary ρ)) B
-                , renameᵗ (ordinary ρ) A ]
-renCtx² ρ (C ⟪C Θ , c ⟫)  =
-  renCtx² (underReps-ren (numBinds Θ) ρ) C
-    ⟪C renᴮ² ρ Θ , renᶜ (ordinary ρ) c ⟫
-
-holeRen² : TyRename → TermCtx → TyRename
-holeRen² ρ □               = ρ
-holeRen² ρ (ƛC A ∙ C)      = holeRen² ρ C
-holeRen² ρ (C ·L N)        = holeRen² ρ C
-holeRen² ρ (L ·R C)        = holeRen² ρ C
-holeRen² ρ (ΛC C)          = holeRen² (underΛ-ren ρ) C
-holeRen² ρ (C ·C[ B , A ]) = holeRen² ρ C
-holeRen² ρ (C ⟪C Θ , c ⟫)  = holeRen² (underReps-ren (numBinds Θ) ρ) C
-
--- The representation-only move `ρ`, as the rules write it, and the
--- representation renaming it delivers to the hole of `C`.
-moveᴿ : Renameᵗ → TyRename
-moveᴿ ρ = ren² idᵗ ρ
+renCtxᴿ : Renameᵗ → TermCtx → TermCtx
+renCtxᴿ ρ □               = □
+renCtxᴿ ρ (ƛC A ∙ C)      = ƛC A ∙ renCtxᴿ ρ C
+renCtxᴿ ρ (C ·L N)        = renCtxᴿ ρ C ·L renᴹᴿ ρ N
+renCtxᴿ ρ (L ·R C)        = renᴹᴿ ρ L ·R renCtxᴿ ρ C
+renCtxᴿ ρ (ΛC C)          = ΛC (renCtxᴿ (extᵗ ρ) C)
+renCtxᴿ ρ (C ·C[ B , A ]) = renCtxᴿ ρ C ·C[ B , A ]
+renCtxᴿ ρ (C ⟪C Θ , c ⟫)  = renCtxᴿ ρ C ⟪C renᴮᴿ ρ Θ , c ⟫
 
 holeᴿ : Renameᵗ → TermCtx → Renameᵗ
-holeᴿ ρ C = represent (holeRen² (moveᴿ ρ) C)
+holeᴿ ρ □               = ρ
+holeᴿ ρ (ƛC A ∙ C)      = holeᴿ ρ C
+holeᴿ ρ (C ·L N)        = holeᴿ ρ C
+holeᴿ ρ (L ·R C)        = holeᴿ ρ C
+holeᴿ ρ (ΛC C)          = holeᴿ (extᵗ ρ) C
+holeᴿ ρ (C ·C[ B , A ]) = holeᴿ ρ C
+holeᴿ ρ (C ⟪C Θ , c ⟫)  = holeᴿ ρ C
+
+-- THE SIBLING SHIFT AT A POSITION.  A step returns the change `δ` it
+-- made to the store and the congruences shift the redex's siblings by
+-- `↑ᴹ[ δ ]` (strong-rep-store.TermSubst §2).  A position inside such a
+-- sibling therefore moves by the same shift, split into its three
+-- halves: the context around it, the node in it, and the renaming that
+-- reaches the hole.  At `none` all three are the identity ON THE NOSE,
+-- which is what keeps the `_-→_∣ none` rules' residuals `idᵗ`.
+↑ᶜ[_] : Alloc → TermCtx → TermCtx
+↑ᶜ[ none  ] C = C
+↑ᶜ[ new R ] C = renCtxᴿ suc C
+
+↑ᴴ[_] : Alloc → TermCtx → Term → Term
+↑ᴴ[ none  ] C M = M
+↑ᴴ[ new R ] C M = renᴹᴿ (holeᴿ suc C) M
+
+↑ʳ[_] : Alloc → TermCtx → Renameᵗ
+↑ʳ[ none  ] C = idᵗ
+↑ʳ[ new R ] C = holeᴿ suc C
 
 ------------------------------------------------------------------------
 -- 4. `Beta`'s substitution through a context, clause for clause with
@@ -196,9 +220,8 @@ data ImageResidual : ℕ → Img → TermCtx → Term → Renameᵗ → TermCtx
   image-Λ : ∀ {k V C M D N}
     → ImageResidual k (ival V A) C M ρ D N
     → ImageResidual (suc k) (⇑ᴵ (ival V A)) C M (holeᴿ suc D ∘ ρ)
-        (renCtx² (moveᴿ suc) D
-           ⟪C boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
-        (renᴹ² (holeRen² (moveᴿ suc) D) N)
+        (renCtxᴿ suc D ⟪C boundary (lock 0 0 ∷ []) , mkId (⇑ᵗ A) ⟫)
+        (renᴹᴿ (holeᴿ suc D) N)
 
 -- Positions inside a copy of the argument, followed through the body
 -- to the occurrence that receives it.  The body's binders extend the
@@ -229,19 +252,23 @@ data CopyResidual (k : ℕ) (σ : Var → Img)
 -- 5. Residuals of one step.  `Residual r C M ρ D N`: the step `r` moves
 --    the node `M` in hole `C` to hole `D` as `N`, and the representation
 --    renaming that reaches the hole is `ρ`.  The site-by-site moves are
---    proof/ShiftAudit §1's table; `ρ` is that table's third column.
+--    proof/ShiftAudit §1's table; `ρ` is that table's third column, and
+--    since the store it is `idᵗ` everywhere but in `TyPeelR-⟪⟫`'s moved
+--    boundary and in a sibling the allocating step shifted.
 ------------------------------------------------------------------------
 
-data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
+data Residual : ∀ {Δ L L′ δ} → Δ ⊢ L -→ L′ ∣ δ
               → TermCtx → Term → Renameᵗ → TermCtx → Term → Set where
 
   -- TyBeta: the body stays where it is; its `Λ` slot BECOMES the
-  -- boundary scope's bind slot (refinement `abstR → bindR R`, no move).
+  -- allocated cell (refinement `abstR → bindR R`, no move), and the
+  -- scope `instantiate (boundary [])` re-unlocks the body's own name for
+  -- it — so the body's indices are already right and ρ is `idᵗ`.
   residual-TyBeta : ∀ {R C M}
     (vN : Value (plug C M)) (pA : Δ ⊢ᶜ A ~ R)
     → Residual (TyBeta {Δ = Δ} {B = B} {A = A} {N = plug C M} vN pA)
         ((ΛC C) ·C[ B , A ]) M idᵗ
-        (C ⟪C instantiate R (boundary []) , reveal 0 B ⟫) M
+        (C ⟪C instantiate (boundary []) , reveal 0 B ⟫) M
 
   -- Beta, the body: a node the substitution does not replace.
   residual-Beta-body : ∀ {C M}
@@ -266,53 +293,51 @@ data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
     (rd : Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
     → Residual (Peel {V = plug C M} {W = W} {t = t} vV vW rc ri rd sc)
         ((C ⟪C Θ , s ↦ t ⟫) ·L W) M idᵗ
-        ((C ·L (renᴹ² (moveᴿ (wkN (numBinds Θ))) W
-                  ⟪ dualBoundary Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
+        ((C ·L (W ⟪ dualBoundary Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
-  -- Peel, the argument: it crosses into the dual, past the bind block,
-  -- by the representation-only `wkN (numBinds Θ)`.
+  -- Peel, the argument: it crosses into the dual VERBATIM.  There is no
+  -- bind block to cross any more, and `dual-interior` lands the dual's
+  -- interior at the exterior itself, so ρ is `idᵗ`.
   residual-Peel-arg : ∀ {Δᶜ Δᵈ V C M s s′ t}
     (vV : Value V) (vW : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ)
     (rd : Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ) (sc : SameConv Δᵈ s′ Δᶜ s)
     → Residual (Peel {V = V} {W = plug C M} {t = t} vV vW rc ri rd sc)
-        ((V ⟪ Θ , s ↦ t ⟫) ·R C) M (holeᴿ (wkN (numBinds Θ)) C)
-        ((V ·R (renCtx² (moveᴿ (wkN (numBinds Θ))) C
-                  ⟪C dualBoundary Θ , s′ ⟫)) ⟪C Θ , t ⟫)
-        (renᴹ² (holeRen² (moveᴿ (wkN (numBinds Θ))) C) M)
+        ((V ⟪ Θ , s ↦ t ⟫) ·R C) M idᵗ
+        ((V ·R (C ⟪C dualBoundary Θ , s′ ⟫)) ⟪C Θ , t ⟫) M
 
   -- TyPeelR-Λ: as TyBeta, one boundary in — the body's `Λ` slot becomes
-  -- the instantiated scope's new bind slot.
+  -- the allocated cell the instantiated scope unlocks.
   residual-TyPeelR-Λ : ∀ {Δᶜ C M s R Bᵢ Bₑ}
     (vN : Value (plug C M))
     (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ) (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
     (pA : Δ ⊢ᶜ A ~ R)
     → Residual (TyPeelR-Λ {N = plug C M} {B = B} vN rc ⊢s pA)
         (((ΛC C) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M idᵗ
-        (C ⟪C instantiate R Θ , instReveal 0 s ⟫) M
+        (C ⟪C instantiate Θ , instReveal 0 s ⟫) M
 
-  -- TyPeelR-⟪⟫: the inner boundary's body is pushed one layer in, past
-  -- the new bind, by the representation-only `extN (numBinds Θ′) suc`.
+  -- TyPeelR-⟪⟫: the inner boundary is a SIBLING of the `Λ` slot the
+  -- allocation consumes, so its interior gets exactly the sibling shift
+  -- `suc` — the one non-identity ρ a redex still produces.
   residual-TyPeelR-⟪⟫ : ∀ {Δᵢ⁺ Δᶜ Δ′ᶜ Δ″ᶜ C M Θ′ s′ s″ s R Bᵢ Bᵢ′ Bₑ}
     (vW : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) (rc : Δ ⊢ᶜ Θ ⇒ Δᶜ)
     (rc′ : Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
-    (ri⁺ : Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺)
-    (rc″ : Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (moveᴿ suc) Θ′) ⇒ Δ″ᶜ)
+    (ri⁺ : allocate R Δ ⊢ⁱ instantiate Θ ⇒ Δᵢ⁺)
+    (rc″ : Δᵢ⁺ ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ)
     (sc : SameConv (underΛ Δ″ᶜ) s″
-            (underΛ (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′)
+            (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
     (⊢s : underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ)
     (sm : underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
     (pA : Δ ⊢ᶜ A ~ R)
     → Residual (TyPeelR-⟪⟫ {W = plug C M} {B = B}
                  vW ri rc rc′ ri⁺ rc″ sc ⊢s sm pA)
         (((C ⟪C Θ′ , `∀ s′ ⟫) ⟪C Θ , `∀ s ⟫) ·C[ B , A ]) M
-        (holeᴿ (extN (numBinds Θ′) suc) C)
-        (((renCtx² (moveᴿ (extN (numBinds Θ′) suc)) C
-             ⟪C addLock0 (renᴮ² (moveᴿ suc) Θ′) , `∀ s″ ⟫)
+        (holeᴿ suc C)
+        (((renCtxᴿ suc C ⟪C addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
             ·C[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-           ⟪C instantiate R Θ , instReveal 0 s ⟫)
-        (renᴹ² (holeRen² (moveᴿ (extN (numBinds Θ′) suc)) C) M)
+           ⟪C instantiate Θ , instReveal 0 s ⟫)
+        (renᴹᴿ (holeᴿ suc C) M)
 
   -- CancelR and IdPush: the value keeps its frame under both the merged
   -- and the rewound scope (proof/ShiftAudit §6).
@@ -320,7 +345,7 @@ data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
     (vV : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
     (lX : Δ₁ᶜ ∋ X := Aᵢ)
-    (rc⋉ : extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+    (rc⋉ : Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
     (sm : Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ)
     (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) (lY : Δᶜ ∋ Y := A)
     → Residual (CancelR {V = plug C M} vV ri rc₁ lX rc⋉ sm rc₂ lY)
@@ -330,7 +355,7 @@ data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
   residual-IdPush : ∀ {Δ₁ᶜ Δ⋉ᶜ Δᶜ C M Θ₁ Θ₂ X X′ Y}
     (vV : Value (plug C M))
     (ri : Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) (rc₁ : Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-    (rc⋉ : extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+    (rc⋉ : Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
     (sm : Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ)
     (rc₂ : Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) (lY : Δᶜ ∋ Y := A)
     → Residual (IdPush {V = plug C M} vV ri rc₁ rc⋉ sm rc₂ lY)
@@ -341,28 +366,33 @@ data Residual : ∀ {Δ L L′} → Δ ⊢ L -→ L′
   -- with its boundary.)
 
   -- The ξ rules: the position is inside the stepping subterm, or in the
-  -- sibling that stands still.
-  residual-ξ-·-l : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′}
+  -- SIBLING that stands still — and a sibling moves by the step's own
+  -- store change, `↑ᶜ[ δ ]`/`↑ᴴ[ δ ]`/`↑ʳ[ δ ]`.
+  residual-ξ-·-l : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′ ∣ δ}
     → Residual r C M ρ D N
-    → Residual (ξ-·-l {M = P} r) (C ·L P) M ρ (D ·L P) N
-  residual-ξ-·-l-sib : ∀ {L′ C M} (r : Δ ⊢ L -→ L′)
-    → Residual (ξ-·-l {M = plug C M} r) (L ·R C) M idᵗ (L′ ·R C) M
-  residual-ξ-·-r : ∀ {V P′ C M D N} {r : Δ ⊢ P -→ P′}
+    → Residual (ξ-·-l {M = P} r) (C ·L P) M ρ (D ·L ↑ᴹ[ δ ] P) N
+  residual-ξ-·-l-sib : ∀ {L′ C M} (r : Δ ⊢ L -→ L′ ∣ δ)
+    → Residual (ξ-·-l {M = plug C M} r) (L ·R C) M (↑ʳ[ δ ] C)
+        (L′ ·R ↑ᶜ[ δ ] C) (↑ᴴ[ δ ] C M)
+  residual-ξ-·-r : ∀ {V P′ C M D N} {r : Δ ⊢ P -→ P′ ∣ δ}
     (v : Value V) → Residual r C M ρ D N
-    → Residual (ξ-·-r v r) (V ·R C) M ρ (V ·R D) N
+    → Residual (ξ-·-r v r) (V ·R C) M ρ (↑ᴹ[ δ ] V ·R D) N
   residual-ξ-·-r-sib : ∀ {P′ C M} (v : Value (plug C M))
-    (r : Δ ⊢ P -→ P′)
-    → Residual (ξ-·-r v r) (C ·L P) M idᵗ (C ·L P′) M
-  residual-ξ-·[] : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′}
+    (r : Δ ⊢ P -→ P′ ∣ δ)
+    → Residual (ξ-·-r v r) (C ·L P) M (↑ʳ[ δ ] C)
+        (↑ᶜ[ δ ] C ·L P′) (↑ᴴ[ δ ] C M)
+  residual-ξ-·[] : ∀ {L′ C M D N} {r : Δ ⊢ L -→ L′ ∣ δ}
     → Residual r C M ρ D N
     → Residual (ξ-·[] {B = B} {A = A} r)
         (C ·C[ B , A ]) M ρ (D ·C[ B , A ]) N
-  residual-ξ-⟪⟫ : ∀ {M′ C O D O′} {r : Δᵢ ⊢ N -→ M′}
+  residual-ξ-⟪⟫ : ∀ {M′ C O D O′} {r : Δᵢ ⊢ N -→ M′ ∣ δ}
     (ri : Δ ⊢ⁱ Θ ⇒ Δᵢ) → Residual r C O ρ D O′
-    → Residual (ξ-⟪⟫ {c = c} ri r) (C ⟪C Θ , c ⟫) O ρ (D ⟪C Θ , c ⟫) O′
+    → Residual (ξ-⟪⟫ {c = c} ri r) (C ⟪C Θ , c ⟫) O ρ
+        (D ⟪C ↑ᴮ[ δ ] Θ , c ⟫) O′
 
 ------------------------------------------------------------------------
--- 6. Residuals through a run: the renamings compose.
+-- 6. Residuals through a run: the renamings compose, and each step's
+--    store change is applied to the context its tail runs at.
 ------------------------------------------------------------------------
 
 data Residuals : ∀ {Δ L L′} → Δ ⊢ L -→* L′
@@ -370,7 +400,7 @@ data Residuals : ∀ {Δ L L′} → Δ ⊢ L -→* L′
   residuals-done : ∀ {C M}
     → Residuals (done {Δ = Δ} {M = plug C M}) C M idᵗ C M
   residuals-step : ∀ {L′ L″ C M ρ′ D N E O}
-    {r : Δ ⊢ L -→ L′} {rs : Δ ⊢ L′ -→* L″}
+    {r : Δ ⊢ L -→ L′ ∣ δ} {rs : apply δ Δ ⊢ L′ -→* L″}
     → Residual r C M ρ D N
     → Residuals rs D N ρ′ E O
     → Residuals (r then rs) C M (ρ′ ∘ ρ) E O

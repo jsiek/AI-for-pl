@@ -39,32 +39,37 @@ open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (_,_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-open import strong-rep-store.Ctx using (Ctxᵗ; empty)
+open import strong-rep-store.Ctx using (Ctxᵗ; empty; Alloc; apply)
 open import strong-rep-store.Terms using (Term; $_; Value; V-$)
 open import strong-rep-store.Eval using (step; StepResult)
 open import strong-rep-store.notes.CancelRReachabilityWitness using (Src)
 
+-- THE STORE (experiment 2, 2026-09-22).  A step returns the change it
+-- made to the store, so the raw machine THREADS THE CONTEXT: the next
+-- state is searched at `apply δ Δ`.  Everything else is as it was, and
+-- so is the answer.
+
 -- Iterate the raw step function, with fuel.
-rawRun : ℕ → Term → Term
-rawRun zero    M = M
-rawRun (suc k) M with step empty M
-rawRun (suc k) M | nothing       = M
-rawRun (suc k) M | just (M′ , _) = rawRun k M′
+rawRun : ℕ → Ctxᵗ → Term → Term
+rawRun zero    Δ M = M
+rawRun (suc k) Δ M with step Δ M
+rawRun (suc k) Δ M | nothing           = M
+rawRun (suc k) Δ M | just (M′ , δ , _) = rawRun k (apply δ Δ) M′
 
 -- Steps taken before `step` finds no redex (capped by fuel).
-rawLen : ℕ → Term → ℕ
-rawLen zero    M = zero
-rawLen (suc k) M with step empty M
-rawLen (suc k) M | nothing       = zero
-rawLen (suc k) M | just (M′ , _) = suc (rawLen k M′)
+rawLen : ℕ → Ctxᵗ → Term → ℕ
+rawLen zero    Δ M = zero
+rawLen (suc k) Δ M with step Δ M
+rawLen (suc k) Δ M | nothing           = zero
+rawLen (suc k) Δ M | just (M′ , δ , _) = suc (rawLen k (apply δ Δ) M′)
 
 -- The raw run from Src halts after 19 steps, where the pre-repair run
 -- halted after 16.
-raw-run-length : rawLen 100 Src ≡ 19
+raw-run-length : rawLen 100 empty Src ≡ 19
 raw-run-length = refl
 
 raw-end : Term
-raw-end = rawRun 19 Src
+raw-end = rawRun 19 empty Src
 
 -- ...at the NUMERAL 7, where the pre-repair run ended at a stuck identity
 -- tower...
@@ -73,6 +78,8 @@ raw-end-is-7 = refl
 
 -- ...and `step` stops there because the term is a value, not because no
 -- rule applies to a non-value.
+-- (at the run's final context, which for a numeral is immaterial: no
+-- rule applies to a value anywhere)
 raw-end-no-step : step empty raw-end ≡ nothing
 raw-end-no-step = refl
 

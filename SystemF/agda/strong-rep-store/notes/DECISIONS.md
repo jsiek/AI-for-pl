@@ -4714,3 +4714,88 @@ lambdas" — `ΛZ. x` becomes `ΛZ. λy:ℕ. x` and `(ΛZ. x)[ℕ]` becomes
 8 and reaches the same `TyPeelR-⟪⟫` state at the top level, inside the
 outer `TyBeta` boundary, instead of under the `Λ`; the probe runs its
 body at the ambient `underΛ empty` instead of under an outer `Λ`.
+
+## 2026-09-22 — experiment 2 LANDED: the store
+
+Jeremy: "removing the binds field from Boundary and instead make that a
+global representation type store … use zero for the fresh address and
+push all the existing addresses up by one … have reduction return the
+change to the environment instead of the new environment."  The design
+note is `notes/RepStoreSketch.md` (fourth revision, rulings R4/R5/R6);
+this entry records what LANDED.
+
+WHAT THE STORE IS.  `Boundary = boundary (changes : List Change)` and
+nothing else.  The representation a ∀-elimination mints is ALLOCATED on
+the AMBIENT representation context at address 0,
+
+    allocate : Ty → Ctxᵗ → Ctxᵗ
+    allocate R (Ξ ∣ Δ) = (bindR R ∷ Ξ) ∣ shiftNames Δ
+
+and a step returns the CHANGE it made, `δ : Alloc = none | new R`, so
+the contractum lives at `apply δ Δ` and every congruence shifts the
+redex's SIBLINGS by `↑ᴹ[ δ ]` (`renᴹᴿ suc`, or the identity).  A
+boundary changes NAMES only: `reps Δᵢ ≡ reps Δ ≡ reps Δᶜ`.
+
+THE STATEMENTS AS LANDED (all machine-checked, `make check` green).
+
+    Preservation   = ∀ {Δ M M′ A δ} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
+                   → Δ ⊢ M -→ M′ ∣ δ → apply δ Δ ∣ [] ⊢ M′ ⦂ A
+
+    PreservationWf = ∀ {Δ M M′ A δ} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
+                   → Δ ⊢ M -→ M′ ∣ δ → WfCtx (apply δ Δ)
+
+    Preservation*  = ∀ {Δ M M′ A} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
+                   → (r : Δ ⊢ M -→* M′) → runCtx r ∣ [] ⊢ M′ ⦂ A
+
+    Progress       = ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
+                   → Value M ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
+                                 (Δ ⊢ M -→ M′ ∣ δ))
+
+    ScopeMapPreservation = ∀ {Δ L L′ A} {rs : Δ ⊢ L -→* L′} {C M ρ D N}
+      → WfCtx Δ → Δ ∣ [] ⊢ L ⦂ A → Residuals rs C M ρ D N
+      → ∀ {Δ₁ Δ₂} → Δ ⊢C C ⊣ Δ₁ → runCtx rs ⊢C D ⊣ Δ₂
+      → names Δ₂ ≡ map ρ (names Δ₁)
+
+`ColorPreservation`, its `length` corollary, and both closed forms at
+`empty` keep their 2026-09-21 shape.  The one delta in the color layer's
+STATEMENT is that the target position is read at `runCtx rs`, the
+context the run ends at, rather than at Δ — which is exactly the
+renumbering `map ρ` reports.
+
+WHAT THE STORE RETIRED.  `binds`/`numBinds`/`extendReps`/
+`pushRepBinds`/`shiftRVars`/`_⊢ᴮ_`/`shiftByᵇ` (Ctx), `underRepBinds`
+(Boundary), `renᴮ`/`TyBetaBoundary-ren-Λ` (TermSubst),
+`SameTyExt`/`shiftRep` (Ctx — `env`'s exterior premise is now plain
+`_⊢_≈_⊣_`), the bind-block lemma family in `proof/Ctx.agda`
+(`wfᴿ-push`, `wfRepCtx-push`, `∋ʳ-push`, `∋ʳ-pushᵇ`, `shiftByᵇ-*`,
+`∋ˡ-push`, `∋ˡ-shiftRVars`, `⊆ᵃ-shiftRVars`, `validNames-push`,
+`fresh-shiftRVars`, `unique-shiftRVars`, `shiftRVars-0`,
+`shiftRVars-ren`, `names-ren-push`, `repwk-push`, `repwk-bind`,
+`binds-ren`, and their now-dead helpers `extN-+`, `inj-extN`, `wfᴿ-⇑`,
+`length-map`, `renameᵗ-shiftBy`), `RepWeakenTyping` (the bind-block
+weakening `Peel` consumed — `dual-interior` lands the crossing argument
+at the exterior itself, so `Peel` moves it VERBATIM), and
+`renCtx²`/`holeRen²`/`moveᴿ`'s bind offset in the residual layer.
+
+WHAT REPLACED IT, in one lemma: the SIBLING SHIFT, today's
+representation weakening at `ρ = suc`,
+
+    shift-⊢ : ShiftTyping            -- proof/RepWeaken §2
+    shift-⊢ wR ⊢M = ⊢renᴿ (repwk-alloc wR) ⊢M
+
+applied in the four congruences, plus `step-alloc`, which reads off a
+step what it did to the store.
+
+WHAT THE WALLS SAY NOW.  `notes/CancelRShiftWall.agda` is DISSOLVED and
+kept as a record: the inner layer's conversion context no longer lies
+`numBinds Θ₁` representation binders inside its exterior — it lies ZERO
+binders inside it (`no-shift`, one line) — so the shift the old premise
+dropped does not exist and the old premise and the repaired one have the
+same witness on the very configuration that raised the wall.  The
+repaired premise stays, for the reason `_⊢_≈_⊣_` has always existed: two
+different NAME MAPS, which `notes/CancelRReachabilityWitness.agda` still
+exhibits at a reachable redex (19 steps, unchanged).
+`notes/AddLock0Wall.agda` is UNTOUCHED in substance — its defect was
+always in the CONVERSION reading, a name-map fact — and its run is still
+`Reaches 8 8`.  `notes/RepWeakenBindsWall.agda` keeps its refutation with
+LOCAL copies of the retired bind-block machinery.

@@ -6,13 +6,14 @@ module strong-rep-store.proof.Ctx where
 --     consumes — `∋ˡ-det`, `∋ʳ-det`, `same-rep-unique`,
 --     `same-target-unique`, `sameTy-src-unique`, `∋:=-det`,
 --     `unique-lookup`, `unique-underΛ`, `wf-empty`.  §2 is the NAME-MAP
---     half of representation renaming (`extN-+`, `renameᵗ-fuse`,
---     `inj-extN`, `∋ˡ-ren`, `fresh-ren`).  §3 is the binder blocks
---     (`wfᴿ-push`, `wfRepCtx-push`, `∋ʳ-push`), the insert/delete
---     relations (`lookup→del`, `ins-exists`, `pigeon`, `live?`), and
---     name-set transport `⊆ᵃ-shiftRVars`; `RepWk` — its base instance
---     `repwk-abst₀` and the two closure
---     lemmas `repwk-abst`/`repwk-push`, with `wfctx-ren` and `∋:=-ren`.
+--     half of representation renaming (`renameᵗ-fuse`, `∋ˡ-ren`,
+--     `fresh-ren`).  §3 is the insert/delete relations (`lookup→del`,
+--     `ins-exists`, `pigeon`, `live?`) and `RepWk` — its base instance
+--     `repwk-abst₀`/`repwk-cons₀` and the closure lemma `repwk-abst`,
+--     with `wfctx-ren` and `∋:=-ren`.  (The bind-block lemmas —
+--     `wfᴿ-push`, `wfRepCtx-push`, `∋ʳ-push`, `⊆ᵃ-shiftRVars`,
+--     `repwk-push` and the `shiftRVars` family — went with the bind
+--     block on 2026-09-22, experiment 2.)
 --   * NOT THE DEFINITIONS.  Every judgement and relation named above is
 --     declared in strong-rep-store.Ctx, which holds definitions only.  Anything
 --     mentioning `Change` or `Boundary` belongs in strong-rep-store.Boundary —
@@ -160,10 +161,6 @@ wf-empty = wf-ctx wf-reps[] (λ ()) unique[]
 -- 2. Renaming the representation universe — the NAME MAP half
 ------------------------------------------------------------------------
 
-extN-+ : (n : ℕ) (ρ : Renameᵗ) (α : ℕ) → extN n ρ (n + α) ≡ n + ρ α
-extN-+ zero    ρ α = refl
-extN-+ (suc n) ρ α = cong suc (extN-+ n ρ α)
-
 -- Renaming is a congruence, composes, and commutes with a shift.
 extᵗ-cong : ∀ {ρ ρ′ : Renameᵗ} → (∀ X → ρ X ≡ ρ′ X)
   → ∀ X → extᵗ ρ X ≡ extᵗ ρ′ X
@@ -210,10 +207,6 @@ renRepBinding-⇑ ρ (bindR R) = cong bindR (renameᵗ-⇑ ρ R)
 inj-extᵗ : ∀ {ρ} → Injᵗ ρ → Injᵗ (extᵗ ρ)
 inj-extᵗ inj {zero}  {zero}  eq = refl
 inj-extᵗ inj {suc α} {suc β} eq = cong suc (inj (suc-injective eq))
-
-inj-extN : ∀ {ρ} (n : ℕ) → Injᵗ ρ → Injᵗ (extN n ρ)
-inj-extN zero    inj = inj
-inj-extN (suc n) inj = inj-extᵗ (inj-extN n inj)
 
 ∋ˡ-ren : (ρ : Renameᵗ) → Δ ∋ˡ X := α → map ρ Δ ∋ˡ X := ρ α
 ∋ˡ-ren ρ here      = here
@@ -373,47 +366,6 @@ ins-unique ins-here fr uq = unique∷ fr uq
 ins-unique (ins-there i) (fresh∷ ne fr) (unique∷ fr′ uq) =
   unique∷ (ins-fresh i (λ eq → ne (sym eq)) fr′) (ins-unique i fr uq)
 
-fresh-shiftRVars : (n : ℕ) → Δ ∌ʳ α → shiftRVars n Δ ∌ʳ n + α
-fresh-shiftRVars n fresh[] = fresh[]
-fresh-shiftRVars n (fresh∷ ne fr) =
-  fresh∷ (λ eq → ne (+-cancelˡ-≡ n _ _ eq)) (fresh-shiftRVars n fr)
-
-unique-shiftRVars : (n : ℕ) → Unique Δ → Unique (shiftRVars n Δ)
-unique-shiftRVars n unique[] = unique[]
-unique-shiftRVars n (unique∷ fr uq) =
-  unique∷ (fresh-shiftRVars n fr) (unique-shiftRVars n uq)
-
-shiftRVars-0 : (Δ : TyCtx) → shiftRVars 0 Δ ≡ Δ
-shiftRVars-0 [] = refl
-shiftRVars-0 (α ∷ Δ) = cong (α ∷_) (shiftRVars-0 Δ)
-
-∋ˡ-push : (Rs : List Ty) → Ξ ∋ˡ α := b
-  → pushRepBinds Rs Ξ ∋ˡ (length Rs + α) := b
-∋ˡ-push [] d = d
-∋ˡ-push (S ∷ Rs) d = there (∋ˡ-push Rs d)
-
-∋ˡ-shiftRVars : (n : ℕ) (Δ : TyCtx) {γ : RVar} → shiftRVars n Δ ∋ˡ X := γ
-  → ∃[ α ] ((Δ ∋ˡ X := α) × (γ ≡ n + α))
-∋ˡ-shiftRVars n (α ∷ Δ) here = α , here , refl
-∋ˡ-shiftRVars n (α ∷ Δ) (there d) with ∋ˡ-shiftRVars n Δ d
-∋ˡ-shiftRVars n (α ∷ Δ) (there d) | β , d′ , eq = β , there d′ , eq
-
-⊆ᵃ-shiftRVars : (n : ℕ) → Δ ⊆ᵃ Δ′
-  → shiftRVars n Δ ⊆ᵃ shiftRVars n Δ′
-⊆ᵃ-shiftRVars {Δ = Δ} n keep (X , d)
-  with ∋ˡ-shiftRVars n Δ d
-⊆ᵃ-shiftRVars n keep (X , d) | α , d′ , refl with keep (X , d′)
-⊆ᵃ-shiftRVars n keep (X , d) | α , d′ , refl | Y , d″ =
-  Y , ∋ˡ-ren (n +_) d″
-
-validNames-push : (Rs : List Ty) → ValidNames Ξ Δ
-  → ValidNames (pushRepBinds Rs Ξ) (shiftRVars (length Rs) Δ)
-validNames-push {Δ = Δ} Rs vn d
-  with ∋ˡ-shiftRVars (length Rs) Δ d
-validNames-push {Δ = Δ} Rs vn d | α , d′ , refl with vn d′
-validNames-push {Δ = Δ} Rs vn d | α , d′ , refl | b , dr =
-  b , ∋ˡ-push Rs dr
-
 del-valid : α ⊢- Δ at X ⇒ Δ′ → ValidNames Ξ Δ → ValidNames Ξ Δ′
 del-valid dl vn d = vn (proj₂ (del-inv dl (_ , d)))
 
@@ -422,27 +374,6 @@ ins-valid : α ⊢+ Δ at X ⇒ Δ′ → Ξ ∋ʳ α
 ins-valid i v vn d with ins-inv i (_ , d)
 ins-valid i v vn d | inj₁ refl = v
 ins-valid i v vn d | inj₂ lv = vn (proj₂ lv)
-
--- A representation payload looked up THROUGH a bind block is the payload
--- shifted past that block.
-∋ʳ-push : (Rs : List Ty) → Ξ ∋ʳ α := bindR R
-  → pushRepBinds Rs Ξ ∋ʳ (length Rs + α) := bindR (shiftBy (length Rs) R)
-∋ʳ-push [] d = d
-∋ʳ-push (S ∷ Rs) d = r-there (∋ʳ-push Rs d)
-
-shiftByᵇ-abstR : (n : ℕ) → shiftByᵇ n abstR ≡ abstR
-shiftByᵇ-abstR zero    = refl
-shiftByᵇ-abstR (suc n) = cong (renRepBinding suc) (shiftByᵇ-abstR n)
-
-shiftByᵇ-bindR : (n : ℕ) (R : Ty)
-  → shiftByᵇ n (bindR R) ≡ bindR (shiftBy n R)
-shiftByᵇ-bindR zero    R = refl
-shiftByᵇ-bindR (suc n) R = cong (renRepBinding suc) (shiftByᵇ-bindR n R)
-
-∋ʳ-pushᵇ : (Rs : List Ty) → Ξ ∋ʳ α := b
-  → pushRepBinds Rs Ξ ∋ʳ (length Rs + α) := shiftByᵇ (length Rs) b
-∋ʳ-pushᵇ [] d = d
-∋ʳ-pushᵇ (S ∷ Rs) d = r-there (∋ʳ-pushᵇ Rs d)
 
 -- (iii) `wf-reps`. Both readings leave the representation context alone,
 -- so all that is needed is that the bind block itself is well formed
@@ -466,23 +397,6 @@ wfᴿ-rename f wfᴿ-ℕ = wfᴿ-ℕ
 wfᴿ-rename f wfᴿ-𝔹 = wfᴿ-𝔹
 wfᴿ-rename f (wfᴿ-⇒ a c) = wfᴿ-⇒ (wfᴿ-rename f a) (wfᴿ-rename f c)
 wfᴿ-rename f (wfᴿ-∀ a) = wfᴿ-∀ (wfᴿ-rename (ref-ext f) a)
-
-wfᴿ-⇑ : Ξ ⊢ᴿ R → (b ∷ Ξ) ⊢ᴿ ⇑ᵗ R
-wfᴿ-⇑ {Ξ = Ξ} {b = b} w = wfᴿ-rename step w
-  where
-  step : ∀ {i} → Ξ ⊢ref[ 0 ] i → (b ∷ Ξ) ⊢ref[ 0 ] suc i
-  step (local-ref ())
-  step (free-ref d) = free-ref (there d)
-
-wfᴿ-push : (Rs : List Ty) → Ξ ⊢ᴿ R
-  → pushRepBinds Rs Ξ ⊢ᴿ shiftBy (length Rs) R
-wfᴿ-push [] w = w
-wfᴿ-push (S ∷ Rs) w = wfᴿ-⇑ (wfᴿ-push Rs w)
-
-wfRepCtx-push : Ξ ⊢ᴮ Rs → WfRepCtx Ξ → WfRepCtx (pushRepBinds Rs Ξ)
-wfRepCtx-push binds[] wr = wr
-wfRepCtx-push (binds∷ {Rs = Rs} w bs) wr =
-  wf-bindR (wfᴿ-push Rs w) (wfRepCtx-push bs wr)
 
 live-shift : Δ ∋ᵅ α → (shiftNames Δ) ∋ᵅ (suc α)
 live-shift (zero , here) = zero , here
@@ -559,24 +473,6 @@ keeps-del {α = α} dl lvα k {β} lv with β ≟ α
 keeps-del {α = α} dl lvα k {β} lv | yes refl = lvα
 keeps-del {α = α} dl lvα k {β} lv | no ne = k (del-mono dl ne lv)
 
-length-map : ∀ {A B : Set} (f : A → B) (xs : List A)
-  → length (map f xs) ≡ length xs
-length-map f []       = refl
-length-map f (x ∷ xs) = cong suc (length-map f xs)
-
-renameᵗ-shiftBy : (n : ℕ) (ρ : Renameᵗ) (R : Ty)
-  → renameᵗ (extN n ρ) (shiftBy n R) ≡ shiftBy n (renameᵗ ρ R)
-renameᵗ-shiftBy zero    ρ R = refl
-renameᵗ-shiftBy (suc n) ρ R =
-  trans (renameᵗ-⇑ (extN n ρ) (shiftBy n R))
-        (cong ⇑ᵗ (renameᵗ-shiftBy n ρ R))
-
-shiftRVars-ren : (n : ℕ) (ρ : Renameᵗ) (Δ : TyCtx)
-  → map (extN n ρ) (shiftRVars n Δ) ≡ shiftRVars n (map ρ Δ)
-shiftRVars-ren n ρ []      = refl
-shiftRVars-ren n ρ (α ∷ Δ) =
-  cong₂ _∷_ (extN-+ n ρ α) (shiftRVars-ren n ρ Δ)
-
 -- A payload is checked at a local-binder depth m, so it moves by
 -- `extN m ρ`; a reference at depth m is either local (untouched) or free
 -- (renamed), which is exactly what `extN m ρ` does.
@@ -590,11 +486,6 @@ wk-ref w (suc m) r = ref-ext (wk-ref w m) r
 wk-wfᴿ : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (m : ℕ) {R : Ty}
   → Ξ ⊢ᴿ[ m ] R → Ξ′ ⊢ᴿ[ m ] renameᵗ (extN m ρ) R
 wk-wfᴿ w m = wfᴿ-rename (wk-ref w m)
-
-binds-ren : ∀ {ρ Ξ Ξ′ Rs} → RepWk ρ Ξ Ξ′ → Ξ ⊢ᴮ Rs
-  → Ξ′ ⊢ᴮ map (renameᵗ ρ) Rs
-binds-ren w binds[] = binds[]
-binds-ren w (binds∷ x xs) = binds∷ (wk-wfᴿ w zero x) (binds-ren w xs)
 
 -- Inserting ONE FRESH BINDING at the head, abstract or represented.
 -- Three of the four fields do not look at the binding at all — a name
@@ -642,45 +533,6 @@ repwk-abst {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} w =
   rps : WfRepCtx (abstR ∷ Ξ) → WfRepCtx (abstR ∷ Ξ′)
   rps (wf-abstR wr) = wf-abstR (wk-reps w wr)
 
--- Going under a represented binder — one step of a bind block.
-repwk-bind : ∀ {ρ Ξ Ξ′ R} → RepWk ρ Ξ Ξ′
-  → RepWk (extᵗ ρ) (bindR R ∷ Ξ) (bindR (renameᵗ ρ R) ∷ Ξ′)
-repwk-bind {ρ = ρ} {Ξ = Ξ} {Ξ′ = Ξ′} {R = R} w =
-  repwk (inj-extᵗ (wk-inj w)) look bnd rps
-  where
-  look : ∀ {α b} → (bindR R ∷ Ξ) ∋ˡ α := b
-    → ∃[ b′ ] ((bindR (renameᵗ ρ R) ∷ Ξ′) ∋ˡ extᵗ ρ α := b′)
-  look here = bindR (renameᵗ ρ R) , here
-  look (there d) with wk-look w d
-  look (there d) | b′ , d′ = b′ , there d′
-
-  bnd : ∀ {α b} → (bindR R ∷ Ξ) ∋ʳ α := b
-    → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ extᵗ ρ α
-        := renRepBinding (extᵗ ρ) b
-  bnd r-here =
-    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ zero := c)
-          (sym (renRepBinding-⇑ ρ (bindR R)))
-          r-here
-  bnd (r-there {b = b} d) =
-    subst (λ c → (bindR (renameᵗ ρ R) ∷ Ξ′) ∋ʳ suc (ρ _) := c)
-          (sym (renRepBinding-⇑ ρ b))
-          (r-there (wk-bind w d))
-
-  rps : WfRepCtx (bindR R ∷ Ξ) → WfRepCtx (bindR (renameᵗ ρ R) ∷ Ξ′)
-  rps (wf-bindR x wr) = wf-bindR (wk-wfᴿ w zero x) (wk-reps w wr)
-
--- Going under a whole PARALLEL bind block — the boundary case.  Each
--- payload was written over the exterior, so it moves by ρ; the block's
--- own shifts commute with that (`renameᵗ-shiftBy`).
-repwk-push : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → (Rs : List Ty)
-  → RepWk (extN (length Rs) ρ) (pushRepBinds Rs Ξ)
-      (pushRepBinds (map (renameᵗ ρ) Rs) Ξ′)
-repwk-push w [] = w
-repwk-push {ρ = ρ} w (R ∷ Rs)
-  rewrite length-map (renameᵗ ρ) Rs
-        | sym (renameᵗ-shiftBy (length Rs) ρ R) =
-  repwk-bind (repwk-push w Rs)
-
 -- The three `WfCtx` fields, and the conversion LOOKUP SQUARE.
 validNames-ren : ∀ {ρ Ξ Ξ′} → RepWk ρ Ξ Ξ′ → ValidNames Ξ Δ
   → ValidNames Ξ′ (map ρ Δ)
@@ -709,13 +561,3 @@ ins-ren : (ρ : Renameᵗ) → α ⊢+ Δ at X ⇒ Δ′
 ins-ren ρ ins-here = ins-here
 ins-ren ρ (ins-there i) = ins-there (ins-ren ρ i)
 
--- The renamed boundary scope's exterior name map, as the renaming of the
--- original one: the bind block keeps its width under renaming, and
--- `extN` at that width is what `shiftRVars` at it becomes.
-names-ren-push : (ρ : Renameᵗ) (Bs : List Ty) (Δ : TyCtx)
-  → map (extN (length Bs) ρ) (shiftRVars (length Bs) Δ)
-      ≡ shiftRVars (length (map (renameᵗ ρ) Bs)) (map ρ Δ)
-names-ren-push ρ Bs Δ =
-  trans (shiftRVars-ren (length Bs) ρ Δ)
-        (cong (λ n → shiftRVars n (map ρ Δ))
-              (sym (length-map (renameᵗ ρ) Bs)))

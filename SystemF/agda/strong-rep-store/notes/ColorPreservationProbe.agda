@@ -1,33 +1,41 @@
 module strong-rep-store.notes.ColorPreservationProbe where
 
--- COLOR PRESERVATION ON ONE RUN (2026-09-21) — the statement layer of
--- strong-rep-store.Residual exercised by a Peel at the ambient context
--- `underΛ empty`.  In the renderer's names (`scripts/render_term.sh
--- 'showTmIn 1 Ex' 'open import
+-- COLOR PRESERVATION ON ONE RUN (2026-09-21; ported to the store
+-- 2026-09-22) — the statement layer of strong-rep-store.Residual
+-- exercised by a Peel at the ambient context `underΛ empty`.  In the
+-- renderer's names (`scripts/render_term.sh 'showTmIn 1 Ex' 'open import
 -- strong-rep-store.notes.ColorPreservationProbe'`) the program and its
--- three states are
+-- three states are, with the ambient store `Ξ` on the left:
 --
---   Ex   ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)           : X ⇒ X
---   Ex₁  ((λx:(X⇒X). x)
---          ⟪ ↑β:=α , ↥Y , (id X ↦ id X) ↦ (id X ↦ id X) ⟫)
---          · (λx:X. x)                                   TyBeta
---   Ex₂  ((λx:(X⇒X). x) · ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫))
---          ⟪ ↑β:=α , ↥Y , id X ↦ id X ⟫                  Peel
---   Ex₃  ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫)
---          ⟪ ↑β:=α , ↥Y , id X ↦ id X ⟫                  Beta
+--   Ξ = [α]      Ex   ((ΛY. λx:(X⇒X). x) [X]) · (λx:X. x)      : X ⇒ X
+--     --TyBeta-->
+--   Ξ = [β:=α,α] Ex₁  ((λx:(X⇒X). x)
+--                       ⟪ ↥Y , (id X ↦ id X) ↦ (id X ↦ id X) ⟫)
+--                       · (λx:X. x)
+--     --Peel-->  Ex₂  ((λx:(X⇒X). x) · ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫))
+--                       ⟪ ↥Y , id X ↦ id X ⟫
+--     --Beta-->  Ex₃  ((λx:X. x) ⟪ ↓Y , id X ↦ id X ⟫)
+--                       ⟪ ↥Y , id X ↦ id X ⟫
 --
 -- The position followed is the argument `λx:X. x`.  It is born at the
--- ambient context `underΛ empty` with scope map {X ↦ α}.  TyBeta mints
--- the boundary scope `↑β:=α , ↥Y` (bind β := α, unlock the name Y for
--- it); Peel sends the argument into that scope's DUAL `↓Y`, past the bind
--- — so in de Bruijn the representation index of α, which was 0, is now
--- 1, β's binder being 0 — and Beta puts the wrapped copy in the function
+-- ambient context `underΛ empty` with scope map {X ↦ α}.
+--
+-- WHERE THE MOVE IS, WITH THE STORE (experiment 2, 2026-09-22).  TyBeta
+-- ALLOCATES the cell β := α at address 0 and unlocks the name Y for it;
+-- every existing representation variable — α, and the ambient name map
+-- entry that points at it — moves up by one, and so does the redex's
+-- SIBLING, which is the very position followed here (`ξ-·-l`'s
+-- `↑ᴹ[ new α ]`).  `Peel` then sends the argument into that scope's DUAL
+-- `↓Y` VERBATIM: there is no bind block left to cross, so its residual
+-- renaming is the identity.  Beta puts the wrapped copy in the function
 -- variable's place.
--- Three steps, one move (the Peel's `wkN 1`), and the scope map at the
--- end is the initial one under that move:
+--
+-- Three steps, one move — now the ALLOCATION's `suc`, delivered by the
+-- congruence rather than by the Peel — and the scope map at the end is
+-- the initial one under that move:
 -- `names Δ₃ ≡ 1 ∷ [] ≡ map ρ★ (names Δ₀)`.  In named terms the color is
 -- LITERALLY unchanged — {X ↦ α} before and after; ρ is the index
--- bookkeeping of the representation universe past the inserted binder.
+-- bookkeeping of the representation universe past the allocated cell.
 -- Every object below is checked: the run, the `Residuals` derivation,
 -- the two `⊢C` derivations, and the equation, by `refl`.
 
@@ -73,8 +81,11 @@ Ex = ((Λ F) ·[ Bod , ` 0 ]) · W
 Ex-⊢ : Δ₀ ∣ [] ⊢ Ex ⦂ ` 0 ⇒ ` 0
 Ex-⊢ = tc
 
-Θ₀ : Boundary                  -- X := Y, minted by TyBeta
-Θ₀ = instantiate (` 0) (boundary [])
+Δ₁ : Ctxᵗ                      -- the ambient after TyBeta allocated α:=Y
+Δ₁ = allocate (` 0) Δ₀
+
+Θ₀ : Boundary                  -- unlock X for the fresh cell, by TyBeta
+Θ₀ = instantiate (boundary [])
 
 s t : Conv                     -- TyBeta's reveal, split at its arrow
 s = id (` 1) ↦ id (` 1)
@@ -83,9 +94,10 @@ t = id (` 1) ↦ id (` 1)
 Ex₁ : Term
 Ex₁ = (F ⟪ Θ₀ , s ↦ t ⟫) · W
 
--- Peel's premises, decided by the evaluator's own procedure
-cross : CrossPremises Δ₀ Θ₀ s
-cross = force (crossPremises? Δ₀ Θ₀ s) tt
+-- Peel's premises, decided by the evaluator's own procedure — at the
+-- ALLOCATED ambient, which is where the Peel fires.
+cross : CrossPremises Δ₁ Θ₀ s
+cross = force (crossPremises? Δ₁ Θ₀ s) tt
 
 Δᶜ Δᵢ Δᵈ : Ctxᵗ
 Δᶜ = proj₁ cross
@@ -95,17 +107,18 @@ cross = force (crossPremises? Δ₀ Θ₀ s) tt
 s′ : Conv
 s′ = proj₁ (proj₂ (proj₂ (proj₂ cross)))
 
-rc : Δ₀ ⊢ᶜ Θ₀ ⇒ Δᶜ
+rc : Δ₁ ⊢ᶜ Θ₀ ⇒ Δᶜ
 rc = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ cross))))
-ri : Δ₀ ⊢ⁱ Θ₀ ⇒ Δᵢ
+ri : Δ₁ ⊢ⁱ Θ₀ ⇒ Δᵢ
 ri = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross)))))
 rd : Δᵢ ⊢ᶜ dualBoundary Θ₀ ⇒ Δᵈ
 rd = proj₁ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
 sc : SameConv Δᵈ s′ Δᶜ s
 sc = proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ (proj₂ cross))))))
 
-W′ : Term                      -- the argument, moved: wrapped in the dual
-W′ = renᴹ² (moveᴿ (wkN (numBinds Θ₀))) W ⟪ dualBoundary Θ₀ , s′ ⟫
+W′ : Term                      -- the argument, moved: wrapped in the
+                               -- dual, and moved VERBATIM
+W′ = W ⟪ dualBoundary Θ₀ , s′ ⟫
 
 Ex₂ : Term
 Ex₂ = (F · W′) ⟪ Θ₀ , t ⟫
@@ -138,8 +151,9 @@ C₂ = (F ·R (□ ⟪C dualBoundary Θ₀ , s′ ⟫)) ⟪C Θ₀ , t ⟫
 C₃ : TermCtx                   -- Beta put the wrapped copy in f's place
 C₃ = (□ ⟪C dualBoundary Θ₀ , s′ ⟫) ⟪C Θ₀ , t ⟫
 
-ρ★ : Renameᵗ                   -- one move, the Peel's `wkN 1`
-ρ★ = ((idᵗ ∘ idᵗ) ∘ holeᴿ (wkN (numBinds Θ₀)) □) ∘ idᵗ
+ρ★ : Renameᵗ                   -- one move, the allocation's `suc`,
+                               -- delivered to the sibling by ξ-·-l
+ρ★ = ((idᵗ ∘ idᵗ) ∘ idᵗ) ∘ ↑ʳ[ new (` 0) ] □
 
 res : Residuals run C₀ W ρ★ C₃ W
 res = residuals-step
@@ -165,8 +179,12 @@ ri-dual = proj₂ (force (interior? Δᵢ (dualBoundary Θ₀)) tt)
 before : Δ₀ ⊢C C₀ ⊣ Δ₀
 before = frame-·R frame-□
 
-after : Δ₀ ⊢C C₃ ⊣ Δ₃
+-- read at the context the RUN ends at, `runCtx run ≡ Δ₁`
+after : Δ₁ ⊢C C₃ ⊣ Δ₃
 after = frame-⟪⟫ ri (frame-⟪⟫ ri-dual frame-□)
+
+run-ends-at-Δ₁ : runCtx run ≡ Δ₁
+run-ends-at-Δ₁ = refl
 
 -- Y ↦ α₀ at the start; Y ↦ α₁ at the end, α₀ being X:=Y's binder now.
 scope-before : names Δ₀ ≡ 0 ∷ []
@@ -178,7 +196,7 @@ scope-after = refl
 color-preserved : names Δ₃ ≡ map ρ★ (names Δ₀)
 color-preserved = refl
 
--- and the representation store grew by exactly the bind X:=Y, under Y's
+-- and the representation store grew by exactly the cell X:=Y, at 0
 reps-before : reps Δ₀ ≡ abstR ∷ []
 reps-before = refl
 

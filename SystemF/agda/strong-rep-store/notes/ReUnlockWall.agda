@@ -44,29 +44,37 @@ open import strong-rep-store.TypeCheck using (conv!)
 -- Θ₂ LOCKS: it is `TyPeelR-Λ`'s `instantiate` over a frame that had
 -- already crossed two `Λ`s.
 Θlock : Boundary
-Θlock = instantiate (` 0) (boundary (lock 0 2 ∷ lock 0 0 ∷ []))
+Θlock = instantiate (boundary (lock 0 2 ∷ lock 0 0 ∷ []))
 
 Θlock-explicit :
-  Θlock ≡ boundary (` 0 ∷ []) (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
+  Θlock ≡ boundary (lock 1 3 ∷ lock 1 1 ∷ unlock 0 0 ∷ [])
 Θlock-explicit = refl
 
 repsW : RepCtx
 repsW = bindR (` 0) ∷ bindR (` 0) ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []
 
--- the exterior the step runs in, and the two contexts Θlock induces
+-- The exterior the step runs in.  WITH THE STORE (experiment 2,
+-- 2026-09-22) the cell `` ` 0 `` that `instantiate` mints is ALLOCATED
+-- on the ambient context rather than carried on the frame, so the
+-- exterior already holds it and the crossing argument's context is the
+-- same one: the bind block that used to separate `Δ-out` from `Δ-arg`
+-- is gone.
 Δ-out Δ-arg Δ-conv : Ctxᵗ
-Δ-out = (bindR (` 0) ∷ bindR `𝔹 ∷ bindR `ℕ ∷ []) ∣ (0 ∷ 2 ∷ [])
-Δ-arg = repsW ∣ (1 ∷ 3 ∷ [])
+Δ-out  = repsW ∣ (1 ∷ 3 ∷ [])
+Δ-arg  = Δ-out
 Δ-conv = repsW ∣ (0 ∷ 1 ∷ 3 ∷ [])
 
--- The conversion run starts from the exterior extended by the frame's own
--- binds.  Checked, rather than asserted, because `no-old-rewind-conv`
--- below is a statement about exactly this context and would be a true
--- statement about an irrelevant one if this were wrong.
-chk-reps : reps (extendReps (binds (rewind Θlock)) Δ-out) ≡ repsW
+-- The conversion run starts AT THE EXTERIOR — there is no bind block to
+-- extend it by.  Checked, rather than asserted, because
+-- `no-old-rewind-conv` below is a statement about exactly this context
+-- and would be a true statement about an irrelevant one if this were
+-- wrong.  (It used to be stated about
+-- `extendReps (binds (rewind Θlock)) Δ-out`, which is what `Δ-out` now
+-- IS.)
+chk-reps : reps Δ-out ≡ repsW
 chk-reps = refl
 
-chk-names : names (extendReps (binds (rewind Θlock)) Δ-out) ≡ 1 ∷ 3 ∷ []
+chk-names : names Δ-out ≡ 1 ∷ 3 ∷ []
 chk-names = refl
 
 ------------------------------------------------------------------------

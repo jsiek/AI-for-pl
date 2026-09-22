@@ -81,12 +81,15 @@ conversion-did-not = refl
 ------------------------------------------------------------------------
 
 -- `reveal 0 B` is minted from the redex's annotation `B`, read at
--- `underΛ Δ`, and lands on `instantiate R (boundary [])`.  That frame has
+-- `underΛ Δ`, and lands on `instantiate (boundary [])`, READ AT THE
+-- ALLOCATED CONTEXT (experiment 2: the cell the ∀-elimination mints is
+-- pushed onto the ambient store, not onto the frame).  That scope has
 -- ONE change and it is an `unlock`, so its conversion context and its
--- interior are the same map, and both are `underΛ Δ`.  A rule whose frame
--- never locks cannot cross wrongly.
+-- interior are the same map, and both are `underΛ Δ`.  A rule whose
+-- scope never locks cannot cross wrongly.
 tybeta-used :
-  names (proj₁ (from-just (conversion? Δ₀ (instantiate `ℕ (boundary [])))))
+  names (proj₁ (from-just
+    (conversion? (allocate `ℕ Δ₀) (instantiate (boundary [])))))
     ≡ names (underΛ Δ₀)
 tybeta-used = refl
 
@@ -110,13 +113,15 @@ beta-used = refl
 ------------------------------------------------------------------------
 
 -- `instReveal 0 s` is minted from the crossed boundary's conversion `s`,
--- read at `underΛ Δᶜ`, and lands on `instantiate R Θ`.  `instantiate`
+-- read at `underΛ Δᶜ`, and lands on `instantiate Θ` at the ALLOCATED
+-- context.  `instantiate`
 -- prepends one name and shifts every change of Θ by one in both
 -- universes, so its conversion context is Θ's with that one name in
 -- front — which is exactly `underΛ Δᶜ`.  Checked here on a frame that
 -- locks, which is where it could have failed.
 typeelrΛ-used :
-  names (proj₁ (from-just (conversion? Δ₀ (instantiate `ℕ Θ₀))))
+  names (proj₁ (from-just
+    (conversion? (allocate `ℕ Δ₀) (instantiate Θ₀))))
     ≡ names (underΛ Δᶜ)
 typeelrΛ-used = refl
 

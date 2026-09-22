@@ -99,9 +99,12 @@ dualBoundary Θ = map dualChange (reverse Θ)             -- as today
 rewind Θ       = dualBoundary Θ ++ Θ                     -- as today
 Θ₁ ⋉ Θ₂        = Θ₁ ++ Θ₂           -- no underRepBinds: nothing shifts
 addLock0 Θ     = Θ ++ (lock 0 0 ∷ [])          -- was lock 0 (numBinds Θ)
-instantiate Θ  = map shiftX Θ ++ (unlock 0 0 ∷ [])
-                 -- shiftX bumps the ORDINARY index only; the new name 0
-                 -- names cell 0, which allocate has just pushed
+instantiate Θ  = map shiftChange Θ ++ (unlock 0 0 ∷ [])
+                 -- TODAY's shiftChange, BOTH universes: the new name 0
+                 -- names the new cell 0, and the old changes, spelled
+                 -- before the allocation, sit one binder in on each
+                 -- side.  (An earlier revision said "ordinary only" —
+                 -- right for append-at-end, wrong for fresh-at-0.)
 renᴮᴿ ρ Θ      = map (renᶠᴿ ρ) Θ                         -- no extN offset
 ```
 
@@ -238,7 +241,7 @@ TyPeelR-⟪⟫ : Value W → Δ ⊢ᶜ A ~ R → (the Bᵢ′ reading, as today)
   → (the readings of Θ′ before and after the move, as today)
   → SameConv (underΛ Δ″ᶜ) s″ (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
   → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-      -→ ((↑ᴿ W ⟪ addLock0 (renᴮᴿ suc (map shiftX Θ′)) , `∀ s″ ⟫)
+      -→ ((↑ᴿ W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
             ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
            ⟪ instantiate Θ , instReveal 0 s ⟫
       ∣ new R

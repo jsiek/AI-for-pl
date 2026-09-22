@@ -82,12 +82,14 @@ module strong-rep-store.Reduction where
 -- determinism for those rules is exactly `∋:=-det`.
 --
 -- TWO-UNIVERSE PORT. A type application carries an ordinary type `A`, but a
--- boundary scope binds a representation payload `R`. `TyBeta` and both TyPeelR
--- rules therefore carry `Δ ⊢ᶜ A ~ R` and build `instantiate R Θ`. This
--- operation prepends `bindR R`, explicitly unlocks ordinary name 0 for it,
--- and shifts the old changes in both universes. Congruence rules carry the
--- relational interior/conversion-context witnesses rather than computing
--- those contexts with the retired `interior` and `convCtx` functions.
+-- ∀-elimination mints a representation payload `R`. `TyBeta` and both
+-- TyPeelR rules therefore carry `Δ ⊢ᶜ A ~ R`, return the store change
+-- `new R` — the cell is pushed onto the AMBIENT representation context at
+-- index 0 (`allocate`, experiment 2, notes/RepStoreSketch.md) — and build
+-- `instantiate Θ`, which unlocks ordinary name 0 for that cell and shifts
+-- the old changes in both universes. Congruence rules carry the relational
+-- interior/conversion-context witnesses rather than computing those
+-- contexts, and shift the redex's SIBLINGS by the store change.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; _++_; map; length)

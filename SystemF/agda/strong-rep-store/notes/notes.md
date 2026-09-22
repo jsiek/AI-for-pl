@@ -379,16 +379,17 @@ The boundary rule is the only non-System-F rule:
     (boundary) BoundaryWf Δ Θ Δᵢ Δᶜ
                Δᵢ ∣ · ⊢ M : Bᵢ
                Δᶜ ⊢ c : Bᵢ ⇝ Bₑ
-               Bₑ is in scope in both Δ and Δᶜ
                Δ ⊢ᵗ Bₑ
                --------------------------------
                Δ ∣ Γₜ ⊢ M ⟪ Θ , c ⟫ : Bₑ
 
-With variables as names no premise about `Bᵢ`'s scope is needed: the
-typing premise puts `Bᵢ` in scope in `Δᵢ`, and every name live in the
-interior is live in the conversion context — a lock is the only thing
-that removes a name and the conversion reading skips locks
-(`int⇒conv-live`, Boundary.agda §3a) — so `Bᵢ` is in scope in `Δᶜ` too.
+With variables as names no scope premises are needed.  `Bᵢ` is in scope
+in `Δᵢ` by its typing premise, and every name live in the interior is
+live in the conversion context — a lock is the only thing that removes a
+name and the conversion reading skips locks (`int⇒conv-live`,
+Boundary.agda §3a) — so it is in scope in `Δᶜ` too.  `Bₑ` is in scope in
+`Δ` by `Δ ⊢ᵗ Bₑ`, and the conversion reading never removes an exterior
+name (`conversion-live`), so it is in scope in `Δᶜ` too.
 
 The empty term context in the second premise is load-bearing: substitution
 does not descend into a boundary.

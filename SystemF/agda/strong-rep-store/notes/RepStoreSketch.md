@@ -22,7 +22,7 @@ Today a boundary `M ⟪ boundary Rs χ , c ⟫` carries its own bind block
 WAY INTO THAT BOUNDARY (`extendReps`), so a representation variable is
 an index relative to the boundaries that enclose it and every rule that
 moves a subterm across a boundary re-indexes it (`renᴹ²`, `renᴹᴿ`,
-`underRepBinds`, `SameConv`, `SameTyExt`).  The experiment pushes the
+`underRepBinds`, `SameTyExt`).  The experiment pushes the
 bind onto the AMBIENT representation context instead, at index 0, when
 `TyBeta` mints it: the whole program then lives under one more binder,
 so the redex's SIBLINGS are shifted by one (`renᴹᴿ suc`, one lemma,
@@ -125,54 +125,23 @@ collapses into it, because there is no bind prefix to cross.
 `interior-ren`/`conversion-ren` (Boundary.agda §3d) survive as the
 readings' half of the sibling-shift lemma.
 
-### 1.3 Conversions cite representation variables  — **ASK (R2)**
+### 1.3 Conversions: UNCHANGED (R2 withdrawn)
 
-```agda
-data Conv : Set where          -- the DATATYPE is unchanged …
-  id     : Ty → Conv           -- … but id's payload is a Rep (` α, or a base)
-  seal   : RVar → Conv         -- … and seal/unseal cite the CELL, not the name
-  unseal : RVar → Conv
-  _↦_    : Conv → Conv → Conv
-  `∀     : Conv → Conv
-```
+`Conv`, `mkId`, `reveal`/`conceal`/`instReveal`/`instConceal`, the
+judgement `Δ ⊢ c ∶ A ⇝ B`, `SameConv` and the `respell` lemmas all stay
+as they are: `seal X`/`unseal X`/`id (` X)` cite ORDINARY names, and a
+conversion moved to a boundary with a different name map is re-spelled
+through `SameConv`, exactly as today.  (An earlier revision proposed
+citing the cell instead, which would have deleted the re-spelling
+premises; Jeremy, 2026-09-22: no show-stopper, stay close to
+strong-rep-var to keep the port cheap.  It is also what keeps the
+sibling shift `renᴹᴿ suc` off conversions — `renᴹᴿ` leaves `c` alone
+today, and continues to.)
 
-Today `seal X`, `unseal X`, `id (` X)` cite ORDINARY names, which is why
-a conversion read in another name map must be RE-SPELLED (`SameConv`,
-`respell`, the `s′`/`s″` premises of `Peel` and `TyPeelR-⟪⟫`, the
-`≈`-premises of `CancelR`/`IdPush`).  With the payload in the
-representation universe a conversion means the same thing in every name
-map, and all of that respelling machinery is deleted; the sibling shift
-`renᶜ suc` is exact, not a respelling.  This is GTSF's
-`Conversion.agda` shape (`unseal α A` with `(α , A) ∈ Σ`), as
-`RedesignAdvice.md` Q3 already noted.  `mkId : Ty → Conv` is UNCHANGED
-as a function; the rules hand it the representation `R` instead of the
-ordinary `A`.
-
-The fallback R2-b keeps ordinary names and `SameConv`; the store still
-removes every cross-boundary shift, but not the respelling.
-
-```agda
-Δ ⊢ c ∶ A ⇝ B                       -- Δ = Ξ ∣ names, as today
-
-conv-id     : Base A                → Δ ⊢ id A ∶ A ⇝ A
-conv-idv    : Δ ∋ᵗ X := α           → Δ ⊢ id (` α) ∶ ` X ⇝ ` X
-conv-seal   : Δ ∋ᵗ X := α → Δ ∋rep α := R → Δ ⊢ᶜ A ~ R
-                                    → Δ ⊢ seal α ∶ A ⇝ ` X
-conv-unseal : Δ ∋ᵗ X := α → Δ ∋rep α := R → Δ ⊢ᶜ A ~ R
-                                    → Δ ⊢ unseal α ∶ ` X ⇝ A
-conv-fun, conv-all : as today
-```
-
-`conv-seal`/`conv-unseal` still demand `Δ ∋ᵗ X := α`: the cell must be
-NAMED in the conversion context.  A boundary whose changes lock `X`
-cannot unseal `α` however many cells exist — abstraction is enforced by
-the name map; the store only stores.  (Today's `Δ ∋ X := A` bundles
-the same three facts keyed by `X`.)
-
-`reveal 0 B` / `instReveal 0 s` are built as today; under R2 the `0`
-they write into `seal`/`unseal` is CELL 0 (= the binder's slot), under
-R2-b it is ordinary slot 0.  Same number either way, which is the
-fresh-at-0 coincidence again.
+The only thing the store changes about conversions is where
+`Δ ∋ X := A`'s representation comes from: the ambient `reps Δ`, which
+is the same `_∋rep_:=_` lookup as today on a context that no boundary
+has extended.
 
 ## 2. Typing
 
@@ -205,8 +174,7 @@ repwk-alloc : Ξ ⊢ᴿ R → RepWk suc Ξ (bindR R ∷ Ξ)     -- repwk-wkN at 
 ```
 
 and its companions `interior-ren`/`conversion-ren` (readings),
-`conv-ren` (conversions), `value-renᴹᴿ` (values, added in experiment
-1), `wf-ren-rep` (types).  All exist.  What is NEW is only where they
+`value-renᴹᴿ` (values, added in experiment 1), `wf-ren-rep` (types).  All exist.  What is NEW is only where they
 are applied: in every congruence, to the redex's siblings.
 
 ## 3. Reduction — a step returns the CHANGE to the store
@@ -222,7 +190,7 @@ apply (new R) Δ = allocate R Δ
 
 ↑[_] : Alloc → Term → Term    -- the sibling shift
 ↑[ none  ] = id
-↑[ new R ] = renᴹᴿ suc        -- likewise renᴮᴿ suc / renᶜ suc on Θ and c
+↑[ new R ] = renᴹᴿ suc        -- likewise renᴮᴿ suc on a boundary scope
 
 _⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set
 -- Δ ⊢ M -→ M′ ∣ δ : the contractum M′ lives at apply δ Δ
@@ -245,24 +213,21 @@ SAME contractum with the bind moved from the boundary to the context.
 (rr-represent rr-refl)`, today's proof.)
 
 ```agda
-Beta : Value W → Δ ⊢ᶜ A ~ R
-  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ R ]ᵐ ∣ none
--- crossΛᴹ unchanged in shape: renᴹ² (ren² idᵗ suc) W ⟪ lock 0 0 ∷ [] , mkId (⇑ᵗ R) ⟫
+Beta : Value W
+  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ A ]ᵐ ∣ none        -- today's rule, verbatim
 ```
-
-(`Beta` gains the reading premise only under R2, because `mkId` needs
-the argument type as a representation; under R2-b it is today's rule.)
 
 ```agda
 Peel : Value V → Value W
+  → Δ ⊢ᶜ Θ ⇒ Δᶜ → Δ ⊢ⁱ Θ ⇒ Δᵢ → Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ
+  → SameConv Δᵈ s′ Δᶜ s
   → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-      -→ (V · (W ⟪ dualBoundary Θ , s ⟫)) ⟪ Θ , t ⟫ ∣ none
+      -→ (V · (W ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫ ∣ none
 ```
 
-(today: `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W`, `s′` with
-`SameConv Δᵈ s′ Δᶜ s`, and three context-reading premises.  All gone:
-`W` moves verbatim — the boundary has no binds to move it past — and
-under R2 `s` means the same thing in `Δᵈ`.)
+(today's rule minus one thing: `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W`
+becomes `W` — the boundary has no binds to move the argument past.  The
+re-spelling `s′` and its `SameConv` premise stay.)
 
 ```agda
 TyPeelR-Λ : Value N → Δ ⊢ᶜ A ~ R
@@ -270,37 +235,39 @@ TyPeelR-Λ : Value N → Δ ⊢ᶜ A ~ R
       -→ N ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ new R
 
 TyPeelR-⟪⟫ : Value W → Δ ⊢ᶜ A ~ R → (the Bᵢ′ reading, as today)
+  → (the readings of Θ′ before and after the move, as today)
+  → SameConv (underΛ Δ″ᶜ) s″ (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
   → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-      -→ ((↑ᴿ W ⟪ addLock0 (renᴮᴿ suc (map shiftX Θ′)) , `∀ (renᶜ suc s′) ⟫)
+      -→ ((↑ᴿ W ⟪ addLock0 (renᴮᴿ suc (map shiftX Θ′)) , `∀ s″ ⟫)
             ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
            ⟪ instantiate Θ , instReveal 0 s ⟫
       ∣ new R
 ```
 
 In `TyPeelR-⟪⟫` the inner boundary is a SIBLING of the redex's `Λ`
-binder, so it gets exactly the sibling shift and nothing else: today's
-`renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W` becomes `↑ᴿ W`, `renᴮ²
-(ren² idᵗ suc) Θ′` becomes `renᴮᴿ suc`, and `s″` with its `SameConv`/
-`renNameCtx` premise — where the 2026-09-20 wall lived — becomes the
-exact `renᶜ suc s′`.
+binder, so its interior gets exactly the sibling shift: today's
+`renᴹ² (ren² idᵗ (extN (numBinds Θ′) suc)) W` becomes `↑ᴿ W` and
+`renᴮ² (ren² idᵗ suc) Θ′` becomes `renᴮᴿ suc` (no `numBinds Θ′`
+offset).  The moved conversion `s″` and its `SameConv` premise stay as
+today; only the `extN (numBinds Θ′)` inside `renNameCtx` goes.
 
 ```agda
-CancelR : Value V → Δ ∋rep α := R
-  → Δ ⊢ (V ⟪ Θ₁ , seal α ⟫) ⟪ Θ₂ , unseal α ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId R ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ none
+CancelR : Value V
+  → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ → Δ₁ᶜ ∋ X := Aᵢ
+  → Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ                  -- was: extendReps (binds Θ₂) Δ ⊢ᶜ …
+  → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
+  → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
+  → Δ ⊢ (V ⟪ Θ₁ , seal X ⟫) ⟪ Θ₂ , unseal Y ⟫
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId A′ ⟫) ⟪ rewind Θ₂ , mkId A ⟫ ∣ none
 
-IdPush : Value V → Δ ∋rep β := R
-  → Δ ⊢ (V ⟪ Θ₁ , id (` α) ⟫) ⟪ Θ₂ , unseal β ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal β ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ none
+IdPush : likewise today's rule with `extendReps (binds Θ₂) Δ` read as `Δ`
 ```
 
-Today `CancelR` has eight premises (`seal X` at `Δ₁ᶜ`, `unseal Y` at
-`Δᶜ`, two lookups, the `⋉`-reading, `Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ`) because the
-two conversions spell one fact in two name maps.  Under R2 typing forces
-the SAME `α` on both sides (`Δᵢ ⊢ ` X ≈ ` Y ⊣ Δᶜ` is `α ≡ β`) and the
-minted identities are read off the context.  `IdPush` loses its
-`` Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ `` re-spelling for the same reason.  `Drop$`,
-`Drop-true`, `Drop-false` return `none`.
+Both are today's rules with one premise simplified: the merged
+scope's conversion context is read over `Δ` itself, since `Θ₂` has no
+binds to push first, and `Θ₁ ⋉ Θ₂` no longer shifts `Θ₂`'s
+representation variables.  `Drop$`, `Drop-true`, `Drop-false` return
+`none`.
 
 THE CONGRUENCES pass the change up and shift the siblings by it:
 
@@ -309,8 +276,12 @@ THE CONGRUENCES pass the change up and shift the siblings by it:
 ξ-·-r  : Value V → Δ ⊢ M -→ M′ ∣ δ → Δ ⊢ V · M -→ ↑[ δ ] V · M′ ∣ δ
 ξ-·[]  : Δ ⊢ L -→ L′ ∣ δ → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ] ∣ δ
 ξ-⟪⟫   : Δ ⊢ⁱ Θ ⇒ Δᵢ → Δᵢ ⊢ M -→ M′ ∣ δ
-       → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ ↑[ δ ] Θ , ↑[ δ ] c ⟫ ∣ δ
+       → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ ↑[ δ ] Θ , c ⟫ ∣ δ
 ```
+
+`c` does not shift: conversions cite ordinary names, which the
+allocation does not move (`renᴹᴿ` leaves `c` alone today for the same
+reason).
 
 `ξ-·[]`'s type annotations are ordinary and do not shift.  In `ξ-⟪⟫`
 the interior's contractum lives at `apply δ Δᵢ`, and `interior-ren` at
@@ -361,8 +332,10 @@ With the store (`Ξ` on the left; `↥X:=α` is `unlock 0 α`; the sibling
  --Drop$-->       7
 ```
 
-Same six rules, same shape; `Peel` moved `7` without `renᴹ²` and reused
-`seal α` without `SameConv`; `CancelR` fired on `Ξ ∋ α := ℕ` alone.
+Same six rules, same shape; `Peel` moved `7` without `renᴹ²`, and the
+`↑α:=ℕ` bind that today rides on every frame is the one cell `α` in
+`Ξ`.  (`seal α` in the trace is the renderer naming `seal X` by the
+cell `X` denotes, as it does today.)
 
 `Q₀` (`Examples` §2) is where the sibling shift shows.  Today's fourth
 step is the inner `TyBeta`, INSIDE the outer boundary:
@@ -395,15 +368,16 @@ today's minus the `↑β:=ℕ` on the frame.
 
 Retired: `binds`/`numBinds`/`extendReps`/`pushRepBinds`/`_⊢ᴮ_`,
 `underRepBinds`, `renᴮ²` and the represent-half of `ren²` on boundaries,
-`SameTyExt`, and under R2 `SameConv`/`respell` and the re-spelling
-premises of `Peel`/`TyPeelR-⟪⟫`/`CancelR`/`IdPush`; the `ShiftAudit`
+`SameTyExt`; the `ShiftAudit`
 frame-exactness obligations for moves across binds (there are no binds
 to move across).  `MoveScope.agda`'s `preserve-CancelR`/`preserve-IdPush`
 reduce to the store lookup.
 
-Kept and PROMOTED: `proof/RepWeaken.agda` (`RepWk`, `⊢renᴿ`,
-`repwk-wkN`, `interior-ren`, `conversion-ren`, `conv-ren`,
-`value-renᴹᴿ`) is the sibling-shift lemma, applied in the four
+Kept: `Conversion.agda` whole, `SameConv`/`respell`, and the
+re-spelling premises of `Peel`/`TyPeelR-⟪⟫`/`CancelR`/`IdPush`.  Kept
+and PROMOTED: `proof/RepWeaken.agda` (`RepWk`, `⊢renᴿ`, `repwk-wkN`,
+`interior-ren`, `conversion-ren`, `value-renᴹᴿ`) is the sibling-shift
+lemma, applied in the four
 congruences and in `TyPeelR-⟪⟫`; `RepRefines`/`⊢refine` is `TyBeta`'s
 retyping, as today.  `Ctx.agda` and `proof/Ctx.agda` are untouched.
 
@@ -441,9 +415,10 @@ is read off `δ`.
 
 - ~~R1~~ dissolved (2026-09-22): `RVar = ℕ`, `Rep = Ty`, contexts as
   today.
-- **R2** conversions cite `RVar` (recommended; deletes all respelling,
-  and makes the sibling shift on conversions exact) vs keep ordinary
-  names and `SameConv` (R2-b).
+- ~~R2~~ WITHDRAWN (Jeremy, 2026-09-22): conversions keep citing
+  ordinary names; `SameConv` and the re-spelling premises stay.  No
+  show-stopper required the change, and staying close to strong-rep-var
+  keeps the port cheap.
 - ~~R3~~ dissolved by fresh = 0: `TyBeta`'s body is verbatim and its
   retyping is today's `⊢refine`.
 - **R4** RULED (Jeremy): fresh address 0, siblings shift by one, one
@@ -459,7 +434,7 @@ is read off `δ`.
 
 1. `Boundary.agda`: `Boundary = List Change`, the two readings without
    `extendReps`, `instantiate`/`addLock0`/`_⋉_`/`renᴮᴿ` as in §1.2;
-   `Conversion.agda` on `RVar` (R2).  Statements only, then `Terms.agda`'s
+   `Conversion.agda` untouched.  Statements only, then `Terms.agda`'s
    `env` and `allocate` in `Ctx.agda`.
 2. `Reduction.agda` with the `∣ δ` index and `↑[ δ ]` in the
    congruences; `_-→*_` applying each step's `δ` to the tail's context;

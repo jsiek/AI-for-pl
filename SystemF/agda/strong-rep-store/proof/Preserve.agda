@@ -1,14 +1,34 @@
 module strong-rep-store.proof.Preserve where
 
--- Preservation for the two-universe representation-variable design.
+-- Preservation for the two-universe representation-variable design, on
+-- the GLOBAL REPRESENTATION STORE (experiment 2,
+-- notes/RepStoreSketch.md).
 --
 -- §1 recovers type well-formedness from typing and supplies the ordinary
--- type-substitution facts used by elimination. §2 types the conversions
--- minted by TyBeta and TyPeelR. §3 proves the local reduction cases. §4
--- assembles preservation while leaving the downstream-owned crossing
--- proofs as parameters.  ALL of them now have implementations, the last
--- being `AddLock0Typing` — reshaped with the 2026-09-20 `TyPeelR-⟪⟫`
--- repair and proved the same day in `strong-rep-store.proof.AddLock0` — so
+-- type-substitution facts used by elimination.  §1b is `RepRefines` —
+-- the `abstR → bindR R` refinement a ∀-elimination performs in place.
+-- §2 is `alloc-wf`/`repwk-alloc`/`instantiate-boundarywf`, everything the
+-- ALLOCATION of a cell needs, and the conversions TyBeta and TyPeelR
+-- mint.  §3 proves the local reduction cases.  §4 states the four
+-- transports that are proved downstream — `CrossΛTyping`,
+-- `AddLock0Typing`, `ShiftTyping` and the three crossing cases — and
+-- supplies the `AllocWf`/`env-apply` machinery the congruences consume.
+-- §5 reads off a step what it did to the store (`step-alloc`), proves
+-- `preserve-wf`, and assembles `preserve`/`preserve*` in `Impl`.  (§4b
+-- is the crossing cases the downstream modules own.)
+--
+-- A STEP RETURNS THE CHANGE IT MADE, so the contractum is typed at
+-- `apply δ Δ` and the congruences must SHIFT THE REDEX'S SIBLINGS by
+-- `↑ᴹ[ δ ]`.  That shift, `ShiftTyping`, is the one lemma the store
+-- experiment added; it is today's representation weakening at `ρ = suc`
+-- (`strong-rep-store.proof.RepWeaken.shift-⊢`).  What it replaced —
+-- `RepWeakenTyping`, the bind-block weakening `Peel` used to need — is
+-- gone: the dual's interior is now the exterior itself, so `Peel` moves
+-- its argument verbatim.
+--
+-- ALL FOUR TRANSPORTS have implementations, the last being
+-- `AddLock0Typing` — reshaped with the 2026-09-20 `TyPeelR-⟪⟫` repair
+-- and proved the same day in `strong-rep-store.proof.AddLock0` — so
 -- `strong-rep-store.Preservation` exposes no parameter at all.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; z≤n; s≤s)
@@ -173,43 +193,6 @@ same-wf same-𝔹 = wf-𝔹
 same-wf (same-⇒ p q) = wf-⇒ (same-wf p) (same-wf q)
 same-wf {Δ = Δ} (same-∀ p) = wf-∀ (same-wf {Δ = underΛ Δ} p)
 
--- Type formation depends on the ordinary POSITIONS a context offers and
--- on nothing else, so it transports along any map that keeps them.
-TvMono : Ctxᵗ → Ctxᵗ → Set
-TvMono Δ Δ′ = ∀ {X} → Δ ∋tv X → Δ′ ∋tv X
-
-tvMono-underΛ : ∀ (Δ Δ′ : Ctxᵗ) → TvMono Δ Δ′
-  → TvMono (underΛ Δ) (underΛ Δ′)
-tvMono-underΛ Δ Δ′ f (α , here) = zero , here
-tvMono-underΛ Δ Δ′ f (α , there d) with shiftNames-∋⁻ d
-tvMono-underΛ Δ Δ′ f (α , there d) | β , refl , d′ with f (β , d′)
-tvMono-underΛ Δ Δ′ f (α , there d) | β , refl , d′ | γ , d″ =
-  suc γ , there (shiftNames-∋ d″)
-
-wf-mono : ∀ {A} (Δ Δ′ : Ctxᵗ) → TvMono Δ Δ′ → Δ ⊢ᵗ A → Δ′ ⊢ᵗ A
-wf-mono Δ Δ′ f (wf-var tv) = wf-var (f tv)
-wf-mono Δ Δ′ f wf-ℕ = wf-ℕ
-wf-mono Δ Δ′ f wf-𝔹 = wf-𝔹
-wf-mono Δ Δ′ f (wf-⇒ wA wB) =
-  wf-⇒ (wf-mono Δ Δ′ f wA) (wf-mono Δ Δ′ f wB)
-wf-mono Δ Δ′ f (wf-∀ wA) =
-  wf-∀ (wf-mono (underΛ Δ) (underΛ Δ′) (tvMono-underΛ Δ Δ′ f) wA)
-
--- A parallel bind block renumbers representation variables and leaves
--- every ordinary position where it was.
-shiftRVars-∋ : (k : ℕ) → η ∋ˡ X := α → shiftRVars k η ∋ˡ X := k + α
-shiftRVars-∋ k here = here
-shiftRVars-∋ k (there d) = there (shiftRVars-∋ k d)
-
-tvMono-extendReps : (Rs : List Ty) (Γ : Ctxᵗ) → TvMono Γ (extendReps Rs Γ)
-tvMono-extendReps Rs Γ (α , d) =
-  length Rs + α , shiftRVars-∋ (length Rs) d
-
--- A representation VARIABLE crosses a bind block by addition.
-shiftRep-var : (k : ℕ) (α : ℕ) → shiftRep k (` α) ≡ ` (k + α)
-shiftRep-var zero α = refl
-shiftRep-var (suc k) α rewrite shiftRep-var k α = refl
-
 ------------------------------------------------------------------------
 -- §1b. Refining an abstract representation variable
 ------------------------------------------------------------------------
@@ -250,16 +233,6 @@ wfᴿ-refine rr wfᴿ-𝔹 = wfᴿ-𝔹
 wfᴿ-refine rr (wfᴿ-⇒ p q) =
   wfᴿ-⇒ (wfᴿ-refine rr p) (wfᴿ-refine rr q)
 wfᴿ-refine rr (wfᴿ-∀ p) = wfᴿ-∀ (wfᴿ-refine rr p)
-
-binds-refine : RepRefines Ξ Ξ′ → Ξ ⊢ᴮ Rs → Ξ′ ⊢ᴮ Rs
-binds-refine rr binds[] = binds[]
-binds-refine rr (binds∷ w ws) =
-  binds∷ (wfᴿ-refine rr w) (binds-refine rr ws)
-
-push-refines : (Rs : List Ty) → RepRefines Ξ Ξ′
-  → RepRefines (pushRepBinds Rs Ξ) (pushRepBinds Rs Ξ′)
-push-refines [] rr = rr
-push-refines (R ∷ Rs) rr = rr-bind (push-refines Rs rr)
 
 valid-refine : RepRefines Ξ Ξ′ → Ξ ∋ʳ α → Ξ′ ∋ʳ α
 valid-refine rr (S , d) = lookup-refine rr d
@@ -333,20 +306,6 @@ conv-refine rr (conv-fun p q) =
   conv-fun (conv-refine rr p) (conv-refine rr q)
 conv-refine rr (conv-all p) = conv-all (conv-refine (rr-abst rr) p)
 
-interior-refine : ∀ {Θ : Boundary} → RepRefines Ξ Ξ′
-  → (Ξ ∣ η) ⊢ⁱ Θ ⇒ Ω
-  → (Ξ′ ∣ η) ⊢ⁱ Θ ⇒
-      (pushRepBinds (binds Θ) Ξ′ ∣ names Ω)
-interior-refine {Θ = boundary Rs χ} rr (interior cs) =
-  interior (changes-refine (push-refines Rs rr) cs)
-
-conversion-refine : ∀ {Θ : Boundary} → RepRefines Ξ Ξ′
-  → (Ξ ∣ η) ⊢ᶜ Θ ⇒ Ω
-  → (Ξ′ ∣ η) ⊢ᶜ Θ ⇒
-      (pushRepBinds (binds Θ) Ξ′ ∣ names Ω)
-conversion-refine {Θ = boundary Rs χ} rr (conversion cs) =
-  conversion (conv-changes-refine (push-refines Rs rr) cs)
-
 -- The target well-formedness is explicit: the only refinement that creates
 -- a concrete binding is supplied by the caller together with its payload
 -- proof. All output well-formedness is then derived by `BoundaryWf`.
@@ -379,22 +338,17 @@ conversion-refine {Θ = boundary Rs χ} rr (conversion cs) =
 ⊢refine rr w′ (⊢·[] ⊢L w) =
   ⊢·[] (⊢refine rr w′ ⊢L) (wf-refine rr w)
 ⊢refine {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} rr w′
-        (env {Θ = boundary Rs χ}
-             (bw w bs (interior cs) (conversion csᶜ))
+        (env (bw w (interior cs) (conversion csᶜ))
              ⊢M ⊢c sameᵢ sameₑ wE) =
   env mw′
-      (⊢refine (push-refines Rs rr) (bw-interior-wf mw′) ⊢M)
-      (conv-refine (push-refines Rs rr) ⊢c)
+      (⊢refine rr (bw-interior-wf mw′) ⊢M)
+      (conv-refine rr ⊢c)
       sameᵢ sameₑ (wf-refine rr wE)
   where
-  mw′ : BoundaryWf (Ξ′ ∣ η) (boundary Rs χ)
-          (pushRepBinds Rs Ξ′ ∣ _)
-          (pushRepBinds Rs Ξ′ ∣ _)
+  mw′ : BoundaryWf (Ξ′ ∣ η) _ (Ξ′ ∣ _) (Ξ′ ∣ _)
   mw′ =
-    bw w′ (binds-refine rr bs)
-       (interior (changes-refine (push-refines Rs rr) cs))
-       (conversion (conv-changes-refine (push-refines Rs rr) csᶜ))
-
+    bw w′ (interior (changes-refine rr cs))
+          (conversion (conv-changes-refine rr csᶜ))
 ------------------------------------------------------------------------
 -- §2. The conversion TyBeta mints
 ------------------------------------------------------------------------
@@ -530,20 +484,6 @@ same-shift-free-at n (same-∀ p) = same-∀ (same-shift-free-at (suc n) p)
 same-shift-free : η ⊢ A ~ R → shiftNames η ⊢ A ~ ⇑ᵗ R
 same-shift-free = same-shift-free-at zero
 
-shiftRVars-suc′ : (n : ℕ) (η : TyCtx)
-  → shiftRVars (suc n) η ≡ shiftNames (shiftRVars n η)
-shiftRVars-suc′ n [] = refl
-shiftRVars-suc′ n (α ∷ η) =
-  cong (suc (n + α) ∷_) (shiftRVars-suc′ n η)
-
-same-shiftRVars : (n : ℕ) → η ⊢ A ~ R
-  → shiftRVars n η ⊢ A ~ shiftBy n R
-same-shiftRVars { η = η } zero p =
-  subst ( _⊢ _ ~ _) (sym (shiftRVars-0 η)) p
-same-shiftRVars {η = η} (suc n) p =
-  subst (_⊢ _ ~ _) (sym (shiftRVars-suc′ n η))
-        (same-shift-free (same-shiftRVars n p))
-
 underNames-ref : ∀ {η X α} (n : ℕ) → ValidNames Ξ η
   → underNames n η ∋ˡ X := α → Ξ ⊢ref[ n ] α
 underNames-ref zero valid d with valid d
@@ -579,29 +519,43 @@ represented-wf {Δ = Δ} {R = R} w p =
   valid (there d) | α , refl , d′ with wf-names w d′
   valid (there d) | α , refl , d′ | b , db = b , there db
 
--- THE INSTANTIATED FRAME IS AGAIN A BOUNDARY SCOPE WITNESS.  `TyBeta` and both
--- `TyPeelR` clauses replace the abstract binder the `∀` conversion was read
--- under by a REPRESENTED one carrying the type argument's representation,
--- and append `unlock 0 0`.  The bind block therefore grows by exactly that
--- representation — well formed because `same-wfᴿ` reads it off the
--- argument's `~` — and the two readings are `instantiate-interior` and
--- `instantiate-conversion`.  `preserve-TyPeelR-⟪⟫` uses it for the moved
--- boundary's exterior; `strong-rep-store.proof.Progress.addLock0-reading` uses
--- it for
--- the `RepWk suc` that the same insertion induces.
+-- ALLOCATING A CELL.  The store grows at index 0 and every existing
+-- representation variable — in the name map and in every sibling term —
+-- moves up by one (`allocate`, strong-rep-store.Ctx §9).  The payload is
+-- well formed because `same-wfᴿ` reads it off the argument's `~`.
+alloc-wf : ∀ {Δ R} → WfCtx Δ → reps Δ ⊢ᴿ R → WfCtx (allocate R Δ)
+alloc-wf {Δ = Δ} {R = R} w wR =
+  wf-ctx (wf-bindR wR (wf-reps w)) valid (unique-shift (name-fn w))
+  where
+  valid : ValidNames (bindR R ∷ reps Δ) (shiftNames (names Δ))
+  valid d with shiftNames-∋⁻ d
+  valid d | α , refl , d′ with wf-names w d′
+  valid d | α , refl , d′ | b , db = b , there db
+
+-- The representation weakening the allocation induces.  `repwk-cons₀`
+-- needs exactly the payload's well-formedness.
+repwk-alloc : ∀ {Ξ R} → Ξ ⊢ᴿ R → RepWk suc Ξ (bindR R ∷ Ξ)
+repwk-alloc {R = R} wR = repwk-cons₀ (bindR R) (wf-bindR wR)
+
+-- THE INSTANTIATED SCOPE IS AGAIN A BOUNDARY SCOPE WITNESS, read at the
+-- ALLOCATED context.  `TyBeta` and both `TyPeelR` clauses mint the cell
+-- for the type argument's representation at index 0 and append
+-- `unlock 0 0`, which names it; the old changes run underneath, in both
+-- universes.  The two readings are `instantiate-interior` and
+-- `instantiate-conversion` (strong-rep-store.Boundary §3a).
+-- `preserve-TyPeelR-⟪⟫` uses it for the moved boundary's exterior;
+-- `strong-rep-store.proof.Progress.addLock0-reading` uses it for the
+-- `RepWk suc` that the same allocation induces.
 instantiate-boundarywf : ∀ {Δ Δᵢ Δᶜ Θ A R}
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → names Δ ⊢ A ~ R
-  → BoundaryWf Δ (instantiate R Θ)
-      ((bindR (shiftBy (numBinds Θ) R) ∷ reps Δᵢ)
-        ∣ (zero ∷ shiftNames (names Δᵢ)))
-      ((bindR (shiftBy (numBinds Θ) R) ∷ reps Δᶜ)
-        ∣ (zero ∷ shiftNames (names Δᶜ)))
-instantiate-boundarywf mwΘ p =
-  bw (bw-exterior mwΘ)
-     (binds∷ (same-wfᴿ (bw-exterior mwΘ) p) (bw-binds mwΘ))
-     (instantiate-interior (bw-interior mwΘ))
-     (instantiate-conversion (bw-conversion mwΘ))
+  → BoundaryWf (allocate R Δ) (instantiate Θ)
+      ((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ)))
+      ((bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ)))
+instantiate-boundarywf (bw wΔ (interior cs) (conversion csᶜ)) p =
+  bw (alloc-wf wΔ (same-wfᴿ wΔ p))
+     (instantiate-interior (interior cs))
+     (instantiate-conversion (conversion csᶜ))
 
 represented-lookup : names Δ ⊢ A ~ R
   → ((bindR R ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
@@ -892,37 +846,10 @@ mutual
 ------------------------------------------------------------------------
 
 empty-interior : Δ ⊢ⁱ boundary [] ⇒ Δ
-empty-interior {Δ = Ξ ∣ η} =
-  interior
-    (subst (λ η′ → Ξ ∣ η′ ⊢χ [] ⇒ η)
-           (sym (shiftRVars-0 η)) changes[])
+empty-interior = interior changes[]
 
 empty-conversion : Δ ⊢ᶜ boundary [] ⇒ Δ
-empty-conversion {Δ = Ξ ∣ η} =
-  conversion
-    (subst (λ η′ → Ξ ∣ η′ ⊢χᶜ [] ⇒ η)
-           (sym (shiftRVars-0 η)) conv[])
-
-shiftBodyBy : ℕ → Ty → Ty
-shiftBodyBy zero B = B
-shiftBodyBy (suc n) B = renameᵗ (extᵗ suc) (shiftBodyBy n B)
-
-shiftBy-∀ : (n : ℕ) (B : Ty)
-  → shiftBy n (`∀ B) ≡ `∀ (shiftBodyBy n B)
-shiftBy-∀ zero B = refl
-shiftBy-∀ (suc n) B rewrite shiftBy-∀ n B = refl
-
-shiftRep-shiftBy : (n : ℕ) (R : Ty) → shiftRep n R ≡ shiftBy n R
-shiftRep-shiftBy zero R = refl
-shiftRep-shiftBy (suc n) R = cong ⇑ᵗ (shiftRep-shiftBy n R)
-
-shiftBy-[]ᵗ : (n : ℕ) (B A : Ty)
-  → shiftBy n (B [ A ]ᵗ)
-    ≡ (shiftBodyBy n B) [ shiftBy n A ]ᵗ
-shiftBy-[]ᵗ zero B A = refl
-shiftBy-[]ᵗ (suc n) B A =
-  trans (cong ⇑ᵗ (shiftBy-[]ᵗ n B A))
-        (rename-[]ᵗ-commute suc (shiftBodyBy n B) (shiftBy n A))
+empty-conversion = conversion conv[]
 
 sameTy-∀⁻ : ∀ {η η′ A B}
   → ∃[ R ] ((η ⊢ `∀ A ~ R) × (η′ ⊢ `∀ B ~ R))
@@ -937,18 +864,6 @@ sameTy-target-∀⁻ : ∀ {η η′ A B}
           ((zero ∷ shiftNames η′) ⊢ B ~ R))))
 sameTy-target-∀⁻ (`∀ R , same-∀ p , same-∀ q) =
   _ , refl , (R , p , q)
-
-sameTyExt-∀⁻ : ∀ {n η η′ A B}
-  → ∃[ R ] ((η ⊢ `∀ A ~ R) ×
-       (η′ ⊢ `∀ B ~ shiftRep n R))
-  → ∃[ R ] (((zero ∷ shiftNames η) ⊢ A ~ R) ×
-       ((zero ∷ shiftNames η′) ⊢ B ~ shiftBodyBy n R))
-sameTyExt-∀⁻ {n = n} (`∀ R , same-∀ p , q)
-  rewrite shiftRep-shiftBy n (`∀ R) | shiftBy-∀ n R
-  with q
-sameTyExt-∀⁻ {n = n} (`∀ R , same-∀ p , q)
-  | same-∀ q′ = R , p , q′
-
 wf-∀⁻ : Δ ⊢ᵗ `∀ A → underΛ Δ ⊢ᵗ A
 wf-∀⁻ (wf-∀ w) = w
 
@@ -956,7 +871,8 @@ preserve-TyBeta : ∀ {Δ N B A R C}
   → WfCtx Δ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ (Λ N) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ N ⟪ instantiate R (boundary []) , reveal 0 B ⟫ ⦂ C
+  → allocate R Δ ∣ [] ⊢
+      N ⟪ instantiate (boundary []) , reveal 0 B ⟫ ⦂ C
 preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
                 wfΔ p (⊢·[] (⊢Λ vN ⊢N) wA)
   with ⊢ᵗ-of CtxWf-[] (⊢Λ vN ⊢N)
@@ -984,16 +900,19 @@ preserve-TyBeta {Δ = Δ} {N = N} {B = B} {A = A} {R = R}
   sameᵢ with wf-same (wf-refine refine wB)
   sameᵢ | S , q = S , q , q
 
-  wE : Δ ⊢ᵗ B [ A ]ᵗ
-  wE = wf-[]ᵗ wB wA
+  wE₀ : Δ ⊢ᵗ B [ A ]ᵗ
+  wE₀ = wf-[]ᵗ wB wA
 
-  sameₑ : SameTyExt 1 Δ (B [ A ]ᵗ) ΔR (⇑ᵗ (B [ A ]ᵗ))
-  sameₑ with wf-same wE
-  sameₑ | S , q = S , q , same-weaken q
+  wE : allocate R Δ ⊢ᵗ B [ A ]ᵗ
+  wE = wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc} wE₀
 
-  mwβ : BoundaryWf Δ (instantiate R (boundary [])) ΔR ΔR
+  sameₑ : allocate R Δ ⊢ B [ A ]ᵗ ≈ ⇑ᵗ (B [ A ]ᵗ) ⊣ ΔR
+  sameₑ with wf-same wE₀
+  sameₑ | S , q = ⇑ᵗ S , same-shift-free q , same-weaken q
+
+  mwβ : BoundaryWf (allocate R Δ) (instantiate (boundary [])) ΔR ΔR
   mwβ =
-    bw wfΔ (binds∷ (same-wfᴿ wfΔ p) binds[])
+    bw (alloc-wf wfΔ (same-wfᴿ wfΔ p))
        (instantiate-interior {R = R} empty-interior)
        (instantiate-conversion {R = R} empty-conversion)
 
@@ -1004,7 +923,7 @@ preserve-TyPeelR-Λ : ∀ {Δ Δᶜ N Θ s B A R Bᵢ Bₑ C}
   → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢ N ⟪ instantiate R Θ , instReveal 0 s ⟫ ⦂ C
+  → allocate R Δ ∣ [] ⊢ N ⟪ instantiate Θ , instReveal 0 s ⟫ ⦂ C
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
@@ -1032,7 +951,7 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     (⊢·[] (env {Δᵢ = Δᵢ} mwΘ (⊢Λ _ ⊢N)
                                  ⊢c sameᵢ sameₑ wE) wA)
   | refl | A₀ , B₀ , refl , refl , ⊢s₀ | refl , refl
-  with respell-ty (conversion-live rc) (same-shiftRVars (numBinds Θ) p)
+  with respell-ty (conversion-live rc) p
 preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
                     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bₑ = Bₑ}
                     wfΔ v rc ⊢s p
@@ -1041,18 +960,13 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
   | refl | A₀ , B₀ , refl , refl , ⊢s₀ | refl , refl | Aᶜ , pᶜ =
   env mwᵢ inner conv sameᵢ′ sameₑ′ wFinal
   where
-  k : ℕ
-  k = numBinds Θ
-
   ΔRᵢ : Ctxᵗ
-  ΔRᵢ = (bindR (shiftBy k R) ∷ reps Δᵢ)
-          ∣ (zero ∷ shiftNames (names Δᵢ))
+  ΔRᵢ = (bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ))
 
   ΔRᶜ : Ctxᵗ
-  ΔRᶜ = (bindR (shiftBy k R) ∷ reps Δᶜ)
-          ∣ (zero ∷ shiftNames (names Δᶜ))
+  ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ))
 
-  mwᵢ : BoundaryWf Δ (instantiate R Θ) ΔRᵢ ΔRᶜ
+  mwᵢ : BoundaryWf (allocate R Δ) (instantiate Θ) ΔRᵢ ΔRᶜ
   mwᵢ = instantiate-boundarywf mwΘ p
 
   inner = ⊢refine (rr-represent rr-refl) (bw-interior-wf mwᵢ) ⊢N
@@ -1062,41 +976,17 @@ preserve-TyPeelR-Λ {Δ = Δ} {Δᶜ = Δᶜ} {N = N} {Θ = Θ} {s = s}
   sameᵢ′ : ΔRᵢ ⊢ _ ≈ Bᵢ ⊣ ΔRᶜ
   sameᵢ′ = sameTy-∀⁻ sameᵢ
 
-  wFinal = wf-[]ᵗ (wf-∀⁻ wE) wA
+  wFinal : allocate R Δ ⊢ᵗ B [ A ]ᵗ
+  wFinal = wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc}
+                      (wf-[]ᵗ (wf-∀⁻ wE) wA)
 
-  sameₑ′ : SameTyExt (suc k) Δ (B [ A ]ᵗ) ΔRᶜ
-                         (Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ)
-  sameₑ′ with sameTyExt-∀⁻ {n = k} sameₑ
-  sameₑ′ | S , pB , pBₑ = S [ R ]ᵗ , same-[] pB p , target
+  sameₑ′ : allocate R Δ ⊢ B [ A ]ᵗ ≈ Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ ⊣ ΔRᶜ
+  sameₑ′ with sameTy-∀⁻ sameₑ
+  sameₑ′ | S , pB , pBₑ =
+    ⇑ᵗ (S [ R ]ᵗ) , same-shift-free (same-[] pB p) , target
     where
-    target : names ΔRᶜ ⊢ Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ
-               ~ shiftRep (suc k) (S [ R ]ᵗ)
-    target rewrite subst-at-0 Aᶜ Bₑ
-                 | shiftRep-shiftBy (suc k) (S [ R ]ᵗ)
-                 | shiftBy-[]ᵗ k S R =
-      same-weaken (same-[] pBₑ pᶜ)
-
-ren-ℕ⁻ : renameᵗ ρ A ≡ `ℕ → A ≡ `ℕ
-ren-ℕ⁻ {A = ` X} ()
-ren-ℕ⁻ {A = `ℕ} refl = refl
-ren-ℕ⁻ {A = `𝔹} ()
-ren-ℕ⁻ {A = A ⇒ B} ()
-ren-ℕ⁻ {A = `∀ A} ()
-
-ren-𝔹⁻ : renameᵗ ρ A ≡ `𝔹 → A ≡ `𝔹
-ren-𝔹⁻ {A = ` X} ()
-ren-𝔹⁻ {A = `ℕ} ()
-ren-𝔹⁻ {A = `𝔹} refl = refl
-ren-𝔹⁻ {A = A ⇒ B} ()
-ren-𝔹⁻ {A = `∀ A} ()
-
-shiftRep-ℕ⁻ : (n : ℕ) → shiftRep n R ≡ `ℕ → R ≡ `ℕ
-shiftRep-ℕ⁻ zero eq = eq
-shiftRep-ℕ⁻ (suc n) eq = shiftRep-ℕ⁻ n (ren-ℕ⁻ eq)
-
-shiftRep-𝔹⁻ : (n : ℕ) → shiftRep n R ≡ `𝔹 → R ≡ `𝔹
-shiftRep-𝔹⁻ zero eq = eq
-shiftRep-𝔹⁻ (suc n) eq = shiftRep-𝔹⁻ n (ren-𝔹⁻ eq)
+    target : names ΔRᶜ ⊢ Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ ~ ⇑ᵗ (S [ R ]ᵗ)
+    target rewrite subst-at-0 Aᶜ Bₑ = same-weaken (same-[] pBₑ pᶜ)
 
 same-ℕ-rep : η ⊢ `ℕ ~ R → R ≡ `ℕ
 same-ℕ-rep same-ℕ = refl
@@ -1109,24 +999,22 @@ sameTy-ℕ-𝔹-absurd : ∀ {η η′}
   → ⊥
 sameTy-ℕ-𝔹-absurd (`ℕ , same-ℕ , ())
 
-sameTyExt-ℕ : ∀ {n Δ A η′}
+-- The exterior comparison is now at EQUAL depth — a boundary carries no
+-- bind block — so a base conversion type pins the exterior type outright.
+sameTy-ℕ : ∀ {Δ A η′}
   → WfCtx Δ
-  → ∃[ R ] ((names Δ ⊢ A ~ R) × (η′ ⊢ `ℕ ~ shiftRep n R))
+  → ∃[ R ] ((names Δ ⊢ A ~ R) × (η′ ⊢ `ℕ ~ R))
   → A ≡ `ℕ
-sameTyExt-ℕ {n = n} wfΔ (R , p , q) with same-ℕ-rep q
-sameTyExt-ℕ {n = n} wfΔ (R , p , q) | eq
-  with shiftRep-ℕ⁻ {R = R} n eq
-sameTyExt-ℕ {n = n} wfΔ (R , p , q) | eq | refl =
+sameTy-ℕ wfΔ (R , p , q) with same-ℕ-rep q
+sameTy-ℕ wfΔ (R , p , q) | refl =
   same-target-unique (name-fn wfΔ) p same-ℕ
 
-sameTyExt-𝔹 : ∀ {n Δ A η′}
+sameTy-𝔹 : ∀ {Δ A η′}
   → WfCtx Δ
-  → ∃[ R ] ((names Δ ⊢ A ~ R) × (η′ ⊢ `𝔹 ~ shiftRep n R))
+  → ∃[ R ] ((names Δ ⊢ A ~ R) × (η′ ⊢ `𝔹 ~ R))
   → A ≡ `𝔹
-sameTyExt-𝔹 {n = n} wfΔ (R , p , q) with same-𝔹-rep q
-sameTyExt-𝔹 {n = n} wfΔ (R , p , q) | eq
-  with shiftRep-𝔹⁻ {R = R} n eq
-sameTyExt-𝔹 {n = n} wfΔ (R , p , q) | eq | refl =
+sameTy-𝔹 wfΔ (R , p , q) with same-𝔹-rep q
+sameTy-𝔹 wfΔ (R , p , q) | refl =
   same-target-unique (name-fn wfΔ) p same-𝔹
 
 preserve-Drop$ : ∀ {Δ n Θ A C}
@@ -1134,10 +1022,10 @@ preserve-Drop$ : ∀ {Δ n Θ A C}
   → Base A
   → Δ ∣ [] ⊢ ($ n) ⟪ Θ , id A ⟫ ⦂ C
   → Δ ∣ [] ⊢ $ n ⦂ C
-preserve-Drop$ {Θ = Θ} wfΔ base-ℕ
+preserve-Drop$ wfΔ base-ℕ
   (env mwΘ ⊢$ (conv-id base-ℕ) sameᵢ sameₑ wE)
-  rewrite sameTyExt-ℕ {n = numBinds Θ} wfΔ sameₑ = ⊢$
-preserve-Drop$ {Θ = Θ} wfΔ base-𝔹
+  rewrite sameTy-ℕ wfΔ sameₑ = ⊢$
+preserve-Drop$ wfΔ base-𝔹
   (env mwΘ ⊢$ (conv-id base-𝔹) sameᵢ sameₑ wE) =
   ⊥-elim (sameTy-ℕ-𝔹-absurd sameᵢ)
 
@@ -1145,35 +1033,40 @@ preserve-Drop-true : ∀ {Δ Θ C}
   → WfCtx Δ
   → Δ ∣ [] ⊢ `true ⟪ Θ , id `𝔹 ⟫ ⦂ C
   → Δ ∣ [] ⊢ `true ⦂ C
-preserve-Drop-true {Θ = Θ} wfΔ
+preserve-Drop-true wfΔ
   (env mwΘ ⊢true (conv-id base-𝔹) sameᵢ sameₑ wE)
-  rewrite sameTyExt-𝔹 {n = numBinds Θ} wfΔ sameₑ = ⊢true
+  rewrite sameTy-𝔹 wfΔ sameₑ = ⊢true
 
 preserve-Drop-false : ∀ {Δ Θ C}
   → WfCtx Δ
   → Δ ∣ [] ⊢ `false ⟪ Θ , id `𝔹 ⟫ ⦂ C
   → Δ ∣ [] ⊢ `false ⦂ C
-preserve-Drop-false {Θ = Θ} wfΔ
+preserve-Drop-false wfΔ
   (env mwΘ ⊢false (conv-id base-𝔹) sameᵢ sameₑ wE)
-  rewrite sameTyExt-𝔹 {n = numBinds Θ} wfΔ sameₑ = ⊢false
+  rewrite sameTy-𝔹 wfΔ sameₑ = ⊢false
 
 ------------------------------------------------------------------------
--- The proved representation-only transport statements
+-- §4. The representation-only transports, and the store bookkeeping
 ------------------------------------------------------------------------
 
--- The first two are the new-interface counterparts of the old `⊢crossΛ`
--- and `⊢addLock0-cross`: each needs a BINDER (`underΛ`, `addLock0`) on top
--- of the renaming, which the third does not.  `CrossΛTyping` is PROVED
--- (2026-09-20, `strong-rep-store.proof.RepWeaken.cross-Λ-⊢`), using one
--- zero-bind
--- `env` around `⊢renᴿ` at `repwk-abst₀`.  `AddLock0Typing` was REFUTED,
--- RESHAPED and PROVED, all on 2026-09-20 — see the note on it below.  The
--- third,
--- `RepWeakenTyping`, is pure renaming and is PROVED
--- (2026-09-20, `strong-rep-store.proof.RepWeaken.rep-weaken-⊢`).
--- All three are internal staging interfaces only:
--- `strong-rep-store.Preservation`
--- instantiates them with their proofs, so preservation has no parameter.
+-- THREE TRANSPORTS, all PROVED downstream, all internal staging
+-- interfaces only: `strong-rep-store.Preservation` instantiates each with
+-- its proof, so preservation has no parameter.  The first two need a
+-- BINDER (`underΛ`, `addLock0`) on top of the renaming; the third, the
+-- SIBLING SHIFT, is pure renaming.
+--
+--   CrossΛTyping   PROVED 2026-09-20,
+--                  `strong-rep-store.proof.RepWeaken.cross-Λ-⊢`, as one
+--                  `env` around `⊢renᴿ` at `repwk-abst₀`.
+--   AddLock0Typing REFUTED, RESHAPED and PROVED, all on 2026-09-20 — see
+--                  the note on it below — and reshaped again by the
+--                  store, which removed its `numBinds` arithmetic.
+--   ShiftTyping    NEW with the store (2026-09-22),
+--                  `strong-rep-store.proof.RepWeaken.shift-⊢`.  It
+--                  REPLACES `RepWeakenTyping`, the bind-block weakening
+--                  `Peel` used to consume: `Peel` moves its argument
+--                  verbatim now, and what needs a shift instead is every
+--                  congruence's SIBLING.
 CrossΛTyping : Set
 CrossΛTyping = ∀ {Δ W A}
   → WfCtx Δ
@@ -1181,31 +1074,27 @@ CrossΛTyping = ∀ {Δ W A}
   → Δ ∣ [] ⊢ W ⦂ A
   → underΛ Δ ∣ [] ⊢ crossΛᴹ W A ⦂ ⇑ᵗ A
 
--- REFUTED, THEN RESHAPED WITH THE RULE (2026-09-20).  The old statement
--- FIXED the moved spelling at `renᶜ (extᵗ suc) s`, and that is what
--- `strong-rep-store.notes.AddLock0Wall.no-addLock0°` refutes — it keeps the old
--- statement locally, since this one is no longer it.  The repaired
--- `TyPeelR-⟪⟫` NAMES the moved spelling and supplies the old conversion
--- reading, the moved one, and a `SameConv` pinning the two; those are the
--- three premises added below.  The old context is read through
--- `renNameCtx (extN (numBinds Θ) suc)`, the representation renaming the
--- inserted binder makes — dropping that view loses §6b of
--- strong-rep-store.Examples at step 8 (measured).  No fixed
--- conversion renaming appears here any more.
+-- RESHAPED WITH THE RULE (2026-09-20) AND AGAIN WITH THE STORE
+-- (2026-09-22).  The moved boundary crosses ONE fresh cell and ONE fresh
+-- ordinary name for it, so its interior term and its scope get exactly
+-- the SIBLING SHIFT — `renᴹᴿ suc` and `renᴮᴿ suc`, with no bind-block
+-- offset to compute, since a boundary carries no binds any more.  The
+-- moved conversion is still NAMED (`s′`) and pinned by a `SameConv`
+-- against the old conversion context viewed through the representation
+-- renaming the allocation makes (`renNameCtx suc`) — that was the
+-- 2026-09-20 repair (strong-rep-store.notes.AddLock0Wall), and it stays.
 --
--- AND PROVED (2026-09-20), `strong-rep-store.proof.AddLock0.addLock0-⊢`.  It is
--- the
--- `env`-to-`env` transport across one inserted representation binder and
--- one fresh ordinary name: `bw-binds` by `binds-ren`, the interior reading
--- by `strong-rep-store.Boundary.addLock0-interior-ren` (where the appended lock
--- DELETES the fresh name, so what is left is `interior-ren`), the interior
--- term by `strong-rep-store.proof.RepWeaken.⊢renᴿ` at
--- `repwk-push (repwk-cons₀ (bindR P) …) (binds Θ)`, and the conversion by
--- `conv-ren` (strong-rep-store.Conversion §2d) followed by
--- `strong-rep-store.proof.PeelDual.respell-⊢` — whose `reps Γ′ ≡ reps Γ` premise
--- is
--- exactly what `renNameCtx` arranges.  It stays a PARAMETER of `Impl` here
--- only because its proof imports this module.
+-- PROVED in `strong-rep-store.proof.AddLock0.addLock0-⊢`: the
+-- `env`-to-`env` transport across one allocated cell and one fresh
+-- ordinary name.  The interior reading is
+-- `strong-rep-store.Boundary.addLock0-interior-ren` (the appended lock
+-- DELETES the fresh name, so what is left is `interior-ren`), the
+-- interior term is `strong-rep-store.proof.RepWeaken.⊢renᴿ` at
+-- `repwk-alloc`, and the conversion is `conv-ren`
+-- (strong-rep-store.Conversion §2d) followed by
+-- `strong-rep-store.proof.PeelDual.respell-⊢` — whose `reps Γ′ ≡ reps Γ`
+-- premise is exactly what `renNameCtx` arranges.  It stays a PARAMETER of
+-- `Impl` here only because its proof imports this module.
 AddLock0Typing : Set
 AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
   → WfCtx ((bindR P ∷ reps Δ) ∣
@@ -1213,38 +1102,91 @@ AddLock0Typing = ∀ {Δ Δᶜ Δ⁺ᶜ W Θ s s′ A P}
   → Δ ∣ [] ⊢ W ⟪ Θ , `∀ s ⟫ ⦂ `∀ A
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
-      ⊢ᶜ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ) ⇒ Δ⁺ᶜ
+      ⊢ᶜ addLock0 (renᴮᴿ suc Θ) ⇒ Δ⁺ᶜ
   → SameConv (underΛ Δ⁺ᶜ) s′
-      (underΛ (renNameCtx (extN (numBinds Θ) suc) Δ⁺ᶜ Δᶜ)) s
+      (underΛ (renNameCtx suc Δ⁺ᶜ Δᶜ)) s
   → ((bindR P ∷ reps Δ) ∣ (zero ∷ shiftNames (names Δ)))
       ∣ [] ⊢
-        (renᴹ² (ren² (λ X → X) (extN (numBinds Θ) suc)) W
-          ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ)
-          , `∀ s′ ⟫)
+        (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ) , `∀ s′ ⟫)
         ⦂ `∀ (renameᵗ (extᵗ suc) A)
 
--- The THIRD such transport, identified by the stage-2 `Peel` port
--- (2026-09-19) and PROVED on 2026-09-20 in
--- `strong-rep-store.proof.RepWeaken.rep-weaken-⊢`.  `Peel` moves its argument
--- from
--- the boundary's exterior to that exterior under the boundary's own
--- representation bind block — `dual-interior`, strong-rep-store.Boundary §3a.
--- `renᴹᴿ` is representation-only by construction, so the argument's TYPE
--- and every ordinary spelling are unchanged.  `renᴹ²-ord-id` connects
--- this statement to the paired identity-ordinary spelling retained by
--- `Peel`'s contractum.
+-- THE SIBLING SHIFT — the one new lemma of the store experiment
+-- (notes/RepStoreSketch.md §2).  When a step allocates a cell, the whole
+-- program lives under one more representation binder, so every SIBLING of
+-- the redex moves up by one.  `renᴹᴿ` is representation-only by
+-- construction, so the sibling's TYPE and every ordinary spelling are
+-- unchanged.  It is today's rep-weakening at `ρ = suc`, PROVED in
+-- `strong-rep-store.proof.RepWeaken.shift-⊢` as
+-- `⊢renᴿ (repwk-alloc wR)`.
 --
--- THE BIND BLOCK MUST BE WELL FORMED (2026-09-20).  Without the premise
--- `reps Δ ⊢ᴮ Rs` the statement is FALSE — `notes/RepWeakenBindsWall.agda`
--- refutes it from `β-seven` and the single open payload `` ` 0 ``, since
--- a boundary's `env` stores a `BoundaryWf` whose `bw-exterior` demands a
--- `WfCtx` of the weakened context.  The premise costs nothing: at the one
--- call site it is `bw-binds` of the boundary being crossed.
-RepWeakenTyping : Set
-RepWeakenTyping = ∀ {Δ W A} (Rs : List Ty)
-  → reps Δ ⊢ᴮ Rs
-  → Δ ∣ [] ⊢ W ⦂ A
-  → extendReps Rs Δ ∣ [] ⊢ renᴹᴿ (wkN (length Rs)) W ⦂ A
+-- THE PAYLOAD MUST BE WELL FORMED.  Without `reps Δ ⊢ᴿ R` the statement
+-- is FALSE: a boundary's `env` stores a `BoundaryWf` whose `bw-exterior`
+-- demands a `WfCtx` of the allocated context, and `WfRepCtx (bindR R ∷ Ξ)`
+-- holds only when R checks over Ξ.  At every call site it is
+-- `same-wfᴿ` of the rule's own `Δ ⊢ᶜ A ~ R` premise (`step-alloc`).
+ShiftTyping : Set
+ShiftTyping = ∀ {Δ Γ M A R}
+  → reps Δ ⊢ᴿ R
+  → Δ ∣ Γ ⊢ M ⦂ A
+  → allocate R Δ ∣ Γ ⊢ renᴹᴿ suc M ⦂ A
+
+-- What a step's change did to the store, as a PROPOSITION: nothing, or
+-- one well-formed cell.  Everything the theorems need about `apply` and
+-- `↑ᴹ[_]` is stated once at `none` (identity) and once at `new R`.
+data AllocWf : Alloc → Ctxᵗ → Set where
+  aw-none : ∀ {Δ} → AllocWf none Δ
+  aw-new  : ∀ {Δ R} → reps Δ ⊢ᴿ R → AllocWf (new R) Δ
+
+-- A boundary changes NAMES only, so a reading transports an `AllocWf`.
+aw-reps : ∀ {Δ Δ′ δ} → reps Δ′ ≡ reps Δ → AllocWf δ Δ′ → AllocWf δ Δ
+aw-reps eq aw-none = aw-none
+aw-reps eq (aw-new wR) = aw-new (subst (λ Ξ → Ξ ⊢ᴿ _) eq wR)
+
+apply-wf : ∀ {Δ δ} → WfCtx Δ → AllocWf δ Δ → WfCtx (apply δ Δ)
+apply-wf w aw-none = w
+apply-wf w (aw-new wR) = alloc-wf w wR
+
+⊢ᵗ-apply : ∀ {Δ A} (δ : Alloc) → Δ ⊢ᵗ A → apply δ Δ ⊢ᵗ A
+⊢ᵗ-apply none w = w
+⊢ᵗ-apply {Δ = Δ} (new R) w =
+  wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc} w
+
+⊢↑ : ShiftTyping → ∀ {Δ Γ M A} {δ : Alloc}
+  → AllocWf δ Δ → Δ ∣ Γ ⊢ M ⦂ A
+  → apply δ Δ ∣ Γ ⊢ ↑ᴹ[ δ ] M ⦂ A
+⊢↑ shift aw-none ⊢M = ⊢M
+⊢↑ shift (aw-new wR) ⊢M = shift wR ⊢M
+
+-- THE BOUNDARY CASE OF THE CONGRUENCE.  The interior stepped at Δᵢ and
+-- its contractum lives at `apply δ Δᵢ`; the new boundary is read at
+-- `apply δ Δ` by `interior-ren`/`conversion-ren` at `suc`, and that
+-- reading's interior IS `apply δ Δᵢ` — a boundary keeps the store, so
+-- `reps Δᵢ ≡ reps Δ`.  Everything else transports by rep weakening.
+env-apply : ∀ {Δ Δᵢ Δᶜ Γ Θ c M′ Bᵢ Cᵢ Cₑ Bₑ} {δ : Alloc}
+  → AllocWf δ Δ
+  → BoundaryWf Δ Θ Δᵢ Δᶜ
+  → apply δ Δᵢ ∣ [] ⊢ M′ ⦂ Bᵢ
+  → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
+  → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
+  → Δ ⊢ Bₑ ≈ Cₑ ⊣ Δᶜ
+  → Δ ⊢ᵗ Bₑ
+  → apply δ Δ ∣ Γ ⊢ M′ ⟪ ↑ᴮ[ δ ] Θ , c ⟫ ⦂ Bₑ
+env-apply aw-none mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE =
+  env mwΘ ⊢M′ ⊢c sameᵢ sameₑ wE
+env-apply {Δ = Δ} {δ = new R} (aw-new wR)
+          (bw wΔ (interior cs) (conversion csᶜ))
+          ⊢M′ ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE =
+  env (bw (alloc-wf wΔ wR)
+          (interior-ren w (interior cs))
+          (conversion-ren w (conversion csᶜ)))
+      ⊢M′
+      (conv-ren w ⊢c)
+      (renameᵗ suc Rᵢ , same-ren suc pᵢ , same-ren suc qᵢ)
+      (renameᵗ suc Rₑ , same-ren suc pₑ , same-ren suc qₑ)
+      (wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc} wE)
+  where
+  w : RepWk suc (reps Δ) (bindR R ∷ reps Δ)
+  w = repwk-alloc wR
 
 wf-underΛ : WfCtx Δ → WfCtx (underΛ Δ)
 wf-underΛ {Δ = Δ} (wf-ctx wr vn uq) =
@@ -1328,33 +1270,31 @@ preserve-TyPeelR-⟪⟫ : AddLock0Typing
   → Δ ⊢ⁱ Θ ⇒ Δᵢ
   → Δ ⊢ᶜ Θ ⇒ Δᶜ
   → Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ
-  → Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺
-  → Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ′) ⇒ Δ″ᶜ
+  → allocate R Δ ⊢ⁱ instantiate Θ ⇒ Δᵢ⁺
+  → Δᵢ⁺ ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ
   → SameConv (underΛ Δ″ᶜ) s″
-      (underΛ
-        (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′
+      (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′
   → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
   → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
   → Δ ⊢ᶜ A ~ R
   → Δ ∣ [] ⊢
       ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-  → Δ ∣ [] ⊢
-      ((renᴹ² (ren² (λ X → X) (extN (numBinds Θ′) suc)) W
-          ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ′) , `∀ s″ ⟫)
+  → allocate R Δ ∣ [] ⊢
+      ((renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
         ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
-        ⟪ instantiate R Θ , instReveal 0 s ⟫ ⦂ C
+        ⟪ instantiate Θ , instReveal 0 s ⟫ ⦂ C
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
-  with interior-functional ri (bw-interior mwΘ)
+  with interior-functional (interior csΘ) (bw-interior mwΘ)
      | conversion-functional rc (bw-conversion mwΘ)
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl
@@ -1363,14 +1303,14 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl with conv-all-inv ⊢c
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
@@ -1380,7 +1320,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
@@ -1388,7 +1328,7 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
@@ -1398,72 +1338,62 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
   | refl , refl | D , refl , sameD | refl
-  with respell-ty (conversion-live rc) (same-shiftRVars (numBinds Θ) p)
+  with respell-ty (conversion-live rc) p
 preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
     {W = W} {Θ′ = Θ′} {s′ = s′} {s″ = s″} {Θ = Θ} {s = s}
     {B = B} {A = A} {R = R} {Bᵢ = Bᵢ} {Bᵢ′ = Bᵢ′} {Bₑ = Bₑ}
-    wfΔ v ri rc r′ ri⁺ r″ sc ⊢s sm p
+    wfΔ v (interior csΘ) rc r′ ri⁺ r″ sc ⊢s sm p
     (⊢·[] (env mwΘ (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′)
                        ⊢c sameᵢ sameₑ wE) wA)
   | refl | refl | refl | refl | A₀ , B₀ , refl , refl , ⊢s₀
   | refl , refl | D , refl , sameD | refl | Aᶜ , pᶜ =
   env mwᵢ int conv sm sameₑ′′ wFinal
   where
-  k : ℕ
-  k = numBinds Θ
-
   ΔRᵢ : Ctxᵗ
-  ΔRᵢ = (bindR (shiftBy k R) ∷ reps Δᵢ)
-          ∣ (zero ∷ shiftNames (names Δᵢ))
+  ΔRᵢ = (bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ))
 
   ΔRᶜ : Ctxᵗ
-  ΔRᶜ = (bindR (shiftBy k R) ∷ reps Δᶜ)
-          ∣ (zero ∷ shiftNames (names Δᶜ))
+  ΔRᶜ = (bindR R ∷ reps Δᶜ) ∣ (zero ∷ shiftNames (names Δᶜ))
 
-  mwᵢ : BoundaryWf Δ (instantiate R Θ) ΔRᵢ ΔRᶜ
+  mwᵢ : BoundaryWf (allocate R Δ) (instantiate Θ) ΔRᵢ ΔRᶜ
   mwᵢ = instantiate-boundarywf mwΘ p
 
   moved : ΔRᵢ ∣ [] ⊢
-      (renᴹ² (ren² (λ X → X) (extN (numBinds Θ′) suc)) W
-        ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ′) , `∀ s″ ⟫)
+      (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
       ⦂ `∀ (renameᵗ (extᵗ suc) Bᵢ′)
   moved = addlock (bw-interior-wf mwᵢ)
                   (env mw′ ⊢W ⊢c′ sameᵢ′ sameₑ′ wE′) r′ r″ sc
 
   int : ΔRᵢ ∣ [] ⊢
-      (renᴹ² (ren² (λ X → X) (extN (numBinds Θ′) suc)) W
-        ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ′) , `∀ s″ ⟫)
+      (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
        ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ] ⦂ Bᵢ′
   int = subst (λ T → ΔRᵢ ∣ [] ⊢
-          (renᴹ² (ren² (λ X → X) (extN (numBinds Θ′) suc)) W
-            ⟪ addLock0 (renᴮ² (ren² (λ X → X) suc) Θ′) , `∀ s″ ⟫)
+          (renᴹᴿ suc W ⟪ addLock0 (renᴮᴿ suc Θ′) , `∀ s″ ⟫)
            ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ] ⦂ T)
         (ren-suc-[0] Bᵢ′)
         (⊢·[] moved (wf-var (zero , here)))
 
   conv = ⊢instReveal 0 pᶜ ⊢s
 
-  wFinal = wf-[]ᵗ (wf-∀⁻ wE) wA
+  wFinal : allocate R Δ ⊢ᵗ B [ A ]ᵗ
+  wFinal = wf-ren-rep {Ξ = reps Δ} {Ξ′ = bindR R ∷ reps Δ} {ρ = suc}
+                      (wf-[]ᵗ (wf-∀⁻ wE) wA)
 
-  sameₑ′′ : SameTyExt (suc k) Δ (B [ A ]ᵗ) ΔRᶜ
-                           (Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ)
-  sameₑ′′ with sameTyExt-∀⁻ {n = k} sameₑ
-  sameₑ′′ | S , pB , pBₑ = S [ R ]ᵗ , same-[] pB p , target
+  sameₑ′′ : allocate R Δ ⊢ B [ A ]ᵗ ≈ Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ ⊣ ΔRᶜ
+  sameₑ′′ with sameTy-∀⁻ sameₑ
+  sameₑ′′ | S , pB , pBₑ =
+    ⇑ᵗ (S [ R ]ᵗ) , same-shift-free (same-[] pB p) , target
     where
-    target : names ΔRᶜ ⊢ Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ
-               ~ shiftRep (suc k) (S [ R ]ᵗ)
-    target rewrite subst-at-0 Aᶜ Bₑ
-                 | shiftRep-shiftBy (suc k) (S [ R ]ᵗ)
-                 | shiftBy-[]ᵗ k S R =
-      same-weaken (same-[] pBₑ pᶜ)
+    target : names ΔRᶜ ⊢ Bₑ [ 0 := ⇑ᵗ Aᶜ ]ᵗ ~ ⇑ᵗ (S [ R ]ᵗ)
+    target rewrite subst-at-0 Aᶜ Bₑ = same-weaken (same-[] pBₑ pᶜ)
 
 ------------------------------------------------------------------------
--- §4. Preservation assembled over the downstream crossing cases
+-- §4b. Preservation assembled over the downstream crossing cases
 ------------------------------------------------------------------------
 
 -- The downstream crossing cases and transports stay module parameters HERE
@@ -1487,25 +1417,15 @@ preserve-TyPeelR-⟪⟫ addlock {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ}
 --                REFUTED from a closed, plain source program
 --                (notes/AddLock0Wall.agda, which keeps that statement
 --                locally and still refutes it).
---   PeelCase     PROVED UNCONDITIONALLY (2026-09-20) —
---                `strong-rep-store.proof.PeelDual.preserve-Peel` applied to
---                `strong-rep-store.proof.RepWeaken.rep-weaken-⊢`, which proves
--- the
---                representation-only weakening `RepWeakenTyping` above.
---                `preserve-Peel` keeps its `module _ (repWeaken : …)`
---                shape; `strong-rep-store.Preservation` plugs the theorem in.
+--   PeelCase     PROVED UNCONDITIONALLY (2026-09-20), and SHRUNK by the
+--                store (2026-09-22) — `strong-rep-store.proof.PeelDual`.
+--                The dual's interior IS the exterior (`dual-interior`),
+--                so the crossing argument moves VERBATIM and the rule's
+--                old `renᴹ² (wkN (numBinds Θ))` is gone with the binds.
 --   IdPushCase   PROVED outright —
 --                `strong-rep-store.proof.MoveScope.preserve-IdPush`.
 --   CancelRCase  PROVED outright, on the rule REPAIRED 2026-09-19 —
---                `strong-rep-store.proof.MoveScope.preserve-CancelR`.  The old
---                statement re-spelled the inner identity FROM the OUTER
---                conversion context and was refuted; the repaired rule
---                reads the cancelled `seal X`'s own source at Θ₁'s
---                conversion context `Δ₁ᶜ`, which makes this block
---                premise-isomorphic to `IdPushCase` below — and the proof
---                is `preserve-IdPush`'s.  See notes/CancelRShiftWall.agda
---                for the incompatibility the old spelling walked into and
---                notes/DECISIONS.md, 2026-09-19.
+--                `strong-rep-store.proof.MoveScope.preserve-CancelR`.
 
 PeelCase : Set
 PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
@@ -1514,8 +1434,7 @@ PeelCase = ∀ {Δ Δᵢ Δᶜ Δᵈ V W Θ s s′ t C}
   → Δᵢ ⊢ᶜ dualBoundary Θ ⇒ Δᵈ → SameConv Δᵈ s′ Δᶜ s
   → Δ ∣ [] ⊢ (V ⟪ Θ , s ↦ t ⟫) · W ⦂ C
   → Δ ∣ [] ⊢
-      (V · (renᴹ² (ren² (λ X → X) (wkN (numBinds Θ))) W
-              ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
+      (V · (W ⟪ dualBoundary Θ , s′ ⟫)) ⟪ Θ , t ⟫ ⦂ C
 
 CancelRCase : Set
 CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
@@ -1523,7 +1442,7 @@ CancelRCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X Y}
   → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
   → Δ₁ᶜ ∋ X := Aᵢ
-  → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+  → Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
   → Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ
   → Δᶜ ∋ Y := A
@@ -1536,7 +1455,7 @@ IdPushCase : Set
 IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A C}
   → WfCtx Δ → Value V → Δ ⊢ⁱ Θ₂ ⇒ Δᵢ
   → Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ
-  → extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
+  → Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ
   → Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ
   → Δ ⊢ᶜ Θ₂ ⇒ Δᶜ → Δᶜ ∋ Y := A
   → Δ ∣ [] ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
@@ -1544,16 +1463,51 @@ IdPushCase = ∀ {Δ Δᵢ Δ₁ᶜ Δ⋉ᶜ Δᶜ V Θ₁ Θ₂ X X′ Y A C}
       (V ⟪ Θ₁ ⋉ Θ₂ , unseal X′ ⟫)
         ⟪ rewind Θ₂ , mkId A ⟫ ⦂ C
 
+------------------------------------------------------------------------
+-- §5. What a step did to the store
+------------------------------------------------------------------------
+
+-- ONLY THE THREE ∀-ELIMINATIONS ALLOCATE, and each carries the reading
+-- `Δ ⊢ᶜ A ~ R` that makes the minted cell well formed (`same-wfᴿ`).  The
+-- congruences pass the change up; `ξ-⟪⟫` passes it across a boundary,
+-- which keeps the store (`interior-reps`).  NO TYPING DERIVATION IS
+-- NEEDED — the rule premises and `WfCtx Δ` are enough.
+step-alloc : ∀ {Δ M M′ δ} → WfCtx Δ → Δ ⊢ M -→ M′ ∣ δ → AllocWf δ Δ
+step-alloc wfΔ (TyBeta v p) = aw-new (same-wfᴿ wfΔ p)
+step-alloc wfΔ (Beta w) = aw-none
+step-alloc wfΔ (Peel v w rc ri rd sc) = aw-none
+step-alloc wfΔ (TyPeelR-Λ v rc ⊢s p) = aw-new (same-wfᴿ wfΔ p)
+step-alloc wfΔ (TyPeelR-⟪⟫ v ri rc r′ ri⁺ r″ sc ⊢s sm p) =
+  aw-new (same-wfᴿ wfΔ p)
+step-alloc wfΔ (CancelR v ri r₁ d₁ r⋉ sm rc d) = aw-none
+step-alloc wfΔ (Drop$ b) = aw-none
+step-alloc wfΔ Drop-true = aw-none
+step-alloc wfΔ Drop-false = aw-none
+step-alloc wfΔ (IdPush v ri r₁ r⋉ sm rc d) = aw-none
+step-alloc wfΔ (ξ-·-l st) = step-alloc wfΔ st
+step-alloc wfΔ (ξ-·-r v st) = step-alloc wfΔ st
+step-alloc wfΔ (ξ-·[] st) = step-alloc wfΔ st
+step-alloc wfΔ (ξ-⟪⟫ ri st) =
+  aw-reps (interior-reps ri) (step-alloc (interior-wf wfΔ ri) st)
+
+-- PRESERVATION OF WELL-FORMEDNESS.  The typing derivation is not read:
+-- it is part of the statement only so that the two preservation theorems
+-- read the same.
+preserve-wf : ∀ {Δ M M′ A δ} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
+  → Δ ⊢ M -→ M′ ∣ δ → WfCtx (apply δ Δ)
+preserve-wf wfΔ ⊢M st = apply-wf wfΔ (step-alloc wfΔ st)
+
 module Impl
   (crossΛ  : CrossΛTyping)
   (addLock0 : AddLock0Typing)
+  (shift   : ShiftTyping)
   (peel    : PeelCase)
   (cancel  : CancelRCase)
   (idpush  : IdPushCase)
   where
 
-  preserve : ∀ {Δ M M′ A} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
-    → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
+  preserve : ∀ {Δ M M′ A δ} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
+    → Δ ⊢ M -→ M′ ∣ δ → apply δ Δ ∣ [] ⊢ M′ ⦂ A
   preserve wfΔ ⊢M (TyBeta v p) = preserve-TyBeta wfΔ p ⊢M
   preserve wfΔ ⊢M (Beta v) = preserve-Beta crossΛ wfΔ ⊢M
   preserve wfΔ ⊢M (Peel v w rc ri rd sc) =
@@ -1571,19 +1525,25 @@ module Impl
   preserve wfΔ ⊢M (IdPush v ri r₁ rc sm r₂ d) =
     idpush wfΔ v ri r₁ rc sm r₂ d ⊢M
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-l st) =
-    ⊢· (preserve wfΔ ⊢L st) ⊢M
+    ⊢· (preserve wfΔ ⊢L st) (⊢↑ shift (step-alloc wfΔ st) ⊢M)
   preserve wfΔ (⊢· ⊢L ⊢M) (ξ-·-r v st) =
-    ⊢· ⊢L (preserve wfΔ ⊢M st)
+    ⊢· (⊢↑ shift (step-alloc wfΔ st) ⊢L) (preserve wfΔ ⊢M st)
   preserve wfΔ (⊢·[] ⊢L w) (ξ-·[] st) =
-    ⊢·[] (preserve wfΔ ⊢L st) w
+    ⊢·[] (preserve wfΔ ⊢L st) (⊢ᵗ-apply _ w)
   preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
     with interior-functional ri (bw-interior mwΘ)
   preserve wfΔ (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) (ξ-⟪⟫ ri st)
-    | refl = env mwΘ (preserve (bw-interior-wf mwΘ) ⊢M st)
-                    ⊢c sameᵢ sameₑ wE
+    | refl =
+    env-apply (aw-reps (interior-reps ri)
+                       (step-alloc (bw-interior-wf mwΘ) st))
+              mwΘ (preserve (bw-interior-wf mwΘ) ⊢M st)
+              ⊢c sameᵢ sameₑ wE
 
+  -- ALONG A WHOLE RUN.  The endpoint's context is read off the
+  -- derivation (`runCtx`): each step's change is applied to the context
+  -- the tail runs at.
   preserve* : ∀ {Δ M M′ A} → WfCtx Δ → Δ ∣ [] ⊢ M ⦂ A
-    → Δ ⊢ M -→* M′ → Δ ∣ [] ⊢ M′ ⦂ A
+    → (r : Δ ⊢ M -→* M′) → runCtx r ∣ [] ⊢ M′ ⦂ A
   preserve* wfΔ ⊢M done = ⊢M
   preserve* wfΔ ⊢M (st then sts) =
-    preserve* wfΔ (preserve wfΔ ⊢M st) sts
+    preserve* (preserve-wf wfΔ ⊢M st) (preserve wfΔ ⊢M st) sts

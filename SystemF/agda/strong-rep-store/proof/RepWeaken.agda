@@ -2,26 +2,26 @@ module strong-rep-store.proof.RepWeaken where
 
 -- REPRESENTATION-ONLY MOVES OF A TYPING DERIVATION.  This module proves
 -- the two transports whose movers have an identity ordinary component:
--- `RepWeakenTyping`, which `Peel` consumes (strong-rep-store.proof.PeelDual §3),
--- and `CrossΛTyping`, which term substitution consumes when an image
--- crosses `Λ` (strong-rep-store.proof.Preserve §3).  `Peel` moves its argument
--- from the
--- boundary's exterior Δ to that exterior UNDER the boundary's own
--- representation bind block, `extendReps (binds Θ) Δ`.  The ordinary name
--- map is only RENUMBERED there — every ordinary position survives — so
--- the argument's type does not change and no ordinary spelling inside it
--- moves.  What moves is every representation occurrence: the payloads of
--- the boundary scopes in its own frames and the representation variable each of
--- their changes carries.  `renᴹᴿ` is exactly that traversal.
+-- `ShiftTyping` — THE SIBLING SHIFT of the store experiment
+-- (notes/RepStoreSketch.md), which every congruence of `preserve`
+-- consumes — and `CrossΛTyping`, which term substitution consumes when an
+-- image crosses `Λ` (strong-rep-store.proof.Preserve §3).  When a step
+-- allocates a cell the whole program lives under one more representation
+-- binder, so the redex's SIBLINGS move up by one: `allocate R Δ` only
+-- RENUMBERS the ordinary name map — every ordinary position survives — so
+-- a sibling's type does not change and no ordinary spelling inside it
+-- moves.  What moves is every representation occurrence: the payloads its
+-- own boundary scopes cite and the representation variable each of their
+-- changes carries.  `renᴹᴿ` is exactly that traversal.
 --
 -- THE WORKHORSE is not the statement itself but its generalisation to a
--- CUT.  The induction goes under `Λ` (which pushes one `abstR`) and under
--- a boundary (which pushes a whole bind block), so the inserted block
--- stops being at the head of the representation context; and the name map
--- stops being the exterior's.  Both are absorbed by abstracting the
--- insertion into an arbitrary representation renaming ρ together with the
--- four facts it must supply — `RepWk ρ Ξ Ξ′`, strong-rep-store.Ctx §11 — and
--- renaming the name map POINTWISE, as `map ρ`:
+-- CUT.  The induction goes under `Λ`, which pushes one `abstR`, so the
+-- inserted cell stops being at the head of the representation context and
+-- the name map stops being the exterior's.  Both are absorbed by
+-- abstracting the insertion into an arbitrary representation renaming ρ
+-- together with the four facts it must supply — `RepWk ρ Ξ Ξ′`,
+-- strong-rep-store.Ctx §11 — and renaming the name map POINTWISE, as
+-- `map ρ`:
 --
 --   ⊢renᴿ : RepWk ρ Ξ Ξ′ → (Ξ ∣ η) ∣ Γ ⊢ M ⦂ A
 --         → (Ξ′ ∣ map ρ η) ∣ Γ ⊢ renᴹᴿ ρ M ⦂ A
@@ -29,29 +29,28 @@ module strong-rep-store.proof.RepWeaken where
 -- The term context Γ passes through UNCHANGED: `⊢`'s variable rule does
 -- not read the type context at all, and an ordinary type spelling is
 -- untouched by a representation renaming.  Under `Λ` the renaming becomes
--- `extᵗ ρ` (`repwk-abst`) and under a boundary `extN (numBinds Θ) ρ`
--- (`repwk-push`), which is precisely how `renᴹᴿ` recurses.
+-- `extᵗ ρ` (`repwk-abst`), which is precisely how `renᴹᴿ` recurses.
+-- CROSSING A BOUNDARY CHANGES NOTHING any more: since the store
+-- experiment a boundary scope carries no bind block, so the SAME ρ runs
+-- inside it (`interior-ren`/`conversion-ren` at ρ, no `extN` offset).
 --
--- THE HARD CASE IS `env`, and every one of its six premises transports
--- by a lemma of strong-rep-store.proof.Ctx §3, strong-rep-store.Boundary §3d or
--- strong-rep-store.Conversion §2d: the
--- exterior well-formedness by `wfctx-ren`, the bind block by
--- `binds-ren`, the two readings by `interior-ren`/`conversion-ren`, the
+-- THE HARD CASE IS `env`, and every one of its premises transports by a
+-- lemma of strong-rep-store.proof.Ctx §3, strong-rep-store.Boundary §3d or
+-- strong-rep-store.Conversion §2d: the exterior well-formedness by
+-- `wfctx-ren`, the two readings by `interior-ren`/`conversion-ren`, the
 -- conversion's TYPING by `conv-ren` (the conversion and both of its types
 -- are unchanged — a conversion is rep-free — but the lookup square it
 -- cites now reads a renamed payload), the two alignment premises by
 -- `same-ren`, and the exterior type's well-formedness by `wf-ren-rep`.
--- `TyBeta`-minted boundaries inside the argument and the lock/unlock
--- change lists are not special-cased anywhere: they are `env`s and change
--- runs like any other.
+-- The two alignment premises are now the SAME relation at the same depth,
+-- which is what retired the old `shiftRep` bookkeeping here.
 --
--- THE PREMISE `reps Δ ⊢ᴮ Rs` IS NECESSARY.  Without it the statement is
--- FALSE, machine-checked in notes/RepWeakenBindsWall.agda: `env` stores a
--- `BoundaryWf` whose `bw-exterior` is a `WfCtx`, so the WEAKENED context must
--- be well formed, and `WfRepCtx (pushRepBinds Rs (reps Δ))` holds only
--- when each inserted payload is well formed where it is written.  At the
--- one call site the premise is free — it is `bw-binds` of the very
--- boundary being crossed.
+-- THE PAYLOAD MUST BE WELL FORMED.  `repwk-alloc` (Preserve §2) demands
+-- `Ξ ⊢ᴿ R`, and without it the shift is FALSE: `env` stores a
+-- `BoundaryWf` whose `bw-exterior` is a `WfCtx`, so the ALLOCATED context
+-- must be well formed, and `WfRepCtx (bindR R ∷ Ξ)` holds only when R
+-- checks over Ξ.  At every call site it is `same-wfᴿ` of the allocating
+-- rule's own reading premise (`step-alloc`).
 --
 -- `CrossΛTyping` runs the same induction at the base instance
 -- `repwk-abst₀ : RepWk suc Ξ (abstR ∷ Ξ)`.  The moved term lands under
@@ -76,20 +75,12 @@ open import strong-rep-store.Boundary
 open import strong-rep-store.Terms
 open import strong-rep-store.TermSubst
 open import strong-rep-store.proof.Preserve
-  using (CrossΛTyping; RepWeakenTyping; WfRen-wk; wf-ren; wf-same;
-         same-weaken; wf-underΛ)
+  using (CrossΛTyping; ShiftTyping; repwk-alloc; WfRen-wk; wf-ren;
+         wf-same; same-weaken; wf-underΛ)
 
 ------------------------------------------------------------------------
 -- §1  The renaming induction
 ------------------------------------------------------------------------
-
--- `shiftRep` is `renameᵗ` at a weakening, at every depth.
-renameᵗ-shiftRep : (n : ℕ) (ρ : Renameᵗ) (R : Ty)
-  → renameᵗ (extN n ρ) (shiftRep n R) ≡ shiftRep n (renameᵗ ρ R)
-renameᵗ-shiftRep zero    ρ R = refl
-renameᵗ-shiftRep (suc n) ρ R =
-  trans (renameᵗ-⇑ (extN n ρ) (shiftRep n R))
-        (cong ⇑ᵗ (renameᵗ-shiftRep n ρ R))
 
 ⊢cast : ∀ {Ξ : RepCtx} {η η′ : TyCtx} {Γ : Ctx} {M : Term} {A : Ty}
   → η ≡ η′ → (Ξ ∣ η) ∣ Γ ⊢ M ⦂ A → (Ξ ∣ η′) ∣ Γ ⊢ M ⦂ A
@@ -113,83 +104,30 @@ renameᵗ-shiftRep (suc n) ρ R =
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} w (⊢·[] ⊢L wA) =
   ⊢·[] (⊢renᴿ w ⊢L) (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wA)
 ⊢renᴿ {Ξ = Ξ} {Ξ′ = Ξ′} {η = η} {ρ = ρ} w
-      (env {Θ = Θ} (bw wΔ bs (interior cs) (conversion csᶜ))
+      (env (bw wΔ (interior cs) (conversion csᶜ))
            ⊢M ⊢c (Rᵢ , pᵢ , qᵢ) (Rₑ , pₑ , qₑ) wE) =
-  env (bw (wfctx-ren w wΔ) (binds-ren w bs)
+  env (bw (wfctx-ren w wΔ)
           (interior-ren w (interior cs))
           (conversion-ren w (conversion csᶜ)))
-      (⊢renᴿ (repwk-push w (binds Θ)) ⊢M)
-      (conv-ren (repwk-push w (binds Θ)) ⊢c)
-      (renameᵗ (extN (numBinds Θ) ρ) Rᵢ
-        , same-ren (extN (numBinds Θ) ρ) pᵢ
-        , same-ren (extN (numBinds Θ) ρ) qᵢ)
-      (renameᵗ ρ Rₑ
-        , same-ren ρ pₑ
-        , subst (λ T → map (extN (numBinds Θ) ρ) _ ⊢ _ ~ T)
-                (trans (renameᵗ-shiftRep (numBinds Θ) ρ Rₑ)
-                       (cong (λ n → shiftRep n (renameᵗ ρ Rₑ))
-                             (sym (length-map (renameᵗ ρ) (binds Θ)))))
-                (same-ren (extN (numBinds Θ) ρ) qₑ))
+      (⊢renᴿ w ⊢M)
+      (conv-ren w ⊢c)
+      (renameᵗ ρ Rᵢ , same-ren ρ pᵢ , same-ren ρ qᵢ)
+      (renameᵗ ρ Rₑ , same-ren ρ pₑ , same-ren ρ qₑ)
       (wf-ren-rep {Ξ = Ξ} {Ξ′ = Ξ′} {ρ = ρ} wE)
 
 ------------------------------------------------------------------------
--- §2  Inserting a bind block at the head, and the theorem
+-- §2  The sibling shift
 ------------------------------------------------------------------------
 
-wkN-+ : (n α : ℕ) → wkN n α ≡ n + α
-wkN-+ zero    α = refl
-wkN-+ (suc n) α = cong suc (wkN-+ n α)
-
-map-wkN : (n : ℕ) (η : TyCtx) → map (wkN n) η ≡ shiftRVars n η
-map-wkN n []      = refl
-map-wkN n (α ∷ η) = cong₂ _∷_ (wkN-+ n α) (map-wkN n η)
-
-renameᵗ-wkN : (n : ℕ) (R : Ty) → renameᵗ (wkN n) R ≡ shiftBy n R
-renameᵗ-wkN zero    R = renameᵗ-pointwise-id (λ X → refl) R
-renameᵗ-wkN (suc n) R =
-  trans (sym (renameᵗ-fuse suc (wkN n) R))
-        (cong ⇑ᵗ (renameᵗ-wkN n R))
-
-renRepBinding-wkN : (n : ℕ) (b : RepBinding)
-  → shiftByᵇ n b ≡ renRepBinding (wkN n) b
-renRepBinding-wkN n abstR = shiftByᵇ-abstR n
-renRepBinding-wkN n (bindR R) =
-  trans (shiftByᵇ-bindR n R) (cong bindR (sym (renameᵗ-wkN n R)))
-
--- THE INSERTION ITSELF: pushing a well-formed bind block onto the head of
--- a representation context is a representation weakening by `wkN` of its
--- width.  This is the instance `⊢renᴿ` is run at; `repwk-abst` and
--- `repwk-push` carry it through the induction, at a CUT.
-repwk-wkN : ∀ {Ξ : RepCtx} (Rs : List Ty) → Ξ ⊢ᴮ Rs
-  → RepWk (wkN (length Rs)) Ξ (pushRepBinds Rs Ξ)
-repwk-wkN {Ξ = Ξ} Rs bs = repwk inj look bnd (wfRepCtx-push bs)
-  where
-  n : ℕ
-  n = length Rs
-
-  inj : Injᵗ (wkN n)
-  inj {α} {β} eq =
-    +-cancelˡ-≡ n α β (trans (sym (wkN-+ n α)) (trans eq (wkN-+ n β)))
-
-  look : ∀ {α b} → Ξ ∋ˡ α := b
-    → ∃[ b′ ] (pushRepBinds Rs Ξ ∋ˡ wkN n α := b′)
-  look {α = α} {b = b} d =
-    b , subst (λ i → pushRepBinds Rs Ξ ∋ˡ i := b)
-              (sym (wkN-+ n α)) (∋ˡ-push Rs d)
-
-  bnd : ∀ {α b} → Ξ ∋ʳ α := b
-    → pushRepBinds Rs Ξ ∋ʳ wkN n α := renRepBinding (wkN n) b
-  bnd {α = α} {b = b} d =
-    subst (λ i → pushRepBinds Rs Ξ ∋ʳ i := renRepBinding (wkN n) b)
-          (sym (wkN-+ n α))
-          (subst (λ c → pushRepBinds Rs Ξ ∋ʳ (n + α) := c)
-                 (renRepBinding-wkN n b)
-                 (∋ʳ-pushᵇ Rs d))
-
--- THE THEOREM.
-rep-weaken-⊢ : RepWeakenTyping
-rep-weaken-⊢ {Δ = Ξ ∣ η} Rs bs ⊢W =
-  ⊢cast (map-wkN (length Rs) η) (⊢renᴿ (repwk-wkN Rs bs) ⊢W)
+-- THE INSTANCE THE STORE RUNS AT.  Allocating a cell pushes `bindR R`
+-- onto the head of the representation context and moves every existing
+-- representation variable — and every name-map entry — up by one; that
+-- is `RepWk suc` (`repwk-alloc`, strong-rep-store.proof.Preserve §2), and
+-- `map suc` IS `shiftNames`, so `allocate R (Ξ ∣ η)` is literally
+-- `(bindR R ∷ Ξ) ∣ map suc η`.  Hence THE ONE NEW LEMMA of the store
+-- experiment is `⊢renᴿ` at that instance, with no cast at all.
+shift-⊢ : ShiftTyping
+shift-⊢ wR ⊢M = ⊢renᴿ (repwk-alloc wR) ⊢M
 
 ------------------------------------------------------------------------
 -- §3  Crossing one `Λ`
@@ -209,18 +147,10 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   mwΛ : BoundaryWf (underΛ (Ξ ∣ η))
           (boundary (lock 0 0 ∷ [])) Δᵢ (underΛ (Ξ ∣ η))
   mwΛ =
-    bw (wf-underΛ wfΔ) binds[]
-       (interior
-         (subst (λ D → (abstR ∷ Ξ) ∣ D
-                          ⊢χ lock 0 0 ∷ [] ⇒ shiftNames η)
-                (sym (shiftRVars-0 (zero ∷ shiftNames η)))
-                (changes∷ changes[]
-                  (step-lock (_ , here) del-here fresh-zero-shift))))
-       (conversion
-         (subst (λ D → (abstR ∷ Ξ) ∣ D
-                          ⊢χᶜ lock 0 0 ∷ [] ⇒ zero ∷ shiftNames η)
-                (sym (shiftRVars-0 (zero ∷ shiftNames η)))
-                (conv-lock (_ , here) conv[])))
+    bw (wf-underΛ wfΔ)
+       (interior (changes∷ changes[]
+                   (step-lock (_ , here) del-here fresh-zero-shift)))
+       (conversion (conv-lock (_ , here) conv[]))
 
   inner : Δᵢ ∣ [] ⊢ renᴹᴿ suc W ⦂ A
   inner = ⊢renᴿ repwk-abst₀ ⊢W
@@ -229,8 +159,7 @@ cross-Λ-⊢ {Δ = Ξ ∣ η} {W = W} {A = A} wfΔ wA ⊢W =
   sameᵢ with wf-same wA
   sameᵢ | R , p = ⇑ᵗ R , same-ren suc p , same-weaken p
 
-  sameₑ : SameTyExt zero (underΛ (Ξ ∣ η)) (⇑ᵗ A)
-                         (underΛ (Ξ ∣ η)) (⇑ᵗ A)
+  sameₑ : underΛ (Ξ ∣ η) ⊢ ⇑ᵗ A ≈ ⇑ᵗ A ⊣ underΛ (Ξ ∣ η)
   sameₑ with wf-same w↑
   sameₑ | R , p = R , p , p
 

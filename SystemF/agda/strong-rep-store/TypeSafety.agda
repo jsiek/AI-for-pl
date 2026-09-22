@@ -2,20 +2,24 @@ module strong-rep-store.TypeSafety where
 
 -- File Charter:
 --   * THE WHOLE PUBLIC THEOREM SURFACE, STATED EXPLICITLY IN ONE PLACE.
---     `Progress`, `Preservation`, `Preservation*` and `TypeSafety` are
---     written out here rather than re-exported, and `TypeSafety` is the
---     COMPOSITION of the other two: from `WfCtx Δ`, `Δ ∣ [] ⊢ M ⦂ A`
---     and `Δ ⊢ M -→* N`, N is a `Value` or N steps.  `preservation`
---     and `preservation*` are unconditional (2026-09-20), and `progress`
---     and `type-safety` are unconditional (2026-09-21), after the last
---     merged-reading parameter was proved.  `det` and `value-¬step` are
---     re-stated here and delegate to strong-rep-store.Reduction.
+--     `Progress`, `Preservation`, `PreservationWf`, `Preservation*` and
+--     `TypeSafety` are written out here rather than re-exported, and
+--     `TypeSafety` is the COMPOSITION of progress and preservation: from
+--     `WfCtx Δ`, `Δ ∣ [] ⊢ M ⦂ A` and a run `r : Δ ⊢ M -→* N`, N is a
+--     `Value` or N steps — at `runCtx r`, the context the run ENDS at.
+--     `det` and `value-¬step` are re-stated here and delegate to
+--     strong-rep-store.Reduction.
 --   * NO PROOFS AND NO DEFINITIONS.  Every right-hand side is a
 --     delegation: strong-rep-store.Preservation, strong-rep-store.Progress,
---     strong-rep-store.proof.TypeSafety and strong-rep-store.Reduction.  The
--- refutations
---     that shaped these statements are the wall modules under notes/,
---     and the dated record is notes/DECISIONS.md.
+--     strong-rep-store.proof.TypeSafety and strong-rep-store.Reduction.
+--     The refutations that shaped these statements are the wall modules
+--     under notes/, and the dated record is notes/DECISIONS.md.
+--   * A STEP RETURNS THE CHANGE IT MADE TO THE STORE.  `_⊢_-→_∣_` is
+--     indexed by an `Alloc` — `none`, or `new R` when a ∀-elimination
+--     allocated the cell for R — and the contractum lives at
+--     `apply δ Δ` (experiment 2, notes/RepStoreSketch.md).  So
+--     preservation MOVES the context, `PreservationWf` keeps it well
+--     formed, and `det` concludes that the PAIR `(M′ , δ)` is unique.
 --   * THE PREMISES ARE NOT UNIFORM, AND THAT IS THE POINT.
 --     `preservation` (and everything built on it, `type-safety`
 --     included) takes `WfCtx Δ`; the premise-free form is FALSE here,
@@ -30,45 +34,43 @@ module strong-rep-store.TypeSafety where
 --
 -- THE WHOLE SURFACE HOLDS OUTRIGHT:
 --
---   det            reduction is deterministic on well-typed terms
+--   det            reduction is deterministic on well-typed terms —
+--                  contractum AND store change
 --   value-¬step    values do not step
---   preservation   a well-typed term stays well typed  (2026-09-20)
---   preservation*  and along a whole run                (2026-09-20)
---   progress        a well-typed closed term is a value or steps
---   type-safety     every state reached is a value or steps
+--   preservation   a well-typed term stays well typed, at `apply δ Δ`
+--   preservation-wf  and that context stays well formed
+--   preservation*  and along a whole run, at `runCtx r`
+--   progress       a well-typed closed term is a value or steps
+--   type-safety    every state reached is a value or steps
 --
 -- PRESERVATION BECAME UNCONDITIONAL ON 2026-09-20, in three steps of the
--- same day.  `RepWeakenTyping` was proved
--- (`strong-rep-store.proof.RepWeaken.rep-weaken-⊢`), making `PeelCase`
--- unconditional; `CrossΛTyping` was proved
--- (`strong-rep-store.proof.RepWeaken.cross-Λ-⊢`), making Beta unconditional; and
--- `AddLock0Typing`, which `notes/AddLock0Wall.agda` had REFUTED that
--- morning — a closed, plain System F program losing its type three steps
--- in, at `TyPeelR-⟪⟫`, whose contractum re-spelled the moved boundary's
--- conversion with `renᶜ suc` in a name map where the new ordinary name is
--- not at position zero — was answered by the RULE repair Jeremy approved
--- (the moved conversion is NAMED and pinned by `SameConv`) and then PROVED
--- on the reshaped statement, `strong-rep-store.proof.AddLock0.addLock0-⊢`.
+-- same day: `RepWeakenTyping` was proved, making `PeelCase`
+-- unconditional; `CrossΛTyping` was proved, making Beta unconditional;
+-- and `AddLock0Typing`, which `notes/AddLock0Wall.agda` had REFUTED that
+-- morning, was answered by the RULE repair Jeremy approved (the moved
+-- conversion is NAMED and pinned by `SameConv`) and then PROVED on the
+-- reshaped statement.  That was the second rule defect of the shape
+-- `CancelRCase`'s had (refuted by `notes/CancelRShiftWall.agda`,
+-- reached from source by `notes/CancelRReachabilityWitness.agda`,
+-- repaired by Jeremy's repair (a) on 2026-09-19 and proved).  The final
+-- progress obligation, `MergedReading`, was proved on 2026-09-21.
 --
--- That was the second rule defect of the shape `CancelRCase`'s had
--- (refuted by `notes/CancelRShiftWall.agda`, reached from source by
--- `notes/CancelRReachabilityWitness.agda`, repaired by Jeremy's repair (a)
--- on 2026-09-19 and proved,
--- `strong-rep-store.proof.MoveScope.preserve-CancelR`).  The final progress
--- obligation, `MergedReading`, was proved on 2026-09-21 by lifting Θ₂'s
--- conversion reading, weakening Θ₁'s reading from the resulting larger
--- name map, and concatenating the two change runs.
+-- THE STORE EXPERIMENT (2026-09-22) kept every one of those statements
+-- and retired one of the lemmas behind them: `Peel` no longer moves its
+-- argument at all, so `RepWeakenTyping` is gone, replaced by the SIBLING
+-- SHIFT `ShiftTyping` that the four congruences consume.
 
 open import Data.List using ([])
 open import Data.Sum using (_⊎_)
-open import Data.Product using (Σ; Σ-syntax)
+open import Data.Product using (Σ; Σ-syntax; _×_)
 open import Data.Empty using (⊥)
 open import Relation.Binary.PropositionalEquality using (_≡_)
 
 open import strong-rep-store.Types using (Ty)
-open import strong-rep-store.Ctx using (Ctxᵗ; WfCtx)
+open import strong-rep-store.Ctx using (Ctxᵗ; WfCtx; Alloc; apply)
 open import strong-rep-store.Terms using (Term; Ctx; Value; _∣_⊢_⦂_)
-open import strong-rep-store.Reduction using (_⊢_-→_; _⊢_-→*_)
+open import strong-rep-store.Reduction
+  using (_⊢_-→_∣_; _⊢_-→*_; runCtx)
 import strong-rep-store.Reduction as R
 import strong-rep-store.Progress as Pr
 import strong-rep-store.Preservation as Pv
@@ -82,31 +84,39 @@ Progress : Set
 Progress = ∀ {Δ : Ctxᵗ} {M : Term} {A : Ty}
   → Δ ∣ [] ⊢ M ⦂ A
     ---------------------------------------------
-  → Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
+  → Value M ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ] (Δ ⊢ M -→ M′ ∣ δ))
 
 Preservation : Set
-Preservation = ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty}
+Preservation = ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty} {δ : Alloc}
   → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
-  → Δ ⊢ M -→ M′
-    ----------------
-  → Δ ∣ [] ⊢ M′ ⦂ A
+  → Δ ⊢ M -→ M′ ∣ δ
+    -----------------------
+  → apply δ Δ ∣ [] ⊢ M′ ⦂ A
+
+PreservationWf : Set
+PreservationWf = ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty} {δ : Alloc}
+  → WfCtx Δ
+  → Δ ∣ [] ⊢ M ⦂ A
+  → Δ ⊢ M -→ M′ ∣ δ
+    -----------------
+  → WfCtx (apply δ Δ)
 
 Preservation* : Set
 Preservation* = ∀ {Δ : Ctxᵗ} {M M′ : Term} {A : Ty}
   → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
-  → Δ ⊢ M -→* M′
-    ----------------
-  → Δ ∣ [] ⊢ M′ ⦂ A
+  → (r : Δ ⊢ M -→* M′)
+    ------------------------
+  → runCtx r ∣ [] ⊢ M′ ⦂ A
 
 TypeSafety : Set
 TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
   → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
-  → Δ ⊢ M -→* N
+  → (r : Δ ⊢ M -→* N)
     ---------------------------------------------
-  → Value N ⊎ (Σ[ N′ ∈ Term ] (Δ ⊢ N -→ N′))
+  → Value N ⊎ (Σ[ N′ ∈ Term ] Σ[ δ ∈ Alloc ] (runCtx r ⊢ N -→ N′ ∣ δ))
 
 ------------------------------------------------------------------------
 -- The theorems
@@ -114,6 +124,9 @@ TypeSafety = ∀ {Δ : Ctxᵗ} {M N : Term} {A : Ty}
 
 preservation : Preservation
 preservation = Pv.preservation
+
+preservation-wf : PreservationWf
+preservation-wf = Pv.preservation-wf
 
 preservation* : Preservation*
 preservation* = Pv.preservation*
@@ -128,17 +141,18 @@ type-safety = TS.type-safety
 -- Determinism, and values do not step — unconditional
 ------------------------------------------------------------------------
 
-det : ∀ {Δ : Ctxᵗ} {Γ : Ctx} {M M₁ M₂ : Term} {A : Ty}
+-- The contractum AND the store change are functions of the redex.
+det : ∀ {Δ : Ctxᵗ} {Γ : Ctx} {M M₁ M₂ : Term} {A : Ty} {δ₁ δ₂ : Alloc}
   → Δ ∣ Γ ⊢ M ⦂ A
-  → Δ ⊢ M -→ M₁
-  → Δ ⊢ M -→ M₂
-    -------------
-  → M₁ ≡ M₂
+  → Δ ⊢ M -→ M₁ ∣ δ₁
+  → Δ ⊢ M -→ M₂ ∣ δ₂
+    -------------------------
+  → (M₁ ≡ M₂) × (δ₁ ≡ δ₂)
 det = R.det
 
-value-¬step : ∀ {Δ : Ctxᵗ} {M M′ : Term}
+value-¬step : ∀ {Δ : Ctxᵗ} {M M′ : Term} {δ : Alloc}
   → Value M
-  → Δ ⊢ M -→ M′
+  → Δ ⊢ M -→ M′ ∣ δ
     -------------
   → ⊥
 value-¬step = R.value-¬step

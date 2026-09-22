@@ -2,19 +2,27 @@ module strong-rep-store.Preservation where
 
 -- File Charter:
 --   * THE PUBLIC PRESERVATION SURFACE, AND NOTHING ELSE.  §1 states
---     `Preservation` and `Preservation*` explicitly; §2 proves them as
---     `preservation` and `preservation*`.  Both are UNCONDITIONAL
---     THEOREMS as of 2026-09-20 — no `Stage1` module, no parameter.
---     Each takes `WfCtx Δ`, a typing `Δ ∣ [] ⊢ M ⦂ A` and a step
---     (respectively a `-→*` run), and returns `Δ ∣ [] ⊢ M′ ⦂ A`.
---   * NO PROOF SCRIPT LIVES HERE.  The two theorems are thin wrappers
---     around `strong-rep-store.proof.Preserve.Impl`, instantiated with
---     `RepWeaken.cross-Λ-⊢`, `AddLock0.addLock0-⊢`,
---     `PeelDual.preserve-Peel RepWeaken.rep-weaken-⊢`,
+--     `Preservation`, `PreservationWf` and `Preservation*` explicitly;
+--     §2 proves them as `preservation`, `preservation-wf` and
+--     `preservation*`.  All three are UNCONDITIONAL THEOREMS — no
+--     `Stage1` module, no parameter.  Each takes `WfCtx Δ`, a typing
+--     `Δ ∣ [] ⊢ M ⦂ A` and a step (respectively a `-→*` run).
+--   * A STEP RETURNS THE CHANGE IT MADE TO THE STORE (experiment 2,
+--     notes/RepStoreSketch.md).  So the contractum is typed at
+--     `apply δ Δ`, not at Δ: a ∀-elimination ALLOCATES the cell for the
+--     type argument's representation at index 0 and pushes every
+--     existing representation variable up by one.  `PreservationWf` is
+--     the companion that keeps the context well formed, and it is what
+--     `preservation*` threads along a run; the run's final context is
+--     read off the derivation by `runCtx` (strong-rep-store.Reduction).
+--   * NO PROOF SCRIPT LIVES HERE.  The theorems are thin wrappers around
+--     `strong-rep-store.proof.Preserve.Impl` and `preserve-wf`,
+--     instantiated with `RepWeaken.cross-Λ-⊢`, `AddLock0.addLock0-⊢`,
+--     `RepWeaken.shift-⊢` (THE SIBLING SHIFT), `PeelDual.preserve-Peel`,
 --     `MoveScope.preserve-CancelR` and `MoveScope.preserve-IdPush`.
 --     Progress is strong-rep-store.Progress, their composition is
---     strong-rep-store.TypeSafety, and the refuted statements that shaped these
---     rules are the wall modules under notes/.
+--     strong-rep-store.TypeSafety, and the refuted statements that shaped
+--     these rules are the wall modules under notes/.
 --   * WHY `WfCtx Δ` IS PART OF THE STATEMENT — the premise-free form is
 --     FALSE here (notes/DECISIONS.md, 2026-09-18).  The reduction
 --     relation is indexed by the type context Δ alone, the term context
@@ -24,19 +32,27 @@ module strong-rep-store.Preservation where
 --     below.  `progress` needs no such premise, because every boundary
 --     typing node carries its own `BoundaryWf`.
 --
--- HOW THE THREE CROSSING CASES LANDED.  Stage 2
--- (2026-09-19) discharged ALL THREE: `IdPush` and, after
--- the `CancelR` rule repair of the same day, `CancelR` are proved
--- outright (strong-rep-store.proof.MoveScope), and `Peel` is proved in
--- strong-rep-store.proof.PeelDual — UNCONDITIONALLY since 2026-09-20, when
--- `RepWeakenTyping` was proved (`strong-rep-store.proof.RepWeaken.rep-weaken-⊢`,
--- on the statement repaired that day with the premise `reps Δ ⊢ᴮ Rs`).
--- NOTHING REMAINS A PARAMETER (2026-09-20).  The last one,
--- `AddLock0Typing`, is proved by `strong-rep-store.proof.AddLock0.addLock0-⊢`,
--- so
--- `preservation` and `preservation*` below are UNCONDITIONAL theorems.
+-- WHAT THE STORE CHANGED IN THE PROOF (2026-09-22).  One lemma is new
+-- and several are gone.  NEW: the SIBLING SHIFT `ShiftTyping`, today's
+-- representation weakening at `ρ = suc`
+-- (`strong-rep-store.proof.RepWeaken.shift-⊢`), applied in the four
+-- congruences to the sibling the redex leaves behind; and `step-alloc`,
+-- which reads off a step what it did to the store.  GONE: the
+-- `RepWeakenTyping` parameter `Peel` used to consume — `dual-interior`
+-- now lands the crossing argument at the exterior ITSELF, so it moves
+-- verbatim — and every `shiftBy`/`shiftRep`/`numBinds` occurrence in
+-- `TyBeta`, both `TyPeelR` clauses, `CancelR` and `IdPush`.
 --
--- THE WALL OF 2026-09-20, AND ITS REPAIR.  `strong-rep-store.notes.AddLock0Wall`
+-- HOW THE THREE CROSSING CASES LANDED.  Stage 2 (2026-09-19) discharged
+-- all three: `IdPush` and, after the `CancelR` rule repair of the same
+-- day, `CancelR` are proved outright
+-- (strong-rep-store.proof.MoveScope), and `Peel` is proved in
+-- strong-rep-store.proof.PeelDual.  NOTHING REMAINS A PARAMETER
+-- (2026-09-20): the last one, `AddLock0Typing`, is proved by
+-- `strong-rep-store.proof.AddLock0.addLock0-⊢`.
+--
+-- THE WALL OF 2026-09-20, AND ITS REPAIR.
+-- `strong-rep-store.notes.AddLock0Wall`
 -- refuted the OLD `AddLock0Typing` and, at the same instance, `Preservation`
 -- and `Preservation*` below: a closed, plain System F program — no
 -- hand-written boundary — lost its type three steps in, at `TyPeelR-⟪⟫`.
@@ -48,30 +64,16 @@ module strong-rep-store.Preservation where
 -- contractum, so the RULE was repaired, with Jeremy's approval and in the
 -- pattern `Peel` got on 2026-09-18: the moved conversion is NAMED and
 -- pinned by a `SameConv`, against the old conversion context viewed through
--- the representation renaming the inserted binder makes.  The wall's
--- program now runs to a value in four steps with every state typed, and the
--- wall module refutes only its own LOCAL copy of the retired statement.
+-- the representation renaming the allocation makes.
 --
--- `AddLock0Typing` in that reshaped form IS PROVED, the same day
--- (`strong-rep-store.proof.AddLock0`): the `env`-to-`env` transport across one
--- inserted representation binder and one fresh ordinary name, with the
--- moved conversion supplied by the rule.  The `Stage1` module that carried
--- it is gone; the theorems below are stated outright.
---
--- `CrossΛTyping` was proved on 2026-09-20 by
--- `strong-rep-store.proof.RepWeaken.cross-Λ-⊢`, so Beta substitution is now
--- unconditional too.
--- `CancelRCase` is no longer among them.  It WAS refuted — the old rule
--- re-spelled the inner layer's identity type in the OUTER conversion
--- context and so dropped the `numBinds Θ₁` shift that `env` demands, at a
--- redex reachable from a closed plain source program.  Repair (a) was
--- approved by Jeremy on 2026-09-19 and installed in
--- `strong-rep-store.Reduction`:
--- the premise now reads the cancelled seal's own source at Θ₁'s
--- conversion context.  `strong-rep-store.proof.MoveScope.preserve-CancelR`
--- proves
--- the repaired case outright, so `Stage1` no longer takes a `cancel`
--- parameter.
+-- `CancelRCase` WAS refuted too — the old rule re-spelled the inner
+-- layer's identity type in the OUTER conversion context and so dropped
+-- the `numBinds Θ₁` shift that `env` demanded, at a redex reachable from
+-- a closed plain source program.  Repair (a) was approved by Jeremy on
+-- 2026-09-19 and installed in `strong-rep-store.Reduction`: the premise
+-- now reads the cancelled seal's own source at Θ₁'s conversion context.
+-- With the store there is no shift left to drop, but the premise stays —
+-- it is a different NAME MAP, which is what `_⊢_≈_⊣_` is for.
 --
 -- `WfCtx Δ` is now part of the statement.  For example, let `names Δ` be
 -- `0 ∷ 0 ∷ []`.  The redex
@@ -84,9 +86,10 @@ module strong-rep-store.Preservation where
 
 open import Data.List using ([])
 
-open import strong-rep-store.Ctx using (Ctxᵗ; WfCtx)
+open import strong-rep-store.Ctx using (Ctxᵗ; WfCtx; Alloc; apply)
 open import strong-rep-store.Terms using (_∣_⊢_⦂_)
-open import strong-rep-store.Reduction using (_⊢_-→_; _⊢_-→*_)
+open import strong-rep-store.Reduction
+  using (_⊢_-→_∣_; _⊢_-→*_; runCtx)
 
 import strong-rep-store.proof.Preserve as P
 import strong-rep-store.proof.PeelDual as PD
@@ -99,31 +102,41 @@ import strong-rep-store.proof.AddLock0 as AL
 ------------------------------------------------------------------------
 
 Preservation : Set
-Preservation = ∀ {Δ M M′ A}
+Preservation = ∀ {Δ M M′ A δ}
   → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
-  → Δ ⊢ M -→ M′
-  → Δ ∣ [] ⊢ M′ ⦂ A
+  → Δ ⊢ M -→ M′ ∣ δ
+  → apply δ Δ ∣ [] ⊢ M′ ⦂ A
+
+PreservationWf : Set
+PreservationWf = ∀ {Δ M M′ A δ}
+  → WfCtx Δ
+  → Δ ∣ [] ⊢ M ⦂ A
+  → Δ ⊢ M -→ M′ ∣ δ
+  → WfCtx (apply δ Δ)
 
 Preservation* : Set
 Preservation* = ∀ {Δ M M′ A}
   → WfCtx Δ
   → Δ ∣ [] ⊢ M ⦂ A
-  → Δ ⊢ M -→* M′
-  → Δ ∣ [] ⊢ M′ ⦂ A
+  → (r : Δ ⊢ M -→* M′)
+  → runCtx r ∣ [] ⊢ M′ ⦂ A
 
 ------------------------------------------------------------------------
 -- 2. The theorems
 ------------------------------------------------------------------------
 
 private
-  module I = P.Impl RW.cross-Λ-⊢ AL.addLock0-⊢
-                    (PD.preserve-Peel RW.rep-weaken-⊢)
+  module I = P.Impl RW.cross-Λ-⊢ AL.addLock0-⊢ RW.shift-⊢
+                    PD.preserve-Peel
                     MS.preserve-CancelR
                     MS.preserve-IdPush
 
 preservation : Preservation
 preservation = I.preserve
+
+preservation-wf : PreservationWf
+preservation-wf = P.preserve-wf
 
 preservation* : Preservation*
 preservation* = I.preserve*

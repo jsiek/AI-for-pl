@@ -5,8 +5,8 @@ module strong-rep-store.proof.IdLayer where
 -- §1  the pushed name is ALREADY WRITTEN in the inner `id (` X)`
 --     conversion (idpush-name), and the same argument fixes CancelR's
 --     two names (cancel-name): typing forces X and Y to name ONE
---     representation variable, X across Θ₁'s bind block.  Neither rule
---     invents a variable, and neither needs an equation as a premise.
+--     representation variable.  Neither rule invents a variable, and
+--     neither needs an equation as a premise.
 -- §2  `unseal` is the ONLY active conversion an id-(` X) layer can ever
 --     meet, so the id-base branch of `Active` is vacuous for these rules.
 -- §3  the naked drop `V ⟪ Θ , id A ⟫ -→ V` — the door, closed: it is sound
@@ -19,6 +19,13 @@ module strong-rep-store.proof.IdLayer where
 -- each other, so no equation between X and Y is available or wanted: the
 -- fact is one universe up, about the REPRESENTATION VARIABLE each name
 -- denotes.  That is the form `proof/MoveScope.preserve-IdPush` consumes.
+--
+-- WHAT THE STORE CHANGES (2026-09-22).  The two names denote the SAME
+-- representation variable, not one `numBinds Θ₁` above the other: a
+-- boundary scope carries no bind block, so there is no prefix between the
+-- inner conversion context and the outer one.  `push-rep` therefore lost
+-- its depth argument and its `shiftRep` bookkeeping, and both `env`
+-- comparisons it reads are the one relation `_⊢_≈_⊣_` at equal depth.
 --
 -- WHAT WAS DELETED.  `convCtx-lock` — "a conceal is invisible to the
 -- conversion context" as an EQUALITY between computed contexts — has no
@@ -41,8 +48,7 @@ open import strong-rep-store.Conversion
 open import strong-rep-store.Terms
 open import strong-rep-store.Boundary
 open import strong-rep-store.proof.Canonical
-  using (same-base-target; sameTyExt-base-target)
-open import strong-rep-store.proof.Preserve using (shiftRep-var)
+  using (same-base-target; ≈-base-target)
 
 ------------------------------------------------------------------------
 -- §1  THE NAMES ARE FORCED
@@ -50,39 +56,41 @@ open import strong-rep-store.proof.Preserve using (shiftRep-var)
 
 -- The heart of both cases, on the two `env` premises alone.  The inner
 -- boundary's exterior type B is read at the OUTER interior; its own
--- conversion spells it `` ` X `` across Θ₁'s bind block, and the outer
--- conversion spells it `` ` Y ``.  So X denotes `n + α` exactly when Y
--- denotes α.
+-- conversion spells it `` ` X `` and the outer conversion spells it
+-- `` ` Y ``.  Since the store experiment there is no bind prefix between
+-- the two readings, so the two names denote the SAME representation
+-- variable — the old `X ↦ numBinds Θ₁ + α` offset is gone with the binds.
 -- Stated on NAME MAPS: like `_⊢_≈_⊣_` itself, the judgement reaches a
 -- context only through the `names` projection, which does not determine
 -- it, so the contexts are not inferable from the two premises.
-push-rep : (n : ℕ) {ηᵢ η₁ᶜ ηᶜ : TyCtx} {B : Ty} {X Y : ℕ}
-  → ∃[ R ] ((ηᵢ ⊢ B ~ R) × (η₁ᶜ ⊢ ` X ~ shiftRep n R))
+push-rep : {ηᵢ η₁ᶜ ηᶜ : TyCtx} {B : Ty} {X Y : ℕ}
+  → ∃[ R ] ((ηᵢ ⊢ B ~ R) × (η₁ᶜ ⊢ ` X ~ R))
   → ∃[ R ] ((ηᵢ ⊢ B ~ R) × (ηᶜ ⊢ ` Y ~ R))
     ---------------------------------------------------------------
-  → Σ[ α ∈ RVar ] ((ηᶜ ∋ˡ Y := α) × (η₁ᶜ ∋ˡ X := n + α))
-push-rep n {η₁ᶜ = η₁ᶜ} {X = X} (R , p , q) (R′ , p′ , same-var d)
+  → Σ[ α ∈ RVar ] ((ηᶜ ∋ˡ Y := α) × (η₁ᶜ ∋ˡ X := α))
+push-rep (R , p , q) (R′ , p′ , same-var d)
   with same-rep-unique p p′
-push-rep n {η₁ᶜ = η₁ᶜ} {X = X} (R , p , q) (R′ , p′ , same-var {α = α} d)
-  | refl
-  with subst (λ T → η₁ᶜ ⊢ ` X ~ T) (shiftRep-var n α) q
-... | same-var d′ = α , d , d′
+push-rep (R , p , same-var d′) (R′ , p′ , same-var d) | refl =
+  _ , d , d′
 
 -- In any typed id-layer under an `unseal`, the inner `id (` X)`'s variable
--- NAMES the pushed conversion's binder, one bind block in.  IdPush
--- therefore invents no representation variable.
+-- NAMES the pushed conversion's binder.  IdPush therefore invents no
+-- representation variable.
 idpush-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
   → Δ ∣ Γ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , unseal Y ⟫ ⦂ C
     --------------------------------------------------------------------
   → Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ α ∈ RVar ]
       ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
         × (Δᶜ ∋ᵗ Y := α)
-        × (Δ₁ᶜ ∋ᵗ X := numBinds Θ₁ + α))
-idpush-name {Θ₁ = Θ₁}
+        × (Δ₁ᶜ ∋ᵗ X := α))
+idpush-name
     (env mw₂ (env mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
-  with push-rep (numBinds Θ₁) se₁ sm₂
-... | α , d , d′ =
+  with push-rep se₁ sm₂
+idpush-name
+    (env mw₂ (env mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
+         (conv-unseal dY) sm₂ se₂ wE)
+  | α , d , d′ =
   _ , _ , _ , α
   , bw-interior mw₂ , bw-conversion mw₂ , bw-conversion mw₁
   , d , d′
@@ -96,12 +104,15 @@ cancel-name : ∀ {Δ Γ V Θ₁ Θ₂ X Y C}
   → Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δᶜ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ α ∈ RVar ]
       ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δ ⊢ᶜ Θ₂ ⇒ Δᶜ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
         × (Δᶜ ∋ᵗ Y := α)
-        × (Δ₁ᶜ ∋ᵗ X := numBinds Θ₁ + α))
-cancel-name {Θ₁ = Θ₁}
+        × (Δ₁ᶜ ∋ᵗ X := α))
+cancel-name
     (env mw₂ (env mw₁ ⊢V (conv-seal dX) sm₁ se₁ wB)
          (conv-unseal dY) sm₂ se₂ wE)
-  with push-rep (numBinds Θ₁) se₁ sm₂
-... | α , d , d′ =
+  with push-rep se₁ sm₂
+cancel-name
+    (env mw₂ (env mw₁ ⊢V (conv-seal dX) sm₁ se₁ wB)
+         (conv-unseal dY) sm₂ se₂ wE)
+  | α , d , d′ =
   _ , _ , _ , α
   , bw-interior mw₂ , bw-conversion mw₂ , bw-conversion mw₁
   , d , d′
@@ -119,20 +130,23 @@ same-base-source same-𝔹 base-𝔹 = base-𝔹
 -- and an outer `id A` conversion at a BASE type demands a base interior.
 -- So the id-base branch of `Active` is unreachable over this LHS.
 --
--- The argument runs through the representation universe rather than
--- through `shiftBy`: the outer `id A` forces the inner boundary's exterior
--- type to be a base type, and `SameTyExt` carries a base type to a base
--- type across the bind block — but the inner conversion's target is a
+-- The argument runs through the representation universe: the outer `id A`
+-- forces the inner boundary's exterior type to be a base type, and
+-- `≈-base-target` (proof/Canonical) carries a base type to a base type
+-- across the exterior comparison — but the inner conversion's target is a
 -- variable.
 outer-id-base-untypeable : ∀ {Δ Γ V Θ₁ Θ₂ X A C} → Base A
   → ¬ (Δ ∣ Γ ⊢ (V ⟪ Θ₁ , id (` X) ⟫) ⟪ Θ₂ , id A ⟫ ⦂ C)
-outer-id-base-untypeable {Θ₁ = Θ₁} bA
+outer-id-base-untypeable bA
     (env {Δᵢ = Δᵢ} mw₂
          (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
          (conv-id bA′) (R , p , q) se₂ wE)
-  with sameTyExt-base-target {n = numBinds Θ₁} {Δ = Δᵢ} {Δ′ = Δ₁ᶜ}
+  with ≈-base-target {Δ = Δᵢ} {Δ′ = Δ₁ᶜ}
          (same-base-target p (same-base-source q bA′)) se₁
-... | ()
+outer-id-base-untypeable bA
+    (env {Δᵢ = Δᵢ} mw₂
+         (env {Δᶜ = Δ₁ᶜ} mw₁ ⊢V (conv-idv tvX) sm₁ se₁ wB)
+         (conv-id bA′) (R , p , q) se₂ wE) | ()
 outer-id-base-untypeable () (env _ (env _ _ (conv-idv _) _ _ _)
                                  (conv-idv _) _ _ _)
 
@@ -171,13 +185,10 @@ naked-drop-trap (env mwᵥ ⊢$ (conv-seal (α , R , name , rep , same)) smᵢ s
 -- induced contexts are the exterior itself and the identity conversion
 -- fixes the type, so the interior derivation IS the exterior one.
 
-extendReps-[] : (Γ : Ctxᵗ) → extendReps [] Γ ≡ Γ
-extendReps-[] (Ξ ∣ Δ) = cong (Ξ ∣_) (shiftRVars-0 Δ)
-
-empty-interior : (Γ : Ctxᵗ) → Γ ⊢ⁱ boundary [] ⇒ extendReps [] Γ
+empty-interior : (Γ : Ctxᵗ) → Γ ⊢ⁱ boundary [] ⇒ Γ
 empty-interior Γ = interior changes[]
 
-empty-conversion : (Γ : Ctxᵗ) → Γ ⊢ᶜ boundary [] ⇒ extendReps [] Γ
+empty-conversion : (Γ : Ctxᵗ) → Γ ⊢ᶜ boundary [] ⇒ Γ
 empty-conversion Γ = conversion conv[]
 
 drop-empty-frame : ∀ {Δ Γ V A B}
@@ -185,10 +196,8 @@ drop-empty-frame : ∀ {Δ Γ V A B}
     ------------------------------------
   → Δ ∣ [] ⊢ V ⦂ B
 drop-empty-frame {Δ = Δ} {V = V} (env mwᵥ ⊢V ⊢c (R , pᵢ , qᵢ) (S , pₑ , qₑ) wE)
-  with trans (interior-functional (bw-interior mwᵥ) (empty-interior Δ))
-             (extendReps-[] Δ)
-     | trans (conversion-functional (bw-conversion mwᵥ) (empty-conversion Δ))
-             (extendReps-[] Δ)
+  with interior-functional (bw-interior mwᵥ) (empty-interior Δ)
+     | conversion-functional (bw-conversion mwᵥ) (empty-conversion Δ)
 ... | refl | refl
   with same-rep-unique qᵢ (subst (λ T → names Δ ⊢ T ~ S)
                                  (sym (conv-id-refl ⊢c)) qₑ)

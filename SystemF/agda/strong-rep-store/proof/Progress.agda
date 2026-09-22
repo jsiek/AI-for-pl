@@ -10,10 +10,16 @@ module strong-rep-store.proof.Progress where
 -- strong-rep-store.Boundary/strong-rep-store.Conversion.
 --
 -- The merged-frame reading needed by CancelR and IdPush is proved here
--- from `strong-rep-store.Boundary.merged-conversion-exists`.  Its statement
--- retains
--- the INNER conversion context only: both rules read the spelling they move
--- at that context, so the former outer-retention component had no consumer.
+-- from `strong-rep-store.Boundary.merged-conversion-exists`.  Its
+-- statement retains the INNER conversion context only: both rules read
+-- the spelling they move at that context, so the former outer-retention
+-- component had no consumer.  Since the store experiment it is read over
+-- Δ ITSELF — `Θ₂` has no binds to push first.
+--
+-- PROGRESS RETURNS THE STORE CHANGE TOO.  A step is `Δ ⊢ M -→ M′ ∣ δ`,
+-- so every clause names the `δ` its rule makes: `new R` for the three
+-- ∀-eliminations, `none` everywhere else, and the congruences pass up
+-- whatever the premise returned while shifting the sibling by `↑ᴹ[ δ ]`.
 --
 -- The 2026-09-20 repair of `TyPeelR-⟪⟫` added NO parameter.  Its moved
 -- boundary's conversion reading and the retention that names the moved
@@ -92,7 +98,7 @@ MergedReading = ∀ {Δ Δᵢ Δᶜ Δ₁ᵢ Δ₁ᶜ Θ₁ Θ₂}
   → BoundaryWf Δ Θ₂ Δᵢ Δᶜ
   → BoundaryWf Δᵢ Θ₁ Δ₁ᵢ Δ₁ᶜ
   → Σ[ Δ⋉ᶜ ∈ Ctxᵗ ]
-      ((extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+      ((Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
         × (names Δ₁ᶜ) ⊆ᵃ (names Δ⋉ᶜ))
 
 merged-reading : MergedReading
@@ -104,44 +110,30 @@ merged-reading = merged-conversion-exists
 -- progress must CONSTRUCT that reading.  It is not a new assumption: the
 -- lock-skipping transport `conv-weaken`/`conv-snoc-lock` and the
 -- representation renaming are assembled by
--- `strong-rep-store.Boundary.addLock0-conversion-ren`, and all this wrapper adds
--- is
--- the `BoundaryWf` packaging and the `RepWk suc` witness for the binder
--- `instantiate R Θ` mints.
+-- `strong-rep-store.Boundary.addLock0-conversion-ren`, and all this
+-- wrapper adds is the `RepWk suc` witness for the cell `instantiate Θ`
+-- mints, read off `instantiate-boundarywf`.
 --
 -- THE RENAMING IS THE WHOLE POINT.  The retained names are
--- `map (extN (numBinds Θ′) suc) (names Δ′ᶜ)`, NOT `names Δ′ᶜ`: the
--- insertion moves every representation index the old conversion context
--- named from below the new binder.  The unrenamed inclusion is false, and
--- §6b of strong-rep-store.Examples is the witness.
---
--- It lives here rather than in strong-rep-store.Boundary because the rule spells
--- the
--- moved frame with `renᴮ²` (strong-rep-store.TermSubst), one layer above.
+-- `map suc (names Δ′ᶜ)`, NOT `names Δ′ᶜ`: the allocation moves every
+-- representation index the old conversion context named up by one.  The
+-- unrenamed inclusion is false, and §6b of strong-rep-store.Examples is
+-- the witness.
 addLock0-reading : ∀ {Δ Δᵢ Δᶜ Δ′ᵢ Δ′ᶜ Θ Θ′ A R}
   → BoundaryWf Δ Θ Δᵢ Δᶜ
   → BoundaryWf Δᵢ Θ′ Δ′ᵢ Δ′ᶜ
   → names Δ ⊢ A ~ R
   → Σ[ Δ″ᶜ ∈ Ctxᵗ ]
-      ((((bindR (shiftBy (numBinds Θ) R) ∷ reps Δᵢ)
-           ∣ (zero ∷ shiftNames (names Δᵢ)))
-          ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ)
-        × (map (extN (numBinds Θ′) suc) (names Δ′ᶜ) ⊆ᵃ (names Δ″ᶜ)))
-addLock0-reading {Θ = Θ} {Θ′ = Θ′} {R = R} mwΘ mw′ p
-  with addLock0-conversion-ren
-         (repwk-cons₀ (bindR (shiftBy (numBinds Θ) R))
-           (λ _ → wf-reps (bw-interior-wf (instantiate-boundarywf mwΘ p))))
-         (_ , here)
-         (name-fn (bw-interior-wf mwΘ))
-         (bw-conversion mw′)
--- the rule's frame spelling, `renᴮ² (ren² idᵗ suc)`, IS the
--- representation-only renaming `renᴮᴿ suc` that the transport produces
-addLock0-reading {Θ = Θ} {Θ′ = Θ′} {R = R} mwΘ mw′ p
-  | Δ″ᶜ , r″ , keep =
-  Δ″ᶜ
-  , subst (λ Θ₀ → _ ⊢ᶜ addLock0 Θ₀ ⇒ Δ″ᶜ)
-      (sym (renᴮ²-ord-id (λ X → refl) Θ′)) r″
-  , keep
+      ((((bindR R ∷ reps Δᵢ) ∣ (zero ∷ shiftNames (names Δᵢ)))
+          ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ)
+        × (map suc (names Δ′ᶜ) ⊆ᵃ (names Δ″ᶜ)))
+addLock0-reading {R = R} mwΘ mw′ p =
+  addLock0-conversion-ren
+    (repwk-cons₀ (bindR R)
+      (λ _ → wf-reps (bw-interior-wf (instantiate-boundarywf mwΘ p))))
+    (_ , here)
+    (name-fn (bw-interior-wf mwΘ))
+    (bw-conversion mw′)
 
 ------------------------------------------------------------------------
 -- 3. Base identities
@@ -151,15 +143,17 @@ progress-id-base : ∀ {Δ Δᵢ Θ M A}
   → Value M
   → Base A
   → Δᵢ ∣ [] ⊢ M ⦂ A
-  → Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , id A ⟫ -→ M′)
+  → Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ] (Δ ⊢ M ⟪ Θ , id A ⟫ -→ M′ ∣ δ)
 progress-id-base v b ⊢M with canon-base v b ⊢M
-progress-id-base v b ⊢M | inj₁ (n , refl) = $ n , Drop$ b
+progress-id-base v b ⊢M | inj₁ (n , refl) = $ n , none , Drop$ b
 progress-id-base v base-ℕ ⊢M | inj₂ (inj₁ refl) with ⊢M
 progress-id-base v base-ℕ ⊢M | inj₂ (inj₁ refl) | ()
-progress-id-base v base-𝔹 ⊢M | inj₂ (inj₁ refl) = `true , Drop-true
+progress-id-base v base-𝔹 ⊢M | inj₂ (inj₁ refl) =
+  `true , none , Drop-true
 progress-id-base v base-ℕ ⊢M | inj₂ (inj₂ refl) with ⊢M
 progress-id-base v base-ℕ ⊢M | inj₂ (inj₂ refl) | ()
-progress-id-base v base-𝔹 ⊢M | inj₂ (inj₂ refl) = `false , Drop-false
+progress-id-base v base-𝔹 ⊢M | inj₂ (inj₂ refl) =
+  `false , none , Drop-false
 
 ------------------------------------------------------------------------
 -- 4. Progress
@@ -176,7 +170,8 @@ module Impl where
     → Δᵢ ∣ [] ⊢ M ⦂ Bᵢ
     → Δᵢ ⊢ Bᵢ ≈ ` Y ⊣ Δᶜ
     → Δᶜ ∋ Y := A
-    → Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , unseal Y ⟫ -→ M′)
+    → Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
+        (Δ ⊢ M ⟪ Θ , unseal Y ⟫ -→ M′ ∣ δ)
   progress-unseal {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} v mwΘ ⊢M sameᵢ d
     with sameTy-target-var⁻ {Δ = Δᵢ} {Δ′ = Δᶜ} sameᵢ
   progress-unseal v mwΘ ⊢M sameᵢ d | Z , refl , sameZ
@@ -201,7 +196,7 @@ module Impl where
     | env mw₁ ⊢W (conv-seal dX) same₁ sameₑ₁ wE₁
     | Δ⋉ᶜ , r⋉ , keep₁
     | α , R , nameX , repX , sameA | A′ , sameA′ =
-    _ , CancelR vW (bw-interior mwΘ) (bw-conversion mw₁)
+    _ , _ , CancelR vW (bw-interior mwΘ) (bw-conversion mw₁)
                 (α , R , nameX , repX , sameA)
                 r⋉ (R , sameA′ , sameA) (bw-conversion mwΘ) d
   progress-unseal v mwΘ ⊢M sameᵢ d
@@ -218,7 +213,7 @@ module Impl where
     | Z , refl , sameZ | W , Θ₁ , X , vW , inj₂ refl
     | env mw₁ ⊢W (conv-idv (α , nameX)) same₁ sameₑ₁ wE₁
     | Δ⋉ᶜ , r⋉ , keep₁ | X′ , nameX′ =
-    _ , IdPush vW (bw-interior mwΘ) (bw-conversion mw₁) r⋉
+    _ , _ , IdPush vW (bw-interior mwΘ) (bw-conversion mw₁) r⋉
                (` α , same-var nameX′ , same-var nameX)
                (bw-conversion mwΘ) d
 
@@ -231,7 +226,8 @@ module Impl where
     → Δᶜ ⊢ c ∶ Cᵢ ⇝ Cₑ
     → Δᵢ ⊢ Bᵢ ≈ Cᵢ ⊣ Δᶜ
     → Value (M ⟪ Θ , c ⟫)
-      ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′))
+      ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ]
+           (Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ∣ δ))
   progress-env v mwΘ ⊢M ⊢c sameᵢ with act-or-inert ⊢c
   progress-env v mwΘ ⊢M ⊢c sameᵢ | inj₂ ic = inj₁ (V-⟪⟫ v ic)
   progress-env v mwΘ ⊢M ⊢c sameᵢ | inj₁ (A-idb b)
@@ -252,14 +248,15 @@ module Impl where
     → Value W
     → Value M
     → Δ ∣ [] ⊢ W ⟪ Θ , s ↦ t ⟫ ⦂ (A ⇒ B)
-    → Σ[ N ∈ Term ] (Δ ⊢ (W ⟪ Θ , s ↦ t ⟫) · M -→ N)
+    → Σ[ N ∈ Term ] Σ[ δ ∈ Alloc ]
+        (Δ ⊢ (W ⟪ Θ , s ↦ t ⟫) · M -→ N ∣ δ)
   progress-peel vW vM
     (env mwΘ ⊢W (conv-fun ⊢s ⊢t) sameᵢ sameₑ wE)
     with peel-premises-env mwΘ ⊢s
   progress-peel vW vM
     (env mwΘ ⊢W (conv-fun ⊢s ⊢t) sameᵢ sameₑ wE)
     | Δᵈ , s′ , rd , sc =
-    _ , Peel vW vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
+    _ , _ , Peel vW vM (bw-conversion mwΘ) (bw-interior mwΘ) rd sc
 
   -- The outer conversion's `_⊢_≈_⊣_` premise exposes the interior ∀
   -- body and
@@ -267,7 +264,8 @@ module Impl where
   progress-·[]-∀conv : ∀ {Δ V Θ s B A C}
     → Value V
     → Δ ∣ [] ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] ⦂ C
-    → Σ[ M ∈ Term ] (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M)
+    → Σ[ M ∈ Term ] Σ[ δ ∈ Alloc ]
+        (Δ ⊢ (V ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M ∣ δ)
   progress-·[]-∀conv v
     (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
     with conv-all-inv ⊢c
@@ -284,7 +282,7 @@ module Impl where
     (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
     | inj₁ (N , vN , refl) | R , p =
-    _ , TyPeelR-Λ vN (bw-conversion mwΘ) ⊢s p
+    _ , _ , TyPeelR-Λ vN (bw-conversion mwΘ) ⊢s p
   progress-·[]-∀conv v
     (⊢·[] (env mwΘ ⊢V ⊢c sameᵢ sameₑ wE) wA)
     | A₀ , B₀ , refl , eqₑ , ⊢s | D , refl , sameD
@@ -298,42 +296,43 @@ module Impl where
       → underΛ Δᶜ ⊢ s ∶ Bᵢ ⇝ Bₑ
       → underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ
       → names Δ ⊢ A ~ R
-      → Σ[ M ∈ Term ]
-          (Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M)
+      → Σ[ M ∈ Term ] Σ[ δ ∈ Alloc ]
+          (Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ] -→ M ∣ δ)
     -- THE MOVED READING IS REPRESENTATION-SHIFTED FIRST.  `readable` reads
     -- the old conversion at `underΛ Δ′ᶜ`; the rule wants it at
-    -- `underΛ (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)`, whose name
-    -- map is `map (extN (numBinds Θ′) suc) (names Δ′ᶜ)`.  So the reading
-    -- is transported along the REPRESENTATION renaming the fresh binder
-    -- induces (`sameᶜ-ren`, past the `Λ` by `names-underΛ-ren`), and only
-    -- then respelled into the moved boundary's own context by the
-    -- retention `addLock0-reading` supplies.  Doing the respell first —
-    -- the 2026-09-20 dead end — leaves the reading in the unrenamed map.
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+    -- `underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)`, whose name map is
+    -- `map suc (names Δ′ᶜ)` — the SIBLING SHIFT, with no bind-block
+    -- offset to compute since the store experiment.  So the reading is
+    -- transported along the representation renaming the allocation makes
+    -- (`sameᶜ-ren`, past the `Λ` by `names-underΛ-ren`), and only then
+    -- respelled into the moved boundary's own context by the retention
+    -- `addLock0-reading` supplies.  Doing the respell first — the
+    -- 2026-09-20 dead end — leaves the reading in the unrenamed map.
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       with addLock0-reading mwΘ mw′ p
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep with readable ⊢s′
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd
       with sameᶜ-cast
-             (names-underΛ-ren (extN (numBinds Θ′) suc) (names Δ′ᶜ))
-             (sameᶜ-ren (extᵗ (extN (numBinds Θ′) suc)) rd)
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+             (names-underΛ-ren suc (names Δ′ᶜ))
+             (sameᶜ-ren (extᵗ suc) rd)
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd | rdᴿ
       with respell (⊆ᵃ-underΛ keep) rdᴿ
-    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ
+    tyPeelR-⟪⟫ {Θ′ = Θ′} vW mwΘ@(bw _ (interior _) _)
       (env {Δᶜ = Δ′ᶜ} mw′ ⊢W (conv-all ⊢s′) sameᵢ′ sameₑ′ wE′)
       ⊢s sameD p
       | Δ″ᶜ , r″ , keep | r , rd | rdᴿ | s″ , rd″ =
-      _ , TyPeelR-⟪⟫ vW (bw-interior mwΘ) (bw-conversion mwΘ)
+      _ , _ , TyPeelR-⟪⟫ vW (bw-interior mwΘ) (bw-conversion mwΘ)
             (bw-conversion mw′) (instantiate-interior (bw-interior mwΘ))
             r″ (_ , rd″ , rdᴿ) ⊢s sameD p
 
@@ -342,7 +341,7 @@ module Impl where
   ----------------------------------------------------------------------
 
   progress : ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
-    → Value M ⊎ (Σ[ M′ ∈ Term ] (Δ ⊢ M -→ M′))
+    → Value M ⊎ (Σ[ M′ ∈ Term ] Σ[ δ ∈ Alloc ] (Δ ⊢ M -→ M′ ∣ δ))
   progress (⊢` ())
   progress ⊢$ = inj₁ V-$
   progress ⊢true = inj₁ V-true
@@ -351,30 +350,30 @@ module Impl where
   -- the value restriction: `⊢Λ` hands us the body's value proof
   progress (⊢Λ vN ⊢N) = inj₁ (V-Λ vN)
   progress (⊢· ⊢L ⊢M) with progress ⊢L
-  progress (⊢· ⊢L ⊢M) | inj₂ (L′ , st) =
-    inj₂ (L′ · _ , ξ-·-l st)
+  progress (⊢· ⊢L ⊢M) | inj₂ (L′ , δ , st) =
+    inj₂ (L′ · ↑ᴹ[ δ ] _ , δ , ξ-·-l st)
   progress (⊢· ⊢L ⊢M) | inj₁ vL with progress ⊢M
-  progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₂ (M′ , st) =
-    inj₂ (_ · M′ , ξ-·-r vL st)
+  progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₂ (M′ , δ , st) =
+    inj₂ (↑ᴹ[ δ ] _ · M′ , δ , ξ-·-r vL st)
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM with canon-⇒ vL ⊢L
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM | inj₁ (N , refl) =
-    inj₂ (_ , Beta vM)
+    inj₂ (_ , none , Beta vM)
   progress (⊢· ⊢L ⊢M) | inj₁ vL | inj₁ vM
     | inj₂ (W , Θ , s , t , vW , refl) =
     inj₂ (progress-peel vW vM ⊢L)
   progress (⊢·[] ⊢L wA) with progress ⊢L
-  progress (⊢·[] ⊢L wA) | inj₂ (L′ , st) =
-    inj₂ (L′ ·[ _ , _ ] , ξ-·[] st)
+  progress (⊢·[] ⊢L wA) | inj₂ (L′ , δ , st) =
+    inj₂ (L′ ·[ _ , _ ] , δ , ξ-·[] st)
   progress (⊢·[] ⊢L wA) | inj₁ vL with canon-∀ vL ⊢L
   progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl)
     with wf-same wA
   progress (⊢·[] ⊢L wA) | inj₁ vL | inj₁ (N , vN , refl)
-    | R , p = inj₂ (_ , TyBeta vN p)
+    | R , p = inj₂ (_ , _ , TyBeta vN p)
   progress (⊢·[] ⊢L wA) | inj₁ vL
     | inj₂ (W , Θ , s , vW , refl) =
     inj₂ (progress-·[]-∀conv vW (⊢·[] ⊢L wA))
   progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) with progress ⊢M
-  progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₂ (M′ , st) =
-    inj₂ (M′ ⟪ _ , _ ⟫ , ξ-⟪⟫ (bw-interior mwΘ) st)
+  progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₂ (M′ , δ , st) =
+    inj₂ (M′ ⟪ ↑ᴮ[ δ ] _ , _ ⟫ , δ , ξ-⟪⟫ (bw-interior mwΘ) st)
   progress (env mwΘ ⊢M ⊢c sameᵢ sameₑ wE) | inj₁ vM =
     progress-env vM mwΘ ⊢M ⊢c sameᵢ

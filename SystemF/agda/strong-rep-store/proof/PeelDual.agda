@@ -3,26 +3,29 @@ module strong-rep-store.proof.PeelDual where
 -- THE PEEL CROSSING — the dual is an INVERSE, and both of its readings
 -- are theorems of `strong-rep-store.Boundary` §3a.
 --
---   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dualBoundary Θ ⇒ extendReps (binds Θ) Δ
+--   Δ ⊢ⁱ Θ ⇒ Δᵢ  →  Δᵢ ⊢ⁱ dualBoundary Θ ⇒ Δ
 --
--- is `dual-interior`: the crossing argument's frame IS THE EXTERIOR, one
--- bind block in.  So the argument, typed at Δ, crosses by a
--- REPRESENTATION-ONLY weakening — `renᴹᴿ (wkN (numBinds Θ))` — and gains
--- no ordinary scope whatever.  `renᴹ²-ord-id` relates that construction
--- to the identity-ordinary paired spelling retained by `Peel`.
+-- is `dual-interior`: the crossing argument's frame IS THE EXTERIOR.
+-- Since the store experiment (2026-09-22) a boundary scope carries no
+-- bind block, so that is the exterior ON THE NOSE — the argument, typed
+-- at Δ, crosses VERBATIM and gains neither ordinary scope nor a
+-- representation binder.  The rule's old
+-- `renᴹ² (ren² idᵗ (wkN (numBinds Θ)))`, and with it this module's
+-- `RepWeakenTyping` parameter and the `renᴹ²-ord-id` bridge, are gone.
 --
 -- The dual's CONVERSION context is the one thing the crossing does not
 -- get for free.  It is not `convCtx Θ Δ` renumbered: (P), the identity
 -- `conv(dual Θ, int(Θ, Δ)) ≡ conv(Θ, Δ)`, is a theorem on `main` and is
 -- FALSE here, because deleting a name from a SEQUENCE renumbers the rest
 -- (notes/CrossingAudit §§4–6).  What survives is (Q) — the two contexts
--- name the same representation VARIABLES (`Q`, strong-rep-store.Boundary §3b) —
--- and `Peel` therefore carries the dual's own spelling `s′` together with
--- a `SameConv` relating it to `s`.  §1 below is what turns that premise
--- into the dual boundary's conversion typing.
+-- name the same representation VARIABLES (`Q`,
+-- strong-rep-store.Boundary §3b) — and `Peel` therefore carries the
+-- dual's own spelling `s′` together with a `SameConv` relating it to
+-- `s`.  §1 below is what turns that premise into the dual boundary's
+-- conversion typing.
 --
 --   §1  re-spelling a TYPED conversion across the crossing
---   §2  the ⇒-splittings the redex's `env` premises need
+--   §2  the ⇒-splitting the redex's `env` premises need
 --   §3  the crossing, and `preserve-Peel`
 --
 -- WHAT WAS DELETED (2026-09-19).  The whole masked-entry development:
@@ -32,7 +35,9 @@ module strong-rep-store.proof.PeelDual where
 -- `Ren`/`wkN` crossing machinery `⊢ᵐ-dual`, `Ren-wkN`, `crossing` (old
 -- §4).  None of them has a two-universe counterpart: there is no computed
 -- context to state an equality between, (P) is refuted, and the frame
--- identity is `dual-interior`.
+-- identity is `dual-interior`.  AND (2026-09-22) `shiftRep-⇒` and
+-- `sameTyExt-⇒⁻`: the exterior comparison is now the same relation at the
+-- same depth, so `sameTy-⇒⁻` serves both `env` premises.
 
 open import Data.Nat using (ℕ; zero; suc; _+_)
 open import Data.List using (List; []; _∷_; length)
@@ -45,12 +50,8 @@ open import strong-rep-store.Ctx
 open import strong-rep-store.proof.Ctx
 open import strong-rep-store.Conversion
 open import strong-rep-store.Terms
-open import strong-rep-store.TermSubst
-  using (renᴹ²; ren²; renᴹ²-ord-id; wkN)
 open import strong-rep-store.Boundary
-open import strong-rep-store.proof.Preserve
-  using (PeelCase; RepWeakenTyping; same-shiftRVars; shiftRep-shiftBy;
-         same-wf)
+open import strong-rep-store.proof.Preserve using (PeelCase; same-wf)
 
 ------------------------------------------------------------------------
 -- §1  Re-spelling a TYPED conversion
@@ -143,13 +144,10 @@ respell-⊢ {Γ = Γ} {Γ′ = Γ′} eq f (sameᶜ-all a) (sameᶜ-all a′)
 -- §2  Splitting the redex's premises at the arrow
 ------------------------------------------------------------------------
 
-shiftRep-⇒ : (n : ℕ) (R S : Ty)
-  → shiftRep n (R ⇒ S) ≡ shiftRep n R ⇒ shiftRep n S
-shiftRep-⇒ zero R S = refl
-shiftRep-⇒ (suc n) R S rewrite shiftRep-⇒ n R S = refl
-
 -- The interior type of a boundary whose conversion is a `_↦_` is an
--- arrow, because its reading is.
+-- arrow, because its reading is.  Since the store experiment the
+-- EXTERIOR comparison is the same relation at the same depth, so this
+-- one inversion serves both `env` premises.
 sameTy-⇒⁻ : ∀ {η η′ : TyCtx} {B A₁ B₁ : Ty}
   → ∃[ R ] ((η ⊢ B ~ R) × (η′ ⊢ A₁ ⇒ B₁ ~ R))
   → Σ[ Aᵢ ∈ Ty ] Σ[ Bᵢ ∈ Ty ] ((B ≡ Aᵢ ⇒ Bᵢ)
@@ -158,94 +156,68 @@ sameTy-⇒⁻ : ∀ {η η′ : TyCtx} {B A₁ B₁ : Ty}
 sameTy-⇒⁻ (R ⇒ S , same-⇒ p q , same-⇒ p′ q′) =
   _ , _ , refl , (R , p , p′) , (S , q , q′)
 
-sameTyExt-⇒⁻ : ∀ (n : ℕ) {η η′ : TyCtx} {A C A₁ B₁ : Ty}
-  → ∃[ R ] ((η ⊢ A ⇒ C ~ R) × (η′ ⊢ A₁ ⇒ B₁ ~ shiftRep n R))
-  → (∃[ R ] ((η ⊢ A ~ R) × (η′ ⊢ A₁ ~ shiftRep n R)))
-    × (∃[ S ] ((η ⊢ C ~ S) × (η′ ⊢ B₁ ~ shiftRep n S)))
-sameTyExt-⇒⁻ n {η′ = η′} (R ⇒ S , same-⇒ p q , t)
-  with subst (λ T → η′ ⊢ _ ~ T) (shiftRep-⇒ n R S) t
-sameTyExt-⇒⁻ n {η′ = η′} (R ⇒ S , same-⇒ p q , t)
-  | same-⇒ p′ q′ = (R , p , p′) , (S , q , q′)
-
 ------------------------------------------------------------------------
 -- §3  The crossing
 ------------------------------------------------------------------------
 
--- THE ONE THING THE CASE CANNOT BUILD.  The argument W is typed on the
--- exterior Δ and must be retyped on `extendReps (binds Θ) Δ`, which is
--- the same context with the boundary's representation bind block pushed
--- on.  Its ordinary name map is untouched, so the argument's TYPE does
--- not change; only representation occurrences inside its own frames move,
--- which is exactly what `renᴹᴿ (wkN (numBinds Θ))` does by construction.
--- This is the third representation-only typing transport the port has
--- needed (`CrossΛTyping`, `AddLock0Typing`, strong-rep-store.proof.Preserve §4),
--- and
--- like those it is a NEW MAJOR STATEMENT, deferred for review rather than
--- proved here.  The identity lemma below transports its result to the
--- paired spelling in the reduction rule.
-module _ (repWeaken : RepWeakenTyping) where
+-- THE ARGUMENT DOES NOT MOVE ANY MORE.  W is typed on the exterior Δ,
+-- and the dual's interior IS Δ (`dual-interior`, strong-rep-store.Boundary
+-- §3a): since the store experiment a boundary scope carries no bind
+-- block, so there is nothing for the crossing argument to be shifted
+-- past.  The rule's old `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W` — and
+-- with it the whole `RepWeakenTyping` parameter this module used to take
+-- — is gone; `⊢W` is reused verbatim.
+preserve-Peel : PeelCase
+preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
+              {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
+              wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
+              (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
+                       (wf-⇒ wA wC)) ⊢W)
+  with interior-functional (bw-interior mwΘ) ri
+     | conversion-functional (bw-conversion mwΘ) rc
+preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
+              {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
+              wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
+              (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
+                       (wf-⇒ wA wC)) ⊢W)
+  | refl | refl
+  with sameTy-⇒⁻ sameᵢ | sameTy-⇒⁻ sameₑ
+     | respell-⊢ (trans (conversion-reps rd)
+                   (trans (interior-reps ri)
+                          (sym (conversion-reps rc))))
+                 (Q ri rc rd) rcᶜ rdᶜ ⊢s
+preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
+              {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
+              wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
+              (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
+                       (wf-⇒ wA wC)) ⊢W)
+  | refl | refl
+  | Aᵢ , Bᵢ , refl , smAᵢ , smBᵢ
+  | Aₑ , Cₑ , refl , smAₑ , smCₑ
+  | P′ , Q′ , ⊢s′ , smP , smQ =
+  env mwΘ (⊢· ⊢V arg) ⊢t smBᵢ smCₑ wC
+  where
+  -- the dual's frame: the exterior itself
+  mwD : BoundaryWf Δᵢ (dualBoundary Θ) Δ Δᵈ
+  mwD = bw (bw-interior-wf mwΘ) (dual-interior ri) rd
 
-  preserve-Peel : PeelCase
-  preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-                {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-                wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-                (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
-                         (wf-⇒ wA wC)) ⊢W)
-    with interior-functional (bw-interior mwΘ) ri
-       | conversion-functional (bw-conversion mwΘ) rc
-  preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-                {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-                wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-                (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
-                         (wf-⇒ wA wC)) ⊢W)
-    | refl | refl
-    with sameTy-⇒⁻ sameᵢ | sameTyExt-⇒⁻ (numBinds Θ) sameₑ
-       | respell-⊢ (trans (conversion-reps rd)
-                     (trans (interior-reps ri)
-                            (sym (conversion-reps rc))))
-                   (Q ri rc rd) rcᶜ rdᶜ ⊢s
-  preserve-Peel {Δ = Δ} {Δᵢ = Δᵢ} {Δᶜ = Δᶜ} {Δᵈ = Δᵈ} {V = V} {W = W}
-                {Θ = Θ} {s = s} {s′ = s′} {t = t} {C = C}
-                wfΔ v w rc ri rd (r , rdᶜ , rcᶜ)
-                (⊢· (env mwΘ ⊢V (conv-fun ⊢s ⊢t) sameᵢ sameₑ
-                         (wf-⇒ wA wC)) ⊢W)
-    | refl | refl
-    | Aᵢ , Bᵢ , refl , smAᵢ , smBᵢ
-    | (Ra , pA , qA) , (Rc , pC , qC)
-    | P′ , Q′ , ⊢s′ , smP , smQ =
-    env mwΘ (⊢· ⊢V arg) ⊢t smBᵢ (Rc , pC , qC) wC
-    where
-    n : ℕ
-    n = numBinds Θ
+  -- the crossing argument's own exterior reading is the source spelling
+  -- the dual's conversion wants
+  sameᵢ-d : Δ ⊢ _ ≈ P′ ⊣ Δᵈ
+  sameᵢ-d =
+    proj₁ smAₑ , proj₁ (proj₂ smAₑ)
+    , subst (λ T → names Δᵈ ⊢ P′ ~ T)
+            (same-rep-unique (proj₂ (proj₂ smP)) (proj₂ (proj₂ smAₑ)))
+            (proj₁ (proj₂ smP))
 
-    -- the dual's frame: the exterior, one bind block in
-    mwD : BoundaryWf Δᵢ (dualBoundary Θ) (extendReps (binds Θ) Δ) Δᵈ
-    mwD = bw (bw-interior-wf mwΘ) binds[] (dual-interior ri) rd
+  sameₑ-d : Δᵢ ⊢ Aᵢ ≈ Q′ ⊣ Δᵈ
+  sameₑ-d =
+    proj₁ smAᵢ , proj₁ (proj₂ smAᵢ)
+    , subst (λ T → names Δᵈ ⊢ Q′ ~ T)
+            (same-rep-unique (proj₂ (proj₂ smQ))
+                             (proj₂ (proj₂ smAᵢ)))
+            (proj₁ (proj₂ smQ))
 
-    -- the crossing argument's own exterior reading, lifted past the
-    -- bind block, is the source spelling the dual's conversion wants
-    sameᵢ-d : extendReps (binds Θ) Δ ⊢ _ ≈ P′ ⊣ Δᵈ
-    sameᵢ-d =
-      shiftBy n Ra
-      , same-shiftRVars n pA
-      , subst (λ T → names Δᵈ ⊢ P′ ~ T)
-              (trans (same-rep-unique (proj₂ (proj₂ smP)) qA)
-                     (shiftRep-shiftBy n Ra))
-              (proj₁ (proj₂ smP))
-
-    sameₑ-d : SameTyExt (numBinds (dualBoundary Θ)) Δᵢ Aᵢ Δᵈ Q′
-    sameₑ-d =
-      proj₁ smAᵢ , proj₁ (proj₂ smAᵢ)
-      , subst (λ T → names Δᵈ ⊢ Q′ ~ T)
-              (same-rep-unique (proj₂ (proj₂ smQ))
-                               (proj₂ (proj₂ smAᵢ)))
-              (proj₁ (proj₂ smQ))
-
-    arg : Δᵢ ∣ [] ⊢
-        (renᴹ² (ren² (λ X → X) (wkN n)) W ⟪ dualBoundary Θ , s′ ⟫) ⦂ Aᵢ
-    arg =
-      subst (λ W′ → Δᵢ ∣ [] ⊢ W′ ⟪ dualBoundary Θ , s′ ⟫ ⦂ Aᵢ)
-            (sym (renᴹ²-ord-id (λ X → refl) W))
-            (env mwD (repWeaken (binds Θ) (bw-binds mwΘ) ⊢W)
-                 ⊢s′ sameᵢ-d sameₑ-d
-                 (same-wf (proj₁ (proj₂ smAᵢ))))
+  arg : Δᵢ ∣ [] ⊢ (W ⟪ dualBoundary Θ , s′ ⟫) ⦂ Aᵢ
+  arg = env mwD ⊢W ⊢s′ sameᵢ-d sameₑ-d
+            (same-wf (proj₁ (proj₂ smAᵢ)))

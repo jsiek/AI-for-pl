@@ -218,30 +218,33 @@ derived.
 
 ## Derived Boundary Scopes
 
-In the following equations, change sequences are written in acting order.
+Change sequences are written in ACTING order, `⟨δ₁, …, δₙ⟩` acting
+`δ₁` first, and `⟨Θ₁, Θ₂⟩` is concatenation (Θ₁ acts first).  The inverse
+of a change swaps lock and unlock:
 
-    dual Θ
-      performs the inverse changes in reverse acting order
+    (lock X α)⁻¹    = unlock X α
+    (unlock X α)⁻¹  = lock X α
 
-    rewind Θ
-      performs Θ, then their inverses
+    dual ⟨⟩          = ⟨⟩
+    dual ⟨δ, Θ⟩      = ⟨dual Θ, δ⁻¹⟩          -- inverses, in reverse order
 
-    Θ₁ ++ Θ₂
-      performs Θ₂, then Θ₁
+    rewind Θ         = ⟨Θ, dual Θ⟩
 
-    addLock(X,α,Θ)
-      performs lock X α first, then Θ
+    Θ₁ ++ Θ₂         = ⟨Θ₂, Θ₁⟩               -- the outer scope Θ₂ acts first
 
-    inst(X,α,Θ)
-      unlocks X α first, then performs Θ
+    addLock(X,α,Θ)   = ⟨lock X α, Θ⟩
 
-In Agda these are list expressions on the change list, not operations on
-a record: `dual`, `rewind Θ = dual Θ ++ Θ`, merging is `Θ₁ ++ Θ₂`,
-`addLock` is the snoc `Θ ++ (lock 0 0 ∷ [])`, and
+    inst(X,α,Θ)      = ⟨unlock X α, Θ⟩
+
+Agda's change lists are head-LAST (the tail acts first), so its
+spellings are the mirror images: `dual χ = map dualChange (reverse χ)`,
+`rewind Θ = dual Θ ++ Θ`, merging is literally `Θ₁ ++ Θ₂`, `addLock` is
+the snoc `Θ ++ (lock 0 0 ∷ [])`, and
 `inst Θ = map shiftChange Θ ++ (unlock 0 0 ∷ [])`.  Nothing shifts a
 representation when two scopes merge, because both were spelled at the
 same store; `inst` shifts in both universes because it is read one
-allocation later.
+allocation later — with names that shift is invisible, which is why the
+equation above has none.
 
 ## A concrete boundary
 

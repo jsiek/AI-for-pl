@@ -1,6 +1,6 @@
 # Experiment 2 — a GLOBAL REPRESENTATION STORE instead of `binds`
 
-Sketch, 2026-09-22, third revision.  Jeremy: "removing the binds field
+Sketch, 2026-09-22, fourth revision.  Jeremy: "removing the binds field
 from Boundary and instead make that a global representation type store.
 For example, TyBeta would add the representation R to the type store."
 Then: addresses need not be a separate sort ("larger de Bruijn
@@ -8,6 +8,8 @@ indices"), and — the version this revision adopts — "use zero for the
 fresh address and push all the existing addresses up by one.  That
 means the ξ reduction rules all need to shift the rep vars in the
 sibling terms, but that's just one easy lemma used in many places."
+And: "have reduction return the change to the environment instead of
+the new environment.  Then you don't need to deal with subtraction."
 
 Nothing here is implemented.  Every `Agda` block is the intended
 statement, written against the current strong-rep-store names so that
@@ -53,8 +55,9 @@ Appending at the end would instead need a pointer substitution
 (second revision of this note, retired).  Fresh = 0 keeps the standard
 right-referring telescope, so `_∋ʳ_:=_`, `WfRepCtx`, `RepWk`,
 `_⊢ᴿ[_]_` and the 56 uses of the lazy shift in `proof/Ctx.agda` are
-untouched.  The price is that a step CHANGES THE CONTEXT and the
-congruences shift siblings — §3.
+untouched.  The price is that a step GROWS THE CONTEXT and the
+congruences shift siblings — §3, where a step returns the growth `δ`
+and the new context is `apply δ Δ`.
 
 ## 1. Definitions
 
@@ -206,20 +209,34 @@ and its companions `interior-ren`/`conversion-ren` (readings),
 1), `wf-ren-rep` (types).  All exist.  What is NEW is only where they
 are applied: in every congruence, to the redex's siblings.
 
-## 3. Reduction — a step returns the new context
+## 3. Reduction — a step returns the CHANGE to the store
 
 ```agda
-_⊢_-→_∣_ : Ctxᵗ → Term → Term → Ctxᵗ → Set
--- Δ ⊢ M -→ M′ ∣ Δ′ : Δ′ is Δ, or allocate R Δ after a ∀-elimination
+Alloc : Set                   -- what a step did to the store, newest first
+Alloc = List Ty               -- [] or R ∷ [] for one step; ++ over runs
+
+apply : Alloc → Ctxᵗ → Ctxᵗ
+apply []      Δ = Δ
+apply (R ∷ δ) Δ = allocate R (apply δ Δ)
+
+↑[_] : Alloc → Term → Term    -- the sibling shift, by the number of cells
+↑[ δ ] = renᴹᴿ (wkN (length δ))       -- likewise renᴮᴿ/renᶜ (wkN (length δ))
+
+_⊢_-→_∣_ : Ctxᵗ → Term → Term → Alloc → Set
+-- Δ ⊢ M -→ M′ ∣ δ : the contractum M′ lives at apply δ Δ
 ```
+
+`Alloc` rather than `Maybe Ty` so that runs compose: `_then_` below
+returns `δ₂ ++ δ₁`, `Reaches` records one list, and `preserve*` is a
+fold.  No context is ever subtracted from another.
 
 ```agda
 TyBeta : Value N → Δ ⊢ᶜ A ~ R
   → Δ ⊢ (Λ N) ·[ B , A ]
-      -→ N ⟪ unlock 0 0 ∷ [] , reveal 0 B ⟫ ∣ allocate R Δ
+      -→ N ⟪ unlock 0 0 ∷ [] , reveal 0 B ⟫ ∣ R ∷ []
 ```
 
-(today: `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫ ∣ Δ` — the
+(today: `N ⟪ instantiate R (boundary [] []) , reveal 0 B ⟫` — the
 SAME contractum with the bind moved from the boundary to the context.
 `N` is verbatim: it was typed at `underΛ Δ = abstR ∷ Ξ ∣ 0 ∷ shiftNames
 Δ`, and the interior of the contractum reads `unlock 0 0` at
@@ -228,7 +245,7 @@ SAME contractum with the bind moved from the boundary to the context.
 
 ```agda
 Beta : Value W → Δ ⊢ᶜ A ~ R
-  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ R ]ᵐ ∣ Δ
+  → Δ ⊢ (ƛ A ∙ N) · W -→ N [ W ∶ R ]ᵐ ∣ []
 -- crossΛᴹ unchanged in shape: renᴹ² (ren² idᵗ suc) W ⟪ lock 0 0 ∷ [] , mkId (⇑ᵗ R) ⟫
 ```
 
@@ -238,7 +255,7 @@ the argument type as a representation; under R2-b it is today's rule.)
 ```agda
 Peel : Value V → Value W
   → Δ ⊢ (V ⟪ Θ , s ↦ t ⟫) · W
-      -→ (V · (W ⟪ dualBoundary Θ , s ⟫)) ⟪ Θ , t ⟫ ∣ Δ
+      -→ (V · (W ⟪ dualBoundary Θ , s ⟫)) ⟪ Θ , t ⟫ ∣ []
 ```
 
 (today: `renᴹ² (ren² idᵗ (wkN (numBinds Θ))) W`, `s′` with
@@ -249,14 +266,14 @@ under R2 `s` means the same thing in `Δᵈ`.)
 ```agda
 TyPeelR-Λ : Value N → Δ ⊢ᶜ A ~ R
   → Δ ⊢ ((Λ N) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
-      -→ N ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ allocate R Δ
+      -→ N ⟪ instantiate Θ , instReveal 0 s ⟫ ∣ R ∷ []
 
 TyPeelR-⟪⟫ : Value W → Δ ⊢ᶜ A ~ R → (the Bᵢ′ reading, as today)
   → Δ ⊢ ((W ⟪ Θ′ , `∀ s′ ⟫) ⟪ Θ , `∀ s ⟫) ·[ B , A ]
       -→ ((↑ᴿ W ⟪ addLock0 (renᴮᴿ suc (map shiftX Θ′)) , `∀ (renᶜ suc s′) ⟫)
             ·[ renameᵗ (extᵗ suc) Bᵢ′ , ` 0 ])
            ⟪ instantiate Θ , instReveal 0 s ⟫
-      ∣ allocate R Δ
+      ∣ R ∷ []
 ```
 
 In `TyPeelR-⟪⟫` the inner boundary is a SIBLING of the redex's `Λ`
@@ -269,11 +286,11 @@ exact `renᶜ suc s′`.
 ```agda
 CancelR : Value V → Δ ∋rep α := R
   → Δ ⊢ (V ⟪ Θ₁ , seal α ⟫) ⟪ Θ₂ , unseal α ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId R ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ Δ
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , mkId R ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ []
 
 IdPush : Value V → Δ ∋rep β := R
   → Δ ⊢ (V ⟪ Θ₁ , id (` α) ⟫) ⟪ Θ₂ , unseal β ⟫
-      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal β ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ Δ
+      -→ (V ⟪ Θ₁ ⋉ Θ₂ , unseal β ⟫) ⟪ rewind Θ₂ , mkId R ⟫ ∣ []
 ```
 
 Today `CancelR` has eight premises (`seal X` at `Δ₁ᶜ`, `unseal Y` at
@@ -282,36 +299,32 @@ two conversions spell one fact in two name maps.  Under R2 typing forces
 the SAME `α` on both sides (`Δᵢ ⊢ ` X ≈ ` Y ⊣ Δᶜ` is `α ≡ β`) and the
 minted identities are read off the context.  `IdPush` loses its
 `` Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ `` re-spelling for the same reason.  `Drop$`,
-`Drop-true`, `Drop-false` return `Δ`.
+`Drop-true`, `Drop-false` return `[]`.
 
-THE CONGRUENCES shift the siblings by whatever the step allocated:
+THE CONGRUENCES pass the change up and shift the siblings by it:
 
 ```agda
-↑[_,_] : (Δ Δ′ : Ctxᵗ) → Term → Term      -- shift by the growth of reps
-↑[ Δ , Δ′ ] = renᴹᴿ (wkN (length (reps Δ′) ∸ length (reps Δ)))
-                                            -- id or suc, never more
-
-ξ-·-l  : Δ ⊢ L -→ L′ ∣ Δ′ → Δ ⊢ L · M -→ L′ · ↑[ Δ , Δ′ ] M ∣ Δ′
-ξ-·-r  : Value V → Δ ⊢ M -→ M′ ∣ Δ′
-       → Δ ⊢ V · M -→ ↑[ Δ , Δ′ ] V · M′ ∣ Δ′
-ξ-·[]  : Δ ⊢ L -→ L′ ∣ Δ′ → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ] ∣ Δ′
-ξ-⟪⟫   : Δ ⊢ⁱ Θ ⇒ Δᵢ → Δᵢ ⊢ M -→ M′ ∣ Δᵢ′
-       → Δ ⊢ M ⟪ Θ , c ⟫
-           -→ M′ ⟪ renᴮᴿ ρ Θ , renᶜ ρ c ⟫ ∣ (reps Δᵢ′ ∣ map ρ (names Δ))
-         where ρ = wkN (length (reps Δᵢ′) ∸ length (reps Δ))
+ξ-·-l  : Δ ⊢ L -→ L′ ∣ δ → Δ ⊢ L · M -→ L′ · ↑[ δ ] M ∣ δ
+ξ-·-r  : Value V → Δ ⊢ M -→ M′ ∣ δ → Δ ⊢ V · M -→ ↑[ δ ] V · M′ ∣ δ
+ξ-·[]  : Δ ⊢ L -→ L′ ∣ δ → Δ ⊢ L ·[ B , A ] -→ L′ ·[ B , A ] ∣ δ
+ξ-⟪⟫   : Δ ⊢ⁱ Θ ⇒ Δᵢ → Δᵢ ⊢ M -→ M′ ∣ δ
+       → Δ ⊢ M ⟪ Θ , c ⟫ -→ M′ ⟪ ↑[ δ ] Θ , ↑[ δ ] c ⟫ ∣ δ
 ```
 
-`ξ-·[]`'s type annotations are ordinary and do not shift.  In `ξ-⟪⟫` the
-interior allocated on the shared `reps`, so the exterior's new context
-is the same `reps` with the exterior's names shifted; `interior-ren`
-re-derives `Δ′ ⊢ⁱ renᴮᴿ ρ Θ ⇒ Δᵢ′`.  **ASK (R6):** state the shift as
-`↑[ Δ , Δ′ ]` (a function of the two contexts, so the rules stay
-first-order) or index the step by the renaming it delivers,
-`Δ ⊢ M -→ M′ ∣ ρ ⊣ Δ′` with `RepWk ρ (reps Δ) (reps Δ′)` — which is
-the shape `Residual r C M ρ D N` already uses for the color theorem.
-Recommendation: the function; `Residual` can read ρ off `Δ`/`Δ′`.
+`ξ-·[]`'s type annotations are ordinary and do not shift.  In `ξ-⟪⟫`
+the interior's contractum lives at `apply δ Δᵢ`, and `interior-ren` at
+`wkN (length δ)` says that is exactly what `apply δ Δ ⊢ⁱ ↑[ δ ] Θ ⇒ _`
+reads — the fact `preserve`'s `ξ-⟪⟫` case needs.  The rules never
+mention `apply`; only the theorems do.
 
-`value-¬step` is unchanged.  `det` concludes `M′ ≡ M″ × Δ′ ≡ Δ″`.
+```agda
+data _⊢_-→*_∣_ : Ctxᵗ → Term → Term → Alloc → Set where
+  done   : Δ ⊢ M -→* M ∣ []
+  _then_ : Δ ⊢ L -→ M ∣ δ₁ → apply δ₁ Δ ⊢ M -→* N ∣ δ₂
+         → Δ ⊢ L -→* N ∣ δ₂ ++ δ₁
+```
+
+`value-¬step` is unchanged.  `det` concludes `M′ ≡ M″ × δ′ ≡ δ″`.
 
 ## 4. The same programs, on the store
 
@@ -395,24 +408,28 @@ ambient), `↑ᴿ`/`↑[_,_]`, the context-returning step relation, and the
 The theorem statements:
 
 ```agda
-Preservation = ∀ {Δ Δ′ M M′ A} → WfCtx Δ
-  → Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ Δ′
-  → WfCtx Δ′ × (Δ′ ∣ [] ⊢ M′ ⦂ A)
+Preservation = ∀ {Δ δ M M′ A} → WfCtx Δ
+  → Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ δ
+  → WfCtx (apply δ Δ) × (apply δ Δ ∣ [] ⊢ M′ ⦂ A)
+
+Preservation* likewise, by folding apply along _then_
 
 Progress      = ∀ {Δ M A} → Δ ∣ [] ⊢ M ⦂ A
-  → Value M ⊎ ∃[ M′ ] ∃[ Δ′ ] (Δ ⊢ M -→ M′ ∣ Δ′)
+  → Value M ⊎ ∃[ M′ ] ∃[ δ ] (Δ ⊢ M -→ M′ ∣ δ)
 
-det : Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ Δ′ → Δ ⊢ M -→ M″ ∣ Δ″
-  → M′ ≡ M″ × Δ′ ≡ Δ″
+det : Δ ∣ [] ⊢ M ⦂ A → Δ ⊢ M -→ M′ ∣ δ′ → Δ ⊢ M -→ M″ ∣ δ″
+  → M′ ≡ M″ × δ′ ≡ δ″
 ```
 
-`Preservation` needs no `⊑`: the new context is named.  Its congruence
-cases are `⊢↑ᴿ` on the sibling plus the IH.
+`Preservation` needs no `⊑` and no subtraction: the new context is
+`apply δ Δ`, and `⊢↑ᴿ` is stated at `wkN (length δ)` — `repwk-wkN`
+already takes a list.  Its congruence cases are `⊢↑ᴿ` on the sibling
+plus the IH.
 
 Color/scope-map preservation: the residual renaming `ρ` a step delivers
-is now `wkN k` for the step's allocation count, uniformly for every
-position — the theorem's shape (`names Δ₂ ≡ map ρ (names Δ₁)`) is
-unchanged and `ρ` is read off the contexts.
+is now `wkN (length δ)`, uniformly for every position — the theorem's
+shape (`names Δ₂ ≡ map ρ (names Δ₁)`) is unchanged and `ρ` is read off
+`δ`.
 
 ## 6. Decision points, collected
 
@@ -427,8 +444,9 @@ unchanged and `ρ` is read off the contexts.
   lemma (`⊢renᴿ`) in many places.  Append-at-end retired.
 - **R5** the ambient abstract entries stay in `Ξ` (needed to type `Λ`
   bodies and to state reduction at the probes' `underΛ empty`).
-- **R6** the shift in the congruences as a function of the two contexts
-  (`↑[ Δ , Δ′ ]`, recommended) or as an index `ρ` on the step.
+- ~~R6~~ RULED (Jeremy): a step returns the CHANGE `δ : Alloc`, not the
+  new context; the shift is `wkN (length δ)` and the new context is
+  `apply δ Δ`.  No subtraction anywhere.
 
 ## 7. Suggested order of work
 
@@ -436,11 +454,12 @@ unchanged and `ρ` is read off the contexts.
    `extendReps`, `instantiate`/`addLock0`/`_⋉_`/`renᴮᴿ` as in §1.2;
    `Conversion.agda` on `RVar` (R2).  Statements only, then `Terms.agda`'s
    `env` and `allocate` in `Ctx.agda`.
-2. `Reduction.agda` with the `∣ Δ′` index and `↑[_,_]` in the
-   congruences; `det` and `value-¬step`.
-3. `TypeCheck.agda`/`Eval.agda`: `step` returns `Δ′` and applies the
-   sibling shift; `eval` threads the context; `Reaches` records the
-   final `reps`.  Rerun the 23 runs — their step counts should be
+2. `Reduction.agda` with the `∣ δ` index and `↑[ δ ]` in the
+   congruences; `_-→*_` accumulating `δ₂ ++ δ₁`; `det` and
+   `value-¬step`.
+3. `TypeCheck.agda`/`Eval.agda`: `step` returns `δ` and applies the
+   sibling shift; `eval` threads `apply δ`; `Reaches` records the run's
+   `δ`.  Rerun the 23 runs — their step counts should be
    UNCHANGED (no rule was added or split).
 4. `proof/Preserve.agda`: congruences by `⊢↑ᴿ`, `TyBeta` by today's
    `⊢refine`, then rule by rule; `TyPeelR-⟪⟫` should be the big win.

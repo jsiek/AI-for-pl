@@ -8,7 +8,7 @@ module strong-rep-store.Eval where
 --     `cancelPremises?`, `mergedPremises?`, `pushPremises?`); §3 is the
 --     redex search by head shape (`appRedex`, `tyAppRedex`,
 --     `bdyRedex`); §4 is `step`, leftmost-outermost, returning
---     `StepResult Δ M = ∃[ M′ ] (Δ ⊢ M -→ M′)`; §5 forgets the
+--     the contractum, allocation, and step derivation; §5 forgets the
 --     derivation (`stepTo`, `Steps`); §6–§7 are `Trace` and `eval`;
 --     §8–§9 read a trace (`traceEnd`, `traceTerms`, `traceLen`,
 --     `evalTerms`, `trace-sound`, `Checked`, `trace-⦂`); §10 is
@@ -21,15 +21,16 @@ module strong-rep-store.Eval where
 --     other half — that a well-typed term is a value or steps — so a
 --     `nothing` means only that this search found no redex; that is
 --     `progress`, and it lives in strong-rep-store.Progress /
--- strong-rep-store.proof.
---     The rules are strong-rep-store.Reduction; the checkers every premise here
---     comes from are strong-rep-store.TypeCheck; the recorded runs are
+--     strong-rep-store.proof.  The rules are strong-rep-store.Reduction;
+--     the checkers every premise here comes from are
+--     strong-rep-store.TypeCheck; the recorded runs are
 --     strong-rep-store.Examples.
 --   * WHAT A RUN ASSERTS, AND THE ONE WAY IT CAN LOSE THE TYPE.  `eval`
 --     is `step ⨟ check⊢` iterated with fuel: preservation is not used
 --     to retype a contractum, the contractum is CHECKED instead, at the
---     type the run started with.  A step whose contractum the checker
---     rejected is recorded as `illtyped`, and that constructor is the
+--     type the run started with and the context after that step's
+--     allocation.  A step whose contractum the checker rejected is
+--     recorded as `illtyped`, and that constructor is the
 --     ONLY way a type is lost along a `Trace`; `Checked tr` is the unit
 --     record exactly when no `illtyped` occurs, so Agda discharges it
 --     by eta at a concrete run.  That is subject reduction FOR THAT
@@ -47,8 +48,8 @@ module strong-rep-store.Eval where
 -- not apply here: `step` returns the derivation, not the term, so
 -- soundness is the type and there is nothing to transcribe.
 --
--- On a well-typed term, determinism (`det`, strong-rep-store.Reduction) is what
--- makes
+-- On a well-typed term, determinism (`det`, strong-rep-store.Reduction) is
+-- what makes
 -- "no soundness theorem" enough in practice.  Any redex `step` finds is THE
 -- redex, so a run it produces is THE run, and an example has only to say
 -- where that run ends (`Reaches`, §10).
@@ -135,11 +136,10 @@ BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ =
       ((Δ ⊢ⁱ Θ ⇒ Δᵢ)
         × (underΛ Δᵢ ⊢ Bᵢ′ ≈ Bᵢ ⊣ underΛ Δᶜ)
         × (Δᵢ ⊢ᶜ Θ′ ⇒ Δ′ᶜ)
-        × (Δ ⊢ⁱ instantiate R Θ ⇒ Δᵢ⁺)
-        × (Δᵢ⁺ ⊢ᶜ addLock0 (renᴮ² (ren² idᵗ suc) Θ′) ⇒ Δ″ᶜ)
+        × (allocate R Δ ⊢ⁱ instantiate Θ ⇒ Δᵢ⁺)
+        × (Δᵢ⁺ ⊢ᶜ addLock0 (renᴮᴿ suc Θ′) ⇒ Δ″ᶜ)
         × SameConv (underΛ Δ″ᶜ) s″
-            (underΛ
-              (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)) s′)
+            (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)) s′)
 
 bdyPremises? : (Δ : Ctxᵗ) (Θ Θ′ : Boundary) (s′ : Conv)
   (R Bᵢ : Ty) (Δᶜ : Ctxᵗ) → Maybe (BdyPremises Δ Θ Θ′ s′ R Bᵢ Δᶜ)
@@ -154,12 +154,12 @@ bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | nothing = nothing
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′)
-  with interior? Δ (instantiate R Θ)
+  with interior? (allocate R Δ) (instantiate Θ)
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | nothing = nothing
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
-  with conversion? Δᵢ⁺ (addLock0 (renᴮ² (ren² idᵗ suc) Θ′))
+  with conversion? Δᵢ⁺ (addLock0 (renᴮᴿ suc Θ′))
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
   | nothing = nothing
@@ -167,8 +167,7 @@ bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
   | just (Δ″ᶜ , r″)
   with respell?
-         (names (underΛ
-           (renNameCtx (extN (numBinds Θ′) suc) Δ″ᶜ Δ′ᶜ)))
+         (names (underΛ (renNameCtx suc Δ″ᶜ Δ′ᶜ)))
          (names (underΛ Δ″ᶜ)) s′
 bdyPremises? Δ Θ Θ′ s′ R Bᵢ Δᶜ | just (Δᵢ , ri)
   | just (Bᵢ′ , sm) | just (Δ′ᶜ , r′) | just (Δᵢ⁺ , ri⁺)
@@ -185,7 +184,7 @@ PushPremises : Ctxᵗ → Boundary → Boundary → ℕ → Set
 PushPremises Δ Θ₁ Θ₂ X =
   Σ[ Δᵢ ∈ Ctxᵗ ] Σ[ Δ₁ᶜ ∈ Ctxᵗ ] Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ X′ ∈ ℕ ]
     ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
-      × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+      × (Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
       × (Δ⋉ᶜ ⊢ ` X′ ≈ ` X ⊣ Δ₁ᶜ))
 
 pushPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
@@ -195,7 +194,7 @@ pushPremises? Δ Θ₁ Θ₂ X | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) with conversion? Δᵢ Θ₁
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
-  with conversion? (extendReps (binds Θ₂) Δ) (Θ₁ ⋉ Θ₂)
+  with conversion? Δ (Θ₁ ⋉ Θ₂)
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | nothing = nothing
 pushPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
@@ -226,7 +225,7 @@ MergedPremises Δ Θ₁ Θ₂ X =
     Σ[ Δ⋉ᶜ ∈ Ctxᵗ ] Σ[ A′ ∈ Ty ]
       ((Δ ⊢ⁱ Θ₂ ⇒ Δᵢ) × (Δᵢ ⊢ᶜ Θ₁ ⇒ Δ₁ᶜ)
         × (Δ₁ᶜ ∋ X := Aᵢ)
-        × (extendReps (binds Θ₂) Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
+        × (Δ ⊢ᶜ Θ₁ ⋉ Θ₂ ⇒ Δ⋉ᶜ)
         × (Δ⋉ᶜ ⊢ A′ ≈ Aᵢ ⊣ Δ₁ᶜ))
 
 mergedPremises? : (Δ : Ctxᵗ) (Θ₁ Θ₂ : Boundary) (X : ℕ)
@@ -242,7 +241,7 @@ mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | nothing = nothing
 mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Aᵢ , d₁)
-  with conversion? (extendReps (binds Θ₂) Δ) (Θ₁ ⋉ Θ₂)
+  with conversion? Δ (Θ₁ ⋉ Θ₂)
 mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
   | just (Aᵢ , d₁) | nothing = nothing
 mergedPremises? Δ Θ₁ Θ₂ X | just (Δᵢ , ri) | just (Δ₁ᶜ , r₁)
@@ -306,13 +305,13 @@ cancelPremises? Δ Θ Y | just (Δᶜ , rel) | just (A , d) =
 -- VALUE derivation is what refines its shape — and, at a boundary, its
 -- conversion, since `Peel` fires only under a `_↦_`.
 appRedex : (Δ : Ctxᵗ) {L M : Term} → Value L → Value M
-  → Maybe (∃[ N ] (Δ ⊢ L · M -→ N))
-appRedex Δ V-ƛ             vM = just (_ , Beta vM)
+  → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ L · M -→ N ∣ δ))
+appRedex Δ V-ƛ             vM = just (_ , none , Beta vM)
 appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
   with crossPremises? Δ Θ s
 appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM
   | just (Δᶜ , Δᵢ , Δᵈ , s′ , rc , ri , rd , sc) =
-  just (_ , Peel v vM rc ri rd sc)
+  just (_ , none , Peel v vM rc ri rd sc)
 appRedex Δ (V-⟪⟫ {Θ = Θ} v (I-fun {s = s})) vM | nothing = nothing
 appRedex Δ (V-⟪⟫ v I-idv)  vM = nothing
 appRedex Δ (V-⟪⟫ v I-seal) vM = nothing
@@ -327,15 +326,16 @@ appRedex Δ V-false         vM = nothing
 -- three clauses below are `TyBeta`, `TyPeelR-Λ` and `TyPeelR-⟪⟫` in that
 -- order.
 tyAppRedex : (Δ : Ctxᵗ) {L : Term} (B A : Ty) → Value L
-  → Maybe (∃[ N ] (Δ ⊢ L ·[ B , A ] -→ N))
+  → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ L ·[ B , A ] -→ N ∣ δ))
 tyAppRedex Δ B A (V-Λ vN) with read? (names Δ) A
-tyAppRedex Δ B A (V-Λ vN) | just (R , same) = just (_ , TyBeta vN same)
+tyAppRedex Δ B A (V-Λ vN) | just (R , same) =
+  just (_ , new R , TyBeta vN same)
 tyAppRedex Δ B A (V-Λ vN) | nothing = nothing
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
   with peelPremises? Δ Θ s A
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) =
-  just (_ , TyPeelR-Λ vN rel ⊢s same)
+  just (_ , new R , TyPeelR-Λ vN rel ⊢s same)
 tyAppRedex Δ B A (V-⟪⟫ {Θ = Θ} (V-Λ vN) (I-all {s})) | nothing = nothing
 tyAppRedex Δ B A
   (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
@@ -352,7 +352,7 @@ tyAppRedex Δ B A
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same)
   | just (Δᵢ , Bᵢ′ , Δ′ᶜ , Δᵢ⁺ , Δ″ᶜ , s″
          , ri , sm , r′ , ri⁺ , r″ , sc) =
-  just (_ , TyPeelR-⟪⟫ vW ri rel r′ ri⁺ r″ sc ⊢s sm same)
+  just (_ , new R , TyPeelR-⟪⟫ vW ri rel r′ ri⁺ r″ sc ⊢s sm same)
 tyAppRedex Δ B A
   (V-⟪⟫ {Θ = Θ} (V-⟪⟫ {Θ = Θ′} vW (I-all {s = s′})) (I-all {s}))
   | just (Δᶜ , Bᵢ , Bₑ , R , rel , ⊢s , same) | nothing = nothing
@@ -363,12 +363,12 @@ tyAppRedex Δ B A _ = nothing
 -- one, and are told apart by the inner conversion.  Everything else is
 -- either a congruence or stuck, which is the caller's business.
 bdyRedex : (Δ : Ctxᵗ) (M : Term) (Θ : Boundary) (c : Conv)
-  → Maybe (∃[ N ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ N))
+  → Maybe (∃[ N ] ∃[ δ ] (Δ ⊢ M ⟪ Θ , c ⟫ -→ N ∣ δ))
 bdyRedex Δ ($ n) Θ (id A) with base? A
-bdyRedex Δ ($ n) Θ (id A) | just b  = just (_ , Drop$ b)
+bdyRedex Δ ($ n) Θ (id A) | just b  = just (_ , none , Drop$ b)
 bdyRedex Δ ($ n) Θ (id A) | nothing = nothing
-bdyRedex Δ `true  Θ (id `𝔹) = just (_ , Drop-true)
-bdyRedex Δ `false Θ (id `𝔹) = just (_ , Drop-false)
+bdyRedex Δ `true  Θ (id `𝔹) = just (_ , none , Drop-true)
+bdyRedex Δ `false Θ (id `𝔹) = just (_ , none , Drop-false)
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) with value? V
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
@@ -380,7 +380,7 @@ bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
   | just (Δᶜ , A , rel , d)
   | just (Δᵢ , Δ₁ᶜ , Aᵢ , Δ⋉ᶜ , A′
          , ri , r₁ , d₁ , r⋉ , sm) =
-  just (_ , CancelR v ri r₁ d₁ r⋉ sm rel d)
+  just (_ , none , CancelR v ri r₁ d₁ r⋉ sm rel d)
 bdyRedex Δ (V ⟪ Θ₁ , seal X ⟫) Θ (unseal Y) | just v
   | just (Δᶜ , A , rel , d) | nothing = nothing
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) with value? V
@@ -394,7 +394,7 @@ bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
   | just (Δᶜ , A , rel , d)
   | just (Δᵢ , Δ₁ᶜ , Δ⋉ᶜ , X′ , ri , r₁ , r⋉ , sm) =
-  just (_ , IdPush v ri r₁ r⋉ sm rel d)
+  just (_ , none , IdPush v ri r₁ r⋉ sm rel d)
 bdyRedex Δ (V ⟪ Θ₁ , id (` X) ⟫) Θ (unseal Y) | just v
   | just (Δᶜ , A , rel , d) | nothing = nothing
 bdyRedex Δ M Θ c = nothing
@@ -404,7 +404,7 @@ bdyRedex Δ M Θ c = nothing
 ------------------------------------------------------------------------
 
 StepResult : Ctxᵗ → Term → Set
-StepResult Δ M = ∃[ M′ ] (Δ ⊢ M -→ M′)
+StepResult Δ M = ∃[ M′ ] ∃[ δ ] (Δ ⊢ M -→ M′ ∣ δ)
 
 -- Leftmost-outermost, with the rules' own `Value` premises deciding where
 -- a congruence stops: at each node the head is tried first, and a redex is
@@ -418,19 +418,20 @@ step Δ `false    = nothing
 step Δ (ƛ A ∙ N) = nothing
 step Δ (Λ N)     = nothing        -- no ξ-Λ: a type abstraction is a value
 step Δ (L · M) with step Δ L
-step Δ (L · M) | just (L′ , st) = just (L′ · M , ξ-·-l st)
+step Δ (L · M) | just (L′ , δ , st) =
+  just (L′ · ↑ᴹ[ δ ] M , δ , ξ-·-l st)
 step Δ (L · M) | nothing with value? L
 step Δ (L · M) | nothing | nothing = nothing
 step Δ (L · M) | nothing | just vL with step Δ M
-step Δ (L · M) | nothing | just vL | just (M′ , st) =
-  just (L · M′ , ξ-·-r vL st)
+step Δ (L · M) | nothing | just vL | just (M′ , δ , st) =
+  just (↑ᴹ[ δ ] L · M′ , δ , ξ-·-r vL st)
 step Δ (L · M) | nothing | just vL | nothing with value? M
 step Δ (L · M) | nothing | just vL | nothing | nothing = nothing
 step Δ (L · M) | nothing | just vL | nothing | just vM =
   appRedex Δ vL vM
 step Δ (L ·[ B , A ]) with step Δ L
-step Δ (L ·[ B , A ]) | just (L′ , st) =
-  just (L′ ·[ B , A ] , ξ-·[] st)
+step Δ (L ·[ B , A ]) | just (L′ , δ , st) =
+  just (L′ ·[ B , A ] , δ , ξ-·[] st)
 step Δ (L ·[ B , A ]) | nothing with value? L
 step Δ (L ·[ B , A ]) | nothing | nothing   = nothing
 step Δ (L ·[ B , A ]) | nothing | just vL = tyAppRedex Δ B A vL
@@ -439,8 +440,9 @@ step Δ (M ⟪ Θ , c ⟫) | just r = just r
 step Δ (M ⟪ Θ , c ⟫) | nothing with interior? Δ Θ
 step Δ (M ⟪ Θ , c ⟫) | nothing | nothing = nothing
 step Δ (M ⟪ Θ , c ⟫) | nothing | just (Δᵢ , rel) with step Δᵢ M
-step Δ (M ⟪ Θ , c ⟫) | nothing | just (Δᵢ , rel) | just (M′ , st) =
-  just (M′ ⟪ Θ , c ⟫ , ξ-⟪⟫ rel st)
+step Δ (M ⟪ Θ , c ⟫) | nothing | just (Δᵢ , rel)
+  | just (M′ , δ , st) =
+  just (M′ ⟪ ↑ᴮ[ δ ] Θ , c ⟫ , δ , ξ-⟪⟫ rel st)
 step Δ (M ⟪ Θ , c ⟫) | nothing | just (Δᵢ , rel) | nothing = nothing
 
 ------------------------------------------------------------------------
@@ -458,8 +460,9 @@ Steps Δ M N = stepTo Δ M ≡ just N
 
 -- The derivation behind such a check, when a caller wants it rather than
 -- the equation.
-stepDeriv : ∀ {Δ M} (r : StepResult Δ M) → Δ ⊢ M -→ proj₁ r
-stepDeriv r = proj₂ r
+stepDeriv : ∀ {Δ M} (r : StepResult Δ M)
+  → Δ ⊢ M -→ proj₁ r ∣ proj₁ (proj₂ r)
+stepDeriv r = proj₂ (proj₂ r)
 
 ------------------------------------------------------------------------
 -- 6. Traces
@@ -482,9 +485,11 @@ data Final (M : Term) : Set where
 infixr 5 _◅⟨_⟩_
 data Trace (Δ : Ctxᵗ) (A : Ty) : Term → Set where
   stop   : ∀ {M} → Final M → Trace Δ A M
-  illtyped  : ∀ {M M′} → Δ ⊢ M -→ M′ → Trace Δ A M
-  _◅⟨_⟩_ : ∀ {M M′} → Δ ⊢ M -→ M′ → Δ ∣ [] ⊢ M′ ⦂ A
-    → Trace Δ A M′ → Trace Δ A M
+  illtyped  : ∀ {M M′ δ} → Δ ⊢ M -→ M′ ∣ δ → Trace Δ A M
+  _◅⟨_⟩_ : ∀ {M M′ δ} → Δ ⊢ M -→ M′ ∣ δ
+    → apply δ Δ ∣ [] ⊢ M′ ⦂ A
+    → Trace (apply δ Δ) A M′
+    → Trace Δ A M
 
 ------------------------------------------------------------------------
 -- 7. The evaluator
@@ -508,10 +513,11 @@ eval {Δ} {A} (suc k) M ⊢M with step Δ M
 eval {Δ} {A} (suc k) M ⊢M | nothing with value? M
 eval {Δ} {A} (suc k) M ⊢M | nothing | just v  = stop (value v)
 eval {Δ} {A} (suc k) M ⊢M | nothing | nothing = stop no-redex
-eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) with check⊢ Δ [] M′ A
-eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | just ⊢M′ =
+eval {Δ} {A} (suc k) M ⊢M | just (M′ , δ , r)
+  with check⊢ (apply δ Δ) [] M′ A
+eval {Δ} {A} (suc k) M ⊢M | just (M′ , δ , r) | just ⊢M′ =
   r ◅⟨ ⊢M′ ⟩ eval k M′ ⊢M′
-eval {Δ} {A} (suc k) M ⊢M | just (M′ , r) | nothing = illtyped r
+eval {Δ} {A} (suc k) M ⊢M | just (M′ , δ , r) | nothing = illtyped r
 
 ------------------------------------------------------------------------
 -- 8. Reading a trace
@@ -521,6 +527,13 @@ traceEnd : ∀ {Δ A M} → Trace Δ A M → Term
 traceEnd {M = M} (stop f)            = M
 traceEnd         (illtyped {M′ = M′} r) = M′
 traceEnd         (r ◅⟨ ⊢M′ ⟩ tr)     = traceEnd tr
+
+-- The context in which the final state lives.  Allocating steps change this
+-- index even though the trace itself remains a run from its initial context.
+traceCtx : ∀ {Δ A M} → Trace Δ A M → Ctxᵗ
+traceCtx {Δ = Δ} (stop f) = Δ
+traceCtx {Δ = Δ} (illtyped {δ = δ} r) = apply δ Δ
+traceCtx (r ◅⟨ ⊢M′ ⟩ tr) = traceCtx tr
 
 -- the states, the first one included
 traceTerms : ∀ {Δ A M} → Trace Δ A M → List Term
@@ -562,19 +575,20 @@ Checked (r ◅⟨ ⊢M′ ⟩ tr) = Checked tr
 -- SUBJECT REDUCTION, FOR THIS RUN.  Not proved — checked, state by
 -- state, by the derivations the trace stores.
 trace-⦂ : ∀ {Δ A M} → Δ ∣ [] ⊢ M ⦂ A → (tr : Trace Δ A M)
-  → Checked tr → Δ ∣ [] ⊢ traceEnd tr ⦂ A
+  → Checked tr → traceCtx tr ∣ [] ⊢ traceEnd tr ⦂ A
 trace-⦂ ⊢M (stop f)        c = ⊢M
 trace-⦂ ⊢M (illtyped r)       ()
 trace-⦂ ⊢M (r ◅⟨ ⊢M′ ⟩ tr) c = trace-⦂ ⊢M′ tr c
 
 eval-⦂ : ∀ {Δ A M} (k : ℕ) (⊢M : Δ ∣ [] ⊢ M ⦂ A)
-  → Checked (eval k M ⊢M) → Δ ∣ [] ⊢ traceEnd (eval k M ⊢M) ⦂ A
+  → Checked (eval k M ⊢M)
+  → traceCtx (eval k M ⊢M) ∣ [] ⊢ traceEnd (eval k M ⊢M) ⦂ A
 eval-⦂ k ⊢M c = trace-⦂ ⊢M (eval k _ ⊢M) c
 
 -- and `Checked` really bites: an `illtyped` trace has no such proof, so
 -- the `_` a caller writes for it is a proof only because every state the
 -- run passed through was checked.
-illtyped-unchecked : ∀ {Δ A M M′} (r : Δ ⊢ M -→ M′)
+illtyped-unchecked : ∀ {Δ A M M′ δ} (r : Δ ⊢ M -→ M′ ∣ δ)
   → Checked {Δ} {A} (illtyped r) → ⊥
 illtyped-unchecked r c = c
 
@@ -674,7 +688,8 @@ reaches-run {k = k} {⊢M = ⊢M} r = eval-run k ⊢M (reaches-end r)
 
 -- and the endpoint's typing: SUBJECT REDUCTION for this run, checked
 reaches-⦂ : ∀ {Δ A M V k n} {⊢M : Δ ∣ [] ⊢ M ⦂ A}
-  → Reaches k n ⊢M V → Δ ∣ [] ⊢ V ⦂ A
+  → Reaches k n ⊢M V
+  → traceCtx (eval k M ⊢M) ∣ [] ⊢ V ⦂ A
 reaches-⦂ {A = A} {k = k} {⊢M = ⊢M} r =
   subst (λ W → _ ∣ [] ⊢ W ⦂ A) (reaches-end r)
     (eval-⦂ k ⊢M (reaches-checked r))

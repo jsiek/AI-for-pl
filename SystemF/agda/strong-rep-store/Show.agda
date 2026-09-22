@@ -18,8 +18,8 @@ module strong-rep-store.Show where
 --     at the same position — X, Y, Z, then X′, Y′, Z′, ….
 --
 -- So `X` is by construction the ordinary name of `α`, `Y` of `β`, and a
--- boundary that binds α and then unlocks it at ordinary position 0 prints
--- as `⟪ ↑α:=ℕ , ↥X , … ⟫`.  Reading a change's letter therefore says which
+-- boundary that unlocks cell α at ordinary position 0 prints as
+-- `⟪ ↥X , … ⟫`.  Reading a change's letter therefore says which
 -- representation it is about; if a rendered `↓` shows a letter other than
 -- the one its representation was allocated with, the name map and the
 -- representation it is supposed to denote have come apart, which is the
@@ -27,11 +27,7 @@ module strong-rep-store.Show where
 --
 -- WHAT A BOUNDARY `M ⟪ Θ , c ⟫` RENDERS AS, under an exterior environment:
 --
---   * `Θ`'s BINDS come first, `↑α:=R`.  A payload is read in the
---     representation universe over the EXTERIOR representation context —
---     the bind block is parallel — and an ordinary `∀` inside a payload
---     binds a payload-LOCAL variable, printed with a Latin letter.
---   * `Θ`'s CHANGES come next, IN THE ORDER THEY ACT — that is, the list
+--   * `Θ`'s CHANGES appear IN THE ORDER THEY ACT — that is, the list
 --     is walked head-LAST, which is the order `_∣_⊢χ_⇒_` uses.  A `lock`
 --     prints as `↓X` naming the ordinary variable it deletes, an `unlock`
 --     as `↥X` naming the ordinary variable it inserts.
@@ -46,10 +42,9 @@ module strong-rep-store.Show where
 -- print e's normal form in the mismatch error.  The entry points it calls
 -- are at the bottom: `showTyIn`, `showRepIn`, `showTmIn`, `showConvIn`,
 -- `showBndIn`, `showTCtx`, `showTermsIn`, and `showRun`, which renders a
--- whole `strong-rep-store.Eval` run with the name of the rule that fired at each
--- step.
+-- whole evaluator run with the store and the rule that fired at each step.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _<ᵇ_; _≡ᵇ_)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _<ᵇ_; _≡ᵇ_)
 open import Data.Nat.Show using (show)
 open import Data.Bool using (Bool; true; false; if_then_else_; _∨_)
 open import Data.List using (List; []; _∷_; length; map)
@@ -59,14 +54,14 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂)
 
 open import strong-rep-store.Types using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀)
 open import strong-rep-store.Ctx
-  using (Ctxᵗ; RepCtx; RepBinding; abstR; bindR; reps; names; RVar)
+  using (Ctxᵗ; RepCtx; abstR; bindR; reps; names; apply)
 open import strong-rep-store.Conversion using (Conv; id; seal; unseal; _↦_; `∀)
 open import strong-rep-store.Terms
   using (Term; `_; $_; `true; `false; ƛ_∙_; _·_; Λ_; _·[_,_]; _⟪_,_⟫;
          _∣_⊢_⦂_)
 open import strong-rep-store.Boundary
-  using (Boundary; boundary; binds; changes; numBinds; Change; lock; unlock)
-open import strong-rep-store.Reduction using (_⊢_-→_; TyBeta; Beta; Peel;
+  using (Boundary; changes; Change; lock; unlock)
+open import strong-rep-store.Reduction using (_⊢_-→_∣_; TyBeta; Beta; Peel;
   TyPeelR-Λ; TyPeelR-⟪⟫; CancelR; IdPush; Drop$; Drop-true; Drop-false;
   ξ-·-l; ξ-·-r; ξ-·[]; ξ-⟪⟫)
 open import strong-rep-store.Eval
@@ -190,18 +185,6 @@ rnames e = map proj₁ (eReps e)
 newPair : ℕ → String × String
 newPair n = repBinder n , tyBinder n
 
--- One fresh representation variable per bind, NAMED OLDEST FIRST: the last
--- entry of the bind list gets counter `f`, so an older bind keeps its name
--- when a newer one is prepended (`instantiate` prepends exactly one).
-newPairs : ℕ → ℕ → Pairs
-newPairs f zero    = []
-newPairs f (suc k) = newPair (f + k) ∷ newPairs f k
-
--- `extendReps`: the bind block is prepended and every ordinary name's
--- representation index moves past it.
-pushReps : ℕ → ℕ → Env → Env
-pushReps f k e = mkEnv (newPairs f k l++ eReps e) (map (k +_) (eNames e))
-
 -- `underΛ`: one abstract representation variable, and ordinary name 0 for
 -- it.
 underΛE : ℕ → Env → Env
@@ -263,8 +246,8 @@ applyChsI []      e = e
 applyChsI (δ ∷ χ) e = applyChI δ (applyChsI χ e)
 
 -- the conversion reading: a `lock` is SKIPPED, and an `unlock` of a name
--- that is already live is a no-op (`conv-unlock-live`, strong-rep-store.Boundary
--- §3)
+-- that is already live is a no-op (`conv-unlock-live`,
+-- strong-rep-store.Boundary §3)
 applyChC : Change → Env → Env
 applyChC (lock X α)   e = e
 applyChC (unlock X α) e =
@@ -285,13 +268,6 @@ changePieces e []      = []
 changePieces e (δ ∷ χ) =
   changePieces e χ l++ (changePiece (applyChsI χ e) δ ∷ [])
 
-bindPieces : Pairs → List String → List Ty → List String
-bindPieces ps       ext []       = []
-bindPieces []       ext (R ∷ Rs) =
-  ("↑?:=" ++ showRep [] ext R) ∷ bindPieces [] ext Rs
-bindPieces (p ∷ ps) ext (R ∷ Rs) =
-  ("↑" ++ proj₁ p ++ ":=" ++ showRep [] ext R) ∷ bindPieces ps ext Rs
-
 joinC : List String → String
 joinC []               = ""
 joinC (s ∷ [])         = s
@@ -305,13 +281,8 @@ entBlock ps@(_ ∷ _) = joinC ps ++ " , "
 
 showBnd : Env → ℕ → Boundary → Conv → String
 showBnd e f Θ c =
-  "⟪ " ++ entBlock (bindPieces (newPairs f (numBinds Θ)) (rnames e)
-                               (binds Θ)
-                      l++ changePieces eB (changes Θ))
-       ++ showConv (onames (applyChsC (changes Θ) eB)) c ++ " ⟫"
-  where
-  eB : Env
-  eB = pushReps f (numBinds Θ) e
+  "⟪ " ++ entBlock (changePieces e (changes Θ))
+       ++ showConv (onames (applyChsC (changes Θ) e)) c ++ " ⟫"
 
 ------------------------------------------------------------------------
 -- 6. Terms
@@ -341,8 +312,7 @@ showTmF e tms f x (Λ N) with showTmF (underΛE f e) tms (suc f) x N
 showTmF e tms f x (L ·[ B , A ]) with showTmF e tms f x L
 ... | l , f′ = l ++ " [" ++ showTy (onames e) A ++ "]" , f′
 showTmF e tms f x (M ⟪ Θ , c ⟫)
-  with showTmF (applyChsI (changes Θ) (pushReps f (numBinds Θ) e))
-               tms (f + numBinds Θ) x M
+  with showTmF (applyChsI (changes Θ) e) tms f x M
 ... | body , f′ = "(" ++ body ++ " " ++ showBnd e f Θ c ++ ")" , f′
 
 ------------------------------------------------------------------------
@@ -376,13 +346,36 @@ showTCtx Γ =
   ps : Pairs
   ps = map newPair (count zero (length (reps Γ)))
 
+-- Build the renderer from the actual state context.  Cell i is always named
+-- by the i-th Greek name, and the ordinary names are exactly the state's
+-- name map.
+ctxEnv : Ctxᵗ → Env
+ctxEnv Γ = mkEnv ps (names Γ)
+  where
+  ps : Pairs
+  ps = map newPair (count zero (length (reps Γ)))
+
+showStore : Ctxᵗ → String
+showStore Γ = "Ξ = [" ++ joinC (showRepEntries zero (eReps e) (reps Γ))
+                    ++ "]"
+  where
+  e : Env
+  e = ctxEnv Γ
+
+showState : Ctxᵗ → Term → String
+showState Γ M =
+  showStore Γ ++ "\n" ++ proj₁ (showTmF e [] (length (reps Γ)) zero M)
+  where
+  e : Env
+  e = ctxEnv Γ
+
 ------------------------------------------------------------------------
 -- 8. Runs
 ------------------------------------------------------------------------
 
 -- The rule that actually fired: a congruence reports the rule inside it,
 -- which is what a reader of a trace wants to see.
-ruleName : ∀ {Δ M N} → Δ ⊢ M -→ N → String
+ruleName : ∀ {Δ M N δ} → Δ ⊢ M -→ N ∣ δ → String
 ruleName (TyBeta v same)             = "TyBeta"
 ruleName (Beta v)                    = "Beta"
 ruleName (Peel v w rc ri rd sc)      = "Peel"
@@ -436,12 +429,13 @@ showTermsIn n (M ∷ Ms@(_ ∷ _)) =
   showTmIn n M ++ "\n  -->\n" ++ showTermsIn n Ms
 
 showTrace : ∀ {Δ A M} → ℕ → Trace Δ A M → String
-showTrace {M = M} n (stop fin) =
-  showTmIn n M ++ "\n    -- " ++ finalName fin
-showTrace {M = M} n (illtyped r) =
-  showTmIn n M ++ "\n  --[" ++ ruleName r ++ "]-->  -- TYPE LOST"
-showTrace {M = M} n (r ◅⟨ ⊢M′ ⟩ tr) =
-  showTmIn n M ++ "\n  --[" ++ ruleName r ++ "]-->\n" ++ showTrace n tr
+showTrace {Δ = Δ} {M = M} n (stop fin) =
+  showState Δ M ++ "\n    -- " ++ finalName fin
+showTrace {Δ = Δ} {M = M} n (illtyped {M′ = M′} {δ = δ} r) =
+  showState Δ M ++ "\n  --[" ++ ruleName r ++ "]-->\n"
+    ++ showState (apply δ Δ) M′ ++ "\n    -- TYPE LOST"
+showTrace {Δ = Δ} {M = M} n (r ◅⟨ ⊢M′ ⟩ tr) =
+  showState Δ M ++ "\n  --[" ++ ruleName r ++ "]-->\n" ++ showTrace n tr
 
 -- the whole run, rendered: `showRun 0 11 Q₀-⊢` for a closed program
 showRun : ∀ {Δ A M} → ℕ → ℕ → Δ ∣ [] ⊢ M ⦂ A → String

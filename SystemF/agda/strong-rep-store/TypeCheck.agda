@@ -7,33 +7,29 @@ module strong-rep-store.TypeCheck where
 --     representation payloads and context well-formedness (`wfᴿ?`,
 --     `wfRepCtx?`, `validNames?`, `unique?`, `wfCtx?`); §5 the two
 --     induced contexts `interior?`/`conversion?` and the complete
---     witness `boundaryWf?`; §6 `strAt`, the inverse of `shiftRep`; §7 the
---     readings between the universes (`read?`, `sameTy?`,
---     `sameTyExt?`, `rebase?`, `respell?`); §8 the lookup square
+--     witness `boundaryWf?`; §6 the readings between the universes
+--     (`read?`, `sameTy?`, `rebase?`, `respell?`); §7 the lookup square
 --     `∋:=?`, type formation `wfTy?` and conversion typing `convTy?`;
---     §9 `infer`; §10 the checking forms `check⊢`, `checkConv`,
---     `check~`; §11 the forcing family `IsJ`/`force` with the
+--     §8 `infer`; §9 the checking forms `check⊢`, `checkConv`,
+--     `check~`; §10 the forcing family `IsJ`/`force` with the
 --     goal-directed `tc`, `tk`, `tu`, `tf`, `tr` and the inferring
 --     `int!`, `conv!`, `mw!`, `sq!`, `tv!`, `cv!`, `ty!`, `wf!`.
 --   * NOTHING HERE IS ASSUMED AND NOTHING IS TRUSTED.  Every checker
 --     returns a `Maybe` of the ORDINARY derivation, built from the
 --     constructors of the judgements in strong-rep-store.Ctx,
--- strong-rep-store.Boundary,
---     strong-rep-store.Conversion and strong-rep-store.Terms — never a bit, never
--- a
---     postulate, so there is no soundness theorem to owe.  The rules
+--     strong-rep-store.Boundary,
+--     strong-rep-store.Conversion and strong-rep-store.Terms — never a bit,
+--     never a postulate, so there is no soundness theorem to owe.  The rules
 --     and judgements themselves belong in those modules; the redex
 --     search that consumes these checkers is strong-rep-store.Eval; the
---     metatheory is under strong-rep-store.proof.  This module depends on none
--- of
---     it, which is why All.agda checks it before the theorems.
+--     metatheory is under strong-rep-store.proof.  This module depends on
+--     none of it, which is why All.agda checks it before the theorems.
 --   * THREE THINGS TO KNOW BEFORE USING IT (notes/PLAN.md).  (1) It
 --     must INFER, not merely check: `⊢·` and `⊢·[]` need the head's
 --     type and a head can be a boundary, and inferring a boundary's
---     exterior type means inverting `shiftRep`, since `env` reads that
---     type across the boundary scope's representation-bind prefix.  That is
---     `strAt` (§6) — the one place in the file that produces an
---     equation instead of a derivation.  (2) A goal-directed form
+--     exterior type means re-spelling the conversion target at the ambient
+--     name map.  `rebase?` (§6) supplies that spelling through the common
+--     representation.  (2) A goal-directed form
 --     discharges a premise only when the goal fixes every input.  The
 --     lookup premise of `CancelR` and `IdPush` does not: both contracta
 --     mention the looked-up type only under `mkId`, which the unifier
@@ -48,12 +44,12 @@ module strong-rep-store.TypeCheck where
 --
 -- Every checker in this file returns a `Maybe` of the ORDINARY derivation
 -- it found, never a bit and never a postulate.  The caller states the
--- answer it expects and §11 forces the checker at it, so a failure or a
+-- answer it expects and §10 forces the checker at it, so a failure or a
 -- different answer is a type error rather than a silently accepted
 -- witness.  Nothing here is assumed and nothing here is trusted: the
 -- derivations are built from the constructors of the judgements in
--- strong-rep-store.Ctx, strong-rep-store.Boundary, strong-rep-store.Conversion and
--- strong-rep-store.Terms.
+-- strong-rep-store.Ctx, strong-rep-store.Boundary,
+-- strong-rep-store.Conversion and strong-rep-store.Terms.
 --
 -- USAGE.  `tc` IS a typing derivation — it reads its four arguments off
 -- the goal, so
@@ -84,19 +80,17 @@ module strong-rep-store.TypeCheck where
 -- entirely, and — since it decides the term judgement too — an example's
 -- typing derivation becomes a statement of the type and nothing else.
 --
--- The one genuinely non-obvious checker is `sameTyExt?` (§7).  It is also
--- the reason `infer` is an inference and not a check:  `env`'s
--- exterior premise reads the boundary's exterior type through Θ's
--- representation-bind prefix, `Δᶜ ⊢ᶜ Cₑ ~ shiftRep n R`, so an exterior
--- type can only be inferred by inverting `shiftRep`.  That is `strAt`
--- (§6), strengthening at a binder depth — the one place in the file where
--- a checker builds an equation instead of a derivation.  Checking mode
--- would avoid it, but `⊢·` and `⊢·[]` have to INFER the head's type and a
--- head can be a boundary, so inference is not optional.
+-- The one genuinely non-obvious checker is `rebase?` (§6).  It is also the
+-- reason `infer` is an inference and not a check: `env` exposes the
+-- conversion target at the conversion context, while the result type must
+-- be spelled at the ambient context.  `rebase?` reads the target to its
+-- representation and writes that representation back at the ambient name
+-- map.  Checking mode would avoid the synthesis, but `⊢·` and `⊢·[]` have
+-- to infer the head's type and a head can be a boundary.
 
-open import Data.Nat using (ℕ; zero; suc; _+_; _∸_; _<_; _≤_)
+open import Data.Nat using (ℕ; zero; suc; _∸_; _<_)
 open import Data.Nat.Properties using (_≟_; _<?_; ≮⇒≥; m+[n∸m]≡n)
-open import Data.List using (List; []; _∷_; map; length)
+open import Data.List using (List; []; _∷_)
 open import Data.Maybe using (Maybe; just; nothing; From-just; from-just)
 open import Data.Unit using (⊤)
 open import Data.Empty using (⊥)
@@ -104,11 +98,10 @@ open import Data.Product
   using (Σ; Σ-syntax; _×_; _,_; ∃-syntax; proj₁; proj₂)
 open import Relation.Nullary using (yes; no)
 open import Relation.Binary.PropositionalEquality
-  using (_≡_; refl; sym; trans; cong; cong₂; subst)
+  using (_≡_; refl; subst)
 
 open import strong-rep-store.Types
-  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; TyVar; Renameᵗ; renameᵗ;
-         extᵗ; ⇑ᵗ; _[_]ᵗ)
+  using (Ty; `_; `ℕ; `𝔹; _⇒_; `∀; _[_]ᵗ)
 open import strong-rep-store.Ctx
 open import strong-rep-store.Conversion
 open import strong-rep-store.Boundary
@@ -337,31 +330,19 @@ wfCtx? Γ | just wr | just vn with unique? (names Γ)
 wfCtx? Γ | just wr | just vn | nothing = nothing
 wfCtx? Γ | just wr | just vn | just u  = just (wf-ctx wr vn u)
 
--- Every bind payload is checked over the SAME exterior representation
--- context (the parallel-bind discipline, strong-rep-store.Ctx §9).
-binds? : (Ξ : RepCtx) (Rs : List Ty) → Maybe (Ξ ⊢ᴮ Rs)
-binds? Ξ []       = just binds[]
-binds? Ξ (R ∷ Rs) with wfᴿ? Ξ zero R
-binds? Ξ (R ∷ Rs) | nothing = nothing
-binds? Ξ (R ∷ Rs) | just wR with binds? Ξ Rs
-binds? Ξ (R ∷ Rs) | just wR | just bs = just (binds∷ wR bs)
-binds? Ξ (R ∷ Rs) | just wR | nothing = nothing
-
 ------------------------------------------------------------------------
 -- 5. The two induced contexts, and a complete boundary scope witness
 ------------------------------------------------------------------------
 
 interior? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (∃[ Γᵢ ] Γ ⊢ⁱ Θ ⇒ Γᵢ)
 interior? Γ Θ
-  with runχ (reps (extendReps (binds Θ) Γ))
-            (names (extendReps (binds Θ) Γ)) (changes Θ)
+  with runχ (reps Γ) (names Γ) (changes Θ)
 interior? Γ Θ | nothing        = nothing
 interior? Γ Θ | just (Δ′ , cs) = just (_ , interior cs)
 
 conversion? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (∃[ Γᶜ ] Γ ⊢ᶜ Θ ⇒ Γᶜ)
 conversion? Γ Θ
-  with runχᶜ (reps (extendReps (binds Θ) Γ))
-             (names (extendReps (binds Θ) Γ)) (changes Θ)
+  with runχᶜ (reps Γ) (names Γ) (changes Θ)
 conversion? Γ Θ | nothing        = nothing
 conversion? Γ Θ | just (Δ′ , cs) = just (_ , conversion cs)
 
@@ -372,59 +353,15 @@ BoundaryWfResult Γ Θ =
 boundaryWf? : (Γ : Ctxᵗ) (Θ : Boundary) → Maybe (BoundaryWfResult Γ Θ)
 boundaryWf? Γ Θ with wfCtx? Γ
 boundaryWf? Γ Θ | nothing = nothing
-boundaryWf? Γ Θ | just wΓ with binds? (reps Γ) (binds Θ)
+boundaryWf? Γ Θ | just wΓ with interior? Γ Θ
 boundaryWf? Γ Θ | just wΓ | nothing = nothing
-boundaryWf? Γ Θ | just wΓ | just bs with interior? Γ Θ
-boundaryWf? Γ Θ | just wΓ | just bs | nothing = nothing
-boundaryWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) with conversion? Γ Θ
-boundaryWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | nothing = nothing
-boundaryWf? Γ Θ | just wΓ | just bs | just (Γᵢ , int) | just (Γᶜ , cnv) =
-  just (Γᵢ , Γᶜ , bw wΓ bs int cnv)
+boundaryWf? Γ Θ | just wΓ | just (Γᵢ , int) with conversion? Γ Θ
+boundaryWf? Γ Θ | just wΓ | just (Γᵢ , int) | nothing = nothing
+boundaryWf? Γ Θ | just wΓ | just (Γᵢ , int) | just (Γᶜ , cnv) =
+  just (Γᵢ , Γᶜ , bw wΓ int cnv)
 
 ------------------------------------------------------------------------
--- 6. Strengthening: the inverse of `shiftRep`
-------------------------------------------------------------------------
-
--- `extN k suc` is the identity below k and `suc` at or above it, so its
--- image misses exactly k.  Inverting it is what lets an exterior type be
--- INFERRED from a conversion's target, which `env` presents through the
--- boundary scope's representation-bind prefix.
-strVar : (k X : ℕ) → Maybe (∃[ Y ] extN k suc Y ≡ X)
-strVar zero    zero    = nothing
-strVar zero    (suc X) = just (X , refl)
-strVar (suc k) zero    = just (zero , refl)
-strVar (suc k) (suc X) with strVar k X
-strVar (suc k) (suc X) | just (Y , eq) = just (suc Y , cong suc eq)
-strVar (suc k) (suc X) | nothing       = nothing
-
-strAt : (k : ℕ) (S : Ty)
-  → Maybe (∃[ R ] renameᵗ (extN k suc) R ≡ S)
-strAt k (` X) with strVar k X
-strAt k (` X) | just (Y , eq) = just (` Y , cong `_ eq)
-strAt k (` X) | nothing       = nothing
-strAt k `ℕ = just (`ℕ , refl)
-strAt k `𝔹 = just (`𝔹 , refl)
-strAt k (A ⇒ B) with strAt k A
-strAt k (A ⇒ B) | nothing = nothing
-strAt k (A ⇒ B) | just (A′ , eqA) with strAt k B
-strAt k (A ⇒ B) | just (A′ , eqA) | just (B′ , eqB) =
-  just (A′ ⇒ B′ , cong₂ _⇒_ eqA eqB)
-strAt k (A ⇒ B) | just (A′ , eqA) | nothing = nothing
-strAt k (`∀ A) with strAt (suc k) A
-strAt k (`∀ A) | just (A′ , eq) = just (`∀ A′ , cong `∀ eq)
-strAt k (`∀ A) | nothing        = nothing
-
-unshiftRep : (n : ℕ) (S : Ty) → Maybe (∃[ R ] shiftRep n R ≡ S)
-unshiftRep zero    S = just (S , refl)
-unshiftRep (suc n) S with strAt zero S
-unshiftRep (suc n) S | nothing = nothing
-unshiftRep (suc n) S | just (S′ , eq) with unshiftRep n S′
-unshiftRep (suc n) S | just (S′ , eq) | just (R , eq′) =
-  just (R , trans (cong ⇑ᵗ eq′) eq)
-unshiftRep (suc n) S | just (S′ , eq) | nothing = nothing
-
-------------------------------------------------------------------------
--- 7. Reading types between the two universes
+-- 6. Reading types between the two universes
 ------------------------------------------------------------------------
 
 -- Forward: replace each live ordinary name by the representation variable
@@ -541,25 +478,8 @@ sameTy? Γ Γ′ A B | just (R , p) | just (S , q) | just refl =
   just (R , p , q)
 sameTy? Γ Γ′ A B | just (R , p) | just (S , q) | nothing = nothing
 
--- `env`'s exterior premise, read from the conversion's TARGET.  The
--- conversion context sees the type across Θ's representation-bind prefix,
--- so recovering the exterior spelling strengthens by `numBinds Θ` first.
-SameExtResult : ℕ → Ctxᵗ → Ctxᵗ → Ty → Set
-SameExtResult n Γ Γ′ Cₑ = Σ[ Bₑ ∈ Ty ] SameTyExt n Γ Bₑ Γ′ Cₑ
-
-sameTyExt? : (n : ℕ) (Γ Γ′ : Ctxᵗ) (Cₑ : Ty)
-  → Maybe (SameExtResult n Γ Γ′ Cₑ)
-sameTyExt? n Γ Γ′ Cₑ with read? (names Γ′) Cₑ
-sameTyExt? n Γ Γ′ Cₑ | nothing = nothing
-sameTyExt? n Γ Γ′ Cₑ | just (S , q) with unshiftRep n S
-sameTyExt? n Γ Γ′ Cₑ | just (S , q) | nothing = nothing
-sameTyExt? n Γ Γ′ Cₑ | just (S , q) | just (R , eq) with unread? (names Γ) R
-sameTyExt? n Γ Γ′ Cₑ | just (S , q) | just (R , eq) | nothing = nothing
-sameTyExt? n Γ Γ′ Cₑ | just (S , q) | just (R , eq) | just (Bₑ , p) =
-  just (Bₑ , R , p , subst (names Γ′ ⊢ Cₑ ~_) (sym eq) q)
-
 ------------------------------------------------------------------------
--- 8. The lookup square, type formation, and conversions
+-- 7. The lookup square, type formation, and conversions
 ------------------------------------------------------------------------
 
 lookupʳ? : (Ξ : RepCtx) (α : RVar) → Maybe (∃[ b ] Ξ ∋ʳ α := b)
@@ -635,7 +555,7 @@ convTy? Γ (`∀ s) | just (A , B , ⊢s) = just (`∀ A , `∀ B , conv-all ⊢
 convTy? Γ (`∀ s) | nothing = nothing
 
 ------------------------------------------------------------------------
--- 9. Term typing
+-- 8. Term typing
 ------------------------------------------------------------------------
 
 lookupTm? : (Γ : Ctx) (x : Var) → Maybe (∃[ A ] Γ ∋ x ⦂ A)
@@ -743,7 +663,7 @@ infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
   | just (Cᵢ , Cₑ , ⊢c) | nothing = nothing
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
   | just (Cᵢ , Cₑ , ⊢c) | just sameᵢ
-  with sameTyExt? (numBinds Θ) Δ Δᶜ Cₑ
+  with rebase? (names Δᶜ) (names Δ) Cₑ
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
   | just (Cᵢ , Cₑ , ⊢c) | just sameᵢ | nothing = nothing
 infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
@@ -756,7 +676,7 @@ infer Δ Γ (M ⟪ Θ , c ⟫) | just (Δᵢ , Δᶜ , mwf) | just (Bᵢ , ⊢M)
   just (Bₑ , env mwf ⊢M ⊢c sameᵢ sameₑ wE)
 
 ------------------------------------------------------------------------
--- 10. Checking a term against a stated type
+-- 9. Checking a term against a stated type
 ------------------------------------------------------------------------
 
 check⊢ : (Δ : Ctxᵗ) (Γ : Ctx) (M : Term) (A : Ty)
@@ -785,7 +705,7 @@ check~ η A R | just (S , p) | just refl = just p
 check~ η A R | just (S , p) | nothing   = nothing
 
 ------------------------------------------------------------------------
--- 11. Forcing a checker
+-- 10. Forcing a checker
 ------------------------------------------------------------------------
 
 -- `IsJ m` is the unit RECORD when the checker succeeded, so Agda solves a

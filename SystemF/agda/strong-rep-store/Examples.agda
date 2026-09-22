@@ -1,11 +1,10 @@
 module strong-rep-store.Examples where
 
 -- File Charter:
---   * THE LIVING REGRESSION for the two-universe (representation-
---     variable) design: closed programs, their typing derivations, the
---     runs they perform, the two equations term substitution owes at a
---     crossing, and the refutations that still hold.  Everything here is
---     about the rules as they stand today.
+--   * THE LIVING REGRESSION for the two-universe representation-store
+--     design: closed programs, their typing derivations, the runs and store
+--     growth they perform, the two equations term substitution owes at a
+--     crossing, and the refutations that still hold.
 --   * EXAMPLES ONLY.  Nothing here records a design decision, a defect or
 --     a repair.  Those go in notes/DECISIONS.md, and a machine-checked
 --     witness for one goes in its own notes/ module — see
@@ -36,9 +35,8 @@ module strong-rep-store.Examples where
 --        fire twice for `Q` and `L`, four times for `D`, and six times
 --        for `R`.
 --   §3   TYPEELR FROM CLOSED PLAIN SOURCE — `G`, whose second inner
---        instantiation is a `TyPeelR` redex over a one-bind frame, and
---        the machine-checked table of which rule can mint a frame with
---        two binds at all.
+--        instantiation is a `TyPeelR` redex after the first allocation;
+--        both cells live in the ambient representation store.
 --   §4   THE REVEAL MIRROR — `H`, where the `∀` crosses the boundary
 --        OUTWARD as a result rather than inward as an argument.
 --   §5   CROSSINGS UNDER LATER BINDERS: THE TOWER — `E` and `V`, whose
@@ -49,11 +47,11 @@ module strong-rep-store.Examples where
 --   §6   POLYMORPHIC PAYLOADS — `I` (impredicative) and `N` (a payload
 --        with a free representation variable under its own binder).
 --   §7   FUNCTIONS THAT CROSS — `A`, `B` and `C`: a `_↦_` conversion
---        drives `Peel` on frames that are `_⋉_`/`rewind` composites,
+--        drives `Peel` on boundaries that are `_⋉_`/`rewind` composites,
 --        `C` doing it through §5's tower.
 --   §8   THE CANCELR SHIFT WITNESS — `S`, the run that certifies the
---        repaired `CancelR`; the only run whose `CancelR` has
---        `numBinds Θ₁ ≢ 0` and an open representation.
+--        repaired `CancelR`; its cancelled representation is open in the
+--        ambient store.
 --   §9   HAND-BUILT BOUNDARIES AT A NON-EMPTY AMBIENT — the cancel pair
 --        and the id-layer stack, written down rather than reached, at a
 --        Δ that is not `empty`.  Two of these runs are pinned state by
@@ -68,7 +66,9 @@ module strong-rep-store.Examples where
 --
 -- THE RUNS, AND WHAT THEY REACH.  This table is the acceptance test: a
 -- change to the rules that moves a step count or an endpoint is a change
--- that has to be argued for.
+-- that has to be argued for.  Sections §1–§8 and §10 begin with the empty
+-- store and grow it at each `TyBeta`/`TyPeelR`; §9 begins with the one-cell
+-- store `Δ₆`.  The endpoint term is stated independently of that final store.
 --
 --   §1a  P     6 steps   7      : ℕ    the polymorphic identity
 --   §1b  K     9 steps   true   : 𝔹    a polymorphic Boolean use
@@ -79,7 +79,7 @@ module strong-rep-store.Examples where
 --   §2a  D    22 steps   7      : ℕ    four IdPush steps
 --   §2b  L    14 steps   7      : ℕ    the wall context
 --   §2c  R    24 steps   7      : ℕ    a chained representation
---   §3   G    17 steps   7      : ℕ    a two-bind frame
+--   §3   G    17 steps   7      : ℕ    two store allocations
 --   §4   H    11 steps   7      : ℕ    the reveal mirror
 --   §5a  E    28 steps   true   : 𝔹    one later binder
 --   §5b  V    40 steps   true   : 𝔹    two later binders
@@ -97,9 +97,9 @@ module strong-rep-store.Examples where
 -- WHAT A RUN HERE ASSERTS.  One `Reaches k n ⊢M V` says that with fuel
 -- `k` the evaluator reaches `V` in exactly `n` steps, that `V` is a
 -- value, and that NO state along the way lost the type — `eval`
--- (strong-rep-store.Eval) calls `check⊢` on every contractum at the type the run
--- started with, and a rejected one is an `illtyped`, which makes the
--- statement false.  So an example asserts the endpoint, the step count,
+-- (strong-rep-store.Eval) calls `check⊢` on every contractum at the context
+-- after that step's allocation, and a rejected one is an `illtyped`, which
+-- makes the statement false.  So an example asserts the endpoint and count,
 -- that no state on the way was ill-typed, and that the endpoint is a
 -- value — all in ONE statement, which is what keeps the run from being
 -- evaluated several times over.
@@ -140,22 +140,20 @@ module strong-rep-store.Examples where
 --     refutation that survives the port, `notes/CancelRShiftWall.agda`.
 --   * old §8, §9 (progress and preservation along a run) —
 --     `strong-rep-store.Preservation.preservation` (2026-09-20) and
---     `strong-rep-store.Progress.progress` (2026-09-21) are UNCONDITIONAL, but
--- the
---     run-level subject reduction here stays the one `eval` CHECKS,
+--     `strong-rep-store.Progress.progress` (2026-09-21) are UNCONDITIONAL,
+--     but the run-level subject reduction here stays the one `eval` CHECKS,
 --     state by state: it is cheaper than instantiating the theorem at
 --     every run and catches the same losses.
 --   * old §12b and the old §13a/§13b witnesses — they imported
---     `strong-rep-store.proof.PreserveObstruct`, which was deleted in the module
---     sweep (notes/DECISIONS.md, 2026-09-19).  What they probed —
+--     `strong-rep-store.proof.PreserveObstruct`, which was deleted in the
+--     module sweep (notes/DECISIONS.md, 2026-09-19).  What they probed —
 --     whether the wall CONTEXT is reachable from closed source — is
 --     §2b's `L`, which still reaches it and still runs to a value.
 --   * old §15 (TIGHTNESS, RULE BY RULE) — its seven frame identities were
 --     EQUATIONS between computed contexts.  They are now the relational
 --     transports `dual-interior`, `rewind-interior`, `rewind-conversion`
 --     and `merged-interior` (`strong-rep-store.Boundary` §3a), and the audit
--- that
---     consumes them is `proof/ShiftAudit.agda`.
+--     that consumes them is `proof/ShiftAudit.agda`.
 --
 -- See notes/DECISIONS.md, 2026-09-19, for the section-by-section record.
 -- The old §13a `J` and the old §14 `E` — the program that killed the
@@ -180,7 +178,8 @@ open import strong-rep-store.TermSubst
 open import strong-rep-store.Reduction
 open import strong-rep-store.TypeCheck using (tc; infer)
 open import strong-rep-store.Eval
-  using (eval; evalTerms; Reaches; reaches; reaches-run; reaches-⦂; ran)
+  using (eval; evalTerms; traceCtx; Reaches; reaches; reaches-run;
+         reaches-⦂; ran)
 
 ------------------------------------------------------------------------
 -- §1  THE BASELINE RUNS — closed, plain System F, no boundary written
@@ -325,7 +324,7 @@ Q-run = reaches-run Q-eval
 
 -- SUBJECT REDUCTION FOR THIS RUN, read off the same statement: no second
 -- pass over the program, and no appeal to the preservation theorem.
-Q-⦂ : empty ∣ [] ⊢ $ 7 ⦂ `ℕ
+Q-⦂ : traceCtx (eval 14 Q₀ Q₀-⊢) ∣ [] ⊢ $ 7 ⦂ `ℕ
 Q-⦂ = reaches-⦂ Q-eval
 
 ------------------------------------------------------------------------
@@ -396,16 +395,16 @@ L-run = reaches-run L-eval
 -- §2c  A CHAINED REPRESENTATION
 ------------------------------------------------------------------------
 
--- The `Θ₂` of `Q`'s `IdPush` redex binds the representation `ℕ`, which
--- names nothing.  This variant makes it a VARIABLE naming ANOTHER binder,
--- by running `Q`'s own program inside one more package, at the outer
--- package's ordinary type variable:
+-- The cell allocated by `Q` contains the representation `ℕ`, which names
+-- nothing.  This variant allocates a cell whose payload is a VARIABLE naming
+-- ANOTHER cell, by running `Q`'s own program inside one more package, at the
+-- outer package's ordinary type variable:
 --
 --   R = ((ΛX. λy:X.
 --          ((ΛY. λx:Y. ((ΛZ. λ_:ℕ. x) [ℕ]) · 0) [X]) · y)
 --        [ℕ]) · 7
 --
--- The inner instantiation `[X]` mints a binder whose representation is the
+-- The inner instantiation `[X]` allocates a cell whose representation is the
 -- one `X` names, so at the `IdPush` redex the looked-up representation is
 -- itself a variable of the representation universe.
 
@@ -424,16 +423,15 @@ R-run : empty ⊢ R₀ -→* $ 7
 R-run = reaches-run R-eval
 
 ------------------------------------------------------------------------
--- §3  TYPEELR FROM CLOSED PLAIN SOURCE, AND THE MULTI-BIND FRAME
+-- §3  TYPEELR FROM CLOSED PLAIN SOURCE, WITH TWO STORE CELLS
 ------------------------------------------------------------------------
 
 --   G = ((ΛX. λx:X. ((ΛY. ΛZ. λ_:ℕ. x) [ℕ]) [ℕ] · 0) [ℕ]) · 7
 --
--- `ΛY. ΛZ. x` has type `∀Y. ∀Z. X`, so the FIRST inner instantiation mints
--- an INERT `∀` conversion on a one-bind frame, and the SECOND
--- instantiation is therefore a `TyPeelR` redex whose crossed frame already
--- has a bind.  Its contractum's frame has TWO — which is the only way a
--- frame with two binds is reached at all, by the table below.
+-- `ΛY. ΛZ. x` has type `∀Y. ∀Z. X`, so the first inner instantiation
+-- allocates one store cell and mints an INERT `∀` conversion.  The second
+-- instantiation is therefore a `TyPeelR` redex and allocates a second cell.
+-- The crossed boundary itself still contains only changes.
 
 Gpoly Gbody Gfun G₀ : Term
 Gpoly = Λ (Λ (ƛ `ℕ ∙ ` 1))
@@ -451,33 +449,9 @@ G-eval = reaches refl V-$
 G-run : empty ⊢ G₀ -→* $ 7
 G-run = reaches-run G-eval
 
--- WHICH RULE CAN MINT A FRAME WITH TWO BINDS?  Every frame any rule writes
--- is one of these six, and only the `TyPeelR` pair grows the bind block.
--- `Peel`'s dual binds nothing at all, which is why every `CancelR` the
--- runs of §§1–7 reach has `numBinds Θ₁ ≡ 0` — the observation that
--- explains why no example saw the `CancelR` defect until §8 was written
--- (notes/CancelRShiftWall.agda, notes/DECISIONS.md 2026-09-19).
-
-numBinds-TyBeta : ∀ {R} → numBinds (instantiate R (boundary [])) ≡ 1
-numBinds-TyBeta = refl
-
-numBinds-Peel : ∀ {Θ} → numBinds (dualBoundary Θ) ≡ 0
-numBinds-Peel = refl
-
-numBinds-TyPeelR : ∀ {R Θ} → numBinds (instantiate R Θ) ≡ suc (numBinds Θ)
-numBinds-TyPeelR = refl
-
--- the MOVED boundary of the wrapper clause: a lock is appended, and a lock
--- is not a bind
-numBinds-moved : ∀ {Θ′}
-  → numBinds (addLock0 (renᴮ² (ren² idᵗ suc) Θ′)) ≡ numBinds Θ′
-numBinds-moved {Θ′} = numBinds-ren² (ren² idᵗ suc) Θ′
-
-numBinds-merged : ∀ {Θ₁ Θ₂} → numBinds (Θ₁ ⋉ Θ₂) ≡ numBinds Θ₁
-numBinds-merged = refl
-
-numBinds-rewind : ∀ {Θ₂} → numBinds (rewind Θ₂) ≡ numBinds Θ₂
-numBinds-rewind = refl
+-- The allocation is carried by the step result, not the boundary: `TyBeta`
+-- and both `TyPeelR` rules return `new R`; `Peel`, `CancelR`, `IdPush`, the
+-- drops, and their congruences return or propagate `none`.
 
 ------------------------------------------------------------------------
 -- §4  THE REVEAL MIRROR
@@ -592,9 +566,9 @@ V-run = reaches-run V-eval
 -- §6  POLYMORPHIC PAYLOADS
 ------------------------------------------------------------------------
 
--- Both programs here instantiate at a POLYMORPHIC type, so their
--- boundary scopes bind a representation payload with a `∀` in it.  They did not
--- run when they were written: `TyPeelR-⟪⟫` and `IdPush` each carried a
+-- Both programs here instantiate at a POLYMORPHIC type, so their stores
+-- receive a representation payload with a `∀` in it.  They did not run when
+-- they were written: `TyPeelR-⟪⟫` and `IdPush` each carried a
 -- spelling from the conversion context into the interior without
 -- re-basing it, and the two contexts disagree exactly when a lock and an
 -- unlock have moved the name.  Both rules now carry the interior spelling
@@ -604,9 +578,9 @@ V-run = reaches-run V-eval
 ------------------------------------------------------------------------
 -- §6a  (ΛX. λx:X. x) [∀Z. Z⇒Z] · (ΛZ. λz:Z. z), at [𝔹] · true
 --
--- IMPREDICATIVE: the type argument is itself a `∀`, so the boundary scope binds
--- a representation payload with a `∀` in it and `wfᴿ-∀` fires.  No other
--- run here instantiates at a polymorphic type.
+-- IMPREDICATIVE: the type argument is itself a `∀`, so the allocated store
+-- cell contains a representation payload with a `∀` and `wfᴿ-∀` fires.  No
+-- other run here instantiates at a polymorphic type.
 ------------------------------------------------------------------------
 
 I₀ : Term
@@ -733,11 +707,12 @@ C-run = reaches-run C-eval
 -- defect notes/CancelRShiftWall.agda and notes/DECISIONS.md).  Two
 -- choices make it bite where §§1–7 do not: the argument's polymorphic
 -- type RETURNS the abstracted variable, so a bare `seal` leaf reaches a
--- `↦`'s codomain and `Peel`'s RESULT boundary installs it on a frame
--- that binds; and the inner `Λ` is instantiated at the OUTER binder's
+-- `↦`'s codomain and `Peel`'s RESULT boundary installs it under a boundary
+-- whose cell is already in the store; the inner `Λ` is instantiated at the
+-- outer cell's
 -- own variable, so the cancelled binder's payload is a representation
--- VARIABLE.  Its `CancelR` is the corpus's only one with
--- `numBinds Θ₁ ≢ 0` and an open representation.
+-- VARIABLE.  Its `CancelR` is the corpus's only one whose cancelled cell
+-- contains an open representation.
 
 S₀ : Term
 S₀ = ((Λ (ƛ (` 0) ∙
@@ -761,10 +736,11 @@ S-run = reaches-run S-eval
 ------------------------------------------------------------------------
 
 -- Every run above starts at `empty`.  These three start at an ambient
--- context that already has a representation binding and an ordinary name
--- for it, and their boundaries are WRITTEN DOWN rather than minted.  The
--- ambient is the smallest interesting one: one concrete representation,
--- one ordinary name for it.
+-- store that already has a representation cell and an ordinary name for it,
+-- and their boundaries are WRITTEN DOWN rather than minted.  The ambient is
+-- the smallest interesting one: one concrete representation cell, one
+-- ordinary name for it.  Every boundary below is changes-only and reads that
+-- existing cell from `Δ₆`.
 
 Δ₆ : Ctxᵗ
 Δ₆ = (bindR `ℕ ∷ []) ∣ (0 ∷ [])
@@ -784,7 +760,7 @@ Wseal = ($ 7) ⟪ boundary [] , seal 0 ⟫
 -- walked off a numeral by `Drop$`.
 
 Tcancel : Term
-Tcancel = Wseal ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫
+Tcancel = Wseal ⟪ boundary [] , unseal 0 ⟫
 
 Tcancel-⊢ : Δ₆ ∣ [] ⊢ Tcancel ⦂ `ℕ
 Tcancel-⊢ = tc
@@ -804,8 +780,9 @@ Tcancel-run = reaches-run Tcancel-eval
 -- the rewind has nothing to undo.
 _ : evalTerms 3 Tcancel-⊢
       ≡ Tcancel
-      ∷ ((($ 7) ⟪ boundary [] , id `ℕ ⟫) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ (($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ ((($ 7) ⟪ boundary [] , id `ℕ ⟫)
+           ⟪ boundary [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ boundary [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -820,8 +797,8 @@ _ = refl
 -- bringing the reveal down onto the seal, and the pair then cancels.
 
 Tid : Term
-Tid = (Wseal ⟪ boundary (`ℕ ∷ []) [] , id (` 0) ⟫)
-        ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫
+Tid = (Wseal ⟪ boundary [] , id (` 0) ⟫)
+        ⟪ boundary [] , unseal 0 ⟫
 
 Tid-⊢ : Δ₆ ∣ [] ⊢ Tid ⦂ `ℕ
 Tid-⊢ = tc
@@ -840,18 +817,18 @@ Tid-run = reaches-run Tid-eval
 -- because neither locks).  The pushed name is the identity conversion's
 -- own, re-spelled into the merged conversion context, and the residue is
 -- the identity at the LOOKED-UP representation — which is where `IdPush`
--- escapes the defect `CancelR` has, since a lookup shifts itself past the
--- bind block (`∋ʳ-push`, notes/DECISIONS.md 2026-09-19).
+-- escapes the defect `CancelR` has: both readings resolve the identity
+-- through the same ambient store cell.
 _ : evalTerms 5 Tid-⊢
       ≡ Tid
-      ∷ ((Wseal ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫)
-           ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+      ∷ ((Wseal ⟪ boundary [] , unseal 0 ⟫)
+           ⟪ boundary [] , id `ℕ ⟫)
       ∷ (((($ 7) ⟪ boundary [] , id `ℕ ⟫)
-             ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
-           ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ ((($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
-           ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
-      ∷ (($ 7) ⟪ boundary (`ℕ ∷ []) [] , id `ℕ ⟫)
+             ⟪ boundary [] , id `ℕ ⟫)
+           ⟪ boundary [] , id `ℕ ⟫)
+      ∷ ((($ 7) ⟪ boundary [] , id `ℕ ⟫)
+           ⟪ boundary [] , id `ℕ ⟫)
+      ∷ (($ 7) ⟪ boundary [] , id `ℕ ⟫)
       ∷ ($ 7)
       ∷ []
 _ = refl
@@ -867,9 +844,9 @@ _ = refl
 -- extra layer.
 
 Tid₂ : Term
-Tid₂ = ((Wseal ⟪ boundary (`ℕ ∷ []) [] , id (` 0) ⟫)
-          ⟪ boundary (`ℕ ∷ []) [] , id (` 0) ⟫)
-         ⟪ boundary (`ℕ ∷ []) [] , unseal 0 ⟫
+Tid₂ = ((Wseal ⟪ boundary [] , id (` 0) ⟫)
+          ⟪ boundary [] , id (` 0) ⟫)
+         ⟪ boundary [] , unseal 0 ⟫
 
 Tid₂-⊢ : Δ₆ ∣ [] ⊢ Tid₂ ⦂ `ℕ
 Tid₂-⊢ = tc
@@ -999,5 +976,5 @@ no-short-fuel r with ran r
 no-short-fuel r | ()
 
 -- AND A VALUE DOES NOT STEP, so a run cannot be padded at the end.
-no-step-past-value : ∀ {M} → ¬ (Δ₆ ⊢ $ 7 -→ M)
+no-step-past-value : ∀ {M δ} → ¬ (Δ₆ ⊢ $ 7 -→ M ∣ δ)
 no-step-past-value st = value-¬step V-$ st
